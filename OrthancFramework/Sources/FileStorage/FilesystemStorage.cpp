@@ -164,6 +164,22 @@ namespace Orthanc
   }
 
 
+  IMemoryBuffer* FilesystemStorage::ReadRange(const std::string& uuid,
+                                              FileContentType type,
+                                              uint64_t start /* inclusive */,
+                                              uint64_t end /* exclusive */)
+  {
+    LOG(INFO) << "Reading attachment \"" << uuid << "\" of \"" << GetDescriptionInternal(type) 
+              << "\" content type (range from " << start << " to " << end << ")";
+
+    std::string content;
+    SystemToolbox::ReadFileRange(
+      content, GetPath(uuid).string(), start, end, true /* throw if overflow */);
+
+    return StringMemoryBuffer::CreateFromSwap(content);
+  }
+
+
   uintmax_t FilesystemStorage::GetSize(const std::string& uuid) const
   {
     boost::filesystem::path path = GetPath(uuid);

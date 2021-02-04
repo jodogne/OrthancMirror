@@ -91,6 +91,55 @@ namespace Orthanc
   }
       
 
+  IMemoryBuffer* MemoryStorageArea::ReadRange(const std::string& uuid,
+                                              FileContentType type,
+                                              uint64_t start /* inclusive */,
+                                              uint64_t end /* exclusive */)
+  {
+    LOG(INFO) << "Reading attachment \"" << uuid << "\" of \""
+              << static_cast<int>(type) << "\" content type "
+              << "(range from " << start << " to " << end << ")";
+
+    if (start > end)
+    {
+      throw OrthancException(ErrorCode_BadRange);
+    }
+    else if (start == end)
+    {
+      return new StringMemoryBuffer;
+    }
+    else
+    {
+      boost::mutex::scoped_lock lock(mutex_);
+
+      Content::const_iterator found = content_.find(uuid);
+
+      if (found == content_.end())
+      {
+        throw OrthancException(ErrorCode_InexistentFile);
+      }
+      else if (found->second == NULL)
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+      else if (end > found->second->size())
+      {
+        throw OrthancException(ErrorCode_BadRange);
+      }
+      else
+      {
+        std::string range;
+        range.resize(end - start);
+        assert(!range.empty());
+
+        memcpy(&range[0], &found->second[start], range.size());
+        
+        return StringMemoryBuffer::CreateFromSwap(range);
+      }
+    }
+  }
+
+
   void MemoryStorageArea::Remove(const std::string& uuid,
                                  FileContentType type)
   {

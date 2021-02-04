@@ -63,6 +63,7 @@
 #include "../../../OrthancFramework/Sources/MetricsRegistry.h"
 #include "../../../OrthancFramework/Sources/OrthancException.h"
 #include "../../../OrthancFramework/Sources/SerializationToolbox.h"
+#include "../../../OrthancFramework/Sources/StringMemoryBuffer.h"
 #include "../../../OrthancFramework/Sources/Toolbox.h"
 #include "../../Sources/OrthancConfiguration.h"
 #include "../../Sources/OrthancFindRequestHandler.h"
@@ -211,6 +212,46 @@ namespace Orthanc
       {
         return errorDictionary_;
       }
+
+      IMemoryBuffer* RangeFromWhole(const std::string& uuid,
+                                    FileContentType type,
+                                    uint64_t start /* inclusive */,
+                                    uint64_t end /* exclusive */)
+      {
+        if (start > end)
+        {
+          throw OrthancException(ErrorCode_BadRange);
+        }
+        else if (start == end)
+        {
+          return new StringMemoryBuffer;  // Empty
+        }
+        else
+        {
+          std::unique_ptr<IMemoryBuffer> whole(Read(uuid, type));
+
+          if (start == 0 &&
+              end == whole->GetSize())
+          {
+            return whole.release();
+          }
+          else if (end > whole->GetSize())
+          {
+            throw OrthancException(ErrorCode_BadRange);
+          }
+          else
+          {
+            std::string range;
+            range.resize(end - start);
+            assert(!range.empty());
+            
+            memcpy(&range[0], reinterpret_cast<const char*>(whole->GetData()) + start, range.size());
+
+            whole.reset(NULL);
+            return StringMemoryBuffer::CreateFromSwap(range);
+          }
+        }
+      }      
       
     public:
       StorageAreaBase(OrthancPluginStorageCreate create,
@@ -306,6 +347,14 @@ namespace Orthanc
           throw OrthancException(static_cast<ErrorCode>(error));
         }
       }
+
+      virtual IMemoryBuffer* ReadRange(const std::string& uuid,
+                                       FileContentType type,
+                                       uint64_t start /* inclusive */,
+                                       uint64_t end /* exclusive */) ORTHANC_OVERRIDE
+      {
+        return RangeFromWhole(uuid, type, start, end);
+      }
     };
 
 
@@ -347,6 +396,51 @@ namespace Orthanc
         {
           GetErrorDictionary().LogError(error, true);
           throw OrthancException(static_cast<ErrorCode>(error));
+        }
+      }
+
+      virtual IMemoryBuffer* ReadRange(const std::string& uuid,
+                                       FileContentType type,
+                                       uint64_t start /* inclusive */,
+                                       uint64_t end /* exclusive */) ORTHANC_OVERRIDE
+      {
+        if (readRange_ == NULL)
+        {
+          return RangeFromWhole(uuid, type, start, end);
+        }
+        else
+        {
+          if (start > end)
+          {
+            throw OrthancException(ErrorCode_BadRange);
+          }
+          else if (start == end)
+          {
+            return new StringMemoryBuffer;
+          }
+          else
+          {
+            std::string range;
+            range.resize(end - start);
+            assert(!range.empty());
+
+            OrthancPluginMemoryBuffer64 buffer;
+            buffer.data = &range[0];
+            buffer.size = static_cast<uint64_t>(range.size());
+
+            OrthancPluginErrorCode error =
+              readRange_(&buffer, uuid.c_str(), Plugins::Convert(type), start);
+
+            if (error == OrthancPluginErrorCode_Success)
+            {
+              return StringMemoryBuffer::CreateFromSwap(range);
+            }
+            else
+            {
+              GetErrorDictionary().LogError(error, true);
+              throw OrthancException(static_cast<ErrorCode>(error));
+            }
+          }
         }
       }
     };

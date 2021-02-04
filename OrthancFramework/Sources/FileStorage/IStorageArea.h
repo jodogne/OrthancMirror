@@ -44,6 +44,11 @@ namespace Orthanc
     virtual IMemoryBuffer* Read(const std::string& uuid,
                                 FileContentType type) = 0;
 
+    virtual IMemoryBuffer* ReadRange(const std::string& uuid,
+                                     FileContentType type,
+                                     uint64_t start /* inclusive */,
+                                     uint64_t end /* exclusive */) = 0;
+
     virtual void Remove(const std::string& uuid,
                         FileContentType type) = 0;
   };

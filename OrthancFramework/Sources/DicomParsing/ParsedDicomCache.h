@@ -72,10 +72,7 @@ namespace Orthanc
       Accessor(ParsedDicomCache& that,
                const std::string& id);
 
-      bool IsValid() const
-      {
-        return file_ != NULL;
-      }
+      bool IsValid() const;
 
       ParsedDicomFile& GetDicom() const;
 
