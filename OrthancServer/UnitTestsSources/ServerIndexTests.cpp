@@ -729,11 +729,12 @@ TEST(ServerIndex, AttachmentRecycling)
     toStore.SetSummary(instance);
     ASSERT_EQ(StoreStatus_Success, index.Store(instanceMetadata, toStore, attachments,
                                                false /* don't overwrite */));
-    ASSERT_EQ(5u, instanceMetadata.size());
+    ASSERT_EQ(6u, instanceMetadata.size());
     ASSERT_TRUE(instanceMetadata.find(MetadataType_RemoteAet) != instanceMetadata.end());
     ASSERT_TRUE(instanceMetadata.find(MetadataType_Instance_ReceptionDate) != instanceMetadata.end());
     ASSERT_TRUE(instanceMetadata.find(MetadataType_Instance_TransferSyntax) != instanceMetadata.end());
     ASSERT_TRUE(instanceMetadata.find(MetadataType_Instance_SopClassUid) != instanceMetadata.end());
+    ASSERT_TRUE(instanceMetadata.find(MetadataType_Instance_PixelDataOffset) != instanceMetadata.end());
 
     // The default transfer syntax depends on the OS endianness
     std::string s = instanceMetadata[MetadataType_Instance_TransferSyntax];

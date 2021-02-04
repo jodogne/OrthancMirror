@@ -129,5 +129,9 @@ namespace Orthanc
 
     static bool LookupPixelDataOffset(uint64_t& offset,
                                       const std::string& dicom);
+
+    static bool LookupPixelDataOffset(uint64_t& offset,
+                                      const void* buffer,
+                                      size_t size);
   };
 }

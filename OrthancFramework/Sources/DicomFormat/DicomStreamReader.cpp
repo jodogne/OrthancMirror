@@ -27,7 +27,11 @@
 
 #include <cassert>
 #include <sstream>
+#include <boost/iostreams/device/array.hpp>
+#include <boost/iostreams/stream.hpp>
 
+
+#include <iostream>
 
 namespace Orthanc
 {
@@ -619,6 +623,66 @@ namespace Orthanc
     {
       return pixelDataOffset_;
     }
+
+    static bool LookupPixelDataOffset(uint64_t& offset,
+                                      std::istream& stream)
+    {
+      PixelDataVisitor visitor;
+      bool isLittleEndian;
+
+      {
+        DicomStreamReader reader(stream);
+
+        try
+        {
+          reader.Consume(visitor);
+          isLittleEndian = reader.IsLittleEndian();
+        }
+        catch (OrthancException& e)
+        {
+          // Invalid DICOM file
+          return false;
+        }
+      }
+
+      if (visitor.HasPixelData())
+      {
+        // Sanity check if we face an unsupported DICOM file: Make
+        // sure that we can read DICOM_TAG_PIXEL_DATA at the reported
+        // position in the stream
+        stream.seekg(visitor.GetPixelDataOffset(), stream.beg);
+        
+        std::string s;
+        s.resize(4);
+        stream.read(&s[0], s.size());
+
+        if (!isLittleEndian)
+        {
+          // Byte swapping if reading a file whose transfer syntax is
+          // 1.2.840.10008.1.2.2 (big endian explicit)
+          std::swap(s[0], s[1]);
+          std::swap(s[2], s[3]);          
+        }
+        
+        if (stream.gcount() == static_cast<std::streamsize>(s.size()) &&
+            s[0] == char(0xe0) &&
+            s[1] == char(0x7f) &&
+            s[2] == char(0x10) &&
+            s[3] == char(0x00))
+        {
+          offset = visitor.GetPixelDataOffset();
+          return true;
+        }
+        else
+        {
+          return false;
+        }
+      }
+      else
+      {
+        return false;
+      }
+    }
   };
 
   
@@ -626,29 +690,17 @@ namespace Orthanc
                                                 const std::string& dicom)
   {
     std::stringstream stream(dicom);
-    
-    DicomStreamReader reader(stream);
+    return PixelDataVisitor::LookupPixelDataOffset(offset, stream);
+  }
+  
 
-    PixelDataVisitor visitor;
-
-    try
-    {
-      reader.Consume(visitor);
-    }
-    catch (OrthancException& e)
-    {
-      // Invalid DICOM file
-      return false;
-    }
-
-    if (visitor.HasPixelData())
-    {
-      offset = visitor.GetPixelDataOffset();
-      return true;
-    }
-    else
-    {
-      return false;
-    }
+  bool DicomStreamReader::LookupPixelDataOffset(uint64_t& offset,
+                                                const void* buffer,
+                                                size_t size)
+  {
+    boost::iostreams::array_source source(reinterpret_cast<const char*>(buffer), size);
+    boost::iostreams::stream<boost::iostreams::array_source> stream(source);
+    return PixelDataVisitor::LookupPixelDataOffset(offset, stream);
   }
 }
+

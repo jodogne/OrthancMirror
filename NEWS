@@ -1,6 +1,7 @@
 Pending changes in the mainline
 ===============================
 
+* New metadata automatically computed at the instance level: "PixelDataOffset"
 * Fix build on big-endian architectures
 
 

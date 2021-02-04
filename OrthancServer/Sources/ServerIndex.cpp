@@ -39,6 +39,7 @@
 #endif
 
 #include "../../OrthancFramework/Sources/DicomFormat/DicomArray.h"
+#include "../../OrthancFramework/Sources/DicomFormat/DicomStreamReader.h"
 #include "../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.h"
 #include "../../OrthancFramework/Sources/DicomParsing/ParsedDicomFile.h"
 #include "../../OrthancFramework/Sources/Logging.h"
@@ -760,6 +761,23 @@ namespace Orthanc
                                  const Attachments& attachments,
                                  bool overwrite)
   {
+    std::string pixelDataOffset;
+
+    {
+      // Determining the pixel data offset is costly, don't do it
+      // within the mutex (new in Orthanc 1.9.1)
+      uint64_t offset;
+      if (DicomStreamReader::LookupPixelDataOffset(offset, instanceToStore.GetBufferData(),
+                                                   instanceToStore.GetBufferSize()))
+      {
+        pixelDataOffset = boost::lexical_cast<std::string>(offset);
+      }
+      else
+      {
+        pixelDataOffset.clear();
+      }
+    }
+    
     boost::mutex::scoped_lock lock(mutex_);
 
     const DicomMap& dicomSummary = instanceToStore.GetSummary();
@@ -970,6 +988,10 @@ namespace Orthanc
                                 MetadataType_Instance_HttpUsername, s);
           }
         }
+
+        // New in Orthanc 1.9.1
+        SetInstanceMetadata(content, instanceMetadata, instanceId,
+                            MetadataType_Instance_PixelDataOffset, pixelDataOffset);
 
         
         const DicomValue* value;

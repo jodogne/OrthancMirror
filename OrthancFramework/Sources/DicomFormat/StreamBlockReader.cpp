@@ -66,8 +66,16 @@ namespace Orthanc
     {
       while (blockPos_ < block_.size())
       {
+        /**
+         * WARNING: Do NOT use "stream_.readsome()", as it does not
+         * work properly on non-buffered stream (which is the case in
+         * "DicomStreamReader::LookupPixelDataOffset()" for buffers)
+         **/
+        
         size_t remainingBytes = block_.size() - blockPos_;
-        std::streamsize r = stream_.readsome(&block_[blockPos_], remainingBytes);
+        stream_.read(&block_[blockPos_], remainingBytes);
+        
+        std::streamsize r = stream_.gcount();
         if (r == 0)
         {
           return false;

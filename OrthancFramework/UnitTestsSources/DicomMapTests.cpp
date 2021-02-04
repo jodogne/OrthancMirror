@@ -876,17 +876,17 @@ TEST(DicomStreamReader, DISABLED_Tutu)
 
   Sources sources;
   sources.push_back(std::make_pair(PATH + "../ColorTestMalaterre.dcm", 0x03a0u));
-  sources.push_back(std::make_pair(PATH + "1.2.840.10008.1.2.1.dcm", 0x037c));
-  sources.push_back(std::make_pair(PATH + "1.2.840.10008.1.2.2.dcm", 0x03e8));  // Big Endian
-  sources.push_back(std::make_pair(PATH + "1.2.840.10008.1.2.4.50.dcm", 0x04ac));
-  sources.push_back(std::make_pair(PATH + "1.2.840.10008.1.2.4.51.dcm", 0x072c));
-  sources.push_back(std::make_pair(PATH + "1.2.840.10008.1.2.4.57.dcm", 0x0620));
-  sources.push_back(std::make_pair(PATH + "1.2.840.10008.1.2.4.70.dcm", 0x065a));
-  sources.push_back(std::make_pair(PATH + "1.2.840.10008.1.2.4.80.dcm", 0x0b46));
-  sources.push_back(std::make_pair(PATH + "1.2.840.10008.1.2.4.81.dcm", 0x073e));
-  sources.push_back(std::make_pair(PATH + "1.2.840.10008.1.2.4.90.dcm", 0x0b66));
-  sources.push_back(std::make_pair(PATH + "1.2.840.10008.1.2.4.91.dcm", 0x19b8));
-  sources.push_back(std::make_pair(PATH + "1.2.840.10008.1.2.5.dcm", 0x0b0a));
+  sources.push_back(std::make_pair(PATH + "1.2.840.10008.1.2.1.dcm", 0x037cu));
+  sources.push_back(std::make_pair(PATH + "1.2.840.10008.1.2.2.dcm", 0x03e8u));  // Big Endian
+  sources.push_back(std::make_pair(PATH + "1.2.840.10008.1.2.4.50.dcm", 0x04acu));
+  sources.push_back(std::make_pair(PATH + "1.2.840.10008.1.2.4.51.dcm", 0x072cu));
+  sources.push_back(std::make_pair(PATH + "1.2.840.10008.1.2.4.57.dcm", 0x0620u));
+  sources.push_back(std::make_pair(PATH + "1.2.840.10008.1.2.4.70.dcm", 0x065au));
+  sources.push_back(std::make_pair(PATH + "1.2.840.10008.1.2.4.80.dcm", 0x0b46u));
+  sources.push_back(std::make_pair(PATH + "1.2.840.10008.1.2.4.81.dcm", 0x073eu));
+  sources.push_back(std::make_pair(PATH + "1.2.840.10008.1.2.4.90.dcm", 0x0b66u));
+  sources.push_back(std::make_pair(PATH + "1.2.840.10008.1.2.4.91.dcm", 0x19b8u));
+  sources.push_back(std::make_pair(PATH + "1.2.840.10008.1.2.5.dcm", 0x0b0au));
 
   {
     std::string dicom;
@@ -909,6 +909,12 @@ TEST(DicomStreamReader, DISABLED_Tutu)
     {
       uint64_t offset;
       ASSERT_TRUE(DicomStreamReader::LookupPixelDataOffset(offset, dicom));
+      ASSERT_EQ(it->second, offset);
+    }
+    
+    {
+      uint64_t offset;
+      ASSERT_TRUE(DicomStreamReader::LookupPixelDataOffset(offset, dicom.c_str(), dicom.size()));
       ASSERT_EQ(it->second, offset);
     }
     
