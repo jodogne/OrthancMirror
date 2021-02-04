@@ -70,6 +70,7 @@ namespace Orthanc
     dictMetadataType_.Add(MetadataType_Instance_RemoteIp, "RemoteIP");
     dictMetadataType_.Add(MetadataType_Instance_CalledAet, "CalledAET");
     dictMetadataType_.Add(MetadataType_Instance_HttpUsername, "HttpUsername");
+    dictMetadataType_.Add(MetadataType_Instance_PixelDataOffset, "PixelDataOffset");
 
     dictContentType_.Add(FileContentType_Dicom, "dicom");
     dictContentType_.Add(FileContentType_DicomAsJson, "dicom-as-json");
