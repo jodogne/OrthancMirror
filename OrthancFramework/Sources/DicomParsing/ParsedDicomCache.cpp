@@ -186,6 +186,12 @@ namespace Orthanc
   }
 
 
+  bool ParsedDicomCache::Accessor::IsValid() const
+  {
+    return file_ != NULL;
+  }
+
+
   ParsedDicomFile& ParsedDicomCache::Accessor::GetDicom() const
   {
     if (IsValid())
