@@ -26,6 +26,8 @@
 #include "../OrthancException.h"
 
 #include <cassert>
+#include <sstream>
+
 
 namespace Orthanc
 {
@@ -323,6 +325,9 @@ namespace Orthanc
     }
     else
     {
+      assert(reader_.GetProcessedBytes() >= block.size());
+      const uint64_t tagOffset = reader_.GetProcessedBytes() - block.size();
+        
       ValueRepresentation vr = ValueRepresentation_Unknown;
         
       if (transferSyntax_ == DicomTransferSyntax_LittleEndianImplicit)
@@ -331,6 +336,7 @@ namespace Orthanc
         {
           danglingTag_ = tag;
           danglingVR_ = vr;
+          danglingOffset_ = tagOffset;
         }
 
         uint32_t length = ReadUnsignedInteger32(block.c_str() + 4, true /* little endian */);
@@ -372,6 +378,7 @@ namespace Orthanc
         {
           danglingTag_ = tag;
           danglingVR_ = vr;
+          danglingOffset_ = tagOffset;
         }
       }
     }
@@ -400,12 +407,19 @@ namespace Orthanc
   }    
 
     
-  void DicomStreamReader::HandleDatasetExplicitLength(const std::string& block)
+  void DicomStreamReader::HandleDatasetExplicitLength(IVisitor& visitor,
+                                                      const std::string& block)
   {
     assert(block.size() == 4);
 
     uint32_t length = ReadUnsignedInteger32(block.c_str(), IsLittleEndian());
     HandleDatasetExplicitLength(length);
+
+    std::string empty;
+    if (!visitor.VisitDatasetTag(danglingTag_, danglingVR_, empty, IsLittleEndian(), danglingOffset_))
+    {
+      state_ = State_Done;
+    }
   }
     
 
@@ -451,13 +465,13 @@ namespace Orthanc
       if (IsNormalizationNeeded(block, danglingVR_))
       {
         std::string s(block.begin(), block.end() - 1);
-        c = visitor.VisitDatasetTag(danglingTag_, danglingVR_, s, IsLittleEndian());
+        c = visitor.VisitDatasetTag(danglingTag_, danglingVR_, s, IsLittleEndian(), danglingOffset_);
       }
       else
       {
-        c = visitor.VisitDatasetTag(danglingTag_, danglingVR_, block, IsLittleEndian());
+        c = visitor.VisitDatasetTag(danglingTag_, danglingVR_, block, IsLittleEndian(), danglingOffset_);
       }
-        
+      
       if (!c)
       {
         state_ = State_Done;
@@ -476,6 +490,7 @@ namespace Orthanc
     transferSyntax_(DicomTransferSyntax_LittleEndianImplicit),  // Dummy
     danglingTag_(0x0000, 0x0000),  // Dummy
     danglingVR_(ValueRepresentation_Unknown),  // Dummy
+    danglingOffset_(0),  // Dummy
     sequenceDepth_(0)
   {
     reader_.Schedule(128 /* empty header */ +
@@ -510,7 +525,7 @@ namespace Orthanc
             break;
 
           case State_DatasetExplicitLength:
-            HandleDatasetExplicitLength(block);
+            HandleDatasetExplicitLength(visitor, block);
             break;
 
           case State_SequenceExplicitLength:
@@ -553,5 +568,87 @@ namespace Orthanc
   uint64_t DicomStreamReader::GetProcessedBytes() const
   {
     return reader_.GetProcessedBytes();
+  }
+
+
+  class DicomStreamReader::PixelDataVisitor : public DicomStreamReader::IVisitor
+  {
+  private:
+    bool      hasPixelData_;
+    uint64_t  pixelDataOffset_;
+    
+  public:
+    PixelDataVisitor() :
+      hasPixelData_(false),
+      pixelDataOffset_(0)
+    {
+    }
+    
+    virtual void VisitMetaHeaderTag(const DicomTag& tag,
+                                    const ValueRepresentation& vr,
+                                    const std::string& value) ORTHANC_OVERRIDE
+    {
+    }
+
+    virtual void VisitTransferSyntax(DicomTransferSyntax transferSyntax) ORTHANC_OVERRIDE
+    {
+    }
+    
+    virtual bool VisitDatasetTag(const DicomTag& tag,
+                                 const ValueRepresentation& vr,
+                                 const std::string& value,
+                                 bool isLittleEndian,
+                                 uint64_t fileOffset) ORTHANC_OVERRIDE
+    {
+      if (tag == DICOM_TAG_PIXEL_DATA)
+      {
+        hasPixelData_ = true;
+        pixelDataOffset_ = fileOffset;
+      }
+
+      // Stop processing once pixel data has been passed
+      return (tag < DICOM_TAG_PIXEL_DATA);
+    }
+
+    bool HasPixelData() const
+    {
+      return hasPixelData_;
+    }
+
+    uint64_t GetPixelDataOffset() const
+    {
+      return pixelDataOffset_;
+    }
+  };
+
+  
+  bool DicomStreamReader::LookupPixelDataOffset(uint64_t& offset,
+                                                const std::string& dicom)
+  {
+    std::stringstream stream(dicom);
+    
+    DicomStreamReader reader(stream);
+
+    PixelDataVisitor visitor;
+
+    try
+    {
+      reader.Consume(visitor);
+    }
+    catch (OrthancException& e)
+    {
+      // Invalid DICOM file
+      return false;
+    }
+
+    if (visitor.HasPixelData())
+    {
+      offset = visitor.GetPixelDataOffset();
+      return true;
+    }
+    else
+    {
+      return false;
+    }
   }
 }
