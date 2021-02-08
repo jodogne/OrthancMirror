@@ -25,7 +25,9 @@
 #include "../IMemoryBuffer.h"
 #include "../Enumerations.h"
 
+#include <stdint.h>
 #include <string>
+
 
 namespace Orthanc
 {
