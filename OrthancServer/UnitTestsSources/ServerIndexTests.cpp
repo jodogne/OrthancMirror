@@ -728,13 +728,15 @@ TEST(ServerIndex, AttachmentRecycling)
     DicomInstanceToStore toStore;
     toStore.SetSummary(instance);
     ASSERT_EQ(StoreStatus_Success, index.Store(instanceMetadata, toStore, attachments,
-                                               false /* don't overwrite */));
+                                               false /* don't overwrite */, true /* pixel data offset */, 42));
     ASSERT_EQ(6u, instanceMetadata.size());
     ASSERT_TRUE(instanceMetadata.find(MetadataType_RemoteAet) != instanceMetadata.end());
     ASSERT_TRUE(instanceMetadata.find(MetadataType_Instance_ReceptionDate) != instanceMetadata.end());
     ASSERT_TRUE(instanceMetadata.find(MetadataType_Instance_TransferSyntax) != instanceMetadata.end());
     ASSERT_TRUE(instanceMetadata.find(MetadataType_Instance_SopClassUid) != instanceMetadata.end());
     ASSERT_TRUE(instanceMetadata.find(MetadataType_Instance_PixelDataOffset) != instanceMetadata.end());
+
+    ASSERT_EQ("42", instanceMetadata[MetadataType_Instance_PixelDataOffset]);
 
     // The default transfer syntax depends on the OS endianness
     std::string s = instanceMetadata[MetadataType_Instance_TransferSyntax];

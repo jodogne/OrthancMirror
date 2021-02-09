@@ -36,6 +36,7 @@
 
 #include "../../OrthancFramework/Sources/Cache/SharedArchive.h"
 #include "../../OrthancFramework/Sources/DicomFormat/DicomElement.h"
+#include "../../OrthancFramework/Sources/DicomFormat/DicomStreamReader.h"
 #include "../../OrthancFramework/Sources/DicomParsing/DcmtkTranscoder.h"
 #include "../../OrthancFramework/Sources/DicomParsing/DicomModification.h"
 #include "../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.h"
@@ -509,7 +510,14 @@ namespace Orthanc
 
       default:
         throw OrthancException(ErrorCode_ParameterOutOfRange);
-    }    
+    }
+
+
+    bool hasPixelDataOffset;
+    uint64_t pixelDataOffset;
+    hasPixelDataOffset = DicomStreamReader::LookupPixelDataOffset(
+      pixelDataOffset, dicom.GetBufferData(), dicom.GetBufferSize());
+    
     
     try
     {
@@ -573,7 +581,7 @@ namespace Orthanc
       typedef std::map<MetadataType, std::string>  InstanceMetadata;
       InstanceMetadata  instanceMetadata;
       StoreStatus status = index_.Store(
-        instanceMetadata, dicom, attachments, overwrite);
+        instanceMetadata, dicom, attachments, overwrite, hasPixelDataOffset, pixelDataOffset);
 
       // Only keep the metadata for the "instance" level
       dicom.GetMetadata().clear();
