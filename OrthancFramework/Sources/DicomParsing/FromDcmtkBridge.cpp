@@ -2642,6 +2642,42 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
 
     return FromDcmtkBridge::LookupOrthancTransferSyntax(target, xfer);
   }
+
+
+  void FromDcmtkBridge::LogMissingTagsForStore(DcmDataset& dicom)
+  {
+    std::string patientId, studyInstanceUid, seriesInstanceUid, sopInstanceUid;
+
+    const char* c = NULL;
+    if (dicom.findAndGetString(DCM_PatientID, c).good() &&
+        c != NULL)
+    {
+      patientId.assign(c);
+    }
+
+    c = NULL;
+    if (dicom.findAndGetString(DCM_StudyInstanceUID, c).good() &&
+        c != NULL)
+    {
+      studyInstanceUid.assign(c);
+    }
+
+    c = NULL;
+    if (dicom.findAndGetString(DCM_SeriesInstanceUID, c).good() &&
+        c != NULL)
+    {
+      seriesInstanceUid.assign(c);
+    }
+
+    c = NULL;
+    if (dicom.findAndGetString(DCM_SOPInstanceUID, c).good() &&
+        c != NULL)
+    {
+      sopInstanceUid.assign(c);
+    }
+    
+    DicomMap::LogMissingTagsForStore(patientId, studyInstanceUid, seriesInstanceUid, sopInstanceUid);
+  }
 }
 
 

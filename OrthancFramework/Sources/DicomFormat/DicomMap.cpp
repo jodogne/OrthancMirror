@@ -920,13 +920,44 @@ namespace Orthanc
 
   void DicomMap::LogMissingTagsForStore() const
   {
+    std::string patientId, studyInstanceUid, seriesInstanceUid, sopInstanceUid;
+    
+    if (HasTag(DICOM_TAG_PATIENT_ID))
+    {
+      patientId = ValueAsString(*this, DICOM_TAG_PATIENT_ID);
+    }
+
+    if (HasTag(DICOM_TAG_STUDY_INSTANCE_UID))
+    {
+      studyInstanceUid = ValueAsString(*this, DICOM_TAG_STUDY_INSTANCE_UID);
+    }
+
+    if (HasTag(DICOM_TAG_SERIES_INSTANCE_UID))
+    {
+      seriesInstanceUid = ValueAsString(*this, DICOM_TAG_SERIES_INSTANCE_UID);
+    }
+
+    if (HasTag(DICOM_TAG_SOP_INSTANCE_UID))
+    {
+      sopInstanceUid = ValueAsString(*this, DICOM_TAG_SOP_INSTANCE_UID);
+    }
+
+    LogMissingTagsForStore(patientId, studyInstanceUid, seriesInstanceUid, sopInstanceUid);
+  }
+
+  
+  void DicomMap::LogMissingTagsForStore(const std::string& patientId,
+                                        const std::string& studyInstanceUid,
+                                        const std::string& seriesInstanceUid,
+                                        const std::string& sopInstanceUid)
+  {
     std::string s, t;
 
-    if (HasTag(DICOM_TAG_PATIENT_ID))
+    if (!patientId.empty())
     {
       if (t.size() > 0)
         t += ", ";
-      t += "PatientID=" + ValueAsString(*this, DICOM_TAG_PATIENT_ID);
+      t += "PatientID=" + patientId;
     }
     else
     {
@@ -935,11 +966,11 @@ namespace Orthanc
       s += "PatientID";
     }
 
-    if (HasTag(DICOM_TAG_STUDY_INSTANCE_UID))
+    if (!studyInstanceUid.empty())
     {
       if (t.size() > 0)
         t += ", ";
-      t += "StudyInstanceUID=" + ValueAsString(*this, DICOM_TAG_STUDY_INSTANCE_UID);
+      t += "StudyInstanceUID=" + studyInstanceUid;
     }
     else
     {
@@ -948,11 +979,11 @@ namespace Orthanc
       s += "StudyInstanceUID";
     }
 
-    if (HasTag(DICOM_TAG_SERIES_INSTANCE_UID))
+    if (!seriesInstanceUid.empty())
     {
       if (t.size() > 0)
         t += ", ";
-      t += "SeriesInstanceUID=" + ValueAsString(*this, DICOM_TAG_SERIES_INSTANCE_UID);
+      t += "SeriesInstanceUID=" + seriesInstanceUid;
     }
     else
     {
@@ -961,11 +992,11 @@ namespace Orthanc
       s += "SeriesInstanceUID";
     }
 
-    if (HasTag(DICOM_TAG_SOP_INSTANCE_UID))
+    if (!sopInstanceUid.empty())
     {
       if (t.size() > 0)
         t += ", ";
-      t += "SOPInstanceUID=" + ValueAsString(*this, DICOM_TAG_SOP_INSTANCE_UID);
+      t += "SOPInstanceUID=" + sopInstanceUid;
     }
     else
     {
