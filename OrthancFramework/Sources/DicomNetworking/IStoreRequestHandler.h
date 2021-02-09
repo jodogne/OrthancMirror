@@ -28,6 +28,8 @@
 #include <string>
 #include <json/value.h>
 
+class DcmDataset;
+
 namespace Orthanc
 {
   class IStoreRequestHandler : public boost::noncopyable
@@ -37,9 +39,7 @@ namespace Orthanc
     {
     }
 
-    virtual void Handle(const std::string& dicomFile,
-                        const DicomMap& dicomSummary,
-                        const Json::Value& dicomJson,
+    virtual void Handle(DcmDataset& dicom,
                         const std::string& remoteIp,
                         const std::string& remoteAet,
                         const std::string& calledAet) = 0;
