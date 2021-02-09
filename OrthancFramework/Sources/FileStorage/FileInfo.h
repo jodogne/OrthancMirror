@@ -22,13 +22,14 @@
 
 #pragma once
 
-#include <string>
-#include <stdint.h>
+#include "../OrthancFramework.h"
 #include "../Enumerations.h"
+
+#include <stdint.h>
 
 namespace Orthanc
 {
-  struct FileInfo
+  struct ORTHANC_PUBLIC FileInfo
   {
   private:
     bool             valid_;
