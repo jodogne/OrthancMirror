@@ -571,12 +571,17 @@ namespace Orthanc
 
       FileInfo dicomInfo = accessor.Write(dicom.GetBufferData(), dicom.GetBufferSize(), 
                                           FileContentType_Dicom, compression, storeMD5_);
-      FileInfo jsonInfo = accessor.Write(dicom.GetJson().toStyledString(), 
-                                         FileContentType_DicomAsJson, compression, storeMD5_);
 
       ServerIndex::Attachments attachments;
       attachments.push_back(dicomInfo);
-      attachments.push_back(jsonInfo);
+
+      FileInfo jsonInfo;
+      if (true /* TODO - !area_.HasReadRange() || !hasPixelDataOffset */)
+      {
+        jsonInfo = accessor.Write(dicom.GetJson().toStyledString(), 
+                                  FileContentType_DicomAsJson, compression, storeMD5_);
+        attachments.push_back(jsonInfo);
+      }
 
       typedef std::map<MetadataType, std::string>  InstanceMetadata;
       InstanceMetadata  instanceMetadata;
@@ -596,7 +601,11 @@ namespace Orthanc
       if (status != StoreStatus_Success)
       {
         accessor.Remove(dicomInfo);
-        accessor.Remove(jsonInfo);
+
+        if (jsonInfo.IsValid())
+        {
+          accessor.Remove(jsonInfo);
+        }
       }
 
       switch (status)
