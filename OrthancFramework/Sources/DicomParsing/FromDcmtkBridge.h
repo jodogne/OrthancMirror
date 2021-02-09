@@ -222,5 +222,7 @@ namespace Orthanc
 
     static bool LookupOrthancTransferSyntax(DicomTransferSyntax& target,
                                             DcmDataset& dicom);
+
+    static void LogMissingTagsForStore(DcmDataset& dicom);
   };
 }
