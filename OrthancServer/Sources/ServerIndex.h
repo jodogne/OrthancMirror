@@ -141,7 +141,9 @@ namespace Orthanc
     StoreStatus Store(std::map<MetadataType, std::string>& instanceMetadata,
                       DicomInstanceToStore& instance,
                       const Attachments& attachments,
-                      bool overwrite);
+                      bool overwrite,
+                      bool hasPixelDataOffset,
+                      uint64_t pixelDataOffset);
 
     void GetGlobalStatistics(/* out */ uint64_t& diskSize,
                              /* out */ uint64_t& uncompressedSize,

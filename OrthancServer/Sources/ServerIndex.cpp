@@ -39,7 +39,6 @@
 #endif
 
 #include "../../OrthancFramework/Sources/DicomFormat/DicomArray.h"
-#include "../../OrthancFramework/Sources/DicomFormat/DicomStreamReader.h"
 #include "../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.h"
 #include "../../OrthancFramework/Sources/DicomParsing/ParsedDicomFile.h"
 #include "../../OrthancFramework/Sources/Logging.h"
@@ -759,25 +758,10 @@ namespace Orthanc
   StoreStatus ServerIndex::Store(std::map<MetadataType, std::string>& instanceMetadata,
                                  DicomInstanceToStore& instanceToStore,
                                  const Attachments& attachments,
-                                 bool overwrite)
+                                 bool overwrite,
+                                 bool hasPixelDataOffset,
+                                 uint64_t pixelDataOffset)
   {
-    std::string pixelDataOffset;
-
-    {
-      // Determining the pixel data offset is costly, don't do it
-      // within the mutex (new in Orthanc 1.9.1)
-      uint64_t offset;
-      if (DicomStreamReader::LookupPixelDataOffset(offset, instanceToStore.GetBufferData(),
-                                                   instanceToStore.GetBufferSize()))
-      {
-        pixelDataOffset = boost::lexical_cast<std::string>(offset);
-      }
-      else
-      {
-        pixelDataOffset.clear();
-      }
-    }
-    
     boost::mutex::scoped_lock lock(mutex_);
 
     const DicomMap& dicomSummary = instanceToStore.GetSummary();
@@ -991,8 +975,9 @@ namespace Orthanc
 
         // New in Orthanc 1.9.1
         SetInstanceMetadata(content, instanceMetadata, instanceId,
-                            MetadataType_Instance_PixelDataOffset, pixelDataOffset);
-
+                            MetadataType_Instance_PixelDataOffset,
+                            (hasPixelDataOffset ? 
+                             boost::lexical_cast<std::string>(pixelDataOffset) : ""));
         
         const DicomValue* value;
         if ((value = dicomSummary.TestAndGetValue(DICOM_TAG_SOP_CLASS_UID)) != NULL &&
