@@ -31,18 +31,18 @@ namespace Orthanc
   struct FileInfo
   {
   private:
-    std::string uuid_;
-    FileContentType contentType_;
-
-    uint64_t uncompressedSize_;
-    std::string uncompressedMD5_;
-
-    CompressionType compressionType_;
-    uint64_t compressedSize_;
-    std::string compressedMD5_;
+    bool             valid_;
+    std::string      uuid_;
+    FileContentType  contentType_;
+    uint64_t         uncompressedSize_;
+    std::string      uncompressedMD5_;
+    CompressionType  compressionType_;
+    uint64_t         compressedSize_;
+    std::string      compressedMD5_;
 
   public:
-    FileInfo()
+    FileInfo() :
+      valid_(false)
     {
     }
 
@@ -52,16 +52,7 @@ namespace Orthanc
     FileInfo(const std::string& uuid,
              FileContentType contentType,
              uint64_t size,
-             const std::string& md5) :
-      uuid_(uuid),
-      contentType_(contentType),
-      uncompressedSize_(size),
-      uncompressedMD5_(md5),
-      compressionType_(CompressionType_None),
-      compressedSize_(size),
-      compressedMD5_(md5)
-    {
-    }
+             const std::string& md5);
 
     /**
      * Constructor for a compressed attachment.
@@ -72,50 +63,22 @@ namespace Orthanc
              const std::string& uncompressedMD5,
              CompressionType compressionType,
              uint64_t compressedSize,
-             const std::string& compressedMD5) :
-      uuid_(uuid),
-      contentType_(contentType),
-      uncompressedSize_(uncompressedSize),
-      uncompressedMD5_(uncompressedMD5),
-      compressionType_(compressionType),
-      compressedSize_(compressedSize),
-      compressedMD5_(compressedMD5)
-    {
-    }
+             const std::string& compressedMD5);
 
-    const std::string& GetUuid() const
-    {
-      return uuid_;
-    }
+    bool IsValid() const;
+    
+    const std::string& GetUuid() const;
 
-    FileContentType GetContentType() const
-    {
-      return contentType_;
-    }
+    FileContentType GetContentType() const;
 
-    uint64_t GetUncompressedSize() const
-    {
-      return uncompressedSize_;
-    }
+    uint64_t GetUncompressedSize() const;
 
-    CompressionType GetCompressionType() const
-    {
-      return compressionType_;
-    }
+    CompressionType GetCompressionType() const;
 
-    uint64_t GetCompressedSize() const
-    {
-      return compressedSize_;
-    }
+    uint64_t GetCompressedSize() const;
 
-    const std::string& GetCompressedMD5() const
-    {
-      return compressedMD5_;
-    }
+    const std::string& GetCompressedMD5() const;
 
-    const std::string& GetUncompressedMD5() const
-    {
-      return uncompressedMD5_;
-    }
+    const std::string& GetUncompressedMD5() const;
   };
 }
