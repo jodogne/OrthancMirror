@@ -355,6 +355,11 @@ namespace Orthanc
       {
         return RangeFromWhole(uuid, type, start, end);
       }
+
+      virtual bool HasReadRange() const ORTHANC_OVERRIDE
+      {
+        return false;
+      }
     };
 
 
@@ -442,6 +447,11 @@ namespace Orthanc
             }
           }
         }
+      }
+      
+      virtual bool HasReadRange() const ORTHANC_OVERRIDE
+      {
+        return (readRange_ != NULL);
       }
     };
 

@@ -395,6 +395,11 @@ namespace Orthanc
         }
       }
 
+      virtual bool HasReadRange() const ORTHANC_OVERRIDE
+      {
+        return storage_.HasReadRange();
+      }
+
       virtual void Remove(const std::string& uuid,
                           FileContentType type) ORTHANC_OVERRIDE
       {

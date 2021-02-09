@@ -71,6 +71,8 @@ namespace Orthanc
     public IDicomTranscoder,
     private JobsRegistry::IObserver
   {
+    friend class ServerIndex;  // To access "RemoveFile()"
+    
   public:
     class ILookupVisitor : public boost::noncopyable
     {
@@ -244,6 +246,10 @@ namespace Orthanc
 
     void PublishDicomCacheMetrics();
 
+    // This method must only be called from "ServerIndex"!
+    void RemoveFile(const std::string& fileUuid,
+                    FileContentType type);
+
     // This DicomModification object is intended to be used as a
     // "rules engine" when de-identifying logs for C-Find, C-Get, and
     // C-Move queries (new in Orthanc 1.8.2)
@@ -291,9 +297,6 @@ namespace Orthanc
     {
       return compressionEnabled_;
     }
-
-    void RemoveFile(const std::string& fileUuid,
-                    FileContentType type);
 
     bool AddAttachment(const std::string& resourceId,
                        FileContentType attachmentType,
