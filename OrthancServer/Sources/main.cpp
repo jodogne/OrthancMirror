@@ -83,13 +83,27 @@ public:
   }
 
 
-  virtual void Handle(const std::string& dicomFile,
-                      const DicomMap& dicomSummary,
-                      const Json::Value& dicomJson,
+  virtual void Handle(DcmDataset& dicom,
                       const std::string& remoteIp,
                       const std::string& remoteAet,
                       const std::string& calledAet) ORTHANC_OVERRIDE 
   {
+    DicomMap dicomSummary;
+    Json::Value dicomJson;
+    std::string dicomFile;
+
+    const std::set<DicomTag> ignoreTagLength;
+
+    // TODO => Parameters in class "DicomServer"
+    FromDcmtkBridge::ExtractDicomSummary(dicomSummary, dicom, ORTHANC_MAXIMUM_TAG_LENGTH, ignoreTagLength);
+    FromDcmtkBridge::ExtractDicomAsJson(dicomJson, dicom, DicomToJsonFormat_Full,
+                                        DicomToJsonFlags_Default, ORTHANC_MAXIMUM_TAG_LENGTH, ignoreTagLength);
+
+    if (!FromDcmtkBridge::SaveToMemoryBuffer(dicomFile, dicom))
+    {
+      throw OrthancException(ErrorCode_InternalError, "Cannot write DICOM file to memory");
+    }
+    
     if (dicomFile.size() > 0)
     {
       DicomInstanceToStore toStore;

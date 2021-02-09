@@ -154,30 +154,6 @@ namespace Orthanc
         // is present and the options opt_bitPreserving and opt_ignore are not set.
         if ((imageDataSet != NULL) && (*imageDataSet != NULL))
         {
-          DicomMap summary;
-          Json::Value dicomJson;
-          std::string buffer;
-
-          try
-          {
-            std::set<DicomTag> ignoreTagLength;
-
-            // TODO => Parameters in class "DicomServer"
-            FromDcmtkBridge::ExtractDicomSummary(summary, **imageDataSet, ORTHANC_MAXIMUM_TAG_LENGTH, ignoreTagLength);
-            FromDcmtkBridge::ExtractDicomAsJson(dicomJson, **imageDataSet, DicomToJsonFormat_Full,
-                                                DicomToJsonFlags_Default, ORTHANC_MAXIMUM_TAG_LENGTH, ignoreTagLength);
-
-            if (!FromDcmtkBridge::SaveToMemoryBuffer(buffer, **imageDataSet))
-            {
-              CLOG(ERROR, DICOM) << "cannot write DICOM file to memory";
-              rsp->DimseStatus = STATUS_STORE_Refused_OutOfResources;
-            }
-          }
-          catch (...)
-          {
-            rsp->DimseStatus = STATUS_STORE_Refused_OutOfResources;
-          }
-
           // check the image to make sure it is consistent, i.e. that its sopClass and sopInstance correspond
           // to those mentioned in the request. If not, set the status in the response message variable.
           if (rsp->DimseStatus == STATUS_Success)
@@ -206,7 +182,7 @@ namespace Orthanc
               {
                 try
                 {
-                  cbdata->handler->Handle(buffer, summary, dicomJson, *cbdata->remoteIp, cbdata->remoteAET, cbdata->calledAET);
+                  cbdata->handler->Handle(**imageDataSet, *cbdata->remoteIp, cbdata->remoteAET, cbdata->calledAET);
                 }
                 catch (OrthancException& e)
                 {
@@ -214,7 +190,7 @@ namespace Orthanc
 
                   if (e.GetErrorCode() == ErrorCode_InexistentTag)
                   {
-                    summary.LogMissingTagsForStore();
+                    FromDcmtkBridge::LogMissingTagsForStore(**imageDataSet);
                   }
                   else
                   {
