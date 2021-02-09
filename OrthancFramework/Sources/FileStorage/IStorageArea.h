@@ -51,6 +51,8 @@ namespace Orthanc
                                      uint64_t start /* inclusive */,
                                      uint64_t end /* exclusive */) = 0;
 
+    virtual bool HasReadRange() const = 0;
+
     virtual void Remove(const std::string& uuid,
                         FileContentType type) = 0;
   };

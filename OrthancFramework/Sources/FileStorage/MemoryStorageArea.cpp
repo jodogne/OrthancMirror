@@ -140,6 +140,12 @@ namespace Orthanc
   }
 
 
+  bool MemoryStorageArea::HasReadRange() const
+  {
+    return true;
+  }
+
+
   void MemoryStorageArea::Remove(const std::string& uuid,
                                  FileContentType type)
   {
