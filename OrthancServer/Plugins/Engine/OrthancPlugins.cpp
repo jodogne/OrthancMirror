@@ -2932,16 +2932,19 @@ namespace Orthanc
       case _OrthancPluginService_GetInstanceJson:
       case _OrthancPluginService_GetInstanceSimplifiedJson:
       {
+        Json::Value dicomAsJson;
+        OrthancConfiguration::DefaultDicomDatasetToJson(dicomAsJson, instance.GetParsedDicomFile());
+        
         std::string s;
 
         if (service == _OrthancPluginService_GetInstanceJson)
         {
-          Toolbox::WriteStyledJson(s, instance.GetJson());
+          Toolbox::WriteStyledJson(s, dicomAsJson);
         }
         else
         {
           Json::Value simplified;
-          Toolbox::SimplifyDicomAsJson(simplified, instance.GetJson(), DicomToJsonFormat_Human);
+          Toolbox::SimplifyDicomAsJson(simplified, dicomAsJson, DicomToJsonFormat_Human);
           Toolbox::WriteStyledJson(s, simplified);
         }
 

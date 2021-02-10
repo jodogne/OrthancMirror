@@ -158,7 +158,6 @@ namespace Orthanc
     size_t                               bufferSize_;
     SmartContainer<ParsedDicomFile>      parsed_;
     SmartContainer<DicomMap>             summary_;
-    SmartContainer<Json::Value>          json_;
     MetadataMap                          metadata_;
 
     PImpl() :
@@ -194,8 +193,7 @@ namespace Orthanc
     void ComputeMissingInformation()
     {
       if (hasBuffer_ &&
-          summary_.HasContent() &&
-          json_.HasContent())
+          summary_.HasContent())
       {
         // Fine, everything is available
         return; 
@@ -229,31 +227,19 @@ namespace Orthanc
         hasBuffer_ = true;
       }
 
-      if (summary_.HasContent() &&
-          json_.HasContent())
-      {
-        return;
-      }
-
-      // At this point, we know that the DICOM file is available as a
-      // memory buffer, but that its summary or its JSON version is
-      // missing
-
-      ParseDicomFile();
-      assert(parsed_.HasContent());
-
-      // At this point, we have parsed the DICOM file
-    
       if (!summary_.HasContent())
       {
+        // At this point, we know that the DICOM file is available as a
+        // memory buffer, but that its summary or its JSON version is
+        // missing
+        
+        ParseDicomFile();
+        assert(parsed_.HasContent());
+
+        // At this point, we have parsed the DICOM file
+        
         summary_.Allocate();
         OrthancConfiguration::DefaultExtractDicomSummary(summary_.GetContent(), parsed_.GetContent());
-      }
-    
-      if (!json_.HasContent())
-      {
-        json_.Allocate();
-        OrthancConfiguration::DefaultDicomDatasetToJson(json_.GetContent(), parsed_.GetContent());
       }
     }
 
@@ -328,19 +314,6 @@ namespace Orthanc
     }
 
     
-    const Json::Value& GetJson()
-    {
-      ComputeMissingInformation();
-    
-      if (!json_.HasContent())
-      {
-        throw OrthancException(ErrorCode_InternalError);
-      }
-
-      return json_.GetConstContent();
-    }
-
-
     DicomInstanceHasher& GetHasher()
     {
       if (hasher_.get() == NULL)
@@ -444,12 +417,6 @@ namespace Orthanc
   }
 
 
-  void DicomInstanceToStore::SetJson(const Json::Value& json)
-  {
-    pimpl_->json_.SetConstReference(json);
-  }
-
-
   const DicomInstanceToStore::MetadataMap& DicomInstanceToStore::GetMetadata() const
   {
     return pimpl_->metadata_;
@@ -488,12 +455,6 @@ namespace Orthanc
   }
 
     
-  const Json::Value& DicomInstanceToStore::GetJson() const
-  {
-    return const_cast<PImpl&>(*pimpl_).GetJson();
-  }
-
-
   bool DicomInstanceToStore::LookupTransferSyntax(std::string& result) const
   {
     return const_cast<PImpl&>(*pimpl_).LookupTransferSyntax(result);

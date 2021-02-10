@@ -526,8 +526,11 @@ namespace Orthanc
 
       resultPublicId = dicom.GetHasher().HashInstance();
 
+      Json::Value dicomAsJson;
+      OrthancConfiguration::DefaultDicomDatasetToJson(dicomAsJson, dicom.GetParsedDicomFile());
+      
       Json::Value simplifiedTags;
-      Toolbox::SimplifyDicomAsJson(simplifiedTags, dicom.GetJson(), DicomToJsonFormat_Human);
+      Toolbox::SimplifyDicomAsJson(simplifiedTags, dicomAsJson, DicomToJsonFormat_Human);
 
       // Test if the instance must be filtered out
       bool accepted = true;
@@ -578,7 +581,7 @@ namespace Orthanc
       FileInfo jsonInfo;
       if (true /* TODO - !area_.HasReadRange() || !hasPixelDataOffset */)
       {
-        jsonInfo = accessor.Write(dicom.GetJson().toStyledString(), 
+        jsonInfo = accessor.Write(dicomAsJson.toStyledString(), 
                                   FileContentType_DicomAsJson, compression, storeMD5_);
         attachments.push_back(jsonInfo);
       }
