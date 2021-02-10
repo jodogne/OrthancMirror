@@ -39,6 +39,7 @@
 #include "../../../OrthancFramework/Sources/Logging.h"
 #include "../../../OrthancFramework/Sources/MetricsRegistry.h"
 #include "../../../OrthancFramework/Sources/SerializationToolbox.h"
+#include "../OrthancConfiguration.h"
 #include "../ServerContext.h"
 
 #include <boost/algorithm/string/predicate.hpp>
@@ -69,9 +70,13 @@ namespace Orthanc
   {
     SetupResourceAnswer(result, instanceId, ResourceType_Instance, status);
 
-    result["ParentPatient"] = instance.GetHasher().HashPatient();
-    result["ParentStudy"] = instance.GetHasher().HashStudy();
-    result["ParentSeries"] = instance.GetHasher().HashSeries();
+    DicomMap summary;
+    OrthancConfiguration::DefaultExtractDicomSummary(summary, instance.GetParsedDicomFile());
+
+    DicomInstanceHasher hasher(summary);
+    result["ParentPatient"] = hasher.HashPatient();
+    result["ParentStudy"] = hasher.HashStudy();
+    result["ParentSeries"] = hasher.HashSeries();
   }
 
 

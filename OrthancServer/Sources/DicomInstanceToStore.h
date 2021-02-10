@@ -33,7 +33,6 @@
 
 #pragma once
 
-#include "../../OrthancFramework/Sources/DicomFormat/DicomInstanceHasher.h"
 #include "../../OrthancFramework/Sources/DicomFormat/DicomMap.h"
 #include "DicomInstanceOrigin.h"
 #include "ServerEnumerations.h"
@@ -67,8 +66,6 @@ namespace Orthanc
 
     void SetParsedDicomFile(ParsedDicomFile& parsed);
 
-    void SetSummary(const DicomMap& summary);
-
     const MetadataMap& GetMetadata() const;
 
     MetadataMap& GetMetadata();
@@ -81,11 +78,7 @@ namespace Orthanc
 
     size_t GetBufferSize() const;
 
-    const DicomMap& GetSummary();
-
     bool LookupTransferSyntax(std::string& result) const;
-
-    DicomInstanceHasher& GetHasher();
 
     bool HasPixelData() const;
 

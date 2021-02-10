@@ -151,7 +151,7 @@ TEST(Lua, Http)
 
 #if UNIT_TESTS_WITH_HTTP_CONNEXIONS == 1
   // The "http://www.orthanc-server.com/downloads/third-party/" does
-  // not automatically redirect to HTTPS, so we cas use it even if the
+  // not automatically redirect to HTTPS, so we use it even if the
   // OpenSSL/HTTPS support is disabled in curl
   const std::string BASE = "http://www.orthanc-server.com/downloads/third-party/";
 

@@ -44,6 +44,7 @@
 namespace Orthanc
 {
   class DatabaseLookup;
+  class DicomInstanceHasher;
   class DicomInstanceToStore;
   class ParsedDicomFile;
   class ServerContext;
@@ -140,6 +141,8 @@ namespace Orthanc
 
     StoreStatus Store(std::map<MetadataType, std::string>& instanceMetadata,
                       DicomInstanceToStore& instance,
+                      const DicomMap& dicomSummary,
+                      DicomInstanceHasher& hasher,
                       const Attachments& attachments,
                       bool overwrite,
                       bool hasPixelDataOffset,

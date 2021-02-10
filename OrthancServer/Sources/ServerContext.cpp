@@ -512,19 +512,21 @@ namespace Orthanc
         throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
 
-
     bool hasPixelDataOffset;
     uint64_t pixelDataOffset;
     hasPixelDataOffset = DicomStreamReader::LookupPixelDataOffset(
       pixelDataOffset, dicom.GetBufferData(), dicom.GetBufferSize());
-    
-    
+        
+    DicomMap summary;
+    OrthancConfiguration::DefaultExtractDicomSummary(summary, dicom.GetParsedDicomFile());
+
     try
     {
       MetricsRegistry::Timer timer(GetMetricsRegistry(), "orthanc_store_dicom_duration_ms");
       StorageAccessor accessor(area_, GetMetricsRegistry());
 
-      resultPublicId = dicom.GetHasher().HashInstance();
+      DicomInstanceHasher hasher(summary);
+      resultPublicId = hasher.HashInstance();
 
       Json::Value dicomAsJson;
       OrthancConfiguration::DefaultDicomDatasetToJson(dicomAsJson, dicom.GetParsedDicomFile());
@@ -588,8 +590,8 @@ namespace Orthanc
 
       typedef std::map<MetadataType, std::string>  InstanceMetadata;
       InstanceMetadata  instanceMetadata;
-      StoreStatus status = index_.Store(
-        instanceMetadata, dicom, attachments, overwrite, hasPixelDataOffset, pixelDataOffset);
+      StoreStatus status = index_.Store(instanceMetadata, dicom, summary, hasher, attachments,
+                                        overwrite, hasPixelDataOffset, pixelDataOffset);
 
       // Only keep the metadata for the "instance" level
       dicom.GetMetadata().clear();
@@ -656,9 +658,9 @@ namespace Orthanc
     {
       if (e.GetErrorCode() == ErrorCode_InexistentTag)
       {
-        dicom.GetSummary().LogMissingTagsForStore();
+        summary.LogMissingTagsForStore();
       }
-
+      
       throw;
     }
   }
