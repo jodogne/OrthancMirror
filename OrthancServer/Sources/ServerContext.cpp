@@ -516,6 +516,9 @@ namespace Orthanc
     uint64_t pixelDataOffset;
     hasPixelDataOffset = DicomStreamReader::LookupPixelDataOffset(
       pixelDataOffset, dicom.GetBufferData(), dicom.GetBufferSize());
+
+    std::string transferSyntax;
+    bool hasTransferSyntax = dicom.LookupTransferSyntax(transferSyntax);
         
     DicomMap summary;
     OrthancConfiguration::DefaultExtractDicomSummary(summary, dicom.GetParsedDicomFile());
@@ -525,8 +528,7 @@ namespace Orthanc
       MetricsRegistry::Timer timer(GetMetricsRegistry(), "orthanc_store_dicom_duration_ms");
       StorageAccessor accessor(area_, GetMetricsRegistry());
 
-      DicomInstanceHasher hasher(summary);
-      resultPublicId = hasher.HashInstance();
+      resultPublicId = dicom.GetParsedDicomFile().GetHasher().HashInstance();
 
       Json::Value dicomAsJson;
       OrthancConfiguration::DefaultDicomDatasetToJson(dicomAsJson, dicom.GetParsedDicomFile());
@@ -590,17 +592,17 @@ namespace Orthanc
 
       typedef std::map<MetadataType, std::string>  InstanceMetadata;
       InstanceMetadata  instanceMetadata;
-      StoreStatus status = index_.Store(instanceMetadata, dicom, summary, hasher, attachments,
-                                        overwrite, hasPixelDataOffset, pixelDataOffset);
+      StoreStatus status = index_.Store(
+        instanceMetadata, summary, attachments, dicom.GetMetadata(), dicom.GetOrigin(), overwrite,
+        hasTransferSyntax, transferSyntax, hasPixelDataOffset, pixelDataOffset);
 
       // Only keep the metadata for the "instance" level
-      dicom.GetMetadata().clear();
+      dicom.ClearMetadata();
 
       for (InstanceMetadata::const_iterator it = instanceMetadata.begin();
            it != instanceMetadata.end(); ++it)
       {
-        dicom.GetMetadata().insert(std::make_pair(std::make_pair(ResourceType_Instance, it->first),
-                                                  it->second));
+        dicom.AddMetadata(ResourceType_Instance, it->first, it->second);
       }
             
       if (status != StoreStatus_Success)

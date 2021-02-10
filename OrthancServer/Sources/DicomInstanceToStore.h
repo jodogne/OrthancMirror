@@ -64,12 +64,14 @@ namespace Orthanc
     void SetBuffer(const void* dicom,
                    size_t size);
 
+    // WARNING: The "ParsedDicomFile" is not copied
     void SetParsedDicomFile(ParsedDicomFile& parsed);
 
     const MetadataMap& GetMetadata() const;
 
-    MetadataMap& GetMetadata();
+    void ClearMetadata();
 
+    // This function is notably used by modify/anonymize operations
     void AddMetadata(ResourceType level,
                      MetadataType metadata,
                      const std::string& value);

@@ -351,9 +351,9 @@ namespace Orthanc
   }
 
 
-  DicomInstanceToStore::MetadataMap& DicomInstanceToStore::GetMetadata()
+  void DicomInstanceToStore::ClearMetadata()
   {
-    return pimpl_->metadata_;
+    pimpl_->metadata_.clear();
   }
 
 
