@@ -250,8 +250,11 @@ TEST(DicomMap, DicomAsJson)
   DicomInstanceToStore toStore;
   toStore.SetParsedDicomFile(dicom);
 
+  Json::Value dicomAsJson;
+  OrthancConfiguration::DefaultDicomDatasetToJson(dicomAsJson, toStore.GetParsedDicomFile());
+  
   DicomMap m;
-  m.FromDicomAsJson(toStore.GetJson());
+  m.FromDicomAsJson(dicomAsJson);
 
   ASSERT_EQ("ISO_IR 100", m.GetValue(DICOM_TAG_SPECIFIC_CHARACTER_SET).GetContent());
   

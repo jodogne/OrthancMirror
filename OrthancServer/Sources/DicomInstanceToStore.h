@@ -69,8 +69,6 @@ namespace Orthanc
 
     void SetSummary(const DicomMap& summary);
 
-    void SetJson(const Json::Value& json);
-
     const MetadataMap& GetMetadata() const;
 
     MetadataMap& GetMetadata();
@@ -84,8 +82,6 @@ namespace Orthanc
     size_t GetBufferSize() const;
 
     const DicomMap& GetSummary();
-    
-    const Json::Value& GetJson() const;
 
     bool LookupTransferSyntax(std::string& result) const;
 
