@@ -727,17 +727,21 @@ TEST(ServerIndex, AttachmentRecycling)
 
     ParsedDicomFile dicom(instance, GetDefaultDicomEncoding(), false /* be strict */);
 
-    std::map<MetadataType, std::string> instanceMetadata;
     DicomInstanceToStore toStore;
     toStore.SetParsedDicomFile(dicom);
+
+    std::map<MetadataType, std::string> instanceMetadata;
 
     {
       DicomMap summary;
       OrthancConfiguration::DefaultExtractDicomSummary(summary, toStore.GetParsedDicomFile());
 
-      DicomInstanceHasher hasher(summary);      
-      ASSERT_EQ(StoreStatus_Success, index.Store(instanceMetadata, toStore, summary, hasher, attachments,
-                                                 false /* don't overwrite */, true /* pixel data offset */, 42));
+      std::string transferSyntax;
+      bool hasTransferSyntax = dicom.LookupTransferSyntax(transferSyntax);
+      ASSERT_EQ(StoreStatus_Success, index.Store(
+                  instanceMetadata, summary, attachments, toStore.GetMetadata(),
+                  toStore.GetOrigin(), false /* don't overwrite */,
+                  hasTransferSyntax, transferSyntax, true /* pixel data offset */, 42));
     }
     
     ASSERT_EQ(6u, instanceMetadata.size());

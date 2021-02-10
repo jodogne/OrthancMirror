@@ -45,7 +45,6 @@
 #include "../../OrthancFramework/Sources/Toolbox.h"
 
 #include "Database/ResourcesContent.h"
-#include "DicomInstanceToStore.h"
 #include "OrthancConfiguration.h"
 #include "Search/DatabaseLookup.h"
 #include "Search/DicomTagConstraint.h"
@@ -756,17 +755,17 @@ namespace Orthanc
 
   
   StoreStatus ServerIndex::Store(std::map<MetadataType, std::string>& instanceMetadata,
-                                 DicomInstanceToStore& instanceToStore,
                                  const DicomMap& dicomSummary,
-                                 DicomInstanceHasher& hasher,
                                  const Attachments& attachments,
+                                 const MetadataMap& metadata,
+                                 const DicomInstanceOrigin& origin,
                                  bool overwrite,
+                                 bool hasTransferSyntax,
+                                 const std::string& transferSyntax,
                                  bool hasPixelDataOffset,
                                  uint64_t pixelDataOffset)
   {
     boost::mutex::scoped_lock lock(mutex_);
-
-    const ServerIndex::MetadataMap& metadata = instanceToStore.GetMetadata();
 
     int64_t expectedInstances;
     const bool hasExpectedInstances =
@@ -774,6 +773,7 @@ namespace Orthanc
     
     instanceMetadata.clear();
 
+    DicomInstanceHasher hasher(dicomSummary);
     const std::string hashPatient = hasher.HashPatient();
     const std::string hashStudy = hasher.HashStudy();
     const std::string hashSeries = hasher.HashSeries();
@@ -928,7 +928,7 @@ namespace Orthanc
 
           // New in Orthanc 1.9.0
           content.AddMetadata(status.seriesId_, MetadataType_RemoteAet,
-                              instanceToStore.GetOrigin().GetRemoteAetC());
+                              origin.GetRemoteAetC());
         }
 
         
@@ -937,36 +937,36 @@ namespace Orthanc
         SetInstanceMetadata(content, instanceMetadata, instanceId,
                             MetadataType_Instance_ReceptionDate, now);
         SetInstanceMetadata(content, instanceMetadata, instanceId, MetadataType_RemoteAet,
-                            instanceToStore.GetOrigin().GetRemoteAetC());
+                            origin.GetRemoteAetC());
         SetInstanceMetadata(content, instanceMetadata, instanceId, MetadataType_Instance_Origin, 
-                            EnumerationToString(instanceToStore.GetOrigin().GetRequestOrigin()));
+                            EnumerationToString(origin.GetRequestOrigin()));
 
+
+        if (hasTransferSyntax)
+        {
+          // New in Orthanc 1.2.0
+          SetInstanceMetadata(content, instanceMetadata, instanceId,
+                              MetadataType_Instance_TransferSyntax, transferSyntax);
+        }
 
         {
           std::string s;
 
-          if (instanceToStore.LookupTransferSyntax(s))
-          {
-            // New in Orthanc 1.2.0
-            SetInstanceMetadata(content, instanceMetadata, instanceId,
-                                MetadataType_Instance_TransferSyntax, s);
-          }
-
-          if (instanceToStore.GetOrigin().LookupRemoteIp(s))
+          if (origin.LookupRemoteIp(s))
           {
             // New in Orthanc 1.4.0
             SetInstanceMetadata(content, instanceMetadata, instanceId,
                                 MetadataType_Instance_RemoteIp, s);
           }
 
-          if (instanceToStore.GetOrigin().LookupCalledAet(s))
+          if (origin.LookupCalledAet(s))
           {
             // New in Orthanc 1.4.0
             SetInstanceMetadata(content, instanceMetadata, instanceId,
                                 MetadataType_Instance_CalledAet, s);
           }
 
-          if (instanceToStore.GetOrigin().LookupHttpUsername(s))
+          if (origin.LookupHttpUsername(s))
           {
             // New in Orthanc 1.4.0
             SetInstanceMetadata(content, instanceMetadata, instanceId,

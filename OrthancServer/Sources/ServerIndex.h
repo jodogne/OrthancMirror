@@ -37,6 +37,7 @@
 #include "../../OrthancFramework/Sources/DicomFormat/DicomMap.h"
 
 #include "Database/IDatabaseWrapper.h"
+#include "DicomInstanceOrigin.h"
 
 #include <boost/thread.hpp>
 #include <boost/noncopyable.hpp>
@@ -44,8 +45,6 @@
 namespace Orthanc
 {
   class DatabaseLookup;
-  class DicomInstanceHasher;
-  class DicomInstanceToStore;
   class ParsedDicomFile;
   class ServerContext;
 
@@ -140,11 +139,13 @@ namespace Orthanc
     void SetMaximumPatientCount(unsigned int count);
 
     StoreStatus Store(std::map<MetadataType, std::string>& instanceMetadata,
-                      DicomInstanceToStore& instance,
                       const DicomMap& dicomSummary,
-                      DicomInstanceHasher& hasher,
                       const Attachments& attachments,
+                      const MetadataMap& metadata,
+                      const DicomInstanceOrigin& origin,
                       bool overwrite,
+                      bool hasTransferSyntax,
+                      const std::string& transferSyntax,
                       bool hasPixelDataOffset,
                       uint64_t pixelDataOffset);
 
