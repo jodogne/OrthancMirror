@@ -40,6 +40,7 @@
 #include "../../OrthancFramework/Sources/Logging.h"
 
 #include "../Sources/Database/SQLiteDatabaseWrapper.h"
+#include "../Sources/OrthancConfiguration.h"
 #include "../Sources/Search/DatabaseLookup.h"
 #include "../Sources/ServerContext.h"
 #include "../Sources/ServerToolbox.h"
@@ -724,11 +725,21 @@ TEST(ServerIndex, AttachmentRecycling)
     instance.SetValue(DICOM_TAG_SOP_INSTANCE_UID, "instance-" + id, false);
     instance.SetValue(DICOM_TAG_SOP_CLASS_UID, "1.2.840.10008.5.1.4.1.1.1", false);  // CR image
 
+    ParsedDicomFile dicom(instance, GetDefaultDicomEncoding(), false /* be strict */);
+
     std::map<MetadataType, std::string> instanceMetadata;
     DicomInstanceToStore toStore;
-    toStore.SetSummary(instance);
-    ASSERT_EQ(StoreStatus_Success, index.Store(instanceMetadata, toStore, attachments,
-                                               false /* don't overwrite */, true /* pixel data offset */, 42));
+    toStore.SetParsedDicomFile(dicom);
+
+    {
+      DicomMap summary;
+      OrthancConfiguration::DefaultExtractDicomSummary(summary, toStore.GetParsedDicomFile());
+
+      DicomInstanceHasher hasher(summary);      
+      ASSERT_EQ(StoreStatus_Success, index.Store(instanceMetadata, toStore, summary, hasher, attachments,
+                                                 false /* don't overwrite */, true /* pixel data offset */, 42));
+    }
+    
     ASSERT_EQ(6u, instanceMetadata.size());
     ASSERT_TRUE(instanceMetadata.find(MetadataType_RemoteAet) != instanceMetadata.end());
     ASSERT_TRUE(instanceMetadata.find(MetadataType_Instance_ReceptionDate) != instanceMetadata.end());
@@ -750,11 +761,6 @@ TEST(ServerIndex, AttachmentRecycling)
     ids.push_back(hasher.HashStudy());
     ids.push_back(hasher.HashSeries());
     ids.push_back(hasher.HashInstance());
-
-    ASSERT_EQ(hasher.HashPatient(), toStore.GetHasher().HashPatient());
-    ASSERT_EQ(hasher.HashStudy(), toStore.GetHasher().HashStudy());
-    ASSERT_EQ(hasher.HashSeries(), toStore.GetHasher().HashSeries());
-    ASSERT_EQ(hasher.HashInstance(), toStore.GetHasher().HashInstance());
   }
 
   index.GetGlobalStatistics(diskSize, uncompressedSize, countPatients, 
@@ -820,10 +826,14 @@ TEST(ServerIndex, Overwrite)
     ASSERT_EQ(0u, diskSize);
 
     {
+      ParsedDicomFile dicom(instance, GetDefaultDicomEncoding(), false /* be strict */);
+
+      DicomInstanceHasher hasher(instance);
+      
       DicomInstanceToStore toStore;
-      toStore.SetSummary(instance);
+      toStore.SetParsedDicomFile(dicom);
       toStore.SetOrigin(DicomInstanceOrigin::FromPlugins());
-      ASSERT_EQ(id, toStore.GetHasher().HashInstance());
+      ASSERT_EQ(id, hasher.HashInstance());
 
       std::string id2;
       ASSERT_EQ(StoreStatus_Success, context.Store(id2, toStore, StoreInstanceMode_Default));
@@ -856,8 +866,10 @@ TEST(ServerIndex, Overwrite)
       instance2.Assign(instance);
       instance2.SetValue(DICOM_TAG_PATIENT_NAME, "overwritten", false);
 
+      ParsedDicomFile dicom(instance2, GetDefaultDicomEncoding(), false /* be strict */);
+
       DicomInstanceToStore toStore;
-      toStore.SetSummary(instance2);
+      toStore.SetParsedDicomFile(dicom);
       toStore.SetOrigin(DicomInstanceOrigin::FromPlugins());
 
       std::string id2;

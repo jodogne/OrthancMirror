@@ -157,7 +157,6 @@ namespace Orthanc
     const void*                          bufferData_;
     size_t                               bufferSize_;
     SmartContainer<ParsedDicomFile>      parsed_;
-    SmartContainer<DicomMap>             summary_;
     MetadataMap                          metadata_;
 
     PImpl() :
@@ -168,9 +167,7 @@ namespace Orthanc
     }
 
   private:
-    std::unique_ptr<DicomInstanceHasher>  hasher_;
-
-    void ParseDicomFile()
+    void ComputeParsedDicomFileIfMissing()
     {
       if (!parsed_.HasContent())
       {
@@ -190,29 +187,13 @@ namespace Orthanc
       }
     }
 
-    void ComputeMissingInformation()
+    void ComputeDicomBufferIfMissing()
     {
-      if (hasBuffer_ &&
-          summary_.HasContent())
-      {
-        // Fine, everything is available
-        return; 
-      }
-    
       if (!hasBuffer_)
       {
         if (!parsed_.HasContent())
         {
-          if (!summary_.HasContent())
-          {
-            throw OrthancException(ErrorCode_NotImplemented);
-          }
-          else
-          {
-            parsed_.TakeOwnership(new ParsedDicomFile(summary_.GetConstContent(),
-                                                      GetDefaultDicomEncoding(),
-                                                      false /* be strict */));
-          }                                
+          throw OrthancException(ErrorCode_NotImplemented);
         }
 
         // Serialize the parsed DICOM file
@@ -225,21 +206,6 @@ namespace Orthanc
         }
 
         hasBuffer_ = true;
-      }
-
-      if (!summary_.HasContent())
-      {
-        // At this point, we know that the DICOM file is available as a
-        // memory buffer, but that its summary or its JSON version is
-        // missing
-        
-        ParseDicomFile();
-        assert(parsed_.HasContent());
-
-        // At this point, we have parsed the DICOM file
-        
-        summary_.Allocate();
-        OrthancConfiguration::DefaultExtractDicomSummary(summary_.GetContent(), parsed_.GetContent());
       }
     }
 
@@ -256,7 +222,7 @@ namespace Orthanc
     
     const void* GetBufferData()
     {
-      ComputeMissingInformation();
+      ComputeDicomBufferIfMissing();
 
       if (!hasBuffer_)
       {
@@ -283,7 +249,7 @@ namespace Orthanc
 
     size_t GetBufferSize()
     {
-      ComputeMissingInformation();
+      ComputeDicomBufferIfMissing();
     
       if (!hasBuffer_)
       {
@@ -301,39 +267,8 @@ namespace Orthanc
     }
 
 
-    const DicomMap& GetSummary()
-    {
-      ComputeMissingInformation();
-    
-      if (!summary_.HasContent())
-      {
-        throw OrthancException(ErrorCode_InternalError);
-      }
-
-      return summary_.GetConstContent();
-    }
-
-    
-    DicomInstanceHasher& GetHasher()
-    {
-      if (hasher_.get() == NULL)
-      {
-        hasher_.reset(new DicomInstanceHasher(GetSummary()));
-      }
-
-      if (hasher_.get() == NULL)
-      {
-        throw OrthancException(ErrorCode_InternalError);
-      }
-
-      return *hasher_;
-    }
-
-    
     bool LookupTransferSyntax(std::string& result)
     {
-      ComputeMissingInformation();
-
       DicomMap header;
       if (DicomMap::ParseDicomMetaInformation(header, GetBufferData(), GetBufferSize()))
       {
@@ -365,8 +300,7 @@ namespace Orthanc
 
     ParsedDicomFile& GetParsedDicomFile()
     {
-      ComputeMissingInformation();
-      ParseDicomFile();
+      ComputeParsedDicomFileIfMissing();
       
       if (parsed_.HasContent())
       {
@@ -411,12 +345,6 @@ namespace Orthanc
   }
 
 
-  void DicomInstanceToStore::SetSummary(const DicomMap& summary)
-  {
-    pimpl_->summary_.SetConstReference(summary);
-  }
-
-
   const DicomInstanceToStore::MetadataMap& DicomInstanceToStore::GetMetadata() const
   {
     return pimpl_->metadata_;
@@ -449,22 +377,11 @@ namespace Orthanc
   }
 
 
-  const DicomMap& DicomInstanceToStore::GetSummary()
-  {
-    return pimpl_->GetSummary();
-  }
-
-    
   bool DicomInstanceToStore::LookupTransferSyntax(std::string& result) const
   {
     return const_cast<PImpl&>(*pimpl_).LookupTransferSyntax(result);
   }
 
-
-  DicomInstanceHasher& DicomInstanceToStore::GetHasher()
-  {
-    return pimpl_->GetHasher();
-  }
 
   bool DicomInstanceToStore::HasPixelData() const
   {

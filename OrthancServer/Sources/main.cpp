@@ -88,13 +88,7 @@ public:
                       const std::string& remoteAet,
                       const std::string& calledAet) ORTHANC_OVERRIDE 
   {
-    DicomMap dicomSummary;
     std::string dicomFile;
-
-    const std::set<DicomTag> ignoreTagLength;
-
-    // TODO => Parameters in class "DicomServer"
-    FromDcmtkBridge::ExtractDicomSummary(dicomSummary, dicom, ORTHANC_MAXIMUM_TAG_LENGTH, ignoreTagLength);
 
     if (!FromDcmtkBridge::SaveToMemoryBuffer(dicomFile, dicom))
     {
@@ -107,7 +101,6 @@ public:
       toStore.SetOrigin(DicomInstanceOrigin::FromDicomProtocol
                         (remoteIp.c_str(), remoteAet.c_str(), calledAet.c_str()));
       toStore.SetBuffer(dicomFile.c_str(), dicomFile.size());
-      toStore.SetSummary(dicomSummary);
 
       std::string id;
       context_.Store(id, toStore, StoreInstanceMode_Default);

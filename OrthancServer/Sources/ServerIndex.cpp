@@ -757,6 +757,8 @@ namespace Orthanc
   
   StoreStatus ServerIndex::Store(std::map<MetadataType, std::string>& instanceMetadata,
                                  DicomInstanceToStore& instanceToStore,
+                                 const DicomMap& dicomSummary,
+                                 DicomInstanceHasher& hasher,
                                  const Attachments& attachments,
                                  bool overwrite,
                                  bool hasPixelDataOffset,
@@ -764,7 +766,6 @@ namespace Orthanc
   {
     boost::mutex::scoped_lock lock(mutex_);
 
-    const DicomMap& dicomSummary = instanceToStore.GetSummary();
     const ServerIndex::MetadataMap& metadata = instanceToStore.GetMetadata();
 
     int64_t expectedInstances;
@@ -773,10 +774,10 @@ namespace Orthanc
     
     instanceMetadata.clear();
 
-    const std::string hashPatient = instanceToStore.GetHasher().HashPatient();
-    const std::string hashStudy = instanceToStore.GetHasher().HashStudy();
-    const std::string hashSeries = instanceToStore.GetHasher().HashSeries();
-    const std::string hashInstance = instanceToStore.GetHasher().HashInstance();
+    const std::string hashPatient = hasher.HashPatient();
+    const std::string hashStudy = hasher.HashStudy();
+    const std::string hashSeries = hasher.HashSeries();
+    const std::string hashInstance = hasher.HashInstance();
 
     try
     {
