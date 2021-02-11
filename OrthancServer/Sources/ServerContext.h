@@ -338,10 +338,7 @@ namespace Orthanc
     }
 
     void ReadDicom(std::string& dicom,
-                   const std::string& instancePublicId)
-    {
-      ReadAttachment(dicom, instancePublicId, FileContentType_Dicom, true);
-    }
+                   const std::string& instancePublicId);
     
     // TODO CACHING MECHANISM AT THIS POINT
     void ReadAttachment(std::string& result,
@@ -349,9 +346,6 @@ namespace Orthanc
                         FileContentType content,
                         bool uncompressIfNeeded);
     
-    void ReadAttachment(std::string& result,
-                        const FileInfo& attachment);
-
     void SetStoreMD5ForAttachments(bool storeMD5);
 
     bool IsStoreMD5ForAttachments() const
