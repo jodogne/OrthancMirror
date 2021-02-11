@@ -111,6 +111,7 @@ namespace Orthanc
     void Apply(ITagVisitor& visitor);
     ParsedDicomFile* Clone(bool keepSopInstanceUid);
     bool LookupTransferSyntax(std::string& result);
+    bool LookupTransferSyntax(std::string& result) const;
     bool GetTagValue(std::string& value,
                      const DicomTag& tag);
 #endif
@@ -264,7 +265,7 @@ namespace Orthanc
                              unsigned int maxTagLength,
                              const std::set<DicomTag>& ignoreTagLength) const;
 
-    bool LookupTransferSyntax(std::string& result) const;
+    bool LookupTransferSyntax(DicomTransferSyntax& result) const;
 
     bool LookupPhotometricInterpretation(PhotometricInterpretation& result) const;
 

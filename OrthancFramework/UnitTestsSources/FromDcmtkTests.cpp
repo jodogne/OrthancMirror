@@ -385,15 +385,17 @@ TEST(ParsedDicomFile, InsertReplaceStrings)
   f.ReplacePlainString(DICOM_TAG_SOP_INSTANCE_UID, "Toto");  // (*)
   f.ReplacePlainString(DICOM_TAG_SOP_CLASS_UID, "Tata");  // (**)
 
-  std::string s;
-  ASSERT_TRUE(f.LookupTransferSyntax(s));
+  DicomTransferSyntax syntax;
+  ASSERT_TRUE(f.LookupTransferSyntax(syntax));
   // The default transfer syntax depends on the OS endianness
-  ASSERT_TRUE(s == GetTransferSyntaxUid(DicomTransferSyntax_LittleEndianExplicit) ||
-              s == GetTransferSyntaxUid(DicomTransferSyntax_BigEndianExplicit));
+  ASSERT_TRUE(syntax == DicomTransferSyntax_LittleEndianExplicit ||
+              syntax == DicomTransferSyntax_BigEndianExplicit);
 
   ASSERT_THROW(f.Replace(DICOM_TAG_ACCESSION_NUMBER, std::string("Accession"),
                          false, DicomReplaceMode_ThrowIfAbsent, ""), OrthancException);
   f.Replace(DICOM_TAG_ACCESSION_NUMBER, std::string("Accession"), false, DicomReplaceMode_IgnoreIfAbsent, "");
+
+  std::string s;
   ASSERT_FALSE(f.GetTagValue(s, DICOM_TAG_ACCESSION_NUMBER));
   f.Replace(DICOM_TAG_ACCESSION_NUMBER, std::string("Accession"), false, DicomReplaceMode_InsertIfAbsent, "");
   ASSERT_TRUE(f.GetTagValue(s, DICOM_TAG_ACCESSION_NUMBER));

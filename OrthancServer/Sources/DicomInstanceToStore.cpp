@@ -267,7 +267,7 @@ namespace Orthanc
     }
 
 
-    bool LookupTransferSyntax(std::string& result)
+    bool LookupTransferSyntax(DicomTransferSyntax& result)
     {
       DicomMap header;
       if (DicomMap::ParseDicomMetaInformation(header, GetBufferData(), GetBufferSize()))
@@ -277,8 +277,7 @@ namespace Orthanc
             !value->IsBinary() &&
             !value->IsNull())
         {
-          result = Toolbox::StripSpaces(value->GetContent());
-          return true;
+          return ::Orthanc::LookupTransferSyntax(result, Toolbox::StripSpaces(value->GetContent()));
         }
       }
       else
@@ -286,12 +285,7 @@ namespace Orthanc
         // This is a DICOM file without a proper meta-header. Fallback
         // to DCMTK, which will fully parse the dataset to retrieve
         // the transfer syntax. Added in Orthanc 1.8.2.
-        std::string transferSyntax;
-        if (GetParsedDicomFile().LookupTransferSyntax(transferSyntax))
-        {
-          result = Toolbox::StripSpaces(transferSyntax);
-          return true;
-        }
+        return GetParsedDicomFile().LookupTransferSyntax(result);
       }
 
       return false;
@@ -377,7 +371,7 @@ namespace Orthanc
   }
 
 
-  bool DicomInstanceToStore::LookupTransferSyntax(std::string& result) const
+  bool DicomInstanceToStore::LookupTransferSyntax(DicomTransferSyntax& result) const
   {
     return const_cast<PImpl&>(*pimpl_).LookupTransferSyntax(result);
   }
@@ -391,5 +385,33 @@ namespace Orthanc
   ParsedDicomFile& DicomInstanceToStore::GetParsedDicomFile() const
   {
     return const_cast<PImpl&>(*pimpl_).GetParsedDicomFile();
+  }
+
+  void DicomInstanceToStore::GetSummary(DicomMap& summary) const
+  {
+    OrthancConfiguration::DefaultExtractDicomSummary(summary, GetParsedDicomFile());
+  }
+
+  void DicomInstanceToStore::GetDicomAsJson(Json::Value& dicomAsJson) const
+  {
+    OrthancConfiguration::DefaultDicomDatasetToJson(dicomAsJson, GetParsedDicomFile());
+  }
+
+  void DicomInstanceToStore::DatasetToJson(Json::Value& target, 
+                                           DicomToJsonFormat format,
+                                           DicomToJsonFlags flags,
+                                           unsigned int maxStringLength) const
+  {
+    return GetParsedDicomFile().DatasetToJson(target, format, flags, maxStringLength);
+  }
+
+  unsigned int DicomInstanceToStore::GetFramesCount() const
+  {
+    return GetParsedDicomFile().GetFramesCount();
+  }
+    
+  ImageAccessor* DicomInstanceToStore::DecodeFrame(unsigned int frame) const
+  {
+    return GetParsedDicomFile().DecodeFrame(frame);
   }
 }

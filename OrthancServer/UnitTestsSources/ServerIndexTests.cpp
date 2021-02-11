@@ -736,7 +736,7 @@ TEST(ServerIndex, AttachmentRecycling)
       DicomMap summary;
       OrthancConfiguration::DefaultExtractDicomSummary(summary, toStore.GetParsedDicomFile());
 
-      std::string transferSyntax;
+      DicomTransferSyntax transferSyntax;
       bool hasTransferSyntax = dicom.LookupTransferSyntax(transferSyntax);
       ASSERT_EQ(StoreStatus_Success, index.Store(
                   instanceMetadata, summary, attachments, toStore.GetMetadata(),

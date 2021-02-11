@@ -761,7 +761,7 @@ namespace Orthanc
                                  const DicomInstanceOrigin& origin,
                                  bool overwrite,
                                  bool hasTransferSyntax,
-                                 const std::string& transferSyntax,
+                                 DicomTransferSyntax transferSyntax,
                                  bool hasPixelDataOffset,
                                  uint64_t pixelDataOffset)
   {
@@ -946,7 +946,8 @@ namespace Orthanc
         {
           // New in Orthanc 1.2.0
           SetInstanceMetadata(content, instanceMetadata, instanceId,
-                              MetadataType_Instance_TransferSyntax, transferSyntax);
+                              MetadataType_Instance_TransferSyntax,
+                              GetTransferSyntaxUid(transferSyntax));
         }
 
         {
@@ -2532,10 +2533,10 @@ namespace Orthanc
       }
 
       {
-        std::string s;
+        DicomTransferSyntax s;
         if (dicom.LookupTransferSyntax(s))
         {
-          db_.SetMetadata(instance, MetadataType_Instance_TransferSyntax, s);
+          db_.SetMetadata(instance, MetadataType_Instance_TransferSyntax, GetTransferSyntaxUid(s));
         }
       }
 

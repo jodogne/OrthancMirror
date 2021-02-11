@@ -1683,38 +1683,9 @@ namespace Orthanc
   }
 
 
-  bool ParsedDicomFile::LookupTransferSyntax(std::string& result) const
+  bool ParsedDicomFile::LookupTransferSyntax(DicomTransferSyntax& result) const
   {
-#if 0
-    // This was the implementation in Orthanc <= 1.6.1
-
-    // TODO - Shouldn't "dataset.getCurrentXfer()" be used instead of
-    // using the meta header?
-    const char* value = NULL;
-
-    if (GetDcmtkObjectConst().getMetaInfo() != NULL &&
-        GetDcmtkObjectConst().getMetaInfo()->findAndGetString(DCM_TransferSyntaxUID, value).good() &&
-        value != NULL)
-    {
-      result.assign(value);
-      return true;
-    }
-    else
-    {
-      return false;
-    }
-#else
-    DicomTransferSyntax s;
-    if (FromDcmtkBridge::LookupOrthancTransferSyntax(s, GetDcmtkObjectConst()))
-    {
-      result.assign(GetTransferSyntaxUid(s));
-      return true;
-    }
-    else
-    {
-      return false;
-    }
-#endif
+    return FromDcmtkBridge::LookupOrthancTransferSyntax(result, GetDcmtkObjectConst());
   }
 
 
@@ -1786,6 +1757,20 @@ namespace Orthanc
   bool ParsedDicomFile::LookupTransferSyntax(std::string& result)
   {
     return const_cast<const ParsedDicomFile&>(*this).LookupTransferSyntax(result);
+  }
+  
+  bool ParsedDicomFile::LookupTransferSyntax(std::string& result) const
+  {
+    DicomTransferSyntax s;
+    if (LookupTransferSyntax(s))
+    {
+      result = GetTransferSyntaxUid(s);
+      return true;
+    }
+    else
+    {
+      return false;
+    }
   }
 
   bool ParsedDicomFile::GetTagValue(std::string& value,

@@ -145,7 +145,7 @@ namespace Orthanc
                       const DicomInstanceOrigin& origin,
                       bool overwrite,
                       bool hasTransferSyntax,
-                      const std::string& transferSyntax,
+                      DicomTransferSyntax transferSyntax,
                       bool hasPixelDataOffset,
                       uint64_t pixelDataOffset);
 
