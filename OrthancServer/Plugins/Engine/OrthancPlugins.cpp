@@ -2127,16 +2127,17 @@ namespace Orthanc
   class OrthancPlugins::DicomInstanceFromBuffer : public IDicomInstance
   {
   private:
-    std::string           buffer_;
-    DicomInstanceToStore  instance_;
+    std::string                            buffer_;
+    std::unique_ptr<DicomInstanceToStore>  instance_;
 
   public:
     DicomInstanceFromBuffer(const void* buffer,
                             size_t size)
     {
       buffer_.assign(reinterpret_cast<const char*>(buffer), size);
-      instance_.SetBuffer(buffer_.empty() ? NULL : buffer_.c_str(), buffer_.size());
-      instance_.SetOrigin(DicomInstanceOrigin::FromPlugins());
+
+      instance_.reset(DicomInstanceToStore::CreateFromBuffer(buffer_));
+      instance_->SetOrigin(DicomInstanceOrigin::FromPlugins());
     }
 
     virtual bool CanBeFreed() const ORTHANC_OVERRIDE
@@ -2146,7 +2147,7 @@ namespace Orthanc
 
     virtual const DicomInstanceToStore& GetInstance() const ORTHANC_OVERRIDE
     {
-      return instance_;
+      return *instance_;
     };
   };
 
@@ -2154,15 +2155,20 @@ namespace Orthanc
   class OrthancPlugins::DicomInstanceFromTranscoded : public IDicomInstance
   {
   private:
-    std::unique_ptr<ParsedDicomFile>  parsed_;
-    DicomInstanceToStore              instance_;
+    std::unique_ptr<ParsedDicomFile>       parsed_;
+    std::unique_ptr<DicomInstanceToStore>  instance_;
 
   public:
     explicit DicomInstanceFromTranscoded(IDicomTranscoder::DicomImage& transcoded) :
       parsed_(transcoded.ReleaseAsParsedDicomFile())
     {
-      instance_.SetParsedDicomFile(*parsed_);
-      instance_.SetOrigin(DicomInstanceOrigin::FromPlugins());
+      if (parsed_.get() == NULL)
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+      
+      instance_.reset(DicomInstanceToStore::CreateFromParsedDicomFile(*parsed_));
+      instance_->SetOrigin(DicomInstanceOrigin::FromPlugins());
     }
 
     virtual bool CanBeFreed() const ORTHANC_OVERRIDE
@@ -2172,7 +2178,7 @@ namespace Orthanc
 
     virtual const DicomInstanceToStore& GetInstance() const ORTHANC_OVERRIDE
     {
-      return instance_;
+      return *instance_;
     };
   };
 

@@ -104,16 +104,15 @@ namespace Orthanc
     {
       modification_->Apply(*modified);
 
-      DicomInstanceToStore toStore;
+      std::unique_ptr<DicomInstanceToStore> toStore(DicomInstanceToStore::CreateFromParsedDicomFile(*modified));
       assert(origin_ == RequestOrigin_Lua);
-      toStore.SetOrigin(DicomInstanceOrigin::FromLua());
-      toStore.SetParsedDicomFile(*modified);
+      toStore->SetOrigin(DicomInstanceOrigin::FromLua());
 
       // TODO other metadata
-      toStore.AddMetadata(ResourceType_Instance, MetadataType_ModifiedFrom, instance.GetId());
+      toStore->AddMetadata(ResourceType_Instance, MetadataType_ModifiedFrom, instance.GetId());
 
       std::string modifiedId;
-      context_.Store(modifiedId, toStore, StoreInstanceMode_Default);
+      context_.Store(modifiedId, *toStore, StoreInstanceMode_Default);
 
       // Only chain with other commands if this command succeeds
       outputs.Append(new DicomInstanceOperationValue(instance.GetServerContext(), modifiedId));

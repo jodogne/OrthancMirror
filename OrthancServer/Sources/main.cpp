@@ -88,22 +88,15 @@ public:
                       const std::string& remoteAet,
                       const std::string& calledAet) ORTHANC_OVERRIDE 
   {
-    std::string dicomFile;
-
-    if (!FromDcmtkBridge::SaveToMemoryBuffer(dicomFile, dicom))
-    {
-      throw OrthancException(ErrorCode_InternalError, "Cannot write DICOM file to memory");
-    }
+    std::unique_ptr<DicomInstanceToStore> toStore(DicomInstanceToStore::CreateFromDcmDataset(dicom));
     
-    if (dicomFile.size() > 0)
+    if (toStore->GetBufferSize() > 0)
     {
-      DicomInstanceToStore toStore;
-      toStore.SetOrigin(DicomInstanceOrigin::FromDicomProtocol
-                        (remoteIp.c_str(), remoteAet.c_str(), calledAet.c_str()));
-      toStore.SetBuffer(dicomFile.c_str(), dicomFile.size());
+      toStore->SetOrigin(DicomInstanceOrigin::FromDicomProtocol
+                         (remoteIp.c_str(), remoteAet.c_str(), calledAet.c_str()));
 
       std::string id;
-      context_.Store(id, toStore, StoreInstanceMode_Default);
+      context_.Store(id, *toStore, StoreInstanceMode_Default);
     }
   }
 };

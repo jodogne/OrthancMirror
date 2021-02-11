@@ -34,6 +34,7 @@
 #include "PrecompiledHeadersServer.h"
 #include "OrthancConfiguration.h"
 
+#include "../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.h"
 #include "../../OrthancFramework/Sources/DicomParsing/ParsedDicomFile.h"
 #include "../../OrthancFramework/Sources/HttpServer/HttpServer.h"
 #include "../../OrthancFramework/Sources/Logging.h"
@@ -1021,12 +1022,29 @@ namespace Orthanc
   }
   
     
+  void OrthancConfiguration::DefaultExtractDicomSummary(DicomMap& target,
+                                                        DcmDataset& dicom)
+  {
+    std::set<DicomTag> ignoreTagLength;
+    FromDcmtkBridge::ExtractDicomSummary(target, dicom, ORTHANC_MAXIMUM_TAG_LENGTH, ignoreTagLength);
+  }    
+    
+
   void OrthancConfiguration::DefaultDicomDatasetToJson(Json::Value& target,
                                                        const ParsedDicomFile& dicom)
   {
     std::set<DicomTag> ignoreTagLength;
     DefaultDicomDatasetToJson(target, dicom, ignoreTagLength);
   }
+
+
+  void OrthancConfiguration::DefaultDicomDatasetToJson(Json::Value& target,
+                                                       DcmDataset& dicom)
+  {
+    std::set<DicomTag> ignoreTagLength;
+    FromDcmtkBridge::ExtractDicomAsJson(target, dicom, DicomToJsonFormat_Full, DicomToJsonFlags_Default, 
+                                        ORTHANC_MAXIMUM_TAG_LENGTH, ignoreTagLength);    
+  }    
   
     
   void OrthancConfiguration::DefaultDicomDatasetToJson(Json::Value& target,

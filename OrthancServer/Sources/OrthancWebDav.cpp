@@ -1282,15 +1282,14 @@ namespace Orthanc
           {
             LOG(INFO) << "Uploading DICOM file extracted from a ZIP archive in WebDAV: " << filename;
           
-            DicomInstanceToStore instance;
-            instance.SetOrigin(DicomInstanceOrigin::FromWebDav());
-            instance.SetBuffer(uncompressedFile.c_str(), uncompressedFile.size());
+            std::unique_ptr<DicomInstanceToStore> instance(DicomInstanceToStore::CreateFromBuffer(uncompressedFile));
+            instance->SetOrigin(DicomInstanceOrigin::FromWebDav());
 
             std::string publicId;
 
             try
             {
-              context_.Store(publicId, instance, StoreInstanceMode_Default);
+              context_.Store(publicId, *instance, StoreInstanceMode_Default);
             }
             catch (OrthancException& e)
             {
@@ -1306,14 +1305,13 @@ namespace Orthanc
       }
       else
       {
-        DicomInstanceToStore instance;
-        instance.SetOrigin(DicomInstanceOrigin::FromWebDav());
-        instance.SetBuffer(content.c_str(), content.size());
+        std::unique_ptr<DicomInstanceToStore> instance(DicomInstanceToStore::CreateFromBuffer(content));
+        instance->SetOrigin(DicomInstanceOrigin::FromWebDav());
 
         try
         {
           std::string publicId;
-          StoreStatus status = context_.Store(publicId, instance, StoreInstanceMode_Default);
+          StoreStatus status = context_.Store(publicId, *instance, StoreInstanceMode_Default);
           if (status == StoreStatus_Success ||
               status == StoreStatus_AlreadyStored)
           {

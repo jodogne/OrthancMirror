@@ -396,12 +396,11 @@ namespace Orthanc
                                    ParsedDicomFile& dicom,
                                    bool sendAnswer)
   {
-    DicomInstanceToStore toStore;
-    toStore.SetOrigin(DicomInstanceOrigin::FromRest(call));
-    toStore.SetParsedDicomFile(dicom);
+    std::unique_ptr<DicomInstanceToStore> toStore(DicomInstanceToStore::CreateFromParsedDicomFile(dicom));
+    toStore->SetOrigin(DicomInstanceOrigin::FromRest(call));
 
     ServerContext& context = OrthancRestApi::GetContext(call);
-    StoreStatus status = context.Store(id, toStore, StoreInstanceMode_Default);
+    StoreStatus status = context.Store(id, *toStore, StoreInstanceMode_Default);
 
     if (status == StoreStatus_Failure)
     {
@@ -410,7 +409,7 @@ namespace Orthanc
 
     if (sendAnswer)
     {
-      OrthancRestApi::GetApi(call).AnswerStoredInstance(call, toStore, status, id);
+      OrthancRestApi::GetApi(call).AnswerStoredInstance(call, *toStore, status, id);
     }
   }
 

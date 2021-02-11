@@ -39,6 +39,8 @@
 
 #include <boost/shared_ptr.hpp>
 
+class DcmDataset;
+
 namespace Orthanc
 {
   class ImageAccessor;
@@ -50,54 +52,80 @@ namespace Orthanc
     typedef std::map<std::pair<ResourceType, MetadataType>, std::string>  MetadataMap;
 
   private:
-    class PImpl;
-    boost::shared_ptr<PImpl>  pimpl_;
+    class FromBuffer;
+    class FromParsedDicomFile;
+    class FromDcmDataset;
+
+    MetadataMap          metadata_;
+    DicomInstanceOrigin  origin_;
 
   public:
-    DicomInstanceToStore();
+    virtual ~DicomInstanceToStore()
+    {
+    }
 
-    void SetOrigin(const DicomInstanceOrigin& origin);
+    // WARNING: The source in the factory methods is *not* copied and
+    // must *not* be deallocated as long as this wrapper object is alive
+    static DicomInstanceToStore* CreateFromBuffer(const void* buffer,
+                                                  size_t size);
+
+    static DicomInstanceToStore* CreateFromBuffer(const std::string& buffer);
+
+    static DicomInstanceToStore* CreateFromParsedDicomFile(ParsedDicomFile& dicom);
+
+    static DicomInstanceToStore* CreateFromDcmDataset(DcmDataset& dataset);
+
+
+ 
+    void SetOrigin(const DicomInstanceOrigin& origin)
+    {
+      origin_ = origin;
+    }
     
-    const DicomInstanceOrigin& GetOrigin() const;
+    const DicomInstanceOrigin& GetOrigin() const
+    {
+      return origin_;
+    } 
+    
+    const MetadataMap& GetMetadata() const
+    {
+      return metadata_;
+    }
 
-    // WARNING: The buffer is not copied, it must not be removed as
-    // long as the "DicomInstanceToStore" object is alive
-    void SetBuffer(const void* dicom,
-                   size_t size);
-
-    // WARNING: The "ParsedDicomFile" is not copied
-    void SetParsedDicomFile(ParsedDicomFile& parsed);
-
-    const MetadataMap& GetMetadata() const;
-
-    void ClearMetadata();
+    void ClearMetadata()
+    {
+      metadata_.clear();
+    }
 
     // This function is notably used by modify/anonymize operations
     void AddMetadata(ResourceType level,
                      MetadataType metadata,
-                     const std::string& value);
-
-    const void* GetBufferData() const;
-
-    size_t GetBufferSize() const;
+                     const std::string& value)
+    {
+      metadata_[std::make_pair(level, metadata)] = value;
+    }
 
     bool LookupTransferSyntax(DicomTransferSyntax& result) const;
 
-    bool HasPixelData() const;
+    virtual ParsedDicomFile& GetParsedDicomFile() const = 0;
 
-    ParsedDicomFile& GetParsedDicomFile() const;
+    virtual const void* GetBufferData() const = 0;
 
-    void GetSummary(DicomMap& summary) const;
+    virtual size_t GetBufferSize() const = 0;
 
-    void GetDicomAsJson(Json::Value& dicomAsJson) const;
+    virtual bool HasPixelData() const;
 
-    void DatasetToJson(Json::Value& target, 
-                       DicomToJsonFormat format,
-                       DicomToJsonFlags flags,
-                       unsigned int maxStringLength) const;
+    virtual void GetSummary(DicomMap& summary) const;
 
-    unsigned int GetFramesCount() const;
+    virtual void GetDicomAsJson(Json::Value& dicomAsJson) const;
+
+    virtual void DatasetToJson(Json::Value& target, 
+                               DicomToJsonFormat format,
+                               DicomToJsonFlags flags,
+                               unsigned int maxStringLength) const;
+
+    virtual unsigned int GetFramesCount() const;
     
-    ImageAccessor* DecodeFrame(unsigned int frame) const;
+    virtual ImageAccessor* DecodeFrame(unsigned int frame) const;
   };
 }

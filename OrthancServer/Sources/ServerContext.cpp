@@ -728,11 +728,10 @@ namespace Orthanc
         {
           std::unique_ptr<ParsedDicomFile> tmp(transcoded.ReleaseAsParsedDicomFile());
 
-          DicomInstanceToStore toStore;
-          toStore.SetParsedDicomFile(*tmp);
-          toStore.SetOrigin(dicom.GetOrigin());
+          std::unique_ptr<DicomInstanceToStore> toStore(DicomInstanceToStore::CreateFromParsedDicomFile(*tmp));
+          toStore->SetOrigin(dicom.GetOrigin());
 
-          StoreStatus ok = StoreAfterTranscoding(resultPublicId, toStore, mode);
+          StoreStatus ok = StoreAfterTranscoding(resultPublicId, *toStore, mode);
           assert(resultPublicId == tmp->GetHasher().HashInstance());
 
           return ok;
@@ -1736,9 +1735,8 @@ namespace Orthanc
                                                  size_t size,
                                                  unsigned int frameIndex)
   {
-    DicomInstanceToStore instance;
-    instance.SetBuffer(dicom, size);
-    return DecodeDicomFrame(instance, frameIndex);
+    std::unique_ptr<DicomInstanceToStore> instance(DicomInstanceToStore::CreateFromBuffer(dicom, size));
+    return DecodeDicomFrame(*instance, frameIndex);
   }
   
 
