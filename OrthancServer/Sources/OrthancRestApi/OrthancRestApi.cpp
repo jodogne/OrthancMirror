@@ -71,7 +71,7 @@ namespace Orthanc
     SetupResourceAnswer(result, instanceId, ResourceType_Instance, status);
 
     DicomMap summary;
-    OrthancConfiguration::DefaultExtractDicomSummary(summary, instance.GetParsedDicomFile());
+    instance.GetSummary(summary);
 
     DicomInstanceHasher hasher(summary);
     result["ParentPatient"] = hasher.HashPatient();

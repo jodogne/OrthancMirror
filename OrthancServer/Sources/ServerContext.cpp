@@ -517,21 +517,22 @@ namespace Orthanc
     hasPixelDataOffset = DicomStreamReader::LookupPixelDataOffset(
       pixelDataOffset, dicom.GetBufferData(), dicom.GetBufferSize());
 
-    std::string transferSyntax;
+    DicomTransferSyntax transferSyntax;
     bool hasTransferSyntax = dicom.LookupTransferSyntax(transferSyntax);
-        
+    
     DicomMap summary;
-    OrthancConfiguration::DefaultExtractDicomSummary(summary, dicom.GetParsedDicomFile());
+    dicom.GetSummary(summary);
 
     try
     {
       MetricsRegistry::Timer timer(GetMetricsRegistry(), "orthanc_store_dicom_duration_ms");
       StorageAccessor accessor(area_, GetMetricsRegistry());
 
-      resultPublicId = dicom.GetParsedDicomFile().GetHasher().HashInstance();
+      DicomInstanceHasher hasher(summary);
+      resultPublicId = hasher.HashInstance();
 
       Json::Value dicomAsJson;
-      OrthancConfiguration::DefaultDicomDatasetToJson(dicomAsJson, dicom.GetParsedDicomFile());
+      dicom.GetDicomAsJson(dicomAsJson);
       
       Json::Value simplifiedTags;
       Toolbox::SimplifyDicomAsJson(simplifiedTags, dicomAsJson, DicomToJsonFormat_Human);
@@ -684,8 +685,7 @@ namespace Orthanc
       bool transcode = false;
 
       DicomTransferSyntax sourceSyntax;
-      if (!FromDcmtkBridge::LookupOrthancTransferSyntax(
-            sourceSyntax, dicom.GetParsedDicomFile().GetDcmtkObject()) ||
+      if (!dicom.LookupTransferSyntax(sourceSyntax) ||
           sourceSyntax == ingestTransferSyntax_)
       {
         // Don't transcode if the incoming DICOM is already in the proper transfer syntax
@@ -1684,7 +1684,7 @@ namespace Orthanc
       std::unique_ptr<ImageAccessor> decoded;
       try
       {
-        decoded.reset(dicom.GetParsedDicomFile().DecodeFrame(frameIndex));
+        decoded.reset(dicom.DecodeFrame(frameIndex));
       }
       catch (OrthancException& e)
       {
@@ -1723,7 +1723,7 @@ namespace Orthanc
 
     if (builtinDecoderTranscoderOrder_ == BuiltinDecoderTranscoderOrder_After)
     {
-      return dicom.GetParsedDicomFile().DecodeFrame(frameIndex);
+      return dicom.DecodeFrame(frameIndex);
     }
     else
     {

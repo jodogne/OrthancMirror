@@ -41,6 +41,7 @@
 
 namespace Orthanc
 {
+  class ImageAccessor;
   class ParsedDicomFile;
 
   class DicomInstanceToStore : public boost::noncopyable
@@ -80,10 +81,23 @@ namespace Orthanc
 
     size_t GetBufferSize() const;
 
-    bool LookupTransferSyntax(std::string& result) const;
+    bool LookupTransferSyntax(DicomTransferSyntax& result) const;
 
     bool HasPixelData() const;
 
     ParsedDicomFile& GetParsedDicomFile() const;
+
+    void GetSummary(DicomMap& summary) const;
+
+    void GetDicomAsJson(Json::Value& dicomAsJson) const;
+
+    void DatasetToJson(Json::Value& target, 
+                       DicomToJsonFormat format,
+                       DicomToJsonFlags flags,
+                       unsigned int maxStringLength) const;
+
+    unsigned int GetFramesCount() const;
+    
+    ImageAccessor* DecodeFrame(unsigned int frame) const;
   };
 }

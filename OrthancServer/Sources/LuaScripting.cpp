@@ -879,10 +879,10 @@ namespace Orthanc
       Json::Value info = Json::objectValue;
       info["HasPixelData"] = instance.HasPixelData();
 
-      std::string s;
+      DicomTransferSyntax s;
       if (instance.LookupTransferSyntax(s))
       {
-        info["TransferSyntaxUID"] = s;
+        info["TransferSyntaxUID"] = GetTransferSyntaxUid(s);
       }
 
       call.PushJson(info);

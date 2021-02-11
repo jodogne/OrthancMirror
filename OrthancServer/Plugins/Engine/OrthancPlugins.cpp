@@ -2933,10 +2933,9 @@ namespace Orthanc
       case _OrthancPluginService_GetInstanceSimplifiedJson:
       {
         Json::Value dicomAsJson;
-        OrthancConfiguration::DefaultDicomDatasetToJson(dicomAsJson, instance.GetParsedDicomFile());
+        instance.GetDicomAsJson(dicomAsJson);
         
         std::string s;
-
         if (service == _OrthancPluginService_GetInstanceJson)
         {
           Toolbox::WriteStyledJson(s, dicomAsJson);
@@ -2958,13 +2957,16 @@ namespace Orthanc
 
       case _OrthancPluginService_GetInstanceTransferSyntaxUid:   // New in Orthanc 1.6.1
       {
-        std::string s;
-        if (!instance.LookupTransferSyntax(s))
+        DicomTransferSyntax s;
+        if (instance.LookupTransferSyntax(s))
         {
-          s.clear();
+          *p.resultStringToFree = CopyString(GetTransferSyntaxUid(s));
+        }
+        else
+        {
+          *p.resultStringToFree = CopyString("");
         }
         
-        *p.resultStringToFree = CopyString(s);
         return;
       }
 
@@ -2973,7 +2975,7 @@ namespace Orthanc
         return;
 
       case _OrthancPluginService_GetInstanceFramesCount:  // New in Orthanc 1.7.0
-        *p.resultInt64 = instance.GetParsedDicomFile().GetFramesCount();
+        *p.resultInt64 = instance.GetFramesCount();
         return;
         
       default:
@@ -3081,7 +3083,7 @@ namespace Orthanc
     switch (service)
     {
       case _OrthancPluginService_GetInstanceFramesCount:
-        *p.targetUint32 = instance.GetParsedDicomFile().GetFramesCount();
+        *p.targetUint32 = instance.GetFramesCount();
         return;
         
       case _OrthancPluginService_GetInstanceRawFrame:
@@ -3127,10 +3129,7 @@ namespace Orthanc
 
         p.targetBuffer->data = NULL;
         p.targetBuffer->size = 0;
-        
-        std::string serialized;
-        instance.GetParsedDicomFile().SaveToMemoryBuffer(serialized);
-        CopyToMemoryBuffer(*p.targetBuffer, serialized);
+        CopyToMemoryBuffer(*p.targetBuffer, instance.GetBufferData(), instance.GetBufferSize());
         return;
       }
 
@@ -3142,9 +3141,8 @@ namespace Orthanc
         }
         
         Json::Value json;
-        instance.GetParsedDicomFile().DatasetToJson(
-          json, Plugins::Convert(p.format), 
-          static_cast<DicomToJsonFlags>(p.flags), p.maxStringLength);
+        instance.DatasetToJson(json, Plugins::Convert(p.format), 
+                               static_cast<DicomToJsonFlags>(p.flags), p.maxStringLength);
 
         std::string s;
         Toolbox::WriteFastJson(s, json);
