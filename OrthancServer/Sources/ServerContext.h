@@ -159,9 +159,6 @@ namespace Orthanc
     static void SaveJobsThread(ServerContext* that,
                                unsigned int sleepDelay);
 
-    void ReadDicomAsJsonInternal(std::string& result,
-                                 const std::string& instancePublicId);
-
     void SaveJobsEngine();
 
     virtual void SignalJobSubmitted(const std::string& jobId) ORTHANC_OVERRIDE;
@@ -316,36 +313,27 @@ namespace Orthanc
                                      CompressionType compression);
 
     void ReadDicomAsJson(std::string& result,
-                         const std::string& instancePublicId,
-                         const std::set<DicomTag>& ignoreTagLength);
+                         const std::string& instancePublicId);
 
     void ReadDicomAsJson(Json::Value& result,
                          const std::string& instancePublicId,
                          const std::set<DicomTag>& ignoreTagLength);
 
-    void ReadDicomAsJson(std::string& result,
-                         const std::string& instancePublicId)
-    {
-      std::set<DicomTag> ignoreTagLength;
-      ReadDicomAsJson(result, instancePublicId, ignoreTagLength);
-    }
-
     void ReadDicomAsJson(Json::Value& result,
-                         const std::string& instancePublicId)
-    {
-      std::set<DicomTag> ignoreTagLength;
-      ReadDicomAsJson(result, instancePublicId, ignoreTagLength);
-    }
+                         const std::string& instancePublicId);
 
     void ReadDicom(std::string& dicom,
                    const std::string& instancePublicId);
     
-    // TODO CACHING MECHANISM AT THIS POINT
+    bool ReadDicomUntilPixelData(std::string& dicom,
+                                 const std::string& instancePublicId);
+
+    // This method is for low-level operations on "/instances/.../attachments/..."
     void ReadAttachment(std::string& result,
                         const std::string& instancePublicId,
                         FileContentType content,
                         bool uncompressIfNeeded);
-    
+
     void SetStoreMD5ForAttachments(bool storeMD5);
 
     bool IsStoreMD5ForAttachments() const
