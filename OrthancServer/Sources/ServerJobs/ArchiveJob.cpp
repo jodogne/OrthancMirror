@@ -195,7 +195,7 @@ namespace Orthanc
     virtual void Close() = 0;
 
     virtual void AddInstance(const std::string& instanceId,
-                             size_t uncompressedSize) = 0;
+                             uint64_t uncompressedSize) = 0;
   };
 
 
