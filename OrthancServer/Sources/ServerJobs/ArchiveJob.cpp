@@ -195,7 +195,7 @@ namespace Orthanc
     virtual void Close() = 0;
 
     virtual void AddInstance(const std::string& instanceId,
-                             const FileInfo& dicom) = 0;
+                             size_t uncompressedSize) = 0;
   };
 
 
@@ -205,11 +205,12 @@ namespace Orthanc
     struct Instance
     {
       std::string  id_;
-      FileInfo     dicom_;
+      uint64_t     uncompressedSize_;
 
       Instance(const std::string& id,
-               const FileInfo& dicom) : 
-        id_(id), dicom_(dicom)
+               uint64_t uncompressedSize) : 
+        id_(id),
+        uncompressedSize_(uncompressedSize)
       {
       }
     };
@@ -230,7 +231,7 @@ namespace Orthanc
         FileInfo tmp;
         if (index.LookupAttachment(tmp, id, FileContentType_Dicom))
         {
-          instances_.push_back(Instance(id, tmp));
+          instances_.push_back(Instance(id, tmp.GetUncompressedSize()));
         }
       }
       else
@@ -335,7 +336,7 @@ namespace Orthanc
         for (std::list<Instance>::const_iterator 
                it = instances_.begin(); it != instances_.end(); ++it)
         {
-          visitor.AddInstance(it->id_, it->dicom_);
+          visitor.AddInstance(it->id_, it->uncompressedSize_);
         }          
       }
       else
@@ -370,7 +371,6 @@ namespace Orthanc
       Type          type_;
       std::string   filename_;
       std::string   instanceId_;
-      FileInfo      info_;
 
     public:
       explicit Command(Type type) :
@@ -389,12 +389,10 @@ namespace Orthanc
         
       Command(Type type,
               const std::string& filename,
-              const std::string& instanceId,
-              const FileInfo& info) :
+              const std::string& instanceId) :
         type_(type),
         filename_(filename),
-        instanceId_(instanceId),
-        info_(info)
+        instanceId_(instanceId)
       {
         assert(type_ == Type_WriteInstance);
       }
@@ -422,7 +420,7 @@ namespace Orthanc
 
             try
             {
-              context.ReadAttachment(content, info_);
+              context.ReadDicom(content, instanceId_);
             }
             catch (OrthancException& e)
             {
@@ -577,11 +575,11 @@ namespace Orthanc
 
     void AddWriteInstance(const std::string& filename,
                           const std::string& instanceId,
-                          const FileInfo& info)
+                          uint64_t uncompressedSize)
     {
-      commands_.push_back(new Command(Type_WriteInstance, filename, instanceId, info));
+      commands_.push_back(new Command(Type_WriteInstance, filename, instanceId));
       instancesCount_ ++;
-      uncompressedSize_ += info.GetUncompressedSize();
+      uncompressedSize_ += uncompressedSize;
     }
 
     bool IsZip64() const
@@ -695,13 +693,13 @@ namespace Orthanc
     }
 
     virtual void AddInstance(const std::string& instanceId,
-                             const FileInfo& dicom) ORTHANC_OVERRIDE
+                             uint64_t uncompressedSize) ORTHANC_OVERRIDE
     {
       char filename[24];
       snprintf(filename, sizeof(filename) - 1, instanceFormat_, counter_);
       counter_ ++;
 
-      commands_.AddWriteInstance(filename, instanceId, dicom);
+      commands_.AddWriteInstance(filename, instanceId, uncompressedSize);
     }
   };
 
@@ -732,13 +730,13 @@ namespace Orthanc
     }
 
     virtual void AddInstance(const std::string& instanceId,
-                             const FileInfo& dicom) ORTHANC_OVERRIDE
+                             uint64_t uncompressedSize) ORTHANC_OVERRIDE
     {
       // "DICOM restricts the filenames on DICOM media to 8
       // characters (some systems wrongly use 8.3, but this does not
       // conform to the standard)."
       std::string filename = "IM" + boost::lexical_cast<std::string>(counter_);
-      commands_.AddWriteInstance(filename, instanceId, dicom);
+      commands_.AddWriteInstance(filename, instanceId, uncompressedSize);
 
       counter_ ++;
     }

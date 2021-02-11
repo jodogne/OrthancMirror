@@ -813,7 +813,8 @@ namespace Orthanc
     FileInfo attachment;
     if (index_.LookupAttachment(attachment, instancePublicId, FileContentType_DicomAsJson))
     {
-      ReadAttachment(result, attachment);
+      StorageAccessor accessor(area_, GetMetricsRegistry());
+      accessor.Read(result, attachment);
     }
     else
     {
@@ -886,6 +887,13 @@ namespace Orthanc
   }
 
 
+  void ServerContext::ReadDicom(std::string& dicom,
+                                const std::string& instancePublicId)
+  {
+    ReadAttachment(dicom, instancePublicId, FileContentType_Dicom, true /* uncompress */);
+  }
+    
+
   void ServerContext::ReadAttachment(std::string& result,
                                      const std::string& instancePublicId,
                                      FileContentType content,
@@ -901,26 +909,20 @@ namespace Orthanc
 
     assert(attachment.GetContentType() == content);
 
-    if (uncompressIfNeeded)
     {
-      ReadAttachment(result, attachment);
-    }
-    else
-    {
-      // Do not uncompress the content of the storage area, return the
-      // raw data
       StorageAccessor accessor(area_, GetMetricsRegistry());
-      accessor.ReadRaw(result, attachment);
+
+      if (uncompressIfNeeded)
+      {
+        accessor.Read(result, attachment);
+      }
+      else
+      {
+        // Do not uncompress the content of the storage area, return the
+        // raw data
+        accessor.ReadRaw(result, attachment);
+      }
     }
-  }
-
-
-  void ServerContext::ReadAttachment(std::string& result,
-                                     const FileInfo& attachment)
-  {
-    // This will decompress the attachment
-    StorageAccessor accessor(area_, GetMetricsRegistry());
-    accessor.Read(result, attachment);
   }
 
 
