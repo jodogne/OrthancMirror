@@ -535,10 +535,9 @@ namespace
       dicom.Replace(DICOM_TAG_PATIENT_NAME, std::string("JODOGNE"),
                     false, DicomReplaceMode_InsertIfAbsent, "");
 
-      DicomInstanceToStore toStore;
-      toStore.SetParsedDicomFile(dicom);
+      std::unique_ptr<DicomInstanceToStore> toStore(DicomInstanceToStore::CreateFromParsedDicomFile(dicom));
 
-      return (context_->Store(id, toStore, StoreInstanceMode_Default) == StoreStatus_Success);
+      return (context_->Store(id, *toStore, StoreInstanceMode_Default) == StoreStatus_Success);
     }
   };
 }

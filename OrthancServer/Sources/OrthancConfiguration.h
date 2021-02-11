@@ -43,6 +43,8 @@
 #include <boost/thread/shared_mutex.hpp>
 #include <boost/thread/lock_types.hpp>
 
+class DcmDataset;
+
 namespace Orthanc
 {
   class DicomMap;
@@ -251,9 +253,15 @@ namespace Orthanc
 
     static void DefaultExtractDicomSummary(DicomMap& target,
                                            const ParsedDicomFile& dicom);
+
+    static void DefaultExtractDicomSummary(DicomMap& target,
+                                           DcmDataset& dicom);
     
     static void DefaultDicomDatasetToJson(Json::Value& target,
                                           const ParsedDicomFile& dicom);
+    
+    static void DefaultDicomDatasetToJson(Json::Value& target,
+                                          DcmDataset& dicom);
     
     static void DefaultDicomDatasetToJson(Json::Value& target,
                                           const ParsedDicomFile& dicom,

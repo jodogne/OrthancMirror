@@ -191,19 +191,18 @@ namespace Orthanc
         if (!content.empty())
         {
           LOG(INFO) << "Uploading DICOM file from ZIP archive: " << filename;
-          
-          DicomInstanceToStore toStore;
-          toStore.SetOrigin(DicomInstanceOrigin::FromRest(call));
-          toStore.SetBuffer(content.c_str(), content.size());
+
+          std::unique_ptr<DicomInstanceToStore> toStore(DicomInstanceToStore::CreateFromBuffer(content));
+          toStore->SetOrigin(DicomInstanceOrigin::FromRest(call));
 
           std::string publicId;
 
           try
           {
-            StoreStatus status = context.Store(publicId, toStore, StoreInstanceMode_Default);
+            StoreStatus status = context.Store(publicId, *toStore, StoreInstanceMode_Default);
 
             Json::Value info;
-            SetupResourceAnswer(info, toStore, status, publicId);
+            SetupResourceAnswer(info, *toStore, status, publicId);
             answer.append(info);
           }
           catch (OrthancException& e)
@@ -228,24 +227,25 @@ namespace Orthanc
       // latter can possibly store a reference to the former (*)
       std::string dicom;
 
-      DicomInstanceToStore toStore;
-      toStore.SetOrigin(DicomInstanceOrigin::FromRest(call));
+      std::unique_ptr<DicomInstanceToStore> toStore;
 
       if (boost::iequals(call.GetHttpHeader("content-encoding", ""), "gzip"))
       {
         GzipCompressor compressor;
         compressor.Uncompress(dicom, call.GetBodyData(), call.GetBodySize());
-        toStore.SetBuffer(dicom.c_str(), dicom.size());  // (*)
+        toStore.reset(DicomInstanceToStore::CreateFromBuffer(dicom));  // (*)
       }
       else
       {
-        toStore.SetBuffer(call.GetBodyData(), call.GetBodySize());
+        toStore.reset(DicomInstanceToStore::CreateFromBuffer(call.GetBodyData(), call.GetBodySize()));
       }    
 
-      std::string publicId;
-      StoreStatus status = context.Store(publicId, toStore, StoreInstanceMode_Default);
+      toStore->SetOrigin(DicomInstanceOrigin::FromRest(call));
 
-      OrthancRestApi::GetApi(call).AnswerStoredInstance(call, toStore, status, publicId);
+      std::string publicId;
+      StoreStatus status = context.Store(publicId, *toStore, StoreInstanceMode_Default);
+
+      OrthancRestApi::GetApi(call).AnswerStoredInstance(call, *toStore, status, publicId);
     }
   }
 

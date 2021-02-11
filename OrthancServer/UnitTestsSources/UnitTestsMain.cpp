@@ -247,11 +247,10 @@ TEST(DicomMap, DicomAsJson)
               element != NULL &&
               element->getTag().getEVR() == EVR_US);
 
-  DicomInstanceToStore toStore;
-  toStore.SetParsedDicomFile(dicom);
+  std::unique_ptr<DicomInstanceToStore> toStore(DicomInstanceToStore::CreateFromParsedDicomFile(dicom));
 
   Json::Value dicomAsJson;
-  OrthancConfiguration::DefaultDicomDatasetToJson(dicomAsJson, toStore.GetParsedDicomFile());
+  OrthancConfiguration::DefaultDicomDatasetToJson(dicomAsJson, toStore->GetParsedDicomFile());
   
   DicomMap m;
   m.FromDicomAsJson(dicomAsJson);

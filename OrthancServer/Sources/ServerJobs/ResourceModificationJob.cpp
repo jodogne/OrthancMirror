@@ -210,9 +210,8 @@ namespace Orthanc
 
     assert(modifiedUid == IDicomTranscoder::GetSopInstanceUid(modified->GetDcmtkObject()));
 
-    DicomInstanceToStore toStore;
-    toStore.SetOrigin(origin_);
-    toStore.SetParsedDicomFile(*modified);
+    std::unique_ptr<DicomInstanceToStore> toStore(DicomInstanceToStore::CreateFromParsedDicomFile(*modified));
+    toStore->SetOrigin(origin_);
 
 
     /**
@@ -228,21 +227,21 @@ namespace Orthanc
 
     if (originalHasher->HashSeries() != modifiedHasher.HashSeries())
     {
-      toStore.AddMetadata(ResourceType_Series, metadataType, originalHasher->HashSeries());
+      toStore->AddMetadata(ResourceType_Series, metadataType, originalHasher->HashSeries());
     }
 
     if (originalHasher->HashStudy() != modifiedHasher.HashStudy())
     {
-      toStore.AddMetadata(ResourceType_Study, metadataType, originalHasher->HashStudy());
+      toStore->AddMetadata(ResourceType_Study, metadataType, originalHasher->HashStudy());
     }
 
     if (originalHasher->HashPatient() != modifiedHasher.HashPatient())
     {
-      toStore.AddMetadata(ResourceType_Patient, metadataType, originalHasher->HashPatient());
+      toStore->AddMetadata(ResourceType_Patient, metadataType, originalHasher->HashPatient());
     }
 
     assert(instance == originalHasher->HashInstance());
-    toStore.AddMetadata(ResourceType_Instance, metadataType, instance);
+    toStore->AddMetadata(ResourceType_Instance, metadataType, instance);
 
 
     /**
@@ -250,7 +249,7 @@ namespace Orthanc
      **/
 
     std::string modifiedInstance;
-    if (GetContext().Store(modifiedInstance, toStore,
+    if (GetContext().Store(modifiedInstance, *toStore,
                            StoreInstanceMode_Default) != StoreStatus_Success)
     {
       throw OrthancException(ErrorCode_CannotStoreInstance,

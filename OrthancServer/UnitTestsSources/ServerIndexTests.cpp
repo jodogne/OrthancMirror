@@ -727,20 +727,19 @@ TEST(ServerIndex, AttachmentRecycling)
 
     ParsedDicomFile dicom(instance, GetDefaultDicomEncoding(), false /* be strict */);
 
-    DicomInstanceToStore toStore;
-    toStore.SetParsedDicomFile(dicom);
+    std::unique_ptr<DicomInstanceToStore> toStore(DicomInstanceToStore::CreateFromParsedDicomFile(dicom));
 
     std::map<MetadataType, std::string> instanceMetadata;
 
     {
       DicomMap summary;
-      OrthancConfiguration::DefaultExtractDicomSummary(summary, toStore.GetParsedDicomFile());
+      OrthancConfiguration::DefaultExtractDicomSummary(summary, toStore->GetParsedDicomFile());
 
       DicomTransferSyntax transferSyntax;
       bool hasTransferSyntax = dicom.LookupTransferSyntax(transferSyntax);
       ASSERT_EQ(StoreStatus_Success, index.Store(
-                  instanceMetadata, summary, attachments, toStore.GetMetadata(),
-                  toStore.GetOrigin(), false /* don't overwrite */,
+                  instanceMetadata, summary, attachments, toStore->GetMetadata(),
+                  toStore->GetOrigin(), false /* don't overwrite */,
                   hasTransferSyntax, transferSyntax, true /* pixel data offset */, 42));
     }
     
@@ -834,13 +833,12 @@ TEST(ServerIndex, Overwrite)
 
       DicomInstanceHasher hasher(instance);
       
-      DicomInstanceToStore toStore;
-      toStore.SetParsedDicomFile(dicom);
-      toStore.SetOrigin(DicomInstanceOrigin::FromPlugins());
+      std::unique_ptr<DicomInstanceToStore> toStore(DicomInstanceToStore::CreateFromParsedDicomFile(dicom));
+      toStore->SetOrigin(DicomInstanceOrigin::FromPlugins());
       ASSERT_EQ(id, hasher.HashInstance());
 
       std::string id2;
-      ASSERT_EQ(StoreStatus_Success, context.Store(id2, toStore, StoreInstanceMode_Default));
+      ASSERT_EQ(StoreStatus_Success, context.Store(id2, *toStore, StoreInstanceMode_Default));
       ASSERT_EQ(id, id2);
     }
 
@@ -872,13 +870,12 @@ TEST(ServerIndex, Overwrite)
 
       ParsedDicomFile dicom(instance2, GetDefaultDicomEncoding(), false /* be strict */);
 
-      DicomInstanceToStore toStore;
-      toStore.SetParsedDicomFile(dicom);
-      toStore.SetOrigin(DicomInstanceOrigin::FromPlugins());
+      std::unique_ptr<DicomInstanceToStore> toStore(DicomInstanceToStore::CreateFromParsedDicomFile(dicom));
+      toStore->SetOrigin(DicomInstanceOrigin::FromPlugins());
 
       std::string id2;
       ASSERT_EQ(overwrite ? StoreStatus_Success : StoreStatus_AlreadyStored,
-                context.Store(id2, toStore, StoreInstanceMode_Default));
+                context.Store(id2, *toStore, StoreInstanceMode_Default));
       ASSERT_EQ(id, id2);
     }
 

@@ -970,7 +970,10 @@ namespace Orthanc
 
   void ParsedDicomFile::SaveToMemoryBuffer(std::string& buffer)
   {
-    FromDcmtkBridge::SaveToMemoryBuffer(buffer, *GetDcmtkObject().getDataset());
+    if (!FromDcmtkBridge::SaveToMemoryBuffer(buffer, *GetDcmtkObject().getDataset()))
+    {
+      throw OrthancException(ErrorCode_InternalError, "Cannot write DICOM file to memory");
+    }
   }
 
 

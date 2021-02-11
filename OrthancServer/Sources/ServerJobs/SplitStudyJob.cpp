@@ -139,12 +139,11 @@ namespace Orthanc
       targetStudy_ = modified->GetHasher().HashStudy();
     }
     
-    DicomInstanceToStore toStore;
-    toStore.SetOrigin(origin_);
-    toStore.SetParsedDicomFile(*modified);
+    std::unique_ptr<DicomInstanceToStore> toStore(DicomInstanceToStore::CreateFromParsedDicomFile(*modified));
+    toStore->SetOrigin(origin_);
 
     std::string modifiedInstance;
-    if (GetContext().Store(modifiedInstance, toStore,
+    if (GetContext().Store(modifiedInstance, *toStore,
                            StoreInstanceMode_Default) != StoreStatus_Success)
     {
       LOG(ERROR) << "Error while storing a modified instance " << instance;

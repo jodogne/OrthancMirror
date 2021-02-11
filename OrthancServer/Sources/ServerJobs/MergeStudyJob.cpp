@@ -147,12 +147,11 @@ namespace Orthanc
     // Fix since Orthanc 1.5.8: Assign new "SOPInstanceUID", as the instance has been modified
     modified->ReplacePlainString(DICOM_TAG_SOP_INSTANCE_UID, FromDcmtkBridge::GenerateUniqueIdentifier(ResourceType_Instance));
 
-    DicomInstanceToStore toStore;
-    toStore.SetOrigin(origin_);
-    toStore.SetParsedDicomFile(*modified);
+    std::unique_ptr<DicomInstanceToStore> toStore(DicomInstanceToStore::CreateFromParsedDicomFile(*modified));
+    toStore->SetOrigin(origin_);
 
     std::string modifiedInstance;
-    if (GetContext().Store(modifiedInstance, toStore,
+    if (GetContext().Store(modifiedInstance, *toStore,
                        StoreInstanceMode_Default) != StoreStatus_Success)
     {
       LOG(ERROR) << "Error while storing a modified instance " << instance;

@@ -37,6 +37,8 @@
 #include "OrthancConfiguration.h"
 
 #include "../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.h"
+#include "../../OrthancFramework/Sources/DicomParsing/Internals/DicomFrameIndex.h"
+#include "../../OrthancFramework/Sources/DicomParsing/Internals/DicomImageDecoder.h"
 #include "../../OrthancFramework/Sources/DicomParsing/ParsedDicomFile.h"
 #include "../../OrthancFramework/Sources/Logging.h"
 #include "../../OrthancFramework/Sources/OrthancException.h"
@@ -47,355 +49,248 @@
 
 namespace Orthanc
 {
-  // Anonymous namespace to avoid clashes between compilation modules
-  namespace
+  class DicomInstanceToStore::FromBuffer : public DicomInstanceToStore
   {
-    template <typename T>
-    class SmartContainer
-    {
-    private:
-      T* content_;
-      bool toDelete_;
-      bool isReadOnly_;
-
-      void Deallocate()
-      {
-        if (content_ && toDelete_)
-        {
-          delete content_;
-          toDelete_ = false;
-          content_ = NULL;
-        }
-      }
-
-    public:
-      SmartContainer() : content_(NULL), toDelete_(false), isReadOnly_(true)
-      {
-      }
-
-      ~SmartContainer()
-      {
-        Deallocate();
-      }
-
-      void Allocate()
-      {
-        Deallocate();
-        content_ = new T;
-        toDelete_ = true;
-        isReadOnly_ = false;
-      }
-
-      void TakeOwnership(T* content)
-      {
-        if (content == NULL)
-        {
-          throw OrthancException(ErrorCode_ParameterOutOfRange);
-        }
-
-        Deallocate();
-        content_ = content;
-        toDelete_ = true;
-        isReadOnly_ = false;
-      }
-
-      void SetReference(T& content)   // Read and write assign, without transfering ownership
-      {
-        Deallocate();
-        content_ = &content;
-        toDelete_ = false;
-        isReadOnly_ = false;
-      }
-
-      void SetConstReference(const T& content)   // Read-only assign, without transfering ownership
-      {
-        Deallocate();
-        content_ = &const_cast<T&>(content);
-        toDelete_ = false;
-        isReadOnly_ = true;
-      }
-
-      bool HasContent() const
-      {
-        return content_ != NULL;
-      }
-
-      T& GetContent()
-      {
-        if (content_ == NULL)
-        {
-          throw OrthancException(ErrorCode_BadSequenceOfCalls);
-        }
-
-        if (isReadOnly_)
-        {
-          throw OrthancException(ErrorCode_ReadOnly);
-        }
-
-        return *content_;
-      }
-
-      const T& GetConstContent() const
-      {
-        if (content_ == NULL)
-        {
-          throw OrthancException(ErrorCode_BadSequenceOfCalls);
-        }
-
-        return *content_;
-      }
-    };
-  }
-
-
-  class DicomInstanceToStore::PImpl
-  {
-  public:
-    DicomInstanceOrigin                  origin_;
-    bool                                 hasBuffer_;
-    std::unique_ptr<std::string>         ownBuffer_;
-    const void*                          bufferData_;
-    size_t                               bufferSize_;
-    SmartContainer<ParsedDicomFile>      parsed_;
-    MetadataMap                          metadata_;
-
-    PImpl() :
-      hasBuffer_(false),
-      bufferData_(NULL),
-      bufferSize_(0)
-    {
-    }
-
   private:
-    void ComputeParsedDicomFileIfMissing()
-    {
-      if (!parsed_.HasContent())
-      {
-        if (!hasBuffer_)
-        {
-          throw OrthancException(ErrorCode_InternalError);
-        }
-      
-        if (ownBuffer_.get() != NULL)
-        {
-          parsed_.TakeOwnership(new ParsedDicomFile(*ownBuffer_));
-        }
-        else
-        {
-          parsed_.TakeOwnership(new ParsedDicomFile(bufferData_, bufferSize_));
-        }
-      }
-    }
-
-    void ComputeDicomBufferIfMissing()
-    {
-      if (!hasBuffer_)
-      {
-        if (!parsed_.HasContent())
-        {
-          throw OrthancException(ErrorCode_NotImplemented);
-        }
-
-        // Serialize the parsed DICOM file
-        ownBuffer_.reset(new std::string);
-        if (!FromDcmtkBridge::SaveToMemoryBuffer(*ownBuffer_,
-                                                 *parsed_.GetContent().GetDcmtkObject().getDataset()))
-        {
-          throw OrthancException(ErrorCode_InternalError,
-                                 "Unable to serialize a DICOM file to a memory buffer");
-        }
-
-        hasBuffer_ = true;
-      }
-    }
-
+    const void*                       buffer_;
+    size_t                            size_;
+    std::unique_ptr<ParsedDicomFile>  parsed_;
 
   public:
-    void SetBuffer(const void* data,
-                   size_t size)
+    FromBuffer(const void* buffer,
+               size_t size) :
+      buffer_(buffer),
+      size_(size)
     {
-      ownBuffer_.reset(NULL);
-      bufferData_ = data;
-      bufferSize_ = size;
-      hasBuffer_ = true;
-    }
-    
-    const void* GetBufferData()
-    {
-      ComputeDicomBufferIfMissing();
-
-      if (!hasBuffer_)
-      {
-        throw OrthancException(ErrorCode_InternalError);
-      }
-
-      if (ownBuffer_.get() != NULL)
-      {
-        if (ownBuffer_->empty())
-        {
-          return NULL;
-        }
-        else
-        {
-          return ownBuffer_->c_str();
-        }
-      }
-      else
-      {
-        return bufferData_;
-      }
     }
 
-
-    size_t GetBufferSize()
+    virtual ParsedDicomFile& GetParsedDicomFile() const ORTHANC_OVERRIDE
     {
-      ComputeDicomBufferIfMissing();
-    
-      if (!hasBuffer_)
+      if (parsed_.get() == NULL)
       {
-        throw OrthancException(ErrorCode_InternalError);
+        const_cast<FromBuffer&>(*this).parsed_.reset(new ParsedDicomFile(buffer_, size_));
       }
 
-      if (ownBuffer_.get() != NULL)
-      {
-        return ownBuffer_->size();
-      }
-      else
-      {
-        return bufferSize_;
-      }
+      return *parsed_;
     }
 
-
-    bool LookupTransferSyntax(DicomTransferSyntax& result)
+    virtual const void* GetBufferData() const ORTHANC_OVERRIDE
     {
-      DicomMap header;
-      if (DicomMap::ParseDicomMetaInformation(header, GetBufferData(), GetBufferSize()))
-      {
-        const DicomValue* value = header.TestAndGetValue(DICOM_TAG_TRANSFER_SYNTAX_UID);
-        if (value != NULL &&
-            !value->IsBinary() &&
-            !value->IsNull())
-        {
-          return ::Orthanc::LookupTransferSyntax(result, Toolbox::StripSpaces(value->GetContent()));
-        }
-      }
-      else
-      {
-        // This is a DICOM file without a proper meta-header. Fallback
-        // to DCMTK, which will fully parse the dataset to retrieve
-        // the transfer syntax. Added in Orthanc 1.8.2.
-        return GetParsedDicomFile().LookupTransferSyntax(result);
-      }
-
-      return false;
+      return buffer_;
     }
 
-
-    ParsedDicomFile& GetParsedDicomFile()
+    virtual size_t GetBufferSize() const ORTHANC_OVERRIDE
     {
-      ComputeParsedDicomFileIfMissing();
-      
-      if (parsed_.HasContent())
-      {
-        return parsed_.GetContent();
-      }
-      else
-      {
-        throw OrthancException(ErrorCode_InternalError);
-      }
+      return size_;
     }
   };
 
-
-  DicomInstanceToStore::DicomInstanceToStore() :
-    pimpl_(new PImpl)
-  {
-  }
-
-
-  void DicomInstanceToStore::SetOrigin(const DicomInstanceOrigin& origin)
-  {
-    pimpl_->origin_ = origin;
-  }
-
     
-  const DicomInstanceOrigin& DicomInstanceToStore::GetOrigin() const
+  class DicomInstanceToStore::FromParsedDicomFile : public DicomInstanceToStore
   {
-    return pimpl_->origin_;
-  }
+  private:
+    ParsedDicomFile&              parsed_;
+    std::unique_ptr<std::string>  buffer_;
 
+    void SerializeToBuffer()
+    {
+      if (buffer_.get() == NULL)
+      {
+        buffer_.reset(new std::string);
+        parsed_.SaveToMemoryBuffer(*buffer_);
+      }
+    }
+
+  public:
+    FromParsedDicomFile(ParsedDicomFile& parsed) :
+      parsed_(parsed)
+    {
+    }
+
+    virtual ParsedDicomFile& GetParsedDicomFile() const ORTHANC_OVERRIDE
+    {
+      return parsed_;
+    }
+
+    virtual const void* GetBufferData() const ORTHANC_OVERRIDE
+    {
+      const_cast<FromParsedDicomFile&>(*this).SerializeToBuffer();
+
+      assert(buffer_.get() != NULL);
+      return (buffer_->empty() ? NULL : buffer_->c_str());
+    }
+
+    virtual size_t GetBufferSize() const ORTHANC_OVERRIDE
+    {
+      const_cast<FromParsedDicomFile&>(*this).SerializeToBuffer();
+
+      assert(buffer_.get() != NULL);
+      return buffer_->size();
+    }    
+  };
+
+
+  class DicomInstanceToStore::FromDcmDataset : public DicomInstanceToStore
+  {
+  private:
+    DcmDataset&                       dataset_;
+    std::unique_ptr<std::string>      buffer_;
+    std::unique_ptr<ParsedDicomFile>  parsed_;
+
+    void SerializeToBuffer()
+    {
+      if (buffer_.get() == NULL)
+      {
+        buffer_.reset(new std::string);
+        
+        if (!FromDcmtkBridge::SaveToMemoryBuffer(*buffer_, dataset_))
+        {
+          throw OrthancException(ErrorCode_InternalError, "Cannot write DICOM file to memory");
+        }
+      }
+    }
+
+  public:
+    FromDcmDataset(DcmDataset& dataset) :
+      dataset_(dataset)
+    {
+    }
     
-  void DicomInstanceToStore::SetBuffer(const void* dicom,
-                                       size_t size)
+    virtual ParsedDicomFile& GetParsedDicomFile() const ORTHANC_OVERRIDE
+    {
+      if (parsed_.get() == NULL)
+      {
+        // This operation is costly, as it creates a clone of the
+        // dataset. This explains why the default implementations
+        // are overridden below to use "dataset_" as much as possible
+        const_cast<FromDcmDataset&>(*this).parsed_.reset(new ParsedDicomFile(dataset_));
+      }
+
+      return *parsed_;
+    }
+
+    virtual const void* GetBufferData() const ORTHANC_OVERRIDE
+    {
+      const_cast<FromDcmDataset&>(*this).SerializeToBuffer();
+
+      assert(buffer_.get() != NULL);
+      return (buffer_->empty() ? NULL : buffer_->c_str());
+    }
+
+    virtual size_t GetBufferSize() const ORTHANC_OVERRIDE
+    {
+      const_cast<FromDcmDataset&>(*this).SerializeToBuffer();
+
+      assert(buffer_.get() != NULL);
+      return buffer_->size();
+    }
+
+    virtual bool HasPixelData() const ORTHANC_OVERRIDE
+    {
+      DcmTag key(DICOM_TAG_PIXEL_DATA.GetGroup(),
+                 DICOM_TAG_PIXEL_DATA.GetElement());
+      return dataset_.tagExists(key);
+    }
+
+    virtual void GetSummary(DicomMap& summary) const ORTHANC_OVERRIDE
+    {
+      OrthancConfiguration::DefaultExtractDicomSummary(summary, dataset_);
+    }
+
+    virtual void GetDicomAsJson(Json::Value& dicomAsJson) const ORTHANC_OVERRIDE
+    {
+      OrthancConfiguration::DefaultDicomDatasetToJson(dicomAsJson, dataset_);
+    }
+
+    virtual void DatasetToJson(Json::Value& target, 
+                               DicomToJsonFormat format,
+                               DicomToJsonFlags flags,
+                               unsigned int maxStringLength) const ORTHANC_OVERRIDE
+    {
+      std::set<DicomTag> ignoreTagLength;
+      FromDcmtkBridge::ExtractDicomAsJson(
+        target, dataset_, format, flags, maxStringLength, ignoreTagLength);
+    }
+
+    virtual unsigned int GetFramesCount() const ORTHANC_OVERRIDE
+    {
+      return DicomFrameIndex::GetFramesCount(dataset_);
+    }
+    
+    virtual ImageAccessor* DecodeFrame(unsigned int frame) const ORTHANC_OVERRIDE
+    {
+      return DicomImageDecoder::Decode(dataset_, frame);
+    }
+  };
+
+  
+  DicomInstanceToStore* DicomInstanceToStore::CreateFromBuffer(const void* buffer,
+                                                               size_t size)
   {
-    pimpl_->SetBuffer(dicom, size);
+    return new FromBuffer(buffer, size);
+  }
+
+  
+  DicomInstanceToStore* DicomInstanceToStore::CreateFromBuffer(const std::string& buffer)
+  {
+    return new FromBuffer(buffer.empty() ? NULL : buffer.c_str(), buffer.size());
   }
 
 
-  void DicomInstanceToStore::SetParsedDicomFile(ParsedDicomFile& parsed)
+  DicomInstanceToStore* DicomInstanceToStore::CreateFromParsedDicomFile(ParsedDicomFile& dicom)
   {
-    pimpl_->parsed_.SetReference(parsed);
+    return new FromParsedDicomFile(dicom);
   }
 
-
-  const DicomInstanceToStore::MetadataMap& DicomInstanceToStore::GetMetadata() const
+  
+  DicomInstanceToStore* DicomInstanceToStore::CreateFromDcmDataset(DcmDataset& dataset)
   {
-    return pimpl_->metadata_;
+    return new FromDcmDataset(dataset);
   }
 
-
-  void DicomInstanceToStore::ClearMetadata()
-  {
-    pimpl_->metadata_.clear();
-  }
-
-
-  void DicomInstanceToStore::AddMetadata(ResourceType level,
-                                         MetadataType metadata,
-                                         const std::string& value)
-  {
-    pimpl_->metadata_[std::make_pair(level, metadata)] = value;
-  }
-
-
-  const void* DicomInstanceToStore::GetBufferData() const
-  {
-    return const_cast<PImpl&>(*pimpl_).GetBufferData();
-  }
-
-
-  size_t DicomInstanceToStore::GetBufferSize() const
-  {
-    return const_cast<PImpl&>(*pimpl_).GetBufferSize();
-  }
-
-
+  
   bool DicomInstanceToStore::LookupTransferSyntax(DicomTransferSyntax& result) const
   {
-    return const_cast<PImpl&>(*pimpl_).LookupTransferSyntax(result);
+    DicomMap header;
+    if (DicomMap::ParseDicomMetaInformation(header, GetBufferData(), GetBufferSize()))
+    {
+      const DicomValue* value = header.TestAndGetValue(DICOM_TAG_TRANSFER_SYNTAX_UID);
+      if (value != NULL &&
+          !value->IsBinary() &&
+          !value->IsNull())
+      {
+        return ::Orthanc::LookupTransferSyntax(result, Toolbox::StripSpaces(value->GetContent()));
+      }
+    }
+    else
+    {
+      // This is a DICOM file without a proper meta-header. Fallback
+      // to DCMTK, which will fully parse the dataset to retrieve
+      // the transfer syntax. Added in Orthanc 1.8.2.
+      return GetParsedDicomFile().LookupTransferSyntax(result);
+    }
+    
+    return false;
   }
 
 
   bool DicomInstanceToStore::HasPixelData() const
   {
-    return const_cast<PImpl&>(*pimpl_).GetParsedDicomFile().HasTag(DICOM_TAG_PIXEL_DATA);
+    return GetParsedDicomFile().HasTag(DICOM_TAG_PIXEL_DATA);
   }
 
-  ParsedDicomFile& DicomInstanceToStore::GetParsedDicomFile() const
-  {
-    return const_cast<PImpl&>(*pimpl_).GetParsedDicomFile();
-  }
-
+  
   void DicomInstanceToStore::GetSummary(DicomMap& summary) const
   {
     OrthancConfiguration::DefaultExtractDicomSummary(summary, GetParsedDicomFile());
   }
 
+  
   void DicomInstanceToStore::GetDicomAsJson(Json::Value& dicomAsJson) const
   {
     OrthancConfiguration::DefaultDicomDatasetToJson(dicomAsJson, GetParsedDicomFile());
   }
+
 
   void DicomInstanceToStore::DatasetToJson(Json::Value& target, 
                                            DicomToJsonFormat format,
@@ -405,11 +300,13 @@ namespace Orthanc
     return GetParsedDicomFile().DatasetToJson(target, format, flags, maxStringLength);
   }
 
+
   unsigned int DicomInstanceToStore::GetFramesCount() const
   {
     return GetParsedDicomFile().GetFramesCount();
   }
-    
+
+  
   ImageAccessor* DicomInstanceToStore::DecodeFrame(unsigned int frame) const
   {
     return GetParsedDicomFile().DecodeFrame(frame);

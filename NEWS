@@ -2,6 +2,7 @@ Pending changes in the mainline
 ===============================
 
 * New metadata automatically computed at the instance level: "PixelDataOffset"
+* Optimization in C-STORE SCP by avoiding an unnecessary DICOM parsing
 * Fix build on big-endian architectures
 * Possibility to generate a static library containing the Orthanc Framework
 
