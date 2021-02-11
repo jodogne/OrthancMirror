@@ -584,7 +584,7 @@ namespace Orthanc
       attachments.push_back(dicomInfo);
 
       FileInfo jsonInfo;
-      if (true /* TODO - !area_.HasReadRange() || !hasPixelDataOffset */)
+      if (true /* TODO - !area_.HasReadRange() || !hasPixelDataOffset || compression != CompressionType_DicomAsJson */)
       {
         jsonInfo = accessor.Write(dicomAsJson.toStyledString(), 
                                   FileContentType_DicomAsJson, compression, storeMD5_);
@@ -807,8 +807,8 @@ namespace Orthanc
   }
 
 
-  void ServerContext::ReadDicomAsJsonInternal(std::string& result,
-                                              const std::string& instancePublicId)
+  void ServerContext::ReadDicomAsJson(std::string& result,
+                                      const std::string& instancePublicId)
   {
     FileInfo attachment;
     if (index_.LookupAttachment(attachment, instancePublicId, FileContentType_DicomAsJson))
@@ -843,23 +843,6 @@ namespace Orthanc
   }
 
 
-  void ServerContext::ReadDicomAsJson(std::string& result,
-                                      const std::string& instancePublicId,
-                                      const std::set<DicomTag>& ignoreTagLength)
-  {
-    if (ignoreTagLength.empty())
-    {
-      ReadDicomAsJsonInternal(result, instancePublicId);
-    }
-    else
-    {
-      Json::Value tmp;
-      ReadDicomAsJson(tmp, instancePublicId, ignoreTagLength);
-      result = tmp.toStyledString();
-    }
-  }
-
-
   void ServerContext::ReadDicomAsJson(Json::Value& result,
                                       const std::string& instancePublicId,
                                       const std::set<DicomTag>& ignoreTagLength)
@@ -867,7 +850,7 @@ namespace Orthanc
     if (ignoreTagLength.empty())
     {
       std::string tmp;
-      ReadDicomAsJsonInternal(tmp, instancePublicId);
+      ReadDicomAsJson(tmp, instancePublicId);
 
       if (!Toolbox::ReadJson(result, tmp))
       {
@@ -887,12 +870,61 @@ namespace Orthanc
   }
 
 
+  void ServerContext::ReadDicomAsJson(Json::Value& result,
+                                      const std::string& instancePublicId)
+  {
+    std::set<DicomTag> ignoreTagLength;
+    ReadDicomAsJson(result, instancePublicId, ignoreTagLength);
+  }
+
+
   void ServerContext::ReadDicom(std::string& dicom,
                                 const std::string& instancePublicId)
   {
     ReadAttachment(dicom, instancePublicId, FileContentType_Dicom, true /* uncompress */);
   }
     
+
+  bool ServerContext::ReadDicomUntilPixelData(std::string& dicom,
+                                              const std::string& instancePublicId)
+  {
+    if (!area_.HasReadRange())
+    {
+      return false;
+    }
+    
+    FileInfo attachment;
+    if (!index_.LookupAttachment(attachment, instancePublicId, FileContentType_Dicom))
+    {
+      throw OrthancException(ErrorCode_InternalError,
+                             "Unable to read the DICOM file of instance " + instancePublicId);
+    }
+
+    std::string s;
+
+    if (attachment.GetCompressionType() == CompressionType_None &&
+        index_.LookupMetadata(s, instancePublicId, ResourceType_Instance,
+                              MetadataType_Instance_PixelDataOffset) &&
+        !s.empty())
+    {
+      try
+      {
+        uint64_t pixelDataOffset = boost::lexical_cast<uint64_t>(s);
+
+        std::unique_ptr<IMemoryBuffer> buffer(
+          area_.ReadRange(attachment.GetUuid(), attachment.GetContentType(), 0, pixelDataOffset));
+        buffer->MoveToString(dicom);
+        return true;   // Success
+      }
+      catch (boost::bad_lexical_cast&)
+      {
+        LOG(ERROR) << "Metadata \"PixelDataOffset\" is corrupted for instance: " << instancePublicId;
+      }
+    }
+
+    return false;
+  }
+  
 
   void ServerContext::ReadAttachment(std::string& result,
                                      const std::string& instancePublicId,
