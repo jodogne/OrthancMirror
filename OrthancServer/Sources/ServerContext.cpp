@@ -807,42 +807,6 @@ namespace Orthanc
   }
 
 
-  void ServerContext::ReadDicomAsJson(std::string& result,
-                                      const std::string& instancePublicId)
-  {
-    FileInfo attachment;
-    if (index_.LookupAttachment(attachment, instancePublicId, FileContentType_DicomAsJson))
-    {
-      StorageAccessor accessor(area_, GetMetricsRegistry());
-      accessor.Read(result, attachment);
-    }
-    else
-    {
-      // The "DICOM as JSON" summary is not available from the Orthanc
-      // store (most probably deleted), reconstruct it from the DICOM file
-      std::string dicom;
-      ReadDicom(dicom, instancePublicId);
-
-      LOG(INFO) << "Reconstructing the missing DICOM-as-JSON summary for instance: "
-                << instancePublicId;
-    
-      ParsedDicomFile parsed(dicom);
-
-      Json::Value summary;
-      OrthancConfiguration::DefaultDicomDatasetToJson(summary, parsed);
-
-      result = summary.toStyledString();
-
-      if (!AddAttachment(instancePublicId, FileContentType_DicomAsJson,
-                         result.c_str(), result.size()))
-      {
-        throw OrthancException(ErrorCode_InternalError,
-                               "Cannot associate the DICOM-as-JSON summary to instance: " + instancePublicId);
-      }
-    }
-  }
-
-
   void ServerContext::ReadDicomAsJson(Json::Value& result,
                                       const std::string& instancePublicId,
                                       const std::set<DicomTag>& ignoreTagLength)
@@ -850,7 +814,39 @@ namespace Orthanc
     if (ignoreTagLength.empty())
     {
       std::string tmp;
-      ReadDicomAsJson(tmp, instancePublicId);
+
+      {
+        FileInfo attachment;
+        if (index_.LookupAttachment(attachment, instancePublicId, FileContentType_DicomAsJson))
+        {
+          StorageAccessor accessor(area_, GetMetricsRegistry());
+          accessor.Read(tmp, attachment);
+        }
+        else
+        {
+          // The "DICOM as JSON" summary is not available from the Orthanc
+          // store (most probably deleted), reconstruct it from the DICOM file
+          std::string dicom;
+          ReadDicom(dicom, instancePublicId);
+
+          LOG(INFO) << "Reconstructing the missing DICOM-as-JSON summary for instance: "
+                    << instancePublicId;
+    
+          ParsedDicomFile parsed(dicom);
+
+          Json::Value summary;
+          OrthancConfiguration::DefaultDicomDatasetToJson(summary, parsed);
+
+          tmp = summary.toStyledString();
+
+          if (!AddAttachment(instancePublicId, FileContentType_DicomAsJson,
+                             tmp.c_str(), tmp.size()))
+          {
+            throw OrthancException(ErrorCode_InternalError,
+                                   "Cannot associate the DICOM-as-JSON summary to instance: " + instancePublicId);
+          }
+        }
+      }
 
       if (!Toolbox::ReadJson(result, tmp))
       {

@@ -461,9 +461,9 @@ namespace Orthanc
       // This path allows one to avoid the JSON decoding if no
       // simplification is asked, and if no "ignore-length" argument
       // is present
-      std::string full;
+      Json::Value full;
       context.ReadDicomAsJson(full, publicId);
-      call.GetOutput().AnswerBuffer(full, MimeType_Json);
+      call.GetOutput().AnswerJson(full);
     }
   }
 
