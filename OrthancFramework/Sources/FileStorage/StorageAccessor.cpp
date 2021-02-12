@@ -220,6 +220,7 @@ namespace Orthanc
     switch (info.GetContentType())
     {
       case FileContentType_Dicom:
+      case FileContentType_DicomUntilPixelData:
         extension = ".dcm";
         break;
 
