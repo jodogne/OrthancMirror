@@ -107,6 +107,9 @@ namespace Orthanc
       case FileContentType_DicomAsJson:
         return "JSON summary of DICOM";
 
+      case FileContentType_DicomUntilPixelData:
+        return "DICOM until pixel data";
+
       default:
         return "User-defined";
     }

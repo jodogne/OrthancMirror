@@ -726,7 +726,8 @@ namespace Orthanc
     // the file "Plugins/Engine/OrthancPlugins.cpp"
     FileContentType_Unknown = 0,
     FileContentType_Dicom = 1,
-    FileContentType_DicomAsJson = 2,
+    FileContentType_DicomAsJson = 2,          // For Orthanc <= 1.9.0
+    FileContentType_DicomUntilPixelData = 3,  // New in Orthanc 1.9.1
 
     // Make sure that the value "65535" can be stored into this enumeration
     FileContentType_StartUser = 1024,

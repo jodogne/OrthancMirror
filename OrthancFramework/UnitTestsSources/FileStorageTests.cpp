@@ -148,7 +148,7 @@ TEST(StorageAccessor, Compression)
   StorageAccessor accessor(s);
 
   std::string data = "Hello world";
-  FileInfo info = accessor.Write(data, FileContentType_DicomAsJson, CompressionType_ZlibWithSize, true);
+  FileInfo info = accessor.Write(data, FileContentType_Dicom, CompressionType_ZlibWithSize, true);
   
   std::string r;
   accessor.Read(r, info);
@@ -156,7 +156,7 @@ TEST(StorageAccessor, Compression)
   ASSERT_EQ(data, r);
   ASSERT_EQ(CompressionType_ZlibWithSize, info.GetCompressionType());
   ASSERT_EQ(11u, info.GetUncompressedSize());
-  ASSERT_EQ(FileContentType_DicomAsJson, info.GetContentType());
+  ASSERT_EQ(FileContentType_Dicom, info.GetContentType());
   ASSERT_EQ("3e25960a79dbc69b674cd4ec67a72c62", info.GetUncompressedMD5());
   ASSERT_NE(info.GetUncompressedMD5(), info.GetCompressedMD5());
 }
