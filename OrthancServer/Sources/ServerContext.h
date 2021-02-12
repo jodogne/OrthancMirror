@@ -312,9 +312,6 @@ namespace Orthanc
                                      FileContentType attachmentType,
                                      CompressionType compression);
 
-    void ReadDicomAsJson(std::string& result,
-                         const std::string& instancePublicId);
-
     void ReadDicomAsJson(Json::Value& result,
                          const std::string& instancePublicId,
                          const std::set<DicomTag>& ignoreTagLength);
