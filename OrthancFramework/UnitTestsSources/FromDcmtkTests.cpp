@@ -1265,6 +1265,65 @@ TEST(ParsedDicomFile, InvalidCharacterSets)
 
 
 
+TEST(ParsedDicomFile, FloatPrecision)
+{
+  Float32 v;
+
+  switch (Toolbox::DetectEndianness())
+  {
+    case Endianness_Little:
+      reinterpret_cast<uint8_t*>(&v)[3] = 0x4E;
+      reinterpret_cast<uint8_t*>(&v)[2] = 0x9C;
+      reinterpret_cast<uint8_t*>(&v)[1] = 0xAD;
+      reinterpret_cast<uint8_t*>(&v)[0] = 0x8F;
+      break;
+
+    case Endianness_Big:
+      reinterpret_cast<uint8_t*>(&v)[0] = 0x4E;
+      reinterpret_cast<uint8_t*>(&v)[1] = 0x9C;
+      reinterpret_cast<uint8_t*>(&v)[2] = 0xAD;
+      reinterpret_cast<uint8_t*>(&v)[3] = 0x8F;
+      break;
+
+    default:
+      throw OrthancException(ErrorCode_InternalError);
+  }
+
+  ParsedDicomFile f(false);
+  ASSERT_TRUE(f.GetDcmtkObject().getDataset()->putAndInsertFloat32(DCM_ExaminedBodyThickness /* VR: FL */, v).good());
+
+  {
+    Float32 u;
+    ASSERT_TRUE(f.GetDcmtkObject().getDataset()->findAndGetFloat32(DCM_ExaminedBodyThickness, u).good());
+    ASSERT_FLOAT_EQ(u, v);
+    ASSERT_TRUE(memcmp(&u, &v, 4) == 0);
+  }
+
+  {
+    Json::Value json;
+    f.DatasetToJson(json, DicomToJsonFormat_Short, DicomToJsonFlags_None, 256);
+    ASSERT_EQ("1314310016", json["0010,9431"].asString());
+  }
+
+  {
+    DicomMap summary;
+    f.ExtractDicomSummary(summary, 256);
+    std::string s;
+    ASSERT_EQ("1314310016", summary.GetStringValue(DicomTag(0x0010, 0x9431), "nope", false));
+  }
+
+  {
+    // This flavor uses "Json::Value" serialization
+    DicomWebJsonVisitor visitor;
+    f.Apply(visitor);
+    Float32 u = visitor.GetResult() ["00109431"]["Value"][0].asFloat();
+    ASSERT_FLOAT_EQ(u, v);
+    ASSERT_TRUE(memcmp(&u, &v, 4) == 0);
+  }
+}
+
+
+
 TEST(Toolbox, RemoveIso2022EscapeSequences)
 {
   // +----------------------------------+

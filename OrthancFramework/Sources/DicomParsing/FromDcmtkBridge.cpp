@@ -191,26 +191,68 @@ namespace Orthanc
     };
 
     
-#define DCMTK_TO_CTYPE_CONVERTER(converter, cType, dcmtkType, getter)   \
+    ORTHANC_FORCE_INLINE
+    static std::string FloatToString(float v)
+    {
+      /**
+       * From "boost::lexical_cast" documentation: "For more involved
+       * conversions, such as where precision or formatting need tighter
+       * control than is offered by the default behavior of
+       * lexical_cast, the conventional stringstream approach is
+       * recommended."
+       * https://www.boost.org/doc/libs/1_65_0/doc/html/boost_lexical_cast.html
+       * http://www.gotw.ca/publications/mill19.htm
+       *
+       * The precision of 17 corresponds to "defaultRealPrecision" in JsonCpp:
+       * https://github.com/open-source-parsers/jsoncpp/blob/master/include/json/value.h
+       **/
+
+      //return boost::lexical_cast<std::string>(v);  // This was used in Orthanc <= 1.9.0
+      
+      std::ostringstream ss;
+      ss << std::setprecision(17) << v;
+      return ss.str();
+    }
+
+
+    ORTHANC_FORCE_INLINE
+    static std::string DoubleToString(double v)
+    {
+      //return boost::lexical_cast<std::string>(v);  // This was used in Orthanc <= 1.9.0
+      
+      std::ostringstream ss;
+      ss << std::setprecision(17) << v;
+      return ss.str();
+    }
+
+    
+#define DCMTK_TO_CTYPE_CONVERTER(converter, cType, dcmtkType, getter, toStringFunction)  \
                                                                         \
     struct converter                                                    \
     {                                                                   \
       typedef cType CType;                                              \
                                                                         \
+      ORTHANC_FORCE_INLINE                                              \
       static bool Apply(CType& result,                                  \
                         DcmElement& element,                            \
                         size_t i)                                       \
       {                                                                 \
         return dynamic_cast<dcmtkType&>(element).getter(result, i).good(); \
       }                                                                 \
+                                                                        \
+      ORTHANC_FORCE_INLINE                                              \
+      static std::string ToString(CType value)                          \
+      {                                                                 \
+        return toStringFunction(value);                                 \
+      }                                                                 \
     };
 
-DCMTK_TO_CTYPE_CONVERTER(DcmtkToSint32Converter, Sint32, DcmSignedLong, getSint32)
-DCMTK_TO_CTYPE_CONVERTER(DcmtkToSint16Converter, Sint16, DcmSignedShort, getSint16)
-DCMTK_TO_CTYPE_CONVERTER(DcmtkToUint32Converter, Uint32, DcmUnsignedLong, getUint32)
-DCMTK_TO_CTYPE_CONVERTER(DcmtkToUint16Converter, Uint16, DcmUnsignedShort, getUint16)
-DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat32Converter, Float32, DcmFloatingPointSingle, getFloat32)
-DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDouble, getFloat64)
+    DCMTK_TO_CTYPE_CONVERTER(DcmtkToSint32Converter, Sint32, DcmSignedLong, getSint32, boost::lexical_cast<std::string>)
+    DCMTK_TO_CTYPE_CONVERTER(DcmtkToSint16Converter, Sint16, DcmSignedShort, getSint16, boost::lexical_cast<std::string>)
+    DCMTK_TO_CTYPE_CONVERTER(DcmtkToUint32Converter, Uint32, DcmUnsignedLong, getUint32, boost::lexical_cast<std::string>)
+    DCMTK_TO_CTYPE_CONVERTER(DcmtkToUint16Converter, Uint16, DcmUnsignedShort, getUint16, boost::lexical_cast<std::string>)
+    DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat32Converter, Float32, DcmFloatingPointSingle, getFloat32, FloatToString)
+    DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDouble, getFloat64, DoubleToString)
 
 
     template <typename F>
@@ -226,19 +268,18 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
         std::vector<std::string> strings;
         for (size_t i = 0; i < count; i++) {
           if (f.Apply(value, element, i)) {
-            strings.push_back(boost::lexical_cast<std::string>(value));
+            strings.push_back(F::ToString(value));
           }
         }
         return new DicomValue(boost::algorithm::join(strings, "\\"), false);
       }
       else if (f.Apply(value, element, 0)) {
-        return new DicomValue(boost::lexical_cast<std::string>(value), false);
+        return new DicomValue(F::ToString(value), false);
       }
       else {
         return new DicomValue;
       }
     }
-
   }
 
 

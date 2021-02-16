@@ -23,6 +23,7 @@ Plugins
 Maintenance
 -----------
 
+* Improved precision of floating-point numbers in DICOM-as-JSON and DICOM summary
 * Optimization in C-STORE SCP by avoiding an unnecessary DICOM parsing
 * Fix build on big-endian architectures
 * Possibility to generate a static library containing the Orthanc Framework
