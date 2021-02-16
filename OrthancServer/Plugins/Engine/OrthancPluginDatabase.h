@@ -230,7 +230,7 @@ namespace Orthanc
     virtual bool IsProtectedPatient(int64_t internalId) 
       ORTHANC_OVERRIDE;
 
-    virtual void ListAvailableAttachments(std::list<FileContentType>& target,
+    virtual void ListAvailableAttachments(std::set<FileContentType>& target,
                                           int64_t id) 
       ORTHANC_OVERRIDE;
 

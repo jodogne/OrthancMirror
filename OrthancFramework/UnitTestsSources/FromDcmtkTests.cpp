@@ -628,6 +628,40 @@ TEST(ParsedDicomFile, ToJsonFlags2)
 }
 
 
+TEST(ParsedDicomFile, ToJsonFlags3)
+{
+  ParsedDicomFile f(false);
+
+  {
+    Uint8 v[2] = { 0, 0 };
+    ASSERT_TRUE(f.GetDcmtkObject().getDataset()->putAndInsertString(DCM_PatientName, "HELLO^").good());
+    ASSERT_TRUE(f.GetDcmtkObject().getDataset()->putAndInsertUint8Array(DCM_PixelData, v, 2).good());
+    ASSERT_TRUE(f.GetDcmtkObject().getDataset()->putAndInsertString(DcmTag(0x07fe1, 0x0010), "WORLD^").good());
+  }
+
+  std::string s;
+  Toolbox::EncodeDataUriScheme(s, "application/octet-stream", std::string(2, '\0'));
+
+  {
+    Json::Value v;
+    f.DatasetToJson(v, DicomToJsonFormat_Short, static_cast<DicomToJsonFlags>(DicomToJsonFlags_IncludePrivateTags | DicomToJsonFlags_IncludePixelData | DicomToJsonFlags_StopAfterPixelData), 0);
+    ASSERT_EQ(Json::objectValue, v.type());
+    ASSERT_EQ(2u, v.size());
+    ASSERT_EQ("HELLO^", v["0010,0010"].asString());
+    ASSERT_EQ(s, v["7fe0,0010"].asString());
+  }
+
+  {
+    Json::Value v;
+    f.DatasetToJson(v, DicomToJsonFormat_Short, DicomToJsonFlags_IncludePrivateTags, 0);
+    ASSERT_EQ(Json::objectValue, v.type());
+    ASSERT_EQ(2u, v.size());
+    ASSERT_EQ("HELLO^", v["0010,0010"].asString());
+    ASSERT_EQ("WORLD^", v["7fe1,0010"].asString());
+  }  
+}
+
+
 TEST(DicomFindAnswers, Basic)
 {
   DicomFindAnswers a(false);

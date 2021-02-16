@@ -670,7 +670,7 @@ namespace Orthanc
   }
 
 
-  void OrthancPluginDatabase::ListAvailableAttachments(std::list<FileContentType>& target,
+  void OrthancPluginDatabase::ListAvailableAttachments(std::set<FileContentType>& target,
                                                        int64_t id)
   {
     ResetAnswers();
@@ -690,7 +690,7 @@ namespace Orthanc
       for (std::list<int32_t>::const_iterator 
              it = answerInt32_.begin(); it != answerInt32_.end(); ++it)
       {
-        target.push_back(static_cast<FileContentType>(*it));
+        target.insert(static_cast<FileContentType>(*it));
       }
     }
   }

@@ -975,11 +975,13 @@ namespace Orthanc
           }
         }
 
-        // New in Orthanc 1.9.1
-        SetInstanceMetadata(content, instanceMetadata, instanceId,
-                            MetadataType_Instance_PixelDataOffset,
-                            (hasPixelDataOffset ? 
-                             boost::lexical_cast<std::string>(pixelDataOffset) : ""));
+        if (hasPixelDataOffset)
+        {
+          // New in Orthanc 1.9.1
+          SetInstanceMetadata(content, instanceMetadata, instanceId,
+                              MetadataType_Instance_PixelDataOffset,
+                              boost::lexical_cast<std::string>(pixelDataOffset));
+        }
         
         const DicomValue* value;
         if ((value = dicomSummary.TestAndGetValue(DICOM_TAG_SOP_CLASS_UID)) != NULL &&
@@ -1900,7 +1902,7 @@ namespace Orthanc
   }
 
 
-  void ServerIndex::ListAvailableAttachments(std::list<FileContentType>& target,
+  void ServerIndex::ListAvailableAttachments(std::set<FileContentType>& target,
                                              const std::string& publicId,
                                              ResourceType expectedType)
   {
@@ -2030,10 +2032,10 @@ namespace Orthanc
 
       ResourceType thisType = db_.GetResourceType(resource);
 
-      std::list<FileContentType> f;
+      std::set<FileContentType> f;
       db_.ListAvailableAttachments(f, resource);
 
-      for (std::list<FileContentType>::const_iterator
+      for (std::set<FileContentType>::const_iterator
              it = f.begin(); it != f.end(); ++it)
       {
         FileInfo attachment;

@@ -69,7 +69,8 @@ namespace Orthanc
                               unsigned int maxStringLength,
                               Encoding encoding,
                               bool hasCodeExtensions,
-                              const std::set<DicomTag>& ignoreTagLength);
+                              const std::set<DicomTag>& ignoreTagLength,
+                              unsigned int depth);
 
     static void ElementToJson(Json::Value& parent,
                               DcmElement& element,
@@ -78,7 +79,8 @@ namespace Orthanc
                               unsigned int maxStringLength,
                               Encoding dicomEncoding,
                               bool hasCodeExtensions,
-                              const std::set<DicomTag>& ignoreTagLength);
+                              const std::set<DicomTag>& ignoreTagLength,
+                              unsigned int depth);
 
     static void ChangeStringEncoding(DcmItem& dataset,
                                      Encoding source,

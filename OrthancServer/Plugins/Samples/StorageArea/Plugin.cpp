@@ -26,9 +26,6 @@
 #include <string>
 
 
-#define USE_LEGACY_API 0
-
-
 static OrthancPluginContext* context = NULL;
 
 

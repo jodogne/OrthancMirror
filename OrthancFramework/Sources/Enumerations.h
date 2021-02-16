@@ -580,6 +580,7 @@ namespace Orthanc
     DicomToJsonFlags_IncludePixelData      = (1 << 3),
     DicomToJsonFlags_ConvertBinaryToAscii  = (1 << 4),
     DicomToJsonFlags_ConvertBinaryToNull   = (1 << 5),
+    DicomToJsonFlags_StopAfterPixelData    = (1 << 6),  // New in Orthanc 1.9.1
 
     // Some predefined combinations
     DicomToJsonFlags_None     = 0,
@@ -587,7 +588,8 @@ namespace Orthanc
                                  DicomToJsonFlags_IncludePixelData | 
                                  DicomToJsonFlags_IncludePrivateTags | 
                                  DicomToJsonFlags_IncludeUnknownTags | 
-                                 DicomToJsonFlags_ConvertBinaryToNull)
+                                 DicomToJsonFlags_ConvertBinaryToNull |
+                                 DicomToJsonFlags_StopAfterPixelData /* added in 1.9.1 */)
   };
   
   enum DicomFromJsonFlags
