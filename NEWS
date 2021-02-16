@@ -19,6 +19,7 @@ Plugins
 -------
 
 * New value in enumeration: OrthancPluginDicomToJsonFlags_StopAfterPixelData
+* New value in enumeration: OrthancPluginDicomToJsonFlags_SkipGroupLengths
 
 Maintenance
 -----------

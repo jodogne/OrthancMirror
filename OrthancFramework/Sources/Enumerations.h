@@ -581,6 +581,7 @@ namespace Orthanc
     DicomToJsonFlags_ConvertBinaryToAscii  = (1 << 4),
     DicomToJsonFlags_ConvertBinaryToNull   = (1 << 5),
     DicomToJsonFlags_StopAfterPixelData    = (1 << 6),  // New in Orthanc 1.9.1
+    DicomToJsonFlags_SkipGroupLengths      = (1 << 7),  // New in Orthanc 1.9.1
 
     // Some predefined combinations
     DicomToJsonFlags_None     = 0,

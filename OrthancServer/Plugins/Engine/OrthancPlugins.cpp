@@ -1703,6 +1703,7 @@ namespace Orthanc
         static_cast<int>(OrthancPluginDicomToJsonFlags_ConvertBinaryToNull) != static_cast<int>(DicomToJsonFlags_ConvertBinaryToNull) ||
         static_cast<int>(OrthancPluginDicomToJsonFlags_ConvertBinaryToAscii) != static_cast<int>(DicomToJsonFlags_ConvertBinaryToAscii) ||
         static_cast<int>(OrthancPluginDicomToJsonFlags_StopAfterPixelData) != static_cast<int>(DicomToJsonFlags_StopAfterPixelData) ||
+        static_cast<int>(OrthancPluginDicomToJsonFlags_SkipGroupLengths) != static_cast<int>(DicomToJsonFlags_SkipGroupLengths) ||
         static_cast<int>(OrthancPluginCreateDicomFlags_DecodeDataUriScheme) != static_cast<int>(DicomFromJsonFlags_DecodeDataUriScheme) ||
         static_cast<int>(OrthancPluginCreateDicomFlags_GenerateIdentifiers) != static_cast<int>(DicomFromJsonFlags_GenerateIdentifiers))
 
