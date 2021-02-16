@@ -583,12 +583,14 @@ namespace Orthanc
       ServerIndex::Attachments attachments;
       attachments.push_back(dicomInfo);
 
-      FileInfo jsonInfo;
-      if (true /* TODO - !area_.HasReadRange() || !hasPixelDataOffset || compression != CompressionType_DicomAsJson */)
+      FileInfo dicomUntilPixelData;
+      if (hasPixelDataOffset &&
+          (!area_.HasReadRange() ||
+           compression != CompressionType_None))
       {
-        jsonInfo = accessor.Write(dicomAsJson.toStyledString(), 
-                                  FileContentType_DicomAsJson, compression, storeMD5_);
-        attachments.push_back(jsonInfo);
+        dicomUntilPixelData = accessor.Write(dicom.GetBufferData(), pixelDataOffset, 
+                                             FileContentType_DicomUntilPixelData, compression, storeMD5_);
+        attachments.push_back(dicomUntilPixelData);
       }
 
       typedef std::map<MetadataType, std::string>  InstanceMetadata;
@@ -610,9 +612,9 @@ namespace Orthanc
       {
         accessor.Remove(dicomInfo);
 
-        if (jsonInfo.IsValid())
+        if (dicomUntilPixelData.IsValid())
         {
-          accessor.Remove(jsonInfo);
+          accessor.Remove(dicomUntilPixelData);
         }
       }
 
@@ -807,61 +809,178 @@ namespace Orthanc
   }
 
 
+  static void InjectEmptyPixelData(Json::Value& dicomAsJson)
+  {
+    // This is for backward compatibility with Orthanc <= 1.9.0
+    Json::Value pixelData = Json::objectValue;
+    pixelData["Name"] = "PixelData";
+    pixelData["Type"] = "Null";
+    pixelData["Value"] = Json::nullValue;
+
+    dicomAsJson["7fe0,0010"] = pixelData;
+  }
+
+  
   void ServerContext::ReadDicomAsJson(Json::Value& result,
                                       const std::string& instancePublicId,
                                       const std::set<DicomTag>& ignoreTagLength)
   {
-    if (ignoreTagLength.empty())
-    {
-      std::string tmp;
-
-      {
-        FileInfo attachment;
-        if (index_.LookupAttachment(attachment, instancePublicId, FileContentType_DicomAsJson))
-        {
-          StorageAccessor accessor(area_, GetMetricsRegistry());
-          accessor.Read(tmp, attachment);
-        }
-        else
-        {
-          // The "DICOM as JSON" summary is not available from the Orthanc
-          // store (most probably deleted), reconstruct it from the DICOM file
-          std::string dicom;
-          ReadDicom(dicom, instancePublicId);
-
-          LOG(INFO) << "Reconstructing the missing DICOM-as-JSON summary for instance: "
-                    << instancePublicId;
+    /**
+     * CASE 1: The DICOM file, truncated at pixel data, is available
+     * as an attachment (it was created either because the storage
+     * area does not support range reads, or it "StorageCompression"
+     * is enabled). Simply return this attachment.
+     **/
     
-          ParsedDicomFile parsed(dicom);
+    FileInfo attachment;
 
-          Json::Value summary;
-          OrthancConfiguration::DefaultDicomDatasetToJson(summary, parsed);
-
-          tmp = summary.toStyledString();
-
-          if (!AddAttachment(instancePublicId, FileContentType_DicomAsJson,
-                             tmp.c_str(), tmp.size()))
-          {
-            throw OrthancException(ErrorCode_InternalError,
-                                   "Cannot associate the DICOM-as-JSON summary to instance: " + instancePublicId);
-          }
-        }
-      }
-
-      if (!Toolbox::ReadJson(result, tmp))
-      {
-        throw OrthancException(ErrorCode_CorruptedFile);
-      }
-    }
-    else
+    if (index_.LookupAttachment(attachment, instancePublicId, FileContentType_DicomUntilPixelData))
     {
-      // The "DicomAsJson" attachment might have stored some tags as
-      // "too long". We are forced to re-parse the DICOM file.
       std::string dicom;
-      ReadDicom(dicom, instancePublicId);
+
+      {
+        StorageAccessor accessor(area_, GetMetricsRegistry());
+        accessor.Read(dicom, attachment);
+      }
 
       ParsedDicomFile parsed(dicom);
       OrthancConfiguration::DefaultDicomDatasetToJson(result, parsed, ignoreTagLength);
+      InjectEmptyPixelData(result);
+    }
+    else
+    {
+      /**
+       * The truncated DICOM file is not stored as a standalone
+       * attachment. Lookup whether the pixel data offset has already
+       * been computed for this instance.
+       **/
+    
+      bool hasPixelDataOffset;
+      uint64_t pixelDataOffset;
+
+      {
+        std::string s;
+        if (index_.LookupMetadata(s, instancePublicId, ResourceType_Instance,
+                                  MetadataType_Instance_PixelDataOffset))
+        {
+          hasPixelDataOffset = false;
+
+          if (!s.empty())
+          {
+            try
+            {
+              pixelDataOffset = boost::lexical_cast<uint64_t>(s);
+              hasPixelDataOffset = true;
+            }
+            catch (boost::bad_lexical_cast&)
+            {
+            }
+          }
+
+          if (!hasPixelDataOffset)
+          {
+            LOG(ERROR) << "Metadata \"PixelDataOffset\" is corrupted for instance: " << instancePublicId;
+          }
+        }
+        else
+        {
+          // This instance was created by a version of Orthanc <= 1.9.0
+          hasPixelDataOffset = false;
+        }
+      }
+
+
+      if (hasPixelDataOffset &&
+          area_.HasReadRange() &&
+          index_.LookupAttachment(attachment, instancePublicId, FileContentType_Dicom) &&
+          attachment.GetCompressionType() == CompressionType_None)
+      {
+        /**
+         * CASE 2: The pixel data offset is known, AND that a range read
+         * can be used to retrieve the truncated DICOM file. Note that
+         * this case cannot be used if "StorageCompression" option is
+         * "true".
+         **/
+      
+        StorageAccessor accessor(area_, GetMetricsRegistry());
+        std::unique_ptr<IMemoryBuffer> dicom(
+          area_.ReadRange(attachment.GetUuid(), FileContentType_Dicom, 0, pixelDataOffset));
+
+        if (dicom.get() == NULL)
+        {
+          throw OrthancException(ErrorCode_InternalError);
+        }
+        else
+        {
+          assert(dicom->GetSize() == pixelDataOffset);
+          ParsedDicomFile parsed(dicom->GetData(), dicom->GetSize());
+          OrthancConfiguration::DefaultDicomDatasetToJson(result, parsed, ignoreTagLength);
+          InjectEmptyPixelData(result);
+        }
+      }
+      else if (ignoreTagLength.empty() &&
+               index_.LookupAttachment(attachment, instancePublicId, FileContentType_DicomAsJson))
+      {
+        /**
+         * CASE 3: This instance was created using Orthanc <=
+         * 1.9.0. Reuse the old "DICOM-as-JSON" attachment if available.
+         * This is for backward compatibility: A call to
+         * "/tools/invalidate-tags" or to one flavors of
+         * "/.../.../reconstruct" will disable this case.
+         **/
+      
+        std::string dicomAsJson;
+
+        {
+          StorageAccessor accessor(area_, GetMetricsRegistry());
+          accessor.Read(dicomAsJson, attachment);
+        }
+
+        if (!Toolbox::ReadJson(result, dicomAsJson))
+        {
+          throw OrthancException(ErrorCode_CorruptedFile,
+                                 "Corrupted DICOM-as-JSON attachment of instance: " + instancePublicId);
+        }
+      }
+      else
+      {
+        /**
+         * CASE 4: Neither the truncated DICOM file is accessible, nor
+         * the DICOM-as-JSON summary. We have to retrieve the full DICOM
+         * file from the storage area.
+         **/
+
+        std::string dicom;
+        ReadDicom(dicom, instancePublicId);
+
+        ParsedDicomFile parsed(dicom);
+        OrthancConfiguration::DefaultDicomDatasetToJson(result, parsed, ignoreTagLength);
+
+        if (!hasPixelDataOffset)
+        {
+          /**
+           * The pixel data offset was never computed for this
+           * instance, which indicates that it was created using
+           * Orthanc <= 1.9.0, or that calls to
+           * "LookupPixelDataOffset()" from earlier versions of
+           * Orthanc have failed. Try again this precomputation now
+           * for future calls.
+           **/
+          if (DicomStreamReader::LookupPixelDataOffset(pixelDataOffset, dicom) &&
+              pixelDataOffset < dicom.size())
+          {
+            index_.SetMetadata(instancePublicId, MetadataType_Instance_PixelDataOffset,
+                               boost::lexical_cast<std::string>(pixelDataOffset));
+
+            if (!area_.HasReadRange() ||
+                compressionEnabled_ != CompressionType_None)
+            {
+              AddAttachment(instancePublicId, FileContentType_DicomUntilPixelData,
+                            dicom.empty() ? NULL: dicom.c_str(), pixelDataOffset);
+            }
+          }
+        }
+      }
     }
   }
 

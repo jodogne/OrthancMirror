@@ -74,6 +74,7 @@ namespace Orthanc
 
     dictContentType_.Add(FileContentType_Dicom, "dicom");
     dictContentType_.Add(FileContentType_DicomAsJson, "dicom-as-json");
+    dictContentType_.Add(FileContentType_DicomUntilPixelData, "dicom-until-pixel-data");
   }
 
   void RegisterUserMetadata(int metadata,

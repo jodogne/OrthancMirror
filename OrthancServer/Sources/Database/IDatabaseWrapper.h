@@ -43,6 +43,7 @@
 
 #include <list>
 #include <boost/noncopyable.hpp>
+#include <set>
 
 namespace Orthanc
 {
@@ -153,7 +154,7 @@ namespace Orthanc
 
     virtual bool IsProtectedPatient(int64_t internalId) = 0;
 
-    virtual void ListAvailableAttachments(std::list<FileContentType>& target,
+    virtual void ListAvailableAttachments(std::set<FileContentType>& target,
                                           int64_t id) = 0;
 
     virtual void LogChange(int64_t internalId,

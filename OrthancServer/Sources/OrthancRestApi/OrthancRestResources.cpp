@@ -1576,12 +1576,12 @@ namespace Orthanc
 
     const std::string resourceType = call.GetFullUri() [0];
     const std::string publicId = call.GetUriComponent("id", "");
-    std::list<FileContentType> attachments;
+    std::set<FileContentType> attachments;
     OrthancRestApi::GetIndex(call).ListAvailableAttachments(attachments, publicId, StringToResourceType(resourceType.c_str()));
 
     Json::Value result = Json::arrayValue;
 
-    for (std::list<FileContentType>::const_iterator 
+    for (std::set<FileContentType>::const_iterator 
            it = attachments.begin(); it != attachments.end(); ++it)
     {
       result.append(EnumerationToString(*it));

@@ -886,7 +886,8 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
                                       unsigned int maxStringLength,
                                       Encoding encoding,
                                       bool hasCodeExtensions,
-                                      const std::set<DicomTag>& ignoreTagLength)
+                                      const std::set<DicomTag>& ignoreTagLength,
+                                      unsigned int depth)
   {
     if (parent.type() == Json::nullValue)
     {
@@ -925,7 +926,8 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
       {
         DcmItem* child = sequence.getItem(i);
         Json::Value& v = target.append(Json::objectValue);
-        DatasetToJson(v, *child, format, flags, maxStringLength, encoding, hasCodeExtensions, ignoreTagLength);
+        DatasetToJson(v, *child, format, flags, maxStringLength, encoding, hasCodeExtensions,
+                      ignoreTagLength, depth + 1);
       }
     }
   }
@@ -938,7 +940,8 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
                                       unsigned int maxStringLength,
                                       Encoding encoding,
                                       bool hasCodeExtensions,
-                                      const std::set<DicomTag>& ignoreTagLength)
+                                      const std::set<DicomTag>& ignoreTagLength,
+                                      unsigned int depth)
   {
     assert(parent.type() == Json::objectValue);
 
@@ -951,6 +954,14 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
       }
 
       DicomTag tag(FromDcmtkBridge::Convert(element->getTag()));
+
+      // New flag in Orthanc 1.9.1
+      if (depth == 0 &&
+          (flags & DicomToJsonFlags_StopAfterPixelData) &&
+          tag > DICOM_TAG_PIXEL_DATA)
+      {
+        continue;
+      }
 
       /*element->getTag().isPrivate()*/
       if (tag.IsPrivate() &&
@@ -978,8 +989,8 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
         }
       }
 
-      FromDcmtkBridge::ElementToJson(parent, *element, format, flags,
-                                     maxStringLength, encoding, hasCodeExtensions, ignoreTagLength);
+      FromDcmtkBridge::ElementToJson(parent, *element, format, flags, maxStringLength, encoding,
+                                     hasCodeExtensions, ignoreTagLength, depth);
     }
   }
 
@@ -997,7 +1008,7 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
     Encoding encoding = DetectEncoding(hasCodeExtensions, dataset, defaultEncoding);
 
     target = Json::objectValue;
-    DatasetToJson(target, dataset, format, flags, maxStringLength, encoding, hasCodeExtensions, ignoreTagLength);
+    DatasetToJson(target, dataset, format, flags, maxStringLength, encoding, hasCodeExtensions, ignoreTagLength, 0);
   }
 
 
@@ -1009,7 +1020,7 @@ DCMTK_TO_CTYPE_CONVERTER(DcmtkToFloat64Converter, Float64, DcmFloatingPointDoubl
   {
     std::set<DicomTag> ignoreTagLength;
     target = Json::objectValue;
-    DatasetToJson(target, dataset, format, flags, maxStringLength, Encoding_Ascii, false, ignoreTagLength);
+    DatasetToJson(target, dataset, format, flags, maxStringLength, Encoding_Ascii, false, ignoreTagLength, 0);
   }
 
 

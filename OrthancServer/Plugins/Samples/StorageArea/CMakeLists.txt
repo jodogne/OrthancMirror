@@ -23,4 +23,12 @@ project(Basic)
 
 include(${CMAKE_SOURCE_DIR}/../Common/OrthancPlugins.cmake)
 
+set(USE_LEGACY_API OFF CACHE BOOL "Whether to enable support for read-range")
+
+if (USE_LEGACY_API)
+  add_definitions(-DUSE_LEGACY_API=1)
+else()
+  add_definitions(-DUSE_LEGACY_API=0)
+endif()
+
 add_library(PluginTest SHARED Plugin.cpp)

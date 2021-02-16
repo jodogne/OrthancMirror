@@ -218,7 +218,7 @@ namespace Orthanc
                         ResourceType expectedType,
                         MetadataType type);
 
-    void ListAvailableAttachments(std::list<FileContentType>& target,
+    void ListAvailableAttachments(std::set<FileContentType>& target,
                                   const std::string& publicId,
                                   ResourceType expectedType);
 

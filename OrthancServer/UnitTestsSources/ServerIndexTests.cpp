@@ -37,6 +37,7 @@
 #include "../../OrthancFramework/Sources/Compatibility.h"
 #include "../../OrthancFramework/Sources/FileStorage/FilesystemStorage.h"
 #include "../../OrthancFramework/Sources/FileStorage/MemoryStorageArea.h"
+#include "../../OrthancFramework/Sources/Images/Image.h"
 #include "../../OrthancFramework/Sources/Logging.h"
 
 #include "../Sources/Database/SQLiteDatabaseWrapper.h"
@@ -734,6 +735,7 @@ TEST(ServerIndex, AttachmentRecycling)
     {
       DicomMap summary;
       OrthancConfiguration::DefaultExtractDicomSummary(summary, toStore->GetParsedDicomFile());
+      toStore->SetOrigin(DicomInstanceOrigin::FromPlugins());
 
       DicomTransferSyntax transferSyntax;
       bool hasTransferSyntax = dicom.LookupTransferSyntax(transferSyntax);
@@ -798,6 +800,10 @@ TEST(ServerIndex, NormalizeIdentifier)
 
 TEST(ServerIndex, Overwrite)
 {
+  // Create a dummy 1x1 image
+  Image image(PixelFormat_Grayscale8, 1, 1, false);
+  reinterpret_cast<uint8_t*>(image.GetBuffer()) [0] = 128;
+
   for (unsigned int i = 0; i < 2; i++)
   {
     bool overwrite = (i == 0);
@@ -831,6 +837,10 @@ TEST(ServerIndex, Overwrite)
     {
       ParsedDicomFile dicom(instance, GetDefaultDicomEncoding(), false /* be strict */);
 
+      // Add a pixel data so as to have one "FileContentType_DicomUntilPixelData"
+      // (because of "context.SetCompressionEnabled(true)")
+      dicom.EmbedImage(image);
+      
       DicomInstanceHasher hasher(instance);
       
       std::unique_ptr<DicomInstanceToStore> toStore(DicomInstanceToStore::CreateFromParsedDicomFile(dicom));
@@ -842,15 +852,20 @@ TEST(ServerIndex, Overwrite)
       ASSERT_EQ(id, id2);
     }
 
-    FileInfo dicom1, json1;
+    {
+      FileInfo nope;
+      ASSERT_FALSE(context.GetIndex().LookupAttachment(nope, id, FileContentType_DicomAsJson));
+    }
+
+    FileInfo dicom1, pixelData1;
     ASSERT_TRUE(context.GetIndex().LookupAttachment(dicom1, id, FileContentType_Dicom));
-    ASSERT_TRUE(context.GetIndex().LookupAttachment(json1, id, FileContentType_DicomAsJson));
+    ASSERT_TRUE(context.GetIndex().LookupAttachment(pixelData1, id, FileContentType_DicomUntilPixelData));
 
     context.GetIndex().GetGlobalStatistics(diskSize, uncompressedSize, countPatients, 
                                            countStudies, countSeries, countInstances);
     ASSERT_EQ(1u, countInstances);
-    ASSERT_EQ(dicom1.GetCompressedSize() + json1.GetCompressedSize(), diskSize);
-    ASSERT_EQ(dicom1.GetUncompressedSize() + json1.GetUncompressedSize(), uncompressedSize);
+    ASSERT_EQ(dicom1.GetCompressedSize() + pixelData1.GetCompressedSize(), diskSize);
+    ASSERT_EQ(dicom1.GetUncompressedSize() + pixelData1.GetUncompressedSize(), uncompressedSize);
 
     Json::Value tmp;
     context.ReadDicomAsJson(tmp, id);
@@ -870,6 +885,9 @@ TEST(ServerIndex, Overwrite)
 
       ParsedDicomFile dicom(instance2, GetDefaultDicomEncoding(), false /* be strict */);
 
+      // Add a pixel data so as to have one "FileContentType_DicomUntilPixelData"
+      dicom.EmbedImage(image);
+
       std::unique_ptr<DicomInstanceToStore> toStore(DicomInstanceToStore::CreateFromParsedDicomFile(dicom));
       toStore->SetOrigin(DicomInstanceOrigin::FromPlugins());
 
@@ -879,22 +897,27 @@ TEST(ServerIndex, Overwrite)
       ASSERT_EQ(id, id2);
     }
 
-    FileInfo dicom2, json2;
+    {
+      FileInfo nope;
+      ASSERT_FALSE(context.GetIndex().LookupAttachment(nope, id, FileContentType_DicomAsJson));
+    }
+
+    FileInfo dicom2, pixelData2;
     ASSERT_TRUE(context.GetIndex().LookupAttachment(dicom2, id, FileContentType_Dicom));
-    ASSERT_TRUE(context.GetIndex().LookupAttachment(json2, id, FileContentType_DicomAsJson));
+    ASSERT_TRUE(context.GetIndex().LookupAttachment(pixelData2, id, FileContentType_DicomUntilPixelData));
 
     context.GetIndex().GetGlobalStatistics(diskSize, uncompressedSize, countPatients, 
                                            countStudies, countSeries, countInstances);
     ASSERT_EQ(1u, countInstances);
-    ASSERT_EQ(dicom2.GetCompressedSize() + json2.GetCompressedSize(), diskSize);
-    ASSERT_EQ(dicom2.GetUncompressedSize() + json2.GetUncompressedSize(), uncompressedSize);
+    ASSERT_EQ(dicom2.GetCompressedSize() + pixelData2.GetCompressedSize(), diskSize);
+    ASSERT_EQ(dicom2.GetUncompressedSize() + pixelData2.GetUncompressedSize(), uncompressedSize);
 
     if (overwrite)
     {
       ASSERT_NE(dicom1.GetUuid(), dicom2.GetUuid());
-      ASSERT_NE(json1.GetUuid(), json2.GetUuid());
+      ASSERT_NE(pixelData1.GetUuid(), pixelData2.GetUuid());
       ASSERT_NE(dicom1.GetUncompressedSize(), dicom2.GetUncompressedSize());
-      ASSERT_NE(json1.GetUncompressedSize(), json2.GetUncompressedSize());
+      ASSERT_NE(pixelData1.GetUncompressedSize(), pixelData2.GetUncompressedSize());
     
       context.ReadDicomAsJson(tmp, id);
       ASSERT_EQ("overwritten", tmp["0010,0010"]["Value"].asString());
@@ -909,9 +932,9 @@ TEST(ServerIndex, Overwrite)
     else
     {
       ASSERT_EQ(dicom1.GetUuid(), dicom2.GetUuid());
-      ASSERT_EQ(json1.GetUuid(), json2.GetUuid());
+      ASSERT_EQ(pixelData1.GetUuid(), pixelData2.GetUuid());
       ASSERT_EQ(dicom1.GetUncompressedSize(), dicom2.GetUncompressedSize());
-      ASSERT_EQ(json1.GetUncompressedSize(), json2.GetUncompressedSize());
+      ASSERT_EQ(pixelData1.GetUncompressedSize(), pixelData2.GetUncompressedSize());
 
       context.ReadDicomAsJson(tmp, id);
       ASSERT_EQ("name", tmp["0010,0010"]["Value"].asString());
@@ -930,3 +953,74 @@ TEST(ServerIndex, Overwrite)
 }
 
 
+TEST(ServerIndex, DicomUntilPixelData)
+{
+  // Create a dummy 1x1 image
+  Image image(PixelFormat_Grayscale8, 1, 1, false);
+  reinterpret_cast<uint8_t*>(image.GetBuffer()) [0] = 128;
+
+  for (unsigned int i = 0; i < 2; i++)
+  {
+    const bool compression = (i == 0);
+    
+    MemoryStorageArea storage;
+    SQLiteDatabaseWrapper db;   // The SQLite DB is in memory
+    db.Open();
+    ServerContext context(db, storage, true /* running unit tests */, 10);
+    context.SetupJobsEngine(true, false);
+    context.SetCompressionEnabled(compression);
+
+    for (unsigned int j = 0; j < 2; j++)
+    {
+      const bool withPixelData = (j == 0);
+
+      ParsedDicomFile dicom(true);
+      
+      if (withPixelData)
+      {
+        dicom.EmbedImage(image);
+      }
+
+      std::string id;
+      size_t dicomSize;
+
+      {
+        std::unique_ptr<DicomInstanceToStore> toStore(DicomInstanceToStore::CreateFromParsedDicomFile(dicom));
+        dicomSize = toStore->GetBufferSize();
+        toStore->SetOrigin(DicomInstanceOrigin::FromPlugins());
+        ASSERT_EQ(StoreStatus_Success, context.Store(id, *toStore, StoreInstanceMode_Default));
+      }
+
+      std::set<FileContentType> attachments;
+      context.GetIndex().ListAvailableAttachments(attachments, id, ResourceType_Instance);
+
+      ASSERT_TRUE(attachments.find(FileContentType_Dicom) != attachments.end());
+      
+      if (compression &&
+          withPixelData)
+      {
+        ASSERT_EQ(2u, attachments.size());
+        ASSERT_TRUE(attachments.find(FileContentType_DicomUntilPixelData) != attachments.end());
+      }
+      else
+      {
+        ASSERT_EQ(1u, attachments.size());
+      }
+
+      std::string s;
+      bool found = context.GetIndex().LookupMetadata(s, id, ResourceType_Instance,
+                                                     MetadataType_Instance_PixelDataOffset);
+      
+      if (withPixelData)
+      {
+        ASSERT_TRUE(found);
+        ASSERT_GT(boost::lexical_cast<int>(s), 128 /* length of the DICOM preamble */);
+        ASSERT_LT(boost::lexical_cast<size_t>(s), dicomSize);
+      }
+      else
+      {
+        ASSERT_FALSE(found);        
+      }
+    }
+  }
+}

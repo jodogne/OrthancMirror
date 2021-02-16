@@ -803,7 +803,7 @@ namespace Orthanc
   }
 
 
-  void SQLiteDatabaseWrapper::ListAvailableAttachments(std::list<FileContentType>& target,
+  void SQLiteDatabaseWrapper::ListAvailableAttachments(std::set<FileContentType>& target,
                                                        int64_t id)
   {
     target.clear();
@@ -814,7 +814,7 @@ namespace Orthanc
 
     while (s.Step())
     {
-      target.push_back(static_cast<FileContentType>(s.ColumnInt(0)));
+      target.insert(static_cast<FileContentType>(s.ColumnInt(0)));
     }
   }
 
