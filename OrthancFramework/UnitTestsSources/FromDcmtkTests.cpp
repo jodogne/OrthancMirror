@@ -635,6 +635,7 @@ TEST(ParsedDicomFile, ToJsonFlags3)
   {
     Uint8 v[2] = { 0, 0 };
     ASSERT_TRUE(f.GetDcmtkObject().getDataset()->putAndInsertString(DCM_PatientName, "HELLO^").good());
+    ASSERT_TRUE(f.GetDcmtkObject().getDataset()->putAndInsertUint32(DcmTag(0x4000, 0x0000), 42).good());
     ASSERT_TRUE(f.GetDcmtkObject().getDataset()->putAndInsertUint8Array(DCM_PixelData, v, 2).good());
     ASSERT_TRUE(f.GetDcmtkObject().getDataset()->putAndInsertString(DcmTag(0x07fe1, 0x0010), "WORLD^").good());
   }
@@ -646,14 +647,15 @@ TEST(ParsedDicomFile, ToJsonFlags3)
     Json::Value v;
     f.DatasetToJson(v, DicomToJsonFormat_Short, static_cast<DicomToJsonFlags>(DicomToJsonFlags_IncludePrivateTags | DicomToJsonFlags_IncludePixelData | DicomToJsonFlags_StopAfterPixelData), 0);
     ASSERT_EQ(Json::objectValue, v.type());
-    ASSERT_EQ(2u, v.size());
+    ASSERT_EQ(3u, v.size());
     ASSERT_EQ("HELLO^", v["0010,0010"].asString());
+    ASSERT_EQ("42", v["4000,0000"].asString());
     ASSERT_EQ(s, v["7fe0,0010"].asString());
   }
 
   {
     Json::Value v;
-    f.DatasetToJson(v, DicomToJsonFormat_Short, DicomToJsonFlags_IncludePrivateTags, 0);
+    f.DatasetToJson(v, DicomToJsonFormat_Short, static_cast<DicomToJsonFlags>(DicomToJsonFlags_IncludePrivateTags | DicomToJsonFlags_SkipGroupLengths), 0);
     ASSERT_EQ(Json::objectValue, v.type());
     ASSERT_EQ(2u, v.size());
     ASSERT_EQ("HELLO^", v["0010,0010"].asString());

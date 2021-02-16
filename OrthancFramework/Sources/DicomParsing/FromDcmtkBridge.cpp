@@ -1004,6 +1004,13 @@ namespace Orthanc
         continue;
       }
 
+      // New flag in Orthanc 1.9.1
+      if ((flags & DicomToJsonFlags_SkipGroupLengths) &&
+          tag.GetElement() == 0x0000)
+      {
+        continue;
+      }
+
       /*element->getTag().isPrivate()*/
       if (tag.IsPrivate() &&
           !(flags & DicomToJsonFlags_IncludePrivateTags))    
