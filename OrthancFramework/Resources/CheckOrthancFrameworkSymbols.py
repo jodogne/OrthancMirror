@@ -53,6 +53,9 @@ parser = argparse.ArgumentParser(description = 'Parse WebAssembly C++ source fil
 parser.add_argument('--libclang',
                     default = '',
                     help = 'manually provides the path to the libclang shared library')
+parser.add_argument('--target-cpp-size',
+                    default = '',
+                    help = 'where to store C++ source to display the size of each public class')
 
 args = parser.parse_args()
 
@@ -107,6 +110,7 @@ tu = index.parse(AMALGAMATION, [
 
 FILES = []
 COUNT = 0
+ALL_TYPES = []
 
 def ReportProblem(message, fqn, cursor):
     global FILES, COUNT
@@ -141,6 +145,9 @@ def ExploreClass(child, fqn):
     if not visible:
         return
 
+    global ALL_TYPES
+    ALL_TYPES.append('::'.join(fqn))
+    
     
     ##
     ## Ignore pure abstract interfaces, by checking the following
@@ -206,6 +213,9 @@ def ExploreClass(child, fqn):
     
     isPublic = (child.kind == clang.cindex.CursorKind.STRUCT_DECL)
 
+    membersCount = 0
+    membersSize = 0
+
     for i in child.get_children():
         if (i.kind == clang.cindex.CursorKind.VISIBILITY_ATTR or    # "default"
             i.kind == clang.cindex.CursorKind.CXX_BASE_SPECIFIER):  # base class
@@ -232,8 +242,7 @@ def ExploreClass(child, fqn):
                     ReportProblem('Exported public method with an implementation', fqn, i)
 
         elif i.kind == clang.cindex.CursorKind.VAR_DECL:
-            if isPublic:
-                ReportProblem('Exported public member variable', fqn, i)
+            raise Exception('Unsupported: %s, %s' % (i.kind, i.location))
 
         elif i.kind == clang.cindex.CursorKind.FUNCTION_TEMPLATE:
             # An inline function template is OK, as it is not added to
@@ -261,10 +270,18 @@ def ExploreClass(child, fqn):
                      'operator<<(std::ostream &, const Orthanc::DicomTag &)',
                  ])):
                 raise Exception('Unsupported: %s, %s' % (i.kind, i.location))
+
+        elif i.kind == clang.cindex.CursorKind.FIELD_DECL:
+            # TODO
+            if i.type.get_size() > 0:
+                membersSize += i.type.get_size()
+            membersCount += 1
             
         else:
             if isPublic:
                 raise Exception('Unsupported: %s, %s' % (i.kind, i.location))
+
+    #print('Size of %s => (%d,%d)' % ('::'.join(fqn), membersCount, membersSize))
 
 
 def ExploreNamespace(node, namespace):
@@ -299,6 +316,12 @@ for node in tu.cursor.get_children():
     if (node.kind == clang.cindex.CursorKind.NAMESPACE and
         node.spelling == 'Orthanc'):
         ExploreNamespace(node, [ 'Orthanc' ])
+
+
+if args.target_cpp_size != '':
+    with open(args.target_cpp_size, 'w') as f:
+        for t in sorted(ALL_TYPES):
+            f.write('  printf("sizeof(::%s) == %%d\\n", static_cast<int>(sizeof(::%s)));\n' % (t, t))
 
 
 print('\nTotal of possibly problematic methods: %d' % COUNT)
