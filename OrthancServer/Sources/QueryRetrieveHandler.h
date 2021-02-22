@@ -52,6 +52,7 @@ namespace Orthanc
     DicomFindAnswers           answers_;
     std::string                modalityName_;
     bool                       findNormalized_;
+    uint32_t                   timeout_;  // New in Orthanc 1.9.1
 
     void Invalidate();
 
@@ -108,5 +109,20 @@ namespace Orthanc
     }
 
     void SetFindNormalized(bool normalized);
+
+    void SetTimeout(uint32_t seconds)
+    {
+      timeout_ = seconds;
+    }
+
+    uint32_t GetTimeout() const
+    {
+      return timeout_;
+    }
+
+    bool HasTimeout() const
+    {
+      return timeout_ != 0;
+    }
   };
 }

@@ -675,6 +675,8 @@ namespace Orthanc
         .SetRequestField(KEY_LOCAL_AET, RestApiCallDocumentation::Type_String,
                          "Local AET that is used for this commands, defaults to `DicomAet` configuration option. "
                          "Ignored if `DicomModalities` already sets `LocalAet` for this modality.", false)
+        .SetRequestField(KEY_TIMEOUT, RestApiCallDocumentation::Type_Number,
+                         "Timeout for the C-FIND command and subsequent C-MOVE retrievals, in seconds (new in Orthanc 1.9.1)", false)
         .SetAnswerField("ID", RestApiCallDocumentation::Type_JsonObject,
                         "Identifier of the query, to be used with `/queries/{id}`")
         .SetAnswerField("Path", RestApiCallDocumentation::Type_JsonObject,
@@ -741,6 +743,12 @@ namespace Orthanc
       if (request.isMember(KEY_LOCAL_AET))
       {
         handler->SetLocalAet(request[KEY_LOCAL_AET].asString());
+      }
+
+      if (request.isMember(KEY_TIMEOUT))
+      {
+        // New in Orthanc 1.9.1
+        handler->SetTimeout(SerializationToolbox::ReadUnsignedInteger(request, KEY_TIMEOUT));
       }
 
       AnswerQueryHandler(call, handler);
@@ -939,6 +947,11 @@ namespace Orthanc
       {
         // New in Orthanc 1.7.0
         job->SetTimeout(static_cast<uint32_t>(timeout));
+      }
+      else if (query.GetHandler().HasTimeout())
+      {
+        // New in Orthanc 1.9.1
+        job->SetTimeout(query.GetHandler().GetTimeout());
       }
 
       LOG(WARNING) << "Driving C-Move SCU on remote modality "
@@ -1179,6 +1192,8 @@ namespace Orthanc
         .SetUriArgument("index", "Index of the answer")
         .SetRequestField(KEY_QUERY, RestApiCallDocumentation::Type_JsonObject,
                          "Associative array containing the filter on the values of the DICOM tags", true)
+        .SetRequestField(KEY_TIMEOUT, RestApiCallDocumentation::Type_Number,
+                         "Timeout for the C-FIND command, in seconds (new in Orthanc 1.9.1)", false)
         .SetAnswerField("ID", RestApiCallDocumentation::Type_JsonObject,
                         "Identifier of the query, to be used with `/queries/{id}`")
         .SetAnswerField("Path", RestApiCallDocumentation::Type_JsonObject,
@@ -1229,6 +1244,16 @@ namespace Orthanc
         handler->SetFindNormalized(parent.GetHandler().IsFindNormalized());
         handler->SetModality(parent.GetHandler().GetModalitySymbolicName());
         handler->SetLevel(CHILDREN_LEVEL);
+
+        // New in Orthanc 1.9.1
+        if (request.isMember(KEY_TIMEOUT))
+        {
+          handler->SetTimeout(SerializationToolbox::ReadUnsignedInteger(request, KEY_TIMEOUT));
+        }
+        else if (parent.GetHandler().HasTimeout())
+        {
+          handler->SetTimeout(parent.GetHandler().GetTimeout());
+        }
 
         if (request.isMember(KEY_QUERY))
         {
@@ -2115,6 +2140,8 @@ namespace Orthanc
                          "List of DICOM resources that are not necessarily stored within Orthanc, but that must "
                          "be checked by storage commitment. This is a list of JSON objects that must contain the "
                          "`SOPClassUID` and `SOPInstanceUID` fields.", true)
+        .SetRequestField(KEY_TIMEOUT, RestApiCallDocumentation::Type_Number,
+                         "Timeout for the storage commitment command (new in Orthanc 1.9.1)", false)
         .SetAnswerField("ID", RestApiCallDocumentation::Type_JsonObject,
                         "Identifier of the storage commitment report, to be used with `/storage-commitment/{id}`")
         .SetAnswerField("Path", RestApiCallDocumentation::Type_JsonObject,
@@ -2272,6 +2299,7 @@ namespace Orthanc
           transactionUid, new StorageCommitmentReports::Report(remoteAet));
 
         DicomAssociationParameters parameters(localAet, remote);
+        InjectAssociationTimeout(parameters, json);
         
         std::vector<std::string> a(sopClassUids.begin(), sopClassUids.end());
         std::vector<std::string> b(sopInstanceUids.begin(), sopInstanceUids.end());
