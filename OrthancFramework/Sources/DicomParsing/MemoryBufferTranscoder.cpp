@@ -41,7 +41,6 @@ namespace Orthanc
     // Debug mode
     ParsedDicomFile parsed(transcoded);
 
-    std::string s;
     DicomTransferSyntax a, b;
     if (!const_cast<const ParsedDicomFile&>(parsed).LookupTransferSyntax(b) ||
         !FromDcmtkBridge::LookupOrthancTransferSyntax(a, parsed.GetDcmtkObject()) ||

@@ -1310,7 +1310,6 @@ TEST(ParsedDicomFile, FloatPrecision)
   {
     DicomMap summary;
     f.ExtractDicomSummary(summary, 256);
-    std::string s;
     ASSERT_EQ("1314310016", summary.GetStringValue(DicomTag(0x0010, 0x9431), "nope", false));
   }
 

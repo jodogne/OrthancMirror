@@ -27,6 +27,16 @@
 
 namespace Orthanc
 {
+  FileInfo::FileInfo() :
+    valid_(false),
+    contentType_(FileContentType_Unknown),
+    uncompressedSize_(0),
+    compressionType_(CompressionType_None),
+    compressedSize_(0)
+  {
+  }
+
+  
   FileInfo::FileInfo(const std::string& uuid,
                      FileContentType contentType,
                      uint64_t size,

@@ -102,7 +102,7 @@ namespace Orthanc
     }
 
   public:
-    FromParsedDicomFile(ParsedDicomFile& parsed) :
+    explicit FromParsedDicomFile(ParsedDicomFile& parsed) :
       parsed_(parsed)
     {
     }
@@ -151,7 +151,7 @@ namespace Orthanc
     }
 
   public:
-    FromDcmDataset(DcmDataset& dataset) :
+    explicit FromDcmDataset(DcmDataset& dataset) :
       dataset_(dataset)
     {
     }
