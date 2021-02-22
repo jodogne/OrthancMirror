@@ -1271,6 +1271,8 @@ TEST(JobsSerialization, RemoteModalityParameters)
     modality.Serialize(s, false);
     ASSERT_EQ(Json::arrayValue, s.type());
     ASSERT_FALSE(modality.IsDicomTlsEnabled());
+    ASSERT_FALSE(modality.HasTimeout());
+    ASSERT_EQ(0u, modality.GetTimeout());
   }
 
   {
@@ -1291,6 +1293,8 @@ TEST(JobsSerialization, RemoteModalityParameters)
     ASSERT_FALSE(modality.IsDicomTlsEnabled());
     ASSERT_FALSE(modality.HasLocalAet());
     ASSERT_THROW(modality.GetLocalAet(), OrthancException);
+    ASSERT_FALSE(modality.HasTimeout());
+    ASSERT_EQ(0u, modality.GetTimeout());
   }
 
   s = Json::nullValue;
@@ -1307,6 +1311,8 @@ TEST(JobsSerialization, RemoteModalityParameters)
     modality.Serialize(s, true);
     ASSERT_EQ(Json::objectValue, s.type());
     ASSERT_FALSE(modality.HasLocalAet());
+    ASSERT_FALSE(modality.HasTimeout());
+    ASSERT_EQ(0u, modality.GetTimeout());
   }
 
   {
@@ -1325,6 +1331,8 @@ TEST(JobsSerialization, RemoteModalityParameters)
     ASSERT_TRUE(modality.IsTranscodingAllowed());
     ASSERT_FALSE(modality.IsDicomTlsEnabled());
     ASSERT_FALSE(modality.HasLocalAet());
+    ASSERT_FALSE(modality.HasTimeout());
+    ASSERT_EQ(0u, modality.GetTimeout());
   }
 
   s["Port"] = "46";
@@ -1382,16 +1390,21 @@ TEST(JobsSerialization, RemoteModalityParameters)
   {
     RemoteModalityParameters modality;
     modality.SetLocalAet("hello");
+    modality.SetTimeout(42);
     ASSERT_TRUE(modality.IsAdvancedFormatNeeded());
     modality.Serialize(s, true);
     ASSERT_EQ(Json::objectValue, s.type());
     ASSERT_TRUE(modality.HasLocalAet());
+    ASSERT_TRUE(modality.HasTimeout());
+    ASSERT_EQ(42u, modality.GetTimeout());
   }
 
   {
     RemoteModalityParameters modality(s);
     ASSERT_TRUE(modality.HasLocalAet());
     ASSERT_EQ("hello", modality.GetLocalAet());
+    ASSERT_TRUE(modality.HasTimeout());
+    ASSERT_EQ(42u, modality.GetTimeout());
   }
 
   {
@@ -1412,6 +1425,8 @@ TEST(JobsSerialization, RemoteModalityParameters)
     ASSERT_FALSE(modality.IsDicomTlsEnabled());
     ASSERT_FALSE(modality.HasLocalAet());
     ASSERT_THROW(modality.GetLocalAet(), OrthancException);
+    ASSERT_FALSE(modality.HasTimeout());
+    ASSERT_EQ(0u, modality.GetTimeout());
   }
 
   {
@@ -1424,6 +1439,7 @@ TEST(JobsSerialization, RemoteModalityParameters)
     t["AllowTranscoding"] = false;
     t["UseDicomTls"] = true;
     t["LocalAet"] = "world";
+    t["Timeout"] = 20;
     
     RemoteModalityParameters modality(t);
     ASSERT_TRUE(modality.IsAdvancedFormatNeeded());
@@ -1436,6 +1452,8 @@ TEST(JobsSerialization, RemoteModalityParameters)
     ASSERT_TRUE(modality.IsDicomTlsEnabled());
     ASSERT_TRUE(modality.HasLocalAet());
     ASSERT_EQ("world", modality.GetLocalAet());
+    ASSERT_TRUE(modality.HasTimeout());
+    ASSERT_EQ(20u, modality.GetTimeout());
   }
 
   {
@@ -1487,6 +1505,8 @@ TEST(JobsSerialization, DicomAssociationParameters)
     ASSERT_FALSE(b.GetRemoteModality().IsDicomTlsEnabled());
     ASSERT_FALSE(b.GetRemoteModality().HasLocalAet());
     ASSERT_THROW(b.GetRemoteModality().GetLocalAet(), OrthancException);
+    ASSERT_FALSE(b.GetRemoteModality().HasTimeout());
+    ASSERT_EQ(0u, b.GetRemoteModality().GetTimeout());
   }
 
   {
@@ -1495,6 +1515,7 @@ TEST(JobsSerialization, DicomAssociationParameters)
     p.SetPortNumber(4242);
     p.SetHost("hello.world.com");
     p.SetDicomTlsEnabled(true);
+    p.SetTimeout(42);
     
     DicomAssociationParameters a("HELLO", p);
     a.SetOwnCertificatePath("key", "crt");
@@ -1521,5 +1542,7 @@ TEST(JobsSerialization, DicomAssociationParameters)
     ASSERT_EQ("crt", b.GetOwnCertificatePath());
     ASSERT_EQ("trusted", b.GetTrustedCertificatesPath());
     ASSERT_EQ(131072u, b.GetMaximumPduLength());
+    ASSERT_TRUE(b.GetRemoteModality().HasTimeout());
+    ASSERT_EQ(42u, b.GetRemoteModality().GetTimeout());
   }  
 }

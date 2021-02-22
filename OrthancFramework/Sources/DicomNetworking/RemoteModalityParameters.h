@@ -47,6 +47,7 @@ namespace Orthanc
     bool                  allowTranscoding_;
     bool                  useDicomTls_;
     std::string           localAet_;
+    uint32_t              timeout_;
     
     void Clear();
 
@@ -107,5 +108,12 @@ namespace Orthanc
     const std::string& GetLocalAet() const;
 
     void SetLocalAet(const std::string& aet);
+
+    // Setting it to "0" will use "DicomAssociationParameters::GetDefaultTimeout()"
+    void SetTimeout(uint32_t seconds);
+
+    uint32_t GetTimeout() const;
+
+    bool HasTimeout() const;    
   };
 }

@@ -46,6 +46,7 @@ static const char* KEY_MANUFACTURER = "Manufacturer";
 static const char* KEY_PORT = "Port";
 static const char* KEY_USE_DICOM_TLS = "UseDicomTls";
 static const char* KEY_LOCAL_AET = "LocalAet";
+static const char* KEY_TIMEOUT = "Timeout";
 
 
 namespace Orthanc
@@ -66,6 +67,7 @@ namespace Orthanc
     allowTranscoding_ = true;
     useDicomTls_ = false;
     localAet_.clear();
+    timeout_ = 0;
   }
 
 
@@ -293,6 +295,11 @@ namespace Orthanc
     {
       localAet_ = SerializationToolbox::ReadString(serialized, KEY_LOCAL_AET);
     }
+
+    if (serialized.isMember(KEY_TIMEOUT))
+    {
+      timeout_ = SerializationToolbox::ReadUnsignedInteger(serialized, KEY_TIMEOUT);
+    }
   }
 
 
@@ -402,6 +409,7 @@ namespace Orthanc
       target[KEY_ALLOW_TRANSCODING] = allowTranscoding_;
       target[KEY_USE_DICOM_TLS] = useDicomTls_;
       target[KEY_LOCAL_AET] = localAet_;
+      target[KEY_TIMEOUT] = timeout_;
     }
     else
     {
@@ -480,5 +488,20 @@ namespace Orthanc
     {
       localAet_ = aet;
     }
+  }
+
+  void RemoteModalityParameters::SetTimeout(uint32_t seconds)
+  {
+    timeout_ = seconds;
+  }
+
+  uint32_t RemoteModalityParameters::GetTimeout() const
+  {
+    return timeout_;
+  }
+
+  bool RemoteModalityParameters::HasTimeout() const
+  {
+    return timeout_ != 0;
   }
 }
