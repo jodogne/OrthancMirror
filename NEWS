@@ -8,6 +8,8 @@ General
 * If the storage area doesn't support range reading, or if "StorageCompression"
   is enabled, a new type of attachment "dicom-until-pixel-data" is generated.
 * New metadata automatically computed at the instance level: "PixelDataOffset"
+* New configuration option related to networking:
+  - "Timeout" in "DicomModalities" to set DICOM SCU timeout on a per-modality basis
 
 REST API
 --------

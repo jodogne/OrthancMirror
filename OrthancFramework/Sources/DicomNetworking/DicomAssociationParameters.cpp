@@ -78,8 +78,8 @@ namespace Orthanc
     timeout_(0),  // Will be set by SetDefaultParameters()
     maximumPduLength_(0)  // Will be set by SetDefaultParameters()
   {
-    remote_.SetApplicationEntityTitle("ANY-SCP");
     SetDefaultParameters();
+    remote_.SetApplicationEntityTitle("ANY-SCP");
   }
 
     
@@ -89,8 +89,8 @@ namespace Orthanc
     timeout_(0),  // Will be set by SetDefaultParameters()
     maximumPduLength_(0)  // Will be set by SetDefaultParameters()
   {
-    SetRemoteModality(remote);
     SetDefaultParameters();
+    SetRemoteModality(remote);
   }
 
   const std::string &DicomAssociationParameters::GetLocalApplicationEntityTitle() const
@@ -113,6 +113,12 @@ namespace Orthanc
   {
     CheckHost(remote.GetHost());
     remote_ = remote;
+
+    if (remote.HasTimeout())
+    {
+      timeout_ = remote.GetTimeout();
+      assert(timeout_ != 0);
+    }
   }
 
   void DicomAssociationParameters::SetRemoteApplicationEntityTitle(const std::string &aet)
