@@ -183,6 +183,12 @@ namespace Orthanc
   }
 
 
+  bool FilesystemStorage::HasReadRange() const
+  {
+    return true;
+  }
+
+
   uintmax_t FilesystemStorage::GetSize(const std::string& uuid) const
   {
     boost::filesystem::path path = GetPath(uuid);

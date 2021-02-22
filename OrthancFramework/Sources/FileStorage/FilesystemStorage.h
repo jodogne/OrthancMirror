@@ -86,10 +86,7 @@ namespace Orthanc
                                      uint64_t start /* inclusive */,
                                      uint64_t end /* exclusive */) ORTHANC_OVERRIDE;
 
-    virtual bool HasReadRange() const ORTHANC_OVERRIDE
-    {
-      return true;
-    }
+    virtual bool HasReadRange() const ORTHANC_OVERRIDE;
 
     virtual void Remove(const std::string& uuid,
                         FileContentType type) ORTHANC_OVERRIDE;
