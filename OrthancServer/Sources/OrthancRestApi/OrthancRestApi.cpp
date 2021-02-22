@@ -64,7 +64,7 @@ namespace Orthanc
 
 
   static void SetupResourceAnswer(Json::Value& result,
-                                  DicomInstanceToStore& instance,
+                                  const DicomInstanceToStore& instance,
                                   StoreStatus status,
                                   const std::string& instanceId)
   {

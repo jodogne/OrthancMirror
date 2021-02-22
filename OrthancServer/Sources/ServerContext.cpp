@@ -586,7 +586,7 @@ namespace Orthanc
       FileInfo dicomUntilPixelData;
       if (hasPixelDataOffset &&
           (!area_.HasReadRange() ||
-           compression != CompressionType_None))
+           compressionEnabled_))
       {
         dicomUntilPixelData = accessor.Write(dicom.GetBufferData(), pixelDataOffset, 
                                              FileContentType_DicomUntilPixelData, compression, storeMD5_);
@@ -856,7 +856,7 @@ namespace Orthanc
        **/
     
       bool hasPixelDataOffset;
-      uint64_t pixelDataOffset;
+      uint64_t pixelDataOffset = 0;  // dummy initialization
 
       {
         std::string s;
@@ -902,9 +902,11 @@ namespace Orthanc
          * "true".
          **/
       
-        StorageAccessor accessor(area_, GetMetricsRegistry());
-        std::unique_ptr<IMemoryBuffer> dicom(
-          area_.ReadRange(attachment.GetUuid(), FileContentType_Dicom, 0, pixelDataOffset));
+        std::unique_ptr<IMemoryBuffer> dicom;
+        {
+          MetricsRegistry::Timer timer(GetMetricsRegistry(), "orthanc_storage_read_range_duration_ms");
+          dicom.reset(area_.ReadRange(attachment.GetUuid(), FileContentType_Dicom, 0, pixelDataOffset));
+        }
 
         if (dicom.get() == NULL)
         {
@@ -973,7 +975,7 @@ namespace Orthanc
                                boost::lexical_cast<std::string>(pixelDataOffset));
 
             if (!area_.HasReadRange() ||
-                compressionEnabled_ != CompressionType_None)
+                compressionEnabled_)
             {
               AddAttachment(instancePublicId, FileContentType_DicomUntilPixelData,
                             dicom.empty() ? NULL: dicom.c_str(), pixelDataOffset);

@@ -42,10 +42,7 @@ namespace Orthanc
     std::string      compressedMD5_;
 
   public:
-    FileInfo() :
-      valid_(false)
-    {
-    }
+    FileInfo();
 
     /**
      * Constructor for an uncompressed attachment.
