@@ -83,6 +83,12 @@ namespace Orthanc
 
       {
         DicomAssociationParameters params(localAet_, modality_);
+
+        if (timeout_ != 0)
+        {
+          params.SetTimeout(timeout_);
+        }
+        
         DicomControlUserConnection connection(params);
         connection.Find(answers_, level_, fixed, findNormalized_);
       }
@@ -98,7 +104,8 @@ namespace Orthanc
     done_(false),
     level_(ResourceType_Study),
     answers_(false),
-    findNormalized_(true)
+    findNormalized_(true),
+    timeout_(0)
   {
   }
 

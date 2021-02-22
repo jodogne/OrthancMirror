@@ -277,7 +277,10 @@ namespace Orthanc
                       << "\" to AET \"" << parameters.GetRemoteModality().GetApplicationEntityTitle()
                       << "\" on host " << parameters.GetRemoteModality().GetHost()
                       << ":" << parameters.GetRemoteModality().GetPortNumber() 
-                      << " (manufacturer: " << EnumerationToString(parameters.GetRemoteModality().GetManufacturer()) << ")";
+                      << " (manufacturer: " << EnumerationToString(parameters.GetRemoteModality().GetManufacturer())
+                      << ", " << (parameters.HasTimeout() ?
+                                  "timeout: " + boost::lexical_cast<std::string>(parameters.GetTimeout()) + "s" :
+                                  "no timeout") << ")";
 
     CheckConnecting(parameters, ASC_initializeNetwork(NET_REQUESTOR, 0, /*opt_acse_timeout*/ acseTimeout, &net_));
     CheckConnecting(parameters, ASC_createAssociationParameters(&params_, parameters.GetMaximumPduLength()));

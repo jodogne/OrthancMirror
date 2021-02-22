@@ -4,17 +4,22 @@ Pending changes in the mainline
 General
 -------
 
-* BREAKING CHANGE: The "dicom-as-json" attachments are not explicitly stored anymore.
-  If the storage area doesn't support range reading, or if "StorageCompression"
-  is enabled, a new attachment "dicom-until-pixel-data" is generated.
+* The "dicom-as-json" attachments are not explicitly stored anymore to improve performance
+* If the storage area doesn't support range reading, or if "StorageCompression"
+  is enabled, a new type of attachment "dicom-until-pixel-data" is generated.
 * New metadata automatically computed at the instance level: "PixelDataOffset"
 
 REST API
 --------
 
-* BREAKING CHANGE: The "/instances/.../tags" route does not report the tags
-  after "Pixel Data" (7fe0,0010) anymore
-
+* BREAKING CHANGES:
+  - External applications should *not* call "/instances/.../attachments/dicom-as-json" anymore
+  - "/instances/.../tags" route does not report the tags after "Pixel Data" (7fe0,0010) anymore
+* New arguments in the REST API:
+  - "Timeout" in "/modalities/.../query"
+  - "Timeout" in "/modalities/.../storage-commitment"
+  - "Timeout" in "/queries/.../answers/.../query-{studies|series|instances}"
+  
 Plugins
 -------
 
