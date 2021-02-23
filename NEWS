@@ -15,9 +15,11 @@ General
 REST API
 --------
 
+* API version upgraded to 11
 * BREAKING CHANGES:
   - External applications should *not* call "/instances/.../attachments/dicom-as-json" anymore
   - "/instances/.../tags" route does not report the tags after "Pixel Data" (7fe0,0010) anymore
+* "/peers/{id}/store-straight": Synchronously send the DICOM instance in POST body to the peer
 * New arguments in the REST API:
   - "Timeout" in "/modalities/.../query"
   - "Timeout" in "/modalities/.../storage-commitment"
