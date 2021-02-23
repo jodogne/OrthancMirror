@@ -37,6 +37,7 @@ Maintenance
 * Improved precision of floating-point numbers in DICOM-as-JSON and DICOM summary
 * Optimization in C-STORE SCP by avoiding an unnecessary DICOM parsing
 * Fix build on big-endian architectures
+* The numbering of sequences in Orthanc Explorer now uses the DICOM convention (starts at 1)
 * Possibility to generate a static library containing the Orthanc Framework
 
 
