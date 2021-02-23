@@ -423,6 +423,9 @@
      * peers. It notably allows one to specify HTTP headers, a HTTPS
      * client certificate in the PEM format (as in the "--cert" option
      * of curl), or to enable PKCS#11 authentication for smart cards.
+     *
+     * The "Timeout" option allows one to overwrite the global value
+     * "HttpTimeout" on a per-peer basis.
      **/
     // "peer" : {
     //   "Url" : "http://127.0.0.1:8043/",
@@ -432,7 +435,8 @@
     //   "CertificateFile" : "client.crt",
     //   "CertificateKeyFile" : "client.key",
     //   "CertificateKeyPassword" : "certpass",
-    //   "Pkcs11" : false
+    //   "Pkcs11" : false,
+    //   "Timeout" : 42            // New in Orthanc 1.9.1
     // }
   },
 
@@ -675,10 +679,10 @@
   // with Orthanc 1.5.8, this URI is disabled by default for security.
   "ExecuteLuaEnabled" : false,
 
-  // Set the timeout for HTTP requests, in seconds. This corresponds
-  // to option "request_timeout_ms" of Mongoose/Civetweb. It will set
-  // the socket options "SO_RCVTIMEO" and "SO_SNDTIMEO" to the
-  // specified value.
+  // Set the timeout while serving HTTP requests by the embedded Web
+  // server, in seconds. This corresponds to option
+  // "request_timeout_ms" of Mongoose/Civetweb. It will set the socket
+  // options "SO_RCVTIMEO" and "SO_SNDTIMEO" to the specified value.
   "HttpRequestTimeout" : 30,
 
   // Set the default private creator that is used by Orthanc when it

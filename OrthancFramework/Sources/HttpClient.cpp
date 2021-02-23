@@ -669,6 +669,11 @@ namespace Orthanc
     {
       AddHeader(it->first, it->second);
     }
+
+    if (service.HasTimeout())
+    {
+      SetTimeout(service.GetTimeout());
+    }
   }
 
 

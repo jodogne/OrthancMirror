@@ -568,11 +568,12 @@ TEST(WebServiceParameters, Serialization)
     p.Serialize(v2, false, true);
 
     ASSERT_EQ(Json::objectValue, v2.type());
-    ASSERT_EQ(3u, v2.size());
+    ASSERT_EQ(4u, v2.size());
     ASSERT_EQ("http://localhost:8042/", v2["Url"].asString());
     ASSERT_TRUE(v2["Pkcs11"].asBool());
     ASSERT_EQ(Json::objectValue, v2["HttpHeaders"].type());
     ASSERT_EQ(0u, v2["HttpHeaders"].size());
+    ASSERT_EQ(0, v2["Timeout"].asInt());
 
     WebServiceParameters p2(v2);  // Test decoding
     ASSERT_EQ("http://localhost:8042/", p2.GetUrl());
@@ -591,7 +592,7 @@ TEST(WebServiceParameters, Serialization)
     p.Serialize(v2, false, true);
 
     ASSERT_EQ(Json::objectValue, v2.type());
-    ASSERT_EQ(6u, v2.size());
+    ASSERT_EQ(7u, v2.size());
     ASSERT_EQ("http://localhost:8042/", v2["Url"].asString());
     ASSERT_EQ("a", v2["CertificateFile"].asString());
     ASSERT_EQ("b", v2["CertificateKeyFile"].asString());
@@ -599,6 +600,7 @@ TEST(WebServiceParameters, Serialization)
     ASSERT_FALSE(v2["Pkcs11"].asBool());
     ASSERT_EQ(Json::objectValue, v2["HttpHeaders"].type());
     ASSERT_EQ(0u, v2["HttpHeaders"].size());
+    ASSERT_EQ(0, v2["Timeout"].asInt());
 
     WebServiceParameters p2(v2);  // Test decoding
     ASSERT_EQ("http://localhost:8042/", p2.GetUrl());
@@ -612,6 +614,7 @@ TEST(WebServiceParameters, Serialization)
     ASSERT_FALSE(p.IsAdvancedFormatNeeded());
     p.AddHttpHeader("a", "b");
     p.AddHttpHeader("c", "d");
+    p.SetTimeout(42);
     ASSERT_TRUE(p.IsAdvancedFormatNeeded());
 
     Json::Value v2;
@@ -619,13 +622,14 @@ TEST(WebServiceParameters, Serialization)
     WebServiceParameters p2(v2);
 
     ASSERT_EQ(Json::objectValue, v2.type());
-    ASSERT_EQ(3u, v2.size());
+    ASSERT_EQ(4u, v2.size());
     ASSERT_EQ("http://localhost:8042/", v2["Url"].asString());
     ASSERT_FALSE(v2["Pkcs11"].asBool());
     ASSERT_EQ(Json::objectValue, v2["HttpHeaders"].type());
     ASSERT_EQ(2u, v2["HttpHeaders"].size());
     ASSERT_EQ("b", v2["HttpHeaders"]["a"].asString());
     ASSERT_EQ("d", v2["HttpHeaders"]["c"].asString());
+    ASSERT_EQ(42, v2["Timeout"].asInt());
 
     std::set<std::string> a;
     p2.ListHttpHeaders(a);

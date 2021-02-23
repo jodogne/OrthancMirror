@@ -46,6 +46,7 @@ namespace Orthanc
   static const char* KEY_URL = "Url";
   static const char* KEY_URL_2 = "URL";
   static const char* KEY_USERNAME = "Username";
+  static const char* KEY_TIMEOUT = "Timeout";
 
 
   static bool IsReservedKey(const std::string& key)
@@ -58,12 +59,14 @@ namespace Orthanc
             key == KEY_PKCS11 ||
             key == KEY_URL ||
             key == KEY_URL_2 ||
-            key == KEY_USERNAME);
+            key == KEY_USERNAME ||
+            key == KEY_TIMEOUT);
   }
 
 
   WebServiceParameters::WebServiceParameters() : 
-    pkcs11Enabled_(false)
+    pkcs11Enabled_(false),
+    timeout_(0)
   {
     SetUrl("http://127.0.0.1:8042/");
   }
@@ -214,6 +217,7 @@ namespace Orthanc
     assert(peer.isArray());
 
     pkcs11Enabled_ = false;
+    timeout_ = 0;
     ClearClientCertificate();
 
     if (peer.size() != 1 && 
@@ -366,6 +370,16 @@ namespace Orthanc
         }
       }
     }
+
+
+    if (peer.isMember(KEY_TIMEOUT))
+    {
+      timeout_ = SerializationToolbox::ReadUnsignedInteger(peer, KEY_TIMEOUT);      
+    }
+    else
+    {
+      timeout_ = 0;
+    }
   }
 
 
@@ -515,7 +529,8 @@ namespace Orthanc
             !certificateKeyPassword_.empty() ||
             pkcs11Enabled_ ||
             !headers_.empty() ||
-            !userProperties_.empty());
+            !userProperties_.empty() ||
+            timeout_ != 0);
   }
 
 
@@ -557,6 +572,7 @@ namespace Orthanc
       }
 
       value[KEY_PKCS11] = pkcs11Enabled_;
+      value[KEY_TIMEOUT] = timeout_;
 
       value[KEY_HTTP_HEADERS] = Json::objectValue;
       for (Dictionary::const_iterator it = headers_.begin();
@@ -631,6 +647,7 @@ namespace Orthanc
     }
 
     target[KEY_PKCS11] = pkcs11Enabled_;
+    target[KEY_TIMEOUT] = timeout_;
 
     Json::Value headers = Json::arrayValue;
       
@@ -648,5 +665,21 @@ namespace Orthanc
     {
       target[it->first] = it->second;
     }
+  }
+
+
+  void WebServiceParameters::SetTimeout(uint32_t seconds)
+  {
+    timeout_ = seconds;
+  }
+
+  uint32_t WebServiceParameters::GetTimeout() const
+  {
+    return timeout_;
+  }
+
+  bool WebServiceParameters::HasTimeout() const
+  {
+    return (timeout_ != 0);
   }
 }
