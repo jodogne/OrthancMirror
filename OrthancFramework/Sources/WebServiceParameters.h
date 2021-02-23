@@ -50,6 +50,7 @@ namespace Orthanc
     bool         pkcs11Enabled_;
     Dictionary   headers_;
     Dictionary   userProperties_;
+    unsigned int timeout_;
 
     void FromSimpleFormat(const Json::Value& peer);
 
@@ -129,5 +130,12 @@ namespace Orthanc
 #endif
 
     void FormatPublic(Json::Value& target) const;
+
+    // Setting it to "0" will use "HttpClient::SetDefaultTimeout()"
+    void SetTimeout(uint32_t seconds);
+
+    uint32_t GetTimeout() const;
+
+    bool HasTimeout() const;    
   };
 }
