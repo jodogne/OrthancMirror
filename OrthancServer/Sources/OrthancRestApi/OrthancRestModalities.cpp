@@ -1820,6 +1820,62 @@ namespace Orthanc
     }
   }
 
+  static void PeerStoreStraight(RestApiPostCall& call)
+  {
+    if (call.IsDocumentation())
+    {
+      call.GetDocumentation()
+        .SetTag("Networking")
+        .SetSummary("Straight store to peer")
+        .SetDescription("Synchronously send the DICOM instance in the POST body to the Orthanc peer "
+                        "whose identifier is provided in URL, without having to first store it locally within Orthanc. "
+                        "This is an alternative to command-line tools such as `curl`.")
+        .SetUriArgument("id", "Identifier of the modality of interest")
+        .AddRequestType(MimeType_Dicom, "DICOM instance to be sent")
+        .SetAnswerField("ID", RestApiCallDocumentation::Type_String,
+                        "Orthanc identifier of the DICOM instance in the remote Orthanc peer")
+        .SetAnswerField("ParentPatient", RestApiCallDocumentation::Type_String,
+                        "Orthanc identifier of the parent patient in the remote Orthanc peer")
+        .SetAnswerField("ParentStudy", RestApiCallDocumentation::Type_String,
+                        "Orthanc identifier of the parent study in the remote Orthanc peer")
+        .SetAnswerField("ParentSeries", RestApiCallDocumentation::Type_String,
+                        "Orthanc identifier of the parent series in the remote Orthanc peer")
+        .SetAnswerField("Path", RestApiCallDocumentation::Type_String,
+                        "Path to the DICOM instance in the remote Orthanc server")
+        .SetAnswerField("Status", RestApiCallDocumentation::Type_String,
+                        "Status of the store operation");
+      return;
+    }
+
+    const std::string peer = call.GetUriComponent("id", "");
+
+    WebServiceParameters info;  
+
+    {
+      OrthancConfiguration::ReaderLock lock;
+      if (!lock.GetConfiguration().LookupOrthancPeer(info, peer))
+      {
+        throw OrthancException(ErrorCode_UnknownResource, "No peer with symbolic name: " + peer);
+      }
+    }
+
+    HttpClient client(info, "instances");
+    client.SetMethod(HttpMethod_Post);
+    client.AddHeader("Expect", "");
+    client.GetBody().assign(reinterpret_cast<const char*>(call.GetBodyData()), call.GetBodySize());
+
+    Json::Value answer;
+    if (client.Apply(answer))
+    {
+      call.GetOutput().AnswerJson(answer);
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_NetworkProtocol, "Cannot send DICOM to remote peer: " + peer);
+    }
+  }
+
+
   // DICOM bridge -------------------------------------------------------------
 
   static bool IsExistingModality(const OrthancRestApi::SetOfStrings& modalities,
@@ -2465,6 +2521,7 @@ namespace Orthanc
     Register("/peers/{id}/store", PeerStore);
     Register("/peers/{id}/system", PeerSystem);
     Register("/peers/{id}/configuration", GetPeerConfiguration);  // New in 1.8.1
+    Register("/peers/{id}/store-straight", PeerStoreStraight);    // New in 1.9.1
 
     Register("/modalities/{id}/find-worklist", DicomFindWorklist);
 
