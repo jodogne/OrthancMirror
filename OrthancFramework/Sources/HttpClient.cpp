@@ -65,7 +65,7 @@ extern "C"
 // This is a dummy wrapper function to suppress any OpenSSL-related
 // problem in valgrind. Inlining is prevented.
 #if defined(__GNUC__) || defined(__clang__)
-  __attribute__((noinline)) 
+__attribute__((noinline)) 
 #endif
 static CURLcode OrthancHttpClientPerformSSL(CURL* curl, long* status)
 {
@@ -479,7 +479,7 @@ namespace Orthanc
 
     void SetDefaultProxy(const std::string& proxy)
     {
-      LOG(INFO) << "Setting the default proxy for HTTP client connections: " << proxy;
+      CLOG(INFO, HTTP) << "Setting the default proxy for HTTP client connections: " << proxy;
 
       {
         boost::mutex::scoped_lock lock(mutex_);
@@ -495,7 +495,7 @@ namespace Orthanc
 
     void SetDefaultTimeout(long seconds)
     {
-      LOG(INFO) << "Setting the default timeout for HTTP client connections: " << seconds << " seconds";
+      CLOG(INFO, HTTP) << "Setting the default timeout for HTTP client connections: " << seconds << " seconds";
 
       {
         boost::mutex::scoped_lock lock(mutex_);
@@ -568,29 +568,29 @@ namespace Orthanc
 
 
   /*static int CurlDebugCallback(CURL *handle,
-                               curl_infotype type,
-                               char *data,
-                               size_t size,
-                               void *userptr)
-  {
+    curl_infotype type,
+    char *data,
+    size_t size,
+    void *userptr)
+    {
     switch (type)
     {
-      case CURLINFO_TEXT:
-      case CURLINFO_HEADER_IN:
-      case CURLINFO_HEADER_OUT:
-      case CURLINFO_SSL_DATA_IN:
-      case CURLINFO_SSL_DATA_OUT:
-      case CURLINFO_END:
-      case CURLINFO_DATA_IN:
-      case CURLINFO_DATA_OUT:
-      {
-        std::string s(data, size);
-        LOG(INFO) << "libcurl: " << s;
-        break;
-      }
+    case CURLINFO_TEXT:
+    case CURLINFO_HEADER_IN:
+    case CURLINFO_HEADER_OUT:
+    case CURLINFO_SSL_DATA_IN:
+    case CURLINFO_SSL_DATA_OUT:
+    case CURLINFO_END:
+    case CURLINFO_DATA_IN:
+    case CURLINFO_DATA_OUT:
+    {
+    std::string s(data, size);
+    CLOG(INFO, INFO) << "libcurl: " << s;
+    break;
+    }
 
-      default:
-        break;
+    default:
+    break;
     }
 
     return 0;
@@ -787,6 +787,9 @@ namespace Orthanc
 
   bool HttpClient::ApplyInternal(CurlAnswer& answer)
   {
+    CLOG(INFO, HTTP) << "New HTTP request to: " << url_ << " (timeout: "
+                     << boost::lexical_cast<std::string>(timeout_ <= 0 ? DEFAULT_HTTP_TIMEOUT : timeout_) << "s)";
+    
     CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_URL, url_.c_str()));
     CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_HEADERDATA, &answer));
 
@@ -898,31 +901,31 @@ namespace Orthanc
 
     switch (method_)
     {
-    case HttpMethod_Get:
-      CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_HTTPGET, 1L));
-      break;
+      case HttpMethod_Get:
+        CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_HTTPGET, 1L));
+        break;
 
-    case HttpMethod_Post:
-      CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_POST, 1L));
+      case HttpMethod_Post:
+        CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_POST, 1L));
 
-      break;
+        break;
 
-    case HttpMethod_Delete:
-      CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_NOBODY, 1L));
-      CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_CUSTOMREQUEST, "DELETE"));
-      break;
+      case HttpMethod_Delete:
+        CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_NOBODY, 1L));
+        CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_CUSTOMREQUEST, "DELETE"));
+        break;
 
-    case HttpMethod_Put:
-      // http://stackoverflow.com/a/7570281/881731: Don't use
-      // CURLOPT_PUT if there is a body
+      case HttpMethod_Put:
+        // http://stackoverflow.com/a/7570281/881731: Don't use
+        // CURLOPT_PUT if there is a body
 
-      // CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_PUT, 1L));
+        // CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_PUT, 1L));
 
-      curl_easy_setopt(pimpl_->curl_, CURLOPT_CUSTOMREQUEST, "PUT"); /* !!! */
-      break;
+        curl_easy_setopt(pimpl_->curl_, CURLOPT_CUSTOMREQUEST, "PUT"); /* !!! */
+        break;
 
-    default:
-      throw OrthancException(ErrorCode_InternalError);
+      default:
+        throw OrthancException(ErrorCode_InternalError);
     }
 
     if (method_ == HttpMethod_Post ||
@@ -931,7 +934,7 @@ namespace Orthanc
       if (!pimpl_->userHeaders_.IsEmpty() &&
           !pimpl_->userHeaders_.HasExpect())
       {
-        LOG(INFO) << "For performance, the HTTP header \"Expect\" should be set to empty string in POST/PUT requests";
+        CLOG(INFO, HTTP) << "For performance, the HTTP header \"Expect\" should be set to empty string in POST/PUT requests";
       }
 
       if (pimpl_->requestBody_.IsValid())
@@ -1001,13 +1004,13 @@ namespace Orthanc
 
     const boost::posix_time::ptime end = boost::posix_time::microsec_clock::universal_time();
     
-    LOG(INFO) << "HTTP status code " << status << " in "
-              << ((end - start).total_milliseconds()) << " ms after "
-              << EnumerationToString(method_) << " request on: " << url_;
+    CLOG(INFO, HTTP) << "HTTP status code " << status << " in "
+                     << ((end - start).total_milliseconds()) << " ms after "
+                     << EnumerationToString(method_) << " request on: " << url_;
 
     if (isVerbose_)
     {
-      LOG(INFO) << "cURL status code: " << code;
+      CLOG(INFO, HTTP) << "cURL status code: " << code;
     }
 
     CheckCode(code);
@@ -1333,8 +1336,8 @@ namespace Orthanc
                                     bool verbose)
   {
 #if ORTHANC_ENABLE_PKCS11 == 1
-    LOG(INFO) << "Initializing PKCS#11 using " << module 
-              << (pin.empty() ? " (no PIN provided)" : " (PIN is provided)");
+    CLOG(INFO, HTTP) << "Initializing PKCS#11 using " << module 
+                     << (pin.empty() ? " (no PIN provided)" : " (PIN is provided)");
     GlobalParameters::GetInstance().InitializePkcs11(module, pin, verbose);    
 #else
     throw OrthancException(ErrorCode_InternalError,
