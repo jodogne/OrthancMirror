@@ -10,6 +10,7 @@ General
 * New metadata automatically computed at the instance level: "PixelDataOffset"
 * New configuration option related to networking:
   - "Timeout" in "DicomModalities" to set DICOM SCU timeout on a per-modality basis
+  - "Timeout" in "OrthancPeers" to set HTTP client timeout on a per-peer basis
 
 REST API
 --------
