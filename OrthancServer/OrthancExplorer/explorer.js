@@ -856,7 +856,7 @@ function ConvertForTree(dicom)
         c = [];
         for (var j = 0; j < dicom[i]["Value"].length; j++) {
           c.push({
-            label: 'Item ' + j,
+            label: 'Item ' + (j + 1),
             children: ConvertForTree(dicom[i]["Value"][j])
           });
         }
