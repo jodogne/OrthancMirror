@@ -200,5 +200,7 @@ namespace Orthanc
 
     // https://en.wikipedia.org/wiki/YCbCr#JPEG_conversion
     static void ConvertJpegYCbCrToRgb(ImageAccessor& image /* inplace */);
+
+    static void SwapEndianness(ImageAccessor& image /* inplace */);
   };
 }

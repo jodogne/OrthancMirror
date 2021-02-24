@@ -91,6 +91,7 @@
 #include <dcmtk/dcmdata/dcrleccd.h>
 #include <dcmtk/dcmdata/dcrlecp.h>
 #include <dcmtk/dcmdata/dcrlerp.h>
+#include <dcmtk/dcmdata/dcswap.h>
 
 #if ORTHANC_ENABLE_DCMTK_JPEG_LOSSLESS == 1
 #  include <dcmtk/dcmjpeg/djrplol.h>
@@ -122,6 +123,7 @@
 
 namespace Orthanc
 {
+  static const Endianness ENDIANNESS = Toolbox::DetectEndianness();
   static const DicomTag DICOM_TAG_CONTENT(0x07a1, 0x100a);
   static const DicomTag DICOM_TAG_COMPRESSION_TYPE(0x07a1, 0x1011);
 
@@ -556,7 +558,25 @@ namespace Orthanc
                                      info.GetWidth() * GetBytesPerPixel(sourceFormat),
                                      buffer + frame * frameSize);
 
-          ImageProcessing::Convert(*target, sourceImage);
+          switch (ENDIANNESS)
+          {
+            case Endianness_Little:
+              ImageProcessing::Convert(*target, sourceImage);
+              break;
+
+            case Endianness_Big:
+            {
+              // We cannot do byte swapping directly on the constant DcmDataset
+              std::unique_ptr<ImageAccessor> copy(Image::Clone(sourceImage));
+              ImageProcessing::SwapEndianness(*copy);
+              ImageProcessing::Convert(*target, *copy);
+              break;
+            }
+
+            default:
+              throw OrthancException(ErrorCode_InternalError);
+          }
+            
           ImageProcessing::ShiftRight(*target, info.GetShift());
           fastVersionSuccess = true;
         }
@@ -660,6 +680,29 @@ namespace Orthanc
   }
 
 
+  static void UndoBigEndianSwapping(ImageAccessor& decoded)
+  {
+    if (ENDIANNESS == Endianness_Big &&
+        decoded.GetFormat() == PixelFormat_Grayscale8)
+    {
+      /**
+       * Undo the call to "swapIfNecessary()" that is done in
+       * "dcmjpeg/libsrc/djcodecd.cc" and "dcmjpls/libsrc/djcodecd.cc"
+       * if "jpeg->bytesPerSample() == 1", presumably because DCMTK
+       * plans for DICOM-to-DICOM conversion
+       **/
+      if (decoded.GetPitch() % 2 == 0)
+      {
+        swapBytes(decoded.GetBuffer(), decoded.GetPitch() * decoded.GetHeight(), sizeof(uint16_t));
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_InternalError, "Cannot swap the bytes of an image that has an odd width");
+      }
+    }
+  }
+  
+
   ImageAccessor* DicomImageDecoder::Decode(DcmDataset& dataset,
                                            unsigned int frame)
   {
@@ -710,7 +753,9 @@ namespace Orthanc
           throw OrthancException(ErrorCode_InternalError);
       }
     
-      return ApplyCodec(*decoder, parameters, representationParameter, dataset, frame);
+      std::unique_ptr<ImageAccessor> result(ApplyCodec(*decoder, parameters, representationParameter, dataset, frame));
+      UndoBigEndianSwapping(*result);  // New in Orthanc 1.9.1 to decode on big-endian architectures
+      return result.release();
     }
 #endif
 
@@ -771,8 +816,10 @@ namespace Orthanc
         default:
           throw OrthancException(ErrorCode_InternalError);
       }
-    
-      return ApplyCodec(*decoder, parameters, representationParameter, dataset, frame);      
+
+      std::unique_ptr<ImageAccessor> result(ApplyCodec(*decoder, parameters, representationParameter, dataset, frame));
+      UndoBigEndianSwapping(*result);  // New in Orthanc 1.9.1 to decode on big-endian architectures
+      return result.release();
     }
 #endif
 

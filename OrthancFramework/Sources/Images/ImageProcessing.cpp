@@ -2636,4 +2636,71 @@ namespace Orthanc
       }
     }
   }
+
+
+  void ImageProcessing::SwapEndianness(ImageAccessor& image /* inplace */)
+  {
+    const unsigned int width = image.GetWidth();
+    const unsigned int height = image.GetHeight();
+    
+    switch (image.GetFormat())
+    {
+      case PixelFormat_Grayscale8:
+      case PixelFormat_RGB24:
+      case PixelFormat_RGBA32:
+      case PixelFormat_BGRA32:
+        // No swapping required
+        break;
+
+      case PixelFormat_Grayscale16:
+      case PixelFormat_SignedGrayscale16:
+        for (unsigned int y = 0; y < height; y++)
+        {
+          uint8_t* t = reinterpret_cast<uint8_t*>(image.GetRow(y));
+          for (unsigned int x = 0; x < width; x++)
+          {
+            uint8_t a = t[0];
+            t[0] = t[1];
+            t[1] = a;
+            t += 2;
+          }
+        }    
+        break;
+
+      case PixelFormat_Grayscale32:
+      case PixelFormat_Float32:
+        for (unsigned int y = 0; y < height; y++)
+        {
+          uint8_t* t = reinterpret_cast<uint8_t*>(image.GetRow(y));
+          for (unsigned int x = 0; x < width; x++)
+          {
+            uint8_t a = t[0];
+            uint8_t b = t[1];
+            t[0] = t[3];
+            t[1] = t[2];
+            t[2] = b;
+            t[3] = a;
+            t += 4;
+          }
+        }    
+        break;
+
+      case PixelFormat_RGB48:  // uint16_t per channel
+        for (unsigned int y = 0; y < height; y++)
+        {
+          uint8_t* t = reinterpret_cast<uint8_t*>(image.GetRow(y));
+          for (unsigned int x = 0; x < 3 * width; x++)
+          {
+            uint8_t a = t[0];
+            t[0] = t[1];
+            t[1] = a;
+            t += 2;
+          }
+        }    
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_NotImplemented);
+    }          
+  }
 }
