@@ -2270,7 +2270,8 @@ namespace Orthanc
         target[name] = v["Value"].asString();
       }
       else if (type == "TooLong" ||
-               type == "Null")
+               type == "Null" ||
+               type == "Binary")
       {
         target[name] = Json::nullValue;
       }
