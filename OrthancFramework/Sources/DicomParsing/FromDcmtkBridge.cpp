@@ -2299,7 +2299,8 @@ namespace Orthanc
       Uint16* data16 = NULL;
       Uint8* data = NULL;
 
-      if (evr == EVR_OW &&
+      if ((element.getTag() == DCM_PixelData ||  // (*) New in Orthanc 1.9.1
+           evr == EVR_OW) &&
           element.getUint16Array(data16) == EC_Normal)
       {
         visitor.VisitBinary(parentTags, parentIndexes, tag, vr, data16, element.getLength());
@@ -2307,6 +2308,14 @@ namespace Orthanc
       else if (evr != EVR_OW &&
                element.getUint8Array(data) == EC_Normal)
       {
+        /**
+         * WARNING: The call to "getUint8Array()" crashes
+         * (segmentation fault) on big-endian architectures if applied
+         * to pixel data, during the call to "swapIfNecessary()" in
+         * "DcmPolymorphOBOW::getUint8Array()" (this method is not
+         * reimplemented in derived class "DcmPixelData"). However,
+         * "getUint16Array()" works correctly, hence (*).
+         **/
         visitor.VisitBinary(parentTags, parentIndexes, tag, vr, data, element.getLength());
       }
       else
