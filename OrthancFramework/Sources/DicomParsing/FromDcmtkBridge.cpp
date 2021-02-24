@@ -554,6 +554,24 @@ namespace Orthanc
   }
 
 
+  static DicomValue* CreateValueFromUtf8String(const DicomTag& tag,
+                                               const std::string& utf8,
+                                               unsigned int maxStringLength,
+                                               const std::set<DicomTag>& ignoreTagLength)
+  {
+    if (maxStringLength != 0 &&
+        utf8.size() > maxStringLength &&
+        ignoreTagLength.find(tag) == ignoreTagLength.end())
+    {
+      return new DicomValue;  // Too long, create a NULL value
+    }
+    else
+    {
+      return new DicomValue(utf8, false);
+    }
+  }
+
+
   DicomValue* FromDcmtkBridge::ConvertLeafElement(DcmElement& element,
                                                   DicomToJsonFlags flags,
                                                   unsigned int maxStringLength,
@@ -567,28 +585,20 @@ namespace Orthanc
       throw OrthancException(ErrorCode_BadParameterType);
     }
 
-    char *c = NULL;
-    if (element.isaString() &&
-        element.getString(c).good())
     {
-      if (c == NULL)  // This case corresponds to the empty string
+      char *c = NULL;
+      if (element.isaString() &&
+          element.getString(c).good())
       {
-        return new DicomValue("", false);
-      }
-      else
-      {
-        std::string s(c);
-        std::string utf8 = Toolbox::ConvertToUtf8(s, encoding, hasCodeExtensions);
-
-        if (maxStringLength != 0 &&
-            utf8.size() > maxStringLength &&
-            ignoreTagLength.find(GetTag(element)) == ignoreTagLength.end())
+        if (c == NULL)  // This case corresponds to the empty string
         {
-          return new DicomValue;  // Too long, create a NULL value
+          return new DicomValue("", false);
         }
         else
         {
-          return new DicomValue(utf8, false);
+          const std::string s(c);
+          const std::string utf8 = Toolbox::ConvertToUtf8(s, encoding, hasCodeExtensions);
+          return CreateValueFromUtf8String(GetTag(element), utf8, maxStringLength, ignoreTagLength);
         }
       }
     }
@@ -596,9 +606,14 @@ namespace Orthanc
 
     if (element.getVR() == EVR_UN)
     {
-      // Unknown value representation: Lookup in the dictionary. This
-      // is notably the case for private tags registered with the
-      // "Dictionary" configuration option.
+      /**
+       * Unknown value representation: Lookup in the dictionary. This
+       * is notably the case for private tags registered with the
+       * "Dictionary" configuration option, or for public tags with
+       * "EVR_UN" in the case of Little Endian Implicit transfer
+       * syntax (cf. DICOM CP 246).
+       * ftp://medical.nema.org/medical/dicom/final/cp246_ft.pdf
+       **/
       DictionaryLocker locker;
       
       const DcmDictEntry* entry = locker->findEntry(element.getTag().getXTag(), 
@@ -608,27 +623,49 @@ namespace Orthanc
       {
         Uint8* data = NULL;
 
-        // At (*), we do not try and convert to UTF-8, as nothing says
-        // the encoding of the private tag is the same as that of the
-        // remaining of the DICOM dataset. Only go for ASCII strings.
-
-        if (element.getUint8Array(data) == EC_Normal &&
-            Toolbox::IsAsciiString(data, element.getLength()))   // (*)
+        if (element.getUint8Array(data) == EC_Normal)
         {
-          if (data == NULL)
+          Uint32 length = element.getLength();
+
+          if (data == NULL ||
+              length == 0)
           {
             return new DicomValue("", false);   // Empty string
           }
-          else if (maxStringLength != 0 &&
-                   element.getLength() > maxStringLength &&
-                   ignoreTagLength.find(GetTag(element)) == ignoreTagLength.end())
+
+          // Remove the trailing padding, if any
+          if (length > 0 &&
+              length % 2 == 0 &&
+              data[length - 1] == '\0')
           {
-            return new DicomValue;  // Too long, create a NULL value
+            length = length - 1;
+          }
+
+          if (element.getTag().isPrivate())
+          {
+            // For private tags, we do not try and convert to UTF-8,
+            // as nothing ensures that the encoding of the private tag
+            // is the same as that of the remaining of the DICOM
+            // dataset. Only go for ASCII strings.
+            if (Toolbox::IsAsciiString(data, length))
+            {
+              const std::string s(reinterpret_cast<const char*>(data), length);
+              return CreateValueFromUtf8String(GetTag(element), s, maxStringLength, ignoreTagLength);
+            }
+            else
+            {
+              // Not a plain ASCII string: Consider it as a binary
+              // value that is handled in the switch-case below
+            }
           }
           else
           {
-            std::string s(reinterpret_cast<const char*>(data), element.getLength());
-            return new DicomValue(s, false);
+            // For public tags, convert to UTF-8 by using the
+            // "SpecificCharacterSet" tag, if present. This branch is
+            // new in Orthanc 1.9.1 (cf. DICOM CP 246).
+            const std::string s(reinterpret_cast<const char*>(data), length);
+            const std::string utf8 = Toolbox::ConvertToUtf8(s, encoding, hasCodeExtensions);
+            return CreateValueFromUtf8String(GetTag(element), utf8, maxStringLength, ignoreTagLength);
           }
         }
       }
