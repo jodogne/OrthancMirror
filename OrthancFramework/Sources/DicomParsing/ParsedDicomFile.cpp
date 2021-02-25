@@ -104,6 +104,7 @@
 #include <dcmtk/dcmdata/dcuid.h>
 #include <dcmtk/dcmdata/dcmetinf.h>
 #include <dcmtk/dcmdata/dcdeftag.h>
+#include <dcmtk/dcmdata/dcswap.h>
 
 #include <dcmtk/dcmdata/dcvrae.h>
 #include <dcmtk/dcmdata/dcvras.h>
@@ -1389,37 +1390,50 @@ namespace Orthanc
     const unsigned int height = accessor.GetHeight();
     const unsigned int width = accessor.GetWidth();
 
-    for (unsigned int y = 0; y < height; y++)
     {
-      switch (accessor.GetFormat())
+      Uint8* q = target;
+      for (unsigned int y = 0; y < height; y++)
       {
-        case PixelFormat_RGB24:
-        case PixelFormat_Grayscale8:
-        case PixelFormat_Grayscale16:
-        case PixelFormat_SignedGrayscale16:
+        switch (accessor.GetFormat())
         {
-          memcpy(target, reinterpret_cast<const Uint8*>(accessor.GetConstRow(y)), pitch);
-          target += pitch;
-          break;
-        }
-
-        case PixelFormat_RGBA32:
-        {
-          // The alpha channel is not supported by the DICOM standard
-          const Uint8* source = reinterpret_cast<const Uint8*>(accessor.GetConstRow(y));
-          for (unsigned int x = 0; x < width; x++, target += 3, source += 4)
+          case PixelFormat_RGB24:
+          case PixelFormat_Grayscale8:
+          case PixelFormat_Grayscale16:
+          case PixelFormat_SignedGrayscale16:
           {
-            target[0] = source[0];
-            target[1] = source[1];
-            target[2] = source[2];
+            memcpy(q, reinterpret_cast<const Uint8*>(accessor.GetConstRow(y)), pitch);
+            q += pitch;
+            break;
           }
 
-          break;
-        }
+          case PixelFormat_RGBA32:
+          {
+            // The alpha channel is not supported by the DICOM standard
+            const Uint8* source = reinterpret_cast<const Uint8*>(accessor.GetConstRow(y));
+            for (unsigned int x = 0; x < width; x++, q += 3, source += 4)
+            {
+              q[0] = source[0];
+              q[1] = source[1];
+              q[2] = source[2];
+            }
+
+            break;
+          }
           
-        default:
-          throw OrthancException(ErrorCode_NotImplemented);
+          default:
+            throw OrthancException(ErrorCode_NotImplemented);
+        }
       }
+    }
+
+    static const Endianness ENDIANNESS = Toolbox::DetectEndianness();
+    if (ENDIANNESS == Endianness_Big &&
+        (accessor.GetFormat() == PixelFormat_Grayscale16 ||
+         accessor.GetFormat() == PixelFormat_SignedGrayscale16))
+    {
+      // New in Orthanc 1.9.1
+      assert(pitch % 2 == 0);
+      swapBytes(target, accessor.GetHeight() * pitch, sizeof(uint16_t));
     }
 
     if (!GetDcmtkObject().getDataset()->insert(pixels.release(), false, false).good())
