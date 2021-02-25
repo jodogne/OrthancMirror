@@ -45,6 +45,7 @@ project(OrthancFramework)
 set(ORTHANC_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}" CACHE PATH "")
 SET(UNIT_TESTS_WITH_HTTP_CONNEXIONS ON CACHE BOOL "Allow unit tests to make HTTP requests")
 set(BUILD_SHARED_LIBRARY ON CACHE BOOL "Whether to build a shared library instead of a static library")
+set(ORTHANC_FRAMEWORK_ADDITIONAL_LIBRARIES "" CACHE STRING "Additional libraries to link against, separated by whitespaces, typically needed if using the static library (a typical value is \"uuid curl civetweb\")")
 
 
 
@@ -298,6 +299,10 @@ else()
       ${ORTHANC_CORE_SOURCES}
       ${ORTHANC_DICOM_SOURCES}
       )
+
+    # Add the "-fPIC" option to use the static library from Orthanc
+    # plugins (the latter being shared libraries)
+    set_property(TARGET OrthancFramework PROPERTY POSITION_INDEPENDENT_CODE ON)
   endif()
 endif()
 
@@ -525,6 +530,7 @@ if (NOT CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
     -DUSE_SYSTEM_BOOST:BOOL=${USE_SYSTEM_BOOST}
     -DUSE_SYSTEM_GOOGLE_TEST:BOOL=${USE_SYSTEM_GOOGLE_TEST}
     -DORTHANC_FRAMEWORK_USE_SHARED:BOOL=${BUILD_SHARED_LIBRARY}
+    -DORTHANC_FRAMEWORK_ADDITIONAL_LIBRARIES:STRING=${ORTHANC_FRAMEWORK_ADDITIONAL_LIBRARIES}
 
     ${Flags}
     )

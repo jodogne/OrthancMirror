@@ -429,6 +429,7 @@ endif()
 if (ORTHANC_FRAMEWORK_SOURCE STREQUAL "system")
   set(ORTHANC_FRAMEWORK_LIBDIR "" CACHE PATH "")
   set(ORTHANC_FRAMEWORK_USE_SHARED ON CACHE BOOL "Whether to use the shared library or the static library")
+  set(ORTHANC_FRAMEWORK_ADDITIONAL_LIBRARIES "" CACHE STRING "Additional libraries to link against, separated by whitespaces, typically needed if using the static library (a typical value is \"uuid curl civetweb\")")
 
   if (CMAKE_SYSTEM_NAME STREQUAL "Windows" AND
       CMAKE_COMPILER_IS_GNUCXX) # MinGW
@@ -458,6 +459,12 @@ if (ORTHANC_FRAMEWORK_SOURCE STREQUAL "system")
     endif()
     set(ORTHANC_FRAMEWORK_LIBRARIES
       ${ORTHANC_FRAMEWORK_LIBDIR}/${Prefix}OrthancFramework${Suffix})
+  endif()
+
+  if (NOT ORTHANC_FRAMEWORK_ADDITIONAL_LIBRARIES STREQUAL "")
+    # https://stackoverflow.com/a/5272993/881731
+    string(REPLACE " " ";" tmp ${ORTHANC_FRAMEWORK_ADDITIONAL_LIBRARIES})
+    list(APPEND ORTHANC_FRAMEWORK_LIBRARIES ${tmp})
   endif()
 
   if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows" OR
@@ -522,7 +529,8 @@ if (ORTHANC_FRAMEWORK_SOURCE STREQUAL "system")
     list(APPEND ORTHANC_FRAMEWORK_LIBRARIES ${Boost_LIBRARIES})
 
     # Optional component - Lua
-    if (ENABLE_LUA)
+    if (ENABLE_LUA OR
+        NOT ORTHANC_FRAMEWORK_USE_SHARED)
       include(FindLua)
 
       if (NOT LUA_FOUND)
@@ -534,7 +542,8 @@ if (ORTHANC_FRAMEWORK_SOURCE STREQUAL "system")
     endif()
 
     # Optional component - SQLite
-    if (ENABLE_SQLITE)    
+    if (ENABLE_SQLITE OR
+        NOT ORTHANC_FRAMEWORK_USE_SHARED)
       CHECK_INCLUDE_FILE(sqlite3.h HAVE_SQLITE_H)
       if (NOT HAVE_SQLITE_H)
         message(FATAL_ERROR "Please install the libsqlite3-dev package")
@@ -543,7 +552,8 @@ if (ORTHANC_FRAMEWORK_SOURCE STREQUAL "system")
     endif()
 
     # Optional component - Pugixml
-    if (ENABLE_PUGIXML)
+    if (ENABLE_PUGIXML OR
+        NOT ORTHANC_FRAMEWORK_USE_SHARED)
       CHECK_INCLUDE_FILE_CXX(pugixml.hpp HAVE_PUGIXML_H)
       if (NOT HAVE_PUGIXML_H)
         message(FATAL_ERROR "Please install the libpugixml-dev package")
@@ -552,14 +562,16 @@ if (ORTHANC_FRAMEWORK_SOURCE STREQUAL "system")
     endif()
 
     # Optional component - DCMTK
-    if (ENABLE_DCMTK)
+    if (ENABLE_DCMTK OR
+        NOT ORTHANC_FRAMEWORK_USE_SHARED)
       include(FindDCMTK NO_MODULE)
       list(APPEND ORTHANC_FRAMEWORK_LIBRARIES ${DCMTK_LIBRARIES})
       include_directories(${DCMTK_INCLUDE_DIRS})
     endif()
 
     # Optional component - OpenSSL
-    if (ENABLE_SSL)
+    if (ENABLE_SSL OR
+        NOT ORTHANC_FRAMEWORK_USE_SHARED)
       include(FindOpenSSL)
       if (NOT ${OPENSSL_FOUND})
         message(FATAL_ERROR "Unable to find OpenSSL")
@@ -569,46 +581,6 @@ if (ORTHANC_FRAMEWORK_SOURCE STREQUAL "system")
     endif()
   endif()
   
-  if (NOT "${CMAKE_SYSTEM_NAME}" STREQUAL "Windows" AND
-      NOT ORTHANC_FRAMEWORK_USE_SHARED)
-    # Static library has more dependencies
-
-    # Mandatory dependency: libuuid
-    CHECK_INCLUDE_FILE(uuid/uuid.h HAVE_UUID_H)
-    if (NOT HAVE_UUID_H)
-      message(FATAL_ERROR "Please install uuid-dev, e2fsprogs (OpenBSD) or e2fsprogs-libuuid (FreeBSD)")
-    endif()
-
-    find_library(LIBUUID uuid
-      PATHS
-      /usr/lib
-      /usr/local/lib
-      )
-
-    check_library_exists(${LIBUUID} uuid_generate_random "" HAVE_LIBUUID)
-    if (NOT HAVE_LIBUUID)
-      message(FATAL_ERROR "Unable to find the uuid library")
-    endif()
-
-    list(APPEND ORTHANC_FRAMEWORK_LIBRARIES ${LIBUUID})
-
-    # Optional component - libcurl
-    if (ENABLE_WEB_CLIENT)
-      include(FindCURL)
-      include_directories(${CURL_INCLUDE_DIRS})
-      list(APPEND ORTHANC_FRAMEWORK_LIBRARIES ${CURL_LIBRARIES})
-    endif()
-
-    # Optional component - civetweb
-    if (ENABLE_WEB_SERVER)
-      CHECK_INCLUDE_FILE_CXX(civetweb.h HAVE_CIVETWEB_H)
-      if (NOT HAVE_CIVETWEB_H)
-        message(FATAL_ERROR "Please install the libcivetweb-dev package")
-      endif()
-      list(APPEND ORTHANC_FRAMEWORK_LIBRARIES civetweb)
-    endif()
-  endif()
-
   # Look for Orthanc framework shared library
   include(CheckCXXSymbolExists)
 
