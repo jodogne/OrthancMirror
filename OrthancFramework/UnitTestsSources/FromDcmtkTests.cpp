@@ -921,7 +921,7 @@ TEST(TestImages, PatternUint16)
     uint16_t *p = reinterpret_cast<uint16_t*>(image.GetRow(y));
     for (int x = 0; x < 256; x++, v++, p++)
     {
-      *p = htole16(v);   // Orthanc uses Little-Endian transfer syntax to encode images
+      *p = v;
     }
   }
 
@@ -976,7 +976,7 @@ TEST(TestImages, PatternInt16)
     int16_t *p = reinterpret_cast<int16_t*>(image.GetRow(y));
     for (int x = 0; x < 256; x++, v++, p++)
     {
-      *p = htole16(v);   // Orthanc uses Little-Endian transfer syntax to encode images
+      *p = v;
     }
   }
 
