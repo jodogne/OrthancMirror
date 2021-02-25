@@ -598,6 +598,15 @@ if (ORTHANC_FRAMEWORK_SOURCE STREQUAL "system")
       include_directories(${CURL_INCLUDE_DIRS})
       list(APPEND ORTHANC_FRAMEWORK_LIBRARIES ${CURL_LIBRARIES})
     endif()
+
+    # Optional component - civetweb
+    if (ENABLE_WEB_SERVER)
+      CHECK_INCLUDE_FILE_CXX(civetweb.h HAVE_CIVETWEB_H)
+      if (NOT HAVE_CIVETWEB_H)
+        message(FATAL_ERROR "Please install the libcivetweb-dev package")
+      endif()
+      list(APPEND ORTHANC_FRAMEWORK_LIBRARIES civetweb)
+    endif()
   endif()
 
   # Look for Orthanc framework shared library
