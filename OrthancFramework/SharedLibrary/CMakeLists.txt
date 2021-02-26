@@ -45,7 +45,7 @@ project(OrthancFramework)
 set(ORTHANC_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}" CACHE PATH "")
 SET(UNIT_TESTS_WITH_HTTP_CONNEXIONS ON CACHE BOOL "Allow unit tests to make HTTP requests")
 set(BUILD_SHARED_LIBRARY ON CACHE BOOL "Whether to build a shared library instead of a static library")
-set(ORTHANC_FRAMEWORK_ADDITIONAL_LIBRARIES "" CACHE STRING "Additional libraries to link against, separated by whitespaces, typically needed if using the static library (a typical value is \"uuid curl civetweb\")")
+set(ORTHANC_FRAMEWORK_ADDITIONAL_LIBRARIES "" CACHE STRING "Additional libraries to link against, separated by whitespaces, typically needed if building the static library (a common minimal value is \"boost_filesystem boost_iostreams boost_locale boost_regex boost_thread jsoncpp pugixml uuid\")")
 
 
 
@@ -507,32 +507,23 @@ if (NOT CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
       )
   endif()
 
-  if (JSONCPP_CXX11)
-    list(APPEND Flags -DUSE_CXX11=1)
-  endif()
-  
   # Build the unit tests, linking them against the just-created
   # "OrthancFramework" library
   externalproject_add(UnitTests
     SOURCE_DIR "${CMAKE_SOURCE_DIR}/../UnitTestsSources"
     CMAKE_ARGS
+    ${Flags}
     -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
+    -DORTHANC_FRAMEWORK_ADDITIONAL_LIBRARIES:STRING=${ORTHANC_FRAMEWORK_ADDITIONAL_LIBRARIES}
     -DORTHANC_FRAMEWORK_LIBDIR:PATH=${CMAKE_CURRENT_BINARY_DIR}
     -DORTHANC_FRAMEWORK_ROOT:PATH=${CMAKE_CURRENT_BINARY_DIR}/Include/orthanc-framework
     -DORTHANC_FRAMEWORK_SOURCE:STRING=system
     -DORTHANC_FRAMEWORK_STATIC:BOOL=${STATIC_BUILD}
-
-    -DALLOW_DOWNLOADS:BOOL=${ALLOW_DOWNLOADS}
-    -DBOOST_LOCALE_BACKEND:STRING=${BOOST_LOCALE_BACKEND}
+    -DORTHANC_FRAMEWORK_USE_SHARED:BOOL=${BUILD_SHARED_LIBRARY}
     -DSTATIC_BUILD:BOOL=${STATIC_BUILD}
     -DUNIT_TESTS_WITH_HTTP_CONNEXIONS:BOOL=${UNIT_TESTS_WITH_HTTP_CONNEXIONS}
     -DUSE_GOOGLE_TEST_DEBIAN_PACKAGE:BOOL=${USE_GOOGLE_TEST_DEBIAN_PACKAGE}
-    -DUSE_SYSTEM_BOOST:BOOL=${USE_SYSTEM_BOOST}
     -DUSE_SYSTEM_GOOGLE_TEST:BOOL=${USE_SYSTEM_GOOGLE_TEST}
-    -DORTHANC_FRAMEWORK_USE_SHARED:BOOL=${BUILD_SHARED_LIBRARY}
-    -DORTHANC_FRAMEWORK_ADDITIONAL_LIBRARIES:STRING=${ORTHANC_FRAMEWORK_ADDITIONAL_LIBRARIES}
-
-    ${Flags}
     )
 
   add_dependencies(UnitTests OrthancFramework)

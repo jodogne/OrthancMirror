@@ -25,16 +25,11 @@
 cmake_minimum_required(VERSION 2.8)
 project(UnitTestsProject)
 
-set(ALLOW_DOWNLOADS OFF CACHE BOOL "Allow CMake to download packages")
 set(STATIC_BUILD OFF CACHE BOOL "Static build of the third-party libraries (necessary for Windows)")
 set(UNIT_TESTS_WITH_HTTP_CONNEXIONS ON CACHE BOOL "Allow unit tests to make HTTP requests")
 
 set(USE_GOOGLE_TEST_DEBIAN_PACKAGE OFF CACHE BOOL "Use the sources of Google Test shipped with libgtest-dev (Debian only)")
-set(USE_SYSTEM_BOOST ON CACHE BOOL "Use the system version of Boost")
 set(USE_SYSTEM_GOOGLE_TEST ON CACHE BOOL "Use the system version of Google Test")
-
-set(BOOST_LOCALE_BACKEND "libiconv" CACHE STRING "Back-end for locales that is used by Boost (can be \"gcc\", \"libiconv\", \"icu\", or \"wconv\" on Windows)")
-set(USE_CXX11 OFF CACHE BOOL "Whether to enable compiler support for C++11")
 
 if (UNIT_TESTS_WITH_HTTP_CONNEXIONS)
   add_definitions(-DUNIT_TESTS_WITH_HTTP_CONNEXIONS=1)
@@ -42,30 +37,45 @@ else()
   add_definitions(-DUNIT_TESTS_WITH_HTTP_CONNEXIONS=0)
 endif()
 
-set(ENABLE_DCMTK ON)
-set(ENABLE_GOOGLE_TEST ON)
-set(ENABLE_LUA ON)
-set(ENABLE_PUGIXML ON)
-set(ENABLE_SQLITE ON)
-set(ENABLE_WEB_CLIENT ON)
-
-if (NOT ORTHANC_FRAMEWORK_STATIC)
-  set(USE_SYSTEM_GOOGLE_TEST ON CACHE BOOL "Use the system version of Google Test")
+if (ORTHANC_FRAMEWORK_STATIC)
+  include_directories(${ORTHANC_FRAMEWORK_ROOT}/..)
 else()
-  set(USE_SYSTEM_GOOGLE_TEST OFF CACHE INTERNAL "")
+  include(CheckIncludeFile)
+  include(CheckIncludeFileCXX)
+
+  link_libraries(jsoncpp)
+  
+  include(FindLua)
+  if (NOT LUA_FOUND)
+    message(FATAL_ERROR "Please install the liblua-dev package")
+  endif()  
+  include_directories(${LUA_INCLUDE_DIR})
+  link_libraries(${LUA_LIBRARIES})
+
+  check_include_file(sqlite3.h HAVE_SQLITE_H)
+  if (NOT HAVE_SQLITE_H)
+    message(FATAL_ERROR "Please install the libsqlite3-dev package")
+  endif()
+  link_libraries(sqlite3)
+
+  check_include_file_cxx(pugixml.hpp HAVE_PUGIXML_H)
+  if (NOT HAVE_PUGIXML_H)
+    message(FATAL_ERROR "Please install the libpugixml-dev package")
+  endif()      
+  link_libraries(pugixml)
+
+  find_package(Boost COMPONENTS filesystem thread system date_time iostreams locale regex)
+  if (NOT Boost_FOUND)
+      message(FATAL_ERROR "Unable to locate Boost on this system")
+  endif()
+  link_libraries(${Boost_LIBRARIES})
+
+  include(FindDCMTK NO_MODULE)
+  link_libraries(${DCMTK_LIBRARIES})
 endif()
   
 include(${CMAKE_SOURCE_DIR}/../Resources/CMake/DownloadOrthancFramework.cmake)
-include(${CMAKE_SOURCE_DIR}/../Resources/CMake/BoostConfiguration.cmake)
 include(${CMAKE_SOURCE_DIR}/../Resources/CMake/GoogleTestConfiguration.cmake)
-
-if (USE_CXX11)
-  if (CMAKE_COMPILER_IS_GNUCXX)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++11")
-  elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-  endif()
-endif()
 
 add_definitions(
   -DORTHANC_UNIT_TESTS_LINK_FRAMEWORK=1
