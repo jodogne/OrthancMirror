@@ -188,7 +188,7 @@ elseif(${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
   add_definitions(
     -D_CRT_SECURE_NO_WARNINGS=1
     )
-  link_libraries(rpcrt4 ws2_32)
+  link_libraries(rpcrt4 ws2_32 iphlpapi)  # "iphlpapi" is for "SystemToolbox::GetMacAddresses()"
 
   if (CMAKE_COMPILER_IS_GNUCXX)
     # Some additional C/C++ compiler flags for MinGW
