@@ -25,30 +25,39 @@
 
 
 #if defined(_WIN32)
+#  include <winsock2.h>      // For GetMacAddresses(), must be included before "windows.h"
 #  include <windows.h>
-#  include <process.h>   // For "_spawnvp()" and "_getpid()"
-#  include <stdlib.h>    // For "environ"
+
+#  include <iphlpapi.h>      // For GetMacAddresses()
+#  include <process.h>       // For "_spawnvp()" and "_getpid()"
+#  include <stdlib.h>        // For "environ"
 #else
-#  include <unistd.h>    // For "execvp()"
-#  include <sys/wait.h>  // For "waitpid()"
+#  include <net/if.h>        // For GetMacAddresses()
+#  include <netinet/in.h>    // For GetMacAddresses()
+#  include <sys/ioctl.h>     // For GetMacAddresses()
+#  include <sys/wait.h>      // For "waitpid()"
+#  include <unistd.h>        // For "execvp()"
 #endif
 
 
 #if defined(__APPLE__) && defined(__MACH__)
-#  include <mach-o/dyld.h> /* _NSGetExecutablePath */
-#  include <limits.h>      /* PATH_MAX */
+#  include <limits.h>        // PATH_MAX
+#  include <mach-o/dyld.h>   // _NSGetExecutablePath
+#  include <net/if_dl.h>     // For GetMacAddresses()
+#  include <net/if_types.h>  // For GetMacAddresses()
+#  include <sys/sysctl.h>    // For GetMacAddresses()
 #endif
 
 
 #if defined(__linux__) || defined(__FreeBSD_kernel__) || defined(__FreeBSD__)
-#  include <limits.h>      /* PATH_MAX */
+#  include <limits.h>        // PATH_MAX
 #  include <signal.h>
 #  include <unistd.h>
 #endif
 
 
 #if defined(__OpenBSD__)
-#  include <sys/sysctl.h>  // For "sysctl", "CTL_KERN" and "KERN_PROC_ARGS"
+#  include <sys/sysctl.h>    // For "sysctl", "CTL_KERN" and "KERN_PROC_ARGS"
 #endif
 
 
@@ -62,6 +71,10 @@
 #include <boost/filesystem/fstream.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/thread.hpp>
+
+#include <cassert>
+#include <string.h>
+
 
 
 /*=========================================================================
@@ -913,4 +926,210 @@ namespace Orthanc
 
     f.close();
   }
+
+
+#if defined(_WIN32)
+  void SystemToolbox::GetMacAddresses(std::set<std::string>& target)
+  {
+    target.clear();
+    
+    // 15Ko is the recommanded size to start with
+    std::vector<char> buffer(15 * 1024);
+
+    for (unsigned int iteration = 0; iteration < 3; iteration++)
+    {
+      ULONG outBufLen = static_cast<ULONG>(buffer.size());
+      DWORD result = GetAdaptersAddresses
+        (AF_UNSPEC, 0, NULL, 
+         reinterpret_cast<IP_ADAPTER_ADDRESSES*>(&buffer[0]), &outBufLen);
+
+      if (result == NO_ERROR)
+      {
+        IP_ADAPTER_ADDRESSES* current =
+          reinterpret_cast<IP_ADAPTER_ADDRESSES*>(&buffer[0]); 
+
+        while (current != NULL)
+        {
+          if (current->PhysicalAddressLength == 6 &&
+              (current->PhysicalAddress[0] != 0 ||
+               current->PhysicalAddress[1] != 0 ||
+               current->PhysicalAddress[2] != 0 ||
+               current->PhysicalAddress[3] != 0 ||
+               current->PhysicalAddress[4] != 0 ||
+               current->PhysicalAddress[5] != 0))
+          {
+            char tmp[32];
+            sprintf(tmp, "%02x:%02x:%02x:%02x:%02x:%02x",
+                    (unsigned char) current->PhysicalAddress[0],
+                    (unsigned char) current->PhysicalAddress[1],
+                    (unsigned char) current->PhysicalAddress[2],
+                    (unsigned char) current->PhysicalAddress[3],
+                    (unsigned char) current->PhysicalAddress[4],
+                    (unsigned char) current->PhysicalAddress[5]);
+            target.insert(tmp);
+          }
+
+          current = current->Next;
+        }
+        
+        return;
+      }     
+      else if (result != ERROR_BUFFER_OVERFLOW || 
+               iteration >= 3 ||
+               outBufLen == 0)
+      {
+        return;
+      }
+      else
+      {
+        buffer.resize(outBufLen);
+        iteration++;
+      }
+    }
+  }
+
+#else
+  namespace
+  {
+    class SocketRaii : public boost::noncopyable
+    {
+    private:
+      int socket_;
+
+    public:
+      SocketRaii()
+      {
+        socket_ = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP);
+      }
+
+      ~SocketRaii()
+      {
+        if (socket_ != -1)
+        {
+          close(socket_);
+        }
+      }
+
+      int GetDescriptor() const
+      {
+        return socket_;
+      }
+    };
+
+
+    class NetworkInterfaces : public boost::noncopyable
+    {
+    private:
+      struct if_nameindex* list_;
+      struct if_nameindex* current_;
+
+    public:
+      NetworkInterfaces()
+      {
+        list_ = if_nameindex();
+        current_ = list_;
+      }
+
+      ~NetworkInterfaces()
+      {
+        if (list_ != NULL)
+        {
+          if_freenameindex(list_);
+        }
+      }
+
+      bool IsDone() const
+      {
+        return (current_ == NULL ||
+                (current_->if_index == 0 &&
+                 current_->if_name == NULL));
+      }
+
+      const char* GetCurrentName() const
+      {
+        assert(!IsDone());
+        return current_->if_name;
+      }
+
+      unsigned int GetCurrentIndex() const
+      {
+        assert(!IsDone());
+        return current_->if_index;
+      }
+
+      void Next()
+      {
+        assert(!IsDone());
+        current_++;
+      }
+    };
+  }
+
+
+  void SystemToolbox::GetMacAddresses(std::set<std::string>& target)
+  {
+    target.clear();
+
+    SocketRaii socket;
+    
+    if (socket.GetDescriptor() != 1)
+    {
+      NetworkInterfaces interfaces;
+
+      while (!interfaces.IsDone())
+      {
+#if defined(__APPLE__) && defined(__MACH__)
+        int mib[6];
+        mib[0] = CTL_NET;
+        mib[1] = AF_ROUTE;
+        mib[2] = 0;
+        mib[3] = AF_LINK;
+        mib[4] = NET_RT_IFLIST;
+        mib[5] = interfaces.GetCurrentIndex();
+
+        size_t len;
+        if (sysctl(mib, 6, NULL, &len, NULL, 0) == 0 &&
+            len > 0)
+        {
+          std::string tmp;
+          tmp.resize(len);
+          if (sysctl(mib, 6, &tmp[0], &len, NULL, 0) == 0)
+          {
+            struct if_msghdr* ifm = reinterpret_cast<struct if_msghdr*>(&tmp[0]);
+            struct sockaddr_dl* sdl = reinterpret_cast<struct sockaddr_dl*>(ifm + 1);
+
+            if (sdl->sdl_type == IFT_ETHER)  // Only consider Ethernet interfaces
+            {
+              const unsigned char* mac = reinterpret_cast<const unsigned char*>(LLADDR(sdl));
+              char tmp[32];
+              sprintf(tmp, "%02x:%02x:%02x:%02x:%02x:%02x",
+                      mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+              target.insert(tmp);
+            }
+          }
+        }
+
+#else
+        struct ifreq ifr;
+        strcpy(ifr.ifr_name, interfaces.GetCurrentName());
+          
+        if (ioctl(socket.GetDescriptor(), SIOCGIFFLAGS, &ifr) == 0 &&
+            !(ifr.ifr_flags & IFF_LOOPBACK) && // ignore loopback interface
+            ioctl(socket.GetDescriptor(), SIOCGIFHWADDR, &ifr) == 0)
+        {
+          const unsigned char* mac = reinterpret_cast<const unsigned char*>(ifr.ifr_hwaddr.sa_data);
+            
+          char tmp[32];
+          sprintf(tmp, "%02x:%02x:%02x:%02x:%02x:%02x",
+                  mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+          target.insert(tmp);
+        }
+#endif
+        
+        interfaces.Next();
+      }
+    }
+  }
+
+#endif
 }

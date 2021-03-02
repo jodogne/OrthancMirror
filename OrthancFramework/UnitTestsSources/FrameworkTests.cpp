@@ -1424,3 +1424,17 @@ TEST(Toolbox, ReadFileRange)
   ASSERT_THROW(tmp.ReadRange(s, 2, 1, true), OrthancException);
 }
 #endif
+
+
+#if ORTHANC_SANDBOXED != 1
+TEST(Toolbox, GetMacAddressess)
+{
+  std::set<std::string> mac;
+  SystemToolbox::GetMacAddresses(mac);
+
+  for (std::set<std::string>::const_iterator it = mac.begin(); it != mac.end(); ++it)
+  {
+    printf("MAC address: [%s]\n", it->c_str());
+  }
+}
+#endif
