@@ -1,0 +1,48 @@
+diff -urEb dcmtk-3.6.2.orig/CMake/GenerateDCMTKConfigure.cmake dcmtk-3.6.2/CMake/GenerateDCMTKConfigure.cmake
+--- dcmtk-3.6.2.orig/CMake/GenerateDCMTKConfigure.cmake	2020-01-06 17:42:52.299540389 +0100
++++ dcmtk-3.6.2/CMake/GenerateDCMTKConfigure.cmake	2020-01-06 17:43:56.707520036 +0100
+@@ -568,12 +568,12 @@
+   ENDIF(HAVE_CSTDDEF)
+ 
+   CHECK_FUNCTIONWITHHEADER_EXISTS(feenableexcept "${HEADERS}" HAVE_PROTOTYPE_FEENABLEEXCEPT)
+-  CHECK_FUNCTIONWITHHEADER_EXISTS(isinf "${HEADERS}" HAVE_PROTOTYPE_ISINF)
+-  CHECK_FUNCTIONWITHHEADER_EXISTS(isnan "${HEADERS}" HAVE_PROTOTYPE_ISNAN)
+-  CHECK_FUNCTIONWITHHEADER_EXISTS(finite "${HEADERS}" HAVE_PROTOTYPE_FINITE)
+-  CHECK_FUNCTIONWITHHEADER_EXISTS(std::isinf "${HEADERS}" HAVE_PROTOTYPE_STD__ISINF)
+-  CHECK_FUNCTIONWITHHEADER_EXISTS(std::isnan "${HEADERS}" HAVE_PROTOTYPE_STD__ISNAN)
+-  CHECK_FUNCTIONWITHHEADER_EXISTS(std::finite "${HEADERS}" HAVE_PROTOTYPE_STD__FINITE)
++  CHECK_FUNCTIONWITHHEADER_EXISTS("isinf(0.)" "${HEADERS}" HAVE_PROTOTYPE_ISINF)
++  CHECK_FUNCTIONWITHHEADER_EXISTS("isnan(0.)" "${HEADERS}" HAVE_PROTOTYPE_ISNAN)
++  CHECK_FUNCTIONWITHHEADER_EXISTS("finite(0.)" "${HEADERS}" HAVE_PROTOTYPE_FINITE)
++  CHECK_FUNCTIONWITHHEADER_EXISTS("std::isinf(0.)" "${HEADERS}" HAVE_PROTOTYPE_STD__ISINF)
++  CHECK_FUNCTIONWITHHEADER_EXISTS("std::isnan(0.)" "${HEADERS}" HAVE_PROTOTYPE_STD__ISNAN)
++  CHECK_FUNCTIONWITHHEADER_EXISTS("std::finite(0.)" "${HEADERS}" HAVE_PROTOTYPE_STD__FINITE)
+   CHECK_FUNCTIONWITHHEADER_EXISTS(flock "${HEADERS}" HAVE_PROTOTYPE_FLOCK)
+   CHECK_FUNCTIONWITHHEADER_EXISTS(gethostbyname "${HEADERS}" HAVE_PROTOTYPE_GETHOSTBYNAME)
+   CHECK_FUNCTIONWITHHEADER_EXISTS(gethostbyname_r "${HEADERS}" HAVE_PROTOTYPE_GETHOSTBYNAME_R)
+diff -urEb dcmtk-3.6.2.orig/dcmdata/include/dcmtk/dcmdata/dcdict.h dcmtk-3.6.2/dcmdata/include/dcmtk/dcmdata/dcdict.h
+--- dcmtk-3.6.2.orig/dcmdata/include/dcmtk/dcmdata/dcdict.h	2020-01-06 17:42:52.283540394 +0100
++++ dcmtk-3.6.2/dcmdata/include/dcmtk/dcmdata/dcdict.h	2020-01-06 17:46:21.711473976 +0100
+@@ -152,6 +152,12 @@
+     /// returns an iterator to the end of the repeating tag dictionary
+     DcmDictEntryListIterator repeatingEnd() { return repDict.end(); }
+ 
++    // Function by the Orthanc project to load a dictionary from a
++    // memory buffer, which is necessary in sandboxed
++    // environments. This is an adapted version of
++    // DcmDataDictionary::loadDictionary().
++    OFBool loadFromMemory(const std::string& content, OFBool errorIfAbsent = OFTrue);
++
+ private:
+ 
+     /** private undefined assignment operator
+diff -urEb dcmtk-3.6.2.orig/dcmdata/libsrc/dcdict.cc dcmtk-3.6.2/dcmdata/libsrc/dcdict.cc
+--- dcmtk-3.6.2.orig/dcmdata/libsrc/dcdict.cc	2020-01-06 17:42:52.287540392 +0100
++++ dcmtk-3.6.2/dcmdata/libsrc/dcdict.cc	2020-01-06 17:47:18.335299472 +0100
+@@ -876,3 +876,6 @@
+   wrlock().clear();
+   unlock();
+ }
++
++
++#include "dcdict_orthanc.cc"

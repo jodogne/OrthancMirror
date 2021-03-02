@@ -1,0 +1,68 @@
+diff -urEb libp11-0.4.0.orig/src/atfork.c libp11-0.4.0/src/atfork.c
+--- libp11-0.4.0.orig/src/atfork.c	2020-04-02 17:03:55.340634019 +0200
++++ libp11-0.4.0/src/atfork.c	2020-04-02 17:04:10.152619121 +0200
+@@ -25,7 +25,7 @@
+ #include <sys/stat.h>
+ #include <sys/types.h>
+ #include <unistd.h>
+-#include <atfork.h>
++#include "atfork.h"
+ 
+ #ifdef __sun
+ # pragma fini(lib_deinit)
+diff -urEb libp11-0.4.0.orig/src/engine.h libp11-0.4.0/src/engine.h
+--- libp11-0.4.0.orig/src/engine.h	2020-04-02 17:03:55.340634019 +0200
++++ libp11-0.4.0/src/engine.h	2020-04-02 17:04:10.152619121 +0200
+@@ -29,7 +29,7 @@
+ #define _ENGINE_PKCS11_H
+ 
+ #ifndef _WIN32
+-#include "config.h"
++//#include "config.h"
+ #endif
+ 
+ #include "libp11.h"
+diff -urEb libp11-0.4.0.orig/src/libp11-int.h libp11-0.4.0/src/libp11-int.h
+--- libp11-0.4.0.orig/src/libp11-int.h	2020-04-02 17:03:55.340634019 +0200
++++ libp11-0.4.0/src/libp11-int.h	2020-04-02 17:04:10.152619121 +0200
+@@ -20,7 +20,7 @@
+ #define _LIBP11_INT_H
+ 
+ #ifndef _WIN32
+-#include "config.h"
++//#include "config.h"
+ #endif
+ 
+ #include "libp11.h"
+diff -urEb libp11-0.4.0.orig/src/p11_key.c libp11-0.4.0/src/p11_key.c
+--- libp11-0.4.0.orig/src/p11_key.c	2020-04-02 17:03:55.340634019 +0200
++++ libp11-0.4.0/src/p11_key.c	2020-04-02 17:05:39.892516032 +0200
+@@ -21,6 +21,12 @@
+ #include <string.h>
+ #include <openssl/bn.h>
+ 
++#if OPENSSL_VERSION_NUMBER >= 0x10100105L // File renamed in OpenSSL 1.1.1e
++#  include <crypto/rsa/rsa_local.h>
++#elif OPENSSL_VERSION_NUMBER >= 0x10100000L // OpenSSL 1.0.2
++#  include <crypto/rsa/rsa_locl.h>
++#endif
++
+ #ifdef _WIN32
+ #define strncasecmp strnicmp
+ #endif
+diff -urEb libp11-0.4.0.orig/src/p11_rsa.c libp11-0.4.0/src/p11_rsa.c
+--- libp11-0.4.0.orig/src/p11_rsa.c	2020-04-02 17:03:55.340634019 +0200
++++ libp11-0.4.0/src/p11_rsa.c	2020-04-02 17:05:49.176504198 +0200
+@@ -27,6 +27,12 @@
+ #include <openssl/evp.h>
+ #include <openssl/rsa.h>
+ 
++#if OPENSSL_VERSION_NUMBER >= 0x10100105L // File renamed in OpenSSL 1.1.1e
++#  include <crypto/rsa/rsa_local.h>
++#elif OPENSSL_VERSION_NUMBER >= 0x10100000L // OpenSSL 1.0.2
++#  include <crypto/rsa/rsa_locl.h>
++#endif
++
+ static int rsa_ex_index = 0;
+ 
+ #if OPENSSL_VERSION_NUMBER < 0x10100003L

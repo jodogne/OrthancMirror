@@ -19,18 +19,18 @@ package for libuuid ("uuid-dev" in Debian) are installed.
 
 We now make the assumption that Orthanc source code is placed in the
 folder "~/Orthanc" and that the binaries will be compiled to
-"~/OrthancBuild". To build binaries with debug information:
+"~/Orthanc/Build". To build binaries with debug information:
 
-# cd ~/OrthancBuild
-# cmake -DSTATIC_BUILD=ON -DCMAKE_BUILD_TYPE=Debug ~/Orthanc
+# cd ./Build
+# cmake -DSTATIC_BUILD=ON -DCMAKE_BUILD_TYPE=Debug ../OrthancServer/
 # make
 # make doc
 
 
 To build a release version:
 
-# cd ~/OrthancBuild
-# cmake -DSTATIC_BUILD=ON -DCMAKE_BUILD_TYPE=Release ~/Orthanc
+# cd ./Build
+# cmake -DSTATIC_BUILD=ON -DCMAKE_BUILD_TYPE=Release ../OrthancServer/
 # make
 # make doc
 
@@ -41,10 +41,10 @@ Internet.
 
 Note 2- If the development package of libuuid was not installed when
 first invoking cmake, you will have to manually remove the build
-directory ("rm -rf ~/OrthancBuild") after installing this package,
+directory ("rm -rf ~/Orthanc/Build") after installing this package,
 then run cmake again.
 
-Note 3- To build the documentation, you will have to install doxyen.
+Note 3- To build the documentation, you will have to install doxygen.
 
 
 Use system-wide libraries under GNU/Linux
@@ -56,11 +56,11 @@ libraries of your system (the "STATIC_BUILD" option is set to
 when building packages for GNU/Linux distributions. Because using
 system libraries is the default behavior, you just have to use:
 
-# cd ~/OrthancBuild
-# cmake -DCMAKE_BUILD_TYPE=Debug ~/Orthanc
+# cd ./Build
+# cmake -DCMAKE_BUILD_TYPE=Debug ../OrthancServer
 # make
 
-Note that to build the documentation, you will have to install doxyen.
+Note that to build the documentation, you will have to install doxygen.
 
 However, on some GNU/Linux distributions, it is still required to
 download and static link against some third-party dependencies,
@@ -78,58 +78,105 @@ Orthanc users.
 SUPPORTED - Debian Jessie/Sid
 -----------------------------
 
-# sudo apt-get install build-essential unzip cmake mercurial \
+# sudo apt-get install build-essential unzip cmake mercurial patch \
        	       	       uuid-dev libcurl4-openssl-dev liblua5.1-0-dev \
        	       	       libgtest-dev libpng-dev libjpeg-dev \
        	       	       libsqlite3-dev libssl-dev zlib1g-dev libdcmtk2-dev \
                        libboost-all-dev libwrap0-dev libjsoncpp-dev libpugixml-dev
 
+# cd ./Build
 # cmake -DALLOW_DOWNLOADS=ON \
 	-DUSE_SYSTEM_CIVETWEB=OFF \
         -DUSE_GOOGLE_TEST_DEBIAN_PACKAGE=ON \
         -DDCMTK_LIBRARIES=dcmjpls \
         -DCMAKE_BUILD_TYPE=Release \
-	~/Orthanc
+	../OrthancServer/
+# make
 
 Note: Have also a look at the official package:
 http://anonscm.debian.org/viewvc/debian-med/trunk/packages/orthanc/trunk/debian/
 
 
-SUPPORTED - Ubuntu 12.04.5 LTS
-------------------------------
+SUPPORTED - Ubuntu 14.04 LTS
+----------------------------
 
-# sudo apt-get install build-essential unzip cmake mercurial \
-       	       	       uuid-dev libcurl4-openssl-dev liblua5.1-0-dev \
-       	       	       libgtest-dev libpng-dev libsqlite3-dev libssl-dev libjpeg-dev \
-		       zlib1g-dev libdcmtk2-dev libboost1.48-all-dev libwrap0-dev \
-                       libcharls-dev
-
-# cmake "-DDCMTK_LIBRARIES=boost_locale;CharLS;dcmjpls;wrap;oflog" \
-        -DALLOW_DOWNLOADS=ON \
-	-DUSE_SYSTEM_CIVETWEB=OFF \
-	-DUSE_SYSTEM_JSONCPP=OFF \
-	-DUSE_SYSTEM_PUGIXML=OFF \
-        -DUSE_GOOGLE_TEST_DEBIAN_PACKAGE=ON \
-        -DCMAKE_BUILD_TYPE=Release \
-	~/Orthanc
-
-
-
-SUPPORTED - Ubuntu 14.04 LTS and 16.04 LTS
-------------------------------------------
-
-# sudo apt-get install build-essential unzip cmake mercurial \
-       	       	       uuid-dev libcurl4-openssl-dev liblua5.1-0-dev \
+# sudo apt-get install build-essential unzip cmake mercurial patch \
+       	       	       uuid-dev libcurl4-openssl-dev \
        	       	       libgtest-dev libpng-dev libsqlite3-dev libssl-dev libjpeg-dev \
 		       zlib1g-dev libdcmtk2-dev libboost-all-dev libwrap0-dev \
                        libcharls-dev libjsoncpp-dev libpugixml-dev
 
+# cd ./Build
+# cmake -DALLOW_DOWNLOADS=ON \
+        -DUSE_GOOGLE_TEST_DEBIAN_PACKAGE=ON \
+	-DUSE_SYSTEM_BOOST=OFF \
+        -DUSE_SYSTEM_CIVETWEB=OFF \
+        -DUSE_SYSTEM_DCMTK=OFF \
+        -DUSE_SYSTEM_JSONCPP=OFF \
+        -DUSE_SYSTEM_LUA=OFF \
+        -DCIVETWEB_OPENSSL_API=1.0 \
+        -DCMAKE_BUILD_TYPE=Release \
+        ../OrthancServer/
+# make
+
+
+SUPPORTED - Ubuntu 16.04 LTS
+----------------------------
+
+# sudo apt-get install build-essential unzip cmake mercurial patch \
+       	       	       uuid-dev libcurl4-openssl-dev liblua5.3-dev \
+       	       	       libgtest-dev libpng-dev libsqlite3-dev libssl-dev libjpeg-dev \
+		       zlib1g-dev libdcmtk-dev libboost-all-dev libwrap0-dev \
+                       libcharls-dev libjsoncpp-dev libpugixml-dev tzdata
+
+# cd ./Build
+# cmake -DALLOW_DOWNLOADS=ON \
+        -DUSE_GOOGLE_TEST_DEBIAN_PACKAGE=ON \
+        -DUSE_SYSTEM_CIVETWEB=OFF \
+        -DCIVETWEB_OPENSSL_API=1.0 \
+        -DDCMTK_LIBRARIES=dcmjpls \
+        -DCMAKE_BUILD_TYPE=Release \
+        ../OrthancServer/
+# make
+
+
+NB: Instructions to use clang and ninja:
+
+# sudo apt-get install ninja-build
+# cd ./Build
+# CC=/usr/bin/clang CXX=/usr/bin/clang++ cmake -G Ninja \
+        -DALLOW_DOWNLOADS=ON \
+        -DUSE_GOOGLE_TEST_DEBIAN_PACKAGE=ON \
+        -DUSE_SYSTEM_CIVETWEB=OFF \
+        -DDCMTK_LIBRARIES=dcmjpls \
+        -DCMAKE_BUILD_TYPE=Release \
+        ../OrthancServer/
+# ninja
+
+
+SUPPORTED - Ubuntu 18.04 LTS
+----------------------------
+
+# sudo apt-get install build-essential unzip cmake mercurial patch \
+       	       	       uuid-dev libcurl4-openssl-dev liblua5.3-dev \
+       	       	       libgtest-dev libpng-dev libsqlite3-dev libssl-dev libjpeg-dev \
+		       zlib1g-dev libdcmtk-dev libboost-all-dev libwrap0-dev \
+                       libcharls-dev libjsoncpp-dev libpugixml-dev locales
+
+# cd ./Build
 # cmake -DALLOW_DOWNLOADS=ON \
         -DUSE_GOOGLE_TEST_DEBIAN_PACKAGE=ON \
         -DUSE_SYSTEM_CIVETWEB=OFF \
         -DDCMTK_LIBRARIES=dcmjpls \
         -DCMAKE_BUILD_TYPE=Release \
-        ~/Orthanc
+        ../OrthancServer/
+# make
+
+
+NB: A suitable environment for locales can be setup as follows:
+
+# echo "en_US.UTF-8 UTF-8" > /etc/locale.gen
+# locale-gen
 
 
 
@@ -145,11 +192,14 @@ You will also have to install "gflags-devel" on Fedora 21&22:
 
 # sudo yum install gflags-devel
 
+# cd ./Build
 # cmake  "-DDCMTK_LIBRARIES=CharLS" \
+         -DCIVETWEB_OPENSSL_API=1.0 \
          -DENABLE_CIVETWEB=OFF \
          -DSYSTEM_MONGOOSE_USE_CALLBACKS=OFF \
          -DCMAKE_BUILD_TYPE=Release \
-         ~/Orthanc
+         ../OrthancServer/
+# make
        
 Note: Have also a look at the official package:
 http://pkgs.fedoraproject.org/cgit/orthanc.git/tree/?h=f18
@@ -162,48 +212,44 @@ SUPPORTED - FreeBSD 10.1
 # pkg install jsoncpp pugixml lua51 curl googletest dcmtk cmake jpeg \
               e2fsprogs-libuuid boost-libs sqlite3 python libiconv
 
+# cd ./Build
 # cmake -DALLOW_DOWNLOADS=ON \
         -DUSE_SYSTEM_CIVETWEB=OFF \
         -DDCMTK_LIBRARIES="dcmdsig;charls;dcmjpls" \
         -DCMAKE_BUILD_TYPE=Release \
-	~/Orthanc
-
-
-
-SUPPORTED - CentOS 6
---------------------
-
-# yum install unzip make automake gcc gcc-c++ python cmake curl-devel \
-              libpng-devel sqlite-devel libuuid-devel openssl-devel \
-              lua-devel mercurial patch tar
-
-# cmake -DALLOW_DOWNLOADS=ON \
-        -DUSE_SYSTEM_JSONCPP=OFF \
-        -DUSE_SYSTEM_CIVETWEB=OFF \
-        -DUSE_SYSTEM_PUGIXML=OFF \
-        -DUSE_SYSTEM_SQLITE=OFF \
-        -DUSE_SYSTEM_BOOST=OFF \
-        -DUSE_SYSTEM_DCMTK=OFF \
-        -DUSE_SYSTEM_GOOGLE_TEST=OFF \
-        -DUSE_SYSTEM_LIBJPEG=OFF \
-        -DCMAKE_BUILD_TYPE=Release \
-        ~/Orthanc
+	../OrthancServer/
+# make
 
 
 
 Other GNU/Linux distributions?
 ------------------------------
 
-Please send us your build instructions (by a mail to
+Don't hesitate to send us your build instructions (by a mail to
 s.jodogne@orthanc-labs.com)!
+
+The file "./Resources/OldBuildInstructions.txt" contains build
+instructions that once worked for older versions of Orthanc or older
+GNU/Linux distributions, but are not tested anymore. Even if they may
+not work anymore as such, they can serve as a basis.
 
 You can find build instructions for Orthanc up to 0.7.0 on the
 following Wiki page:
-https://code.google.com/p/orthanc/wiki/LinuxCompilationUpTo070
+https://book.orthanc-server.com/faq/compiling-old.html
 
 These instructions will not work as such beyond Orthanc 0.7.0, but
 they might give indications.
 
+
+
+Additional information
+----------------------
+
+* It has been reported that distributions coming with Boost >= 1.70.0
+  might need the option "-DBoost_NO_BOOST_CMAKE=ON" to be added to the
+  "cmake" command-line.
+  https://groups.google.com/d/msg/orthanc-users/nXq2qOndw9c/0PGnaOqiAgAJ
+  
 
 
 
@@ -215,4 +261,4 @@ dramatically decrease the compilation time when rebuilding
 Orthanc. This is especially useful for developers. To this end, you
 would use:
 
-# CC="ccache gcc" CXX="ccache g++" cmake ~/Orthanc [Other Options]
+# CC="ccache gcc" CXX="ccache g++" cmake ../OrthancServer/ [Other Options]

@@ -1,0 +1,159 @@
+This file contains old build instructions that are not tested anymore.
+
+
+Debian Squeeze (6.x)
+--------------------
+
+# sudo apt-get install build-essential unzip cmake mercurial \
+       	       	       uuid-dev libcurl4-openssl-dev liblua5.1-0-dev \
+       	       	       libgoogle-glog-dev libpng-dev libgtest-dev \
+       	       	       libsqlite3-dev libssl-dev zlib1g-dev
+
+# cmake -DALLOW_DOWNLOADS=ON \
+  	-DUSE_SYSTEM_BOOST=OFF \
+	-DUSE_SYSTEM_DCMTK=OFF \
+	-DUSE_SYSTEM_MONGOOSE=OFF \
+	-DUSE_SYSTEM_JSONCPP=OFF \
+	-DUSE_SYSTEM_PUGIXML=OFF \
+        -DENABLE_JPEG=OFF \
+        -DENABLE_JPEG_LOSSLESS=OFF \
+	~/Orthanc 
+
+
+Debian Wheezy (7.x)
+-------------------
+
+# sudo apt-get install build-essential unzip cmake mercurial \
+       	       	       uuid-dev libcurl4-openssl-dev liblua5.1-0-dev \
+       	       	       libgtest-dev libpng-dev libsqlite3-dev \
+       	       	       libssl-dev zlib1g-dev libdcmtk2-dev \
+       	       	       libboost-all-dev libwrap0-dev libjsoncpp-dev
+
+# cmake -DALLOW_DOWNLOADS=ON \
+        -DUSE_SYSTEM_GOOGLE_LOG=OFF \
+	-DUSE_SYSTEM_MONGOOSE=OFF \
+        -DUSE_GOOGLE_TEST_DEBIAN_PACKAGE=ON \
+	-DUSE_SYSTEM_PUGIXML=OFF \
+        -DENABLE_JPEG=OFF \
+        -DENABLE_JPEG_LOSSLESS=OFF \
+	~/Orthanc
+
+
+Ubuntu 12.04.5 LTS
+------------------
+
+# sudo apt-get install build-essential unzip cmake mercurial \
+                       uuid-dev libcurl4-openssl-dev liblua5.1-0-dev \
+                       libgtest-dev libpng-dev libsqlite3-dev libssl-dev libjpeg-dev \
+                       zlib1g-dev libdcmtk2-dev libboost1.48-all-dev libwrap0-dev \
+                       libcharls-dev
+
+# cmake "-DDCMTK_LIBRARIES=boost_locale;CharLS;dcmjpls;wrap;oflog" \
+        -DALLOW_DOWNLOADS=ON \
+        -DUSE_SYSTEM_CIVETWEB=OFF \
+        -DUSE_SYSTEM_JSONCPP=OFF \
+        -DUSE_SYSTEM_PUGIXML=OFF \
+        -DUSE_GOOGLE_TEST_DEBIAN_PACKAGE=ON \
+        -DCMAKE_BUILD_TYPE=Release \
+        ~/Orthanc
+
+
+Ubuntu 12.10
+------------
+
+# sudo apt-get install build-essential unzip cmake mercurial \
+       	       	       uuid-dev libcurl4-openssl-dev liblua5.1-0-dev \
+       	       	       libgoogle-glog-dev libgtest-dev libpng-dev \
+       	       	       libsqlite3-dev libssl-dev zlib1g-dev \
+       	       	       libdcmtk2-dev libboost-all-dev libwrap0-dev libcharls-dev
+
+With JPEG:
+
+# cmake "-DDCMTK_LIBRARIES=CharLS;dcmjpls;wrap;oflog" \
+        -DALLOW_DOWNLOADS=ON \
+	-DUSE_SYSTEM_MONGOOSE=OFF \
+	-DUSE_SYSTEM_JSONCPP=OFF \
+        -DUSE_GOOGLE_TEST_DEBIAN_PACKAGE=ON \
+	-DUSE_SYSTEM_PUGIXML=OFF \
+	~/Orthanc
+
+
+Without JPEG:
+
+# cmake "-DDCMTK_LIBRARIES=wrap;oflog" \
+        -DALLOW_DOWNLOADS=ON \
+	-DUSE_SYSTEM_MONGOOSE=OFF \
+	-DUSE_SYSTEM_JSONCPP=OFF \
+        -DUSE_GOOGLE_TEST_DEBIAN_PACKAGE=ON \
+	-DUSE_SYSTEM_PUGIXML=OFF \
+        -DENABLE_JPEG=OFF \
+        -DENABLE_JPEG_LOSSLESS=OFF \
+	~/Orthanc
+
+
+Ubuntu 13.10
+------------
+
+# sudo apt-get install build-essential unzip cmake mercurial \
+       	       	       uuid-dev libcurl4-openssl-dev liblua5.1-0-dev \
+       	       	       libgoogle-glog-dev libgtest-dev libpng-dev \
+       	       	       libsqlite3-dev libssl-dev zlib1g-dev \
+       	       	       libdcmtk2-dev libboost-all-dev libwrap0-dev libjsoncpp-dev
+
+# cmake "-DDCMTK_LIBRARIES=wrap;oflog" \
+        -DALLOW_DOWNLOADS=ON \
+	-DUSE_SYSTEM_MONGOOSE=OFF \
+        -DUSE_GOOGLE_TEST_DEBIAN_PACKAGE=ON \
+	-DUSE_SYSTEM_PUGIXML=OFF \
+        -DENABLE_JPEG=OFF \
+        -DENABLE_JPEG_LOSSLESS=OFF \
+	~/Orthanc
+
+
+Fedora 19
+---------
+
+# sudo yum install unzip make automake gcc gcc-c++ python cmake \
+                   boost-devel curl-devel dcmtk-devel glog-devel \
+                   gtest-devel libpng-devel libsqlite3x-devel libuuid-devel \
+                   mongoose-devel openssl-devel jsoncpp-devel lua-devel pugixml-devel
+
+# cmake  "-DDCMTK_LIBRARIES=CharLS" \
+         -DSYSTEM_MONGOOSE_USE_CALLBACKS=OFF \
+         ~/Orthanc
+       
+Note: Have also a look at the official package:
+http://pkgs.fedoraproject.org/cgit/orthanc.git/tree/?h=f18
+
+
+CentOS 6
+--------
+
+# yum install unzip make automake gcc gcc-c++ python cmake curl-devel \
+              libpng-devel sqlite-devel libuuid-devel openssl-devel \
+              lua-devel mercurial patch tar
+
+Using static linking with Civetweb (tested with Orthanc 1.5.7):
+
+# cmake -DSTATIC_BUILD=ON \
+        -DSTANDALONE_BUILD=ON \
+        -DUSE_LEGACY_JSONCPP=ON \
+        -DUSE_LEGACY_LIBICU=ON \
+        -DBOOST_LOCALE_BACKEND=icu \
+        -DCMAKE_BUILD_TYPE=Debug \
+        ~/Orthanc
+
+Using Mongoose (untested):
+
+# cmake -DALLOW_DOWNLOADS=ON \
+        -DUSE_SYSTEM_JSONCPP=OFF \
+        -DUSE_SYSTEM_CIVETWEB=OFF \
+        -DUSE_SYSTEM_PUGIXML=OFF \
+        -DUSE_SYSTEM_SQLITE=OFF \
+        -DUSE_SYSTEM_BOOST=OFF \
+        -DUSE_SYSTEM_DCMTK=OFF \
+        -DUSE_SYSTEM_GOOGLE_TEST=OFF \
+        -DUSE_SYSTEM_LIBJPEG=OFF \
+        -DCMAKE_BUILD_TYPE=Release \
+        ~/Orthanc
+

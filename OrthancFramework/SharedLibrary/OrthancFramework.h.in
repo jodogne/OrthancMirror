@@ -1,0 +1,306 @@
+/**
+ * Orthanc - A Lightweight, RESTful DICOM Store
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
+ * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2021 Osimis S.A., Belgium
+ *
+ * This program is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public License
+ * as published by the Free Software Foundation, either version 3 of
+ * the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this program. If not, see
+ * <http://www.gnu.org/licenses/>.
+ **/
+
+
+#pragma once
+
+/**
+ * Besides the "pragma once" above that only protects this file,
+ * define a macro to prevent including different versions of
+ * "OrthancFramework.h"
+ **/
+#ifndef __ORTHANC_FRAMEWORK_H
+#define __ORTHANC_FRAMEWORK_H
+
+
+#if defined(_WIN32) || defined (__CYGWIN__)
+#  define ORTHANC_PUBLIC __declspec(dllimport)
+#  define ORTHANC_LOCAL
+#else
+#  if __GNUC__ >= 4
+#    define ORTHANC_PUBLIC __attribute__ ((visibility ("default")))
+#    define ORTHANC_LOCAL  __attribute__ ((visibility ("hidden")))
+#  else
+#    define ORTHANC_PUBLIC
+#    define ORTHANC_LOCAL
+#    pragma warning Unknown dynamic link import/export semantics
+#  endif
+#endif
+
+
+/**
+ * Configuration macros that are always set to the same value if using
+ * "OrthancFrameworkConfiguration.cmake"
+ **/
+
+#define ORTHANC_BUILDING_FRAMEWORK_LIBRARY 0
+#define ORTHANC_ENABLE_BASE64 1
+#define ORTHANC_ENABLE_MD5 1
+
+
+
+/**
+ * Configuration macros that needn't to be renamed
+ **/
+
+#define ORTHANC_SQLITE_VERSION @ORTHANC_SQLITE_VERSION@
+#define ORTHANC_VERSION "@ORTHANC_VERSION@"
+#define ORTHANC_VERSION_MAJOR @ORTHANC_VERSION_MAJOR@
+#define ORTHANC_VERSION_MINOR @ORTHANC_VERSION_MINOR@
+#define ORTHANC_VERSION_REVISION @ORTHANC_VERSION_REVISION@
+
+#cmakedefine01 ORTHANC_ENABLE_CIVETWEB
+#cmakedefine01 ORTHANC_ENABLE_LOGGING
+#cmakedefine01 ORTHANC_ENABLE_LOGGING_STDIO
+#cmakedefine01 ORTHANC_ENABLE_MONGOOSE
+#cmakedefine01 ORTHANC_SANDBOXED
+#cmakedefine01 ORTHANC_STATIC_BOOST
+#cmakedefine01 ORTHANC_STATIC_JSONCPP
+#cmakedefine01 ORTHANC_STATIC_SQLITE
+
+#if ORTHANC_STATIC_BOOST == 1 && !defined(BOOST_LEXICAL_CAST_ASSUME_C_LOCALE)
+#  define BOOST_LEXICAL_CAST_ASSUME_C_LOCALE
+#endif
+
+#if ORTHANC_STATIC_JSONCPP == 1
+#  if defined(JSON_API)
+#    error JSON_API should not be defined
+#  else
+#    define JSON_API @ORTHANC_JSON_API@
+#  endif
+#endif
+
+#if ORTHANC_STATIC_SQLITE == 1
+#  if defined(SQLITE_API)
+#    error SQLITE_API should not be defined
+#  else
+#    define SQLITE_API @ORTHANC_SQLITE_API@
+#  endif
+#endif
+
+#if ORTHANC_STATIC_PUGIXML == 1
+#  if defined(PUGIXML_API)
+#    error PUGIXML_API should not be defined
+#  else
+#    define PUGIXML_API @ORTHANC_PUGIXML_API@
+#  endif
+#endif
+
+
+#define ORTHANC_FRAMEWORK_VERSION_IS_ABOVE(major, minor, revision)      \
+  (ORTHANC_VERSION_MAJOR > major ||                                     \
+   (ORTHANC_VERSION_MAJOR == major &&                                   \
+    (ORTHANC_VERSION_MINOR > minor ||                                   \
+     (ORTHANC_VERSION_MINOR == minor &&                                 \
+      ORTHANC_VERSION_REVISION >= revision))))
+
+
+/**
+ * Configuration macros that must be renamed, prefixing them by
+ * "ORTHANC_"
+ **/
+
+#cmakedefine01 ENABLE_DCMTK
+#if !defined(ENABLE_DCMTK)
+#  error CMake error
+#elif ENABLE_DCMTK == 1
+#  define ORTHANC_ENABLE_DCMTK 1
+#else
+#  define ORTHANC_ENABLE_DCMTK 0
+#endif
+#undef ENABLE_DCMTK
+
+
+#cmakedefine01 ENABLE_DCMTK_NETWORKING
+#if !defined(ENABLE_DCMTK_NETWORKING)
+#  error CMake error
+#elif ENABLE_DCMTK_NETWORKING == 1
+#  define ORTHANC_ENABLE_DCMTK_NETWORKING 1
+#else
+#  define ORTHANC_ENABLE_DCMTK_NETWORKING 0
+#endif
+#undef ENABLE_DCMTK_NETWORKING
+
+
+#cmakedefine01 ENABLE_DCMTK_JPEG
+#if !defined(ENABLE_DCMTK_JPEG)
+#  error CMake error
+#elif ENABLE_DCMTK_JPEG == 1
+#  define ORTHANC_ENABLE_DCMTK_JPEG 1
+#else
+#  define ORTHANC_ENABLE_DCMTK_JPEG 0
+#endif
+#undef ENABLE_DCMTK_JPEG
+
+
+#cmakedefine01 ENABLE_DCMTK_JPEG_LOSSLESS
+#if !defined(ENABLE_DCMTK_JPEG_LOSSLESS)
+#  error CMake error
+#elif ENABLE_DCMTK_JPEG_LOSSLESS == 1
+#  define ORTHANC_ENABLE_DCMTK_JPEG_LOSSLESS 1
+#else
+#  define ORTHANC_ENABLE_DCMTK_JPEG_LOSSLESS 0
+#endif
+#undef ENABLE_DCMTK_JPEG_LOSSLESS
+
+
+#cmakedefine01 ENABLE_DCMTK_TRANSCODING
+#if !defined(ENABLE_DCMTK_TRANSCODING)
+#  error CMake error
+#elif ENABLE_DCMTK_TRANSCODING == 1
+#  define ORTHANC_ENABLE_DCMTK_TRANSCODING 1
+#else
+#  define ORTHANC_ENABLE_DCMTK_TRANSCODING 0
+#endif
+#undef ENABLE_DCMTK_TRANSCODING
+
+
+#cmakedefine01 ENABLE_JPEG
+#if !defined(ENABLE_JPEG)
+#  error CMake error
+#elif ENABLE_JPEG == 1
+#  define ORTHANC_ENABLE_JPEG 1
+#else
+#  define ORTHANC_ENABLE_JPEG 0
+#endif
+#undef ENABLE_JPEG
+
+
+#cmakedefine01 ENABLE_LOCALE
+#if !defined(ENABLE_LOCALE)
+#  error CMake error
+#elif ENABLE_LOCALE == 1
+#  define ORTHANC_ENABLE_LOCALE 1
+#else
+#  define ORTHANC_ENABLE_LOCALE 0
+#endif
+#undef ENABLE_LOCALE
+
+
+#cmakedefine01 ENABLE_LUA
+#if !defined(ENABLE_LUA)
+#  error CMake error
+#elif ENABLE_LUA == 1
+#  define ORTHANC_ENABLE_LUA 1
+#else
+#  define ORTHANC_ENABLE_LUA 0
+#endif
+#undef ENABLE_LUA
+
+
+#cmakedefine01 ENABLE_PKCS11
+#if !defined(ENABLE_PKCS11)
+#  error CMake error
+#elif ENABLE_PKCS11 == 1
+#  define ORTHANC_ENABLE_PKCS11 1
+#else
+#  define ORTHANC_ENABLE_PKCS11 0
+#endif
+#undef ENABLE_PKCS11
+
+
+#cmakedefine01 ENABLE_PNG
+#if !defined(ENABLE_PNG)
+#  error CMake error
+#elif ENABLE_PNG == 1
+#  define ORTHANC_ENABLE_PNG 1
+#else
+#  define ORTHANC_ENABLE_PNG 0
+#endif
+#undef ENABLE_PNG
+
+
+#cmakedefine01 ENABLE_PUGIXML
+#if !defined(ENABLE_PUGIXML)
+#  error CMake error
+#elif ENABLE_PUGIXML == 1
+#  define ORTHANC_ENABLE_PUGIXML 1
+#else
+#  define ORTHANC_ENABLE_PUGIXML 0
+#endif
+#undef ENABLE_PUGIXML
+
+
+#cmakedefine01 ENABLE_SQLITE
+#if !defined(ENABLE_SQLITE)
+#  error CMake error
+#elif ENABLE_SQLITE == 1
+#  define ORTHANC_ENABLE_SQLITE 1
+#else
+#  define ORTHANC_ENABLE_SQLITE 0
+#endif
+#undef ENABLE_SQLITE
+
+
+#cmakedefine01 ENABLE_SSL
+#if !defined(ENABLE_SSL)
+#  error CMake error
+#elif ENABLE_SSL == 1
+#  define ORTHANC_ENABLE_SSL 1
+#else
+#  define ORTHANC_ENABLE_SSL 0
+#endif
+#undef ENABLE_SSL
+
+
+#cmakedefine01 ENABLE_WEB_CLIENT
+#if !defined(ENABLE_WEB_CLIENT)
+#  error CMake error
+#elif ENABLE_WEB_CLIENT == 1
+#  define ORTHANC_ENABLE_CURL 1
+#else
+#  define ORTHANC_ENABLE_CURL 0
+#endif
+#undef ENABLE_WEB_CLIENT
+
+
+#cmakedefine01 ENABLE_ZLIB
+#if !defined(ENABLE_ZLIB)
+#  error CMake error
+#elif ENABLE_ZLIB == 1
+#  define ORTHANC_ENABLE_ZLIB 1
+#else
+#  define ORTHANC_ENABLE_ZLIB 0
+#endif
+#undef ENABLE_ZLIB
+
+
+#if ORTHANC_ENABLE_DCMTK == 1
+#  define DCMTK_VERSION_NUMBER @DCMTK_VERSION_NUMBER@
+#endif
+
+
+/**
+ * Initialization functions.
+ **/
+
+#include <string>
+
+namespace Orthanc
+{
+  ORTHANC_PUBLIC void InitializeFramework(const std::string& locale,
+                                          bool loadPrivateDictionary);
+  
+  ORTHANC_PUBLIC void FinalizeFramework();
+}
+
+
+#endif /* __ORTHANC_FRAMEWORK_H */

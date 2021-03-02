@@ -1,6 +1,646 @@
 Pending changes in the mainline
 ===============================
 
+
+Version 1.9.1 (2021-02-25)
+==========================
+
+General
+-------
+
+* The "dicom-as-json" attachments are not explicitly stored anymore to improve performance
+* If the storage area doesn't support range reading, or if "StorageCompression"
+  is enabled, a new type of attachment "dicom-until-pixel-data" is generated
+* New metadata automatically computed at the instance level: "PixelDataOffset"
+* New configuration option related to networking:
+  - "Timeout" in "DicomModalities" to set DICOM SCU timeout on a per-modality basis
+  - "Timeout" in "OrthancPeers" to set HTTP client timeout on a per-peer basis
+
+REST API
+--------
+
+* API version upgraded to 11
+* BREAKING CHANGES:
+  - External applications should not call "/instances/.../attachments/dicom-as-json" anymore,
+    and should use "/instances/.../tags" instead
+  - "/instances/.../tags" route does not report the tags after "Pixel Data" (7fe0,0010) anymore
+* "/peers/{id}/store-straight": Synchronously send the DICOM instance in POST body to the peer
+* New arguments in the REST API:
+  - "Timeout" in "/modalities/.../query"
+  - "Timeout" in "/modalities/.../storage-commitment"
+  - "Timeout" in "/queries/.../answers/.../query-{studies|series|instances}"
+  
+Plugins
+-------
+
+* New value in enumeration: OrthancPluginDicomToJsonFlags_StopAfterPixelData
+* New value in enumeration: OrthancPluginDicomToJsonFlags_SkipGroupLengths
+
+Maintenance
+-----------
+
+* Improved precision of floating-point numbers in DICOM-as-JSON and DICOM summary
+* Optimization in C-STORE SCP by avoiding an unnecessary DICOM parsing
+* Fix build on big-endian architectures
+* Handle public tags with "UN" value representation and containing a string (cf. DICOM CP 246)
+* The numbering of sequences in Orthanc Explorer now uses the DICOM convention (starts at 1)
+* Possibility to generate a static library containing the Orthanc Framework
+
+
+Version 1.9.0 (2021-01-29)
+==========================
+
+General
+-------
+
+* Support of DICOM TLS
+* New configuration options related to DICOM networking:
+  - "DicomTlsEnabled" to enable DICOM TLS in Orthanc SCP
+  - "DicomTlsCertificate" to provide the TLS certificate to be used in both Orthanc SCU and SCP
+  - "DicomTlsPrivateKey" to provide the private key of the TLS certificate
+  - "DicomTlsTrustedCertificates" to provide the list of TLS certificates to be trusted by Orthanc
+  - "UseDicomTls" in "DicomModalities" to enable DICOM TLS in outgoing SCU on a per-modality basis
+  - "MaximumPduLength" to tune the maximum PDU length (Protocol Data Unit)
+  - "LocalAet" in "DicomModalities" to overwrite global "DicomAet" for SCU on a per-modality basis
+  - "AcceptedTransferSyntaxes" to set the transfer syntax UIDs accepted by Orthanc C-STORE SCP
+  - "H265TransferSyntaxAccepted" to enable/disable all the transfer syntaxes related to H.265
+  - "DicomAlwaysAllowFind" to disable verification of the remote modality in C-FIND SCP
+  - "DicomAlwaysAllowGet" to disable verification of the remote modality in C-GET SCP
+* New configuration option: "DicomScuPreferredTransferSyntax" to control transcoding in C-STORE SCU
+* New command-line option: "--openapi" to write the OpenAPI documentation of the REST API to a file
+* New metadata automatically computed at the series level: "RemoteAET"
+
+Orthanc Explorer
+----------------
+
+* The DICOM meta-header and the transfer syntax are displayed at the "Instance" level
+
+REST API
+--------
+
+* API version upgraded to 10
+* "/tools/accepted-transfer-syntaxes": Get/set transfer syntaxes accepted by Orthanc C-STORE SCP
+* "/tools/unknown-sop-class-accepted": Get/set whether C-STORE SCP accepts unknown SOP class UID
+* "/modalities/{...}/query": New string argument "LocalAet"
+* "/tools/create-dicom": New flag "Force" to bypass consistency checks for the DICOM tags
+
+Lua
+---
+
+* BREAKING CHANGE: All the Lua callbacks "IsXXXTransferSyntaxAccepted()" and
+  "IsUnknownSopClassAccepted()" have been removed
+
+Plugins
+-------
+
+* New functions in the SDK:
+  - OrthancPluginCreateMemoryBuffer64()
+  - OrthancPluginRegisterStorageArea2()
+  - OrthancPluginCreateDicom2()
+
+Maintenance
+-----------
+
+* Refactoring and improvements to the cache of DICOM files (it can now hold many files)
+* New Prometheus metrics "orthanc_dicom_cache_count" and "orthanc_dicom_cache_size"
+* Fix upload of multiple DICOM files using one single POST call to "multipart/form-data"
+  Could be the final resolution of issue #21 (DICOM files missing after uploading with Firefox)
+* Partial fix of issue #48 (Windows service not stopped properly), cf. comments 4 and 5
+* Explicitly use little-endian to encode uncompressed file size with zlib compression
+* Upgraded dependencies for static builds (notably on Windows):
+  - dcmtk 3.6.6
+  - jsoncpp 1.9.4
+
+
+Version 1.8.2 (2020-12-18)
+==========================
+
+General
+-------
+
+* ZIP archives containing DICOM files can be uploaded using WebDAV
+* New config option "MallocArenaMax" to control memory usage on GNU/Linux
+* Explicit error log if trying to load a 32bit (resp. 64bit) plugin into
+  a 64bit (resp. 32bit) version of Orthanc
+* New configuration options contributed by Varian Medical Systems:
+  - "DeidentifyLogs" to remove patient identification from the logs (C-GET, C-MOVE, C-FIND)
+  - "DeidentifyLogsDicomVersion" to specify the deidentification rules for the logs
+  - "OrthancExplorerEnabled" to enable/disable the Orthanc Explorer Web user interface
+  - "SslMinimumProtocolVersion" to set the minimal SSL protocol version (now defaults to SSL 1.2)
+  - "SslCiphersAccepted" to set the accepted ciphers over SSL (now defaults to FIPS 140-2)
+* New configuration options related to ingest transcoding:
+  - "IngestTranscodingOfUncompressed" to control whether uncompressed transfer syntaxes are transcoded
+  - "IngestTranscodingOfCompressed" to control whether compressed transfer syntaxes are transcoded
+
+REST API
+--------
+
+* "/instances" can be used to import ZIP archives provided in the POST body
+
+Maintenance
+-----------
+
+* Allow concurrency on the OrthancPluginRegisterIncomingHttpRequestFilter() callbacks
+* Allow empty request body in "/modalities/{id}/echo"
+* If meta-header is missing, best-effort to extract "TransferSyntax" in "/instances/{id}/metadata"
+
+
+Version 1.8.1 (2020-12-07)
+==========================
+
+General
+-------
+
+* New sample tool "OrthancImport.py" to easily import compressed archives (ZIP) into Orthanc
+* Logging categories (cf. command-line options starting with "--verbose-" and "--trace=")
+* New command-line option "--trace-dicom" to access full debug information from DCMTK
+* New config option "DicomEchoChecksFind" to automatically complement C-GET SCU with C-FIND SCU
+
+REST API
+--------
+
+* API version upgraded to 9
+* "/tools/dicom-echo": Execute C-Echo SCU to a modality that is not registered in "/modalities"
+* "/tools/log-level-*": Dynamically access and/or change the verbosity of logging categories
+* "/peers/{id}/configuration": Get the configuration of one peer (cf. "/peers?expand")
+* "/modalities/{id}/configuration": Get the configuration of one modality (cf. "/modalities?expand")
+* "/tools/dicom-echo" and "/modalities/{id}/echo" now accept the field "CheckFind" in their JSON
+  body to complement C-GET SCU with C-FIND SCU ("DicomEchoChecksFind" on a per-connection basis)
+* Archive/media jobs report the size of the created ZIP file in content field "ArchiveSizeMB"
+
+Plugins
+-------
+
+* New function in the SDK: OrthancPluginGenerateRestApiAuthorizationToken()
+
+Maintenance
+-----------
+
+* C-GET SCP: Fix responses and handling of cancel
+* Fix decoding sequence if "BuiltinDecoderTranscoderOrder" is "Before"
+* Fix keep-alive in the embedded HTTP server by setting the "Keep-Alive" HTTP header
+* Fix access to videos as a single raw frame (feature broken since Orthanc 1.6.0)
+* REST API now returns 404 error if deleting an inexistent peer or modality
+* Improved forward ABI compatibility of Orthanc Framework (notably, no inline methods anymore)
+* Upgraded dependencies for static builds (notably on Windows and LSB):
+  - civetweb 1.13
+
+
+Version 1.8.0 (2020-10-16)
+==========================
+
+General
+-------
+
+* Serving the content of Orthanc as a WebDAV network share
+* New config options: "WebDavEnabled", "WebDavDeleteAllowed" and "WebDavUploadAllowed"
+
+Plugins
+-------
+
+* New available origin for a DICOM instance: "OrthancPluginInstanceOrigin_WebDav"
+
+
+Version 1.7.4 (2020-09-18)
+==========================
+
+General
+-------
+
+* New configuration options to enable HTTP peers identification through certificates:
+  "SslVerifyPeers" and "SslTrustedClientCertificates"
+* New configuration option "SyncStorageArea" to immediately commit the files onto the disk
+  (through fsync()), so as to avoid discrepencies between DB and filesystem in case of hard
+  shutdown of the machine running Orthanc. This slows down adding new files into Orthanc.
+
+Maintenance
+-----------
+
+* Underscores are now allowed in peers/modalities symbolic names
+* Fix compatibility with C-MOVE SCU requests issued by Ambra
+* Fix transcoding in C-MOVE SCP, in the case where "SynchronousCMove" is "true"
+* When checking DICOM allowed methods, if there are multiple modalities with the same AET, 
+  differentiate them from the calling IP
+* Enable the access to raw frames in Philips ELSCINT1 proprietary compression
+* Support empty key passwords when using HTTP client certificates
+* Fix handling of "ModalitiesInStudy" (0008,0061) in C-FIND and "/tools/find"
+
+
+Version 1.7.3 (2020-08-24)
+==========================
+
+REST API
+--------
+
+* API version upgraded to 8
+* "/peers/{id}/store": New option "Compress" to compress DICOM data using gzip
+* "OrthancPeerStore" jobs now report the transmitted size in their public content
+
+Plugins
+-------
+
+* New config option "Worklist.LimitAnswers" for the sample modality worklist plugin
+
+Maintenance
+-----------
+
+* Add missing tag "Retrieve AE Title (0008,0054)" in C-FIND SCP responses
+* Fix DICOM SCP filters if some query tag has > 256 characters (list of UIDs matching)
+* "/series/.../ordered-slices" supports spaces in Image Position/Orientation Patient tags
+* Fix possible crash in HttpClient if sending multipart body (can occur in STOW-RS)
+* Support receiving multipart messages larger than 2GB in the embedded HTTP server
+
+
+Version 1.7.2 (2020-07-08)
+==========================
+
+General
+-------
+
+* C-FIND SCP now returns private tags (cf. option "DefaultPrivateCreator")
+* Packaging of the Orthanc framework as a shared library
+
+Plugins
+-------
+
+* New change types in the SDK: JobSubmitted, JobSuccess, JobFailure
+
+Maintenance
+-----------
+
+* Issue #182: Better reporting of errors in plugins reading chunked HTTP body
+* Fix issue #183 (C-ECHO always fails in Orthanc Explorer, regression from 1.6.1 to 1.7.0)
+
+
+Version 1.7.1 (2020-05-27)
+==========================
+
+* Fix decoding of DICOM images for plugins (for compatibility with
+  Orthanc Web Viewer 2.6)
+
+
+Version 1.7.0 (2020-05-22)
+==========================
+
+General
+-------
+
+* Support of DICOM C-GET SCP (contribution by Varian Medical Systems)
+* DICOM transcoding over the REST API
+* Transcoding from compressed to uncompressed transfer syntaxes over DICOM
+  C-STORE SCU (if the remote modality doesn't support compressed syntaxes)
+* New configuration options related to transcoding:
+  "TranscodeDicomProtocol", "BuiltinDecoderTranscoderOrder",
+  "IngestTranscoding" and "DicomLossyTranscodingQuality"
+
+REST API
+--------
+
+* API version upgraded to 7
+* Improved:
+  - "/instances/../modify": it is now possible to "Keep" the "SOPInstanceUID".  
+    Note that it was already possible to "Replace" it.
+  - added "Timeout" parameter to every DICOM operation
+  - "/queries/.../answers/../retrieve": "TargetAet" not mandatory anymore
+    (defaults to the local AET)
+* Changes:
+  - "/{patients|studies|series}/.../modify": New option "KeepSource"
+  - "/{patients|studies|series|instances}/.../modify": New option "Transcode"
+  - "/peers/{id}/store": New option "Transcode"
+  - ".../archive", ".../media", "/tools/create-media" and
+    "/tools/create-archive": New option "Transcode"
+  - "/ordered-slices": reverted the change introduced in 1.5.8 and go-back 
+    to 1.5.7 behaviour.
+
+Plugins
+-------
+
+* New functions in the SDK:
+  - OrthancPluginCreateDicomInstance()
+  - OrthancPluginCreateMemoryBuffer()
+  - OrthancPluginEncodeDicomWebJson2()
+  - OrthancPluginEncodeDicomWebXml2()
+  - OrthancPluginFreeDicomInstance()
+  - OrthancPluginGetInstanceAdvancedJson()
+  - OrthancPluginGetInstanceDecodedFrame()
+  - OrthancPluginGetInstanceDicomWebJson()
+  - OrthancPluginGetInstanceDicomWebXml()
+  - OrthancPluginGetInstanceFramesCount()
+  - OrthancPluginGetInstanceRawFrame()
+  - OrthancPluginRegisterTranscoderCallback()
+  - OrthancPluginSerializeDicomInstance()
+  - OrthancPluginTranscodeDicomInstance()
+* "OrthancPluginDicomInstance" structure wrapped in "OrthancPluginCppWrapper.h"
+* Allow concurrent calls to the custom image decoders provided by the plugins
+
+Maintenance
+-----------
+
+* Moved the GDCM sample plugin out of the Orthanc repository as a separate plugin
+* Fix missing body in "OrthancPluginHttpPost()" and "OrthancPluginHttpPut()"
+* Fix issue #169 (TransferSyntaxUID change from Explicit to Implicit during C-STORE SCU)
+* Fix issue #179 (deadlock in Python plugins)
+* Upgraded dependencies for static builds (notably on Windows and LSB):
+  - openssl 1.1.1g
+
+
+Version 1.6.1 (2020-04-21)
+==========================
+
+REST API
+--------
+
+* API version has been upgraded to 6
+* Added:
+  - "/modalities/{id}/store-straight": Synchronously send the DICOM instance in POST
+    body to another modality (alternative to command-line tools such as "storescu")
+
+Plugins
+-------
+
+* New functions in the SDK:
+  - OrthancPluginRegisterIncomingDicomInstanceFilter()
+  - OrthancPluginGetInstanceTransferSyntaxUid()
+  - OrthancPluginHasInstancePixelData()
+
+Lua
+---
+
+* New "info" field in "ReceivedInstanceFilter()" callback, containing
+  "HasPixelData" and "TransferSyntaxUID" information
+
+Maintenance
+-----------
+
+* Source code repository moved from BitBucket to self-hosted server
+* Fix OpenSSL initialization on Linux Standard Base
+* Fix lookup form in Orthanc Explorer (wildcards not allowed in StudyDate)
+* Fix signature of "OrthancPluginRegisterStorageCommitmentScpCallback()" in plugins SDK
+* Error reporting on failure while initializing SSL
+* Fix unit test ParsedDicomFile.ToJsonFlags2 on big-endian architectures
+* Avoid one memcpy of the DICOM buffer on "POST /instances"
+* Upgraded dependencies for static builds (notably on Windows):
+  - civetweb 1.12
+  - openssl 1.1.1f
+
+
+Version 1.6.0 (2020-03-18)
+==========================
+
+General
+-------
+
+* Support of DICOM storage commitment
+
+REST API
+--------
+
+* API version has been upgraded to 5
+* Added:
+  - "/peers/{id}/system": Test the connectivity with a remote peer
+    (and also retrieve its version number)
+  - "/tools/log-level": Access and/or change the log level without restarting Orthanc
+  - "/instances/{id}/frames/{frame}/rendered" and "/instances/{id}/rendered":
+    Render frames, taking windowing and resizing into account
+  - "/modalities/{...}/storage-commitment": Trigger storage commitment SCU
+  - "/storage-commitment/{...}": Access storage commitment reports
+  - "/storage-commitment/{...}/remove": Remove instances from storage commitment reports
+* Improved:
+  - "/changes": Allow the "limit" argument to be greater than 100
+  - "/instances": Support "Content-Encoding: gzip" to upload gzip-compressed DICOM files
+  - ".../modify" and "/tools/create-dicom": New option "PrivateCreator" for private tags
+  - "/modalities/{...}/store": New Boolean argument "StorageCommitment"
+
+Plugins
+-------
+
+* New sample plugin: "ConnectivityChecks"
+* New primitives to handle storage commitment SCP by plugins
+
+Lua
+---
+
+* New events:
+  - "OnDeletedPatient", "OnDeletedStudy", "OnDeletedSeries", "OnDeletedInstance":
+    triggered when a resource is deleted
+  - "OnUpdatedPatient", "OnUpdatedStudy", "OnUpdatedSeries", "OnUpdatedInstance":
+    triggered when an attachment or a metadata is updated
+
+Maintenance
+-----------
+
+* New configuration options: "DefaultPrivateCreator" and "StorageCommitmentReportsSize"
+* Support of MPEG4 transfer syntaxes in C-Store SCP
+* C-FIND SCU at Instance level now sets the 0008,0052 tag to IMAGE per default (was INSTANCE).
+  Therefore, the "ClearCanvas" and "Dcm4Chee" modality manufacturer have now been deprecated.
+* More strict C-FIND SCP wrt. the DICOM standard: Forbid wildcard
+  matching on some VRs, ignore main tags below the queried level
+* Fix issue #65 (Logging improvements)
+* Fix issue #103 ("queries/.../retrieve" API returns HTTP code 200 even on server errors)
+* Fix issue #140 (Modifying private tags with REST API changes VR from LO to UN)
+* Fix issue #154 (Matching against list of UID-s by C-MOVE)
+* Fix issue #156 (Chunked Dicom-web transfer uses 100% CPU)
+* Fix issue #165 (Boundary parameter in multipart Content-Type is too long)
+* Fix issue #166 (CMake find_boost version is now broken with newer boost/cmake)
+* Fix issue #167 (Job can't be cancelled - Handling of timeouts after established association)
+* Fix issue #168 (Plugins can't read private tags from the configuration file)
+* Upgraded dependencies for static builds (notably on Windows):
+  - dcmtk 3.6.5
+  - openssl 1.1.1d
+  - jsoncpp 0.10.7 for pre-C++11 compilers
+
+
+Version 1.5.8 (2019-10-16)
+==========================
+
+REST API
+--------
+
+* API version has been upgraded to 4
+* In /ordered-slices route, ignore instances without position/normal/seriesIndex,
+  unless there are only such instances in the series
+
+Maintenance
+-----------
+
+* Security: If remote access is enabled, HTTP authentication is also
+  enabled by default. This modification was done to mitigate security
+  risks reported by independant security researcher Amitay Dan.
+* Security: New configuration option "ExecuteLuaEnabled" to allow "/tools/execute-script"
+* New configuration option: "HttpRequestTimeout"
+* Log an explicit error if uploading an empty DICOM file using REST API
+* Name of temporary files now include the process ID to ease design of scripts cleaning /tmp
+* Fix compatibility of LSB binaries with Ubuntu >= 18.04
+* Fix generation of "SOP Instance UID" on split and merge
+* Orthanc Explorer: include the URL search params into HTTP headers to
+  the REST API to ease usage of the Authorization plugin. Note that
+  only the 'token', 'auth-token' & 'authorization' search params are
+  transmitted into HTTP headers.
+* Fix lost relationships between CT and RT-STRUCT during anonymization
+
+
+Version 1.5.7 (2019-06-25)
+==========================
+
+REST API
+--------
+
+* API version has been upgraded to 3
+* "/modalities/{id}/query": New argument "Normalize" can be set to "false"
+  to bypass the automated correction of outgoing C-FIND queries
+* Reporting of "ParentResources" in "DicomModalityStore" and "DicomModalityStore" jobs
+
+Plugins
+-------
+
+* New functions in the SDK:
+  - OrthancPluginHttpClientChunkedBody(): HTTP client for POST/PUT with a chunked body
+  - OrthancPluginRegisterMultipartRestCallback(): HTTP server for POST/PUT with multipart body
+  - OrthancPluginGetTagName(): Retrieve the name of a DICOM tag from its group and element
+
+Maintenance
+-----------
+
+* Orthanc now accepts "-H 'Transfer-Encoding: chunked'" option from curl
+* Size of the Orthanc static binaries are reduced by compressing ICU data
+* Anonymization: Preserve hierarchical relationships in (0008,1115) [] (0020,000e)
+* Allow the serialization of signed 16bpp images in PAM format
+* HTTP header "Accept-Encoding" is honored for streams without built-in support for compression
+* The default HTTP timeout is now 60 seconds (instead of 10 seconds in previous versions)
+* Allow anonymizing/modifying instances without the PatientID tag
+* Fix issue #106 (Unable to export preview as jpeg from Lua script)
+* Fix issue #136 (C-FIND request fails when found DICOM file does not have certain tags)
+* Fix issue #137 (C-STORE fails for unknown SOP Class although server is configured to accept any)
+* Fix issue #138 (POST to modalities/{name} accepts invalid characters)
+* Fix issue #141 (/tools/create-dicom removes non-ASCII characters from study description)
+
+
+Version 1.5.6 (2019-03-01)
+==========================
+
+Orthanc Explorer
+----------------
+
+* If performing a Query/Retrieve operation, the default value for the
+  tags is set to an empty string instead of '*', which allows one to match
+  even if the tag is not present. This allows malformed DICOM files to
+  be matched, even though they lack required tags such as "PatientSex"
+
+Maintenance
+-----------
+
+* Enlarge the support of JSON-to-XML conversion in the REST API
+* Fix missing DB transactions in some write operations
+* Fix performance issue in DICOM protocol by disabling Nagle's algorithm
+
+
+Version 1.5.5 (2019-02-25)
+==========================
+
+General
+-------
+
+* Support of the following multi-byte specific character sets:
+  - Japanese Kanji (ISO 2022 IR 87)
+  - Korean (ISO 2022 IR 149)
+  - Simplified Chinese (ISO 2022 IR 58)
+* Basic support for character sets with code extensions (ISO 2022 escape sequences)
+
+REST API
+--------
+
+* API version has been upgraded to 2
+* "DicomMoveScu" jobs provide the associated C-FIND answer in their "Query" public field
+
+Plugins
+-------
+
+* Separation of ideographic and phonetic characters in DICOMweb JSON and XML
+
+Maintenance
+-----------
+
+* Accept SOP classes: BreastProjectionXRayImageStorageForProcessing/Presentation
+* More tolerance wrt. missing DICOM tags that must be returned by Orthanc C-FIND SCP
+* Orthanc now interprets the "DCMDICTPATH" environment variable the same way as DCMTK
+* New CMake option: "-DMSVC_MULTIPLE_PROCESSES=ON" for parallel build with Visual Studio
+* Fix issue #126 (Orthanc and DCMDICTPATH)
+* Fix issue #131 (C-MOVE failure due to duplicate StudyInstanceUID in the database)
+* Fix issue #134 (/patient/modify gives 500, should really be 400)
+* Upgraded dependencies for static builds (notably on Windows):
+  - boost 1.69.0
+  - curl 1.64.0
+  - dcmtk 3.6.4
+  - e2fsprogs 1.44.5 (libuuid)
+  - googletest 1.8.1
+  - libjpeg 9c
+  - libpng 1.6.36
+  - openssl 1.0.2p
+  - pugixml 1.9
+  - sqlite amalgamation 3.27.1
+
+
+Version 1.5.4 (2019-02-08)
+==========================
+
+General
+-------
+
+* New configuration options:
+  - "MetricsEnabled" to enable the tracking of the metrics of Orthanc
+  - "HttpThreadsCount" to set the number of threads in the embedded HTTP server
+  - "TemporaryDirectory" to set the folder containing the temporary files
+
+REST API
+--------
+
+* API version has been upgraded to 1.4
+* URI "/instances/.../file" can return DICOMweb JSON or XML, depending
+  on the content of the "Accept" HTTP header
+* New URI "/tools/metrics" to dynamically enable/disable the collection of metrics
+* New URI "/tools/metrics-prometheus" to retrieve metrics using Prometheus text format
+* URI "/peers?expand" provides more information about the peers
+
+Plugins
+-------
+
+* New functions in the SDK:
+  - OrthancPluginSetMetricsValue() to set the value of a metrics
+  - OrthancPluginRegisterRefreshMetricsCallback() to ask to refresh metrics
+  - OrthancPluginEncodeDicomWebJson() to convert DICOM to "application/dicom+json"
+  - OrthancPluginEncodeDicomWebXml() to convert DICOM to "application/dicom+xml"
+* New extensions in the database SDK: LookupResourceAndParent and GetAllMetadata
+
+Maintenance
+-----------
+
+* Fix regression if calling "/tools/find" with the tag "ModalitiesInStudy"
+* Fix build with unpatched versions of Civetweb (missing "mg_disable_keep_alive()")
+* Fix issue #130 (Orthanc failed to start when /tmp partition was full)
+
+
+Version 1.5.3 (2019-01-25)
+==========================
+
+General
+-------
+
+* New configuration option: "SaveJobs" to specify whether jobs are stored in the database
+
+Maintenance
+-----------
+
+* Don't return tags whose group is below 0x0008 in C-FIND SCP answers
+* Fix compatibility with DICOMweb plugin (allow multipart answers over HTTP Keep-Alive)
+* Fix issue #73 (/modalities/{modalityId}/store raises 500 errors instead of 404)
+* Fix issue #90 (C-Find shall match missing tags to null/empty string)
+* Fix issue #119 (/patients/.../archive returns a 500 when JobsHistorySize is 0)
+* Fix issue #128 (Asynchronous C-MOVE: invalid number of remaining sub-operations)
+
+
+Version 1.5.2 (2019-01-18)
+==========================
+
 General
 -------
 
@@ -10,6 +650,7 @@ General
 REST API
 --------
 
+* API version has been upgraded to 1.3
 * More consistent handling of the "Last" field returned by the "/changes" URI
 
 Plugins
@@ -20,7 +661,7 @@ Plugins
 Maintenance
 -----------
 
-* Don't consider tags whose group is below 0x0008 in C-FIND SCP
+* Ignore tags whose group is below 0x0008 in C-FIND SCP requests
 * Compatibility with DCMTK 3.6.4
 * Fix issue #21 (DICOM files missing after uploading with Firefox)
 * Fix issue #32 (HTTP keep-alive is now enabled by default)
@@ -72,7 +713,7 @@ Orthanc Explorer
 REST API
 --------
 
-* API Version has been upgraded to 1.2
+* API version has been upgraded to 1.2
 * Asynchronous generation of ZIP archives and DICOM medias
 * New URI: "/studies/.../merge" to merge a study
 * New URI: "/studies/.../split" to split a study
@@ -117,7 +758,7 @@ Version 1.4.2 (2018-09-20)
 General
 -------
 
-* "OrthancPeers" configuration option now allows to specify HTTP headers
+* "OrthancPeers" configuration option now allows one to specify HTTP headers
 * New main DICOM tag: "ImageOrientationPatient" at the instance level
 * New configuration options:
   - "HttpVerbose" to debug outgoing HTTP connections

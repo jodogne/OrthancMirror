@@ -1,0 +1,54 @@
+--- /home/jodogne/Subversion/Orthanc/ThirdPartyDownloads/mongoose/mongoose.c	2012-03-11 23:41:35.000000000 +0100
++++ mongoose.c	2013-03-07 10:07:00.566266153 +0100
+@@ -92,8 +92,9 @@
+ #define strtoll(x, y, z) strtol(x, y, z)
+ #else
+ #define __func__  __FUNCTION__
+-#define strtoull(x, y, z) _strtoui64(x, y, z)
+-#define strtoll(x, y, z) _strtoi64(x, y, z)
++#include <stdlib.h>
++//#define strtoull(x, y, z) _strtoui64(x, y, z)
++//#define strtoll(x, y, z) _strtoi64(x, y, z)
+ #endif // _MSC_VER
+ 
+ #define ERRNO   GetLastError()
+@@ -253,6 +254,14 @@
+ #define MSG_NOSIGNAL 0
+ #endif
+ 
++#if __gnu_hurd__ == 1
++/**
++ * There is no limit on the length on a path under GNU Hurd, so we set
++ * it to an arbitrary constant.
++ **/
++#define PATH_MAX 4096
++#endif
++
+ typedef void * (*mg_thread_func_t)(void *);
+ 
+ static const char *http_500_error = "Internal Server Error";
+@@ -3844,10 +3853,8 @@
+ }
+ 
+ static void discard_current_request_from_buffer(struct mg_connection *conn) {
+-  char *buffered;
+   int buffered_len, body_len;
+ 
+-  buffered = conn->buf + conn->request_len;
+   buffered_len = conn->data_len - conn->request_len;
+   assert(buffered_len >= 0);
+ 
+@@ -4148,7 +4155,13 @@
+ 
+   // Wait until mg_fini() stops
+   while (ctx->stop_flag != 2) {
++#if defined(__linux__)
++    usleep(100000);
++#elif defined(_WIN32)
++    Sleep(100);
++#else
+     (void) sleep(0);
++#endif
+   }
+   free_context(ctx);
+ 

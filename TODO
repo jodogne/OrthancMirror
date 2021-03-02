@@ -2,9 +2,6 @@
 === Orthanc Roadmap ===
 =======================
 
-The wishlist from Orthanc users is available on Trello:
-https://trello.com/b/gcn33tDM/orthanc-wishlist
-
 
 =======
 General
@@ -12,7 +9,6 @@ General
 
 * Configure an user-defined site UID root if generating DICOM UIDs
   ("FromDcmtkBridge::GenerateUuid()")
-* Support "/preview" and "/matlab" for LUT color images
 * Improve handling of errors in the command queue:
   https://groups.google.com/d/msg/orthanc-users/--njEbqcDDI/rBu8XL-Mm-cJ
 * Support partial file retrieval in Orthanc::HttpClient
@@ -20,35 +16,26 @@ General
 * Option to enable DNS lookups in DICOM: https://goo.gl/woa35Z
 
 
-============
-Dependencies
-============
-
-* Switch from libiconv to libICU (http://site.icu-project.org/download),
-  as recommended by Boost:
-  http://www.boost.org/doc/libs/1_64_0/libs/locale/doc/html/building_boost_locale.html
-
-
-=============
-Documentation
-=============
-
-* Document REST API with Swagger/OpenAPI
-
-
 ========
 REST API
 ========
 
-----------
-Short-term
-----------
+--------
+Mid-term
+--------
 
+* Archive jobs: Resume downloads using "range requests":
+  https://developer.mozilla.org/en-US/docs/Web/HTTP/Range_requests
+* Create DICOM from DICOMweb JSON ("application/dicom+json")
+  with "/tools/create-dicom"
 * Create multi-frame images with /tools/create-dicom (by adding a
   "MultiFrame" flag to avoid creating a series)
-* In the /studies/{id}/anonymize route, add an option to remove secondary captures.
-  They usually contains Patient info in the image.  The SOPClassUID might be used to
-  identify such secondary captures.
+* Specify the transfer syntax in /tools/create-dicom
+* In the /studies/{id}/anonymize route, add an option to remove
+  secondary captures.  They usually contains Patient info in the
+  image. The SOPClassUID might be used to identify such secondary
+  captures.
+* Support "/preview" and "/matlab" for LUT color images
 
 ---------
 Long-term
@@ -63,24 +50,51 @@ Long-term
 DICOM
 =====
 
-----------
-Short-term
-----------
+--------
+Mid-term
+--------
 
-* Support C-GET: 
-  http://dclunie.blogspot.be/2016/05/to-c-move-is-human-to-c-get-divine.html
+* Support C-GET SCU (note that C-GET SCP was introduced in Orthanc 1.7.0)
+* Support "Retrieve AE Title" (0008,0054) in C-FIND:
+  - On SCP side: done by https://hg.orthanc-server.com/orthanc/rev/1ec3e1e18f50
+  - On SCU side:
+    https://groups.google.com/d/msg/orthanc-users/wPl0g5mqZco/5X1Z8tEzBgAJ
+* Support "Instance Availability" (0008,0056) in C-FIND:
+  http://dicom.nema.org/medical/DICOM/2019a/output/chtml/part04/sect_C.4.html#sect_C.4.1.1.3.2
+  https://groups.google.com/d/msg/orthanc-users/hteDgE6igo8/j-ArqD7pBQAJ
 * Check Big Endian transfer syntax in ParsedDicomFile::EmbedImage and
   DicomImageDecoder
+* Strict hierarchical C-FIND:
+  https://groups.google.com/d/msg/orthanc-users/VBHpeGVSNKM/tkaVvjWFBwAJ
 
 ---------
 Long-term
 ---------
 
-* Support DICOM TLS (cf. "--enable-tls" in storescp)
-* Support Storage Commitment:
-  https://groups.google.com/forum/#!msg/orthanc-users/VZOn8St65jw/s8kg_OHesj0J
 * Support extended association:
   https://groups.google.com/d/msg/orthanc-users/xD4d3mpc6ms/srF7E2goAAAJ
+* Support C-MOVE-CANCEL:
+  https://groups.google.com/d/msg/orthanc-users/KnduYBFd06A/o86cl5SeCAAJ
+
+--------------------
+Internationalization
+--------------------
+
+* Support multiple specific character sets (cf. "SCSH32" in orthanc-tests)
+  - http://dicom.nema.org/medical/dicom/current/output/chtml/part03/sect_C.12.html#sect_C.12.1.1.2
+  - Japanese test: http://dicom.nema.org/MEDICAL/dicom/2017c/output/chtml/part05/sect_H.3.2.html
+* Support Supplementary Kanji set (ISO 2022 IR 159)
+* Create DICOM files with multibyte encodings (Korean, JapaneseKanji, SimplifiedChinese)
+
+
+===========
+Performance
+===========
+
+* ServerContext::DicomCacheLocker => give access to the raw buffer,
+  useful in ServerContext::DecodeDicomInstance()
+* DicomMap: create a cache to the main DICOM tags index
+* Check out rapidjson: https://github.com/miloyip/nativejson-benchmark
 
 
 =======
@@ -91,10 +105,16 @@ Plugins
 SDK
 ---
 
-* Image transcoding API
+* Implement PluginsJob::GetOutput() to allow user-defined jobs to provide output:
+  https://groups.google.com/g/orthanc-users/c/GZ7u0bTTVoo/m/Z7iTNTi2BgAJ
 * Add plugins for normalized operations (notably so as to support
   Print SCU/SCP):
-  https://www.medicalconnections.co.uk/kb/DICOM_Print_Service
+  https://web.archive.org/web/20170923150432/https://www.medicalconnections.co.uk/kb/DICOM_Print_Service
+* Provide access to the Orthanc::DicomUserConnection class in plugins:
+  https://groups.google.com/d/msg/orthanc-users/ycDA1xPuTRY/nsT2_GOtEgAJ
+* Provide a C++ callback similar to "ReceivedInstanceFilter()" in Lua
+  https://book.orthanc-server.com/users/lua.html#filtering-incoming-dicom-instances
+  https://groups.google.com/d/msg/orthanc-users/BtvLTE5Ni8A/vIMhmMgfBAAJ
 
 ----------------
 Ideas of plugins
@@ -109,6 +129,7 @@ Ideas of plugins
   https://groups.google.com/d/msg/orthanc-users/_FbiRHuXPGM/J-OAv7zaCAAJ
 * Authorization plugin for the DICOM protocol:
   https://groups.google.com/d/msg/orthanc-users/Wv-QEwTE0IA/rvJxoOjcAQAJ
+* Configuration interface plugin
 
 
 ===
@@ -121,11 +142,6 @@ Lua
   https://groups.google.com/forum/#!msg/orthanc-users/WNnW187OILM/6XX_bm96BwAJ
 
 
-===========
-Performance
-===========
-
-
 ================
 Code refactoring
 ================
@@ -135,6 +151,7 @@ Code refactoring
 * Avoid direct calls to FromDcmtkBridge (make most of its 
   methods private), go through ParsedDicomFile wherever possible
 
+
 =================
 Platform-specific
 =================
@@ -143,7 +160,7 @@ Platform-specific
 Packaging
 ---------
 
-* CentOS and RHEL through EPEL:
+* RHEL through EPEL (as of 2021, CentOS seems to be over):
   http://fedoraproject.org/wiki/EPEL_Package_Maintainers
 
 ------------------------
@@ -161,9 +178,28 @@ Microsoft Windows
   system locale)
 
 
-=====================
+====
+Misc
+====
+
+-----
+Legal
+-----
+
+* Drop "OpenSSL Exception" from the Orthanc license once OpenSSL 3.0.0
+  is released, because that version will replace "OpenSSL license"
+  (incompatible with GPL) by "Apache License 2.0" (compatible with
+  GPL): https://people.gnome.org/~markmc/openssl-and-the-gpl.html
+  
+------------
+Code quality
+------------
+
+* Have a look at openQA (cf. GNU Health)
+
+---------------------
 External applications
-=====================
+---------------------
 
 * Create REST bindings with Slicer
 * Create REST bindings with Horos/OsiriX

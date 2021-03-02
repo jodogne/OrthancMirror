@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+
+    <link rel="stylesheet" href="../libs/css/bootstrap.min.css">
+
+    <title>Orthanc Connectivity checks</title>
+    <link rel="stylesheet" href="style.css" type="text/css">
+  </head>
+
+  <body>
+    <div id="app" class="container-fluid">
+      <h2>DICOM nodes</h2>
+      <table class="table">
+        <thead>
+          <tr>
+            <th scope="col">Alias</th>
+            <th scope="col">AET</th>
+            <th scope="col">Host</th>
+            <th scope="col">Port</th>
+            <th scope="col">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="node in dicomNodes">
+            <th scope="row">{{node.alias}}</th>
+            <td>{{node.AET}}</td>
+            <td>{{node.Host}}</td>
+            <td>{{node.Port}}</td>
+            <td v-if="node.status=='ok'" class="connected">Connected</td>
+            <td v-if="node.status=='ko'" class="disconnected">Disconnected</td>
+            <td v-if="node.status=='testing'">
+              <div class="spinner-border" role="status">
+                <span class="sr-only">Testing...</span>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>Orthanc peers</h2>
+      <table class="table" v-if="canTestPeers">
+        <thead>
+          <tr>
+            <th scope="col">Alias</th>
+            <th scope="col">Url</th>
+            <th scope="col">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="node in peers">
+            <th scope="row">{{node.alias}}</th>
+            <td>{{node.Url}}</td>
+            <td v-if="node.status=='ok'" class="connected">Connected</td>
+            <td v-if="node.status=='ko'" class="disconnected">Disconnected</td>
+            <td v-if="node.status=='unknown'" class="unknown">
+              Can not test the peers connectivity with this version of Orthanc
+            </td>
+            <td v-if="node.status=='testing'">
+              <div class="spinner-border" role="status">
+                <span class="sr-only">Testing...</span>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>DicomWeb servers</h2>
+      <table class="table">
+        <thead>
+          <tr>
+            <th scope="col">Alias</th>
+            <th scope="col">Url</th>
+            <th scope="col">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="node in dicomWebServers">
+            <th scope="row">{{node.alias}}</th>
+            <td>{{node.Url}}</td>
+            <td v-if="node.status=='ok'" class="connected">Connected</td>
+            <td v-if="node.status=='ko'" class="disconnected">Disconnected</td>
+            <td v-if="node.status=='testing'">
+              <div class="spinner-border" role="status">
+                <span class="sr-only">Testing...</span>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <script src="../libs/js/jquery-3.4.1.min.js" type="text/javascript"></script>
+    <script src="../libs/js/bootstrap.min.js" type="text/javascript"></script>
+    <script src="../libs/js/axios.min.js" type="text/javascript"></script>
+    <script src="../libs/js/vue.min.js" type="text/javascript"></script>
+    <script src="app.js" type="text/javascript"></script>
+  </body>
+</html>

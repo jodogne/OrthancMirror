@@ -1,0 +1,152 @@
+diff -urEb dcmtk-3.6.6.orig/CMake/GenerateDCMTKConfigure.cmake dcmtk-3.6.6/CMake/GenerateDCMTKConfigure.cmake
+--- dcmtk-3.6.6.orig/CMake/GenerateDCMTKConfigure.cmake	2021-01-26 08:51:48.815071681 +0100
++++ dcmtk-3.6.6/CMake/GenerateDCMTKConfigure.cmake	2021-01-26 08:52:06.331135995 +0100
+@@ -169,6 +169,8 @@
+ endif()
+ 
+ # Check the sizes of various types
++if (NOT CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
++  # This doesn't work for wasm, Orthanc defines the macros manually
+ include (CheckTypeSize)
+ CHECK_TYPE_SIZE("char" SIZEOF_CHAR)
+ CHECK_TYPE_SIZE("double" SIZEOF_DOUBLE)
+@@ -177,6 +179,7 @@
+ CHECK_TYPE_SIZE("long" SIZEOF_LONG)
+ CHECK_TYPE_SIZE("short" SIZEOF_SHORT)
+ CHECK_TYPE_SIZE("void*" SIZEOF_VOID_P)
++endif()
+ 
+ # Check for include files, libraries, and functions
+ include("${DCMTK_CMAKE_INCLUDE}CMake/dcmtkTryCompile.cmake")
+diff -urEb dcmtk-3.6.6.orig/dcmdata/include/dcmtk/dcmdata/dcdict.h dcmtk-3.6.6/dcmdata/include/dcmtk/dcmdata/dcdict.h
+--- dcmtk-3.6.6.orig/dcmdata/include/dcmtk/dcmdata/dcdict.h	2021-01-26 08:51:48.859071844 +0100
++++ dcmtk-3.6.6/dcmdata/include/dcmtk/dcmdata/dcdict.h	2021-01-26 08:52:06.331135995 +0100
+@@ -152,6 +152,12 @@
+     /// returns an iterator to the end of the repeating tag dictionary
+     DcmDictEntryListIterator repeatingEnd() { return repDict.end(); }
+ 
++    // Function by the Orthanc project to load a dictionary from a
++    // memory buffer, which is necessary in sandboxed
++    // environments. This is an adapted version of
++    // DcmDataDictionary::loadDictionary().
++    OFBool loadFromMemory(const std::string& content, OFBool errorIfAbsent = OFTrue);
++
+ private:
+ 
+     /** private undefined assignment operator
+diff -urEb dcmtk-3.6.6.orig/dcmdata/libsrc/dcdicdir.cc dcmtk-3.6.6/dcmdata/libsrc/dcdicdir.cc
+--- dcmtk-3.6.6.orig/dcmdata/libsrc/dcdicdir.cc	2021-01-26 08:51:48.863071859 +0100
++++ dcmtk-3.6.6/dcmdata/libsrc/dcdicdir.cc	2021-01-26 08:56:03.519887982 +0100
+@@ -1032,7 +1032,14 @@
+     // insert Media Stored SOP Class UID
+     insertMediaSOPUID(metainfo);
+ 
+-    getDirFileFormat().validateMetaInfo(outxfer);
++    /**
++     * Patch for Orthanc: In DCMTK 3.6.6, the default value for the
++     * second argument changed from "EWM_fileformat" to
++     * "EWM_createNewMeta". This sets "MediaStorageSOPClassUID"
++     * (0002,0002) in meta-header to "1.2.276.0.7230010.3.1.0.1"
++     * instead of expected "1.2.840.10008.1.3.10".
++     **/
++    getDirFileFormat().validateMetaInfo(outxfer, EWM_fileformat);
+ 
+     {
+         // it is important that the cache object is destroyed before the file is renamed!
+diff -urEb dcmtk-3.6.6.orig/dcmdata/libsrc/dcdict.cc dcmtk-3.6.6/dcmdata/libsrc/dcdict.cc
+--- dcmtk-3.6.6.orig/dcmdata/libsrc/dcdict.cc	2021-01-26 08:51:48.863071859 +0100
++++ dcmtk-3.6.6/dcmdata/libsrc/dcdict.cc	2021-01-26 08:52:06.331135995 +0100
+@@ -900,3 +900,6 @@
+   wrlock().clear();
+   wrunlock();
+ }
++
++
++#include "dcdict_orthanc.cc"
+diff -urEb dcmtk-3.6.6.orig/dcmdata/libsrc/dcpxitem.cc dcmtk-3.6.6/dcmdata/libsrc/dcpxitem.cc
+--- dcmtk-3.6.6.orig/dcmdata/libsrc/dcpxitem.cc	2021-01-26 08:51:48.863071859 +0100
++++ dcmtk-3.6.6/dcmdata/libsrc/dcpxitem.cc	2021-01-26 08:52:06.335136010 +0100
+@@ -36,6 +36,9 @@
+ #include "dcmtk/dcmdata/dcostrma.h"    /* for class DcmOutputStream */
+ #include "dcmtk/dcmdata/dcwcache.h"    /* for class DcmWriteCache */
+ 
++#undef max
++#include "dcmtk/ofstd/oflimits.h"
++ 
+ 
+ // ********************************
+ 
+diff -urEb dcmtk-3.6.6.orig/oflog/include/dcmtk/oflog/thread/syncpub.h dcmtk-3.6.6/oflog/include/dcmtk/oflog/thread/syncpub.h
+--- dcmtk-3.6.6.orig/oflog/include/dcmtk/oflog/thread/syncpub.h	2021-01-26 08:51:48.847071800 +0100
++++ dcmtk-3.6.6/oflog/include/dcmtk/oflog/thread/syncpub.h	2021-01-26 08:52:06.335136010 +0100
+@@ -63,7 +63,7 @@
+ 
+ DCMTK_LOG4CPLUS_INLINE_EXPORT
+ Mutex::Mutex (Mutex::Type t)
+-    : mtx (DCMTK_LOG4CPLUS_THREADED (new impl::Mutex (t)) + 0)
++    : mtx (DCMTK_LOG4CPLUS_THREADED (new impl::Mutex (t)))
+ { }
+ 
+ 
+@@ -106,7 +106,7 @@
+ DCMTK_LOG4CPLUS_INLINE_EXPORT
+ Semaphore::Semaphore (unsigned DCMTK_LOG4CPLUS_THREADED (max),
+     unsigned DCMTK_LOG4CPLUS_THREADED (initial))
+-    : sem (DCMTK_LOG4CPLUS_THREADED (new impl::Semaphore (max, initial)) + 0)
++    : sem (DCMTK_LOG4CPLUS_THREADED (new impl::Semaphore (max, initial)))
+ { }
+ 
+ 
+@@ -148,7 +148,7 @@
+ 
+ DCMTK_LOG4CPLUS_INLINE_EXPORT
+ FairMutex::FairMutex ()
+-    : mtx (DCMTK_LOG4CPLUS_THREADED (new impl::FairMutex) + 0)
++    : mtx (DCMTK_LOG4CPLUS_THREADED (new impl::FairMutex))
+ { }
+ 
+ 
+@@ -190,7 +190,7 @@
+ 
+ DCMTK_LOG4CPLUS_INLINE_EXPORT
+ ManualResetEvent::ManualResetEvent (bool DCMTK_LOG4CPLUS_THREADED (sig))
+-    : ev (DCMTK_LOG4CPLUS_THREADED (new impl::ManualResetEvent (sig)) + 0)
++    : ev (DCMTK_LOG4CPLUS_THREADED (new impl::ManualResetEvent (sig)))
+ { }
+ 
+ 
+@@ -252,7 +252,7 @@
+ 
+ DCMTK_LOG4CPLUS_INLINE_EXPORT
+ SharedMutex::SharedMutex ()
+-    : sm (DCMTK_LOG4CPLUS_THREADED (new impl::SharedMutex) + 0)
++    : sm (DCMTK_LOG4CPLUS_THREADED (new impl::SharedMutex))
+ { }
+ 
+ 
+diff -urEb dcmtk-3.6.6.orig/oflog/libsrc/oflog.cc dcmtk-3.6.6/oflog/libsrc/oflog.cc
+--- dcmtk-3.6.6.orig/oflog/libsrc/oflog.cc	2021-01-26 08:51:48.847071800 +0100
++++ dcmtk-3.6.6/oflog/libsrc/oflog.cc	2021-01-26 08:52:06.335136010 +0100
+@@ -19,6 +19,10 @@
+  *
+  */
+ 
++#if defined(_WIN32)
++#  include <winsock2.h>
++#endif
++
+ #include "dcmtk/config/osconfig.h"    /* make sure OS specific configuration is included first */
+ #include "dcmtk/oflog/oflog.h"
+ 
+diff -urEb dcmtk-3.6.6.orig/ofstd/include/dcmtk/ofstd/offile.h dcmtk-3.6.6/ofstd/include/dcmtk/ofstd/offile.h
+--- dcmtk-3.6.6.orig/ofstd/include/dcmtk/ofstd/offile.h	2021-01-26 08:51:48.863071859 +0100
++++ dcmtk-3.6.6/ofstd/include/dcmtk/ofstd/offile.h	2021-01-26 08:52:06.335136010 +0100
+@@ -586,7 +586,7 @@
+    */
+   void setlinebuf()
+   {
+-#if defined(_WIN32) || defined(__hpux)
++#if defined(_WIN32) || defined(__hpux) || defined(__LSB_VERSION__)
+     this->setvbuf(NULL, _IOLBF, 0);
+ #else
+     :: setlinebuf(file_);
