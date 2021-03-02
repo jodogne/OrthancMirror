@@ -126,6 +126,65 @@ namespace Orthanc
   private:
     ServerIndexChange  change_;
 
+    class GetInfoOperations : public ServerIndex::IReadOnlyOperations
+    {
+    private:
+      const ServerIndexChange&            change_;
+      bool                                ok_;
+      Json::Value                         tags_;
+      std::map<MetadataType, std::string> metadata_;      
+
+    public:
+      GetInfoOperations(const ServerIndexChange& change) :
+        change_(change),
+        ok_(false)
+      {
+      }
+      
+      virtual void Apply(ServerIndex::ReadOnlyTransaction& transaction) ORTHANC_OVERRIDE
+      {
+        if (transaction.LookupResource(tags_, change_.GetPublicId(), change_.GetResourceType()))
+        {
+          transaction.GetAllMetadata(metadata_, change_.GetPublicId(), change_.GetResourceType());
+          ok_ = true;
+        }               
+      }
+
+      void CallLua(LuaScripting& that,
+                   const char* name) const
+      {
+        if (ok_)
+        {
+          Json::Value formattedMetadata = Json::objectValue;
+
+          for (std::map<MetadataType, std::string>::const_iterator 
+                 it = metadata_.begin(); it != metadata_.end(); ++it)
+          {
+            std::string key = EnumerationToString(it->first);
+            formattedMetadata[key] = it->second;
+          }      
+
+          {
+            LuaScripting::Lock lock(that);
+
+            if (lock.GetLua().IsExistingFunction(name))
+            {
+              that.InitializeJob();
+
+              LuaFunctionCall call(lock.GetLua(), name);
+              call.PushString(change_.GetPublicId());
+              call.PushJson(tags_["MainDicomTags"]);
+              call.PushJson(formattedMetadata);
+              call.Execute();
+
+              that.SubmitJob();
+            }
+          }
+        }
+      }
+    };
+    
+
   public:
     explicit StableResourceEvent(const ServerIndexChange& change) :
       change_(change)
@@ -164,39 +223,9 @@ namespace Orthanc
         }
       }
       
-      Json::Value tags;
-      
-      if (that.context_.GetIndex().LookupResource(tags, change_.GetPublicId(), change_.GetResourceType()))
-      {
-        std::map<MetadataType, std::string> metadata;
-        that.context_.GetIndex().GetAllMetadata(metadata, change_.GetPublicId(), change_.GetResourceType());
-        
-        Json::Value formattedMetadata = Json::objectValue;
-
-        for (std::map<MetadataType, std::string>::const_iterator 
-               it = metadata.begin(); it != metadata.end(); ++it)
-        {
-          std::string key = EnumerationToString(it->first);
-          formattedMetadata[key] = it->second;
-        }      
-
-        {
-          LuaScripting::Lock lock(that);
-
-          if (lock.GetLua().IsExistingFunction(name))
-          {
-            that.InitializeJob();
-
-            LuaFunctionCall call(lock.GetLua(), name);
-            call.PushString(change_.GetPublicId());
-            call.PushJson(tags["MainDicomTags"]);
-            call.PushJson(formattedMetadata);
-            call.Execute();
-
-            that.SubmitJob();
-          }
-        }
-      }
+      GetInfoOperations operations(change_);
+      that.context_.GetIndex().Apply(operations);
+      operations.CallLua(that, name);
     }
   };
 

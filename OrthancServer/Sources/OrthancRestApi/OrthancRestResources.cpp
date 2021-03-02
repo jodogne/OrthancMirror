@@ -168,10 +168,11 @@ namespace Orthanc
     {
       if (expand)
       {
-        Json::Value item;
-        if (index.LookupResource(item, *resource, level))
+        ServerIndex::ExpandResourceOperation operation(*resource, level);
+        index.Apply(operation);
+        if (operation.IsFound())
         {
-          answer.append(item);
+          answer.append(operation.GetResource());
         }
       }
       else
@@ -255,11 +256,13 @@ namespace Orthanc
         .SetHttpGetSample(GetDocumentationSampleResource(resourceType), true);
       return;
     }
-    
-    Json::Value result;
-    if (OrthancRestApi::GetIndex(call).LookupResource(result, call.GetUriComponent("id", ""), resourceType))
+
+    ServerIndex::ExpandResourceOperation operation(call.GetUriComponent("id", ""), resourceType);
+    OrthancRestApi::GetIndex(call).Apply(operation);
+
+    if (operation.IsFound())
     {
-      call.GetOutput().AnswerJson(result);
+      call.GetOutput().AnswerJson(operation.GetResource());
     }
   }
 
@@ -1414,13 +1417,36 @@ namespace Orthanc
       return;
     }
 
-    std::map<MetadataType, std::string> metadata;
-
     assert(!call.GetFullUri().empty());
-    const std::string publicId = call.GetUriComponent("id", "");
-    const ResourceType level = StringToResourceType(call.GetFullUri() [0].c_str());
 
-    OrthancRestApi::GetIndex(call).GetAllMetadata(metadata, publicId, level);
+    typedef std::map<MetadataType, std::string>  Metadata;
+
+    Metadata metadata;
+    
+    class Operation : public ServerIndex::IReadOnlyOperations
+    {
+    private:
+      Metadata&     metadata_;
+      std::string   publicId_;
+      ResourceType  level_;
+
+    public:
+      Operation(Metadata& metadata,
+                const RestApiGetCall& call) :
+        metadata_(metadata),
+        publicId_(call.GetUriComponent("id", "")),
+        level_(StringToResourceType(call.GetFullUri() [0].c_str()))        
+      {
+      }
+      
+      virtual void Apply(ServerIndex::ReadOnlyTransaction& transaction) ORTHANC_OVERRIDE
+      {
+        transaction.GetAllMetadata(metadata_, publicId_, level_);
+      }
+    };
+
+    Operation operation(metadata, call);
+    OrthancRestApi::GetIndex(call).Apply(operation);
 
     Json::Value result;
 
@@ -1428,8 +1454,7 @@ namespace Orthanc
     {
       result = Json::objectValue;
       
-      for (std::map<MetadataType, std::string>::const_iterator 
-             it = metadata.begin(); it != metadata.end(); ++it)
+      for (Metadata::const_iterator it = metadata.begin(); it != metadata.end(); ++it)
       {
         std::string key = EnumerationToString(it->first);
         result[key] = it->second;
@@ -1439,8 +1464,7 @@ namespace Orthanc
     {
       result = Json::arrayValue;
       
-      for (std::map<MetadataType, std::string>::const_iterator 
-             it = metadata.begin(); it != metadata.end(); ++it)
+      for (Metadata::const_iterator it = metadata.begin(); it != metadata.end(); ++it)
       {       
         result.append(EnumerationToString(it->first));
       }
@@ -2544,11 +2568,12 @@ namespace Orthanc
     for (std::list<std::string>::const_iterator
            it = a.begin(); it != a.end(); ++it)
     {
-      Json::Value item;
+      ServerIndex::ExpandResourceOperation operation(*it, end);
+      OrthancRestApi::GetIndex(call).Apply(operation);
 
-      if (OrthancRestApi::GetIndex(call).LookupResource(item, *it, end))
+      if (operation.IsFound())
       {
-        result.append(item);
+        result.append(operation.GetResource());
       }
     }
 
@@ -2654,10 +2679,12 @@ namespace Orthanc
 
     assert(currentType == end);
 
-    Json::Value result;
-    if (index.LookupResource(result, current, end))
+    ServerIndex::ExpandResourceOperation operation(current, end);
+    OrthancRestApi::GetIndex(call).Apply(operation);
+
+    if (operation.IsFound())
     {
-      call.GetOutput().AnswerJson(result);
+      call.GetOutput().AnswerJson(operation.GetResource());
     }
   }
 

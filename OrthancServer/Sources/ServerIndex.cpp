@@ -679,7 +679,8 @@ namespace Orthanc
     db_(db),
     maximumStorageSize_(0),
     maximumPatients_(0),
-    mainDicomTagsRegistry_(new MainDicomTagsRegistry)
+    mainDicomTagsRegistry_(new MainDicomTagsRegistry),
+    maxRetries_(0)
   {
     listener_.reset(new Listener(context));
     db_.SetListener(*listener_);
@@ -2621,5 +2622,164 @@ namespace Orthanc
     { 
       CopyListToVector(*instancesId, instancesList);
     }
+  }
+
+
+
+
+
+  /***
+   ** PROTOTYPING FOR DB REFACTORING BELOW
+   ***/
+    
+  ServerIndex::ExpandResourceOperation::ExpandResourceOperation(const std::string& resource,
+                                                                ResourceType level) :
+    found_(false),
+    resource_(resource),
+    level_(level)
+  {
+  }
+
+  
+  void ServerIndex::ExpandResourceOperation::Apply(ServerIndex::ReadOnlyTransaction& transaction)
+  {
+    found_ = transaction.LookupResource(item_, resource_, level_);
+  }
+
+  
+  const Json::Value& ServerIndex::ExpandResourceOperation::GetResource() const
+  {
+    if (found_)
+    {
+      return item_;
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+  }
+
+
+  class ServerIndex::ReadOnlyWrapper : public IReadOnlyOperations
+  {
+  private:
+    ReadOnlyFunction  func_;
+
+  public:
+    ReadOnlyWrapper(ReadOnlyFunction  func) :
+      func_(func)
+    {
+      assert(func_ != NULL);
+    }
+
+    virtual void Apply(ReadOnlyTransaction& transaction)
+    {
+      func_(transaction);
+    }
+  };
+
+  
+  class ServerIndex::ReadWriteWrapper : public IReadWriteOperations
+  {
+  private:
+    ReadWriteFunction  func_;
+
+  public:
+    ReadWriteWrapper(ReadWriteFunction  func) :
+      func_(func)
+    {
+      assert(func_ != NULL);
+    }
+
+    virtual void Apply(ReadWriteTransaction& transaction)
+    {
+      func_(transaction);
+    }
+  };
+
+
+  void ServerIndex::ApplyInternal(IReadOnlyOperations* readOperations,
+                                  IReadWriteOperations* writeOperations)
+  {
+    if ((readOperations == NULL && writeOperations == NULL) ||
+        (readOperations != NULL && writeOperations != NULL))
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+    
+    unsigned int count = 0;
+
+    for (;;)
+    {
+      try
+      {
+        if (readOperations != NULL)
+        {
+          ReadOnlyTransaction transaction(*this);
+          readOperations->Apply(transaction);
+        }
+        else
+        {
+          assert(writeOperations != NULL);
+          ReadWriteTransaction transaction(*this);
+          writeOperations->Apply(transaction);          
+        }
+        
+        return;  // Success
+      }
+      catch (OrthancException& e)
+      {
+        if (e.GetErrorCode() == ErrorCode_DatabaseCannotSerialize)
+        {
+          if (count == maxRetries_)
+          {
+            throw;
+          }
+          else
+          {
+            count++;
+            boost::this_thread::sleep(boost::posix_time::milliseconds(100 * count));
+          }          
+        }
+        else if (e.GetErrorCode() == ErrorCode_DatabaseUnavailable)
+        {
+          if (count == maxRetries_)
+          {
+            throw;
+          }
+          else
+          {
+            count++;
+            boost::this_thread::sleep(boost::posix_time::milliseconds(1000));
+          }
+        }
+        else
+        {
+          throw;
+        }
+      }
+    }
+  }
+  
+  void ServerIndex::Apply(IReadOnlyOperations& operations)
+  {
+    ApplyInternal(&operations, NULL);
+  }
+  
+  void ServerIndex::Apply(IReadWriteOperations& operations)
+  {
+    ApplyInternal(NULL, &operations);
+  }
+  
+  void ServerIndex::Apply(ReadOnlyFunction func)
+  {
+    ReadOnlyWrapper wrapper(func);
+    Apply(wrapper);
+  }
+  
+  void ServerIndex::Apply(ReadWriteFunction func)
+  {
+    ReadWriteWrapper wrapper(func);
+    Apply(wrapper);
   }
 }

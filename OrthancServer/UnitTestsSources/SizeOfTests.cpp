@@ -129,7 +129,6 @@
 #include "../../OrthancFramework/Sources/Images/ImageBuffer.h"
 #include "../../OrthancFramework/Sources/Images/ImageProcessing.h"
 #include "../../OrthancFramework/Sources/Images/ImageTraits.h"
-#include "../../OrthancFramework/Sources/Images/JpegErrorManager.h"
 #include "../../OrthancFramework/Sources/Images/JpegReader.h"
 #include "../../OrthancFramework/Sources/Images/JpegWriter.h"
 #include "../../OrthancFramework/Sources/Images/PamReader.h"
