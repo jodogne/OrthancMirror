@@ -1,0 +1,123 @@
+diff -urEb boost_1_69_0.orig/boost/move/adl_move_swap.hpp boost_1_69_0/boost/move/adl_move_swap.hpp
+--- boost_1_69_0.orig/boost/move/adl_move_swap.hpp	2019-02-22 15:05:32.682359994 +0100
++++ boost_1_69_0/boost/move/adl_move_swap.hpp	2019-02-22 15:05:48.426358034 +0100
+@@ -28,6 +28,8 @@
+ //Try to avoid including <algorithm>, as it's quite big
+ #if defined(_MSC_VER) && defined(BOOST_DINKUMWARE_STDLIB)
+    #include <utility>   //Dinkum libraries define std::swap in utility which is lighter than algorithm
++#elif defined(__LSB_VERSION__)
++#  include <utility>
+ #elif defined(BOOST_GNU_STDLIB)
+    //For non-GCC compilers, where GNUC version is not very reliable, or old GCC versions
+    //use the good old stl_algobase header, which is quite lightweight
+diff -urEb boost_1_69_0.orig/boost/system/detail/system_category_win32.hpp boost_1_69_0/boost/system/detail/system_category_win32.hpp
+--- boost_1_69_0.orig/boost/system/detail/system_category_win32.hpp	2019-02-22 15:05:32.722359989 +0100
++++ boost_1_69_0/boost/system/detail/system_category_win32.hpp	2019-02-22 15:06:31.922352713 +0100
+@@ -26,7 +26,7 @@
+ namespace detail
+ {
+ 
+-#if ( defined(_MSC_VER) && _MSC_VER < 1900 ) || ( defined(__MINGW32__) && !defined(__MINGW64_VERSION_MAJOR) )
++#if ( defined(_MSC_VER) && _MSC_VER < 1900 ) || ( defined(__MINGW32__) && !defined(__MINGW64_VERSION_MAJOR) ) || 1  /* std::snprintf() does not seem to exist on Visual Studio 2015 */
+ 
+ inline char const * unknown_message_win32( int ev, char * buffer, std::size_t len )
+ {
+diff -urEb boost_1_69_0.orig/boost/thread/detail/config.hpp boost_1_69_0/boost/thread/detail/config.hpp
+--- boost_1_69_0.orig/boost/thread/detail/config.hpp	2019-02-22 15:05:32.598360004 +0100
++++ boost_1_69_0/boost/thread/detail/config.hpp	2019-02-22 15:05:48.426358034 +0100
+@@ -418,7 +418,7 @@
+   #define BOOST_THREAD_INTERNAL_CLOCK_IS_MONO
+ #elif defined(BOOST_THREAD_CHRONO_MAC_API)
+   #define BOOST_THREAD_HAS_MONO_CLOCK
+-#elif defined(__ANDROID__)
++#elif defined(__ANDROID__) || defined(__LSB_VERSION__)
+   #define BOOST_THREAD_HAS_MONO_CLOCK
+   #if defined(__ANDROID_API__) && __ANDROID_API__ >= 21
+     #define BOOST_THREAD_INTERNAL_CLOCK_IS_MONO
+diff -urEb boost_1_69_0.orig/boost/type_traits/detail/has_postfix_operator.hpp boost_1_69_0/boost/type_traits/detail/has_postfix_operator.hpp
+--- boost_1_69_0.orig/boost/type_traits/detail/has_postfix_operator.hpp	2019-02-22 15:05:32.650359998 +0100
++++ boost_1_69_0/boost/type_traits/detail/has_postfix_operator.hpp	2019-02-22 15:05:48.426358034 +0100
+@@ -85,8 +85,11 @@
+ namespace boost {
+ namespace detail {
+ 
++// https://stackoverflow.com/a/15474269
++#ifndef Q_MOC_RUN
+ // This namespace ensures that argument-dependent name lookup does not mess things up.
+ namespace BOOST_JOIN(BOOST_TT_TRAIT_NAME,_impl) {
++#endif
+ 
+ // 1. a function to have an instance of type T without requiring T to be default
+ // constructible
+@@ -234,7 +237,9 @@
+    BOOST_STATIC_CONSTANT(bool, value = (trait_impl1 < Lhs_noref, Ret, BOOST_TT_FORBIDDEN_IF >::value));
+ };
+ 
++#ifndef Q_MOC_RUN
+ } // namespace impl
++#endif
+ } // namespace detail
+ 
+ // this is the accessible definition of the trait to end user
+diff -urEb boost_1_69_0.orig/boost/type_traits/detail/has_prefix_operator.hpp boost_1_69_0/boost/type_traits/detail/has_prefix_operator.hpp
+--- boost_1_69_0.orig/boost/type_traits/detail/has_prefix_operator.hpp	2019-02-22 15:05:32.650359998 +0100
++++ boost_1_69_0/boost/type_traits/detail/has_prefix_operator.hpp	2019-02-22 15:05:48.426358034 +0100
+@@ -114,8 +114,11 @@
+ namespace boost {
+ namespace detail {
+ 
++// https://stackoverflow.com/a/15474269
++#ifndef Q_MOC_RUN
+ // This namespace ensures that argument-dependent name lookup does not mess things up.
+ namespace BOOST_JOIN(BOOST_TT_TRAIT_NAME,_impl) {
++#endif
+ 
+ // 1. a function to have an instance of type T without requiring T to be default
+ // constructible
+@@ -263,7 +266,9 @@
+    BOOST_STATIC_CONSTANT(bool, value = (trait_impl1 < Rhs_noref, Ret, BOOST_TT_FORBIDDEN_IF >::value));
+ };
+ 
++#ifndef Q_MOC_RUN
+ } // namespace impl
++#endif
+ } // namespace detail
+ 
+ // this is the accessible definition of the trait to end user
+diff -urEb boost_1_69_0.orig/libs/filesystem/src/operations.cpp boost_1_69_0/libs/filesystem/src/operations.cpp
+--- boost_1_69_0.orig/libs/filesystem/src/operations.cpp	2019-02-22 15:05:32.566360008 +0100
++++ boost_1_69_0/libs/filesystem/src/operations.cpp	2019-02-22 18:04:17.346573047 +0100
+@@ -2111,9 +2111,16 @@
+     std::size_t path_size (0);  // initialization quiets gcc warning (ticket #3509)
+     error_code ec = path_max(path_size);
+     if (ec)return ec;
+-    dirent de;
+-    buffer = std::malloc((sizeof(dirent) - sizeof(de.d_name))
+-      +  path_size + 1); // + 1 for "/0"
++
++    // Fixed possible use of uninitialized dirent::d_type in dir_iterator
++    // https://github.com/boostorg/filesystem/commit/bbe9d1771e5d679b3f10c42a58fc81f7e8c024a9
++    const std::size_t buffer_size = (sizeof(dirent) - sizeof(dirent().d_name))
++      +  path_size + 1; // + 1 for "\0"
++    buffer = std::malloc(buffer_size);
++    if (BOOST_UNLIKELY(!buffer))
++      return make_error_code(boost::system::errc::not_enough_memory);
++    std::memset(buffer, 0, buffer_size);
++    
+     return ok;
+   }  
+ 
+@@ -2142,6 +2149,13 @@
+     *result = 0;
+     if ((p = ::readdir(dirp))== 0)
+       return errno;
++
++    // Fixed possible use of uninitialized dirent::d_type in dir_iterator
++    // https://github.com/boostorg/filesystem/commit/bbe9d1771e5d679b3f10c42a58fc81f7e8c024a9    
++#   ifdef BOOST_FILESYSTEM_STATUS_CACHE
++    entry->d_type = p->d_type;
++#   endif
++
+     std::strcpy(entry->d_name, p->d_name);
+     *result = entry;
+     return 0;

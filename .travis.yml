@@ -2,7 +2,7 @@ language: cpp
 
 env:
   - TRAVIS_MINGW=OFF
-  - TRAVIS_MINGW=ON
+  #- TRAVIS_MINGW=ON   # MinGW32 is not available anymore (2020-07-08)
 
 compiler:
   - gcc
@@ -43,18 +43,22 @@ before_script:
   - cd Build
   - if [ $TRAVIS_OS_NAME == linux -a $TRAVIS_MINGW == OFF ]; then cmake
     -DCMAKE_BUILD_TYPE=Debug "-DDCMTK_LIBRARIES=CharLS;dcmjpls;wrap;oflog"
-    -DALLOW_DOWNLOADS=ON -DUSE_SYSTEM_BOOST=OFF -DUSE_SYSTEM_MONGOOSE=OFF -DUSE_SYSTEM_JSONCPP=OFF
+    -DALLOW_DOWNLOADS=ON -DUSE_SYSTEM_BOOST=OFF -DUSE_SYSTEM_CIVETWEB=OFF -DUSE_SYSTEM_JSONCPP=OFF
     -DUSE_SYSTEM_GOOGLE_LOG=OFF -DUSE_SYSTEM_PUGIXML=OFF -DUSE_GOOGLE_TEST_DEBIAN_PACKAGE=ON
-    ..; fi
+    -DBOOST_LOCALE_BACKEND=icu -DUSE_SYSTEM_OPENSSL=OFF -DUSE_SYSTEM_CURL=OFF
+    ../OrthancServer; fi
   - if [ $TRAVIS_OS_NAME == linux -a $TRAVIS_MINGW == ON ]; then cmake
     -DCMAKE_BUILD_TYPE=Debug -DSTATIC_BUILD=ON -DSTANDALONE_BUILD=ON -DALLOW_DOWNLOADS=ON
-    -DCMAKE_TOOLCHAIN_FILE=Resources/MinGWToolchain.cmake -DUSE_DCMTK_360=ON -DUSE_LEGACY_JSONCPP=ON
-    ..; fi
+    -DCMAKE_TOOLCHAIN_FILE=Resources/MinGWToolchain.cmake -DDCMTK_STATIC_VERSION=3.6.0
+    -DUSE_LEGACY_JSONCPP=ON -DBOOST_LOCALE_BACKEND=libiconv
+    ../OrthancServer; fi
   - if [ $TRAVIS_OS_NAME == osx ]; then cmake 
     -DCMAKE_BUILD_TYPE=Debug -DSTATIC_BUILD=ON -DSTANDALONE_BUILD=ON -DALLOW_DOWNLOADS=ON
-    ..; fi
+    -DBOOST_LOCALE_BACKEND=icu
+    ../OrthancServer; fi
 
-script: make && if [ $TRAVIS_MINGW == OFF ]; then ./UnitTests; fi
+# Old releases of MinGW are not compatible with GoogleTest 1.8.1
+script: make Orthanc ServeFolders ModalityWorklists && if [ $TRAVIS_MINGW == OFF ]; then make UnitTests && ./UnitTests; fi
 
 #script: cp ../README Orthanc
 #deploy:

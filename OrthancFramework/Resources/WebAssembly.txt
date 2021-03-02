@@ -1,0 +1,62 @@
+
+======================================
+== Notes about WebAssembly ===========
+======================================
+
+
+
+Trap mode
+=========
+
+The BINARYEN_TRAP_MODE specifies what to do when divisions per zero
+(and similar conditions like integer overflows) are encountered. This
+can be set through the option "EMSCRIPTEN_TRAP_MODE" in Orthanc.
+
+
+
+Previous versions (<= 1.7.1)
+----------------------------
+
+The "clamp" mode avoids throwing errors, as they cannot be properly
+catched by "try {} catch (...)" constructions. HOWEVER, the "upstream"
+backend of Emscripten (which is now the default) doesn't support this
+option.
+
+In Orthanc <= 1.7.1, the "clamp" mode was used by default. As a
+consequence, there was an old flag "EMSCRIPTEN_SET_LLVM_WASM_BACKEND"
+to setting BINARYEN_TRAP_MODE.
+
+Here is the definition of the parameter that was in
+"OrthancFrameworkParameters.cmake":
+
+>>>>>
+set(EMSCRIPTEN_SET_LLVM_WASM_BACKEND OFF CACHE BOOL "Sets the compiler flags required to use the LLVM Web Assembly backend in emscripten")
+<<<<<
+
+Setting this option to "ON" fixes error: "shared:ERROR:
+BINARYEN_TRAP_MODE is not supported by the LLVM wasm backend" if using
+the "upstream" backend of Emscripten. Here is the corresponding
+implementation that was in "Compiler.cmake":
+
+>>>>>
+if (NOT EMSCRIPTEN_SET_LLVM_WASM_BACKEND)
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -s BINARYEN_TRAP_MODE='\"clamp\"'")
+endif()
+<<<<<
+
+
+The "EMSCRIPTEN_SET_LLVM_WASM_BACKEND" option was totally removed in
+Orthanc 1.8.1.
+
+
+
+
+Linker flags
+============
+
+Since Orthanc 1.7.2, "Compiler.cmake" doesn't set any linking option
+for Emscripten. In Orthanc <= 1.7.1, the following was done:
+
+>>>>>
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -s EXTRA_EXPORTED_RUNTIME_METHODS='[\"ccall\", \"cwrap\"]'")
+<<<<<

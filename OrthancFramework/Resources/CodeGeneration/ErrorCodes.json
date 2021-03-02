@@ -1,0 +1,587 @@
+[
+  /** Generic error codes **/
+
+  {
+    "Code": -1, 
+    "Name": "InternalError", 
+    "Description": "Internal error"
+  }, 
+  {
+    "Code": 0, 
+    "HttpStatus": 200, 
+    "Name": "Success", 
+    "Description": "Success"
+  }, 
+  {
+    "Code": 1, 
+    "Name": "Plugin", 
+    "Description": "Error encountered within the plugin engine"
+  },
+  {
+    "Code": 2, 
+    "Name": "NotImplemented", 
+    "Description": "Not implemented yet"
+  }, 
+  {
+    "Code": 3, 
+    "HttpStatus": 400, 
+    "Name": "ParameterOutOfRange", 
+    "Description": "Parameter out of range",
+    "SQLite": true
+  }, 
+  {
+    "Code": 4, 
+    "Name": "NotEnoughMemory", 
+    "Description": "The server hosting Orthanc is running out of memory"
+  }, 
+  {
+    "Code": 5, 
+    "HttpStatus": 400, 
+    "Name": "BadParameterType", 
+    "Description": "Bad type for a parameter",
+    "SQLite": true
+  }, 
+  {
+    "Code": 6, 
+    "Name": "BadSequenceOfCalls", 
+    "Description": "Bad sequence of calls"
+  }, 
+  {
+    "Code": 7, 
+    "HttpStatus": 404, 
+    "Name": "InexistentItem", 
+    "Description": "Accessing an inexistent item"
+  }, 
+  {
+    "Code": 8, 
+    "HttpStatus": 400, 
+    "Name": "BadRequest", 
+    "Description": "Bad request"
+  }, 
+  {
+    "Code": 9, 
+    "Name": "NetworkProtocol", 
+    "Description": "Error in the network protocol"
+  }, 
+  {
+    "Code": 10, 
+    "Name": "SystemCommand", 
+    "Description": "Error while calling a system command"
+  }, 
+  {
+    "Code": 11, 
+    "Name": "Database", 
+    "Description": "Error with the database engine"
+  }, 
+  {
+    "Code": 12, 
+    "HttpStatus": 400, 
+    "Name": "UriSyntax", 
+    "Description": "Badly formatted URI"
+  }, 
+  {
+    "Code": 13, 
+    "HttpStatus": 404, 
+    "Name": "InexistentFile", 
+    "Description": "Inexistent file"
+  }, 
+  {
+    "Code": 14, 
+    "Name": "CannotWriteFile", 
+    "Description": "Cannot write to file"
+  }, 
+  {
+    "Code": 15, 
+    "HttpStatus": 400, 
+    "Name": "BadFileFormat", 
+    "Description": "Bad file format"
+  }, 
+  {
+    "Code": 16, 
+    "Name": "Timeout", 
+    "Description": "Timeout"
+  }, 
+  {
+    "Code": 17, 
+    "HttpStatus": 404, 
+    "Name": "UnknownResource", 
+    "Description": "Unknown resource"
+  }, 
+  {
+    "Code": 18, 
+    "Name": "IncompatibleDatabaseVersion", 
+    "Description": "Incompatible version of the database"
+  }, 
+  {
+    "Code": 19, 
+    "Name": "FullStorage", 
+    "Description": "The file storage is full"
+  }, 
+  {
+    "Code": 20, 
+    "Name": "CorruptedFile", 
+    "Description": "Corrupted file (e.g. inconsistent MD5 hash)"
+  }, 
+  {
+    "Code": 21, 
+    "HttpStatus": 404, 
+    "Name": "InexistentTag", 
+    "Description": "Inexistent tag"
+  }, 
+  {
+    "Code": 22, 
+    "Name": "ReadOnly", 
+    "Description": "Cannot modify a read-only data structure"
+  }, 
+  {
+    "Code": 23, 
+    "Name": "IncompatibleImageFormat", 
+    "Description": "Incompatible format of the images"
+  }, 
+  {
+    "Code": 24, 
+    "Name": "IncompatibleImageSize", 
+    "Description": "Incompatible size of the images"
+  }, 
+  {
+    "Code": 25, 
+    "Name": "SharedLibrary", 
+    "Description": "Error while using a shared library (plugin)"
+  }, 
+  {
+    "Code": 26, 
+    "Name": "UnknownPluginService", 
+    "Description": "Plugin invoking an unknown service"
+  }, 
+  {
+    "Code": 27, 
+    "Name": "UnknownDicomTag", 
+    "Description": "Unknown DICOM tag"
+  }, 
+  {
+    "Code": 28, 
+    "HttpStatus": 400, 
+    "Name": "BadJson", 
+    "Description": "Cannot parse a JSON document"
+  }, 
+  {
+    "Code": 29, 
+    "HttpStatus": 401, 
+    "Name": "Unauthorized", 
+    "Description": "Bad credentials were provided to an HTTP request"
+  }, 
+  {
+    "Code": 30, 
+    "Name": "BadFont", 
+    "Description": "Badly formatted font file"
+  },
+  {
+    "Code": 31, 
+    "Name": "DatabasePlugin", 
+    "Description": "The plugin implementing a custom database back-end does not fulfill the proper interface"
+  }, 
+  {
+    "Code": 32, 
+    "Name": "StorageAreaPlugin", 
+    "Description": "Error in the plugin implementing a custom storage area"
+  },
+  {
+    "Code": 33,
+    "Name": "EmptyRequest",
+    "Description": "The request is empty"
+  }, 
+  {
+    "Code": 34, 
+    "HttpStatus": 406, 
+    "Name": "NotAcceptable", 
+    "Description": "Cannot send a response which is acceptable according to the Accept HTTP header"
+  }, 
+  {
+    "Code": 35, 
+    "Name": "NullPointer", 
+    "Description": "Cannot handle a NULL pointer"
+  },
+  {
+    "Code": 36, 
+    "HttpStatus": 503, 
+    "Name": "DatabaseUnavailable", 
+    "Description": "The database is currently not available (probably a transient situation)"
+  }, 
+  {
+    "Code": 37, 
+    "Name": "CanceledJob", 
+    "Description": "This job was canceled"
+  }, 
+  {
+    "Code": 38, 
+    "Name": "BadGeometry", 
+    "Description": "Geometry error encountered in Stone"
+  }, 
+  {
+    "Code": 39, 
+    "Name": "SslInitialization", 
+    "Description": "Cannot initialize SSL encryption, check out your certificates"
+  }, 
+  {
+    "Code": 40, 
+    "Name": "DiscontinuedAbi", 
+    "Description": "Calling a function that has been removed from the Orthanc Framework"
+  }, 
+  {
+    "Code": 41, 
+    "HttpStatus" : 416,
+    "Name": "BadRange",
+    "Description": "Incorrect range request"
+  }, 
+
+
+
+  /** SQLite **/
+
+
+  {
+    "Code": 1000, 
+    "Name": "SQLiteNotOpened",
+    "Description": "SQLite: The database is not opened",
+    "SQLite": true
+  },
+  {
+    "Code": 1001, 
+    "Name": "SQLiteAlreadyOpened", 
+    "Description": "SQLite: Connection is already open",
+    "SQLite": true
+  },
+  {
+    "Code": 1002, 
+    "Name": "SQLiteCannotOpen", 
+    "Description": "SQLite: Unable to open the database",
+    "SQLite": true
+  },
+  {
+    "Code": 1003, 
+    "Name": "SQLiteStatementAlreadyUsed", 
+    "Description": "SQLite: This cached statement is already being referred to",
+    "SQLite": true
+  },
+  {
+    "Code": 1004, 
+    "Name": "SQLiteExecute", 
+    "Description": "SQLite: Cannot execute a command",
+    "SQLite": true
+  },
+  {
+    "Code": 1005, 
+    "Name": "SQLiteRollbackWithoutTransaction", 
+    "Description": "SQLite: Rolling back a nonexistent transaction (have you called Begin()?)",
+    "SQLite": true
+  },
+  {
+    "Code": 1006, 
+    "Name": "SQLiteCommitWithoutTransaction", 
+    "Description": "SQLite: Committing a nonexistent transaction",
+    "SQLite": true
+  },
+  {
+    "Code": 1007, 
+    "Name": "SQLiteRegisterFunction", 
+    "Description": "SQLite: Unable to register a function",
+    "SQLite": true
+  },
+  {
+    "Code": 1008, 
+    "Name": "SQLiteFlush", 
+    "Description": "SQLite: Unable to flush the database",
+    "SQLite": true
+  },
+  {
+    "Code": 1009, 
+    "Name": "SQLiteCannotRun", 
+    "Description": "SQLite: Cannot run a cached statement",
+    "SQLite": true
+  },
+  {
+    "Code": 1010, 
+    "Name": "SQLiteCannotStep", 
+    "Description": "SQLite: Cannot step over a cached statement",
+    "SQLite": true
+  },
+  {
+    "Code": 1011, 
+    "Name": "SQLiteBindOutOfRange", 
+    "Description": "SQLite: Bing a value while out of range (serious error)",
+    "SQLite": true
+  },
+  {
+    "Code": 1012, 
+    "Name": "SQLitePrepareStatement", 
+    "Description": "SQLite: Cannot prepare a cached statement",
+    "SQLite": true
+  },
+  {
+    "Code": 1013, 
+    "Name": "SQLiteTransactionAlreadyStarted", 
+    "Description": "SQLite: Beginning the same transaction twice",
+    "SQLite": true
+  },
+  {
+    "Code": 1014, 
+    "Name": "SQLiteTransactionCommit", 
+    "Description": "SQLite: Failure when committing the transaction",
+    "SQLite": true
+  },
+  {
+    "Code": 1015, 
+    "Name": "SQLiteTransactionBegin", 
+    "Description": "SQLite: Cannot start a transaction",
+    "SQLite": true
+  },
+
+
+
+  /** Specific error codes **/
+
+  
+  {
+    "Code": 2000, 
+    "Name": "DirectoryOverFile", 
+    "Description": "The directory to be created is already occupied by a regular file"
+  },
+  {
+    "Code": 2001, 
+    "Name": "FileStorageCannotWrite", 
+    "Description": "Unable to create a subdirectory or a file in the file storage"
+  },
+  {
+    "Code": 2002, 
+    "Name": "DirectoryExpected", 
+    "Description": "The specified path does not point to a directory"
+  },
+  {
+    "Code": 2003, 
+    "Name": "HttpPortInUse", 
+    "Description": "The TCP port of the HTTP server is privileged or already in use"
+  },
+  {
+    "Code": 2004, 
+    "Name": "DicomPortInUse", 
+    "Description": "The TCP port of the DICOM server is privileged or already in use"
+  },
+  {
+    "Code": 2005, 
+    "Name": "BadHttpStatusInRest", 
+    "Description": "This HTTP status is not allowed in a REST API"
+  },
+  {
+    "Code": 2006, 
+    "Name": "RegularFileExpected", 
+    "Description": "The specified path does not point to a regular file"
+  },
+  {
+    "Code": 2007, 
+    "Name": "PathToExecutable", 
+    "Description": "Unable to get the path to the executable"
+  },
+  {
+    "Code": 2008, 
+    "Name": "MakeDirectory", 
+    "Description": "Cannot create a directory"
+  },
+  {
+    "Code": 2009, 
+    "Name": "BadApplicationEntityTitle", 
+    "Description": "An application entity title (AET) cannot be empty or be longer than 16 characters"
+  },
+  {
+    "Code": 2010, 
+    "Name": "NoCFindHandler", 
+    "Description": "No request handler factory for DICOM C-FIND SCP"
+  },
+  {
+    "Code": 2011, 
+    "Name": "NoCMoveHandler", 
+    "Description": "No request handler factory for DICOM C-MOVE SCP"
+  },
+  {
+    "Code": 2012, 
+    "Name": "NoCStoreHandler", 
+    "Description": "No request handler factory for DICOM C-STORE SCP"
+  },
+  {
+    "Code": 2013, 
+    "Name": "NoApplicationEntityFilter", 
+    "Description": "No application entity filter"
+  },
+  {
+    "Code": 2014, 
+    "Name": "NoSopClassOrInstance", 
+    "Description": "DicomUserConnection: Unable to find the SOP class and instance"
+  },
+  {
+    "Code": 2015, 
+    "Name": "NoPresentationContext", 
+    "Description": "DicomUserConnection: No acceptable presentation context for modality"
+  },
+  {
+    "Code": 2016, 
+    "Name": "DicomFindUnavailable", 
+    "Description": "DicomUserConnection: The C-FIND command is not supported by the remote SCP"
+  },
+  {
+    "Code": 2017, 
+    "Name": "DicomMoveUnavailable", 
+    "Description": "DicomUserConnection: The C-MOVE command is not supported by the remote SCP"
+  },
+  {
+    "Code": 2018, 
+    "Name": "CannotStoreInstance", 
+    "Description": "Cannot store an instance"
+  },
+  {
+    "Code": 2019,
+    "HttpStatus": 400, 
+    "Name": "CreateDicomNotString", 
+    "Description": "Only string values are supported when creating DICOM instances"
+  },
+  {
+    "Code": 2020,
+    "HttpStatus": 400, 
+    "Name": "CreateDicomOverrideTag", 
+    "Description": "Trying to override a value inherited from a parent module"
+  },
+  {
+    "Code": 2021,
+    "HttpStatus": 400, 
+    "Name": "CreateDicomUseContent", 
+    "Description": "Use \\\"Content\\\" to inject an image into a new DICOM instance"
+  },
+  {
+    "Code": 2022,
+    "HttpStatus": 400, 
+    "Name": "CreateDicomNoPayload", 
+    "Description": "No payload is present for one instance in the series"
+  },
+  {
+    "Code": 2023,
+    "HttpStatus": 400, 
+    "Name": "CreateDicomUseDataUriScheme", 
+    "Description": "The payload of the DICOM instance must be specified according to Data URI scheme"
+  },
+  {
+    "Code": 2024,
+    "HttpStatus": 400, 
+    "Name": "CreateDicomBadParent", 
+    "Description": "Trying to attach a new DICOM instance to an inexistent resource"
+  },
+  {
+    "Code": 2025,
+    "HttpStatus": 400, 
+    "Name": "CreateDicomParentIsInstance", 
+    "Description": "Trying to attach a new DICOM instance to an instance (must be a series, study or patient)"
+  },
+  {
+    "Code": 2026, 
+    "Name": "CreateDicomParentEncoding", 
+    "Description": "Unable to get the encoding of the parent resource"
+  },
+  {
+    "Code": 2027, 
+    "Name": "UnknownModality", 
+    "Description": "Unknown modality"
+  },
+  {
+    "Code": 2028, 
+    "Name": "BadJobOrdering", 
+    "Description": "Bad ordering of filters in a job"
+  },
+  {
+    "Code": 2029, 
+    "Name": "JsonToLuaTable", 
+    "Description": "Cannot convert the given JSON object to a Lua table"
+  },
+  {
+    "Code": 2030, 
+    "Name": "CannotCreateLua", 
+    "Description": "Cannot create the Lua context"
+  },
+  {
+    "Code": 2031, 
+    "Name": "CannotExecuteLua", 
+    "Description": "Cannot execute a Lua command"
+  },
+  {
+    "Code": 2032, 
+    "Name": "LuaAlreadyExecuted", 
+    "Description": "Arguments cannot be pushed after the Lua function is executed"
+  },
+  {
+    "Code": 2033, 
+    "Name": "LuaBadOutput", 
+    "Description": "The Lua function does not give the expected number of outputs"
+  },
+  {
+    "Code": 2034, 
+    "Name": "NotLuaPredicate", 
+    "Description": "The Lua function is not a predicate (only true/false outputs allowed)"
+  },
+  {
+    "Code": 2035, 
+    "Name": "LuaReturnsNoString", 
+    "Description": "The Lua function does not return a string"
+  },
+  {
+    "Code": 2036,
+    "Name": "StorageAreaAlreadyRegistered",
+    "Description": "Another plugin has already registered a custom storage area"
+  },
+  {
+    "Code": 2037,
+    "Name": "DatabaseBackendAlreadyRegistered",
+    "Description": "Another plugin has already registered a custom database back-end"
+  },
+  {
+    "Code": 2038,
+    "Name": "DatabaseNotInitialized",
+    "Description": "Plugin trying to call the database during its initialization"
+  },
+  { 
+    "Code": 2039,
+    "Name": "SslDisabled",
+    "Description": "Orthanc has been built without SSL support"
+  },
+  {
+    "Code": 2040,
+    "Name": "CannotOrderSlices",
+    "Description": "Unable to order the slices of the series"
+  },
+  {
+    "Code": 2041, 
+    "Name": "NoWorklistHandler", 
+    "Description": "No request handler factory for DICOM C-Find Modality SCP"
+  },
+  {
+    "Code": 2042,
+    "Name": "AlreadyExistingTag",
+    "Description": "Cannot override the value of a tag that already exists"
+  },
+  {
+    "Code": 2043, 
+    "Name": "NoStorageCommitmentHandler", 
+    "Description": "No request handler factory for DICOM N-ACTION SCP (storage commitment)"
+  },
+  {
+    "Code": 2044,
+    "Name": "NoCGetHandler", 
+    "Description": "No request handler factory for DICOM C-GET SCP"
+  },
+
+
+
+  /** HTTP-related error codes **/
+
+  {
+    "Code": 3000,
+    "HttpStatus": 415, 
+    "Name": "UnsupportedMediaType",
+    "Description": "Unsupported media type"
+  }
+]
