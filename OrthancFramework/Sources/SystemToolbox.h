@@ -119,5 +119,7 @@ namespace Orthanc
                               uint64_t start,  // Inclusive
                               uint64_t end,    // Exclusive
                               bool throwIfOverflow);
+
+    static void GetMacAddresses(std::set<std::string>& target);
   };
 }
