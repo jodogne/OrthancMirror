@@ -72,7 +72,7 @@ SOURCES = []
 for root, dirs, files in os.walk(os.path.join(ROOT, '..', 'Sources')):
     for name in files:
         if (os.path.splitext(name)[1] == '.h' and
-            name != 'Enumerations_TransferSyntaxes.impl.h'):
+            not name.endswith('.impl.h')):
             SOURCES.append(os.path.join(root, name))
 
 AMALGAMATION = '/tmp/CheckOrthancFrameworkSymbols.cpp'
@@ -84,6 +84,7 @@ with open(AMALGAMATION, 'w') as f:
             
 
 tu = index.parse(AMALGAMATION, [
+    '--std=c++11',
     '-DORTHANC_BUILDING_FRAMEWORK_LIBRARY=1',
     '-DORTHANC_BUILD_UNIT_TESTS=0',
     '-DORTHANC_ENABLE_BASE64=1',
@@ -91,6 +92,7 @@ tu = index.parse(AMALGAMATION, [
     '-DORTHANC_ENABLE_CURL=1',
     '-DORTHANC_ENABLE_DCMTK=1',
     '-DORTHANC_ENABLE_DCMTK_JPEG=1',
+    '-DORTHANC_ENABLE_DCMTK_JPEG_LOSSLESS=1',
     '-DORTHANC_ENABLE_DCMTK_NETWORKING=1',
     '-DORTHANC_ENABLE_DCMTK_TRANSCODING=1',
     '-DORTHANC_ENABLE_JPEG=1',
@@ -99,13 +101,27 @@ tu = index.parse(AMALGAMATION, [
     '-DORTHANC_ENABLE_LOGGING_STDIO=0',
     '-DORTHANC_ENABLE_LUA=1',
     '-DORTHANC_ENABLE_MD5=1',
+    '-DORTHANC_ENABLE_MONGOOSE=1',
     '-DORTHANC_ENABLE_PKCS11=1',
     '-DORTHANC_ENABLE_PNG=1',
     '-DORTHANC_ENABLE_PUGIXML=1',
+    '-DORTHANC_ENABLE_SQLITE=1',
     '-DORTHANC_ENABLE_SSL=1',
+    '-DORTHANC_ENABLE_ZLIB=1',
     '-DORTHANC_SANDBOXED=0',
     '-DORTHANC_SQLITE_STANDALONE=0',
+    '-DORTHANC_SQLITE_VERSION=3027001',
+    '-I/usr/include/jsoncpp',  # On Ubuntu 18.04
+    '-I/usr/include/lua5.3',   # On Ubuntu 18.04
 ])
+
+
+if len(tu.diagnostics) != 0:
+    for d in tu.diagnostics:
+        print('  ** %s' % d)
+    print('')
+    raise Exception('Error')
+
 
 
 FILES = []
