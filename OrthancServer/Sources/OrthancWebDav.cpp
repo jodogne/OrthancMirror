@@ -268,8 +268,10 @@ namespace Orthanc
                        const DicomMap& mainDicomTags,
                        const Json::Value* dicomAsJson  /* unused (*) */)  ORTHANC_OVERRIDE
     {
-      Json::Value info;
-      if (context_.GetIndex().LookupResource(info, publicId, level_))
+      ServerIndex::ExpandResourceOperation operation(publicId, level_);
+      context_.GetIndex().Apply(operation);
+
+      if (operation.IsFound())
       {
         if (success_)
         {
@@ -277,7 +279,7 @@ namespace Orthanc
         }
         else
         {
-          target_ = info.toStyledString();
+          target_ = operation.GetResource().toStyledString();
 
           // Replace UNIX newlines with DOS newlines 
           boost::replace_all(target_, "\n", "\r\n");

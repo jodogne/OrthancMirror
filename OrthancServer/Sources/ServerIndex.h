@@ -156,10 +156,12 @@ namespace Orthanc
                              /* out */ uint64_t& countSeries, 
                              /* out */ uint64_t& countInstances);
 
+  private:
     bool LookupResource(Json::Value& result,
                         const std::string& publicId,
                         ResourceType expectedType);
 
+  public:
     bool LookupAttachment(FileInfo& attachment,
                           const std::string& instanceUuid,
                           FileContentType contentType);
@@ -209,10 +211,12 @@ namespace Orthanc
     void DeleteMetadata(const std::string& publicId,
                         MetadataType type);
 
+  private:
     void GetAllMetadata(std::map<MetadataType, std::string>& target,
                         const std::string& publicId,
                         ResourceType expectedType);
 
+  public:
     bool LookupMetadata(std::string& target,
                         const std::string& publicId,
                         ResourceType expectedType,
@@ -289,5 +293,131 @@ namespace Orthanc
                               const DatabaseLookup& lookup,
                               ResourceType queryLevel,
                               size_t limit);
+
+
+
+    /***
+     ** PROTOTYPING FOR DB REFACTORING BELOW
+     ***/
+    
+  public:
+    class ReadOnlyTransaction : public boost::noncopyable
+    {
+    protected:
+      ServerIndex&  index_;
+      
+    public:
+      ReadOnlyTransaction(ServerIndex& index) :
+        index_(index)
+      {
+      }
+      
+      bool LookupResource(Json::Value& result,
+                          const std::string& publicId,
+                          ResourceType expectedType)
+      {
+        return index_.LookupResource(result, publicId, expectedType);
+      }
+
+      void GetAllMetadata(std::map<MetadataType, std::string>& target,
+                          const std::string& publicId,
+                          ResourceType expectedType)
+      {
+        index_.GetAllMetadata(target, publicId, expectedType);
+      }
+    };
+
+
+    class ReadWriteTransaction : public ReadOnlyTransaction
+    {
+    public:
+      ReadWriteTransaction(ServerIndex& index) :
+        ReadOnlyTransaction(index)
+      {
+      }
+
+      StoreStatus Store(std::map<MetadataType, std::string>& instanceMetadata,
+                        const DicomMap& dicomSummary,
+                        const Attachments& attachments,
+                        const MetadataMap& metadata,
+                        const DicomInstanceOrigin& origin,
+                        bool overwrite,
+                        bool hasTransferSyntax,
+                        DicomTransferSyntax transferSyntax,
+                        bool hasPixelDataOffset,
+                        uint64_t pixelDataOffset)
+      {
+        return index_.Store(instanceMetadata, dicomSummary, attachments, metadata, origin,
+                            overwrite, hasTransferSyntax, transferSyntax, hasPixelDataOffset, pixelDataOffset);
+      }
+    };
+
+
+    class IReadOnlyOperations : public boost::noncopyable
+    {
+    public:
+      virtual ~IReadOnlyOperations()
+      {
+      }
+
+      virtual void Apply(ReadOnlyTransaction& transaction) = 0;
+    };
+
+
+    class IReadWriteOperations : public boost::noncopyable
+    {
+    public:
+      virtual ~IReadWriteOperations()
+      {
+      }
+
+      virtual void Apply(ReadWriteTransaction& transaction) = 0;
+    };
+
+
+    class ExpandResourceOperation : public ServerIndex::IReadOnlyOperations
+    {
+    private:
+      Json::Value   item_;
+      bool          found_;
+      std::string   resource_;
+      ResourceType  level_;
+
+    public:
+      ExpandResourceOperation(const std::string& resource,
+                              ResourceType level);
+      
+      virtual void Apply(ServerIndex::ReadOnlyTransaction& transaction) ORTHANC_OVERRIDE;
+
+      bool IsFound() const
+      {
+        return found_;
+      }
+
+      const Json::Value& GetResource() const;
+    };
+  
+  
+    typedef void (*ReadOnlyFunction) (ReadOnlyTransaction& transaction);
+    typedef void (*ReadWriteFunction) (ReadWriteTransaction& transaction);
+
+    
+  private:
+    class ReadOnlyWrapper;
+    class ReadWriteWrapper;
+
+    void ApplyInternal(IReadOnlyOperations* readOperations,
+                       IReadWriteOperations* writeOperations);
+    
+    unsigned int maxRetries_;
+
+  public:
+    void Apply(IReadOnlyOperations& operations);
+  
+    void Apply(IReadWriteOperations& operations);
+
+    void Apply(ReadOnlyFunction func);
+
+    void Apply(ReadWriteFunction func);
   };
 }
