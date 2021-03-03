@@ -136,7 +136,7 @@ namespace Orthanc
       std::map<MetadataType, std::string> metadata_;      
 
     public:
-      GetInfoOperations(const ServerIndexChange& change) :
+      explicit GetInfoOperations(const ServerIndexChange& change) :
         change_(change),
         ok_(false)
       {
