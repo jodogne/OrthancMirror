@@ -67,7 +67,7 @@ namespace Orthanc
     {
     }
 
-    virtual void Begin() ORTHANC_OVERRIDE
+    void Begin()
     {
       CheckSuccess(that_.backend_.startTransaction(that_.payload_));
     }
@@ -891,7 +891,9 @@ namespace Orthanc
 
   IDatabaseWrapper::ITransaction* OrthancPluginDatabase::StartTransaction()
   {
-    return new Transaction(*this);
+    std::unique_ptr<Transaction> transaction(new Transaction(*this));
+    transaction->Begin();
+    return transaction.release();
   }
 
 

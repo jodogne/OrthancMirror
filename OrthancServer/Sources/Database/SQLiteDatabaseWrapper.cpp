@@ -60,17 +60,17 @@ namespace Orthanc
       {
       }
 
-      virtual const char* GetName() const
+      virtual const char* GetName() const ORTHANC_OVERRIDE
       {
         return "SignalFileDeleted";
       }
 
-      virtual unsigned int GetCardinality() const
+      virtual unsigned int GetCardinality() const ORTHANC_OVERRIDE
       {
         return 7;
       }
 
-      virtual void Compute(SQLite::FunctionContext& context)
+      virtual void Compute(SQLite::FunctionContext& context) ORTHANC_OVERRIDE
       {
         std::string uncompressedMD5, compressedMD5;
 
@@ -107,17 +107,17 @@ namespace Orthanc
       {
       }
 
-      virtual const char* GetName() const
+      virtual const char* GetName() const ORTHANC_OVERRIDE
       {
         return "SignalResourceDeleted";
       }
 
-      virtual unsigned int GetCardinality() const
+      virtual unsigned int GetCardinality() const ORTHANC_OVERRIDE
       {
         return 2;
       }
 
-      virtual void Compute(SQLite::FunctionContext& context)
+      virtual void Compute(SQLite::FunctionContext& context) ORTHANC_OVERRIDE
       {
         ResourceType type = static_cast<ResourceType>(context.GetIntValue(1));
         ServerIndexChange change(ChangeType_Deleted, type, context.GetStringValue(0));
@@ -143,17 +143,17 @@ namespace Orthanc
         hasRemainingAncestor_ = false;
       }
 
-      virtual const char* GetName() const
+      virtual const char* GetName() const ORTHANC_OVERRIDE
       {
         return "SignalRemainingAncestor";
       }
 
-      virtual unsigned int GetCardinality() const
+      virtual unsigned int GetCardinality() const ORTHANC_OVERRIDE
       {
         return 2;
       }
 
-      virtual void Compute(SQLite::FunctionContext& context)
+      virtual void Compute(SQLite::FunctionContext& context) ORTHANC_OVERRIDE
       {
         CLOG(TRACE, SQLITE) << "There exists a remaining ancestor with public ID \""
                             << context.GetStringValue(0) << "\" of type "
@@ -617,17 +617,17 @@ namespace Orthanc
 #endif
     }
 
-    virtual void Begin()
+    void Begin()
     {
       transaction_->Begin();
     }
 
-    virtual void Rollback() 
+    virtual void Rollback() ORTHANC_OVERRIDE
     {
       transaction_->Rollback();
     }
 
-    virtual void Commit(int64_t fileSizeDelta /* only used in debug */)
+    virtual void Commit(int64_t fileSizeDelta /* only used in debug */) ORTHANC_OVERRIDE
     {
       transaction_->Commit();
 
@@ -639,7 +639,9 @@ namespace Orthanc
 
   IDatabaseWrapper::ITransaction* SQLiteDatabaseWrapper::StartTransaction()
   {
-    return new Transaction(*this);
+    std::unique_ptr<Transaction> transaction(new Transaction(*this));
+    transaction->Begin();
+    return transaction.release();
   }
 
 
@@ -1160,18 +1162,18 @@ namespace Orthanc
     std::list<std::string>  values_;
 
   public:
-    virtual std::string GenerateParameter(const std::string& value)
+    virtual std::string GenerateParameter(const std::string& value) ORTHANC_OVERRIDE
     {
       values_.push_back(value);
       return "?";
     }
     
-    virtual std::string FormatResourceType(ResourceType level)
+    virtual std::string FormatResourceType(ResourceType level) ORTHANC_OVERRIDE
     {
       return boost::lexical_cast<std::string>(level);
     }
 
-    virtual std::string FormatWildcardEscape()
+    virtual std::string FormatWildcardEscape() ORTHANC_OVERRIDE
     {
       return "ESCAPE '\\'";
     }

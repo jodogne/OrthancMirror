@@ -61,8 +61,6 @@ namespace Orthanc
       {
       }
 
-      virtual void Begin() = 0;
-
       virtual void Rollback() = 0;
 
       virtual void Commit(int64_t fileSizeDelta) = 0;
