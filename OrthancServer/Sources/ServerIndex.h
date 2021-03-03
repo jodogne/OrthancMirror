@@ -162,18 +162,6 @@ namespace Orthanc
                              /* out */ uint64_t& countSeries, 
                              /* out */ uint64_t& countInstances);
 
-    bool LookupAttachment(FileInfo& attachment,
-                          const std::string& instanceUuid,
-                          FileContentType contentType);
-
-    void GetAllUuids(std::list<std::string>& target,
-                     ResourceType resourceType);
-
-    void GetAllUuids(std::list<std::string>& target,
-                     ResourceType resourceType,
-                     size_t since,
-                     size_t limit);
-
     bool DeleteResource(Json::Value& target /* out */,
                         const std::string& uuid,
                         ResourceType expectedType);
@@ -301,7 +289,7 @@ namespace Orthanc
       IDatabaseWrapper&  db_;
       
     public:
-      ReadOnlyTransaction(IDatabaseWrapper& db) :
+      explicit ReadOnlyTransaction(IDatabaseWrapper& db) :
         db_(db)
       {
       }
@@ -331,7 +319,21 @@ namespace Orthanc
                           int64_t id)
       {
         db_.GetAllMetadata(target, id);
-      }        
+      }
+
+      void GetAllPublicIds(std::list<std::string>& target,
+                           ResourceType resourceType)
+      {
+        return db_.GetAllPublicIds(target, resourceType);
+      }
+
+      void GetAllPublicIds(std::list<std::string>& target,
+                           ResourceType resourceType,
+                           size_t since,
+                           size_t limit)
+      {
+        return db_.GetAllPublicIds(target, resourceType, since, limit);
+      }  
 
       void GetChildrenPublicId(std::list<std::string>& target,
                                int64_t id)
@@ -372,7 +374,7 @@ namespace Orthanc
     class ReadWriteTransaction : public ReadOnlyTransaction
     {
     public:
-      ReadWriteTransaction(IDatabaseWrapper& db) :
+      explicit ReadWriteTransaction(IDatabaseWrapper& db) :
         ReadOnlyTransaction(db)
       {
       }
@@ -402,13 +404,13 @@ namespace Orthanc
     };
 
 
-    typedef void (*ReadOnlyFunction) (ReadOnlyTransaction& transaction);
-    typedef void (*ReadWriteFunction) (ReadWriteTransaction& transaction);
+    typedef void (*ReadOnlyFunction) (ReadOnlyTransaction& transaction);  // TODO - Is this useful?
+    typedef void (*ReadWriteFunction) (ReadWriteTransaction& transaction);  // TODO - Is this useful?
 
     
   private:
-    class ReadOnlyWrapper;
-    class ReadWriteWrapper;
+    class ReadOnlyWrapper;  // TODO - Is this useful?
+    class ReadWriteWrapper;  // TODO - Is this useful?
 
     void ApplyInternal(IReadOnlyOperations* readOperations,
                        IReadWriteOperations* writeOperations);
@@ -431,5 +433,17 @@ namespace Orthanc
     void GetAllMetadata(std::map<MetadataType, std::string>& target,
                         const std::string& publicId,
                         ResourceType level);
+
+    void GetAllUuids(std::list<std::string>& target,
+                     ResourceType resourceType);
+
+    void GetAllUuids(std::list<std::string>& target,
+                     ResourceType resourceType,
+                     size_t since,
+                     size_t limit);
+
+    bool LookupAttachment(FileInfo& attachment,
+                          const std::string& instancePublicId,
+                          FileContentType contentType);
   };
 }

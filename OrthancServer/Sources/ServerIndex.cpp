@@ -1139,56 +1139,6 @@ namespace Orthanc
   }
 
   
-  bool ServerIndex::LookupAttachment(FileInfo& attachment,
-                                     const std::string& instanceUuid,
-                                     FileContentType contentType)
-  {
-    boost::mutex::scoped_lock lock(mutex_);
-
-    int64_t id;
-    ResourceType type;
-    if (!db_.LookupResource(id, type, instanceUuid))
-    {
-      throw OrthancException(ErrorCode_UnknownResource);
-    }
-
-    if (db_.LookupAttachment(attachment, id, contentType))
-    {
-      assert(attachment.GetContentType() == contentType);
-      return true;
-    }
-    else
-    {
-      return false;
-    }
-  }
-
-
-
-  void ServerIndex::GetAllUuids(std::list<std::string>& target,
-                                ResourceType resourceType)
-  {
-    boost::mutex::scoped_lock lock(mutex_);
-    db_.GetAllPublicIds(target, resourceType);
-  }
-
-
-  void ServerIndex::GetAllUuids(std::list<std::string>& target,
-                                ResourceType resourceType,
-                                size_t since,
-                                size_t limit)
-  {
-    if (limit == 0)
-    {
-      target.clear();
-      return;
-    }
-
-    boost::mutex::scoped_lock lock(mutex_);
-    db_.GetAllPublicIds(target, resourceType, since, limit);
-  }
-
-
   template <typename T>
   static void FormatLog(Json::Value& target,
                         const std::list<T>& log,
@@ -2446,13 +2396,13 @@ namespace Orthanc
     ReadOnlyFunction  func_;
 
   public:
-    ReadOnlyWrapper(ReadOnlyFunction  func) :
+    explicit ReadOnlyWrapper(ReadOnlyFunction  func) :
       func_(func)
     {
       assert(func_ != NULL);
     }
 
-    virtual void Apply(ReadOnlyTransaction& transaction)
+    virtual void Apply(ReadOnlyTransaction& transaction) ORTHANC_OVERRIDE
     {
       func_(transaction);
     }
@@ -2465,13 +2415,13 @@ namespace Orthanc
     ReadWriteFunction  func_;
 
   public:
-    ReadWriteWrapper(ReadWriteFunction  func) :
+    explicit ReadWriteWrapper(ReadWriteFunction  func) :
       func_(func)
     {
       assert(func_ != NULL);
     }
 
-    virtual void Apply(ReadWriteTransaction& transaction)
+    virtual void Apply(ReadWriteTransaction& transaction) ORTHANC_OVERRIDE
     {
       func_(transaction);
     }
@@ -2821,5 +2771,131 @@ namespace Orthanc
 
     Operations operations(target, publicId, level);
     Apply(operations);
+  }
+
+
+  bool ServerIndex::LookupAttachment(FileInfo& attachment,
+                                     const std::string& instancePublicId,
+                                     FileContentType contentType)
+  {
+    class Operations : public ServerIndex::IReadOnlyOperations
+    {
+    private:
+      FileInfo&        attachment_;
+      bool             found_;
+      std::string      instancePublicId_;
+      FileContentType  contentType_;
+
+    public:
+      Operations(FileInfo& attachment,
+                 const std::string& instancePublicId,
+                 FileContentType contentType) :
+        attachment_(attachment),
+        found_(false),
+        instancePublicId_(instancePublicId),
+        contentType_(contentType)
+      {
+      }
+      
+      virtual void Apply(ServerIndex::ReadOnlyTransaction& transaction) ORTHANC_OVERRIDE
+      {
+        int64_t internalId;
+        ResourceType type;
+        if (!transaction.LookupResource(internalId, type, instancePublicId_))
+        {
+          throw OrthancException(ErrorCode_UnknownResource);
+        }
+        else if (transaction.LookupAttachment(attachment_, internalId, contentType_))
+        {
+          assert(attachment_.GetContentType() == contentType_);
+          found_ = true;
+        }
+        else
+        {
+          found_ = false;
+        }
+      }
+
+      bool HasFound() const
+      {
+        return found_;
+      }
+    };
+
+    Operations operations(attachment, instancePublicId, contentType);
+    Apply(operations);
+    return operations.HasFound();
+  }
+
+
+
+  void ServerIndex::GetAllUuids(std::list<std::string>& target,
+                                ResourceType resourceType)
+  {
+    class Operations : public ServerIndex::IReadOnlyOperations
+    {
+    private:
+      std::list<std::string>& target_;
+      ResourceType            resourceType_;
+
+    public:
+      Operations(std::list<std::string>& target,
+                 ResourceType resourceType) :
+        target_(target),
+        resourceType_(resourceType)
+      {
+      }
+      
+      virtual void Apply(ServerIndex::ReadOnlyTransaction& transaction) ORTHANC_OVERRIDE
+      {
+        transaction.GetAllPublicIds(target_, resourceType_);
+      }
+    };
+
+    Operations operations(target, resourceType);
+    Apply(operations);
+  }
+
+
+  void ServerIndex::GetAllUuids(std::list<std::string>& target,
+                                ResourceType resourceType,
+                                size_t since,
+                                size_t limit)
+  {
+    if (limit == 0)
+    {
+      target.clear();
+    }
+    else
+    {
+      class Operations : public ServerIndex::IReadOnlyOperations
+      {
+      private:
+        std::list<std::string>& target_;
+        ResourceType            resourceType_;
+        size_t                  since_;
+        size_t                  limit_;
+
+      public:
+        Operations(std::list<std::string>& target,
+                   ResourceType resourceType,
+                   size_t since,
+                   size_t limit) :
+          target_(target),
+          resourceType_(resourceType),
+          since_(since),
+          limit_(limit)
+        {
+        }
+      
+        virtual void Apply(ServerIndex::ReadOnlyTransaction& transaction) ORTHANC_OVERRIDE
+        {
+          transaction.GetAllPublicIds(target_, resourceType_, since_, limit_);
+        }
+      };
+
+      Operations operations(target, resourceType, since, limit);
+      Apply(operations);
+    }
   }
 }
