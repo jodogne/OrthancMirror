@@ -251,8 +251,6 @@ namespace Orthanc
       isCommitted_(false)
     {
       transaction_.reset(index_.db_.StartTransaction());
-      transaction_->Begin();
-
       index_.listener_->StartTransaction();
     }
 
