@@ -43,6 +43,10 @@
 #if defined(__APPLE__) && defined(__MACH__)
 #  include <limits.h>        // PATH_MAX
 #  include <mach-o/dyld.h>   // _NSGetExecutablePath
+#endif
+
+
+#if (defined(__APPLE__) && defined(__MACH__)) || defined(__FreeBSD_kernel__) || defined(__FreeBSD__)
 #  include <net/if_dl.h>     // For GetMacAddresses()
 #  include <net/if_types.h>  // For GetMacAddresses()
 #  include <sys/sysctl.h>    // For GetMacAddresses()
@@ -1078,7 +1082,7 @@ namespace Orthanc
 
       while (!interfaces.IsDone())
       {
-#if defined(__APPLE__) && defined(__MACH__)
+#if (defined(__APPLE__) && defined(__MACH__)) || defined(__FreeBSD_kernel__) || defined(__FreeBSD__)
         int mib[6];
         mib[0] = CTL_NET;
         mib[1] = AF_ROUTE;
