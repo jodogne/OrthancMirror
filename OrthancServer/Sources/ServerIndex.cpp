@@ -671,6 +671,11 @@ namespace Orthanc
   }
 
 
+  bool ServerIndex::IsUnstableResource(int64_t id)
+  {
+    return unstableResources_.Contains(id);
+  }
+
 
   ServerIndex::ServerIndex(ServerContext& context,
                            IDatabaseWrapper& db,
@@ -680,7 +685,7 @@ namespace Orthanc
     maximumStorageSize_(0),
     maximumPatients_(0),
     mainDicomTagsRegistry_(new MainDicomTagsRegistry),
-    maxRetries_(0)
+    maxRetries_(10)
   {
     listener_.reset(new Listener(context));
     db_.SetListener(*listener_);
@@ -1014,7 +1019,7 @@ namespace Orthanc
       int64_t expectedNumberOfInstances;
       if (ComputeExpectedNumberOfInstances(expectedNumberOfInstances, dicomSummary))
       {
-        SeriesStatus seriesStatus = GetSeriesStatus(status.seriesId_, expectedNumberOfInstances);
+        SeriesStatus seriesStatus = GetSeriesStatus(db_, status.seriesId_, expectedNumberOfInstances);
         if (seriesStatus == SeriesStatus_Complete)
         {
           LogChange(status.seriesId_, ChangeType_CompletedSeries, ResourceType_Series, hashSeries);
@@ -1057,11 +1062,12 @@ namespace Orthanc
   }
 
   
-  SeriesStatus ServerIndex::GetSeriesStatus(int64_t id,
+  SeriesStatus ServerIndex::GetSeriesStatus(IDatabaseWrapper& db,
+                                            int64_t id,
                                             int64_t expectedNumberOfInstances)
   {
     std::list<std::string> values;
-    db_.GetChildrenMetadata(values, id, MetadataType_Instance_IndexInSeries);
+    db.GetChildrenMetadata(values, id, MetadataType_Instance_IndexInSeries);
 
     std::set<int64_t> instances;
 
@@ -1106,11 +1112,12 @@ namespace Orthanc
 
 
   void ServerIndex::MainDicomTagsToJson(Json::Value& target,
+                                        IDatabaseWrapper& db,
                                         int64_t resourceId,
                                         ResourceType resourceType)
   {
     DicomMap tags;
-    db_.GetMainDicomTags(tags, resourceId);
+    db.GetMainDicomTags(tags, resourceId);
 
     if (resourceType == ResourceType_Study)
     {
@@ -1132,187 +1139,6 @@ namespace Orthanc
   }
 
   
-  bool ServerIndex::LookupResource(Json::Value& result,
-                                   const std::string& publicId,
-                                   ResourceType expectedType)
-  {
-    result = Json::objectValue;
-
-    boost::mutex::scoped_lock lock(mutex_);
-
-    // Lookup for the requested resource
-    int64_t id;
-    ResourceType type;
-    std::string parent;
-    if (!db_.LookupResourceAndParent(id, type, parent, publicId) ||
-        type != expectedType)
-    {
-      return false;
-    }
-
-    // Set information about the parent resource (if it exists)
-    if (type == ResourceType_Patient)
-    {
-      if (!parent.empty())
-      {
-        throw OrthancException(ErrorCode_DatabasePlugin);
-      }
-    }
-    else
-    {
-      if (parent.empty())
-      {
-        throw OrthancException(ErrorCode_DatabasePlugin);
-      }
-
-      switch (type)
-      {
-        case ResourceType_Study:
-          result["ParentPatient"] = parent;
-          break;
-
-        case ResourceType_Series:
-          result["ParentStudy"] = parent;
-          break;
-
-        case ResourceType_Instance:
-          result["ParentSeries"] = parent;
-          break;
-
-        default:
-          throw OrthancException(ErrorCode_InternalError);
-      }
-    }
-
-    // List the children resources
-    std::list<std::string> children;
-    db_.GetChildrenPublicId(children, id);
-
-    if (type != ResourceType_Instance)
-    {
-      Json::Value c = Json::arrayValue;
-
-      for (std::list<std::string>::const_iterator
-             it = children.begin(); it != children.end(); ++it)
-      {
-        c.append(*it);
-      }
-
-      switch (type)
-      {
-        case ResourceType_Patient:
-          result["Studies"] = c;
-          break;
-
-        case ResourceType_Study:
-          result["Series"] = c;
-          break;
-
-        case ResourceType_Series:
-          result["Instances"] = c;
-          break;
-
-        default:
-          throw OrthancException(ErrorCode_InternalError);
-      }
-    }
-
-    // Extract the metadata
-    std::map<MetadataType, std::string> metadata;
-    db_.GetAllMetadata(metadata, id);
-
-    // Set the resource type
-    switch (type)
-    {
-      case ResourceType_Patient:
-        result["Type"] = "Patient";
-        break;
-
-      case ResourceType_Study:
-        result["Type"] = "Study";
-        break;
-
-      case ResourceType_Series:
-      {
-        result["Type"] = "Series";
-
-        int64_t i;
-        if (LookupIntegerMetadata(i, metadata, MetadataType_Series_ExpectedNumberOfInstances))
-        {
-          result["ExpectedNumberOfInstances"] = static_cast<int>(i);
-          result["Status"] = EnumerationToString(GetSeriesStatus(id, i));
-        }
-        else
-        {
-          result["ExpectedNumberOfInstances"] = Json::nullValue;
-          result["Status"] = EnumerationToString(SeriesStatus_Unknown);
-        }
-
-        break;
-      }
-
-      case ResourceType_Instance:
-      {
-        result["Type"] = "Instance";
-
-        FileInfo attachment;
-        if (!db_.LookupAttachment(attachment, id, FileContentType_Dicom))
-        {
-          throw OrthancException(ErrorCode_InternalError);
-        }
-
-        result["FileSize"] = static_cast<unsigned int>(attachment.GetUncompressedSize());
-        result["FileUuid"] = attachment.GetUuid();
-
-        int64_t i;
-        if (LookupIntegerMetadata(i, metadata, MetadataType_Instance_IndexInSeries))
-        {
-          result["IndexInSeries"] = static_cast<int>(i);
-        }
-        else
-        {
-          result["IndexInSeries"] = Json::nullValue;
-        }
-
-        break;
-      }
-
-      default:
-        throw OrthancException(ErrorCode_InternalError);
-    }
-
-    // Record the remaining information
-    result["ID"] = publicId;
-    MainDicomTagsToJson(result, id, type);
-
-    std::string tmp;
-
-    if (LookupStringMetadata(tmp, metadata, MetadataType_AnonymizedFrom))
-    {
-      result["AnonymizedFrom"] = tmp;
-    }
-
-    if (LookupStringMetadata(tmp, metadata, MetadataType_ModifiedFrom))
-    {
-      result["ModifiedFrom"] = tmp;
-    }
-
-    if (type == ResourceType_Patient ||
-        type == ResourceType_Study ||
-        type == ResourceType_Series)
-    {
-      result["IsStable"] = !unstableResources_.Contains(id);
-
-      if (LookupStringMetadata(tmp, metadata, MetadataType_LastUpdate))
-      {
-        result["LastUpdate"] = tmp;
-      }
-    }
-
-    return true;
-  }
-
-
   bool ServerIndex::LookupAttachment(FileInfo& attachment,
                                      const std::string& instanceUuid,
                                      FileContentType contentType)
@@ -1882,24 +1708,6 @@ namespace Orthanc
     }
 
     return db_.LookupMetadata(target, id, type);
-  }
-
-
-  void ServerIndex::GetAllMetadata(std::map<MetadataType, std::string>& target,
-                                   const std::string& publicId,
-                                   ResourceType expectedType)
-  {
-    boost::mutex::scoped_lock lock(mutex_);
-
-    ResourceType type;
-    int64_t id;
-    if (!db_.LookupResource(id, type, publicId) ||
-        expectedType != type)
-    {
-      throw OrthancException(ErrorCode_UnknownResource);
-    }
-
-    return db_.GetAllMetadata(target, id);
   }
 
 
@@ -2632,34 +2440,6 @@ namespace Orthanc
    ** PROTOTYPING FOR DB REFACTORING BELOW
    ***/
     
-  ServerIndex::ExpandResourceOperation::ExpandResourceOperation(const std::string& resource,
-                                                                ResourceType level) :
-    found_(false),
-    resource_(resource),
-    level_(level)
-  {
-  }
-
-  
-  void ServerIndex::ExpandResourceOperation::Apply(ServerIndex::ReadOnlyTransaction& transaction)
-  {
-    found_ = transaction.LookupResource(item_, resource_, level_);
-  }
-
-  
-  const Json::Value& ServerIndex::ExpandResourceOperation::GetResource() const
-  {
-    if (found_)
-    {
-      return item_;
-    }
-    else
-    {
-      throw OrthancException(ErrorCode_BadSequenceOfCalls);
-    }
-  }
-
-
   class ServerIndex::ReadOnlyWrapper : public IReadOnlyOperations
   {
   private:
@@ -2713,15 +2493,17 @@ namespace Orthanc
     {
       try
       {
+        boost::mutex::scoped_lock lock(mutex_);  // TODO - REMOVE
+
         if (readOperations != NULL)
         {
-          ReadOnlyTransaction transaction(*this);
+          ReadOnlyTransaction transaction(db_);
           readOperations->Apply(transaction);
         }
         else
         {
           assert(writeOperations != NULL);
-          ReadWriteTransaction transaction(*this);
+          ReadWriteTransaction transaction(db_);
           writeOperations->Apply(transaction);          
         }
         
@@ -2781,5 +2563,263 @@ namespace Orthanc
   {
     ReadWriteWrapper wrapper(func);
     Apply(wrapper);
+  }
+
+
+  bool ServerIndex::ExpandResource(Json::Value& target,
+                                   const std::string& publicId,
+                                   ResourceType level)
+  {    
+    class Operations : public ServerIndex::IReadOnlyOperations
+    {
+    private:
+      Json::Value&        target_;
+      bool                found_;
+      ServerIndex&        index_;
+      const std::string&  publicId_;
+      ResourceType        level_;
+
+    public:
+      Operations(Json::Value& target,
+                 ServerIndex& index,
+                 const std::string& publicId,
+                 ResourceType level) :
+        target_(target),
+        found_(false),
+        index_(index),
+        publicId_(publicId),
+        level_(level)
+      {
+      }
+      
+      virtual void Apply(ServerIndex::ReadOnlyTransaction& transaction) ORTHANC_OVERRIDE
+      {
+        // Lookup for the requested resource
+        int64_t internalId;  // unused
+        ResourceType type;
+        std::string parent;
+        if (!transaction.LookupResourceAndParent(internalId, type, parent, publicId_) ||
+            type != level_)
+        {
+          found_ = false;
+        }
+        else
+        {
+          target_ = Json::objectValue;
+        
+          // Set information about the parent resource (if it exists)
+          if (type == ResourceType_Patient)
+          {
+            if (!parent.empty())
+            {
+              throw OrthancException(ErrorCode_DatabasePlugin);
+            }
+          }
+          else
+          {
+            if (parent.empty())
+            {
+              throw OrthancException(ErrorCode_DatabasePlugin);
+            }
+
+            switch (type)
+            {
+              case ResourceType_Study:
+                target_["ParentPatient"] = parent;
+                break;
+
+              case ResourceType_Series:
+                target_["ParentStudy"] = parent;
+                break;
+
+              case ResourceType_Instance:
+                target_["ParentSeries"] = parent;
+                break;
+
+              default:
+                throw OrthancException(ErrorCode_InternalError);
+            }
+          }
+
+          // List the children resources
+          std::list<std::string> children;
+          transaction.GetChildrenPublicId(children, internalId);
+
+          if (type != ResourceType_Instance)
+          {
+            Json::Value c = Json::arrayValue;
+
+            for (std::list<std::string>::const_iterator
+                   it = children.begin(); it != children.end(); ++it)
+            {
+              c.append(*it);
+            }
+
+            switch (type)
+            {
+              case ResourceType_Patient:
+                target_["Studies"] = c;
+                break;
+
+              case ResourceType_Study:
+                target_["Series"] = c;
+                break;
+
+              case ResourceType_Series:
+                target_["Instances"] = c;
+                break;
+
+              default:
+                throw OrthancException(ErrorCode_InternalError);
+            }
+          }
+
+          // Extract the metadata
+          std::map<MetadataType, std::string> metadata;
+          transaction.GetAllMetadata(metadata, internalId);
+
+          // Set the resource type
+          switch (type)
+          {
+            case ResourceType_Patient:
+              target_["Type"] = "Patient";
+              break;
+
+            case ResourceType_Study:
+              target_["Type"] = "Study";
+              break;
+
+            case ResourceType_Series:
+            {
+              target_["Type"] = "Series";
+
+              int64_t i;
+              if (LookupIntegerMetadata(i, metadata, MetadataType_Series_ExpectedNumberOfInstances))
+              {
+                target_["ExpectedNumberOfInstances"] = static_cast<int>(i);
+                target_["Status"] = EnumerationToString(transaction.GetSeriesStatus(internalId, i));
+              }
+              else
+              {
+                target_["ExpectedNumberOfInstances"] = Json::nullValue;
+                target_["Status"] = EnumerationToString(SeriesStatus_Unknown);
+              }
+
+              break;
+            }
+
+            case ResourceType_Instance:
+            {
+              target_["Type"] = "Instance";
+
+              FileInfo attachment;
+              if (!transaction.LookupAttachment(attachment, internalId, FileContentType_Dicom))
+              {
+                throw OrthancException(ErrorCode_InternalError);
+              }
+
+              target_["FileSize"] = static_cast<unsigned int>(attachment.GetUncompressedSize());
+              target_["FileUuid"] = attachment.GetUuid();
+
+              int64_t i;
+              if (LookupIntegerMetadata(i, metadata, MetadataType_Instance_IndexInSeries))
+              {
+                target_["IndexInSeries"] = static_cast<int>(i);
+              }
+              else
+              {
+                target_["IndexInSeries"] = Json::nullValue;
+              }
+
+              break;
+            }
+
+            default:
+              throw OrthancException(ErrorCode_InternalError);
+          }
+
+          // Record the remaining information
+          target_["ID"] = publicId_;
+          transaction.MainDicomTagsToJson(target_, internalId, type);
+
+          std::string tmp;
+
+          if (LookupStringMetadata(tmp, metadata, MetadataType_AnonymizedFrom))
+          {
+            target_["AnonymizedFrom"] = tmp;
+          }
+
+          if (LookupStringMetadata(tmp, metadata, MetadataType_ModifiedFrom))
+          {
+            target_["ModifiedFrom"] = tmp;
+          }
+
+          if (type == ResourceType_Patient ||
+              type == ResourceType_Study ||
+              type == ResourceType_Series)
+          {
+            target_["IsStable"] = !index_.IsUnstableResource(internalId);
+
+            if (LookupStringMetadata(tmp, metadata, MetadataType_LastUpdate))
+            {
+              target_["LastUpdate"] = tmp;
+            }
+          }
+
+          found_ = true;
+        }
+      }
+
+      bool HasFound() const
+      {
+        return found_;
+      }
+    };
+
+    Operations operations(target, *this, publicId, level);
+    Apply(operations);
+    return operations.HasFound();
+  }
+
+
+  void ServerIndex::GetAllMetadata(std::map<MetadataType, std::string>& target,
+                                   const std::string& publicId,
+                                   ResourceType level)
+  {
+    class Operations : public ServerIndex::IReadOnlyOperations
+    {
+    private:
+      std::map<MetadataType, std::string>&  metadata_;
+      std::string   publicId_;
+      ResourceType  level_;
+
+    public:
+      Operations(std::map<MetadataType, std::string>& metadata,
+                 const std::string& publicId,
+                 ResourceType level) :
+        metadata_(metadata),
+        publicId_(publicId),
+        level_(level)
+      {
+      }
+      
+      virtual void Apply(ServerIndex::ReadOnlyTransaction& transaction) ORTHANC_OVERRIDE
+      {
+        ResourceType type;
+        int64_t id;
+        if (!transaction.LookupResource(id, type, publicId_) ||
+            level_ != type)
+        {
+          throw OrthancException(ErrorCode_UnknownResource);
+        }
+        else
+        {
+          transaction.GetAllMetadata(metadata_, id);
+        }
+      }
+    };
+
+    Operations operations(target, publicId, level);
+    Apply(operations);
   }
 }

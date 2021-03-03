@@ -38,6 +38,7 @@
 #include "OrthancRestApi/OrthancRestApi.h"
 #include "ServerContext.h"
 
+#include "../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.h"
 #include "../../OrthancFramework/Sources/HttpServer/StringHttpOutput.h"
 #include "../../OrthancFramework/Sources/Logging.h"
 #include "../../OrthancFramework/Sources/Lua/LuaFunctionCall.h"
@@ -131,7 +132,7 @@ namespace Orthanc
     private:
       const ServerIndexChange&            change_;
       bool                                ok_;
-      Json::Value                         tags_;
+      DicomMap                            tags_;
       std::map<MetadataType, std::string> metadata_;      
 
     public:
@@ -143,11 +144,15 @@ namespace Orthanc
       
       virtual void Apply(ServerIndex::ReadOnlyTransaction& transaction) ORTHANC_OVERRIDE
       {
-        if (transaction.LookupResource(tags_, change_.GetPublicId(), change_.GetResourceType()))
+        int64_t internalId;
+        ResourceType level;
+        if (transaction.LookupResource(internalId, level, change_.GetPublicId()) &&
+            level == change_.GetResourceType())
         {
-          transaction.GetAllMetadata(metadata_, change_.GetPublicId(), change_.GetResourceType());
+          transaction.GetMainDicomTags(tags_, internalId);
+          transaction.GetAllMetadata(metadata_, internalId);
           ok_ = true;
-        }               
+        }
       }
 
       void CallLua(LuaScripting& that,
@@ -171,9 +176,22 @@ namespace Orthanc
             {
               that.InitializeJob();
 
+              Json::Value json = Json::objectValue;
+
+              if (change_.GetResourceType() == ResourceType_Study)
+              {
+                DicomMap t;
+                tags_.ExtractStudyInformation(t);  // Discard patient-related tags
+                FromDcmtkBridge::ToJson(json, t, true);
+              }
+              else
+              {
+                FromDcmtkBridge::ToJson(json, tags_, true);
+              }
+
               LuaFunctionCall call(lock.GetLua(), name);
               call.PushString(change_.GetPublicId());
-              call.PushJson(tags_["MainDicomTags"]);
+              call.PushJson(json);
               call.PushJson(formattedMetadata);
               call.Execute();
 

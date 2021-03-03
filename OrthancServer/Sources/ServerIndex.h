@@ -79,9 +79,11 @@ namespace Orthanc
     static void UnstableResourcesMonitorThread(ServerIndex* that,
                                                unsigned int threadSleep);
 
-    void MainDicomTagsToJson(Json::Value& result,
-                             int64_t resourceId,
-                             ResourceType resourceType);
+    // A transaction must be running
+    static void MainDicomTagsToJson(Json::Value& result,
+                                    IDatabaseWrapper& db,
+                                    int64_t resourceId,
+                                    ResourceType resourceType);
 
     bool IsRecyclingNeeded(uint64_t instanceSize);
 
@@ -110,8 +112,12 @@ namespace Orthanc
                          const DatabaseLookup& source,
                          ResourceType level) const;
 
-    SeriesStatus GetSeriesStatus(int64_t id,
-                                 int64_t expectedNumberOfInstances);
+    // A transaction must be running
+    static SeriesStatus GetSeriesStatus(IDatabaseWrapper& db,
+                                        int64_t id,
+                                        int64_t expectedNumberOfInstances);
+
+    bool IsUnstableResource(int64_t id);
 
   public:
     ServerIndex(ServerContext& context,
@@ -156,12 +162,6 @@ namespace Orthanc
                              /* out */ uint64_t& countSeries, 
                              /* out */ uint64_t& countInstances);
 
-  private:
-    bool LookupResource(Json::Value& result,
-                        const std::string& publicId,
-                        ResourceType expectedType);
-
-  public:
     bool LookupAttachment(FileInfo& attachment,
                           const std::string& instanceUuid,
                           FileContentType contentType);
@@ -211,12 +211,6 @@ namespace Orthanc
     void DeleteMetadata(const std::string& publicId,
                         MetadataType type);
 
-  private:
-    void GetAllMetadata(std::map<MetadataType, std::string>& target,
-                        const std::string& publicId,
-                        ResourceType expectedType);
-
-  public:
     bool LookupMetadata(std::string& target,
                         const std::string& publicId,
                         ResourceType expectedType,
@@ -304,26 +298,73 @@ namespace Orthanc
     class ReadOnlyTransaction : public boost::noncopyable
     {
     protected:
-      ServerIndex&  index_;
+      IDatabaseWrapper&  db_;
       
     public:
-      ReadOnlyTransaction(ServerIndex& index) :
-        index_(index)
+      ReadOnlyTransaction(IDatabaseWrapper& db) :
+        db_(db)
       {
-      }
-      
-      bool LookupResource(Json::Value& result,
-                          const std::string& publicId,
-                          ResourceType expectedType)
-      {
-        return index_.LookupResource(result, publicId, expectedType);
       }
 
-      void GetAllMetadata(std::map<MetadataType, std::string>& target,
-                          const std::string& publicId,
-                          ResourceType expectedType)
+      /**
+       * Higher-level constructions
+       **/
+
+      SeriesStatus GetSeriesStatus(int64_t id,
+                                   int64_t expectedNumberOfInstances)
       {
-        index_.GetAllMetadata(target, publicId, expectedType);
+        return ServerIndex::GetSeriesStatus(db_, id, expectedNumberOfInstances);
+      }
+
+      void MainDicomTagsToJson(Json::Value& result,
+                               int64_t resourceId,
+                               ResourceType resourceType)
+      {
+        ServerIndex::MainDicomTagsToJson(result, db_, resourceId, resourceType);
+      }
+
+      /**
+       * Read-only methods from "IDatabaseWrapper"
+       **/
+
+      void GetAllMetadata(std::map<MetadataType, std::string>& target,
+                          int64_t id)
+      {
+        db_.GetAllMetadata(target, id);
+      }        
+
+      void GetChildrenPublicId(std::list<std::string>& target,
+                               int64_t id)
+      {
+        db_.GetChildrenPublicId(target, id);
+      }
+
+      void GetMainDicomTags(DicomMap& map,
+                            int64_t id)
+      {
+        db_.GetMainDicomTags(map, id);
+      }
+      
+      bool LookupAttachment(FileInfo& attachment,
+                            int64_t id,
+                            FileContentType contentType)
+      {
+        return db_.LookupAttachment(attachment, id, contentType);
+      }
+      
+      bool LookupResource(int64_t& id,
+                          ResourceType& type,
+                          const std::string& publicId)
+      {
+        return db_.LookupResource(id, type, publicId);
+      }
+      
+      bool LookupResourceAndParent(int64_t& id,
+                                   ResourceType& type,
+                                   std::string& parentPublicId,
+                                   const std::string& publicId)
+      {
+        return db_.LookupResourceAndParent(id, type, parentPublicId, publicId);
       }
     };
 
@@ -331,25 +372,11 @@ namespace Orthanc
     class ReadWriteTransaction : public ReadOnlyTransaction
     {
     public:
-      ReadWriteTransaction(ServerIndex& index) :
-        ReadOnlyTransaction(index)
+      ReadWriteTransaction(IDatabaseWrapper& db) :
+        ReadOnlyTransaction(db)
       {
       }
 
-      StoreStatus Store(std::map<MetadataType, std::string>& instanceMetadata,
-                        const DicomMap& dicomSummary,
-                        const Attachments& attachments,
-                        const MetadataMap& metadata,
-                        const DicomInstanceOrigin& origin,
-                        bool overwrite,
-                        bool hasTransferSyntax,
-                        DicomTransferSyntax transferSyntax,
-                        bool hasPixelDataOffset,
-                        uint64_t pixelDataOffset)
-      {
-        return index_.Store(instanceMetadata, dicomSummary, attachments, metadata, origin,
-                            overwrite, hasTransferSyntax, transferSyntax, hasPixelDataOffset, pixelDataOffset);
-      }
     };
 
 
@@ -375,29 +402,6 @@ namespace Orthanc
     };
 
 
-    class ExpandResourceOperation : public ServerIndex::IReadOnlyOperations
-    {
-    private:
-      Json::Value   item_;
-      bool          found_;
-      std::string   resource_;
-      ResourceType  level_;
-
-    public:
-      ExpandResourceOperation(const std::string& resource,
-                              ResourceType level);
-      
-      virtual void Apply(ServerIndex::ReadOnlyTransaction& transaction) ORTHANC_OVERRIDE;
-
-      bool IsFound() const
-      {
-        return found_;
-      }
-
-      const Json::Value& GetResource() const;
-    };
-  
-  
     typedef void (*ReadOnlyFunction) (ReadOnlyTransaction& transaction);
     typedef void (*ReadWriteFunction) (ReadWriteTransaction& transaction);
 
@@ -419,5 +423,13 @@ namespace Orthanc
     void Apply(ReadOnlyFunction func);
 
     void Apply(ReadWriteFunction func);
+
+    bool ExpandResource(Json::Value& target,
+                        const std::string& publicId,
+                        ResourceType level);
+
+    void GetAllMetadata(std::map<MetadataType, std::string>& target,
+                        const std::string& publicId,
+                        ResourceType level);
   };
 }
