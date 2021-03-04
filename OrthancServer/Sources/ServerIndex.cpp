@@ -1366,23 +1366,6 @@ namespace Orthanc
   }
 
 
-  bool ServerIndex::IsProtectedPatient(const std::string& publicId)
-  {
-    boost::mutex::scoped_lock lock(mutex_);
-
-    // Lookup for the requested resource
-    int64_t id;
-    ResourceType type;
-    if (!db_.LookupResource(id, type, publicId) ||
-        type != ResourceType_Patient)
-    {
-      throw OrthancException(ErrorCode_ParameterOutOfRange);
-    }
-
-    return db_.IsProtectedPatient(id);
-  }
-     
-
   void ServerIndex::SetProtectedPatient(const std::string& publicId,
                                         bool isProtected)
   {
@@ -1405,87 +1388,6 @@ namespace Orthanc
       LOG(INFO) << "Patient " << publicId << " has been protected";
     else
       LOG(INFO) << "Patient " << publicId << " has been unprotected";
-  }
-
-
-  void ServerIndex::GetChildren(std::list<std::string>& result,
-                                const std::string& publicId)
-  {
-    result.clear();
-
-    boost::mutex::scoped_lock lock(mutex_);
-
-    ResourceType type;
-    int64_t resource;
-    if (!db_.LookupResource(resource, type, publicId))
-    {
-      throw OrthancException(ErrorCode_UnknownResource);
-    }
-
-    if (type == ResourceType_Instance)
-    {
-      // An instance cannot have a child
-      throw OrthancException(ErrorCode_BadParameterType);
-    }
-
-    std::list<int64_t> tmp;
-    db_.GetChildrenInternalId(tmp, resource);
-
-    for (std::list<int64_t>::const_iterator 
-           it = tmp.begin(); it != tmp.end(); ++it)
-    {
-      result.push_back(db_.GetPublicId(*it));
-    }
-  }
-
-
-  void ServerIndex::GetChildInstances(std::list<std::string>& result,
-                                      const std::string& publicId)
-  {
-    result.clear();
-
-    boost::mutex::scoped_lock lock(mutex_);
-
-    ResourceType type;
-    int64_t top;
-    if (!db_.LookupResource(top, type, publicId))
-    {
-      throw OrthancException(ErrorCode_UnknownResource);
-    }
-
-    if (type == ResourceType_Instance)
-    {
-      // The resource is already an instance: Do not go down the hierarchy
-      result.push_back(publicId);
-      return;
-    }
-
-    std::stack<int64_t> toExplore;
-    toExplore.push(top);
-
-    std::list<int64_t> tmp;
-
-    while (!toExplore.empty())
-    {
-      // Get the internal ID of the current resource
-      int64_t resource = toExplore.top();
-      toExplore.pop();
-
-      if (db_.GetResourceType(resource) == ResourceType_Instance)
-      {
-        result.push_back(db_.GetPublicId(resource));
-      }
-      else
-      {
-        // Tag all the children of this resource as to be explored
-        db_.GetChildrenInternalId(tmp, resource);
-        for (std::list<int64_t>::const_iterator 
-               it = tmp.begin(); it != tmp.end(); ++it)
-        {
-          toExplore.push(*it);
-        }
-      }
-    }
   }
 
 
@@ -2330,7 +2232,7 @@ namespace Orthanc
                               const Tuple& tuple) = 0;
 
       void Apply(ServerIndex& index,
-                 T1 t1)
+                 const T1& t1)
       {
         const Tuple tuple(t1);
         TupleOperationsWrapper<ReadOnlyOperationsT1, Tuple> wrapper(*this, tuple);
@@ -2354,8 +2256,8 @@ namespace Orthanc
                               const Tuple& tuple) = 0;
 
       void Apply(ServerIndex& index,
-                 T1 t1,
-                 T2 t2)
+                 const T1& t1,
+                 const T2& t2)
       {
         const Tuple tuple(t1, t2);
         TupleOperationsWrapper<ReadOnlyOperationsT2, Tuple> wrapper(*this, tuple);
@@ -2380,9 +2282,9 @@ namespace Orthanc
                               const Tuple& tuple) = 0;
 
       void Apply(ServerIndex& index,
-                 T1 t1,
-                 T2 t2,
-                 T3 t3)
+                 const T1& t1,
+                 const T2& t2,
+                 const T3& t3)
       {
         const Tuple tuple(t1, t2, t3);
         TupleOperationsWrapper<ReadOnlyOperationsT3, Tuple> wrapper(*this, tuple);
@@ -2408,10 +2310,10 @@ namespace Orthanc
                               const Tuple& tuple) = 0;
 
       void Apply(ServerIndex& index,
-                 T1 t1,
-                 T2 t2,
-                 T3 t3,
-                 T4 t4)
+                 const T1& t1,
+                 const T2& t2,
+                 const T3& t3,
+                 const T4& t4)
       {
         const Tuple tuple(t1, t2, t3, t4);
         TupleOperationsWrapper<ReadOnlyOperationsT4, Tuple> wrapper(*this, tuple);
@@ -2438,11 +2340,11 @@ namespace Orthanc
                               const Tuple& tuple) = 0;
 
       void Apply(ServerIndex& index,
-                 T1 t1,
-                 T2 t2,
-                 T3 t3,
-                 T4 t4,
-                 T5 t5)
+                 const T1& t1,
+                 const T2& t2,
+                 const T3& t3,
+                 const T4& t4,
+                 const T5& t5)
       {
         const Tuple tuple(t1, t2, t3, t4, t5);
         TupleOperationsWrapper<ReadOnlyOperationsT5, Tuple> wrapper(*this, tuple);
@@ -2470,12 +2372,12 @@ namespace Orthanc
                               const Tuple& tuple) = 0;
 
       void Apply(ServerIndex& index,
-                 T1 t1,
-                 T2 t2,
-                 T3 t3,
-                 T4 t4,
-                 T5 t5,
-                 T6 t6)
+                 const T1& t1,
+                 const T2& t2,
+                 const T3& t3,
+                 const T4& t4,
+                 const T5& t5,
+                 const T6& t6)
       {
         const Tuple tuple(t1, t2, t3, t4, t5, t6);
         TupleOperationsWrapper<ReadOnlyOperationsT6, Tuple> wrapper(*this, tuple);
@@ -3083,5 +2985,149 @@ namespace Orthanc
     
     Operations operations;
     operations.Apply(*this, &target);
+  }
+
+
+  bool ServerIndex::IsProtectedPatient(const std::string& publicId)
+  {
+    class Operations : public ReadOnlyOperationsT1<std::string>
+    {
+    private:
+      bool protected_;
+      
+    public:
+      Operations() :
+        protected_(false)
+      {
+      }
+
+      bool IsProtected() const
+      {
+        return protected_;
+      }
+      
+      virtual void ApplyTuple(ReadOnlyTransaction& transaction,
+                              const Tuple& tuple) ORTHANC_OVERRIDE
+      {
+        // Lookup for the requested resource
+        int64_t id;
+        ResourceType type;
+        if (!transaction.LookupResource(id, type, tuple.get<0>()) ||
+            type != ResourceType_Patient)
+        {
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+        }
+        else
+        {
+          protected_ = transaction.IsProtectedPatient(id);
+        }
+      }
+    };
+    
+    Operations operations;
+    operations.Apply(*this, publicId);
+    return operations.IsProtected();
+  }
+
+
+  void ServerIndex::GetChildren(std::list<std::string>& result,
+                                const std::string& publicId)
+  {
+    class Operations : public ReadOnlyOperationsT2<std::list<std::string>*, std::string>
+    {
+    public:
+      virtual void ApplyTuple(ReadOnlyTransaction& transaction,
+                              const Tuple& tuple) ORTHANC_OVERRIDE
+      {
+        ResourceType type;
+        int64_t resource;
+        if (!transaction.LookupResource(resource, type, tuple.get<1>()))
+        {
+          throw OrthancException(ErrorCode_UnknownResource);
+        }
+        else if (type == ResourceType_Instance)
+        {
+          // An instance cannot have a child
+          throw OrthancException(ErrorCode_BadParameterType);
+        }
+        else
+        {
+          std::list<int64_t> tmp;
+          transaction.GetChildrenInternalId(tmp, resource);
+
+          tuple.get<0>()->clear();
+
+          for (std::list<int64_t>::const_iterator 
+                 it = tmp.begin(); it != tmp.end(); ++it)
+          {
+            tuple.get<0>()->push_back(transaction.GetPublicId(*it));
+          }
+        }
+      }
+    };
+    
+    Operations operations;
+    operations.Apply(*this, &result, publicId);
+  }
+
+
+  void ServerIndex::GetChildInstances(std::list<std::string>& result,
+                                      const std::string& publicId)
+  {
+    class Operations : public ReadOnlyOperationsT2<std::list<std::string>*, std::string>
+    {
+    public:
+      virtual void ApplyTuple(ReadOnlyTransaction& transaction,
+                              const Tuple& tuple) ORTHANC_OVERRIDE
+      {
+        tuple.get<0>()->clear();
+        
+        ResourceType type;
+        int64_t top;
+        if (!transaction.LookupResource(top, type, tuple.get<1>()))
+        {
+          throw OrthancException(ErrorCode_UnknownResource);
+        }
+        else if (type == ResourceType_Instance)
+        {
+          // The resource is already an instance: Do not go down the hierarchy
+          tuple.get<0>()->push_back(tuple.get<1>());
+        }
+        else
+        {
+          std::stack<int64_t> toExplore;
+          toExplore.push(top);
+
+          std::list<int64_t> tmp;
+          while (!toExplore.empty())
+          {
+            // Get the internal ID of the current resource
+            int64_t resource = toExplore.top();
+            toExplore.pop();
+
+            // TODO - This could be optimized by seeing how many
+            // levels "type == transaction.GetResourceType(top)" is
+            // above the "instances level"
+            if (transaction.GetResourceType(resource) == ResourceType_Instance)
+            {
+              tuple.get<0>()->push_back(transaction.GetPublicId(resource));
+            }
+            else
+            {
+              // Tag all the children of this resource as to be explored
+              transaction.GetChildrenInternalId(tmp, resource);
+              for (std::list<int64_t>::const_iterator 
+                     it = tmp.begin(); it != tmp.end(); ++it)
+              {
+                toExplore.push(*it);
+              }
+            }
+          }
+        }
+      }
+    };
+    
+    Operations operations;
+    operations.Apply(*this, &result, publicId);
   }
 }
