@@ -162,16 +162,8 @@ namespace Orthanc
     void LogExportedResource(const std::string& publicId,
                              const std::string& remoteModality);
 
-    bool IsProtectedPatient(const std::string& publicId);
-
     void SetProtectedPatient(const std::string& publicId,
                              bool isProtected);
-
-    void GetChildren(std::list<std::string>& result,
-                     const std::string& publicId);
-
-    void GetChildInstances(std::list<std::string>& result,
-                           const std::string& publicId);
 
     void SetMetadata(const std::string& publicId,
                      MetadataType type,
@@ -324,6 +316,12 @@ namespace Orthanc
         db_.GetChanges(target, done, since, maxResults);
       }
 
+      void GetChildrenInternalId(std::list<int64_t>& target,
+                                 int64_t id)
+      {
+        db_.GetChildrenInternalId(target, id);
+      }
+
       void GetChildrenPublicId(std::list<std::string>& target,
                                int64_t id)
       {
@@ -359,11 +357,21 @@ namespace Orthanc
         db_.GetMainDicomTags(map, id);
       }
 
+      std::string GetPublicId(int64_t resourceId)
+      {
+        return db_.GetPublicId(resourceId);
+      }
+      
       uint64_t GetResourceCount(ResourceType resourceType)
       {
         return db_.GetResourceCount(resourceType);
       }
       
+      ResourceType GetResourceType(int64_t resourceId)
+      {
+        return db_.GetResourceType(resourceId);
+      }
+
       uint64_t GetTotalCompressedSize()
       {
         return db_.GetTotalCompressedSize();
@@ -374,6 +382,11 @@ namespace Orthanc
         return db_.GetTotalUncompressedSize();
       }
       
+      bool IsProtectedPatient(int64_t internalId)
+      {
+        return db_.IsProtectedPatient(internalId);
+      }
+
       bool LookupAttachment(FileInfo& attachment,
                             int64_t id,
                             FileContentType contentType)
@@ -492,5 +505,12 @@ namespace Orthanc
 
     void GetLastExportedResource(Json::Value& target);
 
+    bool IsProtectedPatient(const std::string& publicId);
+
+    void GetChildren(std::list<std::string>& result,
+                     const std::string& publicId);
+
+    void GetChildInstances(std::list<std::string>& result,
+                           const std::string& publicId);
   };
 }
