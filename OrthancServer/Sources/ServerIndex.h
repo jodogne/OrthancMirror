@@ -155,31 +155,12 @@ namespace Orthanc
                       bool hasPixelDataOffset,
                       uint64_t pixelDataOffset);
 
-    void GetGlobalStatistics(/* out */ uint64_t& diskSize,
-                             /* out */ uint64_t& uncompressedSize,
-                             /* out */ uint64_t& countPatients, 
-                             /* out */ uint64_t& countStudies, 
-                             /* out */ uint64_t& countSeries, 
-                             /* out */ uint64_t& countInstances);
-
     bool DeleteResource(Json::Value& target /* out */,
                         const std::string& uuid,
                         ResourceType expectedType);
 
-    void GetChanges(Json::Value& target,
-                    int64_t since,
-                    unsigned int maxResults);
-
-    void GetLastChange(Json::Value& target);
-
     void LogExportedResource(const std::string& publicId,
                              const std::string& remoteModality);
-
-    void GetExportedResources(Json::Value& target,
-                              int64_t since,
-                              unsigned int maxResults);
-
-    void GetLastExportedResource(Json::Value& target);
 
     bool IsProtectedPatient(const std::string& publicId);
 
@@ -335,16 +316,62 @@ namespace Orthanc
         return db_.GetAllPublicIds(target, resourceType, since, limit);
       }  
 
+      void GetChanges(std::list<ServerIndexChange>& target /*out*/,
+                      bool& done /*out*/,
+                      int64_t since,
+                      uint32_t maxResults)
+      {
+        db_.GetChanges(target, done, since, maxResults);
+      }
+
       void GetChildrenPublicId(std::list<std::string>& target,
                                int64_t id)
       {
         db_.GetChildrenPublicId(target, id);
       }
 
+      void GetExportedResources(std::list<ExportedResource>& target /*out*/,
+                                bool& done /*out*/,
+                                int64_t since,
+                                uint32_t maxResults)
+      {
+        return db_.GetExportedResources(target, done, since, maxResults);
+      }
+
+      void GetLastChange(std::list<ServerIndexChange>& target /*out*/)
+      {
+        db_.GetLastChange(target);
+      }
+
+      void GetLastExportedResource(std::list<ExportedResource>& target /*out*/)
+      {
+        return db_.GetLastExportedResource(target);
+      }
+
+      int64_t GetLastChangeIndex()
+      {
+        return db_.GetLastChangeIndex();
+      }
+
       void GetMainDicomTags(DicomMap& map,
                             int64_t id)
       {
         db_.GetMainDicomTags(map, id);
+      }
+
+      uint64_t GetResourceCount(ResourceType resourceType)
+      {
+        return db_.GetResourceCount(resourceType);
+      }
+      
+      uint64_t GetTotalCompressedSize()
+      {
+        return db_.GetTotalCompressedSize();
+      }
+    
+      uint64_t GetTotalUncompressedSize()
+      {
+        return db_.GetTotalUncompressedSize();
       }
       
       bool LookupAttachment(FileInfo& attachment,
@@ -442,8 +469,28 @@ namespace Orthanc
                      size_t since,
                      size_t limit);
 
+    void GetGlobalStatistics(/* out */ uint64_t& diskSize,
+                             /* out */ uint64_t& uncompressedSize,
+                             /* out */ uint64_t& countPatients, 
+                             /* out */ uint64_t& countStudies, 
+                             /* out */ uint64_t& countSeries, 
+                             /* out */ uint64_t& countInstances);
+
     bool LookupAttachment(FileInfo& attachment,
                           const std::string& instancePublicId,
                           FileContentType contentType);
+
+    void GetChanges(Json::Value& target,
+                    int64_t since,
+                    unsigned int maxResults);
+
+    void GetLastChange(Json::Value& target);
+
+    void GetExportedResources(Json::Value& target,
+                              int64_t since,
+                              unsigned int maxResults);
+
+    void GetLastExportedResource(Json::Value& target);
+
   };
 }

@@ -1044,23 +1044,6 @@ namespace Orthanc
   }
 
 
-  void ServerIndex::GetGlobalStatistics(/* out */ uint64_t& diskSize,
-                                        /* out */ uint64_t& uncompressedSize,
-                                        /* out */ uint64_t& countPatients, 
-                                        /* out */ uint64_t& countStudies, 
-                                        /* out */ uint64_t& countSeries, 
-                                        /* out */ uint64_t& countInstances)
-  {
-    boost::mutex::scoped_lock lock(mutex_);
-    diskSize = db_.GetTotalCompressedSize();
-    uncompressedSize = db_.GetTotalUncompressedSize();
-    countPatients = db_.GetResourceCount(ResourceType_Patient);
-    countStudies = db_.GetResourceCount(ResourceType_Study);
-    countSeries = db_.GetResourceCount(ResourceType_Series);
-    countInstances = db_.GetResourceCount(ResourceType_Instance);
-  }
-
-  
   SeriesStatus ServerIndex::GetSeriesStatus(IDatabaseWrapper& db,
                                             int64_t id,
                                             int64_t expectedNumberOfInstances)
@@ -1177,63 +1160,6 @@ namespace Orthanc
   }
 
 
-  void ServerIndex::GetChanges(Json::Value& target,
-                               int64_t since,                               
-                               unsigned int maxResults)
-  {
-    std::list<ServerIndexChange> changes;
-    bool done;
-    bool hasLast = false;
-    int64_t last = 0;
-
-    {
-      boost::mutex::scoped_lock lock(mutex_);
-
-      // Fix wrt. Orthanc <= 1.3.2: A transaction was missing, as
-      // "GetLastChange()" involves calls to "GetPublicId()"
-      Transaction transaction(*this);
-
-      db_.GetChanges(changes, done, since, maxResults);
-      if (changes.empty())
-      {
-        last = db_.GetLastChangeIndex();
-        hasLast = true;
-      }
-      
-      transaction.Commit(0);
-    }
-
-    FormatLog(target, changes, "Changes", done, since, hasLast, last);
-  }
-
-
-  void ServerIndex::GetLastChange(Json::Value& target)
-  {
-    std::list<ServerIndexChange> changes;
-    bool hasLast = false;
-    int64_t last = 0;
-
-    {
-      boost::mutex::scoped_lock lock(mutex_);
-
-      // Fix wrt. Orthanc <= 1.3.2: A transaction was missing, as
-      // "GetLastChange()" involves calls to "GetPublicId()"
-      Transaction transaction(*this);
-
-      db_.GetLastChange(changes);
-      if (changes.empty())
-      {
-        last = db_.GetLastChangeIndex();
-        hasLast = true;
-      }
-
-      transaction.Commit(0);
-    }
-
-    FormatLog(target, changes, "Changes", true, 0, hasLast, last);
-  }
-
-
   void ServerIndex::LogExportedResource(const std::string& publicId,
                                         const std::string& remoteModality)
   {
@@ -1322,35 +1248,6 @@ namespace Orthanc
 
     db_.LogExportedResource(resource);
     transaction.Commit(0);
-  }
-
-
-  void ServerIndex::GetExportedResources(Json::Value& target,
-                                         int64_t since,
-                                         unsigned int maxResults)
-  {
-    std::list<ExportedResource> exported;
-    bool done;
-
-    {
-      boost::mutex::scoped_lock lock(mutex_);
-      db_.GetExportedResources(exported, done, since, maxResults);
-    }
-
-    FormatLog(target, exported, "Exports", done, since, false, -1);
-  }
-
-
-  void ServerIndex::GetLastExportedResource(Json::Value& target)
-  {
-    std::list<ExportedResource> exported;
-
-    {
-      boost::mutex::scoped_lock lock(mutex_);
-      db_.GetLastExportedResource(exported);
-    }
-
-    FormatLog(target, exported, "Exports", true, 0, false, -1);
   }
 
 
@@ -2521,6 +2418,70 @@ namespace Orthanc
         index.Apply(wrapper);
       }
     };
+
+
+    template <typename T1,
+              typename T2,
+              typename T3,
+              typename T4,
+              typename T5>
+    class ReadOnlyOperationsT5 : public boost::noncopyable
+    {
+    public:
+      typedef typename boost::tuple<T1, T2, T3, T4, T5>  Tuple;
+      
+      virtual ~ReadOnlyOperationsT5()
+      {
+      }
+
+      virtual void ApplyTuple(ServerIndex::ReadOnlyTransaction& transaction,
+                              const Tuple& tuple) = 0;
+
+      void Apply(ServerIndex& index,
+                 T1 t1,
+                 T2 t2,
+                 T3 t3,
+                 T4 t4,
+                 T5 t5)
+      {
+        const Tuple tuple(t1, t2, t3, t4, t5);
+        TupleOperationsWrapper<ReadOnlyOperationsT5, Tuple> wrapper(*this, tuple);
+        index.Apply(wrapper);
+      }
+    };
+
+
+    template <typename T1,
+              typename T2,
+              typename T3,
+              typename T4,
+              typename T5,
+              typename T6>
+    class ReadOnlyOperationsT6 : public boost::noncopyable
+    {
+    public:
+      typedef typename boost::tuple<T1, T2, T3, T4, T5, T6>  Tuple;
+      
+      virtual ~ReadOnlyOperationsT6()
+      {
+      }
+
+      virtual void ApplyTuple(ServerIndex::ReadOnlyTransaction& transaction,
+                              const Tuple& tuple) = 0;
+
+      void Apply(ServerIndex& index,
+                 T1 t1,
+                 T2 t2,
+                 T3 t3,
+                 T4 t4,
+                 T5 t5,
+                 T6 t6)
+      {
+        const Tuple tuple(t1, t2, t3, t4, t5, t6);
+        TupleOperationsWrapper<ReadOnlyOperationsT6, Tuple> wrapper(*this, tuple);
+        index.Apply(wrapper);
+      }
+    };
   }
   
 
@@ -2579,6 +2540,8 @@ namespace Orthanc
       {
         boost::mutex::scoped_lock lock(mutex_);  // TODO - REMOVE
 
+        Transaction transaction(*this);  // TODO - Only if "TransactionType_SingleStatement"
+
         if (readOperations != NULL)
         {
           ReadOnlyTransaction transaction(db_);
@@ -2590,6 +2553,8 @@ namespace Orthanc
           ReadWriteTransaction transaction(db_);
           writeOperations->Apply(transaction);          
         }
+
+        transaction.Commit(0);
         
         return;  // Success
       }
@@ -2936,7 +2901,6 @@ namespace Orthanc
   }
 
 
-
   void ServerIndex::GetAllUuids(std::list<std::string>& target,
                                 ResourceType resourceType)
   {
@@ -2946,6 +2910,7 @@ namespace Orthanc
       virtual void ApplyTuple(ReadOnlyTransaction& transaction,
                               const Tuple& tuple) ORTHANC_OVERRIDE
       {
+        // TODO - CANDIDATE FOR "TransactionType_SingleStatement"
         transaction.GetAllPublicIds(*tuple.get<0>(), tuple.get<1>());
       }
     };
@@ -2953,7 +2918,6 @@ namespace Orthanc
     Operations operations;
     operations.Apply(*this, &target, resourceType);
   }
-
 
 
   void ServerIndex::GetAllUuids(std::list<std::string>& target,
@@ -2973,6 +2937,7 @@ namespace Orthanc
         virtual void ApplyTuple(ReadOnlyTransaction& transaction,
                                 const Tuple& tuple) ORTHANC_OVERRIDE
         {
+          // TODO - CANDIDATE FOR "TransactionType_SingleStatement"
           transaction.GetAllPublicIds(*tuple.get<0>(), tuple.get<1>(), tuple.get<2>(), tuple.get<3>());
         }
       };
@@ -2980,5 +2945,143 @@ namespace Orthanc
       Operations operations;
       operations.Apply(*this, &target, resourceType, since, limit);
     }
+  }
+
+
+  void ServerIndex::GetGlobalStatistics(/* out */ uint64_t& diskSize,
+                                        /* out */ uint64_t& uncompressedSize,
+                                        /* out */ uint64_t& countPatients, 
+                                        /* out */ uint64_t& countStudies, 
+                                        /* out */ uint64_t& countSeries, 
+                                        /* out */ uint64_t& countInstances)
+  {
+    class Operations : public ReadOnlyOperationsT6<uint64_t*, uint64_t*, uint64_t*, uint64_t*, uint64_t*, uint64_t*>
+    {
+    public:
+      virtual void ApplyTuple(ReadOnlyTransaction& transaction,
+                              const Tuple& tuple) ORTHANC_OVERRIDE
+      {
+        *tuple.get<0>() = transaction.GetTotalCompressedSize();
+        *tuple.get<1>() = transaction.GetTotalUncompressedSize();
+        *tuple.get<2>() = transaction.GetResourceCount(ResourceType_Patient);
+        *tuple.get<3>() = transaction.GetResourceCount(ResourceType_Study);
+        *tuple.get<4>() = transaction.GetResourceCount(ResourceType_Series);
+        *tuple.get<5>() = transaction.GetResourceCount(ResourceType_Instance);
+      }
+    };
+    
+    Operations operations;
+    operations.Apply(*this, &diskSize, &uncompressedSize, &countPatients,
+                     &countStudies, &countSeries, &countInstances);
+  }
+
+
+  void ServerIndex::GetChanges(Json::Value& target,
+                               int64_t since,                               
+                               unsigned int maxResults)
+  {
+    class Operations : public ReadOnlyOperationsT3<Json::Value*, int64_t, unsigned int>
+    {
+    public:
+      virtual void ApplyTuple(ReadOnlyTransaction& transaction,
+                              const Tuple& tuple) ORTHANC_OVERRIDE
+      {
+        // NB: In Orthanc <= 1.3.2, a transaction was missing, as
+        // "GetLastChange()" involves calls to "GetPublicId()"
+
+        std::list<ServerIndexChange> changes;
+        bool done;
+        bool hasLast = false;
+        int64_t last = 0;
+
+        transaction.GetChanges(changes, done, tuple.get<1>(), tuple.get<2>());
+        if (changes.empty())
+        {
+          last = transaction.GetLastChangeIndex();
+          hasLast = true;
+        }
+
+        FormatLog(*tuple.get<0>(), changes, "Changes", done, tuple.get<1>(), hasLast, last);
+      }
+    };
+    
+    Operations operations;
+    operations.Apply(*this, &target, since, maxResults);
+  }
+
+
+  void ServerIndex::GetLastChange(Json::Value& target)
+  {
+    class Operations : public ReadOnlyOperationsT1<Json::Value*>
+    {
+    public:
+      virtual void ApplyTuple(ReadOnlyTransaction& transaction,
+                              const Tuple& tuple) ORTHANC_OVERRIDE
+      {
+        // NB: In Orthanc <= 1.3.2, a transaction was missing, as
+        // "GetLastChange()" involves calls to "GetPublicId()"
+
+        std::list<ServerIndexChange> changes;
+        bool hasLast = false;
+        int64_t last = 0;
+
+        transaction.GetLastChange(changes);
+        if (changes.empty())
+        {
+          last = transaction.GetLastChangeIndex();
+          hasLast = true;
+        }
+
+        FormatLog(*tuple.get<0>(), changes, "Changes", true, 0, hasLast, last);
+      }
+    };
+    
+    Operations operations;
+    operations.Apply(*this, &target);
+  }
+
+
+  void ServerIndex::GetExportedResources(Json::Value& target,
+                                         int64_t since,
+                                         unsigned int maxResults)
+  {
+    class Operations : public ReadOnlyOperationsT3<Json::Value*, int64_t, unsigned int>
+    {
+    public:
+      virtual void ApplyTuple(ReadOnlyTransaction& transaction,
+                              const Tuple& tuple) ORTHANC_OVERRIDE
+      {
+        // TODO - CANDIDATE FOR "TransactionType_SingleStatement"
+
+        std::list<ExportedResource> exported;
+        bool done;
+        transaction.GetExportedResources(exported, done, tuple.get<1>(), tuple.get<2>());
+        FormatLog(*tuple.get<0>(), exported, "Exports", done, tuple.get<1>(), false, -1);
+      }
+    };
+    
+    Operations operations;
+    operations.Apply(*this, &target, since, maxResults);
+  }
+
+
+  void ServerIndex::GetLastExportedResource(Json::Value& target)
+  {
+    class Operations : public ReadOnlyOperationsT1<Json::Value*>
+    {
+    public:
+      virtual void ApplyTuple(ReadOnlyTransaction& transaction,
+                              const Tuple& tuple) ORTHANC_OVERRIDE
+      {
+        // TODO - CANDIDATE FOR "TransactionType_SingleStatement"
+
+        std::list<ExportedResource> exported;
+        transaction.GetLastExportedResource(exported);
+        FormatLog(*tuple.get<0>(), exported, "Exports", true, 0, false, -1);
+      }
+    };
+    
+    Operations operations;
+    operations.Apply(*this, &target);
   }
 }
