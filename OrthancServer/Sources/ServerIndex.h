@@ -449,16 +449,8 @@ namespace Orthanc
 
       virtual void Apply(ReadWriteTransaction& transaction) = 0;
     };
-
-
-    typedef void (*ReadOnlyFunction) (ReadOnlyTransaction& transaction);  // TODO - Is this useful?
-    typedef void (*ReadWriteFunction) (ReadWriteTransaction& transaction);  // TODO - Is this useful?
-
     
   private:
-    class ReadOnlyWrapper;  // TODO - Is this useful?
-    class ReadWriteWrapper;  // TODO - Is this useful?
-
     void ApplyInternal(IReadOnlyOperations* readOperations,
                        IReadWriteOperations* writeOperations);
     
@@ -468,10 +460,6 @@ namespace Orthanc
     void Apply(IReadOnlyOperations& operations);
   
     void Apply(IReadWriteOperations& operations);
-
-    void Apply(ReadOnlyFunction func);
-
-    void Apply(ReadWriteFunction func);
 
     bool ExpandResource(Json::Value& target,
                         const std::string& publicId,

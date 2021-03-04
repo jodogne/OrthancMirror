@@ -2325,44 +2325,6 @@ namespace Orthanc
   }
   
 
-  class ServerIndex::ReadOnlyWrapper : public IReadOnlyOperations
-  {
-  private:
-    ReadOnlyFunction  func_;
-
-  public:
-    explicit ReadOnlyWrapper(ReadOnlyFunction  func) :
-      func_(func)
-    {
-      assert(func_ != NULL);
-    }
-
-    virtual void Apply(ReadOnlyTransaction& transaction) ORTHANC_OVERRIDE
-    {
-      func_(transaction);
-    }
-  };
-
-  
-  class ServerIndex::ReadWriteWrapper : public IReadWriteOperations
-  {
-  private:
-    ReadWriteFunction  func_;
-
-  public:
-    explicit ReadWriteWrapper(ReadWriteFunction  func) :
-      func_(func)
-    {
-      assert(func_ != NULL);
-    }
-
-    virtual void Apply(ReadWriteTransaction& transaction) ORTHANC_OVERRIDE
-    {
-      func_(transaction);
-    }
-  };
-
-
   void ServerIndex::ApplyInternal(IReadOnlyOperations* readOperations,
                                   IReadWriteOperations* writeOperations)
   {
@@ -2431,29 +2393,19 @@ namespace Orthanc
       }
     }
   }
+
   
   void ServerIndex::Apply(IReadOnlyOperations& operations)
   {
     ApplyInternal(&operations, NULL);
   }
   
+
   void ServerIndex::Apply(IReadWriteOperations& operations)
   {
     ApplyInternal(NULL, &operations);
   }
   
-  void ServerIndex::Apply(ReadOnlyFunction func)
-  {
-    ReadOnlyWrapper wrapper(func);
-    Apply(wrapper);
-  }
-  
-  void ServerIndex::Apply(ReadWriteFunction func)
-  {
-    ReadWriteWrapper wrapper(func);
-    Apply(wrapper);
-  }
-
 
   bool ServerIndex::ExpandResource(Json::Value& target,
                                    const std::string& publicId,
