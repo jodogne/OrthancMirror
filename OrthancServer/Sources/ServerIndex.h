@@ -172,18 +172,6 @@ namespace Orthanc
     void DeleteMetadata(const std::string& publicId,
                         MetadataType type);
 
-    bool LookupMetadata(std::string& target,
-                        const std::string& publicId,
-                        ResourceType expectedType,
-                        MetadataType type);
-
-    void ListAvailableAttachments(std::set<FileContentType>& target,
-                                  const std::string& publicId,
-                                  ResourceType expectedType);
-
-    bool LookupParent(std::string& target,
-                      const std::string& publicId);
-
     uint64_t IncrementGlobalSequence(GlobalProperty sequence);
 
     void LogChange(ChangeType changeType,
@@ -387,6 +375,12 @@ namespace Orthanc
         return db_.IsProtectedPatient(internalId);
       }
 
+      void ListAvailableAttachments(std::set<FileContentType>& target,
+                                    int64_t id)
+      {
+        db_.ListAvailableAttachments(target, id);
+      }
+
       bool LookupAttachment(FileInfo& attachment,
                             int64_t id,
                             FileContentType contentType)
@@ -394,6 +388,19 @@ namespace Orthanc
         return db_.LookupAttachment(attachment, id, contentType);
       }
       
+      bool LookupMetadata(std::string& target,
+                          int64_t id,
+                          MetadataType type)
+      {
+        return db_.LookupMetadata(target, id, type);
+      }
+
+      bool LookupParent(int64_t& parentId,
+                        int64_t resourceId)
+      {
+        return db_.LookupParent(parentId, resourceId);
+      }
+        
       bool LookupResource(int64_t& id,
                           ResourceType& type,
                           const std::string& publicId)
@@ -512,5 +519,17 @@ namespace Orthanc
 
     void GetChildInstances(std::list<std::string>& result,
                            const std::string& publicId);
+
+    bool LookupMetadata(std::string& target,
+                        const std::string& publicId,
+                        ResourceType expectedType,
+                        MetadataType type);
+
+    void ListAvailableAttachments(std::set<FileContentType>& target,
+                                  const std::string& publicId,
+                                  ResourceType expectedType);
+
+    bool LookupParent(std::string& target,
+                      const std::string& publicId);
   };
 }

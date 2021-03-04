@@ -1440,68 +1440,6 @@ namespace Orthanc
   }
 
 
-  bool ServerIndex::LookupMetadata(std::string& target,
-                                   const std::string& publicId,
-                                   ResourceType expectedType,
-                                   MetadataType type)
-  {
-    boost::mutex::scoped_lock lock(mutex_);
-
-    ResourceType rtype;
-    int64_t id;
-    if (!db_.LookupResource(id, rtype, publicId) ||
-        rtype != expectedType)
-    {
-      throw OrthancException(ErrorCode_UnknownResource);
-    }
-
-    return db_.LookupMetadata(target, id, type);
-  }
-
-
-  void ServerIndex::ListAvailableAttachments(std::set<FileContentType>& target,
-                                             const std::string& publicId,
-                                             ResourceType expectedType)
-  {
-    boost::mutex::scoped_lock lock(mutex_);
-
-    ResourceType type;
-    int64_t id;
-    if (!db_.LookupResource(id, type, publicId) ||
-        expectedType != type)
-    {
-      throw OrthancException(ErrorCode_UnknownResource);
-    }
-
-    db_.ListAvailableAttachments(target, id);
-  }
-
-
-  bool ServerIndex::LookupParent(std::string& target,
-                                 const std::string& publicId)
-  {
-    boost::mutex::scoped_lock lock(mutex_);
-
-    ResourceType type;
-    int64_t id;
-    if (!db_.LookupResource(id, type, publicId))
-    {
-      throw OrthancException(ErrorCode_UnknownResource);
-    }
-
-    int64_t parentId;
-    if (db_.LookupParent(parentId, id))
-    {
-      target = db_.GetPublicId(parentId);
-      return true;
-    }
-    else
-    {
-      return false;
-    }
-  }
-
-
   uint64_t ServerIndex::IncrementGlobalSequence(GlobalProperty sequence)
   {
     boost::mutex::scoped_lock lock(mutex_);
@@ -3129,5 +3067,124 @@ namespace Orthanc
     
     Operations operations;
     operations.Apply(*this, &result, publicId);
+  }
+
+
+  bool ServerIndex::LookupMetadata(std::string& target,
+                                   const std::string& publicId,
+                                   ResourceType expectedType,
+                                   MetadataType type)
+  {
+    class Operations : public ReadOnlyOperationsT4<std::string*, std::string, ResourceType, MetadataType>
+    {
+    private:
+      bool found_;
+      
+    public:
+      Operations() :
+        found_(false)
+      {
+      }
+
+      bool HasFound()
+      {
+        return found_;
+      }
+      
+      virtual void ApplyTuple(ReadOnlyTransaction& transaction,
+                              const Tuple& tuple) ORTHANC_OVERRIDE
+      {
+        ResourceType rtype;
+        int64_t id;
+        if (!transaction.LookupResource(id, rtype, tuple.get<1>()) ||
+            rtype != tuple.get<2>())
+        {
+          throw OrthancException(ErrorCode_UnknownResource);
+        }
+        else
+        {
+          found_ = transaction.LookupMetadata(*tuple.get<0>(), id, tuple.get<3>());
+        }
+      }
+    };
+    
+    Operations operations;
+    operations.Apply(*this, &target, publicId, expectedType, type);
+    return operations.HasFound();
+  }
+
+
+  void ServerIndex::ListAvailableAttachments(std::set<FileContentType>& target,
+                                             const std::string& publicId,
+                                             ResourceType expectedType)
+  {
+    class Operations : public ReadOnlyOperationsT3<std::set<FileContentType>*, std::string, ResourceType>
+    {
+    public:
+      virtual void ApplyTuple(ReadOnlyTransaction& transaction,
+                              const Tuple& tuple) ORTHANC_OVERRIDE
+      {
+        ResourceType type;
+        int64_t id;
+        if (!transaction.LookupResource(id, type, tuple.get<1>()) ||
+            tuple.get<2>() != type)
+        {
+          throw OrthancException(ErrorCode_UnknownResource);
+        }
+        else
+        {
+          transaction.ListAvailableAttachments(*tuple.get<0>(), id);
+        }
+      }
+    };
+    
+    Operations operations;
+    operations.Apply(*this, &target, publicId, expectedType);
+  }
+
+
+  bool ServerIndex::LookupParent(std::string& target,
+                                 const std::string& publicId)
+  {
+    class Operations : public ReadOnlyOperationsT2<std::string*, std::string>
+    {
+    private:
+      bool found_;
+      
+    public:
+      Operations() :
+        found_(false)
+      {
+      }
+
+      bool HasFound()
+      {
+        return found_;
+      }
+      
+      virtual void ApplyTuple(ReadOnlyTransaction& transaction,
+                              const Tuple& tuple) ORTHANC_OVERRIDE
+      {
+        ResourceType type;
+        int64_t id;
+        if (!transaction.LookupResource(id, type, tuple.get<1>()))
+        {
+          throw OrthancException(ErrorCode_UnknownResource);
+        }
+        else
+        {
+          int64_t parentId;
+          if (transaction.LookupParent(parentId, id))
+          {
+            *tuple.get<0>() = transaction.GetPublicId(parentId);
+            found_ = true;
+          }
+        }
+      }
+    };
+    
+    Operations operations;
+    operations.Apply(*this, &target, publicId);
+    return operations.HasFound();
   }
 }
