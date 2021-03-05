@@ -1490,106 +1490,6 @@ namespace Orthanc
   }
 
 
-  void ServerIndex::GetResourceStatistics(/* out */ ResourceType& type,
-                                          /* out */ uint64_t& diskSize, 
-                                          /* out */ uint64_t& uncompressedSize, 
-                                          /* out */ unsigned int& countStudies, 
-                                          /* out */ unsigned int& countSeries, 
-                                          /* out */ unsigned int& countInstances, 
-                                          /* out */ uint64_t& dicomDiskSize, 
-                                          /* out */ uint64_t& dicomUncompressedSize, 
-                                          const std::string& publicId)
-  {
-    boost::mutex::scoped_lock lock(mutex_);
-
-    int64_t top;
-    if (!db_.LookupResource(top, type, publicId))
-    {
-      throw OrthancException(ErrorCode_UnknownResource);
-    }
-
-    std::stack<int64_t> toExplore;
-    toExplore.push(top);
-
-    countInstances = 0;
-    countSeries = 0;
-    countStudies = 0;
-    diskSize = 0;
-    uncompressedSize = 0;
-    dicomDiskSize = 0;
-    dicomUncompressedSize = 0;
-
-    while (!toExplore.empty())
-    {
-      // Get the internal ID of the current resource
-      int64_t resource = toExplore.top();
-      toExplore.pop();
-
-      ResourceType thisType = db_.GetResourceType(resource);
-
-      std::set<FileContentType> f;
-      db_.ListAvailableAttachments(f, resource);
-
-      for (std::set<FileContentType>::const_iterator
-             it = f.begin(); it != f.end(); ++it)
-      {
-        FileInfo attachment;
-        if (db_.LookupAttachment(attachment, resource, *it))
-        {
-          if (attachment.GetContentType() == FileContentType_Dicom)
-          {
-            dicomDiskSize += attachment.GetCompressedSize();
-            dicomUncompressedSize += attachment.GetUncompressedSize();
-          }
-          
-          diskSize += attachment.GetCompressedSize();
-          uncompressedSize += attachment.GetUncompressedSize();
-        }
-      }
-
-      if (thisType == ResourceType_Instance)
-      {
-        countInstances++;
-      }
-      else
-      {
-        switch (thisType)
-        {
-          case ResourceType_Study:
-            countStudies++;
-            break;
-
-          case ResourceType_Series:
-            countSeries++;
-            break;
-
-          default:
-            break;
-        }
-
-        // Tag all the children of this resource as to be explored
-        std::list<int64_t> tmp;
-        db_.GetChildrenInternalId(tmp, resource);
-        for (std::list<int64_t>::const_iterator 
-               it = tmp.begin(); it != tmp.end(); ++it)
-        {
-          toExplore.push(*it);
-        }
-      }
-    }
-
-    if (countStudies == 0)
-    {
-      countStudies = 1;
-    }
-
-    if (countSeries == 0)
-    {
-      countSeries = 1;
-    }
-  }
-
-
   void ServerIndex::UnstableResourcesMonitorThread(ServerIndex* that,
                                                    unsigned int threadSleep)
   {
@@ -1670,35 +1570,6 @@ namespace Orthanc
     LogChange(id, ChangeType_NewChildInstance, type, publicId);
   }
 
-
-
-  void ServerIndex::LookupIdentifierExact(std::vector<std::string>& result,
-                                          ResourceType level,
-                                          const DicomTag& tag,
-                                          const std::string& value)
-  {
-    assert((level == ResourceType_Patient && tag == DICOM_TAG_PATIENT_ID) ||
-           (level == ResourceType_Study && tag == DICOM_TAG_STUDY_INSTANCE_UID) ||
-           (level == ResourceType_Study && tag == DICOM_TAG_ACCESSION_NUMBER) ||
-           (level == ResourceType_Series && tag == DICOM_TAG_SERIES_INSTANCE_UID) ||
-           (level == ResourceType_Instance && tag == DICOM_TAG_SOP_INSTANCE_UID));
-    
-    result.clear();
-
-    DicomTagConstraint c(tag, ConstraintType_Equal, value, true, true);
-
-    std::vector<DatabaseConstraint> query;
-    query.push_back(c.ConvertToDatabaseConstraint(level, DicomTagType_Identifier));
-
-    std::list<std::string> tmp;
-    
-    {
-      boost::mutex::scoped_lock lock(mutex_);
-      db_.ApplyLookupResources(tmp, NULL, query, level, 0);
-    }
-
-    CopyListToVector(result, tmp);
-  }
 
 
   StoreStatus ServerIndex::AddAttachment(const FileInfo& attachment,
@@ -1787,83 +1658,6 @@ namespace Orthanc
   }
 
 
-  bool ServerIndex::LookupGlobalProperty(std::string& value,
-                                         GlobalProperty property)
-  {
-    boost::mutex::scoped_lock lock(mutex_);
-    return db_.LookupGlobalProperty(value, property);
-  }
-  
-
-  std::string ServerIndex::GetGlobalProperty(GlobalProperty property,
-                                             const std::string& defaultValue)
-  {
-    std::string value;
-
-    if (LookupGlobalProperty(value, property))
-    {
-      return value;
-    }
-    else
-    {
-      return defaultValue;
-    }
-  }
-
-
-  bool ServerIndex::GetMainDicomTags(DicomMap& result,
-                                     const std::string& publicId,
-                                     ResourceType expectedType,
-                                     ResourceType levelOfInterest)
-  {
-    // Yes, the following test could be shortened, but we wish to make it as clear as possible
-    if (!(expectedType == ResourceType_Patient  && levelOfInterest == ResourceType_Patient) &&
-        !(expectedType == ResourceType_Study    && levelOfInterest == ResourceType_Patient) &&
-        !(expectedType == ResourceType_Study    && levelOfInterest == ResourceType_Study)   &&
-        !(expectedType == ResourceType_Series   && levelOfInterest == ResourceType_Series)  &&
-        !(expectedType == ResourceType_Instance && levelOfInterest == ResourceType_Instance))
-    {
-      throw OrthancException(ErrorCode_ParameterOutOfRange);
-    }
-
-    result.Clear();
-
-    boost::mutex::scoped_lock lock(mutex_);
-
-    // Lookup for the requested resource
-    int64_t id;
-    ResourceType type;
-    if (!db_.LookupResource(id, type, publicId) ||
-        type != expectedType)
-    {
-      return false;
-    }
-
-    if (type == ResourceType_Study)
-    {
-      DicomMap tmp;
-      db_.GetMainDicomTags(tmp, id);
-
-      switch (levelOfInterest)
-      {
-        case ResourceType_Patient:
-          tmp.ExtractPatientInformation(result);
-          return true;
-
-        case ResourceType_Study:
-          tmp.ExtractStudyInformation(result);
-          return true;
-
-        default:
-          throw OrthancException(ErrorCode_InternalError);
-      }
-    }
-    else
-    {
-      db_.GetMainDicomTags(result, id);
-      return true;
-    }    
-  }
 
 
   bool ServerIndex::GetAllMainDicomTags(DicomMap& result,
@@ -2346,14 +2140,14 @@ namespace Orthanc
 
         if (readOperations != NULL)
         {
-          ReadOnlyTransaction transaction(db_);
-          readOperations->Apply(transaction);
+          ReadOnlyTransaction t(db_);
+          readOperations->Apply(t);
         }
         else
         {
           assert(writeOperations != NULL);
-          ReadWriteTransaction transaction(db_);
-          writeOperations->Apply(transaction);          
+          ReadWriteTransaction t(db_);
+          writeOperations->Apply(t);          
         }
 
         transaction.Commit(0);
@@ -2411,40 +2205,32 @@ namespace Orthanc
                                    const std::string& publicId,
                                    ResourceType level)
   {    
-    class Operations : public ReadOnlyOperationsT3<Json::Value*, std::string, ResourceType>
+    class Operations : public ReadOnlyOperationsT4<bool*, Json::Value*, std::string, ResourceType>
     {
     private:
       ServerIndex&  index_;
-      bool          found_;
 
     public:
-      Operations(ServerIndex& index) :
-        index_(index),
-        found_(false)
+      explicit Operations(ServerIndex& index) :
+        index_(index)
       {
       }
       
-      bool HasFound() const
-      {
-        return found_;
-      }
-
       virtual void ApplyTuple(ReadOnlyTransaction& transaction,
                               const Tuple& tuple) ORTHANC_OVERRIDE
       {
-        Json::Value& target = *tuple.get<0>();
-        
         // Lookup for the requested resource
         int64_t internalId;  // unused
         ResourceType type;
         std::string parent;
-        if (!transaction.LookupResourceAndParent(internalId, type, parent, tuple.get<1>()) ||
-            type != tuple.get<2>())
+        if (!transaction.LookupResourceAndParent(internalId, type, parent, tuple.get<2>()) ||
+            type != tuple.get<3>())
         {
-          found_ = false;
+          *tuple.get<0>() = false;
         }
         else
         {
+          Json::Value& target = *tuple.get<1>();        
           target = Json::objectValue;
         
           // Set information about the parent resource (if it exists)
@@ -2579,7 +2365,7 @@ namespace Orthanc
           }
 
           // Record the remaining information
-          target["ID"] = tuple.get<1>();
+          target["ID"] = tuple.get<2>();
           transaction.MainDicomTagsToJson(target, internalId, type);
 
           std::string tmp;
@@ -2606,14 +2392,15 @@ namespace Orthanc
             }
           }
 
-          found_ = true;
+          *tuple.get<0>() = true;
         }
       }
     };
 
+    bool found;
     Operations operations(*this);
-    operations.Apply(*this, &target, publicId, level);
-    return operations.HasFound();
+    operations.Apply(*this, &found, &target, publicId, level);
+    return found;
   }
 
 
@@ -2650,46 +2437,34 @@ namespace Orthanc
                                      const std::string& instancePublicId,
                                      FileContentType contentType)
   {
-    class Operations : public ReadOnlyOperationsT3<FileInfo*, std::string, FileContentType>
+    class Operations : public ReadOnlyOperationsT4<bool*, FileInfo*, std::string, FileContentType>
     {
-    private:
-      bool found_;
-      
     public:
-      Operations() :
-        found_(false)
-      {
-      }
-
-      bool HasFound() const
-      {
-        return found_;
-      }
-      
       virtual void ApplyTuple(ReadOnlyTransaction& transaction,
                               const Tuple& tuple) ORTHANC_OVERRIDE
       {
         int64_t internalId;
         ResourceType type;
-        if (!transaction.LookupResource(internalId, type, tuple.get<1>()))
+        if (!transaction.LookupResource(internalId, type, tuple.get<2>()))
         {
           throw OrthancException(ErrorCode_UnknownResource);
         }
-        else if (transaction.LookupAttachment(*tuple.get<0>(), internalId, tuple.get<2>()))
+        else if (transaction.LookupAttachment(*tuple.get<1>(), internalId, tuple.get<3>()))
         {
-          assert(tuple.get<0>()->GetContentType() == tuple.get<2>());
-          found_ = true;
+          assert(tuple.get<1>()->GetContentType() == tuple.get<3>());
+          *tuple.get<0>() = true;
         }
         else
         {
-          found_ = false;
+          *tuple.get<0>() = false;
         }
       }
     };
 
+    bool found;
     Operations operations;
-    operations.Apply(*this, &attachment, instancePublicId, contentType);
-    return operations.HasFound();
+    operations.Apply(*this, &found, &attachment, instancePublicId, contentType);
+    return found;
   }
 
 
@@ -2880,43 +2655,31 @@ namespace Orthanc
 
   bool ServerIndex::IsProtectedPatient(const std::string& publicId)
   {
-    class Operations : public ReadOnlyOperationsT1<std::string>
+    class Operations : public ReadOnlyOperationsT2<bool*, std::string>
     {
-    private:
-      bool protected_;
-      
     public:
-      Operations() :
-        protected_(false)
-      {
-      }
-
-      bool IsProtected() const
-      {
-        return protected_;
-      }
-      
       virtual void ApplyTuple(ReadOnlyTransaction& transaction,
                               const Tuple& tuple) ORTHANC_OVERRIDE
       {
         // Lookup for the requested resource
         int64_t id;
         ResourceType type;
-        if (!transaction.LookupResource(id, type, tuple.get<0>()) ||
+        if (!transaction.LookupResource(id, type, tuple.get<1>()) ||
             type != ResourceType_Patient)
         {
           throw OrthancException(ErrorCode_ParameterOutOfRange);
         }
         else
         {
-          protected_ = transaction.IsProtectedPatient(id);
+          *tuple.get<0>() = transaction.IsProtectedPatient(id);
         }
       }
     };
-    
+
+    bool isProtected;
     Operations operations;
-    operations.Apply(*this, publicId);
-    return operations.IsProtected();
+    operations.Apply(*this, &isProtected, publicId);
+    return isProtected;
   }
 
 
@@ -3027,42 +2790,30 @@ namespace Orthanc
                                    ResourceType expectedType,
                                    MetadataType type)
   {
-    class Operations : public ReadOnlyOperationsT4<std::string*, std::string, ResourceType, MetadataType>
+    class Operations : public ReadOnlyOperationsT5<bool*, std::string*, std::string, ResourceType, MetadataType>
     {
-    private:
-      bool found_;
-      
     public:
-      Operations() :
-        found_(false)
-      {
-      }
-
-      bool HasFound()
-      {
-        return found_;
-      }
-      
       virtual void ApplyTuple(ReadOnlyTransaction& transaction,
                               const Tuple& tuple) ORTHANC_OVERRIDE
       {
         ResourceType rtype;
         int64_t id;
-        if (!transaction.LookupResource(id, rtype, tuple.get<1>()) ||
-            rtype != tuple.get<2>())
+        if (!transaction.LookupResource(id, rtype, tuple.get<2>()) ||
+            rtype != tuple.get<3>())
         {
           throw OrthancException(ErrorCode_UnknownResource);
         }
         else
         {
-          found_ = transaction.LookupMetadata(*tuple.get<0>(), id, tuple.get<3>());
+          *tuple.get<0>() = transaction.LookupMetadata(*tuple.get<1>(), id, tuple.get<4>());
         }
       }
     };
-    
+
+    bool found;
     Operations operations;
-    operations.Apply(*this, &target, publicId, expectedType, type);
-    return operations.HasFound();
+    operations.Apply(*this, &found, &target, publicId, expectedType, type);
+    return found;
   }
 
 
@@ -3098,28 +2849,15 @@ namespace Orthanc
   bool ServerIndex::LookupParent(std::string& target,
                                  const std::string& publicId)
   {
-    class Operations : public ReadOnlyOperationsT2<std::string*, std::string>
+    class Operations : public ReadOnlyOperationsT3<bool*, std::string*, std::string>
     {
-    private:
-      bool found_;
-      
     public:
-      Operations() :
-        found_(false)
-      {
-      }
-
-      bool HasFound()
-      {
-        return found_;
-      }
-      
       virtual void ApplyTuple(ReadOnlyTransaction& transaction,
                               const Tuple& tuple) ORTHANC_OVERRIDE
       {
         ResourceType type;
         int64_t id;
-        if (!transaction.LookupResource(id, type, tuple.get<1>()))
+        if (!transaction.LookupResource(id, type, tuple.get<2>()))
         {
           throw OrthancException(ErrorCode_UnknownResource);
         }
@@ -3128,15 +2866,323 @@ namespace Orthanc
           int64_t parentId;
           if (transaction.LookupParent(parentId, id))
           {
-            *tuple.get<0>() = transaction.GetPublicId(parentId);
-            found_ = true;
+            *tuple.get<1>() = transaction.GetPublicId(parentId);
+            *tuple.get<0>() = true;
+          }
+          else
+          {
+            *tuple.get<0>() = false;
           }
         }
       }
     };
-    
+
+    bool found;
     Operations operations;
-    operations.Apply(*this, &target, publicId);
-    return operations.HasFound();
+    operations.Apply(*this, &found, &target, publicId);
+    return found;
+  }
+
+
+  void ServerIndex::GetResourceStatistics(/* out */ ResourceType& type,
+                                          /* out */ uint64_t& diskSize, 
+                                          /* out */ uint64_t& uncompressedSize, 
+                                          /* out */ unsigned int& countStudies, 
+                                          /* out */ unsigned int& countSeries, 
+                                          /* out */ unsigned int& countInstances, 
+                                          /* out */ uint64_t& dicomDiskSize, 
+                                          /* out */ uint64_t& dicomUncompressedSize, 
+                                          const std::string& publicId)
+  {
+    class Operations : public ServerIndex::IReadOnlyOperations
+    {
+    private:
+      ResourceType&      type_;
+      uint64_t&          diskSize_; 
+      uint64_t&          uncompressedSize_; 
+      unsigned int&      countStudies_; 
+      unsigned int&      countSeries_; 
+      unsigned int&      countInstances_; 
+      uint64_t&          dicomDiskSize_; 
+      uint64_t&          dicomUncompressedSize_; 
+      const std::string& publicId_;
+        
+    public:
+      explicit Operations(ResourceType& type,
+                          uint64_t& diskSize, 
+                          uint64_t& uncompressedSize, 
+                          unsigned int& countStudies, 
+                          unsigned int& countSeries, 
+                          unsigned int& countInstances, 
+                          uint64_t& dicomDiskSize, 
+                          uint64_t& dicomUncompressedSize, 
+                          const std::string& publicId) :
+        type_(type),
+        diskSize_(diskSize),
+        uncompressedSize_(uncompressedSize),
+        countStudies_(countStudies),
+        countSeries_(countSeries),
+        countInstances_(countInstances),
+        dicomDiskSize_(dicomDiskSize),
+        dicomUncompressedSize_(dicomUncompressedSize),
+        publicId_(publicId)
+      {
+      }
+      
+      virtual void Apply(ServerIndex::ReadOnlyTransaction& transaction) ORTHANC_OVERRIDE
+      {
+        int64_t top;
+        if (!transaction.LookupResource(top, type_, publicId_))
+        {
+          throw OrthancException(ErrorCode_UnknownResource);
+        }
+        else
+        {
+          countInstances_ = 0;
+          countSeries_ = 0;
+          countStudies_ = 0;
+          diskSize_ = 0;
+          uncompressedSize_ = 0;
+          dicomDiskSize_ = 0;
+          dicomUncompressedSize_ = 0;
+
+          std::stack<int64_t> toExplore;
+          toExplore.push(top);
+
+          while (!toExplore.empty())
+          {
+            // Get the internal ID of the current resource
+            int64_t resource = toExplore.top();
+            toExplore.pop();
+
+            ResourceType thisType = transaction.GetResourceType(resource);
+
+            std::set<FileContentType> f;
+            transaction.ListAvailableAttachments(f, resource);
+
+            for (std::set<FileContentType>::const_iterator
+                   it = f.begin(); it != f.end(); ++it)
+            {
+              FileInfo attachment;
+              if (transaction.LookupAttachment(attachment, resource, *it))
+              {
+                if (attachment.GetContentType() == FileContentType_Dicom)
+                {
+                  dicomDiskSize_ += attachment.GetCompressedSize();
+                  dicomUncompressedSize_ += attachment.GetUncompressedSize();
+                }
+          
+                diskSize_ += attachment.GetCompressedSize();
+                uncompressedSize_ += attachment.GetUncompressedSize();
+              }
+            }
+
+            if (thisType == ResourceType_Instance)
+            {
+              countInstances_++;
+            }
+            else
+            {
+              switch (thisType)
+              {
+                case ResourceType_Study:
+                  countStudies_++;
+                  break;
+
+                case ResourceType_Series:
+                  countSeries_++;
+                  break;
+
+                default:
+                  break;
+              }
+
+              // Tag all the children of this resource as to be explored
+              std::list<int64_t> tmp;
+              transaction.GetChildrenInternalId(tmp, resource);
+              for (std::list<int64_t>::const_iterator 
+                     it = tmp.begin(); it != tmp.end(); ++it)
+              {
+                toExplore.push(*it);
+              }
+            }
+          }
+
+          if (countStudies_ == 0)
+          {
+            countStudies_ = 1;
+          }
+
+          if (countSeries_ == 0)
+          {
+            countSeries_ = 1;
+          }
+        }
+      }
+    };
+
+    Operations operations(type, diskSize, uncompressedSize, countStudies, countSeries,
+                          countInstances, dicomDiskSize, dicomUncompressedSize, publicId);
+    Apply(operations);
+  }
+
+
+  void ServerIndex::LookupIdentifierExact(std::vector<std::string>& result,
+                                          ResourceType level,
+                                          const DicomTag& tag,
+                                          const std::string& value)
+  {
+    assert((level == ResourceType_Patient && tag == DICOM_TAG_PATIENT_ID) ||
+           (level == ResourceType_Study && tag == DICOM_TAG_STUDY_INSTANCE_UID) ||
+           (level == ResourceType_Study && tag == DICOM_TAG_ACCESSION_NUMBER) ||
+           (level == ResourceType_Series && tag == DICOM_TAG_SERIES_INSTANCE_UID) ||
+           (level == ResourceType_Instance && tag == DICOM_TAG_SOP_INSTANCE_UID));
+    
+    result.clear();
+
+    DicomTagConstraint c(tag, ConstraintType_Equal, value, true, true);
+
+    std::vector<DatabaseConstraint> query;
+    query.push_back(c.ConvertToDatabaseConstraint(level, DicomTagType_Identifier));
+
+
+    class Operations : public ServerIndex::IReadOnlyOperations
+    {
+    private:
+      std::vector<std::string>&               result_;
+      const std::vector<DatabaseConstraint>&  query_;
+      ResourceType                            level_;
+      
+    public:
+      Operations(std::vector<std::string>& result,
+                 const std::vector<DatabaseConstraint>& query,
+                 ResourceType level) :
+        result_(result),
+        query_(query),
+        level_(level)
+      {
+      }
+
+      virtual void Apply(ReadOnlyTransaction& transaction) ORTHANC_OVERRIDE
+      {
+        std::list<std::string> tmp;
+        transaction.ApplyLookupResources(tmp, NULL, query_, level_, 0);
+        CopyListToVector(result_, tmp);
+      }
+    };
+
+    Operations operations(result, query, level);
+    Apply(operations);
+  }
+
+
+  bool ServerIndex::LookupGlobalProperty(std::string& value,
+                                         GlobalProperty property)
+  {
+    class Operations : public ReadOnlyOperationsT3<bool*, std::string*, GlobalProperty>
+    {
+    public:
+      virtual void ApplyTuple(ReadOnlyTransaction& transaction,
+                              const Tuple& tuple) ORTHANC_OVERRIDE
+      {
+        *tuple.get<0>() = transaction.LookupGlobalProperty(*tuple.get<1>(), tuple.get<2>());
+      }
+    };
+
+    bool found;
+    Operations operations;
+    operations.Apply(*this, &found, &value, property);
+    return found;
+  }
+  
+
+  std::string ServerIndex::GetGlobalProperty(GlobalProperty property,
+                                             const std::string& defaultValue)
+  {
+    class Operations : public ReadOnlyOperationsT3<std::string*, GlobalProperty, std::string>
+    {
+    public:
+      virtual void ApplyTuple(ReadOnlyTransaction& transaction,
+                              const Tuple& tuple) ORTHANC_OVERRIDE
+      {
+        if (!transaction.LookupGlobalProperty(*tuple.get<0>(), tuple.get<1>()))
+        {
+          *tuple.get<0>() = tuple.get<2>(); // Default value
+        }
+      }
+    };
+
+    std::string s;
+    Operations operations;
+    operations.Apply(*this, &s, property, defaultValue);
+    return s;
+  }
+
+
+  bool ServerIndex::GetMainDicomTags(DicomMap& result,
+                                     const std::string& publicId,
+                                     ResourceType expectedType,
+                                     ResourceType levelOfInterest)
+  {
+    // Yes, the following test could be shortened, but we wish to make it as clear as possible
+    if (!(expectedType == ResourceType_Patient  && levelOfInterest == ResourceType_Patient) &&
+        !(expectedType == ResourceType_Study    && levelOfInterest == ResourceType_Patient) &&
+        !(expectedType == ResourceType_Study    && levelOfInterest == ResourceType_Study)   &&
+        !(expectedType == ResourceType_Series   && levelOfInterest == ResourceType_Series)  &&
+        !(expectedType == ResourceType_Instance && levelOfInterest == ResourceType_Instance))
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+
+    class Operations : public ReadOnlyOperationsT5<bool*, DicomMap*, std::string, ResourceType, ResourceType>
+    {
+    public:
+      virtual void ApplyTuple(ReadOnlyTransaction& transaction,
+                              const Tuple& tuple) ORTHANC_OVERRIDE
+      {
+        // Lookup for the requested resource
+        int64_t id;
+        ResourceType type;
+        if (!transaction.LookupResource(id, type, tuple.get<2>()) ||
+            type != tuple.get<3>())
+        {
+          *tuple.get<0>() = false;
+        }
+        else if (type == ResourceType_Study)
+        {
+          DicomMap tmp;
+          transaction.GetMainDicomTags(tmp, id);
+
+          switch (tuple.get<4>())
+          {
+            case ResourceType_Patient:
+              tmp.ExtractPatientInformation(*tuple.get<1>());
+              *tuple.get<0>() = true;
+              break;
+
+            case ResourceType_Study:
+              tmp.ExtractStudyInformation(*tuple.get<1>());
+              *tuple.get<0>() = true;
+              break;
+
+            default:
+              throw OrthancException(ErrorCode_InternalError);
+          }
+        }
+        else
+        {
+          transaction.GetMainDicomTags(*tuple.get<1>(), id);
+          *tuple.get<0>() = true;
+        }    
+      }
+    };
+
+    result.Clear();
+
+    bool found;
+    Operations operations;
+    operations.Apply(*this, &found, &result, publicId, expectedType, levelOfInterest);
+    return found;
   }
 }
