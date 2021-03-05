@@ -190,26 +190,7 @@ namespace Orthanc
     void SetGlobalProperty(GlobalProperty property,
                            const std::string& value);
 
-    // Only applicable at the instance level
-    bool GetAllMainDicomTags(DicomMap& result,
-                             const std::string& instancePublicId);
-
-    bool LookupResourceType(ResourceType& type,
-                            const std::string& publicId);
-
-    unsigned int GetDatabaseVersion();
-
-    bool LookupParent(std::string& target,
-                      const std::string& publicId,
-                      ResourceType parentType);
-
     void ReconstructInstance(const ParsedDicomFile& dicom);
-
-    void ApplyLookupResources(std::vector<std::string>& resourcesId,
-                              std::vector<std::string>* instancesId,  // Can be NULL if not needed
-                              const DatabaseLookup& lookup,
-                              ResourceType queryLevel,
-                              size_t limit);
 
 
 
@@ -297,6 +278,11 @@ namespace Orthanc
                                int64_t id)
       {
         db_.GetChildrenPublicId(target, id);
+      }
+
+      unsigned int GetDatabaseVersion()
+      {
+        return db_.GetDatabaseVersion();
       }
 
       void GetExportedResources(std::list<ExportedResource>& target /*out*/,
@@ -534,5 +520,24 @@ namespace Orthanc
                           const std::string& publicId,
                           ResourceType expectedType,
                           ResourceType levelOfInterest);
+
+    // Only applicable at the instance level
+    bool GetAllMainDicomTags(DicomMap& result,
+                             const std::string& instancePublicId);
+
+    bool LookupResourceType(ResourceType& type,
+                            const std::string& publicId);
+
+    unsigned int GetDatabaseVersion();
+
+    bool LookupParent(std::string& target,
+                      const std::string& publicId,
+                      ResourceType parentType);
+
+    void ApplyLookupResources(std::vector<std::string>& resourcesId,
+                              std::vector<std::string>* instancesId,  // Can be NULL if not needed
+                              const DatabaseLookup& lookup,
+                              ResourceType queryLevel,
+                              size_t limit);
   };
 }

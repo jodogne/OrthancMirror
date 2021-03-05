@@ -1660,127 +1660,6 @@ namespace Orthanc
 
 
 
-  bool ServerIndex::GetAllMainDicomTags(DicomMap& result,
-                                        const std::string& instancePublicId)
-  {
-    result.Clear();
-    
-    boost::mutex::scoped_lock lock(mutex_);
-
-    // Lookup for the requested resource
-    int64_t instance;
-    ResourceType type;
-    if (!db_.LookupResource(instance, type, instancePublicId) ||
-        type != ResourceType_Instance)
-    {
-      return false;
-    }
-    else
-    {
-      DicomMap tmp;
-
-      db_.GetMainDicomTags(tmp, instance);
-      result.Merge(tmp);
-
-      int64_t series;
-      if (!db_.LookupParent(series, instance))
-      {
-        throw OrthancException(ErrorCode_InternalError);
-      }
-
-      tmp.Clear();
-      db_.GetMainDicomTags(tmp, series);
-      result.Merge(tmp);
-
-      int64_t study;
-      if (!db_.LookupParent(study, series))
-      {
-        throw OrthancException(ErrorCode_InternalError);
-      }
-
-      tmp.Clear();
-      db_.GetMainDicomTags(tmp, study);
-      result.Merge(tmp);
-
-#ifndef NDEBUG
-      {
-        // Sanity test to check that all the main DICOM tags from the
-        // patient level are copied at the study level
-        
-        int64_t patient;
-        if (!db_.LookupParent(patient, study))
-        {
-          throw OrthancException(ErrorCode_InternalError);
-        }
-
-        tmp.Clear();
-        db_.GetMainDicomTags(tmp, study);
-
-        std::set<DicomTag> patientTags;
-        tmp.GetTags(patientTags);
-
-        for (std::set<DicomTag>::const_iterator
-               it = patientTags.begin(); it != patientTags.end(); ++it)
-        {
-          assert(result.HasTag(*it));
-        }
-      }
-#endif
-      
-      return true;
-    }
-  }
-
-
-  bool ServerIndex::LookupResourceType(ResourceType& type,
-                                       const std::string& publicId)
-  {
-    boost::mutex::scoped_lock lock(mutex_);
-
-    int64_t id;
-    return db_.LookupResource(id, type, publicId);
-  }
-
-
-  unsigned int ServerIndex::GetDatabaseVersion()
-  {
-    boost::mutex::scoped_lock lock(mutex_);
-    return db_.GetDatabaseVersion();
-  }
-
-
-  bool ServerIndex::LookupParent(std::string& target,
-                                 const std::string& publicId,
-                                 ResourceType parentType)
-  {
-    boost::mutex::scoped_lock lock(mutex_);
-
-    ResourceType type;
-    int64_t id;
-    if (!db_.LookupResource(id, type, publicId))
-    {
-      throw OrthancException(ErrorCode_UnknownResource);
-    }
-
-    while (type != parentType)
-    {
-      int64_t parentId;
-
-      if (type == ResourceType_Patient ||    // Cannot further go up in hierarchy
-          !db_.LookupParent(parentId, id))
-      {
-        return false;
-      }
-
-      id = parentId;
-      type = GetParentResourceType(type);
-    }
-
-    target = db_.GetPublicId(id);
-    return true;
-  }
-
-
   void ServerIndex::ReconstructInstance(const ParsedDicomFile& dicom)
   {
     DicomMap summary;
@@ -1876,39 +1755,6 @@ namespace Orthanc
         
         target.push_back(source.GetConstraint(i).ConvertToDatabaseConstraint(level, type));
       }
-    }
-  }
-
-
-  void ServerIndex::ApplyLookupResources(std::vector<std::string>& resourcesId,
-                                         std::vector<std::string>* instancesId,
-                                         const DatabaseLookup& lookup,
-                                         ResourceType queryLevel,
-                                         size_t limit)
-  {
-    std::vector<DatabaseConstraint> normalized;
-    NormalizeLookup(normalized, lookup, queryLevel);
-
-    std::list<std::string> resourcesList, instancesList;
-    
-    {
-      boost::mutex::scoped_lock lock(mutex_);
-
-      if (instancesId == NULL)
-      {
-        db_.ApplyLookupResources(resourcesList, NULL, normalized, queryLevel, limit);
-      }
-      else
-      {
-        db_.ApplyLookupResources(resourcesList, &instancesList, normalized, queryLevel, limit);
-      }
-    }
-
-    CopyListToVector(resourcesId, resourcesList);
-
-    if (instancesId != NULL)
-    { 
-      CopyListToVector(*instancesId, instancesList);
     }
   }
 
@@ -3065,6 +2911,7 @@ namespace Orthanc
 
       virtual void Apply(ReadOnlyTransaction& transaction) ORTHANC_OVERRIDE
       {
+        // TODO - CANDIDATE FOR "TransactionType_SingleStatement"
         std::list<std::string> tmp;
         transaction.ApplyLookupResources(tmp, NULL, query_, level_, 0);
         CopyListToVector(result_, tmp);
@@ -3085,6 +2932,7 @@ namespace Orthanc
       virtual void ApplyTuple(ReadOnlyTransaction& transaction,
                               const Tuple& tuple) ORTHANC_OVERRIDE
       {
+        // TODO - CANDIDATE FOR "TransactionType_SingleStatement"
         *tuple.get<0>() = transaction.LookupGlobalProperty(*tuple.get<1>(), tuple.get<2>());
       }
     };
@@ -3099,23 +2947,15 @@ namespace Orthanc
   std::string ServerIndex::GetGlobalProperty(GlobalProperty property,
                                              const std::string& defaultValue)
   {
-    class Operations : public ReadOnlyOperationsT3<std::string*, GlobalProperty, std::string>
-    {
-    public:
-      virtual void ApplyTuple(ReadOnlyTransaction& transaction,
-                              const Tuple& tuple) ORTHANC_OVERRIDE
-      {
-        if (!transaction.LookupGlobalProperty(*tuple.get<0>(), tuple.get<1>()))
-        {
-          *tuple.get<0>() = tuple.get<2>(); // Default value
-        }
-      }
-    };
-
     std::string s;
-    Operations operations;
-    operations.Apply(*this, &s, property, defaultValue);
-    return s;
+    if (LookupGlobalProperty(s, property))
+    {
+      return s;
+    }
+    else
+    {
+      return defaultValue;
+    }
   }
 
 
@@ -3184,5 +3024,228 @@ namespace Orthanc
     Operations operations;
     operations.Apply(*this, &found, &result, publicId, expectedType, levelOfInterest);
     return found;
+  }
+
+
+  bool ServerIndex::GetAllMainDicomTags(DicomMap& result,
+                                        const std::string& instancePublicId)
+  {
+    class Operations : public ReadOnlyOperationsT3<bool*, DicomMap*, std::string>
+    {
+    public:
+      virtual void ApplyTuple(ReadOnlyTransaction& transaction,
+                              const Tuple& tuple) ORTHANC_OVERRIDE
+      {
+        // Lookup for the requested resource
+        int64_t instance;
+        ResourceType type;
+        if (!transaction.LookupResource(instance, type, tuple.get<2>()) ||
+            type != ResourceType_Instance)
+        {
+          *tuple.get<0>() =  false;
+        }
+        else
+        {
+          DicomMap tmp;
+
+          transaction.GetMainDicomTags(tmp, instance);
+          tuple.get<1>()->Merge(tmp);
+
+          int64_t series;
+          if (!transaction.LookupParent(series, instance))
+          {
+            throw OrthancException(ErrorCode_InternalError);
+          }
+
+          tmp.Clear();
+          transaction.GetMainDicomTags(tmp, series);
+          tuple.get<1>()->Merge(tmp);
+
+          int64_t study;
+          if (!transaction.LookupParent(study, series))
+          {
+            throw OrthancException(ErrorCode_InternalError);
+          }
+
+          tmp.Clear();
+          transaction.GetMainDicomTags(tmp, study);
+          tuple.get<1>()->Merge(tmp);
+
+#ifndef NDEBUG
+          {
+            // Sanity test to check that all the main DICOM tags from the
+            // patient level are copied at the study level
+        
+            int64_t patient;
+            if (!transaction.LookupParent(patient, study))
+            {
+              throw OrthancException(ErrorCode_InternalError);
+            }
+
+            tmp.Clear();
+            transaction.GetMainDicomTags(tmp, study);
+
+            std::set<DicomTag> patientTags;
+            tmp.GetTags(patientTags);
+
+            for (std::set<DicomTag>::const_iterator
+                   it = patientTags.begin(); it != patientTags.end(); ++it)
+            {
+              assert(tuple.get<1>()->HasTag(*it));
+            }
+          }
+#endif
+      
+          *tuple.get<0>() =  true;
+        }
+      }
+    };
+
+    result.Clear();
+    
+    bool found;
+    Operations operations;
+    operations.Apply(*this, &found, &result, instancePublicId);
+    return found;
+  }
+
+
+  bool ServerIndex::LookupResourceType(ResourceType& type,
+                                       const std::string& publicId)
+  {
+    class Operations : public ReadOnlyOperationsT3<bool*, ResourceType*, std::string>
+    {
+    public:
+      virtual void ApplyTuple(ReadOnlyTransaction& transaction,
+                              const Tuple& tuple) ORTHANC_OVERRIDE
+      {
+        // TODO - CANDIDATE FOR "TransactionType_SingleStatement"
+        int64_t id;
+        *tuple.get<0>() = transaction.LookupResource(id, *tuple.get<1>(), tuple.get<2>());
+      }
+    };
+
+    bool found;
+    Operations operations;
+    operations.Apply(*this, &found, &type, publicId);
+    return found;
+  }
+
+
+  unsigned int ServerIndex::GetDatabaseVersion()
+  {
+    class Operations : public ReadOnlyOperationsT1<unsigned int *>
+    {
+    public:
+      virtual void ApplyTuple(ReadOnlyTransaction& transaction,
+                              const Tuple& tuple) ORTHANC_OVERRIDE
+      {
+        // TODO - CANDIDATE FOR "TransactionType_SingleStatement"
+        *tuple.get<0>() = transaction.GetDatabaseVersion();
+      }
+    };
+
+    unsigned int version;
+    Operations operations;
+    operations.Apply(*this, &version);
+    return version;
+  }
+
+
+  bool ServerIndex::LookupParent(std::string& target,
+                                 const std::string& publicId,
+                                 ResourceType parentType)
+  {
+    class Operations : public ReadOnlyOperationsT4<bool*, std::string*, std::string, ResourceType>
+    {
+    public:
+      virtual void ApplyTuple(ReadOnlyTransaction& transaction,
+                              const Tuple& tuple) ORTHANC_OVERRIDE
+      {
+        ResourceType type;
+        int64_t id;
+        if (!transaction.LookupResource(id, type, tuple.get<2>()))
+        {
+          throw OrthancException(ErrorCode_UnknownResource);
+        }
+
+        while (type != tuple.get<3>())
+        {
+          int64_t parentId;
+
+          if (type == ResourceType_Patient ||    // Cannot further go up in hierarchy
+              !transaction.LookupParent(parentId, id))
+          {
+            *tuple.get<0>() = false;
+            return;
+          }
+
+          id = parentId;
+          type = GetParentResourceType(type);
+        }
+
+        *tuple.get<0>() = true;
+        *tuple.get<1>() = transaction.GetPublicId(id);
+      }
+    };
+
+    bool found;
+    Operations operations;
+    operations.Apply(*this, &found, &target, publicId, parentType);
+    return found;
+  }
+
+
+  void ServerIndex::ApplyLookupResources(std::vector<std::string>& resourcesId,
+                                         std::vector<std::string>* instancesId,
+                                         const DatabaseLookup& lookup,
+                                         ResourceType queryLevel,
+                                         size_t limit)
+  {
+    class Operations : public ReadOnlyOperationsT4<bool, std::vector<DatabaseConstraint>, ResourceType, size_t>
+    {
+    private:
+      std::list<std::string>  resourcesList_;
+      std::list<std::string>  instancesList_;
+      
+    public:
+      const std::list<std::string>& GetResourcesList() const
+      {
+        return resourcesList_;
+      }
+
+      const std::list<std::string>& GetInstancesList() const
+      {
+        return instancesList_;
+      }
+
+      virtual void ApplyTuple(ReadOnlyTransaction& transaction,
+                              const Tuple& tuple) ORTHANC_OVERRIDE
+      {
+        // TODO - CANDIDATE FOR "TransactionType_SingleStatement"
+        if (tuple.get<0>())
+        {
+          transaction.ApplyLookupResources(resourcesList_, &instancesList_, tuple.get<1>(), tuple.get<2>(), tuple.get<3>());
+        }
+        else
+        {
+          transaction.ApplyLookupResources(resourcesList_, NULL, tuple.get<1>(), tuple.get<2>(), tuple.get<3>());
+        }
+      }
+    };
+
+
+    std::vector<DatabaseConstraint> normalized;
+    NormalizeLookup(normalized, lookup, queryLevel);
+
+    Operations operations;
+    operations.Apply(*this, (instancesId != NULL), normalized, queryLevel, limit);
+    
+    CopyListToVector(resourcesId, operations.GetResourcesList());
+
+    if (instancesId != NULL)
+    { 
+      CopyListToVector(*instancesId, operations.GetInstancesList());
+    }
   }
 }
