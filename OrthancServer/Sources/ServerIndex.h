@@ -181,21 +181,6 @@ namespace Orthanc
 
     void DeleteExportedResources();
 
-    void GetResourceStatistics(/* out */ ResourceType& type,
-                               /* out */ uint64_t& diskSize, 
-                               /* out */ uint64_t& uncompressedSize, 
-                               /* out */ unsigned int& countStudies, 
-                               /* out */ unsigned int& countSeries, 
-                               /* out */ unsigned int& countInstances, 
-                               /* out */ uint64_t& dicomDiskSize, 
-                               /* out */ uint64_t& dicomUncompressedSize, 
-                               const std::string& publicId);
-
-    void LookupIdentifierExact(std::vector<std::string>& result,
-                               ResourceType level,
-                               const DicomTag& tag,
-                               const std::string& value);
-
     StoreStatus AddAttachment(const FileInfo& attachment,
                               const std::string& publicId);
 
@@ -204,17 +189,6 @@ namespace Orthanc
 
     void SetGlobalProperty(GlobalProperty property,
                            const std::string& value);
-
-    bool LookupGlobalProperty(std::string& value,
-                              GlobalProperty property);
-
-    std::string GetGlobalProperty(GlobalProperty property,
-                                  const std::string& defaultValue);
-
-    bool GetMainDicomTags(DicomMap& result,
-                          const std::string& publicId,
-                          ResourceType expectedType,
-                          ResourceType levelOfInterest);
 
     // Only applicable at the instance level
     bool GetAllMainDicomTags(DicomMap& result,
@@ -275,6 +249,15 @@ namespace Orthanc
       /**
        * Read-only methods from "IDatabaseWrapper"
        **/
+
+      void ApplyLookupResources(std::list<std::string>& resourcesId,
+                                std::list<std::string>* instancesId, // Can be NULL if not needed
+                                const std::vector<DatabaseConstraint>& lookup,
+                                ResourceType queryLevel,
+                                size_t limit)
+      {
+        return db_.ApplyLookupResources(resourcesId, instancesId, lookup, queryLevel, limit);
+      }
 
       void GetAllMetadata(std::map<MetadataType, std::string>& target,
                           int64_t id)
@@ -388,6 +371,12 @@ namespace Orthanc
         return db_.LookupAttachment(attachment, id, contentType);
       }
       
+      bool LookupGlobalProperty(std::string& target,
+                                GlobalProperty property)
+      {
+        return db_.LookupGlobalProperty(target, property);
+      }
+
       bool LookupMetadata(std::string& target,
                           int64_t id,
                           MetadataType type)
@@ -519,5 +508,31 @@ namespace Orthanc
 
     bool LookupParent(std::string& target,
                       const std::string& publicId);
+
+    void GetResourceStatistics(/* out */ ResourceType& type,
+                               /* out */ uint64_t& diskSize, 
+                               /* out */ uint64_t& uncompressedSize, 
+                               /* out */ unsigned int& countStudies, 
+                               /* out */ unsigned int& countSeries, 
+                               /* out */ unsigned int& countInstances, 
+                               /* out */ uint64_t& dicomDiskSize, 
+                               /* out */ uint64_t& dicomUncompressedSize, 
+                               const std::string& publicId);
+
+    void LookupIdentifierExact(std::vector<std::string>& result,
+                               ResourceType level,
+                               const DicomTag& tag,
+                               const std::string& value);
+
+    bool LookupGlobalProperty(std::string& value,
+                              GlobalProperty property);
+
+    std::string GetGlobalProperty(GlobalProperty property,
+                                  const std::string& defaultValue);
+
+    bool GetMainDicomTags(DicomMap& result,
+                          const std::string& publicId,
+                          ResourceType expectedType,
+                          ResourceType levelOfInterest);
   };
 }
