@@ -153,14 +153,8 @@ namespace Orthanc
                       bool hasPixelDataOffset,
                       uint64_t pixelDataOffset);
 
-    void LogChange(ChangeType changeType,
-                   const std::string& publicId);
-
     StoreStatus AddAttachment(const FileInfo& attachment,
                               const std::string& publicId);
-
-    void DeleteAttachment(const std::string& publicId,
-                          FileContentType type);
 
     void ReconstructInstance(const ParsedDicomFile& dicom);
 
@@ -388,6 +382,12 @@ namespace Orthanc
         db_.ClearExportedResources();
       }
 
+      void DeleteAttachment(int64_t id,
+                            FileContentType attachment)
+      {
+        return db_.DeleteAttachment(id, attachment);
+      }
+      
       void DeleteMetadata(int64_t id,
                           MetadataType type)
       {
@@ -595,5 +595,11 @@ namespace Orthanc
 
     void SetGlobalProperty(GlobalProperty property,
                            const std::string& value);
+
+    void DeleteAttachment(const std::string& publicId,
+                          FileContentType type);
+
+    void LogChange(ChangeType changeType,
+                   const std::string& publicId);
   };
 }

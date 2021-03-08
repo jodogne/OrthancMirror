@@ -1205,24 +1205,6 @@ namespace Orthanc
   }
 
 
-  void ServerIndex::LogChange(ChangeType changeType,
-                              const std::string& publicId)
-  {
-    boost::mutex::scoped_lock lock(mutex_);
-    Transaction transaction(*this);
-
-    int64_t id;
-    ResourceType type;
-    if (!db_.LookupResource(id, type, publicId))
-    {
-      throw OrthancException(ErrorCode_UnknownResource);
-    }
-
-    LogChange(id, changeType, type, publicId);
-    transaction.Commit(0);
-  }
-
-
   void ServerIndex::UnstableResourcesMonitorThread(ServerIndex* that,
                                                    unsigned int threadSleep)
   {
@@ -1353,30 +1335,6 @@ namespace Orthanc
     t.Commit(attachment.GetCompressedSize());
 
     return StoreStatus_Success;
-  }
-
-
-  void ServerIndex::DeleteAttachment(const std::string& publicId,
-                                     FileContentType type)
-  {
-    boost::mutex::scoped_lock lock(mutex_);
-    Transaction t(*this);
-
-    ResourceType rtype;
-    int64_t id;
-    if (!db_.LookupResource(id, rtype, publicId))
-    {
-      throw OrthancException(ErrorCode_UnknownResource);
-    }
-
-    db_.DeleteAttachment(id, type);
-
-    if (IsUserContentType(type))
-    {
-      LogChange(id, ChangeType_UpdatedAttachment, rtype, publicId);
-    }
-
-    t.Commit(0);
   }
 
 
@@ -3401,6 +3359,87 @@ namespace Orthanc
     };
 
     Operations operations(property, value);
+    Apply(operations);
+  }
+
+
+  void ServerIndex::DeleteAttachment(const std::string& publicId,
+                                     FileContentType type)
+  {
+    class Operations : public IReadWriteOperations
+    {
+    private:
+      const std::string&  publicId_;
+      FileContentType     type_;
+      
+    public:
+      Operations(const std::string& publicId,
+                 FileContentType type) :
+        publicId_(publicId),
+        type_(type)
+      {
+      }
+        
+      virtual void Apply(ReadWriteTransaction& transaction,
+                         Listener& listener) ORTHANC_OVERRIDE
+      {
+        ResourceType rtype;
+        int64_t id;
+        if (!transaction.LookupResource(id, rtype, publicId_))
+        {
+          throw OrthancException(ErrorCode_UnknownResource);
+        }
+        else
+        {
+          transaction.DeleteAttachment(id, type_);
+          
+          if (IsUserContentType(type_))
+          {
+            transaction.LogChange(id, ChangeType_UpdatedAttachment, rtype, publicId_);
+          }
+        }
+      }
+    };
+
+    Operations operations(publicId, type);
+    Apply(operations);
+  }
+
+
+  void ServerIndex::LogChange(ChangeType changeType,
+                              const std::string& publicId)
+  {
+    class Operations : public IReadWriteOperations
+    {
+    private:
+      ChangeType          changeType_;
+      const std::string&  publicId_;
+      
+    public:
+      Operations(ChangeType changeType,
+                 const std::string& publicId) :
+        changeType_(changeType),
+        publicId_(publicId)
+      {
+      }
+        
+      virtual void Apply(ReadWriteTransaction& transaction,
+                         Listener& listener) ORTHANC_OVERRIDE
+      {
+        int64_t id;
+        ResourceType type;
+        if (!transaction.LookupResource(id, type, publicId_))
+        {
+          throw OrthancException(ErrorCode_UnknownResource);
+        }
+        else
+        {
+          transaction.LogChange(id, changeType_, type, publicId_);
+        }
+      }
+    };
+
+    Operations operations(changeType, publicId);
     Apply(operations);
   }
 }
