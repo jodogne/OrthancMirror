@@ -106,8 +106,6 @@ namespace Orthanc
                            const std::string& publicId,
                            int64_t internalId);
 
-    uint64_t IncrementGlobalSequenceInternal(GlobalProperty property);
-
     void NormalizeLookup(std::vector<DatabaseConstraint>& target,
                          const DatabaseLookup& source,
                          ResourceType level) const;
@@ -155,33 +153,14 @@ namespace Orthanc
                       bool hasPixelDataOffset,
                       uint64_t pixelDataOffset);
 
-    void SetProtectedPatient(const std::string& publicId,
-                             bool isProtected);
-
-    void SetMetadata(const std::string& publicId,
-                     MetadataType type,
-                     const std::string& value);
-
-    void DeleteMetadata(const std::string& publicId,
-                        MetadataType type);
-
-    uint64_t IncrementGlobalSequence(GlobalProperty sequence);
-
     void LogChange(ChangeType changeType,
                    const std::string& publicId);
-
-    void DeleteChanges();
-
-    void DeleteExportedResources();
 
     StoreStatus AddAttachment(const FileInfo& attachment,
                               const std::string& publicId);
 
     void DeleteAttachment(const std::string& publicId,
                           FileContentType type);
-
-    void SetGlobalProperty(GlobalProperty property,
-                           const std::string& value);
 
     void ReconstructInstance(const ParsedDicomFile& dicom);
 
@@ -388,10 +367,31 @@ namespace Orthanc
 
     class ReadWriteTransaction : public ReadOnlyTransaction
     {
+    private:
+      ServerIndex&  index_;
+      
     public:
-      explicit ReadWriteTransaction(IDatabaseWrapper& db) :
-        ReadOnlyTransaction(db)
+      ReadWriteTransaction(IDatabaseWrapper& db,
+                           ServerIndex& index) :
+        ReadOnlyTransaction(db),
+        index_(index)   // TODO - REMOVE
       {
+      }
+
+      void ClearChanges()
+      {
+        db_.ClearChanges();
+      }
+
+      void ClearExportedResources()
+      {
+        db_.ClearExportedResources();
+      }
+
+      void DeleteMetadata(int64_t id,
+                          MetadataType type)
+      {
+        db_.DeleteMetadata(id, type);
       }
 
       void DeleteResource(int64_t id)
@@ -399,9 +399,36 @@ namespace Orthanc
         db_.DeleteResource(id);
       }
 
+      void LogChange(int64_t internalId,
+                     ChangeType changeType,
+                     ResourceType resourceType,
+                     const std::string& publicId)
+      {
+        index_.LogChange(internalId, changeType, resourceType, publicId);
+      }
+
       void LogExportedResource(const ExportedResource& resource)
       {
         db_.LogExportedResource(resource);
+      }
+
+      void SetGlobalProperty(GlobalProperty property,
+                             const std::string& value)
+      {
+        db_.SetGlobalProperty(property, value);
+      }
+
+      void SetMetadata(int64_t id,
+                       MetadataType type,
+                       const std::string& value)
+      {
+        return db_.SetMetadata(id, type, value);
+      }
+
+      void SetProtectedPatient(int64_t internalId, 
+                               bool isProtected)
+      {
+        db_.SetProtectedPatient(internalId, isProtected);
       }
     };
 
@@ -549,5 +576,24 @@ namespace Orthanc
 
     void LogExportedResource(const std::string& publicId,
                              const std::string& remoteModality);
+
+    void SetProtectedPatient(const std::string& publicId,
+                             bool isProtected);
+
+    void SetMetadata(const std::string& publicId,
+                     MetadataType type,
+                     const std::string& value);
+
+    void DeleteMetadata(const std::string& publicId,
+                        MetadataType type);
+
+    uint64_t IncrementGlobalSequence(GlobalProperty sequence);
+
+    void DeleteChanges();
+
+    void DeleteExportedResources();
+
+    void SetGlobalProperty(GlobalProperty property,
+                           const std::string& value);
   };
 }
