@@ -1112,48 +1112,55 @@ namespace Orthanc
   void ServerIndex::Recycle(uint64_t instanceSize,
                             const std::string& newPatientId)
   {
-    if (!IsRecyclingNeeded(instanceSize))
+    if (IsRecyclingNeeded(instanceSize))
     {
-      return;
-    }
+      // Check whether other DICOM instances from this patient are
+      // already stored
+      int64_t patientToAvoid;
+      bool hasPatientToAvoid;
 
-    // Check whether other DICOM instances from this patient are
-    // already stored
-    int64_t patientToAvoid;
-    ResourceType type;
-    bool hasPatientToAvoid = db_.LookupResource(patientToAvoid, type, newPatientId);
+      if (newPatientId.empty())
+      {
+        hasPatientToAvoid = false;
+      }
+      else
+      {
+        ResourceType type;
+        hasPatientToAvoid = db_.LookupResource(patientToAvoid, type, newPatientId);
+        if (type != ResourceType_Patient)
+        {
+          throw OrthancException(ErrorCode_InternalError);
+        }
+      }
 
-    if (hasPatientToAvoid && type != ResourceType_Patient)
-    {
-      throw OrthancException(ErrorCode_InternalError);
-    }
-
-    // Iteratively select patient to remove until there is enough
-    // space in the DICOM store
-    int64_t patientToRecycle;
-    while (true)
-    {
-      // If other instances of this patient are already in the store,
-      // we must avoid to recycle them
-      bool ok = hasPatientToAvoid ?
-        db_.SelectPatientToRecycle(patientToRecycle, patientToAvoid) :
-        db_.SelectPatientToRecycle(patientToRecycle);
+      // Iteratively select patient to remove until there is enough
+      // space in the DICOM store
+      int64_t patientToRecycle;
+      while (true)
+      {
+        // If other instances of this patient are already in the store,
+        // we must avoid to recycle them
+        bool ok = (hasPatientToAvoid ?
+                   db_.SelectPatientToRecycle(patientToRecycle, patientToAvoid) :
+                   db_.SelectPatientToRecycle(patientToRecycle));
         
-      if (!ok)
-      {
-        throw OrthancException(ErrorCode_FullStorage);
-      }
+        if (!ok)
+        {
+          throw OrthancException(ErrorCode_FullStorage);
+        }
       
-      LOG(TRACE) << "Recycling one patient";
-      db_.DeleteResource(patientToRecycle);
+        LOG(TRACE) << "Recycling one patient";
+        db_.DeleteResource(patientToRecycle);
 
-      if (!IsRecyclingNeeded(instanceSize))
-      {
-        // OK, we're done
-        break;
+        if (!IsRecyclingNeeded(instanceSize))
+        {
+          // OK, we're done
+          break;
+        }
       }
     }
-  }  
+  }
+  
 
   void ServerIndex::SetMaximumPatientCount(unsigned int count) 
   {
