@@ -1680,7 +1680,7 @@ namespace Orthanc
                               const Tuple& tuple) = 0;
 
       void Apply(ServerIndex& index,
-                 const T1& t1)
+                 T1 t1)
       {
         const Tuple tuple(t1);
         TupleOperationsWrapper<ReadOnlyOperationsT1, Tuple> wrapper(*this, tuple);
@@ -1704,8 +1704,8 @@ namespace Orthanc
                               const Tuple& tuple) = 0;
 
       void Apply(ServerIndex& index,
-                 const T1& t1,
-                 const T2& t2)
+                 T1 t1,
+                 T2 t2)
       {
         const Tuple tuple(t1, t2);
         TupleOperationsWrapper<ReadOnlyOperationsT2, Tuple> wrapper(*this, tuple);
@@ -1730,9 +1730,9 @@ namespace Orthanc
                               const Tuple& tuple) = 0;
 
       void Apply(ServerIndex& index,
-                 const T1& t1,
-                 const T2& t2,
-                 const T3& t3)
+                 T1 t1,
+                 T2 t2,
+                 T3 t3)
       {
         const Tuple tuple(t1, t2, t3);
         TupleOperationsWrapper<ReadOnlyOperationsT3, Tuple> wrapper(*this, tuple);
@@ -1758,10 +1758,10 @@ namespace Orthanc
                               const Tuple& tuple) = 0;
 
       void Apply(ServerIndex& index,
-                 const T1& t1,
-                 const T2& t2,
-                 const T3& t3,
-                 const T4& t4)
+                 T1 t1,
+                 T2 t2,
+                 T3 t3,
+                 T4 t4)
       {
         const Tuple tuple(t1, t2, t3, t4);
         TupleOperationsWrapper<ReadOnlyOperationsT4, Tuple> wrapper(*this, tuple);
@@ -1788,11 +1788,11 @@ namespace Orthanc
                               const Tuple& tuple) = 0;
 
       void Apply(ServerIndex& index,
-                 const T1& t1,
-                 const T2& t2,
-                 const T3& t3,
-                 const T4& t4,
-                 const T5& t5)
+                 T1 t1,
+                 T2 t2,
+                 T3 t3,
+                 T4 t4,
+                 T5 t5)
       {
         const Tuple tuple(t1, t2, t3, t4, t5);
         TupleOperationsWrapper<ReadOnlyOperationsT5, Tuple> wrapper(*this, tuple);
@@ -1820,12 +1820,12 @@ namespace Orthanc
                               const Tuple& tuple) = 0;
 
       void Apply(ServerIndex& index,
-                 const T1& t1,
-                 const T2& t2,
-                 const T3& t3,
-                 const T4& t4,
-                 const T5& t5,
-                 const T6& t6)
+                 T1 t1,
+                 T2 t2,
+                 T3 t3,
+                 T4 t4,
+                 T5 t5,
+                 T6 t6)
       {
         const Tuple tuple(t1, t2, t3, t4, t5, t6);
         TupleOperationsWrapper<ReadOnlyOperationsT6, Tuple> wrapper(*this, tuple);
