@@ -600,37 +600,6 @@ namespace Orthanc
   }
 
 
-  uint64_t ServerIndex::IncrementGlobalSequenceInternal(GlobalProperty property)
-  {
-    std::string oldValue;
-
-    if (db_.LookupGlobalProperty(oldValue, property))
-    {
-      uint64_t oldNumber;
-      
-      try
-      {
-        oldNumber = boost::lexical_cast<uint64_t>(oldValue);
-      }
-      catch (boost::bad_lexical_cast&)
-      {
-        LOG(ERROR) << "Cannot read the global sequence "
-                   << boost::lexical_cast<std::string>(property) << ", resetting it";
-        oldNumber = 0;
-      }
-
-      db_.SetGlobalProperty(property, boost::lexical_cast<std::string>(oldNumber + 1));
-      return oldNumber + 1;
-    }
-    else
-    {
-      // Initialize the sequence at "1"
-      db_.SetGlobalProperty(property, "1");
-      return 1;
-    }
-  }
-
-
   bool ServerIndex::IsUnstableResource(int64_t id)
   {
     return unstableResources_.Contains(id);
@@ -1236,93 +1205,6 @@ namespace Orthanc
   }
 
 
-  void ServerIndex::SetProtectedPatient(const std::string& publicId,
-                                        bool isProtected)
-  {
-    boost::mutex::scoped_lock lock(mutex_);
-    Transaction transaction(*this);
-
-    // Lookup for the requested resource
-    int64_t id;
-    ResourceType type;
-    if (!db_.LookupResource(id, type, publicId) ||
-        type != ResourceType_Patient)
-    {
-      throw OrthancException(ErrorCode_ParameterOutOfRange);
-    }
-
-    db_.SetProtectedPatient(id, isProtected);
-    transaction.Commit(0);
-
-    if (isProtected)
-      LOG(INFO) << "Patient " << publicId << " has been protected";
-    else
-      LOG(INFO) << "Patient " << publicId << " has been unprotected";
-  }
-
-
-  void ServerIndex::SetMetadata(const std::string& publicId,
-                                MetadataType type,
-                                const std::string& value)
-  {
-    boost::mutex::scoped_lock lock(mutex_);
-    Transaction t(*this);
-
-    ResourceType rtype;
-    int64_t id;
-    if (!db_.LookupResource(id, rtype, publicId))
-    {
-      throw OrthancException(ErrorCode_UnknownResource);
-    }
-
-    db_.SetMetadata(id, type, value);
-
-    if (IsUserMetadata(type))
-    {
-      LogChange(id, ChangeType_UpdatedMetadata, rtype, publicId);
-    }
-
-    t.Commit(0);
-  }
-
-
-  void ServerIndex::DeleteMetadata(const std::string& publicId,
-                                   MetadataType type)
-  {
-    boost::mutex::scoped_lock lock(mutex_);
-    Transaction t(*this);
-
-    ResourceType rtype;
-    int64_t id;
-    if (!db_.LookupResource(id, rtype, publicId))
-    {
-      throw OrthancException(ErrorCode_UnknownResource);
-    }
-
-    db_.DeleteMetadata(id, type);
-
-    if (IsUserMetadata(type))
-    {
-      LogChange(id, ChangeType_UpdatedMetadata, rtype, publicId);
-    }
-
-    t.Commit(0);
-  }
-
-
-  uint64_t ServerIndex::IncrementGlobalSequence(GlobalProperty sequence)
-  {
-    boost::mutex::scoped_lock lock(mutex_);
-    Transaction transaction(*this);
-
-    uint64_t seq = IncrementGlobalSequenceInternal(sequence);
-    transaction.Commit(0);
-
-    return seq;
-  }
-
-
-
   void ServerIndex::LogChange(ChangeType changeType,
                               const std::string& publicId)
   {
@@ -1337,25 +1219,6 @@ namespace Orthanc
     }
 
     LogChange(id, changeType, type, publicId);
-    transaction.Commit(0);
-  }
-
-
-  void ServerIndex::DeleteChanges()
-  {
-    boost::mutex::scoped_lock lock(mutex_);
-
-    Transaction transaction(*this);
-    db_.ClearChanges();
-    transaction.Commit(0);
-  }
-
-  void ServerIndex::DeleteExportedResources()
-  {
-    boost::mutex::scoped_lock lock(mutex_);
-
-    Transaction transaction(*this);
-    db_.ClearExportedResources();
     transaction.Commit(0);
   }
 
@@ -1515,19 +1378,6 @@ namespace Orthanc
 
     t.Commit(0);
   }
-
-
-  void ServerIndex::SetGlobalProperty(GlobalProperty property,
-                                      const std::string& value)
-  {
-    boost::mutex::scoped_lock lock(mutex_);
-
-    Transaction transaction(*this);
-    db_.SetGlobalProperty(property, value);
-    transaction.Commit(0);
-  }
-
-
 
 
   void ServerIndex::ReconstructInstance(const ParsedDicomFile& dicom)
@@ -1862,7 +1712,7 @@ namespace Orthanc
         else
         {
           assert(writeOperations != NULL);
-          ReadWriteTransaction t(db_);
+          ReadWriteTransaction t(db_, *this);
           writeOperations->Apply(t, *listener_);          
         }
 
@@ -1924,7 +1774,7 @@ namespace Orthanc
     class Operations : public ReadOnlyOperationsT4<bool&, Json::Value&, const std::string&, ResourceType>
     {
     private:
-      ServerIndex&  index_;
+      ServerIndex&  index_;     // TODO - REMOVE
 
     public:
       explicit Operations(ServerIndex& index) :
@@ -3292,6 +3142,265 @@ namespace Orthanc
     };
 
     Operations operations(publicId, remoteModality);
+    Apply(operations);
+  }
+
+
+  void ServerIndex::SetProtectedPatient(const std::string& publicId,
+                                        bool isProtected)
+  {
+    class Operations : public IReadWriteOperations
+    {
+    private:
+      const std::string&  publicId_;
+      bool                isProtected_;
+
+    public:
+      Operations(const std::string& publicId,
+                 bool isProtected) :
+        publicId_(publicId),
+        isProtected_(isProtected)
+      {
+      }
+
+      virtual void Apply(ReadWriteTransaction& transaction,
+                         Listener& listener) ORTHANC_OVERRIDE
+      {
+        // Lookup for the requested resource
+        int64_t id;
+        ResourceType type;
+        if (!transaction.LookupResource(id, type, publicId_) ||
+            type != ResourceType_Patient)
+        {
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+        }
+        else
+        {
+          transaction.SetProtectedPatient(id, isProtected_);
+        }
+      }
+    };
+
+    Operations operations(publicId, isProtected);
+    Apply(operations);
+
+    if (isProtected)
+    {
+      LOG(INFO) << "Patient " << publicId << " has been protected";
+    }
+    else
+    {
+      LOG(INFO) << "Patient " << publicId << " has been unprotected";
+    }
+  }
+
+
+  void ServerIndex::SetMetadata(const std::string& publicId,
+                                MetadataType type,
+                                const std::string& value)
+  {
+    class Operations : public IReadWriteOperations
+    {
+    private:
+      const std::string&  publicId_;
+      MetadataType        type_;
+      const std::string&  value_;
+
+    public:
+      Operations(const std::string& publicId,
+                 MetadataType type,
+                 const std::string& value) :
+        publicId_(publicId),
+        type_(type),
+        value_(value)
+      {
+      }
+
+      virtual void Apply(ReadWriteTransaction& transaction,
+                         Listener& listener) ORTHANC_OVERRIDE
+      {
+        ResourceType rtype;
+        int64_t id;
+        if (!transaction.LookupResource(id, rtype, publicId_))
+        {
+          throw OrthancException(ErrorCode_UnknownResource);
+        }
+        else
+        {
+          transaction.SetMetadata(id, type_, value_);
+
+          if (IsUserMetadata(type_))
+          {
+            transaction.LogChange(id, ChangeType_UpdatedMetadata, rtype, publicId_);
+          }
+        }
+      }
+    };
+
+    Operations operations(publicId, type, value);
+    Apply(operations);
+  }
+
+
+  void ServerIndex::DeleteMetadata(const std::string& publicId,
+                                   MetadataType type)
+  {
+    class Operations : public IReadWriteOperations
+    {
+    private:
+      const std::string&  publicId_;
+      MetadataType        type_;
+
+    public:
+      Operations(const std::string& publicId,
+                 MetadataType type) :
+        publicId_(publicId),
+        type_(type)
+      {
+      }
+
+      virtual void Apply(ReadWriteTransaction& transaction,
+                         Listener& listener) ORTHANC_OVERRIDE
+      {
+        ResourceType rtype;
+        int64_t id;
+        if (!transaction.LookupResource(id, rtype, publicId_))
+        {
+          throw OrthancException(ErrorCode_UnknownResource);
+        }
+        else
+        {
+          transaction.DeleteMetadata(id, type_);
+
+          if (IsUserMetadata(type_))
+          {
+            transaction.LogChange(id, ChangeType_UpdatedMetadata, rtype, publicId_);
+          }
+        }
+      }
+    };
+
+    Operations operations(publicId, type);
+    Apply(operations);
+  }
+
+
+  uint64_t ServerIndex::IncrementGlobalSequence(GlobalProperty sequence)
+  {
+    class Operations : public IReadWriteOperations
+    {
+    private:
+      uint64_t       newValue_;
+      GlobalProperty sequence_;
+
+    public:
+      Operations(GlobalProperty sequence) :
+        sequence_(sequence)
+      {
+      }
+
+      uint64_t GetNewValue() const
+      {
+        return newValue_;
+      }
+
+      virtual void Apply(ReadWriteTransaction& transaction,
+                         Listener& listener) ORTHANC_OVERRIDE
+      {
+        std::string oldString;
+
+        if (transaction.LookupGlobalProperty(oldString, sequence_))
+        {
+          uint64_t oldValue;
+      
+          try
+          {
+            oldValue = boost::lexical_cast<uint64_t>(oldString);
+          }
+          catch (boost::bad_lexical_cast&)
+          {
+            LOG(ERROR) << "Cannot read the global sequence "
+                       << boost::lexical_cast<std::string>(sequence_) << ", resetting it";
+            oldValue = 0;
+          }
+
+          newValue_ = oldValue + 1;
+        }
+        else
+        {
+          // Initialize the sequence at "1"
+          newValue_ = 1;
+        }
+
+        transaction.SetGlobalProperty(sequence_, boost::lexical_cast<std::string>(newValue_));
+      }
+    };
+
+    Operations operations(sequence);
+    Apply(operations);
+    return operations.GetNewValue();
+  }
+
+
+  void ServerIndex::DeleteChanges()
+  {
+    class Operations : public IReadWriteOperations
+    {
+    public:
+      virtual void Apply(ReadWriteTransaction& transaction,
+                         Listener& listener) ORTHANC_OVERRIDE
+      {
+        transaction.ClearChanges();
+      }
+    };
+
+    Operations operations;
+    Apply(operations);
+  }
+
+  
+  void ServerIndex::DeleteExportedResources()
+  {
+    class Operations : public IReadWriteOperations
+    {
+    public:
+      virtual void Apply(ReadWriteTransaction& transaction,
+                         Listener& listener) ORTHANC_OVERRIDE
+      {
+        transaction.ClearExportedResources();
+      }
+    };
+
+    Operations operations;
+    Apply(operations);
+  }
+
+
+  void ServerIndex::SetGlobalProperty(GlobalProperty property,
+                                      const std::string& value)
+  {
+    class Operations : public IReadWriteOperations
+    {
+    private:
+      GlobalProperty      property_;
+      const std::string&  value_;
+      
+    public:
+      Operations(GlobalProperty property,
+                 const std::string& value) :
+        property_(property),
+        value_(value)
+      {
+      }
+        
+      virtual void Apply(ReadWriteTransaction& transaction,
+                         Listener& listener) ORTHANC_OVERRIDE
+      {
+        transaction.SetGlobalProperty(property_, value_);
+      }
+    };
+
+    Operations operations(property, value);
     Apply(operations);
   }
 }
