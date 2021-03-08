@@ -3252,7 +3252,8 @@ namespace Orthanc
       GlobalProperty sequence_;
 
     public:
-      Operations(GlobalProperty sequence) :
+      explicit Operations(GlobalProperty sequence) :
+        newValue_(0),  // Dummy initialization
         sequence_(sequence)
       {
       }
@@ -3296,6 +3297,7 @@ namespace Orthanc
 
     Operations operations(sequence);
     Apply(operations);
+    assert(operations.GetNewValue() != 0);
     return operations.GetNewValue();
   }
 
