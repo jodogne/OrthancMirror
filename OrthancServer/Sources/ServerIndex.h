@@ -101,11 +101,6 @@ namespace Orthanc
                    ResourceType resourceType,
                    const std::string& publicId);
 
-    void SignalNewResource(ChangeType changeType,
-                           ResourceType level,
-                           const std::string& publicId,
-                           int64_t internalId);
-
     void NormalizeLookup(std::vector<DatabaseConstraint>& target,
                          const DatabaseLookup& source,
                          ResourceType level) const;

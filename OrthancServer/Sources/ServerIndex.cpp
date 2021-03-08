@@ -683,19 +683,6 @@ namespace Orthanc
   }
 
 
-  void ServerIndex::SignalNewResource(ChangeType changeType,
-                                      ResourceType level,
-                                      const std::string& publicId,
-                                      int64_t internalId)
-  {
-    ServerIndexChange change(changeType, level, publicId);
-    db_.LogChange(internalId, change);
-    
-    assert(listener_.get() != NULL);
-    listener_->SignalChange(change);
-  }
-
-  
   StoreStatus ServerIndex::Store(std::map<MetadataType, std::string>& instanceMetadata,
                                  const DicomMap& dicomSummary,
                                  const Attachments& attachments,
@@ -764,21 +751,21 @@ namespace Orthanc
       // impact when new patient/study/series get created, which
       // occurs far less often that creating new instances. The
       // positive impact looks marginal in practice.
-      SignalNewResource(ChangeType_NewInstance, ResourceType_Instance, hashInstance, instanceId);
+      LogChange(instanceId, ChangeType_NewInstance, ResourceType_Instance, hashInstance);
 
       if (status.isNewSeries_)
       {
-        SignalNewResource(ChangeType_NewSeries, ResourceType_Series, hashSeries, status.seriesId_);
+        LogChange(status.seriesId_, ChangeType_NewSeries, ResourceType_Series, hashSeries);
       }
       
       if (status.isNewStudy_)
       {
-        SignalNewResource(ChangeType_NewStudy, ResourceType_Study, hashStudy, status.studyId_);
+        LogChange(status.studyId_, ChangeType_NewStudy, ResourceType_Study, hashStudy);
       }
       
       if (status.isNewPatient_)
       {
-        SignalNewResource(ChangeType_NewPatient, ResourceType_Patient, hashPatient, status.patientId_);
+        LogChange(status.patientId_, ChangeType_NewPatient, ResourceType_Patient, hashPatient);
       }
       
       
