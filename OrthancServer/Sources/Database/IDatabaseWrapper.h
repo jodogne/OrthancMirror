@@ -39,6 +39,7 @@
 #include "../../../OrthancFramework/Sources/SQLite/ITransaction.h"
 
 #include "../ExportedResource.h"
+#include "../ServerIndexChange.h"
 #include "IDatabaseListener.h"
 
 #include <list>

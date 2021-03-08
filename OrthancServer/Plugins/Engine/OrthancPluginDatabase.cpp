@@ -908,7 +908,7 @@ namespace Orthanc
       {
         const OrthancPluginAttachment& attachment = 
           *reinterpret_cast<const OrthancPluginAttachment*>(answer.valueGeneric);
-        listener.SignalFileDeleted(Convert(attachment));
+        listener.SignalAttachmentDeleted(Convert(attachment));
         break;
       }
         
@@ -922,8 +922,7 @@ namespace Orthanc
       case _OrthancPluginDatabaseAnswerType_DeletedResource:
       {
         ResourceType type = Plugins::Convert(static_cast<OrthancPluginResourceType>(answer.valueInt32));
-        ServerIndexChange change(ChangeType_Deleted, type, answer.valueString);
-        listener.SignalChange(change);
+        listener.SignalResourceDeleted(type, answer.valueString);
         break;
       }
 
