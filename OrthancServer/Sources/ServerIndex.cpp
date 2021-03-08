@@ -2051,7 +2051,7 @@ namespace Orthanc
                                    const std::string& publicId,
                                    ResourceType level)
   {    
-    class Operations : public ReadOnlyOperationsT4<bool*, Json::Value*, std::string, ResourceType>
+    class Operations : public ReadOnlyOperationsT4<bool&, Json::Value&, const std::string&, ResourceType>
     {
     private:
       ServerIndex&  index_;
@@ -2072,11 +2072,11 @@ namespace Orthanc
         if (!transaction.LookupResourceAndParent(internalId, type, parent, tuple.get<2>()) ||
             type != tuple.get<3>())
         {
-          *tuple.get<0>() = false;
+          tuple.get<0>() = false;
         }
         else
         {
-          Json::Value& target = *tuple.get<1>();        
+          Json::Value& target = tuple.get<1>();
           target = Json::objectValue;
         
           // Set information about the parent resource (if it exists)
@@ -2238,14 +2238,14 @@ namespace Orthanc
             }
           }
 
-          *tuple.get<0>() = true;
+          tuple.get<0>() = true;
         }
       }
     };
 
     bool found;
     Operations operations(*this);
-    operations.Apply(*this, &found, &target, publicId, level);
+    operations.Apply(*this, found, target, publicId, level);
     return found;
   }
 
@@ -2254,7 +2254,7 @@ namespace Orthanc
                                    const std::string& publicId,
                                    ResourceType level)
   {
-    class Operations : public ReadOnlyOperationsT3<std::map<MetadataType, std::string>*, std::string, ResourceType>
+    class Operations : public ReadOnlyOperationsT3<std::map<MetadataType, std::string>&, const std::string&, ResourceType>
     {
     public:
       virtual void ApplyTuple(ReadOnlyTransaction& transaction,
@@ -2269,13 +2269,13 @@ namespace Orthanc
         }
         else
         {
-          transaction.GetAllMetadata(*tuple.get<0>(), id);
+          transaction.GetAllMetadata(tuple.get<0>(), id);
         }
       }
     };
 
     Operations operations;
-    operations.Apply(*this, &target, publicId, level);
+    operations.Apply(*this, target, publicId, level);
   }
 
 
@@ -2283,7 +2283,7 @@ namespace Orthanc
                                      const std::string& instancePublicId,
                                      FileContentType contentType)
   {
-    class Operations : public ReadOnlyOperationsT4<bool*, FileInfo*, std::string, FileContentType>
+    class Operations : public ReadOnlyOperationsT4<bool&, FileInfo&, const std::string&, FileContentType>
     {
     public:
       virtual void ApplyTuple(ReadOnlyTransaction& transaction,
@@ -2295,21 +2295,21 @@ namespace Orthanc
         {
           throw OrthancException(ErrorCode_UnknownResource);
         }
-        else if (transaction.LookupAttachment(*tuple.get<1>(), internalId, tuple.get<3>()))
+        else if (transaction.LookupAttachment(tuple.get<1>(), internalId, tuple.get<3>()))
         {
-          assert(tuple.get<1>()->GetContentType() == tuple.get<3>());
-          *tuple.get<0>() = true;
+          assert(tuple.get<1>().GetContentType() == tuple.get<3>());
+          tuple.get<0>() = true;
         }
         else
         {
-          *tuple.get<0>() = false;
+          tuple.get<0>() = false;
         }
       }
     };
 
     bool found;
     Operations operations;
-    operations.Apply(*this, &found, &attachment, instancePublicId, contentType);
+    operations.Apply(*this, found, attachment, instancePublicId, contentType);
     return found;
   }
 
@@ -2317,19 +2317,19 @@ namespace Orthanc
   void ServerIndex::GetAllUuids(std::list<std::string>& target,
                                 ResourceType resourceType)
   {
-    class Operations : public ReadOnlyOperationsT2<std::list<std::string>*, ResourceType>
+    class Operations : public ReadOnlyOperationsT2<std::list<std::string>&, ResourceType>
     {
     public:
       virtual void ApplyTuple(ReadOnlyTransaction& transaction,
                               const Tuple& tuple) ORTHANC_OVERRIDE
       {
         // TODO - CANDIDATE FOR "TransactionType_SingleStatement"
-        transaction.GetAllPublicIds(*tuple.get<0>(), tuple.get<1>());
+        transaction.GetAllPublicIds(tuple.get<0>(), tuple.get<1>());
       }
     };
 
     Operations operations;
-    operations.Apply(*this, &target, resourceType);
+    operations.Apply(*this, target, resourceType);
   }
 
 
@@ -2344,19 +2344,19 @@ namespace Orthanc
     }
     else
     {
-      class Operations : public ReadOnlyOperationsT4<std::list<std::string>*, ResourceType, size_t, size_t>
+      class Operations : public ReadOnlyOperationsT4<std::list<std::string>&, ResourceType, size_t, size_t>
       {
       public:
         virtual void ApplyTuple(ReadOnlyTransaction& transaction,
                                 const Tuple& tuple) ORTHANC_OVERRIDE
         {
           // TODO - CANDIDATE FOR "TransactionType_SingleStatement"
-          transaction.GetAllPublicIds(*tuple.get<0>(), tuple.get<1>(), tuple.get<2>(), tuple.get<3>());
+          transaction.GetAllPublicIds(tuple.get<0>(), tuple.get<1>(), tuple.get<2>(), tuple.get<3>());
         }
       };
 
       Operations operations;
-      operations.Apply(*this, &target, resourceType, since, limit);
+      operations.Apply(*this, target, resourceType, since, limit);
     }
   }
 
@@ -2368,24 +2368,24 @@ namespace Orthanc
                                         /* out */ uint64_t& countSeries, 
                                         /* out */ uint64_t& countInstances)
   {
-    class Operations : public ReadOnlyOperationsT6<uint64_t*, uint64_t*, uint64_t*, uint64_t*, uint64_t*, uint64_t*>
+    class Operations : public ReadOnlyOperationsT6<uint64_t&, uint64_t&, uint64_t&, uint64_t&, uint64_t&, uint64_t&>
     {
     public:
       virtual void ApplyTuple(ReadOnlyTransaction& transaction,
                               const Tuple& tuple) ORTHANC_OVERRIDE
       {
-        *tuple.get<0>() = transaction.GetTotalCompressedSize();
-        *tuple.get<1>() = transaction.GetTotalUncompressedSize();
-        *tuple.get<2>() = transaction.GetResourceCount(ResourceType_Patient);
-        *tuple.get<3>() = transaction.GetResourceCount(ResourceType_Study);
-        *tuple.get<4>() = transaction.GetResourceCount(ResourceType_Series);
-        *tuple.get<5>() = transaction.GetResourceCount(ResourceType_Instance);
+        tuple.get<0>() = transaction.GetTotalCompressedSize();
+        tuple.get<1>() = transaction.GetTotalUncompressedSize();
+        tuple.get<2>() = transaction.GetResourceCount(ResourceType_Patient);
+        tuple.get<3>() = transaction.GetResourceCount(ResourceType_Study);
+        tuple.get<4>() = transaction.GetResourceCount(ResourceType_Series);
+        tuple.get<5>() = transaction.GetResourceCount(ResourceType_Instance);
       }
     };
     
     Operations operations;
-    operations.Apply(*this, &diskSize, &uncompressedSize, &countPatients,
-                     &countStudies, &countSeries, &countInstances);
+    operations.Apply(*this, diskSize, uncompressedSize, countPatients,
+                     countStudies, countSeries, countInstances);
   }
 
 
@@ -2393,7 +2393,7 @@ namespace Orthanc
                                int64_t since,                               
                                unsigned int maxResults)
   {
-    class Operations : public ReadOnlyOperationsT3<Json::Value*, int64_t, unsigned int>
+    class Operations : public ReadOnlyOperationsT3<Json::Value&, int64_t, unsigned int>
     {
     public:
       virtual void ApplyTuple(ReadOnlyTransaction& transaction,
@@ -2414,18 +2414,18 @@ namespace Orthanc
           hasLast = true;
         }
 
-        FormatLog(*tuple.get<0>(), changes, "Changes", done, tuple.get<1>(), hasLast, last);
+        FormatLog(tuple.get<0>(), changes, "Changes", done, tuple.get<1>(), hasLast, last);
       }
     };
     
     Operations operations;
-    operations.Apply(*this, &target, since, maxResults);
+    operations.Apply(*this, target, since, maxResults);
   }
 
 
   void ServerIndex::GetLastChange(Json::Value& target)
   {
-    class Operations : public ReadOnlyOperationsT1<Json::Value*>
+    class Operations : public ReadOnlyOperationsT1<Json::Value&>
     {
     public:
       virtual void ApplyTuple(ReadOnlyTransaction& transaction,
@@ -2445,12 +2445,12 @@ namespace Orthanc
           hasLast = true;
         }
 
-        FormatLog(*tuple.get<0>(), changes, "Changes", true, 0, hasLast, last);
+        FormatLog(tuple.get<0>(), changes, "Changes", true, 0, hasLast, last);
       }
     };
     
     Operations operations;
-    operations.Apply(*this, &target);
+    operations.Apply(*this, target);
   }
 
 
@@ -2458,7 +2458,7 @@ namespace Orthanc
                                          int64_t since,
                                          unsigned int maxResults)
   {
-    class Operations : public ReadOnlyOperationsT3<Json::Value*, int64_t, unsigned int>
+    class Operations : public ReadOnlyOperationsT3<Json::Value&, int64_t, unsigned int>
     {
     public:
       virtual void ApplyTuple(ReadOnlyTransaction& transaction,
@@ -2469,18 +2469,18 @@ namespace Orthanc
         std::list<ExportedResource> exported;
         bool done;
         transaction.GetExportedResources(exported, done, tuple.get<1>(), tuple.get<2>());
-        FormatLog(*tuple.get<0>(), exported, "Exports", done, tuple.get<1>(), false, -1);
+        FormatLog(tuple.get<0>(), exported, "Exports", done, tuple.get<1>(), false, -1);
       }
     };
     
     Operations operations;
-    operations.Apply(*this, &target, since, maxResults);
+    operations.Apply(*this, target, since, maxResults);
   }
 
 
   void ServerIndex::GetLastExportedResource(Json::Value& target)
   {
-    class Operations : public ReadOnlyOperationsT1<Json::Value*>
+    class Operations : public ReadOnlyOperationsT1<Json::Value&>
     {
     public:
       virtual void ApplyTuple(ReadOnlyTransaction& transaction,
@@ -2490,18 +2490,18 @@ namespace Orthanc
 
         std::list<ExportedResource> exported;
         transaction.GetLastExportedResource(exported);
-        FormatLog(*tuple.get<0>(), exported, "Exports", true, 0, false, -1);
+        FormatLog(tuple.get<0>(), exported, "Exports", true, 0, false, -1);
       }
     };
     
     Operations operations;
-    operations.Apply(*this, &target);
+    operations.Apply(*this, target);
   }
 
 
   bool ServerIndex::IsProtectedPatient(const std::string& publicId)
   {
-    class Operations : public ReadOnlyOperationsT2<bool*, std::string>
+    class Operations : public ReadOnlyOperationsT2<bool&, const std::string&>
     {
     public:
       virtual void ApplyTuple(ReadOnlyTransaction& transaction,
@@ -2517,14 +2517,14 @@ namespace Orthanc
         }
         else
         {
-          *tuple.get<0>() = transaction.IsProtectedPatient(id);
+          tuple.get<0>() = transaction.IsProtectedPatient(id);
         }
       }
     };
 
     bool isProtected;
     Operations operations;
-    operations.Apply(*this, &isProtected, publicId);
+    operations.Apply(*this, isProtected, publicId);
     return isProtected;
   }
 
@@ -2532,7 +2532,7 @@ namespace Orthanc
   void ServerIndex::GetChildren(std::list<std::string>& result,
                                 const std::string& publicId)
   {
-    class Operations : public ReadOnlyOperationsT2<std::list<std::string>*, std::string>
+    class Operations : public ReadOnlyOperationsT2<std::list<std::string>&, const std::string&>
     {
     public:
       virtual void ApplyTuple(ReadOnlyTransaction& transaction,
@@ -2554,32 +2554,32 @@ namespace Orthanc
           std::list<int64_t> tmp;
           transaction.GetChildrenInternalId(tmp, resource);
 
-          tuple.get<0>()->clear();
+          tuple.get<0>().clear();
 
           for (std::list<int64_t>::const_iterator 
                  it = tmp.begin(); it != tmp.end(); ++it)
           {
-            tuple.get<0>()->push_back(transaction.GetPublicId(*it));
+            tuple.get<0>().push_back(transaction.GetPublicId(*it));
           }
         }
       }
     };
     
     Operations operations;
-    operations.Apply(*this, &result, publicId);
+    operations.Apply(*this, result, publicId);
   }
 
 
   void ServerIndex::GetChildInstances(std::list<std::string>& result,
                                       const std::string& publicId)
   {
-    class Operations : public ReadOnlyOperationsT2<std::list<std::string>*, std::string>
+    class Operations : public ReadOnlyOperationsT2<std::list<std::string>&, const std::string&>
     {
     public:
       virtual void ApplyTuple(ReadOnlyTransaction& transaction,
                               const Tuple& tuple) ORTHANC_OVERRIDE
       {
-        tuple.get<0>()->clear();
+        tuple.get<0>().clear();
         
         ResourceType type;
         int64_t top;
@@ -2590,7 +2590,7 @@ namespace Orthanc
         else if (type == ResourceType_Instance)
         {
           // The resource is already an instance: Do not go down the hierarchy
-          tuple.get<0>()->push_back(tuple.get<1>());
+          tuple.get<0>().push_back(tuple.get<1>());
         }
         else
         {
@@ -2609,7 +2609,7 @@ namespace Orthanc
             // above the "instances level"
             if (transaction.GetResourceType(resource) == ResourceType_Instance)
             {
-              tuple.get<0>()->push_back(transaction.GetPublicId(resource));
+              tuple.get<0>().push_back(transaction.GetPublicId(resource));
             }
             else
             {
@@ -2627,7 +2627,7 @@ namespace Orthanc
     };
     
     Operations operations;
-    operations.Apply(*this, &result, publicId);
+    operations.Apply(*this, result, publicId);
   }
 
 
@@ -2636,7 +2636,7 @@ namespace Orthanc
                                    ResourceType expectedType,
                                    MetadataType type)
   {
-    class Operations : public ReadOnlyOperationsT5<bool*, std::string*, std::string, ResourceType, MetadataType>
+    class Operations : public ReadOnlyOperationsT5<bool&, std::string&, const std::string&, ResourceType, MetadataType>
     {
     public:
       virtual void ApplyTuple(ReadOnlyTransaction& transaction,
@@ -2651,14 +2651,14 @@ namespace Orthanc
         }
         else
         {
-          *tuple.get<0>() = transaction.LookupMetadata(*tuple.get<1>(), id, tuple.get<4>());
+          tuple.get<0>() = transaction.LookupMetadata(tuple.get<1>(), id, tuple.get<4>());
         }
       }
     };
 
     bool found;
     Operations operations;
-    operations.Apply(*this, &found, &target, publicId, expectedType, type);
+    operations.Apply(*this, found, target, publicId, expectedType, type);
     return found;
   }
 
@@ -2667,7 +2667,7 @@ namespace Orthanc
                                              const std::string& publicId,
                                              ResourceType expectedType)
   {
-    class Operations : public ReadOnlyOperationsT3<std::set<FileContentType>*, std::string, ResourceType>
+    class Operations : public ReadOnlyOperationsT3<std::set<FileContentType>&, const std::string&, ResourceType>
     {
     public:
       virtual void ApplyTuple(ReadOnlyTransaction& transaction,
@@ -2682,20 +2682,20 @@ namespace Orthanc
         }
         else
         {
-          transaction.ListAvailableAttachments(*tuple.get<0>(), id);
+          transaction.ListAvailableAttachments(tuple.get<0>(), id);
         }
       }
     };
     
     Operations operations;
-    operations.Apply(*this, &target, publicId, expectedType);
+    operations.Apply(*this, target, publicId, expectedType);
   }
 
 
   bool ServerIndex::LookupParent(std::string& target,
                                  const std::string& publicId)
   {
-    class Operations : public ReadOnlyOperationsT3<bool*, std::string*, std::string>
+    class Operations : public ReadOnlyOperationsT3<bool&, std::string&, const std::string&>
     {
     public:
       virtual void ApplyTuple(ReadOnlyTransaction& transaction,
@@ -2712,12 +2712,12 @@ namespace Orthanc
           int64_t parentId;
           if (transaction.LookupParent(parentId, id))
           {
-            *tuple.get<1>() = transaction.GetPublicId(parentId);
-            *tuple.get<0>() = true;
+            tuple.get<1>() = transaction.GetPublicId(parentId);
+            tuple.get<0>() = true;
           }
           else
           {
-            *tuple.get<0>() = false;
+            tuple.get<0>() = false;
           }
         }
       }
@@ -2725,7 +2725,7 @@ namespace Orthanc
 
     bool found;
     Operations operations;
-    operations.Apply(*this, &found, &target, publicId);
+    operations.Apply(*this, found, target, publicId);
     return found;
   }
 
@@ -2926,20 +2926,20 @@ namespace Orthanc
   bool ServerIndex::LookupGlobalProperty(std::string& value,
                                          GlobalProperty property)
   {
-    class Operations : public ReadOnlyOperationsT3<bool*, std::string*, GlobalProperty>
+    class Operations : public ReadOnlyOperationsT3<bool&, std::string&, GlobalProperty>
     {
     public:
       virtual void ApplyTuple(ReadOnlyTransaction& transaction,
                               const Tuple& tuple) ORTHANC_OVERRIDE
       {
         // TODO - CANDIDATE FOR "TransactionType_SingleStatement"
-        *tuple.get<0>() = transaction.LookupGlobalProperty(*tuple.get<1>(), tuple.get<2>());
+        tuple.get<0>() = transaction.LookupGlobalProperty(tuple.get<1>(), tuple.get<2>());
       }
     };
 
     bool found;
     Operations operations;
-    operations.Apply(*this, &found, &value, property);
+    operations.Apply(*this, found, value, property);
     return found;
   }
   
@@ -2975,7 +2975,7 @@ namespace Orthanc
     }
 
 
-    class Operations : public ReadOnlyOperationsT5<bool*, DicomMap*, std::string, ResourceType, ResourceType>
+    class Operations : public ReadOnlyOperationsT5<bool&, DicomMap&, const std::string&, ResourceType, ResourceType>
     {
     public:
       virtual void ApplyTuple(ReadOnlyTransaction& transaction,
@@ -2987,7 +2987,7 @@ namespace Orthanc
         if (!transaction.LookupResource(id, type, tuple.get<2>()) ||
             type != tuple.get<3>())
         {
-          *tuple.get<0>() = false;
+          tuple.get<0>() = false;
         }
         else if (type == ResourceType_Study)
         {
@@ -2997,13 +2997,13 @@ namespace Orthanc
           switch (tuple.get<4>())
           {
             case ResourceType_Patient:
-              tmp.ExtractPatientInformation(*tuple.get<1>());
-              *tuple.get<0>() = true;
+              tmp.ExtractPatientInformation(tuple.get<1>());
+              tuple.get<0>() = true;
               break;
 
             case ResourceType_Study:
-              tmp.ExtractStudyInformation(*tuple.get<1>());
-              *tuple.get<0>() = true;
+              tmp.ExtractStudyInformation(tuple.get<1>());
+              tuple.get<0>() = true;
               break;
 
             default:
@@ -3012,8 +3012,8 @@ namespace Orthanc
         }
         else
         {
-          transaction.GetMainDicomTags(*tuple.get<1>(), id);
-          *tuple.get<0>() = true;
+          transaction.GetMainDicomTags(tuple.get<1>(), id);
+          tuple.get<0>() = true;
         }    
       }
     };
@@ -3022,7 +3022,7 @@ namespace Orthanc
 
     bool found;
     Operations operations;
-    operations.Apply(*this, &found, &result, publicId, expectedType, levelOfInterest);
+    operations.Apply(*this, found, result, publicId, expectedType, levelOfInterest);
     return found;
   }
 
@@ -3030,7 +3030,7 @@ namespace Orthanc
   bool ServerIndex::GetAllMainDicomTags(DicomMap& result,
                                         const std::string& instancePublicId)
   {
-    class Operations : public ReadOnlyOperationsT3<bool*, DicomMap*, std::string>
+    class Operations : public ReadOnlyOperationsT3<bool&, DicomMap&, const std::string&>
     {
     public:
       virtual void ApplyTuple(ReadOnlyTransaction& transaction,
@@ -3042,14 +3042,14 @@ namespace Orthanc
         if (!transaction.LookupResource(instance, type, tuple.get<2>()) ||
             type != ResourceType_Instance)
         {
-          *tuple.get<0>() =  false;
+          tuple.get<0>() =  false;
         }
         else
         {
           DicomMap tmp;
 
           transaction.GetMainDicomTags(tmp, instance);
-          tuple.get<1>()->Merge(tmp);
+          tuple.get<1>().Merge(tmp);
 
           int64_t series;
           if (!transaction.LookupParent(series, instance))
@@ -3059,7 +3059,7 @@ namespace Orthanc
 
           tmp.Clear();
           transaction.GetMainDicomTags(tmp, series);
-          tuple.get<1>()->Merge(tmp);
+          tuple.get<1>().Merge(tmp);
 
           int64_t study;
           if (!transaction.LookupParent(study, series))
@@ -3069,7 +3069,7 @@ namespace Orthanc
 
           tmp.Clear();
           transaction.GetMainDicomTags(tmp, study);
-          tuple.get<1>()->Merge(tmp);
+          tuple.get<1>().Merge(tmp);
 
 #ifndef NDEBUG
           {
@@ -3091,12 +3091,12 @@ namespace Orthanc
             for (std::set<DicomTag>::const_iterator
                    it = patientTags.begin(); it != patientTags.end(); ++it)
             {
-              assert(tuple.get<1>()->HasTag(*it));
+              assert(tuple.get<1>().HasTag(*it));
             }
           }
 #endif
       
-          *tuple.get<0>() =  true;
+          tuple.get<0>() =  true;
         }
       }
     };
@@ -3105,7 +3105,7 @@ namespace Orthanc
     
     bool found;
     Operations operations;
-    operations.Apply(*this, &found, &result, instancePublicId);
+    operations.Apply(*this, found, result, instancePublicId);
     return found;
   }
 
@@ -3113,7 +3113,7 @@ namespace Orthanc
   bool ServerIndex::LookupResourceType(ResourceType& type,
                                        const std::string& publicId)
   {
-    class Operations : public ReadOnlyOperationsT3<bool*, ResourceType*, std::string>
+    class Operations : public ReadOnlyOperationsT3<bool&, ResourceType&, const std::string&>
     {
     public:
       virtual void ApplyTuple(ReadOnlyTransaction& transaction,
@@ -3121,33 +3121,33 @@ namespace Orthanc
       {
         // TODO - CANDIDATE FOR "TransactionType_SingleStatement"
         int64_t id;
-        *tuple.get<0>() = transaction.LookupResource(id, *tuple.get<1>(), tuple.get<2>());
+        tuple.get<0>() = transaction.LookupResource(id, tuple.get<1>(), tuple.get<2>());
       }
     };
 
     bool found;
     Operations operations;
-    operations.Apply(*this, &found, &type, publicId);
+    operations.Apply(*this, found, type, publicId);
     return found;
   }
 
 
   unsigned int ServerIndex::GetDatabaseVersion()
   {
-    class Operations : public ReadOnlyOperationsT1<unsigned int *>
+    class Operations : public ReadOnlyOperationsT1<unsigned int&>
     {
     public:
       virtual void ApplyTuple(ReadOnlyTransaction& transaction,
                               const Tuple& tuple) ORTHANC_OVERRIDE
       {
         // TODO - CANDIDATE FOR "TransactionType_SingleStatement"
-        *tuple.get<0>() = transaction.GetDatabaseVersion();
+        tuple.get<0>() = transaction.GetDatabaseVersion();
       }
     };
 
     unsigned int version;
     Operations operations;
-    operations.Apply(*this, &version);
+    operations.Apply(*this, version);
     return version;
   }
 
@@ -3156,7 +3156,7 @@ namespace Orthanc
                                  const std::string& publicId,
                                  ResourceType parentType)
   {
-    class Operations : public ReadOnlyOperationsT4<bool*, std::string*, std::string, ResourceType>
+    class Operations : public ReadOnlyOperationsT4<bool&, std::string&, const std::string&, ResourceType>
     {
     public:
       virtual void ApplyTuple(ReadOnlyTransaction& transaction,
@@ -3176,7 +3176,7 @@ namespace Orthanc
           if (type == ResourceType_Patient ||    // Cannot further go up in hierarchy
               !transaction.LookupParent(parentId, id))
           {
-            *tuple.get<0>() = false;
+            tuple.get<0>() = false;
             return;
           }
 
@@ -3184,14 +3184,14 @@ namespace Orthanc
           type = GetParentResourceType(type);
         }
 
-        *tuple.get<0>() = true;
-        *tuple.get<1>() = transaction.GetPublicId(id);
+        tuple.get<0>() = true;
+        tuple.get<1>() = transaction.GetPublicId(id);
       }
     };
 
     bool found;
     Operations operations;
-    operations.Apply(*this, &found, &target, publicId, parentType);
+    operations.Apply(*this, found, target, publicId, parentType);
     return found;
   }
 
@@ -3202,7 +3202,7 @@ namespace Orthanc
                                          ResourceType queryLevel,
                                          size_t limit)
   {
-    class Operations : public ReadOnlyOperationsT4<bool, std::vector<DatabaseConstraint>, ResourceType, size_t>
+    class Operations : public ReadOnlyOperationsT4<bool, const std::vector<DatabaseConstraint>&, ResourceType, size_t>
     {
     private:
       std::list<std::string>  resourcesList_;
