@@ -247,11 +247,12 @@ namespace Orthanc
     bool isCommitted_;
     
   public:
-    explicit Transaction(ServerIndex& index) : 
+    explicit Transaction(ServerIndex& index,
+                         TransactionType type) : 
       index_(index),
       isCommitted_(false)
     {
-      transaction_.reset(index_.db_.StartTransaction());
+      transaction_.reset(index_.db_.StartTransaction(type));
       index_.listener_->StartTransaction();
     }
 
@@ -716,7 +717,7 @@ namespace Orthanc
 
     try
     {
-      Transaction t(*this);
+      Transaction t(*this, TransactionType_ReadWrite);
 
       IDatabaseWrapper::CreateInstanceResult status;
       int64_t instanceId;
@@ -1199,7 +1200,7 @@ namespace Orthanc
   void ServerIndex::StandaloneRecycling()
   {
     // WARNING: No mutex here, do not include this as a public method
-    Transaction t(*this);
+    Transaction t(*this, TransactionType_ReadWrite);
     Recycle(0, "");
     t.Commit(0);
   }
@@ -1292,7 +1293,7 @@ namespace Orthanc
   {
     boost::mutex::scoped_lock lock(mutex_);
 
-    Transaction t(*this);
+    Transaction t(*this, TransactionType_ReadWrite);
 
     ResourceType resourceType;
     int64_t resourceId;
@@ -1349,7 +1350,7 @@ namespace Orthanc
 
     try
     {
-      Transaction t(*this);
+      Transaction t(*this, TransactionType_ReadWrite);
 
       int64_t patient = -1, study = -1, series = -1, instance = -1;
 
@@ -1660,21 +1661,32 @@ namespace Orthanc
       {
         boost::mutex::scoped_lock lock(mutex_);  // TODO - REMOVE
 
-        Transaction transaction(*this);  // TODO - Only if "TransactionType_SingleStatement"
-
         if (readOperations != NULL)
         {
-          ReadOnlyTransaction t(db_);
-          readOperations->Apply(t);
+          /**
+           * IMPORTANT: In Orthanc <= 1.9.1, there was no transaction
+           * in this case. This was OK because of the presence of the
+           * global mutex protecting the database.
+           **/
+          
+          Transaction transaction(*this, TransactionType_ReadOnly);  // TODO - Only if not "TransactionType_Implicit"
+          {
+            ReadOnlyTransaction t(db_);
+            readOperations->Apply(t);
+          }
+          transaction.Commit(0);
         }
         else
         {
           assert(writeOperations != NULL);
-          ReadWriteTransaction t(db_, *this);
-          writeOperations->Apply(t, *listener_);          
+          
+          Transaction transaction(*this, TransactionType_ReadWrite);
+          {
+            ReadWriteTransaction t(db_, *this);
+            writeOperations->Apply(t, *listener_);
+          }
+          transaction.Commit(0);
         }
-
-        transaction.Commit(0);
         
         return;  // Success
       }
@@ -2001,7 +2013,7 @@ namespace Orthanc
       virtual void ApplyTuple(ReadOnlyTransaction& transaction,
                               const Tuple& tuple) ORTHANC_OVERRIDE
       {
-        // TODO - CANDIDATE FOR "TransactionType_SingleStatement"
+        // TODO - CANDIDATE FOR "TransactionType_Implicit"
         transaction.GetAllPublicIds(tuple.get<0>(), tuple.get<1>());
       }
     };
@@ -2028,7 +2040,7 @@ namespace Orthanc
         virtual void ApplyTuple(ReadOnlyTransaction& transaction,
                                 const Tuple& tuple) ORTHANC_OVERRIDE
         {
-          // TODO - CANDIDATE FOR "TransactionType_SingleStatement"
+          // TODO - CANDIDATE FOR "TransactionType_Implicit"
           transaction.GetAllPublicIds(tuple.get<0>(), tuple.get<1>(), tuple.get<2>(), tuple.get<3>());
         }
       };
@@ -2142,7 +2154,7 @@ namespace Orthanc
       virtual void ApplyTuple(ReadOnlyTransaction& transaction,
                               const Tuple& tuple) ORTHANC_OVERRIDE
       {
-        // TODO - CANDIDATE FOR "TransactionType_SingleStatement"
+        // TODO - CANDIDATE FOR "TransactionType_Implicit"
 
         std::list<ExportedResource> exported;
         bool done;
@@ -2164,7 +2176,7 @@ namespace Orthanc
       virtual void ApplyTuple(ReadOnlyTransaction& transaction,
                               const Tuple& tuple) ORTHANC_OVERRIDE
       {
-        // TODO - CANDIDATE FOR "TransactionType_SingleStatement"
+        // TODO - CANDIDATE FOR "TransactionType_Implicit"
 
         std::list<ExportedResource> exported;
         transaction.GetLastExportedResource(exported);
@@ -2589,7 +2601,7 @@ namespace Orthanc
 
       virtual void Apply(ReadOnlyTransaction& transaction) ORTHANC_OVERRIDE
       {
-        // TODO - CANDIDATE FOR "TransactionType_SingleStatement"
+        // TODO - CANDIDATE FOR "TransactionType_Implicit"
         std::list<std::string> tmp;
         transaction.ApplyLookupResources(tmp, NULL, query_, level_, 0);
         CopyListToVector(result_, tmp);
@@ -2610,7 +2622,7 @@ namespace Orthanc
       virtual void ApplyTuple(ReadOnlyTransaction& transaction,
                               const Tuple& tuple) ORTHANC_OVERRIDE
       {
-        // TODO - CANDIDATE FOR "TransactionType_SingleStatement"
+        // TODO - CANDIDATE FOR "TransactionType_Implicit"
         tuple.get<0>() = transaction.LookupGlobalProperty(tuple.get<1>(), tuple.get<2>());
       }
     };
@@ -2797,7 +2809,7 @@ namespace Orthanc
       virtual void ApplyTuple(ReadOnlyTransaction& transaction,
                               const Tuple& tuple) ORTHANC_OVERRIDE
       {
-        // TODO - CANDIDATE FOR "TransactionType_SingleStatement"
+        // TODO - CANDIDATE FOR "TransactionType_Implicit"
         int64_t id;
         tuple.get<0>() = transaction.LookupResource(id, tuple.get<1>(), tuple.get<2>());
       }
@@ -2818,7 +2830,7 @@ namespace Orthanc
       virtual void ApplyTuple(ReadOnlyTransaction& transaction,
                               const Tuple& tuple) ORTHANC_OVERRIDE
       {
-        // TODO - CANDIDATE FOR "TransactionType_SingleStatement"
+        // TODO - CANDIDATE FOR "TransactionType_Implicit"
         tuple.get<0>() = transaction.GetDatabaseVersion();
       }
     };
@@ -2900,7 +2912,7 @@ namespace Orthanc
       virtual void ApplyTuple(ReadOnlyTransaction& transaction,
                               const Tuple& tuple) ORTHANC_OVERRIDE
       {
-        // TODO - CANDIDATE FOR "TransactionType_SingleStatement"
+        // TODO - CANDIDATE FOR "TransactionType_Implicit"
         if (tuple.get<0>())
         {
           transaction.ApplyLookupResources(resourcesList_, &instancesList_, tuple.get<1>(), tuple.get<2>(), tuple.get<3>());

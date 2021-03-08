@@ -109,6 +109,12 @@ namespace Orthanc
     TransferSyntaxGroup_H265    // New in Orthanc 1.9.0
   };
 
+  enum TransactionType
+  {
+    TransactionType_ReadOnly,
+    TransactionType_ReadWrite
+  };
+
 
   /**
    * WARNING: Do not change the explicit values in the enumerations

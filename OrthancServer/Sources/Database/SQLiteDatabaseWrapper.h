@@ -61,7 +61,8 @@ namespace Orthanc
     public Compatibility::ISetResourcesContent
   {
   private:
-    class Transaction;
+    class ReadOnlyTransaction;
+    class ReadWriteTransaction;
     class LookupFormatter;
 
     IDatabaseListener* listener_;
@@ -124,7 +125,7 @@ namespace Orthanc
     virtual void GetLastChange(std::list<ServerIndexChange>& target /*out*/)
       ORTHANC_OVERRIDE;
 
-    virtual IDatabaseWrapper::ITransaction* StartTransaction()
+    virtual IDatabaseWrapper::ITransaction* StartTransaction(TransactionType type)
       ORTHANC_OVERRIDE;
 
     virtual void FlushToDisk()
