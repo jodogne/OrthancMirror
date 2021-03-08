@@ -251,12 +251,14 @@ namespace Orthanc
     ServerIndex& index_;
     std::unique_ptr<IDatabaseWrapper::ITransaction> transaction_;
     bool isCommitted_;
+    uint64_t sizeOfAddedAttachments_;
     
   public:
     explicit Transaction(ServerIndex& index,
                          TransactionType type) : 
       index_(index),
-      isCommitted_(false)
+      isCommitted_(false),
+      sizeOfAddedAttachments_(0)
     {
       transaction_.reset(index_.db_.StartTransaction(type));
       index_.listener_->StartTransaction();
@@ -272,11 +274,16 @@ namespace Orthanc
       }
     }
 
-    void Commit(uint64_t sizeOfAddedFiles)
+    void SignalAttachmentsAdded(uint64_t compressedSize)
+    {
+      sizeOfAddedAttachments_ += compressedSize;
+    }
+
+    void Commit()
     {
       if (!isCommitted_)
       {
-        int64_t delta = (static_cast<int64_t>(sizeOfAddedFiles) -
+        int64_t delta = (static_cast<int64_t>(sizeOfAddedAttachments_) -
                          static_cast<int64_t>(index_.listener_->GetSizeOfFilesToRemove()));
 
         transaction_->Commit(delta);
@@ -955,7 +962,8 @@ namespace Orthanc
       MarkAsUnstable(status.studyId_, ResourceType_Study, hashStudy);
       MarkAsUnstable(status.patientId_, ResourceType_Patient, hashPatient);
 
-      t.Commit(instanceSize);
+      t.SignalAttachmentsAdded(instanceSize);
+      t.Commit();
 
       return StoreStatus_Success;
     }
@@ -1202,7 +1210,7 @@ namespace Orthanc
     // WARNING: No mutex here, do not include this as a public method
     Transaction t(*this, TransactionType_ReadWrite);
     Recycle(0, "");
-    t.Commit(0);
+    t.Commit();
   }
 
 
@@ -1333,7 +1341,8 @@ namespace Orthanc
       LogChange(resourceId, ChangeType_UpdatedAttachment, resourceType, publicId);
     }
 
-    t.Commit(attachment.GetCompressedSize());
+    t.SignalAttachmentsAdded(attachment.GetCompressedSize());
+    t.Commit();
 
     return StoreStatus_Success;
   }
@@ -1607,7 +1616,7 @@ namespace Orthanc
             ReadOnlyTransaction t(db_);
             readOperations->Apply(t);
           }
-          transaction.Commit(0);
+          transaction.Commit();
         }
         else
         {
@@ -1619,7 +1628,7 @@ namespace Orthanc
             ReadWriteTransaction t(db_, *listener_, *this);
             writeOperations->Apply(t);
           }
-          transaction.Commit(0);
+          transaction.Commit();
         }
         
         return;  // Success
