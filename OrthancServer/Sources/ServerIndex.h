@@ -151,8 +151,6 @@ namespace Orthanc
     StoreStatus AddAttachment(const FileInfo& attachment,
                               const std::string& publicId);
 
-    void ReconstructInstance(const ParsedDicomFile& dicom);
-
 
 
     /***
@@ -385,6 +383,11 @@ namespace Orthanc
         db_.ClearExportedResources();
       }
 
+      void ClearMainDicomTags(int64_t id)
+      {
+        return db_.ClearMainDicomTags(id);
+      }
+
       void DeleteAttachment(int64_t id,
                             FileContentType attachment)
       {
@@ -432,6 +435,11 @@ namespace Orthanc
                                bool isProtected)
       {
         db_.SetProtectedPatient(internalId, isProtected);
+      }
+
+      void SetResourcesContent(const ResourcesContent& content)
+      {
+        db_.SetResourcesContent(content);
       }
     };
 
@@ -603,5 +611,7 @@ namespace Orthanc
 
     void LogChange(ChangeType changeType,
                    const std::string& publicId);
+
+    void ReconstructInstance(const ParsedDicomFile& dicom);
   };
 }

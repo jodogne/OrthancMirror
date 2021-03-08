@@ -1332,73 +1332,6 @@ namespace Orthanc
   }
 
 
-  void ServerIndex::ReconstructInstance(const ParsedDicomFile& dicom)
-  {
-    DicomMap summary;
-    OrthancConfiguration::DefaultExtractDicomSummary(summary, dicom);
-
-    DicomInstanceHasher hasher(summary);
-
-    boost::mutex::scoped_lock lock(mutex_);
-
-    try
-    {
-      Transaction t(*this, TransactionType_ReadWrite);
-
-      int64_t patient = -1, study = -1, series = -1, instance = -1;
-
-      ResourceType dummy;      
-      if (!db_.LookupResource(patient, dummy, hasher.HashPatient()) ||
-          !db_.LookupResource(study, dummy, hasher.HashStudy()) ||
-          !db_.LookupResource(series, dummy, hasher.HashSeries()) ||
-          !db_.LookupResource(instance, dummy, hasher.HashInstance()) ||
-          patient == -1 ||
-          study == -1 ||
-          series == -1 ||
-          instance == -1)
-      {
-        throw OrthancException(ErrorCode_InternalError);
-      }
-
-      db_.ClearMainDicomTags(patient);
-      db_.ClearMainDicomTags(study);
-      db_.ClearMainDicomTags(series);
-      db_.ClearMainDicomTags(instance);
-
-      {
-        ResourcesContent content;
-        content.AddResource(patient, ResourceType_Patient, summary);
-        content.AddResource(study, ResourceType_Study, summary);
-        content.AddResource(series, ResourceType_Series, summary);
-        content.AddResource(instance, ResourceType_Instance, summary);
-        db_.SetResourcesContent(content);
-      }
-
-      {
-        DicomTransferSyntax s;
-        if (dicom.LookupTransferSyntax(s))
-        {
-          db_.SetMetadata(instance, MetadataType_Instance_TransferSyntax, GetTransferSyntaxUid(s));
-        }
-      }
-
-      const DicomValue* value;
-      if ((value = summary.TestAndGetValue(DICOM_TAG_SOP_CLASS_UID)) != NULL &&
-          !value->IsNull() &&
-          !value->IsBinary())
-      {
-        db_.SetMetadata(instance, MetadataType_Instance_SopClassUid, value->GetContent());
-      }
-
-      t.Commit(0);  // No change in the DB size
-    }
-    catch (OrthancException& e)
-    {
-      LOG(ERROR) << "EXCEPTION [" << e.What() << "]";
-    }
-  }
-
-
   void ServerIndex::NormalizeLookup(std::vector<DatabaseConstraint>& target,
                                     const DatabaseLookup& source,
                                     ResourceType queryLevel) const
@@ -3437,6 +3370,79 @@ namespace Orthanc
     };
 
     Operations operations(changeType, publicId);
+    Apply(operations);
+  }
+
+
+  void ServerIndex::ReconstructInstance(const ParsedDicomFile& dicom)
+  {
+    class Operations : public IReadWriteOperations
+    {
+    private:
+      DicomMap                              summary_;
+      std::unique_ptr<DicomInstanceHasher>  hasher_;
+      bool                                  hasTransferSyntax_;
+      DicomTransferSyntax                   transferSyntax_;
+      
+    public:
+      Operations(const ParsedDicomFile& dicom)
+      {
+        OrthancConfiguration::DefaultExtractDicomSummary(summary_, dicom);
+        hasher_.reset(new DicomInstanceHasher(summary_));
+        hasTransferSyntax_ = dicom.LookupTransferSyntax(transferSyntax_);
+      }
+        
+      virtual void Apply(ReadWriteTransaction& transaction) ORTHANC_OVERRIDE
+      {
+        int64_t patient = -1, study = -1, series = -1, instance = -1;
+
+        ResourceType type1, type2, type3, type4;      
+        if (!transaction.LookupResource(patient, type1, hasher_->HashPatient()) ||
+            !transaction.LookupResource(study, type2, hasher_->HashStudy()) ||
+            !transaction.LookupResource(series, type3, hasher_->HashSeries()) ||
+            !transaction.LookupResource(instance, type4, hasher_->HashInstance()) ||
+            type1 != ResourceType_Patient ||
+            type2 != ResourceType_Study ||
+            type3 != ResourceType_Series ||
+            type4 != ResourceType_Instance ||
+            patient == -1 ||
+            study == -1 ||
+            series == -1 ||
+            instance == -1)
+        {
+          throw OrthancException(ErrorCode_InternalError);
+        }
+
+        transaction.ClearMainDicomTags(patient);
+        transaction.ClearMainDicomTags(study);
+        transaction.ClearMainDicomTags(series);
+        transaction.ClearMainDicomTags(instance);
+
+        {
+          ResourcesContent content;
+          content.AddResource(patient, ResourceType_Patient, summary_);
+          content.AddResource(study, ResourceType_Study, summary_);
+          content.AddResource(series, ResourceType_Series, summary_);
+          content.AddResource(instance, ResourceType_Instance, summary_);
+          transaction.SetResourcesContent(content);
+        }
+
+        if (hasTransferSyntax_)
+        {
+          transaction.SetMetadata(instance, MetadataType_Instance_TransferSyntax, GetTransferSyntaxUid(transferSyntax_));
+        }
+
+        const DicomValue* value;
+        if ((value = summary_.TestAndGetValue(DICOM_TAG_SOP_CLASS_UID)) != NULL &&
+            !value->IsNull() &&
+            !value->IsBinary())
+        {
+          transaction.SetMetadata(instance, MetadataType_Instance_SopClassUid, value->GetContent());
+        }
+      }
+    };
+
+    Operations operations(dicom);
     Apply(operations);
   }
 }
