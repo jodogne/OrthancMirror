@@ -177,7 +177,7 @@ namespace Orthanc
     }
 
     virtual void SignalRemainingAncestor(ResourceType parentType,
-                                         const std::string& publicId)
+                                         const std::string& publicId) ORTHANC_OVERRIDE
     {
       LOG(TRACE) << "Remaining ancestor \"" << publicId << "\" (" << parentType << ")";
 
@@ -197,14 +197,20 @@ namespace Orthanc
       }        
     }
 
-    virtual void SignalFileDeleted(const FileInfo& info)
+    virtual void SignalAttachmentDeleted(const FileInfo& info) ORTHANC_OVERRIDE
     {
       assert(Toolbox::IsUuid(info.GetUuid()));
       pendingFilesToRemove_.push_back(FileToRemove(info));
       sizeOfFilesToRemove_ += info.GetCompressedSize();
     }
 
-    virtual void SignalChange(const ServerIndexChange& change)
+    virtual void SignalResourceDeleted(ResourceType type,
+                                       const std::string& publicId) ORTHANC_OVERRIDE
+    {
+      SignalChange(ServerIndexChange(ChangeType_Deleted, type, publicId));
+    }
+
+    void SignalChange(const ServerIndexChange& change)
     {
       LOG(TRACE) << "Change related to resource " << change.GetPublicId() << " of type " 
                  << EnumerationToString(change.GetResourceType()) << ": " 

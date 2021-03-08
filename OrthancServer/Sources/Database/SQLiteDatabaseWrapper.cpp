@@ -92,7 +92,7 @@ namespace Orthanc
                       static_cast<uint64_t>(context.GetInt64Value(4)),
                       compressedMD5);
         
-        listener_.SignalFileDeleted(info);
+        listener_.SignalAttachmentDeleted(info);
       }
     };
 
@@ -119,9 +119,8 @@ namespace Orthanc
 
       virtual void Compute(SQLite::FunctionContext& context) ORTHANC_OVERRIDE
       {
-        ResourceType type = static_cast<ResourceType>(context.GetIntValue(1));
-        ServerIndexChange change(ChangeType_Deleted, type, context.GetStringValue(0));
-        listener_.SignalChange(change);
+        listener_.SignalResourceDeleted(static_cast<ResourceType>(context.GetIntValue(1)),
+                                        context.GetStringValue(0));
       }
     };
 

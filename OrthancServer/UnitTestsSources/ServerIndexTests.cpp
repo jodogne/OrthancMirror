@@ -75,23 +75,18 @@ namespace
       ancestorType_ = type;
     }
 
-    virtual void SignalFileDeleted(const FileInfo& info) ORTHANC_OVERRIDE
+    virtual void SignalAttachmentDeleted(const FileInfo& info) ORTHANC_OVERRIDE
     {
       const std::string fileUuid = info.GetUuid();
       deletedFiles_.push_back(fileUuid);
       LOG(INFO) << "A file must be removed: " << fileUuid;
     }       
 
-    virtual void SignalChange(const ServerIndexChange& change) ORTHANC_OVERRIDE
+    virtual void SignalResourceDeleted(ResourceType type,
+                                       const std::string& publicId)
     {
-      if (change.GetChangeType() == ChangeType_Deleted)
-      {
-        deletedResources_.push_back(change.GetPublicId());        
-      }
-
-      LOG(INFO) << "Change related to resource " << change.GetPublicId() << " of type " 
-                << EnumerationToString(change.GetResourceType()) << ": " 
-                << EnumerationToString(change.GetChangeType());
+      LOG(INFO) << "Deleted resource " << publicId << " of type " << EnumerationToString(type);
+      deletedResources_.push_back(publicId);
     }
   };
 
