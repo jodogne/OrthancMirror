@@ -596,7 +596,7 @@ namespace Orthanc
   }
 
 
-  class SQLiteDatabaseWrapper::Transaction : public IDatabaseWrapper::ITransaction
+  class SQLiteDatabaseWrapper::ReadWriteTransaction : public IDatabaseWrapper::ITransaction
   {
   private:
     SQLiteDatabaseWrapper&                that_;
@@ -604,7 +604,7 @@ namespace Orthanc
     int64_t                               initialDiskSize_;
 
   public:
-    Transaction(SQLiteDatabaseWrapper& that) :
+    ReadWriteTransaction(SQLiteDatabaseWrapper& that) :
       that_(that),
       transaction_(new SQLite::Transaction(that_.db_))
     {
@@ -637,11 +637,41 @@ namespace Orthanc
   };
 
 
-  IDatabaseWrapper::ITransaction* SQLiteDatabaseWrapper::StartTransaction()
+  class SQLiteDatabaseWrapper::ReadOnlyTransaction : public IDatabaseWrapper::ITransaction
   {
-    std::unique_ptr<Transaction> transaction(new Transaction(*this));
-    transaction->Begin();
-    return transaction.release();
+  public:
+    virtual void Rollback() ORTHANC_OVERRIDE
+    {
+    }
+
+    virtual void Commit(int64_t fileSizeDelta /* only used in debug */) ORTHANC_OVERRIDE
+    {
+      if (fileSizeDelta != 0)
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+    }
+  };
+
+
+  IDatabaseWrapper::ITransaction* SQLiteDatabaseWrapper::StartTransaction(TransactionType type)
+  {
+    switch (type)
+    {
+      case TransactionType_ReadOnly:
+        return new ReadOnlyTransaction;  // This is a no-op transaction in SQLite (thanks to mutex)
+
+      case TransactionType_ReadWrite:
+      {
+        std::unique_ptr<ReadWriteTransaction> transaction;
+        transaction.reset(new ReadWriteTransaction(*this));
+        transaction->Begin();
+        return transaction.release();
+      }
+
+      default:
+        throw OrthancException(ErrorCode_InternalError);
+    }
   }
 
 

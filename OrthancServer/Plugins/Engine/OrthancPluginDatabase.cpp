@@ -889,8 +889,10 @@ namespace Orthanc
   }
 
 
-  IDatabaseWrapper::ITransaction* OrthancPluginDatabase::StartTransaction()
+  IDatabaseWrapper::ITransaction* OrthancPluginDatabase::StartTransaction(TransactionType type)
   {
+    // TODO - Take advantage of "type"
+    
     std::unique_ptr<Transaction> transaction(new Transaction(*this));
     transaction->Begin();
     return transaction.release();
