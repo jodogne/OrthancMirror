@@ -432,45 +432,6 @@ namespace Orthanc
   };
 
 
-  bool ServerIndex::DeleteResource(Json::Value& target,
-                                   const std::string& uuid,
-                                   ResourceType expectedType)
-  {
-    boost::mutex::scoped_lock lock(mutex_);
-
-    Transaction t(*this);
-
-    int64_t id;
-    ResourceType type;
-    if (!db_.LookupResource(id, type, uuid) ||
-        expectedType != type)
-    {
-      return false;
-    }
-      
-    db_.DeleteResource(id);
-
-    if (listener_->HasRemainingLevel())
-    {
-      ResourceType remainingType = listener_->GetRemainingType();
-      const std::string& remainingUuid = listener_->GetRemainingPublicId();
-
-      target["RemainingAncestor"] = Json::Value(Json::objectValue);
-      target["RemainingAncestor"]["Path"] = GetBasePath(remainingType, remainingUuid);
-      target["RemainingAncestor"]["Type"] = EnumerationToString(remainingType);
-      target["RemainingAncestor"]["ID"] = remainingUuid;
-    }
-    else
-    {
-      target["RemainingAncestor"] = Json::nullValue;
-    }
-
-    t.Commit(0);
-
-    return true;
-  }
-
-
   void ServerIndex::FlushThread(ServerIndex* that,
                                 unsigned int threadSleep)
   {
@@ -1157,97 +1118,6 @@ namespace Orthanc
     }
     
     target["Last"] = static_cast<int>(last);
-  }
-
-
-  void ServerIndex::LogExportedResource(const std::string& publicId,
-                                        const std::string& remoteModality)
-  {
-    boost::mutex::scoped_lock lock(mutex_);
-    Transaction transaction(*this);
-
-    int64_t id;
-    ResourceType type;
-    if (!db_.LookupResource(id, type, publicId))
-    {
-      throw OrthancException(ErrorCode_InexistentItem);
-    }
-
-    std::string patientId;
-    std::string studyInstanceUid;
-    std::string seriesInstanceUid;
-    std::string sopInstanceUid;
-
-    int64_t currentId = id;
-    ResourceType currentType = type;
-
-    // Iteratively go up inside the patient/study/series/instance hierarchy
-    bool done = false;
-    while (!done)
-    {
-      DicomMap map;
-      db_.GetMainDicomTags(map, currentId);
-
-      switch (currentType)
-      {
-        case ResourceType_Patient:
-          if (map.HasTag(DICOM_TAG_PATIENT_ID))
-          {
-            patientId = map.GetValue(DICOM_TAG_PATIENT_ID).GetContent();
-          }
-          done = true;
-          break;
-
-        case ResourceType_Study:
-          if (map.HasTag(DICOM_TAG_STUDY_INSTANCE_UID))
-          {
-            studyInstanceUid = map.GetValue(DICOM_TAG_STUDY_INSTANCE_UID).GetContent();
-          }
-          currentType = ResourceType_Patient;
-          break;
-
-        case ResourceType_Series:
-          if (map.HasTag(DICOM_TAG_SERIES_INSTANCE_UID))
-          {
-            seriesInstanceUid = map.GetValue(DICOM_TAG_SERIES_INSTANCE_UID).GetContent();
-          }
-          currentType = ResourceType_Study;
-          break;
-
-        case ResourceType_Instance:
-          if (map.HasTag(DICOM_TAG_SOP_INSTANCE_UID))
-          {
-            sopInstanceUid = map.GetValue(DICOM_TAG_SOP_INSTANCE_UID).GetContent();
-          }
-          currentType = ResourceType_Series;
-          break;
-
-        default:
-          throw OrthancException(ErrorCode_InternalError);
-      }
-
-      // If we have not reached the Patient level, find the parent of
-      // the current resource
-      if (!done)
-      {
-        bool ok = db_.LookupParent(currentId, currentId);
-        (void) ok;  // Remove warning about unused variable in release builds
-        assert(ok);
-      }
-    }
-
-    ExportedResource resource(-1, 
-                              type,
-                              publicId,
-                              remoteModality,
-                              SystemToolbox::GetNowIsoString(true /* use UTC time (not local time) */),
-                              patientId,
-                              studyInstanceUid,
-                              seriesInstanceUid,
-                              sopInstanceUid);
-
-    db_.LogExportedResource(resource);
-    transaction.Commit(0);
   }
 
 
@@ -1993,7 +1863,7 @@ namespace Orthanc
         {
           assert(writeOperations != NULL);
           ReadWriteTransaction t(db_);
-          writeOperations->Apply(t);          
+          writeOperations->Apply(t, *listener_);          
         }
 
         transaction.Commit(0);
@@ -3247,5 +3117,181 @@ namespace Orthanc
     { 
       CopyListToVector(*instancesId, operations.GetInstancesList());
     }
+  }
+
+
+  bool ServerIndex::DeleteResource(Json::Value& target,
+                                   const std::string& uuid,
+                                   ResourceType expectedType)
+  {
+    class Operations : public IReadWriteOperations
+    {
+    private:
+      bool                found_;
+      Json::Value&        target_;
+      const std::string&  uuid_;
+      ResourceType        expectedType_;
+      
+    public:
+      Operations(Json::Value& target,
+                 const std::string& uuid,
+                 ResourceType expectedType) :
+        found_(false),
+        target_(target),
+        uuid_(uuid),
+        expectedType_(expectedType)
+      {
+      }
+
+      bool IsFound() const
+      {
+        return found_;
+      }
+
+      virtual void Apply(ReadWriteTransaction& transaction,
+                         Listener& listener) ORTHANC_OVERRIDE
+      {
+        int64_t id;
+        ResourceType type;
+        if (!transaction.LookupResource(id, type, uuid_) ||
+            expectedType_ != type)
+        {
+          found_ = false;
+        }
+        else
+        {
+          found_ = true;
+          transaction.DeleteResource(id);
+
+          if (listener.HasRemainingLevel())
+          {
+            ResourceType remainingType = listener.GetRemainingType();
+            const std::string& remainingUuid = listener.GetRemainingPublicId();
+
+            target_["RemainingAncestor"] = Json::Value(Json::objectValue);
+            target_["RemainingAncestor"]["Path"] = GetBasePath(remainingType, remainingUuid);
+            target_["RemainingAncestor"]["Type"] = EnumerationToString(remainingType);
+            target_["RemainingAncestor"]["ID"] = remainingUuid;
+          }
+          else
+          {
+            target_["RemainingAncestor"] = Json::nullValue;
+          }
+        }
+      }
+    };
+
+    Operations operations(target, uuid, expectedType);
+    Apply(operations);
+    return operations.IsFound();
+  }
+
+
+  void ServerIndex::LogExportedResource(const std::string& publicId,
+                                        const std::string& remoteModality)
+  {
+    class Operations : public IReadWriteOperations
+    {
+    private:
+      const std::string&  publicId_;
+      const std::string&  remoteModality_;
+
+    public:
+      Operations(const std::string& publicId,
+                 const std::string& remoteModality) :
+        publicId_(publicId),
+        remoteModality_(remoteModality)
+      {
+      }
+      
+      virtual void Apply(ReadWriteTransaction& transaction,
+                         Listener& listener) ORTHANC_OVERRIDE
+      {
+        int64_t id;
+        ResourceType type;
+        if (!transaction.LookupResource(id, type, publicId_))
+        {
+          throw OrthancException(ErrorCode_InexistentItem);
+        }
+
+        std::string patientId;
+        std::string studyInstanceUid;
+        std::string seriesInstanceUid;
+        std::string sopInstanceUid;
+
+        int64_t currentId = id;
+        ResourceType currentType = type;
+
+        // Iteratively go up inside the patient/study/series/instance hierarchy
+        bool done = false;
+        while (!done)
+        {
+          DicomMap map;
+          transaction.GetMainDicomTags(map, currentId);
+
+          switch (currentType)
+          {
+            case ResourceType_Patient:
+              if (map.HasTag(DICOM_TAG_PATIENT_ID))
+              {
+                patientId = map.GetValue(DICOM_TAG_PATIENT_ID).GetContent();
+              }
+              done = true;
+              break;
+
+            case ResourceType_Study:
+              if (map.HasTag(DICOM_TAG_STUDY_INSTANCE_UID))
+              {
+                studyInstanceUid = map.GetValue(DICOM_TAG_STUDY_INSTANCE_UID).GetContent();
+              }
+              currentType = ResourceType_Patient;
+              break;
+
+            case ResourceType_Series:
+              if (map.HasTag(DICOM_TAG_SERIES_INSTANCE_UID))
+              {
+                seriesInstanceUid = map.GetValue(DICOM_TAG_SERIES_INSTANCE_UID).GetContent();
+              }
+              currentType = ResourceType_Study;
+              break;
+
+            case ResourceType_Instance:
+              if (map.HasTag(DICOM_TAG_SOP_INSTANCE_UID))
+              {
+                sopInstanceUid = map.GetValue(DICOM_TAG_SOP_INSTANCE_UID).GetContent();
+              }
+              currentType = ResourceType_Series;
+              break;
+
+            default:
+              throw OrthancException(ErrorCode_InternalError);
+          }
+
+          // If we have not reached the Patient level, find the parent of
+          // the current resource
+          if (!done)
+          {
+            bool ok = transaction.LookupParent(currentId, currentId);
+            (void) ok;  // Remove warning about unused variable in release builds
+            assert(ok);
+          }
+        }
+
+        ExportedResource resource(-1, 
+                                  type,
+                                  publicId_,
+                                  remoteModality_,
+                                  SystemToolbox::GetNowIsoString(true /* use UTC time (not local time) */),
+                                  patientId,
+                                  studyInstanceUid,
+                                  seriesInstanceUid,
+                                  sopInstanceUid);
+
+        transaction.LogExportedResource(resource);
+      }
+    };
+
+    Operations operations(publicId, remoteModality);
+    Apply(operations);
   }
 }

@@ -155,13 +155,6 @@ namespace Orthanc
                       bool hasPixelDataOffset,
                       uint64_t pixelDataOffset);
 
-    bool DeleteResource(Json::Value& target /* out */,
-                        const std::string& uuid,
-                        ResourceType expectedType);
-
-    void LogExportedResource(const std::string& publicId,
-                             const std::string& remoteModality);
-
     void SetProtectedPatient(const std::string& publicId,
                              bool isProtected);
 
@@ -401,6 +394,15 @@ namespace Orthanc
       {
       }
 
+      void DeleteResource(int64_t id)
+      {
+        db_.DeleteResource(id);
+      }
+
+      void LogExportedResource(const ExportedResource& resource)
+      {
+        db_.LogExportedResource(resource);
+      }
     };
 
 
@@ -422,7 +424,8 @@ namespace Orthanc
       {
       }
 
-      virtual void Apply(ReadWriteTransaction& transaction) = 0;
+      virtual void Apply(ReadWriteTransaction& transaction,
+                         Listener& listener) = 0;
     };
     
   private:
@@ -539,5 +542,12 @@ namespace Orthanc
                               const DatabaseLookup& lookup,
                               ResourceType queryLevel,
                               size_t limit);
+
+    bool DeleteResource(Json::Value& target /* out */,
+                        const std::string& uuid,
+                        ResourceType expectedType);
+
+    void LogExportedResource(const std::string& publicId,
+                             const std::string& remoteModality);
   };
 }
