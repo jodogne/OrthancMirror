@@ -357,14 +357,22 @@ namespace Orthanc
     class ReadWriteTransaction : public ReadOnlyTransaction
     {
     private:
-      ServerIndex&  index_;
+      Listener&  listener_;
+      ServerIndex&  index_;   // TODO - REMOVE
       
     public:
       ReadWriteTransaction(IDatabaseWrapper& db,
+                           Listener& listener,
                            ServerIndex& index) :
         ReadOnlyTransaction(db),
-        index_(index)   // TODO - REMOVE
+        listener_(listener),
+        index_(index)
       {
+      }
+
+      Listener& GetListener()
+      {
+        return listener_;
       }
 
       void ClearChanges()
@@ -446,8 +454,7 @@ namespace Orthanc
       {
       }
 
-      virtual void Apply(ReadWriteTransaction& transaction,
-                         Listener& listener) = 0;
+      virtual void Apply(ReadWriteTransaction& transaction) = 0;
     };
     
   private:

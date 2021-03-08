@@ -1675,8 +1675,9 @@ namespace Orthanc
           
           Transaction transaction(*this, TransactionType_ReadWrite);
           {
-            ReadWriteTransaction t(db_, *this);
-            writeOperations->Apply(t, *listener_);
+            assert(listener_.get() != NULL);
+            ReadWriteTransaction t(db_, *listener_, *this);
+            writeOperations->Apply(t);
           }
           transaction.Commit(0);
         }
@@ -2961,8 +2962,7 @@ namespace Orthanc
         return found_;
       }
 
-      virtual void Apply(ReadWriteTransaction& transaction,
-                         Listener& listener) ORTHANC_OVERRIDE
+      virtual void Apply(ReadWriteTransaction& transaction) ORTHANC_OVERRIDE
       {
         int64_t id;
         ResourceType type;
@@ -2976,10 +2976,10 @@ namespace Orthanc
           found_ = true;
           transaction.DeleteResource(id);
 
-          if (listener.HasRemainingLevel())
+          if (transaction.GetListener().HasRemainingLevel())
           {
-            ResourceType remainingType = listener.GetRemainingType();
-            const std::string& remainingUuid = listener.GetRemainingPublicId();
+            ResourceType remainingType = transaction.GetListener().GetRemainingType();
+            const std::string& remainingUuid = transaction.GetListener().GetRemainingPublicId();
 
             target_["RemainingAncestor"] = Json::Value(Json::objectValue);
             target_["RemainingAncestor"]["Path"] = GetBasePath(remainingType, remainingUuid);
@@ -3017,8 +3017,7 @@ namespace Orthanc
       {
       }
       
-      virtual void Apply(ReadWriteTransaction& transaction,
-                         Listener& listener) ORTHANC_OVERRIDE
+      virtual void Apply(ReadWriteTransaction& transaction) ORTHANC_OVERRIDE
       {
         int64_t id;
         ResourceType type;
@@ -3126,8 +3125,7 @@ namespace Orthanc
       {
       }
 
-      virtual void Apply(ReadWriteTransaction& transaction,
-                         Listener& listener) ORTHANC_OVERRIDE
+      virtual void Apply(ReadWriteTransaction& transaction) ORTHANC_OVERRIDE
       {
         // Lookup for the requested resource
         int64_t id;
@@ -3179,8 +3177,7 @@ namespace Orthanc
       {
       }
 
-      virtual void Apply(ReadWriteTransaction& transaction,
-                         Listener& listener) ORTHANC_OVERRIDE
+      virtual void Apply(ReadWriteTransaction& transaction) ORTHANC_OVERRIDE
       {
         ResourceType rtype;
         int64_t id;
@@ -3222,8 +3219,7 @@ namespace Orthanc
       {
       }
 
-      virtual void Apply(ReadWriteTransaction& transaction,
-                         Listener& listener) ORTHANC_OVERRIDE
+      virtual void Apply(ReadWriteTransaction& transaction) ORTHANC_OVERRIDE
       {
         ResourceType rtype;
         int64_t id;
@@ -3268,8 +3264,7 @@ namespace Orthanc
         return newValue_;
       }
 
-      virtual void Apply(ReadWriteTransaction& transaction,
-                         Listener& listener) ORTHANC_OVERRIDE
+      virtual void Apply(ReadWriteTransaction& transaction) ORTHANC_OVERRIDE
       {
         std::string oldString;
 
@@ -3312,8 +3307,7 @@ namespace Orthanc
     class Operations : public IReadWriteOperations
     {
     public:
-      virtual void Apply(ReadWriteTransaction& transaction,
-                         Listener& listener) ORTHANC_OVERRIDE
+      virtual void Apply(ReadWriteTransaction& transaction) ORTHANC_OVERRIDE
       {
         transaction.ClearChanges();
       }
@@ -3329,8 +3323,7 @@ namespace Orthanc
     class Operations : public IReadWriteOperations
     {
     public:
-      virtual void Apply(ReadWriteTransaction& transaction,
-                         Listener& listener) ORTHANC_OVERRIDE
+      virtual void Apply(ReadWriteTransaction& transaction) ORTHANC_OVERRIDE
       {
         transaction.ClearExportedResources();
       }
@@ -3358,8 +3351,7 @@ namespace Orthanc
       {
       }
         
-      virtual void Apply(ReadWriteTransaction& transaction,
-                         Listener& listener) ORTHANC_OVERRIDE
+      virtual void Apply(ReadWriteTransaction& transaction) ORTHANC_OVERRIDE
       {
         transaction.SetGlobalProperty(property_, value_);
       }
@@ -3387,8 +3379,7 @@ namespace Orthanc
       {
       }
         
-      virtual void Apply(ReadWriteTransaction& transaction,
-                         Listener& listener) ORTHANC_OVERRIDE
+      virtual void Apply(ReadWriteTransaction& transaction) ORTHANC_OVERRIDE
       {
         ResourceType rtype;
         int64_t id;
@@ -3430,8 +3421,7 @@ namespace Orthanc
       {
       }
         
-      virtual void Apply(ReadWriteTransaction& transaction,
-                         Listener& listener) ORTHANC_OVERRIDE
+      virtual void Apply(ReadWriteTransaction& transaction) ORTHANC_OVERRIDE
       {
         int64_t id;
         ResourceType type;
