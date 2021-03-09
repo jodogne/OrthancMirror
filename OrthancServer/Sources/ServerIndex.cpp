@@ -735,13 +735,12 @@ namespace Orthanc
   }
 
 
-  void ServerIndex::MainDicomTagsToJson(Json::Value& target,
-                                        IDatabaseWrapper& db,
-                                        int64_t resourceId,
-                                        ResourceType resourceType)
+  void ServerIndex::ReadOnlyTransaction::MainDicomTagsToJson(Json::Value& target,
+                                                             int64_t resourceId,
+                                                             ResourceType resourceType)
   {
     DicomMap tags;
-    db.GetMainDicomTags(tags, resourceId);
+    db_.GetMainDicomTags(tags, resourceId);
 
     if (resourceType == ResourceType_Study)
     {
