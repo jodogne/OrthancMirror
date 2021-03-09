@@ -122,15 +122,47 @@ namespace Orthanc
      ***/
     
   public:
+    class ITransactionContext : public boost::noncopyable
+    {
+    public:
+      virtual ~ITransactionContext()
+      {
+      }
+
+      virtual bool IsUnstableResource(int64_t id) = 0;
+
+      virtual bool LookupRemainingLevel(std::string& remainingPublicId /* out */,
+                                        ResourceType& remainingLevel   /* out */) = 0;
+
+      virtual void MarkAsUnstable(int64_t id,
+                                  Orthanc::ResourceType type,
+                                  const std::string& publicId) = 0;
+
+      virtual void SignalAttachmentsAdded(uint64_t compressedSize) = 0;
+
+      virtual void SignalChange(const ServerIndexChange& change) = 0;
+    };
+
+    
     class ReadOnlyTransaction : public boost::noncopyable
     {
+    private:
+      ITransactionContext&  context_;
+      
     protected:
       IDatabaseWrapper&  db_;
       
     public:
-      explicit ReadOnlyTransaction(IDatabaseWrapper& db) :
+      explicit ReadOnlyTransaction(IDatabaseWrapper& db,
+                                   ITransactionContext& context) :
+        context_(context),
         db_(db)
       {
+      }
+
+      ITransactionContext& GetTransactionContext()
+      {
+        return context_;
       }
 
       /**
@@ -307,20 +339,11 @@ namespace Orthanc
 
     class ReadWriteTransaction : public ReadOnlyTransaction
     {
-    private:
-      Listener&  listener_;
-      
     public:
       ReadWriteTransaction(IDatabaseWrapper& db,
-                           Listener& listener) :
-        ReadOnlyTransaction(db),
-        listener_(listener)
+                           ITransactionContext& context) :
+        ReadOnlyTransaction(db, context)
       {
-      }
-
-      Listener& GetListener()
-      {
-        return listener_;
       }
 
       void AddAttachment(int64_t id,
