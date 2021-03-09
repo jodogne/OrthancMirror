@@ -1879,7 +1879,7 @@ namespace Orthanc
                                           /* out */ uint64_t& dicomUncompressedSize, 
                                           const std::string& publicId)
   {
-    class Operations : public ServerIndex::IReadOnlyOperations
+    class Operations : public IReadOnlyOperations
     {
     private:
       ResourceType&      type_;
@@ -1914,7 +1914,7 @@ namespace Orthanc
       {
       }
       
-      virtual void Apply(ServerIndex::ReadOnlyTransaction& transaction) ORTHANC_OVERRIDE
+      virtual void Apply(ReadOnlyTransaction& transaction) ORTHANC_OVERRIDE
       {
         int64_t top;
         if (!transaction.LookupResource(top, type_, publicId_))
@@ -2031,7 +2031,7 @@ namespace Orthanc
     query.push_back(c.ConvertToDatabaseConstraint(level, DicomTagType_Identifier));
 
 
-    class Operations : public ServerIndex::IReadOnlyOperations
+    class Operations : public IReadOnlyOperations
     {
     private:
       std::vector<std::string>&               result_;
@@ -2268,26 +2268,6 @@ namespace Orthanc
     Operations operations;
     operations.Apply(*this, found, type, publicId);
     return found;
-  }
-
-
-  unsigned int ServerIndex::GetDatabaseVersion()
-  {
-    class Operations : public ReadOnlyOperationsT1<unsigned int&>
-    {
-    public:
-      virtual void ApplyTuple(ReadOnlyTransaction& transaction,
-                              const Tuple& tuple) ORTHANC_OVERRIDE
-      {
-        // TODO - CANDIDATE FOR "TransactionType_Implicit"
-        tuple.get<0>() = transaction.GetDatabaseVersion();
-      }
-    };
-
-    unsigned int version;
-    Operations operations;
-    operations.Apply(*this, version);
-    return version;
   }
 
 
