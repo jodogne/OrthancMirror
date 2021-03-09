@@ -125,7 +125,7 @@ namespace Orthanc
   enum GlobalProperty
   {
     GlobalProperty_DatabaseSchemaVersion = 1,   // Unused in the Orthanc core as of Orthanc 0.9.5
-    GlobalProperty_FlushSleep = 2,
+    GlobalProperty_FlushSleep = 2,              // Unused in the Orthanc core if Orthanc > 1.9.1
     GlobalProperty_AnonymizationSequence = 3,
     GlobalProperty_JobsRegistry = 5,
     GlobalProperty_GetTotalSizeIsFast = 6,      // New in Orthanc 1.5.2
