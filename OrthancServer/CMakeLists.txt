@@ -98,6 +98,7 @@ set(ORTHANC_SERVER_SOURCES
   ${CMAKE_SOURCE_DIR}/Sources/Database/Compatibility/SetOfResources.cpp
   ${CMAKE_SOURCE_DIR}/Sources/Database/ResourcesContent.cpp
   ${CMAKE_SOURCE_DIR}/Sources/Database/SQLiteDatabaseWrapper.cpp
+  ${CMAKE_SOURCE_DIR}/Sources/Database/StatelessDatabaseOperations.cpp
   ${CMAKE_SOURCE_DIR}/Sources/DicomInstanceOrigin.cpp
   ${CMAKE_SOURCE_DIR}/Sources/DicomInstanceToStore.cpp
   ${CMAKE_SOURCE_DIR}/Sources/EmbeddedResourceHttpHandler.cpp

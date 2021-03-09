@@ -31,36 +31,268 @@
  **/
 
 
-#include "PrecompiledHeadersServer.h"
-#include "ServerIndex.h"
+#include "../PrecompiledHeadersServer.h"
+#include "StatelessDatabaseOperations.h"
 
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
 
-#include "../../OrthancFramework/Sources/DicomFormat/DicomArray.h"
-#include "../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.h"
-#include "../../OrthancFramework/Sources/DicomParsing/ParsedDicomFile.h"
-#include "../../OrthancFramework/Sources/Logging.h"
-#include "../../OrthancFramework/Sources/Toolbox.h"
-
-#include "Database/ResourcesContent.h"
-#include "OrthancConfiguration.h"
-#include "Search/DatabaseLookup.h"
-#include "Search/DicomTagConstraint.h"
-#include "ServerContext.h"
-#include "ServerIndexChange.h"
-#include "ServerToolbox.h"
+#include "../../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.h"
+#include "../../../OrthancFramework/Sources/DicomParsing/ParsedDicomFile.h"
+#include "../../../OrthancFramework/Sources/Logging.h"
+#include "../../../OrthancFramework/Sources/OrthancException.h"
+#include "../OrthancConfiguration.h"
+#include "../Search/DatabaseLookup.h"
+#include "../ServerIndexChange.h"
+#include "../ServerToolbox.h"
+#include "ResourcesContent.h"
 
 #include <boost/lexical_cast.hpp>
 #include <boost/tuple/tuple.hpp>
-#include <stdio.h>
 #include <stack>
 
-static const uint64_t MEGA_BYTES = 1024 * 1024;
 
 namespace Orthanc
 {
+  namespace
+  {
+    /**
+     * Some handy templates to reduce the verbosity in the definitions
+     * of the internal classes.
+     **/
+    
+    template <typename Operations,
+              typename Tuple>
+    class TupleOperationsWrapper : public StatelessDatabaseOperations::IReadOnlyOperations
+    {
+    protected:
+      Operations&   operations_;
+      const Tuple&  tuple_;
+    
+    public:
+      TupleOperationsWrapper(Operations& operations,
+                             const Tuple& tuple) :
+        operations_(operations),
+        tuple_(tuple)
+      {
+      }
+    
+      virtual void Apply(StatelessDatabaseOperations::ReadOnlyTransaction& transaction) ORTHANC_OVERRIDE
+      {
+        operations_.ApplyTuple(transaction, tuple_);
+      }
+    };
+
+
+    template <typename T1>
+    class ReadOnlyOperationsT1 : public boost::noncopyable
+    {
+    public:
+      typedef typename boost::tuple<T1>  Tuple;
+      
+      virtual ~ReadOnlyOperationsT1()
+      {
+      }
+
+      virtual void ApplyTuple(StatelessDatabaseOperations::ReadOnlyTransaction& transaction,
+                              const Tuple& tuple) = 0;
+
+      void Apply(StatelessDatabaseOperations& index,
+                 T1 t1)
+      {
+        const Tuple tuple(t1);
+        TupleOperationsWrapper<ReadOnlyOperationsT1, Tuple> wrapper(*this, tuple);
+        index.Apply(wrapper);
+      }
+    };
+
+
+    template <typename T1,
+              typename T2>
+    class ReadOnlyOperationsT2 : public boost::noncopyable
+    {
+    public:
+      typedef typename boost::tuple<T1, T2>  Tuple;
+      
+      virtual ~ReadOnlyOperationsT2()
+      {
+      }
+
+      virtual void ApplyTuple(StatelessDatabaseOperations::ReadOnlyTransaction& transaction,
+                              const Tuple& tuple) = 0;
+
+      void Apply(StatelessDatabaseOperations& index,
+                 T1 t1,
+                 T2 t2)
+      {
+        const Tuple tuple(t1, t2);
+        TupleOperationsWrapper<ReadOnlyOperationsT2, Tuple> wrapper(*this, tuple);
+        index.Apply(wrapper);
+      }
+    };
+
+
+    template <typename T1,
+              typename T2,
+              typename T3>
+    class ReadOnlyOperationsT3 : public boost::noncopyable
+    {
+    public:
+      typedef typename boost::tuple<T1, T2, T3>  Tuple;
+      
+      virtual ~ReadOnlyOperationsT3()
+      {
+      }
+
+      virtual void ApplyTuple(StatelessDatabaseOperations::ReadOnlyTransaction& transaction,
+                              const Tuple& tuple) = 0;
+
+      void Apply(StatelessDatabaseOperations& index,
+                 T1 t1,
+                 T2 t2,
+                 T3 t3)
+      {
+        const Tuple tuple(t1, t2, t3);
+        TupleOperationsWrapper<ReadOnlyOperationsT3, Tuple> wrapper(*this, tuple);
+        index.Apply(wrapper);
+      }
+    };
+
+
+    template <typename T1,
+              typename T2,
+              typename T3,
+              typename T4>
+    class ReadOnlyOperationsT4 : public boost::noncopyable
+    {
+    public:
+      typedef typename boost::tuple<T1, T2, T3, T4>  Tuple;
+      
+      virtual ~ReadOnlyOperationsT4()
+      {
+      }
+
+      virtual void ApplyTuple(StatelessDatabaseOperations::ReadOnlyTransaction& transaction,
+                              const Tuple& tuple) = 0;
+
+      void Apply(StatelessDatabaseOperations& index,
+                 T1 t1,
+                 T2 t2,
+                 T3 t3,
+                 T4 t4)
+      {
+        const Tuple tuple(t1, t2, t3, t4);
+        TupleOperationsWrapper<ReadOnlyOperationsT4, Tuple> wrapper(*this, tuple);
+        index.Apply(wrapper);
+      }
+    };
+
+
+    template <typename T1,
+              typename T2,
+              typename T3,
+              typename T4,
+              typename T5>
+    class ReadOnlyOperationsT5 : public boost::noncopyable
+    {
+    public:
+      typedef typename boost::tuple<T1, T2, T3, T4, T5>  Tuple;
+      
+      virtual ~ReadOnlyOperationsT5()
+      {
+      }
+
+      virtual void ApplyTuple(StatelessDatabaseOperations::ReadOnlyTransaction& transaction,
+                              const Tuple& tuple) = 0;
+
+      void Apply(StatelessDatabaseOperations& index,
+                 T1 t1,
+                 T2 t2,
+                 T3 t3,
+                 T4 t4,
+                 T5 t5)
+      {
+        const Tuple tuple(t1, t2, t3, t4, t5);
+        TupleOperationsWrapper<ReadOnlyOperationsT5, Tuple> wrapper(*this, tuple);
+        index.Apply(wrapper);
+      }
+    };
+
+
+    template <typename T1,
+              typename T2,
+              typename T3,
+              typename T4,
+              typename T5,
+              typename T6>
+    class ReadOnlyOperationsT6 : public boost::noncopyable
+    {
+    public:
+      typedef typename boost::tuple<T1, T2, T3, T4, T5, T6>  Tuple;
+      
+      virtual ~ReadOnlyOperationsT6()
+      {
+      }
+
+      virtual void ApplyTuple(StatelessDatabaseOperations::ReadOnlyTransaction& transaction,
+                              const Tuple& tuple) = 0;
+
+      void Apply(StatelessDatabaseOperations& index,
+                 T1 t1,
+                 T2 t2,
+                 T3 t3,
+                 T4 t4,
+                 T5 t5,
+                 T6 t6)
+      {
+        const Tuple tuple(t1, t2, t3, t4, t5, t6);
+        TupleOperationsWrapper<ReadOnlyOperationsT6, Tuple> wrapper(*this, tuple);
+        index.Apply(wrapper);
+      }
+    };
+  }
+
+
+  template <typename T>
+  static void FormatLog(Json::Value& target,
+                        const std::list<T>& log,
+                        const std::string& name,
+                        bool done,
+                        int64_t since,
+                        bool hasLast,
+                        int64_t last)
+  {
+    Json::Value items = Json::arrayValue;
+    for (typename std::list<T>::const_iterator
+           it = log.begin(); it != log.end(); ++it)
+    {
+      Json::Value item;
+      it->Format(item);
+      items.append(item);
+    }
+
+    target = Json::objectValue;
+    target[name] = items;
+    target["Done"] = done;
+
+    if (!hasLast)
+    {
+      // Best-effort guess of the last index in the sequence
+      if (log.empty())
+      {
+        last = since;
+      }
+      else
+      {
+        last = log.back().GetSeq();
+      }
+    }
+    
+    target["Last"] = static_cast<int>(last);
+  }
+
+
   static void CopyListToVector(std::vector<std::string>& target,
                                const std::list<std::string>& source)
   {
@@ -77,361 +309,7 @@ namespace Orthanc
   }
 
 
-  class ServerIndex::Listener : public IDatabaseListener,
-                                public ServerIndex::ITransactionContext
-  {
-  private:
-    struct FileToRemove
-    {
-    private:
-      std::string  uuid_;
-      FileContentType  type_;
-
-    public:
-      explicit FileToRemove(const FileInfo& info) :
-        uuid_(info.GetUuid()), 
-        type_(info.GetContentType())
-      {
-      }
-
-      const std::string& GetUuid() const
-      {
-        return uuid_;
-      }
-
-      FileContentType GetContentType() const 
-      {
-        return type_;
-      }
-    };
-
-    ServerContext& context_;
-    bool hasRemainingLevel_;
-    ResourceType remainingType_;
-    std::string remainingPublicId_;
-    std::list<FileToRemove> pendingFilesToRemove_;
-    std::list<ServerIndexChange> pendingChanges_;
-    uint64_t sizeOfFilesToRemove_;
-    bool insideTransaction_;
-    uint64_t sizeOfAddedAttachments_;
-
-    void Reset()
-    {
-      sizeOfFilesToRemove_ = 0;
-      hasRemainingLevel_ = false;
-      pendingFilesToRemove_.clear();
-      pendingChanges_.clear();
-      sizeOfAddedAttachments_ = 0;
-    }
-
-  public:
-    explicit Listener(ServerContext& context) :
-      context_(context),
-      insideTransaction_(false),
-      sizeOfAddedAttachments_(0)
-    {
-      Reset();
-      assert(ResourceType_Patient < ResourceType_Study &&
-             ResourceType_Study < ResourceType_Series &&
-             ResourceType_Series < ResourceType_Instance);
-    }
-
-    void StartTransaction()
-    {
-      Reset();
-      insideTransaction_ = true;
-    }
-
-    void EndTransaction()
-    {
-      insideTransaction_ = false;
-    }
-
-    uint64_t GetSizeOfFilesToRemove()
-    {
-      return sizeOfFilesToRemove_;
-    }
-
-    void CommitFilesToRemove()
-    {
-      for (std::list<FileToRemove>::const_iterator 
-             it = pendingFilesToRemove_.begin();
-           it != pendingFilesToRemove_.end(); ++it)
-      {
-        try
-        {
-          context_.RemoveFile(it->GetUuid(), it->GetContentType());
-        }
-        catch (OrthancException& e)
-        {
-          LOG(ERROR) << "Unable to remove an attachment from the storage area: "
-                     << it->GetUuid() << " (type: " << EnumerationToString(it->GetContentType()) << ")";
-        }
-      }
-    }
-
-    void CommitChanges()
-    {
-      for (std::list<ServerIndexChange>::const_iterator 
-             it = pendingChanges_.begin(); 
-           it != pendingChanges_.end(); ++it)
-      {
-        context_.SignalChange(*it);
-      }
-    }
-
-    virtual void SignalRemainingAncestor(ResourceType parentType,
-                                         const std::string& publicId) ORTHANC_OVERRIDE
-    {
-      LOG(TRACE) << "Remaining ancestor \"" << publicId << "\" (" << parentType << ")";
-
-      if (hasRemainingLevel_)
-      {
-        if (parentType < remainingType_)
-        {
-          remainingType_ = parentType;
-          remainingPublicId_ = publicId;
-        }
-      }
-      else
-      {
-        hasRemainingLevel_ = true;
-        remainingType_ = parentType;
-        remainingPublicId_ = publicId;
-      }        
-    }
-
-    virtual void SignalAttachmentDeleted(const FileInfo& info) ORTHANC_OVERRIDE
-    {
-      assert(Toolbox::IsUuid(info.GetUuid()));
-      pendingFilesToRemove_.push_back(FileToRemove(info));
-      sizeOfFilesToRemove_ += info.GetCompressedSize();
-    }
-
-    virtual void SignalResourceDeleted(ResourceType type,
-                                       const std::string& publicId) ORTHANC_OVERRIDE
-    {
-      SignalChange(ServerIndexChange(ChangeType_Deleted, type, publicId));
-    }
-
-    virtual void SignalChange(const ServerIndexChange& change) ORTHANC_OVERRIDE
-    {
-      LOG(TRACE) << "Change related to resource " << change.GetPublicId() << " of type " 
-                 << EnumerationToString(change.GetResourceType()) << ": " 
-                 << EnumerationToString(change.GetChangeType());
-
-      if (insideTransaction_)
-      {
-        pendingChanges_.push_back(change);
-      }
-      else
-      {
-        context_.SignalChange(change);
-      }
-    }
-
-    virtual void SignalAttachmentsAdded(uint64_t compressedSize) ORTHANC_OVERRIDE
-    {
-      sizeOfAddedAttachments_ += compressedSize;
-    }
-
-    bool HasRemainingLevel() const
-    {
-      return hasRemainingLevel_;
-    }
-
-    ResourceType GetRemainingType() const
-    {
-      assert(HasRemainingLevel());
-      return remainingType_;
-    }
-
-    const std::string& GetRemainingPublicId() const
-    {
-      assert(HasRemainingLevel());
-      return remainingPublicId_;
-    }
-
-    uint64_t GetSizeOfAddedAttachments() const
-    {
-      return sizeOfAddedAttachments_;
-    }
-
-    virtual bool LookupRemainingLevel(std::string& remainingPublicId /* out */,
-                                      ResourceType& remainingLevel   /* out */) ORTHANC_OVERRIDE
-    {
-      if (HasRemainingLevel())
-      {
-        remainingPublicId = GetRemainingPublicId();
-        remainingLevel = GetRemainingType();
-        return true;
-      }
-      else
-      {
-        return false;
-      }        
-    };
-
-    virtual void MarkAsUnstable(int64_t id,
-                                Orthanc::ResourceType type,
-                                const std::string& publicId) ORTHANC_OVERRIDE
-    {
-      context_.GetIndex().MarkAsUnstable(id, type, publicId);
-    }
-
-    virtual bool IsUnstableResource(int64_t id) ORTHANC_OVERRIDE
-    {
-      return context_.GetIndex().IsUnstableResource(id);
-    }
-  };
-
-
-  class ServerIndex::TransactionContextFactory : public ITransactionContextFactory
-  {
-  private:
-    class Context : public ITransactionContext
-    {
-    private:
-      Listener&  listener_;
-
-    public:
-      Context(ServerIndex& index) :
-        listener_(*index.listener_)
-      {
-      }
-
-      virtual bool IsUnstableResource(int64_t id) ORTHANC_OVERRIDE
-      {
-        return listener_.IsUnstableResource(id);
-      }
-
-      virtual bool LookupRemainingLevel(std::string& remainingPublicId /* out */,
-                                        ResourceType& remainingLevel   /* out */) ORTHANC_OVERRIDE
-      {
-        return listener_.LookupRemainingLevel(remainingPublicId, remainingLevel);
-      }
-
-      virtual void MarkAsUnstable(int64_t id,
-                                  Orthanc::ResourceType type,
-                                  const std::string& publicId) ORTHANC_OVERRIDE
-      {
-        listener_.MarkAsUnstable(id, type, publicId);
-      }
-
-      virtual void SignalAttachmentsAdded(uint64_t compressedSize) ORTHANC_OVERRIDE
-      {
-        listener_.SignalAttachmentsAdded(compressedSize);
-      }
-
-      virtual void SignalChange(const ServerIndexChange& change) ORTHANC_OVERRIDE
-      {
-        listener_.SignalChange(change);
-      }
-    };
-
-    ServerIndex& index_;
-      
-  public:
-    TransactionContextFactory(ServerIndex& index) :
-      index_(index)
-    {
-    }
-
-    virtual ITransactionContext* Create()
-    {
-      return new Context(index_);
-    }
-  };    
-  
-  
-  class ServerIndex::Transaction : public boost::noncopyable
-  {
-  private:
-    ServerIndex& index_;
-    std::unique_ptr<IDatabaseWrapper::ITransaction> transaction_;
-    bool isCommitted_;
-    
-  public:
-    explicit Transaction(ServerIndex& index,
-                         TransactionType type) : 
-      index_(index),
-      isCommitted_(false)
-    {
-      transaction_.reset(index_.db_.StartTransaction(type));
-      index_.listener_->StartTransaction();
-    }
-
-    ~Transaction()
-    {
-      index_.listener_->EndTransaction();
-
-      if (!isCommitted_)
-      {
-        transaction_->Rollback();
-      }
-    }
-
-    void Commit()
-    {
-      if (!isCommitted_)
-      {
-        int64_t delta = (static_cast<int64_t>(index_.listener_->GetSizeOfAddedAttachments()) -
-                         static_cast<int64_t>(index_.listener_->GetSizeOfFilesToRemove()));
-
-        transaction_->Commit(delta);
-
-        // We can remove the files once the SQLite transaction has
-        // been successfully committed. Some files might have to be
-        // deleted because of recycling.
-        index_.listener_->CommitFilesToRemove();
-
-        // Send all the pending changes to the Orthanc plugins
-        index_.listener_->CommitChanges();
-
-        isCommitted_ = true;
-      }
-    }
-  };
-
-
-  class ServerIndex::UnstableResourcePayload
-  {
-  private:
-    ResourceType type_;
-    std::string publicId_;
-    boost::posix_time::ptime time_;
-
-  public:
-    UnstableResourcePayload() : type_(ResourceType_Instance)
-    {
-    }
-
-    UnstableResourcePayload(Orthanc::ResourceType type,
-                            const std::string& publicId) : 
-      type_(type),
-      publicId_(publicId),
-      time_(boost::posix_time::second_clock::local_time())
-    {
-    }
-
-    unsigned int GetAge() const
-    {
-      return (boost::posix_time::second_clock::local_time() - time_).total_seconds();
-    }
-
-    ResourceType GetResourceType() const
-    {
-      return type_;
-    }
-    
-    const std::string& GetPublicId() const
-    {
-      return publicId_;
-    }
-  };
-
-
-  class ServerIndex::MainDicomTagsRegistry : public boost::noncopyable
+  class StatelessDatabaseOperations::MainDicomTagsRegistry : public boost::noncopyable
   {
   private:
     class TagInfo
@@ -538,56 +416,10 @@ namespace Orthanc
   };
 
 
-  void ServerIndex::FlushThread(ServerIndex* that,
-                                unsigned int threadSleepGranularityMilliseconds)
-  {
-    // By default, wait for 10 seconds before flushing
-    static const unsigned int SLEEP_SECONDS = 10;
-
-    if (threadSleepGranularityMilliseconds > 1000)
-    {
-      throw OrthancException(ErrorCode_ParameterOutOfRange);
-    }
-
-    LOG(INFO) << "Starting the database flushing thread (sleep = " << SLEEP_SECONDS << " seconds)";
-
-    unsigned int count = 0;
-    unsigned int countThreshold = (1000 * SLEEP_SECONDS) / threadSleepGranularityMilliseconds;
-
-    while (!that->done_)
-    {
-      boost::this_thread::sleep(boost::posix_time::milliseconds(threadSleepGranularityMilliseconds));
-      count++;
-      
-      if (count >= countThreshold)
-      {
-        Logging::Flush();
-
-        {
-          boost::mutex::scoped_lock lock(that->databaseMutex_);
-        
-          try
-          {
-            that->db_.FlushToDisk();
-          }
-          catch (OrthancException&)
-          {
-            LOG(ERROR) << "Cannot flush the SQLite database to the disk (is your filesystem full?)";
-          }
-        }
-        
-        count = 0;
-      }
-    }
-
-    LOG(INFO) << "Stopping the database flushing thread";
-  }
-
-
-  void ServerIndex::ReadWriteTransaction::LogChange(int64_t internalId,
-                                                    ChangeType changeType,
-                                                    ResourceType resourceType,
-                                                    const std::string& publicId)
+  void StatelessDatabaseOperations::ReadWriteTransaction::LogChange(int64_t internalId,
+                                                                    ChangeType changeType,
+                                                                    ResourceType resourceType,
+                                                                    const std::string& publicId)
   {
     ServerIndexChange change(changeType, resourceType, publicId);
 
@@ -600,77 +432,8 @@ namespace Orthanc
   }
 
 
-  bool ServerIndex::IsUnstableResource(int64_t id)
-  {
-    boost::mutex::scoped_lock lock(monitoringMutex_);
-    return unstableResources_.Contains(id);
-  }
-
-
-  ServerIndex::ServerIndex(ServerContext& context,
-                           IDatabaseWrapper& db,
-                           unsigned int threadSleepGranularityMilliseconds) : 
-    done_(false),
-    db_(db),
-    maximumStorageSize_(0),
-    maximumPatients_(0),
-    mainDicomTagsRegistry_(new MainDicomTagsRegistry),
-    maxRetries_(10)
-  {
-    listener_.reset(new Listener(context));
-    db_.SetListener(*listener_);
-
-    SetTransactionContextFactory(new TransactionContextFactory(*this));
-
-    // Initial recycling if the parameters have changed since the last
-    // execution of Orthanc
-    StandaloneRecycling(maximumStorageSize_, maximumPatients_);
-
-    if (db.HasFlushToDisk())
-    {
-      flushThread_ = boost::thread(FlushThread, this, threadSleepGranularityMilliseconds);
-    }
-
-    unstableResourcesMonitorThread_ = boost::thread
-      (UnstableResourcesMonitorThread, this, threadSleepGranularityMilliseconds);
-  }
-
-
-
-  ServerIndex::~ServerIndex()
-  {
-    if (!done_)
-    {
-      LOG(ERROR) << "INTERNAL ERROR: ServerIndex::Stop() should be invoked manually to avoid mess in the destruction order!";
-      Stop();
-    }
-  }
-
-
-
-  void ServerIndex::Stop()
-  {
-    if (!done_)
-    {
-      done_ = true;
-
-      if (db_.HasFlushToDisk() &&
-          flushThread_.joinable())
-      {
-        flushThread_.join();
-      }
-
-      if (unstableResourcesMonitorThread_.joinable())
-      {
-        unstableResourcesMonitorThread_.join();
-      }
-    }
-  }
-
-
-
-  SeriesStatus ServerIndex::ReadOnlyTransaction::GetSeriesStatus(int64_t id,
-                                                                 int64_t expectedNumberOfInstances)
+  SeriesStatus StatelessDatabaseOperations::ReadOnlyTransaction::GetSeriesStatus(int64_t id,
+                                                                                 int64_t expectedNumberOfInstances)
   {
     std::list<std::string> values;
     db_.GetChildrenMetadata(values, id, MetadataType_Instance_IndexInSeries);
@@ -717,195 +480,9 @@ namespace Orthanc
   }
 
 
-  void ServerIndex::ReadOnlyTransaction::MainDicomTagsToJson(Json::Value& target,
-                                                             int64_t resourceId,
-                                                             ResourceType resourceType)
-  {
-    DicomMap tags;
-    db_.GetMainDicomTags(tags, resourceId);
-
-    if (resourceType == ResourceType_Study)
-    {
-      DicomMap t1, t2;
-      tags.ExtractStudyInformation(t1);
-      tags.ExtractPatientInformation(t2);
-
-      target["MainDicomTags"] = Json::objectValue;
-      FromDcmtkBridge::ToJson(target["MainDicomTags"], t1, true);
-
-      target["PatientMainDicomTags"] = Json::objectValue;
-      FromDcmtkBridge::ToJson(target["PatientMainDicomTags"], t2, true);
-    }
-    else
-    {
-      target["MainDicomTags"] = Json::objectValue;
-      FromDcmtkBridge::ToJson(target["MainDicomTags"], tags, true);
-    }
-  }
-
-  
-  template <typename T>
-  static void FormatLog(Json::Value& target,
-                        const std::list<T>& log,
-                        const std::string& name,
-                        bool done,
-                        int64_t since,
-                        bool hasLast,
-                        int64_t last)
-  {
-    Json::Value items = Json::arrayValue;
-    for (typename std::list<T>::const_iterator
-           it = log.begin(); it != log.end(); ++it)
-    {
-      Json::Value item;
-      it->Format(item);
-      items.append(item);
-    }
-
-    target = Json::objectValue;
-    target[name] = items;
-    target["Done"] = done;
-
-    if (!hasLast)
-    {
-      // Best-effort guess of the last index in the sequence
-      if (log.empty())
-      {
-        last = since;
-      }
-      else
-      {
-        last = log.back().GetSeq();
-      }
-    }
-    
-    target["Last"] = static_cast<int>(last);
-  }
-
-
-  void ServerIndex::SetMaximumPatientCount(unsigned int count) 
-  {
-    {
-      boost::mutex::scoped_lock lock(monitoringMutex_);
-      maximumPatients_ = count;
-      
-      if (count == 0)
-      {
-        LOG(WARNING) << "No limit on the number of stored patients";
-      }
-      else
-      {
-        LOG(WARNING) << "At most " << count << " patients will be stored";
-      }
-    }
-
-    StandaloneRecycling(maximumStorageSize_, maximumPatients_);
-  }
-
-  void ServerIndex::SetMaximumStorageSize(uint64_t size) 
-  {
-    {
-      boost::mutex::scoped_lock lock(monitoringMutex_);
-      maximumStorageSize_ = size;
-      
-      if (size == 0)
-      {
-        LOG(WARNING) << "No limit on the size of the storage area";
-      }
-      else
-      {
-        LOG(WARNING) << "At most " << (size / MEGA_BYTES) << "MB will be used for the storage area";
-      }
-    }
-
-    StandaloneRecycling(maximumStorageSize_, maximumPatients_);
-  }
-
-
-  void ServerIndex::UnstableResourcesMonitorThread(ServerIndex* that,
-                                                   unsigned int threadSleepGranularityMilliseconds)
-  {
-    int stableAge;
-    
-    {
-      OrthancConfiguration::ReaderLock lock;
-      stableAge = lock.GetConfiguration().GetUnsignedIntegerParameter("StableAge", 60);
-    }
-
-    if (stableAge <= 0)
-    {
-      stableAge = 60;
-    }
-
-    LOG(INFO) << "Starting the monitor for stable resources (stable age = " << stableAge << ")";
-
-    while (!that->done_)
-    {
-      // Check for stable resources each few seconds
-      boost::this_thread::sleep(boost::posix_time::milliseconds(threadSleepGranularityMilliseconds));
-
-      boost::mutex::scoped_lock lock(that->monitoringMutex_);
-
-      while (!that->unstableResources_.IsEmpty() &&
-             that->unstableResources_.GetOldestPayload().GetAge() > static_cast<unsigned int>(stableAge))
-      {
-        // This DICOM resource has not received any new instance for
-        // some time. It can be considered as stable.
-          
-        UnstableResourcePayload payload;
-        int64_t id = that->unstableResources_.RemoveOldest(payload);
-
-        // Ensure that the resource is still existing before logging the change
-        if (that->db_.IsExistingResource(id))
-        {
-          switch (payload.GetResourceType())
-          {
-            case ResourceType_Patient:
-              that->LogChange(ChangeType_StablePatient, payload.GetPublicId(), ResourceType_Patient);
-              break;
-
-            case ResourceType_Study:
-              that->LogChange(ChangeType_StableStudy, payload.GetPublicId(), ResourceType_Study);
-              break;
-
-            case ResourceType_Series:
-              that->LogChange(ChangeType_StableSeries, payload.GetPublicId(), ResourceType_Series);
-              break;
-
-            default:
-              throw OrthancException(ErrorCode_InternalError);
-          }
-
-          //LOG(INFO) << "Stable resource: " << EnumerationToString(payload.type_) << " " << id;
-        }
-      }
-    }
-
-    LOG(INFO) << "Closing the monitor thread for stable resources";
-  }
-  
-
-  void ServerIndex::MarkAsUnstable(int64_t id,
-                                   Orthanc::ResourceType type,
-                                   const std::string& publicId)
-  {
-    assert(type == Orthanc::ResourceType_Patient ||
-           type == Orthanc::ResourceType_Study ||
-           type == Orthanc::ResourceType_Series);
-
-    {
-      boost::mutex::scoped_lock lock(monitoringMutex_);
-      UnstableResourcePayload payload(type, publicId);
-      unstableResources_.AddOrMakeMostRecent(id, payload);
-      //LOG(INFO) << "Unstable resource: " << EnumerationToString(type) << " " << id;
-    }
-  }
-
-
-
-  void ServerIndex::NormalizeLookup(std::vector<DatabaseConstraint>& target,
-                                    const DatabaseLookup& source,
-                                    ResourceType queryLevel) const
+  void StatelessDatabaseOperations::NormalizeLookup(std::vector<DatabaseConstraint>& target,
+                                                    const DatabaseLookup& source,
+                                                    ResourceType queryLevel) const
   {
     assert(mainDicomTagsRegistry_.get() != NULL);
 
@@ -935,214 +512,75 @@ namespace Orthanc
   }
 
 
-
-
-
-  /***
-   ** PROTOTYPING FOR DB REFACTORING BELOW
-   ***/
-    
-  namespace
+  class StatelessDatabaseOperations::Transaction : public boost::noncopyable
   {
-    /**
-     * Some handy templates to reduce the verbosity in the definitions
-     * of the internal classes.
-     **/
+  private:
+    IDatabaseWrapper&                                db_;
+    std::unique_ptr<IDatabaseWrapper::ITransaction>  transaction_;
+    std::unique_ptr<ITransactionContext>             context_;
+    bool                                             isCommitted_;
     
-    template <typename Operations,
-              typename Tuple>
-    class TupleOperationsWrapper : public ServerIndex::IReadOnlyOperations
+  public:
+    Transaction(IDatabaseWrapper& db,
+                ITransactionContextFactory& factory,
+                TransactionType type) :
+      db_(db),
+      isCommitted_(false)
     {
-    protected:
-      Operations&   operations_;
-      const Tuple&  tuple_;
-    
-    public:
-      TupleOperationsWrapper(Operations& operations,
-                             const Tuple& tuple) :
-        operations_(operations),
-        tuple_(tuple)
+      context_.reset(factory.Create());
+      if (context_.get() == NULL)
       {
-      }
-    
-      virtual void Apply(ServerIndex::ReadOnlyTransaction& transaction) ORTHANC_OVERRIDE
-      {
-        operations_.ApplyTuple(transaction, tuple_);
-      }
-    };
-
-
-    template <typename T1>
-    class ReadOnlyOperationsT1 : public boost::noncopyable
-    {
-    public:
-      typedef typename boost::tuple<T1>  Tuple;
+        throw OrthancException(ErrorCode_NullPointer);
+      }      
       
-      virtual ~ReadOnlyOperationsT1()
+      transaction_.reset(db_.StartTransaction(type));
+      if (transaction_.get() == NULL)
       {
+        throw OrthancException(ErrorCode_NullPointer);
       }
+    }
 
-      virtual void ApplyTuple(ServerIndex::ReadOnlyTransaction& transaction,
-                              const Tuple& tuple) = 0;
-
-      void Apply(ServerIndex& index,
-                 T1 t1)
-      {
-        const Tuple tuple(t1);
-        TupleOperationsWrapper<ReadOnlyOperationsT1, Tuple> wrapper(*this, tuple);
-        index.Apply(wrapper);
-      }
-    };
-
-
-    template <typename T1,
-              typename T2>
-    class ReadOnlyOperationsT2 : public boost::noncopyable
+    ~Transaction()
     {
-    public:
-      typedef typename boost::tuple<T1, T2>  Tuple;
-      
-      virtual ~ReadOnlyOperationsT2()
+      if (!isCommitted_)
       {
+        try
+        {
+          transaction_->Rollback();
+        }
+        catch (OrthancException& e)
+        {
+          LOG(ERROR) << "Cannot rollback transaction: " << e.What();
+        }
       }
+    }
 
-      virtual void ApplyTuple(ServerIndex::ReadOnlyTransaction& transaction,
-                              const Tuple& tuple) = 0;
-
-      void Apply(ServerIndex& index,
-                 T1 t1,
-                 T2 t2)
-      {
-        const Tuple tuple(t1, t2);
-        TupleOperationsWrapper<ReadOnlyOperationsT2, Tuple> wrapper(*this, tuple);
-        index.Apply(wrapper);
-      }
-    };
-
-
-    template <typename T1,
-              typename T2,
-              typename T3>
-    class ReadOnlyOperationsT3 : public boost::noncopyable
+    void Commit()
     {
-    public:
-      typedef typename boost::tuple<T1, T2, T3>  Tuple;
-      
-      virtual ~ReadOnlyOperationsT3()
+      if (isCommitted_)
       {
+        throw OrthancException(ErrorCode_BadSequenceOfCalls);
       }
-
-      virtual void ApplyTuple(ServerIndex::ReadOnlyTransaction& transaction,
-                              const Tuple& tuple) = 0;
-
-      void Apply(ServerIndex& index,
-                 T1 t1,
-                 T2 t2,
-                 T3 t3)
+      else
       {
-        const Tuple tuple(t1, t2, t3);
-        TupleOperationsWrapper<ReadOnlyOperationsT3, Tuple> wrapper(*this, tuple);
-        index.Apply(wrapper);
+        int64_t delta = context_->GetCompressedSizeDelta();
+
+        transaction_->Commit(delta);
+        context_->Commit();
+        isCommitted_ = true;
       }
-    };
+    }
 
-
-    template <typename T1,
-              typename T2,
-              typename T3,
-              typename T4>
-    class ReadOnlyOperationsT4 : public boost::noncopyable
+    ITransactionContext& GetContext() const
     {
-    public:
-      typedef typename boost::tuple<T1, T2, T3, T4>  Tuple;
-      
-      virtual ~ReadOnlyOperationsT4()
-      {
-      }
-
-      virtual void ApplyTuple(ServerIndex::ReadOnlyTransaction& transaction,
-                              const Tuple& tuple) = 0;
-
-      void Apply(ServerIndex& index,
-                 T1 t1,
-                 T2 t2,
-                 T3 t3,
-                 T4 t4)
-      {
-        const Tuple tuple(t1, t2, t3, t4);
-        TupleOperationsWrapper<ReadOnlyOperationsT4, Tuple> wrapper(*this, tuple);
-        index.Apply(wrapper);
-      }
-    };
-
-
-    template <typename T1,
-              typename T2,
-              typename T3,
-              typename T4,
-              typename T5>
-    class ReadOnlyOperationsT5 : public boost::noncopyable
-    {
-    public:
-      typedef typename boost::tuple<T1, T2, T3, T4, T5>  Tuple;
-      
-      virtual ~ReadOnlyOperationsT5()
-      {
-      }
-
-      virtual void ApplyTuple(ServerIndex::ReadOnlyTransaction& transaction,
-                              const Tuple& tuple) = 0;
-
-      void Apply(ServerIndex& index,
-                 T1 t1,
-                 T2 t2,
-                 T3 t3,
-                 T4 t4,
-                 T5 t5)
-      {
-        const Tuple tuple(t1, t2, t3, t4, t5);
-        TupleOperationsWrapper<ReadOnlyOperationsT5, Tuple> wrapper(*this, tuple);
-        index.Apply(wrapper);
-      }
-    };
-
-
-    template <typename T1,
-              typename T2,
-              typename T3,
-              typename T4,
-              typename T5,
-              typename T6>
-    class ReadOnlyOperationsT6 : public boost::noncopyable
-    {
-    public:
-      typedef typename boost::tuple<T1, T2, T3, T4, T5, T6>  Tuple;
-      
-      virtual ~ReadOnlyOperationsT6()
-      {
-      }
-
-      virtual void ApplyTuple(ServerIndex::ReadOnlyTransaction& transaction,
-                              const Tuple& tuple) = 0;
-
-      void Apply(ServerIndex& index,
-                 T1 t1,
-                 T2 t2,
-                 T3 t3,
-                 T4 t4,
-                 T5 t5,
-                 T6 t6)
-      {
-        const Tuple tuple(t1, t2, t3, t4, t5, t6);
-        TupleOperationsWrapper<ReadOnlyOperationsT6, Tuple> wrapper(*this, tuple);
-        index.Apply(wrapper);
-      }
-    };
-  }
+      assert(context_.get() != NULL);
+      return *context_;
+    }
+  };
   
 
-  void ServerIndex::ApplyInternal(IReadOnlyOperations* readOperations,
-                                  IReadWriteOperations* writeOperations)
+  void StatelessDatabaseOperations::ApplyInternal(IReadOnlyOperations* readOperations,
+                                                  IReadWriteOperations* writeOperations)
   {
     if ((readOperations == NULL && writeOperations == NULL) ||
         (readOperations != NULL && writeOperations != NULL))
@@ -1161,13 +599,6 @@ namespace Orthanc
     {
       try
       {
-        std::unique_ptr<ITransactionContext>  context(factory_->Create());
-
-        if (context.get() == NULL)
-        {
-          throw OrthancException(ErrorCode_InternalError);
-        }
-        
         boost::mutex::scoped_lock lock(databaseMutex_);  // TODO - REMOVE
 
         if (readOperations != NULL)
@@ -1178,9 +609,9 @@ namespace Orthanc
            * global mutex protecting the database.
            **/
           
-          Transaction transaction(*this, TransactionType_ReadOnly);  // TODO - Only if not "TransactionType_Implicit"
+          Transaction transaction(db_, *factory_, TransactionType_ReadOnly);  // TODO - Only if not "TransactionType_Implicit"
           {
-            ReadOnlyTransaction t(db_, *context);
+            ReadOnlyTransaction t(db_, transaction.GetContext());
             readOperations->Apply(t);
           }
           transaction.Commit();
@@ -1189,9 +620,9 @@ namespace Orthanc
         {
           assert(writeOperations != NULL);
           
-          Transaction transaction(*this, TransactionType_ReadWrite);
+          Transaction transaction(db_, *factory_, TransactionType_ReadWrite);
           {
-            ReadWriteTransaction t(db_, *context);
+            ReadWriteTransaction t(db_, transaction.GetContext());
             writeOperations->Apply(t);
           }
           transaction.Commit();
@@ -1234,7 +665,15 @@ namespace Orthanc
   }
 
   
-  void ServerIndex::SetTransactionContextFactory(ITransactionContextFactory* factory)
+  StatelessDatabaseOperations::StatelessDatabaseOperations(IDatabaseWrapper& db) : 
+    db_(db),
+    maxRetries_(10),
+    mainDicomTagsRegistry_(new MainDicomTagsRegistry)
+  {
+  }
+
+
+  void StatelessDatabaseOperations::SetTransactionContextFactory(ITransactionContextFactory* factory)
   {
     if (factory == NULL)
     {
@@ -1251,25 +690,53 @@ namespace Orthanc
   }
     
 
-  void ServerIndex::Apply(IReadOnlyOperations& operations)
+  void StatelessDatabaseOperations::Apply(IReadOnlyOperations& operations)
   {
     ApplyInternal(&operations, NULL);
   }
   
 
-  void ServerIndex::Apply(IReadWriteOperations& operations)
+  void StatelessDatabaseOperations::Apply(IReadWriteOperations& operations)
   {
     ApplyInternal(NULL, &operations);
   }
   
 
-  bool ServerIndex::ExpandResource(Json::Value& target,
-                                   const std::string& publicId,
-                                   ResourceType level)
+  bool StatelessDatabaseOperations::ExpandResource(Json::Value& target,
+                                                   const std::string& publicId,
+                                                   ResourceType level)
   {    
     class Operations : public ReadOnlyOperationsT4<bool&, Json::Value&, const std::string&, ResourceType>
     {
     private:
+      static void MainDicomTagsToJson(ReadOnlyTransaction& transaction,
+                                      Json::Value& target,
+                                      int64_t resourceId,
+                                      ResourceType resourceType)
+      {
+        DicomMap tags;
+        transaction.GetMainDicomTags(tags, resourceId);
+
+        if (resourceType == ResourceType_Study)
+        {
+          DicomMap t1, t2;
+          tags.ExtractStudyInformation(t1);
+          tags.ExtractPatientInformation(t2);
+
+          target["MainDicomTags"] = Json::objectValue;
+          FromDcmtkBridge::ToJson(target["MainDicomTags"], t1, true);
+
+          target["PatientMainDicomTags"] = Json::objectValue;
+          FromDcmtkBridge::ToJson(target["PatientMainDicomTags"], t2, true);
+        }
+        else
+        {
+          target["MainDicomTags"] = Json::objectValue;
+          FromDcmtkBridge::ToJson(target["MainDicomTags"], tags, true);
+        }
+      }
+
+  
       static bool LookupStringMetadata(std::string& result,
                                        const std::map<MetadataType, std::string>& metadata,
                                        MetadataType type)
@@ -1461,7 +928,7 @@ namespace Orthanc
 
           // Record the remaining information
           target["ID"] = tuple.get<2>();
-          transaction.MainDicomTagsToJson(target, internalId, type);
+          MainDicomTagsToJson(transaction, target, internalId, type);
 
           std::string tmp;
 
@@ -1499,9 +966,9 @@ namespace Orthanc
   }
 
 
-  void ServerIndex::GetAllMetadata(std::map<MetadataType, std::string>& target,
-                                   const std::string& publicId,
-                                   ResourceType level)
+  void StatelessDatabaseOperations::GetAllMetadata(std::map<MetadataType, std::string>& target,
+                                                   const std::string& publicId,
+                                                   ResourceType level)
   {
     class Operations : public ReadOnlyOperationsT3<std::map<MetadataType, std::string>&, const std::string&, ResourceType>
     {
@@ -1528,9 +995,9 @@ namespace Orthanc
   }
 
 
-  bool ServerIndex::LookupAttachment(FileInfo& attachment,
-                                     const std::string& instancePublicId,
-                                     FileContentType contentType)
+  bool StatelessDatabaseOperations::LookupAttachment(FileInfo& attachment,
+                                                     const std::string& instancePublicId,
+                                                     FileContentType contentType)
   {
     class Operations : public ReadOnlyOperationsT4<bool&, FileInfo&, const std::string&, FileContentType>
     {
@@ -1563,8 +1030,8 @@ namespace Orthanc
   }
 
 
-  void ServerIndex::GetAllUuids(std::list<std::string>& target,
-                                ResourceType resourceType)
+  void StatelessDatabaseOperations::GetAllUuids(std::list<std::string>& target,
+                                                ResourceType resourceType)
   {
     class Operations : public ReadOnlyOperationsT2<std::list<std::string>&, ResourceType>
     {
@@ -1582,10 +1049,10 @@ namespace Orthanc
   }
 
 
-  void ServerIndex::GetAllUuids(std::list<std::string>& target,
-                                ResourceType resourceType,
-                                size_t since,
-                                size_t limit)
+  void StatelessDatabaseOperations::GetAllUuids(std::list<std::string>& target,
+                                                ResourceType resourceType,
+                                                size_t since,
+                                                size_t limit)
   {
     if (limit == 0)
     {
@@ -1610,12 +1077,12 @@ namespace Orthanc
   }
 
 
-  void ServerIndex::GetGlobalStatistics(/* out */ uint64_t& diskSize,
-                                        /* out */ uint64_t& uncompressedSize,
-                                        /* out */ uint64_t& countPatients, 
-                                        /* out */ uint64_t& countStudies, 
-                                        /* out */ uint64_t& countSeries, 
-                                        /* out */ uint64_t& countInstances)
+  void StatelessDatabaseOperations::GetGlobalStatistics(/* out */ uint64_t& diskSize,
+                                                        /* out */ uint64_t& uncompressedSize,
+                                                        /* out */ uint64_t& countPatients, 
+                                                        /* out */ uint64_t& countStudies, 
+                                                        /* out */ uint64_t& countSeries, 
+                                                        /* out */ uint64_t& countInstances)
   {
     class Operations : public ReadOnlyOperationsT6<uint64_t&, uint64_t&, uint64_t&, uint64_t&, uint64_t&, uint64_t&>
     {
@@ -1638,9 +1105,9 @@ namespace Orthanc
   }
 
 
-  void ServerIndex::GetChanges(Json::Value& target,
-                               int64_t since,                               
-                               unsigned int maxResults)
+  void StatelessDatabaseOperations::GetChanges(Json::Value& target,
+                                               int64_t since,                               
+                                               unsigned int maxResults)
   {
     class Operations : public ReadOnlyOperationsT3<Json::Value&, int64_t, unsigned int>
     {
@@ -1672,7 +1139,7 @@ namespace Orthanc
   }
 
 
-  void ServerIndex::GetLastChange(Json::Value& target)
+  void StatelessDatabaseOperations::GetLastChange(Json::Value& target)
   {
     class Operations : public ReadOnlyOperationsT1<Json::Value&>
     {
@@ -1703,9 +1170,9 @@ namespace Orthanc
   }
 
 
-  void ServerIndex::GetExportedResources(Json::Value& target,
-                                         int64_t since,
-                                         unsigned int maxResults)
+  void StatelessDatabaseOperations::GetExportedResources(Json::Value& target,
+                                                         int64_t since,
+                                                         unsigned int maxResults)
   {
     class Operations : public ReadOnlyOperationsT3<Json::Value&, int64_t, unsigned int>
     {
@@ -1727,7 +1194,7 @@ namespace Orthanc
   }
 
 
-  void ServerIndex::GetLastExportedResource(Json::Value& target)
+  void StatelessDatabaseOperations::GetLastExportedResource(Json::Value& target)
   {
     class Operations : public ReadOnlyOperationsT1<Json::Value&>
     {
@@ -1748,7 +1215,7 @@ namespace Orthanc
   }
 
 
-  bool ServerIndex::IsProtectedPatient(const std::string& publicId)
+  bool StatelessDatabaseOperations::IsProtectedPatient(const std::string& publicId)
   {
     class Operations : public ReadOnlyOperationsT2<bool&, const std::string&>
     {
@@ -1778,8 +1245,8 @@ namespace Orthanc
   }
 
 
-  void ServerIndex::GetChildren(std::list<std::string>& result,
-                                const std::string& publicId)
+  void StatelessDatabaseOperations::GetChildren(std::list<std::string>& result,
+                                                const std::string& publicId)
   {
     class Operations : public ReadOnlyOperationsT2<std::list<std::string>&, const std::string&>
     {
@@ -1819,8 +1286,8 @@ namespace Orthanc
   }
 
 
-  void ServerIndex::GetChildInstances(std::list<std::string>& result,
-                                      const std::string& publicId)
+  void StatelessDatabaseOperations::GetChildInstances(std::list<std::string>& result,
+                                                      const std::string& publicId)
   {
     class Operations : public ReadOnlyOperationsT2<std::list<std::string>&, const std::string&>
     {
@@ -1880,10 +1347,10 @@ namespace Orthanc
   }
 
 
-  bool ServerIndex::LookupMetadata(std::string& target,
-                                   const std::string& publicId,
-                                   ResourceType expectedType,
-                                   MetadataType type)
+  bool StatelessDatabaseOperations::LookupMetadata(std::string& target,
+                                                   const std::string& publicId,
+                                                   ResourceType expectedType,
+                                                   MetadataType type)
   {
     class Operations : public ReadOnlyOperationsT5<bool&, std::string&, const std::string&, ResourceType, MetadataType>
     {
@@ -1912,9 +1379,9 @@ namespace Orthanc
   }
 
 
-  void ServerIndex::ListAvailableAttachments(std::set<FileContentType>& target,
-                                             const std::string& publicId,
-                                             ResourceType expectedType)
+  void StatelessDatabaseOperations::ListAvailableAttachments(std::set<FileContentType>& target,
+                                                             const std::string& publicId,
+                                                             ResourceType expectedType)
   {
     class Operations : public ReadOnlyOperationsT3<std::set<FileContentType>&, const std::string&, ResourceType>
     {
@@ -1941,8 +1408,8 @@ namespace Orthanc
   }
 
 
-  bool ServerIndex::LookupParent(std::string& target,
-                                 const std::string& publicId)
+  bool StatelessDatabaseOperations::LookupParent(std::string& target,
+                                                 const std::string& publicId)
   {
     class Operations : public ReadOnlyOperationsT3<bool&, std::string&, const std::string&>
     {
@@ -1979,15 +1446,15 @@ namespace Orthanc
   }
 
 
-  void ServerIndex::GetResourceStatistics(/* out */ ResourceType& type,
-                                          /* out */ uint64_t& diskSize, 
-                                          /* out */ uint64_t& uncompressedSize, 
-                                          /* out */ unsigned int& countStudies, 
-                                          /* out */ unsigned int& countSeries, 
-                                          /* out */ unsigned int& countInstances, 
-                                          /* out */ uint64_t& dicomDiskSize, 
-                                          /* out */ uint64_t& dicomUncompressedSize, 
-                                          const std::string& publicId)
+  void StatelessDatabaseOperations::GetResourceStatistics(/* out */ ResourceType& type,
+                                                          /* out */ uint64_t& diskSize, 
+                                                          /* out */ uint64_t& uncompressedSize, 
+                                                          /* out */ unsigned int& countStudies, 
+                                                          /* out */ unsigned int& countSeries, 
+                                                          /* out */ unsigned int& countInstances, 
+                                                          /* out */ uint64_t& dicomDiskSize, 
+                                                          /* out */ uint64_t& dicomUncompressedSize, 
+                                                          const std::string& publicId)
   {
     class Operations : public IReadOnlyOperations
     {
@@ -2122,10 +1589,10 @@ namespace Orthanc
   }
 
 
-  void ServerIndex::LookupIdentifierExact(std::vector<std::string>& result,
-                                          ResourceType level,
-                                          const DicomTag& tag,
-                                          const std::string& value)
+  void StatelessDatabaseOperations::LookupIdentifierExact(std::vector<std::string>& result,
+                                                          ResourceType level,
+                                                          const DicomTag& tag,
+                                                          const std::string& value)
   {
     assert((level == ResourceType_Patient && tag == DICOM_TAG_PATIENT_ID) ||
            (level == ResourceType_Study && tag == DICOM_TAG_STUDY_INSTANCE_UID) ||
@@ -2172,8 +1639,8 @@ namespace Orthanc
   }
 
 
-  bool ServerIndex::LookupGlobalProperty(std::string& value,
-                                         GlobalProperty property)
+  bool StatelessDatabaseOperations::LookupGlobalProperty(std::string& value,
+                                                         GlobalProperty property)
   {
     class Operations : public ReadOnlyOperationsT3<bool&, std::string&, GlobalProperty>
     {
@@ -2193,8 +1660,8 @@ namespace Orthanc
   }
   
 
-  std::string ServerIndex::GetGlobalProperty(GlobalProperty property,
-                                             const std::string& defaultValue)
+  std::string StatelessDatabaseOperations::GetGlobalProperty(GlobalProperty property,
+                                                             const std::string& defaultValue)
   {
     std::string s;
     if (LookupGlobalProperty(s, property))
@@ -2208,10 +1675,10 @@ namespace Orthanc
   }
 
 
-  bool ServerIndex::GetMainDicomTags(DicomMap& result,
-                                     const std::string& publicId,
-                                     ResourceType expectedType,
-                                     ResourceType levelOfInterest)
+  bool StatelessDatabaseOperations::GetMainDicomTags(DicomMap& result,
+                                                     const std::string& publicId,
+                                                     ResourceType expectedType,
+                                                     ResourceType levelOfInterest)
   {
     // Yes, the following test could be shortened, but we wish to make it as clear as possible
     if (!(expectedType == ResourceType_Patient  && levelOfInterest == ResourceType_Patient) &&
@@ -2276,8 +1743,8 @@ namespace Orthanc
   }
 
 
-  bool ServerIndex::GetAllMainDicomTags(DicomMap& result,
-                                        const std::string& instancePublicId)
+  bool StatelessDatabaseOperations::GetAllMainDicomTags(DicomMap& result,
+                                                        const std::string& instancePublicId)
   {
     class Operations : public ReadOnlyOperationsT3<bool&, DicomMap&, const std::string&>
     {
@@ -2359,8 +1826,8 @@ namespace Orthanc
   }
 
 
-  bool ServerIndex::LookupResourceType(ResourceType& type,
-                                       const std::string& publicId)
+  bool StatelessDatabaseOperations::LookupResourceType(ResourceType& type,
+                                                       const std::string& publicId)
   {
     class Operations : public ReadOnlyOperationsT3<bool&, ResourceType&, const std::string&>
     {
@@ -2381,9 +1848,9 @@ namespace Orthanc
   }
 
 
-  bool ServerIndex::LookupParent(std::string& target,
-                                 const std::string& publicId,
-                                 ResourceType parentType)
+  bool StatelessDatabaseOperations::LookupParent(std::string& target,
+                                                 const std::string& publicId,
+                                                 ResourceType parentType)
   {
     class Operations : public ReadOnlyOperationsT4<bool&, std::string&, const std::string&, ResourceType>
     {
@@ -2425,11 +1892,11 @@ namespace Orthanc
   }
 
 
-  void ServerIndex::ApplyLookupResources(std::vector<std::string>& resourcesId,
-                                         std::vector<std::string>* instancesId,
-                                         const DatabaseLookup& lookup,
-                                         ResourceType queryLevel,
-                                         size_t limit)
+  void StatelessDatabaseOperations::ApplyLookupResources(std::vector<std::string>& resourcesId,
+                                                         std::vector<std::string>* instancesId,
+                                                         const DatabaseLookup& lookup,
+                                                         ResourceType queryLevel,
+                                                         size_t limit)
   {
     class Operations : public ReadOnlyOperationsT4<bool, const std::vector<DatabaseConstraint>&, ResourceType, size_t>
     {
@@ -2479,9 +1946,9 @@ namespace Orthanc
   }
 
 
-  bool ServerIndex::DeleteResource(Json::Value& target,
-                                   const std::string& uuid,
-                                   ResourceType expectedType)
+  bool StatelessDatabaseOperations::DeleteResource(Json::Value& target,
+                                                   const std::string& uuid,
+                                                   ResourceType expectedType)
   {
     class Operations : public IReadWriteOperations
     {
@@ -2544,8 +2011,8 @@ namespace Orthanc
   }
 
 
-  void ServerIndex::LogExportedResource(const std::string& publicId,
-                                        const std::string& remoteModality)
+  void StatelessDatabaseOperations::LogExportedResource(const std::string& publicId,
+                                                        const std::string& remoteModality)
   {
     class Operations : public IReadWriteOperations
     {
@@ -2652,8 +2119,8 @@ namespace Orthanc
   }
 
 
-  void ServerIndex::SetProtectedPatient(const std::string& publicId,
-                                        bool isProtected)
+  void StatelessDatabaseOperations::SetProtectedPatient(const std::string& publicId,
+                                                        bool isProtected)
   {
     class Operations : public IReadWriteOperations
     {
@@ -2700,9 +2167,9 @@ namespace Orthanc
   }
 
 
-  void ServerIndex::SetMetadata(const std::string& publicId,
-                                MetadataType type,
-                                const std::string& value)
+  void StatelessDatabaseOperations::SetMetadata(const std::string& publicId,
+                                                MetadataType type,
+                                                const std::string& value)
   {
     class Operations : public IReadWriteOperations
     {
@@ -2746,8 +2213,8 @@ namespace Orthanc
   }
 
 
-  void ServerIndex::DeleteMetadata(const std::string& publicId,
-                                   MetadataType type)
+  void StatelessDatabaseOperations::DeleteMetadata(const std::string& publicId,
+                                                   MetadataType type)
   {
     class Operations : public IReadWriteOperations
     {
@@ -2788,7 +2255,7 @@ namespace Orthanc
   }
 
 
-  uint64_t ServerIndex::IncrementGlobalSequence(GlobalProperty sequence)
+  uint64_t StatelessDatabaseOperations::IncrementGlobalSequence(GlobalProperty sequence)
   {
     class Operations : public IReadWriteOperations
     {
@@ -2846,7 +2313,7 @@ namespace Orthanc
   }
 
 
-  void ServerIndex::DeleteChanges()
+  void StatelessDatabaseOperations::DeleteChanges()
   {
     class Operations : public IReadWriteOperations
     {
@@ -2862,7 +2329,7 @@ namespace Orthanc
   }
 
   
-  void ServerIndex::DeleteExportedResources()
+  void StatelessDatabaseOperations::DeleteExportedResources()
   {
     class Operations : public IReadWriteOperations
     {
@@ -2878,8 +2345,8 @@ namespace Orthanc
   }
 
 
-  void ServerIndex::SetGlobalProperty(GlobalProperty property,
-                                      const std::string& value)
+  void StatelessDatabaseOperations::SetGlobalProperty(GlobalProperty property,
+                                                      const std::string& value)
   {
     class Operations : public IReadWriteOperations
     {
@@ -2906,8 +2373,8 @@ namespace Orthanc
   }
 
 
-  void ServerIndex::DeleteAttachment(const std::string& publicId,
-                                     FileContentType type)
+  void StatelessDatabaseOperations::DeleteAttachment(const std::string& publicId,
+                                                     FileContentType type)
   {
     class Operations : public IReadWriteOperations
     {
@@ -2948,9 +2415,9 @@ namespace Orthanc
   }
 
 
-  void ServerIndex::LogChange(ChangeType changeType,
-                              const std::string& publicId,
-                              ResourceType level)
+  void StatelessDatabaseOperations::LogChange(ChangeType changeType,
+                                              const std::string& publicId,
+                                              ResourceType level)
   {
     class Operations : public IReadWriteOperations
     {
@@ -2978,7 +2445,7 @@ namespace Orthanc
           // Make sure that the resource is still existing. Ignore if
           // the resource has been deleted, because this function
           // might e.g. be called from
-          // "ServerIndex::UnstableResourcesMonitorThread()" (for
+          // "StatelessDatabaseOperations::UnstableResourcesMonitorThread()" (for
           // which a deleted resource not an error case)
           if (type == level_)
           {
@@ -2998,7 +2465,7 @@ namespace Orthanc
   }
 
 
-  void ServerIndex::ReconstructInstance(const ParsedDicomFile& dicom)
+  void StatelessDatabaseOperations::ReconstructInstance(const ParsedDicomFile& dicom)
   {
     class Operations : public IReadWriteOperations
     {
@@ -3105,10 +2572,10 @@ namespace Orthanc
   }
   
 
-  void ServerIndex::ReadWriteTransaction::Recycle(uint64_t maximumStorageSize,
-                                                  unsigned int maximumPatients,
-                                                  uint64_t addedInstanceSize,
-                                                  const std::string& newPatientId)
+  void StatelessDatabaseOperations::ReadWriteTransaction::Recycle(uint64_t maximumStorageSize,
+                                                                  unsigned int maximumPatients,
+                                                                  uint64_t addedInstanceSize,
+                                                                  const std::string& newPatientId)
   {
     // TODO - Performance: Avoid calls to "IsRecyclingNeeded()"
     
@@ -3162,8 +2629,8 @@ namespace Orthanc
   }
 
 
-  void ServerIndex::StandaloneRecycling(uint64_t maximumStorageSize,
-                                        unsigned int maximumPatientCount)
+  void StatelessDatabaseOperations::StandaloneRecycling(uint64_t maximumStorageSize,
+                                                        unsigned int maximumPatientCount)
   {
     class Operations : public IReadWriteOperations
     {
@@ -3190,16 +2657,18 @@ namespace Orthanc
   }
 
 
-  StoreStatus ServerIndex::Store(std::map<MetadataType, std::string>& instanceMetadata,
-                                 const DicomMap& dicomSummary,
-                                 const Attachments& attachments,
-                                 const MetadataMap& metadata,
-                                 const DicomInstanceOrigin& origin,
-                                 bool overwrite,
-                                 bool hasTransferSyntax,
-                                 DicomTransferSyntax transferSyntax,
-                                 bool hasPixelDataOffset,
-                                 uint64_t pixelDataOffset)
+  StoreStatus StatelessDatabaseOperations::Store(std::map<MetadataType, std::string>& instanceMetadata,
+                                                 const DicomMap& dicomSummary,
+                                                 const Attachments& attachments,
+                                                 const MetadataMap& metadata,
+                                                 const DicomInstanceOrigin& origin,
+                                                 bool overwrite,
+                                                 bool hasTransferSyntax,
+                                                 DicomTransferSyntax transferSyntax,
+                                                 bool hasPixelDataOffset,
+                                                 uint64_t pixelDataOffset,
+                                                 uint64_t maximumStorageSize,
+                                                 unsigned int maximumPatients)
   {
     class Operations : public IReadWriteOperations
     {
@@ -3599,15 +3068,6 @@ namespace Orthanc
     };
 
 
-    uint64_t maximumStorageSize;
-    unsigned int maximumPatients;
-    
-    {
-      boost::mutex::scoped_lock lock(monitoringMutex_);
-      maximumStorageSize = maximumStorageSize_;
-      maximumPatients = maximumPatients_;
-    }
-
     Operations operations(instanceMetadata, dicomSummary, attachments, metadata, origin,
                           overwrite, hasTransferSyntax, transferSyntax, hasPixelDataOffset,
                           pixelDataOffset, maximumStorageSize, maximumPatients);
@@ -3616,8 +3076,10 @@ namespace Orthanc
   }
 
 
-  StoreStatus ServerIndex::AddAttachment(const FileInfo& attachment,
-                                         const std::string& publicId)
+  StoreStatus StatelessDatabaseOperations::AddAttachment(const FileInfo& attachment,
+                                                         const std::string& publicId,
+                                                         uint64_t maximumStorageSize,
+                                                         unsigned int maximumPatients)
   {
     class Operations : public IReadWriteOperations
     {
@@ -3695,15 +3157,6 @@ namespace Orthanc
       }
     };
 
-
-    uint64_t maximumStorageSize;
-    unsigned int maximumPatients;
-    
-    {
-      boost::mutex::scoped_lock lock(monitoringMutex_);
-      maximumStorageSize = maximumStorageSize_;
-      maximumPatients = maximumPatients_;
-    }
 
     Operations operations(attachment, publicId, maximumStorageSize, maximumPatients);
     Apply(operations);

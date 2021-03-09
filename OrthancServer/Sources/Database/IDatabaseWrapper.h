@@ -64,6 +64,9 @@ namespace Orthanc
 
       virtual void Rollback() = 0;
 
+      // The "fileSizeDelta" is used for older database plugins that
+      // have no fast way to compute the size of all the stored
+      // attachments (cf. "fastGetTotalSize_")
       virtual void Commit(int64_t fileSizeDelta) = 0;
     };
 
