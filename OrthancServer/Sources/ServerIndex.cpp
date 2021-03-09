@@ -453,154 +453,46 @@ namespace Orthanc
 
 
   void ServerIndex::FlushThread(ServerIndex* that,
-                                unsigned int threadSleep)
+                                unsigned int threadSleepGranularityMilliseconds)
   {
     // By default, wait for 10 seconds before flushing
-    unsigned int sleep = 10;
+    static const unsigned int SLEEP_SECONDS = 10;
 
-    // TODO - REMOVE THIS
-    try
+    if (threadSleepGranularityMilliseconds > 1000)
     {
-      boost::mutex::scoped_lock lock(that->monitoringMutex_);
-      std::string sleepString;
-
-      if (that->db_.LookupGlobalProperty(sleepString, GlobalProperty_FlushSleep) &&
-          Toolbox::IsInteger(sleepString))
-      {
-        sleep = boost::lexical_cast<unsigned int>(sleepString);
-      }
-    }
-    catch (boost::bad_lexical_cast&)
-    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
 
-    LOG(INFO) << "Starting the database flushing thread (sleep = " << sleep << ")";
+    LOG(INFO) << "Starting the database flushing thread (sleep = " << SLEEP_SECONDS << " seconds)";
 
     unsigned int count = 0;
+    unsigned int countThreshold = (1000 * SLEEP_SECONDS) / threadSleepGranularityMilliseconds;
 
     while (!that->done_)
     {
-      boost::this_thread::sleep(boost::posix_time::milliseconds(threadSleep));
+      boost::this_thread::sleep(boost::posix_time::milliseconds(threadSleepGranularityMilliseconds));
       count++;
-      if (count < sleep)
+      
+      if (count >= countThreshold)
       {
-        continue;
+        Logging::Flush();
+      
+        boost::mutex::scoped_lock lock(that->monitoringMutex_);
+        
+        try
+        {
+          that->db_.FlushToDisk();
+        }
+        catch (OrthancException&)
+        {
+          LOG(ERROR) << "Cannot flush the SQLite database to the disk (is your filesystem full?)";
+        }
+        
+        count = 0;
       }
-
-      Logging::Flush();
-
-      boost::mutex::scoped_lock lock(that->monitoringMutex_);
-
-      try
-      {
-        that->db_.FlushToDisk();
-      }
-      catch (OrthancException&)
-      {
-        LOG(ERROR) << "Cannot flush the SQLite database to the disk (is your filesystem full?)";
-      }
-          
-      count = 0;
     }
 
     LOG(INFO) << "Stopping the database flushing thread";
-  }
-
-
-  static bool ComputeExpectedNumberOfInstances(int64_t& target,
-                                               const DicomMap& dicomSummary)
-  {
-    try
-    {
-      const DicomValue* value;
-      const DicomValue* value2;
-          
-      if ((value = dicomSummary.TestAndGetValue(DICOM_TAG_IMAGES_IN_ACQUISITION)) != NULL &&
-          !value->IsNull() &&
-          !value->IsBinary() &&
-          (value2 = dicomSummary.TestAndGetValue(DICOM_TAG_NUMBER_OF_TEMPORAL_POSITIONS)) != NULL &&
-          !value2->IsNull() &&
-          !value2->IsBinary())
-      {
-        // Patch for series with temporal positions thanks to Will Ryder
-        int64_t imagesInAcquisition = boost::lexical_cast<int64_t>(value->GetContent());
-        int64_t countTemporalPositions = boost::lexical_cast<int64_t>(value2->GetContent());
-        target = imagesInAcquisition * countTemporalPositions;
-        return (target > 0);
-      }
-
-      else if ((value = dicomSummary.TestAndGetValue(DICOM_TAG_NUMBER_OF_SLICES)) != NULL &&
-               !value->IsNull() &&
-               !value->IsBinary() &&
-               (value2 = dicomSummary.TestAndGetValue(DICOM_TAG_NUMBER_OF_TIME_SLICES)) != NULL &&
-               !value2->IsBinary() &&
-               !value2->IsNull())
-      {
-        // Support of Cardio-PET images
-        int64_t numberOfSlices = boost::lexical_cast<int64_t>(value->GetContent());
-        int64_t numberOfTimeSlices = boost::lexical_cast<int64_t>(value2->GetContent());
-        target = numberOfSlices * numberOfTimeSlices;
-        return (target > 0);
-      }
-
-      else if ((value = dicomSummary.TestAndGetValue(DICOM_TAG_CARDIAC_NUMBER_OF_IMAGES)) != NULL &&
-               !value->IsNull() &&
-               !value->IsBinary())
-      {
-        target = boost::lexical_cast<int64_t>(value->GetContent());
-        return (target > 0);
-      }
-    }
-    catch (OrthancException&)
-    {
-    }
-    catch (boost::bad_lexical_cast&)
-    {
-    }
-
-    return false;
-  }
-
-
-
-
-  static bool LookupStringMetadata(std::string& result,
-                                   const std::map<MetadataType, std::string>& metadata,
-                                   MetadataType type)
-  {
-    std::map<MetadataType, std::string>::const_iterator found = metadata.find(type);
-
-    if (found == metadata.end())
-    {
-      return false;
-    }
-    else
-    {
-      result = found->second;
-      return true;
-    }
-  }
-
-
-  static bool LookupIntegerMetadata(int64_t& result,
-                                    const std::map<MetadataType, std::string>& metadata,
-                                    MetadataType type)
-  {
-    std::string s;
-    if (!LookupStringMetadata(s, metadata, type))
-    {
-      return false;
-    }
-
-    try
-    {
-      result = boost::lexical_cast<int64_t>(s);
-      return true;
-    }
-    catch (boost::bad_lexical_cast&)
-    {
-      return false;
-    }
   }
 
 
@@ -629,7 +521,7 @@ namespace Orthanc
 
   ServerIndex::ServerIndex(ServerContext& context,
                            IDatabaseWrapper& db,
-                           unsigned int threadSleep) : 
+                           unsigned int threadSleepGranularityMilliseconds) : 
     done_(false),
     db_(db),
     maximumStorageSize_(0),
@@ -646,11 +538,11 @@ namespace Orthanc
 
     if (db.HasFlushToDisk())
     {
-      flushThread_ = boost::thread(FlushThread, this, threadSleep);
+      flushThread_ = boost::thread(FlushThread, this, threadSleepGranularityMilliseconds);
     }
 
     unstableResourcesMonitorThread_ = boost::thread
-      (UnstableResourcesMonitorThread, this, threadSleep);
+      (UnstableResourcesMonitorThread, this, threadSleepGranularityMilliseconds);
   }
 
 
@@ -841,7 +733,7 @@ namespace Orthanc
 
 
   void ServerIndex::UnstableResourcesMonitorThread(ServerIndex* that,
-                                                   unsigned int threadSleep)
+                                                   unsigned int threadSleepGranularityMilliseconds)
   {
     int stableAge;
     
@@ -860,7 +752,7 @@ namespace Orthanc
     while (!that->done_)
     {
       // Check for stable resources each few seconds
-      boost::this_thread::sleep(boost::posix_time::milliseconds(threadSleep));
+      boost::this_thread::sleep(boost::posix_time::milliseconds(threadSleepGranularityMilliseconds));
 
       boost::mutex::scoped_lock lock(that->monitoringMutex_);
 
@@ -1262,6 +1154,46 @@ namespace Orthanc
     {
     private:
       ServerIndex&  index_;     // TODO - REMOVE
+
+      static bool LookupStringMetadata(std::string& result,
+                                       const std::map<MetadataType, std::string>& metadata,
+                                       MetadataType type)
+      {
+        std::map<MetadataType, std::string>::const_iterator found = metadata.find(type);
+
+        if (found == metadata.end())
+        {
+          return false;
+        }
+        else
+        {
+          result = found->second;
+          return true;
+        }
+      }
+
+
+      static bool LookupIntegerMetadata(int64_t& result,
+                                        const std::map<MetadataType, std::string>& metadata,
+                                        MetadataType type)
+      {
+        std::string s;
+        if (!LookupStringMetadata(s, metadata, type))
+        {
+          return false;
+        }
+
+        try
+        {
+          result = boost::lexical_cast<int64_t>(s);
+          return true;
+        }
+        catch (boost::bad_lexical_cast&)
+        {
+          return false;
+        }
+      }
+
 
     public:
       explicit Operations(ServerIndex& index) :
@@ -3217,6 +3149,60 @@ namespace Orthanc
       std::string   hashSeries_;
       std::string   hashInstance_;
       
+      static bool ComputeExpectedNumberOfInstances(int64_t& target,
+                                                   const DicomMap& dicomSummary)
+      {
+        try
+        {
+          const DicomValue* value;
+          const DicomValue* value2;
+          
+          if ((value = dicomSummary.TestAndGetValue(DICOM_TAG_IMAGES_IN_ACQUISITION)) != NULL &&
+              !value->IsNull() &&
+              !value->IsBinary() &&
+              (value2 = dicomSummary.TestAndGetValue(DICOM_TAG_NUMBER_OF_TEMPORAL_POSITIONS)) != NULL &&
+              !value2->IsNull() &&
+              !value2->IsBinary())
+          {
+            // Patch for series with temporal positions thanks to Will Ryder
+            int64_t imagesInAcquisition = boost::lexical_cast<int64_t>(value->GetContent());
+            int64_t countTemporalPositions = boost::lexical_cast<int64_t>(value2->GetContent());
+            target = imagesInAcquisition * countTemporalPositions;
+            return (target > 0);
+          }
+
+          else if ((value = dicomSummary.TestAndGetValue(DICOM_TAG_NUMBER_OF_SLICES)) != NULL &&
+                   !value->IsNull() &&
+                   !value->IsBinary() &&
+                   (value2 = dicomSummary.TestAndGetValue(DICOM_TAG_NUMBER_OF_TIME_SLICES)) != NULL &&
+                   !value2->IsBinary() &&
+                   !value2->IsNull())
+          {
+            // Support of Cardio-PET images
+            int64_t numberOfSlices = boost::lexical_cast<int64_t>(value->GetContent());
+            int64_t numberOfTimeSlices = boost::lexical_cast<int64_t>(value2->GetContent());
+            target = numberOfSlices * numberOfTimeSlices;
+            return (target > 0);
+          }
+
+          else if ((value = dicomSummary.TestAndGetValue(DICOM_TAG_CARDIAC_NUMBER_OF_IMAGES)) != NULL &&
+                   !value->IsNull() &&
+                   !value->IsBinary())
+          {
+            target = boost::lexical_cast<int64_t>(value->GetContent());
+            return (target > 0);
+          }
+        }
+        catch (OrthancException&)
+        {
+        }
+        catch (boost::bad_lexical_cast&)
+        {
+        }
+
+        return false;
+      }
+
     public:
       Operations(std::map<MetadataType, std::string>& instanceMetadata,
                  ServerIndex& index,
