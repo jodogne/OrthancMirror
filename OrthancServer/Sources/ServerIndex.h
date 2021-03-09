@@ -61,7 +61,7 @@ namespace Orthanc
     class MainDicomTagsRegistry;
 
     bool done_;
-    boost::mutex mutex_;
+    boost::mutex monitoringMutex_;
     boost::thread flushThread_;
     boost::thread unstableResourcesMonitorThread_;
 
@@ -85,12 +85,8 @@ namespace Orthanc
                                     int64_t resourceId,
                                     ResourceType resourceType);
 
-    bool IsRecyclingNeeded(uint64_t instanceSize);
-
-    void Recycle(uint64_t instanceSize,
-                 const std::string& newPatientId);
-
-    void StandaloneRecycling();
+    void StandaloneRecycling(uint64_t maximumStorageSize,
+                             unsigned int maximumPatientCount);
 
     void MarkAsUnstable(int64_t id,
                         Orthanc::ResourceType type,
@@ -105,11 +101,6 @@ namespace Orthanc
                          const DatabaseLookup& source,
                          ResourceType level) const;
 
-    // A transaction must be running
-    static SeriesStatus GetSeriesStatus(IDatabaseWrapper& db,
-                                        int64_t id,
-                                        int64_t expectedNumberOfInstances);
-
     bool IsUnstableResource(int64_t id);
 
   public:
@@ -121,38 +112,14 @@ namespace Orthanc
 
     void Stop();
 
-    uint64_t GetMaximumStorageSize() const
-    {
-      return maximumStorageSize_;
-    }
-
-    uint64_t GetMaximumPatientCount() const
-    {
-      return maximumPatients_;
-    }
-
     // "size == 0" means no limit on the storage size
     void SetMaximumStorageSize(uint64_t size);
 
     // "count == 0" means no limit on the number of patients
     void SetMaximumPatientCount(unsigned int count);
 
-    StoreStatus Store(std::map<MetadataType, std::string>& instanceMetadata,
-                      const DicomMap& dicomSummary,
-                      const Attachments& attachments,
-                      const MetadataMap& metadata,
-                      const DicomInstanceOrigin& origin,
-                      bool overwrite,
-                      bool hasTransferSyntax,
-                      DicomTransferSyntax transferSyntax,
-                      bool hasPixelDataOffset,
-                      uint64_t pixelDataOffset);
 
-    StoreStatus AddAttachment(const FileInfo& attachment,
-                              const std::string& publicId);
-
-
-
+    
     /***
      ** PROTOTYPING FOR DB REFACTORING BELOW
      ***/
@@ -174,10 +141,7 @@ namespace Orthanc
        **/
 
       SeriesStatus GetSeriesStatus(int64_t id,
-                                   int64_t expectedNumberOfInstances)
-      {
-        return ServerIndex::GetSeriesStatus(db_, id, expectedNumberOfInstances);
-      }
+                                   int64_t expectedNumberOfInstances);
 
       void MainDicomTagsToJson(Json::Value& result,
                                int64_t resourceId,
@@ -373,6 +337,12 @@ namespace Orthanc
         return listener_;
       }
 
+      void AddAttachment(int64_t id,
+                         const FileInfo& attachment)
+      {
+        db_.AddAttachment(id, attachment);
+      }
+      
       void ClearChanges()
       {
         db_.ClearChanges();
@@ -386,6 +356,16 @@ namespace Orthanc
       void ClearMainDicomTags(int64_t id)
       {
         return db_.ClearMainDicomTags(id);
+      }
+
+      bool CreateInstance(IDatabaseWrapper::CreateInstanceResult& result, /* out */
+                          int64_t& instanceId,          /* out */
+                          const std::string& patient,
+                          const std::string& study,
+                          const std::string& series,
+                          const std::string& instance)
+      {
+        return db_.CreateInstance(result, instanceId, patient, study, series, instance);
       }
 
       void DeleteAttachment(int64_t id,
@@ -441,6 +421,11 @@ namespace Orthanc
       {
         db_.SetResourcesContent(content);
       }
+
+      void Recycle(uint64_t maximumStorageSize,
+                   unsigned int maximumPatients,
+                   uint64_t addedInstanceSize,
+                   const std::string& newPatientId);
     };
 
 
@@ -613,5 +598,19 @@ namespace Orthanc
                    const std::string& publicId);
 
     void ReconstructInstance(const ParsedDicomFile& dicom);
+
+    StoreStatus Store(std::map<MetadataType, std::string>& instanceMetadata,
+                      const DicomMap& dicomSummary,
+                      const Attachments& attachments,
+                      const MetadataMap& metadata,
+                      const DicomInstanceOrigin& origin,
+                      bool overwrite,
+                      bool hasTransferSyntax,
+                      DicomTransferSyntax transferSyntax,
+                      bool hasPixelDataOffset,
+                      uint64_t pixelDataOffset);
+
+    StoreStatus AddAttachment(const FileInfo& attachment,
+                              const std::string& publicId);
   };
 }
