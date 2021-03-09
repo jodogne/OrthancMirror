@@ -76,7 +76,7 @@ namespace Orthanc
     }      
   }
 
-  
+
   class ServerIndex::Listener : public IDatabaseListener,
                                 public ServerIndex::ITransactionContext
   {
@@ -286,6 +286,64 @@ namespace Orthanc
   };
 
 
+  class ServerIndex::TransactionContextFactory : public ITransactionContextFactory
+  {
+  private:
+    class Context : public ITransactionContext
+    {
+    private:
+      Listener&  listener_;
+
+    public:
+      Context(ServerIndex& index) :
+        listener_(*index.listener_)
+      {
+      }
+
+      virtual bool IsUnstableResource(int64_t id) ORTHANC_OVERRIDE
+      {
+        return listener_.IsUnstableResource(id);
+      }
+
+      virtual bool LookupRemainingLevel(std::string& remainingPublicId /* out */,
+                                        ResourceType& remainingLevel   /* out */) ORTHANC_OVERRIDE
+      {
+        return listener_.LookupRemainingLevel(remainingPublicId, remainingLevel);
+      }
+
+      virtual void MarkAsUnstable(int64_t id,
+                                  Orthanc::ResourceType type,
+                                  const std::string& publicId) ORTHANC_OVERRIDE
+      {
+        listener_.MarkAsUnstable(id, type, publicId);
+      }
+
+      virtual void SignalAttachmentsAdded(uint64_t compressedSize) ORTHANC_OVERRIDE
+      {
+        listener_.SignalAttachmentsAdded(compressedSize);
+      }
+
+      virtual void SignalChange(const ServerIndexChange& change) ORTHANC_OVERRIDE
+      {
+        listener_.SignalChange(change);
+      }
+    };
+
+    ServerIndex& index_;
+      
+  public:
+    TransactionContextFactory(ServerIndex& index) :
+      index_(index)
+    {
+    }
+
+    virtual ITransactionContext* Create()
+    {
+      return new Context(index_);
+    }
+  };    
+  
+  
   class ServerIndex::Transaction
   {
   private:
@@ -561,6 +619,8 @@ namespace Orthanc
   {
     listener_.reset(new Listener(context));
     db_.SetListener(*listener_);
+
+    SetTransactionContextFactory(new TransactionContextFactory(*this));
 
     // Initial recycling if the parameters have changed since the last
     // execution of Orthanc
@@ -1089,6 +1149,11 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_InternalError);
     }
+
+    if (factory_.get() == NULL)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls, "No transaction context was provided");     
+    }
     
     unsigned int count = 0;
 
@@ -1096,6 +1161,13 @@ namespace Orthanc
     {
       try
       {
+        std::unique_ptr<ITransactionContext>  context(factory_->Create());
+
+        if (context.get() == NULL)
+        {
+          throw OrthancException(ErrorCode_InternalError);
+        }
+        
         boost::mutex::scoped_lock lock(databaseMutex_);  // TODO - REMOVE
 
         if (readOperations != NULL)
@@ -1108,7 +1180,7 @@ namespace Orthanc
           
           Transaction transaction(*this, TransactionType_ReadOnly);  // TODO - Only if not "TransactionType_Implicit"
           {
-            ReadOnlyTransaction t(db_, *listener_);
+            ReadOnlyTransaction t(db_, *context);
             readOperations->Apply(t);
           }
           transaction.Commit();
@@ -1119,8 +1191,7 @@ namespace Orthanc
           
           Transaction transaction(*this, TransactionType_ReadWrite);
           {
-            assert(listener_.get() != NULL);
-            ReadWriteTransaction t(db_, *listener_);
+            ReadWriteTransaction t(db_, *context);
             writeOperations->Apply(t);
           }
           transaction.Commit();
@@ -1163,6 +1234,23 @@ namespace Orthanc
   }
 
   
+  void ServerIndex::SetTransactionContextFactory(ITransactionContextFactory* factory)
+  {
+    if (factory == NULL)
+    {
+      throw OrthancException(ErrorCode_NullPointer);
+    }
+    else if (factory_.get() != NULL)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    else
+    {
+      factory_.reset(factory);
+    }
+  }
+    
+
   void ServerIndex::Apply(IReadOnlyOperations& operations)
   {
     ApplyInternal(&operations, NULL);

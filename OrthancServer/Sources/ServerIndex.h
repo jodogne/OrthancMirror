@@ -55,6 +55,7 @@ namespace Orthanc
     typedef std::map<std::pair<ResourceType, MetadataType>, std::string>  MetadataMap;
 
   private:
+    class TransactionContextFactory;
     class Listener;
     class Transaction;
     class UnstableResourcePayload;
@@ -144,6 +145,17 @@ namespace Orthanc
     };
 
     
+    class ITransactionContextFactory : public boost::noncopyable
+    {
+    public:
+      virtual ~ITransactionContextFactory()
+      {
+      }
+
+      virtual ITransactionContext* Create() = 0;
+    };
+
+
     class ReadOnlyTransaction : public boost::noncopyable
     {
     private:
@@ -459,10 +471,13 @@ namespace Orthanc
   private:
     void ApplyInternal(IReadOnlyOperations* readOperations,
                        IReadWriteOperations* writeOperations);
-    
+
+    std::unique_ptr<ITransactionContextFactory>  factory_;
     unsigned int maxRetries_;
 
   public:
+    void SetTransactionContextFactory(ITransactionContextFactory* factory /* takes ownership */);
+    
     void Apply(IReadOnlyOperations& operations);
   
     void Apply(IReadWriteOperations& operations);
