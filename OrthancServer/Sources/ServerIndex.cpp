@@ -112,6 +112,7 @@ namespace Orthanc
     std::list<ServerIndexChange> pendingChanges_;
     uint64_t sizeOfFilesToRemove_;
     bool insideTransaction_;
+    uint64_t sizeOfAddedAttachments_;
 
     void Reset()
     {
@@ -119,12 +120,14 @@ namespace Orthanc
       hasRemainingLevel_ = false;
       pendingFilesToRemove_.clear();
       pendingChanges_.clear();
+      sizeOfAddedAttachments_ = 0;
     }
 
   public:
     explicit Listener(ServerContext& context) :
       context_(context),
-      insideTransaction_(false)      
+      insideTransaction_(false),
+      sizeOfAddedAttachments_(0)
     {
       Reset();
       assert(ResourceType_Patient < ResourceType_Study &&
@@ -226,6 +229,11 @@ namespace Orthanc
       }
     }
 
+    void SignalAttachmentsAdded(uint64_t compressedSize)
+    {
+      sizeOfAddedAttachments_ += compressedSize;
+    }
+
     bool HasRemainingLevel() const
     {
       return hasRemainingLevel_;
@@ -241,7 +249,12 @@ namespace Orthanc
     {
       assert(HasRemainingLevel());
       return remainingPublicId_;
-    }                                 
+    }
+
+    uint64_t GetSizeOfAddedAttachments() const
+    {
+      return sizeOfAddedAttachments_;
+    }
   };
 
 
@@ -251,14 +264,12 @@ namespace Orthanc
     ServerIndex& index_;
     std::unique_ptr<IDatabaseWrapper::ITransaction> transaction_;
     bool isCommitted_;
-    uint64_t sizeOfAddedAttachments_;
     
   public:
     explicit Transaction(ServerIndex& index,
                          TransactionType type) : 
       index_(index),
-      isCommitted_(false),
-      sizeOfAddedAttachments_(0)
+      isCommitted_(false)
     {
       transaction_.reset(index_.db_.StartTransaction(type));
       index_.listener_->StartTransaction();
@@ -274,16 +285,11 @@ namespace Orthanc
       }
     }
 
-    void SignalAttachmentsAdded(uint64_t compressedSize)
-    {
-      sizeOfAddedAttachments_ += compressedSize;
-    }
-
     void Commit()
     {
       if (!isCommitted_)
       {
-        int64_t delta = (static_cast<int64_t>(sizeOfAddedAttachments_) -
+        int64_t delta = (static_cast<int64_t>(index_.listener_->GetSizeOfAddedAttachments()) -
                          static_cast<int64_t>(index_.listener_->GetSizeOfFilesToRemove()));
 
         transaction_->Commit(delta);
@@ -452,9 +458,10 @@ namespace Orthanc
     // By default, wait for 10 seconds before flushing
     unsigned int sleep = 10;
 
+    // TODO - REMOVE THIS
     try
     {
-      boost::mutex::scoped_lock lock(that->mutex_);
+      boost::mutex::scoped_lock lock(that->monitoringMutex_);
       std::string sleepString;
 
       if (that->db_.LookupGlobalProperty(sleepString, GlobalProperty_FlushSleep) &&
@@ -482,7 +489,7 @@ namespace Orthanc
 
       Logging::Flush();
 
-      boost::mutex::scoped_lock lock(that->mutex_);
+      boost::mutex::scoped_lock lock(that->monitoringMutex_);
 
       try
       {
@@ -635,7 +642,7 @@ namespace Orthanc
 
     // Initial recycling if the parameters have changed since the last
     // execution of Orthanc
-    StandaloneRecycling();
+    StandaloneRecycling(maximumStorageSize_, maximumPatients_);
 
     if (db.HasFlushToDisk())
     {
@@ -679,309 +686,12 @@ namespace Orthanc
   }
 
 
-  static void SetInstanceMetadata(ResourcesContent& content,
-                                  std::map<MetadataType, std::string>& instanceMetadata,
-                                  int64_t instance,
-                                  MetadataType metadata,
-                                  const std::string& value)
-  {
-    content.AddMetadata(instance, metadata, value);
-    instanceMetadata[metadata] = value;
-  }
 
-
-  StoreStatus ServerIndex::Store(std::map<MetadataType, std::string>& instanceMetadata,
-                                 const DicomMap& dicomSummary,
-                                 const Attachments& attachments,
-                                 const MetadataMap& metadata,
-                                 const DicomInstanceOrigin& origin,
-                                 bool overwrite,
-                                 bool hasTransferSyntax,
-                                 DicomTransferSyntax transferSyntax,
-                                 bool hasPixelDataOffset,
-                                 uint64_t pixelDataOffset)
-  {
-    boost::mutex::scoped_lock lock(mutex_);
-
-    int64_t expectedInstances;
-    const bool hasExpectedInstances =
-      ComputeExpectedNumberOfInstances(expectedInstances, dicomSummary);
-    
-    instanceMetadata.clear();
-
-    DicomInstanceHasher hasher(dicomSummary);
-    const std::string hashPatient = hasher.HashPatient();
-    const std::string hashStudy = hasher.HashStudy();
-    const std::string hashSeries = hasher.HashSeries();
-    const std::string hashInstance = hasher.HashInstance();
-
-    try
-    {
-      Transaction t(*this, TransactionType_ReadWrite);
-
-      IDatabaseWrapper::CreateInstanceResult status;
-      int64_t instanceId;
-
-      // Check whether this instance is already stored
-      if (!db_.CreateInstance(status, instanceId, hashPatient,
-                              hashStudy, hashSeries, hashInstance))
-      {
-        // The instance already exists
-        
-        if (overwrite)
-        {
-          // Overwrite the old instance
-          LOG(INFO) << "Overwriting instance: " << hashInstance;
-          db_.DeleteResource(instanceId);
-
-          // Re-create the instance, now that the old one is removed
-          if (!db_.CreateInstance(status, instanceId, hashPatient,
-                                  hashStudy, hashSeries, hashInstance))
-          {
-            throw OrthancException(ErrorCode_InternalError);
-          }
-        }
-        else
-        {
-          // Do nothing if the instance already exists and overwriting is disabled
-          db_.GetAllMetadata(instanceMetadata, instanceId);
-          return StoreStatus_AlreadyStored;
-        }
-      }
-
-
-      // Warn about the creation of new resources. The order must be
-      // from instance to patient.
-
-      // NB: In theory, could be sped up by grouping the underlying
-      // calls to "db_.LogChange()". However, this would only have an
-      // impact when new patient/study/series get created, which
-      // occurs far less often that creating new instances. The
-      // positive impact looks marginal in practice.
-      LogChange(instanceId, ChangeType_NewInstance, ResourceType_Instance, hashInstance);
-
-      if (status.isNewSeries_)
-      {
-        LogChange(status.seriesId_, ChangeType_NewSeries, ResourceType_Series, hashSeries);
-      }
-      
-      if (status.isNewStudy_)
-      {
-        LogChange(status.studyId_, ChangeType_NewStudy, ResourceType_Study, hashStudy);
-      }
-      
-      if (status.isNewPatient_)
-      {
-        LogChange(status.patientId_, ChangeType_NewPatient, ResourceType_Patient, hashPatient);
-      }
-      
-      
-      // Ensure there is enough room in the storage for the new instance
-      uint64_t instanceSize = 0;
-      for (Attachments::const_iterator it = attachments.begin();
-           it != attachments.end(); ++it)
-      {
-        instanceSize += it->GetCompressedSize();
-      }
-
-      Recycle(instanceSize, hashPatient /* don't consider the current patient for recycling */);
-      
-     
-      // Attach the files to the newly created instance
-      for (Attachments::const_iterator it = attachments.begin();
-           it != attachments.end(); ++it)
-      {
-        db_.AddAttachment(instanceId, *it);
-      }
-
-      
-      {
-        ResourcesContent content;
-      
-        // Populate the tags of the newly-created resources
-
-        content.AddResource(instanceId, ResourceType_Instance, dicomSummary);
-
-        if (status.isNewSeries_)
-        {
-          content.AddResource(status.seriesId_, ResourceType_Series, dicomSummary);
-        }
-
-        if (status.isNewStudy_)
-        {
-          content.AddResource(status.studyId_, ResourceType_Study, dicomSummary);
-        }
-
-        if (status.isNewPatient_)
-        {
-          content.AddResource(status.patientId_, ResourceType_Patient, dicomSummary);
-        }
-
-
-        // Attach the user-specified metadata
-
-        for (MetadataMap::const_iterator 
-               it = metadata.begin(); it != metadata.end(); ++it)
-        {
-          switch (it->first.first)
-          {
-            case ResourceType_Patient:
-              content.AddMetadata(status.patientId_, it->first.second, it->second);
-              break;
-
-            case ResourceType_Study:
-              content.AddMetadata(status.studyId_, it->first.second, it->second);
-              break;
-
-            case ResourceType_Series:
-              content.AddMetadata(status.seriesId_, it->first.second, it->second);
-              break;
-
-            case ResourceType_Instance:
-              SetInstanceMetadata(content, instanceMetadata, instanceId,
-                                  it->first.second, it->second);
-              break;
-
-            default:
-              throw OrthancException(ErrorCode_ParameterOutOfRange);
-          }
-        }
-
-        
-        // Attach the auto-computed metadata for the patient/study/series levels
-        std::string now = SystemToolbox::GetNowIsoString(true /* use UTC time (not local time) */);
-        content.AddMetadata(status.seriesId_, MetadataType_LastUpdate, now);
-        content.AddMetadata(status.studyId_, MetadataType_LastUpdate, now);
-        content.AddMetadata(status.patientId_, MetadataType_LastUpdate, now);
-
-        if (status.isNewSeries_)
-        {
-          if (hasExpectedInstances)
-          {
-            content.AddMetadata(status.seriesId_, MetadataType_Series_ExpectedNumberOfInstances,
-                                boost::lexical_cast<std::string>(expectedInstances));
-          }
-
-          // New in Orthanc 1.9.0
-          content.AddMetadata(status.seriesId_, MetadataType_RemoteAet,
-                              origin.GetRemoteAetC());
-        }
-
-        
-        // Attach the auto-computed metadata for the instance level,
-        // reflecting these additions into the input metadata map
-        SetInstanceMetadata(content, instanceMetadata, instanceId,
-                            MetadataType_Instance_ReceptionDate, now);
-        SetInstanceMetadata(content, instanceMetadata, instanceId, MetadataType_RemoteAet,
-                            origin.GetRemoteAetC());
-        SetInstanceMetadata(content, instanceMetadata, instanceId, MetadataType_Instance_Origin, 
-                            EnumerationToString(origin.GetRequestOrigin()));
-
-
-        if (hasTransferSyntax)
-        {
-          // New in Orthanc 1.2.0
-          SetInstanceMetadata(content, instanceMetadata, instanceId,
-                              MetadataType_Instance_TransferSyntax,
-                              GetTransferSyntaxUid(transferSyntax));
-        }
-
-        {
-          std::string s;
-
-          if (origin.LookupRemoteIp(s))
-          {
-            // New in Orthanc 1.4.0
-            SetInstanceMetadata(content, instanceMetadata, instanceId,
-                                MetadataType_Instance_RemoteIp, s);
-          }
-
-          if (origin.LookupCalledAet(s))
-          {
-            // New in Orthanc 1.4.0
-            SetInstanceMetadata(content, instanceMetadata, instanceId,
-                                MetadataType_Instance_CalledAet, s);
-          }
-
-          if (origin.LookupHttpUsername(s))
-          {
-            // New in Orthanc 1.4.0
-            SetInstanceMetadata(content, instanceMetadata, instanceId,
-                                MetadataType_Instance_HttpUsername, s);
-          }
-        }
-
-        if (hasPixelDataOffset)
-        {
-          // New in Orthanc 1.9.1
-          SetInstanceMetadata(content, instanceMetadata, instanceId,
-                              MetadataType_Instance_PixelDataOffset,
-                              boost::lexical_cast<std::string>(pixelDataOffset));
-        }
-        
-        const DicomValue* value;
-        if ((value = dicomSummary.TestAndGetValue(DICOM_TAG_SOP_CLASS_UID)) != NULL &&
-            !value->IsNull() &&
-            !value->IsBinary())
-        {
-          SetInstanceMetadata(content, instanceMetadata, instanceId,
-                              MetadataType_Instance_SopClassUid, value->GetContent());
-        }
-
-
-        if ((value = dicomSummary.TestAndGetValue(DICOM_TAG_INSTANCE_NUMBER)) != NULL ||
-            (value = dicomSummary.TestAndGetValue(DICOM_TAG_IMAGE_INDEX)) != NULL)
-        {
-          if (!value->IsNull() && 
-              !value->IsBinary())
-          {
-            SetInstanceMetadata(content, instanceMetadata, instanceId,
-                                MetadataType_Instance_IndexInSeries, Toolbox::StripSpaces(value->GetContent()));
-          }
-        }
-
-        
-        db_.SetResourcesContent(content);
-      }
-
-  
-      // Check whether the series of this new instance is now completed
-      int64_t expectedNumberOfInstances;
-      if (ComputeExpectedNumberOfInstances(expectedNumberOfInstances, dicomSummary))
-      {
-        SeriesStatus seriesStatus = GetSeriesStatus(db_, status.seriesId_, expectedNumberOfInstances);
-        if (seriesStatus == SeriesStatus_Complete)
-        {
-          LogChange(status.seriesId_, ChangeType_CompletedSeries, ResourceType_Series, hashSeries);
-        }
-      }
-      
-
-      // Mark the parent resources of this instance as unstable
-      MarkAsUnstable(status.seriesId_, ResourceType_Series, hashSeries);
-      MarkAsUnstable(status.studyId_, ResourceType_Study, hashStudy);
-      MarkAsUnstable(status.patientId_, ResourceType_Patient, hashPatient);
-
-      t.SignalAttachmentsAdded(instanceSize);
-      t.Commit();
-
-      return StoreStatus_Success;
-    }
-    catch (OrthancException& e)
-    {
-      LOG(ERROR) << "EXCEPTION [" << e.What() << "]";
-    }
-
-    return StoreStatus_Failure;
-  }
-
-
-  SeriesStatus ServerIndex::GetSeriesStatus(IDatabaseWrapper& db,
-                                            int64_t id,
-                                            int64_t expectedNumberOfInstances)
+  SeriesStatus ServerIndex::ReadOnlyTransaction::GetSeriesStatus(int64_t id,
+                                                                 int64_t expectedNumberOfInstances)
   {
     std::list<std::string> values;
-    db.GetChildrenMetadata(values, id, MetadataType_Instance_IndexInSeries);
+    db_.GetChildrenMetadata(values, id, MetadataType_Instance_IndexInSeries);
 
     std::set<int64_t> instances;
 
@@ -1092,125 +802,42 @@ namespace Orthanc
   }
 
 
-  bool ServerIndex::IsRecyclingNeeded(uint64_t instanceSize)
+  void ServerIndex::SetMaximumPatientCount(unsigned int count) 
   {
-    if (maximumStorageSize_ != 0)
     {
-      assert(maximumStorageSize_ >= instanceSize);
+      boost::mutex::scoped_lock lock(monitoringMutex_);
+      maximumPatients_ = count;
       
-      if (db_.IsDiskSizeAbove(maximumStorageSize_ - instanceSize))
+      if (count == 0)
       {
-        return true;
-      }
-    }
-
-    if (maximumPatients_ != 0)
-    {
-      uint64_t patientCount = db_.GetResourceCount(ResourceType_Patient);
-      if (patientCount > maximumPatients_)
-      {
-        return true;
-      }
-    }
-
-    return false;
-  }
-
-  
-  void ServerIndex::Recycle(uint64_t instanceSize,
-                            const std::string& newPatientId)
-  {
-    if (IsRecyclingNeeded(instanceSize))
-    {
-      // Check whether other DICOM instances from this patient are
-      // already stored
-      int64_t patientToAvoid;
-      bool hasPatientToAvoid;
-
-      if (newPatientId.empty())
-      {
-        hasPatientToAvoid = false;
+        LOG(WARNING) << "No limit on the number of stored patients";
       }
       else
       {
-        ResourceType type;
-        hasPatientToAvoid = db_.LookupResource(patientToAvoid, type, newPatientId);
-        if (type != ResourceType_Patient)
-        {
-          throw OrthancException(ErrorCode_InternalError);
-        }
-      }
-
-      // Iteratively select patient to remove until there is enough
-      // space in the DICOM store
-      int64_t patientToRecycle;
-      while (true)
-      {
-        // If other instances of this patient are already in the store,
-        // we must avoid to recycle them
-        bool ok = (hasPatientToAvoid ?
-                   db_.SelectPatientToRecycle(patientToRecycle, patientToAvoid) :
-                   db_.SelectPatientToRecycle(patientToRecycle));
-        
-        if (!ok)
-        {
-          throw OrthancException(ErrorCode_FullStorage);
-        }
-      
-        LOG(TRACE) << "Recycling one patient";
-        db_.DeleteResource(patientToRecycle);
-
-        if (!IsRecyclingNeeded(instanceSize))
-        {
-          // OK, we're done
-          break;
-        }
+        LOG(WARNING) << "At most " << count << " patients will be stored";
       }
     }
-  }
-  
 
-  void ServerIndex::SetMaximumPatientCount(unsigned int count) 
-  {
-    boost::mutex::scoped_lock lock(mutex_);
-    maximumPatients_ = count;
-
-    if (count == 0)
-    {
-      LOG(WARNING) << "No limit on the number of stored patients";
-    }
-    else
-    {
-      LOG(WARNING) << "At most " << count << " patients will be stored";
-    }
-
-    StandaloneRecycling();
+    StandaloneRecycling(maximumStorageSize_, maximumPatients_);
   }
 
   void ServerIndex::SetMaximumStorageSize(uint64_t size) 
   {
-    boost::mutex::scoped_lock lock(mutex_);
-    maximumStorageSize_ = size;
-
-    if (size == 0)
     {
-      LOG(WARNING) << "No limit on the size of the storage area";
+      boost::mutex::scoped_lock lock(monitoringMutex_);
+      maximumStorageSize_ = size;
+      
+      if (size == 0)
+      {
+        LOG(WARNING) << "No limit on the size of the storage area";
+      }
+      else
+      {
+        LOG(WARNING) << "At most " << (size / MEGA_BYTES) << "MB will be used for the storage area";
+      }
     }
-    else
-    {
-      LOG(WARNING) << "At most " << (size / MEGA_BYTES) << "MB will be used for the storage area";
-    }
 
-    StandaloneRecycling();
-  }
-
-
-  void ServerIndex::StandaloneRecycling()
-  {
-    // WARNING: No mutex here, do not include this as a public method
-    Transaction t(*this, TransactionType_ReadWrite);
-    Recycle(0, "");
-    t.Commit();
+    StandaloneRecycling(maximumStorageSize_, maximumPatients_);
   }
 
 
@@ -1236,7 +863,7 @@ namespace Orthanc
       // Check for stable resources each few seconds
       boost::this_thread::sleep(boost::posix_time::milliseconds(threadSleep));
 
-      boost::mutex::scoped_lock lock(that->mutex_);
+      boost::mutex::scoped_lock lock(that->monitoringMutex_);
 
       while (!that->unstableResources_.IsEmpty() &&
              that->unstableResources_.GetOldestPayload().GetAge() > static_cast<unsigned int>(stableAge))
@@ -1281,7 +908,7 @@ namespace Orthanc
                                    Orthanc::ResourceType type,
                                    const std::string& publicId)
   {
-    // WARNING: Before calling this method, "mutex_" must be locked.
+    // WARNING: Before calling this method, "monitoringMutex_" must be locked.
 
     assert(type == Orthanc::ResourceType_Patient ||
            type == Orthanc::ResourceType_Study ||
@@ -1294,58 +921,6 @@ namespace Orthanc
     LogChange(id, ChangeType_NewChildInstance, type, publicId);
   }
 
-
-
-  StoreStatus ServerIndex::AddAttachment(const FileInfo& attachment,
-                                         const std::string& publicId)
-  {
-    boost::mutex::scoped_lock lock(mutex_);
-
-    Transaction t(*this, TransactionType_ReadWrite);
-
-    ResourceType resourceType;
-    int64_t resourceId;
-    if (!db_.LookupResource(resourceId, resourceType, publicId))
-    {
-      return StoreStatus_Failure;  // Inexistent resource
-    }
-
-    // Remove possible previous attachment
-    db_.DeleteAttachment(resourceId, attachment.GetContentType());
-
-    // Locate the patient of the target resource
-    int64_t patientId = resourceId;
-    for (;;)
-    {
-      int64_t parent;
-      if (db_.LookupParent(parent, patientId))
-      {
-        // We have not reached the patient level yet
-        patientId = parent;
-      }
-      else
-      {
-        // We have reached the patient level
-        break;
-      }
-    }
-
-    // Possibly apply the recycling mechanism while preserving this patient
-    assert(db_.GetResourceType(patientId) == ResourceType_Patient);
-    Recycle(attachment.GetCompressedSize(), db_.GetPublicId(patientId));
-
-    db_.AddAttachment(resourceId, attachment);
-
-    if (IsUserContentType(attachment.GetContentType()))
-    {
-      LogChange(resourceId, ChangeType_UpdatedAttachment, resourceType, publicId);
-    }
-
-    t.SignalAttachmentsAdded(attachment.GetCompressedSize());
-    t.Commit();
-
-    return StoreStatus_Success;
-  }
 
 
   void ServerIndex::NormalizeLookup(std::vector<DatabaseConstraint>& target,
@@ -1601,7 +1176,7 @@ namespace Orthanc
     {
       try
       {
-        boost::mutex::scoped_lock lock(mutex_);  // TODO - REMOVE
+        boost::mutex::scoped_lock lock(monitoringMutex_);  // TODO - REMOVE
 
         if (readOperations != NULL)
         {
@@ -3460,5 +3035,585 @@ namespace Orthanc
 
     Operations operations(dicom);
     Apply(operations);
+  }
+
+
+  static bool IsRecyclingNeeded(IDatabaseWrapper& db,
+                                uint64_t maximumStorageSize,
+                                unsigned int maximumPatients,
+                                uint64_t addedInstanceSize)
+  {
+    if (maximumStorageSize != 0)
+    {
+      if (maximumStorageSize < addedInstanceSize)
+      {
+        throw OrthancException(ErrorCode_FullStorage, "Cannot store an instance of size " +
+                               boost::lexical_cast<std::string>(addedInstanceSize) +
+                               " bytes in a storage area limited to " +
+                               boost::lexical_cast<std::string>(maximumStorageSize));
+      }
+      
+      if (db.IsDiskSizeAbove(maximumStorageSize - addedInstanceSize))
+      {
+        return true;
+      }
+    }
+
+    if (maximumPatients != 0)
+    {
+      uint64_t patientCount = db.GetResourceCount(ResourceType_Patient);
+      if (patientCount > maximumPatients)
+      {
+        return true;
+      }
+    }
+
+    return false;
+  }
+  
+
+  void ServerIndex::ReadWriteTransaction::Recycle(uint64_t maximumStorageSize,
+                                                  unsigned int maximumPatients,
+                                                  uint64_t addedInstanceSize,
+                                                  const std::string& newPatientId)
+  {
+    // TODO - Performance: Avoid calls to "IsRecyclingNeeded()"
+    
+    if (IsRecyclingNeeded(db_, maximumStorageSize, maximumPatients, addedInstanceSize))
+    {
+      // Check whether other DICOM instances from this patient are
+      // already stored
+      int64_t patientToAvoid;
+      bool hasPatientToAvoid;
+
+      if (newPatientId.empty())
+      {
+        hasPatientToAvoid = false;
+      }
+      else
+      {
+        ResourceType type;
+        hasPatientToAvoid = db_.LookupResource(patientToAvoid, type, newPatientId);
+        if (type != ResourceType_Patient)
+        {
+          throw OrthancException(ErrorCode_InternalError);
+        }
+      }
+
+      // Iteratively select patient to remove until there is enough
+      // space in the DICOM store
+      int64_t patientToRecycle;
+      while (true)
+      {
+        // If other instances of this patient are already in the store,
+        // we must avoid to recycle them
+        bool ok = (hasPatientToAvoid ?
+                   db_.SelectPatientToRecycle(patientToRecycle, patientToAvoid) :
+                   db_.SelectPatientToRecycle(patientToRecycle));
+        
+        if (!ok)
+        {
+          throw OrthancException(ErrorCode_FullStorage);
+        }
+      
+        LOG(TRACE) << "Recycling one patient";
+        db_.DeleteResource(patientToRecycle);
+
+        if (!IsRecyclingNeeded(db_, maximumStorageSize, maximumPatients, addedInstanceSize))
+        {
+          // OK, we're done
+          return;
+        }
+      }
+    }
+  }
+
+
+  void ServerIndex::StandaloneRecycling(uint64_t maximumStorageSize,
+                                        unsigned int maximumPatientCount)
+  {
+    class Operations : public IReadWriteOperations
+    {
+    private:
+      uint64_t      maximumStorageSize_;
+      unsigned int  maximumPatientCount_;
+      
+    public:
+      Operations(uint64_t maximumStorageSize,
+                 unsigned int maximumPatientCount) :
+        maximumStorageSize_(maximumStorageSize),
+        maximumPatientCount_(maximumPatientCount)
+      {
+      }
+        
+      virtual void Apply(ReadWriteTransaction& transaction) ORTHANC_OVERRIDE
+      {
+        transaction.Recycle(maximumStorageSize_, maximumPatientCount_, 0, "");
+      }
+    };
+
+    Operations operations(maximumStorageSize, maximumPatientCount);
+    Apply(operations);
+  }
+
+
+  static void SetInstanceMetadata(ResourcesContent& content,
+                                  std::map<MetadataType, std::string>& instanceMetadata,
+                                  int64_t instance,
+                                  MetadataType metadata,
+                                  const std::string& value)
+  {
+    content.AddMetadata(instance, metadata, value);
+    instanceMetadata[metadata] = value;
+  }
+
+
+  StoreStatus ServerIndex::Store(std::map<MetadataType, std::string>& instanceMetadata,
+                                 const DicomMap& dicomSummary,
+                                 const Attachments& attachments,
+                                 const MetadataMap& metadata,
+                                 const DicomInstanceOrigin& origin,
+                                 bool overwrite,
+                                 bool hasTransferSyntax,
+                                 DicomTransferSyntax transferSyntax,
+                                 bool hasPixelDataOffset,
+                                 uint64_t pixelDataOffset)
+  {
+    class Operations : public IReadWriteOperations
+    {
+    private:
+      StoreStatus                          storeStatus_;
+      std::map<MetadataType, std::string>& instanceMetadata_;
+      ServerIndex&                         index_;
+      const DicomMap&                      dicomSummary_;
+      const Attachments&                   attachments_;
+      const MetadataMap&                   metadata_;
+      const DicomInstanceOrigin&           origin_;
+      bool                                 overwrite_;
+      bool                                 hasTransferSyntax_;
+      DicomTransferSyntax                  transferSyntax_;
+      bool                                 hasPixelDataOffset_;
+      uint64_t                             pixelDataOffset_;
+      uint64_t                             maximumStorageSize_;
+      unsigned int                         maximumPatientCount_;
+
+      // Auto-computed fields
+      bool          hasExpectedInstances_;
+      int64_t       expectedInstances_;
+      std::string   hashPatient_;
+      std::string   hashStudy_;
+      std::string   hashSeries_;
+      std::string   hashInstance_;
+      
+    public:
+      Operations(std::map<MetadataType, std::string>& instanceMetadata,
+                 ServerIndex& index,
+                 const DicomMap& dicomSummary,
+                 const Attachments& attachments,
+                 const MetadataMap& metadata,
+                 const DicomInstanceOrigin& origin,
+                 bool overwrite,
+                 bool hasTransferSyntax,
+                 DicomTransferSyntax transferSyntax,
+                 bool hasPixelDataOffset,
+                 uint64_t pixelDataOffset,
+                 uint64_t maximumStorageSize,
+                 unsigned int maximumPatientCount) :
+        storeStatus_(StoreStatus_Failure),
+        instanceMetadata_(instanceMetadata),
+        index_(index),
+        dicomSummary_(dicomSummary),
+        attachments_(attachments),
+        metadata_(metadata),
+        origin_(origin),
+        overwrite_(overwrite),
+        hasTransferSyntax_(hasTransferSyntax),
+        transferSyntax_(transferSyntax),
+        hasPixelDataOffset_(hasPixelDataOffset),
+        pixelDataOffset_(pixelDataOffset),
+        maximumStorageSize_(maximumStorageSize),
+        maximumPatientCount_(maximumPatientCount)
+      {
+        hasExpectedInstances_ = ComputeExpectedNumberOfInstances(expectedInstances_, dicomSummary);
+    
+        instanceMetadata_.clear();
+
+        DicomInstanceHasher hasher(dicomSummary);
+        hashPatient_ = hasher.HashPatient();
+        hashStudy_ = hasher.HashStudy();
+        hashSeries_ = hasher.HashSeries();
+        hashInstance_ = hasher.HashInstance();
+      }
+
+      StoreStatus GetStoreStatus() const
+      {
+        return storeStatus_;
+      }
+        
+      virtual void Apply(ReadWriteTransaction& transaction) ORTHANC_OVERRIDE
+      {
+        try
+        {
+          IDatabaseWrapper::CreateInstanceResult status;
+          int64_t instanceId;
+
+          // Check whether this instance is already stored
+          if (!transaction.CreateInstance(status, instanceId, hashPatient_,
+                                          hashStudy_, hashSeries_, hashInstance_))
+          {
+            // The instance already exists
+        
+            if (overwrite_)
+            {
+              // Overwrite the old instance
+              LOG(INFO) << "Overwriting instance: " << hashInstance_;
+              transaction.DeleteResource(instanceId);
+
+              // Re-create the instance, now that the old one is removed
+              if (!transaction.CreateInstance(status, instanceId, hashPatient_,
+                                              hashStudy_, hashSeries_, hashInstance_))
+              {
+                throw OrthancException(ErrorCode_InternalError);
+              }
+            }
+            else
+            {
+              // Do nothing if the instance already exists and overwriting is disabled
+              transaction.GetAllMetadata(instanceMetadata_, instanceId);
+              storeStatus_ = StoreStatus_AlreadyStored;
+              return;
+            }
+          }
+
+
+          // Warn about the creation of new resources. The order must be
+          // from instance to patient.
+
+          // NB: In theory, could be sped up by grouping the underlying
+          // calls to "transaction.LogChange()". However, this would only have an
+          // impact when new patient/study/series get created, which
+          // occurs far less often that creating new instances. The
+          // positive impact looks marginal in practice.
+          transaction.LogChange(instanceId, ChangeType_NewInstance, ResourceType_Instance, hashInstance_);
+
+          if (status.isNewSeries_)
+          {
+            transaction.LogChange(status.seriesId_, ChangeType_NewSeries, ResourceType_Series, hashSeries_);
+          }
+      
+          if (status.isNewStudy_)
+          {
+            transaction.LogChange(status.studyId_, ChangeType_NewStudy, ResourceType_Study, hashStudy_);
+          }
+      
+          if (status.isNewPatient_)
+          {
+            transaction.LogChange(status.patientId_, ChangeType_NewPatient, ResourceType_Patient, hashPatient_);
+          }
+      
+      
+          // Ensure there is enough room in the storage for the new instance
+          uint64_t instanceSize = 0;
+          for (Attachments::const_iterator it = attachments_.begin();
+               it != attachments_.end(); ++it)
+          {
+            instanceSize += it->GetCompressedSize();
+          }
+
+          transaction.Recycle(maximumStorageSize_, maximumPatientCount_,
+                              instanceSize, hashPatient_ /* don't consider the current patient for recycling */);
+      
+     
+          // Attach the files to the newly created instance
+          for (Attachments::const_iterator it = attachments_.begin();
+               it != attachments_.end(); ++it)
+          {
+            transaction.AddAttachment(instanceId, *it);
+          }
+
+      
+          {
+            ResourcesContent content;
+      
+            // Populate the tags of the newly-created resources
+
+            content.AddResource(instanceId, ResourceType_Instance, dicomSummary_);
+
+            if (status.isNewSeries_)
+            {
+              content.AddResource(status.seriesId_, ResourceType_Series, dicomSummary_);
+            }
+
+            if (status.isNewStudy_)
+            {
+              content.AddResource(status.studyId_, ResourceType_Study, dicomSummary_);
+            }
+
+            if (status.isNewPatient_)
+            {
+              content.AddResource(status.patientId_, ResourceType_Patient, dicomSummary_);
+            }
+
+
+            // Attach the user-specified metadata
+
+            for (MetadataMap::const_iterator 
+                   it = metadata_.begin(); it != metadata_.end(); ++it)
+            {
+              switch (it->first.first)
+              {
+                case ResourceType_Patient:
+                  content.AddMetadata(status.patientId_, it->first.second, it->second);
+                  break;
+
+                case ResourceType_Study:
+                  content.AddMetadata(status.studyId_, it->first.second, it->second);
+                  break;
+
+                case ResourceType_Series:
+                  content.AddMetadata(status.seriesId_, it->first.second, it->second);
+                  break;
+
+                case ResourceType_Instance:
+                  SetInstanceMetadata(content, instanceMetadata_, instanceId,
+                                      it->first.second, it->second);
+                  break;
+
+                default:
+                  throw OrthancException(ErrorCode_ParameterOutOfRange);
+              }
+            }
+
+        
+            // Attach the auto-computed metadata for the patient/study/series levels
+            std::string now = SystemToolbox::GetNowIsoString(true /* use UTC time (not local time) */);
+            content.AddMetadata(status.seriesId_, MetadataType_LastUpdate, now);
+            content.AddMetadata(status.studyId_, MetadataType_LastUpdate, now);
+            content.AddMetadata(status.patientId_, MetadataType_LastUpdate, now);
+
+            if (status.isNewSeries_)
+            {
+              if (hasExpectedInstances_)
+              {
+                content.AddMetadata(status.seriesId_, MetadataType_Series_ExpectedNumberOfInstances,
+                                    boost::lexical_cast<std::string>(expectedInstances_));
+              }
+
+              // New in Orthanc 1.9.0
+              content.AddMetadata(status.seriesId_, MetadataType_RemoteAet,
+                                  origin_.GetRemoteAetC());
+            }
+
+        
+            // Attach the auto-computed metadata for the instance level,
+            // reflecting these additions into the input metadata map
+            SetInstanceMetadata(content, instanceMetadata_, instanceId,
+                                MetadataType_Instance_ReceptionDate, now);
+            SetInstanceMetadata(content, instanceMetadata_, instanceId, MetadataType_RemoteAet,
+                                origin_.GetRemoteAetC());
+            SetInstanceMetadata(content, instanceMetadata_, instanceId, MetadataType_Instance_Origin, 
+                                EnumerationToString(origin_.GetRequestOrigin()));
+
+
+            if (hasTransferSyntax_)
+            {
+              // New in Orthanc 1.2.0
+              SetInstanceMetadata(content, instanceMetadata_, instanceId,
+                                  MetadataType_Instance_TransferSyntax,
+                                  GetTransferSyntaxUid(transferSyntax_));
+            }
+
+            {
+              std::string s;
+
+              if (origin_.LookupRemoteIp(s))
+              {
+                // New in Orthanc 1.4.0
+                SetInstanceMetadata(content, instanceMetadata_, instanceId,
+                                    MetadataType_Instance_RemoteIp, s);
+              }
+
+              if (origin_.LookupCalledAet(s))
+              {
+                // New in Orthanc 1.4.0
+                SetInstanceMetadata(content, instanceMetadata_, instanceId,
+                                    MetadataType_Instance_CalledAet, s);
+              }
+
+              if (origin_.LookupHttpUsername(s))
+              {
+                // New in Orthanc 1.4.0
+                SetInstanceMetadata(content, instanceMetadata_, instanceId,
+                                    MetadataType_Instance_HttpUsername, s);
+              }
+            }
+
+            if (hasPixelDataOffset_)
+            {
+              // New in Orthanc 1.9.1
+              SetInstanceMetadata(content, instanceMetadata_, instanceId,
+                                  MetadataType_Instance_PixelDataOffset,
+                                  boost::lexical_cast<std::string>(pixelDataOffset_));
+            }
+        
+            const DicomValue* value;
+            if ((value = dicomSummary_.TestAndGetValue(DICOM_TAG_SOP_CLASS_UID)) != NULL &&
+                !value->IsNull() &&
+                !value->IsBinary())
+            {
+              SetInstanceMetadata(content, instanceMetadata_, instanceId,
+                                  MetadataType_Instance_SopClassUid, value->GetContent());
+            }
+
+
+            if ((value = dicomSummary_.TestAndGetValue(DICOM_TAG_INSTANCE_NUMBER)) != NULL ||
+                (value = dicomSummary_.TestAndGetValue(DICOM_TAG_IMAGE_INDEX)) != NULL)
+            {
+              if (!value->IsNull() && 
+                  !value->IsBinary())
+              {
+                SetInstanceMetadata(content, instanceMetadata_, instanceId,
+                                    MetadataType_Instance_IndexInSeries, Toolbox::StripSpaces(value->GetContent()));
+              }
+            }
+
+        
+            transaction.SetResourcesContent(content);
+          }
+
+  
+          // Check whether the series of this new instance is now completed
+          int64_t expectedNumberOfInstances;
+          if (ComputeExpectedNumberOfInstances(expectedNumberOfInstances, dicomSummary_))
+          {
+            SeriesStatus seriesStatus = transaction.GetSeriesStatus(status.seriesId_, expectedNumberOfInstances);
+            if (seriesStatus == SeriesStatus_Complete)
+            {
+              transaction.LogChange(status.seriesId_, ChangeType_CompletedSeries, ResourceType_Series, hashSeries_);
+            }
+          }
+      
+
+          // Mark the parent resources of this instance as unstable
+          index_.MarkAsUnstable(status.seriesId_, ResourceType_Series, hashSeries_);
+          index_.MarkAsUnstable(status.studyId_, ResourceType_Study, hashStudy_);
+          index_.MarkAsUnstable(status.patientId_, ResourceType_Patient, hashPatient_);
+
+          transaction.GetListener().SignalAttachmentsAdded(instanceSize);
+
+          storeStatus_ = StoreStatus_Success;          
+        }
+        catch (OrthancException& e)
+        {
+          LOG(ERROR) << "EXCEPTION [" << e.What() << "]";
+          storeStatus_ = StoreStatus_Failure;
+        }
+      }
+    };
+
+
+    std::unique_ptr<Operations> operations;
+    
+    {
+      boost::mutex::scoped_lock lock(monitoringMutex_);
+      operations.reset(new Operations(instanceMetadata, *this, dicomSummary, attachments, metadata, origin,
+                                      overwrite, hasTransferSyntax, transferSyntax, hasPixelDataOffset,
+                                      pixelDataOffset, maximumStorageSize_, maximumPatients_));
+    }
+
+    Apply(*operations);
+    return operations->GetStoreStatus();
+  }
+
+
+  StoreStatus ServerIndex::AddAttachment(const FileInfo& attachment,
+                                         const std::string& publicId)
+  {
+    class Operations : public IReadWriteOperations
+    {
+    private:
+      StoreStatus         status_;
+      const FileInfo&     attachment_;
+      const std::string&  publicId_;
+      uint64_t            maximumStorageSize_;
+      unsigned int        maximumPatientCount_;
+      
+    public:
+      Operations(const FileInfo& attachment,
+                 const std::string& publicId,
+                 uint64_t maximumStorageSize,
+                 unsigned int maximumPatientCount) :
+        status_(StoreStatus_Failure),
+        attachment_(attachment),
+        publicId_(publicId),
+        maximumStorageSize_(maximumStorageSize),
+        maximumPatientCount_(maximumPatientCount)
+      {
+      }
+
+      StoreStatus GetStatus() const
+      {
+        return status_;
+      }
+        
+      virtual void Apply(ReadWriteTransaction& transaction) ORTHANC_OVERRIDE
+      {
+        ResourceType resourceType;
+        int64_t resourceId;
+        if (!transaction.LookupResource(resourceId, resourceType, publicId_))
+        {
+          status_ = StoreStatus_Failure;  // Inexistent resource
+        }
+        else
+        {
+          // Remove possible previous attachment
+          transaction.DeleteAttachment(resourceId, attachment_.GetContentType());
+
+          // Locate the patient of the target resource
+          int64_t patientId = resourceId;
+          for (;;)
+          {
+            int64_t parent;
+            if (transaction.LookupParent(parent, patientId))
+            {
+              // We have not reached the patient level yet
+              patientId = parent;
+            }
+            else
+            {
+              // We have reached the patient level
+              break;
+            }
+          }
+
+          // Possibly apply the recycling mechanism while preserving this patient
+          assert(transaction.GetResourceType(patientId) == ResourceType_Patient);
+          transaction.Recycle(maximumStorageSize_, maximumPatientCount_,
+                              attachment_.GetCompressedSize(), transaction.GetPublicId(patientId));
+
+          transaction.AddAttachment(resourceId, attachment_);
+
+          if (IsUserContentType(attachment_.GetContentType()))
+          {
+            transaction.LogChange(resourceId, ChangeType_UpdatedAttachment, resourceType, publicId_);
+          }
+
+          transaction.GetListener().SignalAttachmentsAdded(attachment_.GetCompressedSize());
+
+          status_ = StoreStatus_Success;
+        }
+      }
+    };
+
+
+    std::unique_ptr<Operations> operations;
+    
+    {
+      boost::mutex::scoped_lock lock(monitoringMutex_);
+      operations.reset(new Operations(attachment, publicId, maximumStorageSize_, maximumPatients_));
+    }
+
+    Apply(*operations);
+    return operations->GetStatus();
   }
 }
