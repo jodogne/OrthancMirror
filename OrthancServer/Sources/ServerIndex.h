@@ -309,15 +309,12 @@ namespace Orthanc
     {
     private:
       Listener&  listener_;
-      ServerIndex&  index_;   // TODO - REMOVE
       
     public:
       ReadWriteTransaction(IDatabaseWrapper& db,
-                           Listener& listener,
-                           ServerIndex& index) :
+                           Listener& listener) :
         ReadOnlyTransaction(db),
-        listener_(listener),
-        index_(index)
+        listener_(listener)
       {
       }
 
