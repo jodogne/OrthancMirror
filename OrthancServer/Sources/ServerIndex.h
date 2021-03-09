@@ -108,6 +108,13 @@ namespace Orthanc
     // "count == 0" means no limit on the number of patients
     void SetMaximumPatientCount(unsigned int count);
 
+    // It is assumed that "GetDatabaseVersion()" can run out of a
+    // database transaction
+    unsigned int GetDatabaseVersion()
+    {
+      return db_.GetDatabaseVersion();
+    }
+
 
     
     /***
@@ -188,11 +195,6 @@ namespace Orthanc
                                int64_t id)
       {
         db_.GetChildrenPublicId(target, id);
-      }
-
-      unsigned int GetDatabaseVersion()
-      {
-        return db_.GetDatabaseVersion();
       }
 
       void GetExportedResources(std::list<ExportedResource>& target /*out*/,
@@ -536,8 +538,6 @@ namespace Orthanc
 
     bool LookupResourceType(ResourceType& type,
                             const std::string& publicId);
-
-    unsigned int GetDatabaseVersion();
 
     bool LookupParent(std::string& target,
                       const std::string& publicId,
