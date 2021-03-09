@@ -476,16 +476,18 @@ namespace Orthanc
       if (count >= countThreshold)
       {
         Logging::Flush();
-      
-        boost::mutex::scoped_lock lock(that->monitoringMutex_);
+
+        {
+          boost::mutex::scoped_lock lock(that->databaseMutex_);
         
-        try
-        {
-          that->db_.FlushToDisk();
-        }
-        catch (OrthancException&)
-        {
-          LOG(ERROR) << "Cannot flush the SQLite database to the disk (is your filesystem full?)";
+          try
+          {
+            that->db_.FlushToDisk();
+          }
+          catch (OrthancException&)
+          {
+            LOG(ERROR) << "Cannot flush the SQLite database to the disk (is your filesystem full?)";
+          }
         }
         
         count = 0;
@@ -496,10 +498,10 @@ namespace Orthanc
   }
 
 
-  void ServerIndex::LogChange(int64_t internalId,
-                              ChangeType changeType,
-                              ResourceType resourceType,
-                              const std::string& publicId)
+  void ServerIndex::ReadWriteTransaction::LogChange(int64_t internalId,
+                                                    ChangeType changeType,
+                                                    ResourceType resourceType,
+                                                    const std::string& publicId)
   {
     ServerIndexChange change(changeType, resourceType, publicId);
 
@@ -508,8 +510,7 @@ namespace Orthanc
       db_.LogChange(internalId, change);
     }
 
-    assert(listener_.get() != NULL);
-    listener_->SignalChange(change);
+    listener_.SignalChange(change);
   }
 
 
@@ -771,15 +772,15 @@ namespace Orthanc
           switch (payload.GetResourceType())
           {
             case ResourceType_Patient:
-              that->LogChange(id, ChangeType_StablePatient, ResourceType_Patient, payload.GetPublicId());
+              that->LogChange(ChangeType_StablePatient, payload.GetPublicId(), ResourceType_Patient);
               break;
 
             case ResourceType_Study:
-              that->LogChange(id, ChangeType_StableStudy, ResourceType_Study, payload.GetPublicId());
+              that->LogChange(ChangeType_StableStudy, payload.GetPublicId(), ResourceType_Study);
               break;
 
             case ResourceType_Series:
-              that->LogChange(id, ChangeType_StableSeries, ResourceType_Series, payload.GetPublicId());
+              that->LogChange(ChangeType_StableSeries, payload.GetPublicId(), ResourceType_Series);
               break;
 
             default:
@@ -799,17 +800,16 @@ namespace Orthanc
                                    Orthanc::ResourceType type,
                                    const std::string& publicId)
   {
-    // WARNING: Before calling this method, "monitoringMutex_" must be locked.
-
     assert(type == Orthanc::ResourceType_Patient ||
            type == Orthanc::ResourceType_Study ||
            type == Orthanc::ResourceType_Series);
 
-    UnstableResourcePayload payload(type, publicId);
-    unstableResources_.AddOrMakeMostRecent(id, payload);
-    //LOG(INFO) << "Unstable resource: " << EnumerationToString(type) << " " << id;
-
-    LogChange(id, ChangeType_NewChildInstance, type, publicId);
+    {
+      boost::mutex::scoped_lock lock(monitoringMutex_);
+      UnstableResourcePayload payload(type, publicId);
+      unstableResources_.AddOrMakeMostRecent(id, payload);
+      //LOG(INFO) << "Unstable resource: " << EnumerationToString(type) << " " << id;
+    }
   }
 
 
@@ -1067,7 +1067,7 @@ namespace Orthanc
     {
       try
       {
-        boost::mutex::scoped_lock lock(monitoringMutex_);  // TODO - REMOVE
+        boost::mutex::scoped_lock lock(databaseMutex_);  // TODO - REMOVE
 
         if (readOperations != NULL)
         {
@@ -3490,8 +3490,11 @@ namespace Orthanc
               transaction.LogChange(status.seriesId_, ChangeType_CompletedSeries, ResourceType_Series, hashSeries_);
             }
           }
-      
-
+          
+          transaction.LogChange(status.seriesId_, ChangeType_NewChildInstance, ResourceType_Series, hashSeries_);
+          transaction.LogChange(status.studyId_, ChangeType_NewChildInstance, ResourceType_Study, hashStudy_);
+          transaction.LogChange(status.patientId_, ChangeType_NewChildInstance, ResourceType_Patient, hashPatient_);
+          
           // Mark the parent resources of this instance as unstable
           index_.MarkAsUnstable(status.seriesId_, ResourceType_Series, hashSeries_);
           index_.MarkAsUnstable(status.studyId_, ResourceType_Study, hashStudy_);

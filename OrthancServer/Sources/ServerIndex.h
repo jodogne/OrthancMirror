@@ -62,6 +62,7 @@ namespace Orthanc
 
     bool done_;
     boost::mutex monitoringMutex_;
+    boost::mutex databaseMutex_;  // TODO - REMOVE
     boost::thread flushThread_;
     boost::thread unstableResourcesMonitorThread_;
 
@@ -85,11 +86,6 @@ namespace Orthanc
     void MarkAsUnstable(int64_t id,
                         Orthanc::ResourceType type,
                         const std::string& publicId);
-
-    void LogChange(int64_t internalId,
-                   ChangeType changeType,
-                   ResourceType resourceType,
-                   const std::string& publicId);
 
     void NormalizeLookup(std::vector<DatabaseConstraint>& target,
                          const DatabaseLookup& source,
@@ -379,10 +375,7 @@ namespace Orthanc
       void LogChange(int64_t internalId,
                      ChangeType changeType,
                      ResourceType resourceType,
-                     const std::string& publicId)
-      {
-        index_.LogChange(internalId, changeType, resourceType, publicId);
-      }
+                     const std::string& publicId);
 
       void LogExportedResource(const ExportedResource& resource)
       {
