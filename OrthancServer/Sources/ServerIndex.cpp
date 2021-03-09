@@ -1091,7 +1091,7 @@ namespace Orthanc
           Transaction transaction(*this, TransactionType_ReadWrite);
           {
             assert(listener_.get() != NULL);
-            ReadWriteTransaction t(db_, *listener_, *this);
+            ReadWriteTransaction t(db_, *listener_);
             writeOperations->Apply(t);
           }
           transaction.Commit();
@@ -3081,17 +3081,6 @@ namespace Orthanc
   }
 
 
-  static void SetInstanceMetadata(ResourcesContent& content,
-                                  std::map<MetadataType, std::string>& instanceMetadata,
-                                  int64_t instance,
-                                  MetadataType metadata,
-                                  const std::string& value)
-  {
-    content.AddMetadata(instance, metadata, value);
-    instanceMetadata[metadata] = value;
-  }
-
-
   StoreStatus ServerIndex::Store(std::map<MetadataType, std::string>& instanceMetadata,
                                  const DicomMap& dicomSummary,
                                  const Attachments& attachments,
@@ -3128,6 +3117,18 @@ namespace Orthanc
       std::string   hashStudy_;
       std::string   hashSeries_;
       std::string   hashInstance_;
+
+      
+      static void SetInstanceMetadata(ResourcesContent& content,
+                                      std::map<MetadataType, std::string>& instanceMetadata,
+                                      int64_t instance,
+                                      MetadataType metadata,
+                                      const std::string& value)
+      {
+        content.AddMetadata(instance, metadata, value);
+        instanceMetadata[metadata] = value;
+      }
+
       
       static bool ComputeExpectedNumberOfInstances(int64_t& target,
                                                    const DicomMap& dicomSummary)
