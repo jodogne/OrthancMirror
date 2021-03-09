@@ -77,7 +77,8 @@ namespace Orthanc
   }
 
   
-  class ServerIndex::Listener : public IDatabaseListener
+  class ServerIndex::Listener : public IDatabaseListener,
+                                public ServerIndex::ITransactionContext
   {
   private:
     struct FileToRemove
@@ -213,7 +214,7 @@ namespace Orthanc
       SignalChange(ServerIndexChange(ChangeType_Deleted, type, publicId));
     }
 
-    void SignalChange(const ServerIndexChange& change)
+    virtual void SignalChange(const ServerIndexChange& change) ORTHANC_OVERRIDE
     {
       LOG(TRACE) << "Change related to resource " << change.GetPublicId() << " of type " 
                  << EnumerationToString(change.GetResourceType()) << ": " 
@@ -229,7 +230,7 @@ namespace Orthanc
       }
     }
 
-    void SignalAttachmentsAdded(uint64_t compressedSize)
+    virtual void SignalAttachmentsAdded(uint64_t compressedSize) ORTHANC_OVERRIDE
     {
       sizeOfAddedAttachments_ += compressedSize;
     }
@@ -254,6 +255,33 @@ namespace Orthanc
     uint64_t GetSizeOfAddedAttachments() const
     {
       return sizeOfAddedAttachments_;
+    }
+
+    virtual bool LookupRemainingLevel(std::string& remainingPublicId /* out */,
+                                      ResourceType& remainingLevel   /* out */) ORTHANC_OVERRIDE
+    {
+      if (HasRemainingLevel())
+      {
+        remainingPublicId = GetRemainingPublicId();
+        remainingLevel = GetRemainingType();
+        return true;
+      }
+      else
+      {
+        return false;
+      }        
+    };
+
+    virtual void MarkAsUnstable(int64_t id,
+                                Orthanc::ResourceType type,
+                                const std::string& publicId) ORTHANC_OVERRIDE
+    {
+      context_.GetIndex().MarkAsUnstable(id, type, publicId);
+    }
+
+    virtual bool IsUnstableResource(int64_t id) ORTHANC_OVERRIDE
+    {
+      return context_.GetIndex().IsUnstableResource(id);
     }
   };
 
@@ -510,12 +538,13 @@ namespace Orthanc
       db_.LogChange(internalId, change);
     }
 
-    listener_.SignalChange(change);
+    GetTransactionContext().SignalChange(change);
   }
 
 
   bool ServerIndex::IsUnstableResource(int64_t id)
   {
+    boost::mutex::scoped_lock lock(monitoringMutex_);
     return unstableResources_.Contains(id);
   }
 
@@ -1079,7 +1108,7 @@ namespace Orthanc
           
           Transaction transaction(*this, TransactionType_ReadOnly);  // TODO - Only if not "TransactionType_Implicit"
           {
-            ReadOnlyTransaction t(db_);
+            ReadOnlyTransaction t(db_, *listener_);
             readOperations->Apply(t);
           }
           transaction.Commit();
@@ -1153,8 +1182,6 @@ namespace Orthanc
     class Operations : public ReadOnlyOperationsT4<bool&, Json::Value&, const std::string&, ResourceType>
     {
     private:
-      ServerIndex&  index_;     // TODO - REMOVE
-
       static bool LookupStringMetadata(std::string& result,
                                        const std::map<MetadataType, std::string>& metadata,
                                        MetadataType type)
@@ -1196,11 +1223,6 @@ namespace Orthanc
 
 
     public:
-      explicit Operations(ServerIndex& index) :
-        index_(index)
-      {
-      }
-      
       virtual void ApplyTuple(ReadOnlyTransaction& transaction,
                               const Tuple& tuple) ORTHANC_OVERRIDE
       {
@@ -1369,7 +1391,7 @@ namespace Orthanc
               type == ResourceType_Study ||
               type == ResourceType_Series)
           {
-            target["IsStable"] = !index_.IsUnstableResource(internalId);
+            target["IsStable"] = !transaction.GetTransactionContext().IsUnstableResource(internalId);
 
             if (LookupStringMetadata(tmp, metadata, MetadataType_LastUpdate))
             {
@@ -1383,7 +1405,7 @@ namespace Orthanc
     };
 
     bool found;
-    Operations operations(*this);
+    Operations operations;
     operations.Apply(*this, found, target, publicId, level);
     return found;
   }
@@ -2411,15 +2433,14 @@ namespace Orthanc
           found_ = true;
           transaction.DeleteResource(id);
 
-          if (transaction.GetListener().HasRemainingLevel())
+          std::string remainingPublicId;
+          ResourceType remainingLevel;
+          if (transaction.GetTransactionContext().LookupRemainingLevel(remainingPublicId, remainingLevel))
           {
-            ResourceType remainingType = transaction.GetListener().GetRemainingType();
-            const std::string& remainingUuid = transaction.GetListener().GetRemainingPublicId();
-
             target_["RemainingAncestor"] = Json::Value(Json::objectValue);
-            target_["RemainingAncestor"]["Path"] = GetBasePath(remainingType, remainingUuid);
-            target_["RemainingAncestor"]["Type"] = EnumerationToString(remainingType);
-            target_["RemainingAncestor"]["ID"] = remainingUuid;
+            target_["RemainingAncestor"]["Path"] = GetBasePath(remainingLevel, remainingPublicId);
+            target_["RemainingAncestor"]["Type"] = EnumerationToString(remainingLevel);
+            target_["RemainingAncestor"]["ID"] = remainingPublicId;
           }
           else
           {
@@ -3097,7 +3118,6 @@ namespace Orthanc
     private:
       StoreStatus                          storeStatus_;
       std::map<MetadataType, std::string>& instanceMetadata_;
-      ServerIndex&                         index_;
       const DicomMap&                      dicomSummary_;
       const Attachments&                   attachments_;
       const MetadataMap&                   metadata_;
@@ -3186,7 +3206,6 @@ namespace Orthanc
 
     public:
       Operations(std::map<MetadataType, std::string>& instanceMetadata,
-                 ServerIndex& index,
                  const DicomMap& dicomSummary,
                  const Attachments& attachments,
                  const MetadataMap& metadata,
@@ -3200,7 +3219,6 @@ namespace Orthanc
                  unsigned int maximumPatientCount) :
         storeStatus_(StoreStatus_Failure),
         instanceMetadata_(instanceMetadata),
-        index_(index),
         dicomSummary_(dicomSummary),
         attachments_(attachments),
         metadata_(metadata),
@@ -3477,11 +3495,10 @@ namespace Orthanc
           transaction.LogChange(status.patientId_, ChangeType_NewChildInstance, ResourceType_Patient, hashPatient_);
           
           // Mark the parent resources of this instance as unstable
-          index_.MarkAsUnstable(status.seriesId_, ResourceType_Series, hashSeries_);
-          index_.MarkAsUnstable(status.studyId_, ResourceType_Study, hashStudy_);
-          index_.MarkAsUnstable(status.patientId_, ResourceType_Patient, hashPatient_);
-
-          transaction.GetListener().SignalAttachmentsAdded(instanceSize);
+          transaction.GetTransactionContext().MarkAsUnstable(status.seriesId_, ResourceType_Series, hashSeries_);
+          transaction.GetTransactionContext().MarkAsUnstable(status.studyId_, ResourceType_Study, hashStudy_);
+          transaction.GetTransactionContext().MarkAsUnstable(status.patientId_, ResourceType_Patient, hashPatient_);
+          transaction.GetTransactionContext().SignalAttachmentsAdded(instanceSize);
 
           storeStatus_ = StoreStatus_Success;          
         }
@@ -3503,7 +3520,7 @@ namespace Orthanc
       maximumPatients = maximumPatients_;
     }
 
-    Operations operations(instanceMetadata, *this, dicomSummary, attachments, metadata, origin,
+    Operations operations(instanceMetadata, dicomSummary, attachments, metadata, origin,
                           overwrite, hasTransferSyntax, transferSyntax, hasPixelDataOffset,
                           pixelDataOffset, maximumStorageSize, maximumPatients);
     Apply(operations);
@@ -3583,7 +3600,7 @@ namespace Orthanc
             transaction.LogChange(resourceId, ChangeType_UpdatedAttachment, resourceType, publicId_);
           }
 
-          transaction.GetListener().SignalAttachmentsAdded(attachment_.GetCompressedSize());
+          transaction.GetTransactionContext().SignalAttachmentsAdded(attachment_.GetCompressedSize());
 
           status_ = StoreStatus_Success;
         }
