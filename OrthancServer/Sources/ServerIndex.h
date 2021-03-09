@@ -79,12 +79,6 @@ namespace Orthanc
     static void UnstableResourcesMonitorThread(ServerIndex* that,
                                                unsigned int threadSleep);
 
-    // A transaction must be running
-    static void MainDicomTagsToJson(Json::Value& result,
-                                    IDatabaseWrapper& db,
-                                    int64_t resourceId,
-                                    ResourceType resourceType);
-
     void StandaloneRecycling(uint64_t maximumStorageSize,
                              unsigned int maximumPatientCount);
 
@@ -145,10 +139,7 @@ namespace Orthanc
 
       void MainDicomTagsToJson(Json::Value& result,
                                int64_t resourceId,
-                               ResourceType resourceType)
-      {
-        ServerIndex::MainDicomTagsToJson(result, db_, resourceId, resourceType);
-      }
+                               ResourceType resourceType);
 
       /**
        * Read-only methods from "IDatabaseWrapper"
