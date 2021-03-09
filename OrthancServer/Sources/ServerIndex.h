@@ -586,7 +586,8 @@ namespace Orthanc
                           FileContentType type);
 
     void LogChange(ChangeType changeType,
-                   const std::string& publicId);
+                   const std::string& publicId,
+                   ResourceType level);
 
     void ReconstructInstance(const ParsedDicomFile& dicom);
 

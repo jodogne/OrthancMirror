@@ -2928,19 +2928,23 @@ namespace Orthanc
 
 
   void ServerIndex::LogChange(ChangeType changeType,
-                              const std::string& publicId)
+                              const std::string& publicId,
+                              ResourceType level)
   {
     class Operations : public IReadWriteOperations
     {
     private:
       ChangeType          changeType_;
       const std::string&  publicId_;
+      ResourceType        level_;
       
     public:
       Operations(ChangeType changeType,
-                 const std::string& publicId) :
+                 const std::string& publicId,
+                 ResourceType level) :
         changeType_(changeType),
-        publicId_(publicId)
+        publicId_(publicId),
+        level_(level)
       {
       }
         
@@ -2948,18 +2952,27 @@ namespace Orthanc
       {
         int64_t id;
         ResourceType type;
-        if (!transaction.LookupResource(id, type, publicId_))
+        if (transaction.LookupResource(id, type, publicId_))
         {
-          throw OrthancException(ErrorCode_UnknownResource);
-        }
-        else
-        {
-          transaction.LogChange(id, changeType_, type, publicId_);
+          // Make sure that the resource is still existing. Ignore if
+          // the resource has been deleted, because this function
+          // might e.g. be called from
+          // "ServerIndex::UnstableResourcesMonitorThread()" (for
+          // which a deleted resource not an error case)
+          if (type == level_)
+          {
+            transaction.LogChange(id, changeType_, type, publicId_);
+          }
+          else
+          {
+            // Consistency check
+            throw OrthancException(ErrorCode_UnknownResource);
+          }
         }
       }
     };
 
-    Operations operations(changeType, publicId);
+    Operations operations(changeType, publicId, level);
     Apply(operations);
   }
 
@@ -3511,17 +3524,20 @@ namespace Orthanc
     };
 
 
-    std::unique_ptr<Operations> operations;
+    uint64_t maximumStorageSize;
+    unsigned int maximumPatients;
     
     {
       boost::mutex::scoped_lock lock(monitoringMutex_);
-      operations.reset(new Operations(instanceMetadata, *this, dicomSummary, attachments, metadata, origin,
-                                      overwrite, hasTransferSyntax, transferSyntax, hasPixelDataOffset,
-                                      pixelDataOffset, maximumStorageSize_, maximumPatients_));
+      maximumStorageSize = maximumStorageSize_;
+      maximumPatients = maximumPatients_;
     }
 
-    Apply(*operations);
-    return operations->GetStoreStatus();
+    Operations operations(instanceMetadata, *this, dicomSummary, attachments, metadata, origin,
+                          overwrite, hasTransferSyntax, transferSyntax, hasPixelDataOffset,
+                          pixelDataOffset, maximumStorageSize, maximumPatients);
+    Apply(operations);
+    return operations.GetStoreStatus();
   }
 
 
@@ -3605,14 +3621,17 @@ namespace Orthanc
     };
 
 
-    std::unique_ptr<Operations> operations;
+    uint64_t maximumStorageSize;
+    unsigned int maximumPatients;
     
     {
       boost::mutex::scoped_lock lock(monitoringMutex_);
-      operations.reset(new Operations(attachment, publicId, maximumStorageSize_, maximumPatients_));
+      maximumStorageSize = maximumStorageSize_;
+      maximumPatients = maximumPatients_;
     }
 
-    Apply(*operations);
-    return operations->GetStatus();
+    Operations operations(attachment, publicId, maximumStorageSize, maximumPatients);
+    Apply(operations);
+    return operations.GetStatus();
   }
 }
