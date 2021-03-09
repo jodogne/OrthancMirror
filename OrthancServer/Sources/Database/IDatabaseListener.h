@@ -33,7 +33,7 @@
 
 #pragma once
 
-#include "../../OrthancFramework/Sources/FileStorage/FileInfo.h"
+#include "../../../OrthancFramework/Sources/FileStorage/FileInfo.h"
 #include "../ServerEnumerations.h"
 
 #include <string>
