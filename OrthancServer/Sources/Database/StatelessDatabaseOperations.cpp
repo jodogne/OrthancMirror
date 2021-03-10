@@ -668,8 +668,24 @@ namespace Orthanc
   StatelessDatabaseOperations::StatelessDatabaseOperations(IDatabaseWrapper& db) : 
     db_(db),
     maxRetries_(10),
-    mainDicomTagsRegistry_(new MainDicomTagsRegistry)
+    mainDicomTagsRegistry_(new MainDicomTagsRegistry),
+    hasFlushToDisk_(db.HasFlushToDisk())
   {
+  }
+
+
+  void StatelessDatabaseOperations::FlushToDisk()
+  {
+    boost::mutex::scoped_lock lock(databaseMutex_);
+        
+    try
+    {
+      db_.FlushToDisk();
+    }
+    catch (OrthancException&)
+    {
+      LOG(ERROR) << "Cannot flush the SQLite database to the disk (is your filesystem full?)";
+    }
   }
 
 
@@ -2415,21 +2431,25 @@ namespace Orthanc
   }
 
 
-  void StatelessDatabaseOperations::LogChange(ChangeType changeType,
+  void StatelessDatabaseOperations::LogChange(int64_t internalId,
+                                              ChangeType changeType,
                                               const std::string& publicId,
                                               ResourceType level)
   {
     class Operations : public IReadWriteOperations
     {
     private:
+      int64_t             internalId_;
       ChangeType          changeType_;
       const std::string&  publicId_;
       ResourceType        level_;
       
     public:
-      Operations(ChangeType changeType,
+      Operations(int64_t internalId,
+                 ChangeType changeType,
                  const std::string& publicId,
                  ResourceType level) :
+        internalId_(internalId),
         changeType_(changeType),
         publicId_(publicId),
         level_(level)
@@ -2440,13 +2460,18 @@ namespace Orthanc
       {
         int64_t id;
         ResourceType type;
-        if (transaction.LookupResource(id, type, publicId_))
+        if (transaction.LookupResource(id, type, publicId_) &&
+            id == internalId_)
         {
-          // Make sure that the resource is still existing. Ignore if
-          // the resource has been deleted, because this function
-          // might e.g. be called from
-          // "StatelessDatabaseOperations::UnstableResourcesMonitorThread()" (for
-          // which a deleted resource not an error case)
+          /**
+           * Make sure that the resource is still existing, with the
+           * same internal ID, which indicates the absence of bouncing
+           * (if deleting then recreating the same resource). Don't
+           * throw an exception if the resource has been deleted,
+           * because this function might e.g. be called from
+           * "StatelessDatabaseOperations::UnstableResourcesMonitorThread()"
+           * (for which a deleted resource is *not* an error case).
+           **/
           if (type == level_)
           {
             transaction.LogChange(id, changeType_, type, publicId_);
@@ -2460,7 +2485,7 @@ namespace Orthanc
       }
     };
 
-    Operations operations(changeType, publicId, level);
+    Operations operations(internalId, changeType, publicId, level);
     Apply(operations);
   }
 
