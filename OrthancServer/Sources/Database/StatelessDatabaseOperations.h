@@ -404,11 +404,12 @@ namespace Orthanc
     class MainDicomTagsRegistry;
     class Transaction;
 
-    IDatabaseWrapper&  db_;
-    boost::mutex databaseMutex_;  // TODO - REMOVE
+    IDatabaseWrapper&                            db_;
+    boost::mutex                                 databaseMutex_;  // TODO - REMOVE
     std::unique_ptr<ITransactionContextFactory>  factory_;
-    unsigned int maxRetries_;
-    std::unique_ptr<MainDicomTagsRegistry>  mainDicomTagsRegistry_;
+    unsigned int                                 maxRetries_;
+    std::unique_ptr<MainDicomTagsRegistry>       mainDicomTagsRegistry_;
+    bool                                         hasFlushToDisk_;
 
     void NormalizeLookup(std::vector<DatabaseConstraint>& target,
                          const DatabaseLookup& source,
@@ -431,6 +432,13 @@ namespace Orthanc
     unsigned int GetDatabaseVersion()
     {
       return db_.GetDatabaseVersion();
+    }
+
+    void FlushToDisk();
+
+    bool HasFlushToDisk() const
+    {
+      return hasFlushToDisk_;
     }
 
     void Apply(IReadOnlyOperations& operations);
@@ -568,7 +576,8 @@ namespace Orthanc
     void DeleteAttachment(const std::string& publicId,
                           FileContentType type);
 
-    void LogChange(ChangeType changeType,
+    void LogChange(int64_t internalId,
+                   ChangeType changeType,
                    const std::string& publicId,
                    ResourceType level);
 
