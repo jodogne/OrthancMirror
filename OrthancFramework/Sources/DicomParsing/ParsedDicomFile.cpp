@@ -420,28 +420,6 @@ namespace Orthanc
 #endif
 
   
-  static inline uint16_t GetCharValue(char c)
-  {
-    if (c >= '0' && c <= '9')
-      return c - '0';
-    else if (c >= 'a' && c <= 'f')
-      return c - 'a' + 10;
-    else if (c >= 'A' && c <= 'F')
-      return c - 'A' + 10;
-    else
-      return 0;
-  }
-
-  
-  static inline uint16_t GetTagValue(const char* c)
-  {
-    return ((GetCharValue(c[0]) << 12) + 
-            (GetCharValue(c[1]) << 8) + 
-            (GetCharValue(c[2]) << 4) + 
-            GetCharValue(c[3]));
-  }
-
-
 #if ORTHANC_ENABLE_CIVETWEB == 1 || ORTHANC_ENABLE_MONGOOSE == 1
   void ParsedDicomFile::SendPathValue(RestApiOutput& output,
                                       const UriComponents& uri) const

@@ -50,7 +50,6 @@ static const char* const BY_STUDIES = "by-studies";
 static const char* const BY_DATES = "by-dates";
 static const char* const BY_UIDS = "by-uids";
 static const char* const UPLOADS = "uploads";
-static const char* const MAIN_DICOM_TAGS = "MainDicomTags";
 static const char* const STUDY_INFO = "study.json";
 static const char* const SERIES_INFO = "series.json";
 

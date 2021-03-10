@@ -45,7 +45,7 @@ namespace Orthanc
 {
   class DatabaseLookup;
   class ParsedDicomFile;
-  class ServerIndexChange;
+  struct ServerIndexChange;
 
   class StatelessDatabaseOperations : public boost::noncopyable
   {
@@ -408,7 +408,7 @@ namespace Orthanc
     boost::mutex                                 databaseMutex_;  // TODO - REMOVE
     std::unique_ptr<ITransactionContextFactory>  factory_;
     unsigned int                                 maxRetries_;
-    std::unique_ptr<MainDicomTagsRegistry>       mainDicomTagsRegistry_;
+    boost::shared_ptr<MainDicomTagsRegistry>     mainDicomTagsRegistry_;  // "shared_ptr" because of PImpl
     bool                                         hasFlushToDisk_;
 
     void NormalizeLookup(std::vector<DatabaseConstraint>& target,
