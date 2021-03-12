@@ -51,8 +51,6 @@
 #include "../ServerToolbox.h"
 #include "../SliceOrdering.h"
 
-#include "../../Plugins/Engine/OrthancPlugins.h"
-
 // This "include" is mandatory for Release builds using Linux Standard Base
 #include <boost/math/special_functions/round.hpp>
 

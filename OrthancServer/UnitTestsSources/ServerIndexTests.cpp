@@ -83,7 +83,7 @@ namespace
     }       
 
     virtual void SignalResourceDeleted(ResourceType type,
-                                       const std::string& publicId)
+                                       const std::string& publicId) ORTHANC_OVERRIDE
     {
       LOG(INFO) << "Deleted resource " << publicId << " of type " << EnumerationToString(type);
       deletedResources_.push_back(publicId);
@@ -96,6 +96,7 @@ namespace
   protected:
     std::unique_ptr<TestDatabaseListener>  listener_;
     std::unique_ptr<SQLiteDatabaseWrapper> index_;
+    std::unique_ptr<IDatabaseWrapper::ITransaction>  transaction_;
 
   public:
     DatabaseWrapperTest()
@@ -106,12 +107,15 @@ namespace
     {
       listener_.reset(new TestDatabaseListener);
       index_.reset(new SQLiteDatabaseWrapper);
-      index_->SetListener(*listener_);
       index_->Open();
+      transaction_.reset(index_->StartTransaction(TransactionType_ReadWrite, *listener_));
     }
 
     virtual void TearDown() ORTHANC_OVERRIDE
     {
+      transaction_->Commit(0);
+      transaction_.reset();
+      
       index_->Close();
       index_.reset(NULL);
       listener_.reset(NULL);

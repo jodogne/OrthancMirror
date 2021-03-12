@@ -199,9 +199,8 @@ namespace Orthanc
     virtual void SetProtectedPatient(int64_t internalId, 
                                      bool isProtected) = 0;
 
-    virtual ITransaction* StartTransaction(TransactionType type) = 0;
-
-    virtual void SetListener(IDatabaseListener& listener) = 0;
+    virtual ITransaction* StartTransaction(TransactionType type,
+                                           IDatabaseListener& listener) = 0;
 
     virtual unsigned int GetDatabaseVersion() = 0;
 

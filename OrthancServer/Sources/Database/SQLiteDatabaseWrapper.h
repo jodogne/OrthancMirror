@@ -43,11 +43,6 @@
 
 namespace Orthanc
 {
-  namespace Internals
-  {
-    class SignalRemainingAncestor;
-  }
-
   /**
    * This class manages an instance of the Orthanc SQLite database. It
    * translates low-level requests into SQL statements. Mutual
@@ -61,13 +56,16 @@ namespace Orthanc
     public Compatibility::ISetResourcesContent
   {
   private:
+    class SignalFileDeleted;
+    class SignalResourceDeleted;
+    class SignalRemainingAncestor;
     class ReadOnlyTransaction;
     class ReadWriteTransaction;
     class LookupFormatter;
 
     IDatabaseListener* listener_;
     SQLite::Connection db_;
-    Internals::SignalRemainingAncestor* signalRemainingAncestor_;
+    SignalRemainingAncestor* signalRemainingAncestor_;
     unsigned int version_;
 
     void GetChangesInternal(std::list<ServerIndexChange>& target,
@@ -100,9 +98,6 @@ namespace Orthanc
       db_.Close();
     }
 
-    virtual void SetListener(IDatabaseListener& listener)
-      ORTHANC_OVERRIDE;
-
     virtual bool LookupParent(int64_t& parentId,
                               int64_t resourceId)
       ORTHANC_OVERRIDE;
@@ -125,7 +120,8 @@ namespace Orthanc
     virtual void GetLastChange(std::list<ServerIndexChange>& target /*out*/)
       ORTHANC_OVERRIDE;
 
-    virtual IDatabaseWrapper::ITransaction* StartTransaction(TransactionType type)
+    virtual IDatabaseWrapper::ITransaction* StartTransaction(TransactionType type,
+                                                             IDatabaseListener& listener)
       ORTHANC_OVERRIDE;
 
     virtual void FlushToDisk()

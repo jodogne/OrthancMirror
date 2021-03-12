@@ -47,30 +47,30 @@
 
 namespace Orthanc
 {
-  namespace Internals
+  class SQLiteDatabaseWrapper::SignalFileDeleted : public SQLite::IScalarFunction
   {
-    class SignalFileDeleted : public SQLite::IScalarFunction
+  private:
+    SQLiteDatabaseWrapper& sqlite_;
+
+  public:
+    SignalFileDeleted(SQLiteDatabaseWrapper& sqlite) :
+      sqlite_(sqlite)
     {
-    private:
-      IDatabaseListener& listener_;
+    }
 
-    public:
-      SignalFileDeleted(IDatabaseListener& listener) :
-        listener_(listener)
-      {
-      }
+    virtual const char* GetName() const ORTHANC_OVERRIDE
+    {
+      return "SignalFileDeleted";
+    }
 
-      virtual const char* GetName() const ORTHANC_OVERRIDE
-      {
-        return "SignalFileDeleted";
-      }
+    virtual unsigned int GetCardinality() const ORTHANC_OVERRIDE
+    {
+      return 7;
+    }
 
-      virtual unsigned int GetCardinality() const ORTHANC_OVERRIDE
-      {
-        return 7;
-      }
-
-      virtual void Compute(SQLite::FunctionContext& context) ORTHANC_OVERRIDE
+    virtual void Compute(SQLite::FunctionContext& context) ORTHANC_OVERRIDE
+    {
+      if (sqlite_.listener_ != NULL)
       {
         std::string uncompressedMD5, compressedMD5;
 
@@ -91,100 +91,105 @@ namespace Orthanc
                       static_cast<CompressionType>(context.GetIntValue(3)),
                       static_cast<uint64_t>(context.GetInt64Value(4)),
                       compressedMD5);
-        
-        listener_.SignalAttachmentDeleted(info);
-      }
-    };
 
-    class SignalResourceDeleted : public SQLite::IScalarFunction
+        sqlite_.listener_->SignalAttachmentDeleted(info);
+      }
+    }
+  };
+    
+
+  class SQLiteDatabaseWrapper::SignalResourceDeleted : public SQLite::IScalarFunction
+  {
+  private:
+    SQLiteDatabaseWrapper& sqlite_;
+
+  public:
+    SignalResourceDeleted(SQLiteDatabaseWrapper& sqlite) :
+      sqlite_(sqlite)
     {
-    private:
-      IDatabaseListener& listener_;
+    }
 
-    public:
-      SignalResourceDeleted(IDatabaseListener& listener) :
-        listener_(listener)
-      {
-      }
-
-      virtual const char* GetName() const ORTHANC_OVERRIDE
-      {
-        return "SignalResourceDeleted";
-      }
-
-      virtual unsigned int GetCardinality() const ORTHANC_OVERRIDE
-      {
-        return 2;
-      }
-
-      virtual void Compute(SQLite::FunctionContext& context) ORTHANC_OVERRIDE
-      {
-        listener_.SignalResourceDeleted(static_cast<ResourceType>(context.GetIntValue(1)),
-                                        context.GetStringValue(0));
-      }
-    };
-
-    class SignalRemainingAncestor : public SQLite::IScalarFunction
+    virtual const char* GetName() const ORTHANC_OVERRIDE
     {
-    private:
-      bool hasRemainingAncestor_;
-      std::string remainingPublicId_;
-      ResourceType remainingType_;
+      return "SignalResourceDeleted";
+    }
 
-    public:
-      SignalRemainingAncestor() : 
-        hasRemainingAncestor_(false)
+    virtual unsigned int GetCardinality() const ORTHANC_OVERRIDE
+    {
+      return 2;
+    }
+
+    virtual void Compute(SQLite::FunctionContext& context) ORTHANC_OVERRIDE
+    {
+      if (sqlite_.listener_ != NULL)
       {
+        sqlite_.listener_->SignalResourceDeleted(static_cast<ResourceType>(context.GetIntValue(1)),
+                                                 context.GetStringValue(0));
       }
+    }
+  };
 
-      void Reset()
+  
+  class SQLiteDatabaseWrapper::SignalRemainingAncestor : public SQLite::IScalarFunction
+  {
+  private:
+    bool hasRemainingAncestor_;
+    std::string remainingPublicId_;
+    ResourceType remainingType_;
+
+  public:
+    SignalRemainingAncestor() : 
+      hasRemainingAncestor_(false)
+    {
+    }
+
+    void Reset()
+    {
+      hasRemainingAncestor_ = false;
+    }
+
+    virtual const char* GetName() const ORTHANC_OVERRIDE
+    {
+      return "SignalRemainingAncestor";
+    }
+
+    virtual unsigned int GetCardinality() const ORTHANC_OVERRIDE
+    {
+      return 2;
+    }
+
+    virtual void Compute(SQLite::FunctionContext& context) ORTHANC_OVERRIDE
+    {
+      CLOG(TRACE, SQLITE) << "There exists a remaining ancestor with public ID \""
+                          << context.GetStringValue(0) << "\" of type "
+                          << context.GetIntValue(1);
+
+      if (!hasRemainingAncestor_ ||
+          remainingType_ >= context.GetIntValue(1))
       {
-        hasRemainingAncestor_ = false;
+        hasRemainingAncestor_ = true;
+        remainingPublicId_ = context.GetStringValue(0);
+        remainingType_ = static_cast<ResourceType>(context.GetIntValue(1));
       }
+    }
 
-      virtual const char* GetName() const ORTHANC_OVERRIDE
-      {
-        return "SignalRemainingAncestor";
-      }
+    bool HasRemainingAncestor() const
+    {
+      return hasRemainingAncestor_;
+    }
 
-      virtual unsigned int GetCardinality() const ORTHANC_OVERRIDE
-      {
-        return 2;
-      }
+    const std::string& GetRemainingAncestorId() const
+    {
+      assert(hasRemainingAncestor_);
+      return remainingPublicId_;
+    }
 
-      virtual void Compute(SQLite::FunctionContext& context) ORTHANC_OVERRIDE
-      {
-        CLOG(TRACE, SQLITE) << "There exists a remaining ancestor with public ID \""
-                            << context.GetStringValue(0) << "\" of type "
-                            << context.GetIntValue(1);
-
-        if (!hasRemainingAncestor_ ||
-            remainingType_ >= context.GetIntValue(1))
-        {
-          hasRemainingAncestor_ = true;
-          remainingPublicId_ = context.GetStringValue(0);
-          remainingType_ = static_cast<ResourceType>(context.GetIntValue(1));
-        }
-      }
-
-      bool HasRemainingAncestor() const
-      {
-        return hasRemainingAncestor_;
-      }
-
-      const std::string& GetRemainingAncestorId() const
-      {
-        assert(hasRemainingAncestor_);
-        return remainingPublicId_;
-      }
-
-      ResourceType GetRemainingAncestorType() const
-      {
-        assert(hasRemainingAncestor_);
-        return remainingType_;
-      }
-    };
-  }
+    ResourceType GetRemainingAncestorType() const
+    {
+      assert(hasRemainingAncestor_);
+      return remainingType_;
+    }
+  };
 
 
   void SQLiteDatabaseWrapper::GetChangesInternal(std::list<ServerIndexChange>& target,
@@ -436,8 +441,9 @@ namespace Orthanc
       t.Commit();
     }
 
-    signalRemainingAncestor_ = new Internals::SignalRemainingAncestor;
-    db_.Register(signalRemainingAncestor_);
+    signalRemainingAncestor_ = dynamic_cast<SignalRemainingAncestor*>(db_.Register(new SignalRemainingAncestor));
+    db_.Register(new SignalFileDeleted(*this));
+    db_.Register(new SignalResourceDeleted(*this));
   }
 
 
@@ -500,14 +506,6 @@ namespace Orthanc
       db_.CommitTransaction();
       version_ = 6;
     }
-  }
-
-
-  void SQLiteDatabaseWrapper::SetListener(IDatabaseListener& listener)
-  {
-    listener_ = &listener;
-    db_.Register(new Internals::SignalFileDeleted(listener));
-    db_.Register(new Internals::SignalResourceDeleted(listener));
   }
 
 
@@ -603,10 +601,14 @@ namespace Orthanc
     int64_t                               initialDiskSize_;
 
   public:
-    ReadWriteTransaction(SQLiteDatabaseWrapper& that) :
+    ReadWriteTransaction(SQLiteDatabaseWrapper& that,
+                         IDatabaseListener& listener) :
       that_(that),
       transaction_(new SQLite::Transaction(that_.db_))
     {
+      assert(that_.listener_ == NULL);
+      that_.listener_ = &listener;   // TODO - STORE IN TRANSACTION
+
 #if defined(NDEBUG)
       // Release mode
       initialDiskSize_ = 0;
@@ -614,6 +616,12 @@ namespace Orthanc
       // Debug mode
       initialDiskSize_ = static_cast<int64_t>(that_.GetTotalCompressedSize());
 #endif
+    }
+
+    virtual ~ReadWriteTransaction()
+    {
+      assert(that_.listener_ != NULL);    
+      that_.listener_ = NULL;   // TODO - STORE IN TRANSACTION
     }
 
     void Begin()
@@ -638,7 +646,24 @@ namespace Orthanc
 
   class SQLiteDatabaseWrapper::ReadOnlyTransaction : public IDatabaseWrapper::ITransaction
   {
+  private:
+    SQLiteDatabaseWrapper&  that_;
+    
   public:
+    ReadOnlyTransaction(SQLiteDatabaseWrapper& that,
+                        IDatabaseListener& listener) :
+      that_(that)
+    {
+      assert(that_.listener_ == NULL);
+      that_.listener_ = &listener;
+    }
+
+    virtual ~ReadOnlyTransaction()
+    {
+      assert(that_.listener_ != NULL);    
+      that_.listener_ = NULL;
+    }
+
     virtual void Rollback() ORTHANC_OVERRIDE
     {
     }
@@ -653,17 +678,18 @@ namespace Orthanc
   };
 
 
-  IDatabaseWrapper::ITransaction* SQLiteDatabaseWrapper::StartTransaction(TransactionType type)
+  IDatabaseWrapper::ITransaction* SQLiteDatabaseWrapper::StartTransaction(TransactionType type,
+                                                                          IDatabaseListener& listener)
   {
     switch (type)
     {
       case TransactionType_ReadOnly:
-        return new ReadOnlyTransaction;  // This is a no-op transaction in SQLite (thanks to mutex)
+        return new ReadOnlyTransaction(*this, listener);  // This is a no-op transaction in SQLite (thanks to mutex)
 
       case TransactionType_ReadWrite:
       {
         std::unique_ptr<ReadWriteTransaction> transaction;
-        transaction.reset(new ReadWriteTransaction(*this));
+        transaction.reset(new ReadWriteTransaction(*this, listener));
         transaction->Begin();
         return transaction.release();
       }
