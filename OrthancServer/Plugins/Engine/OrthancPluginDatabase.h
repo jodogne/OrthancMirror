@@ -297,14 +297,9 @@ namespace Orthanc
                                      bool isProtected) 
       ORTHANC_OVERRIDE;
 
-    virtual IDatabaseWrapper::ITransaction* StartTransaction(TransactionType type)
+    virtual IDatabaseWrapper::ITransaction* StartTransaction(TransactionType type,
+                                                             IDatabaseListener& listener)
       ORTHANC_OVERRIDE;
-
-    virtual void SetListener(IDatabaseListener& listener) 
-      ORTHANC_OVERRIDE
-    {
-      listener_ = &listener;
-    }
 
     virtual unsigned int GetDatabaseVersion() 
       ORTHANC_OVERRIDE;

@@ -62,9 +62,18 @@ namespace Orthanc
     }
 
   public:
-    explicit Transaction(OrthancPluginDatabase& that) :
+    explicit Transaction(OrthancPluginDatabase& that,
+                         IDatabaseListener& listener) :
       that_(that)
     {
+      assert(that_.listener_ == NULL);
+      that_.listener_ = &listener;   // TODO - STORE IN TRANSACTION
+    }
+
+    virtual ~Transaction()
+    {
+      assert(that_.listener_ != NULL);
+      that_.listener_ = NULL;   // TODO - STORE IN TRANSACTION
     }
 
     void Begin()
@@ -310,12 +319,39 @@ namespace Orthanc
   }
 
 
+  namespace
+  {
+    class VoidListener : public IDatabaseListener
+    {
+    public:
+      virtual void SignalRemainingAncestor(ResourceType parentType,
+                                           const std::string& publicId)
+      {
+        throw OrthancException(ErrorCode_InternalError);  // Should be read-only transaction
+      }
+      
+      virtual void SignalAttachmentDeleted(const FileInfo& info)
+      {
+        throw OrthancException(ErrorCode_InternalError);  // Should be read-only transaction
+      }
+
+      virtual void SignalResourceDeleted(ResourceType type,
+                                         const std::string& publicId)
+      {
+        throw OrthancException(ErrorCode_InternalError);  // Should be read-only transaction
+      }      
+    };
+  }
+
+
   void OrthancPluginDatabase::Open()
   {
     CheckSuccess(backend_.open(payload_));
 
+    VoidListener listener;
+    
     {
-      Transaction transaction(*this);
+      Transaction transaction(*this, listener);
       transaction.Begin();
 
       std::string tmp;
@@ -889,11 +925,12 @@ namespace Orthanc
   }
 
 
-  IDatabaseWrapper::ITransaction* OrthancPluginDatabase::StartTransaction(TransactionType type)
+  IDatabaseWrapper::ITransaction* OrthancPluginDatabase::StartTransaction(TransactionType type,
+                                                                          IDatabaseListener& listener)
   {
     // TODO - Take advantage of "type"
-    
-    std::unique_ptr<Transaction> transaction(new Transaction(*this));
+
+    std::unique_ptr<Transaction> transaction(new Transaction(*this, listener));
     transaction->Begin();
     return transaction.release();
   }
@@ -953,9 +990,11 @@ namespace Orthanc
   void OrthancPluginDatabase::Upgrade(unsigned int targetVersion,
                                       IStorageArea& storageArea)
   {
+    VoidListener listener;
+    
     if (extensions_.upgradeDatabase != NULL)
     {
-      Transaction transaction(*this);
+      Transaction transaction(*this, listener);
       transaction.Begin();
 
       OrthancPluginErrorCode code = extensions_.upgradeDatabase(

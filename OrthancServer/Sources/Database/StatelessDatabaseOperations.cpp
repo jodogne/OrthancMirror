@@ -533,7 +533,7 @@ namespace Orthanc
         throw OrthancException(ErrorCode_NullPointer);
       }      
       
-      transaction_.reset(db_.StartTransaction(type));
+      transaction_.reset(db_.StartTransaction(type, *context_));
       if (transaction_.get() == NULL)
       {
         throw OrthancException(ErrorCode_NullPointer);

@@ -51,8 +51,7 @@ static const uint64_t MEGA_BYTES = 1024 * 1024;
 
 namespace Orthanc
 {
-  class ServerIndex::Listener : public IDatabaseListener,
-                                public ServerIndex::ITransactionContext
+  class ServerIndex::Listener : public StatelessDatabaseOperations::ITransactionContext
   {
   private:
     struct FileToRemove
@@ -333,6 +332,23 @@ namespace Orthanc
       {
         return listener_.GetCompressedSizeDelta();
       }
+
+      virtual void SignalRemainingAncestor(ResourceType parentType,
+                                           const std::string& publicId) ORTHANC_OVERRIDE
+      {
+        listener_.SignalRemainingAncestor(parentType, publicId);
+      }
+
+      virtual void SignalAttachmentDeleted(const FileInfo& info) ORTHANC_OVERRIDE
+      {
+        listener_.SignalAttachmentDeleted(info);
+      }
+
+      virtual void SignalResourceDeleted(ResourceType type,
+                                         const std::string& publicId) ORTHANC_OVERRIDE
+      {
+        listener_.SignalResourceDeleted(type, publicId);
+      }
     };
 
     ServerIndex& index_;
@@ -437,7 +453,6 @@ namespace Orthanc
     maximumPatients_(0)
   {
     listener_.reset(new Listener(context));
-    db.SetListener(*listener_);
 
     SetTransactionContextFactory(new TransactionContextFactory(*this));
 

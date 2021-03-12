@@ -53,7 +53,7 @@ namespace Orthanc
     typedef std::list<FileInfo> Attachments;
     typedef std::map<std::pair<ResourceType, MetadataType>, std::string>  MetadataMap;
 
-    class ITransactionContext : public boost::noncopyable
+    class ITransactionContext : public IDatabaseListener
     {
     public:
       virtual ~ITransactionContext()
