@@ -45,8 +45,8 @@ namespace Orthanc
   class ServerIndex : public StatelessDatabaseOperations
   {
   private:
+    class TransactionContext;
     class TransactionContextFactory;
-    class Listener;
     class UnstableResourcePayload;
 
     bool done_;
@@ -54,7 +54,6 @@ namespace Orthanc
     boost::thread flushThread_;
     boost::thread unstableResourcesMonitorThread_;
 
-    std::unique_ptr<Listener> listener_;
     LeastRecentlyUsedIndex<int64_t, UnstableResourcePayload>  unstableResources_;
 
     uint64_t     maximumStorageSize_;
