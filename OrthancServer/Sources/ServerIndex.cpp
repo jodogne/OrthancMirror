@@ -51,7 +51,7 @@ static const uint64_t MEGA_BYTES = 1024 * 1024;
 
 namespace Orthanc
 {
-  class ServerIndex::Listener : public StatelessDatabaseOperations::ITransactionContext
+  class ServerIndex::TransactionContext : public StatelessDatabaseOperations::ITransactionContext
   {
   private:
     struct FileToRemove
@@ -85,7 +85,6 @@ namespace Orthanc
     std::list<FileToRemove> pendingFilesToRemove_;
     std::list<ServerIndexChange> pendingChanges_;
     uint64_t sizeOfFilesToRemove_;
-    bool insideTransaction_;
     uint64_t sizeOfAddedAttachments_;
 
     void Reset()
@@ -95,33 +94,6 @@ namespace Orthanc
       pendingFilesToRemove_.clear();
       pendingChanges_.clear();
       sizeOfAddedAttachments_ = 0;
-    }
-
-  public:
-    explicit Listener(ServerContext& context) :
-      context_(context),
-      insideTransaction_(false)
-    {
-      Reset();
-      assert(ResourceType_Patient < ResourceType_Study &&
-             ResourceType_Study < ResourceType_Series &&
-             ResourceType_Series < ResourceType_Instance);
-    }
-
-    void StartTransaction()
-    {
-      Reset();
-      insideTransaction_ = true;
-    }
-
-    void EndTransaction()
-    {
-      insideTransaction_ = false;
-    }
-
-    uint64_t GetSizeOfFilesToRemove()
-    {
-      return sizeOfFilesToRemove_;
     }
 
     void CommitFilesToRemove()
@@ -150,6 +122,16 @@ namespace Orthanc
       {
         context_.SignalChange(*it);
       }
+    }
+
+  public:
+    explicit TransactionContext(ServerContext& context) :
+      context_(context)
+    {
+      Reset();
+      assert(ResourceType_Patient < ResourceType_Study &&
+             ResourceType_Study < ResourceType_Series &&
+             ResourceType_Series < ResourceType_Instance);
     }
 
     virtual void SignalRemainingAncestor(ResourceType parentType,
@@ -192,14 +174,7 @@ namespace Orthanc
                  << EnumerationToString(change.GetResourceType()) << ": " 
                  << EnumerationToString(change.GetChangeType());
 
-      if (insideTransaction_)
-      {
-        pendingChanges_.push_back(change);
-      }
-      else
-      {
-        context_.SignalChange(change);
-      }
+      pendingChanges_.push_back(change);
     }
 
     virtual void SignalAttachmentsAdded(uint64_t compressedSize) ORTHANC_OVERRIDE
@@ -207,35 +182,13 @@ namespace Orthanc
       sizeOfAddedAttachments_ += compressedSize;
     }
 
-    bool HasRemainingLevel() const
-    {
-      return hasRemainingLevel_;
-    }
-
-    ResourceType GetRemainingType() const
-    {
-      assert(HasRemainingLevel());
-      return remainingType_;
-    }
-
-    const std::string& GetRemainingPublicId() const
-    {
-      assert(HasRemainingLevel());
-      return remainingPublicId_;
-    }
-
-    uint64_t GetSizeOfAddedAttachments() const
-    {
-      return sizeOfAddedAttachments_;
-    }
-
     virtual bool LookupRemainingLevel(std::string& remainingPublicId /* out */,
                                       ResourceType& remainingLevel   /* out */) ORTHANC_OVERRIDE
     {
-      if (HasRemainingLevel())
+      if (hasRemainingLevel_)
       {
-        remainingPublicId = GetRemainingPublicId();
-        remainingLevel = GetRemainingType();
+        remainingPublicId = remainingPublicId_;
+        remainingLevel = remainingType_;
         return true;
       }
       else
@@ -269,8 +222,8 @@ namespace Orthanc
 
     virtual int64_t GetCompressedSizeDelta() ORTHANC_OVERRIDE
     {
-      return (static_cast<int64_t>(GetSizeOfAddedAttachments()) -
-              static_cast<int64_t>(GetSizeOfFilesToRemove()));
+      return (static_cast<int64_t>(sizeOfAddedAttachments_) -
+              static_cast<int64_t>(sizeOfFilesToRemove_));
     }
   };
 
@@ -278,90 +231,17 @@ namespace Orthanc
   class ServerIndex::TransactionContextFactory : public ITransactionContextFactory
   {
   private:
-    class Context : public ITransactionContext
-    {
-    private:
-      Listener&  listener_;
-
-    public:
-      Context(ServerIndex& index) :
-        listener_(*index.listener_)
-      {
-        listener_.StartTransaction();
-      }
-
-      ~Context()
-      {
-        listener_.EndTransaction();
-      }
-
-      virtual bool IsUnstableResource(int64_t id) ORTHANC_OVERRIDE
-      {
-        return listener_.IsUnstableResource(id);
-      }
-
-      virtual bool LookupRemainingLevel(std::string& remainingPublicId /* out */,
-                                        ResourceType& remainingLevel   /* out */) ORTHANC_OVERRIDE
-      {
-        return listener_.LookupRemainingLevel(remainingPublicId, remainingLevel);
-      }
-
-      virtual void MarkAsUnstable(int64_t id,
-                                  Orthanc::ResourceType type,
-                                  const std::string& publicId) ORTHANC_OVERRIDE
-      {
-        listener_.MarkAsUnstable(id, type, publicId);
-      }
-
-      virtual void SignalAttachmentsAdded(uint64_t compressedSize) ORTHANC_OVERRIDE
-      {
-        listener_.SignalAttachmentsAdded(compressedSize);
-      }
-
-      virtual void SignalChange(const ServerIndexChange& change) ORTHANC_OVERRIDE
-      {
-        listener_.SignalChange(change);
-      }
-
-      virtual void Commit() ORTHANC_OVERRIDE
-      {
-        listener_.Commit();
-      }
-
-      virtual int64_t GetCompressedSizeDelta() ORTHANC_OVERRIDE
-      {
-        return listener_.GetCompressedSizeDelta();
-      }
-
-      virtual void SignalRemainingAncestor(ResourceType parentType,
-                                           const std::string& publicId) ORTHANC_OVERRIDE
-      {
-        listener_.SignalRemainingAncestor(parentType, publicId);
-      }
-
-      virtual void SignalAttachmentDeleted(const FileInfo& info) ORTHANC_OVERRIDE
-      {
-        listener_.SignalAttachmentDeleted(info);
-      }
-
-      virtual void SignalResourceDeleted(ResourceType type,
-                                         const std::string& publicId) ORTHANC_OVERRIDE
-      {
-        listener_.SignalResourceDeleted(type, publicId);
-      }
-    };
-
-    ServerIndex& index_;
+    ServerContext& context_;
       
   public:
-    TransactionContextFactory(ServerIndex& index) :
-      index_(index)
+    TransactionContextFactory(ServerContext& context) :
+      context_(context)
     {
     }
 
     virtual ITransactionContext* Create()
     {
-      return new Context(index_);
+      return new TransactionContext(context_);
     }
   };    
   
@@ -452,9 +332,7 @@ namespace Orthanc
     maximumStorageSize_(0),
     maximumPatients_(0)
   {
-    listener_.reset(new Listener(context));
-
-    SetTransactionContextFactory(new TransactionContextFactory(*this));
+    SetTransactionContextFactory(new TransactionContextFactory(context));
 
     // Initial recycling if the parameters have changed since the last
     // execution of Orthanc
