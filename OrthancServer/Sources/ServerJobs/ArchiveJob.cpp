@@ -711,7 +711,7 @@ namespace Orthanc
     unsigned int    counter_;
 
   public:
-    MediaIndexVisitor(ZipCommands& commands) :
+    explicit MediaIndexVisitor(ZipCommands& commands) :
       commands_(commands),
       counter_(0)
     {
@@ -750,7 +750,7 @@ namespace Orthanc
     bool                                    isMedia_;
 
   public:
-    ZipWriterIterator(TemporaryFile& target,
+    ZipWriterIterator(const TemporaryFile& target,
                       ServerContext& context,
                       ArchiveIndex& archive,
                       bool isMedia,

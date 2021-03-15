@@ -65,6 +65,7 @@
 #include "../../../OrthancFramework/Sources/SerializationToolbox.h"
 #include "../../../OrthancFramework/Sources/StringMemoryBuffer.h"
 #include "../../../OrthancFramework/Sources/Toolbox.h"
+#include "../../Sources/Database/VoidDatabaseListener.h"
 #include "../../Sources/OrthancConfiguration.h"
 #include "../../Sources/OrthancFindRequestHandler.h"
 #include "../../Sources/Search/HierarchicalMatcher.h"
@@ -4970,8 +4971,16 @@ namespace Orthanc
                                  "The service ReconstructMainDicomTags can only be invoked by custom database plugins");
         }
 
-        IStorageArea& storage = *reinterpret_cast<IStorageArea*>(p.storageArea);
-        ServerToolbox::ReconstructMainDicomTags(*pimpl_->database_, storage, Plugins::Convert(p.level));
+        VoidDatabaseListener listener;
+        
+        {
+          IStorageArea& storage = *reinterpret_cast<IStorageArea*>(p.storageArea);
+
+          std::unique_ptr<IDatabaseWrapper::ITransaction> transaction(
+            pimpl_->database_->StartTransaction(TransactionType_ReadWrite, listener));
+          ServerToolbox::ReconstructMainDicomTags(*transaction, storage, Plugins::Convert(p.level));
+          transaction->Commit(0);
+        }
 
         return true;
       }

@@ -91,6 +91,7 @@ namespace Orthanc
     {
       sizeOfFilesToRemove_ = 0;
       hasRemainingLevel_ = false;
+      remainingType_ = ResourceType_Instance;  // dummy initialization
       pendingFilesToRemove_.clear();
       pendingChanges_.clear();
       sizeOfAddedAttachments_ = 0;
@@ -234,7 +235,7 @@ namespace Orthanc
     ServerContext& context_;
       
   public:
-    TransactionContextFactory(ServerContext& context) :
+    explicit TransactionContextFactory(ServerContext& context) :
       context_(context)
     {
     }

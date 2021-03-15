@@ -165,7 +165,7 @@ namespace Orthanc
   namespace ServerToolbox
   {
     bool FindOneChildInstance(int64_t& result,
-                              IDatabaseWrapper& database,
+                              IDatabaseWrapper::ITransaction& transaction,
                               int64_t resource,
                               ResourceType type)
     {
@@ -178,7 +178,7 @@ namespace Orthanc
         }
 
         std::list<int64_t> children;
-        database.GetChildrenInternalId(children, resource);
+        transaction.GetChildrenInternalId(children, resource);
         if (children.empty())
         {
           return false;
@@ -190,7 +190,7 @@ namespace Orthanc
     }
 
 
-    void ReconstructMainDicomTags(IDatabaseWrapper& database,
+    void ReconstructMainDicomTags(IDatabaseWrapper::ITransaction& transaction,
                                   IStorageArea& storageArea,
                                   ResourceType level)
     {
@@ -230,7 +230,7 @@ namespace Orthanc
       LOG(WARNING) << "Upgrade: Reconstructing the main DICOM tags of all the " << plural << "...";
 
       std::list<std::string> resources;
-      database.GetAllPublicIds(resources, level);
+      transaction.GetAllPublicIds(resources, level);
 
       for (std::list<std::string>::const_iterator
              it = resources.begin(); it != resources.end(); ++it)
@@ -239,9 +239,9 @@ namespace Orthanc
         int64_t resource, instance;
         ResourceType tmp;
 
-        if (!database.LookupResource(resource, tmp, *it) ||
+        if (!transaction.LookupResource(resource, tmp, *it) ||
             tmp != level ||
-            !FindOneChildInstance(instance, database, resource, level))
+            !FindOneChildInstance(instance, transaction, resource, level))
         {
           throw OrthancException(ErrorCode_InternalError,
                                  "Cannot find an instance for " +
@@ -251,11 +251,11 @@ namespace Orthanc
 
         // Get the DICOM file attached to some instances in the resource
         FileInfo attachment;
-        if (!database.LookupAttachment(attachment, instance, FileContentType_Dicom))
+        if (!transaction.LookupAttachment(attachment, instance, FileContentType_Dicom))
         {
           throw OrthancException(ErrorCode_InternalError,
                                  "Cannot retrieve the DICOM file associated with instance " +
-                                 database.GetPublicId(instance));
+                                 transaction.GetPublicId(instance));
         }
 
         try
@@ -272,16 +272,16 @@ namespace Orthanc
           DicomMap dicomSummary;
           OrthancConfiguration::DefaultExtractDicomSummary(dicomSummary, dicom);
 
-          database.ClearMainDicomTags(resource);
+          transaction.ClearMainDicomTags(resource);
 
           ResourcesContent tags;
           tags.AddResource(resource, level, dicomSummary);
-          database.SetResourcesContent(tags);
+          transaction.SetResourcesContent(tags);
         }
         catch (OrthancException&)
         {
           LOG(ERROR) << "Cannot decode the DICOM file with UUID " << attachment.GetUuid()
-                     << " associated with instance " << database.GetPublicId(instance);
+                     << " associated with instance " << transaction.GetPublicId(instance);
           throw;
         }
       }

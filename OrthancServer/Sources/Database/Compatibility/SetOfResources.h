@@ -49,14 +49,14 @@ namespace Orthanc
     private:
       typedef std::set<int64_t>  Resources;
 
-      IDatabaseWrapper&           database_;
+      IDatabaseWrapper::ITransaction&  transaction_;
       ResourceType                level_;
       std::unique_ptr<Resources>  resources_;
     
     public:
-      SetOfResources(IDatabaseWrapper& database,
+      SetOfResources(IDatabaseWrapper::ITransaction& transaction,
                      ResourceType level) : 
-        database_(database),
+        transaction_(transaction),
         level_(level)
       {
       }

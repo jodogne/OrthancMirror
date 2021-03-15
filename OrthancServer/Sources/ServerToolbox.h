@@ -33,6 +33,7 @@
 
 #pragma once
 
+#include "Database/IDatabaseWrapper.h"
 #include "ServerEnumerations.h"
 
 #include <boost/noncopyable.hpp>
@@ -41,17 +42,16 @@
 namespace Orthanc
 {
   class ServerContext;
-  class IDatabaseWrapper;
   class IStorageArea;
 
   namespace ServerToolbox
   {
     bool FindOneChildInstance(int64_t& result,
-                              IDatabaseWrapper& database,
+                              IDatabaseWrapper::ITransaction& transaction,
                               int64_t resource,
                               ResourceType type);
 
-    void ReconstructMainDicomTags(IDatabaseWrapper& database,
+    void ReconstructMainDicomTags(IDatabaseWrapper::ITransaction& transaction,
                                   IStorageArea& storageArea,
                                   ResourceType level);
 
