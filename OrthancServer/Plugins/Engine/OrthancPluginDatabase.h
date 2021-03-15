@@ -46,40 +46,19 @@
 
 namespace Orthanc
 {
-  class OrthancPluginDatabase :
-    public IDatabaseWrapper
+  class OrthancPluginDatabase : public IDatabaseWrapper
   {
   private:
     class Transaction;
 
-    typedef std::pair<int64_t, ResourceType>     AnswerResource;
-    typedef std::map<MetadataType, std::string>  AnswerMetadata;
-
-    SharedLibrary&  library_;
-    PluginsErrorDictionary&  errorDictionary_;
-    _OrthancPluginDatabaseAnswerType type_;
-    OrthancPluginDatabaseBackend backend_;
+    SharedLibrary&                  library_;
+    PluginsErrorDictionary&         errorDictionary_;
+    OrthancPluginDatabaseBackend    backend_;
     OrthancPluginDatabaseExtensions extensions_;
-    void* payload_;
-    IDatabaseListener* listener_;
-
-    bool      fastGetTotalSize_;
-    uint64_t  currentDiskSize_;
-
-    std::list<std::string>         answerStrings_;
-    std::list<int32_t>             answerInt32_;
-    std::list<int64_t>             answerInt64_;
-    std::list<AnswerResource>      answerResources_;
-    std::list<FileInfo>            answerAttachments_;
-
-    DicomMap*                      answerDicomMap_;
-    std::list<ServerIndexChange>*  answerChanges_;
-    std::list<ExportedResource>*   answerExportedResources_;
-    bool*                          answerDone_;
-    bool                           answerDoneIgnored_;
-    std::list<std::string>*        answerMatchingResources_;
-    std::list<std::string>*        answerMatchingInstances_;
-    AnswerMetadata*                answerMetadata_;
+    void*                           payload_;
+    Transaction*                    activeTransaction_;
+    bool                            fastGetTotalSize_;
+    uint64_t                        currentDiskSize_;
 
     OrthancPluginDatabaseContext* GetContext()
     {
@@ -87,16 +66,6 @@ namespace Orthanc
     }
 
     void CheckSuccess(OrthancPluginErrorCode code);
-
-    void ResetAnswers();
-
-    void ForwardAnswers(std::list<int64_t>& target);
-
-    void ForwardAnswers(std::list<std::string>& target);
-
-    bool ForwardSingleAnswer(std::string& target);
-
-    bool ForwardSingleAnswer(int64_t& target);
 
   public:
     OrthancPluginDatabase(SharedLibrary& library,

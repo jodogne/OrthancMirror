@@ -57,30 +57,200 @@ namespace Orthanc
     public Compatibility::ISetResourcesContent
   {
   private:
+    typedef std::pair<int64_t, ResourceType>     AnswerResource;
+    typedef std::map<MetadataType, std::string>  AnswerMetadata;
+
     OrthancPluginDatabase&  that_;
+    IDatabaseListener&      listener_;
+
+    _OrthancPluginDatabaseAnswerType type_;
+
+    std::list<std::string>         answerStrings_;
+    std::list<int32_t>             answerInt32_;
+    std::list<int64_t>             answerInt64_;
+    std::list<AnswerResource>      answerResources_;
+    std::list<FileInfo>            answerAttachments_;
+
+    DicomMap*                      answerDicomMap_;
+    std::list<ServerIndexChange>*  answerChanges_;
+    std::list<ExportedResource>*   answerExportedResources_;
+    bool*                          answerDone_;
+    bool                           answerDoneIgnored_;
+    std::list<std::string>*        answerMatchingResources_;
+    std::list<std::string>*        answerMatchingInstances_;
+    AnswerMetadata*                answerMetadata_;
 
     void CheckSuccess(OrthancPluginErrorCode code) const
     {
-      if (code != OrthancPluginErrorCode_Success)
+      that_.CheckSuccess(code);
+    }
+
+    
+    static FileInfo Convert(const OrthancPluginAttachment& attachment)
+    {
+      return FileInfo(attachment.uuid,
+                      static_cast<FileContentType>(attachment.contentType),
+                      attachment.uncompressedSize,
+                      attachment.uncompressedHash,
+                      static_cast<CompressionType>(attachment.compressionType),
+                      attachment.compressedSize,
+                      attachment.compressedHash);
+    }
+
+
+    void ResetAnswers()
+    {
+      type_ = _OrthancPluginDatabaseAnswerType_None;
+
+      answerDicomMap_ = NULL;
+      answerChanges_ = NULL;
+      answerExportedResources_ = NULL;
+      answerDone_ = NULL;
+      answerMatchingResources_ = NULL;
+      answerMatchingInstances_ = NULL;
+      answerMetadata_ = NULL;
+    }
+
+
+    void ForwardAnswers(std::list<int64_t>& target)
+    {
+      if (type_ != _OrthancPluginDatabaseAnswerType_None &&
+          type_ != _OrthancPluginDatabaseAnswerType_Int64)
       {
-        that_.errorDictionary_.LogError(code, true);
-        throw OrthancException(static_cast<ErrorCode>(code));
+        throw OrthancException(ErrorCode_DatabasePlugin);
+      }
+
+      target.clear();
+
+      if (type_ == _OrthancPluginDatabaseAnswerType_Int64)
+      {
+        for (std::list<int64_t>::const_iterator 
+               it = answerInt64_.begin(); it != answerInt64_.end(); ++it)
+        {
+          target.push_back(*it);
+        }
       }
     }
+
+
+    void ForwardAnswers(std::list<std::string>& target)
+    {
+      if (type_ != _OrthancPluginDatabaseAnswerType_None &&
+          type_ != _OrthancPluginDatabaseAnswerType_String)
+      {
+        throw OrthancException(ErrorCode_DatabasePlugin);
+      }
+
+      target.clear();
+
+      if (type_ == _OrthancPluginDatabaseAnswerType_String)
+      {
+        for (std::list<std::string>::const_iterator 
+               it = answerStrings_.begin(); it != answerStrings_.end(); ++it)
+        {
+          target.push_back(*it);
+        }
+      }
+    }
+
+
+    bool ForwardSingleAnswer(std::string& target)
+    {
+      if (type_ == _OrthancPluginDatabaseAnswerType_None)
+      {
+        return false;
+      }
+      else if (type_ == _OrthancPluginDatabaseAnswerType_String &&
+               answerStrings_.size() == 1)
+      {
+        target = answerStrings_.front();
+        return true; 
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_DatabasePlugin);
+      }
+    }
+
+
+    bool ForwardSingleAnswer(int64_t& target)
+    {
+      if (type_ == _OrthancPluginDatabaseAnswerType_None)
+      {
+        return false;
+      }
+      else if (type_ == _OrthancPluginDatabaseAnswerType_Int64 &&
+               answerInt64_.size() == 1)
+      {
+        target = answerInt64_.front();
+        return true; 
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_DatabasePlugin);
+      }
+    }
+
+
+    void ProcessEvent(const _OrthancPluginDatabaseAnswer& answer)
+    {
+      switch (answer.type)
+      {
+        case _OrthancPluginDatabaseAnswerType_DeletedAttachment:
+        {
+          const OrthancPluginAttachment& attachment = 
+            *reinterpret_cast<const OrthancPluginAttachment*>(answer.valueGeneric);
+          listener_.SignalAttachmentDeleted(Convert(attachment));
+          break;
+        }
+        
+        case _OrthancPluginDatabaseAnswerType_RemainingAncestor:
+        {
+          ResourceType type = Plugins::Convert(static_cast<OrthancPluginResourceType>(answer.valueInt32));
+          listener_.SignalRemainingAncestor(type, answer.valueString);
+          break;
+        }
+      
+        case _OrthancPluginDatabaseAnswerType_DeletedResource:
+        {
+          ResourceType type = Plugins::Convert(static_cast<OrthancPluginResourceType>(answer.valueInt32));
+          listener_.SignalResourceDeleted(type, answer.valueString);
+          break;
+        }
+
+        default:
+          throw OrthancException(ErrorCode_DatabasePlugin);
+      }
+    }
+
 
   public:
     explicit Transaction(OrthancPluginDatabase& that,
                          IDatabaseListener& listener) :
-      that_(that)
+      that_(that),
+      listener_(listener),
+      type_(_OrthancPluginDatabaseAnswerType_None),
+      answerDoneIgnored_(false)
     {
-      assert(that_.listener_ == NULL);
-      that_.listener_ = &listener;   // TODO - STORE IN TRANSACTION
+      if (that_.activeTransaction_ != NULL)
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+      
+      that_.activeTransaction_ = this;
+
+      ResetAnswers();
     }
 
     virtual ~Transaction()
     {
-      assert(that_.listener_ != NULL);
-      that_.listener_ = NULL;   // TODO - STORE IN TRANSACTION
+      assert(that_.activeTransaction_ != NULL);    
+      that_.activeTransaction_ = NULL;
+    }
+
+    IDatabaseListener& GetDatabaseListener() const
+    {
+      return listener_;
     }
 
     void Begin()
@@ -118,12 +288,265 @@ namespace Orthanc
     }
 
 
+    void AnswerReceived(const _OrthancPluginDatabaseAnswer& answer)
+    {
+      if (answer.type == _OrthancPluginDatabaseAnswerType_None)
+      {
+        throw OrthancException(ErrorCode_DatabasePlugin);
+      }
+
+      if (answer.type == _OrthancPluginDatabaseAnswerType_DeletedAttachment ||
+          answer.type == _OrthancPluginDatabaseAnswerType_DeletedResource ||
+          answer.type == _OrthancPluginDatabaseAnswerType_RemainingAncestor)
+      {
+        ProcessEvent(answer);
+        return;
+      }
+
+      if (type_ == _OrthancPluginDatabaseAnswerType_None)
+      {
+        type_ = answer.type;
+
+        switch (type_)
+        {
+          case _OrthancPluginDatabaseAnswerType_Int32:
+            answerInt32_.clear();
+            break;
+
+          case _OrthancPluginDatabaseAnswerType_Int64:
+            answerInt64_.clear();
+            break;
+
+          case _OrthancPluginDatabaseAnswerType_Resource:
+            answerResources_.clear();
+            break;
+
+          case _OrthancPluginDatabaseAnswerType_Attachment:
+            answerAttachments_.clear();
+            break;
+
+          case _OrthancPluginDatabaseAnswerType_String:
+            answerStrings_.clear();
+            break;
+
+          case _OrthancPluginDatabaseAnswerType_DicomTag:
+            assert(answerDicomMap_ != NULL);
+            answerDicomMap_->Clear();
+            break;
+
+          case _OrthancPluginDatabaseAnswerType_Change:
+            assert(answerChanges_ != NULL);
+            answerChanges_->clear();
+            break;
+
+          case _OrthancPluginDatabaseAnswerType_ExportedResource:
+            assert(answerExportedResources_ != NULL);
+            answerExportedResources_->clear();
+            break;
+
+          case _OrthancPluginDatabaseAnswerType_MatchingResource:
+            assert(answerMatchingResources_ != NULL);
+            answerMatchingResources_->clear();
+
+            if (answerMatchingInstances_ != NULL)
+            {
+              answerMatchingInstances_->clear();
+            }
+          
+            break;
+
+          case _OrthancPluginDatabaseAnswerType_Metadata:
+            assert(answerMetadata_ != NULL);
+            answerMetadata_->clear();
+            break;
+
+          default:
+            throw OrthancException(ErrorCode_DatabasePlugin,
+                                   "Unhandled type of answer for custom index plugin: " +
+                                   boost::lexical_cast<std::string>(answer.type));
+        }
+      }
+      else if (type_ != answer.type)
+      {
+        throw OrthancException(ErrorCode_DatabasePlugin,
+                               "Error in the plugin protocol: Cannot change the answer type");
+      }
+
+      switch (answer.type)
+      {
+        case _OrthancPluginDatabaseAnswerType_Int32:
+        {
+          answerInt32_.push_back(answer.valueInt32);
+          break;
+        }
+
+        case _OrthancPluginDatabaseAnswerType_Int64:
+        {
+          answerInt64_.push_back(answer.valueInt64);
+          break;
+        }
+
+        case _OrthancPluginDatabaseAnswerType_Resource:
+        {
+          OrthancPluginResourceType type = static_cast<OrthancPluginResourceType>(answer.valueInt32);
+          answerResources_.push_back(std::make_pair(answer.valueInt64, Plugins::Convert(type)));
+          break;
+        }
+
+        case _OrthancPluginDatabaseAnswerType_Attachment:
+        {
+          const OrthancPluginAttachment& attachment = 
+            *reinterpret_cast<const OrthancPluginAttachment*>(answer.valueGeneric);
+
+          answerAttachments_.push_back(Convert(attachment));
+          break;
+        }
+
+        case _OrthancPluginDatabaseAnswerType_DicomTag:
+        {
+          const OrthancPluginDicomTag& tag = *reinterpret_cast<const OrthancPluginDicomTag*>(answer.valueGeneric);
+          assert(answerDicomMap_ != NULL);
+          answerDicomMap_->SetValue(tag.group, tag.element, std::string(tag.value), false);
+          break;
+        }
+
+        case _OrthancPluginDatabaseAnswerType_String:
+        {
+          if (answer.valueString == NULL)
+          {
+            throw OrthancException(ErrorCode_DatabasePlugin);
+          }
+
+          if (type_ == _OrthancPluginDatabaseAnswerType_None)
+          {
+            type_ = _OrthancPluginDatabaseAnswerType_String;
+            answerStrings_.clear();
+          }
+          else if (type_ != _OrthancPluginDatabaseAnswerType_String)
+          {
+            throw OrthancException(ErrorCode_DatabasePlugin);
+          }
+
+          answerStrings_.push_back(std::string(answer.valueString));
+          break;
+        }
+
+        case _OrthancPluginDatabaseAnswerType_Change:
+        {
+          assert(answerDone_ != NULL);
+          if (answer.valueUint32 == 1)
+          {
+            *answerDone_ = true;
+          }
+          else if (*answerDone_)
+          {
+            throw OrthancException(ErrorCode_DatabasePlugin);
+          }
+          else
+          {
+            const OrthancPluginChange& change =
+              *reinterpret_cast<const OrthancPluginChange*>(answer.valueGeneric);
+            assert(answerChanges_ != NULL);
+            answerChanges_->push_back
+              (ServerIndexChange(change.seq,
+                                 static_cast<ChangeType>(change.changeType),
+                                 Plugins::Convert(change.resourceType),
+                                 change.publicId,
+                                 change.date));                                   
+          }
+
+          break;
+        }
+
+        case _OrthancPluginDatabaseAnswerType_ExportedResource:
+        {
+          assert(answerDone_ != NULL);
+          if (answer.valueUint32 == 1)
+          {
+            *answerDone_ = true;
+          }
+          else if (*answerDone_)
+          {
+            throw OrthancException(ErrorCode_DatabasePlugin);
+          }
+          else
+          {
+            const OrthancPluginExportedResource& exported = 
+              *reinterpret_cast<const OrthancPluginExportedResource*>(answer.valueGeneric);
+            assert(answerExportedResources_ != NULL);
+            answerExportedResources_->push_back
+              (ExportedResource(exported.seq,
+                                Plugins::Convert(exported.resourceType),
+                                exported.publicId,
+                                exported.modality,
+                                exported.date,
+                                exported.patientId,
+                                exported.studyInstanceUid,
+                                exported.seriesInstanceUid,
+                                exported.sopInstanceUid));
+          }
+
+          break;
+        }
+
+        case _OrthancPluginDatabaseAnswerType_MatchingResource:
+        {
+          const OrthancPluginMatchingResource& match = 
+            *reinterpret_cast<const OrthancPluginMatchingResource*>(answer.valueGeneric);
+
+          if (match.resourceId == NULL)
+          {
+            throw OrthancException(ErrorCode_DatabasePlugin);
+          }
+
+          assert(answerMatchingResources_ != NULL);
+          answerMatchingResources_->push_back(match.resourceId);
+
+          if (answerMatchingInstances_ != NULL)
+          {
+            if (match.someInstanceId == NULL)
+            {
+              throw OrthancException(ErrorCode_DatabasePlugin);
+            }
+
+            answerMatchingInstances_->push_back(match.someInstanceId);
+          }
+ 
+          break;
+        }
+
+        case _OrthancPluginDatabaseAnswerType_Metadata:
+        {
+          const OrthancPluginResourcesContentMetadata& metadata =
+            *reinterpret_cast<const OrthancPluginResourcesContentMetadata*>(answer.valueGeneric);
+
+          MetadataType type = static_cast<MetadataType>(metadata.metadata);
+
+          if (metadata.value == NULL)
+          {
+            throw OrthancException(ErrorCode_DatabasePlugin);
+          }
+
+          assert(answerMetadata_ != NULL &&
+                 answerMetadata_->find(type) == answerMetadata_->end());
+          (*answerMetadata_) [type] = metadata.value;
+          break;
+        }
+
+        default:
+          throw OrthancException(ErrorCode_DatabasePlugin,
+                                 "Unhandled type of answer for custom index plugin: " +
+                                 boost::lexical_cast<std::string>(answer.type));
+      }
+    }
+    
+
     // From the "ILookupResources" interface
-    void LookupIdentifier(std::list<int64_t>& result,
-                          ResourceType level,
-                          const DicomTag& tag,
-                          Compatibility::IdentifierConstraintType type,
-                          const std::string& value) ORTHANC_OVERRIDE
+    virtual void LookupIdentifier(std::list<int64_t>& result,
+                                  ResourceType level,
+                                  const DicomTag& tag,
+                                  Compatibility::IdentifierConstraintType type,
+                                  const std::string& value) ORTHANC_OVERRIDE
     {
       if (that_.extensions_.lookupIdentifier3 == NULL)
       {
@@ -136,10 +559,10 @@ namespace Orthanc
       tmp.element = tag.GetElement();
       tmp.value = value.c_str();
 
-      that_.ResetAnswers();
+      ResetAnswers();
       CheckSuccess(that_.extensions_.lookupIdentifier3(that_.GetContext(), that_.payload_, Plugins::Convert(level),
-                                                 &tmp, Compatibility::Convert(type)));
-      that_.ForwardAnswers(result);
+                                                       &tmp, Compatibility::Convert(type)));
+      ForwardAnswers(result);
     }
 
     
@@ -168,24 +591,24 @@ namespace Orthanc
           lookup[i].EncodeForPlugins(constraints[i], constraintsValues[i]);
         }
 
-        that_.ResetAnswers();
-        that_.answerMatchingResources_ = &resourcesId;
-        that_.answerMatchingInstances_ = instancesId;
+        ResetAnswers();
+        answerMatchingResources_ = &resourcesId;
+        answerMatchingInstances_ = instancesId;
       
         CheckSuccess(that_.extensions_.lookupResources(that_.GetContext(), that_.payload_, lookup.size(),
-                                                 (lookup.empty() ? NULL : &constraints[0]),
-                                                 Plugins::Convert(queryLevel),
-                                                 limit, (instancesId == NULL ? 0 : 1)));
+                                                       (lookup.empty() ? NULL : &constraints[0]),
+                                                       Plugins::Convert(queryLevel),
+                                                       limit, (instancesId == NULL ? 0 : 1)));
       }
     }
 
 
-    bool CreateInstance(IDatabaseWrapper::CreateInstanceResult& result,
-                        int64_t& instanceId,
-                        const std::string& patient,
-                        const std::string& study,
-                        const std::string& series,
-                        const std::string& instance) ORTHANC_OVERRIDE
+    virtual bool CreateInstance(IDatabaseWrapper::CreateInstanceResult& result,
+                                int64_t& instanceId,
+                                const std::string& patient,
+                                const std::string& study,
+                                const std::string& series,
+                                const std::string& instance) ORTHANC_OVERRIDE
     {
       if (that_.extensions_.createInstance == NULL)
       {
@@ -199,7 +622,7 @@ namespace Orthanc
         memset(&output, 0, sizeof(output));
 
         CheckSuccess(that_.extensions_.createInstance(&output, that_.payload_, patient.c_str(),
-                                                study.c_str(), series.c_str(), instance.c_str()));
+                                                      study.c_str(), series.c_str(), instance.c_str()));
 
         instanceId = output.instanceId;
       
@@ -309,9 +732,9 @@ namespace Orthanc
                                "The database plugin does not implement the mandatory GetAllInternalIds() extension");
       }
 
-      that_.ResetAnswers();
+      ResetAnswers();
       CheckSuccess(that_.extensions_.getAllInternalIds(that_.GetContext(), that_.payload_, Plugins::Convert(resourceType)));
-      that_.ForwardAnswers(target);
+      ForwardAnswers(target);
     }
 
 
@@ -324,21 +747,21 @@ namespace Orthanc
         // Fallback implementation if extension is missing
         target.clear();
 
-        that_.ResetAnswers();
+        ResetAnswers();
         CheckSuccess(that_.backend_.listAvailableMetadata(that_.GetContext(), that_.payload_, id));
 
-        if (that_.type_ != _OrthancPluginDatabaseAnswerType_None &&
-            that_.type_ != _OrthancPluginDatabaseAnswerType_Int32)
+        if (type_ != _OrthancPluginDatabaseAnswerType_None &&
+            type_ != _OrthancPluginDatabaseAnswerType_Int32)
         {
           throw OrthancException(ErrorCode_DatabasePlugin);
         }
 
         target.clear();
 
-        if (that_.type_ == _OrthancPluginDatabaseAnswerType_Int32)
+        if (type_ == _OrthancPluginDatabaseAnswerType_Int32)
         {
           for (std::list<int32_t>::const_iterator 
-                 it = that_.answerInt32_.begin(); it != that_.answerInt32_.end(); ++it)
+                 it = answerInt32_.begin(); it != answerInt32_.end(); ++it)
           {
             MetadataType type = static_cast<MetadataType>(*it);
 
@@ -352,15 +775,15 @@ namespace Orthanc
       }
       else
       {
-        that_.ResetAnswers();
+        ResetAnswers();
 
-        that_.answerMetadata_ = &target;
+        answerMetadata_ = &target;
         target.clear();
       
         CheckSuccess(that_.extensions_.getAllMetadata(that_.GetContext(), that_.payload_, id));
 
-        if (that_.type_ != _OrthancPluginDatabaseAnswerType_None &&
-            that_.type_ != _OrthancPluginDatabaseAnswerType_Metadata)
+        if (type_ != _OrthancPluginDatabaseAnswerType_None &&
+            type_ != _OrthancPluginDatabaseAnswerType_Metadata)
         {
           throw OrthancException(ErrorCode_DatabasePlugin);
         }
@@ -371,9 +794,9 @@ namespace Orthanc
     virtual void GetAllPublicIds(std::list<std::string>& target,
                                  ResourceType resourceType) ORTHANC_OVERRIDE
     {
-      that_.ResetAnswers();
+      ResetAnswers();
       CheckSuccess(that_.backend_.getAllPublicIds(that_.GetContext(), that_.payload_, Plugins::Convert(resourceType)));
-      that_.ForwardAnswers(target);
+      ForwardAnswers(target);
     }
 
 
@@ -385,10 +808,10 @@ namespace Orthanc
       if (that_.extensions_.getAllPublicIdsWithLimit != NULL)
       {
         // This extension is available since Orthanc 0.9.4
-        that_.ResetAnswers();
+        ResetAnswers();
         CheckSuccess(that_.extensions_.getAllPublicIdsWithLimit
                      (that_.GetContext(), that_.payload_, Plugins::Convert(resourceType), since, limit));
-        that_.ForwardAnswers(target);
+        ForwardAnswers(target);
       }
       else
       {
@@ -428,9 +851,9 @@ namespace Orthanc
                             int64_t since,
                             uint32_t maxResults) ORTHANC_OVERRIDE
     {
-      that_.ResetAnswers();
-      that_.answerChanges_ = &target;
-      that_.answerDone_ = &done;
+      ResetAnswers();
+      answerChanges_ = &target;
+      answerDone_ = &done;
       done = false;
 
       CheckSuccess(that_.backend_.getChanges(that_.GetContext(), that_.payload_, since, maxResults));
@@ -440,9 +863,9 @@ namespace Orthanc
     virtual void GetChildrenInternalId(std::list<int64_t>& target,
                                        int64_t id) ORTHANC_OVERRIDE
     {
-      that_.ResetAnswers();
+      ResetAnswers();
       CheckSuccess(that_.backend_.getChildrenInternalId(that_.GetContext(), that_.payload_, id));
-      that_.ForwardAnswers(target);
+      ForwardAnswers(target);
     }
 
 
@@ -456,10 +879,10 @@ namespace Orthanc
       }
       else
       {
-        that_.ResetAnswers();
+        ResetAnswers();
         CheckSuccess(that_.extensions_.getChildrenMetadata
                      (that_.GetContext(), that_.payload_, resourceId, static_cast<int32_t>(metadata)));
-        that_.ForwardAnswers(target);
+        ForwardAnswers(target);
       }
     }
 
@@ -467,9 +890,9 @@ namespace Orthanc
     virtual void GetChildrenPublicId(std::list<std::string>& target,
                                      int64_t id) ORTHANC_OVERRIDE
     {
-      that_.ResetAnswers();
+      ResetAnswers();
       CheckSuccess(that_.backend_.getChildrenPublicId(that_.GetContext(), that_.payload_, id));
-      that_.ForwardAnswers(target);
+      ForwardAnswers(target);
     }
 
 
@@ -478,9 +901,9 @@ namespace Orthanc
                                       int64_t since,
                                       uint32_t maxResults) ORTHANC_OVERRIDE
     {
-      that_.ResetAnswers();
-      that_.answerExportedResources_ = &target;
-      that_.answerDone_ = &done;
+      ResetAnswers();
+      answerExportedResources_ = &target;
+      answerDone_ = &done;
       done = false;
 
       CheckSuccess(that_.backend_.getExportedResources(that_.GetContext(), that_.payload_, since, maxResults));
@@ -489,11 +912,11 @@ namespace Orthanc
 
     virtual void GetLastChange(std::list<ServerIndexChange>& target /*out*/) ORTHANC_OVERRIDE
     {
-      that_.answerDoneIgnored_ = false;
+      answerDoneIgnored_ = false;
 
-      that_.ResetAnswers();
-      that_.answerChanges_ = &target;
-      that_.answerDone_ = &that_.answerDoneIgnored_;
+      ResetAnswers();
+      answerChanges_ = &target;
+      answerDone_ = &answerDoneIgnored_;
 
       CheckSuccess(that_.backend_.getLastChange(that_.GetContext(), that_.payload_));
     }
@@ -518,11 +941,11 @@ namespace Orthanc
   
     virtual void GetLastExportedResource(std::list<ExportedResource>& target /*out*/) ORTHANC_OVERRIDE
     {
-      that_.answerDoneIgnored_ = false;
+      answerDoneIgnored_ = false;
 
-      that_.ResetAnswers();
-      that_.answerExportedResources_ = &target;
-      that_.answerDone_ = &that_.answerDoneIgnored_;
+      ResetAnswers();
+      answerExportedResources_ = &target;
+      answerDone_ = &answerDoneIgnored_;
 
       CheckSuccess(that_.backend_.getLastExportedResource(that_.GetContext(), that_.payload_));
     }
@@ -531,8 +954,8 @@ namespace Orthanc
     virtual void GetMainDicomTags(DicomMap& map,
                                   int64_t id) ORTHANC_OVERRIDE
     {
-      that_.ResetAnswers();
-      that_.answerDicomMap_ = &map;
+      ResetAnswers();
+      answerDicomMap_ = &map;
 
       CheckSuccess(that_.backend_.getMainDicomTags(that_.GetContext(), that_.payload_, id));
     }
@@ -540,12 +963,12 @@ namespace Orthanc
 
     virtual std::string GetPublicId(int64_t resourceId) ORTHANC_OVERRIDE
     {
-      that_.ResetAnswers();
+      ResetAnswers();
       std::string s;
 
       CheckSuccess(that_.backend_.getPublicId(that_.GetContext(), that_.payload_, resourceId));
 
-      if (!that_.ForwardSingleAnswer(s))
+      if (!ForwardSingleAnswer(s))
       {
         throw OrthancException(ErrorCode_DatabasePlugin);
       }
@@ -619,22 +1042,22 @@ namespace Orthanc
     virtual void ListAvailableAttachments(std::set<FileContentType>& target,
                                           int64_t id) ORTHANC_OVERRIDE
     {
-      that_.ResetAnswers();
+      ResetAnswers();
 
       CheckSuccess(that_.backend_.listAvailableAttachments(that_.GetContext(), that_.payload_, id));
 
-      if (that_.type_ != _OrthancPluginDatabaseAnswerType_None &&
-          that_.type_ != _OrthancPluginDatabaseAnswerType_Int32)
+      if (type_ != _OrthancPluginDatabaseAnswerType_None &&
+          type_ != _OrthancPluginDatabaseAnswerType_Int32)
       {
         throw OrthancException(ErrorCode_DatabasePlugin);
       }
 
       target.clear();
 
-      if (that_.type_ == _OrthancPluginDatabaseAnswerType_Int32)
+      if (type_ == _OrthancPluginDatabaseAnswerType_Int32)
       {
         for (std::list<int32_t>::const_iterator 
-               it = that_.answerInt32_.begin(); it != that_.answerInt32_.end(); ++it)
+               it = answerInt32_.begin(); it != answerInt32_.end(); ++it)
         {
           target.insert(static_cast<FileContentType>(*it));
         }
@@ -677,19 +1100,19 @@ namespace Orthanc
                                   int64_t id,
                                   FileContentType contentType) ORTHANC_OVERRIDE
     {
-      that_.ResetAnswers();
+      ResetAnswers();
 
       CheckSuccess(that_.backend_.lookupAttachment
                    (that_.GetContext(), that_.payload_, id, static_cast<int32_t>(contentType)));
 
-      if (that_.type_ == _OrthancPluginDatabaseAnswerType_None)
+      if (type_ == _OrthancPluginDatabaseAnswerType_None)
       {
         return false;
       }
-      else if (that_.type_ == _OrthancPluginDatabaseAnswerType_Attachment &&
-               that_.answerAttachments_.size() == 1)
+      else if (type_ == _OrthancPluginDatabaseAnswerType_Attachment &&
+               answerAttachments_.size() == 1)
       {
-        attachment = that_.answerAttachments_.front();
+        attachment = answerAttachments_.front();
         return true; 
       }
       else
@@ -702,12 +1125,12 @@ namespace Orthanc
     virtual bool LookupGlobalProperty(std::string& target,
                                       GlobalProperty property) ORTHANC_OVERRIDE
     {
-      that_.ResetAnswers();
+      ResetAnswers();
 
       CheckSuccess(that_.backend_.lookupGlobalProperty
                    (that_.GetContext(), that_.payload_, static_cast<int32_t>(property)));
 
-      return that_.ForwardSingleAnswer(target);
+      return ForwardSingleAnswer(target);
     }
 
 
@@ -731,11 +1154,11 @@ namespace Orthanc
       }
       else
       {
-        that_.ResetAnswers();
+        ResetAnswers();
         CheckSuccess(that_.extensions_.lookupIdentifierRange(that_.GetContext(), that_.payload_, Plugins::Convert(level),
-                                                       tag.GetGroup(), tag.GetElement(),
-                                                       start.c_str(), end.c_str()));
-        that_.ForwardAnswers(result);
+                                                             tag.GetGroup(), tag.GetElement(),
+                                                             start.c_str(), end.c_str()));
+        ForwardAnswers(result);
       }
     }
 
@@ -744,18 +1167,18 @@ namespace Orthanc
                                 int64_t id,
                                 MetadataType type) ORTHANC_OVERRIDE
     {
-      that_.ResetAnswers();
+      ResetAnswers();
       CheckSuccess(that_.backend_.lookupMetadata(that_.GetContext(), that_.payload_, id, static_cast<int32_t>(type)));
-      return that_.ForwardSingleAnswer(target);
+      return ForwardSingleAnswer(target);
     }
 
 
     virtual bool LookupParent(int64_t& parentId,
                               int64_t resourceId) ORTHANC_OVERRIDE
     {
-      that_.ResetAnswers();
+      ResetAnswers();
       CheckSuccess(that_.backend_.lookupParent(that_.GetContext(), that_.payload_, resourceId));
-      return that_.ForwardSingleAnswer(parentId);
+      return ForwardSingleAnswer(parentId);
     }
 
 
@@ -763,19 +1186,19 @@ namespace Orthanc
                                 ResourceType& type,
                                 const std::string& publicId) ORTHANC_OVERRIDE
     {
-      that_.ResetAnswers();
+      ResetAnswers();
 
       CheckSuccess(that_.backend_.lookupResource(that_.GetContext(), that_.payload_, publicId.c_str()));
 
-      if (that_.type_ == _OrthancPluginDatabaseAnswerType_None)
+      if (type_ == _OrthancPluginDatabaseAnswerType_None)
       {
         return false;
       }
-      else if (that_.type_ == _OrthancPluginDatabaseAnswerType_Resource &&
-               that_.answerResources_.size() == 1)
+      else if (type_ == _OrthancPluginDatabaseAnswerType_Resource &&
+               answerResources_.size() == 1)
       {
-        id = that_.answerResources_.front().first;
-        type = that_.answerResources_.front().second;
+        id = answerResources_.front().first;
+        type = answerResources_.front().second;
         return true; 
       }
       else
@@ -801,10 +1224,10 @@ namespace Orthanc
         uint8_t isExisting;
         OrthancPluginResourceType pluginType = OrthancPluginResourceType_Patient;
       
-        that_.ResetAnswers();
+        ResetAnswers();
         CheckSuccess(that_.extensions_.lookupResourceAndParent
                      (that_.GetContext(), &isExisting, &id, &pluginType, that_.payload_, publicId.c_str()));
-        that_.ForwardAnswers(parent);
+        ForwardAnswers(parent);
 
         if (isExisting)
         {
@@ -846,18 +1269,18 @@ namespace Orthanc
 
     virtual bool SelectPatientToRecycle(int64_t& internalId) ORTHANC_OVERRIDE
     {
-      that_.ResetAnswers();
+      ResetAnswers();
       CheckSuccess(that_.backend_.selectPatientToRecycle(that_.GetContext(), that_.payload_));
-      return that_.ForwardSingleAnswer(internalId);
+      return ForwardSingleAnswer(internalId);
     }
 
 
     virtual bool SelectPatientToRecycle(int64_t& internalId,
                                         int64_t patientIdToAvoid) ORTHANC_OVERRIDE
     {
-      that_.ResetAnswers();
+      ResetAnswers();
       CheckSuccess(that_.backend_.selectPatientToRecycle2(that_.GetContext(), that_.payload_, patientIdToAvoid));
-      return that_.ForwardSingleAnswer(internalId);
+      return ForwardSingleAnswer(internalId);
     }
 
 
@@ -985,118 +1408,12 @@ namespace Orthanc
   };
 
 
-  static FileInfo Convert(const OrthancPluginAttachment& attachment)
-  {
-    return FileInfo(attachment.uuid,
-                    static_cast<FileContentType>(attachment.contentType),
-                    attachment.uncompressedSize,
-                    attachment.uncompressedHash,
-                    static_cast<CompressionType>(attachment.compressionType),
-                    attachment.compressedSize,
-                    attachment.compressedHash);
-  }
-
-
   void OrthancPluginDatabase::CheckSuccess(OrthancPluginErrorCode code)
   {
     if (code != OrthancPluginErrorCode_Success)
     {
       errorDictionary_.LogError(code, true);
       throw OrthancException(static_cast<ErrorCode>(code));
-    }
-  }
-
-
-  void OrthancPluginDatabase::ResetAnswers()
-  {
-    type_ = _OrthancPluginDatabaseAnswerType_None;
-
-    answerDicomMap_ = NULL;
-    answerChanges_ = NULL;
-    answerExportedResources_ = NULL;
-    answerDone_ = NULL;
-    answerMatchingResources_ = NULL;
-    answerMatchingInstances_ = NULL;
-    answerMetadata_ = NULL;
-  }
-
-
-  void OrthancPluginDatabase::ForwardAnswers(std::list<int64_t>& target)
-  {
-    if (type_ != _OrthancPluginDatabaseAnswerType_None &&
-        type_ != _OrthancPluginDatabaseAnswerType_Int64)
-    {
-      throw OrthancException(ErrorCode_DatabasePlugin);
-    }
-
-    target.clear();
-
-    if (type_ == _OrthancPluginDatabaseAnswerType_Int64)
-    {
-      for (std::list<int64_t>::const_iterator 
-             it = answerInt64_.begin(); it != answerInt64_.end(); ++it)
-      {
-        target.push_back(*it);
-      }
-    }
-  }
-
-
-  void OrthancPluginDatabase::ForwardAnswers(std::list<std::string>& target)
-  {
-    if (type_ != _OrthancPluginDatabaseAnswerType_None &&
-        type_ != _OrthancPluginDatabaseAnswerType_String)
-    {
-      throw OrthancException(ErrorCode_DatabasePlugin);
-    }
-
-    target.clear();
-
-    if (type_ == _OrthancPluginDatabaseAnswerType_String)
-    {
-      for (std::list<std::string>::const_iterator 
-             it = answerStrings_.begin(); it != answerStrings_.end(); ++it)
-      {
-        target.push_back(*it);
-      }
-    }
-  }
-
-
-  bool OrthancPluginDatabase::ForwardSingleAnswer(std::string& target)
-  {
-    if (type_ == _OrthancPluginDatabaseAnswerType_None)
-    {
-      return false;
-    }
-    else if (type_ == _OrthancPluginDatabaseAnswerType_String &&
-             answerStrings_.size() == 1)
-    {
-      target = answerStrings_.front();
-      return true; 
-    }
-    else
-    {
-      throw OrthancException(ErrorCode_DatabasePlugin);
-    }
-  }
-
-
-  bool OrthancPluginDatabase::ForwardSingleAnswer(int64_t& target)
-  {
-    if (type_ == _OrthancPluginDatabaseAnswerType_None)
-    {
-      return false;
-    }
-    else if (type_ == _OrthancPluginDatabaseAnswerType_Int64 &&
-             answerInt64_.size() == 1)
-    {
-      target = answerInt64_.front();
-      return true; 
-    }
-    else
-    {
-      throw OrthancException(ErrorCode_DatabasePlugin);
     }
   }
 
@@ -1111,15 +1428,12 @@ namespace Orthanc
     errorDictionary_(errorDictionary),
     backend_(backend),
     payload_(payload),
-    listener_(NULL),
+    activeTransaction_(NULL),
     fastGetTotalSize_(false),
-    currentDiskSize_(0),
-    answerDoneIgnored_(false)
+    currentDiskSize_(0)
   {
     static const char* const MISSING = "  Missing extension in database index plugin: ";
     
-    ResetAnswers();
-
     memset(&extensions_, 0, sizeof(extensions_));
 
     size_t size = sizeof(extensions_);
@@ -1234,39 +1548,6 @@ namespace Orthanc
   }
 
 
-  static void ProcessEvent(IDatabaseListener& listener,
-                           const _OrthancPluginDatabaseAnswer& answer)
-  {
-    switch (answer.type)
-    {
-      case _OrthancPluginDatabaseAnswerType_DeletedAttachment:
-      {
-        const OrthancPluginAttachment& attachment = 
-          *reinterpret_cast<const OrthancPluginAttachment*>(answer.valueGeneric);
-        listener.SignalAttachmentDeleted(Convert(attachment));
-        break;
-      }
-        
-      case _OrthancPluginDatabaseAnswerType_RemainingAncestor:
-      {
-        ResourceType type = Plugins::Convert(static_cast<OrthancPluginResourceType>(answer.valueInt32));
-        listener.SignalRemainingAncestor(type, answer.valueString);
-        break;
-      }
-      
-      case _OrthancPluginDatabaseAnswerType_DeletedResource:
-      {
-        ResourceType type = Plugins::Convert(static_cast<OrthancPluginResourceType>(answer.valueInt32));
-        listener.SignalResourceDeleted(type, answer.valueString);
-        break;
-      }
-
-      default:
-        throw OrthancException(ErrorCode_DatabasePlugin);
-    }
-  }
-
-
   unsigned int OrthancPluginDatabase::GetDatabaseVersion()
   {
     if (extensions_.getDatabaseVersion != NULL)
@@ -1315,254 +1596,9 @@ namespace Orthanc
 
   void OrthancPluginDatabase::AnswerReceived(const _OrthancPluginDatabaseAnswer& answer)
   {
-    if (answer.type == _OrthancPluginDatabaseAnswerType_None)
+    if (activeTransaction_ != NULL)
     {
-      throw OrthancException(ErrorCode_DatabasePlugin);
-    }
-
-    if (answer.type == _OrthancPluginDatabaseAnswerType_DeletedAttachment ||
-        answer.type == _OrthancPluginDatabaseAnswerType_DeletedResource ||
-        answer.type == _OrthancPluginDatabaseAnswerType_RemainingAncestor)
-    {
-      assert(listener_ != NULL);
-      ProcessEvent(*listener_, answer);
-      return;
-    }
-
-    if (type_ == _OrthancPluginDatabaseAnswerType_None)
-    {
-      type_ = answer.type;
-
-      switch (type_)
-      {
-        case _OrthancPluginDatabaseAnswerType_Int32:
-          answerInt32_.clear();
-          break;
-
-        case _OrthancPluginDatabaseAnswerType_Int64:
-          answerInt64_.clear();
-          break;
-
-        case _OrthancPluginDatabaseAnswerType_Resource:
-          answerResources_.clear();
-          break;
-
-        case _OrthancPluginDatabaseAnswerType_Attachment:
-          answerAttachments_.clear();
-          break;
-
-        case _OrthancPluginDatabaseAnswerType_String:
-          answerStrings_.clear();
-          break;
-
-        case _OrthancPluginDatabaseAnswerType_DicomTag:
-          assert(answerDicomMap_ != NULL);
-          answerDicomMap_->Clear();
-          break;
-
-        case _OrthancPluginDatabaseAnswerType_Change:
-          assert(answerChanges_ != NULL);
-          answerChanges_->clear();
-          break;
-
-        case _OrthancPluginDatabaseAnswerType_ExportedResource:
-          assert(answerExportedResources_ != NULL);
-          answerExportedResources_->clear();
-          break;
-
-        case _OrthancPluginDatabaseAnswerType_MatchingResource:
-          assert(answerMatchingResources_ != NULL);
-          answerMatchingResources_->clear();
-
-          if (answerMatchingInstances_ != NULL)
-          {
-            answerMatchingInstances_->clear();
-          }
-          
-          break;
-
-        case _OrthancPluginDatabaseAnswerType_Metadata:
-          assert(answerMetadata_ != NULL);
-          answerMetadata_->clear();
-          break;
-
-        default:
-          throw OrthancException(ErrorCode_DatabasePlugin,
-                                 "Unhandled type of answer for custom index plugin: " +
-                                 boost::lexical_cast<std::string>(answer.type));
-      }
-    }
-    else if (type_ != answer.type)
-    {
-      throw OrthancException(ErrorCode_DatabasePlugin,
-                             "Error in the plugin protocol: Cannot change the answer type");
-    }
-
-    switch (answer.type)
-    {
-      case _OrthancPluginDatabaseAnswerType_Int32:
-      {
-        answerInt32_.push_back(answer.valueInt32);
-        break;
-      }
-
-      case _OrthancPluginDatabaseAnswerType_Int64:
-      {
-        answerInt64_.push_back(answer.valueInt64);
-        break;
-      }
-
-      case _OrthancPluginDatabaseAnswerType_Resource:
-      {
-        OrthancPluginResourceType type = static_cast<OrthancPluginResourceType>(answer.valueInt32);
-        answerResources_.push_back(std::make_pair(answer.valueInt64, Plugins::Convert(type)));
-        break;
-      }
-
-      case _OrthancPluginDatabaseAnswerType_Attachment:
-      {
-        const OrthancPluginAttachment& attachment = 
-          *reinterpret_cast<const OrthancPluginAttachment*>(answer.valueGeneric);
-
-        answerAttachments_.push_back(Convert(attachment));
-        break;
-      }
-
-      case _OrthancPluginDatabaseAnswerType_DicomTag:
-      {
-        const OrthancPluginDicomTag& tag = *reinterpret_cast<const OrthancPluginDicomTag*>(answer.valueGeneric);
-        assert(answerDicomMap_ != NULL);
-        answerDicomMap_->SetValue(tag.group, tag.element, std::string(tag.value), false);
-        break;
-      }
-
-      case _OrthancPluginDatabaseAnswerType_String:
-      {
-        if (answer.valueString == NULL)
-        {
-          throw OrthancException(ErrorCode_DatabasePlugin);
-        }
-
-        if (type_ == _OrthancPluginDatabaseAnswerType_None)
-        {
-          type_ = _OrthancPluginDatabaseAnswerType_String;
-          answerStrings_.clear();
-        }
-        else if (type_ != _OrthancPluginDatabaseAnswerType_String)
-        {
-          throw OrthancException(ErrorCode_DatabasePlugin);
-        }
-
-        answerStrings_.push_back(std::string(answer.valueString));
-        break;
-      }
-
-      case _OrthancPluginDatabaseAnswerType_Change:
-      {
-        assert(answerDone_ != NULL);
-        if (answer.valueUint32 == 1)
-        {
-          *answerDone_ = true;
-        }
-        else if (*answerDone_)
-        {
-          throw OrthancException(ErrorCode_DatabasePlugin);
-        }
-        else
-        {
-          const OrthancPluginChange& change =
-            *reinterpret_cast<const OrthancPluginChange*>(answer.valueGeneric);
-          assert(answerChanges_ != NULL);
-          answerChanges_->push_back
-            (ServerIndexChange(change.seq,
-                               static_cast<ChangeType>(change.changeType),
-                               Plugins::Convert(change.resourceType),
-                               change.publicId,
-                               change.date));                                   
-        }
-
-        break;
-      }
-
-      case _OrthancPluginDatabaseAnswerType_ExportedResource:
-      {
-        assert(answerDone_ != NULL);
-        if (answer.valueUint32 == 1)
-        {
-          *answerDone_ = true;
-        }
-        else if (*answerDone_)
-        {
-          throw OrthancException(ErrorCode_DatabasePlugin);
-        }
-        else
-        {
-          const OrthancPluginExportedResource& exported = 
-            *reinterpret_cast<const OrthancPluginExportedResource*>(answer.valueGeneric);
-          assert(answerExportedResources_ != NULL);
-          answerExportedResources_->push_back
-            (ExportedResource(exported.seq,
-                              Plugins::Convert(exported.resourceType),
-                              exported.publicId,
-                              exported.modality,
-                              exported.date,
-                              exported.patientId,
-                              exported.studyInstanceUid,
-                              exported.seriesInstanceUid,
-                              exported.sopInstanceUid));
-        }
-
-        break;
-      }
-
-      case _OrthancPluginDatabaseAnswerType_MatchingResource:
-      {
-        const OrthancPluginMatchingResource& match = 
-          *reinterpret_cast<const OrthancPluginMatchingResource*>(answer.valueGeneric);
-
-        if (match.resourceId == NULL)
-        {
-          throw OrthancException(ErrorCode_DatabasePlugin);
-        }
-
-        assert(answerMatchingResources_ != NULL);
-        answerMatchingResources_->push_back(match.resourceId);
-
-        if (answerMatchingInstances_ != NULL)
-        {
-          if (match.someInstanceId == NULL)
-          {
-            throw OrthancException(ErrorCode_DatabasePlugin);
-          }
-
-          answerMatchingInstances_->push_back(match.someInstanceId);
-        }
- 
-        break;
-      }
-
-      case _OrthancPluginDatabaseAnswerType_Metadata:
-      {
-        const OrthancPluginResourcesContentMetadata& metadata =
-          *reinterpret_cast<const OrthancPluginResourcesContentMetadata*>(answer.valueGeneric);
-
-        MetadataType type = static_cast<MetadataType>(metadata.metadata);
-
-        if (metadata.value == NULL)
-        {
-          throw OrthancException(ErrorCode_DatabasePlugin);
-        }
-
-        assert(answerMetadata_ != NULL &&
-               answerMetadata_->find(type) == answerMetadata_->end());
-        (*answerMetadata_) [type] = metadata.value;
-        break;
-      }
-
-      default:
-        throw OrthancException(ErrorCode_DatabasePlugin,
-                               "Unhandled type of answer for custom index plugin: " +
-                               boost::lexical_cast<std::string>(answer.type));
+      activeTransaction_->AnswerReceived(answer);
     }
   }
 }
