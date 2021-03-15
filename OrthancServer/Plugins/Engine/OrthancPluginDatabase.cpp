@@ -119,23 +119,6 @@ namespace Orthanc
 
 
     // From the "ILookupResources" interface
-    void GetAllInternalIds(std::list<int64_t>& target,
-                           ResourceType resourceType) ORTHANC_OVERRIDE
-    {
-      if (that_.extensions_.getAllInternalIds == NULL)
-      {
-        throw OrthancException(ErrorCode_DatabasePlugin,
-                               "The database plugin does not implement the mandatory GetAllInternalIds() extension");
-      }
-
-      that_.ResetAnswers();
-      CheckSuccess(that_.extensions_.getAllInternalIds(that_.GetContext(), that_.payload_, Plugins::Convert(resourceType)));
-      that_.ForwardAnswers(target);
-    }
-
-
-
-    // From the "ILookupResources" interface
     void LookupIdentifier(std::list<int64_t>& result,
                           ResourceType level,
                           const DicomTag& tag,
@@ -159,11 +142,6 @@ namespace Orthanc
       that_.ForwardAnswers(result);
     }
 
-    
-
-    /**
-     * Implementation of "ITransaction"
-     **/
     
     virtual void ApplyLookupResources(std::list<std::string>& resourcesId,
                                       std::list<std::string>* instancesId,
@@ -241,15 +219,6 @@ namespace Orthanc
         }
       }
     }
-
-
-    virtual int64_t CreateResource(const std::string& publicId,
-                                   ResourceType type) ORTHANC_OVERRIDE
-    {
-      int64_t id;
-      CheckSuccess(that_.backend_.createResource(&id, that_.payload_, publicId.c_str(), Plugins::Convert(type)));
-      return id;
-    }
     
 
     virtual void AddAttachment(int64_t id,
@@ -268,6 +237,7 @@ namespace Orthanc
     }
 
 
+    // From the "ICreateInstance" interface
     virtual void AttachChild(int64_t parent,
                              int64_t child) ORTHANC_OVERRIDE
     {
@@ -299,6 +269,16 @@ namespace Orthanc
     }
 
 
+    // From the "ICreateInstance" interface
+    virtual int64_t CreateResource(const std::string& publicId,
+                                   ResourceType type) ORTHANC_OVERRIDE
+    {
+      int64_t id;
+      CheckSuccess(that_.backend_.createResource(&id, that_.payload_, publicId.c_str(), Plugins::Convert(type)));
+      return id;
+    }
+
+
     virtual void DeleteAttachment(int64_t id,
                                   FileContentType attachment) ORTHANC_OVERRIDE
     {
@@ -317,6 +297,23 @@ namespace Orthanc
     {
       CheckSuccess(that_.backend_.deleteResource(that_.payload_, id));
     }
+
+
+    // From the "ILookupResources" interface
+    void GetAllInternalIds(std::list<int64_t>& target,
+                           ResourceType resourceType) ORTHANC_OVERRIDE
+    {
+      if (that_.extensions_.getAllInternalIds == NULL)
+      {
+        throw OrthancException(ErrorCode_DatabasePlugin,
+                               "The database plugin does not implement the mandatory GetAllInternalIds() extension");
+      }
+
+      that_.ResetAnswers();
+      CheckSuccess(that_.extensions_.getAllInternalIds(that_.GetContext(), that_.payload_, Plugins::Convert(resourceType)));
+      that_.ForwardAnswers(target);
+    }
+
 
 
     virtual void GetAllMetadata(std::map<MetadataType, std::string>& target,
@@ -714,6 +711,7 @@ namespace Orthanc
     }
 
 
+    // From the "ILookupResources" interface
     virtual void LookupIdentifierRange(std::list<int64_t>& result,
                                        ResourceType level,
                                        const DicomTag& tag,
@@ -871,6 +869,7 @@ namespace Orthanc
     }
 
 
+    // From the "ISetResourcesContent" interface
     virtual void SetIdentifierTag(int64_t id,
                                   const DicomTag& tag,
                                   const std::string& value) ORTHANC_OVERRIDE
@@ -884,6 +883,7 @@ namespace Orthanc
     }
 
 
+    // From the "ISetResourcesContent" interface
     virtual void SetMainDicomTag(int64_t id,
                                  const DicomTag& tag,
                                  const std::string& value) ORTHANC_OVERRIDE
@@ -913,6 +913,7 @@ namespace Orthanc
     }
 
 
+    // From the "ISetResourcesContent" interface
     virtual void SetResourcesContent(const Orthanc::ResourcesContent& content) ORTHANC_OVERRIDE
     {
       if (that_.extensions_.setResourcesContent == NULL)
@@ -973,6 +974,7 @@ namespace Orthanc
     }
 
 
+    // From the "ICreateInstance" interface
     virtual void TagMostRecentPatient(int64_t patient) ORTHANC_OVERRIDE
     {
       if (that_.extensions_.tagMostRecentPatient != NULL)
@@ -980,7 +982,6 @@ namespace Orthanc
         CheckSuccess(that_.extensions_.tagMostRecentPatient(that_.payload_, patient));
       }
     }
-
   };
 
 
