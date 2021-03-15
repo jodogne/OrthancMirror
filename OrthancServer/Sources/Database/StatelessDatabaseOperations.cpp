@@ -425,7 +425,7 @@ namespace Orthanc
 
     if (changeType <= ChangeType_INTERNAL_LastLogged)
     {
-      db_.LogChange(internalId, change);
+      transaction_.LogChange(internalId, change);
     }
 
     GetTransactionContext().SignalChange(change);
@@ -436,7 +436,7 @@ namespace Orthanc
                                                                                  int64_t expectedNumberOfInstances)
   {
     std::list<std::string> values;
-    db_.GetChildrenMetadata(values, id, MetadataType_Instance_IndexInSeries);
+    transaction_.GetChildrenMetadata(values, id, MetadataType_Instance_IndexInSeries);
 
     std::set<int64_t> instances;
 
@@ -555,6 +555,12 @@ namespace Orthanc
       }
     }
 
+    IDatabaseWrapper::ITransaction& GetDatabaseTransaction()
+    {
+      assert(transaction_.get() != NULL);
+      return *transaction_;
+    }
+
     void Commit()
     {
       if (isCommitted_)
@@ -611,7 +617,7 @@ namespace Orthanc
           
           Transaction transaction(db_, *factory_, TransactionType_ReadOnly);  // TODO - Only if not "TransactionType_Implicit"
           {
-            ReadOnlyTransaction t(db_, transaction.GetContext());
+            ReadOnlyTransaction t(transaction.GetDatabaseTransaction(), transaction.GetContext());
             readOperations->Apply(t);
           }
           transaction.Commit();
@@ -622,7 +628,7 @@ namespace Orthanc
           
           Transaction transaction(db_, *factory_, TransactionType_ReadWrite);
           {
-            ReadWriteTransaction t(db_, transaction.GetContext());
+            ReadWriteTransaction t(transaction.GetDatabaseTransaction(), transaction.GetContext());
             writeOperations->Apply(t);
           }
           transaction.Commit();
@@ -2501,7 +2507,7 @@ namespace Orthanc
       DicomTransferSyntax                   transferSyntax_;
       
     public:
-      Operations(const ParsedDicomFile& dicom)
+      explicit Operations(const ParsedDicomFile& dicom)
       {
         OrthancConfiguration::DefaultExtractDicomSummary(summary_, dicom);
         hasher_.reset(new DicomInstanceHasher(summary_));
@@ -2563,7 +2569,7 @@ namespace Orthanc
   }
 
 
-  static bool IsRecyclingNeeded(IDatabaseWrapper& db,
+  static bool IsRecyclingNeeded(IDatabaseWrapper::ITransaction& transaction,
                                 uint64_t maximumStorageSize,
                                 unsigned int maximumPatients,
                                 uint64_t addedInstanceSize)
@@ -2578,7 +2584,7 @@ namespace Orthanc
                                boost::lexical_cast<std::string>(maximumStorageSize));
       }
       
-      if (db.IsDiskSizeAbove(maximumStorageSize - addedInstanceSize))
+      if (transaction.IsDiskSizeAbove(maximumStorageSize - addedInstanceSize))
       {
         return true;
       }
@@ -2586,7 +2592,7 @@ namespace Orthanc
 
     if (maximumPatients != 0)
     {
-      uint64_t patientCount = db.GetResourceCount(ResourceType_Patient);
+      uint64_t patientCount = transaction.GetResourceCount(ResourceType_Patient);
       if (patientCount > maximumPatients)
       {
         return true;
@@ -2604,7 +2610,7 @@ namespace Orthanc
   {
     // TODO - Performance: Avoid calls to "IsRecyclingNeeded()"
     
-    if (IsRecyclingNeeded(db_, maximumStorageSize, maximumPatients, addedInstanceSize))
+    if (IsRecyclingNeeded(transaction_, maximumStorageSize, maximumPatients, addedInstanceSize))
     {
       // Check whether other DICOM instances from this patient are
       // already stored
@@ -2618,7 +2624,7 @@ namespace Orthanc
       else
       {
         ResourceType type;
-        hasPatientToAvoid = db_.LookupResource(patientToAvoid, type, newPatientId);
+        hasPatientToAvoid = transaction_.LookupResource(patientToAvoid, type, newPatientId);
         if (type != ResourceType_Patient)
         {
           throw OrthancException(ErrorCode_InternalError);
@@ -2633,8 +2639,8 @@ namespace Orthanc
         // If other instances of this patient are already in the store,
         // we must avoid to recycle them
         bool ok = (hasPatientToAvoid ?
-                   db_.SelectPatientToRecycle(patientToRecycle, patientToAvoid) :
-                   db_.SelectPatientToRecycle(patientToRecycle));
+                   transaction_.SelectPatientToRecycle(patientToRecycle, patientToAvoid) :
+                   transaction_.SelectPatientToRecycle(patientToRecycle));
         
         if (!ok)
         {
@@ -2642,9 +2648,9 @@ namespace Orthanc
         }
       
         LOG(TRACE) << "Recycling one patient";
-        db_.DeleteResource(patientToRecycle);
+        transaction_.DeleteResource(patientToRecycle);
 
-        if (!IsRecyclingNeeded(db_, maximumStorageSize, maximumPatients, addedInstanceSize))
+        if (!IsRecyclingNeeded(transaction_, maximumStorageSize, maximumPatients, addedInstanceSize))
         {
           // OK, we're done
           return;

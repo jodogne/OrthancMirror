@@ -41,7 +41,7 @@ namespace Orthanc
   namespace Compatibility
   {
     void ILookupResources::Apply(
-      IDatabaseWrapper& database,
+      IDatabaseWrapper::ITransaction& transaction,
       ILookupResources& compatibility,
       std::list<std::string>& resourcesId,
       std::list<std::string>* instancesId,
@@ -49,7 +49,7 @@ namespace Orthanc
       ResourceType queryLevel,
       size_t limit)
     {
-      Compatibility::DatabaseLookup compat(database, compatibility);
+      Compatibility::DatabaseLookup compat(transaction, compatibility);
       compat.ApplyLookupResources(resourcesId, instancesId, lookup, queryLevel, limit);
     }
   }

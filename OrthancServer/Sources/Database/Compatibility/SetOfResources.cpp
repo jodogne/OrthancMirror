@@ -90,7 +90,7 @@ namespace Orthanc
              it != resources_->end(); ++it)
         {
           std::list<int64_t> tmp;
-          database_.GetChildrenInternalId(tmp, *it);
+          transaction_.GetChildrenInternalId(tmp, *it);
 
           for (std::list<int64_t>::const_iterator
                  child = tmp.begin(); child != tmp.end(); ++child)
@@ -133,14 +133,14 @@ namespace Orthanc
       if (resources_.get() == NULL)
       {
         // All the resources of this level are part of the filter
-        database_.GetAllPublicIds(result, level_);
+        transaction_.GetAllPublicIds(result, level_);
       }
       else
       {
         for (Resources::const_iterator it = resources_->begin(); 
              it != resources_->end(); ++it)
         {
-          result.push_back(database_.GetPublicId(*it));
+          result.push_back(transaction_.GetPublicId(*it));
         }
       }
     }

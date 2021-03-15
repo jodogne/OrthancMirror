@@ -96,13 +96,13 @@ namespace Orthanc
       ITransactionContext&  context_;
       
     protected:
-      IDatabaseWrapper&  db_;
+      IDatabaseWrapper::ITransaction&  transaction_;
       
     public:
-      explicit ReadOnlyTransaction(IDatabaseWrapper& db,
+      explicit ReadOnlyTransaction(IDatabaseWrapper::ITransaction& transaction,
                                    ITransactionContext& context) :
         context_(context),
-        db_(db)
+        transaction_(transaction)
       {
       }
 
@@ -129,19 +129,19 @@ namespace Orthanc
                                 ResourceType queryLevel,
                                 size_t limit)
       {
-        return db_.ApplyLookupResources(resourcesId, instancesId, lookup, queryLevel, limit);
+        return transaction_.ApplyLookupResources(resourcesId, instancesId, lookup, queryLevel, limit);
       }
 
       void GetAllMetadata(std::map<MetadataType, std::string>& target,
                           int64_t id)
       {
-        db_.GetAllMetadata(target, id);
+        transaction_.GetAllMetadata(target, id);
       }
 
       void GetAllPublicIds(std::list<std::string>& target,
                            ResourceType resourceType)
       {
-        return db_.GetAllPublicIds(target, resourceType);
+        return transaction_.GetAllPublicIds(target, resourceType);
       }
 
       void GetAllPublicIds(std::list<std::string>& target,
@@ -149,7 +149,7 @@ namespace Orthanc
                            size_t since,
                            size_t limit)
       {
-        return db_.GetAllPublicIds(target, resourceType, since, limit);
+        return transaction_.GetAllPublicIds(target, resourceType, since, limit);
       }  
 
       void GetChanges(std::list<ServerIndexChange>& target /*out*/,
@@ -157,19 +157,19 @@ namespace Orthanc
                       int64_t since,
                       uint32_t maxResults)
       {
-        db_.GetChanges(target, done, since, maxResults);
+        transaction_.GetChanges(target, done, since, maxResults);
       }
 
       void GetChildrenInternalId(std::list<int64_t>& target,
                                  int64_t id)
       {
-        db_.GetChildrenInternalId(target, id);
+        transaction_.GetChildrenInternalId(target, id);
       }
 
       void GetChildrenPublicId(std::list<std::string>& target,
                                int64_t id)
       {
-        db_.GetChildrenPublicId(target, id);
+        transaction_.GetChildrenPublicId(target, id);
       }
 
       void GetExportedResources(std::list<ExportedResource>& target /*out*/,
@@ -177,97 +177,97 @@ namespace Orthanc
                                 int64_t since,
                                 uint32_t maxResults)
       {
-        return db_.GetExportedResources(target, done, since, maxResults);
+        return transaction_.GetExportedResources(target, done, since, maxResults);
       }
 
       void GetLastChange(std::list<ServerIndexChange>& target /*out*/)
       {
-        db_.GetLastChange(target);
+        transaction_.GetLastChange(target);
       }
 
       void GetLastExportedResource(std::list<ExportedResource>& target /*out*/)
       {
-        return db_.GetLastExportedResource(target);
+        return transaction_.GetLastExportedResource(target);
       }
 
       int64_t GetLastChangeIndex()
       {
-        return db_.GetLastChangeIndex();
+        return transaction_.GetLastChangeIndex();
       }
 
       void GetMainDicomTags(DicomMap& map,
                             int64_t id)
       {
-        db_.GetMainDicomTags(map, id);
+        transaction_.GetMainDicomTags(map, id);
       }
 
       std::string GetPublicId(int64_t resourceId)
       {
-        return db_.GetPublicId(resourceId);
+        return transaction_.GetPublicId(resourceId);
       }
       
       uint64_t GetResourceCount(ResourceType resourceType)
       {
-        return db_.GetResourceCount(resourceType);
+        return transaction_.GetResourceCount(resourceType);
       }
       
       ResourceType GetResourceType(int64_t resourceId)
       {
-        return db_.GetResourceType(resourceId);
+        return transaction_.GetResourceType(resourceId);
       }
 
       uint64_t GetTotalCompressedSize()
       {
-        return db_.GetTotalCompressedSize();
+        return transaction_.GetTotalCompressedSize();
       }
     
       uint64_t GetTotalUncompressedSize()
       {
-        return db_.GetTotalUncompressedSize();
+        return transaction_.GetTotalUncompressedSize();
       }
       
       bool IsProtectedPatient(int64_t internalId)
       {
-        return db_.IsProtectedPatient(internalId);
+        return transaction_.IsProtectedPatient(internalId);
       }
 
       void ListAvailableAttachments(std::set<FileContentType>& target,
                                     int64_t id)
       {
-        db_.ListAvailableAttachments(target, id);
+        transaction_.ListAvailableAttachments(target, id);
       }
 
       bool LookupAttachment(FileInfo& attachment,
                             int64_t id,
                             FileContentType contentType)
       {
-        return db_.LookupAttachment(attachment, id, contentType);
+        return transaction_.LookupAttachment(attachment, id, contentType);
       }
       
       bool LookupGlobalProperty(std::string& target,
                                 GlobalProperty property)
       {
-        return db_.LookupGlobalProperty(target, property);
+        return transaction_.LookupGlobalProperty(target, property);
       }
 
       bool LookupMetadata(std::string& target,
                           int64_t id,
                           MetadataType type)
       {
-        return db_.LookupMetadata(target, id, type);
+        return transaction_.LookupMetadata(target, id, type);
       }
 
       bool LookupParent(int64_t& parentId,
                         int64_t resourceId)
       {
-        return db_.LookupParent(parentId, resourceId);
+        return transaction_.LookupParent(parentId, resourceId);
       }
         
       bool LookupResource(int64_t& id,
                           ResourceType& type,
                           const std::string& publicId)
       {
-        return db_.LookupResource(id, type, publicId);
+        return transaction_.LookupResource(id, type, publicId);
       }
       
       bool LookupResourceAndParent(int64_t& id,
@@ -275,7 +275,7 @@ namespace Orthanc
                                    std::string& parentPublicId,
                                    const std::string& publicId)
       {
-        return db_.LookupResourceAndParent(id, type, parentPublicId, publicId);
+        return transaction_.LookupResourceAndParent(id, type, parentPublicId, publicId);
       }
     };
 
@@ -283,31 +283,31 @@ namespace Orthanc
     class ReadWriteTransaction : public ReadOnlyTransaction
     {
     public:
-      ReadWriteTransaction(IDatabaseWrapper& db,
+      ReadWriteTransaction(IDatabaseWrapper::ITransaction& transaction,
                            ITransactionContext& context) :
-        ReadOnlyTransaction(db, context)
+        ReadOnlyTransaction(transaction, context)
       {
       }
 
       void AddAttachment(int64_t id,
                          const FileInfo& attachment)
       {
-        db_.AddAttachment(id, attachment);
+        transaction_.AddAttachment(id, attachment);
       }
       
       void ClearChanges()
       {
-        db_.ClearChanges();
+        transaction_.ClearChanges();
       }
 
       void ClearExportedResources()
       {
-        db_.ClearExportedResources();
+        transaction_.ClearExportedResources();
       }
 
       void ClearMainDicomTags(int64_t id)
       {
-        return db_.ClearMainDicomTags(id);
+        return transaction_.ClearMainDicomTags(id);
       }
 
       bool CreateInstance(IDatabaseWrapper::CreateInstanceResult& result, /* out */
@@ -317,24 +317,24 @@ namespace Orthanc
                           const std::string& series,
                           const std::string& instance)
       {
-        return db_.CreateInstance(result, instanceId, patient, study, series, instance);
+        return transaction_.CreateInstance(result, instanceId, patient, study, series, instance);
       }
 
       void DeleteAttachment(int64_t id,
                             FileContentType attachment)
       {
-        return db_.DeleteAttachment(id, attachment);
+        return transaction_.DeleteAttachment(id, attachment);
       }
       
       void DeleteMetadata(int64_t id,
                           MetadataType type)
       {
-        db_.DeleteMetadata(id, type);
+        transaction_.DeleteMetadata(id, type);
       }
 
       void DeleteResource(int64_t id)
       {
-        db_.DeleteResource(id);
+        transaction_.DeleteResource(id);
       }
 
       void LogChange(int64_t internalId,
@@ -344,31 +344,31 @@ namespace Orthanc
 
       void LogExportedResource(const ExportedResource& resource)
       {
-        db_.LogExportedResource(resource);
+        transaction_.LogExportedResource(resource);
       }
 
       void SetGlobalProperty(GlobalProperty property,
                              const std::string& value)
       {
-        db_.SetGlobalProperty(property, value);
+        transaction_.SetGlobalProperty(property, value);
       }
 
       void SetMetadata(int64_t id,
                        MetadataType type,
                        const std::string& value)
       {
-        return db_.SetMetadata(id, type, value);
+        return transaction_.SetMetadata(id, type, value);
       }
 
       void SetProtectedPatient(int64_t internalId, 
                                bool isProtected)
       {
-        db_.SetProtectedPatient(internalId, isProtected);
+        transaction_.SetProtectedPatient(internalId, isProtected);
       }
 
       void SetResourcesContent(const ResourcesContent& content)
       {
-        db_.SetResourcesContent(content);
+        transaction_.SetResourcesContent(content);
       }
 
       void Recycle(uint64_t maximumStorageSize,
@@ -423,7 +423,7 @@ namespace Orthanc
                              unsigned int maximumPatientCount);
 
   public:
-    StatelessDatabaseOperations(IDatabaseWrapper& database);
+    explicit StatelessDatabaseOperations(IDatabaseWrapper& database);
 
     void SetTransactionContextFactory(ITransactionContextFactory* factory /* takes ownership */);
     

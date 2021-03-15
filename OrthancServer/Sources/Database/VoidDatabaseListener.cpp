@@ -31,29 +31,27 @@
  **/
 
 
-#pragma once
+#include "../PrecompiledHeadersServer.h"
+#include "VoidDatabaseListener.h"
 
-#include "../../../OrthancFramework/Sources/FileStorage/FileInfo.h"
-#include "../ServerEnumerations.h"
-
-#include <boost/noncopyable.hpp>
-#include <string>
+#include "../../../OrthancFramework/Sources/OrthancException.h"
 
 namespace Orthanc
 {
-  class IDatabaseListener : public boost::noncopyable
+  void VoidDatabaseListener::SignalRemainingAncestor(ResourceType parentType,
+                                                     const std::string& publicId)
   {
-  public:
-    virtual ~IDatabaseListener()
-    {
-    }
+    throw OrthancException(ErrorCode_InternalError);
+  }
+      
+  void VoidDatabaseListener::SignalAttachmentDeleted(const FileInfo& info)
+  {
+    throw OrthancException(ErrorCode_InternalError);
+  }
 
-    virtual void SignalRemainingAncestor(ResourceType parentType,
-                                         const std::string& publicId) = 0;
-
-    virtual void SignalAttachmentDeleted(const FileInfo& info) = 0;
-
-    virtual void SignalResourceDeleted(ResourceType type,
-                                       const std::string& publicId) = 0;
-  };
+  void VoidDatabaseListener::SignalResourceDeleted(ResourceType type,
+                                                   const std::string& publicId)
+  {
+    throw OrthancException(ErrorCode_InternalError);
+  }      
 }
