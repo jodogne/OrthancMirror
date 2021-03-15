@@ -380,6 +380,7 @@ namespace Orthanc
     }
 
 
+    // From the "ICreateInstance" interface
     virtual void AttachChild(int64_t parent,
                              int64_t child) ORTHANC_OVERRIDE
     {
@@ -429,6 +430,7 @@ namespace Orthanc
     }
 
 
+    // From the "ICreateInstance" interface
     virtual int64_t CreateResource(const std::string& publicId,
                                    ResourceType type) ORTHANC_OVERRIDE
     {
@@ -968,6 +970,7 @@ namespace Orthanc
     }
 
 
+    // From the "ISetResourcesContent" interface
     virtual void SetIdentifierTag(int64_t id,
                                   const DicomTag& tag,
                                   const std::string& value) ORTHANC_OVERRIDE
@@ -1003,6 +1006,7 @@ namespace Orthanc
     }
 
 
+    // From the "ISetResourcesContent" interface
     virtual void SetMainDicomTag(int64_t id,
                                  const DicomTag& tag,
                                  const std::string& value) ORTHANC_OVERRIDE
@@ -1034,6 +1038,7 @@ namespace Orthanc
     }
 
 
+    // From the "ICreateInstance" interface
     virtual void TagMostRecentPatient(int64_t patient) ORTHANC_OVERRIDE
     {
       {
