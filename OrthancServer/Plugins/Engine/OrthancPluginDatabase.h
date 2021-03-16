@@ -44,13 +44,34 @@
 #include "../Include/orthanc/OrthancCDatabasePlugin.h"
 #include "PluginsErrorDictionary.h"
 
+#include <boost/thread/recursive_mutex.hpp>
+
 namespace Orthanc
 {
+  /**
+   * This class is for backward compatibility with database plugins
+   * that don't use the primitives introduced in Orthanc 1.10.0 to
+   * deal with concurrent read-only transactions.
+   *
+   * In Orthanc <= 1.9.1, Orthanc assumed that at most 1 single thread
+   * was accessing the database plugin at anytime, in order to match
+   * the SQLite model. Read-write accesses assumed the plugin to run
+   * the SQL statement "START TRANSACTION SERIALIZABLE" so as to be
+   * able to rollback the modifications. Read-only accesses didn't
+   * start a transaction, as they were protected by the global mutex.
+   **/
   class OrthancPluginDatabase : public IDatabaseWrapper
   {
   private:
     class Transaction;
 
+    /**
+     * We need a "recursive_mutex" because of "AnswerReceived()" that
+     * is called by the "answer" primitives of the database SDK once a
+     * transaction is running.
+     **/
+    boost::recursive_mutex          mutex_;
+    
     SharedLibrary&                  library_;
     PluginsErrorDictionary&         errorDictionary_;
     OrthancPluginDatabaseBackend    backend_;
@@ -77,10 +98,7 @@ namespace Orthanc
 
     virtual void Open() ORTHANC_OVERRIDE;
 
-    virtual void Close() ORTHANC_OVERRIDE
-    {
-      CheckSuccess(backend_.close(payload_));
-    }
+    virtual void Close() ORTHANC_OVERRIDE;
 
     const SharedLibrary& GetSharedLibrary() const
     {

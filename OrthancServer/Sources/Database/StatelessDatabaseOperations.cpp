@@ -605,14 +605,12 @@ namespace Orthanc
     {
       try
       {
-        boost::mutex::scoped_lock lock(databaseMutex_);  // TODO - REMOVE
-
         if (readOperations != NULL)
         {
           /**
            * IMPORTANT: In Orthanc <= 1.9.1, there was no transaction
            * in this case. This was OK because of the presence of the
-           * global mutex protecting the database.
+           * global mutex that was protecting the database.
            **/
           
           Transaction transaction(db_, *factory_, TransactionType_ReadOnly);  // TODO - Only if not "TransactionType_Implicit"
@@ -682,8 +680,6 @@ namespace Orthanc
 
   void StatelessDatabaseOperations::FlushToDisk()
   {
-    boost::mutex::scoped_lock lock(databaseMutex_);
-        
     try
     {
       db_.FlushToDisk();

@@ -303,14 +303,17 @@ namespace Orthanc
       }
     }
 
-    IDatabaseListener&        listener_;
-    SignalRemainingAncestor&  signalRemainingAncestor_;
+    boost::mutex::scoped_lock  lock_;
+    IDatabaseListener&         listener_;
+    SignalRemainingAncestor&   signalRemainingAncestor_;
 
   public:
-    TransactionBase(SQLite::Connection& db,
+    TransactionBase(boost::mutex& mutex,
+                    SQLite::Connection& db,
                     IDatabaseListener& listener,
                     SignalRemainingAncestor& signalRemainingAncestor) :
       UnitTestsTransaction(db),
+      lock_(mutex),
       listener_(listener),
       signalRemainingAncestor_(signalRemainingAncestor)
     {
@@ -1161,7 +1164,7 @@ namespace Orthanc
   public:
     ReadWriteTransaction(SQLiteDatabaseWrapper& that,
                          IDatabaseListener& listener) :
-      TransactionBase(that.db_, listener, *that.signalRemainingAncestor_),
+      TransactionBase(that.mutex_, that.db_, listener, *that.signalRemainingAncestor_),
       that_(that),
       transaction_(new SQLite::Transaction(that_.db_))
     {
@@ -1215,7 +1218,7 @@ namespace Orthanc
   public:
     ReadOnlyTransaction(SQLiteDatabaseWrapper& that,
                         IDatabaseListener& listener) :
-      TransactionBase(that.db_, listener, *that.signalRemainingAncestor_),
+      TransactionBase(that.mutex_, that.db_, listener, *that.signalRemainingAncestor_),
       that_(that)
     {
       if (that_.activeTransaction_ != NULL)
@@ -1274,27 +1277,31 @@ namespace Orthanc
 
   void SQLiteDatabaseWrapper::Open()
   {
-    if (signalRemainingAncestor_ != NULL)
     {
-      throw OrthancException(ErrorCode_BadSequenceOfCalls);  // Cannot open twice
+      boost::mutex::scoped_lock lock(mutex_);
+
+      if (signalRemainingAncestor_ != NULL)
+      {
+        throw OrthancException(ErrorCode_BadSequenceOfCalls);  // Cannot open twice
+      }
+    
+      signalRemainingAncestor_ = dynamic_cast<SignalRemainingAncestor*>(db_.Register(new SignalRemainingAncestor));
+      db_.Register(new SignalFileDeleted(*this));
+      db_.Register(new SignalResourceDeleted(*this));
+    
+      db_.Execute("PRAGMA ENCODING=\"UTF-8\";");
+
+      // Performance tuning of SQLite with PRAGMAs
+      // http://www.sqlite.org/pragma.html
+      db_.Execute("PRAGMA SYNCHRONOUS=NORMAL;");
+      db_.Execute("PRAGMA JOURNAL_MODE=WAL;");
+      db_.Execute("PRAGMA LOCKING_MODE=EXCLUSIVE;");
+      db_.Execute("PRAGMA WAL_AUTOCHECKPOINT=1000;");
+      //db_.Execute("PRAGMA TEMP_STORE=memory");
+
+      // Make "LIKE" case-sensitive in SQLite 
+      db_.Execute("PRAGMA case_sensitive_like = true;");
     }
-    
-    signalRemainingAncestor_ = dynamic_cast<SignalRemainingAncestor*>(db_.Register(new SignalRemainingAncestor));
-    db_.Register(new SignalFileDeleted(*this));
-    db_.Register(new SignalResourceDeleted(*this));
-    
-    db_.Execute("PRAGMA ENCODING=\"UTF-8\";");
-
-    // Performance tuning of SQLite with PRAGMAs
-    // http://www.sqlite.org/pragma.html
-    db_.Execute("PRAGMA SYNCHRONOUS=NORMAL;");
-    db_.Execute("PRAGMA JOURNAL_MODE=WAL;");
-    db_.Execute("PRAGMA LOCKING_MODE=EXCLUSIVE;");
-    db_.Execute("PRAGMA WAL_AUTOCHECKPOINT=1000;");
-    //db_.Execute("PRAGMA TEMP_STORE=memory");
-
-    // Make "LIKE" case-sensitive in SQLite 
-    db_.Execute("PRAGMA case_sensitive_like = true;");
 
     VoidDatabaseListener listener;
       
@@ -1351,6 +1358,13 @@ namespace Orthanc
   }
 
 
+  void SQLiteDatabaseWrapper::Close()
+  {
+    boost::mutex::scoped_lock lock(mutex_);
+    db_.Close();
+  }
+
+  
   static void ExecuteUpgradeScript(SQLite::Connection& db,
                                    ServerResources::FileResourceId script)
   {
@@ -1365,6 +1379,8 @@ namespace Orthanc
   void SQLiteDatabaseWrapper::Upgrade(unsigned int targetVersion,
                                       IStorageArea& storageArea)
   {
+    boost::mutex::scoped_lock lock(mutex_);
+
     if (targetVersion != 6)
     {
       throw OrthancException(ErrorCode_IncompatibleDatabaseVersion);
@@ -1441,6 +1457,13 @@ namespace Orthanc
   }
 
   
+  void SQLiteDatabaseWrapper::FlushToDisk()
+  {
+    boost::mutex::scoped_lock lock(mutex_);
+    db_.FlushToDisk();
+  }
+
+
   int64_t SQLiteDatabaseWrapper::UnitTestsTransaction::CreateResource(const std::string& publicId,
                                                                       ResourceType type)
   {

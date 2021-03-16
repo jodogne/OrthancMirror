@@ -37,6 +37,8 @@
 
 #include "../../../OrthancFramework/Sources/SQLite/Connection.h"
 
+#include <boost/thread/mutex.hpp>
+
 namespace Orthanc
 {
   /**
@@ -55,10 +57,11 @@ namespace Orthanc
     class ReadWriteTransaction;
     class LookupFormatter;
 
-    SQLite::Connection db_;
-    TransactionBase* activeTransaction_;
-    SignalRemainingAncestor* signalRemainingAncestor_;
-    unsigned int version_;
+    boost::mutex              mutex_;
+    SQLite::Connection        db_;
+    TransactionBase*          activeTransaction_;
+    SignalRemainingAncestor*  signalRemainingAncestor_;
+    unsigned int              version_;
 
     void GetChangesInternal(std::list<ServerIndexChange>& target,
                             bool& done,
@@ -79,19 +82,13 @@ namespace Orthanc
 
     virtual void Open() ORTHANC_OVERRIDE;
 
-    virtual void Close() ORTHANC_OVERRIDE
-    {
-      db_.Close();
-    }
+    virtual void Close() ORTHANC_OVERRIDE;
 
     virtual IDatabaseWrapper::ITransaction* StartTransaction(TransactionType type,
                                                              IDatabaseListener& listener)
       ORTHANC_OVERRIDE;
 
-    virtual void FlushToDisk() ORTHANC_OVERRIDE
-    {
-      db_.FlushToDisk();
-    }
+    virtual void FlushToDisk() ORTHANC_OVERRIDE;
 
     virtual bool HasFlushToDisk() const ORTHANC_OVERRIDE
     {
