@@ -207,9 +207,9 @@ namespace Orthanc
         return transaction_.GetPublicId(resourceId);
       }
       
-      uint64_t GetResourceCount(ResourceType resourceType)
+      uint64_t GetResourcesCount(ResourceType resourceType)
       {
-        return transaction_.GetResourceCount(resourceType);
+        return transaction_.GetResourcesCount(resourceType);
       }
       
       ResourceType GetResourceType(int64_t resourceId)

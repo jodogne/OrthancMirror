@@ -131,7 +131,7 @@ namespace Orthanc
 
       virtual std::string GetPublicId(int64_t resourceId) = 0;
 
-      virtual uint64_t GetResourceCount(ResourceType resourceType) = 0;
+      virtual uint64_t GetResourcesCount(ResourceType resourceType) = 0;
 
       virtual ResourceType GetResourceType(int64_t resourceId) = 0;
 

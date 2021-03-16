@@ -40,57 +40,28 @@
 #include "../Include/orthanc/OrthancCDatabasePlugin.h"
 #include "PluginsErrorDictionary.h"
 
-#include <boost/thread/recursive_mutex.hpp>
-
 namespace Orthanc
 {
-  /**
-   * This class is for backward compatibility with database plugins
-   * that don't use the primitives introduced in Orthanc 1.10.0 to
-   * deal with concurrent read-only transactions.
-   *
-   * In Orthanc <= 1.9.1, Orthanc assumed that at most 1 single thread
-   * was accessing the database plugin at anytime, in order to match
-   * the SQLite model. Read-write accesses assumed the plugin to run
-   * the SQL statement "START TRANSACTION SERIALIZABLE" so as to be
-   * able to rollback the modifications. Read-only accesses didn't
-   * start a transaction, as they were protected by the global mutex.
-   **/
-  class OrthancPluginDatabase : public IDatabaseWrapper
+  class OrthancPluginDatabaseV3 : public IDatabaseWrapper
   {
   private:
     class Transaction;
 
-    /**
-     * We need a "recursive_mutex" because of "AnswerReceived()" that
-     * is called by the "answer" primitives of the database SDK once a
-     * transaction is running.
-     **/
-    boost::recursive_mutex          mutex_;
-    
     SharedLibrary&                  library_;
     PluginsErrorDictionary&         errorDictionary_;
-    OrthancPluginDatabaseBackend    backend_;
-    OrthancPluginDatabaseExtensions extensions_;
-    void*                           payload_;
-    Transaction*                    activeTransaction_;
-    bool                            fastGetTotalSize_;
-    uint64_t                        currentDiskSize_;
-
-    OrthancPluginDatabaseContext* GetContext()
-    {
-      return reinterpret_cast<OrthancPluginDatabaseContext*>(this);
-    }
+    OrthancPluginDatabaseBackendV3  backend_;
+    OrthancPluginDatabaseContext*   database_;
 
     void CheckSuccess(OrthancPluginErrorCode code);
 
   public:
-    OrthancPluginDatabase(SharedLibrary& library,
-                          PluginsErrorDictionary&  errorDictionary,
-                          const OrthancPluginDatabaseBackend& backend,
-                          const OrthancPluginDatabaseExtensions* extensions,
-                          size_t extensionsSize,
-                          void *payload);
+    OrthancPluginDatabaseV3(SharedLibrary& library,
+                            PluginsErrorDictionary&  errorDictionary,
+                            const OrthancPluginDatabaseBackendV3* backend,
+                            size_t backendSize,
+                            OrthancPluginDatabaseContext* database);
+
+    virtual ~OrthancPluginDatabaseV3();
 
     virtual void Open() ORTHANC_OVERRIDE;
 
@@ -118,8 +89,6 @@ namespace Orthanc
 
     virtual void Upgrade(unsigned int targetVersion,
                          IStorageArea& storageArea) ORTHANC_OVERRIDE;    
-
-    void AnswerReceived(const _OrthancPluginDatabaseAnswer& answer);
   };
 }
 

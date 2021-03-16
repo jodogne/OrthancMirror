@@ -17,7 +17,7 @@
  *    - Possibly register its callback for received DICOM instances using ::OrthancPluginRegisterOnStoredInstanceCallback().
  *    - Possibly register its callback for changes to the DICOM store using ::OrthancPluginRegisterOnChangeCallback().
  *    - Possibly register a custom storage area using ::OrthancPluginRegisterStorageArea2().
- *    - Possibly register a custom database back-end area using OrthancPluginRegisterDatabaseBackendV2().
+ *    - Possibly register a custom database back-end area using OrthancPluginRegisterDatabaseBackendV3().
  *    - Possibly register a handler for C-Find SCP using OrthancPluginRegisterFindCallback().
  *    - Possibly register a handler for C-Find SCP against DICOM worklists using OrthancPluginRegisterWorklistCallback().
  *    - Possibly register a handler for C-Move SCP using OrthancPluginRegisterMoveCallback().
@@ -116,7 +116,7 @@
 #endif
 
 #define ORTHANC_PLUGINS_MINIMAL_MAJOR_NUMBER     1
-#define ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER     9
+#define ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER     10
 #define ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER  0
 
 
@@ -518,12 +518,13 @@ extern "C"
     _OrthancPluginService_GetInstanceDicomWebXml = 4019,   /* New in Orthanc 1.7.0 */
     
     /* Services for plugins implementing a database back-end */
-    _OrthancPluginService_RegisterDatabaseBackend = 5000,
+    _OrthancPluginService_RegisterDatabaseBackend = 5000,    /* New in Orthanc 0.8.6 */
     _OrthancPluginService_DatabaseAnswer = 5001,
-    _OrthancPluginService_RegisterDatabaseBackendV2 = 5002,
+    _OrthancPluginService_RegisterDatabaseBackendV2 = 5002,  /* New in Orthanc 0.9.4 */
     _OrthancPluginService_StorageAreaCreate = 5003,
     _OrthancPluginService_StorageAreaRead = 5004,
     _OrthancPluginService_StorageAreaRemove = 5005,
+    _OrthancPluginService_RegisterDatabaseBackendV3 = 5006,  /* New in Orthanc 1.10.0 */
 
     /* Primitives for handling images */
     _OrthancPluginService_GetImagePixelFormat = 6000,
