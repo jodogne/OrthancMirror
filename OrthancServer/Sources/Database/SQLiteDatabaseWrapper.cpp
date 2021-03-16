@@ -671,7 +671,7 @@ namespace Orthanc
     }
 
 
-    virtual uint64_t GetResourceCount(ResourceType resourceType) ORTHANC_OVERRIDE
+    virtual uint64_t GetResourcesCount(ResourceType resourceType) ORTHANC_OVERRIDE
     {
       SQLite::Statement s(db_, SQLITE_FROM_HERE, 
                           "SELECT COUNT(*) FROM Resources WHERE resourceType=?");

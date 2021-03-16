@@ -61,10 +61,10 @@ namespace Orthanc
 #include "../../../OrthancFramework/Sources/HttpServer/IHttpHandler.h"
 #include "../../../OrthancFramework/Sources/HttpServer/IIncomingHttpRequestFilter.h"
 #include "../../../OrthancFramework/Sources/JobsEngine/IJob.h"
+#include "../../Sources/Database/IDatabaseWrapper.h"
 #include "../../Sources/IDicomImageDecoder.h"
 #include "../../Sources/IServerListener.h"
 #include "../../Sources/ServerJobs/IStorageCommitmentFactory.h"
-#include "OrthancPluginDatabase.h"
 #include "PluginsManager.h"
 
 #include <list>

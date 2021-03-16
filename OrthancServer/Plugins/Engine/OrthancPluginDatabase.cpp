@@ -35,12 +35,17 @@
 #include "OrthancPluginDatabase.h"
 
 #if ORTHANC_ENABLE_PLUGINS != 1
-#error The plugin support is disabled
+#  error The plugin support is disabled
 #endif
 
 
 #include "../../../OrthancFramework/Sources/Logging.h"
 #include "../../../OrthancFramework/Sources/OrthancException.h"
+#include "../../Sources/Database/Compatibility/ICreateInstance.h"
+#include "../../Sources/Database/Compatibility/IGetChildrenMetadata.h"
+#include "../../Sources/Database/Compatibility/ILookupResourceAndParent.h"
+#include "../../Sources/Database/Compatibility/ILookupResources.h"
+#include "../../Sources/Database/Compatibility/ISetResourcesContent.h"
 #include "../../Sources/Database/VoidDatabaseListener.h"
 #include "PluginsEnumerations.h"
 
@@ -978,7 +983,7 @@ namespace Orthanc
     }
 
 
-    virtual uint64_t GetResourceCount(ResourceType resourceType) ORTHANC_OVERRIDE
+    virtual uint64_t GetResourcesCount(ResourceType resourceType) ORTHANC_OVERRIDE
     {
       uint64_t count;
       CheckSuccess(that_.backend_.getResourceCount(&count, that_.payload_, Plugins::Convert(resourceType)));

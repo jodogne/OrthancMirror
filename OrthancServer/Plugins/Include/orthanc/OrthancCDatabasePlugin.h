@@ -44,6 +44,14 @@ extern "C"
   typedef struct _OrthancPluginDatabaseContext_t OrthancPluginDatabaseContext;
 
 
+  /**
+   * Opaque structure that represents a transaction of a custom database engine.
+   * New in Orthanc 1.10.0.
+   * @ingroup Callbacks
+   **/
+  typedef struct _OrthancPluginDatabaseTransaction_t OrthancPluginDatabaseTransaction;
+
+
 /*<! @cond Doxygen_Suppress */
   typedef enum
   {
@@ -966,6 +974,228 @@ extern "C"
   }
 
 
+
+  /**
+   * New interface starting with Orthanc 1.10.0
+   **/
+
+/*<! @cond Doxygen_Suppress */
+  typedef enum
+  {
+    _OrthancPluginDatabaseTransactionType_ReadOnly = 1,
+    _OrthancPluginDatabaseTransactionType_ReadWrite = 2,
+    _OrthancPluginDatabaseTransactionType_INTERNAL = 0x7fffffff
+  } _OrthancPluginDatabaseTransactionType;
+
+  typedef struct
+  {
+    /**
+     * Functions to read the answers inside a transaction
+     **/
+    
+    OrthancPluginErrorCode (*readAnswersCount) (OrthancPluginDatabaseTransaction* transaction,
+                                                uint32_t* target);
+
+    OrthancPluginErrorCode (*readAnswerChange) (OrthancPluginDatabaseTransaction* transaction,
+                                                OrthancPluginChange* target,
+                                                uint32_t index);
+
+    OrthancPluginErrorCode (*readAnswerDicomTag) (OrthancPluginDatabaseTransaction* transaction,
+                                                  uint16_t* group,
+                                                  uint16_t* element,
+                                                  const char** value,
+                                                  uint32_t index);
+
+    OrthancPluginErrorCode (*readAnswerExportedResource) (OrthancPluginDatabaseTransaction* transaction,
+                                                          OrthancPluginExportedResource* target,
+                                                          uint32_t index);
+
+    OrthancPluginErrorCode (*readAnswerInt32) (OrthancPluginDatabaseTransaction* transaction,
+                                               int32_t* target,
+                                               uint32_t index);
+
+    OrthancPluginErrorCode (*readAnswerInt64) (OrthancPluginDatabaseTransaction* transaction,
+                                               int64_t* target,
+                                               uint32_t index);
+
+    OrthancPluginErrorCode (*readAnswerMetadata) (OrthancPluginDatabaseTransaction* transaction,
+                                                  int32_t* metadata,
+                                                  const char** value,
+                                                  uint32_t index);
+    OrthancPluginErrorCode (*readAnswerString) (OrthancPluginDatabaseTransaction* transaction,
+                                                const char** target,
+                                                uint32_t index);
+
+    
+    /**
+     * Functions to access the global database object
+     * (cf. "IDatabaseWrapper" class in Orthanc)
+     **/
+
+    OrthancPluginErrorCode (*open) (OrthancPluginDatabaseContext* database);
+
+    OrthancPluginErrorCode (*close) (OrthancPluginDatabaseContext* database);
+
+    OrthancPluginErrorCode (*destructDatabase) (OrthancPluginDatabaseContext* database);
+
+    OrthancPluginErrorCode (*getDatabaseVersion) (OrthancPluginDatabaseContext* database,
+                                                  uint32_t* target);
+
+    OrthancPluginErrorCode (*upgradeDatabase) (OrthancPluginDatabaseContext* database,
+                                               OrthancPluginStorageArea* storageArea,
+                                               uint32_t target);
+
+    OrthancPluginErrorCode (*startTransaction) (OrthancPluginDatabaseContext* database,
+                                                OrthancPluginDatabaseTransaction** target,
+                                                _OrthancPluginDatabaseTransactionType type);
+
+    OrthancPluginErrorCode (*destructTransaction) (OrthancPluginDatabaseTransaction* transaction);
+
+
+    /**
+     * Functions to run operations within a database transaction
+     * (cf. "IDatabaseWrapper::ITransaction" class in Orthanc)
+     **/
+
+    OrthancPluginErrorCode (*rollback) (OrthancPluginDatabaseTransaction* transaction);
+    
+    OrthancPluginErrorCode (*commit) (OrthancPluginDatabaseTransaction* transaction,
+                                      int64_t fileSizeDelta);
+    
+    OrthancPluginErrorCode (*addAttachment) (OrthancPluginDatabaseTransaction* transaction,
+                                             int64_t id,
+                                             const OrthancPluginAttachment* attachment);
+
+    OrthancPluginErrorCode (*clearChanges) (OrthancPluginDatabaseTransaction* transaction);
+    
+    OrthancPluginErrorCode (*clearExportedResources) (OrthancPluginDatabaseTransaction* transaction);
+    
+    OrthancPluginErrorCode (*deleteAttachment) (OrthancPluginDatabaseTransaction* transaction,
+                                                int64_t id,
+                                                int32_t contentType);
+    
+    OrthancPluginErrorCode (*deleteMetadata) (OrthancPluginDatabaseTransaction* transaction,
+                                              int64_t id,
+                                              int32_t metadataType);
+
+    OrthancPluginErrorCode (*deleteResource) (OrthancPluginDatabaseTransaction* transaction,
+                                              int64_t id);
+
+    /* Answers are read using "readAnswerMetadata()" */
+    OrthancPluginErrorCode (*getAllMetadata) (OrthancPluginDatabaseTransaction* transaction,
+                                              int64_t id);
+    
+    /* Answers are read using "readAnswerString()" */
+    OrthancPluginErrorCode (*getAllPublicIds) (OrthancPluginDatabaseTransaction* transaction,
+                                               OrthancPluginResourceType resourceType);
+    
+    /* Answers are read using "readAnswerString()" */
+    OrthancPluginErrorCode (*getAllPublicIdsWithLimit) (OrthancPluginDatabaseTransaction* transaction,
+                                                        OrthancPluginResourceType resourceType,
+                                                        uint64_t since,
+                                                        uint64_t limit);
+
+    /* Answers are read using "readAnswerChange()" */
+    OrthancPluginErrorCode (*getChanges) (OrthancPluginDatabaseTransaction* transaction,
+                                          uint8_t* targetDone,
+                                          int64_t since,
+                                          uint32_t maxResults);
+    
+    /* Answers are read using "readAnswerInt64()" */
+    OrthancPluginErrorCode (*getChildrenInternalId) (OrthancPluginDatabaseTransaction* transaction,
+                                                     int64_t id);
+    
+    /* Answers are read using "readAnswerString()" */
+    OrthancPluginErrorCode (*getChildrenPublicId) (OrthancPluginDatabaseTransaction* transaction,
+                                                   int64_t id);
+
+    /* Answers are read using "readAnswerExportedResource()" */
+    OrthancPluginErrorCode (*getExportedResources) (OrthancPluginDatabaseTransaction* transaction,
+                                                    uint8_t* targetDone,
+                                                    int64_t since,
+                                                    uint32_t maxResults);
+    
+    /* Answer is read using "readAnswerChange()" */
+    OrthancPluginErrorCode (*getLastChange) (OrthancPluginDatabaseTransaction* transaction);
+    
+    /* Answer is read using "readAnswerExportedResource()" */
+    OrthancPluginErrorCode (*getLastExportedResource) (OrthancPluginDatabaseTransaction* transaction);
+    
+    /* Answers are read using "readAnswerDicomTag()" */
+    OrthancPluginErrorCode (*getMainDicomTags) (OrthancPluginDatabaseTransaction* transaction,
+                                                int64_t id);
+    
+    /* Answer is read using "readAnswerString()" */
+    OrthancPluginErrorCode (*getPublicId) (OrthancPluginDatabaseTransaction* transaction,
+                                           int64_t internalId);
+    
+    OrthancPluginErrorCode (*getResourcesCount) (OrthancPluginDatabaseTransaction* transaction,
+                                                 uint64_t* target,
+                                                 OrthancPluginResourceType resourceType);
+    
+    OrthancPluginErrorCode (*getResourceType) (OrthancPluginDatabaseTransaction* transaction,
+                                               OrthancPluginResourceType* target,
+                                               uint64_t resourceId);
+    
+    OrthancPluginErrorCode (*getTotalCompressedSize) (OrthancPluginDatabaseTransaction* transaction,
+                                                      uint64_t* target);
+    
+    OrthancPluginErrorCode (*getTotalUncompressedSize) (OrthancPluginDatabaseTransaction* transaction,
+                                                        uint64_t* target);
+    
+    OrthancPluginErrorCode (*isExistingResource) (OrthancPluginDatabaseTransaction* transaction,
+                                                  uint8_t* target,
+                                                  int64_t resourceId);
+    
+    OrthancPluginErrorCode (*isProtectedPatient) (OrthancPluginDatabaseTransaction* transaction,
+                                                  uint8_t* target,
+                                                  int64_t resourceId);
+    
+    /* Answer is read using "readAnswerInt32()" */
+    OrthancPluginErrorCode (*listAvailableAttachments) (OrthancPluginDatabaseTransaction* transaction,
+                                                        int64_t internalId);
+
+    OrthancPluginErrorCode (*logChange) (OrthancPluginDatabaseTransaction* transaction,
+                                         int32_t changeType,
+                                         int64_t internalId,
+                                         OrthancPluginResourceType resourceType,
+                                         const char* publicId,
+                                         const char* date);
+    
+  } OrthancPluginDatabaseBackendV3;
+
+/*<! @endcond */
+  
+
+  typedef struct
+  {
+    const OrthancPluginDatabaseBackendV3*  backend;
+    uint32_t                               backendSize;
+    OrthancPluginDatabaseContext*          database;
+  } _OrthancPluginRegisterDatabaseBackendV3;
+
+
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginRegisterDatabaseBackendV3(
+    OrthancPluginContext*                  context,
+    const OrthancPluginDatabaseBackendV3*  backend,
+    uint32_t                               backendSize,
+    OrthancPluginDatabaseContext*          database)
+  {
+    _OrthancPluginRegisterDatabaseBackendV3 params;
+
+    if (sizeof(int32_t) != sizeof(_OrthancPluginDatabaseAnswerType))
+    {
+      return OrthancPluginErrorCode_Plugin;
+    }
+
+    memset(&params, 0, sizeof(params));
+    params.backend = backend;
+    params.backendSize = sizeof(OrthancPluginDatabaseBackendV3);
+    params.database = database;
+
+    return context->InvokeService(context, _OrthancPluginService_RegisterDatabaseBackendV3, &params);
+  }
+  
 #ifdef  __cplusplus
 }
 #endif

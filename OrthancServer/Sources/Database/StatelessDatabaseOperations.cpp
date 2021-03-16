@@ -1110,10 +1110,10 @@ namespace Orthanc
       {
         tuple.get<0>() = transaction.GetTotalCompressedSize();
         tuple.get<1>() = transaction.GetTotalUncompressedSize();
-        tuple.get<2>() = transaction.GetResourceCount(ResourceType_Patient);
-        tuple.get<3>() = transaction.GetResourceCount(ResourceType_Study);
-        tuple.get<4>() = transaction.GetResourceCount(ResourceType_Series);
-        tuple.get<5>() = transaction.GetResourceCount(ResourceType_Instance);
+        tuple.get<2>() = transaction.GetResourcesCount(ResourceType_Patient);
+        tuple.get<3>() = transaction.GetResourcesCount(ResourceType_Study);
+        tuple.get<4>() = transaction.GetResourcesCount(ResourceType_Series);
+        tuple.get<5>() = transaction.GetResourcesCount(ResourceType_Instance);
       }
     };
     
@@ -2588,7 +2588,7 @@ namespace Orthanc
 
     if (maximumPatients != 0)
     {
-      uint64_t patientCount = transaction.GetResourceCount(ResourceType_Patient);
+      uint64_t patientCount = transaction.GetResourcesCount(ResourceType_Patient);
       if (patientCount > maximumPatients)
       {
         return true;
