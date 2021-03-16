@@ -60,10 +60,10 @@ namespace Orthanc
     typedef std::pair<int64_t, ResourceType>     AnswerResource;
     typedef std::map<MetadataType, std::string>  AnswerMetadata;
 
-    OrthancPluginDatabase&  that_;
-    IDatabaseListener&      listener_;
-
-    _OrthancPluginDatabaseAnswerType type_;
+    OrthancPluginDatabase&               that_;
+    boost::recursive_mutex::scoped_lock  lock_;
+    IDatabaseListener&                   listener_;
+    _OrthancPluginDatabaseAnswerType     type_;
 
     std::list<std::string>         answerStrings_;
     std::list<int32_t>             answerInt32_;
@@ -228,6 +228,7 @@ namespace Orthanc
     explicit Transaction(OrthancPluginDatabase& that,
                          IDatabaseListener& listener) :
       that_(that),
+      lock_(that.mutex_),
       listener_(listener),
       type_(_OrthancPluginDatabaseAnswerType_None),
       answerDoneIgnored_(false)
@@ -1508,7 +1509,10 @@ namespace Orthanc
 
   void OrthancPluginDatabase::Open()
   {
-    CheckSuccess(backend_.open(payload_));
+    {
+      boost::recursive_mutex::scoped_lock lock(mutex_);
+      CheckSuccess(backend_.open(payload_));
+    }
 
     VoidDatabaseListener listener;
     
@@ -1534,6 +1538,13 @@ namespace Orthanc
 
       transaction.Commit(0);
     }
+  }
+
+
+  void OrthancPluginDatabase::Close()
+  {
+    boost::recursive_mutex::scoped_lock lock(mutex_);
+    CheckSuccess(backend_.close(payload_));
   }
 
 
@@ -1596,9 +1607,15 @@ namespace Orthanc
 
   void OrthancPluginDatabase::AnswerReceived(const _OrthancPluginDatabaseAnswer& answer)
   {
+    boost::recursive_mutex::scoped_lock lock(mutex_);
+
     if (activeTransaction_ != NULL)
     {
       activeTransaction_->AnswerReceived(answer);
+    }
+    else
+    {
+      LOG(WARNING) << "Received an answer from the database index plugin, but not transaction is active";
     }
   }
 }

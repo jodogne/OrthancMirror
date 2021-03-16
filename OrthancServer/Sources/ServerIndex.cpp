@@ -242,6 +242,8 @@ namespace Orthanc
 
     virtual ITransactionContext* Create()
     {
+      // There can be concurrent calls to this method, which is not an
+      // issue because we simply create an object
       return new TransactionContext(context_);
     }
   };    

@@ -38,7 +38,7 @@
 #include "IDatabaseWrapper.h"
 #include "../DicomInstanceOrigin.h"
 
-#include <boost/thread/mutex.hpp>   // TODO - REMOVE
+#include <boost/shared_ptr.hpp>
 
 
 namespace Orthanc
@@ -86,6 +86,7 @@ namespace Orthanc
       {
       }
 
+      // WARNING: This method can be invoked from several threads concurrently
       virtual ITransactionContext* Create() = 0;
     };
 
@@ -405,7 +406,6 @@ namespace Orthanc
     class Transaction;
 
     IDatabaseWrapper&                            db_;
-    boost::mutex                                 databaseMutex_;  // TODO - REMOVE
     std::unique_ptr<ITransactionContextFactory>  factory_;
     unsigned int                                 maxRetries_;
     boost::shared_ptr<MainDicomTagsRegistry>     mainDicomTagsRegistry_;  // "shared_ptr" because of PImpl
