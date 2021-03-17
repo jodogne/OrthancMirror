@@ -228,6 +228,9 @@ namespace Orthanc
         case FileContentType_DicomAsJson:
           return OrthancPluginContentType_DicomAsJson;
 
+        case FileContentType_DicomUntilPixelData:
+          return OrthancPluginContentType_DicomUntilPixelData;
+
         default:
           return OrthancPluginContentType_Unknown;
       }
@@ -243,6 +246,9 @@ namespace Orthanc
 
         case OrthancPluginContentType_DicomAsJson:
           return FileContentType_DicomAsJson;
+
+        case OrthancPluginContentType_DicomUntilPixelData:
+          return FileContentType_DicomUntilPixelData;
 
         default:
           return FileContentType_Unknown;
