@@ -686,9 +686,10 @@ extern "C"
    **/
   typedef enum
   {
-    OrthancPluginContentType_Unknown = 0,      /*!< Unknown content type */
-    OrthancPluginContentType_Dicom = 1,        /*!< DICOM */
-    OrthancPluginContentType_DicomAsJson = 2,  /*!< JSON summary of a DICOM file */
+    OrthancPluginContentType_Unknown = 0,             /*!< Unknown content type */
+    OrthancPluginContentType_Dicom = 1,               /*!< DICOM */
+    OrthancPluginContentType_DicomAsJson = 2,         /*!< JSON summary of a DICOM file */
+    OrthancPluginContentType_DicomUntilPixelData = 3, /*!< DICOM Header till pixel data */
 
     _OrthancPluginContentType_INTERNAL = 0x7fffffff
   } OrthancPluginContentType;
