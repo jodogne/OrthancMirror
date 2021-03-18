@@ -982,11 +982,42 @@ extern "C"
 /*<! @cond Doxygen_Suppress */
   typedef enum
   {
-    _OrthancPluginDatabaseTransactionType_ReadOnly = 1,
-    _OrthancPluginDatabaseTransactionType_ReadWrite = 2,
-    _OrthancPluginDatabaseTransactionType_INTERNAL = 0x7fffffff
-  } _OrthancPluginDatabaseTransactionType;
+    OrthancPluginDatabaseTransactionType_ReadOnly = 1,
+    OrthancPluginDatabaseTransactionType_ReadWrite = 2,
+    OrthancPluginDatabaseTransactionType_INTERNAL = 0x7fffffff
+  } OrthancPluginDatabaseTransactionType;
 
+
+  typedef enum
+  {
+    OrthancPluginDatabaseEventType_DeletedAttachment = 1,
+    OrthancPluginDatabaseEventType_DeletedResource = 2,
+    OrthancPluginDatabaseEventType_RemainingAncestor = 3,
+    OrthancPluginDatabaseEventType_INTERNAL = 0x7fffffff
+  } OrthancPluginDatabaseEventType;
+
+
+  typedef struct
+  {
+    OrthancPluginDatabaseEventType type;
+
+    union
+    {
+      struct
+      {
+        /* For ""DeletedResource" and "RemainingAncestor" */
+        OrthancPluginResourceType  level;
+        const char*                publicId;
+      } resource;
+
+      /* For "DeletedAttachment" */
+      OrthancPluginAttachment  attachment;
+      
+    } content;
+    
+  } OrthancPluginDatabaseEvent;
+
+  
   typedef struct
   {
     /**
@@ -1034,7 +1065,15 @@ extern "C"
     OrthancPluginErrorCode (*readAnswerString) (OrthancPluginDatabaseTransaction* transaction,
                                                 const char** target /* out */,
                                                 uint32_t index);
+    
+    OrthancPluginErrorCode (*readEventsCount) (OrthancPluginDatabaseTransaction* transaction,
+                                               uint32_t* target /* out */);
 
+    OrthancPluginErrorCode (*readEvent) (OrthancPluginDatabaseTransaction* transaction,
+                                         OrthancPluginDatabaseEvent* event /* out */,
+                                         uint32_t index);
+
+    
     
     /**
      * Functions to access the global database object
@@ -1056,7 +1095,7 @@ extern "C"
 
     OrthancPluginErrorCode (*startTransaction) (OrthancPluginDatabaseContext* database,
                                                 OrthancPluginDatabaseTransaction** target /* out */,
-                                                _OrthancPluginDatabaseTransactionType type);
+                                                OrthancPluginDatabaseTransactionType type);
 
     OrthancPluginErrorCode (*destructTransaction) (OrthancPluginDatabaseTransaction* transaction);
 
