@@ -62,6 +62,18 @@ namespace Orthanc
     }
     
 
+    static FileInfo Convert(const OrthancPluginAttachment& attachment)
+    {
+      return FileInfo(attachment.uuid,
+                      static_cast<FileContentType>(attachment.contentType),
+                      attachment.uncompressedSize,
+                      attachment.uncompressedHash,
+                      static_cast<CompressionType>(attachment.compressionType),
+                      attachment.compressedSize,
+                      attachment.compressedHash);
+    }
+
+
     void ReadStringAnswers(std::list<std::string>& target)
     {
       uint32_t count;
@@ -186,10 +198,68 @@ namespace Orthanc
     }
 
 
+    void CheckNoEvent()
+    {
+      uint32_t count;
+      CheckSuccess(that_.backend_.readEventsCount(transaction_, &count));
+      if (count != 0)
+      {
+        throw OrthancException(ErrorCode_DatabasePlugin);
+      }
+    }
+
+
+    void ProcessEvents(bool isDeletingAttachment)
+    {
+      uint32_t count;
+      CheckSuccess(that_.backend_.readEventsCount(transaction_, &count));
+
+      for (uint32_t i = 0; i < count; i++)
+      {
+        OrthancPluginDatabaseEvent event;
+        CheckSuccess(that_.backend_.readEvent(transaction_, &event, i));
+
+        switch (event.type)
+        {
+          case OrthancPluginDatabaseEventType_DeletedAttachment:
+            listener_.SignalAttachmentDeleted(Convert(event.content.attachment));
+            break;
+            
+          case OrthancPluginDatabaseEventType_DeletedResource:
+            if (isDeletingAttachment)
+            {
+              // This event should only be triggered by "DeleteResource()"
+              throw OrthancException(ErrorCode_DatabasePlugin);
+            }
+            else
+            {
+              listener_.SignalResourceDeleted(Plugins::Convert(event.content.resource.level), event.content.resource.publicId);
+            }            
+            break;
+            
+          case OrthancPluginDatabaseEventType_RemainingAncestor:
+            if (isDeletingAttachment)
+            {
+              // This event should only triggered by "DeleteResource()"
+              throw OrthancException(ErrorCode_DatabasePlugin);
+            }
+            else
+            {
+              listener_.SignalRemainingAncestor(Plugins::Convert(event.content.resource.level), event.content.resource.publicId);
+            }
+            break;
+
+          default:
+            break;  // Unhandled event
+        }
+      }
+    }
+
+
   public:
     Transaction(OrthancPluginDatabaseV3& that,
                 IDatabaseListener& listener,
-                _OrthancPluginDatabaseTransactionType type) :
+                OrthancPluginDatabaseTransactionType type) :
       that_(that),
       listener_(listener)
     {
@@ -215,12 +285,14 @@ namespace Orthanc
     virtual void Rollback() ORTHANC_OVERRIDE
     {
       CheckSuccess(that_.backend_.rollback(transaction_));
+      CheckNoEvent();
     }
     
 
     virtual void Commit(int64_t fileSizeDelta) ORTHANC_OVERRIDE
     {
       CheckSuccess(that_.backend_.commit(transaction_, fileSizeDelta));
+      CheckNoEvent();
     }
 
     
@@ -237,18 +309,21 @@ namespace Orthanc
       tmp.compressedHash = attachment.GetCompressedMD5().c_str();
 
       CheckSuccess(that_.backend_.addAttachment(transaction_, id, &tmp));
+      CheckNoEvent();
     }
 
 
     virtual void ClearChanges() ORTHANC_OVERRIDE
     {
       CheckSuccess(that_.backend_.clearChanges(transaction_));
+      CheckNoEvent();
     }
 
     
     virtual void ClearExportedResources() ORTHANC_OVERRIDE
     {
       CheckSuccess(that_.backend_.clearExportedResources(transaction_));
+      CheckNoEvent();
     }
 
     
@@ -256,6 +331,7 @@ namespace Orthanc
                                   FileContentType attachment) ORTHANC_OVERRIDE
     {
       CheckSuccess(that_.backend_.deleteAttachment(transaction_, id, static_cast<int32_t>(attachment)));
+      ProcessEvents(true);
     }
 
     
@@ -263,12 +339,14 @@ namespace Orthanc
                                 MetadataType type) ORTHANC_OVERRIDE
     {
       CheckSuccess(that_.backend_.deleteMetadata(transaction_, id, static_cast<int32_t>(type)));
+      CheckNoEvent();
     }
 
     
     virtual void DeleteResource(int64_t id) ORTHANC_OVERRIDE
     {
       CheckSuccess(that_.backend_.deleteResource(transaction_, id));
+      ProcessEvents(false);
     }
 
     
@@ -276,6 +354,7 @@ namespace Orthanc
                                 int64_t id) ORTHANC_OVERRIDE
     {
       CheckSuccess(that_.backend_.getAllMetadata(transaction_, id));
+      CheckNoEvent();
 
       uint32_t count;
       CheckSuccess(that_.backend_.readAnswersCount(transaction_, &count));
@@ -303,6 +382,8 @@ namespace Orthanc
                                  ResourceType resourceType) ORTHANC_OVERRIDE
     {
       CheckSuccess(that_.backend_.getAllPublicIds(transaction_, Plugins::Convert(resourceType)));
+      CheckNoEvent();
+
       ReadStringAnswers(target);
     }
 
@@ -315,6 +396,8 @@ namespace Orthanc
       CheckSuccess(that_.backend_.getAllPublicIdsWithLimit(
                      transaction_, Plugins::Convert(resourceType),
                      static_cast<uint64_t>(since), static_cast<uint64_t>(limit)));
+      CheckNoEvent();
+
       ReadStringAnswers(target);
     }
 
@@ -326,6 +409,7 @@ namespace Orthanc
     {
       uint8_t tmpDone = true;
       CheckSuccess(that_.backend_.getChanges(transaction_, &tmpDone, since, maxResults));
+      CheckNoEvent();
 
       done = (tmpDone != 0);
       
@@ -344,6 +428,7 @@ namespace Orthanc
                                        int64_t id) ORTHANC_OVERRIDE
     {
       CheckSuccess(that_.backend_.getChildrenInternalId(transaction_, id));
+      CheckNoEvent();
 
       uint32_t count;
       CheckSuccess(that_.backend_.readAnswersCount(transaction_, &count));
@@ -362,6 +447,8 @@ namespace Orthanc
                                      int64_t id) ORTHANC_OVERRIDE
     {
       CheckSuccess(that_.backend_.getChildrenPublicId(transaction_, id));
+      CheckNoEvent();
+
       ReadStringAnswers(target);
     }
 
@@ -373,6 +460,7 @@ namespace Orthanc
     {
       uint8_t tmpDone = true;
       CheckSuccess(that_.backend_.getExportedResources(transaction_, &tmpDone, since, maxResults));
+      CheckNoEvent();
 
       done = (tmpDone != 0);
       
@@ -390,6 +478,7 @@ namespace Orthanc
     virtual void GetLastChange(std::list<ServerIndexChange>& target /*out*/) ORTHANC_OVERRIDE
     {
       CheckSuccess(that_.backend_.getLastChange(transaction_));
+      CheckNoEvent();
 
       uint32_t count;
       CheckSuccess(that_.backend_.readAnswersCount(transaction_, &count));
@@ -409,6 +498,7 @@ namespace Orthanc
     virtual void GetLastExportedResource(std::list<ExportedResource>& target /*out*/) ORTHANC_OVERRIDE
     {
       CheckSuccess(that_.backend_.getLastExportedResource(transaction_));
+      CheckNoEvent();
 
       uint32_t count;
       CheckSuccess(that_.backend_.readAnswersCount(transaction_, &count));
@@ -429,6 +519,7 @@ namespace Orthanc
                                   int64_t id) ORTHANC_OVERRIDE
     {
       CheckSuccess(that_.backend_.getMainDicomTags(transaction_, id));
+      CheckNoEvent();
 
       uint32_t count;
       CheckSuccess(that_.backend_.readAnswersCount(transaction_, &count));
@@ -455,6 +546,7 @@ namespace Orthanc
     virtual std::string GetPublicId(int64_t resourceId) ORTHANC_OVERRIDE
     {
       CheckSuccess(that_.backend_.getPublicId(transaction_, resourceId));
+      CheckNoEvent();
 
       std::string s;
       if (ReadSingleStringAnswer(s))
@@ -472,6 +564,7 @@ namespace Orthanc
     {
       uint64_t value;
       CheckSuccess(that_.backend_.getResourcesCount(transaction_, &value, Plugins::Convert(resourceType)));
+      CheckNoEvent();
       return value;
     }
 
@@ -480,6 +573,7 @@ namespace Orthanc
     {
       OrthancPluginResourceType type;
       CheckSuccess(that_.backend_.getResourceType(transaction_, &type, resourceId));
+      CheckNoEvent();
       return Plugins::Convert(type);
     }
 
@@ -488,6 +582,7 @@ namespace Orthanc
     {
       uint64_t s;
       CheckSuccess(that_.backend_.getTotalCompressedSize(transaction_, &s));
+      CheckNoEvent();
       return s;
     }
 
@@ -496,6 +591,7 @@ namespace Orthanc
     {
       uint64_t s;
       CheckSuccess(that_.backend_.getTotalUncompressedSize(transaction_, &s));
+      CheckNoEvent();
       return s;
     }
 
@@ -504,6 +600,7 @@ namespace Orthanc
     {
       uint8_t b;
       CheckSuccess(that_.backend_.isExistingResource(transaction_, &b, internalId));
+      CheckNoEvent();
       return (b != 0);
     }
 
@@ -512,6 +609,7 @@ namespace Orthanc
     {
       uint8_t b;
       CheckSuccess(that_.backend_.isProtectedPatient(transaction_, &b, internalId));
+      CheckNoEvent();
       return (b != 0);
     }
 
@@ -520,6 +618,7 @@ namespace Orthanc
                                           int64_t id) ORTHANC_OVERRIDE
     {
       CheckSuccess(that_.backend_.listAvailableAttachments(transaction_, id));
+      CheckNoEvent();
 
       uint32_t count;
       CheckSuccess(that_.backend_.readAnswersCount(transaction_, &count));
@@ -540,6 +639,7 @@ namespace Orthanc
       CheckSuccess(that_.backend_.logChange(transaction_, static_cast<int32_t>(change.GetChangeType()),
                                             internalId, Plugins::Convert(change.GetResourceType()),
                                             change.GetDate().c_str()));
+      CheckNoEvent();
     }
 
     
@@ -553,6 +653,7 @@ namespace Orthanc
                                                       resource.GetStudyInstanceUid().c_str(),
                                                       resource.GetSeriesInstanceUid().c_str(),
                                                       resource.GetSopInstanceUid().c_str()));
+      CheckNoEvent();
     }
 
     
@@ -561,6 +662,7 @@ namespace Orthanc
                                   FileContentType contentType) ORTHANC_OVERRIDE
     {
       CheckSuccess(that_.backend_.lookupAttachment(transaction_, id, static_cast<int32_t>(contentType)));
+      CheckNoEvent();
 
       uint32_t count;
       CheckSuccess(that_.backend_.readAnswersCount(transaction_, &count));
@@ -573,14 +675,7 @@ namespace Orthanc
       {
         OrthancPluginAttachment tmp;
         CheckSuccess(that_.backend_.readAnswerAttachment(transaction_, &tmp, 0));
-
-        attachment = FileInfo(tmp.uuid,
-                              static_cast<FileContentType>(tmp.contentType),
-                              tmp.uncompressedSize,
-                              tmp.uncompressedHash,
-                              static_cast<CompressionType>(tmp.compressionType),
-                              tmp.compressedSize,
-                              tmp.compressedHash);
+        attachment = Convert(tmp);
         return true;
       }
       else
@@ -594,6 +689,7 @@ namespace Orthanc
                                       GlobalProperty property) ORTHANC_OVERRIDE
     {
       CheckSuccess(that_.backend_.lookupGlobalProperty(transaction_, static_cast<int32_t>(property)));
+      CheckNoEvent();
       return ReadSingleStringAnswer(target);      
     }
 
@@ -603,6 +699,7 @@ namespace Orthanc
                                 MetadataType type) ORTHANC_OVERRIDE
     {
       CheckSuccess(that_.backend_.lookupMetadata(transaction_, id, static_cast<int32_t>(type)));
+      CheckNoEvent();
       return ReadSingleStringAnswer(target);      
     }
 
@@ -611,6 +708,7 @@ namespace Orthanc
                               int64_t resourceId) ORTHANC_OVERRIDE
     {
       CheckSuccess(that_.backend_.lookupParent(transaction_, resourceId));
+      CheckNoEvent();
       return ReadSingleInt64Answer(parentId);      
     }
 
@@ -620,6 +718,7 @@ namespace Orthanc
                                 const std::string& publicId) ORTHANC_OVERRIDE
     {
       CheckSuccess(that_.backend_.lookupResource(transaction_, Plugins::Convert(type), publicId.c_str()));
+      CheckNoEvent();
       return ReadSingleInt64Answer(id);      
     }
 
@@ -627,6 +726,7 @@ namespace Orthanc
     virtual bool SelectPatientToRecycle(int64_t& internalId) ORTHANC_OVERRIDE
     {
       CheckSuccess(that_.backend_.selectPatientToRecycle(transaction_));
+      CheckNoEvent();
       return ReadSingleInt64Answer(internalId);      
     }
 
@@ -635,6 +735,7 @@ namespace Orthanc
                                         int64_t patientIdToAvoid) ORTHANC_OVERRIDE
     {
       CheckSuccess(that_.backend_.selectPatientToRecycle2(transaction_, patientIdToAvoid));
+      CheckNoEvent();
       return ReadSingleInt64Answer(internalId);      
     }
 
@@ -643,12 +744,14 @@ namespace Orthanc
                                    const std::string& value) ORTHANC_OVERRIDE
     {
       CheckSuccess(that_.backend_.setGlobalProperty(transaction_, static_cast<int32_t>(property), value.c_str()));
+      CheckNoEvent();
     }
 
     
     virtual void ClearMainDicomTags(int64_t id) ORTHANC_OVERRIDE
     {
       CheckSuccess(that_.backend_.clearMainDicomTags(transaction_, id));
+      CheckNoEvent();
     }
 
     
@@ -657,6 +760,7 @@ namespace Orthanc
                              const std::string& value) ORTHANC_OVERRIDE
     {
       CheckSuccess(that_.backend_.setMetadata(transaction_, id, static_cast<int32_t>(type), value.c_str()));
+      CheckNoEvent();
     }
 
     
@@ -664,6 +768,7 @@ namespace Orthanc
                                      bool isProtected) ORTHANC_OVERRIDE
     {
       CheckSuccess(that_.backend_.setProtectedPatient(transaction_, internalId, (isProtected ? 1 : 0)));
+      CheckNoEvent();
     }
 
 
@@ -671,6 +776,7 @@ namespace Orthanc
     {
       uint8_t tmp;
       CheckSuccess(that_.backend_.isDiskSizeAbove(transaction_, &tmp, threshold));
+      CheckNoEvent();
       return (tmp != 0);
     }
 
@@ -696,6 +802,7 @@ namespace Orthanc
                                                   (lookup.empty() ? NULL : &constraints[0]),
                                                   Plugins::Convert(queryLevel),
                                                   limit, (instancesId == NULL ? 0 : 1)));
+      CheckNoEvent();
 
       uint32_t count;
       CheckSuccess(that_.backend_.readAnswersCount(transaction_, &count));
@@ -746,6 +853,7 @@ namespace Orthanc
 
       CheckSuccess(that_.backend_.createInstance(transaction_, &output, patient.c_str(),
                                                  study.c_str(), series.c_str(), instance.c_str()));
+      CheckNoEvent();
 
       instanceId = output.instanceId;
       
@@ -816,6 +924,7 @@ namespace Orthanc
                                                       (mainDicomTags.empty() ? NULL : &mainDicomTags[0]),
                                                       metadata.size(),
                                                       (metadata.empty() ? NULL : &metadata[0])));
+      CheckNoEvent();
     }
 
     
@@ -824,6 +933,7 @@ namespace Orthanc
                                      MetadataType metadata) ORTHANC_OVERRIDE
     {
       CheckSuccess(that_.backend_.getChildrenMetadata(transaction_, resourceId, static_cast<int32_t>(metadata)));
+      CheckNoEvent();
       ReadStringAnswers(target);
     }
 
@@ -832,6 +942,7 @@ namespace Orthanc
     {
       int64_t tmp;
       CheckSuccess(that_.backend_.getLastChangeIndex(transaction_, &tmp));
+      CheckNoEvent();
       return tmp;
     }
 
@@ -844,6 +955,7 @@ namespace Orthanc
       uint8_t isExisting;
       OrthancPluginResourceType tmpType;
       CheckSuccess(that_.backend_.lookupResourceAndParent(transaction_, &isExisting, &id, &tmpType, publicId.c_str()));
+      CheckNoEvent();
 
       if (isExisting)
       {
@@ -967,10 +1079,10 @@ namespace Orthanc
     switch (type)
     {
       case TransactionType_ReadOnly:
-        return new Transaction(*this, listener, _OrthancPluginDatabaseTransactionType_ReadOnly);
+        return new Transaction(*this, listener, OrthancPluginDatabaseTransactionType_ReadOnly);
 
       case TransactionType_ReadWrite:
-        return new Transaction(*this, listener, _OrthancPluginDatabaseTransactionType_ReadWrite);
+        return new Transaction(*this, listener, OrthancPluginDatabaseTransactionType_ReadWrite);
 
       default:
         throw OrthancException(ErrorCode_InternalError);
@@ -993,7 +1105,7 @@ namespace Orthanc
     
     if (backend_.upgradeDatabase != NULL)
     {
-      Transaction transaction(*this, listener, _OrthancPluginDatabaseTransactionType_ReadWrite);
+      Transaction transaction(*this, listener, OrthancPluginDatabaseTransactionType_ReadWrite);
 
       OrthancPluginErrorCode code = backend_.upgradeDatabase(
         database_, reinterpret_cast<OrthancPluginStorageArea*>(&storageArea),
