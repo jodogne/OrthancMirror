@@ -46,6 +46,14 @@
 
 #include <cassert>
 
+
+#define CHECK_FUNCTION_EXISTS(backend, func)                            \
+  if (backend.func == NULL)                                             \
+  {                                                                     \
+    throw OrthancException(                                             \
+      ErrorCode_DatabasePlugin, "Missing primitive: " #func "()");      \
+  }
+
 namespace Orthanc
 {
   class OrthancPluginDatabaseV3::Transaction : public IDatabaseWrapper::ITransaction
@@ -1029,7 +1037,7 @@ namespace Orthanc
                                                    PluginsErrorDictionary&  errorDictionary,
                                                    const OrthancPluginDatabaseBackendV3* backend,
                                                    size_t backendSize,
-                                                   OrthancPluginDatabaseContext* database) :
+                                                   void* database) :
     library_(library),
     errorDictionary_(errorDictionary),
     database_(database)
@@ -1044,6 +1052,77 @@ namespace Orthanc
       memset(&backend_, 0, sizeof(backend_));
       memcpy(&backend_, backend, backendSize);
     }
+
+    // Sanity checks
+    CHECK_FUNCTION_EXISTS(backend_, readAnswersCount);
+    CHECK_FUNCTION_EXISTS(backend_, readAnswerAttachment);
+    CHECK_FUNCTION_EXISTS(backend_, readAnswerChange);
+    CHECK_FUNCTION_EXISTS(backend_, readAnswerDicomTag);
+    CHECK_FUNCTION_EXISTS(backend_, readAnswerExportedResource);
+    CHECK_FUNCTION_EXISTS(backend_, readAnswerInt32);
+    CHECK_FUNCTION_EXISTS(backend_, readAnswerInt64);
+    CHECK_FUNCTION_EXISTS(backend_, readAnswerMatchingResource);
+    CHECK_FUNCTION_EXISTS(backend_, readAnswerMetadata);
+    CHECK_FUNCTION_EXISTS(backend_, readAnswerString);
+    
+    CHECK_FUNCTION_EXISTS(backend_, readEventsCount);
+    CHECK_FUNCTION_EXISTS(backend_, readEvent);
+
+    CHECK_FUNCTION_EXISTS(backend_, open);
+    CHECK_FUNCTION_EXISTS(backend_, close);
+    CHECK_FUNCTION_EXISTS(backend_, destructDatabase);
+    CHECK_FUNCTION_EXISTS(backend_, getDatabaseVersion);
+    CHECK_FUNCTION_EXISTS(backend_, upgradeDatabase);
+    CHECK_FUNCTION_EXISTS(backend_, startTransaction);
+    CHECK_FUNCTION_EXISTS(backend_, destructTransaction);
+
+    CHECK_FUNCTION_EXISTS(backend_, rollback);
+    CHECK_FUNCTION_EXISTS(backend_, commit);
+    
+    CHECK_FUNCTION_EXISTS(backend_, addAttachment);
+    CHECK_FUNCTION_EXISTS(backend_, clearChanges);
+    CHECK_FUNCTION_EXISTS(backend_, clearExportedResources);
+    CHECK_FUNCTION_EXISTS(backend_, clearMainDicomTags);
+    CHECK_FUNCTION_EXISTS(backend_, createInstance);
+    CHECK_FUNCTION_EXISTS(backend_, deleteAttachment);
+    CHECK_FUNCTION_EXISTS(backend_, deleteMetadata);
+    CHECK_FUNCTION_EXISTS(backend_, deleteResource);
+    CHECK_FUNCTION_EXISTS(backend_, getAllMetadata);
+    CHECK_FUNCTION_EXISTS(backend_, getAllPublicIds);
+    CHECK_FUNCTION_EXISTS(backend_, getAllPublicIdsWithLimit);
+    CHECK_FUNCTION_EXISTS(backend_, getChanges);
+    CHECK_FUNCTION_EXISTS(backend_, getChildrenInternalId);
+    CHECK_FUNCTION_EXISTS(backend_, getChildrenMetadata);
+    CHECK_FUNCTION_EXISTS(backend_, getChildrenPublicId);
+    CHECK_FUNCTION_EXISTS(backend_, getExportedResources);
+    CHECK_FUNCTION_EXISTS(backend_, getLastChange);
+    CHECK_FUNCTION_EXISTS(backend_, getLastChangeIndex);
+    CHECK_FUNCTION_EXISTS(backend_, getLastExportedResource);
+    CHECK_FUNCTION_EXISTS(backend_, getMainDicomTags);
+    CHECK_FUNCTION_EXISTS(backend_, getPublicId);
+    CHECK_FUNCTION_EXISTS(backend_, getResourcesCount);
+    CHECK_FUNCTION_EXISTS(backend_, getResourceType);
+    CHECK_FUNCTION_EXISTS(backend_, getTotalCompressedSize);
+    CHECK_FUNCTION_EXISTS(backend_, getTotalUncompressedSize);
+    CHECK_FUNCTION_EXISTS(backend_, isDiskSizeAbove);
+    CHECK_FUNCTION_EXISTS(backend_, isExistingResource);
+    CHECK_FUNCTION_EXISTS(backend_, isProtectedPatient);
+    CHECK_FUNCTION_EXISTS(backend_, listAvailableAttachments);
+    CHECK_FUNCTION_EXISTS(backend_, logChange);
+    CHECK_FUNCTION_EXISTS(backend_, logExportedResource);
+    CHECK_FUNCTION_EXISTS(backend_, lookupAttachment);
+    CHECK_FUNCTION_EXISTS(backend_, lookupGlobalProperty);
+    CHECK_FUNCTION_EXISTS(backend_, lookupMetadata);
+    CHECK_FUNCTION_EXISTS(backend_, lookupParent);
+    CHECK_FUNCTION_EXISTS(backend_, lookupResource);
+    CHECK_FUNCTION_EXISTS(backend_, lookupResources);
+    CHECK_FUNCTION_EXISTS(backend_, lookupResourceAndParent);
+    CHECK_FUNCTION_EXISTS(backend_, selectPatientToRecycle);
+    CHECK_FUNCTION_EXISTS(backend_, selectPatientToRecycle2);
+    CHECK_FUNCTION_EXISTS(backend_, setGlobalProperty);
+    CHECK_FUNCTION_EXISTS(backend_, setMetadata);
+    CHECK_FUNCTION_EXISTS(backend_, setProtectedPatient);
+    CHECK_FUNCTION_EXISTS(backend_, setResourcesContent);
   }
 
   

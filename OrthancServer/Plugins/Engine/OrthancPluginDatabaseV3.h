@@ -50,7 +50,7 @@ namespace Orthanc
     SharedLibrary&                  library_;
     PluginsErrorDictionary&         errorDictionary_;
     OrthancPluginDatabaseBackendV3  backend_;
-    OrthancPluginDatabaseContext*   database_;
+    void*                           database_;
 
     void CheckSuccess(OrthancPluginErrorCode code);
 
@@ -59,7 +59,7 @@ namespace Orthanc
                             PluginsErrorDictionary&  errorDictionary,
                             const OrthancPluginDatabaseBackendV3* backend,
                             size_t backendSize,
-                            OrthancPluginDatabaseContext* database);
+                            void* database);
 
     virtual ~OrthancPluginDatabaseV3();
 

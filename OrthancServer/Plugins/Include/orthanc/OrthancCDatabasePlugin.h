@@ -1080,20 +1080,20 @@ extern "C"
      * (cf. "IDatabaseWrapper" class in Orthanc)
      **/
 
-    OrthancPluginErrorCode (*open) (OrthancPluginDatabaseContext* database);
+    OrthancPluginErrorCode (*open) (void* database);
 
-    OrthancPluginErrorCode (*close) (OrthancPluginDatabaseContext* database);
+    OrthancPluginErrorCode (*close) (void* database);
 
-    OrthancPluginErrorCode (*destructDatabase) (OrthancPluginDatabaseContext* database);
+    OrthancPluginErrorCode (*destructDatabase) (void* database);
 
-    OrthancPluginErrorCode (*getDatabaseVersion) (OrthancPluginDatabaseContext* database,
+    OrthancPluginErrorCode (*getDatabaseVersion) (void* database,
                                                   uint32_t* target /* out */);
 
-    OrthancPluginErrorCode (*upgradeDatabase) (OrthancPluginDatabaseContext* database,
+    OrthancPluginErrorCode (*upgradeDatabase) (void* database,
                                                OrthancPluginStorageArea* storageArea,
                                                uint32_t targetVersion);
 
-    OrthancPluginErrorCode (*startTransaction) (OrthancPluginDatabaseContext* database,
+    OrthancPluginErrorCode (*startTransaction) (void* database,
                                                 OrthancPluginDatabaseTransaction** target /* out */,
                                                 OrthancPluginDatabaseTransactionType type);
 
@@ -1317,7 +1317,7 @@ extern "C"
   {
     const OrthancPluginDatabaseBackendV3*  backend;
     uint32_t                               backendSize;
-    OrthancPluginDatabaseContext*          database;
+    void*                                  database;
   } _OrthancPluginRegisterDatabaseBackendV3;
 
 
@@ -1325,7 +1325,7 @@ extern "C"
     OrthancPluginContext*                  context,
     const OrthancPluginDatabaseBackendV3*  backend,
     uint32_t                               backendSize,
-    OrthancPluginDatabaseContext*          database)
+    void*                                  database)
   {
     _OrthancPluginRegisterDatabaseBackendV3 params;
 
