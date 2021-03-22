@@ -2679,8 +2679,12 @@ namespace Orthanc
       }
     };
 
-    Operations operations(maximumStorageSize, maximumPatientCount);
-    Apply(operations);
+    if (maximumStorageSize != 0 ||
+        maximumPatientCount != 0)
+    {
+      Operations operations(maximumStorageSize, maximumPatientCount);
+      Apply(operations);
+    }
   }
 
 

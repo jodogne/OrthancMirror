@@ -725,9 +725,20 @@ namespace Orthanc
                                 ResourceType& type,
                                 const std::string& publicId) ORTHANC_OVERRIDE
     {
-      CheckSuccess(that_.backend_.lookupResource(transaction_, Plugins::Convert(type), publicId.c_str()));
+      uint8_t existing;
+      OrthancPluginResourceType t;
+      CheckSuccess(that_.backend_.lookupResource(transaction_, &existing, &id, &t, publicId.c_str()));
       CheckNoEvent();
-      return ReadSingleInt64Answer(id);      
+
+      if (existing == 0)
+      {
+        return false;
+      }
+      else
+      {
+        type = Plugins::Convert(t);
+        return true;
+      }
     }
 
     

@@ -1221,7 +1221,7 @@ extern "C"
                                                   uint8_t* target /* out */,
                                                   int64_t resourceId);
     
-    /* Answer is read using "readAnswerInt32()" */
+    /* Answers are read using "readAnswerInt32()" */
     OrthancPluginErrorCode (*listAvailableAttachments) (OrthancPluginDatabaseTransaction* transaction,
                                                         int64_t internalId);
 
@@ -1255,13 +1255,14 @@ extern "C"
                                               int64_t id,
                                               int32_t metadata);
     
-    /* Answer is read using "readAnswerInt64()" */
+    /* Answer is read using "readAnswerInt64()" -- TODO */
     OrthancPluginErrorCode (*lookupParent) (OrthancPluginDatabaseTransaction* transaction,
                                             int64_t id);
     
-    /* Answer is read using "readAnswerInt64()" */
     OrthancPluginErrorCode (*lookupResource) (OrthancPluginDatabaseTransaction* transaction,
-                                              OrthancPluginResourceType level,
+                                              uint8_t* isExisting /* out */,
+                                              int64_t* id /* out */,
+                                              OrthancPluginResourceType* type /* out */,
                                               const char* publicId);
     
     /* Answers are read using "readAnswerMatchingResource()" */
@@ -1279,10 +1280,10 @@ extern "C"
                                                        OrthancPluginResourceType* type /* out */,
                                                        const char* publicId);
 
-    /* Answer is read using "readAnswerInt64()" */
+    /* Answer is read using "readAnswerInt64()" -- TODO */
     OrthancPluginErrorCode (*selectPatientToRecycle) (OrthancPluginDatabaseTransaction* transaction);
     
-    /* Answer is read using "readAnswerInt64()" */
+    /* Answer is read using "readAnswerInt64()" -- TODO */
     OrthancPluginErrorCode (*selectPatientToRecycle2) (OrthancPluginDatabaseTransaction* transaction,
                                                        int64_t patientIdToAvoid);
 
