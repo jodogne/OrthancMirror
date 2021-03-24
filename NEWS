@@ -1,6 +1,16 @@
 Pending changes in the mainline
 ===============================
 
+Plugins
+-------
+
+* Possibility to create database index plugins that don't lock a global mutex
+
+Maintenance
+-----------
+
+* Full refactoring of the database engine
+
 
 Version 1.9.1 (2021-02-25)
 ==========================

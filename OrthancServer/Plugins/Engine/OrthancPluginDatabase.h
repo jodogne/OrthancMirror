@@ -46,8 +46,8 @@ namespace Orthanc
 {
   /**
    * This class is for backward compatibility with database plugins
-   * that don't use the primitives introduced in Orthanc 1.10.0 to
-   * deal with concurrent read-only transactions.
+   * that don't use the primitives introduced in Orthanc 1.9.2 to deal
+   * with concurrent read-only transactions.
    *
    * In Orthanc <= 1.9.1, Orthanc assumed that at most 1 single thread
    * was accessing the database plugin at anytime, in order to match

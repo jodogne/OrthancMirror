@@ -1193,7 +1193,7 @@ namespace Orthanc
     int argc_;
     char** argv_;
     std::unique_ptr<OrthancPluginDatabase>  database_;
-    std::unique_ptr<OrthancPluginDatabaseV3>  databaseV3_;  // New in Orthanc 1.10.0
+    std::unique_ptr<OrthancPluginDatabaseV3>  databaseV3_;  // New in Orthanc 1.9.2
     PluginsErrorDictionary  dictionary_;
 
     PImpl() : 
