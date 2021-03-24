@@ -46,7 +46,7 @@ extern "C"
 
   /**
    * Opaque structure that represents a transaction of a custom database engine.
-   * New in Orthanc 1.10.0.
+   * New in Orthanc 1.9.2.
    * @ingroup Callbacks
    **/
   typedef struct _OrthancPluginDatabaseTransaction_t OrthancPluginDatabaseTransaction;
@@ -976,7 +976,7 @@ extern "C"
 
 
   /**
-   * New interface starting with Orthanc 1.10.0
+   * New interface starting with Orthanc 1.9.2
    **/
 
 /*<! @cond Doxygen_Suppress */
