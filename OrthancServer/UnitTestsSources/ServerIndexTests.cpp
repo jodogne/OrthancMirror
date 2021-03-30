@@ -251,7 +251,7 @@ TEST_F(DatabaseWrapperTest, Simple)
     ASSERT_EQ(3u, t.size());
   }
 
-  transaction_->SetGlobalProperty(GlobalProperty_FlushSleep, "World");
+  transaction_->SetGlobalProperty(GlobalProperty_FlushSleep, true, "World");
 
   transaction_->AttachChild(a[0], a[1]);
   transaction_->AttachChild(a[1], a[2]);
@@ -350,8 +350,8 @@ TEST_F(DatabaseWrapperTest, Simple)
   ASSERT_EQ("PINNACLE", u);
   ASSERT_FALSE(transaction_->LookupMetadata(u, a[4], MetadataType_Instance_IndexInSeries));
 
-  ASSERT_TRUE(transaction_->LookupGlobalProperty(s, GlobalProperty_FlushSleep));
-  ASSERT_FALSE(transaction_->LookupGlobalProperty(s, static_cast<GlobalProperty>(42)));
+  ASSERT_TRUE(transaction_->LookupGlobalProperty(s, GlobalProperty_FlushSleep, true));
+  ASSERT_FALSE(transaction_->LookupGlobalProperty(s, static_cast<GlobalProperty>(42), true));
   ASSERT_EQ("World", s);
 
   FileInfo att;
@@ -402,11 +402,11 @@ TEST_F(DatabaseWrapperTest, Simple)
   CheckTableRecordCount(3, "GlobalProperties");
 
   std::string tmp;
-  ASSERT_TRUE(transaction_->LookupGlobalProperty(tmp, GlobalProperty_DatabaseSchemaVersion));
+  ASSERT_TRUE(transaction_->LookupGlobalProperty(tmp, GlobalProperty_DatabaseSchemaVersion, true));
   ASSERT_EQ("6", tmp);
-  ASSERT_TRUE(transaction_->LookupGlobalProperty(tmp, GlobalProperty_FlushSleep));
+  ASSERT_TRUE(transaction_->LookupGlobalProperty(tmp, GlobalProperty_FlushSleep, true));
   ASSERT_EQ("World", tmp);
-  ASSERT_TRUE(transaction_->LookupGlobalProperty(tmp, GlobalProperty_GetTotalSizeIsFast));
+  ASSERT_TRUE(transaction_->LookupGlobalProperty(tmp, GlobalProperty_GetTotalSizeIsFast, true));
   ASSERT_EQ("1", tmp);
 
   ASSERT_EQ(3u, listener_->deletedFiles_.size());
@@ -623,10 +623,10 @@ TEST(ServerIndex, Sequence)
 
   ServerIndex& index = context.GetIndex();
 
-  ASSERT_EQ(1u, index.IncrementGlobalSequence(GlobalProperty_AnonymizationSequence));
-  ASSERT_EQ(2u, index.IncrementGlobalSequence(GlobalProperty_AnonymizationSequence));
-  ASSERT_EQ(3u, index.IncrementGlobalSequence(GlobalProperty_AnonymizationSequence));
-  ASSERT_EQ(4u, index.IncrementGlobalSequence(GlobalProperty_AnonymizationSequence));
+  ASSERT_EQ(1u, index.IncrementGlobalSequence(GlobalProperty_AnonymizationSequence, true));
+  ASSERT_EQ(2u, index.IncrementGlobalSequence(GlobalProperty_AnonymizationSequence, true));
+  ASSERT_EQ(3u, index.IncrementGlobalSequence(GlobalProperty_AnonymizationSequence, true));
+  ASSERT_EQ(4u, index.IncrementGlobalSequence(GlobalProperty_AnonymizationSequence, true));
 
   context.Stop();
   db.Close();

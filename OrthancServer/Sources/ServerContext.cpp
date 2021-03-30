@@ -215,7 +215,7 @@ namespace Orthanc
     if (loadJobsFromDatabase)
     {
       std::string serialized;
-      if (index_.LookupGlobalProperty(serialized, GlobalProperty_JobsRegistry))
+      if (index_.LookupGlobalProperty(serialized, GlobalProperty_JobsRegistry, false /* not shared */))
       {
         LOG(WARNING) << "Reloading the jobs from the last execution of Orthanc";
 
@@ -261,7 +261,7 @@ namespace Orthanc
         std::string serialized;
         Toolbox::WriteFastJson(serialized, value);
 
-        index_.SetGlobalProperty(GlobalProperty_JobsRegistry, serialized);
+        index_.SetGlobalProperty(GlobalProperty_JobsRegistry, false /* not shared */, serialized);
       }
       catch (OrthancException& e)
       {

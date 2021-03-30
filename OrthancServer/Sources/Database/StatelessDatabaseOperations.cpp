@@ -1658,31 +1658,33 @@ namespace Orthanc
 
 
   bool StatelessDatabaseOperations::LookupGlobalProperty(std::string& value,
-                                                         GlobalProperty property)
+                                                         GlobalProperty property,
+                                                         bool shared)
   {
-    class Operations : public ReadOnlyOperationsT3<bool&, std::string&, GlobalProperty>
+    class Operations : public ReadOnlyOperationsT4<bool&, std::string&, GlobalProperty, bool>
     {
     public:
       virtual void ApplyTuple(ReadOnlyTransaction& transaction,
                               const Tuple& tuple) ORTHANC_OVERRIDE
       {
         // TODO - CANDIDATE FOR "TransactionType_Implicit"
-        tuple.get<0>() = transaction.LookupGlobalProperty(tuple.get<1>(), tuple.get<2>());
+        tuple.get<0>() = transaction.LookupGlobalProperty(tuple.get<1>(), tuple.get<2>(), tuple.get<3>());
       }
     };
 
     bool found;
     Operations operations;
-    operations.Apply(*this, found, value, property);
+    operations.Apply(*this, found, value, property, shared);
     return found;
   }
   
 
   std::string StatelessDatabaseOperations::GetGlobalProperty(GlobalProperty property,
+                                                             bool shared,
                                                              const std::string& defaultValue)
   {
     std::string s;
-    if (LookupGlobalProperty(s, property))
+    if (LookupGlobalProperty(s, property, shared))
     {
       return s;
     }
@@ -2273,18 +2275,22 @@ namespace Orthanc
   }
 
 
-  uint64_t StatelessDatabaseOperations::IncrementGlobalSequence(GlobalProperty sequence)
+  uint64_t StatelessDatabaseOperations::IncrementGlobalSequence(GlobalProperty sequence,
+                                                                bool shared)
   {
     class Operations : public IReadWriteOperations
     {
     private:
       uint64_t       newValue_;
       GlobalProperty sequence_;
+      bool           shared_;
 
     public:
-      explicit Operations(GlobalProperty sequence) :
+      Operations(GlobalProperty sequence,
+                 bool shared) :
         newValue_(0),  // Dummy initialization
-        sequence_(sequence)
+        sequence_(sequence),
+        shared_(shared)
       {
       }
 
@@ -2297,7 +2303,7 @@ namespace Orthanc
       {
         std::string oldString;
 
-        if (transaction.LookupGlobalProperty(oldString, sequence_))
+        if (transaction.LookupGlobalProperty(oldString, sequence_, shared_))
         {
           uint64_t oldValue;
       
@@ -2320,11 +2326,11 @@ namespace Orthanc
           newValue_ = 1;
         }
 
-        transaction.SetGlobalProperty(sequence_, boost::lexical_cast<std::string>(newValue_));
+        transaction.SetGlobalProperty(sequence_, shared_, boost::lexical_cast<std::string>(newValue_));
       }
     };
 
-    Operations operations(sequence);
+    Operations operations(sequence, shared);
     Apply(operations);
     assert(operations.GetNewValue() != 0);
     return operations.GetNewValue();
@@ -2364,29 +2370,33 @@ namespace Orthanc
 
 
   void StatelessDatabaseOperations::SetGlobalProperty(GlobalProperty property,
+                                                      bool shared,
                                                       const std::string& value)
   {
     class Operations : public IReadWriteOperations
     {
     private:
       GlobalProperty      property_;
+      bool                shared_;
       const std::string&  value_;
       
     public:
       Operations(GlobalProperty property,
+                 bool shared,
                  const std::string& value) :
         property_(property),
+        shared_(shared),
         value_(value)
       {
       }
         
       virtual void Apply(ReadWriteTransaction& transaction) ORTHANC_OVERRIDE
       {
-        transaction.SetGlobalProperty(property_, value_);
+        transaction.SetGlobalProperty(property_, shared_, value_);
       }
     };
 
-    Operations operations(property, value);
+    Operations operations(property, shared, value);
     Apply(operations);
   }
 

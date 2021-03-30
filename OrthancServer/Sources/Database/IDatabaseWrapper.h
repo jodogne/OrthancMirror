@@ -155,8 +155,15 @@ namespace Orthanc
                                     int64_t id,
                                     FileContentType contentType) = 0;
 
+      /**
+       * If "shared" is "true", the property is shared by all the
+       * Orthanc servers that access the same database. If "shared" is
+       * "false", the property is private to the server (cf. the
+       * "DatabaseServerIdentifier" configuration option).
+       **/
       virtual bool LookupGlobalProperty(std::string& target,
-                                        GlobalProperty property) = 0;
+                                        GlobalProperty property,
+                                        bool shared) = 0;
 
       virtual bool LookupMetadata(std::string& target,
                                   int64_t id,
@@ -175,6 +182,7 @@ namespace Orthanc
                                           int64_t patientIdToAvoid) = 0;
 
       virtual void SetGlobalProperty(GlobalProperty property,
+                                     bool shared,
                                      const std::string& value) = 0;
 
       virtual void ClearMainDicomTags(int64_t id) = 0;

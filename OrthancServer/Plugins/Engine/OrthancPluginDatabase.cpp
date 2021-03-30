@@ -1129,8 +1129,12 @@ namespace Orthanc
 
 
     virtual bool LookupGlobalProperty(std::string& target,
-                                      GlobalProperty property) ORTHANC_OVERRIDE
+                                      GlobalProperty property,
+                                      bool shared) ORTHANC_OVERRIDE
     {
+      // "shared" is unused, as database plugins using Orthanc SDK <=
+      // 1.9.1 are not compatible with multiple readers/writers
+      
       ResetAnswers();
 
       CheckSuccess(that_.backend_.lookupGlobalProperty
@@ -1291,8 +1295,12 @@ namespace Orthanc
 
 
     virtual void SetGlobalProperty(GlobalProperty property,
+                                   bool shared,
                                    const std::string& value) ORTHANC_OVERRIDE
     {
+      // "shared" is unused, as database plugins using Orthanc SDK <=
+      // 1.9.1 are not compatible with multiple readers/writers
+      
       CheckSuccess(that_.backend_.setGlobalProperty
                    (that_.payload_, static_cast<int32_t>(property), value.c_str()));
     }
@@ -1527,7 +1535,7 @@ namespace Orthanc
 
       std::string tmp;
       fastGetTotalSize_ =
-        (transaction.LookupGlobalProperty(tmp, GlobalProperty_GetTotalSizeIsFast) &&
+        (transaction.LookupGlobalProperty(tmp, GlobalProperty_GetTotalSizeIsFast, true /* unused in old databases */) &&
          tmp == "1");
       
       if (fastGetTotalSize_)
