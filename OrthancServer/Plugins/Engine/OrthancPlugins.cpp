@@ -156,6 +156,22 @@ namespace Orthanc
   }
 
 
+  static void CopyDictionary(OrthancPluginMemoryBuffer& target,
+                             const std::map<std::string, std::string>& dictionary)
+  {
+    Json::Value json = Json::objectValue;
+
+    for (HttpClient::HttpHeaders::const_iterator 
+           it = dictionary.begin(); it != dictionary.end(); ++it)
+    {
+      json[it->first] = it->second;
+    }
+        
+    std::string s = json.toStyledString();
+    CopyToMemoryBuffer(target, s);
+  }
+
+
   namespace
   {
     class MemoryBufferRaii : public boost::noncopyable
@@ -2680,7 +2696,7 @@ namespace Orthanc
     std::map<std::string, std::string> httpHeaders;
 
     std::string result;
-    if (IHttpHandler::SimpleGet(result, *handler, RequestOrigin_Plugins, p.uri, httpHeaders))
+    if (IHttpHandler::SimpleGet(result, NULL, *handler, RequestOrigin_Plugins, p.uri, httpHeaders) == HttpStatus_200_Ok)
     {
       CopyToMemoryBuffer(*p.target, result);
     }
@@ -2716,7 +2732,7 @@ namespace Orthanc
     }
       
     std::string result;
-    if (IHttpHandler::SimpleGet(result, *handler, RequestOrigin_Plugins, p.uri, headers))
+    if (IHttpHandler::SimpleGet(result, NULL, *handler, RequestOrigin_Plugins, p.uri, headers) == HttpStatus_200_Ok)
     {
       CopyToMemoryBuffer(*p.target, result);
     }
@@ -2748,8 +2764,10 @@ namespace Orthanc
 
     std::string result;
     if (isPost ? 
-        IHttpHandler::SimplePost(result, *handler, RequestOrigin_Plugins, p.uri, p.body, p.bodySize, httpHeaders) :
-        IHttpHandler::SimplePut (result, *handler, RequestOrigin_Plugins, p.uri, p.body, p.bodySize, httpHeaders))
+        IHttpHandler::SimplePost(result, NULL, *handler, RequestOrigin_Plugins, p.uri,
+                                 p.body, p.bodySize, httpHeaders) == HttpStatus_200_Ok :
+        IHttpHandler::SimplePut(result, NULL, *handler, RequestOrigin_Plugins, p.uri,
+                                p.body, p.bodySize, httpHeaders) == HttpStatus_200_Ok)
     {
       CopyToMemoryBuffer(*p.target, result);
     }
@@ -2776,7 +2794,7 @@ namespace Orthanc
       
     std::map<std::string, std::string> httpHeaders;
 
-    if (!IHttpHandler::SimpleDelete(*handler, RequestOrigin_Plugins, uri, httpHeaders))
+    if (IHttpHandler::SimpleDelete(NULL, *handler, RequestOrigin_Plugins, uri, httpHeaders) != HttpStatus_200_Ok)
     {
       throw OrthancException(ErrorCode_UnknownResource);
     }
@@ -3335,11 +3353,6 @@ namespace Orthanc
                                                   OrthancPluginMemoryBuffer* answerHeaders,
                                                   HttpClient& client)
   {
-    if (answerBody == NULL)
-    {
-      throw OrthancException(ErrorCode_NullPointer);
-    }
-
     std::string body;
     HttpClient::HttpHeaders headers;
 
@@ -3356,22 +3369,27 @@ namespace Orthanc
     // Copy the HTTP headers of the answer, if the plugin requested them
     if (answerHeaders != NULL)
     {
-      Json::Value json = Json::objectValue;
-
-      for (HttpClient::HttpHeaders::const_iterator 
-             it = headers.begin(); it != headers.end(); ++it)
-      {
-        json[it->first] = it->second;
-      }
-        
-      std::string s = json.toStyledString();
-      CopyToMemoryBuffer(*answerHeaders, s);
+      CopyDictionary(*answerHeaders, headers);
     }
 
     // Copy the body of the answer if it makes sense
     if (client.GetMethod() != HttpMethod_Delete)
     {
-      CopyToMemoryBuffer(*answerBody, body);
+      try
+      {
+        if (answerBody != NULL)
+        {
+          CopyToMemoryBuffer(*answerBody, body);
+        }
+      }
+      catch (OrthancException&)
+      {
+        if (answerHeaders != NULL)
+        {
+          free(answerHeaders->data);
+        }
+        throw;
+      }
     }
   }
 
@@ -3487,6 +3505,112 @@ namespace Orthanc
   }
 
 
+  void OrthancPlugins::CallRestApi(const void* parameters)
+  {
+    const _OrthancPluginCallRestApi& p = *reinterpret_cast<const _OrthancPluginCallRestApi*>(parameters);
+    
+    if (p.httpStatus == NULL)
+    {
+      throw OrthancException(ErrorCode_NullPointer);
+    }
+
+    const char* methodString;
+    switch (p.method)
+    {
+      case OrthancPluginHttpMethod_Get:
+        methodString = "GET";
+        break;
+
+      case OrthancPluginHttpMethod_Post:
+        methodString = "POST";
+        break;
+
+      case OrthancPluginHttpMethod_Put:
+        methodString = "PUT";
+        break;
+
+      case OrthancPluginHttpMethod_Delete:
+        methodString = "DELETE";
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+    CLOG(INFO, PLUGINS) << "Plugin making REST " << methodString << " call to URI " << p.uri
+                        << (p.afterPlugins ? " (after plugins)" : " (built-in API)");
+
+    HttpToolbox::Arguments headers;
+
+    for (uint32_t i = 0; i < p.headersCount; i++)
+    {
+      std::string name(p.headersKeys[i]);
+      std::transform(name.begin(), name.end(), name.begin(), ::tolower);
+      headers[name] = p.headersValues[i];
+    }
+
+    IHttpHandler* handler;
+
+    {
+      PImpl::ServerContextLock lock(*pimpl_);
+      handler = &lock.GetContext().GetHttpHandler().RestrictToOrthancRestApi(!p.afterPlugins);
+    }
+    
+    std::string answerBody;
+    std::map<std::string, std::string> answerHeaders;
+    HttpStatus status;
+
+    switch (p.method)
+    {
+      case OrthancPluginHttpMethod_Get:
+        status = IHttpHandler::SimpleGet(
+          answerBody, &answerHeaders, *handler, RequestOrigin_Plugins, p.uri, headers);
+        break;
+
+      case OrthancPluginHttpMethod_Post:
+        status = IHttpHandler::SimplePost(
+          answerBody, &answerHeaders, *handler, RequestOrigin_Plugins, p.uri, p.body, p.bodySize, headers);
+        break;
+
+      case OrthancPluginHttpMethod_Put:
+        status = IHttpHandler::SimplePut(
+          answerBody, &answerHeaders, *handler, RequestOrigin_Plugins, p.uri, p.body, p.bodySize, headers);
+        break;
+
+      case OrthancPluginHttpMethod_Delete:
+        status = IHttpHandler::SimpleDelete(
+          &answerHeaders, *handler, RequestOrigin_Plugins, p.uri, headers);
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+    *p.httpStatus = static_cast<uint16_t>(status);
+
+    if (p.answerHeaders != NULL)
+    {
+      CopyDictionary(*p.answerHeaders, answerHeaders);
+    }
+
+    try
+    {
+      if (p.answerBody != NULL)
+      {
+        CopyToMemoryBuffer(*p.answerBody, answerBody);
+      }
+    }
+    catch (OrthancException&)
+    {
+      if (p.answerHeaders != NULL)
+      {
+        free(p.answerHeaders->data);
+      }
+      throw;
+    }
+  }
+
+
   void OrthancPlugins::CallPeerApi(const void* parameters)
   {
     const _OrthancPluginCallPeerApi& p = *reinterpret_cast<const _OrthancPluginCallPeerApi*>(parameters);
@@ -3551,22 +3675,27 @@ namespace Orthanc
     // Copy the HTTP headers of the answer, if the plugin requested them
     if (p.answerHeaders != NULL)
     {
-      Json::Value json = Json::objectValue;
-
-      for (HttpClient::HttpHeaders::const_iterator 
-             it = headers.begin(); it != headers.end(); ++it)
-      {
-        json[it->first] = it->second;
-      }
-        
-      std::string s = json.toStyledString();
-      CopyToMemoryBuffer(*p.answerHeaders, s);
+      CopyDictionary(*p.answerHeaders, headers);
     }
 
     // Copy the body of the answer if it makes sense
     if (p.method != OrthancPluginHttpMethod_Delete)
     {
-      CopyToMemoryBuffer(*p.answerBody, body);
+      try
+      {
+        if (p.answerBody != NULL)
+        {
+          CopyToMemoryBuffer(*p.answerBody, body);
+        }
+      }
+      catch (OrthancException&)
+      {
+        if (p.answerHeaders != NULL)
+        {
+          free(p.answerHeaders->data);
+        }
+        throw;
+      }
     }
   }
 
@@ -4222,6 +4351,10 @@ namespace Orthanc
 
       case _OrthancPluginService_ChunkedHttpClient:
         ChunkedHttpClient(parameters);
+        return true;
+
+      case _OrthancPluginService_CallRestApi:
+        CallRestApi(parameters);
         return true;
 
       case _OrthancPluginService_ConvertPixelFormat:

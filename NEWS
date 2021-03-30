@@ -13,6 +13,13 @@ Maintenance
 * Full refactoring of the database engine
 
 
+Plugins
+-------
+
+* New functions in the SDK:
+  - OrthancPluginCallRestApi()
+
+
 Version 1.9.1 (2021-02-25)
 ==========================
 
