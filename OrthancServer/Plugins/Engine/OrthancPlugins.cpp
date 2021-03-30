@@ -1195,13 +1195,15 @@ namespace Orthanc
     std::unique_ptr<OrthancPluginDatabase>  database_;
     std::unique_ptr<OrthancPluginDatabaseV3>  databaseV3_;  // New in Orthanc 1.9.2
     PluginsErrorDictionary  dictionary_;
+    std::string databaseServerIdentifier_;   // New in Orthanc 1.9.2
 
-    PImpl() : 
+    PImpl(const std::string& databaseServerIdentifier) : 
       context_(NULL), 
       findCallback_(NULL),
       worklistCallback_(NULL),
       argc_(1),
-      argv_(NULL)
+      argv_(NULL),
+      databaseServerIdentifier_(databaseServerIdentifier)
     {
       memset(&moveCallbacks_, 0, sizeof(moveCallbacks_));
     }
@@ -1675,7 +1677,7 @@ namespace Orthanc
   };
 
 
-  OrthancPlugins::OrthancPlugins()
+  OrthancPlugins::OrthancPlugins(const std::string& databaseServerIdentifier)
   {
     /* Sanity check of the compiler */
     if (sizeof(int32_t) != sizeof(OrthancPluginErrorCode) ||
@@ -1715,7 +1717,7 @@ namespace Orthanc
       throw OrthancException(ErrorCode_Plugin);
     }
 
-    pimpl_.reset(new PImpl());
+    pimpl_.reset(new PImpl(databaseServerIdentifier));
     pimpl_->manager_.RegisterServiceProvider(*this);
   }
 
@@ -4948,8 +4950,8 @@ namespace Orthanc
         if (pimpl_->database_.get() == NULL &&
             pimpl_->databaseV3_.get() == NULL)
         {
-          pimpl_->databaseV3_.reset(new OrthancPluginDatabaseV3(plugin, GetErrorDictionary(),
-                                                                p.backend, p.backendSize, p.database));
+          pimpl_->databaseV3_.reset(new OrthancPluginDatabaseV3(plugin, GetErrorDictionary(), p.backend,
+                                                                p.backendSize, p.database, pimpl_->databaseServerIdentifier_));
         }
         else
         {

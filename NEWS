@@ -5,6 +5,7 @@ Plugins
 -------
 
 * Possibility to create database index plugins that don't lock a global mutex
+* New option "DatabaseServerIdentifier" to identify the server among a pool of Orthanc servers
 
 Maintenance
 -----------

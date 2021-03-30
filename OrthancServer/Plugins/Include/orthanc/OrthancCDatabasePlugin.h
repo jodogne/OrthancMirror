@@ -1248,6 +1248,7 @@ extern "C"
 
     /* Answer is read using "readAnswerString()" */
     OrthancPluginErrorCode (*lookupGlobalProperty) (OrthancPluginDatabaseTransaction* transaction,
+                                                    const char* serverIdentifier,
                                                     int32_t property);
     
     /* Answer is read using "readAnswerString()" */
@@ -1288,6 +1289,7 @@ extern "C"
                                                        int64_t patientIdToAvoid);
 
     OrthancPluginErrorCode (*setGlobalProperty) (OrthancPluginDatabaseTransaction* transaction,
+                                                 const char* serverIdentifier,
                                                  int32_t property,
                                                  const char* value);
 

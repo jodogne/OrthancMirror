@@ -696,7 +696,8 @@ namespace Orthanc
     virtual bool LookupGlobalProperty(std::string& target,
                                       GlobalProperty property) ORTHANC_OVERRIDE
     {
-      CheckSuccess(that_.backend_.lookupGlobalProperty(transaction_, static_cast<int32_t>(property)));
+      CheckSuccess(that_.backend_.lookupGlobalProperty(
+                     transaction_, that_.serverIdentifier_.c_str(), static_cast<int32_t>(property)));
       CheckNoEvent();
       return ReadSingleStringAnswer(target);      
     }
@@ -762,7 +763,8 @@ namespace Orthanc
     virtual void SetGlobalProperty(GlobalProperty property,
                                    const std::string& value) ORTHANC_OVERRIDE
     {
-      CheckSuccess(that_.backend_.setGlobalProperty(transaction_, static_cast<int32_t>(property), value.c_str()));
+      CheckSuccess(that_.backend_.setGlobalProperty(transaction_, that_.serverIdentifier_.c_str(),
+                                                    static_cast<int32_t>(property), value.c_str()));
       CheckNoEvent();
     }
 
@@ -1048,11 +1050,16 @@ namespace Orthanc
                                                    PluginsErrorDictionary&  errorDictionary,
                                                    const OrthancPluginDatabaseBackendV3* backend,
                                                    size_t backendSize,
-                                                   void* database) :
+                                                   void* database,
+                                                   const std::string& serverIdentifier) :
     library_(library),
     errorDictionary_(errorDictionary),
-    database_(database)
+    database_(database),
+    serverIdentifier_(serverIdentifier)
   {
+    CLOG(INFO, PLUGINS) << "Identifier of this Orthanc server for the global properties "
+                        << "of the custom database: \"" << serverIdentifier << "\"";
+    
     if (backendSize >= sizeof(backend_))
     {
       memcpy(&backend_, backend, sizeof(backend_));
