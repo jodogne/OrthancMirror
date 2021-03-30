@@ -769,4 +769,15 @@
   // Orthanc SCU and Orthanc SCP. It defaults to 16KB. The allowed
   // range is [4096,131072]. (new in Orthanc 1.9.0)
   "MaximumPduLength" : 16384
+
+  // Arbitrary identifier of this Orthanc server when storing its
+  // global properties if a custom database plugin is used. This
+  // option is only useful in the case of multiple readers/writers, in
+  // order to avoid collisions between multiple Orthanc servers. If
+  // unset, this identifier is taken as a SHA-1 hash derived from the
+  // MAC adddresses of the network interfaces, and from the AET and
+  // TCP ports used by Orthanc. (new in Orthanc 1.9.2)
+  /**
+     , "DatabaseServerIdentifier" : "Orthanc1"
+  **/
 }

@@ -51,6 +51,7 @@ namespace Orthanc
     PluginsErrorDictionary&         errorDictionary_;
     OrthancPluginDatabaseBackendV3  backend_;
     void*                           database_;
+    std::string                     serverIdentifier_;
 
     void CheckSuccess(OrthancPluginErrorCode code);
 
@@ -59,7 +60,8 @@ namespace Orthanc
                             PluginsErrorDictionary&  errorDictionary,
                             const OrthancPluginDatabaseBackendV3* backend,
                             size_t backendSize,
-                            void* database);
+                            void* database,
+                            const std::string& serverIdentifier);
 
     virtual ~OrthancPluginDatabaseV3();
 

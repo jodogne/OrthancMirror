@@ -1505,7 +1505,13 @@ static bool ConfigurePlugins(int argc,
   std::unique_ptr<IStorageArea>  storage;
 
 #if ORTHANC_ENABLE_PLUGINS == 1
-  OrthancPlugins plugins;
+  std::string databaseServerIdentifier;
+  {
+    OrthancConfiguration::ReaderLock lock;
+    databaseServerIdentifier = lock.GetConfiguration().GetDatabaseServerIdentifier();
+  }
+  
+  OrthancPlugins plugins(databaseServerIdentifier);
   plugins.SetCommandLineArguments(argc, argv);
   LoadPlugins(plugins);
 

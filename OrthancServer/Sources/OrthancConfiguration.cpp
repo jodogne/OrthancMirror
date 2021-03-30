@@ -1014,6 +1014,51 @@ namespace Orthanc
   }
 
 
+  std::string OrthancConfiguration::GetDatabaseServerIdentifier() const
+  {
+    std::string id;
+
+    if (LookupStringParameter(id, "DatabaseServerIdentifier"))
+    {
+      return id;
+    }
+    else
+    {
+      std::set<std::string> items;
+
+      {
+        std::set<std::string> mac;
+        SystemToolbox::GetMacAddresses(mac);
+
+        for (std::set<std::string>::const_iterator it = mac.begin(); it != mac.end(); ++it)
+        {
+          items.insert("mac=" + *it);
+        }
+      }
+
+      items.insert("aet=" + GetStringParameter("DicomAet", "ORTHANC"));
+      items.insert("dicom-port=" + boost::lexical_cast<std::string>(GetUnsignedIntegerParameter("DicomPort", 4242)));
+      items.insert("http-port=" + boost::lexical_cast<std::string>(GetUnsignedIntegerParameter("HttpPort", 8042)));
+
+      for (std::set<std::string>::const_iterator it = items.begin(); it != items.end(); ++it)
+      {
+        if (id.empty())
+        {
+          id = *it;
+        }
+        else
+        {
+          id += ("|" + *it);
+        }
+      }
+
+      std::string hash;
+      Toolbox::ComputeSHA1(hash, id);
+      return hash;
+    }
+  }
+
+  
   void OrthancConfiguration::DefaultExtractDicomSummary(DicomMap& target,
                                                         const ParsedDicomFile& dicom)
   {

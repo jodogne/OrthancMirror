@@ -251,6 +251,8 @@ namespace Orthanc
 
     void GetAcceptedTransferSyntaxes(std::set<DicomTransferSyntax>& target) const;
 
+    std::string GetDatabaseServerIdentifier() const;
+
     static void DefaultExtractDicomSummary(DicomMap& target,
                                            const ParsedDicomFile& dicom);
 

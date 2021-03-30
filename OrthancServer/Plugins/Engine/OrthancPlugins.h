@@ -245,7 +245,7 @@ namespace Orthanc
                                  bool allowNewSopInstanceUid) ORTHANC_OVERRIDE;
     
   public:
-    OrthancPlugins();
+    explicit OrthancPlugins(const std::string& databaseServerIdentifier);
 
     virtual ~OrthancPlugins();
 
