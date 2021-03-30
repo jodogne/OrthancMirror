@@ -196,6 +196,8 @@ namespace Orthanc
 
     void ChunkedHttpClient(const void* parameters);
 
+    void CallRestApi(const void* parameters);
+
     void CallPeerApi(const void* parameters);
   
     void GetFontInfo(const void* parameters);
