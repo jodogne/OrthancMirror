@@ -191,7 +191,7 @@ namespace Orthanc
                               const std::string& uri,
                               const Arguments& httpHeaders)
   {
-    return IHttpHandler::SimpleGet(result, handler, origin, uri, httpHeaders);
+    return (IHttpHandler::SimpleGet(result, NULL, handler, origin, uri, httpHeaders) == HttpStatus_200_Ok);
   }
 
   bool HttpToolbox::SimplePost(std::string& result,
@@ -202,7 +202,8 @@ namespace Orthanc
                                size_t bodySize,
                                const Arguments& httpHeaders)
   {
-    return IHttpHandler::SimplePost(result, handler, origin, uri, bodyData, bodySize, httpHeaders);
+    return (IHttpHandler::SimplePost(result, NULL, handler, origin, uri,
+                                     bodyData, bodySize, httpHeaders) == HttpStatus_200_Ok);
   }
 
   bool HttpToolbox::SimplePut(std::string& result,
@@ -213,7 +214,8 @@ namespace Orthanc
                               size_t bodySize,
                               const Arguments& httpHeaders)
   {
-    return IHttpHandler::SimplePut(result, handler, origin, uri, bodyData, bodySize, httpHeaders);
+    return (IHttpHandler::SimplePut(result, NULL, handler, origin, uri,
+                                    bodyData, bodySize, httpHeaders) == HttpStatus_200_Ok);
   }
 
   bool HttpToolbox::SimpleDelete(IHttpHandler& handler,
@@ -221,7 +223,7 @@ namespace Orthanc
                                  const std::string& uri,
                                  const Arguments& httpHeaders)
   {
-    return IHttpHandler::SimpleDelete(handler, origin, uri, httpHeaders);
+    return (IHttpHandler::SimpleDelete(NULL, handler, origin, uri, httpHeaders) == HttpStatus_200_Ok);
   }
 #endif
 }

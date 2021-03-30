@@ -83,31 +83,41 @@ namespace Orthanc
                         const void* bodyData,
                         size_t bodySize) = 0;
 
-    static bool SimpleGet(std::string& result,
-                          IHttpHandler& handler,
-                          RequestOrigin origin,
-                          const std::string& uri,
-                          const HttpToolbox::Arguments& httpHeaders);
 
-    static bool SimplePost(std::string& result,
-                           IHttpHandler& handler,
-                           RequestOrigin origin,
-                           const std::string& uri,
-                           const void* bodyData,
-                           size_t bodySize,
-                           const HttpToolbox::Arguments& httpHeaders);
+    /**
+     * In the static functions below, "answerHeaders" can be set to
+     * NULL if the caller has no interest in HTTP headers of the
+     * answer (this avoids some computation).
+     **/
+    static HttpStatus SimpleGet(std::string& answerBody /* out */,
+                                HttpToolbox::Arguments* answerHeaders /* out */,
+                                IHttpHandler& handler,
+                                RequestOrigin origin,
+                                const std::string& uri,
+                                const HttpToolbox::Arguments& httpHeaders);
 
-    static bool SimplePut(std::string& result,
-                          IHttpHandler& handler,
-                          RequestOrigin origin,
-                          const std::string& uri,
-                          const void* bodyData,
-                          size_t bodySize,
-                          const HttpToolbox::Arguments& httpHeaders);
+    static HttpStatus SimplePost(std::string& answerBody /* out */,
+                                 HttpToolbox::Arguments* answerHeaders /* out */,
+                                 IHttpHandler& handler,
+                                 RequestOrigin origin,
+                                 const std::string& uri,
+                                 const void* bodyData,
+                                 size_t bodySize,
+                                 const HttpToolbox::Arguments& httpHeaders);
 
-    static bool SimpleDelete(IHttpHandler& handler,
-                             RequestOrigin origin,
-                             const std::string& uri,
-                             const HttpToolbox::Arguments& httpHeaders);
+    static HttpStatus SimplePut(std::string& answerBody /* out */,
+                                HttpToolbox::Arguments* answerHeaders /* out */,
+                                IHttpHandler& handler,
+                                RequestOrigin origin,
+                                const std::string& uri,
+                                const void* bodyData,
+                                size_t bodySize,
+                                const HttpToolbox::Arguments& httpHeaders);
+
+    static HttpStatus SimpleDelete(HttpToolbox::Arguments* answerHeaders /* out */,
+                                   IHttpHandler& handler,
+                                   RequestOrigin origin,
+                                   const std::string& uri,
+                                   const HttpToolbox::Arguments& httpHeaders);
   };
 }

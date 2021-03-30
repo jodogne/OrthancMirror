@@ -117,7 +117,7 @@
 
 #define ORTHANC_PLUGINS_MINIMAL_MAJOR_NUMBER     1
 #define ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER     9
-#define ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER  0
+#define ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER  2
 
 
 #if !defined(ORTHANC_PLUGINS_VERSION_IS_ABOVE)
@@ -493,6 +493,7 @@ extern "C"
     _OrthancPluginService_RestApiPutAfterPlugins = 3013,
     _OrthancPluginService_ReconstructMainDicomTags = 3014,
     _OrthancPluginService_RestApiGet2 = 3015,
+    _OrthancPluginService_CallRestApi = 3016,              /* New in Orthanc 1.9.2 */
 
     /* Access to DICOM instances */
     _OrthancPluginService_GetInstanceRemoteAet = 4000,
@@ -5756,6 +5757,7 @@ extern "C"
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param answerBody The target memory buffer (out argument).
    *        It must be freed with OrthancPluginFreeMemoryBuffer().
+   *        The value of this argument is ignored if the HTTP method is DELETE.
    * @param answerHeaders The target memory buffer for the HTTP headers in the answers (out argument). 
    *        The answer headers are formatted as a JSON object (associative array).
    *        The buffer must be freed with OrthancPluginFreeMemoryBuffer().
@@ -6560,6 +6562,7 @@ extern "C"
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param answerBody The target memory buffer (out argument).
    *        It must be freed with OrthancPluginFreeMemoryBuffer().
+   *        The value of this argument is ignored if the HTTP method is DELETE.
    * @param answerHeaders The target memory buffer for the HTTP headers in the answers (out argument). 
    *        The answer headers are formatted as a JSON object (associative array).
    *        The buffer must be freed with OrthancPluginFreeMemoryBuffer().
@@ -8482,6 +8485,89 @@ extern "C"
 
     return context->InvokeService(context, _OrthancPluginService_CreateDicom2, &params);
   }
+
+
+
+
+
+
+  typedef struct
+  {
+    OrthancPluginMemoryBuffer*  answerBody;
+    OrthancPluginMemoryBuffer*  answerHeaders;
+    uint16_t*                   httpStatus;
+    OrthancPluginHttpMethod     method;
+    const char*                 uri;
+    uint32_t                    headersCount;
+    const char* const*          headersKeys;
+    const char* const*          headersValues;
+    const void*                 body;
+    uint32_t                    bodySize;
+    uint8_t                     afterPlugins;
+  } _OrthancPluginCallRestApi;
+
+  /**
+   * @brief Call the REST API of Orthanc with full flexibility.
+   * 
+   * Make a call to the given URI in the REST API of Orthanc. The
+   * result to the query is stored into a newly allocated memory
+   * buffer. This function is always granted full access to the REST
+   * API (no credentials, nor security token is needed).
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param answerBody The target memory buffer (out argument).
+   *        It must be freed with OrthancPluginFreeMemoryBuffer().
+   *        The value of this argument is ignored if the HTTP method is DELETE.
+   * @param answerHeaders The target memory buffer for the HTTP headers in the answer (out argument). 
+   *        The answer headers are formatted as a JSON object (associative array).
+   *        The buffer must be freed with OrthancPluginFreeMemoryBuffer().
+   *        This argument can be set to NULL if the plugin has no interest in the answer HTTP headers.
+   * @param httpStatus The HTTP status after the execution of the request (out argument).
+   * @param method HTTP method to be used.
+   * @param uri The URI of interest.
+   * @param headersCount The number of HTTP headers.
+   * @param headersKeys Array containing the keys of the HTTP headers (can be <tt>NULL</tt> if no header).
+   * @param headersValues Array containing the values of the HTTP headers (can be <tt>NULL</tt> if no header).
+   * @param body The HTTP body for a POST or PUT request.
+   * @param bodySize The size of the body.
+   * @param afterPlugins If 0, the built-in API of Orthanc is used.
+   * If 1, the API is tainted by the plugins.
+   * @return 0 if success, or the error code if failure.
+   * @see OrthancPluginRestApiGet2, OrthancPluginRestApiPost, OrthancPluginRestApiPut, OrthancPluginRestApiDelete
+   * @ingroup Orthanc
+   **/
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginCallRestApi(
+    OrthancPluginContext*       context,
+    OrthancPluginMemoryBuffer*  answerBody,
+    OrthancPluginMemoryBuffer*  answerHeaders,
+    uint16_t*                   httpStatus,
+    OrthancPluginHttpMethod     method,
+    const char*                 uri,
+    uint32_t                    headersCount,
+    const char* const*          headersKeys,
+    const char* const*          headersValues,
+    const void*                 body,
+    uint32_t                    bodySize,
+    uint8_t                     afterPlugins)
+  {
+    _OrthancPluginCallRestApi params;
+    memset(&params, 0, sizeof(params));
+
+    params.answerBody = answerBody;
+    params.answerHeaders = answerHeaders;
+    params.httpStatus = httpStatus;
+    params.method = method;
+    params.uri = uri;
+    params.headersCount = headersCount;
+    params.headersKeys = headersKeys;
+    params.headersValues = headersValues;
+    params.body = body;
+    params.bodySize = bodySize;
+    params.afterPlugins = afterPlugins;
+
+    return context->InvokeService(context, _OrthancPluginService_CallRestApi, &params);
+  }
+
 
 #ifdef  __cplusplus
 }

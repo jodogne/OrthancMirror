@@ -405,8 +405,8 @@ namespace Orthanc
     try
     {
       std::string result;
-      if (IHttpHandler::SimpleGet(result, serverContext->GetHttpHandler().RestrictToOrthancRestApi(builtin), 
-                                  RequestOrigin_Lua, uri, headers))
+      if (IHttpHandler::SimpleGet(result, NULL, serverContext->GetHttpHandler().RestrictToOrthancRestApi(builtin), 
+                                  RequestOrigin_Lua, uri, headers) == HttpStatus_200_Ok)
       {
         lua_pushlstring(state, result.c_str(), result.size());
         return 1;
@@ -458,10 +458,12 @@ namespace Orthanc
     {
       std::string result;
       if (isPost ?
-          IHttpHandler::SimplePost(result, serverContext->GetHttpHandler().RestrictToOrthancRestApi(builtin), 
-                                   RequestOrigin_Lua, uri, bodyData, bodySize, headers) :
-          IHttpHandler::SimplePut(result, serverContext->GetHttpHandler().RestrictToOrthancRestApi(builtin), 
-                                  RequestOrigin_Lua, uri, bodyData, bodySize, headers))
+          IHttpHandler::SimplePost(result, NULL,
+                                   serverContext->GetHttpHandler().RestrictToOrthancRestApi(builtin), 
+                                   RequestOrigin_Lua, uri, bodyData, bodySize, headers) == HttpStatus_200_Ok :
+          IHttpHandler::SimplePut(result, NULL,
+                                  serverContext->GetHttpHandler().RestrictToOrthancRestApi(builtin), 
+                                  RequestOrigin_Lua, uri, bodyData, bodySize, headers) == HttpStatus_200_Ok)
       {
         lua_pushlstring(state, result.c_str(), result.size());
         return 1;
@@ -522,8 +524,8 @@ namespace Orthanc
     
     try
     {
-      if (IHttpHandler::SimpleDelete(serverContext->GetHttpHandler().RestrictToOrthancRestApi(builtin), 
-                                     RequestOrigin_Lua, uri, headers))
+      if (IHttpHandler::SimpleDelete(NULL, serverContext->GetHttpHandler().RestrictToOrthancRestApi(builtin), 
+                                     RequestOrigin_Lua, uri, headers) == HttpStatus_200_Ok)
       {
         lua_pushboolean(state, 1);
         return 1;
