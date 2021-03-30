@@ -32,11 +32,12 @@ static const char* LOCALHOST = "127.0.0.1";
 
 namespace Orthanc
 {
-  bool IHttpHandler::SimpleGet(std::string& result,
-                               IHttpHandler& handler,
-                               RequestOrigin origin,
-                               const std::string& uri,
-                               const HttpToolbox::Arguments& httpHeaders)
+  HttpStatus IHttpHandler::SimpleGet(std::string& answerBody,
+                                     HttpToolbox::Arguments* answerHeaders,
+                                     IHttpHandler& handler,
+                                     RequestOrigin origin,
+                                     const std::string& uri,
+                                     const HttpToolbox::Arguments& httpHeaders)
   {
     UriComponents curi;
     HttpToolbox::GetArguments getArguments;
@@ -48,24 +49,31 @@ namespace Orthanc
     if (handler.Handle(http, origin, LOCALHOST, "", HttpMethod_Get, curi, 
                        httpHeaders, getArguments, NULL /* no body for GET */, 0))
     {
-      stream.GetOutput(result);
-      return true;
+      stream.GetBody(answerBody);
+
+      if (answerHeaders != NULL)
+      {
+        stream.GetHeaders(*answerHeaders, true /* convert key to lower case */);
+      }
+      
+      return stream.GetStatus();
     }
     else
     {
-      return false;
+      return HttpStatus_404_NotFound;
     }
   }
 
 
-  static bool SimplePostOrPut(std::string& result,
-                              IHttpHandler& handler,
-                              RequestOrigin origin,
-                              HttpMethod method,
-                              const std::string& uri,
-                              const void* bodyData,
-                              size_t bodySize,
-                              const HttpToolbox::Arguments& httpHeaders)
+  static HttpStatus SimplePostOrPut(std::string& answerBody,
+                                    HttpToolbox::Arguments* answerHeaders,
+                                    IHttpHandler& handler,
+                                    RequestOrigin origin,
+                                    HttpMethod method,
+                                    const std::string& uri,
+                                    const void* bodyData,
+                                    size_t bodySize,
+                                    const HttpToolbox::Arguments& httpHeaders)
   {
     HttpToolbox::GetArguments getArguments;  // No GET argument for POST/PUT
 
@@ -78,44 +86,53 @@ namespace Orthanc
     if (handler.Handle(http, origin, LOCALHOST, "", method, curi, 
                        httpHeaders, getArguments, bodyData, bodySize))
     {
-      stream.GetOutput(result);
-      return true;
+      stream.GetBody(answerBody);
+
+      if (answerHeaders != NULL)
+      {
+        stream.GetHeaders(*answerHeaders, true /* convert key to lower case */);
+      }
+      
+      return stream.GetStatus();
     }
     else
     {
-      return false;
+      return HttpStatus_404_NotFound;
     }
   }
 
 
-  bool IHttpHandler::SimplePost(std::string& result,
-                                IHttpHandler& handler,
-                                RequestOrigin origin,
-                                const std::string& uri,
-                                const void* bodyData,
-                                size_t bodySize,
-                                const HttpToolbox::Arguments& httpHeaders)
+  HttpStatus IHttpHandler::SimplePost(std::string& answerBody,
+                                      HttpToolbox::Arguments* answerHeaders,
+                                      IHttpHandler& handler,
+                                      RequestOrigin origin,
+                                      const std::string& uri,
+                                      const void* bodyData,
+                                      size_t bodySize,
+                                      const HttpToolbox::Arguments& httpHeaders)
   {
-    return SimplePostOrPut(result, handler, origin, HttpMethod_Post, uri, bodyData, bodySize, httpHeaders);
+    return SimplePostOrPut(answerBody, answerHeaders, handler, origin, HttpMethod_Post, uri, bodyData, bodySize, httpHeaders);
   }
 
 
-  bool IHttpHandler::SimplePut(std::string& result,
-                               IHttpHandler& handler,
-                               RequestOrigin origin,
-                               const std::string& uri,
-                               const void* bodyData,
-                               size_t bodySize,
-                               const HttpToolbox::Arguments& httpHeaders)
+  HttpStatus IHttpHandler::SimplePut(std::string& answerBody,
+                                     HttpToolbox::Arguments* answerHeaders,
+                                     IHttpHandler& handler,
+                                     RequestOrigin origin,
+                                     const std::string& uri,
+                                     const void* bodyData,
+                                     size_t bodySize,
+                                     const HttpToolbox::Arguments& httpHeaders)
   {
-    return SimplePostOrPut(result, handler, origin, HttpMethod_Put, uri, bodyData, bodySize, httpHeaders);
+    return SimplePostOrPut(answerBody, answerHeaders, handler, origin, HttpMethod_Put, uri, bodyData, bodySize, httpHeaders);
   }
 
 
-  bool IHttpHandler::SimpleDelete(IHttpHandler& handler,
-                                  RequestOrigin origin,
-                                  const std::string& uri,
-                                  const HttpToolbox::Arguments& httpHeaders)
+  HttpStatus IHttpHandler::SimpleDelete(HttpToolbox::Arguments* answerHeaders,
+                                        IHttpHandler& handler,
+                                        RequestOrigin origin,
+                                        const std::string& uri,
+                                        const HttpToolbox::Arguments& httpHeaders)
   {
     UriComponents curi;
     Toolbox::SplitUriComponents(curi, uri);
@@ -125,7 +142,19 @@ namespace Orthanc
     StringHttpOutput stream;
     HttpOutput http(stream, false /* no keep alive */);
 
-    return handler.Handle(http, origin, LOCALHOST, "", HttpMethod_Delete, curi, 
-                          httpHeaders, getArguments, NULL /* no body for DELETE */, 0);
+    if (handler.Handle(http, origin, LOCALHOST, "", HttpMethod_Delete, curi, 
+                       httpHeaders, getArguments, NULL /* no body for DELETE */, 0))
+    {
+      if (answerHeaders != NULL)
+      {
+        stream.GetHeaders(*answerHeaders, true /* convert key to lower case */);
+      }
+      
+      return stream.GetStatus();
+    }
+    else
+    {
+      return HttpStatus_404_NotFound;
+    }
   }
 }

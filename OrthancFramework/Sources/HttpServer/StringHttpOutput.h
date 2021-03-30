@@ -27,20 +27,27 @@
 #include "../ChunkedBuffer.h"
 #include "../Compatibility.h"  // For ORTHANC_OVERRIDE
 
+#include <map>
+
+
 namespace Orthanc
 {
   class StringHttpOutput : public IHttpOutputStream
   {
   private:
-    bool          found_;
-    ChunkedBuffer buffer_;
+    HttpStatus    status_;
+    ChunkedBuffer body_;
+    ChunkedBuffer headers_;
+    bool          validBody_;
+    bool          validHeaders_;
 
   public:
-    StringHttpOutput() : found_(false)
-    {
-    }
+    StringHttpOutput();
 
-    virtual void OnHttpStatusReceived(HttpStatus status) ORTHANC_OVERRIDE;
+    virtual void OnHttpStatusReceived(HttpStatus status) ORTHANC_OVERRIDE
+    {
+      status_ = status;
+    }
 
     virtual void Send(bool isHeader, const void* buffer, size_t length) ORTHANC_OVERRIDE;
 
@@ -48,6 +55,14 @@ namespace Orthanc
     {
     }
 
-    void GetOutput(std::string& output);
+    HttpStatus GetStatus() const
+    {
+      return status_;
+    }
+
+    void GetBody(std::string& output);
+
+    void GetHeaders(std::map<std::string, std::string>& target,
+                    bool keyToLowerCase);
   };
 }
