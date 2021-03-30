@@ -694,10 +694,12 @@ namespace Orthanc
 
     
     virtual bool LookupGlobalProperty(std::string& target,
-                                      GlobalProperty property) ORTHANC_OVERRIDE
+                                      GlobalProperty property,
+                                      bool shared) ORTHANC_OVERRIDE
     {
-      CheckSuccess(that_.backend_.lookupGlobalProperty(
-                     transaction_, that_.serverIdentifier_.c_str(), static_cast<int32_t>(property)));
+      const char* id = (shared ? "" : that_.serverIdentifier_.c_str());
+      
+      CheckSuccess(that_.backend_.lookupGlobalProperty(transaction_, id, static_cast<int32_t>(property)));
       CheckNoEvent();
       return ReadSingleStringAnswer(target);      
     }
@@ -761,10 +763,12 @@ namespace Orthanc
 
     
     virtual void SetGlobalProperty(GlobalProperty property,
+                                   bool shared,
                                    const std::string& value) ORTHANC_OVERRIDE
     {
-      CheckSuccess(that_.backend_.setGlobalProperty(transaction_, that_.serverIdentifier_.c_str(),
-                                                    static_cast<int32_t>(property), value.c_str()));
+      const char* id = (shared ? "" : that_.serverIdentifier_.c_str());
+      
+      CheckSuccess(that_.backend_.setGlobalProperty(transaction_, id, static_cast<int32_t>(property), value.c_str()));
       CheckNoEvent();
     }
 

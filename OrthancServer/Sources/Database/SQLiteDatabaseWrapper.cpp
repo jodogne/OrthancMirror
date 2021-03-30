@@ -827,8 +827,12 @@ namespace Orthanc
 
 
     virtual bool LookupGlobalProperty(std::string& target,
-                                      GlobalProperty property) ORTHANC_OVERRIDE
+                                      GlobalProperty property,
+                                      bool shared) ORTHANC_OVERRIDE
     {
+      // The "shared" info is not used by the SQLite database, as it
+      // can only be used by one Orthanc server.
+      
       SQLite::Statement s(db_, SQLITE_FROM_HERE, 
                           "SELECT value FROM GlobalProperties WHERE property=?");
       s.BindInt(0, property);
@@ -964,8 +968,12 @@ namespace Orthanc
 
 
     virtual void SetGlobalProperty(GlobalProperty property,
+                                   bool shared,
                                    const std::string& value) ORTHANC_OVERRIDE
     {
+      // The "shared" info is not used by the SQLite database, as it
+      // can only be used by one Orthanc server.
+      
       SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT OR REPLACE INTO GlobalProperties VALUES(?, ?)");
       s.BindInt(0, property);
       s.BindString(1, value);
@@ -1318,7 +1326,7 @@ namespace Orthanc
 
       // Check the version of the database
       std::string tmp;
-      if (!transaction->LookupGlobalProperty(tmp, GlobalProperty_DatabaseSchemaVersion))
+      if (!transaction->LookupGlobalProperty(tmp, GlobalProperty_DatabaseSchemaVersion, true /* unused in SQLite */))
       {
         tmp = "Unknown";
       }
@@ -1343,7 +1351,7 @@ namespace Orthanc
       // New in Orthanc 1.5.1
       if (version_ == 6)
       {
-        if (!transaction->LookupGlobalProperty(tmp, GlobalProperty_GetTotalSizeIsFast) ||
+        if (!transaction->LookupGlobalProperty(tmp, GlobalProperty_GetTotalSizeIsFast, true /* unused in SQLite */) ||
             tmp != "1")
         {
           LOG(INFO) << "Installing the SQLite triggers to track the size of the attachments";

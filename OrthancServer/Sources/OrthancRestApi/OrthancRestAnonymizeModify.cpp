@@ -53,7 +53,7 @@ namespace Orthanc
   
   static std::string GeneratePatientName(ServerContext& context)
   {
-    uint64_t seq = context.GetIndex().IncrementGlobalSequence(GlobalProperty_AnonymizationSequence);
+    uint64_t seq = context.GetIndex().IncrementGlobalSequence(GlobalProperty_AnonymizationSequence, true /* shared */);
     return "Anonymized" + boost::lexical_cast<std::string>(seq);
   }
 

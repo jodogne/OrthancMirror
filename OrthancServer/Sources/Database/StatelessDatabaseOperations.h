@@ -246,9 +246,10 @@ namespace Orthanc
       }
       
       bool LookupGlobalProperty(std::string& target,
-                                GlobalProperty property)
+                                GlobalProperty property,
+                                bool shared)
       {
-        return transaction_.LookupGlobalProperty(target, property);
+        return transaction_.LookupGlobalProperty(target, property, shared);
       }
 
       bool LookupMetadata(std::string& target,
@@ -349,9 +350,10 @@ namespace Orthanc
       }
 
       void SetGlobalProperty(GlobalProperty property,
+                             bool shared,
                              const std::string& value)
       {
-        transaction_.SetGlobalProperty(property, value);
+        transaction_.SetGlobalProperty(property, shared, value);
       }
 
       void SetMetadata(int64_t id,
@@ -520,9 +522,11 @@ namespace Orthanc
                                const std::string& value);
 
     bool LookupGlobalProperty(std::string& value,
-                              GlobalProperty property);
+                              GlobalProperty property,
+                              bool shared);
 
     std::string GetGlobalProperty(GlobalProperty property,
+                                  bool shared,
                                   const std::string& defaultValue);
 
     bool GetMainDicomTags(DicomMap& result,
@@ -564,13 +568,15 @@ namespace Orthanc
     void DeleteMetadata(const std::string& publicId,
                         MetadataType type);
 
-    uint64_t IncrementGlobalSequence(GlobalProperty sequence);
+    uint64_t IncrementGlobalSequence(GlobalProperty sequence,
+                                     bool shared);
 
     void DeleteChanges();
 
     void DeleteExportedResources();
 
     void SetGlobalProperty(GlobalProperty property,
+                           bool shared,
                            const std::string& value);
 
     void DeleteAttachment(const std::string& publicId,

@@ -53,6 +53,7 @@ static const char* const DICOM_MODALITIES_IN_DB = "DicomModalitiesInDatabase";
 static const char* const ORTHANC_PEERS = "OrthancPeers";
 static const char* const ORTHANC_PEERS_IN_DB = "OrthancPeersInDatabase";
 static const char* const TEMPORARY_DIRECTORY = "TemporaryDirectory";
+static const char* const DATABASE_SERVER_IDENTIFIER = "DatabaseServerIdentifier";
 
 namespace Orthanc
 {
@@ -254,7 +255,7 @@ namespace Orthanc
       }
       else
       {
-        std::string property = serverIndex_->GetGlobalProperty(GlobalProperty_Modalities, "{}");
+        std::string property = serverIndex_->GetGlobalProperty(GlobalProperty_Modalities, false /* not shared */, "{}");
 
         Json::Value modalities;
         if (Toolbox::ReadJson(modalities, property))
@@ -293,7 +294,7 @@ namespace Orthanc
       }
       else
       {
-        std::string property = serverIndex_->GetGlobalProperty(GlobalProperty_Peers, "{}");
+        std::string property = serverIndex_->GetGlobalProperty(GlobalProperty_Peers, false /* not shared */, "{}");
 
         Json::Value peers;
         if (Toolbox::ReadJson(peers, property))
@@ -369,7 +370,7 @@ namespace Orthanc
         std::string s;
         Toolbox::WriteFastJson(s, modalities);
         
-        serverIndex_->SetGlobalProperty(GlobalProperty_Modalities, s);
+        serverIndex_->SetGlobalProperty(GlobalProperty_Modalities, false /* not shared */, s);
       }
     }
     else
@@ -401,7 +402,7 @@ namespace Orthanc
         std::string s;
         Toolbox::WriteFastJson(s, peers);
 
-        serverIndex_->SetGlobalProperty(GlobalProperty_Peers, s);
+        serverIndex_->SetGlobalProperty(GlobalProperty_Peers, false /* not shared */, s);
       }
     }
     else
@@ -1018,9 +1019,17 @@ namespace Orthanc
   {
     std::string id;
 
-    if (LookupStringParameter(id, "DatabaseServerIdentifier"))
+    if (LookupStringParameter(id, DATABASE_SERVER_IDENTIFIER))
     {
-      return id;
+      if (id.empty())
+      {
+        throw OrthancException(ErrorCode_ParameterOutOfRange, "Global configuration option \"" +
+                               std::string(DATABASE_SERVER_IDENTIFIER) + "\" cannot be empty");
+      }
+      else
+      {
+        return id;
+      }
     }
     else
     {

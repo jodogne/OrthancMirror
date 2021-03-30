@@ -4212,8 +4212,11 @@ namespace Orthanc
         }
         else
         {
+          // TODO - Plugins can only access global properties of their
+          // own Orthanc server (no access to the shared global properties)
           PImpl::ServerContextLock lock(*pimpl_);
-          lock.GetContext().GetIndex().SetGlobalProperty(static_cast<GlobalProperty>(p.property), p.value);
+          lock.GetContext().GetIndex().SetGlobalProperty(static_cast<GlobalProperty>(p.property),
+                                                         false /* not shared */, p.value);
           return true;
         }
       }
@@ -4226,8 +4229,11 @@ namespace Orthanc
         std::string result;
 
         {
+          // TODO - Plugins can only access global properties of their
+          // own Orthanc server (no access to the shared global properties)
           PImpl::ServerContextLock lock(*pimpl_);
-          result = lock.GetContext().GetIndex().GetGlobalProperty(static_cast<GlobalProperty>(p.property), p.value);
+          result = lock.GetContext().GetIndex().GetGlobalProperty(static_cast<GlobalProperty>(p.property),
+                                                                  false /* not shared */, p.value);
         }
 
         *(p.result) = CopyString(result);
@@ -5024,9 +5030,7 @@ namespace Orthanc
 
       case _OrthancPluginService_RegisterDatabaseBackend:
       {
-        // TODO - WARN ABOUT PERFORMANCE
-        
-        CLOG(INFO, PLUGINS) << "Plugin has registered a custom database back-end";
+        LOG(WARNING) << "Performance warning: Plugin has registered a custom database back-end with an old API";
 
         const _OrthancPluginRegisterDatabaseBackend& p =
           *reinterpret_cast<const _OrthancPluginRegisterDatabaseBackend*>(parameters);
@@ -5049,9 +5053,7 @@ namespace Orthanc
 
       case _OrthancPluginService_RegisterDatabaseBackendV2:
       {
-        // TODO - WARN ABOUT PERFORMANCE
-        
-        CLOG(INFO, PLUGINS) << "Plugin has registered a custom database back-end";
+        LOG(WARNING) << "Performance warning: Plugin has registered a custom database back-end with an old API";
 
         const _OrthancPluginRegisterDatabaseBackendV2& p =
           *reinterpret_cast<const _OrthancPluginRegisterDatabaseBackendV2*>(parameters);
