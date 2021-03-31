@@ -648,18 +648,6 @@ namespace Orthanc
             boost::this_thread::sleep(boost::posix_time::milliseconds(100 * count));
           }          
         }
-        else if (e.GetErrorCode() == ErrorCode_DatabaseUnavailable)
-        {
-          if (count == maxRetries_)
-          {
-            throw;
-          }
-          else
-          {
-            count++;
-            boost::this_thread::sleep(boost::posix_time::milliseconds(1000));
-          }
-        }
         else
         {
           throw;
