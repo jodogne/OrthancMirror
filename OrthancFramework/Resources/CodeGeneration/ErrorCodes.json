@@ -239,6 +239,12 @@
     "Name": "DatabaseCannotSerialize",
     "Description": "Database could not serialize access due to concurrent update, the transaction should be retried"
   }, 
+  {
+    "Code": 43,
+    "HttpStatus": 409,
+    "Name": "Revision",
+    "Description": "A bad revision number was provided, indicates conflict between multiple updates"
+  }, 
 
 
 
