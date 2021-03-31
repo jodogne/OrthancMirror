@@ -136,6 +136,7 @@ namespace Orthanc
     ErrorCode_DiscontinuedAbi = 40    /*!< Calling a function that has been removed from the Orthanc Framework */,
     ErrorCode_BadRange = 41    /*!< Incorrect range request */,
     ErrorCode_DatabaseCannotSerialize = 42    /*!< Database could not serialize access due to concurrent update, the transaction should be retried */,
+    ErrorCode_Revision = 43    /*!< A bad revision number was provided, indicates conflict between multiple updates */,
     ErrorCode_SQLiteNotOpened = 1000    /*!< SQLite: The database is not opened */,
     ErrorCode_SQLiteAlreadyOpened = 1001    /*!< SQLite: Connection is already open */,
     ErrorCode_SQLiteCannotOpen = 1002    /*!< SQLite: Unable to open the database */,
