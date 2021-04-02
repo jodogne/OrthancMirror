@@ -31,18 +31,25 @@
  **/
 
 
-function JavascriptDateToDicom(date)
-{
-  var s = date.toISOString();
-  return s.substring(0, 4) + s.substring(5, 7) + s.substring(8, 10);
-}
-
 function GenerateDicomDate(days)
 {
   var today = new Date();
-  var other = new Date(today);
-  other.setDate(today.getDate() + days);
-  return JavascriptDateToDicom(other);
+  var utc = new Date(today);
+  utc.setDate(today.getDate() + days);
+
+  /**
+   * "utc" contains the date of interest, as selected by the user.
+   * Calling "utc.toISOString()" would return a date in the UTC
+   * timezone, whereas the user expects the date to be expressed in
+   * her own timezone. We thus adjust from UTC to the local timezome.
+   * https://stackoverflow.com/a/50537435
+   * https://groups.google.com/g/orthanc-users/c/dK7EEPVpedk/m/DPtMRFnKAgAJ
+   **/
+  var timezoneOffset = today.getTimezoneOffset() * 60 * 1000;
+  var localDate = new Date(utc.getTime() - timezoneOffset);
+  
+  var s = localDate.toISOString();
+  return s.substring(0, 4) + s.substring(5, 7) + s.substring(8, 10);
 }
 
 
