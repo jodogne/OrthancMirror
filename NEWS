@@ -19,6 +19,11 @@ Plugins
 * New functions in the SDK:
   - OrthancPluginCallRestApi()
 
+Maintenance
+-----------
+
+* Use the local timezone for query/retrieve in the Orthanc Explorer interface (was UTC before)
+
 
 Version 1.9.1 (2021-02-25)
 ==========================
