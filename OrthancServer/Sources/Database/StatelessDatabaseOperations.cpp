@@ -550,7 +550,7 @@ namespace Orthanc
         }
         catch (OrthancException& e)
         {
-          LOG(ERROR) << "Cannot rollback transaction: " << e.What();
+          LOG(INFO) << "Cannot rollback transaction: " << e.What();
         }
       }
     }
@@ -638,7 +638,7 @@ namespace Orthanc
       {
         if (e.GetErrorCode() == ErrorCode_DatabaseCannotSerialize)
         {
-          if (count == maxRetries_)
+          if (count >= maxRetries_)
           {
             throw;
           }
@@ -3090,8 +3090,15 @@ namespace Orthanc
         }
         catch (OrthancException& e)
         {
-          LOG(ERROR) << "EXCEPTION [" << e.What() << "]";
-          storeStatus_ = StoreStatus_Failure;
+          if (e.GetErrorCode() == ErrorCode_DatabaseCannotSerialize)
+          {
+            throw;
+          }
+          else
+          {
+            LOG(ERROR) << "EXCEPTION [" << e.What() << "]";
+            storeStatus_ = StoreStatus_Failure;
+          }
         }
       }
     };
