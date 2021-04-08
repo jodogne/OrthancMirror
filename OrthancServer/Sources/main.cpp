@@ -1354,6 +1354,7 @@ namespace
       {
         plugins_->SetServerContext(context_);
         context_.SetPlugins(*plugins_);
+        context_.GetIndex().SetMaxDatabaseRetries(plugins_->GetMaxDatabaseRetries());
       }
 #endif
     }

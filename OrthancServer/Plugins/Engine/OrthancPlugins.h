@@ -389,6 +389,8 @@ namespace Orthanc
 
     // New in Orthanc 1.8.1 (cf. "OrthancPluginGenerateRestApiAuthorizationToken()")
     bool IsValidAuthorizationToken(const std::string& token) const;
+
+    unsigned int GetMaxDatabaseRetries() const;
   };
 }
 

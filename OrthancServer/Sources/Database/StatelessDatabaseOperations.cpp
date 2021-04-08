@@ -588,6 +588,8 @@ namespace Orthanc
   void StatelessDatabaseOperations::ApplyInternal(IReadOnlyOperations* readOperations,
                                                   IReadWriteOperations* writeOperations)
   {
+    boost::shared_lock<boost::shared_mutex> lock(mutex_);  // To protect "factory_" and "maxRetries_"
+
     if ((readOperations == NULL && writeOperations == NULL) ||
         (readOperations != NULL && writeOperations != NULL))
     {
@@ -599,7 +601,7 @@ namespace Orthanc
       throw OrthancException(ErrorCode_BadSequenceOfCalls, "No transaction context was provided");     
     }
     
-    unsigned int count = 0;
+    unsigned int attempt = 0;
 
     for (;;)
     {
@@ -638,14 +640,16 @@ namespace Orthanc
       {
         if (e.GetErrorCode() == ErrorCode_DatabaseCannotSerialize)
         {
-          if (count >= maxRetries_)
+          if (attempt >= maxRetries_)
           {
             throw;
           }
           else
           {
-            count++;
-            boost::this_thread::sleep(boost::posix_time::milliseconds(100 * count));
+            attempt++;
+
+            // The "rand()" adds some jitter to de-synchronize writers
+            boost::this_thread::sleep(boost::posix_time::milliseconds(50 * attempt + 5 * (rand() % 10)));
           }          
         }
         else
@@ -659,9 +663,9 @@ namespace Orthanc
   
   StatelessDatabaseOperations::StatelessDatabaseOperations(IDatabaseWrapper& db) : 
     db_(db),
-    maxRetries_(10),
     mainDicomTagsRegistry_(new MainDicomTagsRegistry),
-    hasFlushToDisk_(db.HasFlushToDisk())
+    hasFlushToDisk_(db.HasFlushToDisk()),
+    maxRetries_(0)
   {
   }
 
@@ -681,6 +685,8 @@ namespace Orthanc
 
   void StatelessDatabaseOperations::SetTransactionContextFactory(ITransactionContextFactory* factory)
   {
+    boost::unique_lock<boost::shared_mutex> lock(mutex_);
+
     if (factory == NULL)
     {
       throw OrthancException(ErrorCode_NullPointer);
@@ -695,6 +701,13 @@ namespace Orthanc
     }
   }
     
+
+  void StatelessDatabaseOperations::SetMaxDatabaseRetries(unsigned int maxRetries)
+  {
+    boost::unique_lock<boost::shared_mutex> lock(mutex_);
+    maxRetries_ = maxRetries;
+  }
+  
 
   void StatelessDatabaseOperations::Apply(IReadOnlyOperations& operations)
   {

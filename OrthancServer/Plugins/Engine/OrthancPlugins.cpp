@@ -1212,6 +1212,7 @@ namespace Orthanc
     std::unique_ptr<OrthancPluginDatabaseV3>  databaseV3_;  // New in Orthanc 1.9.2
     PluginsErrorDictionary  dictionary_;
     std::string databaseServerIdentifier_;   // New in Orthanc 1.9.2
+    unsigned int maxDatabaseRetries_;   // New in Orthanc 1.9.2
 
     PImpl(const std::string& databaseServerIdentifier) : 
       context_(NULL), 
@@ -1219,7 +1220,8 @@ namespace Orthanc
       worklistCallback_(NULL),
       argc_(1),
       argv_(NULL),
-      databaseServerIdentifier_(databaseServerIdentifier)
+      databaseServerIdentifier_(databaseServerIdentifier),
+      maxDatabaseRetries_(0)
     {
       memset(&moveCallbacks_, 0, sizeof(moveCallbacks_));
     }
@@ -5087,6 +5089,7 @@ namespace Orthanc
         {
           pimpl_->databaseV3_.reset(new OrthancPluginDatabaseV3(plugin, GetErrorDictionary(), p.backend,
                                                                 p.backendSize, p.database, pimpl_->databaseServerIdentifier_));
+          pimpl_->maxDatabaseRetries_ = p.maxDatabaseRetries;
         }
         else
         {
@@ -5753,5 +5756,12 @@ namespace Orthanc
   {
     boost::recursive_mutex::scoped_lock lock(pimpl_->invokeServiceMutex_);
     return (pimpl_->authorizationTokens_.find(token) != pimpl_->authorizationTokens_.end());
+  }
+
+  
+  unsigned int OrthancPlugins::GetMaxDatabaseRetries() const
+  {
+    boost::recursive_mutex::scoped_lock lock(pimpl_->invokeServiceMutex_);
+    return pimpl_->maxDatabaseRetries_;
   }
 }
