@@ -1320,6 +1320,7 @@ extern "C"
   {
     const OrthancPluginDatabaseBackendV3*  backend;
     uint32_t                               backendSize;
+    uint32_t                               maxDatabaseRetries;
     void*                                  database;
   } _OrthancPluginRegisterDatabaseBackendV3;
 
@@ -1328,6 +1329,7 @@ extern "C"
     OrthancPluginContext*                  context,
     const OrthancPluginDatabaseBackendV3*  backend,
     uint32_t                               backendSize,
+    uint32_t                               maxDatabaseRetries,  /* To handle "OrthancPluginErrorCode_DatabaseCannotSerialize" */
     void*                                  database)
   {
     _OrthancPluginRegisterDatabaseBackendV3 params;
@@ -1340,6 +1342,7 @@ extern "C"
     memset(&params, 0, sizeof(params));
     params.backend = backend;
     params.backendSize = sizeof(OrthancPluginDatabaseBackendV3);
+    params.maxDatabaseRetries = maxDatabaseRetries;
     params.database = database;
 
     return context->InvokeService(context, _OrthancPluginService_RegisterDatabaseBackendV3, &params);

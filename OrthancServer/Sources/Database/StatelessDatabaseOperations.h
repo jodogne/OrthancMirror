@@ -39,6 +39,7 @@
 #include "../DicomInstanceOrigin.h"
 
 #include <boost/shared_ptr.hpp>
+#include <boost/thread/shared_mutex.hpp>
 
 
 namespace Orthanc
@@ -408,10 +409,13 @@ namespace Orthanc
     class Transaction;
 
     IDatabaseWrapper&                            db_;
-    std::unique_ptr<ITransactionContextFactory>  factory_;
-    unsigned int                                 maxRetries_;
     boost::shared_ptr<MainDicomTagsRegistry>     mainDicomTagsRegistry_;  // "shared_ptr" because of PImpl
     bool                                         hasFlushToDisk_;
+
+    // Mutex to protect the configuration options
+    boost::shared_mutex                          mutex_;
+    std::unique_ptr<ITransactionContextFactory>  factory_;
+    unsigned int                                 maxRetries_;
 
     void NormalizeLookup(std::vector<DatabaseConstraint>& target,
                          const DatabaseLookup& source,
@@ -428,6 +432,10 @@ namespace Orthanc
     explicit StatelessDatabaseOperations(IDatabaseWrapper& database);
 
     void SetTransactionContextFactory(ITransactionContextFactory* factory /* takes ownership */);
+
+    // Only used to handle "ErrorCode_DatabaseCannotSerialize" in the
+    // case of collision between multiple writers
+    void SetMaxDatabaseRetries(unsigned int maxRetries);
     
     // It is assumed that "GetDatabaseVersion()" can run out of a
     // database transaction
