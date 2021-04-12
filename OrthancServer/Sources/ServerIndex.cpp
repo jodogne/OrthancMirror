@@ -465,30 +465,37 @@ namespace Orthanc
           }
         }
 
-        /**
-         * WARNING: Don't protect the calls to "LogChange()" using
-         * "monitoringMutex_", as this could lead to deadlocks in
-         * other threads (typically, if "Store()" is being running in
-         * another thread, which leads to calls to "MarkAsUnstable()",
-         * which leads to two lockings of "monitoringMutex_").
-         **/
-        switch (stableResource.GetResourceType())
+        try
         {
-          case ResourceType_Patient:
-            that->LogChange(stableId, ChangeType_StablePatient, stableResource.GetPublicId(), ResourceType_Patient);
-            break;
+          /**
+           * WARNING: Don't protect the calls to "LogChange()" using
+           * "monitoringMutex_", as this could lead to deadlocks in
+           * other threads (typically, if "Store()" is being running in
+           * another thread, which leads to calls to "MarkAsUnstable()",
+           * which leads to two lockings of "monitoringMutex_").
+           **/
+          switch (stableResource.GetResourceType())
+          {
+            case ResourceType_Patient:
+              that->LogChange(stableId, ChangeType_StablePatient, stableResource.GetPublicId(), ResourceType_Patient);
+              break;
             
-          case ResourceType_Study:
-            that->LogChange(stableId, ChangeType_StableStudy, stableResource.GetPublicId(), ResourceType_Study);
-            break;
+            case ResourceType_Study:
+              that->LogChange(stableId, ChangeType_StableStudy, stableResource.GetPublicId(), ResourceType_Study);
+              break;
             
-          case ResourceType_Series:
-            that->LogChange(stableId, ChangeType_StableSeries, stableResource.GetPublicId(), ResourceType_Series);
-            break;
+            case ResourceType_Series:
+              that->LogChange(stableId, ChangeType_StableSeries, stableResource.GetPublicId(), ResourceType_Series);
+              break;
             
-          default:
-            throw OrthancException(ErrorCode_InternalError);
+            default:
+              throw OrthancException(ErrorCode_InternalError);
+          }
         }
+        catch (OrthancException& e)
+        {
+          LOG(ERROR) << "Cannot log a change about a stable resource into the database";
+        }          
       }
     }
 
