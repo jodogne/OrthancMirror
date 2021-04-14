@@ -23,6 +23,8 @@ Maintenance
 -----------
 
 * Use the local timezone for query/retrieve in the Orthanc Explorer interface (was UTC before)
+* Upgraded dependencies for static builds (notably on Windows and LSB):
+  - civetweb 1.14
 
 
 Version 1.9.1 (2021-02-25)
