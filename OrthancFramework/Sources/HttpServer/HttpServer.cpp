@@ -121,7 +121,17 @@ namespace Orthanc
 
 #elif ORTHANC_ENABLE_CIVETWEB == 1
 #  if CIVETWEB_HAS_DISABLE_KEEP_ALIVE == 1
+#    if CIVETWEB_VERSION_MAJOR == 1 && CIVETWEB_VERSION_MINOR <= 13   // From "civetweb-1.13.patch"
         mg_disable_keep_alive(connection_);
+#    else
+        /**
+         * Function "mg_disable_keep_alive()" contributed by Sebastien
+         * Jodogne was renamed as "mg_disable_connection_keep_alive()"
+         * in the official CivetWeb repository:
+         * https://github.com/civetweb/civetweb/commit/78d45f4c4b0ab821f4f259b21ad3783f6d6c556a
+         **/
+        mg_disable_connection_keep_alive(connection_);
+#    endif
 #  else
 #    if defined(__GNUC__) || defined(__clang__)
 #       warning The function "mg_disable_keep_alive()" is not available, DICOMweb might run slowly

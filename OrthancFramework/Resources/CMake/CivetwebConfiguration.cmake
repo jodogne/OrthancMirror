@@ -20,21 +20,21 @@
 
 if (STATIC_BUILD OR NOT USE_SYSTEM_CIVETWEB)
 
-  ## WARNING: "civetweb-1.13.tar.gz" comes with a subfolder
-  ## "civetweb-1.13/test/nonlatin" that cannot be removed by "hg purge
+  ## WARNING: "civetweb-1.14.tar.gz" comes with a subfolder
+  ## "civetweb-1.14/test/nonlatin" that cannot be removed by "hg purge
   ## --all" on Windows hosts. We thus created a custom
-  ## "civetweb-1.13-fixed.tar.gz" as follows:
+  ## "civetweb-1.14-fixed.tar.gz" as follows:
   ##
   ##  $ cd /tmp
-  ##  $ wget http://orthanc.osimis.io/ThirdPartyDownloads/civetweb-1.13.tar.gz
-  ##  $ tar xvf civetweb-1.13.tar.gz
-  ##  $ rm -rf civetweb-1.13/src/third_party/ civetweb-1.13/test/
-  ##  $ tar cvfz civetweb-1.13-fixed.tar.gz civetweb-1.13
+  ##  $ wget http://orthanc.osimis.io/ThirdPartyDownloads/civetweb-1.14.tar.gz
+  ##  $ tar xvf civetweb-1.14.tar.gz
+  ##  $ rm -rf civetweb-1.14/src/third_party/ civetweb-1.14/test/
+  ##  $ tar cvfz civetweb-1.14-fixed.tar.gz civetweb-1.14
   ##
   
-  set(CIVETWEB_SOURCES_DIR ${CMAKE_BINARY_DIR}/civetweb-1.13)
-  set(CIVETWEB_URL "http://orthanc.osimis.io/ThirdPartyDownloads/civetweb-1.13-fixed.tar.gz")
-  set(CIVETWEB_MD5 "9cf9d22cf8a06a8487d98637bbcd543c")
+  set(CIVETWEB_SOURCES_DIR ${CMAKE_BINARY_DIR}/civetweb-1.14)
+  set(CIVETWEB_URL "http://orthanc.osimis.io/ThirdPartyDownloads/civetweb-1.14-fixed.tar.gz")
+  set(CIVETWEB_MD5 "1f25d516b7a4e65d8b270d1cc399e0a9")
 
   if (IS_DIRECTORY "${CIVETWEB_SOURCES_DIR}")
     set(FirstRun OFF)
@@ -44,17 +44,6 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_CIVETWEB)
 
   DownloadPackage(${CIVETWEB_MD5} ${CIVETWEB_URL} "${CIVETWEB_SOURCES_DIR}")
 
-  execute_process(
-    COMMAND ${PATCH_EXECUTABLE} -p0 -N -i
-    ${CMAKE_CURRENT_LIST_DIR}/../Patches/civetweb-1.13.patch
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-    RESULT_VARIABLE Failure
-    )
-
-  if (FirstRun AND Failure)
-    message(FATAL_ERROR "Error while patching a file")
-  endif()
-  
   include_directories(
     ${CIVETWEB_SOURCES_DIR}/include
     )
@@ -115,14 +104,15 @@ else()
   endif()
 
   link_libraries(civetweb)
-  unset(CMAKE_REQUIRED_LIBRARIES)
 
   # Check whether the system distribution of civetweb contains the
   # patch "../Patches/civetweb-1.13.patch" that allows to disable
   # keep-alive on selected HTTP connections. This is useful to speed
   # up multipart transfers, as encountered in DICOMweb.
-  CHECK_LIBRARY_EXISTS(civetweb mg_disable_keep_alive "" CIVETWEB_HAS_DISABLE_KEEP_ALIVE)
-  if (CIVETWEB_HAS_DISABLE_KEEP_ALIVE)
+  CHECK_LIBRARY_EXISTS(civetweb mg_disable_keep_alive "" CIVETWEB_HAS_DISABLE_KEEP_ALIVE_1)  # From "../Patches/civetweb-1.13.patch"
+  CHECK_LIBRARY_EXISTS(civetweb mg_disable_connection_keep_alive "" CIVETWEB_HAS_DISABLE_KEEP_ALIVE_2)  # From civetweb >= 1.14
+  if (CIVETWEB_HAS_DISABLE_KEEP_ALIVE_1 OR
+      CIVETWEB_HAS_DISABLE_KEEP_ALIVE_2)
     add_definitions(
       -DCIVETWEB_HAS_DISABLE_KEEP_ALIVE=1
       -DCIVETWEB_HAS_WEBDAV_WRITING=1
@@ -135,6 +125,8 @@ else()
       -DCIVETWEB_HAS_WEBDAV_WRITING=0
       )
   endif()
+
+  unset(CMAKE_REQUIRED_LIBRARIES)  # This reset must be after "CHECK_LIBRARY_EXISTS"
 endif()
 
 
