@@ -1256,8 +1256,9 @@ extern "C"
                                               int64_t id,
                                               int32_t metadata);
     
-    /* Answer is read using "readAnswerInt64()" -- TODO */
     OrthancPluginErrorCode (*lookupParent) (OrthancPluginDatabaseTransaction* transaction,
+                                            uint8_t* isExisting /* out */,
+                                            int64_t* parentId /* out */,
                                             int64_t id);
     
     OrthancPluginErrorCode (*lookupResource) (OrthancPluginDatabaseTransaction* transaction,
@@ -1281,11 +1282,13 @@ extern "C"
                                                        OrthancPluginResourceType* type /* out */,
                                                        const char* publicId);
 
-    /* Answer is read using "readAnswerInt64()" -- TODO */
-    OrthancPluginErrorCode (*selectPatientToRecycle) (OrthancPluginDatabaseTransaction* transaction);
+    OrthancPluginErrorCode (*selectPatientToRecycle) (OrthancPluginDatabaseTransaction* transaction,
+                                                      uint8_t* patientAvailable /* out */,
+                                                      int64_t* patientId /* out */);
     
-    /* Answer is read using "readAnswerInt64()" -- TODO */
     OrthancPluginErrorCode (*selectPatientToRecycle2) (OrthancPluginDatabaseTransaction* transaction,
+                                                       uint8_t* patientAvailable /* out */,
+                                                       int64_t* patientId /* out */,
                                                        int64_t patientIdToAvoid);
 
     OrthancPluginErrorCode (*setGlobalProperty) (OrthancPluginDatabaseTransaction* transaction,

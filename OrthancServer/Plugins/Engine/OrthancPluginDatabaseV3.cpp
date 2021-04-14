@@ -718,9 +718,10 @@ namespace Orthanc
     virtual bool LookupParent(int64_t& parentId,
                               int64_t resourceId) ORTHANC_OVERRIDE
     {
-      CheckSuccess(that_.backend_.lookupParent(transaction_, resourceId));
+      uint8_t existing;
+      CheckSuccess(that_.backend_.lookupParent(transaction_, &existing, &parentId, resourceId));
       CheckNoEvent();
-      return ReadSingleInt64Answer(parentId);      
+      return (existing != 0);
     }
 
     
@@ -747,18 +748,20 @@ namespace Orthanc
     
     virtual bool SelectPatientToRecycle(int64_t& internalId) ORTHANC_OVERRIDE
     {
-      CheckSuccess(that_.backend_.selectPatientToRecycle(transaction_));
+      uint8_t available;      
+      CheckSuccess(that_.backend_.selectPatientToRecycle(transaction_, &available, &internalId));
       CheckNoEvent();
-      return ReadSingleInt64Answer(internalId);      
+      return (available != 0);
     }
 
     
     virtual bool SelectPatientToRecycle(int64_t& internalId,
                                         int64_t patientIdToAvoid) ORTHANC_OVERRIDE
     {
-      CheckSuccess(that_.backend_.selectPatientToRecycle2(transaction_, patientIdToAvoid));
+      uint8_t available;      
+      CheckSuccess(that_.backend_.selectPatientToRecycle2(transaction_, &available, &internalId, patientIdToAvoid));
       CheckNoEvent();
-      return ReadSingleInt64Answer(internalId);      
+      return (available != 0);
     }
 
     
