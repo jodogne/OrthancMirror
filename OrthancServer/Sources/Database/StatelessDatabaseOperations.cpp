@@ -649,7 +649,7 @@ namespace Orthanc
             attempt++;
 
             // The "rand()" adds some jitter to de-synchronize writers
-            boost::this_thread::sleep(boost::posix_time::milliseconds(50 * attempt + 5 * (rand() % 10)));
+            boost::this_thread::sleep(boost::posix_time::milliseconds(100 * attempt + 5 * (rand() % 10)));
           }          
         }
         else
