@@ -1214,7 +1214,7 @@ namespace Orthanc
     std::string databaseServerIdentifier_;   // New in Orthanc 1.9.2
     unsigned int maxDatabaseRetries_;   // New in Orthanc 1.9.2
 
-    PImpl(const std::string& databaseServerIdentifier) : 
+    explicit PImpl(const std::string& databaseServerIdentifier) : 
       context_(NULL), 
       findCallback_(NULL),
       worklistCallback_(NULL),
