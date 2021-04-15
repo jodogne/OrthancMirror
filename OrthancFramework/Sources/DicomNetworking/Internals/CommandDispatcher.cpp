@@ -654,9 +654,15 @@ namespace Orthanc
           AssociationCleanup(assoc);
           return NULL;
         }
-        CLOG(INFO, DICOM) << "Association Acknowledged (Max Send PDV: " << assoc->sendPDVLength << ")";
-        if (ASC_countAcceptedPresentationContexts(assoc->params) == 0)
-          CLOG(INFO, DICOM) << "    (but no valid presentation contexts)";
+
+        {
+          std::string suffix;
+          if (ASC_countAcceptedPresentationContexts(assoc->params) == 0)
+            suffix = " (but no valid presentation contexts)";
+          
+          CLOG(INFO, DICOM) << "Association Acknowledged (Max Send PDV: " << assoc->sendPDVLength
+                            << ") to AET " << remoteAet << " on IP " << remoteIp << suffix;
+        }
 
         {
           OFString str;
@@ -908,24 +914,26 @@ namespace Orthanc
         // the peer or a network error
         finished = true;
 
-        CLOG(INFO, DICOM) << cond.text();
+        CLOG(INFO, DICOM) << "Finishing association with AET " << remoteAet_
+                          << " on IP " << remoteIp_ << ": " << cond.text();
       }
     
       if (finished)
       {
         if (cond == DUL_PEERREQUESTEDRELEASE)
         {
-          CLOG(INFO, DICOM) << "Association Release";
+          CLOG(INFO, DICOM) << "Association Release with AET " << remoteAet_ << " on IP " << remoteIp_;
           ASC_acknowledgeRelease(assoc_);
         }
         else if (cond == DUL_PEERABORTEDASSOCIATION)
         {
-          CLOG(INFO, DICOM) << "Association Aborted";
+          CLOG(INFO, DICOM) << "Association Aborted with AET " << remoteAet_ << " on IP " << remoteIp_;
         }
         else
         {
           OFString temp_str;
-          CLOG(INFO, DICOM) << "DIMSE failure (aborting association): " << cond.text();
+          CLOG(INFO, DICOM) << "DIMSE failure (aborting association with AET " << remoteAet_
+                            << " on IP " << remoteIp_ << "): " << cond.text();
           /* some kind of error so abort the association */
           ASC_abortAssociation(assoc_);
         }
