@@ -850,6 +850,7 @@ namespace Orthanc
 
 
     virtual bool LookupMetadata(std::string& target,
+                                int64_t& revision,
                                 int64_t id,
                                 MetadataType type) ORTHANC_OVERRIDE
     {
@@ -865,6 +866,7 @@ namespace Orthanc
       else
       {
         target = s.ColumnString(0);
+        revision = 0;   // TODO - REVISIONS
         return true;
       }
     }
@@ -1033,8 +1035,10 @@ namespace Orthanc
 
     virtual void SetMetadata(int64_t id,
                              MetadataType type,
-                             const std::string& value) ORTHANC_OVERRIDE
+                             const std::string& value,
+                             int64_t revision) ORTHANC_OVERRIDE
     {
+      // TODO - REVISIONS
       SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT OR REPLACE INTO Metadata VALUES(?, ?, ?)");
       s.BindInt64(0, id);
       s.BindInt(1, type);

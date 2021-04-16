@@ -49,6 +49,7 @@ namespace Orthanc
                                          int64_t id) = 0;
 
       virtual bool LookupMetadata(std::string& target,
+                                  int64_t& revision,
                                   int64_t id,
                                   MetadataType type) = 0;
 

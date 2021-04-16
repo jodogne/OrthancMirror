@@ -56,7 +56,8 @@ namespace Orthanc
 
       virtual void SetMetadata(int64_t id,
                                MetadataType type,
-                               const std::string& value) = 0;
+                               const std::string& value,
+                               int64_t revision) = 0;
 
       static void Apply(ISetResourcesContent& that,
                         const ResourcesContent& content)

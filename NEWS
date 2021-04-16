@@ -1,23 +1,26 @@
 Pending changes in the mainline
 ===============================
 
+General
+-------
+
+* New configuration options related to multiple readers/writers:
+  - "DatabaseServerIdentifier" identifies the server in the DB among a pool of Orthanc servers
+  - "CheckRevisions" to protect against concurrent modifications of metadata and attachments
+
+REST API
+--------
+
+* API version upgraded to 12
+* "/.../{id}/metadata/{name}" URIs handle the HTTP headers "If-Match", "If-None-Match" and
+  "ETag" to cope with revisions
+
 Plugins
 -------
 
-* Possibility to create database index plugins that don't lock a global mutex
-* New option "DatabaseServerIdentifier" to identify the server among a pool of Orthanc servers
-
-Maintenance
------------
-
-* Full refactoring of the database engine
-
-
-Plugins
--------
-
-* New functions in the SDK:
-  - OrthancPluginCallRestApi()
+* New function in the SDK: OrthancPluginCallRestApi()
+* Full refactoring of the database engine to handle multiple readers/writers, which notably
+  implies the handling of retries in the case of collisions
 
 Maintenance
 -----------

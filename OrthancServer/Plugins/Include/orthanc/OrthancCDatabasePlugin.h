@@ -1253,6 +1253,7 @@ extern "C"
     
     /* Answer is read using "readAnswerString()" */
     OrthancPluginErrorCode (*lookupMetadata) (OrthancPluginDatabaseTransaction* transaction,
+                                              int64_t* revision /* out */,
                                               int64_t id,
                                               int32_t metadata);
     
@@ -1299,7 +1300,8 @@ extern "C"
     OrthancPluginErrorCode (*setMetadata) (OrthancPluginDatabaseTransaction* transaction,
                                            int64_t id,
                                            int32_t metadata,
-                                           const char* value);
+                                           const char* value,
+                                           int64_t revision);
     
     OrthancPluginErrorCode (*setProtectedPatient) (OrthancPluginDatabaseTransaction* transaction,
                                                    int64_t id,

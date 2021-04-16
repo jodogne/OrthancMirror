@@ -860,7 +860,8 @@ namespace Orthanc
 
       {
         std::string s;
-        if (index_.LookupMetadata(s, instancePublicId, ResourceType_Instance,
+        int64_t revision;  // Ignored
+        if (index_.LookupMetadata(s, revision, instancePublicId, ResourceType_Instance,
                                   MetadataType_Instance_PixelDataOffset))
         {
           hasPixelDataOffset = false;
@@ -971,8 +972,8 @@ namespace Orthanc
           if (DicomStreamReader::LookupPixelDataOffset(pixelDataOffset, dicom) &&
               pixelDataOffset < dicom.size())
           {
-            index_.SetMetadata(instancePublicId, MetadataType_Instance_PixelDataOffset,
-                               boost::lexical_cast<std::string>(pixelDataOffset));
+            index_.OverwriteMetadata(instancePublicId, MetadataType_Instance_PixelDataOffset,
+                                     boost::lexical_cast<std::string>(pixelDataOffset));
 
             if (!area_.HasReadRange() ||
                 compressionEnabled_)
@@ -1018,9 +1019,10 @@ namespace Orthanc
     }
 
     std::string s;
+    int64_t revision;  // Ignored
 
     if (attachment.GetCompressionType() == CompressionType_None &&
-        index_.LookupMetadata(s, instancePublicId, ResourceType_Instance,
+        index_.LookupMetadata(s, revision, instancePublicId, ResourceType_Instance,
                               MetadataType_Instance_PixelDataOffset) &&
         !s.empty())
     {
@@ -1643,7 +1645,8 @@ namespace Orthanc
     if (metadata == MetadataType_Instance_SopClassUid ||
         metadata == MetadataType_Instance_TransferSyntax)
     {
-      if (index_.LookupMetadata(target, publicId, level, metadata))
+      int64_t revision;  // Ignored
+      if (index_.LookupMetadata(target, revision, publicId, level, metadata))
       {
         return true;
       }
@@ -1685,7 +1688,7 @@ namespace Orthanc
           target = value->GetContent();
 
           // Store for reuse
-          index_.SetMetadata(publicId, metadata, target);
+          index_.OverwriteMetadata(publicId, metadata, target);
           return true;
         }
         else
@@ -1698,7 +1701,8 @@ namespace Orthanc
     else
     {
       // No backward
-      return index_.LookupMetadata(target, publicId, level, metadata);
+      int64_t revision;  // Ignored
+      return index_.LookupMetadata(target, revision, publicId, level, metadata);
     }
   }
 

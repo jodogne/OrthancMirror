@@ -254,10 +254,11 @@ namespace Orthanc
       }
 
       bool LookupMetadata(std::string& target,
+                          int64_t& revision,
                           int64_t id,
                           MetadataType type)
       {
-        return transaction_.LookupMetadata(target, id, type);
+        return transaction_.LookupMetadata(target, revision, id, type);
       }
 
       bool LookupParent(int64_t& parentId,
@@ -359,9 +360,10 @@ namespace Orthanc
 
       void SetMetadata(int64_t id,
                        MetadataType type,
-                       const std::string& value)
+                       const std::string& value,
+                       int64_t revision)
       {
-        return transaction_.SetMetadata(id, type, value);
+        return transaction_.SetMetadata(id, type, value, revision);
       }
 
       void SetProtectedPatient(int64_t internalId, 
@@ -503,6 +505,7 @@ namespace Orthanc
                            const std::string& publicId);
 
     bool LookupMetadata(std::string& target,
+                        int64_t& revision,
                         const std::string& publicId,
                         ResourceType expectedType,
                         MetadataType type);
@@ -569,12 +572,22 @@ namespace Orthanc
     void SetProtectedPatient(const std::string& publicId,
                              bool isProtected);
 
-    void SetMetadata(const std::string& publicId,
+    void SetMetadata(int64_t& newRevision /*out*/,
+                     const std::string& publicId,
                      MetadataType type,
-                     const std::string& value);
+                     const std::string& value,
+                     bool hasOldRevision,
+                     int64_t oldRevision);
 
-    void DeleteMetadata(const std::string& publicId,
-                        MetadataType type);
+    // Same as "SetMetadata()", but doesn't care about revisions
+    void OverwriteMetadata(const std::string& publicId,
+                           MetadataType type,
+                           const std::string& value);
+
+    bool DeleteMetadata(const std::string& publicId,
+                        MetadataType type,
+                        bool hasRevision,
+                        int64_t revision);
 
     uint64_t IncrementGlobalSequence(GlobalProperty sequence,
                                      bool shared);

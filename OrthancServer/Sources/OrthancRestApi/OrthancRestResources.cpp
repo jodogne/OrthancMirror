@@ -63,6 +63,9 @@
 static Orthanc::Semaphore throttlingSemaphore_(4);  // TODO => PARAMETER?
 
 
+static const std::string CHECK_REVISIONS = "CheckRevisions";
+
+
 namespace Orthanc
 {
   static std::string GetDocumentationSampleResource(ResourceType type)
@@ -1447,6 +1450,37 @@ namespace Orthanc
   }
 
 
+  static bool GetRevisionHeader(int64_t& revision /* out */,
+                                const RestApiCall& call,
+                                const std::string& header)
+  {
+    std::string lower;
+    Toolbox::ToLowerCase(lower, header);
+    
+    HttpToolbox::Arguments::const_iterator found = call.GetHttpHeaders().find(lower);
+    if (found == call.GetHttpHeaders().end())
+    {
+      return false;
+    }
+    else
+    {
+      std::string value = Toolbox::StripSpaces(found->second);
+      Toolbox::RemoveSurroundingQuotes(value);
+
+      try
+      {
+        revision = boost::lexical_cast<int64_t>(value);
+        return true;
+      }
+      catch (boost::bad_lexical_cast&)
+      {
+        throw OrthancException(ErrorCode_ParameterOutOfRange, "The \"" + header +
+                               "\" HTTP header should contain the revision as an integer, but found: " + value);
+      }
+    }
+  }
+
+
   static void GetMetadata(RestApiGetCall& call)
   {
     if (call.IsDocumentation())
@@ -1459,7 +1493,9 @@ namespace Orthanc
         .SetDescription("Get the value of a metadata that is associated with the given " + r)
         .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
         .SetUriArgument("name", "The name of the metadata, or its index (cf. `UserMetadata` configuration option)")
-        .AddAnswerType(MimeType_PlainText, "Value of the metadata");
+        .AddAnswerType(MimeType_PlainText, "Value of the metadata")
+        .SetAnswerHeader("ETag", "Revision of the metadata, to be used in further `PUT` or `DELETE` operations")
+        .SetHttpHeader("If-None-Match", "Optional revision of the metadata, to check if its content has changed");
       return;
     }
 
@@ -1471,9 +1507,22 @@ namespace Orthanc
     MetadataType metadata = StringToMetadata(name);
 
     std::string value;
-    if (OrthancRestApi::GetIndex(call).LookupMetadata(value, publicId, level, metadata))
+    int64_t revision;
+    if (OrthancRestApi::GetIndex(call).LookupMetadata(value, revision, publicId, level, metadata))
     {
-      call.GetOutput().AnswerBuffer(value, MimeType_PlainText);
+      call.GetOutput().GetLowLevelOutput().
+        AddHeader("ETag", "\"" + boost::lexical_cast<std::string>(revision) + "\"");  // New in Orthanc 1.9.2
+
+      int64_t userRevision;
+      if (GetRevisionHeader(userRevision, call, "If-None-Match") &&
+          revision == userRevision)
+      {
+        call.GetOutput().GetLowLevelOutput().SendStatus(HttpStatus_304_NotModified);
+      }
+      else
+      {
+        call.GetOutput().AnswerBuffer(value, MimeType_PlainText);
+      }
     }
   }
 
@@ -1490,20 +1539,48 @@ namespace Orthanc
         .SetDescription("Delete some metadata associated with the given DICOM " + r +
                         ". This call will fail if trying to delete a system metadata (i.e. whose index is < 1024).")
         .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
-        .SetUriArgument("name", "The name of the metadata, or its index (cf. `UserMetadata` configuration option)");
+        .SetUriArgument("name", "The name of the metadata, or its index (cf. `UserMetadata` configuration option)")
+        .SetHttpHeader("If-Match", "Revision of the metadata, to check if its content has not changed and can "
+                       "be deleted. This option is mandatory if `CheckRevision` option is `true`.");
       return;
     }
 
     CheckValidResourceType(call);
+    const std::string publicId = call.GetUriComponent("id", "");
 
-    std::string publicId = call.GetUriComponent("id", "");
     std::string name = call.GetUriComponent("name", "");
     MetadataType metadata = StringToMetadata(name);
 
     if (IsUserMetadata(metadata))  // It is forbidden to modify internal metadata
-    {      
-      OrthancRestApi::GetIndex(call).DeleteMetadata(publicId, metadata);
-      call.GetOutput().AnswerBuffer("", MimeType_PlainText);
+    {
+      bool found;
+      int64_t revision;
+      if (GetRevisionHeader(revision, call, "if-match"))
+      {
+        found = OrthancRestApi::GetIndex(call).DeleteMetadata(publicId, metadata, true, revision);
+      }
+      else
+      {
+        OrthancConfiguration::ReaderLock lock;
+        if (lock.GetConfiguration().GetBooleanParameter(CHECK_REVISIONS, false))
+        {
+          throw OrthancException(ErrorCode_Revision,
+                                 "HTTP header \"If-Match\" is missing, as \"CheckRevision\" is \"true\"");
+        }
+        else
+        {
+          found = OrthancRestApi::GetIndex(call).DeleteMetadata(publicId, metadata, false, -1 /* dummy value */);
+        }
+      }
+
+      if (found)
+      {
+        call.GetOutput().AnswerBuffer("", MimeType_PlainText);
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_UnknownResource);
+      }
     }
     else
     {
@@ -1525,7 +1602,8 @@ namespace Orthanc
                         ". This call will fail if trying to modify a system metadata (i.e. whose index is < 1024).")
         .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
         .SetUriArgument("name", "The name of the metadata, or its index (cf. `UserMetadata` configuration option)")
-        .AddRequestType(MimeType_PlainText, "String value of the metadata");
+        .AddRequestType(MimeType_PlainText, "String value of the metadata")
+        .SetHttpHeader("If-Match", "Revision of the metadata, if this is not the first time this metadata is set.");
       return;
     }
 
@@ -1540,8 +1618,28 @@ namespace Orthanc
 
     if (IsUserMetadata(metadata))  // It is forbidden to modify internal metadata
     {
-      // It is forbidden to modify internal metadata
-      OrthancRestApi::GetIndex(call).SetMetadata(publicId, metadata, value);
+      int64_t oldRevision;
+      bool hasOldRevision = GetRevisionHeader(oldRevision, call, "if-match");
+
+      if (!hasOldRevision)
+      {
+        OrthancConfiguration::ReaderLock lock;
+        if (lock.GetConfiguration().GetBooleanParameter(CHECK_REVISIONS, false))
+        {
+          // "StatelessDatabaseOperations::SetMetadata()" will ignore
+          // the actual value of "oldRevision" if the metadata is
+          // inexistent as expected
+          hasOldRevision = true;
+          oldRevision = -1;  // dummy value
+        }
+      }
+
+      int64_t newRevision;
+      OrthancRestApi::GetIndex(call).SetMetadata(newRevision, publicId, metadata, value, hasOldRevision, oldRevision);
+
+      call.GetOutput().GetLowLevelOutput().
+        AddHeader("ETag", "\"" + boost::lexical_cast<std::string>(newRevision) + "\"");  // New in Orthanc 1.9.2
+      
       call.GetOutput().AnswerBuffer("", MimeType_PlainText);
     }
     else

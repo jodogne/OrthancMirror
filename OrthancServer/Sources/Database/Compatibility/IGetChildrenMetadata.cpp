@@ -56,7 +56,8 @@ namespace Orthanc
              it = children.begin(); it != children.end(); ++it)
       {
         std::string value;
-        if (database.LookupMetadata(value, *it, metadata))
+        int64_t revision;  // Ignored
+        if (database.LookupMetadata(value, revision, *it, metadata))
         {
           target.push_back(value);
         }

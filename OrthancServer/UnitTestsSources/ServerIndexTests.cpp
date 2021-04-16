@@ -305,12 +305,14 @@ TEST_F(DatabaseWrapperTest, Simple)
                                        CompressionType_ZlibWithSize, 21, "compressedMD5"));
   transaction_->AddAttachment(a[4], FileInfo("my dicom file", FileContentType_Dicom, 42, "md5"));
   transaction_->AddAttachment(a[6], FileInfo("world", FileContentType_Dicom, 44, "md5"));
-  transaction_->SetMetadata(a[4], MetadataType_RemoteAet, "PINNACLE");
+
+  // TODO - REVISIONS - "42" is revision number, that is not currently stored (*)
+  transaction_->SetMetadata(a[4], MetadataType_RemoteAet, "PINNACLE", 42);
   
   transaction_->GetAllMetadata(md, a[4]);
   ASSERT_EQ(1u, md.size());
   ASSERT_EQ("PINNACLE", md[MetadataType_RemoteAet]);
-  transaction_->SetMetadata(a[4], MetadataType_ModifiedFrom, "TUTU");
+  transaction_->SetMetadata(a[4], MetadataType_ModifiedFrom, "TUTU", 10);
   transaction_->GetAllMetadata(md, a[4]);
   ASSERT_EQ(2u, md.size());
 
@@ -341,14 +343,19 @@ TEST_F(DatabaseWrapperTest, Simple)
   ASSERT_EQ(7, b);
   ASSERT_EQ(ResourceType_Study, t);
 
-  ASSERT_TRUE(transaction_->LookupMetadata(s, a[4], MetadataType_RemoteAet));
-  ASSERT_FALSE(transaction_->LookupMetadata(s, a[4], MetadataType_Instance_IndexInSeries));
+  int64_t revision;
+  ASSERT_TRUE(transaction_->LookupMetadata(s, revision, a[4], MetadataType_RemoteAet));
+  ASSERT_EQ(0, revision);   // "0" instead of "42" because of (*)
+  ASSERT_FALSE(transaction_->LookupMetadata(s, revision, a[4], MetadataType_Instance_IndexInSeries));
+  ASSERT_EQ(0, revision);
   ASSERT_EQ("PINNACLE", s);
 
   std::string u;
-  ASSERT_TRUE(transaction_->LookupMetadata(u, a[4], MetadataType_RemoteAet));
+  ASSERT_TRUE(transaction_->LookupMetadata(u, revision, a[4], MetadataType_RemoteAet));
+  ASSERT_EQ(0, revision);
   ASSERT_EQ("PINNACLE", u);
-  ASSERT_FALSE(transaction_->LookupMetadata(u, a[4], MetadataType_Instance_IndexInSeries));
+  ASSERT_FALSE(transaction_->LookupMetadata(u, revision, a[4], MetadataType_Instance_IndexInSeries));
+  ASSERT_EQ(0, revision);
 
   ASSERT_TRUE(transaction_->LookupGlobalProperty(s, GlobalProperty_FlushSleep, true));
   ASSERT_FALSE(transaction_->LookupGlobalProperty(s, static_cast<GlobalProperty>(42), true));
@@ -1008,12 +1015,14 @@ TEST(ServerIndex, DicomUntilPixelData)
       }
 
       std::string s;
-      bool found = context.GetIndex().LookupMetadata(s, id, ResourceType_Instance,
+      int64_t revision;
+      bool found = context.GetIndex().LookupMetadata(s, revision, id, ResourceType_Instance,
                                                      MetadataType_Instance_PixelDataOffset);
       
       if (withPixelData)
       {
         ASSERT_TRUE(found);
+        ASSERT_EQ(0, revision);
         ASSERT_GT(boost::lexical_cast<int>(s), 128 /* length of the DICOM preamble */);
         ASSERT_LT(boost::lexical_cast<size_t>(s), dicomSize);
       }

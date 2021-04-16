@@ -191,7 +191,7 @@ namespace Orthanc
         return "Database could not serialize access due to concurrent update, the transaction should be retried";
 
       case ErrorCode_Revision:
-        return "A bad revision number was provided, indicates conflict between multiple updates";
+        return "A bad revision number was provided, which might indicate conflict between multiple writers";
 
       case ErrorCode_SQLiteNotOpened:
         return "SQLite: The database is not opened";
