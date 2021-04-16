@@ -280,6 +280,8 @@ namespace Orthanc
 
     static void WriteStyledJson(std::string& target,
                                 const Json::Value& source);
+
+    static void RemoveSurroundingQuotes(std::string& value);
   };
 }
 

@@ -102,6 +102,7 @@ namespace Orthanc
     AllowedTypes  answerTypes_;
     Parameters    answerFields_;  // Only if JSON object
     std::string   answerDescription_;
+    Parameters    answerHeaders_;
     bool          hasSampleText_;
     std::string   sampleText_;
     Json::Value   sampleJson_;
@@ -171,6 +172,9 @@ namespace Orthanc
     RestApiCallDocumentation& SetAnswerField(const std::string& name,
                                              Type type,
                                              const std::string& description);
+
+    RestApiCallDocumentation& SetAnswerHeader(const std::string& name,
+                                              const std::string& description);
 
     void SetHttpGetSample(const std::string& url,
                           bool isJson);
