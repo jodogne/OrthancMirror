@@ -401,6 +401,27 @@ TEST(Toolbox, StripSpaces)
   ASSERT_EQ("coucou", Toolbox::StripSpaces("    coucou   \t  \r   \n  "));
   ASSERT_EQ("cou   cou", Toolbox::StripSpaces("    cou   cou    \n  "));
   ASSERT_EQ("c", Toolbox::StripSpaces("    \n\t c\r    \n  "));
+
+  std::string s = "\"  abd \"";
+  Toolbox::RemoveSurroundingQuotes(s); ASSERT_EQ("  abd ", s);
+
+  s = "  \"  abd \"  ";
+  Toolbox::RemoveSurroundingQuotes(s); ASSERT_EQ("  \"  abd \"  ", s);
+
+  s = Toolbox::StripSpaces(s);
+  Toolbox::RemoveSurroundingQuotes(s); ASSERT_EQ("  abd ", s);
+
+  s = "\"";
+  Toolbox::RemoveSurroundingQuotes(s); ASSERT_EQ("", s);  
+
+  s = "\"\"";
+  Toolbox::RemoveSurroundingQuotes(s); ASSERT_EQ("", s);  
+
+  s = "\"_\"";
+  Toolbox::RemoveSurroundingQuotes(s); ASSERT_EQ("_", s);
+
+  s = "\"\"\"";
+  Toolbox::RemoveSurroundingQuotes(s); ASSERT_EQ("\"", s);
 }
 
 TEST(Toolbox, Case)
