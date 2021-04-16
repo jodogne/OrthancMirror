@@ -97,6 +97,13 @@ Performance
 * Check out rapidjson: https://github.com/miloyip/nativejson-benchmark
 
 
+========
+Database
+========
+
+* Integration test searching for "\" and "%" in PatientName, PatientID...
+
+
 =======
 Plugins
 =======
