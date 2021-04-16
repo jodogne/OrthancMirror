@@ -243,7 +243,7 @@
     "Code": 43,
     "HttpStatus": 409,
     "Name": "Revision",
-    "Description": "A bad revision number was provided, indicates conflict between multiple updates"
+    "Description": "A bad revision number was provided, which might indicate conflict between multiple writers"
   }, 
 
 

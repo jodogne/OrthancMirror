@@ -706,10 +706,11 @@ namespace Orthanc
 
     
     virtual bool LookupMetadata(std::string& target,
+                                int64_t& revision,
                                 int64_t id,
                                 MetadataType type) ORTHANC_OVERRIDE
     {
-      CheckSuccess(that_.backend_.lookupMetadata(transaction_, id, static_cast<int32_t>(type)));
+      CheckSuccess(that_.backend_.lookupMetadata(transaction_, &revision, id, static_cast<int32_t>(type)));
       CheckNoEvent();
       return ReadSingleStringAnswer(target);      
     }
@@ -785,9 +786,10 @@ namespace Orthanc
     
     virtual void SetMetadata(int64_t id,
                              MetadataType type,
-                             const std::string& value) ORTHANC_OVERRIDE
+                             const std::string& value,
+                             int64_t revision) ORTHANC_OVERRIDE
     {
-      CheckSuccess(that_.backend_.setMetadata(transaction_, id, static_cast<int32_t>(type), value.c_str()));
+      CheckSuccess(that_.backend_.setMetadata(transaction_, id, static_cast<int32_t>(type), value.c_str(), revision));
       CheckNoEvent();
     }
 

@@ -724,7 +724,7 @@ static void PrintErrors(const char* path)
     PrintErrorCode(ErrorCode_DiscontinuedAbi, "Calling a function that has been removed from the Orthanc Framework");
     PrintErrorCode(ErrorCode_BadRange, "Incorrect range request");
     PrintErrorCode(ErrorCode_DatabaseCannotSerialize, "Database could not serialize access due to concurrent update, the transaction should be retried");
-    PrintErrorCode(ErrorCode_Revision, "A bad revision number was provided, indicates conflict between multiple updates");
+    PrintErrorCode(ErrorCode_Revision, "A bad revision number was provided, which might indicate conflict between multiple writers");
     PrintErrorCode(ErrorCode_SQLiteNotOpened, "SQLite: The database is not opened");
     PrintErrorCode(ErrorCode_SQLiteAlreadyOpened, "SQLite: Connection is already open");
     PrintErrorCode(ErrorCode_SQLiteCannotOpen, "SQLite: Unable to open the database");

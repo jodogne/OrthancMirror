@@ -772,7 +772,8 @@ namespace Orthanc
             MetadataType type = static_cast<MetadataType>(*it);
 
             std::string value;
-            if (LookupMetadata(value, id, type))
+            int64_t revision;  // Ignored
+            if (LookupMetadata(value, revision, id, type))
             {
               target[type] = value;
             }
@@ -1174,11 +1175,13 @@ namespace Orthanc
 
 
     virtual bool LookupMetadata(std::string& target,
+                                int64_t& revision,
                                 int64_t id,
                                 MetadataType type) ORTHANC_OVERRIDE
     {
       ResetAnswers();
       CheckSuccess(that_.backend_.lookupMetadata(that_.GetContext(), that_.payload_, id, static_cast<int32_t>(type)));
+      revision = 0;  // Dummy value, as revisions were added in Orthanc 1.9.2
       return ForwardSingleAnswer(target);
     }
 
@@ -1336,8 +1339,10 @@ namespace Orthanc
 
     virtual void SetMetadata(int64_t id,
                              MetadataType type,
-                             const std::string& value) ORTHANC_OVERRIDE
+                             const std::string& value,
+                             int64_t revision) ORTHANC_OVERRIDE
     {
+      // "revision" is not used, as it was added in Orthanc 1.9.2
       CheckSuccess(that_.backend_.setMetadata
                    (that_.payload_, id, static_cast<int32_t>(type), value.c_str()));
     }

@@ -36,8 +36,6 @@
 #include "../../../OrthancFramework/Sources/DicomFormat/DicomMap.h"
 #include "../../../OrthancFramework/Sources/FileStorage/FileInfo.h"
 #include "../../../OrthancFramework/Sources/FileStorage/IStorageArea.h"
-#include "../../../OrthancFramework/Sources/SQLite/ITransaction.h"
-
 #include "../ExportedResource.h"
 #include "../ServerIndexChange.h"
 #include "IDatabaseListener.h"
@@ -166,6 +164,7 @@ namespace Orthanc
                                         bool shared) = 0;
 
       virtual bool LookupMetadata(std::string& target,
+                                  int64_t& revision,
                                   int64_t id,
                                   MetadataType type) = 0;
 
@@ -189,7 +188,8 @@ namespace Orthanc
 
       virtual void SetMetadata(int64_t id,
                                MetadataType type,
-                               const std::string& value) = 0;
+                               const std::string& value,
+                               int64_t revision) = 0;
 
       virtual void SetProtectedPatient(int64_t internalId, 
                                        bool isProtected) = 0;

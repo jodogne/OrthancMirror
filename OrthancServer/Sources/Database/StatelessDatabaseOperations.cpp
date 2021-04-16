@@ -1367,33 +1367,35 @@ namespace Orthanc
 
 
   bool StatelessDatabaseOperations::LookupMetadata(std::string& target,
+                                                   int64_t& revision,
                                                    const std::string& publicId,
                                                    ResourceType expectedType,
                                                    MetadataType type)
   {
-    class Operations : public ReadOnlyOperationsT5<bool&, std::string&, const std::string&, ResourceType, MetadataType>
+    class Operations : public ReadOnlyOperationsT6<bool&, std::string&, int64_t&,
+                                                   const std::string&, ResourceType, MetadataType>
     {
     public:
       virtual void ApplyTuple(ReadOnlyTransaction& transaction,
                               const Tuple& tuple) ORTHANC_OVERRIDE
       {
-        ResourceType rtype;
+        ResourceType resourceType;
         int64_t id;
-        if (!transaction.LookupResource(id, rtype, tuple.get<2>()) ||
-            rtype != tuple.get<3>())
+        if (!transaction.LookupResource(id, resourceType, tuple.get<3>()) ||
+            resourceType != tuple.get<4>())
         {
           throw OrthancException(ErrorCode_UnknownResource);
         }
         else
         {
-          tuple.get<0>() = transaction.LookupMetadata(tuple.get<1>(), id, tuple.get<4>());
+          tuple.get<0>() = transaction.LookupMetadata(tuple.get<1>(), tuple.get<2>(), id, tuple.get<5>());
         }
       }
     };
 
     bool found;
     Operations operations;
-    operations.Apply(*this, found, target, publicId, expectedType, type);
+    operations.Apply(*this, found, target, revision, publicId, expectedType, type);
     return found;
   }
 
@@ -2188,91 +2190,165 @@ namespace Orthanc
   }
 
 
-  void StatelessDatabaseOperations::SetMetadata(const std::string& publicId,
+  void StatelessDatabaseOperations::SetMetadata(int64_t& newRevision,
+                                                const std::string& publicId,
                                                 MetadataType type,
-                                                const std::string& value)
+                                                const std::string& value,
+                                                bool hasOldRevision,
+                                                int64_t oldRevision)
   {
     class Operations : public IReadWriteOperations
     {
     private:
+      int64_t&            newRevision_;
       const std::string&  publicId_;
       MetadataType        type_;
       const std::string&  value_;
+      bool                hasOldRevision_;
+      int64_t             oldRevision_;
 
     public:
-      Operations(const std::string& publicId,
+      Operations(int64_t& newRevision,
+                 const std::string& publicId,
                  MetadataType type,
-                 const std::string& value) :
+                 const std::string& value,
+                 bool hasOldRevision,
+                 int64_t oldRevision) :
+        newRevision_(newRevision),
         publicId_(publicId),
         type_(type),
-        value_(value)
+        value_(value),
+        hasOldRevision_(hasOldRevision),
+        oldRevision_(oldRevision)
       {
       }
 
       virtual void Apply(ReadWriteTransaction& transaction) ORTHANC_OVERRIDE
       {
-        ResourceType rtype;
+        ResourceType resourceType;
         int64_t id;
-        if (!transaction.LookupResource(id, rtype, publicId_))
+        if (!transaction.LookupResource(id, resourceType, publicId_))
         {
           throw OrthancException(ErrorCode_UnknownResource);
         }
         else
         {
-          transaction.SetMetadata(id, type_, value_);
+          std::string oldValue;
+          int64_t expectedRevision;
+          if (transaction.LookupMetadata(oldValue, expectedRevision, id, type_))
+          {
+            if (hasOldRevision_ &&
+                expectedRevision != oldRevision_)
+            {
+              throw OrthancException(ErrorCode_Revision);
+            }
+            else
+            {
+              newRevision_ = oldRevision_ + 1;
+            }
+          }
+          else
+          {
+            // The metadata is not existing yet: Ignore "oldRevision"
+            // and initialize a new sequence of revisions
+            newRevision_ = 0;
+          }
 
+          transaction.SetMetadata(id, type_, value_, newRevision_);
+          
           if (IsUserMetadata(type_))
           {
-            transaction.LogChange(id, ChangeType_UpdatedMetadata, rtype, publicId_);
+            transaction.LogChange(id, ChangeType_UpdatedMetadata, resourceType, publicId_);
           }
         }
       }
     };
 
-    Operations operations(publicId, type, value);
+    Operations operations(newRevision, publicId, type, value, hasOldRevision, oldRevision);
     Apply(operations);
   }
 
 
-  void StatelessDatabaseOperations::DeleteMetadata(const std::string& publicId,
-                                                   MetadataType type)
+  void StatelessDatabaseOperations::OverwriteMetadata(const std::string& publicId,
+                                                      MetadataType type,
+                                                      const std::string& value)
+  {
+    int64_t newRevision;  // Unused
+    SetMetadata(newRevision, publicId, type, value, false /* no old revision */, -1 /* dummy */);
+  }
+
+
+  bool StatelessDatabaseOperations::DeleteMetadata(const std::string& publicId,
+                                                   MetadataType type,
+                                                   bool hasRevision,
+                                                   int64_t revision)
   {
     class Operations : public IReadWriteOperations
     {
     private:
       const std::string&  publicId_;
       MetadataType        type_;
+      bool                hasRevision_;
+      int64_t             revision_;
+      bool                found_;
 
     public:
       Operations(const std::string& publicId,
-                 MetadataType type) :
+                 MetadataType type,
+                 bool hasRevision,
+                 int64_t revision) :
         publicId_(publicId),
-        type_(type)
+        type_(type),
+        hasRevision_(hasRevision),
+        revision_(revision),
+        found_(false)
       {
+      }
+
+      bool HasFound() const
+      {
+        return found_;
       }
 
       virtual void Apply(ReadWriteTransaction& transaction) ORTHANC_OVERRIDE
       {
-        ResourceType rtype;
+        ResourceType resourceType;
         int64_t id;
-        if (!transaction.LookupResource(id, rtype, publicId_))
+        if (!transaction.LookupResource(id, resourceType, publicId_))
         {
           throw OrthancException(ErrorCode_UnknownResource);
         }
         else
         {
-          transaction.DeleteMetadata(id, type_);
-
-          if (IsUserMetadata(type_))
+          std::string s;
+          int64_t expectedRevision;
+          if (transaction.LookupMetadata(s, expectedRevision, id, type_))
           {
-            transaction.LogChange(id, ChangeType_UpdatedMetadata, rtype, publicId_);
+            if (hasRevision_ &&
+                expectedRevision != revision_)
+            {
+              throw OrthancException(ErrorCode_Revision);
+            }
+            
+            found_ = true;
+            transaction.DeleteMetadata(id, type_);
+
+            if (IsUserMetadata(type_))
+            {
+              transaction.LogChange(id, ChangeType_UpdatedMetadata, resourceType, publicId_);
+            }
+          }
+          else
+          {
+            found_ = false;
           }
         }
       }
     };
 
-    Operations operations(publicId, type);
+    Operations operations(publicId, type, hasRevision, revision);
     Apply(operations);
+    return operations.HasFound();
   }
 
 
@@ -2421,9 +2497,9 @@ namespace Orthanc
         
       virtual void Apply(ReadWriteTransaction& transaction) ORTHANC_OVERRIDE
       {
-        ResourceType rtype;
+        ResourceType resourceType;
         int64_t id;
-        if (!transaction.LookupResource(id, rtype, publicId_))
+        if (!transaction.LookupResource(id, resourceType, publicId_))
         {
           throw OrthancException(ErrorCode_UnknownResource);
         }
@@ -2433,7 +2509,7 @@ namespace Orthanc
           
           if (IsUserContentType(type_))
           {
-            transaction.LogChange(id, ChangeType_UpdatedAttachment, rtype, publicId_);
+            transaction.LogChange(id, ChangeType_UpdatedAttachment, resourceType, publicId_);
           }
         }
       }
@@ -2512,6 +2588,24 @@ namespace Orthanc
       std::unique_ptr<DicomInstanceHasher>  hasher_;
       bool                                  hasTransferSyntax_;
       DicomTransferSyntax                   transferSyntax_;
+
+      static void ReplaceMetadata(ReadWriteTransaction& transaction,
+                                  int64_t instance,
+                                  MetadataType metadata,
+                                  const std::string& value)
+      {
+        std::string oldValue;
+        int64_t oldRevision;
+        
+        if (transaction.LookupMetadata(oldValue, oldRevision, instance, metadata))
+        {
+          transaction.SetMetadata(instance, metadata, value, oldRevision + 1);
+        }
+        else
+        {
+          transaction.SetMetadata(instance, metadata, value, 0);
+        }
+      }
       
     public:
       explicit Operations(const ParsedDicomFile& dicom)
@@ -2548,7 +2642,7 @@ namespace Orthanc
         transaction.ClearMainDicomTags(instance);
 
         {
-          ResourcesContent content;
+          ResourcesContent content(false /* prevent the setting of metadata */);
           content.AddResource(patient, ResourceType_Patient, summary_);
           content.AddResource(study, ResourceType_Study, summary_);
           content.AddResource(series, ResourceType_Series, summary_);
@@ -2558,7 +2652,7 @@ namespace Orthanc
 
         if (hasTransferSyntax_)
         {
-          transaction.SetMetadata(instance, MetadataType_Instance_TransferSyntax, GetTransferSyntaxUid(transferSyntax_));
+          ReplaceMetadata(transaction, instance, MetadataType_Instance_TransferSyntax, GetTransferSyntaxUid(transferSyntax_));
         }
 
         const DicomValue* value;
@@ -2566,7 +2660,7 @@ namespace Orthanc
             !value->IsNull() &&
             !value->IsBinary())
         {
-          transaction.SetMetadata(instance, MetadataType_Instance_SopClassUid, value->GetContent());
+          ReplaceMetadata(transaction, instance, MetadataType_Instance_SopClassUid, value->GetContent());
         }
       }
     };
@@ -2929,7 +3023,7 @@ namespace Orthanc
 
       
           {
-            ResourcesContent content;
+            ResourcesContent content(true /* new resource, metadata can be set */);
       
             // Populate the tags of the newly-created resources
 
