@@ -51,7 +51,12 @@ def CreateHeaders(parsedUrl):
         # Authentication (for some weird reason, this method does not
         # always work)
         # http://en.wikipedia.org/wiki/Basic_access_authentication
-        headers['authorization'] = 'Basic ' + base64.b64encode(username + ':' + password)
+
+        # The ".encode()" and ".decode()" below fix the following issue:
+        # https://groups.google.com/g/orthanc-users/c/KZ_iYOet5IQ/m/AUQWiSiAAQAJ
+        credentials = (username + ':' + password)
+        credentials_base64 = base64.b64encode(credentials.encode("ascii")).decode("ascii")
+        headers['authorization'] = 'Basic ' + credentials_base64
 
     return headers
 
