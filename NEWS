@@ -12,6 +12,7 @@ Maintenance
 -----------
 
 * Use the local timezone for query/retrieve in the Orthanc Explorer interface (was UTC before)
+* Fix "OrthancServer/Resources/Samples/Python/Replicate.py" for Python 3.x
 * Upgraded dependencies for static builds (notably on Windows and LSB):
   - civetweb 1.14
 
