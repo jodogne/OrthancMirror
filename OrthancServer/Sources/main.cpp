@@ -723,6 +723,8 @@ static void PrintErrors(const char* path)
     PrintErrorCode(ErrorCode_SslInitialization, "Cannot initialize SSL encryption, check out your certificates");
     PrintErrorCode(ErrorCode_DiscontinuedAbi, "Calling a function that has been removed from the Orthanc Framework");
     PrintErrorCode(ErrorCode_BadRange, "Incorrect range request");
+    PrintErrorCode(ErrorCode_DatabaseCannotSerialize, "Database could not serialize access due to concurrent update, the transaction should be retried");
+    PrintErrorCode(ErrorCode_Revision, "A bad revision number was provided, which might indicate conflict between multiple writers");
     PrintErrorCode(ErrorCode_SQLiteNotOpened, "SQLite: The database is not opened");
     PrintErrorCode(ErrorCode_SQLiteAlreadyOpened, "SQLite: Connection is already open");
     PrintErrorCode(ErrorCode_SQLiteCannotOpen, "SQLite: Unable to open the database");
@@ -1352,6 +1354,7 @@ namespace
       {
         plugins_->SetServerContext(context_);
         context_.SetPlugins(*plugins_);
+        context_.GetIndex().SetMaxDatabaseRetries(plugins_->GetMaxDatabaseRetries());
       }
 #endif
     }
@@ -1486,6 +1489,25 @@ static bool ConfigureDatabase(IDatabaseWrapper& database,
                            ": Please run Orthanc with the \"--upgrade\" argument");
   }
 
+  {
+    static const char* const CHECK_REVISIONS = "CheckRevisions";
+    
+    OrthancConfiguration::ReaderLock lock;
+    if (lock.GetConfiguration().GetBooleanParameter(CHECK_REVISIONS, false))
+    {
+      if (database.HasRevisionsSupport())
+      {
+        LOG(INFO) << "Handling of revisions is enabled, and the custom database back-end *has* "
+                  << "support for revisions of metadata and attachments";
+      }
+      else
+      {
+        LOG(WARNING) << "The custom database back-end has *no* support for revisions of metadata and attachments, "
+                     << "but configuration option \"" << CHECK_REVISIONS << "\" is set to \"true\"";
+      }
+    }
+  }
+
   bool success = ConfigureServerContext
     (database, storageArea, plugins, loadJobsFromDatabase);
 
@@ -1504,7 +1526,13 @@ static bool ConfigurePlugins(int argc,
   std::unique_ptr<IStorageArea>  storage;
 
 #if ORTHANC_ENABLE_PLUGINS == 1
-  OrthancPlugins plugins;
+  std::string databaseServerIdentifier;
+  {
+    OrthancConfiguration::ReaderLock lock;
+    databaseServerIdentifier = lock.GetConfiguration().GetDatabaseServerIdentifier();
+  }
+  
+  OrthancPlugins plugins(databaseServerIdentifier);
   plugins.SetCommandLineArguments(argc, argv);
   LoadPlugins(plugins);
 

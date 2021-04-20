@@ -66,7 +66,7 @@ namespace Orthanc
                                          const std::string& start,
                                          const std::string& end) = 0;
 
-      static void Apply(IDatabaseWrapper& database,
+      static void Apply(IDatabaseWrapper::ITransaction& transaction,
                         ILookupResources& compatibility,
                         std::list<std::string>& resourcesId,
                         std::list<std::string>* instancesId,

@@ -208,7 +208,8 @@ namespace Orthanc
 
       try
       {
-        if (index.LookupMetadata(s, instanceId, ResourceType_Instance, MetadataType_Instance_IndexInSeries))
+        int64_t revision;  // Ignored
+        if (index.LookupMetadata(s, revision, instanceId, ResourceType_Instance, MetadataType_Instance_IndexInSeries))
         {
           indexInSeries_ = boost::lexical_cast<size_t>(Toolbox::StripSpaces(s));
           hasIndexInSeries_ = true;

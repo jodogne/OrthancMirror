@@ -38,6 +38,7 @@
 #include "OrthancRestApi/OrthancRestApi.h"
 #include "ServerContext.h"
 
+#include "../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.h"
 #include "../../OrthancFramework/Sources/HttpServer/StringHttpOutput.h"
 #include "../../OrthancFramework/Sources/Logging.h"
 #include "../../OrthancFramework/Sources/Lua/LuaFunctionCall.h"
@@ -126,6 +127,82 @@ namespace Orthanc
   private:
     ServerIndexChange  change_;
 
+    class GetInfoOperations : public ServerIndex::IReadOnlyOperations
+    {
+    private:
+      const ServerIndexChange&            change_;
+      bool                                ok_;
+      DicomMap                            tags_;
+      std::map<MetadataType, std::string> metadata_;      
+
+    public:
+      explicit GetInfoOperations(const ServerIndexChange& change) :
+        change_(change),
+        ok_(false)
+      {
+      }
+      
+      virtual void Apply(ServerIndex::ReadOnlyTransaction& transaction) ORTHANC_OVERRIDE
+      {
+        int64_t internalId;
+        ResourceType level;
+        if (transaction.LookupResource(internalId, level, change_.GetPublicId()) &&
+            level == change_.GetResourceType())
+        {
+          transaction.GetMainDicomTags(tags_, internalId);
+          transaction.GetAllMetadata(metadata_, internalId);
+          ok_ = true;
+        }
+      }
+
+      void CallLua(LuaScripting& that,
+                   const char* name) const
+      {
+        if (ok_)
+        {
+          Json::Value formattedMetadata = Json::objectValue;
+
+          for (std::map<MetadataType, std::string>::const_iterator 
+                 it = metadata_.begin(); it != metadata_.end(); ++it)
+          {
+            std::string key = EnumerationToString(it->first);
+            formattedMetadata[key] = it->second;
+          }      
+
+          {
+            LuaScripting::Lock lock(that);
+
+            if (lock.GetLua().IsExistingFunction(name))
+            {
+              that.InitializeJob();
+
+              Json::Value json = Json::objectValue;
+
+              if (change_.GetResourceType() == ResourceType_Study)
+              {
+                DicomMap t;
+                tags_.ExtractStudyInformation(t);  // Discard patient-related tags
+                FromDcmtkBridge::ToJson(json, t, true);
+              }
+              else
+              {
+                FromDcmtkBridge::ToJson(json, tags_, true);
+              }
+
+              LuaFunctionCall call(lock.GetLua(), name);
+              call.PushString(change_.GetPublicId());
+              call.PushJson(json);
+              call.PushJson(formattedMetadata);
+              call.Execute();
+
+              that.SubmitJob();
+            }
+          }
+        }
+      }
+    };
+    
+
   public:
     explicit StableResourceEvent(const ServerIndexChange& change) :
       change_(change)
@@ -164,39 +241,9 @@ namespace Orthanc
         }
       }
       
-      Json::Value tags;
-      
-      if (that.context_.GetIndex().LookupResource(tags, change_.GetPublicId(), change_.GetResourceType()))
-      {
-        std::map<MetadataType, std::string> metadata;
-        that.context_.GetIndex().GetAllMetadata(metadata, change_.GetPublicId(), change_.GetResourceType());
-        
-        Json::Value formattedMetadata = Json::objectValue;
-
-        for (std::map<MetadataType, std::string>::const_iterator 
-               it = metadata.begin(); it != metadata.end(); ++it)
-        {
-          std::string key = EnumerationToString(it->first);
-          formattedMetadata[key] = it->second;
-        }      
-
-        {
-          LuaScripting::Lock lock(that);
-
-          if (lock.GetLua().IsExistingFunction(name))
-          {
-            that.InitializeJob();
-
-            LuaFunctionCall call(lock.GetLua(), name);
-            call.PushString(change_.GetPublicId());
-            call.PushJson(tags["MainDicomTags"]);
-            call.PushJson(formattedMetadata);
-            call.Execute();
-
-            that.SubmitJob();
-          }
-        }
-      }
+      GetInfoOperations operations(change_);
+      that.context_.GetIndex().Apply(operations);
+      operations.CallLua(that, name);
     }
   };
 

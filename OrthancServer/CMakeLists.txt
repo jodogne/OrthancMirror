@@ -98,6 +98,8 @@ set(ORTHANC_SERVER_SOURCES
   ${CMAKE_SOURCE_DIR}/Sources/Database/Compatibility/SetOfResources.cpp
   ${CMAKE_SOURCE_DIR}/Sources/Database/ResourcesContent.cpp
   ${CMAKE_SOURCE_DIR}/Sources/Database/SQLiteDatabaseWrapper.cpp
+  ${CMAKE_SOURCE_DIR}/Sources/Database/StatelessDatabaseOperations.cpp
+  ${CMAKE_SOURCE_DIR}/Sources/Database/VoidDatabaseListener.cpp
   ${CMAKE_SOURCE_DIR}/Sources/DicomInstanceOrigin.cpp
   ${CMAKE_SOURCE_DIR}/Sources/DicomInstanceToStore.cpp
   ${CMAKE_SOURCE_DIR}/Sources/EmbeddedResourceHttpHandler.cpp
@@ -186,6 +188,7 @@ if (ENABLE_PLUGINS)
 
   list(APPEND ORTHANC_SERVER_SOURCES
     ${CMAKE_SOURCE_DIR}/Plugins/Engine/OrthancPluginDatabase.cpp
+    ${CMAKE_SOURCE_DIR}/Plugins/Engine/OrthancPluginDatabaseV3.cpp
     ${CMAKE_SOURCE_DIR}/Plugins/Engine/OrthancPlugins.cpp
     ${CMAKE_SOURCE_DIR}/Plugins/Engine/PluginsEnumerations.cpp
     ${CMAKE_SOURCE_DIR}/Plugins/Engine/PluginsErrorDictionary.cpp

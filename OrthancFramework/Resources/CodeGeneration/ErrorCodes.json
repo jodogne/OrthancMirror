@@ -232,6 +232,18 @@
     "HttpStatus" : 416,
     "Name": "BadRange",
     "Description": "Incorrect range request"
+  },
+  {
+    "Code": 42,
+    "HttpStatus": 503,
+    "Name": "DatabaseCannotSerialize",
+    "Description": "Database could not serialize access due to concurrent update, the transaction should be retried"
+  }, 
+  {
+    "Code": 43,
+    "HttpStatus": 409,
+    "Name": "Revision",
+    "Description": "A bad revision number was provided, which might indicate conflict between multiple writers"
   }, 
 
 

@@ -33,27 +33,24 @@
 
 #pragma once
 
-#include "../../../OrthancFramework/Sources/FileStorage/FileInfo.h"
-#include "../ServerEnumerations.h"
-
-#include <boost/noncopyable.hpp>
-#include <string>
+#include "../../../OrthancFramework/Sources/Compatibility.h"
+#include "IDatabaseListener.h"
 
 namespace Orthanc
 {
-  class IDatabaseListener : public boost::noncopyable
+  /**
+   * This is a listener that can be used for transactions that do
+   * not create/delete attachments or resources.
+   **/
+  class VoidDatabaseListener : public IDatabaseListener
   {
   public:
-    virtual ~IDatabaseListener()
-    {
-    }
-
     virtual void SignalRemainingAncestor(ResourceType parentType,
-                                         const std::string& publicId) = 0;
-
-    virtual void SignalAttachmentDeleted(const FileInfo& info) = 0;
+                                         const std::string& publicId) ORTHANC_OVERRIDE;
+      
+    virtual void SignalAttachmentDeleted(const FileInfo& info) ORTHANC_OVERRIDE;
 
     virtual void SignalResourceDeleted(ResourceType type,
-                                       const std::string& publicId) = 0;
+                                       const std::string& publicId) ORTHANC_OVERRIDE;
   };
 }

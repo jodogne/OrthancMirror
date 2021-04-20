@@ -34,7 +34,6 @@
 #include "PrecompiledHeadersServer.h"
 #include "ServerToolbox.h"
 
-#include "../../OrthancFramework/Sources/DicomFormat/DicomArray.h"
 #include "../../OrthancFramework/Sources/DicomParsing/ParsedDicomFile.h"
 #include "../../OrthancFramework/Sources/FileStorage/StorageAccessor.h"
 #include "../../OrthancFramework/Sources/Logging.h"
@@ -77,95 +76,10 @@ namespace Orthanc
   };
 
 
-  static void StoreMainDicomTagsInternal(ResourcesContent& target,
-                                         int64_t resource,
-                                         const DicomMap& tags)
-  {
-    DicomArray flattened(tags);
-
-    for (size_t i = 0; i < flattened.GetSize(); i++)
-    {
-      const DicomElement& element = flattened.GetElement(i);
-      const DicomTag& tag = element.GetTag();
-      const DicomValue& value = element.GetValue();
-      if (!value.IsNull() && 
-          !value.IsBinary())
-      {
-        target.AddMainDicomTag(resource, tag, element.GetValue().GetContent());
-      }
-    }
-  }
-
-
-  static void StoreIdentifiers(ResourcesContent& target,
-                               int64_t resource,
-                               ResourceType level,
-                               const DicomMap& map)
-  {
-    const DicomTag* tags;
-    size_t size;
-
-    ServerToolbox::LoadIdentifiers(tags, size, level);
-
-    for (size_t i = 0; i < size; i++)
-    {
-      // The identifiers tags are a subset of the main DICOM tags
-      assert(DicomMap::IsMainDicomTag(tags[i]));
-        
-      const DicomValue* value = map.TestAndGetValue(tags[i]);
-      if (value != NULL &&
-          !value->IsNull() &&
-          !value->IsBinary())
-      {
-        std::string s = ServerToolbox::NormalizeIdentifier(value->GetContent());
-        target.AddIdentifierTag(resource, tags[i], s);
-      }
-    }
-  }
-
-
-  void ResourcesContent::AddResource(int64_t resource,
-                                     ResourceType level,
-                                     const DicomMap& dicomSummary)
-  {
-    StoreIdentifiers(*this, resource, level, dicomSummary);
-
-    DicomMap tags;
-
-    switch (level)
-    {
-      case ResourceType_Patient:
-        dicomSummary.ExtractPatientInformation(tags);
-        break;
-
-      case ResourceType_Study:
-        // Duplicate the patient tags at the study level (new in Orthanc 0.9.5 - db v6)
-        dicomSummary.ExtractPatientInformation(tags);
-        StoreMainDicomTagsInternal(*this, resource, tags);
-
-        dicomSummary.ExtractStudyInformation(tags);
-        break;
-
-      case ResourceType_Series:
-        dicomSummary.ExtractSeriesInformation(tags);
-        break;
-
-      case ResourceType_Instance:
-        dicomSummary.ExtractInstanceInformation(tags);
-        break;
-
-      default:
-        throw OrthancException(ErrorCode_InternalError);
-    }
-
-    StoreMainDicomTagsInternal(*this, resource, tags);
-  }
-
-
   namespace ServerToolbox
   {
     bool FindOneChildInstance(int64_t& result,
-                              IDatabaseWrapper& database,
+                              IDatabaseWrapper::ITransaction& transaction,
                               int64_t resource,
                               ResourceType type)
     {
@@ -178,7 +92,7 @@ namespace Orthanc
         }
 
         std::list<int64_t> children;
-        database.GetChildrenInternalId(children, resource);
+        transaction.GetChildrenInternalId(children, resource);
         if (children.empty())
         {
           return false;
@@ -190,7 +104,7 @@ namespace Orthanc
     }
 
 
-    void ReconstructMainDicomTags(IDatabaseWrapper& database,
+    void ReconstructMainDicomTags(IDatabaseWrapper::ITransaction& transaction,
                                   IStorageArea& storageArea,
                                   ResourceType level)
     {
@@ -230,7 +144,7 @@ namespace Orthanc
       LOG(WARNING) << "Upgrade: Reconstructing the main DICOM tags of all the " << plural << "...";
 
       std::list<std::string> resources;
-      database.GetAllPublicIds(resources, level);
+      transaction.GetAllPublicIds(resources, level);
 
       for (std::list<std::string>::const_iterator
              it = resources.begin(); it != resources.end(); ++it)
@@ -239,9 +153,9 @@ namespace Orthanc
         int64_t resource, instance;
         ResourceType tmp;
 
-        if (!database.LookupResource(resource, tmp, *it) ||
+        if (!transaction.LookupResource(resource, tmp, *it) ||
             tmp != level ||
-            !FindOneChildInstance(instance, database, resource, level))
+            !FindOneChildInstance(instance, transaction, resource, level))
         {
           throw OrthancException(ErrorCode_InternalError,
                                  "Cannot find an instance for " +
@@ -251,11 +165,12 @@ namespace Orthanc
 
         // Get the DICOM file attached to some instances in the resource
         FileInfo attachment;
-        if (!database.LookupAttachment(attachment, instance, FileContentType_Dicom))
+        int64_t revision;
+        if (!transaction.LookupAttachment(attachment, revision, instance, FileContentType_Dicom))
         {
           throw OrthancException(ErrorCode_InternalError,
                                  "Cannot retrieve the DICOM file associated with instance " +
-                                 database.GetPublicId(instance));
+                                 transaction.GetPublicId(instance));
         }
 
         try
@@ -272,16 +187,16 @@ namespace Orthanc
           DicomMap dicomSummary;
           OrthancConfiguration::DefaultExtractDicomSummary(dicomSummary, dicom);
 
-          database.ClearMainDicomTags(resource);
+          transaction.ClearMainDicomTags(resource);
 
-          ResourcesContent tags;
+          ResourcesContent tags(false /* prevent the setting of metadata */);
           tags.AddResource(resource, level, dicomSummary);
-          database.SetResourcesContent(tags);
+          transaction.SetResourcesContent(tags);
         }
         catch (OrthancException&)
         {
           LOG(ERROR) << "Cannot decode the DICOM file with UUID " << attachment.GetUuid()
-                     << " associated with instance " << database.GetPublicId(instance);
+                     << " associated with instance " << transaction.GetPublicId(instance);
           throw;
         }
       }
@@ -380,7 +295,8 @@ namespace Orthanc
         ServerContext::DicomCacheLocker locker(context, *it);
 
         // Delay the reconstruction of DICOM-as-JSON to its next access through "ServerContext"
-        context.GetIndex().DeleteAttachment(*it, FileContentType_DicomAsJson);
+        context.GetIndex().DeleteAttachment(
+          *it, FileContentType_DicomAsJson, false /* no revision */, -1 /* dummy revision */);
         
         context.GetIndex().ReconstructInstance(locker.GetDicom());
       }

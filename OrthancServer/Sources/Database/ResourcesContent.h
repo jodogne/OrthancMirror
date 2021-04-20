@@ -89,10 +89,16 @@ namespace Orthanc
     typedef std::list<Metadata>  ListMetadata;
     
   private:
+    bool           isNewResource_;
     ListTags       tags_;
     ListMetadata   metadata_;
 
   public:
+    explicit ResourcesContent(bool isNewResource) :
+      isNewResource_(isNewResource)
+    {
+    }
+    
     void AddMainDicomTag(int64_t resourceId,
                          const DicomTag& tag,
                          const std::string& value)
@@ -109,10 +115,7 @@ namespace Orthanc
 
     void AddMetadata(int64_t resourceId,
                      MetadataType metadata,
-                     const std::string& value)
-    {
-      metadata_.push_back(Metadata(resourceId, metadata, value));
-    }
+                     const std::string& value);
 
     void AddResource(int64_t resource,
                      ResourceType level,

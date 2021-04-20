@@ -59,6 +59,11 @@ namespace Orthanc
       return convertJsonToXml_;
     }
 
+    HttpOutput& GetLowLevelOutput() const
+    {
+      return output_;
+    }
+
     void AnswerStream(IHttpStreamAnswer& stream);
 
     void AnswerJson(const Json::Value& value);

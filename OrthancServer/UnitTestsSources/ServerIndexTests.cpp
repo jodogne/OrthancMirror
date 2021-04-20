@@ -75,23 +75,18 @@ namespace
       ancestorType_ = type;
     }
 
-    virtual void SignalFileDeleted(const FileInfo& info) ORTHANC_OVERRIDE
+    virtual void SignalAttachmentDeleted(const FileInfo& info) ORTHANC_OVERRIDE
     {
       const std::string fileUuid = info.GetUuid();
       deletedFiles_.push_back(fileUuid);
       LOG(INFO) << "A file must be removed: " << fileUuid;
     }       
 
-    virtual void SignalChange(const ServerIndexChange& change) ORTHANC_OVERRIDE
+    virtual void SignalResourceDeleted(ResourceType type,
+                                       const std::string& publicId) ORTHANC_OVERRIDE
     {
-      if (change.GetChangeType() == ChangeType_Deleted)
-      {
-        deletedResources_.push_back(change.GetPublicId());        
-      }
-
-      LOG(INFO) << "Change related to resource " << change.GetPublicId() << " of type " 
-                << EnumerationToString(change.GetResourceType()) << ": " 
-                << EnumerationToString(change.GetChangeType());
+      LOG(INFO) << "Deleted resource " << publicId << " of type " << EnumerationToString(type);
+      deletedResources_.push_back(publicId);
     }
   };
 
@@ -101,6 +96,7 @@ namespace
   protected:
     std::unique_ptr<TestDatabaseListener>  listener_;
     std::unique_ptr<SQLiteDatabaseWrapper> index_;
+    std::unique_ptr<SQLiteDatabaseWrapper::UnitTestsTransaction>  transaction_;
 
   public:
     DatabaseWrapperTest()
@@ -111,12 +107,16 @@ namespace
     {
       listener_.reset(new TestDatabaseListener);
       index_.reset(new SQLiteDatabaseWrapper);
-      index_->SetListener(*listener_);
       index_->Open();
+      transaction_.reset(dynamic_cast<SQLiteDatabaseWrapper::UnitTestsTransaction*>(
+                           index_->StartTransaction(TransactionType_ReadWrite, *listener_)));
     }
 
     virtual void TearDown() ORTHANC_OVERRIDE
     {
+      transaction_->Commit(0);
+      transaction_.reset();
+      
       index_->Close();
       index_.reset(NULL);
       listener_.reset(NULL);
@@ -124,33 +124,33 @@ namespace
 
     void CheckTableRecordCount(uint32_t expected, const char* table)
     {
-      ASSERT_EQ(expected, index_->GetTableRecordCount(table));
+      ASSERT_EQ(expected, transaction_->GetTableRecordCount(table));
     }
 
     void CheckNoParent(int64_t id)
     {
       std::string s;
-      ASSERT_FALSE(index_->GetParentPublicId(s, id));
+      ASSERT_FALSE(transaction_->GetParentPublicId(s, id));
     }
 
     void CheckParentPublicId(const char* expected, int64_t id)
     {
       std::string s;
-      ASSERT_TRUE(index_->GetParentPublicId(s, id));
+      ASSERT_TRUE(transaction_->GetParentPublicId(s, id));
       ASSERT_EQ(expected, s);
     }
 
     void CheckNoChild(int64_t id)
     {
       std::list<std::string> j;
-      index_->GetChildren(j, id);
+      transaction_->GetChildren(j, id);
       ASSERT_EQ(0u, j.size());
     }
 
     void CheckOneChild(const char* expected, int64_t id)
     {
       std::list<std::string> j;
-      index_->GetChildren(j, id);
+      transaction_->GetChildren(j, id);
       ASSERT_EQ(1u, j.size());
       ASSERT_EQ(expected, j.front());
     }
@@ -160,7 +160,7 @@ namespace
                           int64_t id)
     {
       std::list<std::string> j;
-      index_->GetChildren(j, id);
+      transaction_->GetChildren(j, id);
       ASSERT_EQ(2u, j.size());
       ASSERT_TRUE((expected1 == j.front() && expected2 == j.back()) ||
                   (expected1 == j.back() && expected2 == j.front()));                    
@@ -179,7 +179,7 @@ namespace
       std::vector<DatabaseConstraint> lookup;
       lookup.push_back(c.ConvertToDatabaseConstraint(level, DicomTagType_Identifier));
       
-      index_->ApplyLookupResources(result, NULL, lookup, level, 0 /* no limit */);
+      transaction_->ApplyLookupResources(result, NULL, lookup, level, 0 /* no limit */);
     }    
 
     void DoLookupIdentifier2(std::list<std::string>& result,
@@ -199,7 +199,7 @@ namespace
       lookup.push_back(c1.ConvertToDatabaseConstraint(level, DicomTagType_Identifier));
       lookup.push_back(c2.ConvertToDatabaseConstraint(level, DicomTagType_Identifier));
       
-      index_->ApplyLookupResources(result, NULL, lookup, level, 0 /* no limit */);
+      transaction_->ApplyLookupResources(result, NULL, lookup, level, 0 /* no limit */);
     }
   };
 }
@@ -208,65 +208,65 @@ namespace
 TEST_F(DatabaseWrapperTest, Simple)
 {
   int64_t a[] = {
-    index_->CreateResource("a", ResourceType_Patient),   // 0
-    index_->CreateResource("b", ResourceType_Study),     // 1
-    index_->CreateResource("c", ResourceType_Series),    // 2
-    index_->CreateResource("d", ResourceType_Instance),  // 3
-    index_->CreateResource("e", ResourceType_Instance),  // 4
-    index_->CreateResource("f", ResourceType_Instance),  // 5
-    index_->CreateResource("g", ResourceType_Study)      // 6
+    transaction_->CreateResource("a", ResourceType_Patient),   // 0
+    transaction_->CreateResource("b", ResourceType_Study),     // 1
+    transaction_->CreateResource("c", ResourceType_Series),    // 2
+    transaction_->CreateResource("d", ResourceType_Instance),  // 3
+    transaction_->CreateResource("e", ResourceType_Instance),  // 4
+    transaction_->CreateResource("f", ResourceType_Instance),  // 5
+    transaction_->CreateResource("g", ResourceType_Study)      // 6
   };
 
-  ASSERT_EQ("a", index_->GetPublicId(a[0]));
-  ASSERT_EQ("b", index_->GetPublicId(a[1]));
-  ASSERT_EQ("c", index_->GetPublicId(a[2]));
-  ASSERT_EQ("d", index_->GetPublicId(a[3]));
-  ASSERT_EQ("e", index_->GetPublicId(a[4]));
-  ASSERT_EQ("f", index_->GetPublicId(a[5]));
-  ASSERT_EQ("g", index_->GetPublicId(a[6]));
+  ASSERT_EQ("a", transaction_->GetPublicId(a[0]));
+  ASSERT_EQ("b", transaction_->GetPublicId(a[1]));
+  ASSERT_EQ("c", transaction_->GetPublicId(a[2]));
+  ASSERT_EQ("d", transaction_->GetPublicId(a[3]));
+  ASSERT_EQ("e", transaction_->GetPublicId(a[4]));
+  ASSERT_EQ("f", transaction_->GetPublicId(a[5]));
+  ASSERT_EQ("g", transaction_->GetPublicId(a[6]));
 
-  ASSERT_EQ(ResourceType_Patient, index_->GetResourceType(a[0]));
-  ASSERT_EQ(ResourceType_Study, index_->GetResourceType(a[1]));
-  ASSERT_EQ(ResourceType_Series, index_->GetResourceType(a[2]));
-  ASSERT_EQ(ResourceType_Instance, index_->GetResourceType(a[3]));
-  ASSERT_EQ(ResourceType_Instance, index_->GetResourceType(a[4]));
-  ASSERT_EQ(ResourceType_Instance, index_->GetResourceType(a[5]));
-  ASSERT_EQ(ResourceType_Study, index_->GetResourceType(a[6]));
+  ASSERT_EQ(ResourceType_Patient, transaction_->GetResourceType(a[0]));
+  ASSERT_EQ(ResourceType_Study, transaction_->GetResourceType(a[1]));
+  ASSERT_EQ(ResourceType_Series, transaction_->GetResourceType(a[2]));
+  ASSERT_EQ(ResourceType_Instance, transaction_->GetResourceType(a[3]));
+  ASSERT_EQ(ResourceType_Instance, transaction_->GetResourceType(a[4]));
+  ASSERT_EQ(ResourceType_Instance, transaction_->GetResourceType(a[5]));
+  ASSERT_EQ(ResourceType_Study, transaction_->GetResourceType(a[6]));
 
   {
     std::list<std::string> t;
-    index_->GetAllPublicIds(t, ResourceType_Patient);
+    transaction_->GetAllPublicIds(t, ResourceType_Patient);
 
     ASSERT_EQ(1u, t.size());
     ASSERT_EQ("a", t.front());
 
-    index_->GetAllPublicIds(t, ResourceType_Series);
+    transaction_->GetAllPublicIds(t, ResourceType_Series);
     ASSERT_EQ(1u, t.size());
     ASSERT_EQ("c", t.front());
 
-    index_->GetAllPublicIds(t, ResourceType_Study);
+    transaction_->GetAllPublicIds(t, ResourceType_Study);
     ASSERT_EQ(2u, t.size());
 
-    index_->GetAllPublicIds(t, ResourceType_Instance);
+    transaction_->GetAllPublicIds(t, ResourceType_Instance);
     ASSERT_EQ(3u, t.size());
   }
 
-  index_->SetGlobalProperty(GlobalProperty_FlushSleep, "World");
+  transaction_->SetGlobalProperty(GlobalProperty_FlushSleep, true, "World");
 
-  index_->AttachChild(a[0], a[1]);
-  index_->AttachChild(a[1], a[2]);
-  index_->AttachChild(a[2], a[3]);
-  index_->AttachChild(a[2], a[4]);
-  index_->AttachChild(a[6], a[5]);
+  transaction_->AttachChild(a[0], a[1]);
+  transaction_->AttachChild(a[1], a[2]);
+  transaction_->AttachChild(a[2], a[3]);
+  transaction_->AttachChild(a[2], a[4]);
+  transaction_->AttachChild(a[6], a[5]);
 
   int64_t parent;
-  ASSERT_FALSE(index_->LookupParent(parent, a[0]));
-  ASSERT_TRUE(index_->LookupParent(parent, a[1])); ASSERT_EQ(a[0], parent);
-  ASSERT_TRUE(index_->LookupParent(parent, a[2])); ASSERT_EQ(a[1], parent);
-  ASSERT_TRUE(index_->LookupParent(parent, a[3])); ASSERT_EQ(a[2], parent);
-  ASSERT_TRUE(index_->LookupParent(parent, a[4])); ASSERT_EQ(a[2], parent);
-  ASSERT_TRUE(index_->LookupParent(parent, a[5])); ASSERT_EQ(a[6], parent);
-  ASSERT_FALSE(index_->LookupParent(parent, a[6]));
+  ASSERT_FALSE(transaction_->LookupParent(parent, a[0]));
+  ASSERT_TRUE(transaction_->LookupParent(parent, a[1])); ASSERT_EQ(a[0], parent);
+  ASSERT_TRUE(transaction_->LookupParent(parent, a[2])); ASSERT_EQ(a[1], parent);
+  ASSERT_TRUE(transaction_->LookupParent(parent, a[3])); ASSERT_EQ(a[2], parent);
+  ASSERT_TRUE(transaction_->LookupParent(parent, a[4])); ASSERT_EQ(a[2], parent);
+  ASSERT_TRUE(transaction_->LookupParent(parent, a[5])); ASSERT_EQ(a[6], parent);
+  ASSERT_FALSE(transaction_->LookupParent(parent, a[6]));
 
   std::string s;
 
@@ -279,14 +279,14 @@ TEST_F(DatabaseWrapperTest, Simple)
   CheckParentPublicId("g", a[5]);
 
   std::list<std::string> l;
-  index_->GetChildrenPublicId(l, a[0]); ASSERT_EQ(1u, l.size()); ASSERT_EQ("b", l.front());
-  index_->GetChildrenPublicId(l, a[1]); ASSERT_EQ(1u, l.size()); ASSERT_EQ("c", l.front());
-  index_->GetChildrenPublicId(l, a[3]); ASSERT_EQ(0u, l.size()); 
-  index_->GetChildrenPublicId(l, a[4]); ASSERT_EQ(0u, l.size()); 
-  index_->GetChildrenPublicId(l, a[5]); ASSERT_EQ(0u, l.size()); 
-  index_->GetChildrenPublicId(l, a[6]); ASSERT_EQ(1u, l.size()); ASSERT_EQ("f", l.front());
+  transaction_->GetChildrenPublicId(l, a[0]); ASSERT_EQ(1u, l.size()); ASSERT_EQ("b", l.front());
+  transaction_->GetChildrenPublicId(l, a[1]); ASSERT_EQ(1u, l.size()); ASSERT_EQ("c", l.front());
+  transaction_->GetChildrenPublicId(l, a[3]); ASSERT_EQ(0u, l.size()); 
+  transaction_->GetChildrenPublicId(l, a[4]); ASSERT_EQ(0u, l.size()); 
+  transaction_->GetChildrenPublicId(l, a[5]); ASSERT_EQ(0u, l.size()); 
+  transaction_->GetChildrenPublicId(l, a[6]); ASSERT_EQ(1u, l.size()); ASSERT_EQ("f", l.front());
 
-  index_->GetChildrenPublicId(l, a[2]); ASSERT_EQ(2u, l.size()); 
+  transaction_->GetChildrenPublicId(l, a[2]); ASSERT_EQ(2u, l.size()); 
   if (l.front() == "d")
   {
     ASSERT_EQ("e", l.back());
@@ -298,64 +298,72 @@ TEST_F(DatabaseWrapperTest, Simple)
   }
 
   std::map<MetadataType, std::string> md;
-  index_->GetAllMetadata(md, a[4]);
+  transaction_->GetAllMetadata(md, a[4]);
   ASSERT_EQ(0u, md.size());
 
-  index_->AddAttachment(a[4], FileInfo("my json file", FileContentType_DicomAsJson, 42, "md5", 
-                                       CompressionType_ZlibWithSize, 21, "compressedMD5"));
-  index_->AddAttachment(a[4], FileInfo("my dicom file", FileContentType_Dicom, 42, "md5"));
-  index_->AddAttachment(a[6], FileInfo("world", FileContentType_Dicom, 44, "md5"));
-  index_->SetMetadata(a[4], MetadataType_RemoteAet, "PINNACLE");
+  transaction_->AddAttachment(a[4], FileInfo("my json file", FileContentType_DicomAsJson, 42, "md5", 
+                                             CompressionType_ZlibWithSize, 21, "compressedMD5"), 42);
+  transaction_->AddAttachment(a[4], FileInfo("my dicom file", FileContentType_Dicom, 42, "md5"), 43);
+  transaction_->AddAttachment(a[6], FileInfo("world", FileContentType_Dicom, 44, "md5"), 44);
   
-  index_->GetAllMetadata(md, a[4]);
+  // TODO - REVISIONS - "42" is revision number, that is not currently stored (*)
+  transaction_->SetMetadata(a[4], MetadataType_RemoteAet, "PINNACLE", 42);
+  
+  transaction_->GetAllMetadata(md, a[4]);
   ASSERT_EQ(1u, md.size());
   ASSERT_EQ("PINNACLE", md[MetadataType_RemoteAet]);
-  index_->SetMetadata(a[4], MetadataType_ModifiedFrom, "TUTU");
-  index_->GetAllMetadata(md, a[4]);
+  transaction_->SetMetadata(a[4], MetadataType_ModifiedFrom, "TUTU", 10);
+  transaction_->GetAllMetadata(md, a[4]);
   ASSERT_EQ(2u, md.size());
 
   std::map<MetadataType, std::string> md2;
-  index_->GetAllMetadata(md2, a[4]);
+  transaction_->GetAllMetadata(md2, a[4]);
   ASSERT_EQ(2u, md2.size());
   ASSERT_EQ("TUTU", md2[MetadataType_ModifiedFrom]);
   ASSERT_EQ("PINNACLE", md2[MetadataType_RemoteAet]);
 
-  index_->DeleteMetadata(a[4], MetadataType_ModifiedFrom);
-  index_->GetAllMetadata(md, a[4]);
+  transaction_->DeleteMetadata(a[4], MetadataType_ModifiedFrom);
+  transaction_->GetAllMetadata(md, a[4]);
   ASSERT_EQ(1u, md.size());
   ASSERT_EQ("PINNACLE", md[MetadataType_RemoteAet]);
 
-  index_->GetAllMetadata(md2, a[4]);
+  transaction_->GetAllMetadata(md2, a[4]);
   ASSERT_EQ(1u, md2.size());
   ASSERT_EQ("PINNACLE", md2[MetadataType_RemoteAet]);
 
 
-  ASSERT_EQ(21u + 42u + 44u, index_->GetTotalCompressedSize());
-  ASSERT_EQ(42u + 42u + 44u, index_->GetTotalUncompressedSize());
+  ASSERT_EQ(21u + 42u + 44u, transaction_->GetTotalCompressedSize());
+  ASSERT_EQ(42u + 42u + 44u, transaction_->GetTotalUncompressedSize());
 
-  index_->SetMainDicomTag(a[3], DicomTag(0x0010, 0x0010), "PatientName");
+  transaction_->SetMainDicomTag(a[3], DicomTag(0x0010, 0x0010), "PatientName");
 
   int64_t b;
   ResourceType t;
-  ASSERT_TRUE(index_->LookupResource(b, t, "g"));
+  ASSERT_TRUE(transaction_->LookupResource(b, t, "g"));
   ASSERT_EQ(7, b);
   ASSERT_EQ(ResourceType_Study, t);
 
-  ASSERT_TRUE(index_->LookupMetadata(s, a[4], MetadataType_RemoteAet));
-  ASSERT_FALSE(index_->LookupMetadata(s, a[4], MetadataType_Instance_IndexInSeries));
+  int64_t revision;
+  ASSERT_TRUE(transaction_->LookupMetadata(s, revision, a[4], MetadataType_RemoteAet));
+  ASSERT_EQ(0, revision);   // "0" instead of "42" because of (*)
+  ASSERT_FALSE(transaction_->LookupMetadata(s, revision, a[4], MetadataType_Instance_IndexInSeries));
+  ASSERT_EQ(0, revision);
   ASSERT_EQ("PINNACLE", s);
 
   std::string u;
-  ASSERT_TRUE(index_->LookupMetadata(u, a[4], MetadataType_RemoteAet));
+  ASSERT_TRUE(transaction_->LookupMetadata(u, revision, a[4], MetadataType_RemoteAet));
+  ASSERT_EQ(0, revision);
   ASSERT_EQ("PINNACLE", u);
-  ASSERT_FALSE(index_->LookupMetadata(u, a[4], MetadataType_Instance_IndexInSeries));
+  ASSERT_FALSE(transaction_->LookupMetadata(u, revision, a[4], MetadataType_Instance_IndexInSeries));
+  ASSERT_EQ(0, revision);
 
-  ASSERT_TRUE(index_->LookupGlobalProperty(s, GlobalProperty_FlushSleep));
-  ASSERT_FALSE(index_->LookupGlobalProperty(s, static_cast<GlobalProperty>(42)));
+  ASSERT_TRUE(transaction_->LookupGlobalProperty(s, GlobalProperty_FlushSleep, true));
+  ASSERT_FALSE(transaction_->LookupGlobalProperty(s, static_cast<GlobalProperty>(42), true));
   ASSERT_EQ("World", s);
 
   FileInfo att;
-  ASSERT_TRUE(index_->LookupAttachment(att, a[4], FileContentType_DicomAsJson));
+  ASSERT_TRUE(transaction_->LookupAttachment(att, revision, a[4], FileContentType_DicomAsJson));
+  ASSERT_EQ(0, revision);  // "0" instead of "42" because of (*)
   ASSERT_EQ("my json file", att.GetUuid());
   ASSERT_EQ(21u, att.GetCompressedSize());
   ASSERT_EQ("md5", att.GetUncompressedMD5());
@@ -363,7 +371,8 @@ TEST_F(DatabaseWrapperTest, Simple)
   ASSERT_EQ(42u, att.GetUncompressedSize());
   ASSERT_EQ(CompressionType_ZlibWithSize, att.GetCompressionType());
 
-  ASSERT_TRUE(index_->LookupAttachment(att, a[6], FileContentType_Dicom));
+  ASSERT_TRUE(transaction_->LookupAttachment(att, revision, a[6], FileContentType_Dicom));
+  ASSERT_EQ(0, revision);  // "0" instead of "42" because of (*)
   ASSERT_EQ("world", att.GetUuid());
   ASSERT_EQ(44u, att.GetCompressedSize());
   ASSERT_EQ("md5", att.GetUncompressedMD5());
@@ -379,7 +388,7 @@ TEST_F(DatabaseWrapperTest, Simple)
   CheckTableRecordCount(1, "Metadata");
   CheckTableRecordCount(1, "MainDicomTags");
 
-  index_->DeleteResource(a[0]);
+  transaction_->DeleteResource(a[0]);
   ASSERT_EQ(5u, listener_->deletedResources_.size());
   ASSERT_EQ(2u, listener_->deletedFiles_.size());
   ASSERT_FALSE(std::find(listener_->deletedFiles_.begin(), 
@@ -394,7 +403,7 @@ TEST_F(DatabaseWrapperTest, Simple)
   CheckTableRecordCount(1, "AttachedFiles");
   CheckTableRecordCount(0, "MainDicomTags");
 
-  index_->DeleteResource(a[5]);
+  transaction_->DeleteResource(a[5]);
   ASSERT_EQ(7u, listener_->deletedResources_.size());
 
   CheckTableRecordCount(0, "Resources");
@@ -402,11 +411,11 @@ TEST_F(DatabaseWrapperTest, Simple)
   CheckTableRecordCount(3, "GlobalProperties");
 
   std::string tmp;
-  ASSERT_TRUE(index_->LookupGlobalProperty(tmp, GlobalProperty_DatabaseSchemaVersion));
+  ASSERT_TRUE(transaction_->LookupGlobalProperty(tmp, GlobalProperty_DatabaseSchemaVersion, true));
   ASSERT_EQ("6", tmp);
-  ASSERT_TRUE(index_->LookupGlobalProperty(tmp, GlobalProperty_FlushSleep));
+  ASSERT_TRUE(transaction_->LookupGlobalProperty(tmp, GlobalProperty_FlushSleep, true));
   ASSERT_EQ("World", tmp);
-  ASSERT_TRUE(index_->LookupGlobalProperty(tmp, GlobalProperty_GetTotalSizeIsFast));
+  ASSERT_TRUE(transaction_->LookupGlobalProperty(tmp, GlobalProperty_GetTotalSizeIsFast, true));
   ASSERT_EQ("1", tmp);
 
   ASSERT_EQ(3u, listener_->deletedFiles_.size());
@@ -419,23 +428,23 @@ TEST_F(DatabaseWrapperTest, Simple)
 TEST_F(DatabaseWrapperTest, Upward)
 {
   int64_t a[] = {
-    index_->CreateResource("a", ResourceType_Patient),   // 0
-    index_->CreateResource("b", ResourceType_Study),     // 1
-    index_->CreateResource("c", ResourceType_Series),    // 2
-    index_->CreateResource("d", ResourceType_Instance),  // 3
-    index_->CreateResource("e", ResourceType_Instance),  // 4
-    index_->CreateResource("f", ResourceType_Study),     // 5
-    index_->CreateResource("g", ResourceType_Series),    // 6
-    index_->CreateResource("h", ResourceType_Series)     // 7
+    transaction_->CreateResource("a", ResourceType_Patient),   // 0
+    transaction_->CreateResource("b", ResourceType_Study),     // 1
+    transaction_->CreateResource("c", ResourceType_Series),    // 2
+    transaction_->CreateResource("d", ResourceType_Instance),  // 3
+    transaction_->CreateResource("e", ResourceType_Instance),  // 4
+    transaction_->CreateResource("f", ResourceType_Study),     // 5
+    transaction_->CreateResource("g", ResourceType_Series),    // 6
+    transaction_->CreateResource("h", ResourceType_Series)     // 7
   };
 
-  index_->AttachChild(a[0], a[1]);
-  index_->AttachChild(a[1], a[2]);
-  index_->AttachChild(a[2], a[3]);
-  index_->AttachChild(a[2], a[4]);
-  index_->AttachChild(a[1], a[6]);
-  index_->AttachChild(a[0], a[5]);
-  index_->AttachChild(a[5], a[7]);
+  transaction_->AttachChild(a[0], a[1]);
+  transaction_->AttachChild(a[1], a[2]);
+  transaction_->AttachChild(a[2], a[3]);
+  transaction_->AttachChild(a[2], a[4]);
+  transaction_->AttachChild(a[1], a[6]);
+  transaction_->AttachChild(a[0], a[5]);
+  transaction_->AttachChild(a[5], a[7]);
 
   CheckTwoChildren("b", "f", a[0]);
   CheckTwoChildren("c", "g", a[1]);
@@ -447,22 +456,22 @@ TEST_F(DatabaseWrapperTest, Upward)
   CheckNoChild(a[7]);
 
   listener_->Reset();
-  index_->DeleteResource(a[3]);
+  transaction_->DeleteResource(a[3]);
   ASSERT_EQ("c", listener_->ancestorId_);
   ASSERT_EQ(ResourceType_Series, listener_->ancestorType_);
 
   listener_->Reset();
-  index_->DeleteResource(a[4]);
+  transaction_->DeleteResource(a[4]);
   ASSERT_EQ("b", listener_->ancestorId_);
   ASSERT_EQ(ResourceType_Study, listener_->ancestorType_);
 
   listener_->Reset();
-  index_->DeleteResource(a[7]);
+  transaction_->DeleteResource(a[7]);
   ASSERT_EQ("a", listener_->ancestorId_);
   ASSERT_EQ(ResourceType_Patient, listener_->ancestorType_);
 
   listener_->Reset();
-  index_->DeleteResource(a[6]);
+  transaction_->DeleteResource(a[6]);
   ASSERT_EQ("", listener_->ancestorId_);  // No more ancestor
 }
 
@@ -473,10 +482,10 @@ TEST_F(DatabaseWrapperTest, PatientRecycling)
   for (int i = 0; i < 10; i++)
   {
     std::string p = "Patient " + boost::lexical_cast<std::string>(i);
-    patients.push_back(index_->CreateResource(p, ResourceType_Patient));
-    index_->AddAttachment(patients[i], FileInfo(p, FileContentType_Dicom, i + 10, 
-                                                "md5-" + boost::lexical_cast<std::string>(i)));
-    ASSERT_FALSE(index_->IsProtectedPatient(patients[i]));
+    patients.push_back(transaction_->CreateResource(p, ResourceType_Patient));
+    transaction_->AddAttachment(patients[i], FileInfo(p, FileContentType_Dicom, i + 10, 
+                                                      "md5-" + boost::lexical_cast<std::string>(i)), 42);
+    ASSERT_FALSE(transaction_->IsProtectedPatient(patients[i]));
   }
 
   CheckTableRecordCount(10u, "Resources");
@@ -485,8 +494,8 @@ TEST_F(DatabaseWrapperTest, PatientRecycling)
   listener_->Reset();
   ASSERT_EQ(0u, listener_->deletedResources_.size());
 
-  index_->DeleteResource(patients[5]);
-  index_->DeleteResource(patients[0]);
+  transaction_->DeleteResource(patients[5]);
+  transaction_->DeleteResource(patients[0]);
   ASSERT_EQ(2u, listener_->deletedResources_.size());
 
   CheckTableRecordCount(8u, "Resources");
@@ -497,28 +506,28 @@ TEST_F(DatabaseWrapperTest, PatientRecycling)
   ASSERT_EQ("Patient 0", listener_->deletedFiles_[1]);
 
   int64_t p;
-  ASSERT_TRUE(index_->SelectPatientToRecycle(p)); ASSERT_EQ(p, patients[1]);
-  index_->DeleteResource(p);
+  ASSERT_TRUE(transaction_->SelectPatientToRecycle(p)); ASSERT_EQ(p, patients[1]);
+  transaction_->DeleteResource(p);
   ASSERT_EQ(3u, listener_->deletedResources_.size());
-  ASSERT_TRUE(index_->SelectPatientToRecycle(p)); ASSERT_EQ(p, patients[2]);
-  index_->DeleteResource(p);
+  ASSERT_TRUE(transaction_->SelectPatientToRecycle(p)); ASSERT_EQ(p, patients[2]);
+  transaction_->DeleteResource(p);
   ASSERT_EQ(4u, listener_->deletedResources_.size());
-  ASSERT_TRUE(index_->SelectPatientToRecycle(p)); ASSERT_EQ(p, patients[3]);
-  index_->DeleteResource(p);
+  ASSERT_TRUE(transaction_->SelectPatientToRecycle(p)); ASSERT_EQ(p, patients[3]);
+  transaction_->DeleteResource(p);
   ASSERT_EQ(5u, listener_->deletedResources_.size());
-  ASSERT_TRUE(index_->SelectPatientToRecycle(p)); ASSERT_EQ(p, patients[4]);
-  index_->DeleteResource(p);
+  ASSERT_TRUE(transaction_->SelectPatientToRecycle(p)); ASSERT_EQ(p, patients[4]);
+  transaction_->DeleteResource(p);
   ASSERT_EQ(6u, listener_->deletedResources_.size());
-  ASSERT_TRUE(index_->SelectPatientToRecycle(p)); ASSERT_EQ(p, patients[6]);
-  index_->DeleteResource(p);
-  index_->DeleteResource(patients[8]);
+  ASSERT_TRUE(transaction_->SelectPatientToRecycle(p)); ASSERT_EQ(p, patients[6]);
+  transaction_->DeleteResource(p);
+  transaction_->DeleteResource(patients[8]);
   ASSERT_EQ(8u, listener_->deletedResources_.size());
-  ASSERT_TRUE(index_->SelectPatientToRecycle(p)); ASSERT_EQ(p, patients[7]);
-  index_->DeleteResource(p);
+  ASSERT_TRUE(transaction_->SelectPatientToRecycle(p)); ASSERT_EQ(p, patients[7]);
+  transaction_->DeleteResource(p);
   ASSERT_EQ(9u, listener_->deletedResources_.size());
-  ASSERT_TRUE(index_->SelectPatientToRecycle(p)); ASSERT_EQ(p, patients[9]);
-  index_->DeleteResource(p);
-  ASSERT_FALSE(index_->SelectPatientToRecycle(p));
+  ASSERT_TRUE(transaction_->SelectPatientToRecycle(p)); ASSERT_EQ(p, patients[9]);
+  transaction_->DeleteResource(p);
+  ASSERT_FALSE(transaction_->SelectPatientToRecycle(p));
   ASSERT_EQ(10u, listener_->deletedResources_.size());
 
   ASSERT_EQ(10u, listener_->deletedFiles_.size());
@@ -534,39 +543,39 @@ TEST_F(DatabaseWrapperTest, PatientProtection)
   for (int i = 0; i < 5; i++)
   {
     std::string p = "Patient " + boost::lexical_cast<std::string>(i);
-    patients.push_back(index_->CreateResource(p, ResourceType_Patient));
-    index_->AddAttachment(patients[i], FileInfo(p, FileContentType_Dicom, i + 10,
-                                                "md5-" + boost::lexical_cast<std::string>(i)));
-    ASSERT_FALSE(index_->IsProtectedPatient(patients[i]));
+    patients.push_back(transaction_->CreateResource(p, ResourceType_Patient));
+    transaction_->AddAttachment(patients[i], FileInfo(p, FileContentType_Dicom, i + 10,
+                                                      "md5-" + boost::lexical_cast<std::string>(i)), 42);
+    ASSERT_FALSE(transaction_->IsProtectedPatient(patients[i]));
   }
 
   CheckTableRecordCount(5, "Resources");
   CheckTableRecordCount(5, "PatientRecyclingOrder");
 
-  ASSERT_FALSE(index_->IsProtectedPatient(patients[2]));
-  index_->SetProtectedPatient(patients[2], true);
-  ASSERT_TRUE(index_->IsProtectedPatient(patients[2]));
+  ASSERT_FALSE(transaction_->IsProtectedPatient(patients[2]));
+  transaction_->SetProtectedPatient(patients[2], true);
+  ASSERT_TRUE(transaction_->IsProtectedPatient(patients[2]));
   CheckTableRecordCount(5, "Resources");
   CheckTableRecordCount(4, "PatientRecyclingOrder");
 
-  index_->SetProtectedPatient(patients[2], true);
-  ASSERT_TRUE(index_->IsProtectedPatient(patients[2]));
+  transaction_->SetProtectedPatient(patients[2], true);
+  ASSERT_TRUE(transaction_->IsProtectedPatient(patients[2]));
   CheckTableRecordCount(4, "PatientRecyclingOrder");
-  index_->SetProtectedPatient(patients[2], false);
-  ASSERT_FALSE(index_->IsProtectedPatient(patients[2]));
+  transaction_->SetProtectedPatient(patients[2], false);
+  ASSERT_FALSE(transaction_->IsProtectedPatient(patients[2]));
   CheckTableRecordCount(5, "PatientRecyclingOrder");
-  index_->SetProtectedPatient(patients[2], false);
-  ASSERT_FALSE(index_->IsProtectedPatient(patients[2]));
+  transaction_->SetProtectedPatient(patients[2], false);
+  ASSERT_FALSE(transaction_->IsProtectedPatient(patients[2]));
   CheckTableRecordCount(5, "PatientRecyclingOrder");
   CheckTableRecordCount(5, "Resources");
-  index_->SetProtectedPatient(patients[2], true);
-  ASSERT_TRUE(index_->IsProtectedPatient(patients[2]));
+  transaction_->SetProtectedPatient(patients[2], true);
+  ASSERT_TRUE(transaction_->IsProtectedPatient(patients[2]));
   CheckTableRecordCount(4, "PatientRecyclingOrder");
-  index_->SetProtectedPatient(patients[2], false);
-  ASSERT_FALSE(index_->IsProtectedPatient(patients[2]));
+  transaction_->SetProtectedPatient(patients[2], false);
+  ASSERT_FALSE(transaction_->IsProtectedPatient(patients[2]));
   CheckTableRecordCount(5, "PatientRecyclingOrder");
-  index_->SetProtectedPatient(patients[3], true);
-  ASSERT_TRUE(index_->IsProtectedPatient(patients[3]));
+  transaction_->SetProtectedPatient(patients[3], true);
+  ASSERT_TRUE(transaction_->IsProtectedPatient(patients[3]));
   CheckTableRecordCount(4, "PatientRecyclingOrder");
 
   CheckTableRecordCount(5, "Resources");
@@ -575,33 +584,33 @@ TEST_F(DatabaseWrapperTest, PatientProtection)
   // Unprotecting a patient puts it at the last position in the recycling queue
   int64_t p;
   ASSERT_EQ(0u, listener_->deletedResources_.size());
-  ASSERT_TRUE(index_->SelectPatientToRecycle(p)); ASSERT_EQ(p, patients[0]);
-  index_->DeleteResource(p);
+  ASSERT_TRUE(transaction_->SelectPatientToRecycle(p)); ASSERT_EQ(p, patients[0]);
+  transaction_->DeleteResource(p);
   ASSERT_EQ(1u, listener_->deletedResources_.size());
-  ASSERT_TRUE(index_->SelectPatientToRecycle(p, patients[1])); ASSERT_EQ(p, patients[4]);
-  ASSERT_TRUE(index_->SelectPatientToRecycle(p)); ASSERT_EQ(p, patients[1]);
-  index_->DeleteResource(p);
+  ASSERT_TRUE(transaction_->SelectPatientToRecycle(p, patients[1])); ASSERT_EQ(p, patients[4]);
+  ASSERT_TRUE(transaction_->SelectPatientToRecycle(p)); ASSERT_EQ(p, patients[1]);
+  transaction_->DeleteResource(p);
   ASSERT_EQ(2u, listener_->deletedResources_.size());
-  ASSERT_TRUE(index_->SelectPatientToRecycle(p)); ASSERT_EQ(p, patients[4]);
-  index_->DeleteResource(p);
+  ASSERT_TRUE(transaction_->SelectPatientToRecycle(p)); ASSERT_EQ(p, patients[4]);
+  transaction_->DeleteResource(p);
   ASSERT_EQ(3u, listener_->deletedResources_.size());
-  ASSERT_FALSE(index_->SelectPatientToRecycle(p, patients[2]));
-  ASSERT_TRUE(index_->SelectPatientToRecycle(p)); ASSERT_EQ(p, patients[2]);
-  index_->DeleteResource(p);
+  ASSERT_FALSE(transaction_->SelectPatientToRecycle(p, patients[2]));
+  ASSERT_TRUE(transaction_->SelectPatientToRecycle(p)); ASSERT_EQ(p, patients[2]);
+  transaction_->DeleteResource(p);
   ASSERT_EQ(4u, listener_->deletedResources_.size());
   // "patients[3]" is still protected
-  ASSERT_FALSE(index_->SelectPatientToRecycle(p));
+  ASSERT_FALSE(transaction_->SelectPatientToRecycle(p));
 
   ASSERT_EQ(4u, listener_->deletedFiles_.size());
   CheckTableRecordCount(1, "Resources");
   CheckTableRecordCount(0, "PatientRecyclingOrder");
 
-  index_->SetProtectedPatient(patients[3], false);
+  transaction_->SetProtectedPatient(patients[3], false);
   CheckTableRecordCount(1, "PatientRecyclingOrder");
-  ASSERT_FALSE(index_->SelectPatientToRecycle(p, patients[3]));
-  ASSERT_TRUE(index_->SelectPatientToRecycle(p, patients[2]));
-  ASSERT_TRUE(index_->SelectPatientToRecycle(p)); ASSERT_EQ(p, patients[3]);
-  index_->DeleteResource(p);
+  ASSERT_FALSE(transaction_->SelectPatientToRecycle(p, patients[3]));
+  ASSERT_TRUE(transaction_->SelectPatientToRecycle(p, patients[2]));
+  ASSERT_TRUE(transaction_->SelectPatientToRecycle(p)); ASSERT_EQ(p, patients[3]);
+  transaction_->DeleteResource(p);
   ASSERT_EQ(5u, listener_->deletedResources_.size());
 
   ASSERT_EQ(5u, listener_->deletedFiles_.size());
@@ -623,10 +632,10 @@ TEST(ServerIndex, Sequence)
 
   ServerIndex& index = context.GetIndex();
 
-  ASSERT_EQ(1u, index.IncrementGlobalSequence(GlobalProperty_AnonymizationSequence));
-  ASSERT_EQ(2u, index.IncrementGlobalSequence(GlobalProperty_AnonymizationSequence));
-  ASSERT_EQ(3u, index.IncrementGlobalSequence(GlobalProperty_AnonymizationSequence));
-  ASSERT_EQ(4u, index.IncrementGlobalSequence(GlobalProperty_AnonymizationSequence));
+  ASSERT_EQ(1u, index.IncrementGlobalSequence(GlobalProperty_AnonymizationSequence, true));
+  ASSERT_EQ(2u, index.IncrementGlobalSequence(GlobalProperty_AnonymizationSequence, true));
+  ASSERT_EQ(3u, index.IncrementGlobalSequence(GlobalProperty_AnonymizationSequence, true));
+  ASSERT_EQ(4u, index.IncrementGlobalSequence(GlobalProperty_AnonymizationSequence, true));
 
   context.Stop();
   db.Close();
@@ -636,16 +645,16 @@ TEST(ServerIndex, Sequence)
 TEST_F(DatabaseWrapperTest, LookupIdentifier)
 {
   int64_t a[] = {
-    index_->CreateResource("a", ResourceType_Study),   // 0
-    index_->CreateResource("b", ResourceType_Study),   // 1
-    index_->CreateResource("c", ResourceType_Study),   // 2
-    index_->CreateResource("d", ResourceType_Series)   // 3
+    transaction_->CreateResource("a", ResourceType_Study),   // 0
+    transaction_->CreateResource("b", ResourceType_Study),   // 1
+    transaction_->CreateResource("c", ResourceType_Study),   // 2
+    transaction_->CreateResource("d", ResourceType_Series)   // 3
   };
 
-  index_->SetIdentifierTag(a[0], DICOM_TAG_STUDY_INSTANCE_UID, "0");
-  index_->SetIdentifierTag(a[1], DICOM_TAG_STUDY_INSTANCE_UID, "1");
-  index_->SetIdentifierTag(a[2], DICOM_TAG_STUDY_INSTANCE_UID, "0");
-  index_->SetIdentifierTag(a[3], DICOM_TAG_SERIES_INSTANCE_UID, "0");
+  transaction_->SetIdentifierTag(a[0], DICOM_TAG_STUDY_INSTANCE_UID, "0");
+  transaction_->SetIdentifierTag(a[1], DICOM_TAG_STUDY_INSTANCE_UID, "1");
+  transaction_->SetIdentifierTag(a[2], DICOM_TAG_STUDY_INSTANCE_UID, "0");
+  transaction_->SetIdentifierTag(a[3], DICOM_TAG_SERIES_INSTANCE_UID, "0");
 
   std::list<std::string> s;
 
@@ -776,7 +785,9 @@ TEST(ServerIndex, AttachmentRecycling)
   for (size_t i = 0; i < ids.size(); i++)
   {
     FileInfo info(Toolbox::GenerateUuid(), FileContentType_Dicom, 1, "md5");
-    index.AddAttachment(info, ids[i]);
+    int64_t revision = -1;
+    index.AddAttachment(revision, info, ids[i], false /* no previous revision */, -1);
+    ASSERT_EQ(0, revision);
 
     index.GetGlobalStatistics(diskSize, uncompressedSize, countPatients, 
                               countStudies, countSeries, countInstances);
@@ -854,12 +865,17 @@ TEST(ServerIndex, Overwrite)
 
     {
       FileInfo nope;
-      ASSERT_FALSE(context.GetIndex().LookupAttachment(nope, id, FileContentType_DicomAsJson));
+      int64_t revision;
+      ASSERT_FALSE(context.GetIndex().LookupAttachment(nope, revision, id, FileContentType_DicomAsJson));
     }
 
     FileInfo dicom1, pixelData1;
-    ASSERT_TRUE(context.GetIndex().LookupAttachment(dicom1, id, FileContentType_Dicom));
-    ASSERT_TRUE(context.GetIndex().LookupAttachment(pixelData1, id, FileContentType_DicomUntilPixelData));
+    int64_t revision;
+    ASSERT_TRUE(context.GetIndex().LookupAttachment(dicom1, revision, id, FileContentType_Dicom));
+    ASSERT_EQ(0, revision);
+    revision = -1;
+    ASSERT_TRUE(context.GetIndex().LookupAttachment(pixelData1, revision, id, FileContentType_DicomUntilPixelData));
+    ASSERT_EQ(0, revision);
 
     context.GetIndex().GetGlobalStatistics(diskSize, uncompressedSize, countPatients, 
                                            countStudies, countSeries, countInstances);
@@ -899,12 +915,16 @@ TEST(ServerIndex, Overwrite)
 
     {
       FileInfo nope;
-      ASSERT_FALSE(context.GetIndex().LookupAttachment(nope, id, FileContentType_DicomAsJson));
+      int64_t revision;
+      ASSERT_FALSE(context.GetIndex().LookupAttachment(nope, revision, id, FileContentType_DicomAsJson));
     }
 
     FileInfo dicom2, pixelData2;
-    ASSERT_TRUE(context.GetIndex().LookupAttachment(dicom2, id, FileContentType_Dicom));
-    ASSERT_TRUE(context.GetIndex().LookupAttachment(pixelData2, id, FileContentType_DicomUntilPixelData));
+    ASSERT_TRUE(context.GetIndex().LookupAttachment(dicom2, revision, id, FileContentType_Dicom));
+    ASSERT_EQ(0, revision);
+    revision = -1;
+    ASSERT_TRUE(context.GetIndex().LookupAttachment(pixelData2, revision, id, FileContentType_DicomUntilPixelData));
+    ASSERT_EQ(0, revision);
 
     context.GetIndex().GetGlobalStatistics(diskSize, uncompressedSize, countPatients, 
                                            countStudies, countSeries, countInstances);
@@ -1008,12 +1028,14 @@ TEST(ServerIndex, DicomUntilPixelData)
       }
 
       std::string s;
-      bool found = context.GetIndex().LookupMetadata(s, id, ResourceType_Instance,
+      int64_t revision;
+      bool found = context.GetIndex().LookupMetadata(s, revision, id, ResourceType_Instance,
                                                      MetadataType_Instance_PixelDataOffset);
       
       if (withPixelData)
       {
         ASSERT_TRUE(found);
+        ASSERT_EQ(0, revision);
         ASSERT_GT(boost::lexical_cast<int>(s), 128 /* length of the DICOM preamble */);
         ASSERT_LT(boost::lexical_cast<size_t>(s), dicomSize);
       }

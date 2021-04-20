@@ -65,11 +65,14 @@
 #include "../../../OrthancFramework/Sources/SerializationToolbox.h"
 #include "../../../OrthancFramework/Sources/StringMemoryBuffer.h"
 #include "../../../OrthancFramework/Sources/Toolbox.h"
+#include "../../Sources/Database/VoidDatabaseListener.h"
 #include "../../Sources/OrthancConfiguration.h"
 #include "../../Sources/OrthancFindRequestHandler.h"
 #include "../../Sources/Search/HierarchicalMatcher.h"
 #include "../../Sources/ServerContext.h"
 #include "../../Sources/ServerToolbox.h"
+#include "OrthancPluginDatabase.h"
+#include "OrthancPluginDatabaseV3.h"
 #include "PluginsEnumerations.h"
 #include "PluginsJob.h"
 
@@ -1206,14 +1209,19 @@ namespace Orthanc
     int argc_;
     char** argv_;
     std::unique_ptr<OrthancPluginDatabase>  database_;
+    std::unique_ptr<OrthancPluginDatabaseV3>  databaseV3_;  // New in Orthanc 1.9.2
     PluginsErrorDictionary  dictionary_;
+    std::string databaseServerIdentifier_;   // New in Orthanc 1.9.2
+    unsigned int maxDatabaseRetries_;   // New in Orthanc 1.9.2
 
-    PImpl() : 
+    explicit PImpl(const std::string& databaseServerIdentifier) : 
       context_(NULL), 
       findCallback_(NULL),
       worklistCallback_(NULL),
       argc_(1),
-      argv_(NULL)
+      argv_(NULL),
+      databaseServerIdentifier_(databaseServerIdentifier),
+      maxDatabaseRetries_(0)
     {
       memset(&moveCallbacks_, 0, sizeof(moveCallbacks_));
     }
@@ -1687,7 +1695,7 @@ namespace Orthanc
   };
 
 
-  OrthancPlugins::OrthancPlugins()
+  OrthancPlugins::OrthancPlugins(const std::string& databaseServerIdentifier)
   {
     /* Sanity check of the compiler */
     if (sizeof(int32_t) != sizeof(OrthancPluginErrorCode) ||
@@ -1727,7 +1735,7 @@ namespace Orthanc
       throw OrthancException(ErrorCode_Plugin);
     }
 
-    pimpl_.reset(new PImpl());
+    pimpl_.reset(new PImpl(databaseServerIdentifier));
     pimpl_->manager_.RegisterServiceProvider(*this);
   }
 
@@ -4206,8 +4214,11 @@ namespace Orthanc
         }
         else
         {
+          // TODO - Plugins can only access global properties of their
+          // own Orthanc server (no access to the shared global properties)
           PImpl::ServerContextLock lock(*pimpl_);
-          lock.GetContext().GetIndex().SetGlobalProperty(static_cast<GlobalProperty>(p.property), p.value);
+          lock.GetContext().GetIndex().SetGlobalProperty(static_cast<GlobalProperty>(p.property),
+                                                         false /* not shared */, p.value);
           return true;
         }
       }
@@ -4220,8 +4231,11 @@ namespace Orthanc
         std::string result;
 
         {
+          // TODO - Plugins can only access global properties of their
+          // own Orthanc server (no access to the shared global properties)
           PImpl::ServerContextLock lock(*pimpl_);
-          result = lock.GetContext().GetIndex().GetGlobalProperty(static_cast<GlobalProperty>(p.property), p.value);
+          result = lock.GetContext().GetIndex().GetGlobalProperty(static_cast<GlobalProperty>(p.property),
+                                                                  false /* not shared */, p.value);
         }
 
         *(p.result) = CopyString(result);
@@ -5018,12 +5032,14 @@ namespace Orthanc
 
       case _OrthancPluginService_RegisterDatabaseBackend:
       {
-        CLOG(INFO, PLUGINS) << "Plugin has registered a custom database back-end";
+        LOG(WARNING) << "Performance warning: Plugin has registered a custom database back-end with an old API";
+        LOG(WARNING) << "The database backend has *no* support for revisions of metadata and attachments";
 
         const _OrthancPluginRegisterDatabaseBackend& p =
           *reinterpret_cast<const _OrthancPluginRegisterDatabaseBackend*>(parameters);
 
-        if (pimpl_->database_.get() == NULL)
+        if (pimpl_->database_.get() == NULL &&
+            pimpl_->databaseV3_.get() == NULL)
         {
           pimpl_->database_.reset(new OrthancPluginDatabase(plugin, GetErrorDictionary(), 
                                                             *p.backend, NULL, 0, p.payload));
@@ -5040,12 +5056,14 @@ namespace Orthanc
 
       case _OrthancPluginService_RegisterDatabaseBackendV2:
       {
-        CLOG(INFO, PLUGINS) << "Plugin has registered a custom database back-end";
+        LOG(WARNING) << "Performance warning: Plugin has registered a custom database back-end with an old API";
+        LOG(WARNING) << "The database backend has *no* support for revisions of metadata and attachments";
 
         const _OrthancPluginRegisterDatabaseBackendV2& p =
           *reinterpret_cast<const _OrthancPluginRegisterDatabaseBackendV2*>(parameters);
 
-        if (pimpl_->database_.get() == NULL)
+        if (pimpl_->database_.get() == NULL &&
+            pimpl_->databaseV3_.get() == NULL)
         {
           pimpl_->database_.reset(new OrthancPluginDatabase(plugin, GetErrorDictionary(),
                                                             *p.backend, p.extensions,
@@ -5057,6 +5075,28 @@ namespace Orthanc
         }
 
         *(p.result) = reinterpret_cast<OrthancPluginDatabaseContext*>(pimpl_->database_.get());
+
+        return true;
+      }
+
+      case _OrthancPluginService_RegisterDatabaseBackendV3:
+      {
+        CLOG(INFO, PLUGINS) << "Plugin has registered a custom database back-end";
+
+        const _OrthancPluginRegisterDatabaseBackendV3& p =
+          *reinterpret_cast<const _OrthancPluginRegisterDatabaseBackendV3*>(parameters);
+
+        if (pimpl_->database_.get() == NULL &&
+            pimpl_->databaseV3_.get() == NULL)
+        {
+          pimpl_->databaseV3_.reset(new OrthancPluginDatabaseV3(plugin, GetErrorDictionary(), p.backend,
+                                                                p.backendSize, p.database, pimpl_->databaseServerIdentifier_));
+          pimpl_->maxDatabaseRetries_ = p.maxDatabaseRetries;
+        }
+        else
+        {
+          throw OrthancException(ErrorCode_DatabaseBackendAlreadyRegistered);
+        }
 
         return true;
       }
@@ -5103,8 +5143,16 @@ namespace Orthanc
                                  "The service ReconstructMainDicomTags can only be invoked by custom database plugins");
         }
 
-        IStorageArea& storage = *reinterpret_cast<IStorageArea*>(p.storageArea);
-        ServerToolbox::ReconstructMainDicomTags(*pimpl_->database_, storage, Plugins::Convert(p.level));
+        VoidDatabaseListener listener;
+        
+        {
+          IStorageArea& storage = *reinterpret_cast<IStorageArea*>(p.storageArea);
+
+          std::unique_ptr<IDatabaseWrapper::ITransaction> transaction(
+            pimpl_->database_->StartTransaction(TransactionType_ReadWrite, listener));
+          ServerToolbox::ReconstructMainDicomTags(*transaction, storage, Plugins::Convert(p.level));
+          transaction->Commit(0);
+        }
 
         return true;
       }
@@ -5172,7 +5220,8 @@ namespace Orthanc
   bool OrthancPlugins::HasDatabaseBackend() const
   {
     boost::recursive_mutex::scoped_lock lock(pimpl_->invokeServiceMutex_);
-    return pimpl_->database_.get() != NULL;
+    return (pimpl_->database_.get() != NULL ||
+            pimpl_->databaseV3_.get() != NULL);
   }
 
 
@@ -5204,26 +5253,34 @@ namespace Orthanc
 
   IDatabaseWrapper& OrthancPlugins::GetDatabaseBackend()
   {
-    if (!HasDatabaseBackend())
+    if (pimpl_->database_.get() != NULL)
     {
-      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+      return *pimpl_->database_;
+    }
+    else if (pimpl_->databaseV3_.get() != NULL)
+    {
+      return *pimpl_->databaseV3_;
     }
     else
     {
-      return *pimpl_->database_;
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
     }
   }
 
 
   const SharedLibrary& OrthancPlugins::GetDatabaseBackendLibrary() const
   {
-    if (!HasDatabaseBackend())
+    if (pimpl_->database_.get() != NULL)
     {
-      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+      return pimpl_->database_->GetSharedLibrary();
+    }
+    else if (pimpl_->databaseV3_.get() != NULL)
+    {
+      return pimpl_->databaseV3_->GetSharedLibrary();
     }
     else
     {
-      return pimpl_->database_->GetSharedLibrary();
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
     }
   }
 
@@ -5701,5 +5758,12 @@ namespace Orthanc
   {
     boost::recursive_mutex::scoped_lock lock(pimpl_->invokeServiceMutex_);
     return (pimpl_->authorizationTokens_.find(token) != pimpl_->authorizationTokens_.end());
+  }
+
+  
+  unsigned int OrthancPlugins::GetMaxDatabaseRetries() const
+  {
+    boost::recursive_mutex::scoped_lock lock(pimpl_->invokeServiceMutex_);
+    return pimpl_->maxDatabaseRetries_;
   }
 }

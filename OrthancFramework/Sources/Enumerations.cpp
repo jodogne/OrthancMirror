@@ -187,6 +187,12 @@ namespace Orthanc
       case ErrorCode_BadRange:
         return "Incorrect range request";
 
+      case ErrorCode_DatabaseCannotSerialize:
+        return "Database could not serialize access due to concurrent update, the transaction should be retried";
+
+      case ErrorCode_Revision:
+        return "A bad revision number was provided, which might indicate conflict between multiple writers";
+
       case ErrorCode_SQLiteNotOpened:
         return "SQLite: The database is not opened";
 
@@ -2140,6 +2146,12 @@ namespace Orthanc
 
       case ErrorCode_BadRange:
         return HttpStatus_416_RequestedRangeNotSatisfiable;
+
+      case ErrorCode_DatabaseCannotSerialize:
+        return HttpStatus_503_ServiceUnavailable;
+
+      case ErrorCode_Revision:
+        return HttpStatus_409_Conflict;
 
       case ErrorCode_CreateDicomNotString:
         return HttpStatus_400_BadRequest;

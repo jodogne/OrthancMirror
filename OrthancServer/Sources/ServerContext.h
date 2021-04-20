@@ -295,10 +295,13 @@ namespace Orthanc
       return compressionEnabled_;
     }
 
-    bool AddAttachment(const std::string& resourceId,
+    bool AddAttachment(int64_t& newRevision,
+                       const std::string& resourceId,
                        FileContentType attachmentType,
                        const void* data,
-                       size_t size);
+                       size_t size,
+                       bool hasOldRevision,
+                       int64_t oldRevision);
 
     StoreStatus Store(std::string& resultPublicId,
                       DicomInstanceToStore& dicom,
@@ -327,6 +330,7 @@ namespace Orthanc
 
     // This method is for low-level operations on "/instances/.../attachments/..."
     void ReadAttachment(std::string& result,
+                        int64_t& revision,
                         const std::string& instancePublicId,
                         FileContentType content,
                         bool uncompressIfNeeded);

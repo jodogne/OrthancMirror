@@ -50,7 +50,6 @@ static const char* const BY_STUDIES = "by-studies";
 static const char* const BY_DATES = "by-dates";
 static const char* const BY_UIDS = "by-uids";
 static const char* const UPLOADS = "uploads";
-static const char* const MAIN_DICOM_TAGS = "MainDicomTags";
 static const char* const STUDY_INFO = "study.json";
 static const char* const SERIES_INFO = "series.json";
 
@@ -70,7 +69,8 @@ namespace Orthanc
                          MetadataType metadata)
   {
     std::string value;
-    if (context.GetIndex().LookupMetadata(value, publicId, level, metadata))
+    int64_t revision;  // Ignored
+    if (context.GetIndex().LookupMetadata(value, revision, publicId, level, metadata))
     {
       try
       {
@@ -153,7 +153,8 @@ namespace Orthanc
         if (level_ == ResourceType_Instance)
         {
           FileInfo info;
-          if (context_.GetIndex().LookupAttachment(info, publicId, FileContentType_Dicom))
+          int64_t revision;  // Ignored
+          if (context_.GetIndex().LookupAttachment(info, revision, publicId, FileContentType_Dicom))
           {
             std::unique_ptr<File> f(new File(s + ".dcm"));
             f->SetMimeType(MimeType_Dicom);
@@ -268,8 +269,8 @@ namespace Orthanc
                        const DicomMap& mainDicomTags,
                        const Json::Value* dicomAsJson  /* unused (*) */)  ORTHANC_OVERRIDE
     {
-      Json::Value info;
-      if (context_.GetIndex().LookupResource(info, publicId, level_))
+      Json::Value resource;
+      if (context_.GetIndex().ExpandResource(resource, publicId, level_))
       {
         if (success_)
         {
@@ -277,7 +278,7 @@ namespace Orthanc
         }
         else
         {
-          target_ = info.toStyledString();
+          target_ = resource.toStyledString();
 
           // Replace UNIX newlines with DOS newlines 
           boost::replace_all(target_, "\n", "\r\n");
@@ -508,7 +509,8 @@ namespace Orthanc
           LookupTime(time, context_, *it, ResourceType_Instance, MetadataType_Instance_ReceptionDate);
 
           FileInfo info;
-          if (context_.GetIndex().LookupAttachment(info, *it, FileContentType_Dicom))
+          int64_t revision;  // Ignored
+          if (context_.GetIndex().LookupAttachment(info, revision, *it, FileContentType_Dicom))
           {
             std::unique_ptr<File> resource(new File(*it + ".dcm"));
             resource->SetMimeType(MimeType_Dicom);

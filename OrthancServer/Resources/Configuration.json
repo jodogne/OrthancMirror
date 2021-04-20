@@ -768,5 +768,27 @@
   // network protocol, expressed in bytes. This value affects both
   // Orthanc SCU and Orthanc SCP. It defaults to 16KB. The allowed
   // range is [4096,131072]. (new in Orthanc 1.9.0)
-  "MaximumPduLength" : 16384
+  "MaximumPduLength" : 16384,
+
+  // Arbitrary identifier of this Orthanc server when storing its
+  // global properties if a custom index plugin is used. This
+  // identifier is only useful in the case of multiple
+  // readers/writers, in order to avoid collisions between multiple
+  // Orthanc servers. If unset, this identifier is taken as a SHA-1
+  // hash derived from the MAC adddresses of the network interfaces,
+  // and from the AET and TCP ports used by Orthanc. Manually setting
+  // this option is needed in Docker/Kubernetes environments. (new in
+  // Orthanc 1.9.2)
+  /**
+     "DatabaseServerIdentifier" : "Orthanc1",
+  **/
+
+  // Whether Orthanc protects the modification of metadata and
+  // attachments using revisions, which is done using the HTTP headers
+  // "ETag", "If-Match" and "If-None-Match" in the calls to the REST
+  // API. This is needed to handle collisions between concurrent
+  // modifications in the case of multiple writers. The database
+  // back-end must support this option, which is notably *not* yet the
+  // case of the built-in SQLite index. (new in Orthanc 1.9.2)
+  "CheckRevisions" : false
 }

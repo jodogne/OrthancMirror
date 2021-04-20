@@ -17,8 +17,8 @@ nullPointerRedundantCheck:../../OrthancFramework/UnitTestsSources/DicomMapTests.
 stlFindInsert:../../OrthancFramework/Sources/DicomFormat/DicomMap.cpp:1194
 stlFindInsert:../../OrthancFramework/Sources/RestApi/RestApiCallDocumentation.cpp:164
 stlFindInsert:../../OrthancFramework/Sources/RestApi/RestApiCallDocumentation.cpp:72
-stlFindInsert:../../OrthancServer/Sources/OrthancWebDav.cpp:385
-stlFindInsert:../../OrthancServer/Sources/ServerIndex.cpp:400
+stlFindInsert:../../OrthancServer/Sources/Database/StatelessDatabaseOperations.cpp:383
+stlFindInsert:../../OrthancServer/Sources/OrthancWebDav.cpp:386
 syntaxError:../../OrthancFramework/Sources/SQLite/FunctionContext.h:50
 syntaxError:../../OrthancFramework/UnitTestsSources/ZipTests.cpp:130
 syntaxError:../../OrthancServer/UnitTestsSources/UnitTestsMain.cpp:321
