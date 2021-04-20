@@ -838,7 +838,7 @@ namespace Orthanc
      **/
     
     FileInfo attachment;
-    int64_t revision;
+    int64_t revision;  // Ignored
 
     if (index_.LookupAttachment(attachment, revision, instancePublicId, FileContentType_DicomUntilPixelData))
     {
@@ -866,7 +866,6 @@ namespace Orthanc
 
       {
         std::string s;
-        int64_t revision;  // Ignored
         if (index_.LookupMetadata(s, revision, instancePublicId, ResourceType_Instance,
                                   MetadataType_Instance_PixelDataOffset))
         {
