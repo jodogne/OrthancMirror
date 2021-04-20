@@ -5033,6 +5033,7 @@ namespace Orthanc
       case _OrthancPluginService_RegisterDatabaseBackend:
       {
         LOG(WARNING) << "Performance warning: Plugin has registered a custom database back-end with an old API";
+        LOG(WARNING) << "The database backend has *no* support for revisions of metadata and attachments";
 
         const _OrthancPluginRegisterDatabaseBackend& p =
           *reinterpret_cast<const _OrthancPluginRegisterDatabaseBackend*>(parameters);
@@ -5056,6 +5057,7 @@ namespace Orthanc
       case _OrthancPluginService_RegisterDatabaseBackendV2:
       {
         LOG(WARNING) << "Performance warning: Plugin has registered a custom database back-end with an old API";
+        LOG(WARNING) << "The database backend has *no* support for revisions of metadata and attachments";
 
         const _OrthancPluginRegisterDatabaseBackendV2& p =
           *reinterpret_cast<const _OrthancPluginRegisterDatabaseBackendV2*>(parameters);

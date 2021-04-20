@@ -53,7 +53,7 @@ namespace Orthanc
     void*                           database_;
     std::string                     serverIdentifier_;
 
-    void CheckSuccess(OrthancPluginErrorCode code);
+    void CheckSuccess(OrthancPluginErrorCode code) const;
 
   public:
     OrthancPluginDatabaseV3(SharedLibrary& library,
@@ -91,6 +91,8 @@ namespace Orthanc
 
     virtual void Upgrade(unsigned int targetVersion,
                          IStorageArea& storageArea) ORTHANC_OVERRIDE;    
+
+    virtual bool HasRevisionsSupport() const ORTHANC_OVERRIDE;
   };
 }
 

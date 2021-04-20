@@ -1089,6 +1089,9 @@ extern "C"
     OrthancPluginErrorCode (*getDatabaseVersion) (void* database,
                                                   uint32_t* target /* out */);
 
+    OrthancPluginErrorCode (*hasRevisionsSupport) (void* database,
+                                                   uint8_t* target /* out */);
+
     OrthancPluginErrorCode (*upgradeDatabase) (void* database,
                                                OrthancPluginStorageArea* storageArea,
                                                uint32_t targetVersion);

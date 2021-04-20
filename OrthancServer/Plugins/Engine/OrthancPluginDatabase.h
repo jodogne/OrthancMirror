@@ -119,6 +119,11 @@ namespace Orthanc
     virtual void Upgrade(unsigned int targetVersion,
                          IStorageArea& storageArea) ORTHANC_OVERRIDE;    
 
+    virtual bool HasRevisionsSupport() const ORTHANC_OVERRIDE
+    {
+      return false;  // No support for revisions in old API
+    }
+
     void AnswerReceived(const _OrthancPluginDatabaseAnswer& answer);
   };
 }

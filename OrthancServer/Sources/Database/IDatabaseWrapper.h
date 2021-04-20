@@ -268,5 +268,7 @@ namespace Orthanc
 
     virtual void Upgrade(unsigned int targetVersion,
                          IStorageArea& storageArea) = 0;
+
+    virtual bool HasRevisionsSupport() const = 0;
   };
 }

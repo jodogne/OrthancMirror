@@ -1489,6 +1489,25 @@ static bool ConfigureDatabase(IDatabaseWrapper& database,
                            ": Please run Orthanc with the \"--upgrade\" argument");
   }
 
+  {
+    static const char* const CHECK_REVISIONS = "CheckRevisions";
+    
+    OrthancConfiguration::ReaderLock lock;
+    if (lock.GetConfiguration().GetBooleanParameter(CHECK_REVISIONS, false))
+    {
+      if (database.HasRevisionsSupport())
+      {
+        LOG(INFO) << "Handling of revisions is enabled, and the custom database back-end *has* "
+                  << "support for revisions of metadata and attachments";
+      }
+      else
+      {
+        LOG(WARNING) << "The custom database back-end has *no* support for revisions of metadata and attachments, "
+                     << "but configuration option \"" << CHECK_REVISIONS << "\" is set to \"true\"";
+      }
+    }
+  }
+
   bool success = ConfigureServerContext
     (database, storageArea, plugins, loadJobsFromDatabase);
 
