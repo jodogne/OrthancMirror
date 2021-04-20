@@ -1047,7 +1047,7 @@ namespace Orthanc
   };
 
   
-  void OrthancPluginDatabaseV3::CheckSuccess(OrthancPluginErrorCode code)
+  void OrthancPluginDatabaseV3::CheckSuccess(OrthancPluginErrorCode code) const
   {
     if (code != OrthancPluginErrorCode_Success)
     {
@@ -1104,6 +1104,7 @@ namespace Orthanc
     CHECK_FUNCTION_EXISTS(backend_, upgradeDatabase);
     CHECK_FUNCTION_EXISTS(backend_, startTransaction);
     CHECK_FUNCTION_EXISTS(backend_, destructTransaction);
+    CHECK_FUNCTION_EXISTS(backend_, hasRevisionsSupport);
 
     CHECK_FUNCTION_EXISTS(backend_, rollback);
     CHECK_FUNCTION_EXISTS(backend_, commit);
@@ -1230,5 +1231,14 @@ namespace Orthanc
         throw OrthancException(static_cast<ErrorCode>(code));
       }
     }
+  }
+
+  
+  bool OrthancPluginDatabaseV3::HasRevisionsSupport() const
+  {
+    // WARNING: This method requires "Open()" to have been called
+    uint8_t hasRevisions;
+    CheckSuccess(backend_.hasRevisionsSupport(database_, &hasRevisions));
+    return (hasRevisions != 0);
   }
 }
