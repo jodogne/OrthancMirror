@@ -920,7 +920,8 @@ namespace Orthanc
               target["Type"] = "Instance";
 
               FileInfo attachment;
-              if (!transaction.LookupAttachment(attachment, internalId, FileContentType_Dicom))
+              int64_t revision;  // ignored
+              if (!transaction.LookupAttachment(attachment, revision, internalId, FileContentType_Dicom))
               {
                 throw OrthancException(ErrorCode_InternalError);
               }
@@ -1015,10 +1016,11 @@ namespace Orthanc
 
 
   bool StatelessDatabaseOperations::LookupAttachment(FileInfo& attachment,
+                                                     int64_t& revision,
                                                      const std::string& instancePublicId,
                                                      FileContentType contentType)
   {
-    class Operations : public ReadOnlyOperationsT4<bool&, FileInfo&, const std::string&, FileContentType>
+    class Operations : public ReadOnlyOperationsT5<bool&, FileInfo&, int64_t&, const std::string&, FileContentType>
     {
     public:
       virtual void ApplyTuple(ReadOnlyTransaction& transaction,
@@ -1026,13 +1028,13 @@ namespace Orthanc
       {
         int64_t internalId;
         ResourceType type;
-        if (!transaction.LookupResource(internalId, type, tuple.get<2>()))
+        if (!transaction.LookupResource(internalId, type, tuple.get<3>()))
         {
           throw OrthancException(ErrorCode_UnknownResource);
         }
-        else if (transaction.LookupAttachment(tuple.get<1>(), internalId, tuple.get<3>()))
+        else if (transaction.LookupAttachment(tuple.get<1>(), tuple.get<2>(), internalId, tuple.get<4>()))
         {
-          assert(tuple.get<1>().GetContentType() == tuple.get<3>());
+          assert(tuple.get<1>().GetContentType() == tuple.get<4>());
           tuple.get<0>() = true;
         }
         else
@@ -1044,7 +1046,7 @@ namespace Orthanc
 
     bool found;
     Operations operations;
-    operations.Apply(*this, found, attachment, instancePublicId, contentType);
+    operations.Apply(*this, found, attachment, revision, instancePublicId, contentType);
     return found;
   }
 
@@ -1547,7 +1549,8 @@ namespace Orthanc
                    it = f.begin(); it != f.end(); ++it)
             {
               FileInfo attachment;
-              if (transaction.LookupAttachment(attachment, resource, *it))
+              int64_t revision;  // ignored
+              if (transaction.LookupAttachment(attachment, revision, resource, *it))
               {
                 if (attachment.GetContentType() == FileContentType_Dicom)
                 {
@@ -2244,7 +2247,7 @@ namespace Orthanc
             }
             else
             {
-              newRevision_ = oldRevision_ + 1;
+              newRevision_ = expectedRevision + 1;
             }
           }
           else
@@ -2478,23 +2481,38 @@ namespace Orthanc
   }
 
 
-  void StatelessDatabaseOperations::DeleteAttachment(const std::string& publicId,
-                                                     FileContentType type)
+  bool StatelessDatabaseOperations::DeleteAttachment(const std::string& publicId,
+                                                     FileContentType type,
+                                                     bool hasRevision,
+                                                     int64_t revision)
   {
     class Operations : public IReadWriteOperations
     {
     private:
       const std::string&  publicId_;
       FileContentType     type_;
-      
+      bool                hasRevision_;
+      int64_t             revision_;
+      bool                found_;
+
     public:
       Operations(const std::string& publicId,
-                 FileContentType type) :
+                 FileContentType type,
+                 bool hasRevision,
+                 int64_t revision) :
         publicId_(publicId),
-        type_(type)
+        type_(type),
+        hasRevision_(hasRevision),
+        revision_(revision),
+        found_(false)
       {
       }
         
+      bool HasFound() const
+      {
+        return found_;
+      }
+      
       virtual void Apply(ReadWriteTransaction& transaction) ORTHANC_OVERRIDE
       {
         ResourceType resourceType;
@@ -2505,18 +2523,35 @@ namespace Orthanc
         }
         else
         {
-          transaction.DeleteAttachment(id, type_);
-          
-          if (IsUserContentType(type_))
+          FileInfo info;
+          int64_t expectedRevision;
+          if (transaction.LookupAttachment(info, expectedRevision, id, type_))
           {
-            transaction.LogChange(id, ChangeType_UpdatedAttachment, resourceType, publicId_);
+            if (hasRevision_ &&
+                expectedRevision != revision_)
+            {
+              throw OrthancException(ErrorCode_Revision);
+            }
+            
+            found_ = true;
+            transaction.DeleteAttachment(id, type_);
+          
+            if (IsUserContentType(type_))
+            {
+              transaction.LogChange(id, ChangeType_UpdatedAttachment, resourceType, publicId_);
+            }
+          }
+          else
+          {
+            found_ = false;
           }
         }
       }
     };
 
-    Operations operations(publicId, type);
+    Operations operations(publicId, type, hasRevision, revision);
     Apply(operations);
+    return operations.HasFound();
   }
 
 
@@ -3018,7 +3053,7 @@ namespace Orthanc
           for (Attachments::const_iterator it = attachments_.begin();
                it != attachments_.end(); ++it)
           {
-            transaction.AddAttachment(instanceId, *it);
+            transaction.AddAttachment(instanceId, *it, 0 /* this is the first revision */);
           }
 
       
@@ -3219,30 +3254,42 @@ namespace Orthanc
   }
 
 
-  StoreStatus StatelessDatabaseOperations::AddAttachment(const FileInfo& attachment,
+  StoreStatus StatelessDatabaseOperations::AddAttachment(int64_t& newRevision,
+                                                         const FileInfo& attachment,
                                                          const std::string& publicId,
                                                          uint64_t maximumStorageSize,
-                                                         unsigned int maximumPatients)
+                                                         unsigned int maximumPatients,
+                                                         bool hasOldRevision,
+                                                         int64_t oldRevision)
   {
     class Operations : public IReadWriteOperations
     {
     private:
+      int64_t&            newRevision_;
       StoreStatus         status_;
       const FileInfo&     attachment_;
       const std::string&  publicId_;
       uint64_t            maximumStorageSize_;
       unsigned int        maximumPatientCount_;
-      
+      bool                hasOldRevision_;
+      int64_t             oldRevision_;
+
     public:
-      Operations(const FileInfo& attachment,
+      Operations(int64_t& newRevision,
+                 const FileInfo& attachment,
                  const std::string& publicId,
                  uint64_t maximumStorageSize,
-                 unsigned int maximumPatientCount) :
+                 unsigned int maximumPatientCount,
+                 bool hasOldRevision,
+                 int64_t oldRevision) :
+        newRevision_(newRevision),
         status_(StoreStatus_Failure),
         attachment_(attachment),
         publicId_(publicId),
         maximumStorageSize_(maximumStorageSize),
-        maximumPatientCount_(maximumPatientCount)
+        maximumPatientCount_(maximumPatientCount),
+        hasOldRevision_(hasOldRevision),
+        oldRevision_(oldRevision)
       {
       }
 
@@ -3261,8 +3308,30 @@ namespace Orthanc
         }
         else
         {
-          // Remove possible previous attachment
-          transaction.DeleteAttachment(resourceId, attachment_.GetContentType());
+          // Possibly remove previous attachment
+          {
+            FileInfo oldFile;
+            int64_t expectedRevision;
+            if (transaction.LookupAttachment(oldFile, expectedRevision, resourceId, attachment_.GetContentType()))
+            {
+              if (hasOldRevision_ &&
+                  expectedRevision != oldRevision_)
+              {
+                throw OrthancException(ErrorCode_Revision);
+              }
+              else
+              {
+                newRevision_ = expectedRevision + 1;
+                transaction.DeleteAttachment(resourceId, attachment_.GetContentType());
+              }
+            }
+            else
+            {
+              // The attachment is not existing yet: Ignore "oldRevision"
+              // and initialize a new sequence of revisions
+              newRevision_ = 0;
+            }
+          }
 
           // Locate the patient of the target resource
           int64_t patientId = resourceId;
@@ -3286,7 +3355,7 @@ namespace Orthanc
           transaction.Recycle(maximumStorageSize_, maximumPatientCount_,
                               attachment_.GetCompressedSize(), transaction.GetPublicId(patientId));
 
-          transaction.AddAttachment(resourceId, attachment_);
+          transaction.AddAttachment(resourceId, attachment_, newRevision_);
 
           if (IsUserContentType(attachment_.GetContentType()))
           {
@@ -3301,7 +3370,7 @@ namespace Orthanc
     };
 
 
-    Operations operations(attachment, publicId, maximumStorageSize, maximumPatients);
+    Operations operations(newRevision, attachment, publicId, maximumStorageSize, maximumPatients, hasOldRevision, oldRevision);
     Apply(operations);
     return operations.GetStatus();
   }

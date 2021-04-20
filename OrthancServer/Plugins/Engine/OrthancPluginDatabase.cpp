@@ -651,8 +651,10 @@ namespace Orthanc
     
 
     virtual void AddAttachment(int64_t id,
-                               const FileInfo& attachment) ORTHANC_OVERRIDE
+                               const FileInfo& attachment,
+                               int64_t revision) ORTHANC_OVERRIDE
     {
+      // "revision" is not used, as it was added in Orthanc 1.9.2
       OrthancPluginAttachment tmp;
       tmp.uuid = attachment.GetUuid().c_str();
       tmp.contentType = static_cast<int32_t>(attachment.GetContentType());
@@ -1104,6 +1106,7 @@ namespace Orthanc
 
     
     virtual bool LookupAttachment(FileInfo& attachment,
+                                  int64_t& revision,
                                   int64_t id,
                                   FileContentType contentType) ORTHANC_OVERRIDE
     {
@@ -1111,6 +1114,8 @@ namespace Orthanc
 
       CheckSuccess(that_.backend_.lookupAttachment
                    (that_.GetContext(), that_.payload_, id, static_cast<int32_t>(contentType)));
+      
+      revision = 0;  // Dummy value, as revisions were added in Orthanc 1.9.2
 
       if (type_ == _OrthancPluginDatabaseAnswerType_None)
       {

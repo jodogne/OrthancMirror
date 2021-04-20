@@ -97,7 +97,10 @@ namespace Orthanc
                       bool hasPixelDataOffset,
                       uint64_t pixelDataOffset);
 
-    StoreStatus AddAttachment(const FileInfo& attachment,
-                              const std::string& publicId);
+    StoreStatus AddAttachment(int64_t& newRevision /*out*/,
+                              const FileInfo& attachment,
+                              const std::string& publicId,
+                              bool hasOldRevision,
+                              int64_t oldRevision);
   };
 }

@@ -326,8 +326,10 @@ namespace Orthanc
 
     
     virtual void AddAttachment(int64_t id,
-                               const FileInfo& attachment) ORTHANC_OVERRIDE
+                               const FileInfo& attachment,
+                               int64_t revision) ORTHANC_OVERRIDE
     {
+      // TODO - REVISIONS
       SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO AttachedFiles VALUES(?, ?, ?, ?, ?, ?, ?, ?)");
       s.BindInt64(0, id);
       s.BindInt(1, attachment.GetContentType());
@@ -799,6 +801,7 @@ namespace Orthanc
 
 
     virtual bool LookupAttachment(FileInfo& attachment,
+                                  int64_t& revision,
                                   int64_t id,
                                   FileContentType contentType) ORTHANC_OVERRIDE
     {
@@ -821,6 +824,7 @@ namespace Orthanc
                               static_cast<CompressionType>(s.ColumnInt(2)),
                               s.ColumnInt64(3),
                               s.ColumnString(5));
+        revision = 0;   // TODO - REVISIONS
         return true;
       }
     }

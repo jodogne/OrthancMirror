@@ -240,10 +240,11 @@ namespace Orthanc
       }
 
       bool LookupAttachment(FileInfo& attachment,
+                            int64_t& revision,
                             int64_t id,
                             FileContentType contentType)
       {
-        return transaction_.LookupAttachment(attachment, id, contentType);
+        return transaction_.LookupAttachment(attachment, revision, id, contentType);
       }
       
       bool LookupGlobalProperty(std::string& target,
@@ -294,9 +295,10 @@ namespace Orthanc
       }
 
       void AddAttachment(int64_t id,
-                         const FileInfo& attachment)
+                         const FileInfo& attachment,
+                         int64_t revision)
       {
-        transaction_.AddAttachment(id, attachment);
+        transaction_.AddAttachment(id, attachment, revision);
       }
       
       void ClearChanges()
@@ -481,6 +483,7 @@ namespace Orthanc
                              /* out */ uint64_t& countInstances);
 
     bool LookupAttachment(FileInfo& attachment,
+                          int64_t& revision,
                           const std::string& instancePublicId,
                           FileContentType contentType);
 
@@ -600,8 +603,10 @@ namespace Orthanc
                            bool shared,
                            const std::string& value);
 
-    void DeleteAttachment(const std::string& publicId,
-                          FileContentType type);
+    bool DeleteAttachment(const std::string& publicId,
+                          FileContentType type,
+                          bool hasRevision,
+                          int64_t revision);
 
     void LogChange(int64_t internalId,
                    ChangeType changeType,
@@ -623,9 +628,12 @@ namespace Orthanc
                       uint64_t maximumStorageSize,
                       unsigned int maximumPatients);
 
-    StoreStatus AddAttachment(const FileInfo& attachment,
+    StoreStatus AddAttachment(int64_t& newRevision /*out*/,
+                              const FileInfo& attachment,
                               const std::string& publicId,
                               uint64_t maximumStorageSize,
-                              unsigned int maximumPatients);
+                              unsigned int maximumPatients,
+                              bool hasOldRevision,
+                              int64_t oldRevision);
   };
 }

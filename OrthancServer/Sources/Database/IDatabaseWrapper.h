@@ -78,8 +78,12 @@ namespace Orthanc
       // attachments (cf. "fastGetTotalSize_")
       virtual void Commit(int64_t fileSizeDelta) = 0;
 
+      // A call to "AddAttachment()" guarantees that this attachment
+      // is not already existing. This is different from
+      // "SetMetadata()" that might have to replace an older value.
       virtual void AddAttachment(int64_t id,
-                                 const FileInfo& attachment) = 0;
+                                 const FileInfo& attachment,
+                                 int64_t revision) = 0;
 
       virtual void ClearChanges() = 0;
 
@@ -150,6 +154,7 @@ namespace Orthanc
       virtual void LogExportedResource(const ExportedResource& resource) = 0;
     
       virtual bool LookupAttachment(FileInfo& attachment,
+                                    int64_t& revision,
                                     int64_t id,
                                     FileContentType contentType) = 0;
 

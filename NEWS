@@ -12,8 +12,8 @@ REST API
 --------
 
 * API version upgraded to 12
-* "/.../{id}/metadata/{name}" URIs handle the HTTP headers "If-Match", "If-None-Match" and
-  "ETag" to cope with revisions
+* "/.../{id}/metadata/{name}" and "/.../{id}/attachments/{name}/..." URIs handle the
+  HTTP headers "If-Match", "If-None-Match" and "ETag" to cope with revisions
 
 Plugins
 -------

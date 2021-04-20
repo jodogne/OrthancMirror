@@ -165,7 +165,8 @@ namespace Orthanc
 
         // Get the DICOM file attached to some instances in the resource
         FileInfo attachment;
-        if (!transaction.LookupAttachment(attachment, instance, FileContentType_Dicom))
+        int64_t revision;
+        if (!transaction.LookupAttachment(attachment, revision, instance, FileContentType_Dicom))
         {
           throw OrthancException(ErrorCode_InternalError,
                                  "Cannot retrieve the DICOM file associated with instance " +
@@ -294,7 +295,8 @@ namespace Orthanc
         ServerContext::DicomCacheLocker locker(context, *it);
 
         // Delay the reconstruction of DICOM-as-JSON to its next access through "ServerContext"
-        context.GetIndex().DeleteAttachment(*it, FileContentType_DicomAsJson);
+        context.GetIndex().DeleteAttachment(
+          *it, FileContentType_DicomAsJson, false /* no revision */, -1 /* dummy revision */);
         
         context.GetIndex().ReconstructInstance(locker.GetDicom());
       }

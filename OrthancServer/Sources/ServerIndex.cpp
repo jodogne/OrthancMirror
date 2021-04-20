@@ -546,8 +546,11 @@ namespace Orthanc
   }
 
   
-  StoreStatus ServerIndex::AddAttachment(const FileInfo& attachment,
-                                         const std::string& publicId)
+  StoreStatus ServerIndex::AddAttachment(int64_t& newRevision,
+                                         const FileInfo& attachment,
+                                         const std::string& publicId,
+                                         bool hasOldRevision,
+                                         int64_t oldRevision)
   {
     uint64_t maximumStorageSize;
     unsigned int maximumPatients;
@@ -559,6 +562,6 @@ namespace Orthanc
     }
 
     return StatelessDatabaseOperations::AddAttachment(
-      attachment, publicId, maximumStorageSize, maximumPatients);
+      newRevision, attachment, publicId, maximumStorageSize, maximumPatients, hasOldRevision, oldRevision);
   }
 }

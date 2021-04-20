@@ -305,7 +305,8 @@ namespace Orthanc
 
     
     virtual void AddAttachment(int64_t id,
-                               const FileInfo& attachment) ORTHANC_OVERRIDE
+                               const FileInfo& attachment,
+                               int64_t revision) ORTHANC_OVERRIDE
     {
       OrthancPluginAttachment tmp;
       tmp.uuid = attachment.GetUuid().c_str();
@@ -316,7 +317,7 @@ namespace Orthanc
       tmp.compressedSize = attachment.GetCompressedSize();
       tmp.compressedHash = attachment.GetCompressedMD5().c_str();
 
-      CheckSuccess(that_.backend_.addAttachment(transaction_, id, &tmp));
+      CheckSuccess(that_.backend_.addAttachment(transaction_, id, &tmp, revision));
       CheckNoEvent();
     }
 
@@ -666,10 +667,11 @@ namespace Orthanc
 
     
     virtual bool LookupAttachment(FileInfo& attachment,
+                                  int64_t& revision,
                                   int64_t id,
                                   FileContentType contentType) ORTHANC_OVERRIDE
     {
-      CheckSuccess(that_.backend_.lookupAttachment(transaction_, id, static_cast<int32_t>(contentType)));
+      CheckSuccess(that_.backend_.lookupAttachment(transaction_, &revision, id, static_cast<int32_t>(contentType)));
       CheckNoEvent();
 
       uint32_t count;
@@ -1127,8 +1129,8 @@ namespace Orthanc
     CHECK_FUNCTION_EXISTS(backend_, getLastExportedResource);
     CHECK_FUNCTION_EXISTS(backend_, getMainDicomTags);
     CHECK_FUNCTION_EXISTS(backend_, getPublicId);
-    CHECK_FUNCTION_EXISTS(backend_, getResourcesCount);
     CHECK_FUNCTION_EXISTS(backend_, getResourceType);
+    CHECK_FUNCTION_EXISTS(backend_, getResourcesCount);
     CHECK_FUNCTION_EXISTS(backend_, getTotalCompressedSize);
     CHECK_FUNCTION_EXISTS(backend_, getTotalUncompressedSize);
     CHECK_FUNCTION_EXISTS(backend_, isDiskSizeAbove);
@@ -1142,8 +1144,8 @@ namespace Orthanc
     CHECK_FUNCTION_EXISTS(backend_, lookupMetadata);
     CHECK_FUNCTION_EXISTS(backend_, lookupParent);
     CHECK_FUNCTION_EXISTS(backend_, lookupResource);
-    CHECK_FUNCTION_EXISTS(backend_, lookupResources);
     CHECK_FUNCTION_EXISTS(backend_, lookupResourceAndParent);
+    CHECK_FUNCTION_EXISTS(backend_, lookupResources);
     CHECK_FUNCTION_EXISTS(backend_, selectPatientToRecycle);
     CHECK_FUNCTION_EXISTS(backend_, selectPatientToRecycle2);
     CHECK_FUNCTION_EXISTS(backend_, setGlobalProperty);

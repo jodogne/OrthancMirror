@@ -1541,7 +1541,7 @@ namespace Orthanc
         .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
         .SetUriArgument("name", "The name of the metadata, or its index (cf. `UserMetadata` configuration option)")
         .SetHttpHeader("If-Match", "Revision of the metadata, to check if its content has not changed and can "
-                       "be deleted. This option is mandatory if `CheckRevision` option is `true`.");
+                       "be deleted. This header is mandatory if `CheckRevision` option is `true`.");
       return;
     }
 
@@ -1686,15 +1686,48 @@ namespace Orthanc
   }
 
 
-  static bool GetAttachmentInfo(FileInfo& info, RestApiCall& call)
+  static void AddAttachmentDocumentation(RestApiGetCall& call,
+                                         const std::string& resourceType)
+  {
+    call.GetDocumentation()
+      .SetUriArgument("id", "Orthanc identifier of the " + resourceType + " of interest")
+      .SetUriArgument("name", "The name of the attachment, or its index (cf. `UserContentType` configuration option)")
+      .SetAnswerHeader("ETag", "Revision of the attachment, to be used in further `PUT` or `DELETE` operations")
+      .SetHttpHeader("If-None-Match", "Optional revision of the attachment, to check if its content has changed");
+  }
+
+  
+  static bool GetAttachmentInfo(FileInfo& info,
+                                RestApiGetCall& call)
   {
     CheckValidResourceType(call);
  
-    std::string publicId = call.GetUriComponent("id", "");
-    std::string name = call.GetUriComponent("name", "");
+    const std::string publicId = call.GetUriComponent("id", "");
+    const std::string name = call.GetUriComponent("name", "");
     FileContentType contentType = StringToContentType(name);
 
-    return OrthancRestApi::GetIndex(call).LookupAttachment(info, publicId, contentType);
+    int64_t revision;
+    if (OrthancRestApi::GetIndex(call).LookupAttachment(info, revision, publicId, contentType))
+    {
+      call.GetOutput().GetLowLevelOutput().
+        AddHeader("ETag", "\"" + boost::lexical_cast<std::string>(revision) + "\"");  // New in Orthanc 1.9.2
+
+      int64_t userRevision;
+      if (GetRevisionHeader(userRevision, call, "If-None-Match") &&
+          revision == userRevision)
+      {
+        call.GetOutput().GetLowLevelOutput().SendStatus(HttpStatus_304_NotModified);
+        return false;
+      }
+      else
+      {
+        return true;
+      }
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_UnknownResource);
+    }
   }
 
 
@@ -1704,12 +1737,11 @@ namespace Orthanc
     {
       ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
       std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      AddAttachmentDocumentation(call, r);
       call.GetDocumentation()
         .SetTag("Other")
         .SetSummary("List operations on attachments")
         .SetDescription("Get the list of the operations that are available for attachments associated with the given " + r)
-        .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
-        .SetUriArgument("name", "The name of the attachment, or its index (cf. `UserContentType` configuration option)")
         .AddAnswerType(MimeType_Json, "List of the available operations")
         .SetHttpGetSample("https://demo.orthanc-server.com/instances/d94d9a03-3003b047-a4affc69-322313b2-680530a2/attachments/dicom", true);
       return;
@@ -1765,7 +1797,9 @@ namespace Orthanc
                         std::string(uncompress ? "" : ". The attachment will not be decompressed if `StorageCompression` is `true`."))
         .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
         .SetUriArgument("name", "The name of the attachment, or its index (cf. `UserContentType` configuration option)")
-        .AddAnswerType(MimeType_Binary, "The attachment");
+        .AddAnswerType(MimeType_Binary, "The attachment")
+        .SetAnswerHeader("ETag", "Revision of the attachment, to be used in further `PUT` or `DELETE` operations")
+        .SetHttpHeader("If-None-Match", "Optional revision of the metadata, to check if its content has changed");
       return;
     }
 
@@ -1778,14 +1812,32 @@ namespace Orthanc
 
     if (uncompress)
     {
-      context.AnswerAttachment(call.GetOutput(), publicId, type);
+      FileInfo info;
+      if (GetAttachmentInfo(info, call))
+      {
+        context.AnswerAttachment(call.GetOutput(), publicId, type);
+      }
     }
     else
     {
       // Return the raw data (possibly compressed), as stored on the filesystem
       std::string content;
-      context.ReadAttachment(content, publicId, type, false);
-      call.GetOutput().AnswerBuffer(content, MimeType_Binary);
+      int64_t revision;
+      context.ReadAttachment(content, revision, publicId, type, false);
+
+      call.GetOutput().GetLowLevelOutput().
+        AddHeader("ETag", "\"" + boost::lexical_cast<std::string>(revision) + "\"");  // New in Orthanc 1.9.2
+
+      int64_t userRevision;
+      if (GetRevisionHeader(userRevision, call, "If-None-Match") &&
+          revision == userRevision)
+      {
+        call.GetOutput().GetLowLevelOutput().SendStatus(HttpStatus_304_NotModified);
+      }
+      else
+      {
+        call.GetOutput().AnswerBuffer(content, MimeType_Binary);
+      }
     }
   }
 
@@ -1796,12 +1848,11 @@ namespace Orthanc
     {
       ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
       std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      AddAttachmentDocumentation(call, r);
       call.GetDocumentation()
         .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
         .SetSummary("Get size of attachment")
         .SetDescription("Get the size of one attachment associated with the given " + r)
-        .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
-        .SetUriArgument("name", "The name of the attachment, or its index (cf. `UserContentType` configuration option)")
         .AddAnswerType(MimeType_PlainText, "The size of the attachment");
       return;
     }
@@ -1820,13 +1871,12 @@ namespace Orthanc
     {
       ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
       std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      AddAttachmentDocumentation(call, r);
       call.GetDocumentation()
         .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
         .SetSummary("Get size of attachment on disk")
         .SetDescription("Get the size of one attachment associated with the given " + r + ", as stored on the disk. "
                         "This is different from `.../size` iff `EnableStorage` is `true`.")
-        .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
-        .SetUriArgument("name", "The name of the attachment, or its index (cf. `UserContentType` configuration option)")
         .AddAnswerType(MimeType_PlainText, "The size of the attachment, as stored on the disk");
       return;
     }
@@ -1845,12 +1895,11 @@ namespace Orthanc
     {
       ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
       std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      AddAttachmentDocumentation(call, r);
       call.GetDocumentation()
         .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
         .SetSummary("Get MD5 of attachment")
         .SetDescription("Get the MD5 hash of one attachment associated with the given " + r)
-        .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
-        .SetUriArgument("name", "The name of the attachment, or its index (cf. `UserContentType` configuration option)")
         .AddAnswerType(MimeType_PlainText, "The MD5 of the attachment");
       return;
     }
@@ -1870,13 +1919,12 @@ namespace Orthanc
     {
       ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
       std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      AddAttachmentDocumentation(call, r);
       call.GetDocumentation()
         .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
         .SetSummary("Get MD5 of attachment on disk")
         .SetDescription("Get the MD5 hash of one attachment associated with the given " + r + ", as stored on the disk. "
                         "This is different from `.../md5` iff `EnableStorage` is `true`.")
-        .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
-        .SetUriArgument("name", "The name of the attachment, or its index (cf. `UserContentType` configuration option)")
         .AddAnswerType(MimeType_PlainText, "The MD5 of the attachment, as stored on the disk");
       return;
     }
@@ -1911,9 +1959,11 @@ namespace Orthanc
 
     std::string publicId = call.GetUriComponent("id", "");
     std::string name = call.GetUriComponent("name", "");
+    FileContentType contentType = StringToContentType(name);
 
     FileInfo info;
-    if (!GetAttachmentInfo(info, call) ||
+    int64_t revision;  // Ignored
+    if (!OrthancRestApi::GetIndex(call).LookupAttachment(info, revision, publicId, contentType) ||
         info.GetCompressedMD5() == "" ||
         info.GetUncompressedMD5() == "")
     {
@@ -1925,7 +1975,7 @@ namespace Orthanc
 
     // First check whether the compressed data is correctly stored in the disk
     std::string data;
-    context.ReadAttachment(data, publicId, StringToContentType(name), false);
+    context.ReadAttachment(data, revision, publicId, StringToContentType(name), false);
 
     std::string actualMD5;
     Toolbox::ComputeMD5(actualMD5, data);
@@ -1940,7 +1990,7 @@ namespace Orthanc
       }
       else
       {
-        context.ReadAttachment(data, publicId, StringToContentType(name), true);        
+        context.ReadAttachment(data, revision, publicId, StringToContentType(name), true);        
         Toolbox::ComputeMD5(actualMD5, data);
         ok = (actualMD5 == info.GetUncompressedMD5());
       }
@@ -1972,7 +2022,8 @@ namespace Orthanc
         .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
         .SetUriArgument("name", "The name of the attachment, or its index (cf. `UserContentType` configuration option)")
         .AddRequestType(MimeType_Binary, "Binary data containing the attachment")
-        .AddAnswerType(MimeType_Json, "Empty JSON object in the case of a success");
+        .AddAnswerType(MimeType_Json, "Empty JSON object in the case of a success")
+        .SetHttpHeader("If-Match", "Revision of the attachment, if this is not the first time this attachment is set.");
       return;
     }
 
@@ -1983,9 +2034,31 @@ namespace Orthanc
     std::string name = call.GetUriComponent("name", "");
 
     FileContentType contentType = StringToContentType(name);
-    if (IsUserContentType(contentType) &&  // It is forbidden to modify internal attachments
-        context.AddAttachment(publicId, StringToContentType(name), call.GetBodyData(), call.GetBodySize()))
+    if (IsUserContentType(contentType))  // It is forbidden to modify internal attachments
     {
+      int64_t oldRevision;
+      bool hasOldRevision = GetRevisionHeader(oldRevision, call, "if-match");
+
+      if (!hasOldRevision)
+      {
+        OrthancConfiguration::ReaderLock lock;
+        if (lock.GetConfiguration().GetBooleanParameter(CHECK_REVISIONS, false))
+        {
+          // "StatelessDatabaseOperations::AddAttachment()" will ignore
+          // the actual value of "oldRevision" if the metadata is
+          // inexistent as expected
+          hasOldRevision = true;
+          oldRevision = -1;  // dummy value
+        }
+      }
+
+      int64_t newRevision;
+      context.AddAttachment(newRevision, publicId, StringToContentType(name), call.GetBodyData(),
+                            call.GetBodySize(), hasOldRevision, oldRevision);
+
+      call.GetOutput().GetLowLevelOutput().
+        AddHeader("ETag", "\"" + boost::lexical_cast<std::string>(newRevision) + "\"");  // New in Orthanc 1.9.2
+      
       call.GetOutput().AnswerBuffer("{}", MimeType_Json);
     }
     else
@@ -2007,7 +2080,9 @@ namespace Orthanc
         .SetDescription("Delete an attachment associated with the given DICOM " + r +
                         ". This call will fail if trying to delete a system attachment (i.e. whose index is < 1024).")
         .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
-        .SetUriArgument("name", "The name of the attachment, or its index (cf. `UserContentType` configuration option)");
+        .SetUriArgument("name", "The name of the attachment, or its index (cf. `UserContentType` configuration option)")
+        .SetHttpHeader("If-Match", "Revision of the attachment, to check if its content has not changed and can "
+                       "be deleted. This header is mandatory if `CheckRevision` option is `true`.");
       return;
     }
 
@@ -2042,8 +2117,34 @@ namespace Orthanc
 
     if (allowed) 
     {
-      OrthancRestApi::GetIndex(call).DeleteAttachment(publicId, contentType);
-      call.GetOutput().AnswerBuffer("{}", MimeType_Json);
+      bool found;
+      int64_t revision;
+      if (GetRevisionHeader(revision, call, "if-match"))
+      {
+        found = OrthancRestApi::GetIndex(call).DeleteAttachment(publicId, contentType, true, revision);
+      }
+      else
+      {
+        OrthancConfiguration::ReaderLock lock;
+        if (lock.GetConfiguration().GetBooleanParameter(CHECK_REVISIONS, false))
+        {
+          throw OrthancException(ErrorCode_Revision,
+                                 "HTTP header \"If-Match\" is missing, as \"CheckRevision\" is \"true\"");
+        }
+        else
+        {
+          found = OrthancRestApi::GetIndex(call).DeleteAttachment(publicId, contentType, false, -1 /* dummy value */);
+        }
+      }
+
+      if (found)
+      {
+        call.GetOutput().AnswerBuffer("", MimeType_PlainText);
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_UnknownResource);
+      }
     }
     else
     {
@@ -2085,12 +2186,11 @@ namespace Orthanc
     {
       ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
       std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      AddAttachmentDocumentation(call, r);
       call.GetDocumentation()
         .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
         .SetSummary("Is attachment compressed?")
         .SetDescription("Test whether the attachment has been stored as a compressed file on the disk.")
-        .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
-        .SetUriArgument("name", "The name of the attachment, or its index (cf. `UserContentType` configuration option)")
         .AddAnswerType(MimeType_PlainText, "`0` if the attachment was stored uncompressed, `1` if it was compressed");
       return;
     }
@@ -2886,7 +2986,7 @@ namespace Orthanc
       for (std::list<std::string>::const_iterator 
              instance = instances.begin(); instance != instances.end(); ++instance)
       {
-        index.DeleteAttachment(*instance, FileContentType_DicomAsJson);
+        index.DeleteAttachment(*instance, FileContentType_DicomAsJson, false /* no revision checks */, -1 /* dummy */);
       }
     }
 
