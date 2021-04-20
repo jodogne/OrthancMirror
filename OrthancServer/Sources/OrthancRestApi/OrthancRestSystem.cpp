@@ -61,29 +61,44 @@ namespace Orthanc
  
   static void GetSystemInformation(RestApiGetCall& call)
   {
+    static const char* const API_VERSION = "ApiVersion";
+    static const char* const CHECK_REVISIONS = "CheckRevisions";
+    static const char* const DATABASE_BACKEND_PLUGIN = "DatabaseBackendPlugin";
+    static const char* const DATABASE_VERSION = "DatabaseVersion";
+    static const char* const DICOM_AET = "DicomAet";
+    static const char* const DICOM_PORT = "DicomPort";
+    static const char* const HTTP_PORT = "HttpPort";
+    static const char* const IS_HTTP_SERVER_SECURE = "IsHttpServerSecure";
+    static const char* const NAME = "Name";
+    static const char* const PLUGINS_ENABLED = "PluginsEnabled";
+    static const char* const STORAGE_AREA_PLUGIN = "StorageAreaPlugin";
+    static const char* const VERSION = "Version";
+    
     if (call.IsDocumentation())
     {
       call.GetDocumentation()
         .SetTag("System")
         .SetSummary("Get system information")
         .SetDescription("Get system information about Orthanc")
-        .SetAnswerField("ApiVersion", RestApiCallDocumentation::Type_Number, "Version of the REST API")
-        .SetAnswerField("Version", RestApiCallDocumentation::Type_String, "Version of Orthanc")
-        .SetAnswerField("DatabaseVersion", RestApiCallDocumentation::Type_Number,
+        .SetAnswerField(API_VERSION, RestApiCallDocumentation::Type_Number, "Version of the REST API")
+        .SetAnswerField(VERSION, RestApiCallDocumentation::Type_String, "Version of Orthanc")
+        .SetAnswerField(DATABASE_VERSION, RestApiCallDocumentation::Type_Number,
                         "Version of the database: https://book.orthanc-server.com/developers/db-versioning.html")
-        .SetAnswerField("IsHttpServerSecure", RestApiCallDocumentation::Type_Boolean,
+        .SetAnswerField(IS_HTTP_SERVER_SECURE, RestApiCallDocumentation::Type_Boolean,
                         "Whether the REST API is properly secured (assuming no reverse proxy is in use): https://book.orthanc-server.com/faq/security.html#securing-the-http-server")
-        .SetAnswerField("StorageAreaPlugin", RestApiCallDocumentation::Type_String,
+        .SetAnswerField(STORAGE_AREA_PLUGIN, RestApiCallDocumentation::Type_String,
                         "Information about the installed storage area plugin (`null` if no such plugin is installed)")
-        .SetAnswerField("DatabaseBackendPlugin", RestApiCallDocumentation::Type_String,
+        .SetAnswerField(DATABASE_BACKEND_PLUGIN, RestApiCallDocumentation::Type_String,
                         "Information about the installed database index plugin (`null` if no such plugin is installed)")
-        .SetAnswerField("DicomAet", RestApiCallDocumentation::Type_String, "The DICOM AET of Orthanc")
-        .SetAnswerField("DicomPort", RestApiCallDocumentation::Type_Number, "The port to the DICOM server of Orthanc")
-        .SetAnswerField("HttpPort", RestApiCallDocumentation::Type_Number, "The port to the HTTP server of Orthanc")
-        .SetAnswerField("Name", RestApiCallDocumentation::Type_String,
+        .SetAnswerField(DICOM_AET, RestApiCallDocumentation::Type_String, "The DICOM AET of Orthanc")
+        .SetAnswerField(DICOM_PORT, RestApiCallDocumentation::Type_Number, "The port to the DICOM server of Orthanc")
+        .SetAnswerField(HTTP_PORT, RestApiCallDocumentation::Type_Number, "The port to the HTTP server of Orthanc")
+        .SetAnswerField(NAME, RestApiCallDocumentation::Type_String,
                         "The name of the Orthanc server, cf. the `Name` configuration option")
-        .SetAnswerField("PluginsEnabled", RestApiCallDocumentation::Type_Boolean,
+        .SetAnswerField(PLUGINS_ENABLED, RestApiCallDocumentation::Type_Boolean,
                         "Whether Orthanc was built with support for plugins")
+        .SetAnswerField(CHECK_REVISIONS, RestApiCallDocumentation::Type_Boolean,
+                        "Whether Orthanc handle revisions of metadata and attachments to deal with multiple writers (new in Orthanc 1.9.2)")
         .SetHttpGetSample("https://demo.orthanc-server.com/system", true);
       return;
     }
@@ -92,39 +107,40 @@ namespace Orthanc
 
     Json::Value result = Json::objectValue;
 
-    result["ApiVersion"] = ORTHANC_API_VERSION;
-    result["Version"] = ORTHANC_VERSION;
-    result["DatabaseVersion"] = OrthancRestApi::GetIndex(call).GetDatabaseVersion();
-    result["IsHttpServerSecure"] = context.IsHttpServerSecure();  // New in Orthanc 1.5.8
+    result[API_VERSION] = ORTHANC_API_VERSION;
+    result[VERSION] = ORTHANC_VERSION;
+    result[DATABASE_VERSION] = OrthancRestApi::GetIndex(call).GetDatabaseVersion();
+    result[IS_HTTP_SERVER_SECURE] = context.IsHttpServerSecure();  // New in Orthanc 1.5.8
 
     {
       OrthancConfiguration::ReaderLock lock;
-      result["DicomAet"] = lock.GetConfiguration().GetOrthancAET();
-      result["DicomPort"] = lock.GetConfiguration().GetUnsignedIntegerParameter("DicomPort", 4242);
-      result["HttpPort"] = lock.GetConfiguration().GetUnsignedIntegerParameter("HttpPort", 8042);
-      result["Name"] = lock.GetConfiguration().GetStringParameter("Name", "");
+      result[DICOM_AET] = lock.GetConfiguration().GetOrthancAET();
+      result[DICOM_PORT] = lock.GetConfiguration().GetUnsignedIntegerParameter(DICOM_PORT, 4242);
+      result[HTTP_PORT] = lock.GetConfiguration().GetUnsignedIntegerParameter(HTTP_PORT, 8042);
+      result[NAME] = lock.GetConfiguration().GetStringParameter(NAME, "");
+      result[CHECK_REVISIONS] = lock.GetConfiguration().GetBooleanParameter(CHECK_REVISIONS, false);  // New in Orthanc 1.9.2
     }
 
-    result["StorageAreaPlugin"] = Json::nullValue;
-    result["DatabaseBackendPlugin"] = Json::nullValue;
+    result[STORAGE_AREA_PLUGIN] = Json::nullValue;
+    result[DATABASE_BACKEND_PLUGIN] = Json::nullValue;
 
 #if ORTHANC_ENABLE_PLUGINS == 1
-    result["PluginsEnabled"] = true;
+    result[PLUGINS_ENABLED] = true;
     const OrthancPlugins& plugins = context.GetPlugins();
 
     if (plugins.HasStorageArea())
     {
       std::string p = plugins.GetStorageAreaLibrary().GetPath();
-      result["StorageAreaPlugin"] = boost::filesystem::canonical(p).string();
+      result[STORAGE_AREA_PLUGIN] = boost::filesystem::canonical(p).string();
     }
 
     if (plugins.HasDatabaseBackend())
     {
       std::string p = plugins.GetDatabaseBackendLibrary().GetPath();
-      result["DatabaseBackendPlugin"] = boost::filesystem::canonical(p).string();     
+      result[DATABASE_BACKEND_PLUGIN] = boost::filesystem::canonical(p).string();     
     }
 #else
-    result["PluginsEnabled"] = false;
+    result[PLUGINS_ENABLED] = false;
 #endif
 
     call.GetOutput().AnswerJson(result);

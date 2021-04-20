@@ -53,6 +53,7 @@ static const char* const DICOM_MODALITIES_IN_DB = "DicomModalitiesInDatabase";
 static const char* const ORTHANC_PEERS = "OrthancPeers";
 static const char* const ORTHANC_PEERS_IN_DB = "OrthancPeersInDatabase";
 static const char* const TEMPORARY_DIRECTORY = "TemporaryDirectory";
+static const char* const DATABASE_SERVER_IDENTIFIER = "DatabaseServerIdentifier";
 
 namespace Orthanc
 {
@@ -254,7 +255,7 @@ namespace Orthanc
       }
       else
       {
-        std::string property = serverIndex_->GetGlobalProperty(GlobalProperty_Modalities, "{}");
+        std::string property = serverIndex_->GetGlobalProperty(GlobalProperty_Modalities, false /* not shared */, "{}");
 
         Json::Value modalities;
         if (Toolbox::ReadJson(modalities, property))
@@ -293,7 +294,7 @@ namespace Orthanc
       }
       else
       {
-        std::string property = serverIndex_->GetGlobalProperty(GlobalProperty_Peers, "{}");
+        std::string property = serverIndex_->GetGlobalProperty(GlobalProperty_Peers, false /* not shared */, "{}");
 
         Json::Value peers;
         if (Toolbox::ReadJson(peers, property))
@@ -369,7 +370,7 @@ namespace Orthanc
         std::string s;
         Toolbox::WriteFastJson(s, modalities);
         
-        serverIndex_->SetGlobalProperty(GlobalProperty_Modalities, s);
+        serverIndex_->SetGlobalProperty(GlobalProperty_Modalities, false /* not shared */, s);
       }
     }
     else
@@ -401,7 +402,7 @@ namespace Orthanc
         std::string s;
         Toolbox::WriteFastJson(s, peers);
 
-        serverIndex_->SetGlobalProperty(GlobalProperty_Peers, s);
+        serverIndex_->SetGlobalProperty(GlobalProperty_Peers, false /* not shared */, s);
       }
     }
     else
@@ -1014,6 +1015,59 @@ namespace Orthanc
   }
 
 
+  std::string OrthancConfiguration::GetDatabaseServerIdentifier() const
+  {
+    std::string id;
+
+    if (LookupStringParameter(id, DATABASE_SERVER_IDENTIFIER))
+    {
+      if (id.empty())
+      {
+        throw OrthancException(ErrorCode_ParameterOutOfRange, "Global configuration option \"" +
+                               std::string(DATABASE_SERVER_IDENTIFIER) + "\" cannot be empty");
+      }
+      else
+      {
+        return id;
+      }
+    }
+    else
+    {
+      std::set<std::string> items;
+
+      {
+        std::set<std::string> mac;
+        SystemToolbox::GetMacAddresses(mac);
+
+        for (std::set<std::string>::const_iterator it = mac.begin(); it != mac.end(); ++it)
+        {
+          items.insert("mac=" + *it);
+        }
+      }
+
+      items.insert("aet=" + GetStringParameter("DicomAet", "ORTHANC"));
+      items.insert("dicom-port=" + boost::lexical_cast<std::string>(GetUnsignedIntegerParameter("DicomPort", 4242)));
+      items.insert("http-port=" + boost::lexical_cast<std::string>(GetUnsignedIntegerParameter("HttpPort", 8042)));
+
+      for (std::set<std::string>::const_iterator it = items.begin(); it != items.end(); ++it)
+      {
+        if (id.empty())
+        {
+          id = *it;
+        }
+        else
+        {
+          id += ("|" + *it);
+        }
+      }
+
+      std::string hash;
+      Toolbox::ComputeSHA1(hash, id);
+      return hash;
+    }
+  }
+
+  
   void OrthancConfiguration::DefaultExtractDicomSummary(DicomMap& target,
                                                         const ParsedDicomFile& dicom)
   {

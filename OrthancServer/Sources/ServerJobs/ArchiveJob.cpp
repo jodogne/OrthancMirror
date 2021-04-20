@@ -229,7 +229,8 @@ namespace Orthanc
       if (level_ == ResourceType_Instance)
       {
         FileInfo tmp;
-        if (index.LookupAttachment(tmp, id, FileContentType_Dicom))
+        int64_t revision;  // ignored
+        if (index.LookupAttachment(tmp, revision, id, FileContentType_Dicom))
         {
           instances_.push_back(Instance(id, tmp.GetUncompressedSize()));
         }
@@ -708,14 +709,11 @@ namespace Orthanc
   {
   private:
     ZipCommands&    commands_;
-    ServerContext&  context_;
     unsigned int    counter_;
 
   public:
-    MediaIndexVisitor(ZipCommands& commands,
-                      ServerContext& context) :
+    explicit MediaIndexVisitor(ZipCommands& commands) :
       commands_(commands),
-      context_(context),
       counter_(0)
     {
     }
@@ -746,7 +744,6 @@ namespace Orthanc
   class ArchiveJob::ZipWriterIterator : public boost::noncopyable
   {
   private:
-    TemporaryFile&                          target_;
     ServerContext&                          context_;
     ZipCommands                             commands_;
     std::unique_ptr<HierarchicalZipWriter>  zip_;
@@ -754,18 +751,17 @@ namespace Orthanc
     bool                                    isMedia_;
 
   public:
-    ZipWriterIterator(TemporaryFile& target,
+    ZipWriterIterator(const TemporaryFile& target,
                       ServerContext& context,
                       ArchiveIndex& archive,
                       bool isMedia,
                       bool enableExtendedSopClass) :
-      target_(target),
       context_(context),
       isMedia_(isMedia)
     {
       if (isMedia)
       {
-        MediaIndexVisitor visitor(commands_, context);
+        MediaIndexVisitor visitor(commands_);
         archive.Expand(context.GetIndex());
 
         commands_.AddOpenDirectory(MEDIA_IMAGES_FOLDER);        

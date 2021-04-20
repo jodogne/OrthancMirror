@@ -17,7 +17,7 @@
  *    - Possibly register its callback for received DICOM instances using ::OrthancPluginRegisterOnStoredInstanceCallback().
  *    - Possibly register its callback for changes to the DICOM store using ::OrthancPluginRegisterOnChangeCallback().
  *    - Possibly register a custom storage area using ::OrthancPluginRegisterStorageArea2().
- *    - Possibly register a custom database back-end area using OrthancPluginRegisterDatabaseBackendV2().
+ *    - Possibly register a custom database back-end area using OrthancPluginRegisterDatabaseBackendV3().
  *    - Possibly register a handler for C-Find SCP using OrthancPluginRegisterFindCallback().
  *    - Possibly register a handler for C-Find SCP against DICOM worklists using OrthancPluginRegisterWorklistCallback().
  *    - Possibly register a handler for C-Move SCP using OrthancPluginRegisterMoveCallback().
@@ -239,6 +239,8 @@ extern "C"
     OrthancPluginErrorCode_SslInitialization = 39    /*!< Cannot initialize SSL encryption, check out your certificates */,
     OrthancPluginErrorCode_DiscontinuedAbi = 40    /*!< Calling a function that has been removed from the Orthanc Framework */,
     OrthancPluginErrorCode_BadRange = 41    /*!< Incorrect range request */,
+    OrthancPluginErrorCode_DatabaseCannotSerialize = 42    /*!< Database could not serialize access due to concurrent update, the transaction should be retried */,
+    OrthancPluginErrorCode_Revision = 43    /*!< A bad revision number was provided, which might indicate conflict between multiple writers */,
     OrthancPluginErrorCode_SQLiteNotOpened = 1000    /*!< SQLite: The database is not opened */,
     OrthancPluginErrorCode_SQLiteAlreadyOpened = 1001    /*!< SQLite: Connection is already open */,
     OrthancPluginErrorCode_SQLiteCannotOpen = 1002    /*!< SQLite: Unable to open the database */,
@@ -518,12 +520,13 @@ extern "C"
     _OrthancPluginService_GetInstanceDicomWebXml = 4019,   /* New in Orthanc 1.7.0 */
     
     /* Services for plugins implementing a database back-end */
-    _OrthancPluginService_RegisterDatabaseBackend = 5000,
+    _OrthancPluginService_RegisterDatabaseBackend = 5000,    /* New in Orthanc 0.8.6 */
     _OrthancPluginService_DatabaseAnswer = 5001,
-    _OrthancPluginService_RegisterDatabaseBackendV2 = 5002,
+    _OrthancPluginService_RegisterDatabaseBackendV2 = 5002,  /* New in Orthanc 0.9.4 */
     _OrthancPluginService_StorageAreaCreate = 5003,
     _OrthancPluginService_StorageAreaRead = 5004,
     _OrthancPluginService_StorageAreaRemove = 5005,
+    _OrthancPluginService_RegisterDatabaseBackendV3 = 5006,  /* New in Orthanc 1.9.2 */
 
     /* Primitives for handling images */
     _OrthancPluginService_GetImagePixelFormat = 6000,

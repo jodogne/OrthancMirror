@@ -2385,6 +2385,17 @@ namespace Orthanc
     target = Json::writeString(builder, source);
 #endif
   }
+
+
+  void Toolbox::RemoveSurroundingQuotes(std::string& value)
+  {
+    if (!value.empty() &&
+        value[0] == '\"' &&
+        value[value.size() - 1] == '\"')
+    {
+      value = value.substr(1, value.size() - 2);
+    }
+  }
 }
 
 

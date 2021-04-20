@@ -176,6 +176,21 @@ namespace Orthanc
   }
 
 
+  RestApiCallDocumentation& RestApiCallDocumentation::SetAnswerHeader(const std::string& name,
+                                                                    const std::string& description)
+  {
+    if (answerHeaders_.find(name) != answerHeaders_.end())
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange, "Answer HTTP header \"" + name + "\" is already documented");
+    }
+    else
+    {
+      answerHeaders_[name] = Parameter(Type_String, description, false);
+      return *this;
+    }
+  }
+
+
   void RestApiCallDocumentation::SetHttpGetSample(const std::string& url,
                                                   bool isJson)
   {
@@ -428,6 +443,20 @@ namespace Orthanc
       if (hasSampleText_)
       {
         target["responses"]["200"]["content"][EnumerationToString(MimeType_PlainText)]["example"] = sampleText_;
+      }
+
+      if (!answerHeaders_.empty())
+      {
+        Json::Value answerHeaders = Json::objectValue;
+
+        for (Parameters::const_iterator it = answerHeaders_.begin(); it != answerHeaders_.end(); ++it)
+        {
+          Json::Value h = Json::objectValue;
+          h["description"] = it->second.GetDescription();          
+          answerHeaders[it->first] = h;
+        }
+
+        target["responses"]["200"]["headers"] = answerHeaders;
       }
 
       Json::Value parameters = Json::arrayValue;

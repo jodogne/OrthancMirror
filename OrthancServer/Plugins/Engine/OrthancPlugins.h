@@ -61,10 +61,10 @@ namespace Orthanc
 #include "../../../OrthancFramework/Sources/HttpServer/IHttpHandler.h"
 #include "../../../OrthancFramework/Sources/HttpServer/IIncomingHttpRequestFilter.h"
 #include "../../../OrthancFramework/Sources/JobsEngine/IJob.h"
+#include "../../Sources/Database/IDatabaseWrapper.h"
 #include "../../Sources/IDicomImageDecoder.h"
 #include "../../Sources/IServerListener.h"
 #include "../../Sources/ServerJobs/IStorageCommitmentFactory.h"
-#include "OrthancPluginDatabase.h"
 #include "PluginsManager.h"
 
 #include <list>
@@ -247,7 +247,7 @@ namespace Orthanc
                                  bool allowNewSopInstanceUid) ORTHANC_OVERRIDE;
     
   public:
-    OrthancPlugins();
+    explicit OrthancPlugins(const std::string& databaseServerIdentifier);
 
     virtual ~OrthancPlugins();
 
@@ -389,6 +389,8 @@ namespace Orthanc
 
     // New in Orthanc 1.8.1 (cf. "OrthancPluginGenerateRestApiAuthorizationToken()")
     bool IsValidAuthorizationToken(const std::string& token) const;
+
+    unsigned int GetMaxDatabaseRetries() const;
   };
 }
 

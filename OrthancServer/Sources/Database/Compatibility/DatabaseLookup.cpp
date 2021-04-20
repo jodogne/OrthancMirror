@@ -161,7 +161,7 @@ namespace Orthanc
 
     
     static void ApplyLevel(SetOfResources& candidates,
-                           IDatabaseWrapper& database,
+                           IDatabaseWrapper::ITransaction& transaction,
                            ILookupResources& compatibility,
                            const std::vector<DatabaseConstraint>& lookup,
                            ResourceType level)
@@ -267,7 +267,7 @@ namespace Orthanc
              candidate != source.end(); ++candidate)
         {
           DicomMap tags;
-          database.GetMainDicomTags(tags, *candidate);
+          transaction.GetMainDicomTags(tags, *candidate);
 
           bool match = true;
 
@@ -291,7 +291,7 @@ namespace Orthanc
     }
 
 
-    static std::string GetOneInstance(IDatabaseWrapper& compatibility,
+    static std::string GetOneInstance(IDatabaseWrapper::ITransaction& compatibility,
                                       int64_t resource,
                                       ResourceType level)
     {
@@ -348,11 +348,11 @@ namespace Orthanc
       assert(upperLevel <= queryLevel &&
              queryLevel <= lowerLevel);
 
-      SetOfResources candidates(database_, upperLevel);
+      SetOfResources candidates(transaction_, upperLevel);
 
       for (int level = upperLevel; level <= lowerLevel; level++)
       {
-        ApplyLevel(candidates, database_, compatibility_, lookup, static_cast<ResourceType>(level));
+        ApplyLevel(candidates, transaction_, compatibility_, lookup, static_cast<ResourceType>(level));
 
         if (level != lowerLevel)
         {
@@ -372,7 +372,7 @@ namespace Orthanc
                it = resources.begin(); it != resources.end(); ++it)
         {
           int64_t parent;
-          if (database_.LookupParent(parent, *it))
+          if (transaction_.LookupParent(parent, *it))
           {
             parents.push_back(parent);
           }
@@ -396,9 +396,9 @@ namespace Orthanc
       for (std::list<int64_t>::const_iterator
              it = resources.begin(); it != resources.end(); ++it, pos++)
       {
-        assert(database_.GetResourceType(*it) == queryLevel);
+        assert(transaction_.GetResourceType(*it) == queryLevel);
 
-        const std::string resource = database_.GetPublicId(*it);
+        const std::string resource = transaction_.GetPublicId(*it);
         resourcesId.push_back(resource);
 
         if (instancesId != NULL)
@@ -411,7 +411,7 @@ namespace Orthanc
           else
           {
             // Collect one child instance for each of the selected resources
-            instancesId->push_back(GetOneInstance(database_, *it, queryLevel));
+            instancesId->push_back(GetOneInstance(transaction_, *it, queryLevel));
           }
         }
       }

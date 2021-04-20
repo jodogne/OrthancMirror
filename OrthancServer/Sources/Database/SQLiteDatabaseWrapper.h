@@ -36,38 +36,32 @@
 #include "IDatabaseWrapper.h"
 
 #include "../../../OrthancFramework/Sources/SQLite/Connection.h"
-#include "Compatibility/ICreateInstance.h"
-#include "Compatibility/IGetChildrenMetadata.h"
-#include "Compatibility/ILookupResourceAndParent.h"
-#include "Compatibility/ISetResourcesContent.h"
+
+#include <boost/thread/mutex.hpp>
 
 namespace Orthanc
 {
-  namespace Internals
-  {
-    class SignalRemainingAncestor;
-  }
-
   /**
    * This class manages an instance of the Orthanc SQLite database. It
    * translates low-level requests into SQL statements. Mutual
    * exclusion MUST be implemented at a higher level.
    **/
-  class SQLiteDatabaseWrapper :
-    public IDatabaseWrapper,
-    public Compatibility::ICreateInstance,
-    public Compatibility::IGetChildrenMetadata,
-    public Compatibility::ILookupResourceAndParent,
-    public Compatibility::ISetResourcesContent
+  class SQLiteDatabaseWrapper : public IDatabaseWrapper
   {
   private:
-    class Transaction;
+    class TransactionBase;
+    class SignalFileDeleted;
+    class SignalResourceDeleted;
+    class SignalRemainingAncestor;
+    class ReadOnlyTransaction;
+    class ReadWriteTransaction;
     class LookupFormatter;
 
-    IDatabaseListener* listener_;
-    SQLite::Connection db_;
-    Internals::SignalRemainingAncestor* signalRemainingAncestor_;
-    unsigned int version_;
+    boost::mutex              mutex_;
+    SQLite::Connection        db_;
+    TransactionBase*          activeTransaction_;
+    SignalRemainingAncestor*  signalRemainingAncestor_;
+    unsigned int              version_;
 
     void GetChangesInternal(std::list<ServerIndexChange>& target,
                             bool& done,
@@ -79,294 +73,80 @@ namespace Orthanc
                                       SQLite::Statement& s,
                                       uint32_t maxResults);
 
-    void ClearTable(const std::string& tableName);
-
-    // Unused => could be removed
-    int GetGlobalIntegerProperty(GlobalProperty property,
-                                 int defaultValue);
-
   public:
     SQLiteDatabaseWrapper(const std::string& path);
 
     SQLiteDatabaseWrapper();
 
-    virtual void Open()
+    virtual ~SQLiteDatabaseWrapper();
+
+    virtual void Open() ORTHANC_OVERRIDE;
+
+    virtual void Close() ORTHANC_OVERRIDE;
+
+    virtual IDatabaseWrapper::ITransaction* StartTransaction(TransactionType type,
+                                                             IDatabaseListener& listener)
       ORTHANC_OVERRIDE;
 
-    virtual void Close()
-      ORTHANC_OVERRIDE
-    {
-      db_.Close();
-    }
+    virtual void FlushToDisk() ORTHANC_OVERRIDE;
 
-    virtual void SetListener(IDatabaseListener& listener)
-      ORTHANC_OVERRIDE;
-
-    virtual bool LookupParent(int64_t& parentId,
-                              int64_t resourceId)
-      ORTHANC_OVERRIDE;
-
-    virtual std::string GetPublicId(int64_t resourceId)
-      ORTHANC_OVERRIDE;
-
-    virtual ResourceType GetResourceType(int64_t resourceId)
-      ORTHANC_OVERRIDE;
-
-    virtual void DeleteResource(int64_t id)
-      ORTHANC_OVERRIDE;
-
-    virtual void GetChanges(std::list<ServerIndexChange>& target /*out*/,
-                            bool& done /*out*/,
-                            int64_t since,
-                            uint32_t maxResults)
-      ORTHANC_OVERRIDE;
-
-    virtual void GetLastChange(std::list<ServerIndexChange>& target /*out*/)
-      ORTHANC_OVERRIDE;
-
-    virtual IDatabaseWrapper::ITransaction* StartTransaction()
-      ORTHANC_OVERRIDE;
-
-    virtual void FlushToDisk()
-      ORTHANC_OVERRIDE
-    {
-      db_.FlushToDisk();
-    }
-
-    virtual bool HasFlushToDisk() const
-      ORTHANC_OVERRIDE
+    virtual bool HasFlushToDisk() const ORTHANC_OVERRIDE
     {
       return true;
     }
 
-    virtual void ClearChanges()
-      ORTHANC_OVERRIDE
-    {
-      ClearTable("Changes");
-    }
-
-    virtual void ClearExportedResources()
-      ORTHANC_OVERRIDE
-    {
-      ClearTable("ExportedResources");
-    }
-
-    virtual void GetAllMetadata(std::map<MetadataType, std::string>& target,
-                                int64_t id)
-      ORTHANC_OVERRIDE;
-
-    virtual unsigned int GetDatabaseVersion()
-      ORTHANC_OVERRIDE
+    virtual unsigned int GetDatabaseVersion() ORTHANC_OVERRIDE
     {
       return version_;
     }
 
     virtual void Upgrade(unsigned int targetVersion,
-                         IStorageArea& storageArea)
-      ORTHANC_OVERRIDE;
+                         IStorageArea& storageArea) ORTHANC_OVERRIDE;
+
+    virtual bool HasRevisionsSupport() const ORTHANC_OVERRIDE
+    {
+      return false;  // TODO - REVISIONS
+    }
 
 
     /**
-     * The methods declared below are for unit testing only!
+     * The "StartTransaction()" method is guaranteed to return a class
+     * derived from "UnitTestsTransaction". The methods of
+     * "UnitTestsTransaction" give access to additional information
+     * about the underlying SQLite database to be used in unit tests.
      **/
-
-    const char* GetErrorMessage() const
+    class UnitTestsTransaction : public ITransaction
     {
-      return db_.GetErrorMessage();
-    }
+    protected:
+      SQLite::Connection& db_;
+      
+    public:
+      UnitTestsTransaction(SQLite::Connection& db) :
+        db_(db)
+      {
+      }
+      
+      void GetChildren(std::list<std::string>& childrenPublicIds,
+                       int64_t id);
 
-    void GetChildren(std::list<std::string>& childrenPublicIds,
-                     int64_t id);
-
-    int64_t GetTableRecordCount(const std::string& table);
+      int64_t GetTableRecordCount(const std::string& table);
     
-    bool GetParentPublicId(std::string& target,
-                           int64_t id);
+      bool GetParentPublicId(std::string& target,
+                             int64_t id);
 
+      int64_t CreateResource(const std::string& publicId,
+                             ResourceType type);
 
+      void AttachChild(int64_t parent,
+                       int64_t child);
 
-    /**
-     * Until Orthanc 1.4.0, the methods below were part of the
-     * "DatabaseWrapperBase" class, that is now placed in the
-     * graveyard.
-     **/
+      void SetIdentifierTag(int64_t id,
+                            const DicomTag& tag,
+                            const std::string& value);
 
-    virtual void SetGlobalProperty(GlobalProperty property,
-                                   const std::string& value)
-      ORTHANC_OVERRIDE;
-
-    virtual bool LookupGlobalProperty(std::string& target,
-                                      GlobalProperty property)
-      ORTHANC_OVERRIDE;
-
-    virtual int64_t CreateResource(const std::string& publicId,
-                                   ResourceType type)
-      ORTHANC_OVERRIDE;
-
-    virtual bool LookupResource(int64_t& id,
-                                ResourceType& type,
-                                const std::string& publicId)
-      ORTHANC_OVERRIDE;
-
-    virtual void AttachChild(int64_t parent,
-                             int64_t child)
-      ORTHANC_OVERRIDE;
-
-    virtual void SetMetadata(int64_t id,
-                             MetadataType type,
-                             const std::string& value)
-      ORTHANC_OVERRIDE;
-
-    virtual void DeleteMetadata(int64_t id,
-                                MetadataType type)
-      ORTHANC_OVERRIDE;
-
-    virtual bool LookupMetadata(std::string& target,
-                                int64_t id,
-                                MetadataType type)
-      ORTHANC_OVERRIDE;
-
-    virtual void AddAttachment(int64_t id,
-                               const FileInfo& attachment)
-      ORTHANC_OVERRIDE;
-
-    virtual void DeleteAttachment(int64_t id,
-                                  FileContentType attachment)
-      ORTHANC_OVERRIDE;
-
-    virtual void ListAvailableAttachments(std::set<FileContentType>& target,
-                                          int64_t id)
-      ORTHANC_OVERRIDE;
-
-    virtual bool LookupAttachment(FileInfo& attachment,
-                                  int64_t id,
-                                  FileContentType contentType)
-      ORTHANC_OVERRIDE;
-
-    virtual void ClearMainDicomTags(int64_t id)
-      ORTHANC_OVERRIDE;
-
-    virtual void SetMainDicomTag(int64_t id,
-                                 const DicomTag& tag,
-                                 const std::string& value)
-      ORTHANC_OVERRIDE;
-
-    virtual void SetIdentifierTag(int64_t id,
-                                  const DicomTag& tag,
-                                  const std::string& value)
-      ORTHANC_OVERRIDE;
-
-    virtual void GetMainDicomTags(DicomMap& map,
-                                  int64_t id)
-      ORTHANC_OVERRIDE;
-
-    virtual void GetChildrenPublicId(std::list<std::string>& target,
-                                     int64_t id)
-      ORTHANC_OVERRIDE;
-
-    virtual void GetChildrenInternalId(std::list<int64_t>& target,
-                                       int64_t id)
-      ORTHANC_OVERRIDE;
-
-    virtual void LogChange(int64_t internalId,
-                           const ServerIndexChange& change)
-      ORTHANC_OVERRIDE;
-
-    virtual void LogExportedResource(const ExportedResource& resource)
-      ORTHANC_OVERRIDE;
-    
-    virtual void GetExportedResources(std::list<ExportedResource>& target /*out*/,
-                                      bool& done /*out*/,
-                                      int64_t since,
-                                      uint32_t maxResults)
-      ORTHANC_OVERRIDE;
-
-    virtual void GetLastExportedResource(std::list<ExportedResource>& target /*out*/)
-      ORTHANC_OVERRIDE;
-
-    virtual uint64_t GetTotalCompressedSize()
-      ORTHANC_OVERRIDE;
-    
-    virtual uint64_t GetTotalUncompressedSize()
-      ORTHANC_OVERRIDE;
-
-    virtual uint64_t GetResourceCount(ResourceType resourceType)
-      ORTHANC_OVERRIDE;
-
-    virtual void GetAllPublicIds(std::list<std::string>& target,
-                                 ResourceType resourceType)
-      ORTHANC_OVERRIDE;
-
-    virtual void GetAllPublicIds(std::list<std::string>& target,
-                                 ResourceType resourceType,
-                                 size_t since,
-                                 size_t limit)
-      ORTHANC_OVERRIDE;
-
-    virtual bool SelectPatientToRecycle(int64_t& internalId)
-      ORTHANC_OVERRIDE;
-
-    virtual bool SelectPatientToRecycle(int64_t& internalId,
-                                        int64_t patientIdToAvoid)
-      ORTHANC_OVERRIDE;
-
-    virtual bool IsProtectedPatient(int64_t internalId)
-      ORTHANC_OVERRIDE;
-
-    virtual void SetProtectedPatient(int64_t internalId, 
-                                     bool isProtected)
-      ORTHANC_OVERRIDE;
-
-    virtual bool IsExistingResource(int64_t internalId)
-      ORTHANC_OVERRIDE;
-
-    virtual bool IsDiskSizeAbove(uint64_t threshold)
-      ORTHANC_OVERRIDE;
-
-    virtual void ApplyLookupResources(std::list<std::string>& resourcesId,
-                                      std::list<std::string>* instancesId,
-                                      const std::vector<DatabaseConstraint>& lookup,
-                                      ResourceType queryLevel,
-                                      size_t limit)
-      ORTHANC_OVERRIDE;
-
-    virtual bool CreateInstance(CreateInstanceResult& result,
-                                int64_t& instanceId,
-                                const std::string& patient,
-                                const std::string& study,
-                                const std::string& series,
-                                const std::string& instance)
-      ORTHANC_OVERRIDE
-    {
-      return ICreateInstance::Apply
-        (*this, result, instanceId, patient, study, series, instance);
-    }
-
-    virtual void SetResourcesContent(const Orthanc::ResourcesContent& content)
-      ORTHANC_OVERRIDE
-    {
-      ISetResourcesContent::Apply(*this, content);
-    }
-
-    virtual void GetChildrenMetadata(std::list<std::string>& target,
-                                     int64_t resourceId,
-                                     MetadataType metadata)
-      ORTHANC_OVERRIDE
-    {
-      IGetChildrenMetadata::Apply(*this, target, resourceId, metadata);
-    }
-
-    virtual int64_t GetLastChangeIndex() ORTHANC_OVERRIDE;
-
-    virtual void TagMostRecentPatient(int64_t patient) ORTHANC_OVERRIDE;
-
-    virtual bool LookupResourceAndParent(int64_t& id,
-                                         ResourceType& type,
-                                         std::string& parentPublicId,
-                                         const std::string& publicId)
-      ORTHANC_OVERRIDE
-    {
-      return ILookupResourceAndParent::Apply(*this, id, type, parentPublicId, publicId);
-    }
+      void SetMainDicomTag(int64_t id,
+                           const DicomTag& tag,
+                           const std::string& value);
+    };
   };
 }

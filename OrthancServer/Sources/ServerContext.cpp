@@ -215,7 +215,7 @@ namespace Orthanc
     if (loadJobsFromDatabase)
     {
       std::string serialized;
-      if (index_.LookupGlobalProperty(serialized, GlobalProperty_JobsRegistry))
+      if (index_.LookupGlobalProperty(serialized, GlobalProperty_JobsRegistry, false /* not shared */))
       {
         LOG(WARNING) << "Reloading the jobs from the last execution of Orthanc";
 
@@ -261,7 +261,7 @@ namespace Orthanc
         std::string serialized;
         Toolbox::WriteFastJson(serialized, value);
 
-        index_.SetGlobalProperty(GlobalProperty_JobsRegistry, serialized);
+        index_.SetGlobalProperty(GlobalProperty_JobsRegistry, false /* not shared */, serialized);
       }
       catch (OrthancException& e)
       {
@@ -753,13 +753,16 @@ namespace Orthanc
                                        FileContentType content)
   {
     FileInfo attachment;
-    if (!index_.LookupAttachment(attachment, resourceId, content))
+    int64_t revision;
+    if (!index_.LookupAttachment(attachment, revision, resourceId, content))
     {
       throw OrthancException(ErrorCode_UnknownResource);
     }
-
-    StorageAccessor accessor(area_, GetMetricsRegistry());
-    accessor.AnswerFile(output, attachment, GetFileContentMime(content));
+    else
+    {
+      StorageAccessor accessor(area_, GetMetricsRegistry());
+      accessor.AnswerFile(output, attachment, GetFileContentMime(content));
+    }
   }
 
 
@@ -773,7 +776,8 @@ namespace Orthanc
               << compression; 
 
     FileInfo attachment;
-    if (!index_.LookupAttachment(attachment, resourceId, attachmentType))
+    int64_t revision;
+    if (!index_.LookupAttachment(attachment, revision, resourceId, attachmentType))
     {
       throw OrthancException(ErrorCode_UnknownResource);
     }
@@ -794,7 +798,8 @@ namespace Orthanc
 
     try
     {
-      StoreStatus status = index_.AddAttachment(modified, resourceId);
+      int64_t newRevision;  // ignored
+      StoreStatus status = index_.AddAttachment(newRevision, modified, resourceId, true, revision);
       if (status != StoreStatus_Success)
       {
         accessor.Remove(modified);
@@ -833,8 +838,9 @@ namespace Orthanc
      **/
     
     FileInfo attachment;
+    int64_t revision;  // Ignored
 
-    if (index_.LookupAttachment(attachment, instancePublicId, FileContentType_DicomUntilPixelData))
+    if (index_.LookupAttachment(attachment, revision, instancePublicId, FileContentType_DicomUntilPixelData))
     {
       std::string dicom;
 
@@ -860,7 +866,7 @@ namespace Orthanc
 
       {
         std::string s;
-        if (index_.LookupMetadata(s, instancePublicId, ResourceType_Instance,
+        if (index_.LookupMetadata(s, revision, instancePublicId, ResourceType_Instance,
                                   MetadataType_Instance_PixelDataOffset))
         {
           hasPixelDataOffset = false;
@@ -892,7 +898,7 @@ namespace Orthanc
 
       if (hasPixelDataOffset &&
           area_.HasReadRange() &&
-          index_.LookupAttachment(attachment, instancePublicId, FileContentType_Dicom) &&
+          index_.LookupAttachment(attachment, revision, instancePublicId, FileContentType_Dicom) &&
           attachment.GetCompressionType() == CompressionType_None)
       {
         /**
@@ -921,7 +927,7 @@ namespace Orthanc
         }
       }
       else if (ignoreTagLength.empty() &&
-               index_.LookupAttachment(attachment, instancePublicId, FileContentType_DicomAsJson))
+               index_.LookupAttachment(attachment, revision, instancePublicId, FileContentType_DicomAsJson))
       {
         /**
          * CASE 3: This instance was created using Orthanc <=
@@ -971,14 +977,16 @@ namespace Orthanc
           if (DicomStreamReader::LookupPixelDataOffset(pixelDataOffset, dicom) &&
               pixelDataOffset < dicom.size())
           {
-            index_.SetMetadata(instancePublicId, MetadataType_Instance_PixelDataOffset,
-                               boost::lexical_cast<std::string>(pixelDataOffset));
+            index_.OverwriteMetadata(instancePublicId, MetadataType_Instance_PixelDataOffset,
+                                     boost::lexical_cast<std::string>(pixelDataOffset));
 
             if (!area_.HasReadRange() ||
                 compressionEnabled_)
             {
-              AddAttachment(instancePublicId, FileContentType_DicomUntilPixelData,
-                            dicom.empty() ? NULL: dicom.c_str(), pixelDataOffset);
+              int64_t newRevision;
+              AddAttachment(newRevision, instancePublicId, FileContentType_DicomUntilPixelData,
+                            dicom.empty() ? NULL: dicom.c_str(), pixelDataOffset,
+                            false /* no old revision */, -1 /* dummy revision */);
             }
           }
         }
@@ -998,7 +1006,8 @@ namespace Orthanc
   void ServerContext::ReadDicom(std::string& dicom,
                                 const std::string& instancePublicId)
   {
-    ReadAttachment(dicom, instancePublicId, FileContentType_Dicom, true /* uncompress */);
+    int64_t revision;
+    ReadAttachment(dicom, revision, instancePublicId, FileContentType_Dicom, true /* uncompress */);
   }
     
 
@@ -1011,7 +1020,8 @@ namespace Orthanc
     }
     
     FileInfo attachment;
-    if (!index_.LookupAttachment(attachment, instancePublicId, FileContentType_Dicom))
+    int64_t revision;  // Ignored
+    if (!index_.LookupAttachment(attachment, revision, instancePublicId, FileContentType_Dicom))
     {
       throw OrthancException(ErrorCode_InternalError,
                              "Unable to read the DICOM file of instance " + instancePublicId);
@@ -1020,7 +1030,7 @@ namespace Orthanc
     std::string s;
 
     if (attachment.GetCompressionType() == CompressionType_None &&
-        index_.LookupMetadata(s, instancePublicId, ResourceType_Instance,
+        index_.LookupMetadata(s, revision, instancePublicId, ResourceType_Instance,
                               MetadataType_Instance_PixelDataOffset) &&
         !s.empty())
     {
@@ -1044,12 +1054,13 @@ namespace Orthanc
   
 
   void ServerContext::ReadAttachment(std::string& result,
+                                     int64_t& revision,
                                      const std::string& instancePublicId,
                                      FileContentType content,
                                      bool uncompressIfNeeded)
   {
     FileInfo attachment;
-    if (!index_.LookupAttachment(attachment, instancePublicId, content))
+    if (!index_.LookupAttachment(attachment, revision, instancePublicId, content))
     {
       throw OrthancException(ErrorCode_InternalError,
                              "Unable to read attachment " + EnumerationToString(content) +
@@ -1145,10 +1156,13 @@ namespace Orthanc
   }
 
 
-  bool ServerContext::AddAttachment(const std::string& resourceId,
+  bool ServerContext::AddAttachment(int64_t& newRevision,
+                                    const std::string& resourceId,
                                     FileContentType attachmentType,
                                     const void* data,
-                                    size_t size)
+                                    size_t size,
+                                    bool hasOldRevision,
+                                    int64_t oldRevision)
   {
     LOG(INFO) << "Adding attachment " << EnumerationToString(attachmentType) << " to resource " << resourceId;
     
@@ -1158,7 +1172,7 @@ namespace Orthanc
     StorageAccessor accessor(area_, GetMetricsRegistry());
     FileInfo attachment = accessor.Write(data, size, attachmentType, compression, storeMD5_);
 
-    StoreStatus status = index_.AddAttachment(attachment, resourceId);
+    StoreStatus status = index_.AddAttachment(newRevision, attachment, resourceId, hasOldRevision, oldRevision);
     if (status != StoreStatus_Success)
     {
       accessor.Remove(attachment);
@@ -1643,7 +1657,8 @@ namespace Orthanc
     if (metadata == MetadataType_Instance_SopClassUid ||
         metadata == MetadataType_Instance_TransferSyntax)
     {
-      if (index_.LookupMetadata(target, publicId, level, metadata))
+      int64_t revision;  // Ignored
+      if (index_.LookupMetadata(target, revision, publicId, level, metadata))
       {
         return true;
       }
@@ -1685,7 +1700,7 @@ namespace Orthanc
           target = value->GetContent();
 
           // Store for reuse
-          index_.SetMetadata(publicId, metadata, target);
+          index_.OverwriteMetadata(publicId, metadata, target);
           return true;
         }
         else
@@ -1698,7 +1713,8 @@ namespace Orthanc
     else
     {
       // No backward
-      return index_.LookupMetadata(target, publicId, level, metadata);
+      int64_t revision;  // Ignored
+      return index_.LookupMetadata(target, revision, publicId, level, metadata);
     }
   }
 
