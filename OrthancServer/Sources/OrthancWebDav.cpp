@@ -153,7 +153,8 @@ namespace Orthanc
         if (level_ == ResourceType_Instance)
         {
           FileInfo info;
-          if (context_.GetIndex().LookupAttachment(info, publicId, FileContentType_Dicom))
+          int64_t revision;  // Ignored
+          if (context_.GetIndex().LookupAttachment(info, revision, publicId, FileContentType_Dicom))
           {
             std::unique_ptr<File> f(new File(s + ".dcm"));
             f->SetMimeType(MimeType_Dicom);
@@ -508,7 +509,8 @@ namespace Orthanc
           LookupTime(time, context_, *it, ResourceType_Instance, MetadataType_Instance_ReceptionDate);
 
           FileInfo info;
-          if (context_.GetIndex().LookupAttachment(info, *it, FileContentType_Dicom))
+          int64_t revision;  // Ignored
+          if (context_.GetIndex().LookupAttachment(info, revision, *it, FileContentType_Dicom))
           {
             std::unique_ptr<File> resource(new File(*it + ".dcm"));
             resource->SetMimeType(MimeType_Dicom);

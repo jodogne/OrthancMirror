@@ -229,7 +229,8 @@ namespace Orthanc
       if (level_ == ResourceType_Instance)
       {
         FileInfo tmp;
-        if (index.LookupAttachment(tmp, id, FileContentType_Dicom))
+        int64_t revision;  // ignored
+        if (index.LookupAttachment(tmp, revision, id, FileContentType_Dicom))
         {
           instances_.push_back(Instance(id, tmp.GetUncompressedSize()));
         }

@@ -1109,10 +1109,12 @@ extern "C"
     
     OrthancPluginErrorCode (*commit) (OrthancPluginDatabaseTransaction* transaction,
                                       int64_t fileSizeDelta);
-    
+
+    /* A call to "addAttachment()" guarantees that this attachment is not already existing ("INSERT") */
     OrthancPluginErrorCode (*addAttachment) (OrthancPluginDatabaseTransaction* transaction,
                                              int64_t id,
-                                             const OrthancPluginAttachment* attachment);
+                                             const OrthancPluginAttachment* attachment,
+                                             int64_t revision);
 
     OrthancPluginErrorCode (*clearChanges) (OrthancPluginDatabaseTransaction* transaction);
     
@@ -1243,6 +1245,7 @@ extern "C"
 
     /* Answer is read using "readAnswerAttachment()" */
     OrthancPluginErrorCode (*lookupAttachment) (OrthancPluginDatabaseTransaction* transaction,
+                                                int64_t* revision /* out */,
                                                 int64_t resourceId,
                                                 int32_t contentType);
 
@@ -1297,6 +1300,7 @@ extern "C"
                                                  int32_t property,
                                                  const char* value);
 
+    /* In "setMetadata()", the metadata might already be existing ("INSERT OR REPLACE")  */
     OrthancPluginErrorCode (*setMetadata) (OrthancPluginDatabaseTransaction* transaction,
                                            int64_t id,
                                            int32_t metadata,

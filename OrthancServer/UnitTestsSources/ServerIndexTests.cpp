@@ -302,10 +302,10 @@ TEST_F(DatabaseWrapperTest, Simple)
   ASSERT_EQ(0u, md.size());
 
   transaction_->AddAttachment(a[4], FileInfo("my json file", FileContentType_DicomAsJson, 42, "md5", 
-                                       CompressionType_ZlibWithSize, 21, "compressedMD5"));
-  transaction_->AddAttachment(a[4], FileInfo("my dicom file", FileContentType_Dicom, 42, "md5"));
-  transaction_->AddAttachment(a[6], FileInfo("world", FileContentType_Dicom, 44, "md5"));
-
+                                             CompressionType_ZlibWithSize, 21, "compressedMD5"), 42);
+  transaction_->AddAttachment(a[4], FileInfo("my dicom file", FileContentType_Dicom, 42, "md5"), 43);
+  transaction_->AddAttachment(a[6], FileInfo("world", FileContentType_Dicom, 44, "md5"), 44);
+  
   // TODO - REVISIONS - "42" is revision number, that is not currently stored (*)
   transaction_->SetMetadata(a[4], MetadataType_RemoteAet, "PINNACLE", 42);
   
@@ -362,7 +362,8 @@ TEST_F(DatabaseWrapperTest, Simple)
   ASSERT_EQ("World", s);
 
   FileInfo att;
-  ASSERT_TRUE(transaction_->LookupAttachment(att, a[4], FileContentType_DicomAsJson));
+  ASSERT_TRUE(transaction_->LookupAttachment(att, revision, a[4], FileContentType_DicomAsJson));
+  ASSERT_EQ(0, revision);  // "0" instead of "42" because of (*)
   ASSERT_EQ("my json file", att.GetUuid());
   ASSERT_EQ(21u, att.GetCompressedSize());
   ASSERT_EQ("md5", att.GetUncompressedMD5());
@@ -370,7 +371,8 @@ TEST_F(DatabaseWrapperTest, Simple)
   ASSERT_EQ(42u, att.GetUncompressedSize());
   ASSERT_EQ(CompressionType_ZlibWithSize, att.GetCompressionType());
 
-  ASSERT_TRUE(transaction_->LookupAttachment(att, a[6], FileContentType_Dicom));
+  ASSERT_TRUE(transaction_->LookupAttachment(att, revision, a[6], FileContentType_Dicom));
+  ASSERT_EQ(0, revision);  // "0" instead of "42" because of (*)
   ASSERT_EQ("world", att.GetUuid());
   ASSERT_EQ(44u, att.GetCompressedSize());
   ASSERT_EQ("md5", att.GetUncompressedMD5());
@@ -482,7 +484,7 @@ TEST_F(DatabaseWrapperTest, PatientRecycling)
     std::string p = "Patient " + boost::lexical_cast<std::string>(i);
     patients.push_back(transaction_->CreateResource(p, ResourceType_Patient));
     transaction_->AddAttachment(patients[i], FileInfo(p, FileContentType_Dicom, i + 10, 
-                                                "md5-" + boost::lexical_cast<std::string>(i)));
+                                                      "md5-" + boost::lexical_cast<std::string>(i)), 42);
     ASSERT_FALSE(transaction_->IsProtectedPatient(patients[i]));
   }
 
@@ -543,7 +545,7 @@ TEST_F(DatabaseWrapperTest, PatientProtection)
     std::string p = "Patient " + boost::lexical_cast<std::string>(i);
     patients.push_back(transaction_->CreateResource(p, ResourceType_Patient));
     transaction_->AddAttachment(patients[i], FileInfo(p, FileContentType_Dicom, i + 10,
-                                                "md5-" + boost::lexical_cast<std::string>(i)));
+                                                      "md5-" + boost::lexical_cast<std::string>(i)), 42);
     ASSERT_FALSE(transaction_->IsProtectedPatient(patients[i]));
   }
 
@@ -783,7 +785,9 @@ TEST(ServerIndex, AttachmentRecycling)
   for (size_t i = 0; i < ids.size(); i++)
   {
     FileInfo info(Toolbox::GenerateUuid(), FileContentType_Dicom, 1, "md5");
-    index.AddAttachment(info, ids[i]);
+    int64_t revision = -1;
+    index.AddAttachment(revision, info, ids[i], false /* no previous revision */, -1);
+    ASSERT_EQ(0, revision);
 
     index.GetGlobalStatistics(diskSize, uncompressedSize, countPatients, 
                               countStudies, countSeries, countInstances);
@@ -861,12 +865,17 @@ TEST(ServerIndex, Overwrite)
 
     {
       FileInfo nope;
-      ASSERT_FALSE(context.GetIndex().LookupAttachment(nope, id, FileContentType_DicomAsJson));
+      int64_t revision;
+      ASSERT_FALSE(context.GetIndex().LookupAttachment(nope, revision, id, FileContentType_DicomAsJson));
     }
 
     FileInfo dicom1, pixelData1;
-    ASSERT_TRUE(context.GetIndex().LookupAttachment(dicom1, id, FileContentType_Dicom));
-    ASSERT_TRUE(context.GetIndex().LookupAttachment(pixelData1, id, FileContentType_DicomUntilPixelData));
+    int64_t revision;
+    ASSERT_TRUE(context.GetIndex().LookupAttachment(dicom1, revision, id, FileContentType_Dicom));
+    ASSERT_EQ(0, revision);
+    revision = -1;
+    ASSERT_TRUE(context.GetIndex().LookupAttachment(pixelData1, revision, id, FileContentType_DicomUntilPixelData));
+    ASSERT_EQ(0, revision);
 
     context.GetIndex().GetGlobalStatistics(diskSize, uncompressedSize, countPatients, 
                                            countStudies, countSeries, countInstances);
@@ -906,12 +915,16 @@ TEST(ServerIndex, Overwrite)
 
     {
       FileInfo nope;
-      ASSERT_FALSE(context.GetIndex().LookupAttachment(nope, id, FileContentType_DicomAsJson));
+      int64_t revision;
+      ASSERT_FALSE(context.GetIndex().LookupAttachment(nope, revision, id, FileContentType_DicomAsJson));
     }
 
     FileInfo dicom2, pixelData2;
-    ASSERT_TRUE(context.GetIndex().LookupAttachment(dicom2, id, FileContentType_Dicom));
-    ASSERT_TRUE(context.GetIndex().LookupAttachment(pixelData2, id, FileContentType_DicomUntilPixelData));
+    ASSERT_TRUE(context.GetIndex().LookupAttachment(dicom2, revision, id, FileContentType_Dicom));
+    ASSERT_EQ(0, revision);
+    revision = -1;
+    ASSERT_TRUE(context.GetIndex().LookupAttachment(pixelData2, revision, id, FileContentType_DicomUntilPixelData));
+    ASSERT_EQ(0, revision);
 
     context.GetIndex().GetGlobalStatistics(diskSize, uncompressedSize, countPatients, 
                                            countStudies, countSeries, countInstances);
