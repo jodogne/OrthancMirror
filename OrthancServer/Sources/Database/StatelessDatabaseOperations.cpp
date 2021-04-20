@@ -49,6 +49,7 @@
 #include "ResourcesContent.h"
 
 #include <boost/lexical_cast.hpp>
+#include <boost/thread.hpp>
 #include <boost/tuple/tuple.hpp>
 #include <stack>
 
