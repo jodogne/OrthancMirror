@@ -28,6 +28,7 @@ Maintenance
 
 * Use the local timezone for query/retrieve in the Orthanc Explorer interface (was UTC before)
 * Fix "OrthancServer/Resources/Samples/Python/Replicate.py" for Python 3.x
+* Fix issue #83 (ServerIndex shall implement retries for DB temporary errors)
 * Upgraded dependencies for static builds (notably on Windows and LSB):
   - civetweb 1.14
   - openssl 1.1.1k
