@@ -282,6 +282,13 @@ elseif ("${CMAKE_SYSTEM_VERSION}" STREQUAL "LinuxStandardBase")
     # "__NR_getrandom" (i.e. system call "getentropy(2)") in
     # "rand_unix.c", which is not available in LSB.
     -DOPENSSL_RAND_SEED_DEVRANDOM
+
+    # If "OPENSSL_NO_ERR" is not defined, the PostgreSQL plugin
+    # crashes with segmentation fault in function
+    # "build_SYS_str_reasons()", that is called from
+    # "OPENSSL_init_ssl()"
+    # https://bugs.orthanc-server.com/show_bug.cgi?id=193
+    -DOPENSSL_NO_ERR
     )
 
 else()
