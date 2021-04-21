@@ -18,9 +18,9 @@
 # <http://www.gnu.org/licenses/>.
 
 
-SET(OPENSSL_SOURCES_DIR ${CMAKE_BINARY_DIR}/openssl-1.1.1g)
-SET(OPENSSL_URL "http://orthanc.osimis.io/ThirdPartyDownloads/openssl-1.1.1g.tar.gz")
-SET(OPENSSL_MD5 "76766e98997660138cdaf13a187bd234")
+SET(OPENSSL_SOURCES_DIR ${CMAKE_BINARY_DIR}/openssl-1.1.1k)
+SET(OPENSSL_URL "http://orthanc.osimis.io/ThirdPartyDownloads/openssl-1.1.1k.tar.gz")
+SET(OPENSSL_MD5 "c4e7d95f782b08116afa27b30393dd27")
 
 if (IS_DIRECTORY "${OPENSSL_SOURCES_DIR}")
   set(FirstRun OFF)
@@ -47,7 +47,7 @@ if (FirstRun)
   # Apply the patches
   execute_process(
     COMMAND ${PATCH_EXECUTABLE} -p0 -N -i
-    ${CMAKE_CURRENT_LIST_DIR}/../Patches/openssl-1.1.1g.patch
+    ${CMAKE_CURRENT_LIST_DIR}/../Patches/openssl-1.1.1k.patch
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     RESULT_VARIABLE Failure
     )

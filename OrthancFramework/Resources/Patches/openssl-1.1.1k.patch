@@ -1,7 +1,7 @@
-diff -urEb openssl-1.1.1g.orig/crypto/rand/rand_unix.c openssl-1.1.1g/crypto/rand/rand_unix.c
---- openssl-1.1.1g.orig/crypto/rand/rand_unix.c	2020-05-05 17:58:08.785998440 +0200
-+++ openssl-1.1.1g/crypto/rand/rand_unix.c	2020-05-05 17:58:55.201881117 +0200
-@@ -445,6 +445,7 @@
+diff -urEb openssl-1.1.1k.orig/crypto/rand/rand_unix.c openssl-1.1.1k/crypto/rand/rand_unix.c
+--- openssl-1.1.1k.orig/crypto/rand/rand_unix.c	2021-04-21 11:33:05.241258372 +0200
++++ openssl-1.1.1k/crypto/rand/rand_unix.c	2021-04-21 11:34:48.705287133 +0200
+@@ -455,6 +455,7 @@
               * system call and this should always succeed which renders
               * this alternative but essentially identical source moot.
               */
@@ -9,7 +9,7 @@ diff -urEb openssl-1.1.1g.orig/crypto/rand/rand_unix.c openssl-1.1.1g/crypto/ran
              if (uname(&un) == 0) {
                  kernel[0] = atoi(un.release);
                  p = strchr(un.release, '.');
-@@ -455,6 +456,7 @@
+@@ -465,6 +466,7 @@
                      return 0;
                  }
              }
