@@ -1,6 +1,10 @@
 Pending changes in the mainline
 ===============================
 
+
+Version 1.9.2 (2021-04-22)
+==========================
+
 General
 -------
 
@@ -20,8 +24,8 @@ Plugins
 -------
 
 * New function in the SDK: OrthancPluginCallRestApi()
-* Full refactoring of the database engine to handle multiple readers/writers, which notably
-  implies the handling of retries in the case of collisions
+* Full refactoring of the database plugin SDK to handle multiple readers/writers,
+  which notably implies the handling of retries in the case of collisions
 
 Maintenance
 -----------
