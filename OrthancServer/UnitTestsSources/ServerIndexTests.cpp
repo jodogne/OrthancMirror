@@ -786,7 +786,7 @@ TEST(ServerIndex, AttachmentRecycling)
   {
     FileInfo info(Toolbox::GenerateUuid(), FileContentType_Dicom, 1, "md5");
     int64_t revision = -1;
-    index.AddAttachment(revision, info, ids[i], false /* no previous revision */, -1);
+    index.AddAttachment(revision, info, ids[i], false /* no previous revision */, -1, "");
     ASSERT_EQ(0, revision);
 
     index.GetGlobalStatistics(diskSize, uncompressedSize, countPatients, 

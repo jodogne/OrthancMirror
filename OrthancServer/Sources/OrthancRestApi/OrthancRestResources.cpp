@@ -1450,7 +1450,49 @@ namespace Orthanc
   }
 
 
+  static void SetStringContentETag(RestApiOutput& output,
+                              int64_t revision,
+                              const std::string& value)
+  {
+    std::string md5;
+    Toolbox::ComputeMD5(md5, value);
+    const std::string etag = "\"" + boost::lexical_cast<std::string>(revision) + "-" + md5 + "\"";
+    output.GetLowLevelOutput().AddHeader("ETag", etag);
+  }
+  
+
+  static void SetBufferContentETag(RestApiOutput& output,
+                                   int64_t revision,
+                                   const void* data,
+                                   size_t size)
+  {
+    std::string md5;
+    Toolbox::ComputeMD5(md5, data, size);
+    const std::string etag = "\"" + boost::lexical_cast<std::string>(revision) + "-" + md5 + "\"";
+    output.GetLowLevelOutput().AddHeader("ETag", etag);
+  }
+  
+
+  static void SetAttachmentETag(RestApiOutput& output,
+                                int64_t revision,
+                                const FileInfo& info)
+  {
+    const std::string etag = ("\"" + boost::lexical_cast<std::string>(revision) + "-" +
+                              info.GetUncompressedMD5() + "\"");
+    output.GetLowLevelOutput().AddHeader("ETag", etag);
+  }
+
+
+  static std::string GetMD5(const std::string& value)
+  {
+    std::string md5;
+    Toolbox::ComputeMD5(md5, value);
+    return md5;
+  }
+
+
   static bool GetRevisionHeader(int64_t& revision /* out */,
+                                std::string& md5 /* out */,
                                 const RestApiCall& call,
                                 const std::string& header)
   {
@@ -1469,14 +1511,20 @@ namespace Orthanc
 
       try
       {
-        revision = boost::lexical_cast<int64_t>(value);
-        return true;
+        size_t comma = value.find('-');
+        if (comma != std::string::npos)
+        {
+          revision = boost::lexical_cast<int64_t>(value.substr(0, comma));
+          md5 = value.substr(comma + 1);
+          return true;
+        }        
       }
       catch (boost::bad_lexical_cast&)
       {
-        throw OrthancException(ErrorCode_ParameterOutOfRange, "The \"" + header +
-                               "\" HTTP header should contain the revision as an integer, but found: " + value);
       }
+
+      throw OrthancException(ErrorCode_ParameterOutOfRange, "The \"" + header +
+                             "\" HTTP header should contain the ETag (revision followed by MD5 hash), but found: " + value);
     }
   }
 
@@ -1510,12 +1558,13 @@ namespace Orthanc
     int64_t revision;
     if (OrthancRestApi::GetIndex(call).LookupMetadata(value, revision, publicId, level, metadata))
     {
-      call.GetOutput().GetLowLevelOutput().
-        AddHeader("ETag", "\"" + boost::lexical_cast<std::string>(revision) + "\"");  // New in Orthanc 1.9.2
+      SetStringContentETag(call.GetOutput(), revision, value);  // New in Orthanc 1.9.2
 
       int64_t userRevision;
-      if (GetRevisionHeader(userRevision, call, "If-None-Match") &&
-          revision == userRevision)
+      std::string userMD5;
+      if (GetRevisionHeader(userRevision, userMD5, call, "If-None-Match") &&
+          userRevision == revision &&
+          userMD5 == GetMD5(value))
       {
         call.GetOutput().GetLowLevelOutput().SendStatus(HttpStatus_304_NotModified);
       }
@@ -1555,9 +1604,10 @@ namespace Orthanc
     {
       bool found;
       int64_t revision;
-      if (GetRevisionHeader(revision, call, "if-match"))
+      std::string md5;
+      if (GetRevisionHeader(revision, md5, call, "if-match"))
       {
-        found = OrthancRestApi::GetIndex(call).DeleteMetadata(publicId, metadata, true, revision);
+        found = OrthancRestApi::GetIndex(call).DeleteMetadata(publicId, metadata, true, revision, md5);
       }
       else
       {
@@ -1569,7 +1619,7 @@ namespace Orthanc
         }
         else
         {
-          found = OrthancRestApi::GetIndex(call).DeleteMetadata(publicId, metadata, false, -1 /* dummy value */);
+          found = OrthancRestApi::GetIndex(call).DeleteMetadata(publicId, metadata, false, -1 /* dummy value */, "");
         }
       }
 
@@ -1619,7 +1669,8 @@ namespace Orthanc
     if (IsUserMetadata(metadata))  // It is forbidden to modify internal metadata
     {
       int64_t oldRevision;
-      bool hasOldRevision = GetRevisionHeader(oldRevision, call, "if-match");
+      std::string oldMD5;
+      bool hasOldRevision = GetRevisionHeader(oldRevision, oldMD5, call, "if-match");
 
       if (!hasOldRevision)
       {
@@ -1631,15 +1682,15 @@ namespace Orthanc
           // inexistent as expected
           hasOldRevision = true;
           oldRevision = -1;  // dummy value
+          oldMD5.clear();  // dummy value
         }
       }
 
       int64_t newRevision;
-      OrthancRestApi::GetIndex(call).SetMetadata(newRevision, publicId, metadata, value, hasOldRevision, oldRevision);
+      OrthancRestApi::GetIndex(call).SetMetadata(newRevision, publicId, metadata, value,
+                                                 hasOldRevision, oldRevision, oldMD5);
 
-      call.GetOutput().GetLowLevelOutput().
-        AddHeader("ETag", "\"" + boost::lexical_cast<std::string>(newRevision) + "\"");  // New in Orthanc 1.9.2
-      
+      SetStringContentETag(call.GetOutput(), newRevision, value);  // New in Orthanc 1.9.2
       call.GetOutput().AnswerBuffer("", MimeType_PlainText);
     }
     else
@@ -1709,12 +1760,13 @@ namespace Orthanc
     int64_t revision;
     if (OrthancRestApi::GetIndex(call).LookupAttachment(info, revision, publicId, contentType))
     {
-      call.GetOutput().GetLowLevelOutput().
-        AddHeader("ETag", "\"" + boost::lexical_cast<std::string>(revision) + "\"");  // New in Orthanc 1.9.2
+      SetAttachmentETag(call.GetOutput(), revision, info);  // New in Orthanc 1.9.2
 
       int64_t userRevision;
-      if (GetRevisionHeader(userRevision, call, "If-None-Match") &&
-          revision == userRevision)
+      std::string userMD5;
+      if (GetRevisionHeader(userRevision, userMD5, call, "If-None-Match") &&
+          revision == userRevision &&
+          info.GetUncompressedMD5() == userMD5)
       {
         call.GetOutput().GetLowLevelOutput().SendStatus(HttpStatus_304_NotModified);
         return false;
@@ -1810,33 +1862,34 @@ namespace Orthanc
     std::string publicId = call.GetUriComponent("id", "");
     FileContentType type = StringToContentType(call.GetUriComponent("name", ""));
 
-    if (uncompress)
+    FileInfo info;
+    if (GetAttachmentInfo(info, call))
     {
-      FileInfo info;
-      if (GetAttachmentInfo(info, call))
+      // NB: "SetAttachmentETag()" is already invoked by "GetAttachmentInfo()"
+
+      if (uncompress)
       {
         context.AnswerAttachment(call.GetOutput(), publicId, type);
       }
-    }
-    else
-    {
-      // Return the raw data (possibly compressed), as stored on the filesystem
-      std::string content;
-      int64_t revision;
-      context.ReadAttachment(content, revision, publicId, type, false);
-
-      call.GetOutput().GetLowLevelOutput().
-        AddHeader("ETag", "\"" + boost::lexical_cast<std::string>(revision) + "\"");  // New in Orthanc 1.9.2
-
-      int64_t userRevision;
-      if (GetRevisionHeader(userRevision, call, "If-None-Match") &&
-          revision == userRevision)
-      {
-        call.GetOutput().GetLowLevelOutput().SendStatus(HttpStatus_304_NotModified);
-      }
       else
       {
-        call.GetOutput().AnswerBuffer(content, MimeType_Binary);
+        // Return the raw data (possibly compressed), as stored on the filesystem
+        std::string content;
+        int64_t revision;
+        context.ReadAttachment(content, revision, publicId, type, false);
+
+        int64_t userRevision;
+        std::string userMD5;
+        if (GetRevisionHeader(userRevision, userMD5, call, "If-None-Match") &&
+            revision == userRevision &&
+            info.GetUncompressedMD5() == userMD5)
+        {
+          call.GetOutput().GetLowLevelOutput().SendStatus(HttpStatus_304_NotModified);
+        }
+        else
+        {
+          call.GetOutput().AnswerBuffer(content, MimeType_Binary);
+        }
       }
     }
   }
@@ -2037,7 +2090,8 @@ namespace Orthanc
     if (IsUserContentType(contentType))  // It is forbidden to modify internal attachments
     {
       int64_t oldRevision;
-      bool hasOldRevision = GetRevisionHeader(oldRevision, call, "if-match");
+      std::string oldMD5;
+      bool hasOldRevision = GetRevisionHeader(oldRevision, oldMD5, call, "if-match");
 
       if (!hasOldRevision)
       {
@@ -2049,16 +2103,15 @@ namespace Orthanc
           // inexistent as expected
           hasOldRevision = true;
           oldRevision = -1;  // dummy value
+          oldMD5.clear();  // dummy value
         }
       }
 
       int64_t newRevision;
       context.AddAttachment(newRevision, publicId, StringToContentType(name), call.GetBodyData(),
-                            call.GetBodySize(), hasOldRevision, oldRevision);
+                            call.GetBodySize(), hasOldRevision, oldRevision, oldMD5);
 
-      call.GetOutput().GetLowLevelOutput().
-        AddHeader("ETag", "\"" + boost::lexical_cast<std::string>(newRevision) + "\"");  // New in Orthanc 1.9.2
-      
+      SetBufferContentETag(call.GetOutput(), newRevision, call.GetBodyData(), call.GetBodySize());  // New in Orthanc 1.9.2
       call.GetOutput().AnswerBuffer("{}", MimeType_Json);
     }
     else
@@ -2119,9 +2172,10 @@ namespace Orthanc
     {
       bool found;
       int64_t revision;
-      if (GetRevisionHeader(revision, call, "if-match"))
+      std::string md5;
+      if (GetRevisionHeader(revision, md5, call, "if-match"))
       {
-        found = OrthancRestApi::GetIndex(call).DeleteAttachment(publicId, contentType, true, revision);
+        found = OrthancRestApi::GetIndex(call).DeleteAttachment(publicId, contentType, true, revision, md5);
       }
       else
       {
@@ -2133,7 +2187,8 @@ namespace Orthanc
         }
         else
         {
-          found = OrthancRestApi::GetIndex(call).DeleteAttachment(publicId, contentType, false, -1 /* dummy value */);
+          found = OrthancRestApi::GetIndex(call).DeleteAttachment(publicId, contentType,
+                                                                  false, -1 /* dummy value */, "" /* dummy value */);
         }
       }
 
@@ -2986,7 +3041,8 @@ namespace Orthanc
       for (std::list<std::string>::const_iterator 
              instance = instances.begin(); instance != instances.end(); ++instance)
       {
-        index.DeleteAttachment(*instance, FileContentType_DicomAsJson, false /* no revision checks */, -1 /* dummy */);
+        index.DeleteAttachment(*instance, FileContentType_DicomAsJson,
+                               false /* no revision checks */, -1 /* dummy */, "" /* dummy */);
       }
     }
 
