@@ -1493,6 +1493,7 @@ static bool ConfigureDatabase(IDatabaseWrapper& database,
     static const char* const CHECK_REVISIONS = "CheckRevisions";
     
     OrthancConfiguration::ReaderLock lock;
+    
     if (lock.GetConfiguration().GetBooleanParameter(CHECK_REVISIONS, false))
     {
       if (database.HasRevisionsSupport())
@@ -1504,6 +1505,16 @@ static bool ConfigureDatabase(IDatabaseWrapper& database,
       {
         LOG(WARNING) << "The custom database back-end has *no* support for revisions of metadata and attachments, "
                      << "but configuration option \"" << CHECK_REVISIONS << "\" is set to \"true\"";
+      }
+      
+      static const char* const STORE_MD5 = "StoreMD5ForAttachments";
+
+      if (!lock.GetConfiguration().GetBooleanParameter(STORE_MD5, true))
+      {
+        throw OrthancException(
+          ErrorCode_ParameterOutOfRange,
+          "The revision system is enabled by configuration option \"" + std::string(CHECK_REVISIONS) +
+          "\", but won't work properly for attachments if \"" + std::string(STORE_MD5) + "\" is set to \"false\"");
       }
     }
   }

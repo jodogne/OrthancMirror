@@ -301,7 +301,8 @@ namespace Orthanc
                        const void* data,
                        size_t size,
                        bool hasOldRevision,
-                       int64_t oldRevision);
+                       int64_t oldRevision,
+                       const std::string& oldMD5);
 
     StoreStatus Store(std::string& resultPublicId,
                       DicomInstanceToStore& dicom,

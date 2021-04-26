@@ -2199,7 +2199,8 @@ namespace Orthanc
                                                 MetadataType type,
                                                 const std::string& value,
                                                 bool hasOldRevision,
-                                                int64_t oldRevision)
+                                                int64_t oldRevision,
+                                                const std::string& oldMD5)
   {
     class Operations : public IReadWriteOperations
     {
@@ -2210,6 +2211,7 @@ namespace Orthanc
       const std::string&  value_;
       bool                hasOldRevision_;
       int64_t             oldRevision_;
+      const std::string&  oldMD5_;
 
     public:
       Operations(int64_t& newRevision,
@@ -2217,13 +2219,15 @@ namespace Orthanc
                  MetadataType type,
                  const std::string& value,
                  bool hasOldRevision,
-                 int64_t oldRevision) :
+                 int64_t oldRevision,
+                 const std::string& oldMD5) :
         newRevision_(newRevision),
         publicId_(publicId),
         type_(type),
         value_(value),
         hasOldRevision_(hasOldRevision),
-        oldRevision_(oldRevision)
+        oldRevision_(oldRevision),
+        oldMD5_(oldMD5)
       {
       }
 
@@ -2241,15 +2245,19 @@ namespace Orthanc
           int64_t expectedRevision;
           if (transaction.LookupMetadata(oldValue, expectedRevision, id, type_))
           {
-            if (hasOldRevision_ &&
-                expectedRevision != oldRevision_)
+            if (hasOldRevision_)
             {
-              throw OrthancException(ErrorCode_Revision);
+              std::string expectedMD5;
+              Toolbox::ComputeMD5(expectedMD5, oldValue);
+
+              if (expectedRevision != oldRevision_ ||
+                  expectedMD5 != oldMD5_)
+              {
+                throw OrthancException(ErrorCode_Revision);
+              }              
             }
-            else
-            {
-              newRevision_ = expectedRevision + 1;
-            }
+            
+            newRevision_ = expectedRevision + 1;
           }
           else
           {
@@ -2268,7 +2276,7 @@ namespace Orthanc
       }
     };
 
-    Operations operations(newRevision, publicId, type, value, hasOldRevision, oldRevision);
+    Operations operations(newRevision, publicId, type, value, hasOldRevision, oldRevision, oldMD5);
     Apply(operations);
   }
 
@@ -2278,14 +2286,15 @@ namespace Orthanc
                                                       const std::string& value)
   {
     int64_t newRevision;  // Unused
-    SetMetadata(newRevision, publicId, type, value, false /* no old revision */, -1 /* dummy */);
+    SetMetadata(newRevision, publicId, type, value, false /* no old revision */, -1 /* dummy */, "" /* dummy */);
   }
 
 
   bool StatelessDatabaseOperations::DeleteMetadata(const std::string& publicId,
                                                    MetadataType type,
                                                    bool hasRevision,
-                                                   int64_t revision)
+                                                   int64_t revision,
+                                                   const std::string& md5)
   {
     class Operations : public IReadWriteOperations
     {
@@ -2294,17 +2303,20 @@ namespace Orthanc
       MetadataType        type_;
       bool                hasRevision_;
       int64_t             revision_;
+      const std::string&  md5_;
       bool                found_;
 
     public:
       Operations(const std::string& publicId,
                  MetadataType type,
                  bool hasRevision,
-                 int64_t revision) :
+                 int64_t revision,
+                 const std::string& md5) :
         publicId_(publicId),
         type_(type),
         hasRevision_(hasRevision),
         revision_(revision),
+        md5_(md5),
         found_(false)
       {
       }
@@ -2324,19 +2336,25 @@ namespace Orthanc
         }
         else
         {
-          std::string s;
+          std::string value;
           int64_t expectedRevision;
-          if (transaction.LookupMetadata(s, expectedRevision, id, type_))
+          if (transaction.LookupMetadata(value, expectedRevision, id, type_))
           {
-            if (hasRevision_ &&
-                expectedRevision != revision_)
+            if (hasRevision_)
             {
-              throw OrthancException(ErrorCode_Revision);
+              std::string expectedMD5;
+              Toolbox::ComputeMD5(expectedMD5, value);
+
+              if (expectedRevision != revision_ ||
+                  expectedMD5 != md5_)
+              {
+                throw OrthancException(ErrorCode_Revision);
+              }
             }
             
             found_ = true;
             transaction.DeleteMetadata(id, type_);
-
+            
             if (IsUserMetadata(type_))
             {
               transaction.LogChange(id, ChangeType_UpdatedMetadata, resourceType, publicId_);
@@ -2350,7 +2368,7 @@ namespace Orthanc
       }
     };
 
-    Operations operations(publicId, type, hasRevision, revision);
+    Operations operations(publicId, type, hasRevision, revision, md5);
     Apply(operations);
     return operations.HasFound();
   }
@@ -2485,7 +2503,8 @@ namespace Orthanc
   bool StatelessDatabaseOperations::DeleteAttachment(const std::string& publicId,
                                                      FileContentType type,
                                                      bool hasRevision,
-                                                     int64_t revision)
+                                                     int64_t revision,
+                                                     const std::string& md5)
   {
     class Operations : public IReadWriteOperations
     {
@@ -2494,17 +2513,20 @@ namespace Orthanc
       FileContentType     type_;
       bool                hasRevision_;
       int64_t             revision_;
+      const std::string&  md5_;
       bool                found_;
 
     public:
       Operations(const std::string& publicId,
                  FileContentType type,
                  bool hasRevision,
-                 int64_t revision) :
+                 int64_t revision,
+                 const std::string& md5) :
         publicId_(publicId),
         type_(type),
         hasRevision_(hasRevision),
         revision_(revision),
+        md5_(md5),
         found_(false)
       {
       }
@@ -2529,7 +2551,8 @@ namespace Orthanc
           if (transaction.LookupAttachment(info, expectedRevision, id, type_))
           {
             if (hasRevision_ &&
-                expectedRevision != revision_)
+                (expectedRevision != revision_ ||
+                 info.GetUncompressedMD5() != md5_))
             {
               throw OrthancException(ErrorCode_Revision);
             }
@@ -2550,7 +2573,7 @@ namespace Orthanc
       }
     };
 
-    Operations operations(publicId, type, hasRevision, revision);
+    Operations operations(publicId, type, hasRevision, revision, md5);
     Apply(operations);
     return operations.HasFound();
   }
@@ -3261,7 +3284,8 @@ namespace Orthanc
                                                          uint64_t maximumStorageSize,
                                                          unsigned int maximumPatients,
                                                          bool hasOldRevision,
-                                                         int64_t oldRevision)
+                                                         int64_t oldRevision,
+                                                         const std::string& oldMD5)
   {
     class Operations : public IReadWriteOperations
     {
@@ -3274,6 +3298,7 @@ namespace Orthanc
       unsigned int        maximumPatientCount_;
       bool                hasOldRevision_;
       int64_t             oldRevision_;
+      const std::string&  oldMD5_;
 
     public:
       Operations(int64_t& newRevision,
@@ -3282,7 +3307,8 @@ namespace Orthanc
                  uint64_t maximumStorageSize,
                  unsigned int maximumPatientCount,
                  bool hasOldRevision,
-                 int64_t oldRevision) :
+                 int64_t oldRevision,
+                 const std::string& oldMD5) :
         newRevision_(newRevision),
         status_(StoreStatus_Failure),
         attachment_(attachment),
@@ -3290,7 +3316,8 @@ namespace Orthanc
         maximumStorageSize_(maximumStorageSize),
         maximumPatientCount_(maximumPatientCount),
         hasOldRevision_(hasOldRevision),
-        oldRevision_(oldRevision)
+        oldRevision_(oldRevision),
+        oldMD5_(oldMD5)
       {
       }
 
@@ -3316,7 +3343,8 @@ namespace Orthanc
             if (transaction.LookupAttachment(oldFile, expectedRevision, resourceId, attachment_.GetContentType()))
             {
               if (hasOldRevision_ &&
-                  expectedRevision != oldRevision_)
+                  (expectedRevision != oldRevision_ ||
+                   oldFile.GetUncompressedMD5() != oldMD5_))
               {
                 throw OrthancException(ErrorCode_Revision);
               }
@@ -3371,7 +3399,8 @@ namespace Orthanc
     };
 
 
-    Operations operations(newRevision, attachment, publicId, maximumStorageSize, maximumPatients, hasOldRevision, oldRevision);
+    Operations operations(newRevision, attachment, publicId, maximumStorageSize, maximumPatients,
+                          hasOldRevision, oldRevision, oldMD5);
     Apply(operations);
     return operations.GetStatus();
   }

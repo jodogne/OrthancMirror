@@ -295,8 +295,8 @@ namespace Orthanc
         ServerContext::DicomCacheLocker locker(context, *it);
 
         // Delay the reconstruction of DICOM-as-JSON to its next access through "ServerContext"
-        context.GetIndex().DeleteAttachment(
-          *it, FileContentType_DicomAsJson, false /* no revision */, -1 /* dummy revision */);
+        context.GetIndex().DeleteAttachment(*it, FileContentType_DicomAsJson, false /* no revision */,
+                                            -1 /* dummy revision */, "" /* dummy MD5 */);
         
         context.GetIndex().ReconstructInstance(locker.GetDicom());
       }

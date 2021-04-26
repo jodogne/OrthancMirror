@@ -101,6 +101,7 @@ namespace Orthanc
                               const FileInfo& attachment,
                               const std::string& publicId,
                               bool hasOldRevision,
-                              int64_t oldRevision);
+                              int64_t oldRevision,
+                              const std::string& oldMD5);
   };
 }

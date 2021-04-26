@@ -550,7 +550,8 @@ namespace Orthanc
                                          const FileInfo& attachment,
                                          const std::string& publicId,
                                          bool hasOldRevision,
-                                         int64_t oldRevision)
+                                         int64_t oldRevision,
+                                         const std::string& oldMD5)
   {
     uint64_t maximumStorageSize;
     unsigned int maximumPatients;
@@ -562,6 +563,7 @@ namespace Orthanc
     }
 
     return StatelessDatabaseOperations::AddAttachment(
-      newRevision, attachment, publicId, maximumStorageSize, maximumPatients, hasOldRevision, oldRevision);
+      newRevision, attachment, publicId, maximumStorageSize, maximumPatients,
+      hasOldRevision, oldRevision, oldMD5);
   }
 }

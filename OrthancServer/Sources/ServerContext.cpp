@@ -799,7 +799,8 @@ namespace Orthanc
     try
     {
       int64_t newRevision;  // ignored
-      StoreStatus status = index_.AddAttachment(newRevision, modified, resourceId, true, revision);
+      StoreStatus status = index_.AddAttachment(newRevision, modified, resourceId,
+                                                true, revision, modified.GetUncompressedMD5());
       if (status != StoreStatus_Success)
       {
         accessor.Remove(modified);
@@ -986,7 +987,7 @@ namespace Orthanc
               int64_t newRevision;
               AddAttachment(newRevision, instancePublicId, FileContentType_DicomUntilPixelData,
                             dicom.empty() ? NULL: dicom.c_str(), pixelDataOffset,
-                            false /* no old revision */, -1 /* dummy revision */);
+                            false /* no old revision */, -1 /* dummy revision */, "" /* dummy MD5 */);
             }
           }
         }
@@ -1162,7 +1163,8 @@ namespace Orthanc
                                     const void* data,
                                     size_t size,
                                     bool hasOldRevision,
-                                    int64_t oldRevision)
+                                    int64_t oldRevision,
+                                    const std::string& oldMD5)
   {
     LOG(INFO) << "Adding attachment " << EnumerationToString(attachmentType) << " to resource " << resourceId;
     
@@ -1172,7 +1174,8 @@ namespace Orthanc
     StorageAccessor accessor(area_, GetMetricsRegistry());
     FileInfo attachment = accessor.Write(data, size, attachmentType, compression, storeMD5_);
 
-    StoreStatus status = index_.AddAttachment(newRevision, attachment, resourceId, hasOldRevision, oldRevision);
+    StoreStatus status = index_.AddAttachment(
+      newRevision, attachment, resourceId, hasOldRevision, oldRevision, oldMD5);
     if (status != StoreStatus_Success)
     {
       accessor.Remove(attachment);

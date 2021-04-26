@@ -580,7 +580,8 @@ namespace Orthanc
                      MetadataType type,
                      const std::string& value,
                      bool hasOldRevision,
-                     int64_t oldRevision);
+                     int64_t oldRevision,
+                     const std::string& oldMD5);
 
     // Same as "SetMetadata()", but doesn't care about revisions
     void OverwriteMetadata(const std::string& publicId,
@@ -590,7 +591,8 @@ namespace Orthanc
     bool DeleteMetadata(const std::string& publicId,
                         MetadataType type,
                         bool hasRevision,
-                        int64_t revision);
+                        int64_t revision,
+                        const std::string& md5);
 
     uint64_t IncrementGlobalSequence(GlobalProperty sequence,
                                      bool shared);
@@ -606,7 +608,8 @@ namespace Orthanc
     bool DeleteAttachment(const std::string& publicId,
                           FileContentType type,
                           bool hasRevision,
-                          int64_t revision);
+                          int64_t revision,
+                          const std::string& md5);
 
     void LogChange(int64_t internalId,
                    ChangeType changeType,
@@ -634,6 +637,7 @@ namespace Orthanc
                               uint64_t maximumStorageSize,
                               unsigned int maximumPatients,
                               bool hasOldRevision,
-                              int64_t oldRevision);
+                              int64_t oldRevision,
+                              const std::string& oldMd5);
   };
 }
