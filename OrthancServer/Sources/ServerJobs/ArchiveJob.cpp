@@ -931,7 +931,7 @@ namespace Orthanc
   
   void ArchiveJob::Start()
   {
-    TemporaryFile* target = NULL;
+    TemporaryFile* target = NULL;  // (*)
     
     if (synchronousTarget_.get() == NULL)
     {
@@ -1008,6 +1008,17 @@ namespace Orthanc
     writer_.reset();  // Flush all the results
 
     RefreshArchiveSize();
+
+    if (synchronousTarget_.get() != NULL)
+    {
+      /**
+       * Synchronous behavior: Release the reference to the temporary
+       * file. It is now up to the caller to deal with the shared
+       * pointer. This is a fix in Orthanc 1.9.3.
+       * https://groups.google.com/g/orthanc-users/c/tpP2fkRAd9o/m/5SGpEHbGCQAJ
+       **/
+      synchronousTarget_.reset();
+    }
     
     if (asynchronousTarget_.get() != NULL)
     {
@@ -1051,6 +1062,26 @@ namespace Orthanc
         RefreshArchiveSize();
         return JobStepResult::Continue();
       }
+    }
+  }
+
+
+  void ArchiveJob::Stop(JobStopReason reason)
+  {
+    /**
+     * New in Orthanc 1.9.3: Remove the temporary file associated with
+     * the job as soon as its job gets canceled (especially visible in
+     * asynchronous mode).
+     **/
+    if (reason == JobStopReason_Canceled ||
+        reason == JobStopReason_Failure ||
+        reason == JobStopReason_Retry)
+    {
+      // First delete the writer, as it holds a reference to "(a)synchronousTarget_", cf. (*)
+      writer_.reset();
+      
+      synchronousTarget_.reset();
+      asynchronousTarget_.reset();
     }
   }
 
