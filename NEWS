@@ -2,6 +2,9 @@ Pending changes in the mainline
 ===============================
 
 * "ETag" headers for metadata and attachments now allow strong comparison (MD5 is included)
+* Fixed the lifetime of temporary files associated with jobs that create ZIP archive/media:
+  - In synchronous mode, their number could grow up to "JobsHistorySize" in Orthanc <= 1.9.2
+  - In asynchronous mode, the temporary files are removed as soon as their job gets canceled
 
 
 Version 1.9.2 (2021-04-22)

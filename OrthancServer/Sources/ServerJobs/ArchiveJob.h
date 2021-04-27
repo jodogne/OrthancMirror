@@ -104,9 +104,7 @@ namespace Orthanc
 
     virtual JobStepResult Step(const std::string& jobId) ORTHANC_OVERRIDE;
 
-    virtual void Stop(JobStopReason reason) ORTHANC_OVERRIDE
-    {
-    }
+    virtual void Stop(JobStopReason reason) ORTHANC_OVERRIDE;
 
     virtual float GetProgress() ORTHANC_OVERRIDE;
 
