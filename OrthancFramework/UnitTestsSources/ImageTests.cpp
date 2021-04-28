@@ -521,3 +521,42 @@ TEST(PamWriter, EndToEnd)
   }
 #endif
 }
+
+
+TEST(PngWriter, Gray16Then8)
+{
+  Orthanc::Image image16(Orthanc::PixelFormat_Grayscale16, 32, 32, false);
+  Orthanc::Image image8(Orthanc::PixelFormat_Grayscale8, 32, 32, false);
+
+  memset(image16.GetBuffer(), 0, image16.GetHeight() * image16.GetPitch());
+  memset(image8.GetBuffer(), 0, image8.GetHeight() * image8.GetPitch());
+
+  {
+    Orthanc::PamWriter w;
+    std::string s;
+    Orthanc::IImageWriter::WriteToMemory(w, s, image16);
+    Orthanc::IImageWriter::WriteToMemory(w, s, image8);  // No problem here
+  }
+
+  {
+    Orthanc::PamWriter w;
+    std::string s;
+    Orthanc::IImageWriter::WriteToMemory(w, s, image8);
+    Orthanc::IImageWriter::WriteToMemory(w, s, image16);  // No problem here
+  }
+
+  {
+    Orthanc::PngWriter w;
+    std::string s;
+    Orthanc::IImageWriter::WriteToMemory(w, s, image8);
+    Orthanc::IImageWriter::WriteToMemory(w, s, image16);  // No problem here
+  }  
+
+  {
+    // The following call leads to "Invalid read of size 1" in Orthanc <= 1.9.2
+    Orthanc::PngWriter w;
+    std::string s;
+    Orthanc::IImageWriter::WriteToMemory(w, s, image16);
+    Orthanc::IImageWriter::WriteToMemory(w, s, image8);  // Problem here
+  }  
+}
