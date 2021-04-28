@@ -324,6 +324,17 @@ public:
     }
   }
 
+  static void ReportDisallowedCommand(const std::string& remoteIp,
+                                      const std::string& remoteAet,
+                                      DicomRequestType type)
+  {
+    LOG(WARNING) << "Unable to check DICOM authorization for AET " << remoteAet
+                 << " on IP " << remoteIp << ": The DICOM command "
+                 << EnumerationToString(type) << " is not allowed for this modality "
+                 << "according to configuration option \"DicomModalities\"";
+  }
+  
+
   virtual bool IsAllowedRequest(const std::string& remoteIp,
                                 const std::string& remoteAet,
                                 const std::string& calledAet,
@@ -358,33 +369,68 @@ public:
     }
     else
     {
-      OrthancConfiguration::ReaderLock lock;
-
+      bool checkIp;
       std::list<RemoteModalityParameters> modalities;
-      if (lock.GetConfiguration().LookupDicomModalitiesUsingAETitle(modalities, remoteAet))
-      {
-        if (modalities.size() == 1) // don't check the IP if there's only one modality with this AET
-        {
-          return modalities.front().IsRequestAllowed(type);
-        }
-        else // if there are multiple modalities with the same AET, check the one matching this IP
-        {
-          for (std::list<RemoteModalityParameters>::const_iterator it = modalities.begin(); it != modalities.end(); ++it)
-          {
-            if (it->GetHost() == remoteIp)
-            {
-              return it->IsRequestAllowed(type);
-            }
-          }
 
-          LOG(WARNING) << "Unable to check DICOM authorization for AET " << remoteAet
-                       << " on IP " << remoteIp << ", " << modalities.size()
-                       << " modalites found with this AET but none of them matching the IP";
-        }
+      {
+        OrthancConfiguration::ReaderLock lock;
+        lock.GetConfiguration().LookupDicomModalitiesUsingAETitle(modalities, remoteAet);
+        checkIp = lock.GetConfiguration().GetBooleanParameter("DicomCheckModalityHost", false);
+      }
+      
+      if (modalities.empty())
+      {
+        LOG(WARNING) << "Unable to check DICOM authorization for AET " << remoteAet
+                     << " on IP " << remoteIp << ": This AET is not listed in "
+                     << "configuration option \"DicomModalities\"";
         return false;
+      }
+      else if (modalities.size() == 1)
+      {
+        // DicomCheckModalityHost is true: check if the IP match the configured IP
+        if (checkIp &&
+            remoteIp != modalities.front().GetHost())
+        {
+          LOG(WARNING) << "Unable to check DICOM authorization for AET " << remoteAet
+                       << " on IP " << remoteIp << ": Its IP address should be "
+                       << modalities.front().GetHost()
+                       << " according to configuration option \"DicomModalities\"";
+          return false;
+        }
+        else if (modalities.front().IsRequestAllowed(type))
+        {
+          return true;
+        }
+        else
+        {
+          ReportDisallowedCommand(remoteIp, remoteAet, type);
+          return false;
+        }
       }
       else
       {
+        // If there are multiple modalities with the same AET, consider the one matching this IP
+        for (std::list<RemoteModalityParameters>::const_iterator
+               it = modalities.begin(); it != modalities.end(); ++it)
+        {
+          if (it->GetHost() == remoteIp)
+          {
+            if (it->IsRequestAllowed(type))
+            {
+              return true;
+            }
+            else
+            {
+              ReportDisallowedCommand(remoteIp, remoteAet, type);
+              return false;
+            }
+          }
+        }
+
+        LOG(WARNING) << "Unable to check DICOM authorization for AET " << remoteAet
+                     << " on IP " << remoteIp << ": " << modalities.size()
+                     << " modalites found with this AET in configuration option "
+                     << "\"DicomModalities\", but none of them matches the IP";
         return false;
       }
     }
