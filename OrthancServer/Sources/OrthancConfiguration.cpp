@@ -754,7 +754,8 @@ namespace Orthanc
     return false;
   }
 
-  bool OrthancConfiguration::LookupDicomModalitiesUsingAETitle(std::list<RemoteModalityParameters>& modalities,
+  
+  void OrthancConfiguration::LookupDicomModalitiesUsingAETitle(std::list<RemoteModalityParameters>& modalities,
                                                                const std::string& aet) const
   {
     modalities.clear();
@@ -766,8 +767,6 @@ namespace Orthanc
         modalities.push_back(it->second);
       }
     }
-
-    return modalities.size() > 0;
   }
 
 
