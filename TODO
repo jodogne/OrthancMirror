@@ -37,13 +37,19 @@ Mid-term
 * Create DICOM from DICOMweb JSON ("application/dicom+json")
   with "/tools/create-dicom"
 * Create multi-frame images with /tools/create-dicom (by adding a
-  "MultiFrame" flag to avoid creating a series)
+  "MultiFrame" flag to avoid creating a series), or modify PixelData
+  of a multi-frame image:
+  https://groups.google.com/g/orthanc-users/c/y3-xa_GcdLM/m/m0Kr5G5UPAAJ
 * Specify the transfer syntax in /tools/create-dicom
 * In the /studies/{id}/anonymize route, add an option to remove
   secondary captures.  They usually contains Patient info in the
   image. The SOPClassUID might be used to identify such secondary
   captures.
 * Support "/preview" and "/matlab" for LUT color images
+* Add asynchronous mode in "/modalitities/.../move" for C-MOVE SCU:
+  https://groups.google.com/g/orthanc-users/c/G3_jBy4X4NQ/m/8BanTsdMBQAJ
+* Ranges of DICOM tags for "Keep" and "Remove" in ".../modify" and ".../anonymize": 
+  https://groups.google.com/g/orthanc-users/c/6dETktKo9v8/m/b0LUvSfwAgAJ
 
 ---------
 Long-term
