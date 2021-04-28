@@ -14,6 +14,14 @@ General
 * Support partial file retrieval in Orthanc::HttpClient
 * Support retry counter in Orthanc::HttpClient
 * Option to enable DNS lookups in DICOM: https://goo.gl/woa35Z
+* Toolbox::ComputeMD5() fails on files larger than 4GB
+
+
+============================
+Documentation (Orthanc Book)
+============================
+
+* Log rotation
 
 
 ========
@@ -137,6 +145,8 @@ Ideas of plugins
 * Authorization plugin for the DICOM protocol:
   https://groups.google.com/d/msg/orthanc-users/Wv-QEwTE0IA/rvJxoOjcAQAJ
 * Configuration interface plugin
+* Delayed deletion plugin: 
+  https://bugs.orthanc-server.com/show_bug.cgi?id=186#c2
 
 
 ===
@@ -169,6 +179,8 @@ Packaging
 
 * RHEL through EPEL (as of 2021, CentOS seems to be over):
   http://fedoraproject.org/wiki/EPEL_Package_Maintainers
+* Fedora: Are DICOM dictionaries correctly located?
+  https://groups.google.com/g/orthanc-users/c/YB_LTBuUQNA/m/3H1xsrZJDgAJ
 
 ------------------------
 Big-endian architectures
@@ -189,6 +201,14 @@ Microsoft Windows
 Misc
 ====
 
+-----------------
+Maintenance tools
+-----------------
+
+* Standalone tool to detect corrupted files:
+  https://groups.google.com/g/orthanc-users/c/KASEJ9Gx3vQ/m/MIJFJdRhAwAJ
+* Standalone tool to detect orphan files in OrthancStorage
+
 -----
 Legal
 -----
@@ -198,11 +218,13 @@ Legal
   (incompatible with GPL) by "Apache License 2.0" (compatible with
   GPL): https://people.gnome.org/~markmc/openssl-and-the-gpl.html
   
-------------
-Code quality
-------------
+----------------------------------
+Code quality and integration tests
+----------------------------------
 
 * Have a look at openQA (cf. GNU Health)
+* Add integration tests for LUT
+
 
 ---------------------
 External applications
