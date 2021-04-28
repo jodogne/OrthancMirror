@@ -21,7 +21,13 @@ General
 Documentation (Orthanc Book)
 ============================
 
-* Log rotation
+* Explain how log rotation can be achieved (no built-in support in Orthanc)
+* Explain how to interface with Mirth/NextGen Connect
+  https://en.wikipedia.org/wiki/NextGen_Connect
+* How to reproduce issues by replacing Orthanc with storescp or wlmscpfs
+* How to capture TCP traffic of DICOM protocol using tcpdump and Wireshark
+* Add more configurations of viewers (Weasis, Slicer...):
+  https://book.orthanc-server.com/integrations.html
 
 
 ========
@@ -129,13 +135,15 @@ SDK
 * Implement PluginsJob::GetOutput() to allow user-defined jobs to provide output:
   https://groups.google.com/g/orthanc-users/c/GZ7u0bTTVoo/m/Z7iTNTi2BgAJ
 * Add plugins for normalized operations (notably so as to support
-  Print SCU/SCP):
+  Print SCU/SCP, cf. "dcmprscp"):
   https://web.archive.org/web/20170923150432/https://www.medicalconnections.co.uk/kb/DICOM_Print_Service
 * Provide access to the Orthanc::DicomUserConnection class in plugins:
   https://groups.google.com/d/msg/orthanc-users/ycDA1xPuTRY/nsT2_GOtEgAJ
 * Provide a C++ callback similar to "ReceivedInstanceFilter()" in Lua
   https://book.orthanc-server.com/users/lua.html#filtering-incoming-dicom-instances
   https://groups.google.com/d/msg/orthanc-users/BtvLTE5Ni8A/vIMhmMgfBAAJ
+* In "OrthancPluginLog[Error|Warning|Info]()", prefix the log line with
+  the name of the plugin, as retrieved by "OrthancPluginGetName()"
 
 ----------------
 Ideas of plugins
