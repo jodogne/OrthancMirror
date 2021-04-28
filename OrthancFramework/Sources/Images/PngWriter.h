@@ -39,6 +39,9 @@ namespace Orthanc
 {
   class ORTHANC_PUBLIC PngWriter : public IImageWriter
   {
+  private:
+    class Context;
+
   protected:
 #if ORTHANC_SANDBOXED == 0
     virtual void WriteToFileInternal(const std::string& filename,
@@ -55,25 +58,5 @@ namespace Orthanc
                                        unsigned int pitch,
                                        PixelFormat format,
                                        const void* buffer) ORTHANC_OVERRIDE;
-
-  private:
-    struct PImpl;
-    boost::shared_ptr<PImpl> pimpl_;
-
-    void Compress(unsigned int width,
-                  unsigned int height,
-                  unsigned int pitch,
-                  PixelFormat format);
-
-    void Prepare(unsigned int width,
-                 unsigned int height,
-                 unsigned int pitch,
-                 PixelFormat format,
-                 const void* buffer);
-
-  public:
-    PngWriter();
-
-    ~PngWriter();
   };
 }
