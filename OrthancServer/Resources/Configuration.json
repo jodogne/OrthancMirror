@@ -555,8 +555,11 @@
   "HttpThreadsCount" : 50,
 
   // If this option is set to "false", Orthanc will run in index-only
-  // mode. The DICOM files will not be stored on the drive. Note that
-  // this option might prevent the upgrade to newer versions of Orthanc.
+  // mode. The DICOM files will not be stored on the drive: Orthanc
+  // only indexes the small subset of the so-called "main DICOM tags"
+  // in its SQL database. Note that this option might prevent the
+  // upgrade to newer versions of Orthanc. Also note that this
+  // behavior might not be available with the storage area plugins.
   "StoreDicom" : true,
 
   // DICOM associations initiated by Lua scripts are kept open as long
