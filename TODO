@@ -28,6 +28,8 @@ Documentation (Orthanc Book)
 * How to capture TCP traffic of DICOM protocol using tcpdump and Wireshark
 * Add more configurations of viewers (Weasis, Slicer...):
   https://book.orthanc-server.com/integrations.html
+* Discuss HL7 in a dedicated page:
+  https://groups.google.com/d/msg/orthanc-users/4dt4992O0lQ/opTjTFU2BgAJ
 
 
 ========
