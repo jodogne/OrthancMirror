@@ -120,10 +120,16 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_LUA)
 
   source_group(ThirdParty\\Lua REGULAR_EXPRESSION ${LUA_SOURCES_DIR}/.*)
 
-elseif (CMAKE_CROSSCOMPILING AND
-    "${CMAKE_SYSTEM_VERSION}" STREQUAL "CrossToolNg")
+elseif ((CMAKE_CROSSCOMPILING AND
+      "${CMAKE_SYSTEM_VERSION}" STREQUAL "CrossToolNg") OR
+    NOT "${ORTHANC_LUA_VERSION}" STREQUAL "")
 
-  set(LUA_VERSIONS 5.3 5.2 5.1)
+  if ("${ORTHANC_LUA_VERSION}" STREQUAL "")
+    set(LUA_VERSIONS 5.3 5.2 5.1)
+  else()
+    # New in Orthanc 1.9.3
+    set(LUA_VERSIONS ${ORTHANC_LUA_VERSION})
+  endif()
 
   unset(LUA_VERSION)
   foreach(version IN ITEMS ${LUA_VERSIONS})
@@ -138,21 +144,36 @@ elseif (CMAKE_CROSSCOMPILING AND
     message(FATAL_ERROR "Please install the liblua-dev package")
   endif()
   
-  CHECK_LIBRARY_EXISTS(lua${LUA_VERSION} "lua_call" "${LUA_LIB_DIR}" HAVE_LUA_LIB)
-  if (NOT HAVE_LUA_LIB)
+  if ("${CMAKE_SYSTEM_VERSION}" STREQUAL "CrossToolNg")
+    set(LUA_INCLUDE_DIR ${CROSSTOOL_NG_IMAGE}/usr/include/lua${LUA_VERSION})
+  else()
+    # New in Orthanc 1.9.3
+    find_path(LUA_INCLUDE_DIR
+      NAMES lua.h
+      PATHS
+      /usr/include/lua${LUA_VERSION}
+      /usr/local/include/lua${LUA_VERSION}
+      )
+  endif()
+  
+  message("Lua include dir: ${LUA_INCLUDE_DIR}")
+  include_directories(${LUA_INCLUDE_DIR})
+
+  CHECK_LIBRARY_EXISTS(lua${LUA_VERSION} "lua_call" "${LUA_LIB_DIR}" HAVE_LUA_LIB_1)  # Lua 5.1
+  CHECK_LIBRARY_EXISTS(lua${LUA_VERSION} "lua_callk" "${LUA_LIB_DIR}" HAVE_LUA_LIB_2) # Lua 5.3
+  if (NOT HAVE_LUA_LIB_1 AND NOT HAVE_LUA_LIB_2)
     message(FATAL_ERROR "Please install the liblua package")
   endif()  
 
-  include_directories(${CROSSTOOL_NG_IMAGE}/usr/include/lua${LUA_VERSION})
   link_libraries(lua${LUA_VERSION})
 
 else()
   include(FindLua)
-
+  
   if (NOT LUA_FOUND)
     message(FATAL_ERROR "Please install the liblua-dev package")
   endif()
-
+  
   include_directories(${LUA_INCLUDE_DIR})
   link_libraries(${LUA_LIBRARIES})
 endif()

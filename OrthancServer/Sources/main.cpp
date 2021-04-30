@@ -1109,6 +1109,8 @@ static bool StartHttpServer(ServerContext& context,
         httpServer.SetSslVerifyPeers(false);
       }
 
+      LOG(INFO) << "Version of Lua: " << LUA_VERSION;
+
       if (lock.GetConfiguration().GetBooleanParameter("ExecuteLuaEnabled", false))
       {
         context.SetExecuteLuaEnabled(true);
