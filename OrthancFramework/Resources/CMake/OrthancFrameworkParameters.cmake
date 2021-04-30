@@ -95,6 +95,7 @@ set(EMSCRIPTEN_TARGET_MODE "wasm" CACHE STRING "Sets the target mode for Emscrip
 set(EMSCRIPTEN_TRAP_MODE "" CACHE STRING "Sets the trap mode for Emscripten for numeric errors (can notably be empty, or \"clamp\")")
 set(OPENSSL_STATIC_VERSION "1.1.1" CACHE STRING "Version of OpenSSL to be used in static builds (can be \"1.0.2\", or \"1.1.1\")")
 set(CIVETWEB_OPENSSL_API "1.1" CACHE STRING "Version of the OpenSSL API to be used in civetweb in static builds (can be \"1.0\" or \"1.1\"")
+set(ORTHANC_LUA_VERSION "" CACHE STRING "Force the version of Lua to be used by Orthanc (for instance \"5.3\"), if empty, this will be autodetected")
 
 mark_as_advanced(CIVETWEB_OPENSSL_API)
 mark_as_advanced(EMSCRIPTEN_TARGET_MODE)

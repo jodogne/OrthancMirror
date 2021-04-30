@@ -103,6 +103,7 @@ endif()
 if (NOT ENABLE_LUA)
   unset(USE_SYSTEM_LUA CACHE)
   unset(ENABLE_LUA_MODULES CACHE)
+  unset(ORTHANC_LUA_VERSION)
   add_definitions(-DORTHANC_ENABLE_LUA=0)
 endif()
 

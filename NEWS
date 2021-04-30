@@ -7,6 +7,7 @@ Pending changes in the mainline
   - In asynchronous mode, the temporary files are removed as soon as their job gets canceled
 * Fix regression in the handling of "DicomCheckModalityHost" configuration option
   introduced by changeset 4182 in Orthanc 1.7.4
+* New CMake option: "ORTHANC_LUA_VERSION" to use a specific version of system-wide Lua
   
 
 Version 1.9.2 (2021-04-22)
