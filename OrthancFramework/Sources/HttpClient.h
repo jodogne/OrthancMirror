@@ -106,6 +106,11 @@ namespace Orthanc
     bool headersToLowerCase_;
     bool redirectionFollowed_;
 
+    // New in Orthanc 1.9.3 to avoid memcpy()
+    bool        hasExternalBody_;
+    const void* externalBodyData_;
+    size_t      externalBodySize_;
+
     void Setup();
 
     void operator= (const HttpClient&);  // Assignment forbidden
@@ -141,13 +146,22 @@ namespace Orthanc
 
     long GetTimeout() const;
 
-    void SetBody(const std::string& data);
+    void AssignBody(const std::string& data);
 
-    std::string& GetBody();
-
-    const std::string& GetBody() const;
+    void AssignBody(const void* data,
+                    size_t size);
 
     void SetBody(IRequestBody& body);
+
+    // New in Orthanc 1.9.3: The "data" buffer must have a lifetime
+    // that is longer than the HttpClient object
+    void SetExternalBody(const void* data,
+                         size_t size);
+
+    void SetExternalBody(const std::string& data)
+    {
+      SetExternalBody(data.empty() ? NULL : data.c_str(), data.size());
+    }
 
     void ClearBody();
 
