@@ -63,8 +63,12 @@ namespace Orthanc
 
     try
     {
-      instance.ReadDicom(client.GetBody());
+      // Lifetime of "body" must exceed the call to "client.Apply()" because of "SetExternalBody()"
+      std::string body;
+      instance.ReadDicom(body);
 
+      client.SetExternalBody(body);  // Avoids a memcpy()
+      
       std::string answer;
       if (!client.Apply(answer))
       {

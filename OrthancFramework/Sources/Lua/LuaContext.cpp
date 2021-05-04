@@ -239,7 +239,7 @@ namespace Orthanc
     const char* url = lua_tostring(state, 1);
     that.httpClient_.SetMethod(HttpMethod_Get);
     that.httpClient_.SetUrl(url);
-    that.httpClient_.GetBody().clear();
+    that.httpClient_.ClearBody();
     that.SetHttpHeaders(2);
 
     // Do the HTTP GET request
@@ -284,16 +284,16 @@ namespace Orthanc
 
       if (bodySize == 0)
       {
-        that.httpClient_.GetBody().clear();
+        that.httpClient_.ClearBody();
       }
       else
       {
-        that.httpClient_.GetBody().assign(bodyData, bodySize);
+        that.httpClient_.AssignBody(bodyData, bodySize);
       }
     }
     else
     {
-      that.httpClient_.GetBody().clear();
+      that.httpClient_.ClearBody();
     }
 
     // Do the HTTP POST/PUT request
@@ -342,7 +342,7 @@ namespace Orthanc
     const char* url = lua_tostring(state, 1);
     that.httpClient_.SetMethod(HttpMethod_Delete);
     that.httpClient_.SetUrl(url);
-    that.httpClient_.GetBody().clear();
+    that.httpClient_.ClearBody();
     that.SetHttpHeaders(2);
 
     // Do the HTTP DELETE request

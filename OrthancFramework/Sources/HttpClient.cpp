@@ -622,6 +622,10 @@ namespace Orthanc
     timeout_ = GlobalParameters::GetInstance().GetDefaultTimeout();
     GlobalParameters::GetInstance().GetDefaultProxy(proxy_);
     GlobalParameters::GetInstance().GetSslConfiguration(verifyPeers_, caCertificates_);    
+
+    hasExternalBody_ = false;
+    externalBodyData_ = NULL;
+    externalBodySize_ = 0;
   }
 
 
@@ -718,20 +722,28 @@ namespace Orthanc
   }
 
 
-  void HttpClient::SetBody(const std::string& data)
+  void HttpClient::AssignBody(const std::string& data)
   {
     body_ = data;
     pimpl_->requestBody_.Clear();
+    hasExternalBody_ = false;
   }
 
-  std::string &HttpClient::GetBody()
-  {
-    return body_;
-  }
 
-  const std::string &HttpClient::GetBody() const
+  void HttpClient::AssignBody(const void* data,
+                              size_t size)
   {
-    return body_;
+    if (size != 0 &&
+        data == NULL)
+    {
+      throw OrthancException(ErrorCode_NullPointer);
+    }
+    else
+    {
+      body_.assign(reinterpret_cast<const char*>(data), size);
+      pimpl_->requestBody_.Clear();
+      hasExternalBody_ = false;
+    }
   }
 
 
@@ -739,13 +751,34 @@ namespace Orthanc
   {
     body_.clear();
     pimpl_->requestBody_.SetBody(body);
+    hasExternalBody_ = false;
   }
 
   
+  void HttpClient::SetExternalBody(const void* data,
+                                   size_t size)
+  {
+    if (size != 0 &&
+        data == NULL)
+    {
+      throw OrthancException(ErrorCode_NullPointer);
+    }
+    else
+    {
+      body_.clear();
+      pimpl_->requestBody_.Clear();
+      hasExternalBody_ = true;
+      externalBodyData_ = data;
+      externalBodySize_ = size;
+    }
+  }
+  
+
   void HttpClient::ClearBody()
   {
     body_.clear();
     pimpl_->requestBody_.Clear();
+    hasExternalBody_ = false;
   }
 
 
@@ -976,7 +1009,12 @@ namespace Orthanc
           pimpl_->defaultPostHeaders_.Assign(pimpl_->curl_);
         }
 
-        if (body_.size() > 0)
+        if (hasExternalBody_)
+        {
+          CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_POSTFIELDS, externalBodyData_));
+          CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_POSTFIELDSIZE, externalBodySize_));
+        }
+        else if (body_.size() > 0)
         {
           CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_POSTFIELDS, body_.c_str()));
           CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_POSTFIELDSIZE, body_.size()));

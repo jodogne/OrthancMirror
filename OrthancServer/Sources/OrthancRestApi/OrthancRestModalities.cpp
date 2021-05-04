@@ -1862,7 +1862,7 @@ namespace Orthanc
     HttpClient client(info, "instances");
     client.SetMethod(HttpMethod_Post);
     client.AddHeader("Expect", "");
-    client.GetBody().assign(reinterpret_cast<const char*>(call.GetBodyData()), call.GetBodySize());
+    client.SetExternalBody(call.GetBodyData(), call.GetBodySize());
 
     Json::Value answer;
     if (client.Apply(answer))

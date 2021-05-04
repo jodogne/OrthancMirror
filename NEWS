@@ -8,6 +8,8 @@ Pending changes in the mainline
 * Fix regression in the handling of "DicomCheckModalityHost" configuration option
   introduced by changeset 4182 in Orthanc 1.7.4
 * New CMake option: "ORTHANC_LUA_VERSION" to use a specific version of system-wide Lua
+* Reduced memory consumption of "OrthancPluginHttpClient()", "OrthancPluginHttpClient2()" and
+  "OrthancPluginCallPeerApi()" on POST/PUT if chunked transfer is disabled
   
 
 Version 1.9.2 (2021-04-22)

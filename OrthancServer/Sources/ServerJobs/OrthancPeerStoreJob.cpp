@@ -63,6 +63,7 @@ namespace Orthanc
     LOG(INFO) << "Sending instance " << instance << " to peer \"" 
               << peer_.GetUrl() << "\"";
 
+    // Lifetime of "body" must exceed the call to "client_->Apply()" because of "SetExternalBody()"
     std::string body;
 
     try
@@ -99,18 +100,23 @@ namespace Orthanc
       return false;
     }
 
+    // Lifetime of "compressedBody" must exceed the call to "client_->Apply()" because of "SetExternalBody()"
+    std::string compressedBody;
+
     if (compress_)
     {
       GzipCompressor compressor;
       compressor.SetCompressionLevel(9);  // Max compression level
-      IBufferCompressor::Compress(client_->GetBody(), compressor, body);
+      IBufferCompressor::Compress(compressedBody, compressor, body);
+
+      client_->SetExternalBody(compressedBody);
+      size_ += compressedBody.size();
     }
     else
     {
-      client_->GetBody().swap(body);
+      client_->SetExternalBody(body);
+      size_ += body.size();
     }
-
-    size_ += client_->GetBody().size();
 
     std::string answer;
     if (client_->Apply(answer))

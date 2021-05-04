@@ -3332,12 +3332,12 @@ namespace Orthanc
 
       case OrthancPluginHttpMethod_Post:
         client.SetMethod(HttpMethod_Post);
-        client.GetBody().assign(reinterpret_cast<const char*>(parameters.body), parameters.bodySize);
+        client.SetExternalBody(parameters.body, parameters.bodySize);
         break;
 
       case OrthancPluginHttpMethod_Put:
         client.SetMethod(HttpMethod_Put);
-        client.GetBody().assign(reinterpret_cast<const char*>(parameters.body), parameters.bodySize);
+        client.SetExternalBody(parameters.body, parameters.bodySize);
         break;
 
       case OrthancPluginHttpMethod_Delete:
@@ -3446,7 +3446,7 @@ namespace Orthanc
     if (p.method == OrthancPluginHttpMethod_Post ||
         p.method == OrthancPluginHttpMethod_Put)
     {
-      client.GetBody().assign(reinterpret_cast<const char*>(p.body), p.bodySize);
+      client.SetExternalBody(p.body, p.bodySize);
     }
     
     SetupHttpClient(client, p);
@@ -3645,12 +3645,12 @@ namespace Orthanc
 
       case OrthancPluginHttpMethod_Post:
         client.SetMethod(HttpMethod_Post);
-        client.GetBody().assign(reinterpret_cast<const char*>(p.body), p.bodySize);
+        client.SetExternalBody(p.body, p.bodySize);
         break;
 
       case OrthancPluginHttpMethod_Put:
         client.SetMethod(HttpMethod_Put);
-        client.GetBody().assign(reinterpret_cast<const char*>(p.body), p.bodySize);
+        client.SetExternalBody(p.body, p.bodySize);
         break;
 
       case OrthancPluginHttpMethod_Delete:
