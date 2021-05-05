@@ -2726,10 +2726,18 @@ namespace OrthancPlugins
           delete *it;
         }
 
+        size_ = 0;
         content_.clear();
       }
 
-      void Flatten(std::string& target) const
+      /**
+       * Since Orthanc 1.9.3, this function also clears the content of
+       * the ChunkedBuffer in order to mimic the behavior of the
+       * original class "Orthanc::ChunkedBuffer". This prevents the
+       * forgetting of calling "Clear()" in order to reduce memory
+       * consumption.
+       **/
+      void Flatten(std::string& target)
       {
         target.resize(size_);
 
@@ -2745,10 +2753,14 @@ namespace OrthancPlugins
             memcpy(&target[pos], (*it)->c_str(), s);
             pos += s;
           }
+
+          delete *it;
         }
 
-        assert(size_ == 0 ||
-               pos == target.size());
+        assert(pos == target.size());
+
+        size_ = 0;
+        content_.clear();
       }
 
       void AddChunk(const void* data,
@@ -2779,7 +2791,7 @@ namespace OrthancPlugins
         return headers_;
       }
 
-      const ChunkedBuffer& GetBody() const
+      ChunkedBuffer& GetBody()
       {
         return body_;
       }
