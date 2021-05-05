@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "StringMatcher.h"
+#include "CStringMatcher.h"
 #include "../ChunkedBuffer.h"
 
 #include <map>
@@ -56,8 +56,8 @@ namespace Orthanc
     
     State          state_;
     IHandler*      handler_;
-    StringMatcher  headersMatcher_;
-    StringMatcher  boundaryMatcher_;
+    CStringMatcher headersMatcher_;
+    CStringMatcher boundaryMatcher_;
     ChunkedBuffer  buffer_;
     size_t         blockSize_;
 

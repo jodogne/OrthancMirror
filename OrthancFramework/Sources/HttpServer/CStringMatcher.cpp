@@ -21,21 +21,18 @@
 
 
 #include "../PrecompiledHeaders.h"
-#include "StringMatcher.h"
+#include "CStringMatcher.h"
 
 #include "../OrthancException.h"
 
 #include <boost/algorithm/searching/boyer_moore.hpp>
-//#include <boost/algorithm/searching/boyer_moore_horspool.hpp>
-//#include <boost/algorithm/searching/knuth_morris_pratt.hpp>
 
 namespace Orthanc
 {
-  class StringMatcher::Search : public boost::noncopyable
+  class CStringMatcher::Search : public boost::noncopyable
   {
   private:
-    typedef boost::algorithm::boyer_moore<Iterator>  Algorithm;
-    //typedef boost::algorithm::boyer_moore_horspool<std::string::const_iterator>  Algorithm;
+    typedef boost::algorithm::boyer_moore<const char*>  Algorithm;
 
     Algorithm algorithm_;
 
@@ -43,12 +40,12 @@ namespace Orthanc
     // WARNING - The lifetime of "pattern_" must be larger than
     // "search_", as the latter internally keeps a pointer to "pattern" (*)
     explicit Search(const std::string& pattern) :
-      algorithm_(pattern.begin(), pattern.end())
+      algorithm_(pattern.c_str(), pattern.c_str() + pattern.size())
     {
     }
 
-    Iterator Apply(Iterator start,
-                   Iterator end) const
+    const char* Apply(const char* start,
+                      const char* end) const
     {
 #if BOOST_VERSION >= 106200
       return algorithm_(start, end).first;
@@ -57,9 +54,10 @@ namespace Orthanc
 #endif
     }
   };
-    
 
-  StringMatcher::StringMatcher(const std::string& pattern) :
+
+
+  CStringMatcher::CStringMatcher(const std::string& pattern) :
     pattern_(pattern),
     valid_(false)
   {
@@ -70,23 +68,29 @@ namespace Orthanc
     search_.reset(new Search(pattern_));
   }
 
-  const std::string& StringMatcher::GetPattern() const
+  const std::string& CStringMatcher::GetPattern() const
   {
     return pattern_;
   }
 
-  bool StringMatcher::IsValid() const
+  bool CStringMatcher::IsValid() const
   {
     return valid_;
   }
   
 
-  bool StringMatcher::Apply(Iterator start,
-                            Iterator end)
+  bool CStringMatcher::Apply(const char* start,
+                             const char* end)
   {
     assert(search_.get() != NULL);
-    matchBegin_ = search_->Apply(start, end);
 
+    if (start > end)
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+    matchBegin_ = search_->Apply(start, end);
+    
     if (matchBegin_ == end)
     {
       valid_ = false;
@@ -101,13 +105,21 @@ namespace Orthanc
     return valid_;
   }
 
-  bool StringMatcher::Apply(const std::string& corpus)
+  
+  bool CStringMatcher::Apply(const std::string& corpus)
   {
-    return Apply(corpus.begin(), corpus.end());
+    if (corpus.empty())
+    {
+      return false;
+    }
+    else
+    {
+      return Apply(corpus.c_str(), corpus.c_str() + corpus.size());
+    }
   }
 
 
-  StringMatcher::Iterator StringMatcher::GetMatchBegin() const
+  const char* CStringMatcher::GetMatchBegin() const
   {
     if (valid_)
     {
@@ -120,7 +132,7 @@ namespace Orthanc
   }
 
 
-  StringMatcher::Iterator StringMatcher::GetMatchEnd() const
+  const char* CStringMatcher::GetMatchEnd() const
   {
     if (valid_)
     {
@@ -130,17 +142,5 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_BadSequenceOfCalls);
     }
-  }
-
-
-  const char* StringMatcher::GetPointerBegin() const
-  {
-    return &GetMatchBegin()[0];
-  }
-
-
-  const char* StringMatcher::GetPointerEnd() const
-  {
-    return GetPointerBegin() + pattern_.size();
   }
 }

@@ -31,6 +31,7 @@
 #include "../Sources/Compression/ZlibCompressor.h"
 #include "../Sources/HttpServer/HttpContentNegociation.h"
 #include "../Sources/HttpServer/MultipartStreamReader.h"
+#include "../Sources/HttpServer/StringMatcher.h"
 #include "../Sources/Logging.h"
 #include "../Sources/OrthancException.h"
 #include "../Sources/RestApi/RestApiHierarchy.h"
@@ -722,7 +723,6 @@ TEST(StringMatcher, Basic)
   {
     std::string s(10u, '\0');  // String with null values
     ASSERT_EQ(10u, s.size());
-    ASSERT_EQ(10u, s.size());
     ASSERT_FALSE(matcher.Apply(s));
 
     s[9] = '-';
@@ -740,6 +740,89 @@ TEST(StringMatcher, Basic)
   }
 }
 
+
+TEST(CStringMatcher, Basic)
+{
+  CStringMatcher matcher("---");
+
+  ASSERT_THROW(matcher.GetMatchBegin(), OrthancException);
+
+  {
+    ASSERT_FALSE(matcher.Apply(NULL, 0));
+    
+    const std::string s = "";
+    ASSERT_FALSE(matcher.Apply(s));
+  }
+
+  {
+    const char* s = "abc---def";
+    ASSERT_TRUE(matcher.Apply(s, s + 9));
+    
+    ASSERT_EQ('a', matcher.GetMatchBegin()[-3]);
+    ASSERT_EQ('b', matcher.GetMatchBegin()[-2]);
+    ASSERT_EQ('c', matcher.GetMatchBegin()[-1]);
+    ASSERT_EQ('-', matcher.GetMatchBegin()[0]);
+    ASSERT_EQ('-', matcher.GetMatchBegin()[1]);
+    ASSERT_EQ('-', matcher.GetMatchBegin()[2]);
+    ASSERT_EQ('d', matcher.GetMatchBegin()[3]);
+    ASSERT_EQ('e', matcher.GetMatchBegin()[4]);
+    ASSERT_EQ('f', matcher.GetMatchBegin()[5]);
+    ASSERT_EQ('\0', matcher.GetMatchBegin()[6]);
+
+    ASSERT_EQ('a', matcher.GetMatchEnd()[-6]);
+    ASSERT_EQ('b', matcher.GetMatchEnd()[-5]);
+    ASSERT_EQ('c', matcher.GetMatchEnd()[-4]);
+    ASSERT_EQ('-', matcher.GetMatchEnd()[-3]);
+    ASSERT_EQ('-', matcher.GetMatchEnd()[-2]);
+    ASSERT_EQ('-', matcher.GetMatchEnd()[-1]);
+    ASSERT_EQ('d', matcher.GetMatchEnd()[0]);
+    ASSERT_EQ('e', matcher.GetMatchEnd()[1]);
+    ASSERT_EQ('f', matcher.GetMatchEnd()[2]);
+    ASSERT_EQ('\0', matcher.GetMatchEnd()[3]);
+  }
+
+  {
+    const std::string s = "abc----def";
+    ASSERT_TRUE(matcher.Apply(s));
+    ASSERT_EQ(3, std::distance(s.c_str(), matcher.GetMatchBegin()));
+    ASSERT_EQ("---", std::string(matcher.GetMatchBegin(), matcher.GetMatchEnd()));
+  }
+
+  {
+    const std::string s = "abc---";
+    ASSERT_TRUE(matcher.Apply(s));
+    ASSERT_EQ(3, std::distance(s.c_str(), matcher.GetMatchBegin()));
+    ASSERT_EQ(s.c_str() + s.size(), matcher.GetMatchEnd());
+    ASSERT_EQ("---", std::string(matcher.GetMatchBegin(), matcher.GetMatchEnd()));
+    ASSERT_EQ("", std::string(matcher.GetMatchEnd(), s.c_str() + s.size()));
+  }
+
+  {
+    const std::string s = "abc--def";
+    ASSERT_FALSE(matcher.Apply(s));
+    ASSERT_THROW(matcher.GetMatchBegin(), OrthancException);
+    ASSERT_THROW(matcher.GetMatchEnd(), OrthancException);
+  }
+
+  {
+    std::string s(10u, '\0');  // String with null values
+    ASSERT_EQ(10u, s.size());
+    ASSERT_FALSE(matcher.Apply(s));
+
+    s[9] = '-';
+    ASSERT_FALSE(matcher.Apply(s));
+
+    s[8] = '-';
+    ASSERT_FALSE(matcher.Apply(s));
+
+    s[7] = '-';
+    ASSERT_TRUE(matcher.Apply(s));
+    ASSERT_EQ(s.c_str() + 7, matcher.GetMatchBegin());
+    ASSERT_EQ(s.c_str() + 10, matcher.GetMatchEnd());
+    ASSERT_EQ(s.c_str() + s.size() - 3, matcher.GetMatchBegin());
+    ASSERT_EQ(s.c_str() + s.size(), matcher.GetMatchEnd());
+  }
+}
 
 
 class MultipartTester : public MultipartStreamReader::IHandler
