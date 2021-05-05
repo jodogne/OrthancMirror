@@ -61,6 +61,9 @@ namespace Orthanc
     ChunkedBuffer  buffer_;
     size_t         blockSize_;
 
+    void ParseBlock(const void* data,
+                    size_t size);
+    
     void ParseStream();
 
   public:

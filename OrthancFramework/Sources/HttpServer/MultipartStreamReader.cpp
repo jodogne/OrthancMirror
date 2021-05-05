@@ -98,6 +98,127 @@ namespace Orthanc
   }
 
 
+  void MultipartStreamReader::ParseBlock(const void* data,
+                                         size_t size)
+  {
+    if (handler_ == NULL ||
+        state_ == State_Done ||
+        size == 0)
+    {
+      return;
+    }
+    else
+    {
+      const char* current = reinterpret_cast<const char*>(data);
+      const char* corpusEnd = current + size;
+
+      if (state_ == State_UnusedArea)
+      {
+        /**
+         * "Before the first boundary is an area that is ignored by
+         * MIME-compliant clients. This area is generally used to put
+         * a message to users of old non-MIME clients."
+         * https://en.wikipedia.org/wiki/MIME#Multipart_messages
+         **/
+
+        if (boundaryMatcher_.Apply(current, corpusEnd))
+        {
+          current = boundaryMatcher_.GetMatchBegin();
+          state_ = State_Content;
+        }
+        else
+        {
+          // We have not seen the end of the unused area yet
+          assert(current <= corpusEnd);
+          buffer_.AddChunk(current, corpusEnd - current);
+          return;
+        }          
+      } 
+      
+      for (;;)
+      {
+        assert(current <= corpusEnd);
+      
+        size_t patternSize = boundaryMatcher_.GetPattern().size();
+        size_t remainingSize = corpusEnd - current;
+        if (remainingSize < patternSize + 2)
+        {
+          break;  // Not enough data available
+        }
+        
+        std::string boundary(current, current + patternSize + 2);
+        if (boundary == boundaryMatcher_.GetPattern() + "--")
+        {
+          state_ = State_Done;
+          return;
+        }
+        
+        if (boundary != boundaryMatcher_.GetPattern() + "\r\n")
+        {
+          throw OrthancException(ErrorCode_NetworkProtocol,
+                                 "Garbage between two items in a multipart stream");
+        }
+
+        const char* start = current + patternSize + 2;
+        
+        if (!headersMatcher_.Apply(start, corpusEnd))
+        {
+          break;  // Not enough data available
+        }
+
+        HttpHeaders headers;
+        ParseHeaders(headers, start, headersMatcher_.GetMatchBegin());
+
+        size_t contentLength = 0;
+        if (!LookupHeaderSizeValue(contentLength, headers, "content-length"))
+        {
+          if (boundaryMatcher_.Apply(headersMatcher_.GetMatchEnd(), corpusEnd))
+          {
+            assert(headersMatcher_.GetMatchEnd() <= boundaryMatcher_.GetMatchBegin());
+            size_t d = boundaryMatcher_.GetMatchBegin() - headersMatcher_.GetMatchEnd();
+            if (d <= 1)
+            {
+              throw OrthancException(ErrorCode_NetworkProtocol);
+            }
+            else
+            {
+              contentLength = d - 2;
+            }
+          }
+          else
+          {
+            break;  // Not enough data available to have a full part
+          }
+        }
+
+        // "static_cast<>" to avoid warning about signed vs. unsigned comparison
+        assert(headersMatcher_.GetMatchEnd() <= corpusEnd);
+        if (contentLength + 2 > static_cast<size_t>(corpusEnd - headersMatcher_.GetMatchEnd()))
+        {
+          break;  // Not enough data available to have a full part
+        }
+
+        const char* p = headersMatcher_.GetMatchEnd() + contentLength;
+        if (p[0] != '\r' ||
+            p[1] != '\n')
+        {
+          throw OrthancException(ErrorCode_NetworkProtocol,
+                                 "No endline at the end of a part");
+        }
+          
+        handler_->HandlePart(headers, headersMatcher_.GetMatchEnd(), contentLength);
+        current = headersMatcher_.GetMatchEnd() + contentLength + 2;
+      }
+
+      if (current != corpusEnd)
+      {
+        assert(current < corpusEnd);
+        buffer_.AddChunk(current, corpusEnd - current);
+      }
+    } 
+  }
+  
+
   void MultipartStreamReader::ParseStream()
   {
     if (handler_ == NULL ||
@@ -105,120 +226,15 @@ namespace Orthanc
     {
       return;
     }
-      
-    std::string corpus;
-    buffer_.Flatten(corpus);
-
-    if (corpus.empty())
+    else
     {
-      return;
-    }
+      std::string corpus;
+      buffer_.Flatten(corpus);
 
-    const char* current = corpus.c_str();
-    const char* corpusEnd = corpus.c_str() + corpus.size();
-
-    if (state_ == State_UnusedArea)
-    {
-      /**
-       * "Before the first boundary is an area that is ignored by
-       * MIME-compliant clients. This area is generally used to put
-       * a message to users of old non-MIME clients."
-       * https://en.wikipedia.org/wiki/MIME#Multipart_messages
-       **/
-
-      if (boundaryMatcher_.Apply(current, corpusEnd))
+      if (!corpus.empty())
       {
-        current = boundaryMatcher_.GetMatchBegin();
-        state_ = State_Content;
+        ParseBlock(corpus.c_str(), corpus.size());
       }
-      else
-      {
-        // We have not seen the end of the unused area yet
-        assert(current <= corpusEnd);
-        buffer_.AddChunk(current, corpusEnd - current);
-        return;
-      }          
-    } 
-      
-    for (;;)
-    {
-      assert(current <= corpusEnd);
-      
-      size_t patternSize = boundaryMatcher_.GetPattern().size();
-      size_t remainingSize = corpusEnd - current;
-      if (remainingSize < patternSize + 2)
-      {
-        break;  // Not enough data available
-      }
-        
-      std::string boundary(current, current + patternSize + 2);
-      if (boundary == boundaryMatcher_.GetPattern() + "--")
-      {
-        state_ = State_Done;
-        return;
-      }
-        
-      if (boundary != boundaryMatcher_.GetPattern() + "\r\n")
-      {
-        throw OrthancException(ErrorCode_NetworkProtocol,
-                               "Garbage between two items in a multipart stream");
-      }
-
-      const char* start = current + patternSize + 2;
-        
-      if (!headersMatcher_.Apply(start, corpusEnd))
-      {
-        break;  // Not enough data available
-      }
-
-      HttpHeaders headers;
-      ParseHeaders(headers, start, headersMatcher_.GetMatchBegin());
-
-      size_t contentLength = 0;
-      if (!LookupHeaderSizeValue(contentLength, headers, "content-length"))
-      {
-        if (boundaryMatcher_.Apply(headersMatcher_.GetMatchEnd(), corpusEnd))
-        {
-          assert(headersMatcher_.GetMatchEnd() <= boundaryMatcher_.GetMatchBegin());
-          size_t d = boundaryMatcher_.GetMatchBegin() - headersMatcher_.GetMatchEnd();
-          if (d <= 1)
-          {
-            throw OrthancException(ErrorCode_NetworkProtocol);
-          }
-          else
-          {
-            contentLength = d - 2;
-          }
-        }
-        else
-        {
-          break;  // Not enough data available to have a full part
-        }
-      }
-
-      // "static_cast<>" to avoid warning about signed vs. unsigned comparison
-      assert(headersMatcher_.GetMatchEnd() <= corpusEnd);
-      if (contentLength + 2 > static_cast<size_t>(corpusEnd - headersMatcher_.GetMatchEnd()))
-      {
-        break;  // Not enough data available to have a full part
-      }
-
-      const char* p = headersMatcher_.GetMatchEnd() + contentLength;
-      if (p[0] != '\r' ||
-          p[1] != '\n')
-      {
-        throw OrthancException(ErrorCode_NetworkProtocol,
-                               "No endline at the end of a part");
-      }
-          
-      handler_->HandlePart(headers, headersMatcher_.GetMatchEnd(), contentLength);
-      current = headersMatcher_.GetMatchEnd() + contentLength + 2;
-    }
-
-    if (current != corpusEnd)
-    {
-      assert(current < corpusEnd);
-      buffer_.AddChunk(current, corpusEnd - current);
     }
   }
 
@@ -263,12 +279,24 @@ namespace Orthanc
         size != 0)
     {
       size_t oldSize = buffer_.GetNumBytes();
-      
-      buffer_.AddChunk(chunk, size);
-
-      if (oldSize / blockSize_ != buffer_.GetNumBytes() / blockSize_)
+      if (oldSize == 0)
       {
-        ParseStream();
+        /**
+         * Optimization in Orthanc 1.9.3: Directly parse the input
+         * buffer instead of going through the ChunkedBuffer if the
+         * latter is still empty. This notably avoids one memcpy() in
+         * STOW-RS server if chunked transfers is disabled.
+         **/
+        ParseBlock(chunk, size);
+      }
+      else
+      {
+        buffer_.AddChunk(chunk, size);
+
+        if (oldSize / blockSize_ != buffer_.GetNumBytes() / blockSize_)
+        {
+          ParseStream();
+        }
       }
     }
   }
