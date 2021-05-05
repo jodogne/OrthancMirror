@@ -37,10 +37,11 @@
 namespace Orthanc
 {
   static void ParseHeaders(MultipartStreamReader::HttpHeaders& headers,
-                           StringMatcher::Iterator start,
-                           StringMatcher::Iterator end)
+                           const char* start,
+                           const char* end /* exclusive */)
   {
-    std::string tmp(start, end);
+    assert(start <= end);
+    std::string tmp(start, end - start);
 
     std::vector<std::string> lines;
     Toolbox::TokenizeString(lines, tmp, '\n');
@@ -108,8 +109,13 @@ namespace Orthanc
     std::string corpus;
     buffer_.Flatten(corpus);
 
-    StringMatcher::Iterator current = corpus.begin();
-    StringMatcher::Iterator corpusEnd = corpus.end();
+    if (corpus.empty())
+    {
+      return;
+    }
+
+    const char* current = corpus.c_str();
+    const char* corpusEnd = corpus.c_str() + corpus.size();
 
     if (state_ == State_UnusedArea)
     {
@@ -128,15 +134,18 @@ namespace Orthanc
       else
       {
         // We have not seen the end of the unused area yet
-        buffer_.AddChunk(current, corpusEnd);
+        assert(current <= corpusEnd);
+        buffer_.AddChunk(current, corpusEnd - current);
         return;
       }          
     } 
       
     for (;;)
     {
+      assert(current <= corpusEnd);
+      
       size_t patternSize = boundaryMatcher_.GetPattern().size();
-      size_t remainingSize = std::distance(current, corpusEnd);
+      size_t remainingSize = corpusEnd - current;
       if (remainingSize < patternSize + 2)
       {
         break;  // Not enough data available
@@ -155,7 +164,7 @@ namespace Orthanc
                                "Garbage between two items in a multipart stream");
       }
 
-      StringMatcher::Iterator start = current + patternSize + 2;
+      const char* start = current + patternSize + 2;
         
       if (!headersMatcher_.Apply(start, corpusEnd))
       {
@@ -170,7 +179,8 @@ namespace Orthanc
       {
         if (boundaryMatcher_.Apply(headersMatcher_.GetMatchEnd(), corpusEnd))
         {
-          size_t d = std::distance(headersMatcher_.GetMatchEnd(), boundaryMatcher_.GetMatchBegin());
+          assert(headersMatcher_.GetMatchEnd() <= boundaryMatcher_.GetMatchBegin());
+          size_t d = boundaryMatcher_.GetMatchBegin() - headersMatcher_.GetMatchEnd();
           if (d <= 1)
           {
             throw OrthancException(ErrorCode_NetworkProtocol);
@@ -186,14 +196,14 @@ namespace Orthanc
         }
       }
 
-      // Explicit conversion to avoid warning about signed vs. unsigned comparison
-      std::iterator_traits<StringMatcher::Iterator>::difference_type d = contentLength + 2;
-      if (d > std::distance(headersMatcher_.GetMatchEnd(), corpusEnd))
+      // "static_cast<>" to avoid warning about signed vs. unsigned comparison
+      assert(headersMatcher_.GetMatchEnd() <= corpusEnd);
+      if (contentLength + 2 > static_cast<size_t>(corpusEnd - headersMatcher_.GetMatchEnd()))
       {
         break;  // Not enough data available to have a full part
       }
 
-      const char* p = headersMatcher_.GetPointerEnd() + contentLength;
+      const char* p = headersMatcher_.GetMatchEnd() + contentLength;
       if (p[0] != '\r' ||
           p[1] != '\n')
       {
@@ -201,13 +211,14 @@ namespace Orthanc
                                "No endline at the end of a part");
       }
           
-      handler_->HandlePart(headers, headersMatcher_.GetPointerEnd(), contentLength);
+      handler_->HandlePart(headers, headersMatcher_.GetMatchEnd(), contentLength);
       current = headersMatcher_.GetMatchEnd() + contentLength + 2;
     }
 
     if (current != corpusEnd)
     {
-      buffer_.AddChunk(current, corpusEnd);
+      assert(current < corpusEnd);
+      buffer_.AddChunk(current, corpusEnd - current);
     }
   }
 

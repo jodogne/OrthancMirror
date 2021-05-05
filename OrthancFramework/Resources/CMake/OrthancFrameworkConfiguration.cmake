@@ -155,6 +155,7 @@ set(ORTHANC_CORE_SOURCES_INTERNAL
   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Enumerations.cpp
   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/FileStorage/FileInfo.cpp
   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/FileStorage/MemoryStorageArea.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/../../Sources/HttpServer/CStringMatcher.cpp
   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/HttpServer/HttpContentNegociation.cpp
   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/HttpServer/HttpToolbox.cpp
   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/HttpServer/MultipartStreamReader.cpp
