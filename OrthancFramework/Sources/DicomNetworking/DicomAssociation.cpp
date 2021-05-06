@@ -75,19 +75,6 @@ namespace Orthanc
   }                              
 
 
-  void DicomAssociation::Initialize()
-  {
-    role_ = DicomAssociationRole_Default;
-    isOpen_ = false;
-    net_ = NULL; 
-    params_ = NULL;
-    assoc_ = NULL;      
-
-    // Must be after "isOpen_ = false"
-    ClearPresentationContexts();
-  }
-
-    
   void DicomAssociation::CheckConnecting(const DicomAssociationParameters& parameters,
                                          const OFCondition& cond)
   {
@@ -175,6 +162,19 @@ namespace Orthanc
     }
   }
 
+
+  DicomAssociation::DicomAssociation()
+  {
+    role_ = DicomAssociationRole_Default;
+    isOpen_ = false;
+    net_ = NULL; 
+    params_ = NULL;
+    assoc_ = NULL;
+
+    // Must be after "isOpen_ = false"
+    ClearPresentationContexts();
+  }
+  
 
   DicomAssociation::~DicomAssociation()
   {
@@ -295,7 +295,8 @@ namespace Orthanc
         
         tls_.reset(Internals::InitializeDicomTls(net_, NET_REQUESTOR, parameters.GetOwnPrivateKeyPath(),
                                                  parameters.GetOwnCertificatePath(),
-                                                 parameters.GetTrustedCertificatesPath()));
+                                                 parameters.GetTrustedCertificatesPath(),
+                                                 parameters.IsRemoteCertificateRequired()));
       }
       catch (OrthancException&)
       {

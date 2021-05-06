@@ -41,6 +41,7 @@ static std::string   defaultOwnPrivateKeyPath_;
 static std::string   defaultOwnCertificatePath_;
 static std::string   defaultTrustedCertificatesPath_;
 static unsigned int  defaultMaximumPduLength_ = ASC_DEFAULTMAXPDU;
+static bool          defaultRemoteCertificateRequired_ = true;
 
 
 namespace Orthanc
@@ -70,6 +71,7 @@ namespace Orthanc
     ownCertificatePath_ = defaultOwnCertificatePath_;
     trustedCertificatesPath_ = defaultTrustedCertificatesPath_;
     maximumPduLength_ = defaultMaximumPduLength_;
+    remoteCertificateRequired_ = defaultRemoteCertificateRequired_;
   }
 
 
@@ -237,7 +239,17 @@ namespace Orthanc
     CheckMaximumPduLength(pdu);
     maximumPduLength_ = pdu;
   }
-    
+
+  void DicomAssociationParameters::SetRemoteCertificateRequired(bool required)
+  {
+    remoteCertificateRequired_ = required;
+  }
+
+  bool DicomAssociationParameters::IsRemoteCertificateRequired() const
+  {
+    return remoteCertificateRequired_;
+  }
+
   
 
   static const char* const LOCAL_AET = "LocalAet";
@@ -247,6 +259,7 @@ namespace Orthanc
   static const char* const OWN_CERTIFICATE = "OwnCertificate";            // New in Orthanc 1.9.0
   static const char* const TRUSTED_CERTIFICATES = "TrustedCertificates";  // New in Orthanc 1.9.0
   static const char* const MAXIMUM_PDU_LENGTH = "MaximumPduLength";       // New in Orthanc 1.9.0
+  static const char* const REMOTE_CERTIFICATE_REQUIRED = "RemoteCertificateRequired";  // New in Orthanc 1.9.3
 
   
   void DicomAssociationParameters::SerializeJob(Json::Value& target) const
@@ -261,6 +274,7 @@ namespace Orthanc
       remote_.Serialize(target[REMOTE], true /* force advanced format */);
       target[TIMEOUT] = timeout_;
       target[MAXIMUM_PDU_LENGTH] = maximumPduLength_;
+      target[REMOTE_CERTIFICATE_REQUIRED] = remoteCertificateRequired_;
 
       // Don't write the DICOM TLS parameters if they are not required
       if (ownPrivateKeyPath_.empty())
@@ -340,6 +354,11 @@ namespace Orthanc
       else
       {
         result.trustedCertificatesPath_.clear();
+      }
+
+      if (serialized.isMember(REMOTE_CERTIFICATE_REQUIRED))
+      {
+        result.remoteCertificateRequired_ = SerializationToolbox::ReadBoolean(serialized, REMOTE_CERTIFICATE_REQUIRED);
       }
       
       return result;
@@ -463,5 +482,19 @@ namespace Orthanc
   {
     boost::mutex::scoped_lock lock(defaultConfigurationMutex_);
     return defaultMaximumPduLength_;
+  }
+
+
+  void DicomAssociationParameters::SetDefaultRemoteCertificateRequired(bool required)
+  {
+    boost::mutex::scoped_lock lock(defaultConfigurationMutex_);
+    defaultRemoteCertificateRequired_ = required;
+  }
+  
+
+  bool DicomAssociationParameters::GetDefaultRemoteCertificateRequired()
+  {
+    boost::mutex::scoped_lock lock(defaultConfigurationMutex_);
+    return defaultRemoteCertificateRequired_;
   }
 }

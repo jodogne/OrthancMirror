@@ -40,6 +40,7 @@ namespace Orthanc
     std::string               ownCertificatePath_;
     std::string               trustedCertificatesPath_;
     unsigned int              maximumPduLength_;
+    bool                      remoteCertificateRequired_;  // New in 1.9.3, for DICOM TLS
 
     static void CheckHost(const std::string& host);
 
@@ -99,6 +100,10 @@ namespace Orthanc
 
     void SetMaximumPduLength(unsigned int pdu);
     
+    void SetRemoteCertificateRequired(bool required);
+
+    bool IsRemoteCertificateRequired() const;
+
     void SerializeJob(Json::Value& target) const;
 
     static DicomAssociationParameters UnserializeJob(const Json::Value& serialized);
@@ -117,5 +122,9 @@ namespace Orthanc
     static void SetDefaultMaximumPduLength(unsigned int pdu);
 
     static unsigned int GetDefaultMaximumPduLength();
+
+    static void SetDefaultRemoteCertificateRequired(bool required);
+
+    static bool GetDefaultRemoteCertificateRequired();
   };
 }

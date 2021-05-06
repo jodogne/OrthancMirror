@@ -69,6 +69,7 @@ static const char* const KEY_DICOM_TLS_ENABLED = "DicomTlsEnabled";
 static const char* const KEY_DICOM_TLS_CERTIFICATE = "DicomTlsCertificate";
 static const char* const KEY_DICOM_TLS_TRUSTED_CERTIFICATES = "DicomTlsTrustedCertificates";
 static const char* const KEY_MAXIMUM_PDU_LENGTH = "MaximumPduLength";
+static const char* const KEY_DICOM_TLS_REMOTE_CERTIFICATE_REQUIRED = "DicomTlsRemoteCertificateRequired";
 
 
 class OrthancStoreRequestHandler : public IStoreRequestHandler
@@ -1209,6 +1210,10 @@ static bool StartDicomServer(ServerContext& context,
       }
 
       dicomServer.SetMaximumPduLength(lock.GetConfiguration().GetUnsignedIntegerParameter(KEY_MAXIMUM_PDU_LENGTH, 16384));
+
+      // New option in Orthanc 1.9.3
+      dicomServer.SetRemoteCertificateRequired(
+        lock.GetConfiguration().GetBooleanParameter(KEY_DICOM_TLS_REMOTE_CERTIFICATE_REQUIRED, true));
     }
 
 #if ORTHANC_ENABLE_PLUGINS == 1
@@ -1467,6 +1472,10 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
       lock.GetConfiguration().GetStringParameter(KEY_DICOM_TLS_TRUSTED_CERTIFICATES, ""));
     DicomAssociationParameters::SetDefaultMaximumPduLength(
       lock.GetConfiguration().GetUnsignedIntegerParameter(KEY_MAXIMUM_PDU_LENGTH, 16384));
+
+    // New option in Orthanc 1.9.3
+    DicomAssociationParameters::SetDefaultRemoteCertificateRequired(
+      lock.GetConfiguration().GetBooleanParameter(KEY_DICOM_TLS_REMOTE_CERTIFICATE_REQUIRED, true));
   }
   
   ServerContext context(database, storageArea, false /* not running unit tests */, maxCompletedJobs);

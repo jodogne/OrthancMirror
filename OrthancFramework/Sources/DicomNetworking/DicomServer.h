@@ -87,6 +87,7 @@ namespace Orthanc
     std::string  ownCertificatePath_;
     std::string  trustedCertificatesPath_;
     unsigned int maximumPduLength_;
+    bool         remoteCertificateRequired_;  // New in 1.9.3
 
     static void ServerThread(DicomServer* server,
                              unsigned int maximumPduLength,
@@ -159,5 +160,8 @@ namespace Orthanc
 
     unsigned int GetMaximumPduLength() const;
     void SetMaximumPduLength(unsigned int pdu);
+
+    void SetRemoteCertificateRequired(bool required);
+    bool IsRemoteCertificateRequired() const;
   };
 }

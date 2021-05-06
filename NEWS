@@ -1,6 +1,8 @@
 Pending changes in the mainline
 ===============================
 
+* New configuration option: "DicomTlsRemoteCertificateRequired" to allow secure DICOM TLS
+  connections without certificate
 * "ETag" headers for metadata and attachments now allow strong comparison (MD5 is included)
 * Fixed the lifetime of temporary files associated with jobs that create ZIP archive/media:
   - In synchronous mode, their number could grow up to "JobsHistorySize" in Orthanc <= 1.9.2

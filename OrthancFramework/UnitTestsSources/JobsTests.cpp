@@ -1493,7 +1493,7 @@ TEST(JobsSerialization, DicomAssociationParameters)
     ASSERT_TRUE(v.isMember("Remote"));
     ASSERT_TRUE(v.isMember("MaximumPduLength"));
 
-    ASSERT_EQ(4u, v.getMemberNames().size());
+    ASSERT_EQ(5u, v.getMemberNames().size());
   
     DicomAssociationParameters b;
     b.UnserializeJob(v);
@@ -1507,6 +1507,7 @@ TEST(JobsSerialization, DicomAssociationParameters)
     ASSERT_THROW(b.GetRemoteModality().GetLocalAet(), OrthancException);
     ASSERT_FALSE(b.GetRemoteModality().HasTimeout());
     ASSERT_EQ(0u, b.GetRemoteModality().GetTimeout());
+    ASSERT_TRUE(b.IsRemoteCertificateRequired());
   }
 
   {
@@ -1520,6 +1521,7 @@ TEST(JobsSerialization, DicomAssociationParameters)
     DicomAssociationParameters a("HELLO", p);
     a.SetOwnCertificatePath("key", "crt");
     a.SetTrustedCertificatesPath("trusted");
+    a.SetRemoteCertificateRequired(false);
 
     ASSERT_THROW(a.SetMaximumPduLength(4095), OrthancException);
     ASSERT_THROW(a.SetMaximumPduLength(131073), OrthancException);
@@ -1529,7 +1531,7 @@ TEST(JobsSerialization, DicomAssociationParameters)
     Json::Value v = Json::objectValue;
     a.SerializeJob(v);
 
-    ASSERT_EQ(7u, v.getMemberNames().size());
+    ASSERT_EQ(8u, v.getMemberNames().size());
   
     DicomAssociationParameters b = DicomAssociationParameters::UnserializeJob(v);
 
@@ -1544,5 +1546,6 @@ TEST(JobsSerialization, DicomAssociationParameters)
     ASSERT_EQ(131072u, b.GetMaximumPduLength());
     ASSERT_TRUE(b.GetRemoteModality().HasTimeout());
     ASSERT_EQ(42u, b.GetRemoteModality().GetTimeout());
+    ASSERT_FALSE(b.IsRemoteCertificateRequired());
   }  
 }

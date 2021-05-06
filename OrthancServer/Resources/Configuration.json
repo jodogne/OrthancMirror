@@ -261,6 +261,13 @@
      "DicomTlsTrustedCertificates" : "trusted.crt",
   **/
   
+  // Whether Orthanc rejects DICOM TLS connections to/from remote
+  // modalities that do not provide a certificate. Setting this option
+  // to "true" (resp. "false") corresponds to "--require-peer-cert"
+  // (resp. "--verify-peer-cert") in the DCMTK command-line
+  // tools. (new in Orthanc 1.9.3)
+  "DicomTlsRemoteCertificateRequired" : true,
+
   // Whether the Orthanc SCP allows incoming C-ECHO requests, even
   // from SCU modalities it does not know about (i.e. that are not
   // listed in the "DicomModalities" option above). Orthanc 1.3.0
