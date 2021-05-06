@@ -35,12 +35,14 @@
 static const char* const KEY_ALPHABETIC = "Alphabetic";
 static const char* const KEY_IDEOGRAPHIC = "Ideographic";
 static const char* const KEY_PHONETIC = "Phonetic";
+static const char* const KEY_BULK_DATA = "BulkData";
 static const char* const KEY_BULK_DATA_URI = "BulkDataURI";
 static const char* const KEY_INLINE_BINARY = "InlineBinary";
 static const char* const KEY_SQ = "SQ";
 static const char* const KEY_TAG = "tag";
 static const char* const KEY_VALUE = "Value";
 static const char* const KEY_VR = "vr";
+static const char* const KEY_NUMBER = "number";
 
 
 namespace Orthanc
@@ -119,7 +121,7 @@ namespace Orthanc
             if (content[KEY_VALUE][j].type() == Json::objectValue)
             {
               pugi::xml_node child = node.append_child("Item");
-              child.append_attribute("number").set_value(number.c_str());
+              child.append_attribute(KEY_NUMBER).set_value(number.c_str());
               ExploreXmlDataset(child, content[KEY_VALUE][j]);
             }
           }
@@ -139,7 +141,7 @@ namespace Orthanc
                 hasPhonetic)
             {
               pugi::xml_node child = node.append_child("PersonName");
-              child.append_attribute("number").set_value(number.c_str());
+              child.append_attribute(KEY_NUMBER).set_value(number.c_str());
 
               if (hasAlphabetic)
               {
@@ -162,8 +164,8 @@ namespace Orthanc
           }
           else
           {
-            pugi::xml_node child = node.append_child("Value");
-            child.append_attribute("number").set_value(number.c_str());
+            pugi::xml_node child = node.append_child(KEY_VALUE);
+            child.append_attribute(KEY_NUMBER).set_value(number.c_str());
 
             switch (content[KEY_VALUE][j].type())
             {
@@ -192,13 +194,13 @@ namespace Orthanc
       else if (content.isMember(KEY_BULK_DATA_URI) &&
                content[KEY_BULK_DATA_URI].type() == Json::stringValue)
       {
-        pugi::xml_node child = node.append_child("BulkData");
+        pugi::xml_node child = node.append_child(KEY_BULK_DATA);
         child.append_attribute("URI").set_value(content[KEY_BULK_DATA_URI].asCString());
       }
       else if (content.isMember(KEY_INLINE_BINARY) &&
                content[KEY_INLINE_BINARY].type() == Json::stringValue)
       {
-        pugi::xml_node child = node.append_child("InlineBinary");
+        pugi::xml_node child = node.append_child(KEY_INLINE_BINARY);
         child.text() = content[KEY_INLINE_BINARY].asCString();
       }
     }
@@ -422,25 +424,33 @@ namespace Orthanc
         Json::Value& node = CreateNode(parentTags, parentIndexes, tag);
         node[KEY_VR] = EnumerationToString(vr);
 
-        switch (mode)
+        /**
+         * The test on "size > 0" is new in Orthanc 1.9.3, and fixes
+         * issue #195 (No need for BulkDataURI when Data Element is
+         * empty): https://bugs.orthanc-server.com/show_bug.cgi?id=195
+         **/
+        if (size > 0)
         {
-          case BinaryMode_BulkDataUri:
-            node[KEY_BULK_DATA_URI] = bulkDataUri;
-            break;
-
-          case BinaryMode_InlineBinary:
+          switch (mode)
           {
-            std::string tmp(static_cast<const char*>(data), size);
+            case BinaryMode_BulkDataUri:
+              node[KEY_BULK_DATA_URI] = bulkDataUri;
+              break;
+
+            case BinaryMode_InlineBinary:
+            {
+              std::string tmp(static_cast<const char*>(data), size);
           
-            std::string base64;
-            Toolbox::EncodeBase64(base64, tmp);
+              std::string base64;
+              Toolbox::EncodeBase64(base64, tmp);
 
-            node[KEY_INLINE_BINARY] = base64;
-            break;
+              node[KEY_INLINE_BINARY] = base64;
+              break;
+            }
+
+            default:
+              throw OrthancException(ErrorCode_ParameterOutOfRange);
           }
-
-          default:
-            throw OrthancException(ErrorCode_ParameterOutOfRange);
         }
       }
     }

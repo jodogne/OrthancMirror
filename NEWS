@@ -10,6 +10,7 @@ Pending changes in the mainline
 * New CMake option: "ORTHANC_LUA_VERSION" to use a specific version of system-wide Lua
 * Reduced memory consumption of "OrthancPluginHttpClient()", "OrthancPluginHttpClient2()" and
   "OrthancPluginCallPeerApi()" on POST/PUT if chunked transfer is disabled
+* Fix issue #195 (No need for BulkDataURI when Data Element is empty)
   
 
 Version 1.9.2 (2021-04-22)
