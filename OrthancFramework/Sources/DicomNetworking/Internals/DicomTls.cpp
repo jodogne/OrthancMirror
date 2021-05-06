@@ -48,7 +48,8 @@ namespace Orthanc
                                              T_ASC_NetworkRole role,
                                              const std::string& ownPrivateKeyPath,
                                              const std::string& ownCertificatePath,
-                                             const std::string& trustedCertificatesPath)
+                                             const std::string& trustedCertificatesPath,
+                                             bool requireRemoteCertificate)
     {
       if (network == NULL)
       {
@@ -147,7 +148,16 @@ namespace Orthanc
       }
 #endif
 
-      tls->setCertificateVerification(DCV_requireCertificate /*opt_certVerification*/);
+      if (requireRemoteCertificate)
+      {
+        // Check remote certificate, fail if no certificate is present
+        tls->setCertificateVerification(DCV_requireCertificate /*opt_certVerification*/);
+      }
+      else
+      {
+        // Check remote certificate if present, succeed if no certificate is present
+        tls->setCertificateVerification(DCV_checkCertificate /*opt_certVerification*/);
+      }
       
       if (ASC_setTransportLayer(network, tls.get(), 0).bad())
       {

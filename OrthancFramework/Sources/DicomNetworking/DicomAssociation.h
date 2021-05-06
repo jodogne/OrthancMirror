@@ -74,8 +74,6 @@ namespace Orthanc
     std::unique_ptr<DcmTLSTransportLayer>     tls_;
 #endif
 
-    void Initialize();
-
     void CheckConnecting(const DicomAssociationParameters& parameters,
                          const OFCondition& cond);
     
@@ -86,10 +84,7 @@ namespace Orthanc
                      uint8_t presentationContextId);
 
   public:
-    DicomAssociation()
-    {
-      Initialize();
-    }
+    DicomAssociation();
 
     ~DicomAssociation();
 

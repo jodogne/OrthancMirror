@@ -102,7 +102,8 @@ namespace Orthanc
     storageCommitmentFactory_(NULL),
     applicationEntityFilter_(NULL),
     useDicomTls_(false),
-    maximumPduLength_(ASC_DEFAULTMAXPDU)
+    maximumPduLength_(ASC_DEFAULTMAXPDU),
+    remoteCertificateRequired_(true)
   {
   }
 
@@ -404,8 +405,9 @@ namespace Orthanc
 
       try
       {
-        pimpl_->tls_.reset(Internals::InitializeDicomTls(pimpl_->network_, NET_ACCEPTOR, ownPrivateKeyPath_,
-                                                         ownCertificatePath_, trustedCertificatesPath_));
+        pimpl_->tls_.reset(Internals::InitializeDicomTls(
+                             pimpl_->network_, NET_ACCEPTOR, ownPrivateKeyPath_, ownCertificatePath_,
+                             trustedCertificatesPath_, remoteCertificateRequired_));
       }
       catch (OrthancException&)
       {
@@ -574,5 +576,16 @@ namespace Orthanc
 
     Stop();
     maximumPduLength_ = pdu;
+  }
+
+  void DicomServer::SetRemoteCertificateRequired(bool required)
+  {
+    Stop();
+    remoteCertificateRequired_ = required;
+  }
+  
+  bool DicomServer::IsRemoteCertificateRequired() const
+  {
+    return remoteCertificateRequired_;
   }
 }
