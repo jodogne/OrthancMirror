@@ -1,4 +1,5 @@
   printf("sizeof(::Orthanc::BufferHttpSender) == %d\n", static_cast<int>(sizeof(::Orthanc::BufferHttpSender)));
+  printf("sizeof(::Orthanc::CStringMatcher) == %d\n", static_cast<int>(sizeof(::Orthanc::CStringMatcher)));
   printf("sizeof(::Orthanc::ChunkedBuffer) == %d\n", static_cast<int>(sizeof(::Orthanc::ChunkedBuffer)));
   printf("sizeof(::Orthanc::DcmtkTranscoder) == %d\n", static_cast<int>(sizeof(::Orthanc::DcmtkTranscoder)));
   printf("sizeof(::Orthanc::DeflateBaseCompressor) == %d\n", static_cast<int>(sizeof(::Orthanc::DeflateBaseCompressor)));
