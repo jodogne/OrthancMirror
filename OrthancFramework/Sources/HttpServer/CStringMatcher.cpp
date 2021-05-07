@@ -59,7 +59,9 @@ namespace Orthanc
 
   CStringMatcher::CStringMatcher(const std::string& pattern) :
     pattern_(pattern),
-    valid_(false)
+    valid_(false),
+    matchBegin_(NULL),
+    matchEnd_(NULL)
   {
     // WARNING - Don't use "pattern" (local variable, will be
     // destroyed once exiting the constructor) but "pattern_"

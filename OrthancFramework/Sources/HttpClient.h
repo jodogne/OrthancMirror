@@ -158,10 +158,7 @@ namespace Orthanc
     void SetExternalBody(const void* data,
                          size_t size);
 
-    void SetExternalBody(const std::string& data)
-    {
-      SetExternalBody(data.empty() ? NULL : data.c_str(), data.size());
-    }
+    void SetExternalBody(const std::string& data);
 
     void ClearBody();
 

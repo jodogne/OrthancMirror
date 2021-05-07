@@ -12,7 +12,7 @@ cat <<EOF > /tmp/cppcheck-suppressions.txt
 constParameter:../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.cpp
 knownArgument:../../OrthancFramework/UnitTestsSources/ImageTests.cpp
 knownConditionTrueFalse:../../OrthancServer/Plugins/Engine/OrthancPlugins.cpp
-nullPointer:../../OrthancFramework/UnitTestsSources/RestApiTests.cpp:319
+nullPointer:../../OrthancFramework/UnitTestsSources/RestApiTests.cpp:320
 nullPointerRedundantCheck:../../OrthancFramework/UnitTestsSources/DicomMapTests.cpp
 stlFindInsert:../../OrthancFramework/Sources/DicomFormat/DicomMap.cpp:1194
 stlFindInsert:../../OrthancFramework/Sources/RestApi/RestApiCallDocumentation.cpp:164
@@ -27,6 +27,7 @@ unreadVariable:../../OrthancFramework/Sources/FileStorage/StorageAccessor.cpp
 unreadVariable:../../OrthancServer/Sources/OrthancRestApi/OrthancRestModalities.cpp:1121
 unusedFunction
 useInitializationList:../../OrthancFramework/Sources/Images/PngReader.cpp:89
+useInitializationList:../../OrthancFramework/Sources/Images/PngWriter.cpp:97
 useInitializationList:../../OrthancServer/Sources/ServerJobs/DicomModalityStoreJob.cpp:285
 EOF
 

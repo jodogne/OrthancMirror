@@ -1450,9 +1450,9 @@ namespace Orthanc
   }
 
 
-  static void SetStringContentETag(RestApiOutput& output,
-                              int64_t revision,
-                              const std::string& value)
+  static void SetStringContentETag(const RestApiOutput& output,
+                                   int64_t revision,
+                                   const std::string& value)
   {
     std::string md5;
     Toolbox::ComputeMD5(md5, value);
@@ -1461,7 +1461,7 @@ namespace Orthanc
   }
   
 
-  static void SetBufferContentETag(RestApiOutput& output,
+  static void SetBufferContentETag(const RestApiOutput& output,
                                    int64_t revision,
                                    const void* data,
                                    size_t size)
@@ -1473,7 +1473,7 @@ namespace Orthanc
   }
   
 
-  static void SetAttachmentETag(RestApiOutput& output,
+  static void SetAttachmentETag(const RestApiOutput& output,
                                 int64_t revision,
                                 const FileInfo& info)
   {

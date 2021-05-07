@@ -774,6 +774,12 @@ namespace Orthanc
   }
   
 
+  void HttpClient::SetExternalBody(const std::string& data)
+  {
+    SetExternalBody(data.empty() ? NULL : data.c_str(), data.size());
+  }
+
+
   void HttpClient::ClearBody()
   {
     body_.clear();

@@ -90,7 +90,9 @@ namespace Orthanc
   public:
     Context() :
       png_(NULL),
-      info_(NULL)
+      info_(NULL),
+      bitDepth_(0),  // Dummy initialization
+      colorType_(0)  // Dummy initialization
     {
       png_ = png_create_write_struct
         (PNG_LIBPNG_VER_STRING, NULL, NULL, NULL); //this, ErrorHandler, WarningHandler);
