@@ -1,19 +1,34 @@
 Pending changes in the mainline
 ===============================
 
+
+Version 1.9.3 (2021-05-07)
+==========================
+
+General
+-------
+
 * New configuration option: "DicomTlsRemoteCertificateRequired" to allow secure DICOM TLS
   connections without certificate
+
+REST API
+--------
+
 * "ETag" headers for metadata and attachments now allow strong comparison (MD5 is included)
-* Fixed the lifetime of temporary files associated with jobs that create ZIP archive/media:
+
+Maintenance
+-----------
+
+* New CMake option: "ORTHANC_LUA_VERSION" to use a specific version of system-wide Lua
+* Fix the lifetime of temporary files associated with jobs that create ZIP archive/media:
   - In synchronous mode, their number could grow up to "JobsHistorySize" in Orthanc <= 1.9.2
   - In asynchronous mode, the temporary files are removed as soon as their job gets canceled
 * Fix regression in the handling of "DicomCheckModalityHost" configuration option
   introduced by changeset 4182 in Orthanc 1.7.4
-* New CMake option: "ORTHANC_LUA_VERSION" to use a specific version of system-wide Lua
 * Reduced memory consumption of "OrthancPluginHttpClient()", "OrthancPluginHttpClient2()" and
   "OrthancPluginCallPeerApi()" on POST/PUT if chunked transfer is disabled
 * Fix issue #195 (No need for BulkDataURI when Data Element is empty)
-  
+
 
 Version 1.9.2 (2021-04-22)
 ==========================
