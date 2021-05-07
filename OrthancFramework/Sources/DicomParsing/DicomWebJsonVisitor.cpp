@@ -429,7 +429,9 @@ namespace Orthanc
          * issue #195 (No need for BulkDataURI when Data Element is
          * empty): https://bugs.orthanc-server.com/show_bug.cgi?id=195
          **/
-        if (size > 0)
+        if (size > 0 ||
+            tag == DICOM_TAG_PIXEL_DATA ||
+            vr == ValueRepresentation_Sequence /* new in Orthanc 1.9.4 */)
         {
           switch (mode)
           {
