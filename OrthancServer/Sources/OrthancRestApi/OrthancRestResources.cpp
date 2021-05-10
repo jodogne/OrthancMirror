@@ -1590,7 +1590,7 @@ namespace Orthanc
         .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
         .SetUriArgument("name", "The name of the metadata, or its index (cf. `UserMetadata` configuration option)")
         .SetHttpHeader("If-Match", "Revision of the metadata, to check if its content has not changed and can "
-                       "be deleted. This header is mandatory if `CheckRevision` option is `true`.");
+                       "be deleted. This header is mandatory if `CheckRevisions` option is `true`.");
       return;
     }
 
@@ -1615,7 +1615,7 @@ namespace Orthanc
         if (lock.GetConfiguration().GetBooleanParameter(CHECK_REVISIONS, false))
         {
           throw OrthancException(ErrorCode_Revision,
-                                 "HTTP header \"If-Match\" is missing, as \"CheckRevision\" is \"true\"");
+                                 "HTTP header \"If-Match\" is missing, as \"CheckRevisions\" is \"true\"");
         }
         else
         {
@@ -2135,7 +2135,7 @@ namespace Orthanc
         .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
         .SetUriArgument("name", "The name of the attachment, or its index (cf. `UserContentType` configuration option)")
         .SetHttpHeader("If-Match", "Revision of the attachment, to check if its content has not changed and can "
-                       "be deleted. This header is mandatory if `CheckRevision` option is `true`.");
+                       "be deleted. This header is mandatory if `CheckRevisions` option is `true`.");
       return;
     }
 
@@ -2183,7 +2183,7 @@ namespace Orthanc
         if (lock.GetConfiguration().GetBooleanParameter(CHECK_REVISIONS, false))
         {
           throw OrthancException(ErrorCode_Revision,
-                                 "HTTP header \"If-Match\" is missing, as \"CheckRevision\" is \"true\"");
+                                 "HTTP header \"If-Match\" is missing, as \"CheckRevisions\" is \"true\"");
         }
         else
         {
