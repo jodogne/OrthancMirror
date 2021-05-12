@@ -59,7 +59,6 @@
 
 #include <OrthancServerResources.h>
 
-#include <dcmtk/dcmnet/dul.h>     // For dcmDisableGethostbyaddr()
 #include <dcmtk/dcmnet/diutil.h>  // For DCM_dcmnetLogger
 
 

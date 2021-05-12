@@ -13,7 +13,8 @@ General
   https://groups.google.com/d/msg/orthanc-users/--njEbqcDDI/rBu8XL-Mm-cJ
 * Support partial file retrieval in Orthanc::HttpClient
 * Support retry counter in Orthanc::HttpClient
-* Option to enable DNS lookups in DICOM: https://goo.gl/woa35Z
+* Option to enable DNS lookups in DICOM:
+  https://hg.orthanc-server.com/orthanc/file/Orthanc-1.9.3/OrthancFramework/Sources/OrthancFramework.cpp#l88
 * Toolbox::ComputeMD5() fails on files larger than 4GB
 
 
@@ -58,6 +59,8 @@ Mid-term
   https://groups.google.com/g/orthanc-users/c/G3_jBy4X4NQ/m/8BanTsdMBQAJ
 * Ranges of DICOM tags for "Keep" and "Remove" in ".../modify" and ".../anonymize": 
   https://groups.google.com/g/orthanc-users/c/6dETktKo9v8/m/b0LUvSfwAgAJ
+* Remove/Replace/Keep for nested sequences in "/modify":
+  https://groups.google.com/g/orthanc-users/c/iLxHN0YK00E/m/Cnauy7txBgAJ
 
 ---------
 Long-term
