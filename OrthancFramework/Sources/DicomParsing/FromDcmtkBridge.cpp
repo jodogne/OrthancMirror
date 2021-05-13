@@ -1685,7 +1685,6 @@ namespace Orthanc
 
         case EVR_OB:  // other byte
         case EVR_OW:  // other word
-        case EVR_AT:  // attribute tag
           throw OrthancException(ErrorCode_NotImplemented);
     
         case EVR_UN:  // unknown value representation
@@ -1769,6 +1768,18 @@ namespace Orthanc
         }
 
 
+        /**
+         * Other types
+         **/
+        
+        case EVR_AT:  // attribute tag, new in Orthanc 1.9.4
+        {
+          DicomTag value = ParseTag(utf8Value);
+          ok = element.putTagVal(DcmTagKey(value.GetGroup(), value.GetElement())).good();
+          break;
+        }
+
+          
         /**
          * Sequence types, should never occur at this point.
          **/
