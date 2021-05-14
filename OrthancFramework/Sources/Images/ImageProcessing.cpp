@@ -1019,6 +1019,13 @@ namespace Orthanc
       return;
     }
 
+    if (target.GetFormat() == PixelFormat_RGB24 &&
+        source.GetFormat() == PixelFormat_Float32)
+    {
+      ConvertFloatToGrayscale<PixelFormat_RGB24>(target, source);
+      return;
+    }
+
     throw OrthancException(ErrorCode_NotImplemented);
   }
 
