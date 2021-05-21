@@ -834,7 +834,7 @@ namespace Orthanc
     /**
      * CASE 1: The DICOM file, truncated at pixel data, is available
      * as an attachment (it was created either because the storage
-     * area does not support range reads, or it "StorageCompression"
+     * area does not support range reads, or if "StorageCompression"
      * is enabled). Simply return this attachment.
      **/
     
