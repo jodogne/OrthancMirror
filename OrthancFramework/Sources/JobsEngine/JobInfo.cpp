@@ -176,6 +176,7 @@ namespace Orthanc
     target["Priority"] = priority_;
     target["ErrorCode"] = static_cast<int>(status_.GetErrorCode());
     target["ErrorDescription"] = EnumerationToString(status_.GetErrorCode());
+    target["ErrorDetails"] = status_.GetDetails();
     target["State"] = EnumerationToString(state_);
     target["Timestamp"] = boost::posix_time::to_iso_string(timestamp_);
     target["CreationTime"] = boost::posix_time::to_iso_string(creationTime_);
