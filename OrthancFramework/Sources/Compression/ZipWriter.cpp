@@ -66,9 +66,342 @@ static void PrepareFileInfo(zip_fileinfo& zfi)
 
 namespace Orthanc
 {
+  ZipWriter::MemoryStream::MemoryStream(std::string& target) :
+    target_(target)
+  {
+  }
+
+  
+  void ZipWriter::MemoryStream::Write(const std::string& chunk)
+  {
+    chunked_.AddChunk(chunk);
+  }
+  
+  
+  void ZipWriter::MemoryStream::Close()
+  {
+    chunked_.Flatten(target_);
+  }
+  
+
+  void ZipWriter::BufferWithSeek::CheckInvariants() const
+  {
+#if !defined(NDEBUG)
+    assert(chunks_.GetNumBytes() == 0 ||
+           flattened_.empty());
+
+    assert(currentPosition_ <= GetSize());
+    
+    if (currentPosition_ < GetSize())
+    {
+      assert(chunks_.GetNumBytes() == 0);
+      assert(!flattened_.empty());
+    }
+#endif
+  }
+  
+
+  ZipWriter::BufferWithSeek::BufferWithSeek() :
+    currentPosition_(0)
+  {
+    CheckInvariants();
+  }
+
+  
+  ZipWriter::BufferWithSeek::~BufferWithSeek()
+  {
+    CheckInvariants();
+  }
+  
+  
+  size_t ZipWriter::BufferWithSeek::GetPosition() const
+  {
+    return currentPosition_;
+  }
+  
+  
+  size_t ZipWriter::BufferWithSeek::GetSize() const
+  {
+    if (flattened_.empty())
+    {
+      return chunks_.GetNumBytes();
+    }
+    else
+    {
+      return flattened_.size();
+    }
+  }
+
+  
+  void ZipWriter::BufferWithSeek::Write(const void* data,
+                                        size_t size)
+  {
+    CheckInvariants();
+
+    if (size != 0)
+    {
+      if (currentPosition_ < GetSize())
+      {
+        if (currentPosition_ + size > flattened_.size())
+        {
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+        }
+        else
+        {
+          memcpy(&flattened_[currentPosition_], data, size);
+        }
+      }
+      else
+      {
+        if (!flattened_.empty())
+        {
+          assert(chunks_.GetNumBytes() == 0);
+          chunks_.AddChunk(flattened_);
+          flattened_.clear();
+        }
+        
+        chunks_.AddChunk(data, size);
+      }
+
+      currentPosition_ += size;
+    }
+
+    CheckInvariants();
+  }
+
+      
+  void ZipWriter::BufferWithSeek::Write(const std::string& data)
+  {
+    if (!data.empty())
+    {
+      Write(data.c_str(), data.size());
+    }
+  }
+
+      
+  void ZipWriter::BufferWithSeek::Seek(size_t position)
+  {
+    CheckInvariants();
+
+    if (currentPosition_ != position)
+    {
+      if (position < GetSize())
+      {
+        if (chunks_.GetNumBytes() != 0)
+        {
+          assert(flattened_.empty());
+          chunks_.Flatten(flattened_);
+        }
+
+        assert(chunks_.GetNumBytes() == 0);
+      }
+      else if (position > GetSize())
+      {
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+
+      currentPosition_ = position;
+    }
+
+    CheckInvariants();
+  }
+      
+
+  void ZipWriter::BufferWithSeek::Flush(std::string& target)
+  {
+    CheckInvariants();
+
+    if (flattened_.empty())
+    {
+      chunks_.Flatten(target);
+    }
+    else
+    {
+      flattened_.swap(target);
+      flattened_.clear();
+    }
+
+    currentPosition_ = 0;
+
+    CheckInvariants();
+  }
+
+
+  /**
+   * Inside a ZIP archive, compressed files are concatenated, each
+   * file being prefixed by its "Local file header". The ZIP archive
+   * ends with the "central directory" structure.
+   * https://en.wikipedia.org/wiki/ZIP_(file_format)
+   * 
+   * When writing one file, the minizip implementation first TELLS to
+   * know the current size of the archive, then WRITES the header and
+   * data bytes, then SEEKS backward to update the "local file header"
+   * with info about the compressed data (at the 14 offset, containing
+   * CRC-32, compressed size and uncompressed size), and finally SEEKS
+   * to get back at the end of the stream in order to continue adding
+   * files.
+   * 
+   * The minizip implementation will *never* SEEK *before* the "local
+   * file header" of the current file. However, the current file must
+   * *not* be immediately sent to the stream as new bytes are written,
+   * because the "local file header" will be updated.
+   *
+   * Consequently, this buffer class only sends the pending bytes to
+   * the output stream once it receives a SEEK command that moves the
+   * cursor at the end of the archive. In the minizip implementation,
+   * such a SEEK indicates that the current file has been properly
+   * added to the archive.
+   **/  
+  class ZipWriter::StreamBuffer : public boost::noncopyable
+  {
+  private:
+    IOutputStream&  stream_;
+    bool            success_;
+    ZPOS64_T        startCurrentFile_;
+    BufferWithSeek  buffer_;
+    
+  public:
+    StreamBuffer(IOutputStream& stream) :
+      stream_(stream),
+      success_(true),
+      startCurrentFile_(0)
+    {
+    }
+    
+    int Close()
+    {
+      try
+      {
+        std::string s;
+        buffer_.Flush(s);
+        stream_.Write(s);
+        return 0;
+      }
+      catch (...)
+      {
+        success_ = false;
+        return 1;
+      }
+    }
+
+    ZPOS64_T Tell() const
+    {
+      return startCurrentFile_ + static_cast<ZPOS64_T>(buffer_.GetPosition());
+    }
+
+    uLong Write(const void* buf,
+                uLong size)
+    {
+      if (size == 0)
+      {
+        return 0;
+      }
+      else
+      {
+        try
+        {
+          buffer_.Write(buf, size);
+          return size;
+        }
+        catch (...)
+        {
+          return 0;
+        }
+      }
+    }
+    
+
+    long Seek(ZPOS64_T offset,
+              int origin)
+    {
+      try
+      {
+        if (origin == ZLIB_FILEFUNC_SEEK_SET &&
+            offset >= startCurrentFile_)
+        {
+          ZPOS64_T fullSize = startCurrentFile_ + static_cast<ZPOS64_T>(buffer_.GetSize());
+          assert(offset <= fullSize);
+
+          if (offset == fullSize)
+          {
+            // We can flush to the output stream
+            std::string s;
+            buffer_.Flush(s);
+            stream_.Write(s);
+            startCurrentFile_ = fullSize;
+          }
+          else
+          {          
+            buffer_.Seek(offset - startCurrentFile_);
+          }
+          
+          return 0;  // OK
+        }
+        else
+        {
+          return 1;  // Should never occur
+        }
+      }
+      catch (...)
+      {
+        return 1;
+      }
+    }
+    
+
+    static int CloseWrapper(voidpf opaque,
+                            voidpf stream)
+    {
+      assert(opaque != NULL);
+      return reinterpret_cast<StreamBuffer*>(opaque)->Close();
+    }
+
+    static voidpf OpenWrapper(voidpf opaque,
+                              const void* filename,
+                              int mode)
+    {
+      assert(opaque != NULL);
+      return opaque;
+    }
+
+    static long SeekWrapper(voidpf opaque,
+                            voidpf stream,
+                            ZPOS64_T offset,
+                            int origin)
+    {
+      assert(opaque != NULL);
+      return reinterpret_cast<StreamBuffer*>(opaque)->Seek(offset, origin);
+    }
+
+    static ZPOS64_T TellWrapper(voidpf opaque,
+                                voidpf stream)
+    {
+      assert(opaque != NULL);
+      return reinterpret_cast<StreamBuffer*>(opaque)->Tell();
+    }
+
+    static int TestErrorWrapper(voidpf opaque,
+                                voidpf stream)
+    {
+      assert(opaque != NULL);
+      return reinterpret_cast<StreamBuffer*>(opaque)->success_ ? 0 : 1;
+    }
+
+    static uLong WriteWrapper(voidpf opaque,
+                              voidpf stream,
+                              const void* buf,
+                              uLong size)
+    {
+      assert(opaque != NULL);
+      return reinterpret_cast<StreamBuffer*>(opaque)->Write(buf, size);
+    }
+  };
+  
+
   struct ZipWriter::PImpl
   {
     zipFile file_;
+    std::unique_ptr<StreamBuffer> streamBuffer_;
 
     PImpl() : file_(NULL)
     {
@@ -86,7 +419,14 @@ namespace Orthanc
 
   ZipWriter::~ZipWriter()
   {
-    Close();
+    try
+    {
+      Close();
+    }
+    catch (OrthancException& e)  // Don't throw exceptions in destructors
+    {
+      LOG(ERROR) << "Catched exception in destructor: " << e.What();
+    }
   }
 
   void ZipWriter::Close()
@@ -96,6 +436,14 @@ namespace Orthanc
       zipClose(pimpl_->file_, "Created by Orthanc");
       pimpl_->file_ = NULL;
       hasFileInZip_ = false;
+
+      pimpl_->streamBuffer_.reset(NULL);
+
+      if (outputStream_.get() != NULL)
+      {
+        outputStream_->Close();
+        outputStream_.reset(NULL);
+      }
     }
   }
 
@@ -110,35 +458,69 @@ namespace Orthanc
     {
       return;
     }
+    else if (outputStream_.get() != NULL)
+    {
+      // New in Orthanc 1.9.4
+      hasFileInZip_ = false;
 
-    if (path_.size() == 0)
+      zlib_filefunc64_def funcs;
+      memset(&funcs, 0, sizeof(funcs));
+
+      pimpl_->streamBuffer_.reset(new StreamBuffer(*outputStream_));
+      funcs.opaque = pimpl_->streamBuffer_.get();
+      funcs.zclose_file = StreamBuffer::CloseWrapper;
+      funcs.zerror_file = StreamBuffer::TestErrorWrapper;
+      funcs.zopen64_file = StreamBuffer::OpenWrapper;
+      funcs.ztell64_file = StreamBuffer::TellWrapper;
+      funcs.zwrite_file = StreamBuffer::WriteWrapper;
+      funcs.zseek64_file = StreamBuffer::SeekWrapper;
+
+      /**
+       * "funcs.zread_file" (ZREAD64) also appears in "minizip/zip.c",
+       * but is only needed by function "LoadCentralDirectoryRecord()"
+       * that is only used if appending new files to an already
+       * existing ZIP, which makes no sense for an output stream.
+       **/
+
+      pimpl_->file_ = zipOpen2_64(NULL /* no output path */, APPEND_STATUS_CREATE,
+                                  NULL /* global comment */, &funcs);
+
+      if (!pimpl_->file_)
+      {
+        throw OrthancException(ErrorCode_CannotWriteFile,
+                               "Cannot create new ZIP archive into an output stream");
+      }
+    }
+    else if (path_.empty())
     {
       throw OrthancException(ErrorCode_BadSequenceOfCalls,
                              "Please call SetOutputPath() before creating the file");
     }
-
-    hasFileInZip_ = false;
-
-    int mode = APPEND_STATUS_CREATE;
-    if (append_ && 
-        boost::filesystem::exists(path_))
-    {
-      mode = APPEND_STATUS_ADDINZIP;
-    }
-
-    if (isZip64_)
-    {
-      pimpl_->file_ = zipOpen64(path_.c_str(), mode);
-    }
     else
     {
-      pimpl_->file_ = zipOpen(path_.c_str(), mode);
-    }
+      hasFileInZip_ = false;
 
-    if (!pimpl_->file_)
-    {
-      throw OrthancException(ErrorCode_CannotWriteFile,
-                             "Cannot create new ZIP archive: " + path_);
+      int mode = APPEND_STATUS_CREATE;
+      if (append_ && 
+          boost::filesystem::exists(path_))
+      {
+        mode = APPEND_STATUS_ADDINZIP;
+      }
+
+      if (isZip64_)
+      {
+        pimpl_->file_ = zipOpen64(path_.c_str(), mode);
+      }
+      else
+      {
+        pimpl_->file_ = zipOpen(path_.c_str(), mode);
+      }
+
+      if (!pimpl_->file_)
+      {
+        throw OrthancException(ErrorCode_CannotWriteFile,
+                               "Cannot create new ZIP archive: " + path_);
+      }
     }
   }
 
@@ -267,5 +649,28 @@ namespace Orthanc
   bool ZipWriter::IsZip64() const
   {
     return isZip64_;
+  }
+  
+
+  void ZipWriter::AcquireOutputStream(IOutputStream* stream)
+  {
+    std::unique_ptr<IOutputStream> protection(stream);
+    
+    if (stream == NULL)
+    {
+      throw OrthancException(ErrorCode_NullPointer);
+    }
+    else
+    {
+      Close();
+      path_.clear();
+      outputStream_.reset(protection.release());
+    }
+  }
+
+
+  void ZipWriter::SetMemoryOutput(std::string& target)
+  {
+    AcquireOutputStream(new MemoryStream(target));
   }
 }

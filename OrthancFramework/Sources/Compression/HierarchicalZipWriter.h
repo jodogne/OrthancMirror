@@ -83,6 +83,8 @@ namespace Orthanc
   public:
     explicit HierarchicalZipWriter(const char* path);
 
+    explicit HierarchicalZipWriter(ZipWriter::IOutputStream* stream);  // transfers ownership
+
     ~HierarchicalZipWriter();
 
     void SetZip64(bool isZip64);
@@ -108,5 +110,8 @@ namespace Orthanc
     void Write(const void* data, size_t length);
 
     void Write(const std::string& data);
+
+    // The lifetime of the "target" buffer must be larger than that of HierarchicalZipWriter
+    static HierarchicalZipWriter* CreateToMemory(std::string& target);
   };
 }

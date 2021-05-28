@@ -32,6 +32,13 @@
 #  error ZLIB support must be enabled to include this file
 #endif
 
+#if ORTHANC_BUILD_UNIT_TESTS == 1
+#  include <gtest/gtest_prod.h>
+#endif
+
+#include "../ChunkedBuffer.h"
+#include "../Compatibility.h"
+
 
 #include <stdint.h>
 #include <string>
@@ -42,7 +49,75 @@ namespace Orthanc
 {
   class ORTHANC_PUBLIC ZipWriter : public boost::noncopyable
   {
+#if ORTHANC_BUILD_UNIT_TESTS == 1
+    FRIEND_TEST(ZipWriter, BufferWithSeek);
+#endif
+
+  public:
+    // New in Orthanc 1.9.4
+    class ORTHANC_PUBLIC IOutputStream : public boost::noncopyable
+    {
+    public:
+      virtual ~IOutputStream()
+      {
+      }
+
+      virtual void Write(const std::string& chunk) = 0;
+
+      virtual void Close() = 0;
+    };
+
+
+    // The lifetime of the "target" buffer must be larger than that of ZipWriter
+    class ORTHANC_PUBLIC MemoryStream : public IOutputStream
+    {
+    private:
+      std::string&   target_;
+      ChunkedBuffer  chunked_;
+      
+    public:
+      MemoryStream(std::string& target);
+      
+      virtual void Write(const std::string& chunk) ORTHANC_OVERRIDE;
+      
+      virtual void Close() ORTHANC_OVERRIDE;
+    };
+
+
   private:
+    // This class is only public for unit tests
+    class ORTHANC_PUBLIC BufferWithSeek : public boost::noncopyable
+    {
+    private:
+      size_t         currentPosition_;
+      ChunkedBuffer  chunks_;
+      std::string    flattened_;
+
+      void CheckInvariants() const;
+  
+    public:
+      BufferWithSeek();
+
+      ~BufferWithSeek();
+
+      size_t GetPosition() const;
+  
+      size_t GetSize() const;
+
+      void Write(const void* data,
+                 size_t size);
+
+      void Write(const std::string& data);
+
+      void Seek(size_t position);
+
+      void Flush(std::string& target);
+    };
+
+    
+  private:
+    class StreamBuffer;
+    
     struct PImpl;
     boost::shared_ptr<PImpl> pimpl_;
 
@@ -51,6 +126,8 @@ namespace Orthanc
     bool append_;
     uint8_t compressionLevel_;
     std::string path_;
+
+    std::unique_ptr<IOutputStream> outputStream_;
 
   public:
     ZipWriter();
@@ -84,5 +161,10 @@ namespace Orthanc
     void Write(const void* data, size_t length);
 
     void Write(const std::string& data);
+
+    void AcquireOutputStream(IOutputStream* stream);  // transfers ownership
+
+    // The lifetime of the "target" buffer must be larger than that of ZipWriter
+    void SetMemoryOutput(std::string& target);
   };
 }
