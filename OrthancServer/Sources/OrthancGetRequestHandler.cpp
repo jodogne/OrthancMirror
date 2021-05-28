@@ -148,20 +148,22 @@ namespace Orthanc
       while (pc)
       {
         DicomTransferSyntax transferSyntax;
-        if (pc->result == ASC_P_ACCEPTANCE &&
-            LookupTransferSyntax(transferSyntax, pc->acceptedTransferSyntax))
+        if (pc->result == ASC_P_ACCEPTANCE)
         {
-          /*CLOG(TRACE, DICOM) << "C-GET SCP accepted: SOP class " << pc->abstractSyntax
-            << " with transfer syntax " << GetTransferSyntaxUid(transferSyntax);*/
-          if (std::string(pc->abstractSyntax) == sopClassUid)
+          if (LookupTransferSyntax(transferSyntax, pc->acceptedTransferSyntax))
           {
-            accepted[transferSyntax] = pc->presentationContextID;
+            /*CLOG(TRACE, DICOM) << "C-GET SCP accepted: SOP class " << pc->abstractSyntax
+              << " with transfer syntax " << GetTransferSyntaxUid(transferSyntax);*/
+            if (std::string(pc->abstractSyntax) == sopClassUid)
+            {
+              accepted[transferSyntax] = pc->presentationContextID;
+            }
           }
-        }
-        else
-        {
-          CLOG(WARNING, DICOM) << "C-GET: Unknown transfer syntax received: "
-                               << pc->acceptedTransferSyntax;
+          else
+          {
+            CLOG(WARNING, DICOM) << "C-GET: Unknown transfer syntax received: "
+                                 << pc->acceptedTransferSyntax;
+          }
         }
             
         pc = (DUL_PRESENTATIONCONTEXT*) LST_Next(l);
