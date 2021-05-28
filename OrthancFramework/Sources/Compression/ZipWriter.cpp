@@ -461,6 +461,11 @@ namespace Orthanc
     else if (outputStream_.get() != NULL)
     {
       // New in Orthanc 1.9.4
+      if (IsAppendToExisting())
+      {
+        throw OrthancException(ErrorCode_BadSequenceOfCalls, "Cannot append to output streams");
+      }
+      
       hasFileInZip_ = false;
 
       zlib_filefunc64_def funcs;
