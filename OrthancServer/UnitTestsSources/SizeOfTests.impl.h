@@ -111,4 +111,6 @@
   printf("sizeof(::Orthanc::WebServiceParameters) == %d\n", static_cast<int>(sizeof(::Orthanc::WebServiceParameters)));
   printf("sizeof(::Orthanc::ZipReader) == %d\n", static_cast<int>(sizeof(::Orthanc::ZipReader)));
   printf("sizeof(::Orthanc::ZipWriter) == %d\n", static_cast<int>(sizeof(::Orthanc::ZipWriter)));
+  printf("sizeof(::Orthanc::ZipWriter::IOutputStream) == %d\n", static_cast<int>(sizeof(::Orthanc::ZipWriter::IOutputStream)));
+  printf("sizeof(::Orthanc::ZipWriter::MemoryStream) == %d\n", static_cast<int>(sizeof(::Orthanc::ZipWriter::MemoryStream)));
   printf("sizeof(::Orthanc::ZlibCompressor) == %d\n", static_cast<int>(sizeof(::Orthanc::ZlibCompressor)));

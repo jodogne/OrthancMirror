@@ -208,3 +208,170 @@ TEST(ZipReader, Basic)
   ASSERT_FALSE(reader->ReadNextFile(filename, content));
 }
 
+
+
+TEST(ZipWriter, Stream)
+{
+  std::string memory;
+
+  std::string large;
+  large.resize(4 * 65536);
+  for (size_t i = 0; i < large.size(); i++)
+  {
+    large[i] = rand() % 256;
+  }
+
+  for (int i = 0; i < 2; i++)
+  {
+    {
+      Orthanc::ZipWriter w;
+      w.SetZip64(i == 0);
+      w.SetMemoryOutput(memory);
+      w.Open();
+
+      w.OpenFile("world/hello");
+      w.Write(large);
+      w.OpenFile("world/hello2");
+      w.Write(large);
+      w.OpenFile("world/hello3");
+      w.Write("Hello world");
+      w.OpenFile("world/hello4");
+      w.Write(large);
+    }
+
+    std::unique_ptr<ZipReader> reader(ZipReader::CreateFromMemory(memory));
+
+    ASSERT_EQ(4u, reader->GetFilesCount());
+
+    {
+      std::string filename, content;
+      ASSERT_TRUE(reader->ReadNextFile(filename, content));
+      ASSERT_EQ("world/hello", filename);
+      ASSERT_EQ(large.size(), content.size());
+      ASSERT_TRUE(memcmp(large.c_str(), content.c_str(), large.size()) == 0);
+    }
+  
+    {
+      std::string filename, content;
+      ASSERT_TRUE(reader->ReadNextFile(filename, content));
+      ASSERT_EQ("world/hello2", filename);
+      ASSERT_EQ(large.size(), content.size());
+      ASSERT_TRUE(memcmp(large.c_str(), content.c_str(), large.size()) == 0);
+    }
+
+    {
+      std::string filename, content;
+      ASSERT_TRUE(reader->ReadNextFile(filename, content));
+      ASSERT_EQ("world/hello3", filename);
+      ASSERT_EQ("Hello world", content);
+    }
+  
+    {
+      std::string filename, content;
+      ASSERT_TRUE(reader->ReadNextFile(filename, content));
+      ASSERT_EQ("world/hello4", filename);
+      ASSERT_EQ(large.size(), content.size());
+      ASSERT_TRUE(memcmp(large.c_str(), content.c_str(), large.size()) == 0);
+    }
+  
+    {
+      std::string filename, content;
+      ASSERT_FALSE(reader->ReadNextFile(filename, content));
+    }
+  }
+}
+
+
+namespace Orthanc
+{
+  // The namespace is necessary because of FRIEND_TEST
+  // http://code.google.com/p/googletest/wiki/AdvancedGuide#Private_Class_Members
+  
+  TEST(ZipWriter, BufferWithSeek)
+  {
+    ZipWriter::BufferWithSeek buffer;
+    ASSERT_EQ(0u, buffer.GetSize());
+
+    std::string s;
+    buffer.Flush(s);
+    ASSERT_TRUE(s.empty());
+
+    buffer.Write("hello");
+    ASSERT_EQ(5u, buffer.GetSize());
+    ASSERT_EQ(5u, buffer.GetPosition());
+    buffer.Write("world");
+    ASSERT_EQ(10u, buffer.GetSize());
+    ASSERT_EQ(10u, buffer.GetPosition());
+    buffer.Flush(s);
+    ASSERT_EQ("helloworld", s);
+    ASSERT_EQ(0u, buffer.GetSize());
+    ASSERT_EQ(0u, buffer.GetPosition());
+
+    buffer.Write("hello world");
+    buffer.Seek(4);
+    ASSERT_EQ(4u, buffer.GetPosition());
+    buffer.Write("ab");
+    ASSERT_EQ(6u, buffer.GetPosition());
+    buffer.Flush(s);
+    ASSERT_EQ("hellabworld", s);
+    ASSERT_EQ(0u, buffer.GetPosition());
+
+    buffer.Seek(0);
+    ASSERT_EQ(0u, buffer.GetPosition());
+    buffer.Write("abc");
+    buffer.Write("");
+    ASSERT_EQ(3u, buffer.GetPosition());
+    buffer.Seek(3);
+    ASSERT_THROW(buffer.Seek(4), OrthancException);
+    ASSERT_EQ(3u, buffer.GetPosition());
+    buffer.Write("de");
+    buffer.Write("");
+    ASSERT_EQ(5u, buffer.GetPosition());
+    buffer.Seek(3);
+    buffer.Seek(3);
+    ASSERT_EQ(3u, buffer.GetPosition());
+    ASSERT_THROW(buffer.Write("def"), OrthancException);
+    buffer.Write("");
+    ASSERT_EQ(3u, buffer.GetPosition());
+    buffer.Write("fg");
+    ASSERT_EQ(5u, buffer.GetPosition());
+    buffer.Write("hi");
+    ASSERT_EQ(7u, buffer.GetPosition());
+    buffer.Flush(s);
+    ASSERT_EQ("abcfghi", s);
+    ASSERT_EQ(0u, buffer.GetPosition());
+
+    buffer.Write("abc");
+    ASSERT_EQ(3u, buffer.GetPosition());
+    buffer.Seek(2);
+    ASSERT_EQ(2u, buffer.GetPosition());
+    buffer.Write("z");
+    ASSERT_EQ(3u, buffer.GetPosition());
+    buffer.Seek(1);
+    ASSERT_EQ(1u, buffer.GetPosition());
+    buffer.Write("y");
+    ASSERT_EQ(2u, buffer.GetPosition());
+    buffer.Flush(s);
+    ASSERT_EQ("ayz", s);
+    ASSERT_EQ(0u, buffer.GetPosition());
+
+    ASSERT_EQ(0u, buffer.GetPosition());
+    buffer.Write("abc");
+    ASSERT_EQ(3u, buffer.GetPosition());
+    buffer.Seek(1);
+    ASSERT_EQ(1u, buffer.GetPosition());
+    buffer.Write("z");
+    ASSERT_EQ(2u, buffer.GetPosition());
+    buffer.Seek(3);
+    ASSERT_EQ(3u, buffer.GetPosition());
+    buffer.Write("y");
+    ASSERT_EQ(4u, buffer.GetPosition());
+    buffer.Flush(s);
+    ASSERT_EQ("azcy", s);
+    ASSERT_EQ(0u, buffer.GetPosition());
+
+    buffer.Flush(s);
+    ASSERT_TRUE(s.empty());
+    ASSERT_EQ(0u, buffer.GetPosition());
+  }
+}
