@@ -825,6 +825,11 @@ TEST(Toolbox, Enumerations)
   ASSERT_STREQ("instances", GetResourceTypeText(ResourceType_Instance, true, false));
   ASSERT_STREQ("Instance", GetResourceTypeText(ResourceType_Instance, false, true));
   ASSERT_STREQ("instance", GetResourceTypeText(ResourceType_Instance, false, false));
+
+  DicomTransferSyntax ts;
+  ASSERT_FALSE(LookupTransferSyntax(ts, "nope"));
+  ASSERT_TRUE(LookupTransferSyntax(ts, "1.2.840.10008.1.2")); ASSERT_EQ(DicomTransferSyntax_LittleEndianImplicit, ts);
+  ASSERT_STREQ("1.2.840.10008.1.2", GetTransferSyntaxUid(ts));
 }
 
 
