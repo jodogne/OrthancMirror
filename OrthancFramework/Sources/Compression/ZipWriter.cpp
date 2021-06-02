@@ -734,7 +734,7 @@ namespace Orthanc
   }
 
 
-  size_t ZipWriter::GetArchiveSize() const
+  uint64_t ZipWriter::GetArchiveSize() const
   {
     if (outputStream_.get() != NULL)
     {
