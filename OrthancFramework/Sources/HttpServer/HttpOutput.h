@@ -47,7 +47,8 @@ namespace Orthanc
         State_WritingHeader,      
         State_WritingBody,
         State_WritingMultipart,
-        State_Done
+        State_Done,
+        State_WritingStream
       };
 
     private:
@@ -63,6 +64,8 @@ namespace Orthanc
 
       std::string multipartBoundary_;
       std::string multipartContentType_;
+
+      void StartStreamInternal(const std::string& contentType);
 
     public:
       StateMachine(IHttpOutputStream& stream,
@@ -105,6 +108,13 @@ namespace Orthanc
       }
 
       void CheckHeadersCompatibilityWithMultipart() const;
+
+      void StartStream(const std::string& contentType);
+
+      void SendStreamItem(const void* data,
+                          size_t size);
+
+      void CloseStream();
     };
 
     StateMachine stateMachine_;
@@ -185,5 +195,12 @@ namespace Orthanc
       const std::vector<const void*>& parts,
       const std::vector<size_t>& sizes,
       const std::vector<const std::map<std::string, std::string>*>& headers);
+
+    /**
+     * Contrarily to "Answer()", this method doesn't bufferizes the
+     * stream before sending it, which reduces memory but cannot be
+     * used to handle compression using "Content-Encoding".
+     **/
+    void AnswerWithoutBuffering(IHttpStreamAnswer& stream);
   };
 }

@@ -66,6 +66,8 @@ namespace Orthanc
 
     void AnswerStream(IHttpStreamAnswer& stream);
 
+    void AnswerWithoutBuffering(IHttpStreamAnswer& stream);
+
     void AnswerJson(const Json::Value& value);
 
     void AnswerBuffer(const std::string& buffer,
