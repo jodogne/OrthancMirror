@@ -120,6 +120,6 @@ namespace Orthanc
 
     void Close();
 
-    size_t GetArchiveSize() const;
+    uint64_t GetArchiveSize() const;
   };
 }

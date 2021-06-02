@@ -244,7 +244,7 @@ namespace Orthanc
     writer_.Close();
   }
 
-  size_t HierarchicalZipWriter::GetArchiveSize() const
+  uint64_t HierarchicalZipWriter::GetArchiveSize() const
   {
     return writer_.GetArchiveSize();
   }
