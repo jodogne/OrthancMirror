@@ -573,8 +573,7 @@ namespace Orthanc
   }
 
 
-  void HttpOutput::StateMachine::StartMultipart(const std::string& subType,
-                                                const std::string& contentType)
+  void HttpOutput::StateMachine::StartStreamInternal(const std::string& contentType)
   {
     if (state_ != State_WritingHeader)
     {
@@ -620,22 +619,37 @@ namespace Orthanc
       header += "Connection: close\r\n";
     }
 
-    // Possibly add the cookies
-    CheckHeadersCompatibilityWithMultipart();
-
     for (std::list<std::string>::const_iterator
            it = headers_.begin(); it != headers_.end(); ++it)
     {
       header += *it;
     }
 
+    header += ("Content-Type: " + contentType + "\r\n\r\n");
+
+    stream_.Send(true, header.c_str(), header.size());
+  }
+
+
+  void HttpOutput::StateMachine::StartMultipart(const std::string& subType,
+                                                const std::string& contentType)
+  {
+    CheckHeadersCompatibilityWithMultipart();
+
     std::string contentTypeHeader;
     PrepareMultipartMainHeader(multipartBoundary_, contentTypeHeader, subType, contentType);
     multipartContentType_ = contentType;
-    header += ("Content-Type: " + contentTypeHeader + "\r\n\r\n");
 
-    stream_.Send(true, header.c_str(), header.size());
+    StartStreamInternal(contentTypeHeader);
+
     state_ = State_WritingMultipart;
+  }
+
+
+  void HttpOutput::StateMachine::StartStream(const std::string& contentType)
+  {
+    StartStreamInternal(contentType);
+    state_ = State_WritingStream;
   }
 
 
@@ -733,6 +747,36 @@ namespace Orthanc
     }
 
     state_ = State_Done;
+  }
+
+
+  void HttpOutput::StateMachine::SendStreamItem(const void* data,
+                                                size_t size)
+  {
+    if (state_ != State_WritingStream)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    else
+    {
+      if (size > 0)
+      {
+        stream_.Send(false, data, size);
+      }
+    }
+  }
+  
+
+  void HttpOutput::StateMachine::CloseStream()
+  {
+    if (state_ != State_WritingStream)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    else
+    {
+      state_ = State_Done;
+    }
   }
 
 
@@ -859,5 +903,30 @@ namespace Orthanc
     std::string body;
     chunked.Flatten(body);
     Answer(body);
+  }
+
+
+  void HttpOutput::AnswerWithoutBuffering(IHttpStreamAnswer& stream)
+  {
+    std::string contentType = stream.GetContentType();
+    if (contentType.empty())
+    {
+      contentType = MIME_BINARY;
+    }
+
+    std::string filename;
+    if (stream.HasContentFilename(filename))
+    {
+      stateMachine_.AddHeader("Content-Disposition", "filename=\"" + std::string(filename) + "\"");
+    }
+
+    stateMachine_.StartStream(contentType.c_str());
+
+    while (stream.ReadNextChunk())
+    {
+      stateMachine_.SendStreamItem(stream.GetChunkContent(), stream.GetChunkSize());
+    }
+
+    stateMachine_.CloseStream();
   }
 }

@@ -65,6 +65,8 @@ namespace Orthanc
       virtual void Write(const std::string& chunk) = 0;
 
       virtual void Close() = 0;
+
+      virtual uint64_t GetArchiveSize() const = 0;
     };
 
 
@@ -74,6 +76,7 @@ namespace Orthanc
     private:
       std::string&   target_;
       ChunkedBuffer  chunked_;
+      uint64_t       archiveSize_;
       
     public:
       MemoryStream(std::string& target);
@@ -81,6 +84,8 @@ namespace Orthanc
       virtual void Write(const std::string& chunk) ORTHANC_OVERRIDE;
       
       virtual void Close() ORTHANC_OVERRIDE;
+
+      virtual uint64_t GetArchiveSize() const ORTHANC_OVERRIDE;
     };
 
 
@@ -162,9 +167,17 @@ namespace Orthanc
 
     void Write(const std::string& data);
 
-    void AcquireOutputStream(IOutputStream* stream);  // transfers ownership
+    void AcquireOutputStream(IOutputStream* stream, // transfers ownership
+                             bool isZip64);
 
     // The lifetime of the "target" buffer must be larger than that of ZipWriter
-    void SetMemoryOutput(std::string& target);
+    void SetMemoryOutput(std::string& target,
+                         bool isZip64);
+
+    void CancelStream();
+
+    // WARNING: "GetArchiveSize()" only has its final value after
+    // "Close()" has been called
+    uint64_t GetArchiveSize() const;
   };
 }

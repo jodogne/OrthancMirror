@@ -30,6 +30,7 @@
 #include "../Sources/Compression/HierarchicalZipWriter.h"
 #include "../Sources/Compression/ZipReader.h"
 #include "../Sources/OrthancException.h"
+#include "../Sources/SystemToolbox.h"
 #include "../Sources/TemporaryFile.h"
 #include "../Sources/Toolbox.h"
 
@@ -189,10 +190,14 @@ TEST(ZipReader, Basic)
   
   {
     Orthanc::ZipWriter w;
+    ASSERT_EQ(0, w.GetArchiveSize());
+
     w.SetOutputPath(f.GetPath().c_str());
     w.Open();
     w.OpenFile("world/hello");
     w.Write("Hello world");
+
+    ASSERT_EQ(w.GetArchiveSize(), SystemToolbox::GetFileSize(f.GetPath()));
   }
 
   ASSERT_TRUE(ZipReader::IsZipFile(f.GetPath()));
@@ -225,10 +230,28 @@ TEST(ZipWriter, Stream)
   {
     {
       Orthanc::ZipWriter w;
-      w.SetZip64(i == 0);
-      w.SetMemoryOutput(memory);
+      w.SetMemoryOutput(memory, (i == 0) /* ZIP64? */);
       w.Open();
 
+      w.OpenFile("world/hello");
+      w.Write("Hello");
+      w.CancelStream();
+    }
+
+    ASSERT_THROW(ZipReader::CreateFromMemory(memory), Orthanc::OrthancException);
+
+    memory.clear();
+    uint64_t archiveSize;
+    
+    {
+      Orthanc::ZipWriter w;
+      ASSERT_EQ(0, w.GetArchiveSize());
+      
+      w.SetMemoryOutput(memory, (i == 0) /* ZIP64? */);
+      w.Open();
+
+      ASSERT_EQ(0, w.GetArchiveSize());
+      
       w.OpenFile("world/hello");
       w.Write(large);
       w.OpenFile("world/hello2");
@@ -237,8 +260,21 @@ TEST(ZipWriter, Stream)
       w.Write("Hello world");
       w.OpenFile("world/hello4");
       w.Write(large);
+
+      ASSERT_TRUE(memory.empty());
+
+      uint64_t s1 = w.GetArchiveSize();      
+      ASSERT_NE(0, s1);
+
+      w.Close();
+      archiveSize = w.GetArchiveSize();
+
+      ASSERT_NE(archiveSize, s1);
+      ASSERT_EQ(archiveSize, w.GetArchiveSize());
     }
 
+    ASSERT_EQ(archiveSize, memory.size());
+    
     std::unique_ptr<ZipReader> reader(ZipReader::CreateFromMemory(memory));
 
     ASSERT_EQ(4u, reader->GetFilesCount());

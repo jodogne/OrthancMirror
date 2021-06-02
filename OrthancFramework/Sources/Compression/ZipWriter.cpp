@@ -33,8 +33,9 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 
 #include "../../Resources/ThirdParty/minizip/zip.h"
-#include "../OrthancException.h"
 #include "../Logging.h"
+#include "../OrthancException.h"
+#include "../SystemToolbox.h"
 
 
 static void PrepareFileInfo(zip_fileinfo& zfi)
@@ -67,7 +68,8 @@ static void PrepareFileInfo(zip_fileinfo& zfi)
 namespace Orthanc
 {
   ZipWriter::MemoryStream::MemoryStream(std::string& target) :
-    target_(target)
+    target_(target),
+    archiveSize_(0)
   {
   }
 
@@ -75,9 +77,16 @@ namespace Orthanc
   void ZipWriter::MemoryStream::Write(const std::string& chunk)
   {
     chunked_.AddChunk(chunk);
+    archiveSize_ += chunk.size();
   }
   
   
+  uint64_t ZipWriter::MemoryStream::GetArchiveSize() const
+  {
+    return archiveSize_;
+  }
+
+
   void ZipWriter::MemoryStream::Close()
   {
     chunked_.Flatten(target_);
@@ -272,9 +281,13 @@ namespace Orthanc
     {
       try
       {
-        std::string s;
-        buffer_.Flush(s);
-        stream_.Write(s);
+        if (success_)
+        {
+          std::string s;
+          buffer_.Flush(s);
+          stream_.Write(s);
+        }
+        
         return 0;
       }
       catch (...)
@@ -295,6 +308,10 @@ namespace Orthanc
       if (size == 0)
       {
         return 0;
+      }
+      else if (!success_)
+      {
+        return 0;  // Error
       }
       else
       {
@@ -317,7 +334,8 @@ namespace Orthanc
       try
       {
         if (origin == ZLIB_FILEFUNC_SEEK_SET &&
-            offset >= startCurrentFile_)
+            offset >= startCurrentFile_ &&
+            success_)
         {
           ZPOS64_T fullSize = startCurrentFile_ + static_cast<ZPOS64_T>(buffer_.GetSize());
           assert(offset <= fullSize);
@@ -339,13 +357,19 @@ namespace Orthanc
         }
         else
         {
-          return 1;  // Should never occur
+          return 1;
         }
       }
       catch (...)
       {
         return 1;
       }
+    }
+
+
+    void Cancel()
+    {
+      success_ = false;
     }
     
 
@@ -398,12 +422,15 @@ namespace Orthanc
   };
   
 
-  struct ZipWriter::PImpl
+  struct ZipWriter::PImpl : public boost::noncopyable
   {
     zipFile file_;
     std::unique_ptr<StreamBuffer> streamBuffer_;
+    uint64_t  archiveSize_;
 
-    PImpl() : file_(NULL)
+    PImpl() :
+      file_(NULL),
+      archiveSize_(0)
     {
     }
   };
@@ -442,6 +469,7 @@ namespace Orthanc
       if (outputStream_.get() != NULL)
       {
         outputStream_->Close();
+        pimpl_->archiveSize_ = outputStream_->GetArchiveSize();
         outputStream_.reset(NULL);
       }
     }
@@ -542,8 +570,16 @@ namespace Orthanc
 
   void ZipWriter::SetZip64(bool isZip64)
   {
-    Close();
-    isZip64_ = isZip64;
+    if (outputStream_.get() == NULL)
+    {
+      Close();
+      isZip64_ = isZip64;
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls,
+                             "SetZip64() must be given to AcquireOutputStream()");
+    }
   }
 
   void ZipWriter::SetCompressionLevel(uint8_t level)
@@ -554,9 +590,10 @@ namespace Orthanc
                              "ZIP compression level must be between 0 (no compression) "
                              "and 9 (highest compression)");
     }
-
-    Close();
-    compressionLevel_ = level;
+    else
+    {
+      compressionLevel_ = level;
+    }
   }
 
   uint8_t ZipWriter::GetCompressionLevel() const
@@ -657,7 +694,8 @@ namespace Orthanc
   }
   
 
-  void ZipWriter::AcquireOutputStream(IOutputStream* stream)
+  void ZipWriter::AcquireOutputStream(IOutputStream* stream,
+                                      bool isZip64)
   {
     std::unique_ptr<IOutputStream> protection(stream);
     
@@ -669,13 +707,47 @@ namespace Orthanc
     {
       Close();
       path_.clear();
+      isZip64_ = isZip64;
       outputStream_.reset(protection.release());
     }
   }
 
 
-  void ZipWriter::SetMemoryOutput(std::string& target)
+  void ZipWriter::SetMemoryOutput(std::string& target,
+                                  bool isZip64)
   {
-    AcquireOutputStream(new MemoryStream(target));
+    AcquireOutputStream(new MemoryStream(target), isZip64);
+  }
+
+
+  void ZipWriter::CancelStream()
+  {
+    if (outputStream_.get() == NULL ||
+        pimpl_->streamBuffer_.get() == NULL)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls, "Only applicable after AcquireOutputStream() and Open()");
+    }
+    else
+    {
+      pimpl_->streamBuffer_->Cancel();
+    }
+  }
+
+
+  size_t ZipWriter::GetArchiveSize() const
+  {
+    if (outputStream_.get() != NULL)
+    {
+      return outputStream_->GetArchiveSize();
+    }
+    else if (path_.empty())
+    {
+      // This is the case after a call to "Close()"
+      return pimpl_->archiveSize_;
+    }
+    else
+    {
+      return SystemToolbox::GetFileSize(path_);
+    }
   }
 }

@@ -76,6 +76,15 @@ namespace Orthanc
     alreadySent_ = true;
   }
 
+
+  void RestApiOutput::AnswerWithoutBuffering(IHttpStreamAnswer& stream)
+  {
+    CheckStatus();
+    output_.AnswerWithoutBuffering(stream);
+    alreadySent_ = true;
+  }
+
+
   void RestApiOutput::AnswerJson(const Json::Value& value)
   {
     CheckStatus();

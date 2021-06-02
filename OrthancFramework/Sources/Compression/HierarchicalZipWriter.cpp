@@ -154,9 +154,10 @@ namespace Orthanc
   }
 
   
-  HierarchicalZipWriter::HierarchicalZipWriter(ZipWriter::IOutputStream* stream)
+  HierarchicalZipWriter::HierarchicalZipWriter(ZipWriter::IOutputStream* stream,
+                                               bool isZip64)
   {
-    writer_.AcquireOutputStream(stream);
+    writer_.AcquireOutputStream(stream, isZip64);
     writer_.Open();    
   }
 
@@ -227,8 +228,24 @@ namespace Orthanc
     writer_.Write(data);
   }
 
-  HierarchicalZipWriter* HierarchicalZipWriter::CreateToMemory(std::string& target)
+  HierarchicalZipWriter* HierarchicalZipWriter::CreateToMemory(std::string& target,
+                                                               bool isZip64)
   {
-    return new HierarchicalZipWriter(new ZipWriter::MemoryStream(target));
+    return new HierarchicalZipWriter(new ZipWriter::MemoryStream(target), isZip64);
+  }
+
+  void HierarchicalZipWriter::CancelStream()
+  {
+    writer_.CancelStream();
+  }
+
+  void HierarchicalZipWriter::Close()
+  {
+    writer_.Close();
+  }
+
+  size_t HierarchicalZipWriter::GetArchiveSize() const
+  {
+    return writer_.GetArchiveSize();
   }
 }
