@@ -64,7 +64,7 @@ def FormatLine(command, name):
     if len(command) > indentation:
         raise Exception('Too long command')
         
-    line = '    ' + command + (' ' * (indentation - len(command))) + '// ' + name
+    line = command + (' ' * (indentation - len(command))) + '// ' + name
     LINES.append(line)
 
 def FormatUnknown(rawTag, name, profile):
