@@ -1,9 +1,15 @@
 Pending changes in the mainline
 ===============================
 
+General
+-------
+
+* New configuration option "SynchronousZipStream" to disable streaming of ZIP
+
 REST API
 --------
 
+* ZIP archive/media generated in synchronous mode are now streamed by default
 * "Replace" tags in "/modify" and "/anonymize" now supports value representation AT
 * "/jobs/..." has new field "ErrorDetails" to help identify the cause of an error
 

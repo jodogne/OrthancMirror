@@ -34,6 +34,7 @@
 #pragma once
 
 #include "../../../OrthancFramework/Sources/Compatibility.h"
+#include "../../../OrthancFramework/Sources/Compression/ZipWriter.h"
 #include "../../../OrthancFramework/Sources/JobsEngine/IJob.h"
 #include "../../../OrthancFramework/Sources/TemporaryFile.h"
 
@@ -55,7 +56,7 @@ namespace Orthanc
     class ZipCommands;
     class ZipWriterIterator;
     
-    boost::shared_ptr<TemporaryFile>      synchronousTarget_;
+    std::unique_ptr<ZipWriter::IOutputStream>  synchronousTarget_;  // Only valid before "Start()"
     std::unique_ptr<TemporaryFile>        asynchronousTarget_;
     ServerContext&                        context_;
     boost::shared_ptr<ArchiveIndex>       archive_;
@@ -74,8 +75,6 @@ namespace Orthanc
     bool                 transcode_;
     DicomTransferSyntax  transferSyntax_;
 
-    void RefreshArchiveSize();
-    
     void FinalizeTarget();
     
   public:
@@ -84,8 +83,8 @@ namespace Orthanc
                bool enableExtendedSopClass);
     
     virtual ~ArchiveJob();
-    
-    void SetSynchronousTarget(boost::shared_ptr<TemporaryFile>& synchronousTarget);
+
+    void AcquireSynchronousTarget(ZipWriter::IOutputStream* synchronousTarget);
 
     void SetDescription(const std::string& description);
 

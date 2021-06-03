@@ -800,5 +800,14 @@
   // modifications in the case of multiple writers. The database
   // back-end must support this option, which is notably *not* yet the
   // case of the built-in SQLite index. (new in Orthanc 1.9.2)
-  "CheckRevisions" : false
+  "CheckRevisions" : false,
+
+  // Whether Orthanc streams ZIP archive/media to the HTTP
+  // client. Setting this option to "false" corresponds to the
+  // behavior of Orthanc <= 1.9.3: The ZIP is first entirely written
+  // to a temporary file, then sent to the client (which necessitates
+  // disk space and might lead to HTTP timeouts on large archives). If
+  // set to "true", the chunks of the ZIP file are progressively sent
+  // as soon as one DICOM file gets compressed (new in Orthanc 1.9.4)
+  "SynchronousZipStream" : true
 }
