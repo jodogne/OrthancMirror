@@ -579,9 +579,9 @@ namespace Orthanc
     /**
      * This is Table E.1-1 from PS 3.15-2017c (DICOM Part 15: Security
      * and System Management Profiles), "basic profile" column. It was
-     * generated automatically with the
-     * "../Resources/GenerateAnonymizationProfile.py" script.
-     * https://raw.githubusercontent.com/jodogne/dicom-specification/master/2017c/part15.pdf
+     * generated automatically by calling:
+     * "../../../OrthancServer/Resources/GenerateAnonymizationProfile.py
+     * https://raw.githubusercontent.com/jodogne/dicom-specification/master/2017c/part15.xml"
      **/
     
     // TODO: (50xx,xxxx) with rule X                                 // Curve Data

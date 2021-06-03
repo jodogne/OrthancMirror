@@ -32,17 +32,26 @@
 
 
 import re
+import requests
 import sys
 import xml.etree.ElementTree as ET
 
 # Usage:
-# ./GenerateAnonymizationProfile.py ~/Subversion/dicom-specification/2017c/part15.xml 
+# ./GenerateAnonymizationProfile.py https://raw.githubusercontent.com/jodogne/dicom-specification/master/2021b/part15.xml
 
 if len(sys.argv) != 2:
-    raise Exception('Please provide the path to the part15.xml file from the DICOM standard')
+    raise Exception('Please provide the path or the URL to the part15.xml file from the DICOM standard')
 
-with open(sys.argv[1], 'r') as f:
-    root = ET.fromstring(f.read())
+source = sys.argv[1]
+
+if (source.startswith('http://') or
+    source.startswith('https://')):
+    part15 = requests.get(source).content
+else:
+    with open(source, 'r') as f:
+        part15 = f.read()
+
+root = ET.fromstring(part15)
 
 br = '{http://docbook.org/ns/docbook}' # Shorthand variable
 
@@ -115,7 +124,7 @@ for table in root.iter('%stable' % br):
                     FormatUnknown(rawTag, name, profile)
 
 for line in sorted(LINES):
-    print line
+    print(line.encode('ascii', 'ignore').decode('ascii'))
     
 
 # D - replace with a non-zero length value that may be a dummy value and consistent with the VR
