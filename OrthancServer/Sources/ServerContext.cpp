@@ -380,7 +380,7 @@ namespace Orthanc
           CLOG(INFO, DICOM) << "Deidentification of log contents (notably for DIMSE queries) is enabled";
 
           DicomVersion version = StringToDicomVersion(
-              lock.GetConfiguration().GetStringParameter("DeidentifyLogsDicomVersion", "2017c"));
+              lock.GetConfiguration().GetStringParameter("DeidentifyLogsDicomVersion", "2021b"));
           CLOG(INFO, DICOM) << "Version of DICOM standard used for deidentification is "
                             << EnumerationToString(version);
 

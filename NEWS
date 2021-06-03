@@ -4,6 +4,7 @@ Pending changes in the mainline
 General
 -------
 
+* Orthanc now anonymizes according to Basic Profile of PS 3.15-2021b Table E.1-1
 * New configuration option "SynchronousZipStream" to disable streaming of ZIP
 
 REST API
@@ -12,6 +13,11 @@ REST API
 * ZIP archive/media generated in synchronous mode are now streamed by default
 * "Replace" tags in "/modify" and "/anonymize" now supports value representation AT
 * "/jobs/..." has new field "ErrorDetails" to help identify the cause of an error
+
+Maintenance
+-----------
+
+* Fix issue #146 (Update Anonyization to 2019c) - was actually updated to 2021b
 
 
 Version 1.9.3 (2021-05-07)
