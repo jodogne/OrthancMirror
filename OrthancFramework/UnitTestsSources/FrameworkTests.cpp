@@ -746,6 +746,7 @@ TEST(Toolbox, Enumerations)
 
   ASSERT_EQ(DicomVersion_2008, StringToDicomVersion(EnumerationToString(DicomVersion_2008)));
   ASSERT_EQ(DicomVersion_2017c, StringToDicomVersion(EnumerationToString(DicomVersion_2017c)));
+  ASSERT_EQ(DicomVersion_2021b, StringToDicomVersion(EnumerationToString(DicomVersion_2021b)));
 
   for (int i = static_cast<int>(ValueRepresentation_ApplicationEntity);
        i < static_cast<int>(ValueRepresentation_NotSupported); i += 1)

@@ -874,6 +874,10 @@ namespace Orthanc
         return "2017c";
         break;
 
+      case DicomVersion_2021b:
+        return "2021b";
+        break;
+
       default: 
         throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
@@ -1580,6 +1584,10 @@ namespace Orthanc
     else if (version == "2017c")
     {
       return DicomVersion_2017c;
+    }
+    else if (version == "2021b")
+    {
+      return DicomVersion_2021b;
     }
     else
     {
