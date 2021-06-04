@@ -17,7 +17,7 @@ REST API
 Maintenance
 -----------
 
-* Full support for the anonymization of subsequences containing tags whose VR is UI
+* Full support of hierarchical relationships in tags whose VR is UI during anonymization
 * Fix issue #146 (Update Anonyization to 2019c) - was actually updated to 2021b
 
 
