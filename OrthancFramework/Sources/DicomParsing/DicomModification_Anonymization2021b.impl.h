@@ -1,17 +1,10 @@
-// TODO: (50xx,xxxx) with rule X                                 // Curve Data
-// TODO: (60xx,3000) with rule X                                 // Overlay Data
-// TODO: (60xx,4000) with rule X                                 // Overlay Comments
+// RelationshipsVisitor handles (0x0008, 0x1140)  /* X/Z/U* */   // Referenced Image Sequence
+// RelationshipsVisitor handles (0x0008, 0x2112)  /* X/Z/U* */   // Source Image Sequence
 // Tag (0x0008, 0x0018) is set in Apply()         /* U */        // SOP Instance UID
-// Tag (0x0008, 0x1140) => RelationshipsVisitor   /* X/Z/U* */   // Referenced Image Sequence
-// Tag (0x0008, 0x1155) => RelationshipsVisitor   /* U */        // Referenced SOP Instance UID
-// Tag (0x0008, 0x2112) => RelationshipsVisitor   /* X/Z/U* */   // Source Image Sequence
 // Tag (0x0010, 0x0010) is set below (*)          /* Z */        // Patient's Name
 // Tag (0x0010, 0x0020) is set below (*)          /* Z */        // Patient ID
 // Tag (0x0020, 0x000d) is set in Apply()         /* U */        // Study Instance UID
 // Tag (0x0020, 0x000e) is set in Apply()         /* U */        // Series Instance UID
-// Tag (0x0020, 0x0052) => RelationshipsVisitor   /* U */        // Frame of Reference UID
-// Tag (0x3006, 0x0024) => RelationshipsVisitor   /* U */        // Referenced Frame of Reference UID
-// Tag (0x3006, 0x00c2) => RelationshipsVisitor   /* U */        // Related Frame of Reference UID
 clearings_.insert(DicomTag(0x0008, 0x0020));                     // Study Date
 clearings_.insert(DicomTag(0x0008, 0x0023));  /* Z/D */          // Content Date
 clearings_.insert(DicomTag(0x0008, 0x0030));                     // Study Time
@@ -98,10 +91,6 @@ clearings_.insert(DicomTag(0x3010, 0x007b));                     // Prescription
 clearings_.insert(DicomTag(0x3010, 0x007f));                     // Fractionation Notes
 clearings_.insert(DicomTag(0x3010, 0x0081));                     // Prescription Notes Sequence
 removals_.insert(DicomTag(0x0000, 0x1000));                      // Affected SOP Instance UID
-removals_.insert(DicomTag(0x0000, 0x1001));   /* TODO UID */     // Requested SOP Instance UID
-removals_.insert(DicomTag(0x0002, 0x0003));   /* TODO UID */     // Media Storage SOP Instance UID
-removals_.insert(DicomTag(0x0004, 0x1511));   /* TODO UID */     // Referenced SOP Instance UID in File
-removals_.insert(DicomTag(0x0008, 0x0014));   /* TODO UID */     // Instance Creator UID
 removals_.insert(DicomTag(0x0008, 0x0015));                      // Instance Coercion DateTime
 removals_.insert(DicomTag(0x0008, 0x0021));   /* X/D */          // Series Date
 removals_.insert(DicomTag(0x0008, 0x0022));   /* X/Z */          // Acquisition Date
@@ -112,7 +101,6 @@ removals_.insert(DicomTag(0x0008, 0x0031));   /* X/D */          // Series Time
 removals_.insert(DicomTag(0x0008, 0x0032));   /* X/Z */          // Acquisition Time
 removals_.insert(DicomTag(0x0008, 0x0034));                      // Overlay Time
 removals_.insert(DicomTag(0x0008, 0x0035));                      // Curve Time
-removals_.insert(DicomTag(0x0008, 0x0058));   /* TODO UID */     // Failed SOP Instance UID List
 removals_.insert(DicomTag(0x0008, 0x0080));   /* X/Z/D */        // Institution Name
 removals_.insert(DicomTag(0x0008, 0x0081));                      // Institution Address
 removals_.insert(DicomTag(0x0008, 0x0082));   /* X/Z/D */        // Institution Code Sequence
@@ -139,9 +127,7 @@ removals_.insert(DicomTag(0x0008, 0x1084));                      // Admitting Di
 removals_.insert(DicomTag(0x0008, 0x1110));   /* X/Z */          // Referenced Study Sequence
 removals_.insert(DicomTag(0x0008, 0x1111));   /* X/Z/D */        // Referenced Performed Procedure Step Sequence
 removals_.insert(DicomTag(0x0008, 0x1120));                      // Referenced Patient Sequence
-removals_.insert(DicomTag(0x0008, 0x1195));   /* TODO UID */     // Transaction UID
 removals_.insert(DicomTag(0x0008, 0x2111));                      // Derivation Description
-removals_.insert(DicomTag(0x0008, 0x3010));   /* TODO UID */     // Irradiation Event UID
 removals_.insert(DicomTag(0x0008, 0x4000));                      // Identifying Comments
 removals_.insert(DicomTag(0x0010, 0x0021));                      // Issuer of Patient ID
 removals_.insert(DicomTag(0x0010, 0x0032));                      // Patient's Birth Time
@@ -222,17 +208,14 @@ removals_.insert(DicomTag(0x0016, 0x008c));                      // GPS Area Inf
 removals_.insert(DicomTag(0x0016, 0x008d));                      // GPS Date Stamp
 removals_.insert(DicomTag(0x0016, 0x008e));                      // GPS Differential
 removals_.insert(DicomTag(0x0018, 0x1000));   /* X/Z/D */        // Device Serial Number
-removals_.insert(DicomTag(0x0018, 0x1002));   /* TODO UID */     // Device UID
 removals_.insert(DicomTag(0x0018, 0x1004));                      // Plate ID
 removals_.insert(DicomTag(0x0018, 0x1005));                      // Generator ID
 removals_.insert(DicomTag(0x0018, 0x1007));                      // Cassette ID
 removals_.insert(DicomTag(0x0018, 0x1008));                      // Gantry ID
 removals_.insert(DicomTag(0x0018, 0x1009));                      // Unique Device Identifier
 removals_.insert(DicomTag(0x0018, 0x100a));                      // UDI Sequence
-removals_.insert(DicomTag(0x0018, 0x100b));   /* TODO UID */     // Manufacturer's Device Class UID
 removals_.insert(DicomTag(0x0018, 0x1030));   /* X/D */          // Protocol Name
 removals_.insert(DicomTag(0x0018, 0x1400));   /* X/D */          // Acquisition Device Processing Description
-removals_.insert(DicomTag(0x0018, 0x2042));   /* TODO UID */     // Target UID
 removals_.insert(DicomTag(0x0018, 0x4000));                      // Acquisition Comments
 removals_.insert(DicomTag(0x0018, 0x5011));                      // Transducer Identification Sequence
 removals_.insert(DicomTag(0x0018, 0x700a));   /* X/D */          // Detector ID
@@ -245,15 +228,10 @@ removals_.insert(DicomTag(0x0018, 0x9516));   /* X/D */          // Start Acquis
 removals_.insert(DicomTag(0x0018, 0x9517));   /* X/D */          // End Acquisition DateTime
 removals_.insert(DicomTag(0x0018, 0x9937));                      // Requested Series Description
 removals_.insert(DicomTag(0x0018, 0xa003));                      // Contribution Description
-removals_.insert(DicomTag(0x0020, 0x0200));   /* TODO UID */     // Synchronization Frame of Reference UID
 removals_.insert(DicomTag(0x0020, 0x3401));                      // Modifying Device ID
 removals_.insert(DicomTag(0x0020, 0x3406));                      // Modified Image Description
 removals_.insert(DicomTag(0x0020, 0x4000));                      // Image Comments
 removals_.insert(DicomTag(0x0020, 0x9158));                      // Frame Comments
-removals_.insert(DicomTag(0x0020, 0x9161));   /* TODO UID */     // Concatenation UID
-removals_.insert(DicomTag(0x0020, 0x9164));   /* TODO UID */     // Dimension Organization UID
-removals_.insert(DicomTag(0x0028, 0x1199));   /* TODO UID */     // Palette Color Lookup Table UID
-removals_.insert(DicomTag(0x0028, 0x1214));   /* TODO UID */     // Large Palette Color Lookup Table UID
 removals_.insert(DicomTag(0x0028, 0x4000));                      // Image Presentation Comments
 removals_.insert(DicomTag(0x0032, 0x0012));                      // Study ID Issuer
 removals_.insert(DicomTag(0x0032, 0x1020));                      // Scheduled Study Location
@@ -283,7 +261,6 @@ removals_.insert(DicomTag(0x0038, 0x0300));                      // Current Pati
 removals_.insert(DicomTag(0x0038, 0x0400));                      // Patient's Institution Residence
 removals_.insert(DicomTag(0x0038, 0x0500));                      // Patient State
 removals_.insert(DicomTag(0x0038, 0x4000));                      // Visit Comments
-removals_.insert(DicomTag(0x003a, 0x0310));   /* TODO UID */     // Multiplex Group UID
 removals_.insert(DicomTag(0x0040, 0x0001));                      // Scheduled Station AE Title
 removals_.insert(DicomTag(0x0040, 0x0002));                      // Scheduled Procedure Step Start Date
 removals_.insert(DicomTag(0x0040, 0x0003));                      // Scheduled Procedure Step Start Time
@@ -310,7 +287,6 @@ removals_.insert(DicomTag(0x0040, 0x0280));                      // Comments on 
 removals_.insert(DicomTag(0x0040, 0x0310));                      // Comments on Radiation Dose
 removals_.insert(DicomTag(0x0040, 0x050a));                      // Specimen Accession Number
 removals_.insert(DicomTag(0x0040, 0x051a));                      // Container Description
-removals_.insert(DicomTag(0x0040, 0x0554));   /* TODO UID */     // Specimen UID
 removals_.insert(DicomTag(0x0040, 0x0555));   /* X/Z */          // Acquisition Context Sequence
 removals_.insert(DicomTag(0x0040, 0x0600));                      // Specimen Short Description
 removals_.insert(DicomTag(0x0040, 0x0602));                      // Specimen Detailed Description
@@ -337,7 +313,6 @@ removals_.insert(DicomTag(0x0040, 0x4005));                      // Scheduled Pr
 removals_.insert(DicomTag(0x0040, 0x4008));                      // Scheduled Procedure Step Expiration DateTime
 removals_.insert(DicomTag(0x0040, 0x4010));                      // Scheduled Procedure Step Modification DateTime
 removals_.insert(DicomTag(0x0040, 0x4011));                      // Expected Completion DateTime
-removals_.insert(DicomTag(0x0040, 0x4023));   /* TODO UID */     // Referenced General Purpose Scheduled Procedure Step Transaction UID
 removals_.insert(DicomTag(0x0040, 0x4025));                      // Scheduled Station Name Code Sequence
 removals_.insert(DicomTag(0x0040, 0x4027));                      // Scheduled Station Geographic Location Code Sequence
 removals_.insert(DicomTag(0x0040, 0x4028));                      // Performed Station Name Code Sequence
@@ -352,9 +327,6 @@ removals_.insert(DicomTag(0x0040, 0x4052));                      // Procedure St
 removals_.insert(DicomTag(0x0040, 0xa078));                      // Author Observer Sequence
 removals_.insert(DicomTag(0x0040, 0xa07a));                      // Participant Sequence
 removals_.insert(DicomTag(0x0040, 0xa07c));                      // Custodial Organization Sequence
-removals_.insert(DicomTag(0x0040, 0xa124));   /* TODO UID */     // UID
-removals_.insert(DicomTag(0x0040, 0xa171));   /* TODO UID */     // Observation UID
-removals_.insert(DicomTag(0x0040, 0xa172));   /* TODO UID */     // Referenced Observation UID (Trial)
 removals_.insert(DicomTag(0x0040, 0xa192));                      // Observation Date (Trial)
 removals_.insert(DicomTag(0x0040, 0xa193));                      // Observation Time (Trial)
 removals_.insert(DicomTag(0x0040, 0xa307));                      // Current Observer (Trial)
@@ -362,24 +334,15 @@ removals_.insert(DicomTag(0x0040, 0xa352));                      // Verbal Sourc
 removals_.insert(DicomTag(0x0040, 0xa353));                      // Address (Trial)
 removals_.insert(DicomTag(0x0040, 0xa354));                      // Telephone Number (Trial)
 removals_.insert(DicomTag(0x0040, 0xa358));                      // Verbal Source Identifier Code Sequence (Trial)
-removals_.insert(DicomTag(0x0040, 0xa402));   /* TODO UID */     // Observation Subject UID (Trial)
-removals_.insert(DicomTag(0x0040, 0xdb0c));   /* TODO UID */     // Template Extension Organization UID
-removals_.insert(DicomTag(0x0040, 0xdb0d));   /* TODO UID */     // Template Extension Creator UID
 removals_.insert(DicomTag(0x0050, 0x001b));                      // Container Component ID
 removals_.insert(DicomTag(0x0050, 0x0020));                      // Device Description
 removals_.insert(DicomTag(0x0050, 0x0021));                      // Long Device Description
-removals_.insert(DicomTag(0x0062, 0x0021));   /* TODO UID */     // Tracking UID
 removals_.insert(DicomTag(0x0070, 0x0086));                      // Content Creator's Identification Code Sequence
-removals_.insert(DicomTag(0x0070, 0x031a));   /* TODO UID */     // Fiducial UID
-removals_.insert(DicomTag(0x0070, 0x1101));   /* TODO UID */     // Presentation Display Collection UID
-removals_.insert(DicomTag(0x0070, 0x1102));   /* TODO UID */     // Presentation Sequence Collection UID
-removals_.insert(DicomTag(0x0088, 0x0140));   /* TODO UID */     // Storage Media File-set UID
 removals_.insert(DicomTag(0x0088, 0x0200));                      // Icon Image Sequence
 removals_.insert(DicomTag(0x0088, 0x0904));                      // Topic Title
 removals_.insert(DicomTag(0x0088, 0x0906));                      // Topic Subject
 removals_.insert(DicomTag(0x0088, 0x0910));                      // Topic Author
 removals_.insert(DicomTag(0x0088, 0x0912));                      // Topic Keywords
-removals_.insert(DicomTag(0x0400, 0x0100));   /* TODO UID */     // Digital Signature UID
 removals_.insert(DicomTag(0x0400, 0x0402));                      // Referenced Digital Signature Sequence
 removals_.insert(DicomTag(0x0400, 0x0403));                      // Referenced SOP Instance MAC Sequence
 removals_.insert(DicomTag(0x0400, 0x0404));                      // MAC
@@ -407,10 +370,8 @@ removals_.insert(DicomTag(0x300a, 0x0004));                      // RT Plan Desc
 removals_.insert(DicomTag(0x300a, 0x0006));   /* X/D */          // RT Plan Date
 removals_.insert(DicomTag(0x300a, 0x0007));   /* X/D */          // RT Plan Time
 removals_.insert(DicomTag(0x300a, 0x000e));                      // Prescription Description
-removals_.insert(DicomTag(0x300a, 0x0013));   /* TODO UID */     // Dose Reference UID
 removals_.insert(DicomTag(0x300a, 0x0016));                      // Dose Reference Description
 removals_.insert(DicomTag(0x300a, 0x0072));                      // Fraction Group Description
-removals_.insert(DicomTag(0x300a, 0x0083));   /* TODO UID */     // Referenced Dose Reference UID
 removals_.insert(DicomTag(0x300a, 0x00b2));   /* X/Z */          // Treatment Machine Name
 removals_.insert(DicomTag(0x300a, 0x00c3));                      // Beam Description
 removals_.insert(DicomTag(0x300a, 0x00dd));                      // Bolus Description
@@ -419,26 +380,15 @@ removals_.insert(DicomTag(0x300a, 0x01a6));                      // Shielding De
 removals_.insert(DicomTag(0x300a, 0x01b2));                      // Setup Technique Description
 removals_.insert(DicomTag(0x300a, 0x0216));                      // Source Manufacturer
 removals_.insert(DicomTag(0x300a, 0x02eb));                      // Compensator Description
-removals_.insert(DicomTag(0x300a, 0x0609));   /* TODO UID */     // Treatment Position Group UID
-removals_.insert(DicomTag(0x300a, 0x0650));   /* TODO UID */     // Patient Setup UID
 removals_.insert(DicomTag(0x300a, 0x0676));                      // Equipment Frame of Reference Description
-removals_.insert(DicomTag(0x300a, 0x0700));   /* TODO UID */     // Treatment Session UID
 removals_.insert(DicomTag(0x300c, 0x0113));                      // Reason for Omission Description
 removals_.insert(DicomTag(0x300e, 0x0008));   /* X/Z */          // Reviewer Name
-removals_.insert(DicomTag(0x3010, 0x0006));   /* TODO UID */     // Conceptual Volume UID
-removals_.insert(DicomTag(0x3010, 0x000b));   /* TODO UID */     // Referenced Conceptual Volume UID
-removals_.insert(DicomTag(0x3010, 0x0013));   /* TODO UID */     // Constituent Conceptual Volume UID
-removals_.insert(DicomTag(0x3010, 0x0015));   /* TODO UID */     // Source Conceptual Volume UID
-removals_.insert(DicomTag(0x3010, 0x0031));   /* TODO UID */     // Referenced Fiducials UID
 removals_.insert(DicomTag(0x3010, 0x0036));                      // Entity Name
 removals_.insert(DicomTag(0x3010, 0x0037));                      // Entity Description
-removals_.insert(DicomTag(0x3010, 0x003b));   /* TODO UID */     // RT Treatment Phase UID
 removals_.insert(DicomTag(0x3010, 0x004c));   /* X/D */          // Intended Phase Start Date
 removals_.insert(DicomTag(0x3010, 0x004d));   /* X/D */          // Intended Phase End Date
 removals_.insert(DicomTag(0x3010, 0x0056));   /* X/D */          // RT Treatment Approach Label
 removals_.insert(DicomTag(0x3010, 0x0061));                      // Prior Treatment Dose Description
-removals_.insert(DicomTag(0x3010, 0x006e));   /* TODO UID */     // Dosimetric Objective UID
-removals_.insert(DicomTag(0x3010, 0x006f));   /* TODO UID */     // Referenced Dosimetric Objective UID
 removals_.insert(DicomTag(0x4000, 0x0010));                      // Arbitrary
 removals_.insert(DicomTag(0x4000, 0x4000));                      // Text Comments
 removals_.insert(DicomTag(0x4008, 0x0042));                      // Results ID Issuer
@@ -457,3 +407,53 @@ removals_.insert(DicomTag(0x4008, 0x0300));                      // Impressions
 removals_.insert(DicomTag(0x4008, 0x4000));                      // Results Comments
 removals_.insert(DicomTag(0xfffa, 0xfffa));                      // Digital Signatures Sequence
 removals_.insert(DicomTag(0xfffc, 0xfffc));                      // Data Set Trailing Padding
+removedRanges_.push_back(DicomTagRange(0x5000, 0x50ff, 0x0000, 0xffff));  // Curve Data
+removedRanges_.push_back(DicomTagRange(0x6000, 0x60ff, 0x3000, 0x3000));  // Overlay Data
+removedRanges_.push_back(DicomTagRange(0x6000, 0x60ff, 0x4000, 0x4000));  // Overlay Comments
+uids_.insert(DicomTag(0x0000, 0x1001));                          // Requested SOP Instance UID
+uids_.insert(DicomTag(0x0002, 0x0003));                          // Media Storage SOP Instance UID
+uids_.insert(DicomTag(0x0004, 0x1511));                          // Referenced SOP Instance UID in File
+uids_.insert(DicomTag(0x0008, 0x0014));                          // Instance Creator UID
+uids_.insert(DicomTag(0x0008, 0x0058));                          // Failed SOP Instance UID List
+uids_.insert(DicomTag(0x0008, 0x1155));                          // Referenced SOP Instance UID
+uids_.insert(DicomTag(0x0008, 0x1195));                          // Transaction UID
+uids_.insert(DicomTag(0x0008, 0x3010));                          // Irradiation Event UID
+uids_.insert(DicomTag(0x0018, 0x1002));                          // Device UID
+uids_.insert(DicomTag(0x0018, 0x100b));                          // Manufacturer's Device Class UID
+uids_.insert(DicomTag(0x0018, 0x2042));                          // Target UID
+uids_.insert(DicomTag(0x0020, 0x0052));                          // Frame of Reference UID
+uids_.insert(DicomTag(0x0020, 0x0200));                          // Synchronization Frame of Reference UID
+uids_.insert(DicomTag(0x0020, 0x9161));                          // Concatenation UID
+uids_.insert(DicomTag(0x0020, 0x9164));                          // Dimension Organization UID
+uids_.insert(DicomTag(0x0028, 0x1199));                          // Palette Color Lookup Table UID
+uids_.insert(DicomTag(0x0028, 0x1214));                          // Large Palette Color Lookup Table UID
+uids_.insert(DicomTag(0x003a, 0x0310));                          // Multiplex Group UID
+uids_.insert(DicomTag(0x0040, 0x0554));                          // Specimen UID
+uids_.insert(DicomTag(0x0040, 0x4023));                          // Referenced General Purpose Scheduled Procedure Step Transaction UID
+uids_.insert(DicomTag(0x0040, 0xa124));                          // UID
+uids_.insert(DicomTag(0x0040, 0xa171));                          // Observation UID
+uids_.insert(DicomTag(0x0040, 0xa172));                          // Referenced Observation UID (Trial)
+uids_.insert(DicomTag(0x0040, 0xa402));                          // Observation Subject UID (Trial)
+uids_.insert(DicomTag(0x0040, 0xdb0c));                          // Template Extension Organization UID
+uids_.insert(DicomTag(0x0040, 0xdb0d));                          // Template Extension Creator UID
+uids_.insert(DicomTag(0x0062, 0x0021));                          // Tracking UID
+uids_.insert(DicomTag(0x0070, 0x031a));                          // Fiducial UID
+uids_.insert(DicomTag(0x0070, 0x1101));                          // Presentation Display Collection UID
+uids_.insert(DicomTag(0x0070, 0x1102));                          // Presentation Sequence Collection UID
+uids_.insert(DicomTag(0x0088, 0x0140));                          // Storage Media File-set UID
+uids_.insert(DicomTag(0x0400, 0x0100));                          // Digital Signature UID
+uids_.insert(DicomTag(0x3006, 0x0024));                          // Referenced Frame of Reference UID
+uids_.insert(DicomTag(0x3006, 0x00c2));                          // Related Frame of Reference UID
+uids_.insert(DicomTag(0x300a, 0x0013));                          // Dose Reference UID
+uids_.insert(DicomTag(0x300a, 0x0083));                          // Referenced Dose Reference UID
+uids_.insert(DicomTag(0x300a, 0x0609));                          // Treatment Position Group UID
+uids_.insert(DicomTag(0x300a, 0x0650));                          // Patient Setup UID
+uids_.insert(DicomTag(0x300a, 0x0700));                          // Treatment Session UID
+uids_.insert(DicomTag(0x3010, 0x0006));                          // Conceptual Volume UID
+uids_.insert(DicomTag(0x3010, 0x000b));                          // Referenced Conceptual Volume UID
+uids_.insert(DicomTag(0x3010, 0x0013));                          // Constituent Conceptual Volume UID
+uids_.insert(DicomTag(0x3010, 0x0015));                          // Source Conceptual Volume UID
+uids_.insert(DicomTag(0x3010, 0x0031));                          // Referenced Fiducials UID
+uids_.insert(DicomTag(0x3010, 0x003b));                          // RT Treatment Phase UID
+uids_.insert(DicomTag(0x3010, 0x006e));                          // Dosimetric Objective UID
+uids_.insert(DicomTag(0x3010, 0x006f));                          // Referenced Dosimetric Objective UID

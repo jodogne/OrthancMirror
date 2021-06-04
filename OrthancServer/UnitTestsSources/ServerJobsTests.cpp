@@ -698,6 +698,24 @@ TEST_F(OrthancJobsSerialization, Operations)
     ASSERT_EQ(RequestOrigin_Lua, tmp.GetRequestOrigin());
     ASSERT_TRUE(tmp.GetModification().IsRemoved(DICOM_TAG_STUDY_DESCRIPTION));
   }
+
+  {
+    std::unique_ptr<DicomModification> modification(new DicomModification);
+    modification->SetupAnonymization(DicomVersion_2021b);
+    
+    ModifyInstanceOperation operation(GetContext(), RequestOrigin_Lua, modification.release());
+
+    ASSERT_TRUE(CheckIdempotentSerialization(unserializer, operation));
+    operation.Serialize(s);
+  }
+
+  {
+    operation.reset(unserializer.UnserializeOperation(s));
+
+    const ModifyInstanceOperation& tmp = dynamic_cast<ModifyInstanceOperation&>(*operation);
+    ASSERT_EQ(RequestOrigin_Lua, tmp.GetRequestOrigin());
+    ASSERT_TRUE(tmp.GetModification().IsRemoved(DICOM_TAG_STUDY_DESCRIPTION));
+  }
 }
 
 
