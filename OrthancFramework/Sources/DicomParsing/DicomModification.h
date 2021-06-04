@@ -58,13 +58,53 @@ namespace Orthanc
   private:
     class RelationshipsVisitor;
 
+    class DicomTagRange
+    {
+    private:
+      uint16_t   groupFrom_;
+      uint16_t   groupTo_;
+      uint16_t   elementFrom_;
+      uint16_t   elementTo_;
+
+    public:
+      DicomTagRange(uint16_t groupFrom,
+                    uint16_t groupTo,
+                    uint16_t elementFrom,
+                    uint16_t elementTo);
+
+      uint16_t GetGroupFrom() const
+      {
+        return groupFrom_;
+      }
+
+      uint16_t GetGroupTo() const
+      {
+        return groupTo_;
+      }
+
+      uint16_t GetElementFrom() const
+      {
+        return elementFrom_;
+      }
+
+      uint16_t GetElementTo() const
+      {
+        return elementTo_;
+      }
+
+      bool Contains(const DicomTag& tag) const;
+    };
+    
     typedef std::set<DicomTag> SetOfTags;
     typedef std::map<DicomTag, Json::Value*> Replacements;
     typedef std::map< std::pair<ResourceType, std::string>, std::string>  UidMap;
+    typedef std::list<DicomTagRange>  RemovedRanges;
 
     SetOfTags removals_;
     SetOfTags clearings_;
     Replacements replacements_;
+    SetOfTags uids_;                // New in Orthanc 1.9.4
+    RemovedRanges removedRanges_;   // New in Orthanc 1.9.4
     bool removePrivateTags_;
     ResourceType level_;
     UidMap uidMap_;
@@ -98,6 +138,8 @@ namespace Orthanc
 
     void ReplaceInternal(const DicomTag& tag,
                          const Json::Value& value);
+
+    void SetupUidsFromOrthanc_1_9_3();
 
     void SetupAnonymization2008();
 

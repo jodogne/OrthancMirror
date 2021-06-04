@@ -44,6 +44,27 @@ static const std::string ORTHANC_DEIDENTIFICATION_METHOD_2021b =
 
 namespace Orthanc
 {
+  DicomModification::DicomTagRange::DicomTagRange(uint16_t groupFrom,
+                                                  uint16_t groupTo,
+                                                  uint16_t elementFrom,
+                                                  uint16_t elementTo) :
+    groupFrom_(groupFrom),
+    groupTo_(groupTo),
+    elementFrom_(elementFrom),
+    elementTo_(elementTo)
+  {
+  }
+
+  
+  bool DicomModification::DicomTagRange::Contains(const DicomTag& tag) const
+  {
+    return (tag.GetGroup() >= groupFrom_ &&
+            tag.GetGroup() <= groupTo_ &&
+            tag.GetElement() >= elementFrom_ &&
+            tag.GetElement() <= elementTo_);
+  }
+
+
   class DicomModification::RelationshipsVisitor : public ITagVisitor
   {
   private:
@@ -124,58 +145,51 @@ namespace Orthanc
                                ValueRepresentation vr,
                                const std::string& value)
     {
+      // Note that all the tags in "uids_" have the VR UI (unique
+      // identifier), and are considered as strings
+      
       if (!IsEnabled(tag))
       {
         return Action_None;
       }
-      else if (parentTags.size() == 2 &&
-               parentTags[0] == DICOM_TAG_REFERENCED_FRAME_OF_REFERENCE_SEQUENCE &&
-               parentTags[1] == DICOM_TAG_RT_REFERENCED_STUDY_SEQUENCE &&
-               tag == DICOM_TAG_REFERENCED_SOP_INSTANCE_UID)
-      {
-        // in RT-STRUCT, this ReferencedSOPInstanceUID is actually referencing a StudyInstanceUID !!
-        // (observed in many data sets including: https://wiki.cancerimagingarchive.net/display/Public/Lung+CT+Segmentation+Challenge+2017)
-        // tested in test_anonymize_relationships_5
-        newValue = that_.MapDicomIdentifier(Toolbox::StripSpaces(value), ResourceType_Study);
-        return Action_Replace;
-      }
-      else if (tag == DICOM_TAG_FRAME_OF_REFERENCE_UID ||
-               tag == DICOM_TAG_REFERENCED_FRAME_OF_REFERENCE_UID || 
-               tag == DICOM_TAG_REFERENCED_SOP_INSTANCE_UID ||
-               tag == DICOM_TAG_RELATED_FRAME_OF_REFERENCE_UID)
-      {
-        newValue = that_.MapDicomIdentifier(Toolbox::StripSpaces(value), ResourceType_Instance);
-        return Action_Replace;
-      }
-      else if (parentTags.size() == 1 &&
-               parentTags[0] == DICOM_TAG_CURRENT_REQUESTED_PROCEDURE_EVIDENCE_SEQUENCE &&
+      else if (!parentTags.empty() &&  // Don't anonymize twice the anonymization done by "MapDicomTags()"
                tag == DICOM_TAG_STUDY_INSTANCE_UID)
       {
-        newValue = that_.MapDicomIdentifier(Toolbox::StripSpaces(value), ResourceType_Study);
+        newValue = that_.MapDicomIdentifier(value, ResourceType_Study);
         return Action_Replace;
       }
-      else if (parentTags.size() == 2 &&
-               parentTags[0] == DICOM_TAG_CURRENT_REQUESTED_PROCEDURE_EVIDENCE_SEQUENCE &&
-               parentTags[1] == DICOM_TAG_REFERENCED_SERIES_SEQUENCE &&
+      else if (!parentTags.empty() &&  // Don't anonymize twice the anonymization done by "MapDicomTags()"
                tag == DICOM_TAG_SERIES_INSTANCE_UID)
       {
-        newValue = that_.MapDicomIdentifier(Toolbox::StripSpaces(value), ResourceType_Series);
+        newValue = that_.MapDicomIdentifier(value, ResourceType_Series);
         return Action_Replace;
       }
-      else if (parentTags.size() == 3 &&
-               parentTags[0] == DICOM_TAG_REFERENCED_FRAME_OF_REFERENCE_SEQUENCE &&
-               parentTags[1] == DICOM_TAG_RT_REFERENCED_STUDY_SEQUENCE &&
-               parentTags[2] == DICOM_TAG_RT_REFERENCED_SERIES_SEQUENCE &&
-               tag == DICOM_TAG_SERIES_INSTANCE_UID)
-      {
-        newValue = that_.MapDicomIdentifier(Toolbox::StripSpaces(value), ResourceType_Series);
+      else if (!parentTags.empty() &&  // Don't anonymize twice the anonymization done by "MapDicomTags()"
+               tag == DICOM_TAG_SOP_INSTANCE_UID)
+      {  
+        newValue = that_.MapDicomIdentifier(value, ResourceType_Instance);
         return Action_Replace;
       }
-      else if (parentTags.size() == 1 &&
-               parentTags[0] == DICOM_TAG_REFERENCED_SERIES_SEQUENCE &&
-               tag == DICOM_TAG_SERIES_INSTANCE_UID)
+      else if (that_.uids_.find(tag) != that_.uids_.end())
       {
-        newValue = that_.MapDicomIdentifier(Toolbox::StripSpaces(value), ResourceType_Series);
+        assert(vr == ValueRepresentation_UniqueIdentifier ||
+               vr == ValueRepresentation_NotSupported /* for older versions of DCMTK */);
+        
+        if (parentTags.size() == 2 &&
+            parentTags[0] == DICOM_TAG_REFERENCED_FRAME_OF_REFERENCE_SEQUENCE &&
+            parentTags[1] == DICOM_TAG_RT_REFERENCED_STUDY_SEQUENCE &&
+            tag == DICOM_TAG_REFERENCED_SOP_INSTANCE_UID)
+        {
+          // in RT-STRUCT, this ReferencedSOPInstanceUID is actually referencing a StudyInstanceUID !!
+          // (observed in many data sets including: https://wiki.cancerimagingarchive.net/display/Public/Lung+CT+Segmentation+Challenge+2017)
+          // tested in test_anonymize_relationships_5
+          newValue = that_.MapDicomIdentifier(value, ResourceType_Study);
+        }
+        else
+        {
+          newValue = that_.MapDicomIdentifier(value, ResourceType_Instance);
+        }
+
         return Action_Replace;
       }
       else
@@ -186,18 +200,20 @@ namespace Orthanc
 
     void RemoveRelationships(ParsedDicomFile& dicom) const
     {
-      // Sequences containing the UID relationships
+      for (SetOfTags::const_iterator it = that_.uids_.begin(); it != that_.uids_.end(); ++it)
+      {
+        if (*it != DICOM_TAG_STUDY_INSTANCE_UID &&
+            *it != DICOM_TAG_SERIES_INSTANCE_UID &&
+            *it != DICOM_TAG_SOP_INSTANCE_UID)
+        {
+          RemoveIfEnabled(dicom, *it);
+        }
+      }
+
+      // The only two sequences with to the "X/Z/U*" rule in the
+      // basic profile. They were already present in Orthanc 1.9.3.
       RemoveIfEnabled(dicom, DICOM_TAG_REFERENCED_IMAGE_SEQUENCE);
       RemoveIfEnabled(dicom, DICOM_TAG_SOURCE_IMAGE_SEQUENCE);
-      
-      // Individual tags
-      RemoveIfEnabled(dicom, DICOM_TAG_FRAME_OF_REFERENCE_UID);
-
-      // The tags below should never occur at the first level of the
-      // hierarchy, but remove them anyway
-      RemoveIfEnabled(dicom, DICOM_TAG_REFERENCED_FRAME_OF_REFERENCE_UID);
-      RemoveIfEnabled(dicom, DICOM_TAG_REFERENCED_SOP_INSTANCE_UID);
-      RemoveIfEnabled(dicom, DICOM_TAG_RELATED_FRAME_OF_REFERENCE_UID);
     }
   };
 
@@ -278,9 +294,11 @@ namespace Orthanc
   std::string DicomModification::MapDicomIdentifier(const std::string& original,
                                                     ResourceType level)
   {
+    const std::string stripped = Toolbox::StripSpaces(original);
+    
     std::string mapped;
 
-    UidMap::const_iterator previous = uidMap_.find(std::make_pair(level, original));
+    UidMap::const_iterator previous = uidMap_.find(std::make_pair(level, stripped));
 
     if (previous == uidMap_.end())
     {
@@ -290,14 +308,14 @@ namespace Orthanc
       }
       else
       {
-        if (!identifierGenerator_->Apply(mapped, original, level, currentSource_))
+        if (!identifierGenerator_->Apply(mapped, stripped, level, currentSource_))
         {
           throw OrthancException(ErrorCode_InternalError,
                                  "Unable to generate an anonymized ID");
         }
       }
 
-      uidMap_.insert(std::make_pair(std::make_pair(level, original), mapped));
+      uidMap_.insert(std::make_pair(std::make_pair(level, stripped), mapped));
     }
     else
     {
@@ -337,7 +355,7 @@ namespace Orthanc
       original = "";
     }
 
-    std::string mapped = MapDicomIdentifier(Toolbox::StripSpaces(original), level);
+    std::string mapped = MapDicomIdentifier(original, level);
 
     dicom.Replace(*tag, mapped, 
                   false /* don't try and decode data URI scheme for UIDs */, 
@@ -371,6 +389,7 @@ namespace Orthanc
     
     removals_.erase(tag);
     clearings_.erase(tag);
+    uids_.erase(tag);
 
     bool wasReplaced = CancelReplacement(tag);
 
@@ -404,6 +423,7 @@ namespace Orthanc
   {
     removals_.insert(tag);
     clearings_.erase(tag);
+    uids_.erase(tag);
     CancelReplacement(tag);
     privateTagsToKeep_.erase(tag);
 
@@ -414,6 +434,7 @@ namespace Orthanc
   {
     removals_.erase(tag);
     clearings_.insert(tag);
+    uids_.erase(tag);
     CancelReplacement(tag);
     privateTagsToKeep_.erase(tag);
 
@@ -422,7 +443,23 @@ namespace Orthanc
 
   bool DicomModification::IsRemoved(const DicomTag& tag) const
   {
-    return removals_.find(tag) != removals_.end();
+    if (removals_.find(tag) != removals_.end())
+    {
+      return true;
+    }
+    else
+    {
+      for (RemovedRanges::const_iterator it = removedRanges_.begin();
+           it != removedRanges_.end(); it++)
+      {
+        if (it->Contains(tag))
+        {
+          return true;
+        }
+      }
+
+      return false;
+    }
   }
 
   bool DicomModification::IsCleared(const DicomTag& tag) const
@@ -436,6 +473,7 @@ namespace Orthanc
   {
     clearings_.erase(tag);
     removals_.erase(tag);
+    uids_.erase(tag);
     privateTagsToKeep_.erase(tag);
     ReplaceInternal(tag, value);
 
@@ -513,12 +551,44 @@ namespace Orthanc
   }
 
 
+  static void SetupUidsFromOrthancInternal(std::set<DicomTag>& uids,
+                                           std::set<DicomTag>& removals,
+                                           const DicomTag& tag)
+  {
+    uids.insert(tag);
+    removals.erase(tag);  // Necessary if unserializing a job from 1.9.3
+  }
+  
+
+  void DicomModification::SetupUidsFromOrthanc_1_9_3()
+  {
+    /**
+     * Values below come from the hardcoded UID of Orthanc 1.9.3
+     * in DicomModification::RelationshipsVisitor::VisitString() and
+     * DicomModification::RelationshipsVisitor::RemoveRelationships()
+     * https://hg.orthanc-server.com/orthanc/file/Orthanc-1.9.3/OrthancFramework/Sources/DicomParsing/DicomModification.cpp#l117
+     **/
+    uids_.clear();
+
+    SetupUidsFromOrthancInternal(uids_, removals_, DicomTag(0x0008, 0x0014));  // Instance Creator UID                   <= from SetupAnonymization2008()
+    SetupUidsFromOrthancInternal(uids_, removals_, DicomTag(0x0008, 0x1155));  // Referenced SOP Instance UID            <= from VisitString() + RemoveRelationships()
+    SetupUidsFromOrthancInternal(uids_, removals_, DicomTag(0x0020, 0x0052));  // Frame of Reference UID                 <= from VisitString() + RemoveRelationships()
+    SetupUidsFromOrthancInternal(uids_, removals_, DicomTag(0x0020, 0x0200));  // Synchronization Frame of Reference UID <= from SetupAnonymization2008()
+    SetupUidsFromOrthancInternal(uids_, removals_, DicomTag(0x0040, 0xa124));  // UID                                    <= from SetupAnonymization2008()
+    SetupUidsFromOrthancInternal(uids_, removals_, DicomTag(0x0088, 0x0140));  // Storage Media File-set UID             <= from SetupAnonymization2008()
+    SetupUidsFromOrthancInternal(uids_, removals_, DicomTag(0x3006, 0x0024));  // Referenced Frame of Reference UID      <= from VisitString() + RemoveRelationships()
+    SetupUidsFromOrthancInternal(uids_, removals_, DicomTag(0x3006, 0x00c2));  // Related Frame of Reference UID         <= from VisitString() + RemoveRelationships()
+  }
+
+
   void DicomModification::SetupAnonymization2008()
   {
     // This is Table E.1-1 from PS 3.15-2008 - DICOM Part 15: Security and System Management Profiles
     // https://raw.githubusercontent.com/jodogne/dicom-specification/master/2008/08_15pu.pdf
+
+    SetupUidsFromOrthanc_1_9_3();
     
-    removals_.insert(DicomTag(0x0008, 0x0014));  // Instance Creator UID
+    //uids_.insert(DicomTag(0x0008, 0x0014));  // Instance Creator UID => set in SetupUidsFromOrthanc_1_9_3()
     //removals_.insert(DicomTag(0x0008, 0x0018));  // SOP Instance UID => set in Apply()
     removals_.insert(DicomTag(0x0008, 0x0050));  // Accession Number
     removals_.insert(DicomTag(0x0008, 0x0080));  // Institution Name
@@ -535,7 +605,7 @@ namespace Orthanc
     removals_.insert(DicomTag(0x0008, 0x1060));  // Name of Physician(s) Reading Study 
     removals_.insert(DicomTag(0x0008, 0x1070));  // Operators' Name 
     removals_.insert(DicomTag(0x0008, 0x1080));  // Admitting Diagnoses Description 
-    //removals_.insert(DicomTag(0x0008, 0x1155));  // Referenced SOP Instance UID => RelationshipsVisitor
+    //uids_.insert(DicomTag(0x0008, 0x1155));      // Referenced SOP Instance UID => set in SetupUidsFromOrthanc_1_9_3()
     removals_.insert(DicomTag(0x0008, 0x2111));  // Derivation Description 
     //removals_.insert(DicomTag(0x0010, 0x0010));  // Patient's Name => cf. below (*)
     //removals_.insert(DicomTag(0x0010, 0x0020));  // Patient ID => cf. below (*)
@@ -557,15 +627,15 @@ namespace Orthanc
     //removals_.insert(DicomTag(0x0020, 0x000d));  // Study Instance UID => set in Apply()
     //removals_.insert(DicomTag(0x0020, 0x000e));  // Series Instance UID => set in Apply()
     removals_.insert(DicomTag(0x0020, 0x0010));  // Study ID 
-    //removals_.insert(DicomTag(0x0020, 0x0052));  // Frame of Reference UID => cf. RelationshipsVisitor
-    removals_.insert(DicomTag(0x0020, 0x0200));  // Synchronization Frame of Reference UID 
+    //uids_.insert(DicomTag(0x0020, 0x0052));      // Frame of Reference UID => set in SetupUidsFromOrthanc_1_9_3()
+    //uids_.insert(DicomTag(0x0020, 0x0200));      // Synchronization Frame of Reference UID => set in SetupUidsFromOrthanc_1_9_3()
     removals_.insert(DicomTag(0x0020, 0x4000));  // Image Comments 
     removals_.insert(DicomTag(0x0040, 0x0275));  // Request Attributes Sequence 
-    removals_.insert(DicomTag(0x0040, 0xa124));  // UID
+    //uids_.insert(DicomTag(0x0040, 0xa124));      // UID => set in SetupUidsFromOrthanc_1_9_3()
     removals_.insert(DicomTag(0x0040, 0xa730));  // Content Sequence 
-    removals_.insert(DicomTag(0x0088, 0x0140));  // Storage Media File-set UID 
-    //removals_.insert(DicomTag(0x3006, 0x0024));  // Referenced Frame of Reference UID => RelationshipsVisitor
-    //removals_.insert(DicomTag(0x3006, 0x00c2));  // Related Frame of Reference UID => RelationshipsVisitor
+    //uids_.insert(DicomTag(0x0088, 0x0140));      // Storage Media File-set UID => set in SetupUidsFromOrthanc_1_9_3()
+    //uids_.insert(DicomTag(0x3006, 0x0024));      // Referenced Frame of Reference UID => set in SetupUidsFromOrthanc_1_9_3()
+    //uids_.insert(DicomTag(0x3006, 0x00c2));      // Related Frame of Reference UID => set in SetupUidsFromOrthanc_1_9_3()
 
     // Some more removals (from the experience of DICOM files at the CHU of Liege)
     removals_.insert(DicomTag(0x0010, 0x1040));  // Patient's Address
@@ -621,6 +691,8 @@ namespace Orthanc
     
     removals_.clear();
     clearings_.clear();
+    removedRanges_.clear();
+    uids_.clear();
     ClearReplacements();
     removePrivateTags_ = true;
     level_ = ResourceType_Patient;
@@ -652,6 +724,17 @@ namespace Orthanc
     std::string patientId = FromDcmtkBridge::GenerateUniqueIdentifier(ResourceType_Patient);
     ReplaceInternal(DICOM_TAG_PATIENT_ID, patientId);
     ReplaceInternal(DICOM_TAG_PATIENT_NAME, patientId);
+
+    // Sanity check
+    for (SetOfTags::const_iterator it = uids_.begin(); it != uids_.end(); ++it)
+    {
+      ValueRepresentation vr = FromDcmtkBridge::LookupValueRepresentation(*it);
+      if (vr != ValueRepresentation_UniqueIdentifier &&
+          vr != ValueRepresentation_NotSupported /* for older versions of DCMTK */)
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+    }        
   }
 
   void DicomModification::Apply(ParsedDicomFile& toModify)
@@ -1131,6 +1214,8 @@ namespace Orthanc
   static const char* MAP_SERIES = "MapSeries";
   static const char* MAP_INSTANCES = "MapInstances";
   static const char* PRIVATE_CREATOR = "PrivateCreator";  // New in Orthanc 1.6.0
+  static const char* UIDS = "Uids";                       // New in Orthanc 1.9.4
+  static const char* REMOVED_RANGES = "RemovedRanges";    // New in Orthanc 1.9.4
   
   void DicomModification::Serialize(Json::Value& value) const
   {
@@ -1205,6 +1290,24 @@ namespace Orthanc
       assert(tmp2 != NULL);
       (*tmp2) [it->first.second] = it->second;
     }
+
+    // New in Orthanc 1.9.4
+    SerializationToolbox::WriteSetOfTags(value, uids_, UIDS);
+
+    // New in Orthanc 1.9.4
+    Json::Value ranges = Json::arrayValue;
+      
+    for (RemovedRanges::const_iterator it = removedRanges_.begin(); it != removedRanges_.end(); ++it)
+    {
+      Json::Value item = Json::arrayValue;
+      item.append(it->GetGroupFrom());
+      item.append(it->GetGroupTo());
+      item.append(it->GetElementFrom());
+      item.append(it->GetElementTo());
+      ranges.append(item);
+    }
+
+    value[REMOVED_RANGES] = ranges;
   }
 
   void DicomModification::UnserializeUidMap(ResourceType level,
@@ -1283,6 +1386,62 @@ namespace Orthanc
     UnserializeUidMap(ResourceType_Study, serialized, MAP_STUDIES);
     UnserializeUidMap(ResourceType_Series, serialized, MAP_SERIES);
     UnserializeUidMap(ResourceType_Instance, serialized, MAP_INSTANCES);
+
+    // New in Orthanc 1.9.4
+    if (serialized.isMember(UIDS))  // Backward compatibility with Orthanc <= 1.9.3
+    {
+      SerializationToolbox::ReadSetOfTags(uids_, serialized, UIDS);
+    }
+    else
+    {
+      SetupUidsFromOrthanc_1_9_3();
+    }
+
+    // New in Orthanc 1.9.4
+    removedRanges_.clear();
+    if (serialized.isMember(REMOVED_RANGES))  // Backward compatibility with Orthanc <= 1.9.3
+    {
+      const Json::Value& ranges = serialized[REMOVED_RANGES];
+      
+      if (ranges.type() != Json::arrayValue)
+      {
+        throw OrthancException(ErrorCode_BadFileFormat);
+      }
+      else
+      {
+        for (Json::Value::ArrayIndex i = 0; i < ranges.size(); i++)
+        {
+          if (ranges[i].type() != Json::arrayValue ||
+              ranges[i].size() != 4 ||
+              !ranges[i][0].isUInt() ||
+              !ranges[i][1].isUInt() ||
+              !ranges[i][2].isUInt() ||
+              !ranges[i][3].isUInt())
+          {
+            throw OrthancException(ErrorCode_BadFileFormat);
+          }
+          else
+          {
+            Json::LargestUInt groupFrom = ranges[i][0].asUInt();
+            Json::LargestUInt groupTo = ranges[i][1].asUInt();
+            Json::LargestUInt elementFrom = ranges[i][2].asUInt();
+            Json::LargestUInt elementTo = ranges[i][3].asUInt();
+
+            if (groupFrom > groupTo ||
+                elementFrom > elementTo ||
+                groupTo > 0xffffu ||
+                elementTo > 0xffffu)
+            {
+              throw OrthancException(ErrorCode_BadFileFormat);
+            }
+            else
+            {
+              removedRanges_.push_back(DicomTagRange(groupFrom, groupTo, elementFrom, elementTo));
+            }
+          }
+        }
+      }
+    }
   }
 
 

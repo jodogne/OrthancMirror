@@ -62,7 +62,7 @@ def FormatLine(command, name):
     indentation = 65
     
     if len(command) > indentation:
-        raise Exception('Too long command')
+        indentation = len(command) + 2
         
     line = command + (' ' * (indentation - len(command))) + '// ' + name
     LINES.append(line)
@@ -71,7 +71,7 @@ def FormatUnknown(rawTag, name, profile):
     FormatLine('// TODO: %s with rule %s' % (rawTag, profile), name)
 
     
-RAW_TAG_RE = re.compile(r'^\(\s*([0-9A-F]{4})\s*,\s*([0-9A-F]{4})\s*\)$')
+RAW_TAG_RE = re.compile(r'^\(\s*([0-9A-Fx]{4})\s*,\s*([0-9A-Fx]{4})\s*\)$')
 
 
 for table in root.iter('%stable' % br):
@@ -86,30 +86,37 @@ for table in root.iter('%stable' % br):
 
             match = RAW_TAG_RE.match(rawTag)
             if match == None:
-                FormatUnknown(rawTag, name, profile)
+                raise Exception('Unsupported rule: %s, %s, %s' % (rawTag, profile, name))
             else:
-                tag = '0x%s, 0x%s' % (match.group(1).lower(), match.group(2).lower())
+                group = match.group(1).lower()
+                element = match.group(2).lower()
+                tag = '0x%s, 0x%s' % (group, element)
 
-                if name in [
-                        'SOP Instance UID',
-                        'Series Instance UID',
-                        'Study Instance UID',
+                if 'x' in group or 'x' in element:
+                    if profile == 'X':
+                        groupFrom = group.replace('x', '0')
+                        groupTo = group.replace('x', 'f')
+                        elementFrom = element.replace('x', '0')
+                        elementTo = element.replace('x', 'f')
+                        FormatLine('removedRanges_.push_back(DicomTagRange(0x%s, 0x%s, 0x%s, 0x%s));' % (
+                            groupFrom, groupTo, elementFrom, elementTo), name)
+                    else:
+                        raise Exception('Unsupported rule: %s, %s, %s' % (rawTag, profile, name))
+                elif tag in [
+                        '0x0008, 0x0018',   # SOP Instance UID
+                        '0x0020, 0x000e',   # Series Instance UID
+                        '0x0020, 0x000d',   # Study Instance UID
                 ]:
                     FormatLine('// Tag (%s) is set in Apply()         /* %s */' % (tag, profile), name)
-                elif name in [
-                        'Referenced Image Sequence',
-                        'Source Image Sequence',
-                        'Referenced SOP Instance UID',
-                        'Frame of Reference UID',
-                        'Referenced Frame of Reference UID',
-                        'Related Frame of Reference UID',
-                ]:
-                    FormatLine('// Tag (%s) => RelationshipsVisitor   /* %s */' % (tag, profile), name)
-                elif name in [
-                        'Patient\'s Name',
-                        'Patient ID',
+                elif tag in [
+                        '0x0010, 0x0010',   # Patient's Name
+                        '0x0010, 0x0020',   # Patient ID
                 ]:
                     FormatLine('// Tag (%s) is set below (*)          /* %s */' % (tag, profile), name)
+                elif profile == 'U':
+                    FormatLine('uids_.insert(DicomTag(%s));' % (tag), name)
+                elif profile == 'X/Z/U*':
+                    FormatLine('// RelationshipsVisitor handles (%s)  /* %s */' % (tag, profile), name)
                 elif profile == 'X':
                     FormatLine('removals_.insert(DicomTag(%s));' % tag, name)
                 elif profile.startswith('X/'):
@@ -118,10 +125,9 @@ for table in root.iter('%stable' % br):
                     FormatLine('clearings_.insert(DicomTag(%s));' % tag, name)
                 elif profile == 'D' or profile.startswith('Z/'):
                     FormatLine('clearings_.insert(DicomTag(%s));  /* %s */' % (tag, profile), name)
-                elif profile == 'U':
-                    FormatLine('removals_.insert(DicomTag(%s));   /* TODO UID */' % (tag), name)
                 else:
-                    FormatUnknown(rawTag, name, profile)
+                    # FormatUnknown(rawTag, name, profile)
+                    raise Exception('Unsupported rule: %s, %s, %s' % (rawTag, profile, name))
 
 for line in sorted(LINES):
     print(line.encode('ascii', 'ignore').decode('ascii'))
