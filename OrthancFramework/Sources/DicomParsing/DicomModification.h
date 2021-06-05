@@ -24,6 +24,9 @@
 
 #include "ParsedDicomFile.h"
 
+#include <list>
+
+
 namespace Orthanc
 {
   class ORTHANC_PUBLIC DicomModification : public boost::noncopyable
