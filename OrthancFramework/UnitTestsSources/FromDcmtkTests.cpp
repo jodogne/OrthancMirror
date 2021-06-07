@@ -36,12 +36,13 @@
 #include <gtest/gtest.h>
 
 #include "../Sources/Compatibility.h"
+#include "../Sources/DicomFormat/DicomPath.h"
 #include "../Sources/DicomNetworking/DicomFindAnswers.h"
 #include "../Sources/DicomParsing/DicomModification.h"
 #include "../Sources/DicomParsing/DicomWebJsonVisitor.h"
 #include "../Sources/DicomParsing/FromDcmtkBridge.h"
-#include "../Sources/DicomParsing/ToDcmtkBridge.h"
 #include "../Sources/DicomParsing/ParsedDicomCache.h"
+#include "../Sources/DicomParsing/ToDcmtkBridge.h"
 #include "../Sources/Endianness.h"
 #include "../Sources/Images/Image.h"
 #include "../Sources/Images/ImageBuffer.h"
@@ -50,6 +51,7 @@
 #include "../Sources/Images/PngWriter.h"
 #include "../Sources/Logging.h"
 #include "../Sources/OrthancException.h"
+
 #include "../Resources/CodeGeneration/EncodingTests.h"
 
 #if ORTHANC_SANDBOXED != 1
@@ -2255,6 +2257,100 @@ TEST(ParsedDicomCache, Basic)
   ASSERT_FALSE(ParsedDicomCache::Accessor(cache, "e").IsValid());
 }
 
+
+TEST(DicomModification, DicomPath)
+{
+  // Those are samples inspired by those from "man dcmodify"
+
+  static const DicomTag DICOM_TAG_ACQUISITION_MATRIX(0x0018, 0x1310);
+  static const DicomTag DICOM_TAG_REFERENCED_PERFORMED_PROCEDURE_STEP_SEQUENCE(0x0008, 0x1111);
+
+  DicomPath path = DicomPath::Parse("(0010,0010)", true);
+  ASSERT_EQ(0u, path.GetPrefixLength());
+  ASSERT_EQ(DICOM_TAG_PATIENT_NAME, path.GetFinalTag());
+  ASSERT_THROW(path.GetPrefixTag(0), OrthancException);
+
+  path = DicomPath::Parse("0018,1310", true);
+  ASSERT_EQ(0u, path.GetPrefixLength());
+  ASSERT_EQ(DICOM_TAG_ACQUISITION_MATRIX, path.GetFinalTag());
+  ASSERT_EQ("(0018,1310)", path.Format());
+
+  // The following sample won't work without DCMTK
+  path = DicomPath::Parse("PatientID", true);
+  ASSERT_EQ(0u, path.GetPrefixLength());
+  ASSERT_EQ(DICOM_TAG_PATIENT_ID, path.GetFinalTag());
+  ASSERT_EQ("(0010,0020)", path.Format());
+
+  path = DicomPath::Parse("(0018,1310)", true);
+  ASSERT_EQ(0u, path.GetPrefixLength());
+  ASSERT_EQ(DICOM_TAG_ACQUISITION_MATRIX, path.GetFinalTag());
+  ASSERT_EQ("(0018,1310)", path.Format());
+
+  path = DicomPath::Parse("(0008,1111)[0].PatientName", true);
+  ASSERT_EQ(1u, path.GetPrefixLength());
+  ASSERT_EQ(DICOM_TAG_REFERENCED_PERFORMED_PROCEDURE_STEP_SEQUENCE, path.GetPrefixTag(0));
+  ASSERT_FALSE(path.IsPrefixUniversal(0));
+  ASSERT_EQ(0, path.GetPrefixIndex(0));
+  ASSERT_THROW(path.GetPrefixTag(1), OrthancException);
+  ASSERT_EQ(DICOM_TAG_PATIENT_NAME, path.GetFinalTag());
+  
+  path = DicomPath::Parse("(0008,1111)[1].(0008,1111)[2].(0010,0010)", true);
+  ASSERT_EQ(2u, path.GetPrefixLength());
+  ASSERT_EQ(DICOM_TAG_REFERENCED_PERFORMED_PROCEDURE_STEP_SEQUENCE, path.GetPrefixTag(0));
+  ASSERT_FALSE(path.IsPrefixUniversal(0));
+  ASSERT_EQ(1, path.GetPrefixIndex(0));
+  ASSERT_EQ(DICOM_TAG_REFERENCED_PERFORMED_PROCEDURE_STEP_SEQUENCE, path.GetPrefixTag(1));
+  ASSERT_FALSE(path.IsPrefixUniversal(1));
+  ASSERT_EQ(2, path.GetPrefixIndex(1));
+  ASSERT_THROW(path.GetPrefixTag(2), OrthancException);
+  ASSERT_EQ(DICOM_TAG_PATIENT_NAME, path.GetFinalTag());
+  
+  path = DicomPath::Parse("(0008,1111)[*].PatientName", true);
+  ASSERT_EQ(1u, path.GetPrefixLength());
+  ASSERT_EQ(DICOM_TAG_REFERENCED_PERFORMED_PROCEDURE_STEP_SEQUENCE, path.GetPrefixTag(0));
+  ASSERT_TRUE(path.IsPrefixUniversal(0));
+  ASSERT_THROW(path.GetPrefixIndex(0), OrthancException);
+  ASSERT_THROW(path.GetPrefixTag(1), OrthancException);
+  ASSERT_EQ(DICOM_TAG_PATIENT_NAME, path.GetFinalTag());
+  ASSERT_EQ("(0008,1111)[*].(0010,0010)", path.Format());
+  
+  ASSERT_THROW(DicomPath::Parse("(0008,1111)[*].PatientName", false), OrthancException);
+  
+  path = DicomPath::Parse("(0008,1111)[1].(0008,1111)[*].(0010,0010)", true);
+  ASSERT_EQ(2u, path.GetPrefixLength());
+  ASSERT_EQ(DICOM_TAG_REFERENCED_PERFORMED_PROCEDURE_STEP_SEQUENCE, path.GetPrefixTag(0));
+  ASSERT_FALSE(path.IsPrefixUniversal(0));
+  ASSERT_EQ(1, path.GetPrefixIndex(0));
+  ASSERT_EQ(DICOM_TAG_REFERENCED_PERFORMED_PROCEDURE_STEP_SEQUENCE, path.GetPrefixTag(0));
+  ASSERT_TRUE(path.IsPrefixUniversal(1));
+  ASSERT_THROW(path.GetPrefixIndex(1), OrthancException);
+  ASSERT_THROW(path.GetPrefixTag(2), OrthancException);
+  ASSERT_EQ(DICOM_TAG_PATIENT_NAME, path.GetFinalTag());
+  
+  path = DicomPath::Parse("PatientID[1].PatientName", true);
+  ASSERT_EQ(1u, path.GetPrefixLength());
+  ASSERT_EQ(DICOM_TAG_PATIENT_ID, path.GetPrefixTag(0));
+  ASSERT_FALSE(path.IsPrefixUniversal(0));
+  ASSERT_EQ(1, path.GetPrefixIndex(0));
+  ASSERT_THROW(path.GetPrefixTag(1), OrthancException);
+  ASSERT_EQ(DICOM_TAG_PATIENT_NAME, path.GetFinalTag());
+
+  path = DicomPath::Parse("     PatientID    [  42   ]    .    PatientName     ", true);
+  ASSERT_EQ(1u, path.GetPrefixLength());
+  ASSERT_EQ(DICOM_TAG_PATIENT_ID, path.GetPrefixTag(0));
+  ASSERT_FALSE(path.IsPrefixUniversal(0));
+  ASSERT_EQ(42, path.GetPrefixIndex(0));
+  ASSERT_THROW(path.GetPrefixTag(1), OrthancException);
+  ASSERT_EQ(DICOM_TAG_PATIENT_NAME, path.GetFinalTag());
+  ASSERT_EQ("(0010,0020)[42].(0010,0010)", path.Format());
+
+  ASSERT_THROW(DicomPath::Parse("nope", true), OrthancException);
+  ASSERT_THROW(DicomPath::Parse("(0010,0010)[.PatientID", true), OrthancException);
+  ASSERT_THROW(DicomPath::Parse("(0010,0010)[].PatientID", true), OrthancException);
+  ASSERT_THROW(DicomPath::Parse("(0010,0010[].PatientID", true), OrthancException);
+  ASSERT_THROW(DicomPath::Parse("(0010,0010)0].PatientID", true), OrthancException);
+  ASSERT_THROW(DicomPath::Parse("(0010,0010)[-1].PatientID", true), OrthancException);
+}
 
 
 
