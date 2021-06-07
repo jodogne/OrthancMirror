@@ -154,6 +154,20 @@ namespace Orthanc
   }
   
 
+  bool DicomPath::HasUniversal() const
+  {
+    for (size_t i = 0; i < prefix_.size(); i++)
+    {
+      if (prefix_[i].IsUniversal())
+      {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+
   std::string DicomPath::Format() const
   {
     std::string s;
@@ -176,8 +190,7 @@ namespace Orthanc
   }
 
   
-  DicomPath DicomPath::Parse(const std::string& s,
-                             bool allowUniversal)
+  DicomPath DicomPath::Parse(const std::string& s)
   {
     std::vector<std::string> tokens;
     Toolbox::TokenizeString(tokens, s, '.');
@@ -221,14 +234,7 @@ namespace Orthanc
             std::string s = Toolbox::StripSpaces(right.substr(0, right.size() - 1));
             if (s == "*")
             {
-              if (allowUniversal)
-              {
-                path.AddUniversalTagToPrefix(tag);
-              }
-              else
-              {
-                throw OrthancException(ErrorCode_ParameterOutOfRange, "Cannot create an universal parent path");
-              }
+              path.AddUniversalTagToPrefix(tag);
             }
             else
             {
