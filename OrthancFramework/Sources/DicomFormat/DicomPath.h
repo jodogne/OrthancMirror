@@ -29,7 +29,7 @@
 
 namespace Orthanc
 {
-  class DicomPath
+  class ORTHANC_PUBLIC DicomPath
   {
   private:
     class PrefixItem
@@ -129,9 +129,10 @@ namespace Orthanc
       return GetLevel(level).GetIndex();
     }
 
+    bool HasUniversal() const;
+
     std::string Format() const;
 
-    static DicomPath Parse(const std::string& s,
-                           bool allowUniversal);
+    static DicomPath Parse(const std::string& s);
   };
 }

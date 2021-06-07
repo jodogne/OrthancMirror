@@ -2794,6 +2794,121 @@ namespace Orthanc
     
     DicomMap::LogMissingTagsForStore(patientId, studyInstanceUid, seriesInstanceUid, sopInstanceUid);
   }
+
+
+  static void ApplyInternal(FromDcmtkBridge::IDicomPathVisitor& visitor,
+                            DcmItem& item,
+                            const DicomPath& path,
+                            size_t level)
+  {
+    if (level == path.GetPrefixLength())
+    {
+      visitor.Visit(item, path.GetFinalTag());
+    }
+    else
+    {
+      const DicomTag& tmp = path.GetPrefixTag(level);
+      DcmTagKey tag(tmp.GetGroup(), tmp.GetElement());
+
+      DcmSequenceOfItems *sequence = NULL;
+      if (item.findAndGetSequence(tag, sequence).good() &&
+          sequence != NULL)
+      {
+        for (unsigned long i = 0; i < sequence->card(); i++)
+        {
+          if (path.IsPrefixUniversal(level) ||
+              path.GetPrefixIndex(level) == static_cast<size_t>(i))
+          {
+            DcmItem *child = sequence->getItem(i);
+            if (child != NULL)
+            {
+              ApplyInternal(visitor, *child, path, level + 1);
+            }
+          }
+        }
+      }
+    }
+  }
+
+
+  void FromDcmtkBridge::Apply(IDicomPathVisitor& visitor,
+                              DcmDataset& dataset,
+                              const DicomPath& path)
+  {
+    ApplyInternal(visitor, dataset, path, 0);
+  }
+
+
+  void FromDcmtkBridge::RemovePath(DcmDataset& dataset,
+                                   const DicomPath& path)
+  {
+    class Visitor : public FromDcmtkBridge::IDicomPathVisitor
+    {
+    public:
+      virtual void Visit(DcmItem& item,
+                         const DicomTag& tag) ORTHANC_OVERRIDE
+      {
+        DcmTagKey tmp(tag.GetGroup(), tag.GetElement());
+        std::unique_ptr<DcmElement> removed(item.remove(tmp));
+      }
+    };
+    
+    Visitor visitor;
+    Apply(visitor, dataset, path);
+  }
+  
+
+  void FromDcmtkBridge::ReplacePath(DcmDataset& dataset,
+                                    const DicomPath& path,
+                                    const DcmElement& element)
+  {
+    class Visitor : public FromDcmtkBridge::IDicomPathVisitor
+    {
+    private:
+      std::unique_ptr<DcmElement> element_;
+    
+    public:
+      Visitor(const DcmElement& element) :
+        element_(dynamic_cast<DcmElement*>(element.clone()))
+      {
+        if (element_.get() == NULL)
+        {
+          throw OrthancException(ErrorCode_InternalError, "Cannot clone DcmElement");
+        }
+      }
+    
+      virtual void Visit(DcmItem& item,
+                         const DicomTag& tag) ORTHANC_OVERRIDE
+      {
+        std::unique_ptr<DcmElement> cloned(dynamic_cast<DcmElement*>(element_->clone()));
+        if (cloned.get() == NULL)
+        {
+          throw OrthancException(ErrorCode_InternalError, "Cannot clone DcmElement");
+        }
+        else
+        {      
+          DcmTagKey tmp(tag.GetGroup(), tag.GetElement());
+          if (!item.insert(cloned.release(), OFTrue /* replace old */).good())
+          {
+            throw OrthancException(ErrorCode_InternalError, "Cannot replace an element");
+          }
+        }
+      }
+    };
+
+    DcmTagKey tmp(path.GetFinalTag().GetGroup(), path.GetFinalTag().GetElement());
+  
+    if (element.getTag() != tmp)
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange,
+                             "The final tag must be the same as the tag of the element during a replacement");
+    }
+    else
+    {
+      Visitor visitor(element);
+      Apply(visitor, dataset, path);
+    }
+  }
 }
 
 

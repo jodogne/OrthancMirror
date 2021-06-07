@@ -25,6 +25,7 @@
 #include "ITagVisitor.h"
 #include "../DicomFormat/DicomElement.h"
 #include "../DicomFormat/DicomMap.h"
+#include "../DicomFormat/DicomPath.h"
 
 #include <dcmtk/dcmdata/dcdatset.h>
 #include <dcmtk/dcmdata/dcmetinf.h>
@@ -58,6 +59,20 @@ namespace Orthanc
 #endif
 
     friend class ParsedDicomFile;
+
+  public:
+    // New in Orthanc 1.9.4
+    class ORTHANC_PUBLIC IDicomPathVisitor : public boost::noncopyable
+    {
+    public:
+      virtual ~IDicomPathVisitor()
+      {
+      }
+
+      virtual void Visit(DcmItem& item,
+                         const DicomTag& tag) = 0;
+    };
+    
 
   private:
     FromDcmtkBridge();  // Pure static class
@@ -226,5 +241,16 @@ namespace Orthanc
                                             DcmDataset& dicom);
 
     static void LogMissingTagsForStore(DcmDataset& dicom);
+
+    static void Apply(IDicomPathVisitor& visitor,
+                      DcmDataset& dataset,
+                      const DicomPath& path);
+
+    static void RemovePath(DcmDataset& dataset,
+                           const DicomPath& path);
+
+    static void ReplacePath(DcmDataset& dataset,
+                            const DicomPath& path,
+                            const DcmElement& element);
   };
 }

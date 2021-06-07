@@ -2265,28 +2265,33 @@ TEST(DicomModification, DicomPath)
   static const DicomTag DICOM_TAG_ACQUISITION_MATRIX(0x0018, 0x1310);
   static const DicomTag DICOM_TAG_REFERENCED_PERFORMED_PROCEDURE_STEP_SEQUENCE(0x0008, 0x1111);
 
-  DicomPath path = DicomPath::Parse("(0010,0010)", true);
+  DicomPath path = DicomPath::Parse("(0010,0010)");
+  ASSERT_FALSE(path.HasUniversal());
   ASSERT_EQ(0u, path.GetPrefixLength());
   ASSERT_EQ(DICOM_TAG_PATIENT_NAME, path.GetFinalTag());
   ASSERT_THROW(path.GetPrefixTag(0), OrthancException);
 
-  path = DicomPath::Parse("0018,1310", true);
+  path = DicomPath::Parse("0018,1310");
+  ASSERT_FALSE(path.HasUniversal());
   ASSERT_EQ(0u, path.GetPrefixLength());
   ASSERT_EQ(DICOM_TAG_ACQUISITION_MATRIX, path.GetFinalTag());
   ASSERT_EQ("(0018,1310)", path.Format());
 
   // The following sample won't work without DCMTK
-  path = DicomPath::Parse("PatientID", true);
+  path = DicomPath::Parse("PatientID");
+  ASSERT_FALSE(path.HasUniversal());
   ASSERT_EQ(0u, path.GetPrefixLength());
   ASSERT_EQ(DICOM_TAG_PATIENT_ID, path.GetFinalTag());
   ASSERT_EQ("(0010,0020)", path.Format());
 
-  path = DicomPath::Parse("(0018,1310)", true);
+  path = DicomPath::Parse("(0018,1310)");
+  ASSERT_FALSE(path.HasUniversal());
   ASSERT_EQ(0u, path.GetPrefixLength());
   ASSERT_EQ(DICOM_TAG_ACQUISITION_MATRIX, path.GetFinalTag());
   ASSERT_EQ("(0018,1310)", path.Format());
 
-  path = DicomPath::Parse("(0008,1111)[0].PatientName", true);
+  path = DicomPath::Parse("(0008,1111)[0].PatientName");
+  ASSERT_FALSE(path.HasUniversal());
   ASSERT_EQ(1u, path.GetPrefixLength());
   ASSERT_EQ(DICOM_TAG_REFERENCED_PERFORMED_PROCEDURE_STEP_SEQUENCE, path.GetPrefixTag(0));
   ASSERT_FALSE(path.IsPrefixUniversal(0));
@@ -2294,7 +2299,8 @@ TEST(DicomModification, DicomPath)
   ASSERT_THROW(path.GetPrefixTag(1), OrthancException);
   ASSERT_EQ(DICOM_TAG_PATIENT_NAME, path.GetFinalTag());
   
-  path = DicomPath::Parse("(0008,1111)[1].(0008,1111)[2].(0010,0010)", true);
+  path = DicomPath::Parse("(0008,1111)[1].(0008,1111)[2].(0010,0010)");
+  ASSERT_FALSE(path.HasUniversal());
   ASSERT_EQ(2u, path.GetPrefixLength());
   ASSERT_EQ(DICOM_TAG_REFERENCED_PERFORMED_PROCEDURE_STEP_SEQUENCE, path.GetPrefixTag(0));
   ASSERT_FALSE(path.IsPrefixUniversal(0));
@@ -2305,7 +2311,8 @@ TEST(DicomModification, DicomPath)
   ASSERT_THROW(path.GetPrefixTag(2), OrthancException);
   ASSERT_EQ(DICOM_TAG_PATIENT_NAME, path.GetFinalTag());
   
-  path = DicomPath::Parse("(0008,1111)[*].PatientName", true);
+  path = DicomPath::Parse("(0008,1111)[*].PatientName");
+  ASSERT_TRUE(path.HasUniversal());
   ASSERT_EQ(1u, path.GetPrefixLength());
   ASSERT_EQ(DICOM_TAG_REFERENCED_PERFORMED_PROCEDURE_STEP_SEQUENCE, path.GetPrefixTag(0));
   ASSERT_TRUE(path.IsPrefixUniversal(0));
@@ -2314,9 +2321,8 @@ TEST(DicomModification, DicomPath)
   ASSERT_EQ(DICOM_TAG_PATIENT_NAME, path.GetFinalTag());
   ASSERT_EQ("(0008,1111)[*].(0010,0010)", path.Format());
   
-  ASSERT_THROW(DicomPath::Parse("(0008,1111)[*].PatientName", false), OrthancException);
-  
-  path = DicomPath::Parse("(0008,1111)[1].(0008,1111)[*].(0010,0010)", true);
+  path = DicomPath::Parse("(0008,1111)[1].(0008,1111)[*].(0010,0010)");
+  ASSERT_TRUE(path.HasUniversal());
   ASSERT_EQ(2u, path.GetPrefixLength());
   ASSERT_EQ(DICOM_TAG_REFERENCED_PERFORMED_PROCEDURE_STEP_SEQUENCE, path.GetPrefixTag(0));
   ASSERT_FALSE(path.IsPrefixUniversal(0));
@@ -2327,7 +2333,8 @@ TEST(DicomModification, DicomPath)
   ASSERT_THROW(path.GetPrefixTag(2), OrthancException);
   ASSERT_EQ(DICOM_TAG_PATIENT_NAME, path.GetFinalTag());
   
-  path = DicomPath::Parse("PatientID[1].PatientName", true);
+  path = DicomPath::Parse("PatientID[1].PatientName");
+  ASSERT_FALSE(path.HasUniversal());
   ASSERT_EQ(1u, path.GetPrefixLength());
   ASSERT_EQ(DICOM_TAG_PATIENT_ID, path.GetPrefixTag(0));
   ASSERT_FALSE(path.IsPrefixUniversal(0));
@@ -2335,7 +2342,8 @@ TEST(DicomModification, DicomPath)
   ASSERT_THROW(path.GetPrefixTag(1), OrthancException);
   ASSERT_EQ(DICOM_TAG_PATIENT_NAME, path.GetFinalTag());
 
-  path = DicomPath::Parse("     PatientID    [  42   ]    .    PatientName     ", true);
+  path = DicomPath::Parse("     PatientID    [  42   ]    .    PatientName     ");
+  ASSERT_FALSE(path.HasUniversal());
   ASSERT_EQ(1u, path.GetPrefixLength());
   ASSERT_EQ(DICOM_TAG_PATIENT_ID, path.GetPrefixTag(0));
   ASSERT_FALSE(path.IsPrefixUniversal(0));
@@ -2344,12 +2352,125 @@ TEST(DicomModification, DicomPath)
   ASSERT_EQ(DICOM_TAG_PATIENT_NAME, path.GetFinalTag());
   ASSERT_EQ("(0010,0020)[42].(0010,0010)", path.Format());
 
-  ASSERT_THROW(DicomPath::Parse("nope", true), OrthancException);
-  ASSERT_THROW(DicomPath::Parse("(0010,0010)[.PatientID", true), OrthancException);
-  ASSERT_THROW(DicomPath::Parse("(0010,0010)[].PatientID", true), OrthancException);
-  ASSERT_THROW(DicomPath::Parse("(0010,0010[].PatientID", true), OrthancException);
-  ASSERT_THROW(DicomPath::Parse("(0010,0010)0].PatientID", true), OrthancException);
-  ASSERT_THROW(DicomPath::Parse("(0010,0010)[-1].PatientID", true), OrthancException);
+  ASSERT_THROW(DicomPath::Parse("nope"), OrthancException);
+  ASSERT_THROW(DicomPath::Parse("(0010,0010)[.PatientID"), OrthancException);
+  ASSERT_THROW(DicomPath::Parse("(0010,0010)[].PatientID"), OrthancException);
+  ASSERT_THROW(DicomPath::Parse("(0010,0010[].PatientID"), OrthancException);
+  ASSERT_THROW(DicomPath::Parse("(0010,0010)0].PatientID"), OrthancException);
+  ASSERT_THROW(DicomPath::Parse("(0010,0010)[-1].PatientID"), OrthancException);
+}
+
+
+
+TEST(ParsedDicomFile, RemovePath)
+{
+  {
+    Json::Value v = Json::arrayValue;
+
+    Json::Value item = Json::objectValue;
+    item["PatientID"] = "HELLO";
+    v.append(item);
+
+    std::unique_ptr<DcmElement> d(FromDcmtkBridge::FromJson(DICOM_TAG_SOURCE_IMAGE_SEQUENCE,
+                                                            v, false, Encoding_Latin1, ""));
+    d->writeXML(std::cout);
+  }
+
+  {
+    Json::Value v = "Hello";
+    std::unique_ptr<DcmElement> d(FromDcmtkBridge::FromJson(DICOM_TAG_PATIENT_ID,
+                                                            v, false, Encoding_Latin1, ""));
+    d->writeXML(std::cout);
+  }
+
+  printf("\n");
+
+  {
+    Json::Value v = Json::objectValue;
+    v["PatientID"] = "Hello";
+
+    {
+      Json::Value a = Json::arrayValue;
+
+      {
+        Json::Value item = Json::objectValue;
+        item["ReferencedSOPClassUID"] = "1.2.840.10008.5.1.4.1.1.4";
+        item["ReferencedSOPInstanceUID"] = "1.2.840.113619.2.176.2025.1499492.7040.1171286241.719";
+        a.append(item);
+      }
+      
+      {
+        Json::Value item = Json::objectValue;
+        item["ReferencedSOPClassUID"] = "1.2.840.10008.5.1.4.1.1.4";
+        item["ReferencedSOPInstanceUID"] = "1.2.840.113619.2.176.2025.1499492.7040.1171286241.726";
+        a.append(item);
+      }
+      
+      v["ReferencedImageSequence"] = a;
+    }
+    
+    {
+      Json::Value a = Json::arrayValue;
+
+      {
+        Json::Value item = Json::objectValue;
+        item["StudyInstanceUID"] = "1.2.840.113704.1.111.7016.1342451220.40";
+
+        {
+          Json::Value b = Json::arrayValue;
+
+          {
+            Json::Value c = Json::objectValue;
+            c["CodeValue"] = "122403";
+            b.append(c);
+          }
+
+          item["PurposeOfReferenceCodeSequence"] = b;
+        }
+        
+        a.append(item);
+      }
+      
+      v["RelatedSeriesSequence"] = a;
+    }
+    
+    std::unique_ptr<DcmDataset> d(FromDcmtkBridge::FromJson(v, false /* generate UID */, false, Encoding_Latin1, ""));
+
+    static const DicomTag DICOM_TAG_REFERENCED_SOP_CLASS_UID(0x0008, 0x1150);
+    static const DicomTag DICOM_TAG_REFERENCED_IMAGE_SEQUENCE(0x0008, 0x1140);
+    
+    DicomPath path(DICOM_TAG_REFERENCED_SOP_CLASS_UID);
+    path.AddIndexedTagToPrefix(DICOM_TAG_REFERENCED_IMAGE_SEQUENCE, 2);
+    //path.AddUniversalTagToPrefix(DICOM_TAG_REFERENCED_IMAGE_SEQUENCE);
+    
+    //DicomPath path(DicomTag(0x0008, 0x0100));
+    //path.AddIndexedTagToPrefix(DicomTag(0x0008, 0x1250), 0);
+    //path.AddIndexedTagToPrefix(DicomTag(0x0040, 0xa170), 1);
+    
+    //FromDcmtkBridge::RemovePath(*d, DicomPath::Parse("ReferencedImageSequence[*].ReferencedSOPClassUID"));
+    //FromDcmtkBridge::RemovePath(*d, DicomPath::Parse("ReferencedImageSequence[0].ReferencedSOPClassUID"));
+    //FromDcmtkBridge::RemovePath(*d, DicomPath::Parse("ReferencedImageSequence[1].ReferencedSOPClassUID"));
+    FromDcmtkBridge::RemovePath(*d, DicomPath::Parse("RelatedSeriesSequence[0].PurposeOfReferenceCodeSequence[0].CodeValue"));
+    //FromDcmtkBridge::RemovePath(*d, DicomPath::Parse("RelatedSeriesSequence[0].PurposeOfReferenceCodeSequence"));
+    //FromDcmtkBridge::RemovePath(*d, DicomPath::Parse("RelatedSeriesSequence"));
+
+    {
+      Json::Value v = "Hello";
+      std::unique_ptr<DcmElement> e(FromDcmtkBridge::FromJson(DicomTag(0x0008, 0x0100), v, false, Encoding_Latin1, ""));
+      FromDcmtkBridge::ReplacePath(*d, DicomPath::Parse("RelatedSeriesSequence[0].PurposeOfReferenceCodeSequence[0].CodeValue"), *e);
+    }
+
+    {
+      Json::Value v = "Hello";
+      std::unique_ptr<DcmElement> e(FromDcmtkBridge::FromJson(DicomTag(0x0008, 0x1150), v, false, Encoding_Latin1, ""));
+      FromDcmtkBridge::ReplacePath(*d, DicomPath::Parse("ReferencedImageSequence[*].ReferencedSOPClassUID"), *e);
+    }
+
+    Json::Value vv;
+    std::set<DicomTag> ignoreTagLength;
+    FromDcmtkBridge::ExtractDicomAsJson(vv, *d, DicomToJsonFormat_Short, DicomToJsonFlags_None, 0, ignoreTagLength);
+    std::cout << vv.toStyledString();
+  }
 }
 
 
