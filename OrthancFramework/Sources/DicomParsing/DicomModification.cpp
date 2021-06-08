@@ -169,6 +169,22 @@ namespace Orthanc
       else
       {
         // We are within a sequence
+
+        if (!that_.keepSequences_.empty())
+        {
+          // New in Orthanc 1.9.4 - Solves issue LSD-629
+          DicomPath path(parentTags, parentIndexes, tag);
+          
+          for (ListOfPaths::const_iterator it = that_.keepSequences_.begin();
+               it != that_.keepSequences_.end(); ++it)
+          {
+            if (DicomPath::IsMatch(*it, path))
+            {
+              return Action_None;
+            }
+          }
+        }
+
         if (tag == DICOM_TAG_STUDY_INSTANCE_UID)
         {
           newValue = that_.MapDicomIdentifier(value, ResourceType_Study);
@@ -247,19 +263,15 @@ namespace Orthanc
   };
 
 
-  bool DicomModification::CancelReplacement(const DicomTag& tag)
+  void DicomModification::CancelReplacement(const DicomTag& tag)
   {
     Replacements::iterator it = replacements_.find(tag);
     
     if (it != replacements_.end())
     {
+      assert(it->second != NULL);
       delete it->second;
       replacements_.erase(it);
-      return true;
-    }
-    else
-    {
-      return false;
     }
   }
 
@@ -271,6 +283,7 @@ namespace Orthanc
 
     if (it != replacements_.end())
     {
+      assert(it->second != NULL);
       delete it->second;
       it->second = NULL;   // In the case of an exception during the clone
       it->second = new Json::Value(value);  // Clone
@@ -287,10 +300,21 @@ namespace Orthanc
     for (Replacements::iterator it = replacements_.begin();
          it != replacements_.end(); ++it)
     {
+      assert(it->second != NULL);
       delete it->second;
     }
 
     replacements_.clear();
+
+    for (SequenceReplacements::iterator it = sequenceReplacements_.begin();
+         it != sequenceReplacements_.end(); ++it)
+    {
+      assert(*it != NULL);
+      assert((*it)->GetPath().GetPrefixLength() > 0);
+      delete *it;
+    }
+
+    sequenceReplacements_.clear();
   }
 
 
@@ -298,13 +322,17 @@ namespace Orthanc
   {
     Replacements::iterator it = replacements_.find(DICOM_TAG_DEIDENTIFICATION_METHOD);
 
-    if (it != replacements_.end() &&
-        (it->second->asString() == ORTHANC_DEIDENTIFICATION_METHOD_2008 ||
-         it->second->asString() == ORTHANC_DEIDENTIFICATION_METHOD_2017c ||
-         it->second->asString() == ORTHANC_DEIDENTIFICATION_METHOD_2021b))
+    if (it != replacements_.end())
     {
-      delete it->second;
-      replacements_.erase(it);
+      assert(it->second != NULL);
+
+      if (it->second->asString() == ORTHANC_DEIDENTIFICATION_METHOD_2008 ||
+          it->second->asString() == ORTHANC_DEIDENTIFICATION_METHOD_2017c ||
+          it->second->asString() == ORTHANC_DEIDENTIFICATION_METHOD_2021b)
+      {
+        delete it->second;
+        replacements_.erase(it);
+      }
     }
   }
 
@@ -413,14 +441,11 @@ namespace Orthanc
 
   void DicomModification::Keep(const DicomTag& tag)
   {
-    bool wasRemoved = IsRemoved(tag);
-    bool wasCleared = IsCleared(tag);
-    
     removals_.erase(tag);
     clearings_.erase(tag);
     uids_.erase(tag);
 
-    bool wasReplaced = CancelReplacement(tag);
+    CancelReplacement(tag);
 
     if (tag == DICOM_TAG_STUDY_INSTANCE_UID)
     {
@@ -437,12 +462,6 @@ namespace Orthanc
     else if (tag.IsPrivate())
     {
       privateTagsToKeep_.insert(tag);
-    }
-    else if (!wasRemoved &&
-             !wasReplaced &&
-             !wasCleared)
-    {
-      LOG(WARNING) << "Marking this tag as to be kept has no effect: " << tag.Format();
     }
 
     MarkNotOrthancAnonymization();
@@ -528,6 +547,7 @@ namespace Orthanc
     }
     else
     {
+      assert(it->second != NULL);
       return *it->second;
     } 
   }
@@ -727,6 +747,8 @@ namespace Orthanc
     level_ = ResourceType_Patient;
     uidMap_.clear();
     privateTagsToKeep_.clear();
+    keepSequences_.clear();
+    removeSequences_.clear();    
 
     switch (version)
     {
@@ -937,11 +959,29 @@ namespace Orthanc
     for (Replacements::const_iterator it = replacements_.begin(); 
          it != replacements_.end(); ++it)
     {
+      assert(it->second != NULL);
       toModify.Replace(it->first, *it->second, true /* decode data URI scheme */,
                        DicomReplaceMode_InsertIfAbsent, privateCreator_);
     }
 
-    // (6) Update the DICOM identifiers
+    // (6) New in Orthanc 1.9.4: Apply modifications to subsequences
+    for (ListOfPaths::const_iterator it = removeSequences_.begin();
+         it != removeSequences_.end(); ++it)
+    {
+      assert(it->GetPrefixLength() > 0);
+      toModify.RemovePath(*it);
+    }
+
+    for (SequenceReplacements::const_iterator it = sequenceReplacements_.begin();
+         it != sequenceReplacements_.end(); ++it)
+    {
+      assert(*it != NULL);
+      assert((*it)->GetPath().GetPrefixLength() > 0);
+      toModify.ReplacePath((*it)->GetPath(), (*it)->GetValue(), true /* decode data URI scheme */,
+                           DicomReplaceMode_InsertIfAbsent, privateCreator_);
+    }
+
+    // (7) Update the DICOM identifiers
     if (level_ <= ResourceType_Study &&
         !IsReplaced(DICOM_TAG_STUDY_INSTANCE_UID))
     {
@@ -981,7 +1021,7 @@ namespace Orthanc
       }
     }
 
-    // (7) Update the "referenced" relationships in the case of an anonymization
+    // (8) Update the "referenced" relationships in the case of an anonymization
     if (isAnonymization_)
     {
       RelationshipsVisitor visitor(*this);
@@ -1089,7 +1129,7 @@ namespace Orthanc
                                "requires the \"Force\" option to be set to true");
       }
 
-      target.Replace(tag, value, false);
+      target.Replace(tag, value, false /* not safe for anonymization */);
 
       LOG(TRACE) << "Replace: " << name << " (" << tag.Format() 
                  << ") == " << value.toStyledString();
@@ -1482,5 +1522,51 @@ namespace Orthanc
   const std::string &DicomModification::GetPrivateCreator() const
   {
     return privateCreator_;
+  }
+
+
+  void DicomModification::Keep(const DicomPath& path)
+  {
+    if (path.GetPrefixLength() == 0)
+    {
+      Keep(path.GetFinalTag());
+    }
+
+    keepSequences_.push_back(path);
+    MarkNotOrthancAnonymization();
+  }
+  
+
+  void DicomModification::Remove(const DicomPath& path)
+  {
+    if (path.GetPrefixLength() == 0)
+    {
+      Remove(path.GetFinalTag());
+    }
+    else
+    {
+      removeSequences_.push_back(path);
+      MarkNotOrthancAnonymization();
+    }
+  }
+  
+
+  void DicomModification::Replace(const DicomPath& path,
+                                  const Json::Value& value,
+                                  bool safeForAnonymization)
+  {
+    if (path.GetPrefixLength() == 0)
+    {
+      Replace(path.GetFinalTag(), value, safeForAnonymization);
+    }
+    else
+    {
+      sequenceReplacements_.push_back(new SequenceReplacement(path, value));
+
+      if (!safeForAnonymization)
+      {
+        MarkNotOrthancAnonymization();
+      }
+    }
   }
 }
