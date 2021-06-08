@@ -97,12 +97,40 @@ namespace Orthanc
 
       bool Contains(const DicomTag& tag) const;
     };
-    
-    typedef std::set<DicomTag> SetOfTags;
-    typedef std::map<DicomTag, Json::Value*> Replacements;
-    typedef std::map< std::pair<ResourceType, std::string>, std::string>  UidMap;
-    typedef std::list<DicomTagRange>  RemovedRanges;
 
+    class SequenceReplacement : public boost::noncopyable
+    {
+    private:
+      DicomPath    path_;
+      Json::Value  value_;
+
+    public:
+      SequenceReplacement(const DicomPath& path,
+                          const Json::Value& value) :
+        path_(path),
+        value_(value)
+      {
+      }
+
+      const DicomPath& GetPath() const
+      {
+        return path_;
+      }
+
+      const Json::Value& GetValue() const
+      {
+        return value_;
+      }
+    };
+    
+    typedef std::set<DicomTag>                SetOfTags;
+    typedef std::map<DicomTag, Json::Value*>  Replacements;
+    typedef std::list<DicomTagRange>          RemovedRanges;
+    typedef std::list<DicomPath>              ListOfPaths;
+    typedef std::list<SequenceReplacement*>   SequenceReplacements;
+
+    typedef std::map< std::pair<ResourceType, std::string>, std::string>  UidMap;
+    
     SetOfTags removals_;
     SetOfTags clearings_;
     Replacements replacements_;
@@ -122,8 +150,11 @@ namespace Orthanc
     IDicomIdentifierGenerator* identifierGenerator_;
 
     // New in Orthanc 1.9.4
-    SetOfTags uids_;
-    RemovedRanges removedRanges_;
+    SetOfTags            uids_;
+    RemovedRanges        removedRanges_;
+    ListOfPaths          keepSequences_;         // Can *possibly* be a path whose prefix is empty
+    ListOfPaths          removeSequences_;       // Must *never* be a path whose prefix is empty
+    SequenceReplacements sequenceReplacements_;  // Must *never* be a path whose prefix is empty
 
     std::string MapDicomIdentifier(const std::string& original,
                                    ResourceType level);
@@ -139,7 +170,7 @@ namespace Orthanc
 
     void ClearReplacements();
 
-    bool CancelReplacement(const DicomTag& tag);
+    void CancelReplacement(const DicomTag& tag);
 
     void ReplaceInternal(const DicomTag& tag,
                          const Json::Value& value);
@@ -214,5 +245,16 @@ namespace Orthanc
     void SetPrivateCreator(const std::string& privateCreator);
 
     const std::string& GetPrivateCreator() const;
+
+    // New in Orthanc 1.9.4
+    void Keep(const DicomPath& path);
+
+    // New in Orthanc 1.9.4
+    void Remove(const DicomPath& path);
+
+    // New in Orthanc 1.9.4
+    void Replace(const DicomPath& path,
+                 const Json::Value& value,   // Encoded using UTF-8
+                 bool safeForAnonymization);
   };
 }

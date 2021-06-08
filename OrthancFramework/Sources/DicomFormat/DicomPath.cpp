@@ -154,7 +154,7 @@ namespace Orthanc
     {
       prefix_.reserve(parentTags.size());
 
-      for (size_t i = 0; i < prefix_.size(); i++)
+      for (size_t i = 0; i < parentTags.size(); i++)
       {
         prefix_.push_back(PrefixItem::CreateIndexed(parentTags[i], parentIndexes[i]));        
       }
