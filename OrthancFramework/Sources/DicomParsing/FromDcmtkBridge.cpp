@@ -2798,16 +2798,20 @@ namespace Orthanc
 
   static void ApplyInternal(FromDcmtkBridge::IDicomPathVisitor& visitor,
                             DcmItem& item,
-                            const DicomPath& path,
-                            size_t level)
+                            const DicomPath& pattern,
+                            const DicomPath& actualPath)
   {
-    if (level == path.GetPrefixLength())
+    const size_t level = actualPath.GetPrefixLength();
+      
+    if (level == pattern.GetPrefixLength())
     {
-      visitor.Visit(item, path.GetFinalTag());
+      visitor.Visit(item, actualPath);
     }
     else
     {
-      const DicomTag& tmp = path.GetPrefixTag(level);
+      assert(level < pattern.GetPrefixLength());
+
+      const DicomTag& tmp = pattern.GetPrefixTag(level);
       DcmTagKey tag(tmp.GetGroup(), tmp.GetElement());
 
       DcmSequenceOfItems *sequence = NULL;
@@ -2816,13 +2820,16 @@ namespace Orthanc
       {
         for (unsigned long i = 0; i < sequence->card(); i++)
         {
-          if (path.IsPrefixUniversal(level) ||
-              path.GetPrefixIndex(level) == static_cast<size_t>(i))
+          if (pattern.IsPrefixUniversal(level) ||
+              pattern.GetPrefixIndex(level) == static_cast<size_t>(i))
           {
             DcmItem *child = sequence->getItem(i);
             if (child != NULL)
             {
-              ApplyInternal(visitor, *child, path, level + 1);
+              DicomPath childPath = actualPath;
+              childPath.AddIndexedTagToPrefix(pattern.GetPrefixTag(level), static_cast<size_t>(i));
+              
+              ApplyInternal(visitor, *child, pattern, childPath);
             }
           }
         }
@@ -2835,7 +2842,8 @@ namespace Orthanc
                               DcmDataset& dataset,
                               const DicomPath& path)
   {
-    ApplyInternal(visitor, dataset, path, 0);
+    DicomPath actualPath(path.GetFinalTag());
+    ApplyInternal(visitor, dataset, path, actualPath);
   }
 
 
@@ -2846,10 +2854,10 @@ namespace Orthanc
     {
     public:
       virtual void Visit(DcmItem& item,
-                         const DicomTag& tag) ORTHANC_OVERRIDE
+                         const DicomPath& path) ORTHANC_OVERRIDE
       {
-        DcmTagKey tmp(tag.GetGroup(), tag.GetElement());
-        std::unique_ptr<DcmElement> removed(item.remove(tmp));
+        DcmTagKey key(path.GetFinalTag().GetGroup(), path.GetFinalTag().GetElement());
+        std::unique_ptr<DcmElement> removed(item.remove(key));
       }
     };
     
@@ -2858,18 +2866,62 @@ namespace Orthanc
   }
   
 
+  void FromDcmtkBridge::ClearPath(DcmDataset& dataset,
+                                  const DicomPath& path,
+                                  bool onlyIfExists)
+  {
+    class Visitor : public FromDcmtkBridge::IDicomPathVisitor
+    {
+    public:
+      bool  onlyIfExists_;
+      
+    public:
+      Visitor(bool onlyIfExists) :
+        onlyIfExists_(onlyIfExists)
+      {
+      }
+      
+      virtual void Visit(DcmItem& item,
+                         const DicomPath& path) ORTHANC_OVERRIDE
+      {
+        DcmTagKey key(path.GetFinalTag().GetGroup(), path.GetFinalTag().GetElement());
+
+        if (onlyIfExists_ &&
+            !item.tagExists(key))
+        {
+          // The tag is non-existing, do not clear it
+        }
+        else
+        {
+          if (!item.insertEmptyElement(key, OFTrue /* replace old value */).good())
+          {
+            throw OrthancException(ErrorCode_InternalError);
+          }
+        }
+      }
+    };
+    
+    Visitor visitor(onlyIfExists);
+    Apply(visitor, dataset, path);
+  }
+  
+
   void FromDcmtkBridge::ReplacePath(DcmDataset& dataset,
                                     const DicomPath& path,
-                                    const DcmElement& element)
+                                    const DcmElement& element,
+                                    DicomReplaceMode mode)
   {
     class Visitor : public FromDcmtkBridge::IDicomPathVisitor
     {
     private:
       std::unique_ptr<DcmElement> element_;
+      DicomReplaceMode            mode_;
     
     public:
-      Visitor(const DcmElement& element) :
-        element_(dynamic_cast<DcmElement*>(element.clone()))
+      Visitor(const DcmElement& element,
+              DicomReplaceMode mode) :
+        element_(dynamic_cast<DcmElement*>(element.clone())),
+        mode_(mode)
       {
         if (element_.get() == NULL)
         {
@@ -2878,7 +2930,7 @@ namespace Orthanc
       }
     
       virtual void Visit(DcmItem& item,
-                         const DicomTag& tag) ORTHANC_OVERRIDE
+                         const DicomPath& path) ORTHANC_OVERRIDE
       {
         std::unique_ptr<DcmElement> cloned(dynamic_cast<DcmElement*>(element_->clone()));
         if (cloned.get() == NULL)
@@ -2887,25 +2939,44 @@ namespace Orthanc
         }
         else
         {      
-          DcmTagKey tmp(tag.GetGroup(), tag.GetElement());
+          DcmTagKey key(path.GetFinalTag().GetGroup(), path.GetFinalTag().GetElement());
+
+          if (!item.tagExists(key))
+          {
+            switch (mode_)
+            {
+              case DicomReplaceMode_InsertIfAbsent:
+                break;  // Fine, we can proceed with insertion
+                
+              case DicomReplaceMode_ThrowIfAbsent:
+                throw OrthancException(ErrorCode_InexistentItem, "Cannot replace inexistent tag: " + GetTagName(*element_));
+                
+              case DicomReplaceMode_IgnoreIfAbsent:
+                return;  // Don't proceed with insertion
+                
+              default:
+                throw OrthancException(ErrorCode_ParameterOutOfRange);
+            }
+          }
+          
           if (!item.insert(cloned.release(), OFTrue /* replace old */).good())
           {
-            throw OrthancException(ErrorCode_InternalError, "Cannot replace an element");
+            throw OrthancException(ErrorCode_InternalError, "Cannot replace an element: " + GetTagName(*element_));
           }
         }
       }
     };
 
-    DcmTagKey tmp(path.GetFinalTag().GetGroup(), path.GetFinalTag().GetElement());
+    DcmTagKey key(path.GetFinalTag().GetGroup(), path.GetFinalTag().GetElement());
   
-    if (element.getTag() != tmp)
+    if (element.getTag() != key)
     {
       throw OrthancException(ErrorCode_ParameterOutOfRange,
                              "The final tag must be the same as the tag of the element during a replacement");
     }
     else
     {
-      Visitor visitor(element);
+      Visitor visitor(element, mode);
       Apply(visitor, dataset, path);
     }
   }

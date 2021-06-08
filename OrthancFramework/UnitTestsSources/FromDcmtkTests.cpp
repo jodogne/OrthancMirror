@@ -2358,118 +2358,260 @@ TEST(DicomModification, DicomPath)
   ASSERT_THROW(DicomPath::Parse("(0010,0010[].PatientID"), OrthancException);
   ASSERT_THROW(DicomPath::Parse("(0010,0010)0].PatientID"), OrthancException);
   ASSERT_THROW(DicomPath::Parse("(0010,0010)[-1].PatientID"), OrthancException);
+
+  ASSERT_TRUE(DicomPath::IsMatch(DicomPath::Parse("(0010,0010)"),
+                                 DicomPath::Parse("(0010,0010)")));
+  ASSERT_FALSE(DicomPath::IsMatch(DicomPath::Parse("(0010,0010)"),
+                                  DicomPath::Parse("(0010,0020)")));
+  ASSERT_TRUE(DicomPath::IsMatch(DicomPath::Parse("(0010,0010)"),
+                                 DicomPath::Parse("(0010,0010)[1].(0010,0020)")));
+  ASSERT_FALSE(DicomPath::IsMatch(DicomPath::Parse("(0010,0010)[1].(0010,0020)"),
+                                  DicomPath::Parse("(0010,0010)")));
+  ASSERT_TRUE(DicomPath::IsMatch(DicomPath::Parse("(0010,0010)[1].(0010,0020)"),
+                                 DicomPath::Parse("(0010,0010)[1].(0010,0020)")));
+  ASSERT_TRUE(DicomPath::IsMatch(DicomPath::Parse("(0010,0010)[*].(0010,0020)"),
+                                 DicomPath::Parse("(0010,0010)[1].(0010,0020)")));
+  ASSERT_FALSE(DicomPath::IsMatch(DicomPath::Parse("(0010,0010)[2].(0010,0020)"),
+                                  DicomPath::Parse("(0010,0010)[1].(0010,0020)")));
+  ASSERT_THROW(DicomPath::IsMatch(DicomPath::Parse("(0010,0010)[1].(0010,0020)"),
+                                  DicomPath::Parse("(0010,0010)[*].(0010,0020)")), OrthancException);
+  ASSERT_TRUE(DicomPath::IsMatch(DicomPath::Parse("(0010,0010)[*].(0010,0020)[*].(0010,0030)"),
+                                 DicomPath::Parse("(0010,0010)[1].(0010,0020)[2].(0010,0030)[3].(0010,0040)")));
+  ASSERT_TRUE(DicomPath::IsMatch(DicomPath::Parse("(0010,0010)[1].(0010,0020)[2].(0010,0030)"),
+                                 DicomPath::Parse("(0010,0010)[1].(0010,0020)[2].(0010,0030)[3].(0010,0040)")));
+  ASSERT_FALSE(DicomPath::IsMatch(DicomPath::Parse("(0010,0010)[1].(0010,0020)[3].(0010,0030)"),
+                                  DicomPath::Parse("(0010,0010)[1].(0010,0020)[2].(0010,0030)[3].(0010,0040)")));
+  ASSERT_FALSE(DicomPath::IsMatch(DicomPath::Parse("(0010,0010)[2].(0010,0020)[2].(0010,0030)"),
+                                  DicomPath::Parse("(0010,0010)[1].(0010,0020)[2].(0010,0030)[3].(0010,0040)")));
 }
 
 
 
-TEST(ParsedDicomFile, RemovePath)
+TEST(ParsedDicomFile, DicomPath)
 {
-  {
-    Json::Value v = Json::arrayValue;
-
-    Json::Value item = Json::objectValue;
-    item["PatientID"] = "HELLO";
-    v.append(item);
-
-    std::unique_ptr<DcmElement> d(FromDcmtkBridge::FromJson(DICOM_TAG_SOURCE_IMAGE_SEQUENCE,
-                                                            v, false, Encoding_Latin1, ""));
-    d->writeXML(std::cout);
-  }
+  Json::Value v = Json::objectValue;
+  v["PatientName"] = "Hello";
+  v["ReferencedSOPClassUID"] = "1.2.840.10008.5.1.4.1.1.4";
 
   {
-    Json::Value v = "Hello";
-    std::unique_ptr<DcmElement> d(FromDcmtkBridge::FromJson(DICOM_TAG_PATIENT_ID,
-                                                            v, false, Encoding_Latin1, ""));
-    d->writeXML(std::cout);
-  }
-
-  printf("\n");
-
-  {
-    Json::Value v = Json::objectValue;
-    v["PatientID"] = "Hello";
+    Json::Value a = Json::arrayValue;
 
     {
-      Json::Value a = Json::arrayValue;
-
-      {
-        Json::Value item = Json::objectValue;
-        item["ReferencedSOPClassUID"] = "1.2.840.10008.5.1.4.1.1.4";
-        item["ReferencedSOPInstanceUID"] = "1.2.840.113619.2.176.2025.1499492.7040.1171286241.719";
-        a.append(item);
-      }
-      
-      {
-        Json::Value item = Json::objectValue;
-        item["ReferencedSOPClassUID"] = "1.2.840.10008.5.1.4.1.1.4";
-        item["ReferencedSOPInstanceUID"] = "1.2.840.113619.2.176.2025.1499492.7040.1171286241.726";
-        a.append(item);
-      }
-      
-      v["ReferencedImageSequence"] = a;
+      Json::Value item = Json::objectValue;
+      item["ReferencedSOPClassUID"] = "1.2.840.10008.5.1.4.1.1.4";
+      item["ReferencedSOPInstanceUID"] = "1.2.840.113619.2.176.2025.1499492.7040.1171286241.719";
+      a.append(item);
     }
-    
+      
     {
-      Json::Value a = Json::arrayValue;
+      Json::Value item = Json::objectValue;
+      item["ReferencedSOPClassUID"] = "1.2.840.10008.5.1.4.1.1.4";  // ReferencedSOPClassUID
+      item["ReferencedSOPInstanceUID"] = "1.2.840.113619.2.176.2025.1499492.7040.1171286241.726";
+      a.append(item);
+    }
+      
+    v["ReferencedImageSequence"] = a;
+  }
+    
+  {
+    Json::Value a = Json::arrayValue;
+
+    {
+      Json::Value item = Json::objectValue;
+      item["StudyInstanceUID"] = "1.2.840.113704.1.111.7016.1342451220.40";
 
       {
-        Json::Value item = Json::objectValue;
-        item["StudyInstanceUID"] = "1.2.840.113704.1.111.7016.1342451220.40";
+        Json::Value b = Json::arrayValue;
 
         {
-          Json::Value b = Json::arrayValue;
-
-          {
-            Json::Value c = Json::objectValue;
-            c["CodeValue"] = "122403";
-            b.append(c);
-          }
-
-          item["PurposeOfReferenceCodeSequence"] = b;
+          Json::Value c = Json::objectValue;
+          c["CodeValue"] = "122403";
+          c["0010,0010"] = "WORLD";  // Patient name
+          b.append(c);
         }
-        
-        a.append(item);
+
+        item["PurposeOfReferenceCodeSequence"] = b;
       }
+        
+      a.append(item);
+    }
       
-      v["RelatedSeriesSequence"] = a;
-    }
-    
-    std::unique_ptr<DcmDataset> d(FromDcmtkBridge::FromJson(v, false /* generate UID */, false, Encoding_Latin1, ""));
+    v["RelatedSeriesSequence"] = a;
+  }
 
-    static const DicomTag DICOM_TAG_REFERENCED_SOP_CLASS_UID(0x0008, 0x1150);
-    static const DicomTag DICOM_TAG_REFERENCED_IMAGE_SEQUENCE(0x0008, 0x1140);
-    
-    DicomPath path(DICOM_TAG_REFERENCED_SOP_CLASS_UID);
-    path.AddIndexedTagToPrefix(DICOM_TAG_REFERENCED_IMAGE_SEQUENCE, 2);
-    //path.AddUniversalTagToPrefix(DICOM_TAG_REFERENCED_IMAGE_SEQUENCE);
-    
-    //DicomPath path(DicomTag(0x0008, 0x0100));
-    //path.AddIndexedTagToPrefix(DicomTag(0x0008, 0x1250), 0);
-    //path.AddIndexedTagToPrefix(DicomTag(0x0040, 0xa170), 1);
-    
-    //FromDcmtkBridge::RemovePath(*d, DicomPath::Parse("ReferencedImageSequence[*].ReferencedSOPClassUID"));
-    //FromDcmtkBridge::RemovePath(*d, DicomPath::Parse("ReferencedImageSequence[0].ReferencedSOPClassUID"));
-    //FromDcmtkBridge::RemovePath(*d, DicomPath::Parse("ReferencedImageSequence[1].ReferencedSOPClassUID"));
-    FromDcmtkBridge::RemovePath(*d, DicomPath::Parse("RelatedSeriesSequence[0].PurposeOfReferenceCodeSequence[0].CodeValue"));
-    //FromDcmtkBridge::RemovePath(*d, DicomPath::Parse("RelatedSeriesSequence[0].PurposeOfReferenceCodeSequence"));
-    //FromDcmtkBridge::RemovePath(*d, DicomPath::Parse("RelatedSeriesSequence"));
+  static const char* CODE_VALUE = "0008,0100";
+  static const char* PATIENT_ID = "0010,0020";
+  static const char* PATIENT_NAME = "0010,0010";
+  static const char* PURPOSE_CODE_SEQ = "0040,a170";
+  static const char* REF_IM_SEQ = "0008,1140";
+  static const char* REF_SOP_CLASS = "0008,1150";
+  static const char* REF_SOP_INSTANCE = "0008,1155";
+  static const char* REL_SERIES_SEQ = "0008,1250";
 
-    {
-      Json::Value v = "Hello";
-      std::unique_ptr<DcmElement> e(FromDcmtkBridge::FromJson(DicomTag(0x0008, 0x0100), v, false, Encoding_Latin1, ""));
-      FromDcmtkBridge::ReplacePath(*d, DicomPath::Parse("RelatedSeriesSequence[0].PurposeOfReferenceCodeSequence[0].CodeValue"), *e);
-    }
-
-    {
-      Json::Value v = "Hello";
-      std::unique_ptr<DcmElement> e(FromDcmtkBridge::FromJson(DicomTag(0x0008, 0x1150), v, false, Encoding_Latin1, ""));
-      FromDcmtkBridge::ReplacePath(*d, DicomPath::Parse("ReferencedImageSequence[*].ReferencedSOPClassUID"), *e);
-    }
+  {
+    std::unique_ptr<ParsedDicomFile> dicom(ParsedDicomFile::CreateFromJson(v, DicomFromJsonFlags_None, ""));
 
     Json::Value vv;
-    std::set<DicomTag> ignoreTagLength;
-    FromDcmtkBridge::ExtractDicomAsJson(vv, *d, DicomToJsonFormat_Short, DicomToJsonFlags_None, 0, ignoreTagLength);
-    std::cout << vv.toStyledString();
+    dicom->DatasetToJson(vv, DicomToJsonFormat_Short, DicomToJsonFlags_None, 0);
+
+    ASSERT_EQ(5u, vv.size());
+    ASSERT_TRUE(vv.isMember(PATIENT_NAME));
+    ASSERT_EQ(2u, vv[REF_IM_SEQ].size());
+    ASSERT_EQ(1u, vv[REL_SERIES_SEQ].size());
+    ASSERT_EQ(2u, vv[REF_IM_SEQ][0].size());
+    ASSERT_EQ(2u, vv[REL_SERIES_SEQ][0].size());
+    ASSERT_EQ(1u, vv[REL_SERIES_SEQ][0][PURPOSE_CODE_SEQ].size());
+
+    ASSERT_TRUE(vv[REF_IM_SEQ][0].isMember(REF_SOP_CLASS));
+    ASSERT_TRUE(vv[REF_IM_SEQ][1].isMember(REF_SOP_CLASS));
+    ASSERT_TRUE(vv[REL_SERIES_SEQ][0][PURPOSE_CODE_SEQ][0].isMember(CODE_VALUE));
+  }
+    
+  {
+    std::unique_ptr<ParsedDicomFile> dicom(ParsedDicomFile::CreateFromJson(v, DicomFromJsonFlags_None, ""));
+
+    dicom->RemovePath(DicomPath::Parse("ReferencedImageSequence[*].ReferencedSOPClassUID"));
+
+    Json::Value vv;
+    dicom->DatasetToJson(vv, DicomToJsonFormat_Short, DicomToJsonFlags_None, 0);
+
+    ASSERT_EQ(2u, vv[REF_IM_SEQ].size());
+    ASSERT_EQ(1u, vv[REF_IM_SEQ][0].size());
+    ASSERT_EQ(1u, vv[REF_IM_SEQ][1].size());
+    ASSERT_FALSE(vv[REF_IM_SEQ][0].isMember(REF_SOP_CLASS));
+    ASSERT_FALSE(vv[REF_IM_SEQ][1].isMember(REF_SOP_CLASS));
+  }
+    
+  {
+    std::unique_ptr<ParsedDicomFile> dicom(ParsedDicomFile::CreateFromJson(v, DicomFromJsonFlags_None, ""));
+
+    dicom->RemovePath(DicomPath::Parse("ReferencedImageSequence[0].ReferencedSOPClassUID"));
+
+    Json::Value vv;
+    dicom->DatasetToJson(vv, DicomToJsonFormat_Short, DicomToJsonFlags_None, 0);
+
+    ASSERT_EQ(2u, vv[REF_IM_SEQ].size());
+    ASSERT_EQ(1u, vv[REF_IM_SEQ][0].size());
+    ASSERT_EQ(2u, vv[REF_IM_SEQ][1].size());
+    ASSERT_FALSE(vv[REF_IM_SEQ][0].isMember(REF_SOP_CLASS));
+    ASSERT_TRUE(vv[REF_IM_SEQ][1].isMember(REF_SOP_CLASS));
+  }
+    
+  {
+    std::unique_ptr<ParsedDicomFile> dicom(ParsedDicomFile::CreateFromJson(v, DicomFromJsonFlags_None, ""));
+
+    dicom->RemovePath(DicomPath::Parse("ReferencedImageSequence[1].ReferencedSOPClassUID"));
+
+    Json::Value vv;
+    dicom->DatasetToJson(vv, DicomToJsonFormat_Short, DicomToJsonFlags_None, 0);
+
+    ASSERT_EQ(2u, vv[REF_IM_SEQ].size());
+    ASSERT_EQ(2u, vv[REF_IM_SEQ][0].size());
+    ASSERT_EQ(1u, vv[REF_IM_SEQ][1].size());
+    ASSERT_TRUE(vv[REF_IM_SEQ][0].isMember(REF_SOP_CLASS));
+    ASSERT_FALSE(vv[REF_IM_SEQ][1].isMember(REF_SOP_CLASS));
+  }
+    
+  {
+    std::unique_ptr<ParsedDicomFile> dicom(ParsedDicomFile::CreateFromJson(v, DicomFromJsonFlags_None, ""));
+
+    dicom->RemovePath(DicomPath::Parse("RelatedSeriesSequence[0].PurposeOfReferenceCodeSequence[0].CodeValue"));
+
+    Json::Value vv;
+    dicom->DatasetToJson(vv, DicomToJsonFormat_Short, DicomToJsonFlags_None, 0);
+
+    ASSERT_EQ("WORLD", vv[REL_SERIES_SEQ][0][PURPOSE_CODE_SEQ][0][PATIENT_NAME].asString());
+    ASSERT_FALSE(vv[REL_SERIES_SEQ][0][PURPOSE_CODE_SEQ][0].isMember(CODE_VALUE));
+  }
+    
+  {
+    std::unique_ptr<ParsedDicomFile> dicom(ParsedDicomFile::CreateFromJson(v, DicomFromJsonFlags_None, ""));
+
+    dicom->RemovePath(DicomPath::Parse("RelatedSeriesSequence[0].PurposeOfReferenceCodeSequence"));
+
+    Json::Value vv;
+    dicom->DatasetToJson(vv, DicomToJsonFormat_Short, DicomToJsonFlags_None, 0);
+      
+    ASSERT_EQ(1u, vv[REL_SERIES_SEQ][0].size());
+    ASSERT_FALSE(vv[REL_SERIES_SEQ][0].isMember(PURPOSE_CODE_SEQ));
+  }
+    
+  {
+    std::unique_ptr<ParsedDicomFile> dicom(ParsedDicomFile::CreateFromJson(v, DicomFromJsonFlags_None, ""));
+
+    dicom->RemovePath(DicomPath::Parse("RelatedSeriesSequence"));
+
+    Json::Value vv;
+    dicom->DatasetToJson(vv, DicomToJsonFormat_Short, DicomToJsonFlags_None, 0);
+      
+    ASSERT_FALSE(vv.isMember(REL_SERIES_SEQ));
+  }
+
+  {
+    std::unique_ptr<ParsedDicomFile> dicom(ParsedDicomFile::CreateFromJson(v, DicomFromJsonFlags_None, ""));
+
+    dicom->RemovePath(DicomPath(DICOM_TAG_PATIENT_NAME));
+    dicom->ReplacePath(DicomPath::Parse("ReferencedImageSequence[*].ReferencedSOPClassUID"),
+                       "Hello1", false, DicomReplaceMode_ThrowIfAbsent, "");
+    ASSERT_THROW(dicom->ReplacePath(DicomPath::Parse("ReferencedImageSequence[*].PatientID"),
+                                    "Hello2", false, DicomReplaceMode_ThrowIfAbsent, ""), OrthancException);
+    dicom->ReplacePath(DicomPath::Parse("ReferencedImageSequence[*].PatientID"),
+                       "Hello3", false, DicomReplaceMode_InsertIfAbsent, "");
+    dicom->ReplacePath(DicomPath::Parse("ReferencedImageSequence[*].PatientName"),
+                       "Hello4", false, DicomReplaceMode_IgnoreIfAbsent, "");
+    dicom->ReplacePath(DicomPath::Parse("RelatedSeriesSequence[*].PurposeOfReferenceCodeSequence[*].CodeValue"),
+                       "Hello5", false, DicomReplaceMode_ThrowIfAbsent, "");
+      
+    Json::Value vv;
+    dicom->DatasetToJson(vv, DicomToJsonFormat_Short, DicomToJsonFlags_None, 0);
+
+    ASSERT_EQ(4u, vv.size());
+    ASSERT_FALSE(vv.isMember(PATIENT_NAME));
+    ASSERT_EQ("Hello1", vv[REF_IM_SEQ][0][REF_SOP_CLASS].asString());
+    ASSERT_EQ("Hello3", vv[REF_IM_SEQ][0][PATIENT_ID].asString());
+    ASSERT_EQ("Hello1", vv[REF_IM_SEQ][1][REF_SOP_CLASS].asString());
+    ASSERT_EQ("Hello3", vv[REF_IM_SEQ][1][PATIENT_ID].asString());
+    ASSERT_EQ("Hello5", vv[REL_SERIES_SEQ][0][PURPOSE_CODE_SEQ][0][CODE_VALUE].asString());
+  }
+
+  {
+    std::unique_ptr<ParsedDicomFile> dicom(ParsedDicomFile::CreateFromJson(v, DicomFromJsonFlags_None, ""));
+
+    dicom->ReplacePath(DicomPath::Parse("ReferencedImageSequence[1].ReferencedSOPClassUID"),
+                       "Hello1", false, DicomReplaceMode_ThrowIfAbsent, "");
+    dicom->ReplacePath(DicomPath::Parse("RelatedSeriesSequence[0].PurposeOfReferenceCodeSequence[0].CodeValue"),
+                       "Hello2", false, DicomReplaceMode_ThrowIfAbsent, "");
+      
+    Json::Value vv;
+    dicom->DatasetToJson(vv, DicomToJsonFormat_Short, DicomToJsonFlags_None, 0);
+
+    ASSERT_EQ("1.2.840.10008.5.1.4.1.1.4", vv[REF_IM_SEQ][0][REF_SOP_CLASS].asString());
+    ASSERT_EQ("Hello1", vv[REF_IM_SEQ][1][REF_SOP_CLASS].asString());
+    ASSERT_EQ("Hello2", vv[REL_SERIES_SEQ][0][PURPOSE_CODE_SEQ][0][CODE_VALUE].asString());
+  }
+
+  {
+    std::unique_ptr<ParsedDicomFile> dicom(ParsedDicomFile::CreateFromJson(v, DicomFromJsonFlags_None, ""));
+
+    dicom->ClearPath(DicomPath::Parse("ReferencedImageSequence[1].ReferencedSOPClassUID"), true);
+    dicom->ClearPath(DicomPath::Parse("RelatedSeriesSequence[0].PurposeOfReferenceCodeSequence[0].CodeValue"), true);
+    dicom->ClearPath(DicomPath::Parse("ReferencedImageSequence[0].PatientID"), false);
+    dicom->ClearPath(DicomPath::Parse("ReferencedImageSequence[0].PatientName"), true);
+      
+    Json::Value vv;
+    dicom->DatasetToJson(vv, DicomToJsonFormat_Short, DicomToJsonFlags_None, 0);
+
+    ASSERT_EQ(3u, vv[REF_IM_SEQ][0].size());
+    ASSERT_EQ(2u, vv[REF_IM_SEQ][1].size());
+      
+    ASSERT_EQ("1.2.840.10008.5.1.4.1.1.4", vv[REF_IM_SEQ][0][REF_SOP_CLASS].asString());
+    ASSERT_EQ("1.2.840.113619.2.176.2025.1499492.7040.1171286241.719", vv[REF_IM_SEQ][0][REF_SOP_INSTANCE].asString());
+    ASSERT_EQ("", vv[REF_IM_SEQ][0][PATIENT_ID].asString());
+      
+    ASSERT_EQ("", vv[REF_IM_SEQ][1][REF_SOP_CLASS].asString());
+    ASSERT_EQ("1.2.840.113619.2.176.2025.1499492.7040.1171286241.726", vv[REF_IM_SEQ][1][REF_SOP_INSTANCE].asString());
+      
+    ASSERT_EQ("", vv[REL_SERIES_SEQ][0][PURPOSE_CODE_SEQ][0][CODE_VALUE].asString());
   }
 }
 

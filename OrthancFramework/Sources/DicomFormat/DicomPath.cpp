@@ -141,6 +141,27 @@ namespace Orthanc
   }
 
 
+  DicomPath::DicomPath(const std::vector<Orthanc::DicomTag>& parentTags,
+                       const std::vector<size_t> parentIndexes,
+                       const Orthanc::DicomTag& finalTag) :
+    finalTag_(finalTag)
+  {
+    if (parentTags.size() != parentIndexes.size())
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+    else
+    {
+      prefix_.reserve(parentTags.size());
+
+      for (size_t i = 0; i < prefix_.size(); i++)
+      {
+        prefix_.push_back(PrefixItem::CreateIndexed(parentTags[i], parentIndexes[i]));        
+      }
+    }
+  }
+
+
   void DicomPath::AddIndexedTagToPrefix(const Orthanc::DicomTag& tag,
                                         size_t index)
   {
@@ -258,5 +279,40 @@ namespace Orthanc
     }
 
     return path;
+  }
+
+
+  bool DicomPath::IsMatch(const DicomPath& pattern,
+                          const DicomPath& path)
+  {
+    if (path.HasUniversal())
+    {
+      throw OrthancException(ErrorCode_BadParameterType);
+    }
+    else if (path.GetPrefixLength() < pattern.GetPrefixLength())
+    {
+      return false;
+    }
+    else
+    {
+      for (size_t i = 0; i < pattern.GetPrefixLength(); i++)
+      {
+        if (path.GetPrefixTag(i) != pattern.GetPrefixTag(i) ||
+            (!pattern.IsPrefixUniversal(i) &&
+             path.GetPrefixIndex(i) != pattern.GetPrefixIndex(i)))
+        {
+          return false;
+        }
+      }
+
+      if (path.GetPrefixLength() == pattern.GetPrefixLength())
+      {
+        return (path.GetFinalTag() == pattern.GetFinalTag());
+      }
+      else
+      {
+        return (path.GetPrefixTag(pattern.GetPrefixLength()) == pattern.GetFinalTag());
+      }
+    }
   }
 }
