@@ -70,7 +70,7 @@ namespace Orthanc
       }
 
       virtual void Visit(DcmItem& item,
-                         const DicomTag& tag) = 0;
+                         const DicomPath& path) = 0;
     };
     
 
@@ -249,8 +249,13 @@ namespace Orthanc
     static void RemovePath(DcmDataset& dataset,
                            const DicomPath& path);
 
+    static void ClearPath(DcmDataset& dataset,
+                          const DicomPath& path,
+                          bool onlyIfExists);
+
     static void ReplacePath(DcmDataset& dataset,
                             const DicomPath& path,
-                            const DcmElement& element);
+                            const DcmElement& element,
+                            DicomReplaceMode mode);
   };
 }

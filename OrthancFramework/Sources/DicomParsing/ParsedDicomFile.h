@@ -54,6 +54,7 @@
 
 #include "ITagVisitor.h"
 #include "../DicomFormat/DicomInstanceHasher.h"
+#include "../DicomFormat/DicomPath.h"
 #include "../Images/ImageAccessor.h"
 #include "../IDynamicObject.h"
 #include "../Toolbox.h"
@@ -273,5 +274,16 @@ namespace Orthanc
 
     // Decode the given frame, using the built-in DICOM decoder of Orthanc
     ImageAccessor* DecodeFrame(unsigned int frame) const;
+
+    void ReplacePath(const DicomPath& path,
+                     const Json::Value& value,  // Assumed to be encoded with UTF-8
+                     bool decodeDataUriScheme,
+                     DicomReplaceMode mode,
+                     const std::string& privateCreator /* used only for private tags */);
+
+    void RemovePath(const DicomPath& path);
+
+    void ClearPath(const DicomPath& path,
+                   bool onlyIfExists);
   };
 }

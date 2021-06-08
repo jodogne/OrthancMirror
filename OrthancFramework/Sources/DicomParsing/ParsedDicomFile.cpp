@@ -482,44 +482,14 @@ namespace Orthanc
 
   void ParsedDicomFile::Remove(const DicomTag& tag)
   {
-    InvalidateCache();
-
-    DcmTagKey key(tag.GetGroup(), tag.GetElement());
-    DcmElement* element = GetDcmtkObject().getDataset()->remove(key);
-    if (element != NULL)
-    {
-      delete element;
-    }
+    RemovePath(DicomPath(tag));
   }
 
 
   void ParsedDicomFile::Clear(const DicomTag& tag,
                               bool onlyIfExists)
   {
-    if (tag.GetElement() == 0x0000)
-    {
-      // Prevent manually modifying generic group length tags: This is
-      // handled by DCMTK serialization
-      return;
-    }
-
-    InvalidateCache();
-
-    DcmItem* dicom = GetDcmtkObject().getDataset();
-    DcmTagKey key(tag.GetGroup(), tag.GetElement());
-
-    if (onlyIfExists &&
-        !dicom->tagExists(key))
-    {
-      // The tag is non-existing, do not clear it
-    }
-    else
-    {
-      if (!dicom->insertEmptyElement(key, OFTrue /* replace old value */).good())
-      {
-        throw OrthancException(ErrorCode_InternalError);
-      }
-    }
+    ClearPath(DicomPath(tag), onlyIfExists);
   }
 
 
@@ -678,7 +648,8 @@ namespace Orthanc
           return true;
 
         case DicomReplaceMode_ThrowIfAbsent:
-          throw OrthancException(ErrorCode_InexistentItem);
+          throw OrthancException(ErrorCode_InexistentItem, "Cannot replace inexistent tag: " +
+                                 FromDcmtkBridge::GetTagName(DicomTag(tag.getGroup(), tag.getElement()), ""));
 
         case DicomReplaceMode_IgnoreIfAbsent:
           return false;
@@ -758,36 +729,59 @@ namespace Orthanc
       // handled by DCMTK serialization
       return;
     }
-
-    InvalidateCache();
-
-    DcmDataset& dicom = *GetDcmtkObject().getDataset();
-    if (CanReplaceProceed(dicom, ToDcmtkBridge::Convert(tag), mode))
+    else
     {
-      // Either the tag was previously existing (and now removed), or
-      // the replace mode was set to "InsertIfAbsent"
+      InvalidateCache();
 
-      if (decodeDataUriScheme &&
-          (tag == DICOM_TAG_ENCAPSULATED_DOCUMENT ||
-           tag == DICOM_TAG_PIXEL_DATA))
+      DcmDataset& dicom = *GetDcmtkObject().getDataset();
+      if (CanReplaceProceed(dicom, ToDcmtkBridge::Convert(tag), mode))
       {
-        if (EmbedContentInternal(utf8Value))
+        // Either the tag was previously existing (and now removed), or
+        // the replace mode was set to "InsertIfAbsent"
+
+        if (decodeDataUriScheme &&
+            (tag == DICOM_TAG_ENCAPSULATED_DOCUMENT ||
+             tag == DICOM_TAG_PIXEL_DATA))
         {
-          return;
+          if (EmbedContentInternal(utf8Value))
+          {
+            return;
+          }
+        }
+
+        std::unique_ptr<DcmElement> element(FromDcmtkBridge::CreateElementForTag(tag, privateCreator));
+
+        if (!utf8Value.empty())
+        {
+          bool hasCodeExtensions;
+          Encoding encoding = DetectEncoding(hasCodeExtensions);
+          FromDcmtkBridge::FillElementWithString(*element, utf8Value, decodeDataUriScheme, encoding);
+        }
+
+        InsertInternal(dicom, element.release());
+
+        if (tag == DICOM_TAG_SOP_CLASS_UID ||
+            tag == DICOM_TAG_SOP_INSTANCE_UID)
+        {
+          if (decodeDataUriScheme &&
+              boost::starts_with(utf8Value, URI_SCHEME_PREFIX_BINARY))
+          {
+            std::string mime, decoded;
+            if (!Toolbox::DecodeDataUriScheme(mime, decoded, utf8Value))
+            {
+              throw OrthancException(ErrorCode_BadFileFormat);
+            }
+            else
+            {
+              UpdateStorageUid(tag, decoded, false);
+            }
+          }
+          else
+          {
+            UpdateStorageUid(tag, utf8Value, false);
+          }
         }
       }
-
-      std::unique_ptr<DcmElement> element(FromDcmtkBridge::CreateElementForTag(tag, privateCreator));
-
-      if (!utf8Value.empty())
-      {
-        bool hasCodeExtensions;
-        Encoding encoding = DetectEncoding(hasCodeExtensions);
-        FromDcmtkBridge::FillElementWithString(*element, utf8Value, decodeDataUriScheme, encoding);
-      }
-
-      InsertInternal(dicom, element.release());
-      UpdateStorageUid(tag, utf8Value, false);
     }
   }
 
@@ -804,39 +798,30 @@ namespace Orthanc
       // handled by DCMTK serialization
       return;
     }
-
-    InvalidateCache();
-
-    DcmDataset& dicom = *GetDcmtkObject().getDataset();
-    if (CanReplaceProceed(dicom, ToDcmtkBridge::Convert(tag), mode))
+    else if (value.type() == Json::stringValue)
     {
-      // Either the tag was previously existing (and now removed), or
-      // the replace mode was set to "InsertIfAbsent"
-
-      if (decodeDataUriScheme &&
-          value.type() == Json::stringValue &&
-          (tag == DICOM_TAG_ENCAPSULATED_DOCUMENT ||
-           tag == DICOM_TAG_PIXEL_DATA))
-      {
-        if (EmbedContentInternal(value.asString()))
-        {
-          return;
-        }
-      }
-
-      bool hasCodeExtensions;
-      Encoding encoding = DetectEncoding(hasCodeExtensions);
-      InsertInternal(dicom, FromDcmtkBridge::FromJson(tag, value, decodeDataUriScheme, encoding, privateCreator));
-
+      Replace(tag, value.asString(), decodeDataUriScheme, mode, privateCreator);
+    }
+    else
+    {
       if (tag == DICOM_TAG_SOP_CLASS_UID ||
           tag == DICOM_TAG_SOP_INSTANCE_UID)
       {
-        if (value.type() != Json::stringValue)
-        {
-          throw OrthancException(ErrorCode_BadParameterType);
-        }
+        // Must be a string
+        throw OrthancException(ErrorCode_BadParameterType);
+      }
 
-        UpdateStorageUid(tag, value.asString(), decodeDataUriScheme);
+      InvalidateCache();
+
+      DcmDataset& dicom = *GetDcmtkObject().getDataset();
+      if (CanReplaceProceed(dicom, ToDcmtkBridge::Convert(tag), mode))
+      {
+        // Either the tag was previously existing (and now removed), or
+        // the replace mode was set to "InsertIfAbsent"
+
+        bool hasCodeExtensions;
+        Encoding encoding = DetectEncoding(hasCodeExtensions);
+        InsertInternal(dicom, FromDcmtkBridge::FromJson(tag, value, decodeDataUriScheme, encoding, privateCreator));
       }
     }
   }
@@ -1720,6 +1705,74 @@ namespace Orthanc
     else
     {
       return DicomImageDecoder::Decode(*GetDcmtkObjectConst().getDataset(), frame);
+    }
+  }
+
+
+  static bool HasGenericGroupLength(const DicomPath& path)
+  {
+    for (size_t i = 0; i < path.GetPrefixLength(); i++)
+    {
+      if (path.GetPrefixTag(i).GetElement() == 0x0000)
+      {
+        return true;
+      }
+    }
+    
+    return (path.GetFinalTag().GetElement() == 0x0000);
+  }
+  
+
+  void ParsedDicomFile::ReplacePath(const DicomPath& path,
+                                    const Json::Value& value,
+                                    bool decodeDataUriScheme,
+                                    DicomReplaceMode mode,
+                                    const std::string& privateCreator)
+  {
+    if (HasGenericGroupLength(path))
+    {
+      // Prevent manually modifying generic group length tags: This is
+      // handled by DCMTK serialization
+      return;
+    }
+    else if (path.GetPrefixLength() == 0)
+    {
+      Replace(path.GetFinalTag(), value, decodeDataUriScheme, mode, privateCreator);
+    }
+    else
+    {
+      InvalidateCache();
+
+      bool hasCodeExtensions;
+      Encoding encoding = DetectEncoding(hasCodeExtensions);
+      std::unique_ptr<DcmElement> element(
+        FromDcmtkBridge::FromJson(path.GetFinalTag(), value, decodeDataUriScheme, encoding, privateCreator));
+
+      FromDcmtkBridge::ReplacePath(*GetDcmtkObject().getDataset(), path, *element, mode);
+    }
+  }
+  
+
+  void ParsedDicomFile::RemovePath(const DicomPath& path)
+  {
+    InvalidateCache();
+    FromDcmtkBridge::RemovePath(*GetDcmtkObject().getDataset(), path);
+  }
+
+
+  void ParsedDicomFile::ClearPath(const DicomPath& path,
+                                  bool onlyIfExists)
+  {
+    if (HasGenericGroupLength(path))
+    {
+      // Prevent manually modifying generic group length tags: This is
+      // handled by DCMTK serialization
+      return;
+    }
+    else
+    {
+      InvalidateCache();
+      FromDcmtkBridge::ClearPath(*GetDcmtkObject().getDataset(), path, onlyIfExists);
     }
   }
 

@@ -99,6 +99,10 @@ namespace Orthanc
               size_t index3,
               const Orthanc::DicomTag& tag);
 
+    DicomPath(const std::vector<Orthanc::DicomTag>& parentTags,
+              const std::vector<size_t> parentIndexes,
+              const Orthanc::DicomTag& finalTag);
+
     void AddIndexedTagToPrefix(const Orthanc::DicomTag& tag,
                                size_t index);
 
@@ -134,5 +138,8 @@ namespace Orthanc
     std::string Format() const;
 
     static DicomPath Parse(const std::string& s);
+
+    static bool IsMatch(const DicomPath& pattern,
+                        const DicomPath& path);
   };
 }
