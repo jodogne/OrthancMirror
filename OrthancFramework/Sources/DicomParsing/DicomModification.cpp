@@ -69,23 +69,14 @@ namespace Orthanc
   {
   private:
     DicomModification&  that_;
-    
-    bool IsEnabled(const DicomTag& tag) const
-    {
-      return (!that_.IsCleared(tag) &&
-              !that_.IsRemoved(tag) &&
-              !that_.IsReplaced(tag));
-    }
 
-    void RemoveIfEnabled(ParsedDicomFile& dicom,
-                         const DicomTag& tag) const
+    // This method is only applicable to first-level tags
+    bool IsManuallyModified(const DicomTag& tag) const
     {
-      if (IsEnabled(tag))
-      {
-        dicom.Remove(tag);
-      }
-    }
-                         
+      return (that_.IsCleared(tag) ||
+              that_.IsRemoved(tag) ||
+              that_.IsReplaced(tag));
+    }                         
 
   public:
     explicit RelationshipsVisitor(DicomModification& that) :
@@ -145,56 +136,85 @@ namespace Orthanc
                                ValueRepresentation vr,
                                const std::string& value)
     {
-      // Note that all the tags in "uids_" have the VR UI (unique
-      // identifier), and are considered as strings
-      
-      if (!IsEnabled(tag))
+      /**
+       * Note that all the tags in "uids_" have the VR UI (unique
+       * identifier), and are considered as strings.
+       *
+       * Also, the tags "SOP Instance UID", "Series Instance UID" and
+       * "Study Instance UID" are *never* included in "uids_", as they
+       * are separately handed by "MapDicomTags()".
+       **/
+
+      assert(that_.uids_.find(DICOM_TAG_STUDY_INSTANCE_UID) == that_.uids_.end());
+      assert(that_.uids_.find(DICOM_TAG_SERIES_INSTANCE_UID) == that_.uids_.end());
+      assert(that_.uids_.find(DICOM_TAG_SOP_INSTANCE_UID) == that_.uids_.end());
+
+      if (parentTags.empty())
       {
-        return Action_None;
-      }
-      else if (!parentTags.empty() &&  // Don't anonymize twice the anonymization done by "MapDicomTags()"
-               tag == DICOM_TAG_STUDY_INSTANCE_UID)
-      {
-        newValue = that_.MapDicomIdentifier(value, ResourceType_Study);
-        return Action_Replace;
-      }
-      else if (!parentTags.empty() &&  // Don't anonymize twice the anonymization done by "MapDicomTags()"
-               tag == DICOM_TAG_SERIES_INSTANCE_UID)
-      {
-        newValue = that_.MapDicomIdentifier(value, ResourceType_Series);
-        return Action_Replace;
-      }
-      else if (!parentTags.empty() &&  // Don't anonymize twice the anonymization done by "MapDicomTags()"
-               tag == DICOM_TAG_SOP_INSTANCE_UID)
-      {  
-        newValue = that_.MapDicomIdentifier(value, ResourceType_Instance);
-        return Action_Replace;
-      }
-      else if (that_.uids_.find(tag) != that_.uids_.end())
-      {
-        assert(vr == ValueRepresentation_UniqueIdentifier ||
-               vr == ValueRepresentation_NotSupported /* for older versions of DCMTK */);
-        
-        if (parentTags.size() == 2 &&
-            parentTags[0] == DICOM_TAG_REFERENCED_FRAME_OF_REFERENCE_SEQUENCE &&
-            parentTags[1] == DICOM_TAG_RT_REFERENCED_STUDY_SEQUENCE &&
-            tag == DICOM_TAG_REFERENCED_SOP_INSTANCE_UID)
+        // We are on a first-level tag
+        if (that_.uids_.find(tag) != that_.uids_.end() &&
+            !IsManuallyModified(tag))
         {
-          // in RT-STRUCT, this ReferencedSOPInstanceUID is actually referencing a StudyInstanceUID !!
-          // (observed in many data sets including: https://wiki.cancerimagingarchive.net/display/Public/Lung+CT+Segmentation+Challenge+2017)
-          // tested in test_anonymize_relationships_5
-          newValue = that_.MapDicomIdentifier(value, ResourceType_Study);
+          // This is a first-level UID tag that must be anonymized
+          assert(vr == ValueRepresentation_UniqueIdentifier ||
+                 vr == ValueRepresentation_NotSupported /* for older versions of DCMTK */);
+          newValue = that_.MapDicomIdentifier(value, ResourceType_Instance);
+          return Action_Replace;
         }
         else
         {
-          newValue = that_.MapDicomIdentifier(value, ResourceType_Instance);
+          return Action_None;
         }
-
-        return Action_Replace;
       }
       else
       {
-        return Action_None;
+        // We are within a sequence
+        if (tag == DICOM_TAG_STUDY_INSTANCE_UID)
+        {
+          newValue = that_.MapDicomIdentifier(value, ResourceType_Study);
+          return Action_Replace;
+        }
+        else if (tag == DICOM_TAG_SERIES_INSTANCE_UID)
+        {
+          newValue = that_.MapDicomIdentifier(value, ResourceType_Series);
+          return Action_Replace;
+        }
+        else if (tag == DICOM_TAG_SOP_INSTANCE_UID)
+        {  
+          newValue = that_.MapDicomIdentifier(value, ResourceType_Instance);
+          return Action_Replace;
+        }
+        else if (that_.uids_.find(tag) != that_.uids_.end())
+        {
+          assert(vr == ValueRepresentation_UniqueIdentifier ||
+                 vr == ValueRepresentation_NotSupported /* for older versions of DCMTK */);
+
+          if (parentTags.size() == 2 &&
+              parentTags[0] == DICOM_TAG_REFERENCED_FRAME_OF_REFERENCE_SEQUENCE &&
+              parentTags[1] == DICOM_TAG_RT_REFERENCED_STUDY_SEQUENCE &&
+              tag == DICOM_TAG_REFERENCED_SOP_INSTANCE_UID)
+          {
+            /**
+             * In RT-STRUCT, this ReferencedSOPInstanceUID is actually
+             * referencing a StudyInstanceUID !! (observed in many
+             * data sets including:
+             * https://wiki.cancerimagingarchive.net/display/Public/Lung+CT+Segmentation+Challenge+2017)
+             * Tested in "test_anonymize_relationships_5". Introduced
+             * in: https://hg.orthanc-server.com/orthanc/rev/3513
+             **/
+            newValue = that_.MapDicomIdentifier(value, ResourceType_Study);
+          }
+          else
+          {
+            newValue = that_.MapDicomIdentifier(value, ResourceType_Instance);
+          }
+
+          return Action_Replace;
+        }
+        else
+        {
+          return Action_None;
+        }
       }
     }
 
@@ -202,18 +222,27 @@ namespace Orthanc
     {
       for (SetOfTags::const_iterator it = that_.uids_.begin(); it != that_.uids_.end(); ++it)
       {
-        if (*it != DICOM_TAG_STUDY_INSTANCE_UID &&
-            *it != DICOM_TAG_SERIES_INSTANCE_UID &&
-            *it != DICOM_TAG_SOP_INSTANCE_UID)
+        assert(*it != DICOM_TAG_STUDY_INSTANCE_UID &&
+               *it != DICOM_TAG_SERIES_INSTANCE_UID &&
+               *it != DICOM_TAG_SOP_INSTANCE_UID);
+
+        if (!IsManuallyModified(*it))
         {
-          RemoveIfEnabled(dicom, *it);
+          dicom.Remove(*it);
         }
       }
 
       // The only two sequences with to the "X/Z/U*" rule in the
       // basic profile. They were already present in Orthanc 1.9.3.
-      RemoveIfEnabled(dicom, DICOM_TAG_REFERENCED_IMAGE_SEQUENCE);
-      RemoveIfEnabled(dicom, DICOM_TAG_SOURCE_IMAGE_SEQUENCE);
+      if (!IsManuallyModified(DICOM_TAG_REFERENCED_IMAGE_SEQUENCE))
+      {
+        dicom.Remove(DICOM_TAG_REFERENCED_IMAGE_SEQUENCE);
+      }
+      
+      if (!IsManuallyModified(DICOM_TAG_SOURCE_IMAGE_SEQUENCE))
+      {
+        dicom.Remove(DICOM_TAG_SOURCE_IMAGE_SEQUENCE);
+      }
     }
   };
 

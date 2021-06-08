@@ -106,8 +106,6 @@ namespace Orthanc
     SetOfTags removals_;
     SetOfTags clearings_;
     Replacements replacements_;
-    SetOfTags uids_;                // New in Orthanc 1.9.4
-    RemovedRanges removedRanges_;   // New in Orthanc 1.9.4
     bool removePrivateTags_;
     ResourceType level_;
     UidMap uidMap_;
@@ -122,6 +120,10 @@ namespace Orthanc
     std::string privateCreator_;
 
     IDicomIdentifierGenerator* identifierGenerator_;
+
+    // New in Orthanc 1.9.4
+    SetOfTags uids_;
+    RemovedRanges removedRanges_;
 
     std::string MapDicomIdentifier(const std::string& original,
                                    ResourceType level);
