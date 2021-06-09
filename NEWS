@@ -10,9 +10,12 @@ General
 REST API
 --------
 
+* API version upgraded to 13
 * ZIP archive/media generated in synchronous mode are now streamed by default
 * "Replace" tags in "/modify" and "/anonymize" now supports value representation AT
 * "/jobs/..." has new field "ErrorDetails" to help identify the cause of an error
+* "Replace", "Keep" and "Remove" in "/modify" and "/anonymize" accept paths to subsequences
+  using the syntax of the dcmodify command-line tool (wildcards are supported as well)
 
 Maintenance
 -----------
