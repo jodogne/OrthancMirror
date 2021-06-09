@@ -1090,6 +1090,32 @@ TEST(JobsSerialization, DicomModification)
 }
 
 
+TEST(JobsSerialization, DicomModification2)
+{   
+  Json::Value s;
+
+  {
+    DicomModification modification;
+    modification.SetupAnonymization(DicomVersion_2017c);
+    modification.Remove(DicomPath(DICOM_TAG_REFERENCED_IMAGE_SEQUENCE, 1, DICOM_TAG_SOP_INSTANCE_UID));
+    modification.Replace(DicomPath(DICOM_TAG_REFERENCED_IMAGE_SEQUENCE, 1, DICOM_TAG_SOP_CLASS_UID), "Hello", true);
+    modification.Keep(DicomPath(DICOM_TAG_REFERENCED_IMAGE_SEQUENCE, 1, DICOM_TAG_PATIENT_NAME));
+
+    s = 42;
+    modification.Serialize(s);
+  }
+
+  {
+    DicomModification modification(s);
+
+    // Check idempotent serialization
+    Json::Value ss;
+    modification.Serialize(ss);
+    ASSERT_EQ(s.toStyledString(), ss.toStyledString());
+  }
+}
+
+
 TEST(JobsSerialization, Registry)
 {   
   Json::Value s;

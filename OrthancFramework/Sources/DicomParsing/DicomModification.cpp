@@ -1076,9 +1076,11 @@ namespace Orthanc
       
       std::string name = query[i].asString();
 
-      DicomTag tag = FromDcmtkBridge::ParseTag(name);
+      const DicomPath path(DicomPath::Parse(name));
 
-      if (!force && IsDatabaseKey(tag))
+      if (path.GetPrefixLength() == 0 &&
+          !force &&
+          IsDatabaseKey(path.GetFinalTag()))
       {
         throw OrthancException(ErrorCode_BadRequest,
                                "Marking tag \"" + name + "\" as to be " +
@@ -1089,13 +1091,13 @@ namespace Orthanc
       switch (operation)
       {
         case DicomModification::TagOperation_Keep:
-          target.Keep(tag);
-          LOG(TRACE) << "Keep: " << name << " (" << tag.Format() << ")";
+          target.Keep(path);
+          LOG(TRACE) << "Keep: " << name << " = " << path.Format();
           break;
 
         case DicomModification::TagOperation_Remove:
-          target.Remove(tag);
-          LOG(TRACE) << "Remove: " << name << " (" << tag.Format() << ")";
+          target.Remove(path);
+          LOG(TRACE) << "Remove: " << name << " = " << path.Format();
           break;
 
         default:
@@ -1120,19 +1122,21 @@ namespace Orthanc
       const std::string& name = members[i];
       const Json::Value& value = replacements[name];
 
-      DicomTag tag = FromDcmtkBridge::ParseTag(name);
+      const DicomPath path(DicomPath::Parse(name));
 
-      if (!force && IsDatabaseKey(tag))
+      if (path.GetPrefixLength() == 0 &&
+          !force &&
+          IsDatabaseKey(path.GetFinalTag()))
       {
         throw OrthancException(ErrorCode_BadRequest,
                                "Marking tag \"" + name + "\" as to be replaced " +
                                "requires the \"Force\" option to be set to true");
       }
+        
+      target.Replace(path, value, false /* not safe for anonymization */);
 
-      target.Replace(tag, value, false /* not safe for anonymization */);
-
-      LOG(TRACE) << "Replace: " << name << " (" << tag.Format() 
-                 << ") == " << value.toStyledString();
+      LOG(TRACE) << "Replace: " << name << " = " << path.Format() 
+                 << " by: " << value.toStyledString();
     }
   }
 
@@ -1282,9 +1286,12 @@ namespace Orthanc
   static const char* MAP_STUDIES = "MapStudies";
   static const char* MAP_SERIES = "MapSeries";
   static const char* MAP_INSTANCES = "MapInstances";
-  static const char* PRIVATE_CREATOR = "PrivateCreator";  // New in Orthanc 1.6.0
-  static const char* UIDS = "Uids";                       // New in Orthanc 1.9.4
-  static const char* REMOVED_RANGES = "RemovedRanges";    // New in Orthanc 1.9.4
+  static const char* PRIVATE_CREATOR = "PrivateCreator";    // New in Orthanc 1.6.0
+  static const char* UIDS = "Uids";                         // New in Orthanc 1.9.4
+  static const char* REMOVED_RANGES = "RemovedRanges";      // New in Orthanc 1.9.4
+  static const char* KEEP_SEQUENCES = "KeepSequences";      // New in Orthanc 1.9.4
+  static const char* REMOVE_SEQUENCES = "RemoveSequences";  // New in Orthanc 1.9.4
+  static const char* SEQUENCE_REPLACEMENTS = "SequenceReplacements";  // New in Orthanc 1.9.4
   
   void DicomModification::Serialize(Json::Value& value) const
   {
@@ -1377,6 +1384,37 @@ namespace Orthanc
     }
 
     value[REMOVED_RANGES] = ranges;
+
+    // New in Orthanc 1.9.4
+    Json::Value lst = Json::arrayValue;
+    for (ListOfPaths::const_iterator it = keepSequences_.begin(); it != keepSequences_.end(); ++it)
+    {
+      assert(it->GetPrefixLength() > 0);
+      lst.append(it->Format());
+    }
+
+    value[KEEP_SEQUENCES] = lst;
+
+    // New in Orthanc 1.9.4
+    lst = Json::arrayValue;
+    for (ListOfPaths::const_iterator it = removeSequences_.begin(); it != removeSequences_.end(); ++it)
+    {
+      assert(it->GetPrefixLength() > 0);
+      lst.append(it->Format());
+    }
+
+    value[REMOVE_SEQUENCES] = lst;
+
+    // New in Orthanc 1.9.4
+    lst = Json::objectValue;
+    for (SequenceReplacements::const_iterator it = sequenceReplacements_.begin(); it != sequenceReplacements_.end(); ++it)
+    {
+      assert(*it != NULL);
+      assert((*it)->GetPath().GetPrefixLength() > 0);
+      lst[(*it)->GetPath().Format()] = (*it)->GetValue();
+    }
+
+    value[SEQUENCE_REPLACEMENTS] = lst;
   }
 
   void DicomModification::UnserializeUidMap(ResourceType level,
@@ -1508,6 +1546,76 @@ namespace Orthanc
               removedRanges_.push_back(DicomTagRange(groupFrom, groupTo, elementFrom, elementTo));
             }
           }
+        }
+      }
+    }
+
+    // New in Orthanc 1.9.4
+    if (serialized.isMember(KEEP_SEQUENCES))
+    {
+      const Json::Value& keep = serialized[KEEP_SEQUENCES];
+      
+      if (keep.type() != Json::arrayValue)
+      {
+        throw OrthancException(ErrorCode_BadFileFormat);
+      }
+      else
+      {
+        for (Json::Value::ArrayIndex i = 0; i < keep.size(); i++)
+        {
+          if (keep[i].type() != Json::stringValue)
+          {
+            throw OrthancException(ErrorCode_BadFileFormat);
+          }
+          else
+          {
+            keepSequences_.push_back(DicomPath::Parse(keep[i].asString()));
+          }
+        }
+      }
+    }
+
+    // New in Orthanc 1.9.4
+    if (serialized.isMember(REMOVE_SEQUENCES))
+    {
+      const Json::Value& remove = serialized[REMOVE_SEQUENCES];
+      
+      if (remove.type() != Json::arrayValue)
+      {
+        throw OrthancException(ErrorCode_BadFileFormat);
+      }
+      else
+      {
+        for (Json::Value::ArrayIndex i = 0; i < remove.size(); i++)
+        {
+          if (remove[i].type() != Json::stringValue)
+          {
+            throw OrthancException(ErrorCode_BadFileFormat);
+          }
+          else
+          {
+            removeSequences_.push_back(DicomPath::Parse(remove[i].asString()));
+          }
+        }
+      }
+    }
+
+    // New in Orthanc 1.9.4
+    if (serialized.isMember(SEQUENCE_REPLACEMENTS))
+    {
+      const Json::Value& replace = serialized[SEQUENCE_REPLACEMENTS];
+      
+      if (replace.type() != Json::objectValue)
+      {
+        throw OrthancException(ErrorCode_BadFileFormat);
+      }
+      else
+      {
+        Json::Value::Members members = replace.getMemberNames();
+        for (size_t i = 0; i < members.size(); i++)
+        {
+          sequenceReplacements_.push_back(
+            new SequenceReplacement(DicomPath::Parse(members[i]), replace[members[i]]));
         }
       }
     }

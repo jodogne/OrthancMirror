@@ -46,6 +46,10 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 
+#define INFO_SUBSEQUENCES \
+  "Starting with Orthanc 1.9.4, paths to subsequences can be provided using the "\
+  "same syntax as the `dcmodify` command-line tool (wildcards are supported as well)."
+
 namespace Orthanc
 {
   // Modification of DICOM instances ------------------------------------------
@@ -71,9 +75,9 @@ namespace Orthanc
       .SetRequestField("RemovePrivateTags", RestApiCallDocumentation::Type_Boolean,
                        "Remove the private tags from the DICOM instances (defaults to `false`)", false)
       .SetRequestField("Replace", RestApiCallDocumentation::Type_JsonObject,
-                       "Associative array to change the value of some DICOM tags in the DICOM instances", false)
+                       "Associative array to change the value of some DICOM tags in the DICOM instances. " INFO_SUBSEQUENCES, false)
       .SetRequestField("Remove", RestApiCallDocumentation::Type_JsonListOfStrings,
-                       "List of tags that must be removed from the DICOM instances", false)
+                       "List of tags that must be removed from the DICOM instances. " INFO_SUBSEQUENCES, false)
       .SetRequestField("Keep", RestApiCallDocumentation::Type_JsonListOfStrings,
                        "Keep the original value of the specified tags, to be chosen among the `StudyInstanceUID`, "
                        "`SeriesInstanceUID` and `SOPInstanceUID` tags. Avoid this feature as much as possible, "
@@ -96,11 +100,11 @@ namespace Orthanc
       .SetRequestField("KeepPrivateTags", RestApiCallDocumentation::Type_Boolean,
                        "Keep the private tags from the DICOM instances (defaults to `false`)", false)
       .SetRequestField("Replace", RestApiCallDocumentation::Type_JsonObject,
-                       "Associative array to change the value of some DICOM tags in the DICOM instances", false)
+                       "Associative array to change the value of some DICOM tags in the DICOM instances. " INFO_SUBSEQUENCES, false)
       .SetRequestField("Remove", RestApiCallDocumentation::Type_JsonListOfStrings,
-                       "List of additional tags to be removed from the DICOM instances", false)
+                       "List of additional tags to be removed from the DICOM instances. " INFO_SUBSEQUENCES, false)
       .SetRequestField("Keep", RestApiCallDocumentation::Type_JsonListOfStrings,
-                       "List of DICOM tags whose value must not be destroyed by the anonymization", false)
+                       "List of DICOM tags whose value must not be destroyed by the anonymization. " INFO_SUBSEQUENCES, false)
       .SetRequestField("PrivateCreator", RestApiCallDocumentation::Type_String,
                        "The private creator to be used for private tags in `Replace`", false);
   }
