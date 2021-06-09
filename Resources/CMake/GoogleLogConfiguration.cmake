@@ -1,10 +1,30 @@
 if (STATIC_BUILD OR NOT USE_SYSTEM_GOOGLE_LOG)
   SET(GOOGLE_LOG_SOURCES_DIR ${CMAKE_BINARY_DIR}/glog-0.3.2)
+
+  if (IS_DIRECTORY "${GOOGLE_LOG_SOURCES_DIR}")
+    set(FirstRun OFF)
+  else()
+    set(FirstRun ON)
+  endif()
+
   DownloadPackage(
     "897fbff90d91ea2b6d6e78c8cea641cc"
     "http://www.orthanc-server.com/downloads/third-party/glog-0.3.2.tar.gz"
     "${GOOGLE_LOG_SOURCES_DIR}")
 
+  if (FirstRun)
+    find_program(PATCH_EXECUTABLE patch)
+    execute_process(
+      COMMAND ${PATCH_EXECUTABLE} -p0 -N -i
+      ${CMAKE_CURRENT_LIST_DIR}/../Patches/glog-ubuntu-18.04.diff
+      WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+      RESULT_VARIABLE Failure
+      )
+
+    if (Failure)
+      message(FATAL_ERROR "Error while patching a file")
+    endif()
+  endif()
 
   # Glog 0.3.3 fails to build with old versions of MinGW, such as the
   # one installed on our Continuous Integration Server that runs

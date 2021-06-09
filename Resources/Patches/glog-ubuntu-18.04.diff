@@ -1,0 +1,21 @@
+diff -urEb glog-0.3.2.orig/src/demangle.cc glog-0.3.2/src/demangle.cc
+--- glog-0.3.2.orig/src/demangle.cc	2021-06-09 14:45:34.648501148 +0200
++++ glog-0.3.2/src/demangle.cc	2021-06-09 14:46:07.376532698 +0200
+@@ -167,7 +167,7 @@
+ // Returns true if "str" has at least "n" characters remaining.
+ static bool AtLeastNumCharsRemaining(const char *str, int n) {
+   for (int i = 0; i < n; ++i) {
+-    if (str == '\0') {
++    if (str[i] == '\0') {
+       return false;
+     }
+   }
+@@ -223,7 +223,7 @@
+ // Returns true and advances "mangled_cur" if we find any character in
+ // "char_class" at "mangled_cur" position.
+ static bool ParseCharClass(State *state, const char *char_class) {
+-  if (state->mangled_cur == '\0') {
++  if (state->mangled_cur[0] == '\0') {
+     return false;
+   }
+   const char *p = char_class;
