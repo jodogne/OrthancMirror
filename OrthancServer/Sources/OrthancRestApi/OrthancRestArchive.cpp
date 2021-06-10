@@ -162,18 +162,20 @@ namespace Orthanc
       std::string  chunk_;
       bool         done_;
 
+      explicit SynchronousZipChunk(bool done) :
+        done_(done)
+      {
+      }
+
     public:
       static SynchronousZipChunk* CreateDone()
       {
-        std::unique_ptr<SynchronousZipChunk> item(new SynchronousZipChunk);
-        item->done_ = true;
-        return item.release();
+        return new SynchronousZipChunk(true);
       }
 
       static SynchronousZipChunk* CreateChunk(const std::string& chunk)
       {
-        std::unique_ptr<SynchronousZipChunk> item(new SynchronousZipChunk);
-        item->done_ = false;
+        std::unique_ptr<SynchronousZipChunk> item(new SynchronousZipChunk(false));
         item->chunk_ = chunk;
         return item.release();
       }
@@ -204,13 +206,13 @@ namespace Orthanc
       uint64_t                               archiveSize_;
 
     public:
-      SynchronousZipStream(const boost::shared_ptr<SharedMessageQueue>& queue) :
+      explicit SynchronousZipStream(const boost::shared_ptr<SharedMessageQueue>& queue) :
         queue_(queue),
         archiveSize_(0)
       {
       }
 
-      uint64_t GetArchiveSize() const
+      virtual uint64_t GetArchiveSize() const ORTHANC_OVERRIDE
       {
         return archiveSize_;
       }
@@ -294,9 +296,9 @@ namespace Orthanc
             // that more data might still be returned
             JobState state;
             if (context_.GetJobsEngine().GetRegistry().GetState(state, jobId_) &&
-                (state != JobState_Pending ||
-                 state != JobState_Running ||
-                 state != JobState_Success))
+                (state == JobState_Pending ||
+                 state == JobState_Running ||
+                 state == JobState_Success))
             {
               continue;
             }
@@ -357,7 +359,7 @@ namespace Orthanc
       uint64_t                          archiveSize_;
 
     public:
-      SynchronousTemporaryStream(const boost::shared_ptr<TemporaryFile>& temp) :
+      explicit SynchronousTemporaryStream(const boost::shared_ptr<TemporaryFile>& temp) :
         temp_(temp),
         archiveSize_(0)
       {
@@ -368,7 +370,7 @@ namespace Orthanc
         }
       }
       
-      uint64_t GetArchiveSize() const
+      virtual uint64_t GetArchiveSize() const ORTHANC_OVERRIDE
       {
         return archiveSize_;
       }

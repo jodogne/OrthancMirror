@@ -270,7 +270,7 @@ namespace Orthanc
     BufferWithSeek  buffer_;
     
   public:
-    StreamBuffer(IOutputStream& stream) :
+    explicit StreamBuffer(IOutputStream& stream) :
       stream_(stream),
       success_(true),
       startCurrentFile_(0)

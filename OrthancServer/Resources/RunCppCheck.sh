@@ -20,7 +20,7 @@ stlFindInsert:../../OrthancFramework/Sources/RestApi/RestApiCallDocumentation.cp
 stlFindInsert:../../OrthancServer/Sources/Database/StatelessDatabaseOperations.cpp:384
 stlFindInsert:../../OrthancServer/Sources/OrthancWebDav.cpp:386
 syntaxError:../../OrthancFramework/Sources/SQLite/FunctionContext.h:50
-syntaxError:../../OrthancFramework/UnitTestsSources/ZipTests.cpp:130
+syntaxError:../../OrthancFramework/UnitTestsSources/ZipTests.cpp:131
 syntaxError:../../OrthancServer/UnitTestsSources/UnitTestsMain.cpp:321
 uninitMemberVar:../../OrthancServer/Sources/ServerJobs/StorageCommitmentScpJob.cpp:427
 unreadVariable:../../OrthancFramework/Sources/FileStorage/StorageAccessor.cpp

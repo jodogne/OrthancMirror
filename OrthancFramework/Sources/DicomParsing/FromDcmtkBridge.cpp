@@ -2876,7 +2876,7 @@ namespace Orthanc
       bool  onlyIfExists_;
       
     public:
-      Visitor(bool onlyIfExists) :
+      explicit Visitor(bool onlyIfExists) :
         onlyIfExists_(onlyIfExists)
       {
       }

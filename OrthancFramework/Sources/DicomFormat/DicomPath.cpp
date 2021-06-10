@@ -112,6 +112,12 @@ namespace Orthanc
   }
 
 
+  DicomPath::DicomPath(const Orthanc::DicomTag& tag) :
+    finalTag_(tag)
+  {
+  }
+
+
   DicomPath::DicomPath(const Orthanc::DicomTag& sequence,
                        size_t index,
                        const Orthanc::DicomTag& tag) :
@@ -149,7 +155,7 @@ namespace Orthanc
 
 
   DicomPath::DicomPath(const std::vector<Orthanc::DicomTag>& parentTags,
-                       const std::vector<size_t> parentIndexes,
+                       const std::vector<size_t>& parentIndexes,
                        const Orthanc::DicomTag& finalTag) :
     finalTag_(finalTag)
   {
@@ -181,6 +187,36 @@ namespace Orthanc
     prefix_.push_back(PrefixItem::CreateUniversal(tag));
   }
   
+
+  size_t DicomPath::GetPrefixLength() const
+  {
+    return prefix_.size();
+  }
+  
+
+  const Orthanc::DicomTag& DicomPath::GetFinalTag() const
+  {
+    return finalTag_;
+  }
+
+  
+  const Orthanc::DicomTag& DicomPath::GetPrefixTag(size_t level) const
+  {
+    return GetLevel(level).GetTag();
+  }
+
+  
+  bool DicomPath::IsPrefixUniversal(size_t level) const
+  {
+    return GetLevel(level).IsUniversal();
+  }
+  
+
+  size_t DicomPath::GetPrefixIndex(size_t level) const
+  {
+    return GetLevel(level).GetIndex();
+  }
+
 
   bool DicomPath::HasUniversal() const
   {
@@ -273,17 +309,17 @@ namespace Orthanc
 
           try
           {
-            std::string s = Toolbox::StripSpaces(right.substr(0, right.size() - 1));
-            if (s == "*")
+            std::string t = Toolbox::StripSpaces(right.substr(0, right.size() - 1));
+            if (t == "*")
             {
               path.AddUniversalTagToPrefix(tag);
             }
             else
             {
-              int index = boost::lexical_cast<int>(s);
+              int index = boost::lexical_cast<int>(t);
               if (index < 0)
               {
-                throw OrthancException(ErrorCode_ParameterOutOfRange, "Negative index in parent path: " + s);
+                throw OrthancException(ErrorCode_ParameterOutOfRange, "Negative index in parent path: " + t);
               }
               else
               {
