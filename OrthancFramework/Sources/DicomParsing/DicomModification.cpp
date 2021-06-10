@@ -964,24 +964,7 @@ namespace Orthanc
                        DicomReplaceMode_InsertIfAbsent, privateCreator_);
     }
 
-    // (6) New in Orthanc 1.9.4: Apply modifications to subsequences
-    for (ListOfPaths::const_iterator it = removeSequences_.begin();
-         it != removeSequences_.end(); ++it)
-    {
-      assert(it->GetPrefixLength() > 0);
-      toModify.RemovePath(*it);
-    }
-
-    for (SequenceReplacements::const_iterator it = sequenceReplacements_.begin();
-         it != sequenceReplacements_.end(); ++it)
-    {
-      assert(*it != NULL);
-      assert((*it)->GetPath().GetPrefixLength() > 0);
-      toModify.ReplacePath((*it)->GetPath(), (*it)->GetValue(), true /* decode data URI scheme */,
-                           DicomReplaceMode_InsertIfAbsent, privateCreator_);
-    }
-
-    // (7) Update the DICOM identifiers
+    // (6) Update the DICOM identifiers
     if (level_ <= ResourceType_Study &&
         !IsReplaced(DICOM_TAG_STUDY_INSTANCE_UID))
     {
@@ -1021,7 +1004,7 @@ namespace Orthanc
       }
     }
 
-    // (8) Update the "referenced" relationships in the case of an anonymization
+    // (7) Update the "referenced" relationships in the case of an anonymization
     if (isAnonymization_)
     {
       RelationshipsVisitor visitor(*this);
@@ -1034,6 +1017,23 @@ namespace Orthanc
       {
         visitor.RemoveRelationships(toModify);
       }
+    }
+
+    // (8) New in Orthanc 1.9.4: Apply modifications to subsequences
+    for (ListOfPaths::const_iterator it = removeSequences_.begin();
+         it != removeSequences_.end(); ++it)
+    {
+      assert(it->GetPrefixLength() > 0);
+      toModify.RemovePath(*it);
+    }
+
+    for (SequenceReplacements::const_iterator it = sequenceReplacements_.begin();
+         it != sequenceReplacements_.end(); ++it)
+    {
+      assert(*it != NULL);
+      assert((*it)->GetPath().GetPrefixLength() > 0);
+      toModify.ReplacePath((*it)->GetPath(), (*it)->GetValue(), true /* decode data URI scheme */,
+                           DicomReplaceMode_InsertIfAbsent, privateCreator_);
     }
   }
 
