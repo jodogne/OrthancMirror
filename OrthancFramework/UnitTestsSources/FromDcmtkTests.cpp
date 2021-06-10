@@ -2352,6 +2352,10 @@ TEST(DicomModification, DicomPath)
   ASSERT_EQ(DICOM_TAG_PATIENT_NAME, path.GetFinalTag());
   ASSERT_EQ("(0010,0020)[42].(0010,0010)", path.Format());
 
+  ASSERT_THROW(path.SetPrefixIndex(1, 44), OrthancException);
+  path.SetPrefixIndex(0, 44);
+  ASSERT_EQ("(0010,0020)[44].(0010,0010)", path.Format());
+
   ASSERT_THROW(DicomPath::Parse("nope"), OrthancException);
   ASSERT_THROW(DicomPath::Parse("(0010,0010)[.PatientID"), OrthancException);
   ASSERT_THROW(DicomPath::Parse("(0010,0010)[].PatientID"), OrthancException);

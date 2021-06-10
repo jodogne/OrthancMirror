@@ -66,6 +66,8 @@ namespace Orthanc
       }
 
       size_t GetIndex() const;
+
+      void SetIndex(size_t index);
     };
 
     std::vector<PrefixItem>  prefix_;
@@ -134,6 +136,11 @@ namespace Orthanc
     }
 
     bool HasUniversal() const;
+
+    // This method is used for an optimization in Stone
+    // (cf. "DicomStructureSet.cpp")
+    void SetPrefixIndex(size_t level,
+                        size_t index);
 
     std::string Format() const;
 

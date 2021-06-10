@@ -63,6 +63,13 @@ namespace Orthanc
   }
 
   
+  void DicomPath::PrefixItem::SetIndex(size_t index)
+  {
+    isUniversal_ = false;
+    index_ = index;
+  }
+
+
   DicomTag DicomPath::ParseTag(const std::string& token)
   {
     DicomTag tag(0,0);
@@ -186,6 +193,20 @@ namespace Orthanc
     }
 
     return false;
+  }
+
+
+  void DicomPath::SetPrefixIndex(size_t level,
+                                 size_t index)
+  {
+    if (level >= prefix_.size())
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+    else
+    {
+      prefix_[level].SetIndex(index);
+    }
   }
 
 
