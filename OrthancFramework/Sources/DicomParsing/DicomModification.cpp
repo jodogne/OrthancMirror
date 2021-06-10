@@ -1453,10 +1453,25 @@ namespace Orthanc
     allowManualIdentifiers_ = SerializationToolbox::ReadBoolean(serialized, ALLOW_MANUAL_IDENTIFIERS);
     keepStudyInstanceUid_ = SerializationToolbox::ReadBoolean(serialized, KEEP_STUDY_INSTANCE_UID);
     keepSeriesInstanceUid_ = SerializationToolbox::ReadBoolean(serialized, KEEP_SERIES_INSTANCE_UID);
-    keepSopInstanceUid_ = SerializationToolbox::ReadBoolean(serialized, KEEP_SOP_INSTANCE_UID);
     updateReferencedRelationships_ = SerializationToolbox::ReadBoolean
       (serialized, UPDATE_REFERENCED_RELATIONSHIPS);
     isAnonymization_ = SerializationToolbox::ReadBoolean(serialized, IS_ANONYMIZATION);
+
+    if (serialized.isMember(KEEP_SOP_INSTANCE_UID))
+    {
+      keepSopInstanceUid_ = SerializationToolbox::ReadBoolean(serialized, KEEP_SOP_INSTANCE_UID);
+    }
+    else
+    {
+      /**
+       * Compatibility with jobs serialized using Orthanc between
+       * 1.5.0 and 1.6.1. This compatibility was broken between 1.7.0
+       * and 1.9.3: Indeed, an exception was thrown in "ReadBoolean()"
+       * if "KEEP_SOP_INSTANCE_UID" was absent, because of changeset:
+       * https://hg.orthanc-server.com/orthanc/rev/3860
+       **/
+      keepSopInstanceUid_ = false;
+    }
 
     if (serialized.isMember(PRIVATE_CREATOR))
     {
