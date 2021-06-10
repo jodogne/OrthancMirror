@@ -498,7 +498,7 @@ namespace Orthanc
     else
     {
       for (RemovedRanges::const_iterator it = removedRanges_.begin();
-           it != removedRanges_.end(); it++)
+           it != removedRanges_.end(); ++it)
       {
         if (it->Contains(tag))
         {
@@ -1389,7 +1389,6 @@ namespace Orthanc
     Json::Value lst = Json::arrayValue;
     for (ListOfPaths::const_iterator it = keepSequences_.begin(); it != keepSequences_.end(); ++it)
     {
-      assert(it->GetPrefixLength() > 0);
       lst.append(it->Format());
     }
 

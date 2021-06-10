@@ -13,6 +13,7 @@
   printf("sizeof(::Orthanc::DicomInstanceHasher) == %d\n", static_cast<int>(sizeof(::Orthanc::DicomInstanceHasher)));
   printf("sizeof(::Orthanc::DicomMap) == %d\n", static_cast<int>(sizeof(::Orthanc::DicomMap)));
   printf("sizeof(::Orthanc::DicomModification) == %d\n", static_cast<int>(sizeof(::Orthanc::DicomModification)));
+  printf("sizeof(::Orthanc::DicomPath) == %d\n", static_cast<int>(sizeof(::Orthanc::DicomPath)));
   printf("sizeof(::Orthanc::DicomStoreUserConnection) == %d\n", static_cast<int>(sizeof(::Orthanc::DicomStoreUserConnection)));
   printf("sizeof(::Orthanc::DicomStreamReader) == %d\n", static_cast<int>(sizeof(::Orthanc::DicomStreamReader)));
   printf("sizeof(::Orthanc::DicomTag) == %d\n", static_cast<int>(sizeof(::Orthanc::DicomTag)));
@@ -25,6 +26,7 @@
   printf("sizeof(::Orthanc::Font) == %d\n", static_cast<int>(sizeof(::Orthanc::Font)));
   printf("sizeof(::Orthanc::FontRegistry) == %d\n", static_cast<int>(sizeof(::Orthanc::FontRegistry)));
   printf("sizeof(::Orthanc::FromDcmtkBridge) == %d\n", static_cast<int>(sizeof(::Orthanc::FromDcmtkBridge)));
+  printf("sizeof(::Orthanc::FromDcmtkBridge::IDicomPathVisitor) == %d\n", static_cast<int>(sizeof(::Orthanc::FromDcmtkBridge::IDicomPathVisitor)));
   printf("sizeof(::Orthanc::GenericJobUnserializer) == %d\n", static_cast<int>(sizeof(::Orthanc::GenericJobUnserializer)));
   printf("sizeof(::Orthanc::GzipCompressor) == %d\n", static_cast<int>(sizeof(::Orthanc::GzipCompressor)));
   printf("sizeof(::Orthanc::HierarchicalZipWriter) == %d\n", static_cast<int>(sizeof(::Orthanc::HierarchicalZipWriter)));

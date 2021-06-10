@@ -78,10 +78,7 @@ namespace Orthanc
     const PrefixItem& GetLevel(size_t i) const;
     
   public:
-    explicit DicomPath(const Orthanc::DicomTag& tag) :
-      finalTag_(tag)
-    {
-    }
+    explicit DicomPath(const Orthanc::DicomTag& tag);
 
     DicomPath(const Orthanc::DicomTag& sequence,
               size_t index,
@@ -102,7 +99,7 @@ namespace Orthanc
               const Orthanc::DicomTag& tag);
 
     DicomPath(const std::vector<Orthanc::DicomTag>& parentTags,
-              const std::vector<size_t> parentIndexes,
+              const std::vector<size_t>& parentIndexes,
               const Orthanc::DicomTag& finalTag);
 
     void AddIndexedTagToPrefix(const Orthanc::DicomTag& tag,
@@ -110,30 +107,15 @@ namespace Orthanc
 
     void AddUniversalTagToPrefix(const Orthanc::DicomTag& tag);
 
-    size_t GetPrefixLength() const
-    {
-      return prefix_.size();
-    }
+    size_t GetPrefixLength() const;
 
-    const Orthanc::DicomTag& GetFinalTag() const
-    {
-      return finalTag_;
-    }
+    const Orthanc::DicomTag& GetFinalTag() const;
 
-    const Orthanc::DicomTag& GetPrefixTag(size_t level) const
-    {
-      return GetLevel(level).GetTag();
-    }
+    const Orthanc::DicomTag& GetPrefixTag(size_t level) const;
 
-    bool IsPrefixUniversal(size_t level) const
-    {
-      return GetLevel(level).IsUniversal();
-    }
+    bool IsPrefixUniversal(size_t level) const;
 
-    size_t GetPrefixIndex(size_t level) const
-    {
-      return GetLevel(level).GetIndex();
-    }
+    size_t GetPrefixIndex(size_t level) const;
 
     bool HasUniversal() const;
 

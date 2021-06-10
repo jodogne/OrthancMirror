@@ -79,7 +79,7 @@ namespace Orthanc
       uint64_t       archiveSize_;
       
     public:
-      MemoryStream(std::string& target);
+      explicit MemoryStream(std::string& target);
       
       virtual void Write(const std::string& chunk) ORTHANC_OVERRIDE;
       
