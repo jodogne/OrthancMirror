@@ -23,6 +23,8 @@
 #include "../PrecompiledHeaders.h"
 #include "DicomArray.h"
 
+#include "../OrthancException.h"
+
 #include <stdio.h>
 
 namespace Orthanc
@@ -56,7 +58,14 @@ namespace Orthanc
 
   const DicomElement &DicomArray::GetElement(size_t i) const
   {
-    return *elements_[i];
+    if (i >= elements_.size())
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+    else
+    {
+      return *elements_[i];
+    }
   }
 
 

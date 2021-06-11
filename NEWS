@@ -21,6 +21,7 @@ Maintenance
 -----------
 
 * Full support of hierarchical relationships in tags whose VR is UI during anonymization
+* C-MOVE SCP: added possible DIMSE status "Sub-operations Complete - One or more Failures"
 * Fix issue #146 (Update Anonyization to 2019c) - was actually updated to 2021b
 
 
