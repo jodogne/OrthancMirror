@@ -261,6 +261,12 @@ namespace Orthanc
       response->NumberOfCompletedSubOperations = responseCount;
       response->NumberOfFailedSubOperations = data.failureCount_;
       response->NumberOfWarningSubOperations = data.warningCount_;
+
+      if (data.failureCount_ != 0)
+      {
+        // Warning "Sub-operations Complete - One or more Failures" (0xB000)
+        response->DimseStatus = STATUS_MOVE_Warning_SubOperationsCompleteOneOrMoreFailures;
+      }
     }
   }
 
