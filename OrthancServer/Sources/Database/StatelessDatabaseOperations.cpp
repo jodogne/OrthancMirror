@@ -1973,7 +1973,7 @@ namespace Orthanc
   }
 
 
-  bool StatelessDatabaseOperations::DeleteResource(Json::Value& target,
+  bool StatelessDatabaseOperations::DeleteResource(Json::Value& remainingAncestor,
                                                    const std::string& uuid,
                                                    ResourceType expectedType)
   {
@@ -1981,16 +1981,16 @@ namespace Orthanc
     {
     private:
       bool                found_;
-      Json::Value&        target_;
+      Json::Value&        remainingAncestor_;
       const std::string&  uuid_;
       ResourceType        expectedType_;
       
     public:
-      Operations(Json::Value& target,
+      Operations(Json::Value& remainingAncestor,
                  const std::string& uuid,
                  ResourceType expectedType) :
         found_(false),
-        target_(target),
+        remainingAncestor_(remainingAncestor),
         uuid_(uuid),
         expectedType_(expectedType)
       {
@@ -2019,20 +2019,20 @@ namespace Orthanc
           ResourceType remainingLevel;
           if (transaction.GetTransactionContext().LookupRemainingLevel(remainingPublicId, remainingLevel))
           {
-            target_["RemainingAncestor"] = Json::Value(Json::objectValue);
-            target_["RemainingAncestor"]["Path"] = GetBasePath(remainingLevel, remainingPublicId);
-            target_["RemainingAncestor"]["Type"] = EnumerationToString(remainingLevel);
-            target_["RemainingAncestor"]["ID"] = remainingPublicId;
+            remainingAncestor_["RemainingAncestor"] = Json::Value(Json::objectValue);
+            remainingAncestor_["RemainingAncestor"]["Path"] = GetBasePath(remainingLevel, remainingPublicId);
+            remainingAncestor_["RemainingAncestor"]["Type"] = EnumerationToString(remainingLevel);
+            remainingAncestor_["RemainingAncestor"]["ID"] = remainingPublicId;
           }
           else
           {
-            target_["RemainingAncestor"] = Json::nullValue;
+            remainingAncestor_["RemainingAncestor"] = Json::nullValue;
           }
         }
       }
     };
 
-    Operations operations(target, uuid, expectedType);
+    Operations operations(remainingAncestor, uuid, expectedType);
     Apply(operations);
     return operations.IsFound();
   }

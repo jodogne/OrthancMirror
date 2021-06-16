@@ -425,7 +425,7 @@ namespace Orthanc
       DocumentModifyOptions(call);
       call.GetDocumentation()
         .SetTag("System")
-        .SetSummary("Modify a set of instances")
+        .SetSummary("Modify a set of resources")
         .SetRequestField("Resources", RestApiCallDocumentation::Type_JsonListOfStrings,
                          "List of the Orthanc identifiers of the patients/studies/series/instances of interest.", false)
         .SetDescription("Start a job that will modify all the DICOM patients, studies, series or instances "
@@ -483,7 +483,7 @@ namespace Orthanc
       DocumentAnonymizationOptions(call);
       call.GetDocumentation()
         .SetTag("System")
-        .SetSummary("Anonymize a set of instances")
+        .SetSummary("Anonymize a set of resources")
         .SetRequestField("Resources", RestApiCallDocumentation::Type_JsonListOfStrings,
                          "List of the Orthanc identifiers of the patients/studies/series/instances of interest.", false)
         .SetDescription("Start a job that will anonymize all the DICOM patients, studies, series or instances "

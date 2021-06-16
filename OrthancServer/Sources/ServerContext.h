@@ -348,7 +348,7 @@ namespace Orthanc
       return jobsEngine_;
     }
 
-    bool DeleteResource(Json::Value& target,
+    bool DeleteResource(Json::Value& remainingAncestor,
                         const std::string& uuid,
                         ResourceType expectedType);
 

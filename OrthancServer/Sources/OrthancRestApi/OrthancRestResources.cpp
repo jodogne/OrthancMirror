@@ -44,6 +44,7 @@
 #include "../../../OrthancFramework/Sources/Images/ImageProcessing.h"
 #include "../../../OrthancFramework/Sources/Logging.h"
 #include "../../../OrthancFramework/Sources/MultiThreading/Semaphore.h"
+#include "../../../OrthancFramework/Sources/SerializationToolbox.h"
 
 #include "../OrthancConfiguration.h"
 #include "../Search/DatabaseLookup.h"
@@ -278,10 +279,10 @@ namespace Orthanc
       return;
     }
 
-    Json::Value result;
-    if (OrthancRestApi::GetContext(call).DeleteResource(result, call.GetUriComponent("id", ""), resourceType))
+    Json::Value remainingAncestor;
+    if (OrthancRestApi::GetContext(call).DeleteResource(remainingAncestor, call.GetUriComponent("id", ""), resourceType))
     {
-      call.GetOutput().AnswerJson(result);
+      call.GetOutput().AnswerJson(remainingAncestor);
     }
   }
 
@@ -3103,6 +3104,52 @@ namespace Orthanc
   }
 
 
+  static void BulkDelete(RestApiPostCall& call)
+  {
+    if (call.IsDocumentation())
+    {
+      call.GetDocumentation()
+        .SetTag("System")
+        .SetSummary("Delete a set of instances")
+        .SetRequestField("Resources", RestApiCallDocumentation::Type_JsonListOfStrings,
+                         "List of the Orthanc identifiers of the patients/studies/series/instances of interest.", false)
+        .SetDescription("Dellete all the DICOM patients, studies, series or instances "
+                        "whose identifiers are provided in the `Resources` field.");
+      return;
+    }
+
+    ServerContext& context = OrthancRestApi::GetContext(call);
+
+    Json::Value request;
+    if (!call.ParseJsonRequest(request) ||
+        request.type() != Json::objectValue)
+    {
+      throw OrthancException(ErrorCode_BadRequest, 
+                             "The body must contain a JSON object");
+    }
+    else
+    {
+      std::set<std::string> resources;
+      SerializationToolbox::ReadSetOfStrings(resources, request, "Resources");
+
+      for (std::set<std::string>::const_iterator
+             it = resources.begin(); it != resources.end(); ++it)
+      {
+        ResourceType type;
+        Json::Value remainingAncestor;  // Unused
+        
+        if (!context.GetIndex().LookupResourceType(type, *it) ||
+            !context.DeleteResource(remainingAncestor, *it, type))
+        {
+          CLOG(INFO, HTTP) << "Unknown resource during a bulk deletion: " << *it;
+        }
+      }
+    
+      call.GetOutput().AnswerBuffer("", MimeType_PlainText);
+    }
+  }
+
+
   void OrthancRestApi::RegisterResources()
   {
     Register("/instances", ListResources<ResourceType_Instance>);
@@ -3221,5 +3268,7 @@ namespace Orthanc
     Register("/series/{id}/reconstruct", ReconstructResource<ResourceType_Series>);
     Register("/instances/{id}/reconstruct", ReconstructResource<ResourceType_Instance>);
     Register("/tools/reconstruct", ReconstructAllResources);
+
+    Register("/tools/bulk-delete", BulkDelete);
   }
 }

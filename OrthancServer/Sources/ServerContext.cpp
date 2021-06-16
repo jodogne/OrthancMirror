@@ -1188,7 +1188,7 @@ namespace Orthanc
   }
 
 
-  bool ServerContext::DeleteResource(Json::Value& target,
+  bool ServerContext::DeleteResource(Json::Value& remainingAncestor,
                                      const std::string& uuid,
                                      ResourceType expectedType)
   {
@@ -1199,7 +1199,7 @@ namespace Orthanc
       PublishDicomCacheMetrics();
     }
 
-    return index_.DeleteResource(target, uuid, expectedType);
+    return index_.DeleteResource(remainingAncestor, uuid, expectedType);
   }
 
 
