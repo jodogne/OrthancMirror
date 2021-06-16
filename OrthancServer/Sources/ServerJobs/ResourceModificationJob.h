@@ -44,10 +44,25 @@ namespace Orthanc
   class ResourceModificationJob : public CleaningInstancesJob
   {
   private:
-    class Output;
+    class IOutput : public boost::noncopyable
+    {
+    public:
+      virtual ~IOutput()
+      {
+      }
+
+      virtual void Update(DicomInstanceHasher& hasher) = 0;
+
+      virtual void Format(Json::Value& target) const = 0;
+
+      virtual bool IsSingleResource() const = 0;
+    };
+    
+    class SingleOutput;
+    class MultipleOutputs;
     
     std::unique_ptr<DicomModification>  modification_;
-    boost::shared_ptr<Output>           output_;
+    boost::shared_ptr<IOutput>          output_;
     bool                                isAnonymization_;
     DicomInstanceOrigin                 origin_;
     bool                                transcode_;
@@ -62,9 +77,14 @@ namespace Orthanc
     ResourceModificationJob(ServerContext& context,
                             const Json::Value& serialized);
 
-    void SetModification(DicomModification* modification,   // Takes ownership
-                         ResourceType level,
-                         bool isAnonymization);
+    // NB: The "outputLevel" only controls the output format, and
+    // might *not* be the same as "modification->GetLevel()"
+    void SetSingleResourceModification(DicomModification* modification,   // Takes ownership
+                                       ResourceType outputLevel,
+                                       bool isAnonymization);
+
+    void SetMultipleResourcesModification(DicomModification* modification,   // Takes ownership
+                                          bool isAnonymization);
 
     void SetOrigin(const DicomInstanceOrigin& origin);
 
@@ -94,6 +114,11 @@ namespace Orthanc
     void SetTranscode(const std::string& transferSyntaxUid);
 
     void ClearTranscode();
+
+    bool IsSingleResourceModification() const;
+
+    // Only possible if "IsSingleResourceModification()"
+    ResourceType GetOutputLevel() const;
 
     virtual void Stop(JobStopReason reason) ORTHANC_OVERRIDE
     {

@@ -146,12 +146,12 @@ namespace Orthanc
     if (call.ParseJsonRequest(request) &&
         request.isObject())
     {
-      bool patientNameReplaced;
-      target.ParseAnonymizationRequest(patientNameReplaced, request);
+      bool patientNameOverridden;
+      target.ParseAnonymizationRequest(patientNameOverridden, request);
 
-      if (patientNameReplaced)
+      if (!patientNameOverridden)
       {
-        // Overwrite the random Patient's Name by one that is more
+        // Override the random Patient's Name by one that is more
         // user-friendly (provided none was specified by the user)
         target.Replace(DICOM_TAG_PATIENT_NAME, GeneratePatientName(OrthancRestApi::GetContext(call)), true);
       }
@@ -209,6 +209,27 @@ namespace Orthanc
   }
 
 
+  static ResourceType DetectModifyLevel(const DicomModification& modification)
+  {
+    if (modification.IsReplaced(DICOM_TAG_PATIENT_ID))
+    {
+      return ResourceType_Patient;
+    }
+    else if (modification.IsReplaced(DICOM_TAG_STUDY_INSTANCE_UID))
+    {
+      return ResourceType_Study;
+    }
+    else if (modification.IsReplaced(DICOM_TAG_SERIES_INSTANCE_UID))
+    {
+      return ResourceType_Series;
+    }
+    else
+    {
+      return ResourceType_Instance;
+    }
+  }
+
+
   static void ModifyInstance(RestApiPostCall& call)
   {
     if (call.IsDocumentation())
@@ -230,22 +251,7 @@ namespace Orthanc
     Json::Value request;
     ParseModifyRequest(request, modification, call);
 
-    if (modification.IsReplaced(DICOM_TAG_PATIENT_ID))
-    {
-      modification.SetLevel(ResourceType_Patient);
-    }
-    else if (modification.IsReplaced(DICOM_TAG_STUDY_INSTANCE_UID))
-    {
-      modification.SetLevel(ResourceType_Study);
-    }
-    else if (modification.IsReplaced(DICOM_TAG_SERIES_INSTANCE_UID))
-    {
-      modification.SetLevel(ResourceType_Series);
-    }
-    else
-    {
-      modification.SetLevel(ResourceType_Instance);
-    }
+    modification.SetLevel(DetectModifyLevel(modification));
 
     static const char* TRANSCODE = "Transcode";
     if (request.isMember(TRANSCODE))
@@ -311,13 +317,23 @@ namespace Orthanc
                                     bool isAnonymization,
                                     RestApiPostCall& call,
                                     const Json::Value& body,
-                                    ResourceType level)
+                                    ResourceType outputLevel /* unused for multiple resources */,
+                                    bool isSingleResource,
+                                    const std::set<std::string>& resources)
   {
     ServerContext& context = OrthancRestApi::GetContext(call);
 
     std::unique_ptr<ResourceModificationJob> job(new ResourceModificationJob(context));
 
-    job->SetModification(modification.release(), level, isAnonymization);
+    if (isSingleResource)  // This notably configures the output format
+    {
+      job->SetSingleResourceModification(modification.release(), outputLevel, isAnonymization);
+    }
+    else
+    {
+      job->SetMultipleResourcesModification(modification.release(), isAnonymization);
+    }
+    
     job->SetOrigin(call);
     SetKeepSource(*job, body);
 
@@ -326,12 +342,46 @@ namespace Orthanc
     {
       job->SetTranscode(SerializationToolbox::ReadString(body, TRANSCODE));
     }
+
+    for (std::set<std::string>::const_iterator
+           it = resources.begin(); it != resources.end(); ++it)
+    {
+      context.AddChildInstances(*job, *it);
+    }
     
-    context.AddChildInstances(*job, call.GetUriComponent("id", ""));
     job->AddTrailingStep();
 
     OrthancRestApi::GetApi(call).SubmitCommandsJob
       (call, job.release(), true /* synchronous by default */, body);
+  }
+
+
+  static void SubmitModificationJob(std::unique_ptr<DicomModification>& modification,
+                                    bool isAnonymization,
+                                    RestApiPostCall& call,
+                                    const Json::Value& body,
+                                    ResourceType outputLevel)
+  {
+    // This was the only flavor in Orthanc <= 1.9.3
+    std::set<std::string> resources;
+    resources.insert(call.GetUriComponent("id", ""));
+    
+    SubmitModificationJob(modification, isAnonymization, call, body, outputLevel,
+                          true /* single resource */, resources);
+  }
+
+  
+  static void SubmitBulkJob(std::unique_ptr<DicomModification>& modification,
+                            bool isAnonymization,
+                            RestApiPostCall& call,
+                            const Json::Value& body)
+  {
+    std::set<std::string> resources;
+    SerializationToolbox::ReadSetOfStrings(resources, body, "Resources");
+
+    SubmitModificationJob(modification, isAnonymization,
+                          call, body, ResourceType_Instance /* arbitrary value, unused */,
+                          false /* multiple resources */, resources);
   }
 
 
@@ -360,9 +410,38 @@ namespace Orthanc
     ParseModifyRequest(body, *modification, call);
 
     modification->SetLevel(resourceType);
-
+    
     SubmitModificationJob(modification, false /* not an anonymization */,
                           call, body, resourceType);
+  }
+
+
+  // New in Orthanc 1.9.4
+  static void BulkModify(RestApiPostCall& call)
+  {
+    if (call.IsDocumentation())
+    {
+      OrthancRestApi::DocumentSubmitCommandsJob(call);
+      DocumentModifyOptions(call);
+      call.GetDocumentation()
+        .SetTag("System")
+        .SetSummary("Modify a set of instances")
+        .SetRequestField("Resources", RestApiCallDocumentation::Type_JsonListOfStrings,
+                         "List of the Orthanc identifiers of the patients/studies/series/instances of interest.", false)
+        .SetDescription("Start a job that will modify all the DICOM patients, studies, series or instances "
+                        "whose identifiers are provided in the `Resources` field.")
+        .AddAnswerType(MimeType_Json, "The list of all the resources that have been altered by this modification");
+      return;
+    }
+    
+    std::unique_ptr<DicomModification> modification(new DicomModification);
+
+    Json::Value body;
+    ParseModifyRequest(body, *modification, call);
+
+    modification->SetLevel(DetectModifyLevel(*modification));
+
+    SubmitBulkJob(modification, false /* not an anonymization */, call, body);
   }
 
 
@@ -392,6 +471,33 @@ namespace Orthanc
 
     SubmitModificationJob(modification, true /* anonymization */,
                           call, body, resourceType);
+  }
+
+
+  // New in Orthanc 1.9.4
+  static void BulkAnonymize(RestApiPostCall& call)
+  {
+    if (call.IsDocumentation())
+    {
+      OrthancRestApi::DocumentSubmitCommandsJob(call);
+      DocumentAnonymizationOptions(call);
+      call.GetDocumentation()
+        .SetTag("System")
+        .SetSummary("Anonymize a set of instances")
+        .SetRequestField("Resources", RestApiCallDocumentation::Type_JsonListOfStrings,
+                         "List of the Orthanc identifiers of the patients/studies/series/instances of interest.", false)
+        .SetDescription("Start a job that will anonymize all the DICOM patients, studies, series or instances "
+                        "whose identifiers are provided in the `Resources` field.")
+        .AddAnswerType(MimeType_Json, "The list of all the resources that have been created by this anonymization");
+      return;
+    }
+
+    std::unique_ptr<DicomModification> modification(new DicomModification);
+
+    Json::Value body;
+    ParseAnonymizationRequest(body, *modification, call);
+
+    SubmitBulkJob(modification, true /* anonymization */, call, body);
   }
 
 
@@ -1054,11 +1160,13 @@ namespace Orthanc
     Register("/series/{id}/modify", ModifyResource<ResourceType_Series>);
     Register("/studies/{id}/modify", ModifyResource<ResourceType_Study>);
     Register("/patients/{id}/modify", ModifyResource<ResourceType_Patient>);
+    Register("/tools/bulk-modify", BulkModify);
 
     Register("/instances/{id}/anonymize", AnonymizeInstance);
     Register("/series/{id}/anonymize", AnonymizeResource<ResourceType_Series>);
     Register("/studies/{id}/anonymize", AnonymizeResource<ResourceType_Study>);
     Register("/patients/{id}/anonymize", AnonymizeResource<ResourceType_Patient>);
+    Register("/tools/bulk-anonymize", BulkAnonymize);
 
     Register("/tools/create-dicom", CreateDicom);
 

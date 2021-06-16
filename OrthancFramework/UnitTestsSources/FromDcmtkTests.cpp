@@ -2430,7 +2430,7 @@ TEST(ParsedDicomFile, DicomPath)
         {
           Json::Value c = Json::objectValue;
           c["CodeValue"] = "122403";
-          c["0010,0010"] = "WORLD";  // Patient name
+          c["0008,103e"] = "WORLD";  // Series description
           b.append(c);
         }
 
@@ -2446,6 +2446,7 @@ TEST(ParsedDicomFile, DicomPath)
   static const char* CODE_VALUE = "0008,0100";
   static const char* PATIENT_ID = "0010,0020";
   static const char* PATIENT_NAME = "0010,0010";
+  static const char* SERIES_DESCRIPTION = "0008,103e";
   static const char* PURPOSE_CODE_SEQ = "0040,a170";
   static const char* REF_IM_SEQ = "0008,1140";
   static const char* REF_SOP_CLASS = "0008,1150";
@@ -2525,7 +2526,7 @@ TEST(ParsedDicomFile, DicomPath)
     Json::Value vv;
     dicom->DatasetToJson(vv, DicomToJsonFormat_Short, DicomToJsonFlags_None, 0);
 
-    ASSERT_EQ("WORLD", vv[REL_SERIES_SEQ][0][PURPOSE_CODE_SEQ][0][PATIENT_NAME].asString());
+    ASSERT_EQ("WORLD", vv[REL_SERIES_SEQ][0][PURPOSE_CODE_SEQ][0][SERIES_DESCRIPTION].asString());
     ASSERT_FALSE(vv[REL_SERIES_SEQ][0][PURPOSE_CODE_SEQ][0].isMember(CODE_VALUE));
   }
     
@@ -2685,7 +2686,7 @@ TEST(ParsedDicomFile, DicomPath)
     ASSERT_NE("1.2.840.113619.2.176.2025.1499492.7040.1171286241.719", vv1[REF_IM_SEQ][0][REF_SOP_INSTANCE].asString());
     ASSERT_NE("1.2.840.113619.2.176.2025.1499492.7040.1171286241.726", vv1[REF_IM_SEQ][1][REF_SOP_INSTANCE].asString());
     ASSERT_NE("1.2.840.113704.1.111.7016.1342451220.40", vv1[REL_SERIES_SEQ][0][STUDY_INSTANCE_UID].asString());
-    ASSERT_EQ("WORLD", vv1[REL_SERIES_SEQ][0][PURPOSE_CODE_SEQ][0][PATIENT_NAME].asString());
+    ASSERT_EQ("WORLD", vv1[REL_SERIES_SEQ][0][PURPOSE_CODE_SEQ][0][SERIES_DESCRIPTION].asString());
   }
 
   {

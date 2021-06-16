@@ -155,10 +155,21 @@ namespace Orthanc
         if (that_.uids_.find(tag) != that_.uids_.end() &&
             !IsManuallyModified(tag))
         {
-          // This is a first-level UID tag that must be anonymized
-          assert(vr == ValueRepresentation_UniqueIdentifier ||
-                 vr == ValueRepresentation_NotSupported /* for older versions of DCMTK */);
-          newValue = that_.MapDicomIdentifier(value, ResourceType_Instance);
+          if (tag == DICOM_TAG_PATIENT_ID ||
+              tag == DICOM_TAG_PATIENT_NAME)
+          {
+            assert(vr == ValueRepresentation_LongString ||
+                   vr == ValueRepresentation_PersonName);
+            newValue = that_.MapDicomIdentifier(value, ResourceType_Patient);            
+          }
+          else
+          {
+            // This is a first-level UID tag that must be anonymized
+            assert(vr == ValueRepresentation_UniqueIdentifier ||
+                   vr == ValueRepresentation_NotSupported /* for older versions of DCMTK */);
+            newValue = that_.MapDicomIdentifier(value, ResourceType_Instance);
+          }
+          
           return Action_Replace;
         }
         else
@@ -202,27 +213,35 @@ namespace Orthanc
         }
         else if (that_.uids_.find(tag) != that_.uids_.end())
         {
-          assert(vr == ValueRepresentation_UniqueIdentifier ||
-                 vr == ValueRepresentation_NotSupported /* for older versions of DCMTK */);
-
-          if (parentTags.size() == 2 &&
-              parentTags[0] == DICOM_TAG_REFERENCED_FRAME_OF_REFERENCE_SEQUENCE &&
-              parentTags[1] == DICOM_TAG_RT_REFERENCED_STUDY_SEQUENCE &&
-              tag == DICOM_TAG_REFERENCED_SOP_INSTANCE_UID)
+          if (tag == DICOM_TAG_PATIENT_ID ||
+              tag == DICOM_TAG_PATIENT_NAME)
           {
-            /**
-             * In RT-STRUCT, this ReferencedSOPInstanceUID is actually
-             * referencing a StudyInstanceUID !! (observed in many
-             * data sets including:
-             * https://wiki.cancerimagingarchive.net/display/Public/Lung+CT+Segmentation+Challenge+2017)
-             * Tested in "test_anonymize_relationships_5". Introduced
-             * in: https://hg.orthanc-server.com/orthanc/rev/3513
-             **/
-            newValue = that_.MapDicomIdentifier(value, ResourceType_Study);
+            newValue = that_.MapDicomIdentifier(value, ResourceType_Patient);
           }
           else
           {
-            newValue = that_.MapDicomIdentifier(value, ResourceType_Instance);
+            assert(vr == ValueRepresentation_UniqueIdentifier ||
+                   vr == ValueRepresentation_NotSupported /* for older versions of DCMTK */);
+
+            if (parentTags.size() == 2 &&
+                parentTags[0] == DICOM_TAG_REFERENCED_FRAME_OF_REFERENCE_SEQUENCE &&
+                parentTags[1] == DICOM_TAG_RT_REFERENCED_STUDY_SEQUENCE &&
+                tag == DICOM_TAG_REFERENCED_SOP_INSTANCE_UID)
+            {
+              /**
+               * In RT-STRUCT, this ReferencedSOPInstanceUID is actually
+               * referencing a StudyInstanceUID !! (observed in many
+               * data sets including:
+               * https://wiki.cancerimagingarchive.net/display/Public/Lung+CT+Segmentation+Challenge+2017)
+               * Tested in "test_anonymize_relationships_5". Introduced
+               * in: https://hg.orthanc-server.com/orthanc/rev/3513
+               **/
+              newValue = that_.MapDicomIdentifier(value, ResourceType_Study);
+            }
+            else
+            {
+              newValue = that_.MapDicomIdentifier(value, ResourceType_Instance);
+            }
           }
 
           return Action_Replace;
@@ -619,6 +638,10 @@ namespace Orthanc
      **/
     uids_.clear();
 
+    // (*) "PatientID" and "PatientName" are handled as UIDs since Orthanc 1.9.4
+    uids_.insert(DICOM_TAG_PATIENT_ID);
+    uids_.insert(DICOM_TAG_PATIENT_NAME);
+    
     SetupUidsFromOrthancInternal(uids_, removals_, DicomTag(0x0008, 0x0014));  // Instance Creator UID                   <= from SetupAnonymization2008()
     SetupUidsFromOrthancInternal(uids_, removals_, DicomTag(0x0008, 0x1155));  // Referenced SOP Instance UID            <= from VisitString() + RemoveRelationships()
     SetupUidsFromOrthancInternal(uids_, removals_, DicomTag(0x0020, 0x0052));  // Frame of Reference UID                 <= from VisitString() + RemoveRelationships()
@@ -772,16 +795,29 @@ namespace Orthanc
     ReplaceInternal(DicomTag(0x0012, 0x0062), "YES");
 
     // (*) Choose a random patient name and ID
-    std::string patientId = FromDcmtkBridge::GenerateUniqueIdentifier(ResourceType_Patient);
-    ReplaceInternal(DICOM_TAG_PATIENT_ID, patientId);
-    ReplaceInternal(DICOM_TAG_PATIENT_NAME, patientId);
+    uids_.insert(DICOM_TAG_PATIENT_ID);
+    uids_.insert(DICOM_TAG_PATIENT_NAME);
 
     // Sanity check
     for (SetOfTags::const_iterator it = uids_.begin(); it != uids_.end(); ++it)
     {
       ValueRepresentation vr = FromDcmtkBridge::LookupValueRepresentation(*it);
-      if (vr != ValueRepresentation_UniqueIdentifier &&
-          vr != ValueRepresentation_NotSupported /* for older versions of DCMTK */)
+      if (*it == DICOM_TAG_PATIENT_ID)
+      {
+        if (vr != ValueRepresentation_LongString)
+        {
+          throw OrthancException(ErrorCode_InternalError);
+        }
+      }
+      else if (*it == DICOM_TAG_PATIENT_NAME)
+      {
+        if (vr != ValueRepresentation_PersonName)
+        {
+          throw OrthancException(ErrorCode_InternalError);
+        }
+      }
+      else if (vr != ValueRepresentation_UniqueIdentifier &&
+               vr != ValueRepresentation_NotSupported /* for older versions of DCMTK */)
       {
         throw OrthancException(ErrorCode_InternalError);
       }
@@ -805,7 +841,10 @@ namespace Orthanc
     
 
     // Sanity checks at the patient level
-    if (level_ == ResourceType_Patient && !IsReplaced(DICOM_TAG_PATIENT_ID))
+    bool isReplacedPatientId = (IsReplaced(DICOM_TAG_PATIENT_ID) ||
+                                uids_.find(DICOM_TAG_PATIENT_ID) != uids_.end());
+    
+    if (level_ == ResourceType_Patient && !isReplacedPatientId)
     {
       throw OrthancException(ErrorCode_BadRequest,
                              "When modifying a patient, her PatientID is required to be modified");
@@ -834,7 +873,7 @@ namespace Orthanc
 
 
     // Sanity checks at the study level
-    if (level_ == ResourceType_Study && IsReplaced(DICOM_TAG_PATIENT_ID))
+    if (level_ == ResourceType_Study && isReplacedPatientId)
     {
       throw OrthancException(ErrorCode_BadRequest,
                              "When modifying a study, the parent PatientID cannot be manually modified");
@@ -857,7 +896,7 @@ namespace Orthanc
 
 
     // Sanity checks at the series level
-    if (level_ == ResourceType_Series && IsReplaced(DICOM_TAG_PATIENT_ID))
+    if (level_ == ResourceType_Series && isReplacedPatientId)
     {
       throw OrthancException(ErrorCode_BadRequest,
                              "When modifying a series, the parent PatientID cannot be manually modified");
@@ -880,7 +919,7 @@ namespace Orthanc
 
 
     // Sanity checks at the instance level
-    if (level_ == ResourceType_Instance && IsReplaced(DICOM_TAG_PATIENT_ID))
+    if (level_ == ResourceType_Instance && isReplacedPatientId)
     {
       throw OrthancException(ErrorCode_BadRequest,
                              "When modifying an instance, the parent PatientID cannot be manually modified");
@@ -1203,7 +1242,7 @@ namespace Orthanc
   }
 
 
-  void DicomModification::ParseAnonymizationRequest(bool& patientNameReplaced,
+  void DicomModification::ParseAnonymizationRequest(bool& patientNameOverridden,
                                                     const Json::Value& request)
   {
     if (!request.isObject())
@@ -1230,8 +1269,6 @@ namespace Orthanc
         
     SetupAnonymization(version);
 
-    std::string patientName = GetReplacementAsString(DICOM_TAG_PATIENT_NAME);    
-
     if (GetBooleanValue("KeepPrivateTags", request, false))
     {
       SetRemovePrivateTags(false);
@@ -1252,9 +1289,8 @@ namespace Orthanc
       ParseListOfTags(*this, request["Keep"], TagOperation_Keep, force);
     }
 
-    patientNameReplaced = (IsReplaced(DICOM_TAG_PATIENT_NAME) &&
-                           GetReplacement(DICOM_TAG_PATIENT_NAME) == patientName);
-
+    patientNameOverridden = (uids_.find(DICOM_TAG_PATIENT_NAME) == uids_.end());
+    
     // New in Orthanc 1.6.0
     if (request.isMember("PrivateCreator"))
     {
