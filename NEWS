@@ -12,8 +12,9 @@ REST API
 
 * API version upgraded to 13
 * New routes:
-  - "/tools/bulk-anonymize" to anonymize groups of multiple, unrelated resources at once
-  - "/tools/bulk-modify" to modify groups of multiple, unrelated resources at once
+  - "/tools/bulk-anonymize" to anonymize a group of multiple, unrelated resources at once
+  - "/tools/bulk-delete" to delete a group of multiple, unrelated resources at once
+  - "/tools/bulk-modify" to modify a group of multiple, unrelated resources at once
 * ZIP archive/media generated in synchronous mode are now streamed by default
 * "Replace" tags in "/modify" and "/anonymize" now supports value representation AT
 * "/jobs/..." has new field "ErrorDetails" to help identify the cause of an error

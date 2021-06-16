@@ -565,7 +565,7 @@ namespace Orthanc
                               ResourceType queryLevel,
                               size_t limit);
 
-    bool DeleteResource(Json::Value& target /* out */,
+    bool DeleteResource(Json::Value& remainingAncestor /* out */,
                         const std::string& uuid,
                         ResourceType expectedType);
 
