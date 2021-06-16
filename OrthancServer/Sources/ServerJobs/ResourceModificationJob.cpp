@@ -44,7 +44,16 @@
 
 namespace Orthanc
 {
-  class ResourceModificationJob::Output : public boost::noncopyable
+  static void FormatResource(Json::Value& target,
+                             ResourceType level,
+                             const std::string& id)
+  {
+    target["Type"] = EnumerationToString(level);
+    target["ID"] = id;
+    target["Path"] = GetBasePath(level, id);
+  }
+  
+  class ResourceModificationJob::SingleOutput : public IOutput
   {
   private:
     ResourceType  level_;
@@ -53,7 +62,7 @@ namespace Orthanc
     std::string   patientId_;
 
   public:
-    explicit Output(ResourceType level) :
+    explicit SingleOutput(ResourceType level) :
       level_(level),
       isFirst_(true)
     {
@@ -65,13 +74,7 @@ namespace Orthanc
       }            
     }
 
-    ResourceType GetLevel() const
-    {
-      return level_;
-    }
-    
-
-    void Update(DicomInstanceHasher& hasher)
+    virtual void Update(DicomInstanceHasher& hasher) ORTHANC_OVERRIDE
     {
       if (isFirst_)
       {
@@ -98,40 +101,78 @@ namespace Orthanc
       }
     }
 
-
-    bool Format(Json::Value& target)
+    virtual void Format(Json::Value& target) const ORTHANC_OVERRIDE
     {
-      if (isFirst_)
+      assert(target.type() == Json::objectValue);
+
+      if (!isFirst_)
       {
-        return false;
-      }
-      else
-      {
-        target = Json::objectValue;
-        target["Type"] = EnumerationToString(level_);
-        target["ID"] = id_;
-        target["Path"] = GetBasePath(level_, id_);
+        FormatResource(target, level_, id_);
         target["PatientID"] = patientId_;
-        return true;
       }
     }
 
-  
-    bool GetIdentifier(std::string& id)
+    virtual bool IsSingleResource() const ORTHANC_OVERRIDE
     {
-      if (isFirst_)
-      {
-        return false;
-      }
-      else
-      {
-        id = id_;
-        return true;
-      }
+      return true;
+    }
+
+    ResourceType GetLevel() const
+    {
+      return level_;
     }
   };
     
 
+  class ResourceModificationJob::MultipleOutputs : public IOutput
+  {
+  private:
+    static void FormatResources(Json::Value& target,
+                                ResourceType level,
+                                const std::set<std::string>& resources)
+    {
+      assert(target.type() == Json::arrayValue);
+
+      for (std::set<std::string>::const_iterator
+             it = resources.begin(); it != resources.end(); ++it)
+      {
+        Json::Value item = Json::objectValue;
+        FormatResource(item, level, *it);
+        target.append(item);        
+      }
+    }
+    
+    std::set<std::string>  instances_;
+    std::set<std::string>  series_;
+    std::set<std::string>  studies_;
+    std::set<std::string>  patients_;
+
+  public:
+    virtual void Update(DicomInstanceHasher& hasher) ORTHANC_OVERRIDE
+    {
+      instances_.insert(hasher.HashInstance());
+      series_.insert(hasher.HashSeries());
+      studies_.insert(hasher.HashStudy());
+      patients_.insert(hasher.HashPatient());
+    }
+
+    virtual void Format(Json::Value& target) const ORTHANC_OVERRIDE
+    {
+      assert(target.type() == Json::objectValue);
+      Json::Value resources = Json::arrayValue;
+      FormatResources(resources, ResourceType_Instance, instances_);
+      FormatResources(resources, ResourceType_Series, series_);
+      FormatResources(resources, ResourceType_Study, studies_);
+      FormatResources(resources, ResourceType_Patient, patients_);
+      target["Resources"] = resources;
+    }
+
+    virtual bool IsSingleResource() const ORTHANC_OVERRIDE
+    {
+      return false;
+    }
+  };
+    
 
 
   bool ResourceModificationJob::HandleInstance(const std::string& instance)
@@ -271,7 +312,6 @@ namespace Orthanc
 
   ResourceModificationJob::ResourceModificationJob(ServerContext& context) :
     CleaningInstancesJob(context, true /* by default, keep source */),
-    modification_(new DicomModification),
     isAnonymization_(false),
     transcode_(false),
     transferSyntax_(DicomTransferSyntax_LittleEndianExplicit)  // dummy initialization
@@ -279,9 +319,9 @@ namespace Orthanc
   }
 
 
-  void ResourceModificationJob::SetModification(DicomModification* modification,
-                                                ResourceType level,
-                                                bool isAnonymization)
+  void ResourceModificationJob::SetSingleResourceModification(DicomModification* modification,
+                                                              ResourceType outputLevel,
+                                                              bool isAnonymization)
   {
     if (modification == NULL)
     {
@@ -294,7 +334,27 @@ namespace Orthanc
     else
     {
       modification_.reset(modification);
-      output_.reset(new Output(level));
+      output_.reset(new SingleOutput(outputLevel));
+      isAnonymization_ = isAnonymization;
+    }
+  }
+
+
+  void ResourceModificationJob::SetMultipleResourcesModification(DicomModification* modification,
+                                                                 bool isAnonymization)
+  {
+    if (modification == NULL)
+    {
+      throw OrthancException(ErrorCode_NullPointer);
+    }
+    else if (IsStarted())
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    else
+    {
+      modification_.reset(modification);
+      output_.reset(new MultipleOutputs);
       isAnonymization_ = isAnonymization;
     }
   }
@@ -387,6 +447,37 @@ namespace Orthanc
   }
 
 
+  bool ResourceModificationJob::IsSingleResourceModification() const
+  {
+    if (modification_.get() == NULL)
+    {
+      assert(output_.get() == NULL);
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    else
+    {
+      assert(output_.get() != NULL);
+      return output_->IsSingleResource();
+    }
+  }
+  
+
+  ResourceType ResourceModificationJob::GetOutputLevel() const
+  {
+    if (IsSingleResourceModification())
+    {
+      assert(modification_.get() != NULL &&
+             output_.get() != NULL);
+      return dynamic_cast<const SingleOutput&>(*output_).GetLevel();
+    }
+    else
+    {
+      // Not applicable if multiple resources
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+  }
+
+
   void ResourceModificationJob::GetPublicContent(Json::Value& value)
   {
     CleaningInstancesJob::GetPublicContent(value);
@@ -409,6 +500,8 @@ namespace Orthanc
   static const char* ORIGIN = "Origin";
   static const char* IS_ANONYMIZATION = "IsAnonymization";
   static const char* TRANSCODE = "Transcode";
+  static const char* OUTPUT_LEVEL = "OutputLevel";
+  static const char* IS_SINGLE_RESOURCE = "IsSingleResource";
   
 
   ResourceModificationJob::ResourceModificationJob(ServerContext& context,
@@ -418,9 +511,7 @@ namespace Orthanc
   {
     assert(serialized.type() == Json::objectValue);
 
-    isAnonymization_ = SerializationToolbox::ReadBoolean(serialized, IS_ANONYMIZATION);
     origin_ = DicomInstanceOrigin(serialized[ORIGIN]);
-    modification_.reset(new DicomModification(serialized[MODIFICATION]));
 
     if (serialized.isMember(TRANSCODE))
     {
@@ -430,11 +521,62 @@ namespace Orthanc
     {
       transcode_ = false;
     }
+
+    bool isSingleResource;
+    if (serialized.isMember(IS_SINGLE_RESOURCE))
+    {
+      isSingleResource = SerializationToolbox::ReadBoolean(serialized, IS_SINGLE_RESOURCE);
+    }
+    else
+    {
+      isSingleResource = true;  // Backward compatibility with Orthanc <= 1.9.3
+    }
+
+    bool isAnonymization = SerializationToolbox::ReadBoolean(serialized, IS_ANONYMIZATION);
+    std::unique_ptr<DicomModification> modification(new DicomModification(serialized[MODIFICATION]));
+
+    if (isSingleResource)
+    {
+      ResourceType outputLevel;
+      
+      if (serialized.isMember(OUTPUT_LEVEL))
+      {
+        // New in Orthanc 1.9.4. This fixes an *incorrect* behavior in
+        // Orthanc <= 1.9.3, in which "outputLevel" would be set to
+        // "modification->GetLevel()"
+        outputLevel = StringToResourceType(SerializationToolbox::ReadString(serialized, OUTPUT_LEVEL).c_str());
+      }
+      else
+      {
+        // Use the buggy convention from Orthanc <= 1.9.3 (which is
+        // the only thing we have at hand)
+        outputLevel = modification->GetLevel();
+
+        if (outputLevel == ResourceType_Instance)
+        {
+          // This should never happen, but as "SingleOutput" doesn't
+          // support instance-level anonymization, don't take any risk
+          // and choose an arbitrary output level
+          outputLevel = ResourceType_Patient;
+        }
+      }
+      
+      SetSingleResourceModification(modification.release(), outputLevel, isAnonymization);
+    }
+    else
+    {
+      // New in Orthanc 1.9.4
+      SetMultipleResourcesModification(modification.release(), isAnonymization);
+    }
   }
   
   bool ResourceModificationJob::Serialize(Json::Value& value)
   {
-    if (!CleaningInstancesJob::Serialize(value))
+    if (modification_.get() == NULL)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    else if (!CleaningInstancesJob::Serialize(value))
     {
       return false;
     }
@@ -455,6 +597,13 @@ namespace Orthanc
       modification_->Serialize(tmp);
       value[MODIFICATION] = tmp;
 
+      // New in Orthanc 1.9.4
+      value[IS_SINGLE_RESOURCE] = IsSingleResourceModification();
+      if (IsSingleResourceModification())
+      {
+        value[OUTPUT_LEVEL] = EnumerationToString(GetOutputLevel());
+      }
+      
       return true;
     }
   }

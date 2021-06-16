@@ -819,11 +819,16 @@ TEST_F(OrthancJobsSerialization, Jobs)
 
   {
     std::unique_ptr<DicomModification> modification(new DicomModification);
-    modification->SetupAnonymization(DicomVersion_2008);    
+    modification->SetupAnonymization(DicomVersion_2008);
+    modification->SetLevel(ResourceType_Series);
 
     ResourceModificationJob job(GetContext());
-    job.SetModification(modification.release(), ResourceType_Patient, true);
+    ASSERT_THROW(job.IsSingleResourceModification(), OrthancException);
+    job.SetSingleResourceModification(modification.release(), ResourceType_Patient, true);
     job.SetOrigin(DicomInstanceOrigin::FromLua());
+    ASSERT_TRUE(job.IsAnonymization());
+    ASSERT_TRUE(job.IsSingleResourceModification());
+    ASSERT_EQ(ResourceType_Patient, job.GetOutputLevel());
 
     job.AddTrailingStep();  // Necessary since 1.7.0
     ASSERT_TRUE(CheckIdempotentSetOfInstances(unserializer, job));
@@ -840,12 +845,32 @@ TEST_F(OrthancJobsSerialization, Jobs)
     ASSERT_THROW(tmp.GetTransferSyntax(), OrthancException);
     ASSERT_EQ(RequestOrigin_Lua, tmp.GetOrigin().GetRequestOrigin());
     ASSERT_TRUE(tmp.GetModification().IsRemoved(DICOM_TAG_STUDY_DESCRIPTION));
+    ASSERT_TRUE(tmp.IsSingleResourceModification());
+    ASSERT_EQ(ResourceType_Patient, tmp.GetOutputLevel());
+    ASSERT_EQ(ResourceType_Series, tmp.GetModification().GetLevel());
+  }
+
+  {
+    // Backward compatibility with Orthanc 1.9.3
+    ASSERT_TRUE(s.isMember("OutputLevel"));
+    ASSERT_TRUE(s.isMember("IsSingleResource"));
+    s.removeMember("OutputLevel");
+    s.removeMember("IsSingleResource");
+    
+    std::unique_ptr<IJob> job;
+    job.reset(unserializer.UnserializeJob(s));
+
+    ResourceModificationJob& tmp = dynamic_cast<ResourceModificationJob&>(*job);
+    ASSERT_TRUE(tmp.IsSingleResourceModification());
+    ASSERT_EQ(ResourceType_Series, tmp.GetOutputLevel());  // old, incorrect behavior
+    ASSERT_EQ(ResourceType_Series, tmp.GetModification().GetLevel());
   }
 
   {
     ResourceModificationJob job(GetContext());
     ASSERT_THROW(job.SetTranscode("nope"), OrthancException);
     job.SetTranscode(DicomTransferSyntax_JPEGProcess1);
+    job.SetSingleResourceModification(new DicomModification, ResourceType_Study, false);
 
     job.AddTrailingStep();  // Necessary since 1.7.0
     ASSERT_TRUE(CheckIdempotentSetOfInstances(unserializer, job));
@@ -861,6 +886,72 @@ TEST_F(OrthancJobsSerialization, Jobs)
     ASSERT_TRUE(tmp.IsTranscode());
     ASSERT_EQ(DicomTransferSyntax_JPEGProcess1, tmp.GetTransferSyntax());
     ASSERT_EQ(RequestOrigin_Unknown, tmp.GetOrigin().GetRequestOrigin());
+    ASSERT_TRUE(tmp.IsSingleResourceModification());
+    ASSERT_EQ(ResourceType_Study, tmp.GetOutputLevel());
+    ASSERT_EQ(ResourceType_Instance, tmp.GetModification().GetLevel());
+  }
+
+  {
+    ResourceModificationJob job(GetContext());
+    job.SetMultipleResourcesModification(new DicomModification, true);
+    job.AddInstance("toto");
+    job.AddInstance("tutu");
+    job.AddTrailingStep();  // Necessary since 1.7.0
+    ASSERT_TRUE(CheckIdempotentSetOfInstances(unserializer, job));
+    ASSERT_TRUE(job.Serialize(s));
+  }
+
+  {
+    std::unique_ptr<IJob> job;
+    job.reset(unserializer.UnserializeJob(s));
+
+    ResourceModificationJob& tmp = dynamic_cast<ResourceModificationJob&>(*job);
+
+    std::set<std::string> instances;
+    for (size_t i = 0; i < tmp.GetInstancesCount(); i++)
+    {
+      instances.insert(tmp.GetInstance(i));
+    }
+    
+    ASSERT_EQ(2u, instances.size());
+    ASSERT_TRUE(instances.find("toto") != instances.end());
+    ASSERT_TRUE(instances.find("tutu") != instances.end());
+
+    ASSERT_TRUE(tmp.IsAnonymization());
+    ASSERT_FALSE(tmp.IsSingleResourceModification());
+    ASSERT_THROW(tmp.GetOutputLevel(), OrthancException);
+    ASSERT_EQ(ResourceType_Instance, tmp.GetModification().GetLevel());
+  }
+
+  {
+    // Test behavior on broken serialization
+    ASSERT_FALSE(s.isMember("OutputLevel"));
+    ASSERT_TRUE(s.isMember("IsSingleResource"));
+    s.removeMember("IsSingleResource");
+
+    {
+      std::unique_ptr<IJob> job;
+      job.reset(unserializer.UnserializeJob(s));
+
+      ResourceModificationJob& tmp = dynamic_cast<ResourceModificationJob&>(*job);
+      ASSERT_TRUE(tmp.IsAnonymization());
+      ASSERT_TRUE(tmp.IsSingleResourceModification());
+      ASSERT_EQ(ResourceType_Patient, tmp.GetOutputLevel());
+      ASSERT_EQ(ResourceType_Instance, tmp.GetModification().GetLevel());
+    }
+
+    s["Modification"]["Level"] = "Series";
+
+    {
+      std::unique_ptr<IJob> job;
+      job.reset(unserializer.UnserializeJob(s));
+
+      ResourceModificationJob& tmp = dynamic_cast<ResourceModificationJob&>(*job);
+      ASSERT_TRUE(tmp.IsAnonymization());
+      ASSERT_TRUE(tmp.IsSingleResourceModification());
+      ASSERT_EQ(ResourceType_Series, tmp.GetOutputLevel());
+      ASSERT_EQ(ResourceType_Series, tmp.GetModification().GetLevel());
+    }
   }
 
   // SplitStudyJob

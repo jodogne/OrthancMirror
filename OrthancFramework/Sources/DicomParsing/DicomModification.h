@@ -235,7 +235,9 @@ namespace Orthanc
 
     void ParseModifyRequest(const Json::Value& request);
 
-    void ParseAnonymizationRequest(bool& patientNameReplaced,
+    // "patientNameOverridden" is set to "true" iff. the PatientName
+    // (0010,0010) tag is manually replaced, removed, cleared or kept
+    void ParseAnonymizationRequest(bool& patientNameOverridden /* out */,
                                    const Json::Value& request);
 
     void SetDicomIdentifierGenerator(IDicomIdentifierGenerator& generator);
