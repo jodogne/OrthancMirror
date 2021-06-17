@@ -53,6 +53,7 @@
 #include "../../OrthancFramework/Sources/HttpClient.h"
 #include "../../OrthancFramework/Sources/Logging.h"
 #include "../../OrthancFramework/Sources/OrthancException.h"
+#include "../../OrthancFramework/Sources/SerializationToolbox.h"
 
 #include "Database/SQLiteDatabaseWrapper.h"
 #include "OrthancConfiguration.h"
@@ -62,14 +63,19 @@
 #include <dcmtk/dcmnet/diutil.h>  // For DCM_dcmnetLogger
 
 
+static const char* const STORAGE_DIRECTORY = "StorageDirectory";
+static const char* const ORTHANC_STORAGE = "OrthancStorage";
+
 
 namespace Orthanc
 {
   static void RegisterUserMetadata(const Json::Value& config)
   {
-    if (config.isMember("UserMetadata"))
+    static const char* const USER_METADATA = "UserMetadata";
+    
+    if (config.isMember(USER_METADATA))
     {
-      const Json::Value& parameter = config["UserMetadata"];
+      const Json::Value& parameter = config[USER_METADATA];
 
       Json::Value::Members members = parameter.getMemberNames();
       for (size_t i = 0; i < members.size(); i++)
@@ -103,9 +109,11 @@ namespace Orthanc
 
   static void RegisterUserContentType(const Json::Value& config)
   {
-    if (config.isMember("UserContentType"))
+    static const char* const USER_CONTENT_TYPE = "UserContentType";
+    
+    if (config.isMember(USER_CONTENT_TYPE))
     {
-      const Json::Value& parameter = config["UserContentType"];
+      const Json::Value& parameter = config[USER_CONTENT_TYPE];
 
       Json::Value::Members members = parameter.getMemberNames();
       for (size_t i = 0; i < members.size(); i++)
@@ -150,20 +158,36 @@ namespace Orthanc
   }
 
 
+  static void LoadExternalDictionaries(const Json::Value& configuration)
+  {
+    static const char* const EXTERNAL_DICTIONARIES = "ExternalDictionaries";
+    
+    if (configuration.type() == Json::objectValue &&
+        configuration.isMember(EXTERNAL_DICTIONARIES))
+    {
+      std::vector<std::string> dictionaries;
+      SerializationToolbox::ReadArrayOfStrings(dictionaries, configuration, EXTERNAL_DICTIONARIES);
+      FromDcmtkBridge::LoadExternalDictionaries(dictionaries);
+    }
+  }
+
+
   static void LoadCustomDictionary(const Json::Value& configuration)
   {
+    static const char* const DICTIONARY = "Dictionary";
+    
     if (configuration.type() != Json::objectValue ||
-        !configuration.isMember("Dictionary") ||
-        configuration["Dictionary"].type() != Json::objectValue)
+        !configuration.isMember(DICTIONARY) ||
+        configuration[DICTIONARY].type() != Json::objectValue)
     {
       return;
     }
 
-    Json::Value::Members tags(configuration["Dictionary"].getMemberNames());
+    Json::Value::Members tags(configuration[DICTIONARY].getMemberNames());
 
     for (Json::Value::ArrayIndex i = 0; i < tags.size(); i++)
     {
-      const Json::Value& content = configuration["Dictionary"][tags[i]];
+      const Json::Value& content = configuration[DICTIONARY][tags[i]];
       if (content.type() != Json::arrayValue ||
           content.size() < 2 ||
           content.size() > 5 ||
@@ -190,9 +214,13 @@ namespace Orthanc
 
   static void ConfigurePkcs11(const Json::Value& config)
   {
+    static const char* const MODULE = "Module";
+    static const char* const VERBOSE = "Verbose";
+    static const char* const PIN = "Pin";
+    
     if (config.type() != Json::objectValue ||
-        !config.isMember("Module") ||
-        config["Module"].type() != Json::stringValue)
+        !config.isMember(MODULE) ||
+        config[MODULE].type() != Json::stringValue)
     {
       throw OrthancException(ErrorCode_BadFileFormat,
                              "No path to the PKCS#11 module (DLL or .so) is provided "
@@ -200,11 +228,11 @@ namespace Orthanc
     }
 
     std::string pin;
-    if (config.isMember("Pin"))
+    if (config.isMember(PIN))
     {
-      if (config["Pin"].type() == Json::stringValue)
+      if (config[PIN].type() == Json::stringValue)
       {
-        pin = config["Pin"].asString();
+        pin = config[PIN].asString();
       }
       else
       {
@@ -214,11 +242,11 @@ namespace Orthanc
     }
 
     bool verbose = false;
-    if (config.isMember("Verbose"))
+    if (config.isMember(VERBOSE))
     {
-      if (config["Verbose"].type() == Json::booleanValue)
+      if (config[VERBOSE].type() == Json::booleanValue)
       {
-        verbose = config["Verbose"].asBool();
+        verbose = config[VERBOSE].asBool();
       }
       else
       {
@@ -227,17 +255,18 @@ namespace Orthanc
       }
     }
 
-    HttpClient::InitializePkcs11(config["Module"].asString(), pin, verbose);
+    HttpClient::InitializePkcs11(config[MODULE].asString(), pin, verbose);
   }
 
 
 
   void OrthancInitialize(const char* configurationFile)
   {
-    static const char* LOCALE = "Locale";
-    static const char* PKCS11 = "Pkcs11";
-    static const char* DEFAULT_ENCODING = "DefaultEncoding";
-    static const char* MALLOC_ARENA_MAX = "MallocArenaMax";
+    static const char* const LOCALE = "Locale";
+    static const char* const PKCS11 = "Pkcs11";
+    static const char* const DEFAULT_ENCODING = "DefaultEncoding";
+    static const char* const MALLOC_ARENA_MAX = "MallocArenaMax";
+    static const char* const LOAD_PRIVATE_DICTIONARY = "LoadPrivateDictionary";
     
     OrthancConfiguration::WriterLock lock;
 
@@ -254,7 +283,7 @@ namespace Orthanc
         locale = lock.GetConfiguration().GetStringParameter(LOCALE, "");
       }
       
-      bool loadPrivate = lock.GetConfiguration().GetBooleanParameter("LoadPrivateDictionary", true);
+      bool loadPrivate = lock.GetConfiguration().GetBooleanParameter(LOAD_PRIVATE_DICTIONARY, true);
       Orthanc::InitializeFramework(locale, loadPrivate);
     }
 
@@ -278,6 +307,7 @@ namespace Orthanc
     RegisterUserMetadata(lock.GetJson());
     RegisterUserContentType(lock.GetJson());
 
+    LoadExternalDictionaries(lock.GetJson());  // New in Orthanc 1.9.4
     LoadCustomDictionary(lock.GetJson());
 
     lock.GetConfiguration().RegisterFont(ServerResources::FONT_UBUNTU_MONO_BOLD_16);
@@ -319,7 +349,7 @@ namespace Orthanc
     OrthancConfiguration::ReaderLock lock;
 
     std::string storageDirectoryStr = 
-      lock.GetConfiguration().GetStringParameter("StorageDirectory", "OrthancStorage");
+      lock.GetConfiguration().GetStringParameter(STORAGE_DIRECTORY, ORTHANC_STORAGE);
 
     // Open the database
     boost::filesystem::path indexDirectory = lock.GetConfiguration().InterpretStringParameterAsPath(
@@ -413,10 +443,13 @@ namespace Orthanc
 
   static IStorageArea* CreateFilesystemStorage()
   {
+    static const char* const SYNC_STORAGE_AREA = "SyncStorageArea";
+    static const char* const STORE_DICOM = "StoreDicom";
+    
     OrthancConfiguration::ReaderLock lock;
 
     std::string storageDirectoryStr = 
-      lock.GetConfiguration().GetStringParameter("StorageDirectory", "OrthancStorage");
+      lock.GetConfiguration().GetStringParameter(STORAGE_DIRECTORY, ORTHANC_STORAGE);
 
     boost::filesystem::path storageDirectory = 
       lock.GetConfiguration().InterpretStringParameterAsPath(storageDirectoryStr);
@@ -424,9 +457,9 @@ namespace Orthanc
     LOG(WARNING) << "Storage directory: " << storageDirectory;
 
     // New in Orthanc 1.7.4
-    bool fsyncOnWrite = lock.GetConfiguration().GetBooleanParameter("SyncStorageArea", true);
+    bool fsyncOnWrite = lock.GetConfiguration().GetBooleanParameter(SYNC_STORAGE_AREA, true);
 
-    if (lock.GetConfiguration().GetBooleanParameter("StoreDicom", true))
+    if (lock.GetConfiguration().GetBooleanParameter(STORE_DICOM, true))
     {
       return new FilesystemStorage(storageDirectory.string(), fsyncOnWrite);
     }

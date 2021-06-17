@@ -117,6 +117,9 @@
 #endif
 
 
+static bool hasExternalDictionaries_ = false;
+
+
 namespace Orthanc
 {
   static bool IsBinaryTag(const DcmTag& key)
@@ -226,22 +229,22 @@ namespace Orthanc
     }
 
     
-#define DCMTK_TO_CTYPE_CONVERTER(converter, cType, dcmtkType, getter, toStringFunction)  \
+#define DCMTK_TO_CTYPE_CONVERTER(converter, cType, dcmtkType, getter, toStringFunction) \
                                                                         \
     struct converter                                                    \
     {                                                                   \
       typedef cType CType;                                              \
                                                                         \
       ORTHANC_FORCE_INLINE                                              \
-      static bool Apply(CType& result,                                  \
-                        DcmElement& element,                            \
-                        size_t i)                                       \
+        static bool Apply(CType& result,                                \
+                          DcmElement& element,                          \
+                          size_t i)                                     \
       {                                                                 \
         return dynamic_cast<dcmtkType&>(element).getter(result, i).good(); \
       }                                                                 \
                                                                         \
       ORTHANC_FORCE_INLINE                                              \
-      static std::string ToString(CType value)                          \
+        static std::string ToString(CType value)                        \
       {                                                                 \
         return toStringFunction(value);                                 \
       }                                                                 \
@@ -285,15 +288,15 @@ namespace Orthanc
 
   void FromDcmtkBridge::InitializeDictionary(bool loadPrivateDictionary)
   {
-    LOG(INFO) << "Using DCTMK version: " << DCMTK_VERSION_NUMBER;
+    CLOG(INFO, DICOM) << "Using DCTMK version: " << DCMTK_VERSION_NUMBER;
     
+#if DCMTK_USE_EMBEDDED_DICTIONARIES == 1
     {
       DictionaryLocker locker;
 
       locker->clear();
 
-#if DCMTK_USE_EMBEDDED_DICTIONARIES == 1
-      LOG(INFO) << "Loading the embedded dictionaries";
+      CLOG(INFO, DICOM) << "Loading the embedded dictionaries";
       /**
        * Do not load DICONDE dictionary, it breaks the other tags. The
        * command "strace storescu 2>&1 |grep dic" shows that DICONDE
@@ -305,15 +308,16 @@ namespace Orthanc
 
       if (loadPrivateDictionary)
       {
-        LOG(INFO) << "Loading the embedded dictionary of private tags";
+        CLOG(INFO, DICOM) << "Loading the embedded dictionary of private tags";
         LoadEmbeddedDictionary(*locker, FrameworkResources::DICTIONARY_PRIVATE);
       }
       else
       {
-        LOG(INFO) << "The dictionary of private tags has not been loaded";
+        CLOG(INFO, DICOM) << "The dictionary of private tags has not been loaded";
       }
-
+    }
 #else
+    {
       std::vector<std::string> dictionaries;
       
       const char* env = std::getenv(DCM_DICT_ENVIRONMENT_VARIABLE);
@@ -331,21 +335,17 @@ namespace Orthanc
       {
         boost::filesystem::path base = DCMTK_DICTIONARY_DIR;
         dictionaries.push_back((base / "dicom.dic").string());
-        dictionaries.push_back((base / "private.dic").string());
-      }
 
-      for (size_t i = 0; i < dictionaries.size(); i++)
-      {
-        LOG(WARNING) << "Loading external DICOM dictionary: \"" << dictionaries[i] << "\"";
-        
-        if (!locker->loadDictionary(dictionaries[i].c_str()))
+        if (loadPrivateDictionary)
         {
-          throw OrthancException(ErrorCode_InexistentFile);
+          dictionaries.push_back((base / "private.dic").string());
         }
       }
 
-#endif
+      LoadExternalDictionaries(dictionaries);
+      hasExternalDictionaries_ = false;  // Fix the side-effect of "LoadExternalDictionaries()"
     }
+#endif
 
     /* make sure data dictionary is loaded */
     if (!dcmDataDict.isDictionaryLoaded())
@@ -364,6 +364,27 @@ namespace Orthanc
                                "The DICOM dictionary has not been correctly read");
       }
     }
+  }
+
+
+  void FromDcmtkBridge::LoadExternalDictionaries(const std::vector<std::string>& dictionaries)
+  {
+    DictionaryLocker locker;
+
+    CLOG(INFO, DICOM) << "Clearing the DICOM dictionary";
+    locker->clear();
+
+    for (size_t i = 0; i < dictionaries.size(); i++)
+    {
+      LOG(WARNING) << "Loading external DICOM dictionary: \"" << dictionaries[i] << "\"";
+        
+      if (!locker->loadDictionary(dictionaries[i].c_str()))
+      {
+        throw OrthancException(ErrorCode_InexistentFile);
+      }
+    }    
+
+    hasExternalDictionaries_ = true;
   }
 
 
@@ -392,10 +413,10 @@ namespace Orthanc
     
     DcmEVR evr = ToDcmtkBridge::Convert(vr);
 
-    LOG(INFO) << "Registering tag in dictionary: (" << tag.Format() << ") "
-              << (DcmVR(evr).getValidVRName()) << " " 
-              << name << " (multiplicity: " << minMultiplicity << "-" 
-              << (arbitrary ? "n" : boost::lexical_cast<std::string>(maxMultiplicity)) << ")";
+    CLOG(INFO, DICOM) << "Registering tag in dictionary: (" << tag.Format() << ") "
+                      << (DcmVR(evr).getValidVRName()) << " " 
+                      << name << " (multiplicity: " << minMultiplicity << "-" 
+                      << (arbitrary ? "n" : boost::lexical_cast<std::string>(maxMultiplicity)) << ")";
 
     std::unique_ptr<DcmDictEntry>  entry;
     if (privateCreator.empty())
@@ -983,7 +1004,7 @@ namespace Orthanc
     {
       // The "0" below lets "LeafValueToJson()" take care of "TooLong" values
       std::unique_ptr<DicomValue> v(FromDcmtkBridge::ConvertLeafElement
-                                  (element, flags, 0, encoding, hasCodeExtensions, ignoreTagLength));
+                                    (element, flags, 0, encoding, hasCodeExtensions, ignoreTagLength));
 
       if (ignoreTagLength.find(GetTag(element)) == ignoreTagLength.end())
       {
@@ -1113,18 +1134,69 @@ namespace Orthanc
   }
 
 
-
   static std::string GetTagNameInternal(DcmTag& tag)
   {
+    if (!hasExternalDictionaries_)
     {
-      // Some patches for important tags because of different DICOM
-      // dictionaries between DCMTK versions
+      /**
+       * Some patches for important tags because of different DICOM
+       * dictionaries between DCMTK versions. Since Orthanc 1.9.4, we
+       * don't apply these patches if external dictionaries are
+       * loaded, notably for compatibility with DICONDE. In Orthanc <=
+       * 1.9.3, this was done by method "DicomTag::GetMainTagsName()".
+       **/
+      
       DicomTag tmp(tag.getGroup(), tag.getElement());
-      std::string n = tmp.GetMainTagsName();
-      if (n.size() != 0)
-      {
-        return n;
-      }
+
+      if (tmp == DICOM_TAG_ACCESSION_NUMBER)
+        return "AccessionNumber";
+
+      if (tmp == DICOM_TAG_SOP_INSTANCE_UID)
+        return "SOPInstanceUID";
+
+      if (tmp == DICOM_TAG_PATIENT_ID)
+        return "PatientID";
+
+      if (tmp == DICOM_TAG_SERIES_INSTANCE_UID)
+        return "SeriesInstanceUID";
+
+      if (tmp == DICOM_TAG_STUDY_INSTANCE_UID)
+        return "StudyInstanceUID"; 
+
+      if (tmp == DICOM_TAG_PIXEL_DATA)
+        return "PixelData";
+
+      if (tmp == DICOM_TAG_IMAGE_INDEX)
+        return "ImageIndex";
+
+      if (tmp == DICOM_TAG_INSTANCE_NUMBER)
+        return "InstanceNumber";
+
+      if (tmp == DICOM_TAG_NUMBER_OF_SLICES)
+        return "NumberOfSlices";
+
+      if (tmp == DICOM_TAG_NUMBER_OF_FRAMES)
+        return "NumberOfFrames";
+
+      if (tmp == DICOM_TAG_CARDIAC_NUMBER_OF_IMAGES)
+        return "CardiacNumberOfImages";
+
+      if (tmp == DICOM_TAG_IMAGES_IN_ACQUISITION)
+        return "ImagesInAcquisition";
+
+      if (tmp == DICOM_TAG_PATIENT_NAME)
+        return "PatientName";
+
+      if (tmp == DICOM_TAG_IMAGE_POSITION_PATIENT)
+        return "ImagePositionPatient";
+
+      if (tmp == DICOM_TAG_IMAGE_ORIENTATION_PATIENT)
+        return "ImageOrientationPatient";
+
+      // New in Orthanc 1.6.0, as tagged as "RETIRED_" since DCMTK 3.6.4
+      if (tmp == DICOM_TAG_OTHER_PATIENT_IDS)
+        return "OtherPatientIDs";
+
       // End of patches
     }
 
@@ -1217,7 +1289,7 @@ namespace Orthanc
     }
     else
     {
-      LOG(INFO) << "Unknown DICOM tag: \"" << name << "\"";
+      CLOG(INFO, DICOM) << "Unknown DICOM tag: \"" << name << "\"";
       throw OrthancException(ErrorCode_UnknownDicomTag);
     }
 #endif
@@ -1441,14 +1513,14 @@ namespace Orthanc
 
         if (known)
         {
-          LOG(INFO) << "Transcoded an image from transfer syntax "
-                    << GetTransferSyntaxUid(sourceSyntax) << " to "
-                    << GetTransferSyntaxUid(syntax);
+          CLOG(INFO, DICOM) << "Transcoded an image from transfer syntax "
+                            << GetTransferSyntaxUid(sourceSyntax) << " to "
+                            << GetTransferSyntaxUid(syntax);
         }
         else
         {
-          LOG(INFO) << "Transcoded an image from unknown transfer syntax to "
-                    << GetTransferSyntaxUid(syntax);
+          CLOG(INFO, DICOM) << "Transcoded an image from unknown transfer syntax to "
+                            << GetTransferSyntaxUid(syntax);
         }
         
         return true;
@@ -1507,16 +1579,16 @@ namespace Orthanc
         return ValueRepresentation_OtherByte;
 
 #if DCMTK_VERSION_NUMBER >= 361
-        case EVR_OD:
-          return ValueRepresentation_OtherDouble;
+      case EVR_OD:
+        return ValueRepresentation_OtherDouble;
 #endif
 
       case EVR_OF:
         return ValueRepresentation_OtherFloat;
 
 #if DCMTK_VERSION_NUMBER >= 362
-        case EVR_OL:
-          return ValueRepresentation_OtherLong;
+      case EVR_OL:
+        return ValueRepresentation_OtherLong;
 #endif
 
       case EVR_OW:
@@ -1695,9 +1767,9 @@ namespace Orthanc
           throw OrthancException(ErrorCode_ParameterOutOfRange);
 
 
-        /**
-         * String types.
-         **/
+          /**
+           * String types.
+           **/
       
         case EVR_DS:  // decimal string
         case EVR_IS:  // integer string
@@ -2189,7 +2261,7 @@ namespace Orthanc
   void FromDcmtkBridge::InitializeCodecs()
   {
 #if ORTHANC_ENABLE_DCMTK_JPEG_LOSSLESS == 1
-    LOG(INFO) << "Registering JPEG Lossless codecs in DCMTK";
+    CLOG(INFO, DICOM) << "Registering JPEG Lossless codecs in DCMTK";
     DJLSDecoderRegistration::registerCodecs();
 # if ORTHANC_ENABLE_DCMTK_TRANSCODING == 1
     DJLSEncoderRegistration::registerCodecs();
@@ -2197,14 +2269,14 @@ namespace Orthanc
 #endif
 
 #if ORTHANC_ENABLE_DCMTK_JPEG == 1
-    LOG(INFO) << "Registering JPEG codecs in DCMTK";
+    CLOG(INFO, DICOM) << "Registering JPEG codecs in DCMTK";
     DJDecoderRegistration::registerCodecs(); 
 # if ORTHANC_ENABLE_DCMTK_TRANSCODING == 1
     DJEncoderRegistration::registerCodecs();
 # endif
 #endif
 
-    LOG(INFO) << "Registering RLE codecs in DCMTK";
+    CLOG(INFO, DICOM) << "Registering RLE codecs in DCMTK";
     DcmRLEDecoderRegistration::registerCodecs(); 
 #if ORTHANC_ENABLE_DCMTK_TRANSCODING == 1
     DcmRLEEncoderRegistration::registerCodecs();

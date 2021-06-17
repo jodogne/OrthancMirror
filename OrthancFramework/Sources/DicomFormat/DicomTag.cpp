@@ -183,61 +183,6 @@ namespace Orthanc
   }
 
 
-  const char* DicomTag::GetMainTagsName() const
-  {
-    if (*this == DICOM_TAG_ACCESSION_NUMBER)
-      return "AccessionNumber";
-
-    if (*this == DICOM_TAG_SOP_INSTANCE_UID)
-      return "SOPInstanceUID";
-
-    if (*this == DICOM_TAG_PATIENT_ID)
-      return "PatientID";
-
-    if (*this == DICOM_TAG_SERIES_INSTANCE_UID)
-      return "SeriesInstanceUID";
-
-    if (*this == DICOM_TAG_STUDY_INSTANCE_UID)
-      return "StudyInstanceUID"; 
-
-    if (*this == DICOM_TAG_PIXEL_DATA)
-      return "PixelData";
-
-    if (*this == DICOM_TAG_IMAGE_INDEX)
-      return "ImageIndex";
-
-    if (*this == DICOM_TAG_INSTANCE_NUMBER)
-      return "InstanceNumber";
-
-    if (*this == DICOM_TAG_NUMBER_OF_SLICES)
-      return "NumberOfSlices";
-
-    if (*this == DICOM_TAG_NUMBER_OF_FRAMES)
-      return "NumberOfFrames";
-
-    if (*this == DICOM_TAG_CARDIAC_NUMBER_OF_IMAGES)
-      return "CardiacNumberOfImages";
-
-    if (*this == DICOM_TAG_IMAGES_IN_ACQUISITION)
-      return "ImagesInAcquisition";
-
-    if (*this == DICOM_TAG_PATIENT_NAME)
-      return "PatientName";
-
-    if (*this == DICOM_TAG_IMAGE_POSITION_PATIENT)
-      return "ImagePositionPatient";
-
-    if (*this == DICOM_TAG_IMAGE_ORIENTATION_PATIENT)
-      return "ImageOrientationPatient";
-
-    // New in Orthanc 1.6.0, as tagged as "RETIRED_" since DCMTK 3.6.4
-    if (*this == DICOM_TAG_OTHER_PATIENT_IDS)
-      return "OtherPatientIDs";
-
-    return "";
-  }
-
-
   void DicomTag::AddTagsForModule(std::set<DicomTag>& target,
                                   DicomModule module)
   {

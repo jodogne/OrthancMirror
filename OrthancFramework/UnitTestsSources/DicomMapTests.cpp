@@ -644,7 +644,7 @@ TEST(DicomMap, MainTagNames)
       ASSERT_EQ(1u, b.GetSize());
       ASSERT_EQ("TEST", b.GetStringValue(*it, "", false));
 
-      std::string main = it->GetMainTagsName();
+      std::string main = FromDcmtkBridge::GetTagName(*it, "");
       if (!main.empty())
       {
         ASSERT_EQ(main, name);

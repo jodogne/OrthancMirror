@@ -79,7 +79,7 @@ namespace Orthanc
 #endif
 
 #if ORTHANC_ENABLE_DCMTK == 1
-    FromDcmtkBridge::InitializeDictionary(true);
+    FromDcmtkBridge::InitializeDictionary(loadPrivateDictionary);
     FromDcmtkBridge::InitializeCodecs();
 #endif
 

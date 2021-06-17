@@ -804,14 +804,16 @@ namespace Orthanc
       ValueRepresentation vr = FromDcmtkBridge::LookupValueRepresentation(*it);
       if (*it == DICOM_TAG_PATIENT_ID)
       {
-        if (vr != ValueRepresentation_LongString)
+        if (vr != ValueRepresentation_LongString &&
+            vr != ValueRepresentation_NotSupported /* if no dictionary loaded */)
         {
           throw OrthancException(ErrorCode_InternalError);
         }
       }
       else if (*it == DICOM_TAG_PATIENT_NAME)
       {
-        if (vr != ValueRepresentation_PersonName)
+        if (vr != ValueRepresentation_PersonName &&
+            vr != ValueRepresentation_NotSupported /* if no dictionary loaded */)
         {
           throw OrthancException(ErrorCode_InternalError);
         }

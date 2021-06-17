@@ -49,8 +49,6 @@ namespace Orthanc
 
     bool IsPrivate() const;
 
-    const char* GetMainTagsName() const;
-
     bool operator< (const DicomTag& other) const;
 
     bool operator<= (const DicomTag& other) const;
