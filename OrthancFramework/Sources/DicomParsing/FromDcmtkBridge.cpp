@@ -452,13 +452,17 @@ namespace Orthanc
     {
       DictionaryLocker locker;
 
-      if (locker->findEntry(name.c_str()))
+      if (locker->findEntry(DcmTagKey(tag.GetGroup(), tag.GetElement()),
+                            privateCreator.empty() ? NULL : privateCreator.c_str()))
       {
         throw OrthancException(ErrorCode_AlreadyExistingTag,
-                               "Cannot register two tags with the same symbolic name \"" + name + "\"");
+                               "Cannot register twice the tag (" + tag.Format() +
+                               "), whose symbolic name is \"" + name + "\"");
       }
-
-      locker->addEntry(entry.release());
+      else
+      {
+        locker->addEntry(entry.release());
+      }
     }
   }
 
