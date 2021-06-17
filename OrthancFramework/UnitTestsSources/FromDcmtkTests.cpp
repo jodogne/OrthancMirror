@@ -700,7 +700,7 @@ TEST(ParsedDicomFile, FromJson)
 {
   FromDcmtkBridge::RegisterDictionaryTag(DicomTag(0x7057, 0x1000), ValueRepresentation_OtherByte, "MyPrivateTag2", 1, 1, "ORTHANC");
   FromDcmtkBridge::RegisterDictionaryTag(DicomTag(0x7059, 0x1000), ValueRepresentation_OtherByte, "MyPrivateTag3", 1, 1, "");
-  FromDcmtkBridge::RegisterDictionaryTag(DicomTag(0x7050, 0x1000), ValueRepresentation_PersonName, "Declared public tag2", 1, 1, "");
+  FromDcmtkBridge::RegisterDictionaryTag(DicomTag(0x7050, 0x1002), ValueRepresentation_PersonName, "Declared public tag2", 1, 1, "");
 
   Json::Value v;
   const std::string sopClassUid = "1.2.840.10008.5.1.4.1.1.1";  // CR Image Storage:
@@ -713,7 +713,7 @@ TEST(ParsedDicomFile, FromJson)
     v["SOPClassUID"] = sopClassUid;
     v["SpecificCharacterSet"] = "ISO_IR 148";    // This is latin-5
     v["PatientName"] = "Sébastien";
-    v["7050-1000"] = "Some public tag";  // Even group => public tag
+    v["7050-1002"] = "Some public tag";  // Even group => public tag
     v["7052-1000"] = "Some unknown tag";  // Even group => public, unknown tag
     v["7057-1000"] = "Some private tag";  // Odd group => private tag
     v["7059-1000"] = "Some private tag2";  // Odd group => private tag, with an odd length to test padding
@@ -784,7 +784,7 @@ TEST(ParsedDicomFile, FromJson)
     ASSERT_EQ(2u, vv["0040,0100"].size());
     ASSERT_EQ("MR", vv["0040,0100"][0]["0008,0060"].asString());
     ASSERT_EQ("CT", vv["0040,0100"][1]["0008,0060"].asString());
-    ASSERT_EQ("Some public tag", vv["7050,1000"].asString());
+    ASSERT_EQ("Some public tag", vv["7050,1002"].asString());
     ASSERT_EQ("Some unknown tag", vv["7052,1000"].asString());
     ASSERT_EQ("Some private tag", vv["7057,1000"].asString());
     ASSERT_EQ("Some private tag2", vv["7059,1000"].asString());

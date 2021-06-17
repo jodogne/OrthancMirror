@@ -5,7 +5,9 @@ General
 -------
 
 * Orthanc now anonymizes according to Basic Profile of PS 3.15-2021b Table E.1-1
-* New configuration option "SynchronousZipStream" to disable streaming of ZIP
+* New configuration options:
+  - "ExternalDictionaries" to load external DICOM dictionaries (useful for DICONDE)
+  - "SynchronousZipStream" to disable streaming of ZIP
 
 REST API
 --------

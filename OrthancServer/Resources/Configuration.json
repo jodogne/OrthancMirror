@@ -625,6 +625,18 @@
     // "2001,5f" : [ "SQ", "StackSequence", 1, 1, "Philips Imaging DD 001" ]
   },
 
+  // Load a set of external DICOM dictionaries in order to replace the
+  // default dictionaries. This option must contain a set of files in
+  // the DCMTK format. The order of the dictionaries *is*
+  // important. This option can be used to turn Orhanc into a DICONDE
+  // server. (new in Orthanc 1.9.4)
+  /**
+     "ExternalDictionaries" : [
+     "/usr/share/libdcmtk12/dicom.dic",
+     "/usr/share/libdcmtk12/diconde.dic"
+     ]
+  **/
+
   // Whether to run DICOM C-MOVE operations synchronously. If set to
   // "false" (asynchronous mode), each incoming C-MOVE request results
   // in the creation of a new background job. Up to Orthanc 1.3.2, the

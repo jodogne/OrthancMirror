@@ -103,7 +103,21 @@ namespace Orthanc
                                      Encoding target);
 
   public:
+    /**
+     * Initialize DCMTK to use the default DICOM dictionaries (either
+     * embedded into the binaries for official releases, or using the
+     * environment variable "DCM_DICT_ENVIRONMENT_VARIABLE", or using
+     * the system-wide path to the DCMTK library for developers)
+     **/
     static void InitializeDictionary(bool loadPrivateDictionary);
+
+    /**
+     * Replace the default DICOM dictionaries by the manually-provided
+     * external dictionaries. This is needed to use DICONDE for
+     * instance. Pay attention to the fact that the current dictionary
+     * will be reinitialized (all its tags are cleared).
+     **/
+    static void LoadExternalDictionaries(const std::vector<std::string>& dictionaries);
 
     static void RegisterDictionaryTag(const DicomTag& tag,
                                       ValueRepresentation vr,
