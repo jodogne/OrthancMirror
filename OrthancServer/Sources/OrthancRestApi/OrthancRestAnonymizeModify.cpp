@@ -427,7 +427,7 @@ namespace Orthanc
         .SetTag("System")
         .SetSummary("Modify a set of resources")
         .SetRequestField("Resources", RestApiCallDocumentation::Type_JsonListOfStrings,
-                         "List of the Orthanc identifiers of the patients/studies/series/instances of interest.", false)
+                         "List of the Orthanc identifiers of the patients/studies/series/instances of interest.", true)
         .SetDescription("Start a job that will modify all the DICOM patients, studies, series or instances "
                         "whose identifiers are provided in the `Resources` field.")
         .AddAnswerType(MimeType_Json, "The list of all the resources that have been altered by this modification");
@@ -485,7 +485,7 @@ namespace Orthanc
         .SetTag("System")
         .SetSummary("Anonymize a set of resources")
         .SetRequestField("Resources", RestApiCallDocumentation::Type_JsonListOfStrings,
-                         "List of the Orthanc identifiers of the patients/studies/series/instances of interest.", false)
+                         "List of the Orthanc identifiers of the patients/studies/series/instances of interest.", true)
         .SetDescription("Start a job that will anonymize all the DICOM patients, studies, series or instances "
                         "whose identifiers are provided in the `Resources` field.")
         .AddAnswerType(MimeType_Json, "The list of all the resources that have been created by this anonymization");

@@ -3092,6 +3092,27 @@ namespace Orthanc
   }
 
 
+  static void GetBulkChildren(std::set<std::string>& target,
+                              ServerIndex& index,
+                              const std::set<std::string>& source)
+  {
+    target.clear();
+
+    for (std::set<std::string>::const_iterator
+           it = source.begin(); it != source.end(); ++it)
+    {
+      std::list<std::string> children;
+      index.GetChildren(children, *it);
+
+      for (std::list<std::string>::const_iterator
+             child = children.begin(); child != children.end(); ++child)
+      {
+        target.insert(*child);
+      }
+    }
+  }
+
+
   static void BulkContent(RestApiPostCall& call)
   {
     if (call.IsDocumentation())
@@ -3102,7 +3123,11 @@ namespace Orthanc
         .SetTag("System")
         .SetSummary("Describe a set of instances")
         .SetRequestField("Resources", RestApiCallDocumentation::Type_JsonListOfStrings,
-                         "List of the Orthanc identifiers of the patients/studies/series/instances of interest.", false)
+                         "List of the Orthanc identifiers of the patients/studies/series/instances of interest.", true)
+        .SetRequestField("Level", RestApiCallDocumentation::Type_String,
+                         "This optional argument specifies the level of interest (can be `Patient`, `Study`, `Series` or "
+                         "`Instance`). Orthanc will loop over the items inside `Resources`, and explorer upward or "
+                         "downward in the DICOM hierarchy in order to find the level of interest.", false)
         .SetDescription("Get the content all the DICOM patients, studies, series or instances "
                         "whose identifiers are provided in the `Resources` field, in one single call.");
       return;
@@ -3117,27 +3142,131 @@ namespace Orthanc
     }
     else
     {
+      static const char* const LEVEL = "Level";      
+      
       const DicomToJsonFormat format = OrthancRestApi::GetDicomFormat(request, DicomToJsonFormat_Human);
 
       ServerIndex& index = OrthancRestApi::GetIndex(call);
       
-      std::list<std::string> resources;
-      SerializationToolbox::ReadListOfStrings(resources, request, "Resources");
-
       Json::Value answer = Json::arrayValue;
-      for (std::list<std::string>::const_iterator
-             it = resources.begin(); it != resources.end(); ++it)
+
+      if (request.isMember(LEVEL))
       {
-        ResourceType type;
-        Json::Value item;
-        if (index.LookupResourceType(type, *it) &&
-            index.ExpandResource(item, *it, type, format))
+        // Complex case: Need to explore the DICOM hierarchy
+        ResourceType level = StringToResourceType(SerializationToolbox::ReadString(request, LEVEL).c_str());
+
+        std::set<std::string> resources;
+        SerializationToolbox::ReadSetOfStrings(resources, request, "Resources");
+
+        std::set<std::string> interest;
+
+        assert(ResourceType_Patient < ResourceType_Study &&
+               ResourceType_Study < ResourceType_Series &&
+               ResourceType_Series < ResourceType_Instance);
+
+        for (std::set<std::string>::const_iterator
+               it = resources.begin(); it != resources.end(); ++it)
         {
-          answer.append(item);
+          ResourceType type;
+          if (index.LookupResourceType(type, *it))
+          {
+            if (type == level)
+            {
+              // This resource is already from the level of interest
+              interest.insert(*it);
+            }
+            else if (type < level)
+            {
+              // Need to explore children
+              std::set<std::string> current;
+              current.insert(*it);
+              
+              for (;;)
+              {
+                std::set<std::string> children;
+                GetBulkChildren(children, index, current);
+
+                type = GetChildResourceType(type);
+                if (type == level)
+                {
+                  for (std::set<std::string>::const_iterator
+                         it = children.begin(); it != children.end(); ++it)
+                  {
+                    interest.insert(*it);
+                  }
+
+                  break;  // done
+                }
+                else
+                {
+                  current.swap(children);
+                }
+              }
+            }
+            else
+            {
+              // Need to explore parents
+              std::string current = *it;
+              
+              for (;;)
+              {
+                std::string parent;
+                if (index.LookupParent(parent, current))
+                {
+                  type = GetParentResourceType(type);
+                  if (type == level)
+                  {
+                    interest.insert(parent);
+                    break;  // done
+                  }
+                  else
+                  {
+                    current = parent;
+                  }
+                }
+                else
+                {
+                  break;  // The resource has been deleted during the exploration
+                }
+              }
+            }
+          }
+          else
+          {
+            CLOG(INFO, HTTP) << "Unknown resource during a bulk content retrieval: " << *it;
+          }
         }
-        else
+        
+        for (std::set<std::string>::const_iterator
+               it = interest.begin(); it != interest.end(); ++it)
         {
-          CLOG(INFO, HTTP) << "Unknown resource during a bulk content retrieval: " << *it;
+          Json::Value item;
+          if (index.ExpandResource(item, *it, level, format))
+          {
+            answer.append(item);
+          }
+        }
+      }
+      else
+      {
+        // Simple case: We return the queried resources as such
+        std::list<std::string> resources;
+        SerializationToolbox::ReadListOfStrings(resources, request, "Resources");
+
+        for (std::list<std::string>::const_iterator
+               it = resources.begin(); it != resources.end(); ++it)
+        {
+          ResourceType type;
+          Json::Value item;
+          if (index.LookupResourceType(type, *it) &&
+              index.ExpandResource(item, *it, type, format))
+          {
+            answer.append(item);
+          }
+          else
+          {
+            CLOG(INFO, HTTP) << "Unknown resource during a bulk content retrieval: " << *it;
+          }
         }
       }
 
@@ -3154,7 +3283,7 @@ namespace Orthanc
         .SetTag("System")
         .SetSummary("Delete a set of instances")
         .SetRequestField("Resources", RestApiCallDocumentation::Type_JsonListOfStrings,
-                         "List of the Orthanc identifiers of the patients/studies/series/instances of interest.", false)
+                         "List of the Orthanc identifiers of the patients/studies/series/instances of interest.", true)
         .SetDescription("Delete all the DICOM patients, studies, series or instances "
                         "whose identifiers are provided in the `Resources` field.");
       return;
