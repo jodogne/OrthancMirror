@@ -724,16 +724,22 @@ namespace Orthanc
 
   bool StatelessDatabaseOperations::ExpandResource(Json::Value& target,
                                                    const std::string& publicId,
-                                                   ResourceType level)
+                                                   ResourceType level,
+                                                   DicomToJsonFormat format)
   {    
-    class Operations : public ReadOnlyOperationsT4<bool&, Json::Value&, const std::string&, ResourceType>
+    class Operations : public ReadOnlyOperationsT5<
+      bool&, Json::Value&, const std::string&, ResourceType, DicomToJsonFormat>
     {
     private:
       static void MainDicomTagsToJson(ReadOnlyTransaction& transaction,
                                       Json::Value& target,
                                       int64_t resourceId,
-                                      ResourceType resourceType)
+                                      ResourceType resourceType,
+                                      DicomToJsonFormat format)
       {
+        static const char* const MAIN_DICOM_TAGS = "MainDicomTags";
+        static const char* const PATIENT_MAIN_DICOM_TAGS = "PatientMainDicomTags";
+        
         DicomMap tags;
         transaction.GetMainDicomTags(tags, resourceId);
 
@@ -743,16 +749,16 @@ namespace Orthanc
           tags.ExtractStudyInformation(t1);
           tags.ExtractPatientInformation(t2);
 
-          target["MainDicomTags"] = Json::objectValue;
-          FromDcmtkBridge::ToJson(target["MainDicomTags"], t1, true);
+          target[MAIN_DICOM_TAGS] = Json::objectValue;
+          FromDcmtkBridge::ToJson(target[MAIN_DICOM_TAGS], t1, format);
 
-          target["PatientMainDicomTags"] = Json::objectValue;
-          FromDcmtkBridge::ToJson(target["PatientMainDicomTags"], t2, true);
+          target[PATIENT_MAIN_DICOM_TAGS] = Json::objectValue;
+          FromDcmtkBridge::ToJson(target[PATIENT_MAIN_DICOM_TAGS], t2, format);
         }
         else
         {
-          target["MainDicomTags"] = Json::objectValue;
-          FromDcmtkBridge::ToJson(target["MainDicomTags"], tags, true);
+          target[MAIN_DICOM_TAGS] = Json::objectValue;
+          FromDcmtkBridge::ToJson(target[MAIN_DICOM_TAGS], tags, format);
         }
       }
 
@@ -949,7 +955,7 @@ namespace Orthanc
 
           // Record the remaining information
           target["ID"] = tuple.get<2>();
-          MainDicomTagsToJson(transaction, target, internalId, type);
+          MainDicomTagsToJson(transaction, target, internalId, type, tuple.get<4>());
 
           std::string tmp;
 
@@ -982,7 +988,7 @@ namespace Orthanc
 
     bool found;
     Operations operations;
-    operations.Apply(*this, found, target, publicId, level);
+    operations.Apply(*this, found, target, publicId, level, format);
     return found;
   }
 

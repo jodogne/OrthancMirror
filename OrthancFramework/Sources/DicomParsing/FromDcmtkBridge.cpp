@@ -1329,7 +1329,7 @@ namespace Orthanc
 
   void FromDcmtkBridge::ToJson(Json::Value& result,
                                const DicomMap& values,
-                               bool simplify)
+                               DicomToJsonFormat format)
   {
     if (result.type() != Json::objectValue)
     {
@@ -1341,40 +1341,69 @@ namespace Orthanc
     for (DicomMap::Content::const_iterator 
            it = values.content_.begin(); it != values.content_.end(); ++it)
     {
-      // TODO Inject PrivateCreator if some is available in the DicomMap?
-      const std::string tagName = GetTagName(it->first, "");
-
-      if (simplify)
+      switch (format)
       {
-        if (it->second->IsNull())
+        case DicomToJsonFormat_Human:
         {
-          result[tagName] = Json::nullValue;
-        }
-        else
-        {
-          // TODO IsBinary
-          result[tagName] = it->second->GetContent();
-        }
-      }
-      else
-      {
-        Json::Value value = Json::objectValue;
+          // TODO Inject PrivateCreator if some is available in the DicomMap?
+          const std::string tagName = GetTagName(it->first, "");
 
-        value["Name"] = tagName;
-
-        if (it->second->IsNull())
-        {
-          value["Type"] = "Null";
-          value["Value"] = Json::nullValue;
-        }
-        else
-        {
-          // TODO IsBinary
-          value["Type"] = "String";
-          value["Value"] = it->second->GetContent();
+          if (it->second->IsNull())
+          {
+            result[tagName] = Json::nullValue;
+          }
+          else
+          {
+            // TODO IsBinary
+            result[tagName] = it->second->GetContent();
+          }
+          break;
         }
 
-        result[it->first.Format()] = value;
+        case DicomToJsonFormat_Full:
+        {
+          // TODO Inject PrivateCreator if some is available in the DicomMap?
+          const std::string tagName = GetTagName(it->first, "");
+
+          Json::Value value = Json::objectValue;
+
+          value["Name"] = tagName;
+
+          if (it->second->IsNull())
+          {
+            value["Type"] = "Null";
+            value["Value"] = Json::nullValue;
+          }
+          else
+          {
+            // TODO IsBinary
+            value["Type"] = "String";
+            value["Value"] = it->second->GetContent();
+          }
+
+          result[it->first.Format()] = value;
+          break;
+        }
+
+        case DicomToJsonFormat_Short:
+        {
+          const std::string hex = it->first.Format();
+
+          if (it->second->IsNull())
+          {
+            result[hex] = Json::nullValue;
+          }
+          else
+          {
+            // TODO IsBinary
+            result[hex] = it->second->GetContent();
+          }
+
+          break;
+        }
+
+        default:
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
       }
     }
   }

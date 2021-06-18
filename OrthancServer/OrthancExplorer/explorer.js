@@ -51,6 +51,30 @@ var LIMIT_RESOURCES = 100;
 var currentPage = '';
 var currentUuid = '';
 
+var ACQUISITION_NUMBER = '0020,0012';
+var IMAGES_IN_ACQUISITION = '0020,1002';
+var IMAGE_ORIENTATION_PATIENT = '0020,0037';
+var IMAGE_POSITION_PATIENT = '0020,0032';
+var INSTANCE_CREATION_DATE = '0008,0012';
+var INSTANCE_CREATION_TIME = '0008,0013';
+var INSTANCE_NUMBER = '0020,0013';
+var MANUFACTURER = '0008,0070';
+var OTHER_PATIENT_IDS = '0010,1000';
+var PATIENT_BIRTH_DATE = '0010,0030';
+var PATIENT_NAME = '0010,0010';
+var SERIES_DATE = '0008,0021';
+var SERIES_DESCRIPTION = '0008,103e';
+var SERIES_INSTANCE_UID = '0020,000e';
+var SERIES_TIME = '0008,0031';
+var SOP_INSTANCE_UID = '0008,0018';
+var STUDY_DATE = '0008,0020';
+var STUDY_DESCRIPTION = '0008,1030';
+var STUDY_INSTANCE_UID = '0020,000d';
+var STUDY_TIME = '0008,0030';
+
+var ANONYMIZED_FROM = 'AnonymizedFrom';
+var MODIFIED_FROM = 'ModifiedFrom';
+
 
 function DeepCopy(obj)
 {
@@ -158,12 +182,6 @@ $.ajaxSetup(
 );
 
 
-function SplitLongUid(s)
-{
-  return '<span>' + s.substr(0, s.length / 2) + '</span> <span>' + s.substr(s.length / 2, s.length - s.length / 2) + '</span>';
-}
-
-
 function ParseDicomDate(s)
 {
   y = parseInt(s.substr(0, 4), 10);
@@ -259,10 +277,20 @@ function Sort(arr, fieldExtractor, isInteger, reverse)
 }
 
 
+function GetMainDicomTag(mainDicomTags, tag)
+{
+  if (tag in mainDicomTags) {
+    return mainDicomTags[tag].Value;
+  } else {
+    return '';
+  }
+}
+
+
 function SortOnDicomTag(arr, tag, isInteger, reverse)
 {
   return Sort(arr, function(a) { 
-    return a.MainDicomTags[tag];
+    return GetMainDicomTag(a.MainDicomTags, tag);
   }, isInteger, reverse);
 }
 
@@ -291,7 +319,8 @@ function CompleteFormatting(node, link, isReverse, count)
                     .text(count));
   }
   
-  if (link != null)
+  if (link != null &&
+      link)
   {
     node = $('<a>').attr('href', link).append(node);
 
@@ -316,28 +345,31 @@ function FormatMainDicomTags(target, tags, tagsToIgnore)
   {
     if (tagsToIgnore.indexOf(i) == -1)
     {
-      v = tags[i];
+      v = GetMainDicomTag(tags, i);
 
-      if (i == "PatientBirthDate" ||
-          i == "StudyDate" ||
-          i == "SeriesDate")
+      if (i == PATIENT_BIRTH_DATE ||
+          i == STUDY_DATE ||
+          i == SERIES_DATE ||
+          i == INSTANCE_CREATION_DATE)
       {
         v = FormatDicomDate(v);
       }
-      else if (i == "DicomStudyInstanceUID" ||
-               i == "DicomSeriesInstanceUID")
+      else if (i == STUDY_INSTANCE_UID ||
+               i == SERIES_INSTANCE_UID ||
+               i == SOP_INSTANCE_UID)
       {
-        v = SplitLongUid(v);
+        // Possibly split a long UID
+        // v = '<span>' + s.substr(0, s.length / 2) + '</span><span>' + s.substr(s.length / 2, s.length - s.length / 2) + '</span>';
       }
-      else if (i == "ImagePositionPatient" ||
-               i == "ImageOrientationPatient")
+      else if (i == IMAGE_POSITION_PATIENT ||
+               i == IMAGE_ORIENTATION_PATIENT)
       {
         v = FormatFloatSequence(v);
       }
       
       target.append($('<p>')
-                    .text(i + ': ')
-                    .append($('<strong>').text(v)));
+                    .text(tags[i].Name + ': ')
+                    .append($('<strong>').html(v)));
     }
   }
 }
@@ -345,11 +377,11 @@ function FormatMainDicomTags(target, tags, tagsToIgnore)
 
 function FormatPatient(patient, link, isReverse)
 {
-  var node = $('<div>').append($('<h3>').text(patient.MainDicomTags.PatientName));
+  var node = $('<div>').append($('<h3>').text(GetMainDicomTag(patient.MainDicomTags, PATIENT_NAME)));
 
   FormatMainDicomTags(node, patient.MainDicomTags, [ 
-    "PatientName"
-    // "OtherPatientIDs"
+    PATIENT_NAME
+    //,  OTHER_PATIENT_IDS
   ]);
     
   return CompleteFormatting(node, link, isReverse, patient.Studies.length);
@@ -365,20 +397,20 @@ function FormatStudy(study, link, isReverse, includePatient)
   if (includePatient) {
     label = study.Label;
   } else {
-    label = study.MainDicomTags.StudyDescription;
+    label = GetMainDicomTag(study.MainDicomTags, STUDY_DESCRIPTION);
   }
 
   node = $('<div>').append($('<h3>').text(label));
 
   if (includePatient) {
     FormatMainDicomTags(node, study.PatientMainDicomTags, [ 
-      'PatientName'
+      PATIENT_NAME
     ]);
   }
     
   FormatMainDicomTags(node, study.MainDicomTags, [ 
-     'StudyDescription', 
-     'StudyTime' 
+    STUDY_DESCRIPTION, 
+    STUDY_TIME
   ]);
 
   return CompleteFormatting(node, link, isReverse, study.Series.length);
@@ -402,18 +434,18 @@ function FormatSeries(series, link, isReverse)
   }
   
   node = $('<div>')
-      .append($('<h3>').text(series.MainDicomTags.SeriesDescription))
-      .append($('<p>').append($('<em>')
-                           .text('Status: ')
-                           .append($('<strong>').text(series.Status))));
-
+    .append($('<h3>').text(GetMainDicomTag(series.MainDicomTags, SERIES_DESCRIPTION)))
+    .append($('<p>').append($('<em>')
+                            .text('Status: ')
+                            .append($('<strong>').text(series.Status))));
+  
   FormatMainDicomTags(node, series.MainDicomTags, [ 
-     "SeriesDescription", 
-     "SeriesTime", 
-     "Manufacturer",
-     "ImagesInAcquisition",
-     "SeriesDate",
-     "ImageOrientationPatient"
+    SERIES_DESCRIPTION,
+    SERIES_TIME,
+    MANUFACTURER,
+    IMAGES_IN_ACQUISITION,
+    SERIES_DATE,
+    IMAGE_ORIENTATION_PATIENT
   ]);
     
   return CompleteFormatting(node, link, isReverse, c);
@@ -425,10 +457,10 @@ function FormatInstance(instance, link, isReverse)
   var node = $('<div>').append($('<h3>').text('Instance: ' + instance.IndexInSeries));
 
   FormatMainDicomTags(node, instance.MainDicomTags, [
-    "AcquisitionNumber", 
-    "InstanceNumber", 
-    "InstanceCreationDate", 
-    "InstanceCreationTime"
+    ACQUISITION_NUMBER,
+    INSTANCE_NUMBER,
+    INSTANCE_CREATION_DATE,
+    INSTANCE_CREATION_TIME,
   ]);
     
   return CompleteFormatting(node, link, isReverse);
@@ -534,14 +566,14 @@ $('#lookup-submit').live('click', function() {
 
 
 $('#find-patients').live('pagebeforeshow', function() {
-  GetResource('/patients?expand&since=0&limit=' + (LIMIT_RESOURCES + 1), function(patients) {
+  GetResource('/patients?expand&since=0&limit=' + (LIMIT_RESOURCES + 1) + '&full', function(patients) {
     var target = $('#all-patients');
     var count, showAlert, p;
 
 
     $('li', target).remove();
     
-    SortOnDicomTag(patients, 'PatientName', false, false);
+    SortOnDicomTag(patients, PATIENT_NAME, false, false);
 
     if (patients.length <= LIMIT_RESOURCES) {
       count = patients.length;
@@ -579,8 +611,8 @@ function FormatListOfStudies(targetId, alertId, countId, studies)
   $('li', target).remove();
 
   for (var i = 0; i < studies.length; i++) {
-    patient = studies[i].PatientMainDicomTags.PatientName;
-    study = studies[i].MainDicomTags.StudyDescription;
+    patient = GetMainDicomTag(studies[i].PatientMainDicomTags, PATIENT_NAME);
+    study = GetMainDicomTag(studies[i].MainDicomTags, STUDY_DESCRIPTION);
 
     s = "";
     if (typeof patient === 'string') {
@@ -626,7 +658,7 @@ function FormatListOfStudies(targetId, alertId, countId, studies)
 
 
 $('#find-studies').live('pagebeforeshow', function() {
-  GetResource('/studies?expand&since=0&limit=' + (LIMIT_RESOURCES + 1), function(studies) {
+  GetResource('/studies?expand&since=0&limit=' + (LIMIT_RESOURCES + 1) + '&full', function(studies) {
     FormatListOfStudies('#all-studies', '#alert-studies', '#count-studies', studies);
   });
 });
@@ -657,9 +689,9 @@ function RefreshPatient()
   if ($.mobile.pageData) {
     pageData = DeepCopy($.mobile.pageData);
 
-    GetResource('/patients/' + pageData.uuid, function(patient) {
-      GetResource('/patients/' + pageData.uuid + '/studies', function(studies) {
-        SortOnDicomTag(studies, 'StudyDate', false, true);
+    GetResource('/patients/' + pageData.uuid + '?full', function(patient) {
+      GetResource('/patients/' + pageData.uuid + '/studies?full', function(studies) {
+        SortOnDicomTag(studies, STUDY_DATE, false, true);
 
         $('#patient-info li').remove();
         $('#patient-info')
@@ -671,18 +703,20 @@ function RefreshPatient()
         $('li', target).remove();
         
         for (var i = 0; i < studies.length; i++) {
-          if (i == 0 || studies[i].MainDicomTags.StudyDate != studies[i - 1].MainDicomTags.StudyDate)
+          if (i == 0 ||
+              GetMainDicomTag(studies[i].MainDicomTags, STUDY_DATE) !=
+              GetMainDicomTag(studies[i - 1].MainDicomTags, STUDY_DATE))
           {
             target.append($('<li>')
                           .attr('data-role', 'list-divider')
-                          .text(FormatDicomDate(studies[i].MainDicomTags.StudyDate)));
+                          .text(FormatDicomDate(GetMainDicomTag(studies[i].MainDicomTags, STUDY_DATE))));
           }
 
           target.append(FormatStudy(studies[i], '#study?uuid=' + studies[i].ID));
         }
 
-        SetupAnonymizedOrModifiedFrom('#patient-anonymized-from', patient, 'patient', 'AnonymizedFrom');
-        SetupAnonymizedOrModifiedFrom('#patient-modified-from', patient, 'patient', 'ModifiedFrom');
+        SetupAnonymizedOrModifiedFrom('#patient-anonymized-from', patient, 'patient', ANONYMIZED_FROM);
+        SetupAnonymizedOrModifiedFrom('#patient-modified-from', patient, 'patient', MODIFIED_FROM);
 
         target.listview('refresh');
 
@@ -714,10 +748,10 @@ function RefreshStudy()
   if ($.mobile.pageData) {
     pageData = DeepCopy($.mobile.pageData);
 
-    GetResource('/studies/' + pageData.uuid, function(study) {
-      GetResource('/patients/' + study.ParentPatient, function(patient) {
-        GetResource('/studies/' + pageData.uuid + '/series', function(series) {
-          SortOnDicomTag(series, 'SeriesDate', false, true);
+    GetResource('/studies/' + pageData.uuid + '?full', function(study) {
+      GetResource('/patients/' + study.ParentPatient + '?full', function(patient) {
+        GetResource('/studies/' + pageData.uuid + '/series?full', function(series) {
+          SortOnDicomTag(series, SERIES_DATE, false, true);
 
           $('#study .patient-link').attr('href', '#patient?uuid=' + patient.ID);
           $('#study-info li').remove();
@@ -728,17 +762,19 @@ function RefreshStudy()
             .append(FormatStudy(study))
             .listview('refresh');
 
-          SetupAnonymizedOrModifiedFrom('#study-anonymized-from', study, 'study', 'AnonymizedFrom');
-          SetupAnonymizedOrModifiedFrom('#study-modified-from', study, 'study', 'ModifiedFrom');
+          SetupAnonymizedOrModifiedFrom('#study-anonymized-from', study, 'study', ANONYMIZED_FROM);
+          SetupAnonymizedOrModifiedFrom('#study-modified-from', study, 'study', MODIFIED_FROM);
 
           target = $('#list-series');
           $('li', target).remove();
           for (var i = 0; i < series.length; i++) {
-            if (i == 0 || series[i].MainDicomTags.SeriesDate != series[i - 1].MainDicomTags.SeriesDate)
+            if (i == 0 ||
+                GetMainDicomTag(series[i].MainDicomTags, SERIES_DATE) !=
+                GetMainDicomTag(series[i - 1].MainDicomTags, SERIES_DATE))
             {
               target.append($('<li>')
                             .attr('data-role', 'list-divider')
-                            .text(FormatDicomDate(series[i].MainDicomTags.SeriesDate)));
+                            .text(FormatDicomDate(GetMainDicomTag(series[i].MainDicomTags, SERIES_DATE))));
             }
             
             target.append(FormatSeries(series[i], '#series?uuid=' + series[i].ID));
@@ -761,10 +797,10 @@ function RefreshSeries()
   if ($.mobile.pageData) {
     pageData = DeepCopy($.mobile.pageData);
 
-    GetResource('/series/' + pageData.uuid, function(series) {
-      GetResource('/studies/' + series.ParentStudy, function(study) {
-        GetResource('/patients/' + study.ParentPatient, function(patient) {
-          GetResource('/series/' + pageData.uuid + '/instances', function(instances) {
+    GetResource('/series/' + pageData.uuid + '?full', function(series) {
+      GetResource('/studies/' + series.ParentStudy + '?full', function(study) {
+        GetResource('/patients/' + study.ParentPatient + '?full', function(patient) {
+          GetResource('/series/' + pageData.uuid + '/instances?full', function(instances) {
             Sort(instances, function(x) { return x.IndexInSeries; }, true, false);
 
             $('#series .patient-link').attr('href', '#patient?uuid=' + patient.ID);
@@ -780,8 +816,8 @@ function RefreshSeries()
               .append(FormatSeries(series))
               .listview('refresh');
 
-            SetupAnonymizedOrModifiedFrom('#series-anonymized-from', series, 'series', 'AnonymizedFrom');
-            SetupAnonymizedOrModifiedFrom('#series-modified-from', series, 'series', 'ModifiedFrom');
+            SetupAnonymizedOrModifiedFrom('#series-anonymized-from', series, 'series', ANONYMIZED_FROM);
+            SetupAnonymizedOrModifiedFrom('#series-modified-from', series, 'series', MODIFIED_FROM);
 
             target = $('#list-instances');
             $('li', target).remove();
@@ -880,10 +916,10 @@ function RefreshInstance()
   if ($.mobile.pageData) {
     pageData = DeepCopy($.mobile.pageData);
 
-    GetResource('/instances/' + pageData.uuid, function(instance) {
-      GetResource('/series/' + instance.ParentSeries, function(series) {
-        GetResource('/studies/' + series.ParentStudy, function(study) {
-          GetResource('/patients/' + study.ParentPatient, function(patient) {
+    GetResource('/instances/' + pageData.uuid + '?full', function(instance) {
+      GetResource('/series/' + instance.ParentSeries + '?full', function(series) {
+        GetResource('/studies/' + series.ParentStudy + '?full', function(study) {
+          GetResource('/patients/' + study.ParentPatient + '?full', function(patient) {
 
             $('#instance .patient-link').attr('href', '#patient?uuid=' + patient.ID);
             $('#instance .study-link').attr('href', '#study?uuid=' + study.ID);
@@ -918,8 +954,8 @@ function RefreshInstance()
               }
             });
 
-            SetupAnonymizedOrModifiedFrom('#instance-anonymized-from', instance, 'instance', 'AnonymizedFrom');
-            SetupAnonymizedOrModifiedFrom('#instance-modified-from', instance, 'instance', 'ModifiedFrom');
+            SetupAnonymizedOrModifiedFrom('#instance-anonymized-from', instance, 'instance', ANONYMIZED_FROM);
+            SetupAnonymizedOrModifiedFrom('#instance-modified-from', instance, 'instance', MODIFIED_FROM);
 
             currentPage = 'instance';
             currentUuid = pageData.uuid;

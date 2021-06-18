@@ -460,4 +460,117 @@ namespace Orthanc
       .SetRequestField(KEY_PERMISSIVE, RestApiCallDocumentation::Type_Boolean,
                        "If `true`, ignore errors during the individual steps of the job.", false);
   }
+
+
+  static const std::string GET_SIMPLIFY = "simplify";
+  static const std::string GET_FULL = "full";
+  static const std::string GET_SHORT = "short";
+
+  static const std::string POST_SIMPLIFY = "Simplify";
+  static const std::string POST_FULL = "Full";
+  static const std::string POST_SHORT = "Short";
+
+  static const std::string DOCUMENT_SIMPLIFY =
+    "report the DICOM tags indexed in human-readable format "
+    "(using the symbolic name of the tags)";
+
+  static const std::string DOCUMENT_SHORT =
+    "report the DICOM tags indexed in hexadecimal format";
+
+  static const std::string DOCUMENT_FULL =
+    "report the DICOM tags in full format (tags indexed by their hexadecimal "
+    "format, associated with their symbolic name and their value)";
+
+
+  DicomToJsonFormat OrthancRestApi::GetDicomFormat(const RestApiGetCall& call,
+                                                   DicomToJsonFormat defaultFormat)
+  {
+    if (call.HasArgument(GET_SIMPLIFY))
+    {
+      return DicomToJsonFormat_Human;
+    }
+    else if (call.HasArgument(GET_SHORT))
+    {
+      return DicomToJsonFormat_Short;
+    }
+    else if (call.HasArgument(GET_FULL))
+    {
+      return DicomToJsonFormat_Full;
+    }
+    else
+    {
+      return defaultFormat;
+    }
+  }
+
+
+  DicomToJsonFormat OrthancRestApi::GetDicomFormat(const Json::Value& body,
+                                                   DicomToJsonFormat defaultFormat)
+  {
+    if (body.isMember(POST_SIMPLIFY) &&
+        SerializationToolbox::ReadBoolean(body, POST_SIMPLIFY))
+    {
+      return DicomToJsonFormat_Human;
+    }
+    else if (body.isMember(POST_SHORT) &&
+             SerializationToolbox::ReadBoolean(body, POST_SHORT))
+    {
+      return DicomToJsonFormat_Short;
+    }
+    else if (body.isMember(POST_FULL) &&
+             SerializationToolbox::ReadBoolean(body, POST_FULL))
+    {
+      return DicomToJsonFormat_Full;
+    }
+    else
+    {
+      return defaultFormat;
+    }
+  }
+
+
+  void OrthancRestApi::DocumentDicomFormat(RestApiGetCall& call,
+                                           DicomToJsonFormat defaultFormat)
+  {
+    if (defaultFormat != DicomToJsonFormat_Human)
+    {
+      call.GetDocumentation().SetHttpGetArgument(
+        GET_SIMPLIFY, RestApiCallDocumentation::Type_Boolean, "If present, " + DOCUMENT_SIMPLIFY, false);
+    }
+    
+    if (defaultFormat != DicomToJsonFormat_Short)
+    {
+      call.GetDocumentation().SetHttpGetArgument(
+        GET_SHORT, RestApiCallDocumentation::Type_Boolean, "If present, " + DOCUMENT_SHORT, false);
+    }
+    
+    if (defaultFormat != DicomToJsonFormat_Full)
+    {
+      call.GetDocumentation().SetHttpGetArgument(
+        GET_FULL, RestApiCallDocumentation::Type_Boolean, "If present, " + DOCUMENT_FULL, false);
+    }    
+  }
+  
+  
+  void OrthancRestApi::DocumentDicomFormat(RestApiPostCall& call,
+                                           DicomToJsonFormat defaultFormat)
+  {
+    if (defaultFormat != DicomToJsonFormat_Human)
+    {
+      call.GetDocumentation().SetRequestField(POST_SIMPLIFY, RestApiCallDocumentation::Type_Boolean,
+                                              "If set to `true`, " + DOCUMENT_SIMPLIFY, false);
+    }
+    
+    if (defaultFormat != DicomToJsonFormat_Short)
+    {
+      call.GetDocumentation().SetRequestField(POST_SHORT, RestApiCallDocumentation::Type_Boolean,
+                                              "If set to `true`, " + DOCUMENT_SIMPLIFY, false);
+    }
+    
+    if (defaultFormat != DicomToJsonFormat_Full)
+    {
+      call.GetDocumentation().SetRequestField(POST_FULL, RestApiCallDocumentation::Type_Boolean,
+                                              "If set to `true`, " + DOCUMENT_SIMPLIFY, false);
+    }
+  }
 }

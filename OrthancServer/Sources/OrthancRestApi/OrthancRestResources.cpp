@@ -112,30 +112,6 @@ namespace Orthanc
   }
 
 
-  static DicomToJsonFormat GetDicomFormat(const RestApiGetCall& call)
-  {
-    if (call.HasArgument("simplify"))
-    {
-      return DicomToJsonFormat_Human;
-    }
-    else if (call.HasArgument("short"))
-    {
-      return DicomToJsonFormat_Short;
-    }
-    else
-    {
-      return DicomToJsonFormat_Full;
-    }
-  }
-
-
-  static void AnswerDicomAsJson(RestApiGetCall& call,
-                                const Json::Value& dicom)
-  {
-    AnswerDicomAsJson(call, dicom, GetDicomFormat(call));
-  }
-
-
   static void ParseSetOfTags(std::set<DicomTag>& target,
                              const RestApiGetCall& call,
                              const std::string& argument)
@@ -161,7 +137,8 @@ namespace Orthanc
                                     ServerIndex& index,
                                     const std::list<std::string>& resources,
                                     ResourceType level,
-                                    bool expand)
+                                    bool expand,
+                                    DicomToJsonFormat format)
   {
     Json::Value answer = Json::arrayValue;
 
@@ -171,7 +148,7 @@ namespace Orthanc
       if (expand)
       {
         Json::Value expanded;
-        if (index.ExpandResource(expanded, *resource, level))
+        if (index.ExpandResource(expanded, *resource, level, format))
         {
           answer.append(expanded);
         }
@@ -191,6 +168,8 @@ namespace Orthanc
   {
     if (call.IsDocumentation())
     {
+      OrthancRestApi::DocumentDicomFormat(call, DicomToJsonFormat_Human);
+
       const std::string resources = GetResourceTypeText(resourceType, true /* plural */, false /* lower case */);
       call.GetDocumentation()
         .SetTag(GetResourceTypeText(resourceType, true /* plural */, true /* upper case */))
@@ -236,8 +215,8 @@ namespace Orthanc
       index.GetAllUuids(result, resourceType);
     }
 
-
-    AnswerListOfResources(call.GetOutput(), index, result, resourceType, call.HasArgument("expand"));
+    AnswerListOfResources(call.GetOutput(), index, result, resourceType, call.HasArgument("expand"),
+                          OrthancRestApi::GetDicomFormat(call, DicomToJsonFormat_Human));
   }
 
 
@@ -247,6 +226,8 @@ namespace Orthanc
   {
     if (call.IsDocumentation())
     {
+      OrthancRestApi::DocumentDicomFormat(call, DicomToJsonFormat_Human);
+
       const std::string resource = GetResourceTypeText(resourceType, false /* plural */, false /* lower case */);
       call.GetDocumentation()
         .SetTag(GetResourceTypeText(resourceType, true /* plural */, true /* upper case */))
@@ -258,8 +239,11 @@ namespace Orthanc
       return;
     }
 
+    const DicomToJsonFormat format = OrthancRestApi::GetDicomFormat(call, DicomToJsonFormat_Human);
+
     Json::Value json;
-    if (OrthancRestApi::GetIndex(call).ExpandResource(json, call.GetUriComponent("id", ""), resourceType))
+    if (OrthancRestApi::GetIndex(call).ExpandResource(
+          json, call.GetUriComponent("id", ""), resourceType, format))
     {
       call.GetOutput().AnswerJson(json);
     }
@@ -421,29 +405,8 @@ namespace Orthanc
 
 
   template <DicomToJsonFormat format>
-  static void GetInstanceTags(RestApiGetCall& call)
+  static void GetInstanceTagsInternal(RestApiGetCall& call)
   {
-    if (call.IsDocumentation())
-    {
-      if (format == DicomToJsonFormat_Human)
-      {
-        call.GetDocumentation()
-          .SetTag("Instances")
-          .SetSummary("Get human-readable tags")
-          .SetDescription("Get the DICOM tags in human-readable format")
-          .SetUriArgument("id", "Orthanc identifier of the DICOM instance of interest")
-          .SetHttpGetArgument("ignore-length", RestApiCallDocumentation::Type_JsonListOfStrings,
-                              "Also include the DICOM tags that are provided in this list, even if their associated value is long", false)
-          .AddAnswerType(MimeType_Json, "JSON object containing the DICOM tags and their associated value")
-          .SetTruncatedJsonHttpGetSample("https://demo.orthanc-server.com/instances/7c92ce8e-bbf67ed2-ffa3b8c1-a3b35d94-7ff3ae26/simplified-tags", 10);
-        return;
-      }
-      else
-      {
-        throw OrthancException(ErrorCode_NotImplemented);
-      }
-    }
-
     ServerContext& context = OrthancRestApi::GetContext(call);
 
     std::string publicId = call.GetUriComponent("id", "");
@@ -470,38 +433,34 @@ namespace Orthanc
   }
 
 
-  static void GetInstanceTagsBis(RestApiGetCall& call)
+  static void GetInstanceTags(RestApiGetCall& call)
   {
     if (call.IsDocumentation())
     {
+      OrthancRestApi::DocumentDicomFormat(call, DicomToJsonFormat_Full);
       call.GetDocumentation()
         .SetTag("Instances")
         .SetSummary("Get DICOM tags")
         .SetDescription("Get the DICOM tags in the specified format. By default, the `full` format is used, which "
                         "combines hexadecimal tags with human-readable description.")
         .SetUriArgument("id", "Orthanc identifier of the DICOM instance of interest")
-        .SetHttpGetArgument("simplify", RestApiCallDocumentation::Type_String,
-                            "If present, report the DICOM tags in human-readable format "
-                            "(same as the `/instances/{id}/simplified-tags` route)", false)
-        .SetHttpGetArgument("short", RestApiCallDocumentation::Type_String,
-                            "If present, report the DICOM tags indexed in hexadecimal format", false)
         .AddAnswerType(MimeType_Json, "JSON object containing the DICOM tags and their associated value")
         .SetTruncatedJsonHttpGetSample("https://demo.orthanc-server.com/instances/7c92ce8e-bbf67ed2-ffa3b8c1-a3b35d94-7ff3ae26/tags", 10);
       return;
     }
 
-    switch (GetDicomFormat(call))
+    switch (OrthancRestApi::GetDicomFormat(call, DicomToJsonFormat_Full))
     {
       case DicomToJsonFormat_Human:
-        GetInstanceTags<DicomToJsonFormat_Human>(call);
+        GetInstanceTagsInternal<DicomToJsonFormat_Human>(call);
         break;
 
       case DicomToJsonFormat_Short:
-        GetInstanceTags<DicomToJsonFormat_Short>(call);
+        GetInstanceTagsInternal<DicomToJsonFormat_Short>(call);
         break;
 
       case DicomToJsonFormat_Full:
-        GetInstanceTags<DicomToJsonFormat_Full>(call);
+        GetInstanceTagsInternal<DicomToJsonFormat_Full>(call);
         break;
 
       default:
@@ -510,6 +469,28 @@ namespace Orthanc
   }
 
   
+  static void GetInstanceSimplifiedTags(RestApiGetCall& call)
+  {
+    if (call.IsDocumentation())
+    {
+      call.GetDocumentation()
+        .SetTag("Instances")
+        .SetSummary("Get human-readable tags")
+        .SetDescription("Get the DICOM tags in human-readable format (same as the `/instances/{id}/tags?simplify` route)")
+        .SetUriArgument("id", "Orthanc identifier of the DICOM instance of interest")
+        .SetHttpGetArgument("ignore-length", RestApiCallDocumentation::Type_JsonListOfStrings,
+                            "Also include the DICOM tags that are provided in this list, even if their associated value is long", false)
+        .AddAnswerType(MimeType_Json, "JSON object containing the DICOM tags and their associated value")
+        .SetTruncatedJsonHttpGetSample("https://demo.orthanc-server.com/instances/7c92ce8e-bbf67ed2-ffa3b8c1-a3b35d94-7ff3ae26/simplified-tags", 10);
+      return;
+    }
+    else
+    {
+      GetInstanceTagsInternal<DicomToJsonFormat_Human>(call);
+    }
+  }
+
+    
   static void ListFrames(RestApiGetCall& call)
   {
     if (call.IsDocumentation())
@@ -2367,6 +2348,8 @@ namespace Orthanc
   {
     if (call.IsDocumentation())
     {
+      OrthancRestApi::DocumentDicomFormat(call, DicomToJsonFormat_Full);
+
       ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
       std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
       call.GetDocumentation()
@@ -2387,15 +2370,51 @@ namespace Orthanc
     if (ExtractSharedTags(sharedTags, context, publicId))
     {
       // Success: Send the value of the shared tags
-      AnswerDicomAsJson(call, sharedTags);
+      AnswerDicomAsJson(call, sharedTags, OrthancRestApi::GetDicomFormat(call, DicomToJsonFormat_Full));
     }
   }
 
 
-  static void GetModuleInternal(RestApiGetCall& call,
-                                ResourceType resourceType,
-                                DicomModule module)
+  template <enum ResourceType resourceType, 
+            enum DicomModule module>
+  static void GetModule(RestApiGetCall& call)
   {
+    if (call.IsDocumentation())
+    {
+      const std::string resource = GetResourceTypeText(resourceType, false /* plural */, false /* lower case */);
+      std::string m;
+      switch (module)
+      {
+        case DicomModule_Patient:
+          m = "patient";
+          break;
+        case DicomModule_Study:
+          m = "study";
+          break;
+        case DicomModule_Series:
+          m = "series";
+          break;
+        case DicomModule_Instance:
+          m = "instance";
+          break;
+        default:
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+      
+      OrthancRestApi::DocumentDicomFormat(call, DicomToJsonFormat_Full);
+
+      call.GetDocumentation()
+        .SetTag(GetResourceTypeText(resourceType, true /* plural */, true /* upper case */))
+        .SetSummary("Get " + m + " module" + std::string(resource == m ? "" : " of " + resource))
+        .SetDescription("Get the " + m + " module of the DICOM " + resource + " whose Orthanc identifier is provided in the URL")
+        .SetUriArgument("id", "Orthanc identifier of the " + resource + " of interest")
+        .SetHttpGetArgument("ignore-length", RestApiCallDocumentation::Type_JsonListOfStrings,
+                            "Also include the DICOM tags that are provided in this list, even if their associated value is long", false)
+        .AddAnswerType(MimeType_Json, "Information about the DICOM " + resource)
+        .SetHttpGetSample(GetDocumentationSampleResource(resourceType) + "/" + (*call.GetFullUri().rbegin()), true);
+      return;
+    }
+
     if (!((resourceType == ResourceType_Patient && module == DicomModule_Patient) ||
           (resourceType == ResourceType_Study && module == DicomModule_Patient) ||
           (resourceType == ResourceType_Study && module == DicomModule_Study) ||
@@ -2447,49 +2466,7 @@ namespace Orthanc
       }      
     }
 
-    AnswerDicomAsJson(call, result);
-  }
-    
-
-
-  template <enum ResourceType resourceType, 
-            enum DicomModule module>
-  static void GetModule(RestApiGetCall& call)
-  {
-    if (call.IsDocumentation())
-    {
-      const std::string resource = GetResourceTypeText(resourceType, false /* plural */, false /* lower case */);
-      std::string m;
-      switch (module)
-      {
-        case DicomModule_Patient:
-          m = "patient";
-          break;
-        case DicomModule_Study:
-          m = "study";
-          break;
-        case DicomModule_Series:
-          m = "series";
-          break;
-        case DicomModule_Instance:
-          m = "instance";
-          break;
-        default:
-          throw OrthancException(ErrorCode_ParameterOutOfRange);
-      }
-      call.GetDocumentation()
-        .SetTag(GetResourceTypeText(resourceType, true /* plural */, true /* upper case */))
-        .SetSummary("Get " + m + " module" + std::string(resource == m ? "" : " of " + resource))
-        .SetDescription("Get the " + m + " module of the DICOM " + resource + " whose Orthanc identifier is provided in the URL")
-        .SetUriArgument("id", "Orthanc identifier of the " + resource + " of interest")
-        .SetHttpGetArgument("ignore-length", RestApiCallDocumentation::Type_JsonListOfStrings,
-                            "Also include the DICOM tags that are provided in this list, even if their associated value is long", false)
-        .AddAnswerType(MimeType_Json, "Information about the DICOM " + resource)
-        .SetHttpGetSample(GetDocumentationSampleResource(resourceType) + "/" + (*call.GetFullUri().rbegin()), true);
-      return;
-    }
-
-    GetModuleInternal(call, resourceType, module);
+    AnswerDicomAsJson(call, result, OrthancRestApi::GetDicomFormat(call, DicomToJsonFormat_Full));
   }
 
 
@@ -2567,10 +2544,12 @@ namespace Orthanc
     private:
       bool                    isComplete_;
       std::list<std::string>  resources_;
+      DicomToJsonFormat       format_;
 
     public:
-      FindVisitor() :
-        isComplete_(false)
+      FindVisitor(DicomToJsonFormat format) :
+        isComplete_(false),
+        format_(format)
       {
       }
       
@@ -2597,7 +2576,7 @@ namespace Orthanc
                   ResourceType level,
                   bool expand) const
       {
-        AnswerListOfResources(output, index, resources_, level, expand);
+        AnswerListOfResources(output, index, resources_, level, expand, format_);
       }
     };
   }
@@ -2614,6 +2593,8 @@ namespace Orthanc
 
     if (call.IsDocumentation())
     {
+      OrthancRestApi::DocumentDicomFormat(call, DicomToJsonFormat_Human);
+
       call.GetDocumentation()
         .SetTag("System")
         .SetSummary("Look for local resources")
@@ -2741,7 +2722,7 @@ namespace Orthanc
         }
       }
 
-      FindVisitor visitor;
+      FindVisitor visitor(OrthancRestApi::GetDicomFormat(request, DicomToJsonFormat_Human));
       context.Apply(visitor, query, level, since, limit);
       visitor.Answer(call.GetOutput(), context.GetIndex(), level, expand);
     }
@@ -2754,6 +2735,8 @@ namespace Orthanc
   {
     if (call.IsDocumentation())
     {
+      OrthancRestApi::DocumentDicomFormat(call, DicomToJsonFormat_Human);
+
       const std::string children = GetResourceTypeText(end, true /* plural */, false /* lower case */);
       const std::string resource = GetResourceTypeText(start, false /* plural */, false /* lower case */);
       call.GetDocumentation()
@@ -2792,11 +2775,13 @@ namespace Orthanc
 
     Json::Value result = Json::arrayValue;
 
+    const DicomToJsonFormat format = OrthancRestApi::GetDicomFormat(call, DicomToJsonFormat_Human);
+
     for (std::list<std::string>::const_iterator
            it = a.begin(); it != a.end(); ++it)
     {
       Json::Value resource;
-      if (OrthancRestApi::GetIndex(call).ExpandResource(resource, *it, end))
+      if (OrthancRestApi::GetIndex(call).ExpandResource(resource, *it, end, format))
       {
         result.append(resource);
       }
@@ -2810,6 +2795,8 @@ namespace Orthanc
   {
     if (call.IsDocumentation())
     {
+      OrthancRestApi::DocumentDicomFormat(call, DicomToJsonFormat_Full);
+
       ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
       std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
       call.GetDocumentation()
@@ -2827,7 +2814,7 @@ namespace Orthanc
 
     ServerContext& context = OrthancRestApi::GetContext(call);
     std::string publicId = call.GetUriComponent("id", "");
-    DicomToJsonFormat format = GetDicomFormat(call);
+    DicomToJsonFormat format = OrthancRestApi::GetDicomFormat(call, DicomToJsonFormat_Full);
 
     std::set<DicomTag> ignoreTagLength;
     ParseSetOfTags(ignoreTagLength, call, "ignore-length");
@@ -2871,6 +2858,8 @@ namespace Orthanc
 
     if (call.IsDocumentation())
     {
+      OrthancRestApi::DocumentDicomFormat(call, DicomToJsonFormat_Human);
+
       const std::string parent = GetResourceTypeText(end, false /* plural */, false /* lower case */);
       const std::string resource = GetResourceTypeText(start, false /* plural */, false /* lower case */);
       call.GetDocumentation()
@@ -2904,8 +2893,10 @@ namespace Orthanc
 
     assert(currentType == end);
 
+    const DicomToJsonFormat format = OrthancRestApi::GetDicomFormat(call, DicomToJsonFormat_Human);
+
     Json::Value resource;
-    if (OrthancRestApi::GetIndex(call).ExpandResource(resource, current, end))
+    if (OrthancRestApi::GetIndex(call).ExpandResource(resource, current, end, format))
     {
       call.GetOutput().AnswerJson(resource);
     }
@@ -2978,16 +2969,13 @@ namespace Orthanc
   {
     if (call.IsDocumentation())
     {
+      OrthancRestApi::DocumentDicomFormat(call, DicomToJsonFormat_Full);
       call.GetDocumentation()
         .SetTag("Instances")
         .SetSummary("Get DICOM meta-header")
         .SetDescription("Get the DICOM tags in the meta-header of the DICOM instance. By default, the `full` format is used, which "
                         "combines hexadecimal tags with human-readable description.")
         .SetUriArgument("id", "Orthanc identifier of the DICOM instance of interest")
-        .SetHttpGetArgument("simplify", RestApiCallDocumentation::Type_String,
-                            "If present, report the DICOM tags in human-readable format", false)
-        .SetHttpGetArgument("short", RestApiCallDocumentation::Type_String,
-                            "If present, report the DICOM tags indexed in hexadecimal format", false)
         .AddAnswerType(MimeType_Json, "JSON object containing the DICOM tags and their associated value")
         .SetHttpGetSample("https://demo.orthanc-server.com/instances/7c92ce8e-bbf67ed2-ffa3b8c1-a3b35d94-7ff3ae26/header", true);
       return;
@@ -3008,7 +2996,7 @@ namespace Orthanc
     Json::Value header;
     OrthancConfiguration::DefaultDicomHeaderToJson(header, dicom);
 
-    AnswerDicomAsJson(call, header);
+    AnswerDicomAsJson(call, header, OrthancRestApi::GetDicomFormat(call, DicomToJsonFormat_Full));
   }
 
 
@@ -3183,8 +3171,8 @@ namespace Orthanc
 
     Register("/instances/{id}/file", GetInstanceFile);
     Register("/instances/{id}/export", ExportInstanceFile);
-    Register("/instances/{id}/tags", GetInstanceTagsBis);
-    Register("/instances/{id}/simplified-tags", GetInstanceTags<DicomToJsonFormat_Human>);
+    Register("/instances/{id}/tags", GetInstanceTags);
+    Register("/instances/{id}/simplified-tags", GetInstanceSimplifiedTags);
     Register("/instances/{id}/frames", ListFrames);
 
     Register("/instances/{id}/frames/{frame}", RestApi::AutoListChildren);
