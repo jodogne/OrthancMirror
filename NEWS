@@ -9,6 +9,11 @@ General
   - "ExternalDictionaries" to load external DICOM dictionaries (useful for DICONDE)
   - "SynchronousZipStream" to disable streaming of ZIP
 
+Orthanc Explorer
+----------------
+
+* Orthanc Explorer supports the DICONDE dictionary
+
 REST API
 --------
 
@@ -22,6 +27,19 @@ REST API
 * "/jobs/..." has new field "ErrorDetails" to help identify the cause of an error
 * "Replace", "Keep" and "Remove" in "/modify" and "/anonymize" accept paths to subsequences
   using the syntax of the dcmodify command-line tool (wildcards are supported as well)
+* Added "short", "simplify" and/or "full" options to control the format of DICOM tags in:
+  - GET /patients, GET /studies, GET /series, GET /instances (together with "&expand")
+  - GET /patients/{id}, GET /studies/{id}, GET /series/{id}, GET /instances/{id}
+  - GET /patients/{id}/studies, GET /patients/{id}/series, GET /patients/{id}/instances
+  - GET /studies/{id}/patient, GET /studies/{id}/series, GET /studies/{id}/instances
+  - GET /series/{id}/patient, GET /series/{id}/study, GET /series/{id}/instances
+  - GET /instances/{id}/patient, GET /instances/{id}/study, GET /instances/{id}/series
+  - GET /patients/{id}/instances-tags, GET /patients/{id}/shared-tags
+  - GET /studies/{id}/instances-tags, GET /series/{id}/shared-tags
+  - GET /series/{id}/instances-tags, GET /studies/{id}/shared-tags
+  - GET /patients/{id}/module, GET /patients/{id}/patient-module
+  - GET /series/{id}/module, GET /studies/{id}/module, GET /instances/{id}/module
+  - POST /tools/find
 
 Maintenance
 -----------

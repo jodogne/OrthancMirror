@@ -182,11 +182,11 @@ namespace Orthanc
               {
                 DicomMap t;
                 tags_.ExtractStudyInformation(t);  // Discard patient-related tags
-                FromDcmtkBridge::ToJson(json, t, true);
+                FromDcmtkBridge::ToJson(json, t, DicomToJsonFormat_Human);
               }
               else
               {
-                FromDcmtkBridge::ToJson(json, tags_, true);
+                FromDcmtkBridge::ToJson(json, tags_, DicomToJsonFormat_Human);
               }
 
               LuaFunctionCall call(lock.GetLua(), name);

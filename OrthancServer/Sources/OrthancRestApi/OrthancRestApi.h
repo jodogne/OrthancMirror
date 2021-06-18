@@ -144,5 +144,17 @@ namespace Orthanc
     static void DocumentSubmitGenericJob(RestApiPostCall& call);
 
     static void DocumentSubmitCommandsJob(RestApiPostCall& call);
+
+    static DicomToJsonFormat GetDicomFormat(const RestApiGetCall& call,
+                                            DicomToJsonFormat defaultFormat);
+
+    static DicomToJsonFormat GetDicomFormat(const Json::Value& body,
+                                            DicomToJsonFormat defaultFormat);
+
+    static void DocumentDicomFormat(RestApiGetCall& call,
+                                    DicomToJsonFormat defaultFormat);
+
+    static void DocumentDicomFormat(RestApiPostCall& call,
+                                    DicomToJsonFormat defaultFormat);
   };
 }

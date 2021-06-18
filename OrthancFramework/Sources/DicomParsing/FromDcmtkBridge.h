@@ -176,7 +176,7 @@ namespace Orthanc
 
     static void ToJson(Json::Value& result,
                        const DicomMap& values,
-                       bool simplify);
+                       DicomToJsonFormat format);
 
     static std::string GenerateUniqueIdentifier(ResourceType level);
 

@@ -819,12 +819,12 @@ namespace Orthanc
       }
     };
 
-    static void AnswerDicomMap(RestApiCall& call,
+    static void AnswerDicomMap(RestApiGetCall& call,
                                const DicomMap& value,
-                               bool simplify)
+                               DicomToJsonFormat format)
     {
       Json::Value full = Json::objectValue;
-      FromDcmtkBridge::ToJson(full, value, simplify);
+      FromDcmtkBridge::ToJson(full, value, format);
       call.GetOutput().AnswerJson(full);
     }
   }
@@ -834,6 +834,8 @@ namespace Orthanc
   {
     if (call.IsDocumentation())
     {
+      OrthancRestApi::DocumentDicomFormat(call, DicomToJsonFormat_Full);
+      
       call.GetDocumentation()
         .SetTag("Networking")
         .SetSummary("List answers to a query")
@@ -842,15 +844,13 @@ namespace Orthanc
         .SetUriArgument("id", "Identifier of the query of interest")
         .SetHttpGetArgument("expand", RestApiCallDocumentation::Type_String,
                             "If present, retrieve detailed information about the individual answers", false)        
-        .SetHttpGetArgument("simplify", RestApiCallDocumentation::Type_String,
-                            "If present and if `expand` is present, format the tags of the answers in human-readable format", false)
         .AddAnswerType(MimeType_Json, "JSON array containing the indices of the answers, or detailed information "
                        "about the reported answers (if `expand` argument is provided)");
       return;
     }
 
     const bool expand = call.HasArgument("expand");
-    const bool simplify = call.HasArgument("simplify");
+    const DicomToJsonFormat format = OrthancRestApi::GetDicomFormat(call, DicomToJsonFormat_Full);
     
     QueryAccessor query(call);
     size_t count = query.GetHandler().GetAnswersCount();
@@ -865,7 +865,7 @@ namespace Orthanc
         query.GetHandler().GetAnswer(value, i);
         
         Json::Value json = Json::objectValue;
-        FromDcmtkBridge::ToJson(json, value, simplify);
+        FromDcmtkBridge::ToJson(json, value, format);
 
         result.append(json);
       }
@@ -883,6 +883,8 @@ namespace Orthanc
   {
     if (call.IsDocumentation())
     {
+      OrthancRestApi::DocumentDicomFormat(call, DicomToJsonFormat_Full);
+
       call.GetDocumentation()
         .SetTag("Networking")
         .SetSummary("Get one answer")
@@ -890,8 +892,6 @@ namespace Orthanc
                         "query/retrieve operation whose identifier is provided in the URL")
         .SetUriArgument("id", "Identifier of the query of interest")
         .SetUriArgument("index", "Index of the answer")
-        .SetHttpGetArgument("simplify", RestApiCallDocumentation::Type_String,
-                            "If present, format the tags of the answer in human-readable format", false)
         .AddAnswerType(MimeType_Json, "JSON object containing the DICOM tags of the answer");
       return;
     }
@@ -903,7 +903,7 @@ namespace Orthanc
     DicomMap map;
     query.GetHandler().GetAnswer(map, index);
 
-    AnswerDicomMap(call, map, call.HasArgument("simplify"));
+    AnswerDicomMap(call, map, OrthancRestApi::GetDicomFormat(call, DicomToJsonFormat_Full));
   }
 
 
@@ -1031,6 +1031,8 @@ namespace Orthanc
   {
     if (call.IsDocumentation())
     {
+      OrthancRestApi::DocumentDicomFormat(call, DicomToJsonFormat_Full);
+
       call.GetDocumentation()
         .SetTag("Networking")
         .SetSummary("Get original query arguments")
@@ -1044,7 +1046,7 @@ namespace Orthanc
     }
 
     QueryAccessor query(call);
-    AnswerDicomMap(call, query.GetHandler().GetQuery(), call.HasArgument("simplify"));
+    AnswerDicomMap(call, query.GetHandler().GetQuery(), OrthancRestApi::GetDicomFormat(call, DicomToJsonFormat_Full));
   }
 
 
