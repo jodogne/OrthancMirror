@@ -471,11 +471,10 @@ namespace Orthanc
   static const std::string POST_SHORT = "Short";
 
   static const std::string DOCUMENT_SIMPLIFY =
-    "report the DICOM tags indexed in human-readable format "
-    "(using the symbolic name of the tags)";
+    "report the DICOM tags in human-readable format (using the symbolic name of the tags)";
 
   static const std::string DOCUMENT_SHORT =
-    "report the DICOM tags indexed in hexadecimal format";
+    "report the DICOM tags in hexadecimal format";
 
   static const std::string DOCUMENT_FULL =
     "report the DICOM tags in full format (tags indexed by their hexadecimal "
@@ -564,13 +563,13 @@ namespace Orthanc
     if (defaultFormat != DicomToJsonFormat_Short)
     {
       call.GetDocumentation().SetRequestField(POST_SHORT, RestApiCallDocumentation::Type_Boolean,
-                                              "If set to `true`, " + DOCUMENT_SIMPLIFY, false);
+                                              "If set to `true`, " + DOCUMENT_SHORT, false);
     }
     
     if (defaultFormat != DicomToJsonFormat_Full)
     {
       call.GetDocumentation().SetRequestField(POST_FULL, RestApiCallDocumentation::Type_Boolean,
-                                              "If set to `true`, " + DOCUMENT_SIMPLIFY, false);
+                                              "If set to `true`, " + DOCUMENT_FULL, false);
     }
   }
 }

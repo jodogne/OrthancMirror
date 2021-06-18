@@ -3092,6 +3092,60 @@ namespace Orthanc
   }
 
 
+  static void BulkContent(RestApiPostCall& call)
+  {
+    if (call.IsDocumentation())
+    {
+      OrthancRestApi::DocumentDicomFormat(call, DicomToJsonFormat_Human);
+
+      call.GetDocumentation()
+        .SetTag("System")
+        .SetSummary("Describe a set of instances")
+        .SetRequestField("Resources", RestApiCallDocumentation::Type_JsonListOfStrings,
+                         "List of the Orthanc identifiers of the patients/studies/series/instances of interest.", false)
+        .SetDescription("Get the content all the DICOM patients, studies, series or instances "
+                        "whose identifiers are provided in the `Resources` field, in one single call.");
+      return;
+    }
+
+    Json::Value request;
+    if (!call.ParseJsonRequest(request) ||
+        request.type() != Json::objectValue)
+    {
+      throw OrthancException(ErrorCode_BadRequest, 
+                             "The body must contain a JSON object");
+    }
+    else
+    {
+      const DicomToJsonFormat format = OrthancRestApi::GetDicomFormat(request, DicomToJsonFormat_Human);
+
+      ServerIndex& index = OrthancRestApi::GetIndex(call);
+      
+      std::list<std::string> resources;
+      SerializationToolbox::ReadListOfStrings(resources, request, "Resources");
+
+      Json::Value answer = Json::arrayValue;
+      for (std::list<std::string>::const_iterator
+             it = resources.begin(); it != resources.end(); ++it)
+      {
+        ResourceType type;
+        Json::Value item;
+        if (index.LookupResourceType(type, *it) &&
+            index.ExpandResource(item, *it, type, format))
+        {
+          answer.append(item);
+        }
+        else
+        {
+          CLOG(INFO, HTTP) << "Unknown resource during a bulk content retrieval: " << *it;
+        }
+      }
+
+      call.GetOutput().AnswerJson(answer);
+    }
+  }
+
+
   static void BulkDelete(RestApiPostCall& call)
   {
     if (call.IsDocumentation())
@@ -3101,7 +3155,7 @@ namespace Orthanc
         .SetSummary("Delete a set of instances")
         .SetRequestField("Resources", RestApiCallDocumentation::Type_JsonListOfStrings,
                          "List of the Orthanc identifiers of the patients/studies/series/instances of interest.", false)
-        .SetDescription("Dellete all the DICOM patients, studies, series or instances "
+        .SetDescription("Delete all the DICOM patients, studies, series or instances "
                         "whose identifiers are provided in the `Resources` field.");
       return;
     }
@@ -3257,6 +3311,7 @@ namespace Orthanc
     Register("/instances/{id}/reconstruct", ReconstructResource<ResourceType_Instance>);
     Register("/tools/reconstruct", ReconstructAllResources);
 
+    Register("/tools/bulk-content", BulkContent);
     Register("/tools/bulk-delete", BulkDelete);
   }
 }

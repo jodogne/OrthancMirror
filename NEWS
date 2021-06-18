@@ -18,10 +18,11 @@ REST API
 --------
 
 * API version upgraded to 13
-* New routes:
-  - "/tools/bulk-anonymize" to anonymize a group of multiple, unrelated resources at once
-  - "/tools/bulk-delete" to delete a group of multiple, unrelated resources at once
-  - "/tools/bulk-modify" to modify a group of multiple, unrelated resources at once
+* New routes to handle groups of multiple, unrelated DICOM resources at once:
+  - "/tools/bulk-anonymize" to anonymize a set of resources
+  - "/tools/bulk-content" to get the content of a set of resources
+  - "/tools/bulk-delete" to delete a set of resources
+  - "/tools/bulk-modify" to modify a set of resources
 * ZIP archive/media generated in synchronous mode are now streamed by default
 * "Replace" tags in "/modify" and "/anonymize" now supports value representation AT
 * "/jobs/..." has new field "ErrorDetails" to help identify the cause of an error
