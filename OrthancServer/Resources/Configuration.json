@@ -628,7 +628,7 @@
   // Load a set of external DICOM dictionaries in order to replace the
   // default dictionaries. This option must contain a set of files in
   // the DCMTK format. The order of the dictionaries *is*
-  // important. This option can be used to turn Orhanc into a DICONDE
+  // important. This option can be used to turn Orthanc into a DICONDE
   // server. (new in Orthanc 1.9.4)
   /**
      "ExternalDictionaries" : [
