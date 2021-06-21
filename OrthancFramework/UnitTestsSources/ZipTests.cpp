@@ -190,7 +190,7 @@ TEST(ZipReader, Basic)
   
   {
     Orthanc::ZipWriter w;
-    ASSERT_EQ(0, w.GetArchiveSize());
+    ASSERT_EQ(0u, w.GetArchiveSize());
 
     w.SetOutputPath(f.GetPath().c_str());
     w.Open();
@@ -245,12 +245,12 @@ TEST(ZipWriter, Stream)
     
     {
       Orthanc::ZipWriter w;
-      ASSERT_EQ(0, w.GetArchiveSize());
+      ASSERT_EQ(0u, w.GetArchiveSize());
       
       w.SetMemoryOutput(memory, (i == 0) /* ZIP64? */);
       w.Open();
 
-      ASSERT_EQ(0, w.GetArchiveSize());
+      ASSERT_EQ(0u, w.GetArchiveSize());
       
       w.OpenFile("world/hello");
       w.Write(large);
@@ -264,7 +264,7 @@ TEST(ZipWriter, Stream)
       ASSERT_TRUE(memory.empty());
 
       uint64_t s1 = w.GetArchiveSize();      
-      ASSERT_NE(0, s1);
+      ASSERT_NE(0u, s1);
 
       w.Close();
       archiveSize = w.GetArchiveSize();

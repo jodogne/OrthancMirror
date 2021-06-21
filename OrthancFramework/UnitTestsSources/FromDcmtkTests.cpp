@@ -2295,7 +2295,7 @@ TEST(DicomModification, DicomPath)
   ASSERT_EQ(1u, path.GetPrefixLength());
   ASSERT_EQ(DICOM_TAG_REFERENCED_PERFORMED_PROCEDURE_STEP_SEQUENCE, path.GetPrefixTag(0));
   ASSERT_FALSE(path.IsPrefixUniversal(0));
-  ASSERT_EQ(0, path.GetPrefixIndex(0));
+  ASSERT_EQ(0u, path.GetPrefixIndex(0));
   ASSERT_THROW(path.GetPrefixTag(1), OrthancException);
   ASSERT_EQ(DICOM_TAG_PATIENT_NAME, path.GetFinalTag());
   
@@ -2304,10 +2304,10 @@ TEST(DicomModification, DicomPath)
   ASSERT_EQ(2u, path.GetPrefixLength());
   ASSERT_EQ(DICOM_TAG_REFERENCED_PERFORMED_PROCEDURE_STEP_SEQUENCE, path.GetPrefixTag(0));
   ASSERT_FALSE(path.IsPrefixUniversal(0));
-  ASSERT_EQ(1, path.GetPrefixIndex(0));
+  ASSERT_EQ(1u, path.GetPrefixIndex(0));
   ASSERT_EQ(DICOM_TAG_REFERENCED_PERFORMED_PROCEDURE_STEP_SEQUENCE, path.GetPrefixTag(1));
   ASSERT_FALSE(path.IsPrefixUniversal(1));
-  ASSERT_EQ(2, path.GetPrefixIndex(1));
+  ASSERT_EQ(2u, path.GetPrefixIndex(1));
   ASSERT_THROW(path.GetPrefixTag(2), OrthancException);
   ASSERT_EQ(DICOM_TAG_PATIENT_NAME, path.GetFinalTag());
   
@@ -2326,7 +2326,7 @@ TEST(DicomModification, DicomPath)
   ASSERT_EQ(2u, path.GetPrefixLength());
   ASSERT_EQ(DICOM_TAG_REFERENCED_PERFORMED_PROCEDURE_STEP_SEQUENCE, path.GetPrefixTag(0));
   ASSERT_FALSE(path.IsPrefixUniversal(0));
-  ASSERT_EQ(1, path.GetPrefixIndex(0));
+  ASSERT_EQ(1u, path.GetPrefixIndex(0));
   ASSERT_EQ(DICOM_TAG_REFERENCED_PERFORMED_PROCEDURE_STEP_SEQUENCE, path.GetPrefixTag(0));
   ASSERT_TRUE(path.IsPrefixUniversal(1));
   ASSERT_THROW(path.GetPrefixIndex(1), OrthancException);
@@ -2338,7 +2338,7 @@ TEST(DicomModification, DicomPath)
   ASSERT_EQ(1u, path.GetPrefixLength());
   ASSERT_EQ(DICOM_TAG_PATIENT_ID, path.GetPrefixTag(0));
   ASSERT_FALSE(path.IsPrefixUniversal(0));
-  ASSERT_EQ(1, path.GetPrefixIndex(0));
+  ASSERT_EQ(1u, path.GetPrefixIndex(0));
   ASSERT_THROW(path.GetPrefixTag(1), OrthancException);
   ASSERT_EQ(DICOM_TAG_PATIENT_NAME, path.GetFinalTag());
 
@@ -2347,7 +2347,7 @@ TEST(DicomModification, DicomPath)
   ASSERT_EQ(1u, path.GetPrefixLength());
   ASSERT_EQ(DICOM_TAG_PATIENT_ID, path.GetPrefixTag(0));
   ASSERT_FALSE(path.IsPrefixUniversal(0));
-  ASSERT_EQ(42, path.GetPrefixIndex(0));
+  ASSERT_EQ(42u, path.GetPrefixIndex(0));
   ASSERT_THROW(path.GetPrefixTag(1), OrthancException);
   ASSERT_EQ(DICOM_TAG_PATIENT_NAME, path.GetFinalTag());
   ASSERT_EQ("(0010,0020)[42].(0010,0010)", path.Format());
