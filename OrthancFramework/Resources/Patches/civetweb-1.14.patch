@@ -1,0 +1,11 @@
+diff -urEb civetweb-1.14.orig/src/civetweb.c civetweb-1.14/src/civetweb.c
+--- civetweb-1.14.orig/src/civetweb.c	2021-06-21 17:42:52.343136123 +0200
++++ civetweb-1.14/src/civetweb.c	2021-06-21 17:43:11.623158128 +0200
+@@ -1774,6 +1774,7 @@
+ #if !defined(OPENSSL_API_3_0)
+ #define OPENSSL_API_3_0
+ #endif
++#define OPENSSL_REMOVE_THREAD_STATE()
+ #else
+ #if (OPENSSL_VERSION_NUMBER >= 0x10100000L)
+ #if !defined(OPENSSL_API_1_1)
