@@ -44,6 +44,17 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_CIVETWEB)
 
   DownloadPackage(${CIVETWEB_MD5} ${CIVETWEB_URL} "${CIVETWEB_SOURCES_DIR}")
 
+  execute_process(
+    COMMAND ${PATCH_EXECUTABLE} -p0 -N -i
+    ${CMAKE_CURRENT_LIST_DIR}/../Patches/civetweb-1.14.patch
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+    RESULT_VARIABLE Failure
+    )
+
+  if (FirstRun AND Failure)
+    message(FATAL_ERROR "Error while patching a file")
+  endif()
+
   include_directories(
     ${CIVETWEB_SOURCES_DIR}/include
     )
