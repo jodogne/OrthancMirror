@@ -281,6 +281,8 @@ endforeach()
 
 
 list(REMOVE_ITEM OPENSSL_SOURCES
+  # Files below are not part of the "libcrypto.a" and "libssl.a" that
+  # are created by compiling OpenSSL from sources
   ${OPENSSL_SOURCES_DIR}/crypto/LPdir_nyi.c
   ${OPENSSL_SOURCES_DIR}/crypto/LPdir_unix.c
   ${OPENSSL_SOURCES_DIR}/crypto/LPdir_vms.c
@@ -306,6 +308,9 @@ list(REMOVE_ITEM OPENSSL_SOURCES
   ${OPENSSL_SOURCES_DIR}/engines/e_loader_attic.c
   ${OPENSSL_SOURCES_DIR}/providers/common/securitycheck_fips.c
   ${OPENSSL_SOURCES_DIR}/providers/implementations/macs/blake2_mac_impl.c
+  
+  ${OPENSSL_SOURCES_DIR}/engines/e_afalg.c  # Fails on OS X and Visual Studio
+  ${OPENSSL_SOURCES_DIR}/crypto/poly1305/poly1305_ieee754.c  # Fails on Visual Studio
 
   ${OPENSSL_SOURCES_DIR}/ssl/ktls.c   # TODO ?
   )
@@ -314,10 +319,15 @@ list(REMOVE_ITEM OPENSSL_SOURCES
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux" OR
     ${CMAKE_SYSTEM_NAME} STREQUAL "kFreeBSD" OR
     ${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD" OR
-    ${CMAKE_SYSTEM_NAME} STREQUAL "OpenBSD")
+    ${CMAKE_SYSTEM_NAME} STREQUAL "OpenBSD" OR
+    APPLE)
   list(APPEND OPENSSL_SOURCES
     ${OPENSSL_SOURCES_DIR}/providers/implementations/rands/seeding/rand_unix.c
     )
+elseif("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
+  list(APPEND OPENSSL_SOURCES
+    ${OPENSSL_SOURCES_DIR}/providers/implementations/rands/seeding/rand_win.c
+    )  
 endif()
   
 
