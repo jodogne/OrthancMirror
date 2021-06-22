@@ -1,0 +1,24 @@
+diff -urEb curl-7.77.0.orig/CMake/Macros.cmake curl-7.77.0/CMake/Macros.cmake
+--- curl-7.77.0.orig/CMake/Macros.cmake	2021-06-22 10:31:21.875004553 +0200
++++ curl-7.77.0/CMake/Macros.cmake	2021-06-22 10:31:45.219024665 +0200
+@@ -59,7 +59,7 @@
+     message(STATUS "Performing Curl Test ${CURL_TEST}")
+     try_compile(${CURL_TEST}
+       ${CMAKE_BINARY_DIR}
+-      ${CMAKE_CURRENT_SOURCE_DIR}/CMake/CurlTests.c
++      ${CURL_SOURCES_DIR}/CMake/CurlTests.c
+       CMAKE_FLAGS -DCOMPILE_DEFINITIONS:STRING=${MACRO_CHECK_FUNCTION_DEFINITIONS}
+       "${CURL_TEST_ADD_LIBRARIES}"
+       OUTPUT_VARIABLE OUTPUT)
+diff -urEb curl-7.77.0.orig/lib/vssh/ssh.h curl-7.77.0/lib/vssh/ssh.h
+--- curl-7.77.0.orig/lib/vssh/ssh.h	2021-06-22 10:31:21.843004526 +0200
++++ curl-7.77.0/lib/vssh/ssh.h	2021-06-22 10:36:34.271266232 +0200
+@@ -22,7 +22,7 @@
+  *
+  ***************************************************************************/
+ 
+-#include "curl_setup.h"
++#include "../curl_setup.h"
+ 
+ #if defined(HAVE_LIBSSH2_H)
+ #include <libssh2.h>
