@@ -178,7 +178,8 @@ TEST(Version, LibIconvStatic)
 TEST(Version, OpenSslStatic)
 {
   ASSERT_TRUE(OPENSSL_VERSION_NUMBER == 0x1000210fL /* openssl-1.0.2p */ ||
-              OPENSSL_VERSION_NUMBER == 0x101010bfL /* openssl-1.1.1k */);
+              OPENSSL_VERSION_NUMBER == 0x101010bfL /* openssl-1.1.1k */ ||
+              OPENSSL_VERSION_NUMBER == 0x3000000fL /* openssl-3.0.0 */);
 }
 #endif
 

@@ -49,6 +49,14 @@ Maintenance
 * C-MOVE SCP: added possible DIMSE status "Sub-operations Complete - One or more Failures"
 * Fix issue #146 (Update Anonyization to 2019c) - was actually updated to 2021b
 
+OpenSSL 3.x branch
+------------------
+
+* General information:
+  https://www.openssl.org/blog/blog/2021/06/17/OpenSSL3.0ReleaseCandidate/
+* Upgraded dependencies for static builds (notably on Windows and LSB):
+  - openssl 3.0.0-beta1
+
 
 Version 1.9.3 (2021-05-07)
 ==========================
