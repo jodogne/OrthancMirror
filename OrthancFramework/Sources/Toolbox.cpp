@@ -1703,6 +1703,7 @@ namespace Orthanc
    **/
   void Toolbox::InitializeOpenSsl()
   {
+    LOG(INFO) << "OpenSSL is disabled";
   }
   
   void Toolbox::FinalizeOpenSsl()
@@ -1717,6 +1718,8 @@ namespace Orthanc
    **/
   void Toolbox::InitializeOpenSsl()
   {
+    LOG(INFO) << "OpenSSL version: " << OPENSSL_VERSION_TEXT;
+    
     // https://wiki.openssl.org/index.php/Library_Initialization
     SSL_library_init();
     SSL_load_error_strings();
@@ -1753,6 +1756,7 @@ namespace Orthanc
    **/
   void Toolbox::InitializeOpenSsl()
   {
+    LOG(INFO) << "OpenSSL version: " << OPENSSL_VERSION_TEXT;
   }
 
   void Toolbox::FinalizeOpenSsl()
