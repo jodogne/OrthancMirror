@@ -54,6 +54,7 @@ OpenSSL 3.x branch
 
 * General information:
   https://www.openssl.org/blog/blog/2021/06/17/OpenSSL3.0ReleaseCandidate/
+* Dropped support for static compilation of OpenSSL 1.0.2 and 1.1.1
 * Upgraded dependencies for static builds (notably on Windows and LSB):
   - openssl 3.0.0-beta1
 
