@@ -226,15 +226,6 @@ Maintenance tools
   https://groups.google.com/g/orthanc-users/c/KASEJ9Gx3vQ/m/MIJFJdRhAwAJ
 * Standalone tool to detect orphan files in OrthancStorage
 
------
-Legal
------
-
-* Drop "OpenSSL Exception" from the Orthanc license once OpenSSL 3.0.0
-  is released, because that version will replace "OpenSSL license"
-  (incompatible with GPL) by "Apache License 2.0" (compatible with
-  GPL): https://people.gnome.org/~markmc/openssl-and-the-gpl.html
-  
 ----------------------------------
 Code quality and integration tests
 ----------------------------------
