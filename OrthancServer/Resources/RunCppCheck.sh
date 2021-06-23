@@ -19,12 +19,14 @@ stlFindInsert:../../OrthancFramework/Sources/RestApi/RestApiCallDocumentation.cp
 stlFindInsert:../../OrthancFramework/Sources/RestApi/RestApiCallDocumentation.cpp:72
 stlFindInsert:../../OrthancServer/Sources/Database/StatelessDatabaseOperations.cpp:384
 stlFindInsert:../../OrthancServer/Sources/OrthancWebDav.cpp:386
+stlFindInsert:../../OrthancServer/Sources/ServerJobs/MergeStudyJob.cpp:51
+stlFindInsert:../../OrthancServer/Sources/ServerJobs/SplitStudyJob.cpp:201
 syntaxError:../../OrthancFramework/Sources/SQLite/FunctionContext.h:50
 syntaxError:../../OrthancFramework/UnitTestsSources/ZipTests.cpp:131
 syntaxError:../../OrthancServer/UnitTestsSources/UnitTestsMain.cpp:321
 uninitMemberVar:../../OrthancServer/Sources/ServerJobs/StorageCommitmentScpJob.cpp:427
 unreadVariable:../../OrthancFramework/Sources/FileStorage/StorageAccessor.cpp
-unreadVariable:../../OrthancServer/Sources/OrthancRestApi/OrthancRestModalities.cpp:1121
+unreadVariable:../../OrthancServer/Sources/OrthancRestApi/OrthancRestModalities.cpp:1123
 unusedFunction
 useInitializationList:../../OrthancFramework/Sources/Images/PngReader.cpp:89
 useInitializationList:../../OrthancFramework/Sources/Images/PngWriter.cpp:97
