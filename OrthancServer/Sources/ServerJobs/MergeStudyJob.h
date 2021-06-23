@@ -78,11 +78,13 @@ namespace Orthanc
       return targetStudy_;
     }
 
-    void AddSource(const std::string& studyOrSeries);
+    void AddSource(const std::string& publicId);
 
     void AddSourceStudy(const std::string& study);
 
     void AddSourceSeries(const std::string& series);
+
+    void AddSourceInstance(const std::string& instance);  // New in Orthanc 1.9.4
 
     void SetOrigin(const DicomInstanceOrigin& origin);
 

@@ -42,6 +42,7 @@ REST API
   - GET /series/{id}/module, GET /studies/{id}/module, GET /instances/{id}/module
   - POST /tools/find
 * "/studies/{id}/split" accepts "Instances" parameter to split instances instead of series
+* "/studies/{id}/merge" accepts instances inside its "Resources" parameter
 
 Maintenance
 -----------
