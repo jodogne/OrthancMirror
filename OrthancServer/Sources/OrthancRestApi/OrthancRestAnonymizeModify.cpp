@@ -1143,11 +1143,11 @@ namespace Orthanc
       call.GetDocumentation()
         .SetTag("Studies")
         .SetSummary("Merge study")
-        .SetDescription("Start a new job so as to move some DICOM series into the DICOM study whose Orthanc identifier "
+        .SetDescription("Start a new job so as to move some DICOM resources into the DICOM study whose Orthanc identifier "
                         "is provided in the URL: https://book.orthanc-server.com/users/anonymization.html#merging")
         .SetUriArgument("id", "Orthanc identifier of the study of interest")
         .SetRequestField(RESOURCES, RestApiCallDocumentation::Type_JsonListOfStrings,
-                         "The list of DICOM resources (patients, studies, series, and/or instances) to be merged "
+                         "The list of DICOM resources (studies, series, and/or instances) to be merged "
                          "into the study of interest (mandatory option)", true)
         .SetRequestField(KEEP_SOURCE, RestApiCallDocumentation::Type_Boolean,
                          "If set to `true`, instructs Orthanc to keep a copy of the original resources in their source study. "

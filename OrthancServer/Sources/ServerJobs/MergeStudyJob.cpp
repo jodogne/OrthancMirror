@@ -42,10 +42,20 @@
 
 namespace Orthanc
 {
-  void MergeStudyJob::AddSourceSeriesInternal(const std::string& series)
+  static void RegisterSeries(std::map<std::string, std::string>& target,
+                             const std::string& series)
   {
     // Generate a target SeriesInstanceUID for this series
-    seriesUidMap_[series] = FromDcmtkBridge::GenerateUniqueIdentifier(ResourceType_Series);
+    if (target.find(series) == target.end())
+    {
+      target[series] = FromDcmtkBridge::GenerateUniqueIdentifier(ResourceType_Series);
+    }
+  }
+  
+
+  void MergeStudyJob::AddSourceSeriesInternal(const std::string& series)
+  {
+    RegisterSeries(seriesUidMap_, series);
 
     // Add all the instances of the series as to be processed
     std::list<std::string> instances;
@@ -240,7 +250,7 @@ namespace Orthanc
   }
 
 
-  void MergeStudyJob::AddSource(const std::string& studyOrSeries)
+  void MergeStudyJob::AddSource(const std::string& publicId)
   {
     ResourceType level;
     
@@ -248,28 +258,31 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_BadSequenceOfCalls);
     }
-    else if (!GetContext().GetIndex().LookupResourceType(level, studyOrSeries))
+    else if (!GetContext().GetIndex().LookupResourceType(level, publicId))
     {
       throw OrthancException(ErrorCode_UnknownResource,
-                             "Cannot find this resource: " + studyOrSeries);
+                             "Cannot find this resource: " + publicId);
     }
     else
     {
       switch (level)
       {
         case ResourceType_Study:
-          AddSourceStudyInternal(studyOrSeries);
+          AddSourceStudyInternal(publicId);
           break;
           
         case ResourceType_Series:
-          AddSourceSeries(studyOrSeries);
+          AddSourceSeries(publicId);
+          break;
+          
+        case ResourceType_Instance:
+          AddSourceInstance(publicId);
           break;
           
         default:
           throw OrthancException(ErrorCode_UnknownResource,
-                                 "This resource is neither a study, nor a series: " +
-                                 studyOrSeries + " is a " +
-                                 std::string(EnumerationToString(level)));
+                                 "This resource is neither a study, nor a series, nor an instance: " +
+                                 publicId + " is a " + std::string(EnumerationToString(level)));
       }
     }    
   }
@@ -321,6 +334,34 @@ namespace Orthanc
     }    
   }
 
+
+  void MergeStudyJob::AddSourceInstance(const std::string& instance)
+  {
+    std::string parentStudy, parentSeries;
+
+    if (IsStarted())
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    else if (!GetContext().GetIndex().LookupParent(parentSeries, instance, ResourceType_Series) ||
+             !GetContext().GetIndex().LookupParent(parentStudy, parentSeries, ResourceType_Study))
+    {
+      throw OrthancException(ErrorCode_UnknownResource,
+                             "This resource is not an instance: " + instance);
+    }
+    else if (parentStudy == targetStudy_)
+    {
+      throw OrthancException(ErrorCode_UnknownResource,
+                             "Cannot merge instance " + instance +
+                             " into its parent study " + targetStudy_);
+    }
+    else
+    {
+      RegisterSeries(seriesUidMap_, parentSeries);
+      AddInstance(instance);
+    }    
+  }
+  
 
   void MergeStudyJob::GetPublicContent(Json::Value& value)
   {
