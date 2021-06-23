@@ -3113,8 +3113,29 @@ namespace Orthanc
   }
 
 
+  static void AddMetadata(Json::Value& target,
+                          ServerIndex& index,
+                          const std::string& resource,
+                          ResourceType level)
+  {
+    target = Json::objectValue;
+    
+    std::map<MetadataType, std::string> content;
+    index.GetAllMetadata(content, resource, level);
+    
+    for (std::map<MetadataType, std::string>::const_iterator
+           it = content.begin(); it != content.end(); ++it)
+    {
+      target[EnumerationToString(it->first)] = it->second;
+    }
+  }
+
+
   static void BulkContent(RestApiPostCall& call)
   {
+    static const char* const LEVEL = "Level";
+    static const char* const METADATA = "Metadata";
+      
     if (call.IsDocumentation())
     {
       OrthancRestApi::DocumentDicomFormat(call, DicomToJsonFormat_Human);
@@ -3124,10 +3145,12 @@ namespace Orthanc
         .SetSummary("Describe a set of instances")
         .SetRequestField("Resources", RestApiCallDocumentation::Type_JsonListOfStrings,
                          "List of the Orthanc identifiers of the patients/studies/series/instances of interest.", true)
-        .SetRequestField("Level", RestApiCallDocumentation::Type_String,
+        .SetRequestField(LEVEL, RestApiCallDocumentation::Type_String,
                          "This optional argument specifies the level of interest (can be `Patient`, `Study`, `Series` or "
                          "`Instance`). Orthanc will loop over the items inside `Resources`, and explorer upward or "
                          "downward in the DICOM hierarchy in order to find the level of interest.", false)
+        .SetRequestField(METADATA, RestApiCallDocumentation::Type_Boolean,
+                         "If set to `true` (default value), the metadata associated with the resources will also be retrieved.", false)
         .SetDescription("Get the content all the DICOM patients, studies, series or instances "
                         "whose identifiers are provided in the `Resources` field, in one single call.");
       return;
@@ -3142,9 +3165,13 @@ namespace Orthanc
     }
     else
     {
-      static const char* const LEVEL = "Level";      
-      
       const DicomToJsonFormat format = OrthancRestApi::GetDicomFormat(request, DicomToJsonFormat_Human);
+
+      bool metadata = true;
+      if (request.isMember(METADATA))
+      {
+        metadata = SerializationToolbox::ReadBoolean(request, METADATA);
+      }
 
       ServerIndex& index = OrthancRestApi::GetIndex(call);
       
@@ -3243,6 +3270,11 @@ namespace Orthanc
           Json::Value item;
           if (index.ExpandResource(item, *it, level, format))
           {
+            if (metadata)
+            {
+              AddMetadata(item[METADATA], index, *it, level);
+            }
+
             answer.append(item);
           }
         }
@@ -3256,11 +3288,16 @@ namespace Orthanc
         for (std::list<std::string>::const_iterator
                it = resources.begin(); it != resources.end(); ++it)
         {
-          ResourceType type;
+          ResourceType level;
           Json::Value item;
-          if (index.LookupResourceType(type, *it) &&
-              index.ExpandResource(item, *it, type, format))
+          if (index.LookupResourceType(level, *it) &&
+              index.ExpandResource(item, *it, level, format))
           {
+            if (metadata)
+            {
+              AddMetadata(item[METADATA], index, *it, level);
+            }
+
             answer.append(item);
           }
           else
