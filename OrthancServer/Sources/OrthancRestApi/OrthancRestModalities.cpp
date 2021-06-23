@@ -1027,8 +1027,6 @@ namespace Orthanc
         .SetDescription("Get the original DICOM filter associated with the query/retrieve operation "
                         "whose identifier is provided in the URL")
         .SetUriArgument("id", "Identifier of the query of interest")
-        .SetHttpGetArgument("simplify", RestApiCallDocumentation::Type_String,
-                            "If present, format the tags of the DICOM filter in human-readable format", false)
         .AddAnswerType(MimeType_Json, "Content of the original query");
       return;
     }
