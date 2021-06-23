@@ -50,6 +50,24 @@
   "Starting with Orthanc 1.9.4, paths to subsequences can be provided using the "\
   "same syntax as the `dcmodify` command-line tool (wildcards are supported as well)."
 
+
+static const char* const CONTENT = "Content";
+static const char* const FORCE = "Force";
+static const char* const INSTANCES = "Instances";
+static const char* const INTERPRET_BINARY_TAGS = "InterpretBinaryTags";
+static const char* const KEEP = "Keep";
+static const char* const KEEP_PRIVATE_TAGS = "KeepPrivateTags";
+static const char* const KEEP_SOURCE = "KeepSource";
+static const char* const PARENT = "Parent";
+static const char* const PRIVATE_CREATOR = "PrivateCreator";
+static const char* const REMOVE = "Remove";
+static const char* const REPLACE = "Replace";
+static const char* const RESOURCES = "Resources";
+static const char* const SERIES = "Series";
+static const char* const TAGS = "Tags";
+static const char* const TRANSCODE = "Transcode";
+
+
 namespace Orthanc
 {
   // Modification of DICOM instances ------------------------------------------
@@ -66,23 +84,23 @@ namespace Orthanc
   {
     // Check out "DicomModification::ParseModifyRequest()"
     call.GetDocumentation()
-      .SetRequestField("Transcode", RestApiCallDocumentation::Type_String,
+      .SetRequestField(TRANSCODE, RestApiCallDocumentation::Type_String,
                        "Transcode the DICOM instances to the provided DICOM transfer syntax: "
                        "https://book.orthanc-server.com/faq/transcoding.html", false)
-      .SetRequestField("Force", RestApiCallDocumentation::Type_Boolean,
+      .SetRequestField(FORCE, RestApiCallDocumentation::Type_Boolean,
                        "Allow the modification of tags related to DICOM identifiers, at the risk of "
                        "breaking the DICOM model of the real world", false)
       .SetRequestField("RemovePrivateTags", RestApiCallDocumentation::Type_Boolean,
                        "Remove the private tags from the DICOM instances (defaults to `false`)", false)
-      .SetRequestField("Replace", RestApiCallDocumentation::Type_JsonObject,
+      .SetRequestField(REPLACE, RestApiCallDocumentation::Type_JsonObject,
                        "Associative array to change the value of some DICOM tags in the DICOM instances. " INFO_SUBSEQUENCES, false)
-      .SetRequestField("Remove", RestApiCallDocumentation::Type_JsonListOfStrings,
+      .SetRequestField(REMOVE, RestApiCallDocumentation::Type_JsonListOfStrings,
                        "List of tags that must be removed from the DICOM instances. " INFO_SUBSEQUENCES, false)
-      .SetRequestField("Keep", RestApiCallDocumentation::Type_JsonListOfStrings,
+      .SetRequestField(KEEP, RestApiCallDocumentation::Type_JsonListOfStrings,
                        "Keep the original value of the specified tags, to be chosen among the `StudyInstanceUID`, "
                        "`SeriesInstanceUID` and `SOPInstanceUID` tags. Avoid this feature as much as possible, "
                        "as this breaks the DICOM model of the real world.", false)
-      .SetRequestField("PrivateCreator", RestApiCallDocumentation::Type_String,
+      .SetRequestField(PRIVATE_CREATOR, RestApiCallDocumentation::Type_String,
                        "The private creator to be used for private tags in `Replace`", false);
   }
 
@@ -91,21 +109,21 @@ namespace Orthanc
   {
     // Check out "DicomModification::ParseAnonymizationRequest()"
     call.GetDocumentation()
-      .SetRequestField("Force", RestApiCallDocumentation::Type_Boolean,
+      .SetRequestField(FORCE, RestApiCallDocumentation::Type_Boolean,
                        "Allow the modification of tags related to DICOM identifiers, at the risk of "
                        "breaking the DICOM model of the real world", false)
       .SetRequestField("DicomVersion", RestApiCallDocumentation::Type_String,
                        "Version of the DICOM standard to be used for anonymization. Check out "
                        "configuration option `DeidentifyLogsDicomVersion` for possible values.", false)
-      .SetRequestField("KeepPrivateTags", RestApiCallDocumentation::Type_Boolean,
+      .SetRequestField(KEEP_PRIVATE_TAGS, RestApiCallDocumentation::Type_Boolean,
                        "Keep the private tags from the DICOM instances (defaults to `false`)", false)
-      .SetRequestField("Replace", RestApiCallDocumentation::Type_JsonObject,
+      .SetRequestField(REPLACE, RestApiCallDocumentation::Type_JsonObject,
                        "Associative array to change the value of some DICOM tags in the DICOM instances. " INFO_SUBSEQUENCES, false)
-      .SetRequestField("Remove", RestApiCallDocumentation::Type_JsonListOfStrings,
+      .SetRequestField(REMOVE, RestApiCallDocumentation::Type_JsonListOfStrings,
                        "List of additional tags to be removed from the DICOM instances. " INFO_SUBSEQUENCES, false)
-      .SetRequestField("Keep", RestApiCallDocumentation::Type_JsonListOfStrings,
+      .SetRequestField(KEEP, RestApiCallDocumentation::Type_JsonListOfStrings,
                        "List of DICOM tags whose value must not be destroyed by the anonymization. " INFO_SUBSEQUENCES, false)
-      .SetRequestField("PrivateCreator", RestApiCallDocumentation::Type_String,
+      .SetRequestField(PRIVATE_CREATOR, RestApiCallDocumentation::Type_String,
                        "The private creator to be used for private tags in `Replace`", false);
   }
 
@@ -253,7 +271,6 @@ namespace Orthanc
 
     modification.SetLevel(DetectModifyLevel(modification));
 
-    static const char* TRANSCODE = "Transcode";
     if (request.isMember(TRANSCODE))
     {
       std::string s = SerializationToolbox::ReadString(request, TRANSCODE);
@@ -305,7 +322,6 @@ namespace Orthanc
   static void SetKeepSource(CleaningInstancesJob& job,
                             const Json::Value& body)
   {
-    static const char* KEEP_SOURCE = "KeepSource";
     if (body.isMember(KEEP_SOURCE))
     {
       job.SetKeepSource(SerializationToolbox::ReadBoolean(body, KEEP_SOURCE));
@@ -337,7 +353,6 @@ namespace Orthanc
     job->SetOrigin(call);
     SetKeepSource(*job, body);
 
-    static const char* TRANSCODE = "Transcode";
     if (body.isMember(TRANSCODE))
     {
       job->SetTranscode(SerializationToolbox::ReadString(body, TRANSCODE));
@@ -377,7 +392,7 @@ namespace Orthanc
                             const Json::Value& body)
   {
     std::set<std::string> resources;
-    SerializationToolbox::ReadSetOfStrings(resources, body, "Resources");
+    SerializationToolbox::ReadSetOfStrings(resources, body, RESOURCES);
 
     SubmitModificationJob(modification, isAnonymization,
                           call, body, ResourceType_Instance /* arbitrary value, unused */,
@@ -426,7 +441,7 @@ namespace Orthanc
       call.GetDocumentation()
         .SetTag("System")
         .SetSummary("Modify a set of resources")
-        .SetRequestField("Resources", RestApiCallDocumentation::Type_JsonListOfStrings,
+        .SetRequestField(RESOURCES, RestApiCallDocumentation::Type_JsonListOfStrings,
                          "List of the Orthanc identifiers of the patients/studies/series/instances of interest.", true)
         .SetDescription("Start a job that will modify all the DICOM patients, studies, series or instances "
                         "whose identifiers are provided in the `Resources` field.")
@@ -484,7 +499,7 @@ namespace Orthanc
       call.GetDocumentation()
         .SetTag("System")
         .SetSummary("Anonymize a set of resources")
-        .SetRequestField("Resources", RestApiCallDocumentation::Type_JsonListOfStrings,
+        .SetRequestField(RESOURCES, RestApiCallDocumentation::Type_JsonListOfStrings,
                          "List of the Orthanc identifiers of the patients/studies/series/instances of interest.", true)
         .SetDescription("Start a job that will anonymize all the DICOM patients, studies, series or instances "
                         "whose identifiers are provided in the `Resources` field.")
@@ -638,16 +653,16 @@ namespace Orthanc
         }
         else if (content[i].type() == Json::objectValue)
         {
-          if (!content[i].isMember("Content"))
+          if (!content[i].isMember(CONTENT))
           {
             throw OrthancException(ErrorCode_CreateDicomNoPayload);
           }
 
-          payload = &content[i]["Content"];
+          payload = &content[i][CONTENT];
 
-          if (content[i].isMember("Tags"))
+          if (content[i].isMember(TAGS))
           {
-            InjectTags(*dicom, content[i]["Tags"], decodeBinaryTags, privateCreator, force);
+            InjectTags(*dicom, content[i][TAGS], decodeBinaryTags, privateCreator, force);
           }
         }
 
@@ -689,13 +704,7 @@ namespace Orthanc
   static void CreateDicomV2(RestApiPostCall& call,
                             const Json::Value& request)
   {
-    static const char* const CONTENT = "Content";
-    static const char* const FORCE = "Force";
-    static const char* const INTERPRET_BINARY_TAGS = "InterpretBinaryTags";
-    static const char* const PARENT = "Parent";
-    static const char* const PRIVATE_CREATOR = "PrivateCreator";
     static const char* const SPECIFIC_CHARACTER_SET_2 = "SpecificCharacterSet";
-    static const char* const TAGS = "Tags";
     static const char* const TYPE = "Type";
     static const char* const VALUE = "Value";
     
@@ -769,7 +778,7 @@ namespace Orthanc
 
       // Choose the same encoding as the parent resource
       {
-        static const char* SPECIFIC_CHARACTER_SET = "0008,0005";
+        static const char* const SPECIFIC_CHARACTER_SET = "0008,0005";
 
         if (siblingTags.isMember(SPECIFIC_CHARACTER_SET))
         {
@@ -948,25 +957,25 @@ namespace Orthanc
         .SetTag("System")
         .SetSummary("Create one DICOM instance")
         .SetDescription("Create one DICOM instance, and store it into Orthanc")
-        .SetRequestField("Tags", RestApiCallDocumentation::Type_JsonObject,
+        .SetRequestField(TAGS, RestApiCallDocumentation::Type_JsonObject,
                          "Associative array containing the tags of the new instance to be created", true)
-        .SetRequestField("Content", RestApiCallDocumentation::Type_String,
+        .SetRequestField(CONTENT, RestApiCallDocumentation::Type_String,
                          "This field can be used to embed an image (pixel data) or a PDF inside the created DICOM instance. "
                          "The PNG image, the JPEG image or the PDF file must be provided using their "
                          "[data URI scheme encoding](https://en.wikipedia.org/wiki/Data_URI_scheme). "
                          "This field can possibly contain a JSON array, in which case a DICOM series is created "
                          "containing one DICOM instance for each item in the `Content` field.", false)
-        .SetRequestField("Parent", RestApiCallDocumentation::Type_String,
+        .SetRequestField(PARENT, RestApiCallDocumentation::Type_String,
                          "If present, the newly created instance will be attached to the parent DICOM resource "
                          "whose Orthanc identifier is contained in this field. The DICOM tags of the parent "
                          "modules in the DICOM hierarchy will be automatically copied to the newly created instance.", false)
-        .SetRequestField("InterpretBinaryTags", RestApiCallDocumentation::Type_Boolean,
+        .SetRequestField(INTERPRET_BINARY_TAGS, RestApiCallDocumentation::Type_Boolean,
                          "If some value in the `Tags` associative array is formatted according to some "
                          "[data URI scheme encoding](https://en.wikipedia.org/wiki/Data_URI_scheme), "
                          "whether this value is decoded to a binary value or kept as such (`true` by default)", false)
-        .SetRequestField("PrivateCreator", RestApiCallDocumentation::Type_String,
+        .SetRequestField(PRIVATE_CREATOR, RestApiCallDocumentation::Type_String,
                          "The private creator to be used for private tags in `Tags`", false)
-        .SetRequestField("Force", RestApiCallDocumentation::Type_Boolean,
+        .SetRequestField(FORCE, RestApiCallDocumentation::Type_Boolean,
                          "Avoid the consistency checks for the DICOM tags that enforce the DICOM model of the real-world. "
                          "You can notably use this flag if you need to manually set the tags `StudyInstanceUID`, "
                          "`SeriesInstanceUID`, or `SOPInstanceUID`. Be careful with this feature.", false)
@@ -982,7 +991,7 @@ namespace Orthanc
       throw OrthancException(ErrorCode_BadRequest);
     }
 
-    if (request.isMember("Tags"))
+    if (request.isMember(TAGS))
     {
       CreateDicomV2(call, request);
     }
@@ -1007,22 +1016,25 @@ namespace Orthanc
         .SetTag("Studies")
         .SetSummary("Split study")
         .SetDescription("Start a new job so as to split the DICOM study whose Orthanc identifier is provided in the URL, "
-                        "by taking some of its children series out of it and putting them into a brand new study (this "
-                        "new study is created by setting the `StudyInstanceUID` tag to a random identifier): "
+                        "by taking some of its children series or instances out of it and putting them into a brand new study "
+                        "(this new study is created by setting the `StudyInstanceUID` tag to a random identifier): "
                         "https://book.orthanc-server.com/users/anonymization.html#splitting")
         .SetUriArgument("id", "Orthanc identifier of the study of interest")
-        .SetRequestField("Series", RestApiCallDocumentation::Type_JsonListOfStrings,
-                         "The list of series to be separated from the parent study (mandatory option). "
-                         "These series must all be children of the same source study, that is specified in the URI.", true)
-        .SetRequestField("Replace", RestApiCallDocumentation::Type_JsonObject,
+        .SetRequestField(SERIES, RestApiCallDocumentation::Type_JsonListOfStrings,
+                         "The list of series to be separated from the parent study. "
+                         "These series must all be children of the same source study, that is specified in the URI.", false)
+        .SetRequestField(REPLACE, RestApiCallDocumentation::Type_JsonObject,
                          "Associative array to change the value of some DICOM tags in the new study. "
                          "These tags must be part of the \"Patient Module Attributes\" or the \"General Study "
                          "Module Attributes\", as specified by the DICOM 2011 standard in Tables C.7-1 and C.7-3.", false)
-        .SetRequestField("Remove", RestApiCallDocumentation::Type_JsonListOfStrings,
+        .SetRequestField(REMOVE, RestApiCallDocumentation::Type_JsonListOfStrings,
                          "List of tags that must be removed in the new study (from the same modules as in the `Replace` option)", false)
-        .SetRequestField("KeepSource", RestApiCallDocumentation::Type_Boolean,
-                         "If set to `true`, instructs Orthanc to keep a copy of the original series in the source study. "
-                         "By default, the original series are deleted from Orthanc.", false);
+        .SetRequestField(KEEP_SOURCE, RestApiCallDocumentation::Type_Boolean,
+                         "If set to `true`, instructs Orthanc to keep a copy of the original series/instances in the source study. "
+                         "By default, the original series/instances are deleted from Orthanc.", false)
+        .SetRequestField(INSTANCES, RestApiCallDocumentation::Type_JsonListOfStrings,
+                         "The list of instances to be separated from the parent study. "
+                         "These instances must all be children of the same source study, that is specified in the URI.", false);
       return;
     }
     
@@ -1040,19 +1052,40 @@ namespace Orthanc
     std::unique_ptr<SplitStudyJob> job(new SplitStudyJob(context, study));    
     job->SetOrigin(call);
 
-    std::vector<std::string> series;
-    SerializationToolbox::ReadArrayOfStrings(series, request, "Series");
-
-    for (size_t i = 0; i < series.size(); i++)
+    bool ok = false;
+    if (request.isMember(SERIES))
     {
-      job->AddSourceSeries(series[i]);
+      std::vector<std::string> series;
+      SerializationToolbox::ReadArrayOfStrings(series, request, SERIES);
+
+      for (size_t i = 0; i < series.size(); i++)
+      {
+        job->AddSourceSeries(series[i]);
+        ok = true;
+      }
     }
+
+    if (request.isMember(INSTANCES))
+    {
+      std::vector<std::string> instances;
+      SerializationToolbox::ReadArrayOfStrings(instances, request, INSTANCES);
+
+      for (size_t i = 0; i < instances.size(); i++)
+      {
+        job->AddSourceInstance(instances[i]);
+        ok = true;
+      }
+    }
+
+    if (!ok)
+    {
+      throw OrthancException(ErrorCode_BadRequest, "Both the \"Series\" and the \"Instances\" fields are missing");
+    }    
     
     job->AddTrailingStep();
 
     SetKeepSource(*job, request);
 
-    static const char* REMOVE = "Remove";
     if (request.isMember(REMOVE))
     {
       if (request[REMOVE].type() != Json::arrayValue)
@@ -1073,7 +1106,6 @@ namespace Orthanc
       }
     }
 
-    static const char* REPLACE = "Replace";
     if (request.isMember(REPLACE))
     {
       if (request[REPLACE].type() != Json::objectValue)
@@ -1114,10 +1146,10 @@ namespace Orthanc
         .SetDescription("Start a new job so as to move some DICOM series into the DICOM study whose Orthanc identifier "
                         "is provided in the URL: https://book.orthanc-server.com/users/anonymization.html#merging")
         .SetUriArgument("id", "Orthanc identifier of the study of interest")
-        .SetRequestField("Resources", RestApiCallDocumentation::Type_JsonListOfStrings,
+        .SetRequestField(RESOURCES, RestApiCallDocumentation::Type_JsonListOfStrings,
                          "The list of DICOM resources (patients, studies, series, and/or instances) to be merged "
                          "into the study of interest (mandatory option)", true)
-        .SetRequestField("KeepSource", RestApiCallDocumentation::Type_Boolean,
+        .SetRequestField(KEEP_SOURCE, RestApiCallDocumentation::Type_Boolean,
                          "If set to `true`, instructs Orthanc to keep a copy of the original resources in their source study. "
                          "By default, the original resources are deleted from Orthanc.", false);
       return;
@@ -1138,7 +1170,7 @@ namespace Orthanc
     job->SetOrigin(call);
 
     std::vector<std::string> resources;
-    SerializationToolbox::ReadArrayOfStrings(resources, request, "Resources");
+    SerializationToolbox::ReadArrayOfStrings(resources, request, RESOURCES);
 
     for (size_t i = 0; i < resources.size(); i++)
     {

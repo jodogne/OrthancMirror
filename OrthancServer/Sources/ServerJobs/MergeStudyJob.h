@@ -59,6 +59,10 @@ namespace Orthanc
 
     void AddSourceStudyInternal(const std::string& study);
 
+    // Make setter methods private to prevent incorrect calls
+    using SetOfInstancesJob::AddParentResource;
+    using SetOfInstancesJob::AddInstance;
+    
   protected:
     virtual bool HandleInstance(const std::string& instance) ORTHANC_OVERRIDE;
 
