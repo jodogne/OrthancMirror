@@ -49,6 +49,8 @@ Maintenance
 * Full support of hierarchical relationships in tags whose VR is UI during anonymization
 * C-MOVE SCP: added possible DIMSE status "Sub-operations Complete - One or more Failures"
 * Fix issue #146 (Update Anonyization to 2019c) - was actually updated to 2021b
+* Upgraded dependencies for static builds (notably on Windows):
+  - curl 7.77.0
 
 
 Version 1.9.3 (2021-05-07)
@@ -682,7 +684,7 @@ Maintenance
 * Fix issue #134 (/patient/modify gives 500, should really be 400)
 * Upgraded dependencies for static builds (notably on Windows):
   - boost 1.69.0
-  - curl 1.64.0
+  - curl 7.64.0
   - dcmtk 3.6.4
   - e2fsprogs 1.44.5 (libuuid)
   - googletest 1.8.1
