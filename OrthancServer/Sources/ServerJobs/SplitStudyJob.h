@@ -60,6 +60,10 @@ namespace Orthanc
     void CheckAllowedTag(const DicomTag& tag) const;
     
     void Setup();
+
+    // Make setter methods private to prevent incorrect calls
+    using SetOfInstancesJob::AddParentResource;
+    using SetOfInstancesJob::AddInstance;
     
   protected:
     virtual bool HandleInstance(const std::string& instance) ORTHANC_OVERRIDE;
@@ -88,6 +92,8 @@ namespace Orthanc
 
     void AddSourceSeries(const std::string& series);
 
+    void AddSourceInstance(const std::string& instance);  // New in Orthanc 1.9.4
+    
     bool LookupTargetSeriesUid(std::string& uid,
                                const std::string& series) const;
 

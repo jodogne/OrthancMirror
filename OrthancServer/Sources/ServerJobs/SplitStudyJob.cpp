@@ -192,6 +192,17 @@ namespace Orthanc
   }
 
 
+  static void RegisterSeries(std::map<std::string, std::string>& target,
+                             const std::string& series)
+  {
+    // Generate a target SeriesInstanceUID for this series
+    if (target.find(series) == target.end())
+    {
+      target[series] = FromDcmtkBridge::GenerateUniqueIdentifier(ResourceType_Series);
+    }
+  }
+  
+
   void SplitStudyJob::AddSourceSeries(const std::string& series)
   {
     std::string parent;
@@ -208,8 +219,7 @@ namespace Orthanc
     }
     else
     {
-      // Generate a target SeriesInstanceUID for this series
-      seriesUidMap_[series] = FromDcmtkBridge::GenerateUniqueIdentifier(ResourceType_Series);
+      RegisterSeries(seriesUidMap_, series);
 
       // Add all the instances of the series as to be processed
       std::list<std::string> instances;
@@ -220,6 +230,29 @@ namespace Orthanc
       {
         AddInstance(*it);
       }
+    }    
+  }
+
+
+  void SplitStudyJob::AddSourceInstance(const std::string& instance)
+  {
+    std::string study, series;
+
+    if (IsStarted())
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    else if (!GetContext().GetIndex().LookupParent(series, instance, ResourceType_Series) ||
+             !GetContext().GetIndex().LookupParent(study, series, ResourceType_Study) ||
+             study != sourceStudy_)
+    {
+      throw OrthancException(ErrorCode_UnknownResource,
+                             "This instance does not belong to the study to be split: " + instance);
+    }
+    else
+    {
+      RegisterSeries(seriesUidMap_, series);
+      AddInstance(instance);
     }    
   }
 
