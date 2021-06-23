@@ -2547,7 +2547,7 @@ namespace Orthanc
       DicomToJsonFormat       format_;
 
     public:
-      FindVisitor(DicomToJsonFormat format) :
+      explicit FindVisitor(DicomToJsonFormat format) :
         isComplete_(false),
         format_(format)
       {
@@ -3217,9 +3217,9 @@ namespace Orthanc
                 if (type == level)
                 {
                   for (std::set<std::string>::const_iterator
-                         it = children.begin(); it != children.end(); ++it)
+                         it2 = children.begin(); it2 != children.end(); ++it2)
                   {
-                    interest.insert(*it);
+                    interest.insert(*it2);
                   }
 
                   break;  // done
