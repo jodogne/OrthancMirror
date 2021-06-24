@@ -66,6 +66,8 @@ static Orthanc::Semaphore throttlingSemaphore_(4);  // TODO => PARAMETER?
 
 static const std::string CHECK_REVISIONS = "CheckRevisions";
 
+static const char* const IGNORE_LENGTH = "ignore-length";
+
 
 namespace Orthanc
 {
@@ -412,7 +414,7 @@ namespace Orthanc
     std::string publicId = call.GetUriComponent("id", "");
 
     std::set<DicomTag> ignoreTagLength;
-    ParseSetOfTags(ignoreTagLength, call, "ignore-length");
+    ParseSetOfTags(ignoreTagLength, call, IGNORE_LENGTH);
     
     if (format != DicomToJsonFormat_Full ||
         !ignoreTagLength.empty())
@@ -444,6 +446,8 @@ namespace Orthanc
         .SetDescription("Get the DICOM tags in the specified format. By default, the `full` format is used, which "
                         "combines hexadecimal tags with human-readable description.")
         .SetUriArgument("id", "Orthanc identifier of the DICOM instance of interest")
+        .SetHttpGetArgument(IGNORE_LENGTH, RestApiCallDocumentation::Type_JsonListOfStrings,
+                            "Also include the DICOM tags that are provided in this list, even if their associated value is long", false)
         .AddAnswerType(MimeType_Json, "JSON object containing the DICOM tags and their associated value")
         .SetTruncatedJsonHttpGetSample("https://demo.orthanc-server.com/instances/7c92ce8e-bbf67ed2-ffa3b8c1-a3b35d94-7ff3ae26/tags", 10);
       return;
@@ -478,7 +482,7 @@ namespace Orthanc
         .SetSummary("Get human-readable tags")
         .SetDescription("Get the DICOM tags in human-readable format (same as the `/instances/{id}/tags?simplify` route)")
         .SetUriArgument("id", "Orthanc identifier of the DICOM instance of interest")
-        .SetHttpGetArgument("ignore-length", RestApiCallDocumentation::Type_JsonListOfStrings,
+        .SetHttpGetArgument(IGNORE_LENGTH, RestApiCallDocumentation::Type_JsonListOfStrings,
                             "Also include the DICOM tags that are provided in this list, even if their associated value is long", false)
         .AddAnswerType(MimeType_Json, "JSON object containing the DICOM tags and their associated value")
         .SetTruncatedJsonHttpGetSample("https://demo.orthanc-server.com/instances/7c92ce8e-bbf67ed2-ffa3b8c1-a3b35d94-7ff3ae26/simplified-tags", 10);
@@ -2408,7 +2412,7 @@ namespace Orthanc
         .SetSummary("Get " + m + " module" + std::string(resource == m ? "" : " of " + resource))
         .SetDescription("Get the " + m + " module of the DICOM " + resource + " whose Orthanc identifier is provided in the URL")
         .SetUriArgument("id", "Orthanc identifier of the " + resource + " of interest")
-        .SetHttpGetArgument("ignore-length", RestApiCallDocumentation::Type_JsonListOfStrings,
+        .SetHttpGetArgument(IGNORE_LENGTH, RestApiCallDocumentation::Type_JsonListOfStrings,
                             "Also include the DICOM tags that are provided in this list, even if their associated value is long", false)
         .AddAnswerType(MimeType_Json, "Information about the DICOM " + resource)
         .SetHttpGetSample(GetDocumentationSampleResource(resourceType) + "/" + (*call.GetFullUri().rbegin()), true);
@@ -2429,7 +2433,7 @@ namespace Orthanc
     std::string publicId = call.GetUriComponent("id", "");
 
     std::set<DicomTag> ignoreTagLength;
-    ParseSetOfTags(ignoreTagLength, call, "ignore-length");
+    ParseSetOfTags(ignoreTagLength, call, IGNORE_LENGTH);
 
     typedef std::set<DicomTag> ModuleTags;
     ModuleTags moduleTags;
@@ -2805,7 +2809,7 @@ namespace Orthanc
         .SetDescription("Get the tags of all the child instances of the DICOM " + r +
                         " whose Orthanc identifier is provided in the URL")
         .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
-        .SetHttpGetArgument("ignore-length", RestApiCallDocumentation::Type_JsonListOfStrings,
+        .SetHttpGetArgument(IGNORE_LENGTH, RestApiCallDocumentation::Type_JsonListOfStrings,
                             "Also include the DICOM tags that are provided in this list, even if their associated value is long", false)
         .AddAnswerType(MimeType_Json, "JSON object associating the Orthanc identifiers of the instances, with the values of their DICOM tags")
         .SetTruncatedJsonHttpGetSample(GetDocumentationSampleResource(t) + "/instances-tags", 5);
@@ -2817,7 +2821,7 @@ namespace Orthanc
     DicomToJsonFormat format = OrthancRestApi::GetDicomFormat(call, DicomToJsonFormat_Full);
 
     std::set<DicomTag> ignoreTagLength;
-    ParseSetOfTags(ignoreTagLength, call, "ignore-length");
+    ParseSetOfTags(ignoreTagLength, call, IGNORE_LENGTH);
 
     // Retrieve all the instances of this patient/study/series
     typedef std::list<std::string> Instances;
