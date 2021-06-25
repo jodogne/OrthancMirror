@@ -53,6 +53,7 @@ namespace Orthanc
     DicomAssociationParameters  parameters_;
     std::string                 targetAet_;
     Json::Value                 query_;
+    DicomToJsonFormat           queryFormat_;  // New in 1.9.5
 
     std::unique_ptr<DicomControlUserConnection>  connection_;
     
@@ -61,7 +62,8 @@ namespace Orthanc
   public:
     explicit DicomMoveScuJob(ServerContext& context) :
       context_(context),
-      query_(Json::arrayValue)
+      query_(Json::arrayValue),
+      queryFormat_(DicomToJsonFormat_Short)
     {
     }
 
@@ -90,6 +92,13 @@ namespace Orthanc
     }
     
     void SetTargetAet(const std::string& aet);
+
+    void SetQueryFormat(DicomToJsonFormat format);
+
+    DicomToJsonFormat GetQueryFormat() const
+    {
+      return queryFormat_;
+    }
 
     virtual void Stop(JobStopReason reason) ORTHANC_OVERRIDE;
 

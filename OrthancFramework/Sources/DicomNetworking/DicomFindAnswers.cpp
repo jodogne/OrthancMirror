@@ -197,24 +197,22 @@ namespace Orthanc
 
   void DicomFindAnswers::ToJson(Json::Value& target,
                                 size_t index,
-                                bool simplify) const
+                                DicomToJsonFormat format) const
   {
-    DicomToJsonFormat format = (simplify ? DicomToJsonFormat_Human : DicomToJsonFormat_Full);
-    
     const ParsedDicomFile& answer = GetAnswer(index);
     answer.DatasetToJson(target, format, DicomToJsonFlags_None, 0);
   }
 
 
   void DicomFindAnswers::ToJson(Json::Value& target,
-                                bool simplify) const
+                                DicomToJsonFormat format) const
   {
     target = Json::arrayValue;
 
     for (size_t i = 0; i < GetSize(); i++)
     {
       Json::Value answer;
-      ToJson(answer, i, simplify);
+      ToJson(answer, i, format);
       target.append(answer);
     }
   }
@@ -235,6 +233,22 @@ namespace Orthanc
   void DicomFindAnswers::Add(ParsedDicomFile& dicom)
   {
     return Add(const_cast<const ParsedDicomFile&>(dicom));
+  }
+
+  void DicomFindAnswers::ToJson(Json::Value& target,
+                                size_t index,
+                                bool simplify) const
+  {
+    DicomToJsonFormat format = (simplify ? DicomToJsonFormat_Human : DicomToJsonFormat_Full);
+    ToJson(target, index, format);
+  }
+
+
+  void DicomFindAnswers::ToJson(Json::Value& target,
+                                bool simplify) const
+  {
+    DicomToJsonFormat format = (simplify ? DicomToJsonFormat_Human : DicomToJsonFormat_Full);
+    ToJson(target, format);
   }
 #endif
 }

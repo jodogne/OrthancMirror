@@ -1,6 +1,13 @@
 Pending changes in the mainline
 ===============================
 
+REST API
+--------
+
+* API version upgraded to 14
+* Added "Short" and "Full" options to control the format of DICOM tags in:
+  - POST /modalities/id/find-worklist
+
 
 Version 1.9.4 (2021-06-24)
 ==========================
