@@ -1196,6 +1196,7 @@ TEST_F(OrthancJobsSerialization, DicomAssociationParameters)
     ASSERT_EQ(104u, job->GetParameters().GetRemoteModality().GetPortNumber());
     ASSERT_EQ(ModalityManufacturer_Generic, job->GetParameters().GetRemoteModality().GetManufacturer());
     ASSERT_EQ(DicomAssociationParameters::GetDefaultTimeout(), job->GetParameters().GetTimeout());
+    ASSERT_EQ(DicomToJsonFormat_Short, job->GetQueryFormat());
   }
   
   {
@@ -1208,6 +1209,8 @@ TEST_F(OrthancJobsSerialization, DicomAssociationParameters)
     job.SetLocalAet("WORLD");
     job.SetRemoteModality(r);
     job.SetTimeout(43);
+    job.SetQueryFormat(DicomToJsonFormat_Human);
+
     job.Serialize(v);
   }
   
@@ -1221,5 +1224,63 @@ TEST_F(OrthancJobsSerialization, DicomAssociationParameters)
     ASSERT_EQ(42u, job->GetParameters().GetRemoteModality().GetPortNumber());
     ASSERT_EQ(ModalityManufacturer_Generic, job->GetParameters().GetRemoteModality().GetManufacturer());
     ASSERT_EQ(43u, job->GetParameters().GetTimeout());
+    ASSERT_EQ(DicomToJsonFormat_Human, job->GetQueryFormat());
+  }
+}
+
+
+TEST_F(OrthancJobsSerialization, DicomMoveScuJob)
+{
+  Json::Value command = Json::objectValue;
+  command["0008,0005"]["Type"] = "String";
+  command["0008,0005"]["Content"] = "ISO_IR 100";
+  command["0010,0020"]["Type"] = "String";
+  command["0010,0020"]["Content"] = "1234";
+
+  Json::Value query = Json::objectValue;
+  query["0010,0020"] = "456";
+  query["0008,0052"] = "STUDY";
+  
+  Json::Value remote = Json::objectValue;
+  remote["AET"] = "REMOTE";
+  remote["Host"] = "192.168.1.1";
+  remote["Port"] = 4242;
+  
+  Json::Value s = Json::objectValue;
+  s["Permissive"] = true;
+  s["Position"] = 1;
+  s["Description"] = "test";
+  s["Remote"] = remote;
+  s["LocalAet"] = "LOCAL";
+  s["TargetAet"] = "TARGET";
+  s["QueryFormat"] = "Full";
+  s["Query"] = Json::arrayValue;
+  s["Query"].append(query);
+  s["Commands"] = Json::arrayValue;
+  s["Commands"].append(command);
+
+  Json::Value s2;
+
+  {
+    DicomMoveScuJob job(GetContext(), s);
+    job.Serialize(s2);
+  }
+
+  {
+    DicomMoveScuJob job(GetContext(), s2);
+    ASSERT_EQ("TARGET", job.GetTargetAet());
+    ASSERT_EQ("LOCAL", job.GetParameters().GetLocalApplicationEntityTitle());
+    ASSERT_EQ("REMOTE", job.GetParameters().GetRemoteModality().GetApplicationEntityTitle());
+    ASSERT_EQ("192.168.1.1", job.GetParameters().GetRemoteModality().GetHost());
+    ASSERT_EQ(4242u, job.GetParameters().GetRemoteModality().GetPortNumber());
+    ASSERT_EQ("test", job.GetDescription());
+    ASSERT_TRUE(job.IsPermissive());
+    ASSERT_EQ(1u, job.GetPosition());
+    ASSERT_EQ(1u, job.GetCommandsCount());
+    ASSERT_EQ(DicomToJsonFormat_Full, job.GetQueryFormat());
+    ASSERT_EQ(1u, s2["Commands"].size());
+    ASSERT_EQ(command.toStyledString(), s2["Commands"][0].toStyledString());
+    ASSERT_EQ(1u, s2["Query"].size());
+    ASSERT_EQ(query.toStyledString(), s2["Query"][0].toStyledString());
   }
 }

@@ -936,6 +936,7 @@ namespace Orthanc
     }
     
     std::unique_ptr<DicomMoveScuJob> job(new DicomMoveScuJob(context));
+    job->SetQueryFormat(OrthancRestApi::GetDicomFormat(body, DicomToJsonFormat_Short));
     
     {
       QueryAccessor query(call);
@@ -979,6 +980,8 @@ namespace Orthanc
   static void DocumentRetrieveShared(RestApiPostCall& call)
   {
     OrthancRestApi::DocumentSubmitCommandsJob(call);
+    OrthancRestApi::DocumentDicomFormat(call, DicomToJsonFormat_Short);
+
     call.GetDocumentation()
       .SetTag("Networking")
       .SetUriArgument("id", "Identifier of the query of interest")
