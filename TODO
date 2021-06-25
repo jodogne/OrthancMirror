@@ -63,8 +63,8 @@ Mid-term
   https://groups.google.com/g/orthanc-users/c/G3_jBy4X4NQ/m/8BanTsdMBQAJ
 * Ranges of DICOM tags for "Keep" and "Remove" in ".../modify" and ".../anonymize": 
   https://groups.google.com/g/orthanc-users/c/6dETktKo9v8/m/b0LUvSfwAgAJ
-* Remove/Replace/Keep for nested sequences in "/modify":
-  https://groups.google.com/g/orthanc-users/c/iLxHN0YK00E/m/Cnauy7txBgAJ
+* During anonymization, remove nested private tags inside sequences:
+  https://groups.google.com/g/orthanc-users/c/l1mcYCC2u-k/m/pSp_h83kAQAJ
 
 ---------
 Long-term
