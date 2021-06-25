@@ -52,7 +52,7 @@ namespace Orthanc
     ServerContext&              context_;
     DicomAssociationParameters  parameters_;
     std::string                 targetAet_;
-    Json::Value                 query_;
+    DicomFindAnswers            query_;
     DicomToJsonFormat           queryFormat_;  // New in 1.9.5
 
     std::unique_ptr<DicomControlUserConnection>  connection_;
@@ -62,7 +62,7 @@ namespace Orthanc
   public:
     explicit DicomMoveScuJob(ServerContext& context) :
       context_(context),
-      query_(Json::arrayValue),
+      query_(true /* this is for worklists */),
       queryFormat_(DicomToJsonFormat_Short)
     {
     }

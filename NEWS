@@ -5,8 +5,10 @@ REST API
 --------
 
 * API version upgraded to 14
-* Added "Short" and "Full" options to control the format of DICOM tags in:
-  - POST /modalities/id/find-worklist
+* Added "Short", "Simplify" and/or "Full" options to control the format of DICOM tags in:
+  - POST /modalities/{id}/find-worklist
+  - POST /queries/{id}/answers/{index}/retrieve
+  - POST /queries/{id}/retrieve
 
 
 Version 1.9.4 (2021-06-24)
@@ -51,6 +53,7 @@ REST API
   - GET /series/{id}/instances-tags, GET /studies/{id}/shared-tags
   - GET /patients/{id}/module, GET /patients/{id}/patient-module
   - GET /series/{id}/module, GET /studies/{id}/module, GET /instances/{id}/module
+  - GET /queries/{id}/answers&expand, GET /queries/{id}/answers/{index}/content
   - POST /tools/find
 * "/studies/{id}/split" accepts "Instances" parameter to split instances instead of series
 * "/studies/{id}/merge" accepts instances inside its "Resources" parameter
