@@ -391,7 +391,7 @@ namespace Orthanc
     }
 
     Json::Value result;
-    answers.ToJson(result, true);
+    answers.ToJson(result, DicomToJsonFormat_Human);
     call.GetOutput().AnswerJson(result);
   }
 
@@ -434,7 +434,7 @@ namespace Orthanc
     }
 
     Json::Value result;
-    answers.ToJson(result, true);
+    answers.ToJson(result, DicomToJsonFormat_Human);
     call.GetOutput().AnswerJson(result);
   }
 
@@ -478,7 +478,7 @@ namespace Orthanc
     }
 
     Json::Value result;
-    answers.ToJson(result, true);
+    answers.ToJson(result, DicomToJsonFormat_Human);
     call.GetOutput().AnswerJson(result);
   }
 
@@ -523,7 +523,7 @@ namespace Orthanc
     }
 
     Json::Value result;
-    answers.ToJson(result, true);
+    answers.ToJson(result, DicomToJsonFormat_Human);
     call.GetOutput().AnswerJson(result);
   }
 
@@ -577,7 +577,7 @@ namespace Orthanc
     for (size_t i = 0; i < patients.GetSize(); i++)
     {
       Json::Value patient;
-      patients.ToJson(patient, i, true);
+      patients.ToJson(patient, i, DicomToJsonFormat_Human);
 
       DicomMap::SetupFindStudyTemplate(m);
       if (!MergeQueryAndTemplate(m, call))
@@ -596,7 +596,7 @@ namespace Orthanc
       for (size_t j = 0; j < studies.GetSize(); j++)
       {
         Json::Value study;
-        studies.ToJson(study, j, true);
+        studies.ToJson(study, j, DicomToJsonFormat_Human);
 
         DicomMap::SetupFindSeriesTemplate(m);
         if (!MergeQueryAndTemplate(m, call))
@@ -615,7 +615,7 @@ namespace Orthanc
         for (size_t k = 0; k < series.GetSize(); k++)
         {
           Json::Value series2;
-          series.ToJson(series2, k, true);
+          series.ToJson(series2, k, DicomToJsonFormat_Human);
           study["Series"].append(series2);
         }
 
@@ -2140,13 +2140,16 @@ namespace Orthanc
   {
     if (call.IsDocumentation())
     {
+      OrthancRestApi::DocumentDicomFormat(call, DicomToJsonFormat_Human);
+
       call.GetDocumentation()
         .SetTag("Networking")
         .SetSummary("C-FIND SCU for worklist")
         .SetDescription("Trigger C-FIND SCU command against the remote worklists of the DICOM modality "
                         "whose identifier is provided in URL")
         .SetUriArgument("id", "Identifier of the modality of interest")
-        .AddRequestType(MimeType_Json, "Associative array containing the query on the values of the DICOM tags")
+        .SetRequestField(KEY_QUERY, RestApiCallDocumentation::Type_JsonObject,
+                         "Associative array containing the filter on the values of the DICOM tags", true)
         .AddAnswerType(MimeType_Json, "JSON array describing the DICOM tags of the matching worklists");
       return;
     }
@@ -2154,9 +2157,23 @@ namespace Orthanc
     Json::Value json;
     if (call.ParseJsonRequest(json))
     {
-      std::unique_ptr<ParsedDicomFile> query
-        (ParsedDicomFile::CreateFromJson(json, static_cast<DicomFromJsonFlags>(0),
-                                         "" /* no private creator */));
+      std::unique_ptr<ParsedDicomFile> query;
+      DicomToJsonFormat format;
+
+      if (json.isMember(KEY_QUERY))
+      {
+        // New in Orthanc 1.9.5
+        query.reset(ParsedDicomFile::CreateFromJson(json[KEY_QUERY], static_cast<DicomFromJsonFlags>(0),
+                                                    "" /* no private creator */));
+        format = OrthancRestApi::GetDicomFormat(json, DicomToJsonFormat_Human);
+      }
+      else
+      {
+        // Compatibility with Orthanc <= 1.9.4
+        query.reset(ParsedDicomFile::CreateFromJson(json, static_cast<DicomFromJsonFlags>(0),
+                                                    "" /* no private creator */));
+        format = DicomToJsonFormat_Human;
+      }
 
       DicomFindAnswers answers(true);
 
@@ -2166,7 +2183,7 @@ namespace Orthanc
       }
 
       Json::Value result;
-      answers.ToJson(result, true);
+      answers.ToJson(result, format);
       call.GetOutput().AnswerJson(result);
     }
     else

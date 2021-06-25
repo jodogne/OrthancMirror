@@ -203,11 +203,24 @@ namespace Orthanc
   }
   
 
+  void DicomMoveScuJob::SetQueryFormat(DicomToJsonFormat format)
+  {
+    if (IsStarted())
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    else
+    {
+      queryFormat_ = format;
+    }
+  }
+
+
   void DicomMoveScuJob::GetPublicContent(Json::Value& value)
   {
     SetOfCommandsJob::GetPublicContent(value);
 
-    value["LocalAet"] = parameters_.GetLocalApplicationEntityTitle();
+    value[LOCAL_AET] = parameters_.GetLocalApplicationEntityTitle();
     value["RemoteAet"] = parameters_.GetRemoteModality().GetApplicationEntityTitle();
     value["Query"] = query_;
   }
@@ -219,7 +232,8 @@ namespace Orthanc
     context_(context),
     parameters_(DicomAssociationParameters::UnserializeJob(serialized)),
     targetAet_(SerializationToolbox::ReadString(serialized, TARGET_AET)),
-    query_(Json::arrayValue)
+    query_(Json::arrayValue),
+    queryFormat_(DicomToJsonFormat_Short)
   {
     if (serialized.isMember(QUERY) &&
         serialized[QUERY].type() == Json::arrayValue)

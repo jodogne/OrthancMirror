@@ -689,7 +689,7 @@ TEST(DicomFindAnswers, Basic)
   }
 
   Json::Value j;
-  a.ToJson(j, true);
+  a.ToJson(j, DicomToJsonFormat_Human);
   ASSERT_EQ(3u, j.size());
 
   //std::cout << j;
