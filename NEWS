@@ -10,6 +10,11 @@ REST API
   - POST /queries/{id}/answers/{index}/retrieve
   - POST /queries/{id}/retrieve
 
+Maintenance
+-----------
+
+* Fix broken "Do lookup" button in Orthanc Explorer
+
 
 Version 1.9.4 (2021-06-24)
 ==========================

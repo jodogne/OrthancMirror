@@ -523,7 +523,8 @@ $('#lookup-submit').live('click', function() {
     'Limit' : LIMIT_RESOURCES + 1,
     'Query' : {
       'StudyDate' : $('#lookup-study-date').val()
-    }
+    },
+    'Full' : true
   };
 
   $('#lookup-form input').each(function(index, input) {
