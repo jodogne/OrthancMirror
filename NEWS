@@ -14,6 +14,7 @@ Maintenance
 -----------
 
 * Fix broken "Do lookup" button in Orthanc Explorer
+* Error code and description of jobs are now saved into the Orthanc database
 
 
 Version 1.9.4 (2021-06-24)
