@@ -1526,7 +1526,6 @@ namespace Orthanc
   {
     if (call.IsDocumentation())
     {
-      OrthancRestApi::DocumentSubmitCommandsJob(call);
       call.GetDocumentation()
         .SetTag("Networking")
         .SetSummary("Trigger C-MOVE SCU")
@@ -1575,7 +1574,7 @@ namespace Orthanc
       MyGetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
 
     DicomAssociationParameters params(localAet, source);
-    InjectAssociationTimeout(params, request);
+    InjectAssociationTimeout(params, request);  // Handles KEY_TIMEOUT
 
     DicomControlUserConnection connection(params);
 
