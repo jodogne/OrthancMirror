@@ -372,4 +372,42 @@ namespace Orthanc
       }
     }
   }
+
+
+  bool DicomPath::IsMatch(const DicomPath& pattern,
+                          const std::vector<Orthanc::DicomTag>& prefixTags,
+                          const std::vector<size_t>& prefixIndexes,
+                          const DicomTag& finalTag)
+  {
+    if (prefixTags.size() != prefixIndexes.size())
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+    
+    if (prefixTags.size() < pattern.GetPrefixLength())
+    {
+      return false;
+    }
+    else
+    {
+      for (size_t i = 0; i < pattern.GetPrefixLength(); i++)
+      {
+        if (prefixTags[i] != pattern.GetPrefixTag(i) ||
+            (!pattern.IsPrefixUniversal(i) &&
+             prefixIndexes[i] != pattern.GetPrefixIndex(i)))
+        {
+          return false;
+        }
+      }
+
+      if (prefixTags.size() == pattern.GetPrefixLength())
+      {
+        return (finalTag == pattern.GetFinalTag());
+      }
+      else
+      {
+        return (prefixTags[pattern.GetPrefixLength()] == pattern.GetFinalTag());
+      }
+    }
+  }    
 }
