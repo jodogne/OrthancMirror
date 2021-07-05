@@ -84,49 +84,55 @@ namespace Orthanc
     {
     }
 
-    virtual void VisitNotSupported(const std::vector<DicomTag>& parentTags,
-                                   const std::vector<size_t>& parentIndexes,
-                                   const DicomTag& tag,
-                                   ValueRepresentation vr)
+    virtual Action VisitNotSupported(const std::vector<DicomTag>& parentTags,
+                                     const std::vector<size_t>& parentIndexes,
+                                     const DicomTag& tag,
+                                     ValueRepresentation vr) ORTHANC_OVERRIDE
     {
+      return Action_None;
     }
 
-    virtual void VisitEmptySequence(const std::vector<DicomTag>& parentTags,
-                                    const std::vector<size_t>& parentIndexes,
-                                    const DicomTag& tag)
+    virtual Action VisitEmptySequence(const std::vector<DicomTag>& parentTags,
+                                      const std::vector<size_t>& parentIndexes,
+                                      const DicomTag& tag) ORTHANC_OVERRIDE
     {
+      return Action_None;
     }
 
-    virtual void VisitBinary(const std::vector<DicomTag>& parentTags,
-                             const std::vector<size_t>& parentIndexes,
-                             const DicomTag& tag,
-                             ValueRepresentation vr,
-                             const void* data,
-                             size_t size)
-    {
-    }
-
-    virtual void VisitIntegers(const std::vector<DicomTag>& parentTags,
+    virtual Action VisitBinary(const std::vector<DicomTag>& parentTags,
                                const std::vector<size_t>& parentIndexes,
                                const DicomTag& tag,
                                ValueRepresentation vr,
-                               const std::vector<int64_t>& values)
+                               const void* data,
+                               size_t size) ORTHANC_OVERRIDE
     {
+      return Action_None;
     }
 
-    virtual void VisitDoubles(const std::vector<DicomTag>& parentTags,
-                              const std::vector<size_t>& parentIndexes,
-                              const DicomTag& tag,
-                              ValueRepresentation vr,
-                              const std::vector<double>& value)
-    {
-    }
-
-    virtual void VisitAttributes(const std::vector<DicomTag>& parentTags,
+    virtual Action VisitIntegers(const std::vector<DicomTag>& parentTags,
                                  const std::vector<size_t>& parentIndexes,
                                  const DicomTag& tag,
-                                 const std::vector<DicomTag>& value)
+                                 ValueRepresentation vr,
+                                 const std::vector<int64_t>& values) ORTHANC_OVERRIDE
     {
+      return Action_None;
+    }
+
+    virtual Action VisitDoubles(const std::vector<DicomTag>& parentTags,
+                                const std::vector<size_t>& parentIndexes,
+                                const DicomTag& tag,
+                                ValueRepresentation vr,
+                                const std::vector<double>& value) ORTHANC_OVERRIDE
+    {
+      return Action_None;
+    }
+
+    virtual Action VisitAttributes(const std::vector<DicomTag>& parentTags,
+                                   const std::vector<size_t>& parentIndexes,
+                                   const DicomTag& tag,
+                                   const std::vector<DicomTag>& value) ORTHANC_OVERRIDE
+    {
+      return Action_None;
     }
 
     virtual Action VisitString(std::string& newValue,
@@ -134,7 +140,7 @@ namespace Orthanc
                                const std::vector<size_t>& parentIndexes,
                                const DicomTag& tag,
                                ValueRepresentation vr,
-                               const std::string& value)
+                               const std::string& value) ORTHANC_OVERRIDE
     {
       /**
        * Note that all the tags in "uids_" have the VR UI (unique
