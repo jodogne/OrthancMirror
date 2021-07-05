@@ -35,6 +35,7 @@ namespace Orthanc
     enum Action
     {
       Action_Replace,
+      Action_Remove,  // New in Orthanc 1.9.5
       Action_None
     };
 
@@ -42,46 +43,47 @@ namespace Orthanc
     {
     }
 
-    // Visiting a DICOM element that is internal to DCMTK
-    virtual void VisitNotSupported(const std::vector<DicomTag>& parentTags,
+    // Visiting a DICOM element that is internal to DCMTK. Can return
+    // "Remove" or "None".
+    virtual Action VisitNotSupported(const std::vector<DicomTag>& parentTags,
+                                     const std::vector<size_t>& parentIndexes,
+                                     const DicomTag& tag,
+                                     ValueRepresentation vr) = 0;
+
+    // SQ - can return "Remove" or "None"
+    virtual Action VisitEmptySequence(const std::vector<DicomTag>& parentTags,
+                                      const std::vector<size_t>& parentIndexes,
+                                      const DicomTag& tag) = 0;
+
+    // SL, SS, UL, US - can return "Remove" or "None"
+    virtual Action VisitIntegers(const std::vector<DicomTag>& parentTags,
+                                 const std::vector<size_t>& parentIndexes,
+                                 const DicomTag& tag,
+                                 ValueRepresentation vr,
+                                 const std::vector<int64_t>& values) = 0;
+
+    // FL, FD, OD, OF - can return "Remove" or "None"
+    virtual Action VisitDoubles(const std::vector<DicomTag>& parentTags,
+                                const std::vector<size_t>& parentIndexes,
+                                const DicomTag& tag,
+                                ValueRepresentation vr,
+                                const std::vector<double>& values) = 0;
+
+    // AT - can return "Remove" or "None"
+    virtual Action VisitAttributes(const std::vector<DicomTag>& parentTags,
                                    const std::vector<size_t>& parentIndexes,
                                    const DicomTag& tag,
-                                   ValueRepresentation vr) = 0;
+                                   const std::vector<DicomTag>& values) = 0;
 
-    // SQ
-    virtual void VisitEmptySequence(const std::vector<DicomTag>& parentTags,
-                                    const std::vector<size_t>& parentIndexes,
-                                    const DicomTag& tag) = 0;
-
-    // SL, SS, UL, US
-    virtual void VisitIntegers(const std::vector<DicomTag>& parentTags,
+    // OB, OL, OW, UN - can return "Remove" or "None"
+    virtual Action VisitBinary(const std::vector<DicomTag>& parentTags,
                                const std::vector<size_t>& parentIndexes,
                                const DicomTag& tag,
                                ValueRepresentation vr,
-                               const std::vector<int64_t>& values) = 0;
+                               const void* data,
+                               size_t size) = 0;
 
-    // FL, FD, OD, OF
-    virtual void VisitDoubles(const std::vector<DicomTag>& parentTags,
-                              const std::vector<size_t>& parentIndexes,
-                              const DicomTag& tag,
-                              ValueRepresentation vr,
-                              const std::vector<double>& values) = 0;
-
-    // AT
-    virtual void VisitAttributes(const std::vector<DicomTag>& parentTags,
-                                 const std::vector<size_t>& parentIndexes,
-                                 const DicomTag& tag,
-                                 const std::vector<DicomTag>& values) = 0;
-
-    // OB, OL, OW, UN
-    virtual void VisitBinary(const std::vector<DicomTag>& parentTags,
-                             const std::vector<size_t>& parentIndexes,
-                             const DicomTag& tag,
-                             ValueRepresentation vr,
-                             const void* data,
-                             size_t size) = 0;
-
-    // Visiting an UTF-8 string
+    // Visiting an UTF-8 string - can return "Replace", "Remove" or "None"
     virtual Action VisitString(std::string& newValue,
                                const std::vector<DicomTag>& parentTags,
                                const std::vector<size_t>& parentIndexes,

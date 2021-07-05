@@ -2340,7 +2340,7 @@ namespace Orthanc
 
 
   // Forward declaration
-  static void ApplyVisitorToElement(DcmElement& element,
+  static bool ApplyVisitorToElement(DcmElement& element,
                                     ITagVisitor& visitor,
                                     const std::vector<DicomTag>& parentTags,
                                     const std::vector<size_t>& parentIndexes,
@@ -2356,6 +2356,8 @@ namespace Orthanc
   {
     assert(parentTags.size() == parentIndexes.size());
 
+    std::set<DcmTagKey> toRemove;
+    
     for (unsigned long i = 0; i < dataset.card(); i++)
     {
       DcmElement* element = dataset.getElement(i);
@@ -2365,13 +2367,25 @@ namespace Orthanc
       }
       else
       {
-        ApplyVisitorToElement(*element, visitor, parentTags, parentIndexes, encoding, hasCodeExtensions);
+        if (!ApplyVisitorToElement(*element, visitor, parentTags, parentIndexes, encoding, hasCodeExtensions))
+        {
+          toRemove.insert(element->getTag());
+        }
       }      
+    }
+
+    // Remove all the tags that were planned for removal (cf. ITagVisitor::Action_Remove)
+    for (std::set<DcmTagKey>::const_iterator
+           it = toRemove.begin(); it != toRemove.end(); ++it)
+    {
+      std::unique_ptr<DcmElement> tmp(dataset.remove(*it));
     }
   }
 
 
-  static void ApplyVisitorToLeaf(DcmElement& element,
+  // Returns "true" iff the element must be kept. If "false" is
+  // returned, the element will be removed.
+  static bool ApplyVisitorToLeaf(DcmElement& element,
                                  ITagVisitor& visitor,
                                  const std::vector<DicomTag>& parentTags,
                                  const std::vector<size_t>& parentIndexes,
@@ -2415,11 +2429,13 @@ namespace Orthanc
       Uint16* data16 = NULL;
       Uint8* data = NULL;
 
+      ITagVisitor::Action action;
+      
       if ((element.getTag() == DCM_PixelData ||  // (*) New in Orthanc 1.9.1
            evr == EVR_OW) &&
           element.getUint16Array(data16) == EC_Normal)
       {
-        visitor.VisitBinary(parentTags, parentIndexes, tag, vr, data16, element.getLength());
+        action = visitor.VisitBinary(parentTags, parentIndexes, tag, vr, data16, element.getLength());
       }
       else if (evr != EVR_OW &&
                element.getUint8Array(data) == EC_Normal)
@@ -2432,14 +2448,27 @@ namespace Orthanc
          * reimplemented in derived class "DcmPixelData"). However,
          * "getUint16Array()" works correctly, hence (*).
          **/
-        visitor.VisitBinary(parentTags, parentIndexes, tag, vr, data, element.getLength());
+        action = visitor.VisitBinary(parentTags, parentIndexes, tag, vr, data, element.getLength());
       }
       else
       {
-        visitor.VisitNotSupported(parentTags, parentIndexes, tag, vr);
+        action = visitor.VisitNotSupported(parentTags, parentIndexes, tag, vr);
       }
 
-      return;  // We're done
+      switch (action)
+      {
+        case ITagVisitor::Action_None:
+          return true;  // We're done
+
+        case ITagVisitor::Action_Remove:
+          return false;
+
+        case ITagVisitor::Action_Replace:
+          throw OrthancException(ErrorCode_NotImplemented, "Iterator cannot replace binary data");
+
+        default:
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
     }
 
 
@@ -2473,7 +2502,10 @@ namespace Orthanc
       switch (action)
       {
         case ITagVisitor::Action_None:
-          break;
+          return true;
+
+        case ITagVisitor::Action_Remove:
+          return false;
 
         case ITagVisitor::Action_Replace:
         {
@@ -2481,20 +2513,20 @@ namespace Orthanc
           if (element.putString(s.c_str()) != EC_Normal)
           {
             throw OrthancException(ErrorCode_InternalError,
-                                   "Cannot replace value of tag: " + tag.Format());
+                                   "Iterator cannot replace value of tag: " + tag.Format());
           }
 
-          break;
+          return true;
         }
 
         default:
           throw OrthancException(ErrorCode_InternalError);
       }
-
-      return;  // We're done
     }
 
 
+    ITagVisitor::Action action;
+    
     try
     {
       // http://support.dcmtk.org/docs/dcvr_8h-source.html
@@ -2522,7 +2554,7 @@ namespace Orthanc
         case EVR_UI:  // unique identifier
         {
           Uint8* data = NULL;
-
+          
           if (element.getUint8Array(data) == EC_Normal)
           {
             const Uint32 length = element.getLength();
@@ -2536,30 +2568,30 @@ namespace Orthanc
             if (l == length)
             {
               // Not a null-terminated plain string
-              visitor.VisitNotSupported(parentTags, parentIndexes, tag, vr);
+              action = visitor.VisitNotSupported(parentTags, parentIndexes, tag, vr);
             }
             else
             {
               std::string ignored;
               std::string s(reinterpret_cast<const char*>(data), l);
-              ITagVisitor::Action action = visitor.VisitString
-                (ignored, parentTags, parentIndexes, tag, vr,
-                 Toolbox::ConvertToUtf8(s, encoding, hasCodeExtensions));
-
-              if (action != ITagVisitor::Action_None)
-              {
-                LOG(WARNING) << "Cannot replace this string tag: "
-                             << FromDcmtkBridge::GetTagName(element)
-                             << " (" << tag.Format() << ")";
-              }
+              action = visitor.VisitString(ignored, parentTags, parentIndexes, tag, vr,
+                                           Toolbox::ConvertToUtf8(s, encoding, hasCodeExtensions));
             }
           }
           else
           {
-            visitor.VisitNotSupported(parentTags, parentIndexes, tag, vr);
+            action = visitor.VisitNotSupported(parentTags, parentIndexes, tag, vr);
           }
 
-          return;
+          if (action == ITagVisitor::Action_Replace)
+          {
+            LOG(WARNING) << "Iterator cannot replace this string tag: "
+                         << FromDcmtkBridge::GetTagName(element)
+                         << " (" << tag.Format() << ")";
+            return true;
+          }
+
+          break;
         }
     
         /**
@@ -2582,7 +2614,7 @@ namespace Orthanc
             }
           }
 
-          visitor.VisitIntegers(parentTags, parentIndexes, tag, vr, values);
+          action = visitor.VisitIntegers(parentTags, parentIndexes, tag, vr, values);
           break;
         }
 
@@ -2602,7 +2634,7 @@ namespace Orthanc
             }
           }
 
-          visitor.VisitIntegers(parentTags, parentIndexes, tag, vr, values);
+          action = visitor.VisitIntegers(parentTags, parentIndexes, tag, vr, values);
           break;
         }
 
@@ -2625,7 +2657,7 @@ namespace Orthanc
             }
           }
 
-          visitor.VisitIntegers(parentTags, parentIndexes, tag, vr, values);
+          action = visitor.VisitIntegers(parentTags, parentIndexes, tag, vr, values);
           break;
         }
 
@@ -2645,7 +2677,7 @@ namespace Orthanc
             }
           }
 
-          visitor.VisitIntegers(parentTags, parentIndexes, tag, vr, values);
+          action = visitor.VisitIntegers(parentTags, parentIndexes, tag, vr, values);
           break;
         }
 
@@ -2666,7 +2698,7 @@ namespace Orthanc
             }
           }
 
-          visitor.VisitDoubles(parentTags, parentIndexes, tag, vr, values);
+          action = visitor.VisitDoubles(parentTags, parentIndexes, tag, vr, values);
           break;
         }
 
@@ -2689,7 +2721,7 @@ namespace Orthanc
             }
           }
 
-          visitor.VisitDoubles(parentTags, parentIndexes, tag, vr, values);
+          action = visitor.VisitDoubles(parentTags, parentIndexes, tag, vr, values);
           break;
         }
 
@@ -2716,7 +2748,7 @@ namespace Orthanc
           }
 
           assert(vr == ValueRepresentation_AttributeTag);
-          visitor.VisitAttributes(parentTags, parentIndexes, tag, values);
+          action = visitor.VisitAttributes(parentTags, parentIndexes, tag, values);
           break;
         }
 
@@ -2728,7 +2760,7 @@ namespace Orthanc
 
         case EVR_SQ:  // sequence of items
         {
-          return;
+          return true;
         }
         
         
@@ -2751,8 +2783,8 @@ namespace Orthanc
         case EVR_PixelData:  // used internally for uncompressed pixeld data
         case EVR_OverlayData:  // used internally for overlay data
         {
-          visitor.VisitNotSupported(parentTags, parentIndexes, tag, vr);
-          return;
+          action = visitor.VisitNotSupported(parentTags, parentIndexes, tag, vr);
+          break;
         }
         
 
@@ -2761,21 +2793,38 @@ namespace Orthanc
          **/ 
 
         default:
-          return;
+          return true;
+      }
+
+      switch (action)
+      {
+        case ITagVisitor::Action_None:
+          return true;  // We're done
+
+        case ITagVisitor::Action_Remove:
+          return false;
+
+        case ITagVisitor::Action_Replace:
+          throw OrthancException(ErrorCode_NotImplemented, "Iterator cannot replace non-string-like data");
+
+        default:
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
       }
     }
     catch (boost::bad_lexical_cast&)
     {
-      return;
+      return true;
     }
     catch (std::bad_cast&)
     {
-      return;
+      return true;
     }
   }
 
 
-  static void ApplyVisitorToElement(DcmElement& element,
+  // Returns "true" iff the element must be kept. If "false" is
+  // returned, the element will be removed.
+  static bool ApplyVisitorToElement(DcmElement& element,
                                     ITagVisitor& visitor,
                                     const std::vector<DicomTag>& parentTags,
                                     const std::vector<size_t>& parentIndexes,
@@ -2788,7 +2837,7 @@ namespace Orthanc
 
     if (element.isLeaf())
     {
-      ApplyVisitorToLeaf(element, visitor, parentTags, parentIndexes, tag, encoding, hasCodeExtensions);
+      return ApplyVisitorToLeaf(element, visitor, parentTags, parentIndexes, tag, encoding, hasCodeExtensions);
     }
     else
     {
@@ -2799,7 +2848,22 @@ namespace Orthanc
 
       if (sequence.card() == 0)
       {
-        visitor.VisitEmptySequence(parentTags, parentIndexes, tag);
+        ITagVisitor::Action action = visitor.VisitEmptySequence(parentTags, parentIndexes, tag);
+
+        switch (action)
+        {
+          case ITagVisitor::Action_None:
+            return true;
+
+          case ITagVisitor::Action_Remove:
+            return false;
+
+          case ITagVisitor::Action_Replace:
+            throw OrthancException(ErrorCode_NotImplemented, "Iterator cannot replace sequences");
+
+          default:
+            throw OrthancException(ErrorCode_ParameterOutOfRange);
+        }
       }
       else
       {
@@ -2814,6 +2878,8 @@ namespace Orthanc
           DcmItem* child = sequence.getItem(i);
           ApplyVisitorToDataset(*child, visitor, tags, indexes, encoding, hasCodeExtensions);
         }
+
+        return true;  // Keep
       }
     }
   }

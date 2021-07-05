@@ -61,6 +61,9 @@
 #include <dcmtk/dcmdata/dcdeftag.h>
 #include <dcmtk/dcmdata/dcelem.h>
 #include <dcmtk/dcmdata/dcvrat.h>
+#include <dcmtk/dcmdata/dcbytstr.h>
+#include <dcmtk/dcmdata/dcvrss.h>
+#include <dcmtk/dcmdata/dcvrfl.h>
 
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/lexical_cast.hpp>
@@ -2706,6 +2709,240 @@ TEST(ParsedDicomFile, DicomPath)
     ASSERT_NE("1.2.840.113619.2.176.2025.1499492.7040.1171286241.719", vv[REF_IM_SEQ][0][REF_SOP_INSTANCE].asString());
     ASSERT_EQ("1.2.840.113619.2.176.2025.1499492.7040.1171286241.726", vv[REF_IM_SEQ][1][REF_SOP_INSTANCE].asString()); // kept
     ASSERT_EQ("1.2.840.113704.1.111.7016.1342451220.40", vv[REL_SERIES_SEQ][0][STUDY_INSTANCE_UID].asString());  // kept
+  }
+}
+
+
+TEST(FromDcmtkBridge, VisitorRemoveTag)
+{
+  class V : public ITagVisitor
+  {
+  private:
+    uint32_t seen_;
+    
+  public:
+    V() : seen_(0)
+    {
+    }
+
+    unsigned int GetSeen() const
+    {
+      return seen_;
+    }
+    
+    virtual Action VisitNotSupported(const std::vector<DicomTag>& parentTags,
+                                     const std::vector<size_t>& parentIndexes,
+                                     const DicomTag& tag,
+                                     ValueRepresentation vr) ORTHANC_OVERRIDE
+    {
+      seen_ |= (1 << 0);
+      
+      if (parentTags.size() == 0u &&
+          parentIndexes.size() == 0u &&
+          DcmTagKey(tag.GetGroup(), tag.GetElement()) == DCM_PixelData)
+      {
+        return Action_Remove;
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }        
+    }
+
+    virtual Action VisitEmptySequence(const std::vector<DicomTag>& parentTags,
+                                      const std::vector<size_t>& parentIndexes,
+                                      const DicomTag& tag) ORTHANC_OVERRIDE
+    {
+      seen_ |= (1 << 1);
+      
+      if (parentTags.size() == 1u &&
+          parentIndexes.size() == 1u &&
+          parentTags[0] == DICOM_TAG_REFERENCED_IMAGE_SEQUENCE &&
+          parentIndexes[0] == 0u &&
+          DcmTagKey(tag.GetGroup(), tag.GetElement()) == DCM_ReferencedPatientSequence)
+      {
+        return Action_Remove;
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }        
+    }
+
+    virtual Action VisitIntegers(const std::vector<DicomTag>& parentTags,
+                                 const std::vector<size_t>& parentIndexes,
+                                 const DicomTag& tag,
+                                 ValueRepresentation vr,
+                                 const std::vector<int64_t>& values) ORTHANC_OVERRIDE
+    {
+      seen_ |= (1 << 2);
+      
+      if (parentTags.size() == 0u &&
+          parentIndexes.size() == 0u &&
+          DcmTagKey(tag.GetGroup(), tag.GetElement()) == DCM_TagAngleSecondAxis &&
+          values.size() == 2 &&
+          values[0] == 12 &&
+          values[1] == 13)
+      {
+        return Action_Remove;
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+    }
+
+    virtual Action VisitDoubles(const std::vector<DicomTag>& parentTags,
+                                const std::vector<size_t>& parentIndexes,
+                                const DicomTag& tag,
+                                ValueRepresentation vr,
+                                const std::vector<double>& values) ORTHANC_OVERRIDE
+    {
+      seen_ |= (1 << 3);
+      
+      if (parentTags.size() == 1u &&
+          parentIndexes.size() == 1u &&
+          parentTags[0] == DICOM_TAG_REFERENCED_IMAGE_SEQUENCE &&
+          parentIndexes[0] == 0u &&
+          DcmTagKey(tag.GetGroup(), tag.GetElement()) == DCM_ExaminedBodyThickness &&
+          values.size() == 3 &&
+          std::abs(values[0] - 42.0f) <= 0.001f &&
+          std::abs(values[1] - 43.0f) <= 0.001f &&
+          std::abs(values[2] - 47.0f) <= 0.001f)
+      {
+        return Action_Remove;
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+    }
+
+    virtual Action VisitAttributes(const std::vector<DicomTag>& parentTags,
+                                   const std::vector<size_t>& parentIndexes,
+                                   const DicomTag& tag,
+                                   const std::vector<DicomTag>& values) ORTHANC_OVERRIDE
+    {
+      seen_ |= (1 << 4);
+      
+      if (parentTags.size() == 1u &&
+          parentIndexes.size() == 1u &&
+          parentTags[0] == DICOM_TAG_REFERENCED_IMAGE_SEQUENCE &&
+          parentIndexes[0] == 0u &&
+          DcmTagKey(tag.GetGroup(), tag.GetElement()) == DCM_DimensionIndexPointer &&
+          values.size() == 2 &&
+          values[0] == DICOM_TAG_STUDY_DATE &&
+          values[1] == DICOM_TAG_STUDY_TIME)
+      {
+        return Action_Remove;
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+    }
+
+    virtual Action VisitBinary(const std::vector<DicomTag>& parentTags,
+                               const std::vector<size_t>& parentIndexes,
+                               const DicomTag& tag,
+                               ValueRepresentation vr,
+                               const void* data,
+                               size_t size) ORTHANC_OVERRIDE
+    {
+      seen_ |= (1 << 5);
+      
+      if (parentTags.size() == 1u &&
+          parentIndexes.size() == 1u &&
+          parentTags[0] == DICOM_TAG_REFERENCED_IMAGE_SEQUENCE &&
+          parentIndexes[0] == 0u &&
+          tag.GetGroup() == 0x0011 &&
+          tag.GetElement() == 0x1311 &&
+          size == 4u &&
+          memcmp(data, "abcd", 4) == 0)
+      {
+        return Action_Remove;
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+    }
+
+    virtual Action VisitString(std::string& newValue,
+                               const std::vector<DicomTag>& parentTags,
+                               const std::vector<size_t>& parentIndexes,
+                               const DicomTag& tag,
+                               ValueRepresentation vr,
+                               const std::string& value) ORTHANC_OVERRIDE
+    {
+      seen_ |= (1 << 6);
+      return Action_Remove;
+    }
+  };
+
+
+  std::unique_ptr<ParsedDicomFile> dicom;
+
+  {
+    Json::Value v = Json::objectValue;
+    v["PatientName"] = "Hello";
+    v["ReferencedSOPClassUID"] = "1.2.840.10008.5.1.4.1.1.4";
+    v["ReferencedImageSequence"][0]["ReferencedSOPClassUID"] = "1.2.840.10008.5.1.4.1.1.4";
+    v["ReferencedImageSequence"][0]["ReferencedSOPInstanceUID"] = "1.2.840.113619.2.176.2025.1499492.7040.1171286241.719";
+    v["ReferencedImageSequence"][0]["ReferencedPatientSequence"] = Json::arrayValue;  // Empty sequence
+    v["ReferencedImageSequence"][0]["0011,1311"] = "abcd";  // Binary
+
+    dicom.reset(ParsedDicomFile::CreateFromJson(v, DicomFromJsonFlags_None, "PrivateCreator"));
+
+    {
+      // Test value multiplicity (cannot be done using "ParsedDicomFile::CreateFromJson()")
+      const int16_t a[] = { 12, 13 };
+      std::unique_ptr<DcmSignedShort> s(new DcmSignedShort(DCM_TagAngleSecondAxis));  // VisitIntegers()
+      ASSERT_TRUE(s->putSint16Array(a, 2).good());
+      dicom->GetDcmtkObject().getDataset()->insert(s.release());
+    }
+  
+    {
+      const float a[] = { 42, 43, 47 };
+      std::unique_ptr<DcmFloatingPointSingle> s(new DcmFloatingPointSingle(DCM_ExaminedBodyThickness));  // VisitDoubles()
+      ASSERT_TRUE(s->putFloat32Array(a, 3).good());
+      DcmItem *item = NULL;
+      ASSERT_TRUE(dicom->GetDcmtkObject().getDataset()->findAndGetSequenceItem(DCM_ReferencedImageSequence, item, 0).good());
+      item->insert(s.release());
+    }
+  
+    {
+      const uint16_t a[] = { 0x0008, 0x0020, 0x0008, 0x0030 };
+      std::unique_ptr<DcmAttributeTag> s(new DcmAttributeTag(DCM_DimensionIndexPointer));  // VisitAttributes()
+      ASSERT_TRUE(s->putUint16Array(a, 2).good());
+      DcmItem *item = NULL;
+      ASSERT_TRUE(dicom->GetDcmtkObject().getDataset()->findAndGetSequenceItem(DCM_ReferencedImageSequence, item, 0).good());
+      item->insert(s.release());
+    }
+  
+    ASSERT_TRUE(dicom->GetDcmtkObject().getDataset()->insert(new DcmByteString(DCM_PixelData)).good());  // VisitNotSupported()
+  }
+
+  {
+    V visitor;
+    dicom->Apply(visitor);
+    ASSERT_EQ(127u, visitor.GetSeen());  // Make sure all the methods have been applied
+  }
+
+  {
+    Json::Value b;
+    dicom->DatasetToJson(b, DicomToJsonFormat_Short, DicomToJsonFlags_Default, 0);
+    ASSERT_EQ(Json::objectValue, b.type());
+
+    Json::Value::Members members = b.getMemberNames();
+    ASSERT_EQ(1u, members.size());
+    ASSERT_EQ("0008,1140", members[0]);
+
+    // Check that "b["0008,1140"]" is a sequence with one single empty object
+    ASSERT_EQ(Json::arrayValue, b["0008,1140"].type());
+    ASSERT_EQ(1u, b["0008,1140"].size());
+    ASSERT_EQ(Json::objectValue, b["0008,1140"][0].type());
+    ASSERT_EQ(0u, b["0008,1140"][0].size());
   }
 }
 
