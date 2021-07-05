@@ -130,5 +130,10 @@ namespace Orthanc
 
     static bool IsMatch(const DicomPath& pattern,
                         const DicomPath& path);
+
+    static bool IsMatch(const DicomPath& pattern,
+                        const std::vector<Orthanc::DicomTag>& prefixTags,
+                        const std::vector<size_t>& prefixIndexes,
+                        const DicomTag& finalTag);
   };
 }

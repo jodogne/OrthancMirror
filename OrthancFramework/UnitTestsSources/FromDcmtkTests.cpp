@@ -2261,6 +2261,31 @@ TEST(ParsedDicomCache, Basic)
 }
 
 
+static bool MyIsMatch(const DicomPath& a,
+                      const DicomPath& b)
+{
+  bool expected = DicomPath::IsMatch(a, b);
+
+  std::vector<DicomTag> prefixTags;
+  std::vector<size_t> prefixIndexes;
+
+  for (size_t i = 0; i < b.GetPrefixLength(); i++)
+  {
+    prefixTags.push_back(b.GetPrefixTag(i));
+    prefixIndexes.push_back(b.GetPrefixIndex(i));
+  }
+
+  if (expected == DicomPath::IsMatch(a, prefixTags, prefixIndexes, b.GetFinalTag()))
+  {
+    return expected;
+  }
+  else
+  {
+    throw OrthancException(ErrorCode_InternalError);
+  }
+}
+
+
 TEST(DicomModification, DicomPath)
 {
   // Those are samples inspired by those from "man dcmodify"
@@ -2366,30 +2391,30 @@ TEST(DicomModification, DicomPath)
   ASSERT_THROW(DicomPath::Parse("(0010,0010)0].PatientID"), OrthancException);
   ASSERT_THROW(DicomPath::Parse("(0010,0010)[-1].PatientID"), OrthancException);
 
-  ASSERT_TRUE(DicomPath::IsMatch(DicomPath::Parse("(0010,0010)"),
-                                 DicomPath::Parse("(0010,0010)")));
-  ASSERT_FALSE(DicomPath::IsMatch(DicomPath::Parse("(0010,0010)"),
-                                  DicomPath::Parse("(0010,0020)")));
-  ASSERT_TRUE(DicomPath::IsMatch(DicomPath::Parse("(0010,0010)"),
-                                 DicomPath::Parse("(0010,0010)[1].(0010,0020)")));
-  ASSERT_FALSE(DicomPath::IsMatch(DicomPath::Parse("(0010,0010)[1].(0010,0020)"),
-                                  DicomPath::Parse("(0010,0010)")));
-  ASSERT_TRUE(DicomPath::IsMatch(DicomPath::Parse("(0010,0010)[1].(0010,0020)"),
-                                 DicomPath::Parse("(0010,0010)[1].(0010,0020)")));
-  ASSERT_TRUE(DicomPath::IsMatch(DicomPath::Parse("(0010,0010)[*].(0010,0020)"),
-                                 DicomPath::Parse("(0010,0010)[1].(0010,0020)")));
-  ASSERT_FALSE(DicomPath::IsMatch(DicomPath::Parse("(0010,0010)[2].(0010,0020)"),
-                                  DicomPath::Parse("(0010,0010)[1].(0010,0020)")));
-  ASSERT_THROW(DicomPath::IsMatch(DicomPath::Parse("(0010,0010)[1].(0010,0020)"),
-                                  DicomPath::Parse("(0010,0010)[*].(0010,0020)")), OrthancException);
-  ASSERT_TRUE(DicomPath::IsMatch(DicomPath::Parse("(0010,0010)[*].(0010,0020)[*].(0010,0030)"),
-                                 DicomPath::Parse("(0010,0010)[1].(0010,0020)[2].(0010,0030)[3].(0010,0040)")));
-  ASSERT_TRUE(DicomPath::IsMatch(DicomPath::Parse("(0010,0010)[1].(0010,0020)[2].(0010,0030)"),
-                                 DicomPath::Parse("(0010,0010)[1].(0010,0020)[2].(0010,0030)[3].(0010,0040)")));
-  ASSERT_FALSE(DicomPath::IsMatch(DicomPath::Parse("(0010,0010)[1].(0010,0020)[3].(0010,0030)"),
-                                  DicomPath::Parse("(0010,0010)[1].(0010,0020)[2].(0010,0030)[3].(0010,0040)")));
-  ASSERT_FALSE(DicomPath::IsMatch(DicomPath::Parse("(0010,0010)[2].(0010,0020)[2].(0010,0030)"),
-                                  DicomPath::Parse("(0010,0010)[1].(0010,0020)[2].(0010,0030)[3].(0010,0040)")));
+  ASSERT_TRUE(MyIsMatch(DicomPath::Parse("(0010,0010)"),
+                        DicomPath::Parse("(0010,0010)")));
+  ASSERT_FALSE(MyIsMatch(DicomPath::Parse("(0010,0010)"),
+                         DicomPath::Parse("(0010,0020)")));
+  ASSERT_TRUE(MyIsMatch(DicomPath::Parse("(0010,0010)"),
+                        DicomPath::Parse("(0010,0010)[1].(0010,0020)")));
+  ASSERT_FALSE(MyIsMatch(DicomPath::Parse("(0010,0010)[1].(0010,0020)"),
+                         DicomPath::Parse("(0010,0010)")));
+  ASSERT_TRUE(MyIsMatch(DicomPath::Parse("(0010,0010)[1].(0010,0020)"),
+                        DicomPath::Parse("(0010,0010)[1].(0010,0020)")));
+  ASSERT_TRUE(MyIsMatch(DicomPath::Parse("(0010,0010)[*].(0010,0020)"),
+                        DicomPath::Parse("(0010,0010)[1].(0010,0020)")));
+  ASSERT_FALSE(MyIsMatch(DicomPath::Parse("(0010,0010)[2].(0010,0020)"),
+                         DicomPath::Parse("(0010,0010)[1].(0010,0020)")));
+  ASSERT_THROW(MyIsMatch(DicomPath::Parse("(0010,0010)[1].(0010,0020)"),
+                         DicomPath::Parse("(0010,0010)[*].(0010,0020)")), OrthancException);
+  ASSERT_TRUE(MyIsMatch(DicomPath::Parse("(0010,0010)[*].(0010,0020)[*].(0010,0030)"),
+                        DicomPath::Parse("(0010,0010)[1].(0010,0020)[2].(0010,0030)[3].(0010,0040)")));
+  ASSERT_TRUE(MyIsMatch(DicomPath::Parse("(0010,0010)[1].(0010,0020)[2].(0010,0030)"),
+                        DicomPath::Parse("(0010,0010)[1].(0010,0020)[2].(0010,0030)[3].(0010,0040)")));
+  ASSERT_FALSE(MyIsMatch(DicomPath::Parse("(0010,0010)[1].(0010,0020)[3].(0010,0030)"),
+                         DicomPath::Parse("(0010,0010)[1].(0010,0020)[2].(0010,0030)[3].(0010,0040)")));
+  ASSERT_FALSE(MyIsMatch(DicomPath::Parse("(0010,0010)[2].(0010,0020)[2].(0010,0030)"),
+                         DicomPath::Parse("(0010,0010)[1].(0010,0020)[2].(0010,0030)[3].(0010,0040)")));
 }
 
 
