@@ -61,7 +61,7 @@
 #include <dcmtk/dcmdata/dcdeftag.h>
 #include <dcmtk/dcmdata/dcelem.h>
 #include <dcmtk/dcmdata/dcvrat.h>
-#include <dcmtk/dcmdata/dcbytstr.h>
+#include <dcmtk/dcmdata/dcpxitem.h>
 #include <dcmtk/dcmdata/dcvrss.h>
 #include <dcmtk/dcmdata/dcvrfl.h>
 
@@ -2927,25 +2927,24 @@ TEST(FromDcmtkBridge, VisitorRemoveTag)
       dicom->GetDcmtkObject().getDataset()->insert(s.release());
     }
   
+    DcmItem *parent = NULL;
+    ASSERT_TRUE(dicom->GetDcmtkObject().getDataset()->findAndGetSequenceItem(DCM_ReferencedImageSequence, parent, 0).good());
+
     {
       const float a[] = { 42, 43, 47 };
       std::unique_ptr<DcmFloatingPointSingle> s(new DcmFloatingPointSingle(DCM_ExaminedBodyThickness));  // VisitDoubles()
       ASSERT_TRUE(s->putFloat32Array(a, 3).good());
-      DcmItem *item = NULL;
-      ASSERT_TRUE(dicom->GetDcmtkObject().getDataset()->findAndGetSequenceItem(DCM_ReferencedImageSequence, item, 0).good());
-      item->insert(s.release());
+      parent->insert(s.release());
     }
   
     {
       const uint16_t a[] = { 0x0008, 0x0020, 0x0008, 0x0030 };
       std::unique_ptr<DcmAttributeTag> s(new DcmAttributeTag(DCM_DimensionIndexPointer));  // VisitAttributes()
       ASSERT_TRUE(s->putUint16Array(a, 2).good());
-      DcmItem *item = NULL;
-      ASSERT_TRUE(dicom->GetDcmtkObject().getDataset()->findAndGetSequenceItem(DCM_ReferencedImageSequence, item, 0).good());
-      item->insert(s.release());
+      parent->insert(s.release());
     }
-  
-    ASSERT_TRUE(dicom->GetDcmtkObject().getDataset()->insert(new DcmByteString(DCM_PixelData)).good());  // VisitNotSupported()
+
+    ASSERT_TRUE(dicom->GetDcmtkObject().getDataset()->insert(new DcmPixelItem(DCM_PixelData)).good());  // VisitNotSupported()
   }
 
   {
