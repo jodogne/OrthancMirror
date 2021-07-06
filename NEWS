@@ -1,6 +1,40 @@
 Pending changes in the mainline
 ===============================
 
+OpenSSL 3.x branch
+------------------
+
+* General information:
+  https://www.openssl.org/blog/blog/2021/06/17/OpenSSL3.0ReleaseCandidate/
+* Dropped support for static compilation of OpenSSL 1.0.2 and 1.1.1
+* Removed the OpenSSL license exception, as binary versions of Orthanc are now
+  designed to use OpenSSL 3.x, that was re-licensed under Apache 2.0, making
+  it compatible with the GPL/AGPL licenses used by the Orthanc project:
+  https://en.wikipedia.org/wiki/OpenSSL#Licensing
+  https://people.gnome.org/~markmc/openssl-and-the-gpl.html
+* Upgraded dependencies for static builds (notably on Windows and LSB):
+  - openssl 3.0.0-beta1
+
+General
+-------
+
+* Anonymization is now also applied recursively to nested tags
+
+REST API
+--------
+
+* API version upgraded to 14
+* Added "Short", "Simplify" and/or "Full" options to control the format of DICOM tags in:
+  - POST /modalities/{id}/find-worklist
+  - POST /queries/{id}/answers/{index}/retrieve
+  - POST /queries/{id}/retrieve
+
+Maintenance
+-----------
+
+* Fix broken "Do lookup" button in Orthanc Explorer
+* Error code and description of jobs are now saved into the Orthanc database
+
 
 Version 1.9.4 (2021-06-24)
 ==========================
@@ -44,6 +78,7 @@ REST API
   - GET /series/{id}/instances-tags, GET /studies/{id}/shared-tags
   - GET /patients/{id}/module, GET /patients/{id}/patient-module
   - GET /series/{id}/module, GET /studies/{id}/module, GET /instances/{id}/module
+  - GET /queries/{id}/answers&expand, GET /queries/{id}/answers/{index}/content
   - POST /tools/find
 * "/studies/{id}/split" accepts "Instances" parameter to split instances instead of series
 * "/studies/{id}/merge" accepts instances inside its "Resources" parameter
@@ -56,20 +91,6 @@ Maintenance
 * Fix issue #146 (Update Anonyization to 2019c) - was actually updated to 2021b
 * Upgraded dependencies for static builds (notably on Windows):
   - curl 7.77.0
-
-OpenSSL 3.x branch
-------------------
-
-* General information:
-  https://www.openssl.org/blog/blog/2021/06/17/OpenSSL3.0ReleaseCandidate/
-* Dropped support for static compilation of OpenSSL 1.0.2 and 1.1.1
-* Removed the OpenSSL license exception, as binary versions of Orthanc are now
-  designed to use OpenSSL 3.x, that was re-licensed under Apache 2.0, making
-  it compatible with the GPL/AGPL licenses used by the Orthanc project:
-  https://en.wikipedia.org/wiki/OpenSSL#Licensing
-  https://people.gnome.org/~markmc/openssl-and-the-gpl.html
-* Upgraded dependencies for static builds (notably on Windows and LSB):
-  - openssl 3.0.0-beta1
 
 
 Version 1.9.3 (2021-05-07)

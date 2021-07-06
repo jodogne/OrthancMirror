@@ -85,43 +85,44 @@ namespace Orthanc
     void FormatXml(std::string& target) const;
 #endif
 
-    virtual void VisitNotSupported(const std::vector<DicomTag>& parentTags,
-                                   const std::vector<size_t>& parentIndexes,
-                                   const DicomTag& tag,
-                                   ValueRepresentation vr)
+    virtual Action VisitNotSupported(const std::vector<DicomTag>& parentTags,
+                                     const std::vector<size_t>& parentIndexes,
+                                     const DicomTag& tag,
+                                     ValueRepresentation vr)
       ORTHANC_OVERRIDE;
 
-    virtual void VisitEmptySequence(const std::vector<DicomTag>& parentTags,
-                                    const std::vector<size_t>& parentIndexes,
-                                    const DicomTag& tag)
+    virtual Action VisitSequence(const std::vector<DicomTag>& parentTags,
+                                 const std::vector<size_t>& parentIndexes,
+                                 const DicomTag& tag,
+                                 size_t countItems)
       ORTHANC_OVERRIDE;
 
-    virtual void VisitBinary(const std::vector<DicomTag>& parentTags,
-                             const std::vector<size_t>& parentIndexes,
-                             const DicomTag& tag,
-                             ValueRepresentation vr,
-                             const void* data,
-                             size_t size)
-      ORTHANC_OVERRIDE;
-
-    virtual void VisitIntegers(const std::vector<DicomTag>& parentTags,
+    virtual Action VisitBinary(const std::vector<DicomTag>& parentTags,
                                const std::vector<size_t>& parentIndexes,
                                const DicomTag& tag,
                                ValueRepresentation vr,
-                               const std::vector<int64_t>& values)
+                               const void* data,
+                               size_t size)
       ORTHANC_OVERRIDE;
 
-    virtual void VisitDoubles(const std::vector<DicomTag>& parentTags,
-                              const std::vector<size_t>& parentIndexes,
-                              const DicomTag& tag,
-                              ValueRepresentation vr,
-                              const std::vector<double>& values)
-      ORTHANC_OVERRIDE;
-
-    virtual void VisitAttributes(const std::vector<DicomTag>& parentTags,
+    virtual Action VisitIntegers(const std::vector<DicomTag>& parentTags,
                                  const std::vector<size_t>& parentIndexes,
                                  const DicomTag& tag,
-                                 const std::vector<DicomTag>& values)
+                                 ValueRepresentation vr,
+                                 const std::vector<int64_t>& values)
+      ORTHANC_OVERRIDE;
+
+    virtual Action VisitDoubles(const std::vector<DicomTag>& parentTags,
+                                const std::vector<size_t>& parentIndexes,
+                                const DicomTag& tag,
+                                ValueRepresentation vr,
+                                const std::vector<double>& values)
+      ORTHANC_OVERRIDE;
+
+    virtual Action VisitAttributes(const std::vector<DicomTag>& parentTags,
+                                   const std::vector<size_t>& parentIndexes,
+                                   const DicomTag& tag,
+                                   const std::vector<DicomTag>& values)
       ORTHANC_OVERRIDE;
 
     virtual Action VisitString(std::string& newValue,

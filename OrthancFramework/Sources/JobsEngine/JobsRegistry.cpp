@@ -39,6 +39,8 @@ namespace Orthanc
   static const char* CREATION_TIME = "CreationTime";
   static const char* LAST_CHANGE_TIME = "LastChangeTime";
   static const char* RUNTIME = "Runtime";
+  static const char* ERROR_CODE = "ErrorCode";
+  static const char* ERROR_DETAILS = "ErrorDetails";
 
 
   class JobsRegistry::JobHandler : public boost::noncopyable
@@ -276,6 +278,11 @@ namespace Orthanc
         target[CREATION_TIME] = boost::posix_time::to_iso_string(creationTime_);
         target[LAST_CHANGE_TIME] = boost::posix_time::to_iso_string(lastStateChangeTime_);
         target[RUNTIME] = static_cast<unsigned int>(runtime_.total_milliseconds());
+
+        // New in Orthanc 1.9.5
+        target[ERROR_CODE] = static_cast<int>(lastStatus_.GetErrorCode());
+        target[ERROR_DETAILS] = lastStatus_.GetDetails();
+        
         return true;
       }
       else
@@ -307,7 +314,23 @@ namespace Orthanc
       job_->GetJobType(jobType_);
       job_->Start();
 
-      lastStatus_ = JobStatus(ErrorCode_Success, "", *job_);
+      ErrorCode errorCode;
+      if (serialized.isMember(ERROR_CODE))
+      {
+        errorCode = static_cast<ErrorCode>(SerializationToolbox::ReadInteger(serialized, ERROR_CODE));
+      }
+      else
+      {
+        errorCode = ErrorCode_Success;  // Backward compatibility with Orthanc <= 1.9.4
+      }
+
+      std::string details;
+      if (serialized.isMember(ERROR_DETAILS))  // Backward compatibility with Orthanc <= 1.9.4
+      {
+        details = SerializationToolbox::ReadString(serialized, ERROR_DETAILS);
+      }
+
+      lastStatus_ = JobStatus(errorCode, details, *job_);
     }
   };
 

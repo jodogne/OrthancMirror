@@ -801,6 +801,9 @@ namespace Orthanc
   const char* EnumerationToString(StorageCommitmentFailureReason reason);
 
   ORTHANC_PUBLIC
+  const char* EnumerationToString(DicomToJsonFormat format);
+
+  ORTHANC_PUBLIC
   Encoding StringToEncoding(const char* encoding);
 
   ORTHANC_PUBLIC
@@ -830,6 +833,9 @@ namespace Orthanc
 
   ORTHANC_PUBLIC
   MimeType StringToMimeType(const std::string& mime);
+  
+  ORTHANC_PUBLIC
+  DicomToJsonFormat StringToDicomToJsonFormat(const std::string& format);
   
   ORTHANC_PUBLIC
   bool LookupMimeType(MimeType& target,

@@ -61,6 +61,9 @@
 #include <dcmtk/dcmdata/dcdeftag.h>
 #include <dcmtk/dcmdata/dcelem.h>
 #include <dcmtk/dcmdata/dcvrat.h>
+#include <dcmtk/dcmdata/dcpxitem.h>
+#include <dcmtk/dcmdata/dcvrss.h>
+#include <dcmtk/dcmdata/dcvrfl.h>
 
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/lexical_cast.hpp>
@@ -689,7 +692,7 @@ TEST(DicomFindAnswers, Basic)
   }
 
   Json::Value j;
-  a.ToJson(j, true);
+  a.ToJson(j, DicomToJsonFormat_Human);
   ASSERT_EQ(3u, j.size());
 
   //std::cout << j;
@@ -2258,6 +2261,31 @@ TEST(ParsedDicomCache, Basic)
 }
 
 
+static bool MyIsMatch(const DicomPath& a,
+                      const DicomPath& b)
+{
+  bool expected = DicomPath::IsMatch(a, b);
+
+  std::vector<DicomTag> prefixTags;
+  std::vector<size_t> prefixIndexes;
+
+  for (size_t i = 0; i < b.GetPrefixLength(); i++)
+  {
+    prefixTags.push_back(b.GetPrefixTag(i));
+    prefixIndexes.push_back(b.GetPrefixIndex(i));
+  }
+
+  if (expected == DicomPath::IsMatch(a, prefixTags, prefixIndexes, b.GetFinalTag()))
+  {
+    return expected;
+  }
+  else
+  {
+    throw OrthancException(ErrorCode_InternalError);
+  }
+}
+
+
 TEST(DicomModification, DicomPath)
 {
   // Those are samples inspired by those from "man dcmodify"
@@ -2363,30 +2391,30 @@ TEST(DicomModification, DicomPath)
   ASSERT_THROW(DicomPath::Parse("(0010,0010)0].PatientID"), OrthancException);
   ASSERT_THROW(DicomPath::Parse("(0010,0010)[-1].PatientID"), OrthancException);
 
-  ASSERT_TRUE(DicomPath::IsMatch(DicomPath::Parse("(0010,0010)"),
-                                 DicomPath::Parse("(0010,0010)")));
-  ASSERT_FALSE(DicomPath::IsMatch(DicomPath::Parse("(0010,0010)"),
-                                  DicomPath::Parse("(0010,0020)")));
-  ASSERT_TRUE(DicomPath::IsMatch(DicomPath::Parse("(0010,0010)"),
-                                 DicomPath::Parse("(0010,0010)[1].(0010,0020)")));
-  ASSERT_FALSE(DicomPath::IsMatch(DicomPath::Parse("(0010,0010)[1].(0010,0020)"),
-                                  DicomPath::Parse("(0010,0010)")));
-  ASSERT_TRUE(DicomPath::IsMatch(DicomPath::Parse("(0010,0010)[1].(0010,0020)"),
-                                 DicomPath::Parse("(0010,0010)[1].(0010,0020)")));
-  ASSERT_TRUE(DicomPath::IsMatch(DicomPath::Parse("(0010,0010)[*].(0010,0020)"),
-                                 DicomPath::Parse("(0010,0010)[1].(0010,0020)")));
-  ASSERT_FALSE(DicomPath::IsMatch(DicomPath::Parse("(0010,0010)[2].(0010,0020)"),
-                                  DicomPath::Parse("(0010,0010)[1].(0010,0020)")));
-  ASSERT_THROW(DicomPath::IsMatch(DicomPath::Parse("(0010,0010)[1].(0010,0020)"),
-                                  DicomPath::Parse("(0010,0010)[*].(0010,0020)")), OrthancException);
-  ASSERT_TRUE(DicomPath::IsMatch(DicomPath::Parse("(0010,0010)[*].(0010,0020)[*].(0010,0030)"),
-                                 DicomPath::Parse("(0010,0010)[1].(0010,0020)[2].(0010,0030)[3].(0010,0040)")));
-  ASSERT_TRUE(DicomPath::IsMatch(DicomPath::Parse("(0010,0010)[1].(0010,0020)[2].(0010,0030)"),
-                                 DicomPath::Parse("(0010,0010)[1].(0010,0020)[2].(0010,0030)[3].(0010,0040)")));
-  ASSERT_FALSE(DicomPath::IsMatch(DicomPath::Parse("(0010,0010)[1].(0010,0020)[3].(0010,0030)"),
-                                  DicomPath::Parse("(0010,0010)[1].(0010,0020)[2].(0010,0030)[3].(0010,0040)")));
-  ASSERT_FALSE(DicomPath::IsMatch(DicomPath::Parse("(0010,0010)[2].(0010,0020)[2].(0010,0030)"),
-                                  DicomPath::Parse("(0010,0010)[1].(0010,0020)[2].(0010,0030)[3].(0010,0040)")));
+  ASSERT_TRUE(MyIsMatch(DicomPath::Parse("(0010,0010)"),
+                        DicomPath::Parse("(0010,0010)")));
+  ASSERT_FALSE(MyIsMatch(DicomPath::Parse("(0010,0010)"),
+                         DicomPath::Parse("(0010,0020)")));
+  ASSERT_TRUE(MyIsMatch(DicomPath::Parse("(0010,0010)"),
+                        DicomPath::Parse("(0010,0010)[1].(0010,0020)")));
+  ASSERT_FALSE(MyIsMatch(DicomPath::Parse("(0010,0010)[1].(0010,0020)"),
+                         DicomPath::Parse("(0010,0010)")));
+  ASSERT_TRUE(MyIsMatch(DicomPath::Parse("(0010,0010)[1].(0010,0020)"),
+                        DicomPath::Parse("(0010,0010)[1].(0010,0020)")));
+  ASSERT_TRUE(MyIsMatch(DicomPath::Parse("(0010,0010)[*].(0010,0020)"),
+                        DicomPath::Parse("(0010,0010)[1].(0010,0020)")));
+  ASSERT_FALSE(MyIsMatch(DicomPath::Parse("(0010,0010)[2].(0010,0020)"),
+                         DicomPath::Parse("(0010,0010)[1].(0010,0020)")));
+  ASSERT_THROW(MyIsMatch(DicomPath::Parse("(0010,0010)[1].(0010,0020)"),
+                         DicomPath::Parse("(0010,0010)[*].(0010,0020)")), OrthancException);
+  ASSERT_TRUE(MyIsMatch(DicomPath::Parse("(0010,0010)[*].(0010,0020)[*].(0010,0030)"),
+                        DicomPath::Parse("(0010,0010)[1].(0010,0020)[2].(0010,0030)[3].(0010,0040)")));
+  ASSERT_TRUE(MyIsMatch(DicomPath::Parse("(0010,0010)[1].(0010,0020)[2].(0010,0030)"),
+                        DicomPath::Parse("(0010,0010)[1].(0010,0020)[2].(0010,0030)[3].(0010,0040)")));
+  ASSERT_FALSE(MyIsMatch(DicomPath::Parse("(0010,0010)[1].(0010,0020)[3].(0010,0030)"),
+                         DicomPath::Parse("(0010,0010)[1].(0010,0020)[2].(0010,0030)[3].(0010,0040)")));
+  ASSERT_FALSE(MyIsMatch(DicomPath::Parse("(0010,0010)[2].(0010,0020)[2].(0010,0030)"),
+                         DicomPath::Parse("(0010,0010)[1].(0010,0020)[2].(0010,0030)[3].(0010,0040)")));
 }
 
 
@@ -2686,7 +2714,10 @@ TEST(ParsedDicomFile, DicomPath)
     ASSERT_NE("1.2.840.113619.2.176.2025.1499492.7040.1171286241.719", vv1[REF_IM_SEQ][0][REF_SOP_INSTANCE].asString());
     ASSERT_NE("1.2.840.113619.2.176.2025.1499492.7040.1171286241.726", vv1[REF_IM_SEQ][1][REF_SOP_INSTANCE].asString());
     ASSERT_NE("1.2.840.113704.1.111.7016.1342451220.40", vv1[REL_SERIES_SEQ][0][STUDY_INSTANCE_UID].asString());
-    ASSERT_EQ("WORLD", vv1[REL_SERIES_SEQ][0][PURPOSE_CODE_SEQ][0][SERIES_DESCRIPTION].asString());
+
+    // Contrarily to Orthanc 1.9.4, the "SERIES_DESCRIPTION" is also removed from nested sequences
+    ASSERT_EQ(1u, vv1[REL_SERIES_SEQ][0][PURPOSE_CODE_SEQ][0].size());
+    ASSERT_EQ("122403", vv1[REL_SERIES_SEQ][0][PURPOSE_CODE_SEQ][0]["0008,0100"].asString());
   }
 
   {
@@ -2706,6 +2737,258 @@ TEST(ParsedDicomFile, DicomPath)
     ASSERT_NE("1.2.840.113619.2.176.2025.1499492.7040.1171286241.719", vv[REF_IM_SEQ][0][REF_SOP_INSTANCE].asString());
     ASSERT_EQ("1.2.840.113619.2.176.2025.1499492.7040.1171286241.726", vv[REF_IM_SEQ][1][REF_SOP_INSTANCE].asString()); // kept
     ASSERT_EQ("1.2.840.113704.1.111.7016.1342451220.40", vv[REL_SERIES_SEQ][0][STUDY_INSTANCE_UID].asString());  // kept
+  }
+}
+
+
+TEST(FromDcmtkBridge, VisitorRemoveTag)
+{
+  class V : public ITagVisitor
+  {
+  private:
+    uint32_t seen_;
+    
+  public:
+    V() : seen_(0)
+    {
+    }
+
+    unsigned int GetSeen() const
+    {
+      return seen_;
+    }
+    
+    virtual Action VisitNotSupported(const std::vector<DicomTag>& parentTags,
+                                     const std::vector<size_t>& parentIndexes,
+                                     const DicomTag& tag,
+                                     ValueRepresentation vr) ORTHANC_OVERRIDE
+    {
+      seen_ |= (1 << 0);
+      
+      if (parentTags.size() == 0u &&
+          parentIndexes.size() == 0u &&
+          DcmTagKey(tag.GetGroup(), tag.GetElement()) == DCM_PixelData)
+      {
+        return Action_Remove;
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }        
+    }
+
+    virtual Action VisitSequence(const std::vector<DicomTag>& parentTags,
+                                 const std::vector<size_t>& parentIndexes,
+                                 const DicomTag& tag,
+                                 size_t countItems) ORTHANC_OVERRIDE
+    {
+      seen_ |= (1 << 1);
+      
+      if (parentTags.size() == 0u &&
+          parentIndexes.size() == 0u &&
+          tag == DICOM_TAG_REFERENCED_IMAGE_SEQUENCE &&
+          countItems == 1)
+      {
+        return Action_None;
+      }
+      else if (parentTags.size() == 1u &&
+               parentIndexes.size() == 1u &&
+               parentTags[0] == DICOM_TAG_REFERENCED_IMAGE_SEQUENCE &&
+               parentIndexes[0] == 0u &&
+               countItems == 0 &&
+               DcmTagKey(tag.GetGroup(), tag.GetElement()) == DCM_ReferencedPatientSequence)
+      {
+        return Action_Remove;
+      }
+      else if (parentTags.size() == 1u &&
+               parentIndexes.size() == 1u &&
+               parentTags[0] == DICOM_TAG_REFERENCED_IMAGE_SEQUENCE &&
+               parentIndexes[0] == 0u &&
+               countItems == 1 &&
+               DcmTagKey(tag.GetGroup(), tag.GetElement()) == DCM_ReferencedStudySequence)
+      {
+        return Action_Remove;
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }        
+    }
+
+    virtual Action VisitIntegers(const std::vector<DicomTag>& parentTags,
+                                 const std::vector<size_t>& parentIndexes,
+                                 const DicomTag& tag,
+                                 ValueRepresentation vr,
+                                 const std::vector<int64_t>& values) ORTHANC_OVERRIDE
+    {
+      seen_ |= (1 << 2);
+      
+      if (parentTags.size() == 0u &&
+          parentIndexes.size() == 0u &&
+          DcmTagKey(tag.GetGroup(), tag.GetElement()) == DCM_TagAngleSecondAxis &&
+          values.size() == 2 &&
+          values[0] == 12 &&
+          values[1] == 13)
+      {
+        return Action_Remove;
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+    }
+
+    virtual Action VisitDoubles(const std::vector<DicomTag>& parentTags,
+                                const std::vector<size_t>& parentIndexes,
+                                const DicomTag& tag,
+                                ValueRepresentation vr,
+                                const std::vector<double>& values) ORTHANC_OVERRIDE
+    {
+      seen_ |= (1 << 3);
+      
+      if (parentTags.size() == 1u &&
+          parentIndexes.size() == 1u &&
+          parentTags[0] == DICOM_TAG_REFERENCED_IMAGE_SEQUENCE &&
+          parentIndexes[0] == 0u &&
+          DcmTagKey(tag.GetGroup(), tag.GetElement()) == DCM_ExaminedBodyThickness &&
+          values.size() == 3 &&
+          std::abs(values[0] - 42.0f) <= 0.001f &&
+          std::abs(values[1] - 43.0f) <= 0.001f &&
+          std::abs(values[2] - 47.0f) <= 0.001f)
+      {
+        return Action_Remove;
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+    }
+
+    virtual Action VisitAttributes(const std::vector<DicomTag>& parentTags,
+                                   const std::vector<size_t>& parentIndexes,
+                                   const DicomTag& tag,
+                                   const std::vector<DicomTag>& values) ORTHANC_OVERRIDE
+    {
+      seen_ |= (1 << 4);
+      
+      if (parentTags.size() == 1u &&
+          parentIndexes.size() == 1u &&
+          parentTags[0] == DICOM_TAG_REFERENCED_IMAGE_SEQUENCE &&
+          parentIndexes[0] == 0u &&
+          DcmTagKey(tag.GetGroup(), tag.GetElement()) == DCM_DimensionIndexPointer &&
+          values.size() == 2 &&
+          values[0] == DICOM_TAG_STUDY_DATE &&
+          values[1] == DICOM_TAG_STUDY_TIME)
+      {
+        return Action_Remove;
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+    }
+
+    virtual Action VisitBinary(const std::vector<DicomTag>& parentTags,
+                               const std::vector<size_t>& parentIndexes,
+                               const DicomTag& tag,
+                               ValueRepresentation vr,
+                               const void* data,
+                               size_t size) ORTHANC_OVERRIDE
+    {
+      seen_ |= (1 << 5);
+      
+      if (parentTags.size() == 1u &&
+          parentIndexes.size() == 1u &&
+          parentTags[0] == DICOM_TAG_REFERENCED_IMAGE_SEQUENCE &&
+          parentIndexes[0] == 0u &&
+          tag.GetGroup() == 0x0011 &&
+          tag.GetElement() == 0x1311 &&
+          size == 4u &&
+          memcmp(data, "abcd", 4) == 0)
+      {
+        return Action_Remove;
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+    }
+
+    virtual Action VisitString(std::string& newValue,
+                               const std::vector<DicomTag>& parentTags,
+                               const std::vector<size_t>& parentIndexes,
+                               const DicomTag& tag,
+                               ValueRepresentation vr,
+                               const std::string& value) ORTHANC_OVERRIDE
+    {
+      seen_ |= (1 << 6);
+      return Action_Remove;
+    }
+  };
+
+
+  std::unique_ptr<ParsedDicomFile> dicom;
+
+  {
+    Json::Value v = Json::objectValue;
+    v["PatientName"] = "Hello";
+    v["ReferencedSOPClassUID"] = "1.2.840.10008.5.1.4.1.1.4";
+    v["ReferencedImageSequence"][0]["ReferencedSOPClassUID"] = "1.2.840.10008.5.1.4.1.1.4";
+    v["ReferencedImageSequence"][0]["ReferencedSOPInstanceUID"] = "1.2.840.113619.2.176.2025.1499492.7040.1171286241.719";
+    v["ReferencedImageSequence"][0]["ReferencedPatientSequence"] = Json::arrayValue;  // Empty nested sequence
+    v["ReferencedImageSequence"][0]["ReferencedStudySequence"][0]["PatientID"] = "Hello";  // Non-empty nested sequence
+    v["ReferencedImageSequence"][0]["0011,1311"] = "abcd";  // Binary
+
+    dicom.reset(ParsedDicomFile::CreateFromJson(v, DicomFromJsonFlags_None, "PrivateCreator"));
+
+    {
+      // Test value multiplicity (cannot be done using "ParsedDicomFile::CreateFromJson()")
+      const int16_t a[] = { 12, 13 };
+      std::unique_ptr<DcmSignedShort> s(new DcmSignedShort(DCM_TagAngleSecondAxis));  // VisitIntegers()
+      ASSERT_TRUE(s->putSint16Array(a, 2).good());
+      dicom->GetDcmtkObject().getDataset()->insert(s.release());
+    }
+  
+    DcmItem *parent = NULL;
+    ASSERT_TRUE(dicom->GetDcmtkObject().getDataset()->findAndGetSequenceItem(DCM_ReferencedImageSequence, parent, 0).good());
+
+    {
+      const float a[] = { 42, 43, 47 };
+      std::unique_ptr<DcmFloatingPointSingle> s(new DcmFloatingPointSingle(DCM_ExaminedBodyThickness));  // VisitDoubles()
+      ASSERT_TRUE(s->putFloat32Array(a, 3).good());
+      parent->insert(s.release());
+    }
+  
+    {
+      const uint16_t a[] = { 0x0008, 0x0020, 0x0008, 0x0030 };
+      std::unique_ptr<DcmAttributeTag> s(new DcmAttributeTag(DCM_DimensionIndexPointer));  // VisitAttributes()
+      ASSERT_TRUE(s->putUint16Array(a, 2).good());
+      parent->insert(s.release());
+    }
+
+    ASSERT_TRUE(dicom->GetDcmtkObject().getDataset()->insert(new DcmPixelItem(DCM_PixelData)).good());  // VisitNotSupported()
+  }
+
+  {
+    V visitor;
+    dicom->Apply(visitor);
+    ASSERT_EQ(127u, visitor.GetSeen());  // Make sure all the methods have been applied
+  }
+
+  {
+    Json::Value b;
+    dicom->DatasetToJson(b, DicomToJsonFormat_Short, DicomToJsonFlags_Default, 0);
+    ASSERT_EQ(Json::objectValue, b.type());
+
+    Json::Value::Members members = b.getMemberNames();
+    ASSERT_EQ(1u, members.size());
+    ASSERT_EQ("0008,1140", members[0]);
+
+    // Check that "b["0008,1140"]" is a sequence with one single empty object
+    ASSERT_EQ(Json::arrayValue, b["0008,1140"].type());
+    ASSERT_EQ(1u, b["0008,1140"].size());
+    ASSERT_EQ(Json::objectValue, b["0008,1140"][0].type());
+    ASSERT_EQ(0u, b["0008,1140"][0].size());
   }
 }
 
