@@ -4,7 +4,7 @@ Pending changes in the mainline
 General
 -------
 
-* Anonymization is now also applied to nested sequences
+* Anonymization is now also applied recursively to nested tags
 
 REST API
 --------
