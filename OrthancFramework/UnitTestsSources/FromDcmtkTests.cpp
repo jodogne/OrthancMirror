@@ -2714,7 +2714,10 @@ TEST(ParsedDicomFile, DicomPath)
     ASSERT_NE("1.2.840.113619.2.176.2025.1499492.7040.1171286241.719", vv1[REF_IM_SEQ][0][REF_SOP_INSTANCE].asString());
     ASSERT_NE("1.2.840.113619.2.176.2025.1499492.7040.1171286241.726", vv1[REF_IM_SEQ][1][REF_SOP_INSTANCE].asString());
     ASSERT_NE("1.2.840.113704.1.111.7016.1342451220.40", vv1[REL_SERIES_SEQ][0][STUDY_INSTANCE_UID].asString());
-    ASSERT_EQ("WORLD", vv1[REL_SERIES_SEQ][0][PURPOSE_CODE_SEQ][0][SERIES_DESCRIPTION].asString());
+
+    // Contrarily to Orthanc 1.9.4, the "SERIES_DESCRIPTION" is also removed from nested sequences
+    ASSERT_EQ(1u, vv1[REL_SERIES_SEQ][0][PURPOSE_CODE_SEQ][0].size());
+    ASSERT_EQ("122403", vv1[REL_SERIES_SEQ][0][PURPOSE_CODE_SEQ][0]["0008,0100"].asString());
   }
 
   {
@@ -2774,17 +2777,35 @@ TEST(FromDcmtkBridge, VisitorRemoveTag)
       }        
     }
 
-    virtual Action VisitEmptySequence(const std::vector<DicomTag>& parentTags,
-                                      const std::vector<size_t>& parentIndexes,
-                                      const DicomTag& tag) ORTHANC_OVERRIDE
+    virtual Action VisitSequence(const std::vector<DicomTag>& parentTags,
+                                 const std::vector<size_t>& parentIndexes,
+                                 const DicomTag& tag,
+                                 size_t countItems) ORTHANC_OVERRIDE
     {
       seen_ |= (1 << 1);
       
-      if (parentTags.size() == 1u &&
-          parentIndexes.size() == 1u &&
-          parentTags[0] == DICOM_TAG_REFERENCED_IMAGE_SEQUENCE &&
-          parentIndexes[0] == 0u &&
-          DcmTagKey(tag.GetGroup(), tag.GetElement()) == DCM_ReferencedPatientSequence)
+      if (parentTags.size() == 0u &&
+          parentIndexes.size() == 0u &&
+          tag == DICOM_TAG_REFERENCED_IMAGE_SEQUENCE &&
+          countItems == 1)
+      {
+        return Action_None;
+      }
+      else if (parentTags.size() == 1u &&
+               parentIndexes.size() == 1u &&
+               parentTags[0] == DICOM_TAG_REFERENCED_IMAGE_SEQUENCE &&
+               parentIndexes[0] == 0u &&
+               countItems == 0 &&
+               DcmTagKey(tag.GetGroup(), tag.GetElement()) == DCM_ReferencedPatientSequence)
+      {
+        return Action_Remove;
+      }
+      else if (parentTags.size() == 1u &&
+               parentIndexes.size() == 1u &&
+               parentTags[0] == DICOM_TAG_REFERENCED_IMAGE_SEQUENCE &&
+               parentIndexes[0] == 0u &&
+               countItems == 1 &&
+               DcmTagKey(tag.GetGroup(), tag.GetElement()) == DCM_ReferencedStudySequence)
       {
         return Action_Remove;
       }
@@ -2914,7 +2935,8 @@ TEST(FromDcmtkBridge, VisitorRemoveTag)
     v["ReferencedSOPClassUID"] = "1.2.840.10008.5.1.4.1.1.4";
     v["ReferencedImageSequence"][0]["ReferencedSOPClassUID"] = "1.2.840.10008.5.1.4.1.1.4";
     v["ReferencedImageSequence"][0]["ReferencedSOPInstanceUID"] = "1.2.840.113619.2.176.2025.1499492.7040.1171286241.719";
-    v["ReferencedImageSequence"][0]["ReferencedPatientSequence"] = Json::arrayValue;  // Empty sequence
+    v["ReferencedImageSequence"][0]["ReferencedPatientSequence"] = Json::arrayValue;  // Empty nested sequence
+    v["ReferencedImageSequence"][0]["ReferencedStudySequence"][0]["PatientID"] = "Hello";  // Non-empty nested sequence
     v["ReferencedImageSequence"][0]["0011,1311"] = "abcd";  // Binary
 
     dicom.reset(ParsedDicomFile::CreateFromJson(v, DicomFromJsonFlags_None, "PrivateCreator"));

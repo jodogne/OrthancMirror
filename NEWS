@@ -1,6 +1,11 @@
 Pending changes in the mainline
 ===============================
 
+General
+-------
+
+* Anonymization is now also applied to nested sequences
+
 REST API
 --------
 

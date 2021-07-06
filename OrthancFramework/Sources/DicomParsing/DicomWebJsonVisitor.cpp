@@ -382,11 +382,13 @@ namespace Orthanc
 
 
   ITagVisitor::Action
-  DicomWebJsonVisitor::VisitEmptySequence(const std::vector<DicomTag>& parentTags,
-                                          const std::vector<size_t>& parentIndexes,
-                                          const DicomTag& tag)
+  DicomWebJsonVisitor::VisitSequence(const std::vector<DicomTag>& parentTags,
+                                     const std::vector<size_t>& parentIndexes,
+                                     const DicomTag& tag,
+                                     size_t countItems)
   {
-    if (tag.GetElement() != 0x0000)
+    if (countItems == 0 &&
+        tag.GetElement() != 0x0000)
     {
       Json::Value& node = CreateNode(parentTags, parentIndexes, tag);
       node[KEY_VR] = EnumerationToString(ValueRepresentation_Sequence);
