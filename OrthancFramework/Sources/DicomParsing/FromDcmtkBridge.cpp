@@ -2415,6 +2415,20 @@ namespace Orthanc
       evr = EVR_UN;
     }
 
+    if (evr == EVR_UN)
+    {
+      // New in Orthanc 1.9.5
+      DictionaryLocker locker;
+      
+      const DcmDictEntry* entry = locker->findEntry(element.getTag().getXTag(),
+                                                    element.getTag().getPrivateCreator());
+
+      if (entry != NULL)
+      {
+        evr = entry->getEVR();
+      }
+    }
+
     const ValueRepresentation vr = FromDcmtkBridge::Convert(evr);
 
     
@@ -2846,41 +2860,38 @@ namespace Orthanc
       // etc. are not." The following dynamic_cast is thus OK.
       DcmSequenceOfItems& sequence = dynamic_cast<DcmSequenceOfItems&>(element);
 
-      if (sequence.card() == 0)
+      ITagVisitor::Action action = visitor.VisitSequence(parentTags, parentIndexes, tag, sequence.card());
+
+      switch (action)
       {
-        ITagVisitor::Action action = visitor.VisitEmptySequence(parentTags, parentIndexes, tag);
+        case ITagVisitor::Action_None:
+          if (sequence.card() != 0)  // Minor optimization to avoid creating "tags" and "indexes" if not needed
+          {
+            std::vector<DicomTag> tags = parentTags;
+            std::vector<size_t> indexes = parentIndexes;
+            tags.push_back(tag);
+            indexes.push_back(0);
 
-        switch (action)
-        {
-          case ITagVisitor::Action_None:
-            return true;
+            for (unsigned long i = 0; i < sequence.card(); i++)
+            {
+              indexes.back() = static_cast<size_t>(i);
+              DcmItem* child = sequence.getItem(i);
+              ApplyVisitorToDataset(*child, visitor, tags, indexes, encoding, hasCodeExtensions);
+            }
+          }
 
-          case ITagVisitor::Action_Remove:
-            return false;
+          return true;  // Keep
 
-          case ITagVisitor::Action_Replace:
-            throw OrthancException(ErrorCode_NotImplemented, "Iterator cannot replace sequences");
+        case ITagVisitor::Action_Remove:
+          return false;
 
-          default:
-            throw OrthancException(ErrorCode_ParameterOutOfRange);
-        }
+        case ITagVisitor::Action_Replace:
+          throw OrthancException(ErrorCode_NotImplemented, "Iterator cannot replace sequences");
+
+        default:
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
       }
-      else
-      {
-        std::vector<DicomTag> tags = parentTags;
-        std::vector<size_t> indexes = parentIndexes;
-        tags.push_back(tag);
-        indexes.push_back(0);
 
-        for (unsigned long i = 0; i < sequence.card(); i++)
-        {
-          indexes.back() = static_cast<size_t>(i);
-          DcmItem* child = sequence.getItem(i);
-          ApplyVisitorToDataset(*child, visitor, tags, indexes, encoding, hasCodeExtensions);
-        }
-
-        return true;  // Keep
-      }
     }
   }
 

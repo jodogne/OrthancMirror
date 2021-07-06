@@ -51,9 +51,10 @@ namespace Orthanc
                                      ValueRepresentation vr) = 0;
 
     // SQ - can return "Remove" or "None"
-    virtual Action VisitEmptySequence(const std::vector<DicomTag>& parentTags,
-                                      const std::vector<size_t>& parentIndexes,
-                                      const DicomTag& tag) = 0;
+    virtual Action VisitSequence(const std::vector<DicomTag>& parentTags,
+                                 const std::vector<size_t>& parentIndexes,
+                                 const DicomTag& tag,
+                                 size_t countItems) = 0;
 
     // SL, SS, UL, US - can return "Remove" or "None"
     virtual Action VisitIntegers(const std::vector<DicomTag>& parentTags,

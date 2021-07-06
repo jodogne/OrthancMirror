@@ -44,6 +44,16 @@ static const std::string ORTHANC_DEIDENTIFICATION_METHOD_2021b =
 
 namespace Orthanc
 {
+  namespace
+  {
+    enum TagOperation
+    {
+      TagOperation_Keep,
+      TagOperation_Remove
+    };
+  }
+
+  
   DicomModification::DicomTagRange::DicomTagRange(uint16_t groupFrom,
                                                   uint16_t groupTo,
                                                   uint16_t elementFrom,
@@ -76,7 +86,57 @@ namespace Orthanc
       return (that_.IsCleared(tag) ||
               that_.IsRemoved(tag) ||
               that_.IsReplaced(tag));
-    }                         
+    }
+
+    bool IsKeptSequence(const std::vector<DicomTag>& parentTags,
+                        const std::vector<size_t>& parentIndexes,
+                        const DicomTag& tag)
+    {
+      for (DicomModification::ListOfPaths::const_iterator
+             it = that_.keepSequences_.begin(); it != that_.keepSequences_.end(); ++it)
+      {
+        if (DicomPath::IsMatch(*it, parentTags, parentIndexes, tag))
+        {
+          return true;
+        }
+      }
+
+      return false;
+    }
+
+    Action GetDefaultAction(const std::vector<DicomTag>& parentTags,
+                            const std::vector<size_t>& parentIndexes,
+                            const DicomTag& tag)
+    {
+      if (parentTags.empty() ||
+          !that_.isAnonymization_)
+      {
+        // Don't interfere with first-level tags or with modification
+        return Action_None;
+      }
+      else if (IsKeptSequence(parentTags, parentIndexes, tag))
+      {
+        return Action_None;
+      }
+      else if (that_.ArePrivateTagsRemoved() &&
+               tag.IsPrivate())
+      {
+        // New in Orthanc 1.9.5
+        // https://groups.google.com/g/orthanc-users/c/l1mcYCC2u-k/m/jOdGYuagAgAJ
+        return Action_Remove;
+      }
+      else if (that_.IsCleared(tag) ||
+               that_.IsRemoved(tag))
+      {
+        // New in Orthanc 1.9.5
+        // https://groups.google.com/g/orthanc-users/c/l1mcYCC2u-k/m/jOdGYuagAgAJ
+        return Action_Remove;
+      }
+      else
+      {
+        return Action_None;
+      }
+    }
 
   public:
     explicit RelationshipsVisitor(DicomModification& that) :
@@ -89,14 +149,15 @@ namespace Orthanc
                                      const DicomTag& tag,
                                      ValueRepresentation vr) ORTHANC_OVERRIDE
     {
-      return Action_None;
+      return GetDefaultAction(parentTags, parentIndexes, tag);
     }
 
-    virtual Action VisitEmptySequence(const std::vector<DicomTag>& parentTags,
-                                      const std::vector<size_t>& parentIndexes,
-                                      const DicomTag& tag) ORTHANC_OVERRIDE
+    virtual Action VisitSequence(const std::vector<DicomTag>& parentTags,
+                                 const std::vector<size_t>& parentIndexes,
+                                 const DicomTag& tag,
+                                 size_t countItems) ORTHANC_OVERRIDE
     {
-      return Action_None;
+      return GetDefaultAction(parentTags, parentIndexes, tag);
     }
 
     virtual Action VisitBinary(const std::vector<DicomTag>& parentTags,
@@ -106,7 +167,7 @@ namespace Orthanc
                                const void* data,
                                size_t size) ORTHANC_OVERRIDE
     {
-      return Action_None;
+      return GetDefaultAction(parentTags, parentIndexes, tag);
     }
 
     virtual Action VisitIntegers(const std::vector<DicomTag>& parentTags,
@@ -115,7 +176,7 @@ namespace Orthanc
                                  ValueRepresentation vr,
                                  const std::vector<int64_t>& values) ORTHANC_OVERRIDE
     {
-      return Action_None;
+      return GetDefaultAction(parentTags, parentIndexes, tag);
     }
 
     virtual Action VisitDoubles(const std::vector<DicomTag>& parentTags,
@@ -124,7 +185,7 @@ namespace Orthanc
                                 ValueRepresentation vr,
                                 const std::vector<double>& value) ORTHANC_OVERRIDE
     {
-      return Action_None;
+      return GetDefaultAction(parentTags, parentIndexes, tag);
     }
 
     virtual Action VisitAttributes(const std::vector<DicomTag>& parentTags,
@@ -132,7 +193,7 @@ namespace Orthanc
                                    const DicomTag& tag,
                                    const std::vector<DicomTag>& value) ORTHANC_OVERRIDE
     {
-      return Action_None;
+      return GetDefaultAction(parentTags, parentIndexes, tag);
     }
 
     virtual Action VisitString(std::string& newValue,
@@ -187,18 +248,30 @@ namespace Orthanc
       {
         // We are within a sequence
 
-        if (!that_.keepSequences_.empty())
+        if (IsKeptSequence(parentTags, parentIndexes, tag))
         {
           // New in Orthanc 1.9.4 - Solves issue LSD-629
-          DicomPath path(parentTags, parentIndexes, tag);
-          
-          for (ListOfPaths::const_iterator it = that_.keepSequences_.begin();
-               it != that_.keepSequences_.end(); ++it)
+          return Action_None;
+        }
+
+        if (that_.isAnonymization_)
+        {
+          // New in Orthanc 1.9.5, similar to "GetDefaultAction()"
+          // https://groups.google.com/g/orthanc-users/c/l1mcYCC2u-k/m/jOdGYuagAgAJ
+          if (that_.ArePrivateTagsRemoved() &&
+              tag.IsPrivate())
           {
-            if (DicomPath::IsMatch(*it, path))
-            {
-              return Action_None;
-            }
+            return Action_Remove;
+          }
+          else if (that_.IsRemoved(tag))
+          {
+            return Action_Remove;
+          }
+          else if (that_.IsCleared(tag))
+          {
+            // This is different from "GetDefaultAction()", because we know how to clear string tags
+            newValue.clear();
+            return Action_Replace;
           }
         }
 
@@ -1106,7 +1179,7 @@ namespace Orthanc
 
   static void ParseListOfTags(DicomModification& target,
                               const Json::Value& query,
-                              DicomModification::TagOperation operation,
+                              TagOperation operation,
                               bool force)
   {
     if (!query.isArray())
@@ -1131,18 +1204,18 @@ namespace Orthanc
       {
         throw OrthancException(ErrorCode_BadRequest,
                                "Marking tag \"" + name + "\" as to be " +
-                               (operation == DicomModification::TagOperation_Keep ? "kept" : "removed") +
+                               (operation == TagOperation_Keep ? "kept" : "removed") +
                                " requires the \"Force\" option to be set to true");
       }
 
       switch (operation)
       {
-        case DicomModification::TagOperation_Keep:
+        case TagOperation_Keep:
           target.Keep(path);
           LOG(TRACE) << "Keep: " << name << " = " << path.Format();
           break;
 
-        case DicomModification::TagOperation_Remove:
+        case TagOperation_Remove:
           target.Remove(path);
           LOG(TRACE) << "Remove: " << name << " = " << path.Format();
           break;

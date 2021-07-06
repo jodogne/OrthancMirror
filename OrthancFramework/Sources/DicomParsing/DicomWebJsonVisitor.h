@@ -91,9 +91,10 @@ namespace Orthanc
                                      ValueRepresentation vr)
       ORTHANC_OVERRIDE;
 
-    virtual Action VisitEmptySequence(const std::vector<DicomTag>& parentTags,
-                                      const std::vector<size_t>& parentIndexes,
-                                      const DicomTag& tag)
+    virtual Action VisitSequence(const std::vector<DicomTag>& parentTags,
+                                 const std::vector<size_t>& parentIndexes,
+                                 const DicomTag& tag,
+                                 size_t countItems)
       ORTHANC_OVERRIDE;
 
     virtual Action VisitBinary(const std::vector<DicomTag>& parentTags,
