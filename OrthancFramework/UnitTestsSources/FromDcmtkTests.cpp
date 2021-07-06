@@ -2474,7 +2474,6 @@ TEST(ParsedDicomFile, DicomPath)
   static const char* CODE_VALUE = "0008,0100";
   static const char* PATIENT_ID = "0010,0020";
   static const char* PATIENT_NAME = "0010,0010";
-  static const char* SERIES_DESCRIPTION = "0008,103e";
   static const char* PURPOSE_CODE_SEQ = "0040,a170";
   static const char* REF_IM_SEQ = "0008,1140";
   static const char* REF_SOP_CLASS = "0008,1150";
@@ -2553,6 +2552,8 @@ TEST(ParsedDicomFile, DicomPath)
 
     Json::Value vv;
     dicom->DatasetToJson(vv, DicomToJsonFormat_Short, DicomToJsonFlags_None, 0);
+
+    static const char* SERIES_DESCRIPTION = "0008,103e";
 
     ASSERT_EQ("WORLD", vv[REL_SERIES_SEQ][0][PURPOSE_CODE_SEQ][0][SERIES_DESCRIPTION].asString());
     ASSERT_FALSE(vv[REL_SERIES_SEQ][0][PURPOSE_CODE_SEQ][0].isMember(CODE_VALUE));
