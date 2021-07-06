@@ -1158,6 +1158,25 @@ namespace Orthanc
   }
 
 
+  const char* EnumerationToString(DicomToJsonFormat format)
+  {
+    switch (format)
+    {
+      case DicomToJsonFormat_Full:
+        return "Full";
+
+      case DicomToJsonFormat_Human:
+        return "Simplify";
+
+      case DicomToJsonFormat_Short:
+        return "Short";
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+
   Encoding StringToEncoding(const char* encoding)
   {
     std::string s(encoding);
@@ -1808,6 +1827,27 @@ namespace Orthanc
     }
   }
   
+
+  DicomToJsonFormat StringToDicomToJsonFormat(const std::string& format)
+  {
+    if (format == "Full")
+    {
+      return DicomToJsonFormat_Full;
+    }
+    else if (format == "Short")
+    {
+      return DicomToJsonFormat_Short;
+    }
+    else if (format == "Simplify")
+    {
+      return DicomToJsonFormat_Human;
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
 
   unsigned int GetBytesPerPixel(PixelFormat format)
   {

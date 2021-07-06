@@ -21,13 +21,15 @@
 
 #include "DicomMoveScuJob.h"
 
+#include "../../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.h"
 #include "../../../OrthancFramework/Sources/SerializationToolbox.h"
 #include "../ServerContext.h"
 
 static const char* const LOCAL_AET = "LocalAet";
-static const char* const TARGET_AET = "TargetAet";
-static const char* const REMOTE = "Remote";
 static const char* const QUERY = "Query";
+static const char* const QUERY_FORMAT = "QueryFormat";  // New in 1.9.5
+static const char* const REMOTE = "Remote";
+static const char* const TARGET_AET = "TargetAet";
 static const char* const TIMEOUT = "Timeout";
 
 namespace Orthanc
@@ -80,7 +82,6 @@ namespace Orthanc
   };
 
 
-
   void DicomMoveScuJob::Retrieve(const DicomMap& findAnswer)
   {
     if (connection_.get() == NULL)
@@ -92,33 +93,30 @@ namespace Orthanc
   }
 
 
-  static void AddTagIfString(Json::Value& target,
-                             const DicomMap& answer,
-                             const DicomTag& tag)
+  static void AddToQuery(DicomFindAnswers& query,
+                         const DicomMap& item)
   {
-    const DicomValue* value = answer.TestAndGetValue(tag);
-    if (value != NULL &&
-        !value->IsNull() &&
-        !value->IsBinary())
-    {
-      target[tag.Format()] = value->GetContent();
-    }
+    query.Add(item);
+
+    /**
+     * Compatibility with Orthanc <= 1.9.4: Remove the
+     * "SpecificCharacterSet" (0008,0005) tag that is automatically
+     * added if creating a ParsedDicomFile object from a DicomMap.
+     **/
+    query.GetAnswer(query.GetSize() - 1).Remove(DICOM_TAG_SPECIFIC_CHARACTER_SET);
   }
-  
+
 
   void DicomMoveScuJob::AddFindAnswer(const DicomMap& answer)
   {
-    assert(query_.type() == Json::arrayValue);
-
-    // Copy the identifiers tags, if they exist
-    Json::Value item = Json::objectValue;
-    AddTagIfString(item, answer, DICOM_TAG_QUERY_RETRIEVE_LEVEL);
-    AddTagIfString(item, answer, DICOM_TAG_PATIENT_ID);
-    AddTagIfString(item, answer, DICOM_TAG_STUDY_INSTANCE_UID);
-    AddTagIfString(item, answer, DICOM_TAG_SERIES_INSTANCE_UID);
-    AddTagIfString(item, answer, DICOM_TAG_SOP_INSTANCE_UID);
-    AddTagIfString(item, answer, DICOM_TAG_ACCESSION_NUMBER);
-    query_.append(item);
+    DicomMap item;
+    item.CopyTagIfExists(answer, DICOM_TAG_QUERY_RETRIEVE_LEVEL);
+    item.CopyTagIfExists(answer, DICOM_TAG_PATIENT_ID);
+    item.CopyTagIfExists(answer, DICOM_TAG_STUDY_INSTANCE_UID);
+    item.CopyTagIfExists(answer, DICOM_TAG_SERIES_INSTANCE_UID);
+    item.CopyTagIfExists(answer, DICOM_TAG_SOP_INSTANCE_UID);
+    item.CopyTagIfExists(answer, DICOM_TAG_ACCESSION_NUMBER);
+    AddToQuery(query_, item);
     
     AddCommand(new Command(*this, answer));
   }
@@ -191,13 +189,28 @@ namespace Orthanc
   }
   
 
+  void DicomMoveScuJob::SetQueryFormat(DicomToJsonFormat format)
+  {
+    if (IsStarted())
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    else
+    {
+      queryFormat_ = format;
+    }
+  }
+
+
   void DicomMoveScuJob::GetPublicContent(Json::Value& value)
   {
     SetOfCommandsJob::GetPublicContent(value);
 
-    value["LocalAet"] = parameters_.GetLocalApplicationEntityTitle();
+    value[LOCAL_AET] = parameters_.GetLocalApplicationEntityTitle();
     value["RemoteAet"] = parameters_.GetRemoteModality().GetApplicationEntityTitle();
-    value["Query"] = query_;
+
+    value[QUERY] = Json::objectValue;
+    query_.ToJson(value[QUERY], queryFormat_);
   }
 
 
@@ -207,12 +220,26 @@ namespace Orthanc
     context_(context),
     parameters_(DicomAssociationParameters::UnserializeJob(serialized)),
     targetAet_(SerializationToolbox::ReadString(serialized, TARGET_AET)),
-    query_(Json::arrayValue)
+    query_(true),
+    queryFormat_(DicomToJsonFormat_Short)
   {
-    if (serialized.isMember(QUERY) &&
-        serialized[QUERY].type() == Json::arrayValue)
+    if (serialized.isMember(QUERY))
     {
-      query_ = serialized[QUERY];
+      const Json::Value& query = serialized[QUERY];
+      if (query.type() == Json::arrayValue)
+      {
+        for (Json::Value::ArrayIndex i = 0; i < query.size(); i++)
+        {
+          DicomMap item;
+          FromDcmtkBridge::FromJson(item, query[i]);
+          AddToQuery(query_, item);
+        }
+      }
+    }
+
+    if (serialized.isMember(QUERY_FORMAT))
+    {
+      queryFormat_ = StringToDicomToJsonFormat(SerializationToolbox::ReadString(serialized, QUERY_FORMAT));
     }
   }
 
@@ -227,7 +254,13 @@ namespace Orthanc
     {
       parameters_.SerializeJob(target);
       target[TARGET_AET] = targetAet_;
-      target[QUERY] = query_;
+
+      // "Short" is for compatibility with Orthanc <= 1.9.4
+      target[QUERY] = Json::objectValue;
+      query_.ToJson(target[QUERY], DicomToJsonFormat_Short);
+
+      target[QUERY_FORMAT] = EnumerationToString(queryFormat_);
+      
       return true;
     }
   }

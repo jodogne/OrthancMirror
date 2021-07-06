@@ -381,7 +381,6 @@ namespace Orthanc
     Json::Value json;
     if (call.ParseJsonRequest(json))
     {
-      std::cout << json.toStyledString();
       OrthancConfiguration::ParseAcceptedTransferSyntaxes(syntaxes, json);
     }
     else

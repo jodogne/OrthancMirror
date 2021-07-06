@@ -39,12 +39,6 @@ namespace Orthanc
      **/
 
   public:
-    enum TagOperation
-    {
-      TagOperation_Keep,
-      TagOperation_Remove
-    };
-
     class IDicomIdentifierGenerator : public boost::noncopyable
     {
     public:

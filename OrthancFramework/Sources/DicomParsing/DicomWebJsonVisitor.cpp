@@ -371,32 +371,40 @@ namespace Orthanc
 #endif
 
 
-  void DicomWebJsonVisitor::VisitNotSupported(const std::vector<DicomTag> &parentTags,
-                                              const std::vector<size_t> &parentIndexes,
-                                              const DicomTag &tag,
-                                              ValueRepresentation vr)
+  ITagVisitor::Action
+  DicomWebJsonVisitor::VisitNotSupported(const std::vector<DicomTag> &parentTags,
+                                         const std::vector<size_t> &parentIndexes,
+                                         const DicomTag &tag,
+                                         ValueRepresentation vr)
   {
+    return Action_None;
   }
 
 
-  void DicomWebJsonVisitor::VisitEmptySequence(const std::vector<DicomTag>& parentTags,
-                                               const std::vector<size_t>& parentIndexes,
-                                               const DicomTag& tag)
+  ITagVisitor::Action
+  DicomWebJsonVisitor::VisitSequence(const std::vector<DicomTag>& parentTags,
+                                     const std::vector<size_t>& parentIndexes,
+                                     const DicomTag& tag,
+                                     size_t countItems)
   {
-    if (tag.GetElement() != 0x0000)
+    if (countItems == 0 &&
+        tag.GetElement() != 0x0000)
     {
       Json::Value& node = CreateNode(parentTags, parentIndexes, tag);
       node[KEY_VR] = EnumerationToString(ValueRepresentation_Sequence);
     }
+
+    return Action_None;
   }
   
 
-  void DicomWebJsonVisitor::VisitBinary(const std::vector<DicomTag>& parentTags,
-                                        const std::vector<size_t>& parentIndexes,
-                                        const DicomTag& tag,
-                                        ValueRepresentation vr,
-                                        const void* data,
-                                        size_t size)
+  ITagVisitor::Action
+  DicomWebJsonVisitor::VisitBinary(const std::vector<DicomTag>& parentTags,
+                                   const std::vector<size_t>& parentIndexes,
+                                   const DicomTag& tag,
+                                   ValueRepresentation vr,
+                                   const void* data,
+                                   size_t size)
   {
     assert(vr == ValueRepresentation_OtherByte ||
            vr == ValueRepresentation_OtherDouble ||
@@ -456,14 +464,17 @@ namespace Orthanc
         }
       }
     }
+
+    return Action_None;
   }
 
 
-  void DicomWebJsonVisitor::VisitIntegers(const std::vector<DicomTag>& parentTags,
-                                          const std::vector<size_t>& parentIndexes,
-                                          const DicomTag& tag,
-                                          ValueRepresentation vr,
-                                          const std::vector<int64_t>& values)
+  ITagVisitor::Action
+  DicomWebJsonVisitor::VisitIntegers(const std::vector<DicomTag>& parentTags,
+                                     const std::vector<size_t>& parentIndexes,
+                                     const DicomTag& tag,
+                                     ValueRepresentation vr,
+                                     const std::vector<int64_t>& values)
   {
     if (tag.GetElement() != 0x0000 &&
         vr != ValueRepresentation_NotSupported)
@@ -482,13 +493,16 @@ namespace Orthanc
         node[KEY_VALUE] = content;
       }
     }
+
+    return Action_None;
   }
 
-  void DicomWebJsonVisitor::VisitDoubles(const std::vector<DicomTag>& parentTags,
-                                         const std::vector<size_t>& parentIndexes,
-                                         const DicomTag& tag,
-                                         ValueRepresentation vr,
-                                         const std::vector<double>& values)
+  ITagVisitor::Action
+  DicomWebJsonVisitor::VisitDoubles(const std::vector<DicomTag>& parentTags,
+                                    const std::vector<size_t>& parentIndexes,
+                                    const DicomTag& tag,
+                                    ValueRepresentation vr,
+                                    const std::vector<double>& values)
   {
     if (tag.GetElement() != 0x0000 &&
         vr != ValueRepresentation_NotSupported)
@@ -507,13 +521,16 @@ namespace Orthanc
         node[KEY_VALUE] = content;
       }
     }
+
+    return Action_None;
   }
 
   
-  void DicomWebJsonVisitor::VisitAttributes(const std::vector<DicomTag>& parentTags,
-                                            const std::vector<size_t>& parentIndexes,
-                                            const DicomTag& tag,
-                                            const std::vector<DicomTag>& values)
+  ITagVisitor::Action
+  DicomWebJsonVisitor::VisitAttributes(const std::vector<DicomTag>& parentTags,
+                                       const std::vector<size_t>& parentIndexes,
+                                       const DicomTag& tag,
+                                       const std::vector<DicomTag>& values)
   {
     if (tag.GetElement() != 0x0000)
     {
@@ -531,6 +548,8 @@ namespace Orthanc
         node[KEY_VALUE] = content;
       }
     }
+
+    return Action_None;
   }
 
   
