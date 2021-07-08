@@ -797,7 +797,7 @@
   // identifier is only useful in the case of multiple
   // readers/writers, in order to avoid collisions between multiple
   // Orthanc servers. If unset, this identifier is taken as a SHA-1
-  // hash derived from the MAC adddresses of the network interfaces,
+  // hash derived from the MAC addresses of the network interfaces,
   // and from the AET and TCP ports used by Orthanc. Manually setting
   // this option is needed in Docker/Kubernetes environments. (new in
   // Orthanc 1.9.2)

@@ -38,7 +38,7 @@
 
 /**
  * I have not been able to correctly define "ssize_t" on all versions
- * of Visual Studio. As a consequence, I prefered to switch "ssize_t"
+ * of Visual Studio. As a consequence, I preferred to switch "ssize_t"
  * to "SSIZE_T", that is properly defined on both MSVC 2008 and 2015.
  * I define the macro "SSIZE_T" as an alias to "ssize_t" on
  * POSIX-compliant platforms that wouldn't have "SSIZE_T" defined.

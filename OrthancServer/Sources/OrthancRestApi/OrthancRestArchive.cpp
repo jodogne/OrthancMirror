@@ -502,7 +502,7 @@ namespace Orthanc
       .SetRequestField("Synchronous", RestApiCallDocumentation::Type_Boolean,
                        "If `true`, create the archive in synchronous mode, which means that the HTTP answer will directly "
                        "contain the ZIP file. This is the default, easy behavior. However, if global configuration option "
-                       "\"SynchronousZipStream\" is set to \"false\", asynchronous transfers should be prefered for "
+                       "\"SynchronousZipStream\" is set to \"false\", asynchronous transfers should be preferred for "
                        "large amount of data, as the creation of the temporary file might lead to network timeouts.", false)
       .SetRequestField("Asynchronous", RestApiCallDocumentation::Type_Boolean,
                        "If `true`, create the archive in asynchronous mode, which means that a job is submitted to create "
