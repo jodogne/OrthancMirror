@@ -1,6 +1,11 @@
 Pending changes in the mainline
 ===============================
 
+Orthanc Explorer
+----------------
+
+* Clicking on "Send to remote modality" displays the job information to monitor progress
+
 
 Version 1.9.5 (2021-07-08)
 ==========================
