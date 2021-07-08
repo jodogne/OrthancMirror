@@ -1,10 +1,14 @@
 Pending changes in the mainline
 ===============================
 
+
+Version 1.9.5 (2021-07-08)
+==========================
+
 General
 -------
 
-* Anonymization is now also applied recursively to nested tags
+* Anonymization is applied recursively to nested tags
 
 REST API
 --------
