@@ -22,6 +22,7 @@
 import argparse
 import bz2
 import gzip
+import json
 import os
 import requests
 import sys
@@ -71,12 +72,31 @@ Are you sure ["yes" to go on]?""" % args.server)
 
 IMPORTED_STUDIES = set()
 COUNT_ERROR = 0
-COUNT_SUCCESS = 0
-        
+COUNT_DICOM = 0
+COUNT_JSON = 0
+
+
+def IsJson(content):
+    try:
+        if (sys.version_info >= (3, 0)):
+            json.loads(content.decode())
+            return True
+        else:
+            json.loads(content)
+            return True
+    except:
+        return False
+
+
 def UploadBuffer(dicom):
     global IMPORTED_STUDIES
     global COUNT_ERROR
-    global COUNT_SUCCESS
+    global COUNT_DICOM
+    global COUNT_JSON
+
+    if IsJson(dicom):
+        COUNT_JSON += 1
+        return
     
     auth = HTTPBasicAuth(args.username, args.password)
     r = requests.post('%s/instances' % args.url, auth = auth, data = dicom)
@@ -93,7 +113,7 @@ def UploadBuffer(dicom):
             raise
         
     info = r.json()
-    COUNT_SUCCESS += 1
+    COUNT_DICOM += 1
 
     if not info['ParentStudy'] in IMPORTED_STUDIES:
         IMPORTED_STUDIES.add(info['ParentStudy'])
@@ -219,8 +239,14 @@ for path in args.files:
         
 
 print('')
-print('Status:')
-print('  %d DICOM instances properly imported' % COUNT_SUCCESS)
+
+if COUNT_ERROR == 0:
+    print('SUCCESS:')
+else:
+    print('WARNING:')
+    
+print('  %d DICOM instances properly imported' % COUNT_DICOM)
 print('  %d DICOM studies properly imported' % len(IMPORTED_STUDIES))
+print('  %d JSON files ignored' % COUNT_JSON)
 print('  Error in %d files' % COUNT_ERROR)
 print('')
