@@ -1248,19 +1248,23 @@ $('#instance-store,#series-store,#study-store,#patient-store').live('click', fun
     }
 
     if (url != '') {
+      /**
+       * In Orthanc <= 1.9.5, synchronous job was used, which caused a
+       * non-intuitive behavior because of AJAX timeouts on large
+       * studies. We now use an asynchronous call.
+       * https://groups.google.com/g/orthanc-users/c/r2LoAp72AWI/m/cVaFXopUBAAJ
+       **/
       $.ajax({
         url: url,
         type: 'POST',
-        dataType: 'text',
-        data: pageData.uuid,
-        async: true,  // Necessary to block UI
-        beforeSend: function() {
-          $.blockUI({ message: $(loading) });
-        },
-        complete: function(s) {
-          $.unblockUI();
-        },
-        success: function(s) {
+        data: JSON.stringify({
+          'Synchronous' : false,
+          'Resources' : [ pageData.uuid ]
+        }),
+        dataType: 'json',
+        async: false,
+        success: function(job) {
+          window.location.assign('explorer.html#job?uuid=' + job.ID);
         },
         error: function() {
           alert('Error during store');

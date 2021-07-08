@@ -15,10 +15,19 @@ OpenSSL 3.x branch
 * Upgraded dependencies for static builds (notably on Windows and LSB):
   - openssl 3.0.0-beta1
 
+Orthanc Explorer
+----------------
+
+* Clicking on "Send to remote modality" displays the job information to monitor progress
+
+
+Version 1.9.5 (2021-07-08)
+==========================
+
 General
 -------
 
-* Anonymization is now also applied recursively to nested tags
+* Anonymization is applied recursively to nested tags
 
 REST API
 --------
