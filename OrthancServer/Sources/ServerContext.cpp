@@ -1174,16 +1174,25 @@ namespace Orthanc
     StorageAccessor accessor(area_, GetMetricsRegistry());
     FileInfo attachment = accessor.Write(data, size, attachmentType, compression, storeMD5_);
 
-    StoreStatus status = index_.AddAttachment(
-      newRevision, attachment, resourceId, hasOldRevision, oldRevision, oldMD5);
-    if (status != StoreStatus_Success)
+    try
     {
-      accessor.Remove(attachment);
-      return false;
+      StoreStatus status = index_.AddAttachment(
+        newRevision, attachment, resourceId, hasOldRevision, oldRevision, oldMD5);
+      if (status != StoreStatus_Success)
+      {
+        accessor.Remove(attachment);
+        return false;
+      }
+      else
+      {
+        return true;
+      }
     }
-    else
+    catch (OrthancException&)
     {
-      return true;
+      // Fixed in Orthanc 1.9.6
+      accessor.Remove(attachment);
+      throw;
     }
   }
 
