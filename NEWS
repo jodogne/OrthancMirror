@@ -6,6 +6,11 @@ Orthanc Explorer
 
 * Clicking on "Send to remote modality" displays the job information to monitor progress
 
+Maintenance
+-----------
+
+* Fix orphaned attachments if bad revision number is provided
+
 
 Version 1.9.5 (2021-07-08)
 ==========================
