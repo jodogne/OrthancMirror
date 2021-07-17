@@ -7501,9 +7501,9 @@ extern "C"
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param pathRegularExpression Regular expression for the URI. May contain groups. 
    * @param getHandler The callback function to handle REST calls using the GET HTTP method.
-   * @param postHandler The callback function to handle REST calls using the GET POST method.
-   * @param deleteHandler The callback function to handle REST calls using the GET DELETE method.
-   * @param putHandler The callback function to handle REST calls using the GET PUT method.
+   * @param postHandler The callback function to handle REST calls using the POST HTTP method.
+   * @param deleteHandler The callback function to handle REST calls using the DELETE HTTP method.
+   * @param putHandler The callback function to handle REST calls using the PUT HTTP method.
    * @param addChunk The callback invoked when a new chunk is available for the request body of a POST or PUT call.
    * @param execute The callback invoked once the entire body of a POST or PUT call is read.
    * @param finalize The callback invoked to release the resources associated with a POST or PUT call.
