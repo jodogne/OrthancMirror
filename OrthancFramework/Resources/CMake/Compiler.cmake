@@ -42,14 +42,6 @@ if ("${CMAKE_SYSTEM_VERSION}" STREQUAL "LinuxStandardBase")
   # use by "ExternalProject" in CMake
   SET(CMAKE_LSB_CC $ENV{LSB_CC} CACHE STRING "")
   SET(CMAKE_LSB_CXX $ENV{LSB_CXX} CACHE STRING "")
-
-  # Explicitly adding "-lstdc++ -lm" during linking for LSB had to be
-  # introduced on the BuildBot server for LSB Release builds between
-  # "OrthancMySQL-4.0" and "OrthancMySQL-4.1" and after
-  # "Orthanc-1.9.5", for unclear reasons. Without this option, many
-  # symbols are left undefined while linking. Similar to:
-  # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=14001
-  link_libraries(stdc++ m)
 endif()
 
 
