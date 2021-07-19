@@ -680,7 +680,8 @@
   "MediaArchiveSize" : 1,
 
   // Performance setting to specify how Orthanc accesses the storage
-  // area during C-FIND. Three modes are available: (1) "Always"
+  // area during find operations (C-FIND, /tools/find API route and
+  // QIDO-RS in dicom-web). Three modes are available: (1) "Always"
   // allows Orthanc to read the storage area as soon as it needs an
   // information that is not present in its database (slowest mode),
   // (2) "Never" prevents Orthanc from accessing the storage area, and
