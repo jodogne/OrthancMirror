@@ -87,6 +87,11 @@
           </select>
         </div>
 
+        <div data-role="fieldcontain">
+          <label for="lookup-study-date-specific"></label>
+          <input type="date" name="lookup-study-date-specific" id="lookup-study-date-specific" />
+        </div>
+
         <fieldset class="ui-grid-b">
           <div class="ui-block-a">
             <a href="#find-patients" data-role="button" data-theme="b" data-direction="reverse">All patients</a>
@@ -494,13 +499,18 @@
 
         <div data-role="fieldcontain">
           <label for="qr-value">Value for this field:</label>
-          <input type="text" name="qr-value" id="qr-value" value="*" />
+          <input type="text" name="qr-value" id="qr-value" value="" />
         </div>
 
         <div data-role="fieldcontain">
           <label for="qr-date">Study date:</label>
           <select name="qr-date" id="qr-date">
           </select>
+        </div>
+
+        <div data-role="fieldcontain">
+          <label for="qr-date-specific"></label>
+          <input type="date" name="qr-date-specific" id="qr-date-specific" />
         </div>
 
         <div data-role="fieldcontain" id="qr-modalities">
