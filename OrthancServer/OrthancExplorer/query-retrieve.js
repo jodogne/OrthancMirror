@@ -31,6 +31,11 @@
  **/
 
 
+function IsoToDicomDate(s)
+{
+  return s.substring(0, 4) + s.substring(5, 7) + s.substring(8, 10);
+}
+
 function GenerateDicomDate(days)
 {
   var today = new Date();
@@ -48,8 +53,7 @@ function GenerateDicomDate(days)
   var timezoneOffset = today.getTimezoneOffset() * 60 * 1000;
   var localDate = new Date(utc.getTime() - timezoneOffset);
   
-  var s = localDate.toISOString();
-  return s.substring(0, 4) + s.substring(5, 7) + s.substring(8, 10);
+  return IsoToDicomDate(localDate.toISOString());
 }
 
 
@@ -85,7 +89,19 @@ $('#query-retrieve').live('pagebeforeshow', function() {
   targetDate.append($('<option>').attr('value', GenerateDicomDate(-31) + '-').text('Last 31 days'));
   targetDate.append($('<option>').attr('value', GenerateDicomDate(-31 * 3) + '-').text('Last 3 months'));
   targetDate.append($('<option>').attr('value', GenerateDicomDate(-365) + '-').text('Last year'));
+  targetDate.append($('<option>').attr('value', 'specific').text('Specific date'));
   targetDate.selectmenu('refresh');
+
+  $('#qr-date-specific').hide();
+});
+
+
+$('#qr-date').live('change', function() {
+  if ($(this).val() == 'specific') {
+    $('#qr-date-specific').show();
+  } else {
+    $('#qr-date-specific').hide();
+  }
 });
 
 
@@ -120,7 +136,12 @@ $('#qr-echo').live('click', function() {
 
 
 $('#qr-submit').live('click', function() {
-  var query, server, modalities, field;
+  var query, server, modalities, field, studyDate;
+
+  studyDate = $('#qr-date').val();
+  if (studyDate == 'specific') {
+    studyDate = IsoToDicomDate($('#qr-date-specific').val());
+  }
 
   query = {
     'Level' : 'Study',
@@ -130,7 +151,7 @@ $('#qr-submit').live('click', function() {
       'PatientID' : '',
       'PatientName' : '',
       'PatientSex' : '',
-      'StudyDate' : $('#qr-date').val(),
+      'StudyDate' : studyDate,
       'StudyDescription' : ''
     }
   };
