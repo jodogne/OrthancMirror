@@ -15,10 +15,20 @@ OpenSSL 3.x branch
 * Upgraded dependencies for static builds (notably on Windows and LSB):
   - openssl 3.0.0-beta1
 
+
+Version 1.9.6 (2021-07-21)
+==========================
+
 Orthanc Explorer
 ----------------
 
+* In lookup and query/retrieve, possibility to provide a specific study date
 * Clicking on "Send to remote modality" displays the job information to monitor progress
+
+Maintenance
+-----------
+
+* Fix orphaned attachments if bad revision number is provided
 
 
 Version 1.9.5 (2021-07-08)

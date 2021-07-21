@@ -494,23 +494,39 @@ $('#lookup').live('pagebeforeshow', function() {
   target.append($('<option>').attr('value', GenerateDicomDate(-31) + '-').text('Last 31 days'));
   target.append($('<option>').attr('value', GenerateDicomDate(-31 * 3) + '-').text('Last 3 months'));
   target.append($('<option>').attr('value', GenerateDicomDate(-365) + '-').text('Last year'));
+  target.append($('<option>').attr('value', 'specific').text('Specific date'));
   target.selectmenu('refresh');
 
   $('#lookup-result').hide();
+  $('#lookup-study-date-specific').hide();
+});
+
+
+$('#lookup-study-date').live('change', function() {
+  if ($(this).val() == 'specific') {
+    $('#lookup-study-date-specific').show();
+  } else {
+    $('#lookup-study-date-specific').hide();
+  }
 });
 
 
 $('#lookup-submit').live('click', function() {
-  var lookup;
+  var lookup, studyDate;
 
   $('#lookup-result').hide();
 
+  studyDate = $('#lookup-study-date').val();
+  if (studyDate == 'specific') {
+    studyDate = IsoToDicomDate($('#lookup-study-date-specific').val());
+  }
+  
   lookup = {
     'Level' : 'Study',
     'Expand' : true,
     'Limit' : LIMIT_RESOURCES + 1,
     'Query' : {
-      'StudyDate' : $('#lookup-study-date').val()
+      'StudyDate' : studyDate
     },
     'Full' : true
   };
@@ -528,6 +544,9 @@ $('#lookup-submit').live('click', function() {
       } 
       else if (input.id == 'lookup-study-description') {
         lookup['Query']['StudyDescription'] = input.value;
+      }
+      else if (input.id == 'lookup-study-date-specific') {
+        // Ignore
       }
       else {
         console.error('Unknown lookup field: ' + input.id);

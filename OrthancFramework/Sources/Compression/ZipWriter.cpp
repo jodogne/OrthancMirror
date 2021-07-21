@@ -452,7 +452,7 @@ namespace Orthanc
     }
     catch (OrthancException& e)  // Don't throw exceptions in destructors
     {
-      LOG(ERROR) << "Catched exception in destructor: " << e.What();
+      LOG(ERROR) << "Caught exception in destructor: " << e.What();
     }
   }
 
