@@ -1,6 +1,8 @@
 Pending changes in the mainline
 ===============================
 
+* Linux Standard Base (LSB) builds of Orthanc can load non-LSB builds of plugins
+
 
 Version 1.9.6 (2021-07-21)
 ==========================
