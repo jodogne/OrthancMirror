@@ -1,6 +1,7 @@
 Pending changes in the mainline
 ===============================
 
+* Added file CITATION.cff
 * Linux Standard Base (LSB) builds of Orthanc can load non-LSB builds of plugins
 
 
