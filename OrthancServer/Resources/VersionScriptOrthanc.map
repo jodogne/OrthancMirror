@@ -1,0 +1,13 @@
+# This is a version-script for the main Orthanc binary, that hides all
+# the global functions of the executable so that a Linux Standard Base
+# (LSB) build of Orthanc can load plugins that are not built using
+# LSB. Otherwise, the dynamic loader of the plugins will try to use
+# the global functions published by the Orthanc server, which results
+# in a segmentation fault if the data structures don't have the same
+# memory layout (e.g. debug vs. release, or another version of some
+# C/C++ library used both by Orthanc, typically jsoncpp).
+
+{
+local:
+  *;
+};
