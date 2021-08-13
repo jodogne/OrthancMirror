@@ -3,6 +3,7 @@ Pending changes in the mainline
 
 * Added file CITATION.cff
 * Linux Standard Base (LSB) builds of Orthanc can load non-LSB builds of plugins
+* Fix upload of ZIP archives containing a DICOMDIR file
 
 
 Version 1.9.6 (2021-07-21)
