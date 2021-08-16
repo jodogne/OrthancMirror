@@ -58,6 +58,7 @@ static const char* const INTERPRET_BINARY_TAGS = "InterpretBinaryTags";
 static const char* const KEEP = "Keep";
 static const char* const KEEP_PRIVATE_TAGS = "KeepPrivateTags";
 static const char* const KEEP_SOURCE = "KeepSource";
+static const char* const LEVEL = "Level";
 static const char* const PARENT = "Parent";
 static const char* const PRIVATE_CREATOR = "PrivateCreator";
 static const char* const REMOVE = "Remove";
@@ -77,6 +78,15 @@ namespace Orthanc
   {
     uint64_t seq = context.GetIndex().IncrementGlobalSequence(GlobalProperty_AnonymizationSequence, true /* shared */);
     return "Anonymized" + boost::lexical_cast<std::string>(seq);
+  }
+
+
+  static void DocumentKeepSource(RestApiPostCall& call)
+  {
+    call.GetDocumentation()
+      .SetRequestField(KEEP_SOURCE, RestApiCallDocumentation::Type_Boolean,
+                       "If set to `false`, instructs Orthanc to the remove original resources. "
+                       "By default, the original resources are kept in Orthanc.", false);
   }
 
 
@@ -102,6 +112,9 @@ namespace Orthanc
                        "as this breaks the DICOM model of the real world.", false)
       .SetRequestField(PRIVATE_CREATOR, RestApiCallDocumentation::Type_String,
                        "The private creator to be used for private tags in `Replace`", false);
+
+    // This was existing, but undocumented in Orthanc <= 1.9.6
+    DocumentKeepSource(call);
   }
 
 
@@ -125,6 +138,9 @@ namespace Orthanc
                        "List of DICOM tags whose value must not be destroyed by the anonymization. " INFO_SUBSEQUENCES, false)
       .SetRequestField(PRIVATE_CREATOR, RestApiCallDocumentation::Type_String,
                        "The private creator to be used for private tags in `Replace`", false);
+
+    // This was existing, but undocumented in Orthanc <= 1.9.6
+    DocumentKeepSource(call);
   }
 
 
@@ -443,6 +459,11 @@ namespace Orthanc
         .SetSummary("Modify a set of resources")
         .SetRequestField(RESOURCES, RestApiCallDocumentation::Type_JsonListOfStrings,
                          "List of the Orthanc identifiers of the patients/studies/series/instances of interest.", true)
+        .SetRequestField(LEVEL, RestApiCallDocumentation::Type_String,
+                         "Level of the modification (`Patient`, `Study`, `Series` or `Instance`). If absent, "
+                         "the level defaults to `Instance`, but is set to `Patient` if `PatientID` is modified, "
+                         "to `Study` if `StudyInstanceUID` is modified, or to `Series` if `SeriesInstancesUID` "
+                         "is modified. (new in Orthanc 1.9.7)", false)
         .SetDescription("Start a job that will modify all the DICOM patients, studies, series or instances "
                         "whose identifiers are provided in the `Resources` field.")
         .AddAnswerType(MimeType_Json, "The list of all the resources that have been altered by this modification");
@@ -454,7 +475,15 @@ namespace Orthanc
     Json::Value body;
     ParseModifyRequest(body, *modification, call);
 
-    modification->SetLevel(DetectModifyLevel(*modification));
+    if (body.isMember(LEVEL))
+    {
+      // This case was introduced in Orthanc 1.9.7
+      modification->SetLevel(StringToResourceType(body[LEVEL].asCString()));
+    }
+    else
+    {
+      modification->SetLevel(DetectModifyLevel(*modification));
+    }
 
     SubmitBulkJob(modification, false /* not an anonymization */, call, body);
   }

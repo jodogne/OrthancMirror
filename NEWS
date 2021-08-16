@@ -1,6 +1,16 @@
 Pending changes in the mainline
 ===============================
 
+REST API
+--------
+
+* API version upgraded to 15
+* Added "Level" option to POST /tools/bulk-modify
+* Added missing OpenAPI documentation of "KeepSource" in ".../modify" and ".../anonymize"
+
+Maintenance
+-----------
+
 * Added file CITATION.cff
 * Linux Standard Base (LSB) builds of Orthanc can load non-LSB builds of plugins
 * Fix upload of ZIP archives containing a DICOMDIR file
