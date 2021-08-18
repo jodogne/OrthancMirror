@@ -226,6 +226,11 @@ namespace Orthanc
       return runtime_;
     }
 
+    void ResetRuntime()
+    {
+      runtime_ = boost::posix_time::milliseconds(0);
+    }
+
     const JobStatus& GetLastStatus() const
     {
       return lastStatus_;
@@ -1071,6 +1076,7 @@ namespace Orthanc
       (void) ok;  // Remove warning about unused variable in release builds
       assert(ok);
 
+      found->second->ResetRuntime();
       found->second->SetState(JobState_Pending);
       pendingJobs_.push(found->second);
       pendingJobAvailable_.notify_one();
