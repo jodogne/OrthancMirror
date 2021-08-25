@@ -2739,6 +2739,30 @@ TEST(ParsedDicomFile, DicomPath)
     ASSERT_EQ("1.2.840.113619.2.176.2025.1499492.7040.1171286241.726", vv[REF_IM_SEQ][1][REF_SOP_INSTANCE].asString()); // kept
     ASSERT_EQ("1.2.840.113704.1.111.7016.1342451220.40", vv[REL_SERIES_SEQ][0][STUDY_INSTANCE_UID].asString());  // kept
   }
+
+  {
+    std::unique_ptr<ParsedDicomFile> dicom(ParsedDicomFile::CreateFromJson(v, DicomFromJsonFlags_None, ""));
+
+    DicomMap m;
+    ASSERT_TRUE(dicom->LookupSubSequence(m, DicomPath(DICOM_TAG_REFERENCED_IMAGE_SEQUENCE), 0));
+    ASSERT_EQ(2u, m.GetSize());
+    ASSERT_EQ("1.2.840.113619.2.176.2025.1499492.7040.1171286241.719",
+              m.GetStringValue(DICOM_TAG_REFERENCED_SOP_INSTANCE_UID, "", false));
+    
+    ASSERT_TRUE(dicom->LookupSubSequence(m, DicomPath(DICOM_TAG_REFERENCED_IMAGE_SEQUENCE), 1));
+    ASSERT_EQ(2u, m.GetSize());
+    ASSERT_EQ("1.2.840.113619.2.176.2025.1499492.7040.1171286241.726",
+              m.GetStringValue(DICOM_TAG_REFERENCED_SOP_INSTANCE_UID, "", false));
+    
+    ASSERT_FALSE(dicom->LookupSubSequence(m, DicomPath(DICOM_TAG_REFERENCED_IMAGE_SEQUENCE), 2));
+    
+    ASSERT_TRUE(dicom->LookupSubSequence(m, DicomPath(DicomTag(0x0008, 0x1250), 0, DicomTag(0x0040, 0xa170)), 0));
+    ASSERT_EQ(2u, m.GetSize());
+    ASSERT_EQ("122403", m.GetStringValue(DicomTag(0x0008, 0x0100), "", false));
+    ASSERT_EQ("WORLD", m.GetStringValue(DICOM_TAG_SERIES_DESCRIPTION, "", false));
+
+    ASSERT_FALSE(dicom->LookupSubSequence(m, DicomPath(DicomTag(0x0008, 0x1250), 0, DicomTag(0x0040, 0xa170)), 1));
+  }
 }
 
 
