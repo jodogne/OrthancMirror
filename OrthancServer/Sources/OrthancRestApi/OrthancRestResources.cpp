@@ -663,9 +663,10 @@ namespace Orthanc
       {
       }
 
+      // "dicom" is non-NULL iff. "RequiresDicomTags() == true"
       virtual void Handle(RestApiGetCall& call,
                           std::unique_ptr<ImageAccessor>& decoded,
-                          const DicomMap& dicom) = 0;
+                          const ParsedDicomFile* dicom) = 0;
 
       virtual bool RequiresDicomTags() const = 0;
 
@@ -776,7 +777,6 @@ namespace Orthanc
           return;
         }
 
-        DicomMap dicom;
         std::unique_ptr<ImageAccessor> decoded;
 
         try
@@ -799,7 +799,11 @@ namespace Orthanc
              * interpretation, and with windowing parameters.
              **/ 
             ServerContext::DicomCacheLocker locker(context, publicId);
-            OrthancConfiguration::DefaultExtractDicomSummary(dicom, locker.GetDicom());
+            handler.Handle(call, decoded, &locker.GetDicom());
+          }
+          else
+          {
+            handler.Handle(call, decoded, NULL);
           }
         }
         catch (OrthancException& e)
@@ -823,7 +827,6 @@ namespace Orthanc
           return;
         }
 
-        handler.Handle(call, decoded, dicom);
       }
 
 
@@ -865,13 +868,21 @@ namespace Orthanc
 
       virtual void Handle(RestApiGetCall& call,
                           std::unique_ptr<ImageAccessor>& decoded,
-                          const DicomMap& dicom) ORTHANC_OVERRIDE
+                          const ParsedDicomFile* dicom) ORTHANC_OVERRIDE
       {
         bool invert = false;
 
         if (mode_ == ImageExtractionMode_Preview)
         {
-          DicomImageInformation info(dicom);
+          if (dicom == NULL)
+          {
+            throw OrthancException(ErrorCode_InternalError);
+          }
+
+          DicomMap tags;
+          OrthancConfiguration::DefaultExtractDicomSummary(tags, *dicom);
+          
+          DicomImageInformation info(tags);
           invert = (info.GetPhotometricInterpretation() == PhotometricInterpretation_Monochrome1);
         }
 
@@ -893,9 +904,12 @@ namespace Orthanc
                                      float& rescaleIntercept,
                                      float& windowWidth,
                                      float& windowCenter,
-                                     const DicomMap& dicom)
+                                     const ParsedDicomFile& dicom)
       {
-        DicomImageInformation info(dicom);
+        DicomMap tags;
+        OrthancConfiguration::DefaultExtractDicomSummary(tags, dicom);
+        
+        DicomImageInformation info(tags);
 
         invert = (info.GetPhotometricInterpretation() == PhotometricInterpretation_Monochrome1);
 
@@ -905,18 +919,18 @@ namespace Orthanc
         if (dicom.HasTag(Orthanc::DICOM_TAG_RESCALE_SLOPE) &&
             dicom.HasTag(Orthanc::DICOM_TAG_RESCALE_INTERCEPT))
         {
-          dicom.ParseFloat(rescaleSlope, Orthanc::DICOM_TAG_RESCALE_SLOPE);
-          dicom.ParseFloat(rescaleIntercept, Orthanc::DICOM_TAG_RESCALE_INTERCEPT);
+          tags.ParseFloat(rescaleSlope, Orthanc::DICOM_TAG_RESCALE_SLOPE);
+          tags.ParseFloat(rescaleIntercept, Orthanc::DICOM_TAG_RESCALE_INTERCEPT);
         }
 
         windowWidth = static_cast<float>(1 << info.GetBitsStored()) * rescaleSlope;
         windowCenter = windowWidth / 2.0f + rescaleIntercept;
 
-        if (dicom.HasTag(Orthanc::DICOM_TAG_WINDOW_CENTER) &&
-            dicom.HasTag(Orthanc::DICOM_TAG_WINDOW_WIDTH))
+        if (tags.HasTag(Orthanc::DICOM_TAG_WINDOW_CENTER) &&
+            tags.HasTag(Orthanc::DICOM_TAG_WINDOW_WIDTH))
         {
-          dicom.ParseFirstFloat(windowCenter, Orthanc::DICOM_TAG_WINDOW_CENTER);
-          dicom.ParseFirstFloat(windowWidth, Orthanc::DICOM_TAG_WINDOW_WIDTH);
+          tags.ParseFirstFloat(windowCenter, Orthanc::DICOM_TAG_WINDOW_CENTER);
+          tags.ParseFirstFloat(windowWidth, Orthanc::DICOM_TAG_WINDOW_WIDTH);
         }
       }
 
@@ -1018,11 +1032,16 @@ namespace Orthanc
     public:
       virtual void Handle(RestApiGetCall& call,
                           std::unique_ptr<ImageAccessor>& decoded,
-                          const DicomMap& dicom) ORTHANC_OVERRIDE
+                          const ParsedDicomFile* dicom) ORTHANC_OVERRIDE
       {
+        if (dicom == NULL)
+        {
+          throw OrthancException(ErrorCode_InternalError);
+        }
+        
         bool invert;
         float rescaleSlope, rescaleIntercept, windowWidth, windowCenter;
-        GetDicomParameters(invert, rescaleSlope, rescaleIntercept, windowWidth, windowCenter, dicom);
+        GetDicomParameters(invert, rescaleSlope, rescaleIntercept, windowWidth, windowCenter, *dicom);
 
         unsigned int argWidth, argHeight;
         bool smooth;
