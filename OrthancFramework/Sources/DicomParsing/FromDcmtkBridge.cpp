@@ -2978,10 +2978,10 @@ namespace Orthanc
   }
 
 
-  static void ApplyInternal(FromDcmtkBridge::IDicomPathVisitor& visitor,
-                            DcmItem& item,
-                            const DicomPath& pattern,
-                            const DicomPath& actualPath)
+  void FromDcmtkBridge::IDicomPathVisitor::ApplyInternal(FromDcmtkBridge::IDicomPathVisitor& visitor,
+                                                         DcmItem& item,
+                                                         const DicomPath& pattern,
+                                                         const DicomPath& actualPath)
   {
     const size_t level = actualPath.GetPrefixLength();
       
@@ -3020,9 +3020,9 @@ namespace Orthanc
   }
 
 
-  void FromDcmtkBridge::Apply(IDicomPathVisitor& visitor,
-                              DcmDataset& dataset,
-                              const DicomPath& path)
+  void FromDcmtkBridge::IDicomPathVisitor::Apply(IDicomPathVisitor& visitor,
+                                                 DcmDataset& dataset,
+                                                 const DicomPath& path)
   {
     DicomPath actualPath(path.GetFinalTag());
     ApplyInternal(visitor, dataset, path, actualPath);
@@ -3044,7 +3044,7 @@ namespace Orthanc
     };
     
     Visitor visitor;
-    Apply(visitor, dataset, path);
+    IDicomPathVisitor::Apply(visitor, dataset, path);
   }
   
 
@@ -3084,7 +3084,7 @@ namespace Orthanc
     };
     
     Visitor visitor(onlyIfExists);
-    Apply(visitor, dataset, path);
+    IDicomPathVisitor::Apply(visitor, dataset, path);
   }
   
 
@@ -3159,7 +3159,7 @@ namespace Orthanc
     else
     {
       Visitor visitor(element, mode);
-      Apply(visitor, dataset, path);
+      IDicomPathVisitor::Apply(visitor, dataset, path);
     }
   }
 }
