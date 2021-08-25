@@ -277,5 +277,10 @@ namespace Orthanc
                             const DicomPath& path,
                             const DcmElement& element,
                             DicomReplaceMode mode);
+
+    static bool LookupSubSequence(DicomMap& target,
+                                  DcmDataset& dataset,
+                                  const DicomPath& path,
+                                  size_t sequenceIndex);
   };
 }

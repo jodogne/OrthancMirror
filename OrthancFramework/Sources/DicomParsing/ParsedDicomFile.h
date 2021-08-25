@@ -285,5 +285,9 @@ namespace Orthanc
 
     void ClearPath(const DicomPath& path,
                    bool onlyIfExists);
+
+    bool LookupSubSequence(DicomMap& target,
+                           const DicomPath& path,
+                           size_t sequenceIndex) const;
   };
 }
