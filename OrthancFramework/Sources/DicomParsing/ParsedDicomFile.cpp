@@ -1861,8 +1861,8 @@ namespace Orthanc
              dataset.findAndGetString(DCM_RescaleSlope, slope).good() &&
              intercept != NULL &&
              slope != NULL &&
-             SerializationToolbox::ParseFirstDouble(rescaleIntercept, intercept) &&
-             SerializationToolbox::ParseFirstDouble(rescaleSlope, slope))
+             SerializationToolbox::ParseDouble(rescaleIntercept, intercept) &&
+             SerializationToolbox::ParseDouble(rescaleSlope, slope))
     {
       return;  // OK
     }
@@ -1874,8 +1874,8 @@ namespace Orthanc
              item2->findAndGetString(DCM_RescaleSlope, slope).good() &&
              intercept != NULL &&
              slope != NULL &&
-             SerializationToolbox::ParseFirstDouble(rescaleIntercept, intercept) &&
-             SerializationToolbox::ParseFirstDouble(rescaleSlope, slope))
+             SerializationToolbox::ParseDouble(rescaleIntercept, intercept) &&
+             SerializationToolbox::ParseDouble(rescaleSlope, slope))
     {
       // New in Orthanc 1.9.7, to deal with Philips multiframe images
       // (cf. private mail from Tomas Kenda on 2021-08-17)
