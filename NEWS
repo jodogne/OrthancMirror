@@ -1,11 +1,15 @@
 Pending changes in the mainline
 ===============================
 
+
+Version 1.9.7 (2021-08-31)
+==========================
+
 General
 -------
 
-* New configuration option "DicomAlwaysAllowMove" to disable verification of the remote modality in C-MOVE SCP
-
+* New configuration option "DicomAlwaysAllowMove" to disable verification of
+  the remote modality in C-MOVE SCP
 
 REST API
 --------
