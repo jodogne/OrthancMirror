@@ -291,6 +291,12 @@
   // option to "true" implies security risks. (new in Orthanc 1.9.0)
   "DicomAlwaysAllowGet" : false,
 
+  // Whether the Orthanc SCP allows incoming C-MOVE requests, even
+  // from SCU modalities it does not know about (i.e. that are not
+  // listed in the "DicomModalities" option above). Setting this
+  // option to "true" implies security risks. (new in Orthanc 1.9.7)
+  "DicomAlwaysAllowMove" : false,
+
   // Whether Orthanc checks the IP/hostname address of the remote
   // modality initiating a DICOM connection (as listed in the
   // "DicomModalities" option above). If this option is set to
