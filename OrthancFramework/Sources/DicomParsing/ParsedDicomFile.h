@@ -286,8 +286,16 @@ namespace Orthanc
     void ClearPath(const DicomPath& path,
                    bool onlyIfExists);
 
-    bool LookupSubSequence(DicomMap& target,
-                           const DicomPath& path,
-                           size_t sequenceIndex) const;
+    bool LookupSequenceItem(DicomMap& target,
+                            const DicomPath& path,
+                            size_t sequenceIndex) const;
+
+    void GetDefaultWindowing(double& windowCenter,
+                             double& windowWidth,
+                             unsigned int frame) const;
+
+    void GetRescale(double& rescaleIntercept,
+                    double& rescaleSlope,
+                    unsigned int frame) const;
   };
 }
