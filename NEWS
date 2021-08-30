@@ -21,7 +21,7 @@ Maintenance
 * Linux Standard Base (LSB) builds of Orthanc can load non-LSB builds of plugins
 * Fix upload of ZIP archives containing a DICOMDIR file
 * Fix computation of the estimated time of arrival in jobs
-* Support detection of windowing and rescale in Philips multiframe
+* Support detection of windowing and rescale in Philips multiframe images
 
 
 Version 1.9.6 (2021-07-21)
