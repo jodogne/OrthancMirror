@@ -3071,8 +3071,8 @@ TEST(ParsedDicomFile, ImageInformation)
     dicom.GetRescale(ri, rs, 5);
     ASSERT_DOUBLE_EQ(12.0, wc);
     ASSERT_DOUBLE_EQ(-22.0, ww);
-    ASSERT_DOUBLE_EQ(32.0, ri);
-    ASSERT_DOUBLE_EQ(-42.0, rs);
+    ASSERT_DOUBLE_EQ(0.0, ri);
+    ASSERT_DOUBLE_EQ(1.0, rs);
   }
 
   {
