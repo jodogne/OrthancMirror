@@ -70,8 +70,8 @@ namespace Orthanc
       if (status_.GetProgress() > 0.01f &&
           ms > 0.01f)
       {
-        float ratio = static_cast<float>(1.0 - status_.GetProgress());
-        long long remaining = boost::math::llround(ratio * ms);
+        float progress = status_.GetProgress();
+        long long remaining = boost::math::llround(ms / progress * (1.0f - progress));
         eta_ = timestamp_ + boost::posix_time::milliseconds(remaining);
         hasEta_ = true;
       }

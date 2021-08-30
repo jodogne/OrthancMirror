@@ -64,6 +64,12 @@ namespace Orthanc
     // New in Orthanc 1.9.4
     class ORTHANC_PUBLIC IDicomPathVisitor : public boost::noncopyable
     {
+    private:
+      static void ApplyInternal(FromDcmtkBridge::IDicomPathVisitor& visitor,
+                                DcmItem& item,
+                                const DicomPath& pattern,
+                                const DicomPath& actualPath);
+      
     public:
       virtual ~IDicomPathVisitor()
       {
@@ -71,6 +77,10 @@ namespace Orthanc
 
       virtual void Visit(DcmItem& item,
                          const DicomPath& path) = 0;
+
+      static void Apply(IDicomPathVisitor& visitor,
+                        DcmDataset& dataset,
+                        const DicomPath& path);
     };
     
 
@@ -256,10 +266,6 @@ namespace Orthanc
 
     static void LogMissingTagsForStore(DcmDataset& dicom);
 
-    static void Apply(IDicomPathVisitor& visitor,
-                      DcmDataset& dataset,
-                      const DicomPath& path);
-
     static void RemovePath(DcmDataset& dataset,
                            const DicomPath& path);
 
@@ -271,5 +277,10 @@ namespace Orthanc
                             const DicomPath& path,
                             const DcmElement& element,
                             DicomReplaceMode mode);
+
+    static bool LookupSequenceItem(DicomMap& target,
+                                   DcmDataset& dataset,
+                                   const DicomPath& path,
+                                   size_t sequenceIndex);
   };
 }

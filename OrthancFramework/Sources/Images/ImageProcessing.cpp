@@ -1405,6 +1405,14 @@ namespace Orthanc
   }
 
 
+  static bool IsIdentityRescaling(float offset,
+                                  float scaling)
+  {
+    return (std::abs(offset) <= 10.0f * std::numeric_limits<float>::epsilon() &&
+            std::abs(scaling - 1.0f) <= 10.0f * std::numeric_limits<float>::epsilon());
+  }
+  
+
   void ImageProcessing::ShiftScale2(ImageAccessor& image,
                                     float offset,
                                     float scaling,
@@ -1413,6 +1421,11 @@ namespace Orthanc
     // We compute "a * x + b"
     const float a = scaling;
     const float b = offset;
+
+    if (IsIdentityRescaling(offset, scaling))
+    {
+      return;
+    }
     
     switch (image.GetFormat())
     {
@@ -1476,6 +1489,13 @@ namespace Orthanc
     // We compute "a * x + b"
     const float a = scaling;
     const float b = offset;
+    
+    if (target.GetFormat() == source.GetFormat() &&
+        IsIdentityRescaling(offset, scaling))
+    {
+      Copy(target, source);
+      return;
+    }
     
     switch (target.GetFormat())
     {

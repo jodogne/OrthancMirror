@@ -199,6 +199,15 @@ namespace Orthanc
             {
               LOG(ERROR) << "Cannot import non-DICOM file from ZIP archive: " << filename;
             }
+            else if (e.GetErrorCode() == ErrorCode_InexistentTag)
+            {
+              /**
+               * Allow upload of ZIP archives containing a DICOMDIR
+               * file (new in Orthanc 1.9.7):
+               * https://groups.google.com/g/orthanc-users/c/sgBU89o4nhU/m/kbRAYiQUAAAJ
+               **/
+              LOG(ERROR) << "Ignoring what is probably a DICOMDIR file within a ZIP archive: \"" << filename << "\"";
+            }
             else
             {
               throw;

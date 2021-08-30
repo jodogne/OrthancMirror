@@ -385,6 +385,16 @@ add_executable(Orthanc
 
 target_link_libraries(Orthanc ServerLibrary CoreLibrary ${DCMTK_LIBRARIES})
 
+if ("${CMAKE_SYSTEM_VERSION}" STREQUAL "LinuxStandardBase")
+  # The link flag below hides all the global functions so that a Linux
+  # Standard Base (LSB) build of Orthanc can load plugins that are not
+  # built using LSB (new in Orthanc 1.9.7)
+  set_property(
+    TARGET Orthanc
+    PROPERTY LINK_FLAGS "-Wl,--version-script=${CMAKE_SOURCE_DIR}/Resources/VersionScriptOrthanc.map"
+    )
+endif()
+
 install(
   TARGETS Orthanc
   RUNTIME DESTINATION sbin

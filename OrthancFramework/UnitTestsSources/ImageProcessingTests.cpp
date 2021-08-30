@@ -975,6 +975,25 @@ TEST(ImageProcessing, ShiftScaleGrayscale8)
 }
 
 
+TEST(ImageProcessing, Grayscale8_Identity)
+{
+  Image image(PixelFormat_Float32, 5, 1, false);
+  ImageTraits<PixelFormat_Float32>::SetPixel(image, 0, 0, 0);
+  ImageTraits<PixelFormat_Float32>::SetPixel(image, 2.5, 1, 0);
+  ImageTraits<PixelFormat_Float32>::SetPixel(image, 5.5, 2, 0);
+  ImageTraits<PixelFormat_Float32>::SetPixel(image, 10.5, 3, 0);
+  ImageTraits<PixelFormat_Float32>::SetPixel(image, 255.5, 4, 0);
+
+  Image image2(PixelFormat_Grayscale8, 5, 1, false);
+  ImageProcessing::ShiftScale(image2, image, 0, 1, false);
+  ASSERT_TRUE(TestGrayscale8Pixel(image2, 0, 0, 0));
+  ASSERT_TRUE(TestGrayscale8Pixel(image2, 1, 0, 2));
+  ASSERT_TRUE(TestGrayscale8Pixel(image2, 2, 0, 5));
+  ASSERT_TRUE(TestGrayscale8Pixel(image2, 3, 0, 10));
+  ASSERT_TRUE(TestGrayscale8Pixel(image2, 4, 0, 255));
+}
+
+
 TEST(ImageProcessing, ShiftScaleGrayscale16)
 {
   Image image(PixelFormat_Grayscale16, 5, 1, false);
@@ -1008,6 +1027,24 @@ TEST(ImageProcessing, ShiftScaleSignedGrayscale16)
   ASSERT_TRUE(TestSignedGrayscale16Pixel(image, 2, 0, -139));
   ASSERT_TRUE(TestSignedGrayscale16Pixel(image, 3, 0, -82));
   ASSERT_TRUE(TestSignedGrayscale16Pixel(image, 4, 0, 2736));
+}
+
+
+TEST(ImageProcessing, ShiftScaleSignedGrayscale16_Identity)
+{
+  Image image(PixelFormat_SignedGrayscale16, 5, 1, false);
+  SetSignedGrayscale16Pixel(image, 0, 0, 0);
+  SetSignedGrayscale16Pixel(image, 1, 0, 2);
+  SetSignedGrayscale16Pixel(image, 2, 0, 5);
+  SetSignedGrayscale16Pixel(image, 3, 0, 10);
+  SetSignedGrayscale16Pixel(image, 4, 0, 255);
+
+  ImageProcessing::ShiftScale(image, 0, 1, true);
+  ASSERT_TRUE(TestSignedGrayscale16Pixel(image, 0, 0, 0));
+  ASSERT_TRUE(TestSignedGrayscale16Pixel(image, 1, 0, 2));
+  ASSERT_TRUE(TestSignedGrayscale16Pixel(image, 2, 0, 5));
+  ASSERT_TRUE(TestSignedGrayscale16Pixel(image, 3, 0, 10));
+  ASSERT_TRUE(TestSignedGrayscale16Pixel(image, 4, 0, 255));
 }
 
 

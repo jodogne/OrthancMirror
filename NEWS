@@ -16,6 +16,32 @@ OpenSSL 3.x branch
   - openssl 3.0.0-beta1
 
 
+Version 1.9.7 (2021-08-31)
+==========================
+
+General
+-------
+
+* New configuration option "DicomAlwaysAllowMove" to disable verification of
+  the remote modality in C-MOVE SCP
+
+REST API
+--------
+
+* API version upgraded to 15
+* Added "Level" option to POST /tools/bulk-modify
+* Added missing OpenAPI documentation of "KeepSource" in ".../modify" and ".../anonymize"
+
+Maintenance
+-----------
+
+* Added file CITATION.cff
+* Linux Standard Base (LSB) builds of Orthanc can load non-LSB builds of plugins
+* Fix upload of ZIP archives containing a DICOMDIR file
+* Fix computation of the estimated time of arrival in jobs
+* Support detection of windowing and rescale in Philips multiframe images
+
+
 Version 1.9.6 (2021-07-21)
 ==========================
 

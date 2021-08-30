@@ -2978,10 +2978,10 @@ namespace Orthanc
   }
 
 
-  static void ApplyInternal(FromDcmtkBridge::IDicomPathVisitor& visitor,
-                            DcmItem& item,
-                            const DicomPath& pattern,
-                            const DicomPath& actualPath)
+  void FromDcmtkBridge::IDicomPathVisitor::ApplyInternal(FromDcmtkBridge::IDicomPathVisitor& visitor,
+                                                         DcmItem& item,
+                                                         const DicomPath& pattern,
+                                                         const DicomPath& actualPath)
   {
     const size_t level = actualPath.GetPrefixLength();
       
@@ -3020,9 +3020,9 @@ namespace Orthanc
   }
 
 
-  void FromDcmtkBridge::Apply(IDicomPathVisitor& visitor,
-                              DcmDataset& dataset,
-                              const DicomPath& path)
+  void FromDcmtkBridge::IDicomPathVisitor::Apply(IDicomPathVisitor& visitor,
+                                                 DcmDataset& dataset,
+                                                 const DicomPath& path)
   {
     DicomPath actualPath(path.GetFinalTag());
     ApplyInternal(visitor, dataset, path, actualPath);
@@ -3044,7 +3044,7 @@ namespace Orthanc
     };
     
     Visitor visitor;
-    Apply(visitor, dataset, path);
+    IDicomPathVisitor::Apply(visitor, dataset, path);
   }
   
 
@@ -3084,7 +3084,7 @@ namespace Orthanc
     };
     
     Visitor visitor(onlyIfExists);
-    Apply(visitor, dataset, path);
+    IDicomPathVisitor::Apply(visitor, dataset, path);
   }
   
 
@@ -3159,8 +3159,58 @@ namespace Orthanc
     else
     {
       Visitor visitor(element, mode);
-      Apply(visitor, dataset, path);
+      IDicomPathVisitor::Apply(visitor, dataset, path);
     }
+  }
+
+
+  bool FromDcmtkBridge::LookupSequenceItem(DicomMap& target,
+                                           DcmDataset& dataset,
+                                           const DicomPath& path,
+                                           size_t sequenceIndex)
+  {
+    class Visitor : public FromDcmtkBridge::IDicomPathVisitor
+    {
+    private:
+      bool       found_;
+      DicomMap&  target_;
+      size_t     sequenceIndex_;
+      
+    public:
+      Visitor(DicomMap& target,
+              size_t sequenceIndex) :
+        found_(false),
+        target_(target),
+        sequenceIndex_(sequenceIndex)
+      {
+      }
+      
+      virtual void Visit(DcmItem& item,
+                         const DicomPath& path) ORTHANC_OVERRIDE
+      {
+        DcmTagKey tag(path.GetFinalTag().GetGroup(), path.GetFinalTag().GetElement());
+
+        DcmSequenceOfItems *sequence = NULL;
+        
+        if (item.findAndGetSequence(tag, sequence).good() &&
+            sequence != NULL &&
+            sequenceIndex_ < sequence->card())
+        {
+          std::set<DicomTag> ignoreTagLength;
+          ExtractDicomSummary(target_, *sequence->getItem(sequenceIndex_), 0, ignoreTagLength);
+          found_ = true;
+        }
+      }
+
+      bool HasFound() const
+      {
+        return found_;
+      }
+    };
+
+    Visitor visitor(target, sequenceIndex);
+    IDicomPathVisitor::Apply(visitor, dataset, path);
+    return visitor.HasFound();
   }
 }
 

@@ -24,10 +24,14 @@
 #include "SerializationToolbox.h"
 
 #include "OrthancException.h"
+#include "Toolbox.h"
 
 #if ORTHANC_ENABLE_DCMTK == 1
 #  include "DicomParsing/FromDcmtkBridge.h"
 #endif
+
+#include <boost/lexical_cast.hpp>
+
 
 namespace Orthanc
 {
@@ -443,6 +447,204 @@ namespace Orthanc
            it = values.begin(); it != values.end(); ++it)
     {
       value[it->first.Format()] = it->second;
+    }
+  }
+
+
+  template <typename T,
+            bool allowSigned>
+  static bool ParseValue(T& target,
+                         const std::string& source)
+  {
+    try
+    {
+      std::string value = Toolbox::StripSpaces(source);
+      if (value.empty())
+      {
+        return false;
+      }
+      else if (!allowSigned &&
+               value[0] == '-')
+      {
+        return false;
+      }
+      else
+      {
+        target = boost::lexical_cast<T>(value);
+        return true;
+      }
+    }
+    catch (boost::bad_lexical_cast&)
+    {
+      return false;
+    }
+  }
+
+
+  bool SerializationToolbox::ParseInteger32(int32_t& target,
+                                            const std::string& source)
+  {
+    int64_t tmp;
+    if (ParseValue<int64_t, true>(tmp, source))
+    {
+      target = static_cast<int32_t>(tmp);
+      return (tmp == static_cast<int64_t>(target));  // Check no overflow occurs
+    }
+    else
+    {
+      return false;
+    }
+  }
+  
+
+  bool SerializationToolbox::ParseInteger64(int64_t& target,
+                                            const std::string& source)
+  {
+    return ParseValue<int64_t, true>(target, source);
+  }
+  
+
+  bool SerializationToolbox::ParseUnsignedInteger32(uint32_t& target,
+                                                    const std::string& source)
+  {
+    uint64_t tmp;
+    if (ParseValue<uint64_t, false>(tmp, source))
+    {
+      target = static_cast<uint32_t>(tmp);
+      return (tmp == static_cast<uint64_t>(target));  // Check no overflow occurs
+    }
+    else
+    {
+      return false;
+    }
+  }
+  
+
+  bool SerializationToolbox::ParseUnsignedInteger64(uint64_t& target,
+                                                    const std::string& source)
+  {
+    return ParseValue<uint64_t, false>(target, source);
+  }
+  
+
+  bool SerializationToolbox::ParseFloat(float& target,
+                                        const std::string& source)
+  {
+    return ParseValue<float, true>(target, source);
+  }
+         
+
+  bool SerializationToolbox::ParseDouble(double& target,
+                                         const std::string& source)
+  {
+    return ParseValue<double, true>(target, source);
+  }
+
+
+  static bool GetFirstItem(std::string& target,
+                           const std::string& source)
+  {
+    std::vector<std::string> tokens;
+    Toolbox::TokenizeString(tokens, source, '\\');
+
+    if (tokens.empty())
+    {
+      return false;
+    }
+    else
+    {
+      target = tokens[0];
+      return true;
+    }
+  }
+  
+
+  bool SerializationToolbox::ParseFirstInteger32(int32_t& target,
+                                                 const std::string& source)
+  {
+    std::string first;
+    if (GetFirstItem(first, source))
+    {
+      return ParseInteger32(target, first);
+    }
+    else
+    {
+      return false;
+    }
+  }
+  
+
+  bool SerializationToolbox::ParseFirstInteger64(int64_t& target,
+                                                 const std::string& source)
+  {
+    std::string first;
+    if (GetFirstItem(first, source))
+    {
+      return ParseInteger64(target, first);
+    }
+    else
+    {
+      return false;
+    }
+  }
+  
+
+  bool SerializationToolbox::ParseFirstUnsignedInteger32(uint32_t& target,
+                                                         const std::string& source)
+  {
+    std::string first;
+    if (GetFirstItem(first, source))
+    {
+      return ParseUnsignedInteger32(target, first);
+    }
+    else
+    {
+      return false;
+    }
+  }
+  
+
+  bool SerializationToolbox::ParseFirstUnsignedInteger64(uint64_t& target,
+                                                         const std::string& source)
+  {
+    std::string first;
+    if (GetFirstItem(first, source))
+    {
+      return ParseUnsignedInteger64(target, first);
+    }
+    else
+    {
+      return false;
+    }
+  }
+  
+
+  bool SerializationToolbox::ParseFirstFloat(float& target,
+                                             const std::string& source)
+  {
+    std::string first;
+    if (GetFirstItem(first, source))
+    {
+      return ParseFloat(target, first);
+    }
+    else
+    {
+      return false;
+    }
+  }
+  
+
+  bool SerializationToolbox::ParseFirstDouble(double& target,
+                                              const std::string& source)
+  {
+    std::string first;
+    if (GetFirstItem(first, source))
+    {
+      return ParseDouble(target, first);
+    }
+    else
+    {
+      return false;
     }
   }
 }
