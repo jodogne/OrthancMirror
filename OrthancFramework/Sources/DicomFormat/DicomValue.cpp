@@ -104,151 +104,115 @@ namespace Orthanc
   }
 #endif
 
-  // same as ParseValue but in case the value actually contains a sequence,
-  // it will return the first value
-  // this has been introduced to support invalid "width/height" DICOM tags in some US
-  // images where the width is stored as "800\0" !
-  template <typename T,
-            bool allowSigned>
-  static bool ParseFirstValue(T& result,
-                              const DicomValue& source)
-  {
-    if (source.IsBinary() ||
-        source.IsNull())
-    {
-      return false;
-    }
-
-    try
-    {
-      std::string value = Toolbox::StripSpaces(source.GetContent());
-      if (value.empty())
-      {
-        return false;
-      }
-
-      if (!allowSigned &&
-          value[0] == '-')
-      {
-        return false;
-      }
-
-      if (value.find("\\") == std::string::npos)
-      {
-        result = boost::lexical_cast<T>(value);
-        return true;
-      }
-      else
-      {
-        std::vector<std::string> tokens;
-        Toolbox::TokenizeString(tokens, value, '\\');
-
-        if (tokens.size() >= 1)
-        {
-          result = boost::lexical_cast<T>(tokens[0]);
-          return true;
-        }
-
-        return false;
-      }
-    }
-    catch (boost::bad_lexical_cast&)
-    {
-      return false;
-    }
-  }
-
-
-  template <typename T,
-            bool allowSigned>
-  static bool ParseValue(T& result,
-                         const DicomValue& source)
-  {
-    if (source.IsBinary() ||
-        source.IsNull())
-    {
-      return false;
-    }
-    
-    try
-    {
-      std::string value = Toolbox::StripSpaces(source.GetContent());
-      if (value.empty())
-      {
-        return false;
-      }
-
-      if (!allowSigned &&
-          value[0] == '-')
-      {
-        return false;
-      }
-      
-      result = boost::lexical_cast<T>(value);
-      return true;
-    }
-    catch (boost::bad_lexical_cast&)
-    {
-      return false;
-    }
-  }
-
   bool DicomValue::ParseInteger32(int32_t& result) const
   {
-    int64_t tmp;
-    if (ParseValue<int64_t, true>(tmp, *this))
+    if (IsBinary() ||
+        IsNull())
     {
-      result = static_cast<int32_t>(tmp);
-      return (tmp == static_cast<int64_t>(result));  // Check no overflow occurs
+      return false;
     }
     else
     {
-      return false;
+      return SerializationToolbox::ParseInteger32(result, GetContent());
     }
   }
 
   bool DicomValue::ParseInteger64(int64_t& result) const
   {
-    return ParseValue<int64_t, true>(result, *this);
+    if (IsBinary() ||
+        IsNull())
+    {
+      return false;
+    }
+    else
+    {
+      return SerializationToolbox::ParseInteger64(result, GetContent());
+    }
   }
 
   bool DicomValue::ParseUnsignedInteger32(uint32_t& result) const
   {
-    uint64_t tmp;
-    if (ParseValue<uint64_t, false>(tmp, *this))
+    if (IsBinary() ||
+        IsNull())
     {
-      result = static_cast<uint32_t>(tmp);
-      return (tmp == static_cast<uint64_t>(result));  // Check no overflow occurs
+      return false;
     }
     else
     {
-      return false;
+      return SerializationToolbox::ParseUnsignedInteger32(result, GetContent());
     }
   }
 
   bool DicomValue::ParseUnsignedInteger64(uint64_t& result) const
   {
-    return ParseValue<uint64_t, false>(result, *this);
+    if (IsBinary() ||
+        IsNull())
+    {
+      return false;
+    }
+    else
+    {
+      return SerializationToolbox::ParseUnsignedInteger64(result, GetContent());
+    }
   }
 
   bool DicomValue::ParseFloat(float& result) const
   {
-    return ParseValue<float, true>(result, *this);
+    if (IsBinary() ||
+        IsNull())
+    {
+      return false;
+    }
+    else
+    {
+      return SerializationToolbox::ParseFloat(result, GetContent());
+    }
   }
 
   bool DicomValue::ParseDouble(double& result) const
   {
-    return ParseValue<double, true>(result, *this);
+    if (IsBinary() ||
+        IsNull())
+    {
+      return false;
+    }
+    else
+    {
+      return SerializationToolbox::ParseDouble(result, GetContent());
+    }
   }
 
   bool DicomValue::ParseFirstFloat(float& result) const
   {
-    return ParseFirstValue<float, true>(result, *this);
+    if (IsBinary() ||
+        IsNull())
+    {
+      return false;
+    }
+    else
+    {
+      return SerializationToolbox::ParseFirstFloat(result, GetContent());
+    }
   }
 
   bool DicomValue::ParseFirstUnsignedInteger(unsigned int& result) const
   {
-    return ParseFirstValue<unsigned int, true>(result, *this);
+    uint64_t value;
+
+    if (IsBinary() ||
+        IsNull())
+    {
+      return false;
+    }
+    else if (SerializationToolbox::ParseFirstUnsignedInteger64(value, GetContent()))
+    {
+      result = static_cast<unsigned int>(value);
+      return (static_cast<uint64_t>(result) == value);   // Check no overflow
+    }
+    else
+    {
+      return false;
+    }
   }
 
   bool DicomValue::CopyToString(std::string& result,
