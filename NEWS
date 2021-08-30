@@ -1,6 +1,13 @@
 Pending changes in the mainline
 ===============================
 
+General
+-------
+
+* New configuration options related to DICOM networking:
+  - "DicomAlwaysAllowMove" to disable verification of the remote modality in C-MOVE SCP
+
+
 REST API
 --------
 
