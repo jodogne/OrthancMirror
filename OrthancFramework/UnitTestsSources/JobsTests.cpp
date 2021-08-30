@@ -1575,3 +1575,86 @@ TEST(JobsSerialization, DicomAssociationParameters)
     ASSERT_FALSE(b.IsRemoteCertificateRequired());
   }  
 }
+
+
+TEST(SerializationToolbox, Numbers)
+{
+  {
+    int32_t i;
+    ASSERT_FALSE(SerializationToolbox::ParseInteger32(i, ""));
+    ASSERT_FALSE(SerializationToolbox::ParseInteger32(i, "ee"));
+    ASSERT_TRUE(SerializationToolbox::ParseInteger32(i, "42"));  ASSERT_EQ(42, i);
+    ASSERT_TRUE(SerializationToolbox::ParseInteger32(i, "-42"));  ASSERT_EQ(-42, i);
+    ASSERT_TRUE(SerializationToolbox::ParseInteger32(i, "-2147483648")); ASSERT_EQ(-2147483648, i);
+    ASSERT_TRUE(SerializationToolbox::ParseInteger32(i, "2147483647")); ASSERT_EQ(2147483647, i);
+    ASSERT_FALSE(SerializationToolbox::ParseInteger32(i, "-2147483649"));
+    ASSERT_FALSE(SerializationToolbox::ParseInteger32(i, "2147483648"));
+    ASSERT_FALSE(SerializationToolbox::ParseInteger32(i, "-2\\-3\\-4"));
+    ASSERT_TRUE(SerializationToolbox::ParseFirstInteger32(i, "-2\\-3\\-4"));  ASSERT_EQ(-2, i);
+  }
+
+  {
+    uint32_t i;
+    ASSERT_FALSE(SerializationToolbox::ParseUnsignedInteger32(i, ""));
+    ASSERT_FALSE(SerializationToolbox::ParseUnsignedInteger32(i, "ee"));
+    ASSERT_TRUE(SerializationToolbox::ParseUnsignedInteger32(i, "42"));  ASSERT_EQ(42u, i);
+    ASSERT_FALSE(SerializationToolbox::ParseUnsignedInteger32(i, "-42"));
+    ASSERT_TRUE(SerializationToolbox::ParseUnsignedInteger32(i, "4294967295")); ASSERT_EQ(4294967295u, i);
+    ASSERT_FALSE(SerializationToolbox::ParseUnsignedInteger32(i, "4294967296"));
+    ASSERT_FALSE(SerializationToolbox::ParseUnsignedInteger32(i, "2\\3\\4"));
+    ASSERT_TRUE(SerializationToolbox::ParseFirstUnsignedInteger32(i, "2\\3\\4"));  ASSERT_EQ(2u, i);
+  }
+
+  {
+    int64_t i;
+    ASSERT_FALSE(SerializationToolbox::ParseInteger64(i, ""));
+    ASSERT_FALSE(SerializationToolbox::ParseInteger64(i, "ee"));
+    ASSERT_TRUE(SerializationToolbox::ParseInteger64(i, "42"));  ASSERT_EQ(42, i);
+    ASSERT_TRUE(SerializationToolbox::ParseInteger64(i, "-42"));  ASSERT_EQ(-42, i);
+    ASSERT_TRUE(SerializationToolbox::ParseInteger64(i, "-2147483649")); ASSERT_EQ(-2147483649ll, i);
+    ASSERT_TRUE(SerializationToolbox::ParseInteger64(i, "2147483648")); ASSERT_EQ(2147483648ll, i);
+    ASSERT_FALSE(SerializationToolbox::ParseInteger64(i, "-2\\-3\\-4"));
+    ASSERT_TRUE(SerializationToolbox::ParseFirstInteger64(i, "-2\\-3\\-4"));  ASSERT_EQ(-2, i);
+  }
+
+  {
+    uint64_t i;
+    ASSERT_FALSE(SerializationToolbox::ParseUnsignedInteger64(i, ""));
+    ASSERT_FALSE(SerializationToolbox::ParseUnsignedInteger64(i, "ee"));
+    ASSERT_TRUE(SerializationToolbox::ParseUnsignedInteger64(i, "42"));  ASSERT_EQ(42u, i);
+    ASSERT_FALSE(SerializationToolbox::ParseUnsignedInteger64(i, "-42"));
+    ASSERT_TRUE(SerializationToolbox::ParseUnsignedInteger64(i, "4294967296")); ASSERT_EQ(4294967296llu, i);
+    ASSERT_FALSE(SerializationToolbox::ParseUnsignedInteger64(i, "2\\3\\4"));
+    ASSERT_TRUE(SerializationToolbox::ParseFirstUnsignedInteger64(i, "2\\3\\4"));  ASSERT_EQ(2u, i);
+  }
+
+  {
+    float i;
+    ASSERT_FALSE(SerializationToolbox::ParseFloat(i, ""));
+    ASSERT_FALSE(SerializationToolbox::ParseFloat(i, "ee"));
+    ASSERT_TRUE(SerializationToolbox::ParseFloat(i, "42"));  ASSERT_FLOAT_EQ(42.0f, i);
+    ASSERT_TRUE(SerializationToolbox::ParseFloat(i, "-42"));  ASSERT_FLOAT_EQ(-42.0f, i);
+    ASSERT_FALSE(SerializationToolbox::ParseFloat(i, "2\\3\\4"));
+    ASSERT_TRUE(SerializationToolbox::ParseFirstFloat(i, "1.367\\2.367\\3.367"));  ASSERT_FLOAT_EQ(1.367f, i);
+
+    ASSERT_TRUE(SerializationToolbox::ParseFloat(i, "1.2"));  ASSERT_FLOAT_EQ(1.2f, i);
+    ASSERT_TRUE(SerializationToolbox::ParseFloat(i, "-1.2e+2"));  ASSERT_FLOAT_EQ(-120.0f, i);
+    ASSERT_TRUE(SerializationToolbox::ParseFloat(i, "-1e-2"));  ASSERT_FLOAT_EQ(-0.01f, i);
+    ASSERT_TRUE(SerializationToolbox::ParseFloat(i, "1.3671875"));  ASSERT_FLOAT_EQ(1.3671875f, i);
+  }
+
+  {
+    double i;
+    ASSERT_FALSE(SerializationToolbox::ParseDouble(i, ""));
+    ASSERT_FALSE(SerializationToolbox::ParseDouble(i, "ee"));
+    ASSERT_TRUE(SerializationToolbox::ParseDouble(i, "42"));  ASSERT_DOUBLE_EQ(42.0, i);
+    ASSERT_TRUE(SerializationToolbox::ParseDouble(i, "-42"));  ASSERT_DOUBLE_EQ(-42.0, i);
+    ASSERT_FALSE(SerializationToolbox::ParseDouble(i, "2\\3\\4"));
+    ASSERT_TRUE(SerializationToolbox::ParseFirstDouble(i, "1.367\\2.367\\3.367"));  ASSERT_DOUBLE_EQ(1.367, i);
+
+    ASSERT_TRUE(SerializationToolbox::ParseDouble(i, "1.2"));  ASSERT_DOUBLE_EQ(1.2, i);
+    ASSERT_TRUE(SerializationToolbox::ParseDouble(i, "-1.2e+2"));  ASSERT_DOUBLE_EQ(-120.0, i);
+    ASSERT_TRUE(SerializationToolbox::ParseDouble(i, "-1e-2"));  ASSERT_DOUBLE_EQ(-0.01, i);
+    ASSERT_TRUE(SerializationToolbox::ParseDouble(i, "1.3671875"));  ASSERT_DOUBLE_EQ(1.3671875, i);
+  }
+}

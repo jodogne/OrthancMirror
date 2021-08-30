@@ -101,5 +101,41 @@ namespace Orthanc
     static void WriteMapOfTags(Json::Value& target,
                                const std::map<DicomTag, std::string>& values,
                                const std::string& field);
+
+    static bool ParseInteger32(int32_t& result,
+                               const std::string& value);
+
+    static bool ParseInteger64(int64_t& result,
+                               const std::string& value);
+
+    static bool ParseUnsignedInteger32(uint32_t& result,
+                                       const std::string& value);
+
+    static bool ParseUnsignedInteger64(uint64_t& result,
+                                       const std::string& value);
+
+    static bool ParseFloat(float& result,
+                           const std::string& value);
+
+    static bool ParseDouble(double& result,
+                            const std::string& value);
+
+    static bool ParseFirstInteger32(int32_t& result,
+                                    const std::string& value);
+
+    static bool ParseFirstInteger64(int64_t& result,
+                                    const std::string& value);
+
+    static bool ParseFirstUnsignedInteger32(uint32_t& result,
+                                            const std::string& value);
+
+    static bool ParseFirstUnsignedInteger64(uint64_t& result,
+                                            const std::string& value);
+
+    static bool ParseFirstFloat(float& result,
+                                const std::string& value);
+
+    static bool ParseFirstDouble(double& result,
+                                 const std::string& value);
   };
 }
