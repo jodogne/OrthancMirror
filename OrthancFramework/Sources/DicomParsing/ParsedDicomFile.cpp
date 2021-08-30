@@ -78,6 +78,7 @@
 #include "../Images/PamReader.h"
 #include "../Logging.h"
 #include "../OrthancException.h"
+#include "../SerializationToolbox.h"
 #include "../Toolbox.h"
 
 #if ORTHANC_SANDBOXED == 0
@@ -1773,6 +1774,117 @@ namespace Orthanc
     {
       InvalidateCache();
       FromDcmtkBridge::ClearPath(*GetDcmtkObject().getDataset(), path, onlyIfExists);
+    }
+  }
+
+
+  bool ParsedDicomFile::LookupSequenceItem(DicomMap& target,
+                                           const DicomPath& path,
+                                           size_t sequenceIndex) const
+  {
+    DcmDataset& dataset = *const_cast<ParsedDicomFile&>(*this).GetDcmtkObject().getDataset();
+    return FromDcmtkBridge::LookupSequenceItem(target, dataset, path, sequenceIndex);
+  }
+  
+
+  void ParsedDicomFile::GetDefaultWindowing(double& windowCenter,
+                                            double& windowWidth,
+                                            unsigned int frame) const
+  {
+    DcmDataset& dataset = *const_cast<ParsedDicomFile&>(*this).GetDcmtkObject().getDataset();
+
+    const char* wc = NULL;
+    const char* ww = NULL;
+    DcmItem *item1 = NULL;
+    DcmItem *item2 = NULL;
+
+    if (dataset.findAndGetString(DCM_WindowCenter, wc).good() &&
+        dataset.findAndGetString(DCM_WindowWidth, ww).good() &&
+        wc != NULL &&
+        ww != NULL &&
+        SerializationToolbox::ParseFirstDouble(windowCenter, wc) &&
+        SerializationToolbox::ParseFirstDouble(windowWidth, ww))
+    {
+      return;  // OK
+    }
+    else if (dataset.findAndGetSequenceItem(DCM_PerFrameFunctionalGroupsSequence, item1, frame).good() &&
+             item1 != NULL &&
+             item1->findAndGetSequenceItem(DCM_FrameVOILUTSequence, item2, 0).good() &&
+             item2 != NULL &&
+             item2->findAndGetString(DCM_WindowCenter, wc).good() &&
+             item2->findAndGetString(DCM_WindowWidth, ww).good() &&
+             wc != NULL &&
+             ww != NULL &&
+             SerializationToolbox::ParseFirstDouble(windowCenter, wc) &&
+             SerializationToolbox::ParseFirstDouble(windowWidth, ww))
+    {
+      // New in Orthanc 1.9.7, to deal with Philips multiframe images
+      // (cf. private mail from Tomas Kenda on 2021-08-17)
+      return;  // OK
+    }
+    else
+    {
+      Uint16 bitsStored = 0;
+      if (!dataset.findAndGetUint16(DCM_BitsStored, bitsStored).good() ||
+          bitsStored == 0)
+      {
+        bitsStored = 8;  // Rough assumption
+      }
+
+      windowWidth = static_cast<double>(1 << bitsStored);
+      windowCenter = windowWidth / 2.0f;
+    }
+  }
+
+  
+  void ParsedDicomFile::GetRescale(double& rescaleIntercept,
+                                   double& rescaleSlope,
+                                   unsigned int frame) const
+  {
+    DcmDataset& dataset = *const_cast<ParsedDicomFile&>(*this).GetDcmtkObject().getDataset();
+
+    const char* sopClassUid = NULL;
+    const char* intercept = NULL;
+    const char* slope = NULL;
+    DcmItem *item1 = NULL;
+    DcmItem *item2 = NULL;
+
+    if (dataset.findAndGetString(DCM_SOPClassUID, sopClassUid).good() &&
+        sopClassUid != NULL &&
+        std::string(sopClassUid) == std::string(UID_RTDoseStorage))
+    {
+      // We must not take the rescale value into account in the case of doses
+      rescaleIntercept = 0;
+      rescaleSlope = 1;
+    }
+    else if (dataset.findAndGetString(DCM_RescaleIntercept, intercept).good() &&
+             dataset.findAndGetString(DCM_RescaleSlope, slope).good() &&
+             intercept != NULL &&
+             slope != NULL &&
+             SerializationToolbox::ParseDouble(rescaleIntercept, intercept) &&
+             SerializationToolbox::ParseDouble(rescaleSlope, slope))
+    {
+      return;  // OK
+    }
+    else if (dataset.findAndGetSequenceItem(DCM_PerFrameFunctionalGroupsSequence, item1, frame).good() &&
+             item1 != NULL &&
+             item1->findAndGetSequenceItem(DCM_PixelValueTransformationSequence, item2, 0).good() &&
+             item2 != NULL &&
+             item2->findAndGetString(DCM_RescaleIntercept, intercept).good() &&
+             item2->findAndGetString(DCM_RescaleSlope, slope).good() &&
+             intercept != NULL &&
+             slope != NULL &&
+             SerializationToolbox::ParseDouble(rescaleIntercept, intercept) &&
+             SerializationToolbox::ParseDouble(rescaleSlope, slope))
+    {
+      // New in Orthanc 1.9.7, to deal with Philips multiframe images
+      // (cf. private mail from Tomas Kenda on 2021-08-17)
+      return;  // OK
+    }
+    else
+    {
+      rescaleIntercept = 0;
+      rescaleSlope = 1;
     }
   }
 
