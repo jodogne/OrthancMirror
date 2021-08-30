@@ -279,6 +279,7 @@ private:
   bool            alwaysAllowEcho_;
   bool            alwaysAllowFind_;  // New in Orthanc 1.9.0
   bool            alwaysAllowGet_;   // New in Orthanc 1.9.0
+  bool            alwaysAllowMove_;  // New in Orthanc 1.9.7
   bool            alwaysAllowStore_;
 
 public:
@@ -290,6 +291,7 @@ public:
       alwaysAllowEcho_ = lock.GetConfiguration().GetBooleanParameter("DicomAlwaysAllowEcho", true);
       alwaysAllowFind_ = lock.GetConfiguration().GetBooleanParameter("DicomAlwaysAllowFind", false);
       alwaysAllowGet_ = lock.GetConfiguration().GetBooleanParameter("DicomAlwaysAllowGet", false);
+      alwaysAllowMove_ = lock.GetConfiguration().GetBooleanParameter("DicomAlwaysAllowMove", false);
       alwaysAllowStore_ = lock.GetConfiguration().GetBooleanParameter("DicomAlwaysAllowStore", true);
     }
 
@@ -301,6 +303,11 @@ public:
     if (alwaysAllowGet_)
     {
       LOG(WARNING) << "Security risk in DICOM SCP: C-GET requests are always allowed, even from unknown modalities";
+    }
+
+    if (alwaysAllowMove_)
+    {
+      LOG(WARNING) << "Security risk in DICOM SCP: C-MOOVE requests are always allowed, even from unknown modalities";
     }
   }
 
@@ -314,6 +321,7 @@ public:
     if (alwaysAllowEcho_ ||
         alwaysAllowFind_ ||
         alwaysAllowGet_ ||
+        alwaysAllowMove_ ||
         alwaysAllowStore_)
     {
       return true;
@@ -366,6 +374,12 @@ public:
              alwaysAllowGet_)
     {
       // Incoming C-Get requests are always accepted, even from unknown AET
+      return true;
+    }
+    else if (type == DicomRequestType_Move &&
+             alwaysAllowMove_)
+    {
+      // Incoming C-Move requests are always accepted, even from unknown AET
       return true;
     }
     else
