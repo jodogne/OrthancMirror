@@ -3164,10 +3164,10 @@ namespace Orthanc
   }
 
 
-  bool FromDcmtkBridge::LookupSubSequence(DicomMap& target,
-                                          DcmDataset& dataset,
-                                          const DicomPath& path,
-                                          size_t sequenceIndex)
+  bool FromDcmtkBridge::LookupSequenceItem(DicomMap& target,
+                                           DcmDataset& dataset,
+                                           const DicomPath& path,
+                                           size_t sequenceIndex)
   {
     class Visitor : public FromDcmtkBridge::IDicomPathVisitor
     {

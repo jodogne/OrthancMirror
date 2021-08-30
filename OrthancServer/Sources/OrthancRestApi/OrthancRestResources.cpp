@@ -666,7 +666,8 @@ namespace Orthanc
       // "dicom" is non-NULL iff. "RequiresDicomTags() == true"
       virtual void Handle(RestApiGetCall& call,
                           std::unique_ptr<ImageAccessor>& decoded,
-                          const ParsedDicomFile* dicom) = 0;
+                          const ParsedDicomFile* dicom,
+                          unsigned int frame) = 0;
 
       virtual bool RequiresDicomTags() const = 0;
 
@@ -799,11 +800,11 @@ namespace Orthanc
              * interpretation, and with windowing parameters.
              **/ 
             ServerContext::DicomCacheLocker locker(context, publicId);
-            handler.Handle(call, decoded, &locker.GetDicom());
+            handler.Handle(call, decoded, &locker.GetDicom(), frame);
           }
           else
           {
-            handler.Handle(call, decoded, NULL);
+            handler.Handle(call, decoded, NULL, frame);
           }
         }
         catch (OrthancException& e)
@@ -868,7 +869,8 @@ namespace Orthanc
 
       virtual void Handle(RestApiGetCall& call,
                           std::unique_ptr<ImageAccessor>& decoded,
-                          const ParsedDicomFile* dicom) ORTHANC_OVERRIDE
+                          const ParsedDicomFile* dicom,
+                          unsigned int frame) ORTHANC_OVERRIDE
       {
         bool invert = false;
 
@@ -899,43 +901,8 @@ namespace Orthanc
     class RenderedFrameHandler : public IDecodedFrameHandler
     {
     private:
-      static void GetDicomParameters(bool& invert,
-                                     float& rescaleSlope,
-                                     float& rescaleIntercept,
-                                     float& windowWidth,
-                                     float& windowCenter,
-                                     const ParsedDicomFile& dicom)
-      {
-        DicomMap tags;
-        OrthancConfiguration::DefaultExtractDicomSummary(tags, dicom);
-        
-        DicomImageInformation info(tags);
-
-        invert = (info.GetPhotometricInterpretation() == PhotometricInterpretation_Monochrome1);
-
-        rescaleSlope = 1.0f;
-        rescaleIntercept = 0.0f;
-
-        if (dicom.HasTag(Orthanc::DICOM_TAG_RESCALE_SLOPE) &&
-            dicom.HasTag(Orthanc::DICOM_TAG_RESCALE_INTERCEPT))
-        {
-          tags.ParseFloat(rescaleSlope, Orthanc::DICOM_TAG_RESCALE_SLOPE);
-          tags.ParseFloat(rescaleIntercept, Orthanc::DICOM_TAG_RESCALE_INTERCEPT);
-        }
-
-        windowWidth = static_cast<float>(1 << info.GetBitsStored()) * rescaleSlope;
-        windowCenter = windowWidth / 2.0f + rescaleIntercept;
-
-        if (tags.HasTag(Orthanc::DICOM_TAG_WINDOW_CENTER) &&
-            tags.HasTag(Orthanc::DICOM_TAG_WINDOW_WIDTH))
-        {
-          tags.ParseFirstFloat(windowCenter, Orthanc::DICOM_TAG_WINDOW_CENTER);
-          tags.ParseFirstFloat(windowWidth, Orthanc::DICOM_TAG_WINDOW_WIDTH);
-        }
-      }
-
-      static void GetUserArguments(float& windowWidth /* inout */,
-                                   float& windowCenter /* inout */,
+      static void GetUserArguments(double& windowWidth /* inout */,
+                                   double& windowCenter /* inout */,
                                    unsigned int& argWidth,
                                    unsigned int& argHeight,
                                    bool& smooth,
@@ -947,30 +914,18 @@ namespace Orthanc
         static const char* ARG_HEIGHT = "height";
         static const char* ARG_SMOOTH = "smooth";
 
-        if (call.HasArgument(ARG_WINDOW_WIDTH))
+        if (call.HasArgument(ARG_WINDOW_WIDTH) &&
+            !SerializationToolbox::ParseDouble(windowWidth, call.GetArgument(ARG_WINDOW_WIDTH, "")))
         {
-          try
-          {
-            windowWidth = boost::lexical_cast<float>(call.GetArgument(ARG_WINDOW_WIDTH, ""));
-          }
-          catch (boost::bad_lexical_cast&)
-          {
-            throw OrthancException(ErrorCode_ParameterOutOfRange,
-                                   "Bad value for argument: " + std::string(ARG_WINDOW_WIDTH));
-          }
+          throw OrthancException(ErrorCode_ParameterOutOfRange,
+                                 "Bad value for argument: " + std::string(ARG_WINDOW_WIDTH));
         }
 
-        if (call.HasArgument(ARG_WINDOW_CENTER))
+        if (call.HasArgument(ARG_WINDOW_CENTER) &&
+            !SerializationToolbox::ParseDouble(windowCenter, call.GetArgument(ARG_WINDOW_CENTER, "")))
         {
-          try
-          {
-            windowCenter = boost::lexical_cast<float>(call.GetArgument(ARG_WINDOW_CENTER, ""));
-          }
-          catch (boost::bad_lexical_cast&)
-          {
-            throw OrthancException(ErrorCode_ParameterOutOfRange,
-                                   "Bad value for argument: " + std::string(ARG_WINDOW_CENTER));
-          }
+          throw OrthancException(ErrorCode_ParameterOutOfRange,
+                                 "Bad value for argument: " + std::string(ARG_WINDOW_CENTER));
         }
 
         argWidth = 0;
@@ -1032,17 +987,22 @@ namespace Orthanc
     public:
       virtual void Handle(RestApiGetCall& call,
                           std::unique_ptr<ImageAccessor>& decoded,
-                          const ParsedDicomFile* dicom) ORTHANC_OVERRIDE
+                          const ParsedDicomFile* dicom,
+                          unsigned int frame) ORTHANC_OVERRIDE
       {
         if (dicom == NULL)
         {
           throw OrthancException(ErrorCode_InternalError);
         }
         
-        bool invert;
-        float rescaleSlope, rescaleIntercept, windowWidth, windowCenter;
-        GetDicomParameters(invert, rescaleSlope, rescaleIntercept, windowWidth, windowCenter, *dicom);
-
+        PhotometricInterpretation photometric;
+        const bool invert = (dicom->LookupPhotometricInterpretation(photometric) &&
+                             photometric == PhotometricInterpretation_Monochrome1);
+          
+        double rescaleIntercept, rescaleSlope, windowCenter, windowWidth;
+        dicom->GetRescale(rescaleIntercept, rescaleSlope, frame);
+        dicom->GetDefaultWindowing(windowCenter, windowWidth, frame);
+        
         unsigned int argWidth, argHeight;
         bool smooth;
         GetUserArguments(windowWidth, windowCenter, argWidth, argHeight, smooth, call);
@@ -1112,16 +1072,16 @@ namespace Orthanc
             windowWidth = 1;
           }
 
-          if (std::abs(rescaleSlope) <= 0.1f)
+          if (std::abs(rescaleSlope) <= 0.1)
           {
-            rescaleSlope = 0.1f;
+            rescaleSlope = 0.1;
           }
 
-          const float scaling = 255.0f * rescaleSlope / windowWidth;
-          const float offset = (rescaleIntercept - windowCenter + windowWidth / 2.0f) / rescaleSlope;
+          const double scaling = 255.0 * rescaleSlope / windowWidth;
+          const double offset = (rescaleIntercept - windowCenter + windowWidth / 2.0) / rescaleSlope;
 
           std::unique_ptr<ImageAccessor> rescaled(new Image(PixelFormat_Grayscale8, decoded->GetWidth(), decoded->GetHeight(), false));
-          ImageProcessing::ShiftScale(*rescaled, converted, offset, scaling, false);
+          ImageProcessing::ShiftScale(*rescaled, converted, static_cast<float>(offset), static_cast<float>(scaling), false);
 
           if (targetWidth == decoded->GetWidth() &&
               targetHeight == decoded->GetHeight())

@@ -2744,24 +2744,24 @@ TEST(ParsedDicomFile, DicomPath)
     std::unique_ptr<ParsedDicomFile> dicom(ParsedDicomFile::CreateFromJson(v, DicomFromJsonFlags_None, ""));
 
     DicomMap m;
-    ASSERT_TRUE(dicom->LookupSubSequence(m, DicomPath(DICOM_TAG_REFERENCED_IMAGE_SEQUENCE), 0));
+    ASSERT_TRUE(dicom->LookupSequenceItem(m, DicomPath(DICOM_TAG_REFERENCED_IMAGE_SEQUENCE), 0));
     ASSERT_EQ(2u, m.GetSize());
     ASSERT_EQ("1.2.840.113619.2.176.2025.1499492.7040.1171286241.719",
               m.GetStringValue(DICOM_TAG_REFERENCED_SOP_INSTANCE_UID, "", false));
     
-    ASSERT_TRUE(dicom->LookupSubSequence(m, DicomPath(DICOM_TAG_REFERENCED_IMAGE_SEQUENCE), 1));
+    ASSERT_TRUE(dicom->LookupSequenceItem(m, DicomPath(DICOM_TAG_REFERENCED_IMAGE_SEQUENCE), 1));
     ASSERT_EQ(2u, m.GetSize());
     ASSERT_EQ("1.2.840.113619.2.176.2025.1499492.7040.1171286241.726",
               m.GetStringValue(DICOM_TAG_REFERENCED_SOP_INSTANCE_UID, "", false));
     
-    ASSERT_FALSE(dicom->LookupSubSequence(m, DicomPath(DICOM_TAG_REFERENCED_IMAGE_SEQUENCE), 2));
+    ASSERT_FALSE(dicom->LookupSequenceItem(m, DicomPath(DICOM_TAG_REFERENCED_IMAGE_SEQUENCE), 2));
     
-    ASSERT_TRUE(dicom->LookupSubSequence(m, DicomPath(DicomTag(0x0008, 0x1250), 0, DicomTag(0x0040, 0xa170)), 0));
+    ASSERT_TRUE(dicom->LookupSequenceItem(m, DicomPath(DicomTag(0x0008, 0x1250), 0, DicomTag(0x0040, 0xa170)), 0));
     ASSERT_EQ(2u, m.GetSize());
     ASSERT_EQ("122403", m.GetStringValue(DicomTag(0x0008, 0x0100), "", false));
     ASSERT_EQ("WORLD", m.GetStringValue(DICOM_TAG_SERIES_DESCRIPTION, "", false));
 
-    ASSERT_FALSE(dicom->LookupSubSequence(m, DicomPath(DicomTag(0x0008, 0x1250), 0, DicomTag(0x0040, 0xa170)), 1));
+    ASSERT_FALSE(dicom->LookupSequenceItem(m, DicomPath(DicomTag(0x0008, 0x1250), 0, DicomTag(0x0040, 0xa170)), 1));
   }
 }
 
@@ -3016,6 +3016,121 @@ TEST(FromDcmtkBridge, VisitorRemoveTag)
     ASSERT_EQ(0u, b["0008,1140"][0].size());
   }
 }
+
+
+
+TEST(ParsedDicomFile, ImageInformation)
+{
+  double wc, ww;
+  double ri, rs;
+  PhotometricInterpretation p;
+
+  {
+    ParsedDicomFile dicom(false);
+    dicom.GetDefaultWindowing(wc, ww, 5);
+    dicom.GetRescale(ri, rs, 5);
+    ASSERT_DOUBLE_EQ(128.0, wc);
+    ASSERT_DOUBLE_EQ(256.0, ww);
+    ASSERT_FALSE(dicom.LookupPhotometricInterpretation(p));
+    ASSERT_DOUBLE_EQ(0.0, ri);
+    ASSERT_DOUBLE_EQ(1.0, rs);
+  }
+
+  {
+    ParsedDicomFile dicom(false);
+    ASSERT_TRUE(dicom.GetDcmtkObject().getDataset()->putAndInsertString(DCM_BitsStored, "4").good());
+    ASSERT_TRUE(dicom.GetDcmtkObject().getDataset()->putAndInsertString(DCM_PhotometricInterpretation, "RGB").good());
+    dicom.GetDefaultWindowing(wc, ww, 5);
+    ASSERT_DOUBLE_EQ(8.0, wc);
+    ASSERT_DOUBLE_EQ(16.0, ww);
+    ASSERT_TRUE(dicom.LookupPhotometricInterpretation(p));
+    ASSERT_EQ(PhotometricInterpretation_RGB, p);
+  }
+
+  {
+    ParsedDicomFile dicom(false);
+    ASSERT_TRUE(dicom.GetDcmtkObject().getDataset()->putAndInsertString(DCM_WindowCenter, "12").good());
+    ASSERT_TRUE(dicom.GetDcmtkObject().getDataset()->putAndInsertString(DCM_WindowWidth, "-22").good());
+    ASSERT_TRUE(dicom.GetDcmtkObject().getDataset()->putAndInsertString(DCM_RescaleIntercept, "-22").good());
+    ASSERT_TRUE(dicom.GetDcmtkObject().getDataset()->putAndInsertString(DCM_RescaleSlope, "-23").good());
+    dicom.GetDefaultWindowing(wc, ww, 5);
+    dicom.GetRescale(ri, rs, 5);
+    ASSERT_DOUBLE_EQ(12.0, wc);
+    ASSERT_DOUBLE_EQ(-22.0, ww);
+    ASSERT_DOUBLE_EQ(-22.0, ri);
+    ASSERT_DOUBLE_EQ(-23.0, rs);
+  }
+
+  {
+    ParsedDicomFile dicom(false);
+    ASSERT_TRUE(dicom.GetDcmtkObject().getDataset()->putAndInsertString(DCM_WindowCenter, "12\\13\\14").good());
+    ASSERT_TRUE(dicom.GetDcmtkObject().getDataset()->putAndInsertString(DCM_WindowWidth, "-22\\-23\\-24").good());
+    ASSERT_TRUE(dicom.GetDcmtkObject().getDataset()->putAndInsertString(DCM_RescaleIntercept, "32\\33\\34").good());
+    ASSERT_TRUE(dicom.GetDcmtkObject().getDataset()->putAndInsertString(DCM_RescaleSlope, "-42\\-43\\-44").good());
+    dicom.GetDefaultWindowing(wc, ww, 5);
+    dicom.GetRescale(ri, rs, 5);
+    ASSERT_DOUBLE_EQ(12.0, wc);
+    ASSERT_DOUBLE_EQ(-22.0, ww);
+    ASSERT_DOUBLE_EQ(32.0, ri);
+    ASSERT_DOUBLE_EQ(-42.0, rs);
+  }
+
+  {
+    // Philips multiframe
+    Json::Value v = Json::objectValue;
+    v["PerFrameFunctionalGroupsSequence"][0]["FrameVOILUTSequence"][0]["WindowCenter"] = "614";
+    v["PerFrameFunctionalGroupsSequence"][0]["FrameVOILUTSequence"][0]["WindowWidth"] = "1067";
+    v["PerFrameFunctionalGroupsSequence"][0]["PixelValueTransformationSequence"][0]["RescaleIntercept"] = "12";
+    v["PerFrameFunctionalGroupsSequence"][0]["PixelValueTransformationSequence"][0]["RescaleSlope"] = "2.551648";
+    v["PerFrameFunctionalGroupsSequence"][1]["FrameVOILUTSequence"][0]["WindowCenter"] = "-61";
+    v["PerFrameFunctionalGroupsSequence"][1]["FrameVOILUTSequence"][0]["WindowWidth"] = "-63";
+    v["PerFrameFunctionalGroupsSequence"][1]["PixelValueTransformationSequence"][0]["RescaleIntercept"] = "13";
+    v["PerFrameFunctionalGroupsSequence"][1]["PixelValueTransformationSequence"][0]["RescaleSlope"] = "-14";
+    std::unique_ptr<ParsedDicomFile> dicom(ParsedDicomFile::CreateFromJson(v, DicomFromJsonFlags_None, ""));
+    
+    dicom->GetDefaultWindowing(wc, ww, 0);
+    dicom->GetRescale(ri, rs, 0);
+    ASSERT_DOUBLE_EQ(614.0, wc);
+    ASSERT_DOUBLE_EQ(1067.0, ww);
+    ASSERT_DOUBLE_EQ(12.0, ri);
+    ASSERT_DOUBLE_EQ(2.551648, rs);
+    
+    dicom->GetDefaultWindowing(wc, ww, 1);
+    dicom->GetRescale(ri, rs, 1);
+    ASSERT_DOUBLE_EQ(-61.0, wc);
+    ASSERT_DOUBLE_EQ(-63.0, ww);
+    ASSERT_DOUBLE_EQ(13.0, ri);
+    ASSERT_DOUBLE_EQ(-14.0, rs);
+    
+    dicom->GetDefaultWindowing(wc, ww, 2);
+    dicom->GetRescale(ri, rs, 2);
+    ASSERT_DOUBLE_EQ(128.0, wc);
+    ASSERT_DOUBLE_EQ(256.0, ww);
+    ASSERT_DOUBLE_EQ(0.0, ri);
+    ASSERT_DOUBLE_EQ(1.0, rs);
+  }
+
+  {
+    // RT-DOSE
+    Json::Value v = Json::objectValue;
+    v["RescaleIntercept"] = "10";
+    v["RescaleSlope"] = "20";
+    v["PerFrameFunctionalGroupsSequence"][0]["PixelValueTransformationSequence"][0]["RescaleIntercept"] = "30";
+    v["PerFrameFunctionalGroupsSequence"][0]["PixelValueTransformationSequence"][0]["RescaleSlope"] = "40";
+    std::unique_ptr<ParsedDicomFile> dicom(ParsedDicomFile::CreateFromJson(v, DicomFromJsonFlags_None, ""));
+    
+    dicom->GetRescale(ri, rs, 0);
+    ASSERT_DOUBLE_EQ(10.0, ri);
+    ASSERT_DOUBLE_EQ(20.0, rs);
+
+    v["SOPClassUID"] = "1.2.840.10008.5.1.4.1.1.481.2";
+    dicom.reset(ParsedDicomFile::CreateFromJson(v, DicomFromJsonFlags_None, ""));
+    dicom->GetRescale(ri, rs, 0);
+    ASSERT_DOUBLE_EQ(0.0, ri);
+    ASSERT_DOUBLE_EQ(1.0, rs);
+  }
+}
+
 
 
 
