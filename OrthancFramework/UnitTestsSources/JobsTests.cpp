@@ -1585,8 +1585,8 @@ TEST(SerializationToolbox, Numbers)
     ASSERT_FALSE(SerializationToolbox::ParseInteger32(i, "ee"));
     ASSERT_TRUE(SerializationToolbox::ParseInteger32(i, "42"));  ASSERT_EQ(42, i);
     ASSERT_TRUE(SerializationToolbox::ParseInteger32(i, "-42"));  ASSERT_EQ(-42, i);
-    ASSERT_TRUE(SerializationToolbox::ParseInteger32(i, "-2147483648")); ASSERT_EQ(-2147483648, i);
-    ASSERT_TRUE(SerializationToolbox::ParseInteger32(i, "2147483647")); ASSERT_EQ(2147483647, i);
+    ASSERT_TRUE(SerializationToolbox::ParseInteger32(i, "-2147483648")); ASSERT_EQ(-2147483648l, i);
+    ASSERT_TRUE(SerializationToolbox::ParseInteger32(i, "2147483647")); ASSERT_EQ(2147483647l, i);
     ASSERT_FALSE(SerializationToolbox::ParseInteger32(i, "-2147483649"));
     ASSERT_FALSE(SerializationToolbox::ParseInteger32(i, "2147483648"));
     ASSERT_FALSE(SerializationToolbox::ParseInteger32(i, "-2\\-3\\-4"));
@@ -1623,7 +1623,7 @@ TEST(SerializationToolbox, Numbers)
     ASSERT_FALSE(SerializationToolbox::ParseUnsignedInteger64(i, "ee"));
     ASSERT_TRUE(SerializationToolbox::ParseUnsignedInteger64(i, "42"));  ASSERT_EQ(42u, i);
     ASSERT_FALSE(SerializationToolbox::ParseUnsignedInteger64(i, "-42"));
-    ASSERT_TRUE(SerializationToolbox::ParseUnsignedInteger64(i, "4294967296")); ASSERT_EQ(4294967296llu, i);
+    ASSERT_TRUE(SerializationToolbox::ParseUnsignedInteger64(i, "4294967296")); ASSERT_EQ(4294967296lu, i);
     ASSERT_FALSE(SerializationToolbox::ParseUnsignedInteger64(i, "2\\3\\4"));
     ASSERT_TRUE(SerializationToolbox::ParseFirstUnsignedInteger64(i, "2\\3\\4"));  ASSERT_EQ(2u, i);
   }
