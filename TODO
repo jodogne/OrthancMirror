@@ -119,8 +119,8 @@ Internationalization
 Performance
 ===========
 
-* StorageAccessor => add a memory cache, for instance to speed up
-  WADO-RS Retrieve Frames in DICOMweb plugin
+* StorageAccessor => add a memory cache using MemoryStringCache, for
+  instance to speed up WADO-RS Retrieve Frames in DICOMweb plugin
 * ServerContext::DicomCacheLocker => give access to the raw buffer,
   useful in ServerContext::DecodeDicomInstance()
 * DicomMap: create a cache to the main DICOM tags index
