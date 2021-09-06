@@ -1406,11 +1406,11 @@ namespace Orthanc
                 break;
               
               case Json::intValue:
-                s += boost::lexical_cast<std::string>(value[j].asInt());
+                s += boost::lexical_cast<std::string>(value[j].asInt64());
                 break;
               
               case Json::uintValue:
-                s += boost::lexical_cast<std::string>(value[j].asUInt());
+                s += boost::lexical_cast<std::string>(value[j].asUInt64());
                 break;
               
               case Json::realValue:
