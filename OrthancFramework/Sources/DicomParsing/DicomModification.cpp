@@ -1808,4 +1808,25 @@ namespace Orthanc
       }
     }
   }
+
+
+  bool DicomModification::IsAlteredTag(const DicomTag& tag) const
+  {
+    return (uids_.find(tag) != uids_.end() ||
+            IsCleared(tag) ||
+            IsRemoved(tag) ||
+            IsReplaced(tag) ||
+            (tag.IsPrivate() &&
+             ArePrivateTagsRemoved() &&
+             privateTagsToKeep_.find(tag) == privateTagsToKeep_.end()) ||
+            (isAnonymization_ && (
+              tag == DICOM_TAG_PATIENT_NAME ||
+              tag == DICOM_TAG_PATIENT_ID)) ||
+            (tag == DICOM_TAG_STUDY_INSTANCE_UID &&
+             !keepStudyInstanceUid_) ||
+            (tag == DICOM_TAG_SERIES_INSTANCE_UID &&
+             !keepSeriesInstanceUid_) ||
+            (tag == DICOM_TAG_SOP_INSTANCE_UID &&
+             !keepSopInstanceUid_));
+  }
 }
