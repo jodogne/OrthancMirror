@@ -1987,10 +1987,9 @@ namespace Orthanc
     static const std::string redactedContent = "*** POTENTIAL PHI ***";
 
     const DicomTag& tag = element.GetTag();
-    if (deidentifyLogs_ && (
-          logsDeidentifierRules_.IsCleared(tag) ||
-          logsDeidentifierRules_.IsRemoved(tag) ||
-          logsDeidentifierRules_.IsReplaced(tag)))
+    if (deidentifyLogs_ &&
+        !element.GetValue().GetContent().empty() &&
+        logsDeidentifierRules_.IsAlteredTag(tag))
     {
       return redactedContent;
     }
