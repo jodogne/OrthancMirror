@@ -84,7 +84,7 @@ public:
   }
 
 
-  virtual void Handle(DcmDataset& dicom,
+  virtual int  Handle(DcmDataset& dicom,
                       const std::string& remoteIp,
                       const std::string& remoteAet,
                       const std::string& calledAet) ORTHANC_OVERRIDE 
@@ -97,8 +97,15 @@ public:
                          (remoteIp.c_str(), remoteAet.c_str(), calledAet.c_str()));
 
       std::string id;
-      context_.Store(id, *toStore, StoreInstanceMode_Default);
+      StoreStatus res = context_.Store(id, *toStore, StoreInstanceMode_Default);
+      if (res == StoreStatus_FilteredOut)
+      {
+        return 0xA700; // C-Store "Out of Resources" error code
+      }
+      return 0x0000;
     }
+
+    return 0xC000;  // C-Store "Cannot understand" error code
   }
 };
 

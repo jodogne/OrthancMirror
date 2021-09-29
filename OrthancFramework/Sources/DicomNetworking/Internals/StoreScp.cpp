@@ -182,7 +182,12 @@ namespace Orthanc
               {
                 try
                 {
-                  cbdata->handler->Handle(**imageDataSet, *cbdata->remoteIp, cbdata->remoteAET, cbdata->calledAET);
+                  int status = cbdata->handler->Handle(**imageDataSet, *cbdata->remoteIp, cbdata->remoteAET, cbdata->calledAET);
+
+                  if (status != 0)
+                  {
+                    rsp->DimseStatus = static_cast<DIC_US>(status);  
+                  }
                 }
                 catch (OrthancException& e)
                 {
