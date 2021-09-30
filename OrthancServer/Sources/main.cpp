@@ -1210,6 +1210,7 @@ static bool StartDicomServer(ServerContext& context,
       dicomServer.SetCalledApplicationEntityTitleCheck(lock.GetConfiguration().GetBooleanParameter("DicomCheckCalledAet", false));
       dicomServer.SetAssociationTimeout(lock.GetConfiguration().GetUnsignedIntegerParameter("DicomScpTimeout", 30));
       dicomServer.SetPortNumber(lock.GetConfiguration().GetUnsignedIntegerParameter("DicomPort", 4242));
+      dicomServer.SetThreadsCount(lock.GetConfiguration().GetUnsignedIntegerParameter("DicomThreadsCount", 4));
       dicomServer.SetApplicationEntityTitle(lock.GetConfiguration().GetOrthancAET());
 
       // Configuration of DICOM TLS for Orthanc SCP (since Orthanc 1.9.0)

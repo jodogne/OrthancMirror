@@ -3,6 +3,9 @@ Pending changes in the mainline
 
 * Fix handling of option "DeidentifyLogs", notably for tags (0010,0010) and (0010,0020)
 
+* New configuration options:
+  - "DicomThreadsCount" to set the number of threads in the embedded DICOM server
+
 
 Version 1.9.7 (2021-08-31)
 ==========================
