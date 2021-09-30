@@ -22,38 +22,38 @@
 
 #pragma once
 
-#include "MemoryObjectCache.h"
+#include "../Cache/MemoryStringCache.h"
+
+#include "../Compatibility.h"  // For ORTHANC_OVERRIDE
+
+#include <boost/thread/mutex.hpp>
+#include <map>
 
 namespace Orthanc
 {
-  /**
-   * Facade object around "MemoryObjectCache" that caches a dictionary
-   * of strings, using the "fetch/add" paradigm of memcached.
-   * 
-   * Note: this class is thread safe
+   /**
+   *  Note: this class is thread safe
    **/
-  class ORTHANC_PUBLIC MemoryStringCache : public boost::noncopyable
-  {
-  private:
-    class StringValue;
+   class ORTHANC_PUBLIC StorageCache : public boost::noncopyable
+    {
+      MemoryStringCache   cache_;
+    public:
+      void SetMaximumSize(size_t size);
 
-    MemoryObjectCache  cache_;
+      void Add(const std::string& uuid, 
+               FileContentType contentType,
+               const std::string& value);
 
-  public:
-    size_t GetMaximumSize();
-    
-    void SetMaximumSize(size_t size);
+      void Add(const std::string& uuid, 
+               FileContentType contentType,
+               const void* buffer,
+               size_t size);
 
-    void Add(const std::string& key,
-             const std::string& value);
+      void Invalidate(const std::string& uuid, FileContentType contentType);
 
-    void Add(const std::string& key,
-             const void* buffer,
-             size_t size);
+      bool Fetch(std::string& value, 
+                 const std::string& uuid,
+                 FileContentType contentType);
 
-    void Invalidate(const std::string& key);
-
-    bool Fetch(std::string& value,
-               const std::string& key);
-  };
+    };
 }

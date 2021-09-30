@@ -47,4 +47,14 @@ namespace Orthanc
     result->Copy(buffer);
     return result.release();
   }
+
+
+  IMemoryBuffer* StringMemoryBuffer::CreateFromCopy(const std::string& buffer, 
+                                                    size_t start /* inclusive */, 
+                                                    size_t end /* exclusive */)
+  {
+    std::unique_ptr<StringMemoryBuffer> result(new StringMemoryBuffer);
+    result->Copy(buffer, start, end);
+    return result.release();
+  }
 }

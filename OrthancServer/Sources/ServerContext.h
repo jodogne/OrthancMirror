@@ -43,6 +43,7 @@
 #include "../../OrthancFramework/Sources/DicomParsing/DicomModification.h"
 #include "../../OrthancFramework/Sources/DicomParsing/IDicomTranscoder.h"
 #include "../../OrthancFramework/Sources/DicomParsing/ParsedDicomCache.h"
+#include "../../OrthancFramework/Sources/FileStorage/StorageCache.h"
 #include "../../OrthancFramework/Sources/MultiThreading/Semaphore.h"
 
 
@@ -169,6 +170,7 @@ namespace Orthanc
 
     ServerIndex index_;
     IStorageArea& area_;
+    StorageCache storageCache_;
 
     bool compressionEnabled_;
     bool storeMD5_;
@@ -288,6 +290,11 @@ namespace Orthanc
       return index_;
     }
 
+    void SetMaximumStorageCacheSize(size_t size)
+    {
+      return storageCache_.SetMaximumSize(size);
+    }
+
     void SetCompressionEnabled(bool enabled);
 
     bool IsCompressionEnabled() const
@@ -325,7 +332,10 @@ namespace Orthanc
 
     void ReadDicom(std::string& dicom,
                    const std::string& instancePublicId);
-    
+
+    void ReadDicomForHeader(std::string& dicom,
+                            const std::string& instancePublicId);
+
     bool ReadDicomUntilPixelData(std::string& dicom,
                                  const std::string& instancePublicId);
 
