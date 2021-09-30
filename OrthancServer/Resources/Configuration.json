@@ -421,7 +421,11 @@
 
   // Number of threads that are used by the embedded DICOM server.
   // This defines the number of concurrent DICOM operations that can
-  // be run. (new in Orthanc 1.9.8)
+  // be run.  Note: this is not limiting the number of concurrent 
+  // connections.  With a single thread, if a C-Find is received
+  // during e.g the transcoding of an incoming C-Store, it will
+  // have to wait until the end of the C-Store before being processed.
+  // (new in Orthanc 1.9.8, before this version, the value was fixed to 4)
   "DicomThreadsCount" : 4,
 
   // The list of the known Orthanc peers. This option is ignored if
