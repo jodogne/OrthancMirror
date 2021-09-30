@@ -1,6 +1,19 @@
 Pending changes in the mainline
 ===============================
 
+General
+-------
+
+* Added a storage cache in RAM to avoid reading the same files multiple times from 
+  the storage.  This greatly improves, among other things, the performance of WADO-RS
+  retrieval of individual frames of multiframe instances.
+* New configuration option "MaximumStorageCacheSize" to configure the size of
+  the new storage cache.
+
+
+Maintenance
+-----------
+
 * Fix handling of option "DeidentifyLogs", notably for tags (0010,0010) and (0010,0020)
 
 

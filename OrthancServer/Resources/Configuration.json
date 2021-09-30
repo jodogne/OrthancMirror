@@ -40,7 +40,13 @@
   // in the storage (a value of "0" indicates no limit on the number
   // of patients)
   "MaximumPatientCount" : 0,
-  
+
+  // Maximum size of the storage cache in MB.  The storage cache
+  // is stored in RAM and contains a copy of recently accessed
+  // files (written or read).  A value of "0" indicates the cache
+  // is disabled.  (new in Orthanc 1.9.8)
+  "MaximumStorageCacheSize" : 128,
+
   // List of paths to the custom Lua scripts that are to be loaded
   // into this instance of Orthanc
   "LuaScripts" : [
