@@ -418,7 +418,12 @@
   // (1.2.840.10008.1.2.1). This parameter can possibly correspond to
   // a compressed transfer syntax. (new in Orthanc 1.9.0)
   "DicomScuPreferredTransferSyntax" : "1.2.840.10008.1.2.1",
-  
+
+  // Number of threads that are used by the embedded DICOM server.
+  // This defines the number of concurrent DICOM operations that can
+  // be run. (new in Orthanc 1.9.8)
+  "DicomThreadsCount" : 4,
+
   // The list of the known Orthanc peers. This option is ignored if
   // "OrthancPeersInDatabase" is set to "true", in which case you must
   // use the REST API to define Orthanc peers.
