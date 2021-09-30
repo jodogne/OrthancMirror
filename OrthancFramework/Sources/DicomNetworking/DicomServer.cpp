@@ -93,6 +93,7 @@ namespace Orthanc
     port_(104),
     continue_(false),
     associationTimeout_(30),
+    threadsCount_(4),
     modalities_(NULL),
     findRequestHandlerFactory_(NULL),
     moveRequestHandlerFactory_(NULL),
