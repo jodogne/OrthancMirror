@@ -537,7 +537,8 @@ namespace
 
       std::unique_ptr<DicomInstanceToStore> toStore(DicomInstanceToStore::CreateFromParsedDicomFile(dicom));
 
-      return (context_->Store(id, *toStore, StoreInstanceMode_Default) == StoreStatus_Success);
+      ServerContext::StoreResult result = context_->Store(id, *toStore, StoreInstanceMode_Default);
+      return (result.GetStatus() == StoreStatus_Success);
     }
   };
 }

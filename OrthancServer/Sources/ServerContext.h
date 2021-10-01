@@ -93,6 +93,36 @@ namespace Orthanc
                          const Json::Value* dicomAsJson) = 0;
     };
     
+    struct StoreResult
+    {
+    private:
+      StoreStatus  status_;
+      uint16_t     cstoreStatusCode_;
+      // uint16_t     httpStatusCode_; // for future use
+
+    public:
+      StoreResult();
+
+      void SetStatus(StoreStatus status)
+      {
+        status_ = status;
+      }
+
+      StoreStatus GetStatus()
+      {
+        return status_;
+      }
+
+      void SetCStoreStatusCode(uint16_t statusCode)
+      {
+        cstoreStatusCode_ = statusCode;
+      }
+
+      uint16_t GetCStoreStatusCode()
+      {
+        return cstoreStatusCode_;
+      }
+    };
     
   private:
     class LuaServerListener : public IServerListener
@@ -122,6 +152,12 @@ namespace Orthanc
                                           const Json::Value& simplified) ORTHANC_OVERRIDE
       {
         return context_.filterLua_.FilterIncomingInstance(instance, simplified);
+      }
+
+      virtual uint16_t FilterIncomingCStoreInstance(const DicomInstanceToStore& instance,
+                                                    const Json::Value& simplified) ORTHANC_OVERRIDE
+      {
+        return context_.filterLua_.FilterIncomingCStoreInstance(instance, simplified);
       }
     };
     
@@ -231,7 +267,7 @@ namespace Orthanc
     bool isUnknownSopClassAccepted_;
     std::set<DicomTransferSyntax>  acceptedTransferSyntaxes_;
 
-    StoreStatus StoreAfterTranscoding(std::string& resultPublicId,
+    StoreResult StoreAfterTranscoding(std::string& resultPublicId,
                                       DicomInstanceToStore& dicom,
                                       StoreInstanceMode mode);
 
@@ -304,7 +340,7 @@ namespace Orthanc
                        int64_t oldRevision,
                        const std::string& oldMD5);
 
-    StoreStatus Store(std::string& resultPublicId,
+    StoreResult Store(std::string& resultPublicId,
                       DicomInstanceToStore& dicom,
                       StoreInstanceMode mode);
 

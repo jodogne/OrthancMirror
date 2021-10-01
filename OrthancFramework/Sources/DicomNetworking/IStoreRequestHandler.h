@@ -39,9 +39,9 @@ namespace Orthanc
     {
     }
 
-    virtual void Handle(DcmDataset& dicom,
-                        const std::string& remoteIp,
-                        const std::string& remoteAet,
-                        const std::string& calledAet) = 0;
+    virtual uint16_t Handle(DcmDataset& dicom,
+                            const std::string& remoteIp,
+                            const std::string& remoteAet,
+                            const std::string& calledAet) = 0;
   };
 }
