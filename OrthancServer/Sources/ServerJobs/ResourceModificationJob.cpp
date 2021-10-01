@@ -290,8 +290,8 @@ namespace Orthanc
      **/
 
     std::string modifiedInstance;
-    if (GetContext().Store(modifiedInstance, *toStore,
-                           StoreInstanceMode_Default) != StoreStatus_Success)
+    ServerContext::StoreResult result = GetContext().Store(modifiedInstance, *toStore, StoreInstanceMode_Default);
+    if (result.GetStatus() != StoreStatus_Success)
     {
       throw OrthancException(ErrorCode_CannotStoreInstance,
                              "Error while storing a modified instance " + instance);

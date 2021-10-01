@@ -43,6 +43,8 @@
 #include "../../OrthancFramework/Sources/Logging.h"
 #include "../../OrthancFramework/Sources/Lua/LuaFunctionCall.h"
 
+#include <dcmtk/dcmnet/dimse.h>
+
 #include <OrthancServerResources.h>
 
 
@@ -943,6 +945,41 @@ namespace Orthanc
     }
 
     return true;
+  }
+
+  uint16_t LuaScripting::FilterIncomingCStoreInstance(const DicomInstanceToStore& instance,
+                                                      const Json::Value& simplified)
+  {
+    static const char* NAME = "ReceivedCStoreInstanceFilter";
+
+    boost::recursive_mutex::scoped_lock lock(mutex_);
+
+    if (lua_.IsExistingFunction(NAME))
+    {
+      LuaFunctionCall call(lua_, NAME);
+      call.PushJson(simplified);
+
+      Json::Value origin;
+      instance.GetOrigin().Format(origin);
+      call.PushJson(origin);
+
+      Json::Value info = Json::objectValue;
+      info["HasPixelData"] = instance.HasPixelData();
+
+      DicomTransferSyntax s;
+      if (instance.LookupTransferSyntax(s))
+      {
+        info["TransferSyntaxUID"] = GetTransferSyntaxUid(s);
+      }
+
+      call.PushJson(info);
+
+      int result;
+      call.ExecuteToInt(result);
+      return static_cast<uint16_t>(result);
+    }
+
+    return STATUS_Success;
   }
 
 

@@ -55,5 +55,9 @@ namespace Orthanc
 
     virtual bool FilterIncomingInstance(const DicomInstanceToStore& instance,
                                         const Json::Value& simplified) = 0;
+
+    virtual uint16_t FilterIncomingCStoreInstance(const DicomInstanceToStore& instance,
+                                                  const Json::Value& simplified) = 0;
+
   };
 }

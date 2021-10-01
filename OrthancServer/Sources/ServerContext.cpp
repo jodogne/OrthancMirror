@@ -57,6 +57,7 @@
 #include "StorageCommitmentReports.h"
 
 #include <dcmtk/dcmdata/dcfilefo.h>
+#include <dcmtk/dcmnet/dimse.h>
 
 
 static size_t DICOM_CACHE_SIZE = 128 * 1024 * 1024;  // 128 MB
@@ -98,6 +99,13 @@ namespace Orthanc
       // Do not try to transcode special transfer syntaxes
       transferSyntax != DicomTransferSyntax_RFC2557MimeEncapsulation &&
       transferSyntax != DicomTransferSyntax_XML);
+  }
+
+
+  ServerContext::StoreResult::StoreResult() :
+    status_(StoreStatus_Failure),
+    cstoreStatusCode_(0)
+  {
   }
 
   
@@ -489,9 +497,9 @@ namespace Orthanc
   }
 
 
-  StoreStatus ServerContext::StoreAfterTranscoding(std::string& resultPublicId,
-                                                   DicomInstanceToStore& dicom,
-                                                   StoreInstanceMode mode)
+  ServerContext::StoreResult ServerContext::StoreAfterTranscoding(std::string& resultPublicId,
+                                                                  DicomInstanceToStore& dicom,
+                                                                  StoreInstanceMode mode)
   {
     bool overwrite;
     switch (mode)
@@ -538,7 +546,7 @@ namespace Orthanc
       Toolbox::SimplifyDicomAsJson(simplifiedTags, dicomAsJson, DicomToJsonFormat_Human);
 
       // Test if the instance must be filtered out
-      bool accepted = true;
+      StoreResult result;
 
       {
         boost::shared_lock<boost::shared_mutex> lock(listenersMutex_);
@@ -549,9 +557,22 @@ namespace Orthanc
           {
             if (!it->GetListener().FilterIncomingInstance(dicom, simplifiedTags))
             {
-              accepted = false;
+              result.SetStatus(StoreStatus_FilteredOut);
+              result.SetCStoreStatusCode(STATUS_Success); // to keep backward compatibility, we still return 'success'
               break;
             }
+
+            if (dicom.GetOrigin().GetRequestOrigin() == Orthanc::RequestOrigin_DicomProtocol)
+            {
+              uint16_t filterResult = it->GetListener().FilterIncomingCStoreInstance(dicom, simplifiedTags);
+              if (it->GetListener().FilterIncomingCStoreInstance(dicom, simplifiedTags) != 0x0000)
+              {
+                result.SetStatus(StoreStatus_FilteredOut);
+                result.SetCStoreStatusCode(filterResult);
+                break;
+              }
+            }
+            
           }
           catch (OrthancException& e)
           {
@@ -563,10 +584,10 @@ namespace Orthanc
         }
       }
 
-      if (!accepted)
+      if (result.GetStatus() == StoreStatus_FilteredOut)
       {
         LOG(INFO) << "An incoming instance has been discarded by the filter";
-        return StoreStatus_FilteredOut;
+        return result;
       }
 
       // Remove the file from the DicomCache (useful if
@@ -595,9 +616,9 @@ namespace Orthanc
 
       typedef std::map<MetadataType, std::string>  InstanceMetadata;
       InstanceMetadata  instanceMetadata;
-      StoreStatus status = index_.Store(
+      result.SetStatus(index_.Store(
         instanceMetadata, summary, attachments, dicom.GetMetadata(), dicom.GetOrigin(), overwrite,
-        hasTransferSyntax, transferSyntax, hasPixelDataOffset, pixelDataOffset);
+        hasTransferSyntax, transferSyntax, hasPixelDataOffset, pixelDataOffset));
 
       // Only keep the metadata for the "instance" level
       dicom.ClearMetadata();
@@ -608,7 +629,7 @@ namespace Orthanc
         dicom.AddMetadata(ResourceType_Instance, it->first, it->second);
       }
             
-      if (status != StoreStatus_Success)
+      if (result.GetStatus() != StoreStatus_Success)
       {
         accessor.Remove(dicomInfo);
 
@@ -618,7 +639,7 @@ namespace Orthanc
         }
       }
 
-      switch (status)
+      switch (result.GetStatus())
       {
         case StoreStatus_Success:
           LOG(INFO) << "New instance stored";
@@ -637,8 +658,8 @@ namespace Orthanc
           break;
       }
 
-      if (status == StoreStatus_Success ||
-          status == StoreStatus_AlreadyStored)
+      if (result.GetStatus() == StoreStatus_Success ||
+          result.GetStatus() == StoreStatus_AlreadyStored)
       {
         boost::shared_lock<boost::shared_mutex> lock(listenersMutex_);
 
@@ -657,7 +678,7 @@ namespace Orthanc
         }
       }
 
-      return status;
+      return result;
     }
     catch (OrthancException& e)
     {
@@ -671,9 +692,9 @@ namespace Orthanc
   }
 
 
-  StoreStatus ServerContext::Store(std::string& resultPublicId,
-                                   DicomInstanceToStore& dicom,
-                                   StoreInstanceMode mode)
+  ServerContext::StoreResult ServerContext::Store(std::string& resultPublicId,
+                                                  DicomInstanceToStore& dicom,
+                                                  StoreInstanceMode mode)
   {
     if (!isIngestTranscoding_)
     {
@@ -733,10 +754,10 @@ namespace Orthanc
           std::unique_ptr<DicomInstanceToStore> toStore(DicomInstanceToStore::CreateFromParsedDicomFile(*tmp));
           toStore->SetOrigin(dicom.GetOrigin());
 
-          StoreStatus ok = StoreAfterTranscoding(resultPublicId, *toStore, mode);
+          StoreResult result = StoreAfterTranscoding(resultPublicId, *toStore, mode);
           assert(resultPublicId == tmp->GetHasher().HashInstance());
 
-          return ok;
+          return result;
         }
         else
         {
