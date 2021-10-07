@@ -834,5 +834,12 @@
   // disk space and might lead to HTTP timeouts on large archives). If
   // set to "true", the chunks of the ZIP file are progressively sent
   // as soon as one DICOM file gets compressed (new in Orthanc 1.9.4)
-  "SynchronousZipStream" : true
+  "SynchronousZipStream" : true,
+
+  // Default number of loader threads when generating Zip archive/media.
+  // A value of 0 means reading and writing are performed in sequence
+  // (default behaviour).  A value > 1 is meaningfull only if the storage
+  // is a distributed network storage (e.g object storage plugin).
+  // (new in Orthanc 1.9.8)
+  "ZipLoaderThreads": 0
 }

@@ -9,6 +9,8 @@ General
   retrieval of individual frames of multiframe instances.
 * New configuration option "MaximumStorageCacheSize" to configure the size of
   the new storage cache.
+* New configuration option "ZipLoaderThreads" to configure the number of threads used
+  to read instances from storage when createing a Zip archive/media.
 
 
 Maintenance
