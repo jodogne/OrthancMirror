@@ -55,10 +55,14 @@ namespace Orthanc
     class ResourceIdentifiers;
     class ZipCommands;
     class ZipWriterIterator;
-    
+    class InstanceLoader;
+    class SynchronousInstanceLoader;
+    class ThreadedInstanceLoader;
+
     std::unique_ptr<ZipWriter::IOutputStream>  synchronousTarget_;  // Only valid before "Start()"
     std::unique_ptr<TemporaryFile>        asynchronousTarget_;
     ServerContext&                        context_;
+    std::unique_ptr<InstanceLoader>       instanceLoader_;
     boost::shared_ptr<ArchiveIndex>       archive_;
     bool                                  isMedia_;
     bool                                  enableExtendedSopClass_;
@@ -74,6 +78,9 @@ namespace Orthanc
     // New in Orthanc 1.7.0
     bool                 transcode_;
     DicomTransferSyntax  transferSyntax_;
+
+    // New in Orthanc 1.9.8
+    unsigned int         loaderThreads_;
 
     void FinalizeTarget();
     
@@ -96,6 +103,8 @@ namespace Orthanc
     void AddResource(const std::string& publicId);
 
     void SetTranscode(DicomTransferSyntax transferSyntax);
+
+    void SetLoaderThreads(unsigned int loaderThreads);
 
     virtual void Reset() ORTHANC_OVERRIDE;
 
