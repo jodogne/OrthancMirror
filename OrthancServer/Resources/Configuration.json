@@ -838,7 +838,7 @@
 
   // Default number of loader threads when generating Zip archive/media.
   // A value of 0 means reading and writing are performed in sequence
-  // (default behaviour).  A value > 1 is meaningfull only if the storage
+  // (default behaviour).  A value > 1 is meaningful only if the storage
   // is a distributed network storage (e.g object storage plugin).
   // (new in Orthanc 1.9.8)
   "ZipLoaderThreads": 0
