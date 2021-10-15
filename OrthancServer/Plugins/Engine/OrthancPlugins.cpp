@@ -2521,8 +2521,6 @@ namespace Orthanc
   }
 
 
-    void RegisterIncomingCStoreInstanceFilter(const void* parameters);
-
   void OrthancPlugins::RegisterRefreshMetricsCallback(const void* parameters)
   {
     const _OrthancPluginRegisterRefreshMetricsCallback& p = 
@@ -4999,6 +4997,10 @@ namespace Orthanc
 
       case _OrthancPluginService_RegisterIncomingDicomInstanceFilter:
         RegisterIncomingDicomInstanceFilter(parameters);
+        return true;
+
+      case _OrthancPluginService_RegisterIncomingCStoreInstanceFilter:
+        RegisterIncomingCStoreInstanceFilter(parameters);
         return true;
 
       case _OrthancPluginService_RegisterRefreshMetricsCallback:

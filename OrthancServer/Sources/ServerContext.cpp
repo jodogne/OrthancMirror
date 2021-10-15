@@ -565,7 +565,7 @@ namespace Orthanc
             if (dicom.GetOrigin().GetRequestOrigin() == Orthanc::RequestOrigin_DicomProtocol)
             {
               uint16_t filterResult = it->GetListener().FilterIncomingCStoreInstance(dicom, simplifiedTags);
-              if (it->GetListener().FilterIncomingCStoreInstance(dicom, simplifiedTags) != 0x0000)
+              if (filterResult != 0x0000)
               {
                 result.SetStatus(StoreStatus_FilteredOut);
                 result.SetCStoreStatusCode(filterResult);
