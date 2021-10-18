@@ -353,7 +353,7 @@ namespace Orthanc
         }
         else
         {
-          throw OrthancException(ErrorCode_BadFileFormat);
+          throw OrthancException(ErrorCode_BadFileFormat, "Invalid file or unsupported compression method (e.g. Deflate64)");
         }
       }
       
