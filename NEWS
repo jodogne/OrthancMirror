@@ -6,6 +6,12 @@ Pending changes in the mainline
 * New configuration options:
   - "DicomThreadsCount" to set the number of threads in the embedded DICOM server
 
+Maintenance
+-----------
+
+* Fix instances accumulating in DB while their attachments were not stored because of 
+  MaximumStorageSize limit reached with a single patient in DB.
+
 
 Version 1.9.7 (2021-08-31)
 ==========================
