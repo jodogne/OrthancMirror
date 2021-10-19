@@ -2810,7 +2810,7 @@ namespace Orthanc
         
         if (!ok)
         {
-          throw OrthancException(ErrorCode_FullStorage);
+          throw OrthancException(ErrorCode_FullStorage, "Cannot recycle more patients");
         }
       
         LOG(TRACE) << "Recycling one patient";
@@ -3264,11 +3264,18 @@ namespace Orthanc
         {
           if (e.GetErrorCode() == ErrorCode_DatabaseCannotSerialize)
           {
-            throw;
+            throw;  // the transaction has failed -> do not commit the current transaction (and retry)
           }
           else
           {
-            LOG(ERROR) << "EXCEPTION [" << e.What() << "]";
+            LOG(ERROR) << "EXCEPTION [" << e.What() << " - " << e.GetDetails() << "]";
+
+            if (e.GetErrorCode() == ErrorCode_FullStorage)
+            {
+              throw; // do not commit the current transaction
+            }
+
+            // this is an expected failure, exit normaly and commit the current transaction
             storeStatus_ = StoreStatus_Failure;
           }
         }
