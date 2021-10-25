@@ -60,6 +60,8 @@ Mid-term
   image. The SOPClassUID might be used to identify such secondary
   captures.
 * Support "/preview" and "/matlab" for LUT color images
+* Try to transcode files if a simple decoding fails:
+  https://groups.google.com/g/orthanc-users/c/b8168-NkAhA/m/Df3j-CO9CgAJ
 * Add asynchronous mode in "/modalitities/.../move" for C-MOVE SCU:
   https://groups.google.com/g/orthanc-users/c/G3_jBy4X4NQ/m/8BanTsdMBQAJ
 * Ranges of DICOM tags for "Keep" and "Remove" in ".../modify" and ".../anonymize": 
