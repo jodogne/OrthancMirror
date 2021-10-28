@@ -755,6 +755,7 @@ namespace Orthanc
             .SetTag("Instances")
             .SetUriArgument("id", "Orthanc identifier of the DICOM instance of interest")
             .SetHttpGetArgument("quality", RestApiCallDocumentation::Type_Number, "Quality for JPEG images (between 1 and 100, defaults to 90)", false)
+            .SetHttpGetArgument("returnUnsupportedImage", RestApiCallDocumentation::Type_Boolean, "Returns an unsupported.png placeholder image if unable to provide the image instead of returning a 415 HTTP error (defaults to false)", false)
             .SetHttpHeader("Accept", "Format of the resulting image. Can be `image/png` (default), `image/jpeg` or `image/x-portable-arbitrarymap`")
             .AddAnswerType(MimeType_Png, "PNG image")
             .AddAnswerType(MimeType_Jpeg, "JPEG image")
@@ -817,13 +818,20 @@ namespace Orthanc
           }
           else
           {
-            std::string root = "";
-            for (size_t i = 1; i < call.GetFullUri().size(); i++)
+            if (call.HasArgument("returnUnsupportedImage"))
             {
-              root += "../";
-            }
+              std::string root = "";
+              for (size_t i = 1; i < call.GetFullUri().size(); i++)
+              {
+                root += "../";
+              }
 
-            call.GetOutput().Redirect(root + "app/images/unsupported.png");
+              call.GetOutput().Redirect(root + "app/images/unsupported.png");
+            }
+            else
+            {
+              call.GetOutput().SignalError(HttpStatus_415_UnsupportedMediaType);
+            }
           }
           return;
         }
