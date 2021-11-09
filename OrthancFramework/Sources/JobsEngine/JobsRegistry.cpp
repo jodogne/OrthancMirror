@@ -650,6 +650,7 @@ namespace Orthanc
 
   bool JobsRegistry::GetJobOutput(std::string& output,
                                   MimeType& mime,
+                                  std::string& filename,
                                   const std::string& job,
                                   const std::string& key)
   {
@@ -668,7 +669,7 @@ namespace Orthanc
 
       if (handler.GetState() == JobState_Success)
       {
-        return handler.GetJob().GetOutput(output, mime, key);
+        return handler.GetJob().GetOutput(output, mime, filename, key);
       }
       else
       {

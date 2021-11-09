@@ -77,6 +77,8 @@ namespace Orthanc
                       size_t length,
                       MimeType contentType);
 
+    void SetContentFilename(const char* filename);
+
     void SignalError(HttpStatus status);
 
     void SignalError(HttpStatus status,
