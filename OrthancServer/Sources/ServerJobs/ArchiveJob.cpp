@@ -1196,6 +1196,7 @@ namespace Orthanc
 
   bool ArchiveJob::GetOutput(std::string& output,
                              MimeType& mime,
+                             std::string& filename,
                              const std::string& key)
   {   
     if (key == "archive" &&
@@ -1208,6 +1209,7 @@ namespace Orthanc
         const DynamicTemporaryFile& f = dynamic_cast<DynamicTemporaryFile&>(accessor.GetItem());
         f.GetFile().Read(output);
         mime = MimeType_Zip;
+        filename = "archive.zip";
         return true;
       }
       else

@@ -118,6 +118,7 @@ namespace Orthanc
 
     virtual bool GetOutput(std::string& output,
                            MimeType& mime,
+                           std::string& filename,
                            const std::string& key) ORTHANC_OVERRIDE;
   };
 }

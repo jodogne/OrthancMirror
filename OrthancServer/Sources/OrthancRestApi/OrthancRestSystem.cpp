@@ -696,10 +696,16 @@ namespace Orthanc
 
     std::string value;
     MimeType mime;
+    std::string filename;
     
     if (OrthancRestApi::GetContext(call).GetJobsEngine().
-        GetRegistry().GetJobOutput(value, mime, job, key))
+        GetRegistry().GetJobOutput(value, mime, filename, job, key))
     {
+      if (!filename.empty())
+      {
+        call.GetOutput().SetContentFilename(filename.c_str());
+      }
+
       call.GetOutput().AnswerBuffer(value, mime);
     }
     else

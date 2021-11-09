@@ -148,6 +148,7 @@ namespace Orthanc
 
     bool GetJobOutput(std::string& output,
                       MimeType& mime,
+                      std::string& filename,
                       const std::string& job,
                       const std::string& key);
 
