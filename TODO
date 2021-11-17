@@ -128,7 +128,9 @@ Performance
 * DicomMap: create a cache to the main DICOM tags index
 * Check out rapidjson: https://github.com/miloyip/nativejson-benchmark
 * optimize tools/find with ModalitiesInStudies: 
-  https://groups.google.com/g/orthanc-users/c/aN8nqcRd3jw/m/pmc9ylVeAwAJ
+  https://groups.google.com/g/orthanc-users/c/aN8nqcRd3jw/m/pmc9ylVeAwAJ.
+  One solution could be: filter first without ModalitiesInStudies and then
+  cycle through the responses to filter out with ModalitiesInStudies
 
 ========
 Database
