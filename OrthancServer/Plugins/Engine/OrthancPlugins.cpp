@@ -79,6 +79,7 @@
 #include <boost/regex.hpp>
 #include <dcmtk/dcmdata/dcdict.h>
 #include <dcmtk/dcmdata/dcdicent.h>
+#include <dcmtk/dcmnet/dimse.h>
 
 #define ERROR_MESSAGE_64BIT "A 64bit version of the Orthanc API is necessary"
 
@@ -1165,6 +1166,7 @@ namespace Orthanc
     typedef std::list<OrthancPluginIncomingHttpRequestFilter>  IncomingHttpRequestFilters;
     typedef std::list<OrthancPluginIncomingHttpRequestFilter2>  IncomingHttpRequestFilters2;
     typedef std::list<OrthancPluginIncomingDicomInstanceFilter>  IncomingDicomInstanceFilters;
+    typedef std::list<OrthancPluginIncomingCStoreInstanceFilter>  IncomingCStoreInstanceFilters;
     typedef std::list<OrthancPluginDecodeImageCallback>  DecodeImageCallbacks;
     typedef std::list<OrthancPluginTranscoderCallback>  TranscoderCallbacks;
     typedef std::list<OrthancPluginJobsUnserializer>  JobsUnserializers;
@@ -1187,6 +1189,7 @@ namespace Orthanc
     IncomingHttpRequestFilters  incomingHttpRequestFilters_;
     IncomingHttpRequestFilters2 incomingHttpRequestFilters2_;
     IncomingDicomInstanceFilters  incomingDicomInstanceFilters_;
+    IncomingCStoreInstanceFilters  incomingCStoreInstanceFilters_;  // New in Orthanc 1.9.8
     RefreshMetricsCallbacks refreshMetricsCallbacks_;
     StorageCommitmentScpCallbacks storageCommitmentScpCallbacks_;
     std::unique_ptr<StorageAreaFactory>  storageArea_;
@@ -2261,7 +2264,36 @@ namespace Orthanc
     return true;
   }
 
-  
+
+
+  uint16_t OrthancPlugins::FilterIncomingCStoreInstance(const DicomInstanceToStore& instance,
+                                                        const Json::Value& simplified)
+  {
+    DicomInstanceFromCallback wrapped(instance);
+    
+    boost::recursive_mutex::scoped_lock lock(pimpl_->invokeServiceMutex_);
+    
+    for (PImpl::IncomingCStoreInstanceFilters::const_iterator
+           filter = pimpl_->incomingCStoreInstanceFilters_.begin();
+         filter != pimpl_->incomingCStoreInstanceFilters_.end(); ++filter)
+    {
+      int32_t filterResult = (*filter) (reinterpret_cast<const OrthancPluginDicomInstance*>(&wrapped));
+
+      if (filterResult >= 0 && filterResult <= 0xFFFF)
+      {
+        return static_cast<uint16_t>(filterResult);
+      }
+      else
+      {
+        // The callback is only allowed to answer uint16_t
+        throw OrthancException(ErrorCode_Plugin);
+      }
+    }
+
+    return STATUS_Success;
+  }
+
+
   void OrthancPlugins::SignalChangeInternal(OrthancPluginChangeType changeType,
                                             OrthancPluginResourceType resourceType,
                                             const char* resource)
@@ -2476,6 +2508,16 @@ namespace Orthanc
 
     CLOG(INFO, PLUGINS) << "Plugin has registered a callback to filter incoming DICOM instances";
     pimpl_->incomingDicomInstanceFilters_.push_back(p.callback);
+  }
+
+
+  void OrthancPlugins::RegisterIncomingCStoreInstanceFilter(const void* parameters)
+  {
+    const _OrthancPluginIncomingCStoreInstanceFilter& p = 
+      *reinterpret_cast<const _OrthancPluginIncomingCStoreInstanceFilter*>(parameters);
+
+    CLOG(INFO, PLUGINS) << "Plugin has registered a callback to filter incoming C-Store DICOM instances";
+    pimpl_->incomingCStoreInstanceFilters_.push_back(p.callback);
   }
 
 
@@ -4955,6 +4997,10 @@ namespace Orthanc
 
       case _OrthancPluginService_RegisterIncomingDicomInstanceFilter:
         RegisterIncomingDicomInstanceFilter(parameters);
+        return true;
+
+      case _OrthancPluginService_RegisterIncomingCStoreInstanceFilter:
+        RegisterIncomingCStoreInstanceFilter(parameters);
         return true;
 
       case _OrthancPluginService_RegisterRefreshMetricsCallback:
