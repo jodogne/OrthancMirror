@@ -23,6 +23,18 @@ Maintenance
 * Fix instances accumulating in DB while their attachments were not stored because of 
   MaximumStorageSize limit reached with a single patient in DB.
 
+Lua
+---
+
+* New "ReceivedCStoreInstanceFilter" Lua callback to filter instances received
+  through C-Store and return a specific C-Store status code.
+
+
+Plugins
+-------
+
+* New function in the SDK: OrthancPluginRegisterIncomingCStoreInstanceFilter()
+
 
 Version 1.9.7 (2021-08-31)
 ==========================

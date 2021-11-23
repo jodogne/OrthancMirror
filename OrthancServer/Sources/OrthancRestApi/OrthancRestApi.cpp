@@ -199,10 +199,10 @@ namespace Orthanc
 
           try
           {
-            StoreStatus status = context.Store(publicId, *toStore, StoreInstanceMode_Default);
+            ServerContext::StoreResult result = context.Store(publicId, *toStore, StoreInstanceMode_Default);
 
             Json::Value info;
-            SetupResourceAnswer(info, *toStore, status, publicId);
+            SetupResourceAnswer(info, *toStore, result.GetStatus(), publicId);
             answer.append(info);
           }
           catch (OrthancException& e)
@@ -252,9 +252,9 @@ namespace Orthanc
       toStore->SetOrigin(DicomInstanceOrigin::FromRest(call));
 
       std::string publicId;
-      StoreStatus status = context.Store(publicId, *toStore, StoreInstanceMode_Default);
+      ServerContext::StoreResult result = context.Store(publicId, *toStore, StoreInstanceMode_Default);
 
-      OrthancRestApi::GetApi(call).AnswerStoredInstance(call, *toStore, status, publicId);
+      OrthancRestApi::GetApi(call).AnswerStoredInstance(call, *toStore, result.GetStatus(), publicId);
     }
   }
 

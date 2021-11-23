@@ -84,10 +84,10 @@ public:
   }
 
 
-  virtual void Handle(DcmDataset& dicom,
-                      const std::string& remoteIp,
-                      const std::string& remoteAet,
-                      const std::string& calledAet) ORTHANC_OVERRIDE 
+  virtual uint16_t Handle(DcmDataset& dicom,
+                          const std::string& remoteIp,
+                          const std::string& remoteAet,
+                          const std::string& calledAet) ORTHANC_OVERRIDE 
   {
     std::unique_ptr<DicomInstanceToStore> toStore(DicomInstanceToStore::CreateFromDcmDataset(dicom));
     
@@ -97,8 +97,11 @@ public:
                          (remoteIp.c_str(), remoteAet.c_str(), calledAet.c_str()));
 
       std::string id;
-      context_.Store(id, *toStore, StoreInstanceMode_Default);
+      ServerContext::StoreResult result = context_.Store(id, *toStore, StoreInstanceMode_Default);
+      return result.GetCStoreStatusCode();
     }
+
+    return STATUS_STORE_Error_CannotUnderstand;
   }
 };
 

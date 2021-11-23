@@ -554,16 +554,16 @@ namespace Orthanc
     toStore->SetOrigin(DicomInstanceOrigin::FromRest(call));
 
     ServerContext& context = OrthancRestApi::GetContext(call);
-    StoreStatus status = context.Store(id, *toStore, StoreInstanceMode_Default);
+    ServerContext::StoreResult result = context.Store(id, *toStore, StoreInstanceMode_Default);
 
-    if (status == StoreStatus_Failure)
+    if (result.GetStatus() == StoreStatus_Failure)
     {
       throw OrthancException(ErrorCode_CannotStoreInstance);
     }
 
     if (sendAnswer)
     {
-      OrthancRestApi::GetApi(call).AnswerStoredInstance(call, *toStore, status, id);
+      OrthancRestApi::GetApi(call).AnswerStoredInstance(call, *toStore, result.GetStatus(), id);
     }
   }
 
