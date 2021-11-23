@@ -1525,6 +1525,16 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
     {
       context.GetIndex().SetMaximumStorageSize(0);
     }
+
+    try
+    {
+      uint64_t size = lock.GetConfiguration().GetUnsignedIntegerParameter("MaximumStorageCacheSize", 128);
+      context.SetMaximumStorageCacheSize(size * 1024 * 1024);
+    }
+    catch (...)
+    {
+      context.SetMaximumStorageCacheSize(128);
+    }
   }
 
   {

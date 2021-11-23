@@ -51,7 +51,9 @@ namespace Orthanc
   static const char* const KEY_RESOURCES = "Resources";
   static const char* const KEY_EXTENDED = "Extended";
   static const char* const KEY_TRANSCODE = "Transcode";
-  
+
+  static const char* const CONFIG_LOADER_THREADS = "ZipLoaderThreads";
+
   static void AddResourcesOfInterestFromArray(ArchiveJob& job,
                                               const Json::Value& resources)
   {
@@ -123,6 +125,7 @@ namespace Orthanc
                                bool& transcode,              /* out */
                                DicomTransferSyntax& syntax,  /* out */
                                int& priority,                /* out */
+                               unsigned int& loaderThreads,  /* out */
                                const Json::Value& body,      /* in */
                                const bool defaultExtended    /* in */)
   {
@@ -151,6 +154,12 @@ namespace Orthanc
     {
       transcode = false;
     }
+
+    {
+      OrthancConfiguration::ReaderLock lock;
+      loaderThreads = lock.GetConfiguration().GetUnsignedIntegerParameter(CONFIG_LOADER_THREADS, 0);  // New in Orthanc 1.9.8
+    }
+   
   }
 
 
@@ -554,8 +563,9 @@ namespace Orthanc
       bool synchronous, extended, transcode;
       DicomTransferSyntax transferSyntax;
       int priority;
+      unsigned int loaderThreads;
       GetJobParameters(synchronous, extended, transcode, transferSyntax,
-                       priority, body, DEFAULT_IS_EXTENDED);
+                       priority, loaderThreads, body, DEFAULT_IS_EXTENDED);
       
       std::unique_ptr<ArchiveJob> job(new ArchiveJob(context, IS_MEDIA, extended));
       AddResourcesOfInterest(*job, body);
@@ -565,6 +575,8 @@ namespace Orthanc
         job->SetTranscode(transferSyntax);
       }
       
+      job->SetLoaderThreads(loaderThreads);
+
       SubmitJob(call.GetOutput(), context, job, priority, synchronous, "Archive.zip");
     }
     else
@@ -578,6 +590,8 @@ namespace Orthanc
   template <bool IS_MEDIA>
   static void CreateSingleGet(RestApiGetCall& call)
   {
+    static const char* const TRANSCODE = "transcode";
+
     if (call.IsDocumentation())
     {
       ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
@@ -591,7 +605,7 @@ namespace Orthanc
                         "which might *not* be desirable to archive large amount of data, as it might "
                         "lead to network timeouts. Prefer the asynchronous version using `POST` method.")
         .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
-        .SetHttpGetArgument("transcode", RestApiCallDocumentation::Type_String,
+        .SetHttpGetArgument(TRANSCODE, RestApiCallDocumentation::Type_String,
                             "If present, the DICOM files in the archive will be transcoded to the provided "
                             "transfer syntax: https://book.orthanc-server.com/faq/transcoding.html", false)
         .AddAnswerType(MimeType_Zip, "ZIP file containing the archive");
@@ -621,10 +635,15 @@ namespace Orthanc
     std::unique_ptr<ArchiveJob> job(new ArchiveJob(context, IS_MEDIA, extended));
     job->AddResource(id);
 
-    static const char* const TRANSCODE = "transcode";
     if (call.HasArgument(TRANSCODE))
     {
       job->SetTranscode(GetTransferSyntax(call.GetArgument(TRANSCODE, "")));
+    }
+
+    {
+      OrthancConfiguration::ReaderLock lock;
+      unsigned int loaderThreads = lock.GetConfiguration().GetUnsignedIntegerParameter(CONFIG_LOADER_THREADS, 0);  // New in Orthanc 1.9.8
+      job->SetLoaderThreads(loaderThreads);
     }
 
     SubmitJob(call.GetOutput(), context, job, 0 /* priority */,
@@ -660,8 +679,9 @@ namespace Orthanc
       bool synchronous, extended, transcode;
       DicomTransferSyntax transferSyntax;
       int priority;
+      unsigned int loaderThreads;
       GetJobParameters(synchronous, extended, transcode, transferSyntax,
-                       priority, body, false /* by default, not extented */);
+                       priority, loaderThreads, body, false /* by default, not extented */);
       
       std::unique_ptr<ArchiveJob> job(new ArchiveJob(context, IS_MEDIA, extended));
       job->AddResource(id);
@@ -670,6 +690,8 @@ namespace Orthanc
       {
         job->SetTranscode(transferSyntax);
       }
+
+      job->SetLoaderThreads(loaderThreads);
 
       SubmitJob(call.GetOutput(), context, job, priority, synchronous, id + ".zip");
     }

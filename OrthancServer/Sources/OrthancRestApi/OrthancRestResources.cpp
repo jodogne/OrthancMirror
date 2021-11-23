@@ -2977,7 +2977,7 @@ namespace Orthanc
     std::string publicId = call.GetUriComponent("id", "");
 
     std::string dicomContent;
-    context.ReadDicom(dicomContent, publicId);
+    context.ReadDicomForHeader(dicomContent, publicId);
 
     // TODO Consider using "DicomMap::ParseDicomMetaInformation()" to
     // speed up things here
