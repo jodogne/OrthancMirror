@@ -31,10 +31,6 @@ namespace Orthanc
   Semaphore::Semaphore(unsigned int availableResources) :
     availableResources_(availableResources)
   {
-    if (availableResources_ == 0)
-    {
-      throw OrthancException(ErrorCode_ParameterOutOfRange);
-    }
   }
 
   unsigned int Semaphore::GetAvailableResourcesCount() const

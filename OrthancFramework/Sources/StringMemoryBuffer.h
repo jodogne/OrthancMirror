@@ -38,6 +38,11 @@ namespace Orthanc
       buffer_ = buffer;
     }
 
+    void Copy(const std::string& buffer, size_t start /* inclusive */, size_t end /* exclusive */)
+    {
+      buffer_.assign(buffer, start, end - start);
+    }
+
     void Swap(std::string& buffer)
     {
       buffer_.swap(buffer);
@@ -58,5 +63,7 @@ namespace Orthanc
     static IMemoryBuffer* CreateFromSwap(std::string& buffer);
 
     static IMemoryBuffer* CreateFromCopy(const std::string& buffer);
+
+    static IMemoryBuffer* CreateFromCopy(const std::string& buffer, size_t start /* inclusive */, size_t end /* exclusive */);
   };
 }
