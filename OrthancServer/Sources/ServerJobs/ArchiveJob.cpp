@@ -149,7 +149,7 @@ namespace Orthanc
   class ArchiveJob::ThreadedInstanceLoader : public ArchiveJob::InstanceLoader
   {
     Semaphore                           availableInstancesSemaphore_;
-    std::map<std::string, boost::shared_ptr<std::string>>  availableInstances_;
+    std::map<std::string, boost::shared_ptr<std::string> >  availableInstances_;
     boost::mutex                        availableInstancesMutex_;
     SharedMessageQueue                  instancesToPreload_;
     std::vector<boost::thread*>         threads_;
