@@ -252,5 +252,7 @@ namespace Orthanc
     void Replace(const DicomPath& path,
                  const Json::Value& value,   // Encoded using UTF-8
                  bool safeForAnonymization);
+
+    bool IsAlteredTag(const DicomTag& tag) const;
   };
 }

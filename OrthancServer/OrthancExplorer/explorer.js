@@ -1101,7 +1101,7 @@ $('#instance-preview').live('click', function(e) {
           if (frames.length == 1)
           {
             // Viewing a single-frame image
-            jQuery.slimbox('../instances/' + pageData.uuid + '/preview', '', {
+            jQuery.slimbox('../instances/' + pageData.uuid + '/preview?returnUnsupportedImage', '', {
               overlayFadeDuration : 1,
               resizeDuration : 1,
               imageFadeDuration : 1
@@ -1113,7 +1113,7 @@ $('#instance-preview').live('click', function(e) {
 
             images = [];
             for (var i = 0; i < frames.length; i++) {
-              images.push([ '../instances/' + pageData.uuid + '/frames/' + i + '/preview' ]);
+              images.push([ '../instances/' + pageData.uuid + '/frames/' + i + '/preview?returnUnsupportedImage' ]);
             }
 
             jQuery.slimbox(images, 0, {
@@ -1143,7 +1143,7 @@ $('#series-preview').live('click', function(e) {
 
         images = [];
         for (var i = 0; i < instances.length; i++) {
-          images.push([ '../instances/' + instances[i].ID + '/preview',
+          images.push([ '../instances/' + instances[i].ID + '/preview?returnUnsupportedImage',
                         (i + 1).toString() + '/' + instances.length.toString() ])
         }
 

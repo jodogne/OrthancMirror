@@ -3132,6 +3132,23 @@ TEST(ParsedDicomFile, ImageInformation)
 }
 
 
+TEST(DicomMap, DicomWebWithInteger64)
+{
+  /**
+   * This failed in Orthanc <= 1.9.7 with
+   * "http://localhost:8042/dicom-web/studies/1.3.6.1.4.1.14519.5.2.1.314316487728501506587013300243937537423/series/1.3.6.1.4.1.1459.5.2.1.62266640231940987006694557463549207147/instances/1.3.6.1.4.1.14519.5.2.1.147718809116229175846174241356499989705/metadata"
+   * of patient "GLIOMA01-i_03A6" from collection "ICDC-Glioma" of
+   * TCIA.
+   **/
+  Json::Value v = Json::objectValue;
+  v["00191297"]["Value"][0] = 29362240;
+  v["00191297"]["Value"][1] = Json::Int64(4294948074l);
+  v["00191297"]["vr"] = "UL";
+  DicomMap m;
+  m.FromDicomWeb(v);
+}
+
+
 
 
 #if ORTHANC_ENABLE_DCMTK_TRANSCODING == 1

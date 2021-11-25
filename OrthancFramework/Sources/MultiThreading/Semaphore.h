@@ -36,16 +36,16 @@ namespace Orthanc
     boost::mutex mutex_;
     boost::condition_variable condition_;
 
-    void Release(unsigned int resourceCount = 1);
-
-    void Acquire(unsigned int resourceCount = 1);
-
-    bool TryAcquire(unsigned int resourceCount = 1);
   public:
     explicit Semaphore(unsigned int availableResources);
 
     unsigned int GetAvailableResourcesCount() const;
 
+    void Release(unsigned int resourceCount = 1);
+
+    void Acquire(unsigned int resourceCount = 1);
+
+    bool TryAcquire(unsigned int resourceCount = 1);
 
     class Locker : public boost::noncopyable
     {

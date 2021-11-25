@@ -131,8 +131,8 @@ namespace Orthanc
     toStore->SetOrigin(origin_);
 
     std::string modifiedInstance;
-    if (GetContext().Store(modifiedInstance, *toStore,
-                           StoreInstanceMode_Default) != StoreStatus_Success)
+    ServerContext::StoreResult result = GetContext().Store(modifiedInstance, *toStore, StoreInstanceMode_Default);
+    if (result.GetStatus() != StoreStatus_Success)
     {
       LOG(ERROR) << "Error while storing a modified instance " << instance;
       return false;

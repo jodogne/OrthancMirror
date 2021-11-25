@@ -117,6 +117,9 @@ namespace Orthanc
     bool FilterIncomingInstance(const DicomInstanceToStore& instance,
                                 const Json::Value& simplifiedTags);
 
+    uint16_t FilterIncomingCStoreInstance(const DicomInstanceToStore& instance,
+                                          const Json::Value& simplified);
+
     void Execute(const std::string& command);
 
     void SignalJobSubmitted(const std::string& jobId);

@@ -214,4 +214,9 @@ namespace Orthanc
     // empty string
     SetCookie(name, "", 1);
   }
+
+  void RestApiOutput::SetContentFilename(const char* filename)
+  {
+    output_.SetContentFilename(filename);
+  }
 }

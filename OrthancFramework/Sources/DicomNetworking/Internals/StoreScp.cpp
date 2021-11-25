@@ -161,14 +161,14 @@ namespace Orthanc
             // which SOP class and SOP instance ?
 	    
 #if DCMTK_VERSION_NUMBER >= 364
-	    if (!DU_findSOPClassAndInstanceInDataSet(*imageDataSet, sopClass, sizeof(sopClass),
-						     sopInstance, sizeof(sopInstance), /*opt_correctUIDPadding*/ OFFalse))
+	            if (!DU_findSOPClassAndInstanceInDataSet(*imageDataSet, sopClass, sizeof(sopClass),
+						      sopInstance, sizeof(sopInstance), /*opt_correctUIDPadding*/ OFFalse))
 #else
               if (!DU_findSOPClassAndInstanceInDataSet(*imageDataSet, sopClass, sopInstance, /*opt_correctUIDPadding*/ OFFalse))
 #endif
               {
-		//LOG4CPP_ERROR(Internals::GetLogger(), "bad DICOM file: " << fileName);
-		rsp->DimseStatus = STATUS_STORE_Error_CannotUnderstand;
+		            //LOG4CPP_ERROR(Internals::GetLogger(), "bad DICOM file: " << fileName);
+		            rsp->DimseStatus = STATUS_STORE_Error_CannotUnderstand;
               }
               else if (strcmp(sopClass, req->AffectedSOPClassUID) != 0)
               {
@@ -182,7 +182,7 @@ namespace Orthanc
               {
                 try
                 {
-                  cbdata->handler->Handle(**imageDataSet, *cbdata->remoteIp, cbdata->remoteAET, cbdata->calledAET);
+                  rsp->DimseStatus = cbdata->handler->Handle(**imageDataSet, *cbdata->remoteIp, cbdata->remoteAET, cbdata->calledAET);
                 }
                 catch (OrthancException& e)
                 {

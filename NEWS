@@ -15,6 +15,47 @@ OpenSSL 3.x branch
 * Upgraded dependencies for static builds (notably on Windows and LSB):
   - openssl 3.0.0-beta1
 
+General
+-------
+
+* Added a storage cache in RAM to avoid reading the same files multiple times from 
+  the storage.  This greatly improves, among other things, the performance of WADO-RS
+  retrieval of individual frames of multiframe instances.
+* New configuration option "MaximumStorageCacheSize" to configure the size of
+  the new storage cache.
+* New configuration option "ZipLoaderThreads" to configure the number of threads used
+  to read instances from storage when createing a Zip archive/media.
+
+
+Maintenance
+-----------
+
+* Fix handling of option "DeidentifyLogs", notably for tags (0010,0010) and (0010,0020)
+* New configuration options:
+  - "DicomThreadsCount" to set the number of threads in the embedded DICOM server
+* Fix instances accumulating in DB while their attachments were not stored because of 
+  MaximumStorageSize limit reached with a single patient in DB.
+
+REST API
+--------
+
+* API version upgraded to 16
+* If an image can not be decoded, ../preview and ../rendered routes are now returning 
+  unsupported.png only if the ?returnUnsupportedImage option is specified; otherwise, 
+  it raises a 415 error code.
+* Archive jobs response now contains a header Content-Disposition:filename='archive.zip'
+  
+Lua
+---
+
+* New "ReceivedCStoreInstanceFilter" Lua callback to filter instances received
+  through C-Store and return a specific C-Store status code.
+
+Plugins
+-------
+
+* New function in the SDK: OrthancPluginRegisterIncomingCStoreInstanceFilter()
+
 
 Version 1.9.7 (2021-08-31)
 ==========================

@@ -270,6 +270,7 @@ namespace Orthanc
 
   bool SetOfCommandsJob::GetOutput(std::string &output,
                                    MimeType &mime,
+                                   std::string& filename,
                                    const std::string &key)
   {
     return false;

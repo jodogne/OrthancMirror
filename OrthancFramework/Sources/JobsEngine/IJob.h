@@ -59,6 +59,7 @@ namespace Orthanc
     // "success" state
     virtual bool GetOutput(std::string& output,
                            MimeType& mime,
+                           std::string& filename,
                            const std::string& key) = 0;
   };
 }
