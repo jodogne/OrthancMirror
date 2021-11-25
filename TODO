@@ -36,7 +36,15 @@ Documentation (Orthanc Book)
 * Discuss HL7 in a dedicated page:
   https://groups.google.com/d/msg/orthanc-users/4dt4992O0lQ/opTjTFU2BgAJ
   https://groups.google.com/g/orthanc-users/c/Spjtcj9vSPo/m/ktUArWxUDQAJ
-  
+
+
+================
+Orthanc Explorer
+================
+
+* Option to tune the number of results for a local lookup:
+  https://groups.google.com/g/orthanc-users/c/LF39musq02Y/
+
 
 ========
 REST API
