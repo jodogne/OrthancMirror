@@ -35,7 +35,12 @@ namespace Orthanc
       content_(content)
     {
     }
-      
+
+    explicit StringValue(const char* buffer, size_t size) :
+      content_(buffer, size)
+    {
+    }
+
     const std::string& GetContent() const
     {
       return content_;
@@ -61,6 +66,13 @@ namespace Orthanc
                               const std::string& value)
   {
     cache_.Acquire(key, new StringValue(value));
+  }
+
+  void MemoryStringCache::Add(const std::string& key,
+                              const void* buffer,
+                              size_t size)
+  {
+    cache_.Acquire(key, new StringValue(reinterpret_cast<const char*>(buffer), size));
   }
 
   void MemoryStringCache::Invalidate(const std::string &key)

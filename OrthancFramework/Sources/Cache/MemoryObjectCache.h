@@ -37,6 +37,9 @@
 
 namespace Orthanc
 {
+  /**
+   *  Note: this class is thread safe
+   **/
   class ORTHANC_PUBLIC MemoryObjectCache : public boost::noncopyable
   {
   private:

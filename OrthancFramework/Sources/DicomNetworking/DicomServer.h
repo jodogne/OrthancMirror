@@ -72,6 +72,7 @@ namespace Orthanc
     uint16_t port_;
     bool continue_;
     uint32_t associationTimeout_;
+    unsigned int threadsCount_;
     IRemoteModalities* modalities_;
     IFindRequestHandlerFactory* findRequestHandlerFactory_;
     IMoveRequestHandlerFactory* moveRequestHandlerFactory_;
@@ -88,6 +89,7 @@ namespace Orthanc
     std::string  trustedCertificatesPath_;
     unsigned int maximumPduLength_;
     bool         remoteCertificateRequired_;  // New in 1.9.3
+
 
     static void ServerThread(DicomServer* server,
                              unsigned int maximumPduLength,
@@ -163,5 +165,8 @@ namespace Orthanc
 
     void SetRemoteCertificateRequired(bool required);
     bool IsRemoteCertificateRequired() const;
+
+    void SetThreadsCount(unsigned int threadsCount);
+
   };
 }

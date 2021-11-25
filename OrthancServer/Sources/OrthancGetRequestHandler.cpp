@@ -485,7 +485,7 @@ namespace Orthanc
   {
     MetricsRegistry::Timer timer(context_.GetMetricsRegistry(), "orthanc_get_scp_duration_ms");
 
-    CLOG(WARNING, DICOM) << "C-GET-SCU request received from AET \"" << originatorAet << "\"";
+    CLOG(INFO, DICOM) << "C-GET-SCU request received from AET \"" << originatorAet << "\"";
 
     {
       DicomArray query(input);

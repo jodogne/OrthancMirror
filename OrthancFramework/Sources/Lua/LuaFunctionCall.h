@@ -78,6 +78,8 @@ namespace Orthanc
 
     void ExecuteToString(std::string& result);
 
+    void ExecuteToInt(int& result);
+
 #if ORTHANC_ENABLE_DCMTK == 1
     void ExecuteToDicom(DicomMap& target);
 #endif

@@ -45,6 +45,7 @@
 #include "StorageCommitmentReports.h"
 
 #include <dcmtk/dcmdata/dcfilefo.h>
+#include <dcmtk/dcmnet/dimse.h>
 
 
 static size_t DICOM_CACHE_SIZE = 128 * 1024 * 1024;  // 128 MB
@@ -86,6 +87,13 @@ namespace Orthanc
       // Do not try to transcode special transfer syntaxes
       transferSyntax != DicomTransferSyntax_RFC2557MimeEncapsulation &&
       transferSyntax != DicomTransferSyntax_XML);
+  }
+
+
+  ServerContext::StoreResult::StoreResult() :
+    status_(StoreStatus_Failure),
+    cstoreStatusCode_(0)
+  {
   }
 
   
@@ -472,14 +480,14 @@ namespace Orthanc
   void ServerContext::RemoveFile(const std::string& fileUuid,
                                  FileContentType type)
   {
-    StorageAccessor accessor(area_, GetMetricsRegistry());
+    StorageAccessor accessor(area_, storageCache_, GetMetricsRegistry());
     accessor.Remove(fileUuid, type);
   }
 
 
-  StoreStatus ServerContext::StoreAfterTranscoding(std::string& resultPublicId,
-                                                   DicomInstanceToStore& dicom,
-                                                   StoreInstanceMode mode)
+  ServerContext::StoreResult ServerContext::StoreAfterTranscoding(std::string& resultPublicId,
+                                                                  DicomInstanceToStore& dicom,
+                                                                  StoreInstanceMode mode)
   {
     bool overwrite;
     switch (mode)
@@ -514,7 +522,7 @@ namespace Orthanc
     try
     {
       MetricsRegistry::Timer timer(GetMetricsRegistry(), "orthanc_store_dicom_duration_ms");
-      StorageAccessor accessor(area_, GetMetricsRegistry());
+      StorageAccessor accessor(area_, storageCache_, GetMetricsRegistry());
 
       DicomInstanceHasher hasher(summary);
       resultPublicId = hasher.HashInstance();
@@ -526,7 +534,7 @@ namespace Orthanc
       Toolbox::SimplifyDicomAsJson(simplifiedTags, dicomAsJson, DicomToJsonFormat_Human);
 
       // Test if the instance must be filtered out
-      bool accepted = true;
+      StoreResult result;
 
       {
         boost::shared_lock<boost::shared_mutex> lock(listenersMutex_);
@@ -537,9 +545,22 @@ namespace Orthanc
           {
             if (!it->GetListener().FilterIncomingInstance(dicom, simplifiedTags))
             {
-              accepted = false;
+              result.SetStatus(StoreStatus_FilteredOut);
+              result.SetCStoreStatusCode(STATUS_Success); // to keep backward compatibility, we still return 'success'
               break;
             }
+
+            if (dicom.GetOrigin().GetRequestOrigin() == Orthanc::RequestOrigin_DicomProtocol)
+            {
+              uint16_t filterResult = it->GetListener().FilterIncomingCStoreInstance(dicom, simplifiedTags);
+              if (filterResult != 0x0000)
+              {
+                result.SetStatus(StoreStatus_FilteredOut);
+                result.SetCStoreStatusCode(filterResult);
+                break;
+              }
+            }
+            
           }
           catch (OrthancException& e)
           {
@@ -551,10 +572,10 @@ namespace Orthanc
         }
       }
 
-      if (!accepted)
+      if (result.GetStatus() == StoreStatus_FilteredOut)
       {
         LOG(INFO) << "An incoming instance has been discarded by the filter";
-        return StoreStatus_FilteredOut;
+        return result;
       }
 
       // Remove the file from the DicomCache (useful if
@@ -583,9 +604,9 @@ namespace Orthanc
 
       typedef std::map<MetadataType, std::string>  InstanceMetadata;
       InstanceMetadata  instanceMetadata;
-      StoreStatus status = index_.Store(
+      result.SetStatus(index_.Store(
         instanceMetadata, summary, attachments, dicom.GetMetadata(), dicom.GetOrigin(), overwrite,
-        hasTransferSyntax, transferSyntax, hasPixelDataOffset, pixelDataOffset);
+        hasTransferSyntax, transferSyntax, hasPixelDataOffset, pixelDataOffset));
 
       // Only keep the metadata for the "instance" level
       dicom.ClearMetadata();
@@ -596,7 +617,7 @@ namespace Orthanc
         dicom.AddMetadata(ResourceType_Instance, it->first, it->second);
       }
             
-      if (status != StoreStatus_Success)
+      if (result.GetStatus() != StoreStatus_Success)
       {
         accessor.Remove(dicomInfo);
 
@@ -606,7 +627,7 @@ namespace Orthanc
         }
       }
 
-      switch (status)
+      switch (result.GetStatus())
       {
         case StoreStatus_Success:
           LOG(INFO) << "New instance stored";
@@ -625,8 +646,8 @@ namespace Orthanc
           break;
       }
 
-      if (status == StoreStatus_Success ||
-          status == StoreStatus_AlreadyStored)
+      if (result.GetStatus() == StoreStatus_Success ||
+          result.GetStatus() == StoreStatus_AlreadyStored)
       {
         boost::shared_lock<boost::shared_mutex> lock(listenersMutex_);
 
@@ -645,7 +666,7 @@ namespace Orthanc
         }
       }
 
-      return status;
+      return result;
     }
     catch (OrthancException& e)
     {
@@ -659,9 +680,9 @@ namespace Orthanc
   }
 
 
-  StoreStatus ServerContext::Store(std::string& resultPublicId,
-                                   DicomInstanceToStore& dicom,
-                                   StoreInstanceMode mode)
+  ServerContext::StoreResult ServerContext::Store(std::string& resultPublicId,
+                                                  DicomInstanceToStore& dicom,
+                                                  StoreInstanceMode mode)
   {
     if (!isIngestTranscoding_)
     {
@@ -721,10 +742,10 @@ namespace Orthanc
           std::unique_ptr<DicomInstanceToStore> toStore(DicomInstanceToStore::CreateFromParsedDicomFile(*tmp));
           toStore->SetOrigin(dicom.GetOrigin());
 
-          StoreStatus ok = StoreAfterTranscoding(resultPublicId, *toStore, mode);
+          StoreResult result = StoreAfterTranscoding(resultPublicId, *toStore, mode);
           assert(resultPublicId == tmp->GetHasher().HashInstance());
 
-          return ok;
+          return result;
         }
         else
         {
@@ -748,7 +769,7 @@ namespace Orthanc
     }
     else
     {
-      StorageAccessor accessor(area_, GetMetricsRegistry());
+      StorageAccessor accessor(area_, storageCache_, GetMetricsRegistry());
       accessor.AnswerFile(output, attachment, GetFileContentMime(content));
     }
   }
@@ -778,7 +799,7 @@ namespace Orthanc
 
     std::string content;
 
-    StorageAccessor accessor(area_, GetMetricsRegistry());
+    StorageAccessor accessor(area_, storageCache_, GetMetricsRegistry());
     accessor.Read(content, attachment);
 
     FileInfo modified = accessor.Write(content.empty() ? NULL : content.c_str(),
@@ -834,7 +855,7 @@ namespace Orthanc
       std::string dicom;
 
       {
-        StorageAccessor accessor(area_, GetMetricsRegistry());
+        StorageAccessor accessor(area_, storageCache_, GetMetricsRegistry());
         accessor.Read(dicom, attachment);
       }
 
@@ -899,8 +920,8 @@ namespace Orthanc
       
         std::unique_ptr<IMemoryBuffer> dicom;
         {
-          MetricsRegistry::Timer timer(GetMetricsRegistry(), "orthanc_storage_read_range_duration_ms");
-          dicom.reset(area_.ReadRange(attachment.GetUuid(), FileContentType_Dicom, 0, pixelDataOffset));
+          StorageAccessor accessor(area_, storageCache_, GetMetricsRegistry());
+          dicom.reset(accessor.ReadStartRange(attachment.GetUuid(), FileContentType_Dicom, pixelDataOffset, FileContentType_DicomUntilPixelData));
         }
 
         if (dicom.get() == NULL)
@@ -929,7 +950,7 @@ namespace Orthanc
         std::string dicomAsJson;
 
         {
-          StorageAccessor accessor(area_, GetMetricsRegistry());
+          StorageAccessor accessor(area_, storageCache_, GetMetricsRegistry());
           accessor.Read(dicomAsJson, attachment);
         }
 
@@ -998,7 +1019,15 @@ namespace Orthanc
     int64_t revision;
     ReadAttachment(dicom, revision, instancePublicId, FileContentType_Dicom, true /* uncompress */);
   }
-    
+
+  void ServerContext::ReadDicomForHeader(std::string& dicom,
+                                         const std::string& instancePublicId)
+  {
+    if (!ReadDicomUntilPixelData(dicom, instancePublicId))
+    {
+      ReadDicom(dicom, instancePublicId);
+    }
+  }
 
   bool ServerContext::ReadDicomUntilPixelData(std::string& dicom,
                                               const std::string& instancePublicId)
@@ -1027,8 +1056,10 @@ namespace Orthanc
       {
         uint64_t pixelDataOffset = boost::lexical_cast<uint64_t>(s);
 
+        StorageAccessor accessor(area_, storageCache_, GetMetricsRegistry());
+
         std::unique_ptr<IMemoryBuffer> buffer(
-          area_.ReadRange(attachment.GetUuid(), attachment.GetContentType(), 0, pixelDataOffset));
+          accessor.ReadStartRange(attachment.GetUuid(), attachment.GetContentType(), pixelDataOffset, FileContentType_DicomUntilPixelData));
         buffer->MoveToString(dicom);
         return true;   // Success
       }
@@ -1059,7 +1090,7 @@ namespace Orthanc
     assert(attachment.GetContentType() == content);
 
     {
-      StorageAccessor accessor(area_, GetMetricsRegistry());
+      StorageAccessor accessor(area_, storageCache_, GetMetricsRegistry());
 
       if (uncompressIfNeeded)
       {
@@ -1159,7 +1190,7 @@ namespace Orthanc
     // TODO Should we use "gzip" instead?
     CompressionType compression = (compressionEnabled_ ? CompressionType_ZlibWithSize : CompressionType_None);
 
-    StorageAccessor accessor(area_, GetMetricsRegistry());
+    StorageAccessor accessor(area_, storageCache_, GetMetricsRegistry());
     FileInfo attachment = accessor.Write(data, size, attachmentType, compression, storeMD5_);
 
     try
@@ -1975,10 +2006,9 @@ namespace Orthanc
     static const std::string redactedContent = "*** POTENTIAL PHI ***";
 
     const DicomTag& tag = element.GetTag();
-    if (deidentifyLogs_ && (
-          logsDeidentifierRules_.IsCleared(tag) ||
-          logsDeidentifierRules_.IsRemoved(tag) ||
-          logsDeidentifierRules_.IsReplaced(tag)))
+    if (deidentifyLogs_ &&
+        !element.GetValue().GetContent().empty() &&
+        logsDeidentifierRules_.IsAlteredTag(tag))
     {
       return redactedContent;
     }

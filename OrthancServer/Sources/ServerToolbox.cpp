@@ -24,6 +24,7 @@
 
 #include "../../OrthancFramework/Sources/DicomParsing/ParsedDicomFile.h"
 #include "../../OrthancFramework/Sources/FileStorage/StorageAccessor.h"
+#include "../../OrthancFramework/Sources/FileStorage/StorageCache.h"
 #include "../../OrthancFramework/Sources/Logging.h"
 #include "../../OrthancFramework/Sources/OrthancException.h"
 #include "Database/IDatabaseWrapper.h"
@@ -164,7 +165,8 @@ namespace Orthanc
         try
         {
           // Read and parse the content of the DICOM file
-          StorageAccessor accessor(storageArea);
+          StorageCache cache; // we create a temporary cache for this operation (required by the StorageAccessor)
+          StorageAccessor accessor(storageArea, cache);
 
           std::string content;
           accessor.Read(content, attachment);

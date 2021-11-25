@@ -67,7 +67,8 @@ namespace Orthanc
   static bool FormatComparison(std::string& target,
                                ISqlLookupFormatter& formatter,
                                const DatabaseConstraint& constraint,
-                               size_t index)
+                               size_t index,
+                               bool escapeBrackets)
   {
     std::string tag = "t" + boost::lexical_cast<std::string>(index);
 
@@ -184,6 +185,14 @@ namespace Orthanc
             {
               escaped += "\\\\";
             }
+            else if (escapeBrackets && value[i] == '[')
+            {
+              escaped += "\\[";
+            }
+            else if (escapeBrackets && value[i] == ']')
+            {
+              escaped += "\\]";
+            }
             else
             {
               escaped += value[i];
@@ -291,6 +300,8 @@ namespace Orthanc
     assert(upperLevel <= queryLevel &&
            queryLevel <= lowerLevel);
 
+    const bool escapeBrackets = formatter.IsEscapeBrackets();
+    
     std::string joins, comparisons;
 
     size_t count = 0;
@@ -299,7 +310,7 @@ namespace Orthanc
     {
       std::string comparison;
       
-      if (FormatComparison(comparison, formatter, lookup[i], count))
+      if (FormatComparison(comparison, formatter, lookup[i], count, escapeBrackets))
       {
         std::string join;
         FormatJoin(join, lookup[i], count);

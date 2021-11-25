@@ -40,7 +40,13 @@
   // in the storage (a value of "0" indicates no limit on the number
   // of patients)
   "MaximumPatientCount" : 0,
-  
+
+  // Maximum size of the storage cache in MB.  The storage cache
+  // is stored in RAM and contains a copy of recently accessed
+  // files (written or read).  A value of "0" indicates the cache
+  // is disabled.  (new in Orthanc 1.9.8)
+  "MaximumStorageCacheSize" : 128,
+
   // List of paths to the custom Lua scripts that are to be loaded
   // into this instance of Orthanc
   "LuaScripts" : [
@@ -418,7 +424,16 @@
   // (1.2.840.10008.1.2.1). This parameter can possibly correspond to
   // a compressed transfer syntax. (new in Orthanc 1.9.0)
   "DicomScuPreferredTransferSyntax" : "1.2.840.10008.1.2.1",
-  
+
+  // Number of threads that are used by the embedded DICOM server.
+  // This defines the number of concurrent DICOM operations that can
+  // be run.  Note: this is not limiting the number of concurrent 
+  // connections.  With a single thread, if a C-Find is received
+  // during e.g the transcoding of an incoming C-Store, it will
+  // have to wait until the end of the C-Store before being processed.
+  // (new in Orthanc 1.9.8, before this version, the value was fixed to 4)
+  "DicomThreadsCount" : 4,
+
   // The list of the known Orthanc peers. This option is ignored if
   // "OrthancPeersInDatabase" is set to "true", in which case you must
   // use the REST API to define Orthanc peers.
@@ -828,5 +843,12 @@
   // disk space and might lead to HTTP timeouts on large archives). If
   // set to "true", the chunks of the ZIP file are progressively sent
   // as soon as one DICOM file gets compressed (new in Orthanc 1.9.4)
-  "SynchronousZipStream" : true
+  "SynchronousZipStream" : true,
+
+  // Default number of loader threads when generating Zip archive/media.
+  // A value of 0 means reading and writing are performed in sequence
+  // (default behaviour).  A value > 1 is meaningful only if the storage
+  // is a distributed network storage (e.g object storage plugin).
+  // (new in Orthanc 1.9.8)
+  "ZipLoaderThreads": 0
 }

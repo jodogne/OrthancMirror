@@ -72,10 +72,10 @@ public:
   }
 
 
-  virtual void Handle(DcmDataset& dicom,
-                      const std::string& remoteIp,
-                      const std::string& remoteAet,
-                      const std::string& calledAet) ORTHANC_OVERRIDE 
+  virtual uint16_t Handle(DcmDataset& dicom,
+                          const std::string& remoteIp,
+                          const std::string& remoteAet,
+                          const std::string& calledAet) ORTHANC_OVERRIDE 
   {
     std::unique_ptr<DicomInstanceToStore> toStore(DicomInstanceToStore::CreateFromDcmDataset(dicom));
     
@@ -85,8 +85,11 @@ public:
                          (remoteIp.c_str(), remoteAet.c_str(), calledAet.c_str()));
 
       std::string id;
-      context_.Store(id, *toStore, StoreInstanceMode_Default);
+      ServerContext::StoreResult result = context_.Store(id, *toStore, StoreInstanceMode_Default);
+      return result.GetCStoreStatusCode();
     }
+
+    return STATUS_STORE_Error_CannotUnderstand;
   }
 };
 
@@ -1198,6 +1201,7 @@ static bool StartDicomServer(ServerContext& context,
       dicomServer.SetCalledApplicationEntityTitleCheck(lock.GetConfiguration().GetBooleanParameter("DicomCheckCalledAet", false));
       dicomServer.SetAssociationTimeout(lock.GetConfiguration().GetUnsignedIntegerParameter("DicomScpTimeout", 30));
       dicomServer.SetPortNumber(lock.GetConfiguration().GetUnsignedIntegerParameter("DicomPort", 4242));
+      dicomServer.SetThreadsCount(lock.GetConfiguration().GetUnsignedIntegerParameter("DicomThreadsCount", 4));
       dicomServer.SetApplicationEntityTitle(lock.GetConfiguration().GetOrthancAET());
 
       // Configuration of DICOM TLS for Orthanc SCP (since Orthanc 1.9.0)
@@ -1508,6 +1512,16 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
     catch (...)
     {
       context.GetIndex().SetMaximumStorageSize(0);
+    }
+
+    try
+    {
+      uint64_t size = lock.GetConfiguration().GetUnsignedIntegerParameter("MaximumStorageCacheSize", 128);
+      context.SetMaximumStorageCacheSize(size * 1024 * 1024);
+    }
+    catch (...)
+    {
+      context.SetMaximumStorageCacheSize(128);
     }
   }
 

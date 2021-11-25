@@ -322,7 +322,7 @@ namespace Orthanc
   {
     MetricsRegistry::Timer timer(context_.GetMetricsRegistry(), "orthanc_move_scp_duration_ms");
 
-    CLOG(WARNING, DICOM) << "Move-SCU request received for AET \"" << targetAet << "\"";
+    CLOG(INFO, DICOM) << "Move-SCU request received for AET \"" << targetAet << "\"";
 
     {
       DicomArray query(input);

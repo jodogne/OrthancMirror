@@ -385,6 +385,7 @@ if (ENABLE_ZLIB)
       ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Compression/HierarchicalZipWriter.cpp
       ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Compression/ZipWriter.cpp
       ${CMAKE_CURRENT_LIST_DIR}/../../Sources/FileStorage/StorageAccessor.cpp
+      ${CMAKE_CURRENT_LIST_DIR}/../../Sources/FileStorage/StorageCache.cpp
       )
   endif()
 endif()

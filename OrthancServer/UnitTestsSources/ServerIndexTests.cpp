@@ -847,7 +847,8 @@ TEST(ServerIndex, Overwrite)
       ASSERT_EQ(id, hasher.HashInstance());
 
       std::string id2;
-      ASSERT_EQ(StoreStatus_Success, context.Store(id2, *toStore, StoreInstanceMode_Default));
+      ServerContext::StoreResult result = context.Store(id2, *toStore, StoreInstanceMode_Default);
+      ASSERT_EQ(StoreStatus_Success, result.GetStatus());
       ASSERT_EQ(id, id2);
     }
 
@@ -896,8 +897,8 @@ TEST(ServerIndex, Overwrite)
       toStore->SetOrigin(DicomInstanceOrigin::FromPlugins());
 
       std::string id2;
-      ASSERT_EQ(overwrite ? StoreStatus_Success : StoreStatus_AlreadyStored,
-                context.Store(id2, *toStore, StoreInstanceMode_Default));
+      ServerContext::StoreResult result = context.Store(id2, *toStore, StoreInstanceMode_Default);
+      ASSERT_EQ(overwrite ? StoreStatus_Success : StoreStatus_AlreadyStored, result.GetStatus());
       ASSERT_EQ(id, id2);
     }
 
@@ -996,7 +997,8 @@ TEST(ServerIndex, DicomUntilPixelData)
         std::unique_ptr<DicomInstanceToStore> toStore(DicomInstanceToStore::CreateFromParsedDicomFile(dicom));
         dicomSize = toStore->GetBufferSize();
         toStore->SetOrigin(DicomInstanceOrigin::FromPlugins());
-        ASSERT_EQ(StoreStatus_Success, context.Store(id, *toStore, StoreInstanceMode_Default));
+        ServerContext::StoreResult result = context.Store(id, *toStore, StoreInstanceMode_Default);
+        ASSERT_EQ(StoreStatus_Success, result.GetStatus());
       }
 
       std::set<FileContentType> attachments;

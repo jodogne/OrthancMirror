@@ -1301,9 +1301,9 @@ namespace Orthanc
         try
         {
           std::string publicId;
-          StoreStatus status = context_.Store(publicId, *instance, StoreInstanceMode_Default);
-          if (status == StoreStatus_Success ||
-              status == StoreStatus_AlreadyStored)
+          ServerContext::StoreResult result = context_.Store(publicId, *instance, StoreInstanceMode_Default);
+          if (result.GetStatus() == StoreStatus_Success ||
+              result.GetStatus() == StoreStatus_AlreadyStored)
           {
             LOG(INFO) << "Successfully imported DICOM instance from WebDAV: "
                       << path << " (Orthanc ID: " << publicId << ")";

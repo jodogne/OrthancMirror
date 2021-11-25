@@ -22,6 +22,7 @@
 #include "PrecompiledHeadersUnitTests.h"
 #include <gtest/gtest.h>
 
+#include "../../OrthancFramework/Sources/Compatibility.h"
 #include "../../OrthancFramework/Sources/OrthancException.h"
 #include "../Plugins/Engine/PluginsManager.h"
 
@@ -74,11 +75,25 @@ TEST(SharedLibrary, Basic)
   //ASSERT_TRUE(l.HasFunction("_init"));
   
 #elif defined(__linux__) || defined(__FreeBSD_kernel__)
-  SharedLibrary l("libdl.so");
-  ASSERT_THROW(l.GetFunction("world"), OrthancException);
-  ASSERT_TRUE(l.GetFunction("dlopen") != NULL);
-  ASSERT_TRUE(l.HasFunction("dlclose"));
-  ASSERT_FALSE(l.HasFunction("world"));
+  std::unique_ptr<SharedLibrary> l;
+  try
+  {
+    /**
+     * Since Orthanc 1.9.8, we test the "libdl.so.2" instead of the
+     * "libdl.so", as discussed here:
+     * https://groups.google.com/g/orthanc-users/c/I5g1fN6MCvg/m/JVdvRyjJAAAJ
+     **/
+    l.reset(new SharedLibrary("libdl.so.2"));
+  }
+  catch (OrthancException&)
+  {
+    l.reset(new SharedLibrary("libdl.so")); // Fallback for backward compat
+  }
+  
+  ASSERT_THROW(l->GetFunction("world"), OrthancException);
+  ASSERT_TRUE(l->GetFunction("dlopen") != NULL);
+  ASSERT_TRUE(l->HasFunction("dlclose"));
+  ASSERT_FALSE(l->HasFunction("world"));
 
 #elif defined(__FreeBSD__) || defined(__OpenBSD__)
   // dlopen() in FreeBSD/OpenBSD is supplied by libc, libc.so is
