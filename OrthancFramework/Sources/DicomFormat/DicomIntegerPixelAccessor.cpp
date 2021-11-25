@@ -115,7 +115,7 @@ namespace Orthanc
       {
         for (unsigned int c = 0; c < channels; c++)
         {
-          int32_t v = GetValue(x, y);
+          int32_t v = GetValue(x, y, c);
           if (v < min)
             min = v;
           if (v > max)
