@@ -94,7 +94,7 @@ namespace Orthanc
   protected:
     ServerContext&                        context_;
   public:
-    InstanceLoader(ServerContext& context)
+    explicit InstanceLoader(ServerContext& context)
     : context_(context)
     {
     }
@@ -118,7 +118,7 @@ namespace Orthanc
   class ArchiveJob::SynchronousInstanceLoader : public ArchiveJob::InstanceLoader
   {
   public:
-    SynchronousInstanceLoader(ServerContext& context)
+    explicit SynchronousInstanceLoader(ServerContext& context)
     : InstanceLoader(context)
     {
     }
@@ -135,7 +135,7 @@ namespace Orthanc
     std::string id_;
 
   public:
-    InstanceId(const std::string& id) : id_(id)
+    explicit InstanceId(const std::string& id) : id_(id)
     {
     }
 
@@ -692,7 +692,7 @@ namespace Orthanc
     }
       
   public:
-    ZipCommands(InstanceLoader& instanceLoader) :
+    explicit ZipCommands(InstanceLoader& instanceLoader) :
       uncompressedSize_(0),
       instancesCount_(0),
       instanceLoader_(instanceLoader)
