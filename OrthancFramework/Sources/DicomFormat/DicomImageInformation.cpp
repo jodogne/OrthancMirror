@@ -124,6 +124,11 @@ namespace Orthanc
         bitsStored_ = bitsAllocated_;
       }
 
+      if (bitsStored_ > bitsAllocated_)
+      {
+        throw OrthancException(ErrorCode_BadFileFormat);
+      }
+
       if (!values.ParseUnsignedInteger32(highBit_, DICOM_TAG_HIGH_BIT))
       {
         highBit_ = bitsStored_ - 1;
@@ -168,7 +173,8 @@ namespace Orthanc
     }
 
     if (bitsAllocated_ != 8 && bitsAllocated_ != 16 &&
-        bitsAllocated_ != 24 && bitsAllocated_ != 32)
+        bitsAllocated_ != 24 && bitsAllocated_ != 32 &&
+        bitsAllocated_ != 1 /* new in Orthanc 1.9.8 */)
     {
       throw OrthancException(ErrorCode_IncompatibleImageFormat, "Image not supported: " + boost::lexical_cast<std::string>(bitsAllocated_) + " bits allocated");
     }
@@ -186,7 +192,26 @@ namespace Orthanc
       throw OrthancException(ErrorCode_IncompatibleImageFormat, "Image not supported: samples per pixel is 0");
     }
 
-    bytesPerValue_ = bitsAllocated_ / 8;
+    if (bitsStored_ == 1)
+    {
+      // This is the case of DICOM SEG, new in Orthanc 1.9.8
+      if (bitsAllocated_ != 1)
+      {
+        throw OrthancException(ErrorCode_BadFileFormat);
+      }
+      else if (width_ % 8 != 0)
+      {
+        throw OrthancException(ErrorCode_BadFileFormat, "Bad number of columns for a black-and-white image");
+      }
+      else
+      {
+        bytesPerValue_ = 0;  // Arbitrary initialization
+      }
+    }
+    else
+    {
+      bytesPerValue_ = bitsAllocated_ / 8;
+    }
 
     isPlanar_ = (planarConfiguration != 0 ? true : false);
     isSigned_ = (pixelRepresentation != 0 ? true : false);
@@ -237,7 +262,16 @@ namespace Orthanc
 
   size_t DicomImageInformation::GetBytesPerValue() const
   {
-    return bytesPerValue_;
+    if (bitsStored_ == 1)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls,
+                             "This call is incompatible with black-and-white images");
+    }
+    else
+    {
+      assert(bitsAllocated_ >= 8);
+      return bytesPerValue_;
+    }
   }
 
   bool DicomImageInformation::IsSigned() const
@@ -315,6 +349,13 @@ namespace Orthanc
         format = PixelFormat_Grayscale32;
         return true;
       }
+
+      if (GetBitsStored() == 1 && GetChannelCount() == 1 && !IsSigned())
+      {
+        // This is the case of DICOM SEG, new in Orthanc 1.9.8
+        format = PixelFormat_Grayscale8;
+        return true;
+      }
     }
 
     if (GetBitsStored() == 8 &&
@@ -332,10 +373,27 @@ namespace Orthanc
 
   size_t DicomImageInformation::GetFrameSize() const
   {
-    return (GetHeight() *
-            GetWidth() *
-            GetBytesPerValue() *
-            GetChannelCount());
+    if (bitsStored_ == 1)
+    {
+      assert(GetWidth() % 8 == 0);
+      
+      if (GetChannelCount() == 1)
+      {
+        return GetHeight() * GetWidth() / 8;
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_IncompatibleImageFormat,
+                               "Image not supported (multi-channel black-and-image image)");
+      }
+    }
+    else
+    {
+      return (GetHeight() *
+              GetWidth() *
+              GetBytesPerValue() *
+              GetChannelCount());
+    }
   }
 
 
