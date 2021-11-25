@@ -25,7 +25,7 @@ General
   the new storage cache.
 * New configuration option "ZipLoaderThreads" to configure the number of threads used
   to read instances from storage when createing a Zip archive/media.
-
+* Support decoding of black-and-white images (with 1 bit per pixel), notably DICOM SEG
 
 Maintenance
 -----------
