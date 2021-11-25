@@ -542,6 +542,7 @@ namespace Orthanc
     bool fastVersionSuccess = false;
     PixelFormat sourceFormat;
     if (!info.IsPlanar() &&
+        info.GetBitsStored() != 1 &&  // Black-and-white image, notably DICOM SEG (new in Orthanc 1.9.8)
         info.ExtractPixelFormat(sourceFormat, false))
     {
       try
