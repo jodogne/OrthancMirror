@@ -61,11 +61,11 @@ namespace Orthanc
       // Returns true when there is a transaction that has been successfully begun.
       bool IsOpen() const;
 
-      virtual void Begin();
+      virtual void Begin() ORTHANC_OVERRIDE;
 
-      virtual void Rollback();
+      virtual void Rollback() ORTHANC_OVERRIDE;
 
-      virtual void Commit();
+      virtual void Commit() ORTHANC_OVERRIDE;
     };
   }
 }
