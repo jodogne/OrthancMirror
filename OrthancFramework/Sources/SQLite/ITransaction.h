@@ -3,6 +3,7 @@
  *
  * Copyright (C) 2012-2016 Sebastien Jodogne <s.jodogne@orthanc-labs.com>,
  * Medical Physics Department, CHU of Liege, Belgium
+ * Copyright (C) 2017-2021 Osimis S.A., Belgium
  *
  * Copyright (c) 2012 The Chromium Authors. All rights reserved.
  *
