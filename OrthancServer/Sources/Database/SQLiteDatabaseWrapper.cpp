@@ -74,6 +74,11 @@ namespace Orthanc
       return "ESCAPE '\\'";
     }
 
+    virtual bool IsEscapeBrackets() const ORTHANC_OVERRIDE
+    {
+      return false;
+    }
+
     void Bind(SQLite::Statement& statement) const
     {
       size_t pos = 0;

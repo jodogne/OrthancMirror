@@ -60,6 +60,13 @@ namespace Orthanc
 
     virtual std::string FormatWildcardEscape() = 0;
 
+    /**
+     * Whether to escape '[' and ']', which is only needed for
+     * MSSQL. New in Orthanc 1.9.8, from the following changeset:
+     * https://hg.orthanc-server.com/orthanc-databases/rev/389c037387ea
+     **/
+    virtual bool IsEscapeBrackets() const = 0;
+
     static void Apply(std::string& sql,
                       ISqlLookupFormatter& formatter,
                       const std::vector<DatabaseConstraint>& lookup,
