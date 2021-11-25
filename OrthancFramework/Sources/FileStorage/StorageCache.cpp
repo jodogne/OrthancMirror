@@ -53,9 +53,16 @@ namespace Orthanc
     }
   }
 
-  void GetCacheKey(std::string& key, const std::string& uuid, FileContentType contentType)
+  bool GetCacheKey(std::string& key, const std::string& uuid, FileContentType contentType)
   {
+    if (contentType == FileContentType_Unknown || contentType >= FileContentType_StartUser)
+    {
+      return false;
+    }
+
     key = uuid + ":" + std::string(ToString(contentType));
+
+    return true;
   }
   
   void StorageCache::SetMaximumSize(size_t size)
@@ -73,8 +80,11 @@ namespace Orthanc
     }
 
     std::string key;
-    GetCacheKey(key, uuid, contentType);
-    cache_.Add(key, value);
+
+    if (GetCacheKey(key, uuid, contentType))
+    {
+      cache_.Add(key, value);
+    }
   }
 
   void StorageCache::Add(const std::string& uuid, 
@@ -88,15 +98,21 @@ namespace Orthanc
     }
     
     std::string key;
-    GetCacheKey(key, uuid, contentType);
-    cache_.Add(key, buffer, size);
+
+    if (GetCacheKey(key, uuid, contentType))
+    {
+      cache_.Add(key, buffer, size);
+    }
   }
 
   void StorageCache::Invalidate(const std::string& uuid, FileContentType contentType)
   {
     std::string key;
-    GetCacheKey(key, uuid, contentType);
-    cache_.Invalidate(key);
+    
+    if (GetCacheKey(key, uuid, contentType))
+    {
+      cache_.Invalidate(key);
+    }
   }
 
   bool StorageCache::Fetch(std::string& value, 
@@ -109,9 +125,12 @@ namespace Orthanc
     }
 
     std::string key;
-    GetCacheKey(key, uuid, contentType);
+    if (GetCacheKey(key, uuid, contentType))
+    {
+      return cache_.Fetch(value, key);
+    }
 
-    return cache_.Fetch(value, key);
+    return false;
   }
 
 
