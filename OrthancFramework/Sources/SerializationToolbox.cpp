@@ -648,4 +648,26 @@ namespace Orthanc
       return false;
     }
   }
+  
+
+  bool SerializationToolbox::ParseBoolean(bool& result,
+                                          const std::string& value)
+  {
+    if (value == "0" ||
+        value == "false")
+    {
+      result = false;
+      return true;
+    }
+    else if (value == "1" ||
+             value == "true")
+    {
+      result = true;
+      return true;
+    }
+    else
+    {
+      return false;
+    }
+  }
 }
