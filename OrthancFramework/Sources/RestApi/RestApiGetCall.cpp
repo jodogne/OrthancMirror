@@ -24,6 +24,9 @@
 #include "../PrecompiledHeaders.h"
 #include "RestApiGetCall.h"
 
+#include "../OrthancException.h"
+#include "../SerializationToolbox.h"
+
 namespace Orthanc
 {
   bool RestApiGetCall::ParseJsonRequest(Json::Value& result) const
@@ -37,5 +40,32 @@ namespace Orthanc
     }
 
     return true;
+  }
+
+  
+  bool RestApiGetCall::GetBooleanArgument(const std::string& name,
+                                          bool defaultValue) const
+  {
+    HttpToolbox::Arguments::const_iterator found = getArguments_.find(name);
+
+    bool value;
+    
+    if (found == getArguments_.end())
+    {
+      return defaultValue;
+    }
+    else if (found->second.empty())
+    {
+      return true;
+    }
+    else if (SerializationToolbox::ParseBoolean(value, found->second))
+    {
+      return value;
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange, "Expected a Boolean for GET argument \"" +
+                             name + "\", found: " + found->second);
+    }
   }
 }

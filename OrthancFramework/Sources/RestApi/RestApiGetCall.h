@@ -61,6 +61,9 @@ namespace Orthanc
     {
       return getArguments_.find(name) != getArguments_.end();
     }
+
+    bool GetBooleanArgument(const std::string& name,
+                            bool defaultValue) const;
     
     virtual bool ParseJsonRequest(Json::Value& result) const ORTHANC_OVERRIDE;
   };

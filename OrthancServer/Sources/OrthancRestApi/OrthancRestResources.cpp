@@ -43,6 +43,7 @@
 #include "../../../OrthancFramework/Sources/HttpServer/HttpContentNegociation.h"
 #include "../../../OrthancFramework/Sources/Images/Image.h"
 #include "../../../OrthancFramework/Sources/Images/ImageProcessing.h"
+#include "../../../OrthancFramework/Sources/Images/NumpyWriter.h"
 #include "../../../OrthancFramework/Sources/Logging.h"
 #include "../../../OrthancFramework/Sources/MultiThreading/Semaphore.h"
 #include "../../../OrthancFramework/Sources/SerializationToolbox.h"
@@ -1081,9 +1082,9 @@ namespace Orthanc
             windowWidth = 1;
           }
 
-          if (std::abs(rescaleSlope) <= 0.1)
+          if (std::abs(rescaleSlope) <= 0.0001)
           {
-            rescaleSlope = 0.1;
+            rescaleSlope = 0.0001;
           }
 
           const double scaling = 255.0 * rescaleSlope / windowWidth;
@@ -1139,6 +1140,241 @@ namespace Orthanc
         
     RenderedFrameHandler handler;
     IDecodedFrameHandler::Apply(call, handler, ImageExtractionMode_Preview /* arbitrary value */, true);
+  }
+
+
+  static void DocumentSharedNumpy(RestApiGetCall& call)
+  {
+    call.GetDocumentation()
+      .SetUriArgument("id", "Orthanc identifier of the DICOM resource of interest")
+      .SetHttpGetArgument("compress", RestApiCallDocumentation::Type_Boolean, "Compress the file as `.npz`", false)
+      .SetHttpGetArgument("rescale", RestApiCallDocumentation::Type_Boolean,
+                          "On grayscale images, apply the rescaling and return floating-point values", false)
+      .AddAnswerType(MimeType_PlainText, "Numpy file: https://numpy.org/devdocs/reference/generated/numpy.lib.format.html");
+  }
+
+
+  namespace
+  {
+    class NumpyVisitor : public boost::noncopyable
+    {
+    private:
+      bool           rescale_;
+      unsigned int   depth_;
+      unsigned int   currentDepth_;
+      unsigned int   height_;
+      unsigned int   width_;
+      PixelFormat    format_;
+      ChunkedBuffer  buffer_;
+
+    public:
+      NumpyVisitor(unsigned int depth /* can be zero if 2D frame */,
+                   bool rescale) :
+        rescale_(rescale),
+        depth_(depth),
+        currentDepth_(0)
+      {
+      }
+
+      void WriteFrame(ParsedDicomFile& dicom,
+                      unsigned int frame)
+      {
+        std::unique_ptr<ImageAccessor> decoded(dicom.DecodeFrame(frame));
+
+        if (decoded.get() == NULL)
+        {
+          throw OrthancException(ErrorCode_NotImplemented, "Cannot decode DICOM instance");
+        }
+
+        if (currentDepth_ == 0)
+        {
+          width_ = decoded->GetWidth();
+          height_ = decoded->GetHeight();
+          format_ = decoded->GetFormat();
+        }
+        else if (width_ != decoded->GetWidth() ||
+                 height_ != decoded->GetHeight())
+        {
+          throw OrthancException(ErrorCode_IncompatibleImageSize, "The size of the frames varies across the instance(s)");
+        }
+        else if (format_ != decoded->GetFormat())
+        {
+          throw OrthancException(ErrorCode_IncompatibleImageFormat, "The pixel format of the frames varies across the instance(s)");
+        }
+
+        if (rescale_ &&
+            decoded->GetFormat() != PixelFormat_RGB24)
+        {
+          if (currentDepth_ == 0)
+          {
+            NumpyWriter::WriteHeader(buffer_, depth_, width_, height_, PixelFormat_Float32);
+          }
+          
+          double rescaleIntercept, rescaleSlope;
+          dicom.GetRescale(rescaleIntercept, rescaleSlope, frame);
+
+          Image converted(PixelFormat_Float32, decoded->GetWidth(), decoded->GetHeight(), false);
+          ImageProcessing::Convert(converted, *decoded);
+          ImageProcessing::ShiftScale2(converted, static_cast<float>(rescaleIntercept), static_cast<float>(rescaleSlope), false);
+
+          NumpyWriter::WritePixels(buffer_, converted);
+        }
+        else
+        {
+          if (currentDepth_ == 0)
+          {
+            NumpyWriter::WriteHeader(buffer_, depth_, width_, height_, format_);
+          }
+
+          NumpyWriter::WritePixels(buffer_, *decoded);
+        }
+
+        currentDepth_ ++;
+      }
+
+      void Answer(RestApiOutput& output,
+                  bool compress)
+      {
+        if ((depth_ == 0 && currentDepth_ != 1) ||
+            (depth_ != 0 && currentDepth_ != depth_))
+        {
+          throw OrthancException(ErrorCode_BadSequenceOfCalls);
+        }
+        else
+        {
+          std::string answer;
+          NumpyWriter::Finalize(answer, buffer_, compress);
+          output.AnswerBuffer(answer, MimeType_Binary);
+        }
+      }
+    };
+  }
+
+
+  static void GetNumpyFrame(RestApiGetCall& call)
+  {
+    if (call.IsDocumentation())
+    {
+      DocumentSharedNumpy(call);
+      call.GetDocumentation()
+        .SetTag("Instances")
+        .SetSummary("Decode frame for numpy")
+        .SetDescription("Decode one frame of interest from the given DICOM instance, for use with numpy in Python")
+        .SetUriArgument("frame", RestApiCallDocumentation::Type_Number, "Index of the frame (starts at `0`)");
+    }
+    else
+    {
+      const std::string instanceId = call.GetUriComponent("id", "");
+      const bool compress = call.GetBooleanArgument("compress", false);
+      const bool rescale = call.GetBooleanArgument("rescale", true);
+
+      uint32_t frame;
+      if (!SerializationToolbox::ParseUnsignedInteger32(frame, call.GetUriComponent("frame", "0")))
+      {
+        throw OrthancException(ErrorCode_ParameterOutOfRange, "Expected an unsigned integer for the \"frame\" argument");
+      }
+
+      NumpyVisitor visitor(0 /* no depth, 2D frame */, rescale);
+
+      {
+        Semaphore::Locker throttling(throttlingSemaphore_);
+        ServerContext::DicomCacheLocker locker(OrthancRestApi::GetContext(call), instanceId);
+        
+        visitor.WriteFrame(locker.GetDicom(), frame);
+      }
+
+      visitor.Answer(call.GetOutput(), compress);
+    }
+  }
+
+
+  static void GetNumpyInstance(RestApiGetCall& call)
+  {
+    if (call.IsDocumentation())
+    {
+      DocumentSharedNumpy(call);
+      call.GetDocumentation()
+        .SetTag("Instances")
+        .SetSummary("Decode instance for numpy")
+        .SetDescription("Decode the given DICOM instance, for use with numpy in Python");
+    }
+    else
+    {
+      const std::string instanceId = call.GetUriComponent("id", "");
+      const bool compress = call.GetBooleanArgument("compress", false);
+      const bool rescale = call.GetBooleanArgument("rescale", true);
+
+      {
+        Semaphore::Locker throttling(throttlingSemaphore_);
+        ServerContext::DicomCacheLocker locker(OrthancRestApi::GetContext(call), instanceId);
+
+        const unsigned int depth = locker.GetDicom().GetFramesCount();
+        if (depth == 0)
+        {
+          throw OrthancException(ErrorCode_BadFileFormat, "Empty DICOM instance");
+        }
+
+        NumpyVisitor visitor(depth, rescale);
+
+        for (unsigned int frame = 0; frame < depth; frame++)
+        {
+          visitor.WriteFrame(locker.GetDicom(), frame);
+        }
+
+        visitor.Answer(call.GetOutput(), compress);
+      }
+    }
+  }
+
+
+  static void GetNumpySeries(RestApiGetCall& call)
+  {
+    if (call.IsDocumentation())
+    {
+      DocumentSharedNumpy(call);
+      call.GetDocumentation()
+        .SetTag("Series")
+        .SetSummary("Decode series for numpy")
+        .SetDescription("Decode the given DICOM series, for use with numpy in Python");
+    }
+    else
+    {
+      const std::string seriesId = call.GetUriComponent("id", "");
+      const bool compress = call.GetBooleanArgument("compress", false);
+      const bool rescale = call.GetBooleanArgument("rescale", true);
+
+      Semaphore::Locker throttling(throttlingSemaphore_);
+
+      ServerIndex& index = OrthancRestApi::GetIndex(call);
+      SliceOrdering ordering(index, seriesId);
+
+      unsigned int depth = 0;
+      for (size_t i = 0; i < ordering.GetInstancesCount(); i++)
+      {
+        depth += ordering.GetFramesCount(i);
+      }
+
+      ServerContext& context = OrthancRestApi::GetContext(call);
+
+      NumpyVisitor visitor(depth, rescale);
+
+      for (size_t i = 0; i < ordering.GetInstancesCount(); i++)
+      {
+        const std::string& instanceId = ordering.GetInstanceId(i);
+        unsigned int framesCount = ordering.GetFramesCount(i);
+
+        {
+          ServerContext::DicomCacheLocker locker(context, instanceId);
+
+          for (unsigned int frame = 0; frame < framesCount; frame++)
+          {
+            visitor.WriteFrame(locker.GetDicom(), frame);
+          }
+        }
+      }
+
+      visitor.Answer(call.GetOutput(), compress);
+    }
   }
 
 
@@ -3396,6 +3632,7 @@ namespace Orthanc
     Register("/instances/{id}/frames/{frame}/matlab", GetMatlabImage);
     Register("/instances/{id}/frames/{frame}/raw", GetRawFrame<false>);
     Register("/instances/{id}/frames/{frame}/raw.gz", GetRawFrame<true>);
+    Register("/instances/{id}/frames/{frame}/numpy", GetNumpyFrame);  // New in Orthanc 1.9.8
     Register("/instances/{id}/pdf", ExtractPdf);
     Register("/instances/{id}/preview", GetImage<ImageExtractionMode_Preview>);
     Register("/instances/{id}/rendered", GetRenderedFrame);
@@ -3404,6 +3641,7 @@ namespace Orthanc
     Register("/instances/{id}/image-int16", GetImage<ImageExtractionMode_Int16>);
     Register("/instances/{id}/matlab", GetMatlabImage);
     Register("/instances/{id}/header", GetInstanceHeader);
+    Register("/instances/{id}/numpy", GetNumpyInstance);  // New in Orthanc 1.9.8
 
     Register("/patients/{id}/protected", IsProtectedPatient);
     Register("/patients/{id}/protected", SetPatientProtection);
@@ -3462,6 +3700,7 @@ namespace Orthanc
     Register("/instances/{id}/content/*", GetRawContent);
 
     Register("/series/{id}/ordered-slices", OrderSlices);
+    Register("/series/{id}/numpy", GetNumpySeries);  // New in Orthanc 1.9.8
 
     Register("/patients/{id}/reconstruct", ReconstructResource<ResourceType_Patient>);
     Register("/studies/{id}/reconstruct", ReconstructResource<ResourceType_Study>);
