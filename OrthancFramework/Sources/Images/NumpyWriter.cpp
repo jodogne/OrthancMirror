@@ -82,7 +82,7 @@ namespace Orthanc
         break;
 
       case PixelFormat_SignedGrayscale16:
-        datatype += "s2";
+        datatype += "i2";
         channels = 1;
         break;
 
