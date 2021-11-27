@@ -1259,7 +1259,8 @@ namespace Orthanc
       call.GetDocumentation()
         .SetTag("Instances")
         .SetSummary("Decode frame for numpy")
-        .SetDescription("Decode one frame of interest from the given DICOM instance, for use with numpy in Python")
+        .SetDescription("Decode one frame of interest from the given DICOM instance, for use with numpy in Python. "
+                        "The numpy array has 3 dimensions: (height, width, color channel).")
         .SetUriArgument("frame", RestApiCallDocumentation::Type_Number, "Index of the frame (starts at `0`)");
     }
     else
@@ -1296,7 +1297,8 @@ namespace Orthanc
       call.GetDocumentation()
         .SetTag("Instances")
         .SetSummary("Decode instance for numpy")
-        .SetDescription("Decode the given DICOM instance, for use with numpy in Python");
+        .SetDescription("Decode the given DICOM instance, for use with numpy in Python. "
+                        "The numpy array has 4 dimensions: (frame, height, width, color channel).");
     }
     else
     {
@@ -1335,7 +1337,8 @@ namespace Orthanc
       call.GetDocumentation()
         .SetTag("Series")
         .SetSummary("Decode series for numpy")
-        .SetDescription("Decode the given DICOM series, for use with numpy in Python");
+        .SetDescription("Decode the given DICOM series, for use with numpy in Python. "
+                        "The numpy array has 4 dimensions: (frame, height, width, color channel).");
     }
     else
     {
