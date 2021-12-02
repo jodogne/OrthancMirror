@@ -3,6 +3,7 @@
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
  * Copyright (C) 2017-2021 Osimis S.A., Belgium
+ * Copyright (C) 2021-2021 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -542,6 +543,7 @@ namespace Orthanc
     bool fastVersionSuccess = false;
     PixelFormat sourceFormat;
     if (!info.IsPlanar() &&
+        info.GetBitsStored() != 1 &&  // Black-and-white image, notably DICOM SEG (new in Orthanc 1.9.8)
         info.ExtractPixelFormat(sourceFormat, false))
     {
       try
