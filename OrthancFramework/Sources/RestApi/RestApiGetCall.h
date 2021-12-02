@@ -3,6 +3,7 @@
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
  * Copyright (C) 2017-2021 Osimis S.A., Belgium
+ * Copyright (C) 2021-2021 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -60,6 +61,9 @@ namespace Orthanc
     {
       return getArguments_.find(name) != getArguments_.end();
     }
+
+    bool GetBooleanArgument(const std::string& name,
+                            bool defaultValue) const;
     
     virtual bool ParseJsonRequest(Json::Value& result) const ORTHANC_OVERRIDE;
   };

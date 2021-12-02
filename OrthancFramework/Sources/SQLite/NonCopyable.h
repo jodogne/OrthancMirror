@@ -3,6 +3,8 @@
  *
  * Copyright (C) 2012-2016 Sebastien Jodogne <s.jodogne@orthanc-labs.com>,
  * Medical Physics Department, CHU of Liege, Belgium
+ * Copyright (C) 2017-2021 Osimis S.A., Belgium
+ * Copyright (C) 2021-2021 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
