@@ -82,7 +82,7 @@
 #include <dcmtk/dcmdata/dcdicent.h>
 #include <dcmtk/dcmnet/dimse.h>
 
-#define ERROR_MESSAGE_64BIT "A 64bit version of the Orthanc API is necessary"
+#define ERROR_MESSAGE_64BIT "A 64bit version of the Orthanc SDK is necessary and it is currently not available !"
 
 
 namespace Orthanc
