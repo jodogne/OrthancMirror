@@ -167,6 +167,7 @@ SDK
   https://groups.google.com/d/msg/orthanc-users/BtvLTE5Ni8A/vIMhmMgfBAAJ
 * In "OrthancPluginLog[Error|Warning|Info]()", prefix the log line with
   the name of the plugin, as retrieved by "OrthancPluginGetName()"
+* update the SDK to handle buffer sizes > 4GB (all sizes are currently coded in uint32_t)
 
 ----------------
 Ideas of plugins
