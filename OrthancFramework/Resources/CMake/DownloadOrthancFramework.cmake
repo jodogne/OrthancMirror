@@ -501,35 +501,6 @@ if (ORTHANC_FRAMEWORK_SOURCE STREQUAL "system")
     message(FATAL_ERROR "Please install the libjsoncpp-dev package")
   endif()
 
-  # Switch to the C++11 standard if the version of JsonCpp is 1.y.z
-  # (same as variable JSONCPP_CXX11 in the source code of Orthanc)
-  if (EXISTS ${JSONCPP_INCLUDE_DIR}/json/version.h)
-    file(STRINGS
-      "${JSONCPP_INCLUDE_DIR}/json/version.h" 
-      JSONCPP_VERSION_MAJOR1 REGEX
-      ".*define JSONCPP_VERSION_MAJOR.*")
-
-    if (NOT JSONCPP_VERSION_MAJOR1)
-      message(FATAL_ERROR "Unable to extract the major version of JsonCpp")
-    endif()
-    
-    string(REGEX REPLACE
-      ".*JSONCPP_VERSION_MAJOR.*([0-9]+)$" "\\1" 
-      JSONCPP_VERSION_MAJOR ${JSONCPP_VERSION_MAJOR1})
-    message("JsonCpp major version: ${JSONCPP_VERSION_MAJOR}")
-
-    if (JSONCPP_VERSION_MAJOR GREATER 0)
-      message("Switching to C++11 standard, as version of JsonCpp is >= 1.0.0")
-      if (CMAKE_COMPILER_IS_GNUCXX)
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++11")
-      elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-      endif()
-    endif()
-  else()
-    message("Unable to detect the major version of JsonCpp, assuming < 1.0.0")
-  endif()
-  
   # Look for Orthanc framework shared library
   include(CheckCXXSymbolExists)
 
