@@ -159,6 +159,9 @@ if (ORTHANC_FRAMEWORK_SOURCE STREQUAL "hg" OR
       elseif (ORTHANC_FRAMEWORK_VERSION STREQUAL "23ad1b9c7800")
         # For "Toolbox::ReadJson()" and "Toolbox::Write{...}Json()" (pre-1.9.0)
         set(ORTHANC_FRAMEWORK_MD5 "9af92080e57c60dd288eba46ce606c00")
+      elseif (ORTHANC_FRAMEWORK_VERSION STREQUAL "ae0e3fd609df")
+        # WSI 1.1 (framework pre-1.9.8), to remove "-std=c++11"
+        set(ORTHANC_FRAMEWORK_MD5 "7a54f4ebb5b78614f987cf5e6e7b233c")
       endif()
     endif()
   endif()
