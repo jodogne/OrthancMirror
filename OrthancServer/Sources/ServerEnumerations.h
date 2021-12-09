@@ -61,7 +61,7 @@ namespace Orthanc
     StoreStatus_Success,
     StoreStatus_AlreadyStored,
     StoreStatus_Failure,
-    StoreStatus_FilteredOut     // Removed by NewInstanceFilter
+    StoreStatus_FilteredOut     // Removed by NewInstanceFilter or ReceivedInstanceCallback
   };
 
   enum DicomTagType

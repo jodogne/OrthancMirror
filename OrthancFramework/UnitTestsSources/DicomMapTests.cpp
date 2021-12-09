@@ -756,6 +756,15 @@ TEST(DicomTag, Comparisons)
   ASSERT_FALSE(d > d);
 }
 
+TEST(ParsedDicomFile, canIncludeXsVrTags)
+{
+  Json::Value tags;
+  tags["0028,0034"] = "1\\1";         // PixelAspectRatio
+  tags["0028,1101"] = "256\\0\\16";   // RedPaletteColorLookupTableDescriptor which is declared as xs VR in dicom.dic
+
+  std::unique_ptr<ParsedDicomFile> dicom(ParsedDicomFile::CreateFromJson(tags, DicomFromJsonFlags_DecodeDataUriScheme, ""));
+  // simply make sure it does not throw !
+}
 
 
 #if ORTHANC_SANDBOXED != 1
