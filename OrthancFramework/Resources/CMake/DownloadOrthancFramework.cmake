@@ -72,7 +72,10 @@ if (ORTHANC_FRAMEWORK_SOURCE STREQUAL "hg" OR
       if (NOT ORTHANC_FRAMEWORK_MAJOR MATCHES "^[0-9]+$" OR
           NOT ORTHANC_FRAMEWORK_MINOR MATCHES "^[0-9]+$" OR
           NOT ORTHANC_FRAMEWORK_REVISION MATCHES "^[0-9]+$")
-        message("Bad version of the Orthanc framework: ${ORTHANC_FRAMEWORK_VERSION}")
+        message("Bad version of the Orthanc framework, assuming a pre-release: ${ORTHANC_FRAMEWORK_VERSION}")
+        set(ORTHANC_FRAMEWORK_MAJOR 999)
+        set(ORTHANC_FRAMEWORK_MINOR 999)
+        set(ORTHANC_FRAMEWORK_REVISION 999)
       endif()
 
       if (ORTHANC_FRAMEWORK_VERSION STREQUAL "1.3.1")
