@@ -2596,8 +2596,8 @@ namespace OrthancPlugins
   
   void HttpClient::ClearCredentials()
   {
-    username_.empty();
-    password_.empty();
+    username_.clear();
+    password_.clear();
   }
 
 
