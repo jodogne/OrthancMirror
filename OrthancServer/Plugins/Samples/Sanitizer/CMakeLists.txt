@@ -27,16 +27,28 @@ SET(ALLOW_DOWNLOADS OFF CACHE BOOL "Allow CMake to download packages")
 
 SET(USE_SYSTEM_JSONCPP ON CACHE BOOL "Use the system version of JsonCpp")
 SET(USE_SYSTEM_BOOST ON CACHE BOOL "Use the system version of boost")
+SET(ORTHANC_FRAMEWORK_SOURCE path)
+SET(ORTHANC_FRAMEWORK_ROOT ${CMAKE_SOURCE_DIR}/../../../../OrthancFramework/Sources)
 
 include(${CMAKE_SOURCE_DIR}/../Common/OrthancPlugins.cmake)
 include(${CMAKE_SOURCE_DIR}/../../../../OrthancFramework/Resources/CMake/JsonCppConfiguration.cmake)
 include(${CMAKE_SOURCE_DIR}/../../../../OrthancFramework/Resources/CMake/BoostConfiguration.cmake)
+
+include(${CMAKE_SOURCE_DIR}/../../../../OrthancFramework/Resources/CMake/DownloadOrthancFramework.cmake)
+include(${ORTHANC_FRAMEWORK_ROOT}/../Resources/CMake/OrthancFrameworkParameters.cmake)
+set(ENABLE_LOCALE ON)
+set(ENABLE_DCMTK ON)
+include(${ORTHANC_FRAMEWORK_ROOT}/../Resources/CMake/OrthancFrameworkConfiguration.cmake)
+include_directories(${ORTHANC_FRAMEWORK_ROOT})
+
 
 add_library(Sanitizer SHARED 
     ${CMAKE_SOURCE_DIR}/../Common/OrthancPluginCppWrapper.cpp
     ${JSONCPP_SOURCES}
     ${BOOST_SOURCES}
     Plugin.cpp
+    ${ORTHANC_CORE_SOURCES}
+    ${ORTHANC_DICOM_SOURCES}
     )
 
 
