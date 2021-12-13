@@ -21,6 +21,8 @@
 
 
 #include "../../../../OrthancFramework/Sources/Compatibility.h"
+#include "../../../../OrthancFramework/Sources/DicomParsing/ParsedDicomFile.h"
+#include "../../../../OrthancFramework/Sources/OrthancFramework.h"
 #include "../Common/OrthancPluginCppWrapper.h"
 
 #include <boost/filesystem.hpp>
@@ -35,50 +37,20 @@ OrthancPluginReceivedInstanceCallbackResult ReceivedInstanceCallback(const void*
                                                                      uint64_t receivedDicomBufferSize,
                                                                      void** modifiedDicomBuffer,
                                                                      uint64_t* modifiedDicomBufferSize)
-                                                                    //  OrthancPluginMemoryBuffer* modifiedDicomBuffer)
 {
-    // note: this sample plugin won't work with multi-frame images or badly formed images 
-    // OrthancPluginCreateDicom and OrthancPluginDicomBufferToJson do not support multi-frame and are quite touchy with invalid tag values
+  Orthanc::ParsedDicomFile dicom(receivedDicomBuffer, receivedDicomBufferSize);
+  std::string institutionName = "My institution";
 
-    Json::Value receivedDicomAsJson;
-    OrthancPlugins::OrthancString str;
-    str.Assign(OrthancPluginDicomBufferToJson
-               (OrthancPlugins::GetGlobalContext(), 
-                receivedDicomBuffer, 
-                receivedDicomBufferSize, 
-                OrthancPluginDicomToJsonFormat_Short, 
-                static_cast<OrthancPluginDicomToJsonFlags>(OrthancPluginDicomToJsonFlags_IncludeBinary | OrthancPluginDicomToJsonFlags_IncludePrivateTags | OrthancPluginDicomToJsonFlags_IncludeUnknownTags | OrthancPluginDicomToJsonFlags_SkipGroupLengths | OrthancPluginDicomToJsonFlags_IncludePixelData),
-                0));
-    
-    str.ToJson(receivedDicomAsJson);
+  dicom.Replace(Orthanc::DICOM_TAG_INSTITUTION_NAME, institutionName, false, Orthanc::DicomReplaceMode_InsertIfAbsent, "");
+  
+  std::string modifiedDicom;
+  dicom.SaveToMemoryBuffer(modifiedDicom);
 
-    if (receivedDicomAsJson["0008,0080"] != "My Institution")
-    {
-        receivedDicomAsJson["0008,0080"] = "My Institution";
-
-        OrthancPluginMemoryBuffer modifiedDicom;
-        std::string serializedModifiedDicomAsJson;
-        OrthancPlugins::WriteFastJson(serializedModifiedDicomAsJson, receivedDicomAsJson);
-        OrthancPluginErrorCode createResult = OrthancPluginCreateDicom(OrthancPlugins::GetGlobalContext(), 
-                                                                       &modifiedDicom, 
-                                                                       serializedModifiedDicomAsJson.c_str(), 
-                                                                       NULL, 
-                                                                       OrthancPluginCreateDicomFlags_DecodeDataUriScheme);
-
-        if (createResult == OrthancPluginErrorCode_Success)
-        {    
-            *modifiedDicomBuffer = modifiedDicom.data;
-            *modifiedDicomBufferSize = modifiedDicom.size;
-        
-            return OrthancPluginReceivedInstanceCallbackResult_Modified;
-        }
-        else
-        {
-            return OrthancPluginReceivedInstanceCallbackResult_KeepAsIs;
-        }
-    }
-
-    return OrthancPluginReceivedInstanceCallbackResult_KeepAsIs;
+  *modifiedDicomBuffer = malloc(modifiedDicom.size());
+  *modifiedDicomBufferSize = modifiedDicom.size();
+  memcpy(*modifiedDicomBuffer, modifiedDicom.c_str(), modifiedDicom.size());
+  
+  return OrthancPluginReceivedInstanceCallbackResult_Modified;
 }
 
 
@@ -87,6 +59,8 @@ extern "C"
   ORTHANC_PLUGINS_API int32_t OrthancPluginInitialize(OrthancPluginContext* c)
   {
     OrthancPlugins::SetGlobalContext(c);
+
+    Orthanc::InitializeFramework("", true);
 
     /* Check the version of the Orthanc core */
     // if (OrthancPluginCheckVersion(c) == 0)
@@ -109,6 +83,7 @@ extern "C"
   ORTHANC_PLUGINS_API void OrthancPluginFinalize()
   {
     OrthancPlugins::LogWarning("Sanitizer plugin is finalizing");
+    Orthanc::FinalizeFramework();
   }
 
 
