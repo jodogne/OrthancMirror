@@ -463,6 +463,7 @@ extern "C"
     _OrthancPluginService_RegisterTranscoderCallback = 1015,   /* New in Orthanc 1.7.0 */
     _OrthancPluginService_RegisterStorageArea2 = 1016,         /* New in Orthanc 1.9.0 */
     _OrthancPluginService_RegisterIncomingCStoreInstanceFilter = 1017,  /* New in Orthanc 1.9.8 */
+    _OrthancPluginService_RegisterReceivedInstanceCallback = 1018,  /* New in Orthanc 1.9.8 */
 
     /* Sending answers to REST calls */
     _OrthancPluginService_AnswerBuffer = 2000,
@@ -1001,7 +1002,19 @@ extern "C"
       is already in use */
   } OrthancPluginStorageCommitmentFailureReason;
 
-  
+
+  /**
+   * The return value of ReceivedInstanceCallback
+   **/
+  typedef enum
+  {
+    OrthancPluginReceivedInstanceCallbackResult_KeepAsIs = 1,           /*!< Keep the instance as is */
+    OrthancPluginReceivedInstanceCallbackResult_Modified = 2,           /*!< Modified the instance */
+    OrthancPluginReceivedInstanceCallbackResult_Discard = 3,            /*!< Tell Orthanc to discard the instance */
+
+    _OrthancPluginReceivedInstanceCallbackResult_INTERNAL = 0x7fffffff
+  } OrthancPluginReceivedInstanceCallbackResult;
+
 
   /**
    * @brief A 32-bit memory buffer allocated by the core system of Orthanc.
@@ -7820,6 +7833,73 @@ extern "C"
     params.callback = callback;
 
     return context->InvokeService(context, _OrthancPluginService_RegisterIncomingCStoreInstanceFilter, &params);
+  }
+
+  /**
+   * @brief Callback to possibly modify a DICOM instance received
+   * by Orthanc through any source (C-Store or Rest API)
+   *
+   * Signature of a callback function that is triggered whenever
+   * Orthanc receives a new DICOM instance (through DICOM protocol or 
+   * Rest API), and that answers a possibly modified version of the 
+   * DICOM that should be stored in Orthanc.  
+   *
+   * This callback is called immediately after receiption: before 
+   * transcoding and before filtering (FilterIncomingInstance).
+   *
+   * @param receivedDicomBuffer A buffer containing the received DICOM (input).
+   * @param receivedDicomBufferSize The size of the received DICOM (input)
+   * @param modifiedDicomBuffer A buffer containing the modified DICOM (output).
+   *                            This buffer will be freed by the Orthanc Core and must have
+   *                            been allocated by malloc in your plugin or by Orthanc core through
+   *                            a plugin method.
+   * @param modifiedDicomBufferSize The size of the modified DICOM (output)
+   * @return OrthancPluginReceivedInstanceCallbackResult_KeepAsIs to accept the instance as is
+   *         OrthancPluginReceivedInstanceCallbackResult_Modified to store the modified DICOM
+   *         OrthancPluginReceivedInstanceCallbackResult_Discard to tell Orthanc to discard the instance
+   * @ingroup Callback
+   **/
+  typedef OrthancPluginReceivedInstanceCallbackResult (*OrthancPluginReceivedInstanceCallback) (
+    const void* receivedDicomBuffer,
+    uint64_t receivedDicomBufferSize,
+    void** modifiedDicomBuffer,
+    uint64_t* modifiedDicomBufferSize
+    );
+
+
+  typedef struct
+  {
+    OrthancPluginReceivedInstanceCallback callback;
+  } _OrthancPluginReceivedInstanceCallback;
+
+  /**
+   * @brief Register a callback to possibly modify a DICOM instance received
+   * by Orthanc through any source (C-Store or Rest API)
+   *
+   *
+   * @warning Your callback function will be called synchronously with
+   * the core of Orthanc. This implies that deadlocks might emerge if
+   * you call other core primitives of Orthanc in your callback (such
+   * deadlocks are particular visible in the presence of other plugins
+   * or Lua scripts). It is thus strongly advised to avoid any call to
+   * the REST API of Orthanc in the callback. If you have to call
+   * other primitives of Orthanc, you should make these calls in a
+   * separate thread, passing the pending events to be processed
+   * through a message queue.
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param callback The callback.
+   * @return 0 if success, other value if error.
+   * @ingroup Callbacks
+   **/
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginRegisterReceivedInstanceCallback(
+    OrthancPluginContext*                     context,
+    OrthancPluginReceivedInstanceCallback     callback)
+  {
+    _OrthancPluginReceivedInstanceCallback params;
+    params.callback = callback;
+
+    return context->InvokeService(context, _OrthancPluginService_RegisterReceivedInstanceCallback, &params);
   }
 
   /**

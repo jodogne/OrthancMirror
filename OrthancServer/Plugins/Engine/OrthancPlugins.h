@@ -136,6 +136,8 @@ namespace Orthanc
 
     void RegisterIncomingCStoreInstanceFilter(const void* parameters);
 
+    void RegisterReceivedInstanceCallback(const void* parameters);
+
     void RegisterRefreshMetricsCallback(const void* parameters);
 
     void RegisterStorageCommitmentScpCallback(const void* parameters);
@@ -284,6 +286,11 @@ namespace Orthanc
 
     virtual uint16_t FilterIncomingCStoreInstance(const DicomInstanceToStore& instance,
                                                   const Json::Value& simplified) ORTHANC_OVERRIDE;
+
+    virtual bool ApplyReceivedInstanceCallbacks(const void* receivedDicomBuffer,
+                                                size_t receivedDicomBufferSize,
+                                                void** modifiedDicomBufferData,
+                                                size_t& modifiedDicomBufferSize);
 
     bool HasStorageArea() const;
 
