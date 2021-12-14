@@ -2323,6 +2323,8 @@ namespace Orthanc
           free(modifiedDicomBufferData);
           throw OrthancException(ErrorCode_Plugin, "The ReceivedInstanceCallback plugin is returning a modified buffer while it has discarded the instance");
         }
+
+        CLOG(INFO, PLUGINS) << "A plugin has discarded the instance in its ReceivedInstanceCallback";        
         return false;
       }
       else if (callbackResult == OrthancPluginReceivedInstanceCallbackResult_KeepAsIs)
@@ -2345,6 +2347,8 @@ namespace Orthanc
           }
 
           modifiedDicomBufferSize = static_cast<size_t>(modifiedDicomSize64);
+
+          CLOG(INFO, PLUGINS) << "A plugin has modified the instance in its ReceivedInstanceCallback";        
           return true;
         }
         else
