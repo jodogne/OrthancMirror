@@ -47,6 +47,7 @@
 #include "../../OrthancFramework/Sources/HttpServer/HttpStreamTranscoder.h"
 #include "../../OrthancFramework/Sources/JobsEngine/SetOfInstancesJob.h"
 #include "../../OrthancFramework/Sources/Logging.h"
+#include "../../OrthancFramework/Sources/MallocMemoryBuffer.h"
 #include "../../OrthancFramework/Sources/MetricsRegistry.h"
 #include "../Plugins/Engine/OrthancPlugins.h"
 
@@ -694,13 +695,47 @@ namespace Orthanc
 
 
   ServerContext::StoreResult ServerContext::Store(std::string& resultPublicId,
-                                                  DicomInstanceToStore& dicom,
+                                                  DicomInstanceToStore& receivedDicom,
                                                   StoreInstanceMode mode)
-  {
+  { 
+    DicomInstanceToStore* dicom = &receivedDicom;
+    std::unique_ptr<DicomInstanceToStore> modifiedDicom;
+
+    void* modifiedDicomBuffer = NULL;
+    size_t modifiedDicomBufferSize = 0;
+
+    std::unique_ptr<MallocMemoryBuffer> raii(new MallocMemoryBuffer);
+
+#if ORTHANC_ENABLE_PLUGINS == 1
+    if (HasPlugins())
+    {
+
+      bool store = GetPlugins().ApplyReceivedInstanceCallbacks(receivedDicom.GetBufferData(), 
+                                                               receivedDicom.GetBufferSize(),
+                                                               &modifiedDicomBuffer,
+                                                               modifiedDicomBufferSize);
+      raii->Assign(modifiedDicomBuffer, modifiedDicomBufferSize, ::free);
+
+      if (!store)
+      {
+        StoreResult result;
+        result.SetStatus(StoreStatus_FilteredOut);
+        return result;
+      }
+
+      if (modifiedDicomBufferSize > 0 && modifiedDicomBuffer != NULL)
+      {
+        modifiedDicom.reset(DicomInstanceToStore::CreateFromBuffer(modifiedDicomBuffer, modifiedDicomBufferSize));
+        modifiedDicom->SetOrigin(dicom->GetOrigin());
+        dicom = modifiedDicom.get();
+      }
+    }
+#endif
+
     if (!isIngestTranscoding_)
     {
       // No automated transcoding. This was the only path in Orthanc <= 1.6.1.
-      return StoreAfterTranscoding(resultPublicId, dicom, mode);
+      return StoreAfterTranscoding(resultPublicId, *dicom, mode);
     }
     else
     {
@@ -709,7 +744,7 @@ namespace Orthanc
       bool transcode = false;
 
       DicomTransferSyntax sourceSyntax;
-      if (!dicom.LookupTransferSyntax(sourceSyntax) ||
+      if (!dicom->LookupTransferSyntax(sourceSyntax) ||
           sourceSyntax == ingestTransferSyntax_)
       {
         // Don't transcode if the incoming DICOM is already in the proper transfer syntax
@@ -736,7 +771,7 @@ namespace Orthanc
       if (!transcode)
       {
         // No transcoding
-        return StoreAfterTranscoding(resultPublicId, dicom, mode);
+        return StoreAfterTranscoding(resultPublicId, *dicom, mode);
       }
       else
       {
@@ -745,7 +780,7 @@ namespace Orthanc
         syntaxes.insert(ingestTransferSyntax_);
         
         IDicomTranscoder::DicomImage source;
-        source.SetExternalBuffer(dicom.GetBufferData(), dicom.GetBufferSize());
+        source.SetExternalBuffer(dicom->GetBufferData(), dicom->GetBufferSize());
         
         IDicomTranscoder::DicomImage transcoded;
         if (Transcode(transcoded, source, syntaxes, true /* allow new SOP instance UID */))
@@ -753,7 +788,7 @@ namespace Orthanc
           std::unique_ptr<ParsedDicomFile> tmp(transcoded.ReleaseAsParsedDicomFile());
 
           std::unique_ptr<DicomInstanceToStore> toStore(DicomInstanceToStore::CreateFromParsedDicomFile(*tmp));
-          toStore->SetOrigin(dicom.GetOrigin());
+          toStore->SetOrigin(dicom->GetOrigin());
 
           StoreResult result = StoreAfterTranscoding(resultPublicId, *toStore, mode);
           assert(resultPublicId == tmp->GetHasher().HashInstance());
@@ -763,7 +798,7 @@ namespace Orthanc
         else
         {
           // Cannot transcode => store the original file
-          return StoreAfterTranscoding(resultPublicId, dicom, mode);
+          return StoreAfterTranscoding(resultPublicId, *dicom, mode);
         }
       }
     }
