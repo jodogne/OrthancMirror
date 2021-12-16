@@ -1928,6 +1928,8 @@ namespace Orthanc
         .SetSummary("List attachments")
         .SetDescription("Get the list of attachments that are associated with the given " + r)
         .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
+        .SetHttpGetArgument("full", RestApiCallDocumentation::Type_String,
+                            "If present, retrieve the attachments list and their numerical ids", false)
         .AddAnswerType(MimeType_Json, "JSON array containing the names of the attachments")
         .SetHttpGetSample(GetDocumentationSampleResource(t) + "/attachments", true);
       return;
@@ -1938,12 +1940,28 @@ namespace Orthanc
     std::set<FileContentType> attachments;
     OrthancRestApi::GetIndex(call).ListAvailableAttachments(attachments, publicId, StringToResourceType(resourceType.c_str()));
 
-    Json::Value result = Json::arrayValue;
+    Json::Value result;
 
-    for (std::set<FileContentType>::const_iterator 
-           it = attachments.begin(); it != attachments.end(); ++it)
+    if (call.HasArgument("full"))
     {
-      result.append(EnumerationToString(*it));
+      result = Json::objectValue;
+      
+      for (std::set<FileContentType>::const_iterator 
+            it = attachments.begin(); it != attachments.end(); ++it)
+      {
+        std::string key = EnumerationToString(*it);
+        result[key] = static_cast<uint16_t>(*it);
+      }
+    }
+    else
+    {
+      result = Json::arrayValue;
+      
+      for (std::set<FileContentType>::const_iterator 
+            it = attachments.begin(); it != attachments.end(); ++it)
+      {
+        result.append(EnumerationToString(*it));
+      }
     }
 
     call.GetOutput().AnswerJson(result);

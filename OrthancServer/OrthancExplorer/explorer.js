@@ -701,7 +701,19 @@ function SetupAnonymizedOrModifiedFrom(buttonSelector, resource, resourceType, f
   }
 }
 
+function SetupAttachments(accessSelector, liClass, resourceId, resourceType) {
+  GetResource('/' + resourceType + '/' + resourceId + '/attachments?full', function(attachments) {
+    target = $(accessSelector);
+    $('.' + liClass).remove();
+    for (var key in attachments) {
+      if (attachments[key] >= 1024) {
+        target.append('<li data-icon="gear" class="' + liClass + '"><a href="#" id="' + attachments[key] + '">Download ' + key + '</a></li>')
+      }
+    }
+    target.listview('refresh');
+  });
 
+}
 
 function RefreshPatient()
 {
@@ -738,6 +750,7 @@ function RefreshPatient()
 
         SetupAnonymizedOrModifiedFrom('#patient-anonymized-from', patient, 'patient', ANONYMIZED_FROM);
         SetupAnonymizedOrModifiedFrom('#patient-modified-from', patient, 'patient', MODIFIED_FROM);
+        SetupAttachments('#patient-access', 'patient-attachment', pageData.uuid, 'patients');
 
         target.listview('refresh');
 
@@ -785,6 +798,7 @@ function RefreshStudy()
 
           SetupAnonymizedOrModifiedFrom('#study-anonymized-from', study, 'study', ANONYMIZED_FROM);
           SetupAnonymizedOrModifiedFrom('#study-modified-from', study, 'study', MODIFIED_FROM);
+          SetupAttachments('#study-access', 'study-attachment', pageData.uuid, 'studies');
 
           target = $('#list-series');
           $('li', target).remove();
@@ -801,6 +815,7 @@ function RefreshStudy()
             target.append(FormatSeries(series[i], '#series?uuid=' + series[i].ID));
           }
           target.listview('refresh');
+
 
           currentPage = 'study';
           currentUuid = pageData.uuid;
@@ -839,6 +854,7 @@ function RefreshSeries()
 
             SetupAnonymizedOrModifiedFrom('#series-anonymized-from', series, 'series', ANONYMIZED_FROM);
             SetupAnonymizedOrModifiedFrom('#series-modified-from', series, 'series', MODIFIED_FROM);
+            SetupAttachments('#series-access', 'series-attachment', pageData.uuid, 'series');
 
             target = $('#list-instances');
             $('li', target).remove();
@@ -977,6 +993,8 @@ function RefreshInstance()
 
             SetupAnonymizedOrModifiedFrom('#instance-anonymized-from', instance, 'instance', ANONYMIZED_FROM);
             SetupAnonymizedOrModifiedFrom('#instance-modified-from', instance, 'instance', MODIFIED_FROM);
+
+            SetupAttachments('#instance-access', 'instance-attachment', pageData.uuid, 'instances');
 
             currentPage = 'instance';
             currentUuid = pageData.uuid;
@@ -1347,7 +1365,25 @@ $('#series-media').live('click', function(e) {
   window.location.href = '../series/' + $.mobile.pageData.uuid + '/media';
 });
 
+$('.patient-attachment').live('click', function(e) {
+  e.preventDefault();  //stop the browser from following
+  window.location.href = '../patients/' + $.mobile.pageData.uuid + '/attachments/' + e.target.id + '/data';
+});
 
+$('.study-attachment').live('click', function(e) {
+  e.preventDefault();  //stop the browser from following
+  window.location.href = '../studies/' + $.mobile.pageData.uuid + '/attachments/' + e.target.id + '/data';
+});
+
+$('.series-attachment').live('click', function(e) {
+  e.preventDefault();  //stop the browser from following
+  window.location.href = '../series/' + $.mobile.pageData.uuid + '/attachments/' + e.target.id + '/data';
+});
+
+$('.instance-attachment').live('click', function(e) {
+  e.preventDefault();  //stop the browser from following
+  window.location.href = '../instances/' + $.mobile.pageData.uuid + '/attachments/' + e.target.id + '/data';
+});
 
 $('#protection').live('change', function(e) {
   var isProtected = e.target.value == "on";
