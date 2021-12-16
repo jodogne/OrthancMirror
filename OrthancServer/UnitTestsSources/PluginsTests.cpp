@@ -88,25 +88,54 @@ TEST(SharedLibrary, Basic)
   //ASSERT_TRUE(l.HasFunction("_init"));
   
 #elif defined(__linux__) || defined(__FreeBSD_kernel__)
-  std::unique_ptr<SharedLibrary> l;
+  /**
+   * Since Orthanc 1.9.8, we test the "libdl.so.2" instead of the
+   * "libdl.so", as discussed here:
+   * https://groups.google.com/g/orthanc-users/c/I5g1fN6MCvg/m/JVdvRyjJAAAJ
+   * https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=1001305
+   * https://salsa.debian.org/med-team/orthanc/-/blob/master/debian/patches/glibc-2.34.patch
+   **/
+
   try
   {
-    /**
-     * Since Orthanc 1.9.8, we test the "libdl.so.2" instead of the
-     * "libdl.so", as discussed here:
-     * https://groups.google.com/g/orthanc-users/c/I5g1fN6MCvg/m/JVdvRyjJAAAJ
-     **/
-    l.reset(new SharedLibrary("libdl.so.2"));
+    SharedLibrary l("libdl.so.2");
+    ASSERT_THROW(l.GetFunction("world"), OrthancException);
+    ASSERT_TRUE(l.GetFunction("dlopen") != NULL);
+    ASSERT_TRUE(l.HasFunction("dlclose"));
+    ASSERT_FALSE(l.HasFunction("world"));
+    return;  // Success
   }
   catch (OrthancException&)
   {
-    l.reset(new SharedLibrary("libdl.so")); // Fallback for backward compat
   }
   
-  ASSERT_THROW(l->GetFunction("world"), OrthancException);
-  ASSERT_TRUE(l->GetFunction("dlopen") != NULL);
-  ASSERT_TRUE(l->HasFunction("dlclose"));
-  ASSERT_FALSE(l->HasFunction("world"));
+  try
+  {
+    SharedLibrary l("libdl.so"); // Fallback for backward compat
+    ASSERT_THROW(l.GetFunction("world"), OrthancException);
+    ASSERT_TRUE(l.GetFunction("dlopen") != NULL);
+    ASSERT_TRUE(l.HasFunction("dlclose"));
+    ASSERT_FALSE(l.HasFunction("world"));
+    return;  // Success
+  }
+  catch (OrthancException&)
+  {
+  }
+  
+  try
+  {
+    SharedLibrary l("libmemusage.so"); // Try another common library
+    ASSERT_THROW(l.GetFunction("world"), OrthancException);
+    ASSERT_TRUE(l.GetFunction("munmap") != NULL);
+    ASSERT_TRUE(l.HasFunction("free"));
+    ASSERT_FALSE(l.HasFunction("world"));
+    return;  // Success
+  }
+  catch (OrthancException&)
+  {
+  }
+  
+  ASSERT_TRUE(0);
 
 #elif defined(__FreeBSD__) || defined(__OpenBSD__)
   // dlopen() in FreeBSD/OpenBSD is supplied by libc, libc.so is
