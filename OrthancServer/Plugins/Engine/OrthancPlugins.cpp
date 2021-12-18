@@ -2362,7 +2362,7 @@ namespace Orthanc
       }
     }
 
-    return STATUS_Success;
+    return true;
   }
 
   void OrthancPlugins::SignalChangeInternal(OrthancPluginChangeType changeType,
