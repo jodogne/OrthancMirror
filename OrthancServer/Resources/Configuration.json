@@ -639,10 +639,13 @@
   // multiplicity (> 0 with defaults to 1), possibly the maximum
   // multiplicity (0 means arbitrary multiplicity, defaults to 1), and
   // possibly the Private Creator (for private tags).
+  // Note: for private tags, you should only declare the lower 8 bits
+  // of the element since the higher 8 bits may vary from one file to
+  // the other.
   "Dictionary" : {
     // "0014,1020" : [ "DA", "ValidationExpiryDate", 1, 1 ]
-    // "00e1,10c2" : [ "UI", "PET-CT Multi Modality Name", 1, 1, "ELSCINT1" ]
-    // "7053,1003" : [ "ST", "Original Image Filename", 1, 1, "Philips PET Private Group" ]
+    // "00e1,c2" : [ "UI", "PET-CT Multi Modality Name", 1, 1, "ELSCINT1" ]
+    // "7053,03" : [ "ST", "Original Image Filename", 1, 1, "Philips PET Private Group" ]
     // "2001,5f" : [ "SQ", "StackSequence", 1, 1, "Philips Imaging DD 001" ]
   },
 
