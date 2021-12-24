@@ -26,6 +26,7 @@ General
 * New configuration option "ZipLoaderThreads" to configure the number of threads used
   to read instances from storage when createing a Zip archive/media.
 * Support decoding of black-and-white images (with 1 bit per pixel), notably DICOM SEG
+* Added links to download attachments from the Orthanc Explorer
 
 Maintenance
 -----------
@@ -44,7 +45,11 @@ REST API
   unsupported.png only if the ?returnUnsupportedImage option is specified; otherwise, 
   it raises a 415 error code.
 * Archive jobs response now contains a header Content-Disposition:filename='archive.zip'
-  
+* "/instances/{...}/frames/{...}/numpy": Download the frame as a Python numpy array
+* "/instances/{...}/numpy": Download the instance as a Python numpy array
+* "/series/{...}/numpy": Download the series as a Python numpy array
+* Added a ?full option to "/patients|studies|series|instances/{...}/attachments route
+
 Lua
 ---
 

@@ -183,6 +183,7 @@ if (ENABLE_MODULE_IMAGES)
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Images/ImageAccessor.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Images/ImageBuffer.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Images/ImageProcessing.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Images/NumpyWriter.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Images/PamReader.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Images/PamWriter.cpp
     )

@@ -138,5 +138,8 @@ namespace Orthanc
 
     static bool ParseFirstDouble(double& result,
                                  const std::string& value);
+
+    static bool ParseBoolean(bool& result,
+                             const std::string& value);
   };
 }

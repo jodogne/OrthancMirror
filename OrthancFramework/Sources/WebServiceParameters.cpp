@@ -505,21 +505,19 @@ namespace Orthanc
     {
       return defaultValue;
     }
-    else if (found->second == "0" ||
-             found->second == "false")
-    {
-      return false;
-    }
-    else if (found->second == "1" ||
-             found->second == "true")
-    {
-      return true;
-    }
     else
     {
-      throw OrthancException(ErrorCode_BadFileFormat, "Bad value for a Boolean user property in the parameters "
-                             "of a Web service: Property \"" + key + "\" equals: " + found->second);
-    }    
+      bool value;
+      if (SerializationToolbox::ParseBoolean(value, found->second))
+      {
+        return value;
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_BadFileFormat, "Bad value for a Boolean user property in the parameters "
+                               "of a Web service: Property \"" + key + "\" equals: " + found->second);
+      }
+    }
   }
 
 
