@@ -701,14 +701,13 @@ namespace Orthanc
     DicomInstanceToStore* dicom = &receivedDicom;
     std::unique_ptr<DicomInstanceToStore> modifiedDicom;
 
-    void* modifiedDicomBuffer = NULL;
-    size_t modifiedDicomBufferSize = 0;
-
     std::unique_ptr<MallocMemoryBuffer> raii(new MallocMemoryBuffer);
 
 #if ORTHANC_ENABLE_PLUGINS == 1
     if (HasPlugins())
     {
+      void* modifiedDicomBuffer = NULL;
+      size_t modifiedDicomBufferSize = 0;
 
       bool store = GetPlugins().ApplyReceivedInstanceCallbacks(receivedDicom.GetBufferData(), 
                                                                receivedDicom.GetBufferSize(),
