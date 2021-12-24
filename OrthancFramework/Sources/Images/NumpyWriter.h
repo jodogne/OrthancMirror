@@ -60,10 +60,7 @@ namespace Orthanc
 
     void SetCompressed(bool compressed);
 
-    bool IsCompressed() const
-    {
-      return compressed_;
-    }
+    bool IsCompressed() const;
 
     static void WriteHeader(ChunkedBuffer& target,
                             unsigned int depth,  // Must be "0" for 2D images

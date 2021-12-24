@@ -233,4 +233,10 @@ namespace Orthanc
     }
 #endif
   }
+
+
+  bool NumpyWriter::IsCompressed() const
+  {
+    return compressed_;
+  }
 }
