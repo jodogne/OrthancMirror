@@ -20,7 +20,7 @@ General
 * Option to enable DNS lookups in DICOM:
   https://hg.orthanc-server.com/orthanc/file/Orthanc-1.9.3/OrthancFramework/Sources/OrthancFramework.cpp#l88
 * Toolbox::ComputeMD5() fails on files larger than 4GB
-
+* Add an option to run Orthanc in read-only mode both for DICOM and for Rest API.
 
 ============================
 Documentation (Orthanc Book)
@@ -167,6 +167,7 @@ SDK
   https://groups.google.com/d/msg/orthanc-users/BtvLTE5Ni8A/vIMhmMgfBAAJ
 * In "OrthancPluginLog[Error|Warning|Info]()", prefix the log line with
   the name of the plugin, as retrieved by "OrthancPluginGetName()"
+* update the SDK to handle buffer sizes > 4GB (all sizes are currently coded in uint32_t)
 
 ----------------
 Ideas of plugins

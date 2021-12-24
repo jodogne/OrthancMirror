@@ -36,7 +36,7 @@ def PrintHelp():
 
 def CheckIsDate(date):
     if len(date) != 8 or not date.isdigit():
-        print '"%s" is not a valid date!\n' % date
+        print('"%s" is not a valid date!\n' % date)
         exit(-1)
 
 
@@ -83,7 +83,9 @@ for studyId in RestToolbox.DoGet('%s/studies' % URL):
                                             GetTag(study, 'StudyDescription'))
 
         # Remove any non-ASCII character in the filename
-        filename = filename.encode('ascii', errors = 'replace').translate(None, r"'\/:*?\"<>|!=").strip()
+        filename = filename.encode('ascii', errors = 'replace')
+        filename = filename.translate(None, b"'\/:*?\"<>|!=")
+        filename = filename.decode('ascii').strip()
 
         # Download the ZIP archive of the study
         print('Downloading %s' % filename)

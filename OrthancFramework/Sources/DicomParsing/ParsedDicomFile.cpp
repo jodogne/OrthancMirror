@@ -1195,6 +1195,10 @@ namespace Orthanc
         EmbedImage(mime, content);
         break;
 
+      case MimeType_Binary:
+        EmbedImage(mime, content);
+        break;
+
       case MimeType_Pdf:
         EmbedPdf(content);
         break;
@@ -1251,6 +1255,12 @@ namespace Orthanc
         PamReader reader(true);
         reader.ReadFromMemory(content);
         EmbedImage(reader);
+        break;
+      }
+
+      case MimeType_Binary:
+      {
+        EmbedRawPixelData(content);
         break;
       }
 
@@ -1407,7 +1417,24 @@ namespace Orthanc
     }    
   }
 
-  
+  void ParsedDicomFile::EmbedRawPixelData(const std::string& content)
+  {
+    DcmTag key(DICOM_TAG_PIXEL_DATA.GetGroup(), 
+               DICOM_TAG_PIXEL_DATA.GetElement());
+
+    std::unique_ptr<DcmPixelData> pixels(new DcmPixelData(key));
+
+    Uint8* target = NULL;
+    pixels->createUint8Array(content.size(), target);
+    memcpy(target, content.c_str(), content.size());
+
+    if (!GetDcmtkObject().getDataset()->insert(pixels.release(), false, false).good())
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+  }
+
+
   Encoding ParsedDicomFile::DetectEncoding(bool& hasCodeExtensions) const
   {
     return FromDcmtkBridge::DetectEncoding(hasCodeExtensions,

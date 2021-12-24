@@ -734,9 +734,14 @@ namespace Orthanc
           if (!(flags & DicomToJsonFlags_ConvertBinaryToNull))
           {
             Uint8* data = NULL;
+            Uint16* data16 = NULL;
             if (element.getUint8Array(data) == EC_Normal)
             {
               return new DicomValue(reinterpret_cast<const char*>(data), element.getLength(), true);
+            }
+            else if (element.getUint16Array(data16) == EC_Normal)
+            {
+              return new DicomValue(reinterpret_cast<const char*>(data16), element.getLength(), true);
             }
           }
 
@@ -1851,6 +1856,23 @@ namespace Orthanc
           break;
         }
 
+        case EVR_xs: // unsigned short, signed short or multiple values
+        {
+          if (decoded->find('\\') != std::string::npos)
+          {
+            ok = element.putString(decoded->c_str()).good();
+          }
+          else if (decoded->find('-') != std::string::npos)
+          {
+            ok = element.putSint16(boost::lexical_cast<Sint16>(*decoded)).good();
+          }
+          else
+          {
+            ok = element.putUint16(boost::lexical_cast<Uint16>(*decoded)).good();  
+          }
+          break;
+        }
+
         case EVR_US:  // unsigned short
         {
           ok = element.putUint16(boost::lexical_cast<Uint16>(*decoded)).good();
@@ -1902,7 +1924,6 @@ namespace Orthanc
          **/ 
 
         case EVR_ox:  // OB or OW depending on context
-        case EVR_xs:  // SS or US depending on context
         case EVR_lt:  // US, SS or OW depending on context, used for LUT Data (thus the name)
         case EVR_na:  // na="not applicable", for data which has no VR
         case EVR_up:  // up="unsigned pointer", used internally for DICOMDIR suppor
