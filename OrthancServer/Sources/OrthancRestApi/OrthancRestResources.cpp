@@ -1162,8 +1162,8 @@ namespace Orthanc
       bool           rescale_;
       unsigned int   depth_;
       unsigned int   currentDepth_;
-      unsigned int   height_;
       unsigned int   width_;
+      unsigned int   height_;
       PixelFormat    format_;
       ChunkedBuffer  buffer_;
 
@@ -1172,11 +1172,14 @@ namespace Orthanc
                    bool rescale) :
         rescale_(rescale),
         depth_(depth),
-        currentDepth_(0)
+        currentDepth_(0),
+        width_(0),  // dummy initialization
+        height_(0),  // dummy initialization
+        format_(PixelFormat_Grayscale8)  // dummy initialization
       {
       }
 
-      void WriteFrame(ParsedDicomFile& dicom,
+      void WriteFrame(const ParsedDicomFile& dicom,
                       unsigned int frame)
       {
         std::unique_ptr<ImageAccessor> decoded(dicom.DecodeFrame(frame));
