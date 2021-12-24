@@ -13,7 +13,7 @@ OpenSSL 3.x branch
   https://en.wikipedia.org/wiki/OpenSSL#Licensing
   https://people.gnome.org/~markmc/openssl-and-the-gpl.html
 * Upgraded dependencies for static builds (notably on Windows and LSB):
-  - openssl 3.0.0-beta1
+  - openssl 3.0.1
 
 General
 -------
