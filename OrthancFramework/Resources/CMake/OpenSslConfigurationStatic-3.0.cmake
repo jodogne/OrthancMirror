@@ -301,10 +301,8 @@ list(REMOVE_ITEM OPENSSL_SOURCES
   ${OPENSSL_SOURCES_DIR}/crypto/ec/ecp_s390x_nistp.c
   ${OPENSSL_SOURCES_DIR}/crypto/ec/ecx_s390x.c
   ${OPENSSL_SOURCES_DIR}/crypto/poly1305/poly1305_base2_44.c
-  ${OPENSSL_SOURCES_DIR}/crypto/ppccap.c
   ${OPENSSL_SOURCES_DIR}/crypto/rsa/rsa_acvp_test_params.c
   ${OPENSSL_SOURCES_DIR}/crypto/s390xcap.c
-  ${OPENSSL_SOURCES_DIR}/crypto/sparcv9cap.c
   ${OPENSSL_SOURCES_DIR}/engines/e_devcrypto.c
   ${OPENSSL_SOURCES_DIR}/engines/e_loader_attic.c
   ${OPENSSL_SOURCES_DIR}/providers/common/securitycheck_fips.c
@@ -314,6 +312,18 @@ list(REMOVE_ITEM OPENSSL_SOURCES
   ${OPENSSL_SOURCES_DIR}/crypto/poly1305/poly1305_ieee754.c  # Fails on Visual Studio
 
   ${OPENSSL_SOURCES_DIR}/ssl/ktls.c   # TODO ?
+
+  # Disable PowerPC sources
+  ${OPENSSL_SOURCES_DIR}/crypto/bn/bn_ppc.c
+  ${OPENSSL_SOURCES_DIR}/crypto/chacha/chacha_ppc.c
+  ${OPENSSL_SOURCES_DIR}/crypto/ec/ecp_ppc.c
+  ${OPENSSL_SOURCES_DIR}/crypto/poly1305/poly1305_ppc.c
+  ${OPENSSL_SOURCES_DIR}/crypto/ppccap.c
+  ${OPENSSL_SOURCES_DIR}/crypto/sha/sha_ppc.c
+
+  # Disable SPARC sources
+  ${OPENSSL_SOURCES_DIR}/crypto/bn/bn_sparc.c
+  ${OPENSSL_SOURCES_DIR}/crypto/sparcv9cap.c
   )
 
 
