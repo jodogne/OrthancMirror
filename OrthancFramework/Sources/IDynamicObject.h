@@ -64,5 +64,10 @@ namespace Orthanc
     {
       return value_;
     }
+
+    void SetValue(const T& value)
+    {
+      value_ = value;
+    }
   };
 }
