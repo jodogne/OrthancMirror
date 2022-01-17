@@ -2095,7 +2095,7 @@ namespace Orthanc
 
         for (size_t i = 1; i < activeEdges.size(); i++)
         {
-          rampEnd = std::max(rampEnd, activeEdges[0].GetUpperY() + 1);
+          rampEnd = std::max(rampEnd, activeEdges[i].GetUpperY() + 1);
         }
       }
       else
@@ -2121,14 +2121,11 @@ namespace Orthanc
         std::sort(activeEdges.begin(), activeEdges.end());
 
         // cf. "fillScan()" in textbook
-        if (y >= 0)
+        for (size_t k = 0; k + 1 < activeEdges.size(); k += 2)
         {
-          for (size_t k = 0; k + 1 < activeEdges.size(); k += 2)
-          {
-            int a = activeEdges[k].GetExitX();
-            int b = activeEdges[k + 1].GetEnterX();          
-            filler.Fill(y, std::min(a, b), std::max(a, b));
-          }
+          int a = activeEdges[k].GetExitX();
+          int b = activeEdges[k + 1].GetEnterX();
+          filler.Fill(y, std::min(a, b), std::max(a, b));
         }
 
         // cf. "updateActiveList()" in textbook
