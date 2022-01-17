@@ -42,11 +42,13 @@
 
 #include <boost/math/special_functions/round.hpp>
 
-#include <cassert>
-#include <string.h>
-#include <limits>
-#include <stdint.h>
 #include <algorithm>
+#include <cassert>
+#include <limits>
+#include <list>
+#include <map>
+#include <stdint.h>
+#include <string.h>
 
 namespace Orthanc
 {
@@ -1860,157 +1862,338 @@ namespace Orthanc
     }
   }
 
-  template <PixelFormat TargetFormat>
-  void FillPolygon_(ImageAccessor& image,
-                    const std::vector<ImageProcessing::ImagePoint>& points,
-                    int64_t value_)
+
+  namespace
   {
-    typedef typename PixelTraits<TargetFormat>::PixelType  TargetType;
+#define USE_POLYGON_FRACTIONS 1
 
-    TargetType value = PixelTraits<TargetFormat>::IntegerToPixel(value_);
-    int imageWidth = static_cast<int>(image.GetWidth());
-    int imageHeight = static_cast<int>(image.GetHeight());
-    int32_t left;
-    int32_t right;
-    int32_t top;
-    int32_t bottom;
-
-    // TODO: test clipping in UT (in Trello board)
-    ComputePolygonExtent(left, right, top, bottom, points);
-
-    // clip the computed extent with the target image
-    // L and R
-    left = std::max(0, left);
-    left = std::min(imageWidth, left);
-    right = std::max(0, right);
-    right = std::min(imageWidth, right);
-    if (left > right)
-      std::swap(left, right);
-
-    // T and B
-    top = std::max(0, top);
-    top = std::min(imageHeight, top);
-    bottom = std::max(0, bottom);
-    bottom = std::min(imageHeight, bottom);
-    if (top > bottom)
-      std::swap(top, bottom);
-
-    // from http://alienryderflex.com/polygon_fill/
-
-    // convert all "corner"  points to double only once
-    std::vector<double> cpx;
-    std::vector<double> cpy;
-    size_t cpSize = points.size();
-    for (size_t i = 0; i < points.size(); i++)
+    class PolygonEdge
     {
-      if (points[i].GetX() < 0 || points[i].GetX() >= imageWidth
-          || points[i].GetY() < 0 || points[i].GetY() >= imageHeight)
+    private:
+      int   yUpper;
+
+#if USE_POLYGON_FRACTIONS == 1
+      int  x;
+      int  xOffset;
+      int  dxPerScanNumerator;
+      int  dxPerScanDenominator;
+#else
+      float xIntersect;
+      float dxPerScan;
+#endif
+
+    public:
+      PolygonEdge(const ImageProcessing::ImagePoint& lower,
+                  const ImageProcessing::ImagePoint& upper,
+                  int yComp)
       {
-        throw OrthancException(ErrorCode_ParameterOutOfRange);
-      }
-      cpx.push_back((double)points[i].GetX());
-      cpy.push_back((double)points[i].GetY());
-    }
+        // cf. "makeEdgeRec()" in textbook
 
-    // Draw the lines segments
-    for (size_t i = 0; i < (points.size() -1); i++)
-    {
-      ImageProcessing::DrawLineSegment(image, points[i].GetX(), points[i].GetY(), points[i+1].GetX(), points[i+1].GetY(), value_);
-    }
-    ImageProcessing::DrawLineSegment(image, points[points.size() -1].GetX(), points[points.size() -1].GetY(), points[0].GetX(), points[0].GetY(), value_);
+        assert(upper.GetY() != lower.GetY());
 
-    std::vector<int32_t> nodeX;
-    nodeX.resize(cpSize);
-    int  pixelX, pixelY, i, swap ;
-
-    //  Loop through the rows of the image.
-    for (pixelY = top; pixelY < bottom; pixelY++)
-    {
-      double y = (double)pixelY;
-      //  Build a list of nodes.
-      int nodes = 0;
-      int j = static_cast<int>(cpSize) - 1;
-
-      for (i = 0; i < static_cast<int>(cpSize); i++)
-      {
-        if ((cpy[i] < y && cpy[j] >=  y) || (cpy[j] < y && cpy[i] >= y))
+#if USE_POLYGON_FRACTIONS == 1
+        x = lower.GetX();
+        xOffset = 0;
+        dxPerScanNumerator = upper.GetX() - lower.GetX();
+        dxPerScanDenominator = upper.GetY() - lower.GetY();
+#else
+        dxPerScan = (static_cast<float>(upper.GetX() - lower.GetX()) /
+                     static_cast<float>(upper.GetY() - lower.GetY()));
+        xIntersect = lower.GetX();
+#endif
+    
+        if (upper.GetY() < yComp)
         {
-          nodeX[nodes++] = (int32_t)(cpx[i] + (y - cpy[i])/(cpy[j] - cpy[i]) * (cpx[j] - cpx[i]));
-        }
-        j=i;
-      }
-
-      //  Sort the nodes, via a simple “Bubble” sort.
-      i=0;
-      while (i < nodes-1)
-      {
-        if (nodeX[i] > nodeX[i+1])
-        {
-          swap = nodeX[i];
-          nodeX[i] = nodeX[i+1];
-          nodeX[i+1] = swap;
-          if (i > 0)
-          {
-            i--;
-          }
+          yUpper = upper.GetY() - 1;
         }
         else
         {
-          i++;
+          yUpper = upper.GetY();
         }
       }
 
-      TargetType* row = reinterpret_cast<TargetType*>(image.GetRow(pixelY));
-      //  Fill the pixels between node pairs.
-      for (i = 0; i < nodes; i += 2)
+      float GetActualX() const
       {
-        if (nodeX[i] >= right)
-          break;
+#if USE_POLYGON_FRACTIONS == 1
+        return (static_cast<float>(x) +
+                static_cast<float>(xOffset) /
+                static_cast<float>(dxPerScanDenominator));
+#else
+        return xIntersect;
+#endif
+      }
+  
+      void NextScanLine()
+      {
+#if USE_POLYGON_FRACTIONS == 1
+        xOffset += dxPerScanNumerator;
 
-        if (nodeX[i + 1] >= left)
+        while (xOffset >= dxPerScanDenominator)
         {
-          if (nodeX[i] < left)
-          {
-            nodeX[i] = left;
-          }
+          x++;
+          xOffset -= dxPerScanDenominator;
+        }
 
-          if (nodeX[i + 1] > right)
-          {
-            nodeX[i + 1] = right;
-          }
+        while (xOffset < 0)
+        {
+          x--;
+          xOffset += dxPerScanDenominator;
+        }
 
-          for (pixelX = nodeX[i]; pixelX <= nodeX[i + 1]; pixelX++)
+#else
+        xIntersect += dxPerScan;
+#endif
+      }
+
+
+      int GetEnterX() const
+      {
+#if USE_POLYGON_FRACTIONS == 1
+        assert(xOffset >= 0 && xOffset < dxPerScanDenominator);
+        if (xOffset == 0)
+        {
+          return x;
+        }
+        else
+        {
+          return x + 1;
+        }
+#else
+        return std::ceil(GetActualX());  // TODO
+#endif
+      }
+  
+      int GetExitX() const
+      {
+#if USE_POLYGON_FRACTIONS == 1
+        assert(xOffset >= 0 && xOffset < dxPerScanDenominator);
+        return x;
+#else
+        return std::floor(GetActualX());  // TODO
+#endif
+      }
+  
+      int GetUpperY() const
+      {
+        return yUpper;
+      }
+
+      bool operator< (const PolygonEdge& other) const
+      {
+        // cf. "insertEdge()" in textbook
+        return (GetActualX() < other.GetActualX());
+      }
+    };
+  }
+  
+
+  // For an index, return y-coordinate of next nonhorizontal line
+  static size_t GetPolygonNextY(const std::vector<ImageProcessing::ImagePoint>& points,
+                                size_t k)
+  {
+    // cf. "yNext()" in textbook
+    size_t j = k + 1;
+  
+    for (;;)
+    {
+      if (j >= points.size())
+      {
+        j = 0;
+      }
+
+      if (points[k].GetY() == points[j].GetY())
+      {
+        j ++;
+      }
+      else
+      {
+        return points[j].GetY();
+      }
+    }
+  }
+
+
+  
+  void ImageProcessing::FillPolygon(IPolygonFiller& filler,
+                                    const std::vector<ImagePoint>& points)
+  {
+    /**
+     * This implementation is a C++ adaption of Section 3.11 (pages
+     * 117-124) of textbook "Computer Graphics - C Version (2nd
+     * Edition)" by Hearn and Baker, 1997.
+     **/
+  
+    typedef std::map<int, std::list<PolygonEdge> > EdgeTable;
+
+    if (points.size() < 2)
+    {
+      return;
+    }
+
+    EdgeTable globalEdgeTable;
+
+    // cf. "buildEdgeList()" in textbook
+    int yPrev = points[points.size() - 2].GetY();
+    ImagePoint v1(points[points.size() - 1]);
+
+    for (size_t i = 0; i < points.size(); i++)
+    {
+      ImagePoint v2(points[i]);
+
+      if (v1.GetY() < v2.GetY())
+      {
+        // Up-going edge
+        PolygonEdge edge(v1, v2, GetPolygonNextY(points, i));
+        globalEdgeTable[v1.GetY()].push_back(edge);
+      }
+      else if (v1.GetY() > v2.GetY())
+      {
+        // Down-going edge
+        PolygonEdge edge(v2, v1, yPrev);
+        globalEdgeTable[v2.GetY()].push_back(edge);
+      }
+
+      yPrev = v1.GetY();
+      v1 = v2;
+    }
+
+    if (globalEdgeTable.empty())
+    {
+      // Degenerate case: There were only horizontal lines
+      int x1 = points[0].GetX();
+      int x2 = points[0].GetX();
+      for (size_t i = 1; i < points.size(); i++)
+      {
+        assert(points[i].GetY() == points[0].GetY());
+        x1 = std::min(x1, points[i].GetX());
+        x2 = std::max(x2, points[i].GetX());
+      }
+      filler.Fill(points[0].GetY(), x1, x2);
+      return;
+    }
+
+    std::vector<PolygonEdge> activeEdges;
+
+    for (EdgeTable::const_iterator it = globalEdgeTable.begin(); it != globalEdgeTable.end(); ++it)
+    {
+      // cf. "buildActiveList()" in textbook
+      activeEdges.reserve(activeEdges.size() + it->second.size());
+      for (std::list<PolygonEdge>::const_iterator it2 = it->second.begin(); it2 != it->second.end(); ++it2)
+      {
+        activeEdges.push_back(*it2);
+      }
+
+      assert(!activeEdges.empty());
+
+      EdgeTable::const_iterator next = it;
+      ++next;
+
+      int rampEnd;
+      if (next == globalEdgeTable.end())
+      {
+        rampEnd = activeEdges[0].GetUpperY() + 1;
+
+        for (size_t i = 1; i < activeEdges.size(); i++)
+        {
+          rampEnd = std::max(rampEnd, activeEdges[0].GetUpperY() + 1);
+        }
+      }
+      else
+      {
+        rampEnd = next->first;
+      }
+
+      for (int y = it->first; y < rampEnd; y++)
+      {
+        // cf. "updateActiveList()" in textbook
+        std::vector<PolygonEdge> stillActive;
+        stillActive.reserve(activeEdges.size());
+
+        for (size_t i = 0; i < activeEdges.size(); i++)
+        {
+          if (y <= activeEdges[i].GetUpperY())
           {
-            *(row + pixelX) = value;
+            stillActive.push_back(activeEdges[i]);
           }
+        }
+
+        activeEdges.swap(stillActive);
+        std::sort(activeEdges.begin(), activeEdges.end());
+
+        // cf. "fillScan()" in textbook
+        if (y >= 0)
+        {
+          for (size_t k = 0; k + 1 < activeEdges.size(); k += 2)
+          {
+            int a = activeEdges[k].GetExitX();
+            int b = activeEdges[k + 1].GetEnterX();          
+            filler.Fill(y, std::min(a, b), std::max(a, b));
+          }
+        }
+
+        // cf. "updateActiveList()" in textbook
+        for (size_t k = 0; k < activeEdges.size(); k++)
+        {
+          activeEdges[k].NextScanLine();
         }
       }
     }
   }
 
+  
   void ImageProcessing::FillPolygon(ImageAccessor& image,
                                     const std::vector<ImagePoint>& points,
                                     int64_t value)
   {
-    switch (image.GetFormat())
+    class Filler : public IPolygonFiller
     {
-      case PixelFormat_Grayscale8:
+    private:
+      ImageAccessor& image_;
+      int64_t        value_;
+
+    public:
+      Filler(ImageAccessor& image,
+             int64_t value) :
+        image_(image),
+        value_(value)
       {
-        FillPolygon_<PixelFormat_Grayscale8>(image, points, value);
-        break;
       }
-      case PixelFormat_Grayscale16:
+      
+      virtual void Fill(int y,
+                        int x1,
+                        int x2) ORTHANC_OVERRIDE
       {
-        FillPolygon_<PixelFormat_Grayscale16>(image, points, value);
-        break;
+        assert(x1 <= x2);
+    
+        if (x1 < static_cast<int>(image_.GetWidth()) &&
+            x2 >= 0 &&
+            y >= 0 &&
+            y < static_cast<int>(image_.GetHeight()))
+        {
+          unsigned int yy = static_cast<unsigned int>(y);
+          unsigned int a = static_cast<unsigned int>(std::max(0, x1));
+          unsigned int b = static_cast<unsigned int>(std::min(x2, static_cast<int>(image_.GetWidth()) - 1));
+
+          assert(a <= b);
+
+          ImageAccessor region;
+          image_.GetRegion(region, a, yy, b - a + 1, 1);
+          Set(region, value_);
+        }
       }
-      case PixelFormat_SignedGrayscale16:
-      {
-        FillPolygon_<PixelFormat_SignedGrayscale16>(image, points, value);
-        break;
-      }
-      default:
-        throw OrthancException(ErrorCode_NotImplemented);
+    };
+
+    
+    if (image.GetFormat() == PixelFormat_Grayscale8 ||
+        image.GetFormat() == PixelFormat_Grayscale16 ||
+        image.GetFormat() == PixelFormat_SignedGrayscale16)
+    {
+      Filler filler(image, value);
+      FillPolygon(filler, points);
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_NotImplemented);
     }
   }
 
