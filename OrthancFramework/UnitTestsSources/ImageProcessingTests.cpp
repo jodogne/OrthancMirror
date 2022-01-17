@@ -195,6 +195,9 @@ TYPED_TEST(TestIntegerImageTraits, SetZeroFloat)
   }
 }
 
+
+#include "../Sources/Images/PngWriter.h"
+
 TYPED_TEST(TestIntegerImageTraits, FillPolygon)
 {
   ImageAccessor& image = this->GetImage();
@@ -209,6 +212,9 @@ TYPED_TEST(TestIntegerImageTraits, FillPolygon)
 
   ImageProcessing::FillPolygon(image, points, 255);
 
+  Orthanc::PngWriter writer;
+  Orthanc::IImageWriter::WriteToFile(writer, "tutu.png", image);
+  
   // outside polygon
   ASSERT_FLOAT_EQ(128, TestFixture::ImageTraits::GetFloatPixel(image, 0, 0));
   ASSERT_FLOAT_EQ(128, TestFixture::ImageTraits::GetFloatPixel(image, 0, 6));
@@ -234,7 +240,15 @@ TYPED_TEST(TestIntegerImageTraits, FillPolygonLargerThanImage)
   points.push_back(ImageProcessing::ImagePoint(image.GetWidth(),image.GetHeight()));
   points.push_back(ImageProcessing::ImagePoint(0,image.GetHeight()));
 
-  ASSERT_THROW(ImageProcessing::FillPolygon(image, points, 255), OrthancException);
+  ImageProcessing::FillPolygon(image, points, 255);
+
+  for (unsigned int y = 0; y < image.GetHeight(); y++)
+  {
+    for (unsigned int x = 0; x < image.GetWidth(); x++)
+    {
+      ASSERT_FLOAT_EQ(255, TestFixture::ImageTraits::GetFloatPixel(image, x, y));
+    }
+  }
 }
 
 TYPED_TEST(TestIntegerImageTraits, FillPolygonFullImage)

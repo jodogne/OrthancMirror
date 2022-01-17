@@ -64,6 +64,18 @@ namespace Orthanc
                                double c) const; // where ax + by + c = 0 is the equation of the line
     };
 
+    class ORTHANC_PUBLIC IPolygonFiller : public boost::noncopyable
+    {
+    public:
+      virtual ~IPolygonFiller()
+      {
+      }
+
+      virtual void Fill(int y,
+                        int x1,
+                        int x2) = 0;
+    };
+
     static void Copy(ImageAccessor& target,
                      const ImageAccessor& source);
 
@@ -159,6 +171,9 @@ namespace Orthanc
                                 uint8_t green,
                                 uint8_t blue,
                                 uint8_t alpha);
+
+    static void FillPolygon(IPolygonFiller& filler,
+                            const std::vector<ImagePoint>& points);
 
     static void FillPolygon(ImageAccessor& image,
                             const std::vector<ImagePoint>& points,
