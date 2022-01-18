@@ -196,8 +196,6 @@ TYPED_TEST(TestIntegerImageTraits, SetZeroFloat)
 }
 
 
-#include "../Sources/Images/PngWriter.h"
-
 TYPED_TEST(TestIntegerImageTraits, FillPolygon)
 {
   ImageAccessor& image = this->GetImage();
@@ -212,9 +210,6 @@ TYPED_TEST(TestIntegerImageTraits, FillPolygon)
 
   ImageProcessing::FillPolygon(image, points, 255);
 
-  Orthanc::PngWriter writer;
-  Orthanc::IImageWriter::WriteToFile(writer, "tutu.png", image);
-  
   // outside polygon
   ASSERT_FLOAT_EQ(128, TestFixture::ImageTraits::GetFloatPixel(image, 0, 0));
   ASSERT_FLOAT_EQ(128, TestFixture::ImageTraits::GetFloatPixel(image, 0, 6));
@@ -311,9 +306,9 @@ static bool TestGrayscale16Pixel(const ImageAccessor& image,
 }
 
 static void SetSignedGrayscale16Pixel(ImageAccessor& image,
-                                unsigned int x,
-                                unsigned int y,
-                                int16_t value)
+                                      unsigned int x,
+                                      unsigned int y,
+                                      int16_t value)
 {
   ImageTraits<PixelFormat_SignedGrayscale16>::SetPixel(image, value, x, y);
 }
@@ -1094,5 +1089,138 @@ TEST(ImageProcessing, ShiftScale2)
       ASSERT_FLOAT_EQ((*a) * (10.0f + (*b)),
                       ImageTraits<PixelFormat_Float32>::GetFloatPixel(target, 0, 0));
     }
+  }
+}
+
+
+namespace
+{
+  class PolygonSegments : public ImageProcessing::IPolygonFiller
+  {
+  private:
+    std::vector<int> y_, x1_, x2_;
+
+  public:  
+    virtual void Fill(int y,
+                      int x1,
+                      int x2) ORTHANC_OVERRIDE
+    {
+      assert(x1 <= x2);
+      y_.push_back(y);
+      x1_.push_back(x1);
+      x2_.push_back(x2);
+    }
+
+    size_t GetSize() const
+    {
+      return y_.size();
+    }
+
+    int GetY(size_t i) const
+    {
+      return y_[i];
+    }
+
+    int GetX1(size_t i) const
+    {
+      return x1_[i];
+    }
+
+    int GetX2(size_t i) const
+    {
+      return x2_[i];
+    }
+  };
+}
+
+
+TEST(ImageProcessing, FillPolygon)
+{
+  {
+    std::vector<Orthanc::ImageProcessing::ImagePoint> polygon;
+
+    PolygonSegments segments;
+    Orthanc::ImageProcessing::FillPolygon(segments, polygon);
+    ASSERT_EQ(0u, segments.GetSize());
+  }
+
+  {
+    std::vector<Orthanc::ImageProcessing::ImagePoint> polygon;
+    polygon.push_back(Orthanc::ImageProcessing::ImagePoint(288, 208));
+
+    PolygonSegments segments;
+    Orthanc::ImageProcessing::FillPolygon(segments, polygon);
+    ASSERT_EQ(0u, segments.GetSize());
+  }
+
+  {
+    std::vector<Orthanc::ImageProcessing::ImagePoint> polygon;
+    polygon.push_back(Orthanc::ImageProcessing::ImagePoint(10, 100));
+    polygon.push_back(Orthanc::ImageProcessing::ImagePoint(50, 100));
+
+    PolygonSegments segments;
+    Orthanc::ImageProcessing::FillPolygon(segments, polygon);
+    ASSERT_EQ(1u, segments.GetSize());
+    ASSERT_EQ(100, segments.GetY(0));
+    ASSERT_EQ(10, segments.GetX1(0));
+    ASSERT_EQ(50, segments.GetX2(0));
+  }
+
+  {
+    std::vector<Orthanc::ImageProcessing::ImagePoint> polygon;
+    polygon.push_back(Orthanc::ImageProcessing::ImagePoint(10, 100));
+    polygon.push_back(Orthanc::ImageProcessing::ImagePoint(10, 101));
+
+    PolygonSegments segments;
+    Orthanc::ImageProcessing::FillPolygon(segments, polygon);
+    ASSERT_EQ(2u, segments.GetSize());
+    ASSERT_EQ(100, segments.GetY(0));
+    ASSERT_EQ(10, segments.GetX1(0));
+    ASSERT_EQ(10, segments.GetX2(0));
+    ASSERT_EQ(101, segments.GetY(1));
+    ASSERT_EQ(10, segments.GetX1(1));
+    ASSERT_EQ(10, segments.GetX2(1));
+  }
+
+  {
+    std::vector<Orthanc::ImageProcessing::ImagePoint> polygon;
+    polygon.push_back(Orthanc::ImageProcessing::ImagePoint(10, 100));
+    polygon.push_back(Orthanc::ImageProcessing::ImagePoint(11, 101));
+    polygon.push_back(Orthanc::ImageProcessing::ImagePoint(13, 103));
+
+    PolygonSegments segments;
+    Orthanc::ImageProcessing::FillPolygon(segments, polygon);
+    ASSERT_EQ(4u, segments.GetSize());
+    ASSERT_EQ(100, segments.GetY(0));
+    ASSERT_EQ(10, segments.GetX1(0));
+    ASSERT_EQ(10, segments.GetX2(0));
+    ASSERT_EQ(101, segments.GetY(1));
+    ASSERT_EQ(11, segments.GetX1(1));
+    ASSERT_EQ(11, segments.GetX2(1));
+    ASSERT_EQ(102, segments.GetY(2));
+    ASSERT_EQ(12, segments.GetX1(2));
+    ASSERT_EQ(12, segments.GetX2(2));
+    ASSERT_EQ(103, segments.GetY(3));
+    ASSERT_EQ(13, segments.GetX1(3));
+    ASSERT_EQ(13, segments.GetX2(3));
+  }
+
+  {
+    std::vector<Orthanc::ImageProcessing::ImagePoint> polygon;
+    polygon.push_back(Orthanc::ImageProcessing::ImagePoint(5, 5));
+    polygon.push_back(Orthanc::ImageProcessing::ImagePoint(7, 7));
+    polygon.push_back(Orthanc::ImageProcessing::ImagePoint(9, 5));
+    polygon.push_back(Orthanc::ImageProcessing::ImagePoint(9, 8));
+    polygon.push_back(Orthanc::ImageProcessing::ImagePoint(5, 8));
+
+    PolygonSegments segments;
+    Orthanc::ImageProcessing::FillPolygon(segments, polygon);
+    ASSERT_EQ(6u, segments.GetSize());
+    ASSERT_EQ(5, segments.GetY(0));  ASSERT_EQ(5, segments.GetX1(0));  ASSERT_EQ(5, segments.GetX2(0));
+    ASSERT_EQ(5, segments.GetY(1));  ASSERT_EQ(9, segments.GetX1(1));  ASSERT_EQ(9, segments.GetX2(1));
+    ASSERT_EQ(6, segments.GetY(2));  ASSERT_EQ(5, segments.GetX1(2));  ASSERT_EQ(6, segments.GetX2(2));
+    ASSERT_EQ(6, segments.GetY(3));  ASSERT_EQ(8, segments.GetX1(3));  ASSERT_EQ(9, segments.GetX2(3));
+    ASSERT_EQ(7, segments.GetY(4));  ASSERT_EQ(5, segments.GetX1(4));  ASSERT_EQ(9, segments.GetX2(4));
+    ASSERT_EQ(8, segments.GetY(5));  ASSERT_EQ(5, segments.GetX1(5));  ASSERT_EQ(9, segments.GetX2(5));
   }
 }
