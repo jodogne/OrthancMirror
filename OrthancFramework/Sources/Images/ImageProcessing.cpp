@@ -1983,8 +1983,8 @@ namespace Orthanc
   
 
   // For an index, return y-coordinate of next nonhorizontal line
-  static size_t GetPolygonNextY(const std::vector<ImageProcessing::ImagePoint>& points,
-                                size_t k)
+  static int GetPolygonNextY(const std::vector<ImageProcessing::ImagePoint>& points,
+                             size_t k)
   {
     // cf. "yNext()" in textbook
     size_t j = k;
@@ -2005,8 +2005,8 @@ namespace Orthanc
   }
 
 
-  static size_t GetPolygonPreviousY(const std::vector<ImageProcessing::ImagePoint>& points,
-                                    size_t k)
+  static int GetPolygonPreviousY(const std::vector<ImageProcessing::ImagePoint>& points,
+                                 size_t k)
   {
     size_t j = k;
 
@@ -2046,6 +2046,32 @@ namespace Orthanc
       return;
     }
 
+    bool onlyHorizontalSegments = true;
+    for (size_t i = 1; i < points.size(); i++)
+    {
+      if (points[0].GetY() != points[i].GetY())
+      {
+        onlyHorizontalSegments = false;
+        break;
+      }
+    }
+
+    if (onlyHorizontalSegments)
+    {
+      // Degenerate case: There are only horizontal lines. If this is
+      // the case, "GetPolygonPreviousY()" will be an infinite loop
+      int x1 = points[0].GetX();
+      int x2 = points[0].GetX();
+      for (size_t i = 1; i < points.size(); i++)
+      {
+        assert(points[i].GetY() == points[0].GetY());
+        x1 = std::min(x1, points[i].GetX());
+        x2 = std::max(x2, points[i].GetX());
+      }
+      filler.Fill(points[0].GetY(), x1, x2);
+      return;
+    }
+
     EdgeTable globalEdgeTable;
 
     // cf. "buildEdgeList()" in textbook
@@ -2081,20 +2107,7 @@ namespace Orthanc
       v1 = v2;
     }
     
-    if (globalEdgeTable.empty())
-    {
-      // Degenerate case: There were only horizontal lines
-      int x1 = points[0].GetX();
-      int x2 = points[0].GetX();
-      for (size_t i = 1; i < points.size(); i++)
-      {
-        assert(points[i].GetY() == points[0].GetY());
-        x1 = std::min(x1, points[i].GetX());
-        x2 = std::max(x2, points[i].GetX());
-      }
-      filler.Fill(points[0].GetY(), x1, x2);
-      return;
-    }
+    assert(!globalEdgeTable.empty());
 
     std::vector<PolygonEdge> activeEdges;
 
@@ -2147,11 +2160,23 @@ namespace Orthanc
         std::sort(activeEdges.begin(), activeEdges.end());
 
         // cf. "fillScan()" in textbook
-        for (size_t k = 0; k + 1 < activeEdges.size(); k += 2)
+        for (size_t k = 0; k + 1 < activeEdges.size(); )
         {
           int a = activeEdges[k].GetExitX();
           int b = activeEdges[k + 1].GetEnterX();
-          filler.Fill(y, std::min(a, b), std::max(a, b));
+
+          // Fix wrt. the textbook: merge overlapping segments
+          k += 2;
+          while (k + 1 < activeEdges.size() &&
+                 activeEdges[k].GetExitX() == b)
+          {
+            assert(a <= b);
+            b = activeEdges[k + 1].GetEnterX();
+            k += 2;
+          }
+
+          assert(a <= b);
+          filler.Fill(y, a, b);
         }
 
         // cf. "updateActiveList()" in textbook
