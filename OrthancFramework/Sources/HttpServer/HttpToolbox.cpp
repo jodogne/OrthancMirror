@@ -51,8 +51,13 @@ namespace Orthanc
       value = std::string(equal + 1, end);
     }
 
+#if 0
+    // These calls were present in Orthanc <= 1.9.7, but should not be
+    // used because mongoose/civetweb already implement URL decoding
+    // (cf. "mg_url_decode()")
     Toolbox::UrlDecode(name);
     Toolbox::UrlDecode(value);
+#endif
 
     result.push_back(std::make_pair(name, value));
   }
