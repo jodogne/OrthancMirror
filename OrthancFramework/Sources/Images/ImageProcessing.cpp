@@ -1912,17 +1912,6 @@ namespace Orthanc
         }
       }
 
-      float GetActualX() const
-      {
-#if USE_POLYGON_FRACTIONS == 1
-        return (static_cast<float>(x) +
-                static_cast<float>(xOffset) /
-                static_cast<float>(dxPerScanDenominator));
-#else
-        return xIntersect;
-#endif
-      }
-  
       void NextScanLine()
       {
 #if USE_POLYGON_FRACTIONS == 1
@@ -1959,7 +1948,7 @@ namespace Orthanc
           return x + 1;
         }
 #else
-        return std::ceil(GetActualX());  // TODO
+        return static_cast<int>(std::ceil(xIntersect));
 #endif
       }
   
@@ -1969,7 +1958,7 @@ namespace Orthanc
         assert(xOffset >= 0 && xOffset < dxPerScanDenominator);
         return x;
 #else
-        return std::floor(GetActualX());  // TODO
+        return static_cast<int>(std::floor(xIntersect));
 #endif
       }
   
@@ -1980,8 +1969,14 @@ namespace Orthanc
 
       bool operator< (const PolygonEdge& other) const
       {
+#if USE_POLYGON_FRACTIONS == 1
+        assert(xOffset >= 0 && xOffset < dxPerScanDenominator);
+        assert(other.xOffset >= 0 && other.xOffset < other.dxPerScanDenominator);
+        return x < other.x;
+#else
         // cf. "insertEdge()" in textbook
-        return (GetActualX() < other.GetActualX());
+        return (xIntersect < other.xIntersect);
+#endif
       }
     };
   }
@@ -1992,20 +1987,17 @@ namespace Orthanc
                                 size_t k)
   {
     // cf. "yNext()" in textbook
-    size_t j = k + 1;
+    size_t j = k;
   
     for (;;)
     {
-      if (j >= points.size())
+      j++;
+      if (j == points.size())
       {
         j = 0;
       }
 
-      if (points[k].GetY() == points[j].GetY())
-      {
-        j ++;
-      }
-      else
+      if (points[k].GetY() != points[j].GetY())
       {
         return points[j].GetY();
       }
@@ -2013,7 +2005,31 @@ namespace Orthanc
   }
 
 
-  
+  static size_t GetPolygonPreviousY(const std::vector<ImageProcessing::ImagePoint>& points,
+                                    size_t k)
+  {
+    size_t j = k;
+
+    for (;;)
+    {
+      if (j > 0)
+      {
+        j --;
+      }
+      else
+      {
+        j = points.size() - 1;
+      }
+
+      if (points[k].GetY() != points[j].GetY())
+      {
+        return points[j].GetY();
+      }
+    }
+  }
+
+
+
   void ImageProcessing::FillPolygon(IPolygonFiller& filler,
                                     const std::vector<ImagePoint>& points)
   {
@@ -2033,30 +2049,38 @@ namespace Orthanc
     EdgeTable globalEdgeTable;
 
     // cf. "buildEdgeList()" in textbook
-    int yPrev = points[points.size() - 2].GetY();
+
+    // Error in the textbook: we use "GetPolygonPreviousY()" instead of "points.size() - 2"
+    int yPrev = GetPolygonPreviousY(points, points.size() - 1);
     ImagePoint v1(points[points.size() - 1]);
 
     for (size_t i = 0; i < points.size(); i++)
     {
       ImagePoint v2(points[i]);
 
-      if (v1.GetY() < v2.GetY())
+      if (v1.GetY() != v2.GetY())
       {
-        // Up-going edge
-        PolygonEdge edge(v1, v2, GetPolygonNextY(points, i));
-        globalEdgeTable[v1.GetY()].push_back(edge);
-      }
-      else if (v1.GetY() > v2.GetY())
-      {
-        // Down-going edge
-        PolygonEdge edge(v2, v1, yPrev);
-        globalEdgeTable[v2.GetY()].push_back(edge);
-      }
+        // Non-horizontal line
+        if (v1.GetY() < v2.GetY())
+        {
+          // Up-going edge
+          PolygonEdge edge(v1, v2, GetPolygonNextY(points, i));
+          globalEdgeTable[v1.GetY()].push_back(edge);
+        }
+        else if (v1.GetY() > v2.GetY())
+        {
+          // Down-going edge
+          PolygonEdge edge(v2, v1, yPrev);
+          globalEdgeTable[v2.GetY()].push_back(edge);
+        }
 
-      yPrev = v1.GetY();
+        // Error in the textbook: "yPrev" must NOT be updated on horizontal lines
+        yPrev = v1.GetY();
+      }
+      
       v1 = v2;
     }
-
+    
     if (globalEdgeTable.empty())
     {
       // Degenerate case: There were only horizontal lines
@@ -2118,6 +2142,8 @@ namespace Orthanc
         }
 
         activeEdges.swap(stillActive);
+
+        assert(activeEdges.size() % 2 == 0);
         std::sort(activeEdges.begin(), activeEdges.end());
 
         // cf. "fillScan()" in textbook
