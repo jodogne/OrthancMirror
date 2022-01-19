@@ -2,8 +2,8 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2021 Osimis S.A., Belgium
- * Copyright (C) 2021-2021 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2022 Osimis S.A., Belgium
+ * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -62,6 +62,18 @@ namespace Orthanc
       double GetDistanceToLine(double a,
                                double b,
                                double c) const; // where ax + by + c = 0 is the equation of the line
+    };
+
+    class ORTHANC_PUBLIC IPolygonFiller : public boost::noncopyable
+    {
+    public:
+      virtual ~IPolygonFiller()
+      {
+      }
+
+      virtual void Fill(int y,
+                        int x1,
+                        int x2) = 0;
     };
 
     static void Copy(ImageAccessor& target,
@@ -159,6 +171,9 @@ namespace Orthanc
                                 uint8_t green,
                                 uint8_t blue,
                                 uint8_t alpha);
+
+    static void FillPolygon(IPolygonFiller& filler,
+                            const std::vector<ImagePoint>& points);
 
     static void FillPolygon(ImageAccessor& image,
                             const std::vector<ImagePoint>& points,
