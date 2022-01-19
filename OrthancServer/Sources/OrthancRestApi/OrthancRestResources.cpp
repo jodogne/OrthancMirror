@@ -3394,7 +3394,7 @@ namespace Orthanc
 
       call.GetDocumentation()
         .SetTag("System")
-        .SetSummary("Describe a set of instances")
+        .SetSummary("Describe a set of resources")
         .SetRequestField("Resources", RestApiCallDocumentation::Type_JsonListOfStrings,
                          "List of the Orthanc identifiers of the patients/studies/series/instances of interest.", true)
         .SetRequestField(LEVEL, RestApiCallDocumentation::Type_String,
@@ -3570,7 +3570,7 @@ namespace Orthanc
     {
       call.GetDocumentation()
         .SetTag("System")
-        .SetSummary("Delete a set of instances")
+        .SetSummary("Delete a set of resources")
         .SetRequestField("Resources", RestApiCallDocumentation::Type_JsonListOfStrings,
                          "List of the Orthanc identifiers of the patients/studies/series/instances of interest.", true)
         .SetDescription("Delete all the DICOM patients, studies, series or instances "
