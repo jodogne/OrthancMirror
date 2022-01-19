@@ -155,6 +155,7 @@ Plugins
 SDK
 ---
 
+* Read/write global properties from SDK
 * Implement PluginsJob::GetOutput() to allow user-defined jobs to provide output:
   https://groups.google.com/g/orthanc-users/c/GZ7u0bTTVoo/m/Z7iTNTi2BgAJ
 * Add plugins for normalized operations (notably so as to support
