@@ -42,6 +42,16 @@ namespace Orthanc
 {
   DicomImageInformation::DicomImageInformation(const DicomMap& values)
   {
+    std::string sopClassUid;
+    if (values.LookupStringValue(sopClassUid, DICOM_TAG_SOP_CLASS_UID, false))
+    {
+      sopClassUid = Toolbox::StripSpaces(sopClassUid);
+      if (sopClassUid == "1.2.840.10008.5.1.4.1.1.481.3" /* RT-STRUCT */)
+      {
+        LOG(WARNING) << "Orthanc::DicomImageInformation() should not be applied to SOP Class UID: " << sopClassUid;
+      }
+    }
+
     uint32_t pixelRepresentation = 0;
     uint32_t planarConfiguration = 0;
 
