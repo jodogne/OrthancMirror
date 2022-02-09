@@ -2048,6 +2048,7 @@ namespace Orthanc
 
       operations.append("compressed-size");
       operations.append("data");
+      operations.append("info");
       operations.append("is-compressed");
 
       if (info.GetUncompressedMD5() != "")
@@ -2063,6 +2064,8 @@ namespace Orthanc
       {
         operations.append("verify-md5");
       }
+
+      operations.append("uuid");
 
       call.GetOutput().AnswerJson(operations);
     }
@@ -2151,6 +2154,36 @@ namespace Orthanc
     }
   }
 
+  static void GetAttachmentInfo(RestApiGetCall& call)
+  {
+    if (call.IsDocumentation())
+    {
+      ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
+      std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      AddAttachmentDocumentation(call, r);
+      call.GetDocumentation()
+        .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
+        .SetSummary("Get info about the attachment")
+        .SetDescription("Get all the information about the attachment associated with the given " + r)
+        .AddAnswerType(MimeType_Json, "JSON object containing the information about the attachment")
+        .SetHttpGetSample("https://demo.orthanc-server.com/instances/7c92ce8e-bbf67ed2-ffa3b8c1-a3b35d94-7ff3ae26/dicom/info", true);
+      return;
+    }
+
+    FileInfo info;
+    if (GetAttachmentInfo(info, call))
+    {
+      Json::Value result = Json::objectValue;    
+      result["Uuid"] = info.GetUuid();
+      result["ContentType"] = info.GetContentType();
+      result["UncompressedSize"] = Json::Value::UInt64(info.GetUncompressedSize());
+      result["CompressedSize"] = Json::Value::UInt64(info.GetCompressedSize());
+      result["UncompressedMD5"] = info.GetUncompressedMD5();
+      result["CompressedMD5"] = info.GetCompressedMD5();
+
+      call.GetOutput().AnswerJson(result);
+    }
+  }
 
   static void GetAttachmentCompressedSize(RestApiGetCall& call)
   {
@@ -3696,6 +3729,7 @@ namespace Orthanc
       Register("/" + resourceTypes[i] + "/{id}/attachments/{name}/md5", GetAttachmentMD5);
       Register("/" + resourceTypes[i] + "/{id}/attachments/{name}/size", GetAttachmentSize);
       Register("/" + resourceTypes[i] + "/{id}/attachments/{name}/uncompress", ChangeAttachmentCompression<CompressionType_None>);
+      Register("/" + resourceTypes[i] + "/{id}/attachments/{name}/info", GetAttachmentInfo);
       Register("/" + resourceTypes[i] + "/{id}/attachments/{name}/verify-md5", VerifyAttachment);
     }
 
