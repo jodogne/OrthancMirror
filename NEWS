@@ -34,7 +34,10 @@ REST API
 * "/instances/{...}/frames/{...}/numpy": Download the frame as a Python numpy array
 * "/instances/{...}/numpy": Download the instance as a Python numpy array
 * "/series/{...}/numpy": Download the series as a Python numpy array
-* Added a ?full option to "/patients|studies|series|instances/{...}/attachments route
+* Added a ?full option to "/patients|studies|series|instances/{...}/attachments" route
+  to show the mapping alias<->numerical id.
+* Added "/patients|studies|series|instances/{...}/attachments/{...}/info" route to retrieve
+  the full information about an attachment (size, type, MD5 and UUID)
 
 Lua
 ---
