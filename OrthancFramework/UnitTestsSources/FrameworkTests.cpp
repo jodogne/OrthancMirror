@@ -342,6 +342,7 @@ TEST(Uri, AutodetectMimeType)
   ASSERT_EQ(MimeType_Svg, SystemToolbox::AutodetectMimeType("NOTES.svg"));
   ASSERT_EQ(MimeType_Woff, SystemToolbox::AutodetectMimeType("NOTES.woff"));
   ASSERT_EQ(MimeType_Woff2, SystemToolbox::AutodetectMimeType("NOTES.woff2"));
+  ASSERT_EQ(MimeType_Ico, SystemToolbox::AutodetectMimeType("NOTES.ico"));
 
   // Test primitives from the "RegisterDefaultExtensions()" that was
   // present in the sample "Serve Folders plugin" of Orthanc 1.4.2

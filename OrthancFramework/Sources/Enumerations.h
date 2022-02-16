@@ -78,7 +78,8 @@ namespace Orthanc
     MimeType_Zip,
     MimeType_PrometheusText,  // Prometheus text-based exposition format (for metrics)
     MimeType_DicomWebJson,
-    MimeType_DicomWebXml
+    MimeType_DicomWebXml,
+    MimeType_Ico
   };
 
   
