@@ -813,6 +813,10 @@ namespace Orthanc
     {
       return MimeType_Woff2;
     }
+    else if (extension == ".ico")
+    {
+      return MimeType_Ico;
+    }
 
     // Default type
     else
