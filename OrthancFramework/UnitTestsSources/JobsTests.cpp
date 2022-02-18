@@ -1312,6 +1312,7 @@ TEST(JobsSerialization, RemoteModalityParameters)
     ASSERT_EQ(ModalityManufacturer_Generic, modality.GetManufacturer());
     ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_Echo));
     ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_Find));
+    ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_FindWorklist));
     ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_Get));
     ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_Store));
     ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_Move));
@@ -1351,6 +1352,7 @@ TEST(JobsSerialization, RemoteModalityParameters)
     ASSERT_EQ(ModalityManufacturer_GenericNoWildcardInDates, modality.GetManufacturer());
     ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_Echo));
     ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_Find));
+    ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_FindWorklist));
     ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_Get));
     ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_Store));
     ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_Move));
@@ -1377,6 +1379,7 @@ TEST(JobsSerialization, RemoteModalityParameters)
   std::set<DicomRequestType> operations;
   operations.insert(DicomRequestType_Echo);
   operations.insert(DicomRequestType_Find);
+  operations.insert(DicomRequestType_FindWorklist);
   operations.insert(DicomRequestType_Get);
   operations.insert(DicomRequestType_Move);
   operations.insert(DicomRequestType_Store);

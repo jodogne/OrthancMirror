@@ -41,6 +41,7 @@ namespace Orthanc
     bool                  allowEcho_;
     bool                  allowStore_;
     bool                  allowFind_;
+    bool                  allowFindWorklist_;
     bool                  allowMove_;
     bool                  allowGet_;
     bool                  allowNAction_;

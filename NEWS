@@ -4,6 +4,18 @@ Pending changes in the mainline
 General
 -------
 
+* New configuration "DicomAlwaysAllowFindWorklist" to complement the existing
+  "DicomAlwaysAllowFind" configuration.  "DicomAlwaysAllowFind" applies now 
+  only to C-Find for Patients/Studies/Series/Instances while C-Find for worklists are
+  covered by "DicomAlwaysAllowFindWorklist".  The same changes applies to new 
+  configurations in "DicomModalities": "AllowFind" is now complemented by 
+  "AllowFindWorklist".
+  This new option allows improved security management.  E.g: a modality might have
+  only "AllowStore" and "AllowFindWorklist" enabled but might have "AllowFind"
+  disabled to prevent listing past patient studies.
+  Possible BREAKING-CHANGE: if you relied on "DicomAlwaysAllowFind" or "AllowFind"
+  to specifically authorize C-Find for worklist, you now need to explicitely enable
+  "DicomAlwaysAllowFindWorklist" and/or "AllowFindWorklist"
 * Added a storage cache in RAM to avoid reading the same files multiple times from 
   the storage.  This greatly improves, among other things, the performance of WADO-RS
   retrieval of individual frames of multiframe instances.
