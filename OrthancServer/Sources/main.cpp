@@ -282,6 +282,7 @@ private:
   ServerContext&  context_;
   bool            alwaysAllowEcho_;
   bool            alwaysAllowFind_;  // New in Orthanc 1.9.0
+  bool            alwaysAllowFindWorklist_; // New in Orthanc 1.10.0
   bool            alwaysAllowGet_;   // New in Orthanc 1.9.0
   bool            alwaysAllowMove_;  // New in Orthanc 1.9.7
   bool            alwaysAllowStore_;
@@ -294,6 +295,7 @@ public:
       OrthancConfiguration::ReaderLock lock;
       alwaysAllowEcho_ = lock.GetConfiguration().GetBooleanParameter("DicomAlwaysAllowEcho", true);
       alwaysAllowFind_ = lock.GetConfiguration().GetBooleanParameter("DicomAlwaysAllowFind", false);
+      alwaysAllowFindWorklist_ = lock.GetConfiguration().GetBooleanParameter("DicomAlwaysAllowFindWorklist", false);
       alwaysAllowGet_ = lock.GetConfiguration().GetBooleanParameter("DicomAlwaysAllowGet", false);
       alwaysAllowMove_ = lock.GetConfiguration().GetBooleanParameter("DicomAlwaysAllowMove", false);
       alwaysAllowStore_ = lock.GetConfiguration().GetBooleanParameter("DicomAlwaysAllowStore", true);
@@ -302,6 +304,11 @@ public:
     if (alwaysAllowFind_)
     {
       LOG(WARNING) << "Security risk in DICOM SCP: C-FIND requests are always allowed, even from unknown modalities";
+    }
+
+    if (alwaysAllowFindWorklist_)
+    {
+      LOG(WARNING) << "Security risk in DICOM SCP: C-FIND requests for worklists are always allowed, even from unknown modalities";
     }
 
     if (alwaysAllowGet_)
@@ -324,6 +331,7 @@ public:
 
     if (alwaysAllowEcho_ ||
         alwaysAllowFind_ ||
+        alwaysAllowFindWorklist_ ||
         alwaysAllowGet_ ||
         alwaysAllowMove_ ||
         alwaysAllowStore_)
@@ -341,7 +349,7 @@ public:
                                       const std::string& remoteAet,
                                       DicomRequestType type)
   {
-    LOG(WARNING) << "Unable to check DICOM authorization for AET " << remoteAet
+    LOG(WARNING) << "DICOM authorization rejected for AET " << remoteAet
                  << " on IP " << remoteIp << ": The DICOM command "
                  << EnumerationToString(type) << " is not allowed for this modality "
                  << "according to configuration option \"DicomModalities\"";
@@ -366,6 +374,12 @@ public:
              alwaysAllowFind_)
     {
       // Incoming C-Find requests are always accepted, even from unknown AET
+      return true;
+    }
+    else if (type == DicomRequestType_FindWorklist &&
+             alwaysAllowFindWorklist_)
+    {
+      // Incoming C-Find requests for worklists are always accepted, even from unknown AET
       return true;
     }
     else if (type == DicomRequestType_Store &&
@@ -399,7 +413,7 @@ public:
       
       if (modalities.empty())
       {
-        LOG(WARNING) << "Unable to check DICOM authorization for AET " << remoteAet
+        LOG(WARNING) << "DICOM authorization rejected  for AET " << remoteAet
                      << " on IP " << remoteIp << ": This AET is not listed in "
                      << "configuration option \"DicomModalities\"";
         return false;
@@ -410,7 +424,7 @@ public:
         if (checkIp &&
             remoteIp != modalities.front().GetHost())
         {
-          LOG(WARNING) << "Unable to check DICOM authorization for AET " << remoteAet
+          LOG(WARNING) << "DICOM authorization rejected for AET " << remoteAet
                        << " on IP " << remoteIp << ": Its IP address should be "
                        << modalities.front().GetHost()
                        << " according to configuration option \"DicomModalities\"";
@@ -446,7 +460,7 @@ public:
           }
         }
 
-        LOG(WARNING) << "Unable to check DICOM authorization for AET " << remoteAet
+        LOG(WARNING) << "DICOM authorization rejected for AET " << remoteAet
                      << " on IP " << remoteIp << ": " << modalities.size()
                      << " modalites found with this AET in configuration option "
                      << "\"DicomModalities\", but none of them matches the IP";

@@ -289,7 +289,16 @@
   // from SCU modalities it does not know about (i.e. that are not
   // listed in the "DicomModalities" option above). Setting this
   // option to "true" implies security risks. (new in Orthanc 1.9.0)
+  // Note: from version 1.10.0, this option applies to C-FIND requests
+  // for Patients/Studies/Series/Instances. Another option is available
+  // for Worklists (see below)
   "DicomAlwaysAllowFind" : false,
+
+  // Whether the Orthanc SCP allows incoming C-FIND requests for worklists, 
+  // even from SCU modalities it does not know about (i.e. that are not
+  // listed in the "DicomModalities" option above). Setting this
+  // option to "true" implies security risks. (new in Orthanc 1.10.0)
+  "DicomAlwaysAllowFindWorklist" : false,
 
   // Whether the Orthanc SCP allows incoming C-GET requests, even
   // from SCU modalities it does not know about (i.e. that are not
@@ -387,6 +396,7 @@
     //  "Manufacturer" : "Generic",
     //  "AllowEcho" : false,
     //  "AllowFind" : false,
+    //  "AllowFindWorklist" : false,       // new in 1.10.0
     //  "AllowGet"  : false,
     //  "AllowMove" : false,
     //  "AllowStore" : true,

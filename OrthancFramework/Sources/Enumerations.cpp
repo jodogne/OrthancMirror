@@ -838,6 +838,10 @@ namespace Orthanc
         return "Find";
         break;
 
+      case DicomRequestType_FindWorklist:
+        return "Find Worklist";
+        break;
+
       case DicomRequestType_Get:
         return "Get";
         break;

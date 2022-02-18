@@ -628,6 +628,7 @@ namespace Orthanc
   {
     DicomRequestType_Echo,
     DicomRequestType_Find,
+    DicomRequestType_FindWorklist,
     DicomRequestType_Get,
     DicomRequestType_Move,
     DicomRequestType_Store,

@@ -135,6 +135,8 @@ namespace Orthanc
                          "Whether to accept C-STORE SCU commands issued by the remote modality", false)
         .SetRequestField("AllowFind", RestApiCallDocumentation::Type_Boolean,
                          "Whether to accept C-FIND SCU commands issued by the remote modality", false)
+        .SetRequestField("AllowFindWorklist", RestApiCallDocumentation::Type_Boolean,
+                         "Whether to accept C-FIND SCU commands for worklists issued by the remote modality", false)
         .SetRequestField("AllowMove", RestApiCallDocumentation::Type_Boolean,
                          "Whether to accept C-MOVE SCU commands issued by the remote modality", false)
         .SetRequestField("AllowGet", RestApiCallDocumentation::Type_Boolean,
@@ -2035,6 +2037,7 @@ namespace Orthanc
       sample["AllowEcho"] = true;
       sample["AllowEventReport"] = true;
       sample["AllowFind"] = true;
+      sample["AllowFindWorklist"] = true;
       sample["AllowGet"] = true;
       sample["AllowMove"] = true;
       sample["AllowNAction"] = true;
