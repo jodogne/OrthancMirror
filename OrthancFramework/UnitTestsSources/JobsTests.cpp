@@ -1386,7 +1386,7 @@ TEST(JobsSerialization, RemoteModalityParameters)
   operations.insert(DicomRequestType_NAction);
   operations.insert(DicomRequestType_NEventReport);
 
-  ASSERT_EQ(7u, operations.size());
+  ASSERT_EQ(8u, operations.size());
 
   for (std::set<DicomRequestType>::const_iterator 
          it = operations.begin(); it != operations.end(); ++it)
