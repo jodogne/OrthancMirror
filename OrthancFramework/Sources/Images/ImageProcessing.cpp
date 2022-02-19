@@ -2059,14 +2059,16 @@ namespace Orthanc
     if (onlyHorizontalSegments)
     {
       // Degenerate case: There are only horizontal lines. If this is
-      // the case, "GetPolygonPreviousY()" will be an infinite loop
+      // the case, "GetPolygonPreviousY()" would be an infinite loop
       int x1 = points[0].GetX();
-      int x2 = points[0].GetX();
+      int x2 = x1;
       for (size_t i = 1; i < points.size(); i++)
       {
         assert(points[i].GetY() == points[0].GetY());
-        x1 = std::min(x1, points[i].GetX());
-        x2 = std::max(x2, points[i].GetX());
+
+        const int x = points[i].GetX();
+        x1 = std::min(x1, x);
+        x2 = std::max(x2, x);
       }
       filler.Fill(points[0].GetY(), x1, x2);
       return;
