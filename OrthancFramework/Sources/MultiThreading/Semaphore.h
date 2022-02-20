@@ -2,7 +2,8 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2021 Osimis S.A., Belgium
+ * Copyright (C) 2017-2022 Osimis S.A., Belgium
+ * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -36,16 +37,16 @@ namespace Orthanc
     boost::mutex mutex_;
     boost::condition_variable condition_;
 
-    void Release(unsigned int resourceCount = 1);
-
-    void Acquire(unsigned int resourceCount = 1);
-
-    bool TryAcquire(unsigned int resourceCount = 1);
   public:
     explicit Semaphore(unsigned int availableResources);
 
     unsigned int GetAvailableResourcesCount() const;
 
+    void Release(unsigned int resourceCount = 1);
+
+    void Acquire(unsigned int resourceCount = 1);
+
+    bool TryAcquire(unsigned int resourceCount = 1);
 
     class Locker : public boost::noncopyable
     {

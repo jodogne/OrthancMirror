@@ -2,24 +2,13 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2021 Osimis S.A., Belgium
+ * Copyright (C) 2017-2022 Osimis S.A., Belgium
+ * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- *
- * In addition, as a special exception, the copyright holders of this
- * program give permission to link the code of its release with the
- * OpenSSL project's "OpenSSL" library (or with modified versions of it
- * that use the same license as the "OpenSSL" library), and distribute
- * the linked executables. You must obey the GNU General Public License
- * in all respects for all of the code used other than "OpenSSL". If you
- * modify file(s) with this exception, you may extend this exception to
- * your version of the file(s), but you are not obligated to do so. If
- * you do not wish to do so, delete this exception statement from your
- * version. If you delete this exception statement from all source files
- * in the program, then also delete it here.
  * 
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -700,7 +689,19 @@ function SetupAnonymizedOrModifiedFrom(buttonSelector, resource, resourceType, f
   }
 }
 
+function SetupAttachments(accessSelector, liClass, resourceId, resourceType) {
+  GetResource('/' + resourceType + '/' + resourceId + '/attachments?full', function(attachments) {
+    target = $(accessSelector);
+    $('.' + liClass).remove();
+    for (var key in attachments) {
+      if (attachments[key] >= 1024) {
+        target.append('<li data-icon="gear" class="' + liClass + '"><a href="#" id="' + attachments[key] + '">Download ' + key + '</a></li>')
+      }
+    }
+    target.listview('refresh');
+  });
 
+}
 
 function RefreshPatient()
 {
@@ -737,6 +738,7 @@ function RefreshPatient()
 
         SetupAnonymizedOrModifiedFrom('#patient-anonymized-from', patient, 'patient', ANONYMIZED_FROM);
         SetupAnonymizedOrModifiedFrom('#patient-modified-from', patient, 'patient', MODIFIED_FROM);
+        SetupAttachments('#patient-access', 'patient-attachment', pageData.uuid, 'patients');
 
         target.listview('refresh');
 
@@ -784,6 +786,7 @@ function RefreshStudy()
 
           SetupAnonymizedOrModifiedFrom('#study-anonymized-from', study, 'study', ANONYMIZED_FROM);
           SetupAnonymizedOrModifiedFrom('#study-modified-from', study, 'study', MODIFIED_FROM);
+          SetupAttachments('#study-access', 'study-attachment', pageData.uuid, 'studies');
 
           target = $('#list-series');
           $('li', target).remove();
@@ -800,6 +803,7 @@ function RefreshStudy()
             target.append(FormatSeries(series[i], '#series?uuid=' + series[i].ID));
           }
           target.listview('refresh');
+
 
           currentPage = 'study';
           currentUuid = pageData.uuid;
@@ -838,6 +842,7 @@ function RefreshSeries()
 
             SetupAnonymizedOrModifiedFrom('#series-anonymized-from', series, 'series', ANONYMIZED_FROM);
             SetupAnonymizedOrModifiedFrom('#series-modified-from', series, 'series', MODIFIED_FROM);
+            SetupAttachments('#series-access', 'series-attachment', pageData.uuid, 'series');
 
             target = $('#list-instances');
             $('li', target).remove();
@@ -977,6 +982,8 @@ function RefreshInstance()
             SetupAnonymizedOrModifiedFrom('#instance-anonymized-from', instance, 'instance', ANONYMIZED_FROM);
             SetupAnonymizedOrModifiedFrom('#instance-modified-from', instance, 'instance', MODIFIED_FROM);
 
+            SetupAttachments('#instance-access', 'instance-attachment', pageData.uuid, 'instances');
+
             currentPage = 'instance';
             currentUuid = pageData.uuid;
           });
@@ -1113,7 +1120,7 @@ $('#instance-preview').live('click', function(e) {
           if (frames.length == 1)
           {
             // Viewing a single-frame image
-            jQuery.slimbox('../instances/' + pageData.uuid + '/preview', '', {
+            jQuery.slimbox('../instances/' + pageData.uuid + '/preview?returnUnsupportedImage', '', {
               overlayFadeDuration : 1,
               resizeDuration : 1,
               imageFadeDuration : 1
@@ -1125,7 +1132,7 @@ $('#instance-preview').live('click', function(e) {
 
             images = [];
             for (var i = 0; i < frames.length; i++) {
-              images.push([ '../instances/' + pageData.uuid + '/frames/' + i + '/preview' ]);
+              images.push([ '../instances/' + pageData.uuid + '/frames/' + i + '/preview?returnUnsupportedImage' ]);
             }
 
             jQuery.slimbox(images, 0, {
@@ -1155,7 +1162,7 @@ $('#series-preview').live('click', function(e) {
 
         images = [];
         for (var i = 0; i < instances.length; i++) {
-          images.push([ '../instances/' + instances[i].ID + '/preview',
+          images.push([ '../instances/' + instances[i].ID + '/preview?returnUnsupportedImage',
                         (i + 1).toString() + '/' + instances.length.toString() ])
         }
 
@@ -1346,7 +1353,25 @@ $('#series-media').live('click', function(e) {
   window.location.href = '../series/' + $.mobile.pageData.uuid + '/media';
 });
 
+$('.patient-attachment').live('click', function(e) {
+  e.preventDefault();  //stop the browser from following
+  window.location.href = '../patients/' + $.mobile.pageData.uuid + '/attachments/' + e.target.id + '/data';
+});
 
+$('.study-attachment').live('click', function(e) {
+  e.preventDefault();  //stop the browser from following
+  window.location.href = '../studies/' + $.mobile.pageData.uuid + '/attachments/' + e.target.id + '/data';
+});
+
+$('.series-attachment').live('click', function(e) {
+  e.preventDefault();  //stop the browser from following
+  window.location.href = '../series/' + $.mobile.pageData.uuid + '/attachments/' + e.target.id + '/data';
+});
+
+$('.instance-attachment').live('click', function(e) {
+  e.preventDefault();  //stop the browser from following
+  window.location.href = '../instances/' + $.mobile.pageData.uuid + '/attachments/' + e.target.id + '/data';
+});
 
 $('#protection').live('change', function(e) {
   var isProtected = e.target.value == "on";

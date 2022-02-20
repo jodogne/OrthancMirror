@@ -1,7 +1,8 @@
 # Orthanc - A Lightweight, RESTful DICOM Store
 # Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
 # Department, University Hospital of Liege, Belgium
-# Copyright (C) 2017-2021 Osimis S.A., Belgium
+# Copyright (C) 2017-2022 Osimis S.A., Belgium
+# Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
 #
 # This program is free software: you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public License
@@ -182,6 +183,7 @@ if (ENABLE_MODULE_IMAGES)
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Images/ImageAccessor.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Images/ImageBuffer.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Images/ImageProcessing.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Images/NumpyWriter.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Images/PamReader.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Images/PamWriter.cpp
     )
@@ -385,6 +387,7 @@ if (ENABLE_ZLIB)
       ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Compression/HierarchicalZipWriter.cpp
       ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Compression/ZipWriter.cpp
       ${CMAKE_CURRENT_LIST_DIR}/../../Sources/FileStorage/StorageAccessor.cpp
+      ${CMAKE_CURRENT_LIST_DIR}/../../Sources/FileStorage/StorageCache.cpp
       )
   endif()
 endif()

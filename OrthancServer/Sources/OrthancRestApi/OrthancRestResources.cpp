@@ -2,24 +2,13 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2021 Osimis S.A., Belgium
+ * Copyright (C) 2017-2022 Osimis S.A., Belgium
+ * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- *
- * In addition, as a special exception, the copyright holders of this
- * program give permission to link the code of its release with the
- * OpenSSL project's "OpenSSL" library (or with modified versions of it
- * that use the same license as the "OpenSSL" library), and distribute
- * the linked executables. You must obey the GNU General Public License
- * in all respects for all of the code used other than "OpenSSL". If you
- * modify file(s) with this exception, you may extend this exception to
- * your version of the file(s), but you are not obligated to do so. If
- * you do not wish to do so, delete this exception statement from your
- * version. If you delete this exception statement from all source files
- * in the program, then also delete it here.
  * 
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -42,6 +31,7 @@
 #include "../../../OrthancFramework/Sources/HttpServer/HttpContentNegociation.h"
 #include "../../../OrthancFramework/Sources/Images/Image.h"
 #include "../../../OrthancFramework/Sources/Images/ImageProcessing.h"
+#include "../../../OrthancFramework/Sources/Images/NumpyWriter.h"
 #include "../../../OrthancFramework/Sources/Logging.h"
 #include "../../../OrthancFramework/Sources/MultiThreading/Semaphore.h"
 #include "../../../OrthancFramework/Sources/SerializationToolbox.h"
@@ -755,6 +745,7 @@ namespace Orthanc
             .SetTag("Instances")
             .SetUriArgument("id", "Orthanc identifier of the DICOM instance of interest")
             .SetHttpGetArgument("quality", RestApiCallDocumentation::Type_Number, "Quality for JPEG images (between 1 and 100, defaults to 90)", false)
+            .SetHttpGetArgument("returnUnsupportedImage", RestApiCallDocumentation::Type_Boolean, "Returns an unsupported.png placeholder image if unable to provide the image instead of returning a 415 HTTP error (defaults to false)", false)
             .SetHttpHeader("Accept", "Format of the resulting image. Can be `image/png` (default), `image/jpeg` or `image/x-portable-arbitrarymap`")
             .AddAnswerType(MimeType_Png, "PNG image")
             .AddAnswerType(MimeType_Jpeg, "JPEG image")
@@ -817,13 +808,20 @@ namespace Orthanc
           }
           else
           {
-            std::string root = "";
-            for (size_t i = 1; i < call.GetFullUri().size(); i++)
+            if (call.HasArgument("returnUnsupportedImage"))
             {
-              root += "../";
-            }
+              std::string root = "";
+              for (size_t i = 1; i < call.GetFullUri().size(); i++)
+              {
+                root += "../";
+              }
 
-            call.GetOutput().Redirect(root + "app/images/unsupported.png");
+              call.GetOutput().Redirect(root + "app/images/unsupported.png");
+            }
+            else
+            {
+              call.GetOutput().SignalError(HttpStatus_415_UnsupportedMediaType);
+            }
           }
           return;
         }
@@ -1072,9 +1070,9 @@ namespace Orthanc
             windowWidth = 1;
           }
 
-          if (std::abs(rescaleSlope) <= 0.1)
+          if (std::abs(rescaleSlope) <= 0.0001)
           {
-            rescaleSlope = 0.1;
+            rescaleSlope = 0.0001;
           }
 
           const double scaling = 255.0 * rescaleSlope / windowWidth;
@@ -1130,6 +1128,247 @@ namespace Orthanc
         
     RenderedFrameHandler handler;
     IDecodedFrameHandler::Apply(call, handler, ImageExtractionMode_Preview /* arbitrary value */, true);
+  }
+
+
+  static void DocumentSharedNumpy(RestApiGetCall& call)
+  {
+    call.GetDocumentation()
+      .SetUriArgument("id", "Orthanc identifier of the DICOM resource of interest")
+      .SetHttpGetArgument("compress", RestApiCallDocumentation::Type_Boolean, "Compress the file as `.npz`", false)
+      .SetHttpGetArgument("rescale", RestApiCallDocumentation::Type_Boolean,
+                          "On grayscale images, apply the rescaling and return floating-point values", false)
+      .AddAnswerType(MimeType_PlainText, "Numpy file: https://numpy.org/devdocs/reference/generated/numpy.lib.format.html");
+  }
+
+
+  namespace
+  {
+    class NumpyVisitor : public boost::noncopyable
+    {
+    private:
+      bool           rescale_;
+      unsigned int   depth_;
+      unsigned int   currentDepth_;
+      unsigned int   width_;
+      unsigned int   height_;
+      PixelFormat    format_;
+      ChunkedBuffer  buffer_;
+
+    public:
+      NumpyVisitor(unsigned int depth /* can be zero if 2D frame */,
+                   bool rescale) :
+        rescale_(rescale),
+        depth_(depth),
+        currentDepth_(0),
+        width_(0),  // dummy initialization
+        height_(0),  // dummy initialization
+        format_(PixelFormat_Grayscale8)  // dummy initialization
+      {
+      }
+
+      void WriteFrame(const ParsedDicomFile& dicom,
+                      unsigned int frame)
+      {
+        std::unique_ptr<ImageAccessor> decoded(dicom.DecodeFrame(frame));
+
+        if (decoded.get() == NULL)
+        {
+          throw OrthancException(ErrorCode_NotImplemented, "Cannot decode DICOM instance");
+        }
+
+        if (currentDepth_ == 0)
+        {
+          width_ = decoded->GetWidth();
+          height_ = decoded->GetHeight();
+          format_ = decoded->GetFormat();
+        }
+        else if (width_ != decoded->GetWidth() ||
+                 height_ != decoded->GetHeight())
+        {
+          throw OrthancException(ErrorCode_IncompatibleImageSize, "The size of the frames varies across the instance(s)");
+        }
+        else if (format_ != decoded->GetFormat())
+        {
+          throw OrthancException(ErrorCode_IncompatibleImageFormat, "The pixel format of the frames varies across the instance(s)");
+        }
+
+        if (rescale_ &&
+            decoded->GetFormat() != PixelFormat_RGB24)
+        {
+          if (currentDepth_ == 0)
+          {
+            NumpyWriter::WriteHeader(buffer_, depth_, width_, height_, PixelFormat_Float32);
+          }
+          
+          double rescaleIntercept, rescaleSlope;
+          dicom.GetRescale(rescaleIntercept, rescaleSlope, frame);
+
+          Image converted(PixelFormat_Float32, decoded->GetWidth(), decoded->GetHeight(), false);
+          ImageProcessing::Convert(converted, *decoded);
+          ImageProcessing::ShiftScale2(converted, static_cast<float>(rescaleIntercept), static_cast<float>(rescaleSlope), false);
+
+          NumpyWriter::WritePixels(buffer_, converted);
+        }
+        else
+        {
+          if (currentDepth_ == 0)
+          {
+            NumpyWriter::WriteHeader(buffer_, depth_, width_, height_, format_);
+          }
+
+          NumpyWriter::WritePixels(buffer_, *decoded);
+        }
+
+        currentDepth_ ++;
+      }
+
+      void Answer(RestApiOutput& output,
+                  bool compress)
+      {
+        if ((depth_ == 0 && currentDepth_ != 1) ||
+            (depth_ != 0 && currentDepth_ != depth_))
+        {
+          throw OrthancException(ErrorCode_BadSequenceOfCalls);
+        }
+        else
+        {
+          std::string answer;
+          NumpyWriter::Finalize(answer, buffer_, compress);
+          output.AnswerBuffer(answer, MimeType_Binary);
+        }
+      }
+    };
+  }
+
+
+  static void GetNumpyFrame(RestApiGetCall& call)
+  {
+    if (call.IsDocumentation())
+    {
+      DocumentSharedNumpy(call);
+      call.GetDocumentation()
+        .SetTag("Instances")
+        .SetSummary("Decode frame for numpy")
+        .SetDescription("Decode one frame of interest from the given DICOM instance, for use with numpy in Python. "
+                        "The numpy array has 3 dimensions: (height, width, color channel).")
+        .SetUriArgument("frame", RestApiCallDocumentation::Type_Number, "Index of the frame (starts at `0`)");
+    }
+    else
+    {
+      const std::string instanceId = call.GetUriComponent("id", "");
+      const bool compress = call.GetBooleanArgument("compress", false);
+      const bool rescale = call.GetBooleanArgument("rescale", true);
+
+      uint32_t frame;
+      if (!SerializationToolbox::ParseUnsignedInteger32(frame, call.GetUriComponent("frame", "0")))
+      {
+        throw OrthancException(ErrorCode_ParameterOutOfRange, "Expected an unsigned integer for the \"frame\" argument");
+      }
+
+      NumpyVisitor visitor(0 /* no depth, 2D frame */, rescale);
+
+      {
+        Semaphore::Locker throttling(throttlingSemaphore_);
+        ServerContext::DicomCacheLocker locker(OrthancRestApi::GetContext(call), instanceId);
+        
+        visitor.WriteFrame(locker.GetDicom(), frame);
+      }
+
+      visitor.Answer(call.GetOutput(), compress);
+    }
+  }
+
+
+  static void GetNumpyInstance(RestApiGetCall& call)
+  {
+    if (call.IsDocumentation())
+    {
+      DocumentSharedNumpy(call);
+      call.GetDocumentation()
+        .SetTag("Instances")
+        .SetSummary("Decode instance for numpy")
+        .SetDescription("Decode the given DICOM instance, for use with numpy in Python. "
+                        "The numpy array has 4 dimensions: (frame, height, width, color channel).");
+    }
+    else
+    {
+      const std::string instanceId = call.GetUriComponent("id", "");
+      const bool compress = call.GetBooleanArgument("compress", false);
+      const bool rescale = call.GetBooleanArgument("rescale", true);
+
+      {
+        Semaphore::Locker throttling(throttlingSemaphore_);
+        ServerContext::DicomCacheLocker locker(OrthancRestApi::GetContext(call), instanceId);
+
+        const unsigned int depth = locker.GetDicom().GetFramesCount();
+        if (depth == 0)
+        {
+          throw OrthancException(ErrorCode_BadFileFormat, "Empty DICOM instance");
+        }
+
+        NumpyVisitor visitor(depth, rescale);
+
+        for (unsigned int frame = 0; frame < depth; frame++)
+        {
+          visitor.WriteFrame(locker.GetDicom(), frame);
+        }
+
+        visitor.Answer(call.GetOutput(), compress);
+      }
+    }
+  }
+
+
+  static void GetNumpySeries(RestApiGetCall& call)
+  {
+    if (call.IsDocumentation())
+    {
+      DocumentSharedNumpy(call);
+      call.GetDocumentation()
+        .SetTag("Series")
+        .SetSummary("Decode series for numpy")
+        .SetDescription("Decode the given DICOM series, for use with numpy in Python. "
+                        "The numpy array has 4 dimensions: (frame, height, width, color channel).");
+    }
+    else
+    {
+      const std::string seriesId = call.GetUriComponent("id", "");
+      const bool compress = call.GetBooleanArgument("compress", false);
+      const bool rescale = call.GetBooleanArgument("rescale", true);
+
+      Semaphore::Locker throttling(throttlingSemaphore_);
+
+      ServerIndex& index = OrthancRestApi::GetIndex(call);
+      SliceOrdering ordering(index, seriesId);
+
+      unsigned int depth = 0;
+      for (size_t i = 0; i < ordering.GetInstancesCount(); i++)
+      {
+        depth += ordering.GetFramesCount(i);
+      }
+
+      ServerContext& context = OrthancRestApi::GetContext(call);
+
+      NumpyVisitor visitor(depth, rescale);
+
+      for (size_t i = 0; i < ordering.GetInstancesCount(); i++)
+      {
+        const std::string& instanceId = ordering.GetInstanceId(i);
+        unsigned int framesCount = ordering.GetFramesCount(i);
+
+        {
+          ServerContext::DicomCacheLocker locker(context, instanceId);
+
+          for (unsigned int frame = 0; frame < framesCount; frame++)
+          {
+            visitor.WriteFrame(locker.GetDicom(), frame);
+          }
+        }
+      }
+
+      visitor.Answer(call.GetOutput(), compress);
+    }
   }
 
 
@@ -1680,6 +1919,8 @@ namespace Orthanc
         .SetSummary("List attachments")
         .SetDescription("Get the list of attachments that are associated with the given " + r)
         .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
+        .SetHttpGetArgument("full", RestApiCallDocumentation::Type_String,
+                            "If present, retrieve the attachments list and their numerical ids", false)
         .AddAnswerType(MimeType_Json, "JSON array containing the names of the attachments")
         .SetHttpGetSample(GetDocumentationSampleResource(t) + "/attachments", true);
       return;
@@ -1690,12 +1931,28 @@ namespace Orthanc
     std::set<FileContentType> attachments;
     OrthancRestApi::GetIndex(call).ListAvailableAttachments(attachments, publicId, StringToResourceType(resourceType.c_str()));
 
-    Json::Value result = Json::arrayValue;
+    Json::Value result;
 
-    for (std::set<FileContentType>::const_iterator 
-           it = attachments.begin(); it != attachments.end(); ++it)
+    if (call.HasArgument("full"))
     {
-      result.append(EnumerationToString(*it));
+      result = Json::objectValue;
+      
+      for (std::set<FileContentType>::const_iterator 
+            it = attachments.begin(); it != attachments.end(); ++it)
+      {
+        std::string key = EnumerationToString(*it);
+        result[key] = static_cast<uint16_t>(*it);
+      }
+    }
+    else
+    {
+      result = Json::arrayValue;
+      
+      for (std::set<FileContentType>::const_iterator 
+            it = attachments.begin(); it != attachments.end(); ++it)
+      {
+        result.append(EnumerationToString(*it));
+      }
     }
 
     call.GetOutput().AnswerJson(result);
@@ -1779,6 +2036,7 @@ namespace Orthanc
 
       operations.append("compressed-size");
       operations.append("data");
+      operations.append("info");
       operations.append("is-compressed");
 
       if (info.GetUncompressedMD5() != "")
@@ -1794,6 +2052,8 @@ namespace Orthanc
       {
         operations.append("verify-md5");
       }
+
+      operations.append("uuid");
 
       call.GetOutput().AnswerJson(operations);
     }
@@ -1882,6 +2142,36 @@ namespace Orthanc
     }
   }
 
+  static void GetAttachmentInfo(RestApiGetCall& call)
+  {
+    if (call.IsDocumentation())
+    {
+      ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
+      std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      AddAttachmentDocumentation(call, r);
+      call.GetDocumentation()
+        .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
+        .SetSummary("Get info about the attachment")
+        .SetDescription("Get all the information about the attachment associated with the given " + r)
+        .AddAnswerType(MimeType_Json, "JSON object containing the information about the attachment")
+        .SetHttpGetSample("https://demo.orthanc-server.com/instances/7c92ce8e-bbf67ed2-ffa3b8c1-a3b35d94-7ff3ae26/dicom/info", true);
+      return;
+    }
+
+    FileInfo info;
+    if (GetAttachmentInfo(info, call))
+    {
+      Json::Value result = Json::objectValue;    
+      result["Uuid"] = info.GetUuid();
+      result["ContentType"] = info.GetContentType();
+      result["UncompressedSize"] = Json::Value::UInt64(info.GetUncompressedSize());
+      result["CompressedSize"] = Json::Value::UInt64(info.GetCompressedSize());
+      result["UncompressedMD5"] = info.GetUncompressedMD5();
+      result["CompressedMD5"] = info.GetCompressedMD5();
+
+      call.GetOutput().AnswerJson(result);
+    }
+  }
 
   static void GetAttachmentCompressedSize(RestApiGetCall& call)
   {
@@ -2969,7 +3259,7 @@ namespace Orthanc
     std::string publicId = call.GetUriComponent("id", "");
 
     std::string dicomContent;
-    context.ReadDicom(dicomContent, publicId);
+    context.ReadDicomForHeader(dicomContent, publicId);
 
     // TODO Consider using "DicomMap::ParseDicomMetaInformation()" to
     // speed up things here
@@ -3125,7 +3415,7 @@ namespace Orthanc
 
       call.GetDocumentation()
         .SetTag("System")
-        .SetSummary("Describe a set of instances")
+        .SetSummary("Describe a set of resources")
         .SetRequestField("Resources", RestApiCallDocumentation::Type_JsonListOfStrings,
                          "List of the Orthanc identifiers of the patients/studies/series/instances of interest.", true)
         .SetRequestField(LEVEL, RestApiCallDocumentation::Type_String,
@@ -3301,7 +3591,7 @@ namespace Orthanc
     {
       call.GetDocumentation()
         .SetTag("System")
-        .SetSummary("Delete a set of instances")
+        .SetSummary("Delete a set of resources")
         .SetRequestField("Resources", RestApiCallDocumentation::Type_JsonListOfStrings,
                          "List of the Orthanc identifiers of the patients/studies/series/instances of interest.", true)
         .SetDescription("Delete all the DICOM patients, studies, series or instances "
@@ -3387,6 +3677,7 @@ namespace Orthanc
     Register("/instances/{id}/frames/{frame}/matlab", GetMatlabImage);
     Register("/instances/{id}/frames/{frame}/raw", GetRawFrame<false>);
     Register("/instances/{id}/frames/{frame}/raw.gz", GetRawFrame<true>);
+    Register("/instances/{id}/frames/{frame}/numpy", GetNumpyFrame);  // New in Orthanc 1.9.8
     Register("/instances/{id}/pdf", ExtractPdf);
     Register("/instances/{id}/preview", GetImage<ImageExtractionMode_Preview>);
     Register("/instances/{id}/rendered", GetRenderedFrame);
@@ -3395,6 +3686,7 @@ namespace Orthanc
     Register("/instances/{id}/image-int16", GetImage<ImageExtractionMode_Int16>);
     Register("/instances/{id}/matlab", GetMatlabImage);
     Register("/instances/{id}/header", GetInstanceHeader);
+    Register("/instances/{id}/numpy", GetNumpyInstance);  // New in Orthanc 1.9.8
 
     Register("/patients/{id}/protected", IsProtectedPatient);
     Register("/patients/{id}/protected", SetPatientProtection);
@@ -3425,6 +3717,7 @@ namespace Orthanc
       Register("/" + resourceTypes[i] + "/{id}/attachments/{name}/md5", GetAttachmentMD5);
       Register("/" + resourceTypes[i] + "/{id}/attachments/{name}/size", GetAttachmentSize);
       Register("/" + resourceTypes[i] + "/{id}/attachments/{name}/uncompress", ChangeAttachmentCompression<CompressionType_None>);
+      Register("/" + resourceTypes[i] + "/{id}/attachments/{name}/info", GetAttachmentInfo);
       Register("/" + resourceTypes[i] + "/{id}/attachments/{name}/verify-md5", VerifyAttachment);
     }
 
@@ -3453,6 +3746,7 @@ namespace Orthanc
     Register("/instances/{id}/content/*", GetRawContent);
 
     Register("/series/{id}/ordered-slices", OrderSlices);
+    Register("/series/{id}/numpy", GetNumpySeries);  // New in Orthanc 1.9.8
 
     Register("/patients/{id}/reconstruct", ReconstructResource<ResourceType_Patient>);
     Register("/studies/{id}/reconstruct", ReconstructResource<ResourceType_Study>);

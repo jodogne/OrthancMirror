@@ -2,7 +2,8 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2021 Osimis S.A., Belgium
+ * Copyright (C) 2017-2022 Osimis S.A., Belgium
+ * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -539,6 +540,13 @@ namespace OrthancPlugins
                               const std::string& password)
   {
     Clear();
+
+    if (body.size() > 0xffffffffu)
+    {
+      LogError("Cannot handle body size > 4GB");
+      ORTHANC_PLUGINS_THROW_EXCEPTION(InternalError);
+    }
+
     return CheckHttp(OrthancPluginHttpPost(GetGlobalContext(), &buffer_, url.c_str(),
                                            body.c_str(), body.size(),
                                            username.empty() ? NULL : username.c_str(),
@@ -552,6 +560,13 @@ namespace OrthancPlugins
                              const std::string& password)
   {
     Clear();
+
+    if (body.size() > 0xffffffffu)
+    {
+      LogError("Cannot handle body size > 4GB");
+      ORTHANC_PLUGINS_THROW_EXCEPTION(InternalError);
+    }
+
     return CheckHttp(OrthancPluginHttpPut(GetGlobalContext(), &buffer_, url.c_str(),
                                           body.empty() ? NULL : body.c_str(),
                                           body.size(),
@@ -1892,6 +1907,12 @@ namespace OrthancPlugins
       ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(OrthancPluginErrorCode_ParameterOutOfRange);
     }
 
+    if (body.size() > 0xffffffffu)
+    {
+      LogError("Cannot handle body size > 4GB");
+      ORTHANC_PLUGINS_THROW_EXCEPTION(InternalError);
+    }
+
     OrthancPlugins::MemoryBuffer answer;
     uint16_t status;
     OrthancPluginErrorCode code = OrthancPluginCallPeerApi
@@ -1918,6 +1939,12 @@ namespace OrthancPlugins
     if (index >= index_.size())
     {
       ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(OrthancPluginErrorCode_ParameterOutOfRange);
+    }
+
+    if (body.size() > 0xffffffffu)
+    {
+      LogError("Cannot handle body size > 4GB");
+      ORTHANC_PLUGINS_THROW_EXCEPTION(InternalError);
     }
 
     OrthancPlugins::MemoryBuffer answer;
@@ -2569,8 +2596,8 @@ namespace OrthancPlugins
   
   void HttpClient::ClearCredentials()
   {
-    username_.empty();
-    password_.empty();
+    username_.clear();
+    password_.clear();
   }
 
 
@@ -2882,6 +2909,12 @@ namespace OrthancPlugins
     HeadersWrapper headers(headers_);
 
     MemoryBuffer answerBodyBuffer, answerHeadersBuffer;
+
+    if (body.size() > 0xffffffffu)
+    {
+      LogError("Cannot handle body size > 4GB");
+      ORTHANC_PLUGINS_THROW_EXCEPTION(InternalError);
+    }
 
     OrthancPluginErrorCode error = OrthancPluginHttpClient(
       GetGlobalContext(),

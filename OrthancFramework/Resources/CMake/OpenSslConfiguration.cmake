@@ -1,7 +1,8 @@
 # Orthanc - A Lightweight, RESTful DICOM Store
 # Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
 # Department, University Hospital of Liege, Belgium
-# Copyright (C) 2017-2021 Osimis S.A., Belgium
+# Copyright (C) 2017-2022 Osimis S.A., Belgium
+# Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
 #
 # This program is free software: you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public License
@@ -19,10 +20,8 @@
 
 
 if (STATIC_BUILD OR NOT USE_SYSTEM_OPENSSL)
-  if (OPENSSL_STATIC_VERSION STREQUAL "1.0.2")
-    include(${CMAKE_CURRENT_LIST_DIR}/OpenSslConfigurationStatic-1.0.2.cmake)
-  elseif (OPENSSL_STATIC_VERSION STREQUAL "1.1.1")
-    include(${CMAKE_CURRENT_LIST_DIR}/OpenSslConfigurationStatic-1.1.1.cmake)
+  if (OPENSSL_STATIC_VERSION STREQUAL "3.0")
+    include(${CMAKE_CURRENT_LIST_DIR}/OpenSslConfigurationStatic-3.0.cmake)
   else()
     message(FATAL_ERROR "Unsupported version of OpenSSL: ${OPENSSL_STATIC_VERSION}")
   endif()

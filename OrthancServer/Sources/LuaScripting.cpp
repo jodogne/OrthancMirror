@@ -2,24 +2,13 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2021 Osimis S.A., Belgium
+ * Copyright (C) 2017-2022 Osimis S.A., Belgium
+ * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- *
- * In addition, as a special exception, the copyright holders of this
- * program give permission to link the code of its release with the
- * OpenSSL project's "OpenSSL" library (or with modified versions of it
- * that use the same license as the "OpenSSL" library), and distribute
- * the linked executables. You must obey the GNU General Public License
- * in all respects for all of the code used other than "OpenSSL". If you
- * modify file(s) with this exception, you may extend this exception to
- * your version of the file(s), but you are not obligated to do so. If
- * you do not wish to do so, delete this exception statement from your
- * version. If you delete this exception statement from all source files
- * in the program, then also delete it here.
  * 
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -42,6 +31,8 @@
 #include "../../OrthancFramework/Sources/HttpServer/StringHttpOutput.h"
 #include "../../OrthancFramework/Sources/Logging.h"
 #include "../../OrthancFramework/Sources/Lua/LuaFunctionCall.h"
+
+#include <dcmtk/dcmnet/dimse.h>
 
 #include <OrthancServerResources.h>
 
@@ -943,6 +934,41 @@ namespace Orthanc
     }
 
     return true;
+  }
+
+  uint16_t LuaScripting::FilterIncomingCStoreInstance(const DicomInstanceToStore& instance,
+                                                      const Json::Value& simplified)
+  {
+    static const char* NAME = "ReceivedCStoreInstanceFilter";
+
+    boost::recursive_mutex::scoped_lock lock(mutex_);
+
+    if (lua_.IsExistingFunction(NAME))
+    {
+      LuaFunctionCall call(lua_, NAME);
+      call.PushJson(simplified);
+
+      Json::Value origin;
+      instance.GetOrigin().Format(origin);
+      call.PushJson(origin);
+
+      Json::Value info = Json::objectValue;
+      info["HasPixelData"] = instance.HasPixelData();
+
+      DicomTransferSyntax s;
+      if (instance.LookupTransferSyntax(s))
+      {
+        info["TransferSyntaxUID"] = GetTransferSyntaxUid(s);
+      }
+
+      call.PushJson(info);
+
+      int result;
+      call.ExecuteToInt(result);
+      return static_cast<uint16_t>(result);
+    }
+
+    return STATUS_Success;
   }
 
 

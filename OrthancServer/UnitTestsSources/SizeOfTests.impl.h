@@ -50,6 +50,7 @@
   printf("sizeof(::Orthanc::ImageAccessor) == %d\n", static_cast<int>(sizeof(::Orthanc::ImageAccessor)));
   printf("sizeof(::Orthanc::ImageBuffer) == %d\n", static_cast<int>(sizeof(::Orthanc::ImageBuffer)));
   printf("sizeof(::Orthanc::ImageProcessing) == %d\n", static_cast<int>(sizeof(::Orthanc::ImageProcessing)));
+  printf("sizeof(::Orthanc::ImageProcessing::IPolygonFiller) == %d\n", static_cast<int>(sizeof(::Orthanc::ImageProcessing::IPolygonFiller)));
   printf("sizeof(::Orthanc::ImageProcessing::ImagePoint) == %d\n", static_cast<int>(sizeof(::Orthanc::ImageProcessing::ImagePoint)));
   printf("sizeof(::Orthanc::JobInfo) == %d\n", static_cast<int>(sizeof(::Orthanc::JobInfo)));
   printf("sizeof(::Orthanc::JobOperationValues) == %d\n", static_cast<int>(sizeof(::Orthanc::JobOperationValues)));
@@ -72,6 +73,7 @@
   printf("sizeof(::Orthanc::MetricsRegistry::Timer) == %d\n", static_cast<int>(sizeof(::Orthanc::MetricsRegistry::Timer)));
   printf("sizeof(::Orthanc::MultipartStreamReader) == %d\n", static_cast<int>(sizeof(::Orthanc::MultipartStreamReader)));
   printf("sizeof(::Orthanc::NullOperationValue) == %d\n", static_cast<int>(sizeof(::Orthanc::NullOperationValue)));
+  printf("sizeof(::Orthanc::NumpyWriter) == %d\n", static_cast<int>(sizeof(::Orthanc::NumpyWriter)));
   printf("sizeof(::Orthanc::OrthancException) == %d\n", static_cast<int>(sizeof(::Orthanc::OrthancException)));
   printf("sizeof(::Orthanc::PamReader) == %d\n", static_cast<int>(sizeof(::Orthanc::PamReader)));
   printf("sizeof(::Orthanc::PamWriter) == %d\n", static_cast<int>(sizeof(::Orthanc::PamWriter)));
@@ -103,6 +105,7 @@
   printf("sizeof(::Orthanc::SharedLibrary) == %d\n", static_cast<int>(sizeof(::Orthanc::SharedLibrary)));
   printf("sizeof(::Orthanc::SharedMessageQueue) == %d\n", static_cast<int>(sizeof(::Orthanc::SharedMessageQueue)));
   printf("sizeof(::Orthanc::StorageAccessor) == %d\n", static_cast<int>(sizeof(::Orthanc::StorageAccessor)));
+  printf("sizeof(::Orthanc::StorageCache) == %d\n", static_cast<int>(sizeof(::Orthanc::StorageCache)));
   printf("sizeof(::Orthanc::StreamBlockReader) == %d\n", static_cast<int>(sizeof(::Orthanc::StreamBlockReader)));
   printf("sizeof(::Orthanc::StringMatcher) == %d\n", static_cast<int>(sizeof(::Orthanc::StringMatcher)));
   printf("sizeof(::Orthanc::StringOperationValue) == %d\n", static_cast<int>(sizeof(::Orthanc::StringOperationValue)));

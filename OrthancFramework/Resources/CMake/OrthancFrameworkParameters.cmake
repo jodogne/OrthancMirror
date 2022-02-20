@@ -1,7 +1,8 @@
 # Orthanc - A Lightweight, RESTful DICOM Store
 # Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
 # Department, University Hospital of Liege, Belgium
-# Copyright (C) 2017-2021 Osimis S.A., Belgium
+# Copyright (C) 2017-2022 Osimis S.A., Belgium
+# Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
 #
 # This program is free software: you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public License
@@ -37,7 +38,7 @@ set(ORTHANC_DATABASE_VERSION 6)
 # Version of the Orthanc API, can be retrieved from "/system" URI in
 # order to check whether new URI endpoints are available even if using
 # the mainline version of Orthanc
-set(ORTHANC_API_VERSION "15")
+set(ORTHANC_API_VERSION "16")
 
 
 #####################################################################
@@ -93,7 +94,7 @@ set(USE_LEGACY_LIBICU OFF CACHE BOOL "Use icu icu4c-58_2, latest version not req
 set(MSVC_MULTIPLE_PROCESSES OFF CACHE BOOL "Add the /MP option to build with multiple processes if using Visual Studio")
 set(EMSCRIPTEN_TARGET_MODE "wasm" CACHE STRING "Sets the target mode for Emscripten (can be \"wasm\" or \"asm.js\")")
 set(EMSCRIPTEN_TRAP_MODE "" CACHE STRING "Sets the trap mode for Emscripten for numeric errors (can notably be empty, or \"clamp\")")
-set(OPENSSL_STATIC_VERSION "1.1.1" CACHE STRING "Version of OpenSSL to be used in static builds (can be \"1.0.2\", or \"1.1.1\")")
+set(OPENSSL_STATIC_VERSION "3.0" CACHE STRING "Version of OpenSSL to be used in static builds (can be \"3.0\")")
 set(CIVETWEB_OPENSSL_API "1.1" CACHE STRING "Version of the OpenSSL API to be used in civetweb in static builds (can be \"1.0\" or \"1.1\"")
 set(ORTHANC_LUA_VERSION "" CACHE STRING "Force the version of Lua to be used by Orthanc (for instance \"5.3\"), if empty, this will be autodetected")
 

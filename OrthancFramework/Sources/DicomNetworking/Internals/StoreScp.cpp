@@ -2,7 +2,8 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2021 Osimis S.A., Belgium
+ * Copyright (C) 2017-2022 Osimis S.A., Belgium
+ * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -161,14 +162,14 @@ namespace Orthanc
             // which SOP class and SOP instance ?
 	    
 #if DCMTK_VERSION_NUMBER >= 364
-	    if (!DU_findSOPClassAndInstanceInDataSet(*imageDataSet, sopClass, sizeof(sopClass),
-						     sopInstance, sizeof(sopInstance), /*opt_correctUIDPadding*/ OFFalse))
+	            if (!DU_findSOPClassAndInstanceInDataSet(*imageDataSet, sopClass, sizeof(sopClass),
+						      sopInstance, sizeof(sopInstance), /*opt_correctUIDPadding*/ OFFalse))
 #else
               if (!DU_findSOPClassAndInstanceInDataSet(*imageDataSet, sopClass, sopInstance, /*opt_correctUIDPadding*/ OFFalse))
 #endif
               {
-		//LOG4CPP_ERROR(Internals::GetLogger(), "bad DICOM file: " << fileName);
-		rsp->DimseStatus = STATUS_STORE_Error_CannotUnderstand;
+		            //LOG4CPP_ERROR(Internals::GetLogger(), "bad DICOM file: " << fileName);
+		            rsp->DimseStatus = STATUS_STORE_Error_CannotUnderstand;
               }
               else if (strcmp(sopClass, req->AffectedSOPClassUID) != 0)
               {
@@ -182,12 +183,7 @@ namespace Orthanc
               {
                 try
                 {
-                  int status = cbdata->handler->Handle(**imageDataSet, *cbdata->remoteIp, cbdata->remoteAET, cbdata->calledAET);
-
-                  if (status != 0)
-                  {
-                    rsp->DimseStatus = static_cast<DIC_US>(status);  
-                  }
+                  rsp->DimseStatus = cbdata->handler->Handle(**imageDataSet, *cbdata->remoteIp, cbdata->remoteAET, cbdata->calledAET);
                 }
                 catch (OrthancException& e)
                 {

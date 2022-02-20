@@ -1,7 +1,74 @@
 Pending changes in the mainline
 ===============================
 
+General
+-------
+
+* Removed the OpenSSL license exception, as binary versions of Orthanc are now
+  designed to use OpenSSL 3.x, that was re-licensed under Apache 2.0, making
+  it compatible with the GPL/AGPL licenses used by the Orthanc project:
+  https://en.wikipedia.org/wiki/OpenSSL#Licensing
+  https://people.gnome.org/~markmc/openssl-and-the-gpl.html
+* New configuration "DicomAlwaysAllowFindWorklist" to complement the existing
+  "DicomAlwaysAllowFind" configuration.  "DicomAlwaysAllowFind" applies now 
+  only to C-Find for Patients/Studies/Series/Instances while C-Find for worklists are
+  covered by "DicomAlwaysAllowFindWorklist".  The same changes applies to new 
+  configurations in "DicomModalities": "AllowFind" is now complemented by 
+  "AllowFindWorklist".
+  This new option allows improved security management.  E.g: a modality might have
+  only "AllowStore" and "AllowFindWorklist" enabled but might have "AllowFind"
+  disabled to prevent listing past patient studies.
+  Possible BREAKING-CHANGE: if you relied on "DicomAlwaysAllowFind" or "AllowFind"
+  to specifically authorize C-Find for worklist, you now need to explicitly enable
+  "DicomAlwaysAllowFindWorklist" and/or "AllowFindWorklist"
+* Added a storage cache in RAM to avoid reading the same files multiple times from 
+  the storage.  This greatly improves, among other things, the performance of WADO-RS
+  retrieval of individual frames of multiframe instances.
+* New configuration option "MaximumStorageCacheSize" to configure the size of
+  the new storage cache.
+* New configuration option "ZipLoaderThreads" to configure the number of threads used
+  to read instances from storage when creating a Zip archive/media.
+* Support decoding of black-and-white images (with 1 bit per pixel), notably DICOM SEG
+* Added links to download attachments from the Orthanc Explorer
+
+REST API
+--------
+
+* API version upgraded to 16
+* If an image can not be decoded, ../preview and ../rendered routes are now returning 
+  unsupported.png only if the ?returnUnsupportedImage option is specified; otherwise, 
+  it raises a 415 error code.
+* Archive jobs response now contains a header Content-Disposition:filename='archive.zip'
+* "/instances/{...}/frames/{...}/numpy": Download the frame as a Python numpy array
+* "/instances/{...}/numpy": Download the instance as a Python numpy array
+* "/series/{...}/numpy": Download the series as a Python numpy array
+* Added a ?full option to "/patients|studies|series|instances/{...}/attachments" route
+  to show the mapping alias<->numerical id.
+* Added "/patients|studies|series|instances/{...}/attachments/{...}/info" route to retrieve
+  the full information about an attachment (size, type, MD5 and UUID)
+
+Lua
+---
+
+* New "ReceivedCStoreInstanceFilter" Lua callback to filter instances received
+  through C-Store and return a specific C-Store status code.
+
+Plugins
+-------
+
+* New function in the SDK: OrthancPluginRegisterIncomingCStoreInstanceFilter()
+
+Maintenance
+-----------
+
 * Fix handling of option "DeidentifyLogs", notably for tags (0010,0010) and (0010,0020)
+* New configuration options:
+  - "DicomThreadsCount" to set the number of threads in the embedded DICOM server
+* Fix instances accumulating in DB while their attachments were not stored because of 
+  MaximumStorageSize limit reached with a single patient in DB.
+* Dropped support for static compilation of OpenSSL 1.0.2 and 1.1.1
+* Upgraded dependencies for static builds (notably on Windows and LSB):
+  - openssl 3.0.1
 
 
 Version 1.9.7 (2021-08-31)

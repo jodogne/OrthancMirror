@@ -2,7 +2,8 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2021 Osimis S.A., Belgium
+ * Copyright (C) 2017-2022 Osimis S.A., Belgium
+ * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -35,7 +36,12 @@ namespace Orthanc
       content_(content)
     {
     }
-      
+
+    explicit StringValue(const char* buffer, size_t size) :
+      content_(buffer, size)
+    {
+    }
+
     const std::string& GetContent() const
     {
       return content_;
@@ -61,6 +67,13 @@ namespace Orthanc
                               const std::string& value)
   {
     cache_.Acquire(key, new StringValue(value));
+  }
+
+  void MemoryStringCache::Add(const std::string& key,
+                              const void* buffer,
+                              size_t size)
+  {
+    cache_.Acquire(key, new StringValue(reinterpret_cast<const char*>(buffer), size));
   }
 
   void MemoryStringCache::Invalidate(const std::string &key)

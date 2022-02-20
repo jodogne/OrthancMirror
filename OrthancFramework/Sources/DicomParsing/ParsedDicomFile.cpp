@@ -2,7 +2,8 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2021 Osimis S.A., Belgium
+ * Copyright (C) 2017-2022 Osimis S.A., Belgium
+ * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -1194,6 +1195,10 @@ namespace Orthanc
         EmbedImage(mime, content);
         break;
 
+      case MimeType_Binary:
+        EmbedImage(mime, content);
+        break;
+
       case MimeType_Pdf:
         EmbedPdf(content);
         break;
@@ -1250,6 +1255,12 @@ namespace Orthanc
         PamReader reader(true);
         reader.ReadFromMemory(content);
         EmbedImage(reader);
+        break;
+      }
+
+      case MimeType_Binary:
+      {
+        EmbedRawPixelData(content);
         break;
       }
 
@@ -1406,7 +1417,24 @@ namespace Orthanc
     }    
   }
 
-  
+  void ParsedDicomFile::EmbedRawPixelData(const std::string& content)
+  {
+    DcmTag key(DICOM_TAG_PIXEL_DATA.GetGroup(), 
+               DICOM_TAG_PIXEL_DATA.GetElement());
+
+    std::unique_ptr<DcmPixelData> pixels(new DcmPixelData(key));
+
+    Uint8* target = NULL;
+    pixels->createUint8Array(content.size(), target);
+    memcpy(target, content.c_str(), content.size());
+
+    if (!GetDcmtkObject().getDataset()->insert(pixels.release(), false, false).good())
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+  }
+
+
   Encoding ParsedDicomFile::DetectEncoding(bool& hasCodeExtensions) const
   {
     return FromDcmtkBridge::DetectEncoding(hasCodeExtensions,
@@ -1474,11 +1502,14 @@ namespace Orthanc
 
     InvalidateCache();
 
+    // In Orthanc <= 1.9.7, the "Modality" would have always be overwritten as "OT"
+    // https://groups.google.com/g/orthanc-users/c/eNSddNrQDtM/m/wc1HahimAAAJ
+    
     ReplacePlainString(DICOM_TAG_SOP_CLASS_UID, UID_EncapsulatedPDFStorage);
-    ReplacePlainString(FromDcmtkBridge::Convert(DCM_Modality), "OT");
-    ReplacePlainString(FromDcmtkBridge::Convert(DCM_ConversionType), "WSD");
-    ReplacePlainString(FromDcmtkBridge::Convert(DCM_MIMETypeOfEncapsulatedDocument), MIME_PDF);
-    //ReplacePlainString(FromDcmtkBridge::Convert(DCM_SeriesNumber), "1");
+    SetIfAbsent(FromDcmtkBridge::Convert(DCM_Modality), "OT");
+    SetIfAbsent(FromDcmtkBridge::Convert(DCM_ConversionType), "WSD");
+    SetIfAbsent(FromDcmtkBridge::Convert(DCM_MIMETypeOfEncapsulatedDocument), MIME_PDF);
+    //SetIfAbsent(FromDcmtkBridge::Convert(DCM_SeriesNumber), "1");
 
     std::unique_ptr<DcmPolymorphOBOW> element(new DcmPolymorphOBOW(DCM_EncapsulatedDocument));
 

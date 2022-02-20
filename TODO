@@ -20,7 +20,11 @@ General
 * Option to enable DNS lookups in DICOM:
   https://hg.orthanc-server.com/orthanc/file/Orthanc-1.9.3/OrthancFramework/Sources/OrthancFramework.cpp#l88
 * Toolbox::ComputeMD5() fails on files larger than 4GB
-
+* Add an option to run Orthanc in read-only mode both for DICOM and for Rest API.
+* Logging: add some information like Thread-Id to contextualize the logs
+* Accept extra DICOM tags dictionaries in the DCMTK format '.dic' (easier to use than declare
+  them in the Orthanc configuration file).  Even the standard dictionaries could be 
+  overriden by these custom dictionaries.
 
 ============================
 Documentation (Orthanc Book)
@@ -36,7 +40,15 @@ Documentation (Orthanc Book)
 * Discuss HL7 in a dedicated page:
   https://groups.google.com/d/msg/orthanc-users/4dt4992O0lQ/opTjTFU2BgAJ
   https://groups.google.com/g/orthanc-users/c/Spjtcj9vSPo/m/ktUArWxUDQAJ
-  
+
+
+================
+Orthanc Explorer
+================
+
+* Option to tune the number of results for a local lookup:
+  https://groups.google.com/g/orthanc-users/c/LF39musq02Y/
+
 
 ========
 REST API
@@ -60,6 +72,8 @@ Mid-term
   image. The SOPClassUID might be used to identify such secondary
   captures.
 * Support "/preview" and "/matlab" for LUT color images
+* Try to transcode files if a simple decoding fails:
+  https://groups.google.com/g/orthanc-users/c/b8168-NkAhA/m/Df3j-CO9CgAJ
 * Add asynchronous mode in "/modalitities/.../move" for C-MOVE SCU:
   https://groups.google.com/g/orthanc-users/c/G3_jBy4X4NQ/m/8BanTsdMBQAJ
 * Ranges of DICOM tags for "Keep" and "Remove" in ".../modify" and ".../anonymize": 
@@ -99,7 +113,7 @@ Mid-term
 Long-term
 ---------
 
-* Support extended association:
+* Support extended association (e.g. for C-Find relational queries):
   https://groups.google.com/d/msg/orthanc-users/xD4d3mpc6ms/srF7E2goAAAJ
 * Support C-MOVE-CANCEL:
   https://groups.google.com/d/msg/orthanc-users/KnduYBFd06A/o86cl5SeCAAJ
@@ -119,13 +133,14 @@ Internationalization
 Performance
 ===========
 
-* StorageAccessor => add a memory cache using MemoryStringCache, for
-  instance to speed up WADO-RS Retrieve Frames in DICOMweb plugin
 * ServerContext::DicomCacheLocker => give access to the raw buffer,
   useful in ServerContext::DecodeDicomInstance()
 * DicomMap: create a cache to the main DICOM tags index
 * Check out rapidjson: https://github.com/miloyip/nativejson-benchmark
-
+* optimize tools/find with ModalitiesInStudies: 
+  https://groups.google.com/g/orthanc-users/c/aN8nqcRd3jw/m/pmc9ylVeAwAJ.
+  One solution could be: filter first without ModalitiesInStudies and then
+  cycle through the responses to filter out with ModalitiesInStudies
 
 ========
 Database
@@ -154,6 +169,7 @@ SDK
   https://groups.google.com/d/msg/orthanc-users/BtvLTE5Ni8A/vIMhmMgfBAAJ
 * In "OrthancPluginLog[Error|Warning|Info]()", prefix the log line with
   the name of the plugin, as retrieved by "OrthancPluginGetName()"
+* update the SDK to handle buffer sizes > 4GB (all sizes are currently coded in uint32_t)
 
 ----------------
 Ideas of plugins

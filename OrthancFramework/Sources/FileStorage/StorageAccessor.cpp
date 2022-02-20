@@ -2,7 +2,8 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2021 Osimis S.A., Belgium
+ * Copyright (C) 2017-2022 Osimis S.A., Belgium
+ * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -22,7 +23,10 @@
 
 #include "../PrecompiledHeaders.h"
 #include "StorageAccessor.h"
+#include "StorageCache.h"
 
+#include "../Logging.h"
+#include "../StringMemoryBuffer.h"
 #include "../Compatibility.h"
 #include "../Compression/ZlibCompressor.h"
 #include "../MetricsRegistry.h"
@@ -58,14 +62,18 @@ namespace Orthanc
   };
 
 
-  StorageAccessor::StorageAccessor(IStorageArea &area) :
+  StorageAccessor::StorageAccessor(IStorageArea &area, StorageCache& cache) :
     area_(area),
+    cache_(cache),
     metrics_(NULL)
   {
   }
 
-  StorageAccessor::StorageAccessor(IStorageArea &area, MetricsRegistry &metrics) :
+  StorageAccessor::StorageAccessor(IStorageArea &area, 
+                                   StorageCache& cache,
+                                   MetricsRegistry &metrics) :
     area_(area),
+    cache_(cache),
     metrics_(&metrics)
   {
   }
@@ -93,6 +101,8 @@ namespace Orthanc
         MetricsTimer timer(*this, METRICS_CREATE);
 
         area_.Create(uuid, data, size, type);
+        cache_.Add(uuid, type, data, size);
+
         return FileInfo(uuid, type, size, md5);
       }
 
@@ -123,6 +133,7 @@ namespace Orthanc
           }
         }
 
+        cache_.Add(uuid, type, data, size);
         return FileInfo(uuid, type, size, md5,
                         CompressionType_ZlibWithSize, compressed.size(), compressedMD5);
       }
@@ -145,6 +156,13 @@ namespace Orthanc
   void StorageAccessor::Read(std::string& content,
                              const FileInfo& info)
   {
+    if (cache_.Fetch(content, info.GetUuid(), info.GetContentType()))
+    {
+      LOG(INFO) << "Read attachment \"" << info.GetUuid() << "\" "
+                << "content type from cache";
+      return;
+    }
+
     switch (info.GetCompressionType())
     {
       case CompressionType_None:
@@ -152,7 +170,9 @@ namespace Orthanc
         MetricsTimer timer(*this, METRICS_READ);
 
         std::unique_ptr<IMemoryBuffer> buffer(area_.Read(info.GetUuid(), info.GetContentType()));
-        buffer->MoveToString(content);        
+        buffer->MoveToString(content);
+
+        cache_.Add(info.GetUuid(), info.GetContentType(), content);
         break;
       }
 
@@ -168,6 +188,8 @@ namespace Orthanc
         }
 
         zlib.Uncompress(content, compressed->GetData(), compressed->GetSize());
+
+        cache_.Add(info.GetUuid(), info.GetContentType(), content);
         break;
       }
 
@@ -196,6 +218,14 @@ namespace Orthanc
   {
     MetricsTimer timer(*this, METRICS_REMOVE);
     area_.Remove(fileUuid, type);
+
+    cache_.Invalidate(fileUuid, type);
+    
+    // in ReadStartRange, we might have cached only the start of the file -> try to remove it
+    if (type == FileContentType_Dicom)
+    {
+      cache_.Invalidate(fileUuid, FileContentType_DicomUntilPixelData);
+    }
   }
 
   void StorageAccessor::Remove(const FileInfo &info)
@@ -203,15 +233,56 @@ namespace Orthanc
     Remove(info.GetUuid(), info.GetContentType());
   }
 
+  IMemoryBuffer* StorageAccessor::ReadStartRange(const std::string& fileUuid,
+                                                 FileContentType contentType,
+                                                 uint64_t end /* exclusive */,
+                                                 FileContentType startFileContentType)
+  {
+    std::string content;
+    if (cache_.Fetch(content, fileUuid, contentType))
+    {
+      LOG(INFO) << "Read attachment \"" << fileUuid << "\" "
+                << "(range from " << 0 << " to " << end << ") from cache";
+
+      return StringMemoryBuffer::CreateFromCopy(content, 0, end);
+    }
+
+    if (cache_.Fetch(content, fileUuid, startFileContentType))
+    {
+      LOG(INFO) << "Read attachment \"" << fileUuid << "\" "
+                << "(range from " << 0 << " to " << end << ") from cache";
+
+      assert(content.size() == end);
+      return StringMemoryBuffer::CreateFromCopy(content);
+    }
+
+    std::unique_ptr<IMemoryBuffer> buffer(area_.ReadRange(fileUuid, contentType, 0, end));
+
+    // we've read only the first part of the file -> add an entry in the cache
+    // note the uuid is still the uuid of the full file but the type is the type of the start of the file !
+    assert(buffer->GetSize() == end);
+    cache_.Add(fileUuid, startFileContentType, buffer->GetData(), buffer->GetSize());
+    return buffer.release();
+  }
+
+
 #if ORTHANC_ENABLE_CIVETWEB == 1 || ORTHANC_ENABLE_MONGOOSE == 1
   void StorageAccessor::SetupSender(BufferHttpSender& sender,
                                     const FileInfo& info,
                                     const std::string& mime)
   {
+    if (cache_.Fetch(sender.GetBuffer(), info.GetUuid(), info.GetContentType()))
+    {
+      LOG(INFO) << "Read attachment \"" << info.GetUuid() << "\" "
+                << "content type from cache";
+    }
+    else
     {
       MetricsTimer timer(*this, METRICS_READ);
       std::unique_ptr<IMemoryBuffer> buffer(area_.Read(info.GetUuid(), info.GetContentType()));
       buffer->MoveToString(sender.GetBuffer());
+
+      cache_.Add(info.GetUuid(), info.GetContentType(), sender.GetBuffer());
     }
 
     sender.SetContentType(mime);
