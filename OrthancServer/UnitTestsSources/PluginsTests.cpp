@@ -77,7 +77,7 @@ TEST(SharedLibrary, Basic)
   
 #elif defined(__linux__) || defined(__FreeBSD_kernel__)
   /**
-   * Since Orthanc 1.9.8, we test the "libdl.so.2" instead of the
+   * Since Orthanc 1.10.0, we test the "libdl.so.2" instead of the
    * "libdl.so", as discussed here:
    * https://groups.google.com/g/orthanc-users/c/I5g1fN6MCvg/m/JVdvRyjJAAAJ
    * https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=1001305

@@ -25,114 +25,68 @@
 #include "StorageCache.h"
 
 #include "../Compatibility.h"
+#include "../Logging.h"
 #include "../OrthancException.h"
 
+#include <boost/lexical_cast.hpp>
 
 
 namespace Orthanc
 {
-  bool IsAcceptedContentType(FileContentType contentType)
+  static std::string GetCacheKey(const std::string& uuid,
+                                 FileContentType contentType)
   {
-    return contentType == FileContentType_Dicom ||
-      contentType == FileContentType_DicomUntilPixelData ||
-      contentType == FileContentType_DicomAsJson;
+    return uuid + ":" + boost::lexical_cast<std::string>(contentType);
   }
-
-  const char* ToString(FileContentType contentType)
-  {
-    switch (contentType)
-    {
-      case FileContentType_Dicom:
-        return "dicom";
-      case FileContentType_DicomUntilPixelData:
-        return "dicom-header";
-      case FileContentType_DicomAsJson:
-        return "dicom-json";
-      default:
-        throw OrthancException(ErrorCode_InternalError,
-                               "ContentType not supported in StorageCache");
-    }
-  }
-
-  bool GetCacheKey(std::string& key, const std::string& uuid, FileContentType contentType)
-  {
-    if (contentType == FileContentType_Unknown || contentType >= FileContentType_StartUser)
-    {
-      return false;
-    }
-
-    key = uuid + ":" + std::string(ToString(contentType));
-
-    return true;
-  }
+  
   
   void StorageCache::SetMaximumSize(size_t size)
   {
     cache_.SetMaximumSize(size);
   }
+  
 
   void StorageCache::Add(const std::string& uuid, 
                          FileContentType contentType,
                          const std::string& value)
   {
-    if (!IsAcceptedContentType(contentType))
-    {
-      return;
-    }
-
-    std::string key;
-
-    if (GetCacheKey(key, uuid, contentType))
-    {
-      cache_.Add(key, value);
-    }
+    const std::string key = GetCacheKey(uuid, contentType);
+    cache_.Add(key, value);
   }
+  
 
   void StorageCache::Add(const std::string& uuid, 
                          FileContentType contentType,
                          const void* buffer,
                          size_t size)
   {
-    if (!IsAcceptedContentType(contentType))
-    {
-      return;
-    }
-    
-    std::string key;
-
-    if (GetCacheKey(key, uuid, contentType))
-    {
-      cache_.Add(key, buffer, size);
-    }
+    const std::string key = GetCacheKey(uuid, contentType);
+    cache_.Add(key, buffer, size);
   }
+  
 
-  void StorageCache::Invalidate(const std::string& uuid, FileContentType contentType)
+  void StorageCache::Invalidate(const std::string& uuid,
+                                FileContentType contentType)
   {
-    std::string key;
-    
-    if (GetCacheKey(key, uuid, contentType))
-    {
-      cache_.Invalidate(key);
-    }
+    const std::string key = GetCacheKey(uuid, contentType);
+    cache_.Invalidate(key);
   }
+  
 
   bool StorageCache::Fetch(std::string& value, 
                            const std::string& uuid,
                            FileContentType contentType)
   {
-    if (!IsAcceptedContentType(contentType))
+    const std::string key = GetCacheKey(uuid, contentType);
+    if (cache_.Fetch(value, key))
+    {
+      LOG(INFO) << "Read attachment \"" << uuid << "\" with content type "
+                << boost::lexical_cast<std::string>(contentType) << " from cache";
+      return true;
+    }
+    else
     {
       return false;
     }
-
-    std::string key;
-    if (GetCacheKey(key, uuid, contentType))
-    {
-      return cache_.Fetch(value, key);
-    }
-
-    return false;
   }
-
-
 }

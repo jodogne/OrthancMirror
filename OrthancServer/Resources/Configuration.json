@@ -44,7 +44,7 @@
   // Maximum size of the storage cache in MB.  The storage cache
   // is stored in RAM and contains a copy of recently accessed
   // files (written or read).  A value of "0" indicates the cache
-  // is disabled.  (new in Orthanc 1.9.8)
+  // is disabled.  (new in Orthanc 1.10.0)
   "MaximumStorageCacheSize" : 128,
 
   // List of paths to the custom Lua scripts that are to be loaded
@@ -441,7 +441,7 @@
   // connections.  With a single thread, if a C-Find is received
   // during e.g the transcoding of an incoming C-Store, it will
   // have to wait until the end of the C-Store before being processed.
-  // (new in Orthanc 1.9.8, before this version, the value was fixed to 4)
+  // (new in Orthanc 1.10.0, before this version, the value was fixed to 4)
   "DicomThreadsCount" : 4,
 
   // The list of the known Orthanc peers. This option is ignored if
@@ -862,6 +862,6 @@
   // A value of 0 means reading and writing are performed in sequence
   // (default behaviour).  A value > 1 is meaningful only if the storage
   // is a distributed network storage (e.g object storage plugin).
-  // (new in Orthanc 1.9.8)
+  // (new in Orthanc 1.10.0)
   "ZipLoaderThreads": 0
 }

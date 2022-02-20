@@ -1179,8 +1179,8 @@ namespace Orthanc
     IncomingHttpRequestFilters  incomingHttpRequestFilters_;
     IncomingHttpRequestFilters2 incomingHttpRequestFilters2_;
     IncomingDicomInstanceFilters  incomingDicomInstanceFilters_;
-    IncomingCStoreInstanceFilters  incomingCStoreInstanceFilters_;  // New in Orthanc 1.9.8
-    ReceivedInstanceCallbacks  receivedInstanceCallbacks_;  // New in Orthanc 1.9.8
+    IncomingCStoreInstanceFilters  incomingCStoreInstanceFilters_;  // New in Orthanc 1.10.0
+    ReceivedInstanceCallbacks  receivedInstanceCallbacks_;  // New in Orthanc 1.10.0
     RefreshMetricsCallbacks refreshMetricsCallbacks_;
     StorageCommitmentScpCallbacks storageCommitmentScpCallbacks_;
     std::unique_ptr<StorageAreaFactory>  storageArea_;

@@ -157,7 +157,7 @@ namespace Orthanc
     
     if (information_.GetBitsStored() == 1)
     {
-      // New in Orthanc 1.9.8, notably for DICOM SEG
+      // New in Orthanc 1.10.0, notably for DICOM SEG
       assert(information_.GetBitsAllocated() == 1 &&
              information_.GetChannelCount() == 1 &&
              !information_.IsPlanar());

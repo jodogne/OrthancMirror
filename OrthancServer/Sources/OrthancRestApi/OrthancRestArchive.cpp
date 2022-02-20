@@ -146,7 +146,7 @@ namespace Orthanc
 
     {
       OrthancConfiguration::ReaderLock lock;
-      loaderThreads = lock.GetConfiguration().GetUnsignedIntegerParameter(CONFIG_LOADER_THREADS, 0);  // New in Orthanc 1.9.8
+      loaderThreads = lock.GetConfiguration().GetUnsignedIntegerParameter(CONFIG_LOADER_THREADS, 0);  // New in Orthanc 1.10.0
     }
    
   }
@@ -631,7 +631,7 @@ namespace Orthanc
 
     {
       OrthancConfiguration::ReaderLock lock;
-      unsigned int loaderThreads = lock.GetConfiguration().GetUnsignedIntegerParameter(CONFIG_LOADER_THREADS, 0);  // New in Orthanc 1.9.8
+      unsigned int loaderThreads = lock.GetConfiguration().GetUnsignedIntegerParameter(CONFIG_LOADER_THREADS, 0);  // New in Orthanc 1.10.0
       job->SetLoaderThreads(loaderThreads);
     }
 
