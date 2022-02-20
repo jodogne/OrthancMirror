@@ -1194,7 +1194,7 @@ namespace Orthanc
   {
     if (loaderThreads_ == 0)
     {
-      // default behaviour before loaderThreads was introducted in 1.9.8
+      // default behaviour before loaderThreads was introducted in 1.10.0
       instanceLoader_.reset(new SynchronousInstanceLoader(context_));
     }
     else

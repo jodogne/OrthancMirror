@@ -3677,7 +3677,7 @@ namespace Orthanc
     Register("/instances/{id}/frames/{frame}/matlab", GetMatlabImage);
     Register("/instances/{id}/frames/{frame}/raw", GetRawFrame<false>);
     Register("/instances/{id}/frames/{frame}/raw.gz", GetRawFrame<true>);
-    Register("/instances/{id}/frames/{frame}/numpy", GetNumpyFrame);  // New in Orthanc 1.9.8
+    Register("/instances/{id}/frames/{frame}/numpy", GetNumpyFrame);  // New in Orthanc 1.10.0
     Register("/instances/{id}/pdf", ExtractPdf);
     Register("/instances/{id}/preview", GetImage<ImageExtractionMode_Preview>);
     Register("/instances/{id}/rendered", GetRenderedFrame);
@@ -3686,7 +3686,7 @@ namespace Orthanc
     Register("/instances/{id}/image-int16", GetImage<ImageExtractionMode_Int16>);
     Register("/instances/{id}/matlab", GetMatlabImage);
     Register("/instances/{id}/header", GetInstanceHeader);
-    Register("/instances/{id}/numpy", GetNumpyInstance);  // New in Orthanc 1.9.8
+    Register("/instances/{id}/numpy", GetNumpyInstance);  // New in Orthanc 1.10.0
 
     Register("/patients/{id}/protected", IsProtectedPatient);
     Register("/patients/{id}/protected", SetPatientProtection);
@@ -3746,7 +3746,7 @@ namespace Orthanc
     Register("/instances/{id}/content/*", GetRawContent);
 
     Register("/series/{id}/ordered-slices", OrderSlices);
-    Register("/series/{id}/numpy", GetNumpySeries);  // New in Orthanc 1.9.8
+    Register("/series/{id}/numpy", GetNumpySeries);  // New in Orthanc 1.10.0
 
     Register("/patients/{id}/reconstruct", ReconstructResource<ResourceType_Patient>);
     Register("/studies/{id}/reconstruct", ReconstructResource<ResourceType_Study>);
