@@ -1,23 +1,14 @@
 Pending changes in the mainline
 ===============================
 
-OpenSSL 3.x branch
-------------------
+General
+-------
 
-* General information:
-  https://www.openssl.org/blog/blog/2021/06/17/OpenSSL3.0ReleaseCandidate/
-* Dropped support for static compilation of OpenSSL 1.0.2 and 1.1.1
 * Removed the OpenSSL license exception, as binary versions of Orthanc are now
   designed to use OpenSSL 3.x, that was re-licensed under Apache 2.0, making
   it compatible with the GPL/AGPL licenses used by the Orthanc project:
   https://en.wikipedia.org/wiki/OpenSSL#Licensing
   https://people.gnome.org/~markmc/openssl-and-the-gpl.html
-* Upgraded dependencies for static builds (notably on Windows and LSB):
-  - openssl 3.0.1
-
-General
--------
-
 * New configuration "DicomAlwaysAllowFindWorklist" to complement the existing
   "DicomAlwaysAllowFind" configuration.  "DicomAlwaysAllowFind" applies now 
   only to C-Find for Patients/Studies/Series/Instances while C-Find for worklists are
@@ -39,15 +30,6 @@ General
   to read instances from storage when creating a Zip archive/media.
 * Support decoding of black-and-white images (with 1 bit per pixel), notably DICOM SEG
 * Added links to download attachments from the Orthanc Explorer
-
-Maintenance
------------
-
-* Fix handling of option "DeidentifyLogs", notably for tags (0010,0010) and (0010,0020)
-* New configuration options:
-  - "DicomThreadsCount" to set the number of threads in the embedded DICOM server
-* Fix instances accumulating in DB while their attachments were not stored because of 
-  MaximumStorageSize limit reached with a single patient in DB.
 
 REST API
 --------
@@ -75,6 +57,18 @@ Plugins
 -------
 
 * New function in the SDK: OrthancPluginRegisterIncomingCStoreInstanceFilter()
+
+Maintenance
+-----------
+
+* Fix handling of option "DeidentifyLogs", notably for tags (0010,0010) and (0010,0020)
+* New configuration options:
+  - "DicomThreadsCount" to set the number of threads in the embedded DICOM server
+* Fix instances accumulating in DB while their attachments were not stored because of 
+  MaximumStorageSize limit reached with a single patient in DB.
+* Dropped support for static compilation of OpenSSL 1.0.2 and 1.1.1
+* Upgraded dependencies for static builds (notably on Windows and LSB):
+  - openssl 3.0.1
 
 
 Version 1.9.7 (2021-08-31)
