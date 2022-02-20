@@ -17,20 +17,20 @@ nullPointerRedundantCheck:../../OrthancFramework/UnitTestsSources/DicomMapTests.
 stlFindInsert:../../OrthancFramework/Sources/DicomFormat/DicomMap.cpp:1195
 stlFindInsert:../../OrthancFramework/Sources/RestApi/RestApiCallDocumentation.cpp:165
 stlFindInsert:../../OrthancFramework/Sources/RestApi/RestApiCallDocumentation.cpp:73
-stlFindInsert:../../OrthancServer/Sources/Database/StatelessDatabaseOperations.cpp:385
-stlFindInsert:../../OrthancServer/Sources/OrthancWebDav.cpp:387
-stlFindInsert:../../OrthancServer/Sources/ServerJobs/MergeStudyJob.cpp:52
-stlFindInsert:../../OrthancServer/Sources/ServerJobs/SplitStudyJob.cpp:202
+stlFindInsert:../../OrthancServer/Sources/Database/StatelessDatabaseOperations.cpp:373
+stlFindInsert:../../OrthancServer/Sources/OrthancWebDav.cpp:375
+stlFindInsert:../../OrthancServer/Sources/ServerJobs/MergeStudyJob.cpp:40
+stlFindInsert:../../OrthancServer/Sources/ServerJobs/SplitStudyJob.cpp:190
 syntaxError:../../OrthancFramework/Sources/SQLite/FunctionContext.h:52
 syntaxError:../../OrthancFramework/UnitTestsSources/ZipTests.cpp:132
-syntaxError:../../OrthancServer/UnitTestsSources/UnitTestsMain.cpp:322
-uninitMemberVar:../../OrthancServer/Sources/ServerJobs/StorageCommitmentScpJob.cpp:428
+syntaxError:../../OrthancServer/UnitTestsSources/UnitTestsMain.cpp:310
+uninitMemberVar:../../OrthancServer/Sources/ServerJobs/StorageCommitmentScpJob.cpp:416
 unreadVariable:../../OrthancFramework/Sources/FileStorage/StorageAccessor.cpp
-unreadVariable:../../OrthancServer/Sources/OrthancRestApi/OrthancRestModalities.cpp:1127
+unreadVariable:../../OrthancServer/Sources/OrthancRestApi/OrthancRestModalities.cpp:1115
 unusedFunction
 useInitializationList:../../OrthancFramework/Sources/Images/PngReader.cpp:90
 useInitializationList:../../OrthancFramework/Sources/Images/PngWriter.cpp:98
-useInitializationList:../../OrthancServer/Sources/ServerJobs/DicomModalityStoreJob.cpp:286
+useInitializationList:../../OrthancServer/Sources/ServerJobs/DicomModalityStoreJob.cpp:274
 EOF
 
 ${CPPCHECK} --enable=all --quiet --std=c++11 \
