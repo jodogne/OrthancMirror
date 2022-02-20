@@ -133,7 +133,7 @@ namespace Orthanc
           }
         }
 
-        cache_.Add(uuid, type, data, size);
+        cache_.Add(uuid, type, compressed);
         return FileInfo(uuid, type, size, md5,
                         CompressionType_ZlibWithSize, compressed.size(), compressedMD5);
       }
@@ -156,23 +156,17 @@ namespace Orthanc
   void StorageAccessor::Read(std::string& content,
                              const FileInfo& info)
   {
-    if (cache_.Fetch(content, info.GetUuid(), info.GetContentType()))
-    {
-      LOG(INFO) << "Read attachment \"" << info.GetUuid() << "\" "
-                << "content type from cache";
-      return;
-    }
-
     switch (info.GetCompressionType())
     {
       case CompressionType_None:
       {
-        MetricsTimer timer(*this, METRICS_READ);
+        if (!cache_.Fetch(content, info.GetUuid(), info.GetContentType()))
+        {
+          MetricsTimer timer(*this, METRICS_READ);
+          std::unique_ptr<IMemoryBuffer> buffer(area_.Read(info.GetUuid(), info.GetContentType()));
+          buffer->MoveToString(content);
+        }
 
-        std::unique_ptr<IMemoryBuffer> buffer(area_.Read(info.GetUuid(), info.GetContentType()));
-        buffer->MoveToString(content);
-
-        cache_.Add(info.GetUuid(), info.GetContentType(), content);
         break;
       }
 
@@ -180,16 +174,23 @@ namespace Orthanc
       {
         ZlibCompressor zlib;
 
-        std::unique_ptr<IMemoryBuffer> compressed;
-
+        std::string cached;
+        if (cache_.Fetch(cached, info.GetUuid(), info.GetContentType()))
         {
-          MetricsTimer timer(*this, METRICS_READ);
-          compressed.reset(area_.Read(info.GetUuid(), info.GetContentType()));
+          zlib.Uncompress(content, cached.empty() ? NULL : cached.c_str(), cached.size());
+        }
+        else
+        {
+          std::unique_ptr<IMemoryBuffer> compressed;
+          
+          {
+            MetricsTimer timer(*this, METRICS_READ);
+            compressed.reset(area_.Read(info.GetUuid(), info.GetContentType()));
+          }
+          
+          zlib.Uncompress(content, compressed->GetData(), compressed->GetSize());
         }
 
-        zlib.Uncompress(content, compressed->GetData(), compressed->GetSize());
-
-        cache_.Add(info.GetUuid(), info.GetContentType(), content);
         break;
       }
 
@@ -206,63 +207,56 @@ namespace Orthanc
   void StorageAccessor::ReadRaw(std::string& content,
                                 const FileInfo& info)
   {
-    MetricsTimer timer(*this, METRICS_READ);
-
-    std::unique_ptr<IMemoryBuffer> buffer(area_.Read(info.GetUuid(), info.GetContentType()));
-    buffer->MoveToString(content);        
+    if (!cache_.Fetch(content, info.GetUuid(), info.GetContentType()))
+    {
+      MetricsTimer timer(*this, METRICS_READ);
+      std::unique_ptr<IMemoryBuffer> buffer(area_.Read(info.GetUuid(), info.GetContentType()));
+      buffer->MoveToString(content);
+    }
   }
 
 
   void StorageAccessor::Remove(const std::string& fileUuid,
                                FileContentType type)
   {
-    MetricsTimer timer(*this, METRICS_REMOVE);
-    area_.Remove(fileUuid, type);
-
     cache_.Invalidate(fileUuid, type);
-    
-    // in ReadStartRange, we might have cached only the start of the file -> try to remove it
-    if (type == FileContentType_Dicom)
+
     {
-      cache_.Invalidate(fileUuid, FileContentType_DicomUntilPixelData);
+      MetricsTimer timer(*this, METRICS_REMOVE);
+      area_.Remove(fileUuid, type);
     }
   }
+  
 
   void StorageAccessor::Remove(const FileInfo &info)
   {
     Remove(info.GetUuid(), info.GetContentType());
   }
 
-  IMemoryBuffer* StorageAccessor::ReadStartRange(const std::string& fileUuid,
-                                                 FileContentType contentType,
-                                                 uint64_t end /* exclusive */,
-                                                 FileContentType startFileContentType)
+
+  void StorageAccessor::ReadStartRange(std::string& target,
+                                       const std::string& fileUuid,
+                                       FileContentType contentType,
+                                       uint64_t end /* exclusive */)
   {
-    std::string content;
-    if (cache_.Fetch(content, fileUuid, contentType))
+    if (cache_.Fetch(target, fileUuid, contentType))
     {
-      LOG(INFO) << "Read attachment \"" << fileUuid << "\" "
-                << "(range from " << 0 << " to " << end << ") from cache";
-
-      return StringMemoryBuffer::CreateFromCopy(content, 0, end);
+      if (target.size() < end)
+      {
+        throw OrthancException(ErrorCode_CorruptedFile);
+      }
+      else
+      {
+        target.resize(end);
+      }
     }
-
-    if (cache_.Fetch(content, fileUuid, startFileContentType))
+    else
     {
-      LOG(INFO) << "Read attachment \"" << fileUuid << "\" "
-                << "(range from " << 0 << " to " << end << ") from cache";
-
-      assert(content.size() == end);
-      return StringMemoryBuffer::CreateFromCopy(content);
+      MetricsTimer timer(*this, METRICS_READ);
+      std::unique_ptr<IMemoryBuffer> buffer(area_.ReadRange(fileUuid, contentType, 0, end));
+      assert(buffer->GetSize() == end);
+      buffer->MoveToString(target);
     }
-
-    std::unique_ptr<IMemoryBuffer> buffer(area_.ReadRange(fileUuid, contentType, 0, end));
-
-    // we've read only the first part of the file -> add an entry in the cache
-    // note the uuid is still the uuid of the full file but the type is the type of the start of the file !
-    assert(buffer->GetSize() == end);
-    cache_.Add(fileUuid, startFileContentType, buffer->GetData(), buffer->GetSize());
-    return buffer.release();
   }
 
 
@@ -271,18 +265,10 @@ namespace Orthanc
                                     const FileInfo& info,
                                     const std::string& mime)
   {
-    if (cache_.Fetch(sender.GetBuffer(), info.GetUuid(), info.GetContentType()))
-    {
-      LOG(INFO) << "Read attachment \"" << info.GetUuid() << "\" "
-                << "content type from cache";
-    }
-    else
     {
       MetricsTimer timer(*this, METRICS_READ);
       std::unique_ptr<IMemoryBuffer> buffer(area_.Read(info.GetUuid(), info.GetContentType()));
       buffer->MoveToString(sender.GetBuffer());
-
-      cache_.Add(info.GetUuid(), info.GetContentType(), sender.GetBuffer());
     }
 
     sender.SetContentType(mime);

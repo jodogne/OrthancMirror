@@ -102,10 +102,10 @@ namespace Orthanc
     void ReadRaw(std::string& content,
                  const FileInfo& info);
 
-    IMemoryBuffer* ReadStartRange(const std::string& fileUuid,
-                                  FileContentType fullFileContentType,
-                                  uint64_t end /* exclusive */,
-                                  FileContentType startFileContentType);
+    void ReadStartRange(std::string& target,
+                        const std::string& fileUuid,
+                        FileContentType fullFileContentType,
+                        uint64_t end /* exclusive */);
 
     void Remove(const std::string& fileUuid,
                 FileContentType type);
