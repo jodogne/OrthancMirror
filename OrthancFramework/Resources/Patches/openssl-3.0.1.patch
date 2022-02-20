@@ -1,0 +1,53 @@
+diff -urEb openssl-3.0.1.orig/crypto/threads_win.c openssl-3.0.1/crypto/threads_win.c
+--- openssl-3.0.1.orig/crypto/threads_win.c	2021-12-24 16:56:23.016304241 +0100
++++ openssl-3.0.1/crypto/threads_win.c	2021-12-24 16:58:09.436272646 +0100
+@@ -207,13 +207,30 @@
+ int CRYPTO_atomic_or(uint64_t *val, uint64_t op, uint64_t *ret,
+                      CRYPTO_RWLOCK *lock)
+ {
++#if defined(_WIN32) && !defined(_WIN64)
++    /**
++     * Prevents the following error, at least on Visual Studio 2008,
++     * but most probably on any Window 32bit system:
++     * "CoreLibrary.lib(threads_win.obj) : error LNK2019: unresolved
++     * external symbol _InterlockedOr64 referenced in function
++     * _CRYPTO_atomic_or". TODO - The lock should be locked!
++     * https://developercommunity.visualstudio.com/t/-interlockedexchangeadd64-is-unresolved-on-x86/1227636
++     **/
++    *ret = (*val) | op;
++#else
+     *ret = (uint64_t)InterlockedOr64((LONG64 volatile *)val, (LONG64)op) | op;
++#endif
+     return 1;
+ }
+ 
+ int CRYPTO_atomic_load(uint64_t *val, uint64_t *ret, CRYPTO_RWLOCK *lock)
+ {
++#if defined(_WIN32) && !defined(_WIN64)
++    /* See comment above */
++    *ret = *val;
++#else
+     *ret = (uint64_t)InterlockedOr64((LONG64 volatile *)val, 0);
++#endif
+     return 1;
+ }
+ 
+diff -urEb openssl-3.0.1.orig/providers/implementations/rands/seeding/rand_unix.c openssl-3.0.1/providers/implementations/rands/seeding/rand_unix.c
+--- openssl-3.0.1.orig/providers/implementations/rands/seeding/rand_unix.c	2021-12-24 16:56:23.056304227 +0100
++++ openssl-3.0.1/providers/implementations/rands/seeding/rand_unix.c	2021-12-24 16:57:03.408290650 +0100
+@@ -453,6 +453,7 @@
+              * system call and this should always succeed which renders
+              * this alternative but essentially identical source moot.
+              */
++#if !defined(__LSB_VERSION__)  // "syscall()" is not available in LSB
+             if (uname(&un) == 0) {
+                 kernel[0] = atoi(un.release);
+                 p = strchr(un.release, '.');
+@@ -463,6 +464,7 @@
+                     return 0;
+                 }
+             }
++#endif
+             /* Open /dev/random and wait for it to be readable */
+             if ((fd = open(DEVRANDOM_WAIT, O_RDONLY)) != -1) {
+                 if (DEVRANDM_WAIT_USE_SELECT && fd < FD_SETSIZE) {

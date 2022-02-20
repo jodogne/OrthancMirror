@@ -93,6 +93,11 @@
 #  include <openssl/err.h>
 #  include <openssl/evp.h>
 #  include <openssl/ssl.h>
+
+#  if OPENSSL_VERSION_NUMBER < 0x30000000L
+#    warning You are linking Orthanc against OpenSSL 1.x, whose license is incompatible with the GPLv3+ used by Orthanc >= 1.10.0. Please update to OpenSSL 3.x, that uses the Apache 2 license.
+#  endif
+
 #endif
 
 

@@ -73,6 +73,11 @@
 #if ORTHANC_ENABLE_SSL == 1
 #  include <openssl/opensslv.h>
 #  include <openssl/err.h>
+
+#  if OPENSSL_VERSION_NUMBER < 0x30000000L
+#    warning You are linking Orthanc against OpenSSL 1.x, whose license is incompatible with the GPLv3+ used by Orthanc >= 1.10.0. Please update to OpenSSL 3.x, that uses the Apache 2 license.
+#  endif
+
 #endif
 
 #define ORTHANC_REALM "Orthanc Secure Area"
