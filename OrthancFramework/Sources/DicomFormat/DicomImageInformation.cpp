@@ -187,7 +187,7 @@ namespace Orthanc
 
     if (bitsAllocated_ != 8 && bitsAllocated_ != 16 &&
         bitsAllocated_ != 24 && bitsAllocated_ != 32 &&
-        bitsAllocated_ != 1 /* new in Orthanc 1.9.8 */)
+        bitsAllocated_ != 1 /* new in Orthanc 1.10.0 */)
     {
       throw OrthancException(ErrorCode_IncompatibleImageFormat, "Image not supported: " + boost::lexical_cast<std::string>(bitsAllocated_) + " bits allocated");
     }
@@ -207,7 +207,7 @@ namespace Orthanc
 
     if (bitsStored_ == 1)
     {
-      // This is the case of DICOM SEG, new in Orthanc 1.9.8
+      // This is the case of DICOM SEG, new in Orthanc 1.10.0
       if (bitsAllocated_ != 1)
       {
         throw OrthancException(ErrorCode_BadFileFormat);
@@ -365,7 +365,7 @@ namespace Orthanc
 
       if (GetBitsStored() == 1 && GetChannelCount() == 1 && !IsSigned())
       {
-        // This is the case of DICOM SEG, new in Orthanc 1.9.8
+        // This is the case of DICOM SEG, new in Orthanc 1.10.0
         format = PixelFormat_Grayscale8;
         return true;
       }

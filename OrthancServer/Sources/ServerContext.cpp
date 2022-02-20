@@ -953,23 +953,17 @@ namespace Orthanc
          * "true".
          **/
       
-        std::unique_ptr<IMemoryBuffer> dicom;
+        std::string dicom;
+        
         {
           StorageAccessor accessor(area_, storageCache_, GetMetricsRegistry());
-          dicom.reset(accessor.ReadStartRange(attachment.GetUuid(), FileContentType_Dicom, pixelDataOffset, FileContentType_DicomUntilPixelData));
+          accessor.ReadStartRange(dicom, attachment.GetUuid(), FileContentType_Dicom, pixelDataOffset);
         }
-
-        if (dicom.get() == NULL)
-        {
-          throw OrthancException(ErrorCode_InternalError);
-        }
-        else
-        {
-          assert(dicom->GetSize() == pixelDataOffset);
-          ParsedDicomFile parsed(dicom->GetData(), dicom->GetSize());
-          OrthancConfiguration::DefaultDicomDatasetToJson(result, parsed, ignoreTagLength);
-          InjectEmptyPixelData(result);
-        }
+        
+        assert(dicom.size() == pixelDataOffset);
+        ParsedDicomFile parsed(dicom);
+        OrthancConfiguration::DefaultDicomDatasetToJson(result, parsed, ignoreTagLength);
+        InjectEmptyPixelData(result);
       }
       else if (ignoreTagLength.empty() &&
                index_.LookupAttachment(attachment, revision, instancePublicId, FileContentType_DicomAsJson))
@@ -1093,9 +1087,9 @@ namespace Orthanc
 
         StorageAccessor accessor(area_, storageCache_, GetMetricsRegistry());
 
-        std::unique_ptr<IMemoryBuffer> buffer(
-          accessor.ReadStartRange(attachment.GetUuid(), attachment.GetContentType(), pixelDataOffset, FileContentType_DicomUntilPixelData));
-        buffer->MoveToString(dicom);
+        accessor.ReadStartRange(dicom, attachment.GetUuid(), attachment.GetContentType(), pixelDataOffset);
+        assert(dicom.size() == pixelDataOffset);
+        
         return true;   // Success
       }
       catch (boost::bad_lexical_cast&)
