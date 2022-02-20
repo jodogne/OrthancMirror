@@ -37,7 +37,9 @@ namespace Orthanc
    **/
    class ORTHANC_PUBLIC StorageCache : public boost::noncopyable
     {
+    private:
       MemoryStringCache   cache_;
+      
     public:
       void SetMaximumSize(size_t size);
 
@@ -50,7 +52,8 @@ namespace Orthanc
                const void* buffer,
                size_t size);
 
-      void Invalidate(const std::string& uuid, FileContentType contentType);
+      void Invalidate(const std::string& uuid,
+                      FileContentType contentType);
 
       bool Fetch(std::string& value, 
                  const std::string& uuid,
