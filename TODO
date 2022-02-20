@@ -21,6 +21,10 @@ General
   https://hg.orthanc-server.com/orthanc/file/Orthanc-1.9.3/OrthancFramework/Sources/OrthancFramework.cpp#l88
 * Toolbox::ComputeMD5() fails on files larger than 4GB
 * Add an option to run Orthanc in read-only mode both for DICOM and for Rest API.
+* Logging: add some information like Thread-Id to contextualize the logs
+* Accept extra DICOM tags dictionaries in the DCMTK format '.dic' (easier to use than declare
+  them in the Orthanc configuration file).  Even the standard dictionaries could be 
+  overriden by these custom dictionaries.
 
 ============================
 Documentation (Orthanc Book)
@@ -109,7 +113,7 @@ Mid-term
 Long-term
 ---------
 
-* Support extended association:
+* Support extended association (e.g. for C-Find relational queries):
   https://groups.google.com/d/msg/orthanc-users/xD4d3mpc6ms/srF7E2goAAAJ
 * Support C-MOVE-CANCEL:
   https://groups.google.com/d/msg/orthanc-users/KnduYBFd06A/o86cl5SeCAAJ
@@ -129,8 +133,6 @@ Internationalization
 Performance
 ===========
 
-* StorageAccessor => add a memory cache using MemoryStringCache, for
-  instance to speed up WADO-RS Retrieve Frames in DICOMweb plugin
 * ServerContext::DicomCacheLocker => give access to the raw buffer,
   useful in ServerContext::DecodeDicomInstance()
 * DicomMap: create a cache to the main DICOM tags index

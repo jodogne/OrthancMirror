@@ -26,7 +26,7 @@ syntaxError:../../OrthancFramework/UnitTestsSources/ZipTests.cpp:132
 syntaxError:../../OrthancServer/UnitTestsSources/UnitTestsMain.cpp:322
 uninitMemberVar:../../OrthancServer/Sources/ServerJobs/StorageCommitmentScpJob.cpp:428
 unreadVariable:../../OrthancFramework/Sources/FileStorage/StorageAccessor.cpp
-unreadVariable:../../OrthancServer/Sources/OrthancRestApi/OrthancRestModalities.cpp:1125
+unreadVariable:../../OrthancServer/Sources/OrthancRestApi/OrthancRestModalities.cpp:1127
 unusedFunction
 useInitializationList:../../OrthancFramework/Sources/Images/PngReader.cpp:90
 useInitializationList:../../OrthancFramework/Sources/Images/PngWriter.cpp:98

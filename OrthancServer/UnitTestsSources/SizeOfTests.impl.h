@@ -50,6 +50,7 @@
   printf("sizeof(::Orthanc::ImageAccessor) == %d\n", static_cast<int>(sizeof(::Orthanc::ImageAccessor)));
   printf("sizeof(::Orthanc::ImageBuffer) == %d\n", static_cast<int>(sizeof(::Orthanc::ImageBuffer)));
   printf("sizeof(::Orthanc::ImageProcessing) == %d\n", static_cast<int>(sizeof(::Orthanc::ImageProcessing)));
+  printf("sizeof(::Orthanc::ImageProcessing::IPolygonFiller) == %d\n", static_cast<int>(sizeof(::Orthanc::ImageProcessing::IPolygonFiller)));
   printf("sizeof(::Orthanc::ImageProcessing::ImagePoint) == %d\n", static_cast<int>(sizeof(::Orthanc::ImageProcessing::ImagePoint)));
   printf("sizeof(::Orthanc::JobInfo) == %d\n", static_cast<int>(sizeof(::Orthanc::JobInfo)));
   printf("sizeof(::Orthanc::JobOperationValues) == %d\n", static_cast<int>(sizeof(::Orthanc::JobOperationValues)));

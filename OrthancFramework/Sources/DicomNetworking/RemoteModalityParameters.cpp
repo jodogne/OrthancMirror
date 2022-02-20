@@ -2,8 +2,8 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2021 Osimis S.A., Belgium
- * Copyright (C) 2021-2021 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2022 Osimis S.A., Belgium
+ * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -35,6 +35,7 @@
 static const char* KEY_AET = "AET";
 static const char* KEY_ALLOW_ECHO = "AllowEcho";
 static const char* KEY_ALLOW_FIND = "AllowFind";
+static const char* KEY_ALLOW_FIND_WORKLIST = "AllowFindWorklist";
 static const char* KEY_ALLOW_GET = "AllowGet";
 static const char* KEY_ALLOW_MOVE = "AllowMove";
 static const char* KEY_ALLOW_N_ACTION = "AllowNAction";
@@ -61,6 +62,7 @@ namespace Orthanc
     allowEcho_ = true;
     allowStore_ = true;
     allowFind_ = true;
+    allowFindWorklist_ = true;
     allowMove_ = true;
     allowGet_ = true;
     allowNAction_ = true;  // For storage commitment
@@ -250,6 +252,11 @@ namespace Orthanc
       allowFind_ = SerializationToolbox::ReadBoolean(serialized, KEY_ALLOW_FIND);
     }
 
+    if (serialized.isMember(KEY_ALLOW_FIND_WORKLIST))
+    {
+      allowFindWorklist_ = SerializationToolbox::ReadBoolean(serialized, KEY_ALLOW_FIND_WORKLIST);
+    }
+
     if (serialized.isMember(KEY_ALLOW_STORE))
     {
       allowStore_ = SerializationToolbox::ReadBoolean(serialized, KEY_ALLOW_STORE);
@@ -314,6 +321,9 @@ namespace Orthanc
       case DicomRequestType_Find:
         return allowFind_;
 
+      case DicomRequestType_FindWorklist:
+        return allowFindWorklist_;
+
       case DicomRequestType_Get:
         return allowGet_;
 
@@ -348,6 +358,10 @@ namespace Orthanc
         allowFind_ = allowed;
         break;
 
+      case DicomRequestType_FindWorklist:
+        allowFindWorklist_ = allowed;
+        break;
+
       case DicomRequestType_Get:
         allowGet_ = allowed;
         break;
@@ -379,6 +393,7 @@ namespace Orthanc
     return (!allowEcho_ ||
             !allowStore_ ||
             !allowFind_ ||
+            !allowFindWorklist_ ||
             !allowGet_ ||
             !allowMove_ ||
             !allowNAction_ ||
@@ -403,6 +418,7 @@ namespace Orthanc
       target[KEY_ALLOW_ECHO] = allowEcho_;
       target[KEY_ALLOW_STORE] = allowStore_;
       target[KEY_ALLOW_FIND] = allowFind_;
+      target[KEY_ALLOW_FIND_WORKLIST] = allowFindWorklist_;
       target[KEY_ALLOW_GET] = allowGet_;
       target[KEY_ALLOW_MOVE] = allowMove_;
       target[KEY_ALLOW_N_ACTION] = allowNAction_;
