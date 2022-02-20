@@ -2,7 +2,8 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2021 Osimis S.A., Belgium
+ * Copyright (C) 2017-2022 Osimis S.A., Belgium
+ * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -88,7 +89,24 @@ namespace Orthanc
        * means the order of the pixel values sent shall be R1, G1, B1,
        * R2, G2, B2, ..., etc.
        **/
-      rowOffset_ = information_.GetWidth() * information_.GetBytesPerValue() * information_.GetChannelCount();
+      if (information_.GetBitsStored() == 1)
+      {
+        if (information_.GetChannelCount() == 1 &&
+            information_.GetBitsAllocated() == 1)
+        {
+          assert(information_.GetWidth() % 8 == 0);  // Tested by DicomImageInformation
+          rowOffset_ = information_.GetWidth() / 8;
+        }
+        else
+        {
+          throw OrthancException(ErrorCode_IncompatibleImageFormat,
+                                 "Image not supported (multi-channel black-and-image image)");
+        }
+      }
+      else
+      {
+        rowOffset_ = information_.GetWidth() * information_.GetBytesPerValue() * information_.GetChannelCount();
+      }
     }
   }
 
@@ -115,7 +133,7 @@ namespace Orthanc
       {
         for (unsigned int c = 0; c < channels; c++)
         {
-          int32_t v = GetValue(x, y);
+          int32_t v = GetValue(x, y, c);
           if (v < min)
             min = v;
           if (v > max)
@@ -133,53 +151,74 @@ namespace Orthanc
     assert(x < information_.GetWidth() && 
            y < information_.GetHeight() && 
            channel < information_.GetChannelCount());
+
+    const uint8_t* pixel = (reinterpret_cast<const uint8_t*>(pixelData_) + 
+                            y * rowOffset_ + frame_ * frameOffset_);
     
-    const uint8_t* pixel = reinterpret_cast<const uint8_t*>(pixelData_) + 
-      y * rowOffset_ + frame_ * frameOffset_;
-
-    // http://dicom.nema.org/medical/dicom/current/output/html/part03.html#sect_C.7.6.3.1.3
-    if (information_.IsPlanar())
+    if (information_.GetBitsStored() == 1)
     {
-      /**
-       * Each color plane shall be sent contiguously. For RGB images,
-       * this means the order of the pixel values sent is R1, R2, R3,
-       * ..., G1, G2, G3, ..., B1, B2, B3, etc.
-       **/
-      assert(frameOffset_ % information_.GetChannelCount() == 0);
-      pixel += channel * frameOffset_ / information_.GetChannelCount() + x * information_.GetBytesPerValue();
+      // New in Orthanc 1.9.8, notably for DICOM SEG
+      assert(information_.GetBitsAllocated() == 1 &&
+             information_.GetChannelCount() == 1 &&
+             !information_.IsPlanar());
+      
+      uint8_t b = pixel[x / 8];
+
+      if (b & (1 << (x % 8)))
+      {
+        return 255;
+      }
+      else
+      {
+        return 0;
+      }
     }
     else
     {
-      /**
-       * The sample values for the first pixel are followed by the
-       * sample values for the second pixel, etc. For RGB images, this
-       * means the order of the pixel values sent shall be R1, G1, B1,
-       * R2, G2, B2, ..., etc.
-       **/
-      pixel += channel * information_.GetBytesPerValue() + x * information_.GetChannelCount() * information_.GetBytesPerValue();
-    }
+      // http://dicom.nema.org/medical/dicom/current/output/html/part03.html#sect_C.7.6.3.1.3
+      if (information_.IsPlanar())
+      {
+        /**
+         * Each color plane shall be sent contiguously. For RGB images,
+         * this means the order of the pixel values sent is R1, R2, R3,
+         * ..., G1, G2, G3, ..., B1, B2, B3, etc.
+         **/
+        assert(frameOffset_ % information_.GetChannelCount() == 0);
+        pixel += channel * frameOffset_ / information_.GetChannelCount() + x * information_.GetBytesPerValue();
+      }
+      else
+      {
+        /**
+         * The sample values for the first pixel are followed by the
+         * sample values for the second pixel, etc. For RGB images, this
+         * means the order of the pixel values sent shall be R1, G1, B1,
+         * R2, G2, B2, ..., etc.
+         **/
+        pixel += channel * information_.GetBytesPerValue() + x * information_.GetChannelCount() * information_.GetBytesPerValue();
+      }
 
-    uint32_t v;
-    v = pixel[0];
-    if (information_.GetBytesPerValue() >= 2)
-      v = v + (static_cast<uint32_t>(pixel[1]) << 8);
-    if (information_.GetBytesPerValue() >= 3)
-      v = v + (static_cast<uint32_t>(pixel[2]) << 16);
-    if (information_.GetBytesPerValue() >= 4)
-      v = v + (static_cast<uint32_t>(pixel[3]) << 24);
+      uint32_t v;
+      v = pixel[0];
+      if (information_.GetBytesPerValue() >= 2)
+        v = v + (static_cast<uint32_t>(pixel[1]) << 8);
+      if (information_.GetBytesPerValue() >= 3)
+        v = v + (static_cast<uint32_t>(pixel[2]) << 16);
+      if (information_.GetBytesPerValue() >= 4)
+        v = v + (static_cast<uint32_t>(pixel[3]) << 24);
 
-    v = v >> information_.GetShift();
+      v = v >> information_.GetShift();
 
-    if (v & signMask_)
-    {
-      // Signed value
-      // http://en.wikipedia.org/wiki/Two%27s_complement#Subtraction_from_2N
-      return -static_cast<int32_t>(mask_) + static_cast<int32_t>(v & mask_) - 1;
-    }
-    else
-    {
-      // Unsigned value
-      return static_cast<int32_t>(v & mask_);
+      if (v & signMask_)
+      {
+        // Signed value
+        // http://en.wikipedia.org/wiki/Two%27s_complement#Subtraction_from_2N
+        return -static_cast<int32_t>(mask_) + static_cast<int32_t>(v & mask_) - 1;
+      }
+      else
+      {
+        // Unsigned value
+        return static_cast<int32_t>(v & mask_);
+      }
     }
   }
 

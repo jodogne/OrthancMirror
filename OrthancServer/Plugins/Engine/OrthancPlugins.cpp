@@ -2,24 +2,13 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2021 Osimis S.A., Belgium
+ * Copyright (C) 2017-2022 Osimis S.A., Belgium
+ * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- *
- * In addition, as a special exception, the copyright holders of this
- * program give permission to link the code of its release with the
- * OpenSSL project's "OpenSSL" library (or with modified versions of it
- * that use the same license as the "OpenSSL" library), and distribute
- * the linked executables. You must obey the GNU General Public License
- * in all respects for all of the code used other than "OpenSSL". If you
- * modify file(s) with this exception, you may extend this exception to
- * your version of the file(s), but you are not obligated to do so. If
- * you do not wish to do so, delete this exception statement from your
- * version. If you delete this exception statement from all source files
- * in the program, then also delete it here.
  * 
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -79,8 +68,9 @@
 #include <boost/regex.hpp>
 #include <dcmtk/dcmdata/dcdict.h>
 #include <dcmtk/dcmdata/dcdicent.h>
+#include <dcmtk/dcmnet/dimse.h>
 
-#define ERROR_MESSAGE_64BIT "A 64bit version of the Orthanc API is necessary"
+#define ERROR_MESSAGE_64BIT "A 64bit version of the Orthanc SDK is necessary to use buffers > 4GB and it is currently not available !"
 
 
 namespace Orthanc
@@ -1165,6 +1155,8 @@ namespace Orthanc
     typedef std::list<OrthancPluginIncomingHttpRequestFilter>  IncomingHttpRequestFilters;
     typedef std::list<OrthancPluginIncomingHttpRequestFilter2>  IncomingHttpRequestFilters2;
     typedef std::list<OrthancPluginIncomingDicomInstanceFilter>  IncomingDicomInstanceFilters;
+    typedef std::list<OrthancPluginIncomingCStoreInstanceFilter>  IncomingCStoreInstanceFilters;
+    typedef std::list<OrthancPluginReceivedInstanceCallback>  ReceivedInstanceCallbacks;
     typedef std::list<OrthancPluginDecodeImageCallback>  DecodeImageCallbacks;
     typedef std::list<OrthancPluginTranscoderCallback>  TranscoderCallbacks;
     typedef std::list<OrthancPluginJobsUnserializer>  JobsUnserializers;
@@ -1187,6 +1179,8 @@ namespace Orthanc
     IncomingHttpRequestFilters  incomingHttpRequestFilters_;
     IncomingHttpRequestFilters2 incomingHttpRequestFilters2_;
     IncomingDicomInstanceFilters  incomingDicomInstanceFilters_;
+    IncomingCStoreInstanceFilters  incomingCStoreInstanceFilters_;  // New in Orthanc 1.9.8
+    ReceivedInstanceCallbacks  receivedInstanceCallbacks_;  // New in Orthanc 1.9.8
     RefreshMetricsCallbacks refreshMetricsCallbacks_;
     StorageCommitmentScpCallbacks storageCommitmentScpCallbacks_;
     std::unique_ptr<StorageAreaFactory>  storageArea_;
@@ -2261,7 +2255,104 @@ namespace Orthanc
     return true;
   }
 
-  
+
+
+  uint16_t OrthancPlugins::FilterIncomingCStoreInstance(const DicomInstanceToStore& instance,
+                                                        const Json::Value& simplified)
+  {
+    DicomInstanceFromCallback wrapped(instance);
+    
+    boost::recursive_mutex::scoped_lock lock(pimpl_->invokeServiceMutex_);
+    
+    for (PImpl::IncomingCStoreInstanceFilters::const_iterator
+           filter = pimpl_->incomingCStoreInstanceFilters_.begin();
+         filter != pimpl_->incomingCStoreInstanceFilters_.end(); ++filter)
+    {
+      int32_t filterResult = (*filter) (reinterpret_cast<const OrthancPluginDicomInstance*>(&wrapped));
+
+      if (filterResult >= 0 && filterResult <= 0xFFFF)
+      {
+        return static_cast<uint16_t>(filterResult);
+      }
+      else
+      {
+        // The callback is only allowed to answer uint16_t
+        throw OrthancException(ErrorCode_Plugin);
+      }
+    }
+
+    return STATUS_Success;
+  }
+
+
+  bool OrthancPlugins::ApplyReceivedInstanceCallbacks(const void* receivedDicom,
+                                                      size_t receivedDicomSize,
+                                                      void** modifiedDicomBufferData,
+                                                      size_t& modifiedDicomBufferSize)
+  {
+    uint64_t modifiedDicomSize64 = 0;
+    *modifiedDicomBufferData = NULL;
+
+    boost::recursive_mutex::scoped_lock lock(pimpl_->invokeServiceMutex_);
+    
+    for (PImpl::ReceivedInstanceCallbacks::const_iterator
+           callback = pimpl_->receivedInstanceCallbacks_.begin();
+         callback != pimpl_->receivedInstanceCallbacks_.end(); ++callback)
+    {
+      OrthancPluginReceivedInstanceCallbackResult callbackResult = (*callback) (receivedDicom,
+                                                                                receivedDicomSize,
+                                                                                modifiedDicomBufferData,
+                                                                                &modifiedDicomSize64);
+
+      if (callbackResult == OrthancPluginReceivedInstanceCallbackResult_Discard)
+      {
+        if (modifiedDicomSize64 > 0 || *modifiedDicomBufferData != NULL)
+        {
+          free(modifiedDicomBufferData);
+          throw OrthancException(ErrorCode_Plugin, "The ReceivedInstanceCallback plugin is returning a modified buffer while it has discarded the instance");
+        }
+
+        CLOG(INFO, PLUGINS) << "A plugin has discarded the instance in its ReceivedInstanceCallback";        
+        return false;
+      }
+      else if (callbackResult == OrthancPluginReceivedInstanceCallbackResult_KeepAsIs)
+      {
+        if (modifiedDicomSize64 > 0 || *modifiedDicomBufferData != NULL)
+        {
+          free(modifiedDicomBufferData);
+          throw OrthancException(ErrorCode_Plugin, "The ReceivedInstanceCallback plugin is returning a modified buffer while it has not modified the instance");
+        }
+        return true; 
+      }
+      else if (callbackResult == OrthancPluginReceivedInstanceCallbackResult_Modified)
+      {
+        if (modifiedDicomSize64 > 0 && modifiedDicomBufferData != NULL)
+        {
+          if (static_cast<size_t>(modifiedDicomSize64) != modifiedDicomSize64)  // Orthanc is running in 32bits and has received a > 4GB buffer
+          {
+            free(modifiedDicomBufferData);
+            throw OrthancException(ErrorCode_Plugin, "The Plugin has returned a > 4GB which is too large for Orthanc running in 32bits");
+          }
+
+          modifiedDicomBufferSize = static_cast<size_t>(modifiedDicomSize64);
+
+          CLOG(INFO, PLUGINS) << "A plugin has modified the instance in its ReceivedInstanceCallback";        
+          return true;
+        }
+        else
+        {
+          throw OrthancException(ErrorCode_Plugin, "The ReceivedInstanceCallback plugin is not returning a modified buffer while it has modified the instance");
+        }
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_Plugin, "The ReceivedInstanceCallback has returned an invalid value");
+      }
+    }
+
+    return true;
+  }
+
   void OrthancPlugins::SignalChangeInternal(OrthancPluginChangeType changeType,
                                             OrthancPluginResourceType resourceType,
                                             const char* resource)
@@ -2478,6 +2569,24 @@ namespace Orthanc
     pimpl_->incomingDicomInstanceFilters_.push_back(p.callback);
   }
 
+
+  void OrthancPlugins::RegisterIncomingCStoreInstanceFilter(const void* parameters)
+  {
+    const _OrthancPluginIncomingCStoreInstanceFilter& p = 
+      *reinterpret_cast<const _OrthancPluginIncomingCStoreInstanceFilter*>(parameters);
+
+    CLOG(INFO, PLUGINS) << "Plugin has registered a callback to filter incoming C-Store DICOM instances";
+    pimpl_->incomingCStoreInstanceFilters_.push_back(p.callback);
+  }
+
+  void OrthancPlugins::RegisterReceivedInstanceCallback(const void* parameters)
+  {
+    const _OrthancPluginReceivedInstanceCallback& p = 
+      *reinterpret_cast<const _OrthancPluginReceivedInstanceCallback*>(parameters);
+
+    CLOG(INFO, PLUGINS) << "Plugin has registered a received instance callback";
+    pimpl_->receivedInstanceCallbacks_.push_back(p.callback);
+  }
 
   void OrthancPlugins::RegisterRefreshMetricsCallback(const void* parameters)
   {
@@ -4955,6 +5064,14 @@ namespace Orthanc
 
       case _OrthancPluginService_RegisterIncomingDicomInstanceFilter:
         RegisterIncomingDicomInstanceFilter(parameters);
+        return true;
+
+      case _OrthancPluginService_RegisterIncomingCStoreInstanceFilter:
+        RegisterIncomingCStoreInstanceFilter(parameters);
+        return true;
+
+      case _OrthancPluginService_RegisterReceivedInstanceCallback:
+        RegisterReceivedInstanceCallback(parameters);
         return true;
 
       case _OrthancPluginService_RegisterRefreshMetricsCallback:

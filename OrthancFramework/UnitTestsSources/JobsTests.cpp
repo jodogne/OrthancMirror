@@ -2,7 +2,8 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2021 Osimis S.A., Belgium
+ * Copyright (C) 2017-2022 Osimis S.A., Belgium
+ * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -125,6 +126,7 @@ namespace
 
     virtual bool GetOutput(std::string& output,
                            MimeType& mime,
+                           std::string& filename,
                            const std::string& key) ORTHANC_OVERRIDE
     {
       return false;
@@ -1310,6 +1312,7 @@ TEST(JobsSerialization, RemoteModalityParameters)
     ASSERT_EQ(ModalityManufacturer_Generic, modality.GetManufacturer());
     ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_Echo));
     ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_Find));
+    ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_FindWorklist));
     ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_Get));
     ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_Store));
     ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_Move));
@@ -1349,6 +1352,7 @@ TEST(JobsSerialization, RemoteModalityParameters)
     ASSERT_EQ(ModalityManufacturer_GenericNoWildcardInDates, modality.GetManufacturer());
     ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_Echo));
     ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_Find));
+    ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_FindWorklist));
     ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_Get));
     ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_Store));
     ASSERT_TRUE(modality.IsRequestAllowed(DicomRequestType_Move));
@@ -1375,13 +1379,14 @@ TEST(JobsSerialization, RemoteModalityParameters)
   std::set<DicomRequestType> operations;
   operations.insert(DicomRequestType_Echo);
   operations.insert(DicomRequestType_Find);
+  operations.insert(DicomRequestType_FindWorklist);
   operations.insert(DicomRequestType_Get);
   operations.insert(DicomRequestType_Move);
   operations.insert(DicomRequestType_Store);
   operations.insert(DicomRequestType_NAction);
   operations.insert(DicomRequestType_NEventReport);
 
-  ASSERT_EQ(7u, operations.size());
+  ASSERT_EQ(8u, operations.size());
 
   for (std::set<DicomRequestType>::const_iterator 
          it = operations.begin(); it != operations.end(); ++it)

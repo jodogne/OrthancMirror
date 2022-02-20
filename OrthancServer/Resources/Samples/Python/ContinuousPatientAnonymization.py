@@ -3,7 +3,8 @@
 # Orthanc - A Lightweight, RESTful DICOM Store
 # Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
 # Department, University Hospital of Liege, Belgium
-# Copyright (C) 2017-2021 Osimis S.A., Belgium
+# Copyright (C) 2017-2022 Osimis S.A., Belgium
+# Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
 #
 # This program is free software: you can redistribute it and/or
 # modify it under the terms of the GNU General Public License as
@@ -23,7 +24,7 @@
 import time
 import sys
 import RestToolbox
-import md5
+import hashlib
 
 
 ##
@@ -65,13 +66,15 @@ def AnonymizePatient(path):
         
         # The PatientID after anonymization is taken as the 8 first
         # characters from the MD5 hash of the original PatientID
-        anonymizedID = md5.new(patientID).hexdigest()[:8]
+        h = hashlib.md5(patientID.encode('ascii'))
+        anonymizedID = h.hexdigest()[:8]
         anonymizedName = 'Anonymized patient %d' % COUNT
         COUNT += 1
 
         RestToolbox.DoPost(URL + path + '/anonymize',
                            { 'Replace' : { 'PatientID' : anonymizedID,
-                                           'PatientName' : anonymizedName } })
+                                           'PatientName' : anonymizedName },
+                             'Force' : True })
 
         # Delete the source patient after the anonymization
         RestToolbox.DoDelete(URL + change['Path'])

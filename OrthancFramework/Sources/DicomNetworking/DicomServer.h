@@ -2,7 +2,8 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2021 Osimis S.A., Belgium
+ * Copyright (C) 2017-2022 Osimis S.A., Belgium
+ * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -72,6 +73,7 @@ namespace Orthanc
     uint16_t port_;
     bool continue_;
     uint32_t associationTimeout_;
+    unsigned int threadsCount_;
     IRemoteModalities* modalities_;
     IFindRequestHandlerFactory* findRequestHandlerFactory_;
     IMoveRequestHandlerFactory* moveRequestHandlerFactory_;
@@ -88,6 +90,7 @@ namespace Orthanc
     std::string  trustedCertificatesPath_;
     unsigned int maximumPduLength_;
     bool         remoteCertificateRequired_;  // New in 1.9.3
+
 
     static void ServerThread(DicomServer* server,
                              unsigned int maximumPduLength,
@@ -163,5 +166,8 @@ namespace Orthanc
 
     void SetRemoteCertificateRequired(bool required);
     bool IsRemoteCertificateRequired() const;
+
+    void SetThreadsCount(unsigned int threadsCount);
+
   };
 }

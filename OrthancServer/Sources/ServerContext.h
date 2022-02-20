@@ -2,24 +2,13 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2021 Osimis S.A., Belgium
+ * Copyright (C) 2017-2022 Osimis S.A., Belgium
+ * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- *
- * In addition, as a special exception, the copyright holders of this
- * program give permission to link the code of its release with the
- * OpenSSL project's "OpenSSL" library (or with modified versions of it
- * that use the same license as the "OpenSSL" library), and distribute
- * the linked executables. You must obey the GNU General Public License
- * in all respects for all of the code used other than "OpenSSL". If you
- * modify file(s) with this exception, you may extend this exception to
- * your version of the file(s), but you are not obligated to do so. If
- * you do not wish to do so, delete this exception statement from your
- * version. If you delete this exception statement from all source files
- * in the program, then also delete it here.
  * 
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -43,6 +32,7 @@
 #include "../../OrthancFramework/Sources/DicomParsing/DicomModification.h"
 #include "../../OrthancFramework/Sources/DicomParsing/IDicomTranscoder.h"
 #include "../../OrthancFramework/Sources/DicomParsing/ParsedDicomCache.h"
+#include "../../OrthancFramework/Sources/FileStorage/StorageCache.h"
 #include "../../OrthancFramework/Sources/MultiThreading/Semaphore.h"
 
 
@@ -93,6 +83,36 @@ namespace Orthanc
                          const Json::Value* dicomAsJson) = 0;
     };
     
+    struct StoreResult
+    {
+    private:
+      StoreStatus  status_;
+      uint16_t     cstoreStatusCode_;
+      // uint16_t     httpStatusCode_; // for future use
+
+    public:
+      StoreResult();
+
+      void SetStatus(StoreStatus status)
+      {
+        status_ = status;
+      }
+
+      StoreStatus GetStatus()
+      {
+        return status_;
+      }
+
+      void SetCStoreStatusCode(uint16_t statusCode)
+      {
+        cstoreStatusCode_ = statusCode;
+      }
+
+      uint16_t GetCStoreStatusCode()
+      {
+        return cstoreStatusCode_;
+      }
+    };
     
   private:
     class LuaServerListener : public IServerListener
@@ -122,6 +142,12 @@ namespace Orthanc
                                           const Json::Value& simplified) ORTHANC_OVERRIDE
       {
         return context_.filterLua_.FilterIncomingInstance(instance, simplified);
+      }
+
+      virtual uint16_t FilterIncomingCStoreInstance(const DicomInstanceToStore& instance,
+                                                    const Json::Value& simplified) ORTHANC_OVERRIDE
+      {
+        return context_.filterLua_.FilterIncomingCStoreInstance(instance, simplified);
       }
     };
     
@@ -169,6 +195,7 @@ namespace Orthanc
 
     ServerIndex index_;
     IStorageArea& area_;
+    StorageCache storageCache_;
 
     bool compressionEnabled_;
     bool storeMD5_;
@@ -231,7 +258,7 @@ namespace Orthanc
     bool isUnknownSopClassAccepted_;
     std::set<DicomTransferSyntax>  acceptedTransferSyntaxes_;
 
-    StoreStatus StoreAfterTranscoding(std::string& resultPublicId,
+    StoreResult StoreAfterTranscoding(std::string& resultPublicId,
                                       DicomInstanceToStore& dicom,
                                       StoreInstanceMode mode);
 
@@ -288,6 +315,11 @@ namespace Orthanc
       return index_;
     }
 
+    void SetMaximumStorageCacheSize(size_t size)
+    {
+      return storageCache_.SetMaximumSize(size);
+    }
+
     void SetCompressionEnabled(bool enabled);
 
     bool IsCompressionEnabled() const
@@ -304,7 +336,7 @@ namespace Orthanc
                        int64_t oldRevision,
                        const std::string& oldMD5);
 
-    StoreStatus Store(std::string& resultPublicId,
+    StoreResult Store(std::string& resultPublicId,
                       DicomInstanceToStore& dicom,
                       StoreInstanceMode mode);
 
@@ -325,7 +357,10 @@ namespace Orthanc
 
     void ReadDicom(std::string& dicom,
                    const std::string& instancePublicId);
-    
+
+    void ReadDicomForHeader(std::string& dicom,
+                            const std::string& instancePublicId);
+
     bool ReadDicomUntilPixelData(std::string& dicom,
                                  const std::string& instancePublicId);
 

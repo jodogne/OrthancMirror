@@ -2,7 +2,8 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2021 Osimis S.A., Belgium
+ * Copyright (C) 2017-2022 Osimis S.A., Belgium
+ * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -64,7 +65,9 @@ namespace Orthanc
     void GetExtremeValues(int32_t& min, 
                           int32_t& max) const;
 
-    int32_t GetValue(unsigned int x, unsigned int y, unsigned int channel = 0) const;
+    int32_t GetValue(unsigned int x,
+                     unsigned int y,
+                     unsigned int channel) const;
 
     const void* GetPixelData() const
     {

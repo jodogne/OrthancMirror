@@ -1,7 +1,8 @@
 # Orthanc - A Lightweight, RESTful DICOM Store
 # Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
 # Department, University Hospital of Liege, Belgium
-# Copyright (C) 2017-2021 Osimis S.A., Belgium
+# Copyright (C) 2017-2022 Osimis S.A., Belgium
+# Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
 #
 # This program is free software: you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public License
@@ -67,7 +68,7 @@ else()
     message(FATAL_ERROR "Please install the libjsoncpp-dev package")
   endif()
 
-  # Switch to the C++11 standard if the version of JsonCpp is 1.y.z
+  # Detect if the version of JsonCpp is >= 1.0.0
   if (EXISTS ${JSONCPP_INCLUDE_DIR}/json/version.h)
     file(STRINGS
       "${JSONCPP_INCLUDE_DIR}/json/version.h" 
@@ -98,11 +99,9 @@ if (JSONCPP_CXX11)
   # https://gitlab.kitware.com/third-party/jsoncpp/commit/56df2068470241f9043b676bfae415ed62a0c172
   add_definitions(-DJSONCPP_DEPRECATED_STACK_LIMIT=5000)
 
-  if (CMAKE_COMPILER_IS_GNUCXX)
-    message("Switching to C++11 standard in gcc, as version of JsonCpp is >= 1.0.0")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++11")
-  elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-    message("Switching to C++11 standard in clang, as version of JsonCpp is >= 1.0.0")
+  if (APPLE AND
+      "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+    # Explicitly adding "-std=c++11" is needed on XCode
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
   endif()
 endif()

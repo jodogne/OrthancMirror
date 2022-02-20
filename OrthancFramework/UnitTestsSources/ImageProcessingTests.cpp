@@ -2,7 +2,8 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2021 Osimis S.A., Belgium
+ * Copyright (C) 2017-2022 Osimis S.A., Belgium
+ * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -194,6 +195,7 @@ TYPED_TEST(TestIntegerImageTraits, SetZeroFloat)
   }
 }
 
+
 TYPED_TEST(TestIntegerImageTraits, FillPolygon)
 {
   ImageAccessor& image = this->GetImage();
@@ -233,7 +235,15 @@ TYPED_TEST(TestIntegerImageTraits, FillPolygonLargerThanImage)
   points.push_back(ImageProcessing::ImagePoint(image.GetWidth(),image.GetHeight()));
   points.push_back(ImageProcessing::ImagePoint(0,image.GetHeight()));
 
-  ASSERT_THROW(ImageProcessing::FillPolygon(image, points, 255), OrthancException);
+  ImageProcessing::FillPolygon(image, points, 255);
+
+  for (unsigned int y = 0; y < image.GetHeight(); y++)
+  {
+    for (unsigned int x = 0; x < image.GetWidth(); x++)
+    {
+      ASSERT_FLOAT_EQ(255, TestFixture::ImageTraits::GetFloatPixel(image, x, y));
+    }
+  }
 }
 
 TYPED_TEST(TestIntegerImageTraits, FillPolygonFullImage)
@@ -296,9 +306,9 @@ static bool TestGrayscale16Pixel(const ImageAccessor& image,
 }
 
 static void SetSignedGrayscale16Pixel(ImageAccessor& image,
-                                unsigned int x,
-                                unsigned int y,
-                                int16_t value)
+                                      unsigned int x,
+                                      unsigned int y,
+                                      int16_t value)
 {
   ImageTraits<PixelFormat_SignedGrayscale16>::SetPixel(image, value, x, y);
 }
@@ -1079,5 +1089,276 @@ TEST(ImageProcessing, ShiftScale2)
       ASSERT_FLOAT_EQ((*a) * (10.0f + (*b)),
                       ImageTraits<PixelFormat_Float32>::GetFloatPixel(target, 0, 0));
     }
+  }
+}
+
+
+namespace
+{
+  class PolygonSegments : public ImageProcessing::IPolygonFiller
+  {
+  private:
+    std::vector<int> y_, x1_, x2_;
+
+  public:  
+    virtual void Fill(int y,
+                      int x1,
+                      int x2) ORTHANC_OVERRIDE
+    {
+      assert(x1 <= x2);
+      y_.push_back(y);
+      x1_.push_back(x1);
+      x2_.push_back(x2);
+    }
+
+    size_t GetSize() const
+    {
+      return y_.size();
+    }
+
+    int GetY(size_t i) const
+    {
+      return y_[i];
+    }
+
+    int GetX1(size_t i) const
+    {
+      return x1_[i];
+    }
+
+    int GetX2(size_t i) const
+    {
+      return x2_[i];
+    }
+  };
+}
+
+
+static bool LookupSegment(unsigned int& x1,
+                          unsigned int& x2,
+                          const Orthanc::ImageAccessor& image,
+                          unsigned int y)
+{
+  const uint8_t* p = reinterpret_cast<const uint8_t*>(image.GetConstRow(y));
+
+  bool allZeros = true;
+  for (unsigned int i = 0; i < image.GetWidth(); i++)
+  {
+    if (p[i] == 255)
+    {
+      allZeros = false;
+      break;
+    }
+    else if (p[i] > 0)
+    {
+      return false;  // error
+    }
+  }
+
+  if (allZeros)
+  {
+    return false;
+  }  
+
+  x1 = 0;
+  while (p[x1] == 0)
+  {
+    x1++;
+  }
+
+  x2 = image.GetWidth() - 1;
+  while (p[x2] == 0)
+  {
+    x2--;
+  }
+
+  for (unsigned int i = x1; i <= x2; i++)
+  {
+    if (p[i] != 255)
+    {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+
+TEST(ImageProcessing, FillPolygon)
+{
+  {
+    // Empty
+    std::vector<ImageProcessing::ImagePoint> polygon;
+
+    PolygonSegments segments;
+    ImageProcessing::FillPolygon(segments, polygon);
+    ASSERT_EQ(0u, segments.GetSize());
+  }
+
+  {
+    // One point
+    std::vector<ImageProcessing::ImagePoint> polygon;
+    polygon.push_back(ImageProcessing::ImagePoint(288, 208));
+
+    PolygonSegments segments;
+    ImageProcessing::FillPolygon(segments, polygon);
+    ASSERT_EQ(0u, segments.GetSize());
+  }
+
+  {
+    // One horizontal segment
+    std::vector<ImageProcessing::ImagePoint> polygon;
+    polygon.push_back(ImageProcessing::ImagePoint(10, 100));
+    polygon.push_back(ImageProcessing::ImagePoint(50, 100));
+
+    PolygonSegments segments;
+    ImageProcessing::FillPolygon(segments, polygon);
+    ASSERT_EQ(1u, segments.GetSize());
+    ASSERT_EQ(100, segments.GetY(0));
+    ASSERT_EQ(10, segments.GetX1(0));
+    ASSERT_EQ(50, segments.GetX2(0));
+  }
+
+  {
+    // Set of horizontal segments
+    std::vector<ImageProcessing::ImagePoint> polygon;
+    polygon.push_back(ImageProcessing::ImagePoint(10, 100));
+    polygon.push_back(ImageProcessing::ImagePoint(20, 100));
+    polygon.push_back(ImageProcessing::ImagePoint(30, 100));
+    polygon.push_back(ImageProcessing::ImagePoint(50, 100));
+
+    PolygonSegments segments;
+    ImageProcessing::FillPolygon(segments, polygon);
+    ASSERT_EQ(1u, segments.GetSize());
+    ASSERT_EQ(100, segments.GetY(0));
+    ASSERT_EQ(10, segments.GetX1(0));
+    ASSERT_EQ(50, segments.GetX2(0));
+  }
+
+  {
+    // Set of vertical segments
+    std::vector<ImageProcessing::ImagePoint> polygon;
+    polygon.push_back(ImageProcessing::ImagePoint(10, 100));
+    polygon.push_back(ImageProcessing::ImagePoint(10, 102));
+    polygon.push_back(ImageProcessing::ImagePoint(10, 105));
+
+    PolygonSegments segments;
+    ImageProcessing::FillPolygon(segments, polygon);
+    ASSERT_EQ(6u, segments.GetSize());
+    for (size_t i = 0; i < segments.GetSize(); i++)
+    {
+      ASSERT_EQ(100 + i, segments.GetY(i));
+      ASSERT_EQ(10, segments.GetX1(i));
+      ASSERT_EQ(10, segments.GetX2(i));
+    }
+  }
+
+  {
+    // One diagonal segment
+    std::vector<ImageProcessing::ImagePoint> polygon;
+    polygon.push_back(ImageProcessing::ImagePoint(10, 100));
+    polygon.push_back(ImageProcessing::ImagePoint(11, 101));
+    polygon.push_back(ImageProcessing::ImagePoint(13, 103));
+
+    PolygonSegments segments;
+    ImageProcessing::FillPolygon(segments, polygon);
+    ASSERT_EQ(4u, segments.GetSize());
+    ASSERT_EQ(100, segments.GetY(0));
+    ASSERT_EQ(10, segments.GetX1(0));
+    ASSERT_EQ(10, segments.GetX2(0));
+    ASSERT_EQ(101, segments.GetY(1));
+    ASSERT_EQ(11, segments.GetX1(1));
+    ASSERT_EQ(11, segments.GetX2(1));
+    ASSERT_EQ(102, segments.GetY(2));
+    ASSERT_EQ(12, segments.GetX1(2));
+    ASSERT_EQ(12, segments.GetX2(2));
+    ASSERT_EQ(103, segments.GetY(3));
+    ASSERT_EQ(13, segments.GetX1(3));
+    ASSERT_EQ(13, segments.GetX2(3));
+  }
+
+  {
+    // "M" shape
+    std::vector<ImageProcessing::ImagePoint> polygon;
+    polygon.push_back(ImageProcessing::ImagePoint(5, 5));
+    polygon.push_back(ImageProcessing::ImagePoint(7, 7));
+    polygon.push_back(ImageProcessing::ImagePoint(9, 5));
+    polygon.push_back(ImageProcessing::ImagePoint(9, 8));
+    polygon.push_back(ImageProcessing::ImagePoint(5, 8));
+
+    PolygonSegments segments;
+    ImageProcessing::FillPolygon(segments, polygon);
+    ASSERT_EQ(6u, segments.GetSize());
+    ASSERT_EQ(5, segments.GetY(0));  ASSERT_EQ(5, segments.GetX1(0));  ASSERT_EQ(5, segments.GetX2(0));
+    ASSERT_EQ(5, segments.GetY(1));  ASSERT_EQ(9, segments.GetX1(1));  ASSERT_EQ(9, segments.GetX2(1));
+    ASSERT_EQ(6, segments.GetY(2));  ASSERT_EQ(5, segments.GetX1(2));  ASSERT_EQ(6, segments.GetX2(2));
+    ASSERT_EQ(6, segments.GetY(3));  ASSERT_EQ(8, segments.GetX1(3));  ASSERT_EQ(9, segments.GetX2(3));
+    ASSERT_EQ(7, segments.GetY(4));  ASSERT_EQ(5, segments.GetX1(4));  ASSERT_EQ(9, segments.GetX2(4));
+    ASSERT_EQ(8, segments.GetY(5));  ASSERT_EQ(5, segments.GetX1(5));  ASSERT_EQ(9, segments.GetX2(5));
+  }
+
+  {
+    // Rectangle
+    std::vector<ImageProcessing::ImagePoint> polygon;
+    polygon.push_back(ImageProcessing::ImagePoint(10, 50));
+    polygon.push_back(ImageProcessing::ImagePoint(200, 50));
+    polygon.push_back(ImageProcessing::ImagePoint(200, 100));
+    polygon.push_back(ImageProcessing::ImagePoint(10, 100));
+
+    PolygonSegments segments;
+    ImageProcessing::FillPolygon(segments, polygon);
+    ASSERT_EQ(51u, segments.GetSize());
+
+    for (size_t i = 0; i < segments.GetSize(); i++)
+    {
+      ASSERT_EQ(i + 50, segments.GetY(i));
+      ASSERT_EQ(10, segments.GetX1(i));
+      ASSERT_EQ(200, segments.GetX2(i));
+    }
+  }
+
+  {
+    // Shape that goes outside of the image on the 4 borders
+    std::vector<ImageProcessing::ImagePoint> polygon;
+    polygon.push_back(ImageProcessing::ImagePoint(5, -5));
+    polygon.push_back(ImageProcessing::ImagePoint(40, 15));
+    polygon.push_back(ImageProcessing::ImagePoint(20, 32));
+    polygon.push_back(ImageProcessing::ImagePoint(-5, 27));
+
+    Image image(PixelFormat_Grayscale8, 30, 30, false);
+    ImageProcessing::Set(image, 0);
+    ImageProcessing::FillPolygon(image, polygon, 255);
+
+    unsigned int x1, x2;
+    ASSERT_TRUE(LookupSegment(x1, x2, image, 0));   ASSERT_EQ(3u, x1);  ASSERT_EQ(14u, x2);
+    ASSERT_TRUE(LookupSegment(x1, x2, image, 1));   ASSERT_EQ(3u, x1);  ASSERT_EQ(16u, x2);
+    ASSERT_TRUE(LookupSegment(x1, x2, image, 2));   ASSERT_EQ(2u, x1);  ASSERT_EQ(18u, x2);
+    ASSERT_TRUE(LookupSegment(x1, x2, image, 3));   ASSERT_EQ(2u, x1);  ASSERT_EQ(19u, x2);
+    ASSERT_TRUE(LookupSegment(x1, x2, image, 4));   ASSERT_EQ(2u, x1);  ASSERT_EQ(21u, x2);
+    ASSERT_TRUE(LookupSegment(x1, x2, image, 5));   ASSERT_EQ(1u, x1);  ASSERT_EQ(23u, x2);
+    ASSERT_TRUE(LookupSegment(x1, x2, image, 6));   ASSERT_EQ(1u, x1);  ASSERT_EQ(25u, x2);
+    ASSERT_TRUE(LookupSegment(x1, x2, image, 7));   ASSERT_EQ(1u, x1);  ASSERT_EQ(26u, x2);
+    ASSERT_TRUE(LookupSegment(x1, x2, image, 8));   ASSERT_EQ(0u, x1);  ASSERT_EQ(28u, x2);
+    ASSERT_TRUE(LookupSegment(x1, x2, image, 9));   ASSERT_EQ(0u, x1);  ASSERT_EQ(29u, x2);
+    ASSERT_TRUE(LookupSegment(x1, x2, image, 10));  ASSERT_EQ(0u, x1);  ASSERT_EQ(29u, x2);
+    ASSERT_TRUE(LookupSegment(x1, x2, image, 11));  ASSERT_EQ(0u, x1);  ASSERT_EQ(29u, x2);
+    ASSERT_TRUE(LookupSegment(x1, x2, image, 12));  ASSERT_EQ(0u, x1);  ASSERT_EQ(29u, x2);
+    ASSERT_TRUE(LookupSegment(x1, x2, image, 13));  ASSERT_EQ(0u, x1);  ASSERT_EQ(29u, x2);
+    ASSERT_TRUE(LookupSegment(x1, x2, image, 14));  ASSERT_EQ(0u, x1);  ASSERT_EQ(29u, x2);
+    ASSERT_TRUE(LookupSegment(x1, x2, image, 15));  ASSERT_EQ(0u, x1);  ASSERT_EQ(29u, x2);
+    ASSERT_TRUE(LookupSegment(x1, x2, image, 16));  ASSERT_EQ(0u, x1);  ASSERT_EQ(29u, x2);
+    ASSERT_TRUE(LookupSegment(x1, x2, image, 17));  ASSERT_EQ(0u, x1);  ASSERT_EQ(29u, x2);
+    ASSERT_TRUE(LookupSegment(x1, x2, image, 18));  ASSERT_EQ(0u, x1);  ASSERT_EQ(29u, x2);
+    ASSERT_TRUE(LookupSegment(x1, x2, image, 19));  ASSERT_EQ(0u, x1);  ASSERT_EQ(29u, x2);
+    ASSERT_TRUE(LookupSegment(x1, x2, image, 20));  ASSERT_EQ(0u, x1);  ASSERT_EQ(29u, x2);
+    ASSERT_TRUE(LookupSegment(x1, x2, image, 21));  ASSERT_EQ(0u, x1);  ASSERT_EQ(29u, x2);
+    ASSERT_TRUE(LookupSegment(x1, x2, image, 22));  ASSERT_EQ(0u, x1);  ASSERT_EQ(29u, x2);
+    ASSERT_TRUE(LookupSegment(x1, x2, image, 23));  ASSERT_EQ(0u, x1);  ASSERT_EQ(29u, x2);
+    ASSERT_TRUE(LookupSegment(x1, x2, image, 24));  ASSERT_EQ(0u, x1);  ASSERT_EQ(29u, x2);
+    ASSERT_TRUE(LookupSegment(x1, x2, image, 25));  ASSERT_EQ(0u, x1);  ASSERT_EQ(29u, x2);
+    ASSERT_TRUE(LookupSegment(x1, x2, image, 26));  ASSERT_EQ(0u, x1);  ASSERT_EQ(28u, x2);
+    ASSERT_TRUE(LookupSegment(x1, x2, image, 27));  ASSERT_EQ(0u, x1);  ASSERT_EQ(26u, x2);
+    ASSERT_TRUE(LookupSegment(x1, x2, image, 28));  ASSERT_EQ(0u, x1);  ASSERT_EQ(25u, x2);
+    ASSERT_TRUE(LookupSegment(x1, x2, image, 29));  ASSERT_EQ(5u, x1);  ASSERT_EQ(24u, x2);
   }
 }

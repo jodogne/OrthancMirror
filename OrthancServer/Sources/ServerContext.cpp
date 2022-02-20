@@ -2,24 +2,13 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2021 Osimis S.A., Belgium
+ * Copyright (C) 2017-2022 Osimis S.A., Belgium
+ * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- *
- * In addition, as a special exception, the copyright holders of this
- * program give permission to link the code of its release with the
- * OpenSSL project's "OpenSSL" library (or with modified versions of it
- * that use the same license as the "OpenSSL" library), and distribute
- * the linked executables. You must obey the GNU General Public License
- * in all respects for all of the code used other than "OpenSSL". If you
- * modify file(s) with this exception, you may extend this exception to
- * your version of the file(s), but you are not obligated to do so. If
- * you do not wish to do so, delete this exception statement from your
- * version. If you delete this exception statement from all source files
- * in the program, then also delete it here.
  * 
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -46,6 +35,7 @@
 #include "../../OrthancFramework/Sources/HttpServer/HttpStreamTranscoder.h"
 #include "../../OrthancFramework/Sources/JobsEngine/SetOfInstancesJob.h"
 #include "../../OrthancFramework/Sources/Logging.h"
+#include "../../OrthancFramework/Sources/MallocMemoryBuffer.h"
 #include "../../OrthancFramework/Sources/MetricsRegistry.h"
 #include "../Plugins/Engine/OrthancPlugins.h"
 
@@ -57,6 +47,7 @@
 #include "StorageCommitmentReports.h"
 
 #include <dcmtk/dcmdata/dcfilefo.h>
+#include <dcmtk/dcmnet/dimse.h>
 
 
 static size_t DICOM_CACHE_SIZE = 128 * 1024 * 1024;  // 128 MB
@@ -98,6 +89,13 @@ namespace Orthanc
       // Do not try to transcode special transfer syntaxes
       transferSyntax != DicomTransferSyntax_RFC2557MimeEncapsulation &&
       transferSyntax != DicomTransferSyntax_XML);
+  }
+
+
+  ServerContext::StoreResult::StoreResult() :
+    status_(StoreStatus_Failure),
+    cstoreStatusCode_(0)
+  {
   }
 
   
@@ -484,14 +482,14 @@ namespace Orthanc
   void ServerContext::RemoveFile(const std::string& fileUuid,
                                  FileContentType type)
   {
-    StorageAccessor accessor(area_, GetMetricsRegistry());
+    StorageAccessor accessor(area_, storageCache_, GetMetricsRegistry());
     accessor.Remove(fileUuid, type);
   }
 
 
-  StoreStatus ServerContext::StoreAfterTranscoding(std::string& resultPublicId,
-                                                   DicomInstanceToStore& dicom,
-                                                   StoreInstanceMode mode)
+  ServerContext::StoreResult ServerContext::StoreAfterTranscoding(std::string& resultPublicId,
+                                                                  DicomInstanceToStore& dicom,
+                                                                  StoreInstanceMode mode)
   {
     bool overwrite;
     switch (mode)
@@ -526,7 +524,7 @@ namespace Orthanc
     try
     {
       MetricsRegistry::Timer timer(GetMetricsRegistry(), "orthanc_store_dicom_duration_ms");
-      StorageAccessor accessor(area_, GetMetricsRegistry());
+      StorageAccessor accessor(area_, storageCache_, GetMetricsRegistry());
 
       DicomInstanceHasher hasher(summary);
       resultPublicId = hasher.HashInstance();
@@ -538,7 +536,7 @@ namespace Orthanc
       Toolbox::SimplifyDicomAsJson(simplifiedTags, dicomAsJson, DicomToJsonFormat_Human);
 
       // Test if the instance must be filtered out
-      bool accepted = true;
+      StoreResult result;
 
       {
         boost::shared_lock<boost::shared_mutex> lock(listenersMutex_);
@@ -549,9 +547,22 @@ namespace Orthanc
           {
             if (!it->GetListener().FilterIncomingInstance(dicom, simplifiedTags))
             {
-              accepted = false;
+              result.SetStatus(StoreStatus_FilteredOut);
+              result.SetCStoreStatusCode(STATUS_Success); // to keep backward compatibility, we still return 'success'
               break;
             }
+
+            if (dicom.GetOrigin().GetRequestOrigin() == Orthanc::RequestOrigin_DicomProtocol)
+            {
+              uint16_t filterResult = it->GetListener().FilterIncomingCStoreInstance(dicom, simplifiedTags);
+              if (filterResult != 0x0000)
+              {
+                result.SetStatus(StoreStatus_FilteredOut);
+                result.SetCStoreStatusCode(filterResult);
+                break;
+              }
+            }
+            
           }
           catch (OrthancException& e)
           {
@@ -563,10 +574,10 @@ namespace Orthanc
         }
       }
 
-      if (!accepted)
+      if (result.GetStatus() == StoreStatus_FilteredOut)
       {
         LOG(INFO) << "An incoming instance has been discarded by the filter";
-        return StoreStatus_FilteredOut;
+        return result;
       }
 
       // Remove the file from the DicomCache (useful if
@@ -595,9 +606,9 @@ namespace Orthanc
 
       typedef std::map<MetadataType, std::string>  InstanceMetadata;
       InstanceMetadata  instanceMetadata;
-      StoreStatus status = index_.Store(
+      result.SetStatus(index_.Store(
         instanceMetadata, summary, attachments, dicom.GetMetadata(), dicom.GetOrigin(), overwrite,
-        hasTransferSyntax, transferSyntax, hasPixelDataOffset, pixelDataOffset);
+        hasTransferSyntax, transferSyntax, hasPixelDataOffset, pixelDataOffset));
 
       // Only keep the metadata for the "instance" level
       dicom.ClearMetadata();
@@ -608,7 +619,7 @@ namespace Orthanc
         dicom.AddMetadata(ResourceType_Instance, it->first, it->second);
       }
             
-      if (status != StoreStatus_Success)
+      if (result.GetStatus() != StoreStatus_Success)
       {
         accessor.Remove(dicomInfo);
 
@@ -618,7 +629,7 @@ namespace Orthanc
         }
       }
 
-      switch (status)
+      switch (result.GetStatus())
       {
         case StoreStatus_Success:
           LOG(INFO) << "New instance stored";
@@ -637,8 +648,8 @@ namespace Orthanc
           break;
       }
 
-      if (status == StoreStatus_Success ||
-          status == StoreStatus_AlreadyStored)
+      if (result.GetStatus() == StoreStatus_Success ||
+          result.GetStatus() == StoreStatus_AlreadyStored)
       {
         boost::shared_lock<boost::shared_mutex> lock(listenersMutex_);
 
@@ -657,7 +668,7 @@ namespace Orthanc
         }
       }
 
-      return status;
+      return result;
     }
     catch (OrthancException& e)
     {
@@ -671,14 +682,47 @@ namespace Orthanc
   }
 
 
-  StoreStatus ServerContext::Store(std::string& resultPublicId,
-                                   DicomInstanceToStore& dicom,
-                                   StoreInstanceMode mode)
-  {
+  ServerContext::StoreResult ServerContext::Store(std::string& resultPublicId,
+                                                  DicomInstanceToStore& receivedDicom,
+                                                  StoreInstanceMode mode)
+  { 
+    DicomInstanceToStore* dicom = &receivedDicom;
+    std::unique_ptr<DicomInstanceToStore> modifiedDicom;
+
+    std::unique_ptr<MallocMemoryBuffer> raii(new MallocMemoryBuffer);
+
+#if ORTHANC_ENABLE_PLUGINS == 1
+    if (HasPlugins())
+    {
+      void* modifiedDicomBuffer = NULL;
+      size_t modifiedDicomBufferSize = 0;
+
+      bool store = GetPlugins().ApplyReceivedInstanceCallbacks(receivedDicom.GetBufferData(), 
+                                                               receivedDicom.GetBufferSize(),
+                                                               &modifiedDicomBuffer,
+                                                               modifiedDicomBufferSize);
+      raii->Assign(modifiedDicomBuffer, modifiedDicomBufferSize, ::free);
+
+      if (!store)
+      {
+        StoreResult result;
+        result.SetStatus(StoreStatus_FilteredOut);
+        return result;
+      }
+
+      if (modifiedDicomBufferSize > 0 && modifiedDicomBuffer != NULL)
+      {
+        modifiedDicom.reset(DicomInstanceToStore::CreateFromBuffer(modifiedDicomBuffer, modifiedDicomBufferSize));
+        modifiedDicom->SetOrigin(dicom->GetOrigin());
+        dicom = modifiedDicom.get();
+      }
+    }
+#endif
+
     if (!isIngestTranscoding_)
     {
       // No automated transcoding. This was the only path in Orthanc <= 1.6.1.
-      return StoreAfterTranscoding(resultPublicId, dicom, mode);
+      return StoreAfterTranscoding(resultPublicId, *dicom, mode);
     }
     else
     {
@@ -687,7 +731,7 @@ namespace Orthanc
       bool transcode = false;
 
       DicomTransferSyntax sourceSyntax;
-      if (!dicom.LookupTransferSyntax(sourceSyntax) ||
+      if (!dicom->LookupTransferSyntax(sourceSyntax) ||
           sourceSyntax == ingestTransferSyntax_)
       {
         // Don't transcode if the incoming DICOM is already in the proper transfer syntax
@@ -714,7 +758,7 @@ namespace Orthanc
       if (!transcode)
       {
         // No transcoding
-        return StoreAfterTranscoding(resultPublicId, dicom, mode);
+        return StoreAfterTranscoding(resultPublicId, *dicom, mode);
       }
       else
       {
@@ -723,7 +767,7 @@ namespace Orthanc
         syntaxes.insert(ingestTransferSyntax_);
         
         IDicomTranscoder::DicomImage source;
-        source.SetExternalBuffer(dicom.GetBufferData(), dicom.GetBufferSize());
+        source.SetExternalBuffer(dicom->GetBufferData(), dicom->GetBufferSize());
         
         IDicomTranscoder::DicomImage transcoded;
         if (Transcode(transcoded, source, syntaxes, true /* allow new SOP instance UID */))
@@ -731,17 +775,17 @@ namespace Orthanc
           std::unique_ptr<ParsedDicomFile> tmp(transcoded.ReleaseAsParsedDicomFile());
 
           std::unique_ptr<DicomInstanceToStore> toStore(DicomInstanceToStore::CreateFromParsedDicomFile(*tmp));
-          toStore->SetOrigin(dicom.GetOrigin());
+          toStore->SetOrigin(dicom->GetOrigin());
 
-          StoreStatus ok = StoreAfterTranscoding(resultPublicId, *toStore, mode);
+          StoreResult result = StoreAfterTranscoding(resultPublicId, *toStore, mode);
           assert(resultPublicId == tmp->GetHasher().HashInstance());
 
-          return ok;
+          return result;
         }
         else
         {
           // Cannot transcode => store the original file
-          return StoreAfterTranscoding(resultPublicId, dicom, mode);
+          return StoreAfterTranscoding(resultPublicId, *dicom, mode);
         }
       }
     }
@@ -760,7 +804,7 @@ namespace Orthanc
     }
     else
     {
-      StorageAccessor accessor(area_, GetMetricsRegistry());
+      StorageAccessor accessor(area_, storageCache_, GetMetricsRegistry());
       accessor.AnswerFile(output, attachment, GetFileContentMime(content));
     }
   }
@@ -790,7 +834,7 @@ namespace Orthanc
 
     std::string content;
 
-    StorageAccessor accessor(area_, GetMetricsRegistry());
+    StorageAccessor accessor(area_, storageCache_, GetMetricsRegistry());
     accessor.Read(content, attachment);
 
     FileInfo modified = accessor.Write(content.empty() ? NULL : content.c_str(),
@@ -846,7 +890,7 @@ namespace Orthanc
       std::string dicom;
 
       {
-        StorageAccessor accessor(area_, GetMetricsRegistry());
+        StorageAccessor accessor(area_, storageCache_, GetMetricsRegistry());
         accessor.Read(dicom, attachment);
       }
 
@@ -911,8 +955,8 @@ namespace Orthanc
       
         std::unique_ptr<IMemoryBuffer> dicom;
         {
-          MetricsRegistry::Timer timer(GetMetricsRegistry(), "orthanc_storage_read_range_duration_ms");
-          dicom.reset(area_.ReadRange(attachment.GetUuid(), FileContentType_Dicom, 0, pixelDataOffset));
+          StorageAccessor accessor(area_, storageCache_, GetMetricsRegistry());
+          dicom.reset(accessor.ReadStartRange(attachment.GetUuid(), FileContentType_Dicom, pixelDataOffset, FileContentType_DicomUntilPixelData));
         }
 
         if (dicom.get() == NULL)
@@ -941,7 +985,7 @@ namespace Orthanc
         std::string dicomAsJson;
 
         {
-          StorageAccessor accessor(area_, GetMetricsRegistry());
+          StorageAccessor accessor(area_, storageCache_, GetMetricsRegistry());
           accessor.Read(dicomAsJson, attachment);
         }
 
@@ -1010,7 +1054,15 @@ namespace Orthanc
     int64_t revision;
     ReadAttachment(dicom, revision, instancePublicId, FileContentType_Dicom, true /* uncompress */);
   }
-    
+
+  void ServerContext::ReadDicomForHeader(std::string& dicom,
+                                         const std::string& instancePublicId)
+  {
+    if (!ReadDicomUntilPixelData(dicom, instancePublicId))
+    {
+      ReadDicom(dicom, instancePublicId);
+    }
+  }
 
   bool ServerContext::ReadDicomUntilPixelData(std::string& dicom,
                                               const std::string& instancePublicId)
@@ -1039,8 +1091,10 @@ namespace Orthanc
       {
         uint64_t pixelDataOffset = boost::lexical_cast<uint64_t>(s);
 
+        StorageAccessor accessor(area_, storageCache_, GetMetricsRegistry());
+
         std::unique_ptr<IMemoryBuffer> buffer(
-          area_.ReadRange(attachment.GetUuid(), attachment.GetContentType(), 0, pixelDataOffset));
+          accessor.ReadStartRange(attachment.GetUuid(), attachment.GetContentType(), pixelDataOffset, FileContentType_DicomUntilPixelData));
         buffer->MoveToString(dicom);
         return true;   // Success
       }
@@ -1071,7 +1125,7 @@ namespace Orthanc
     assert(attachment.GetContentType() == content);
 
     {
-      StorageAccessor accessor(area_, GetMetricsRegistry());
+      StorageAccessor accessor(area_, storageCache_, GetMetricsRegistry());
 
       if (uncompressIfNeeded)
       {
@@ -1171,7 +1225,7 @@ namespace Orthanc
     // TODO Should we use "gzip" instead?
     CompressionType compression = (compressionEnabled_ ? CompressionType_ZlibWithSize : CompressionType_None);
 
-    StorageAccessor accessor(area_, GetMetricsRegistry());
+    StorageAccessor accessor(area_, storageCache_, GetMetricsRegistry());
     FileInfo attachment = accessor.Write(data, size, attachmentType, compression, storeMD5_);
 
     try

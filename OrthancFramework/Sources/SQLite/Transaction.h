@@ -3,6 +3,8 @@
  *
  * Copyright (C) 2012-2016 Sebastien Jodogne <s.jodogne@orthanc-labs.com>,
  * Medical Physics Department, CHU of Liege, Belgium
+ * Copyright (C) 2017-2022 Osimis S.A., Belgium
+ * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * Copyright (c) 2012 The Chromium Authors. All rights reserved.
  *
@@ -61,11 +63,11 @@ namespace Orthanc
       // Returns true when there is a transaction that has been successfully begun.
       bool IsOpen() const;
 
-      virtual void Begin();
+      virtual void Begin() ORTHANC_OVERRIDE;
 
-      virtual void Rollback();
+      virtual void Rollback() ORTHANC_OVERRIDE;
 
-      virtual void Commit();
+      virtual void Commit() ORTHANC_OVERRIDE;
     };
   }
 }

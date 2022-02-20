@@ -2,7 +2,8 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2021 Osimis S.A., Belgium
+ * Copyright (C) 2017-2022 Osimis S.A., Belgium
+ * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -29,6 +30,7 @@
 
 #include "../Sources/FileStorage/FilesystemStorage.h"
 #include "../Sources/FileStorage/StorageAccessor.h"
+#include "../Sources/FileStorage/StorageCache.h"
 #include "../Sources/HttpServer/BufferHttpSender.h"
 #include "../Sources/HttpServer/FilesystemHttpSender.h"
 #include "../Sources/Logging.h"
@@ -124,7 +126,8 @@ TEST(FilesystemStorage, EndToEnd)
 TEST(StorageAccessor, NoCompression)
 {
   FilesystemStorage s("UnitTestsStorage");
-  StorageAccessor accessor(s);
+  StorageCache cache;
+  StorageAccessor accessor(s, cache);
 
   std::string data = "Hello world";
   FileInfo info = accessor.Write(data, FileContentType_Dicom, CompressionType_None, true);
@@ -145,7 +148,8 @@ TEST(StorageAccessor, NoCompression)
 TEST(StorageAccessor, Compression)
 {
   FilesystemStorage s("UnitTestsStorage");
-  StorageAccessor accessor(s);
+  StorageCache cache;
+  StorageAccessor accessor(s, cache);
 
   std::string data = "Hello world";
   FileInfo info = accessor.Write(data, FileContentType_Dicom, CompressionType_ZlibWithSize, true);
@@ -165,7 +169,8 @@ TEST(StorageAccessor, Compression)
 TEST(StorageAccessor, Mix)
 {
   FilesystemStorage s("UnitTestsStorage");
-  StorageAccessor accessor(s);
+  StorageCache cache;
+  StorageAccessor accessor(s, cache);
 
   std::string r;
   std::string compressedData = "Hello";

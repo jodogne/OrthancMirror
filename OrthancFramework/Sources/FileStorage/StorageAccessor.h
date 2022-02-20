@@ -2,7 +2,8 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2021 Osimis S.A., Belgium
+ * Copyright (C) 2017-2022 Osimis S.A., Belgium
+ * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -54,6 +55,7 @@
 namespace Orthanc
 {
   class MetricsRegistry;
+  class StorageCache;
 
   /**
    * This class handles the compression/decompression of the raw files
@@ -66,6 +68,7 @@ namespace Orthanc
     class MetricsTimer;
 
     IStorageArea&     area_;
+    StorageCache&     cache_;
     MetricsRegistry*  metrics_;
 
 #if ORTHANC_ENABLE_CIVETWEB == 1 || ORTHANC_ENABLE_MONGOOSE == 1
@@ -75,9 +78,11 @@ namespace Orthanc
 #endif
 
   public:
-    explicit StorageAccessor(IStorageArea& area);
+    explicit StorageAccessor(IStorageArea& area,
+                             StorageCache& cache);
 
     StorageAccessor(IStorageArea& area,
+                    StorageCache& cache,
                     MetricsRegistry& metrics);
 
     FileInfo Write(const void* data,
@@ -96,6 +101,11 @@ namespace Orthanc
 
     void ReadRaw(std::string& content,
                  const FileInfo& info);
+
+    IMemoryBuffer* ReadStartRange(const std::string& fileUuid,
+                                  FileContentType fullFileContentType,
+                                  uint64_t end /* exclusive */,
+                                  FileContentType startFileContentType);
 
     void Remove(const std::string& fileUuid,
                 FileContentType type);

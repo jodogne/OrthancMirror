@@ -4,7 +4,8 @@
 # Orthanc - A Lightweight, RESTful DICOM Store
 # Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
 # Department, University Hospital of Liege, Belgium
-# Copyright (C) 2017-2021 Osimis S.A., Belgium
+# Copyright (C) 2017-2022 Osimis S.A., Belgium
+# Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
 #
 # This program is free software: you can redistribute it and/or
 # modify it under the terms of the GNU General Public License as
@@ -35,7 +36,7 @@ def PrintHelp():
 
 def CheckIsDate(date):
     if len(date) != 8 or not date.isdigit():
-        print '"%s" is not a valid date!\n' % date
+        print('"%s" is not a valid date!\n' % date)
         exit(-1)
 
 
@@ -82,7 +83,9 @@ for studyId in RestToolbox.DoGet('%s/studies' % URL):
                                             GetTag(study, 'StudyDescription'))
 
         # Remove any non-ASCII character in the filename
-        filename = filename.encode('ascii', errors = 'replace').translate(None, r"'\/:*?\"<>|!=").strip()
+        filename = filename.encode('ascii', errors = 'replace')
+        filename = filename.translate(None, b"'\/:*?\"<>|!=")
+        filename = filename.decode('ascii').strip()
 
         # Download the ZIP archive of the study
         print('Downloading %s' % filename)

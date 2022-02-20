@@ -2,7 +2,8 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2021 Osimis S.A., Belgium
+ * Copyright (C) 2017-2022 Osimis S.A., Belgium
+ * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -93,6 +94,7 @@ namespace Orthanc
     port_(104),
     continue_(false),
     associationTimeout_(30),
+    threadsCount_(4),
     modalities_(NULL),
     findRequestHandlerFactory_(NULL),
     moveRequestHandlerFactory_(NULL),
@@ -424,7 +426,10 @@ namespace Orthanc
 #endif
 
     continue_ = true;
-    pimpl_->workers_.reset(new RunnableWorkersPool(4));   // Use 4 workers - TODO as a parameter?
+
+    CLOG(INFO, DICOM) << "The embedded DICOM server will use " << threadsCount_ << " threads";
+
+    pimpl_->workers_.reset(new RunnableWorkersPool(threadsCount_));
     pimpl_->thread_ = boost::thread(ServerThread, this, maximumPduLength_, useDicomTls_);
   }
 
@@ -588,4 +593,16 @@ namespace Orthanc
   {
     return remoteCertificateRequired_;
   }
+
+  void DicomServer::SetThreadsCount(unsigned int threads)
+  {
+    if (threads == 0)
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+    
+    Stop();
+    threadsCount_ = threads;
+  }
+
 }
