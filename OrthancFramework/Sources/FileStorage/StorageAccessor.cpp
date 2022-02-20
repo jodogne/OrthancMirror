@@ -265,6 +265,7 @@ namespace Orthanc
                                     const FileInfo& info,
                                     const std::string& mime)
   {
+    if (!cache_.Fetch(sender.GetBuffer(), info.GetUuid(), info.GetContentType()))
     {
       MetricsTimer timer(*this, METRICS_READ);
       std::unique_ptr<IMemoryBuffer> buffer(area_.Read(info.GetUuid(), info.GetContentType()));
