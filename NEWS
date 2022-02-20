@@ -28,7 +28,7 @@ General
   only "AllowStore" and "AllowFindWorklist" enabled but might have "AllowFind"
   disabled to prevent listing past patient studies.
   Possible BREAKING-CHANGE: if you relied on "DicomAlwaysAllowFind" or "AllowFind"
-  to specifically authorize C-Find for worklist, you now need to explicitely enable
+  to specifically authorize C-Find for worklist, you now need to explicitly enable
   "DicomAlwaysAllowFindWorklist" and/or "AllowFindWorklist"
 * Added a storage cache in RAM to avoid reading the same files multiple times from 
   the storage.  This greatly improves, among other things, the performance of WADO-RS
@@ -36,7 +36,7 @@ General
 * New configuration option "MaximumStorageCacheSize" to configure the size of
   the new storage cache.
 * New configuration option "ZipLoaderThreads" to configure the number of threads used
-  to read instances from storage when createing a Zip archive/media.
+  to read instances from storage when creating a Zip archive/media.
 * Support decoding of black-and-white images (with 1 bit per pixel), notably DICOM SEG
 * Added links to download attachments from the Orthanc Explorer
 
