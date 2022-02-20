@@ -68,7 +68,7 @@ namespace Orthanc
     bool                 transcode_;
     DicomTransferSyntax  transferSyntax_;
 
-    // New in Orthanc 1.9.8
+    // New in Orthanc 1.10.0
     unsigned int         loaderThreads_;
 
     void FinalizeTarget();
