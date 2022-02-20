@@ -2,8 +2,8 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2021 Osimis S.A., Belgium
- * Copyright (C) 2021-2021 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2022 Osimis S.A., Belgium
+ * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -123,6 +123,8 @@ namespace Orthanc
                          "Whether to accept C-STORE SCU commands issued by the remote modality", false)
         .SetRequestField("AllowFind", RestApiCallDocumentation::Type_Boolean,
                          "Whether to accept C-FIND SCU commands issued by the remote modality", false)
+        .SetRequestField("AllowFindWorklist", RestApiCallDocumentation::Type_Boolean,
+                         "Whether to accept C-FIND SCU commands for worklists issued by the remote modality", false)
         .SetRequestField("AllowMove", RestApiCallDocumentation::Type_Boolean,
                          "Whether to accept C-MOVE SCU commands issued by the remote modality", false)
         .SetRequestField("AllowGet", RestApiCallDocumentation::Type_Boolean,
@@ -2023,6 +2025,7 @@ namespace Orthanc
       sample["AllowEcho"] = true;
       sample["AllowEventReport"] = true;
       sample["AllowFind"] = true;
+      sample["AllowFindWorklist"] = true;
       sample["AllowGet"] = true;
       sample["AllowMove"] = true;
       sample["AllowNAction"] = true;

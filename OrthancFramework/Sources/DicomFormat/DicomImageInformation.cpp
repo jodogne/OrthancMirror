@@ -2,8 +2,8 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2021 Osimis S.A., Belgium
- * Copyright (C) 2021-2021 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2022 Osimis S.A., Belgium
+ * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -30,8 +30,10 @@
 #include "DicomImageInformation.h"
 
 #include "../Compatibility.h"
+#include "../Logging.h"
 #include "../OrthancException.h"
 #include "../Toolbox.h"
+
 #include <boost/lexical_cast.hpp>
 #include <limits>
 #include <cassert>
@@ -42,6 +44,16 @@ namespace Orthanc
 {
   DicomImageInformation::DicomImageInformation(const DicomMap& values)
   {
+    std::string sopClassUid;
+    if (values.LookupStringValue(sopClassUid, DICOM_TAG_SOP_CLASS_UID, false))
+    {
+      sopClassUid = Toolbox::StripSpaces(sopClassUid);
+      if (sopClassUid == "1.2.840.10008.5.1.4.1.1.481.3" /* RT-STRUCT */)
+      {
+        LOG(WARNING) << "Orthanc::DicomImageInformation() should not be applied to SOP Class UID: " << sopClassUid;
+      }
+    }
+
     uint32_t pixelRepresentation = 0;
     uint32_t planarConfiguration = 0;
 

@@ -2,8 +2,8 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2021 Osimis S.A., Belgium
- * Copyright (C) 2021-2021 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2022 Osimis S.A., Belgium
+ * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -788,10 +788,18 @@ namespace Orthanc
             break;
 
           case DIMSE_C_FIND_RQ:
-            request = DicomRequestType_Find;
-            supported = true;
-            break;
-
+            {
+              std::string sopClassUid(msg.msg.CFindRQ.AffectedSOPClassUID);
+              if (sopClassUid == UID_FINDModalityWorklistInformationModel)
+              {
+                request = DicomRequestType_FindWorklist;
+              }
+              else
+              {
+                request = DicomRequestType_Find;
+              }
+              supported = true;
+            }; break;
           case DIMSE_N_ACTION_RQ:
             request = DicomRequestType_NAction;
             supported = true;
@@ -875,6 +883,7 @@ namespace Orthanc
               break;
 
             case DicomRequestType_Find:
+            case DicomRequestType_FindWorklist:
               if (server_.HasFindRequestHandlerFactory() || // Should always be true
                   server_.HasWorklistRequestHandlerFactory())
               {

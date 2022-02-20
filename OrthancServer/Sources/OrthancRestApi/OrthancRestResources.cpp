@@ -2,8 +2,8 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2021 Osimis S.A., Belgium
- * Copyright (C) 2021-2021 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2022 Osimis S.A., Belgium
+ * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -2036,6 +2036,7 @@ namespace Orthanc
 
       operations.append("compressed-size");
       operations.append("data");
+      operations.append("info");
       operations.append("is-compressed");
 
       if (info.GetUncompressedMD5() != "")
@@ -2051,6 +2052,8 @@ namespace Orthanc
       {
         operations.append("verify-md5");
       }
+
+      operations.append("uuid");
 
       call.GetOutput().AnswerJson(operations);
     }
@@ -2139,6 +2142,36 @@ namespace Orthanc
     }
   }
 
+  static void GetAttachmentInfo(RestApiGetCall& call)
+  {
+    if (call.IsDocumentation())
+    {
+      ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
+      std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      AddAttachmentDocumentation(call, r);
+      call.GetDocumentation()
+        .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
+        .SetSummary("Get info about the attachment")
+        .SetDescription("Get all the information about the attachment associated with the given " + r)
+        .AddAnswerType(MimeType_Json, "JSON object containing the information about the attachment")
+        .SetHttpGetSample("https://demo.orthanc-server.com/instances/7c92ce8e-bbf67ed2-ffa3b8c1-a3b35d94-7ff3ae26/dicom/info", true);
+      return;
+    }
+
+    FileInfo info;
+    if (GetAttachmentInfo(info, call))
+    {
+      Json::Value result = Json::objectValue;    
+      result["Uuid"] = info.GetUuid();
+      result["ContentType"] = info.GetContentType();
+      result["UncompressedSize"] = Json::Value::UInt64(info.GetUncompressedSize());
+      result["CompressedSize"] = Json::Value::UInt64(info.GetCompressedSize());
+      result["UncompressedMD5"] = info.GetUncompressedMD5();
+      result["CompressedMD5"] = info.GetCompressedMD5();
+
+      call.GetOutput().AnswerJson(result);
+    }
+  }
 
   static void GetAttachmentCompressedSize(RestApiGetCall& call)
   {
@@ -3382,7 +3415,7 @@ namespace Orthanc
 
       call.GetDocumentation()
         .SetTag("System")
-        .SetSummary("Describe a set of instances")
+        .SetSummary("Describe a set of resources")
         .SetRequestField("Resources", RestApiCallDocumentation::Type_JsonListOfStrings,
                          "List of the Orthanc identifiers of the patients/studies/series/instances of interest.", true)
         .SetRequestField(LEVEL, RestApiCallDocumentation::Type_String,
@@ -3558,7 +3591,7 @@ namespace Orthanc
     {
       call.GetDocumentation()
         .SetTag("System")
-        .SetSummary("Delete a set of instances")
+        .SetSummary("Delete a set of resources")
         .SetRequestField("Resources", RestApiCallDocumentation::Type_JsonListOfStrings,
                          "List of the Orthanc identifiers of the patients/studies/series/instances of interest.", true)
         .SetDescription("Delete all the DICOM patients, studies, series or instances "
@@ -3684,6 +3717,7 @@ namespace Orthanc
       Register("/" + resourceTypes[i] + "/{id}/attachments/{name}/md5", GetAttachmentMD5);
       Register("/" + resourceTypes[i] + "/{id}/attachments/{name}/size", GetAttachmentSize);
       Register("/" + resourceTypes[i] + "/{id}/attachments/{name}/uncompress", ChangeAttachmentCompression<CompressionType_None>);
+      Register("/" + resourceTypes[i] + "/{id}/attachments/{name}/info", GetAttachmentInfo);
       Register("/" + resourceTypes[i] + "/{id}/attachments/{name}/verify-md5", VerifyAttachment);
     }
 
