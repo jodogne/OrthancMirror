@@ -239,16 +239,9 @@ namespace Orthanc
                                        FileContentType contentType,
                                        uint64_t end /* exclusive */)
   {
-    if (cache_.Fetch(target, fileUuid, contentType))
+    if (cache_.FetchStartRange(target, fileUuid, contentType, end))
     {
-      if (target.size() < end)
-      {
-        throw OrthancException(ErrorCode_CorruptedFile);
-      }
-      else
-      {
-        target.resize(end);
-      }
+      return;
     }
     else
     {
@@ -256,6 +249,8 @@ namespace Orthanc
       std::unique_ptr<IMemoryBuffer> buffer(area_.ReadRange(fileUuid, contentType, 0, end));
       assert(buffer->GetSize() == end);
       buffer->MoveToString(target);
+
+      cache_.AddStartRange(fileUuid, contentType, target);
     }
   }
 
@@ -270,6 +265,8 @@ namespace Orthanc
       MetricsTimer timer(*this, METRICS_READ);
       std::unique_ptr<IMemoryBuffer> buffer(area_.Read(info.GetUuid(), info.GetContentType()));
       buffer->MoveToString(sender.GetBuffer());
+
+      cache_.Add(info.GetUuid(), info.GetContentType(), sender.GetBuffer());
     }
 
     sender.SetContentType(mime);
