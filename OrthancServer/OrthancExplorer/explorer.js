@@ -358,7 +358,7 @@ function FormatMainDicomTags(target, tags, tagsToIgnore)
       
       target.append($('<p>')
                     .text(tags[i].Name + ': ')
-                    .append($('<strong>').html(v)));
+                    .append($('<strong>').text(v)));
     }
   }
 }
@@ -464,7 +464,8 @@ $('[data-role="page"]').live('pagebeforeshow', function() {
     cache: false,
     success: function(s) {
       if (s.Name != "") {
-        $('.orthanc-name').html($('<a>')
+        $('.orthanc-name').empty();
+        $('.orthanc-name').append($('<a>')
                                 .addClass('ui-link')
                                 .attr('href', 'explorer.html')
                                 .text(s.Name)
@@ -861,25 +862,6 @@ function RefreshSeries()
 }
 
 
-function EscapeHtml(value)
-{
-  var ENTITY_MAP = {
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    '"': '&quot;',
-    "'": '&#39;',
-    '/': '&#x2F;',
-    '`': '&#x60;',
-    '=': '&#x3D;'
-  };
-
-  return String(value).replace(/[&<>"'`=\/]/g, function (s) {
-    return ENTITY_MAP[s];
-  });
-}
-
-
 function ConvertForTree(dicom)
 {
   var result = [];
@@ -887,14 +869,26 @@ function ConvertForTree(dicom)
 
   for (var i in dicom) {
     if (dicom[i] != null) {
-      label = (i + '<span class="tag-name"> (<i>' +
-                   EscapeHtml(dicom[i]["Name"]) +
-                   '</i>)</span>: ');
+      var spanElement = $("<span>", {
+        class:"tag-name"
+      });
+      var iElement = $("<i>", {
+        text: dicom[i]["Name"]
+      });
+      
+      spanElement.append(" (");
+      spanElement.append(iElement);
+      spanElement.append(")");
 
+      label = (i + spanElement.prop('outerHTML') + ': ');
       if (dicom[i]["Type"] == 'String')
       {
+        var strongElement = $('<strong>', {
+          text: dicom[i]["Value"]
+        });
+
         result.push({
-          label: label + '<strong>' + EscapeHtml(dicom[i]["Value"]) + '</strong>',
+          label: label + strongElement.prop('outerHTML'),
           children: []
         });
       }
@@ -1205,13 +1199,22 @@ function ChooseDicomModality(callback)
 
         for (var i = 0; i < modalities.length; i++) {
           name = modalities[i];
-          item = $('<li>')
-            .html('<a href="#" rel="close">' + name + '</a>')
-            .attr('name', name)
+
+          var liElement = $('<li>', {
+            name: name
+          })
             .click(function() { 
               clickedModality = $(this).attr('name');
             });
-          items.append(item);
+
+          var aElement = $('<a>', {
+            href: '#',
+            rel: 'close',
+            text: name
+          })
+          liElement.append(aElement);
+
+          items.append(liElement);
         }
       }
 
@@ -1231,13 +1234,22 @@ function ChooseDicomModality(callback)
 
             for (var i = 0; i < peers.length; i++) {
               name = peers[i];
-              item = $('<li>')
-                .html('<a href="#" rel="close">' + name + '</a>')
-                .attr('name', name)
+
+              var liElement = $('<li>', {
+                name: name
+              })
                 .click(function() { 
                   clickedPeer = $(this).attr('name');
                 });
-              items.append(item);
+    
+              var aElement = $('<a>', {
+                href: '#',
+                rel: 'close',
+                text: name
+              })
+              liElement.append(aElement);
+    
+              items.append(liElement);
             }
           }
 
