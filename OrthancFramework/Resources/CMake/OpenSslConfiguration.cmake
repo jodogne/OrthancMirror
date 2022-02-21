@@ -20,7 +20,10 @@
 
 
 if (STATIC_BUILD OR NOT USE_SYSTEM_OPENSSL)
-  if (OPENSSL_STATIC_VERSION STREQUAL "3.0")
+  if (OPENSSL_STATIC_VERSION STREQUAL "1.1.1")
+    # Still used by orthanc-gcp (Google Cloud Platform) as of its release 1.0
+    include(${CMAKE_CURRENT_LIST_DIR}/OpenSslConfigurationStatic-1.1.1.cmake)
+  elseif (OPENSSL_STATIC_VERSION STREQUAL "3.0")
     include(${CMAKE_CURRENT_LIST_DIR}/OpenSslConfigurationStatic-3.0.cmake)
   else()
     message(FATAL_ERROR "Unsupported version of OpenSSL: ${OPENSSL_STATIC_VERSION}")
