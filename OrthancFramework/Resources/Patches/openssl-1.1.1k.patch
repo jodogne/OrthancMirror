@@ -1,0 +1,19 @@
+diff -urEb openssl-1.1.1k.orig/crypto/rand/rand_unix.c openssl-1.1.1k/crypto/rand/rand_unix.c
+--- openssl-1.1.1k.orig/crypto/rand/rand_unix.c	2021-04-21 11:33:05.241258372 +0200
++++ openssl-1.1.1k/crypto/rand/rand_unix.c	2021-04-21 11:34:48.705287133 +0200
+@@ -455,6 +455,7 @@
+              * system call and this should always succeed which renders
+              * this alternative but essentially identical source moot.
+              */
++#if !defined(__LSB_VERSION__)  // "syscall()" is not available in LSB
+             if (uname(&un) == 0) {
+                 kernel[0] = atoi(un.release);
+                 p = strchr(un.release, '.');
+@@ -465,6 +466,7 @@
+                     return 0;
+                 }
+             }
++#endif
+             /* Open /dev/random and wait for it to be readable */
+             if ((fd = open(DEVRANDOM_WAIT, O_RDONLY)) != -1) {
+                 if (DEVRANDM_WAIT_USE_SELECT && fd < FD_SETSIZE) {
