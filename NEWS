@@ -30,6 +30,8 @@ General
   to read instances from storage when creating a Zip archive/media.
 * Support decoding of black-and-white images (with 1 bit per pixel), notably DICOM SEG
 * Added links to download attachments from the Orthanc Explorer
+* Fix XSS inside DICOM in Orthanc Explorer (as reported by Stuart Kurutac, NCC Group).  
+  XSS Issues were re-introduced in Orthanc 1.9.5.
 
 REST API
 --------
