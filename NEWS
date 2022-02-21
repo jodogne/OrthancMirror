@@ -66,7 +66,7 @@ Maintenance
   - "DicomThreadsCount" to set the number of threads in the embedded DICOM server
 * Fix instances accumulating in DB while their attachments were not stored because of 
   MaximumStorageSize limit reached with a single patient in DB.
-* Dropped support for static compilation of OpenSSL 1.0.2 and 1.1.1
+* Dropped support for static compilation of OpenSSL 1.0.2
 * Upgraded dependencies for static builds (notably on Windows and LSB):
   - openssl 3.0.1
 
