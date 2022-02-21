@@ -47,6 +47,10 @@ namespace Orthanc
                FileContentType contentType,
                const std::string& value);
 
+      void AddStartRange(const std::string& uuid, 
+                         FileContentType contentType,
+                         const std::string& value);
+
       void Add(const std::string& uuid, 
                FileContentType contentType,
                const void* buffer,
@@ -58,6 +62,11 @@ namespace Orthanc
       bool Fetch(std::string& value, 
                  const std::string& uuid,
                  FileContentType contentType);
+
+      bool FetchStartRange(std::string& value, 
+                           const std::string& uuid,
+                           FileContentType contentType,
+                           uint64_t end /* exclusive */);
 
     };
 }
