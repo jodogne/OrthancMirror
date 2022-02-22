@@ -33,9 +33,9 @@
 
 
 
-OrthancPluginReceivedInstanceCallbackResult ReceivedInstanceCallback(const void* receivedDicomBuffer,
-                                                                     uint64_t receivedDicomBufferSize,
-                                                                     OrthancPluginMemoryBuffer64* modifiedDicomBuffer)
+OrthancPluginReceivedInstanceCallbackResult ReceivedInstanceCallback(OrthancPluginMemoryBuffer64* modifiedDicomBuffer,
+                                                                     const void* receivedDicomBuffer,
+                                                                     uint64_t receivedDicomBufferSize)
 {
   Orthanc::ParsedDicomFile dicom(receivedDicomBuffer, receivedDicomBufferSize);
   std::string institutionName = "My institution";

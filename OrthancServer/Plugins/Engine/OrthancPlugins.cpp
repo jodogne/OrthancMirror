@@ -2302,7 +2302,7 @@ namespace Orthanc
       
       {
         OrthancPluginMemoryBuffer64 buffer;
-        callbackResult = (*pimpl_->receivedInstanceCallback_) (receivedDicom, receivedDicomSize, &buffer);
+        callbackResult = (*pimpl_->receivedInstanceCallback_) (&buffer, receivedDicom, receivedDicomSize);
         modified.Assign(buffer.data, buffer.size, ::free);
       }
 

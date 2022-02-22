@@ -7858,10 +7858,9 @@ extern "C"
    * @ingroup Callback
    **/
   typedef OrthancPluginReceivedInstanceCallbackResult (*OrthancPluginReceivedInstanceCallback) (
+    OrthancPluginMemoryBuffer64* modifiedDicomBuffer,
     const void* receivedDicomBuffer,
-    uint64_t receivedDicomBufferSize,
-    OrthancPluginMemoryBuffer64* modifiedDicomBuffer
-    );
+    uint64_t receivedDicomBufferSize);
 
 
   typedef struct
