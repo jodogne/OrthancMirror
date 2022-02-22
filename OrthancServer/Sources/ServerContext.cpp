@@ -687,34 +687,50 @@ namespace Orthanc
                                                   StoreInstanceMode mode)
   { 
     DicomInstanceToStore* dicom = &receivedDicom;
-    std::unique_ptr<DicomInstanceToStore> modifiedDicom;
 
-    std::unique_ptr<MallocMemoryBuffer> raii(new MallocMemoryBuffer);
+    // WARNING: The scope of "modifiedBuffer" and "modifiedDicom" must
+    // be the same as that of "dicom"
+    MallocMemoryBuffer modifiedBuffer;
+    std::unique_ptr<DicomInstanceToStore> modifiedDicom;
 
 #if ORTHANC_ENABLE_PLUGINS == 1
     if (HasPlugins())
     {
-      void* modifiedDicomBuffer = NULL;
-      size_t modifiedDicomBufferSize = 0;
+      // New in Orthanc 1.10.0
 
-      bool store = GetPlugins().ApplyReceivedInstanceCallbacks(receivedDicom.GetBufferData(), 
-                                                               receivedDicom.GetBufferSize(),
-                                                               &modifiedDicomBuffer,
-                                                               modifiedDicomBufferSize);
-      raii->Assign(modifiedDicomBuffer, modifiedDicomBufferSize, ::free);
+      OrthancPluginReceivedInstanceCallbackResult action = GetPlugins().ApplyReceivedInstanceCallbacks(
+        modifiedBuffer, receivedDicom.GetBufferData(), receivedDicom.GetBufferSize());
 
-      if (!store)
+      switch (action)
       {
-        StoreResult result;
-        result.SetStatus(StoreStatus_FilteredOut);
-        return result;
-      }
+        case OrthancPluginReceivedInstanceCallbackResult_Discard:
+        {
+          CLOG(INFO, PLUGINS) << "A plugin has discarded the instance in its ReceivedInstanceCallback";
+          StoreResult result;
+          result.SetStatus(StoreStatus_FilteredOut);
+          return result;
+        }
+          
+        case OrthancPluginReceivedInstanceCallbackResult_KeepAsIs:
+          break;
 
-      if (modifiedDicomBufferSize > 0 && modifiedDicomBuffer != NULL)
-      {
-        modifiedDicom.reset(DicomInstanceToStore::CreateFromBuffer(modifiedDicomBuffer, modifiedDicomBufferSize));
-        modifiedDicom->SetOrigin(dicom->GetOrigin());
-        dicom = modifiedDicom.get();
+        case OrthancPluginReceivedInstanceCallbackResult_Modify:
+          if (modifiedBuffer.GetSize() > 0 &&
+              modifiedBuffer.GetData() != NULL)
+          {
+            CLOG(INFO, PLUGINS) << "A plugin has modified the instance in its ReceivedInstanceCallback";        
+            modifiedDicom.reset(DicomInstanceToStore::CreateFromBuffer(modifiedBuffer.GetData(), modifiedBuffer.GetSize()));
+            modifiedDicom->SetOrigin(dicom->GetOrigin());
+            dicom = modifiedDicom.get();
+          }
+          else
+          {
+            throw OrthancException(ErrorCode_Plugin, "The ReceivedInstanceCallback plugin is not returning a modified buffer while it has modified the instance");
+          }
+          break;
+          
+        default:
+          throw OrthancException(ErrorCode_Plugin, "The ReceivedInstanceCallback has returned an invalid value");
       }
     }
 #endif

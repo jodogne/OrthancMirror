@@ -1156,7 +1156,6 @@ namespace Orthanc
     typedef std::list<OrthancPluginIncomingHttpRequestFilter2>  IncomingHttpRequestFilters2;
     typedef std::list<OrthancPluginIncomingDicomInstanceFilter>  IncomingDicomInstanceFilters;
     typedef std::list<OrthancPluginIncomingCStoreInstanceFilter>  IncomingCStoreInstanceFilters;
-    typedef std::list<OrthancPluginReceivedInstanceCallback>  ReceivedInstanceCallbacks;
     typedef std::list<OrthancPluginDecodeImageCallback>  DecodeImageCallbacks;
     typedef std::list<OrthancPluginTranscoderCallback>  TranscoderCallbacks;
     typedef std::list<OrthancPluginJobsUnserializer>  JobsUnserializers;
@@ -1180,7 +1179,7 @@ namespace Orthanc
     IncomingHttpRequestFilters2 incomingHttpRequestFilters2_;
     IncomingDicomInstanceFilters  incomingDicomInstanceFilters_;
     IncomingCStoreInstanceFilters  incomingCStoreInstanceFilters_;  // New in Orthanc 1.10.0
-    ReceivedInstanceCallbacks  receivedInstanceCallbacks_;  // New in Orthanc 1.10.0
+    OrthancPluginReceivedInstanceCallback  receivedInstanceCallback_;  // New in Orthanc 1.10.0
     RefreshMetricsCallbacks refreshMetricsCallbacks_;
     StorageCommitmentScpCallbacks storageCommitmentScpCallbacks_;
     std::unique_ptr<StorageAreaFactory>  storageArea_;
@@ -1212,6 +1211,7 @@ namespace Orthanc
       context_(NULL), 
       findCallback_(NULL),
       worklistCallback_(NULL),
+      receivedInstanceCallback_(NULL),
       argc_(1),
       argv_(NULL),
       databaseServerIdentifier_(databaseServerIdentifier),
@@ -2285,72 +2285,29 @@ namespace Orthanc
   }
 
 
-  bool OrthancPlugins::ApplyReceivedInstanceCallbacks(const void* receivedDicom,
-                                                      size_t receivedDicomSize,
-                                                      void** modifiedDicomBufferData,
-                                                      size_t& modifiedDicomBufferSize)
+  OrthancPluginReceivedInstanceCallbackResult OrthancPlugins::ApplyReceivedInstanceCallbacks(
+    MallocMemoryBuffer& modified,
+    const void* receivedDicom,
+    size_t receivedDicomSize)
   {
-    uint64_t modifiedDicomSize64 = 0;
-    *modifiedDicomBufferData = NULL;
-
     boost::recursive_mutex::scoped_lock lock(pimpl_->invokeServiceMutex_);
-    
-    for (PImpl::ReceivedInstanceCallbacks::const_iterator
-           callback = pimpl_->receivedInstanceCallbacks_.begin();
-         callback != pimpl_->receivedInstanceCallbacks_.end(); ++callback)
+
+    if (pimpl_->receivedInstanceCallback_ == NULL)
     {
-      OrthancPluginReceivedInstanceCallbackResult callbackResult = (*callback) (receivedDicom,
-                                                                                receivedDicomSize,
-                                                                                modifiedDicomBufferData,
-                                                                                &modifiedDicomSize64);
-
-      if (callbackResult == OrthancPluginReceivedInstanceCallbackResult_Discard)
-      {
-        if (modifiedDicomSize64 > 0 || *modifiedDicomBufferData != NULL)
-        {
-          free(modifiedDicomBufferData);
-          throw OrthancException(ErrorCode_Plugin, "The ReceivedInstanceCallback plugin is returning a modified buffer while it has discarded the instance");
-        }
-
-        CLOG(INFO, PLUGINS) << "A plugin has discarded the instance in its ReceivedInstanceCallback";        
-        return false;
-      }
-      else if (callbackResult == OrthancPluginReceivedInstanceCallbackResult_KeepAsIs)
-      {
-        if (modifiedDicomSize64 > 0 || *modifiedDicomBufferData != NULL)
-        {
-          free(modifiedDicomBufferData);
-          throw OrthancException(ErrorCode_Plugin, "The ReceivedInstanceCallback plugin is returning a modified buffer while it has not modified the instance");
-        }
-        return true; 
-      }
-      else if (callbackResult == OrthancPluginReceivedInstanceCallbackResult_Modify)
-      {
-        if (modifiedDicomSize64 > 0 && modifiedDicomBufferData != NULL)
-        {
-          if (static_cast<size_t>(modifiedDicomSize64) != modifiedDicomSize64)  // Orthanc is running in 32bits and has received a > 4GB buffer
-          {
-            free(modifiedDicomBufferData);
-            throw OrthancException(ErrorCode_Plugin, "The Plugin has returned a > 4GB which is too large for Orthanc running in 32bits");
-          }
-
-          modifiedDicomBufferSize = static_cast<size_t>(modifiedDicomSize64);
-
-          CLOG(INFO, PLUGINS) << "A plugin has modified the instance in its ReceivedInstanceCallback";        
-          return true;
-        }
-        else
-        {
-          throw OrthancException(ErrorCode_Plugin, "The ReceivedInstanceCallback plugin is not returning a modified buffer while it has modified the instance");
-        }
-      }
-      else
-      {
-        throw OrthancException(ErrorCode_Plugin, "The ReceivedInstanceCallback has returned an invalid value");
-      }
+      return OrthancPluginReceivedInstanceCallbackResult_KeepAsIs;
     }
+    else
+    {
+      OrthancPluginReceivedInstanceCallbackResult callbackResult;
+      
+      {
+        OrthancPluginMemoryBuffer64 buffer;
+        callbackResult = (*pimpl_->receivedInstanceCallback_) (receivedDicom, receivedDicomSize, &buffer);
+        modified.Assign(buffer.data, buffer.size, ::free);
+      }
 
-    return true;
+      return callbackResult;
+    }
   }
 
   void OrthancPlugins::SignalChangeInternal(OrthancPluginChangeType changeType,
@@ -2584,8 +2541,16 @@ namespace Orthanc
     const _OrthancPluginReceivedInstanceCallback& p = 
       *reinterpret_cast<const _OrthancPluginReceivedInstanceCallback*>(parameters);
 
-    CLOG(INFO, PLUGINS) << "Plugin has registered a received instance callback";
-    pimpl_->receivedInstanceCallbacks_.push_back(p.callback);
+    if (pimpl_->receivedInstanceCallback_ != NULL)
+    {
+      throw OrthancException(ErrorCode_Plugin,
+                             "Can only register one plugin callback to process received instances");
+    }
+    else
+    {
+      CLOG(INFO, PLUGINS) << "Plugin has registered a received instance callback";
+      pimpl_->receivedInstanceCallback_ = p.callback;
+    }
   }
 
   void OrthancPlugins::RegisterRefreshMetricsCallback(const void* parameters)
