@@ -48,7 +48,7 @@ OrthancPluginReceivedInstanceCallbackResult ReceivedInstanceCallback(const void*
   OrthancPluginCreateMemoryBuffer64(OrthancPlugins::GetGlobalContext(), modifiedDicomBuffer, modifiedDicom.size());
   memcpy(modifiedDicomBuffer->data, modifiedDicom.c_str(), modifiedDicom.size());
   
-  return OrthancPluginReceivedInstanceCallbackResult_KeepAsIs;
+  return OrthancPluginReceivedInstanceCallbackResult_Modify;
 }
 
 
