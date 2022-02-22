@@ -37,9 +37,10 @@ REST API
 --------
 
 * API version upgraded to 16
-* If an image can not be decoded, ../preview and ../rendered routes are now returning 
-  unsupported.png only if the ?returnUnsupportedImage option is specified; otherwise, 
-  it raises a 415 error code.
+* If an image can not be decoded, ../preview and ../rendered routes
+  are now returning "unsupported.png" only if the
+  "?returnUnsupportedImage" option is specified; otherwise, it raises
+  a 415 HTTP error code.
 * Archive jobs response now contains a header Content-Disposition:filename='archive.zip'
 * "/instances/{...}/frames/{...}/numpy": Download the frame as a Python numpy array
 * "/instances/{...}/numpy": Download the instance as a Python numpy array

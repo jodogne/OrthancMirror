@@ -50,7 +50,7 @@ OrthancPluginReceivedInstanceCallbackResult ReceivedInstanceCallback(const void*
   *modifiedDicomBufferSize = modifiedDicom.size();
   memcpy(*modifiedDicomBuffer, modifiedDicom.c_str(), modifiedDicom.size());
   
-  return OrthancPluginReceivedInstanceCallbackResult_Modified;
+  return OrthancPluginReceivedInstanceCallbackResult_Modify;
 }
 
 

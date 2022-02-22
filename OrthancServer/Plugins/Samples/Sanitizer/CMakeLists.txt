@@ -51,6 +51,8 @@ add_library(Sanitizer SHARED
     ${ORTHANC_DICOM_SOURCES}
     )
 
+target_link_libraries(Sanitizer ${DCMTK_LIBRARIES})
+
 
 install(
   TARGETS Sanitizer

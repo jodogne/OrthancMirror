@@ -788,18 +788,20 @@ namespace Orthanc
             break;
 
           case DIMSE_C_FIND_RQ:
+          {
+            std::string sopClassUid(msg.msg.CFindRQ.AffectedSOPClassUID);
+            if (sopClassUid == UID_FINDModalityWorklistInformationModel)
             {
-              std::string sopClassUid(msg.msg.CFindRQ.AffectedSOPClassUID);
-              if (sopClassUid == UID_FINDModalityWorklistInformationModel)
-              {
-                request = DicomRequestType_FindWorklist;
-              }
-              else
-              {
-                request = DicomRequestType_Find;
-              }
-              supported = true;
-            }; break;
+              request = DicomRequestType_FindWorklist;
+            }
+            else
+            {
+              request = DicomRequestType_Find;
+            }
+            supported = true;
+            break;
+          }
+          
           case DIMSE_N_ACTION_RQ:
             request = DicomRequestType_NAction;
             supported = true;

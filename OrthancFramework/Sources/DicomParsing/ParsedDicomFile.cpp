@@ -1259,10 +1259,8 @@ namespace Orthanc
       }
 
       case MimeType_Binary:
-      {
         EmbedRawPixelData(content);
         break;
-      }
 
       default:
         throw OrthancException(ErrorCode_NotImplemented);
