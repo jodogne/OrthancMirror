@@ -35,8 +35,7 @@
 
 OrthancPluginReceivedInstanceCallbackResult ReceivedInstanceCallback(const void* receivedDicomBuffer,
                                                                      uint64_t receivedDicomBufferSize,
-                                                                     void** modifiedDicomBuffer,
-                                                                     uint64_t* modifiedDicomBufferSize)
+                                                                     OrthancPluginMemoryBuffer64* modifiedDicomBuffer)
 {
   Orthanc::ParsedDicomFile dicom(receivedDicomBuffer, receivedDicomBufferSize);
   std::string institutionName = "My institution";
@@ -45,12 +44,11 @@ OrthancPluginReceivedInstanceCallbackResult ReceivedInstanceCallback(const void*
   
   std::string modifiedDicom;
   dicom.SaveToMemoryBuffer(modifiedDicom);
-
-  *modifiedDicomBuffer = malloc(modifiedDicom.size());
-  *modifiedDicomBufferSize = modifiedDicom.size();
-  memcpy(*modifiedDicomBuffer, modifiedDicom.c_str(), modifiedDicom.size());
   
-  return OrthancPluginReceivedInstanceCallbackResult_Modify;
+  OrthancPluginCreateMemoryBuffer64(OrthancPlugins::GetGlobalContext(), modifiedDicomBuffer, modifiedDicom.size());
+  memcpy(modifiedDicomBuffer->data, modifiedDicom.c_str(), modifiedDicom.size());
+  
+  return OrthancPluginReceivedInstanceCallbackResult_KeepAsIs;
 }
 
 
