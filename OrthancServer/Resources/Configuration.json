@@ -289,9 +289,9 @@
   // from SCU modalities it does not know about (i.e. that are not
   // listed in the "DicomModalities" option above). Setting this
   // option to "true" implies security risks. (new in Orthanc 1.9.0)
-  // Note: from version 1.10.0, this option applies to C-FIND requests
-  // for Patients/Studies/Series/Instances. Another option is available
-  // for Worklists (see below)
+  // Note: From Orthanc 1.10.0, this option only applies to C-FIND
+  // requests for patients/studies/series/instances. Use option
+  // "DicomAlwaysAllowFindWorklist" for worklists.
   "DicomAlwaysAllowFind" : false,
 
   // Whether the Orthanc SCP allows incoming C-FIND requests for worklists, 
@@ -437,11 +437,11 @@
 
   // Number of threads that are used by the embedded DICOM server.
   // This defines the number of concurrent DICOM operations that can
-  // be run.  Note: this is not limiting the number of concurrent 
-  // connections.  With a single thread, if a C-Find is received
-  // during e.g the transcoding of an incoming C-Store, it will
-  // have to wait until the end of the C-Store before being processed.
-  // (new in Orthanc 1.10.0, before this version, the value was fixed to 4)
+  // be run. Note: This is not limiting the number of concurrent
+  // connections. With a single thread, if a C-Find is received during
+  // e.g the transcoding of an incoming C-Store, it will have to wait
+  // until the end of the C-Store before being processed. (new in
+  // Orthanc 1.10.0, before this version, the value was fixed to 4)
   "DicomThreadsCount" : 4,
 
   // The list of the known Orthanc peers. This option is ignored if
@@ -649,7 +649,7 @@
   // multiplicity (> 0 with defaults to 1), possibly the maximum
   // multiplicity (0 means arbitrary multiplicity, defaults to 1), and
   // possibly the Private Creator (for private tags).
-  // Note: for private tags, you should only declare the lower 8 bits
+  // Note: For private tags, you should only declare the lower 8 bits
   // of the element since the higher 8 bits may vary from one file to
   // the other.
   "Dictionary" : {

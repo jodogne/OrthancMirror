@@ -70,7 +70,7 @@
 #include <dcmtk/dcmdata/dcdicent.h>
 #include <dcmtk/dcmnet/dimse.h>
 
-#define ERROR_MESSAGE_64BIT "A 64bit version of the Orthanc SDK is necessary to use buffers > 4GB and it is currently not available !"
+#define ERROR_MESSAGE_64BIT "A 64bit version of the Orthanc SDK is necessary to use buffers > 4GB, but is currently not available"
 
 
 namespace Orthanc
@@ -2324,7 +2324,7 @@ namespace Orthanc
         }
         return true; 
       }
-      else if (callbackResult == OrthancPluginReceivedInstanceCallbackResult_Modified)
+      else if (callbackResult == OrthancPluginReceivedInstanceCallbackResult_Modify)
       {
         if (modifiedDicomSize64 > 0 && modifiedDicomBufferData != NULL)
         {

@@ -1008,9 +1008,9 @@ extern "C"
    **/
   typedef enum
   {
-    OrthancPluginReceivedInstanceCallbackResult_KeepAsIs = 1,           /*!< Keep the instance as is */
-    OrthancPluginReceivedInstanceCallbackResult_Modified = 2,           /*!< Modified the instance */
-    OrthancPluginReceivedInstanceCallbackResult_Discard = 3,            /*!< Tell Orthanc to discard the instance */
+    OrthancPluginReceivedInstanceCallbackResult_KeepAsIs = 1, /*!< Keep the instance as is */
+    OrthancPluginReceivedInstanceCallbackResult_Modify = 2,   /*!< Modify the instance */
+    OrthancPluginReceivedInstanceCallbackResult_Discard = 3,  /*!< Tell Orthanc to discard the instance */
 
     _OrthancPluginReceivedInstanceCallbackResult_INTERNAL = 0x7fffffff
   } OrthancPluginReceivedInstanceCallbackResult;

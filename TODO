@@ -137,9 +137,9 @@ Performance
   useful in ServerContext::DecodeDicomInstance()
 * DicomMap: create a cache to the main DICOM tags index
 * Check out rapidjson: https://github.com/miloyip/nativejson-benchmark
-* optimize tools/find with ModalitiesInStudies: 
+* Optimize tools/find with ModalitiesInStudies: 
   https://groups.google.com/g/orthanc-users/c/aN8nqcRd3jw/m/pmc9ylVeAwAJ.
-  One solution could be: filter first without ModalitiesInStudies and then
+  One solution could be: Filter first without ModalitiesInStudies and then
   cycle through the responses to filter out with ModalitiesInStudies
 
 ========
@@ -169,7 +169,7 @@ SDK
   https://groups.google.com/d/msg/orthanc-users/BtvLTE5Ni8A/vIMhmMgfBAAJ
 * In "OrthancPluginLog[Error|Warning|Info]()", prefix the log line with
   the name of the plugin, as retrieved by "OrthancPluginGetName()"
-* update the SDK to handle buffer sizes > 4GB (all sizes are currently coded in uint32_t)
+* Update the SDK to handle buffer sizes > 4GB (all sizes are currently coded in uint32_t)
 
 ----------------
 Ideas of plugins

@@ -239,11 +239,7 @@ namespace Orthanc
                                        FileContentType contentType,
                                        uint64_t end /* exclusive */)
   {
-    if (cache_.FetchStartRange(target, fileUuid, contentType, end))
-    {
-      return;
-    }
-    else
+    if (!cache_.FetchStartRange(target, fileUuid, contentType, end))
     {
       MetricsTimer timer(*this, METRICS_READ);
       std::unique_ptr<IMemoryBuffer> buffer(area_.ReadRange(fileUuid, contentType, 0, end));

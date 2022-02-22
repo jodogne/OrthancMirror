@@ -839,7 +839,7 @@ namespace Orthanc
         break;
 
       case DicomRequestType_FindWorklist:
-        return "Find Worklist";
+        return "FindWorklist";
         break;
 
       case DicomRequestType_Get:
