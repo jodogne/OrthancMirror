@@ -276,9 +276,10 @@ namespace Orthanc
     virtual uint16_t FilterIncomingCStoreInstance(const DicomInstanceToStore& instance,
                                                   const Json::Value& simplified) ORTHANC_OVERRIDE;
 
-    OrthancPluginReceivedInstanceCallbackResult ApplyReceivedInstanceCallbacks(MallocMemoryBuffer& modified,
-                                                                               const void* receivedDicomBuffer,
-                                                                               size_t receivedDicomBufferSize);
+    OrthancPluginReceivedInstanceAction ApplyReceivedInstanceCallbacks(MallocMemoryBuffer& modified,
+                                                                       const void* receivedDicomBuffer,
+                                                                       size_t receivedDicomBufferSize,
+                                                                       RequestOrigin origin);
 
     bool HasStorageArea() const;
 

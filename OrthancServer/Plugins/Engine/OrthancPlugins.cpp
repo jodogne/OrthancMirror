@@ -398,6 +398,8 @@ namespace Orthanc
         std::unique_ptr<MallocMemoryBuffer> result(new MallocMemoryBuffer);
 
         OrthancPluginMemoryBuffer64 buffer;
+        buffer.size = 0;
+        buffer.data = NULL;
         
         OrthancPluginErrorCode error = readWhole_(&buffer, uuid.c_str(), Plugins::Convert(type));
 
@@ -1714,6 +1716,7 @@ namespace Orthanc
         sizeof(int32_t) != sizeof(OrthancPluginMetricsType) ||
         sizeof(int32_t) != sizeof(OrthancPluginDicomWebBinaryMode) ||
         sizeof(int32_t) != sizeof(OrthancPluginStorageCommitmentFailureReason) ||
+        sizeof(int32_t) != sizeof(OrthancPluginReceivedInstanceAction) ||
         static_cast<int>(OrthancPluginDicomToJsonFlags_IncludeBinary) != static_cast<int>(DicomToJsonFlags_IncludeBinary) ||
         static_cast<int>(OrthancPluginDicomToJsonFlags_IncludePrivateTags) != static_cast<int>(DicomToJsonFlags_IncludePrivateTags) ||
         static_cast<int>(OrthancPluginDicomToJsonFlags_IncludeUnknownTags) != static_cast<int>(DicomToJsonFlags_IncludeUnknownTags) ||
@@ -2285,28 +2288,32 @@ namespace Orthanc
   }
 
 
-  OrthancPluginReceivedInstanceCallbackResult OrthancPlugins::ApplyReceivedInstanceCallbacks(
+  OrthancPluginReceivedInstanceAction OrthancPlugins::ApplyReceivedInstanceCallbacks(
     MallocMemoryBuffer& modified,
     const void* receivedDicom,
-    size_t receivedDicomSize)
+    size_t receivedDicomSize,
+    RequestOrigin origin)
   {
     boost::recursive_mutex::scoped_lock lock(pimpl_->invokeServiceMutex_);
 
     if (pimpl_->receivedInstanceCallback_ == NULL)
     {
-      return OrthancPluginReceivedInstanceCallbackResult_KeepAsIs;
+      return OrthancPluginReceivedInstanceAction_KeepAsIs;
     }
     else
     {
-      OrthancPluginReceivedInstanceCallbackResult callbackResult;
+      OrthancPluginReceivedInstanceAction action;
       
       {
         OrthancPluginMemoryBuffer64 buffer;
-        callbackResult = (*pimpl_->receivedInstanceCallback_) (&buffer, receivedDicom, receivedDicomSize);
+        buffer.size = 0;
+        buffer.data = NULL;
+
+        action = (*pimpl_->receivedInstanceCallback_) (&buffer, receivedDicom, receivedDicomSize, Plugins::Convert(origin));
         modified.Assign(buffer.data, buffer.size, ::free);
       }
 
-      return callbackResult;
+      return action;
     }
   }
 

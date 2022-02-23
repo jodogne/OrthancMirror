@@ -698,12 +698,12 @@ namespace Orthanc
     {
       // New in Orthanc 1.10.0
 
-      OrthancPluginReceivedInstanceCallbackResult action = GetPlugins().ApplyReceivedInstanceCallbacks(
-        modifiedBuffer, receivedDicom.GetBufferData(), receivedDicom.GetBufferSize());
+      OrthancPluginReceivedInstanceAction action = GetPlugins().ApplyReceivedInstanceCallbacks(
+        modifiedBuffer, receivedDicom.GetBufferData(), receivedDicom.GetBufferSize(), receivedDicom.GetOrigin().GetRequestOrigin());
 
       switch (action)
       {
-        case OrthancPluginReceivedInstanceCallbackResult_Discard:
+        case OrthancPluginReceivedInstanceAction_Discard:
         {
           CLOG(INFO, PLUGINS) << "A plugin has discarded the instance in its ReceivedInstanceCallback";
           StoreResult result;
@@ -711,16 +711,17 @@ namespace Orthanc
           return result;
         }
           
-        case OrthancPluginReceivedInstanceCallbackResult_KeepAsIs:
+        case OrthancPluginReceivedInstanceAction_KeepAsIs:
+          // This path is also used when no ReceivedInstanceCallback is installed by the plugins
           break;
 
-        case OrthancPluginReceivedInstanceCallbackResult_Modify:
+        case OrthancPluginReceivedInstanceAction_Modify:
           if (modifiedBuffer.GetSize() > 0 &&
               modifiedBuffer.GetData() != NULL)
           {
             CLOG(INFO, PLUGINS) << "A plugin has modified the instance in its ReceivedInstanceCallback";        
             modifiedDicom.reset(DicomInstanceToStore::CreateFromBuffer(modifiedBuffer.GetData(), modifiedBuffer.GetSize()));
-            modifiedDicom->SetOrigin(dicom->GetOrigin());
+            modifiedDicom->SetOrigin(receivedDicom.GetOrigin());
             dicom = modifiedDicom.get();
           }
           else
