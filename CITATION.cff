@@ -10,5 +10,5 @@ authors:
 doi: "10.1007/s10278-018-0082-y"
 license: "GPL-3.0-or-later"
 repository-code: "https://hg.orthanc-server.com/orthanc/"
-version: 1.9.7
-date-released: 2021-08-31
+version: 1.10.0
+date-released: 2022-02-23
