@@ -862,6 +862,6 @@
   // A value of 0 means reading and writing are performed in sequence
   // (default behaviour).  A value > 1 is meaningful only if the storage
   // is a distributed network storage (e.g object storage plugin).
-  // (new in Orthanc 1.10.0)
+  // (new experimental feature in Orthanc 1.10.0)
   "ZipLoaderThreads": 0
 }

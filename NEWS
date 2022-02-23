@@ -26,8 +26,8 @@ General
   retrieval of individual frames of multiframe instances.
 * New configuration option "MaximumStorageCacheSize" to configure the size of
   the new storage cache.
-* New configuration option "ZipLoaderThreads" to configure the number of threads used
-  to read instances from storage when creating a Zip archive/media.
+* New experimental configuration option "ZipLoaderThreads" to configure the number of 
+  threads used to read instances from storage when creating a Zip archive/media.
 * Support decoding of black-and-white images (with 1 bit per pixel), notably DICOM SEG
 * Added links to download attachments from the Orthanc Explorer
 * Fix XSS inside DICOM in Orthanc Explorer (as reported by Stuart Kurutac, NCC Group).  
