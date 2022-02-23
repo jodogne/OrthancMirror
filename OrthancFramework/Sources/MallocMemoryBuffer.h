@@ -26,6 +26,8 @@
 #include "IMemoryBuffer.h"
 #include "Compatibility.h"
 
+#include <stdint.h>  // For uint64_t
+
 
 namespace Orthanc
 {
