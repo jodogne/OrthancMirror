@@ -58,7 +58,9 @@ Lua
 Plugins
 -------
 
-* New function in the SDK: OrthancPluginRegisterIncomingCStoreInstanceFilter()
+* New functions in the SDK:
+  - OrthancPluginRegisterIncomingCStoreInstanceFilter()
+  - OrthancPluginRegisterReceivedInstanceCallback()
 
 Maintenance
 -----------
