@@ -50,6 +50,7 @@ namespace Orthanc
 #include "../../../OrthancFramework/Sources/HttpServer/IHttpHandler.h"
 #include "../../../OrthancFramework/Sources/HttpServer/IIncomingHttpRequestFilter.h"
 #include "../../../OrthancFramework/Sources/JobsEngine/IJob.h"
+#include "../../../OrthancFramework/Sources/MallocMemoryBuffer.h"
 #include "../../Sources/Database/IDatabaseWrapper.h"
 #include "../../Sources/IDicomImageDecoder.h"
 #include "../../Sources/IServerListener.h"
@@ -275,10 +276,9 @@ namespace Orthanc
     virtual uint16_t FilterIncomingCStoreInstance(const DicomInstanceToStore& instance,
                                                   const Json::Value& simplified) ORTHANC_OVERRIDE;
 
-    virtual bool ApplyReceivedInstanceCallbacks(const void* receivedDicomBuffer,
-                                                size_t receivedDicomBufferSize,
-                                                void** modifiedDicomBufferData,
-                                                size_t& modifiedDicomBufferSize);
+    OrthancPluginReceivedInstanceCallbackResult ApplyReceivedInstanceCallbacks(MallocMemoryBuffer& modified,
+                                                                               const void* receivedDicomBuffer,
+                                                                               size_t receivedDicomBufferSize);
 
     bool HasStorageArea() const;
 

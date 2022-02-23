@@ -52,7 +52,7 @@ namespace Orthanc
     void Clear();
 
     void Assign(void* buffer,
-                size_t size,
+                uint64_t size,
                 FreeFunction freeFunction);
     
     virtual void MoveToString(std::string& target) ORTHANC_OVERRIDE;
