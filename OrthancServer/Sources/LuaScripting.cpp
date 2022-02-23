@@ -32,8 +32,6 @@
 #include "../../OrthancFramework/Sources/Logging.h"
 #include "../../OrthancFramework/Sources/Lua/LuaFunctionCall.h"
 
-#include <dcmtk/dcmnet/dimse.h>
-
 #include <OrthancServerResources.h>
 
 
@@ -936,8 +934,9 @@ namespace Orthanc
     return true;
   }
 
-  uint16_t LuaScripting::FilterIncomingCStoreInstance(const DicomInstanceToStore& instance,
-                                                      const Json::Value& simplified)
+  bool LuaScripting::FilterIncomingCStoreInstance(uint16_t& dimseStatus,
+                                                  const DicomInstanceToStore& instance,
+                                                  const Json::Value& simplified)
   {
     static const char* NAME = "ReceivedCStoreInstanceFilter";
 
@@ -968,7 +967,7 @@ namespace Orthanc
       return static_cast<uint16_t>(result);
     }
 
-    return STATUS_Success;
+    return true;
   }
 
 

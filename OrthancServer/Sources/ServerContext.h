@@ -144,10 +144,11 @@ namespace Orthanc
         return context_.filterLua_.FilterIncomingInstance(instance, simplified);
       }
 
-      virtual uint16_t FilterIncomingCStoreInstance(const DicomInstanceToStore& instance,
-                                                    const Json::Value& simplified) ORTHANC_OVERRIDE
+      virtual bool FilterIncomingCStoreInstance(uint16_t& dimseStatus,
+                                                const DicomInstanceToStore& instance,
+                                                const Json::Value& simplified) ORTHANC_OVERRIDE
       {
-        return context_.filterLua_.FilterIncomingCStoreInstance(instance, simplified);
+        return context_.filterLua_.FilterIncomingCStoreInstance(dimseStatus, instance, simplified);
       }
     };
     

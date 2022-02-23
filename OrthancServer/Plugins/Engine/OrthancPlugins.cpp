@@ -2260,8 +2260,9 @@ namespace Orthanc
 
 
 
-  uint16_t OrthancPlugins::FilterIncomingCStoreInstance(const DicomInstanceToStore& instance,
-                                                        const Json::Value& simplified)
+  bool OrthancPlugins::FilterIncomingCStoreInstance(uint16_t& dimseStatus,
+                                                    const DicomInstanceToStore& instance,
+                                                    const Json::Value& simplified)
   {
     DicomInstanceFromCallback wrapped(instance);
     
@@ -2271,20 +2272,26 @@ namespace Orthanc
            filter = pimpl_->incomingCStoreInstanceFilters_.begin();
          filter != pimpl_->incomingCStoreInstanceFilters_.end(); ++filter)
     {
-      int32_t filterResult = (*filter) (reinterpret_cast<const OrthancPluginDicomInstance*>(&wrapped));
+      int32_t result = (*filter) (&dimseStatus, reinterpret_cast<const OrthancPluginDicomInstance*>(&wrapped));
 
-      if (filterResult >= 0 && filterResult <= 0xFFFF)
+      if (result == 0)
       {
-        return static_cast<uint16_t>(filterResult);
+        // The instance must be discarded
+        return false;
+      }
+      else if (result == 1)
+      {
+        // The instance is accepted
+        return true;
       }
       else
       {
-        // The callback is only allowed to answer uint16_t
+        // Error
         throw OrthancException(ErrorCode_Plugin);
       }
     }
 
-    return STATUS_Success;
+    return true;  // By default, the instance is accepted
   }
 
 

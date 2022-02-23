@@ -45,8 +45,14 @@ namespace Orthanc
     virtual bool FilterIncomingInstance(const DicomInstanceToStore& instance,
                                         const Json::Value& simplified) = 0;
 
-    virtual uint16_t FilterIncomingCStoreInstance(const DicomInstanceToStore& instance,
-                                                  const Json::Value& simplified) = 0;
-
+    /**
+     * Returns "true" iff some DICOM instance received by the DICOM
+     * SCP is to be accepted. If the instance is discarded,
+     * "dimseStatus" must contain the DIMSE status that is sent back
+     * to the DICOM SCU.
+     **/
+    virtual bool FilterIncomingCStoreInstance(uint16_t& dimseStatus,
+                                              const DicomInstanceToStore& instance,
+                                              const Json::Value& simplified) = 0;
   };
 }

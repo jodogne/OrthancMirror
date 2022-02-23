@@ -554,9 +554,10 @@ namespace Orthanc
 
             if (dicom.GetOrigin().GetRequestOrigin() == Orthanc::RequestOrigin_DicomProtocol)
             {
-              uint16_t filterResult = it->GetListener().FilterIncomingCStoreInstance(dicom, simplifiedTags);
-              if (filterResult != 0x0000)
+              uint16_t filterResult = STATUS_Success;
+              if (!it->GetListener().FilterIncomingCStoreInstance(filterResult, dicom, simplifiedTags))
               {
+                // The instance is to be discarded
                 result.SetStatus(StoreStatus_FilteredOut);
                 result.SetCStoreStatusCode(filterResult);
                 break;
