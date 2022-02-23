@@ -33,9 +33,10 @@
 
 
 
-OrthancPluginReceivedInstanceCallbackResult ReceivedInstanceCallback(OrthancPluginMemoryBuffer64* modifiedDicomBuffer,
-                                                                     const void* receivedDicomBuffer,
-                                                                     uint64_t receivedDicomBufferSize)
+OrthancPluginReceivedInstanceAction ReceivedInstanceCallback(OrthancPluginMemoryBuffer64* modifiedDicomBuffer,
+                                                             const void* receivedDicomBuffer,
+                                                             uint64_t receivedDicomBufferSize,
+                                                             OrthancPluginInstanceOrigin origin)
 {
   Orthanc::ParsedDicomFile dicom(receivedDicomBuffer, receivedDicomBufferSize);
   std::string institutionName = "My institution";
@@ -48,7 +49,7 @@ OrthancPluginReceivedInstanceCallbackResult ReceivedInstanceCallback(OrthancPlug
   OrthancPluginCreateMemoryBuffer64(OrthancPlugins::GetGlobalContext(), modifiedDicomBuffer, modifiedDicom.size());
   memcpy(modifiedDicomBuffer->data, modifiedDicom.c_str(), modifiedDicom.size());
   
-  return OrthancPluginReceivedInstanceCallbackResult_Modify;
+  return OrthancPluginReceivedInstanceAction_Modify;
 }
 
 
@@ -61,14 +62,14 @@ extern "C"
     Orthanc::InitializeFramework("", true);
 
     /* Check the version of the Orthanc core */
-    // if (OrthancPluginCheckVersion(c) == 0)
-    // {
-    //   OrthancPlugins::ReportMinimalOrthancVersion(ORTHANC_PLUGINS_MINIMAL_MAJOR_NUMBER,
-    //                                               ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER,
-    //                                               ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER);
-    //   return -1;
-    // }
-
+    if (OrthancPluginCheckVersion(c) == 0)
+    {
+      OrthancPlugins::ReportMinimalOrthancVersion(ORTHANC_PLUGINS_MINIMAL_MAJOR_NUMBER,
+                                                  ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER,
+                                                  ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER);
+      return -1;
+    }
+    
     OrthancPlugins::LogWarning("Sanitizer plugin is initializing");
     OrthancPluginSetDescription(c, "Sample plugin to sanitize incoming DICOM instances.");
 

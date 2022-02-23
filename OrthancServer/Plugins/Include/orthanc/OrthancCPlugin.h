@@ -27,7 +27,7 @@
  *    - Possibly register a callback to refresh its metrics using OrthancPluginRegisterRefreshMetricsCallback().
  *    - Possibly register a callback to answer chunked HTTP transfers using ::OrthancPluginRegisterChunkedRestCallback().
  *    - Possibly register a callback for Storage Commitment SCP using ::OrthancPluginRegisterStorageCommitmentScpCallback().
- *    - Possibly register a callback to filter incoming DICOM instance using OrthancPluginRegisterIncomingDicomInstanceFilter().
+ *    - Possibly register a callback to keep/discard/modify incoming DICOM instances using OrthancPluginRegisterReceivedInstanceCallback().
  *    - Possibly register a custom transcoder for DICOM images using OrthancPluginRegisterTranscoderCallback().
  * -# <tt>void OrthancPluginFinalize()</tt>:
  *    This function is invoked by Orthanc during its shutdown. The plugin
@@ -1004,16 +1004,16 @@ extern "C"
 
 
   /**
-   * The return value of ReceivedInstanceCallback
+   * The action to be taken after ReceivedInstanceCallback is triggered
    **/
   typedef enum
   {
-    OrthancPluginReceivedInstanceCallbackResult_KeepAsIs = 1, /*!< Keep the instance as is */
-    OrthancPluginReceivedInstanceCallbackResult_Modify = 2,   /*!< Modify the instance */
-    OrthancPluginReceivedInstanceCallbackResult_Discard = 3,  /*!< Tell Orthanc to discard the instance */
+    OrthancPluginReceivedInstanceAction_KeepAsIs = 1, /*!< Keep the instance as is */
+    OrthancPluginReceivedInstanceAction_Modify = 2,   /*!< Modify the instance */
+    OrthancPluginReceivedInstanceAction_Discard = 3,  /*!< Discard the instance */
 
-    _OrthancPluginReceivedInstanceCallbackResult_INTERNAL = 0x7fffffff
-  } OrthancPluginReceivedInstanceCallbackResult;
+    _OrthancPluginReceivedInstanceAction_INTERNAL = 0x7fffffff
+  } OrthancPluginReceivedInstanceAction;
 
 
   /**
@@ -1856,7 +1856,8 @@ extern "C"
         sizeof(int32_t) != sizeof(OrthancPluginConstraintType) ||
         sizeof(int32_t) != sizeof(OrthancPluginMetricsType) ||
         sizeof(int32_t) != sizeof(OrthancPluginDicomWebBinaryMode) ||
-        sizeof(int32_t) != sizeof(OrthancPluginStorageCommitmentFailureReason))
+        sizeof(int32_t) != sizeof(OrthancPluginStorageCommitmentFailureReason) ||
+        sizeof(int32_t) != sizeof(OrthancPluginReceivedInstanceAction))
     {
       /* Mismatch in the size of the enumerations */
       return 0;
@@ -2119,7 +2120,7 @@ extern "C"
    * @warning Your callback function will be called synchronously with
    * the core of Orthanc. This implies that deadlocks might emerge if
    * you call other core primitives of Orthanc in your callback (such
-   * deadlocks are particular visible in the presence of other plugins
+   * deadlocks are particularly visible in the presence of other plugins
    * or Lua scripts). It is thus strongly advised to avoid any call to
    * the REST API of Orthanc in the callback. If you have to call
    * other primitives of Orthanc, you should make these calls in a
@@ -3297,7 +3298,7 @@ extern "C"
    * @warning Your callback function will be called synchronously with
    * the core of Orthanc. This implies that deadlocks might emerge if
    * you call other core primitives of Orthanc in your callback (such
-   * deadlocks are particular visible in the presence of other plugins
+   * deadlocks are particularly visible in the presence of other plugins
    * or Lua scripts). It is thus strongly advised to avoid any call to
    * the REST API of Orthanc in the callback. If you have to call
    * other primitives of Orthanc, you should make these calls in a
@@ -7755,7 +7756,7 @@ extern "C"
    * @warning Your callback function will be called synchronously with
    * the core of Orthanc. This implies that deadlocks might emerge if
    * you call other core primitives of Orthanc in your callback (such
-   * deadlocks are particular visible in the presence of other plugins
+   * deadlocks are particularly visible in the presence of other plugins
    * or Lua scripts). It is thus strongly advised to avoid any call to
    * the REST API of Orthanc in the callback. If you have to call
    * other primitives of Orthanc, you should make these calls in a
@@ -7766,6 +7767,7 @@ extern "C"
    * @param callback The callback.
    * @return 0 if success, other value if error.
    * @ingroup Callbacks
+   * @deprecated In new plugins, OrthancPluginRegisterReceivedInstanceCallback() should be used
    **/
   ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginRegisterIncomingDicomInstanceFilter(
     OrthancPluginContext*                     context,
@@ -7813,7 +7815,7 @@ extern "C"
    * @warning Your callback function will be called synchronously with
    * the core of Orthanc. This implies that deadlocks might emerge if
    * you call other core primitives of Orthanc in your callback (such
-   * deadlocks are particular visible in the presence of other plugins
+   * deadlocks are particularly visible in the presence of other plugins
    * or Lua scripts). It is thus strongly advised to avoid any call to
    * the REST API of Orthanc in the callback. If you have to call
    * other primitives of Orthanc, you should make these calls in a
@@ -7836,31 +7838,35 @@ extern "C"
   }
 
   /**
-   * @brief Callback to possibly modify a DICOM instance received
+   * @brief Callback to keep/discard/modify a DICOM instance received
    * by Orthanc from any source (C-STORE or REST API)
    *
    * Signature of a callback function that is triggered whenever
-   * Orthanc receives a new DICOM instance (through DICOM protocol or 
-   * REST API), and that answers a possibly modified version of the 
-   * DICOM that should be stored in Orthanc.  
+   * Orthanc receives a new DICOM instance (through DICOM protocol or
+   * REST API), and that specifies an action to be applied to this
+   * newly received instance. The instance can be kept as it is, can
+   * be modified by the plugin, or can be discarded.
    *
-   * This callback is called immediately after reception: before 
-   * transcoding and before filtering (FilterIncomingInstance).
+   * This callback is invoked immediately after reception, i.e. before
+   * transcoding and before filtering
+   * (cf. OrthancPluginRegisterIncomingDicomInstanceFilter()).
    *
-   * @param receivedDicomBuffer A buffer containing the received DICOM (input).
+   * @param modifiedDicomBuffer A buffer containing the modified DICOM (output)
+   * @param receivedDicomBuffer A buffer containing the received DICOM (input)
    * @param receivedDicomBufferSize The size of the received DICOM (input)
-   * @param modifiedDicomBuffer A buffer containing the modified DICOM (output).
+   * @param origin The origin of the DICOM instance (input)
    * This buffer will be freed by the Orthanc core and must have been allocated 
    * using OrthancPluginCreateMemoryBuffer64().
-   * @return OrthancPluginReceivedInstanceCallbackResult_KeepAsIs to accept the instance as is,
-   *         OrthancPluginReceivedInstanceCallbackResult_Modified to store the modified DICOM,
-   *         OrthancPluginReceivedInstanceCallbackResult_Discard to tell Orthanc to discard the instance.
+   * @return `OrthancPluginReceivedInstanceAction_KeepAsIs` to accept the instance as is,<br/>
+   *         `OrthancPluginReceivedInstanceAction_Modify` to store the modified DICOM contained in `modifiedDicomBuffer`,<br/>
+   *         `OrthancPluginReceivedInstanceAction_Discard` to tell Orthanc to discard the instance.
    * @ingroup Callback
    **/
-  typedef OrthancPluginReceivedInstanceCallbackResult (*OrthancPluginReceivedInstanceCallback) (
+  typedef OrthancPluginReceivedInstanceAction (*OrthancPluginReceivedInstanceCallback) (
     OrthancPluginMemoryBuffer64* modifiedDicomBuffer,
     const void* receivedDicomBuffer,
-    uint64_t receivedDicomBufferSize);
+    uint64_t receivedDicomBufferSize,
+    OrthancPluginInstanceOrigin origin);
 
 
   typedef struct
@@ -7869,14 +7875,13 @@ extern "C"
   } _OrthancPluginReceivedInstanceCallback;
 
   /**
-   * @brief Register a callback to possibly modify a DICOM instance received
-   * by Orthanc through any source (C-STORE or REST API)
-   *
+   * @brief Register a callback to keep/discard/modify a DICOM instance received
+   * by Orthanc from any source (C-STORE or REST API)
    *
    * @warning Your callback function will be called synchronously with
    * the core of Orthanc. This implies that deadlocks might emerge if
    * you call other core primitives of Orthanc in your callback (such
-   * deadlocks are particular visible in the presence of other plugins
+   * deadlocks are particularly visible in the presence of other plugins
    * or Lua scripts). It is thus strongly advised to avoid any call to
    * the REST API of Orthanc in the callback. If you have to call
    * other primitives of Orthanc, you should make these calls in a
