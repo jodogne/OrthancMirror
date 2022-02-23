@@ -273,8 +273,9 @@ namespace Orthanc
     virtual bool FilterIncomingInstance(const DicomInstanceToStore& instance,
                                         const Json::Value& simplified) ORTHANC_OVERRIDE;
 
-    virtual uint16_t FilterIncomingCStoreInstance(const DicomInstanceToStore& instance,
-                                                  const Json::Value& simplified) ORTHANC_OVERRIDE;
+    virtual bool FilterIncomingCStoreInstance(uint16_t& dimseStatus,
+                                              const DicomInstanceToStore& instance,
+                                              const Json::Value& simplified) ORTHANC_OVERRIDE;
 
     OrthancPluginReceivedInstanceAction ApplyReceivedInstanceCallbacks(MallocMemoryBuffer& modified,
                                                                        const void* receivedDicomBuffer,
