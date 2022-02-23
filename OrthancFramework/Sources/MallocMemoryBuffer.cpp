@@ -57,10 +57,22 @@ namespace Orthanc
 
     
   void MallocMemoryBuffer::Assign(void* buffer,
-                                  size_t size,
+                                  uint64_t size,
                                   FreeFunction freeFunction)
   {
     Clear();
+
+    if (size != 0 &&
+        buffer == NULL)
+    {
+      throw OrthancException(ErrorCode_NullPointer);
+    }
+
+    if (static_cast<uint64_t>(static_cast<size_t>(size)) != size)
+    {
+      freeFunction(buffer);
+      throw OrthancException(ErrorCode_InternalError, "Buffer larger than 4GB, which is too large for Orthanc running in 32bits");
+    }
 
     buffer_ = buffer;
     size_ = size;

@@ -7780,19 +7780,19 @@ extern "C"
 
   /**
    * @brief Callback to filter incoming DICOM instances received by 
-   * Orthanc through C-Store.
+   * Orthanc through C-STORE.
    *
    * Signature of a callback function that is triggered whenever
    * Orthanc receives a new DICOM instance (through DICOM protocol), 
    * and that answers whether this DICOM instance should be accepted 
    * or discarded by Orthanc.  If the instance is discarded, the callback
-   * can specify the C-Store error code.
+   * can specify the C-STORE error code.
    *
    * Note that the metadata information is not available
    * (i.e. GetInstanceMetadata() should not be used on "instance").
    *
    * @param instance The received DICOM instance.
-   * @return 0 to accept the instance, any valid C-Store error code
+   * @return 0 to accept the instance, any valid C-STORE error code
    * to reject the instance, -1 if error.
    * @ingroup Callback
    **/
@@ -7807,7 +7807,7 @@ extern "C"
 
   /**
    * @brief Register a callback to filter incoming DICOM instances
-   * received by Orthanc through C-Store.
+   * received by Orthanc through C-STORE.
    *
    *
    * @warning Your callback function will be called synchronously with
@@ -7837,34 +7837,30 @@ extern "C"
 
   /**
    * @brief Callback to possibly modify a DICOM instance received
-   * by Orthanc through any source (C-Store or Rest API)
+   * by Orthanc from any source (C-STORE or REST API)
    *
    * Signature of a callback function that is triggered whenever
    * Orthanc receives a new DICOM instance (through DICOM protocol or 
-   * Rest API), and that answers a possibly modified version of the 
+   * REST API), and that answers a possibly modified version of the 
    * DICOM that should be stored in Orthanc.  
    *
-   * This callback is called immediately after receiption: before 
+   * This callback is called immediately after reception: before 
    * transcoding and before filtering (FilterIncomingInstance).
    *
    * @param receivedDicomBuffer A buffer containing the received DICOM (input).
    * @param receivedDicomBufferSize The size of the received DICOM (input)
    * @param modifiedDicomBuffer A buffer containing the modified DICOM (output).
-   *                            This buffer will be freed by the Orthanc Core and must have
-   *                            been allocated by malloc in your plugin or by Orthanc core through
-   *                            a plugin method.
-   * @param modifiedDicomBufferSize The size of the modified DICOM (output)
-   * @return OrthancPluginReceivedInstanceCallbackResult_KeepAsIs to accept the instance as is
-   *         OrthancPluginReceivedInstanceCallbackResult_Modified to store the modified DICOM
-   *         OrthancPluginReceivedInstanceCallbackResult_Discard to tell Orthanc to discard the instance
+   * This buffer will be freed by the Orthanc core and must have been allocated 
+   * using OrthancPluginCreateMemoryBuffer64().
+   * @return OrthancPluginReceivedInstanceCallbackResult_KeepAsIs to accept the instance as is,
+   *         OrthancPluginReceivedInstanceCallbackResult_Modified to store the modified DICOM,
+   *         OrthancPluginReceivedInstanceCallbackResult_Discard to tell Orthanc to discard the instance.
    * @ingroup Callback
    **/
   typedef OrthancPluginReceivedInstanceCallbackResult (*OrthancPluginReceivedInstanceCallback) (
+    OrthancPluginMemoryBuffer64* modifiedDicomBuffer,
     const void* receivedDicomBuffer,
-    uint64_t receivedDicomBufferSize,
-    void** modifiedDicomBuffer,
-    uint64_t* modifiedDicomBufferSize
-    );
+    uint64_t receivedDicomBufferSize);
 
 
   typedef struct
@@ -7874,7 +7870,7 @@ extern "C"
 
   /**
    * @brief Register a callback to possibly modify a DICOM instance received
-   * by Orthanc through any source (C-Store or Rest API)
+   * by Orthanc through any source (C-STORE or REST API)
    *
    *
    * @warning Your callback function will be called synchronously with
