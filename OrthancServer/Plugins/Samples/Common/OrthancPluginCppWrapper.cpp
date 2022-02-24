@@ -511,6 +511,22 @@ namespace OrthancPlugins
   }
 
 
+  void OrthancString::ToJsonWithoutComments(Json::Value& target) const
+  {
+    if (str_ == NULL)
+    {
+      LogError("Cannot convert an empty memory buffer to JSON");
+      ORTHANC_PLUGINS_THROW_EXCEPTION(InternalError);
+    }
+
+    if (!ReadJsonWithoutComments(target, str_))
+    {
+      LogError("Cannot convert some memory buffer to JSON");
+      ORTHANC_PLUGINS_THROW_EXCEPTION(BadFileFormat);
+    }
+  }
+
+
   void MemoryBuffer::DicomToJson(Json::Value& target,
                                  OrthancPluginDicomToJsonFormat format,
                                  OrthancPluginDicomToJsonFlags flags,
@@ -645,7 +661,7 @@ namespace OrthancPlugins
       ORTHANC_PLUGINS_THROW_EXCEPTION(InternalError);
     }
 
-    str.ToJson(configuration_);
+    str.ToJsonWithoutComments(configuration_);
 
     if (configuration_.type() != Json::objectValue)
     {
