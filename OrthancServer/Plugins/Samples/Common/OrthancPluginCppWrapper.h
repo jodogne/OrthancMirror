@@ -300,7 +300,9 @@ namespace OrthancPlugins
     void ToString(std::string& target) const;
 
     void ToJson(Json::Value& target) const;
-  };
+  
+    void ToJsonWithoutComments(Json::Value& target) const;
+};
 
 
   class OrthancConfiguration : public boost::noncopyable
