@@ -7,6 +7,9 @@ For higher-level ideas in the roadmap, please first read the
 https://book.orthanc-server.com/contributing.html
 
 
+Some features are being funded by and OpenCollective one-time donations.
+selected features are marked with priorities ((1) - higher, (2) - medium, (3) - nice to have)
+
 =======
 General
 =======
@@ -22,7 +25,7 @@ General
 * Toolbox::ComputeMD5() fails on files larger than 4GB
 * Add an option to run Orthanc in read-only mode both for DICOM and for Rest API.
 * Logging: add some information like Thread-Id to contextualize the logs
-* Accept extra DICOM tags dictionaries in the DCMTK format '.dic' (easier to use than declare
+* (1) Accept extra DICOM tags dictionaries in the DCMTK format '.dic' (easier to use than declare
   them in the Orthanc configuration file).  Even the standard dictionaries could be 
   overriden by these custom dictionaries.
 * provide more flexibility wrt Dicom TLS ciphers and TLS version:
@@ -61,25 +64,25 @@ REST API
 Mid-term
 --------
 
-* Archive jobs: Resume downloads using "range requests":
+* (1) Archive jobs: Resume downloads using "range requests":
   https://developer.mozilla.org/en-US/docs/Web/HTTP/Range_requests
-* Create DICOM from DICOMweb JSON ("application/dicom+json")
+* (3) Create DICOM from DICOMweb JSON ("application/dicom+json")
   with "/tools/create-dicom"
-* Create multi-frame images with /tools/create-dicom (by adding a
+* (2) Create multi-frame images with /tools/create-dicom (by adding a
   "MultiFrame" flag to avoid creating a series), or modify PixelData
   of a multi-frame image:
   https://groups.google.com/g/orthanc-users/c/y3-xa_GcdLM/m/m0Kr5G5UPAAJ
-* Specify the transfer syntax in /tools/create-dicom
-* In the /studies/{id}/anonymize route, add an option to remove
+* (1) Specify the transfer syntax in /tools/create-dicom
+* (1) In the /studies/{id}/anonymize route, add an option to remove
   secondary captures.  They usually contains Patient info in the
   image. The SOPClassUID might be used to identify such secondary
   captures.
 * Support "/preview" and "/matlab" for LUT color images
 * Try to transcode files if a simple decoding fails:
   https://groups.google.com/g/orthanc-users/c/b8168-NkAhA/m/Df3j-CO9CgAJ
-* Add asynchronous mode in "/modalitities/.../move" for C-MOVE SCU:
+* (1) Add asynchronous mode in "/modalitities/.../move" for C-MOVE SCU:
   https://groups.google.com/g/orthanc-users/c/G3_jBy4X4NQ/m/8BanTsdMBQAJ
-* Ranges of DICOM tags for "Keep" and "Remove" in ".../modify" and ".../anonymize": 
+* (2) Ranges of DICOM tags for "Keep" and "Remove" in ".../modify" and ".../anonymize": 
   https://groups.google.com/g/orthanc-users/c/6dETktKo9v8/m/b0LUvSfwAgAJ
 
 ---------
@@ -136,11 +139,11 @@ Internationalization
 Performance
 ===========
 
-* ServerContext::DicomCacheLocker => give access to the raw buffer,
+* (3) ServerContext::DicomCacheLocker => give access to the raw buffer,
   useful in ServerContext::DecodeDicomInstance()
-* DicomMap: create a cache to the main DICOM tags index
-* Check out rapidjson: https://github.com/miloyip/nativejson-benchmark
-* Optimize tools/find with ModalitiesInStudies: 
+* (2) DicomMap: create a cache to the main DICOM tags index
+* (3) Check out rapidjson: https://github.com/miloyip/nativejson-benchmark
+* (2) Optimize tools/find with ModalitiesInStudies: 
   https://groups.google.com/g/orthanc-users/c/aN8nqcRd3jw/m/pmc9ylVeAwAJ.
   One solution could be: Filter first without ModalitiesInStudies and then
   cycle through the responses to filter out with ModalitiesInStudies
