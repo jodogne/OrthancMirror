@@ -36,6 +36,19 @@ General
 Documentation (Orthanc Book)
 ============================
 
+* Write a getting started guide (step by step) for each platform to replace
+  https://book.orthanc-server.com/users/cookbook.html :
+  - Ubuntu/Debian
+  - Windows
+  - OSX
+  - Docker on Linux
+  Each step by step guide should contain:
+  - get binaries
+  - launch
+  - open explorer
+  - edit configuration file
+  - restart and observe changes
+
 * Explain how log rotation can be achieved (no built-in support in Orthanc)
 * Explain how to interface with Mirth/NextGen Connect
   https://en.wikipedia.org/wiki/NextGen_Connect
