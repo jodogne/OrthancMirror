@@ -247,9 +247,15 @@ Additional information
 
 * It has been reported that distributions coming with Boost >= 1.70.0
   might need the option "-DBoost_NO_BOOST_CMAKE=ON" to be added to the
-  "cmake" command-line.
+  "cmake" command line.
   https://groups.google.com/d/msg/orthanc-users/nXq2qOndw9c/0PGnaOqiAgAJ
-  
+
+* Starting with Orthanc 1.10.0, if you use a distribution with an old
+  version of gcc (typically gcc 4.8 on CentOS), you might have to add
+  the option "-DCMAKE_CXX_FLAGS=-std=c++11" when invoking the "cmake"
+  command line. This flag was previously automatically added, but this
+  feature was removed according to the following discussion:
+  https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=1000222
 
 
 
