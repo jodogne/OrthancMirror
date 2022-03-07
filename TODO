@@ -28,8 +28,10 @@ General
 * (1) Accept extra DICOM tags dictionaries in the DCMTK format '.dic' (easier to use than declare
   them in the Orthanc configuration file).  Even the standard dictionaries could be 
   overriden by these custom dictionaries.
-* provide more flexibility wrt Dicom TLS ciphers and TLS version:
+* Provide more flexibility wrt Dicom TLS ciphers and TLS version:
   https://groups.google.com/g/orthanc-users/c/X4IhmXCSr7I/m/EirawAFcBwAJ
+* Provide a configuration option to index additional tags as "MainDicomTags":
+  https://groups.google.com/g/orthanc-users/c/04oPNMHMzfE/m/kgHCroPWAQAJ
 
 
 ============================
