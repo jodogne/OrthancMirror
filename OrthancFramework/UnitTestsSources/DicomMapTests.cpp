@@ -45,43 +45,100 @@
 
 using namespace Orthanc;
 
-TEST(DicomMap, MainTags)
+
+namespace Orthanc
 {
-  ASSERT_TRUE(DicomMap::IsMainDicomTag(DICOM_TAG_PATIENT_ID));
-  ASSERT_TRUE(DicomMap::IsMainDicomTag(DICOM_TAG_PATIENT_ID, ResourceType_Patient));
-  ASSERT_FALSE(DicomMap::IsMainDicomTag(DICOM_TAG_PATIENT_ID, ResourceType_Study));
+  // The namespace is necessary because of FRIEND_TEST
+  // http://code.google.com/p/googletest/wiki/AdvancedGuide#Private_Class_Members
 
-  ASSERT_TRUE(DicomMap::IsMainDicomTag(DICOM_TAG_STUDY_INSTANCE_UID));
-  ASSERT_TRUE(DicomMap::IsMainDicomTag(DICOM_TAG_ACCESSION_NUMBER));
-  ASSERT_TRUE(DicomMap::IsMainDicomTag(DICOM_TAG_SERIES_INSTANCE_UID));
-  ASSERT_TRUE(DicomMap::IsMainDicomTag(DICOM_TAG_SOP_INSTANCE_UID));
+  class DicomMapMainTagsTests : public ::testing::Test
+  {
+  public:
+    DicomMapMainTagsTests()
+    {
+    }
 
-  std::set<DicomTag> s;
-  DicomMap::GetMainDicomTags(s);
-  ASSERT_TRUE(s.end() != s.find(DICOM_TAG_PATIENT_ID));
-  ASSERT_TRUE(s.end() != s.find(DICOM_TAG_STUDY_INSTANCE_UID));
-  ASSERT_TRUE(s.end() != s.find(DICOM_TAG_ACCESSION_NUMBER));
-  ASSERT_TRUE(s.end() != s.find(DICOM_TAG_SERIES_INSTANCE_UID));
-  ASSERT_TRUE(s.end() != s.find(DICOM_TAG_SOP_INSTANCE_UID));
+    virtual void SetUp() ORTHANC_OVERRIDE
+    {
+      DicomMap::ResetDefaultMainDicomTags();
+    }
 
-  DicomMap::GetMainDicomTags(s, ResourceType_Patient);
-  ASSERT_TRUE(s.end() != s.find(DICOM_TAG_PATIENT_ID));
-  ASSERT_TRUE(s.end() == s.find(DICOM_TAG_STUDY_INSTANCE_UID));
+    virtual void TearDown() ORTHANC_OVERRIDE
+    {
+      DicomMap::ResetDefaultMainDicomTags();
+    }
+  };
 
-  DicomMap::GetMainDicomTags(s, ResourceType_Study);
-  ASSERT_TRUE(s.end() != s.find(DICOM_TAG_STUDY_INSTANCE_UID));
-  ASSERT_TRUE(s.end() != s.find(DICOM_TAG_ACCESSION_NUMBER));
-  ASSERT_TRUE(s.end() == s.find(DICOM_TAG_PATIENT_ID));
+  TEST_F(DicomMapMainTagsTests, MainTags)
+  {
+    ASSERT_TRUE(DicomMap::IsMainDicomTag(DICOM_TAG_PATIENT_ID));
+    ASSERT_TRUE(DicomMap::IsMainDicomTag(DICOM_TAG_PATIENT_ID, ResourceType_Patient));
+    ASSERT_FALSE(DicomMap::IsMainDicomTag(DICOM_TAG_PATIENT_ID, ResourceType_Study));
 
-  DicomMap::GetMainDicomTags(s, ResourceType_Series);
-  ASSERT_TRUE(s.end() != s.find(DICOM_TAG_SERIES_INSTANCE_UID));
-  ASSERT_TRUE(s.end() == s.find(DICOM_TAG_PATIENT_ID));
+    ASSERT_TRUE(DicomMap::IsMainDicomTag(DICOM_TAG_STUDY_INSTANCE_UID));
+    ASSERT_TRUE(DicomMap::IsMainDicomTag(DICOM_TAG_ACCESSION_NUMBER));
+    ASSERT_TRUE(DicomMap::IsMainDicomTag(DICOM_TAG_SERIES_INSTANCE_UID));
+    ASSERT_TRUE(DicomMap::IsMainDicomTag(DICOM_TAG_SOP_INSTANCE_UID));
 
-  DicomMap::GetMainDicomTags(s, ResourceType_Instance);
-  ASSERT_TRUE(s.end() != s.find(DICOM_TAG_SOP_INSTANCE_UID));
-  ASSERT_TRUE(s.end() == s.find(DICOM_TAG_PATIENT_ID));
+    {
+      const std::set<DicomTag>& s = DicomMap::GetAllMainDicomTags();
+      ASSERT_TRUE(s.end() != s.find(DICOM_TAG_PATIENT_ID));
+      ASSERT_TRUE(s.end() != s.find(DICOM_TAG_STUDY_INSTANCE_UID));
+      ASSERT_TRUE(s.end() != s.find(DICOM_TAG_ACCESSION_NUMBER));
+      ASSERT_TRUE(s.end() != s.find(DICOM_TAG_SERIES_INSTANCE_UID));
+      ASSERT_TRUE(s.end() != s.find(DICOM_TAG_SOP_INSTANCE_UID));
+    }
+
+    {
+      const std::set<DicomTag>& s = DicomMap::GetMainDicomTags(ResourceType_Patient);
+      ASSERT_TRUE(s.end() != s.find(DICOM_TAG_PATIENT_ID));
+      ASSERT_TRUE(s.end() == s.find(DICOM_TAG_STUDY_INSTANCE_UID));
+    }
+
+    {
+      const std::set<DicomTag>& s = DicomMap::GetMainDicomTags(ResourceType_Study);
+      ASSERT_TRUE(s.end() != s.find(DICOM_TAG_STUDY_INSTANCE_UID));
+      ASSERT_TRUE(s.end() != s.find(DICOM_TAG_ACCESSION_NUMBER));
+      ASSERT_TRUE(s.end() == s.find(DICOM_TAG_PATIENT_ID));
+    }
+
+    {
+      const std::set<DicomTag>& s = DicomMap::GetMainDicomTags(ResourceType_Series);
+      ASSERT_TRUE(s.end() != s.find(DICOM_TAG_SERIES_INSTANCE_UID));
+      ASSERT_TRUE(s.end() == s.find(DICOM_TAG_PATIENT_ID));
+    }
+
+    {
+      const std::set<DicomTag>& s = DicomMap::GetMainDicomTags(ResourceType_Instance);
+      ASSERT_TRUE(s.end() != s.find(DICOM_TAG_SOP_INSTANCE_UID));
+      ASSERT_TRUE(s.end() == s.find(DICOM_TAG_PATIENT_ID));
+    }
+  }
+
+  TEST_F(DicomMapMainTagsTests, AddMainTags)
+  {
+    DicomMap::AddMainDicomTag(DICOM_TAG_BITS_ALLOCATED, "BitsAllocated", ResourceType_Instance);
+
+    {
+      const std::set<DicomTag>& s = DicomMap::GetMainDicomTags(ResourceType_Instance);
+      ASSERT_TRUE(s.end() != s.find(DICOM_TAG_BITS_ALLOCATED));
+      ASSERT_TRUE(s.end() != s.find(DICOM_TAG_SOP_INSTANCE_UID));
+    }
+    {
+      const std::set<DicomTag>& s = DicomMap::GetMainDicomTags(ResourceType_Series);
+      ASSERT_TRUE(s.end() == s.find(DICOM_TAG_BITS_ALLOCATED));
+    }
+
+    ASSERT_TRUE(DicomMap::IsMainDicomTag(DICOM_TAG_BITS_ALLOCATED));
+    ASSERT_TRUE(DicomMap::IsMainDicomTag(DICOM_TAG_BITS_ALLOCATED, ResourceType_Instance));
+
+    // adding the same tag should throw
+    ASSERT_THROW(DicomMap::AddMainDicomTag(DICOM_TAG_BITS_ALLOCATED, "BitsAllocated", ResourceType_Instance), OrthancException);
+
+    // adding another tag with same name should throw
+    ASSERT_THROW(DicomMap::AddMainDicomTag(DICOM_TAG_BITS_STORED, "BitsAllocated", ResourceType_Instance), OrthancException);
+  }
 }
-
 
 TEST(DicomMap, Tags)
 {
@@ -157,9 +214,9 @@ static void TestModule(ResourceType level,
   // REFERENCE: DICOM PS3.3 2015c - Information Object Definitions
   // http://dicom.nema.org/medical/dicom/current/output/html/part03.html
 
-  std::set<DicomTag> moduleTags, main;
+  std::set<DicomTag> moduleTags;
+  const std::set<DicomTag>& main = DicomMap::GetMainDicomTags(level);
   DicomTag::AddTagsForModule(moduleTags, module);
-  DicomMap::GetMainDicomTags(main, level);
   
   // The main dicom tags are a subset of the module
   for (std::set<DicomTag>::const_iterator it = main.begin(); it != main.end(); ++it)
@@ -622,8 +679,7 @@ TEST(DicomMap, MainTagNames)
   {
     ResourceType level = static_cast<ResourceType>(i);
 
-    std::set<DicomTag> tags;
-    DicomMap::GetMainDicomTags(tags, level);
+    const std::set<DicomTag>& tags = DicomMap::GetMainDicomTags(level);
 
     for (std::set<DicomTag>::const_iterator it = tags.begin(); it != tags.end(); ++it)
     {

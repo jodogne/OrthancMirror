@@ -166,8 +166,11 @@ namespace Orthanc
   static const DicomTag DICOM_TAG_PATIENT_SEX(0x0010, 0x0040);
   static const DicomTag DICOM_TAG_LATERALITY(0x0020, 0x0060);
   static const DicomTag DICOM_TAG_BODY_PART_EXAMINED(0x0018, 0x0015);
+  static const DicomTag DICOM_TAG_SEQUENCE_NAME(0x0018, 0x0024);
+  static const DicomTag DICOM_TAG_PROTOCOL_NAME(0x0018, 0x1030);
   static const DicomTag DICOM_TAG_VIEW_POSITION(0x0018, 0x5101);
   static const DicomTag DICOM_TAG_MANUFACTURER(0x0008, 0x0070);
+  static const DicomTag DICOM_TAG_STATION_NAME(0x0008, 0x1010);
   static const DicomTag DICOM_TAG_PATIENT_ORIENTATION(0x0020, 0x0020);
   static const DicomTag DICOM_TAG_PATIENT_COMMENTS(0x0010, 0x4000);
   static const DicomTag DICOM_TAG_PATIENT_SPECIES_DESCRIPTION(0x0010, 0x2201);
@@ -176,6 +179,7 @@ namespace Orthanc
   static const DicomTag DICOM_TAG_PER_FRAME_FUNCTIONAL_GROUP_SEQUENCE(0x5200, 0x9230);
   static const DicomTag DICOM_TAG_PIXEL_VALUE_TRANSFORMATION_SEQUENCE(0x0028, 0x9145);
   static const DicomTag DICOM_TAG_FRAME_VOI_LUT_SEQUENCE(0x0028, 0x9132);
+  static const DicomTag DICOM_TAG_ACQUISITION_NUMBER(0x0020, 0x0012);
 
   // Tags used within the Stone of Orthanc
   static const DicomTag DICOM_TAG_FRAME_INCREMENT_POINTER(0x0028, 0x0009);
