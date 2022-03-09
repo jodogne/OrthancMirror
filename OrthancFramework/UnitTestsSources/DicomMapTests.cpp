@@ -138,6 +138,35 @@ namespace Orthanc
     // adding another tag with same name should throw
     ASSERT_THROW(DicomMap::AddMainDicomTag(DICOM_TAG_BITS_STORED, "BitsAllocated", ResourceType_Instance), OrthancException);
   }
+
+  TEST_F(DicomMapMainTagsTests, Signatures)
+  {
+    std::string defaultPatientSignature = DicomMap::GetDefaultMainDicomTagsSignature(ResourceType_Patient);
+    std::string defaultStudySignature = DicomMap::GetDefaultMainDicomTagsSignature(ResourceType_Study);
+    std::string defaultSeriesSignature = DicomMap::GetDefaultMainDicomTagsSignature(ResourceType_Series);
+    std::string defaultInstanceSignature = DicomMap::GetDefaultMainDicomTagsSignature(ResourceType_Instance);
+
+    ASSERT_NE(defaultInstanceSignature, defaultPatientSignature);
+    ASSERT_NE(defaultSeriesSignature, defaultStudySignature);
+    ASSERT_NE(defaultSeriesSignature, defaultPatientSignature);
+
+    std::string patientSignature = DicomMap::GetMainDicomTagsSignature(ResourceType_Patient);
+    std::string studySignature = DicomMap::GetMainDicomTagsSignature(ResourceType_Study);
+    std::string seriesSignature = DicomMap::GetMainDicomTagsSignature(ResourceType_Series);
+    std::string instanceSignature = DicomMap::GetMainDicomTagsSignature(ResourceType_Instance);
+
+    // at start, default and current signature should be equal
+    ASSERT_EQ(defaultPatientSignature, patientSignature);
+    ASSERT_EQ(defaultStudySignature, studySignature);
+    ASSERT_EQ(defaultSeriesSignature, seriesSignature);
+    ASSERT_EQ(defaultInstanceSignature, instanceSignature);
+
+    DicomMap::AddMainDicomTag(DICOM_TAG_BITS_ALLOCATED, "BitsAllocated", ResourceType_Instance);
+    instanceSignature = DicomMap::GetMainDicomTagsSignature(ResourceType_Instance);
+    
+    ASSERT_NE(defaultInstanceSignature, instanceSignature);
+  }
+
 }
 
 TEST(DicomMap, Tags)

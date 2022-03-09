@@ -26,6 +26,7 @@
 
 #include <stdio.h>
 #include <memory>
+#include <boost/algorithm/string/join.hpp>
 
 #include "../Compatibility.h"
 #include "../Endianness.h"
@@ -48,6 +49,15 @@ namespace Orthanc
 
   }
 
+
+  // WARNING: the DEFAULT list of main dicom tags below are the list as they 
+  // were in Orthanc 1.10 before we introduced the dynamic main dicom tags.
+  // This list has not changed since Orthanc 1.4.2 and had a single change since
+  // Orthanc 0.9.5.
+  // These lists have a specific signature.  When a resource does not have
+  // the metadata "MainDicomTagsSignature", we'll assume that they were stored
+  // with an Orthanc prior to 1.11.  It is therefore very important that you never
+  // change these lists !
 
   static const MainDicomTag DEFAULT_PATIENT_MAIN_DICOM_TAGS[] =
   {
@@ -163,6 +173,9 @@ namespace Orthanc
     std::map<ResourceType, std::set<DicomTag> > mainDicomTagsByLevel_;
     std::set<DicomTag> allMainDicomTags_;
 
+    std::map<ResourceType, std::string> signatures_;
+    std::map<ResourceType, std::string> defaultSignatures_;
+
     MainDicomTagsConfiguration()
     {
       ResetDefaultMainDicomTags();
@@ -180,6 +193,27 @@ namespace Orthanc
       LoadDefaultMainDicomTags(ResourceType_Study);
       LoadDefaultMainDicomTags(ResourceType_Series);
       LoadDefaultMainDicomTags(ResourceType_Instance);
+
+      defaultSignatures_[ResourceType_Patient] = signatures_[ResourceType_Patient];
+      defaultSignatures_[ResourceType_Study] = signatures_[ResourceType_Study];
+      defaultSignatures_[ResourceType_Series] = signatures_[ResourceType_Series];
+      defaultSignatures_[ResourceType_Instance] = signatures_[ResourceType_Instance];
+    }
+
+    std::string ComputeSignature(const std::set<DicomTag>& tags)
+    {
+      // std::set are sorted by default (which is important for us !)
+      std::set<std::string> tagsIds;
+      for (std::set<DicomTag>::const_iterator it = tags.begin(); it != tags.end(); it++)
+      {
+        tagsIds.insert(it->Format());
+      }
+
+      std::string signatureText = boost::algorithm::join(tagsIds, "|");
+      std::string signatureMD5;
+      Toolbox::ComputeMD5(signatureMD5, signatureText);
+
+      return signatureMD5;
     }
 
     void LoadDefaultMainDicomTags(ResourceType level)
@@ -249,6 +283,7 @@ namespace Orthanc
       mainDicomTagsByName_[level][name] = DicomTag2(tag);
       mainDicomTagsByLevel_[level].insert(tag);
       allMainDicomTags_.insert(tag);
+      signatures_[level] = ComputeSignature(GetMainDicomTagsByLevel(level));
     }
 
     const std::map<DicomTag, std::string>& GetMainDicomTags(ResourceType level) const
@@ -276,6 +311,21 @@ namespace Orthanc
     {
       return allMainDicomTags_;
     }
+
+    const std::string& GetMainDicomTagsSignature(ResourceType level)
+    {
+      assert(signatures_.find(level) != signatures_.end());
+
+      return signatures_[level];
+    }
+
+    const std::string& GetDefaultMainDicomTagsSignature(ResourceType level)
+    {
+      assert(defaultSignatures_.find(level) != defaultSignatures_.end());
+
+      return defaultSignatures_[level];
+    }
+
   };
 
 
@@ -587,6 +637,16 @@ namespace Orthanc
   void DicomMap::ResetDefaultMainDicomTags()
   {
     DicomMap::MainDicomTagsConfiguration::GetInstance().ResetDefaultMainDicomTags();
+  }
+
+  const std::string& DicomMap::GetMainDicomTagsSignature(ResourceType level)
+  {
+    return DicomMap::MainDicomTagsConfiguration::GetInstance().GetMainDicomTagsSignature(level);
+  }
+
+  const std::string& DicomMap::GetDefaultMainDicomTagsSignature(ResourceType level)
+  {
+    return DicomMap::MainDicomTagsConfiguration::GetInstance().GetDefaultMainDicomTagsSignature(level);
   }
 
   void DicomMap::GetTags(std::set<DicomTag>& tags) const
