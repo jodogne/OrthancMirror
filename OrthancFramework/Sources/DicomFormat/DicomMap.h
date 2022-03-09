@@ -31,17 +31,26 @@
 #include <map>
 #include <json/value.h>
 
+#if ORTHANC_BUILD_UNIT_TESTS == 1
+#  include <gtest/gtest_prod.h>
+#endif
+
 namespace Orthanc
 {
   class ORTHANC_PUBLIC DicomMap : public boost::noncopyable
   {
   public:
     typedef std::map<DicomTag, DicomValue*>  Content;
-    
+
   private:
+    class MainDicomTagsConfiguration;
     friend class DicomArray;
     friend class FromDcmtkBridge;
     friend class ParsedDicomFile;
+
+#if ORTHANC_BUILD_UNIT_TESTS == 1
+    friend class DicomMapMainTagsTests;
+#endif
 
     Content content_;
 
@@ -50,8 +59,8 @@ namespace Orthanc
                           uint16_t element, 
                           DicomValue* value);
 
-    static void GetMainDicomTagsInternal(std::set<DicomTag>& result,
-                                         ResourceType level);
+    // used for unit tests only
+    static void ResetDefaultMainDicomTags();
 
   public:
     ~DicomMap();
@@ -124,9 +133,13 @@ namespace Orthanc
 
     static bool IsMainDicomTag(const DicomTag& tag);
 
-    static void GetMainDicomTags(std::set<DicomTag>& result, ResourceType level);
+    static const std::set<DicomTag>& GetMainDicomTags(ResourceType level);
 
-    static void GetMainDicomTags(std::set<DicomTag>& result);
+    static const std::set<DicomTag>& GetAllMainDicomTags();
+
+    // adds a main dicom tag to the definition of main dicom tags for each level.
+    // this should be done once at startup before you use MainDicomTags methods
+    static void AddMainDicomTag(const DicomTag& tag, const std::string& name, ResourceType level);
 
     void GetTags(std::set<DicomTag>& tags) const;
 

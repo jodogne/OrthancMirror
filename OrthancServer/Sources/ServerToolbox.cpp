@@ -181,7 +181,7 @@ namespace Orthanc
           transaction.ClearMainDicomTags(resource);
 
           ResourcesContent tags(false /* prevent the setting of metadata */);
-          tags.AddResource(resource, level, dicomSummary);
+          tags.AddResource(resource, level, dicomSummary);  // MORE_TAGS: re-set the dicomMainTagsList metadata
           transaction.SetResourcesContent(tags);
         }
         catch (OrthancException&)

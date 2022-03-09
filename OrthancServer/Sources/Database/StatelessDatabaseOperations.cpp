@@ -362,8 +362,7 @@ namespace Orthanc
       }
 
       {
-        std::set<DicomTag> tags;
-        DicomMap::GetMainDicomTags(tags, level);
+        const std::set<DicomTag>& tags = DicomMap::GetMainDicomTags(level);
 
         for (std::set<DicomTag>::const_iterator
                tag = tags.begin(); tag != tags.end(); ++tag)
@@ -3100,6 +3099,7 @@ namespace Orthanc
 
 
             // Attach the user-specified metadata
+            // MORE_TAGS: TODO store the mainDicomTags list in metadata
 
             for (MetadataMap::const_iterator 
                    it = metadata_.begin(); it != metadata_.end(); ++it)

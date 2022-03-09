@@ -281,14 +281,13 @@ namespace Orthanc
 
   bool DatabaseLookup::HasOnlyMainDicomTags() const
   {
-    std::set<DicomTag> mainTags;
-    DicomMap::GetMainDicomTags(mainTags);
+    const std::set<DicomTag>& allMainTags = DicomMap::GetAllMainDicomTags();
 
     for (size_t i = 0; i < constraints_.size(); i++)
     {
       assert(constraints_[i] != NULL);
       
-      if (mainTags.find(constraints_[i]->GetTag()) == mainTags.end())
+      if (allMainTags.find(constraints_[i]->GetTag()) == allMainTags.end())
       {
         // This is not a main DICOM tag
         return false;

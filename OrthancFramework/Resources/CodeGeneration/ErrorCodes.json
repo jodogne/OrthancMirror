@@ -245,6 +245,11 @@
     "Name": "Revision",
     "Description": "A bad revision number was provided, which might indicate conflict between multiple writers"
   }, 
+  {
+    "Code": 44,
+    "Name": "MainDicomTagsMultiplyDefined",
+    "Description": "A main DICOM Tag has been defined multiple times for the same resource level"
+  }, 
 
 
 
