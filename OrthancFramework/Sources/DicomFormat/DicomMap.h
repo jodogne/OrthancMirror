@@ -135,6 +135,11 @@ namespace Orthanc
 
     static const std::set<DicomTag>& GetMainDicomTags(ResourceType level);
 
+    // returns a string uniquely identifying the list of main dicom tags for a level
+    static const std::string& GetMainDicomTagsSignature(ResourceType level);
+
+    static const std::string& GetDefaultMainDicomTagsSignature(ResourceType level);
+
     static const std::set<DicomTag>& GetAllMainDicomTags();
 
     // adds a main dicom tag to the definition of main dicom tags for each level.
