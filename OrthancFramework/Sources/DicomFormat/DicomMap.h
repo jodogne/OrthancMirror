@@ -118,6 +118,8 @@ namespace Orthanc
 
     void ExtractInstanceInformation(DicomMap& result) const;
 
+    void ExtractResourceInformation(DicomMap& result, ResourceType level) const;
+
     static void SetupFindPatientTemplate(DicomMap& result);
 
     static void SetupFindStudyTemplate(DicomMap& result);

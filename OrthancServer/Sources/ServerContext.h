@@ -539,5 +539,11 @@ namespace Orthanc
     bool IsUnknownSopClassAccepted();
 
     void SetUnknownSopClassAccepted(bool accepted);
+
+    bool ExpandResource(Json::Value& target,
+                        const std::string& publicId,
+                        ResourceType level,
+                        DicomToJsonFormat format);
+
   };
 }

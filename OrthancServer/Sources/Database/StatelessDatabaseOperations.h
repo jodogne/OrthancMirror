@@ -37,6 +37,33 @@ namespace Orthanc
   class ParsedDicomFile;
   struct ServerIndexChange;
 
+  struct ExpandedResource : public boost::noncopyable
+  {
+    std::string                         id_;
+    DicomMap                            tags_;  // all tags from DB
+    std::string                         mainDicomTagsSignature_;
+    std::string                         parentId_;
+    std::list<std::string>              childrenIds_;
+    std::map<MetadataType, std::string> metadata_;
+    ResourceType                        type_;
+    std::string                         anonymizedFrom_;
+    std::string                         modifiedFrom_;
+    std::string                         lastUpdate_;
+
+    // for patients/studies/series
+    bool                                isStable_;
+
+    // for series only
+    int                                 expectedNumberOfInstances_;
+    std::string                         status_;
+
+    // for instances only
+    size_t                              fileSize_;
+    std::string                         fileUuid_;
+    int                                 indexInSeries_;
+  };
+
+
   class StatelessDatabaseOperations : public boost::noncopyable
   {
   public:
@@ -448,7 +475,7 @@ namespace Orthanc
   
     void Apply(IReadWriteOperations& operations);
 
-    bool ExpandResource(Json::Value& target,
+    bool ExpandResource(ExpandedResource& target,
                         const std::string& publicId,
                         ResourceType level,
                         DicomToJsonFormat format);

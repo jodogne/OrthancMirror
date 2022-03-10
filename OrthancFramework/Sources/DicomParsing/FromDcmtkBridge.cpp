@@ -1296,7 +1296,7 @@ namespace Orthanc
     else
     {
       CLOG(INFO, DICOM) << "Unknown DICOM tag: \"" << name << "\"";
-      throw OrthancException(ErrorCode_UnknownDicomTag);
+      throw OrthancException(ErrorCode_UnknownDicomTag, name, false);
     }
 #endif
   }
@@ -1310,6 +1310,27 @@ namespace Orthanc
   {
     return fields.HasTag(ParseTag(tagName));
   }
+
+
+  // parses a list like "0010,0010;PatientBirthDate;0020,0020"
+  void FromDcmtkBridge::ParseListOfTags(std::set<DicomTag>& result, const std::string& source)
+  {
+    result.clear();
+
+    std::vector<std::string> tokens;
+    Toolbox::TokenizeString(tokens, source, ';');
+
+    for (std::vector<std::string>::const_iterator it = tokens.begin();
+         it != tokens.end(); it++)
+    {
+      if (it->size() > 0)
+      {
+        DicomTag tag = FromDcmtkBridge::ParseTag(*it);
+        result.insert(tag);
+      }
+    }
+  }
+
 
   const DicomValue &FromDcmtkBridge::GetValue(const DicomMap &fields,
                                               const std::string &tagName)

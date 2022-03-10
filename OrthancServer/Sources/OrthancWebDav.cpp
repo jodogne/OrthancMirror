@@ -259,7 +259,7 @@ namespace Orthanc
                        const Json::Value* dicomAsJson  /* unused (*) */)  ORTHANC_OVERRIDE
     {
       Json::Value resource;
-      if (context_.GetIndex().ExpandResource(resource, publicId, level_, DicomToJsonFormat_Human))
+      if (context_.ExpandResource(resource, publicId, level_, DicomToJsonFormat_Human))
       {
         if (success_)
         {

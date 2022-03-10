@@ -2092,4 +2092,186 @@ namespace Orthanc
     boost::mutex::scoped_lock lock(dynamicOptionsMutex_);
     isUnknownSopClassAccepted_ = accepted;
   }
+
+
+  static void SerializeExpandedResource(Json::Value& target,
+                                        const ExpandedResource& resource,
+                                        DicomToJsonFormat format)
+  {
+    target = Json::objectValue;
+
+    target["Type"] = GetResourceTypeText(resource.type_, false, true);
+    target["ID"] = resource.id_;
+
+    switch (resource.type_)
+    {
+      case ResourceType_Patient:
+        break;
+
+      case ResourceType_Study:
+        target["ParentPatient"] = resource.parentId_;
+        break;
+
+      case ResourceType_Series:
+        target["ParentStudy"] = resource.parentId_;
+        break;
+
+      case ResourceType_Instance:
+        target["ParentSeries"] = resource.parentId_;
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_InternalError);
+    }
+
+    switch (resource.type_)
+    {
+      case ResourceType_Patient:
+      case ResourceType_Study:
+      case ResourceType_Series:
+      {
+        Json::Value c = Json::arrayValue;
+
+        for (std::list<std::string>::const_iterator
+                it = resource.childrenIds_.begin(); it != resource.childrenIds_.end(); ++it)
+        {
+          c.append(*it);
+        }
+
+        if (resource.type_ == ResourceType_Patient)
+        {
+          target["Studies"] = c;
+        }
+        else if (resource.type_ == ResourceType_Study)
+        {
+          target["Series"] = c;
+        }
+        else
+        {
+          target["Instances"] = c;
+        }
+        break;
+      }
+
+      case ResourceType_Instance:
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_InternalError);
+    }
+
+    switch (resource.type_)
+    {
+      case ResourceType_Patient:
+      case ResourceType_Study:
+        break;
+
+      case ResourceType_Series:
+        if (resource.expectedNumberOfInstances_ < 0)
+        {
+          target["ExpectedNumberOfInstances"] = Json::nullValue;
+        }
+        else
+        {
+          target["ExpectedNumberOfInstances"] = resource.expectedNumberOfInstances_;
+        }
+        target["Status"] = resource.status_;
+        break;
+
+      case ResourceType_Instance:
+      {
+        target["FileSize"] = static_cast<unsigned int>(resource.fileSize_);
+        target["FileUuid"] = resource.fileUuid_;
+
+        if (resource.indexInSeries_ < 0)
+        {
+          target["IndexInSeries"] = Json::nullValue;
+        }
+        else
+        {
+          target["IndexInSeries"] = resource.indexInSeries_;
+        }
+
+        break;
+      }
+
+      default:
+        throw OrthancException(ErrorCode_InternalError);
+    }
+
+    if (!resource.anonymizedFrom_.empty())
+    {
+      target["AnonymizedFrom"] = resource.anonymizedFrom_;
+    }
+    
+    if (!resource.modifiedFrom_.empty())
+    {
+      target["ModifiedFrom"] = resource.modifiedFrom_;
+    }
+
+    if (resource.type_ == ResourceType_Patient ||
+        resource.type_ == ResourceType_Study ||
+        resource.type_ == ResourceType_Series)
+    {
+      target["IsStable"] = resource.isStable_;
+
+      if (!resource.lastUpdate_.empty())
+      {
+        target["LastUpdate"] = resource.lastUpdate_;
+      }
+    }
+
+    // serialize tags
+
+    static const char* const MAIN_DICOM_TAGS = "MainDicomTags";
+    static const char* const PATIENT_MAIN_DICOM_TAGS = "PatientMainDicomTags";
+
+    DicomMap mainDicomTags;
+    resource.tags_.ExtractResourceInformation(mainDicomTags, resource.type_);
+
+    target[MAIN_DICOM_TAGS] = Json::objectValue;
+    FromDcmtkBridge::ToJson(target[MAIN_DICOM_TAGS], mainDicomTags, format);
+    
+    if (resource.type_ == ResourceType_Study)
+    {
+      DicomMap patientMainDicomTags;
+      resource.tags_.ExtractPatientInformation(patientMainDicomTags);
+
+      target[PATIENT_MAIN_DICOM_TAGS] = Json::objectValue;
+      FromDcmtkBridge::ToJson(target[PATIENT_MAIN_DICOM_TAGS], patientMainDicomTags, format);
+    }
+
+  }
+
+
+  bool ServerContext::ExpandResource(Json::Value& target,
+                                     const std::string& publicId,
+                                     ResourceType level,
+                                     DicomToJsonFormat format)
+  {
+    ExpandedResource resource;
+
+    if (GetIndex().ExpandResource(resource, publicId, level, format))
+    {
+      // check the main dicom tags list has not changed since the resource was stored
+
+      if (resource.mainDicomTagsSignature_ != DicomMap::GetMainDicomTagsSignature(resource.type_))
+      {
+        OrthancConfiguration::ReaderLock lock;
+        if (lock.GetConfiguration().IsInconsistentDicomTagsLogsEnabled())
+        {
+          LOG(WARNING) << Orthanc::GetResourceTypeText(resource.type_, false , false) << " has been stored with another version of Main Dicom Tags list, you should POST to /" << Orthanc::GetResourceTypeText(resource.type_, true, false) << "/" << resource.id_ << "/reconstruct to update the list of tags saved in DB.  Some tags might be missing from this answer.";
+        }
+      }
+
+      // MORE_TAGS: TODO: possibly merge missing requested tags from /tags
+
+      SerializeExpandedResource(target, resource, format);
+
+      return true;
+    }
+
+    return false;
+  }
+
 }
