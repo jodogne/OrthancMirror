@@ -242,6 +242,8 @@ namespace Orthanc
 
     std::string GetDatabaseServerIdentifier() const;
 
+    bool IsInconsistentDicomTagsLogsEnabled() const;
+
     static void DefaultExtractDicomSummary(DicomMap& target,
                                            const ParsedDicomFile& dicom);
 

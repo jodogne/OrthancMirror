@@ -151,7 +151,8 @@ namespace Orthanc
     MetadataType_Instance_CalledAet = 12,        // New in Orthanc 1.4.0
     MetadataType_Instance_HttpUsername = 13,     // New in Orthanc 1.4.0
     MetadataType_Instance_PixelDataOffset = 14,  // New in Orthanc 1.9.0
-
+    MetadataType_MainDicomTagsSignature = 15,    // New in Orthanc 1.11.0
+    
     // Make sure that the value "65535" can be stored into this enumeration
     MetadataType_StartUser = 1024,
     MetadataType_EndUser = 65535

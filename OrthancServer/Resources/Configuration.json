@@ -858,5 +858,36 @@
   // (default behaviour).  A value > 1 is meaningful only if the storage
   // is a distributed network storage (e.g object storage plugin).
   // (new experimental feature in Orthanc 1.10.0)
-  "ZipLoaderThreads": 0
+  "ZipLoaderThreads": 0,
+
+  // Extra Main Dicom tags that are stored in DB together with all default
+  // Main Dicom tags that are already stored (TODO: see book new page). 
+  // (new in Orthanc 1.11.0)
+  /**
+  "ExtraMainDicomTags" : {
+    "Instance" : [
+      "Rows",
+      "Columns",
+      "ImageType",
+      "SOPClassUID",
+      "ContentDate",
+      "ContentTime",
+      "FrameOfReferenceUID",
+      "PixelSpacing",
+      "SpecificCharacterSet",
+      "BitsAllocated"
+    ],
+    "Series" : [],
+    "Study": [],
+    "Patient": []
+  },
+  */
+
+  // Enables/disables a warning notifying you when you try to access a
+  // resource that has been saved with a different version of the 
+  // ExtraMainDicomTags list
+  // TODO: see book new page
+  // (new in Orthanc 1.11.0)
+  "EnableLogsForInconsistentMainDicomTags": true
+
 }

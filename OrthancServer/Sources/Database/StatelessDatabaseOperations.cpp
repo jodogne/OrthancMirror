@@ -941,6 +941,20 @@ namespace Orthanc
               throw OrthancException(ErrorCode_InternalError);
           }
 
+          // check the main dicom tags list has not changed since the resource was stored
+          std::string resourceMainDicomTagsSignature = DicomMap::GetDefaultMainDicomTagsSignature(type);
+          LookupStringMetadata(resourceMainDicomTagsSignature, metadata, MetadataType_MainDicomTagsSignature);
+          
+          if (resourceMainDicomTagsSignature != DicomMap::GetMainDicomTagsSignature(type))
+          {
+            OrthancConfiguration::ReaderLock lock;
+            if (lock.GetConfiguration().IsInconsistentDicomTagsLogsEnabled())
+            {
+              LOG(WARNING) << Orthanc::GetResourceTypeText(type, false , false) << " has been stored with another version of Main Dicom Tags list, you should POST to /" << Orthanc::GetResourceTypeText(type, true, false) << "/" << tuple.get<2>() << "/reconstruct to update the list of tags saved in DB.  Some tags might be missing from this answer.";
+            }
+          }
+
+
           // Record the remaining information
           target["ID"] = tuple.get<2>();
           MainDicomTagsToJson(transaction, target, internalId, type, tuple.get<4>());
@@ -2700,7 +2714,13 @@ namespace Orthanc
           content.AddResource(study, ResourceType_Study, summary_);
           content.AddResource(series, ResourceType_Series, summary_);
           content.AddResource(instance, ResourceType_Instance, summary_);
+
           transaction.SetResourcesContent(content);
+
+          ReplaceMetadata(transaction, patient, MetadataType_MainDicomTagsSignature, DicomMap::GetMainDicomTagsSignature(ResourceType_Patient));    // New in Orthanc 1.11.0
+          ReplaceMetadata(transaction, study, MetadataType_MainDicomTagsSignature, DicomMap::GetMainDicomTagsSignature(ResourceType_Study));        // New in Orthanc 1.11.0
+          ReplaceMetadata(transaction, series, MetadataType_MainDicomTagsSignature, DicomMap::GetMainDicomTagsSignature(ResourceType_Series));      // New in Orthanc 1.11.0
+          ReplaceMetadata(transaction, instance, MetadataType_MainDicomTagsSignature, DicomMap::GetMainDicomTagsSignature(ResourceType_Instance));  // New in Orthanc 1.11.0
         }
 
         if (hasTransferSyntax_)
@@ -2715,6 +2735,7 @@ namespace Orthanc
         {
           ReplaceMetadata(transaction, instance, MetadataType_Instance_SopClassUid, value->GetContent());
         }
+
       }
     };
 
@@ -3081,25 +3102,28 @@ namespace Orthanc
             // Populate the tags of the newly-created resources
 
             content.AddResource(instanceId, ResourceType_Instance, dicomSummary_);
+            content.AddMetadata(instanceId, MetadataType_MainDicomTagsSignature, DicomMap::GetMainDicomTagsSignature(ResourceType_Instance));  // New in Orthanc 1.11.0
 
             if (status.isNewSeries_)
             {
               content.AddResource(status.seriesId_, ResourceType_Series, dicomSummary_);
+              content.AddMetadata(status.seriesId_, MetadataType_MainDicomTagsSignature, DicomMap::GetMainDicomTagsSignature(ResourceType_Series));  // New in Orthanc 1.11.0
             }
 
             if (status.isNewStudy_)
             {
               content.AddResource(status.studyId_, ResourceType_Study, dicomSummary_);
+              content.AddMetadata(status.studyId_, MetadataType_MainDicomTagsSignature, DicomMap::GetMainDicomTagsSignature(ResourceType_Study));  // New in Orthanc 1.11.0
             }
 
             if (status.isNewPatient_)
             {
               content.AddResource(status.patientId_, ResourceType_Patient, dicomSummary_);
+              content.AddMetadata(status.patientId_, MetadataType_MainDicomTagsSignature, DicomMap::GetMainDicomTagsSignature(ResourceType_Patient));  // New in Orthanc 1.11.0
             }
 
 
             // Attach the user-specified metadata
-            // MORE_TAGS: TODO store the mainDicomTags list in metadata
 
             for (MetadataMap::const_iterator 
                    it = metadata_.begin(); it != metadata_.end(); ++it)
