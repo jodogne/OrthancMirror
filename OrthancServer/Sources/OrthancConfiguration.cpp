@@ -1055,6 +1055,10 @@ namespace Orthanc
     }
   }
 
+  bool OrthancConfiguration::IsInconsistentDicomTagsLogsEnabled() const
+  {
+    return GetBooleanParameter("EnableLogsForInconsistentMainDicomTags", true);
+  }
   
   void OrthancConfiguration::DefaultExtractDicomSummary(DicomMap& target,
                                                         const ParsedDicomFile& dicom)
