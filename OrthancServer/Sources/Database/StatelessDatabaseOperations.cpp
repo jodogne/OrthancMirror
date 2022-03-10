@@ -710,46 +710,15 @@ namespace Orthanc
   }
   
 
-  bool StatelessDatabaseOperations::ExpandResource(Json::Value& target,
+  bool StatelessDatabaseOperations::ExpandResource(ExpandedResource& target,
                                                    const std::string& publicId,
                                                    ResourceType level,
                                                    DicomToJsonFormat format)
   {    
     class Operations : public ReadOnlyOperationsT5<
-      bool&, Json::Value&, const std::string&, ResourceType, DicomToJsonFormat>
+      bool&, ExpandedResource&, const std::string&, ResourceType, DicomToJsonFormat>
     {
     private:
-      static void MainDicomTagsToJson(ReadOnlyTransaction& transaction,
-                                      Json::Value& target,
-                                      int64_t resourceId,
-                                      ResourceType resourceType,
-                                      DicomToJsonFormat format)
-      {
-        static const char* const MAIN_DICOM_TAGS = "MainDicomTags";
-        static const char* const PATIENT_MAIN_DICOM_TAGS = "PatientMainDicomTags";
-        
-        DicomMap tags;
-        transaction.GetMainDicomTags(tags, resourceId);
-
-        if (resourceType == ResourceType_Study)
-        {
-          DicomMap t1, t2;
-          tags.ExtractStudyInformation(t1);
-          tags.ExtractPatientInformation(t2);
-
-          target[MAIN_DICOM_TAGS] = Json::objectValue;
-          FromDcmtkBridge::ToJson(target[MAIN_DICOM_TAGS], t1, format);
-
-          target[PATIENT_MAIN_DICOM_TAGS] = Json::objectValue;
-          FromDcmtkBridge::ToJson(target[PATIENT_MAIN_DICOM_TAGS], t2, format);
-        }
-        else
-        {
-          target[MAIN_DICOM_TAGS] = Json::objectValue;
-          FromDcmtkBridge::ToJson(target[MAIN_DICOM_TAGS], tags, format);
-        }
-      }
-
   
       static bool LookupStringMetadata(std::string& result,
                                        const std::map<MetadataType, std::string>& metadata,
@@ -806,9 +775,8 @@ namespace Orthanc
         }
         else
         {
-          Json::Value& target = tuple.get<1>();
-          target = Json::objectValue;
-        
+          ExpandedResource& target = tuple.get<1>();
+
           // Set information about the parent resource (if it exists)
           if (type == ResourceType_Patient)
           {
@@ -824,87 +792,36 @@ namespace Orthanc
               throw OrthancException(ErrorCode_DatabasePlugin);
             }
 
-            switch (type)
-            {
-              case ResourceType_Study:
-                target["ParentPatient"] = parent;
-                break;
-
-              case ResourceType_Series:
-                target["ParentStudy"] = parent;
-                break;
-
-              case ResourceType_Instance:
-                target["ParentSeries"] = parent;
-                break;
-
-              default:
-                throw OrthancException(ErrorCode_InternalError);
-            }
+            target.parentId_ = parent;
           }
 
           // List the children resources
-          std::list<std::string> children;
-          transaction.GetChildrenPublicId(children, internalId);
-
-          if (type != ResourceType_Instance)
-          {
-            Json::Value c = Json::arrayValue;
-
-            for (std::list<std::string>::const_iterator
-                   it = children.begin(); it != children.end(); ++it)
-            {
-              c.append(*it);
-            }
-
-            switch (type)
-            {
-              case ResourceType_Patient:
-                target["Studies"] = c;
-                break;
-
-              case ResourceType_Study:
-                target["Series"] = c;
-                break;
-
-              case ResourceType_Series:
-                target["Instances"] = c;
-                break;
-
-              default:
-                throw OrthancException(ErrorCode_InternalError);
-            }
-          }
+          transaction.GetChildrenPublicId(target.childrenIds_, internalId);
 
           // Extract the metadata
-          std::map<MetadataType, std::string> metadata;
-          transaction.GetAllMetadata(metadata, internalId);
+          transaction.GetAllMetadata(target.metadata_, internalId);
 
           // Set the resource type
+          target.type_ = type;
+
           switch (type)
           {
             case ResourceType_Patient:
-              target["Type"] = "Patient";
-              break;
-
             case ResourceType_Study:
-              target["Type"] = "Study";
               break;
 
             case ResourceType_Series:
             {
-              target["Type"] = "Series";
-
               int64_t i;
-              if (LookupIntegerMetadata(i, metadata, MetadataType_Series_ExpectedNumberOfInstances))
+              if (LookupIntegerMetadata(i, target.metadata_, MetadataType_Series_ExpectedNumberOfInstances))
               {
-                target["ExpectedNumberOfInstances"] = static_cast<int>(i);
-                target["Status"] = EnumerationToString(transaction.GetSeriesStatus(internalId, i));
+                target.expectedNumberOfInstances_ = static_cast<int>(i);
+                target.status_ = EnumerationToString(transaction.GetSeriesStatus(internalId, i));
               }
               else
               {
-                target["ExpectedNumberOfInstances"] = Json::nullValue;
-                target["Status"] = EnumerationToString(SeriesStatus_Unknown);
+                target.expectedNumberOfInstances_ = -1;
+                target.status_ = EnumerationToString(SeriesStatus_Unknown);
               }
 
               break;
@@ -912,8 +829,6 @@ namespace Orthanc
 
             case ResourceType_Instance:
             {
-              target["Type"] = "Instance";
-
               FileInfo attachment;
               int64_t revision;  // ignored
               if (!transaction.LookupAttachment(attachment, revision, internalId, FileContentType_Dicom))
@@ -921,17 +836,17 @@ namespace Orthanc
                 throw OrthancException(ErrorCode_InternalError);
               }
 
-              target["FileSize"] = static_cast<unsigned int>(attachment.GetUncompressedSize());
-              target["FileUuid"] = attachment.GetUuid();
+              target.fileSize_ = static_cast<unsigned int>(attachment.GetUncompressedSize());
+              target.fileUuid_ = attachment.GetUuid();
 
               int64_t i;
-              if (LookupIntegerMetadata(i, metadata, MetadataType_Instance_IndexInSeries))
+              if (LookupIntegerMetadata(i, target.metadata_, MetadataType_Instance_IndexInSeries))
               {
-                target["IndexInSeries"] = static_cast<int>(i);
+                target.indexInSeries_ = static_cast<int>(i);
               }
               else
               {
-                target["IndexInSeries"] = Json::nullValue;
+                target.indexInSeries_ = -1;
               }
 
               break;
@@ -942,45 +857,43 @@ namespace Orthanc
           }
 
           // check the main dicom tags list has not changed since the resource was stored
-          std::string resourceMainDicomTagsSignature = DicomMap::GetDefaultMainDicomTagsSignature(type);
-          LookupStringMetadata(resourceMainDicomTagsSignature, metadata, MetadataType_MainDicomTagsSignature);
-          
-          if (resourceMainDicomTagsSignature != DicomMap::GetMainDicomTagsSignature(type))
-          {
-            OrthancConfiguration::ReaderLock lock;
-            if (lock.GetConfiguration().IsInconsistentDicomTagsLogsEnabled())
-            {
-              LOG(WARNING) << Orthanc::GetResourceTypeText(type, false , false) << " has been stored with another version of Main Dicom Tags list, you should POST to /" << Orthanc::GetResourceTypeText(type, true, false) << "/" << tuple.get<2>() << "/reconstruct to update the list of tags saved in DB.  Some tags might be missing from this answer.";
-            }
-          }
-
+          target.mainDicomTagsSignature_ = DicomMap::GetDefaultMainDicomTagsSignature(type);
+          LookupStringMetadata(target.mainDicomTagsSignature_, target.metadata_, MetadataType_MainDicomTagsSignature);
 
           // Record the remaining information
-          target["ID"] = tuple.get<2>();
-          MainDicomTagsToJson(transaction, target, internalId, type, tuple.get<4>());
+          target.id_ = tuple.get<2>();
+
+          // read all tags from DB
+          transaction.GetMainDicomTags(target.tags_, internalId);
+
+          // MORE_TAGS: TODO: eventualy get parent dicom tags if requested ....
 
           std::string tmp;
 
-          if (LookupStringMetadata(tmp, metadata, MetadataType_AnonymizedFrom))
+          if (LookupStringMetadata(tmp, target.metadata_, MetadataType_AnonymizedFrom))
           {
-            target["AnonymizedFrom"] = tmp;
+            target.anonymizedFrom_ = tmp;
           }
 
-          if (LookupStringMetadata(tmp, metadata, MetadataType_ModifiedFrom))
+          if (LookupStringMetadata(tmp, target.metadata_, MetadataType_ModifiedFrom))
           {
-            target["ModifiedFrom"] = tmp;
+            target.modifiedFrom_ = tmp;
           }
 
           if (type == ResourceType_Patient ||
               type == ResourceType_Study ||
               type == ResourceType_Series)
           {
-            target["IsStable"] = !transaction.GetTransactionContext().IsUnstableResource(internalId);
+            target.isStable_ = !transaction.GetTransactionContext().IsUnstableResource(internalId);
 
-            if (LookupStringMetadata(tmp, metadata, MetadataType_LastUpdate))
+            if (LookupStringMetadata(tmp, target.metadata_, MetadataType_LastUpdate))
             {
-              target["LastUpdate"] = tmp;
+              target.lastUpdate_ = tmp;
             }
+          }
+          else
+          {
+            target.isStable_ = false;
           }
 
           tuple.get<0>() = true;

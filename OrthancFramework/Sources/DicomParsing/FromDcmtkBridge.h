@@ -175,6 +175,9 @@ namespace Orthanc
 
     static DicomTag ParseTag(const std::string& name);
 
+    // parses a list like "0010,0010;PatientBirthDate;0020,0020"
+    static void ParseListOfTags(std::set<DicomTag>& result, const std::string& source);
+
     static bool HasTag(const DicomMap& fields,
                        const std::string& tagName);
 

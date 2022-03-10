@@ -209,11 +209,9 @@ namespace Orthanc
         tagsIds.insert(it->Format());
       }
 
-      std::string signatureText = boost::algorithm::join(tagsIds, "|");
-      std::string signatureMD5;
-      Toolbox::ComputeMD5(signatureMD5, signatureText);
+      std::string signatureText = boost::algorithm::join(tagsIds, ";");
 
-      return signatureMD5;
+      return signatureText;
     }
 
     void LoadDefaultMainDicomTags(ResourceType level)
@@ -422,29 +420,30 @@ namespace Orthanc
     }
   }
 
+  void DicomMap::ExtractResourceInformation(DicomMap& result, ResourceType level) const
+  {
+    const std::map<DicomTag, std::string>& mainDicomTags = DicomMap::MainDicomTagsConfiguration::GetInstance().GetMainDicomTags(level);
+    ExtractTags(result, content_, mainDicomTags);
+  }
 
   void DicomMap::ExtractPatientInformation(DicomMap& result) const
   {
-    const std::map<DicomTag, std::string>& mainDicomTags = DicomMap::MainDicomTagsConfiguration::GetInstance().GetMainDicomTags(ResourceType_Patient);
-    ExtractTags(result, content_, mainDicomTags);
+    ExtractResourceInformation(result, ResourceType_Patient);
   }
 
   void DicomMap::ExtractStudyInformation(DicomMap& result) const
   {
-    const std::map<DicomTag, std::string>& mainDicomTags = DicomMap::MainDicomTagsConfiguration::GetInstance().GetMainDicomTags(ResourceType_Study);
-    ExtractTags(result, content_, mainDicomTags);
+    ExtractResourceInformation(result, ResourceType_Study);
   }
 
   void DicomMap::ExtractSeriesInformation(DicomMap& result) const
   {
-    const std::map<DicomTag, std::string>& mainDicomTags = DicomMap::MainDicomTagsConfiguration::GetInstance().GetMainDicomTags(ResourceType_Series);
-    ExtractTags(result, content_, mainDicomTags);
+    ExtractResourceInformation(result, ResourceType_Series);
   }
 
   void DicomMap::ExtractInstanceInformation(DicomMap& result) const
   {
-    const std::map<DicomTag, std::string>& mainDicomTags = DicomMap::MainDicomTagsConfiguration::GetInstance().GetMainDicomTags(ResourceType_Instance);
-    ExtractTags(result, content_, mainDicomTags);
+    ExtractResourceInformation(result, ResourceType_Instance);
   }
 
 
