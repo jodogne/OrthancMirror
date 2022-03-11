@@ -120,6 +120,8 @@ namespace Orthanc
 
     void ExtractResourceInformation(DicomMap& result, ResourceType level) const;
 
+    void ExtractTags(DicomMap& result, const std::set<DicomTag>& tags) const;
+
     static void SetupFindPatientTemplate(DicomMap& result);
 
     static void SetupFindStudyTemplate(DicomMap& result);

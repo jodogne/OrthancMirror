@@ -713,10 +713,11 @@ namespace Orthanc
   bool StatelessDatabaseOperations::ExpandResource(ExpandedResource& target,
                                                    const std::string& publicId,
                                                    ResourceType level,
-                                                   DicomToJsonFormat format)
+                                                   DicomToJsonFormat format,
+                                                   const std::set<DicomTag>& requestedTags)
   {    
-    class Operations : public ReadOnlyOperationsT5<
-      bool&, ExpandedResource&, const std::string&, ResourceType, DicomToJsonFormat>
+    class Operations : public ReadOnlyOperationsT6<
+      bool&, ExpandedResource&, const std::string&, ResourceType, DicomToJsonFormat, const std::set<DicomTag>&>
     {
     private:
   
@@ -765,7 +766,7 @@ namespace Orthanc
                               const Tuple& tuple) ORTHANC_OVERRIDE
       {
         // Lookup for the requested resource
-        int64_t internalId;  // unused
+        int64_t internalId;
         ResourceType type;
         std::string parent;
         if (!transaction.LookupResourceAndParent(internalId, type, parent, tuple.get<2>()) ||
@@ -866,7 +867,58 @@ namespace Orthanc
           // read all tags from DB
           transaction.GetMainDicomTags(target.tags_, internalId);
 
-          // MORE_TAGS: TODO: eventualy get parent dicom tags if requested ....
+          // check if we have access to all requestedTags or if we must get tags from parents
+          const std::set<DicomTag>& requestedTags = tuple.get<5>();
+
+          if (requestedTags.size() > 0)
+          {
+            std::set<DicomTag> savedMainDicomTags;
+            
+            FromDcmtkBridge::ParseListOfTags(savedMainDicomTags, target.mainDicomTagsSignature_);
+
+            // read parent main dicom tags as long as we don't have gathered all requested tags
+            ResourceType currentLevel = target.type_;
+            int64_t currentInternalId = internalId;
+            Toolbox::GetMissingsFromSet(target.missingRequestedTags_, requestedTags, savedMainDicomTags);
+
+            while ((target.missingRequestedTags_.size() > 0)
+                   && currentLevel != ResourceType_Patient)
+            {
+              currentLevel = GetParentResourceType(currentLevel);
+
+              int64_t currentParentId;
+              if (!transaction.LookupParent(currentParentId, currentInternalId))
+              {
+                break;
+              }
+
+              std::map<MetadataType, std::string> parentMetadata;
+              transaction.GetAllMetadata(parentMetadata, currentParentId);
+
+              std::string parentMainDicomTagsSignature = DicomMap::GetDefaultMainDicomTagsSignature(currentLevel);
+              LookupStringMetadata(parentMainDicomTagsSignature, parentMetadata, MetadataType_MainDicomTagsSignature);
+
+              std::set<DicomTag> parentSavedMainDicomTags;
+              FromDcmtkBridge::ParseListOfTags(parentSavedMainDicomTags, parentMainDicomTagsSignature);
+              
+              size_t previousMissingCount = target.missingRequestedTags_.size();
+              Toolbox::AppendSets(savedMainDicomTags, parentSavedMainDicomTags);
+              Toolbox::GetMissingsFromSet(target.missingRequestedTags_, requestedTags, savedMainDicomTags);
+
+              // read the parent tags from DB only if it reduces the number of missing tags
+              if (target.missingRequestedTags_.size() < previousMissingCount)
+              { 
+                Toolbox::AppendSets(savedMainDicomTags, parentSavedMainDicomTags);
+
+                DicomMap parentTags;
+                transaction.GetMainDicomTags(parentTags, currentParentId);
+
+                target.tags_.Merge(parentTags);
+              }
+
+              currentInternalId = currentParentId;
+            }
+          }
 
           std::string tmp;
 
@@ -903,7 +955,7 @@ namespace Orthanc
 
     bool found;
     Operations operations;
-    operations.Apply(*this, found, target, publicId, level, format);
+    operations.Apply(*this, found, target, publicId, level, format, requestedTags);
     return found;
   }
 

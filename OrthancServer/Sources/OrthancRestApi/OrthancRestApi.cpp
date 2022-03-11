@@ -28,6 +28,7 @@
 #include "../../../OrthancFramework/Sources/Logging.h"
 #include "../../../OrthancFramework/Sources/MetricsRegistry.h"
 #include "../../../OrthancFramework/Sources/SerializationToolbox.h"
+#include "../../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.h"
 #include "../OrthancConfiguration.h"
 #include "../ServerContext.h"
 
@@ -463,10 +464,12 @@ namespace Orthanc
   static const std::string GET_SIMPLIFY = "simplify";
   static const std::string GET_FULL = "full";
   static const std::string GET_SHORT = "short";
+  static const std::string GET_REQUESTED_TAGS = "requestedTags";
 
   static const std::string POST_SIMPLIFY = "Simplify";
   static const std::string POST_FULL = "Full";
   static const std::string POST_SHORT = "Short";
+  static const std::string POST_REQUESTED_TAGS = "RequestedTags";
 
   static const std::string DOCUMENT_SIMPLIFY =
     "report the DICOM tags in human-readable format (using the symbolic name of the tags)";
@@ -525,7 +528,6 @@ namespace Orthanc
     }
   }
 
-
   void OrthancRestApi::DocumentDicomFormat(RestApiGetCall& call,
                                            DicomToJsonFormat defaultFormat)
   {
@@ -570,4 +572,34 @@ namespace Orthanc
                                               "If set to `true`, " + DOCUMENT_FULL, false);
     }
   }
+
+  void OrthancRestApi::GetRequestedTags(std::set<DicomTag>& requestedTags,
+                                        const RestApiGetCall& call)
+  {
+    requestedTags.clear();
+
+    if (call.HasArgument(GET_REQUESTED_TAGS))
+    {
+      try
+      {
+        FromDcmtkBridge::ParseListOfTags(requestedTags, call.GetArgument("requestedTags", ""));
+      }
+      catch (OrthancException& ex)
+      {
+        throw OrthancException(ErrorCode_BadRequest, std::string("Invalid requestedTags argument: ") + ex.What() + " " + ex.GetDetails());
+      }
+    }
+
+  }
+
+  void OrthancRestApi::DocumentRequestedTags(RestApiGetCall& call)
+  {
+      call.GetDocumentation().SetHttpGetArgument(GET_REQUESTED_TAGS, RestApiCallDocumentation::Type_String,
+                          "If present, list the DICOM Tags you want to list in the response.  This argument is a semi-column separated list "
+                          "of DICOM Tags identifiers; e.g: 'requestedTags=0010,0010;PatientBirthDate'.  "
+                          "The tags requested tags are returned in the 'RequestedTags' field in the response.  "
+                          "Note that, if you are requesting tags that are not listed in the Main Dicom Tags stored in DB, building the response "
+                          "might be slow since Orthanc will need to access the DICOM files.  If not specified, Orthanc will return ", false);
+  }
+
 }

@@ -185,6 +185,48 @@ namespace Orthanc
                                const std::string& source,
                                char separator);
 
+    // returns true if all element of 'needles' are found in 'haystack'
+    template <typename T> static bool IsSetInSet(const std::set<T>& needles, const std::set<T>& haystack)
+    {
+      for (typename std::set<T>::const_iterator it = needles.begin();
+            it != needles.end(); it++)
+      {
+        if (haystack.count(*it) == 0)
+        {
+          return false;
+        }
+      }
+
+      return true;
+    }
+
+    // returns the set of elements from 'needles' that are not in 'haystack'
+    template <typename T> static size_t GetMissingsFromSet(std::set<T>& missings, const std::set<T>& needles, const std::set<T>& haystack)
+    {
+      missings.clear();
+
+      for (typename std::set<T>::const_iterator it = needles.begin();
+            it != needles.end(); it++)
+      {
+        if (haystack.count(*it) == 0)
+        {
+          missings.insert(*it);
+        }
+      }
+
+      return missings.size();
+    }
+
+    template <typename T> static void AppendSets(std::set<T>& target, const std::set<T>& toAppend)
+    {
+      for (typename std::set<T>::const_iterator it = toAppend.begin();
+            it != toAppend.end(); it++)
+      {
+        target.insert(*it);
+      }
+    }
+
+
 #if ORTHANC_ENABLE_PUGIXML == 1
     static void JsonToXml(std::string& target,
                           const Json::Value& source,

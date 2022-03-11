@@ -259,7 +259,9 @@ namespace Orthanc
                        const Json::Value* dicomAsJson  /* unused (*) */)  ORTHANC_OVERRIDE
     {
       Json::Value resource;
-      if (context_.ExpandResource(resource, publicId, level_, DicomToJsonFormat_Human))
+      std::set<DicomTag> emptyRequestedTags;  // not supported for webdav
+
+      if (context_.ExpandResource(resource, publicId, level_, DicomToJsonFormat_Human, emptyRequestedTags))
       {
         if (success_)
         {

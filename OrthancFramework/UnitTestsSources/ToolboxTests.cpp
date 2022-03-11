@@ -209,3 +209,73 @@ TEST(Toolbox, UniquePtr)
   std::unique_ptr<SingleValueObject<int> > j(new SingleValueObject<int>(42));
   ASSERT_EQ(42, j->GetValue());
 }
+
+TEST(Toolbox, IsSetInSet)
+{
+  {
+    std::set<int> needles;
+    std::set<int> haystack;
+    std::set<int> missings;
+
+    ASSERT_TRUE(Toolbox::IsSetInSet<int>(needles, haystack));
+    ASSERT_EQ(0, Toolbox::GetMissingsFromSet<int>(missings, needles, haystack));
+  }
+
+  {
+    std::set<int> needles;
+    std::set<int> haystack;
+    std::set<int> missings;
+
+    haystack.insert(5);
+    ASSERT_TRUE(Toolbox::IsSetInSet<int>(needles, haystack));
+    ASSERT_EQ(0, Toolbox::GetMissingsFromSet<int>(missings, needles, haystack));
+  }
+
+  {
+    std::set<int> needles;
+    std::set<int> haystack;
+    std::set<int> missings;
+
+    needles.insert(5);
+    haystack.insert(5);
+    ASSERT_TRUE(Toolbox::IsSetInSet<int>(needles, haystack));
+    ASSERT_EQ(0, Toolbox::GetMissingsFromSet<int>(missings, needles, haystack));
+  }
+
+  {
+    std::set<int> needles;
+    std::set<int> haystack;
+    std::set<int> missings;
+
+    needles.insert(5);
+    
+    ASSERT_FALSE(Toolbox::IsSetInSet<int>(needles, haystack));
+    ASSERT_EQ(1, Toolbox::GetMissingsFromSet<int>(missings, needles, haystack));
+    ASSERT_TRUE(missings.count(5) == 1);
+  }
+
+  {
+    std::set<int> needles;
+    std::set<int> haystack;
+    std::set<int> missings;
+
+    needles.insert(6);
+    haystack.insert(5);
+    ASSERT_FALSE(Toolbox::IsSetInSet<int>(needles, haystack));
+    ASSERT_EQ(1, Toolbox::GetMissingsFromSet<int>(missings, needles, haystack));
+    ASSERT_TRUE(missings.count(6) == 1);
+  }
+
+  {
+    std::set<int> needles;
+    std::set<int> haystack;
+    std::set<int> missings;
+
+    needles.insert(5);
+    needles.insert(6);
+    haystack.insert(5);
+    haystack.insert(6);
+    ASSERT_TRUE(Toolbox::IsSetInSet<int>(needles, haystack));
+    ASSERT_EQ(0, Toolbox::GetMissingsFromSet<int>(missings, needles, haystack));
+  }
+}

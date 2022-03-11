@@ -1332,6 +1332,23 @@ namespace Orthanc
   }
 
 
+  void FromDcmtkBridge::ParseListOfTags(std::set<DicomTag>& result, const Json::Value& source)
+  {
+    result.clear();
+
+    if (!source.isArray())
+    {
+      throw OrthancException(ErrorCode_BadRequest, "List of tags is not an array");
+    }
+
+    for (Json::ArrayIndex i = 0; i < source.size(); i++)
+    {
+      const std::string& value = source[i].asString();
+      DicomTag tag = FromDcmtkBridge::ParseTag(value);
+      result.insert(tag);
+    }
+  }
+
   const DicomValue &FromDcmtkBridge::GetValue(const DicomMap &fields,
                                               const std::string &tagName)
   {
