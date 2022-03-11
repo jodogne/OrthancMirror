@@ -543,7 +543,8 @@ namespace Orthanc
     bool ExpandResource(Json::Value& target,
                         const std::string& publicId,
                         ResourceType level,
-                        DicomToJsonFormat format);
+                        DicomToJsonFormat format,
+                        const std::set<DicomTag>& requestedTags);
 
   };
 }

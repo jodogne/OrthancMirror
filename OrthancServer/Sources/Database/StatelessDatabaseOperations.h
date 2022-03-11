@@ -49,6 +49,7 @@ namespace Orthanc
     std::string                         anonymizedFrom_;
     std::string                         modifiedFrom_;
     std::string                         lastUpdate_;
+    std::set<DicomTag>                  missingRequestedTags_;
 
     // for patients/studies/series
     bool                                isStable_;
@@ -478,7 +479,8 @@ namespace Orthanc
     bool ExpandResource(ExpandedResource& target,
                         const std::string& publicId,
                         ResourceType level,
-                        DicomToJsonFormat format);
+                        DicomToJsonFormat format,
+                        const std::set<DicomTag>& requestedTags);
 
     void GetAllMetadata(std::map<MetadataType, std::string>& target,
                         const std::string& publicId,

@@ -403,7 +403,8 @@ namespace Orthanc
   }
 
 
-  static void ExtractTags(DicomMap& result,
+  // MORE_TAGS: TODO: we can probably remove the std::string from MainDicomTags (not used here !!!)
+  static void ExtractTagsInternal(DicomMap& result,
                           const DicomMap::Content& source,
                           const std::map<DicomTag, std::string>& mainDicomTags)
   {
@@ -420,10 +421,25 @@ namespace Orthanc
     }
   }
 
+  void DicomMap::ExtractTags(DicomMap& result, const std::set<DicomTag>& tags) const
+  {
+    result.Clear();
+
+    for (std::set<DicomTag>::const_iterator itmt = tags.begin();
+         itmt != tags.end(); itmt++)
+    {
+      DicomMap::Content::const_iterator it = content_.find(*itmt);
+      if (it != content_.end())
+      {
+        result.SetValue(it->first, *it->second /* value will be cloned */);
+      }
+    }
+  }
+
   void DicomMap::ExtractResourceInformation(DicomMap& result, ResourceType level) const
   {
     const std::map<DicomTag, std::string>& mainDicomTags = DicomMap::MainDicomTagsConfiguration::GetInstance().GetMainDicomTags(level);
-    ExtractTags(result, content_, mainDicomTags);
+    ExtractTagsInternal(result, content_, mainDicomTags);
   }
 
   void DicomMap::ExtractPatientInformation(DicomMap& result) const

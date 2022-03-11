@@ -2096,7 +2096,8 @@ namespace Orthanc
 
   static void SerializeExpandedResource(Json::Value& target,
                                         const ExpandedResource& resource,
-                                        DicomToJsonFormat format)
+                                        DicomToJsonFormat format,
+                                        const std::set<DicomTag>& requestedTags)
   {
     target = Json::objectValue;
 
@@ -2241,17 +2242,29 @@ namespace Orthanc
       FromDcmtkBridge::ToJson(target[PATIENT_MAIN_DICOM_TAGS], patientMainDicomTags, format);
     }
 
+    if (requestedTags.size() > 0)
+    {
+      static const char* const REQUESTED_TAGS = "RequestedTags";
+
+      DicomMap tags;
+      resource.tags_.ExtractTags(tags, requestedTags);
+
+      target[REQUESTED_TAGS] = Json::objectValue;
+      FromDcmtkBridge::ToJson(target[REQUESTED_TAGS], tags, format);
+    }
+
   }
 
 
   bool ServerContext::ExpandResource(Json::Value& target,
                                      const std::string& publicId,
                                      ResourceType level,
-                                     DicomToJsonFormat format)
+                                     DicomToJsonFormat format,
+                                     const std::set<DicomTag>& requestedTags)
   {
     ExpandedResource resource;
 
-    if (GetIndex().ExpandResource(resource, publicId, level, format))
+    if (GetIndex().ExpandResource(resource, publicId, level, format, requestedTags))
     {
       // check the main dicom tags list has not changed since the resource was stored
 
@@ -2260,13 +2273,15 @@ namespace Orthanc
         OrthancConfiguration::ReaderLock lock;
         if (lock.GetConfiguration().IsInconsistentDicomTagsLogsEnabled())
         {
-          LOG(WARNING) << Orthanc::GetResourceTypeText(resource.type_, false , false) << " has been stored with another version of Main Dicom Tags list, you should POST to /" << Orthanc::GetResourceTypeText(resource.type_, true, false) << "/" << resource.id_ << "/reconstruct to update the list of tags saved in DB.  Some tags might be missing from this answer.";
+          LOG(WARNING) << Orthanc::GetResourceTypeText(resource.type_, false , false) << " has been stored with another version of Main Dicom Tags list, you should POST to /" << Orthanc::GetResourceTypeText(resource.type_, true, false) << "/" << resource.id_ << "/reconstruct to update the list of tags saved in DB.  Some MainDicomTags might be missing from this answer.";
         }
       }
 
       // MORE_TAGS: TODO: possibly merge missing requested tags from /tags
+      // log warning
+      // use resource.missingRequestedTags_
 
-      SerializeExpandedResource(target, resource, format);
+      SerializeExpandedResource(target, resource, format, requestedTags);
 
       return true;
     }
