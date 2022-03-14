@@ -760,6 +760,163 @@ namespace Orthanc
         }
       }
 
+      static void ComputeSeriesTags(DicomMap& result,
+                                    const std::list<std::string>& children,
+                                    const std::set<DicomTag>& requestedTags)
+      {
+        if (requestedTags.count(DICOM_TAG_NUMBER_OF_SERIES_RELATED_INSTANCES) > 0)
+        {
+          result.SetValue(DICOM_TAG_NUMBER_OF_SERIES_RELATED_INSTANCES,
+                          boost::lexical_cast<std::string>(children.size()), false);
+        }
+      }
+
+      static void ComputeStudyTags(DicomMap& result,
+                                   ReadOnlyTransaction& transaction,
+                                   const std::string& studyPublicId,
+                                   int64_t studyInternalId,
+                                   const std::set<DicomTag>& requestedTags)
+      {
+        std::list<int64_t> seriesInternalIds;
+        std::list<int64_t> instancesInternalIds;
+
+        transaction.GetChildrenInternalId(seriesInternalIds, studyInternalId);
+
+        if (requestedTags.count(DICOM_TAG_NUMBER_OF_STUDY_RELATED_SERIES) > 0)
+        {
+          result.SetValue(DICOM_TAG_NUMBER_OF_STUDY_RELATED_SERIES,
+                          boost::lexical_cast<std::string>(seriesInternalIds.size()), false);
+        }
+
+        if (requestedTags.count(DICOM_TAG_MODALITIES_IN_STUDY) > 0)
+        {
+          std::set<std::string> values;
+
+          for (std::list<int64_t>::const_iterator
+                it = seriesInternalIds.begin(); it != seriesInternalIds.end(); ++it)
+          {
+            if (requestedTags.count(DICOM_TAG_MODALITIES_IN_STUDY) > 0)
+            {
+              DicomMap tags;
+              transaction.GetMainDicomTags(tags, *it);
+
+              const DicomValue* value = tags.TestAndGetValue(DICOM_TAG_MODALITY);
+
+              if (value != NULL &&
+                  !value->IsNull() &&
+                  !value->IsBinary())
+              {
+                values.insert(value->GetContent());
+              }
+            }
+          }
+
+          std::string modalities;
+          Toolbox::JoinStrings(modalities, values, "\\");
+          result.SetValue(DICOM_TAG_MODALITIES_IN_STUDY, modalities, false);
+        }
+
+        if (requestedTags.count(DICOM_TAG_NUMBER_OF_STUDY_RELATED_INSTANCES) > 0
+          || requestedTags.count(DICOM_TAG_SOP_CLASSES_IN_STUDY) > 0)
+        {
+          for (std::list<int64_t>::const_iterator
+                it = seriesInternalIds.begin(); it != seriesInternalIds.end(); ++it)
+          {
+            std::list<int64_t> seriesInstancesIds;
+            transaction.GetChildrenInternalId(seriesInstancesIds, *it);
+
+            instancesInternalIds.splice(instancesInternalIds.end(), seriesInstancesIds);
+          }
+
+          if (requestedTags.count(DICOM_TAG_NUMBER_OF_STUDY_RELATED_INSTANCES) > 0)
+          {
+            result.SetValue(DICOM_TAG_NUMBER_OF_STUDY_RELATED_INSTANCES,
+                      boost::lexical_cast<std::string>(instancesInternalIds.size()), false);      
+          }
+
+          if (requestedTags.count(DICOM_TAG_SOP_CLASSES_IN_STUDY) > 0)
+          {
+            std::set<std::string> values;
+
+            for (std::list<int64_t>::const_iterator
+                  it = instancesInternalIds.begin(); it != instancesInternalIds.end(); ++it)
+            {
+              std::map<MetadataType, std::string> instanceMetadata;
+              // Extract the metadata
+              transaction.GetAllMetadata(instanceMetadata, *it);
+
+              std::string value;
+              if (!LookupStringMetadata(value, instanceMetadata, MetadataType_Instance_SopClassUid))
+              {
+                throw OrthancException(ErrorCode_InternalError, "Unable to get the SOP Class Uid from an instance of the study " + studyPublicId + " because the instance has been saved with an old version of Orthanc (< 1.2.0).  You should POST to /studies/" + studyPublicId + "/reconstruct to avoid this error");
+              }
+
+              values.insert(value);
+            }
+
+            std::string sopClassUids;
+            Toolbox::JoinStrings(sopClassUids, values, "\\");
+            result.SetValue(DICOM_TAG_SOP_CLASSES_IN_STUDY, sopClassUids, false);
+          }
+        }
+      }
+
+    static void ComputePatientTags(DicomMap& result,
+                                   ReadOnlyTransaction& transaction,
+                                   const std::string& patientPublicId,
+                                   int64_t patientInternalId,
+                                   const std::set<DicomTag>& requestedTags)
+    {
+      std::list<int64_t> studiesInternalIds;
+      std::list<int64_t> seriesInternalIds;
+      std::list<int64_t> instancesInternalIds;
+
+      bool hasNbRelatedStudies = requestedTags.count(DICOM_TAG_NUMBER_OF_PATIENT_RELATED_STUDIES) > 0;
+      bool hasNbRelatedSeries = requestedTags.count(DICOM_TAG_NUMBER_OF_PATIENT_RELATED_SERIES) > 0;
+      bool hasNbRelatedInstances = requestedTags.count(DICOM_TAG_NUMBER_OF_PATIENT_RELATED_INSTANCES) > 0;
+
+      transaction.GetChildrenInternalId(studiesInternalIds, patientInternalId);
+
+      if (hasNbRelatedStudies)
+      {
+        result.SetValue(DICOM_TAG_NUMBER_OF_PATIENT_RELATED_STUDIES,
+                        boost::lexical_cast<std::string>(studiesInternalIds.size()), false);
+      }
+
+      if (hasNbRelatedSeries || hasNbRelatedInstances)
+      {
+        for (std::list<int64_t>::const_iterator
+              it = studiesInternalIds.begin(); it != studiesInternalIds.end(); ++it)
+        {
+          std::list<int64_t> thisSeriesIds;
+          transaction.GetChildrenInternalId(thisSeriesIds, *it);
+          seriesInternalIds.splice(seriesInternalIds.end(), thisSeriesIds);
+
+          if (hasNbRelatedInstances)
+          {
+            for (std::list<int64_t>::const_iterator
+                  it2 = seriesInternalIds.begin(); it2 != seriesInternalIds.end(); ++it2)
+            {
+              std::list<int64_t> thisInstancesIds;
+              transaction.GetChildrenInternalId(thisInstancesIds, *it2);
+              instancesInternalIds.splice(instancesInternalIds.end(), thisInstancesIds);
+            }
+          }
+        }
+
+        if (hasNbRelatedSeries)
+        {
+          result.SetValue(DICOM_TAG_NUMBER_OF_PATIENT_RELATED_SERIES,
+                          boost::lexical_cast<std::string>(seriesInternalIds.size()), false);
+        }
+
+        if (hasNbRelatedInstances)
+        {
+          result.SetValue(DICOM_TAG_NUMBER_OF_PATIENT_RELATED_INSTANCES,
+                          boost::lexical_cast<std::string>(instancesInternalIds.size()), false);
+        }
+      }
+    }
 
     public:
       virtual void ApplyTuple(ReadOnlyTransaction& transaction,
@@ -918,6 +1075,34 @@ namespace Orthanc
 
               currentInternalId = currentParentId;
             }
+
+            { // handle the tags that must be rebuilt because they are not saved in DB
+              if (target.type_ == ResourceType_Study && (
+                target.missingRequestedTags_.count(DICOM_TAG_MODALITIES_IN_STUDY) > 0 
+                || target.missingRequestedTags_.count(DICOM_TAG_NUMBER_OF_STUDY_RELATED_INSTANCES) > 0 
+                || target.missingRequestedTags_.count(DICOM_TAG_SOP_CLASSES_IN_STUDY) > 0 
+                || target.missingRequestedTags_.count(DICOM_TAG_NUMBER_OF_STUDY_RELATED_SERIES) > 0 
+              ))
+              {
+                ComputeStudyTags(target.tags_, transaction, target.id_, internalId, requestedTags);
+              }
+
+              if (target.type_ == ResourceType_Series 
+                && target.missingRequestedTags_.count(DICOM_TAG_NUMBER_OF_SERIES_RELATED_INSTANCES) > 0)
+              {
+                ComputeSeriesTags(target.tags_, target.childrenIds_, requestedTags);
+              }
+
+              if (target.type_ == ResourceType_Patient && (
+                target.missingRequestedTags_.count(DICOM_TAG_NUMBER_OF_PATIENT_RELATED_STUDIES) > 0 
+                || target.missingRequestedTags_.count(DICOM_TAG_NUMBER_OF_PATIENT_RELATED_SERIES) > 0 
+                || target.missingRequestedTags_.count(DICOM_TAG_NUMBER_OF_PATIENT_RELATED_INSTANCES) > 0 
+              ))
+              {
+                ComputePatientTags(target.tags_, transaction, target.id_, internalId, requestedTags);
+              }
+            }            
+
           }
 
           std::string tmp;
