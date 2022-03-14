@@ -44,7 +44,7 @@
 
 // This "include" is mandatory for Release builds using Linux Standard Base
 #include <boost/math/special_functions/round.hpp>
-
+#include <boost/shared_ptr.hpp>
 
 /**
  * This semaphore is used to limit the number of concurrent HTTP
@@ -128,6 +128,9 @@ namespace Orthanc
   static void AnswerListOfResources(RestApiOutput& output,
                                     ServerContext& context,
                                     const std::list<std::string>& resources,
+                                    const std::map<std::string, std::string>& instancesIds, // optional: the id of an instance for each found resource.
+                                    const std::map<std::string, boost::shared_ptr<DicomMap> >& resourcesMainDicomTags,  // optional: all tags read from DB for a resource (current level and upper levels)
+                                    const std::map<std::string, Json::Value>& resourcesDicomAsJson, // optional: the dicom-as-json for each resource
                                     ResourceType level,
                                     bool expand,
                                     DicomToJsonFormat format,
@@ -153,6 +156,22 @@ namespace Orthanc
     }
 
     output.AnswerJson(answer);
+  }
+
+
+  static void AnswerListOfResources(RestApiOutput& output,
+                                    ServerContext& context,
+                                    const std::list<std::string>& resources,
+                                    ResourceType level,
+                                    bool expand,
+                                    DicomToJsonFormat format,
+                                    const std::set<DicomTag>& requestedTags)
+  {
+    std::map<std::string, std::string> unusedInstancesIds;
+    std::map<std::string, boost::shared_ptr<DicomMap> > unusedResourcesMainDicomTags;
+    std::map<std::string, Json::Value> unusedResourcesDicomAsJson;
+
+    AnswerListOfResources(output, context, resources, unusedInstancesIds, unusedResourcesMainDicomTags, unusedResourcesDicomAsJson, level, expand, format, requestedTags);
   }
 
 
@@ -2828,6 +2847,12 @@ namespace Orthanc
     private:
       bool                    isComplete_;
       std::list<std::string>  resources_;
+      
+      // cache the data we used during lookup and that we could reuse when building the answers
+      std::map<std::string, std::string> instancesIds_;         // the id of an instance for each found resource.
+      std::map<std::string, boost::shared_ptr<DicomMap> > resourcesMainDicomTags_;  // all tags read from DB for a resource (current level and upper levels)
+      std::map<std::string, Json::Value> resourcesDicomAsJson_; // the dicom-as-json for a resource
+
       DicomToJsonFormat       format_;
 
     public:
@@ -2848,11 +2873,14 @@ namespace Orthanc
       }
 
       virtual void Visit(const std::string& publicId,
-                         const std::string& instanceId   /* unused     */,
-                         const DicomMap& mainDicomTags   /* unused     */,
-                         const Json::Value* dicomAsJson  /* unused (*) */)  ORTHANC_OVERRIDE
+                         const std::string& instanceId,
+                         const DicomMap& mainDicomTags,
+                         const Json::Value* dicomAsJson)  ORTHANC_OVERRIDE
       {
         resources_.push_back(publicId);
+        instancesIds_[publicId] = instanceId;
+        resourcesMainDicomTags_[publicId].reset(mainDicomTags.Clone());
+        resourcesDicomAsJson_[publicId] = dicomAsJson;
       }
 
       void Answer(RestApiOutput& output,

@@ -1396,6 +1396,7 @@ namespace Orthanc
 
       bool hasOnlyMainDicomTags;
       DicomMap dicom;
+      DicomMap allMainDicomTagsFromDB;
       
       if (findStorageAccessMode_ == FindStorageAccessMode_DatabaseOnly ||
           findStorageAccessMode_ == FindStorageAccessMode_DiskOnAnswer ||
@@ -1404,8 +1405,7 @@ namespace Orthanc
         // Case (1): The main DICOM tags, as stored in the database,
         // are sufficient to look for match
 
-        DicomMap tmp;
-        if (!GetIndex().GetAllMainDicomTags(tmp, instances[i]))
+        if (!GetIndex().GetAllMainDicomTags(allMainDicomTagsFromDB, instances[i]))  // MORE_TAGS: TODO: we could read only the current and upper level to reduce the number of SQL queries
         {
           // The instance has been removed during the execution of the
           // lookup, ignore it
@@ -1418,16 +1418,16 @@ namespace Orthanc
         {
           // WARNING: Don't reorder cases below, and don't add "break"
           case ResourceType_Instance:
-            dicom.MergeMainDicomTags(tmp, ResourceType_Instance);
+            dicom.MergeMainDicomTags(allMainDicomTagsFromDB, ResourceType_Instance);
 
           case ResourceType_Series:
-            dicom.MergeMainDicomTags(tmp, ResourceType_Series);
+            dicom.MergeMainDicomTags(allMainDicomTagsFromDB, ResourceType_Series);
 
           case ResourceType_Study:
-            dicom.MergeMainDicomTags(tmp, ResourceType_Study);
+            dicom.MergeMainDicomTags(allMainDicomTagsFromDB, ResourceType_Study);
             
           case ResourceType_Patient:
-            dicom.MergeMainDicomTags(tmp, ResourceType_Patient);
+            dicom.MergeMainDicomTags(allMainDicomTagsFromDB, ResourceType_Patient);
             break;
 
           default:
@@ -1476,7 +1476,7 @@ namespace Orthanc
           if (hasOnlyMainDicomTags)
           {
             // This is Case (1): The variable "dicom" only contains the main DICOM tags
-            visitor.Visit(resources[i], instances[i], dicom, dicomAsJson.get());
+            visitor.Visit(resources[i], instances[i], allMainDicomTagsFromDB, dicomAsJson.get());
           }
           else
           {
@@ -2262,12 +2262,25 @@ namespace Orthanc
                                      DicomToJsonFormat format,
                                      const std::set<DicomTag>& requestedTags)
   {
+    std::string unusedInstanceId;
+    Json::Value unusedValue;
+
+    return ExpandResource(target, publicId, unusedInstanceId, unusedValue, level, format, requestedTags);
+  }
+
+  bool ServerContext::ExpandResource(Json::Value& target,
+                                     const std::string& publicId,
+                                     const std::string& instanceId,    // optional: the id of an instance for the resource
+                                     const Json::Value& dicomAsJson,   // optional: the dicom-as-json for the resource
+                                     ResourceType level,
+                                     DicomToJsonFormat format,
+                                     const std::set<DicomTag>& requestedTags)
+  {
     ExpandedResource resource;
 
     if (GetIndex().ExpandResource(resource, publicId, level, format, requestedTags))
     {
       // check the main dicom tags list has not changed since the resource was stored
-
       if (resource.mainDicomTagsSignature_ != DicomMap::GetMainDicomTagsSignature(resource.type_))
       {
         OrthancConfiguration::ReaderLock lock;
@@ -2277,9 +2290,40 @@ namespace Orthanc
         }
       }
 
-      // MORE_TAGS: TODO: possibly merge missing requested tags from /tags
-      // log warning
-      // use resource.missingRequestedTags_
+      // possibly merge missing requested tags from dicom-as-json
+      if (!resource.missingRequestedTags_.empty())
+      {
+        std::string instanceId_ = instanceId;
+        Json::Value dicomAsJson_ = dicomAsJson;
+        if (dicomAsJson_.isNull())
+        {
+          if (instanceId_.empty())
+          {
+            if (level == ResourceType_Instance)
+            {
+              instanceId_ = publicId;
+            }
+            else
+            {
+              std::list<std::string> instancesIds;
+              GetIndex().GetChildInstances(instancesIds, publicId);
+              if (instancesIds.size() < 1)
+              {
+                throw OrthancException(ErrorCode_InternalError, "ExpandResource: no instances found");
+              }
+              instanceId_ = instancesIds.front();
+            }
+          }
+  
+          // MORE_TAGS :TODO: log warning (add an option to disable them)
+          ReadDicomAsJson(dicomAsJson_, instanceId_);
+        }
+
+        DicomMap allTags;
+        allTags.FromDicomAsJson(dicomAsJson_);
+
+        resource.tags_.Merge(allTags);
+      }
 
       SerializeExpandedResource(target, resource, format, requestedTags);
 
