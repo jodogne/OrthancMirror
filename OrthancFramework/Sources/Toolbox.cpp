@@ -56,6 +56,7 @@
 
 #include <boost/algorithm/string/case_conv.hpp>
 #include <boost/algorithm/string/replace.hpp>
+#include <boost/algorithm/string/join.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/regex.hpp>
 
@@ -1029,6 +1030,21 @@ namespace Orthanc
     }
 
     result.push_back(currentItem);
+  }
+
+
+  void Toolbox::JoinStrings(std::string& result,
+                            std::set<std::string>& source,
+                            const char* separator)
+  {
+    result = boost::algorithm::join(source, separator);
+  }
+
+  void JoinStrings(std::string& result,
+                   std::vector<std::string>& source,
+                   const char* separator)
+  {
+    result = boost::algorithm::join(source, separator);
   }
 
 

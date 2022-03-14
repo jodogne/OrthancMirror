@@ -1,6 +1,12 @@
 Pending changes in the mainline
 ===============================
 
+* BREAKING_CHANGE: (TODO: when CFind uses ExpandResource)
+  If trying to get SOPClassesInStudy in a study that was saved in an Orthanc version
+  prior to 1.2.0, you will now get an error.  Orthanc logs will show an error message
+  asking you to POST to /studies/.../reconstruct to rebuild the missing study data.
+
+
 Documentation
 -------------
 

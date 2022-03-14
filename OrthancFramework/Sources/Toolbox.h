@@ -185,6 +185,14 @@ namespace Orthanc
                                const std::string& source,
                                char separator);
 
+    static void JoinStrings(std::string& result,
+                            std::set<std::string>& source,
+                            const char* separator);
+
+    static void JoinStrings(std::string& result,
+                            std::vector<std::string>& source,
+                            const char* separator);
+
     // returns true if all element of 'needles' are found in 'haystack'
     template <typename T> static bool IsSetInSet(const std::set<T>& needles, const std::set<T>& haystack)
     {

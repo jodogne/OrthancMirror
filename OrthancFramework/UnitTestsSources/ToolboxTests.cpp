@@ -279,3 +279,46 @@ TEST(Toolbox, IsSetInSet)
     ASSERT_EQ(0, Toolbox::GetMissingsFromSet<int>(missings, needles, haystack));
   }
 }
+
+TEST(Toolbox, JoinStrings)
+{
+  {
+    std::set<std::string> source;
+    std::string result;
+
+    Toolbox::JoinStrings(result, source, ";");
+    ASSERT_EQ("", result);
+  }
+
+  {
+    std::set<std::string> source;
+    source.insert("1");
+
+    std::string result;
+
+    Toolbox::JoinStrings(result, source, ";");
+    ASSERT_EQ("1", result);
+  }
+
+  {
+    std::set<std::string> source;
+    source.insert("2");
+    source.insert("1");
+
+    std::string result;
+
+    Toolbox::JoinStrings(result, source, ";");
+    ASSERT_EQ("1;2", result);
+  }
+
+  {
+    std::set<std::string> source;
+    source.insert("2");
+    source.insert("1");
+
+    std::string result;
+
+    Toolbox::JoinStrings(result, source, "\\");
+    ASSERT_EQ("1\\2", result);
+  }
+}
