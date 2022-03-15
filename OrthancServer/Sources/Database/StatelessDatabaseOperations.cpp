@@ -713,11 +713,10 @@ namespace Orthanc
   bool StatelessDatabaseOperations::ExpandResource(ExpandedResource& target,
                                                    const std::string& publicId,
                                                    ResourceType level,
-                                                   DicomToJsonFormat format,
                                                    const std::set<DicomTag>& requestedTags)
   {    
-    class Operations : public ReadOnlyOperationsT6<
-      bool&, ExpandedResource&, const std::string&, ResourceType, DicomToJsonFormat, const std::set<DicomTag>&>
+    class Operations : public ReadOnlyOperationsT5<
+      bool&, ExpandedResource&, const std::string&, ResourceType, const std::set<DicomTag>&>
     {
     private:
   
@@ -1025,7 +1024,7 @@ namespace Orthanc
           transaction.GetMainDicomTags(target.tags_, internalId);
 
           // check if we have access to all requestedTags or if we must get tags from parents
-          const std::set<DicomTag>& requestedTags = tuple.get<5>();
+          const std::set<DicomTag>& requestedTags = tuple.get<4>();
 
           if (requestedTags.size() > 0)
           {
@@ -1140,7 +1139,7 @@ namespace Orthanc
 
     bool found;
     Operations operations;
-    operations.Apply(*this, found, target, publicId, level, format, requestedTags);
+    operations.Apply(*this, found, target, publicId, level, requestedTags);
     return found;
   }
 

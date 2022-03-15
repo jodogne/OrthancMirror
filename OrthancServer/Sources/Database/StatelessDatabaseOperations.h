@@ -479,7 +479,6 @@ namespace Orthanc
     bool ExpandResource(ExpandedResource& target,
                         const std::string& publicId,
                         ResourceType level,
-                        DicomToJsonFormat format,
                         const std::set<DicomTag>& requestedTags);
 
     void GetAllMetadata(std::map<MetadataType, std::string>& target,
