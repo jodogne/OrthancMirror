@@ -2256,6 +2256,203 @@ namespace Orthanc
   }
 
 
+  static void ComputeSeriesTags(ExpandedResource& resource,
+                                ServerContext& context,
+                                const std::string& seriesPublicId,
+                                const std::set<DicomTag>& requestedTags)
+  {
+    if (requestedTags.count(DICOM_TAG_NUMBER_OF_SERIES_RELATED_INSTANCES) > 0)
+    {
+      ServerIndex& index = context.GetIndex();
+      std::list<std::string> instances;
+
+      index.GetChildren(instances, seriesPublicId);
+
+      resource.tags_.SetValue(DICOM_TAG_NUMBER_OF_SERIES_RELATED_INSTANCES,
+                              boost::lexical_cast<std::string>(instances.size()), false);
+      resource.missingRequestedTags_.erase(DICOM_TAG_NUMBER_OF_SERIES_RELATED_INSTANCES);
+    }
+  }
+
+  static void ComputeStudyTags(ExpandedResource& resource,
+                               ServerContext& context,
+                               const std::string& studyPublicId,
+                               const std::set<DicomTag>& requestedTags)
+  {
+    ServerIndex& index = context.GetIndex();
+    std::list<std::string> series;
+    std::list<std::string> instances;
+
+    bool hasNbRelatedSeries = requestedTags.count(DICOM_TAG_NUMBER_OF_STUDY_RELATED_SERIES) > 0;
+    bool hasNbRelatedInstances = requestedTags.count(DICOM_TAG_NUMBER_OF_STUDY_RELATED_INSTANCES) > 0;
+    bool hasModalitiesInStudy = requestedTags.count(DICOM_TAG_MODALITIES_IN_STUDY) > 0;
+    bool hasSopClassesInStudy = requestedTags.count(DICOM_TAG_SOP_CLASSES_IN_STUDY) > 0;
+
+    index.GetChildren(series, studyPublicId);
+
+    if (hasModalitiesInStudy)
+    {
+      std::set<std::string> values;
+
+      for (std::list<std::string>::const_iterator
+            it = series.begin(); it != series.end(); ++it)
+      {
+        DicomMap tags;
+        index.GetMainDicomTags(tags, *it, ResourceType_Series, ResourceType_Series);
+
+        const DicomValue* value = tags.TestAndGetValue(DICOM_TAG_MODALITY);
+
+        if (value != NULL &&
+            !value->IsNull() &&
+            !value->IsBinary())
+        {
+          values.insert(value->GetContent());
+        }
+      }
+
+      std::string modalities;
+      Toolbox::JoinStrings(modalities, values, "\\");
+
+      resource.tags_.SetValue(DICOM_TAG_MODALITIES_IN_STUDY, modalities, false);
+      resource.missingRequestedTags_.erase(DICOM_TAG_MODALITIES_IN_STUDY);
+    }
+
+    if (hasNbRelatedSeries)
+    {
+      resource.tags_.SetValue(DICOM_TAG_NUMBER_OF_STUDY_RELATED_SERIES,
+                              boost::lexical_cast<std::string>(series.size()), false);
+      resource.missingRequestedTags_.erase(DICOM_TAG_NUMBER_OF_STUDY_RELATED_SERIES);
+    }
+
+    if (hasNbRelatedInstances || hasSopClassesInStudy)
+    {
+      for (std::list<std::string>::const_iterator
+            it = series.begin(); it != series.end(); ++it)
+      {
+        std::list<std::string> seriesInstancesIds;
+        index.GetChildren(seriesInstancesIds, *it);
+
+        instances.splice(instances.end(), seriesInstancesIds);
+      }
+
+      if (hasNbRelatedInstances)
+      {
+        resource.tags_.SetValue(DICOM_TAG_NUMBER_OF_STUDY_RELATED_INSTANCES,
+                                boost::lexical_cast<std::string>(instances.size()), false);      
+        resource.missingRequestedTags_.erase(DICOM_TAG_NUMBER_OF_STUDY_RELATED_INSTANCES);
+      }
+
+      if (hasSopClassesInStudy)
+      {
+        std::set<std::string> values;
+
+        for (std::list<std::string>::const_iterator
+              it = instances.begin(); it != instances.end(); ++it)
+        {
+          std::string value;
+
+          if (context.LookupOrReconstructMetadata(value, *it, ResourceType_Instance, MetadataType_Instance_SopClassUid))
+          {
+            values.insert(value);
+          }
+        }
+
+        if (values.size() > 0)
+        {
+          std::string sopClassUids;
+          Toolbox::JoinStrings(sopClassUids, values, "\\");
+          resource.tags_.SetValue(DICOM_TAG_SOP_CLASSES_IN_STUDY, sopClassUids, false);
+        }
+
+        resource.missingRequestedTags_.erase(DICOM_TAG_SOP_CLASSES_IN_STUDY);
+      }
+    }
+  }
+
+  static void ComputePatientTags(ExpandedResource& resource,
+                                 ServerContext& context,
+                                 const std::string& patientPublicId,
+                                 const std::set<DicomTag>& requestedTags)
+  {
+    ServerIndex& index = context.GetIndex();
+
+    std::list<std::string> studies;
+    std::list<std::string> series;
+    std::list<std::string> instances;
+
+    bool hasNbRelatedStudies = requestedTags.count(DICOM_TAG_NUMBER_OF_PATIENT_RELATED_STUDIES) > 0;
+    bool hasNbRelatedSeries = requestedTags.count(DICOM_TAG_NUMBER_OF_PATIENT_RELATED_SERIES) > 0;
+    bool hasNbRelatedInstances = requestedTags.count(DICOM_TAG_NUMBER_OF_PATIENT_RELATED_INSTANCES) > 0;
+
+    index.GetChildren(studies, patientPublicId);
+
+    if (hasNbRelatedStudies)
+    {
+      resource.tags_.SetValue(DICOM_TAG_NUMBER_OF_PATIENT_RELATED_STUDIES,
+                              boost::lexical_cast<std::string>(studies.size()), false);
+      resource.missingRequestedTags_.erase(DICOM_TAG_NUMBER_OF_PATIENT_RELATED_STUDIES);
+    }
+
+    if (hasNbRelatedSeries || hasNbRelatedInstances)
+    {
+      for (std::list<std::string>::const_iterator
+            it = studies.begin(); it != studies.end(); ++it)
+      {
+        std::list<std::string> thisSeriesIds;
+        index.GetChildren(thisSeriesIds, *it);
+        series.splice(series.end(), thisSeriesIds);
+      }
+
+      if (hasNbRelatedSeries)
+      {
+        resource.tags_.SetValue(DICOM_TAG_NUMBER_OF_PATIENT_RELATED_SERIES,
+                                boost::lexical_cast<std::string>(series.size()), false);
+        resource.missingRequestedTags_.erase(DICOM_TAG_NUMBER_OF_PATIENT_RELATED_SERIES);
+      }
+    }
+
+    if (hasNbRelatedInstances)
+    {
+      for (std::list<std::string>::const_iterator
+            it = series.begin(); it != series.end(); ++it)
+      {
+        std::list<std::string> thisInstancesIds;
+        index.GetChildren(thisInstancesIds, *it);
+        instances.splice(instances.end(), thisInstancesIds);
+      }
+
+      resource.tags_.SetValue(DICOM_TAG_NUMBER_OF_PATIENT_RELATED_INSTANCES,
+                              boost::lexical_cast<std::string>(instances.size()), false);
+      resource.missingRequestedTags_.erase(DICOM_TAG_NUMBER_OF_PATIENT_RELATED_INSTANCES);
+    }
+  }
+
+
+  static void ComputeTags(ExpandedResource& resource,
+                          ServerContext& context,
+                          const std::string& resourceId,
+                          ResourceType level,
+                          const std::set<DicomTag>& requestedTags)
+  {
+    if (level == ResourceType_Patient 
+        && DicomMap::HasComputedTags(resource.missingRequestedTags_, ResourceType_Patient))
+    {
+      ComputePatientTags(resource, context, resourceId, requestedTags);
+    }
+
+    if (level == ResourceType_Study 
+        && DicomMap::HasComputedTags(resource.missingRequestedTags_, ResourceType_Study))
+    {
+      ComputeStudyTags(resource, context, resourceId, requestedTags);
+    }
+
+    if (level == ResourceType_Series 
+        && DicomMap::HasComputedTags(resource.missingRequestedTags_, ResourceType_Series))
+    {
+      ComputeSeriesTags(resource, context, resourceId, requestedTags);
+    }
+  }
+
   bool ServerContext::ExpandResource(Json::Value& target,
                                      const std::string& publicId,
                                      ResourceType level,
@@ -2263,22 +2460,24 @@ namespace Orthanc
                                      const std::set<DicomTag>& requestedTags)
   {
     std::string unusedInstanceId;
-    Json::Value unusedValue;
+    Json::Value* unusedDicomAsJson = NULL;
+    DicomMap unusedMainDicomTags;
 
-    return ExpandResource(target, publicId, unusedInstanceId, unusedValue, level, format, requestedTags);
+    return ExpandResource(target, publicId, unusedMainDicomTags, unusedInstanceId, unusedDicomAsJson, level, format, requestedTags);
   }
 
   bool ServerContext::ExpandResource(Json::Value& target,
                                      const std::string& publicId,
+                                     const DicomMap& mainDicomTags,    // optional: the main dicom tags for the resource (if already available)
                                      const std::string& instanceId,    // optional: the id of an instance for the resource (if already available)
-                                     const Json::Value& dicomAsJson,   // optional: the dicom-as-json for the resource (if already available)
+                                      const Json::Value* dicomAsJson,  // optional: the dicom-as-json for the resource (if already available)
                                      ResourceType level,
                                      DicomToJsonFormat format,
                                      const std::set<DicomTag>& requestedTags)
   {
     ExpandedResource resource;
 
-    if (ExpandResource(resource, publicId, instanceId, dicomAsJson, level, requestedTags))
+    if (ExpandResource(resource, publicId, mainDicomTags, instanceId, dicomAsJson, level, requestedTags, ExpandResourceDbFlags_Default))
     {
       SerializeExpandedResource(target, resource, format, requestedTags);
       return true;
@@ -2289,12 +2488,50 @@ namespace Orthanc
   
   bool ServerContext::ExpandResource(ExpandedResource& resource,
                                      const std::string& publicId,
+                                     const DicomMap& mainDicomTags,    // optional: the main dicom tags for the resource (if already available)
                                      const std::string& instanceId,    // optional: the id of an instance for the resource (if already available)
-                                     const Json::Value& dicomAsJson,   // optional: the dicom-as-json for the resource (if already available)
+                                     const Json::Value* dicomAsJson,   // optional: the dicom-as-json for the resource (if already available)
                                      ResourceType level,
-                                     const std::set<DicomTag>& requestedTags)
+                                     const std::set<DicomTag>& requestedTags,
+                                     ExpandResourceDbFlags expandFlags)
   {
-    if (GetIndex().ExpandResource(resource, publicId, level, requestedTags))
+    // first try to get the tags from what is already available
+    
+    if ((expandFlags & ExpandResourceDbFlags_IncludeMainDicomTags)
+      && (mainDicomTags.GetSize() > 0)
+      && (dicomAsJson != NULL))
+    {
+      
+      if (mainDicomTags.GetSize() > 0)
+      {
+        resource.tags_.Merge(mainDicomTags);
+      }
+
+      if (dicomAsJson != NULL && dicomAsJson->isObject())
+      {
+        resource.tags_.FromDicomAsJson(*dicomAsJson);
+      }
+
+      std::set<DicomTag> retrievedTags;
+      std::set<DicomTag> missingTags;
+      resource.tags_.GetTags(retrievedTags);
+
+      Toolbox::GetMissingsFromSet(missingTags, requestedTags, retrievedTags);
+
+      // if all possible tags have been read, no need to get them from DB anymore
+      if (missingTags.size() == 0 || DicomMap::HasOnlyComputedTags(missingTags))
+      {
+        expandFlags = static_cast<ExpandResourceDbFlags>(expandFlags & ~ExpandResourceDbFlags_IncludeMainDicomTags);
+      }
+
+      if (missingTags.size() == 0 && expandFlags == ExpandResourceDbFlags_None)  // we have already retrieved anything we need
+      {
+        return true;
+      }
+    }
+
+    if (expandFlags != ExpandResourceDbFlags_None
+        && GetIndex().ExpandResource(resource, publicId, level, requestedTags, expandFlags))
     {
       // check the main dicom tags list has not changed since the resource was stored
       if (resource.mainDicomTagsSignature_ != DicomMap::GetMainDicomTagsSignature(resource.type_))
@@ -2307,11 +2544,12 @@ namespace Orthanc
       }
 
       // possibly merge missing requested tags from dicom-as-json
-      if (!resource.missingRequestedTags_.empty())
+      if (!resource.missingRequestedTags_.empty() && !DicomMap::HasOnlyComputedTags(resource.missingRequestedTags_))
       {
         std::string instanceId_ = instanceId;
-        Json::Value dicomAsJson_ = dicomAsJson;
-        if (dicomAsJson_.isNull())
+        DicomMap tagsFromJson;
+
+        if (dicomAsJson == NULL)
         {
           if (instanceId_.empty())
           {
@@ -2331,20 +2569,28 @@ namespace Orthanc
             }
           }
   
-          // MORE_TAGS :TODO: log warning (add an option to disable them)
-          ReadDicomAsJson(dicomAsJson_, instanceId_);
+          // MORE_TAGS :TODO: log "performance" warning (add an option to disable them)
+          Json::Value tmpDicomAsJson;
+          ReadDicomAsJson(tmpDicomAsJson, instanceId_);
+          tagsFromJson.FromDicomAsJson(tmpDicomAsJson);
+        }
+        else
+        {
+          tagsFromJson.FromDicomAsJson(*dicomAsJson);
         }
 
-        DicomMap allTags;
-        allTags.FromDicomAsJson(dicomAsJson_);
-
-        resource.tags_.Merge(allTags);
+        resource.tags_.Merge(tagsFromJson);
       }
 
-      return true;
+      // compute the requested tags
+      ComputeTags(resource, *this, publicId, level, requestedTags);
+    }
+    else
+    {
+      return false;
     }
 
-    return false;
+    return true;
   }
 
 }

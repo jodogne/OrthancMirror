@@ -69,6 +69,16 @@ namespace Orthanc
     }
   }
 
+  void DicomArray::GetTags(std::set<DicomTag>& tags) const
+  {
+    tags.clear();
+
+    for (size_t i = 0; i < elements_.size(); i++)
+    {
+      tags.insert(elements_[i]->GetTag());
+    }
+   
+  }
 
   void DicomArray::Print(FILE* fp) const
   {
