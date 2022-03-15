@@ -634,6 +634,85 @@ namespace Orthanc
             IsMainDicomTag(tag, ResourceType_Instance));
   }
 
+  bool DicomMap::IsComputedTag(const DicomTag& tag)
+  {
+    return (IsComputedTag(tag, ResourceType_Patient) ||
+            IsComputedTag(tag, ResourceType_Study) ||
+            IsComputedTag(tag, ResourceType_Series) ||
+            IsComputedTag(tag, ResourceType_Instance));
+  }
+
+  bool DicomMap::IsComputedTag(const DicomTag& tag, ResourceType level)
+  {
+    switch (level)
+    {
+      case ResourceType_Patient:
+        return (
+          tag == DICOM_TAG_NUMBER_OF_PATIENT_RELATED_STUDIES ||
+          tag == DICOM_TAG_NUMBER_OF_PATIENT_RELATED_SERIES ||
+          tag == DICOM_TAG_NUMBER_OF_PATIENT_RELATED_INSTANCES
+        );
+      case ResourceType_Study:
+        return (
+          tag == DICOM_TAG_MODALITIES_IN_STUDY ||
+          tag == DICOM_TAG_SOP_CLASSES_IN_STUDY ||
+          tag == DICOM_TAG_NUMBER_OF_STUDY_RELATED_INSTANCES ||
+          tag == DICOM_TAG_NUMBER_OF_STUDY_RELATED_SERIES
+        );
+      case ResourceType_Series:
+        return (
+          tag == DICOM_TAG_NUMBER_OF_SERIES_RELATED_INSTANCES
+        );
+      case ResourceType_Instance:
+        return false;
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+  bool DicomMap::HasOnlyComputedTags(const std::set<DicomTag>& tags)
+  {
+    if (tags.size() == 0)
+    {
+      return false;
+    }
+
+    for (std::set<DicomTag>::const_iterator it = tags.begin(); it != tags.end(); ++it)
+    {
+      if (!IsComputedTag(*it))
+      {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  bool DicomMap::HasComputedTags(const std::set<DicomTag>& tags)
+  {
+    for (std::set<DicomTag>::const_iterator it = tags.begin(); it != tags.end(); ++it)
+    {
+      if (IsComputedTag(*it))
+      {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  bool DicomMap::HasComputedTags(const std::set<DicomTag>& tags, ResourceType level)
+  {
+    for (std::set<DicomTag>::const_iterator it = tags.begin(); it != tags.end(); ++it)
+    {
+      if (IsComputedTag(*it, level))
+      {
+        return true;
+      }
+    }
+    return false;
+  }
+
+
   const std::set<DicomTag>& DicomMap::GetMainDicomTags(ResourceType level)
   {
     return DicomMap::MainDicomTagsConfiguration::GetInstance().GetMainDicomTagsByLevel(level);

@@ -64,6 +64,17 @@ namespace Orthanc
     int                                 indexInSeries_;
   };
 
+  enum ExpandResourceDbFlags
+  {
+    ExpandResourceDbFlags_None                    = 0,
+    ExpandResourceDbFlags_IncludeMetadata         = (1 << 0),
+    ExpandResourceDbFlags_IncludeChildren         = (1 << 1),
+    ExpandResourceDbFlags_IncludeMainDicomTags    = (1 << 2),
+
+    ExpandResourceDbFlags_Default = (ExpandResourceDbFlags_IncludeMetadata |
+                                     ExpandResourceDbFlags_IncludeChildren |
+                                     ExpandResourceDbFlags_IncludeMainDicomTags)
+  };
 
   class StatelessDatabaseOperations : public boost::noncopyable
   {
@@ -479,7 +490,8 @@ namespace Orthanc
     bool ExpandResource(ExpandedResource& target,
                         const std::string& publicId,
                         ResourceType level,
-                        const std::set<DicomTag>& requestedTags);
+                        const std::set<DicomTag>& requestedTags,
+                        ExpandResourceDbFlags expandFlags);
 
     void GetAllMetadata(std::map<MetadataType, std::string>& target,
                         const std::string& publicId,

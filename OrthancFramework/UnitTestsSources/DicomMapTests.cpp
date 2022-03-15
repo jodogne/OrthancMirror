@@ -556,6 +556,54 @@ TEST(DicomMap, ExtractMainDicomTags)
 }
 
 
+TEST(DicomMap, ComputedTags)
+{
+  {
+    std::set<DicomTag> tags;
+
+    ASSERT_FALSE(DicomMap::HasOnlyComputedTags(tags));
+    ASSERT_FALSE(DicomMap::HasComputedTags(tags, ResourceType_Instance));
+    ASSERT_FALSE(DicomMap::HasComputedTags(tags, ResourceType_Series));
+    ASSERT_FALSE(DicomMap::HasComputedTags(tags, ResourceType_Study));
+    ASSERT_FALSE(DicomMap::HasComputedTags(tags, ResourceType_Patient));
+  }
+
+  {
+    std::set<DicomTag> tags;
+    tags.insert(DICOM_TAG_ACCESSION_NUMBER);
+
+    ASSERT_FALSE(DicomMap::HasOnlyComputedTags(tags));
+    ASSERT_FALSE(DicomMap::HasComputedTags(tags, ResourceType_Instance));
+    ASSERT_FALSE(DicomMap::HasComputedTags(tags, ResourceType_Series));
+    ASSERT_FALSE(DicomMap::HasComputedTags(tags, ResourceType_Study));
+    ASSERT_FALSE(DicomMap::HasComputedTags(tags, ResourceType_Patient));
+  }
+
+  {
+    std::set<DicomTag> tags;
+    tags.insert(DICOM_TAG_MODALITIES_IN_STUDY);
+
+    ASSERT_TRUE(DicomMap::HasOnlyComputedTags(tags));
+    ASSERT_TRUE(DicomMap::HasComputedTags(tags, ResourceType_Study));
+    ASSERT_FALSE(DicomMap::HasComputedTags(tags, ResourceType_Patient));
+    ASSERT_FALSE(DicomMap::HasComputedTags(tags, ResourceType_Series));
+    ASSERT_FALSE(DicomMap::HasComputedTags(tags, ResourceType_Instance));
+  }
+
+  {
+    std::set<DicomTag> tags;
+    tags.insert(DICOM_TAG_ACCESSION_NUMBER);
+    tags.insert(DICOM_TAG_MODALITIES_IN_STUDY);
+
+    ASSERT_FALSE(DicomMap::HasOnlyComputedTags(tags));
+    ASSERT_TRUE(DicomMap::HasComputedTags(tags, ResourceType_Study));
+    ASSERT_FALSE(DicomMap::HasComputedTags(tags, ResourceType_Patient));
+    ASSERT_FALSE(DicomMap::HasComputedTags(tags, ResourceType_Series));
+    ASSERT_FALSE(DicomMap::HasComputedTags(tags, ResourceType_Instance));
+  }
+
+}
+
 TEST(DicomMap, RemoveBinary)
 {
   DicomMap b;

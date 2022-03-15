@@ -713,10 +713,11 @@ namespace Orthanc
   bool StatelessDatabaseOperations::ExpandResource(ExpandedResource& target,
                                                    const std::string& publicId,
                                                    ResourceType level,
-                                                   const std::set<DicomTag>& requestedTags)
+                                                   const std::set<DicomTag>& requestedTags,
+                                                   ExpandResourceDbFlags expandFlags)
   {    
-    class Operations : public ReadOnlyOperationsT5<
-      bool&, ExpandedResource&, const std::string&, ResourceType, const std::set<DicomTag>&>
+    class Operations : public ReadOnlyOperationsT6<
+      bool&, ExpandedResource&, const std::string&, ResourceType, const std::set<DicomTag>&, ExpandResourceDbFlags>
     {
     private:
   
@@ -759,163 +760,6 @@ namespace Orthanc
         }
       }
 
-      static void ComputeSeriesTags(DicomMap& result,
-                                    const std::list<std::string>& children,
-                                    const std::set<DicomTag>& requestedTags)
-      {
-        if (requestedTags.count(DICOM_TAG_NUMBER_OF_SERIES_RELATED_INSTANCES) > 0)
-        {
-          result.SetValue(DICOM_TAG_NUMBER_OF_SERIES_RELATED_INSTANCES,
-                          boost::lexical_cast<std::string>(children.size()), false);
-        }
-      }
-
-      static void ComputeStudyTags(DicomMap& result,
-                                   ReadOnlyTransaction& transaction,
-                                   const std::string& studyPublicId,
-                                   int64_t studyInternalId,
-                                   const std::set<DicomTag>& requestedTags)
-      {
-        std::list<int64_t> seriesInternalIds;
-        std::list<int64_t> instancesInternalIds;
-
-        transaction.GetChildrenInternalId(seriesInternalIds, studyInternalId);
-
-        if (requestedTags.count(DICOM_TAG_NUMBER_OF_STUDY_RELATED_SERIES) > 0)
-        {
-          result.SetValue(DICOM_TAG_NUMBER_OF_STUDY_RELATED_SERIES,
-                          boost::lexical_cast<std::string>(seriesInternalIds.size()), false);
-        }
-
-        if (requestedTags.count(DICOM_TAG_MODALITIES_IN_STUDY) > 0)
-        {
-          std::set<std::string> values;
-
-          for (std::list<int64_t>::const_iterator
-                it = seriesInternalIds.begin(); it != seriesInternalIds.end(); ++it)
-          {
-            if (requestedTags.count(DICOM_TAG_MODALITIES_IN_STUDY) > 0)
-            {
-              DicomMap tags;
-              transaction.GetMainDicomTags(tags, *it);
-
-              const DicomValue* value = tags.TestAndGetValue(DICOM_TAG_MODALITY);
-
-              if (value != NULL &&
-                  !value->IsNull() &&
-                  !value->IsBinary())
-              {
-                values.insert(value->GetContent());
-              }
-            }
-          }
-
-          std::string modalities;
-          Toolbox::JoinStrings(modalities, values, "\\");
-          result.SetValue(DICOM_TAG_MODALITIES_IN_STUDY, modalities, false);
-        }
-
-        if (requestedTags.count(DICOM_TAG_NUMBER_OF_STUDY_RELATED_INSTANCES) > 0
-          || requestedTags.count(DICOM_TAG_SOP_CLASSES_IN_STUDY) > 0)
-        {
-          for (std::list<int64_t>::const_iterator
-                it = seriesInternalIds.begin(); it != seriesInternalIds.end(); ++it)
-          {
-            std::list<int64_t> seriesInstancesIds;
-            transaction.GetChildrenInternalId(seriesInstancesIds, *it);
-
-            instancesInternalIds.splice(instancesInternalIds.end(), seriesInstancesIds);
-          }
-
-          if (requestedTags.count(DICOM_TAG_NUMBER_OF_STUDY_RELATED_INSTANCES) > 0)
-          {
-            result.SetValue(DICOM_TAG_NUMBER_OF_STUDY_RELATED_INSTANCES,
-                      boost::lexical_cast<std::string>(instancesInternalIds.size()), false);      
-          }
-
-          if (requestedTags.count(DICOM_TAG_SOP_CLASSES_IN_STUDY) > 0)
-          {
-            std::set<std::string> values;
-
-            for (std::list<int64_t>::const_iterator
-                  it = instancesInternalIds.begin(); it != instancesInternalIds.end(); ++it)
-            {
-              std::map<MetadataType, std::string> instanceMetadata;
-              // Extract the metadata
-              transaction.GetAllMetadata(instanceMetadata, *it);
-
-              std::string value;
-              if (!LookupStringMetadata(value, instanceMetadata, MetadataType_Instance_SopClassUid))
-              {
-                throw OrthancException(ErrorCode_InternalError, "Unable to get the SOP Class Uid from an instance of the study " + studyPublicId + " because the instance has been saved with an old version of Orthanc (< 1.2.0).  You should POST to /studies/" + studyPublicId + "/reconstruct to avoid this error");
-              }
-
-              values.insert(value);
-            }
-
-            std::string sopClassUids;
-            Toolbox::JoinStrings(sopClassUids, values, "\\");
-            result.SetValue(DICOM_TAG_SOP_CLASSES_IN_STUDY, sopClassUids, false);
-          }
-        }
-      }
-
-    static void ComputePatientTags(DicomMap& result,
-                                   ReadOnlyTransaction& transaction,
-                                   const std::string& patientPublicId,
-                                   int64_t patientInternalId,
-                                   const std::set<DicomTag>& requestedTags)
-    {
-      std::list<int64_t> studiesInternalIds;
-      std::list<int64_t> seriesInternalIds;
-      std::list<int64_t> instancesInternalIds;
-
-      bool hasNbRelatedStudies = requestedTags.count(DICOM_TAG_NUMBER_OF_PATIENT_RELATED_STUDIES) > 0;
-      bool hasNbRelatedSeries = requestedTags.count(DICOM_TAG_NUMBER_OF_PATIENT_RELATED_SERIES) > 0;
-      bool hasNbRelatedInstances = requestedTags.count(DICOM_TAG_NUMBER_OF_PATIENT_RELATED_INSTANCES) > 0;
-
-      transaction.GetChildrenInternalId(studiesInternalIds, patientInternalId);
-
-      if (hasNbRelatedStudies)
-      {
-        result.SetValue(DICOM_TAG_NUMBER_OF_PATIENT_RELATED_STUDIES,
-                        boost::lexical_cast<std::string>(studiesInternalIds.size()), false);
-      }
-
-      if (hasNbRelatedSeries || hasNbRelatedInstances)
-      {
-        for (std::list<int64_t>::const_iterator
-              it = studiesInternalIds.begin(); it != studiesInternalIds.end(); ++it)
-        {
-          std::list<int64_t> thisSeriesIds;
-          transaction.GetChildrenInternalId(thisSeriesIds, *it);
-          seriesInternalIds.splice(seriesInternalIds.end(), thisSeriesIds);
-
-          if (hasNbRelatedInstances)
-          {
-            for (std::list<int64_t>::const_iterator
-                  it2 = seriesInternalIds.begin(); it2 != seriesInternalIds.end(); ++it2)
-            {
-              std::list<int64_t> thisInstancesIds;
-              transaction.GetChildrenInternalId(thisInstancesIds, *it2);
-              instancesInternalIds.splice(instancesInternalIds.end(), thisInstancesIds);
-            }
-          }
-        }
-
-        if (hasNbRelatedSeries)
-        {
-          result.SetValue(DICOM_TAG_NUMBER_OF_PATIENT_RELATED_SERIES,
-                          boost::lexical_cast<std::string>(seriesInternalIds.size()), false);
-        }
-
-        if (hasNbRelatedInstances)
-        {
-          result.SetValue(DICOM_TAG_NUMBER_OF_PATIENT_RELATED_INSTANCES,
-                          boost::lexical_cast<std::string>(instancesInternalIds.size()), false);
-        }
-      }
-    }
 
     public:
       virtual void ApplyTuple(ReadOnlyTransaction& transaction,
@@ -933,6 +777,7 @@ namespace Orthanc
         else
         {
           ExpandedResource& target = tuple.get<1>();
+          ExpandResourceDbFlags expandFlags = tuple.get<5>();
 
           // Set information about the parent resource (if it exists)
           if (type == ResourceType_Patient)
@@ -952,156 +797,134 @@ namespace Orthanc
             target.parentId_ = parent;
           }
 
-          // List the children resources
-          transaction.GetChildrenPublicId(target.childrenIds_, internalId);
-
-          // Extract the metadata
-          transaction.GetAllMetadata(target.metadata_, internalId);
-
-          // Set the resource type
           target.type_ = type;
-
-          switch (type)
-          {
-            case ResourceType_Patient:
-            case ResourceType_Study:
-              break;
-
-            case ResourceType_Series:
-            {
-              int64_t i;
-              if (LookupIntegerMetadata(i, target.metadata_, MetadataType_Series_ExpectedNumberOfInstances))
-              {
-                target.expectedNumberOfInstances_ = static_cast<int>(i);
-                target.status_ = EnumerationToString(transaction.GetSeriesStatus(internalId, i));
-              }
-              else
-              {
-                target.expectedNumberOfInstances_ = -1;
-                target.status_ = EnumerationToString(SeriesStatus_Unknown);
-              }
-
-              break;
-            }
-
-            case ResourceType_Instance:
-            {
-              FileInfo attachment;
-              int64_t revision;  // ignored
-              if (!transaction.LookupAttachment(attachment, revision, internalId, FileContentType_Dicom))
-              {
-                throw OrthancException(ErrorCode_InternalError);
-              }
-
-              target.fileSize_ = static_cast<unsigned int>(attachment.GetUncompressedSize());
-              target.fileUuid_ = attachment.GetUuid();
-
-              int64_t i;
-              if (LookupIntegerMetadata(i, target.metadata_, MetadataType_Instance_IndexInSeries))
-              {
-                target.indexInSeries_ = static_cast<int>(i);
-              }
-              else
-              {
-                target.indexInSeries_ = -1;
-              }
-
-              break;
-            }
-
-            default:
-              throw OrthancException(ErrorCode_InternalError);
-          }
-
-          // check the main dicom tags list has not changed since the resource was stored
-          target.mainDicomTagsSignature_ = DicomMap::GetDefaultMainDicomTagsSignature(type);
-          LookupStringMetadata(target.mainDicomTagsSignature_, target.metadata_, MetadataType_MainDicomTagsSignature);
-
-          // Record the remaining information
           target.id_ = tuple.get<2>();
 
-          // read all tags from DB
-          transaction.GetMainDicomTags(target.tags_, internalId);
-
-          // check if we have access to all requestedTags or if we must get tags from parents
-          const std::set<DicomTag>& requestedTags = tuple.get<4>();
-
-          if (requestedTags.size() > 0)
+          if (expandFlags & ExpandResourceDbFlags_IncludeChildren)
           {
-            std::set<DicomTag> savedMainDicomTags;
-            
-            FromDcmtkBridge::ParseListOfTags(savedMainDicomTags, target.mainDicomTagsSignature_);
+            // List the children resources
+            transaction.GetChildrenPublicId(target.childrenIds_, internalId);
+          }
 
-            // read parent main dicom tags as long as we don't have gathered all requested tags
-            ResourceType currentLevel = target.type_;
-            int64_t currentInternalId = internalId;
-            Toolbox::GetMissingsFromSet(target.missingRequestedTags_, requestedTags, savedMainDicomTags);
+          if (expandFlags & ExpandResourceDbFlags_IncludeMetadata)
+          {
+            // Extract the metadata
+            transaction.GetAllMetadata(target.metadata_, internalId);
 
-            while ((target.missingRequestedTags_.size() > 0)
-                   && currentLevel != ResourceType_Patient)
+            switch (type)
             {
-              currentLevel = GetParentResourceType(currentLevel);
+              case ResourceType_Patient:
+              case ResourceType_Study:
+                break;
 
-              int64_t currentParentId;
-              if (!transaction.LookupParent(currentParentId, currentInternalId))
+              case ResourceType_Series:
               {
+                int64_t i;
+                if (LookupIntegerMetadata(i, target.metadata_, MetadataType_Series_ExpectedNumberOfInstances))
+                {
+                  target.expectedNumberOfInstances_ = static_cast<int>(i);
+                  target.status_ = EnumerationToString(transaction.GetSeriesStatus(internalId, i));
+                }
+                else
+                {
+                  target.expectedNumberOfInstances_ = -1;
+                  target.status_ = EnumerationToString(SeriesStatus_Unknown);
+                }
+
                 break;
               }
 
-              std::map<MetadataType, std::string> parentMetadata;
-              transaction.GetAllMetadata(parentMetadata, currentParentId);
+              case ResourceType_Instance:
+              {
+                FileInfo attachment;
+                int64_t revision;  // ignored
+                if (!transaction.LookupAttachment(attachment, revision, internalId, FileContentType_Dicom))
+                {
+                  throw OrthancException(ErrorCode_InternalError);
+                }
 
-              std::string parentMainDicomTagsSignature = DicomMap::GetDefaultMainDicomTagsSignature(currentLevel);
-              LookupStringMetadata(parentMainDicomTagsSignature, parentMetadata, MetadataType_MainDicomTagsSignature);
+                target.fileSize_ = static_cast<unsigned int>(attachment.GetUncompressedSize());
+                target.fileUuid_ = attachment.GetUuid();
 
-              std::set<DicomTag> parentSavedMainDicomTags;
-              FromDcmtkBridge::ParseListOfTags(parentSavedMainDicomTags, parentMainDicomTagsSignature);
-              
-              size_t previousMissingCount = target.missingRequestedTags_.size();
-              Toolbox::AppendSets(savedMainDicomTags, parentSavedMainDicomTags);
-              Toolbox::GetMissingsFromSet(target.missingRequestedTags_, requestedTags, savedMainDicomTags);
+                int64_t i;
+                if (LookupIntegerMetadata(i, target.metadata_, MetadataType_Instance_IndexInSeries))
+                {
+                  target.indexInSeries_ = static_cast<int>(i);
+                }
+                else
+                {
+                  target.indexInSeries_ = -1;
+                }
 
-              // read the parent tags from DB only if it reduces the number of missing tags
-              if (target.missingRequestedTags_.size() < previousMissingCount)
-              { 
-                Toolbox::AppendSets(savedMainDicomTags, parentSavedMainDicomTags);
-
-                DicomMap parentTags;
-                transaction.GetMainDicomTags(parentTags, currentParentId);
-
-                target.tags_.Merge(parentTags);
+                break;
               }
 
-              currentInternalId = currentParentId;
+              default:
+                throw OrthancException(ErrorCode_InternalError);
             }
 
-            { // handle the tags that must be rebuilt because they are not saved in DB
-              if (target.type_ == ResourceType_Study && (
-                target.missingRequestedTags_.count(DICOM_TAG_MODALITIES_IN_STUDY) > 0 
-                || target.missingRequestedTags_.count(DICOM_TAG_NUMBER_OF_STUDY_RELATED_INSTANCES) > 0 
-                || target.missingRequestedTags_.count(DICOM_TAG_SOP_CLASSES_IN_STUDY) > 0 
-                || target.missingRequestedTags_.count(DICOM_TAG_NUMBER_OF_STUDY_RELATED_SERIES) > 0 
-              ))
-              {
-                ComputeStudyTags(target.tags_, transaction, target.id_, internalId, requestedTags);
-              }
+            // check the main dicom tags list has not changed since the resource was stored
+            target.mainDicomTagsSignature_ = DicomMap::GetDefaultMainDicomTagsSignature(type);
+            LookupStringMetadata(target.mainDicomTagsSignature_, target.metadata_, MetadataType_MainDicomTagsSignature);
+          }
 
-              if (target.type_ == ResourceType_Series 
-                && target.missingRequestedTags_.count(DICOM_TAG_NUMBER_OF_SERIES_RELATED_INSTANCES) > 0)
-              {
-                ComputeSeriesTags(target.tags_, target.childrenIds_, requestedTags);
-              }
+          if (expandFlags & ExpandResourceDbFlags_IncludeMainDicomTags)
+          {
+            // read all tags from DB
+            transaction.GetMainDicomTags(target.tags_, internalId);
 
-              if (target.type_ == ResourceType_Patient && (
-                target.missingRequestedTags_.count(DICOM_TAG_NUMBER_OF_PATIENT_RELATED_STUDIES) > 0 
-                || target.missingRequestedTags_.count(DICOM_TAG_NUMBER_OF_PATIENT_RELATED_SERIES) > 0 
-                || target.missingRequestedTags_.count(DICOM_TAG_NUMBER_OF_PATIENT_RELATED_INSTANCES) > 0 
-              ))
-              {
-                ComputePatientTags(target.tags_, transaction, target.id_, internalId, requestedTags);
-              }
-            }            
+            // check if we have access to all requestedTags or if we must get tags from parents
+            const std::set<DicomTag>& requestedTags = tuple.get<4>();
 
+            if (requestedTags.size() > 0)
+            {
+              std::set<DicomTag> savedMainDicomTags;
+              
+              FromDcmtkBridge::ParseListOfTags(savedMainDicomTags, target.mainDicomTagsSignature_);
+
+              // read parent main dicom tags as long as we don't have gathered all requested tags
+              ResourceType currentLevel = target.type_;
+              int64_t currentInternalId = internalId;
+              Toolbox::GetMissingsFromSet(target.missingRequestedTags_, requestedTags, savedMainDicomTags);
+
+              while ((target.missingRequestedTags_.size() > 0)
+                    && currentLevel != ResourceType_Patient)
+              {
+                currentLevel = GetParentResourceType(currentLevel);
+
+                int64_t currentParentId;
+                if (!transaction.LookupParent(currentParentId, currentInternalId))
+                {
+                  break;
+                }
+
+                std::map<MetadataType, std::string> parentMetadata;
+                transaction.GetAllMetadata(parentMetadata, currentParentId);
+
+                std::string parentMainDicomTagsSignature = DicomMap::GetDefaultMainDicomTagsSignature(currentLevel);
+                LookupStringMetadata(parentMainDicomTagsSignature, parentMetadata, MetadataType_MainDicomTagsSignature);
+
+                std::set<DicomTag> parentSavedMainDicomTags;
+                FromDcmtkBridge::ParseListOfTags(parentSavedMainDicomTags, parentMainDicomTagsSignature);
+                
+                size_t previousMissingCount = target.missingRequestedTags_.size();
+                Toolbox::AppendSets(savedMainDicomTags, parentSavedMainDicomTags);
+                Toolbox::GetMissingsFromSet(target.missingRequestedTags_, requestedTags, savedMainDicomTags);
+
+                // read the parent tags from DB only if it reduces the number of missing tags
+                if (target.missingRequestedTags_.size() < previousMissingCount)
+                { 
+                  Toolbox::AppendSets(savedMainDicomTags, parentSavedMainDicomTags);
+
+                  DicomMap parentTags;
+                  transaction.GetMainDicomTags(parentTags, currentParentId);
+
+                  target.tags_.Merge(parentTags);
+                }
+
+                currentInternalId = currentParentId;
+              }
+            }
           }
 
           std::string tmp;
@@ -1139,7 +962,7 @@ namespace Orthanc
 
     bool found;
     Operations operations;
-    operations.Apply(*this, found, target, publicId, level, requestedTags);
+    operations.Apply(*this, found, target, publicId, level, requestedTags, expandFlags);
     return found;
   }
 
