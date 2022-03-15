@@ -554,5 +554,12 @@ namespace Orthanc
                         DicomToJsonFormat format,
                         const std::set<DicomTag>& requestedTags);
 
+    bool ExpandResource(ExpandedResource& target,
+                        const std::string& publicId,
+                        const std::string& instanceId,    // optional: the id of an instance for the resource
+                        const Json::Value& dicomAsJson,   // optional: the dicom-as-json for the resource
+                        ResourceType level,
+                        const std::set<DicomTag>& requestedTags);
+
   };
 }

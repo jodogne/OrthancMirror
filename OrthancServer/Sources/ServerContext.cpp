@@ -2270,15 +2270,31 @@ namespace Orthanc
 
   bool ServerContext::ExpandResource(Json::Value& target,
                                      const std::string& publicId,
-                                     const std::string& instanceId,    // optional: the id of an instance for the resource
-                                     const Json::Value& dicomAsJson,   // optional: the dicom-as-json for the resource
+                                     const std::string& instanceId,    // optional: the id of an instance for the resource (if already available)
+                                     const Json::Value& dicomAsJson,   // optional: the dicom-as-json for the resource (if already available)
                                      ResourceType level,
                                      DicomToJsonFormat format,
                                      const std::set<DicomTag>& requestedTags)
   {
     ExpandedResource resource;
 
-    if (GetIndex().ExpandResource(resource, publicId, level, format, requestedTags))
+    if (ExpandResource(resource, publicId, instanceId, dicomAsJson, level, requestedTags))
+    {
+      SerializeExpandedResource(target, resource, format, requestedTags);
+      return true;
+    }
+
+    return false;
+  }
+  
+  bool ServerContext::ExpandResource(ExpandedResource& resource,
+                                     const std::string& publicId,
+                                     const std::string& instanceId,    // optional: the id of an instance for the resource (if already available)
+                                     const Json::Value& dicomAsJson,   // optional: the dicom-as-json for the resource (if already available)
+                                     ResourceType level,
+                                     const std::set<DicomTag>& requestedTags)
+  {
+    if (GetIndex().ExpandResource(resource, publicId, level, requestedTags))
     {
       // check the main dicom tags list has not changed since the resource was stored
       if (resource.mainDicomTagsSignature_ != DicomMap::GetMainDicomTagsSignature(resource.type_))
@@ -2324,8 +2340,6 @@ namespace Orthanc
 
         resource.tags_.Merge(allTags);
       }
-
-      SerializeExpandedResource(target, resource, format, requestedTags);
 
       return true;
     }
