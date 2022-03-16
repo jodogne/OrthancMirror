@@ -4,16 +4,21 @@ Pending changes in the mainline
 General
 -------
 
-* Improved DICOM authorization checks when multiple modalities are declared with
-  the same AET.
+* Improved DICOM authorization checks when multiple modalities are
+  declared with the same AET.
 
+Plugins
+-------
+
+* New function in the SDK: "OrthancPluginRegisterWebDavCollection()"
+  to map a WebDAV virtual filesystem into the REST API of Orthanc.
 
 Documentation
 -------------
 
-* Removed the "LimitJobs" configuration that is not used anymore since the new
-  JobEngine has been introduced (in  Orthanc 1.4.0).  The pending list of jobs
-  is unlimited.
+* Removed the "LimitJobs" configuration that is not used anymore since
+  the new JobEngine has been introduced (in Orthanc 1.4.0). The
+  pending list of jobs is unlimited.
 
 
 Version 1.10.0 (2022-02-23)
