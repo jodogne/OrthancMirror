@@ -1180,6 +1180,13 @@ static bool StartHttpServer(ServerContext& context,
       }
     }
 
+#if ORTHANC_ENABLE_PLUGINS == 1
+    if (plugins != NULL)
+    {
+      plugins->RegisterWebDavCollections(httpServer);
+    }
+#endif
+
     MyHttpExceptionFormatter exceptionFormatter(httpDescribeErrors, plugins);
         
     httpServer.SetIncomingHttpRequestFilter(httpFilter);
