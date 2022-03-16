@@ -430,29 +430,53 @@ public:
       }
       else
       {
-        // If there are multiple modalities with the same AET, consider the one matching this IP
+        // If there are multiple modalities with the same AET, consider the one matching this IP 
+        // or check if the operation is allowed for all modalities
+        bool allowedForAllModalities = true;
+
         for (std::list<RemoteModalityParameters>::const_iterator
                it = modalities.begin(); it != modalities.end(); ++it)
         {
-          if (it->GetHost() == remoteIp)
+          if (it->IsRequestAllowed(type))
           {
-            if (it->IsRequestAllowed(type))
+            if (checkIp &&
+                it->GetHost() == remoteIp)
             {
               return true;
             }
-            else
-            {
-              ReportDisallowedCommand(remoteIp, remoteAet, type);
-              return false;
-            }
+          }
+          else
+          {
+            allowedForAllModalities = false;
           }
         }
 
-        LOG(WARNING) << "DICOM authorization rejected for AET " << remoteAet
-                     << " on IP " << remoteIp << ": " << modalities.size()
-                     << " modalites found with this AET in configuration option "
-                     << "\"DicomModalities\", but none of them matches the IP";
-        return false;
+        if (allowedForAllModalities)
+        {
+          return true;
+        }
+        else
+        {
+          ReportDisallowedCommand(remoteIp, remoteAet, type);
+
+          if (checkIp)
+          {
+            LOG(WARNING) << "DICOM authorization rejected for AET " << remoteAet
+                         << " on IP " << remoteIp << ": " << modalities.size()
+                         << " modalites found with this AET in configuration option "
+                         << "\"DicomModalities\", but the operation is allowed for none "
+                         << "of them matching the IP";
+          }
+          else
+          {
+            LOG(WARNING) << "DICOM authorization rejected for AET " << remoteAet
+                         << " on IP " << remoteIp << ": " << modalities.size()
+                         << " modalites found with this AET in configuration option "
+                         << "\"DicomModalities\", but the operation is not allowed for"
+                         << "all of them";
+          }
+          return false;
+        }
       }
     }
   }

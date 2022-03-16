@@ -1,6 +1,13 @@
 Pending changes in the mainline
 ===============================
 
+General
+-------
+
+* Improved DICOM authorization checks when multiple modalities are declared with
+  the same AET.
+
+
 Documentation
 -------------
 
