@@ -1311,6 +1311,17 @@ namespace Orthanc
     return fields.HasTag(ParseTag(tagName));
   }
 
+  void FromDcmtkBridge::FormatListOfTags(std::string& output, const std::set<DicomTag>& tags)
+  {
+    std::set<std::string> values;
+    for (std::set<DicomTag>::const_iterator it = tags.begin();
+         it != tags.end(); it++)
+    {
+      values.insert(it->Format());
+    }
+
+    Toolbox::JoinStrings(output, values, ";");
+  }
 
   // parses a list like "0010,0010;PatientBirthDate;0020,0020"
   void FromDcmtkBridge::ParseListOfTags(std::set<DicomTag>& result, const std::string& source)

@@ -234,6 +234,14 @@ namespace Orthanc
       }
     }
 
+    template <typename T> static void RemoveSets(std::set<T>& target, const std::set<T>& toRemove)
+    {
+      for (typename std::set<T>::const_iterator it = toRemove.begin();
+            it != toRemove.end(); it++)
+      {
+        target.erase(*it);
+      }
+    }
 
 #if ORTHANC_ENABLE_PUGIXML == 1
     static void JsonToXml(std::string& target,
