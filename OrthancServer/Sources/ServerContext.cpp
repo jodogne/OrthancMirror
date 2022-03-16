@@ -2546,6 +2546,26 @@ namespace Orthanc
       // possibly merge missing requested tags from dicom-as-json
       if (!resource.missingRequestedTags_.empty() && !DicomMap::HasOnlyComputedTags(resource.missingRequestedTags_))
       {
+        OrthancConfiguration::ReaderLock lock;
+        if (lock.GetConfiguration().IsStorageAccessOnFindLogsEnabled())
+        {
+          std::set<DicomTag> missingTags;
+          Toolbox::AppendSets(missingTags, resource.missingRequestedTags_);
+          for (std::set<DicomTag>::const_iterator it = resource.missingRequestedTags_.begin(); it != resource.missingRequestedTags_.end(); it++)
+          {
+            if (DicomMap::IsComputedTag(*it))
+            {
+              missingTags.erase(*it);
+            }
+          }
+
+          std::string missings;
+          FromDcmtkBridge::FormatListOfTags(missings, missingTags);
+
+          LOG(WARNING) << "PERFORMANCE WARNING: Accessing Dicom tags from storage when accessing " << Orthanc::GetResourceTypeText(resource.type_, false , false) << " : " << missings;
+        }
+
+
         std::string instanceId_ = instanceId;
         DicomMap tagsFromJson;
 
@@ -2569,7 +2589,6 @@ namespace Orthanc
             }
           }
   
-          // MORE_TAGS :TODO: log "performance" warning (add an option to disable them)
           Json::Value tmpDicomAsJson;
           ReadDicomAsJson(tmpDicomAsJson, instanceId_);
           tagsFromJson.FromDicomAsJson(tmpDicomAsJson);

@@ -244,6 +244,8 @@ namespace Orthanc
 
     bool IsInconsistentDicomTagsLogsEnabled() const;
 
+    bool IsStorageAccessOnFindLogsEnabled() const;
+
     static void DefaultExtractDicomSummary(DicomMap& target,
                                            const ParsedDicomFile& dicom);
 

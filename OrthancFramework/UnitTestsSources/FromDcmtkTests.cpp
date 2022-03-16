@@ -369,6 +369,11 @@ TEST(FromDcmtkBridge, ParseListOfTags)
     ASSERT_TRUE(result.find(DICOM_TAG_PATIENT_BIRTH_DATE) != result.end());
     ASSERT_TRUE(result.find(DICOM_TAG_PATIENT_ORIENTATION) != result.end());
     ASSERT_TRUE(result.find(DICOM_TAG_PATIENT_ID) == result.end());
+
+    // serialize to string
+    std::string serialized;
+    FromDcmtkBridge::FormatListOfTags(serialized, result);
+    ASSERT_EQ("0010,0010;0010,0030;0020,0020", serialized);
   }
 
   {// no tag
@@ -394,6 +399,21 @@ TEST(FromDcmtkBridge, ParseListOfTags)
 
     ASSERT_EQ(1, result.size());
   }
+
+  {// Json
+    Json::Value source = Json::arrayValue;
+    source.append("0010,0010");
+    source.append("PatientBirthDate");
+    source.append("0020,0020");
+    std::set<DicomTag> result;
+    FromDcmtkBridge::ParseListOfTags(result, source);
+
+    ASSERT_TRUE(result.find(DICOM_TAG_PATIENT_NAME) != result.end());
+    ASSERT_TRUE(result.find(DICOM_TAG_PATIENT_BIRTH_DATE) != result.end());
+    ASSERT_TRUE(result.find(DICOM_TAG_PATIENT_ORIENTATION) != result.end());
+    ASSERT_TRUE(result.find(DICOM_TAG_PATIENT_ID) == result.end());
+  }
+
 
 }
 

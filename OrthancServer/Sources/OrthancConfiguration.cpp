@@ -1059,7 +1059,13 @@ namespace Orthanc
   {
     return GetBooleanParameter("EnableLogsForInconsistentMainDicomTags", true);
   }
-  
+
+  bool OrthancConfiguration::IsStorageAccessOnFindLogsEnabled() const
+  {
+    return GetBooleanParameter("EnableLogsForStorageAccessOnFind", true);
+  }
+
+
   void OrthancConfiguration::DefaultExtractDicomSummary(DicomMap& target,
                                                         const ParsedDicomFile& dicom)
   {
