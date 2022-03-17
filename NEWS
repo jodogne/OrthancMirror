@@ -2,6 +2,38 @@ Pending changes in the mainline
 ===============================
 
 
+General
+-------
+
+* New configuration "ExtraMainDicomTags" to store more tags in the Index DB
+  to speed up, e.g, building C-Find, dicom-web or tools/find answers
+* New configuration "Warnings" to enable/disable individual warnings that can
+  be identified by a W0XX prefix in the logs.
+  These warnings have been added:
+  - W001_TagsBeingReadFromStorage
+  - W002_InconsistentDicomTagsInDb
+* C-Find and QIDO-RS can now return the InstanceAvailability tag.  Value is 
+  always "ONLINE"
+
+REST API
+--------
+
+* API version upgraded to 17
+* new options in tools/find:
+  - "RequestedTags" (to use together with "Expand": true) contains a list of tags 
+    that you'll receive in the "RequestedTags" field in the answers.  These tags
+    may be tags from the MainDicomTags in DB, from the DICOM file or 'computed'
+    like ModalitiesInStudy.  Check the new configuration "ExtraMainDicomTags" and
+    "Warnings" to optimize your queries.
+  - "EnableStorageAccessOnSearch": TODO: not implemented yet
+  - "EnableStorageAccessOnAnwers": TODO: not implemented yet
+* new query argument "requestedTags" in all API routes listing resources:
+  - /patients, /patients/../studies, /patients/../series, /patients/../instances
+  - /studies, /studies/../series, /studies/../instances
+  - /series, /series/../instances
+  - /instances
+
+
 
 Documentation
 -------------

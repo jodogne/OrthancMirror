@@ -634,16 +634,28 @@ namespace Orthanc
             IsMainDicomTag(tag, ResourceType_Instance));
   }
 
+  static bool IsGenericComputedTag(const DicomTag& tag)
+  {
+    return tag == DICOM_TAG_RETRIEVE_URL ||
+      tag == DICOM_TAG_RETRIEVE_AE_TITLE;
+  }
+
   bool DicomMap::IsComputedTag(const DicomTag& tag)
   {
     return (IsComputedTag(tag, ResourceType_Patient) ||
             IsComputedTag(tag, ResourceType_Study) ||
             IsComputedTag(tag, ResourceType_Series) ||
-            IsComputedTag(tag, ResourceType_Instance));
+            IsComputedTag(tag, ResourceType_Instance) ||
+            IsGenericComputedTag(tag));
   }
 
   bool DicomMap::IsComputedTag(const DicomTag& tag, ResourceType level)
   {
+    if (IsGenericComputedTag(tag))
+    {
+      return true;
+    }
+
     switch (level)
     {
       case ResourceType_Patient:
@@ -664,7 +676,9 @@ namespace Orthanc
           tag == DICOM_TAG_NUMBER_OF_SERIES_RELATED_INSTANCES
         );
       case ResourceType_Instance:
-        return false;
+        return (
+          tag == DICOM_TAG_INSTANCE_AVAILABILITY
+        );
       default:
         throw OrthancException(ErrorCode_ParameterOutOfRange);
     }

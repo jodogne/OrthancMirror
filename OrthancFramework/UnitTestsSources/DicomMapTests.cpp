@@ -582,6 +582,7 @@ TEST(DicomMap, ComputedTags)
   {
     std::set<DicomTag> tags;
     tags.insert(DICOM_TAG_MODALITIES_IN_STUDY);
+    tags.insert(DICOM_TAG_RETRIEVE_URL);
 
     ASSERT_TRUE(DicomMap::HasOnlyComputedTags(tags));
     ASSERT_TRUE(DicomMap::HasComputedTags(tags, ResourceType_Study));

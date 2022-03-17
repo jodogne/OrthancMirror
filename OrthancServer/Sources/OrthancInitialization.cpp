@@ -252,8 +252,24 @@ namespace Orthanc
         {
           const std::string& tagName = content[t].asString();
           DicomTag tag(FromDcmtkBridge::ParseTag(tagName));
-          DicomMap::AddMainDicomTag(tag, tagName, level);
-          LOG(INFO) << "  - " << tagName;
+
+          if (DicomMap::IsComputedTag(tag))
+          {
+            LOG(WARNING) << "  - " << tagName << " can not be added in the Extra Main Dicom Tags since the value of this tag is computed when requested";
+          }
+          else
+          {
+            ValueRepresentation vr = FromDcmtkBridge::LookupValueRepresentation(tag);
+            if (vr == ValueRepresentation_Sequence)
+            {
+              LOG(WARNING) << "  - " << tagName << " can not be added in the Extra Main Dicom Tags since it is a sequence";
+            }
+            else
+            {
+              DicomMap::AddMainDicomTag(tag, tagName, level);
+              LOG(INFO) << "  - " << tagName;
+            }
+          }
         }
       }
     }
@@ -356,6 +372,8 @@ namespace Orthanc
 
     LoadExternalDictionaries(lock.GetJson());  // New in Orthanc 1.9.4
     LoadCustomDictionary(lock.GetJson());
+
+    lock.GetConfiguration().LoadWarnings();
 
     LoadMainDicomTags(lock.GetJson());  // New in Orthanc 1.11.0
 
