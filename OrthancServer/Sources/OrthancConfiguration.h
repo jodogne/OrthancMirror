@@ -31,6 +31,7 @@
 #include <boost/filesystem.hpp>
 #include <boost/thread/shared_mutex.hpp>
 #include <boost/thread/lock_types.hpp>
+#include <set>
 
 class DcmDataset;
 
@@ -42,7 +43,15 @@ namespace Orthanc
   class ParsedDicomFile;
   class ServerIndex;
   class TemporaryFile;
-  
+
+  enum Warnings
+  {
+    Warnings_None,
+    Warnings_001_TagsBeingReadFromStorage,
+    Warnings_002_InconsistentDicomTagsInDb,
+  };
+
+
   class OrthancConfiguration : public boost::noncopyable
   {
   private:
@@ -58,6 +67,7 @@ namespace Orthanc
     Modalities               modalities_;
     Peers                    peers_;
     ServerIndex*             serverIndex_;
+    std::set<Warnings>       disabledWarnings_;
 
     OrthancConfiguration() :
       configurationFileArg_(NULL),
@@ -153,7 +163,9 @@ namespace Orthanc
 
     // "SetServerIndex()" must have been called
     void LoadModalitiesAndPeers();
-    
+
+    void LoadWarnings();
+
     void RegisterFont(ServerResources::FileResourceId resource);
 
     bool LookupStringParameter(std::string& target,
@@ -242,9 +254,10 @@ namespace Orthanc
 
     std::string GetDatabaseServerIdentifier() const;
 
-    bool IsInconsistentDicomTagsLogsEnabled() const;
-
-    bool IsStorageAccessOnFindLogsEnabled() const;
+    bool IsWarningEnabled(Warnings warning) const
+    {
+      return disabledWarnings_.count(warning) == 0;
+    }
 
     static void DefaultExtractDicomSummary(DicomMap& target,
                                            const ParsedDicomFile& dicom);

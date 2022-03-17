@@ -1405,7 +1405,7 @@ namespace Orthanc
         // Case (1): The main DICOM tags, as stored in the database,
         // are sufficient to look for match
 
-        if (!GetIndex().GetAllMainDicomTags(allMainDicomTagsFromDB, instances[i]))  // MORE_TAGS: TODO: we could read only the current and upper level to reduce the number of SQL queries
+        if (!GetIndex().GetAllMainDicomTags(allMainDicomTagsFromDB, instances[i]))
         {
           // The instance has been removed during the execution of the
           // lookup, ignore it
@@ -2256,6 +2256,19 @@ namespace Orthanc
   }
 
 
+  static void ComputeInstanceTags(ExpandedResource& resource,
+                                  ServerContext& context,
+                                  const std::string& instancePublicId,
+                                  const std::set<DicomTag>& requestedTags)
+  {
+    if (requestedTags.count(DICOM_TAG_INSTANCE_AVAILABILITY) > 0)
+    {
+      resource.tags_.SetValue(DICOM_TAG_INSTANCE_AVAILABILITY, "ONLINE", false);
+      resource.missingRequestedTags_.erase(DICOM_TAG_INSTANCE_AVAILABILITY);
+    }
+  }
+
+
   static void ComputeSeriesTags(ExpandedResource& resource,
                                 ServerContext& context,
                                 const std::string& seriesPublicId,
@@ -2451,6 +2464,12 @@ namespace Orthanc
     {
       ComputeSeriesTags(resource, context, resourceId, requestedTags);
     }
+
+    if (level == ResourceType_Instance 
+        && DicomMap::HasComputedTags(resource.missingRequestedTags_, ResourceType_Instance))
+    {
+      ComputeInstanceTags(resource, context, resourceId, requestedTags);
+    }
   }
 
   bool ServerContext::ExpandResource(Json::Value& target,
@@ -2537,9 +2556,9 @@ namespace Orthanc
       if (resource.mainDicomTagsSignature_ != DicomMap::GetMainDicomTagsSignature(resource.type_))
       {
         OrthancConfiguration::ReaderLock lock;
-        if (lock.GetConfiguration().IsInconsistentDicomTagsLogsEnabled())
+        if (lock.GetConfiguration().IsWarningEnabled(Warnings_002_InconsistentDicomTagsInDb))
         {
-          LOG(WARNING) << Orthanc::GetResourceTypeText(resource.type_, false , false) << " has been stored with another version of Main Dicom Tags list, you should POST to /" << Orthanc::GetResourceTypeText(resource.type_, true, false) << "/" << resource.id_ << "/reconstruct to update the list of tags saved in DB.  Some MainDicomTags might be missing from this answer.";
+          LOG(WARNING) << "W002: " << Orthanc::GetResourceTypeText(resource.type_, false , false) << " has been stored with another version of Main Dicom Tags list, you should POST to /" << Orthanc::GetResourceTypeText(resource.type_, true, false) << "/" << resource.id_ << "/reconstruct to update the list of tags saved in DB.  Some MainDicomTags might be missing from this answer.";
         }
       }
 
@@ -2547,7 +2566,7 @@ namespace Orthanc
       if (!resource.missingRequestedTags_.empty() && !DicomMap::HasOnlyComputedTags(resource.missingRequestedTags_))
       {
         OrthancConfiguration::ReaderLock lock;
-        if (lock.GetConfiguration().IsStorageAccessOnFindLogsEnabled())
+        if (lock.GetConfiguration().IsWarningEnabled(Warnings_001_TagsBeingReadFromStorage))
         {
           std::set<DicomTag> missingTags;
           Toolbox::AppendSets(missingTags, resource.missingRequestedTags_);
@@ -2562,7 +2581,7 @@ namespace Orthanc
           std::string missings;
           FromDcmtkBridge::FormatListOfTags(missings, missingTags);
 
-          LOG(WARNING) << "PERFORMANCE WARNING: Accessing Dicom tags from storage when accessing " << Orthanc::GetResourceTypeText(resource.type_, false , false) << " : " << missings;
+          LOG(WARNING) << "W001: Accessing Dicom tags from storage when accessing " << Orthanc::GetResourceTypeText(resource.type_, false , false) << " : " << missings;
         }
 
 

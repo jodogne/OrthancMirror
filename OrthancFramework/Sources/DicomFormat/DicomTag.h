@@ -117,6 +117,7 @@ namespace Orthanc
   static const DicomTag DICOM_TAG_QUERY_RETRIEVE_LEVEL(0x0008, 0x0052);
   static const DicomTag DICOM_TAG_MODALITIES_IN_STUDY(0x0008, 0x0061);
   static const DicomTag DICOM_TAG_RETRIEVE_AE_TITLE(0x0008, 0x0054);
+  static const DicomTag DICOM_TAG_INSTANCE_AVAILABILITY(0x0008, 0x0056);
 
   // Tags for images
   static const DicomTag DICOM_TAG_COLUMNS(0x0028, 0x0011);
@@ -229,4 +230,8 @@ namespace Orthanc
   static const DicomTag DICOM_TAG_OFFSET_OF_REFERENCED_LOWER_LEVEL_DIRECTORY_ENTITY(0x0004, 0x1420);
   static const DicomTag DICOM_TAG_REFERENCED_SOP_INSTANCE_UID_IN_FILE(0x0004, 0x1511);
   static const DicomTag DICOM_TAG_REFERENCED_FILE_ID(0x0004, 0x1500);
+
+  // Tags for DicomWeb
+  static const Orthanc::DicomTag DICOM_TAG_RETRIEVE_URL(0x0008, 0x1190);
+
 }
