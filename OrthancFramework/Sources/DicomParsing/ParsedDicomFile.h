@@ -300,5 +300,11 @@ namespace Orthanc
     void GetRescale(double& rescaleIntercept,
                     double& rescaleSlope,
                     unsigned int frame) const;
+
+    void ListOverlays(std::set<unsigned int>& groups) const;
+
+    ImageAccessor* DecodeOverlay(int& originX,
+                                 int& originY,
+                                 unsigned int group) const;
   };
 }
