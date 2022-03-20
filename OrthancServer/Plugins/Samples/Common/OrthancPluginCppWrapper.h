@@ -1357,28 +1357,4 @@ namespace OrthancPlugins
                          IWebDavCollection& collection);
   };
 #endif
-
-
-#if HAS_ORTHANC_PLUGIN_WEBDAV == 1
-  class ReadOnlyWebDavCollection : public IWebDavCollection
-  {
-  public:
-    virtual bool StoreFile(const std::vector<std::string>& path,
-                           const void* data,
-                           size_t size)
-    {
-      return false;
-    }
-
-    virtual bool CreateFolder(const std::vector<std::string>& path)
-    {
-      return false;
-    }
-
-    virtual bool DeleteItem(const std::vector<std::string>& path)
-    {
-      return false;
-    }
-  };  
-#endif
 }
