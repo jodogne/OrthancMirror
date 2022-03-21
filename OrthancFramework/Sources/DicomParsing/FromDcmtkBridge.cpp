@@ -1323,6 +1323,16 @@ namespace Orthanc
     Toolbox::JoinStrings(output, values, ";");
   }
 
+  void FromDcmtkBridge::FormatListOfTags(Json::Value& output, const std::set<DicomTag>& tags)
+  {
+    output = Json::arrayValue;
+    for (std::set<DicomTag>::const_iterator it = tags.begin();
+         it != tags.end(); it++)
+    {
+      output.append(it->Format());
+    }
+  }
+
   // parses a list like "0010,0010;PatientBirthDate;0020,0020"
   void FromDcmtkBridge::ParseListOfTags(std::set<DicomTag>& result, const std::string& source)
   {

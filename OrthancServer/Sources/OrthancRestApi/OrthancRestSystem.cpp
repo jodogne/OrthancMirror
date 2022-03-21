@@ -47,7 +47,24 @@ namespace Orthanc
   {
     call.GetOutput().Redirect("app/images/favicon.ico");
   }
- 
+
+  static void GetMainDicomTagsConfiguration(Json::Value& result)
+  {
+      Json::Value v;
+      
+      FromDcmtkBridge::FormatListOfTags(v, DicomMap::GetMainDicomTags(ResourceType_Patient));
+      result["Patient"] = v;
+
+      FromDcmtkBridge::FormatListOfTags(v, DicomMap::GetMainDicomTags(ResourceType_Study));
+      result["Study"] = v;
+
+      FromDcmtkBridge::FormatListOfTags(v, DicomMap::GetMainDicomTags(ResourceType_Series));
+      result["Series"] = v;
+
+      FromDcmtkBridge::FormatListOfTags(v, DicomMap::GetMainDicomTags(ResourceType_Instance));
+      result["Instance"] = v;
+  }
+
   static void GetSystemInformation(RestApiGetCall& call)
   {
     static const char* const API_VERSION = "ApiVersion";
@@ -62,6 +79,7 @@ namespace Orthanc
     static const char* const PLUGINS_ENABLED = "PluginsEnabled";
     static const char* const STORAGE_AREA_PLUGIN = "StorageAreaPlugin";
     static const char* const VERSION = "Version";
+    static const char* const MAIN_DICOM_TAGS = "MainDicomTags";
     
     if (call.IsDocumentation())
     {
@@ -88,6 +106,8 @@ namespace Orthanc
                         "Whether Orthanc was built with support for plugins")
         .SetAnswerField(CHECK_REVISIONS, RestApiCallDocumentation::Type_Boolean,
                         "Whether Orthanc handle revisions of metadata and attachments to deal with multiple writers (new in Orthanc 1.9.2)")
+        .SetAnswerField(MAIN_DICOM_TAGS, RestApiCallDocumentation::Type_JsonObject,
+                        "The list of MainDicomTags saved in DB for each resource level (new in Orthanc 1.11.0)")
         .SetHttpGetSample("https://demo.orthanc-server.com/system", true);
       return;
     }
@@ -131,6 +151,9 @@ namespace Orthanc
 #else
     result[PLUGINS_ENABLED] = false;
 #endif
+
+    result[MAIN_DICOM_TAGS] = Json::objectValue;
+    GetMainDicomTagsConfiguration(result[MAIN_DICOM_TAGS]);
 
     call.GetOutput().AnswerJson(result);
   }

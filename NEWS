@@ -32,7 +32,7 @@ REST API
   - /studies, /studies/../series, /studies/../instances
   - /series, /series/../instances
   - /instances
-
+* new field "MainDicomTags" in the /system route response
 
 
 Documentation

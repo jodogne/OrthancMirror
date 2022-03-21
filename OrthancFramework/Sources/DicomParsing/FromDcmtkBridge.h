@@ -182,6 +182,8 @@ namespace Orthanc
 
     static void FormatListOfTags(std::string& output, const std::set<DicomTag>& tags);
 
+    static void FormatListOfTags(Json::Value& output, const std::set<DicomTag>& tags);
+
     static bool HasTag(const DicomMap& fields,
                        const std::string& tagName);
 
