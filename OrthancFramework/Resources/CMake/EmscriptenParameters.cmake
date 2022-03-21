@@ -25,10 +25,23 @@ if (NOT "${EMSCRIPTEN_TRAP_MODE}" STREQUAL "")
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -s BINARYEN_TRAP_MODE='\"${EMSCRIPTEN_TRAP_MODE}\"'")
 endif()
 
+# If "-O3" is used (the default in "Release" mode), this results in a
+# too large memory consumption in "wasm-opt", at least in Emscripten
+# 3.1.7, which ultimately crashes the compiler. So we force "-O2"
+# (this also has the advantage of speeding up the build):
+set(CMAKE_CXX_FLAGS_RELEASE "-O2")
+
 # "DISABLE_EXCEPTION_CATCHING" is a "compile+link" option. HOWEVER,
 # setting it inside "WASM_FLAGS" creates link errors, at least with
 # side modules. TODO: Understand why
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -s DISABLE_EXCEPTION_CATCHING=0")
+
+# "-Wno-unused-command-line-argument" is used to avoid annoying
+# warnings about setting WASM, FETCH and ASSERTIONS, which was
+# required for earlier versions of emsdk:
+# https://groups.google.com/g/emscripten-discuss/c/VX4enWfadUE
+set(WASM_FLAGS "${WASM_FLAGS} -Wno-unused-command-line-argument")
+
 #set(WASM_FLAGS "${WASM_FLAGS} -s DISABLE_EXCEPTION_CATCHING=0")
 
 if (EMSCRIPTEN_TARGET_MODE STREQUAL "wasm")
