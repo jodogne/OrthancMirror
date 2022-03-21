@@ -2964,4 +2964,71 @@ namespace Orthanc
         throw OrthancException(ErrorCode_NotImplemented);
     }          
   }
+
+
+  template <typename PixelType,
+            typename Functor>
+  static void ApplyImageOntoImage(Functor f,
+                                  ImageAccessor& image /* inout */,
+                                  const ImageAccessor& other)
+  {
+    const unsigned int width = image.GetWidth();
+    const unsigned int height = image.GetHeight();
+    
+    if (width != other.GetWidth() ||
+        height != other.GetHeight())
+    {
+      throw OrthancException(ErrorCode_IncompatibleImageSize);
+    }
+    else if (image.GetFormat() != other.GetFormat() ||
+             GetBytesPerPixel(image.GetFormat()) != sizeof(PixelType))
+    {
+      throw OrthancException(ErrorCode_IncompatibleImageFormat);
+    }
+    else
+    {
+      for (unsigned int y = 0; y < height; y++)
+      {
+        PixelType* p = reinterpret_cast<PixelType*>(image.GetRow(y));
+        const PixelType* q = reinterpret_cast<const PixelType*>(other.GetConstRow(y));
+        
+        for (unsigned int x = 0; x < width; x++, p++, q++)
+        {
+          f(*p, *q);
+        }
+      }
+    }
+  }
+
+  
+  void ImageProcessing::Maximum(ImageAccessor& image,
+                                const ImageAccessor& other)
+  {
+    struct F
+    {
+      void operator() (uint8_t& a, const uint8_t& b)
+      {
+        a = std::max(a, b);
+      }
+
+      void operator() (uint16_t& a, const uint16_t& b)
+      {
+        a = std::max(a, b);
+      }
+    };
+
+    switch (image.GetFormat())
+    {
+      case PixelFormat_Grayscale8:
+        ApplyImageOntoImage<uint8_t, F>(F(), image, other);
+        return;
+
+      case PixelFormat_Grayscale16:
+        ApplyImageOntoImage<uint16_t, F>(F(), image, other);
+        return;
+
+      default:
+        throw OrthancException(ErrorCode_NotImplemented);
+    }
+  }
 }

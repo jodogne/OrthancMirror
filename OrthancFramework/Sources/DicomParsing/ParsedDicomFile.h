@@ -301,10 +301,13 @@ namespace Orthanc
                     double& rescaleSlope,
                     unsigned int frame) const;
 
-    void ListOverlays(std::set<unsigned int>& groups) const;
+    void ListOverlays(std::set<uint16_t>& groups) const;
 
     ImageAccessor* DecodeOverlay(int& originX,
                                  int& originY,
-                                 unsigned int group) const;
+                                 uint16_t group) const;
+
+    ImageAccessor* DecodeAllOverlays(int& originX,
+                                     int& originY) const;
   };
 }
