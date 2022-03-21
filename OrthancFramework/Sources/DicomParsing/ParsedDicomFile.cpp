@@ -1920,7 +1920,7 @@ namespace Orthanc
   }
 
 
-  void ParsedDicomFile::ListOverlays(std::set<unsigned int>& groups) const
+  void ParsedDicomFile::ListOverlays(std::set<uint16_t>& groups) const
   {
     DcmDataset& dataset = *const_cast<ParsedDicomFile&>(*this).GetDcmtkObject().getDataset();
 
@@ -1953,7 +1953,7 @@ namespace Orthanc
 
   ImageAccessor* ParsedDicomFile::DecodeOverlay(int& originX,
                                                 int& originY,
-                                                unsigned int group) const
+                                                uint16_t group) const
   {
     // https://dicom.nema.org/medical/dicom/current/output/chtml/part03/sect_C.9.2.html
 
@@ -2014,6 +2014,67 @@ namespace Orthanc
   }
 
   
+  ImageAccessor* ParsedDicomFile::DecodeAllOverlays(int& originX,
+                                                    int& originY) const
+  {
+    std::set<uint16_t> groups;
+    ListOverlays(groups);
+
+    if (groups.empty())
+    {
+      originX = 0;
+      originY = 0;
+      return new Image(PixelFormat_Grayscale8, 0, 0, false);
+    }
+    else
+    {
+      std::set<uint16_t>::const_iterator it = groups.begin();
+      assert(it != groups.end());
+      
+      std::unique_ptr<ImageAccessor> result(DecodeOverlay(originX, originY, *it));
+      assert(result.get() != NULL);
+      ++it;
+
+      int right = originX + static_cast<int>(result->GetWidth());
+      int bottom = originY + static_cast<int>(result->GetHeight());
+
+      while (it != groups.end())
+      {
+        int ox, oy;
+        std::unique_ptr<ImageAccessor> overlay(DecodeOverlay(ox, oy, *it));
+        assert(overlay.get() != NULL);
+
+        int mergedX = std::min(originX, ox);
+        int mergedY = std::min(originY, oy);
+        right = std::max(right, ox + static_cast<int>(overlay->GetWidth()));
+        bottom = std::max(bottom, oy + static_cast<int>(overlay->GetHeight()));
+
+        assert(right >= mergedX && bottom >= mergedY);
+        unsigned int width = static_cast<unsigned int>(right - mergedX);
+        unsigned int height = static_cast<unsigned int>(bottom - mergedY);
+        
+        std::unique_ptr<ImageAccessor> merged(new Image(PixelFormat_Grayscale8, width, height, false));
+        ImageProcessing::Set(*merged, 0);
+
+        ImageAccessor a;
+        merged->GetRegion(a, originX - mergedX, originY - mergedY, result->GetWidth(), result->GetHeight());
+        ImageProcessing::Maximum(a, *result);
+
+        merged->GetRegion(a, ox - mergedX, oy - mergedY, overlay->GetWidth(), overlay->GetHeight());
+        ImageProcessing::Maximum(a, *overlay);
+
+        originX = mergedX;
+        originY = mergedY;
+        result.reset(merged.release());
+        
+        ++it;
+      }
+
+      return result.release();
+    }
+  }
+
+
 #if ORTHANC_BUILDING_FRAMEWORK_LIBRARY == 1
   // Alias for binary compatibility with Orthanc Framework 1.7.2 => don't use it anymore
   void ParsedDicomFile::DatasetToJson(Json::Value& target,
