@@ -3000,11 +3000,13 @@ namespace Orthanc
     }
   }
 
-  
-  void ImageProcessing::Maximum(ImageAccessor& image,
-                                const ImageAccessor& other)
+
+  namespace
   {
-    struct F
+    // For older version of gcc, templated functors cannot be defined
+    // as types internal to functions, hence the anonymous namespace
+    
+    struct MaximumFunctor
     {
       void operator() (uint8_t& a, const uint8_t& b)
       {
@@ -3016,15 +3018,20 @@ namespace Orthanc
         a = std::max(a, b);
       }
     };
+  }
+  
 
+  void ImageProcessing::Maximum(ImageAccessor& image,
+                                const ImageAccessor& other)
+  {
     switch (image.GetFormat())
     {
       case PixelFormat_Grayscale8:
-        ApplyImageOntoImage<uint8_t, F>(F(), image, other);
+        ApplyImageOntoImage<uint8_t, MaximumFunctor>(MaximumFunctor(), image, other);
         return;
 
       case PixelFormat_Grayscale16:
-        ApplyImageOntoImage<uint16_t, F>(F(), image, other);
+        ApplyImageOntoImage<uint16_t, MaximumFunctor>(MaximumFunctor(), image, other);
         return;
 
       default:
