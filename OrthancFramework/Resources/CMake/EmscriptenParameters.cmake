@@ -29,7 +29,7 @@ endif()
 # too large memory consumption in "wasm-opt", at least in Emscripten
 # 3.1.7, which ultimately crashes the compiler. So we force "-O2"
 # (this also has the advantage of speeding up the build):
-set(CMAKE_CXX_FLAGS_RELEASE "-O2")
+set(CMAKE_CXX_FLAGS_RELEASE "-O2 -DNDEBUG")
 
 # "DISABLE_EXCEPTION_CATCHING" is a "compile+link" option. HOWEVER,
 # setting it inside "WASM_FLAGS" creates link errors, at least with
