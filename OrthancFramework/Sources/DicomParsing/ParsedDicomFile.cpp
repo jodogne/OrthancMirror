@@ -76,6 +76,8 @@
 #include "Internals/DicomImageDecoder.h"
 #include "ToDcmtkBridge.h"
 
+#include "../Images/Image.h"
+#include "../Images/ImageProcessing.h"
 #include "../Images/PamReader.h"
 #include "../Logging.h"
 #include "../OrthancException.h"
@@ -1914,6 +1916,161 @@ namespace Orthanc
     {
       rescaleIntercept = 0;
       rescaleSlope = 1;
+    }
+  }
+
+
+  void ParsedDicomFile::ListOverlays(std::set<uint16_t>& groups) const
+  {
+    DcmDataset& dataset = *const_cast<ParsedDicomFile&>(*this).GetDcmtkObject().getDataset();
+
+    // "Repeating Groups shall only be allowed in the even Groups (6000-601E,eeee)"
+    // https://dicom.nema.org/medical/dicom/2021e/output/chtml/part05/sect_7.6.html
+
+    for (uint16_t group = 0x6000; group <= 0x601e; group += 2)
+    {
+      if (dataset.tagExists(DcmTagKey(group, 0x0010)))
+      {
+        groups.insert(group);
+      }
+    }
+  }
+
+
+  static unsigned int Ceiling(unsigned int a,
+                              unsigned int b)
+  {
+    if (a % b == 0)
+    {
+      return a / b;
+    }
+    else
+    {
+      return a / b + 1;
+    }
+  }
+  
+
+  ImageAccessor* ParsedDicomFile::DecodeOverlay(int& originX,
+                                                int& originY,
+                                                uint16_t group) const
+  {
+    // https://dicom.nema.org/medical/dicom/current/output/chtml/part03/sect_C.9.2.html
+
+    DcmDataset& dataset = *const_cast<ParsedDicomFile&>(*this).GetDcmtkObject().getDataset();
+
+    Uint16 rows, columns, bitsAllocated, bitPosition;
+    const Sint16* origin = NULL;
+    unsigned long originSize = 0;
+    const Uint8* overlayData = NULL;
+    unsigned long overlaySize = 0;
+    
+    if (dataset.findAndGetUint16(DcmTagKey(group, 0x0010), rows).good() &&
+        dataset.findAndGetUint16(DcmTagKey(group, 0x0011), columns).good() &&
+        dataset.findAndGetSint16Array(DcmTagKey(group, 0x0050), origin, &originSize).good() &&
+        origin != NULL &&
+        originSize == 2 &&
+        dataset.findAndGetUint16(DcmTagKey(group, 0x0100), bitsAllocated).good() &&
+        bitsAllocated == 1 &&
+        dataset.findAndGetUint16(DcmTagKey(group, 0x0102), bitPosition).good() &&
+        bitPosition == 0 &&
+        dataset.findAndGetUint8Array(DcmTagKey(group, 0x3000), overlayData, &overlaySize).good() &&
+        overlayData != NULL)
+    {
+      unsigned int expectedSize = Ceiling(rows * columns, 8);
+      if (overlaySize < expectedSize)
+      {
+        throw OrthancException(ErrorCode_CorruptedFile, "Overlay doesn't have a valid number of bits");
+      }
+      
+      originX = origin[1];
+      originY = origin[0];
+
+      std::unique_ptr<ImageAccessor> overlay(new Image(Orthanc::PixelFormat_Grayscale8, columns, rows, false));
+
+      unsigned int posBit = 0;
+      for (int y = 0; y < rows; y++)
+      {
+        uint8_t* target = reinterpret_cast<uint8_t*>(overlay->GetRow(y));
+        
+        for (int x = 0; x < columns; x++)
+        {
+          uint8_t source = overlayData[posBit / 8];
+          uint8_t mask = 1 << (posBit % 8);
+
+          *target = ((source & mask) ? 255 : 0);
+
+          target++;
+          posBit++;
+        }
+      }
+      
+      return overlay.release();
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_CorruptedFile, "Invalid overlay");
+    }
+  }
+
+  
+  ImageAccessor* ParsedDicomFile::DecodeAllOverlays(int& originX,
+                                                    int& originY) const
+  {
+    std::set<uint16_t> groups;
+    ListOverlays(groups);
+
+    if (groups.empty())
+    {
+      originX = 0;
+      originY = 0;
+      return new Image(PixelFormat_Grayscale8, 0, 0, false);
+    }
+    else
+    {
+      std::set<uint16_t>::const_iterator it = groups.begin();
+      assert(it != groups.end());
+      
+      std::unique_ptr<ImageAccessor> result(DecodeOverlay(originX, originY, *it));
+      assert(result.get() != NULL);
+      ++it;
+
+      int right = originX + static_cast<int>(result->GetWidth());
+      int bottom = originY + static_cast<int>(result->GetHeight());
+
+      while (it != groups.end())
+      {
+        int ox, oy;
+        std::unique_ptr<ImageAccessor> overlay(DecodeOverlay(ox, oy, *it));
+        assert(overlay.get() != NULL);
+
+        int mergedX = std::min(originX, ox);
+        int mergedY = std::min(originY, oy);
+        right = std::max(right, ox + static_cast<int>(overlay->GetWidth()));
+        bottom = std::max(bottom, oy + static_cast<int>(overlay->GetHeight()));
+
+        assert(right >= mergedX && bottom >= mergedY);
+        unsigned int width = static_cast<unsigned int>(right - mergedX);
+        unsigned int height = static_cast<unsigned int>(bottom - mergedY);
+        
+        std::unique_ptr<ImageAccessor> merged(new Image(PixelFormat_Grayscale8, width, height, false));
+        ImageProcessing::Set(*merged, 0);
+
+        ImageAccessor a;
+        merged->GetRegion(a, originX - mergedX, originY - mergedY, result->GetWidth(), result->GetHeight());
+        ImageProcessing::Maximum(a, *result);
+
+        merged->GetRegion(a, ox - mergedX, oy - mergedY, overlay->GetWidth(), overlay->GetHeight());
+        ImageProcessing::Maximum(a, *overlay);
+
+        originX = mergedX;
+        originY = mergedY;
+        result.reset(merged.release());
+        
+        ++it;
+      }
+
+      return result.release();
     }
   }
 

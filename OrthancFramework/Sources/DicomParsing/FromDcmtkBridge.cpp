@@ -2660,18 +2660,10 @@ namespace Orthanc
               l++;
             }
 
-            if (l == length)
-            {
-              // Not a null-terminated plain string
-              action = visitor.VisitNotSupported(parentTags, parentIndexes, tag, vr);
-            }
-            else
-            {
-              std::string ignored;
-              std::string s(reinterpret_cast<const char*>(data), l);
-              action = visitor.VisitString(ignored, parentTags, parentIndexes, tag, vr,
-                                           Toolbox::ConvertToUtf8(s, encoding, hasCodeExtensions));
-            }
+            std::string ignored;
+            std::string s(reinterpret_cast<const char*>(data), l);
+            action = visitor.VisitString(ignored, parentTags, parentIndexes, tag, vr,
+                                         Toolbox::ConvertToUtf8(s, encoding, hasCodeExtensions));
           }
           else
           {
@@ -3292,6 +3284,49 @@ namespace Orthanc
     Visitor visitor(target, sequenceIndex);
     IDicomPathVisitor::Apply(visitor, dataset, path);
     return visitor.HasFound();
+  }
+
+
+  bool FromDcmtkBridge::LookupStringValue(std::string& target,
+                                          DcmDataset& dataset,
+                                          const DicomTag& key)
+  {
+    DcmTagKey dcmkey(key.GetGroup(), key.GetElement());
+    
+    const char* str = NULL;
+    const Uint8* data = NULL;
+    unsigned long size = 0;
+
+    if (dataset.findAndGetString(dcmkey, str).good() &&
+        str != NULL)
+    {
+      target.assign(str);
+      return true;
+    }
+    else if (dataset.findAndGetUint8Array(dcmkey, data, &size).good() &&
+             data != NULL &&
+             size > 0)
+    {
+      /**
+       * This special case is necessary for borderline DICOM files
+       * that have DICOM tags have the "UN" value representation. New
+       * in Orthanc 1.10.1.
+       * https://groups.google.com/g/orthanc-users/c/86fobx3ZyoM/m/KBG17un6AQAJ
+       **/
+      unsigned long l = 0;
+      while (l < size &&
+             data[l] != 0)
+      {
+        l++;
+      }
+
+      target.assign(reinterpret_cast<const char*>(data), l);
+      return true;
+    }
+    else
+    {
+      return false;
+    }
   }
 }
 

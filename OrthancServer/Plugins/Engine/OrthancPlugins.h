@@ -62,6 +62,7 @@ namespace Orthanc
 
 namespace Orthanc
 {
+  class HttpServer;
   class ServerContext;
 
   class OrthancPlugins : 
@@ -89,6 +90,7 @@ namespace Orthanc
     class DicomInstanceFromCallback;
     class DicomInstanceFromBuffer;
     class DicomInstanceFromTranscoded;
+    class WebDavCollection;
     
     void RegisterRestCallback(const void* parameters,
                               bool lock);
@@ -394,6 +396,8 @@ namespace Orthanc
     bool IsValidAuthorizationToken(const std::string& token) const;
 
     unsigned int GetMaxDatabaseRetries() const;
+
+    void RegisterWebDavCollections(HttpServer& target);
   };
 }
 

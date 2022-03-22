@@ -49,7 +49,6 @@
 #include "../Sources/Images/ImageBuffer.h"
 #include "../Sources/Images/ImageProcessing.h"
 #include "../Sources/Images/PngReader.h"
-#include "../Sources/Images/PngWriter.h"
 #include "../Sources/Logging.h"
 #include "../Sources/OrthancException.h"
 
