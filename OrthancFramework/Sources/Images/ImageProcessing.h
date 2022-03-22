@@ -218,5 +218,8 @@ namespace Orthanc
     static void ConvertJpegYCbCrToRgb(ImageAccessor& image /* inplace */);
 
     static void SwapEndianness(ImageAccessor& image /* inplace */);
+
+    static void Maximum(ImageAccessor& image /* inout */,
+                        const ImageAccessor& other);
   };
 }

@@ -39,6 +39,7 @@
 #include "../../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.h"
 #include "../../../OrthancFramework/Sources/DicomParsing/Internals/DicomImageDecoder.h"
 #include "../../../OrthancFramework/Sources/DicomParsing/ToDcmtkBridge.h"
+#include "../../../OrthancFramework/Sources/HttpServer/HttpServer.h"
 #include "../../../OrthancFramework/Sources/HttpServer/HttpToolbox.h"
 #include "../../../OrthancFramework/Sources/Images/Image.h"
 #include "../../../OrthancFramework/Sources/Images/ImageProcessing.h"
@@ -75,6 +76,344 @@
 
 namespace Orthanc
 {
+  class OrthancPlugins::WebDavCollection : public IWebDavBucket
+  {
+  private:
+    PluginsErrorDictionary&                      errorDictionary_;
+    std::string                                  uri_;
+    OrthancPluginWebDavIsExistingFolderCallback  isExistingFolder_;
+    OrthancPluginWebDavListFolderCallback        listFolder_;
+    OrthancPluginWebDavRetrieveFileCallback      retrieveFile_;
+    OrthancPluginWebDavStoreFileCallback         storeFile_;
+    OrthancPluginWebDavCreateFolderCallback      createFolder_;
+    OrthancPluginWebDavDeleteItemCallback        deleteItem_;
+    void*                                        payload_;
+
+    class PathHelper : public boost::noncopyable
+    {
+    private:
+      std::vector<const char*>  items_;
+
+    public:
+      PathHelper(const std::vector<std::string>& path)
+      {
+        items_.resize(path.size());
+        for (size_t i = 0; i < path.size(); i++)
+        {
+          items_[i] = path[i].c_str();
+        }
+      }
+      
+      uint32_t GetSize() const
+      {
+        return static_cast<uint32_t>(items_.size());
+      }
+
+      const char* const* GetItems() const
+      {
+        return (items_.empty() ? NULL : &items_[0]);
+      }
+    };
+
+
+    static MimeType ParseMimeType(const char* mimeType)
+    {
+      MimeType mime;
+      if (LookupMimeType(mime, mimeType))
+      {
+        return mime;
+      }
+      else
+      {
+        LOG(WARNING) << "Unknown MIME type in plugin: " << mimeType;
+        return MimeType_Binary;
+      }
+    }
+    
+    static OrthancPluginErrorCode AddFile(
+      OrthancPluginWebDavCollection*  collection,
+      const char*                     displayName,
+      uint64_t                        contentSize,
+      const char*                     mimeType,
+      const char*                     creationTime)
+    {
+      try
+      {
+        std::unique_ptr<File> f(new File(displayName));
+        f->SetCreationTime(boost::posix_time::from_iso_string(creationTime));
+        f->SetContentLength(contentSize);
+
+        if (mimeType == NULL ||
+            std::string(mimeType).empty())
+        {
+          f->SetMimeType(SystemToolbox::AutodetectMimeType(displayName));
+        }
+        else
+        {
+          f->SetMimeType(ParseMimeType(mimeType));
+        }
+        
+        reinterpret_cast<Collection*>(collection)->AddResource(f.release());
+        return OrthancPluginErrorCode_Success;
+      }
+      catch (OrthancException& e)
+      {
+        return static_cast<OrthancPluginErrorCode>(e.GetErrorCode());
+      }
+      catch (...)
+      {
+        return OrthancPluginErrorCode_InternalError;
+      }
+    }
+    
+    static OrthancPluginErrorCode AddFolder(
+      OrthancPluginWebDavCollection*  collection,
+      const char*                     displayName,
+      const char*                     creationTime)
+    {
+      try
+      {
+        std::unique_ptr<Folder> f(new Folder(displayName));
+        f->SetCreationTime(boost::posix_time::from_iso_string(creationTime));
+        reinterpret_cast<Collection*>(collection)->AddResource(f.release());
+        return OrthancPluginErrorCode_Success;
+      }
+      catch (OrthancException& e)
+      {
+        return static_cast<OrthancPluginErrorCode>(e.GetErrorCode());
+      }
+      catch (boost::bad_lexical_cast&)
+      {
+        LOG(ERROR) << "Presumably ill-formed date in the plugin";
+        return OrthancPluginErrorCode_ParameterOutOfRange;
+      }
+      catch (...)
+      {
+        return OrthancPluginErrorCode_InternalError;
+      }
+    }
+
+
+    class ContentTarget : public boost::noncopyable
+    {
+    private:
+      bool                       isSent_;
+      MimeType&                  mime_;
+      std::string&               content_;
+      boost::posix_time::ptime&  modificationTime_;
+
+    public:
+      ContentTarget(const std::string& displayName,
+                    MimeType& mime,
+                    std::string& content,
+                    boost::posix_time::ptime& modificationTime) :
+        isSent_(false),
+        mime_(mime),
+        content_(content),
+        modificationTime_(modificationTime)
+      {
+        mime = SystemToolbox::AutodetectMimeType(displayName);
+      }
+
+      bool IsSent() const
+      {
+        return isSent_;
+      }
+      
+      static OrthancPluginErrorCode RetrieveFile(
+        OrthancPluginWebDavCollection*  collection,
+        const void*                     data,
+        uint64_t                        size,
+        const char*                     mimeType,
+        const char*                     creationTime)
+      {
+        ContentTarget& target = *reinterpret_cast<ContentTarget*>(collection);
+        
+        if (target.isSent_)
+        {
+          return OrthancPluginErrorCode_BadSequenceOfCalls;
+        }
+        else
+        {
+          try
+          {
+            target.isSent_ = true;
+
+            if (mimeType != NULL &&
+                !std::string(mimeType).empty())
+            {
+              target.mime_ = ParseMimeType(mimeType);
+            }
+            
+            target.content_.assign(reinterpret_cast<const char*>(data), size);
+            target.modificationTime_ = boost::posix_time::from_iso_string(creationTime);
+            return OrthancPluginErrorCode_Success;
+          }
+          catch (Orthanc::OrthancException& e)
+          {
+            return static_cast<OrthancPluginErrorCode>(e.GetErrorCode());
+          }
+          catch (boost::bad_lexical_cast&)
+          {
+            LOG(ERROR) << "Presumably ill-formed date in the plugin";
+            return OrthancPluginErrorCode_ParameterOutOfRange;
+          }
+          catch (...)
+          {
+            return OrthancPluginErrorCode_InternalError;
+          }
+        }
+      }
+    };
+
+
+  public:
+    WebDavCollection(PluginsErrorDictionary& errorDictionary,
+                     const _OrthancPluginRegisterWebDavCollection& p) :
+      errorDictionary_(errorDictionary),
+      uri_(p.uri),
+      isExistingFolder_(p.isExistingFolder),
+      listFolder_(p.listFolder),
+      retrieveFile_(p.retrieveFile),
+      storeFile_(p.storeFile),
+      createFolder_(p.createFolder),
+      deleteItem_(p.deleteItem),
+      payload_(p.payload)
+    {
+    }
+
+    const std::string& GetUri() const
+    {
+      return uri_;
+    }
+
+    virtual bool IsExistingFolder(const std::vector<std::string>& path)
+    {
+      PathHelper helper(path);
+
+      uint8_t isExisting;
+      OrthancPluginErrorCode code = isExistingFolder_(&isExisting, helper.GetSize(), helper.GetItems(), payload_);
+
+      if (code == OrthancPluginErrorCode_Success)
+      {
+        return (isExisting != 0);
+      }
+      else
+      {
+        errorDictionary_.LogError(code, true);
+        throw OrthancException(static_cast<ErrorCode>(code));
+      }
+    }
+
+    virtual bool ListCollection(Collection& collection,
+                                const std::vector<std::string>& path)
+    {
+      PathHelper helper(path);
+
+      uint8_t isExisting;
+      OrthancPluginErrorCode code = listFolder_(&isExisting, reinterpret_cast<OrthancPluginWebDavCollection*>(&collection), 
+                                                AddFile, AddFolder, helper.GetSize(), helper.GetItems(), payload_);
+
+      if (code == OrthancPluginErrorCode_Success)
+      {
+        return (isExisting != 0);
+      }
+      else
+      {
+        errorDictionary_.LogError(code, true);
+        throw OrthancException(static_cast<ErrorCode>(code));
+      }
+    }
+
+    virtual bool GetFileContent(MimeType& mime,
+                                std::string& content,
+                                boost::posix_time::ptime& modificationTime, 
+                                const std::vector<std::string>& path)
+    {
+      PathHelper helper(path);
+      
+      ContentTarget target(path.back(), mime, content, modificationTime);
+      OrthancPluginErrorCode code = retrieveFile_(
+        reinterpret_cast<OrthancPluginWebDavCollection*>(&target),
+        ContentTarget::RetrieveFile, helper.GetSize(), helper.GetItems(), payload_);
+      
+      if (code == OrthancPluginErrorCode_Success)
+      {
+        return target.IsSent();
+      }
+      else
+      {
+        errorDictionary_.LogError(code, true);
+        throw OrthancException(static_cast<ErrorCode>(code));
+      }
+    }
+
+    virtual bool StoreFile(const std::string& content,
+                           const std::vector<std::string>& path)
+    {
+      PathHelper helper(path);
+
+      uint8_t isReadOnly;
+      OrthancPluginErrorCode code = storeFile_(&isReadOnly, helper.GetSize(), helper.GetItems(),
+                                                content.empty() ? NULL : content.c_str(), content.size(), payload_);
+
+      if (code == OrthancPluginErrorCode_Success)
+      {
+        return (isReadOnly != 0);
+      }
+      else
+      {
+        errorDictionary_.LogError(code, true);
+        throw OrthancException(static_cast<ErrorCode>(code));
+      }
+    }
+
+    virtual bool CreateFolder(const std::vector<std::string>& path)
+    {
+      PathHelper helper(path);
+
+      uint8_t isReadOnly;
+      OrthancPluginErrorCode code = createFolder_(&isReadOnly, helper.GetSize(), helper.GetItems(), payload_);
+
+      if (code == OrthancPluginErrorCode_Success)
+      {
+        return (isReadOnly != 0);
+      }
+      else
+      {
+        errorDictionary_.LogError(code, true);
+        throw OrthancException(static_cast<ErrorCode>(code));
+      }
+    }      
+
+    virtual bool DeleteItem(const std::vector<std::string>& path)
+    {
+      PathHelper helper(path);
+
+      uint8_t isReadOnly;
+      OrthancPluginErrorCode code = deleteItem_(&isReadOnly, helper.GetSize(), helper.GetItems(), payload_);
+
+      if (code == OrthancPluginErrorCode_Success)
+      {
+        return (isReadOnly != 0);
+      }
+      else
+      {
+        errorDictionary_.LogError(code, true);
+        throw OrthancException(static_cast<ErrorCode>(code));
+      }
+    }
+
+    virtual void Start()
+    {
+    }
+
+    virtual void Stop()
+    {
+    }
+  };
+  
+
   static void CopyToMemoryBuffer(OrthancPluginMemoryBuffer& target,
                                  const void* data,
                                  size_t size)
@@ -1164,6 +1503,7 @@ namespace Orthanc
     typedef std::list<OrthancPluginRefreshMetricsCallback>  RefreshMetricsCallbacks;
     typedef std::list<StorageCommitmentScp*>  StorageCommitmentScpCallbacks;
     typedef std::map<Property, std::string>  Properties;
+    typedef std::list<WebDavCollection*>  WebDavCollections;
 
     PluginsManager manager_;
 
@@ -1184,6 +1524,7 @@ namespace Orthanc
     OrthancPluginReceivedInstanceCallback  receivedInstanceCallback_;  // New in Orthanc 1.10.0
     RefreshMetricsCallbacks refreshMetricsCallbacks_;
     StorageCommitmentScpCallbacks storageCommitmentScpCallbacks_;
+    WebDavCollections webDavCollections_;  // New in Orthanc 1.10.1
     std::unique_ptr<StorageAreaFactory>  storageArea_;
     std::set<std::string> authorizationTokens_;
 
@@ -1768,7 +2109,13 @@ namespace Orthanc
          it != pimpl_->storageCommitmentScpCallbacks_.end(); ++it)
     {
       delete *it;
-    } 
+    }
+
+    for (PImpl::WebDavCollections::iterator it = pimpl_->webDavCollections_.begin();
+         it != pimpl_->webDavCollections_.end(); ++it)
+    {
+      delete *it;
+    }
   }
 
 
@@ -5265,6 +5612,15 @@ namespace Orthanc
         return true;
       }
 
+      case _OrthancPluginService_RegisterWebDavCollection:
+      {
+        CLOG(INFO, PLUGINS) << "Plugin has registered a WebDAV collection";
+        const _OrthancPluginRegisterWebDavCollection& p =
+          *reinterpret_cast<const _OrthancPluginRegisterWebDavCollection*>(parameters);
+        pimpl_->webDavCollections_.push_back(new WebDavCollection(GetErrorDictionary(), p));
+        return true;
+      }
+
       default:
       {
         // This service is unknown to the Orthanc plugin engine
@@ -5861,5 +6217,23 @@ namespace Orthanc
   {
     boost::recursive_mutex::scoped_lock lock(pimpl_->invokeServiceMutex_);
     return pimpl_->maxDatabaseRetries_;
+  }
+
+
+  void OrthancPlugins::RegisterWebDavCollections(HttpServer& target)
+  {
+    boost::recursive_mutex::scoped_lock lock(pimpl_->invokeServiceMutex_);
+
+    while (!pimpl_->webDavCollections_.empty())
+    {
+      WebDavCollection* collection = pimpl_->webDavCollections_.front();
+      assert(collection != NULL);
+
+      UriComponents components;
+      Toolbox::SplitUriComponents(components, collection->GetUri());
+      target.Register(components, collection);
+      
+      pimpl_->webDavCollections_.pop_front();
+    }
   }
 }

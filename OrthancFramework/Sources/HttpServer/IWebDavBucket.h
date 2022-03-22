@@ -117,8 +117,6 @@ namespace Orthanc
         return mime_;
       }
 
-      void SetCreated(bool created);
-
       virtual void Format(pugi::xml_node& node,
                           const std::string& parentPath) const ORTHANC_OVERRIDE;
     };
