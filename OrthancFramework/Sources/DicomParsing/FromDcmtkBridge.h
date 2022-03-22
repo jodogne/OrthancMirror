@@ -283,5 +283,9 @@ namespace Orthanc
                                    DcmDataset& dataset,
                                    const DicomPath& path,
                                    size_t sequenceIndex);
+
+    static bool LookupStringValue(std::string& target,
+                                  DcmDataset& dataset,
+                                  const DicomTag& key);
   };
 }
