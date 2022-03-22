@@ -2601,18 +2601,10 @@ namespace Orthanc
               l++;
             }
 
-            if (l == length)
-            {
-              // Not a null-terminated plain string
-              action = visitor.VisitNotSupported(parentTags, parentIndexes, tag, vr);
-            }
-            else
-            {
-              std::string ignored;
-              std::string s(reinterpret_cast<const char*>(data), l);
-              action = visitor.VisitString(ignored, parentTags, parentIndexes, tag, vr,
-                                           Toolbox::ConvertToUtf8(s, encoding, hasCodeExtensions));
-            }
+            std::string ignored;
+            std::string s(reinterpret_cast<const char*>(data), l);
+            action = visitor.VisitString(ignored, parentTags, parentIndexes, tag, vr,
+                                         Toolbox::ConvertToUtf8(s, encoding, hasCodeExtensions));
           }
           else
           {
