@@ -75,13 +75,11 @@ namespace Orthanc
     }
     
     DcmDataset& dataset = *dicom.getDataset();
-    
-    const char* v = NULL;
 
-    if (dataset.findAndGetString(DCM_SOPInstanceUID, v).good() &&
-        v != NULL)
+    std::string s;
+    if (FromDcmtkBridge::LookupStringValue(s, dataset, DICOM_TAG_SOP_INSTANCE_UID))
     {
-      return std::string(v);
+      return s;
     }
     else
     {
