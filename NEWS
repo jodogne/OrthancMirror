@@ -4,8 +4,6 @@ Pending changes in the mainline
 General
 -------
 
-* Improved DICOM authorization checks when multiple modalities are
-  declared with the same AET.
 * New configuration "ExtraMainDicomTags" to store more tags in the Index DB
   to speed up, e.g, building C-Find, dicom-web or tools/find answers
 * New sample plugin: "DbOptimizer" that will re-construct the DB/Storage
@@ -39,6 +37,16 @@ REST API
   - /instances
 * new field "MainDicomTags" in the /system route response to list the tags that
   are saved in DB
+
+
+Version 1.10.1 (2022-03-23)
+===========================
+
+General
+-------
+
+* Improved DICOM authorization checks when multiple modalities are
+  declared with the same AET.
 
 Plugins
 -------
