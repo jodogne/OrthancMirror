@@ -52,17 +52,10 @@ namespace Orthanc
   {
       Json::Value v;
       
-      FromDcmtkBridge::FormatListOfTags(v, DicomMap::GetMainDicomTags(ResourceType_Patient));
-      result["Patient"] = v;
-
-      FromDcmtkBridge::FormatListOfTags(v, DicomMap::GetMainDicomTags(ResourceType_Study));
-      result["Study"] = v;
-
-      FromDcmtkBridge::FormatListOfTags(v, DicomMap::GetMainDicomTags(ResourceType_Series));
-      result["Series"] = v;
-
-      FromDcmtkBridge::FormatListOfTags(v, DicomMap::GetMainDicomTags(ResourceType_Instance));
-      result["Instance"] = v;
+      result["Patient"] = DicomMap::GetMainDicomTagsSignature(ResourceType_Patient);
+      result["Study"] = DicomMap::GetMainDicomTagsSignature(ResourceType_Study);
+      result["Series"] = DicomMap::GetMainDicomTagsSignature(ResourceType_Series);
+      result["Instance"] = DicomMap::GetMainDicomTagsSignature(ResourceType_Instance);
   }
 
   static void GetSystemInformation(RestApiGetCall& call)
