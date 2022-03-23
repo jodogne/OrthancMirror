@@ -651,10 +651,6 @@ namespace Orthanc
 
   bool DicomMap::IsComputedTag(const DicomTag& tag, ResourceType level)
   {
-    if (IsGenericComputedTag(tag))
-    {
-      return true;
-    }
 
     switch (level)
     {
