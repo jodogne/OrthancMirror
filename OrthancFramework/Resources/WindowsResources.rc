@@ -11,7 +11,7 @@ VS_VERSION_INFO VERSIONINFO
          BLOCK "${BLOCK}"
          BEGIN
             VALUE "Comments", "${RELEASE}"
-            VALUE "CompanyName", "Osimis SA, Belgium"
+            VALUE "CompanyName", "The Orthanc project"
             VALUE "FileDescription", "${DESCRIPTION}"
             VALUE "FileVersion", "${VERSION_MAJOR}.${VERSION_MINOR}.0.${VERSION_PATCH}"
             VALUE "InternalName", "${PRODUCT}"
