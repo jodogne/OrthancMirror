@@ -1962,8 +1962,8 @@ namespace Orthanc
     Uint16 rows, columns, bitsAllocated, bitPosition;
     const Sint16* origin = NULL;
     unsigned long originSize = 0;
-    const Uint8* overlayData = NULL;
-    unsigned long overlaySize = 0;
+    DcmElement* overlay = NULL;
+    Uint8* overlayData = NULL;
     
     if (dataset.findAndGetUint16(DcmTagKey(group, 0x0010), rows).good() &&
         dataset.findAndGetUint16(DcmTagKey(group, 0x0011), columns).good() &&
@@ -1974,11 +1974,25 @@ namespace Orthanc
         bitsAllocated == 1 &&
         dataset.findAndGetUint16(DcmTagKey(group, 0x0102), bitPosition).good() &&
         bitPosition == 0 &&
-        dataset.findAndGetUint8Array(DcmTagKey(group, 0x3000), overlayData, &overlaySize).good() &&
+        dataset.findAndGetElement(DcmTagKey(group, 0x3000), overlay).good() &&
+        overlay != NULL &&
+        overlay->getUint8Array(overlayData).good() &&
         overlayData != NULL)
     {
+      /**
+       * WARNING - It might seem easier to use
+       * "dataset.findAndGetUint8Array()" that directly gives the size
+       * of the overlay data (using the "count" parameter), instead of
+       * "dataset.findAndGetElement()". Unfortunately, this does *not*
+       * work with Emscripten/WebAssembly, that reports a "count" that
+       * is half the number of bytes, presumably because of
+       * discrepancies in the way sizeof are computed inside DCMTK.
+       * The method "getLengthField()" reports the correct number of
+       * bytes, even if targeting WebAssembly.
+       **/
+
       unsigned int expectedSize = Ceiling(rows * columns, 8);
-      if (overlaySize < expectedSize)
+      if (overlay->getLengthField() < expectedSize)
       {
         throw OrthancException(ErrorCode_CorruptedFile, "Overlay doesn't have a valid number of bits");
       }
