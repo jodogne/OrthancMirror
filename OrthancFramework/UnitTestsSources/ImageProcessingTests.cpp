@@ -1247,7 +1247,7 @@ TEST(ImageProcessing, FillPolygon)
     ASSERT_EQ(6u, segments.GetSize());
     for (size_t i = 0; i < segments.GetSize(); i++)
     {
-      ASSERT_EQ(100 + i, segments.GetY(i));
+      ASSERT_EQ(100 + static_cast<int>(i), segments.GetY(i));
       ASSERT_EQ(10, segments.GetX1(i));
       ASSERT_EQ(10, segments.GetX2(i));
     }
@@ -1311,7 +1311,7 @@ TEST(ImageProcessing, FillPolygon)
 
     for (size_t i = 0; i < segments.GetSize(); i++)
     {
-      ASSERT_EQ(i + 50, segments.GetY(i));
+      ASSERT_EQ(50 + static_cast<int>(i), segments.GetY(i));
       ASSERT_EQ(10, segments.GetX1(i));
       ASSERT_EQ(200, segments.GetX2(i));
     }
