@@ -817,6 +817,14 @@ namespace Orthanc
     {
       return MimeType_Ico;
     }
+    else if (extension == ".gz")
+    {
+      return MimeType_Gzip;
+    }
+    else if (extension == ".zip")
+    {
+      return MimeType_Zip;
+    }
 
     // Default type
     else
