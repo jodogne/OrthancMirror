@@ -95,7 +95,7 @@ namespace Orthanc
       std::vector<const char*>  items_;
 
     public:
-      PathHelper(const std::vector<std::string>& path)
+      explicit PathHelper(const std::vector<std::string>& path)
       {
         items_.resize(path.size());
         for (size_t i = 0; i < path.size(); i++)

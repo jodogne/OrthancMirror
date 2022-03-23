@@ -1962,7 +1962,7 @@ namespace Orthanc
     Uint16 rows, columns, bitsAllocated, bitPosition;
     const Sint16* origin = NULL;
     unsigned long originSize = 0;
-    DcmElement* overlay = NULL;
+    DcmElement* overlayElement = NULL;
     Uint8* overlayData = NULL;
     
     if (dataset.findAndGetUint16(DcmTagKey(group, 0x0010), rows).good() &&
@@ -1974,9 +1974,9 @@ namespace Orthanc
         bitsAllocated == 1 &&
         dataset.findAndGetUint16(DcmTagKey(group, 0x0102), bitPosition).good() &&
         bitPosition == 0 &&
-        dataset.findAndGetElement(DcmTagKey(group, 0x3000), overlay).good() &&
-        overlay != NULL &&
-        overlay->getUint8Array(overlayData).good() &&
+        dataset.findAndGetElement(DcmTagKey(group, 0x3000), overlayElement).good() &&
+        overlayElement != NULL &&
+        overlayElement->getUint8Array(overlayData).good() &&
         overlayData != NULL)
     {
       /**
@@ -1992,7 +1992,7 @@ namespace Orthanc
        **/
 
       unsigned int expectedSize = Ceiling(rows * columns, 8);
-      if (overlay->getLengthField() < expectedSize)
+      if (overlayElement->getLengthField() < expectedSize)
       {
         throw OrthancException(ErrorCode_CorruptedFile, "Overlay doesn't have a valid number of bits");
       }
