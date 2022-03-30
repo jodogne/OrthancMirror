@@ -59,6 +59,8 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_LIBPNG)
     -DPNG_NO_CONFIG_H=1
     -DPNG_NO_CONSOLE_IO=1
     -DPNG_NO_STDIO=1
+    # disable ARM neon optimization for Apple M1 builds (TODO: try adding arm/filter_neon_intrinscis.c ... )
+    -DPNG_ARM_NEON_OPT=0
     # The following declaration avoids "__declspec(dllexport)" in
     # libpng to prevent publicly exposing its symbols by the DLLs
     -DPNG_IMPEXP=

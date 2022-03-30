@@ -150,3 +150,34 @@ diff -urEb dcmtk-3.6.6.orig/ofstd/include/dcmtk/ofstd/offile.h dcmtk-3.6.6/ofstd
      this->setvbuf(NULL, _IOLBF, 0);
  #else
      :: setlinebuf(file_);
+
+diff -urEb dcmtk-3.6.6.orig/config/tests/arith.cc dcmtk-3.6.6/config/tests/arith.cc
+--- dcmtk-3.6.6.orig/config/tests/arith.cc      2022-03-28 19:17:03.000000000 +0000
++++ dcmtk-3.6.6/config/tests/arith.cc   2022-03-28 19:18:12.000000000 +0000
+@@ -40,7 +40,7 @@
+ #include <ieeefp.h>
+ #endif
+ 
+-#ifdef __APPLE__
++#if defined(__APPLE__) && !defined(__aarch64__)
+ // For controlling floating point exceptions on OS X.
+ #include <xmmintrin.h>
+ #endif
+@@ -340,7 +340,7 @@
+ #ifdef HAVE_WINDOWS_H
+     _clearfp();
+     _controlfp( _controlfp(0,0) & ~_EM_INVALID, _MCW_EM );
+-#elif defined(__APPLE__)
++#elif defined(__APPLE__) && !defined(__aarch64__)
+     _MM_SET_EXCEPTION_MASK( _MM_GET_EXCEPTION_MASK() & ~_MM_MASK_INVALID );
+ #elif defined(HAVE_FENV_H) && defined(HAVE_PROTOTYPE_FEENABLEEXCEPT)
+     feenableexcept( FE_INVALID );
+@@ -382,7 +382,7 @@
+     _controlfp( _controlfp(0,0) | _EM_INVALID, _MCW_EM );
+ #elif defined(HAVE_FENV_H)
+     feclearexcept( FE_INVALID );
+-#ifdef __APPLE__
++#if defined(__APPLE__) && !defined(__aarch64__)
+     _MM_SET_EXCEPTION_MASK( _MM_GET_EXCEPTION_MASK() | _MM_MASK_INVALID );
+ #elif defined(HAVE_FENV_H) && defined(HAVE_PROTOTYPE_FEENABLEEXCEPT)
+     fedisableexcept( FE_INVALID );
