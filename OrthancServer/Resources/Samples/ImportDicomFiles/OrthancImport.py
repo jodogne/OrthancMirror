@@ -63,7 +63,7 @@ if args.clear and not args.force:
 WARNING: This script will remove all the content of your
 Orthanc instance running on %s!
 
-Are you sure ["yes" to go on]?""" % args.server)
+Are you sure ["yes" to go on]?""" % args.url)
 
     if sys.stdin.readline().strip() != 'yes':
         print('Aborting...')
