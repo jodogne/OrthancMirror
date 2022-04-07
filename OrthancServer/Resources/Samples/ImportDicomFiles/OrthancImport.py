@@ -116,7 +116,8 @@ def UploadBuffer(dicom):
     info = r.json()
     COUNT_DICOM += 1
 
-    if not info['ParentStudy'] in IMPORTED_STUDIES:
+    if (isinstance(info, dict) and
+        not info['ParentStudy'] in IMPORTED_STUDIES):
         IMPORTED_STUDIES.add(info['ParentStudy'])
         
         r2 = requests.get('%s/instances/%s/tags?short' % (args.url, info['ID']),
