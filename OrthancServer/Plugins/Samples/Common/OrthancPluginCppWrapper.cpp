@@ -3703,7 +3703,13 @@ namespace OrthancPlugins
 
     try
     {
-      *isReadOnly = (that.StoreFile(WebDavConvertPath(pathSize, pathItems), data, size) ? 1 : 0);
+      if (static_cast<uint64_t>(static_cast<size_t>(size)) != size)
+      {
+        ORTHANC_PLUGINS_THROW_EXCEPTION(NotEnoughMemory);
+      }
+      
+      *isReadOnly = (that.StoreFile(WebDavConvertPath(pathSize, pathItems), data,
+                                    static_cast<size_t>(size)) ? 1 : 0);
       return OrthancPluginErrorCode_Success;
     }
     catch (ORTHANC_PLUGINS_EXCEPTION_CLASS& e)
