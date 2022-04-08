@@ -1058,6 +1058,29 @@ TEST(ImageProcessing, ShiftScaleSignedGrayscale16_Identity)
 }
 
 
+TEST(ImageProcessing, ShiftFloatBuggy)
+{
+  // This test failed in Orthanc 1.10.1
+  
+  Image image(PixelFormat_Float32, 3, 1, false);
+  ImageTraits<PixelFormat_Float32>::SetFloatPixel(image, -1.0f, 0, 0);
+  ImageTraits<PixelFormat_Float32>::SetFloatPixel(image, 0.0f, 1, 0);
+  ImageTraits<PixelFormat_Float32>::SetFloatPixel(image, 1.0f, 2, 0);
+
+  std::unique_ptr<Image> cloned(Image::Clone(image));
+
+  ImageProcessing::ShiftScale2(image, 0, 0.000539, true);
+  ASSERT_FLOAT_EQ(-0.000539f, ImageTraits<PixelFormat_Float32>::GetFloatPixel(image, 0, 0));
+  ASSERT_FLOAT_EQ(0.0f, ImageTraits<PixelFormat_Float32>::GetFloatPixel(image, 1, 0));
+  ASSERT_FLOAT_EQ(0.000539f, ImageTraits<PixelFormat_Float32>::GetFloatPixel(image, 2, 0));
+
+  ImageProcessing::ShiftScale2(*cloned, 0, 0.000539, false);
+  ASSERT_FLOAT_EQ(-0.000539f, ImageTraits<PixelFormat_Float32>::GetFloatPixel(*cloned, 0, 0));
+  ASSERT_FLOAT_EQ(0.0f, ImageTraits<PixelFormat_Float32>::GetFloatPixel(*cloned, 1, 0));
+  ASSERT_FLOAT_EQ(0.000539f, ImageTraits<PixelFormat_Float32>::GetFloatPixel(*cloned, 2, 0));
+}
+
+
 TEST(ImageProcessing, ShiftScale2)
 {
   std::vector<float> va;
