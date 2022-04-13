@@ -414,13 +414,14 @@ namespace Orthanc
             typename SourceType,
             bool UseRound,
             bool Invert>
-  static void ShiftScaleInternal(ImageAccessor& target,
-                                 const ImageAccessor& source,
-                                 float a,
-                                 float b,
-                                 const TargetType LowestValue)
+  static void ShiftScaleIntegerInternal(ImageAccessor& target,
+                                        const ImageAccessor& source,
+                                        float a,
+                                        float b)
   // This function can be applied inplace (source == target)
   {
+    assert(target.GetFormat() != PixelFormat_Float32);
+    
     if (source.GetWidth() != target.GetWidth() ||
         source.GetHeight() != target.GetHeight())
     {
@@ -433,9 +434,9 @@ namespace Orthanc
       throw OrthancException(ErrorCode_IncompatibleImageFormat);
     }
     
-    const TargetType minPixelValue = LowestValue;
+    const TargetType minPixelValue = std::numeric_limits<TargetType>::min();
     const TargetType maxPixelValue = std::numeric_limits<TargetType>::max();
-    const float minFloatValue = static_cast<float>(LowestValue);
+    const float minFloatValue = static_cast<float>(minPixelValue);
     const float maxFloatValue = static_cast<float>(maxPixelValue);
 
     const unsigned int height = target.GetHeight();
@@ -476,6 +477,44 @@ namespace Orthanc
       }
     }
   }
+
+
+  template <typename SourceType>
+  static void ShiftScaleFloatInternal(ImageAccessor& target,
+                                      const ImageAccessor& source,
+                                      float a,
+                                      float b)
+  // This function can be applied inplace (source == target)
+  {
+    assert(target.GetFormat() == PixelFormat_Float32);
+    
+    if (source.GetWidth() != target.GetWidth() ||
+        source.GetHeight() != target.GetHeight())
+    {
+      throw OrthancException(ErrorCode_IncompatibleImageSize);
+    }
+
+    if (&source == &target &&
+        source.GetFormat() != target.GetFormat())
+    {
+      throw OrthancException(ErrorCode_IncompatibleImageFormat);
+    }
+    
+    const unsigned int height = target.GetHeight();
+    const unsigned int width = target.GetWidth();
+    
+    for (unsigned int y = 0; y < height; y++)
+    {
+      float* p = reinterpret_cast<float*>(target.GetRow(y));
+      const SourceType* q = reinterpret_cast<const SourceType*>(source.GetConstRow(y));
+
+      for (unsigned int x = 0; x < width; x++, p++, q++)
+      {
+        *p = a * static_cast<float>(*q) + b;
+      }
+    }
+  }
+  
 
   template <typename PixelType>
   static void ShiftRightInternal(ImageAccessor& image,
@@ -549,10 +588,6 @@ namespace Orthanc
     assert(sizeof(SourceType) == source.GetBytesPerPixel() &&
            sizeof(TargetType) == target.GetBytesPerPixel());
     
-    // WARNING - "::min()" should be replaced by "::lowest()" if
-    // dealing with float or double (which is not the case so far)
-    assert(sizeof(TargetType) <= 2);  // Safeguard to remember about "float/double"
-    const TargetType minTargetValue = std::numeric_limits<TargetType>::min();
     const TargetType maxTargetValue = std::numeric_limits<TargetType>::max();
     const float maxFloatValue = static_cast<float>(maxTargetValue);
     
@@ -564,11 +599,11 @@ namespace Orthanc
 
     if (invert)
     {
-      ShiftScaleInternal<TargetType, SourceType, false, true>(target, source, a, b, minTargetValue);
+      ShiftScaleIntegerInternal<TargetType, SourceType, false, true>(target, source, a, b);
     }
     else
     {
-      ShiftScaleInternal<TargetType, SourceType, false, false>(target, source, a, b, minTargetValue);
+      ShiftScaleIntegerInternal<TargetType, SourceType, false, false>(target, source, a, b);
     }
   }
 
@@ -1435,45 +1470,44 @@ namespace Orthanc
       case PixelFormat_Grayscale8:
         if (useRound)
         {
-          ShiftScaleInternal<uint8_t, uint8_t, true, false>(image, image, a, b, std::numeric_limits<uint8_t>::min());
+          ShiftScaleIntegerInternal<uint8_t, uint8_t, true, false>(image, image, a, b);
         }
         else
         {
-          ShiftScaleInternal<uint8_t, uint8_t, false, false>(image, image, a, b, std::numeric_limits<uint8_t>::min());
+          ShiftScaleIntegerInternal<uint8_t, uint8_t, false, false>(image, image, a, b);
         }
         return;
 
       case PixelFormat_Grayscale16:
         if (useRound)
         {
-          ShiftScaleInternal<uint16_t, uint16_t, true, false>(image, image, a, b, std::numeric_limits<uint16_t>::min());
+          ShiftScaleIntegerInternal<uint16_t, uint16_t, true, false>(image, image, a, b);
         }
         else
         {
-          ShiftScaleInternal<uint16_t, uint16_t, false, false>(image, image, a, b, std::numeric_limits<uint16_t>::min());
+          ShiftScaleIntegerInternal<uint16_t, uint16_t, false, false>(image, image, a, b);
         }
         return;
 
       case PixelFormat_SignedGrayscale16:
         if (useRound)
         {
-          ShiftScaleInternal<int16_t, int16_t, true, false>(image, image, a, b, std::numeric_limits<int16_t>::min());
+          ShiftScaleIntegerInternal<int16_t, int16_t, true, false>(image, image, a, b);
         }
         else
         {
-          ShiftScaleInternal<int16_t, int16_t, false, false>(image, image, a, b, std::numeric_limits<int16_t>::min());
+          ShiftScaleIntegerInternal<int16_t, int16_t, false, false>(image, image, a, b);
         }
         return;
 
       case PixelFormat_Float32:
-        // "::min()" must be replaced by "::lowest()" or "-::max()" if dealing with float or double.
         if (useRound)
         {
-          ShiftScaleInternal<float, float, true, false>(image, image, a, b, -std::numeric_limits<float>::max());
+          ShiftScaleFloatInternal<float>(image, image, a, b);
         }
         else
         {
-          ShiftScaleInternal<float, float, false, false>(image, image, a, b, -std::numeric_limits<float>::max());
+          ShiftScaleFloatInternal<float>(image, image, a, b);
         }
         return;
 
@@ -1509,13 +1543,11 @@ namespace Orthanc
           case PixelFormat_Float32:
             if (useRound)
             {
-              ShiftScaleInternal<uint8_t, float, true, false>(
-                target, source, a, b, std::numeric_limits<uint8_t>::min());
+              ShiftScaleIntegerInternal<uint8_t, float, true, false>(target, source, a, b);
             }
             else
             {
-              ShiftScaleInternal<uint8_t, float, false, false>(
-                target, source, a, b, std::numeric_limits<uint8_t>::min());
+              ShiftScaleIntegerInternal<uint8_t, float, false, false>(target, source, a, b);
             }
             return;
 

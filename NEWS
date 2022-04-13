@@ -19,6 +19,7 @@ General
   - W002_InconsistentDicomTagsInDb
 * C-Find and QIDO-RS can now return the InstanceAvailability tag.  Value is 
   always "ONLINE"
+* Improved decoding of US Images with Implicit VR.
 
 REST API
 --------

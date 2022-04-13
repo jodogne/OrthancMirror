@@ -63,7 +63,7 @@ if args.clear and not args.force:
 WARNING: This script will remove all the content of your
 Orthanc instance running on %s!
 
-Are you sure ["yes" to go on]?""" % args.server)
+Are you sure ["yes" to go on]?""" % args.url)
 
     if sys.stdin.readline().strip() != 'yes':
         print('Aborting...')
@@ -116,7 +116,8 @@ def UploadBuffer(dicom):
     info = r.json()
     COUNT_DICOM += 1
 
-    if not info['ParentStudy'] in IMPORTED_STUDIES:
+    if (isinstance(info, dict) and
+        not info['ParentStudy'] in IMPORTED_STUDIES):
         IMPORTED_STUDIES.add(info['ParentStudy'])
         
         r2 = requests.get('%s/instances/%s/tags?short' % (args.url, info['ID']),
