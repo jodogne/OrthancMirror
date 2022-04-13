@@ -437,10 +437,33 @@ namespace Orthanc
         if (r != "256\\0\\16" ||
             rc != 256 ||
             gc != 256 ||
-            bc != 256 ||
-            pixelLength != target->GetWidth() * target->GetHeight())
+            bc != 256)
         {
           throw OrthancException(ErrorCode_NotImplemented);
+        }
+
+        if (pixelLength != target->GetWidth() * target->GetHeight())
+        {
+          DcmElement *elem;
+          Uint16 bitsAllocated = 0;
+
+          if (!dataset.findAndGetUint16(DCM_BitsAllocated, bitsAllocated).good())
+          {
+            throw OrthancException(ErrorCode_NotImplemented);  
+          }
+
+          if (!dataset.findAndGetElement(DCM_PixelData, elem).good())
+          {
+            throw OrthancException(ErrorCode_NotImplemented);  
+          }
+
+          // In implicit VR files, pixelLength is expressed in words (OW) although pixels can actually be 8 bits
+          // -> pixelLength is wrong by a factor of two and the image can still be decoded!
+          // seen in some Philips ClearVue 650 images (using 8 bits LUT)
+          if (!(elem->getVR() == EVR_OW && bitsAllocated == 8 && (2*pixelLength == target->GetWidth() * target->GetHeight())))  
+          {
+            throw OrthancException(ErrorCode_NotImplemented);
+          }
         }
 
         const uint8_t* source = reinterpret_cast<const uint8_t*>(pixelData);
