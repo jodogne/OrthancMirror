@@ -326,4 +326,45 @@ namespace Orthanc
 
     return false;
   }
+
+  bool DatabaseLookup::GetConstraint(const DicomTagConstraint*& constraint, const DicomTag& tag) const
+  {
+    for (size_t i = 0; i < constraints_.size(); i++)
+    {
+      assert(constraints_[i] != NULL);
+      if (constraints_[i]->GetTag() == tag)
+      {
+        constraint = constraints_.at(i);
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+
+  void DatabaseLookup::RemoveConstraint(const DicomTag& tag)
+  {
+    for (size_t i = 0; i < constraints_.size(); i++)
+    {
+      assert(constraints_[i] != NULL);
+      if (constraints_[i]->GetTag() == tag)
+      {
+        delete constraints_[i];
+        constraints_.erase(constraints_.begin() + i);
+      }
+    }
+  }
+
+  DatabaseLookup* DatabaseLookup::Clone() const
+  {
+    std::unique_ptr<DatabaseLookup> clone(new DatabaseLookup());
+
+    for (size_t i = 0; i < constraints_.size(); i++)
+    {
+      clone->AddConstraint(*(new DicomTagConstraint(*constraints_[i])));
+    }
+
+    return clone.release();
+  }
 }

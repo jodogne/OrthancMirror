@@ -2889,7 +2889,7 @@ namespace Orthanc
                   bool expand,
                   const std::set<DicomTag>& requestedTags) const
       {
-        AnswerListOfResources(output, context, resources_, level, expand, format_, requestedTags);
+        AnswerListOfResources(output, context, resources_, instancesIds_, resourcesMainDicomTags_, resourcesDicomAsJson_, level, expand, format_, requestedTags);
       }
     };
   }

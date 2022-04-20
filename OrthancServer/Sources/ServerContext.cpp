@@ -1670,9 +1670,104 @@ namespace Orthanc
         }
       }
     };
+  
+# if 1
+    class StudyInstanceUidVisitor : public ServerContext::ILookupVisitor
+    {
+    private:
+      std::set<std::string>   studyInstanceUids;
+      
+    public:
+      explicit StudyInstanceUidVisitor()
+      {
+      }
+      
+      virtual bool IsDicomAsJsonNeeded() const ORTHANC_OVERRIDE
+      {
+        return false;
+      }
+      
+      virtual void MarkAsComplete() ORTHANC_OVERRIDE
+      {
+      }
+
+      virtual void Visit(const std::string& publicId,
+                         const std::string& instanceId,
+                         const DicomMap& mainDicomTags,
+                         const Json::Value* dicomAsJson)  ORTHANC_OVERRIDE
+      {
+        std::string studyInstanceUid;
+        if (!mainDicomTags.LookupStringValue(studyInstanceUid, DICOM_TAG_STUDY_INSTANCE_UID, false))
+        {
+          throw OrthancException(ErrorCode_InternalError);
+        }
+        studyInstanceUids.insert(studyInstanceUid);
+      }
+
+      const std::set<std::string>& GetFilteredStudyInstanceUids() const
+      {
+        return studyInstanceUids;
+      }
+    };
+  }
+
+  void ServerContext::Apply(ILookupVisitor& visitor,
+                            const DatabaseLookup& lookup,
+                            ResourceType queryLevel,
+                            size_t since,
+                            size_t limit)
+  {
+    const DicomTagConstraint* constraint = NULL;
+
+    if (queryLevel == ResourceType_Study &&
+        lookup.GetConstraint(constraint, DICOM_TAG_MODALITIES_IN_STUDY) &&
+        ((constraint->GetConstraintType() == ConstraintType_Equal && !constraint->GetValue().empty()) ||
+          (constraint->GetConstraintType() == ConstraintType_List && !constraint->GetValues().empty()))
+        )
+    {
+      std::unique_ptr<DatabaseLookup> studiesPreFilterLookup(lookup.Clone());
+      studiesPreFilterLookup->RemoveConstraint(DICOM_TAG_MODALITIES_IN_STUDY);
+
+      DatabaseLookup seriesLookup;
+
+      std::set<std::string> filteredStudyInstanceUids;
+      if (studiesPreFilterLookup->GetConstraintsCount() >= 1)
+      {
+        LOG(INFO) << "Performing First filtering without ModalitiesInStudy";
+
+        StudyInstanceUidVisitor studyVisitor;
+
+        ApplyInternal(studyVisitor, *studiesPreFilterLookup, queryLevel, since, limit);
+
+        DicomTagConstraint studyInstanceUidsConstraint(DICOM_TAG_STUDY_INSTANCE_UID, ConstraintType_List, true, true);
+        for (std::set<std::string>::const_iterator it = studyVisitor.GetFilteredStudyInstanceUids().begin();
+            it != studyVisitor.GetFilteredStudyInstanceUids().end(); it++)
+        {
+          studyInstanceUidsConstraint.AddValue(*it);
+        }
+
+        seriesLookup.AddConstraint(studyInstanceUidsConstraint);
+      }
+
+      // Convert the study-level query, into a series-level query,
+      // where "ModalitiesInStudy" is replaced by "Modality"
+      // and where all other constraints are replaced by "StudyInstanceUID IN (...)"
+
+      DicomTagConstraint modality(*constraint);
+      modality.SetTag(DICOM_TAG_MODALITY);
+      seriesLookup.AddConstraint(modality);
+
+      ModalitiesInStudyVisitor seriesVisitor(visitor.IsDicomAsJsonNeeded());
+      ApplyInternal(seriesVisitor, seriesLookup, ResourceType_Series, 0, 0);
+      seriesVisitor.Forward(visitor, since, limit);
+    }
+    else  // filtering without ModalitiesInStudy
+    {
+      ApplyInternal(visitor, lookup, queryLevel, since, limit);
+    }
   }
   
-
+#else
   void ServerContext::Apply(ILookupVisitor& visitor,
                             const DatabaseLookup& lookup,
                             ResourceType queryLevel,
@@ -1720,8 +1815,8 @@ namespace Orthanc
     {
       ApplyInternal(visitor, lookup, queryLevel, since, limit);
     }
-  }
-  
+  }  
+#endif
 
   bool ServerContext::LookupOrReconstructMetadata(std::string& target,
                                                   const std::string& publicId,
