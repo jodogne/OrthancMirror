@@ -27,6 +27,7 @@
 #include "../../OrthancFramework/Sources/DicomNetworking/RemoteModalityParameters.h"
 
 #include <OrthancServerResources.h>
+#include "ServerEnumerations.h"
 
 #include <boost/filesystem.hpp>
 #include <boost/thread/shared_mutex.hpp>
@@ -43,13 +44,6 @@ namespace Orthanc
   class ParsedDicomFile;
   class ServerIndex;
   class TemporaryFile;
-
-  enum Warnings
-  {
-    Warnings_None,
-    Warnings_001_TagsBeingReadFromStorage,
-    Warnings_002_InconsistentDicomTagsInDb,
-  };
 
 
   class OrthancConfiguration : public boost::noncopyable

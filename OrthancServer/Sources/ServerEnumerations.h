@@ -191,6 +191,12 @@ namespace Orthanc
     BuiltinDecoderTranscoderOrder_Disabled
   };
 
+  enum Warnings
+  {
+    Warnings_None,
+    Warnings_001_TagsBeingReadFromStorage,
+    Warnings_002_InconsistentDicomTagsInDb,
+  };
 
 
   void InitializeServerEnumerations();
