@@ -20,6 +20,7 @@ General
 * C-Find and QIDO-RS can now return the InstanceAvailability tag.  Value is 
   always "ONLINE"
 * Improved decoding of US Images with Implicit VR.
+* Speed-up handling of DicomModalitiesInStudy in C-Find and tools/find queries.
 
 REST API
 --------

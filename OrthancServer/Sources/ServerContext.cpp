@@ -64,6 +64,12 @@ static size_t DICOM_CACHE_SIZE = 128 * 1024 * 1024;  // 128 MB
 
 namespace Orthanc
 {
+  static void ComputeStudyTags(ExpandedResource& resource,
+                               ServerContext& context,
+                               const std::string& studyPublicId,
+                               const std::set<DicomTag>& requestedTags);
+
+
   static bool IsUncompressedTransferSyntax(DicomTransferSyntax transferSyntax)
   {
     return (transferSyntax == DicomTransferSyntax_LittleEndianImplicit ||
@@ -1354,20 +1360,33 @@ namespace Orthanc
   }
 
 
-  void ServerContext::ApplyInternal(ILookupVisitor& visitor,
-                                    const DatabaseLookup& lookup,
-                                    ResourceType queryLevel,
-                                    size_t since,
-                                    size_t limit)
+  void ServerContext::Apply(ILookupVisitor& visitor,
+                            const DatabaseLookup& lookup,
+                            ResourceType queryLevel,
+                            size_t since,
+                            size_t limit)
   {    
     unsigned int databaseLimit = (queryLevel == ResourceType_Instance ?
                                   limitFindInstances_ : limitFindResults_);
       
     std::vector<std::string> resources, instances;
+    const DicomTagConstraint* dicomModalitiesConstraint = NULL;
+
+    bool hasModalitiesInStudyLookup = (queryLevel == ResourceType_Study &&
+          lookup.GetConstraint(dicomModalitiesConstraint, DICOM_TAG_MODALITIES_IN_STUDY) &&
+          ((dicomModalitiesConstraint->GetConstraintType() == ConstraintType_Equal && !dicomModalitiesConstraint->GetValue().empty()) ||
+          (dicomModalitiesConstraint->GetConstraintType() == ConstraintType_List && !dicomModalitiesConstraint->GetValues().empty())));
+
+    std::unique_ptr<DatabaseLookup> fastLookup(lookup.Clone());
+    
+    if (hasModalitiesInStudyLookup)
+    {
+      fastLookup->RemoveConstraint(DICOM_TAG_MODALITIES_IN_STUDY);
+    }
 
     {
       const size_t lookupLimit = (databaseLimit == 0 ? 0 : databaseLimit + 1);      
-      GetIndex().ApplyLookupResources(resources, &instances, lookup, queryLevel, lookupLimit);
+      GetIndex().ApplyLookupResources(resources, &instances, *fastLookup, queryLevel, lookupLimit);
     }
 
     bool complete = (databaseLimit == 0 ||
@@ -1400,7 +1419,7 @@ namespace Orthanc
       
       if (findStorageAccessMode_ == FindStorageAccessMode_DatabaseOnly ||
           findStorageAccessMode_ == FindStorageAccessMode_DiskOnAnswer ||
-          lookup.HasOnlyMainDicomTags())
+          fastLookup->HasOnlyMainDicomTags())
       {
         // Case (1): The main DICOM tags, as stored in the database,
         // are sufficient to look for match
@@ -1449,46 +1468,71 @@ namespace Orthanc
         hasOnlyMainDicomTags = false;   
       }
       
-      if (lookup.IsMatch(dicom))
+      if (fastLookup->IsMatch(dicom))
       {
-        if (skipped < since)
+        bool isMatch = true;
+
+        if (hasModalitiesInStudyLookup)
         {
-          skipped++;
-        }
-        else if (limit != 0 &&
-                 countResults >= limit)
-        {
-          // Too many results, don't mark as complete
-          complete = false;
-          break;
-        }
-        else
-        {
-          if ((findStorageAccessMode_ == FindStorageAccessMode_DiskOnLookupAndAnswer ||
-               findStorageAccessMode_ == FindStorageAccessMode_DiskOnAnswer) &&
-              dicomAsJson.get() == NULL &&
-              isDicomAsJsonNeeded)
+          std::set<DicomTag> requestedTags;
+          requestedTags.insert(DICOM_TAG_MODALITIES_IN_STUDY);
+          ExpandedResource resource;
+          ComputeStudyTags(resource, *this, resources[i], requestedTags);
+
+          std::vector<std::string> modalities;
+          Toolbox::TokenizeString(modalities, resource.tags_.GetValue(DICOM_TAG_MODALITIES_IN_STUDY).GetContent(), '\\');
+          bool hasAtLeastOneModalityMatching = false;
+          for (size_t m = 0; m < modalities.size(); m++)
           {
-            dicomAsJson.reset(new Json::Value);
-            ReadDicomAsJson(*dicomAsJson, instances[i]);
+            hasAtLeastOneModalityMatching |= dicomModalitiesConstraint->IsMatch(modalities[m]);
           }
 
-          if (hasOnlyMainDicomTags)
+          isMatch = isMatch && hasAtLeastOneModalityMatching;
+          // copy the value of ModalitiesInStudy such that it can be reused to build the answer
+          allMainDicomTagsFromDB.SetValue(DICOM_TAG_MODALITIES_IN_STUDY, resource.tags_.GetValue(DICOM_TAG_MODALITIES_IN_STUDY));
+        }
+
+        if (isMatch)
+        {
+          if (skipped < since)
           {
-            // This is Case (1): The variable "dicom" only contains the main DICOM tags
-            visitor.Visit(resources[i], instances[i], allMainDicomTagsFromDB, dicomAsJson.get());
+            skipped++;
+          }
+          else if (limit != 0 &&
+                  countResults >= limit)
+          {
+            // Too many results, don't mark as complete
+            complete = false;
+            break;
           }
           else
           {
-            // Remove the non-main DICOM tags from "dicom" if Case (2)
-            // was used, for consistency with Case (1)
+            if ((findStorageAccessMode_ == FindStorageAccessMode_DiskOnLookupAndAnswer ||
+                findStorageAccessMode_ == FindStorageAccessMode_DiskOnAnswer) &&
+                dicomAsJson.get() == NULL &&
+                isDicomAsJsonNeeded)
+            {
+              dicomAsJson.reset(new Json::Value);
+              ReadDicomAsJson(*dicomAsJson, instances[i]);
+            }
 
-            DicomMap mainDicomTags;
-            mainDicomTags.ExtractMainDicomTags(dicom);
-            visitor.Visit(resources[i], instances[i], mainDicomTags, dicomAsJson.get());            
+            if (hasOnlyMainDicomTags)
+            {
+              // This is Case (1): The variable "dicom" only contains the main DICOM tags
+              visitor.Visit(resources[i], instances[i], allMainDicomTagsFromDB, dicomAsJson.get());
+            }
+            else
+            {
+              // Remove the non-main DICOM tags from "dicom" if Case (2)
+              // was used, for consistency with Case (1)
+
+              DicomMap mainDicomTags;
+              mainDicomTags.ExtractMainDicomTags(dicom);
+              visitor.Visit(resources[i], instances[i], mainDicomTags, dicomAsJson.get());            
+            }
+              
+            countResults ++;
           }
-            
-          countResults ++;
         }
       }
     }
@@ -1500,323 +1544,6 @@ namespace Orthanc
 
     LOG(INFO) << "Number of matching resources: " << countResults;
   }
-
-
-
-  namespace
-  {
-    class ModalitiesInStudyVisitor : public ServerContext::ILookupVisitor
-    {
-    private:
-      class Study : public boost::noncopyable
-      {
-      private:
-        std::string            orthancId_;
-        std::string            instanceId_;
-        DicomMap               mainDicomTags_;
-        Json::Value            dicomAsJson_;
-        std::set<std::string>  modalitiesInStudy_;
-
-      public:
-        Study(const std::string& instanceId,
-              const DicomMap& seriesTags) :
-          instanceId_(instanceId),
-          dicomAsJson_(Json::nullValue)
-        {
-          {
-            DicomMap tmp;
-            tmp.Assign(seriesTags);
-            tmp.SetValue(DICOM_TAG_SOP_INSTANCE_UID, "dummy", false);
-            DicomInstanceHasher hasher(tmp);
-            orthancId_ = hasher.HashStudy();
-          }
-          
-          mainDicomTags_.MergeMainDicomTags(seriesTags, ResourceType_Study);
-          mainDicomTags_.MergeMainDicomTags(seriesTags, ResourceType_Patient);
-          AddModality(seriesTags);
-        }
-
-        void AddModality(const DicomMap& seriesTags)
-        {
-          std::string modality;
-          if (seriesTags.LookupStringValue(modality, DICOM_TAG_MODALITY, false) &&
-              !modality.empty())
-          {
-            modalitiesInStudy_.insert(modality);
-          }
-        }
-
-        void SetDicomAsJson(const Json::Value& dicomAsJson)
-        {
-          dicomAsJson_ = dicomAsJson;
-        }
-
-        const std::string& GetOrthancId() const
-        {
-          return orthancId_;
-        }
-
-        const std::string& GetInstanceId() const
-        {
-          return instanceId_;
-        }
-
-        const DicomMap& GetMainDicomTags() const
-        {
-          return mainDicomTags_;
-        }
-
-        const Json::Value* GetDicomAsJson() const
-        {
-          if (dicomAsJson_.type() == Json::nullValue)
-          {
-            return NULL;
-          }
-          else
-          {
-            return &dicomAsJson_;
-          }
-        } 
-      };
-      
-      typedef std::map<std::string, Study*>  Studies;
-      
-      bool     isDicomAsJsonNeeded_;
-      bool     complete_;
-      Studies  studies_;
-      
-    public:
-      explicit ModalitiesInStudyVisitor(bool isDicomAsJsonNeeded) :
-        isDicomAsJsonNeeded_(isDicomAsJsonNeeded),
-        complete_(false)
-      {
-      }
-
-      ~ModalitiesInStudyVisitor()
-      {
-        for (Studies::const_iterator it = studies_.begin(); it != studies_.end(); ++it)
-        {
-          assert(it->second != NULL);
-          delete it->second;
-        }
-
-        studies_.clear();
-      }
-      
-      virtual bool IsDicomAsJsonNeeded() const ORTHANC_OVERRIDE
-      {
-        return isDicomAsJsonNeeded_;
-      }
-      
-      virtual void MarkAsComplete() ORTHANC_OVERRIDE
-      {
-        complete_ = true;
-      }
-      
-      virtual void Visit(const std::string& publicId,
-                         const std::string& instanceId,
-                         const DicomMap& seriesTags,
-                         const Json::Value* dicomAsJson) ORTHANC_OVERRIDE
-      {
-        std::string studyInstanceUid;
-        if (seriesTags.LookupStringValue(studyInstanceUid, DICOM_TAG_STUDY_INSTANCE_UID, false))
-        {
-          Studies::iterator found = studies_.find(studyInstanceUid);
-          if (found == studies_.end())
-          {
-            // New study
-            std::unique_ptr<Study> study(new Study(instanceId, seriesTags));
-            
-            if (dicomAsJson != NULL)
-            {
-              study->SetDicomAsJson(*dicomAsJson);
-            }
-            
-            studies_[studyInstanceUid] = study.release();
-          }
-          else
-          {
-            // Already existing study
-            found->second->AddModality(seriesTags);
-          }
-        }
-      }
-
-      void Forward(ILookupVisitor& callerVisitor,
-                   size_t since,
-                   size_t limit) const
-      {
-        size_t index = 0;
-        size_t countForwarded = 0;
-        
-        for (Studies::const_iterator it = studies_.begin(); it != studies_.end(); ++it, index++)
-        {
-          if (limit == 0 ||
-              (index >= since &&
-               index < limit))
-          {
-            assert(it->second != NULL);
-            const Study& study = *it->second;
-
-            countForwarded++;
-            callerVisitor.Visit(study.GetOrthancId(), study.GetInstanceId(),
-                                study.GetMainDicomTags(), study.GetDicomAsJson());
-          }
-        }
-
-        if (countForwarded == studies_.size())
-        {
-          callerVisitor.MarkAsComplete();
-        }
-      }
-    };
-  
-# if 1
-    class StudyInstanceUidVisitor : public ServerContext::ILookupVisitor
-    {
-    private:
-      std::set<std::string>   studyInstanceUids;
-      
-    public:
-      explicit StudyInstanceUidVisitor()
-      {
-      }
-      
-      virtual bool IsDicomAsJsonNeeded() const ORTHANC_OVERRIDE
-      {
-        return false;
-      }
-      
-      virtual void MarkAsComplete() ORTHANC_OVERRIDE
-      {
-      }
-
-      virtual void Visit(const std::string& publicId,
-                         const std::string& instanceId,
-                         const DicomMap& mainDicomTags,
-                         const Json::Value* dicomAsJson)  ORTHANC_OVERRIDE
-      {
-        std::string studyInstanceUid;
-        if (!mainDicomTags.LookupStringValue(studyInstanceUid, DICOM_TAG_STUDY_INSTANCE_UID, false))
-        {
-          throw OrthancException(ErrorCode_InternalError);
-        }
-        studyInstanceUids.insert(studyInstanceUid);
-      }
-
-      const std::set<std::string>& GetFilteredStudyInstanceUids() const
-      {
-        return studyInstanceUids;
-      }
-    };
-  }
-
-  void ServerContext::Apply(ILookupVisitor& visitor,
-                            const DatabaseLookup& lookup,
-                            ResourceType queryLevel,
-                            size_t since,
-                            size_t limit)
-  {
-    const DicomTagConstraint* constraint = NULL;
-
-    if (queryLevel == ResourceType_Study &&
-        lookup.GetConstraint(constraint, DICOM_TAG_MODALITIES_IN_STUDY) &&
-        ((constraint->GetConstraintType() == ConstraintType_Equal && !constraint->GetValue().empty()) ||
-          (constraint->GetConstraintType() == ConstraintType_List && !constraint->GetValues().empty()))
-        )
-    {
-      std::unique_ptr<DatabaseLookup> studiesPreFilterLookup(lookup.Clone());
-      studiesPreFilterLookup->RemoveConstraint(DICOM_TAG_MODALITIES_IN_STUDY);
-
-      DatabaseLookup seriesLookup;
-
-      std::set<std::string> filteredStudyInstanceUids;
-      if (studiesPreFilterLookup->GetConstraintsCount() >= 1)
-      {
-        LOG(INFO) << "Performing First filtering without ModalitiesInStudy";
-
-        StudyInstanceUidVisitor studyVisitor;
-
-        ApplyInternal(studyVisitor, *studiesPreFilterLookup, queryLevel, since, limit);
-
-        DicomTagConstraint studyInstanceUidsConstraint(DICOM_TAG_STUDY_INSTANCE_UID, ConstraintType_List, true, true);
-        for (std::set<std::string>::const_iterator it = studyVisitor.GetFilteredStudyInstanceUids().begin();
-            it != studyVisitor.GetFilteredStudyInstanceUids().end(); it++)
-        {
-          studyInstanceUidsConstraint.AddValue(*it);
-        }
-
-        seriesLookup.AddConstraint(studyInstanceUidsConstraint);
-      }
-
-      // Convert the study-level query, into a series-level query,
-      // where "ModalitiesInStudy" is replaced by "Modality"
-      // and where all other constraints are replaced by "StudyInstanceUID IN (...)"
-
-      DicomTagConstraint modality(*constraint);
-      modality.SetTag(DICOM_TAG_MODALITY);
-      seriesLookup.AddConstraint(modality);
-
-      ModalitiesInStudyVisitor seriesVisitor(visitor.IsDicomAsJsonNeeded());
-      ApplyInternal(seriesVisitor, seriesLookup, ResourceType_Series, 0, 0);
-      seriesVisitor.Forward(visitor, since, limit);
-    }
-    else  // filtering without ModalitiesInStudy
-    {
-      ApplyInternal(visitor, lookup, queryLevel, since, limit);
-    }
-  }
-  
-#else
-  void ServerContext::Apply(ILookupVisitor& visitor,
-                            const DatabaseLookup& lookup,
-                            ResourceType queryLevel,
-                            size_t since,
-                            size_t limit)
-  {
-    if (queryLevel == ResourceType_Study &&
-        lookup.HasTag(DICOM_TAG_MODALITIES_IN_STUDY))
-    {
-      // Convert the study-level query, into a series-level query,
-      // where "ModalitiesInStudy" is replaced by "Modality"
-      DatabaseLookup seriesLookup;
-
-      for (size_t i = 0; i < lookup.GetConstraintsCount(); i++)
-      {
-        const DicomTagConstraint& constraint = lookup.GetConstraint(i);
-        if (constraint.GetTag() == DICOM_TAG_MODALITIES_IN_STUDY)
-        {
-          if ((constraint.GetConstraintType() == ConstraintType_Equal && constraint.GetValue().empty()) ||
-              (constraint.GetConstraintType() == ConstraintType_List && constraint.GetValues().empty()))
-          {
-            // Ignore universal lookup on "ModalitiesInStudy" (0008,0061),
-            // this should have been handled by the caller
-            ApplyInternal(visitor, lookup, queryLevel, since, limit);
-            return;
-          }
-          else
-          {
-            DicomTagConstraint modality(constraint);
-            modality.SetTag(DICOM_TAG_MODALITY);
-            seriesLookup.AddConstraint(modality);
-          }
-        }
-        else
-        {
-          seriesLookup.AddConstraint(constraint);
-        }
-      }
-
-      ModalitiesInStudyVisitor seriesVisitor(visitor.IsDicomAsJsonNeeded());
-      ApplyInternal(seriesVisitor, seriesLookup, ResourceType_Series, 0, 0);
-      seriesVisitor.Forward(visitor, since, limit);
-    }
-    else
-    {
-      ApplyInternal(visitor, lookup, queryLevel, since, limit);
-    }
-  }  
-#endif
 
   bool ServerContext::LookupOrReconstructMetadata(std::string& target,
                                                   const std::string& publicId,
@@ -2645,7 +2372,7 @@ namespace Orthanc
     }
 
     if (expandFlags != ExpandResourceDbFlags_None
-        && GetIndex().ExpandResource(resource, publicId, level, requestedTags, expandFlags))
+        && GetIndex().ExpandResource(resource, publicId, level, requestedTags, static_cast<ExpandResourceDbFlags>(expandFlags | ExpandResourceDbFlags_IncludeMetadata)))  // we always need the metadata to get the mainDicomTagsSignature
     {
       // check the main dicom tags list has not changed since the resource was stored
       if (resource.mainDicomTagsSignature_ != DicomMap::GetMainDicomTagsSignature(resource.type_))

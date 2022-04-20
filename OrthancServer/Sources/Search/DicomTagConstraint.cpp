@@ -214,7 +214,7 @@ namespace Orthanc
   }
 
 
-  bool DicomTagConstraint::IsMatch(const std::string& value)
+  bool DicomTagConstraint::IsMatch(const std::string& value) const
   {
     NormalizedString source(value, caseSensitive_);
 
@@ -269,7 +269,7 @@ namespace Orthanc
   }
 
 
-  bool DicomTagConstraint::IsMatch(const DicomMap& value)
+  bool DicomTagConstraint::IsMatch(const DicomMap& value) const
   {
     const DicomValue* tmp = value.TestAndGetValue(tag_);
 
