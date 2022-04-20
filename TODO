@@ -7,7 +7,7 @@ For higher-level ideas in the roadmap, please first read the
 https://book.orthanc-server.com/contributing.html
 
 
-Some features are being funded by and OpenCollective one-time donations.
+Some features are being funded by an OpenCollective one-time donations.
 selected features are marked with priorities ((1) - higher, (2) - medium, (3) - nice to have)
 
 =======
@@ -155,11 +155,7 @@ Performance
   useful in ServerContext::DecodeDicomInstance()
 * (2) DicomMap: create a cache to the main DICOM tags index
 * (3) Check out rapidjson: https://github.com/miloyip/nativejson-benchmark
-* (2) Optimize tools/find with ModalitiesInStudies: 
-  https://groups.google.com/g/orthanc-users/c/aN8nqcRd3jw/m/pmc9ylVeAwAJ.
-  One solution could be: Filter first without ModalitiesInStudies and then
-  cycle through the responses to filter out with ModalitiesInStudies
-  For C-Find results: we could store the computed tags
+* For C-Find results: we could store the computed tags
     in metadata on some events like NewSeries + DeletedSeries (same for other computer tags).
     OtherTags that could be saved in Metadata as well:
     - ModalitiesInStudy

@@ -55,6 +55,7 @@ namespace Orthanc
     std::set<DicomTag> requestedTags;
     
     query.GetTags(requestedTags);
+    requestedTags.erase(DICOM_TAG_QUERY_RETRIEVE_LEVEL); // this is not part of the answer
 
     // reuse ExpandResource to get missing tags and computed tags (ModalitiesInStudy ...).  This code is therefore shared between C-Find, tools/find, list-resources and QIDO-RS
     context.ExpandResource(resource, publicId, mainDicomTags, instanceId, dicomAsJson, level, requestedTags, ExpandResourceDbFlags_IncludeMainDicomTags);
