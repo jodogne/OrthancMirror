@@ -197,7 +197,7 @@ namespace Orthanc
     template <typename T> static bool IsSetInSet(const std::set<T>& needles, const std::set<T>& haystack)
     {
       for (typename std::set<T>::const_iterator it = needles.begin();
-            it != needles.end(); it++)
+            it != needles.end(); ++it)
       {
         if (haystack.count(*it) == 0)
         {
@@ -214,7 +214,7 @@ namespace Orthanc
       missings.clear();
 
       for (typename std::set<T>::const_iterator it = needles.begin();
-            it != needles.end(); it++)
+            it != needles.end(); ++it)
       {
         if (haystack.count(*it) == 0)
         {
@@ -228,7 +228,7 @@ namespace Orthanc
     template <typename T> static void AppendSets(std::set<T>& target, const std::set<T>& toAppend)
     {
       for (typename std::set<T>::const_iterator it = toAppend.begin();
-            it != toAppend.end(); it++)
+            it != toAppend.end(); ++it)
       {
         target.insert(*it);
       }
@@ -237,7 +237,7 @@ namespace Orthanc
     template <typename T> static void RemoveSets(std::set<T>& target, const std::set<T>& toRemove)
     {
       for (typename std::set<T>::const_iterator it = toRemove.begin();
-            it != toRemove.end(); it++)
+            it != toRemove.end(); ++it)
       {
         target.erase(*it);
       }

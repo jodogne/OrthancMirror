@@ -1315,7 +1315,7 @@ namespace Orthanc
   {
     std::set<std::string> values;
     for (std::set<DicomTag>::const_iterator it = tags.begin();
-         it != tags.end(); it++)
+         it != tags.end(); ++it)
     {
       values.insert(it->Format());
     }
@@ -1327,7 +1327,7 @@ namespace Orthanc
   {
     output = Json::arrayValue;
     for (std::set<DicomTag>::const_iterator it = tags.begin();
-         it != tags.end(); it++)
+         it != tags.end(); ++it)
     {
       output.append(it->Format());
     }
@@ -1342,7 +1342,7 @@ namespace Orthanc
     Toolbox::TokenizeString(tokens, source, ';');
 
     for (std::vector<std::string>::const_iterator it = tokens.begin();
-         it != tokens.end(); it++)
+         it != tokens.end(); ++it)
     {
       if (it->size() > 0)
       {

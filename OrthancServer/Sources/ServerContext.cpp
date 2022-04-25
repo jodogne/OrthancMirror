@@ -2392,7 +2392,7 @@ namespace Orthanc
         {
           std::set<DicomTag> missingTags;
           Toolbox::AppendSets(missingTags, resource.missingRequestedTags_);
-          for (std::set<DicomTag>::const_iterator it = resource.missingRequestedTags_.begin(); it != resource.missingRequestedTags_.end(); it++)
+          for (std::set<DicomTag>::const_iterator it = resource.missingRequestedTags_.begin(); it != resource.missingRequestedTags_.end(); ++it)
           {
             if (DicomMap::IsComputedTag(*it))
             {
