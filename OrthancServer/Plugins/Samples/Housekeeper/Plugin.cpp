@@ -674,6 +674,6 @@ extern "C"
 
   ORTHANC_PLUGINS_API const char* OrthancPluginGetVersion()
   {
-    return DB_OPTIMIZER_VERSION;
+    return HOUSEKEEPER_VERSION;
   }
 }

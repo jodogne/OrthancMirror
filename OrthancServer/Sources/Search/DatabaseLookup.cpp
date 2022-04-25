@@ -334,7 +334,7 @@ namespace Orthanc
       assert(constraints_[i] != NULL);
       if (constraints_[i]->GetTag() == tag)
       {
-        constraint = constraints_.at(i);
+        constraint = constraints_[i];
         return true;
       }
     }

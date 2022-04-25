@@ -204,7 +204,7 @@ namespace Orthanc
     {
       // std::set are sorted by default (which is important for us !)
       std::set<std::string> tagsIds;
-      for (std::set<DicomTag>::const_iterator it = tags.begin(); it != tags.end(); it++)
+      for (std::set<DicomTag>::const_iterator it = tags.begin(); it != tags.end(); ++it)
       {
         tagsIds.insert(it->Format());
       }
@@ -411,7 +411,7 @@ namespace Orthanc
     result.Clear();
 
     for (std::map<DicomTag, std::string>::const_iterator itmt = mainDicomTags.begin();
-         itmt != mainDicomTags.end(); itmt++)
+         itmt != mainDicomTags.end(); ++itmt)
     {
       DicomMap::Content::const_iterator it = source.find(itmt->first);
       if (it != source.end())
@@ -426,7 +426,7 @@ namespace Orthanc
     result.Clear();
 
     for (std::set<DicomTag>::const_iterator itmt = tags.begin();
-         itmt != tags.end(); itmt++)
+         itmt != tags.end(); ++itmt)
     {
       DicomMap::Content::const_iterator it = content_.find(*itmt);
       if (it != content_.end())
@@ -550,7 +550,7 @@ namespace Orthanc
     result.Clear();
 
     for (std::map<DicomTag, std::string>::const_iterator itmt = mainDicomTags.begin();
-         itmt != mainDicomTags.end(); itmt++)
+         itmt != mainDicomTags.end(); ++itmt)
     {
       result.SetValue(itmt->first, "", false);
     }
@@ -1415,7 +1415,7 @@ namespace Orthanc
     const std::map<DicomTag, std::string>& mainDicomTags = DicomMap::MainDicomTagsConfiguration::GetInstance().GetMainDicomTags(level);
 
     for (std::map<DicomTag, std::string>::const_iterator itmt = mainDicomTags.begin();
-         itmt != mainDicomTags.end(); itmt++)
+         itmt != mainDicomTags.end(); ++itmt)
     {
       Content::const_iterator found = other.content_.find(itmt->first);
 
