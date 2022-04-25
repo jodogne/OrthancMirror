@@ -36,7 +36,7 @@
 
 static int globalPropertyId_ = 0;
 static bool force_ = false;
-static uint throttleDelay_ = 0;
+static unsigned int throttleDelay_ = 0;
 static std::unique_ptr<boost::thread> workerThread_;
 static bool workerThreadShouldStop_ = false;
 static bool triggerOnStorageCompressionChange_ = true;
@@ -156,7 +156,10 @@ RunningPeriods runningPeriods_;
 struct DbConfiguration
 {
   std::string orthancVersion;
-  std::map<OrthancPluginResourceType, std::string> mainDicomTagsSignature;
+  std::string patientsMainDicomTagsSignature;
+  std::string studiesMainDicomTagsSignature;
+  std::string seriesMainDicomTagsSignature;
+  std::string instancesMainDicomTagsSignature;
   bool storageCompressionEnabled;
 
   DbConfiguration()
@@ -166,13 +169,16 @@ struct DbConfiguration
 
   bool IsDefined() const
   {
-    return !orthancVersion.empty() && mainDicomTagsSignature.size() == 4;
+    return !orthancVersion.empty();
   }
 
   void Clear()
   {
     orthancVersion.clear();
-    mainDicomTagsSignature.clear();
+    patientsMainDicomTagsSignature.clear();
+    studiesMainDicomTagsSignature.clear();
+    seriesMainDicomTagsSignature.clear();
+    instancesMainDicomTagsSignature.clear();
   }
 
   void ToJson(Json::Value& target)
@@ -188,10 +194,10 @@ struct DbConfiguration
       target = Json::objectValue;
 
       // default main dicom tags signature are the one from Orthanc 1.4.2 (last time the list was changed):
-      signatures["Patient"] = mainDicomTagsSignature[OrthancPluginResourceType_Patient];
-      signatures["Study"] = mainDicomTagsSignature[OrthancPluginResourceType_Study];
-      signatures["Series"] = mainDicomTagsSignature[OrthancPluginResourceType_Series];
-      signatures["Instance"] = mainDicomTagsSignature[OrthancPluginResourceType_Instance];
+      signatures["Patient"] = patientsMainDicomTagsSignature;
+      signatures["Study"] = studiesMainDicomTagsSignature;
+      signatures["Series"] = seriesMainDicomTagsSignature;
+      signatures["Instance"] = instancesMainDicomTagsSignature;
 
       target["MainDicomTagsSignature"] = signatures;
       target["OrthancVersion"] = orthancVersion;
@@ -206,10 +212,10 @@ struct DbConfiguration
       orthancVersion = source["OrthancVersion"].asString();
 
       const Json::Value& signatures = source["MainDicomTagsSignature"];
-      mainDicomTagsSignature[OrthancPluginResourceType_Patient] = signatures["Patient"].asString();
-      mainDicomTagsSignature[OrthancPluginResourceType_Study] = signatures["Study"].asString();
-      mainDicomTagsSignature[OrthancPluginResourceType_Series] = signatures["Series"].asString();
-      mainDicomTagsSignature[OrthancPluginResourceType_Instance] = signatures["Instance"].asString();
+      patientsMainDicomTagsSignature = signatures["Patient"].asString();
+      studiesMainDicomTagsSignature = signatures["Study"].asString();
+      seriesMainDicomTagsSignature = signatures["Series"].asString();
+      instancesMainDicomTagsSignature = signatures["Instance"].asString();
 
       storageCompressionEnabled = source["StorageCompressionEnabled"].asBool();
     }
@@ -283,10 +289,10 @@ static void ReadStatusFromDb(PluginStatus& pluginStatus)
     pluginStatus.currentlyProcessingConfiguration.orthancVersion = "1.9.0"; // when we don't know, we assume some files were stored with Orthanc 1.9.0 (last version saving the dicom-as-json files)
 
     // default main dicom tags signature are the one from Orthanc 1.4.2 (last time the list was changed):
-    pluginStatus.currentlyProcessingConfiguration.mainDicomTagsSignature[OrthancPluginResourceType_Patient] = "0010,0010;0010,0020;0010,0030;0010,0040;0010,1000";
-    pluginStatus.currentlyProcessingConfiguration.mainDicomTagsSignature[OrthancPluginResourceType_Study] = "0008,0020;0008,0030;0008,0050;0008,0080;0008,0090;0008,1030;0020,000d;0020,0010;0032,1032;0032,1060";
-    pluginStatus.currentlyProcessingConfiguration.mainDicomTagsSignature[OrthancPluginResourceType_Series] = "0008,0021;0008,0031;0008,0060;0008,0070;0008,1010;0008,103e;0008,1070;0018,0010;0018,0015;0018,0024;0018,1030;0018,1090;0018,1400;0020,000e;0020,0011;0020,0037;0020,0105;0020,1002;0040,0254;0054,0081;0054,0101;0054,1000";
-    pluginStatus.currentlyProcessingConfiguration.mainDicomTagsSignature[OrthancPluginResourceType_Instance] = "0008,0012;0008,0013;0008,0018;0020,0012;0020,0013;0020,0032;0020,0037;0020,0100;0020,4000;0028,0008;0054,1330"; 
+    pluginStatus.currentlyProcessingConfiguration.patientsMainDicomTagsSignature = "0010,0010;0010,0020;0010,0030;0010,0040;0010,1000";
+    pluginStatus.currentlyProcessingConfiguration.studiesMainDicomTagsSignature = "0008,0020;0008,0030;0008,0050;0008,0080;0008,0090;0008,1030;0020,000d;0020,0010;0032,1032;0032,1060";
+    pluginStatus.currentlyProcessingConfiguration.seriesMainDicomTagsSignature = "0008,0021;0008,0031;0008,0060;0008,0070;0008,1010;0008,103e;0008,1070;0018,0010;0018,0015;0018,0024;0018,1030;0018,1090;0018,1400;0020,000e;0020,0011;0020,0037;0020,0105;0020,1002;0040,0254;0054,0081;0054,0101;0054,1000";
+    pluginStatus.currentlyProcessingConfiguration.instancesMainDicomTagsSignature = "0008,0012;0008,0013;0008,0018;0020,0012;0020,0013;0020,0032;0020,0037;0020,0100;0020,4000;0028,0008;0054,1330"; 
   }
 }
 
@@ -310,10 +316,10 @@ static void GetCurrentDbConfiguration(DbConfiguration& configuration)
   Json::Value systemInfo;
 
   OrthancPlugins::RestApiGet(systemInfo, "/system", false);
-  configuration.mainDicomTagsSignature[OrthancPluginResourceType_Patient] = systemInfo["MainDicomTags"]["Patient"].asString();
-  configuration.mainDicomTagsSignature[OrthancPluginResourceType_Study] = systemInfo["MainDicomTags"]["Study"].asString();
-  configuration.mainDicomTagsSignature[OrthancPluginResourceType_Series] = systemInfo["MainDicomTags"]["Series"].asString();
-  configuration.mainDicomTagsSignature[OrthancPluginResourceType_Instance] = systemInfo["MainDicomTags"]["Instance"].asString();
+  configuration.patientsMainDicomTagsSignature = systemInfo["MainDicomTags"]["Patient"].asString();
+  configuration.studiesMainDicomTagsSignature = systemInfo["MainDicomTags"]["Study"].asString();
+  configuration.seriesMainDicomTagsSignature = systemInfo["MainDicomTags"]["Series"].asString();
+  configuration.instancesMainDicomTagsSignature = systemInfo["MainDicomTags"]["Instance"].asString();
   configuration.storageCompressionEnabled = systemInfo["StorageCompression"].asBool();
 
   configuration.orthancVersion = OrthancPlugins::GetGlobalContext()->orthancVersion;
@@ -327,8 +333,6 @@ static bool NeedsProcessing(const DbConfiguration& current, const DbConfiguratio
   }
 
   const char* lastVersion = last.orthancVersion.c_str();
-  const std::map<OrthancPluginResourceType, std::string>& lastTags = last.mainDicomTagsSignature;
-  const std::map<OrthancPluginResourceType, std::string>& currentTags = current.mainDicomTagsSignature;
   bool needsProcessing = false;
 
   if (!OrthancPlugins::CheckMinimalVersion(lastVersion, 1, 9, 1))
@@ -344,7 +348,7 @@ static bool NeedsProcessing(const DbConfiguration& current, const DbConfiguratio
     }
   }
 
-  if (lastTags.at(OrthancPluginResourceType_Patient) != currentTags.at(OrthancPluginResourceType_Patient))
+  if (last.patientsMainDicomTagsSignature != current.patientsMainDicomTagsSignature)
   {
     if (triggerOnMainDicomTagsChange_)
     {
@@ -357,7 +361,7 @@ static bool NeedsProcessing(const DbConfiguration& current, const DbConfiguratio
     }
   }
 
-  if (lastTags.at(OrthancPluginResourceType_Study) != currentTags.at(OrthancPluginResourceType_Study))
+  if (last.studiesMainDicomTagsSignature != current.studiesMainDicomTagsSignature)
   {
     if (triggerOnMainDicomTagsChange_)
     {
@@ -370,7 +374,7 @@ static bool NeedsProcessing(const DbConfiguration& current, const DbConfiguratio
     }
   }
 
-  if (lastTags.at(OrthancPluginResourceType_Series) != currentTags.at(OrthancPluginResourceType_Series))
+  if (last.seriesMainDicomTagsSignature != current.seriesMainDicomTagsSignature)
   {
     if (triggerOnMainDicomTagsChange_)
     {
@@ -383,7 +387,7 @@ static bool NeedsProcessing(const DbConfiguration& current, const DbConfiguratio
     }
   }
 
-  if (lastTags.at(OrthancPluginResourceType_Instance) != currentTags.at(OrthancPluginResourceType_Instance))
+  if (last.instancesMainDicomTagsSignature != current.instancesMainDicomTagsSignature)
   {
     if (triggerOnMainDicomTagsChange_)
     {

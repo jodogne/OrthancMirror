@@ -168,9 +168,22 @@ namespace Orthanc
 
     // we keep many "copies" of the same data to guarantee quick access to organized data
     // and avoid rebuilding it all the time.
-    std::map<ResourceType, std::map<DicomTag, std::string> > mainDicomTagsByTag_;
-    std::map<ResourceType, std::map<std::string, DicomTag2> > mainDicomTagsByName_;
-    std::map<ResourceType, std::set<DicomTag> > mainDicomTagsByLevel_;
+    std::map<DicomTag, std::string>  patientsMainDicomTagsByTag_;
+    std::map<std::string, DicomTag2> patientsMainDicomTagsByName_;
+    std::set<DicomTag>               patientsMainDicomTagsByLevel_;
+
+    std::map<DicomTag, std::string>  studiesMainDicomTagsByTag_;
+    std::map<std::string, DicomTag2> studiesMainDicomTagsByName_;
+    std::set<DicomTag>               studiesMainDicomTagsByLevel_;
+
+    std::map<DicomTag, std::string>  seriesMainDicomTagsByTag_;
+    std::map<std::string, DicomTag2> seriesMainDicomTagsByName_;
+    std::set<DicomTag>               seriesMainDicomTagsByLevel_;
+
+    std::map<DicomTag, std::string>  instancesMainDicomTagsByTag_;
+    std::map<std::string, DicomTag2> instancesMainDicomTagsByName_;
+    std::set<DicomTag>               instancesMainDicomTagsByLevel_;
+
     std::set<DicomTag> allMainDicomTags_;
 
     std::map<ResourceType, std::string> signatures_;
@@ -183,9 +196,22 @@ namespace Orthanc
 
     void ResetDefaultMainDicomTags()
     {
-      mainDicomTagsByTag_.clear();
-      mainDicomTagsByName_.clear();
-      mainDicomTagsByLevel_.clear();
+      patientsMainDicomTagsByTag_.clear();
+      patientsMainDicomTagsByName_.clear();
+      patientsMainDicomTagsByLevel_.clear();
+
+      studiesMainDicomTagsByTag_.clear();
+      studiesMainDicomTagsByName_.clear();
+      studiesMainDicomTagsByLevel_.clear();
+
+      seriesMainDicomTagsByTag_.clear();
+      seriesMainDicomTagsByName_.clear();
+      seriesMainDicomTagsByLevel_.clear();
+
+      instancesMainDicomTagsByTag_.clear();
+      instancesMainDicomTagsByName_.clear();
+      instancesMainDicomTagsByLevel_.clear();
+
       allMainDicomTags_.clear();
 
       // by default, initialize with the previous static list (up to 1.10.0)
@@ -216,8 +242,6 @@ namespace Orthanc
 
     void LoadDefaultMainDicomTags(ResourceType level)
     {
-      assert(mainDicomTagsByTag_.find(level) == mainDicomTagsByTag_.end());
-
       const MainDicomTag* tags = NULL;
       size_t size;
 
@@ -257,6 +281,69 @@ namespace Orthanc
 
     }
 
+    std::map<DicomTag, std::string>& GetMainDicomTags(ResourceType level)
+    {
+      switch (level)
+      {
+        case ResourceType_Patient:
+          return patientsMainDicomTagsByTag_;
+
+        case ResourceType_Study:
+          return studiesMainDicomTagsByTag_;
+
+        case ResourceType_Series:
+          return seriesMainDicomTagsByTag_;
+
+        case ResourceType_Instance:
+          return instancesMainDicomTagsByTag_;
+
+        default:
+          throw OrthancException(ErrorCode_InternalError);
+      }
+    }
+
+    std::map<std::string, DicomTag2>& GetMainDicomTagsByName(ResourceType level)
+    {
+      switch (level)
+      {
+        case ResourceType_Patient:
+          return patientsMainDicomTagsByName_;
+
+        case ResourceType_Study:
+          return studiesMainDicomTagsByName_;
+
+        case ResourceType_Series:
+          return seriesMainDicomTagsByName_;
+
+        case ResourceType_Instance:
+          return instancesMainDicomTagsByName_;
+
+        default:
+          throw OrthancException(ErrorCode_InternalError);
+      }
+    }
+
+    std::set<DicomTag>& GetMainDicomTagsByLevel(ResourceType level)
+    {
+      switch (level)
+      {
+        case ResourceType_Patient:
+          return patientsMainDicomTagsByLevel_;
+
+        case ResourceType_Study:
+          return studiesMainDicomTagsByLevel_;
+
+        case ResourceType_Series:
+          return seriesMainDicomTagsByLevel_;
+
+        case ResourceType_Instance:
+          return instancesMainDicomTagsByLevel_;
+
+        default:
+          throw OrthancException(ErrorCode_InternalError);
+      }
+    }
+
   public:
     // Singleton pattern
     static MainDicomTagsConfiguration& GetInstance()
@@ -267,42 +354,24 @@ namespace Orthanc
 
     void AddMainDicomTag(const DicomTag& tag, const std::string& name, ResourceType level)
     {
-      if (mainDicomTagsByTag_[level].find(tag) != mainDicomTagsByTag_[level].end())
+      std::map<DicomTag, std::string>& byTag = GetMainDicomTags(level);
+      std::map<std::string, DicomTag2>& byName = GetMainDicomTagsByName(level);
+      
+      if (byTag.find(tag) != byTag.end())
       {
         throw OrthancException(ErrorCode_MainDicomTagsMultiplyDefined, tag.Format() + " is already defined");
       }
 
-      if (mainDicomTagsByName_[level].find(name) != mainDicomTagsByName_[level].end())
+      if (byName.find(name) != byName.end())
       {
         throw OrthancException(ErrorCode_MainDicomTagsMultiplyDefined, name + " is already defined");
       }
 
-      mainDicomTagsByTag_[level][tag] = name;
-      mainDicomTagsByName_[level][name] = DicomTag2(tag);
-      mainDicomTagsByLevel_[level].insert(tag);
+      byTag[tag] = name;
+      byName[name] = DicomTag2(tag);
+      GetMainDicomTagsByLevel(level).insert(tag);
       allMainDicomTags_.insert(tag);
       signatures_[level] = ComputeSignature(GetMainDicomTagsByLevel(level));
-    }
-
-    const std::map<DicomTag, std::string>& GetMainDicomTags(ResourceType level) const
-    {
-      assert(mainDicomTagsByTag_.find(level) != mainDicomTagsByTag_.end());
-
-      return mainDicomTagsByTag_.at(level);
-    }
-
-    const std::map<std::string, DicomTag2>& GetMainDicomTagsByName(ResourceType level) const
-    {
-      assert(mainDicomTagsByName_.find(level) != mainDicomTagsByName_.end());
-
-      return mainDicomTagsByName_.at(level);
-    }
-
-    const std::set<DicomTag>& GetMainDicomTagsByLevel(ResourceType level) const
-    {
-      assert(mainDicomTagsByLevel_.find(level) != mainDicomTagsByLevel_.end());
-
-      return mainDicomTagsByLevel_.at(level);
     }
 
     const std::set<DicomTag>& GetAllMainDicomTags() const

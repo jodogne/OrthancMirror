@@ -380,7 +380,7 @@ TEST(FromDcmtkBridge, ParseListOfTags)
     std::set<DicomTag> result;
     FromDcmtkBridge::ParseListOfTags(result, source);
 
-    ASSERT_EQ(0, result.size());
+    ASSERT_EQ(0u, result.size());
   }
 
   {// invalid tag
@@ -396,7 +396,7 @@ TEST(FromDcmtkBridge, ParseListOfTags)
     
     FromDcmtkBridge::ParseListOfTags(result, source);
 
-    ASSERT_EQ(1, result.size());
+    ASSERT_EQ(1u, result.size());
   }
 
   {// Json

@@ -218,7 +218,7 @@ TEST(Toolbox, IsSetInSet)
     std::set<int> missings;
 
     ASSERT_TRUE(Toolbox::IsSetInSet<int>(needles, haystack));
-    ASSERT_EQ(0, Toolbox::GetMissingsFromSet<int>(missings, needles, haystack));
+    ASSERT_EQ(0u, Toolbox::GetMissingsFromSet<int>(missings, needles, haystack));
   }
 
   {
@@ -228,7 +228,7 @@ TEST(Toolbox, IsSetInSet)
 
     haystack.insert(5);
     ASSERT_TRUE(Toolbox::IsSetInSet<int>(needles, haystack));
-    ASSERT_EQ(0, Toolbox::GetMissingsFromSet<int>(missings, needles, haystack));
+    ASSERT_EQ(0u, Toolbox::GetMissingsFromSet<int>(missings, needles, haystack));
   }
 
   {
@@ -239,7 +239,7 @@ TEST(Toolbox, IsSetInSet)
     needles.insert(5);
     haystack.insert(5);
     ASSERT_TRUE(Toolbox::IsSetInSet<int>(needles, haystack));
-    ASSERT_EQ(0, Toolbox::GetMissingsFromSet<int>(missings, needles, haystack));
+    ASSERT_EQ(0u, Toolbox::GetMissingsFromSet<int>(missings, needles, haystack));
   }
 
   {
@@ -250,7 +250,7 @@ TEST(Toolbox, IsSetInSet)
     needles.insert(5);
     
     ASSERT_FALSE(Toolbox::IsSetInSet<int>(needles, haystack));
-    ASSERT_EQ(1, Toolbox::GetMissingsFromSet<int>(missings, needles, haystack));
+    ASSERT_EQ(1u, Toolbox::GetMissingsFromSet<int>(missings, needles, haystack));
     ASSERT_TRUE(missings.count(5) == 1);
   }
 
@@ -262,7 +262,7 @@ TEST(Toolbox, IsSetInSet)
     needles.insert(6);
     haystack.insert(5);
     ASSERT_FALSE(Toolbox::IsSetInSet<int>(needles, haystack));
-    ASSERT_EQ(1, Toolbox::GetMissingsFromSet<int>(missings, needles, haystack));
+    ASSERT_EQ(1u, Toolbox::GetMissingsFromSet<int>(missings, needles, haystack));
     ASSERT_TRUE(missings.count(6) == 1);
   }
 
@@ -276,7 +276,7 @@ TEST(Toolbox, IsSetInSet)
     haystack.insert(5);
     haystack.insert(6);
     ASSERT_TRUE(Toolbox::IsSetInSet<int>(needles, haystack));
-    ASSERT_EQ(0, Toolbox::GetMissingsFromSet<int>(missings, needles, haystack));
+    ASSERT_EQ(0u, Toolbox::GetMissingsFromSet<int>(missings, needles, haystack));
   }
 }
 
