@@ -43,6 +43,7 @@ static const char* const ORTHANC_PEERS = "OrthancPeers";
 static const char* const ORTHANC_PEERS_IN_DB = "OrthancPeersInDatabase";
 static const char* const TEMPORARY_DIRECTORY = "TemporaryDirectory";
 static const char* const DATABASE_SERVER_IDENTIFIER = "DatabaseServerIdentifier";
+static const char* const WARNINGS = "Warnings";
 
 namespace Orthanc
 {
@@ -1055,7 +1056,51 @@ namespace Orthanc
     }
   }
 
-  
+  void OrthancConfiguration::LoadWarnings()
+  {
+    if (json_.isMember(WARNINGS))
+    {
+      const Json::Value& warnings = json_[WARNINGS];
+      if (!warnings.isObject())
+      {
+        throw OrthancException(ErrorCode_BadFileFormat, std::string(WARNINGS) + " configuration entry is not a Json object");
+      }
+
+      Json::Value::Members members = warnings.getMemberNames();
+
+      for (size_t i = 0; i < members.size(); i++)
+      {
+        const std::string& name = members[i];
+        bool enabled = warnings[name].asBool();
+
+        Warnings warning = Warnings_None;
+        if (name == "W001_TagsBeingReadFromStorage")
+        {
+          warning = Warnings_001_TagsBeingReadFromStorage;
+        }
+        else if (name == "W002_InconsistentDicomTagsInDb")
+        {
+          warning = Warnings_002_InconsistentDicomTagsInDb;
+        }
+        else
+        {
+          throw OrthancException(ErrorCode_BadFileFormat, name + " is not recognized as a valid warning name");
+        }
+
+        if (!enabled)
+        {
+          disabledWarnings_.insert(warning);
+        }
+      }
+    }
+    else
+    {
+      disabledWarnings_.clear();
+    }
+
+  }
+
+
   void OrthancConfiguration::DefaultExtractDicomSummary(DicomMap& target,
                                                         const ParsedDicomFile& dicom)
   {

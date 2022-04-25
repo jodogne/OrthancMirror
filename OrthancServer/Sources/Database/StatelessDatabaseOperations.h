@@ -37,6 +37,45 @@ namespace Orthanc
   class ParsedDicomFile;
   struct ServerIndexChange;
 
+  struct ExpandedResource : public boost::noncopyable
+  {
+    std::string                         id_;
+    DicomMap                            tags_;  // all tags from DB
+    std::string                         mainDicomTagsSignature_;
+    std::string                         parentId_;
+    std::list<std::string>              childrenIds_;
+    std::map<MetadataType, std::string> metadata_;
+    ResourceType                        type_;
+    std::string                         anonymizedFrom_;
+    std::string                         modifiedFrom_;
+    std::string                         lastUpdate_;
+    std::set<DicomTag>                  missingRequestedTags_;
+
+    // for patients/studies/series
+    bool                                isStable_;
+
+    // for series only
+    int                                 expectedNumberOfInstances_;
+    std::string                         status_;
+
+    // for instances only
+    size_t                              fileSize_;
+    std::string                         fileUuid_;
+    int                                 indexInSeries_;
+  };
+
+  enum ExpandResourceDbFlags
+  {
+    ExpandResourceDbFlags_None                    = 0,
+    ExpandResourceDbFlags_IncludeMetadata         = (1 << 0),
+    ExpandResourceDbFlags_IncludeChildren         = (1 << 1),
+    ExpandResourceDbFlags_IncludeMainDicomTags    = (1 << 2),
+
+    ExpandResourceDbFlags_Default = (ExpandResourceDbFlags_IncludeMetadata |
+                                     ExpandResourceDbFlags_IncludeChildren |
+                                     ExpandResourceDbFlags_IncludeMainDicomTags)
+  };
+
   class StatelessDatabaseOperations : public boost::noncopyable
   {
   public:
@@ -448,10 +487,11 @@ namespace Orthanc
   
     void Apply(IReadWriteOperations& operations);
 
-    bool ExpandResource(Json::Value& target,
+    bool ExpandResource(ExpandedResource& target,
                         const std::string& publicId,
                         ResourceType level,
-                        DicomToJsonFormat format);
+                        const std::set<DicomTag>& requestedTags,
+                        ExpandResourceDbFlags expandFlags);
 
     void GetAllMetadata(std::map<MetadataType, std::string>& target,
                         const std::string& publicId,

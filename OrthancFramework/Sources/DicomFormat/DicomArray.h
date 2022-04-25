@@ -46,6 +46,8 @@ namespace Orthanc
 
     const DicomElement& GetElement(size_t i) const;
 
+    void GetTags(std::set<DicomTag>& tags) const;
+
     void Print(FILE* fp) const;  // For debugging only
   };
 }

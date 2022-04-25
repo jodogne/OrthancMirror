@@ -31,17 +31,26 @@
 #include <map>
 #include <json/value.h>
 
+#if ORTHANC_BUILD_UNIT_TESTS == 1
+#  include <gtest/gtest_prod.h>
+#endif
+
 namespace Orthanc
 {
   class ORTHANC_PUBLIC DicomMap : public boost::noncopyable
   {
   public:
     typedef std::map<DicomTag, DicomValue*>  Content;
-    
+
   private:
+    class MainDicomTagsConfiguration;
     friend class DicomArray;
     friend class FromDcmtkBridge;
     friend class ParsedDicomFile;
+
+#if ORTHANC_BUILD_UNIT_TESTS == 1
+    friend class DicomMapMainTagsTests;
+#endif
 
     Content content_;
 
@@ -50,8 +59,8 @@ namespace Orthanc
                           uint16_t element, 
                           DicomValue* value);
 
-    static void GetMainDicomTagsInternal(std::set<DicomTag>& result,
-                                         ResourceType level);
+    // used for unit tests only
+    static void ResetDefaultMainDicomTags();
 
   public:
     ~DicomMap();
@@ -109,6 +118,10 @@ namespace Orthanc
 
     void ExtractInstanceInformation(DicomMap& result) const;
 
+    void ExtractResourceInformation(DicomMap& result, ResourceType level) const;
+
+    void ExtractTags(DicomMap& result, const std::set<DicomTag>& tags) const;
+
     static void SetupFindPatientTemplate(DicomMap& result);
 
     static void SetupFindStudyTemplate(DicomMap& result);
@@ -124,9 +137,28 @@ namespace Orthanc
 
     static bool IsMainDicomTag(const DicomTag& tag);
 
-    static void GetMainDicomTags(std::set<DicomTag>& result, ResourceType level);
+    static bool IsComputedTag(const DicomTag& tag, ResourceType level);
 
-    static void GetMainDicomTags(std::set<DicomTag>& result);
+    static bool IsComputedTag(const DicomTag& tag);
+
+    static bool HasOnlyComputedTags(const std::set<DicomTag>& tags);
+
+    static bool HasComputedTags(const std::set<DicomTag>& tags, ResourceType level);
+
+    static bool HasComputedTags(const std::set<DicomTag>& tags);
+
+    static const std::set<DicomTag>& GetMainDicomTags(ResourceType level);
+
+    // returns a string uniquely identifying the list of main dicom tags for a level
+    static const std::string& GetMainDicomTagsSignature(ResourceType level);
+
+    static const std::string& GetDefaultMainDicomTagsSignature(ResourceType level);
+
+    static const std::set<DicomTag>& GetAllMainDicomTags();
+
+    // adds a main dicom tag to the definition of main dicom tags for each level.
+    // this should be done once at startup before you use MainDicomTags methods
+    static void AddMainDicomTag(const DicomTag& tag, const std::string& name, ResourceType level);
 
     void GetTags(std::set<DicomTag>& tags) const;
 
