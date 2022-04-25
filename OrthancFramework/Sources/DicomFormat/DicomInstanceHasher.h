@@ -45,10 +45,10 @@ namespace Orthanc
     std::string seriesUid_;
     std::string instanceUid_;
 
-    std::string patientHash_;
-    std::string studyHash_;
-    std::string seriesHash_;
-    std::string instanceHash_;
+    mutable std::string patientHash_;
+    mutable std::string studyHash_;
+    mutable std::string seriesHash_;
+    mutable std::string instanceHash_;
 
     void Setup(const std::string& patientId,
                const std::string& studyUid,
@@ -71,12 +71,12 @@ namespace Orthanc
 
     const std::string& GetInstanceUid() const;
 
-    const std::string& HashPatient();
+    const std::string& HashPatient() const;
 
-    const std::string& HashStudy();
+    const std::string& HashStudy() const;
 
-    const std::string& HashSeries();
+    const std::string& HashSeries() const;
 
-    const std::string& HashInstance();
+    const std::string& HashInstance() const;
   };
 }

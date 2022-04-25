@@ -31,6 +31,12 @@ unusedFunction
 useInitializationList:../../OrthancFramework/Sources/Images/PngReader.cpp:90
 useInitializationList:../../OrthancFramework/Sources/Images/PngWriter.cpp:98
 useInitializationList:../../OrthancServer/Sources/ServerJobs/DicomModalityStoreJob.cpp:274
+assertWithSideEffect:../../OrthancServer/Plugins/Engine/OrthancPluginDatabase.cpp:276
+assertWithSideEffect:../../OrthancServer/Plugins/Engine/OrthancPluginDatabase.cpp:1018
+assertWithSideEffect:../../OrthancServer/Sources/Database/Compatibility/DatabaseLookup.cpp:289
+assertWithSideEffect:../../OrthancServer/Sources/Database/Compatibility/DatabaseLookup.cpp:388
+assertWithSideEffect:../../OrthancServer/Sources/Database/StatelessDatabaseOperations.cpp:3381
+assertWithSideEffect:../../OrthancServer/Sources/ServerJobs/ResourceModificationJob.cpp:241
 EOF
 
 ${CPPCHECK} --enable=all --quiet --std=c++11 \
