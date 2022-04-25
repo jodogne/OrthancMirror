@@ -85,7 +85,7 @@ namespace Orthanc
     return instanceUid_;
   }
 
-  const std::string& DicomInstanceHasher::HashPatient()
+  const std::string& DicomInstanceHasher::HashPatient() const
   {
     if (patientHash_.size() == 0)
     {
@@ -95,7 +95,7 @@ namespace Orthanc
     return patientHash_;
   }
 
-  const std::string& DicomInstanceHasher::HashStudy()
+  const std::string& DicomInstanceHasher::HashStudy() const
   {
     if (studyHash_.size() == 0)
     {
@@ -105,7 +105,7 @@ namespace Orthanc
     return studyHash_;
   }
 
-  const std::string& DicomInstanceHasher::HashSeries()
+  const std::string& DicomInstanceHasher::HashSeries() const
   {
     if (seriesHash_.size() == 0)
     {
@@ -115,7 +115,7 @@ namespace Orthanc
     return seriesHash_;
   }
 
-  const std::string& DicomInstanceHasher::HashInstance()
+  const std::string& DicomInstanceHasher::HashInstance() const
   {
     if (instanceHash_.size() == 0)
     {
