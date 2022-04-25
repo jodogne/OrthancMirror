@@ -1296,7 +1296,7 @@ namespace Orthanc
     else
     {
       CLOG(INFO, DICOM) << "Unknown DICOM tag: \"" << name << "\"";
-      throw OrthancException(ErrorCode_UnknownDicomTag);
+      throw OrthancException(ErrorCode_UnknownDicomTag, name, false);
     }
 #endif
   }
@@ -1309,6 +1309,65 @@ namespace Orthanc
   bool FromDcmtkBridge::HasTag(const DicomMap &fields, const std::string &tagName)
   {
     return fields.HasTag(ParseTag(tagName));
+  }
+
+  void FromDcmtkBridge::FormatListOfTags(std::string& output, const std::set<DicomTag>& tags)
+  {
+    std::set<std::string> values;
+    for (std::set<DicomTag>::const_iterator it = tags.begin();
+         it != tags.end(); it++)
+    {
+      values.insert(it->Format());
+    }
+
+    Toolbox::JoinStrings(output, values, ";");
+  }
+
+  void FromDcmtkBridge::FormatListOfTags(Json::Value& output, const std::set<DicomTag>& tags)
+  {
+    output = Json::arrayValue;
+    for (std::set<DicomTag>::const_iterator it = tags.begin();
+         it != tags.end(); it++)
+    {
+      output.append(it->Format());
+    }
+  }
+
+  // parses a list like "0010,0010;PatientBirthDate;0020,0020"
+  void FromDcmtkBridge::ParseListOfTags(std::set<DicomTag>& result, const std::string& source)
+  {
+    result.clear();
+
+    std::vector<std::string> tokens;
+    Toolbox::TokenizeString(tokens, source, ';');
+
+    for (std::vector<std::string>::const_iterator it = tokens.begin();
+         it != tokens.end(); it++)
+    {
+      if (it->size() > 0)
+      {
+        DicomTag tag = FromDcmtkBridge::ParseTag(*it);
+        result.insert(tag);
+      }
+    }
+  }
+
+
+  void FromDcmtkBridge::ParseListOfTags(std::set<DicomTag>& result, const Json::Value& source)
+  {
+    result.clear();
+
+    if (!source.isArray())
+    {
+      throw OrthancException(ErrorCode_BadRequest, "List of tags is not an array");
+    }
+
+    for (Json::ArrayIndex i = 0; i < source.size(); i++)
+    {
+      const std::string& value = source[i].asString();
+      DicomTag tag = FromDcmtkBridge::ParseTag(value);
+      result.insert(tag);
+    }
   }
 
   const DicomValue &FromDcmtkBridge::GetValue(const DicomMap &fields,

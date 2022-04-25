@@ -244,6 +244,7 @@ extern "C"
     OrthancPluginErrorCode_BadRange = 41    /*!< Incorrect range request */,
     OrthancPluginErrorCode_DatabaseCannotSerialize = 42    /*!< Database could not serialize access due to concurrent update, the transaction should be retried */,
     OrthancPluginErrorCode_Revision = 43    /*!< A bad revision number was provided, which might indicate conflict between multiple writers */,
+    OrthancPluginErrorCode_MainDicomTagsMultiplyDefined = 44    /*!< A main DICOM Tag has been defined multiple times for the same resource level */,
     OrthancPluginErrorCode_SQLiteNotOpened = 1000    /*!< SQLite: The database is not opened */,
     OrthancPluginErrorCode_SQLiteAlreadyOpened = 1001    /*!< SQLite: Connection is already open */,
     OrthancPluginErrorCode_SQLiteCannotOpen = 1002    /*!< SQLite: Unable to open the database */,

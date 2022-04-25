@@ -145,5 +145,10 @@ namespace Orthanc
 
     static void DocumentDicomFormat(RestApiPostCall& call,
                                     DicomToJsonFormat defaultFormat);
+
+    static void GetRequestedTags(std::set<DicomTag>& requestedTags,
+                                 const RestApiGetCall& call);
+
+    static void DocumentRequestedTags(RestApiGetCall& call);
   };
 }

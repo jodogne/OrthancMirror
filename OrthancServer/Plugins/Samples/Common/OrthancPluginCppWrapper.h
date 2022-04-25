@@ -303,6 +303,11 @@ namespace OrthancPlugins
       return str_;
     }
 
+    bool IsNullOrEmpty() const
+    {
+      return str_ == NULL || str_[0] == 0;
+    }
+
     void ToString(std::string& target) const;
 
     void ToJson(Json::Value& target) const;
@@ -610,6 +615,10 @@ namespace OrthancPlugins
                                   unsigned int minor,
                                   unsigned int revision);
 
+  bool CheckMinimalVersion(const char* version,
+                           unsigned int major,
+                           unsigned int minor,
+                           unsigned int revision);
 
   namespace Internals
   {

@@ -357,6 +357,64 @@ TEST(FromDcmtkBridge, ValueRepresentation)
 }
 
 
+TEST(FromDcmtkBridge, ParseListOfTags)
+{
+  {// nominal test
+    std::string source = "0010,0010;PatientBirthDate;0020,0020";
+    std::set<DicomTag> result;
+    FromDcmtkBridge::ParseListOfTags(result, source);
+
+    ASSERT_TRUE(result.find(DICOM_TAG_PATIENT_NAME) != result.end());
+    ASSERT_TRUE(result.find(DICOM_TAG_PATIENT_BIRTH_DATE) != result.end());
+    ASSERT_TRUE(result.find(DICOM_TAG_PATIENT_ORIENTATION) != result.end());
+    ASSERT_TRUE(result.find(DICOM_TAG_PATIENT_ID) == result.end());
+
+    // serialize to string
+    std::string serialized;
+    FromDcmtkBridge::FormatListOfTags(serialized, result);
+    ASSERT_EQ("0010,0010;0010,0030;0020,0020", serialized);
+  }
+
+  {// no tag
+    std::string source = "";
+    std::set<DicomTag> result;
+    FromDcmtkBridge::ParseListOfTags(result, source);
+
+    ASSERT_EQ(0, result.size());
+  }
+
+  {// invalid tag
+    std::string source = "0010,0010;Patient-BirthDate;0020,0020";
+    std::set<DicomTag> result;
+    
+    ASSERT_THROW(FromDcmtkBridge::ParseListOfTags(result, source), OrthancException);
+  }
+
+  {// duplicate tag only once
+    std::string source = "0010,0010;PatientName";
+    std::set<DicomTag> result;
+    
+    FromDcmtkBridge::ParseListOfTags(result, source);
+
+    ASSERT_EQ(1, result.size());
+  }
+
+  {// Json
+    Json::Value source = Json::arrayValue;
+    source.append("0010,0010");
+    source.append("PatientBirthDate");
+    source.append("0020,0020");
+    std::set<DicomTag> result;
+    FromDcmtkBridge::ParseListOfTags(result, source);
+
+    ASSERT_TRUE(result.find(DICOM_TAG_PATIENT_NAME) != result.end());
+    ASSERT_TRUE(result.find(DICOM_TAG_PATIENT_BIRTH_DATE) != result.end());
+    ASSERT_TRUE(result.find(DICOM_TAG_PATIENT_ORIENTATION) != result.end());
+    ASSERT_TRUE(result.find(DICOM_TAG_PATIENT_ID) == result.end());
+  }
+
+
+}
 
 static const DicomTag REFERENCED_STUDY_SEQUENCE(0x0008, 0x1110);
 static const DicomTag REFERENCED_PATIENT_SEQUENCE(0x0008, 0x1120);

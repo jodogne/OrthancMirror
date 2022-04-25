@@ -200,6 +200,80 @@ namespace Orthanc
     }
   }
 
+  static void LoadMainDicomTags(const Json::Value& configuration)
+  {
+    static const char* const EXTRA_MAIN_DICOM_TAGS = "ExtraMainDicomTags";
+    
+    if (configuration.type() != Json::objectValue ||
+        !configuration.isMember(EXTRA_MAIN_DICOM_TAGS) ||
+        configuration[EXTRA_MAIN_DICOM_TAGS].type() != Json::objectValue)
+    {
+      return;
+    }
+
+    Json::Value::Members levels(configuration[EXTRA_MAIN_DICOM_TAGS].getMemberNames());
+
+    for (Json::Value::ArrayIndex i = 0; i < levels.size(); i++)
+    {
+      ResourceType level;
+      if (levels[i] == "Patient")
+      {
+        level = ResourceType_Patient;
+      }
+      else if (levels[i] == "Study")
+      {
+        level = ResourceType_Study;
+      }
+      else if (levels[i] == "Series")
+      {
+        level = ResourceType_Series;
+      }
+      else if (levels[i] == "Instance")
+      {
+        level = ResourceType_Instance;
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_BadFileFormat, "Unknown entry '" + levels[i] + "' in ExtraMainDicomTags.");
+      }
+
+      const Json::Value& content = configuration[EXTRA_MAIN_DICOM_TAGS][levels[i]];
+
+      if (content.type() != Json::arrayValue)
+      {
+        throw OrthancException(ErrorCode_BadFileFormat, "The definition of the '" + levels[i] + "' ExtraMainDicomTags entry is invalid (not an array).");
+      }
+
+      if (content.size() > 0)
+      {
+        LOG(INFO) << "Configured Extra Main Dicom Tags for " << levels[i] << ":";
+
+        for (Json::Value::ArrayIndex t = 0; t < content.size(); t++)
+        {
+          const std::string& tagName = content[t].asString();
+          DicomTag tag(FromDcmtkBridge::ParseTag(tagName));
+
+          if (DicomMap::IsComputedTag(tag))
+          {
+            LOG(WARNING) << "  - " << tagName << " can not be added in the Extra Main Dicom Tags since the value of this tag is computed when requested";
+          }
+          else
+          {
+            ValueRepresentation vr = FromDcmtkBridge::LookupValueRepresentation(tag);
+            if (vr == ValueRepresentation_Sequence)
+            {
+              LOG(WARNING) << "  - " << tagName << " can not be added in the Extra Main Dicom Tags since it is a sequence";
+            }
+            else
+            {
+              DicomMap::AddMainDicomTag(tag, tagName, level);
+              LOG(INFO) << "  - " << tagName;
+            }
+          }
+        }
+      }
+    }
+  }
 
   static void ConfigurePkcs11(const Json::Value& config)
   {
@@ -298,6 +372,10 @@ namespace Orthanc
 
     LoadExternalDictionaries(lock.GetJson());  // New in Orthanc 1.9.4
     LoadCustomDictionary(lock.GetJson());
+
+    lock.GetConfiguration().LoadWarnings();
+
+    LoadMainDicomTags(lock.GetJson());  // New in Orthanc 1.11.0
 
     lock.GetConfiguration().RegisterFont(ServerResources::FONT_UBUNTU_MONO_BOLD_16);
 

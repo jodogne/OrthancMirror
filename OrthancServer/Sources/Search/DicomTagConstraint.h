@@ -42,7 +42,7 @@ namespace Orthanc
     bool                    caseSensitive_;
     bool                    mandatory_;
 
-    boost::shared_ptr<RegularExpression>  regex_;
+    mutable boost::shared_ptr<RegularExpression>  regex_;  // mutable because the regex is an internal object created only when required (in IsMatch const method)
 
     void AssignSingleValue(const std::string& value);
 
@@ -102,9 +102,9 @@ namespace Orthanc
       return values_;
     }
 
-    bool IsMatch(const std::string& value);
+    bool IsMatch(const std::string& value) const;
 
-    bool IsMatch(const DicomMap& value);
+    bool IsMatch(const DicomMap& value) const;
 
     std::string Format() const;
 

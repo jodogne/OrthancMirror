@@ -107,29 +107,7 @@ namespace Orthanc
       // example). Take this improvement into consideration for the
       // next upgrade of the database schema.
 
-      const char* plural = NULL;
-
-      switch (level)
-      {
-        case ResourceType_Patient:
-          plural = "patients";
-          break;
-
-        case ResourceType_Study:
-          plural = "studies";
-          break;
-
-        case ResourceType_Series:
-          plural = "series";
-          break;
-
-        case ResourceType_Instance:
-          plural = "instances";
-          break;
-
-        default:
-          throw OrthancException(ErrorCode_InternalError);
-      }
+      const char* plural = Orthanc::GetResourceTypeText(level, true, true);
 
       LOG(WARNING) << "Upgrade: Reconstructing the main DICOM tags of all the " << plural << "...";
 
@@ -183,6 +161,9 @@ namespace Orthanc
           ResourcesContent tags(false /* prevent the setting of metadata */);
           tags.AddResource(resource, level, dicomSummary);
           transaction.SetResourcesContent(tags);
+
+          transaction.DeleteMetadata(resource, MetadataType_MainDicomTagsSignature);
+          transaction.SetMetadata(resource, MetadataType_MainDicomTagsSignature, DicomMap::GetMainDicomTagsSignature(level), 0);
         }
         catch (OrthancException&)
         {

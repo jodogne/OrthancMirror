@@ -281,14 +281,13 @@ namespace Orthanc
 
   bool DatabaseLookup::HasOnlyMainDicomTags() const
   {
-    std::set<DicomTag> mainTags;
-    DicomMap::GetMainDicomTags(mainTags);
+    const std::set<DicomTag>& allMainTags = DicomMap::GetAllMainDicomTags();
 
     for (size_t i = 0; i < constraints_.size(); i++)
     {
       assert(constraints_[i] != NULL);
       
-      if (mainTags.find(constraints_[i]->GetTag()) == mainTags.end())
+      if (allMainTags.find(constraints_[i]->GetTag()) == allMainTags.end())
       {
         // This is not a main DICOM tag
         return false;
@@ -326,5 +325,46 @@ namespace Orthanc
     }
 
     return false;
+  }
+
+  bool DatabaseLookup::GetConstraint(const DicomTagConstraint*& constraint, const DicomTag& tag) const
+  {
+    for (size_t i = 0; i < constraints_.size(); i++)
+    {
+      assert(constraints_[i] != NULL);
+      if (constraints_[i]->GetTag() == tag)
+      {
+        constraint = constraints_.at(i);
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+
+  void DatabaseLookup::RemoveConstraint(const DicomTag& tag)
+  {
+    for (size_t i = 0; i < constraints_.size(); i++)
+    {
+      assert(constraints_[i] != NULL);
+      if (constraints_[i]->GetTag() == tag)
+      {
+        delete constraints_[i];
+        constraints_.erase(constraints_.begin() + i);
+      }
+    }
+  }
+
+  DatabaseLookup* DatabaseLookup::Clone() const
+  {
+    std::unique_ptr<DatabaseLookup> clone(new DatabaseLookup());
+
+    for (size_t i = 0; i < constraints_.size(); i++)
+    {
+      clone->AddConstraint(*(new DicomTagConstraint(*constraints_[i])));
+    }
+
+    return clone.release();
   }
 }

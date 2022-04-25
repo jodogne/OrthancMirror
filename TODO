@@ -7,7 +7,7 @@ For higher-level ideas in the roadmap, please first read the
 https://book.orthanc-server.com/contributing.html
 
 
-Some features are being funded by and OpenCollective one-time donations.
+Some features are being funded by an OpenCollective one-time donations.
 selected features are marked with priorities ((1) - higher, (2) - medium, (3) - nice to have)
 
 =======
@@ -122,9 +122,6 @@ Mid-term
   - On SCP side: done by https://hg.orthanc-server.com/orthanc/rev/1ec3e1e18f50
   - On SCU side:
     https://groups.google.com/d/msg/orthanc-users/wPl0g5mqZco/5X1Z8tEzBgAJ
-* Support "Instance Availability" (0008,0056) in C-FIND:
-  http://dicom.nema.org/medical/DICOM/2019a/output/chtml/part04/sect_C.4.html#sect_C.4.1.1.3.2
-  https://groups.google.com/d/msg/orthanc-users/hteDgE6igo8/j-ArqD7pBQAJ
 * Check Big Endian transfer syntax in ParsedDicomFile::EmbedImage and
   DicomImageDecoder
 * Strict hierarchical C-FIND:
@@ -158,10 +155,12 @@ Performance
   useful in ServerContext::DecodeDicomInstance()
 * (2) DicomMap: create a cache to the main DICOM tags index
 * (3) Check out rapidjson: https://github.com/miloyip/nativejson-benchmark
-* (2) Optimize tools/find with ModalitiesInStudies: 
-  https://groups.google.com/g/orthanc-users/c/aN8nqcRd3jw/m/pmc9ylVeAwAJ.
-  One solution could be: Filter first without ModalitiesInStudies and then
-  cycle through the responses to filter out with ModalitiesInStudies
+* For C-Find results: we could store the computed tags
+    in metadata on some events like NewSeries + DeletedSeries (same for other computer tags).
+    OtherTags that could be saved in Metadata as well:
+    - ModalitiesInStudy
+    - all computed counters at series/study/patient level
+    - RequestAttributesSequence (sequence that must be included in all DicomWeb QIDO-RS for series)
 
 ========
 Database

@@ -48,6 +48,8 @@ namespace Orthanc
 
     ~DatabaseLookup();
 
+    DatabaseLookup* Clone() const;
+
     void Reserve(size_t n)
     {
       constraints_.reserve(n);
@@ -59,6 +61,8 @@ namespace Orthanc
     }
 
     const DicomTagConstraint& GetConstraint(size_t index) const;
+
+    bool GetConstraint(const DicomTagConstraint*& constraint, const DicomTag& tag) const;
 
     bool IsMatch(const DicomMap& value) const;
 
@@ -86,5 +90,7 @@ namespace Orthanc
     std::string Format() const;
 
     bool HasTag(const DicomTag& tag) const;
+
+    void RemoveConstraint(const DicomTag& tag);
   };
 }
