@@ -73,6 +73,7 @@ namespace Orthanc
     static const char* const STORAGE_AREA_PLUGIN = "StorageAreaPlugin";
     static const char* const VERSION = "Version";
     static const char* const MAIN_DICOM_TAGS = "MainDicomTags";
+    static const char* const STORAGE_COMPRESSION = "StorageCompression";
     
     if (call.IsDocumentation())
     {
@@ -101,6 +102,8 @@ namespace Orthanc
                         "Whether Orthanc handle revisions of metadata and attachments to deal with multiple writers (new in Orthanc 1.9.2)")
         .SetAnswerField(MAIN_DICOM_TAGS, RestApiCallDocumentation::Type_JsonObject,
                         "The list of MainDicomTags saved in DB for each resource level (new in Orthanc 1.11.0)")
+        .SetAnswerField(STORAGE_COMPRESSION, RestApiCallDocumentation::Type_Boolean,
+                        "Whether storage compression is enabled (new in Orthanc 1.11.0)")
         .SetHttpGetSample("https://demo.orthanc-server.com/system", true);
       return;
     }
@@ -121,6 +124,7 @@ namespace Orthanc
       result[HTTP_PORT] = lock.GetConfiguration().GetUnsignedIntegerParameter(HTTP_PORT, 8042);
       result[NAME] = lock.GetConfiguration().GetStringParameter(NAME, "");
       result[CHECK_REVISIONS] = lock.GetConfiguration().GetBooleanParameter(CHECK_REVISIONS, false);  // New in Orthanc 1.9.2
+      result[STORAGE_COMPRESSION] = lock.GetConfiguration().GetBooleanParameter(STORAGE_COMPRESSION, false); // New in Orthanc 1.11.0
     }
 
     result[STORAGE_AREA_PLUGIN] = Json::nullValue;

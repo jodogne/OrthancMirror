@@ -24,25 +24,143 @@
 #include "../Common/OrthancPluginCppWrapper.h"
 
 #include <boost/thread.hpp>
+#include <boost/algorithm/string.hpp>
 #include <json/value.h>
 #include <json/writer.h>
 #include <string.h>
 #include <iostream>
 #include <algorithm>
 #include <map>
+#include <list>
+#include <time.h>
 
 static int globalPropertyId_ = 0;
 static bool force_ = false;
 static uint throttleDelay_ = 0;
 static std::unique_ptr<boost::thread> workerThread_;
-static bool workerThreadShouldStop = false;
+static bool workerThreadShouldStop_ = false;
+static bool triggerOnStorageCompressionChange_ = true;
+static bool triggerOnMainDicomTagsChange_ = true;
+static bool triggerOnUnnecessaryDicomAsJsonFiles_ = true;
+
+
+struct RunningPeriod
+{
+  int fromHour_;
+  int toHour_;
+  int weekday_;
+
+  RunningPeriod(const std::string& weekday, const std::string& period)
+  {
+    if (weekday == "Monday")
+    {
+      weekday_ = 1;
+    }
+    else if (weekday == "Tuesday")
+    {
+      weekday_ = 2;
+    }
+    else if (weekday == "Wednesday")
+    {
+      weekday_ = 3;
+    }
+    else if (weekday == "Thursday")
+    {
+      weekday_ = 4;
+    }
+    else if (weekday == "Friday")
+    {
+      weekday_ = 5;
+    }
+    else if (weekday == "Saturday")
+    {
+      weekday_ = 6;
+    }
+    else if (weekday == "Sunday")
+    {
+      weekday_ = 0;
+    }
+    else
+    {
+      OrthancPlugins::LogWarning("Housekeeper: invalid schedule: unknown 'day': " + weekday);      
+      ORTHANC_PLUGINS_THROW_EXCEPTION(BadFileFormat);
+    }
+
+    std::vector<std::string> hours;
+    boost::split(hours, period, boost::is_any_of("-"));
+
+    fromHour_ = boost::lexical_cast<int>(hours[0]);
+    toHour_ = boost::lexical_cast<int>(hours[1]);
+  }
+
+  bool isInPeriod() const
+  {
+    time_t now = time(NULL);
+    tm* nowLocalTime = localtime(&now);
+
+    if (nowLocalTime->tm_wday != weekday_)
+    {
+      return false;
+    }
+
+    if (nowLocalTime->tm_hour >= fromHour_ && nowLocalTime->tm_hour < toHour_)
+    {
+      return true;
+    }
+
+    return false;
+  }
+};
+
+struct RunningPeriods
+{
+  std::list<RunningPeriod> runningPeriods_;
+
+  void load(const Json::Value& scheduleConfiguration)
+  {
+//   "Monday": ["0-6", "20-24"],
+
+    Json::Value::Members names = scheduleConfiguration.getMemberNames();
+
+    for (Json::Value::Members::const_iterator it = names.begin();
+      it != names.end(); it++)
+    {
+      for (Json::Value::ArrayIndex i = 0; i < scheduleConfiguration[*it].size(); i++)
+      {
+        runningPeriods_.push_back(RunningPeriod(*it, scheduleConfiguration[*it][i].asString()));
+      }
+    }
+  }
+
+  bool isInPeriod()
+  {
+    if (runningPeriods_.size() == 0)
+    {
+      return true;  // if no config: always run
+    }
+
+    for (std::list<RunningPeriod>::const_iterator it = runningPeriods_.begin();
+      it != runningPeriods_.end(); it++)
+    {
+      if (it->isInPeriod())
+      {
+        return true;
+      }
+    }
+    return false;
+  }
+};
+
+RunningPeriods runningPeriods_;
 
 struct DbConfiguration
 {
   std::string orthancVersion;
   std::map<OrthancPluginResourceType, std::string> mainDicomTagsSignature;
+  bool storageCompressionEnabled;
 
   DbConfiguration()
+  : storageCompressionEnabled(false)
   {
   }
 
@@ -77,6 +195,7 @@ struct DbConfiguration
 
       target["MainDicomTagsSignature"] = signatures;
       target["OrthancVersion"] = orthancVersion;
+      target["StorageCompressionEnabled"] = storageCompressionEnabled;
     }
   }
 
@@ -91,6 +210,8 @@ struct DbConfiguration
       mainDicomTagsSignature[OrthancPluginResourceType_Study] = signatures["Study"].asString();
       mainDicomTagsSignature[OrthancPluginResourceType_Series] = signatures["Series"].asString();
       mainDicomTagsSignature[OrthancPluginResourceType_Instance] = signatures["Instance"].asString();
+
+      storageCompressionEnabled = source["StorageCompressionEnabled"].asBool();
     }
   }
 };
@@ -193,6 +314,7 @@ static void GetCurrentDbConfiguration(DbConfiguration& configuration)
   configuration.mainDicomTagsSignature[OrthancPluginResourceType_Study] = systemInfo["MainDicomTags"]["Study"].asString();
   configuration.mainDicomTagsSignature[OrthancPluginResourceType_Series] = systemInfo["MainDicomTags"]["Series"].asString();
   configuration.mainDicomTagsSignature[OrthancPluginResourceType_Instance] = systemInfo["MainDicomTags"]["Instance"].asString();
+  configuration.storageCompressionEnabled = systemInfo["StorageCompression"].asBool();
 
   configuration.orthancVersion = OrthancPlugins::GetGlobalContext()->orthancVersion;
 }
@@ -211,32 +333,88 @@ static bool NeedsProcessing(const DbConfiguration& current, const DbConfiguratio
 
   if (!OrthancPlugins::CheckMinimalVersion(lastVersion, 1, 9, 1))
   {
-    OrthancPlugins::LogWarning("DbOptimizer: your storage might still contain some dicom-as-json files -> will reconstruct DB");
-    needsProcessing = true;
+    if (triggerOnUnnecessaryDicomAsJsonFiles_)
+    {
+      OrthancPlugins::LogWarning("Housekeeper: your storage might still contain some dicom-as-json files -> will perform housekeeping");
+      needsProcessing = true;
+    }
+    else
+    {
+      OrthancPlugins::LogWarning("Housekeeper: your storage might still contain some dicom-as-json files but the trigger has been disabled");
+    }
   }
 
   if (lastTags.at(OrthancPluginResourceType_Patient) != currentTags.at(OrthancPluginResourceType_Patient))
   {
-    OrthancPlugins::LogWarning("DbOptimizer: Patient main dicom tags have changed, -> will reconstruct DB");
-    needsProcessing = true;
+    if (triggerOnMainDicomTagsChange_)
+    {
+      OrthancPlugins::LogWarning("Housekeeper: Patient main dicom tags have changed, -> will perform housekeeping");
+      needsProcessing = true;
+    }
+    else
+    {
+      OrthancPlugins::LogWarning("Housekeeper: Patient main dicom tags have changed but the trigger is disabled");
+    }
   }
 
   if (lastTags.at(OrthancPluginResourceType_Study) != currentTags.at(OrthancPluginResourceType_Study))
   {
-    OrthancPlugins::LogWarning("DbOptimizer: Study main dicom tags have changed, -> will reconstruct DB");
-    needsProcessing = true;
+    if (triggerOnMainDicomTagsChange_)
+    {
+      OrthancPlugins::LogWarning("Housekeeper: Study main dicom tags have changed, -> will perform housekeeping");
+      needsProcessing = true;
+    }
+    else
+    {
+      OrthancPlugins::LogWarning("Housekeeper: Study main dicom tags have changed but the trigger is disabled");
+    }
   }
 
   if (lastTags.at(OrthancPluginResourceType_Series) != currentTags.at(OrthancPluginResourceType_Series))
   {
-    OrthancPlugins::LogWarning("DbOptimizer: Series main dicom tags have changed, -> will reconstruct DB");
-    needsProcessing = true;
+    if (triggerOnMainDicomTagsChange_)
+    {
+      OrthancPlugins::LogWarning("Housekeeper: Series main dicom tags have changed, -> will perform housekeeping");
+      needsProcessing = true;
+    }
+    else
+    {
+      OrthancPlugins::LogWarning("Housekeeper: Series main dicom tags have changed but the trigger is disabled");
+    }
   }
 
   if (lastTags.at(OrthancPluginResourceType_Instance) != currentTags.at(OrthancPluginResourceType_Instance))
   {
-    OrthancPlugins::LogWarning("DbOptimizer: Instance main dicom tags have changed, -> will reconstruct DB");
-    needsProcessing = true;
+    if (triggerOnMainDicomTagsChange_)
+    {
+      OrthancPlugins::LogWarning("Housekeeper: Instance main dicom tags have changed, -> will perform housekeeping");
+      needsProcessing = true;
+    }
+    else
+    {
+      OrthancPlugins::LogWarning("Housekeeper: Instance main dicom tags have changed but the trigger is disabled");
+    }
+  }
+
+  if (current.storageCompressionEnabled != last.storageCompressionEnabled)
+  {
+    if (triggerOnStorageCompressionChange_)
+    {
+      if (current.storageCompressionEnabled)
+      {
+        OrthancPlugins::LogWarning("Housekeeper: storage compression is now enabled -> will perform housekeeping");
+      }
+      else
+      {
+        OrthancPlugins::LogWarning("Housekeeper: storage compression is now disabled -> will perform housekeeping");
+      }
+      
+      needsProcessing = true;
+    }
+    else
+    {
+      OrthancPlugins::LogWarning("Housekeeper: storage compression has changed but the trigger is disabled");
+    }
   }
 
   return needsProcessing;
@@ -259,7 +437,7 @@ static bool ProcessChanges(PluginStatus& pluginStatus, const DbConfiguration& cu
     {
       Json::Value result;
       OrthancPlugins::RestApiPost(result, "/studies/" + change["ID"].asString() + "/reconstruct", std::string(""), false);
-      boost::this_thread::sleep(boost::posix_time::milliseconds(throttleDelay_*1000));
+      boost::this_thread::sleep(boost::posix_time::milliseconds(throttleDelay_ * 1000));
     }
 
     if (seq >= pluginStatus.lastChangeToProcess)  // we are done !
@@ -279,14 +457,14 @@ static void WorkerThread()
   PluginStatus pluginStatus;
   DbConfiguration currentDbConfiguration;
 
-  OrthancPluginLogWarning(OrthancPlugins::GetGlobalContext(), "Starting DB optimizer worker thread");
+  OrthancPluginLogWarning(OrthancPlugins::GetGlobalContext(), "Starting Housekeeper worker thread");
 
   ReadStatusFromDb(pluginStatus);
   GetCurrentDbConfiguration(currentDbConfiguration);
 
   if (!NeedsProcessing(currentDbConfiguration, pluginStatus.lastProcessedConfiguration))
   {
-    OrthancPlugins::LogWarning("DbOptimizer: everything has been processed already !");
+    OrthancPlugins::LogWarning("Housekeeper: everything has been processed already !");
     return;
   }
 
@@ -294,11 +472,11 @@ static void WorkerThread()
   {
     if (force_)
     {
-      OrthancPlugins::LogWarning("DbOptimizer: forcing execution -> will reconstruct DB");
+      OrthancPlugins::LogWarning("Housekeeper: forcing execution -> will perform housekeeping");
     }
     else
     {
-      OrthancPlugins::LogWarning("DbOptimizer: the DB configuration has changed since last run, will reprocess the whole DB !");
+      OrthancPlugins::LogWarning("Housekeeper: the DB configuration has changed since last run, will reprocess the whole DB !");
     }
     
     Json::Value changes;
@@ -309,22 +487,37 @@ static void WorkerThread()
   }
   else
   {
-    OrthancPlugins::LogWarning("DbOptimizer: the DB configuration has not changed since last run, will continue processing changes");
+    OrthancPlugins::LogWarning("Housekeeper: the DB configuration has not changed since last run, will continue processing changes");
   }
 
   bool completed = pluginStatus.lastChangeToProcess == 0;  // if the DB is empty at start, no need to process anyting
-  while (!workerThreadShouldStop && !completed)
+  bool loggedNotRightPeriodChangeMessage = false;
+
+  while (!workerThreadShouldStop_ && !completed)
   {
-    completed = ProcessChanges(pluginStatus, currentDbConfiguration);
-    SaveStatusInDb(pluginStatus);
-    
-    if (!completed)
+    if (runningPeriods_.isInPeriod())
     {
-      OrthancPlugins::LogInfo("DbOptimizer: processed changes " + 
-                              boost::lexical_cast<std::string>(pluginStatus.lastProcessedChange) + 
-                              " / " + boost::lexical_cast<std::string>(pluginStatus.lastChangeToProcess));
+      completed = ProcessChanges(pluginStatus, currentDbConfiguration);
+      SaveStatusInDb(pluginStatus);
       
-      boost::this_thread::sleep(boost::posix_time::milliseconds(throttleDelay_*100));  // wait 1/10 of the delay between changes
+      if (!completed)
+      {
+        OrthancPlugins::LogInfo("Housekeeper: processed changes " + 
+                                boost::lexical_cast<std::string>(pluginStatus.lastProcessedChange) + 
+                                " / " + boost::lexical_cast<std::string>(pluginStatus.lastChangeToProcess));
+        
+        boost::this_thread::sleep(boost::posix_time::milliseconds(throttleDelay_ * 100));  // wait 1/10 of the delay between changes
+      }
+
+      loggedNotRightPeriodChangeMessage = false;
+    }
+    else
+    {
+      if (!loggedNotRightPeriodChangeMessage)
+      {
+        OrthancPlugins::LogInfo("Housekeeper: entering quiet period");
+        loggedNotRightPeriodChangeMessage = true;
+      }
     }
   }  
 
@@ -338,7 +531,7 @@ static void WorkerThread()
     
     SaveStatusInDb(pluginStatus);
 
-    OrthancPluginLogWarning(OrthancPlugins::GetGlobalContext(), "DbOptimizer: finished processing all changes");
+    OrthancPluginLogWarning(OrthancPlugins::GetGlobalContext(), "Housekeeper: finished processing all changes");
   }
 }
 
@@ -352,7 +545,6 @@ extern "C"
     {
       case OrthancPluginChangeType_OrthancStarted:
       {
-        OrthancPluginLogWarning(OrthancPlugins::GetGlobalContext(), "Starting DB Optmizer worker thread");
         workerThread_.reset(new boost::thread(WorkerThread));
         return OrthancPluginErrorCode_Success;
       }
@@ -360,7 +552,7 @@ extern "C"
       {
         if (workerThread_ && workerThread_->joinable())
         {
-          workerThreadShouldStop = true;
+          workerThreadShouldStop_ = true;
           workerThread_->join();
         }
       }
@@ -382,25 +574,86 @@ extern "C"
       return -1;
     }
 
-    OrthancPlugins::LogWarning("DB Optimizer plugin is initializing");
+    OrthancPlugins::LogWarning("Housekeeper plugin is initializing");
     OrthancPluginSetDescription(c, "Optimizes your DB and storage.");
 
     OrthancPlugins::OrthancConfiguration configuration;
 
-    OrthancPlugins::OrthancConfiguration dbOptimizer;
-    configuration.GetSection(dbOptimizer, "DbOptimizer");
+    OrthancPlugins::OrthancConfiguration housekeeper;
+    configuration.GetSection(housekeeper, "Housekeeper");
 
-    bool enabled = dbOptimizer.GetBooleanValue("Enable", false);
+    bool enabled = housekeeper.GetBooleanValue("Enable", false);
     if (enabled)
     {
-      globalPropertyId_ = dbOptimizer.GetIntegerValue("GlobalPropertyId", 1025);
-      force_ = dbOptimizer.GetBooleanValue("Force", false);
-      throttleDelay_ = dbOptimizer.GetUnsignedIntegerValue("ThrottleDelay", 0);      
+      /*
+        {
+          "Housekeeper": {
+            
+            // Enables/disables the plugin
+            "Enable": false,
+
+            // the Global Prooperty ID in which the plugin progress
+            // is stored.  Must be > 1024 and must not be used by
+            // another plugin
+            "GlobalPropertyId": 1025,
+
+            // Forces execution even if the plugin did not detect
+            // any changes in configuration
+            "Force": false,
+
+            // Delay (in seconds) between reconstruction of 2 studies
+            // This avoids overloading Orthanc with the housekeeping
+            // process and leaves room for other operations.
+            "ThrottleDelay": 5,
+
+            // Runs the plugin only at certain period of time.
+            // If not specified, the plugin runs all the time
+            // Examples: 
+            // to run between 0AM and 6AM everyday + every night 
+            // from 8PM to 12PM and 24h a day on the weekend:
+            // "Schedule": {
+            //   "Monday": ["0-6", "20-24"],
+            //   "Tuesday": ["0-6", "20-24"],
+            //   "Wednesday": ["0-6", "20-24"],
+            //   "Thursday": ["0-6", "20-24"],
+            //   "Friday": ["0-6", "20-24"],
+            //   "Saturday": ["0-24"],
+            //   "Sunday": ["0-24"]
+            // },
+
+            // configure events that can trigger a housekeeping processing 
+            "Triggers" : {
+              "StorageCompressionChange": true,
+              "MainDicomTagsChange": true,
+              "UnnecessaryDicomAsJsonFiles": true
+            }
+
+          }
+        }
+      */
+
+
+      globalPropertyId_ = housekeeper.GetIntegerValue("GlobalPropertyId", 1025);
+      force_ = housekeeper.GetBooleanValue("Force", false);
+      throttleDelay_ = housekeeper.GetUnsignedIntegerValue("ThrottleDelay", 5);      
+
+      if (housekeeper.GetJson().isMember("Triggers"))
+      {
+        triggerOnStorageCompressionChange_ = housekeeper.GetBooleanValue("StorageCompressionChange", true);
+        triggerOnMainDicomTagsChange_ = housekeeper.GetBooleanValue("MainDicomTagsChange", true);
+        triggerOnUnnecessaryDicomAsJsonFiles_ = housekeeper.GetBooleanValue("UnnecessaryDicomAsJsonFiles", true);
+      }
+
+      if (housekeeper.GetJson().isMember("Schedule"))
+      {
+        runningPeriods_.load(housekeeper.GetJson()["Schedule"]);
+      }
+
       OrthancPluginRegisterOnChangeCallback(c, OnChangeCallback);
     }
     else
     {
-      OrthancPlugins::LogWarning("DB Optimizer plugin is disabled by the configuration file");
+      OrthancPlugins::LogWarning("Housekeeper plugin is disabled by the configuration file");
     }
 
     return 0;
@@ -409,13 +662,13 @@ extern "C"
 
   ORTHANC_PLUGINS_API void OrthancPluginFinalize()
   {
-    OrthancPlugins::LogWarning("DB Optimizer plugin is finalizing");
+    OrthancPlugins::LogWarning("Housekeeper plugin is finalizing");
   }
 
 
   ORTHANC_PLUGINS_API const char* OrthancPluginGetName()
   {
-    return "db-optimizer";
+    return "housekeeper";
   }
 
 
