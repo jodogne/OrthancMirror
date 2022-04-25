@@ -6,12 +6,13 @@ General
 
 * New configuration "ExtraMainDicomTags" to store more tags in the Index DB
   to speed up, e.g, building C-Find, dicom-web or tools/find answers
-* New sample plugin: "DbOptimizer" that will re-construct the DB/Storage
+* New sample plugin: "Housekeeper" that will re-construct the DB/Storage
   when it detects there is room for improvements, e.g:
   - if files were stored with a version of Orthanc prior to 1.9.1,
     the storage might still contain dicom-as-json files that are not needed
-    anymore
-  - if "ExtraMainDicomTags" has been changed.
+    anymore -> it will remove them
+  - if "ExtraMainDicomTags" has changed.
+  - if "StorageCompression" has chagned.
 * New configuration "Warnings" to enable/disable individual warnings that can
   be identified by a W0XX prefix in the logs.
   These warnings have been added:
@@ -39,6 +40,7 @@ REST API
   - /instances
 * new field "MainDicomTags" in the /system route response to list the tags that
   are saved in DB
+* new field "StorageCompression" reported in the /system route response
 
 
 Version 1.10.1 (2022-03-23)
