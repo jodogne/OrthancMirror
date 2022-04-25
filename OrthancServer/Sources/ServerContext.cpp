@@ -2343,12 +2343,9 @@ namespace Orthanc
       && (dicomAsJson != NULL))
     {
       
-      if (mainDicomTags.GetSize() > 0)
-      {
-        resource.tags_.Merge(mainDicomTags);
-      }
+      resource.tags_.Merge(mainDicomTags);
 
-      if (dicomAsJson != NULL && dicomAsJson->isObject())
+      if (dicomAsJson->isObject())
       {
         resource.tags_.FromDicomAsJson(*dicomAsJson);
       }
