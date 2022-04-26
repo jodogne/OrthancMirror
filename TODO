@@ -126,6 +126,8 @@ Mid-term
   DicomImageDecoder
 * Strict hierarchical C-FIND:
   https://groups.google.com/d/msg/orthanc-users/VBHpeGVSNKM/tkaVvjWFBwAJ
+* report DIMSE error codes in Rest API and job status for /store /query /move /retrieve
+* Log outgoing C-Find queries
 
 ---------
 Long-term
@@ -161,6 +163,19 @@ Performance
     - ModalitiesInStudy
     - all computed counters at series/study/patient level
     - RequestAttributesSequence (sequence that must be included in all DicomWeb QIDO-RS for series)
+
+* Long-shot & not sure it is even feasible at all: try to reduce memory usage by implementing streaming
+  when receiving DICOM instances from the Rest API or from DICOM and store files directly to disk as they
+  are received.  Note that this would likely require rewriting large parts of Orthanc.  Note sure that 
+  would be compatible with Transcoding.
+  Use case: receiving 10 1GB instances in parallel can consume up to 20 GB
+  Alternative option 1: write an "external application/plugin" that would take care of these receptions, write the
+  file at the right place and send a signal to Orthanc to "adopt" the file.
+  Alternative option 2: declare a memory resource (X GB) that is available for reception.  Every time
+  Orthanc starts receiving a file, it reserves the memory or twice the memory (through a Semaphore)
+  if no memory is available, it waits and possibly timeouts returning a 503 or DIMSE A700 (out of resources).
+  This would at least protect from "out of memory" crashes.
+
 
 ========
 Database
