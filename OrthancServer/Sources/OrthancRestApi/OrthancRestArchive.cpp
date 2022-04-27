@@ -580,6 +580,7 @@ namespace Orthanc
   static void CreateSingleGet(RestApiGetCall& call)
   {
     static const char* const TRANSCODE = "transcode";
+    static const char* const FILENAME = "filename";
 
     if (call.IsDocumentation())
     {
@@ -594,6 +595,9 @@ namespace Orthanc
                         "which might *not* be desirable to archive large amount of data, as it might "
                         "lead to network timeouts. Prefer the asynchronous version using `POST` method.")
         .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
+        .SetHttpGetArgument(FILENAME, RestApiCallDocumentation::Type_String,
+                            "Filename to set in the \"Content-Disposition\" HTTP header "
+                            "(including file extension)", false)
         .SetHttpGetArgument(TRANSCODE, RestApiCallDocumentation::Type_String,
                             "If present, the DICOM files in the archive will be transcoded to the provided "
                             "transfer syntax: https://book.orthanc-server.com/faq/transcoding.html", false)
@@ -609,7 +613,8 @@ namespace Orthanc
 
     ServerContext& context = OrthancRestApi::GetContext(call);
 
-    std::string id = call.GetUriComponent("id", "");
+    const std::string id = call.GetUriComponent("id", "");
+    const std::string filename = call.GetArgument(FILENAME, id + ".zip");  // New in Orthanc 1.11.0
 
     bool extended;
     if (IS_MEDIA)
@@ -636,7 +641,7 @@ namespace Orthanc
     }
 
     SubmitJob(call.GetOutput(), context, job, 0 /* priority */,
-              true /* synchronous */, id + ".zip");
+              true /* synchronous */, filename);
   }
 
 

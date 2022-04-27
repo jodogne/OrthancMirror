@@ -41,6 +41,8 @@ REST API
 * new field "MainDicomTags" in the /system route response to list the tags that
   are saved in DB
 * new field "StorageCompression" reported in the /system route response
+* New option "filename" in "/.../{id}/archive" and "/.../{id}/media" to
+  manually set the filename in the "Content-Disposition" HTTP header
 
 
 Version 1.10.1 (2022-03-23)
