@@ -57,6 +57,7 @@ static Orthanc::Semaphore throttlingSemaphore_(4);  // TODO => PARAMETER?
 static const std::string CHECK_REVISIONS = "CheckRevisions";
 
 static const char* const IGNORE_LENGTH = "ignore-length";
+static const char* const RECONSTRUCT_FILES = "ReconstructFiles";
 
 
 namespace Orthanc
@@ -3379,6 +3380,32 @@ namespace Orthanc
     call.GetOutput().AnswerBuffer("", MimeType_PlainText);
   }
 
+  void DocumentReconstructFilesField(RestApiPostCall& call)
+  {
+    call.GetDocumentation()
+      .SetRequestField(RECONSTRUCT_FILES, RestApiCallDocumentation::Type_Boolean,
+                       "Also reconstruct the files of the resources (e.g: apply IngestTranscoding, StorageCompression). "
+                       "'false' by default. (New in Orthanc 1.11.0)", false);
+  }
+
+  bool GetReconstructFilesField(RestApiPostCall& call)
+  {
+    bool reconstructFiles = false;
+    Json::Value request;
+
+    if (call.GetBodySize() > 0 && call.ParseJsonRequest(request) && request.isMember(RECONSTRUCT_FILES)) // allow "" payload to keep backward compatibility
+    {
+      if (!request[RECONSTRUCT_FILES].isBool())
+      {
+        throw OrthancException(ErrorCode_BadFileFormat,
+                               "The field " + std::string(RECONSTRUCT_FILES) + " must contain a Boolean");
+      }
+
+      reconstructFiles = request[RECONSTRUCT_FILES].asBool();
+    }
+
+    return reconstructFiles;
+  }
 
   template <enum ResourceType type>
   static void ReconstructResource(RestApiPostCall& call)
@@ -3388,18 +3415,20 @@ namespace Orthanc
       const std::string resource = GetResourceTypeText(type, false /* plural */, false /* lower case */);
       call.GetDocumentation()
         .SetTag(GetResourceTypeText(type, true /* plural */, true /* upper case */))
-        .SetSummary("Reconstruct tags of " + resource)
-        .SetDescription("Reconstruct the main DICOM tags of the " + resource + " whose Orthanc identifier is provided "
+        .SetSummary("Reconstruct tags & optionally files of " + resource)
+        .SetDescription("Reconstruct the main DICOM tags in DB of the " + resource + " whose Orthanc identifier is provided "
                         "in the URL. This is useful if child studies/series/instances have inconsistent values for "
                         "higher-level tags, in order to force Orthanc to use the value from the resource of interest. "
                         "Beware that this is a time-consuming operation, as all the children DICOM instances will be "
                         "parsed again, and the Orthanc index will be updated accordingly.")
         .SetUriArgument("id", "Orthanc identifier of the " + resource + " of interest");
+        DocumentReconstructFilesField(call);
+
       return;
     }
 
     ServerContext& context = OrthancRestApi::GetContext(call);
-    ServerToolbox::ReconstructResource(context, call.GetUriComponent("id", ""));
+    ServerToolbox::ReconstructResource(context, call.GetUriComponent("id", ""), GetReconstructFilesField(call));
     call.GetOutput().AnswerBuffer("", MimeType_PlainText);
   }
 
@@ -3414,7 +3443,11 @@ namespace Orthanc
         .SetDescription("Reconstruct the index of all the tags of all the DICOM instances that are stored in Orthanc. "
                         "This is notably useful after the deletion of resources whose children resources have inconsistent "
                         "values with their sibling resources. Beware that this is a highly time-consuming operation, "
-                        "as all the DICOM instances will be parsed again, and as all the Orthanc index will be regenerated.");
+                        "as all the DICOM instances will be parsed again, and as all the Orthanc index will be regenerated. "
+                        "If you have a large database to process, it is advised to use the Housekeeper plugin to perform "
+                        "this action resource by resource");
+        DocumentReconstructFilesField(call);
+
       return;
     }
 
@@ -3422,11 +3455,12 @@ namespace Orthanc
 
     std::list<std::string> studies;
     context.GetIndex().GetAllUuids(studies, ResourceType_Study);
+    bool reconstructFiles = GetReconstructFilesField(call);
 
     for (std::list<std::string>::const_iterator 
            study = studies.begin(); study != studies.end(); ++study)
     {
-      ServerToolbox::ReconstructResource(context, *study);
+      ServerToolbox::ReconstructResource(context, *study, reconstructFiles);
     }
     
     call.GetOutput().AnswerBuffer("", MimeType_PlainText);

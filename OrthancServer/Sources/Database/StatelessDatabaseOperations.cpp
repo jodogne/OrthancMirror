@@ -2850,7 +2850,8 @@ namespace Orthanc
                                                  bool hasPixelDataOffset,
                                                  uint64_t pixelDataOffset,
                                                  uint64_t maximumStorageSize,
-                                                 unsigned int maximumPatients)
+                                                 unsigned int maximumPatients,
+                                                 bool isReconstruct)
   {
     class Operations : public IReadWriteOperations
     {
@@ -2868,6 +2869,7 @@ namespace Orthanc
       uint64_t                             pixelDataOffset_;
       uint64_t                             maximumStorageSize_;
       unsigned int                         maximumPatientCount_;
+      bool                                 isReconstruct_;
 
       // Auto-computed fields
       bool          hasExpectedInstances_;
@@ -2955,7 +2957,8 @@ namespace Orthanc
                  bool hasPixelDataOffset,
                  uint64_t pixelDataOffset,
                  uint64_t maximumStorageSize,
-                 unsigned int maximumPatientCount) :
+                 unsigned int maximumPatientCount,
+                 bool isReconstruct) :
         storeStatus_(StoreStatus_Failure),
         instanceMetadata_(instanceMetadata),
         dicomSummary_(dicomSummary),
@@ -2968,7 +2971,8 @@ namespace Orthanc
         hasPixelDataOffset_(hasPixelDataOffset),
         pixelDataOffset_(pixelDataOffset),
         maximumStorageSize_(maximumStorageSize),
-        maximumPatientCount_(maximumPatientCount)
+        maximumPatientCount_(maximumPatientCount),
+        isReconstruct_(isReconstruct)
       {
         hasExpectedInstances_ = ComputeExpectedNumberOfInstances(expectedInstances_, dicomSummary);
     
@@ -3022,31 +3026,33 @@ namespace Orthanc
           }
 
 
-          // Warn about the creation of new resources. The order must be
-          // from instance to patient.
+          if (!isReconstruct_)  // don't signal new resources if this is a reconstruction
+          {
+            // Warn about the creation of new resources. The order must be
+            // from instance to patient.
 
-          // NB: In theory, could be sped up by grouping the underlying
-          // calls to "transaction.LogChange()". However, this would only have an
-          // impact when new patient/study/series get created, which
-          // occurs far less often that creating new instances. The
-          // positive impact looks marginal in practice.
-          transaction.LogChange(instanceId, ChangeType_NewInstance, ResourceType_Instance, hashInstance_);
+            // NB: In theory, could be sped up by grouping the underlying
+            // calls to "transaction.LogChange()". However, this would only have an
+            // impact when new patient/study/series get created, which
+            // occurs far less often that creating new instances. The
+            // positive impact looks marginal in practice.
+            transaction.LogChange(instanceId, ChangeType_NewInstance, ResourceType_Instance, hashInstance_);
 
-          if (status.isNewSeries_)
-          {
-            transaction.LogChange(status.seriesId_, ChangeType_NewSeries, ResourceType_Series, hashSeries_);
-          }
-      
-          if (status.isNewStudy_)
-          {
-            transaction.LogChange(status.studyId_, ChangeType_NewStudy, ResourceType_Study, hashStudy_);
-          }
-      
-          if (status.isNewPatient_)
-          {
-            transaction.LogChange(status.patientId_, ChangeType_NewPatient, ResourceType_Patient, hashPatient_);
-          }
-      
+            if (status.isNewSeries_)
+            {
+              transaction.LogChange(status.seriesId_, ChangeType_NewSeries, ResourceType_Series, hashSeries_);
+            }
+        
+            if (status.isNewStudy_)
+            {
+              transaction.LogChange(status.studyId_, ChangeType_NewStudy, ResourceType_Study, hashStudy_);
+            }
+        
+            if (status.isNewPatient_)
+            {
+              transaction.LogChange(status.patientId_, ChangeType_NewPatient, ResourceType_Patient, hashPatient_);
+            }
+          }      
       
           // Ensure there is enough room in the storage for the new instance
           uint64_t instanceSize = 0;
@@ -3056,9 +3062,11 @@ namespace Orthanc
             instanceSize += it->GetCompressedSize();
           }
 
-          transaction.Recycle(maximumStorageSize_, maximumPatientCount_,
-                              instanceSize, hashPatient_ /* don't consider the current patient for recycling */);
-      
+          if (!isReconstruct_)  // reconstruction should not affect recycling
+          {
+            transaction.Recycle(maximumStorageSize_, maximumPatientCount_,
+                                instanceSize, hashPatient_ /* don't consider the current patient for recycling */);
+          }  
      
           // Attach the files to the newly created instance
           for (Attachments::const_iterator it = attachments_.begin();
@@ -3070,33 +3078,9 @@ namespace Orthanc
       
           {
             ResourcesContent content(true /* new resource, metadata can be set */);
-      
-            // Populate the tags of the newly-created resources
-
-            content.AddResource(instanceId, ResourceType_Instance, dicomSummary_);
-            content.AddMetadata(instanceId, MetadataType_MainDicomTagsSignature, DicomMap::GetMainDicomTagsSignature(ResourceType_Instance));  // New in Orthanc 1.11.0
-
-            if (status.isNewSeries_)
-            {
-              content.AddResource(status.seriesId_, ResourceType_Series, dicomSummary_);
-              content.AddMetadata(status.seriesId_, MetadataType_MainDicomTagsSignature, DicomMap::GetMainDicomTagsSignature(ResourceType_Series));  // New in Orthanc 1.11.0
-            }
-
-            if (status.isNewStudy_)
-            {
-              content.AddResource(status.studyId_, ResourceType_Study, dicomSummary_);
-              content.AddMetadata(status.studyId_, MetadataType_MainDicomTagsSignature, DicomMap::GetMainDicomTagsSignature(ResourceType_Study));  // New in Orthanc 1.11.0
-            }
-
-            if (status.isNewPatient_)
-            {
-              content.AddResource(status.patientId_, ResourceType_Patient, dicomSummary_);
-              content.AddMetadata(status.patientId_, MetadataType_MainDicomTagsSignature, DicomMap::GetMainDicomTagsSignature(ResourceType_Patient));  // New in Orthanc 1.11.0
-            }
 
 
-            // Attach the user-specified metadata
-
+            // Attach the user-specified metadata (in case of reconstruction, metadata_ contains all past metadata, including the system ones we want to keep)
             for (MetadataMap::const_iterator 
                    it = metadata_.begin(); it != metadata_.end(); ++it)
             {
@@ -3124,7 +3108,29 @@ namespace Orthanc
               }
             }
 
-        
+            // Populate the tags of the newly-created resources
+
+            content.AddResource(instanceId, ResourceType_Instance, dicomSummary_);
+            SetInstanceMetadata(content, instanceMetadata_, instanceId, MetadataType_MainDicomTagsSignature, DicomMap::GetMainDicomTagsSignature(ResourceType_Instance));  // New in Orthanc 1.11.0
+
+            if (status.isNewSeries_)
+            {
+              content.AddResource(status.seriesId_, ResourceType_Series, dicomSummary_);
+              content.AddMetadata(status.seriesId_, MetadataType_MainDicomTagsSignature, DicomMap::GetMainDicomTagsSignature(ResourceType_Series));  // New in Orthanc 1.11.0
+            }
+
+            if (status.isNewStudy_)
+            {
+              content.AddResource(status.studyId_, ResourceType_Study, dicomSummary_);
+              content.AddMetadata(status.studyId_, MetadataType_MainDicomTagsSignature, DicomMap::GetMainDicomTagsSignature(ResourceType_Study));  // New in Orthanc 1.11.0
+            }
+
+            if (status.isNewPatient_)
+            {
+              content.AddResource(status.patientId_, ResourceType_Patient, dicomSummary_);
+              content.AddMetadata(status.patientId_, MetadataType_MainDicomTagsSignature, DicomMap::GetMainDicomTagsSignature(ResourceType_Patient));  // New in Orthanc 1.11.0
+            }
+
             // Attach the auto-computed metadata for the patient/study/series levels
             std::string now = SystemToolbox::GetNowIsoString(true /* use UTC time (not local time) */);
             content.AddMetadata(status.seriesId_, MetadataType_LastUpdate, now);
@@ -3144,17 +3150,6 @@ namespace Orthanc
                                   origin_.GetRemoteAetC());
             }
 
-        
-            // Attach the auto-computed metadata for the instance level,
-            // reflecting these additions into the input metadata map
-            SetInstanceMetadata(content, instanceMetadata_, instanceId,
-                                MetadataType_Instance_ReceptionDate, now);
-            SetInstanceMetadata(content, instanceMetadata_, instanceId, MetadataType_RemoteAet,
-                                origin_.GetRemoteAetC());
-            SetInstanceMetadata(content, instanceMetadata_, instanceId, MetadataType_Instance_Origin, 
-                                EnumerationToString(origin_.GetRequestOrigin()));
-
-
             if (hasTransferSyntax_)
             {
               // New in Orthanc 1.2.0
@@ -3163,7 +3158,17 @@ namespace Orthanc
                                   GetTransferSyntaxUid(transferSyntax_));
             }
 
-            {
+            if (!isReconstruct_) // don't change origin metadata
+            {        
+              // Attach the auto-computed metadata for the instance level,
+              // reflecting these additions into the input metadata map
+              SetInstanceMetadata(content, instanceMetadata_, instanceId,
+                                  MetadataType_Instance_ReceptionDate, now);
+              SetInstanceMetadata(content, instanceMetadata_, instanceId, MetadataType_RemoteAet,
+                                  origin_.GetRemoteAetC());
+              SetInstanceMetadata(content, instanceMetadata_, instanceId, MetadataType_Instance_Origin, 
+                                  EnumerationToString(origin_.GetRequestOrigin()));
+
               std::string s;
 
               if (origin_.LookupRemoteIp(s))
@@ -3270,7 +3275,7 @@ namespace Orthanc
 
     Operations operations(instanceMetadata, dicomSummary, attachments, metadata, origin,
                           overwrite, hasTransferSyntax, transferSyntax, hasPixelDataOffset,
-                          pixelDataOffset, maximumStorageSize, maximumPatients);
+                          pixelDataOffset, maximumStorageSize, maximumPatients, isReconstruct);
     Apply(operations);
     return operations.GetStoreStatus();
   }

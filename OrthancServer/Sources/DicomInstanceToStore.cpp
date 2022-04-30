@@ -300,4 +300,14 @@ namespace Orthanc
   {
     return GetParsedDicomFile().DecodeFrame(frame);
   }
+
+  void DicomInstanceToStore::CopyMetadata(const DicomInstanceToStore::MetadataMap& metadata)
+  {
+    for (MetadataMap::const_iterator it = metadata.begin(); 
+         it != metadata.end(); ++it)
+    {
+      AddMetadata(it->first.first, it->first.second, it->second);
+    }
+  }
+
 }

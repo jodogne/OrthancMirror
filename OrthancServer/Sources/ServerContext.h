@@ -261,7 +261,8 @@ namespace Orthanc
 
     StoreResult StoreAfterTranscoding(std::string& resultPublicId,
                                       DicomInstanceToStore& dicom,
-                                      StoreInstanceMode mode);
+                                      StoreInstanceMode mode,
+                                      bool isReconstruct);
 
     void PublishDicomCacheMetrics();
 
@@ -334,6 +335,11 @@ namespace Orthanc
     StoreResult Store(std::string& resultPublicId,
                       DicomInstanceToStore& dicom,
                       StoreInstanceMode mode);
+
+    StoreResult TranscodeAndStore(std::string& resultPublicId,
+                                  DicomInstanceToStore* dicom,
+                                  StoreInstanceMode mode,
+                                  bool isReconstruct = false);
 
     void AnswerAttachment(RestApiOutput& output,
                           const std::string& resourceId,

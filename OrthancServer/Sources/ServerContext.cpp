@@ -495,7 +495,8 @@ namespace Orthanc
 
   ServerContext::StoreResult ServerContext::StoreAfterTranscoding(std::string& resultPublicId,
                                                                   DicomInstanceToStore& dicom,
-                                                                  StoreInstanceMode mode)
+                                                                  StoreInstanceMode mode,
+                                                                  bool isReconstruct)
   {
     bool overwrite;
     switch (mode)
@@ -544,6 +545,7 @@ namespace Orthanc
       // Test if the instance must be filtered out
       StoreResult result;
 
+      if (!isReconstruct) // skip all filters if this is a reconstruction
       {
         boost::shared_lock<boost::shared_mutex> lock(listenersMutex_);
 
@@ -615,7 +617,7 @@ namespace Orthanc
       InstanceMetadata  instanceMetadata;
       result.SetStatus(index_.Store(
         instanceMetadata, summary, attachments, dicom.GetMetadata(), dicom.GetOrigin(), overwrite,
-        hasTransferSyntax, transferSyntax, hasPixelDataOffset, pixelDataOffset));
+        hasTransferSyntax, transferSyntax, hasPixelDataOffset, pixelDataOffset, isReconstruct));
 
       // Only keep the metadata for the "instance" level
       dicom.ClearMetadata();
@@ -636,41 +638,47 @@ namespace Orthanc
         }
       }
 
-      switch (result.GetStatus())
+      if (!isReconstruct) // skip logs in case of reconstruction
       {
-        case StoreStatus_Success:
-          LOG(INFO) << "New instance stored";
-          break;
+        switch (result.GetStatus())
+        {
+          case StoreStatus_Success:
+            LOG(INFO) << "New instance stored";
+            break;
 
-        case StoreStatus_AlreadyStored:
-          LOG(INFO) << "Already stored";
-          break;
+          case StoreStatus_AlreadyStored:
+            LOG(INFO) << "Already stored";
+            break;
 
-        case StoreStatus_Failure:
-          LOG(ERROR) << "Store failure";
-          break;
+          case StoreStatus_Failure:
+            LOG(ERROR) << "Store failure";
+            break;
 
-        default:
-          // This should never happen
-          break;
+          default:
+            // This should never happen
+            break;
+        }
       }
 
-      if (result.GetStatus() == StoreStatus_Success ||
-          result.GetStatus() == StoreStatus_AlreadyStored)
+      if (!isReconstruct) // skip all signals if this is a reconstruction
       {
-        boost::shared_lock<boost::shared_mutex> lock(listenersMutex_);
-
-        for (ServerListeners::iterator it = listeners_.begin(); it != listeners_.end(); ++it)
+        if (result.GetStatus() == StoreStatus_Success ||
+            result.GetStatus() == StoreStatus_AlreadyStored)
         {
-          try
+          boost::shared_lock<boost::shared_mutex> lock(listenersMutex_);
+
+          for (ServerListeners::iterator it = listeners_.begin(); it != listeners_.end(); ++it)
           {
-            it->GetListener().SignalStoredInstance(resultPublicId, dicom, simplifiedTags);
-          }
-          catch (OrthancException& e)
-          {
-            LOG(ERROR) << "Error in the " << it->GetDescription() 
-                       << " callback while receiving an instance: " << e.What()
-                       << " (code " << e.GetErrorCode() << ")";
+            try
+            {
+              it->GetListener().SignalStoredInstance(resultPublicId, dicom, simplifiedTags);
+            }
+            catch (OrthancException& e)
+            {
+              LOG(ERROR) << "Error in the " << it->GetDescription() 
+                        << " callback while receiving an instance: " << e.What()
+                        << " (code " << e.GetErrorCode() << ")";
+            }
           }
         }
       }
@@ -743,10 +751,19 @@ namespace Orthanc
     }
 #endif
 
+    return TranscodeAndStore(resultPublicId, dicom, mode);
+  }
+
+  ServerContext::StoreResult ServerContext::TranscodeAndStore(std::string& resultPublicId,
+                                                              DicomInstanceToStore* dicom,
+                                                              StoreInstanceMode mode,
+                                                              bool isReconstruct)
+  {
+
     if (!isIngestTranscoding_)
     {
       // No automated transcoding. This was the only path in Orthanc <= 1.6.1.
-      return StoreAfterTranscoding(resultPublicId, *dicom, mode);
+      return StoreAfterTranscoding(resultPublicId, *dicom, mode, isReconstruct);
     }
     else
     {
@@ -782,7 +799,7 @@ namespace Orthanc
       if (!transcode)
       {
         // No transcoding
-        return StoreAfterTranscoding(resultPublicId, *dicom, mode);
+        return StoreAfterTranscoding(resultPublicId, *dicom, mode, isReconstruct);
       }
       else
       {
@@ -801,7 +818,12 @@ namespace Orthanc
           std::unique_ptr<DicomInstanceToStore> toStore(DicomInstanceToStore::CreateFromParsedDicomFile(*tmp));
           toStore->SetOrigin(dicom->GetOrigin());
 
-          StoreResult result = StoreAfterTranscoding(resultPublicId, *toStore, mode);
+          if (isReconstruct) // the initial instance to store already has its own metadata
+          {
+            toStore->CopyMetadata(dicom->GetMetadata());
+          }
+
+          StoreResult result = StoreAfterTranscoding(resultPublicId, *toStore, mode, isReconstruct);
           assert(resultPublicId == tmp->GetHasher().HashInstance());
 
           return result;
@@ -809,7 +831,7 @@ namespace Orthanc
         else
         {
           // Cannot transcode => store the original file
-          return StoreAfterTranscoding(resultPublicId, *dicom, mode);
+          return StoreAfterTranscoding(resultPublicId, *dicom, mode, isReconstruct);
         }
       }
     }

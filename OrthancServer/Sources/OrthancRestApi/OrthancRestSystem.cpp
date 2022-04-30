@@ -74,6 +74,8 @@ namespace Orthanc
     static const char* const VERSION = "Version";
     static const char* const MAIN_DICOM_TAGS = "MainDicomTags";
     static const char* const STORAGE_COMPRESSION = "StorageCompression";
+    static const char* const OVERWRITE_INSTANCES = "OverwriteInstances";
+    static const char* const INGEST_TRANSCODING = "IngestTranscoding";
     
     if (call.IsDocumentation())
     {
@@ -104,6 +106,10 @@ namespace Orthanc
                         "The list of MainDicomTags saved in DB for each resource level (new in Orthanc 1.11.0)")
         .SetAnswerField(STORAGE_COMPRESSION, RestApiCallDocumentation::Type_Boolean,
                         "Whether storage compression is enabled (new in Orthanc 1.11.0)")
+        .SetAnswerField(OVERWRITE_INSTANCES, RestApiCallDocumentation::Type_Boolean,
+                        "Whether instances are overwritten when re-ingested (new in Orthanc 1.11.0)")
+        .SetAnswerField(INGEST_TRANSCODING, RestApiCallDocumentation::Type_String,
+                        "Whether instances are transcoded when ingested into Orthanc (`""` if no transcoding is performed) (new in Orthanc 1.11.0)")
         .SetHttpGetSample("https://demo.orthanc-server.com/system", true);
       return;
     }
@@ -125,6 +131,8 @@ namespace Orthanc
       result[NAME] = lock.GetConfiguration().GetStringParameter(NAME, "");
       result[CHECK_REVISIONS] = lock.GetConfiguration().GetBooleanParameter(CHECK_REVISIONS, false);  // New in Orthanc 1.9.2
       result[STORAGE_COMPRESSION] = lock.GetConfiguration().GetBooleanParameter(STORAGE_COMPRESSION, false); // New in Orthanc 1.11.0
+      result[OVERWRITE_INSTANCES] = lock.GetConfiguration().GetBooleanParameter(OVERWRITE_INSTANCES, false); // New in Orthanc 1.11.0
+      result[INGEST_TRANSCODING] = lock.GetConfiguration().GetStringParameter(INGEST_TRANSCODING, ""); // New in Orthanc 1.11.0
     }
 
     result[STORAGE_AREA_PLUGIN] = Json::nullValue;

@@ -54,6 +54,7 @@ namespace Orthanc
     std::string NormalizeIdentifier(const std::string& value);
 
     void ReconstructResource(ServerContext& context,
-                             const std::string& resource);
+                             const std::string& resource,
+                             bool reconstructFiles);
   }
 }

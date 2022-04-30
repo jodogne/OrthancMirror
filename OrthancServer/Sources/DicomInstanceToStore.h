@@ -94,6 +94,8 @@ namespace Orthanc
       metadata_[std::make_pair(level, metadata)] = value;
     }
 
+    void CopyMetadata(const MetadataMap& metadata);
+
     bool LookupTransferSyntax(DicomTransferSyntax& result) const;
 
     virtual ParsedDicomFile& GetParsedDicomFile() const = 0;

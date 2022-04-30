@@ -254,7 +254,8 @@ namespace Orthanc
 
     
     void ReconstructResource(ServerContext& context,
-                             const std::string& resource)
+                             const std::string& resource,
+                             bool reconstructFiles)
     {
       LOG(WARNING) << "Reconstructing resource " << resource;
       
@@ -271,7 +272,30 @@ namespace Orthanc
                                             -1 /* dummy revision */, "" /* dummy MD5 */);
         
         context.GetIndex().ReconstructInstance(locker.GetDicom());
+
+        if (reconstructFiles)
+        {
+          // preserve metadata from old resource
+          typedef std::map<MetadataType, std::string>  InstanceMetadata;
+          InstanceMetadata  instanceMetadata;
+
+          std::string resultPublicId;  // ignored
+          std::unique_ptr<DicomInstanceToStore> dicomInstancetoStore(DicomInstanceToStore::CreateFromParsedDicomFile(locker.GetDicom()));
+
+          context.GetIndex().GetAllMetadata(instanceMetadata, *it, ResourceType_Instance);
+          
+          for (InstanceMetadata::const_iterator itm = instanceMetadata.begin();
+              itm != instanceMetadata.end(); ++itm)
+          {
+            dicomInstancetoStore->AddMetadata(ResourceType_Instance, itm->first, itm->second);
+          }
+
+          context.TranscodeAndStore(resultPublicId, dicomInstancetoStore.get(), StoreInstanceMode_OverwriteDuplicate, true);
+        }
       }
     }
   }
 }
+
+
+todo: add a status route for the plugin !!!
