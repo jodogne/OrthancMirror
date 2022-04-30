@@ -12,7 +12,7 @@ General
     the storage might still contain dicom-as-json files that are not needed
     anymore -> it will remove them
   - if "ExtraMainDicomTags" has changed.
-  - if "StorageCompression" has chagned.
+  - if "StorageCompression" or "IngestTranscoding" has chagned.
 * New configuration "Warnings" to enable/disable individual warnings that can
   be identified by a W0XX prefix in the logs.
   These warnings have been added:
@@ -38,9 +38,20 @@ REST API
   - /studies, /studies/../series, /studies/../instances
   - /series, /series/../instances
   - /instances
-* new field "MainDicomTags" in the /system route response to list the tags that
-  are saved in DB
-* new field "StorageCompression" reported in the /system route response
+* /reconstruct routes:
+  - new options "ReconstructFiles" (false by default to keep backward compatibility) to 
+    potentialy compress/uncompress the files or transcode them if "StorageCompression"
+    or "IngestTranscoding" has changed since the file has been ingested.
+  POSSIBLE BREAKING-CHANGES:
+  - the /reconstruct routes now preserve all metadata
+  - the /reconstruct routes now skip the IncomingInstanceFilter
+  - the /reconstruct routes won't generate new events like NewStudy, StableStudy, ...
+    therefore, the corresponding callbacks won't be called anymore
+  - the /reconstruct routes won't affect the patient recycling anymore
+* new fields reported in the /system route:
+  - "MainDicomTags" to list the tags that are saved in DB
+  - "StorageCompression", "OverwriteInstances", "IngestTranscoding" reported from the 
+    configuration file
 
 
 Version 1.10.1 (2022-03-23)
