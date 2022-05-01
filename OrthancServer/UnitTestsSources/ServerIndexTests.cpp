@@ -740,15 +740,16 @@ TEST(ServerIndex, AttachmentRecycling)
       ASSERT_EQ(StoreStatus_Success, index.Store(
                   instanceMetadata, summary, attachments, toStore->GetMetadata(),
                   toStore->GetOrigin(), false /* don't overwrite */,
-                  hasTransferSyntax, transferSyntax, true /* pixel data offset */, 42));
+                  hasTransferSyntax, transferSyntax, true /* pixel data offset */, 42, false));
     }
     
-    ASSERT_EQ(6u, instanceMetadata.size());
+    ASSERT_EQ(7u, instanceMetadata.size());
     ASSERT_TRUE(instanceMetadata.find(MetadataType_RemoteAet) != instanceMetadata.end());
     ASSERT_TRUE(instanceMetadata.find(MetadataType_Instance_ReceptionDate) != instanceMetadata.end());
     ASSERT_TRUE(instanceMetadata.find(MetadataType_Instance_TransferSyntax) != instanceMetadata.end());
     ASSERT_TRUE(instanceMetadata.find(MetadataType_Instance_SopClassUid) != instanceMetadata.end());
     ASSERT_TRUE(instanceMetadata.find(MetadataType_Instance_PixelDataOffset) != instanceMetadata.end());
+    ASSERT_TRUE(instanceMetadata.find(MetadataType_MainDicomTagsSignature) != instanceMetadata.end());
 
     ASSERT_EQ("42", instanceMetadata[MetadataType_Instance_PixelDataOffset]);
 
