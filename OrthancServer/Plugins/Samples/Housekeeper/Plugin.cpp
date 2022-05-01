@@ -26,6 +26,7 @@
 #include <boost/thread.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/date_time/special_defs.hpp>
 #include <json/value.h>
 #include <json/writer.h>
 #include <string.h>
@@ -257,7 +258,7 @@ struct PluginStatus
     target["LastProcessedChange"] = Json::Value::Int64(lastProcessedChange);
     target["LastChangeToProcess"] = Json::Value::Int64(lastChangeToProcess);
     
-    if (lastTimeStarted == boost::posix_time::special_values::not_a_date_time)
+    if (lastTimeStarted == boost::date_time::special_values::not_a_date_time)
     {
       target["LastTimeStarted"] = Json::Value::null;  
     }
@@ -277,7 +278,7 @@ struct PluginStatus
     lastChangeToProcess = source["LastChangeToProcess"].asInt64();
     if (source["LastTimeStarted"].isNull())
     {
-      lastTimeStarted = boost::posix_time::special_values::not_a_date_time;
+      lastTimeStarted = boost::date_time::special_values::not_a_date_time;
     }
     else
     {
