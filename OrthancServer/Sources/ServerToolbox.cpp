@@ -296,6 +296,3 @@ namespace Orthanc
     }
   }
 }
-
-
-todo: add a status route for the plugin !!!
