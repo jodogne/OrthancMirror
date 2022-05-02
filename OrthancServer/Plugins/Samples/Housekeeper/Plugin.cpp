@@ -246,7 +246,7 @@ struct PluginStatus
   : statusVersion(1),
     lastProcessedChange(-1),
     lastChangeToProcess(-1),
-    lastTimeStarted(boost::date_time::special_values::not_a_date_time)
+    lastTimeStarted(boost::date_time::not_a_date_time)
   {
   }
 
@@ -258,7 +258,7 @@ struct PluginStatus
     target["LastProcessedChange"] = Json::Value::Int64(lastProcessedChange);
     target["LastChangeToProcess"] = Json::Value::Int64(lastChangeToProcess);
     
-    if (lastTimeStarted == boost::date_time::special_values::not_a_date_time)
+    if (lastTimeStarted == boost::date_time::not_a_date_time)
     {
       target["LastTimeStarted"] = Json::Value::null;  
     }
@@ -278,7 +278,7 @@ struct PluginStatus
     lastChangeToProcess = source["LastChangeToProcess"].asInt64();
     if (source["LastTimeStarted"].isNull())
     {
-      lastTimeStarted = boost::date_time::special_values::not_a_date_time;
+      lastTimeStarted = boost::date_time::not_a_date_time;
     }
     else
     {
@@ -318,7 +318,7 @@ static void ReadStatusFromDb()
     pluginStatus_.statusVersion = 1;
     pluginStatus_.lastProcessedChange = -1;
     pluginStatus_.lastChangeToProcess = -1;
-    pluginStatus_.lastTimeStarted = boost::date_time::special_values::not_a_date_time;
+    pluginStatus_.lastTimeStarted = boost::date_time::not_a_date_time;
     
     pluginStatus_.lastProcessedConfiguration.orthancVersion = "1.9.0"; // when we don't know, we assume some files were stored with Orthanc 1.9.0 (last version saving the dicom-as-json files)
 
