@@ -3388,7 +3388,7 @@ namespace Orthanc
                        "'false' by default. (New in Orthanc 1.11.0)", false);
   }
 
-  bool GetReconstructFilesField(RestApiPostCall& call)
+  bool GetReconstructFilesField(const RestApiPostCall& call)
   {
     bool reconstructFiles = false;
     Json::Value request;
