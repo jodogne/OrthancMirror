@@ -362,7 +362,7 @@ namespace Orthanc
 
     for (size_t i = 0; i < constraints_.size(); i++)
     {
-      clone->AddConstraint(*(new DicomTagConstraint(*constraints_[i])));
+      clone->AddConstraintInternal(new DicomTagConstraint(*constraints_[i]));
     }
 
     return clone.release();
