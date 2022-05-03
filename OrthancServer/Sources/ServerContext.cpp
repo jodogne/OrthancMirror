@@ -638,8 +638,9 @@ namespace Orthanc
         }
       }
 
-      if (!isReconstruct) // skip logs in case of reconstruction
+      if (!isReconstruct) 
       {
+        // skip logs in case of reconstruction
         switch (result.GetStatus())
         {
           case StoreStatus_Success:
@@ -658,10 +659,8 @@ namespace Orthanc
             // This should never happen
             break;
         }
-      }
 
-      if (!isReconstruct) // skip all signals if this is a reconstruction
-      {
+        // skip all signals if this is a reconstruction
         if (result.GetStatus() == StoreStatus_Success ||
             result.GetStatus() == StoreStatus_AlreadyStored)
         {
