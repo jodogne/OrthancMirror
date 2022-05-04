@@ -45,6 +45,19 @@ namespace Orthanc
 {
   namespace Internals
   {
+#if DCMTK_VERSION_NUMBER >= 367
+    static bool IsFailure(OFCondition cond)
+    {
+      return !cond.good();
+    }
+#else
+    static bool IsFailure(DcmTransportLayerStatus status)
+    {
+      return (status != TCS_ok);
+    }
+#endif
+
+
     DcmTLSTransportLayer* InitializeDicomTls(T_ASC_Network *network,
                                              T_ASC_NetworkRole role,
                                              const std::string& ownPrivateKeyPath,
@@ -107,19 +120,19 @@ namespace Orthanc
         new DcmTLSTransportLayer(tmpRole /*opt_networkRole*/, NULL /*opt_readSeedFile*/,
                                  OFFalse /*initializeOpenSSL, done by Orthanc::Toolbox::InitializeOpenSsl()*/));
 
-      if (tls->addTrustedCertificateFile(trustedCertificatesPath.c_str(), DCF_Filetype_PEM /*opt_keyFileFormat*/) != TCS_ok)
+      if (IsFailure(tls->addTrustedCertificateFile(trustedCertificatesPath.c_str(), DCF_Filetype_PEM /*opt_keyFileFormat*/)))
       {
         throw OrthancException(ErrorCode_BadFileFormat, "Cannot parse PEM file with trusted certificates for DICOM TLS: " +
                                trustedCertificatesPath);
       }
 
-      if (tls->setPrivateKeyFile(ownPrivateKeyPath.c_str(), DCF_Filetype_PEM /*opt_keyFileFormat*/) != TCS_ok)
+      if (IsFailure(tls->setPrivateKeyFile(ownPrivateKeyPath.c_str(), DCF_Filetype_PEM /*opt_keyFileFormat*/)))
       {
         throw OrthancException(ErrorCode_BadFileFormat, "Cannot parse PEM file with private key for DICOM TLS: " +
                                ownPrivateKeyPath);
       }
 
-      if (tls->setCertificateFile(ownCertificatePath.c_str(), DCF_Filetype_PEM /*opt_keyFileFormat*/) != TCS_ok)
+      if (IsFailure(tls->setCertificateFile(ownCertificatePath.c_str(), DCF_Filetype_PEM /*opt_keyFileFormat*/)))
       {
         throw OrthancException(ErrorCode_BadFileFormat, "Cannot parse PEM file with own certificate for DICOM TLS: " +
                                ownCertificatePath);
@@ -132,18 +145,18 @@ namespace Orthanc
       }
 
 #if DCMTK_VERSION_NUMBER >= 364
-      if (tls->setTLSProfile(TSP_Profile_BCP195 /*opt_tlsProfile*/) != TCS_ok)
+      if (IsFailure(tls->setTLSProfile(TSP_Profile_BCP195 /*opt_tlsProfile*/)))
       {
         throw OrthancException(ErrorCode_InternalError, "Cannot set the DICOM TLS profile");
       }
     
-      if (tls->activateCipherSuites())
+      if (IsFailure(tls->activateCipherSuites()))
       {
         throw OrthancException(ErrorCode_InternalError, "Cannot activate the cipher suites for DICOM TLS");
       }
 #else
       CLOG(INFO, DICOM) << "Using the following cipher suites for DICOM TLS: " << opt_ciphersuites;
-      if (tls->setCipherSuites(opt_ciphersuites.c_str()) != TCS_ok)
+      if (IsFailure(tls->setCipherSuites(opt_ciphersuites.c_str())))
       {
         throw OrthancException(ErrorCode_InternalError, "Unable to set cipher suites to: " + opt_ciphersuites);
       }
