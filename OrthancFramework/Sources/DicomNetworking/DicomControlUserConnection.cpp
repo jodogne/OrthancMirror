@@ -42,7 +42,7 @@ namespace Orthanc
   {
     if (!source.HasTag(tag))
     {
-      throw OrthancException(ErrorCode_BadRequest);
+      throw OrthancException(ErrorCode_BadRequest, "Missing tag " + tag.Format());
     }
     else
     {
