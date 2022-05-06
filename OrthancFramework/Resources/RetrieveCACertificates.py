@@ -31,7 +31,7 @@ if len(sys.argv) <= 2:
     print('Download a set of CA certificates, convert them to PEM, then format them as a C macro')
     print('Usage: %s [Macro] [Certificate1] <Certificate2>...' % sys.argv[0])
     print('')
-    print('Example: %s BITBUCKET_CERTIFICATES https://www.digicert.com/CACerts/DigiCertHighAssuranceEVRootCA.crt' % sys.argv[0])
+    print('Example: %s BITBUCKET_CERTIFICATES https://cacerts.digicert.com/DigiCertSHA2HighAssuranceServerCA.crt' % sys.argv[0])
     print('')
     sys.exit(-1)
 
