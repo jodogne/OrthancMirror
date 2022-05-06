@@ -38,6 +38,10 @@ REST API
   - /studies, /studies/../series, /studies/../instances
   - /series, /series/../instances
   - /instances
+  ex:
+  - /studies/c27857df-4078c84c-1a79ea78-ac357bb2-9dadc119?requestedTags=ModalitiesInStudy
+  - /studies?expand&since=0&limit=10&requestedTags=ModalitiesInStudy
+  
 * /reconstruct routes:
   - new options "ReconstructFiles" (false by default to keep backward compatibility) to 
     potentialy compress/uncompress the files or transcode them if "StorageCompression"

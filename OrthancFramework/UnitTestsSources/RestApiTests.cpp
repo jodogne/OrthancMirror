@@ -110,7 +110,7 @@ TEST(HttpClient, Basic)
    macro that can be used by libcurl:
 
    # cd UnitTestsSources
-   # ../Resources/RetrieveCACertificates.py BITBUCKET_CERTIFICATES https://www.digicert.com/CACerts/DigiCertHighAssuranceEVRootCA.crt > BitbucketCACertificates.h
+   # ../Resources/RetrieveCACertificates.py BITBUCKET_CERTIFICATES https://cacerts.digicert.com/DigiCertSHA2HighAssuranceServerCA.crt > BitbucketCACertificates.h
 **/
 
 #include "BitbucketCACertificates.h"
