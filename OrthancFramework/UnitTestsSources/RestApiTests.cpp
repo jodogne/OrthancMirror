@@ -110,7 +110,7 @@ TEST(HttpClient, Basic)
    macro that can be used by libcurl:
 
    # cd UnitTestsSources
-   # ../Resources/RetrieveCACertificates.py BITBUCKET_CERTIFICATES https://cacerts.digicert.com/DigiCertSHA2HighAssuranceServerCA.crt > BitbucketCACertificates.h
+   # ../Resources/RetrieveCACertificates.py BITBUCKET_CERTIFICATES https://cacerts.digicert.com/DigiCertTLSHybridECCSHA3842020CA1-1.crt > BitbucketCACertificates.h
 **/
 
 #include "BitbucketCACertificates.h"
@@ -121,11 +121,12 @@ TEST(HttpClient, Ssl)
 
   /*{
     std::string s;
-    SystemToolbox::ReadFile(s, "/usr/share/ca-certificates/mozilla/WoSign.crt");
+    SystemToolbox::ReadFile(s, "/etc/ssl/certs/ca-certificates.crt");
     SystemToolbox::WriteFile(s, "UnitTestsResults/bitbucket.cert");
     }*/
 
   HttpClient c;
+  //c.SetVerbose(true);
   c.SetHttpsVerifyPeers(true);
   c.SetHttpsCACertificates("UnitTestsResults/bitbucket.cert");
 
