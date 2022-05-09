@@ -2185,7 +2185,7 @@ namespace Orthanc
         .SetSummary("Get info about the attachment")
         .SetDescription("Get all the information about the attachment associated with the given " + r)
         .AddAnswerType(MimeType_Json, "JSON object containing the information about the attachment")
-        .SetHttpGetSample("https://demo.orthanc-server.com/instances/7c92ce8e-bbf67ed2-ffa3b8c1-a3b35d94-7ff3ae26/dicom/info", true);
+        .SetHttpGetSample("https://demo.orthanc-server.com/instances/7c92ce8e-bbf67ed2-ffa3b8c1-a3b35d94-7ff3ae26/attachments/dicom/info", true);
       return;
     }
 
