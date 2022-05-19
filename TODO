@@ -100,6 +100,7 @@ Mid-term
   https://groups.google.com/g/orthanc-users/c/G3_jBy4X4NQ/m/8BanTsdMBQAJ
 * (2) Ranges of DICOM tags for "Keep" and "Remove" in ".../modify" and ".../anonymize": 
   https://groups.google.com/g/orthanc-users/c/6dETktKo9v8/m/b0LUvSfwAgAJ
+* return error code/reason in HTTP response if resubmit/cancel/pause fails ...
 
 ---------
 Long-term
