@@ -2,6 +2,11 @@ Pending changes in the mainline
 ===========================
 
 
+Maintenance
+-----------
+
+* Housekeeper plugin: Fix resume of previous processing
+
 Version 1.11.0 (2022-05-09)
 ===========================
 
