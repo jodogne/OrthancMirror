@@ -101,7 +101,10 @@ Mid-term
 * (2) Ranges of DICOM tags for "Keep" and "Remove" in ".../modify" and ".../anonymize": 
   https://groups.google.com/g/orthanc-users/c/6dETktKo9v8/m/b0LUvSfwAgAJ
 * return error code/reason in HTTP response if resubmit/cancel/pause fails ...
-* filter /changes by type ex: /changes?filter=StablePatient
+* filter /changes by type e.g: /changes?filter=StablePatient
+  https://groups.google.com/g/orthanc-users/c/r20kDb0axms/m/2tzbQzYJAgAJ
+* save more details in jobs e.g: the resources being sent/exported ...
+  https://groups.google.com/g/orthanc-users/c/rDDusFG5Lco/m/TzTUjWXLAQAJ
 
 ---------
 Long-term
