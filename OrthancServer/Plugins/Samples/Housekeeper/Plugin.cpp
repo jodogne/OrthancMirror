@@ -537,13 +537,29 @@ static void WorkerThread()
 
   bool needsReconstruct = false;
   bool needsReingest = false;
+  bool needsFullProcessing = false;
+  bool needsProcessing = false;
 
   {
     boost::recursive_mutex::scoped_lock lock(pluginStatusMutex_);
-    CheckNeedsProcessing(needsReconstruct, needsReingest, currentDbConfiguration, pluginStatus_.lastProcessedConfiguration);
-  }
 
-  bool needsProcessing = needsReconstruct || needsReingest;
+    // compare with last full processed configuration
+    CheckNeedsProcessing(needsReconstruct, needsReingest, currentDbConfiguration, pluginStatus_.lastProcessedConfiguration);
+    needsFullProcessing = needsReconstruct || needsReingest;
+    needsProcessing = needsFullProcessing;
+
+      // if a processing was in progress, check if the config has changed since
+    if (pluginStatus_.currentlyProcessingConfiguration.IsDefined())
+    {
+      needsProcessing = true;       // since a processing was in progress, we need at least a partial processing
+
+      bool needsReconstruct2 = false;
+      bool needsReingest2 = false;
+
+      CheckNeedsProcessing(needsReconstruct2, needsReingest2, currentDbConfiguration, pluginStatus_.currentlyProcessingConfiguration);
+      needsFullProcessing = needsReconstruct2 || needsReingest2;  // if the configuration has changed compared to the config being processed, we need a full processing again
+    }
+  }
 
   if (!needsProcessing)
   {
@@ -551,7 +567,7 @@ static void WorkerThread()
     return;
   }
 
-  if (force_ || needsProcessing)
+  if (force_ || needsFullProcessing)
   {
     if (force_)
     {
