@@ -30,6 +30,9 @@ General
   overriden by these custom dictionaries.
 * Provide more flexibility wrt Dicom TLS ciphers and TLS version:
   https://groups.google.com/g/orthanc-users/c/X4IhmXCSr7I/m/EirawAFcBwAJ
+  Can maybe be achieved by adding a configuration to select the TLS Security Profile:
+  https://github.com/DCMTK/dcmtk/blob/master/dcmtls/include/dcmtk/dcmtls/tlsciphr.h#L83 
+  (e.g: TSP_Profile_BCP195_ND instead of TSP_Profile_BCP195)
 * Provide a configuration option related to MaximumStorageSize: instead of 
   recycling older patients, simply block new ingests (from DICOM/DICOMweb/API)
   by returning out-of-resource status (HTTP or DIMSE)
