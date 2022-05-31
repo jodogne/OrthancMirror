@@ -240,7 +240,8 @@ namespace Orthanc
                                                size_t size);
 
     static void FromJson(DicomMap& values,
-                         const Json::Value& result);
+                         const Json::Value& result,
+                         const char* fieldName = NULL);
 
     static void ExtractDicomSummary(DicomMap& target, 
                                     DcmItem& dataset,

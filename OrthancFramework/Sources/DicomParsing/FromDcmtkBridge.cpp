@@ -2296,11 +2296,19 @@ namespace Orthanc
 
 
   void FromDcmtkBridge::FromJson(DicomMap& target,
-                                 const Json::Value& source)
+                                 const Json::Value& source,
+                                 const char* fieldName)
   {
     if (source.type() != Json::objectValue)
     {
-      throw OrthancException(ErrorCode_BadFileFormat);
+      if (fieldName != NULL) 
+      {
+        throw OrthancException(ErrorCode_BadFileFormat, std::string("Expecting an object in field '") + std::string(fieldName) + std::string("'"));
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_BadFileFormat, "Expecting an object");
+      }
     }
 
     target.Clear();
@@ -2313,12 +2321,14 @@ namespace Orthanc
 
       if (value.type() != Json::stringValue)
       {
-        throw OrthancException(ErrorCode_BadFileFormat);
+        throw OrthancException(ErrorCode_BadFileFormat, std::string("Expecting a string in field '") + members[i] + std::string("'"));
       }
       
       target.SetValue(ParseTag(members[i]), value.asString(), false);
     }
   }
+
+
 
 
   void FromDcmtkBridge::ChangeStringEncoding(DcmItem& dataset,

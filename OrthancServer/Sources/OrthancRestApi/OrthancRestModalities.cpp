@@ -1523,8 +1523,8 @@ namespace Orthanc
         .SetDescription("Start a C-MOVE SCU command as a job, in order to drive the execution of a sequence of "
                         "C-STORE commands by some remote DICOM modality whose identifier is provided in the URL: "
                         "https://book.orthanc-server.com/users/rest.html#performing-c-move")
-        .SetRequestField(KEY_RESOURCES, RestApiCallDocumentation::Type_JsonListOfStrings,
-                         "List of the Orthanc identifiers of all the DICOM resources to be sent", true)
+        .SetRequestField(KEY_RESOURCES, RestApiCallDocumentation::Type_JsonListOfObjects,
+                         "List of queries identifying all the DICOM resources to be sent", true)
         .SetRequestField(KEY_LEVEL, RestApiCallDocumentation::Type_String,
                          "Level of the query (`Patient`, `Study`, `Series` or `Instance`)", true)
         .SetRequestField(KEY_LOCAL_AET, RestApiCallDocumentation::Type_String,
@@ -1572,7 +1572,7 @@ namespace Orthanc
     for (Json::Value::ArrayIndex i = 0; i < request[KEY_RESOURCES].size(); i++)
     {
       DicomMap resource;
-      FromDcmtkBridge::FromJson(resource, request[KEY_RESOURCES][i]);
+      FromDcmtkBridge::FromJson(resource, request[KEY_RESOURCES][i], "Resources elements");
       
       connection.Move(targetAet, level, resource);
     }
