@@ -238,6 +238,7 @@ namespace Orthanc
     assert(association_.get() != NULL);
     association_->ProposeGenericPresentationContext(UID_VerificationSOPClass);
     association_->ProposeGenericPresentationContext(UID_FINDPatientRootQueryRetrieveInformationModel);
+    association_->ProposeGenericPresentationContext(UID_MOVEPatientRootQueryRetrieveInformationModel);
     association_->ProposeGenericPresentationContext(UID_FINDStudyRootQueryRetrieveInformationModel);
     association_->ProposeGenericPresentationContext(UID_MOVEStudyRootQueryRetrieveInformationModel);
     association_->ProposeGenericPresentationContext(UID_FINDModalityWorklistInformationModel);
