@@ -36,7 +36,8 @@ General
 * Provide a configuration option related to MaximumStorageSize: instead of 
   recycling older patients, simply block new ingests (from DICOM/DICOMweb/API)
   by returning out-of-resource status (HTTP or DIMSE)
-
+* Add configurations to enable/disable warnings:
+  - Modifying an instance while keeping its original SOPInstanceUID: This should be avoided!
 
 ============================
 Documentation (Orthanc Book)
