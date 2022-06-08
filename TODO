@@ -80,6 +80,13 @@ Orthanc Explorer
 REST API
 ========
 
+----------
+Short-term
+----------
+
+* Add "KeepSource" to "/modify" and "/anonymize" routes
+  https://groups.google.com/g/orthanc-users/c/svS3YOqA2Mo/m/wcoE18IcAAAJ
+
 --------
 Mid-term
 --------
