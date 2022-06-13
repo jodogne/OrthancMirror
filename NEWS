@@ -1,6 +1,12 @@
 Pending changes in the mainline
 ===========================
 
+General
+-------
+
+* Lua: new "SetHttpTimeout" function
+
+
 Maintenance
 -----------
 

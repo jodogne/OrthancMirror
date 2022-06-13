@@ -70,6 +70,7 @@ namespace Orthanc
 
 #if ORTHANC_ENABLE_CURL == 1
     static int SetHttpCredentials(lua_State *state);
+    static int SetHttpTimeout(lua_State *state);
     static int CallHttpPostOrPut(lua_State *state,
                                  HttpMethod method);
     static int CallHttpGet(lua_State *state);
@@ -104,11 +105,6 @@ namespace Orthanc
                  const std::string& command);
 
     bool IsExistingFunction(const char* name);
-
-#if ORTHANC_ENABLE_CURL == 1
-    void SetHttpCredentials(const char* username,
-                            const char* password);
-#endif
 
     void RegisterFunction(const char* name,
                           lua_CFunction func);

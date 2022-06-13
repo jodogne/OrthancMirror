@@ -183,6 +183,32 @@ namespace Orthanc
 
 
 #if ORTHANC_ENABLE_CURL == 1
+  int LuaContext::SetHttpTimeout(lua_State *state)
+  {
+    LuaContext& that = GetLuaContext(state);
+
+    // Check the types of the arguments
+    int nArgs = lua_gettop(state);
+    if (nArgs != 1 ||
+        !lua_isnumber(state, 1))    // Timeout
+    {
+      LOG(ERROR) << "Lua: Bad parameters to SetHttpTimeout()";
+    }
+    else
+    {
+      // Configure the HTTP client
+      // Convert to "int" if truncation does not loose precision
+      long timeout = static_cast<long>(lua_tonumber(state, 1));
+
+      that.httpClient_.SetTimeout(timeout);
+    }
+
+    return 0;
+  }
+#endif
+
+
+#if ORTHANC_ENABLE_CURL == 1
   bool LuaContext::AnswerHttpQuery(lua_State* state)
   {
     std::string str;
@@ -566,6 +592,7 @@ namespace Orthanc
     lua_register(lua_, "HttpPut", CallHttpPut);
     lua_register(lua_, "HttpDelete", CallHttpDelete);
     lua_register(lua_, "SetHttpCredentials", SetHttpCredentials);
+    lua_register(lua_, "SetHttpTimeout", SetHttpTimeout);
 #endif
 
     SetGlobalVariable("_LuaContext", this);
@@ -618,15 +645,6 @@ namespace Orthanc
     lua_getglobal(lua_, name);
     return lua_type(lua_, -1) == LUA_TFUNCTION;
   }
-
-
-#if ORTHANC_ENABLE_CURL == 1
-  void LuaContext::SetHttpCredentials(const char* username,
-                                      const char* password)
-  {
-    httpClient_.SetCredentials(username, password);
-  }
-#endif
 
 
   void LuaContext::Execute(Json::Value& output,
