@@ -75,9 +75,13 @@ namespace Orthanc
     LuaJobManager            jobManager_;
     State                    state_;
     boost::thread            eventThread_;
+    boost::thread            heartBeatThread_;
+    unsigned int             heartBeatPeriod_;
     SharedMessageQueue       pendingEvents_;
 
     static void EventThread(LuaScripting* that);
+
+    static void HeartBeatThread(LuaScripting* that);
 
     void LoadGlobalConfiguration();
 

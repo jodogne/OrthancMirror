@@ -52,6 +52,15 @@
   "LuaScripts" : [
   ],
 
+  // The period (in seconds) between 2 calls of the "OnHeartBeat"
+  // lua callback.  O means the heart beat is disabled.
+  // TODO: text below for Orthanc book:
+  // Note: that the period is not actually the delay between
+  // the end of an execution and the triggering of the next one.
+  // Since there is only one lua context, if other lua code is being
+  // executed, the heart beat might be delayed even more.
+  "LuaHeartBeatPeriod" : 0,
+
   // List of paths to the plugins that are to be loaded into this
   // instance of Orthanc (e.g. "./libPluginTest.so" for Linux, or
   // "./PluginTest.dll" for Windows). These paths can refer to
