@@ -244,8 +244,7 @@ Ideas of plugins
 Lua
 ===
 
-* Configure HTTP headers from Lua (in HttpGet(), HttpPost(),
-  HttpPut(), HttpDelete(), RestApiGet(), RestApiPost(), RestApiPut()
+* Configure HTTP headers from Lua (in RestApiPost(), RestApiPut()
   and RestApiDelete().
   https://groups.google.com/forum/#!msg/orthanc-users/WNnW187OILM/6XX_bm96BwAJ
 
