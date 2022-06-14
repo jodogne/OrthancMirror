@@ -759,7 +759,8 @@ namespace Orthanc
 
   LuaScripting::LuaScripting(ServerContext& context) : 
     context_(context),
-    state_(State_Setup)
+    state_(State_Setup),
+    heartBeatPeriod_(0)
   {
     lua_.SetGlobalVariable("_ServerContext", &context);
     lua_.RegisterFunction("RestApiGet", RestApiGet);
@@ -782,6 +783,40 @@ namespace Orthanc
     }
   }
 
+  void LuaScripting::HeartBeatThread(LuaScripting* that)
+  {
+    static const boost::posix_time::time_duration PERIODICITY =
+      boost::posix_time::seconds(that->heartBeatPeriod_);
+    
+    unsigned int sleepDelay = 100;
+    
+    boost::posix_time::ptime next =
+      boost::posix_time::microsec_clock::universal_time() + PERIODICITY;
+    
+    bool shouldStop = false;
+
+    while (!shouldStop)
+    {
+      boost::this_thread::sleep(boost::posix_time::milliseconds(sleepDelay));
+
+      if (boost::posix_time::microsec_clock::universal_time() >= next)
+      {
+        LuaScripting::Lock lock(*that);
+
+        if (lock.GetLua().IsExistingFunction("OnHeartBeat"))
+        {
+          LuaFunctionCall call(lock.GetLua(), "OnHeartBeat");
+          call.Execute();
+        }
+
+        next = boost::posix_time::microsec_clock::universal_time() + PERIODICITY;
+      }
+
+      boost::recursive_mutex::scoped_lock lock(that->mutex_);
+      shouldStop = that->state_ == State_Done;
+    }
+
+  }
 
   void LuaScripting::EventThread(LuaScripting* that)
   {
@@ -829,6 +864,14 @@ namespace Orthanc
     {
       LOG(INFO) << "Starting the Lua engine";
       eventThread_ = boost::thread(EventThread, this);
+      
+      LuaScripting::Lock lock(*this);
+
+      if (heartBeatPeriod_ > 0 && lock.GetLua().IsExistingFunction("OnHeartBeat"))
+      {
+        LOG(INFO) << "Starting the Lua HeartBeat thread with a period of " << heartBeatPeriod_ << " seconds";
+        heartBeatThread_ = boost::thread(HeartBeatThread, this);
+      }
       state_ = State_Running;
     }
   }
@@ -853,6 +896,10 @@ namespace Orthanc
     {
       LOG(INFO) << "Stopping the Lua engine";
       eventThread_.join();
+      if (heartBeatThread_.joinable())
+      {
+        heartBeatThread_.join();
+      }
       LOG(INFO) << "The Lua engine has stopped";
     }
   }
@@ -989,6 +1036,7 @@ namespace Orthanc
 
     std::list<std::string> luaScripts;
     configLock.GetConfiguration().GetListOfStringsParameter(luaScripts, "LuaScripts");
+    heartBeatPeriod_ = configLock.GetConfiguration().GetIntegerParameter("LuaHeartBeatPeriod", 0);
 
     LuaScripting::Lock lock(*this);
 
