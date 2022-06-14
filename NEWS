@@ -5,6 +5,8 @@ General
 -------
 
 * Lua: new "SetHttpTimeout" function
+* Lua: new "OnHeartBeat" callback called at regular interval provided that
+       you have configured "LuaHeartBeatPeriod" > 0.
 
 
 Maintenance
