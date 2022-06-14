@@ -793,12 +793,13 @@ namespace Orthanc
     boost::posix_time::ptime next =
       boost::posix_time::microsec_clock::universal_time() + PERIODICITY;
     
-    while (that->state_ != State_Done)
+    bool shouldStop = false;
+
+    while (!shouldStop)
     {
       boost::this_thread::sleep(boost::posix_time::milliseconds(sleepDelay));
 
-      if (that->state_ != State_Done &&
-          boost::posix_time::microsec_clock::universal_time() >= next)
+      if (boost::posix_time::microsec_clock::universal_time() >= next)
       {
         LuaScripting::Lock lock(*that);
 
@@ -810,6 +811,9 @@ namespace Orthanc
 
         next = boost::posix_time::microsec_clock::universal_time() + PERIODICITY;
       }
+
+      boost::recursive_mutex::scoped_lock lock(that->mutex_);
+      shouldStop = that->state_ == State_Done;
     }
 
   }
