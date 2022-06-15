@@ -1082,7 +1082,8 @@ namespace Orthanc
     else
     {
       LOG(ERROR) << "Error in HTTP request, received HTTP status " << status 
-                 << " (" << EnumerationToString(lastStatus_) << ")";
+                 << " (" << EnumerationToString(lastStatus_) << ") after "
+                 << EnumerationToString(method_) << " request on: " << url_;
       return false;
     }
   }
