@@ -15,6 +15,7 @@ Maintenance
 * Housekeeper plugin: Fix resume of previous processing
 * Added missing MOVEPatientRootQueryRetrieveInformationModel in 
   DicomControlUserConnection::SetupPresentationContexts()
+* Improved HttpClient error logging (add method + url)
 
 Version 1.11.0 (2022-05-09)
 ===========================
