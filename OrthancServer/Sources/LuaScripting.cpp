@@ -34,6 +34,8 @@
 
 #include <OrthancServerResources.h>
 
+static const char* ON_HEART_BEAT = "OnHeartBeat";
+
 
 namespace Orthanc
 {
@@ -803,9 +805,9 @@ namespace Orthanc
       {
         LuaScripting::Lock lock(*that);
 
-        if (lock.GetLua().IsExistingFunction("OnHeartBeat"))
+        if (lock.GetLua().IsExistingFunction(ON_HEART_BEAT))
         {
-          LuaFunctionCall call(lock.GetLua(), "OnHeartBeat");
+          LuaFunctionCall call(lock.GetLua(), ON_HEART_BEAT);
           call.Execute();
         }
 
@@ -868,7 +870,7 @@ namespace Orthanc
       
       LuaScripting::Lock lock(*this);
 
-      if (heartBeatPeriod_ > 0 && lock.GetLua().IsExistingFunction("OnHeartBeat"))
+      if (heartBeatPeriod_ > 0 && lock.GetLua().IsExistingFunction(ON_HEART_BEAT))
       {
         LOG(INFO) << "Starting the Lua HeartBeat thread with a period of " << heartBeatPeriod_ << " seconds";
         heartBeatThread_ = boost::thread(HeartBeatThread, this);
