@@ -785,10 +785,10 @@ namespace Orthanc
 
   void LuaScripting::HeartBeatThread(LuaScripting* that)
   {
-    static const boost::posix_time::time_duration PERIODICITY =
-      boost::posix_time::seconds(that->heartBeatPeriod_);
+    static const unsigned int GRANULARITY = 100;  // In milliseconds
     
-    unsigned int sleepDelay = 100;
+    const boost::posix_time::time_duration PERIODICITY =
+      boost::posix_time::seconds(that->heartBeatPeriod_);
     
     boost::posix_time::ptime next =
       boost::posix_time::microsec_clock::universal_time() + PERIODICITY;
@@ -797,7 +797,7 @@ namespace Orthanc
 
     while (!shouldStop)
     {
-      boost::this_thread::sleep(boost::posix_time::milliseconds(sleepDelay));
+      boost::this_thread::sleep(boost::posix_time::milliseconds(GRANULARITY));
 
       if (boost::posix_time::microsec_clock::universal_time() >= next)
       {
@@ -812,10 +812,11 @@ namespace Orthanc
         next = boost::posix_time::microsec_clock::universal_time() + PERIODICITY;
       }
 
-      boost::recursive_mutex::scoped_lock lock(that->mutex_);
-      shouldStop = that->state_ == State_Done;
+      {
+        boost::recursive_mutex::scoped_lock lock(that->mutex_);
+        shouldStop = (that->state_ == State_Done);
+      }
     }
-
   }
 
   void LuaScripting::EventThread(LuaScripting* that)
