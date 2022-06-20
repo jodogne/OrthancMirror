@@ -17,6 +17,14 @@ Maintenance
   DicomControlUserConnection::SetupPresentationContexts()
 * Improved HttpClient error logging (add method + url)
 
+
+REST API
+--------
+
+* API version upgraded to 18
+* /system is now reporting "DatabaseServerIdentifier"
+
+
 Version 1.11.0 (2022-05-09)
 ===========================
 

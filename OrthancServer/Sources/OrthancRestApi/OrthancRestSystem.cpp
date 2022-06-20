@@ -64,6 +64,7 @@ namespace Orthanc
     static const char* const CHECK_REVISIONS = "CheckRevisions";
     static const char* const DATABASE_BACKEND_PLUGIN = "DatabaseBackendPlugin";
     static const char* const DATABASE_VERSION = "DatabaseVersion";
+    static const char* const DATABASE_SERVER_IDENTIFIER = "DatabaseServerIdentifier";
     static const char* const DICOM_AET = "DicomAet";
     static const char* const DICOM_PORT = "DicomPort";
     static const char* const HTTP_PORT = "HttpPort";
@@ -87,6 +88,8 @@ namespace Orthanc
         .SetAnswerField(VERSION, RestApiCallDocumentation::Type_String, "Version of Orthanc")
         .SetAnswerField(DATABASE_VERSION, RestApiCallDocumentation::Type_Number,
                         "Version of the database: https://book.orthanc-server.com/developers/db-versioning.html")
+        .SetAnswerField(DATABASE_SERVER_IDENTIFIER, RestApiCallDocumentation::Type_String,
+                        "ID of the server in the database (when running multiple Orthanc on the same DB)")
         .SetAnswerField(IS_HTTP_SERVER_SECURE, RestApiCallDocumentation::Type_Boolean,
                         "Whether the REST API is properly secured (assuming no reverse proxy is in use): https://book.orthanc-server.com/faq/security.html#securing-the-http-server")
         .SetAnswerField(STORAGE_AREA_PLUGIN, RestApiCallDocumentation::Type_String,
@@ -133,6 +136,7 @@ namespace Orthanc
       result[STORAGE_COMPRESSION] = lock.GetConfiguration().GetBooleanParameter(STORAGE_COMPRESSION, false); // New in Orthanc 1.11.0
       result[OVERWRITE_INSTANCES] = lock.GetConfiguration().GetBooleanParameter(OVERWRITE_INSTANCES, false); // New in Orthanc 1.11.0
       result[INGEST_TRANSCODING] = lock.GetConfiguration().GetStringParameter(INGEST_TRANSCODING, ""); // New in Orthanc 1.11.0
+      result[DATABASE_SERVER_IDENTIFIER] = lock.GetConfiguration().GetDatabaseServerIdentifier();
     }
 
     result[STORAGE_AREA_PLUGIN] = Json::nullValue;
