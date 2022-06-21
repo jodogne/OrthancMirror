@@ -4,6 +4,8 @@ Pending changes in the mainline
 General
 -------
 
+* New sample plugin: "DelayedDeletion" that will delete files from disk
+  asynchronously to speed up deletion of large studies.
 * Lua: new "SetHttpTimeout" function
 * Lua: new "OnHeartBeat" callback called at regular interval provided that
        you have configured "LuaHeartBeatPeriod" > 0.
@@ -24,6 +26,11 @@ REST API
 * API version upgraded to 18
 * /system is now reporting "DatabaseServerIdentifier"
 * Added an Asynchronous mode to /modalities/../move.
+
+Plugins
+-------
+
+* New function in the SDK: "OrthancPluginGetDatabaseServerIdentifier"
 
 
 Version 1.11.0 (2022-05-09)

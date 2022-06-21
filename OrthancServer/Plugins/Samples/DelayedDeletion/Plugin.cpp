@@ -1,15 +1,12 @@
 #include "PendingDeletionsDatabase.h"
-#include "LargeDeleteJob.h"
 
 #include "../../../../OrthancFramework/Sources/FileStorage/FilesystemStorage.h"
 #include "../../../../OrthancFramework/Sources/Logging.h"
 #include "../../../../OrthancFramework/Sources/MultiThreading/SharedMessageQueue.h"
 #include "../../../../OrthancServer/Plugins/Engine/PluginsEnumerations.h"
+#include "../../../../OrthancServer/Plugins/Samples/Common/OrthancPluginCppWrapper.h"
 
 #include <boost/thread.hpp>
-
-
-#define ASYNCHRONOUS_SQLITE  0
 
 
 class PendingDeletion : public Orthanc::IDynamicObject
@@ -38,16 +35,14 @@ public:
 };
 
 
-
-
-
-static bool continue_;
+static const char* DELAYED_DELETION = "DelayedDeletion";
+static bool                                         continue_ = false;
 static Orthanc::SharedMessageQueue                  queue_;
 static std::unique_ptr<Orthanc::FilesystemStorage>  storage_;
 static std::unique_ptr<PendingDeletionsDatabase>    db_;
-static std::unique_ptr<boost::thread>               databaseThread_;
 static std::unique_ptr<boost::thread>               deletionThread_;
-
+static const char*                                  databaseServerIdentifier_ = NULL;
+static unsigned int                                 throttleDelayMs_ = 0;
 
 
 static OrthancPluginErrorCode StorageCreate(const char* uuid,
@@ -134,11 +129,8 @@ static OrthancPluginErrorCode StorageRemove(const char* uuid,
 {
   try
   {
-#if ASYNCHRONOUS_SQLITE == 1
-    queue_.Enqueue(new PendingDeletion(Orthanc::Plugins::Convert(type), uuid));
-#else
+    LOG(INFO) << "DelayedDeletion - Scheduling delayed deletion of " << uuid;
     db_->Enqueue(uuid, Orthanc::Plugins::Convert(type));
-#endif
     
     return OrthancPluginErrorCode_Success;
   }
@@ -152,32 +144,10 @@ static OrthancPluginErrorCode StorageRemove(const char* uuid,
   }
 }
 
-
-static void DatabaseWorker()
-{
-#if ASYNCHRONOUS_SQLITE == 1
-  while (continue_)
-  {
-    for (;;)
-    {
-      std::auto_ptr<Orthanc::IDynamicObject> obj(queue_.Dequeue(100));
-      if (obj.get() == NULL)
-      {
-        break;
-      }
-      else
-      {
-        const PendingDeletion& deletion = dynamic_cast<const PendingDeletion&>(*obj);
-        db_->Enqueue(deletion.GetUuid(), deletion.GetType());
-      }
-    }
-  }
-#endif
-}
-
-
 static void DeletionWorker()
 {
+  static const unsigned int GRANULARITY = 100;  // In milliseconds
+
   while (continue_)
   {
     std::string uuid;
@@ -185,32 +155,37 @@ static void DeletionWorker()
 
     bool hasDeleted = false;
     
-    while (db_->Dequeue(uuid, type))
+    while (continue_ && db_->Dequeue(uuid, type))
     {
       if (!hasDeleted)
       {
-        LOG(INFO) << "TEST DELETION - Starting to process the pending deletions";        
+        LOG(INFO) << "DelayedDeletion - Starting to process the pending deletions";        
       }
       
       hasDeleted = true;
       
       try
       {
-        LOG(INFO) << "TEST DELETION - Asynchronous removal of file: " << uuid;
+        LOG(INFO) << "DelayedDeletion - Asynchronous removal of file: " << uuid;
         storage_->Remove(uuid, type);
+
+        if (throttleDelayMs_ > 0)
+        {
+          boost::this_thread::sleep(boost::posix_time::milliseconds(throttleDelayMs_));
+        }
       }
-      catch (Orthanc::OrthancException&)
+      catch (Orthanc::OrthancException& ex)
       {
-        LOG(ERROR) << "Cannot remove file: " << uuid;
+        LOG(ERROR) << "DelayedDeletion - Cannot remove file: " << uuid << " " << ex.What();
       }
     }
 
     if (hasDeleted)
     {
-      LOG(INFO) << "TEST DELETION - All the pending deletions have been completed";
+      LOG(INFO) << "DelayedDeletion - All the pending deletions have been completed";
     }      
 
-    boost::this_thread::sleep(boost::posix_time::milliseconds(100));
+    boost::this_thread::sleep(boost::posix_time::milliseconds(GRANULARITY));
   }
 }
 
@@ -222,20 +197,18 @@ OrthancPluginErrorCode OnChangeCallback(OrthancPluginChangeType changeType,
   switch (changeType)
   {
     case OrthancPluginChangeType_OrthancStarted:
-      assert(deletionThread_.get() == NULL &&
-             databaseThread_.get() == NULL);
+      assert(deletionThread_.get() == NULL);
       
-      LOG(WARNING) << "TEST DELETION - Starting the threads";
+      LOG(WARNING) << "DelayedDeletion - Starting the deletion thread";
       continue_ = true;
       deletionThread_.reset(new boost::thread(DeletionWorker));
-      databaseThread_.reset(new boost::thread(DatabaseWorker));
       break;
 
     case OrthancPluginChangeType_OrthancStopped:
 
       if (deletionThread_.get() != NULL)
       {
-        LOG(WARNING) << "TEST DELETION - Stopping the deletion thread";
+        LOG(WARNING) << "DelayedDeletion - Stopping the deletion thread";
         continue_ = false;
         if (deletionThread_->joinable())
         {
@@ -243,16 +216,6 @@ OrthancPluginErrorCode OnChangeCallback(OrthancPluginChangeType changeType,
         }
       }
 
-      if (databaseThread_.get() != NULL)
-      {
-        LOG(WARNING) << "TEST DELETION - Stopping the database thread";
-        continue_ = false;
-        if (databaseThread_->joinable())
-        {
-          databaseThread_->join();
-        }
-      }
-      
       break;
 
     default:
@@ -264,16 +227,16 @@ OrthancPluginErrorCode OnChangeCallback(OrthancPluginChangeType changeType,
 
   
 
-void Statistics(OrthancPluginRestOutput* output,
+void GetPluginStatus(OrthancPluginRestOutput* output,
                 const char* url,
                 const OrthancPluginHttpRequest* request)
 {
-  Json::Value stats;
-  OrthancPlugins::RestApiGet(stats, "/statistics", false);
 
-  stats["PendingDeletions"] = db_->GetSize();
+  Json::Value status;
+  status["FilesPendingDeletion"] = db_->GetSize();
+  status["DatabaseServerIdentifier"] = databaseServerIdentifier_;
 
-  std::string s = stats.toStyledString();
+  std::string s = status.toStyledString();
   OrthancPluginAnswerBuffer(OrthancPlugins::GetGlobalContext(), output, s.c_str(),
                             s.size(), "application/json");
 }
@@ -284,6 +247,10 @@ extern "C"
 {
   ORTHANC_PLUGINS_API int32_t OrthancPluginInitialize(OrthancPluginContext* context)
   {
+    OrthancPlugins::SetGlobalContext(context);
+    Orthanc::Logging::InitializePluginContext(context);
+    
+
     /* Check the version of the Orthanc core */
     if (OrthancPluginCheckVersion(context) == 0)
     {
@@ -297,43 +264,49 @@ extern "C"
       return -1;
     }
 
-    Orthanc::Logging::InitializePluginContext(context);
-    
-    OrthancPlugins::SetGlobalContext(context);
     OrthancPluginSetDescription(context, "Plugin removing files from storage asynchronously.");
 
-    OrthancPlugins::OrthancConfiguration config;
+    OrthancPlugins::OrthancConfiguration orthancConfig;
 
-    if (config.GetBooleanValue("DelayedDeletionEnabled", false))
+    if (!orthancConfig.IsSection(DELAYED_DELETION))
     {
-      // Json::Value system;
-      // OrthancPlugins::RestApiGet(system, "/system", false);
-      // const std::string& databaseIdentifier = system["DatabaseIdentifier"].asString();
-      std::string databaseServerIdentifier = config.GetDatabaseServerIdentifier();
+      LOG(WARNING) << "DelayedDeletion - plugin is loaded but not enabled (no \"DelayedDeletion\" section found in configuration)";
+      return 0;
+    }
 
-      std::string pathStorage = config.GetStringValue("StorageDirectory", "OrthancStorage");
+    OrthancPlugins::OrthancConfiguration delayedDeletionConfig;
+    orthancConfig.GetSection(delayedDeletionConfig, DELAYED_DELETION);
+
+    if (delayedDeletionConfig.GetBooleanValue("Enable", true))
+    {
+      databaseServerIdentifier_ = OrthancPluginGetDatabaseServerIdentifier(context);
+      throttleDelayMs_ = delayedDeletionConfig.GetUnsignedIntegerValue("ThrottleDelayMs", 0);   // delay in ms    
+
+
+      std::string pathStorage = orthancConfig.GetStringValue("StorageDirectory", "OrthancStorage");
       LOG(WARNING) << "DelayedDeletion - Path to the storage area: " << pathStorage;
 
       storage_.reset(new Orthanc::FilesystemStorage(pathStorage));
 
-      boost::filesystem::path p = boost::filesystem::path(pathStorage) / ("pending-deletions." + databaseServerIdentifier + ".db");
-      LOG(WARNING) << "DelayedDeletion - Path to the SQLite database: " << p.string();
+      boost::filesystem::path defaultDbPath = boost::filesystem::path(pathStorage) / (std::string("pending-deletions.") + databaseServerIdentifier_ + ".db");
+      std::string dbPath = delayedDeletionConfig.GetStringValue("Path", defaultDbPath.string());
+
+      LOG(WARNING) << "DelayedDeletion - Path to the SQLite database: " << dbPath;
       
       // This must run after the allocation of "storage_", to make sure
       // that the folder actually exists
-      db_.reset(new PendingDeletionsDatabase(p.string()));
+      db_.reset(new PendingDeletionsDatabase(dbPath));
 
       OrthancPluginRegisterStorageArea2(context, StorageCreate, StorageReadWhole, StorageReadRange, StorageRemove);
 
       OrthancPluginRegisterOnChangeCallback(context, OnChangeCallback);
+
+      OrthancPlugins::RegisterRestCallback<GetPluginStatus>(std::string("/plugins/") + ORTHANC_PLUGIN_NAME + "/status", true);
     }
     else
     {
-      LOG(WARNING) << "DelayedDeletion - plugin is loaded but not enabled (check your \"DelayedDeletionEnabled\" configuration)";
+      LOG(WARNING) << "DelayedDeletion - plugin is loaded but disabled (check your \"DelayedDeletion.Enable\" configuration)";
     }
-
-    OrthancPlugins::RegisterRestCallback<LargeDeleteJob::RestHandler>("/tools/large-delete", true);
-    OrthancPlugins::RegisterRestCallback<Statistics>("/statistics", true);
 
     return 0;
   }
