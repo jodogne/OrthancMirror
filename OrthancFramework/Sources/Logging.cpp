@@ -698,6 +698,8 @@ namespace Orthanc
       boost::mutex::scoped_lock lock(loggingStreamsMutex_);
       loggingStreamsContext_.reset(NULL);
       pluginContext_ = reinterpret_cast<OrthancPluginContext*>(pluginContext);
+
+      EnableInfoLevel(true);  // allow the plugin to log at info level (but the Orthanc Core still decides of the level)
     }
 
 
