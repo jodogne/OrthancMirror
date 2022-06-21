@@ -5621,6 +5621,16 @@ namespace Orthanc
         return true;
       }
 
+      case _OrthancPluginService_GetDatabaseServerIdentifier:
+      {
+        const _OrthancPluginRetrieveStaticString& p =
+          *reinterpret_cast<const _OrthancPluginRetrieveStaticString*>(parameters);
+
+        *p.result = pimpl_->databaseServerIdentifier_.c_str();
+
+        return true;
+      }
+
       default:
       {
         // This service is unknown to the Orthanc plugin engine
