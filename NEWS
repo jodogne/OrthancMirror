@@ -23,6 +23,7 @@ REST API
 
 * API version upgraded to 18
 * /system is now reporting "DatabaseServerIdentifier"
+* Added an Asynchronous mode to /modalities/../move.
 
 
 Version 1.11.0 (2022-05-09)

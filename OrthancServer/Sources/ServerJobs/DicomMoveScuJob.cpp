@@ -107,7 +107,8 @@ namespace Orthanc
     query.GetAnswer(query.GetSize() - 1).Remove(DICOM_TAG_SPECIFIC_CHARACTER_SET);
   }
 
-
+  // this method is used to implement the retrieve part of a Q&R 
+  // it keeps only the main dicom tags from the C-Find answer
   void DicomMoveScuJob::AddFindAnswer(const DicomMap& answer)
   {
     DicomMap item;
@@ -122,6 +123,13 @@ namespace Orthanc
     AddCommand(new Command(*this, answer));
   }
 
+  // this method is used to implement a C-Move
+  // it keeps all tags from the C-Move query
+  void DicomMoveScuJob::AddQuery(const DicomMap& query)
+  {
+    AddToQuery(query_, query);
+    AddCommand(new Command(*this, query));
+  }
   
   void DicomMoveScuJob::AddFindAnswer(QueryRetrieveHandler& query,
                                       size_t i)
