@@ -234,8 +234,6 @@ Ideas of plugins
 * More generally, expose more callbacks of the plugin SDK in Lua:
   https://groups.google.com/d/msg/orthanc-users/_FbiRHuXPGM/J-OAv7zaCAAJ
 * Configuration interface plugin
-* Delayed deletion plugin: 
-  https://bugs.orthanc-server.com/show_bug.cgi?id=186#c2
 
 
 ===
