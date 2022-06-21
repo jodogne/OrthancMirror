@@ -60,6 +60,7 @@ SET(BUILD_RECOVER_COMPRESSED_FILE ON CACHE BOOL "Whether to build the companion 
 SET(BUILD_SERVE_FOLDERS ON CACHE BOOL "Whether to build the ServeFolders plugin")
 SET(BUILD_CONNECTIVITY_CHECKS ON CACHE BOOL "Whether to build the ConnectivityChecks plugin")
 SET(BUILD_HOUSEKEEPER ON CACHE BOOL "Whether to build the Housekeeper plugin")
+SET(BUILD_DELAYED_DELETION ON CACHE BOOL "Whether to build the DelayedDeletion plugin")
 SET(ENABLE_PLUGINS ON CACHE BOOL "Enable plugins")
 SET(UNIT_TESTS_WITH_HTTP_CONNEXIONS ON CACHE BOOL "Allow unit tests to make HTTP requests")
 
@@ -536,24 +537,28 @@ if (ENABLE_PLUGINS AND BUILD_MODALITY_WORKLISTS)
 endif()
 
 
+if (ENABLE_PLUGINS AND (BUILD_DELAYED_DELETION OR BUILD_CONNECTIVITY_CHECKS))
+  include(ExternalProject)
+
+endif()
+
 
 #####################################################################
 ## Build the "ConnectivityChecks" plugin
 #####################################################################
 
 if (ENABLE_PLUGINS AND BUILD_CONNECTIVITY_CHECKS)
-  include(ExternalProject)
 
-  set(Flags)
+  set(ConnectivityChecksFlags)
 
   if (CMAKE_TOOLCHAIN_FILE)
     # Take absolute path to the toolchain
     get_filename_component(TMP ${CMAKE_TOOLCHAIN_FILE} REALPATH BASE ${CMAKE_SOURCE_DIR})
-    list(APPEND Flags -DCMAKE_TOOLCHAIN_FILE=${TMP})
+    list(APPEND ConnectivityChecksFlags -DCMAKE_TOOLCHAIN_FILE=${TMP})
   endif()
 
   if ("${CMAKE_SYSTEM_VERSION}" STREQUAL "LinuxStandardBase")
-    list(APPEND Flags
+    list(APPEND ConnectivityChecksFlags
       -DLSB_CC=${CMAKE_LSB_CC}
       -DLSB_CXX=${CMAKE_LSB_CXX}
       )
@@ -566,6 +571,9 @@ if (ENABLE_PLUGINS AND BUILD_CONNECTIVITY_CHECKS)
     # that are too long on our Visual Studio 2008 CIS
     BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}/ConnectivityChecks-build"
 
+    # this helps triggering build when changing the external project
+    BUILD_ALWAYS 1
+
     CMAKE_ARGS
     -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
     -DCMAKE_INSTALL_PREFIX=${CMAKE_CURRENT_BINARY_DIR}
@@ -574,7 +582,7 @@ if (ENABLE_PLUGINS AND BUILD_CONNECTIVITY_CHECKS)
     -DALLOW_DOWNLOADS=${ALLOW_DOWNLOADS}
     -DUSE_SYSTEM_BOOST=${USE_SYSTEM_BOOST}
     -DUSE_LEGACY_JSONCPP=${USE_LEGACY_JSONCPP}
-    ${Flags}
+    ${ConnectivityChecksFlags}
 
     -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
     -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
@@ -604,6 +612,75 @@ if (ENABLE_PLUGINS AND BUILD_CONNECTIVITY_CHECKS)
   endif()
 endif()
 
+
+#####################################################################
+## Build the "DelayedDeletion" plugin
+#####################################################################
+
+if (ENABLE_PLUGINS AND BUILD_DELAYED_DELETION)
+
+  set(DelayedDeletionFlags)
+
+  if (CMAKE_TOOLCHAIN_FILE)
+    # Take absolute path to the toolchain
+    get_filename_component(TMP ${CMAKE_TOOLCHAIN_FILE} REALPATH BASE ${CMAKE_SOURCE_DIR})
+    list(APPEND DelayedDeletionFlags -DCMAKE_TOOLCHAIN_FILE=${TMP})
+  endif()
+
+  if ("${CMAKE_SYSTEM_VERSION}" STREQUAL "LinuxStandardBase")
+    list(APPEND DelayedDeletionFlags
+      -DLSB_CC=${CMAKE_LSB_CC}
+      -DLSB_CXX=${CMAKE_LSB_CXX}
+      )
+  endif()
+
+  externalproject_add(DelayedDeletion
+    SOURCE_DIR "${CMAKE_SOURCE_DIR}/Plugins/Samples/DelayedDeletion"
+
+    # We explicitly provide a build directory, in order to avoid paths
+    # that are too long on our Visual Studio 2008 CIS
+    BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}/DelayedDeletion-build"
+
+    # this helps triggering build when changing the external project
+    BUILD_ALWAYS 1
+
+    CMAKE_ARGS
+    -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
+    -DCMAKE_INSTALL_PREFIX=${CMAKE_CURRENT_BINARY_DIR}
+    -DPLUGIN_VERSION=${ORTHANC_VERSION}
+    -DSTATIC_BUILD=${STATIC_BUILD}
+    -DALLOW_DOWNLOADS=${ALLOW_DOWNLOADS}
+    -DUSE_SYSTEM_BOOST=${USE_SYSTEM_BOOST}
+    -DUSE_LEGACY_JSONCPP=${USE_LEGACY_JSONCPP}
+    ${DelayedDeletionFlags}
+
+    -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
+    -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
+    -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
+    -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS}
+    -DCMAKE_OSX_DEPLOYMENT_TARGET=${CMAKE_OSX_DEPLOYMENT_TARGET}
+    -DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES}
+    )
+
+  if (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
+    if (MSVC)
+      set(Prefix "")
+    else()
+      set(Prefix "lib")  # MinGW
+    endif()
+
+    install(FILES
+      ${CMAKE_CURRENT_BINARY_DIR}/${Prefix}DelayedDeletion.dll
+      DESTINATION "lib")
+  else()
+    list(GET CMAKE_FIND_LIBRARY_PREFIXES 0 Prefix)
+    list(GET CMAKE_FIND_LIBRARY_SUFFIXES 0 Suffix)
+    install(FILES
+      ${CMAKE_CURRENT_BINARY_DIR}/${Prefix}DelayedDeletion${Suffix}
+      ${CMAKE_CURRENT_BINARY_DIR}/${Prefix}DelayedDeletion${Suffix}.${ORTHANC_VERSION}
+      DESTINATION "share/orthanc/plugins")
+  endif()
+endif()
 
 
 #####################################################################
