@@ -446,7 +446,8 @@ extern "C"
     _OrthancPluginService_GenerateRestApiAuthorizationToken = 39,   /* New in Orthanc 1.8.1 */
     _OrthancPluginService_CreateMemoryBuffer64 = 40, /* New in Orthanc 1.9.0 */
     _OrthancPluginService_CreateDicom2 = 41,         /* New in Orthanc 1.9.0 */
-    
+    _OrthancPluginService_GetDatabaseServerIdentifier = 42,         /* New in Orthanc 1.11.1 */
+
     /* Registration of callbacks */
     _OrthancPluginService_RegisterRestCallback = 1000,
     _OrthancPluginService_RegisterOnStoredInstanceCallback = 1001,
@@ -9002,7 +9003,36 @@ extern "C"
 
     return context->InvokeService(context, _OrthancPluginService_RegisterWebDavCollection, &params);
   }
-  
+
+
+  /**
+   * @brief Gets the DatabaseServerIdentifier.
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @return the database server identifier.  This is a statically-allocated
+   * string, do not free it.
+   * @ingroup Toolbox
+   **/
+  ORTHANC_PLUGIN_INLINE const char* OrthancPluginGetDatabaseServerIdentifier(
+    OrthancPluginContext*  context)
+  {
+    const char* result;
+
+    _OrthancPluginRetrieveStaticString params;
+    params.result = &result;
+    params.argument = NULL;
+
+    if (context->InvokeService(context, _OrthancPluginService_GetDatabaseServerIdentifier, &params) != OrthancPluginErrorCode_Success)
+    {
+      /* Error */
+      return NULL;
+    }
+    else
+    {
+      return result;
+    }
+  }
+
 
 #ifdef  __cplusplus
 }
