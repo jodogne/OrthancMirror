@@ -51,7 +51,7 @@ namespace Orthanc
   public:
     explicit DicomMoveScuJob(ServerContext& context) :
       context_(context),
-      query_(true /* this is for worklists */),
+      query_(false  /* this is not for worklists */),
       queryFormat_(DicomToJsonFormat_Short)
     {
     }
@@ -61,6 +61,8 @@ namespace Orthanc
 
     void AddFindAnswer(const DicomMap& answer);
     
+    void AddQuery(const DicomMap& query);
+
     void AddFindAnswer(QueryRetrieveHandler& query,
                        size_t i);
 

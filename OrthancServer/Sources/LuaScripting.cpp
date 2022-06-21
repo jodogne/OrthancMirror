@@ -34,6 +34,8 @@
 
 #include <OrthancServerResources.h>
 
+static const char* ON_HEART_BEAT = "OnHeartBeat";
+
 
 namespace Orthanc
 {
@@ -785,10 +787,10 @@ namespace Orthanc
 
   void LuaScripting::HeartBeatThread(LuaScripting* that)
   {
-    static const boost::posix_time::time_duration PERIODICITY =
-      boost::posix_time::seconds(that->heartBeatPeriod_);
+    static const unsigned int GRANULARITY = 100;  // In milliseconds
     
-    unsigned int sleepDelay = 100;
+    const boost::posix_time::time_duration PERIODICITY =
+      boost::posix_time::seconds(that->heartBeatPeriod_);
     
     boost::posix_time::ptime next =
       boost::posix_time::microsec_clock::universal_time() + PERIODICITY;
@@ -797,25 +799,26 @@ namespace Orthanc
 
     while (!shouldStop)
     {
-      boost::this_thread::sleep(boost::posix_time::milliseconds(sleepDelay));
+      boost::this_thread::sleep(boost::posix_time::milliseconds(GRANULARITY));
 
       if (boost::posix_time::microsec_clock::universal_time() >= next)
       {
         LuaScripting::Lock lock(*that);
 
-        if (lock.GetLua().IsExistingFunction("OnHeartBeat"))
+        if (lock.GetLua().IsExistingFunction(ON_HEART_BEAT))
         {
-          LuaFunctionCall call(lock.GetLua(), "OnHeartBeat");
+          LuaFunctionCall call(lock.GetLua(), ON_HEART_BEAT);
           call.Execute();
         }
 
         next = boost::posix_time::microsec_clock::universal_time() + PERIODICITY;
       }
 
-      boost::recursive_mutex::scoped_lock lock(that->mutex_);
-      shouldStop = that->state_ == State_Done;
+      {
+        boost::recursive_mutex::scoped_lock lock(that->mutex_);
+        shouldStop = (that->state_ == State_Done);
+      }
     }
-
   }
 
   void LuaScripting::EventThread(LuaScripting* that)
@@ -865,9 +868,9 @@ namespace Orthanc
       LOG(INFO) << "Starting the Lua engine";
       eventThread_ = boost::thread(EventThread, this);
       
-      LuaScripting::Lock lock(*this);
+      LuaScripting::Lock luaLock(*this);
 
-      if (heartBeatPeriod_ > 0 && lock.GetLua().IsExistingFunction("OnHeartBeat"))
+      if (heartBeatPeriod_ > 0 && luaLock.GetLua().IsExistingFunction(ON_HEART_BEAT))
       {
         LOG(INFO) << "Starting the Lua HeartBeat thread with a period of " << heartBeatPeriod_ << " seconds";
         heartBeatThread_ = boost::thread(HeartBeatThread, this);
