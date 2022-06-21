@@ -362,27 +362,7 @@ namespace Orthanc
     DcmDataset* dataset = query->GetDcmtkObject().getDataset();
 
     const char* sopClass = UID_MOVEStudyRootQueryRetrieveInformationModel;
-    switch (level)
-    {
-      case ResourceType_Patient:
-        DU_putStringDOElement(dataset, DCM_QueryRetrieveLevel, "PATIENT");
-        break;
-
-      case ResourceType_Study:
-        DU_putStringDOElement(dataset, DCM_QueryRetrieveLevel, "STUDY");
-        break;
-
-      case ResourceType_Series:
-        DU_putStringDOElement(dataset, DCM_QueryRetrieveLevel, "SERIES");
-        break;
-
-      case ResourceType_Instance:
-        DU_putStringDOElement(dataset, DCM_QueryRetrieveLevel, "IMAGE");
-        break;
-
-      default:
-        throw OrthancException(ErrorCode_ParameterOutOfRange);
-    }
+    DU_putStringDOElement(dataset, DCM_QueryRetrieveLevel, ResourceTypeToDicomQueryRetrieveLevel(level));
 
     // Figure out which of the accepted presentation contexts should be used
     int presID = ASC_findAcceptedPresentationContextID(&association_->GetDcmtkAssociation(), sopClass);
@@ -519,32 +499,26 @@ namespace Orthanc
     DcmDataset* dataset = query->GetDcmtkObject().getDataset();
     assert(dataset != NULL);
 
-    const char* clevel = NULL;
+    const char* clevel = ResourceTypeToDicomQueryRetrieveLevel(level);
     const char* sopClass = NULL;
+
+    DU_putStringDOElement(dataset, DCM_QueryRetrieveLevel, clevel);
 
     switch (level)
     {
       case ResourceType_Patient:
-        clevel = "PATIENT";
-        DU_putStringDOElement(dataset, DCM_QueryRetrieveLevel, "PATIENT");
         sopClass = UID_FINDPatientRootQueryRetrieveInformationModel;
         break;
 
       case ResourceType_Study:
-        clevel = "STUDY";
-        DU_putStringDOElement(dataset, DCM_QueryRetrieveLevel, "STUDY");
         sopClass = UID_FINDStudyRootQueryRetrieveInformationModel;
         break;
 
       case ResourceType_Series:
-        clevel = "SERIES";
-        DU_putStringDOElement(dataset, DCM_QueryRetrieveLevel, "SERIES");
         sopClass = UID_FINDStudyRootQueryRetrieveInformationModel;
         break;
 
       case ResourceType_Instance:
-        clevel = "IMAGE";
-        DU_putStringDOElement(dataset, DCM_QueryRetrieveLevel, "IMAGE");
         sopClass = UID_FINDStudyRootQueryRetrieveInformationModel;
         break;
 

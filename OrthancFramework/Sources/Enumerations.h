@@ -862,6 +862,9 @@ namespace Orthanc
   bool IsResourceLevelAboveOrEqual(ResourceType level,
                                    ResourceType reference);
 
+ORTHANC_PUBLIC
+  const char* ResourceTypeToDicomQueryRetrieveLevel(ResourceType type);
+
   ORTHANC_PUBLIC
   DicomModule GetModule(ResourceType type);
 

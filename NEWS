@@ -17,6 +17,11 @@ Maintenance
   DicomControlUserConnection::SetupPresentationContexts()
 * Improved HttpClient error logging (add method + url)
 
+
+* Added an Asynchronous mode to /modalities/../move.
+
+
+
 Version 1.11.0 (2022-05-09)
 ===========================
 
