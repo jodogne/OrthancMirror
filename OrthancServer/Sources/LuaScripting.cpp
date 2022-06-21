@@ -865,9 +865,9 @@ namespace Orthanc
       LOG(INFO) << "Starting the Lua engine";
       eventThread_ = boost::thread(EventThread, this);
       
-      LuaScripting::Lock lock(*this);
+      LuaScripting::Lock luaLock(*this);
 
-      if (heartBeatPeriod_ > 0 && lock.GetLua().IsExistingFunction("OnHeartBeat"))
+      if (heartBeatPeriod_ > 0 && luaLock.GetLua().IsExistingFunction("OnHeartBeat"))
       {
         LOG(INFO) << "Starting the Lua HeartBeat thread with a period of " << heartBeatPeriod_ << " seconds";
         heartBeatThread_ = boost::thread(HeartBeatThread, this);
