@@ -1314,6 +1314,27 @@ namespace Orthanc
     throw OrthancException(ErrorCode_ParameterOutOfRange);
   }
 
+  const char* ResourceTypeToDicomQueryRetrieveLevel(ResourceType type)
+  {
+    if (type == ResourceType_Patient)
+    {
+      return "PATIENT";
+    }
+    else if (type == ResourceType_Study)
+    {
+      return "STUDY";
+    }
+    else if (type == ResourceType_Series)
+    {
+      return "SERIES";
+    }
+    else if (type == ResourceType_Instance)
+    {
+      return "IMAGE";
+    }
+
+    throw OrthancException(ErrorCode_ParameterOutOfRange);
+  }
 
   ImageFormat StringToImageFormat(const char* format)
   {
