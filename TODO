@@ -38,6 +38,7 @@ General
   by returning out-of-resource status (HTTP or DIMSE)
 * Add configurations to enable/disable warnings:
   - Modifying an instance while keeping its original SOPInstanceUID: This should be avoided!
+  - Modifying a study while keeping its original StudyInstanceUID: This should be avoided!
 * Allow storing sequences in DB to speed up Dicom-web: https://groups.google.com/g/orthanc-users/c/6CTlfa8UGM4/m/V1D0xuKQAAAJ
 
 ============================
