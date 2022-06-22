@@ -787,7 +787,8 @@ extern "C"
       }
 
       OrthancPluginRegisterOnChangeCallback(c, OnChangeCallback);
-      OrthancPluginRegisterRestCallback(c, "/housekeeper/status", GetPluginStatus);
+      OrthancPluginRegisterRestCallback(c, "/housekeeper/status", GetPluginStatus);   // for bacward compatiblity with version 1.11.0
+      OrthancPluginRegisterRestCallback(c, "/plugins/housekeeper/status", GetPluginStatus);
     }
     else
     {
