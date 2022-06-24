@@ -1311,7 +1311,7 @@ namespace Orthanc
       return ResourceType_Instance;
     }
 
-    throw OrthancException(ErrorCode_ParameterOutOfRange);
+    throw OrthancException(ErrorCode_ParameterOutOfRange, std::string("Invalid resource type '") + type + "'");
   }
 
   const char* ResourceTypeToDicomQueryRetrieveLevel(ResourceType type)
