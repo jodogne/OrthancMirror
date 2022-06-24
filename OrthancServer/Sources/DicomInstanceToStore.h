@@ -108,7 +108,8 @@ namespace Orthanc
 
     virtual void GetSummary(DicomMap& summary) const;
 
-    virtual void GetDicomAsJson(Json::Value& dicomAsJson) const;
+    virtual void GetDicomAsJson(Json::Value& dicomAsJson,
+                                const std::set<DicomTag>& ignoreTagLength) const;
 
     virtual void DatasetToJson(Json::Value& target, 
                                DicomToJsonFormat format,

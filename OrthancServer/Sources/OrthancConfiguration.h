@@ -263,7 +263,8 @@ namespace Orthanc
                                           const ParsedDicomFile& dicom);
     
     static void DefaultDicomDatasetToJson(Json::Value& target,
-                                          DcmDataset& dicom);
+                                          DcmDataset& dicom,
+                                          const std::set<DicomTag>& ignoreTagLength);
     
     static void DefaultDicomDatasetToJson(Json::Value& target,
                                           const ParsedDicomFile& dicom,

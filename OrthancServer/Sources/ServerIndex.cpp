@@ -511,6 +511,7 @@ namespace Orthanc
 
   StoreStatus ServerIndex::Store(std::map<MetadataType, std::string>& instanceMetadata,
                                  const DicomMap& dicomSummary,
+                                 const std::map<DicomTag, Json::Value>& sequencesToStore,
                                  const ServerIndex::Attachments& attachments,
                                  const ServerIndex::MetadataMap& metadata,
                                  const DicomInstanceOrigin& origin,
@@ -531,7 +532,7 @@ namespace Orthanc
     }
 
     return StatelessDatabaseOperations::Store(
-      instanceMetadata, dicomSummary, attachments, metadata, origin, overwrite, hasTransferSyntax,
+      instanceMetadata, dicomSummary, sequencesToStore, attachments, metadata, origin, overwrite, hasTransferSyntax,
       transferSyntax, hasPixelDataOffset, pixelDataOffset, maximumStorageSize, maximumPatients, isReconstruct);
   }
 

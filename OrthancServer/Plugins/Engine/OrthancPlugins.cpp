@@ -3402,7 +3402,8 @@ namespace Orthanc
       case _OrthancPluginService_GetInstanceSimplifiedJson:
       {
         Json::Value dicomAsJson;
-        instance.GetDicomAsJson(dicomAsJson);
+        std::set<DicomTag> ignoreTagLength;
+        instance.GetDicomAsJson(dicomAsJson, ignoreTagLength);
         
         std::string s;
         if (service == _OrthancPluginService_GetInstanceJson)

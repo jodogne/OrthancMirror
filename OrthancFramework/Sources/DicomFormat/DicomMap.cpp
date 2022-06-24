@@ -34,7 +34,7 @@
 #include "../OrthancException.h"
 #include "../Toolbox.h"
 #include "DicomArray.h"
-
+#include "../DicomParsing/FromDcmtkBridge.h"
 
 namespace Orthanc
 {
@@ -612,6 +612,13 @@ namespace Orthanc
     }
   }
 
+  void DicomMap::RemoveTags(const std::set<DicomTag>& tags) 
+  {
+    for (std::set<DicomTag>::const_iterator it = tags.begin(); it != tags.end(); ++it)
+    {
+      Remove(*it);
+    }
+  }
 
   static void SetupFindTemplate(DicomMap& result,
                                 const std::map<DicomTag, std::string>& mainDicomTags)
@@ -1522,7 +1529,20 @@ namespace Orthanc
 
     return true;
   }
-    
+
+  void DicomMap::ExtractSequences(std::set<DicomTag>& sequences, const std::set<DicomTag>& tags)
+  {
+    sequences.clear();
+
+    for (std::set<DicomTag>::const_iterator it = tags.begin(); it != tags.end(); ++it)
+    {
+      ValueRepresentation vr = FromDcmtkBridge::LookupValueRepresentation(*it);
+      if (vr == ValueRepresentation_Sequence)
+      {
+        sequences.insert(*it);
+      }
+    }
+  }
 
   void DicomMap::Serialize(Json::Value& target) const
   {

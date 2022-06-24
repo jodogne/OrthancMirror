@@ -37,10 +37,25 @@ namespace Orthanc
   class ParsedDicomFile;
   struct ServerIndexChange;
 
+  /*
+   * contains a map of dicom sequences where:
+   * the key is a DicomTag
+   * the sequence is serialized in Json "full" format
+   */
+  struct DicomSequencesMap : public boost::noncopyable
+  {
+    std::map<DicomTag, Json::Value>     sequences_;
+
+    void FromJson(const Json::Value& serialized);
+    void FromDicomAsJson(const Json::Value& dicomAsJson, const std::set<DicomTag>& tags);
+    void ToJson(Json::Value& target, DicomToJsonFormat format) const;
+  };
+
   struct ExpandedResource : public boost::noncopyable
   {
     std::string                         id_;
-    DicomMap                            tags_;  // all tags from DB
+    DicomMap                            tags_;          // all tags from DB (only leaf tags, not sequences !)
+    DicomSequencesMap                   sequences_;     // the requested sequences
     std::string                         mainDicomTagsSignature_;
     std::string                         parentId_;
     std::list<std::string>              childrenIds_;
@@ -650,6 +665,7 @@ namespace Orthanc
 
     StoreStatus Store(std::map<MetadataType, std::string>& instanceMetadata,
                       const DicomMap& dicomSummary,
+                      const std::map<DicomTag, Json::Value>& sequencesToStore,
                       const Attachments& attachments,
                       const MetadataMap& metadata,
                       const DicomInstanceOrigin& origin,

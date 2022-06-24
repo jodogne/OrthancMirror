@@ -169,6 +169,27 @@ namespace Orthanc
 
 }
 
+TEST(DicomMap, ExtractSequences)
+{
+  std::set<DicomTag> allTags;
+  std::set<DicomTag> sequences;
+
+  // empty list
+  DicomMap::ExtractSequences(sequences, allTags);
+  ASSERT_EQ(0u, sequences.size());
+
+  // one tag, no sequence
+  allTags.insert(DICOM_TAG_PATIENT_NAME);
+  DicomMap::ExtractSequences(sequences, allTags);
+  ASSERT_EQ(0u, sequences.size());
+
+  // one sequence
+  allTags.insert(DICOM_TAG_REFERENCED_IMAGE_SEQUENCE);
+  DicomMap::ExtractSequences(sequences, allTags);
+  ASSERT_EQ(1u, sequences.size());
+  ASSERT_TRUE(sequences.find(DICOM_TAG_REFERENCED_IMAGE_SEQUENCE) != sequences.end());
+}
+
 TEST(DicomMap, Tags)
 {
   std::set<DicomTag> s;

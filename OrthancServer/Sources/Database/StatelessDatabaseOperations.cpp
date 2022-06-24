@@ -45,6 +45,51 @@
 
 namespace Orthanc
 {
+  // copy all tags from Json
+  void DicomSequencesMap::FromJson(const Json::Value& value)
+  {
+    Json::Value::Members members = value.getMemberNames();
+    for (size_t i = 0; i < members.size(); i++)
+    {
+      DicomTag tag = FromDcmtkBridge::ParseTag(members[i].c_str());
+      sequences_[tag] = value[members[i]];
+    }
+  }
+
+  // copy a subset of tags from Json
+  void DicomSequencesMap::FromDicomAsJson(const Json::Value& dicomAsJson, const std::set<DicomTag>& tags)
+  {
+    for (std::set<DicomTag>::const_iterator it = tags.begin();
+         it != tags.end(); ++it)
+    {
+      std::string tag = it->Format();
+      if (dicomAsJson.isMember(tag))
+      {
+        sequences_[*it] = dicomAsJson[tag];
+      }
+    }
+  }
+
+  void DicomSequencesMap::ToJson(Json::Value& target, DicomToJsonFormat format) const
+  {
+    // add the sequences to "target"
+    for (std::map<DicomTag, Json::Value>::const_iterator it = sequences_.begin();
+          it != sequences_.end(); ++it)
+    {
+      Json::Value sequenceForConversion = Json::objectValue;
+      sequenceForConversion[it->first.Format()] = it->second;
+
+      Json::Value requestedFormatJson;
+      Toolbox::SimplifyDicomAsJson(requestedFormatJson, sequenceForConversion, format);  
+      
+      Json::Value::Members keys = requestedFormatJson.getMemberNames();  
+      for (size_t i = 0; i < keys.size(); i++)  // there should always be only one member in this JSON
+      {
+        target[keys[i]] = requestedFormatJson[keys[i]];
+      }
+    }
+  }
+
   namespace
   {
     /**
@@ -873,6 +918,17 @@ namespace Orthanc
             // read all tags from DB
             transaction.GetMainDicomTags(target.tags_, internalId);
 
+            // read all main sequences from DB
+            std::string serializedSequences;
+            if (LookupStringMetadata(serializedSequences, target.metadata_, MetadataType_MainDicomSequences))
+            {
+              Json::Value jsonMetadata;
+              Toolbox::ReadJson(jsonMetadata, serializedSequences);
+
+              assert(jsonMetadata["Version"].asInt() == 1);
+              target.sequences_.FromJson(jsonMetadata["Sequences"]);
+            }
+
             // check if we have access to all requestedTags or if we must get tags from parents
             const std::set<DicomTag>& requestedTags = tuple.get<4>();
 
@@ -882,7 +938,7 @@ namespace Orthanc
               
               FromDcmtkBridge::ParseListOfTags(savedMainDicomTags, target.mainDicomTagsSignature_);
 
-              // read parent main dicom tags as long as we don't have gathered all requested tags
+              // read parent main dicom tags as long as we have not gathered all requested tags
               ResourceType currentLevel = target.type_;
               int64_t currentInternalId = internalId;
               Toolbox::GetMissingsFromSet(target.missingRequestedTags_, requestedTags, savedMainDicomTags);
@@ -2841,6 +2897,7 @@ namespace Orthanc
 
   StoreStatus StatelessDatabaseOperations::Store(std::map<MetadataType, std::string>& instanceMetadata,
                                                  const DicomMap& dicomSummary,
+                                                 const std::map<DicomTag, Json::Value>& sequencesToStore,
                                                  const Attachments& attachments,
                                                  const MetadataMap& metadata,
                                                  const DicomInstanceOrigin& origin,
@@ -2859,6 +2916,7 @@ namespace Orthanc
       StoreStatus                          storeStatus_;
       std::map<MetadataType, std::string>& instanceMetadata_;
       const DicomMap&                      dicomSummary_;
+      const std::map<DicomTag, Json::Value>& sequencesToStore_;
       const Attachments&                   attachments_;
       const MetadataMap&                   metadata_;
       const DicomInstanceOrigin&           origin_;
@@ -2890,6 +2948,44 @@ namespace Orthanc
         instanceMetadata[metadata] = value;
       }
 
+      static void SetMainDicomSequenceMetadata(ResourcesContent& content,
+                                               int64_t resource,
+                                               const std::map<DicomTag, Json::Value>& sequencesToStore,  // all sequences for all levels !
+                                               ResourceType level)
+      {
+        if (sequencesToStore.size() > 0)
+        {
+          const std::set<DicomTag>& levelTags = DicomMap::GetMainDicomTags(level);
+          std::set<DicomTag> levelSequences;
+          DicomMap::ExtractSequences(levelSequences, levelTags);
+
+          if (levelSequences.size() == 0)
+          {
+            return;
+          }
+
+          Json::Value jsonMetadata;
+          jsonMetadata["Version"] = 1;
+          Json::Value jsonSequences = Json::objectValue;
+
+          for (std::set<DicomTag>::const_iterator it = levelSequences.begin();
+               it != levelSequences.end(); ++it)
+          {
+            std::map<DicomTag, Json::Value>::const_iterator foundSeq = sequencesToStore.find(*it);
+            if (foundSeq != sequencesToStore.end())
+            {
+              jsonSequences[it->Format()] = foundSeq->second;
+            }
+          }
+          jsonMetadata["Sequences"] = jsonSequences;
+          
+          std::string serialized;
+          Toolbox::WriteFastJson(serialized, jsonMetadata);
+
+          content.AddMetadata(resource, MetadataType_MainDicomSequences, serialized);
+        }
+
+      }
       
       static bool ComputeExpectedNumberOfInstances(int64_t& target,
                                                    const DicomMap& dicomSummary)
@@ -2948,6 +3044,7 @@ namespace Orthanc
     public:
       Operations(std::map<MetadataType, std::string>& instanceMetadata,
                  const DicomMap& dicomSummary,
+                 const std::map<DicomTag, Json::Value>& sequencesToStore,
                  const Attachments& attachments,
                  const MetadataMap& metadata,
                  const DicomInstanceOrigin& origin,
@@ -2962,6 +3059,7 @@ namespace Orthanc
         storeStatus_(StoreStatus_Failure),
         instanceMetadata_(instanceMetadata),
         dicomSummary_(dicomSummary),
+        sequencesToStore_(sequencesToStore),
         attachments_(attachments),
         metadata_(metadata),
         origin_(origin),
@@ -3112,23 +3210,27 @@ namespace Orthanc
 
             content.AddResource(instanceId, ResourceType_Instance, dicomSummary_);
             SetInstanceMetadata(content, instanceMetadata_, instanceId, MetadataType_MainDicomTagsSignature, DicomMap::GetMainDicomTagsSignature(ResourceType_Instance));  // New in Orthanc 1.11.0
+            SetMainDicomSequenceMetadata(content, instanceId, sequencesToStore_, ResourceType_Instance);   // new in Orthanc 1.11.1
 
             if (status.isNewSeries_)
             {
               content.AddResource(status.seriesId_, ResourceType_Series, dicomSummary_);
               content.AddMetadata(status.seriesId_, MetadataType_MainDicomTagsSignature, DicomMap::GetMainDicomTagsSignature(ResourceType_Series));  // New in Orthanc 1.11.0
+              SetMainDicomSequenceMetadata(content, status.seriesId_, sequencesToStore_, ResourceType_Series);   // new in Orthanc 1.11.1
             }
 
             if (status.isNewStudy_)
             {
               content.AddResource(status.studyId_, ResourceType_Study, dicomSummary_);
               content.AddMetadata(status.studyId_, MetadataType_MainDicomTagsSignature, DicomMap::GetMainDicomTagsSignature(ResourceType_Study));  // New in Orthanc 1.11.0
+              SetMainDicomSequenceMetadata(content, status.studyId_, sequencesToStore_, ResourceType_Study);   // new in Orthanc 1.11.1
             }
 
             if (status.isNewPatient_)
             {
               content.AddResource(status.patientId_, ResourceType_Patient, dicomSummary_);
               content.AddMetadata(status.patientId_, MetadataType_MainDicomTagsSignature, DicomMap::GetMainDicomTagsSignature(ResourceType_Patient));  // New in Orthanc 1.11.0
+              SetMainDicomSequenceMetadata(content, status.patientId_, sequencesToStore_, ResourceType_Patient);   // new in Orthanc 1.11.1
             }
 
             // Attach the auto-computed metadata for the patient/study/series levels
@@ -3273,7 +3375,7 @@ namespace Orthanc
     };
 
 
-    Operations operations(instanceMetadata, dicomSummary, attachments, metadata, origin,
+    Operations operations(instanceMetadata, dicomSummary, sequencesToStore, attachments, metadata, origin,
                           overwrite, hasTransferSyntax, transferSyntax, hasPixelDataOffset,
                           pixelDataOffset, maximumStorageSize, maximumPatients, isReconstruct);
     Apply(operations);
