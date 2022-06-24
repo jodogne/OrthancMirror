@@ -215,27 +215,7 @@ namespace Orthanc
 
     for (Json::Value::ArrayIndex i = 0; i < levels.size(); i++)
     {
-      ResourceType level;
-      if (levels[i] == "Patient")
-      {
-        level = ResourceType_Patient;
-      }
-      else if (levels[i] == "Study")
-      {
-        level = ResourceType_Study;
-      }
-      else if (levels[i] == "Series")
-      {
-        level = ResourceType_Series;
-      }
-      else if (levels[i] == "Instance")
-      {
-        level = ResourceType_Instance;
-      }
-      else
-      {
-        throw OrthancException(ErrorCode_BadFileFormat, "Unknown entry '" + levels[i] + "' in ExtraMainDicomTags.");
-      }
+      ResourceType level = StringToResourceType(levels[i].c_str());
 
       const Json::Value& content = configuration[EXTRA_MAIN_DICOM_TAGS][levels[i]];
 
