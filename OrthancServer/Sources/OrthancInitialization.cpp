@@ -262,13 +262,13 @@ namespace Orthanc
             ValueRepresentation vr = FromDcmtkBridge::LookupValueRepresentation(tag);
             if (vr == ValueRepresentation_Sequence)
             {
-              LOG(WARNING) << "  - " << tagName << " can not be added in the Extra Main Dicom Tags since it is a sequence";
+              LOG(INFO) << "  - " << tagName << " (sequence)";
             }
             else
             {
-              DicomMap::AddMainDicomTag(tag, tagName, level);
               LOG(INFO) << "  - " << tagName;
             }
+            DicomMap::AddMainDicomTag(tag, tagName, level);
           }
         }
       }

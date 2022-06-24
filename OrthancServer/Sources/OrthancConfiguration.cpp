@@ -1126,9 +1126,9 @@ namespace Orthanc
 
 
   void OrthancConfiguration::DefaultDicomDatasetToJson(Json::Value& target,
-                                                       DcmDataset& dicom)
+                                                       DcmDataset& dicom,
+                                                       const std::set<DicomTag>& ignoreTagLength)
   {
-    std::set<DicomTag> ignoreTagLength;
     FromDcmtkBridge::ExtractDicomAsJson(target, dicom, DicomToJsonFormat_Full, DicomToJsonFlags_Default, 
                                         ORTHANC_MAXIMUM_TAG_LENGTH, ignoreTagLength);    
   }    

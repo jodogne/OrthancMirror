@@ -186,9 +186,9 @@ namespace Orthanc
       OrthancConfiguration::DefaultExtractDicomSummary(summary, dataset_);
     }
 
-    virtual void GetDicomAsJson(Json::Value& dicomAsJson) const ORTHANC_OVERRIDE
+    virtual void GetDicomAsJson(Json::Value& dicomAsJson, const std::set<DicomTag>& ignoreTagLength) const ORTHANC_OVERRIDE
     {
-      OrthancConfiguration::DefaultDicomDatasetToJson(dicomAsJson, dataset_);
+      OrthancConfiguration::DefaultDicomDatasetToJson(dicomAsJson, dataset_, ignoreTagLength);
     }
 
     virtual void DatasetToJson(Json::Value& target, 
@@ -275,9 +275,9 @@ namespace Orthanc
   }
 
   
-  void DicomInstanceToStore::GetDicomAsJson(Json::Value& dicomAsJson) const
+  void DicomInstanceToStore::GetDicomAsJson(Json::Value& dicomAsJson, const std::set<DicomTag>& ignoreTagLength) const
   {
-    OrthancConfiguration::DefaultDicomDatasetToJson(dicomAsJson, GetParsedDicomFile());
+    OrthancConfiguration::DefaultDicomDatasetToJson(dicomAsJson, GetParsedDicomFile(), ignoreTagLength);
   }
 
 

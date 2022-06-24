@@ -110,6 +110,8 @@ namespace Orthanc
 
     void Remove(const DicomTag& tag);
 
+    void RemoveTags(const std::set<DicomTag>& tags);
+
     void ExtractPatientInformation(DicomMap& result) const;
 
     void ExtractStudyInformation(DicomMap& result) const;
@@ -146,6 +148,8 @@ namespace Orthanc
     static bool HasComputedTags(const std::set<DicomTag>& tags, ResourceType level);
 
     static bool HasComputedTags(const std::set<DicomTag>& tags);
+
+    static void ExtractSequences(std::set<DicomTag>& sequences, const std::set<DicomTag>& tags);
 
     static const std::set<DicomTag>& GetMainDicomTags(ResourceType level);
 

@@ -526,7 +526,12 @@ namespace Orthanc
     bool hasTransferSyntax = dicom.LookupTransferSyntax(transferSyntax);
     
     DicomMap summary;
-    dicom.GetSummary(summary);
+    dicom.GetSummary(summary);   // -> this includes only the leaf nodes
+
+    std::set<DicomTag> allMainDicomTags = DicomMap::GetAllMainDicomTags();
+    std::set<DicomTag> mainDicomSequences;
+    DicomMap::ExtractSequences(mainDicomSequences, allMainDicomTags);
+    std::map<DicomTag, Json::Value> sequencesToStore;
 
     try
     {
@@ -536,9 +541,19 @@ namespace Orthanc
       DicomInstanceHasher hasher(summary);
       resultPublicId = hasher.HashInstance();
 
-      Json::Value dicomAsJson;
-      dicom.GetDicomAsJson(dicomAsJson);
+      Json::Value dicomAsJson;    // -> this includes the sequences
+
+      dicom.GetDicomAsJson(dicomAsJson, mainDicomSequences /*ignoreTagLength*/);  // make sure that sequences that we wish to store in DB are not 'cropped'
       
+      for (std::set<DicomTag>::const_iterator it = mainDicomSequences.begin();
+           it != mainDicomSequences.end(); ++it)
+      {
+        if (dicomAsJson.isMember(it->Format()))
+        {
+          sequencesToStore[*it] = dicomAsJson[it->Format()];
+        }
+      }
+
       Json::Value simplifiedTags;
       Toolbox::SimplifyDicomAsJson(simplifiedTags, dicomAsJson, DicomToJsonFormat_Human);
 
@@ -616,7 +631,7 @@ namespace Orthanc
       typedef std::map<MetadataType, std::string>  InstanceMetadata;
       InstanceMetadata  instanceMetadata;
       result.SetStatus(index_.Store(
-        instanceMetadata, summary, attachments, dicom.GetMetadata(), dicom.GetOrigin(), overwrite,
+        instanceMetadata, summary, sequencesToStore, attachments, dicom.GetMetadata(), dicom.GetOrigin(), overwrite,
         hasTransferSyntax, transferSyntax, hasPixelDataOffset, pixelDataOffset, isReconstruct));
 
       // Only keep the metadata for the "instance" level
@@ -2094,6 +2109,9 @@ namespace Orthanc
 
       target[REQUESTED_TAGS] = Json::objectValue;
       FromDcmtkBridge::ToJson(target[REQUESTED_TAGS], tags, format);
+
+      // add the sequences to the requested tags
+      resource.sequences_.ToJson(target[REQUESTED_TAGS], format);
     }
 
   }
@@ -2405,6 +2423,9 @@ namespace Orthanc
       // possibly merge missing requested tags from dicom-as-json
       if (!resource.missingRequestedTags_.empty() && !DicomMap::HasOnlyComputedTags(resource.missingRequestedTags_))
       {
+        std::set<DicomTag> missingSequences;
+        DicomMap::ExtractSequences(missingSequences, resource.missingRequestedTags_);
+
         OrthancConfiguration::ReaderLock lock;
         if (lock.GetConfiguration().IsWarningEnabled(Warnings_001_TagsBeingReadFromStorage))
         {
@@ -2449,12 +2470,14 @@ namespace Orthanc
           }
   
           Json::Value tmpDicomAsJson;
-          ReadDicomAsJson(tmpDicomAsJson, instanceId_);
+          ReadDicomAsJson(tmpDicomAsJson, instanceId_, resource.missingRequestedTags_ /* ignoreTagLength */);  // read all tags from DICOM and avoid cropping requested tags
           tagsFromJson.FromDicomAsJson(tmpDicomAsJson);
+          resource.sequences_.FromDicomAsJson(tmpDicomAsJson, missingSequences);
         }
         else
         {
           tagsFromJson.FromDicomAsJson(*dicomAsJson);
+          resource.sequences_.FromDicomAsJson(*dicomAsJson, missingSequences);
         }
 
         resource.tags_.Merge(tagsFromJson);

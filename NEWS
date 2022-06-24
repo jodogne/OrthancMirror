@@ -9,6 +9,10 @@ General
 * Lua: new "SetHttpTimeout" function
 * Lua: new "OnHeartBeat" callback called at regular interval provided that
        you have configured "LuaHeartBeatPeriod" > 0.
+* "ExtraMainDicomTags" configuration now accepts Dicom Sequences.  Sequences are
+  stored in a dedicated new metadata "MainDicomSequences".  This should improve
+  DicomWeb QIDO-RS and avoid warnings like "Accessing Dicom tags from storage when 
+  accessing series : 0040,0275"
 
 
 Maintenance
@@ -26,6 +30,7 @@ REST API
 * API version upgraded to 18
 * /system is now reporting "DatabaseServerIdentifier"
 * Added an Asynchronous mode to /modalities/../move.
+* "RequestedTags" option can now include DICOM sequences.
 
 Plugins
 -------
