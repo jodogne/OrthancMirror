@@ -149,7 +149,9 @@ namespace Orthanc
 
     static bool HasComputedTags(const std::set<DicomTag>& tags);
 
+#if ORTHANC_ENABLE_DCMTK == 1
     static void ExtractSequences(std::set<DicomTag>& sequences, const std::set<DicomTag>& tags);
+#endif
 
     static const std::set<DicomTag>& GetMainDicomTags(ResourceType level);
 

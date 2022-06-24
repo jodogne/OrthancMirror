@@ -34,7 +34,10 @@
 #include "../OrthancException.h"
 #include "../Toolbox.h"
 #include "DicomArray.h"
+
+#if ORTHANC_ENABLE_DCMTK == 1
 #include "../DicomParsing/FromDcmtkBridge.h"
+#endif
 
 namespace Orthanc
 {
@@ -1530,6 +1533,7 @@ namespace Orthanc
     return true;
   }
 
+#if ORTHANC_ENABLE_DCMTK == 1
   void DicomMap::ExtractSequences(std::set<DicomTag>& sequences, const std::set<DicomTag>& tags)
   {
     sequences.clear();
@@ -1543,6 +1547,7 @@ namespace Orthanc
       }
     }
   }
+#endif
 
   void DicomMap::Serialize(Json::Value& target) const
   {
