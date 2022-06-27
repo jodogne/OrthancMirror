@@ -2083,10 +2083,11 @@ namespace Orthanc
     target[MAIN_DICOM_TAGS] = Json::objectValue;
     FromDcmtkBridge::ToJson(target[MAIN_DICOM_TAGS], mainDicomTags, format);
     
-    {// TODO add the sequences to the main dicom tags
-      // const std::set<DicomTag>& mainDicomTags = DicomMap::MainDicomTagsConfiguration::GetInstance().GetMainDicomTagsByLevel(resource.type_);
-      // mainDicomTags.
-      // resource.sequences_.ToJson(target[MAIN_DICOM_TAGS], format);
+    {// add the main DICOM sequences to the main dicom tags
+      const std::set<DicomTag>& mainDicomTags = DicomMap::GetMainDicomTags(resource.type_);
+      std::set<DicomTag> mainDicomSequences;
+      DicomMap::ExtractSequences(mainDicomSequences, mainDicomTags);
+      resource.sequences_.ToJson(target[MAIN_DICOM_TAGS], format, mainDicomSequences);
     }
 
     if (resource.type_ == ResourceType_Study)
@@ -2108,8 +2109,12 @@ namespace Orthanc
       target[REQUESTED_TAGS] = Json::objectValue;
       FromDcmtkBridge::ToJson(target[REQUESTED_TAGS], tags, format);
 
-      // add the sequences to the requested tags
-      resource.sequences_.ToJson(target[REQUESTED_TAGS], format);
+      {// add the requested sequences to the requested tags
+        std::set<DicomTag> requestedDicomSequences;
+        DicomMap::ExtractSequences(requestedDicomSequences, requestedTags);
+        resource.sequences_.ToJson(target[REQUESTED_TAGS], format, requestedDicomSequences);
+      }
+
     }
 
   }

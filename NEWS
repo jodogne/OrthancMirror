@@ -12,7 +12,8 @@ General
 * "ExtraMainDicomTags" configuration now accepts Dicom Sequences.  Sequences are
   stored in a dedicated new metadata "MainDicomSequences".  This should improve
   DicomWeb QIDO-RS and avoid warnings like "Accessing Dicom tags from storage when 
-  accessing series : 0040,0275"
+  accessing series : 0040,0275".
+  Main dicom sequences can now be returned in "MainDicomTags" and in "RequestedTags".
 
 
 Maintenance

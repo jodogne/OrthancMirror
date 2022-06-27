@@ -23,6 +23,7 @@
 #pragma once
 
 #include "../../../OrthancFramework/Sources/DicomFormat/DicomMap.h"
+#include "../../../OrthancFramework/Sources/DicomFormat/DicomSequencesMap.h"
 
 #include "IDatabaseWrapper.h"
 #include "../DicomInstanceOrigin.h"
@@ -37,31 +38,11 @@ namespace Orthanc
   class ParsedDicomFile;
   struct ServerIndexChange;
 
-  /*
-   * contains a map of dicom sequences where:
-   * the key is a DicomTag
-   * the sequence is serialized in Json "full" format
-   */
-  struct DicomSequencesMap : public boost::noncopyable
-  {
-    std::map<DicomTag, Json::Value>     sequences_;
-
-    void Deserialize(const Json::Value& serialized);
-    void Serialize(Json::Value& target, const std::set<DicomTag>& tags) const;
-    void FromDicomAsJson(const Json::Value& dicomAsJson, const std::set<DicomTag>& tags);
-    void ToJson(Json::Value& target, DicomToJsonFormat format) const;
-
-    size_t GetSize() const
-    {
-      return sequences_.size();
-    }
-  };
-
   struct ExpandedResource : public boost::noncopyable
   {
     std::string                         id_;
     DicomMap                            tags_;          // all tags from DB (only leaf tags, not sequences !)
-    DicomSequencesMap                   sequences_;     // the requested sequences
+    DicomSequencesMap                   sequences_;     // the requested sequences (from MainDicomTags or RequestedTags)
     std::string                         mainDicomTagsSignature_;
     std::string                         parentId_;
     std::list<std::string>              childrenIds_;
