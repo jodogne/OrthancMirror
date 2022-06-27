@@ -2083,6 +2083,12 @@ namespace Orthanc
     target[MAIN_DICOM_TAGS] = Json::objectValue;
     FromDcmtkBridge::ToJson(target[MAIN_DICOM_TAGS], mainDicomTags, format);
     
+    {// TODO add the sequences to the main dicom tags
+      // const std::set<DicomTag>& mainDicomTags = DicomMap::MainDicomTagsConfiguration::GetInstance().GetMainDicomTagsByLevel(resource.type_);
+      // mainDicomTags.
+      // resource.sequences_.ToJson(target[MAIN_DICOM_TAGS], format);
+    }
+
     if (resource.type_ == ResourceType_Study)
     {
       DicomMap patientMainDicomTags;

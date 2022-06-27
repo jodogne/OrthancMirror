@@ -164,7 +164,7 @@ namespace Orthanc
 
     // adds a main dicom tag to the definition of main dicom tags for each level.
     // this should be done once at startup before you use MainDicomTags methods
-    static void AddMainDicomTag(const DicomTag& tag, const std::string& name, ResourceType level);
+    static void AddMainDicomTag(const DicomTag& tag, ResourceType level);
 
     void GetTags(std::set<DicomTag>& tags) const;
 
@@ -207,7 +207,8 @@ namespace Orthanc
     bool ParseDouble(double& result,
                      const DicomTag& tag) const;
 
-    void FromDicomAsJson(const Json::Value& dicomAsJson);
+    void FromDicomAsJson(const Json::Value& dicomAsJson, 
+                         bool append = false);
 
     void Merge(const DicomMap& other);
 
@@ -232,9 +233,6 @@ namespace Orthanc
 
     void DumpMainDicomTags(Json::Value& target,
                            ResourceType level) const;
-
-    void ParseMainDicomTags(const Json::Value& source,
-                            ResourceType level);
 
     void Print(FILE* fp) const;  // For debugging only
   };

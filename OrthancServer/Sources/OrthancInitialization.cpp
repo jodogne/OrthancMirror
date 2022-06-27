@@ -248,7 +248,7 @@ namespace Orthanc
             {
               LOG(INFO) << "  - " << tagName;
             }
-            DicomMap::AddMainDicomTag(tag, tagName, level);
+            DicomMap::AddMainDicomTag(tag, level);
           }
         }
       }
