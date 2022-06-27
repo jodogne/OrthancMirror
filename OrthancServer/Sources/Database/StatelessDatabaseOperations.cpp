@@ -93,8 +93,14 @@ namespace Orthanc
       Json::Value sequenceForConversion = Json::objectValue;
       sequenceForConversion[it->first.Format()] = it->second;
 
-      Json::Value requestedFormatJson;
-      Toolbox::SimplifyDicomAsJson(requestedFormatJson, sequenceForConversion, format);  
+      Json::Value& requestedFormatJson = sequenceForConversion;
+      Json::Value convertedJson;
+
+      if (format != DicomToJsonFormat_Full)
+      {
+        Toolbox::SimplifyDicomAsJson(convertedJson, sequenceForConversion, format);
+        requestedFormatJson = convertedJson;
+      }
       
       Json::Value::Members keys = requestedFormatJson.getMemberNames();  
       for (size_t i = 0; i < keys.size(); i++)  // there should always be only one member in this JSON
