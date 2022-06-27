@@ -732,13 +732,14 @@ TEST(ServerIndex, AttachmentRecycling)
 
     {
       DicomMap summary;
+      DicomSequencesMap sequences;
       OrthancConfiguration::DefaultExtractDicomSummary(summary, toStore->GetParsedDicomFile());
       toStore->SetOrigin(DicomInstanceOrigin::FromPlugins());
 
       DicomTransferSyntax transferSyntax;
       bool hasTransferSyntax = dicom.LookupTransferSyntax(transferSyntax);
       ASSERT_EQ(StoreStatus_Success, index.Store(
-                  instanceMetadata, summary, attachments, toStore->GetMetadata(),
+                  instanceMetadata, summary, sequences, attachments, toStore->GetMetadata(),
                   toStore->GetOrigin(), false /* don't overwrite */,
                   hasTransferSyntax, transferSyntax, true /* pixel data offset */, 42, false));
     }

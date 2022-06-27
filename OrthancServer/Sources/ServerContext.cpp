@@ -531,7 +531,7 @@ namespace Orthanc
     std::set<DicomTag> allMainDicomTags = DicomMap::GetAllMainDicomTags();
     std::set<DicomTag> mainDicomSequences;
     DicomMap::ExtractSequences(mainDicomSequences, allMainDicomTags);
-    std::map<DicomTag, Json::Value> sequencesToStore;
+    DicomSequencesMap sequencesToStore;
 
     try
     {
@@ -544,15 +544,7 @@ namespace Orthanc
       Json::Value dicomAsJson;    // -> this includes the sequences
 
       dicom.GetDicomAsJson(dicomAsJson, mainDicomSequences /*ignoreTagLength*/);  // make sure that sequences that we wish to store in DB are not 'cropped'
-      
-      for (std::set<DicomTag>::const_iterator it = mainDicomSequences.begin();
-           it != mainDicomSequences.end(); ++it)
-      {
-        if (dicomAsJson.isMember(it->Format()))
-        {
-          sequencesToStore[*it] = dicomAsJson[it->Format()];
-        }
-      }
+      sequencesToStore.FromDicomAsJson(dicomAsJson, mainDicomSequences);
 
       Json::Value simplifiedTags;
       Toolbox::SimplifyDicomAsJson(simplifiedTags, dicomAsJson, DicomToJsonFormat_Human);

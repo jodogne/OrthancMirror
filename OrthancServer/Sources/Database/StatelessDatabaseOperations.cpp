@@ -45,14 +45,28 @@
 
 namespace Orthanc
 {
-  // copy all tags from Json
-  void DicomSequencesMap::FromJson(const Json::Value& value)
+  // copy all tags from Json (used to read from metadata)
+  void DicomSequencesMap::Deserialize(const Json::Value& serialized)
   {
-    Json::Value::Members members = value.getMemberNames();
+    Json::Value::Members members = serialized.getMemberNames();
     for (size_t i = 0; i < members.size(); i++)
     {
       DicomTag tag = FromDcmtkBridge::ParseTag(members[i].c_str());
-      sequences_[tag] = value[members[i]];
+      sequences_[tag] = serialized[members[i]];
+    }
+  }
+
+  // serialize a subet of tags (used to store in the metadata)
+  void DicomSequencesMap::Serialize(Json::Value& target, const std::set<DicomTag>& tags) const
+  {
+    // add the sequences to "target"
+    for (std::map<DicomTag, Json::Value>::const_iterator it = sequences_.begin();
+          it != sequences_.end(); ++it)
+    {
+      if (tags.find(it->first) != tags.end())
+      {
+        target[it->first.Format()] = it->second;
+      }
     }
   }
 
@@ -926,7 +940,7 @@ namespace Orthanc
               Toolbox::ReadJson(jsonMetadata, serializedSequences);
 
               assert(jsonMetadata["Version"].asInt() == 1);
-              target.sequences_.FromJson(jsonMetadata["Sequences"]);
+              target.sequences_.Deserialize(jsonMetadata["Sequences"]);
             }
 
             // check if we have access to all requestedTags or if we must get tags from parents
@@ -2897,7 +2911,7 @@ namespace Orthanc
 
   StoreStatus StatelessDatabaseOperations::Store(std::map<MetadataType, std::string>& instanceMetadata,
                                                  const DicomMap& dicomSummary,
-                                                 const std::map<DicomTag, Json::Value>& sequencesToStore,
+                                                 const DicomSequencesMap& sequencesToStore,
                                                  const Attachments& attachments,
                                                  const MetadataMap& metadata,
                                                  const DicomInstanceOrigin& origin,
@@ -2916,7 +2930,7 @@ namespace Orthanc
       StoreStatus                          storeStatus_;
       std::map<MetadataType, std::string>& instanceMetadata_;
       const DicomMap&                      dicomSummary_;
-      const std::map<DicomTag, Json::Value>& sequencesToStore_;
+      const DicomSequencesMap&             sequencesToStore_;
       const Attachments&                   attachments_;
       const MetadataMap&                   metadata_;
       const DicomInstanceOrigin&           origin_;
@@ -2950,10 +2964,10 @@ namespace Orthanc
 
       static void SetMainDicomSequenceMetadata(ResourcesContent& content,
                                                int64_t resource,
-                                               const std::map<DicomTag, Json::Value>& sequencesToStore,  // all sequences for all levels !
+                                               const DicomSequencesMap& sequencesToStore,  // all sequences for all levels !
                                                ResourceType level)
       {
-        if (sequencesToStore.size() > 0)
+        if (sequencesToStore.GetSize() > 0)
         {
           const std::set<DicomTag>& levelTags = DicomMap::GetMainDicomTags(level);
           std::set<DicomTag> levelSequences;
@@ -2966,19 +2980,9 @@ namespace Orthanc
 
           Json::Value jsonMetadata;
           jsonMetadata["Version"] = 1;
-          Json::Value jsonSequences = Json::objectValue;
+          jsonMetadata["Sequences"] = Json::objectValue;
+          sequencesToStore.Serialize(jsonMetadata["Sequences"], levelSequences);
 
-          for (std::set<DicomTag>::const_iterator it = levelSequences.begin();
-               it != levelSequences.end(); ++it)
-          {
-            std::map<DicomTag, Json::Value>::const_iterator foundSeq = sequencesToStore.find(*it);
-            if (foundSeq != sequencesToStore.end())
-            {
-              jsonSequences[it->Format()] = foundSeq->second;
-            }
-          }
-          jsonMetadata["Sequences"] = jsonSequences;
-          
           std::string serialized;
           Toolbox::WriteFastJson(serialized, jsonMetadata);
 
@@ -3044,7 +3048,7 @@ namespace Orthanc
     public:
       Operations(std::map<MetadataType, std::string>& instanceMetadata,
                  const DicomMap& dicomSummary,
-                 const std::map<DicomTag, Json::Value>& sequencesToStore,
+                 const DicomSequencesMap& sequencesToStore,
                  const Attachments& attachments,
                  const MetadataMap& metadata,
                  const DicomInstanceOrigin& origin,

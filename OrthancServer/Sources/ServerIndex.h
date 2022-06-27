@@ -77,7 +77,7 @@ namespace Orthanc
 
     StoreStatus Store(std::map<MetadataType, std::string>& instanceMetadata,
                       const DicomMap& dicomSummary,
-                      const std::map<DicomTag, Json::Value>& sequencesToStore,
+                      const DicomSequencesMap& sequencesToStore,
                       const Attachments& attachments,
                       const MetadataMap& metadata,
                       const DicomInstanceOrigin& origin,

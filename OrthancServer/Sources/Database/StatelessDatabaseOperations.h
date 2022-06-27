@@ -46,9 +46,15 @@ namespace Orthanc
   {
     std::map<DicomTag, Json::Value>     sequences_;
 
-    void FromJson(const Json::Value& serialized);
+    void Deserialize(const Json::Value& serialized);
+    void Serialize(Json::Value& target, const std::set<DicomTag>& tags) const;
     void FromDicomAsJson(const Json::Value& dicomAsJson, const std::set<DicomTag>& tags);
     void ToJson(Json::Value& target, DicomToJsonFormat format) const;
+
+    size_t GetSize() const
+    {
+      return sequences_.size();
+    }
   };
 
   struct ExpandedResource : public boost::noncopyable
@@ -665,7 +671,7 @@ namespace Orthanc
 
     StoreStatus Store(std::map<MetadataType, std::string>& instanceMetadata,
                       const DicomMap& dicomSummary,
-                      const std::map<DicomTag, Json::Value>& sequencesToStore,
+                      const DicomSequencesMap& sequencesToStore,
                       const Attachments& attachments,
                       const MetadataMap& metadata,
                       const DicomInstanceOrigin& origin,
