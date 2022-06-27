@@ -38,6 +38,13 @@ Plugins
 * New function in the SDK: "OrthancPluginGetDatabaseServerIdentifier"
 
 
+OrthancFramework (C++)
+----------------------
+
+* DicomMap::ParseMainDicomTags has been deprecated -> retrieve "full" tags
+  and use DicomMap::FromDicomAsJson instead
+
+
 Version 1.11.0 (2022-05-09)
 ===========================
 

@@ -117,7 +117,7 @@ namespace Orthanc
 
   TEST_F(DicomMapMainTagsTests, AddMainTags)
   {
-    DicomMap::AddMainDicomTag(DICOM_TAG_BITS_ALLOCATED, "BitsAllocated", ResourceType_Instance);
+    DicomMap::AddMainDicomTag(DICOM_TAG_BITS_ALLOCATED, ResourceType_Instance);
 
     {
       const std::set<DicomTag>& s = DicomMap::GetMainDicomTags(ResourceType_Instance);
@@ -133,10 +133,8 @@ namespace Orthanc
     ASSERT_TRUE(DicomMap::IsMainDicomTag(DICOM_TAG_BITS_ALLOCATED, ResourceType_Instance));
 
     // adding the same tag should throw
-    ASSERT_THROW(DicomMap::AddMainDicomTag(DICOM_TAG_BITS_ALLOCATED, "BitsAllocated", ResourceType_Instance), OrthancException);
+    ASSERT_THROW(DicomMap::AddMainDicomTag(DICOM_TAG_BITS_ALLOCATED, ResourceType_Instance), OrthancException);
 
-    // adding another tag with same name should throw
-    ASSERT_THROW(DicomMap::AddMainDicomTag(DICOM_TAG_BITS_STORED, "BitsAllocated", ResourceType_Instance), OrthancException);
   }
 
   TEST_F(DicomMapMainTagsTests, Signatures)
@@ -161,7 +159,7 @@ namespace Orthanc
     ASSERT_EQ(defaultSeriesSignature, seriesSignature);
     ASSERT_EQ(defaultInstanceSignature, instanceSignature);
 
-    DicomMap::AddMainDicomTag(DICOM_TAG_BITS_ALLOCATED, "BitsAllocated", ResourceType_Instance);
+    DicomMap::AddMainDicomTag(DICOM_TAG_BITS_ALLOCATED, ResourceType_Instance);
     instanceSignature = DicomMap::GetMainDicomTagsSignature(ResourceType_Instance);
     
     ASSERT_NE(defaultInstanceSignature, instanceSignature);
@@ -793,12 +791,6 @@ TEST(DicomMap, MainTagNames)
 
       std::string name = json.getMemberNames() [0];
       EXPECT_EQ(name, FromDcmtkBridge::GetTagName(*it, ""));
-
-      DicomMap b;
-      b.ParseMainDicomTags(json, level);
-
-      ASSERT_EQ(1u, b.GetSize());
-      ASSERT_EQ("TEST", b.GetStringValue(*it, "", false));
 
       std::string main = FromDcmtkBridge::GetTagName(*it, "");
       if (!main.empty())
