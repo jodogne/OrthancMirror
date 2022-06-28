@@ -40,7 +40,8 @@ namespace Orthanc
 
   DicomValue::DicomValue(const DicomValue& other) :
     type_(other.type_),
-    content_(other.content_)
+    content_(other.content_),
+    sequenceJson_(other.sequenceJson_)
   {
   }
 
@@ -61,10 +62,15 @@ namespace Orthanc
     content_.assign(data, size);
   }
     
+  DicomValue::DicomValue(const Json::Value& value) :
+    type_(Type_SequenceAsJson),
+    sequenceJson_(value)
+  {
+  }
   
   const std::string& DicomValue::GetContent() const
   {
-    if (type_ == Type_Null)
+    if (type_ == Type_Null || type_ == Type_SequenceAsJson)
     {
       throw OrthancException(ErrorCode_BadParameterType);
     }
@@ -73,6 +79,19 @@ namespace Orthanc
       return content_;
     }
   }
+
+  const Json::Value& DicomValue::GetSequenceContent() const
+  {
+    if (type_ != Type_SequenceAsJson)
+    {
+      throw OrthancException(ErrorCode_BadParameterType);
+    }
+    else
+    {
+      return sequenceJson_;
+    }
+  }
+
 
   bool DicomValue::IsNull() const
   {
@@ -84,6 +103,15 @@ namespace Orthanc
     return type_ == Type_Binary;
   }
 
+  bool DicomValue::IsString() const
+  {
+    return type_ == Type_String;
+  }
+
+  bool DicomValue::IsSequence() const
+  {
+    return type_ == Type_SequenceAsJson;
+  }
 
   DicomValue* DicomValue::Clone() const
   {
@@ -107,8 +135,7 @@ namespace Orthanc
 
   bool DicomValue::ParseInteger32(int32_t& result) const
   {
-    if (IsBinary() ||
-        IsNull())
+    if (!IsString())
     {
       return false;
     }
@@ -120,8 +147,7 @@ namespace Orthanc
 
   bool DicomValue::ParseInteger64(int64_t& result) const
   {
-    if (IsBinary() ||
-        IsNull())
+    if (!IsString())
     {
       return false;
     }
@@ -133,8 +159,7 @@ namespace Orthanc
 
   bool DicomValue::ParseUnsignedInteger32(uint32_t& result) const
   {
-    if (IsBinary() ||
-        IsNull())
+    if (!IsString())
     {
       return false;
     }
@@ -146,8 +171,7 @@ namespace Orthanc
 
   bool DicomValue::ParseUnsignedInteger64(uint64_t& result) const
   {
-    if (IsBinary() ||
-        IsNull())
+    if (!IsString())
     {
       return false;
     }
@@ -159,8 +183,7 @@ namespace Orthanc
 
   bool DicomValue::ParseFloat(float& result) const
   {
-    if (IsBinary() ||
-        IsNull())
+    if (!IsString())
     {
       return false;
     }
@@ -172,8 +195,7 @@ namespace Orthanc
 
   bool DicomValue::ParseDouble(double& result) const
   {
-    if (IsBinary() ||
-        IsNull())
+    if (!IsString())
     {
       return false;
     }
@@ -185,8 +207,7 @@ namespace Orthanc
 
   bool DicomValue::ParseFirstFloat(float& result) const
   {
-    if (IsBinary() ||
-        IsNull())
+    if (!IsString())
     {
       return false;
     }
@@ -200,8 +221,7 @@ namespace Orthanc
   {
     uint64_t value;
 
-    if (IsBinary() ||
-        IsNull())
+    if (!IsString())
     {
       return false;
     }
@@ -220,6 +240,10 @@ namespace Orthanc
                                 bool allowBinary) const
   {
     if (IsNull())
+    {
+      return false;
+    }
+    else if (IsSequence())
     {
       return false;
     }
@@ -263,6 +287,11 @@ namespace Orthanc
         break;
       }
 
+      case Type_SequenceAsJson:
+      {
+        throw OrthancException(ErrorCode_NotImplemented);
+      }
+
       default:
         throw OrthancException(ErrorCode_InternalError);
     }
@@ -288,6 +317,10 @@ namespace Orthanc
 
       const std::string base64 =SerializationToolbox::ReadString(source, KEY_CONTENT);
       Toolbox::DecodeBase64(content_, base64);
+    }
+    else if (type == "Sequence")
+    {
+      throw OrthancException(ErrorCode_NotImplemented);
     }
     else
     {

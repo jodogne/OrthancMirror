@@ -94,6 +94,9 @@ namespace Orthanc
                   const std::string& str,
                   bool isBinary);
 
+    void SetValue(const DicomTag& tag,
+                  const Json::Value& value);
+
     bool HasTag(uint16_t group, uint16_t element) const;
 
     bool HasTag(const DicomTag& tag) const;
@@ -124,6 +127,8 @@ namespace Orthanc
 
     void ExtractTags(DicomMap& result, const std::set<DicomTag>& tags) const;
 
+    void ExtractSequences(DicomMap& result) const;
+
     static void SetupFindPatientTemplate(DicomMap& result);
 
     static void SetupFindStudyTemplate(DicomMap& result);
@@ -148,10 +153,6 @@ namespace Orthanc
     static bool HasComputedTags(const std::set<DicomTag>& tags, ResourceType level);
 
     static bool HasComputedTags(const std::set<DicomTag>& tags);
-
-#if ORTHANC_ENABLE_DCMTK == 1
-    static void ExtractSequences(std::set<DicomTag>& sequences, const std::set<DicomTag>& tags);
-#endif
 
     static const std::set<DicomTag>& GetMainDicomTags(ResourceType level);
 
@@ -208,7 +209,8 @@ namespace Orthanc
                      const DicomTag& tag) const;
 
     void FromDicomAsJson(const Json::Value& dicomAsJson, 
-                         bool append = false);
+                         bool append = false,
+                         bool parseSequences = false);
 
     void Merge(const DicomMap& other);
 
@@ -230,6 +232,8 @@ namespace Orthanc
                                bool allowBinary) const;
 
     void RemoveBinaryTags();
+
+    void RemoveSequences();
 
     void DumpMainDicomTags(Json::Value& target,
                            ResourceType level) const;

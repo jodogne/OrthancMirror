@@ -526,12 +526,9 @@ namespace Orthanc
     bool hasTransferSyntax = dicom.LookupTransferSyntax(transferSyntax);
     
     DicomMap summary;
-    dicom.GetSummary(summary);   // -> this includes only the leaf nodes
+    dicom.GetSummary(summary);   // -> from Orthanc 1.11.1, this includes the leaf nodes and sequences
 
     std::set<DicomTag> allMainDicomTags = DicomMap::GetAllMainDicomTags();
-    std::set<DicomTag> mainDicomSequences;
-    DicomMap::ExtractSequences(mainDicomSequences, allMainDicomTags);
-    DicomSequencesMap sequencesToStore;
 
     try
     {
@@ -541,10 +538,8 @@ namespace Orthanc
       DicomInstanceHasher hasher(summary);
       resultPublicId = hasher.HashInstance();
 
-      Json::Value dicomAsJson;    // -> this includes the sequences
-
-      dicom.GetDicomAsJson(dicomAsJson, mainDicomSequences /*ignoreTagLength*/);  // make sure that sequences that we wish to store in DB are not 'cropped'
-      sequencesToStore.FromDicomAsJson(dicomAsJson, mainDicomSequences);
+      Json::Value dicomAsJson;
+      dicom.GetDicomAsJson(dicomAsJson, allMainDicomTags);  // don't crop any main dicom tags
 
       Json::Value simplifiedTags;
       Toolbox::SimplifyDicomAsJson(simplifiedTags, dicomAsJson, DicomToJsonFormat_Human);
@@ -623,7 +618,7 @@ namespace Orthanc
       typedef std::map<MetadataType, std::string>  InstanceMetadata;
       InstanceMetadata  instanceMetadata;
       result.SetStatus(index_.Store(
-        instanceMetadata, summary, sequencesToStore, attachments, dicom.GetMetadata(), dicom.GetOrigin(), overwrite,
+        instanceMetadata, summary, attachments, dicom.GetMetadata(), dicom.GetOrigin(), overwrite,
         hasTransferSyntax, transferSyntax, hasPixelDataOffset, pixelDataOffset, isReconstruct));
 
       // Only keep the metadata for the "instance" level
@@ -1901,8 +1896,14 @@ namespace Orthanc
   const std::string& ServerContext::GetDeidentifiedContent(const DicomElement &element) const
   {
     static const std::string redactedContent = "*** POTENTIAL PHI ***";
+    static const std::string emptyContent = "";
 
     const DicomTag& tag = element.GetTag();
+    if (element.GetValue().IsSequence())
+    {
+      return emptyContent;
+    }
+    
     if (deidentifyLogs_ &&
         !element.GetValue().GetContent().empty() &&
         logsDeidentifierRules_.IsAlteredTag(tag))
@@ -2083,13 +2084,6 @@ namespace Orthanc
     target[MAIN_DICOM_TAGS] = Json::objectValue;
     FromDcmtkBridge::ToJson(target[MAIN_DICOM_TAGS], mainDicomTags, format);
     
-    {// add the main DICOM sequences to the main dicom tags
-      const std::set<DicomTag>& mainDicomTags = DicomMap::GetMainDicomTags(resource.type_);
-      std::set<DicomTag> mainDicomSequences;
-      DicomMap::ExtractSequences(mainDicomSequences, mainDicomTags);
-      resource.sequences_.ToJson(target[MAIN_DICOM_TAGS], format, mainDicomSequences);
-    }
-
     if (resource.type_ == ResourceType_Study)
     {
       DicomMap patientMainDicomTags;
@@ -2108,12 +2102,6 @@ namespace Orthanc
 
       target[REQUESTED_TAGS] = Json::objectValue;
       FromDcmtkBridge::ToJson(target[REQUESTED_TAGS], tags, format);
-
-      {// add the requested sequences to the requested tags
-        std::set<DicomTag> requestedDicomSequences;
-        DicomMap::ExtractSequences(requestedDicomSequences, requestedTags);
-        resource.sequences_.ToJson(target[REQUESTED_TAGS], format, requestedDicomSequences);
-      }
 
     }
 
@@ -2426,9 +2414,6 @@ namespace Orthanc
       // possibly merge missing requested tags from dicom-as-json
       if (!resource.missingRequestedTags_.empty() && !DicomMap::HasOnlyComputedTags(resource.missingRequestedTags_))
       {
-        std::set<DicomTag> missingSequences;
-        DicomMap::ExtractSequences(missingSequences, resource.missingRequestedTags_);
-
         OrthancConfiguration::ReaderLock lock;
         if (lock.GetConfiguration().IsWarningEnabled(Warnings_001_TagsBeingReadFromStorage))
         {
@@ -2474,13 +2459,11 @@ namespace Orthanc
   
           Json::Value tmpDicomAsJson;
           ReadDicomAsJson(tmpDicomAsJson, instanceId_, resource.missingRequestedTags_ /* ignoreTagLength */);  // read all tags from DICOM and avoid cropping requested tags
-          tagsFromJson.FromDicomAsJson(tmpDicomAsJson);
-          resource.sequences_.FromDicomAsJson(tmpDicomAsJson, missingSequences);
+          tagsFromJson.FromDicomAsJson(tmpDicomAsJson, false /* append */, true /* parseSequences*/);
         }
         else
         {
-          tagsFromJson.FromDicomAsJson(*dicomAsJson);
-          resource.sequences_.FromDicomAsJson(*dicomAsJson, missingSequences);
+          tagsFromJson.FromDicomAsJson(*dicomAsJson, false /* append */, true /* parseSequences*/);
         }
 
         resource.tags_.Merge(tagsFromJson);

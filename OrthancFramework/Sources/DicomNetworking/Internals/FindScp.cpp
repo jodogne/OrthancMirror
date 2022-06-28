@@ -275,6 +275,7 @@ namespace Orthanc
               DicomMap input;
               std::set<DicomTag> ignoreTagLength;
               FromDcmtkBridge::ExtractDicomSummary(input, *requestIdentifiers, 0 /* don't truncate tags */, ignoreTagLength);
+              input.RemoveSequences();
 
               DicomMap filtered;
               FixFindQuery(filtered, input);
