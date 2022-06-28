@@ -777,7 +777,7 @@ TEST(DicomMap, ExtractSummary)
 
   DicomMap summary;
   std::set<DicomTag> ignoreTagLength;
-  dicom->ExtractDicomSummary(summary, ORTHANC_MAXIMUM_TAG_LENGTH, ignoreTagLength);
+  dicom->ExtractDicomSummary(summary, 256, ignoreTagLength);
 
   ASSERT_TRUE(summary.HasTag(0x0008, 0x1140));
   ASSERT_EQ("1.2.840.10008.5.1.4.1.1.4", summary.GetValue(0x0008, 0x1140).GetSequenceContent()[0]["0008,1150"]["Value"].asString());
