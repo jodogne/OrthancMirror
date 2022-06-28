@@ -167,26 +167,6 @@ namespace Orthanc
 
 }
 
-TEST(DicomMap, ExtractSequences)
-{
-  std::set<DicomTag> allTags;
-  std::set<DicomTag> sequences;
-
-  // empty list
-  DicomMap::ExtractSequences(sequences, allTags);
-  ASSERT_EQ(0u, sequences.size());
-
-  // one tag, no sequence
-  allTags.insert(DICOM_TAG_PATIENT_NAME);
-  DicomMap::ExtractSequences(sequences, allTags);
-  ASSERT_EQ(0u, sequences.size());
-
-  // one sequence
-  allTags.insert(DICOM_TAG_REFERENCED_IMAGE_SEQUENCE);
-  DicomMap::ExtractSequences(sequences, allTags);
-  ASSERT_EQ(1u, sequences.size());
-  ASSERT_TRUE(sequences.find(DICOM_TAG_REFERENCED_IMAGE_SEQUENCE) != sequences.end());
-}
 
 TEST(DicomMap, Tags)
 {
@@ -639,6 +619,168 @@ TEST(DicomMap, RemoveBinary)
   ASSERT_EQ(2u, b.GetSize());
   ASSERT_TRUE(b.LookupStringValue(s, DICOM_TAG_PATIENT_NAME, false)); ASSERT_EQ("A", s);
   ASSERT_TRUE(b.LookupStringValue(s, DICOM_TAG_SERIES_INSTANCE_UID, false)); ASSERT_EQ("C", s);
+}
+
+
+TEST(DicomMap, FromDicomAsJsonAndSequences)
+{
+  DicomMap m;
+  std::string jsonFullString = "{"
+   "\"0008,1090\" : "
+   "{"
+      "\"Name\" : \"ManufacturerModelName\","
+      "\"Type\" : \"String\","
+      "\"Value\" : \"MyModel\""
+   "},"
+   "\"0008,1111\" : "
+   "{"
+      "\"Name\" : \"ReferencedPerformedProcedureStepSequence\","
+      "\"Type\" : \"Sequence\","
+      "\"Value\" : "
+      "["
+         "{"
+            "\"0008,1150\" : "
+            "{"
+               "\"Name\" : \"ReferencedSOPClassUID\","
+               "\"Type\" : \"String\","
+               "\"Value\" : \"1.2.4\""
+            "},"
+            "\"0008,1155\" : "
+            "{"
+               "\"Name\" : \"ReferencedSOPInstanceUID\","
+               "\"Type\" : \"String\","
+               "\"Value\" : \"1.2.3\""
+            "}"
+         "}"
+      "]"
+   "}}";
+
+  Json::Value parsedJson;
+  bool ret = Toolbox::ReadJson(parsedJson, jsonFullString);
+  
+  m.FromDicomAsJson(parsedJson, false /* append */, true /* parseSequences*/);
+  ASSERT_TRUE(ret);
+
+  ASSERT_TRUE(m.HasTag(DicomTag(0x0008, 0x1090)));
+  ASSERT_EQ("MyModel", m.GetValue(0x0008,0x1090).GetContent());
+
+  ASSERT_TRUE(m.HasTag(DicomTag(0x0008, 0x1111)));
+  const Json::Value& jsonSequence = m.GetValue(0x0008, 0x1111).GetSequenceContent();
+  ASSERT_EQ("ReferencedSOPClassUID", jsonSequence[0]["0008,1150"]["Name"].asString());
+
+  {// serialize to human dicomAsJson
+    Json::Value dicomAsJson = Json::objectValue;
+    FromDcmtkBridge::ToJson(dicomAsJson, m, DicomToJsonFormat_Human);
+    // printf("%s", dicomAsJson.toStyledString().c_str());
+
+    ASSERT_TRUE(dicomAsJson.isMember("ManufacturerModelName"));
+    ASSERT_TRUE(dicomAsJson.isMember("ReferencedPerformedProcedureStepSequence"));
+    ASSERT_TRUE(dicomAsJson["ReferencedPerformedProcedureStepSequence"][0].isMember("ReferencedSOPClassUID"));
+    ASSERT_EQ("1.2.4", dicomAsJson["ReferencedPerformedProcedureStepSequence"][0]["ReferencedSOPClassUID"].asString());
+  }
+
+  {// serialize to full dicomAsJson
+    Json::Value dicomAsJson = Json::objectValue;
+    FromDcmtkBridge::ToJson(dicomAsJson, m, DicomToJsonFormat_Full);
+    // printf("%s", dicomAsJson.toStyledString().c_str());
+
+    ASSERT_TRUE(dicomAsJson.isMember("0008,1090"));
+    ASSERT_TRUE(dicomAsJson.isMember("0008,1111"));
+    ASSERT_TRUE(dicomAsJson["0008,1111"]["Value"][0].isMember("0008,1150"));
+    ASSERT_EQ("1.2.4", dicomAsJson["0008,1111"]["Value"][0]["0008,1150"]["Value"].asString());
+    ASSERT_EQ("MyModel", dicomAsJson["0008,1090"]["Value"].asString());
+  }
+
+  {// serialize to short dicomAsJson
+    Json::Value dicomAsJson = Json::objectValue;
+    FromDcmtkBridge::ToJson(dicomAsJson, m, DicomToJsonFormat_Short);
+    // printf("%s", dicomAsJson.toStyledString().c_str());
+
+    ASSERT_TRUE(dicomAsJson.isMember("0008,1090"));
+    ASSERT_TRUE(dicomAsJson.isMember("0008,1111"));
+    ASSERT_TRUE(dicomAsJson["0008,1111"][0].isMember("0008,1150"));
+    ASSERT_EQ("1.2.4", dicomAsJson["0008,1111"][0]["0008,1150"].asString());
+    ASSERT_EQ("MyModel", dicomAsJson["0008,1090"].asString());
+  }
+
+  {// extract sequence
+    DicomMap sequencesOnly;
+    m.ExtractSequences(sequencesOnly);
+
+    ASSERT_EQ(1, sequencesOnly.GetSize());
+    ASSERT_TRUE(sequencesOnly.HasTag(0x0008, 0x1111));
+    ASSERT_TRUE(sequencesOnly.GetValue(0x0008, 0x1111).GetSequenceContent()[0].isMember("0008,1150"));
+
+    // copy sequence
+    DicomMap sequencesCopy;
+    sequencesCopy.SetValue(0x0008, 0x1111, sequencesOnly.GetValue(0x0008, 0x1111));
+
+    ASSERT_EQ(1, sequencesCopy.GetSize());
+    ASSERT_TRUE(sequencesCopy.HasTag(0x0008, 0x1111));
+    ASSERT_TRUE(sequencesCopy.GetValue(0x0008, 0x1111).GetSequenceContent()[0].isMember("0008,1150"));
+  }
+}
+
+TEST(DicomMap, ExtractSummary)
+{
+  Json::Value v = Json::objectValue;
+  v["PatientName"] = "Hello";
+  v["ReferencedSOPClassUID"] = "1.2.840.10008.5.1.4.1.1.4";
+
+  {
+    Json::Value a = Json::arrayValue;
+
+    {
+      Json::Value item = Json::objectValue;
+      item["ReferencedSOPClassUID"] = "1.2.840.10008.5.1.4.1.1.4";
+      item["ReferencedSOPInstanceUID"] = "1.2.840.113619.2.176.2025.1499492.7040.1171286241.719";
+      a.append(item);
+    }
+      
+    {
+      Json::Value item = Json::objectValue;
+      item["ReferencedSOPClassUID"] = "1.2.840.10008.5.1.4.1.1.4";  // ReferencedSOPClassUID
+      item["ReferencedSOPInstanceUID"] = "1.2.840.113619.2.176.2025.1499492.7040.1171286241.726";
+      a.append(item);
+    }
+      
+    v["ReferencedImageSequence"] = a;
+  }
+    
+  {
+    Json::Value a = Json::arrayValue;
+
+    {
+      Json::Value item = Json::objectValue;
+      item["StudyInstanceUID"] = "1.2.840.113704.1.111.7016.1342451220.40";
+
+      {
+        Json::Value b = Json::arrayValue;
+
+        {
+          Json::Value c = Json::objectValue;
+          c["CodeValue"] = "122403";
+          c["0008,103e"] = "WORLD";  // Series description
+          b.append(c);
+        }
+
+        item["PurposeOfReferenceCodeSequence"] = b;
+      }
+        
+      a.append(item);
+    }
+      
+    v["RelatedSeriesSequence"] = a;
+  }
+
+  std::unique_ptr<ParsedDicomFile> dicom(ParsedDicomFile::CreateFromJson(v, DicomFromJsonFlags_None, ""));
+
+  DicomMap summary;
+  std::set<DicomTag> ignoreTagLength;
+  dicom->ExtractDicomSummary(summary, ORTHANC_MAXIMUM_TAG_LENGTH, ignoreTagLength);
+
+  ASSERT_TRUE(summary.HasTag(0x0008, 0x1140));
+  ASSERT_EQ("1.2.840.10008.5.1.4.1.1.4", summary.GetValue(0x0008, 0x1140).GetSequenceContent()[0]["0008,1150"]["Value"].asString());
 }
 
 

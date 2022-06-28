@@ -23,7 +23,6 @@
 #pragma once
 
 #include "../../../OrthancFramework/Sources/DicomFormat/DicomMap.h"
-#include "../../../OrthancFramework/Sources/DicomFormat/DicomSequencesMap.h"
 
 #include "IDatabaseWrapper.h"
 #include "../DicomInstanceOrigin.h"
@@ -41,8 +40,7 @@ namespace Orthanc
   struct ExpandedResource : public boost::noncopyable
   {
     std::string                         id_;
-    DicomMap                            tags_;          // all tags from DB (only leaf tags, not sequences !)
-    DicomSequencesMap                   sequences_;     // the requested sequences (from MainDicomTags or RequestedTags)
+    DicomMap                            tags_;          // all main tags and main sequences from DB
     std::string                         mainDicomTagsSignature_;
     std::string                         parentId_;
     std::list<std::string>              childrenIds_;
@@ -652,7 +650,6 @@ namespace Orthanc
 
     StoreStatus Store(std::map<MetadataType, std::string>& instanceMetadata,
                       const DicomMap& dicomSummary,
-                      const DicomSequencesMap& sequencesToStore,
                       const Attachments& attachments,
                       const MetadataMap& metadata,
                       const DicomInstanceOrigin& origin,

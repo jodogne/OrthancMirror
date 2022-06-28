@@ -28,6 +28,7 @@
 
 #include "../../../OrthancFramework/Sources/DicomFormat/DicomArray.h"
 #include "../../../OrthancFramework/Sources/OrthancException.h"
+#include "../../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.h"
 
 #include <cassert>
 
@@ -45,8 +46,7 @@ namespace Orthanc
       const DicomElement& element = flattened.GetElement(i);
       const DicomTag& tag = element.GetTag();
       const DicomValue& value = element.GetValue();
-      if (!value.IsNull() && 
-          !value.IsBinary())
+      if (value.IsString())
       {
         target.AddMainDicomTag(resource, tag, element.GetValue().GetContent());
       }
@@ -70,9 +70,7 @@ namespace Orthanc
       assert(DicomMap::IsMainDicomTag(tags[i]));
         
       const DicomValue* value = map.TestAndGetValue(tags[i]);
-      if (value != NULL &&
-          !value->IsNull() &&
-          !value->IsBinary())
+      if (value != NULL && value->IsString())
       {
         std::string s = ServerToolbox::NormalizeIdentifier(value->GetContent());
         target.AddIdentifierTag(resource, tags[i], s);
@@ -133,7 +131,7 @@ namespace Orthanc
         throw OrthancException(ErrorCode_InternalError);
     }
 
-    StoreMainDicomTagsInternal(*this, resource, tags);
+    StoreMainDicomTagsInternal(*this, resource, tags);  // saves only leaf tags, not sequences
   }
 
 

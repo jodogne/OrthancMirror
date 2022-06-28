@@ -564,6 +564,26 @@ namespace Orthanc
                                 ConvertLeafElement(*element, DicomToJsonFlags_Default,
                                                    maxStringLength, encoding, hasCodeExtensions, ignoreTagLength));
       }
+      else
+      {
+        DcmSequenceOfItems* sequence = dynamic_cast<DcmSequenceOfItems*>(element);
+        
+        if (sequence)
+        {
+          Json::Value jsonSequence = Json::arrayValue;
+          for (unsigned long i = 0; i < sequence->card(); i++)
+          {
+            DcmItem* child = sequence->getItem(i);
+            Json::Value& v = jsonSequence.append(Json::objectValue);
+            DatasetToJson(v, *child, DicomToJsonFormat_Full, DicomToJsonFlags_Default, 
+                          maxStringLength, encoding, hasCodeExtensions,
+                          ignoreTagLength, 1);
+          }
+
+          target.SetValue(DicomTag(element->getTag().getGTag(), element->getTag().getETag()),
+                          jsonSequence);
+        }
+      }
     }
   }
 
@@ -1417,6 +1437,18 @@ namespace Orthanc
           {
             result[tagName] = Json::nullValue;
           }
+          else if (it->second->IsSequence())
+          {
+            result[tagName] = Json::arrayValue;
+            const Json::Value& jsonSequence = it->second->GetSequenceContent();
+
+            for (Json::Value::ArrayIndex i = 0; i < jsonSequence.size(); ++i)
+            {
+              Json::Value target = Json::objectValue;
+              Toolbox::SimplifyDicomAsJson(target, jsonSequence[i], DicomToJsonFormat_Human);
+              result[tagName].append(target);
+            }
+          }
           else
           {
             // TODO IsBinary
@@ -1439,6 +1471,11 @@ namespace Orthanc
             value["Type"] = "Null";
             value["Value"] = Json::nullValue;
           }
+          else if (it->second->IsSequence())
+          {
+            value["Type"] = "Sequence";
+            value["Value"] = it->second->GetSequenceContent();
+          }
           else
           {
             // TODO IsBinary
@@ -1457,6 +1494,18 @@ namespace Orthanc
           if (it->second->IsNull())
           {
             result[hex] = Json::nullValue;
+          }
+          else if (it->second->IsSequence())
+          {
+            result[hex] = Json::arrayValue;
+            const Json::Value& jsonSequence = it->second->GetSequenceContent();
+
+            for (Json::Value::ArrayIndex i = 0; i < jsonSequence.size(); ++i)
+            {
+              Json::Value target = Json::objectValue;
+              Toolbox::SimplifyDicomAsJson(target, jsonSequence[i], DicomToJsonFormat_Short);
+              result[hex].append(target);
+            }
           }
           else
           {

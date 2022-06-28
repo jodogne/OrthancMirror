@@ -359,6 +359,11 @@ namespace Orthanc
     SetValueInternal(group, element, new DicomValue(str, isBinary));
   }
 
+  void DicomMap::SetValue(const DicomTag& tag, const Json::Value& value)
+  {
+    SetValueInternal(tag.GetGroup(), tag.GetElement(), new DicomValue(value));
+  }
+
   bool DicomMap::HasTag(uint16_t group, uint16_t element) const
   {
     return HasTag(DicomTag(group, element));
@@ -1328,7 +1333,7 @@ namespace Orthanc
   }
 
   
-  void DicomMap::FromDicomAsJson(const Json::Value& dicomAsJson, bool append)
+  void DicomMap::FromDicomAsJson(const Json::Value& dicomAsJson, bool append, bool parseSequences)
   {
     if (dicomAsJson.type() != Json::objectValue)
     {
@@ -1369,6 +1374,18 @@ namespace Orthanc
         else
         {
           SetValue(tag, value["Value"].asString(), false /* not binary */);
+        }
+      }
+      else if (value["Type"] == "Sequence" && parseSequences)
+      {
+        if (value["Value"].type() != Json::arrayValue)
+        {
+          printf("%s", dicomAsJson.toStyledString().c_str());
+          throw OrthancException(ErrorCode_CorruptedFile);
+        }
+        else
+        {
+          SetValue(tag, value["Value"]);
         }
       }
     }
@@ -1435,21 +1452,18 @@ namespace Orthanc
     return true;
   }
 
-#if ORTHANC_ENABLE_DCMTK == 1
-  void DicomMap::ExtractSequences(std::set<DicomTag>& sequences, const std::set<DicomTag>& tags)
+  void DicomMap::ExtractSequences(DicomMap& result) const
   {
-    sequences.clear();
+    result.Clear();
 
-    for (std::set<DicomTag>::const_iterator it = tags.begin(); it != tags.end(); ++it)
+    for (Content::const_iterator it = content_.begin(); it != content_.end(); ++it)
     {
-      ValueRepresentation vr = FromDcmtkBridge::LookupValueRepresentation(*it);
-      if (vr == ValueRepresentation_Sequence)
+      if (it->second->IsSequence())
       {
-        sequences.insert(*it);
+        result.SetValue(it->first, it->second->GetSequenceContent());
       }
     }
   }
-#endif
 
   void DicomMap::Serialize(Json::Value& target) const
   {
@@ -1672,6 +1686,27 @@ namespace Orthanc
     content_ = kept;
   }
 
+
+  void DicomMap::RemoveSequences()
+  {
+    Content kept;
+
+    for (Content::iterator it = content_.begin(); it != content_.end(); ++it)
+    {
+      assert(it->second != NULL);
+
+      if (!it->second->IsSequence())
+      {
+        kept[it->first] = it->second;
+      }
+      else
+      {
+        delete it->second;
+      }
+    }
+
+    content_ = kept;
+  }
 
   void DicomMap::DumpMainDicomTags(Json::Value& target,
                                    ResourceType level) const

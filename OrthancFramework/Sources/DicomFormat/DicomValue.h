@@ -43,11 +43,13 @@ namespace Orthanc
     {
       Type_Null,
       Type_String,
-      Type_Binary
+      Type_Binary,
+      Type_SequenceAsJson
     };
 
     Type         type_;
     std::string  content_;
+    Json::Value  sequenceJson_;
 
     DicomValue(const DicomValue& other);
 
@@ -61,11 +63,19 @@ namespace Orthanc
                size_t size,
                bool isBinary);
     
+    DicomValue(const Json::Value& value);
+    
     const std::string& GetContent() const;
+
+    const Json::Value& GetSequenceContent() const;
 
     bool IsNull() const;
 
     bool IsBinary() const;
+
+    bool IsString() const;
+
+    bool IsSequence() const;
     
     DicomValue* Clone() const;
 
