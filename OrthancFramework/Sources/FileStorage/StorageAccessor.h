@@ -68,7 +68,7 @@ namespace Orthanc
     class MetricsTimer;
 
     IStorageArea&     area_;
-    StorageCache&     cache_;
+    StorageCache*     cache_;
     MetricsRegistry*  metrics_;
 
 #if ORTHANC_ENABLE_CIVETWEB == 1 || ORTHANC_ENABLE_MONGOOSE == 1
@@ -79,10 +79,10 @@ namespace Orthanc
 
   public:
     explicit StorageAccessor(IStorageArea& area,
-                             StorageCache& cache);
+                             StorageCache* cache);
 
     StorageAccessor(IStorageArea& area,
-                    StorageCache& cache,
+                    StorageCache* cache,
                     MetricsRegistry& metrics);
 
     FileInfo Write(const void* data,

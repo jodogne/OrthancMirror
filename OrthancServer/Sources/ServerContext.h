@@ -370,7 +370,8 @@ namespace Orthanc
                         int64_t& revision,
                         const std::string& instancePublicId,
                         FileContentType content,
-                        bool uncompressIfNeeded);
+                        bool uncompressIfNeeded,
+                        bool skipCache = false);
 
     void SetStoreMD5ForAttachments(bool storeMD5);
 

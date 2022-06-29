@@ -2132,7 +2132,7 @@ namespace Orthanc
         // Return the raw data (possibly compressed), as stored on the filesystem
         std::string content;
         int64_t revision;
-        context.ReadAttachment(content, revision, publicId, type, false);
+        context.ReadAttachment(content, revision, publicId, type, false, true /* skipCache when you absolutely need the compressed data */);
 
         int64_t userRevision;
         std::string userMD5;
@@ -2314,7 +2314,7 @@ namespace Orthanc
 
     // First check whether the compressed data is correctly stored in the disk
     std::string data;
-    context.ReadAttachment(data, revision, publicId, StringToContentType(name), false);
+    context.ReadAttachment(data, revision, publicId, StringToContentType(name), false, true /* skipCache when you absolutely need the compressed data */);
 
     std::string actualMD5;
     Toolbox::ComputeMD5(actualMD5, data);
@@ -2329,7 +2329,7 @@ namespace Orthanc
       }
       else
       {
-        context.ReadAttachment(data, revision, publicId, StringToContentType(name), true);        
+        context.ReadAttachment(data, revision, publicId, StringToContentType(name), true, true /* skipCache when you absolutely need the compressed data */);
         Toolbox::ComputeMD5(actualMD5, data);
         ok = (actualMD5 == info.GetUncompressedMD5());
       }
