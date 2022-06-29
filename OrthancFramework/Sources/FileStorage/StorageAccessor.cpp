@@ -133,7 +133,7 @@ namespace Orthanc
           }
         }
 
-        cache_.Add(uuid, type, compressed);
+        cache_.Add(uuid, type, data, size);  // always add uncompressed data to cache
         return FileInfo(uuid, type, size, md5,
                         CompressionType_ZlibWithSize, compressed.size(), compressedMD5);
       }
