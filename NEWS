@@ -15,6 +15,12 @@ General
   accessing series : 0040,0275".
   Main dicom sequences can now be returned in "MainDicomTags" and in "RequestedTags".
 
+Bug Fixes
+---------
+
+* Fix the storage cache that was not used by the Plugin SDK.  This fixes the 
+  DicomWeb plugin "/rendered" route performance issues.
+
 
 Maintenance
 -----------

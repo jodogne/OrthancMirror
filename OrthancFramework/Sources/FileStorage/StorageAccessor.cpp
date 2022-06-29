@@ -156,31 +156,23 @@ namespace Orthanc
   void StorageAccessor::Read(std::string& content,
                              const FileInfo& info)
   {
-    switch (info.GetCompressionType())
+    if (!cache_.Fetch(content, info.GetUuid(), info.GetContentType()))
     {
-      case CompressionType_None:
+      switch (info.GetCompressionType())
       {
-        if (!cache_.Fetch(content, info.GetUuid(), info.GetContentType()))
+        case CompressionType_None:
         {
           MetricsTimer timer(*this, METRICS_READ);
           std::unique_ptr<IMemoryBuffer> buffer(area_.Read(info.GetUuid(), info.GetContentType()));
           buffer->MoveToString(content);
+
+          break;
         }
 
-        break;
-      }
-
-      case CompressionType_ZlibWithSize:
-      {
-        ZlibCompressor zlib;
-
-        std::string cached;
-        if (cache_.Fetch(cached, info.GetUuid(), info.GetContentType()))
+        case CompressionType_ZlibWithSize:
         {
-          zlib.Uncompress(content, cached.empty() ? NULL : cached.c_str(), cached.size());
-        }
-        else
-        {
+          ZlibCompressor zlib;
+
           std::unique_ptr<IMemoryBuffer> compressed;
           
           {
@@ -189,15 +181,18 @@ namespace Orthanc
           }
           
           zlib.Uncompress(content, compressed->GetData(), compressed->GetSize());
+
+          break;
         }
 
-        break;
+        default:
+        {
+          throw OrthancException(ErrorCode_NotImplemented);
+        }
       }
 
-      default:
-      {
-        throw OrthancException(ErrorCode_NotImplemented);
-      }
+      // always store the uncompressed data in cache
+      cache_.Add(info.GetUuid(), info.GetContentType(), content);
     }
 
     // TODO Check the validity of the uncompressed MD5?
