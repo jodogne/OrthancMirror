@@ -127,7 +127,7 @@ TEST(StorageAccessor, NoCompression)
 {
   FilesystemStorage s("UnitTestsStorage");
   StorageCache cache;
-  StorageAccessor accessor(s, cache);
+  StorageAccessor accessor(s, &cache);
 
   std::string data = "Hello world";
   FileInfo info = accessor.Write(data, FileContentType_Dicom, CompressionType_None, true);
@@ -149,7 +149,7 @@ TEST(StorageAccessor, Compression)
 {
   FilesystemStorage s("UnitTestsStorage");
   StorageCache cache;
-  StorageAccessor accessor(s, cache);
+  StorageAccessor accessor(s, &cache);
 
   std::string data = "Hello world";
   FileInfo info = accessor.Write(data, FileContentType_Dicom, CompressionType_ZlibWithSize, true);
@@ -170,7 +170,7 @@ TEST(StorageAccessor, Mix)
 {
   FilesystemStorage s("UnitTestsStorage");
   StorageCache cache;
-  StorageAccessor accessor(s, cache);
+  StorageAccessor accessor(s, &cache);
 
   std::string r;
   std::string compressedData = "Hello";

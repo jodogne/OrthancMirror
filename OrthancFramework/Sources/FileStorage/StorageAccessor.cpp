@@ -62,7 +62,7 @@ namespace Orthanc
   };
 
 
-  StorageAccessor::StorageAccessor(IStorageArea &area, StorageCache& cache) :
+  StorageAccessor::StorageAccessor(IStorageArea &area, StorageCache* cache) :
     area_(area),
     cache_(cache),
     metrics_(NULL)
@@ -70,7 +70,7 @@ namespace Orthanc
   }
 
   StorageAccessor::StorageAccessor(IStorageArea &area, 
-                                   StorageCache& cache,
+                                   StorageCache* cache,
                                    MetricsRegistry &metrics) :
     area_(area),
     cache_(cache),
@@ -101,7 +101,11 @@ namespace Orthanc
         MetricsTimer timer(*this, METRICS_CREATE);
 
         area_.Create(uuid, data, size, type);
-        cache_.Add(uuid, type, data, size);
+        
+        if (cache_ != NULL)
+        {
+          cache_->Add(uuid, type, data, size);
+        }
 
         return FileInfo(uuid, type, size, md5);
       }
@@ -133,7 +137,11 @@ namespace Orthanc
           }
         }
 
-        cache_.Add(uuid, type, data, size);  // always add uncompressed data to cache
+        if (cache_ != NULL)
+        {
+          cache_->Add(uuid, type, data, size);  // always add uncompressed data to cache
+        }
+
         return FileInfo(uuid, type, size, md5,
                         CompressionType_ZlibWithSize, compressed.size(), compressedMD5);
       }
@@ -156,7 +164,8 @@ namespace Orthanc
   void StorageAccessor::Read(std::string& content,
                              const FileInfo& info)
   {
-    if (!cache_.Fetch(content, info.GetUuid(), info.GetContentType()))
+    if (cache_ == NULL ||
+        !cache_->Fetch(content, info.GetUuid(), info.GetContentType()))
     {
       switch (info.GetCompressionType())
       {
@@ -192,7 +201,10 @@ namespace Orthanc
       }
 
       // always store the uncompressed data in cache
-      cache_.Add(info.GetUuid(), info.GetContentType(), content);
+      if (cache_ != NULL)
+      {
+        cache_->Add(info.GetUuid(), info.GetContentType(), content);
+      }
     }
 
     // TODO Check the validity of the uncompressed MD5?
@@ -202,7 +214,7 @@ namespace Orthanc
   void StorageAccessor::ReadRaw(std::string& content,
                                 const FileInfo& info)
   {
-    if (!cache_.Fetch(content, info.GetUuid(), info.GetContentType()))
+    if (cache_ == NULL || !cache_->Fetch(content, info.GetUuid(), info.GetContentType()))
     {
       MetricsTimer timer(*this, METRICS_READ);
       std::unique_ptr<IMemoryBuffer> buffer(area_.Read(info.GetUuid(), info.GetContentType()));
@@ -214,7 +226,10 @@ namespace Orthanc
   void StorageAccessor::Remove(const std::string& fileUuid,
                                FileContentType type)
   {
-    cache_.Invalidate(fileUuid, type);
+    if (cache_ != NULL)
+    {
+      cache_->Invalidate(fileUuid, type);
+    }
 
     {
       MetricsTimer timer(*this, METRICS_REMOVE);
@@ -234,14 +249,17 @@ namespace Orthanc
                                        FileContentType contentType,
                                        uint64_t end /* exclusive */)
   {
-    if (!cache_.FetchStartRange(target, fileUuid, contentType, end))
+    if (cache_ == NULL || !cache_->FetchStartRange(target, fileUuid, contentType, end))
     {
       MetricsTimer timer(*this, METRICS_READ);
       std::unique_ptr<IMemoryBuffer> buffer(area_.ReadRange(fileUuid, contentType, 0, end));
       assert(buffer->GetSize() == end);
       buffer->MoveToString(target);
 
-      cache_.AddStartRange(fileUuid, contentType, target);
+      if (cache_ != NULL)
+      {
+        cache_->AddStartRange(fileUuid, contentType, target);
+      }
     }
   }
 
@@ -251,13 +269,16 @@ namespace Orthanc
                                     const FileInfo& info,
                                     const std::string& mime)
   {
-    if (!cache_.Fetch(sender.GetBuffer(), info.GetUuid(), info.GetContentType()))
+    if (cache_ == NULL || !cache_->Fetch(sender.GetBuffer(), info.GetUuid(), info.GetContentType()))
     {
       MetricsTimer timer(*this, METRICS_READ);
       std::unique_ptr<IMemoryBuffer> buffer(area_.Read(info.GetUuid(), info.GetContentType()));
       buffer->MoveToString(sender.GetBuffer());
 
-      cache_.Add(info.GetUuid(), info.GetContentType(), sender.GetBuffer());
+      if (cache_ != NULL)
+      {
+        cache_->Add(info.GetUuid(), info.GetContentType(), sender.GetBuffer());
+      }
     }
 
     sender.SetContentType(mime);

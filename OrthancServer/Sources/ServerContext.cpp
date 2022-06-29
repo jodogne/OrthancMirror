@@ -488,7 +488,7 @@ namespace Orthanc
   void ServerContext::RemoveFile(const std::string& fileUuid,
                                  FileContentType type)
   {
-    StorageAccessor accessor(area_, storageCache_, GetMetricsRegistry());
+    StorageAccessor accessor(area_, &storageCache_, GetMetricsRegistry());
     accessor.Remove(fileUuid, type);
   }
 
@@ -533,7 +533,7 @@ namespace Orthanc
     try
     {
       MetricsRegistry::Timer timer(GetMetricsRegistry(), "orthanc_store_dicom_duration_ms");
-      StorageAccessor accessor(area_, storageCache_, GetMetricsRegistry());
+      StorageAccessor accessor(area_, &storageCache_, GetMetricsRegistry());
 
       DicomInstanceHasher hasher(summary);
       resultPublicId = hasher.HashInstance();
@@ -851,7 +851,7 @@ namespace Orthanc
     }
     else
     {
-      StorageAccessor accessor(area_, storageCache_, GetMetricsRegistry());
+      StorageAccessor accessor(area_, &storageCache_, GetMetricsRegistry());
       accessor.AnswerFile(output, attachment, GetFileContentMime(content));
     }
   }
@@ -881,7 +881,7 @@ namespace Orthanc
 
     std::string content;
 
-    StorageAccessor accessor(area_, storageCache_, GetMetricsRegistry());
+    StorageAccessor accessor(area_, &storageCache_, GetMetricsRegistry());
     accessor.Read(content, attachment);
 
     FileInfo modified = accessor.Write(content.empty() ? NULL : content.c_str(),
@@ -937,7 +937,7 @@ namespace Orthanc
       std::string dicom;
 
       {
-        StorageAccessor accessor(area_, storageCache_, GetMetricsRegistry());
+        StorageAccessor accessor(area_, &storageCache_, GetMetricsRegistry());
         accessor.Read(dicom, attachment);
       }
 
@@ -1003,7 +1003,7 @@ namespace Orthanc
         std::string dicom;
         
         {
-          StorageAccessor accessor(area_, storageCache_, GetMetricsRegistry());
+          StorageAccessor accessor(area_, &storageCache_, GetMetricsRegistry());
           accessor.ReadStartRange(dicom, attachment.GetUuid(), FileContentType_Dicom, pixelDataOffset);
         }
         
@@ -1026,7 +1026,7 @@ namespace Orthanc
         std::string dicomAsJson;
 
         {
-          StorageAccessor accessor(area_, storageCache_, GetMetricsRegistry());
+          StorageAccessor accessor(area_, &storageCache_, GetMetricsRegistry());
           accessor.Read(dicomAsJson, attachment);
         }
 
@@ -1132,7 +1132,7 @@ namespace Orthanc
       {
         uint64_t pixelDataOffset = boost::lexical_cast<uint64_t>(s);
 
-        StorageAccessor accessor(area_, storageCache_, GetMetricsRegistry());
+        StorageAccessor accessor(area_, &storageCache_, GetMetricsRegistry());
 
         accessor.ReadStartRange(dicom, attachment.GetUuid(), attachment.GetContentType(), pixelDataOffset);
         assert(dicom.size() == pixelDataOffset);
@@ -1153,7 +1153,8 @@ namespace Orthanc
                                      int64_t& revision,
                                      const std::string& instancePublicId,
                                      FileContentType content,
-                                     bool uncompressIfNeeded)
+                                     bool uncompressIfNeeded,
+                                     bool skipCache)
   {
     FileInfo attachment;
     if (!index_.LookupAttachment(attachment, revision, instancePublicId, content))
@@ -1166,7 +1167,14 @@ namespace Orthanc
     assert(attachment.GetContentType() == content);
 
     {
-      StorageAccessor accessor(area_, storageCache_, GetMetricsRegistry());
+      StorageCache* cache = NULL;
+
+      if (!skipCache)
+      {
+        cache = &storageCache_;
+      }
+
+      StorageAccessor accessor(area_, cache, GetMetricsRegistry());
 
       if (uncompressIfNeeded)
       {
@@ -1266,7 +1274,7 @@ namespace Orthanc
     // TODO Should we use "gzip" instead?
     CompressionType compression = (compressionEnabled_ ? CompressionType_ZlibWithSize : CompressionType_None);
 
-    StorageAccessor accessor(area_, storageCache_, GetMetricsRegistry());
+    StorageAccessor accessor(area_, &storageCache_, GetMetricsRegistry());
     FileInfo attachment = accessor.Write(data, size, attachmentType, compression, storeMD5_);
 
     try
