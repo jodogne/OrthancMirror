@@ -250,26 +250,52 @@ namespace OrthancPlugins
     }
   }
 
+  // helper class to convert std::map of headers to the plugin SDK C structure
+  class PluginHttpHeaders
+  {
+    std::vector<const char*> headersKeys_;
+    std::vector<const char*> headersValues_;
+  public:
+
+    PluginHttpHeaders(const std::map<std::string, std::string>& httpHeaders)
+    {
+      for (std::map<std::string, std::string>::const_iterator
+           it = httpHeaders.begin(); it != httpHeaders.end(); it++)
+      {
+        headersKeys_.push_back(it->first.c_str());
+        headersValues_.push_back(it->second.c_str());
+      }      
+    }
+
+    const char* const* GetKeys()
+    {
+      return (headersKeys_.empty() ? NULL : &headersKeys_[0]);
+    }
+
+    const char* const* GetValues()
+    {
+      return (headersValues_.empty() ? NULL : &headersValues_[0]);
+    }
+
+    uint32_t GetSize()
+    {
+      return static_cast<uint32_t>(headersKeys_.size());
+    }
+  };
+
   bool MemoryBuffer::RestApiGet(const std::string& uri,
                                 const std::map<std::string, std::string>& httpHeaders,
                                 bool applyPlugins)
   {
     Clear();
 
-    std::vector<const char*> headersKeys;
-    std::vector<const char*> headersValues;
-    
-    for (std::map<std::string, std::string>::const_iterator
-           it = httpHeaders.begin(); it != httpHeaders.end(); it++)
-    {
-      headersKeys.push_back(it->first.c_str());
-      headersValues.push_back(it->second.c_str());
-    }
+    PluginHttpHeaders headers(httpHeaders);
 
     return CheckHttp(OrthancPluginRestApiGet2(
-                       GetGlobalContext(), &buffer_, uri.c_str(), httpHeaders.size(),
-                       (headersKeys.empty() ? NULL : &headersKeys[0]),
-                       (headersValues.empty() ? NULL : &headersValues[0]), applyPlugins));
+                       GetGlobalContext(), &buffer_, uri.c_str(), 
+                       headers.GetSize(),
+                       headers.GetKeys(),
+                       headers.GetValues(), applyPlugins));
   }
 
   bool MemoryBuffer::RestApiPost(const std::string& uri,
@@ -292,6 +318,41 @@ namespace OrthancPlugins
     }
   }
 
+#if HAS_ORTHANC_PLUGIN_GENERIC_CALL_REST_API == 1
+
+  bool MemoryBuffer::RestApiPost(const std::string& uri,
+                                 const void* body,
+                                 size_t bodySize,
+                                 const std::map<std::string, std::string>& httpHeaders,
+                                 bool applyPlugins)
+  {
+    MemoryBuffer answerHeaders;
+    uint16_t httpStatus;
+
+    PluginHttpHeaders headers(httpHeaders);
+
+    return CheckHttp(OrthancPluginCallRestApi(GetGlobalContext(), 
+                                              &buffer_,
+                                              *answerHeaders,
+                                              &httpStatus,
+                                              OrthancPluginHttpMethod_Post,
+                                              uri.c_str(),
+                                              headers.GetSize(), headers.GetKeys(), headers.GetValues(),
+                                              body, bodySize,
+                                              applyPlugins));
+  }
+
+
+  bool MemoryBuffer::RestApiPost(const std::string& uri,
+                                 const Json::Value& body,
+                                 const std::map<std::string, std::string>& httpHeaders,
+                                 bool applyPlugins)
+  {
+    std::string s;
+    WriteFastJson(s, body);
+    return RestApiPost(uri, s.c_str(), s.size(), httpHeaders, applyPlugins);
+  }
+#endif
 
   bool MemoryBuffer::RestApiPut(const std::string& uri,
                                 const void* body,
@@ -1456,6 +1517,30 @@ namespace OrthancPlugins
       return true;
     }
   }
+
+#if HAS_ORTHANC_PLUGIN_GENERIC_CALL_REST_API == 1
+  bool RestApiPost(Json::Value& result,
+                   const std::string& uri,
+                   const Json::Value& body,
+                   const std::map<std::string, std::string>& httpHeaders,
+                   bool applyPlugins)
+  {
+    MemoryBuffer answer;
+
+    if (!answer.RestApiPost(uri, body, httpHeaders, applyPlugins))
+    {
+      return false;
+    }
+    else
+    {
+      if (!answer.IsEmpty())
+      {
+        answer.ToJson(result);
+      }
+      return true;
+    }
+  }
+#endif
 
 
   bool RestApiPost(Json::Value& result,
@@ -3796,4 +3881,14 @@ namespace OrthancPlugins
     }
   }
 #endif
+
+  void GetHttpHeaders(std::map<std::string, std::string>& result, const OrthancPluginHttpRequest* request)
+  {
+    result.clear();
+
+    for (uint32_t i = 0; i < request->headersCount; ++i)
+    {
+      result[request->headersKeys[i]] = request->headersValues[i];
+    }    
+  }
 }

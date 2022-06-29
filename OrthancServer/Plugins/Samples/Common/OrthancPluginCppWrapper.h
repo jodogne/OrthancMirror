@@ -115,6 +115,12 @@
 #  define HAS_ORTHANC_PLUGIN_STORAGE_COMMITMENT_SCP  0
 #endif
 
+#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 9, 2)
+#  define HAS_ORTHANC_PLUGIN_GENERIC_CALL_REST_API  1
+#else
+#  define HAS_ORTHANC_PLUGIN_GENERIC_CALL_REST_API  0
+#endif
+
 #if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 10, 1)
 #  define HAS_ORTHANC_PLUGIN_WEBDAV  1
 #else
@@ -223,6 +229,19 @@ namespace OrthancPlugins
     bool RestApiPost(const std::string& uri,
                      const Json::Value& body,
                      bool applyPlugins);
+
+#if HAS_ORTHANC_PLUGIN_GENERIC_CALL_REST_API == 1
+    bool RestApiPost(const std::string& uri,
+                     const Json::Value& body,
+                     const std::map<std::string, std::string>& httpHeaders,
+                     bool applyPlugins);
+
+    bool RestApiPost(const std::string& uri,
+                     const void* body,
+                     size_t bodySize,
+                     const std::map<std::string, std::string>& httpHeaders,
+                     bool applyPlugins);
+#endif
 
     bool RestApiPut(const std::string& uri,
                     const Json::Value& body,
@@ -534,6 +553,14 @@ namespace OrthancPlugins
                    const void* body,
                    size_t bodySize,
                    bool applyPlugins);
+
+#if HAS_ORTHANC_PLUGIN_GENERIC_CALL_REST_API == 1
+  bool RestApiPost(Json::Value& result,
+                   const std::string& uri,
+                   const Json::Value& body,
+                   const std::map<std::string, std::string>& httpHeaders,
+                   bool applyPlugins);
+#endif
 
   bool RestApiPost(Json::Value& result,
                    const std::string& uri,
@@ -1264,7 +1291,8 @@ namespace OrthancPlugins
 #endif
   };
 
-
+// helper method to convert Http headers from the plugin SDK to a std::map
+void GetHttpHeaders(std::map<std::string, std::string>& result, const OrthancPluginHttpRequest* request);
 
 #if HAS_ORTHANC_PLUGIN_WEBDAV == 1
   class IWebDavCollection : public boost::noncopyable
