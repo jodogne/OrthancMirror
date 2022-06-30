@@ -571,9 +571,9 @@ namespace Orthanc
         if (sequence)
         {
           Json::Value jsonSequence = Json::arrayValue;
-          for (unsigned long i = 0; i < sequence->card(); i++)
+          for (unsigned long s = 0; s < sequence->card(); s++)
           {
-            DcmItem* child = sequence->getItem(i);
+            DcmItem* child = sequence->getItem(s);
             Json::Value& v = jsonSequence.append(Json::objectValue);
             DatasetToJson(v, *child, DicomToJsonFormat_Full, DicomToJsonFlags_Default, 
                           maxStringLength, encoding, hasCodeExtensions,

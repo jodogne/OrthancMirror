@@ -1380,7 +1380,6 @@ namespace Orthanc
       {
         if (value["Value"].type() != Json::arrayValue)
         {
-          printf("%s", dicomAsJson.toStyledString().c_str());
           throw OrthancException(ErrorCode_CorruptedFile);
         }
         else
