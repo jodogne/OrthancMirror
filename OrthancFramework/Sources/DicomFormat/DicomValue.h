@@ -63,7 +63,7 @@ namespace Orthanc
                size_t size,
                bool isBinary);
     
-    DicomValue(const Json::Value& value);
+    explicit DicomValue(const Json::Value& value);
     
     const std::string& GetContent() const;
 
