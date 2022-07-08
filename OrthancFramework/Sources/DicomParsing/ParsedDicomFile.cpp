@@ -1276,14 +1276,16 @@ namespace Orthanc
         accessor.GetFormat() != PixelFormat_Grayscale16 &&
         accessor.GetFormat() != PixelFormat_SignedGrayscale16 &&
         accessor.GetFormat() != PixelFormat_RGB24 &&
-        accessor.GetFormat() != PixelFormat_RGBA32)
+        accessor.GetFormat() != PixelFormat_RGBA32 && 
+        accessor.GetFormat() != PixelFormat_RGBA64)
     {
       throw OrthancException(ErrorCode_NotImplemented);
     }
 
     InvalidateCache();
 
-    if (accessor.GetFormat() == PixelFormat_RGBA32)
+    if (accessor.GetFormat() == PixelFormat_RGBA32 || 
+        accessor.GetFormat() == PixelFormat_RGBA64)
     {
       LOG(WARNING) << "Getting rid of the alpha channel when embedding a RGBA image inside DICOM";
     }
@@ -1329,6 +1331,20 @@ namespace Orthanc
         ReplacePlainString(DICOM_TAG_BITS_STORED, "8");
         ReplacePlainString(DICOM_TAG_HIGH_BIT, "7");
         bytesPerPixel = 3;
+
+        // "Planar configuration" must only present if "Samples per
+        // Pixel" is greater than 1
+        ReplacePlainString(DICOM_TAG_PLANAR_CONFIGURATION, "0");  // Color channels are interleaved
+
+        break;
+      
+      case PixelFormat_RGBA64:
+        ReplacePlainString(DICOM_TAG_PHOTOMETRIC_INTERPRETATION, "RGB");
+        ReplacePlainString(DICOM_TAG_SAMPLES_PER_PIXEL, "3");
+        ReplacePlainString(DICOM_TAG_BITS_ALLOCATED, "16");
+        ReplacePlainString(DICOM_TAG_BITS_STORED, "16");
+        ReplacePlainString(DICOM_TAG_HIGH_BIT, "15");
+        bytesPerPixel = 6;
 
         // "Planar configuration" must only present if "Samples per
         // Pixel" is greater than 1
@@ -1390,6 +1406,23 @@ namespace Orthanc
               q[0] = source[0];
               q[1] = source[1];
               q[2] = source[2];
+            }
+
+            break;
+          }
+
+          case PixelFormat_RGBA64:
+          {
+            // The alpha channel is not supported by the DICOM standard
+            const Uint8* source = reinterpret_cast<const Uint8*>(accessor.GetConstRow(y));
+            for (unsigned int x = 0; x < width; x++, q += 6, source += 8)
+            {
+              q[0] = source[0];
+              q[1] = source[1];
+              q[2] = source[2];
+              q[3] = source[3];
+              q[4] = source[4];
+              q[5] = source[5];
             }
 
             break;

@@ -175,6 +175,16 @@ namespace Orthanc
       format = PixelFormat_RGBA32;
       pitch = 4 * width;
     }
+    else if (color_type == PNG_COLOR_TYPE_RGBA && bit_depth == 16)
+    {
+      format = PixelFormat_RGBA64;
+      pitch = 8 * width;
+
+      if (Toolbox::DetectEndianness() == Endianness_Little)
+      {
+        png_set_swap(rabi.png_);
+      }
+    }
     else
     {
       throw OrthancException(ErrorCode_NotImplemented);

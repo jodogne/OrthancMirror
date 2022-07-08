@@ -317,7 +317,14 @@ namespace Orthanc
      * {summary}{Graylevel, unsigned 64bpp image.}
      * {description}{The image is graylevel. Each pixel is unsigned and stored in 8 bytes.}
      **/
-    PixelFormat_Grayscale64 = 10
+    PixelFormat_Grayscale64 = 10,
+
+    /**
+     * {summary}{Color image in RGBA64 format.}
+     * {description}{This format describes a color image. The pixels are stored in 8
+     * consecutive bytes. The memory layout is RGBA.}
+     **/
+    PixelFormat_RGBA64 = 11
   };
 
 

@@ -1,3 +1,12 @@
+Pending changes in the mainline
+===============================
+
+General
+-------
+
+* Added support for RGBA64 images in tools/create-dicom and /preview
+
+
 Version 1.11.1 (2022-06-30)
 ===========================
 

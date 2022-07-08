@@ -1914,6 +1914,7 @@ namespace Orthanc
         return 6;
 
       case PixelFormat_Grayscale64:
+      case PixelFormat_RGBA64:
         return 8;
 
       default:

@@ -165,6 +165,11 @@ namespace Orthanc
           bitDepth_ = 16;
           colorType_ = PNG_COLOR_TYPE_GRAY;
           break;
+        
+        case PixelFormat_RGBA64:
+          bitDepth_ = 16;
+          colorType_ = PNG_COLOR_TYPE_RGBA;
+          break;
 
         default:
           throw OrthancException(ErrorCode_NotImplemented);
@@ -189,6 +194,7 @@ namespace Orthanc
         {
           case PixelFormat_Grayscale16:
           case PixelFormat_SignedGrayscale16:
+          case PixelFormat_RGBA64:
           {
             int transforms = 0;
             if (Toolbox::DetectEndianness() == Endianness_Little)
