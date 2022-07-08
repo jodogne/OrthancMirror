@@ -83,6 +83,47 @@ TEST(PngWriter, ColorPattern)
   ASSERT_EQ("604e785f53c99cae6ea4584870b2c41d", md5);
 }
 
+TEST(PngWriter, Color16Pattern)
+{
+  Orthanc::PngWriter w;
+  unsigned int width = 17;
+  unsigned int height = 61;
+  unsigned int pitch = width * 8;
+
+  std::vector<uint8_t> image(height * pitch);
+  for (unsigned int y = 0; y < height; y++)
+  {
+    uint8_t *p = &image[0] + y * pitch;
+    for (unsigned int x = 0; x < width; x++, p += 8)
+    {
+      p[0] = (y % 8 == 0) ? 255 : 0;
+      p[1] = (y % 8 == 1) ? 255 : 0;
+      p[2] = (y % 8 == 2) ? 255 : 0;
+      p[3] = (y % 8 == 3) ? 255 : 0;
+      p[4] = (y % 8 == 4) ? 255 : 0;
+      p[5] = (y % 8 == 5) ? 255 : 0;
+      p[6] = (y % 8 == 6) ? 255 : 0;
+      p[7] = (y % 8 == 7) ? 255 : 0;
+    }
+  }
+
+  Orthanc::ImageAccessor accessor;
+  accessor.AssignReadOnly(Orthanc::PixelFormat_RGBA64, width, height, pitch, &image[0]);
+
+  std::string f;
+
+#if ORTHANC_SANDBOXED == 1
+  Orthanc::IImageWriter::WriteToMemory(w, f, accessor);
+#else
+  Orthanc::IImageWriter::WriteToFile(w, "UnitTestsResults/Color16Pattern.png", accessor);
+  Orthanc::SystemToolbox::ReadFile(f, "UnitTestsResults/Color16Pattern.png");
+#endif
+
+  std::string md5;
+  Orthanc::Toolbox::ComputeMD5(md5, f);
+  ASSERT_EQ("1cca552b6bd152b6fdab35c4a9f02c2a", md5);
+}
+
 
 TEST(PngWriter, Gray8Pattern)
 {

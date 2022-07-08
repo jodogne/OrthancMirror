@@ -1064,7 +1064,7 @@ namespace Orthanc
           targetHeight = boost::math::iround(ratio * static_cast<float>(decoded->GetHeight()));
         }
         
-        if (decoded->GetFormat() == PixelFormat_RGB24)
+        if (decoded->GetFormat() == PixelFormat_RGB24 || decoded->GetFormat() == PixelFormat_RGB48)
         {
           if (targetWidth == decoded->GetWidth() &&
               targetHeight == decoded->GetHeight())

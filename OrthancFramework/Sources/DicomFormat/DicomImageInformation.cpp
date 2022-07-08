@@ -380,6 +380,15 @@ namespace Orthanc
       return true;
     }
 
+    if (GetBitsStored() == 16 &&
+        GetChannelCount() == 3 &&
+        !IsSigned() &&
+        (ignorePhotometricInterpretation || photometric_ == PhotometricInterpretation_RGB))
+    {
+      format = PixelFormat_RGB48;
+      return true;
+    }
+
     return false;
   }
 
