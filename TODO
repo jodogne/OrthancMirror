@@ -282,7 +282,9 @@ Microsoft Windows
 * Add compatibility with non-ASCII paths (Orthanc expresses its paths
   as UTF-8 strings, but Windows expects them to be translated to the 
   system locale)
-
+* Fix error message when stopping the service:
+  https://groups.google.com/g/orthanc-users/c/NyrwUJ9N6Ec/m/sTZIcWvaAgAJ
+  
 
 ====
 Misc
