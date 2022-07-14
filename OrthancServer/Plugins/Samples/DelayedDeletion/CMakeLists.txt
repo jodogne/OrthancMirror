@@ -35,6 +35,8 @@ set(ENABLE_MODULE_DICOM OFF)
 
 include(${CMAKE_CURRENT_SOURCE_DIR}/../../../../OrthancFramework/Resources/CMake/OrthancFrameworkConfiguration.cmake)
 
+include(${CMAKE_CURRENT_LIST_DIR}/../Common/OrthancPluginsExports.cmake)
+
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
   execute_process(
     COMMAND 

@@ -6,6 +6,11 @@ General
 
 * Added support for RGBA64 images in tools/create-dicom and /preview
 
+Maintenance
+-----------
+
+* DelayedDeletion plugin: Fix leaking of symbols
+
 
 Version 1.11.1 (2022-06-30)
 ===========================
@@ -30,7 +35,6 @@ Bug Fixes
 * Fix the storage cache that was not used by the Plugin SDK.  This fixes the 
   DicomWeb plugin "/rendered" route performance issues.
 
-
 Maintenance
 -----------
 
@@ -38,7 +42,6 @@ Maintenance
 * Added missing MOVEPatientRootQueryRetrieveInformationModel in 
   DicomControlUserConnection::SetupPresentationContexts()
 * Improved HttpClient error logging (add method + url)
-
 
 REST API
 --------
@@ -52,7 +55,6 @@ Plugins
 -------
 
 * New function in the SDK: "OrthancPluginGetDatabaseServerIdentifier"
-
 
 OrthancFramework (C++)
 ----------------------
