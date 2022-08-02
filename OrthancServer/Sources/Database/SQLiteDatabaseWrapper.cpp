@@ -1371,6 +1371,8 @@ namespace Orthanc
   void SQLiteDatabaseWrapper::Close()
   {
     boost::mutex::scoped_lock lock(mutex_);
+    // close and delete the WAL when exiting properly -> the DB is stored in a single file (no more -wal and -shm files)
+    db_.Execute("PRAGMA JOURNAL_MODE=DELETE;");
     db_.Close();
   }
 
