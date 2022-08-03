@@ -217,6 +217,10 @@ namespace Orthanc
 
   FindStorageAccessMode StringToFindStorageAccessMode(const std::string& str);
 
+  bool IsStorageAccessAllowedForAnswers(FindStorageAccessMode mode);
+
+  bool IsStorageAccessAllowedForLookup(FindStorageAccessMode mode);
+
   BuiltinDecoderTranscoderOrder StringToBuiltinDecoderTranscoderOrder(const std::string& str);
 
   Verbosity StringToVerbosity(const std::string& str);

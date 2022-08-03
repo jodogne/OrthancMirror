@@ -1442,15 +1442,14 @@ namespace Orthanc
       // Optimization in Orthanc 1.5.1 - Don't read the full JSON from
       // the disk if only "main DICOM tags" are to be returned
 
-      std::unique_ptr<Json::Value> dicomAsJson;
+      boost::shared_ptr<Json::Value> dicomAsJson;
 
       bool hasOnlyMainDicomTags;
       DicomMap dicom;
       DicomMap allMainDicomTagsFromDB;
       
-      if (findStorageAccessMode_ == FindStorageAccessMode_DatabaseOnly ||
-          findStorageAccessMode_ == FindStorageAccessMode_DiskOnAnswer ||
-          fastLookup->HasOnlyMainDicomTags())
+      if (!IsStorageAccessAllowedForAnswers(findStorageAccessMode_) 
+          || fastLookup->HasOnlyMainDicomTags())
       {
         // Case (1): The main DICOM tags, as stored in the database,
         // are sufficient to look for match
@@ -1538,8 +1537,7 @@ namespace Orthanc
           }
           else
           {
-            if ((findStorageAccessMode_ == FindStorageAccessMode_DiskOnLookupAndAnswer ||
-                findStorageAccessMode_ == FindStorageAccessMode_DiskOnAnswer) &&
+            if (IsStorageAccessAllowedForAnswers(findStorageAccessMode_) &&
                 dicomAsJson.get() == NULL &&
                 isDicomAsJsonNeeded)
             {
@@ -2336,13 +2334,14 @@ namespace Orthanc
                                      const std::string& publicId,
                                      ResourceType level,
                                      DicomToJsonFormat format,
-                                     const std::set<DicomTag>& requestedTags)
+                                     const std::set<DicomTag>& requestedTags,
+                                     bool allowStorageAccess)
   {
     std::string unusedInstanceId;
     Json::Value* unusedDicomAsJson = NULL;
     DicomMap unusedMainDicomTags;
 
-    return ExpandResource(target, publicId, unusedMainDicomTags, unusedInstanceId, unusedDicomAsJson, level, format, requestedTags);
+    return ExpandResource(target, publicId, unusedMainDicomTags, unusedInstanceId, unusedDicomAsJson, level, format, requestedTags, allowStorageAccess);
   }
 
   bool ServerContext::ExpandResource(Json::Value& target,
@@ -2352,11 +2351,12 @@ namespace Orthanc
                                       const Json::Value* dicomAsJson,  // optional: the dicom-as-json for the resource (if already available)
                                      ResourceType level,
                                      DicomToJsonFormat format,
-                                     const std::set<DicomTag>& requestedTags)
+                                     const std::set<DicomTag>& requestedTags,
+                                     bool allowStorageAccess)
   {
     ExpandedResource resource;
 
-    if (ExpandResource(resource, publicId, mainDicomTags, instanceId, dicomAsJson, level, requestedTags, ExpandResourceDbFlags_Default))
+    if (ExpandResource(resource, publicId, mainDicomTags, instanceId, dicomAsJson, level, requestedTags, ExpandResourceDbFlags_Default, allowStorageAccess))
     {
       SerializeExpandedResource(target, resource, format, requestedTags);
       return true;
@@ -2372,7 +2372,8 @@ namespace Orthanc
                                      const Json::Value* dicomAsJson,   // optional: the dicom-as-json for the resource (if already available)
                                      ResourceType level,
                                      const std::set<DicomTag>& requestedTags,
-                                     ExpandResourceDbFlags expandFlags)
+                                     ExpandResourceDbFlags expandFlags,
+                                     bool allowStorageAccess)
   {
     // first try to get the tags from what is already available
     
@@ -2420,7 +2421,8 @@ namespace Orthanc
       }
 
       // possibly merge missing requested tags from dicom-as-json
-      if (!resource.missingRequestedTags_.empty() && !DicomMap::HasOnlyComputedTags(resource.missingRequestedTags_))
+      if (allowStorageAccess
+          && !resource.missingRequestedTags_.empty() && !DicomMap::HasOnlyComputedTags(resource.missingRequestedTags_))
       {
         OrthancConfiguration::ReaderLock lock;
         if (lock.GetConfiguration().IsWarningEnabled(Warnings_001_TagsBeingReadFromStorage))

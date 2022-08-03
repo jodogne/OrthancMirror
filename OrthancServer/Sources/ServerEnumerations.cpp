@@ -208,6 +208,15 @@ namespace Orthanc
     }    
   }
 
+  bool IsStorageAccessAllowedForAnswers(FindStorageAccessMode mode)
+  {
+    return mode != FindStorageAccessMode_DatabaseOnly;
+  }
+
+  bool IsStorageAccessAllowedForLookup(FindStorageAccessMode mode)
+  {
+    return mode == FindStorageAccessMode_DiskOnLookupAndAnswer;
+  }
 
   BuiltinDecoderTranscoderOrder StringToBuiltinDecoderTranscoderOrder(const std::string& value)
   {

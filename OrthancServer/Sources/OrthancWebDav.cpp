@@ -261,7 +261,7 @@ namespace Orthanc
       Json::Value resource;
       std::set<DicomTag> emptyRequestedTags;  // not supported for webdav
 
-      if (context_.ExpandResource(resource, publicId, level_, DicomToJsonFormat_Human, emptyRequestedTags))
+      if (context_.ExpandResource(resource, publicId, level_, DicomToJsonFormat_Human, emptyRequestedTags, true /* allowStorageAccess */))
       {
         if (success_)
         {

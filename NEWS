@@ -6,6 +6,13 @@ General
 
 * Added support for RGBA64 images in tools/create-dicom and /preview
 
+Bug Fixes
+---------
+
+* Fix the "Never" option of the "StorageAccessOnFind" that was sill accessing
+  files (bug introduced in 1.11.0).
+
+
 Maintenance
 -----------
 
