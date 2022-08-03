@@ -131,11 +131,12 @@ namespace Orthanc
                                     const std::list<std::string>& resources,
                                     const std::map<std::string, std::string>& instancesIds, // optional: the id of an instance for each found resource.
                                     const std::map<std::string, boost::shared_ptr<DicomMap> >& resourcesMainDicomTags,  // optional: all tags read from DB for a resource (current level and upper levels)
-                                    const std::map<std::string, Json::Value>& resourcesDicomAsJson, // optional: the dicom-as-json for each resource
+                                    const std::map<std::string, const Json::Value*>& resourcesDicomAsJson, // optional: the dicom-as-json for each resource
                                     ResourceType level,
                                     bool expand,
                                     DicomToJsonFormat format,
-                                    const std::set<DicomTag>& requestedTags)
+                                    const std::set<DicomTag>& requestedTags,
+                                    bool allowStorageAccess)
   {
     Json::Value answer = Json::arrayValue;
 
@@ -145,7 +146,26 @@ namespace Orthanc
       if (expand)
       {
         Json::Value expanded;
-        if (context.ExpandResource(expanded, *resource, level, format, requestedTags))
+
+        std::map<std::string, std::string>::const_iterator instanceId = instancesIds.find(*resource);
+        if (instanceId != instancesIds.end())  // if it is found in instancesIds, it is also in resourcesDicomAsJson and mainDicomTags
+        {
+          // reuse data already collected before (e.g during lookup)
+          std::map<std::string, boost::shared_ptr<DicomMap> >::const_iterator mainDicomTags = resourcesMainDicomTags.find(*resource);
+          std::map<std::string, const Json::Value*>::const_iterator dicomAsJson = resourcesDicomAsJson.find(*resource);
+
+          context.ExpandResource(expanded, *resource, 
+                                 *(mainDicomTags->second.get()),
+                                 instanceId->second,
+                                 dicomAsJson->second,
+                                 level, format, requestedTags, allowStorageAccess);
+        }
+        else
+        {
+          context.ExpandResource(expanded, *resource, level, format, requestedTags, allowStorageAccess);
+        }
+
+        if (expanded.type() == Json::objectValue)
         {
           answer.append(expanded);
         }
@@ -166,13 +186,14 @@ namespace Orthanc
                                     ResourceType level,
                                     bool expand,
                                     DicomToJsonFormat format,
-                                    const std::set<DicomTag>& requestedTags)
+                                    const std::set<DicomTag>& requestedTags,
+                                    bool allowStorageAccess)
   {
     std::map<std::string, std::string> unusedInstancesIds;
     std::map<std::string, boost::shared_ptr<DicomMap> > unusedResourcesMainDicomTags;
-    std::map<std::string, Json::Value> unusedResourcesDicomAsJson;
+    std::map<std::string, const Json::Value* > unusedResourcesDicomAsJson;
 
-    AnswerListOfResources(output, context, resources, unusedInstancesIds, unusedResourcesMainDicomTags, unusedResourcesDicomAsJson, level, expand, format, requestedTags);
+    AnswerListOfResources(output, context, resources, unusedInstancesIds, unusedResourcesMainDicomTags, unusedResourcesDicomAsJson, level, expand, format, requestedTags, allowStorageAccess);
   }
 
 
@@ -235,7 +256,8 @@ namespace Orthanc
 
     AnswerListOfResources(call.GetOutput(), context, result, resourceType, call.HasArgument("expand"),
                           OrthancRestApi::GetDicomFormat(call, DicomToJsonFormat_Human),
-                          requestedTags);
+                          requestedTags,
+                          true /* allowStorageAccess */);
   }
 
 
@@ -266,7 +288,7 @@ namespace Orthanc
 
     Json::Value json;
     if (OrthancRestApi::GetContext(call).ExpandResource(
-          json, call.GetUriComponent("id", ""), resourceType, format, requestedTags))
+          json, call.GetUriComponent("id", ""), resourceType, format, requestedTags, true /* allowStorageAccess */))
     {
       call.GetOutput().AnswerJson(json);
     }
@@ -2848,17 +2870,19 @@ namespace Orthanc
     private:
       bool                    isComplete_;
       std::list<std::string>  resources_;
+      FindStorageAccessMode   findStorageAccessMode_;
       
       // cache the data we used during lookup and that we could reuse when building the answers
       std::map<std::string, std::string> instancesIds_;         // the id of an instance for each found resource.
       std::map<std::string, boost::shared_ptr<DicomMap> > resourcesMainDicomTags_;  // all tags read from DB for a resource (current level and upper levels)
-      std::map<std::string, Json::Value> resourcesDicomAsJson_; // the dicom-as-json for a resource
+      std::map<std::string, const Json::Value* > resourcesDicomAsJson_; // the dicom-as-json for a resource
 
       DicomToJsonFormat       format_;
 
     public:
-      explicit FindVisitor(DicomToJsonFormat format) :
+      explicit FindVisitor(DicomToJsonFormat format, FindStorageAccessMode findStorageAccessMode) :
         isComplete_(false),
+        findStorageAccessMode_(findStorageAccessMode),
         format_(format)
       {
       }
@@ -2890,7 +2914,7 @@ namespace Orthanc
                   bool expand,
                   const std::set<DicomTag>& requestedTags) const
       {
-        AnswerListOfResources(output, context, resources_, instancesIds_, resourcesMainDicomTags_, resourcesDicomAsJson_, level, expand, format_, requestedTags);
+        AnswerListOfResources(output, context, resources_, instancesIds_, resourcesMainDicomTags_, resourcesDicomAsJson_, level, expand, format_, requestedTags, IsStorageAccessAllowedForAnswers(findStorageAccessMode_));
       }
     };
   }
@@ -3056,7 +3080,7 @@ namespace Orthanc
         }
       }
 
-      FindVisitor visitor(OrthancRestApi::GetDicomFormat(request, DicomToJsonFormat_Human));
+      FindVisitor visitor(OrthancRestApi::GetDicomFormat(request, DicomToJsonFormat_Human), context.GetFindStorageAccessMode());
       context.Apply(visitor, query, level, since, limit);
       visitor.Answer(call.GetOutput(), context, level, expand, requestedTags);
     }
@@ -3119,7 +3143,7 @@ namespace Orthanc
            it = a.begin(); it != a.end(); ++it)
     {
       Json::Value resource;
-      if (OrthancRestApi::GetContext(call).ExpandResource(resource, *it, end, format, requestedTags))
+      if (OrthancRestApi::GetContext(call).ExpandResource(resource, *it, end, format, requestedTags, true /* allowStorageAccess */))
       {
         result.append(resource);
       }
@@ -3238,7 +3262,7 @@ namespace Orthanc
     const DicomToJsonFormat format = OrthancRestApi::GetDicomFormat(call, DicomToJsonFormat_Human);
 
     Json::Value resource;
-    if (OrthancRestApi::GetContext(call).ExpandResource(resource, current, end, format, requestedTags))
+    if (OrthancRestApi::GetContext(call).ExpandResource(resource, current, end, format, requestedTags, true /* allowStorageAccess */))
     {
       call.GetOutput().AnswerJson(resource);
     }
@@ -3645,7 +3669,7 @@ namespace Orthanc
           Json::Value item;
           std::set<DicomTag> emptyRequestedTags;  // not supported for bulk content
 
-          if (OrthancRestApi::GetContext(call).ExpandResource(item, *it, level, format, emptyRequestedTags))
+          if (OrthancRestApi::GetContext(call).ExpandResource(item, *it, level, format, emptyRequestedTags, true /* allowStorageAccess */))
           {
             if (metadata)
             {
@@ -3670,7 +3694,7 @@ namespace Orthanc
           std::set<DicomTag> emptyRequestedTags;  // not supported for bulk content
 
           if (index.LookupResourceType(level, *it) &&
-              OrthancRestApi::GetContext(call).ExpandResource(item, *it, level, format, emptyRequestedTags))
+              OrthancRestApi::GetContext(call).ExpandResource(item, *it, level, format, emptyRequestedTags, true /* allowStorageAccess */))
           {
             if (metadata)
             {

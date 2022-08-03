@@ -49,7 +49,8 @@ namespace Orthanc
                         const std::list<DicomTag>& sequencesToReturn,
                         const std::string& defaultPrivateCreator,
                         const std::map<uint16_t, std::string>& privateCreators,
-                        const std::string& retrieveAet)
+                        const std::string& retrieveAet,
+                        bool allowStorageAccess)
   {
     ExpandedResource resource;
     std::set<DicomTag> requestedTags;
@@ -58,7 +59,7 @@ namespace Orthanc
     requestedTags.erase(DICOM_TAG_QUERY_RETRIEVE_LEVEL); // this is not part of the answer
 
     // reuse ExpandResource to get missing tags and computed tags (ModalitiesInStudy ...).  This code is therefore shared between C-Find, tools/find, list-resources and QIDO-RS
-    context.ExpandResource(resource, publicId, mainDicomTags, instanceId, dicomAsJson, level, requestedTags, ExpandResourceDbFlags_IncludeMainDicomTags);
+    context.ExpandResource(resource, publicId, mainDicomTags, instanceId, dicomAsJson, level, requestedTags, ExpandResourceDbFlags_IncludeMainDicomTags, allowStorageAccess);
 
     DicomMap result;
 
@@ -246,6 +247,7 @@ namespace Orthanc
     std::string                 defaultPrivateCreator_;       // the private creator to use if the group is not defined in the query itself
     const std::map<uint16_t, std::string>& privateCreators_;  // the private creators defined in the query itself
     std::string                 retrieveAet_;
+    FindStorageAccessMode       findStorageAccessMode_;
 
   public:
     LookupVisitor(DicomFindAnswers&  answers,
@@ -253,14 +255,16 @@ namespace Orthanc
                   ResourceType level,
                   const DicomMap& query,
                   const std::list<DicomTag>& sequencesToReturn,
-                  const std::map<uint16_t, std::string>& privateCreators) :
+                  const std::map<uint16_t, std::string>& privateCreators,
+                  FindStorageAccessMode findStorageAccessMode) :
       answers_(answers),
       context_(context),
       level_(level),
       query_(query),
       queryAsArray_(query),
       sequencesToReturn_(sequencesToReturn),
-      privateCreators_(privateCreators)
+      privateCreators_(privateCreators),
+      findStorageAccessMode_(findStorageAccessMode)
     {
       answers_.SetComplete(false);
 
@@ -308,7 +312,7 @@ namespace Orthanc
                        const Json::Value* dicomAsJson) ORTHANC_OVERRIDE
     {
       AddAnswer(answers_, context_, publicId, instanceId, mainDicomTags, dicomAsJson, level_, queryAsArray_, sequencesToReturn_,
-                defaultPrivateCreator_, privateCreators_, retrieveAet_);
+                defaultPrivateCreator_, privateCreators_, retrieveAet_, IsStorageAccessAllowedForAnswers(findStorageAccessMode_));
     }
   };
 
@@ -478,7 +482,7 @@ namespace Orthanc
     size_t limit = (level == ResourceType_Instance) ? maxInstances_ : maxResults_;
 
 
-    LookupVisitor visitor(answers, context_, level, *filteredInput, sequencesToReturn, privateCreators);
+    LookupVisitor visitor(answers, context_, level, *filteredInput, sequencesToReturn, privateCreators, context_.GetFindStorageAccessMode());
     context_.Apply(visitor, lookup, level, 0 /* "since" is not relevant to C-FIND */, limit);
   }
 
