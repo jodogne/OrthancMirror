@@ -131,7 +131,7 @@ namespace Orthanc
                                     const std::list<std::string>& resources,
                                     const std::map<std::string, std::string>& instancesIds, // optional: the id of an instance for each found resource.
                                     const std::map<std::string, boost::shared_ptr<DicomMap> >& resourcesMainDicomTags,  // optional: all tags read from DB for a resource (current level and upper levels)
-                                    const std::map<std::string, const Json::Value*>& resourcesDicomAsJson, // optional: the dicom-as-json for each resource
+                                    const std::map<std::string, boost::shared_ptr<Json::Value> >& resourcesDicomAsJson, // optional: the dicom-as-json for each resource
                                     ResourceType level,
                                     bool expand,
                                     DicomToJsonFormat format,
@@ -152,12 +152,12 @@ namespace Orthanc
         {
           // reuse data already collected before (e.g during lookup)
           std::map<std::string, boost::shared_ptr<DicomMap> >::const_iterator mainDicomTags = resourcesMainDicomTags.find(*resource);
-          std::map<std::string, const Json::Value*>::const_iterator dicomAsJson = resourcesDicomAsJson.find(*resource);
+          std::map<std::string, boost::shared_ptr<Json::Value> >::const_iterator dicomAsJson = resourcesDicomAsJson.find(*resource);
 
           context.ExpandResource(expanded, *resource, 
                                  *(mainDicomTags->second.get()),
                                  instanceId->second,
-                                 dicomAsJson->second,
+                                 dicomAsJson->second.get(),
                                  level, format, requestedTags, allowStorageAccess);
         }
         else
@@ -191,7 +191,7 @@ namespace Orthanc
   {
     std::map<std::string, std::string> unusedInstancesIds;
     std::map<std::string, boost::shared_ptr<DicomMap> > unusedResourcesMainDicomTags;
-    std::map<std::string, const Json::Value* > unusedResourcesDicomAsJson;
+    std::map<std::string, boost::shared_ptr<Json::Value> > unusedResourcesDicomAsJson;
 
     AnswerListOfResources(output, context, resources, unusedInstancesIds, unusedResourcesMainDicomTags, unusedResourcesDicomAsJson, level, expand, format, requestedTags, allowStorageAccess);
   }
@@ -2875,7 +2875,7 @@ namespace Orthanc
       // cache the data we used during lookup and that we could reuse when building the answers
       std::map<std::string, std::string> instancesIds_;         // the id of an instance for each found resource.
       std::map<std::string, boost::shared_ptr<DicomMap> > resourcesMainDicomTags_;  // all tags read from DB for a resource (current level and upper levels)
-      std::map<std::string, const Json::Value* > resourcesDicomAsJson_; // the dicom-as-json for a resource
+      std::map<std::string, boost::shared_ptr<Json::Value> > resourcesDicomAsJson_; // the dicom-as-json for a resource
 
       DicomToJsonFormat       format_;
 
@@ -2905,7 +2905,14 @@ namespace Orthanc
         resources_.push_back(publicId);
         instancesIds_[publicId] = instanceId;
         resourcesMainDicomTags_[publicId].reset(mainDicomTags.Clone());
-        resourcesDicomAsJson_[publicId] = dicomAsJson;
+        if (dicomAsJson != NULL)
+        {
+          resourcesDicomAsJson_[publicId].reset(new Json::Value(*dicomAsJson));  // keep our own copy because we might reuse it between lookup and answers
+        }
+        else
+        {
+          resourcesDicomAsJson_[publicId] = boost::shared_ptr<Json::Value>();
+        }
       }
 
       void Answer(RestApiOutput& output,
