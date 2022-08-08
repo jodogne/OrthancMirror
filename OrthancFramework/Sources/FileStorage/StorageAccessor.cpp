@@ -269,17 +269,7 @@ namespace Orthanc
                                     const FileInfo& info,
                                     const std::string& mime)
   {
-    if (cache_ == NULL || !cache_->Fetch(sender.GetBuffer(), info.GetUuid(), info.GetContentType()))
-    {
-      MetricsTimer timer(*this, METRICS_READ);
-      std::unique_ptr<IMemoryBuffer> buffer(area_.Read(info.GetUuid(), info.GetContentType()));
-      buffer->MoveToString(sender.GetBuffer());
-
-      if (cache_ != NULL)
-      {
-        cache_->Add(info.GetUuid(), info.GetContentType(), sender.GetBuffer());
-      }
-    }
+    Read(sender.GetBuffer(), info);
 
     sender.SetContentType(mime);
 
@@ -323,7 +313,7 @@ namespace Orthanc
     BufferHttpSender sender;
     SetupSender(sender, info, mime);
   
-    HttpStreamTranscoder transcoder(sender, info.GetCompressionType());
+    HttpStreamTranscoder transcoder(sender, CompressionType_None); // since 1.11.2, the storage accessor only returns uncompressed buffers
     output.Answer(transcoder);
   }
 #endif
@@ -347,7 +337,7 @@ namespace Orthanc
     BufferHttpSender sender;
     SetupSender(sender, info, mime);
   
-    HttpStreamTranscoder transcoder(sender, info.GetCompressionType());
+    HttpStreamTranscoder transcoder(sender, CompressionType_None); // since 1.11.2, the storage accessor only returns uncompressed buffers
     output.AnswerStream(transcoder);
   }
 #endif

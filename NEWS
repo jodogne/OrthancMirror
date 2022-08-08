@@ -11,6 +11,7 @@ Bug Fixes
 
 * Fix the "Never" option of the "StorageAccessOnFind" that was sill accessing
   files (bug introduced in 1.11.0).
+* Fix the Storage Cache for compressed files (bug introduced in 1.11.0).
 
 
 Maintenance
@@ -19,6 +20,7 @@ Maintenance
 * DelayedDeletion plugin: Fix leaking of symbols
 * SQLite now closes and deletes WAL and SHM files on exit.  This should improve
   handling of SQLite DB over network drives.
+
 
 Version 1.11.1 (2022-06-30)
 ===========================
