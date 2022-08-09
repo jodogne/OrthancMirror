@@ -2773,10 +2773,8 @@ namespace Orthanc
   }
 
 
-  static bool IsRecyclingNeeded(IDatabaseWrapper::ITransaction& transaction,
-                                uint64_t maximumStorageSize,
-                                unsigned int maximumPatients,
-                                uint64_t addedInstanceSize)
+  bool StatelessDatabaseOperations::ReadWriteTransaction::HasReachedMaxStorageSize(uint64_t maximumStorageSize,
+                                                                                   uint64_t addedInstanceSize)
   {
     if (maximumStorageSize != 0)
     {
@@ -2788,24 +2786,35 @@ namespace Orthanc
                                boost::lexical_cast<std::string>(maximumStorageSize));
       }
       
-      if (transaction.IsDiskSizeAbove(maximumStorageSize - addedInstanceSize))
-      {
-        return true;
-      }
-    }
-
-    if (maximumPatients != 0)
-    {
-      uint64_t patientCount = transaction.GetResourcesCount(ResourceType_Patient);
-      if (patientCount > maximumPatients)
+      if (transaction_.IsDiskSizeAbove(maximumStorageSize - addedInstanceSize))
       {
         return true;
       }
     }
 
     return false;
+  }                                                                           
+
+  bool StatelessDatabaseOperations::ReadWriteTransaction::HasReachedMaxPatientCount(unsigned int maximumPatientCount,
+                                                                                   const std::string& patientId)
+  {
+    if (maximumPatientCount != 0)
+    {
+      uint64_t patientCount = transaction_.GetResourcesCount(ResourceType_Patient);  // at this time, the new patient has already been added (as part of the transaction)
+      return patientCount > maximumPatientCount;
+    }
+
+    return false;
   }
   
+  bool StatelessDatabaseOperations::ReadWriteTransaction::IsRecyclingNeeded(uint64_t maximumStorageSize,
+                                                                            unsigned int maximumPatients,
+                                                                            uint64_t addedInstanceSize,
+                                                                            const std::string& newPatientId)
+  {
+    return HasReachedMaxStorageSize(maximumStorageSize, addedInstanceSize)
+      || HasReachedMaxPatientCount(maximumPatients, newPatientId);
+  }
 
   void StatelessDatabaseOperations::ReadWriteTransaction::Recycle(uint64_t maximumStorageSize,
                                                                   unsigned int maximumPatients,
@@ -2814,7 +2823,7 @@ namespace Orthanc
   {
     // TODO - Performance: Avoid calls to "IsRecyclingNeeded()"
     
-    if (IsRecyclingNeeded(transaction_, maximumStorageSize, maximumPatients, addedInstanceSize))
+    if (IsRecyclingNeeded(maximumStorageSize, maximumPatients, addedInstanceSize, newPatientId))
     {
       // Check whether other DICOM instances from this patient are
       // already stored
@@ -2854,7 +2863,7 @@ namespace Orthanc
         LOG(TRACE) << "Recycling one patient";
         transaction_.DeleteResource(patientToRecycle);
 
-        if (!IsRecyclingNeeded(transaction_, maximumStorageSize, maximumPatients, addedInstanceSize))
+        if (!IsRecyclingNeeded(maximumStorageSize, maximumPatients, addedInstanceSize, newPatientId))
         {
           // OK, we're done
           return;
@@ -2864,14 +2873,15 @@ namespace Orthanc
   }
 
 
-  void StatelessDatabaseOperations::StandaloneRecycling(uint64_t maximumStorageSize,
+  void StatelessDatabaseOperations::StandaloneRecycling(MaxStorageMode maximumStorageMode,
+                                                        uint64_t maximumStorageSize,
                                                         unsigned int maximumPatientCount)
   {
     class Operations : public IReadWriteOperations
     {
     private:
-      uint64_t      maximumStorageSize_;
-      unsigned int  maximumPatientCount_;
+      uint64_t        maximumStorageSize_;
+      unsigned int    maximumPatientCount_;
       
     public:
       Operations(uint64_t maximumStorageSize,
@@ -2887,8 +2897,8 @@ namespace Orthanc
       }
     };
 
-    if (maximumStorageSize != 0 ||
-        maximumPatientCount != 0)
+    if (maximumStorageMode == MaxStorageMode_Recycle 
+      && (maximumStorageSize != 0 || maximumPatientCount != 0))
     {
       Operations operations(maximumStorageSize, maximumPatientCount);
       Apply(operations);
@@ -2906,6 +2916,7 @@ namespace Orthanc
                                                  DicomTransferSyntax transferSyntax,
                                                  bool hasPixelDataOffset,
                                                  uint64_t pixelDataOffset,
+                                                 MaxStorageMode maximumStorageMode,
                                                  uint64_t maximumStorageSize,
                                                  unsigned int maximumPatients,
                                                  bool isReconstruct)
@@ -2924,6 +2935,7 @@ namespace Orthanc
       DicomTransferSyntax                  transferSyntax_;
       bool                                 hasPixelDataOffset_;
       uint64_t                             pixelDataOffset_;
+      MaxStorageMode                       maximumStorageMode_;
       uint64_t                             maximumStorageSize_;
       unsigned int                         maximumPatientCount_;
       bool                                 isReconstruct_;
@@ -3026,6 +3038,7 @@ namespace Orthanc
                  DicomTransferSyntax transferSyntax,
                  bool hasPixelDataOffset,
                  uint64_t pixelDataOffset,
+                 MaxStorageMode maximumStorageMode,
                  uint64_t maximumStorageSize,
                  unsigned int maximumPatientCount,
                  bool isReconstruct) :
@@ -3040,6 +3053,7 @@ namespace Orthanc
         transferSyntax_(transferSyntax),
         hasPixelDataOffset_(hasPixelDataOffset),
         pixelDataOffset_(pixelDataOffset),
+        maximumStorageMode_(maximumStorageMode),
         maximumStorageSize_(maximumStorageSize),
         maximumPatientCount_(maximumPatientCount),
         isReconstruct_(isReconstruct)
@@ -3134,8 +3148,24 @@ namespace Orthanc
 
           if (!isReconstruct_)  // reconstruction should not affect recycling
           {
-            transaction.Recycle(maximumStorageSize_, maximumPatientCount_,
-                                instanceSize, hashPatient_ /* don't consider the current patient for recycling */);
+            if (maximumStorageMode_ == MaxStorageMode_Reject)
+            {
+              if (transaction.HasReachedMaxStorageSize(maximumStorageSize_, instanceSize))
+              {
+                storeStatus_ = StoreStatus_StorageFull;
+                throw OrthancException(ErrorCode_FullStorage, HttpStatus_507_InsufficientStorage, "Maximum storage size reached"); // throw to cancel the transaction
+              }
+              if (transaction.HasReachedMaxPatientCount(maximumPatientCount_, hashPatient_))
+              {
+                storeStatus_ = StoreStatus_StorageFull;
+                throw OrthancException(ErrorCode_FullStorage, HttpStatus_507_InsufficientStorage, "Maximum patient count reached");  // throw to cancel the transaction
+              }
+            }
+            else
+            {
+              transaction.Recycle(maximumStorageSize_, maximumPatientCount_,
+                                  instanceSize, hashPatient_ /* don't consider the current patient for recycling */);
+            }
           }  
      
           // Attach the files to the newly created instance
@@ -3349,7 +3379,7 @@ namespace Orthanc
 
     Operations operations(instanceMetadata, dicomSummary, attachments, metadata, origin,
                           overwrite, hasTransferSyntax, transferSyntax, hasPixelDataOffset,
-                          pixelDataOffset, maximumStorageSize, maximumPatients, isReconstruct);
+                          pixelDataOffset, maximumStorageMode, maximumStorageSize, maximumPatients, isReconstruct);
     Apply(operations);
     return operations.GetStoreStatus();
   }

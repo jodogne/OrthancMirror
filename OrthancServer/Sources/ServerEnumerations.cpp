@@ -218,6 +218,24 @@ namespace Orthanc
     return mode == FindStorageAccessMode_DiskOnLookupAndAnswer;
   }
 
+  MaxStorageMode StringToMaxStorageMode(const std::string& value)
+  {
+    if (value == "Recycle")
+    {
+      return MaxStorageMode_Recycle;
+    }
+    else if (value == "Reject")
+    {
+      return MaxStorageMode_Reject;
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange,
+                             "Configuration option \"MaxStorageMode\" "
+                             "should be \"Recycle\" or \"Reject\": " + value);
+    }    
+  }
+
   BuiltinDecoderTranscoderOrder StringToBuiltinDecoderTranscoderOrder(const std::string& value)
   {
     if (value == "Before")

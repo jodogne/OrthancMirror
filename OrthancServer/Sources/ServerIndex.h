@@ -45,8 +45,9 @@ namespace Orthanc
 
     LeastRecentlyUsedIndex<int64_t, UnstableResourcePayload>  unstableResources_;
 
-    uint64_t     maximumStorageSize_;
-    unsigned int maximumPatients_;
+    MaxStorageMode  maximumStorageMode_;
+    uint64_t        maximumStorageSize_;
+    unsigned int    maximumPatients_;
 
     static void FlushThread(ServerIndex* that,
                             unsigned int threadSleep);
@@ -74,6 +75,8 @@ namespace Orthanc
 
     // "count == 0" means no limit on the number of patients
     void SetMaximumPatientCount(unsigned int count);
+
+    void SetMaximumStorageMode(MaxStorageMode mode);
 
     StoreStatus Store(std::map<MetadataType, std::string>& instanceMetadata,
                       const DicomMap& dicomSummary,

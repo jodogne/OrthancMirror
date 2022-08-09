@@ -321,6 +321,7 @@ namespace Orthanc
                            unsigned int threadSleepGranularityMilliseconds) :
     StatelessDatabaseOperations(db),
     done_(false),
+    maximumStorageMode_(MaxStorageMode_Recycle),
     maximumStorageSize_(0),
     maximumPatients_(0)
   {
@@ -328,7 +329,7 @@ namespace Orthanc
 
     // Initial recycling if the parameters have changed since the last
     // execution of Orthanc
-    StandaloneRecycling(maximumStorageSize_, maximumPatients_);
+    StandaloneRecycling(maximumStorageMode_, maximumStorageSize_, maximumPatients_);
 
     if (HasFlushToDisk())
     {
@@ -385,7 +386,7 @@ namespace Orthanc
       }
     }
 
-    StandaloneRecycling(maximumStorageSize_, maximumPatients_);
+    StandaloneRecycling(maximumStorageMode_, maximumStorageSize_, maximumPatients_);
   }
 
   
@@ -405,9 +406,27 @@ namespace Orthanc
       }
     }
 
-    StandaloneRecycling(maximumStorageSize_, maximumPatients_);
+    StandaloneRecycling(maximumStorageMode_, maximumStorageSize_, maximumPatients_);
   }
 
+  void ServerIndex::SetMaximumStorageMode(MaxStorageMode mode) 
+  {
+    {
+      boost::mutex::scoped_lock lock(monitoringMutex_);
+      maximumStorageMode_ = mode;
+      
+      if (mode == MaxStorageMode_Recycle)
+      {
+        LOG(WARNING) << "Maximum Storage mode: Recycle";
+      }
+      else
+      {
+        LOG(WARNING) << "Maximum Storage mode: Reject";
+      }
+    }
+
+    StandaloneRecycling(maximumStorageMode_, maximumStorageSize_, maximumPatients_);
+  }
 
   void ServerIndex::UnstableResourcesMonitorThread(ServerIndex* that,
                                                    unsigned int threadSleepGranularityMilliseconds)
@@ -523,16 +542,18 @@ namespace Orthanc
   {
     uint64_t maximumStorageSize;
     unsigned int maximumPatients;
+    MaxStorageMode maximumStorageMode;
     
     {
       boost::mutex::scoped_lock lock(monitoringMutex_);
       maximumStorageSize = maximumStorageSize_;
       maximumPatients = maximumPatients_;
+      maximumStorageMode = maximumStorageMode_;
     }
 
     return StatelessDatabaseOperations::Store(
       instanceMetadata, dicomSummary, attachments, metadata, origin, overwrite, hasTransferSyntax,
-      transferSyntax, hasPixelDataOffset, pixelDataOffset, maximumStorageSize, maximumPatients, isReconstruct);
+      transferSyntax, hasPixelDataOffset, pixelDataOffset, maximumStorageMode, maximumStorageSize, maximumPatients, isReconstruct);
   }
 
   

@@ -49,7 +49,14 @@ namespace Orthanc
     StoreStatus_Success,
     StoreStatus_AlreadyStored,
     StoreStatus_Failure,
-    StoreStatus_FilteredOut     // Removed by NewInstanceFilter or ReceivedInstanceCallback
+    StoreStatus_FilteredOut,     // Removed by NewInstanceFilter or ReceivedInstanceCallback
+    StoreStatus_StorageFull      // new in Orthanc 1.11.2
+  };
+
+  enum MaxStorageMode
+  {
+    MaxStorageMode_Recycle,
+    MaxStorageMode_Reject
   };
 
   enum DicomTagType
@@ -217,6 +224,8 @@ namespace Orthanc
 
   FindStorageAccessMode StringToFindStorageAccessMode(const std::string& str);
 
+  MaxStorageMode StringToMaxStorageMode(const std::string& str);
+  
   bool IsStorageAccessAllowedForAnswers(FindStorageAccessMode mode);
 
   bool IsStorageAccessAllowedForLookup(FindStorageAccessMode mode);

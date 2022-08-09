@@ -5,6 +5,9 @@ General
 -------
 
 * Added support for RGBA64 images in tools/create-dicom and /preview
+* New configuration "MaximumStorageMode" to choose between recyling of
+  old patients (default behavior) and rejection of new incoming data when
+  the MaximumStorageSize has been reached.
 
 Bug Fixes
 ---------

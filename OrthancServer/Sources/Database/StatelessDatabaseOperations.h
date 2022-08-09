@@ -411,6 +411,17 @@ namespace Orthanc
                    unsigned int maximumPatients,
                    uint64_t addedInstanceSize,
                    const std::string& newPatientId);
+
+      bool HasReachedMaxStorageSize(uint64_t maximumStorageSize,
+                                    uint64_t addedInstanceSize);
+
+      bool HasReachedMaxPatientCount(unsigned int maximumPatientCount,
+                                     const std::string& patientId);
+      
+      bool IsRecyclingNeeded(uint64_t maximumStorageSize,
+                             unsigned int maximumPatients,
+                             uint64_t addedInstanceSize,
+                             const std::string& newPatientId);
     };
 
 
@@ -457,7 +468,8 @@ namespace Orthanc
                        IReadWriteOperations* writeOperations);
 
   protected:
-    void StandaloneRecycling(uint64_t maximumStorageSize,
+    void StandaloneRecycling(MaxStorageMode maximumStorageMode,
+                             uint64_t maximumStorageSize,
                              unsigned int maximumPatientCount);
 
   public:
@@ -658,6 +670,7 @@ namespace Orthanc
                       DicomTransferSyntax transferSyntax,
                       bool hasPixelDataOffset,
                       uint64_t pixelDataOffset,
+                      MaxStorageMode maximumStorageMode,
                       uint64_t maximumStorageSize,
                       unsigned int maximumPatients,
                       bool isReconstruct);
