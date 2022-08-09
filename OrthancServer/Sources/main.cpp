@@ -43,6 +43,7 @@
 #include "OrthancMoveRequestHandler.h"
 #include "OrthancWebDav.h"
 #include "ServerContext.h"
+#include "ServerEnumerations.h"
 #include "ServerJobs/StorageCommitmentScpJob.h"
 #include "ServerToolbox.h"
 #include "StorageCommitmentReports.h"
@@ -1560,6 +1561,16 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
     catch (...)
     {
       context.GetIndex().SetMaximumStorageSize(0);
+    }
+
+    try
+    {
+      std::string mode = lock.GetConfiguration().GetStringParameter("MaximumStorageMode", "Recycle");
+      context.GetIndex().SetMaximumStorageMode(StringToMaxStorageMode(mode));
+    }
+    catch (...)
+    {
+      context.GetIndex().SetMaximumStorageMode(MaxStorageMode_Recycle);
     }
 
     try

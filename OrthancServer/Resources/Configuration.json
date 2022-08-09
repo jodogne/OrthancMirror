@@ -41,6 +41,16 @@
   // of patients)
   "MaximumPatientCount" : 0,
 
+  // Action to take when the maximum storage is reached.
+  // By default, the patients are recycled ("Recycle" mode).
+  // In "Reject" mode, the sender will receive a 0xA700 DIMSE status code
+  // if the instance was sent through C-Store, a 507 HTTP status code
+  // if using the Rest API and a 0xA700 Failure reason when using
+  // DicomWeb Stow-RS 
+  // Allowed values: "Recycle", "Reject"
+  // (new in Orthanc 1.11.2)
+  "MaximumStorageMode" : "Recycle",
+
   // Maximum size of the storage cache in MB.  The storage cache
   // is stored in RAM and contains a copy of recently accessed
   // files (written or read).  A value of "0" indicates the cache
