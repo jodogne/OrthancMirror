@@ -121,3 +121,16 @@ diff -urEb boost_1_69_0.orig/libs/filesystem/src/operations.cpp boost_1_69_0/lib
      std::strcpy(entry->d_name, p->d_name);
      *result = entry;
      return 0;
+
+diff -urEb boost_1_69_0.orig/boost/thread/pthread/thread_data.hpp boost_1_69_0/boost/thread/pthread/thread_data.hpp 
+--- boost_1_69_0.orig/boost/thread/pthread/thread_data.hpp      2022-08-11 07:26:14.343376000 +0000
++++ boost_1_69_0/boost/thread/pthread/thread_data.hpp   2022-08-11 07:27:21.009862000 +0000
+@@ -57,7 +57,7 @@
+ #else
+           std::size_t page_size = ::sysconf( _SC_PAGESIZE);
+ #endif
+-#if PTHREAD_STACK_MIN > 0
++#ifdef PTHREAD_STACK_MIN
+           if (size<PTHREAD_STACK_MIN) size=PTHREAD_STACK_MIN;
+ #endif
+           size = ((size+page_size-1)/page_size)*page_size;

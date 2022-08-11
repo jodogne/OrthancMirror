@@ -23,6 +23,7 @@ Maintenance
 * DelayedDeletion plugin: Fix leaking of symbols
 * SQLite now closes and deletes WAL and SHM files on exit.  This should improve
   handling of SQLite DB over network drives.
+* Fix static compilation of boost 1.69 on Ubuntu 22.04
 
 
 Version 1.11.1 (2022-06-30)
