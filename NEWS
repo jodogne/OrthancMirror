@@ -25,6 +25,7 @@ Maintenance
 * Fix static compilation of boost 1.69 on Ubuntu 22.04
 * Upgraded dependencies for static builds:
   - boost 1.80.0
+  - dcmtk 3.6.7
 
 
 Version 1.11.1 (2022-06-30)
