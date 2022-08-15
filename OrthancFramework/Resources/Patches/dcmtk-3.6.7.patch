@@ -1,0 +1,123 @@
+diff -urEb dcmtk-3.6.7.orig/CMake/GenerateDCMTKConfigure.cmake dcmtk-3.6.7/CMake/GenerateDCMTKConfigure.cmake
+--- dcmtk-3.6.7.orig/CMake/GenerateDCMTKConfigure.cmake	2022-08-15 14:28:32.373922631 +0200
++++ dcmtk-3.6.7/CMake/GenerateDCMTKConfigure.cmake	2022-08-15 14:29:43.341136298 +0200
+@@ -183,6 +183,8 @@
+ 
+ # Check the sizes of various types
+ include (CheckTypeSize)
++if (NOT CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
++  # This doesn't work for wasm, Orthanc defines the macros manually
+ CHECK_TYPE_SIZE("char" SIZEOF_CHAR)
+ CHECK_TYPE_SIZE("double" SIZEOF_DOUBLE)
+ CHECK_TYPE_SIZE("float" SIZEOF_FLOAT)
+@@ -190,6 +192,7 @@
+ CHECK_TYPE_SIZE("long" SIZEOF_LONG)
+ CHECK_TYPE_SIZE("short" SIZEOF_SHORT)
+ CHECK_TYPE_SIZE("void*" SIZEOF_VOID_P)
++endif()
+ 
+ # Check for include files, libraries, and functions
+ include("${DCMTK_CMAKE_INCLUDE}CMake/dcmtkTryCompile.cmake")
+diff -urEb dcmtk-3.6.7.orig/dcmdata/include/dcmtk/dcmdata/dcdict.h dcmtk-3.6.7/dcmdata/include/dcmtk/dcmdata/dcdict.h
+--- dcmtk-3.6.7.orig/dcmdata/include/dcmtk/dcmdata/dcdict.h	2022-08-15 14:28:32.421922100 +0200
++++ dcmtk-3.6.7/dcmdata/include/dcmtk/dcmdata/dcdict.h	2022-08-15 14:30:16.224771418 +0200
+@@ -162,6 +162,12 @@
+     /// returns an iterator to the end of the repeating tag dictionary
+     DcmDictEntryListIterator repeatingEnd() { return repDict.end(); }
+ 
++    // Function by the Orthanc project to load a dictionary from a
++    // memory buffer, which is necessary in sandboxed
++    // environments. This is an adapted version of
++    // DcmDataDictionary::loadDictionary().
++    OFBool loadFromMemory(const std::string& content, OFBool errorIfAbsent = OFTrue);
++
+ private:
+ 
+     /** private undefined assignment operator
+diff -urEb dcmtk-3.6.7.orig/dcmdata/libsrc/dcdict.cc dcmtk-3.6.7/dcmdata/libsrc/dcdict.cc
+--- dcmtk-3.6.7.orig/dcmdata/libsrc/dcdict.cc	2022-08-15 14:28:32.421922100 +0200
++++ dcmtk-3.6.7/dcmdata/libsrc/dcdict.cc	2022-08-15 14:31:15.220116058 +0200
+@@ -892,3 +892,5 @@
+   wrlock().clear();
+   wrunlock();
+ }
++
++#include "dcdict_orthanc.cc"
+diff -urEb dcmtk-3.6.7.orig/dcmdata/libsrc/dcpxitem.cc dcmtk-3.6.7/dcmdata/libsrc/dcpxitem.cc
+--- dcmtk-3.6.7.orig/dcmdata/libsrc/dcpxitem.cc	2022-08-15 14:28:32.425922056 +0200
++++ dcmtk-3.6.7/dcmdata/libsrc/dcpxitem.cc	2022-08-15 14:31:28.887964099 +0200
+@@ -31,6 +31,9 @@
+ #include "dcmtk/dcmdata/dcostrma.h"    /* for class DcmOutputStream */
+ #include "dcmtk/dcmdata/dcwcache.h"    /* for class DcmWriteCache */
+ 
++#undef max
++#include "dcmtk/ofstd/oflimits.h"
++
+ 
+ // ********************************
+ 
+diff -urEb dcmtk-3.6.7.orig/oflog/include/dcmtk/oflog/thread/syncpub.h dcmtk-3.6.7/oflog/include/dcmtk/oflog/thread/syncpub.h
+--- dcmtk-3.6.7.orig/oflog/include/dcmtk/oflog/thread/syncpub.h	2022-08-15 14:28:32.401922322 +0200
++++ dcmtk-3.6.7/oflog/include/dcmtk/oflog/thread/syncpub.h	2022-08-15 14:31:52.415702413 +0200
+@@ -63,7 +63,7 @@
+ 
+ DCMTK_LOG4CPLUS_INLINE_EXPORT
+ Mutex::Mutex (Mutex::Type t)
+-    : mtx (DCMTK_LOG4CPLUS_THREADED (new impl::Mutex (t) + 0))
++    : mtx (DCMTK_LOG4CPLUS_THREADED (new impl::Mutex (t)))
+ { }
+ 
+ 
+@@ -106,7 +106,7 @@
+ DCMTK_LOG4CPLUS_INLINE_EXPORT
+ Semaphore::Semaphore (unsigned DCMTK_LOG4CPLUS_THREADED (max),
+     unsigned DCMTK_LOG4CPLUS_THREADED (initial))
+-    : sem (DCMTK_LOG4CPLUS_THREADED (new impl::Semaphore (max, initial) + 0))
++    : sem (DCMTK_LOG4CPLUS_THREADED (new impl::Semaphore (max, initial)))
+ { }
+ 
+ 
+@@ -190,7 +190,7 @@
+ 
+ DCMTK_LOG4CPLUS_INLINE_EXPORT
+ ManualResetEvent::ManualResetEvent (bool DCMTK_LOG4CPLUS_THREADED (sig))
+-    : ev (DCMTK_LOG4CPLUS_THREADED (new impl::ManualResetEvent (sig) + 0))
++    : ev (DCMTK_LOG4CPLUS_THREADED (new impl::ManualResetEvent (sig)))
+ { }
+ 
+ 
+@@ -252,7 +252,7 @@
+ 
+ DCMTK_LOG4CPLUS_INLINE_EXPORT
+ SharedMutex::SharedMutex ()
+-    : sm (DCMTK_LOG4CPLUS_THREADED (new impl::SharedMutex + 0))
++    : sm (DCMTK_LOG4CPLUS_THREADED (new impl::SharedMutex))
+ { }
+ 
+ 
+diff -urEb dcmtk-3.6.7.orig/oflog/libsrc/oflog.cc dcmtk-3.6.7/oflog/libsrc/oflog.cc
+--- dcmtk-3.6.7.orig/oflog/libsrc/oflog.cc	2022-08-15 14:28:32.405922278 +0200
++++ dcmtk-3.6.7/oflog/libsrc/oflog.cc	2022-08-15 14:32:16.815430896 +0200
+@@ -19,6 +19,10 @@
+  *
+  */
+ 
++#if defined(_WIN32)
++#  include <winsock2.h>
++#endif
++
+ #include "dcmtk/config/osconfig.h"    /* make sure OS specific configuration is included first */
+ #include "dcmtk/oflog/oflog.h"
+ 
+diff -urEb dcmtk-3.6.7.orig/ofstd/include/dcmtk/ofstd/offile.h dcmtk-3.6.7/ofstd/include/dcmtk/ofstd/offile.h
+--- dcmtk-3.6.7.orig/ofstd/include/dcmtk/ofstd/offile.h	2022-08-15 14:28:32.425922056 +0200
++++ dcmtk-3.6.7/ofstd/include/dcmtk/ofstd/offile.h	2022-08-15 14:32:41.471156396 +0200
+@@ -570,7 +570,7 @@
+    */
+   void setlinebuf()
+   {
+-#if defined(_WIN32) || defined(__hpux)
++#if defined(_WIN32) || defined(__hpux) || defined(__LSB_VERSION__)
+     this->setvbuf(NULL, _IOLBF, 0);
+ #else
+     :: setlinebuf(file_);
