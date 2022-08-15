@@ -19,73 +19,7 @@
 # <http://www.gnu.org/licenses/>.
 
 
-if (STATIC_BUILD OR NOT USE_SYSTEM_BOOST)
-  set(BOOST_STATIC 1)
-else()
-  include(FindBoost)
-
-  set(BOOST_STATIC 0)
-  #set(Boost_DEBUG 1)
-  #set(Boost_USE_STATIC_LIBS ON)
-
-  if (ENABLE_LOCALE)
-    list(APPEND ORTHANC_BOOST_COMPONENTS locale)
-  endif()
-
-  list(APPEND ORTHANC_BOOST_COMPONENTS filesystem thread system date_time regex iostreams)
-  find_package(Boost COMPONENTS ${ORTHANC_BOOST_COMPONENTS})
-
-  if (NOT Boost_FOUND)
-    foreach (item ${ORTHANC_BOOST_COMPONENTS})
-      string(TOUPPER ${item} tmp)
-
-      if (Boost_${tmp}_FOUND)
-        set(tmp2 "found")
-      else()
-        set(tmp2 "missing")
-      endif()
-      
-      message("Boost component ${item} - ${tmp2}")
-    endforeach()
-    
-    message(FATAL_ERROR "Unable to locate Boost on this system")
-  endif()
-
-  
-  # Patch by xnox to fix issue #166 (CMake find_boost version is now
-  # broken with newer boost/cmake)
-  # https://bugs.orthanc-server.com/show_bug.cgi?id=166
-  if (POLICY CMP0093)
-    set(BOOST144 1.44)
-  else()
-    set(BOOST144 104400)
-  endif()
-  
-  
-  # Boost releases 1.44 through 1.47 supply both V2 and V3 filesystem
-  # http://www.boost.org/doc/libs/1_46_1/libs/filesystem/v3/doc/index.htm
-  if (${Boost_VERSION} LESS ${BOOST144})
-    add_definitions(
-      -DBOOST_HAS_FILESYSTEM_V3=0
-      )
-  else()
-    add_definitions(
-      -DBOOST_HAS_FILESYSTEM_V3=1
-      -DBOOST_FILESYSTEM_VERSION=3
-      )
-  endif()
-
-  include_directories(${Boost_INCLUDE_DIRS})
-  link_libraries(${Boost_LIBRARIES})
-endif()
-
-
-if (BOOST_STATIC AND USE_LEGACY_BOOST)
-  include(BoostConfigurationStatic-1.69.0.cmake)
-endif()
-
-
-if (BOOST_STATIC AND NOT USE_LEGACY_BOOST)
+if (BOOST_STATIC)
   ##
   ## Parameters for static compilation of Boost 
   ##
