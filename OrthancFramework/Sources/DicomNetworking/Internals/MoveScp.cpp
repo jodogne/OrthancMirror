@@ -162,7 +162,7 @@ namespace Orthanc
       assert(response != NULL);
       assert(requestIdentifiers != NULL);
       
-      bzero(response, sizeof(T_DIMSE_C_MoveRSP));
+      memset(response, 0, sizeof(T_DIMSE_C_MoveRSP));
       *statusDetail = NULL;
       *responseIdentifiers = NULL;   
 

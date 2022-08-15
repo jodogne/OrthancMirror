@@ -202,7 +202,7 @@ namespace Orthanc
       assert(response != NULL);
       assert(requestIdentifiers != NULL);
       
-      bzero(response, sizeof(T_DIMSE_C_FindRSP));
+      memset(response, 0, sizeof(T_DIMSE_C_FindRSP));
       *statusDetail = NULL;
 
       std::string sopClassUid(request->AffectedSOPClassUID);

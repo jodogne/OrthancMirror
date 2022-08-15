@@ -147,6 +147,10 @@ set(DCMTK_PACKAGE_VERSION_NUMBER ${DCMTK_VERSION_NUMBER})
 # "dcmtls/libsrc/tlslayer.cc"). This must be done before the
 # invokation of "configure_file()"!
 if (STATIC_BUILD OR NOT USE_SYSTEM_OPENSSL)
+  # The "CHECK_FUNCTIONWITHHEADER_EXISTS()" provided by DCMTK only
+  # works with the system-wide version of OpenSSL. If statically
+  # linking against OpenSSL, we manually provide information about
+  # OpenSSL 3.0.x
   set(HAVE_OPENSSL_PROTOTYPE_DH_BITS 1)
   set(HAVE_OPENSSL_PROTOTYPE_EVP_PKEY_BASE_ID 1)
   set(HAVE_OPENSSL_PROTOTYPE_SSL_CTX_GET0_PARAM 1)
