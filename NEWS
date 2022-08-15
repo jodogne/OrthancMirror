@@ -16,7 +16,6 @@ Bug Fixes
   files (bug introduced in 1.11.0).
 * Fix the Storage Cache for compressed files (bug introduced in 1.11.0).
 
-
 Maintenance
 -----------
 
@@ -24,6 +23,8 @@ Maintenance
 * SQLite now closes and deletes WAL and SHM files on exit.  This should improve
   handling of SQLite DB over network drives.
 * Fix static compilation of boost 1.69 on Ubuntu 22.04
+* Upgraded dependencies for static builds:
+  - boost 1.80.0
 
 
 Version 1.11.1 (2022-06-30)
