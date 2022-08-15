@@ -26,6 +26,7 @@ Maintenance
 * Upgraded dependencies for static builds:
   - boost 1.80.0
   - dcmtk 3.6.7
+  - openssl 3.0.5
 
 
 Version 1.11.1 (2022-06-30)
