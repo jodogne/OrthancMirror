@@ -294,15 +294,15 @@ if (BOOST_STATIC AND NOT USE_LEGACY_BOOST)
     message("boost::locale is disabled")
   else()
     set(BOOST_ICU_SOURCES
-      ${BOOST_SOURCES_DIR}/libs/locale/src/icu/boundary.cpp
-      ${BOOST_SOURCES_DIR}/libs/locale/src/icu/codecvt.cpp
-      ${BOOST_SOURCES_DIR}/libs/locale/src/icu/collator.cpp
-      ${BOOST_SOURCES_DIR}/libs/locale/src/icu/conversion.cpp
-      ${BOOST_SOURCES_DIR}/libs/locale/src/icu/date_time.cpp
-      ${BOOST_SOURCES_DIR}/libs/locale/src/icu/formatter.cpp
-      ${BOOST_SOURCES_DIR}/libs/locale/src/icu/icu_backend.cpp
-      ${BOOST_SOURCES_DIR}/libs/locale/src/icu/numeric.cpp
-      ${BOOST_SOURCES_DIR}/libs/locale/src/icu/time_zone.cpp
+      ${BOOST_SOURCES_DIR}/libs/locale/src/boost/locale/icu/boundary.cpp
+      ${BOOST_SOURCES_DIR}/libs/locale/src/boost/locale/icu/codecvt.cpp
+      ${BOOST_SOURCES_DIR}/libs/locale/src/boost/locale/icu/collator.cpp
+      ${BOOST_SOURCES_DIR}/libs/locale/src/boost/locale/icu/conversion.cpp
+      ${BOOST_SOURCES_DIR}/libs/locale/src/boost/locale/icu/date_time.cpp
+      ${BOOST_SOURCES_DIR}/libs/locale/src/boost/locale/icu/formatter.cpp
+      ${BOOST_SOURCES_DIR}/libs/locale/src/boost/locale/icu/icu_backend.cpp
+      ${BOOST_SOURCES_DIR}/libs/locale/src/boost/locale/icu/numeric.cpp
+      ${BOOST_SOURCES_DIR}/libs/locale/src/boost/locale/icu/time_zone.cpp
       )
 
     list(APPEND BOOST_SOURCES
