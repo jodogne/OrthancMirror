@@ -90,10 +90,10 @@ if (BOOST_STATIC AND NOT USE_LEGACY_BOOST)
   ## Parameters for static compilation of Boost 
   ##
   
-  set(BOOST_NAME boost_1_69_0)
-  set(BOOST_VERSION 1.69.0)
-  set(BOOST_BCP_SUFFIX bcpdigest-1.5.6)
-  set(BOOST_MD5 "579bccc0ea4d1a261c1d0c5e27446c3d")
+  set(BOOST_NAME boost_1_80_0)
+  set(BOOST_VERSION 1.80.0)
+  set(BOOST_BCP_SUFFIX bcpdigest-1.11.2)
+  set(BOOST_MD5 "7734e19f9a39a4411b807a9913e4a5ff")
   set(BOOST_URL "http://orthanc.osimis.io/ThirdPartyDownloads/${BOOST_NAME}_${BOOST_BCP_SUFFIX}.tar.gz")
   set(BOOST_SOURCES_DIR ${CMAKE_BINARY_DIR}/${BOOST_NAME})
 
@@ -107,22 +107,6 @@ if (BOOST_STATIC AND NOT USE_LEGACY_BOOST)
 
 
   ##
-  ## Patching boost
-  ## 
-
-  execute_process(
-    COMMAND ${PATCH_EXECUTABLE} -p0 -N -i
-    ${CMAKE_CURRENT_LIST_DIR}/../Patches/boost-${BOOST_VERSION}-linux-standard-base.patch
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-    RESULT_VARIABLE Failure
-    )
-
-  if (FirstRun AND Failure)
-    message(FATAL_ERROR "Error while patching a file")
-  endif()
-
-
-  ##
   ## Generic configuration of Boost
   ## 
 
@@ -131,7 +115,10 @@ if (BOOST_STATIC AND NOT USE_LEGACY_BOOST)
   endif()
 
   include_directories(
-    BEFORE ${BOOST_SOURCES_DIR}
+    BEFORE
+    ${BOOST_SOURCES_DIR}
+    ${BOOST_SOURCES_DIR}/libs/atomic/src/
+    ${BOOST_SOURCES_DIR}/libs/locale/src/
     )
 
   if (ORTHANC_BUILDING_FRAMEWORK_LIBRARY)
@@ -164,6 +151,12 @@ if (BOOST_STATIC AND NOT USE_LEGACY_BOOST)
     # "," instead of "." as decimal separators. Check out function
     # "OrthancStone::LinearAlgebra::ParseVector()".
     -DBOOST_LEXICAL_CAST_ASSUME_C_LOCALE
+
+    # Those definitions are necessary since Boost 1.80.0
+    # https://github.com/RGLab/cytolib/issues/49
+    -DBOOST_NO_AUTO_PTR
+    -DBOOST_FILESYSTEM_NO_CXX20_ATOMIC_REF
+    -DBOOST_FILESYSTEM_HAS_POSIX_AT_APIS
     )
 
   set(BOOST_SOURCES
@@ -192,7 +185,7 @@ if (BOOST_STATIC AND NOT USE_LEGACY_BOOST)
       CMAKE_SYSTEM_NAME STREQUAL "NaCl64" OR
       CMAKE_SYSTEM_NAME STREQUAL "Android")
     list(APPEND BOOST_SOURCES
-      ${BOOST_SOURCES_DIR}/libs/atomic/src/lockpool.cpp
+      ${BOOST_SOURCES_DIR}/libs/atomic/src/lock_pool.cpp
       ${BOOST_SOURCES_DIR}/libs/thread/src/pthread/once.cpp
       ${BOOST_SOURCES_DIR}/libs/thread/src/pthread/thread.cpp
       )
@@ -265,9 +258,13 @@ if (BOOST_STATIC AND NOT USE_LEGACY_BOOST)
       )
     list(APPEND BOOST_SOURCES
       ${BOOST_NAME}/libs/filesystem/src/codecvt_error_category.cpp
+      ${BOOST_NAME}/libs/filesystem/src/directory.cpp
+      ${BOOST_NAME}/libs/filesystem/src/exception.cpp
       ${BOOST_NAME}/libs/filesystem/src/operations.cpp
       ${BOOST_NAME}/libs/filesystem/src/path.cpp
       ${BOOST_NAME}/libs/filesystem/src/path_traits.cpp
+      ${BOOST_NAME}/libs/filesystem/src/portability.cpp
+      ${BOOST_NAME}/libs/filesystem/src/unique_path.cpp
       )
 
     if (CMAKE_SYSTEM_NAME STREQUAL "Darwin" OR
@@ -309,19 +306,19 @@ if (BOOST_STATIC AND NOT USE_LEGACY_BOOST)
       )
 
     list(APPEND BOOST_SOURCES
-      ${BOOST_SOURCES_DIR}/libs/locale/src/encoding/codepage.cpp
-      ${BOOST_SOURCES_DIR}/libs/locale/src/shared/generator.cpp
-      ${BOOST_SOURCES_DIR}/libs/locale/src/shared/date_time.cpp
-      ${BOOST_SOURCES_DIR}/libs/locale/src/shared/formatting.cpp
-      ${BOOST_SOURCES_DIR}/libs/locale/src/shared/ids.cpp
-      ${BOOST_SOURCES_DIR}/libs/locale/src/shared/localization_backend.cpp
-      ${BOOST_SOURCES_DIR}/libs/locale/src/shared/message.cpp
-      ${BOOST_SOURCES_DIR}/libs/locale/src/shared/mo_lambda.cpp
-      ${BOOST_SOURCES_DIR}/libs/locale/src/util/codecvt_converter.cpp
-      ${BOOST_SOURCES_DIR}/libs/locale/src/util/default_locale.cpp
-      ${BOOST_SOURCES_DIR}/libs/locale/src/util/gregorian.cpp
-      ${BOOST_SOURCES_DIR}/libs/locale/src/util/info.cpp
-      ${BOOST_SOURCES_DIR}/libs/locale/src/util/locale_data.cpp
+      ${BOOST_SOURCES_DIR}/libs/locale/src/boost/locale/encoding/codepage.cpp
+      ${BOOST_SOURCES_DIR}/libs/locale/src/boost/locale/shared/date_time.cpp
+      ${BOOST_SOURCES_DIR}/libs/locale/src/boost/locale/shared/formatting.cpp
+      ${BOOST_SOURCES_DIR}/libs/locale/src/boost/locale/shared/generator.cpp
+      ${BOOST_SOURCES_DIR}/libs/locale/src/boost/locale/shared/ids.cpp
+      ${BOOST_SOURCES_DIR}/libs/locale/src/boost/locale/shared/localization_backend.cpp
+      ${BOOST_SOURCES_DIR}/libs/locale/src/boost/locale/shared/message.cpp
+      ${BOOST_SOURCES_DIR}/libs/locale/src/boost/locale/shared/mo_lambda.cpp
+      ${BOOST_SOURCES_DIR}/libs/locale/src/boost/locale/util/codecvt_converter.cpp
+      ${BOOST_SOURCES_DIR}/libs/locale/src/boost/locale/util/default_locale.cpp
+      ${BOOST_SOURCES_DIR}/libs/locale/src/boost/locale/util/gregorian.cpp
+      ${BOOST_SOURCES_DIR}/libs/locale/src/boost/locale/util/info.cpp
+      ${BOOST_SOURCES_DIR}/libs/locale/src/boost/locale/util/locale_data.cpp
       )        
 
     if (CMAKE_SYSTEM_NAME STREQUAL "OpenBSD" OR
@@ -332,11 +329,11 @@ if (BOOST_STATIC AND NOT USE_LEGACY_BOOST)
         )
       
       list(APPEND BOOST_SOURCES
-        ${BOOST_SOURCES_DIR}/libs/locale/src/std/codecvt.cpp
-        ${BOOST_SOURCES_DIR}/libs/locale/src/std/collate.cpp
-        ${BOOST_SOURCES_DIR}/libs/locale/src/std/converter.cpp
-        ${BOOST_SOURCES_DIR}/libs/locale/src/std/numeric.cpp
-        ${BOOST_SOURCES_DIR}/libs/locale/src/std/std_backend.cpp
+        ${BOOST_SOURCES_DIR}/libs/locale/src/boost/locale/std/codecvt.cpp
+        ${BOOST_SOURCES_DIR}/libs/locale/src/boost/locale/std/collate.cpp
+        ${BOOST_SOURCES_DIR}/libs/locale/src/boost/locale/std/converter.cpp
+        ${BOOST_SOURCES_DIR}/libs/locale/src/boost/locale/std/numeric.cpp
+        ${BOOST_SOURCES_DIR}/libs/locale/src/boost/locale/std/std_backend.cpp
         )
 
       if (BOOST_LOCALE_BACKEND STREQUAL "gcc" OR
@@ -363,11 +360,11 @@ if (BOOST_STATIC AND NOT USE_LEGACY_BOOST)
         )
       
       list(APPEND BOOST_SOURCES
-        ${BOOST_SOURCES_DIR}/libs/locale/src/posix/codecvt.cpp
-        ${BOOST_SOURCES_DIR}/libs/locale/src/posix/collate.cpp
-        ${BOOST_SOURCES_DIR}/libs/locale/src/posix/converter.cpp
-        ${BOOST_SOURCES_DIR}/libs/locale/src/posix/numeric.cpp
-        ${BOOST_SOURCES_DIR}/libs/locale/src/posix/posix_backend.cpp
+        ${BOOST_SOURCES_DIR}/libs/locale/src/boost/locale/posix/codecvt.cpp
+        ${BOOST_SOURCES_DIR}/libs/locale/src/boost/locale/posix/collate.cpp
+        ${BOOST_SOURCES_DIR}/libs/locale/src/boost/locale/posix/converter.cpp
+        ${BOOST_SOURCES_DIR}/libs/locale/src/boost/locale/posix/numeric.cpp
+        ${BOOST_SOURCES_DIR}/libs/locale/src/boost/locale/posix/posix_backend.cpp
         )
 
       if (CMAKE_SYSTEM_NAME STREQUAL "Emscripten" OR
@@ -390,11 +387,11 @@ if (BOOST_STATIC AND NOT USE_LEGACY_BOOST)
         )
 
       list(APPEND BOOST_SOURCES
-        ${BOOST_SOURCES_DIR}/libs/locale/src/win32/collate.cpp
-        ${BOOST_SOURCES_DIR}/libs/locale/src/win32/converter.cpp
-        ${BOOST_SOURCES_DIR}/libs/locale/src/win32/lcid.cpp
-        ${BOOST_SOURCES_DIR}/libs/locale/src/win32/numeric.cpp
-        ${BOOST_SOURCES_DIR}/libs/locale/src/win32/win_backend.cpp
+        ${BOOST_SOURCES_DIR}/libs/locale/src/boost/locale/win32/collate.cpp
+        ${BOOST_SOURCES_DIR}/libs/locale/src/boost/locale/win32/converter.cpp
+        ${BOOST_SOURCES_DIR}/libs/locale/src/boost/locale/win32/lcid.cpp
+        ${BOOST_SOURCES_DIR}/libs/locale/src/boost/locale/win32/numeric.cpp
+        ${BOOST_SOURCES_DIR}/libs/locale/src/boost/locale/win32/win_backend.cpp
         )
 
       # Starting with release 0.8.2, Orthanc statically links against
