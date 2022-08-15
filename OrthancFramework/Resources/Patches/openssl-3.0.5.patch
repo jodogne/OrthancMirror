@@ -1,6 +1,6 @@
-diff -urEb openssl-3.0.1.orig/crypto/threads_win.c openssl-3.0.1/crypto/threads_win.c
---- openssl-3.0.1.orig/crypto/threads_win.c	2021-12-24 16:56:23.016304241 +0100
-+++ openssl-3.0.1/crypto/threads_win.c	2021-12-24 16:58:09.436272646 +0100
+diff -urEb openssl-3.0.5.orig/crypto/threads_win.c openssl-3.0.5/crypto/threads_win.c
+--- openssl-3.0.5.orig/crypto/threads_win.c	2022-08-15 15:37:28.944910076 +0200
++++ openssl-3.0.5/crypto/threads_win.c	2022-08-15 15:38:34.120081931 +0200
 @@ -207,13 +207,30 @@
  int CRYPTO_atomic_or(uint64_t *val, uint64_t op, uint64_t *ret,
                       CRYPTO_RWLOCK *lock)
@@ -32,9 +32,9 @@ diff -urEb openssl-3.0.1.orig/crypto/threads_win.c openssl-3.0.1/crypto/threads_
      return 1;
  }
  
-diff -urEb openssl-3.0.1.orig/providers/implementations/rands/seeding/rand_unix.c openssl-3.0.1/providers/implementations/rands/seeding/rand_unix.c
---- openssl-3.0.1.orig/providers/implementations/rands/seeding/rand_unix.c	2021-12-24 16:56:23.056304227 +0100
-+++ openssl-3.0.1/providers/implementations/rands/seeding/rand_unix.c	2021-12-24 16:57:03.408290650 +0100
+diff -urEb openssl-3.0.5.orig/providers/implementations/rands/seeding/rand_unix.c openssl-3.0.5/providers/implementations/rands/seeding/rand_unix.c
+--- openssl-3.0.5.orig/providers/implementations/rands/seeding/rand_unix.c	2022-08-15 15:37:28.968909770 +0200
++++ openssl-3.0.5/providers/implementations/rands/seeding/rand_unix.c	2022-08-15 15:39:00.963742658 +0200
 @@ -453,6 +453,7 @@
               * system call and this should always succeed which renders
               * this alternative but essentially identical source moot.
