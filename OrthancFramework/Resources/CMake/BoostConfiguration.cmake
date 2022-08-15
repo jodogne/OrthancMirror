@@ -81,7 +81,7 @@ endif()
 
 
 if (BOOST_STATIC AND USE_LEGACY_BOOST)
-  include(BoostConfigurationStatic-1.69.0.cmake)
+  include(${CMAKE_CURRENT_LIST_DIR}/BoostConfigurationStatic-1.69.0.cmake)
 endif()
 
 
