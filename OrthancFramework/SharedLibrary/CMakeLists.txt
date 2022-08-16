@@ -508,6 +508,14 @@ if (NOT CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
       )
   endif()
 
+  if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
+    list(APPEND Flags
+      # This is necessary to compile "dcmtk/dcmdata/dctagkey.h" because of
+      # macro "DCMTK_DIAGNOSTIC_IGNORE_ATTRIBUTE_REDECLARATION"
+      -DCMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES=${DCMTK_SOURCES_DIR}/ofstd/include
+      )
+  endif()
+
   # Build the unit tests, linking them against the just-created
   # "OrthancFramework" library
   externalproject_add(UnitTests
