@@ -3830,7 +3830,7 @@ extern "C"
   {
     OrthancPluginRestOutput* output;
     uint16_t                 status;
-    const char*              body;
+    const void*              body;
     uint32_t                 bodySize;
   } _OrthancPluginSendHttpStatus;
 
@@ -3860,7 +3860,7 @@ extern "C"
     OrthancPluginContext*    context,
     OrthancPluginRestOutput* output,
     uint16_t                 status,
-    const char*              body,
+    const void*              body,
     uint32_t                 bodySize)
   {
     _OrthancPluginSendHttpStatus params;

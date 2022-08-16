@@ -2979,7 +2979,7 @@ namespace Orthanc
 
     if (p.bodySize > 0 && p.body != NULL)
     {
-      translatedOutput.SendStatus(status, p.body, p.bodySize);
+      translatedOutput.SendStatus(status, reinterpret_cast<const char*>(p.body), p.bodySize);
     }
     else
     {
