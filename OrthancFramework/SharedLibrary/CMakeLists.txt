@@ -510,8 +510,9 @@ if (NOT CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
 
   if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
     list(APPEND Flags
-      # This is necessary to compile "dcmtk/dcmdata/dctagkey.h" because of
-      # macro "DCMTK_DIAGNOSTIC_IGNORE_ATTRIBUTE_REDECLARATION"
+      # This is necessary to compile "dcmtk/dcmdata/dctagkey.h" since
+      # DCMTK 3.6.7 because it includes the file provided in macro
+      # "DCMTK_DIAGNOSTIC_IGNORE_ATTRIBUTE_REDECLARATION"
       -DCMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES=${DCMTK_SOURCES_DIR}/ofstd/include
       )
   endif()
