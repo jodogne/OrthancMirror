@@ -64,6 +64,23 @@ if (FirstRun)
     message(FATAL_ERROR "Error while patching a file")
   endif()
 
+  if (MSVC)
+    # Older versions of Microsoft Visual Studio (notably MSVC2008)
+    # don't like void usage of function arguments in C source files,
+    # in order to avoid a warning about unused arguments. This patch
+    # removes such usages that were not present in DCMTK <= 3.6.6.
+    execute_process(
+      COMMAND ${PATCH_EXECUTABLE} -p0 -N -i
+      ${CMAKE_CURRENT_LIST_DIR}/../Patches/dcmtk-3.6.7-visual-studio.patch
+      WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+      RESULT_VARIABLE Failure
+      )
+    
+    if (Failure)
+      message(FATAL_ERROR "Error while patching a file")
+    endif()    
+  endif()  
+
   configure_file(
     ${CMAKE_CURRENT_LIST_DIR}/../Patches/dcmtk-dcdict_orthanc.cc
     ${DCMTK_SOURCES_DIR}/dcmdata/libsrc/dcdict_orthanc.cc
