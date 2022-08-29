@@ -14,7 +14,7 @@ Bug Fixes
 
 * Fix the "Never" option of the "StorageAccessOnFind" that was sill accessing
   files (bug introduced in 1.11.0).
-* Fix the Storage Cache for compressed files (bug introduced in 1.11.0).
+* Fix the Storage Cache for compressed files (bug introduced in 1.11.1).
 
 Maintenance
 -----------
