@@ -1,5 +1,5 @@
-Pending changes in the mainline
-===============================
+version 1.11.2 (2022-08-30)
+===========================
 
 General
 -------
@@ -25,7 +25,7 @@ Maintenance
 * Fix static compilation of boost 1.69 on Ubuntu 22.04
 * Upgraded dependencies for static builds:
   - boost 1.80.0
-  - dcmtk 3.6.7
+  - dcmtk 3.6.7  (fixes CVE-2022-2119 and CVE-2022-2120)
   - openssl 3.0.5
 
 
