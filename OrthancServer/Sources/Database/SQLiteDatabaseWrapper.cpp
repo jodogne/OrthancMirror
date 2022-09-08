@@ -324,7 +324,9 @@ namespace Orthanc
                                int64_t revision) ORTHANC_OVERRIDE
     {
       // TODO - REVISIONS
-      SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO AttachedFiles VALUES(?, ?, ?, ?, ?, ?, ?, ?)");
+      SQLite::Statement s(db_, SQLITE_FROM_HERE, 
+        "INSERT INTO AttachedFiles (id, fileType, uuid, compressedSize, uncompressedSize, compressionType, uncompressedMD5, compressedMD5, customData) "
+        "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)");
       s.BindInt64(0, id);
       s.BindInt(1, attachment.GetContentType());
       s.BindString(2, attachment.GetUuid());
@@ -333,9 +335,9 @@ namespace Orthanc
       s.BindInt(5, attachment.GetCompressionType());
       s.BindString(6, attachment.GetUncompressedMD5());
       s.BindString(7, attachment.GetCompressedMD5());
+      s.BindString(8, attachment.GetCustomData());
       s.Run();
     }
-
 
     virtual void ApplyLookupResources(std::list<std::string>& resourcesId,
                                       std::list<std::string>* instancesId,
@@ -801,7 +803,7 @@ namespace Orthanc
     {
       SQLite::Statement s(db_, SQLITE_FROM_HERE, 
                           "SELECT uuid, uncompressedSize, compressionType, compressedSize, "
-                          "uncompressedMD5, compressedMD5 FROM AttachedFiles WHERE id=? AND fileType=?");
+                          "uncompressedMD5, compressedMD5, customData FROM AttachedFiles WHERE id=? AND fileType=?");
       s.BindInt64(0, id);
       s.BindInt(1, contentType);
 
@@ -817,7 +819,8 @@ namespace Orthanc
                               s.ColumnString(4),
                               static_cast<CompressionType>(s.ColumnInt(2)),
                               s.ColumnInt64(3),
-                              s.ColumnString(5));
+                              s.ColumnString(5),
+                              s.ColumnString(6));
         revision = 0;   // TODO - REVISIONS
         return true;
       }
@@ -1098,14 +1101,14 @@ namespace Orthanc
 
     virtual unsigned int GetCardinality() const ORTHANC_OVERRIDE
     {
-      return 7;
+      return 8;
     }
 
     virtual void Compute(SQLite::FunctionContext& context) ORTHANC_OVERRIDE
     {
       if (sqlite_.activeTransaction_ != NULL)
       {
-        std::string uncompressedMD5, compressedMD5;
+        std::string uncompressedMD5, compressedMD5, customData;
 
         if (!context.IsNullValue(5))
         {
@@ -1117,13 +1120,19 @@ namespace Orthanc
           compressedMD5 = context.GetStringValue(6);
         }
 
+        if (!context.IsNullValue(7))
+        {
+          customData = context.GetStringValue(7);
+        }
+
         FileInfo info(context.GetStringValue(0),
                       static_cast<FileContentType>(context.GetIntValue(1)),
                       static_cast<uint64_t>(context.GetInt64Value(2)),
                       uncompressedMD5,
                       static_cast<CompressionType>(context.GetIntValue(3)),
                       static_cast<uint64_t>(context.GetInt64Value(4)),
-                      compressedMD5);
+                      compressedMD5,
+                      customData);
 
         sqlite_.activeTransaction_->GetListener().SignalAttachmentDeleted(info);
       }
@@ -1351,7 +1360,7 @@ namespace Orthanc
       }
 
       // New in Orthanc 1.5.1
-      if (version_ == 6)
+      if (version_ >= 6)
       {
         if (!transaction->LookupGlobalProperty(tmp, GlobalProperty_GetTotalSizeIsFast, true /* unused in SQLite */) ||
             tmp != "1")
@@ -1393,7 +1402,7 @@ namespace Orthanc
   {
     boost::mutex::scoped_lock lock(mutex_);
 
-    if (targetVersion != 6)
+    if (targetVersion != 7)
     {
       throw OrthancException(ErrorCode_IncompatibleDatabaseVersion);
     }
@@ -1403,7 +1412,8 @@ namespace Orthanc
     if (version_ != 3 &&
         version_ != 4 &&
         version_ != 5 &&
-        version_ != 6)
+        version_ != 6 &&
+        version_ != 7)
     {
       throw OrthancException(ErrorCode_IncompatibleDatabaseVersion);
     }
@@ -1444,6 +1454,14 @@ namespace Orthanc
       
       version_ = 6;
     }
+
+    if (version_ == 6)
+    {
+      LOG(WARNING) << "Upgrading database version from 6 to 7";
+      ExecuteUpgradeScript(db_, ServerResources::UPGRADE_DATABASE_6_TO_7);
+      version_ = 7;
+    }
+
   }
 
 

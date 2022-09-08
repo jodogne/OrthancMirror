@@ -268,7 +268,8 @@ namespace Orthanc
 
     // This method must only be called from "ServerIndex"!
     void RemoveFile(const std::string& fileUuid,
-                    FileContentType type);
+                    FileContentType type,
+                    const std::string& customData);
 
     // This DicomModification object is intended to be used as a
     // "rules engine" when de-identifying logs for C-Find, C-Get, and
@@ -325,6 +326,7 @@ namespace Orthanc
 
     bool AddAttachment(int64_t& newRevision,
                        const std::string& resourceId,
+                       ResourceType resourceType,
                        FileContentType attachmentType,
                        const void* data,
                        size_t size,
@@ -346,6 +348,7 @@ namespace Orthanc
                           FileContentType content);
 
     void ChangeAttachmentCompression(const std::string& resourceId,
+                                     ResourceType resourceType,
                                      FileContentType attachmentType,
                                      CompressionType compression);
 

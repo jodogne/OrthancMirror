@@ -10,11 +10,15 @@
   // Path to the directory that holds the heavyweight files (i.e. the
   // raw DICOM instances). Backslashes must be either escaped by
   // doubling them, or replaced by forward slashes "/".
+  // If a relative path is provided, it is relative to the configuration
+  // file path.  It is advised to provide an absolute path.
   "StorageDirectory" : "OrthancStorage",
 
   // Path to the directory that holds the SQLite index (if unset, the
   // value of StorageDirectory is used). This index could be stored on
   // a RAM-drive or a SSD device for performance reasons.
+  // If a relative path is provided, it is relative to the configuration
+  // file path.  It is advised to provide an absolute path.
   "IndexDirectory" : "OrthancStorage",
 
   // Path to the directory where Orthanc stores its large temporary

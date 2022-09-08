@@ -130,7 +130,8 @@ TEST(StorageAccessor, NoCompression)
   StorageAccessor accessor(s, &cache);
 
   std::string data = "Hello world";
-  FileInfo info = accessor.Write(data, FileContentType_Dicom, CompressionType_None, true);
+  std::string uuid = Toolbox::GenerateUuid();
+  FileInfo info = accessor.WriteAttachment(data, "", ResourceType_Instance, data.c_str(), data.size(), FileContentType_Dicom, CompressionType_None, true, uuid);
   
   std::string r;
   accessor.Read(r, info);
@@ -152,7 +153,8 @@ TEST(StorageAccessor, Compression)
   StorageAccessor accessor(s, &cache);
 
   std::string data = "Hello world";
-  FileInfo info = accessor.Write(data, FileContentType_Dicom, CompressionType_ZlibWithSize, true);
+  std::string uuid = Toolbox::GenerateUuid();
+  FileInfo info = accessor.WriteAttachment(data, "", ResourceType_Instance, data.c_str(), data.size(), FileContentType_Dicom, CompressionType_ZlibWithSize, true, uuid);
   
   std::string r;
   accessor.Read(r, info);
@@ -163,6 +165,7 @@ TEST(StorageAccessor, Compression)
   ASSERT_EQ(FileContentType_Dicom, info.GetContentType());
   ASSERT_EQ("3e25960a79dbc69b674cd4ec67a72c62", info.GetUncompressedMD5());
   ASSERT_NE(info.GetUncompressedMD5(), info.GetCompressedMD5());
+  ASSERT_EQ(uuid, info.GetUuid());
 }
 
 
@@ -176,9 +179,9 @@ TEST(StorageAccessor, Mix)
   std::string compressedData = "Hello";
   std::string uncompressedData = "HelloWorld";
 
-  FileInfo compressedInfo = accessor.Write(compressedData, FileContentType_Dicom, CompressionType_ZlibWithSize, false);  
-  FileInfo uncompressedInfo = accessor.Write(uncompressedData, FileContentType_Dicom, CompressionType_None, false);
-  
+  FileInfo compressedInfo = accessor.WriteAttachment(compressedData, "", ResourceType_Instance, compressedData.c_str(), compressedData.size(), FileContentType_Dicom, CompressionType_ZlibWithSize, false, Toolbox::GenerateUuid());
+  FileInfo uncompressedInfo = accessor.WriteAttachment(uncompressedData, "", ResourceType_Instance, uncompressedData.c_str(), uncompressedData.size(), FileContentType_Dicom, CompressionType_None, false, Toolbox::GenerateUuid());
+
   accessor.Read(r, compressedInfo);
   ASSERT_EQ(compressedData, r);
 

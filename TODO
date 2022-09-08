@@ -1,3 +1,16 @@
+TODO_CUSTOM_DATA branch
+- add REVISIONS in SQLite since we change the DB schema
+- upgrade DB automatically such that it does not need a specific launch with --update , add --downgrade + --no-auto-upgrade command lines
+- expand the DB plugin SDK to handle customDATA
+- implement OrthancPluginDataBaseV4
+- handle all TODO_CUSTOM_DATA
+- check /attachments/...  routes for path returned
+- AdvancedStoragePlugin 
+  - support multiple roots (multiple disks)
+  - show warning if a tag is missing when generating the path from tags (option to disable this warning)
+  - generate path from tags from resource (CreateAttachment)
+
+
 =======================
 === Orthanc Roadmap ===
 =======================

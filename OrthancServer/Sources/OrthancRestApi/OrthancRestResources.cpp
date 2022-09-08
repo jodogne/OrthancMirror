@@ -2393,6 +2393,7 @@ namespace Orthanc
  
     std::string publicId = call.GetUriComponent("id", "");
     std::string name = call.GetUriComponent("name", "");
+    ResourceType resourceType = StringToResourceType(call.GetFullUri()[0].c_str());
 
     FileContentType contentType = StringToContentType(name);
     if (IsUserContentType(contentType))  // It is forbidden to modify internal attachments
@@ -2416,7 +2417,7 @@ namespace Orthanc
       }
 
       int64_t newRevision;
-      context.AddAttachment(newRevision, publicId, StringToContentType(name), call.GetBodyData(),
+      context.AddAttachment(newRevision, publicId, resourceType, StringToContentType(name), call.GetBodyData(),
                             call.GetBodySize(), hasOldRevision, oldRevision, oldMD5);
 
       SetBufferContentETag(call.GetOutput(), newRevision, call.GetBodyData(), call.GetBodySize());  // New in Orthanc 1.9.2
@@ -2536,9 +2537,10 @@ namespace Orthanc
 
     std::string publicId = call.GetUriComponent("id", "");
     std::string name = call.GetUriComponent("name", "");
+    ResourceType resourceType = StringToResourceType(call.GetFullUri()[0].c_str());
     FileContentType contentType = StringToContentType(name);
 
-    OrthancRestApi::GetContext(call).ChangeAttachmentCompression(publicId, contentType, compression);
+    OrthancRestApi::GetContext(call).ChangeAttachmentCompression(publicId, resourceType, contentType, compression);
     call.GetOutput().AnswerBuffer("{}", MimeType_Json);
   }
 

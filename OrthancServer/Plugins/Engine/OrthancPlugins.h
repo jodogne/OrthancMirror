@@ -87,11 +87,14 @@ namespace Orthanc
     class HttpClientChunkedAnswer;
     class HttpServerChunkedReader;
     class IDicomInstance;
-    class DicomInstanceFromCallback;
     class DicomInstanceFromBuffer;
     class DicomInstanceFromTranscoded;
     class WebDavCollection;
-    
+
+public:
+    class DicomInstanceFromCallback;
+
+private:
     void RegisterRestCallback(const void* parameters,
                               bool lock);
 

@@ -32,6 +32,8 @@
 
 namespace Orthanc
 {
+  class DicomInstanceToStore;
+
   class IStorageArea : public boost::noncopyable
   {
   public:
@@ -39,8 +41,92 @@ namespace Orthanc
     {
     }
 
+    virtual void CreateInstance(std::string& customData,
+                               const DicomInstanceToStore& instance,
+                               const std::string& uuid,
+                               const void* content,
+                               size_t size,
+                               FileContentType type,
+                               bool isCompressed) = 0;
+
+    virtual void CreateAttachment(std::string& customData,
+                                  const std::string& resourceId,
+                                  ResourceType resourceLevel,
+                                  const std::string& uuid,
+                                  const void* content,
+                                  size_t size,
+                                  FileContentType type,
+                                  bool isCompressed) = 0;
+
+    virtual IMemoryBuffer* Read(const std::string& uuid,
+                                FileContentType type,
+                                const std::string& customData) = 0;
+
+    virtual IMemoryBuffer* ReadRange(const std::string& uuid,
+                                     FileContentType type,
+                                     uint64_t start /* inclusive */,
+                                     uint64_t end /* exclusive */,
+                                     const std::string& customData) = 0;
+
+    virtual bool HasReadRange() const = 0;
+
+    virtual void Remove(const std::string& uuid,
+                        FileContentType type,
+                        const std::string& customData) = 0;
+  };
+
+  // storage area without customData (customData are used only in plugins)
+  class ICoreStorageArea : public IStorageArea
+  {
+  public:
+    virtual void CreateInstance(std::string& customData,
+                               const DicomInstanceToStore& instance,
+                               const std::string& uuid,
+                               const void* content,
+                               size_t size,
+                               FileContentType type,
+                               bool isCompressed)
+    {
+      Create(uuid, content, size, type);
+    }
+
+    virtual void CreateAttachment(std::string& customData,
+                                  const std::string& resourceId,
+                                  ResourceType resourceLevel,
+                                  const std::string& uuid,
+                                  const void* content,
+                                  size_t size,
+                                  FileContentType type,
+                                  bool isCompressed)
+    {
+      Create(uuid, content, size, type);
+    }
+
+    virtual IMemoryBuffer* Read(const std::string& uuid,
+                                FileContentType type,
+                                const std::string& /*customData*/)
+    {
+      return Read(uuid, type);
+    }
+
+    virtual IMemoryBuffer* ReadRange(const std::string& uuid,
+                                     FileContentType type,
+                                     uint64_t start /* inclusive */,
+                                     uint64_t end /* exclusive */,
+                                     const std::string& /*customData */)
+    {
+      return ReadRange(uuid, type, start, end);
+    }
+
+    virtual void Remove(const std::string& uuid,
+                        FileContentType type,
+                        const std::string& customData)
+    {
+      Remove(uuid, type);
+    }
+
     virtual void Create(const std::string& uuid,
-                        const void* content,
+                        const void* content, 
                         size_t size,
                         FileContentType type) = 0;
 
@@ -52,9 +138,8 @@ namespace Orthanc
                                      uint64_t start /* inclusive */,
                                      uint64_t end /* exclusive */) = 0;
 
-    virtual bool HasReadRange() const = 0;
-
     virtual void Remove(const std::string& uuid,
                         FileContentType type) = 0;
+
   };
 }

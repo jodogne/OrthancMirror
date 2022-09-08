@@ -58,6 +58,7 @@
 #include "../../Sources/Database/VoidDatabaseListener.h"
 #include "../../Sources/OrthancConfiguration.h"
 #include "../../Sources/OrthancFindRequestHandler.h"
+#include "../../Sources/Search/DatabaseConstraint.h"
 #include "../../Sources/Search/HierarchicalMatcher.h"
 #include "../../Sources/ServerContext.h"
 #include "../../Sources/ServerToolbox.h"
@@ -413,6 +414,99 @@ namespace Orthanc
     }
   };
   
+  class OrthancPlugins::IDicomInstance : public boost::noncopyable
+  {
+  public:
+    virtual ~IDicomInstance()
+    {
+    }
+
+    virtual bool CanBeFreed() const = 0;
+
+    virtual const DicomInstanceToStore& GetInstance() const = 0;
+  };
+
+
+  class OrthancPlugins::DicomInstanceFromCallback : public IDicomInstance
+  {
+  private:
+    const DicomInstanceToStore&  instance_;
+
+  public:
+    explicit DicomInstanceFromCallback(const DicomInstanceToStore& instance) :
+      instance_(instance)
+    {
+    }
+
+    virtual bool CanBeFreed() const ORTHANC_OVERRIDE
+    {
+      return false;
+    }
+
+    virtual const DicomInstanceToStore& GetInstance() const ORTHANC_OVERRIDE
+    {
+      return instance_;
+    };
+  };
+
+
+  class OrthancPlugins::DicomInstanceFromBuffer : public IDicomInstance
+  {
+  private:
+    std::string                            buffer_;
+    std::unique_ptr<DicomInstanceToStore>  instance_;
+
+  public:
+    DicomInstanceFromBuffer(const void* buffer,
+                            size_t size)
+    {
+      buffer_.assign(reinterpret_cast<const char*>(buffer), size);
+
+      instance_.reset(DicomInstanceToStore::CreateFromBuffer(buffer_));
+      instance_->SetOrigin(DicomInstanceOrigin::FromPlugins());
+    }
+
+    virtual bool CanBeFreed() const ORTHANC_OVERRIDE
+    {
+      return true;
+    }
+
+    virtual const DicomInstanceToStore& GetInstance() const ORTHANC_OVERRIDE
+    {
+      return *instance_;
+    };
+  };
+
+
+  class OrthancPlugins::DicomInstanceFromTranscoded : public IDicomInstance
+  {
+  private:
+    std::unique_ptr<ParsedDicomFile>       parsed_;
+    std::unique_ptr<DicomInstanceToStore>  instance_;
+
+  public:
+    explicit DicomInstanceFromTranscoded(IDicomTranscoder::DicomImage& transcoded) :
+      parsed_(transcoded.ReleaseAsParsedDicomFile())
+    {
+      if (parsed_.get() == NULL)
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+      
+      instance_.reset(DicomInstanceToStore::CreateFromParsedDicomFile(*parsed_));
+      instance_->SetOrigin(DicomInstanceOrigin::FromPlugins());
+    }
+
+    virtual bool CanBeFreed() const ORTHANC_OVERRIDE
+    {
+      return true;
+    }
+
+    virtual const DicomInstanceToStore& GetInstance() const ORTHANC_OVERRIDE
+    {
+      return *instance_;
+    };
+  };
 
   static void CopyToMemoryBuffer(OrthancPluginMemoryBuffer& target,
                                  const void* data,
@@ -547,8 +641,8 @@ namespace Orthanc
       }
     };
   
-
-    class StorageAreaBase : public IStorageArea
+    // "legacy" storage plugins don't store customData -> derive from ICoreStorageArea
+    class PluginStorageAreaBase : public ICoreStorageArea
     {
     private:
       OrthancPluginStorageCreate create_;
@@ -602,9 +696,9 @@ namespace Orthanc
       }      
       
     public:
-      StorageAreaBase(OrthancPluginStorageCreate create,
-                      OrthancPluginStorageRemove remove,
-                      PluginsErrorDictionary&  errorDictionary) : 
+      PluginStorageAreaBase(OrthancPluginStorageCreate create,
+                            OrthancPluginStorageRemove remove,
+                            PluginsErrorDictionary&  errorDictionary) : 
         create_(create),
         remove_(remove),
         errorDictionary_(errorDictionary)
@@ -646,7 +740,7 @@ namespace Orthanc
     };
 
 
-    class PluginStorageArea : public StorageAreaBase
+    class PluginStorageArea : public PluginStorageAreaBase
     {
     private:
       OrthancPluginStorageRead   read_;
@@ -663,7 +757,7 @@ namespace Orthanc
     public:
       PluginStorageArea(const _OrthancPluginRegisterStorageArea& callbacks,
                         PluginsErrorDictionary&  errorDictionary) :
-        StorageAreaBase(callbacks.create, callbacks.remove, errorDictionary),
+        PluginStorageAreaBase(callbacks.create, callbacks.remove, errorDictionary),
         read_(callbacks.read),
         free_(callbacks.free)
       {
@@ -712,7 +806,7 @@ namespace Orthanc
 
 
     // New in Orthanc 1.9.0
-    class PluginStorageArea2 : public StorageAreaBase
+    class PluginStorageArea2 : public PluginStorageAreaBase
     {
     private:
       OrthancPluginStorageReadWhole  readWhole_;
@@ -721,7 +815,7 @@ namespace Orthanc
     public:
       PluginStorageArea2(const _OrthancPluginRegisterStorageArea2& callbacks,
                          PluginsErrorDictionary&  errorDictionary) :
-        StorageAreaBase(callbacks.create, callbacks.remove, errorDictionary),
+        PluginStorageAreaBase(callbacks.create, callbacks.remove, errorDictionary),
         readWhole_(callbacks.readWhole),
         readRange_(callbacks.readRange)
       {
@@ -806,19 +900,252 @@ namespace Orthanc
     };
 
 
+    // New in Orthanc 1.12.0
+    class PluginStorageArea3 : public IStorageArea
+    {
+    private:
+      OrthancPluginStorageCreateInstance createInstance_;
+      OrthancPluginStorageCreateAttachment createAttachment_;
+      OrthancPluginStorageRemove2 remove2_;
+      OrthancPluginStorageReadWhole2  readWhole2_;
+      OrthancPluginStorageReadRange2  readRange2_;
+
+      PluginsErrorDictionary&    errorDictionary_;
+
+    protected:
+      PluginsErrorDictionary& GetErrorDictionary() const
+      {
+        return errorDictionary_;
+      }
+
+      IMemoryBuffer* RangeFromWhole(const std::string& uuid,
+                                    const std::string& customData,
+                                    FileContentType type,
+                                    uint64_t start /* inclusive */,
+                                    uint64_t end /* exclusive */)
+      {
+        if (start > end)
+        {
+          throw OrthancException(ErrorCode_BadRange);
+        }
+        else if (start == end)
+        {
+          return new StringMemoryBuffer;  // Empty
+        }
+        else
+        {
+          std::unique_ptr<IMemoryBuffer> whole(Read(uuid, type, customData));
+
+          if (start == 0 &&
+              end == whole->GetSize())
+          {
+            return whole.release();
+          }
+          else if (end > whole->GetSize())
+          {
+            throw OrthancException(ErrorCode_BadRange);
+          }
+          else
+          {
+            std::string range;
+            range.resize(end - start);
+            assert(!range.empty());
+            
+            memcpy(&range[0], reinterpret_cast<const char*>(whole->GetData()) + start, range.size());
+
+            whole.reset(NULL);
+            return StringMemoryBuffer::CreateFromSwap(range);
+          }
+        }
+      }      
+      
+    public:
+      PluginStorageArea3(const _OrthancPluginRegisterStorageArea3& callbacks,
+                      PluginsErrorDictionary&  errorDictionary) : 
+        createInstance_(callbacks.createInstance),
+        createAttachment_(callbacks.createAttachment),
+        remove2_(callbacks.remove),
+        readWhole2_(callbacks.readWhole),
+        readRange2_(callbacks.readRange),
+        errorDictionary_(errorDictionary)
+      {
+        if (createInstance_ == NULL ||
+            createAttachment_ == NULL ||
+            remove2_ == NULL ||
+            readWhole2_ == NULL)
+        {
+          throw OrthancException(ErrorCode_Plugin, "Storage area plugin doesn't implement all the required primitives (create, remove, readWhole");
+        }
+      }
+
+      virtual void CreateInstance(std::string& customData,
+                                const DicomInstanceToStore& instance,
+                                const std::string& uuid,
+                                const void* content,
+                                size_t size,
+                                FileContentType type,
+                                bool isCompressed) ORTHANC_OVERRIDE
+      {
+        OrthancPluginMemoryBuffer customDataBuffer;
+        Orthanc::OrthancPlugins::DicomInstanceFromCallback wrapped(instance);
+
+        OrthancPluginErrorCode error = createInstance_(&customDataBuffer,
+                                                       uuid.c_str(),
+                                                       reinterpret_cast<OrthancPluginDicomInstance*>(&wrapped),
+                                                       content, size, Plugins::Convert(type),
+                                                       isCompressed);
+
+        if (error != OrthancPluginErrorCode_Success)
+        {
+          errorDictionary_.LogError(error, true);
+          throw OrthancException(static_cast<ErrorCode>(error));
+        }
+
+        if (customDataBuffer.size > 0)
+        {
+          customData.assign(reinterpret_cast<char*>(customDataBuffer.data), 
+                            static_cast<size_t>(customDataBuffer.size));
+        }
+      }
+
+      virtual void CreateAttachment(std::string& customData,
+                                    const std::string& resourceId,
+                                    ResourceType resourceLevel,
+                                    const std::string& uuid,
+                                    const void* content,
+                                    size_t size,
+                                    FileContentType type,
+                                    bool isCompressed) ORTHANC_OVERRIDE
+      {
+        OrthancPluginMemoryBuffer customDataBuffer;
+
+        OrthancPluginErrorCode error = createAttachment_(&customDataBuffer,
+                                                         uuid.c_str(),
+                                                         resourceId.c_str(),
+                                                         Plugins::Convert(resourceLevel),
+                                                         content, size, Plugins::Convert(type),
+                                                         isCompressed);
+
+        if (error != OrthancPluginErrorCode_Success)
+        {
+          errorDictionary_.LogError(error, true);
+          throw OrthancException(static_cast<ErrorCode>(error));
+        }
+
+        if (customDataBuffer.size > 0)
+        {
+          customData.assign(reinterpret_cast<char*>(customDataBuffer.data), 
+                            static_cast<size_t>(customDataBuffer.size));
+        }
+      }
+
+      virtual void Remove(const std::string& uuid,
+                          FileContentType type,
+                          const std::string& customData) ORTHANC_OVERRIDE
+      {
+        OrthancPluginErrorCode error = remove2_
+          (uuid.c_str(), customData.c_str(), Plugins::Convert(type));
+
+        if (error != OrthancPluginErrorCode_Success)
+        {
+          errorDictionary_.LogError(error, true);
+          throw OrthancException(static_cast<ErrorCode>(error));
+        }
+      }
+
+      virtual IMemoryBuffer* Read(const std::string& uuid,
+                                  FileContentType type,
+                                  const std::string& customData) ORTHANC_OVERRIDE
+      {
+        std::unique_ptr<MallocMemoryBuffer> result(new MallocMemoryBuffer);
+
+        OrthancPluginMemoryBuffer64 buffer;
+        buffer.size = 0;
+        buffer.data = NULL;
+        
+        OrthancPluginErrorCode error = readWhole2_(&buffer, uuid.c_str(), customData.c_str(), Plugins::Convert(type));
+
+        if (error == OrthancPluginErrorCode_Success)
+        {
+          result->Assign(buffer.data, buffer.size, ::free);
+          return result.release();
+        }
+        else
+        {
+          GetErrorDictionary().LogError(error, true);
+          throw OrthancException(static_cast<ErrorCode>(error));
+        }
+      }
+
+      virtual IMemoryBuffer* ReadRange(const std::string& uuid,
+                                       FileContentType type,
+                                       uint64_t start /* inclusive */,
+                                       uint64_t end /* exclusive */,
+                                       const std::string& customData) ORTHANC_OVERRIDE
+      {
+        if (readRange2_ == NULL)
+        {
+          return RangeFromWhole(uuid, customData, type, start, end);
+        }
+        else
+        {
+          if (start > end)
+          {
+            throw OrthancException(ErrorCode_BadRange);
+          }
+          else if (start == end)
+          {
+            return new StringMemoryBuffer;
+          }
+          else
+          {
+            std::string range;
+            range.resize(end - start);
+            assert(!range.empty());
+
+            OrthancPluginMemoryBuffer64 buffer;
+            buffer.data = &range[0];
+            buffer.size = static_cast<uint64_t>(range.size());
+
+            OrthancPluginErrorCode error =
+              readRange2_(&buffer, uuid.c_str(), customData.c_str(), Plugins::Convert(type), start);
+
+            if (error == OrthancPluginErrorCode_Success)
+            {
+              return StringMemoryBuffer::CreateFromSwap(range);
+            }
+            else
+            {
+              GetErrorDictionary().LogError(error, true);
+              throw OrthancException(static_cast<ErrorCode>(error));
+            }
+          }
+        }
+      }
+
+      virtual bool HasReadRange() const ORTHANC_OVERRIDE
+      {
+        return (readRange2_ != NULL);
+      }
+
+    };
+
+
     class StorageAreaFactory : public boost::noncopyable
     {
     private:
       enum Version
       {
         Version1,
-        Version2
+        Version2,
+        Version3
       };
       
       SharedLibrary&                      sharedLibrary_;
       Version                             version_;
       _OrthancPluginRegisterStorageArea   callbacks_;
       _OrthancPluginRegisterStorageArea2  callbacks2_;
+      _OrthancPluginRegisterStorageArea3  callbacks3_;
       PluginsErrorDictionary&             errorDictionary_;
 
       static void WarnNoReadRange()
@@ -852,6 +1179,20 @@ namespace Orthanc
         }
       }
 
+      StorageAreaFactory(SharedLibrary& sharedLibrary,
+                         const _OrthancPluginRegisterStorageArea3& callbacks,
+                         PluginsErrorDictionary&  errorDictionary) :
+        sharedLibrary_(sharedLibrary),
+        version_(Version3),
+        callbacks3_(callbacks),
+        errorDictionary_(errorDictionary)
+      {
+        if (callbacks.readRange == NULL)
+        {
+          WarnNoReadRange();
+        }
+      }
+
       SharedLibrary&  GetSharedLibrary()
       {
         return sharedLibrary_;
@@ -866,6 +1207,9 @@ namespace Orthanc
 
           case Version2:
             return new PluginStorageArea2(callbacks2_, errorDictionary_);
+
+          case Version3:
+            return new PluginStorageArea3(callbacks3_, errorDictionary_);
 
           default:
             throw OrthancException(ErrorCode_InternalError);
@@ -2456,101 +2800,6 @@ namespace Orthanc
     pluginOutput.Close(error, GetErrorDictionary());
     return true;
   }
-
-
-  class OrthancPlugins::IDicomInstance : public boost::noncopyable
-  {
-  public:
-    virtual ~IDicomInstance()
-    {
-    }
-
-    virtual bool CanBeFreed() const = 0;
-
-    virtual const DicomInstanceToStore& GetInstance() const = 0;
-  };
-
-
-  class OrthancPlugins::DicomInstanceFromCallback : public IDicomInstance
-  {
-  private:
-    const DicomInstanceToStore&  instance_;
-
-  public:
-    explicit DicomInstanceFromCallback(const DicomInstanceToStore& instance) :
-      instance_(instance)
-    {
-    }
-
-    virtual bool CanBeFreed() const ORTHANC_OVERRIDE
-    {
-      return false;
-    }
-
-    virtual const DicomInstanceToStore& GetInstance() const ORTHANC_OVERRIDE
-    {
-      return instance_;
-    };
-  };
-
-
-  class OrthancPlugins::DicomInstanceFromBuffer : public IDicomInstance
-  {
-  private:
-    std::string                            buffer_;
-    std::unique_ptr<DicomInstanceToStore>  instance_;
-
-  public:
-    DicomInstanceFromBuffer(const void* buffer,
-                            size_t size)
-    {
-      buffer_.assign(reinterpret_cast<const char*>(buffer), size);
-
-      instance_.reset(DicomInstanceToStore::CreateFromBuffer(buffer_));
-      instance_->SetOrigin(DicomInstanceOrigin::FromPlugins());
-    }
-
-    virtual bool CanBeFreed() const ORTHANC_OVERRIDE
-    {
-      return true;
-    }
-
-    virtual const DicomInstanceToStore& GetInstance() const ORTHANC_OVERRIDE
-    {
-      return *instance_;
-    };
-  };
-
-
-  class OrthancPlugins::DicomInstanceFromTranscoded : public IDicomInstance
-  {
-  private:
-    std::unique_ptr<ParsedDicomFile>       parsed_;
-    std::unique_ptr<DicomInstanceToStore>  instance_;
-
-  public:
-    explicit DicomInstanceFromTranscoded(IDicomTranscoder::DicomImage& transcoded) :
-      parsed_(transcoded.ReleaseAsParsedDicomFile())
-    {
-      if (parsed_.get() == NULL)
-      {
-        throw OrthancException(ErrorCode_InternalError);
-      }
-      
-      instance_.reset(DicomInstanceToStore::CreateFromParsedDicomFile(*parsed_));
-      instance_->SetOrigin(DicomInstanceOrigin::FromPlugins());
-    }
-
-    virtual bool CanBeFreed() const ORTHANC_OVERRIDE
-    {
-      return true;
-    }
-
-    virtual const DicomInstanceToStore& GetInstance() const ORTHANC_OVERRIDE
-    {
-      return *instance_;
-    };
-  };
 
 
   void OrthancPlugins::SignalStoredInstance(const std::string& instanceId,
@@ -4830,7 +5079,8 @@ namespace Orthanc
       {
         const _OrthancPluginStorageAreaCreate& p =
           *reinterpret_cast<const _OrthancPluginStorageAreaCreate*>(parameters);
-        IStorageArea& storage = *reinterpret_cast<IStorageArea*>(p.storageArea);
+        PluginStorageAreaBase& storage = *reinterpret_cast<PluginStorageAreaBase*>(p.storageArea);
+        std::string customDataNotUsed;
         storage.Create(p.uuid, p.content, static_cast<size_t>(p.size), Plugins::Convert(p.type));
         return true;
       }
@@ -4840,7 +5090,8 @@ namespace Orthanc
         const _OrthancPluginStorageAreaRead& p =
           *reinterpret_cast<const _OrthancPluginStorageAreaRead*>(parameters);
         IStorageArea& storage = *reinterpret_cast<IStorageArea*>(p.storageArea);
-        std::unique_ptr<IMemoryBuffer> content(storage.Read(p.uuid, Plugins::Convert(p.type)));
+        std::string customDataNotUsed;
+        std::unique_ptr<IMemoryBuffer> content(storage.Read(p.uuid, Plugins::Convert(p.type), customDataNotUsed));
         CopyToMemoryBuffer(*p.target, content->GetData(), content->GetSize());
         return true;
       }
@@ -4850,7 +5101,8 @@ namespace Orthanc
         const _OrthancPluginStorageAreaRemove& p =
           *reinterpret_cast<const _OrthancPluginStorageAreaRemove*>(parameters);
         IStorageArea& storage = *reinterpret_cast<IStorageArea*>(p.storageArea);
-        storage.Remove(p.uuid, Plugins::Convert(p.type));
+        std::string customDataNotUsed;
+        storage.Remove(p.uuid, Plugins::Convert(p.type), customDataNotUsed);
         return true;
       }
 
@@ -5411,21 +5663,32 @@ namespace Orthanc
 
       case _OrthancPluginService_RegisterStorageArea:
       case _OrthancPluginService_RegisterStorageArea2:
+      case _OrthancPluginService_RegisterStorageArea3:
       {
-        CLOG(INFO, PLUGINS) << "Plugin has registered a custom storage area";
-        
         if (pimpl_->storageArea_.get() == NULL)
         {
           if (service == _OrthancPluginService_RegisterStorageArea)
           {
+            CLOG(INFO, PLUGINS) << "Plugin has registered a custom storage area (v1)";
+    
             const _OrthancPluginRegisterStorageArea& p = 
               *reinterpret_cast<const _OrthancPluginRegisterStorageArea*>(parameters);
             pimpl_->storageArea_.reset(new StorageAreaFactory(plugin, p, GetErrorDictionary()));
           }
           else if (service == _OrthancPluginService_RegisterStorageArea2)
           {
+            CLOG(INFO, PLUGINS) << "Plugin has registered a custom storage area (v2)";
+
             const _OrthancPluginRegisterStorageArea2& p = 
               *reinterpret_cast<const _OrthancPluginRegisterStorageArea2*>(parameters);
+            pimpl_->storageArea_.reset(new StorageAreaFactory(plugin, p, GetErrorDictionary()));
+          }
+          else if (service == _OrthancPluginService_RegisterStorageArea3)
+          {
+            CLOG(INFO, PLUGINS) << "Plugin has registered a custom storage area (v3)";
+
+            const _OrthancPluginRegisterStorageArea3& p = 
+              *reinterpret_cast<const _OrthancPluginRegisterStorageArea3*>(parameters);
             pimpl_->storageArea_.reset(new StorageAreaFactory(plugin, p, GetErrorDictionary()));
           }
           else
