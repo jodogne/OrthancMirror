@@ -486,10 +486,11 @@ namespace Orthanc
 
 
   void ServerContext::RemoveFile(const std::string& fileUuid,
-                                 FileContentType type)
+                                 FileContentType type,
+                                 const std::string& customData)
   {
     StorageAccessor accessor(area_, &storageCache_, GetMetricsRegistry());
-    accessor.Remove(fileUuid, type);
+    accessor.Remove(fileUuid, type, customData);
   }
 
 
@@ -599,8 +600,11 @@ namespace Orthanc
       // TODO Should we use "gzip" instead?
       CompressionType compression = (compressionEnabled_ ? CompressionType_ZlibWithSize : CompressionType_None);
 
-      FileInfo dicomInfo = accessor.Write(dicom.GetBufferData(), dicom.GetBufferSize(), 
-                                          FileContentType_Dicom, compression, storeMD5_);
+      std::string dicomCustomData;
+      std::string dicomUuid = Toolbox::GenerateUuid();
+
+      FileInfo dicomInfo = accessor.WriteInstance(dicomCustomData, dicom, dicom.GetBufferData(), dicom.GetBufferSize(), 
+                                          FileContentType_Dicom, compression, storeMD5_, dicomUuid);
 
       ServerIndex::Attachments attachments;
       attachments.push_back(dicomInfo);
@@ -610,8 +614,11 @@ namespace Orthanc
           (!area_.HasReadRange() ||
            compressionEnabled_))
       {
-        dicomUntilPixelData = accessor.Write(dicom.GetBufferData(), pixelDataOffset, 
-                                             FileContentType_DicomUntilPixelData, compression, storeMD5_);
+        std::string dicomHeaderCustomData;
+        std::string dicomHeaderUuid = Toolbox::GenerateUuid();
+
+        dicomUntilPixelData = accessor.WriteInstance(dicomHeaderCustomData, dicom, dicom.GetBufferData(), pixelDataOffset, 
+                                             FileContentType_DicomUntilPixelData, compression, storeMD5_, dicomHeaderUuid);
         attachments.push_back(dicomUntilPixelData);
       }
 
@@ -858,6 +865,7 @@ namespace Orthanc
 
 
   void ServerContext::ChangeAttachmentCompression(const std::string& resourceId,
+                                                  ResourceType resourceType,
                                                   FileContentType attachmentType,
                                                   CompressionType compression)
   {
@@ -884,8 +892,25 @@ namespace Orthanc
     StorageAccessor accessor(area_, &storageCache_, GetMetricsRegistry());
     accessor.Read(content, attachment);
 
-    FileInfo modified = accessor.Write(content.empty() ? NULL : content.c_str(),
-                                       content.size(), attachmentType, compression, storeMD5_);
+    std::string newUuid = Toolbox::GenerateUuid();
+    std::string newCustomData;
+    FileInfo modified;
+
+    // if (attachmentType == FileContentType_Dicom || attachmentType == FileContentType_DicomUntilPixelData)
+    // {
+    //   // DicomInstanceToStore instance;
+    //   // TODO_CUSTOM_DATA: get the Instance such that we can call accessor.GetCustomData ...
+    //   // modified = accessor.WriteInstance(newCustomData, instance, content.empty() ? NULL : content.c_str(),
+    //   //                                 content.size(), attachmentType, compression, storeMD5_, newUuid);
+    // }
+    // else
+    {
+      ResourceType resourceType = ResourceType_Instance; //TODO_CUSTOM_DATA: get it from above in the stack
+      modified = accessor.WriteAttachment(newCustomData, resourceId, resourceType, content.empty() ? NULL : content.c_str(),
+                                       content.size(), attachmentType, compression, storeMD5_, newUuid);
+    }
+
+
 
     try
     {
@@ -1004,7 +1029,7 @@ namespace Orthanc
         
         {
           StorageAccessor accessor(area_, &storageCache_, GetMetricsRegistry());
-          accessor.ReadStartRange(dicom, attachment.GetUuid(), FileContentType_Dicom, pixelDataOffset);
+          accessor.ReadStartRange(dicom, attachment.GetUuid(), FileContentType_Dicom, pixelDataOffset, attachment.GetCustomData());
         }
         
         assert(dicom.size() == pixelDataOffset);
@@ -1070,9 +1095,9 @@ namespace Orthanc
                 compressionEnabled_)
             {
               int64_t newRevision;
-              AddAttachment(newRevision, instancePublicId, FileContentType_DicomUntilPixelData,
+              AddAttachment(newRevision, instancePublicId, ResourceType_Instance, FileContentType_DicomUntilPixelData,
                             dicom.empty() ? NULL: dicom.c_str(), pixelDataOffset,
-                            false /* no old revision */, -1 /* dummy revision */, "" /* dummy MD5 */);
+                             false /* no old revision */, -1 /* dummy revision */, "" /* dummy MD5 */);
             }
           }
         }
@@ -1134,7 +1159,7 @@ namespace Orthanc
 
         StorageAccessor accessor(area_, &storageCache_, GetMetricsRegistry());
 
-        accessor.ReadStartRange(dicom, attachment.GetUuid(), attachment.GetContentType(), pixelDataOffset);
+        accessor.ReadStartRange(dicom, attachment.GetUuid(), attachment.GetContentType(), pixelDataOffset, attachment.GetCustomData());
         assert(dicom.size() == pixelDataOffset);
         
         return true;   // Success
@@ -1262,6 +1287,7 @@ namespace Orthanc
 
   bool ServerContext::AddAttachment(int64_t& newRevision,
                                     const std::string& resourceId,
+                                    ResourceType resourceType,
                                     FileContentType attachmentType,
                                     const void* data,
                                     size_t size,
@@ -1275,7 +1301,13 @@ namespace Orthanc
     CompressionType compression = (compressionEnabled_ ? CompressionType_ZlibWithSize : CompressionType_None);
 
     StorageAccessor accessor(area_, &storageCache_, GetMetricsRegistry());
-    FileInfo attachment = accessor.Write(data, size, attachmentType, compression, storeMD5_);
+    
+    std::string uuid = Toolbox::GenerateUuid();
+    std::string customData;
+
+    assert(attachmentType != FileContentType_Dicom && attachmentType != FileContentType_DicomUntilPixelData); // this method can not be used to store instances
+
+    FileInfo attachment = accessor.WriteAttachment(customData, resourceId, resourceType, data, size, attachmentType, compression, storeMD5_, uuid);
 
     try
     {

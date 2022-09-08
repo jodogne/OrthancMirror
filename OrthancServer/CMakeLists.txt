@@ -61,6 +61,7 @@ SET(BUILD_SERVE_FOLDERS ON CACHE BOOL "Whether to build the ServeFolders plugin"
 SET(BUILD_CONNECTIVITY_CHECKS ON CACHE BOOL "Whether to build the ConnectivityChecks plugin")
 SET(BUILD_HOUSEKEEPER ON CACHE BOOL "Whether to build the Housekeeper plugin")
 SET(BUILD_DELAYED_DELETION ON CACHE BOOL "Whether to build the DelayedDeletion plugin")
+SET(BUILD_ADVANCED_STORAGE ON CACHE BOOL "Whether to build the AdvancedStorage plugin")
 SET(ENABLE_PLUGINS ON CACHE BOOL "Enable plugins")
 SET(UNIT_TESTS_WITH_HTTP_CONNEXIONS ON CACHE BOOL "Allow unit tests to make HTTP requests")
 
@@ -228,6 +229,7 @@ set(ORTHANC_EMBEDDED_FILES
   PREPARE_DATABASE             ${CMAKE_SOURCE_DIR}/Sources/Database/PrepareDatabase.sql
   UPGRADE_DATABASE_3_TO_4      ${CMAKE_SOURCE_DIR}/Sources/Database/Upgrade3To4.sql
   UPGRADE_DATABASE_4_TO_5      ${CMAKE_SOURCE_DIR}/Sources/Database/Upgrade4To5.sql
+  UPGRADE_DATABASE_6_TO_7      ${CMAKE_SOURCE_DIR}/Sources/Database/Upgrade6To7.sql
 
   INSTALL_TRACK_ATTACHMENTS_SIZE
   ${CMAKE_SOURCE_DIR}/Sources/Database/InstallTrackAttachmentsSize.sql
@@ -318,6 +320,7 @@ add_definitions(
   -DMODALITY_WORKLISTS_VERSION="${ORTHANC_VERSION}"
   -DSERVE_FOLDERS_VERSION="${ORTHANC_VERSION}"
   -DHOUSEKEEPER_VERSION="${ORTHANC_VERSION}"
+  -DADVANCED_STORAGE_VERSION="${ORTHANC_VERSION}"
   )
 
 
@@ -430,7 +433,7 @@ target_link_libraries(UnitTests
 #####################################################################
 
 if (ENABLE_PLUGINS AND
-    (BUILD_SERVE_FOLDERS OR BUILD_MODALITY_WORKLISTS OR BUILD_HOUSEKEEPER))
+    (BUILD_SERVE_FOLDERS OR BUILD_MODALITY_WORKLISTS OR BUILD_HOUSEKEEPER OR BUILD_ADVANCED_STORAGE))
   add_library(ThirdPartyPlugins STATIC
     ${BOOST_SOURCES}
     ${JSONCPP_SOURCES}
@@ -726,6 +729,77 @@ if (ENABLE_PLUGINS AND BUILD_HOUSEKEEPER)
     RUNTIME DESTINATION lib    # Destination for Windows
     LIBRARY DESTINATION share/orthanc/plugins    # Destination for Linux
     )
+endif()
+
+
+#####################################################################
+## Build the "AdvancedStorage" plugin
+#####################################################################
+
+if (ENABLE_PLUGINS AND BUILD_ADVANCED_STORAGE)
+
+  set(AdvancedStorageFlags)
+
+  if (CMAKE_TOOLCHAIN_FILE)
+    # Take absolute path to the toolchain
+    get_filename_component(TMP ${CMAKE_TOOLCHAIN_FILE} REALPATH BASE ${CMAKE_SOURCE_DIR})
+    list(APPEND AdvancedStorageFlags -DCMAKE_TOOLCHAIN_FILE=${TMP})
+  endif()
+
+  if ("${CMAKE_SYSTEM_VERSION}" STREQUAL "LinuxStandardBase")
+    list(APPEND AdvancedStorageFlags
+      -DLSB_CC=${CMAKE_LSB_CC}
+      -DLSB_CXX=${CMAKE_LSB_CXX}
+      )
+  endif()
+
+  externalproject_add(AdvancedStorage
+    SOURCE_DIR "${CMAKE_SOURCE_DIR}/Plugins/Samples/AdvancedStorage"
+
+    # We explicitly provide a build directory, in order to avoid paths
+    # that are too long on our Visual Studio 2008 CIS
+    BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}/AdvancedStorage-build"
+
+    # this helps triggering build when changing the external project
+    BUILD_ALWAYS 1
+
+    CMAKE_ARGS
+    -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
+    -DCMAKE_INSTALL_PREFIX=${CMAKE_CURRENT_BINARY_DIR}
+    -DPLUGIN_VERSION=${ORTHANC_VERSION}
+    -DSTATIC_BUILD=${STATIC_BUILD}
+    -DALLOW_DOWNLOADS=${ALLOW_DOWNLOADS}
+    -DUSE_SYSTEM_BOOST=${USE_SYSTEM_BOOST}
+    -DUSE_LEGACY_JSONCPP=${USE_LEGACY_JSONCPP}
+    -DUSE_LEGACY_BOOST=${USE_LEGACY_BOOST}
+    ${AdvancedStorageFlags}
+
+    -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
+    -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
+    -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
+    -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS}
+    -DCMAKE_OSX_DEPLOYMENT_TARGET=${CMAKE_OSX_DEPLOYMENT_TARGET}
+    -DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES}
+    )
+
+  if (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
+    if (MSVC)
+      set(Prefix "")
+    else()
+      set(Prefix "lib")  # MinGW
+    endif()
+
+    install(FILES
+      ${CMAKE_CURRENT_BINARY_DIR}/${Prefix}AdvancedStorage.dll
+      DESTINATION "lib")
+  else()
+    list(GET CMAKE_FIND_LIBRARY_PREFIXES 0 Prefix)
+    list(GET CMAKE_FIND_LIBRARY_SUFFIXES 0 Suffix)
+    install(FILES
+      ${CMAKE_CURRENT_BINARY_DIR}/${Prefix}AdvancedStorage${Suffix}
+      ${CMAKE_CURRENT_BINARY_DIR}/${Prefix}AdvancedStorage${Suffix}.${ORTHANC_VERSION}
+      DESTINATION "share/orthanc/plugins")
+  endif()
 endif()
 
 

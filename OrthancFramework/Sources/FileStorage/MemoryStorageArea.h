@@ -32,7 +32,7 @@
 
 namespace Orthanc
 {
-  class MemoryStorageArea : public IStorageArea
+  class MemoryStorageArea : public ICoreStorageArea
   {
   private:
     typedef std::map<std::string, std::string*>  Content;
@@ -43,6 +43,7 @@ namespace Orthanc
   public:
     virtual ~MemoryStorageArea();
     
+  protected:
     virtual void Create(const std::string& uuid,
                         const void* content,
                         size_t size,

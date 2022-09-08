@@ -420,7 +420,7 @@ namespace Orthanc
   {
     // Anonymous namespace to avoid clashes between compilation modules
 
-    class FilesystemStorageWithoutDicom : public IStorageArea
+    class FilesystemStorageWithoutDicom : public ICoreStorageArea
     {
     private:
       FilesystemStorage storage_;

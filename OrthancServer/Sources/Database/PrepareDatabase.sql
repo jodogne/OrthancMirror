@@ -63,6 +63,7 @@ CREATE TABLE AttachedFiles(
        compressionType INTEGER,
        uncompressedMD5 TEXT,  -- New in Orthanc 0.7.3 (database v4)
        compressedMD5 TEXT,    -- New in Orthanc 0.7.3 (database v4)
+       customData TEXT,       -- New in Orthanc 1.12.0 (database v7)
        PRIMARY KEY(id, fileType)
        );              
 
@@ -114,7 +115,9 @@ BEGIN
   SELECT SignalFileDeleted(old.uuid, old.fileType, old.uncompressedSize, 
                            old.compressionType, old.compressedSize,
                            -- These 2 arguments are new in Orthanc 0.7.3 (database v4)
-                           old.uncompressedMD5, old.compressedMD5);
+                           old.uncompressedMD5, old.compressedMD5,
+                           -- customData is new in Orthanc 1.12.0 (database v7)
+                           old.customData);
 END;
 
 CREATE TRIGGER ResourceDeleted
@@ -143,4 +146,4 @@ END;
 
 -- Set the version of the database schema
 -- The "1" corresponds to the "GlobalProperty_DatabaseSchemaVersion" enumeration
-INSERT INTO GlobalProperties VALUES (1, "6");
+INSERT INTO GlobalProperties VALUES (1, "7");
