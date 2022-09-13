@@ -44,19 +44,48 @@
 
 namespace fs = boost::filesystem;
 
-fs::path absoluteRootPath_;
+fs::path rootPath_;
+bool multipleStoragesEnabled_ = false;
+std::map<std::string, fs::path> rootPaths_;
+std::string currentStorageId_;
+std::string namingScheme_;
 bool fsyncOnWrite_ = true;
+size_t maxPathLength_ = 256;
+size_t legacyPathLength = 39; // ex "/00/f7/00f7fd8b-47bd8c3a-ff917804-d180cdbc-40cf9527"
+
+fs::path GetRootPath()
+{
+  if (multipleStoragesEnabled_)
+  {
+    return rootPaths_[currentStorageId_];
+  }
+
+  return rootPath_;
+}
+
+fs::path GetRootPath(const std::string& storageId)
+{
+  if (multipleStoragesEnabled_)
+  {
+    if (rootPaths_.find(storageId) == rootPaths_.end())
+    {
+      throw Orthanc::OrthancException(Orthanc::ErrorCode_ParameterOutOfRange, std::string("Advanced Storage - storage '" + storageId + "' is not defined in configuration"));
+    }
+    return rootPaths_[storageId];
+  }
+
+  return rootPath_;
+}
 
 
 fs::path GetLegacyRelativePath(const std::string& uuid)
 {
-
   if (!Orthanc::Toolbox::IsUuid(uuid))
   {
       throw Orthanc::OrthancException(Orthanc::ErrorCode_ParameterOutOfRange);
   }
 
-  fs::path path = absoluteRootPath_;
+  fs::path path;
 
   path /= std::string(&uuid[0], &uuid[2]);
   path /= std::string(&uuid[2], &uuid[4]);
@@ -69,24 +98,43 @@ fs::path GetLegacyRelativePath(const std::string& uuid)
   return path;
 }
 
-fs::path GetAbsolutePath(const std::string& uuid, const std::string& customData)
+fs::path GetPath(const std::string& uuid, const std::string& customDataString)
 {
-  fs::path path = absoluteRootPath_;
+  fs::path path;
 
-  if (!customData.empty())
+  if (!customDataString.empty())
   {
-    if (customData.substr(0, 2) == "1.") // version 1
+    Json::Value customData;
+    Orthanc::Toolbox::ReadJson(customData, customDataString);
+
+    if (customData["Version"].asInt() == 1)
     {
-      path /= customData.substr(2);
+      if (customData.isMember("StorageId"))
+      {
+        path = GetRootPath(customData["StorageId"].asString());
+      }
+      else
+      {
+        path = GetRootPath();
+      }
+      
+      if (customData.isMember("Path"))
+      {
+        path /= customData["Path"].asString();
+      }
+      else
+      { // we are in "legacy mode" for the path part
+        path /= GetLegacyRelativePath(uuid);
+      }
     }
     else
     {
-      throw "TODO: unknown version";
+      throw Orthanc::OrthancException(Orthanc::ErrorCode_ParameterOutOfRange, std::string("Advanced Storage - unknown version for custom data '" + boost::lexical_cast<std::string>(customData["Version"].asInt()) + "'"));
     }
-
   }
-  else
+  else // we are in "legacy mode"
   {
+    path = GetRootPath();
     path /= GetLegacyRelativePath(uuid);
   }
 
@@ -94,12 +142,31 @@ fs::path GetAbsolutePath(const std::string& uuid, const std::string& customData)
   return path;
 }
 
-std::string GetCustomData(const fs::path& path)
+void GetCustomData(std::string& output, const fs::path& path)
 {
-  return std::string("1.") + path.string(); // prefix the relative path with a version
+  // if we use defaults, non need to store anything in the metadata, the plugin has the same behavior as the core of Orthanc
+  if (namingScheme_ == "OrthancDefault" && !multipleStoragesEnabled_)
+  {
+    return;
+  }
+
+  Json::Value customDataJson;
+  customDataJson["Version"] = 1;
+
+  if (namingScheme_ != "OrthancDefault")
+  { // no need to store the pathc since we are in the default mode
+    customDataJson["Path"] = path.string();
+  }
+
+  if (multipleStoragesEnabled_)
+  {
+    customDataJson["StorageId"] = currentStorageId_;
+  }
+
+  return  Orthanc::Toolbox::WriteFastJson(output, customDataJson);
 }
 
-void AddDateDicomTagToPath(fs::path& path, const Json::Value& tags, const char* tagName, const char* defaultValue = NULL)
+void AddSplitDateDicomTagToPath(fs::path& path, const Json::Value& tags, const char* tagName, const char* defaultValue = NULL)
 {
   if (tags.isMember(tagName) && tags[tagName].asString().size() == 8)
   {
@@ -114,7 +181,7 @@ void AddDateDicomTagToPath(fs::path& path, const Json::Value& tags, const char* 
   }
 }
 
-void AddSringDicomTagToPath(fs::path& path, const Json::Value& tags, const char* tagName, const char* defaultValue = NULL)
+void AddStringDicomTagToPath(fs::path& path, const Json::Value& tags, const char* tagName, const char* defaultValue = NULL)
 {
   if (tags.isMember(tagName) && tags[tagName].isString() && tags[tagName].asString().size() > 0)
   {
@@ -147,26 +214,8 @@ void AddIntDicomTagToPath(fs::path& path, const Json::Value& tags, const char* t
   }
 }
 
-fs::path GetRelativePathFromTags(const Json::Value& tags, const char* uuid, OrthancPluginContentType type, bool isCompressed)
+std::string GetExtension(OrthancPluginContentType type, bool isCompressed)
 {
-  fs::path path;
-  
-  if (type == OrthancPluginContentType_Dicom || type == OrthancPluginContentType_DicomUntilPixelData)
-  {
-    // TODO: allow customization ... note: right now, we always need the uuid in the path !!
-
-    AddDateDicomTagToPath(path, tags, "StudyDate", "NO_STUDY_DATE");
-    AddSringDicomTagToPath(path, tags, "PatientID");  // no default value, tag is always present if the instance is accepted by Orthanc  
-    AddSringDicomTagToPath(path, tags, "StudyInstanceUID");
-    AddSringDicomTagToPath(path, tags, "SeriesInstanceUID");
-    //AddIntDicomTagToPath(path, tags, "InstanceNumber", 8, uuid);
-    path /= uuid;
-  }
-  else
-  {
-    path = GetLegacyRelativePath(uuid);
-  }
-
   std::string extension;
 
   switch (type)
@@ -185,9 +234,40 @@ fs::path GetRelativePathFromTags(const Json::Value& tags, const char* uuid, Orth
     extension = extension + ".cmp"; // compression is zlib + size -> we can not use the .zip extension
   }
   
-  path += extension;
+  return extension;
+}
 
-  return path;
+fs::path GetRelativePathFromTags(const Json::Value& tags, const char* uuid, OrthancPluginContentType type, bool isCompressed)
+{
+  fs::path path;
+
+  if (!tags.isNull())
+  { 
+    if (namingScheme_ == "Preset1-StudyDatePatientID")
+    {
+      if (!tags.isMember("StudyDate"))
+      {
+        LOG(WARNING) << "AdvancedStorage - No 'StudyDate' in attachment " << uuid << ".  Attachment will be stored in NO_STUDY_DATE folder";
+      }
+
+      AddSplitDateDicomTagToPath(path, tags, "StudyDate", "NO_STUDY_DATE");
+      AddStringDicomTagToPath(path, tags, "PatientID");  // no default value, tag is always present if the instance is accepted by Orthanc  
+      
+      if (tags.isMember("PatientName") && tags["PatientName"].isString() && !tags["PatientName"].asString().empty())
+      {
+        path += std::string(" - ") + tags["PatientName"].asString();
+      }
+
+      AddStringDicomTagToPath(path, tags, "StudyDescription");
+      AddStringDicomTagToPath(path, tags, "SeriesInstanceUID");
+
+      path /= uuid;
+      path += GetExtension(type, isCompressed);
+      return path;
+    }
+  }
+
+  return GetLegacyRelativePath(uuid);
 }
 
 
@@ -200,36 +280,54 @@ OrthancPluginErrorCode StorageCreate(OrthancPluginMemoryBuffer* customData,
                                              bool isCompressed)
 {
   fs::path relativePath = GetRelativePathFromTags(tags, uuid, type, isCompressed);
-  std::string customDataString = GetCustomData(relativePath);
+  std::string customDataString;
+  GetCustomData(customDataString, relativePath);
 
-  fs::path absolutePath = absoluteRootPath_ / relativePath;
+  fs::path rootPath = GetRootPath();
+  fs::path path = rootPath / relativePath;
 
-  if (fs::exists(absolutePath))
+  LOG(INFO) << "Advanced Storage - creating attachment \"" << uuid << "\" of type " << static_cast<int>(type) << " (path = " + path.string() + ")";
+
+  // check that the final path is not 'above' the root path (this could happen if e.g., a PatientName is ../../../../toto)
+  std::string canonicalPath = fs::canonical(path).string();
+  if (!Orthanc::Toolbox::StartsWith(canonicalPath, rootPath.string()))
+  {
+    throw Orthanc::OrthancException(Orthanc::ErrorCode_InternalError, std::string("Advanced Storage - final path is above root: '") + canonicalPath + "' - '" + rootPath.string() + "'") ;
+  }
+
+  // check path length !!!!!, if too long, go back to legacy path and issue a warning
+  if (path.string().size() > maxPathLength_)
+  {
+    fs::path legacyPath = rootPath / GetLegacyRelativePath(uuid);
+    LOG(WARNING) << "Advanced Storage - WAS01 - Path is too long: '" << path.string() << "' will be stored in '" << legacyPath << "'";
+    path = legacyPath;
+  }
+
+  if (fs::exists(path))
   {
     // Extremely unlikely case if uuid is included in the path: This Uuid has already been created
     // in the past.
-    throw Orthanc::OrthancException(Orthanc::ErrorCode_InternalError);
+    throw Orthanc::OrthancException(Orthanc::ErrorCode_InternalError, "Advanced Storage - path already exists");
 
     // TODO for the future: handle duplicates path (e.g: there's no uuid in the path and we are uploading the same file again)
-    // OrthancPlugins::LogWarning(std::string("Overwriting file \"") + path.string() + "\" (" + uuid + ")");
   }
 
-  if (fs::exists(absolutePath.parent_path()))
+  if (fs::exists(path.parent_path()))
   {
-    if (!fs::is_directory(absolutePath.parent_path()))
+    if (!fs::is_directory(path.parent_path()))
     {
       throw Orthanc::OrthancException(Orthanc::ErrorCode_DirectoryOverFile);
     }
   }
   else
   {
-    if (!fs::create_directories(absolutePath.parent_path()))
+    if (!fs::create_directories(path.parent_path()))
     {
       throw Orthanc::OrthancException(Orthanc::ErrorCode_FileStorageCannotWrite);
     }
   }
 
-  Orthanc::SystemToolbox::WriteFile(content, size, absolutePath.string(), fsyncOnWrite_);
+  Orthanc::SystemToolbox::WriteFile(content, size, path.string(), fsyncOnWrite_);
 
   OrthancPluginCreateMemoryBuffer(OrthancPlugins::GetGlobalContext(), customData, customDataString.size());
   memcpy(customData->data, customDataString.data(), customDataString.size());
@@ -248,8 +346,6 @@ OrthancPluginErrorCode StorageCreateInstance(OrthancPluginMemoryBuffer* customDa
 {
   try
   {
-    OrthancPlugins::LogInfo(std::string("Creating instance attachment \"") + uuid + "\"");
-
     OrthancPlugins::DicomInstance dicomInstance(instance);
     Json::Value tags;
     dicomInstance.GetSimplifiedJson(tags);
@@ -304,9 +400,9 @@ OrthancPluginErrorCode StorageReadWhole(OrthancPluginMemoryBuffer64* target,
                                         const char* customData,
                                         OrthancPluginContentType type)
 {
-  OrthancPlugins::LogInfo(std::string("Reading attachment \"") + uuid + "\"");
+  std::string path = GetPath(uuid, customData).string();
 
-  std::string path = GetAbsolutePath(uuid, customData).string();
+  LOG(INFO) << "Advanced Storage - Reading whole attachment \"" << uuid << "\" of type " << static_cast<int>(type) << " (path = " + path + ")";
 
   if (!Orthanc::SystemToolbox::IsRegularFile(path))
   {
@@ -359,9 +455,9 @@ OrthancPluginErrorCode StorageReadRange (OrthancPluginMemoryBuffer64* target,
                                          OrthancPluginContentType type,
                                          uint64_t rangeStart)
 {
-  OrthancPlugins::LogInfo(std::string("Reading attachment \"") + uuid + "\"");
+  std::string path = GetPath(uuid, customData).string();
 
-  std::string path = GetAbsolutePath(uuid, customData).string();
+  LOG(INFO) << "Advanced Storage - Reading range of attachment \"" << uuid << "\" of type " << static_cast<int>(type) << " (path = " + path + ")";
 
   if (!Orthanc::SystemToolbox::IsRegularFile(path))
   {
@@ -400,13 +496,13 @@ OrthancPluginErrorCode StorageRemove (const char* uuid,
                                       const char* customData,
                                       OrthancPluginContentType type)
 {
-  // LOG(INFO) << "Deleting attachment \"" << uuid << "\" of type " << static_cast<int>(type);
+  fs::path path = GetPath(uuid, customData);
 
-  fs::path p = GetAbsolutePath(uuid, customData);
+  LOG(INFO) << "Advanced Storage - Deleting attachment \"" << uuid << "\" of type " << static_cast<int>(type) << " (path = " + path.string() + ")";
 
   try
   {
-    fs::remove(p);
+    fs::remove(path);
   }
   catch (...)
   {
@@ -417,9 +513,9 @@ OrthancPluginErrorCode StorageRemove (const char* uuid,
 
   try
   {
-    fs::path parent = p.parent_path();
+    fs::path parent = path.parent_path();
 
-    while (parent != absoluteRootPath_)
+    while (parent != GetRootPath())
     {
       fs::remove(parent);
       parent = parent.parent_path();
@@ -467,12 +563,108 @@ extern "C"
             
             // Enables/disables the plugin
             "Enable": false,
+
+            // Enables/disables support for multiple StorageDirectories
+            "MultipleStorages" : {
+              "Storages" : {
+                // The storgae ids below may never change since they are stored in DB
+                // The storage path may change in case you move your data from one place to the other
+                "1" : "/var/lib/orthanc/db",
+                "2" : "/mnt/disk2/orthanc"
+              },
+
+              // the storage on which new data is stored.
+              // There's currently no automatic changes of disks
+              "CurrentStorage" : "2",
+            },
+
+            // Defines the storage structure and file namings.  Right now, 
+            // only the "OrthancDefault" value shall be used in a production environment.  
+            // All other values are currently experimental
+            // "OrthancDefault" = same structure and file naming as default orthanc, 
+            // "Preset1-StudyDatePatientID" = split(StudyDate)/PatientID - PatientName/StudyDescription/SeriesInstanceUID/uuid.ext
+            "NamingScheme" : "OrthancDefault",
+
+            // Defines the maximum length for path used in the storage.  If a file is longer
+            // than this limit, it is stored with the default orthanc naming scheme
+            // (and a warning is issued).
+            // Note, on Windows, the maximum path length is 260 bytes by default but can be increased
+            // through a configuration.
+            "MaxPathLength" : 256
           }
         }
       */
 
-      absoluteRootPath_ = fs::absolute(fs::path(orthancConfiguration.GetStringValue("StorageDirectory", "OrthancStorage")));
-      LOG(WARNING) << "AdvancedStorage - Path to the storage area: " << absoluteRootPath_.string();
+      fsyncOnWrite_ = orthancConfiguration.GetBooleanValue("SyncStorageArea", true);
+
+      const Json::Value& pluginJson = advancedStorage.GetJson();
+
+      namingScheme_ = advancedStorage.GetStringValue("NamingScheme", "OrthancDefault");
+
+      // if we have enabled multiple storage after files have been saved without this plugin, we still need the default StorageDirectory
+      rootPath_ = fs::path(orthancConfiguration.GetStringValue("StorageDirectory", "OrthancStorage"));
+      LOG(WARNING) << "AdvancedStorage - Path to the default storage area: " << rootPath_.string();
+
+      maxPathLength_ = orthancConfiguration.GetIntegerValue("MaxPathLength", 256);
+      LOG(WARNING) << "AdvancedStorage - Maximum path length: " << maxPathLength_;
+
+      if (!rootPath_.is_absolute())
+      {
+        LOG(ERROR) << "AdvancedStorage - Path to the default storage area should be an absolute path";
+        return -1;
+      }
+
+      if (rootPath_.size() > (maxPathLength_ - legacyPathLength))
+      {
+        LOG(ERROR) << "AdvancedStorage - Path to the default storage is too long";
+        return -1;
+      }
+
+      if (pluginJson.isMember("MultipleStorages"))
+      {
+        multipleStoragesEnabled_ = true;
+        const Json::Value& multipleStoragesJson = pluginJson["MultipleStorages"];
+        
+        if (multipleStoragesJson.isMember("Storages") && multipleStoragesJson.isObject() && multipleStoragesJson.isMember("CurrentStorage") && multipleStoragesJson["CurrentStorage"].isString())
+        {
+          const Json::Value& storagesJson = multipleStoragesJson["Storages"];
+          Json::Value::Members storageIds = storagesJson.getMemberNames();
+    
+          for (Json::Value::Members::const_iterator it = storageIds.begin(); it != storageIds.end(); ++it)
+          {
+            const Json::Value& storagePath = storagesJson[*it];
+            if (!storagePath.isString())
+            {
+              LOG(ERROR) << "AdvancedStorage - Storage path is not a string " << *it;
+              return -1;
+            }
+
+            rootPaths_[*it] = storagePath.asString();
+
+            if (!rootPaths_[*it].is_absolute())
+            {
+              LOG(ERROR) << "AdvancedStorage - Storage path shall be absolute path '" << storagePath.asString() << "'";
+              return -1;
+            }
+
+            if (storagePath.asString().size() > (maxPathLength_ - legacyPathLength))
+            {
+              LOG(ERROR) << "AdvancedStorage - Storage path is too long '" << storagePath.asString() << "'";
+              return -1;
+            }
+          }
+
+          currentStorageId_ = multipleStoragesJson["CurrentStorage"].asString();
+
+          if (rootPaths_.find(currentStorageId_) == rootPaths_.end())
+          {
+            LOG(ERROR) << "AdvancedStorage - CurrentStorage is not defined in Storages list: " << currentStorageId_;
+            return -1;
+          }
+
+          LOG(WARNING) << "AdvancedStorage - multiple storages enabled.  Current storage : " << rootPaths_[currentStorageId_].string();
+        }
+      }
 
       OrthancPluginRegisterStorageArea3(context, StorageCreateInstance, StorageCreateAttachment, StorageReadWhole, StorageReadRange, StorageRemove);
     }
