@@ -1,5 +1,7 @@
 TODO_CUSTOM_DATA branch
 - add REVISIONS in SQLite since we change the DB schema
+- add revisions and customData in all Database plugins
+- check if we can play with GlobalProperty_DatabasePatchLevel instead of upgrading the DB version !
 - upgrade DB automatically such that it does not need a specific launch with --update , add --downgrade + --no-auto-upgrade command lines
 - expand the DB plugin SDK to handle customDATA
 - implement OrthancPluginDataBaseV4 and refuse to instantiate a PluginStorage3 if a DBv4 is not instantiated !

@@ -259,5 +259,7 @@ namespace Orthanc
                          IStorageArea& storageArea) = 0;
 
     virtual bool HasRevisionsSupport() const = 0;
+
+    virtual bool HasAttachmentCustomDataSupport() const = 0;
   };
 }
