@@ -97,6 +97,10 @@ namespace Orthanc
       return false;  // TODO - REVISIONS
     }
 
+    virtual bool HasAttachmentCustomDataSupport() const ORTHANC_OVERRIDE
+    {
+      return true;
+    }
 
     /**
      * The "StartTransaction()" method is guaranteed to return a class

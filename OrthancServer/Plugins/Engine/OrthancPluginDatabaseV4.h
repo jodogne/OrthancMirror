@@ -31,28 +31,28 @@
 
 namespace Orthanc
 {
-  class OrthancPluginDatabaseV3 : public IDatabaseWrapper
+  class OrthancPluginDatabaseV4 : public IDatabaseWrapper
   {
   private:
     class Transaction;
 
     SharedLibrary&                  library_;
     PluginsErrorDictionary&         errorDictionary_;
-    OrthancPluginDatabaseBackendV3  backend_;
+    OrthancPluginDatabaseBackendV4  backend_;
     void*                           database_;
     std::string                     serverIdentifier_;
 
     void CheckSuccess(OrthancPluginErrorCode code) const;
 
   public:
-    OrthancPluginDatabaseV3(SharedLibrary& library,
+    OrthancPluginDatabaseV4(SharedLibrary& library,
                             PluginsErrorDictionary&  errorDictionary,
-                            const OrthancPluginDatabaseBackendV3* backend,
+                            const OrthancPluginDatabaseBackendV4* backend,
                             size_t backendSize,
                             void* database,
                             const std::string& serverIdentifier);
 
-    virtual ~OrthancPluginDatabaseV3();
+    virtual ~OrthancPluginDatabaseV4();
 
     virtual void Open() ORTHANC_OVERRIDE;
 
@@ -83,10 +83,7 @@ namespace Orthanc
 
     virtual bool HasRevisionsSupport() const ORTHANC_OVERRIDE;
 
-    virtual bool HasAttachmentCustomDataSupport() const ORTHANC_OVERRIDE
-    {
-      return false; // introduced in V4
-    }
+    virtual bool HasAttachmentCustomDataSupport() const ORTHANC_OVERRIDE;
 
   };
 }

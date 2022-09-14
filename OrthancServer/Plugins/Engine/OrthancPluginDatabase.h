@@ -113,6 +113,11 @@ namespace Orthanc
       return false;  // No support for revisions in old API
     }
 
+    virtual bool HasAttachmentCustomDataSupport() const ORTHANC_OVERRIDE
+    {
+      return false;  // No support for custom data in old API
+    }
+
     void AnswerReceived(const _OrthancPluginDatabaseAnswer& answer);
   };
 }
