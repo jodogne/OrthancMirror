@@ -289,10 +289,13 @@ OrthancPluginErrorCode StorageCreate(OrthancPluginMemoryBuffer* customData,
   LOG(INFO) << "Advanced Storage - creating attachment \"" << uuid << "\" of type " << static_cast<int>(type) << " (path = " + path.string() + ")";
 
   // check that the final path is not 'above' the root path (this could happen if e.g., a PatientName is ../../../../toto)
-  std::string canonicalPath = fs::canonical(path).string();
-  if (!Orthanc::Toolbox::StartsWith(canonicalPath, rootPath.string()))
+  // fs::canonical() can not be used for that since the file needs to exist
+  // so far, we'll just forbid path containing '..' since they might be suspicious
+  if (path.string().find("..") != std::string::npos)
   {
-    throw Orthanc::OrthancException(Orthanc::ErrorCode_InternalError, std::string("Advanced Storage - final path is above root: '") + canonicalPath + "' - '" + rootPath.string() + "'") ;
+    fs::path legacyPath = rootPath / GetLegacyRelativePath(uuid);
+    LOG(WARNING) << "Advanced Storage - WAS02 - Path is suspicious since it contains '..': '" << path.string() << "' will be stored in '" << legacyPath << "'";
+    path = legacyPath;
   }
 
   // check path length !!!!!, if too long, go back to legacy path and issue a warning
