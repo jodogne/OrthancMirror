@@ -11,6 +11,7 @@ TODO_CUSTOM_DATA branch
   - generate path from tags from resource (CreateAttachment)
   - add an instanceId or parentSeriesId arg in CreateInstance ? 
   - implement a 'legacy' root path to group all files with missing tags or path too long
+  - avoid error AdvancedStorage - Path to the default storage area should be an absolute path '"OrthancStorage"' when using PG and no StorageDirectory has been defined
   - document that, once you have used the AdvancedStoragePlugin and stored DICOM files, you can not downgrade Orthanc to a previous Orthanc
     without loosing access to the DICOM files
   - write integration test for advanced-storage: 

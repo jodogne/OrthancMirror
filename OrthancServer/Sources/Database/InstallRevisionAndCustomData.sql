@@ -19,7 +19,7 @@
 
 
 --
--- This SQLite script updates the version of the Orthanc database from 6 to 7.
+-- This SQLite script installs revision and customData without changing the Orthanc database version
 --
 
 -- Add new columns for revision
