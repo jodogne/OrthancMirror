@@ -613,7 +613,7 @@ extern "C"
 
       if (!rootPath_.is_absolute())
       {
-        LOG(ERROR) << "AdvancedStorage - Path to the default storage area should be an absolute path";
+        LOG(ERROR) << "AdvancedStorage - Path to the default storage area should be an absolute path '" << rootPath_ << "'";
         return -1;
       }
 
