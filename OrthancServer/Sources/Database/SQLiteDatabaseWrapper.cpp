@@ -39,6 +39,8 @@
 #include <stdio.h>
 #include <boost/lexical_cast.hpp>
 
+static std::map<std::string, std::string> filesToDeleteCustomData;
+
 namespace Orthanc
 {  
   class SQLiteDatabaseWrapper::LookupFormatter : public ISqlLookupFormatter
@@ -323,10 +325,9 @@ namespace Orthanc
                                const FileInfo& attachment,
                                int64_t revision) ORTHANC_OVERRIDE
     {
-      // TODO - REVISIONS
       SQLite::Statement s(db_, SQLITE_FROM_HERE, 
-        "INSERT INTO AttachedFiles (id, fileType, uuid, compressedSize, uncompressedSize, compressionType, uncompressedMD5, compressedMD5, customData) "
-        "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        "INSERT INTO AttachedFiles (id, fileType, uuid, compressedSize, uncompressedSize, compressionType, uncompressedMD5, compressedMD5, revision, customData) "
+        "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
       s.BindInt64(0, id);
       s.BindInt(1, attachment.GetContentType());
       s.BindString(2, attachment.GetUuid());
@@ -335,7 +336,8 @@ namespace Orthanc
       s.BindInt(5, attachment.GetCompressionType());
       s.BindString(6, attachment.GetUncompressedMD5());
       s.BindString(7, attachment.GetCompressedMD5());
-      s.BindString(8, attachment.GetCustomData());
+      s.BindInt(8, revision);
+      s.BindString(9, attachment.GetCustomData());
       s.Run();
     }
 
@@ -478,6 +480,28 @@ namespace Orthanc
       }
     }
 
+    void DeleteDeletedFile(const std::string& uuid)
+    {
+      SQLite::Statement s(db_, SQLITE_FROM_HERE, "DELETE FROM DeletedFiles WHERE uuid=?");
+      s.BindString(0, uuid);
+      s.Run();
+    }
+
+    void GetDeletedFileCustomData(std::string& customData, const std::string& uuid)
+    {
+      SQLite::Statement s(db_, SQLITE_FROM_HERE, 
+                          "SELECT customData FROM DeletedFiles WHERE uuid=?");
+      s.BindString(0, uuid);
+    
+      if (s.Step())
+      { 
+        customData = s.ColumnString(0);
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_UnknownResource);
+      }
+    }
 
     virtual void GetAllMetadata(std::map<MetadataType, std::string>& target,
                                 int64_t id) ORTHANC_OVERRIDE
@@ -803,7 +827,7 @@ namespace Orthanc
     {
       SQLite::Statement s(db_, SQLITE_FROM_HERE, 
                           "SELECT uuid, uncompressedSize, compressionType, compressedSize, "
-                          "uncompressedMD5, compressedMD5, customData FROM AttachedFiles WHERE id=? AND fileType=?");
+                          "uncompressedMD5, compressedMD5, revision, customData FROM AttachedFiles WHERE id=? AND fileType=?");
       s.BindInt64(0, id);
       s.BindInt(1, contentType);
 
@@ -820,8 +844,8 @@ namespace Orthanc
                               static_cast<CompressionType>(s.ColumnInt(2)),
                               s.ColumnInt64(3),
                               s.ColumnString(5),
-                              s.ColumnString(6));
-        revision = 0;   // TODO - REVISIONS
+                              s.ColumnString(7));
+        revision = s.ColumnInt(6);
         return true;
       }
     }
@@ -856,7 +880,7 @@ namespace Orthanc
                                 MetadataType type) ORTHANC_OVERRIDE
     {
       SQLite::Statement s(db_, SQLITE_FROM_HERE, 
-                          "SELECT value FROM Metadata WHERE id=? AND type=?");
+                          "SELECT value, revision FROM Metadata WHERE id=? AND type=?");
       s.BindInt64(0, id);
       s.BindInt(1, type);
 
@@ -867,7 +891,7 @@ namespace Orthanc
       else
       {
         target = s.ColumnString(0);
-        revision = 0;   // TODO - REVISIONS
+        revision = s.ColumnInt(1);
         return true;
       }
     }
@@ -1039,11 +1063,11 @@ namespace Orthanc
                              const std::string& value,
                              int64_t revision) ORTHANC_OVERRIDE
     {
-      // TODO - REVISIONS
-      SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT OR REPLACE INTO Metadata VALUES(?, ?, ?)");
+      SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT OR REPLACE INTO Metadata (id, type, value, revision) VALUES(?, ?, ?, ?)");
       s.BindInt64(0, id);
       s.BindInt(1, type);
       s.BindString(2, value);
+      s.BindInt(3, revision);
       s.Run();
     }
 
@@ -1101,14 +1125,19 @@ namespace Orthanc
 
     virtual unsigned int GetCardinality() const ORTHANC_OVERRIDE
     {
-      return 8;
+      return 7;
     }
 
     virtual void Compute(SQLite::FunctionContext& context) ORTHANC_OVERRIDE
     {
       if (sqlite_.activeTransaction_ != NULL)
       {
-        std::string uncompressedMD5, compressedMD5, customData;
+        std::string id = context.GetStringValue(0);
+
+        std::string customData;
+        sqlite_.activeTransaction_->GetDeletedFileCustomData(customData, id);
+
+        std::string uncompressedMD5, compressedMD5;
 
         if (!context.IsNullValue(5))
         {
@@ -1118,11 +1147,6 @@ namespace Orthanc
         if (!context.IsNullValue(6))
         {
           compressedMD5 = context.GetStringValue(6);
-        }
-
-        if (!context.IsNullValue(7))
-        {
-          customData = context.GetStringValue(7);
         }
 
         FileInfo info(context.GetStringValue(0),
@@ -1135,6 +1159,7 @@ namespace Orthanc
                       customData);
 
         sqlite_.activeTransaction_->GetListener().SignalAttachmentDeleted(info);
+        sqlite_.activeTransaction_->DeleteDeletedFile(id);
       }
     }
   };
@@ -1362,12 +1387,25 @@ namespace Orthanc
       // New in Orthanc 1.5.1
       if (version_ >= 6)
       {
-        if (!transaction->LookupGlobalProperty(tmp, GlobalProperty_GetTotalSizeIsFast, true /* unused in SQLite */) ||
-            tmp != "1")
+        if (!transaction->LookupGlobalProperty(tmp, GlobalProperty_GetTotalSizeIsFast, true /* unused in SQLite */) 
+            || tmp != "1")
         {
           LOG(INFO) << "Installing the SQLite triggers to track the size of the attachments";
           std::string query;
           ServerResources::GetFileResource(query, ServerResources::INSTALL_TRACK_ATTACHMENTS_SIZE);
+          db_.Execute(query);
+        }
+      }
+
+      // New in Orthanc 1.12.0
+      if (version_ >= 6)
+      {
+        if (!transaction->LookupGlobalProperty(tmp, GlobalProperty_SQLiteHasCustomDataAndRevision, true /* unused in SQLite */) 
+            || tmp != "1")
+        {
+          LOG(INFO) << "Upgrading SQLite schema to support revision and customData";
+          std::string query;
+          ServerResources::GetFileResource(query, ServerResources::INSTALL_REVISION_AND_CUSTOM_DATA);
           db_.Execute(query);
         }
       }
@@ -1453,13 +1491,6 @@ namespace Orthanc
       }
       
       version_ = 6;
-    }
-
-    if (version_ == 6)
-    {
-      LOG(WARNING) << "Upgrading database version from 6 to 7";
-      ExecuteUpgradeScript(db_, ServerResources::UPGRADE_DATABASE_6_TO_7);
-      version_ = 7;
     }
 
   }

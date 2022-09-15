@@ -33,8 +33,7 @@ set(ORTHANC_VERSION "mainline")
 #   * Orthanc 0.7.3 -> Orthanc 0.8.4 = version 4
 #   * Orthanc 0.8.5 -> Orthanc 0.9.4 = version 5
 #   * Orthanc 0.9.5 -> Orthanc 1.11.X = version 6
-#   * Orthanc 1.12.0 -> mainline      = version 7
-set(ORTHANC_DATABASE_VERSION 7)
+set(ORTHANC_DATABASE_VERSION 6)
 
 # Version of the Orthanc API, can be retrieved from "/system" URI in
 # order to check whether new URI endpoints are available even if using

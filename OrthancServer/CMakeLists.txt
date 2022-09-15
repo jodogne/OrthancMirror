@@ -230,7 +230,8 @@ set(ORTHANC_EMBEDDED_FILES
   PREPARE_DATABASE             ${CMAKE_SOURCE_DIR}/Sources/Database/PrepareDatabase.sql
   UPGRADE_DATABASE_3_TO_4      ${CMAKE_SOURCE_DIR}/Sources/Database/Upgrade3To4.sql
   UPGRADE_DATABASE_4_TO_5      ${CMAKE_SOURCE_DIR}/Sources/Database/Upgrade4To5.sql
-  UPGRADE_DATABASE_6_TO_7      ${CMAKE_SOURCE_DIR}/Sources/Database/Upgrade6To7.sql
+  INSTALL_REVISION_AND_CUSTOM_DATA
+  ${CMAKE_SOURCE_DIR}/Sources/Database/InstallRevisionAndCustomData.sql
 
   INSTALL_TRACK_ATTACHMENTS_SIZE
   ${CMAKE_SOURCE_DIR}/Sources/Database/InstallTrackAttachmentsSize.sql
