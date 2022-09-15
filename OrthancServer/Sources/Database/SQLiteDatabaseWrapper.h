@@ -94,7 +94,7 @@ namespace Orthanc
 
     virtual bool HasRevisionsSupport() const ORTHANC_OVERRIDE
     {
-      return false;  // TODO - REVISIONS
+      return true;
     }
 
     virtual bool HasAttachmentCustomDataSupport() const ORTHANC_OVERRIDE

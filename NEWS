@@ -1,3 +1,22 @@
+Pending changes in the mainline
+===============================
+
+General
+-------
+
+* SQLite default DB engine now supports metadata and attachment revisions
+* Upgraded the DB to allow plugins to store customData for each attachment.
+* New sample Advanced Storage plugin that allows:
+  - using multiple disk for image storage
+  - use more human friendly storage structure (experimental feature)
+
+Plugins
+-------
+
+* New database plugin SDK (v4) to handle customData for attachments.
+* New storage plugin SDK (v3) to handle customData for attachments,
+
+
 version 1.11.2 (2022-08-30)
 ===========================
 

@@ -295,7 +295,6 @@ TEST_F(DatabaseWrapperTest, Simple)
   transaction_->AddAttachment(a[4], FileInfo("my dicom file", FileContentType_Dicom, 42, "md5", "customData"), 43);
   transaction_->AddAttachment(a[6], FileInfo("world", FileContentType_Dicom, 44, "md5", "customData"), 44);
   
-  // TODO - REVISIONS - "42" is revision number, that is not currently stored (*)
   transaction_->SetMetadata(a[4], MetadataType_RemoteAet, "PINNACLE", 42);
   
   transaction_->GetAllMetadata(md, a[4]);
@@ -334,17 +333,17 @@ TEST_F(DatabaseWrapperTest, Simple)
 
   int64_t revision;
   ASSERT_TRUE(transaction_->LookupMetadata(s, revision, a[4], MetadataType_RemoteAet));
-  ASSERT_EQ(0, revision);   // "0" instead of "42" because of (*)
+  ASSERT_EQ(42, revision);
   ASSERT_FALSE(transaction_->LookupMetadata(s, revision, a[4], MetadataType_Instance_IndexInSeries));
-  ASSERT_EQ(0, revision);
+  ASSERT_EQ(42, revision);
   ASSERT_EQ("PINNACLE", s);
 
   std::string u;
   ASSERT_TRUE(transaction_->LookupMetadata(u, revision, a[4], MetadataType_RemoteAet));
-  ASSERT_EQ(0, revision);
+  ASSERT_EQ(42, revision);
   ASSERT_EQ("PINNACLE", u);
   ASSERT_FALSE(transaction_->LookupMetadata(u, revision, a[4], MetadataType_Instance_IndexInSeries));
-  ASSERT_EQ(0, revision);
+  ASSERT_EQ(42, revision);
 
   ASSERT_TRUE(transaction_->LookupGlobalProperty(s, GlobalProperty_FlushSleep, true));
   ASSERT_FALSE(transaction_->LookupGlobalProperty(s, static_cast<GlobalProperty>(42), true));
@@ -352,7 +351,7 @@ TEST_F(DatabaseWrapperTest, Simple)
 
   FileInfo att;
   ASSERT_TRUE(transaction_->LookupAttachment(att, revision, a[4], FileContentType_DicomAsJson));
-  ASSERT_EQ(0, revision);  // "0" instead of "42" because of (*)
+  ASSERT_EQ(42, revision);
   ASSERT_EQ("my json file", att.GetUuid());
   ASSERT_EQ(21u, att.GetCompressedSize());
   ASSERT_EQ("md5", att.GetUncompressedMD5());
@@ -361,7 +360,7 @@ TEST_F(DatabaseWrapperTest, Simple)
   ASSERT_EQ(CompressionType_ZlibWithSize, att.GetCompressionType());
 
   ASSERT_TRUE(transaction_->LookupAttachment(att, revision, a[6], FileContentType_Dicom));
-  ASSERT_EQ(0, revision);  // "0" instead of "42" because of (*)
+  ASSERT_EQ(44, revision);
   ASSERT_EQ("world", att.GetUuid());
   ASSERT_EQ(44u, att.GetCompressedSize());
   ASSERT_EQ("md5", att.GetUncompressedMD5());
@@ -397,11 +396,11 @@ TEST_F(DatabaseWrapperTest, Simple)
 
   CheckTableRecordCount(0, "Resources");
   CheckTableRecordCount(0, "AttachedFiles");
-  CheckTableRecordCount(3, "GlobalProperties");
+  CheckTableRecordCount(4, "GlobalProperties");
 
   std::string tmp;
   ASSERT_TRUE(transaction_->LookupGlobalProperty(tmp, GlobalProperty_DatabaseSchemaVersion, true));
-  ASSERT_EQ("7", tmp);
+  ASSERT_EQ("6", tmp);
   ASSERT_TRUE(transaction_->LookupGlobalProperty(tmp, GlobalProperty_FlushSleep, true));
   ASSERT_EQ("World", tmp);
   ASSERT_TRUE(transaction_->LookupGlobalProperty(tmp, GlobalProperty_GetTotalSizeIsFast, true));

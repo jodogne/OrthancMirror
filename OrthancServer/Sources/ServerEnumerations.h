@@ -125,6 +125,7 @@ namespace Orthanc
     GlobalProperty_AnonymizationSequence = 3,
     GlobalProperty_JobsRegistry = 5,
     GlobalProperty_GetTotalSizeIsFast = 6,      // New in Orthanc 1.5.2
+    GlobalProperty_SQLiteHasCustomDataAndRevision = 7,     // New in Orthanc 1.12.0
     GlobalProperty_Modalities = 20,             // New in Orthanc 1.5.0
     GlobalProperty_Peers = 21,                  // New in Orthanc 1.5.0
 

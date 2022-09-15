@@ -1,16 +1,34 @@
 TODO_CUSTOM_DATA branch
-- add REVISIONS in SQLite since we change the DB schema
+- add REVISIONS in AttachedFiles + Metadata in SQLite since we change the DB schema
 - add revisions and customData in all Database plugins
 - check if we can play with GlobalProperty_DatabasePatchLevel instead of upgrading the DB version !
 - upgrade DB automatically such that it does not need a specific launch with --update , add --downgrade + --no-auto-upgrade command lines
-- expand the DB plugin SDK to handle customDATA
-- implement OrthancPluginDataBaseV4 and refuse to instantiate a PluginStorage3 if a DBv4 is not instantiated !
+- refuse to instantiate a PluginStorage3 if a DBv4 is not instantiated !
 - handle all TODO_CUSTOM_DATA
 - check /attachments/...  routes for path returned
 - AdvancedStoragePlugin 
-  - show warning if a tag is missing when generating the path from tags (option to disable this warning)
+  - show warning if a tag is missing when generating the path from tags (+ option to disable this warning)
   - generate path from tags from resource (CreateAttachment)
+  - add an instanceId or parentSeriesId arg in CreateInstance ? 
   - implement a 'legacy' root path to group all files with missing tags or path too long
+  - document that, once you have used the AdvancedStoragePlugin and stored DICOM files, you can not downgrade Orthanc to a previous Orthanc
+    without loosing access to the DICOM files
+  - write integration test for advanced-storage: 
+    - launch 1.11.2
+    - upload 1 file
+    - launch 1.12.0 with advanced-storage plugin with a non default namingScheme
+    - upload 1 file
+    - access + delete initial file
+
+- write integration test for transitions from one DB to the other (for each DB plugin):
+  - launch 1.11.2, 
+  - upload 2 files, 
+  - launch 1.12.0, 
+  - access + delete one file, 
+  - upload one file, 
+  - launch 1.11.2 again, 
+  - access + delete last 2 files
+
 
 =======================
 === Orthanc Roadmap ===
