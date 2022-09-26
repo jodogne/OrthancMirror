@@ -9,6 +9,9 @@ REST API
   - allow modification of PatientID, StudyInstanceUID at series level
   - allow modification of PatientID, StudyInstanceUID, SeriesInstanceUID at instance level
   - allow modification of a patient without changing her PatientID
+  Users should be careful to preserve the DICOM model when modifying high level tags.  E.g.
+  if you modify the PatientID at study level, also make sure to modify all other Patient related
+  tags (PatientName, PatientBirthDate, ...)
 
 
 OrthancFramework (C++)
