@@ -11,6 +11,12 @@ REST API
   - allow modification of a patient without changing her PatientID
 
 
+OrthancFramework (C++)
+----------------------
+
+* DicomModification::SetAllowManualIdentifiers() has been removed since it was always true -> code cleanup.
+
+
 version 1.11.2 (2022-08-30)
 ===========================
 
