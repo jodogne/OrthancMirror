@@ -1,3 +1,16 @@
+Pending changes in the mainline
+===============================
+
+REST API
+--------
+
+* Loosen the sanity checks for DICOM modifications:
+  - allow modification of PatientID at study level
+  - allow modification of PatientID, StudyInstanceUID at series level
+  - allow modification of PatientID, StudyInstanceUID, SeriesInstanceUID at instance level
+  - allow modification of a patient without changing her PatientID
+
+
 version 1.11.2 (2022-08-30)
 ===========================
 
