@@ -43,8 +43,6 @@ namespace Orthanc
       throw OrthancException(ErrorCode_NullPointer);
     }
     
-    modification_->SetAllowManualIdentifiers(true);
-
     if (modification_->IsReplaced(DICOM_TAG_PATIENT_ID))
     {
       modification_->SetLevel(ResourceType_Patient);
