@@ -1,6 +1,11 @@
 Pending changes in the mainline
 ===============================
 
+General
+-------
+* C-Store SCU now gives priority to the preferred TransferSyntax proposed by the receiving SCP
+  instead of Orthanc own AcceptedTransferSyntaxes.
+
 REST API
 --------
 

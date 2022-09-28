@@ -521,10 +521,12 @@ namespace Orthanc
                  * Accept in the order "least wanted" to "most wanted"
                  * transfer syntax.  Accepting a transfer syntax will
                  * override previously accepted transfer syntaxes.
+                 * Since Orthanc 1.11.2+, we give priority to the transfer
+                 * syntaxes proposed in the presentation context.
                  **/
-                for (int k = static_cast<int>(storageTransferSyntaxesC.size()) - 1; k >= 0; k--)
+                for (int j = static_cast<int>(pc.transferSyntaxCount)-1; j >=0; j--)
                 {
-                  for (int j = 0; j < static_cast<int>(pc.transferSyntaxCount); j++)
+                  for (int k = static_cast<int>(storageTransferSyntaxesC.size()) - 1; k >= 0; k--)
                   {
                     /**
                      * If the transfer syntax was proposed then we can accept it
