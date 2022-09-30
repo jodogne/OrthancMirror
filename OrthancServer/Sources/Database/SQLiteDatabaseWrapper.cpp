@@ -324,7 +324,7 @@ namespace Orthanc
                                int64_t revision) ORTHANC_OVERRIDE
     {
       // TODO - REVISIONS
-      SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO AttachedFiles VALUES(?, ?, ?, ?, ?, ?, ?, ?)");
+      SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO AttachedFiles (id, fileType, uuid, compressedSize, uncompressedSize, compressionType, uncompressedMD5, compressedMD5) VALUES(?, ?, ?, ?, ?, ?, ?, ?)");
       s.BindInt64(0, id);
       s.BindInt(1, attachment.GetContentType());
       s.BindString(2, attachment.GetUuid());
@@ -433,7 +433,7 @@ namespace Orthanc
     virtual int64_t CreateResource(const std::string& publicId,
                                    ResourceType type) ORTHANC_OVERRIDE
     {
-      SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO Resources VALUES(NULL, ?, ?, NULL)");
+      SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO Resources (internalId, resourceType, publicId, parentId) VALUES(NULL, ?, ?, NULL)");
       s.BindInt(0, type);
       s.BindString(1, publicId);
       s.Run();
@@ -768,7 +768,7 @@ namespace Orthanc
     virtual void LogChange(int64_t internalId,
                            const ServerIndexChange& change) ORTHANC_OVERRIDE
     {
-      SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO Changes VALUES(NULL, ?, ?, ?, ?)");
+      SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO Changes (seq, changeType, internalId, resourceType, date) VALUES(NULL, ?, ?, ?, ?)");
       s.BindInt(0, change.GetChangeType());
       s.BindInt64(1, internalId);
       s.BindInt(2, change.GetResourceType());
@@ -780,7 +780,7 @@ namespace Orthanc
     virtual void LogExportedResource(const ExportedResource& resource) ORTHANC_OVERRIDE
     {
       SQLite::Statement s(db_, SQLITE_FROM_HERE, 
-                          "INSERT INTO ExportedResources VALUES(NULL, ?, ?, ?, ?, ?, ?, ?, ?)");
+                          "INSERT INTO ExportedResources (seq, resourceType, publicId, remoteModality, patientId, studyInstanceUid, seriesInstanceUid, sopInstanceUid, date) VALUES(NULL, ?, ?, ?, ?, ?, ?, ?, ?)");
 
       s.BindInt(0, resource.GetResourceType());
       s.BindString(1, resource.GetPublicId());
@@ -974,7 +974,7 @@ namespace Orthanc
       // The "shared" info is not used by the SQLite database, as it
       // can only be used by one Orthanc server.
       
-      SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT OR REPLACE INTO GlobalProperties VALUES(?, ?)");
+      SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT OR REPLACE INTO GlobalProperties (property, value) VALUES(?, ?)");
       s.BindInt(0, property);
       s.BindString(1, value);
       s.Run();
@@ -986,7 +986,7 @@ namespace Orthanc
                                   const DicomTag& tag,
                                   const std::string& value) ORTHANC_OVERRIDE
     {
-      SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO DicomIdentifiers VALUES(?, ?, ?, ?)");
+      SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO DicomIdentifiers (id, tagGroup, tagElement, value) VALUES(?, ?, ?, ?)");
       s.BindInt64(0, id);
       s.BindInt(1, tag.GetGroup());
       s.BindInt(2, tag.GetElement());
@@ -1006,7 +1006,7 @@ namespace Orthanc
       }
       else if (IsProtectedPatient(internalId))
       {
-        SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO PatientRecyclingOrder VALUES(NULL, ?)");
+        SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO PatientRecyclingOrder (seq, patientId) VALUES(NULL, ?)");
         s.BindInt64(0, internalId);
         s.Run();
       }
@@ -1022,7 +1022,7 @@ namespace Orthanc
                                  const DicomTag& tag,
                                  const std::string& value) ORTHANC_OVERRIDE
     {
-      SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO MainDicomTags VALUES(?, ?, ?, ?)");
+      SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO MainDicomTags (id, tagGroup, tagElement, value) VALUES(?, ?, ?, ?)");
       s.BindInt64(0, id);
       s.BindInt(1, tag.GetGroup());
       s.BindInt(2, tag.GetElement());
@@ -1037,7 +1037,7 @@ namespace Orthanc
                              int64_t revision) ORTHANC_OVERRIDE
     {
       // TODO - REVISIONS
-      SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT OR REPLACE INTO Metadata VALUES(?, ?, ?)");
+      SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT OR REPLACE INTO Metadata (id, type, value) VALUES(?, ?, ?)");
       s.BindInt64(0, id);
       s.BindInt(1, type);
       s.BindString(2, value);
@@ -1072,7 +1072,7 @@ namespace Orthanc
 
       {
         SQLite::Statement s(db_, SQLITE_FROM_HERE,
-                            "INSERT INTO PatientRecyclingOrder VALUES(NULL, ?)");
+                            "INSERT INTO PatientRecyclingOrder (seq, patientId) VALUES(NULL, ?)");
         s.BindInt64(0, patient);
         s.Run();
       }
@@ -1479,7 +1479,7 @@ namespace Orthanc
   int64_t SQLiteDatabaseWrapper::UnitTestsTransaction::CreateResource(const std::string& publicId,
                                                                       ResourceType type)
   {
-    SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO Resources VALUES(NULL, ?, ?, NULL)");
+    SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO Resources (internalId, resourceType, publicId, parentId) VALUES(NULL, ?, ?, NULL)");
     s.BindInt(0, type);
     s.BindString(1, publicId);
     s.Run();
@@ -1501,7 +1501,7 @@ namespace Orthanc
                                                                      const DicomTag& tag,
                                                                      const std::string& value)
   {
-    SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO DicomIdentifiers VALUES(?, ?, ?, ?)");
+    SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO DicomIdentifiers (id, tagGroup, tagElement, value) VALUES(?, ?, ?, ?)");
     s.BindInt64(0, id);
     s.BindInt(1, tag.GetGroup());
     s.BindInt(2, tag.GetElement());
@@ -1514,7 +1514,7 @@ namespace Orthanc
                                                                     const DicomTag& tag,
                                                                     const std::string& value)
   {
-    SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO MainDicomTags VALUES(?, ?, ?, ?)");
+    SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO MainDicomTags (id, tagGroup, tagElement, value) VALUES(?, ?, ?, ?)");
     s.BindInt64(0, id);
     s.BindInt(1, tag.GetGroup());
     s.BindInt(2, tag.GetElement());
