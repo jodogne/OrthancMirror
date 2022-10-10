@@ -86,8 +86,6 @@ REST API
 Short-term
 ----------
 
-* Allow asynchronous downloads of studies > 4GB.  Note: also validate
-  synchronous downloads.
 
 --------
 Mid-term
