@@ -46,7 +46,7 @@ static const unsigned int DEFAULT_HTTP_TIMEOUT = 60;
 
 extern "C"
 {
-  static CURLcode GetHttpStatus(CURLcode code, CURL* curl, long* status)
+  static CURLcode GetHttpStatus(CURLcode code, CURL* curl, long* status, const std::string& url)
   {
     if (code == CURLE_OK)
     {
@@ -56,7 +56,8 @@ extern "C"
     else
     {
       LOG(ERROR) << "Error code " << static_cast<int>(code)
-                 << " in libcurl: " << curl_easy_strerror(code);
+                 << " in libcurl: " << curl_easy_strerror(code)
+                 << " while accessing url: " << url;
       *status = 0;
       return code;
     }
@@ -68,10 +69,10 @@ extern "C"
 #if defined(__GNUC__) || defined(__clang__)
 __attribute__((noinline)) 
 #endif
-static CURLcode OrthancHttpClientPerformSSL(CURL* curl, long* status)
+static CURLcode OrthancHttpClientPerformSSL(CURL* curl, long* status, const std::string& url)
 {
 #if ORTHANC_ENABLE_SSL == 1
-  return GetHttpStatus(curl_easy_perform(curl), curl, status);
+  return GetHttpStatus(curl_easy_perform(curl), curl, status, url);
 #else
   throw Orthanc::OrthancException(Orthanc::ErrorCode_InternalError,
                                   "Orthanc was compiled without SSL support, "
@@ -1045,11 +1046,11 @@ namespace Orthanc
     
     if (boost::starts_with(url_, "https://"))
     {
-      code = OrthancHttpClientPerformSSL(pimpl_->curl_, &status);
+      code = OrthancHttpClientPerformSSL(pimpl_->curl_, &status, url_);
     }
     else
     {
-      code = GetHttpStatus(curl_easy_perform(pimpl_->curl_), pimpl_->curl_, &status);
+      code = GetHttpStatus(curl_easy_perform(pimpl_->curl_), pimpl_->curl_, &status, url_);
     }
 
     const boost::posix_time::ptime end = boost::posix_time::microsec_clock::universal_time();
