@@ -35,6 +35,7 @@
 #include "IHttpHandler.h"
 #include "MultipartStreamReader.h"
 #include "StringHttpOutput.h"
+#include <algorithm>
 
 #if ORTHANC_ENABLE_PUGIXML == 1
 #  include "IWebDavBucket.h"
@@ -109,12 +110,25 @@ namespace Orthanc
       {
         if (length > 0)
         {
-          int status = mg_write(connection_, buffer, length);
-          if (status != static_cast<int>(length))
+          // mg_write does not support buffers > 2GB (INT_MAX) -> need to split it
+          size_t offset = 0;
+          size_t remainingSize = length;
+
+          while (remainingSize > 0)
           {
-            // status == 0 when the connection has been closed, -1 on error
-            throw OrthancException(ErrorCode_NetworkProtocol);
-          }
+            size_t packetSize = std::min(remainingSize, static_cast<size_t>(INT_MAX));
+
+            int status = mg_write(connection_, &(reinterpret_cast<const char*>(buffer)[offset]), packetSize);  
+
+            if (status != static_cast<int>(packetSize))
+            {
+              // status == 0 when the connection has been closed, -1 on error
+              throw OrthancException(ErrorCode_NetworkProtocol);
+            }
+
+            offset += packetSize;
+            remainingSize -= packetSize;
+          }  
         }
       }
 
