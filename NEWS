@@ -19,6 +19,7 @@ REST API
   Users should be careful to preserve the DICOM model when modifying high level tags.  E.g.
   if you modify the PatientID at study level, also make sure to modify all other Patient related
   tags (PatientName, PatientBirthDate, ...)
+* Allow the HTTP server to return responses > 2GB (fixes asynchronous download of zip studies > 2GB)
 
 
 OrthancFramework (C++)
