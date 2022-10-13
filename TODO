@@ -33,9 +33,6 @@ General
   Can maybe be achieved by adding a configuration to select the TLS Security Profile:
   https://github.com/DCMTK/dcmtk/blob/master/dcmtls/include/dcmtk/dcmtls/tlsciphr.h#L83 
   (e.g: TSP_Profile_BCP195_ND instead of TSP_Profile_BCP195)
-* Provide a configuration option related to MaximumStorageSize: instead of 
-  recycling older patients, simply block new ingests (from DICOM/DICOMweb/API)
-  by returning out-of-resource status (HTTP or DIMSE)
 * Add configurations to enable/disable warnings:
   - Modifying an instance while keeping its original SOPInstanceUID: This should be avoided!
   - Modifying a study while keeping its original StudyInstanceUID: This should be avoided!
@@ -188,11 +185,15 @@ Performance
   would be compatible with Transcoding.
   Use case: receiving 10 1GB instances in parallel can consume up to 20 GB
   Alternative option 1: write an "external application/plugin" that would take care of these receptions, write the
-  file at the right place and send a signal to Orthanc to "adopt" the file.
+    file at the right place and send a signal to Orthanc to "adopt" the file.
   Alternative option 2: declare a memory resource (X GB) that is available for reception.  Every time
-  Orthanc starts receiving a file, it reserves the memory or twice the memory (through a Semaphore)
-  if no memory is available, it waits and possibly timeouts returning a 503 or DIMSE A700 (out of resources).
-  This would at least protect from "out of memory" crashes.
+    Orthanc starts receiving a file, it reserves the memory or twice the memory (through a Semaphore)
+    if no memory is available, it waits and possibly timeouts returning a 503 or DIMSE A700 (out of resources).
+    This would at least protect from "out of memory" crashes.
+  Alternative option 3: Configure DCMTK to "stream" DICOM files on a temporary file on disk.  Pass the file handle
+    to Orthanc and/or the Storage plugin (instead of passing a memory buffer) -> the object-storage plugin could 
+    "stream" the file to the storage.  The HTTP server could also "stream" its response from file handles.
+    Transcoding should be "file based" too.
 
 
 ========
