@@ -609,8 +609,8 @@ if (ENABLE_PLUGINS AND BUILD_CONNECTIVITY_CHECKS)
     list(GET CMAKE_FIND_LIBRARY_PREFIXES 0 Prefix)
     list(GET CMAKE_FIND_LIBRARY_SUFFIXES 0 Suffix)
     install(FILES
-      ${CMAKE_CURRENT_BINARY_DIR}/${Prefix}ConnectivityChecks${Suffix}
-      ${CMAKE_CURRENT_BINARY_DIR}/${Prefix}ConnectivityChecks${Suffix}.${ORTHANC_VERSION}
+      ${CMAKE_CURRENT_BINARY_DIR}/ConnectivityChecks-build/${Prefix}ConnectivityChecks${Suffix}
+      ${CMAKE_CURRENT_BINARY_DIR}/ConnectivityChecks-build/${Prefix}ConnectivityChecks${Suffix}.${ORTHANC_VERSION}
       DESTINATION "share/orthanc/plugins")
   endif()
 endif()
@@ -682,8 +682,8 @@ if (ENABLE_PLUGINS AND BUILD_DELAYED_DELETION)
     list(GET CMAKE_FIND_LIBRARY_PREFIXES 0 Prefix)
     list(GET CMAKE_FIND_LIBRARY_SUFFIXES 0 Suffix)
     install(FILES
-      ${CMAKE_CURRENT_BINARY_DIR}/${Prefix}DelayedDeletion${Suffix}
-      ${CMAKE_CURRENT_BINARY_DIR}/${Prefix}DelayedDeletion${Suffix}.${ORTHANC_VERSION}
+      ${CMAKE_CURRENT_BINARY_DIR}/DelayedDeletion-build/${Prefix}DelayedDeletion${Suffix}
+      ${CMAKE_CURRENT_BINARY_DIR}/DelayedDeletion-build/${Prefix}DelayedDeletion${Suffix}.${ORTHANC_VERSION}
       DESTINATION "share/orthanc/plugins")
   endif()
 endif()
