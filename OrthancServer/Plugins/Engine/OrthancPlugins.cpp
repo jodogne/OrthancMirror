@@ -3113,6 +3113,27 @@ namespace Orthanc
     CopyToMemoryBuffer(*p.target, dicom);
   }
 
+  static void ThrowOnHttpError(HttpStatus httpStatus)
+  {
+    int intHttpStatus = static_cast<int>(httpStatus);
+    if (intHttpStatus >= 200 && intHttpStatus <= 300)
+    {
+      return; // not an error
+    }
+    else if (intHttpStatus == 401 || intHttpStatus == 403)
+    {
+      throw OrthancException(ErrorCode_Unauthorized);
+    }
+    else if (intHttpStatus == 404)
+    {
+      throw OrthancException(ErrorCode_UnknownResource);
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_BadRequest);
+    }
+  }
+
 
   void OrthancPlugins::RestApiGet(const void* parameters,
                                   bool afterPlugins)
@@ -3133,14 +3154,9 @@ namespace Orthanc
     std::map<std::string, std::string> httpHeaders;
 
     std::string result;
-    if (IHttpHandler::SimpleGet(result, NULL, *handler, RequestOrigin_Plugins, p.uri, httpHeaders) == HttpStatus_200_Ok)
-    {
-      CopyToMemoryBuffer(*p.target, result);
-    }
-    else
-    {
-      throw OrthancException(ErrorCode_UnknownResource);
-    }
+
+    ThrowOnHttpError(IHttpHandler::SimpleGet(result, NULL, *handler, RequestOrigin_Plugins, p.uri, httpHeaders));
+    CopyToMemoryBuffer(*p.target, result);
   }
 
 
@@ -3169,14 +3185,9 @@ namespace Orthanc
     }
       
     std::string result;
-    if (IHttpHandler::SimpleGet(result, NULL, *handler, RequestOrigin_Plugins, p.uri, headers) == HttpStatus_200_Ok)
-    {
-      CopyToMemoryBuffer(*p.target, result);
-    }
-    else
-    {
-      throw OrthancException(ErrorCode_UnknownResource);
-    }
+
+    ThrowOnHttpError(IHttpHandler::SimpleGet(result, NULL, *handler, RequestOrigin_Plugins, p.uri, headers));
+    CopyToMemoryBuffer(*p.target, result);
   }
 
 
@@ -3200,18 +3211,13 @@ namespace Orthanc
     std::map<std::string, std::string> httpHeaders;
 
     std::string result;
-    if (isPost ? 
+    
+    ThrowOnHttpError((isPost ? 
         IHttpHandler::SimplePost(result, NULL, *handler, RequestOrigin_Plugins, p.uri,
-                                 p.body, p.bodySize, httpHeaders) == HttpStatus_200_Ok :
+                                 p.body, p.bodySize, httpHeaders) :
         IHttpHandler::SimplePut(result, NULL, *handler, RequestOrigin_Plugins, p.uri,
-                                p.body, p.bodySize, httpHeaders) == HttpStatus_200_Ok)
-    {
-      CopyToMemoryBuffer(*p.target, result);
-    }
-    else
-    {
-      throw OrthancException(ErrorCode_UnknownResource);
-    }
+                                p.body, p.bodySize, httpHeaders)));
+    CopyToMemoryBuffer(*p.target, result);
   }
 
 
@@ -3231,10 +3237,7 @@ namespace Orthanc
       
     std::map<std::string, std::string> httpHeaders;
 
-    if (IHttpHandler::SimpleDelete(NULL, *handler, RequestOrigin_Plugins, uri, httpHeaders) != HttpStatus_200_Ok)
-    {
-      throw OrthancException(ErrorCode_UnknownResource);
-    }
+    ThrowOnHttpError(IHttpHandler::SimpleDelete(NULL, *handler, RequestOrigin_Plugins, uri, httpHeaders));
   }
 
 
