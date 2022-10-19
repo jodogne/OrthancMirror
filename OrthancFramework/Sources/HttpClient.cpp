@@ -55,9 +55,6 @@ extern "C"
     }
     else
     {
-      LOG(ERROR) << "Error code " << static_cast<int>(code)
-                 << " in libcurl: " << curl_easy_strerror(code)
-                 << " while accessing url: " << url;
       *status = 0;
       return code;
     }
@@ -97,6 +94,24 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_NetworkProtocol,
                              "libCURL error: " + std::string(curl_easy_strerror(code)));
+    }
+
+    return code;
+  }
+
+  static CURLcode CheckCode(CURLcode code, const std::string& url)
+  {
+    if (code == CURLE_NOT_BUILT_IN)
+    {
+      throw OrthancException(ErrorCode_InternalError,
+                             "Your libcurl does not contain a required feature, "
+                             "please recompile Orthanc with -DUSE_SYSTEM_CURL=OFF");
+    }
+
+    if (code != CURLE_OK)
+    {
+      throw OrthancException(ErrorCode_NetworkProtocol,
+                             "libCURL error: " + std::string(curl_easy_strerror(code)) + " while accessing " + url);
     }
 
     return code;
@@ -1064,7 +1079,7 @@ namespace Orthanc
       CLOG(INFO, HTTP) << "cURL status code: " << code;
     }
 
-    CheckCode(code);
+    CheckCode(code, url_);  // throws on HTTP error
 
     if (status == 0)
     {
