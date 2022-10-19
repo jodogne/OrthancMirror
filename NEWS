@@ -29,6 +29,12 @@ OrthancFramework (C++)
 * DicomModification::SetAllowManualIdentifiers() has been removed since it was always true -> code cleanup.
 
 
+Common plugins code (C++)
+-------------------------
+
+* Added a 'header' argument to all OrthancPeers::DoPost, DoPut, ... 
+
+
 version 1.11.2 (2022-08-30)
 ===========================
 
