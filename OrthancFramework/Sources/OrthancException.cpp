@@ -31,7 +31,8 @@ namespace Orthanc
 {
   OrthancException::OrthancException(const OrthancException& other) : 
     errorCode_(other.errorCode_),
-    httpStatus_(other.httpStatus_)
+    httpStatus_(other.httpStatus_),
+    logged_(false)
   {
     if (other.details_.get() != NULL)
     {
@@ -41,7 +42,8 @@ namespace Orthanc
 
   OrthancException::OrthancException(ErrorCode errorCode) : 
     errorCode_(errorCode),
-    httpStatus_(ConvertErrorCodeToHttpStatus(errorCode))
+    httpStatus_(ConvertErrorCodeToHttpStatus(errorCode)),
+    logged_(false)
   {
   }
 
@@ -50,6 +52,7 @@ namespace Orthanc
                                      bool log) :
     errorCode_(errorCode),
     httpStatus_(ConvertErrorCodeToHttpStatus(errorCode)),
+    logged_(log),
     details_(new std::string(details))
   {
 #if ORTHANC_ENABLE_LOGGING == 1
@@ -63,7 +66,8 @@ namespace Orthanc
   OrthancException::OrthancException(ErrorCode errorCode,
                                      HttpStatus httpStatus) :
     errorCode_(errorCode),
-    httpStatus_(httpStatus)
+    httpStatus_(httpStatus),
+    logged_(false)
   {
   }
 
@@ -73,6 +77,7 @@ namespace Orthanc
                                      bool log) :
     errorCode_(errorCode),
     httpStatus_(httpStatus),
+    logged_(log),
     details_(new std::string(details))
   {
 #if ORTHANC_ENABLE_LOGGING == 1
@@ -114,4 +119,10 @@ namespace Orthanc
       return details_->c_str();
     }
   }
+
+  bool OrthancException::HasBeenLogged() const
+  {
+    return logged_;
+  }
+
 }

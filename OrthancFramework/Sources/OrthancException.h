@@ -38,6 +38,7 @@ namespace Orthanc
 
     ErrorCode  errorCode_;
     HttpStatus httpStatus_;
+    bool       logged_;    // has the exception already been logged ?  (to avoid double logs)
 
     // New in Orthanc 1.5.0
     std::unique_ptr<std::string>  details_;
@@ -68,5 +69,7 @@ namespace Orthanc
     bool HasDetails() const;
 
     const char* GetDetails() const;
+
+    bool HasBeenLogged() const;
   };
 }

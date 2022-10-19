@@ -183,7 +183,10 @@ namespace Orthanc
         // This service provider has failed
         if (e.GetErrorCode() != ErrorCode_UnknownResource)  // This error code is valid in plugins
         {
-          LOG(ERROR) << "Exception while invoking plugin service " << service << ": " << e.What();
+          if (!e.HasBeenLogged())
+          {
+            LOG(ERROR) << "Exception while invoking plugin service " << service << ": " << e.What();
+          }
         }
 
         return static_cast<OrthancPluginErrorCode>(e.GetErrorCode());
