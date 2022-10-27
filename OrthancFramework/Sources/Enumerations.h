@@ -906,7 +906,7 @@ ORTHANC_PUBLIC
   ORTHANC_PUBLIC
   const char* GetResourceTypeText(ResourceType type,
                                   bool isPlural,
-                                  bool isLowerCase);
+                                  bool isUpperCase);
 
   ORTHANC_PUBLIC
   void GetAllDicomTransferSyntaxes(std::set<DicomTransferSyntax>& target);
