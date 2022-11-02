@@ -289,7 +289,7 @@ namespace Orthanc
 
   void FromDcmtkBridge::InitializeDictionary(bool loadPrivateDictionary)
   {
-    CLOG(INFO, DICOM) << "Using DCTMK version: " << DCMTK_VERSION_NUMBER;
+    CLOG(INFO, DICOM) << "Using DCMTK version: " << DCMTK_VERSION_NUMBER;
     
 #if DCMTK_USE_EMBEDDED_DICTIONARIES == 1
     {
