@@ -222,6 +222,7 @@ SDK
 * In "OrthancPluginLog[Error|Warning|Info]()", prefix the log line with
   the name of the plugin, as retrieved by "OrthancPluginGetName()"
 * Update the SDK to handle buffer sizes > 4GB (all sizes are currently coded in uint32_t)
+* Add a C-Get SCP handler: OrthancPluginRegisterGetCallback
 
 ----------------
 Ideas of plugins
