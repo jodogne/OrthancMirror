@@ -845,6 +845,10 @@ namespace Orthanc
     unsigned int jobsPending, jobsRunning, jobsSuccess, jobsFailed;
     context.GetJobsEngine().GetRegistry().GetStatistics(jobsPending, jobsRunning, jobsSuccess, jobsFailed);
 
+    int64_t serverUpTime = context.GetServerUpTime();
+    Json::Value lastChange;
+    context.GetIndex().GetLastChange(lastChange);
+
     MetricsRegistry& registry = context.GetMetricsRegistry();
     registry.SetValue("orthanc_disk_size_mb", static_cast<float>(diskSize) / MEGA_BYTES);
     registry.SetValue("orthanc_uncompressed_size_mb", static_cast<float>(diskSize) / MEGA_BYTES);
@@ -857,7 +861,9 @@ namespace Orthanc
     registry.SetValue("orthanc_jobs_completed", jobsSuccess + jobsFailed);
     registry.SetValue("orthanc_jobs_success", jobsSuccess);
     registry.SetValue("orthanc_jobs_failed", jobsFailed);
-    
+    registry.SetValue("orthanc_up_time_s", serverUpTime);
+    registry.SetValue("orthanc_last_change", lastChange["Last"].asInt64());
+
     std::string s;
     registry.ExportPrometheusText(s);
 
