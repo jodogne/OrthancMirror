@@ -313,7 +313,8 @@ namespace Orthanc
     ingestTranscodingOfUncompressed_(true),
     ingestTranscodingOfCompressed_(true),
     preferredTransferSyntax_(DicomTransferSyntax_LittleEndianExplicit),
-    deidentifyLogs_(false)
+    deidentifyLogs_(false),
+    serverStartTimeUtc_(boost::posix_time::second_clock::universal_time())
   {
     try
     {
@@ -2488,6 +2489,14 @@ namespace Orthanc
     }
 
     return true;
+  }
+
+  int64_t ServerContext::GetServerUpTime() const
+  {
+    boost::posix_time::ptime nowUtc = boost::posix_time::second_clock::universal_time();
+    boost::posix_time::time_duration elapsed = nowUtc - serverStartTimeUtc_;
+
+    return elapsed.total_seconds();
   }
 
 }

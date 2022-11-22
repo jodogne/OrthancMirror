@@ -35,6 +35,7 @@
 #include "../../OrthancFramework/Sources/FileStorage/StorageCache.h"
 #include "../../OrthancFramework/Sources/MultiThreading/Semaphore.h"
 
+#include <boost/date_time/posix_time/posix_time.hpp>
 
 namespace Orthanc
 {
@@ -275,6 +276,8 @@ namespace Orthanc
     // C-Move queries (new in Orthanc 1.8.2)
     DicomModification logsDeidentifierRules_;
     bool              deidentifyLogs_;
+
+    boost::posix_time::ptime serverStartTimeUtc_;
 
   public:
     class DicomCacheLocker : public boost::noncopyable
@@ -572,5 +575,7 @@ namespace Orthanc
     {
       return findStorageAccessMode_;
     }
+
+    int64_t GetServerUpTime() const;
   };
 }

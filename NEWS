@@ -24,6 +24,7 @@ REST API
 * Allow the HTTP server to return responses > 2GB (fixes asynchronous download of zip studies > 2GB)
 * /modalities/.../store now accepts "CalledAet", "Host", "Port" to override the modality configuration 
   from the configuration file for a specific operation.
+* /tools/metrics-prometheus: added orthanc_last_change and orthanc_up_time_s
 
 
 OrthancFramework (C++)
