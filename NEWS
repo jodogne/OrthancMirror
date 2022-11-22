@@ -22,6 +22,8 @@ REST API
   if you modify the PatientID at study level, also make sure to modify all other Patient related
   tags (PatientName, PatientBirthDate, ...)
 * Allow the HTTP server to return responses > 2GB (fixes asynchronous download of zip studies > 2GB)
+* /modalities/.../store now accepts "CalledAet", "Host", "Port" to override the modality configuration 
+  from the configuration file for a specific operation.
 
 
 OrthancFramework (C++)
