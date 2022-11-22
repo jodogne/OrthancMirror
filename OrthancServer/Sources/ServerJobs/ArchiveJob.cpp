@@ -647,23 +647,18 @@ namespace Orthanc
 
             writer.OpenFile(filename_.c_str());
 
-            bool transcodeSuccess = false;
-
             std::unique_ptr<ParsedDicomFile> parsed;
             
-            if (!transcodeSuccess)
+            writer.Write(content);
+
+            if (dicomDir != NULL)
             {
-              writer.Write(content);
-
-              if (dicomDir != NULL)
+              if (parsed.get() == NULL)
               {
-                if (parsed.get() == NULL)
-                {
-                  parsed.reset(new ParsedDicomFile(content));
-                }
-
-                dicomDir->Add(dicomDirFolder, filename_, *parsed);
+                parsed.reset(new ParsedDicomFile(content));
               }
+
+              dicomDir->Add(dicomDirFolder, filename_, *parsed);
             }
               
             break;
