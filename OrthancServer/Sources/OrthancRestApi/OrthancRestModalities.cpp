@@ -44,6 +44,9 @@ namespace Orthanc
 {
   static const char* const KEY_LEVEL = "Level";
   static const char* const KEY_LOCAL_AET = "LocalAet";
+  static const char* const KEY_CALLED_AET = "CalledAet";
+  static const char* const KEY_HOST = "Host";
+  static const char* const KEY_PORT = "Port";
   static const char* const KEY_NORMALIZE = "Normalize";
   static const char* const KEY_QUERY = "Query";
   static const char* const KEY_RESOURCES = "Resources";
@@ -1421,6 +1424,15 @@ namespace Orthanc
         .SetRequestField(KEY_LOCAL_AET, RestApiCallDocumentation::Type_String,
                          "Local AET that is used for this commands, defaults to `DicomAet` configuration option. "
                          "Ignored if `DicomModalities` already sets `LocalAet` for this modality.", false)
+        .SetRequestField(KEY_CALLED_AET, RestApiCallDocumentation::Type_String,
+                         "Called AET that is used for this commands, defaults to `AET` configuration option. "
+                         "Allows you to overwrite the destination AET for a specific operation.", false)
+        .SetRequestField(KEY_HOST, RestApiCallDocumentation::Type_String,
+                         "Host that is used for this commands, defaults to `Host` configuration option. "
+                         "Allows you to overwrite the destination host for a specific operation.", false)
+        .SetRequestField(KEY_PORT, RestApiCallDocumentation::Type_Number,
+                         "Port that is used for this commands, defaults to `Port` configuration option. "
+                         "Allows you to overwrite the destination port for a specific operation.", false)
         .SetRequestField(KEY_MOVE_ORIGINATOR_AET, RestApiCallDocumentation::Type_String,
                          "Move originator AET that is used for this commands, in order to fake a C-MOVE SCU", false)
         .SetRequestField(KEY_MOVE_ORIGINATOR_ID, RestApiCallDocumentation::Type_Number,
@@ -1450,8 +1462,17 @@ namespace Orthanc
     int moveOriginatorID = Toolbox::GetJsonIntegerField
       (request, KEY_MOVE_ORIGINATOR_ID, 0 /* By default, not a C-MOVE */);
 
+    RemoteModalityParameters remoteModality = MyGetModalityUsingSymbolicName(remote);
+
+    remoteModality.SetApplicationEntityTitle(Toolbox::GetJsonStringField
+      (request, KEY_CALLED_AET, remoteModality.GetApplicationEntityTitle()));
+    remoteModality.SetHost(Toolbox::GetJsonStringField
+      (request, KEY_HOST, remoteModality.GetHost()));
+    remoteModality.SetPortNumber(static_cast<uint16_t>(Toolbox::GetJsonUnsignedIntegerField
+      (request, KEY_PORT, remoteModality.GetPortNumber())));
+
     job->SetLocalAet(localAet);
-    job->SetRemoteModality(MyGetModalityUsingSymbolicName(remote));
+    job->SetRemoteModality(remoteModality);
 
     if (moveOriginatorID != 0)
     {
