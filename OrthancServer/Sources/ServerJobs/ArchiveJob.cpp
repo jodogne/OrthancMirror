@@ -82,9 +82,13 @@ namespace Orthanc
   {
   protected:
     ServerContext&                        context_;
+    bool                                  transcode_;
+    DicomTransferSyntax                   transferSyntax_;
   public:
-    explicit InstanceLoader(ServerContext& context)
-    : context_(context)
+    explicit InstanceLoader(ServerContext& context, bool transcode, DicomTransferSyntax transferSyntax)
+    : context_(context),
+      transcode_(transcode),
+      transferSyntax_(transferSyntax)
     {
     }
 
@@ -94,7 +98,31 @@ namespace Orthanc
 
     virtual void PrepareDicom(const std::string& instanceId)
     {
+    }
 
+    bool TranscodeDicom(std::string& transcodedBuffer, const std::string& sourceBuffer, const std::string& instanceId)
+    {
+      if (transcode_)
+      {
+        std::set<DicomTransferSyntax> syntaxes;
+        syntaxes.insert(transferSyntax_);
+
+        IDicomTranscoder::DicomImage source, transcoded;
+        source.SetExternalBuffer(sourceBuffer);
+
+        if (context_.Transcode(transcoded, source, syntaxes, true /* allow new SOP instance UID */))
+        {
+          transcodedBuffer.assign(reinterpret_cast<const char*>(transcoded.GetBufferData()), transcoded.GetBufferSize());
+          return true;
+        }
+        else
+        {
+          LOG(INFO) << "Cannot transcode instance " << instanceId
+                    << " to transfer syntax: " << GetTransferSyntaxUid(transferSyntax_);
+        }
+      }
+
+      return false;
     }
 
     virtual void GetDicom(std::string& dicom, const std::string& instanceId) = 0;
@@ -107,14 +135,24 @@ namespace Orthanc
   class ArchiveJob::SynchronousInstanceLoader : public ArchiveJob::InstanceLoader
   {
   public:
-    explicit SynchronousInstanceLoader(ServerContext& context)
-    : InstanceLoader(context)
+    explicit SynchronousInstanceLoader(ServerContext& context, bool transcode, DicomTransferSyntax transferSyntax)
+    : InstanceLoader(context, transcode, transferSyntax)
     {
     }
 
     virtual void GetDicom(std::string& dicom, const std::string& instanceId) ORTHANC_OVERRIDE
     {
       context_.ReadDicom(dicom, instanceId);
+
+      if (transcode_)
+      {
+        std::string transcoded;
+        if (TranscodeDicom(transcoded, dicom, instanceId))
+        {
+          dicom.swap(transcoded);
+        }
+      }
+      
     }
   };
 
@@ -145,8 +183,8 @@ namespace Orthanc
 
 
   public:
-    ThreadedInstanceLoader(ServerContext& context, size_t threadCount)
-    : InstanceLoader(context),
+    ThreadedInstanceLoader(ServerContext& context, size_t threadCount, bool transcode, DicomTransferSyntax transferSyntax)
+    : InstanceLoader(context, transcode, transferSyntax),
       availableInstancesSemaphore_(0)
     {
       for (size_t i = 0; i < threadCount; i++)
@@ -194,6 +232,16 @@ namespace Orthanc
         {
           boost::shared_ptr<std::string> dicomContent(new std::string());
           that->context_.ReadDicom(*dicomContent, instanceId->GetId());
+
+          if (that->transcode_)
+          {
+            boost::shared_ptr<std::string> transcodedDicom(new std::string());
+            if (that->TranscodeDicom(*transcodedDicom, *dicomContent, instanceId->GetId()))
+            {
+              dicomContent = transcodedDicom;
+            }
+          }
+
           {
             boost::mutex::scoped_lock lock(that->availableInstancesMutex_);
             that->availableInstances_[instanceId->GetId()] = dicomContent;
@@ -597,42 +645,12 @@ namespace Orthanc
               return;
             }
 
-            //boost::this_thread::sleep(boost::posix_time::milliseconds(300));
-
             writer.OpenFile(filename_.c_str());
 
             bool transcodeSuccess = false;
 
             std::unique_ptr<ParsedDicomFile> parsed;
             
-            if (transcode)
-            {
-              // New in Orthanc 1.7.0
-              std::set<DicomTransferSyntax> syntaxes;
-              syntaxes.insert(transferSyntax);
-
-              IDicomTranscoder::DicomImage source, transcoded;
-              source.SetExternalBuffer(content);
-
-              if (context.Transcode(transcoded, source, syntaxes, true /* allow new SOP instance UID */))
-              {
-                writer.Write(transcoded.GetBufferData(), transcoded.GetBufferSize());
-
-                if (dicomDir != NULL)
-                {
-                  std::unique_ptr<ParsedDicomFile> tmp(transcoded.ReleaseAsParsedDicomFile());
-                  dicomDir->Add(dicomDirFolder, filename_, *tmp);
-                }
-                
-                transcodeSuccess = true;
-              }
-              else
-              {
-                LOG(INFO) << "Cannot transcode instance " << instanceId_
-                          << " to transfer syntax: " << GetTransferSyntaxUid(transferSyntax);
-              }
-            }
-
             if (!transcodeSuccess)
             {
               writer.Write(content);
@@ -1195,11 +1213,11 @@ namespace Orthanc
     if (loaderThreads_ == 0)
     {
       // default behaviour before loaderThreads was introducted in 1.10.0
-      instanceLoader_.reset(new SynchronousInstanceLoader(context_));
+      instanceLoader_.reset(new SynchronousInstanceLoader(context_, transcode_, transferSyntax_));
     }
     else
     {
-      instanceLoader_.reset(new ThreadedInstanceLoader(context_, loaderThreads_));
+      instanceLoader_.reset(new ThreadedInstanceLoader(context_, loaderThreads_, transcode_, transferSyntax_));
     }
 
     if (writer_.get() != NULL)

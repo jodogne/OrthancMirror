@@ -8,6 +8,7 @@ General
   instead of Orthanc own AcceptedTransferSyntaxes.
 * Made the default SQLite DB more robust wrt future updates like adding new columns in DB.
 * Made the HTTP Client errors more verbose by including the url in the logs.
+* Optimization: now using multiple threads to transcode files for asynchronous download of studies archive.
 
 REST API
 --------
