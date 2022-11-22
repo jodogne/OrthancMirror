@@ -35,7 +35,7 @@ assertWithSideEffect:../../OrthancServer/Plugins/Engine/OrthancPluginDatabase.cp
 assertWithSideEffect:../../OrthancServer/Plugins/Engine/OrthancPluginDatabase.cpp:1018
 assertWithSideEffect:../../OrthancServer/Sources/Database/Compatibility/DatabaseLookup.cpp:289
 assertWithSideEffect:../../OrthancServer/Sources/Database/Compatibility/DatabaseLookup.cpp:388
-assertWithSideEffect:../../OrthancServer/Sources/Database/StatelessDatabaseOperations.cpp:3460
+assertWithSideEffect:../../OrthancServer/Sources/Database/StatelessDatabaseOperations.cpp:3490
 assertWithSideEffect:../../OrthancServer/Sources/ServerJobs/ResourceModificationJob.cpp:241
 EOF
 
