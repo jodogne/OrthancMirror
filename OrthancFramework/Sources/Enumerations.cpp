@@ -1728,8 +1728,12 @@ namespace Orthanc
       target = MimeType_Dicom;
       return true;
     }
-    else if (source == MIME_JPEG || source == MIME_JPG)
+    else if (source == MIME_JPEG ||
+             source == "image/jpg")
     {
+      // Note the tolerance for "image/jpg", which is *not* a standard MIME type
+      // https://groups.google.com/g/orthanc-users/c/Y5x37UFKiDg/m/1zI260KTAwAJ
+      // https://developer.mozilla.org/en-US/docs/Web/Media/Formats/Image_types
       target = MimeType_Jpeg;
       return true;
     }
