@@ -1728,7 +1728,7 @@ namespace Orthanc
       target = MimeType_Dicom;
       return true;
     }
-    else if (source == MIME_JPEG)
+    else if (source == MIME_JPEG || source == MIME_JPG)
     {
       target = MimeType_Jpeg;
       return true;
