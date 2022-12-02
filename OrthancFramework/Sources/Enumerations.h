@@ -35,7 +35,6 @@ namespace Orthanc
 
   static const char* const MIME_BINARY = "application/octet-stream";
   static const char* const MIME_JPEG = "image/jpeg";
-  static const char* const MIME_JPG = "image/jpg";
   static const char* const MIME_JSON = "application/json";
   static const char* const MIME_JSON_UTF8 = "application/json; charset=utf-8";
   static const char* const MIME_PDF = "application/pdf";

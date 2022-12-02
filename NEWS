@@ -25,7 +25,7 @@ REST API
 * /modalities/.../store now accepts "CalledAet", "Host", "Port" to override the modality configuration 
   from the configuration file for a specific operation.
 * /tools/metrics-prometheus: added orthanc_last_change and orthanc_up_time_s
-* Fix support for image/jpg mime type in /tools/create-dicom
+* Tolerance for "image/jpg" MIME type instead of "image/jpeg" in /tools/create-dicom
 
 
 OrthancFramework (C++)
