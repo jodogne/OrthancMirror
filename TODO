@@ -140,6 +140,9 @@ Mid-term
 * Strict hierarchical C-FIND:
   https://groups.google.com/d/msg/orthanc-users/VBHpeGVSNKM/tkaVvjWFBwAJ
 * report DIMSE error codes in Rest API and job status for /store /query /move /retrieve
+* report progress report of C-Move operation in jop progress.  There are 
+  progress callbacks available in DIMSE_moveUser
+  https://groups.google.com/g/orthanc-users/c/c8cGnA7FzsE/m/BSs66D8wBwAJ
 * Log outgoing C-Find queries
 
 ---------
