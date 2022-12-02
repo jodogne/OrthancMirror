@@ -445,7 +445,7 @@ namespace Orthanc
       if (streaming)
       {
         LOG(INFO) << "Streaming a ZIP archive";
-        boost::shared_ptr<SharedMessageQueue> queue(new SharedMessageQueue);
+        boost::shared_ptr<SharedMessageQueue> queue(new SharedMessageQueue(1));
 
         job->AcquireSynchronousTarget(new SynchronousZipStream(queue));
 
