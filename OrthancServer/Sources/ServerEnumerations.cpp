@@ -340,6 +340,9 @@ namespace Orthanc
       case StoreStatus_FilteredOut:
         return "FilteredOut";
 
+      case StoreStatus_StorageFull:
+        return "StorageFull";
+
       default:
         throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
