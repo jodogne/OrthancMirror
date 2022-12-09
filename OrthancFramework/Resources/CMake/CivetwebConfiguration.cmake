@@ -144,5 +144,5 @@ endif()
 
 # New in Orthanc 1.8.1
 add_definitions(
-  -DCIVETWEB_KEEP_ALIVE_TIMEOUT_SECONDS=1
+  -DCIVETWEB_KEEP_ALIVE_TIMEOUT_SECONDS=10
   )
