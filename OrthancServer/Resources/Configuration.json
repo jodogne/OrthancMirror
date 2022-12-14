@@ -596,6 +596,10 @@
   // Mongoose.
   "KeepAlive" : true,
 
+  // Defines the Keep-Alive timeout in seconds.
+  // (new in Orthanc 1.11.3)
+  "KeepAliveTimeout" : 1,
+
   // Enable or disable Nagle's algorithm. Only taken into
   // consideration if Orthanc is compiled to use CivetWeb. Experiments
   // show that best performance can be obtained by setting both

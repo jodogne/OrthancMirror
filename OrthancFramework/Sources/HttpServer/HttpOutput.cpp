@@ -47,14 +47,16 @@
 namespace Orthanc
 {
   HttpOutput::StateMachine::StateMachine(IHttpOutputStream& stream,
-                                         bool isKeepAlive) : 
+                                         bool isKeepAlive,
+                                         unsigned int keepAliveTimeout) : 
     stream_(stream),
     state_(State_WritingHeader),
     status_(HttpStatus_200_Ok),
     hasContentLength_(false),
     contentLength_(0),
     contentPosition_(0),
-    keepAlive_(isKeepAlive)
+    keepAlive_(isKeepAlive),
+    keepAliveTimeout_(keepAliveTimeout)
   {
   }
 
@@ -189,7 +191,7 @@ namespace Orthanc
          * HTTP header, so we can't use the milliseconds granularity.
          **/
         s += ("Keep-Alive: timeout=" +
-              boost::lexical_cast<std::string>(CIVETWEB_KEEP_ALIVE_TIMEOUT_SECONDS) + "\r\n");
+              boost::lexical_cast<std::string>(keepAliveTimeout_) + "\r\n");
       }
       else
       {
@@ -299,8 +301,9 @@ namespace Orthanc
 
 
   HttpOutput::HttpOutput(IHttpOutputStream &stream,
-                         bool isKeepAlive) :
-    stateMachine_(stream, isKeepAlive),
+                         bool isKeepAlive,
+                         unsigned int keepAliveTimeout) :
+    stateMachine_(stream, isKeepAlive, keepAliveTimeout),
     isDeflateAllowed_(false),
     isGzipAllowed_(false)
   {

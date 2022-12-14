@@ -45,7 +45,7 @@ namespace Orthanc
     HttpToolbox::ParseGetQuery(curi, getArguments, uri.c_str());
 
     StringHttpOutput stream;
-    HttpOutput http(stream, false /* no keep alive */);
+    HttpOutput http(stream, false /* assume no keep-alive */, 0);
 
     if (handler.Handle(http, origin, LOCALHOST, "", HttpMethod_Get, curi, 
                        httpHeaders, getArguments, NULL /* no body for GET */, 0))
@@ -82,7 +82,7 @@ namespace Orthanc
     Toolbox::SplitUriComponents(curi, uri);
 
     StringHttpOutput stream;
-    HttpOutput http(stream, false /* no keep alive */);
+    HttpOutput http(stream, false /* assume no keep-alive */, 0);
 
     if (handler.Handle(http, origin, LOCALHOST, "", method, curi, 
                        httpHeaders, getArguments, bodyData, bodySize))
@@ -141,7 +141,7 @@ namespace Orthanc
     HttpToolbox::GetArguments getArguments;  // No GET argument for DELETE
 
     StringHttpOutput stream;
-    HttpOutput http(stream, false /* no keep alive */);
+    HttpOutput http(stream, false /* assume no keep-alive */, 0);
 
     if (handler.Handle(http, origin, LOCALHOST, "", HttpMethod_Delete, curi, 
                        httpHeaders, getArguments, NULL /* no body for DELETE */, 0))

@@ -353,7 +353,7 @@ namespace Orthanc
                         size_t size)
     {
       StringHttpOutput stringOutput;
-      HttpOutput fakeOutput(stringOutput, false);
+      HttpOutput fakeOutput(stringOutput, false /* assume no keep-alive */, 0);
       HttpToolbox::GetArguments getArguments;
       
       if (!handler_.Handle(fakeOutput, RequestOrigin_RestApi, remoteIp_.c_str(), username_.c_str(), 
@@ -1456,13 +1456,13 @@ namespace Orthanc
       if (server == NULL)
       {
         MongooseOutputStream stream(connection);
-        HttpOutput output(stream, false /* assume no keep-alive */);
+        HttpOutput output(stream, false /* assume no keep-alive */, 0);
         output.SendStatus(HttpStatus_500_InternalServerError);
         return;
       }
 
       MongooseOutputStream stream(connection);
-      HttpOutput output(stream, server->IsKeepAliveEnabled());
+      HttpOutput output(stream, server->IsKeepAliveEnabled(), server->GetKeepAliveTimeout());
       HttpMethod method = HttpMethod_Get;
 
       try
@@ -1588,6 +1588,7 @@ namespace Orthanc
     port_(8000),
     filter_(NULL),
     keepAlive_(false),
+    keepAliveTimeout_(1),
     httpCompression_(true),
     exceptionFormatter_(NULL),
     realm_(ORTHANC_REALM),
@@ -1655,7 +1656,7 @@ namespace Orthanc
       std::string port = boost::lexical_cast<std::string>(port_);
       std::string numThreads = boost::lexical_cast<std::string>(threadsCount_);
       std::string requestTimeoutMilliseconds = boost::lexical_cast<std::string>(requestTimeout_ * 1000);
-      std::string keepAliveTimeoutMilliseconds = boost::lexical_cast<std::string>(CIVETWEB_KEEP_ALIVE_TIMEOUT_SECONDS * 1000);
+      std::string keepAliveTimeoutMilliseconds = boost::lexical_cast<std::string>(keepAliveTimeout_ * 1000);
       std::string sslMinimumVersion = boost::lexical_cast<std::string>(sslMinimumVersion_);
 
       if (ssl_)
@@ -1959,6 +1960,20 @@ namespace Orthanc
 #endif
   }
 
+  void HttpServer::SetKeepAliveTimeout(unsigned int timeout)
+  {
+    Stop();
+    keepAliveTimeout_ = timeout;
+    CLOG(INFO, HTTP) << "HTTP keep alive Timeout is now " << keepAliveTimeout_ << " seconds";
+
+#if ORTHANC_ENABLE_MONGOOSE == 1
+    if (enabled)
+    {
+      CLOG(WARNING, HTTP) << "You should disable HTTP keep alive, as you are using Mongoose";
+    }
+#endif
+  }
+
   const std::string &HttpServer::GetSslCertificate() const
   {
     return certificate_;
@@ -1996,6 +2011,11 @@ namespace Orthanc
   bool HttpServer::IsKeepAliveEnabled() const
   {
     return keepAlive_;
+  }
+
+  unsigned int HttpServer::GetKeepAliveTimeout() const
+  {
+    return keepAliveTimeout_;
   }
 
   void HttpServer::SetRemoteAccessAllowed(bool allowed)
