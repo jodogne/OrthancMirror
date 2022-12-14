@@ -182,7 +182,7 @@ namespace Orthanc
           totalPathsCount_ ++;
           
           StringHttpOutput o1;
-          HttpOutput o2(o1, false);
+          HttpOutput o2(o1, false /* assume no keep-alive */, 0);
           RestApiOutput o3(o2, HttpMethod_Get);
           RestApiGetCall call(o3, restApi_, RequestOrigin_Documentation, "" /* remote IP */,
                               "" /* username */, HttpToolbox::Arguments() /* HTTP headers */,
@@ -220,7 +220,7 @@ namespace Orthanc
           totalPathsCount_ ++;
           
           StringHttpOutput o1;
-          HttpOutput o2(o1, false);
+          HttpOutput o2(o1, false /* assume no keep-alive */, 0);
           RestApiOutput o3(o2, HttpMethod_Post);
           RestApiPostCall call(o3, restApi_, RequestOrigin_Documentation, "" /* remote IP */,
                                "" /* username */, HttpToolbox::Arguments() /* HTTP headers */,
@@ -258,7 +258,7 @@ namespace Orthanc
           totalPathsCount_ ++;
           
           StringHttpOutput o1;
-          HttpOutput o2(o1, false);
+          HttpOutput o2(o1, false /* assume no keep-alive */, 0);
           RestApiOutput o3(o2, HttpMethod_Delete);
           RestApiDeleteCall call(o3, restApi_, RequestOrigin_Documentation, "" /* remote IP */,
                                  "" /* username */, HttpToolbox::Arguments() /* HTTP headers */,
@@ -295,7 +295,7 @@ namespace Orthanc
           totalPathsCount_ ++;
           
           StringHttpOutput o1;
-          HttpOutput o2(o1, false);
+          HttpOutput o2(o1, false /* assume no keep-alive */, 0);
           RestApiOutput o3(o2, HttpMethod_Put);
           RestApiPutCall call(o3, restApi_, RequestOrigin_Documentation, "" /* remote IP */,
                               "" /* username */, HttpToolbox::Arguments() /* HTTP headers */,

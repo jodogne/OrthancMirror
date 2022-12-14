@@ -140,9 +140,3 @@ else()
 
   unset(CMAKE_REQUIRED_LIBRARIES)  # This reset must be after "CHECK_LIBRARY_EXISTS"
 endif()
-
-
-# New in Orthanc 1.8.1
-add_definitions(
-  -DCIVETWEB_KEEP_ALIVE_TIMEOUT_SECONDS=10
-  )

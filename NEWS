@@ -9,6 +9,7 @@ General
 * Made the default SQLite DB more robust wrt future updates like adding new columns in DB.
 * Made the HTTP Client errors more verbose by including the url in the logs.
 * Optimization: now using multiple threads to transcode files for asynchronous download of studies archive.
+* New configuration "KeepAliveTimeout" with a default value of 1 second.
 
 REST API
 --------

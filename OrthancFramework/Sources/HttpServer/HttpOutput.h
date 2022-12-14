@@ -61,6 +61,7 @@ namespace Orthanc
       uint64_t contentLength_;
       uint64_t contentPosition_;
       bool keepAlive_;
+      unsigned int keepAliveTimeout_;
       std::list<std::string> headers_;
 
       std::string multipartBoundary_;
@@ -70,7 +71,8 @@ namespace Orthanc
 
     public:
       StateMachine(IHttpOutputStream& stream,
-                   bool isKeepAlive);
+                   bool isKeepAlive,
+                   unsigned int keepAliveTimeout);
 
       ~StateMachine();
 
@@ -126,7 +128,8 @@ namespace Orthanc
 
   public:
     HttpOutput(IHttpOutputStream& stream,
-               bool isKeepAlive);
+               bool isKeepAlive,
+               unsigned int keepAliveTimeout);
 
     void SetDeflateAllowed(bool allowed);
 
