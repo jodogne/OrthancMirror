@@ -77,7 +77,9 @@ namespace Orthanc
     static const char* const STORAGE_COMPRESSION = "StorageCompression";
     static const char* const OVERWRITE_INSTANCES = "OverwriteInstances";
     static const char* const INGEST_TRANSCODING = "IngestTranscoding";
-    
+    static const char* const MAXIMUM_STORAGE_SIZE = "MaximumStorageSize";
+    static const char* const MAXIMUM_STORAGE_MODE = "MaximumStorageMode";
+
     if (call.IsDocumentation())
     {
       call.GetDocumentation()
@@ -113,6 +115,10 @@ namespace Orthanc
                         "Whether instances are overwritten when re-ingested (new in Orthanc 1.11.0)")
         .SetAnswerField(INGEST_TRANSCODING, RestApiCallDocumentation::Type_String,
                         "Whether instances are transcoded when ingested into Orthanc (`""` if no transcoding is performed) (new in Orthanc 1.11.0)")
+        .SetAnswerField(MAXIMUM_STORAGE_SIZE, RestApiCallDocumentation::Type_Number,
+                        "The configured MaximumStorageSize in MB (new in Orthanc 1.11.3)")
+        .SetAnswerField(MAXIMUM_STORAGE_MODE, RestApiCallDocumentation::Type_String,
+                        "The configured MaximumStorageMode (new in Orthanc 1.11.3)")
         .SetHttpGetSample("https://demo.orthanc-server.com/system", true);
       return;
     }
@@ -137,6 +143,8 @@ namespace Orthanc
       result[OVERWRITE_INSTANCES] = lock.GetConfiguration().GetBooleanParameter(OVERWRITE_INSTANCES, false); // New in Orthanc 1.11.0
       result[INGEST_TRANSCODING] = lock.GetConfiguration().GetStringParameter(INGEST_TRANSCODING, ""); // New in Orthanc 1.11.0
       result[DATABASE_SERVER_IDENTIFIER] = lock.GetConfiguration().GetDatabaseServerIdentifier();
+      result[MAXIMUM_STORAGE_SIZE] = lock.GetConfiguration().GetUnsignedIntegerParameter(MAXIMUM_STORAGE_SIZE, 0); // New in Orthanc 1.11.3
+      result[MAXIMUM_STORAGE_MODE] = lock.GetConfiguration().GetStringParameter(MAXIMUM_STORAGE_MODE, "Recycle"); // New in Orthanc 1.11.3
     }
 
     result[STORAGE_AREA_PLUGIN] = Json::nullValue;

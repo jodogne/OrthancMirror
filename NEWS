@@ -27,7 +27,7 @@ REST API
   from the configuration file for a specific operation.
 * /tools/metrics-prometheus: added orthanc_last_change and orthanc_up_time_s
 * Tolerance for "image/jpg" MIME type instead of "image/jpeg" in /tools/create-dicom
-
+* /system: added MaximumStorageMode and MaximumStorageSize
 
 OrthancFramework (C++)
 ----------------------
