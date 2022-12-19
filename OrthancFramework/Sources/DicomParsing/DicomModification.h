@@ -133,6 +133,7 @@ namespace Orthanc
     ResourceType level_;
     UidMap uidMap_;
     SetOfTags privateTagsToKeep_;
+    bool allowManualIdentifiers_;
     bool keepStudyInstanceUid_;
     bool keepSeriesInstanceUid_;
     bool keepSopInstanceUid_;
@@ -222,6 +223,10 @@ namespace Orthanc
     void SetupAnonymization(DicomVersion version);
 
     void Apply(ParsedDicomFile& toModify);
+
+    void SetAllowManualIdentifiers(bool check);
+
+    bool AreAllowManualIdentifiers() const;
 
     void ParseModifyRequest(const Json::Value& request);
 

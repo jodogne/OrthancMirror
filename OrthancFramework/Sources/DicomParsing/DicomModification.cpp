@@ -522,6 +522,7 @@ namespace Orthanc
   DicomModification::DicomModification() :
     removePrivateTags_(false),
     level_(ResourceType_Instance),
+    allowManualIdentifiers_(true),
     keepStudyInstanceUid_(false),
     keepSeriesInstanceUid_(false),
     keepSopInstanceUid_(false),
@@ -921,6 +922,56 @@ namespace Orthanc
     }
     
 
+    // Sanity checks at the patient level
+    if (!allowManualIdentifiers_)
+    {
+      if (level_ == ResourceType_Patient && IsReplaced(DICOM_TAG_STUDY_INSTANCE_UID))
+      {
+        throw OrthancException(ErrorCode_BadRequest,
+                               "When modifying a patient, the StudyInstanceUID cannot be manually modified");
+      }
+
+      if (level_ == ResourceType_Patient && IsReplaced(DICOM_TAG_SERIES_INSTANCE_UID))
+      {
+        throw OrthancException(ErrorCode_BadRequest,
+                               "When modifying a patient, the SeriesInstanceUID cannot be manually modified");
+      }
+
+      if (level_ == ResourceType_Patient && IsReplaced(DICOM_TAG_SOP_INSTANCE_UID))
+      {
+        throw OrthancException(ErrorCode_BadRequest,
+                               "When modifying a patient, the SopInstanceUID cannot be manually modified");
+      }
+    }
+
+
+    // Sanity checks at the study level
+    if (!allowManualIdentifiers_)
+    {
+      if (level_ == ResourceType_Study && IsReplaced(DICOM_TAG_SERIES_INSTANCE_UID))
+      {
+        throw OrthancException(ErrorCode_BadRequest,
+                               "When modifying a study, the SeriesInstanceUID cannot be manually modified");
+      }
+
+      if (level_ == ResourceType_Study && IsReplaced(DICOM_TAG_SOP_INSTANCE_UID))
+      {
+        throw OrthancException(ErrorCode_BadRequest,
+                               "When modifying a study, the SopInstanceUID cannot be manually modified");
+      }
+    }
+
+
+    // Sanity checks at the series level
+    if (!allowManualIdentifiers_)
+    {
+      if (level_ == ResourceType_Series && IsReplaced(DICOM_TAG_SOP_INSTANCE_UID))
+      {
+        throw OrthancException(ErrorCode_BadRequest,
+                               "When modifying a series, the SopInstanceUID cannot be manually modified");
+      }
+    }
+
 
     // (0) Create a summary of the source file, if a custom generator
     // is provided
@@ -1060,6 +1111,17 @@ namespace Orthanc
                            DicomReplaceMode_InsertIfAbsent, privateCreator_);
     }
   }
+
+  void DicomModification::SetAllowManualIdentifiers(bool check)
+  {
+    allowManualIdentifiers_ = check;
+  }
+
+  bool DicomModification::AreAllowManualIdentifiers() const
+  {
+    return allowManualIdentifiers_;
+  }
+
 
   static bool IsDatabaseKey(const DicomTag& tag)
   {
@@ -1213,6 +1275,62 @@ namespace Orthanc
     {
       privateCreator_ = SerializationToolbox::ReadString(request, "PrivateCreator");
     }
+
+    if (!force)
+    {
+      /**
+       * Sanity checks about the manual replacement of DICOM
+       * identifiers. Those checks were part of
+       * "DicomModification::Apply()" in Orthanc <= 1.11.2, and
+       * couldn't be disabled even if using the "Force" flag. Check
+       * out:
+       * https://groups.google.com/g/orthanc-users/c/xMUUZAnBa5g/m/WCEu-U2NBQAJ
+       **/
+      bool isReplacedPatientId = (IsReplaced(DICOM_TAG_PATIENT_ID) ||
+                                  uids_.find(DICOM_TAG_PATIENT_ID) != uids_.end());
+    
+      if (level_ == ResourceType_Patient && !isReplacedPatientId)
+      {
+        throw OrthancException(ErrorCode_BadRequest,
+                               "When modifying a patient, her PatientID is required to be modified.");
+      }
+
+      if (level_ == ResourceType_Study && isReplacedPatientId)
+      {
+        throw OrthancException(ErrorCode_BadRequest,
+                               "When modifying a study, the parent PatientID cannot be manually modified");
+      }
+
+      if (level_ == ResourceType_Series && isReplacedPatientId)
+      {
+        throw OrthancException(ErrorCode_BadRequest,
+                               "When modifying a series, the parent PatientID cannot be manually modified");
+      }
+
+      if (level_ == ResourceType_Series && IsReplaced(DICOM_TAG_STUDY_INSTANCE_UID))
+      {
+        throw OrthancException(ErrorCode_BadRequest,
+                               "When modifying a series, the parent StudyInstanceUID cannot be manually modified");
+      }
+
+      if (level_ == ResourceType_Instance && isReplacedPatientId)
+      {
+        throw OrthancException(ErrorCode_BadRequest,
+                               "When modifying an instance, the parent PatientID cannot be manually modified");
+      }
+      
+      if (level_ == ResourceType_Instance && IsReplaced(DICOM_TAG_STUDY_INSTANCE_UID))
+      {
+        throw OrthancException(ErrorCode_BadRequest,
+                               "When modifying an instance, the parent StudyInstanceUID cannot be manually modified");
+      }
+
+      if (level_ == ResourceType_Instance && IsReplaced(DICOM_TAG_SERIES_INSTANCE_UID))
+      {
+        throw OrthancException(ErrorCode_BadRequest,
+                               "When modifying an instance, the parent SeriesInstanceUID cannot be manually modified");
+      }
+    }
   }
 
 
@@ -1282,6 +1400,7 @@ namespace Orthanc
 
   static const char* REMOVE_PRIVATE_TAGS = "RemovePrivateTags";
   static const char* LEVEL = "Level";
+  static const char* ALLOW_MANUAL_IDENTIFIERS = "AllowManualIdentifiers";
   static const char* KEEP_STUDY_INSTANCE_UID = "KeepStudyInstanceUID";
   static const char* KEEP_SERIES_INSTANCE_UID = "KeepSeriesInstanceUID";
   static const char* KEEP_SOP_INSTANCE_UID = "KeepSOPInstanceUID";
@@ -1313,6 +1432,7 @@ namespace Orthanc
     value = Json::objectValue;
     value[REMOVE_PRIVATE_TAGS] = removePrivateTags_;
     value[LEVEL] = EnumerationToString(level_);
+    value[ALLOW_MANUAL_IDENTIFIERS] = allowManualIdentifiers_;
     value[KEEP_STUDY_INSTANCE_UID] = keepStudyInstanceUid_;
     value[KEEP_SERIES_INSTANCE_UID] = keepSeriesInstanceUid_;
     value[KEEP_SOP_INSTANCE_UID] = keepSopInstanceUid_;
@@ -1457,6 +1577,7 @@ namespace Orthanc
   {
     removePrivateTags_ = SerializationToolbox::ReadBoolean(serialized, REMOVE_PRIVATE_TAGS);
     level_ = StringToResourceType(SerializationToolbox::ReadString(serialized, LEVEL).c_str());
+    allowManualIdentifiers_ = SerializationToolbox::ReadBoolean(serialized, ALLOW_MANUAL_IDENTIFIERS);
     keepStudyInstanceUid_ = SerializationToolbox::ReadBoolean(serialized, KEEP_STUDY_INSTANCE_UID);
     keepSeriesInstanceUid_ = SerializationToolbox::ReadBoolean(serialized, KEEP_SERIES_INSTANCE_UID);
     updateReferencedRelationships_ = SerializationToolbox::ReadBoolean

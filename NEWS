@@ -14,7 +14,7 @@ General
 REST API
 --------
 
-* Loosen the sanity checks for DICOM modifications:
+* Loosen the sanity checks for DICOM modifications, if "Force" option is given:
   - allow modification of PatientID at study level
   - allow modification of PatientID, StudyInstanceUID at series level
   - allow modification of PatientID, StudyInstanceUID, SeriesInstanceUID at instance level
@@ -28,12 +28,6 @@ REST API
 * /tools/metrics-prometheus: added orthanc_last_change and orthanc_up_time_s
 * Tolerance for "image/jpg" MIME type instead of "image/jpeg" in /tools/create-dicom
 * /system: added MaximumStorageMode and MaximumStorageSize
-
-OrthancFramework (C++)
-----------------------
-
-* DicomModification::SetAllowManualIdentifiers() has been removed since it was always true -> code cleanup.
-
 
 Common plugins code (C++)
 -------------------------
