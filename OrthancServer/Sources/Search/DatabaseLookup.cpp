@@ -113,14 +113,6 @@ namespace Orthanc
                                         (*element, DicomToJsonFlags_None, 
                                          0, encoding, hasCodeExtensions, ignoreTagLength));
 
-      if (tag.getGroup() == 64 && tag.getElement() == 2)
-      {
-        constraints_[i]->IsMatch(value->GetContent());
-      }
-      if (tag.getGroup() == 64 && tag.getElement() == 3)
-      {
-        constraints_[i]->IsMatch(value->GetContent());
-      }
       // WARNING: Also modify "HierarchicalMatcher::Setup()" if modifying this code
       if (value.get() == NULL ||
           value->IsNull())
