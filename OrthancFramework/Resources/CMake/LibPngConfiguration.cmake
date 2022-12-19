@@ -71,7 +71,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_LIBPNG)
 else()
   include(FindPNG)
 
-  if (NOT ${PNG_FOUND})
+  if (NOT PNG_FOUND)
     message(FATAL_ERROR "Unable to find libpng")
   endif()
 

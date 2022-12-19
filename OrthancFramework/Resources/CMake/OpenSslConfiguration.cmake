@@ -59,7 +59,7 @@ elseif (CMAKE_CROSSCOMPILING AND
 else()
   include(FindOpenSSL)
 
-  if (NOT ${OPENSSL_FOUND})
+  if (NOT OPENSSL_FOUND)
     message(FATAL_ERROR "Unable to find OpenSSL")
   endif()
 
