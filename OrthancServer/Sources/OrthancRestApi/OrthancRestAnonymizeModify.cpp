@@ -269,6 +269,7 @@ namespace Orthanc
     }
 
     DicomModification modification;
+    modification.SetAllowManualIdentifiers(true);
 
     Json::Value request;
     ParseModifyRequest(request, modification, call);
@@ -313,6 +314,7 @@ namespace Orthanc
     }
 
     DicomModification modification;
+    modification.SetAllowManualIdentifiers(true);
 
     Json::Value request;
     ParseAnonymizationRequest(request, modification, call);
