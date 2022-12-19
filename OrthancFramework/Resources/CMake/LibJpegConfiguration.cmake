@@ -107,7 +107,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_LIBJPEG)
 else()
   include(FindJPEG)
 
-  if (NOT ${JPEG_FOUND})
+  if (NOT JPEG_FOUND)
     message(FATAL_ERROR "Unable to find libjpeg")
   endif()
 
