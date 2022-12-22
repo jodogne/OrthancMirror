@@ -32,7 +32,12 @@ REST API
 Common plugins code (C++)
 -------------------------
 
-* Added a 'header' argument to all OrthancPeers::DoPost, DoPut, ... 
+* Added a 'header' argument to all OrthancPeers::DoPost, DoPut, ...
+
+Maintenance
+-----------
+
+* Fix decoding of RLE images for which the "Planar Configuration" tag (0028,0006) equals 1
 
 
 version 1.11.2 (2022-08-30)
