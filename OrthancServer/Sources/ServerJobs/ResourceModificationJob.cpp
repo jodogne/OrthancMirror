@@ -293,14 +293,18 @@ namespace Orthanc
      **/
     // assert(modifiedInstance == modifiedHasher.HashInstance());
 
-    output_->Update(modifiedHasher);
+    {
+      boost::recursive_mutex::scoped_lock lock(outputMutex_);
+
+      output_->Update(modifiedHasher);
+    }
 
     return true;
   }
 
 
-  ResourceModificationJob::ResourceModificationJob(ServerContext& context) :
-    CleaningInstancesJob(context, true /* by default, keep source */),
+  ResourceModificationJob::ResourceModificationJob(ServerContext& context, unsigned int workersCount) :
+    ThreadedSetOfInstancesJob(context, false /* no post processing step */, true /* by default, keep source */, workersCount),
     isAnonymization_(false),
     transcode_(false),
     transferSyntax_(DicomTransferSyntax_LittleEndianExplicit)  // dummy initialization
@@ -445,6 +449,8 @@ namespace Orthanc
     }
     else
     {
+      boost::recursive_mutex::scoped_lock lock(outputMutex_);
+
       assert(output_.get() != NULL);
       return output_->IsSingleResource();
     }
@@ -453,6 +459,8 @@ namespace Orthanc
 
   ResourceType ResourceModificationJob::GetOutputLevel() const
   {
+    boost::recursive_mutex::scoped_lock lock(outputMutex_);
+
     if (IsSingleResourceModification())
     {
       assert(modification_.get() != NULL &&
@@ -469,7 +477,9 @@ namespace Orthanc
 
   void ResourceModificationJob::GetPublicContent(Json::Value& value)
   {
-    CleaningInstancesJob::GetPublicContent(value);
+    boost::recursive_mutex::scoped_lock lock(outputMutex_);
+
+    ThreadedSetOfInstancesJob::GetPublicContent(value);
 
     value["IsAnonymization"] = isAnonymization_;
 
@@ -495,7 +505,7 @@ namespace Orthanc
 
   ResourceModificationJob::ResourceModificationJob(ServerContext& context,
                                                    const Json::Value& serialized) :
-    CleaningInstancesJob(context, serialized, true /* by default, keep source */),
+    ThreadedSetOfInstancesJob(context, serialized, false /* no post processing step */, true /* by default, keep source */),
     transferSyntax_(DicomTransferSyntax_LittleEndianExplicit)  // dummy initialization
   {
     assert(serialized.type() == Json::objectValue);
@@ -565,7 +575,7 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_BadSequenceOfCalls);
     }
-    else if (!CleaningInstancesJob::Serialize(value))
+    else if (!ThreadedSetOfInstancesJob::Serialize(value))
     {
       return false;
     }

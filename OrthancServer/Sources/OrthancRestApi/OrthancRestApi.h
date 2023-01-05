@@ -26,6 +26,7 @@
 #include "../../../OrthancFramework/Sources/JobsEngine/SetOfCommandsJob.h"
 #include "../../../OrthancFramework/Sources/MetricsRegistry.h"
 #include "../../../OrthancFramework/Sources/RestApi/RestApi.h"
+#include "../ServerJobs/ThreadedSetOfInstancesJob.h"
 #include "../ServerEnumerations.h"
 
 #include <set>
@@ -129,6 +130,12 @@ namespace Orthanc
                            SetOfCommandsJob* job,
                            bool isDefaultSynchronous,
                            const Json::Value& body) const;
+
+    void SubmitThreadedInstancesJob(RestApiPostCall& call,
+                                    ThreadedSetOfInstancesJob* job,
+                                    bool isDefaultSynchronous,
+                                    const Json::Value& body) const;
+
 
     static void DocumentSubmitGenericJob(RestApiPostCall& call);
 

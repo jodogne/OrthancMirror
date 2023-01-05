@@ -51,6 +51,7 @@ namespace Orthanc
   private:
     typedef std::map<std::string, RemoteModalityParameters>   Modalities;
     typedef std::map<std::string, WebServiceParameters>       Peers;
+    typedef std::map<std::string, unsigned int>               JobsEngineThreadsCount;
 
     boost::shared_mutex      mutex_;
     Json::Value              json_;
@@ -60,6 +61,7 @@ namespace Orthanc
     const char*              configurationFileArg_;
     Modalities               modalities_;
     Peers                    peers_;
+    JobsEngineThreadsCount   jobsEngineThreadsCount_;
     ServerIndex*             serverIndex_;
     std::set<Warnings>       disabledWarnings_;
 
@@ -159,6 +161,10 @@ namespace Orthanc
     void LoadModalitiesAndPeers();
 
     void LoadWarnings();
+
+    void LoadJobsEngineThreadsCount();
+
+    unsigned int GetJobsEngineWorkersThread(const std::string& jobType) const;
 
     void RegisterFont(ServerResources::FileResourceId resource);
 

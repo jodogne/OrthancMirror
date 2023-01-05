@@ -10,6 +10,8 @@ General
 * Made the HTTP Client errors more verbose by including the url in the logs.
 * Optimization: now using multiple threads to transcode files for asynchronous download of studies archive.
 * New configuration "KeepAliveTimeout" with a default value of 1 second.
+* ResourceModification jobs (/modify + /anonymize) can now use multiple threads to speed up processing
+  - New configuration "JobsEngineThreadsCount.ResourceModification" to configure the number of threads.
 
 REST API
 --------

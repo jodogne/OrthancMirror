@@ -434,7 +434,32 @@ namespace Orthanc
     SubmitGenericJob(call, raii.release(), isDefaultSynchronous, body);
   }
 
-  
+  void OrthancRestApi::SubmitThreadedInstancesJob(RestApiPostCall& call,
+                                                  ThreadedSetOfInstancesJob* job,
+                                                  bool isDefaultSynchronous,
+                                                  const Json::Value& body) const
+  {
+    std::unique_ptr<ThreadedSetOfInstancesJob> raii(job);
+    
+    if (body.type() != Json::objectValue)
+    {
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
+
+    job->SetDescription("REST API");
+    
+    if (body.isMember(KEY_PERMISSIVE))
+    {
+      job->SetPermissive(SerializationToolbox::ReadBoolean(body, KEY_PERMISSIVE));
+    }
+    else
+    {
+      job->SetPermissive(false);
+    }
+
+    SubmitGenericJob(call, raii.release(), isDefaultSynchronous, body);
+  }  
+
   void OrthancRestApi::DocumentSubmitGenericJob(RestApiPostCall& call)
   {
     call.GetDocumentation()

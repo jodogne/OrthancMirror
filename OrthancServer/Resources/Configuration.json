@@ -65,7 +65,7 @@
   // The period (in seconds) between 2 calls of the "OnHeartBeat"
   // lua callback.  O means the heart beat is disabled.
   // TODO: text below for Orthanc book:
-  // Note: that the period is not actually the delay between
+  // Note: that the period is actually not the delay between
   // the end of an execution and the triggering of the next one.
   // Since there is only one lua context, if other lua code is being
   // executed, the heart beat might be delayed even more.
@@ -86,6 +86,13 @@
   // this value to "1".
   "ConcurrentJobs" : 2,
 
+  // Defines the number of threads that are used to execute each type of
+  // jobs (for the jobs that can be parallelized).
+  // A value of "0" indicates to use all the available CPU logical cores.
+  // (new in Orthanc 1.11.3)
+  "JobsEngineThreadsCount" : {
+    "ResourceModification": 1     // for /anonymize, /modify
+  },
 
   /**
    * Configuration of the HTTP server
@@ -884,7 +891,8 @@
   "ZipLoaderThreads": 0,
 
   // Extra Main Dicom tags that are stored in DB together with all default
-  // Main Dicom tags that are already stored (TODO: see book new page). 
+  // Main Dicom tags that are already stored.
+  // see https://book.orthanc-server.com/faq/main-dicom-tags.html 
   // (new in Orthanc 1.11.0)
   // Sequences tags are not supported.
   /**
@@ -909,7 +917,7 @@
 
   // Enables/disables warnings in the logs.
   // "true" enables a warning.  All warnings are enabled by default
-  // TODO: see book new page
+  // see https://book.orthanc-server.com/faq/main-dicom-tags.html#warnings
   // (new in Orthanc 1.11.0)
   "Warnings" : {
     // A "RequestedTags" has been read from storage which is slower than
@@ -922,7 +930,7 @@
     // saved with another "ExtraMainDicomTags" configuration which means that
     // your response might be incomplete/inconsistent.
     // You should call patients|studies|series|instances/../reconstruct to rebuild
-    // the DB.  TODO: also check for "rebuild DB" plugin
+    // the DB.  You may also check for the "Housekeeper" plugin
     "W002_InconsistentDicomTagsInDb": true
   }
 

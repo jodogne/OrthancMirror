@@ -325,6 +325,34 @@ static bool CheckIdempotentSetOfInstances(IJobUnserializer& unserializer,
 }
 
 
+static bool CheckIdempotentSetOfInstances(IJobUnserializer& unserializer,
+                                          ThreadedSetOfInstancesJob& job)
+{
+  Json::Value a = 42;
+  
+  if (!job.Serialize(a))
+  {
+    return false;
+  }
+  else
+  {
+    std::unique_ptr<ThreadedSetOfInstancesJob> unserialized
+      (dynamic_cast<ThreadedSetOfInstancesJob*>(unserializer.UnserializeJob(a)));
+  
+    Json::Value b = 43;
+    if (unserialized->Serialize(b))
+    {    
+      return (CheckSameJson(a, b) &&
+              job.GetCurrentStep() == unserialized->GetCurrentStep() &&
+              job.GetInstancesCount() == unserialized->GetInstancesCount() );
+    }
+    else
+    {
+      return false;
+    }
+  }
+}
+
 static bool CheckIdempotentSerialization(IJobUnserializer& unserializer,
                                          IJobOperation& operation)
 {
@@ -813,7 +841,7 @@ TEST_F(OrthancJobsSerialization, Jobs)
     modification->SetupAnonymization(DicomVersion_2008);
     modification->SetLevel(ResourceType_Series);
 
-    ResourceModificationJob job(GetContext());
+    ResourceModificationJob job(GetContext(), 1);
     ASSERT_THROW(job.IsSingleResourceModification(), OrthancException);
     job.SetSingleResourceModification(modification.release(), ResourceType_Patient, true);
     job.SetOrigin(DicomInstanceOrigin::FromLua());
@@ -821,7 +849,6 @@ TEST_F(OrthancJobsSerialization, Jobs)
     ASSERT_TRUE(job.IsSingleResourceModification());
     ASSERT_EQ(ResourceType_Patient, job.GetOutputLevel());
 
-    job.AddTrailingStep();  // Necessary since 1.7.0
     ASSERT_TRUE(CheckIdempotentSetOfInstances(unserializer, job));
     ASSERT_TRUE(job.Serialize(s));
   }
@@ -858,12 +885,11 @@ TEST_F(OrthancJobsSerialization, Jobs)
   }
 
   {
-    ResourceModificationJob job(GetContext());
+    ResourceModificationJob job(GetContext(), 2);
     ASSERT_THROW(job.SetTranscode("nope"), OrthancException);
     job.SetTranscode(DicomTransferSyntax_JPEGProcess1);
     job.SetSingleResourceModification(new DicomModification, ResourceType_Study, false);
 
-    job.AddTrailingStep();  // Necessary since 1.7.0
     ASSERT_TRUE(CheckIdempotentSetOfInstances(unserializer, job));
     ASSERT_TRUE(job.Serialize(s));
   }
@@ -883,11 +909,12 @@ TEST_F(OrthancJobsSerialization, Jobs)
   }
 
   {
-    ResourceModificationJob job(GetContext());
+    ResourceModificationJob job(GetContext(), 2);
     job.SetMultipleResourcesModification(new DicomModification, true);
-    job.AddInstance("toto");
-    job.AddInstance("tutu");
-    job.AddTrailingStep();  // Necessary since 1.7.0
+    std::list<std::string> instances;
+    instances.push_back("toto");
+    instances.push_back("tutu");
+    job.AddInstances(instances);
     ASSERT_TRUE(CheckIdempotentSetOfInstances(unserializer, job));
     ASSERT_TRUE(job.Serialize(s));
   }
@@ -899,10 +926,7 @@ TEST_F(OrthancJobsSerialization, Jobs)
     ResourceModificationJob& tmp = dynamic_cast<ResourceModificationJob&>(*job);
 
     std::set<std::string> instances;
-    for (size_t i = 0; i < tmp.GetInstancesCount(); i++)
-    {
-      instances.insert(tmp.GetInstance(i));
-    }
+    tmp.GetInstances(instances);
     
     ASSERT_EQ(2u, instances.size());
     ASSERT_TRUE(instances.find("toto") != instances.end());
