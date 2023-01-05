@@ -929,10 +929,9 @@ namespace Orthanc
       throw OrthancException(ErrorCode_BadRequest);
     }
     
-
-    // Sanity checks at the patient level
     if (!allowManualIdentifiers_)
     {
+       // Sanity checks at the patient level
       if (level_ == ResourceType_Patient && IsReplaced(DICOM_TAG_STUDY_INSTANCE_UID))
       {
         throw OrthancException(ErrorCode_BadRequest,
@@ -950,12 +949,8 @@ namespace Orthanc
         throw OrthancException(ErrorCode_BadRequest,
                                "When modifying a patient, the SopInstanceUID cannot be manually modified");
       }
-    }
 
-
-    // Sanity checks at the study level
-    if (!allowManualIdentifiers_)
-    {
+      // Sanity checks at the study level
       if (level_ == ResourceType_Study && IsReplaced(DICOM_TAG_SERIES_INSTANCE_UID))
       {
         throw OrthancException(ErrorCode_BadRequest,
@@ -967,12 +962,8 @@ namespace Orthanc
         throw OrthancException(ErrorCode_BadRequest,
                                "When modifying a study, the SopInstanceUID cannot be manually modified");
       }
-    }
 
-
-    // Sanity checks at the series level
-    if (!allowManualIdentifiers_)
-    {
+      // Sanity checks at the series level
       if (level_ == ResourceType_Series && IsReplaced(DICOM_TAG_SOP_INSTANCE_UID))
       {
         throw OrthancException(ErrorCode_BadRequest,
