@@ -644,6 +644,51 @@ namespace Orthanc
   }
 
 
+  static ImageAccessor* DecodePlanarConfiguration(const ImageAccessor& source)
+  {
+    /**
+     * This function will interleave the RGB channels, if the source
+     * DICOM image has the "Planar Configuration" (0028,0006) tag that
+     * equals 1. This process was not applied to images using the RLE
+     * codec, which led to the following issue:
+     * https://groups.google.com/g/orthanc-users/c/CSVWfRasSR0/m/y1XDRXVnAgAJ
+     **/
+
+    const unsigned int height = source.GetHeight();
+    const unsigned int width = source.GetWidth();
+    const size_t size = static_cast<size_t>(height) * static_cast<size_t>(width);
+
+    if (source.GetFormat() != PixelFormat_RGB24 ||
+        3 * width != source.GetPitch())
+    {
+      throw OrthancException(ErrorCode_NotImplemented);
+    }
+
+    std::unique_ptr<ImageAccessor> target(new Image(PixelFormat_RGB24, width, height, false));
+
+    const uint8_t* red = reinterpret_cast<const uint8_t*>(source.GetConstBuffer());
+    const uint8_t* green = red + size;
+    const uint8_t* blue = red + 2 * size;
+
+    for (unsigned int y = 0; y < height; y++)
+    {
+      uint8_t* interleaved = reinterpret_cast<uint8_t*>(target->GetRow(y));
+      for (unsigned int x = 0; x < width; x++)
+      {
+        interleaved[0] = *red;
+        interleaved[1] = *green;
+        interleaved[2] = *blue;
+        interleaved += 3;
+        red++;
+        green++;
+        blue++;
+      }
+    }
+
+    return target.release();
+  }
+
+
   ImageAccessor* DicomImageDecoder::ApplyCodec
   (const DcmCodec& codec,
    const DcmCodecParameter& parameters,
@@ -700,7 +745,16 @@ namespace Orthanc
                                "Cannot decode a non-palette image");
       }
 
-      return target.release();
+      if (target->GetFormat() == PixelFormat_RGB24 &&
+          Orthanc::Toolbox::StripSpaces(decompressedColorModel.c_str()) == "RGB" &&
+          info.IsPlanar())
+      {
+        return DecodePlanarConfiguration(*target);
+      }
+      else
+      {
+        return target.release();
+      }
     }
   }
 
