@@ -439,6 +439,8 @@ namespace Orthanc
                                                         const std::string& mapped,
                                                         ResourceType level)
   {
+    boost::recursive_mutex::scoped_lock lock(uidMapMutex_);
+
     UidMap::const_iterator previous = uidMap_.find(std::make_pair(level, original));
 
     if (previous == uidMap_.end())
@@ -450,6 +452,8 @@ namespace Orthanc
   std::string DicomModification::MapDicomIdentifier(const std::string& original,
                                                     ResourceType level)
   {
+    boost::recursive_mutex::scoped_lock lock(uidMapMutex_);
+
     const std::string stripped = Toolbox::StripSpaces(original);
     
     std::string mapped;
@@ -684,6 +688,8 @@ namespace Orthanc
 
   void DicomModification::SetLevel(ResourceType level)
   {
+    boost::recursive_mutex::scoped_lock lock(uidMapMutex_);
+
     uidMap_.clear();
     level_ = level;
 
@@ -839,6 +845,8 @@ namespace Orthanc
 
   void DicomModification::SetupAnonymization(DicomVersion version)
   {
+    boost::recursive_mutex::scoped_lock lock(uidMapMutex_);
+
     isAnonymization_ = true;
     
     removals_.clear();
@@ -1423,6 +1431,8 @@ namespace Orthanc
   
   void DicomModification::Serialize(Json::Value& value) const
   {
+    boost::recursive_mutex::scoped_lock lock(uidMapMutex_);
+
     if (identifierGenerator_ != NULL)
     {
       throw OrthancException(ErrorCode_InternalError,
@@ -1548,6 +1558,8 @@ namespace Orthanc
                                             const Json::Value& serialized,
                                             const char* field)
   {
+    boost::recursive_mutex::scoped_lock lock(uidMapMutex_);
+
     if (!serialized.isMember(field) ||
         serialized[field].type() != Json::objectValue)
     {

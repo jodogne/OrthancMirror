@@ -23,14 +23,16 @@
 #pragma once
 
 #include "../../../OrthancFramework/Sources/DicomParsing/DicomModification.h"
+#include "../../../OrthancFramework/Sources/MultiThreading/RunnableWorkersPool.h"
 #include "../DicomInstanceOrigin.h"
-#include "CleaningInstancesJob.h"
+#include "ThreadedSetOfInstancesJob.h"
+#include <boost/thread/recursive_mutex.hpp>
 
 namespace Orthanc
 {
   class ServerContext;
   
-  class ResourceModificationJob : public CleaningInstancesJob
+  class ResourceModificationJob : public ThreadedSetOfInstancesJob
   {
   private:
     class IOutput : public boost::noncopyable
@@ -49,6 +51,8 @@ namespace Orthanc
     
     class SingleOutput;
     class MultipleOutputs;
+
+    mutable boost::recursive_mutex      outputMutex_;
     
     std::unique_ptr<DicomModification>  modification_;
     boost::shared_ptr<IOutput>          output_;
@@ -58,10 +62,10 @@ namespace Orthanc
     DicomTransferSyntax                 transferSyntax_;
 
   protected:
-    virtual bool HandleInstance(const std::string& instance) ORTHANC_OVERRIDE;
+    virtual bool HandleInstance(const std::string& instance) ORTHANC_OVERRIDE; // from ThreadedSetOfInstancesJob
     
   public:
-    explicit ResourceModificationJob(ServerContext& context);
+    explicit ResourceModificationJob(ServerContext& context, unsigned int workersCount);
 
     ResourceModificationJob(ServerContext& context,
                             const Json::Value& serialized);
@@ -108,10 +112,6 @@ namespace Orthanc
 
     // Only possible if "IsSingleResourceModification()"
     ResourceType GetOutputLevel() const;
-
-    virtual void Stop(JobStopReason reason) ORTHANC_OVERRIDE
-    {
-    }
 
     virtual void GetJobType(std::string& target) ORTHANC_OVERRIDE
     {

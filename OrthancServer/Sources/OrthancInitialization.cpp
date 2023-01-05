@@ -354,6 +354,7 @@ namespace Orthanc
     LoadCustomDictionary(lock.GetJson());
 
     lock.GetConfiguration().LoadWarnings();
+    lock.GetConfiguration().LoadJobsEngineThreadsCount();
 
     LoadMainDicomTags(lock.GetJson());  // New in Orthanc 1.11.0
 

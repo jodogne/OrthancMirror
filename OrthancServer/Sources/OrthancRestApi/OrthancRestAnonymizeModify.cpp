@@ -333,6 +333,15 @@ namespace Orthanc
     }
   }
 
+  static void SetKeepSource(ThreadedSetOfInstancesJob& job,
+                            const Json::Value& body)
+  {
+    if (body.isMember(KEEP_SOURCE))
+    {
+      job.SetKeepSource(SerializationToolbox::ReadBoolean(body, KEEP_SOURCE));
+    }
+  }
+
 
   static void SubmitModificationJob(std::unique_ptr<DicomModification>& modification,
                                     bool isAnonymization,
@@ -343,8 +352,14 @@ namespace Orthanc
                                     const std::set<std::string>& resources)
   {
     ServerContext& context = OrthancRestApi::GetContext(call);
+    unsigned int workersCount = 0;
 
-    std::unique_ptr<ResourceModificationJob> job(new ResourceModificationJob(context));
+    {
+      OrthancConfiguration::ReaderLock lock;
+      workersCount = lock.GetConfiguration().GetJobsEngineWorkersThread("ResourceModification");
+    }
+
+    std::unique_ptr<ResourceModificationJob> job(new ResourceModificationJob(context, workersCount));
 
     if (isSingleResource)  // This notably configures the output format
     {
@@ -366,12 +381,14 @@ namespace Orthanc
     for (std::set<std::string>::const_iterator
            it = resources.begin(); it != resources.end(); ++it)
     {
-      context.AddChildInstances(*job, *it);
+      std::list<std::string> instances;
+      context.GetIndex().GetChildInstances(instances, *it);
+      job->AddInstances(instances);
+
+      job->AddParentResource(*it);
     }
     
-    job->AddTrailingStep();
-
-    OrthancRestApi::GetApi(call).SubmitCommandsJob
+    OrthancRestApi::GetApi(call).SubmitThreadedInstancesJob
       (call, job.release(), true /* synchronous by default */, body);
   }
 

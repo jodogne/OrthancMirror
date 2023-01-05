@@ -136,6 +136,7 @@ set(ORTHANC_SERVER_SOURCES
   ${CMAKE_SOURCE_DIR}/Sources/ServerJobs/ResourceModificationJob.cpp
   ${CMAKE_SOURCE_DIR}/Sources/ServerJobs/SplitStudyJob.cpp
   ${CMAKE_SOURCE_DIR}/Sources/ServerJobs/StorageCommitmentScpJob.cpp
+  ${CMAKE_SOURCE_DIR}/Sources/ServerJobs/ThreadedSetOfInstancesJob.cpp  
   ${CMAKE_SOURCE_DIR}/Sources/ServerToolbox.cpp
   ${CMAKE_SOURCE_DIR}/Sources/SliceOrdering.cpp
   ${CMAKE_SOURCE_DIR}/Sources/StorageCommitmentReports.cpp

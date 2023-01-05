@@ -44,6 +44,7 @@ static const char* const ORTHANC_PEERS_IN_DB = "OrthancPeersInDatabase";
 static const char* const TEMPORARY_DIRECTORY = "TemporaryDirectory";
 static const char* const DATABASE_SERVER_IDENTIFIER = "DatabaseServerIdentifier";
 static const char* const WARNINGS = "Warnings";
+static const char* const JOBS_ENGINE_THREADS_COUNT = "JobsEngineThreadsCount";
 
 namespace Orthanc
 {
@@ -271,6 +272,55 @@ namespace Orthanc
         modalities_.clear();
       }
     }
+  }
+
+  void OrthancConfiguration::LoadJobsEngineThreadsCount()
+  {
+    // default values
+    jobsEngineThreadsCount_["ResourceModification"] = 1;
+
+    if (json_.isMember(JOBS_ENGINE_THREADS_COUNT))
+    {
+      const Json::Value& source = json_[JOBS_ENGINE_THREADS_COUNT];
+      if (source.type() != Json::objectValue)
+      {
+        throw OrthancException(ErrorCode_BadFileFormat,
+                               "Bad format of the \"" + std::string(JOBS_ENGINE_THREADS_COUNT) +
+                               "\" configuration section");
+      }
+
+      Json::Value::Members members = source.getMemberNames();
+
+      for (size_t i = 0; i < members.size(); i++)
+      {
+        const std::string& name = members[i];
+        if (!source[name].isUInt())
+        {
+          throw OrthancException(ErrorCode_BadFileFormat,
+                                 "Bad format for \"" + std::string(JOBS_ENGINE_THREADS_COUNT) + "." + name + 
+                                 "\".  It should be an unsigned integer");
+        }
+        jobsEngineThreadsCount_[name] = source[name].asUInt();
+      }      
+    }
+  }
+
+  unsigned int OrthancConfiguration::GetJobsEngineWorkersThread(const std::string& jobType) const
+  {
+    unsigned int workersThread = 1;
+    
+    const JobsEngineThreadsCount::const_iterator it = jobsEngineThreadsCount_.find(jobType);
+    if (it != jobsEngineThreadsCount_.end())
+    {
+      workersThread = it->second;
+    }
+
+    if (workersThread == 0)
+    {
+      workersThread = SystemToolbox::GetHardwareConcurrency();
+    }
+
+    return workersThread;
   }
 
   void OrthancConfiguration::LoadPeers()

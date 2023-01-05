@@ -24,6 +24,7 @@
 #pragma once
 
 #include "ParsedDicomFile.h"
+#include <boost/thread/recursive_mutex.hpp>
 
 #include <list>
 
@@ -126,6 +127,7 @@ namespace Orthanc
 
     typedef std::map< std::pair<ResourceType, std::string>, std::string>  UidMap;
     
+    mutable boost::recursive_mutex      uidMapMutex_;
     SetOfTags removals_;
     SetOfTags clearings_;
     Replacements replacements_;
