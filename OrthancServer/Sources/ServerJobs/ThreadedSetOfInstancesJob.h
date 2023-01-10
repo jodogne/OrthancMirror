@@ -41,7 +41,6 @@ namespace Orthanc
   public:
     enum ThreadedJobStep  // cannot use "Step" since there is a method with this name !
     {
-      ThreadedJobStep_BeforeStart,
       ThreadedJobStep_ProcessingInstances,
       ThreadedJobStep_PostProcessingInstances,
       ThreadedJobStep_Cleanup,
@@ -67,6 +66,7 @@ namespace Orthanc
 
     ServerContext&          context_;
     bool                    keepSource_;
+    ErrorCode               errorCode_;
   protected:
     mutable boost::recursive_mutex mutex_;
 
@@ -101,6 +101,10 @@ namespace Orthanc
     bool HasPostProcessingStep() const;
 
     bool HasCleanupStep() const;
+
+    void SetErrorCode(ErrorCode errorCode);
+
+    ErrorCode GetErrorCode() const;
 
   public:
 
