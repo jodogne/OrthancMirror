@@ -176,7 +176,6 @@ namespace Orthanc
       
     LOG(INFO) << "Modifying instance in a job: " << instance;
 
-
     /**
      * Retrieve the original instance from the DICOM cache.
      **/
@@ -280,7 +279,7 @@ namespace Orthanc
 
     std::string modifiedInstance;
     ServerContext::StoreResult result = GetContext().Store(modifiedInstance, *toStore, StoreInstanceMode_Default);
-    if (result.GetStatus() != StoreStatus_Success)
+    if (result.GetStatus() != StoreStatus_Success && result.GetStatus() != StoreStatus_AlreadyStored) // when retrying a job, we might save the same data again
     {
       throw OrthancException(ErrorCode_CannotStoreInstance,
                              "Error while storing a modified instance " + instance);
