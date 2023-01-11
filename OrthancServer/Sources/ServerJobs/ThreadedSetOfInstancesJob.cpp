@@ -261,7 +261,7 @@ namespace Orthanc
       catch (...)
       {
         LOG(ERROR) << "Native exception while executing a job";
-        that->SetErrorCode(e.GetErrorCode());
+        that->SetErrorCode(ErrorCode_InternalError);
         that->StopWorkers();
       }
       
