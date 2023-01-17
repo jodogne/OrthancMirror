@@ -161,8 +161,32 @@ namespace Orthanc
       return false;
     }
   };
-    
 
+  // Reset is called when resubmitting a failed job
+  void ResourceModificationJob::Reset()
+  {
+    boost::recursive_mutex::scoped_lock lock(mutex_);
+
+    // TODO: cleanup the instances that have been generated during the previous run
+    modifiedInstances_.clear();
+
+    ThreadedSetOfInstancesJob::Reset();
+  }
+
+  void ResourceModificationJob::PostProcessInstances()
+  {
+    boost::recursive_mutex::scoped_lock lock(mutex_);
+
+    // reconstruct the parents MainDicomTags in case one of them has changed
+    if (modifiedInstances_.size() > 0)
+    {
+      ServerContext::DicomCacheLocker locker(GetContext(), *(modifiedInstances_.begin()));
+      ParsedDicomFile& modifiedDicom = locker.GetDicom();
+
+      GetContext().GetIndex().ReconstructInstance(modifiedDicom);
+    }
+    
+  }
 
   bool ResourceModificationJob::HandleInstance(const std::string& instance)
   {
@@ -296,6 +320,7 @@ namespace Orthanc
       boost::recursive_mutex::scoped_lock lock(outputMutex_);
 
       output_->Update(modifiedHasher);
+      modifiedInstances_.insert(modifiedInstance);
     }
 
     return true;
@@ -303,7 +328,7 @@ namespace Orthanc
 
 
   ResourceModificationJob::ResourceModificationJob(ServerContext& context, unsigned int workersCount) :
-    ThreadedSetOfInstancesJob(context, false /* no post processing step */, true /* by default, keep source */, workersCount),
+    ThreadedSetOfInstancesJob(context, true /* post processing step */, true /* by default, keep source */, workersCount),
     isAnonymization_(false),
     transcode_(false),
     transferSyntax_(DicomTransferSyntax_LittleEndianExplicit)  // dummy initialization
