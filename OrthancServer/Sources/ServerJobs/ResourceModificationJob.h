@@ -60,10 +60,14 @@ namespace Orthanc
     DicomInstanceOrigin                 origin_;
     bool                                transcode_;
     DicomTransferSyntax                 transferSyntax_;
+    std::set<std::string>               modifiedInstances_;   // the list of new instance ids of the newly generated instances
+
 
   protected:
     virtual bool HandleInstance(const std::string& instance) ORTHANC_OVERRIDE; // from ThreadedSetOfInstancesJob
     
+    virtual void PostProcessInstances();
+
   public:
     explicit ResourceModificationJob(ServerContext& context, unsigned int workersCount);
 
@@ -121,5 +125,7 @@ namespace Orthanc
     virtual void GetPublicContent(Json::Value& value) ORTHANC_OVERRIDE;
     
     virtual bool Serialize(Json::Value& value) ORTHANC_OVERRIDE;
+
+    virtual void Reset() ORTHANC_OVERRIDE;
   };
 }

@@ -48,13 +48,14 @@ namespace Orthanc
     };
 
   private:
-    std::set<std::string>  failedInstances_;
-    std::set<std::string>  parentResources_;
+    std::set<std::string>               instancesToProcess_;  // the list of source instances ids to process
+    std::set<std::string>               failedInstances_;     // the list of source instances ids that failed processing
+    std::set<std::string>               processedInstances_;  // the list of source instances ids that have been processed (including failed ones)
+
+    std::set<std::string>               parentResources_;
     
-    size_t                              processedInstancesCount_;
-    SharedMessageQueue                  instancesToProcess_;
+    SharedMessageQueue                  instancesToProcessQueue_;
     std::vector<boost::shared_ptr<boost::thread> >         instancesWorkers_;
-    std::set<std::string>               instances_;
 
     bool                    hasPostProcessing_;  // final step before "KeepSource" cleanup
     bool                    started_;
@@ -86,7 +87,7 @@ namespace Orthanc
   protected:
     virtual bool HandleInstance(const std::string& instance) = 0;
 
-    virtual void PostProcessInstances() {}
+    virtual void PostProcessInstances();
 
     void InitWorkers(size_t workersCount);
 
