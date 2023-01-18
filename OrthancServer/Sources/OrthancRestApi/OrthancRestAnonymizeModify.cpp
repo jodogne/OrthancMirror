@@ -387,7 +387,9 @@ namespace Orthanc
 
       job->AddParentResource(*it);
     }
-    
+
+    job->PerformSanityChecks();
+
     OrthancRestApi::GetApi(call).SubmitThreadedInstancesJob
       (call, job.release(), true /* synchronous by default */, body);
   }

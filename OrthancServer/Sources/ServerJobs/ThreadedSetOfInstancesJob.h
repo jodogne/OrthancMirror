@@ -52,8 +52,6 @@ namespace Orthanc
     std::set<std::string>               failedInstances_;     // the list of source instances ids that failed processing
     std::set<std::string>               processedInstances_;  // the list of source instances ids that have been processed (including failed ones)
 
-    std::set<std::string>               parentResources_;
-    
     SharedMessageQueue                  instancesToProcessQueue_;
     std::vector<boost::shared_ptr<boost::thread> >         instancesWorkers_;
 
@@ -68,8 +66,10 @@ namespace Orthanc
     ServerContext&          context_;
     bool                    keepSource_;
     ErrorCode               errorCode_;
+  
   protected:
-    mutable boost::recursive_mutex mutex_;
+    mutable boost::recursive_mutex      mutex_;
+    std::set<std::string>               parentResources_;
 
   public:
     ThreadedSetOfInstancesJob(ServerContext& context,
@@ -116,6 +116,8 @@ namespace Orthanc
     const std::string& GetDescription() const;
 
     void SetKeepSource(bool keep);
+
+    bool IsKeepSource() const;
 
     void GetInstances(std::set<std::string>& target) const;
 

@@ -544,6 +544,7 @@ namespace Orthanc
 
   void DicomModification::Keep(const DicomTag& tag)
   {
+    keep_.insert(tag);
     removals_.erase(tag);
     clearings_.erase(tag);
     uids_.erase(tag);
@@ -638,6 +639,11 @@ namespace Orthanc
   bool DicomModification::IsReplaced(const DicomTag& tag) const
   {
     return replacements_.find(tag) != replacements_.end();
+  }
+
+  bool DicomModification::IsKept(const DicomTag& tag) const
+  {
+    return keep_.find(tag) != keep_.end();
   }
 
   const Json::Value& DicomModification::GetReplacement(const DicomTag& tag) const
@@ -849,6 +855,7 @@ namespace Orthanc
 
     isAnonymization_ = true;
     
+    keep_.clear();
     removals_.clear();
     clearings_.clear();
     removedRanges_.clear();
@@ -926,7 +933,7 @@ namespace Orthanc
         IsRemoved(DICOM_TAG_SERIES_INSTANCE_UID) ||
         IsRemoved(DICOM_TAG_SOP_INSTANCE_UID))
     {
-      throw OrthancException(ErrorCode_BadRequest);
+      throw OrthancException(ErrorCode_BadRequest, "It is forbidden to remove one of the main Dicom identifiers");
     }
     
     if (!allowManualIdentifiers_)
@@ -1842,5 +1849,14 @@ namespace Orthanc
              !keepSeriesInstanceUid_) ||
             (tag == DICOM_TAG_SOP_INSTANCE_UID &&
              !keepSopInstanceUid_));
+  }
+
+  void DicomModification::GetReplacedTags(std::set<DicomTag>& target) const
+  {
+    target.clear();
+    for (Replacements::const_iterator it = replacements_.begin(); it != replacements_.end(); it++)
+    {
+      target.insert(it->first);
+    }
   }
 }

@@ -21,9 +21,11 @@ REST API
   - allow modification of PatientID, StudyInstanceUID at series level
   - allow modification of PatientID, StudyInstanceUID, SeriesInstanceUID at instance level
   - allow modification of a patient without changing her PatientID
-  Users should be careful to preserve the DICOM model when modifying high level tags.  E.g.
-  if you modify the PatientID at study level, also make sure to modify all other Patient related
-  tags (PatientName, PatientBirthDate, ...)
+  Added sanity checks for modifications to make sure the user preserves the DICOM model when modifying high level tags.
+    E.g. if you modify the PatientID at study level, also make sure to modify all other Patient related
+    tags (PatientName, PatientBirthDate, ...)
+* Automatically reconstruct the modified resources at the end of the DICOM modifications job to ensure
+  improved consistency of the DICOM model.
 * Allow the HTTP server to return responses > 2GB (fixes asynchronous download of zip studies > 2GB)
 * /modalities/.../store now accepts "CalledAet", "Host", "Port" to override the modality configuration 
   from the configuration file for a specific operation.
