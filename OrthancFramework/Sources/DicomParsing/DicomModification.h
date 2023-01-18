@@ -130,6 +130,7 @@ namespace Orthanc
     mutable boost::recursive_mutex      uidMapMutex_;
     SetOfTags removals_;
     SetOfTags clearings_;
+    SetOfTags keep_;
     Replacements replacements_;
     bool removePrivateTags_;
     ResourceType level_;
@@ -210,9 +211,13 @@ namespace Orthanc
 
     bool IsReplaced(const DicomTag& tag) const;
 
+    void GetReplacedTags(std::set<DicomTag>& target) const;
+
     const Json::Value& GetReplacement(const DicomTag& tag) const;
 
     std::string GetReplacementAsString(const DicomTag& tag) const;
+
+    bool IsKept(const DicomTag& tag) const;
 
     void SetRemovePrivateTags(bool removed);
 

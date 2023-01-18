@@ -459,6 +459,12 @@ namespace Orthanc
     keepSource_ = keep;
   }
 
+  bool ThreadedSetOfInstancesJob::IsKeepSource() const
+  {
+    boost::recursive_mutex::scoped_lock lock(mutex_);
+
+    return keepSource_;
+  }
 
   float ThreadedSetOfInstancesJob::GetProgress()
   {

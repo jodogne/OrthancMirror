@@ -168,7 +168,8 @@ namespace Orthanc
     boost::recursive_mutex::scoped_lock lock(mutex_);
 
     // TODO: cleanup the instances that have been generated during the previous run
-    modifiedInstances_.clear();
+    modifiedSeries_.clear();
+    instancesToReconstruct_.clear();
 
     ThreadedSetOfInstancesJob::Reset();
   }
@@ -178,12 +179,15 @@ namespace Orthanc
     boost::recursive_mutex::scoped_lock lock(mutex_);
 
     // reconstruct the parents MainDicomTags in case one of them has changed
-    if (modifiedInstances_.size() > 0)
+    if (instancesToReconstruct_.size() > 0)
     {
-      ServerContext::DicomCacheLocker locker(GetContext(), *(modifiedInstances_.begin()));
-      ParsedDicomFile& modifiedDicom = locker.GetDicom();
+      for (std::set<std::string>::const_iterator it = instancesToReconstruct_.begin(); it != instancesToReconstruct_.end(); ++it)
+      {
+        ServerContext::DicomCacheLocker locker(GetContext(), *it);
+        ParsedDicomFile& modifiedDicom = locker.GetDicom();
 
-      GetContext().GetIndex().ReconstructInstance(modifiedDicom);
+        GetContext().GetIndex().ReconstructInstance(modifiedDicom);
+      }
     }
     
   }
@@ -320,7 +324,13 @@ namespace Orthanc
       boost::recursive_mutex::scoped_lock lock(outputMutex_);
 
       output_->Update(modifiedHasher);
-      modifiedInstances_.insert(modifiedInstance);
+      if (modifiedSeries_.find(modifiedHasher.HashSeries()) == modifiedSeries_.end())
+      {
+        modifiedSeries_.insert(modifiedHasher.HashSeries());
+        // add an instance to reconstruct for each series
+        instancesToReconstruct_.insert(modifiedHasher.HashInstance());
+      }
+      
     }
 
     return true;
@@ -613,7 +623,7 @@ namespace Orthanc
       {
         value[TRANSCODE] = GetTransferSyntaxUid(transferSyntax_);
       }
-      
+
       origin_.Serialize(value[ORIGIN]);
       
       Json::Value tmp;
@@ -628,6 +638,117 @@ namespace Orthanc
       }
       
       return true;
+    }
+  }
+
+  void ResourceModificationJob::PerformSanityChecks()
+  {
+    boost::recursive_mutex::scoped_lock lock(mutex_);  // because we access the parentResources_
+
+    std::set<DicomTag> emptyRequestedTags;
+
+    if (modification_.get() == NULL)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+
+    bool replacePatientMainDicomTags = false;
+    bool replaceStudyMainDicomTags = false;
+    bool replaceSeriesMainDicomTags = false;
+    bool replaceInstanceMainDicomTags = false;
+
+    ResourceType modificationLevel = modification_->GetLevel();
+    std::set<DicomTag> replacedTags;
+    modification_->GetReplacedTags(replacedTags);
+
+    for (std::set<DicomTag>::const_iterator it = replacedTags.begin(); it != replacedTags.end(); it++)
+    {
+      replacePatientMainDicomTags |= DicomMap::IsMainDicomTag(*it, ResourceType_Patient);
+      replaceStudyMainDicomTags |= DicomMap::IsMainDicomTag(*it, ResourceType_Study);
+      replaceSeriesMainDicomTags |= DicomMap::IsMainDicomTag(*it, ResourceType_Series);
+      replaceInstanceMainDicomTags |= DicomMap::IsMainDicomTag(*it, ResourceType_Instance);
+    }
+
+    if (modification_->IsKept(DICOM_TAG_SOP_INSTANCE_UID) && !IsKeepSource())
+    {
+      // note: we could refine this criteria -> this is valid only if all DicomUIDs are kept identical (but this can happen through Keep or Replace options)
+      throw OrthancException(ErrorCode_BadRequest,
+                             "When keeping SOPInstanceUID tag, you must set KeepSource to true to avoid deleting the modified files at the end of the process");
+    }
+
+    if (modificationLevel == ResourceType_Study && replacePatientMainDicomTags)
+    {
+      for (std::set<std::string>::const_iterator studyId = parentResources_.begin(); studyId != parentResources_.end(); ++studyId)
+      {
+        // When modifying a study, you may not modify patient tags as you wish.
+        // - If this is the patient's only study, you may modify all patient tags. This could be performed in 2 steps (modify the patient and then, the study) but, 
+        //   for many use cases, it's helpful to be able to do it one step (e.g, to modify a name in a study that has just been acquired)
+        // - If the patient already has other studies, you may only 'attach' the study to an existing patient by modifying 
+        //   all patient tags from the study to match those of the target patient.
+        // - Otherwise, you can't modify the patient tags
+        
+        std::string targetPatientId;
+        if (modification_->IsReplaced(DICOM_TAG_PATIENT_ID))
+        {
+          targetPatientId = modification_->GetReplacementAsString(DICOM_TAG_PATIENT_ID);
+        }
+        else
+        {
+          ExpandedResource originalStudy;
+          if (GetContext().GetIndex().ExpandResource(originalStudy, *studyId, ResourceType_Study, emptyRequestedTags, ExpandResourceDbFlags_IncludeMainDicomTags))
+          {
+            targetPatientId = originalStudy.tags_.GetStringValue(DICOM_TAG_PATIENT_ID, "", false);
+          }
+          else
+          {
+            throw OrthancException(ErrorCode_UnknownResource, "Study not found");
+          }
+        }
+
+        // try to find the targetPatient
+        std::vector<std::string> lookupPatientResult;
+        GetContext().GetIndex().LookupIdentifierExact(lookupPatientResult, ResourceType_Patient, DICOM_TAG_PATIENT_ID, targetPatientId);
+
+        // if the patient exists, check how many child studies it has.
+        if (lookupPatientResult.size() >= 1)
+        {
+          ExpandedResource targetPatient;
+          
+          if (GetContext().GetIndex().ExpandResource(targetPatient, lookupPatientResult[0], ResourceType_Patient, emptyRequestedTags, static_cast<ExpandResourceDbFlags>(ExpandResourceDbFlags_IncludeMainDicomTags | ExpandResourceDbFlags_IncludeChildren)))
+          {
+            const std::list<std::string> childrenIds = targetPatient.childrenIds_;
+            bool targetPatientHasOtherStudies = childrenIds.size() > 1;
+            if (childrenIds.size() == 1)
+            {
+              targetPatientHasOtherStudies = std::find(childrenIds.begin(), childrenIds.end(), *studyId) == childrenIds.end();  // if the patient has one study that is not the one being modified
+            }
+
+            if (targetPatientHasOtherStudies)
+            {
+              // this is allowed if all patient replacedTags do match the target patient tags
+              DicomMap targetPatientTags;
+              targetPatient.tags_.ExtractPatientInformation(targetPatientTags);
+
+              for (std::set<DicomTag>::const_iterator mainPatientTag = DicomMap::GetMainDicomTags(ResourceType_Patient).begin();
+                    mainPatientTag != DicomMap::GetMainDicomTags(ResourceType_Patient).end(); ++mainPatientTag)
+              {
+                if (targetPatientTags.HasTag(*mainPatientTag) 
+                    && (!modification_->IsReplaced(*mainPatientTag) 
+                        || modification_->GetReplacementAsString(*mainPatientTag) != targetPatientTags.GetStringValue(*mainPatientTag, "", false)))
+                {
+                  throw OrthancException(ErrorCode_BadRequest, std::string("Trying to change patient tags in a study.  The Patient already exists and has other studies.  All the 'Replace' tags should match the existing patient main dicom tags.  Try using /patients/../modify instead to modify the patient. Failing tag: ") + mainPatientTag->Format());
+                }
+                else if (!targetPatientTags.HasTag(*mainPatientTag) && modification_->IsReplaced(*mainPatientTag) )
+                {
+                  throw OrthancException(ErrorCode_BadRequest, std::string("Trying to change patient tags in a study.  The Patient already exists and has other studies.  You are trying to replace a tag that is not defined yet in this patient.  Try using /patients/../modify instead to modify the patient. Failing tag: ") + mainPatientTag->Format());
+                }
+              }
+            }
+            // TODO: need reconstruct_
+          }
+        }
+      }
+      
     }
   }
 }

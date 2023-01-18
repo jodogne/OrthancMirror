@@ -60,8 +60,8 @@ namespace Orthanc
     DicomInstanceOrigin                 origin_;
     bool                                transcode_;
     DicomTransferSyntax                 transferSyntax_;
-    std::set<std::string>               modifiedInstances_;   // the list of new instance ids of the newly generated instances
-
+    std::set<std::string>               modifiedSeries_;          // the list of new series ids of the newly generated series
+    std::set<std::string>               instancesToReconstruct_;  // for each new series generated, an instance id that we can use to reconstruct the hierarchy DB model
 
   protected:
     virtual bool HandleInstance(const std::string& instance) ORTHANC_OVERRIDE; // from ThreadedSetOfInstancesJob
@@ -127,5 +127,7 @@ namespace Orthanc
     virtual bool Serialize(Json::Value& value) ORTHANC_OVERRIDE;
 
     virtual void Reset() ORTHANC_OVERRIDE;
+
+    void PerformSanityChecks();
   };
 }
