@@ -2172,6 +2172,36 @@ namespace OrthancPlugins
   }
 
 
+#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 11, 3)
+  static OrthancPluginErrorCode CopyStringToMemoryBuffer(OrthancPluginMemoryBuffer* target,
+                                                         const std::string& source)
+  {
+    if (OrthancPluginCreateMemoryBuffer(globalContext_, target, source.size()) != OrthancPluginErrorCode_Success)
+    {
+      return OrthancPluginErrorCode_NotEnoughMemory;
+    }
+    else
+    {
+      if (!source.empty())
+      {
+        memcpy(target->data, source.c_str(), source.size());
+      }
+      
+      return OrthancPluginErrorCode_Success;
+    }
+  }
+#endif
+
+
+#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 11, 3)
+  OrthancPluginErrorCode OrthancJob::CallbackGetContent(OrthancPluginMemoryBuffer* target,
+                                                        void* job)
+  {
+    assert(job != NULL);
+    OrthancJob& that = *reinterpret_cast<OrthancJob*>(job);
+    return CopyStringToMemoryBuffer(target, that.content_);
+  }
+#else
   const char* OrthancJob::CallbackGetContent(void* job)
   {
     assert(job != NULL);
@@ -2185,8 +2215,33 @@ namespace OrthancPlugins
       return 0;
     }
   }
+#endif
 
 
+#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 11, 3)
+  int32_t OrthancJob::CallbackGetSerialized(OrthancPluginMemoryBuffer* target,
+                                            void* job)
+  {
+    assert(job != NULL);
+    OrthancJob& that = *reinterpret_cast<OrthancJob*>(job);
+    
+    if (that.hasSerialized_)
+    {
+      if (CopyStringToMemoryBuffer(target, that.serialized_) == OrthancPluginErrorCode_Success)
+      {
+        return 1;
+      }
+      else
+      {
+        return -1;
+      }
+    }
+    else
+    {
+      return 0;
+    }
+  }
+#else
   const char* OrthancJob::CallbackGetSerialized(void* job)
   {
     assert(job != NULL);
@@ -2209,6 +2264,7 @@ namespace OrthancPlugins
       return 0;
     }
   }
+#endif
 
 
   OrthancPluginJobStepStatus OrthancJob::CallbackStep(void* job)
@@ -2340,10 +2396,15 @@ namespace OrthancPlugins
       ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(OrthancPluginErrorCode_NullPointer);
     }
 
-    OrthancPluginJob* orthanc = OrthancPluginCreateJob(
-      GetGlobalContext(), job, CallbackFinalize, job->jobType_.c_str(),
-      CallbackGetProgress, CallbackGetContent, CallbackGetSerialized,
-      CallbackStep, CallbackStop, CallbackReset);
+    OrthancPluginJob* orthanc =
+#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 11, 3)
+      OrthancPluginCreateJob2
+#else
+      OrthancPluginCreateJob
+#endif
+      (GetGlobalContext(), job, CallbackFinalize, job->jobType_.c_str(),
+       CallbackGetProgress, CallbackGetContent, CallbackGetSerialized,
+       CallbackStep, CallbackStop, CallbackReset);
 
     if (orthanc == NULL)
     {

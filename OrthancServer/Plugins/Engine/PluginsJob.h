@@ -33,11 +33,17 @@ namespace Orthanc
   class PluginsJob : public IJob
   {
   private:
-    _OrthancPluginCreateJob  parameters_;
-    std::string              type_;
+    _OrthancPluginCreateJob2       parameters_;
+    std::string                    type_;
+    OrthancPluginJobGetContent     deprecatedGetContent_;
+    OrthancPluginJobGetSerialized  deprecatedGetSerialized_;
+
+    void Setup();
 
   public:
     explicit PluginsJob(const _OrthancPluginCreateJob& parameters);
+
+    explicit PluginsJob(const _OrthancPluginCreateJob2& parameters);
 
     virtual ~PluginsJob();
 
