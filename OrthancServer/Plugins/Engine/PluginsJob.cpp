@@ -36,8 +36,7 @@
 
 namespace Orthanc
 {
-  PluginsJob::PluginsJob(const _OrthancPluginCreateJob& parameters) :
-    parameters_(parameters)
+  void PluginsJob::Setup()
   {
     if (parameters_.job == NULL)
     {
@@ -48,17 +47,47 @@ namespace Orthanc
         parameters_.finalize == NULL ||
         parameters_.type == NULL ||
         parameters_.getProgress == NULL ||
-        parameters_.getContent == NULL ||
-        parameters_.getSerialized == NULL ||
+        (parameters_.getContent == NULL && deprecatedGetContent_ == NULL) ||
+        (parameters_.getSerialized == NULL && deprecatedGetSerialized_ == NULL) ||
         parameters_.step == NULL ||
         parameters_.stop == NULL ||
         parameters_.reset == NULL)
     {
-      parameters_.finalize(parameters.job);
+      parameters_.finalize(parameters_.job);
       throw OrthancException(ErrorCode_NullPointer);
     }
 
-    type_.assign(parameters.type);
+    type_.assign(parameters_.type);
+  }
+  
+  PluginsJob::PluginsJob(const _OrthancPluginCreateJob2& parameters) :
+    parameters_(parameters),
+    deprecatedGetContent_(NULL),
+    deprecatedGetSerialized_(NULL)
+  {
+    Setup();
+  }
+
+  PluginsJob::PluginsJob(const _OrthancPluginCreateJob& parameters)
+  {
+    LOG(WARNING) << "Your plugin is using the deprecated OrthancPluginCreateJob() function";
+
+    memset(&parameters_, 0, sizeof(parameters_));
+    parameters_.target = parameters.target;
+    parameters_.job = parameters.job;
+    parameters_.finalize = parameters.finalize;
+    parameters_.type = parameters.type;
+    parameters_.getProgress = parameters.getProgress;
+    parameters_.getContent = NULL;
+    parameters_.getSerialized = NULL;
+    parameters_.step = parameters.step;
+    parameters_.stop = parameters.stop;
+    parameters_.reset = parameters.reset;
+
+    deprecatedGetContent_ = parameters.getContent;
+    deprecatedGetSerialized_ = parameters.getSerialized;
+    
+    Setup();
   }
 
   PluginsJob::~PluginsJob()
@@ -122,53 +151,148 @@ namespace Orthanc
     return parameters_.getProgress(parameters_.job);
   }
 
+
+  namespace
+  {
+    class MemoryBufferRaii : public boost::noncopyable
+    {
+    private:
+      OrthancPluginMemoryBuffer  buffer_;
+
+    public:
+      MemoryBufferRaii()
+      {
+        buffer_.size = 0;
+        buffer_.data = NULL;
+      }
+
+      ~MemoryBufferRaii()
+      {
+        if (buffer_.size != 0)
+        {
+          free(buffer_.data);
+        }
+      }
+
+      OrthancPluginMemoryBuffer* GetObject()
+      {
+        return &buffer_;
+      }
+
+      void ToJsonObject(Json::Value& target) const
+      {
+        if ((buffer_.data == NULL && buffer_.size != 0) ||
+            (buffer_.data != NULL && buffer_.size == 0) ||
+            !Toolbox::ReadJson(target, buffer_.data, buffer_.size) ||
+            target.type() != Json::objectValue)
+        {
+          throw OrthancException(ErrorCode_Plugin,
+                                 "A job plugin must provide a JSON object as its public content and as its serialization");
+        }
+      }
+    };
+  }
+  
   void PluginsJob::GetPublicContent(Json::Value& value)
   {
-    const char* content = parameters_.getContent(parameters_.job);
-
-    if (content == NULL)
+    if (parameters_.getContent != NULL)
     {
-      value = Json::objectValue;
+      MemoryBufferRaii target;
+
+      OrthancPluginErrorCode code = parameters_.getContent(target.GetObject(), parameters_.job);
+
+      if (code != OrthancPluginErrorCode_Success)
+      {
+        throw OrthancException(static_cast<ErrorCode>(code));
+      }
+      else
+      {
+        target.ToJsonObject(value);
+      }
     }
     else
     {
-      if (!Toolbox::ReadJson(value, content) ||
-          value.type() != Json::objectValue)
+      // This was the source code in Orthanc <= 1.11.2
+      const char* content = deprecatedGetContent_(parameters_.job);
+
+      if (content == NULL)
       {
-        throw OrthancException(ErrorCode_Plugin,
-                               "A job plugin must provide a JSON object as its public content");
+        value = Json::objectValue;
+      }
+      else
+      {
+        if (!Toolbox::ReadJson(value, content) ||
+            value.type() != Json::objectValue)
+        {
+          throw OrthancException(ErrorCode_Plugin,
+                                 "A job plugin must provide a JSON object as its public content");
+        }
       }
     }
   }
 
   bool PluginsJob::Serialize(Json::Value& value)
   {
-    const char* serialized = parameters_.getSerialized(parameters_.job);
-
-    if (serialized == NULL)
+    if (parameters_.getSerialized != NULL)
     {
-      return false;
+      MemoryBufferRaii target;
+
+      int32_t code = parameters_.getContent(target.GetObject(), parameters_.job);
+
+      if (code < 0)
+      {
+        throw OrthancException(ErrorCode_Plugin, "Error during the serialization of a job");
+      }
+      else if (code == 0)
+      {
+        return false;  // Serialization is not implemented
+      }
+      else
+      {
+        target.ToJsonObject(value);
+
+        static const char* KEY_TYPE = "Type";
+      
+        if (value.isMember(KEY_TYPE))
+        {
+          throw OrthancException(ErrorCode_Plugin,
+                                 "The \"Type\" field is for reserved use for serialized job");
+        }
+
+        value[KEY_TYPE] = type_;
+        return true;
+      }
     }
     else
     {
-      if (!Toolbox::ReadJson(value, serialized) ||
-          value.type() != Json::objectValue)
+      // This was the source code in Orthanc <= 1.11.2
+      const char* serialized = deprecatedGetSerialized_(parameters_.job);
+
+      if (serialized == NULL)
       {
-        throw OrthancException(ErrorCode_Plugin,
-                               "A job plugin must provide a JSON object as its serialized content");
+        return false;
       }
+      else
+      {
+        if (!Toolbox::ReadJson(value, serialized) ||
+            value.type() != Json::objectValue)
+        {
+          throw OrthancException(ErrorCode_Plugin,
+                                 "A job plugin must provide a JSON object as its serialized content");
+        }
 
 
-      static const char* KEY_TYPE = "Type";
+        static const char* KEY_TYPE = "Type";
       
-      if (value.isMember(KEY_TYPE))
-      {
-        throw OrthancException(ErrorCode_Plugin,
-                               "The \"Type\" field is for reserved use for serialized job");
-      }
+        if (value.isMember(KEY_TYPE))
+        {
+          throw OrthancException(ErrorCode_Plugin,
+                                 "The \"Type\" field is for reserved use for serialized job");
+        }
 
-      value[KEY_TYPE] = type_;
-      return true;
+        value[KEY_TYPE] = type_;
+        return true;
+      }
     }
   }
 }

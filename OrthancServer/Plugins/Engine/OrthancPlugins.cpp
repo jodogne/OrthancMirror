@@ -5111,6 +5111,14 @@ namespace Orthanc
         return true;
       }
 
+      case _OrthancPluginService_CreateJob2:
+      {
+        const _OrthancPluginCreateJob2& p =
+          *reinterpret_cast<const _OrthancPluginCreateJob2*>(parameters);
+        *(p.target) = reinterpret_cast<OrthancPluginJob*>(new PluginsJob(p));
+        return true;
+      }
+
       case _OrthancPluginService_FreeJob:
       {
         const _OrthancPluginFreeJob& p =
