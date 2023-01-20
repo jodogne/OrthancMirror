@@ -230,7 +230,11 @@ namespace Orthanc
      * Compute the resulting DICOM instance.
      **/
 
-    modification_->Apply(*modified);
+    {
+      boost::recursive_mutex::scoped_lock lock(mutex_);  // DicomModification object is not thread safe, we must protect it from here
+
+      modification_->Apply(*modified);
+    }
 
     const std::string modifiedUid = IDicomTranscoder::GetSopInstanceUid(modified->GetDcmtkObject());
     
@@ -406,6 +410,7 @@ namespace Orthanc
   }
 
 
+#if ORTHANC_BUILD_UNIT_TESTS == 1
   const DicomModification& ResourceModificationJob::GetModification() const
   {
     if (modification_.get() == NULL)
@@ -417,7 +422,7 @@ namespace Orthanc
       return *modification_;
     }
   }
-
+#endif
 
   DicomTransferSyntax ResourceModificationJob::GetTransferSyntax() const
   {
@@ -627,7 +632,13 @@ namespace Orthanc
       origin_.Serialize(value[ORIGIN]);
       
       Json::Value tmp;
-      modification_->Serialize(tmp);
+
+      {
+        boost::recursive_mutex::scoped_lock lock(mutex_);  // DicomModification object is not thread safe, we must protect it from here
+  
+        modification_->Serialize(tmp);
+      }
+
       value[MODIFICATION] = tmp;
 
       // New in Orthanc 1.9.4
@@ -757,7 +768,6 @@ namespace Orthanc
                 }
               }
             }
-            // TODO: need reconstruct_
           }
         }
       }
