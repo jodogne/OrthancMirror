@@ -120,7 +120,7 @@
 
 #define ORTHANC_PLUGINS_MINIMAL_MAJOR_NUMBER     1
 #define ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER     11
-#define ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER  2
+#define ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER  3
 
 
 #if !defined(ORTHANC_PLUGINS_VERSION_IS_ABOVE)
@@ -578,10 +578,11 @@ extern "C"
     _OrthancPluginService_GetPeerUserProperty = 8007,
 
     /* Primitives for handling jobs (new in 1.4.2) */
-    _OrthancPluginService_CreateJob = 9000,
+    _OrthancPluginService_CreateJob = 9000,   /* Deprecated since SDK 1.11.3 */
     _OrthancPluginService_FreeJob = 9001,
     _OrthancPluginService_SubmitJob = 9002,
     _OrthancPluginService_RegisterJobsUnserializer = 9003,
+    _OrthancPluginService_CreateJob2 = 9004,  /* New in SDK 1.11.3 */
     
     _OrthancPluginService_INTERNAL = 0x7fffffff
   } _OrthancPluginService;
@@ -1577,8 +1578,28 @@ extern "C"
    * @param job The job of interest.
    * @return The statistics, as a JSON object encoded as a string.
    * @ingroup Toolbox
+   * @deprecated This signature should not be used anymore since Orthanc SDK 1.11.3.
    **/  
   typedef const char* (*OrthancPluginJobGetContent) (void* job);
+
+
+  /**
+   * @brief Callback to retrieve the content of one custom job.
+   *
+   * Signature of a callback function that returns human-readable
+   * statistics about the job. This statistics must be formatted as a
+   * JSON object. This information is notably displayed in the "Jobs"
+   * tab of "Orthanc Explorer".
+   *
+   * @param target The target memory buffer where to store the JSON string.
+   * This buffer must be allocated using OrthancPluginCreateMemoryBuffer()
+   * and will be freed by the Orthanc core.
+   * @param job The job of interest.
+   * @return 0 if success, other value if error.
+   * @ingroup Toolbox
+   **/
+  typedef OrthancPluginErrorCode (*OrthancPluginJobGetContent2) (OrthancPluginMemoryBuffer* target,
+                                                                 void* job);
 
 
   /**
@@ -1595,8 +1616,30 @@ extern "C"
    * @return The serialized job, as a JSON object encoded as a string.
    * @see OrthancPluginRegisterJobsUnserializer()
    * @ingroup Toolbox
+   * @deprecated This signature should not be used anymore since Orthanc SDK 1.11.3.
    **/  
   typedef const char* (*OrthancPluginJobGetSerialized) (void* job);
+
+
+  /**
+   * @brief Callback to serialize one custom job.
+   *
+   * Signature of a callback function that returns a serialized
+   * version of the job, formatted as a JSON object. This
+   * serialization is stored in the Orthanc database, and is used to
+   * reload the job on the restart of Orthanc. The "unserialization"
+   * callback (with OrthancPluginJobsUnserializer signature) will
+   * receive this serialized object.
+   *
+   * @param target The target memory buffer where to store the JSON string.
+   * This buffer must be allocated using OrthancPluginCreateMemoryBuffer()
+   * and will be freed by the Orthanc core.
+   * @param job The job of interest.
+   * @return 1 if the serialization has succeeded, 0 if serialization is
+   * not implemented for this type of job, or -1 in case of error.
+   **/
+  typedef int32_t (*OrthancPluginJobGetSerialized2) (OrthancPluginMemoryBuffer* target,
+                                                     void* job);
 
 
   /**
@@ -6692,6 +6735,7 @@ extern "C"
    * @return The newly allocated job. It must be freed with OrthancPluginFreeJob(),
    * as long as it is not submitted with OrthancPluginSubmitJob().
    * @ingroup Toolbox
+   * @deprecated This signature should not be used anymore since Orthanc SDK 1.11.3.
    **/
   ORTHANC_PLUGIN_INLINE OrthancPluginJob *OrthancPluginCreateJob(
     OrthancPluginContext           *context,
@@ -6722,6 +6766,92 @@ extern "C"
     params.reset = reset;
 
     if (context->InvokeService(context, _OrthancPluginService_CreateJob, &params) != OrthancPluginErrorCode_Success ||
+        target == NULL)
+    {
+      /* Error */
+      return NULL;
+    }
+    else
+    {
+      return target;
+    }
+  }
+
+
+  typedef struct
+  {
+    OrthancPluginJob**              target;
+    void                           *job;
+    OrthancPluginJobFinalize        finalize;
+    const char                     *type;
+    OrthancPluginJobGetProgress     getProgress;
+    OrthancPluginJobGetContent2     getContent;
+    OrthancPluginJobGetSerialized2  getSerialized;
+    OrthancPluginJobStep            step;
+    OrthancPluginJobStop            stop;
+    OrthancPluginJobReset           reset;
+  } _OrthancPluginCreateJob2;
+
+  /**
+   * @brief Create a custom job.
+   *
+   * This function creates a custom job to be run by the jobs engine
+   * of Orthanc.
+   * 
+   * Orthanc starts one dedicated thread per custom job that is
+   * running. It is guaranteed that all the callbacks will only be
+   * called from this single dedicated thread, in mutual exclusion: As
+   * a consequence, it is *not* mandatory to protect the various
+   * callbacks by mutexes.
+   * 
+   * The custom job can nonetheless launch its own processing threads
+   * on the first call to the "step()" callback, and stop them once
+   * the "stop()" callback is called.
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param job The job to be executed.
+   * @param finalize The finalization callback.
+   * @param type The type of the job, provided to the job unserializer. 
+   * See OrthancPluginRegisterJobsUnserializer().
+   * @param getProgress The progress callback.
+   * @param getContent The content callback.
+   * @param getSerialized The serialization callback.
+   * @param step The callback to execute the individual steps of the job.
+   * @param stop The callback that is invoked once the job leaves the "running" state.
+   * @param reset The callback that is invoked if a stopped job is started again.
+   * @return The newly allocated job. It must be freed with OrthancPluginFreeJob(),
+   * as long as it is not submitted with OrthancPluginSubmitJob().
+   * @ingroup Toolbox
+   **/
+  ORTHANC_PLUGIN_INLINE OrthancPluginJob *OrthancPluginCreateJob2(
+    OrthancPluginContext           *context,
+    void                           *job,
+    OrthancPluginJobFinalize        finalize,
+    const char                     *type,
+    OrthancPluginJobGetProgress     getProgress,
+    OrthancPluginJobGetContent2     getContent,
+    OrthancPluginJobGetSerialized2  getSerialized,
+    OrthancPluginJobStep            step,
+    OrthancPluginJobStop            stop,
+    OrthancPluginJobReset           reset)
+  {
+    OrthancPluginJob* target = NULL;
+
+    _OrthancPluginCreateJob2 params;
+    memset(&params, 0, sizeof(params));
+
+    params.target = &target;
+    params.job = job;
+    params.finalize = finalize;
+    params.type = type;
+    params.getProgress = getProgress;
+    params.getContent = getContent;
+    params.getSerialized = getSerialized;
+    params.step = step;
+    params.stop = stop;
+    params.reset = reset;
+
+    if (context->InvokeService(context, _OrthancPluginService_CreateJob2, &params) != OrthancPluginErrorCode_Success ||
         target == NULL)
     {
       /* Error */

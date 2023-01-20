@@ -33,10 +33,13 @@ REST API
 * Tolerance for "image/jpg" MIME type instead of "image/jpeg" in /tools/create-dicom
 * /system: added MaximumStorageMode and MaximumStorageSize
 
-Common plugins code (C++)
--------------------------
+Plugins
+-------
 
-* Added a 'header' argument to all OrthancPeers::DoPost, DoPut, ...
+* Added a "header" argument to all OrthancPeers::DoPost, DoPut, ... in the "OrthancPluginCppWrapper"
+* Added "OrthancPluginCreateJob2()" in the plugin SDK to avoid
+  possible crashes when "OrthancPluginJobGetContent()" or
+  "OrthancPluginJobGetSerialized()" get called
 
 Maintenance
 -----------

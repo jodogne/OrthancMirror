@@ -833,9 +833,19 @@ namespace OrthancPlugins
 
     static float CallbackGetProgress(void* job);
 
+#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 11, 3)
+    static OrthancPluginErrorCode CallbackGetContent(OrthancPluginMemoryBuffer* target,
+                                                     void* job);
+#else
     static const char* CallbackGetContent(void* job);
+#endif
 
+#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 11, 3)
+    static int32_t CallbackGetSerialized(OrthancPluginMemoryBuffer* target,
+                                         void* job);
+#else
     static const char* CallbackGetSerialized(void* job);
+#endif
 
     static OrthancPluginJobStepStatus CallbackStep(void* job);
 
