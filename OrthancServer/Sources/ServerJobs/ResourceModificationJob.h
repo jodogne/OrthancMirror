@@ -87,8 +87,6 @@ namespace Orthanc
 
     void SetOrigin(const RestApiCall& call);
 
-    const DicomModification& GetModification() const;
-
     bool IsAnonymization() const
     {
       return isAnonymization_;
@@ -129,5 +127,9 @@ namespace Orthanc
     virtual void Reset() ORTHANC_OVERRIDE;
 
     void PerformSanityChecks();
+
+#if ORTHANC_BUILD_UNIT_TESTS == 1
+    const DicomModification& GetModification() const;
+#endif
   };
 }
