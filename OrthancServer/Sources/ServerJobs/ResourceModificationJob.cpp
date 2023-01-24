@@ -680,8 +680,9 @@ namespace Orthanc
       replaceInstanceMainDicomTags |= DicomMap::IsMainDicomTag(*it, ResourceType_Instance);
     }
 
-    if (modification_->IsKept(DICOM_TAG_SOP_INSTANCE_UID) 
-        && (modificationLevel == ResourceType_Series || modificationLevel == ResourceType_Study || modificationLevel == ResourceType_Patient))
+    if ((modificationLevel == ResourceType_Study || modificationLevel == ResourceType_Patient)
+        && !modification_->IsReplaced(DICOM_TAG_PATIENT_ID) 
+        && modification_->IsKept(DICOM_TAG_STUDY_INSTANCE_UID) && modification_->IsKept(DICOM_TAG_SERIES_INSTANCE_UID) && modification_->IsKept(DICOM_TAG_SOP_INSTANCE_UID))
     {
       // if we keep the SOPInstanceUID, it very likely means that we are modifying existing resources 'in place'
 
@@ -689,14 +690,14 @@ namespace Orthanc
       if (!IsKeepSource()) // note: we can refine this criteria -> this is valid only if all DicomUIDs are kept identical (but this can happen through Keep or Replace options)
       {
         throw OrthancException(ErrorCode_BadRequest,
-                              "When keeping SOPInstanceUID tag, you must set KeepSource to true to avoid deleting the modified files at the end of the process");
+                              "When keeping StudyInstanceUID, SeriesInstanceUID and SOPInstanceUID tag, you must set KeepSource to true to avoid deleting the modified files at the end of the process");
       }
 
       // and we must make sure that we overwite them with the modified resources
       if (IsKeepSource() && !GetContext().IsOverwriteInstances())
       {
         throw OrthancException(ErrorCode_BadRequest,
-                              "When keeping SOPInstanceUID tag, you must have the 'OverwriteInstances' Orthanc configuration set to true in order to replace the modified resources");
+                              "When keeping StudyInstanceUID, SeriesInstanceUID and SOPInstanceUID tag, you must have the 'OverwriteInstances' Orthanc configuration set to true in order to replace the modified resources");
       }
     }
 
