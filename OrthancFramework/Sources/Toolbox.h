@@ -119,6 +119,8 @@ namespace Orthanc
     static std::string FlattenUri(const UriComponents& components,
                                   size_t fromLevel = 0);
 
+    static std::string JoinUri(const std::string& base, const std::string& uri);
+    
 #if ORTHANC_ENABLE_MD5 == 1
     static void ComputeMD5(std::string& result,
                            const std::string& data);

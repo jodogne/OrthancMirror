@@ -414,6 +414,23 @@ namespace Orthanc
     }
   }
 
+  std::string Toolbox::JoinUri(const std::string& base, const std::string& uri)
+  {
+    if (uri.size() > 0 && base.size() > 0)
+    {
+      if (base[base.size() - 1] == '/' && uri[0] == '/')
+      {
+        return base + uri.substr(1, uri.size() - 1);
+      }
+      else if (base[base.size() - 1] != '/' && uri[0] != '/')
+      {
+        return base + "/" + uri;
+      }
+    }
+
+    return base + uri;
+  }
+
 
 #if ORTHANC_ENABLE_MD5 == 1
   static char GetHexadecimalCharacter(uint8_t value)
