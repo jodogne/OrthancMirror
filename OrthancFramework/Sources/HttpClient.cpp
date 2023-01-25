@@ -682,7 +682,7 @@ namespace Orthanc
 
     SetPkcs11Enabled(service.IsPkcs11Enabled());
 
-    SetUrl(service.GetUrl() + uri);
+    SetUrl(Toolbox::JoinUri(service.GetUrl(), uri));
 
     for (WebServiceParameters::Dictionary::const_iterator 
            it = service.GetHttpHeaders().begin();

@@ -322,3 +322,14 @@ TEST(Toolbox, JoinStrings)
     ASSERT_EQ("1\\2", result);
   }
 }
+
+TEST(Toolbox, JoinUri)
+{
+  ASSERT_EQ("https://test.org/path", Toolbox::JoinUri("https://test.org", "path"));
+  ASSERT_EQ("https://test.org/path", Toolbox::JoinUri("https://test.org/", "path"));
+  ASSERT_EQ("https://test.org/path", Toolbox::JoinUri("https://test.org", "/path"));
+  ASSERT_EQ("https://test.org/path", Toolbox::JoinUri("https://test.org/", "/path"));
+
+  ASSERT_EQ("http://test.org:8042", Toolbox::JoinUri("http://test.org:8042", ""));
+  ASSERT_EQ("http://test.org:8042/", Toolbox::JoinUri("http://test.org:8042/", ""));
+}
