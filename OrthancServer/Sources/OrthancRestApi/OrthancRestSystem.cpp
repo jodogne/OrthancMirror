@@ -245,6 +245,10 @@ namespace Orthanc
     {
       call.GetOutput().AnswerBuffer(FromDcmtkBridge::GenerateUniqueIdentifier(ResourceType_Instance), MimeType_PlainText);
     }
+    else
+    {
+      LOG(ERROR) << "No 'level' or invalid GET argument specified in /tools/generate-uid";
+    }
   }
 
   static void ExecuteScript(RestApiPostCall& call)
