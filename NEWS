@@ -26,6 +26,8 @@ REST API
     tags (PatientName, PatientBirthDate, ...)
 * Automatically reconstruct the modified resources at the end of the DICOM modifications job to ensure
   improved consistency of the DICOM model.
+* If specifying 'Transcode' option to /modify or /anonymize, this value will take over the 'IngestTranscoding'
+  global configuration
 * Allow the HTTP server to return responses > 2GB (fixes asynchronous download of zip studies > 2GB)
 * /modalities/.../store now accepts "CalledAet", "Host", "Port" to override the modality configuration 
   from the configuration file for a specific operation.

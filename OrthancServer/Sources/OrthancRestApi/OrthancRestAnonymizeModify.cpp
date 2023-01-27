@@ -111,6 +111,9 @@ namespace Orthanc
   {
     // Check out "DicomModification::ParseAnonymizationRequest()"
     call.GetDocumentation()
+      .SetRequestField(TRANSCODE, RestApiCallDocumentation::Type_String,
+                       "Transcode the DICOM instances to the provided DICOM transfer syntax: "
+                       "https://book.orthanc-server.com/faq/transcoding.html", false)
       .SetRequestField(FORCE, RestApiCallDocumentation::Type_Boolean,
                        "Allow the modification of tags related to DICOM identifiers, at the risk of "
                        "breaking the DICOM model of the real world", false)
