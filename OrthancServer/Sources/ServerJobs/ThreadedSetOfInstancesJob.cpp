@@ -349,7 +349,9 @@ namespace Orthanc
 
     if (started_)
     {
-      // TODO: cleanup the instances that have been generated during the previous run
+      // We actually can not clean the instances that would have been generated during a previous run
+      // because the generated instances may or may not have the same orthanc ids as the source
+      // it is too dangerous to guess if they should be deleted or not
       currentStep_ = ThreadedJobStep_NotStarted;
       stopRequested_ = false;
       processedInstances_.clear();
