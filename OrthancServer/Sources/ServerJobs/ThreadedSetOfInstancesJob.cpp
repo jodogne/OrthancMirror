@@ -43,7 +43,7 @@ namespace Orthanc
     started_(false),
     stopRequested_(false),
     permissive_(false),
-    currentStep_(ThreadedJobStep_ProcessingInstances),
+    currentStep_(ThreadedJobStep_NotStarted),
     workersCount_(workersCount),
     context_(context),
     keepSource_(keepSource),
@@ -98,6 +98,7 @@ namespace Orthanc
   {
     boost::recursive_mutex::scoped_lock lock(mutex_);
 
+    instancesToProcessQueue_.Clear();
     stopRequested_ = true;
   }
 
@@ -139,7 +140,7 @@ namespace Orthanc
     
     try
     {
-      if (currentStep_ == ThreadedJobStep_ProcessingInstances)
+      if (currentStep_ == ThreadedJobStep_NotStarted)
       {
         // create the workers and enqueue all instances
         for (std::set<std::string>::const_iterator it = instancesToProcess_.begin(); it != instancesToProcess_.end(); ++it)
@@ -148,18 +149,29 @@ namespace Orthanc
         }
 
         InitWorkers(workersCount_);
+        currentStep_ = ThreadedJobStep_ProcessingInstances;
+      }
+      else if (currentStep_ == ThreadedJobStep_ProcessingInstances)
+      {
         // wait until all instances are processed by the workers
-        WaitWorkersComplete();
-
-        // check job has really completed !!! it might have been interrupted because of an error
-        if ((processedInstances_.size() != instancesToProcess_.size())
-          || (!IsPermissive() && failedInstances_.size() > 0))
+        if (instancesToProcessQueue_.GetSize() != 0)
         {
-          return JobStepResult::Failure(GetErrorCode(), NULL);
+          return JobStepResult::Continue();
         }
+        else
+        {
+          WaitWorkersComplete();
 
-        currentStep_ = ThreadedJobStep_PostProcessingInstances;
-        return JobStepResult::Continue();
+          // check job has really completed !!! it might have been interrupted because of an error
+          if ((processedInstances_.size() != instancesToProcess_.size())
+            || (!IsPermissive() && failedInstances_.size() > 0))
+          {
+            return JobStepResult::Failure(GetErrorCode(), NULL);
+          }
+
+          currentStep_ = ThreadedJobStep_PostProcessingInstances;
+          return JobStepResult::Continue();
+        }
       }
       else if (currentStep_ == ThreadedJobStep_PostProcessingInstances)
       {
@@ -338,7 +350,7 @@ namespace Orthanc
     if (started_)
     {
       // TODO: cleanup the instances that have been generated during the previous run
-      currentStep_ = ThreadedJobStep_ProcessingInstances;
+      currentStep_ = ThreadedJobStep_NotStarted;
       stopRequested_ = false;
       processedInstances_.clear();
       failedInstances_.clear();
@@ -411,7 +423,7 @@ namespace Orthanc
     started_(false),
     stopRequested_(false),
     permissive_(false),
-    currentStep_(ThreadedJobStep_ProcessingInstances),
+    currentStep_(ThreadedJobStep_NotStarted),
     workersCount_(1),
     context_(context),
     keepSource_(defaultKeepSource),

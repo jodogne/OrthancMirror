@@ -41,6 +41,7 @@ namespace Orthanc
   public:
     enum ThreadedJobStep  // cannot use "Step" since there is a method with this name !
     {
+      ThreadedJobStep_NotStarted,
       ThreadedJobStep_ProcessingInstances,
       ThreadedJobStep_PostProcessingInstances,
       ThreadedJobStep_Cleanup,
