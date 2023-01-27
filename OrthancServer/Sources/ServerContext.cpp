@@ -819,11 +819,7 @@ namespace Orthanc
 
           std::unique_ptr<DicomInstanceToStore> toStore(DicomInstanceToStore::CreateFromParsedDicomFile(*tmp));
           toStore->SetOrigin(dicom->GetOrigin());
-
-          if (isReconstruct) // the initial instance to store already has its own metadata
-          {
-            toStore->CopyMetadata(dicom->GetMetadata());
-          }
+          toStore->CopyMetadata(dicom->GetMetadata());
 
           StoreResult result = StoreAfterTranscoding(resultPublicId, *toStore, mode, isReconstruct);
           assert(resultPublicId == tmp->GetHasher().HashInstance());
