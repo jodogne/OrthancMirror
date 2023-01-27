@@ -273,6 +273,7 @@ namespace Orthanc
 
     std::unique_ptr<DicomInstanceToStore> toStore(DicomInstanceToStore::CreateFromParsedDicomFile(*modified));
     toStore->SetOrigin(origin_);
+    toStore->SetSkipIngestTranscoding(transcode_); // do not apply IngestTranscoding if you have forced the transfer syntax during the modification/anonymization
 
 
     /**

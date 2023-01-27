@@ -47,6 +47,11 @@ namespace Orthanc
 
     MetadataMap          metadata_;
     DicomInstanceOrigin  origin_;
+    bool                 skipIngestTranscoding_;
+
+    DicomInstanceToStore()
+    : skipIngestTranscoding_(false)
+    {}
 
   public:
     virtual ~DicomInstanceToStore()
@@ -64,8 +69,16 @@ namespace Orthanc
 
     static DicomInstanceToStore* CreateFromDcmDataset(DcmDataset& dataset);
 
+    void SetSkipIngestTranscoding(bool value)
+    {
+      skipIngestTranscoding_ = value;
+    }
 
- 
+    bool SkipIngestTranscoding() const
+    {
+      return skipIngestTranscoding_;
+    }
+
     void SetOrigin(const DicomInstanceOrigin& origin)
     {
       origin_ = origin;

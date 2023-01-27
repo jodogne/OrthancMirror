@@ -762,7 +762,7 @@ namespace Orthanc
                                                               bool isReconstruct)
   {
 
-    if (!isIngestTranscoding_)
+    if (!isIngestTranscoding_ || dicom->SkipIngestTranscoding())
     {
       // No automated transcoding. This was the only path in Orthanc <= 1.6.1.
       return StoreAfterTranscoding(resultPublicId, *dicom, mode, isReconstruct);
