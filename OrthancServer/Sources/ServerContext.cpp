@@ -48,7 +48,7 @@
 
 #include <dcmtk/dcmdata/dcfilefo.h>
 #include <dcmtk/dcmnet/dimse.h>
-
+#include <malloc.h>
 
 static size_t DICOM_CACHE_SIZE = 128 * 1024 * 1024;  // 128 MB
 
@@ -143,6 +143,8 @@ namespace Orthanc
           }
         }
       }
+
+      malloc_trim(0);
     }
   }
 
