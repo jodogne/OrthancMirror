@@ -156,6 +156,9 @@ namespace Orthanc
         // wait until all instances are processed by the workers
         if (instancesToProcessQueue_.GetSize() != 0)
         {
+          // "slow down" the job main thread, to avoid using 100% of a core simply to check that other threads are done
+          boost::this_thread::sleep(boost::posix_time::milliseconds(5));
+
           return JobStepResult::Continue();
         }
         else
