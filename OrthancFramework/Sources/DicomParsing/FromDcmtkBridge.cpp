@@ -1253,9 +1253,22 @@ namespace Orthanc
   }
 
 
+  static bool GetTagFromNameInternal(DicomTag& tag, const std::string& tagName)
+  {
+    // conversion from old tag names (ex: RETIRED_OtherPatientIDs is the new name for OtherPatientIDs that is still a valid name for DICOM_TAG_OTHER_PATIENT_IDS)
+    if (tagName == "OtherPatientIDs")
+    {
+      tag = DICOM_TAG_OTHER_PATIENT_IDS;
+      return true;
+    }
+
+    return false;
+  }
+
   std::string FromDcmtkBridge::GetTagName(const DicomTag& t,
                                           const std::string& privateCreator)
   {
+    
     DcmTag tag(t.GetGroup(), t.GetElement());
 
     if (!privateCreator.empty())
@@ -1315,6 +1328,12 @@ namespace Orthanc
     }
     else
     {
+      DicomTag dcmTag(0, 0);
+      if (GetTagFromNameInternal(dcmTag, name))
+      {
+        return dcmTag;
+      }
+
       CLOG(INFO, DICOM) << "Unknown DICOM tag: \"" << name << "\"";
       throw OrthancException(ErrorCode_UnknownDicomTag, name, false);
     }
