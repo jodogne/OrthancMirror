@@ -14,8 +14,9 @@ General
   - New configuration "JobsEngineThreadsCount.ResourceModification" to configure the number of threads.
 * Introduced a new Housekeeper thread in Orthanc (different from the Housekeeper sample plugin).  This thread
   regularly try to give back memory that Orthanc no longer uses to the system.  This reduces the overall memory
-  consumption however, only the memory at the end of a memory arena is given back to the system.  Fragmented memory
-  is not given back and therefore, the memory consumption may still stay high.
+  consumption.  However, only the memory at the end of a memory arena is given back to the system.  Fragmented memory
+  is not given back and therefore, the memory consumption may still stay high.  More information in 
+  OrthancServer/Resources/ImplementationNotes/memory_consumption.txt.
 
 REST API
 --------
