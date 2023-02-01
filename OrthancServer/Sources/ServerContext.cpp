@@ -48,7 +48,7 @@
 
 #include <dcmtk/dcmdata/dcfilefo.h>
 #include <dcmtk/dcmnet/dimse.h>
-
+#include <malloc.h>
 
 static size_t DICOM_CACHE_SIZE = 128 * 1024 * 1024;  // 128 MB
 
@@ -104,6 +104,19 @@ namespace Orthanc
   {
   }
 
+  void ServerContext::HousekeeperThread(ServerContext* that,
+                                        unsigned int sleepDelay)
+  {
+    while (!that->done_)
+    {
+      boost::this_thread::sleep(boost::posix_time::milliseconds(sleepDelay));
+      
+      // If possible, gives memory back to the system 
+      // (see OrthancServer/Resources/ImplementationNotes/memory_consumption.txt)
+
+      malloc_trim(256*1024);
+    }
+  }
   
   void ServerContext::ChangeThread(ServerContext* that,
                                    unsigned int sleepDelay)
@@ -417,7 +430,8 @@ namespace Orthanc
 
       listeners_.push_back(ServerListener(luaListener_, "Lua"));
       changeThread_ = boost::thread(ChangeThread, this, (unitTesting ? 20 : 100));
-    
+      housekeeperThread_ = boost::thread(HousekeeperThread, this, 100);
+
       dynamic_cast<DcmtkTranscoder&>(*dcmtkTranscoder_).SetLossyQuality(lossyQuality);
     }
     catch (OrthancException&)

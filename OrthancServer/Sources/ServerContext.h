@@ -187,6 +187,9 @@ namespace Orthanc
     static void SaveJobsThread(ServerContext* that,
                                unsigned int sleepDelay);
 
+    static void HousekeeperThread(ServerContext* that,
+                                  unsigned int sleepDelay);
+
     void SaveJobsEngine();
 
     virtual void SignalJobSubmitted(const std::string& jobId) ORTHANC_OVERRIDE;
@@ -230,6 +233,7 @@ namespace Orthanc
     SharedMessageQueue  pendingChanges_;
     boost::thread  changeThread_;
     boost::thread  saveJobsThread_;
+    boost::thread  housekeeperThread_;
         
     std::unique_ptr<SharedArchive>  queryRetrieveArchive_;
     std::string defaultLocalAet_;

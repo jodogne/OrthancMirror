@@ -1,0 +1,78 @@
+In Orthanc 1.11.3, we have introduced a Housekeeper thread that 
+tries to give back unused memory back to the system.  This is implemented 
+by calling malloc_trim every 100ms.
+
+Here is how we validated the effect of this new feature:
+-------------------------------------------------------
+
+We compared the behaviour of 2 osimis/orthanc Docker images from the mainline
+on Feb 1st 2023.  One image without the call to malloc_trim and the other with
+this call.
+
+1st test: unconstrained Docker containers
+.........................................
+
+5 large studies are uploaded to each instance of Orthanc (around 1GB in total).
+A script triggers anonymization of these studies as quick as possible.
+We compare the memory used by the containers after 2 minutes of execution 
+(using `docker stats`):
+- without malloc_trim:                   1500 MB
+- with malloc_trim:                       410 MB
+
+2nd test: memory constrained Docker containers
+..............................................
+
+Each Orthanc container is limited to 400MB (through the docker-compose configuration
+`mem_limit: 400m`)
+5 large studies are uploaded to each instance of Orthanc (around 1GB in total).
+Each study is anonymized manually, one by one and then, we repeat the operation.
+We compare the memory used by the containers after 2 minutes of execution 
+(using `docker stats`):
+            
+# study            without malloc_trim         with_malloc_trim
+0                       ~   50 MB                     ~   50 MB
+1                       ~  140 MB                     ~  140 MB
+2                       ~  390 MB                     ~  340 MB
+3                       ~  398 MB                     ~  345 MB
+4                  out-of-memory crash                ~  345 MB
+5..20                                                 ~  380 MB (stable)
+
+Note: the use of malloc_trim does not guarantee that Orthanc will never reach a
+out-of-memory error, especially on very constrained systems.  
+Depending on the allocation pattern, the Orthanc memory can get
+very fragmented and increase since malloc_trim only releases memory
+at the end of each of malloc arena.  However, note that, even long before the 
+introduction of malloc_trim, we have observed Orthanc instances running for years
+without ever reaching out-of-memory errors and Orthanc is usually considered as
+very stable.
+
+
+
+
+
+
+malloc_trim documentation
+-------------------------
+
+from (https://stackoverflow.com/questions/40513716/malloc-trim0-releases-fastbins-of-thread-arenas)
+
+    If possible, gives memory back to the system (via negative
+    arguments to sbrk) if there is unused memory at the `high' end of
+    the malloc pool. You can call this after freeing large blocks of
+    memory to potentially reduce the system-level memory requirements
+    of a program. However, it cannot guarantee to reduce memory. Under
+    some allocation patterns, some large free blocks of memory will be
+    locked between two used chunks, so they cannot be given back to
+    the system.
+
+    The `pad' argument to malloc_trim represents the amount of free
+    trailing space to leave untrimmed. If this argument is zero,
+    only the minimum amount of memory to maintain internal data
+    structures will be left (one page or less). Non-zero arguments
+    can be supplied to maintain enough trailing space to service
+    future expected allocations without having to re-obtain memory
+    from the system.
+
+    Malloc_trim returns 1 if it actually released any memory, else 0.
+    On systems that do not support "negative sbrks", it will always
+    return 0.
