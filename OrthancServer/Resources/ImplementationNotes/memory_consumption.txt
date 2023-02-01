@@ -37,7 +37,22 @@ We compare the memory used by the containers after 2 minutes of execution
 4                  out-of-memory crash                ~  345 MB
 5..20                                                 ~  380 MB (stable)
 
-Note: the use of malloc_trim does not guarantee that Orthanc will never reach a
+3nd test: memory constrained Docker containers
+..............................................
+
+In this last test, we lowered the memory allocation to 300MB and have been able to
+run the first test script for at least 7 minutes (we did not try longer !).  The 
+consumed memory is most of the time around 99% but it seems that the memory constrain
+is handled correctly.  Note that, in this configuration, 128 MB are used by the Dicom
+Cache.
+
+The same test without malloc_trim could never run for more than 35 seconds.
+
+
+Note: 
+----
+
+The use of malloc_trim does not guarantee that Orthanc will never reach a
 out-of-memory error, especially on very constrained systems.  
 Depending on the allocation pattern, the Orthanc memory can get
 very fragmented and increase since malloc_trim only releases memory
