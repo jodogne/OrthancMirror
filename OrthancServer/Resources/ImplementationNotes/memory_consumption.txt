@@ -111,3 +111,25 @@ from (https://stackoverflow.com/questions/40513716/malloc-trim0-releases-fastbin
     Malloc_trim returns 1 if it actually released any memory, else 0.
     On systems that do not support "negative sbrks", it will always
     return 0.
+
+
+glibc internals
+---------------
+
+Lots of useful info here: https://man7.org/linux/man-pages/man3/mallopt.3.html
+
+summary:
+- malloc uses sbrk() or mmap() to allocate memory.  mmap() is used to allocate 
+  large memory chunks, larger than M_MMAP_THRESHOLD.
+- about mmap(): On the other hand, there are some disadvantages to
+              the use of mmap(2): deallocated space is not placed on the
+              free list for reuse by later allocations; memory may be
+              wasted because mmap(2) allocations must be page-aligned;
+              and the kernel must perform the expensive task of zeroing
+              out memory allocated via mmap(2).  Balancing these factors
+              leads to a default setting of 128*1024 for the
+              M_MMAP_THRESHOLD parameter.
+- free() employs sbrk() to release memory back to the system and M_TRIM_THRESHOLD
+  specifies the minimum size that is released.  So, even without
+  malloc_trim, Orthanc is able to give back memory to the system.
+- free() never gives back block allocated by mmap() to the system, only malloc_trim() does !
