@@ -281,6 +281,7 @@ endif()
 #####################################################################
 
 check_symbol_exists(mallopt "malloc.h" HAVE_MALLOPT)
+check_symbol_exists(malloc_trim "malloc.h" HAVE_MALLOC_TRIM)
 
 if (HAVE_MALLOPT)
   add_definitions(-DHAVE_MALLOPT=1)
@@ -288,6 +289,11 @@ else()
   add_definitions(-DHAVE_MALLOPT=0)
 endif()
 
+if (HAVE_MALLOC_TRIM)
+  add_definitions(-DHAVE_MALLOC_TRIM=1)
+else()
+  add_definitions(-DHAVE_MALLOC_TRIM=0)
+endif()
 
 if (STATIC_BUILD)
   add_definitions(-DORTHANC_STATIC=1)

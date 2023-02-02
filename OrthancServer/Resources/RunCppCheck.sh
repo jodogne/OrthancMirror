@@ -49,6 +49,7 @@ ${CPPCHECK} --enable=all --quiet --std=c++11 \
             -DCIVETWEB_HAS_WEBDAV_WRITING=1 \
             -DDCMTK_VERSION_NUMBER=365 \
             -DHAVE_MALLOPT=1 \
+            -DHAVE_MALLOC_TRIM=1 \
             -DMONGOOSE_USE_CALLBACKS=1 \
             -DJSONCPP_VERSION_MAJOR=1 \
             -DJSONCPP_VERSION_MINOR=0 \
