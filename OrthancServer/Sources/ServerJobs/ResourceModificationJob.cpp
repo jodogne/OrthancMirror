@@ -665,20 +665,14 @@ namespace Orthanc
     }
 
     bool replacePatientMainDicomTags = false;
-    bool replaceStudyMainDicomTags = false;
-    bool replaceSeriesMainDicomTags = false;
-    bool replaceInstanceMainDicomTags = false;
 
     ResourceType modificationLevel = modification_->GetLevel();
     std::set<DicomTag> replacedTags;
     modification_->GetReplacedTags(replacedTags);
 
-    for (std::set<DicomTag>::const_iterator it = replacedTags.begin(); it != replacedTags.end(); it++)
+    for (std::set<DicomTag>::const_iterator it = replacedTags.begin(); it != replacedTags.end(); ++it)
     {
       replacePatientMainDicomTags |= DicomMap::IsMainDicomTag(*it, ResourceType_Patient);
-      replaceStudyMainDicomTags |= DicomMap::IsMainDicomTag(*it, ResourceType_Study);
-      replaceSeriesMainDicomTags |= DicomMap::IsMainDicomTag(*it, ResourceType_Series);
-      replaceInstanceMainDicomTags |= DicomMap::IsMainDicomTag(*it, ResourceType_Instance);
     }
 
     if ((modificationLevel == ResourceType_Study || modificationLevel == ResourceType_Patient)

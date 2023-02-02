@@ -64,9 +64,9 @@ namespace Orthanc
     std::set<std::string>               instancesToReconstruct_;  // for each new series generated, an instance id that we can use to reconstruct the hierarchy DB model
 
   protected:
-    virtual bool HandleInstance(const std::string& instance) ORTHANC_OVERRIDE; // from ThreadedSetOfInstancesJob
+    virtual bool HandleInstance(const std::string& instance) ORTHANC_OVERRIDE;
     
-    virtual void PostProcessInstances();
+    virtual void PostProcessInstances() ORTHANC_OVERRIDE;
 
   public:
     explicit ResourceModificationJob(ServerContext& context, unsigned int workersCount);

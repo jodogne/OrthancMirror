@@ -58,7 +58,7 @@ The same test without malloc_trim could never run for more than 35 seconds.
 
 In this test, we have measured the time required to anonymize a 2000 instances study
 with various configurations.  It appears that malloc_trim or the total amount
-of memory available in the system has no significant impact of performance.
+of memory available in the system has no significant impact on performance.
 
 - No malloc trim, 300 MB in the system:       ~ 38s
 - No malloc trim, 1500 MB in the system:      ~ 38s
