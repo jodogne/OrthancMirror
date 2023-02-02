@@ -2,12 +2,14 @@ In Orthanc 1.11.3, we have introduced a Housekeeper thread that
 tries to give back unused memory back to the system.  This is implemented 
 by calling malloc_trim every 100ms.
 
+
 Here is how we validated the effect of this new feature:
 -------------------------------------------------------
 
 We compared the behaviour of 2 osimis/orthanc Docker images from the mainline
 on Feb 1st 2023.  One image without the call to malloc_trim and the other with
 this call.
+
 
 1st test: unconstrained Docker containers
 .........................................
@@ -18,6 +20,7 @@ We compare the memory used by the containers after 2 minutes of execution
 (using `docker stats`):
 - without malloc_trim:                   1500 MB
 - with malloc_trim:                       410 MB
+
 
 2nd test: memory constrained Docker containers
 ..............................................
@@ -37,7 +40,8 @@ We compare the memory used by the containers after 2 minutes of execution
 4                  out-of-memory crash                ~  345 MB
 5..20                                                 ~  380 MB (stable)
 
-3nd test: memory constrained Docker containers
+
+3rd test: memory constrained Docker containers
 ..............................................
 
 In this last test, we lowered the memory allocation to 300MB and have been able to
@@ -49,8 +53,21 @@ Cache.
 The same test without malloc_trim could never run for more than 35 seconds.
 
 
-Note: 
-----
+4th test: performance impact of malloc_trim and available memory
+................................................................
+
+In this test, we have measured the time required to anonymize a 2000 instances study
+with various configurations.  It appears that malloc_trim or the total amount
+of memory available in the system has no significant impact of performance.
+
+- No malloc trim, 300 MB in the system:       ~ 38s
+- No malloc trim, 1500 MB in the system:      ~ 38s
+- With malloc trim, 300 MB in the system:     ~ 38s
+- With malloc trim, 1500 MB in the system:    ~ 38s
+
+
+Conclusion: 
+----------
 
 The use of malloc_trim does not guarantee that Orthanc will never reach a
 out-of-memory error, especially on very constrained systems.  
@@ -60,9 +77,6 @@ at the end of each of malloc arena.  However, note that, even long before the
 introduction of malloc_trim, we have observed Orthanc instances running for years
 without ever reaching out-of-memory errors and Orthanc is usually considered as
 very stable.
-
-
-
 
 
 
