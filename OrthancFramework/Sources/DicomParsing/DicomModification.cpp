@@ -1842,7 +1842,7 @@ namespace Orthanc
   void DicomModification::GetReplacedTags(std::set<DicomTag>& target) const
   {
     target.clear();
-    for (Replacements::const_iterator it = replacements_.begin(); it != replacements_.end(); it++)
+    for (Replacements::const_iterator it = replacements_.begin(); it != replacements_.end(); ++it)
     {
       target.insert(it->first);
     }
