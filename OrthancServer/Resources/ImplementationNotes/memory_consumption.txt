@@ -29,7 +29,7 @@ Each Orthanc container is limited to 400MB (through the docker-compose configura
 `mem_limit: 400m`)
 5 large studies are uploaded to each instance of Orthanc (around 1GB in total).
 Each study is anonymized manually, one by one and then, we repeat the operation.
-We compare the memory used by the containers after 2 minutes of execution 
+We compare the memory used by the containers after each anonymization 
 (using `docker stats`):
             
 # study            without malloc_trim         with_malloc_trim
@@ -69,15 +69,21 @@ of memory available in the system has no significant impact of performance.
 Conclusion: 
 ----------
 
-The use of malloc_trim does not guarantee that Orthanc will never reach a
+The use of malloc_trim reduces the overall memory consumption of Orthanc
+and avoids some of the out-of-memory situations.
+
+However, it does not guarantee that Orthanc will never reach a
 out-of-memory error, especially on very constrained systems.  
+
 Depending on the allocation pattern, the Orthanc memory can get
-very fragmented and increase since malloc_trim only releases memory
+very fragmented and increase regularly since malloc_trim only releases memory
 at the end of each of malloc arena.  However, note that, even long before the 
 introduction of malloc_trim, we have observed Orthanc instances running for years
 without ever reaching out-of-memory errors and Orthanc is usually considered as
 very stable.
 
+Moreover, before each release, Orthanc integration tests are run against Valgrind
+and no memory leaks have been identified.
 
 
 malloc_trim documentation
