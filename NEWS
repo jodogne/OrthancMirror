@@ -20,6 +20,7 @@ General
 REST API
 --------
 
+* API version upgraded to 19
 * Loosen the sanity checks for DICOM modifications, if "Force" option is given:
   - allow modification of PatientID at study level
   - allow modification of PatientID, StudyInstanceUID at series level
