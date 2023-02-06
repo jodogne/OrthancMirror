@@ -229,6 +229,9 @@ SDK
 * Update the SDK to handle buffer sizes > 4GB (all sizes are currently coded in uint32_t)
 * Add a C-Get SCP handler: OrthancPluginRegisterGetCallback
   https://groups.google.com/g/orthanc-users/c/NRhPkYX9IXQ/m/mWS11g0jBwAJ
+* Add a primitive for user authentication (to generate 401 HTTP status, whereas
+  the "RegisterIncomingHttpRequestFilter()" can only generate 403 HTTP status)
+  https://groups.google.com/g/orthanc-users/c/ymtaAmgSs6Q/m/PqVBactQAQAJ
 
 ----------------
 Ideas of plugins
