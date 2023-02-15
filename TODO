@@ -24,7 +24,8 @@ General
   https://hg.orthanc-server.com/orthanc/file/Orthanc-1.9.3/OrthancFramework/Sources/OrthancFramework.cpp#l88
 * Toolbox::ComputeMD5() fails on files larger than 4GB
 * Add an option to run Orthanc in read-only mode both for DICOM and for Rest API.
-* Logging: add some information like Thread-Id to contextualize the logs
+* Logging: add some information like Thread-Id/job-id to contextualize the logs.
+  For a DICOM Transfer, that would be nice to include the modality in the context + a study identifier or a job id.
 * (1) Accept extra DICOM tags dictionaries in the DCMTK format '.dic' (easier to use than declare
   them in the Orthanc configuration file).  Even the standard dictionaries could be 
   overriden by these custom dictionaries.
