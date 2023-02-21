@@ -1055,15 +1055,15 @@ namespace Orthanc
 
 
   void Toolbox::JoinStrings(std::string& result,
-                            std::set<std::string>& source,
+                            const std::set<std::string>& source,
                             const char* separator)
   {
     result = boost::algorithm::join(source, separator);
   }
 
-  void JoinStrings(std::string& result,
-                   std::vector<std::string>& source,
-                   const char* separator)
+  void Toolbox::JoinStrings(std::string& result,
+                            const std::vector<std::string>& source,
+                            const char* separator)
   {
     result = boost::algorithm::join(source, separator);
   }

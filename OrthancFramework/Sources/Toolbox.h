@@ -188,11 +188,11 @@ namespace Orthanc
                                char separator);
 
     static void JoinStrings(std::string& result,
-                            std::set<std::string>& source,
+                            const std::set<std::string>& source,
                             const char* separator);
 
     static void JoinStrings(std::string& result,
-                            std::vector<std::string>& source,
+                            const std::vector<std::string>& source,
                             const char* separator);
 
     // returns true if all element of 'needles' are found in 'haystack'
