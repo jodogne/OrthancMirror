@@ -750,6 +750,12 @@ namespace OrthancPlugins
     }
   }
 
+  OrthancConfiguration::OrthancConfiguration(const Json::Value& configuration, const std::string& path) :
+    configuration_(configuration),
+    path_(path)
+  {
+  }
+
 
   std::string OrthancConfiguration::GetPath(const std::string& key) const
   {
@@ -1105,7 +1111,7 @@ namespace OrthancPlugins
     if (configuration_[key].type() != Json::objectValue)
     {
       LogError("The configuration option \"" + GetPath(key) +
-               "\" is not a string as expected");
+               "\" is not an object as expected");
 
       ORTHANC_PLUGINS_THROW_EXCEPTION(BadFileFormat);
     }
