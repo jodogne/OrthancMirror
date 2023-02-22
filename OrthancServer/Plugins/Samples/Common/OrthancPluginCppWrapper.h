@@ -346,9 +346,11 @@ namespace OrthancPlugins
     void LoadConfiguration();
     
   public:
-    OrthancConfiguration();
+    OrthancConfiguration(); // loads the full Orthanc configuration
 
     explicit OrthancConfiguration(bool load);
+
+    explicit OrthancConfiguration(const Json::Value& configuration, const std::string& path);  // e.g. to load a section from a default json content
 
     const Json::Value& GetJson() const
     {
