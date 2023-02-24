@@ -89,7 +89,9 @@ namespace Orthanc
       return description_;
     }
 
-    void AddResource(const std::string& publicId);
+    void AddResource(const std::string& publicId,
+                     bool mustExist,
+                     ResourceType expectedType);
 
     void SetTranscode(DicomTransferSyntax transferSyntax);
 

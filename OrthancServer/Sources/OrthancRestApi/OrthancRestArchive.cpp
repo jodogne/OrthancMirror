@@ -61,7 +61,7 @@ namespace Orthanc
       }
       else
       {
-        job.AddResource(resources[i].asString());
+        job.AddResource(resources[i].asString(), false, ResourceType_Patient /* dummy value */);
       }
     }
   }
@@ -576,7 +576,8 @@ namespace Orthanc
   }
   
 
-  template <bool IS_MEDIA>
+  template <ResourceType LEVEL,
+            bool IS_MEDIA>
   static void CreateSingleGet(RestApiGetCall& call)
   {
     static const char* const TRANSCODE = "transcode";
@@ -627,7 +628,7 @@ namespace Orthanc
     }
 
     std::unique_ptr<ArchiveJob> job(new ArchiveJob(context, IS_MEDIA, extended));
-    job->AddResource(id);
+    job->AddResource(id, true, LEVEL);
 
     if (call.HasArgument(TRANSCODE))
     {
@@ -645,7 +646,8 @@ namespace Orthanc
   }
 
 
-  template <bool IS_MEDIA>
+  template <ResourceType LEVEL,
+            bool IS_MEDIA>
   static void CreateSinglePost(RestApiPostCall& call)
   {
     if (call.IsDocumentation())
@@ -678,7 +680,7 @@ namespace Orthanc
                        priority, loaderThreads, body, false /* by default, not extented */);
       
       std::unique_ptr<ArchiveJob> job(new ArchiveJob(context, IS_MEDIA, extended));
-      job->AddResource(id);
+      job->AddResource(id, true, LEVEL);
 
       if (transcode)
       {
@@ -698,18 +700,18 @@ namespace Orthanc
     
   void OrthancRestApi::RegisterArchive()
   {
-    Register("/patients/{id}/archive", CreateSingleGet<false /* ZIP */>);
-    Register("/patients/{id}/archive", CreateSinglePost<false /* ZIP */>);
-    Register("/patients/{id}/media",   CreateSingleGet<true /* media */>);
-    Register("/patients/{id}/media",   CreateSinglePost<true /* media */>);
-    Register("/series/{id}/archive",   CreateSingleGet<false /* ZIP */>);
-    Register("/series/{id}/archive",   CreateSinglePost<false /* ZIP */>);
-    Register("/series/{id}/media",     CreateSingleGet<true /* media */>);
-    Register("/series/{id}/media",     CreateSinglePost<true /* media */>);
-    Register("/studies/{id}/archive",  CreateSingleGet<false /* ZIP */>);
-    Register("/studies/{id}/archive",  CreateSinglePost<false /* ZIP */>);
-    Register("/studies/{id}/media",    CreateSingleGet<true /* media */>);
-    Register("/studies/{id}/media",    CreateSinglePost<true /* media */>);
+    Register("/patients/{id}/archive", CreateSingleGet<ResourceType_Patient, false /* ZIP */>);
+    Register("/patients/{id}/archive", CreateSinglePost<ResourceType_Patient, false /* ZIP */>);
+    Register("/patients/{id}/media",   CreateSingleGet<ResourceType_Patient, true /* media */>);
+    Register("/patients/{id}/media",   CreateSinglePost<ResourceType_Patient, true /* media */>);
+    Register("/series/{id}/archive",   CreateSingleGet<ResourceType_Series, false /* ZIP */>);
+    Register("/series/{id}/archive",   CreateSinglePost<ResourceType_Series, false /* ZIP */>);
+    Register("/series/{id}/media",     CreateSingleGet<ResourceType_Series, true /* media */>);
+    Register("/series/{id}/media",     CreateSinglePost<ResourceType_Series, true /* media */>);
+    Register("/studies/{id}/archive",  CreateSingleGet<ResourceType_Study, false /* ZIP */>);
+    Register("/studies/{id}/archive",  CreateSinglePost<ResourceType_Study, false /* ZIP */>);
+    Register("/studies/{id}/media",    CreateSingleGet<ResourceType_Study, true /* media */>);
+    Register("/studies/{id}/media",    CreateSinglePost<ResourceType_Study, true /* media */>);
 
     Register("/tools/create-archive",
              CreateBatch<false /* ZIP */,  false /* extended makes no sense in ZIP */>);
