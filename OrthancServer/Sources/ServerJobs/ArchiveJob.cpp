@@ -1155,7 +1155,9 @@ namespace Orthanc
   }
 
   
-  void ArchiveJob::AddResource(const std::string& publicId)
+  void ArchiveJob::AddResource(const std::string& publicId,
+                               bool mustExist,
+                               ResourceType expectedType)
   {
     if (writer_.get() != NULL)   // Already started
     {
@@ -1163,6 +1165,17 @@ namespace Orthanc
     }
     else
     {
+      if (mustExist)
+      {
+        ResourceType type;
+        if (!context_.GetIndex().LookupResourceType(type, publicId) ||
+            type != expectedType)
+        {
+          throw OrthancException(ErrorCode_InexistentItem,
+                                 "Missing resource while creating an archive: " + publicId);
+        }
+      }
+      
       ResourceIdentifiers resource(context_.GetIndex(), publicId);
       archive_->Add(context_.GetIndex(), resource);
     }
