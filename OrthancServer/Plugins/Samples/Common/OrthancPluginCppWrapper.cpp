@@ -1457,6 +1457,27 @@ namespace OrthancPlugins
   }
 
 
+  bool RestApiGet(Json::Value& result,
+                  const std::string& uri,
+                  const std::map<std::string, std::string>& httpHeaders,
+                  bool applyPlugins)
+  {
+    MemoryBuffer answer;
+
+    if (!answer.RestApiGet(uri, httpHeaders, applyPlugins))
+    {
+      return false;
+    }
+    else
+    {
+      if (!answer.IsEmpty())
+      {
+        answer.ToJson(result);
+      }
+      return true;
+    }
+  }
+
 
   bool RestApiGet(Json::Value& result,
                   const std::string& uri,
