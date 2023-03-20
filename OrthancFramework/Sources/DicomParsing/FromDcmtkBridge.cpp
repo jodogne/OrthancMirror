@@ -2567,6 +2567,19 @@ namespace Orthanc
     {
       evr = EVR_OB;
     }
+    else if (evr == EVR_xs) // SS or US depending on context
+    {
+      // So far we assume that it's alway US (as a best guess: https://forum.dcmtk.org/viewtopic.php?t=932)
+      // However, e.g. in a LUTDescriptor (3 values), the middle value can be a SS depending on other tag values while first and third value are always US.
+      // This patch, although not perfect fixes  https://bugs.orthanc-server.com/show_bug.cgi?id=214.
+      // It might need some rework once we encounter a LUTDescriptor with a SS value. ref: https://dicom.nema.org/medical/dicom/current/output/chtml/part03/sect_C.11.2.html#sect_C.11.2.1.1
+      evr = EVR_US;  
+    }
+    else if (evr == EVR_lt) // US, SS or OW depending on context, used for LUT Data (thus the name)
+    {
+      // best guess is OW: final user should be able to interpret it correctly depending on the context
+      evr = EVR_OW;      
+    }
 
     if (evr == EVR_UNKNOWN ||  // used internally for elements with unknown VR (encoded with 4-byte length field in explicit VR)
         evr == EVR_UNKNOWN2B)  // used internally for elements with unknown VR with 2-byte length field in explicit VR
