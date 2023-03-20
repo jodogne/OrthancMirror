@@ -6,6 +6,11 @@ Maintenance
 
 * Enforce the existence of the patient/study/instance while creating its archive
 
+Bug Fixes
+---------
+
+* Fix issue 214: VOILUTSequence is not returned in Wado-RS
+
 
 version 1.11.3 (2023-02-03)
 ===========================
