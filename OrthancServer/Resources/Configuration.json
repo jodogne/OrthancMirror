@@ -1,6 +1,11 @@
 {
   /**
    * General configuration of Orthanc
+   *
+   * As a general recommendation, you should always favour absolute 
+   * paths when you need to provide a path to a file or a directory.  
+   * This is not done in this configuration file since we don't know 
+   * where Orthanc is going to be installed.
    **/
 
   // The logical name of this instance of Orthanc. This one is
