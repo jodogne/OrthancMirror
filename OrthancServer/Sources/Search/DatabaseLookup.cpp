@@ -281,7 +281,8 @@ namespace Orthanc
 
   bool DatabaseLookup::HasOnlyMainDicomTags() const
   {
-    const std::set<DicomTag>& allMainTags = DicomMap::GetAllMainDicomTags();
+    std::set<DicomTag> allMainTags;
+    DicomMap::GetAllMainDicomTags(allMainTags);
 
     for (size_t i = 0; i < constraints_.size(); i++)
     {

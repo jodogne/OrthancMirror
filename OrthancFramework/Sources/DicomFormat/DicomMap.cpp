@@ -257,14 +257,14 @@ namespace Orthanc
       return allMainDicomTags_;
     }
 
-    const std::string& GetMainDicomTagsSignature(ResourceType level)
+    std::string GetMainDicomTagsSignature(ResourceType level)
     {
       assert(signatures_.find(level) != signatures_.end());
 
       return signatures_[level];
     }
 
-    const std::string& GetDefaultMainDicomTagsSignature(ResourceType level)
+    std::string GetDefaultMainDicomTagsSignature(ResourceType level)
     {
       assert(defaultSignatures_.find(level) != defaultSignatures_.end());
 
@@ -707,9 +707,9 @@ namespace Orthanc
     target = DicomMap::MainDicomTagsConfiguration::GetInstance().GetMainDicomTagsByLevel(level);
   }
 
-  const std::set<DicomTag>& DicomMap::GetAllMainDicomTags()
+  void DicomMap::GetAllMainDicomTags(std::set<DicomTag>& target)
   {
-    return DicomMap::MainDicomTagsConfiguration::GetInstance().GetAllMainDicomTags();
+    target = DicomMap::MainDicomTagsConfiguration::GetInstance().GetAllMainDicomTags();
   }
 
   void DicomMap::AddMainDicomTag(const DicomTag& tag, ResourceType level)
@@ -722,12 +722,12 @@ namespace Orthanc
     DicomMap::MainDicomTagsConfiguration::GetInstance().ResetDefaultMainDicomTags();
   }
 
-  const std::string& DicomMap::GetMainDicomTagsSignature(ResourceType level)
+  std::string DicomMap::GetMainDicomTagsSignature(ResourceType level)
   {
     return DicomMap::MainDicomTagsConfiguration::GetInstance().GetMainDicomTagsSignature(level);
   }
 
-  const std::string& DicomMap::GetDefaultMainDicomTagsSignature(ResourceType level)
+  std::string DicomMap::GetDefaultMainDicomTagsSignature(ResourceType level)
   {
     return DicomMap::MainDicomTagsConfiguration::GetInstance().GetDefaultMainDicomTagsSignature(level);
   }

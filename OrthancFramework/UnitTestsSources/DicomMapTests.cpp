@@ -81,7 +81,8 @@ namespace Orthanc
     ASSERT_TRUE(DicomMap::IsMainDicomTag(DICOM_TAG_SOP_INSTANCE_UID));
 
     {
-      const std::set<DicomTag>& s = DicomMap::GetAllMainDicomTags();
+      std::set<DicomTag> s;
+      DicomMap::GetAllMainDicomTags(s);
       ASSERT_TRUE(s.end() != s.find(DICOM_TAG_PATIENT_ID));
       ASSERT_TRUE(s.end() != s.find(DICOM_TAG_STUDY_INSTANCE_UID));
       ASSERT_TRUE(s.end() != s.find(DICOM_TAG_ACCESSION_NUMBER));
