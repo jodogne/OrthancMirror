@@ -139,8 +139,6 @@ namespace Orthanc
   class DicomMap::MainDicomTagsConfiguration
   {
   private:
-    friend DicomMap;
-
     std::set<DicomTag>               patientsMainDicomTagsByLevel_;
     std::set<DicomTag>               studiesMainDicomTagsByLevel_;
     std::set<DicomTag>               seriesMainDicomTagsByLevel_;
@@ -154,27 +152,6 @@ namespace Orthanc
     MainDicomTagsConfiguration()
     {
       ResetDefaultMainDicomTags();
-    }
-
-    void ResetDefaultMainDicomTags()
-    {
-      patientsMainDicomTagsByLevel_.clear();
-      studiesMainDicomTagsByLevel_.clear();
-      seriesMainDicomTagsByLevel_.clear();
-      instancesMainDicomTagsByLevel_.clear();
-
-      allMainDicomTags_.clear();
-
-      // by default, initialize with the previous static list (up to 1.10.0)
-      LoadDefaultMainDicomTags(ResourceType_Patient);
-      LoadDefaultMainDicomTags(ResourceType_Study);
-      LoadDefaultMainDicomTags(ResourceType_Series);
-      LoadDefaultMainDicomTags(ResourceType_Instance);
-
-      defaultSignatures_[ResourceType_Patient] = signatures_[ResourceType_Patient];
-      defaultSignatures_[ResourceType_Study] = signatures_[ResourceType_Study];
-      defaultSignatures_[ResourceType_Series] = signatures_[ResourceType_Series];
-      defaultSignatures_[ResourceType_Instance] = signatures_[ResourceType_Instance];
     }
 
     std::string ComputeSignature(const std::set<DicomTag>& tags)
@@ -229,29 +206,6 @@ namespace Orthanc
       {
         AddMainDicomTag(tags[i], level);
       }
-
-    }
-
-
-    std::set<DicomTag>& GetMainDicomTagsByLevel(ResourceType level)
-    {
-      switch (level)
-      {
-        case ResourceType_Patient:
-          return patientsMainDicomTagsByLevel_;
-
-        case ResourceType_Study:
-          return studiesMainDicomTagsByLevel_;
-
-        case ResourceType_Series:
-          return seriesMainDicomTagsByLevel_;
-
-        case ResourceType_Instance:
-          return instancesMainDicomTagsByLevel_;
-
-        default:
-          throw OrthancException(ErrorCode_InternalError);
-      }
     }
 
   public:
@@ -260,6 +214,27 @@ namespace Orthanc
     {
       static MainDicomTagsConfiguration parameters;
       return parameters;
+    }
+
+    void ResetDefaultMainDicomTags()
+    {
+      patientsMainDicomTagsByLevel_.clear();
+      studiesMainDicomTagsByLevel_.clear();
+      seriesMainDicomTagsByLevel_.clear();
+      instancesMainDicomTagsByLevel_.clear();
+
+      allMainDicomTags_.clear();
+
+      // by default, initialize with the previous static list (up to 1.10.0)
+      LoadDefaultMainDicomTags(ResourceType_Patient);
+      LoadDefaultMainDicomTags(ResourceType_Study);
+      LoadDefaultMainDicomTags(ResourceType_Series);
+      LoadDefaultMainDicomTags(ResourceType_Instance);
+
+      defaultSignatures_[ResourceType_Patient] = signatures_[ResourceType_Patient];
+      defaultSignatures_[ResourceType_Study] = signatures_[ResourceType_Study];
+      defaultSignatures_[ResourceType_Series] = signatures_[ResourceType_Series];
+      defaultSignatures_[ResourceType_Instance] = signatures_[ResourceType_Instance];
     }
 
     void AddMainDicomTag(const DicomTag& tag, ResourceType level)
@@ -296,6 +271,26 @@ namespace Orthanc
       return defaultSignatures_[level];
     }
 
+    std::set<DicomTag>& GetMainDicomTagsByLevel(ResourceType level)
+    {
+      switch (level)
+      {
+        case ResourceType_Patient:
+          return patientsMainDicomTagsByLevel_;
+
+        case ResourceType_Study:
+          return studiesMainDicomTagsByLevel_;
+
+        case ResourceType_Series:
+          return seriesMainDicomTagsByLevel_;
+
+        case ResourceType_Instance:
+          return instancesMainDicomTagsByLevel_;
+
+        default:
+          throw OrthancException(ErrorCode_InternalError);
+      }
+    }
   };
 
 
@@ -706,9 +701,10 @@ namespace Orthanc
   }
 
 
-  const std::set<DicomTag>& DicomMap::GetMainDicomTags(ResourceType level)
+  void DicomMap::GetMainDicomTags(std::set<DicomTag>& target,
+                                  ResourceType level)
   {
-    return DicomMap::MainDicomTagsConfiguration::GetInstance().GetMainDicomTagsByLevel(level);
+    target = DicomMap::MainDicomTagsConfiguration::GetInstance().GetMainDicomTagsByLevel(level);
   }
 
   const std::set<DicomTag>& DicomMap::GetAllMainDicomTags()

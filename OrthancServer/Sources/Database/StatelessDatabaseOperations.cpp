@@ -362,7 +362,8 @@ namespace Orthanc
       }
 
       {
-        const std::set<DicomTag>& tags = DicomMap::GetMainDicomTags(level);
+        std::set<DicomTag> tags;
+        DicomMap::GetMainDicomTags(tags, level);
 
         for (std::set<DicomTag>::const_iterator
                tag = tags.begin(); tag != tags.end(); ++tag)
