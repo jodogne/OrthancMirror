@@ -551,7 +551,8 @@ namespace Orthanc
     DicomMap summary;
     dicom.GetSummary(summary);   // -> from Orthanc 1.11.1, this includes the leaf nodes and sequences
 
-    std::set<DicomTag> allMainDicomTags = DicomMap::GetAllMainDicomTags();
+    std::set<DicomTag> allMainDicomTags;
+    DicomMap::GetAllMainDicomTags(allMainDicomTags);
 
     try
     {
