@@ -90,26 +90,30 @@ namespace Orthanc
     }
 
     {
-      const std::set<DicomTag>& s = DicomMap::GetMainDicomTags(ResourceType_Patient);
+      std::set<DicomTag> s;
+      DicomMap::GetMainDicomTags(s, ResourceType_Patient);
       ASSERT_TRUE(s.end() != s.find(DICOM_TAG_PATIENT_ID));
       ASSERT_TRUE(s.end() == s.find(DICOM_TAG_STUDY_INSTANCE_UID));
     }
 
     {
-      const std::set<DicomTag>& s = DicomMap::GetMainDicomTags(ResourceType_Study);
+      std::set<DicomTag> s;
+      DicomMap::GetMainDicomTags(s, ResourceType_Study);
       ASSERT_TRUE(s.end() != s.find(DICOM_TAG_STUDY_INSTANCE_UID));
       ASSERT_TRUE(s.end() != s.find(DICOM_TAG_ACCESSION_NUMBER));
       ASSERT_TRUE(s.end() == s.find(DICOM_TAG_PATIENT_ID));
     }
 
     {
-      const std::set<DicomTag>& s = DicomMap::GetMainDicomTags(ResourceType_Series);
+      std::set<DicomTag> s;
+      DicomMap::GetMainDicomTags(s, ResourceType_Series);
       ASSERT_TRUE(s.end() != s.find(DICOM_TAG_SERIES_INSTANCE_UID));
       ASSERT_TRUE(s.end() == s.find(DICOM_TAG_PATIENT_ID));
     }
 
     {
-      const std::set<DicomTag>& s = DicomMap::GetMainDicomTags(ResourceType_Instance);
+      std::set<DicomTag> s;
+      DicomMap::GetMainDicomTags(s, ResourceType_Instance);
       ASSERT_TRUE(s.end() != s.find(DICOM_TAG_SOP_INSTANCE_UID));
       ASSERT_TRUE(s.end() == s.find(DICOM_TAG_PATIENT_ID));
     }
@@ -120,12 +124,14 @@ namespace Orthanc
     DicomMap::AddMainDicomTag(DICOM_TAG_BITS_ALLOCATED, ResourceType_Instance);
 
     {
-      const std::set<DicomTag>& s = DicomMap::GetMainDicomTags(ResourceType_Instance);
+      std::set<DicomTag> s;
+      DicomMap::GetMainDicomTags(s, ResourceType_Instance);
       ASSERT_TRUE(s.end() != s.find(DICOM_TAG_BITS_ALLOCATED));
       ASSERT_TRUE(s.end() != s.find(DICOM_TAG_SOP_INSTANCE_UID));
     }
     {
-      const std::set<DicomTag>& s = DicomMap::GetMainDicomTags(ResourceType_Series);
+      std::set<DicomTag> s;
+      DicomMap::GetMainDicomTags(s, ResourceType_Series);
       ASSERT_TRUE(s.end() == s.find(DICOM_TAG_BITS_ALLOCATED));
     }
 
@@ -242,8 +248,10 @@ static void TestModule(ResourceType level,
   // REFERENCE: DICOM PS3.3 2015c - Information Object Definitions
   // http://dicom.nema.org/medical/dicom/current/output/html/part03.html
 
+  std::set<DicomTag> main;
+  DicomMap::GetMainDicomTags(main, level);
+
   std::set<DicomTag> moduleTags;
-  const std::set<DicomTag>& main = DicomMap::GetMainDicomTags(level);
   DicomTag::AddTagsForModule(moduleTags, module);
   
   // The main dicom tags are a subset of the module
@@ -918,7 +926,8 @@ TEST(DicomMap, MainTagNames)
   {
     ResourceType level = static_cast<ResourceType>(i);
 
-    const std::set<DicomTag>& tags = DicomMap::GetMainDicomTags(level);
+    std::set<DicomTag> tags;
+    DicomMap::GetMainDicomTags(tags, level);
 
     for (std::set<DicomTag>::const_iterator it = tags.begin(); it != tags.end(); ++it)
     {

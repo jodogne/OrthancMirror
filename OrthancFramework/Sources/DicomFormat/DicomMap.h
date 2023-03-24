@@ -154,7 +154,8 @@ namespace Orthanc
 
     static bool HasComputedTags(const std::set<DicomTag>& tags);
 
-    static const std::set<DicomTag>& GetMainDicomTags(ResourceType level);
+    static void GetMainDicomTags(std::set<DicomTag>& target,
+                                 ResourceType level);
 
     // returns a string uniquely identifying the list of main dicom tags for a level
     static const std::string& GetMainDicomTagsSignature(ResourceType level);

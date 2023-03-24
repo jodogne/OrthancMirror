@@ -749,8 +749,11 @@ namespace Orthanc
               DicomMap targetPatientTags;
               targetPatient.tags_.ExtractPatientInformation(targetPatientTags);
 
-              for (std::set<DicomTag>::const_iterator mainPatientTag = DicomMap::GetMainDicomTags(ResourceType_Patient).begin();
-                    mainPatientTag != DicomMap::GetMainDicomTags(ResourceType_Patient).end(); ++mainPatientTag)
+              std::set<DicomTag> mainPatientTags;
+              DicomMap::GetMainDicomTags(mainPatientTags, ResourceType_Patient);
+              
+              for (std::set<DicomTag>::const_iterator mainPatientTag = mainPatientTags.begin();
+                   mainPatientTag != mainPatientTags.end(); ++mainPatientTag)
               {
                 if (targetPatientTags.HasTag(*mainPatientTag) 
                     && (!modification_->IsReplaced(*mainPatientTag) 
