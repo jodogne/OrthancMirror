@@ -107,6 +107,8 @@ namespace Orthanc
   {
   }
 
+
+#if HAVE_MALLOC_TRIM == 1
   void ServerContext::HousekeeperThread(ServerContext* that,
                                         unsigned int sleepDelay)
   {
@@ -117,11 +119,11 @@ namespace Orthanc
       
       // If possible, gives memory back to the system 
       // (see OrthancServer/Resources/ImplementationNotes/memory_consumption.txt)
-#if HAVE_MALLOC_TRIM == 1
       malloc_trim(128*1024);
-#endif
     }
   }
+#endif
+
   
   void ServerContext::ChangeThread(ServerContext* that,
                                    unsigned int sleepDelay)
@@ -435,11 +437,13 @@ namespace Orthanc
 
       listeners_.push_back(ServerListener(luaListener_, "Lua"));
       changeThread_ = boost::thread(ChangeThread, this, (unitTesting ? 20 : 100));
+      
 #if HAVE_MALLOC_TRIM == 1
-      housekeeperThread_ = boost::thread(HousekeeperThread, this, 1000);
+      housekeeperThread_ = boost::thread(HousekeeperThread, this, 100);
 #else
       LOG(INFO) << "Your platform does not support malloc_trim(), not starting the housekeeper thread";
 #endif
+      
       dynamic_cast<DcmtkTranscoder&>(*dcmtkTranscoder_).SetLossyQuality(lossyQuality);
     }
     catch (OrthancException&)
