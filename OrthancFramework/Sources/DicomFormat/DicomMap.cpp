@@ -587,73 +587,81 @@ namespace Orthanc
     }
   }
 
-  static void SetupFindTemplate(DicomMap& result,
-                                const std::set<DicomTag>& mainDicomTags)
+  void DicomMap::SetupFindPatientTemplate(DicomMap& result)
   {
     result.Clear();
 
-    for (std::set<DicomTag>::const_iterator itmt = mainDicomTags.begin();
-         itmt != mainDicomTags.end(); ++itmt)
-    {
-      result.SetValue(*itmt, "", false);
-    }
-  }
+    // Identifying tags
+    result.SetValue(DICOM_TAG_PATIENT_ID, "", false);
 
-  void DicomMap::SetupFindPatientTemplate(DicomMap& result)
-  {
-    std::set<DicomTag> mainDicomTags;
-    DicomMap::MainDicomTagsConfiguration::GetInstance().GetMainDicomTagsByLevel(mainDicomTags, ResourceType_Patient);
-    SetupFindTemplate(result, mainDicomTags);
+    // Other tags in the "Patient" module
+    result.SetValue(DICOM_TAG_OTHER_PATIENT_IDS, "", false);
+    result.SetValue(DICOM_TAG_PATIENT_BIRTH_DATE, "", false);
+    result.SetValue(DICOM_TAG_PATIENT_NAME, "", false);
+    result.SetValue(DICOM_TAG_PATIENT_SEX, "", false);
   }
 
   void DicomMap::SetupFindStudyTemplate(DicomMap& result)
   {
-    std::set<DicomTag> mainDicomTags;
-    DicomMap::MainDicomTagsConfiguration::GetInstance().GetMainDicomTagsByLevel(mainDicomTags, ResourceType_Study);
-    SetupFindTemplate(result, mainDicomTags);
-    result.SetValue(DICOM_TAG_ACCESSION_NUMBER, "", false);
-    result.SetValue(DICOM_TAG_PATIENT_ID, "", false);
+    result.Clear();
 
-    // These main DICOM tags are only indirectly related to the
-    // General Study Module, remove them
-    result.Remove(DICOM_TAG_INSTITUTION_NAME);
-    result.Remove(DICOM_TAG_REQUESTING_PHYSICIAN);
-    result.Remove(DICOM_TAG_REQUESTED_PROCEDURE_DESCRIPTION);
+    // Identifying tags
+    result.SetValue(DICOM_TAG_PATIENT_ID, "", false);
+    result.SetValue(DICOM_TAG_ACCESSION_NUMBER, "", false);
+    result.SetValue(DICOM_TAG_STUDY_INSTANCE_UID, "", false);
+
+    // Other tags in the "General Study" module
+    result.SetValue(DICOM_TAG_REFERRING_PHYSICIAN_NAME, "", false);
+    result.SetValue(DICOM_TAG_STUDY_DATE, "", false);
+    result.SetValue(DICOM_TAG_STUDY_DESCRIPTION, "", false);
+    result.SetValue(DICOM_TAG_STUDY_ID, "", false);
+    result.SetValue(DICOM_TAG_STUDY_TIME, "", false);
   }
 
   void DicomMap::SetupFindSeriesTemplate(DicomMap& result)
   {
-    std::set<DicomTag> mainDicomTags;
-    DicomMap::MainDicomTagsConfiguration::GetInstance().GetMainDicomTagsByLevel(mainDicomTags, ResourceType_Series);
-    SetupFindTemplate(result, mainDicomTags);
-    result.SetValue(DICOM_TAG_ACCESSION_NUMBER, "", false);
-    result.SetValue(DICOM_TAG_PATIENT_ID, "", false);
-    result.SetValue(DICOM_TAG_STUDY_INSTANCE_UID, "", false);
+    result.Clear();
 
-    // These tags are considered as "main" by Orthanc, but are not in the Series module
-    result.Remove(DicomTag(0x0008, 0x0070));  // Manufacturer
-    result.Remove(DicomTag(0x0008, 0x1010));  // Station name
-    result.Remove(DicomTag(0x0018, 0x0024));  // Sequence name
-    result.Remove(DICOM_TAG_CARDIAC_NUMBER_OF_IMAGES);
-    result.Remove(DICOM_TAG_IMAGES_IN_ACQUISITION);
-    result.Remove(DICOM_TAG_NUMBER_OF_SLICES);
-    result.Remove(DICOM_TAG_NUMBER_OF_TEMPORAL_POSITIONS);
-    result.Remove(DICOM_TAG_NUMBER_OF_TIME_SLICES);
-    result.Remove(DICOM_TAG_IMAGE_ORIENTATION_PATIENT);
-    result.Remove(DICOM_TAG_SERIES_TYPE);
-    result.Remove(DICOM_TAG_ACQUISITION_DEVICE_PROCESSING_DESCRIPTION);
-    result.Remove(DICOM_TAG_CONTRAST_BOLUS_AGENT);
+    // Identifying tags
+    result.SetValue(DICOM_TAG_PATIENT_ID, "", false);
+    result.SetValue(DICOM_TAG_ACCESSION_NUMBER, "", false);
+    result.SetValue(DICOM_TAG_STUDY_INSTANCE_UID, "", false);
+    result.SetValue(DICOM_TAG_SERIES_INSTANCE_UID, "", false);
+
+    // Other tags in the "General Series" module
+    result.SetValue(DICOM_TAG_BODY_PART_EXAMINED, "", false);
+    result.SetValue(DICOM_TAG_MODALITY, "", false);
+    result.SetValue(DICOM_TAG_OPERATOR_NAME, "", false);
+    result.SetValue(DICOM_TAG_PERFORMED_PROCEDURE_STEP_DESCRIPTION, "", false);
+    result.SetValue(DICOM_TAG_PROTOCOL_NAME, "", false);
+    result.SetValue(DICOM_TAG_SERIES_DATE, "", false);
+    result.SetValue(DICOM_TAG_SERIES_DESCRIPTION, "", false);
+    result.SetValue(DICOM_TAG_SERIES_NUMBER, "", false);
+    result.SetValue(DICOM_TAG_SERIES_TIME, "", false);
   }
 
   void DicomMap::SetupFindInstanceTemplate(DicomMap& result)
   {
-    std::set<DicomTag> mainDicomTags;
-    DicomMap::MainDicomTagsConfiguration::GetInstance().GetMainDicomTagsByLevel(mainDicomTags, ResourceType_Instance);
-    SetupFindTemplate(result, mainDicomTags);
-    result.SetValue(DICOM_TAG_ACCESSION_NUMBER, "", false);
+    result.Clear();
+
+    // Identifying tags
     result.SetValue(DICOM_TAG_PATIENT_ID, "", false);
+    result.SetValue(DICOM_TAG_ACCESSION_NUMBER, "", false);
     result.SetValue(DICOM_TAG_STUDY_INSTANCE_UID, "", false);
     result.SetValue(DICOM_TAG_SERIES_INSTANCE_UID, "", false);
+    result.SetValue(DICOM_TAG_SOP_INSTANCE_UID, "", false);
+
+    // Other tags in the "SOP Common" module
+    result.SetValue(DICOM_TAG_ACQUISITION_NUMBER, "", false);
+    result.SetValue(DICOM_TAG_IMAGE_COMMENTS, "", false);
+    result.SetValue(DICOM_TAG_IMAGE_INDEX, "", false);
+    result.SetValue(DICOM_TAG_IMAGE_ORIENTATION_PATIENT, "", false);
+    result.SetValue(DICOM_TAG_IMAGE_POSITION_PATIENT, "", false);
+    result.SetValue(DICOM_TAG_INSTANCE_CREATION_DATE, "", false);
+    result.SetValue(DICOM_TAG_INSTANCE_CREATION_TIME, "", false);
+    result.SetValue(DICOM_TAG_INSTANCE_NUMBER, "", false);
+    result.SetValue(DICOM_TAG_NUMBER_OF_FRAMES, "", false);
+    result.SetValue(DICOM_TAG_TEMPORAL_POSITION_IDENTIFIER, "", false);
   }
 
 
