@@ -187,8 +187,10 @@ namespace Orthanc
     static void SaveJobsThread(ServerContext* that,
                                unsigned int sleepDelay);
 
+#if HAVE_MALLOC_TRIM == 1
     static void HousekeeperThread(ServerContext* that,
                                   unsigned int sleepDelay);
+#endif
 
     void SaveJobsEngine();
 
