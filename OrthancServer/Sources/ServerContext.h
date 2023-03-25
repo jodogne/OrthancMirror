@@ -188,8 +188,8 @@ namespace Orthanc
                                unsigned int sleepDelay);
 
 #if HAVE_MALLOC_TRIM == 1
-    static void HousekeeperThread(ServerContext* that,
-                                  unsigned int sleepDelay);
+    static void MemoryTrimmingThread(ServerContext* that,
+                                     unsigned int sleepDelay);
 #endif
 
     void SaveJobsEngine();
@@ -235,7 +235,7 @@ namespace Orthanc
     SharedMessageQueue  pendingChanges_;
     boost::thread  changeThread_;
     boost::thread  saveJobsThread_;
-    boost::thread  housekeeperThread_;
+    boost::thread  memoryTrimmingThread_;
         
     std::unique_ptr<SharedArchive>  queryRetrieveArchive_;
     std::string defaultLocalAet_;
