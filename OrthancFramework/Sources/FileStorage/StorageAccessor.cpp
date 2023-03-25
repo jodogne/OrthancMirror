@@ -62,18 +62,36 @@ namespace Orthanc
   };
 
 
-  StorageAccessor::StorageAccessor(IStorageArea &area, StorageCache* cache) :
+  StorageAccessor::StorageAccessor(IStorageArea& area) :
     area_(area),
-    cache_(cache),
+    cache_(NULL),
+    metrics_(NULL)
+  {
+  }
+  
+
+  StorageAccessor::StorageAccessor(IStorageArea& area, 
+                                   StorageCache& cache) :
+    area_(area),
+    cache_(&cache),
     metrics_(NULL)
   {
   }
 
-  StorageAccessor::StorageAccessor(IStorageArea &area, 
-                                   StorageCache* cache,
-                                   MetricsRegistry &metrics) :
+
+  StorageAccessor::StorageAccessor(IStorageArea& area,
+                                   MetricsRegistry& metrics) :
     area_(area),
-    cache_(cache),
+    cache_(NULL),
+    metrics_(&metrics)
+  {
+  }
+
+  StorageAccessor::StorageAccessor(IStorageArea& area, 
+                                   StorageCache& cache,
+                                   MetricsRegistry& metrics) :
+    area_(area),
+    cache_(&cache),
     metrics_(&metrics)
   {
   }

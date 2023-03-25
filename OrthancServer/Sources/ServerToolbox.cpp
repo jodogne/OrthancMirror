@@ -144,7 +144,7 @@ namespace Orthanc
         try
         {
           // Read and parse the content of the DICOM file
-          StorageAccessor accessor(storageArea, NULL);  // no cache
+          StorageAccessor accessor(storageArea);  // no cache
 
           std::string content;
           accessor.Read(content, attachment);

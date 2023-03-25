@@ -78,11 +78,16 @@ namespace Orthanc
 #endif
 
   public:
-    explicit StorageAccessor(IStorageArea& area,
-                             StorageCache* cache);
+    explicit StorageAccessor(IStorageArea& area);
 
     StorageAccessor(IStorageArea& area,
-                    StorageCache* cache,
+                    StorageCache& cache);
+
+    StorageAccessor(IStorageArea& area,
+                    MetricsRegistry& metrics);
+
+    StorageAccessor(IStorageArea& area,
+                    StorageCache& cache,
                     MetricsRegistry& metrics);
 
     FileInfo Write(const void* data,
