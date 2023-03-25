@@ -1066,6 +1066,101 @@ TEST(ParsedDicomFile, canIncludeXsVrTags)
 }
 
 
+TEST(DicomMap, SetupFindTemplates)
+{
+  /**
+   * The templates for C-FIND must be common to all the Orthanc
+   * servers, and must not be altered by the "ExtraMainDicomTags"
+   * configuration option that was introduced in Orthanc 1.11.0.
+   **/
+  
+  {
+    DicomMap m;
+    DicomMap::SetupFindPatientTemplate(m);
+    std::set<DicomTag> tags;
+    m.GetTags(tags);
+
+    // This corresponds to the values of DEFAULT_PATIENT_MAIN_DICOM_TAGS
+    ASSERT_EQ(5u, tags.size());
+    ASSERT_EQ("", m.GetStringValue(DICOM_TAG_PATIENT_ID, "nope", false));
+
+    ASSERT_EQ("", m.GetStringValue(DICOM_TAG_OTHER_PATIENT_IDS, "nope", false));
+    ASSERT_EQ("", m.GetStringValue(DICOM_TAG_PATIENT_BIRTH_DATE, "nope", false));
+    ASSERT_EQ("", m.GetStringValue(DICOM_TAG_PATIENT_NAME, "nope", false));
+    ASSERT_EQ("", m.GetStringValue(DICOM_TAG_PATIENT_SEX, "nope", false));
+  }
+  
+  {
+    DicomMap m;
+    DicomMap::SetupFindStudyTemplate(m);
+    std::set<DicomTag> tags;
+    m.GetTags(tags);
+
+    // This corresponds to the values of DEFAULT_STUDY_MAIN_DICOM_TAGS
+    ASSERT_EQ(8u, tags.size());
+    ASSERT_EQ("", m.GetStringValue(DICOM_TAG_PATIENT_ID, "nope", false));
+    ASSERT_EQ("", m.GetStringValue(DICOM_TAG_ACCESSION_NUMBER, "nope", false));
+    ASSERT_EQ("", m.GetStringValue(DICOM_TAG_STUDY_INSTANCE_UID, "nope", false));
+
+    ASSERT_EQ("", m.GetStringValue(DICOM_TAG_REFERRING_PHYSICIAN_NAME, "nope", false));
+    ASSERT_EQ("", m.GetStringValue(DICOM_TAG_STUDY_DATE, "nope", false));
+    ASSERT_EQ("", m.GetStringValue(DICOM_TAG_STUDY_DESCRIPTION, "nope", false));
+    ASSERT_EQ("", m.GetStringValue(DICOM_TAG_STUDY_ID, "nope", false));
+    ASSERT_EQ("", m.GetStringValue(DICOM_TAG_STUDY_TIME, "nope", false));
+  }
+  
+  {
+    DicomMap m;
+    DicomMap::SetupFindSeriesTemplate(m);
+    std::set<DicomTag> tags;
+    m.GetTags(tags);
+
+    // This corresponds to the values of DEFAULT_SERIES_MAIN_DICOM_TAGS
+    ASSERT_EQ(13u, tags.size());
+    ASSERT_EQ("", m.GetStringValue(DICOM_TAG_PATIENT_ID, "nope", false));
+    ASSERT_EQ("", m.GetStringValue(DICOM_TAG_ACCESSION_NUMBER, "nope", false));
+    ASSERT_EQ("", m.GetStringValue(DICOM_TAG_STUDY_INSTANCE_UID, "nope", false));
+    ASSERT_EQ("", m.GetStringValue(DICOM_TAG_SERIES_INSTANCE_UID, "nope", false));
+
+    ASSERT_EQ("", m.GetStringValue(DICOM_TAG_BODY_PART_EXAMINED, "nope", false));
+    ASSERT_EQ("", m.GetStringValue(DICOM_TAG_MODALITY, "nope", false));
+    ASSERT_EQ("", m.GetStringValue(DICOM_TAG_OPERATOR_NAME, "nope", false));
+    ASSERT_EQ("", m.GetStringValue(DICOM_TAG_PERFORMED_PROCEDURE_STEP_DESCRIPTION, "nope", false));
+    ASSERT_EQ("", m.GetStringValue(DICOM_TAG_PROTOCOL_NAME, "nope", false));
+    ASSERT_EQ("", m.GetStringValue(DICOM_TAG_SERIES_DATE, "nope", false));
+    ASSERT_EQ("", m.GetStringValue(DICOM_TAG_SERIES_DESCRIPTION, "nope", false));
+    ASSERT_EQ("", m.GetStringValue(DICOM_TAG_SERIES_NUMBER, "nope", false));
+    ASSERT_EQ("", m.GetStringValue(DICOM_TAG_SERIES_TIME, "nope", false));
+  }
+  
+  {
+    DicomMap m;
+    DicomMap::SetupFindInstanceTemplate(m);
+    std::set<DicomTag> tags;
+    m.GetTags(tags);
+
+    // This corresponds to the values of DEFAULT_INSTANCE_MAIN_DICOM_TAGS
+    ASSERT_EQ(15u, tags.size());
+    ASSERT_EQ("", m.GetStringValue(DICOM_TAG_PATIENT_ID, "nope", false));
+    ASSERT_EQ("", m.GetStringValue(DICOM_TAG_ACCESSION_NUMBER, "nope", false));
+    ASSERT_EQ("", m.GetStringValue(DICOM_TAG_STUDY_INSTANCE_UID, "nope", false));
+    ASSERT_EQ("", m.GetStringValue(DICOM_TAG_SERIES_INSTANCE_UID, "nope", false));
+    ASSERT_EQ("", m.GetStringValue(DICOM_TAG_SOP_INSTANCE_UID, "nope", false));
+
+    ASSERT_EQ("", m.GetStringValue(DICOM_TAG_ACQUISITION_NUMBER, "nope", false));
+    ASSERT_EQ("", m.GetStringValue(DICOM_TAG_IMAGE_COMMENTS, "nope", false));
+    ASSERT_EQ("", m.GetStringValue(DICOM_TAG_IMAGE_INDEX, "nope", false));
+    ASSERT_EQ("", m.GetStringValue(DICOM_TAG_IMAGE_ORIENTATION_PATIENT, "nope", false));
+    ASSERT_EQ("", m.GetStringValue(DICOM_TAG_IMAGE_POSITION_PATIENT, "nope", false));
+    ASSERT_EQ("", m.GetStringValue(DICOM_TAG_INSTANCE_CREATION_DATE, "nope", false));
+    ASSERT_EQ("", m.GetStringValue(DICOM_TAG_INSTANCE_CREATION_TIME, "nope", false));
+    ASSERT_EQ("", m.GetStringValue(DICOM_TAG_INSTANCE_NUMBER, "nope", false));
+    ASSERT_EQ("", m.GetStringValue(DICOM_TAG_NUMBER_OF_FRAMES, "nope", false));
+    ASSERT_EQ("", m.GetStringValue(DICOM_TAG_TEMPORAL_POSITION_IDENTIFIER, "nope", false));
+  }
+}
+
+
 #if ORTHANC_SANDBOXED != 1
 
 #include "../Sources/SystemToolbox.h"
