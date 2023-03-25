@@ -39,6 +39,11 @@
 #include "../DicomParsing/FromDcmtkBridge.h"
 #endif
 
+#if !defined(__EMSCRIPTEN__)
+// Multithreading is not supported in WebAssembly
+#  include <boost/thread/shared_mutex.hpp>
+#endif
+
 namespace Orthanc
 {
   // WARNING: the DEFAULT list of main dicom tags below are the list as they 
@@ -132,9 +137,16 @@ namespace Orthanc
     DICOM_TAG_IMAGE_ORIENTATION_PATIENT  // New in Orthanc 1.4.2
   };
 
-  class DicomMap::MainDicomTagsConfiguration
+  class DicomMap::MainDicomTagsConfiguration : public boost::noncopyable
   {
   private:
+#if !defined(__EMSCRIPTEN__)
+    typedef boost::unique_lock<boost::shared_mutex> WriterLock;
+    typedef boost::shared_lock<boost::shared_mutex> ReaderLock;
+
+    boost::shared_mutex mutex_;
+#endif
+    
     std::set<DicomTag> patientsMainDicomTagsByLevel_;
     std::set<DicomTag> studiesMainDicomTagsByLevel_;
     std::set<DicomTag> seriesMainDicomTagsByLevel_;
@@ -200,7 +212,7 @@ namespace Orthanc
 
       for (size_t i = 0; i < size; i++)
       {
-        AddMainDicomTag(tags[i], level);
+        AddMainDicomTagInternal(tags[i], level);
       }
     }
 
@@ -225,6 +237,22 @@ namespace Orthanc
       }
     }
 
+    void AddMainDicomTagInternal(const DicomTag& tag,
+                                 ResourceType level)
+    {
+      std::set<DicomTag>& existingLevelTags = GetMainDicomTagsByLevelInternal(level);
+      
+      if (existingLevelTags.find(tag) != existingLevelTags.end())
+      {
+        throw OrthancException(ErrorCode_MainDicomTagsMultiplyDefined, tag.Format() + " is already defined");
+      }
+
+      existingLevelTags.insert(tag);
+      allMainDicomTags_.insert(tag);
+
+      signatures_[level] = ComputeSignature(GetMainDicomTagsByLevelInternal(level));
+    }
+
   public:
     // Singleton pattern
     static MainDicomTagsConfiguration& GetInstance()
@@ -235,6 +263,10 @@ namespace Orthanc
 
     void ResetDefaultMainDicomTags()
     {
+#if !defined(__EMSCRIPTEN__)
+      WriterLock lock(mutex_);
+#endif
+      
       patientsMainDicomTagsByLevel_.clear();
       studiesMainDicomTagsByLevel_.clear();
       seriesMainDicomTagsByLevel_.clear();
@@ -257,54 +289,68 @@ namespace Orthanc
     void AddMainDicomTag(const DicomTag& tag,
                          ResourceType level)
     {
-      std::set<DicomTag>& existingLevelTags = GetMainDicomTagsByLevelInternal(level);
+#if !defined(__EMSCRIPTEN__)
+      WriterLock lock(mutex_);
+#endif
       
-      if (existingLevelTags.find(tag) != existingLevelTags.end())
-      {
-        throw OrthancException(ErrorCode_MainDicomTagsMultiplyDefined, tag.Format() + " is already defined");
-      }
-
-      existingLevelTags.insert(tag);
-      allMainDicomTags_.insert(tag);
-
-      std::set<DicomTag> mainDicomTags;
-      GetMainDicomTagsByLevel(mainDicomTags, level);
-      signatures_[level] = ComputeSignature(mainDicomTags);
+      AddMainDicomTagInternal(tag, level);
     }
 
-    void GetAllMainDicomTags(std::set<DicomTag>& target) const
+    void GetAllMainDicomTags(std::set<DicomTag>& target)
     {
+#if !defined(__EMSCRIPTEN__)
+      ReaderLock lock(mutex_);
+#endif
+      
       target = allMainDicomTags_;
     }
 
     void GetMainDicomTagsByLevel(std::set<DicomTag>& target,
                                  ResourceType level)
     {
+#if !defined(__EMSCRIPTEN__)
+      ReaderLock lock(mutex_);
+#endif
+      
       target = GetMainDicomTagsByLevelInternal(level);
     }
 
     std::string GetMainDicomTagsSignature(ResourceType level)
     {
+#if !defined(__EMSCRIPTEN__)
+      ReaderLock lock(mutex_);
+#endif
+      
       assert(signatures_.find(level) != signatures_.end());
-
       return signatures_[level];
     }
 
     std::string GetDefaultMainDicomTagsSignature(ResourceType level)
     {
+#if !defined(__EMSCRIPTEN__)
+      ReaderLock lock(mutex_);
+#endif
+      
       assert(defaultSignatures_.find(level) != defaultSignatures_.end());
-
       return defaultSignatures_[level];
     }
 
     bool IsMainDicomTag(const DicomTag& tag)
     {
+#if !defined(__EMSCRIPTEN__)
+      ReaderLock lock(mutex_);
+#endif
+      
       return allMainDicomTags_.find(tag) != allMainDicomTags_.end();
     }
 
     bool IsMainDicomTag(const DicomTag& tag,
                         ResourceType level)
     {
+#if !defined(__EMSCRIPTEN__)
+      ReaderLock lock(mutex_);
+#endif
+      
       const std::set<DicomTag>& mainDicomTags = GetMainDicomTagsByLevelInternal(level);
       return mainDicomTags.find(tag) != mainDicomTags.end();
     }
