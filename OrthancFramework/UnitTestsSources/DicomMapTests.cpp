@@ -1076,6 +1076,9 @@ TEST(DicomMap, SetupFindTemplates)
   
   {
     DicomMap m;
+    m.SetValue(DICOM_TAG_ENCAPSULATED_DOCUMENT, "nope", false);
+    m.SetValue(DICOM_TAG_PATIENT_ID, "patient_id", false);
+    
     DicomMap::SetupFindPatientTemplate(m);
     std::set<DicomTag> tags;
     m.GetTags(tags);
@@ -1092,6 +1095,9 @@ TEST(DicomMap, SetupFindTemplates)
   
   {
     DicomMap m;
+    m.SetValue(DICOM_TAG_ENCAPSULATED_DOCUMENT, "nope", false);
+    m.SetValue(DICOM_TAG_PATIENT_ID, "patient_id", false);
+    
     DicomMap::SetupFindStudyTemplate(m);
     std::set<DicomTag> tags;
     m.GetTags(tags);
@@ -1111,6 +1117,9 @@ TEST(DicomMap, SetupFindTemplates)
   
   {
     DicomMap m;
+    m.SetValue(DICOM_TAG_ENCAPSULATED_DOCUMENT, "nope", false);
+    m.SetValue(DICOM_TAG_PATIENT_ID, "patient_id", false);
+    
     DicomMap::SetupFindSeriesTemplate(m);
     std::set<DicomTag> tags;
     m.GetTags(tags);
@@ -1135,6 +1144,9 @@ TEST(DicomMap, SetupFindTemplates)
   
   {
     DicomMap m;
+    m.SetValue(DICOM_TAG_ENCAPSULATED_DOCUMENT, "nope", false);
+    m.SetValue(DICOM_TAG_PATIENT_ID, "patient_id", false);
+    
     DicomMap::SetupFindInstanceTemplate(m);
     std::set<DicomTag> tags;
     m.GetTags(tags);
