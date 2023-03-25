@@ -109,10 +109,10 @@ namespace Orthanc
 
 
 #if HAVE_MALLOC_TRIM == 1
-  void ServerContext::HousekeeperThread(ServerContext* that,
-                                        unsigned int sleepDelay)
+  void ServerContext::MemoryTrimmingThread(ServerContext* that,
+                                           unsigned int sleepDelay)
   {
-    // note, right now, this thread is started only if malloc_trim is defined
+    // This thread is started only if malloc_trim is defined
     while (!that->done_)
     {
       boost::this_thread::sleep(boost::posix_time::milliseconds(sleepDelay));
@@ -439,9 +439,9 @@ namespace Orthanc
       changeThread_ = boost::thread(ChangeThread, this, (unitTesting ? 20 : 100));
       
 #if HAVE_MALLOC_TRIM == 1
-      housekeeperThread_ = boost::thread(HousekeeperThread, this, 100);
+      memoryTrimmingThread_ = boost::thread(MemoryTrimmingThread, this, 100);
 #else
-      LOG(INFO) << "Your platform does not support malloc_trim(), not starting the housekeeper thread";
+      LOG(INFO) << "Your platform does not support malloc_trim(), not starting the memory trimming thread";
 #endif
       
       dynamic_cast<DcmtkTranscoder&>(*dcmtkTranscoder_).SetLossyQuality(lossyQuality);
@@ -486,9 +486,9 @@ namespace Orthanc
         saveJobsThread_.join();
       }
 
-      if (housekeeperThread_.joinable())
+      if (memoryTrimmingThread_.joinable())
       {
-        housekeeperThread_.join();
+        memoryTrimmingThread_.join();
       }
 
       jobsEngine_.GetRegistry().ResetObserver();
