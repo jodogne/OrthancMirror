@@ -19,8 +19,6 @@
 # <http://www.gnu.org/licenses/>.
 
 
-include(${CMAKE_SOURCE_DIR}/../CMake/DownloadPackage.cmake)
-
 DownloadPackage(
   "ca0d9b243e649d398a6b419acd35103a"
   "http://orthanc.uclouvain.be/third-party-downloads/protobuf-cpp-3.5.1.tar.gz"
@@ -28,6 +26,10 @@ DownloadPackage(
 
 set(PROTOBUF_SOURCE_DIR ${CMAKE_CURRENT_BINARY_DIR}/protobuf-3.5.1)
 
+include_directories(
+  ${PROTOBUF_SOURCE_DIR}/src
+  )
+  
 set(PROTOBUF_LIBRARY_SOURCES
   ${PROTOBUF_SOURCE_DIR}/src/google/protobuf/any.cc
   ${PROTOBUF_SOURCE_DIR}/src/google/protobuf/any.pb.cc
@@ -113,3 +115,10 @@ set(PROTOBUF_LIBRARY_SOURCES
   ${PROTOBUF_SOURCE_DIR}/src/google/protobuf/wire_format_lite.cc
   ${PROTOBUF_SOURCE_DIR}/src/google/protobuf/wrappers.pb.cc
   )
+
+if (NOT CMAKE_SYSTEM_NAME STREQUAL "Windows")
+  set_property(
+    SOURCE ${PROTOBUF_LIBRARY_SOURCES}
+    PROPERTY COMPILE_DEFINITIONS "HAVE_PTHREAD=1"
+    )
+endif()
