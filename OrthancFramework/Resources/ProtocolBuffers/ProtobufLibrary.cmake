@@ -19,12 +19,32 @@
 # <http://www.gnu.org/licenses/>.
 
 
+set(PROTOBUF_SOURCE_DIR ${CMAKE_CURRENT_BINARY_DIR}/protobuf-3.5.1)
+
+if (IS_DIRECTORY "${PROTOBUF_SOURCE_DIR}")
+  set(FirstRun OFF)
+else()
+  set(FirstRun ON)
+endif()
+
 DownloadPackage(
   "ca0d9b243e649d398a6b419acd35103a"
   "http://orthanc.uclouvain.be/third-party-downloads/protobuf-cpp-3.5.1.tar.gz"
   "${CMAKE_CURRENT_BINARY_DIR}/protobuf-3.5.1")
 
-set(PROTOBUF_SOURCE_DIR ${CMAKE_CURRENT_BINARY_DIR}/protobuf-3.5.1)
+if (FirstRun)
+  # Apply the patches
+  execute_process(
+    COMMAND ${PATCH_EXECUTABLE} -p0 -N -i
+    ${CMAKE_CURRENT_LIST_DIR}/../Patches/protobuf-3.5.1.patch
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+    RESULT_VARIABLE Failure
+    )
+
+  if (Failure)
+    message(FATAL_ERROR "Error while patching a file")
+  endif()
+endif()
 
 include_directories(
   ${PROTOBUF_SOURCE_DIR}/src

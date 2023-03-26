@@ -20,13 +20,35 @@
 
 
 if (STATIC_BUILD OR NOT USE_SYSTEM_PROTOBUF)
+  if (ENABLE_PROTOBUF_COMPILER)
+    include(ExternalProject)
+    externalproject_add(ProtobufCompiler
+      SOURCE_DIR "${CMAKE_SOURCE_DIR}/../OrthancFramework/Resources/ProtocolBuffers"
+      BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}/ProtobufCompiler-build"
+      # this helps triggering build when changing the external project
+      BUILD_ALWAYS 1
+      CMAKE_ARGS
+      -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
+      -DCMAKE_INSTALL_PREFIX=${CMAKE_CURRENT_BINARY_DIR}
+      INSTALL_COMMAND ""
+      )
+    set(PROTOC_EXECUTABLE ${CMAKE_CURRENT_BINARY_DIR}/ProtobufCompiler-build/protoc)
+  endif()
+
   include(${CMAKE_CURRENT_LIST_DIR}/../ProtocolBuffers/ProtobufLibrary.cmake)  
   source_group(ThirdParty\\Protobuf REGULAR_EXPRESSION ${PROTOBUF_SOURCE_DIR}/.*)
 
 else()
-  find_program(PROTOC_EXECUTABLE protoc)
-  if (${PROTOC_EXECUTABLE} MATCHES "PROTOC_EXECUTABLE-NOTFOUND")
-    message(FATAL_ERROR "Please install the 'protoc' compiler for Protocol Buffers (package 'protobuf-compiler' on Debian/Ubuntu)")
+  if (CMAKE_CROSSCOMPILING)
+    message(FATAL_ERROR "If cross-compiling, the static version of Protocol Buffers should be used to avoid version mismatch")
+  endif()
+  
+  if (ENABLE_PROTOBUF_COMPILER)
+    find_program(PROTOC_EXECUTABLE protoc)
+    if (${PROTOC_EXECUTABLE} MATCHES "PROTOC_EXECUTABLE-NOTFOUND")
+      message(FATAL_ERROR "Please install the 'protoc' compiler for Protocol Buffers (package 'protobuf-compiler' on Debian/Ubuntu)")
+    endif()
+    add_custom_target(ProtobufCompiler)
   endif()
   
   check_include_file_cxx(google/protobuf/any.h HAVE_PROTOBUF_H)
