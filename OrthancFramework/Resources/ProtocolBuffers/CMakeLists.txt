@@ -25,16 +25,12 @@ project(ProtocolBuffers)
 
 set(ALLOW_DOWNLOADS ON)
 
+include(${CMAKE_SOURCE_DIR}/../CMake/DownloadPackage.cmake)
 include(${CMAKE_SOURCE_DIR}/../CMake/Compiler.cmake)
+
 include(${CMAKE_SOURCE_DIR}/ProtobufLibrary.cmake)
 
-include_directories(
-  ${PROTOBUF_SOURCE_DIR}/src
-  )
-  
-add_executable(protoc
-  ${PROTOBUF_LIBRARY_SOURCES}
-
+set(PROTOBUF_COMPILER_SOURCES
   ${PROTOBUF_SOURCE_DIR}/src/google/protobuf/compiler/code_generator.cc
   ${PROTOBUF_SOURCE_DIR}/src/google/protobuf/compiler/command_line_interface.cc
   ${PROTOBUF_SOURCE_DIR}/src/google/protobuf/compiler/cpp/cpp_enum.cc
@@ -137,7 +133,12 @@ add_executable(protoc
 
 if (NOT CMAKE_SYSTEM_NAME STREQUAL "Windows")
   set_property(
-    SOURCE ${PROTOBUF_LIBRARY_SOURCES}
+    SOURCE ${PROTOBUF_COMPILER_SOURCES}
     PROPERTY COMPILE_DEFINITIONS "HAVE_PTHREAD=1"
     )
 endif()
+
+add_executable(protoc
+  ${PROTOBUF_LIBRARY_SOURCES}
+  ${PROTOBUF_COMPILER_SOURCES}
+  )
