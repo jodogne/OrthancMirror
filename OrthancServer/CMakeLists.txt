@@ -857,8 +857,9 @@ endif()
 if (ENABLE_PLUGINS)
   install(
     FILES
-    ${CMAKE_SOURCE_DIR}/Plugins/Include/orthanc/OrthancCPlugin.h 
-    ${CMAKE_SOURCE_DIR}/Plugins/Include/orthanc/OrthancCDatabasePlugin.h 
+    ${CMAKE_SOURCE_DIR}/Plugins/Include/orthanc/OrthancCPlugin.h
+    ${CMAKE_SOURCE_DIR}/Plugins/Include/orthanc/OrthancCDatabasePlugin.h
+    ${CMAKE_SOURCE_DIR}/Plugins/Include/orthanc/OrthancDatabasePlugin.proto
     DESTINATION include/orthanc
     )
 endif()
