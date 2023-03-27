@@ -42,7 +42,7 @@ namespace Orthanc
   class IDatabaseWrapper : public boost::noncopyable
   {
   public:
-    struct CreateInstanceResult
+    struct CreateInstanceResult : public boost::noncopyable
     {
       bool     isNewPatient_;
       bool     isNewStudy_;
