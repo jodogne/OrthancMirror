@@ -30,7 +30,6 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_PROTOBUF)
       CMAKE_ARGS
       -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
       -DCMAKE_INSTALL_PREFIX=${CMAKE_CURRENT_BINARY_DIR}
-      INSTALL_COMMAND ""  # Skip the install step
       )
 
     # The "protoc" compiler is built using "externalproject_add",
@@ -41,8 +40,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_PROTOBUF)
       set(Suffix "")
     endif()
 
-    externalproject_get_property(ProtobufCompiler binary_dir)
-    set(PROTOC_EXECUTABLE ${binary_dir}/protoc${Suffix})
+    set(PROTOC_EXECUTABLE ${CMAKE_CURRENT_BINARY_DIR}/protoc${Suffix})
   endif()
 
   include(${CMAKE_CURRENT_LIST_DIR}/../ProtocolBuffers/ProtobufLibrary.cmake)  
