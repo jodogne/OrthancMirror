@@ -594,15 +594,6 @@ namespace Orthanc
     }
 
     
-    virtual bool IsExistingResource(int64_t internalId) ORTHANC_OVERRIDE
-    {
-      uint8_t b;
-      CheckSuccess(that_.backend_.isExistingResource(transaction_, &b, internalId));
-      CheckNoEvent();
-      return (b != 0);
-    }
-
-    
     virtual bool IsProtectedPatient(int64_t internalId) ORTHANC_OVERRIDE
     {
       uint8_t b;

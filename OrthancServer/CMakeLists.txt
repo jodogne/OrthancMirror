@@ -41,8 +41,6 @@ set(ENABLE_LOCALE ON)
 set(ENABLE_LUA ON)
 set(ENABLE_OPENSSL_ENGINES ON)  # OpenSSL engines are necessary for PKCS11
 set(ENABLE_PNG ON)
-set(ENABLE_PROTOBUF ON)
-set(ENABLE_PROTOBUF_COMPILER ON)
 set(ENABLE_PUGIXML ON)
 set(ENABLE_SQLITE ON)
 set(ENABLE_WEB_CLIENT ON)
@@ -70,6 +68,11 @@ SET(UNIT_TESTS_WITH_HTTP_CONNEXIONS ON CACHE BOOL "Allow unit tests to make HTTP
 #####################################################################
 ## Configuration of the Orthanc framework
 #####################################################################
+
+if (ENABLE_PLUGINS)
+  set(ENABLE_PROTOBUF ON)
+  set(ENABLE_PROTOBUF_COMPILER ON)
+endif()
 
 include(${CMAKE_SOURCE_DIR}/../OrthancFramework/Resources/CMake/VisualStudioPrecompiledHeaders.cmake)
 include(${CMAKE_SOURCE_DIR}/../OrthancFramework/Resources/CMake/OrthancFrameworkConfiguration.cmake)
