@@ -1,7 +1,147 @@
-syntax = "proto2";
+syntax = "proto3";
 
-message Point {
-  required int32 x = 1;
-  required int32 y = 2;
-  optional string label = 3;
+package Orthanc.DatabasePluginMessages;
+
+
+message FileInfo {
+  string  uuid = 1;
+  int32   content_type = 2;      // opaque "FileContentType" in Orthanc
+  uint64  uncompressedSize = 3;
+  string  uncompressedHash = 4;
+  int32   compression = 5;       // opaque "CompressionType" in Orthanc
+  uint64  compressedSize = 6;
+  string  compressedHash = 7;
+}
+
+
+/**
+ * Database-level operations
+ **/
+
+enum DatabaseOperation {
+  OPERATION_OPEN = 0;
+  OPERATION_CLOSE = 1;
+}
+
+message RequestDatabase {
+  sfixed64          database = 1;
+  DatabaseOperation operation = 2;
+}
+
+message ResponseDatabase {
+  int32 error_code = 1;
+}
+
+
+/**
+ * Transaction-level operations
+ **/
+
+enum TransactionOperation {
+  OPERATION_ROLLBACK = 0;
+  OPERATION_COMMIT = 1;
+  OPERATION_ADD_ATTACHMENT = 2;
+  OPERATION_OPERATION_CLEAR_CHANGES = 3;
+  OPERATION_CLEAR_EXPORTED_RESOURCES = 4;
+  OPERATION_DELETE_ATTACHMENT = 5;
+  OPERATION_DELETE_METADATA = 6;
+  OPERATION_DELETE_RESOURCE = 7;
+  OPERATION_GET_ALL_METADATA = 8;
+  OPERATION_GET_ALL_PUBLIC_IDS = 9;
+  OPERATION_GET_ALL_PUBLIC_IDS_LIMITS = 10;
+  OPERATION_GET_CHANGES = 11;
+  OPERATION_GET_CHILDREN_INTERNAL_ID = 12;
+  OPERATION_GET_CHILDREN_PUBLIC_ID = 13;
+  OPERATION_GET_EXPORTED_RESOURCES = 14;
+  OPERATION_GET_LAST_CHANGE = 15;
+  OPERATION_GET_LAST_EXPORTEDRESOURCE = 16;
+  OPERATION_GET_MAIN_DICOM_TAGS = 17;
+  OPERATION_GET_PUBLIC_ID = 18;
+  OPERATION_GET_RESOURCES_COUNT = 19;
+  OPERATION_GET_RESOURCE_TYPE = 20;
+  OPERATION_GET_TOTAL_COMPRESSED_SIZE = 21;
+  OPERATION_GET_TOTAL_UNCOMPRESSED_SIZE = 22;
+  OPERATION_IS_PROTECTED_PATIENT = 23;
+  OPERATION_LIST_AVAILABLE_ATTACHMENTS = 24;
+  OPERATION_LOG_CHANGE = 25;
+  OPERATION_LOG_EXPORTEDRESOURCE = 26;
+  OPERATION_LOOKUP_ATTACHMENT = 27;
+  OPERATION_LOOKUP_GLOBAL_PROPERTY = 28;
+  OPERATION_LOOKUP_METADATA = 29;
+  OPERATION_LOOKUP_PARENT = 30;
+  OPERATION_LOOKUP_RESOURCE = 31;
+  OPERATION_SELECT_PATIENT_TO_RECYCLE = 32;
+  OPERATION_SELECT_PATIENT_TO_RECYCLE_WITH_AVOID = 33;
+  OPERATION_SET_GLOBAL_PROPERTY = 34;
+  OPERATION_CLEAR_MAIN_DICOM_TAGS = 35;
+  OPERATION_SET_METADATA = 36;
+  OPERATION_SET_PROTECTED_PATIENT = 37;
+  OPERATION_IS_DISK_SIZE_ABOVE = 38;
+  OPERATION_APPLY_LOOKUP_RESOURCES = 39;
+  OPERATION_CREATE_INSTANCE = 40;
+  OPERATION_SET_RESOURCES_CONTENT = 41;
+  OPERATION_GET_CHILDREN_METADATA = 42;
+  OPERATION_GET_LAST_CHANGE_INDEX = 43;
+  OPERATION_LOOKUP_RESOURCE_AND_PARENT = 44;
+}
+
+message Rollback {
+  message Request {
+  }
+  message Response {
+  }
+}
+
+message Commit {
+  message Request {
+    int64 fileSizeDelta = 1;
+  }
+  message Response {
+  }
+}
+
+message AddAttachment {
+  message Request {
+    int64 id = 1;
+    FileInfo attachment = 2;
+    int64 revision = 3;
+  }
+  message Response {
+  }
+}
+
+message ClearChanges {
+  message Request {
+  }
+  message Response {
+  }
+}
+
+message GetAllPublicIds {
+  message Request {
+  }
+  message Response {
+    repeated string ids = 1;
+  }
+}
+
+message RequestTransaction {
+  sfixed64             transaction = 1;
+  TransactionOperation operation = 2;
+
+  Rollback.Request         rollback = 100;
+  Commit.Request           commit = 101;
+  AddAttachment.Request    add_attachment = 102;
+  ClearChanges.Request     clear_changes = 103;
+  GetAllPublicIds.Request  get_all_public_ids = 1000;
+}
+
+message ResponseTransaction {
+  int32 error_code = 1;
+
+  Rollback.Response         rollback = 100;
+  Commit.Response           commit = 101;
+  AddAttachment.Response    add_attachment = 102;
+  ClearChanges.Response     clear_changes = 103;
+  GetAllPublicIds.Response  get_all_public_ids = 1000;
 }

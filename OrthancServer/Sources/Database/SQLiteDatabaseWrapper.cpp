@@ -731,15 +731,6 @@ namespace Orthanc
     }
 
 
-    virtual bool IsExistingResource(int64_t internalId) ORTHANC_OVERRIDE
-    {
-      SQLite::Statement s(db_, SQLITE_FROM_HERE, 
-                          "SELECT * FROM Resources WHERE internalId=?");
-      s.BindInt64(0, internalId);
-      return s.Step();
-    }
-
-
     virtual bool IsProtectedPatient(int64_t internalId) ORTHANC_OVERRIDE
     {
       SQLite::Statement s(db_, SQLITE_FROM_HERE,

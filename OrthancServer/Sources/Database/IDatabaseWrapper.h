@@ -130,8 +130,6 @@ namespace Orthanc
     
       virtual uint64_t GetTotalUncompressedSize() = 0;
 
-      virtual bool IsExistingResource(int64_t internalId) = 0;
-
       virtual bool IsProtectedPatient(int64_t internalId) = 0;
 
       virtual void ListAvailableAttachments(std::set<FileContentType>& target,

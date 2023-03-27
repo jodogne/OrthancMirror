@@ -1021,14 +1021,6 @@ namespace Orthanc
     }
 
 
-    virtual bool IsExistingResource(int64_t internalId) ORTHANC_OVERRIDE
-    {
-      int32_t existing;
-      CheckSuccess(that_.backend_.isExistingResource(&existing, that_.payload_, internalId));
-      return (existing != 0);
-    }
-
-
     virtual bool IsProtectedPatient(int64_t internalId) ORTHANC_OVERRIDE
     {
       int32_t isProtected;
