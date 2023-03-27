@@ -142,3 +142,8 @@ add_executable(protoc
   ${PROTOBUF_LIBRARY_SOURCES}
   ${PROTOBUF_COMPILER_SOURCES}
   )
+
+install(
+  TARGETS protoc
+  RUNTIME DESTINATION .
+  )
