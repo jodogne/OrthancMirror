@@ -32,7 +32,16 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_PROTOBUF)
       -DCMAKE_INSTALL_PREFIX=${CMAKE_CURRENT_BINARY_DIR}
       INSTALL_COMMAND ""
       )
-    set(PROTOC_EXECUTABLE ${CMAKE_CURRENT_BINARY_DIR}/ProtobufCompiler-build/protoc)
+
+    # The "protoc" compiler is built using "externalproject_add",
+    # which builds for the host platform, not for the target platform
+    if (CMAKE_HOST_SYSTEM_NAME STREQUAL "Windows")
+      set(Suffix ".exe")
+    else()
+      set(Suffix "")
+    endif()
+    
+    set(PROTOC_EXECUTABLE ${CMAKE_CURRENT_BINARY_DIR}/ProtobufCompiler-build/protoc${Suffix})
   endif()
 
   include(${CMAKE_CURRENT_LIST_DIR}/../ProtocolBuffers/ProtobufLibrary.cmake)  
