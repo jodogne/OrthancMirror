@@ -20,6 +20,12 @@
  **/
 
 
+/**
+ * This Protocol Buffers prototype describes the exchanges between the
+ * Orthanc core and its database plugins. The various calls correspond
+ * to the "IDatabaseWrapper" interface in the source code of Orthanc.
+ **/
+
 syntax = "proto3";
 
 package Orthanc.DatabasePluginMessages;
@@ -91,19 +97,27 @@ message DatabaseConstraint {
  **/
 
 enum DatabaseOperation {
-  OPERATION_OPEN = 0;
-  OPERATION_CLOSE = 1;
-  OPERATION_FLUSH_TO_DISK = 2;
-  OPERATION_HAS_FLUSH_TO_DISK = 3;
+  OPERATION_GET_SYSTEM_INFORMATION = 0;
+  OPERATION_OPEN = 1;
+  OPERATION_CLOSE = 2;
+  OPERATION_FLUSH_TO_DISK = 3;
   OPERATION_START_TRANSACTION = 4;
   OPERATION_GET_DATABASE_VERSION = 5;
   OPERATION_UPGRADE = 6;
-  OPERATION_HAS_REVISION_SUPPORT = 7;
 }
 
 enum TransactionType {
   TRANSACTION_TYPE_READ_ONLY = 0;
   TRANSACTION_TYPE_READ_WRITE = 1;
+}
+
+message GetSystemInformation {
+  message Request {
+  }
+  message Response {
+    bool supports_flush_to_disk = 1;
+    bool supports_revisions = 2;
+  }
 }
 
 message Open {
@@ -124,14 +138,6 @@ message FlushToDisk {
   message Request {
   }
   message Response {
-  }
-}
-
-message TestFlushToDisk {
-  message Request {
-  }
-  message Response {
-    bool result = 1;
   }
 }
 
@@ -161,41 +167,28 @@ message Upgrade {
   }
 }
 
-message TestRevisionsSupport {
-  message Request {
-  }
-  message Response {
-    bool result = 1;
-  }
-}
 
-
-message RequestDatabase {
+message DatabaseRequest {
   sfixed64           database = 1;
   DatabaseOperation  operation = 2;
 
-  Open.Request                  open = 100;
-  Close.Request                 close = 101;
-  FlushToDisk.Request           flush_to_disk = 102;
-  TestFlushToDisk.Request       test_flush_to_disk = 103;
+  GetSystemInformation.Request  get_system_information = 100;
+  Open.Request                  open = 101;
+  Close.Request                 close = 102;
+  FlushToDisk.Request           flush_to_disk = 103;
   StartTransaction.Request      start_transaction = 104;
   GetDatabaseVersion.Request    get_database_version = 105;
   Upgrade.Request               upgrade = 106;
-  TestRevisionsSupport.Request  test_revisions_support = 107;
 }
 
-message ResponseDatabase {
-  int32   error_code = 1;
-  string  error_description = 2;
-
-  Open.Response                  open = 100;
-  Close.Response                 close = 101;
-  FlushToDisk.Response           flush_to_disk = 102;
-  TestFlushToDisk.Response       test_flush_to_disk = 103;
+message DatabaseResponse {
+  GetSystemInformation.Response  get_system_information = 100;
+  Open.Response                  open = 101;
+  Close.Response                 close = 102;
+  FlushToDisk.Response           flush_to_disk = 103;
   StartTransaction.Response      start_transaction = 104;
   GetDatabaseVersion.Response    get_database_version = 105;
   Upgrade.Response               upgrade = 106;
-  TestRevisionsSupport.Response  test_revisions_support = 107;
 }
 
 
@@ -716,7 +709,7 @@ message LookupResourceAndParent {
   }
 }
 
-message RequestTransaction {
+message TransactionRequest {
   sfixed64              transaction = 1;
   TransactionOperation  operation = 2;
 
@@ -767,10 +760,7 @@ message RequestTransaction {
   LookupResourceAndParent.Request         lookup_resource_and_parent = 144;
 }
 
-message ResponseTransaction {
-  int32   error_code = 1;
-  string  error_description = 2;
-
+message TransactionResponse {
   Rollback.Response                        rollback = 100;
   Commit.Response                          commit = 101;
   AddAttachment.Response                   add_attachment = 102;
@@ -825,11 +815,11 @@ enum RequestType {
 
 message Request {
   RequestType         type = 1;
-  RequestDatabase     request_database = 2;
-  RequestTransaction  request_transaction = 3;
+  DatabaseRequest     database_request = 2;
+  TransactionRequest  transaction_request = 3;
 }
 
 message Response {
-  ResponseDatabase     response_database = 1;
-  ResponseTransaction  response_transaction = 2;
+  DatabaseResponse     database_response = 2;
+  TransactionResponse  transaction_response = 3;
 }
