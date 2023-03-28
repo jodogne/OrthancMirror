@@ -9184,6 +9184,7 @@ extern "C"
   typedef struct
   {
     void*                                   backend;
+    uint32_t                                maxDatabaseRetries;
     OrthancPluginCallDatabaseBackendV4      operations;
     OrthancPluginFinalizeDatabaseBackendV4  finalize;
   } _OrthancPluginRegisterDatabaseBackendV4;
@@ -9201,11 +9202,13 @@ extern "C"
   ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginRegisterDatabaseBackendV4(
     OrthancPluginContext*                   context,
     void*                                   backend,
+    uint32_t                                maxDatabaseRetries,  /* To handle "OrthancPluginErrorCode_DatabaseCannotSerialize" */
     OrthancPluginCallDatabaseBackendV4      operations,
     OrthancPluginFinalizeDatabaseBackendV4  finalize)
   {
     _OrthancPluginRegisterDatabaseBackendV4 params;
     params.backend = backend;
+    params.maxDatabaseRetries = maxDatabaseRetries;
     params.operations = operations;
     params.finalize = finalize;
 
