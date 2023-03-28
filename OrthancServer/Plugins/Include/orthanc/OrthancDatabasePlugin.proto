@@ -200,7 +200,7 @@ enum TransactionOperation {
   OPERATION_DELETE_RESOURCE = 7;
   OPERATION_GET_ALL_METADATA = 8;
   OPERATION_GET_ALL_PUBLIC_IDS = 9;
-  OPERATION_GET_ALL_PUBLIC_IDS_LIMITS = 10;
+  OPERATION_GET_ALL_PUBLIC_IDS_WITH_LIMITS = 10;
   OPERATION_GET_CHANGES = 11;
   OPERATION_GET_CHILDREN_INTERNAL_ID = 12;
   OPERATION_GET_CHILDREN_PUBLIC_ID = 13;
@@ -326,7 +326,7 @@ message GetAllMetadata {
 
 message GetAllPublicIds {
   message Request {
-    int32 resource_type = 1;
+    ResourceType resource_type = 1;
   }
   message Response {
     repeated string ids = 1;
@@ -335,7 +335,7 @@ message GetAllPublicIds {
 
 message GetAllPublicIdsWithLimits {
   message Request {
-    int32  resource_type = 1;
+    ResourceType resource_type = 1;
     uint64 since = 2;
     uint32 limit = 3;
   }
@@ -346,7 +346,7 @@ message GetAllPublicIdsWithLimits {
 
 message GetChanges {
   message Request {
-    uint64 since = 1;
+    int64 since = 1;
     uint32 limit = 2;
   }
   message Response {
@@ -388,7 +388,7 @@ message GetLastChange {
   message Request {
   }
   message Response {
-    bool is_empty = 1;
+    bool exists = 1;
     ServerIndexChange change = 2;
   }
 }
@@ -397,7 +397,7 @@ message GetLastExportedResource {
   message Request {
   }
   message Response {
-    bool is_empty = 1;
+    bool exists = 1;
     ExportedResource resource = 2;
   }
 }
