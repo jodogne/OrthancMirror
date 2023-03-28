@@ -24,6 +24,9 @@
  * This Protocol Buffers prototype describes the exchanges between the
  * Orthanc core and its database plugins. The various calls correspond
  * to the "IDatabaseWrapper" interface in the source code of Orthanc.
+ *
+ * WARNING: *NEVER* modify or remove existing entries. It is only
+ * allowed to *add* new stuff.
  **/
 
 syntax = "proto3";
@@ -102,21 +105,21 @@ enum DatabaseOperation {
   OPERATION_CLOSE = 2;
   OPERATION_FLUSH_TO_DISK = 3;
   OPERATION_START_TRANSACTION = 4;
-  OPERATION_GET_DATABASE_VERSION = 5;
-  OPERATION_UPGRADE = 6;
+  OPERATION_UPGRADE = 5;
 }
 
 enum TransactionType {
-  TRANSACTION_TYPE_READ_ONLY = 0;
-  TRANSACTION_TYPE_READ_WRITE = 1;
+  TRANSACTION_READ_ONLY = 0;
+  TRANSACTION_READ_WRITE = 1;
 }
 
 message GetSystemInformation {
   message Request {
   }
   message Response {
-    bool supports_flush_to_disk = 1;
-    bool supports_revisions = 2;
+    uint32 database_version = 1;
+    bool supports_flush_to_disk = 2;
+    bool supports_revisions = 3;
   }
 }
 
@@ -150,18 +153,10 @@ message StartTransaction {
   }
 }
 
-message GetDatabaseVersion {
-  message Request {
-  }
-  message Response {
-    uint32 version = 1;
-  }
-}
-
 message Upgrade {
   message Request {
-    uint32 targetVersion = 1;
-    sfixed64 storageArea = 2;
+    uint32 target_version = 1;
+    sfixed64 storage_area = 2;
   }
   message Response {
   }
@@ -177,8 +172,7 @@ message DatabaseRequest {
   Close.Request                 close = 102;
   FlushToDisk.Request           flush_to_disk = 103;
   StartTransaction.Request      start_transaction = 104;
-  GetDatabaseVersion.Request    get_database_version = 105;
-  Upgrade.Request               upgrade = 106;
+  Upgrade.Request               upgrade = 105;
 }
 
 message DatabaseResponse {
@@ -187,8 +181,7 @@ message DatabaseResponse {
   Close.Response                 close = 102;
   FlushToDisk.Response           flush_to_disk = 103;
   StartTransaction.Response      start_transaction = 104;
-  GetDatabaseVersion.Response    get_database_version = 105;
-  Upgrade.Response               upgrade = 106;
+  Upgrade.Response               upgrade = 105;
 }
 
 
