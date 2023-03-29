@@ -1175,13 +1175,13 @@ static bool StartHttpServer(ServerContext& context,
       if (lock.GetConfiguration().GetBooleanParameter("RestApiWriteToFileSystemEnabled", false))
       {
         context.SetRestApiWriteToFileSystemEnabled(true);
-        LOG(WARNING) << "====> Your Rest API can write to the FileSystem.  Review your configuration option \"RestApiWriteToFileSystemEnabled\". "
+        LOG(WARNING) << "====> Your REST API can write to the FileSystem.  Review your configuration option \"RestApiWriteToFileSystemEnabled\". "
                      << "Your setup is POSSIBLY INSECURE <====";
       }
       else
       {
         context.SetRestApiWriteToFileSystemEnabled(false);
-        LOG(WARNING) << "Rest API can not write to the file system.";
+        LOG(WARNING) << "REST API can not write to the file system.";
       }
 
       if (lock.GetConfiguration().GetBooleanParameter("WebDavEnabled", true))
