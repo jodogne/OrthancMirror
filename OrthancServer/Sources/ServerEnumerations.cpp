@@ -112,6 +112,23 @@ namespace Orthanc
     return dictMetadataType_.Translate(str);
   }
 
+  void GetRegisteredUserMetadata(std::map<std::string, int>& allEntries)
+  {
+    boost::mutex::scoped_lock lock(enumerationsMutex_);
+
+    allEntries.clear();
+
+    std::map<std::string, MetadataType> allEntriesTyped = dictMetadataType_.GetAllEntries();
+
+    for (std::map<std::string, MetadataType>::const_iterator it = allEntriesTyped.begin(); it != allEntriesTyped.end(); ++it)
+    {
+      if (it->second >= MetadataType_StartUser)
+      {
+        allEntries[it->first] = it->second;
+      }
+    }
+  }
+
   void RegisterUserContentType(int contentType,
                                const std::string& name,
                                const std::string& mime)

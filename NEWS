@@ -1,6 +1,12 @@
 Pending changes in the mainline
 ===============================
 
+REST API
+--------
+
+* API version upgraded to 20
+* /system: added UserMetadata
+
 Maintenance
 -----------
 
