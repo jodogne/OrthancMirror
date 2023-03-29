@@ -388,7 +388,7 @@ message GetLastChange {
   message Request {
   }
   message Response {
-    bool exists = 1;
+    bool found = 1;
     ServerIndexChange change = 2;
   }
 }
@@ -397,7 +397,7 @@ message GetLastExportedResource {
   message Request {
   }
   message Response {
-    bool exists = 1;
+    bool found = 1;
     ExportedResource resource = 2;
   }
 }
@@ -463,7 +463,7 @@ message IsProtectedPatient {
     int64 patient_id = 1;
   }
   message Response {
-    bool protected = 1;
+    bool protected_patient = 1;
   }
 }
 
@@ -478,8 +478,10 @@ message ListAvailableAttachments {
 
 message LogChange {
   message Request {
-    int64 id = 1;
-    ServerIndexChange change = 2;
+    int32         change_type = 1;
+    int64         resource_id = 2;
+    ResourceType  resource_type = 3;
+    string        date = 4;
   }
   message Response {
   }
@@ -487,7 +489,14 @@ message LogChange {
 
 message LogExportedResource {
   message Request {
-    ExportedResource resource = 1;
+    ResourceType  resource_type = 1;
+    string        public_id = 2;
+    string        modality = 3;
+    string        date = 4;
+    string        patient_id = 5;
+    string        study_instance_uid = 6;
+    string        series_instance_uid = 7;
+    string        sop_instance_uid = 8;
   }
   message Response {
   }
@@ -507,8 +516,8 @@ message LookupAttachment {
 
 message LookupGlobalProperty {
   message Request {
-    int32 property = 1;
-    bool shared = 2;
+    string server_id = 1;
+    int32 property = 2;
   }
   message Response {
     bool found = 1;
@@ -554,7 +563,7 @@ message SelectPatientToRecycle {
   }
   message Response {
     bool found = 1;
-    int64 id = 2;
+    int64 patient_id = 2;
   }
 }
 
@@ -564,14 +573,14 @@ message SelectPatientToRecycleWithAvoid {
   }
   message Response {
     bool found = 1;
-    int64 id = 2;
+    int64 patient_id = 2;
   }
 }
 
 message SetGlobalProperty {
   message Request {
-    int32 property = 1;
-    bool shared = 2;
+    string server_id = 1;
+    int32 property = 2;
     string value = 3;
   }
   message Response {
@@ -599,8 +608,8 @@ message SetMetadata {
 
 message SetProtectedPatient {
   message Request {
-    int64 id = 1;
-    bool protected = 2;
+    int64 patient_id = 1;
+    bool protected_patient = 2;
   }
   message Response {
   }
