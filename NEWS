@@ -11,8 +11,8 @@ Maintenance
 -----------
 
 * Enforce the existence of the patient/study/instance while creating its archive
-* Security: New configuration option "RestApiWriteToFileSystemEnabled" to allow 
-  "/instances/../export" that is now disabled by default.
+* Security: New configuration option "RestApiWriteToFileSystemEnabled"
+  to allow "/instances/../export" that is now disabled by default.
 
 Bug Fixes
 ---------
@@ -20,24 +20,30 @@ Bug Fixes
 * Fix issue 214: VOILUTSequence is not returned in Wado-RS
 * Fix /tools/reset crashing when ExtraMainDicomTags were defined
 
-version 1.11.3 (2023-02-03)
+
+Version 1.11.3 (2023-02-03)
 ===========================
 
 General
 -------
 
-* C-Store SCU now gives priority to the preferred TransferSyntax proposed by the receiving SCP
-  instead of Orthanc own AcceptedTransferSyntaxes.
-* Made the default SQLite DB more robust wrt future updates like adding new columns in DB.
+* C-Store SCU now gives priority to the preferred TransferSyntax
+  proposed by the receiving SCP instead of Orthanc own
+  AcceptedTransferSyntaxes.
+* Made the default SQLite DB more robust wrt future updates like
+  adding new columns in DB.
 * Made the HTTP Client errors more verbose by including the url in the logs.
-* Optimization: now using multiple threads to transcode files for asynchronous download of studies archive.
+* Optimization: now using multiple threads to transcode files for
+  asynchronous download of studies archive.
 * New configuration "KeepAliveTimeout" with a default value of 1 second.
 * ResourceModification jobs (/modify + /anonymize) can now use multiple threads to speed up processing
   - New configuration "JobsEngineThreadsCount.ResourceModification" to configure the number of threads.
-* For systems using glibc > 2.8 (most of Linux systems except LSB binaries):
-  Introduced a new Housekeeper thread in Orthanc (different from the Housekeeper sample plugin).  This thread
-  regularly try to give back memory that Orthanc no longer uses to the system.  This reduces the overall memory
-  consumption.  More information in  OrthancServer/Resources/ImplementationNotes/memory_consumption.txt.
+* For systems using glibc > 2.8 (most of Linux systems except LSB
+  binaries): Introduced a new thread for to trim memory in Orthanc (different
+  from the Housekeeper sample plugin). This thread regularly try to
+  give back memory that Orthanc no longer uses to the system. This
+  reduces the overall memory consumption. More information in
+  OrthancServer/Resources/ImplementationNotes/memory_consumption.txt.
 
 REST API
 --------
@@ -77,7 +83,7 @@ Maintenance
 * Fix issue #212 (Anonymization process transcodes data and loses resource link).
 
 
-version 1.11.2 (2022-08-30)
+Version 1.11.2 (2022-08-30)
 ===========================
 
 General
