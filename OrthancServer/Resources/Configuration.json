@@ -50,7 +50,7 @@
   // By default, the patients are recycled ("Recycle" mode).
   // In "Reject" mode, the sender will receive a 0xA700 DIMSE status code
   // if the instance was sent through C-Store, a 507 HTTP status code
-  // if using the Rest API and a 0xA700 Failure reason when using
+  // if using the REST API and a 0xA700 Failure reason when using
   // DicomWeb Stow-RS 
   // Allowed values: "Recycle", "Reject"
   // (new in Orthanc 1.11.2)
@@ -766,7 +766,7 @@
   // with Orthanc 1.5.8, this URI is disabled by default for security.
   "ExecuteLuaEnabled" : false,
 
-  // Whether the Rest API can write to the filesystem (e.g. in 
+  // Whether the REST API can write to the filesystem (e.g. in 
   // /instances/../export route). Starting with Orthanc 1.12.0, 
   // this URI is disabled by default for security.
   "RestApiWriteToFileSystemEnabled": false,
