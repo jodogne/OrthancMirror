@@ -216,6 +216,8 @@ namespace Orthanc
 
   std::string EnumerationToString(MetadataType type);
 
+  void GetRegisteredUserMetadata(std::map<std::string, int>& allEntries);
+
   void RegisterUserContentType(int contentType,
                                const std::string& name,
                                const std::string& mime);
