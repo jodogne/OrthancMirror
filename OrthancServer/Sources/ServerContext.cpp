@@ -327,6 +327,7 @@ namespace Orthanc
     metricsRegistry_(new MetricsRegistry),
     isHttpServerSecure_(true),
     isExecuteLuaEnabled_(false),
+    isRestApiWriteToFileSystemEnabled_(false),
     overwriteInstances_(false),
     dcmtkTranscoder_(new DcmtkTranscoder),
     isIngestTranscoding_(false),

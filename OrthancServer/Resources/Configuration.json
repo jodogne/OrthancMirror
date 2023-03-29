@@ -766,6 +766,11 @@
   // with Orthanc 1.5.8, this URI is disabled by default for security.
   "ExecuteLuaEnabled" : false,
 
+  // Whether the Rest API can write to the filesystem (e.g. in 
+  // /instances/../export route). Starting with Orthanc 1.12.0, 
+  // this URI is disabled by default for security.
+  "RestApiWriteToFileSystemEnabled": false,
+
   // Set the timeout while serving HTTP requests by the embedded Web
   // server, in seconds. This corresponds to option
   // "request_timeout_ms" of Mongoose/Civetweb. It will set the socket

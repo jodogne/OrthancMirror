@@ -259,7 +259,8 @@ namespace Orthanc
         .SetTag("System")
         .SetSummary("Execute Lua script")
         .SetDescription("Execute the provided Lua script by the Orthanc server. This is very insecure for "
-                        "Orthanc servers that are remotely accessible, cf. configuration option `ExecuteLuaEnabled`")
+                        "Orthanc servers that are remotely accessible.  Since Orthanc 1.5.8, this route "
+                        "is disabled by default and can be enabled thanks to the `ExecuteLuaEnabled` configuration.")
         .AddRequestType(MimeType_PlainText, "The Lua script to be executed")
         .AddAnswerType(MimeType_PlainText, "Output of the Lua script");
       return;
@@ -270,7 +271,7 @@ namespace Orthanc
     if (!context.IsExecuteLuaEnabled())
     {
       LOG(ERROR) << "The URI /tools/execute-script is disallowed for security, "
-                 << "check your configuration file";
+                 << "check your configuration option `ExecuteLuaEnabled`";
       call.GetOutput().SignalError(HttpStatus_403_Forbidden);
       return;
     }

@@ -428,13 +428,26 @@ namespace Orthanc
       call.GetDocumentation()
         .SetTag("Instances")
         .SetSummary("Write DICOM onto filesystem")
-        .SetDescription("Write the DICOM file onto the filesystem where Orthanc is running")
+        .SetDescription("Write the DICOM file onto the filesystem where Orthanc is running.  This is insecure for "
+                        "Orthanc servers that are remotely accessible since one could overwrite any system file.  "
+                        "Since Orthanc 1.12.0, this route is disabled by default and can be enabled thanks to "
+                        "the `RestApiWriteToFileSystemEnabled` configuration.")
+        .AddRequestType(MimeType_PlainText, "The Lua script to be executed")
+
         .SetUriArgument("id", "Orthanc identifier of the DICOM instance of interest")
         .AddRequestType(MimeType_PlainText, "Target path on the filesystem");
       return;
     }
 
     ServerContext& context = OrthancRestApi::GetContext(call);
+
+    if (!context.IsRestApiWriteToFileSystemEnabled())
+    {
+      LOG(ERROR) << "The URI /instances/../export is disallowed for security, "
+                 << "check your configuration option `RestApiWriteToFileSystemEnabled`";
+      call.GetOutput().SignalError(HttpStatus_403_Forbidden);
+      return;
+    }
 
     std::string publicId = call.GetUriComponent("id", "");
 
