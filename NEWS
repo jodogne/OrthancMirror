@@ -5,6 +5,8 @@ Maintenance
 -----------
 
 * Enforce the existence of the patient/study/instance while creating its archive
+* Security: New configuration option "RestApiWriteToFileSystemEnabled" to allow 
+  "/instances/../export" that is now disabled by default.
 
 Bug Fixes
 ---------
