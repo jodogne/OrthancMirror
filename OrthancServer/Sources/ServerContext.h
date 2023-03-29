@@ -248,6 +248,7 @@ namespace Orthanc
     std::unique_ptr<MetricsRegistry>  metricsRegistry_;
     bool isHttpServerSecure_;
     bool isExecuteLuaEnabled_;
+    bool isRestApiWriteToFileSystemEnabled_;
     bool overwriteInstances_;
 
     std::unique_ptr<StorageCommitmentReports>  storageCommitmentReports_;
@@ -485,6 +486,16 @@ namespace Orthanc
     bool IsExecuteLuaEnabled() const
     {
       return isExecuteLuaEnabled_;
+    }
+
+    void SetRestApiWriteToFileSystemEnabled(bool enabled)
+    {
+      isRestApiWriteToFileSystemEnabled_ = enabled;
+    }
+
+    bool IsRestApiWriteToFileSystemEnabled() const
+    {
+      return isRestApiWriteToFileSystemEnabled_;
     }
 
     void SetOverwriteInstances(bool overwrite)

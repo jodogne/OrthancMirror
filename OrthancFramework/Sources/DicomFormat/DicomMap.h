@@ -31,10 +31,6 @@
 #include <map>
 #include <json/value.h>
 
-#if ORTHANC_BUILD_UNIT_TESTS == 1
-#  include <gtest/gtest_prod.h>
-#endif
-
 namespace Orthanc
 {
   class ORTHANC_PUBLIC DicomMap : public boost::noncopyable
@@ -48,10 +44,6 @@ namespace Orthanc
     friend class FromDcmtkBridge;
     friend class ParsedDicomFile;
 
-#if ORTHANC_BUILD_UNIT_TESTS == 1
-    friend class DicomMapMainTagsTests;
-#endif
-
     Content content_;
 
     // Warning: This takes the ownership of "value"
@@ -59,11 +51,10 @@ namespace Orthanc
                           uint16_t element, 
                           DicomValue* value);
 
-    // used for unit tests only
-    static void ResetDefaultMainDicomTags();
-
   public:
     ~DicomMap();
+
+    static void ResetDefaultMainDicomTags();
 
     size_t GetSize() const;
     
