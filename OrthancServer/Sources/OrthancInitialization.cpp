@@ -204,6 +204,8 @@ namespace Orthanc
   {
     static const char* const EXTRA_MAIN_DICOM_TAGS = "ExtraMainDicomTags";
     
+    DicomMap::ResetDefaultMainDicomTags();
+
     if (configuration.type() != Json::objectValue ||
         !configuration.isMember(EXTRA_MAIN_DICOM_TAGS) ||
         configuration[EXTRA_MAIN_DICOM_TAGS].type() != Json::objectValue)

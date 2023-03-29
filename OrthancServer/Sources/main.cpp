@@ -1172,6 +1172,18 @@ static bool StartHttpServer(ServerContext& context,
         LOG(WARNING) << "Remote LUA script execution is disabled";
       }
 
+      if (lock.GetConfiguration().GetBooleanParameter("RestApiWriteToFileSystemEnabled", false))
+      {
+        context.SetRestApiWriteToFileSystemEnabled(true);
+        LOG(WARNING) << "====> Your REST API can write to the FileSystem.  Review your configuration option \"RestApiWriteToFileSystemEnabled\". "
+                     << "Your setup is POSSIBLY INSECURE <====";
+      }
+      else
+      {
+        context.SetRestApiWriteToFileSystemEnabled(false);
+        LOG(WARNING) << "REST API can not write to the file system.";
+      }
+
       if (lock.GetConfiguration().GetBooleanParameter("WebDavEnabled", true))
       {
         const bool allowDelete = lock.GetConfiguration().GetBooleanParameter("WebDavDeleteAllowed", false);
