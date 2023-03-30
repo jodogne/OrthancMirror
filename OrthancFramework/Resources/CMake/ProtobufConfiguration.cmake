@@ -23,7 +23,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_PROTOBUF)
   if (ENABLE_PROTOBUF_COMPILER)
     include(ExternalProject)
     externalproject_add(ProtobufCompiler
-      SOURCE_DIR "${CMAKE_SOURCE_DIR}/../OrthancFramework/Resources/ProtocolBuffers"
+      SOURCE_DIR "${CMAKE_CURRENT_LIST_DIR}/../ProtocolBuffers"
       BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}/ProtobufCompiler-build"
       # this helps triggering build when changing the external project
       BUILD_ALWAYS 1
