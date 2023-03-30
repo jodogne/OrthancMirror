@@ -31,6 +31,14 @@
 
 syntax = "proto3";
 
+/**
+ * Turn off protobuf reflection to avoid clashes between the Orthanc
+ * core and the database plugin, otherwise both will try to register
+ * the same messages in the process-wide descriptor pool, which would
+ * result in protobuf error "File already exists in database".
+ **/
+option optimize_for = LITE_RUNTIME;
+
 package Orthanc.DatabasePluginMessages;
 
 

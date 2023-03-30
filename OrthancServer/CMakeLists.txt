@@ -186,6 +186,7 @@ if (ENABLE_PLUGINS)
   list(APPEND ORTHANC_SERVER_SOURCES
     ${CMAKE_SOURCE_DIR}/Plugins/Engine/OrthancPluginDatabase.cpp
     ${CMAKE_SOURCE_DIR}/Plugins/Engine/OrthancPluginDatabaseV3.cpp
+    ${CMAKE_SOURCE_DIR}/Plugins/Engine/OrthancPluginDatabaseV4.cpp
     ${CMAKE_SOURCE_DIR}/Plugins/Engine/OrthancPlugins.cpp
     ${CMAKE_SOURCE_DIR}/Plugins/Engine/PluginsEnumerations.cpp
     ${CMAKE_SOURCE_DIR}/Plugins/Engine/PluginsErrorDictionary.cpp
