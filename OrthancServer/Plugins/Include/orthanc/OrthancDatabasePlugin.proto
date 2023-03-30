@@ -85,13 +85,13 @@ message ExportedResource {
 
 message DatabaseConstraint {
   ResourceType     level = 1;
-  int32            tag = 2;
-  string           value = 3;
-  bool             is_identifier = 4;
-  ConstraintType   constraint = 5;
-  repeated string  values = 6;
-  bool             case_sensitive = 7;
-  bool             mandatory = 8;
+  uint32           tag_group = 2;
+  uint32           tag_element = 3;
+  bool             is_identifier_tag = 4;
+  bool             is_case_sensitive = 5;
+  bool             is_mandatory = 6;
+  ConstraintType   type = 7;
+  repeated string  values = 8;
 }
 
 
@@ -408,8 +408,9 @@ message GetMainDicomTags {
   }
   message Response {
     message Tag {
-      uint32 key = 1;
-      string value = 2;
+      uint32 group = 1;
+      uint32 element = 2;
+      string value = 3;
     }
     repeated Tag tags = 1;
   }
@@ -629,7 +630,7 @@ message LookupResources {
     repeated DatabaseConstraint lookup = 1;
     ResourceType query_level = 2;
     uint32 limit = 3;
-    bool retrieve_instances = 4;
+    bool retrieve_instances_ids = 4;
   }
   message Response {
     repeated string resources_ids = 1;
@@ -663,8 +664,9 @@ message SetResourcesContent {
     message Tag {
       int64 resource_id = 1;
       bool is_identifier = 2;
-      uint32 key = 3;
-      string value = 4;
+      uint32 group = 3;
+      uint32 element = 4;
+      string value = 5;
     }
 
     message Metadata {
@@ -673,9 +675,8 @@ message SetResourcesContent {
       string value = 3;
     }
 
-    bool is_new_resource = 1;
-    repeated Tag tags = 2;
-    repeated Metadata metadata = 3;
+    repeated Tag tags = 1;
+    repeated Metadata metadata = 2;
   }
   message Response {
   }
@@ -707,7 +708,8 @@ message LookupResourceAndParent {
     bool found = 1;
     int64 id = 2;
     ResourceType type = 3;
-    string parent_public_id = 4;
+    bool has_parent = 4;
+    string parent_public_id = 5;
   }
 }
 
