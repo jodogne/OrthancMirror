@@ -114,6 +114,7 @@ enum DatabaseOperation {
   OPERATION_FLUSH_TO_DISK = 3;
   OPERATION_START_TRANSACTION = 4;
   OPERATION_UPGRADE = 5;
+  OPERATION_FINALIZE_TRANSACTION = 6;
 }
 
 enum TransactionType {
@@ -170,6 +171,13 @@ message Upgrade {
   }
 }
 
+message FinalizeTransaction {
+  message Request {
+    sfixed64 transaction = 1;
+  }
+  message Response {
+  }
+}
 
 message DatabaseRequest {
   sfixed64           database = 1;
@@ -181,6 +189,7 @@ message DatabaseRequest {
   FlushToDisk.Request           flush_to_disk = 103;
   StartTransaction.Request      start_transaction = 104;
   Upgrade.Request               upgrade = 105;
+  FinalizeTransaction.Request   finalize_transaction = 106;
 }
 
 message DatabaseResponse {
@@ -190,6 +199,7 @@ message DatabaseResponse {
   FlushToDisk.Response           flush_to_disk = 103;
   StartTransaction.Response      start_transaction = 104;
   Upgrade.Response               upgrade = 105;
+  FinalizeTransaction.Response   finalize_transaction = 106;
 }
 
 
@@ -254,7 +264,7 @@ message Rollback {
 
 message Commit {
   message Request {
-    int64 fileSizeDelta = 1;
+    int64 file_size_delta = 1;
   }
   message Response {
   }

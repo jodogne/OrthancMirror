@@ -38,55 +38,194 @@
 
 namespace Orthanc
 {
+  static void CheckSuccess(PluginsErrorDictionary& errorDictionary,
+                           OrthancPluginErrorCode code)
+  {
+    if (code != OrthancPluginErrorCode_Success)
+    {
+      errorDictionary.LogError(code, true);
+      throw OrthancException(static_cast<ErrorCode>(code));
+    }
+  }
+
+
+  static FileInfo Convert(const DatabasePluginMessages::FileInfo& source)
+  {
+    return FileInfo(source.uuid(),
+                    static_cast<FileContentType>(source.content_type()),
+                    source.uncompressed_size(),
+                    source.uncompressed_hash(),
+                    static_cast<CompressionType>(source.compression_type()),
+                    source.compressed_size(),
+                    source.compressed_hash());
+  }
+
+
+  static ResourceType Convert(DatabasePluginMessages::ResourceType type)
+  {
+    switch (type)
+    {
+      case DatabasePluginMessages::RESOURCE_PATIENT:
+        return ResourceType_Patient;
+
+      case DatabasePluginMessages::RESOURCE_STUDY:
+        return ResourceType_Study;
+
+      case DatabasePluginMessages::RESOURCE_SERIES:
+        return ResourceType_Series;
+
+      case DatabasePluginMessages::RESOURCE_INSTANCE:
+        return ResourceType_Instance;
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+    
+  static DatabasePluginMessages::ResourceType Convert(ResourceType type)
+  {
+    switch (type)
+    {
+      case ResourceType_Patient:
+        return DatabasePluginMessages::RESOURCE_PATIENT;
+
+      case ResourceType_Study:
+        return DatabasePluginMessages::RESOURCE_STUDY;
+
+      case ResourceType_Series:
+        return DatabasePluginMessages::RESOURCE_SERIES;
+
+      case ResourceType_Instance:
+        return DatabasePluginMessages::RESOURCE_INSTANCE;
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+    
+  static void Execute(DatabasePluginMessages::Response& response,
+                      const OrthancPluginDatabaseV4& database,
+                      const DatabasePluginMessages::Request& request)
+  {
+    std::string requestSerialized;
+    request.SerializeToString(&requestSerialized);
+
+    OrthancPluginMemoryBuffer64 responseSerialized;
+    CheckSuccess(database.GetErrorDictionary(), database.GetDefinition().operations(
+                   &responseSerialized, database.GetDefinition().backend,
+                   requestSerialized.empty() ? NULL : requestSerialized.c_str(),
+                   requestSerialized.size()));
+
+    bool success = response.ParseFromArray(responseSerialized.data, responseSerialized.size);
+
+    if (responseSerialized.size > 0)
+    {
+      free(responseSerialized.data);
+    }
+
+    if (!success)
+    {
+      throw OrthancException(ErrorCode_DatabasePlugin, "Cannot unserialize protobuf originating from the database plugin");
+    }
+  }
+  
+
+  static void ExecuteDatabase(DatabasePluginMessages::DatabaseResponse& response,
+                              const OrthancPluginDatabaseV4& database,
+                              DatabasePluginMessages::DatabaseOperation operation,
+                              const DatabasePluginMessages::DatabaseRequest& request)
+  {
+    DatabasePluginMessages::Request fullRequest;
+    fullRequest.set_type(DatabasePluginMessages::REQUEST_DATABASE);
+    fullRequest.mutable_database_request()->CopyFrom(request);
+    fullRequest.mutable_database_request()->set_operation(operation);
+
+    DatabasePluginMessages::Response fullResponse;
+    Execute(fullResponse, database, fullRequest);
+    
+    response.CopyFrom(fullResponse.database_response());
+  }
+
+  
   class OrthancPluginDatabaseV4::Transaction : public IDatabaseWrapper::ITransaction
   {
   private:
-    OrthancPluginDatabaseV4&  that_;
+    OrthancPluginDatabaseV4&  database_;
     IDatabaseListener&        listener_;
     void*                     transaction_;
-
-    void CheckSuccess(OrthancPluginErrorCode code) const
+    
+    void ExecuteTransaction(DatabasePluginMessages::TransactionResponse& response,
+                            DatabasePluginMessages::TransactionOperation operation,
+                            const DatabasePluginMessages::TransactionRequest& request)
     {
-      that_.CheckSuccess(code);
+      DatabasePluginMessages::Request fullRequest;
+      fullRequest.set_type(DatabasePluginMessages::REQUEST_TRANSACTION);
+      fullRequest.mutable_transaction_request()->CopyFrom(request);
+      fullRequest.mutable_transaction_request()->set_transaction(reinterpret_cast<intptr_t>(transaction_));
+      fullRequest.mutable_transaction_request()->set_operation(operation);
+
+      DatabasePluginMessages::Response fullResponse;
+      Execute(fullResponse, database_, fullRequest);
+    
+      response.CopyFrom(fullResponse.transaction_response());
     }
     
-  public:
-    Transaction(OrthancPluginDatabaseV4& that,
-                IDatabaseListener& listener,
-                TransactionType type) :
-      that_(that),
-      listener_(listener)
+    
+    void ExecuteTransaction(DatabasePluginMessages::TransactionOperation operation,
+                            const DatabasePluginMessages::TransactionRequest& request)
     {
-#if 0
-      CheckSuccess(that.database_.startTransaction(that.database_, &transaction_, type));
-      if (transaction_ == NULL)
-      {
-        throw OrthancException(ErrorCode_DatabasePlugin);
-      }
-#endif
+      DatabasePluginMessages::TransactionResponse response;  // Ignored
+      ExecuteTransaction(response, operation, request);
+    }
+    
+    
+    void ExecuteTransaction(DatabasePluginMessages::TransactionOperation operation)
+    {
+      DatabasePluginMessages::TransactionResponse response;  // Ignored
+      DatabasePluginMessages::TransactionRequest request;    // Ignored
+      ExecuteTransaction(response, operation, request);
+    }
+
+
+  public:
+    Transaction(OrthancPluginDatabaseV4& database,
+                IDatabaseListener& listener,
+                void* transaction) :
+      database_(database),
+      listener_(listener),
+      transaction_(transaction)
+    {
     }
 
     
     virtual ~Transaction()
     {
-#if 0
-      OrthancPluginErrorCode code = that_.database_.destructTransaction(transaction_);
-      if (code != OrthancPluginErrorCode_Success)
       {
-        // Don't throw exception in destructors
-        that_.errorDictionary_.LogError(code, true);
+        DatabasePluginMessages::DatabaseRequest request;
+        request.mutable_finalize_transaction()->set_transaction(reinterpret_cast<intptr_t>(transaction_));
+
+        DatabasePluginMessages::DatabaseResponse response;
+        ExecuteDatabase(response, database_, DatabasePluginMessages::OPERATION_FINALIZE_TRANSACTION, request);
       }
-#endif
     }
     
 
     virtual void Rollback() ORTHANC_OVERRIDE
     {
+      ExecuteTransaction(DatabasePluginMessages::OPERATION_ROLLBACK);
     }
     
 
     virtual void Commit(int64_t fileSizeDelta) ORTHANC_OVERRIDE
     {
+      {
+        DatabasePluginMessages::TransactionRequest request;
+        request.mutable_commit()->set_file_size_delta(fileSizeDelta);
+
+        ExecuteTransaction(DatabasePluginMessages::OPERATION_COMMIT, request);
+      }      
     }
 
     
@@ -94,45 +233,137 @@ namespace Orthanc
                                const FileInfo& attachment,
                                int64_t revision) ORTHANC_OVERRIDE
     {
+      {
+        DatabasePluginMessages::TransactionRequest request;
+        request.mutable_add_attachment()->set_id(id);
+        request.mutable_add_attachment()->mutable_attachment()->set_uuid(attachment.GetUuid());
+        request.mutable_add_attachment()->mutable_attachment()->set_content_type(attachment.GetContentType());
+        request.mutable_add_attachment()->mutable_attachment()->set_uncompressed_size(attachment.GetUncompressedSize());
+        request.mutable_add_attachment()->mutable_attachment()->set_uncompressed_hash(attachment.GetUncompressedMD5());
+        request.mutable_add_attachment()->mutable_attachment()->set_compression_type(attachment.GetCompressionType());
+        request.mutable_add_attachment()->mutable_attachment()->set_compressed_size(attachment.GetCompressedSize());
+        request.mutable_add_attachment()->mutable_attachment()->set_compressed_hash(attachment.GetCompressedMD5());        
+        request.mutable_add_attachment()->set_revision(revision);
+
+        ExecuteTransaction(DatabasePluginMessages::OPERATION_ADD_ATTACHMENT, request);
+      }      
     }
 
 
     virtual void ClearChanges() ORTHANC_OVERRIDE
     {
+      ExecuteTransaction(DatabasePluginMessages::OPERATION_CLEAR_CHANGES);
     }
 
     
     virtual void ClearExportedResources() ORTHANC_OVERRIDE
     {
+      ExecuteTransaction(DatabasePluginMessages::OPERATION_CLEAR_EXPORTED_RESOURCES);
     }
 
-    
+
     virtual void DeleteAttachment(int64_t id,
                                   FileContentType attachment) ORTHANC_OVERRIDE
     {
+      {
+        DatabasePluginMessages::TransactionRequest request;
+        request.mutable_delete_attachment()->set_id(id);
+        request.mutable_delete_attachment()->set_type(attachment);
+
+        DatabasePluginMessages::TransactionResponse response;
+        ExecuteTransaction(response, DatabasePluginMessages::OPERATION_DELETE_ATTACHMENT, request);
+
+        listener_.SignalAttachmentDeleted(Convert(response.delete_attachment().deleted_attachment()));
+      }      
     }
 
     
     virtual void DeleteMetadata(int64_t id,
                                 MetadataType type) ORTHANC_OVERRIDE
     {
+      {
+        DatabasePluginMessages::TransactionRequest request;
+        request.mutable_delete_metadata()->set_id(id);
+        request.mutable_delete_metadata()->set_type(type);
+
+        ExecuteTransaction(DatabasePluginMessages::OPERATION_DELETE_METADATA, request);
+      }      
     }
 
     
     virtual void DeleteResource(int64_t id) ORTHANC_OVERRIDE
     {
+      {
+        DatabasePluginMessages::TransactionRequest request;
+        request.mutable_delete_resource()->set_id(id);
+
+        DatabasePluginMessages::TransactionResponse response;
+        ExecuteTransaction(response, DatabasePluginMessages::OPERATION_DELETE_RESOURCE, request);
+
+        for (int i = 0; i < response.delete_resource().deleted_attachments().size(); i++)
+        {
+          listener_.SignalAttachmentDeleted(Convert(response.delete_resource().deleted_attachments(i)));
+        }
+
+        for (int i = 0; i < response.delete_resource().deleted_resources().size(); i++)
+        {
+          listener_.SignalResourceDeleted(Convert(response.delete_resource().deleted_resources(i).level()),
+                                          response.delete_resource().deleted_resources(i).public_id());
+        }
+
+        if (response.delete_resource().is_remaining_ancestor())
+        {
+          listener_.SignalRemainingAncestor(Convert(response.delete_resource().remaining_ancestor().level()),
+                                            response.delete_resource().remaining_ancestor().public_id());
+        }
+      }      
     }
 
     
     virtual void GetAllMetadata(std::map<MetadataType, std::string>& target,
                                 int64_t id) ORTHANC_OVERRIDE
     {
+      {
+        DatabasePluginMessages::TransactionRequest request;
+        request.mutable_get_all_metadata()->set_id(id);
+
+        DatabasePluginMessages::TransactionResponse response;
+        ExecuteTransaction(response, DatabasePluginMessages::OPERATION_GET_ALL_METADATA, request);
+
+        target.clear();
+        for (int i = 0; i < response.get_all_metadata().metadata().size(); i++)
+        {
+          MetadataType key = static_cast<MetadataType>(response.get_all_metadata().metadata(i).type());
+          
+          if (target.find(key) == target.end())
+          {
+            target[key] = response.get_all_metadata().metadata(i).value();
+          }
+          else
+          {
+            throw OrthancException(ErrorCode_DatabasePlugin);
+          }
+        }
+      }
     }
 
     
     virtual void GetAllPublicIds(std::list<std::string>& target,
                                  ResourceType resourceType) ORTHANC_OVERRIDE
     {
+      {
+        DatabasePluginMessages::TransactionRequest request;
+        request.mutable_get_all_public_ids()->set_resource_type(Convert(resourceType));
+
+        DatabasePluginMessages::TransactionResponse response;
+        ExecuteTransaction(response, DatabasePluginMessages::OPERATION_GET_ALL_PUBLIC_IDS, request);
+
+        target.clear();
+        for (int i = 0; i < response.get_all_public_ids().ids().size(); i++)
+        {
+          target.push_back(response.get_all_public_ids().ids(i));
+        }
+      }
     }
 
     
@@ -141,6 +372,21 @@ namespace Orthanc
                                  size_t since,
                                  size_t limit) ORTHANC_OVERRIDE
     {
+      {
+        DatabasePluginMessages::TransactionRequest request;
+        request.mutable_get_all_public_ids_with_limits()->set_resource_type(Convert(resourceType));
+        request.mutable_get_all_public_ids_with_limits()->set_since(since);
+        request.mutable_get_all_public_ids_with_limits()->set_limit(limit);
+
+        DatabasePluginMessages::TransactionResponse response;
+        ExecuteTransaction(response, DatabasePluginMessages::OPERATION_GET_ALL_PUBLIC_IDS_WITH_LIMITS, request);
+
+        target.clear();
+        for (int i = 0; i < response.get_all_public_ids_with_limits().ids().size(); i++)
+        {
+          target.push_back(response.get_all_public_ids_with_limits().ids(i));
+        }
+      }
     }
 
     
@@ -171,7 +417,12 @@ namespace Orthanc
     {
     }
 
+    
+    virtual void GetLastChange(std::list<ServerIndexChange>& target /*out*/) ORTHANC_OVERRIDE
+    {
+    }
 
+    
     virtual void GetLastExportedResource(std::list<ExportedResource>& target /*out*/) ORTHANC_OVERRIDE
     {
     }
@@ -353,69 +604,13 @@ namespace Orthanc
   };
 
 
-  static void CheckSuccess(PluginsErrorDictionary& errorDictionary,
-                           OrthancPluginErrorCode code)
-  {
-    if (code != OrthancPluginErrorCode_Success)
-    {
-      errorDictionary.LogError(code, true);
-      throw OrthancException(static_cast<ErrorCode>(code));
-    }
-  }
-
-
-  static void Execute(DatabasePluginMessages::Response& response,
-                      const _OrthancPluginRegisterDatabaseBackendV4& database,
-                      PluginsErrorDictionary& errorDictionary,
-                      const DatabasePluginMessages::Request& request)
-  {
-    std::string requestSerialized;
-    request.SerializeToString(&requestSerialized);
-
-    OrthancPluginMemoryBuffer64 responseSerialized;
-    CheckSuccess(errorDictionary, database.operations(
-                   &responseSerialized, database.backend,
-                   requestSerialized.empty() ? NULL : requestSerialized.c_str(),
-                   requestSerialized.size()));
-
-    bool success = response.ParseFromArray(responseSerialized.data, responseSerialized.size);
-
-    if (responseSerialized.size > 0)
-    {
-      free(responseSerialized.data);
-    }
-
-    if (!success)
-    {
-      throw OrthancException(ErrorCode_DatabasePlugin, "Cannot unserialize protobuf originating from the database plugin");
-    }
-  }
-
-  static void ExecuteDatabase(DatabasePluginMessages::DatabaseResponse& response,
-                              const _OrthancPluginRegisterDatabaseBackendV4& database,
-                              PluginsErrorDictionary& errorDictionary,
-                              DatabasePluginMessages::DatabaseOperation operation,
-                              const DatabasePluginMessages::DatabaseRequest& request)
-  {
-    DatabasePluginMessages::Request fullRequest;
-    fullRequest.set_type(DatabasePluginMessages::REQUEST_DATABASE);
-    fullRequest.mutable_database_request()->CopyFrom(request);
-    fullRequest.mutable_database_request()->set_operation(operation);
-
-    DatabasePluginMessages::Response fullResponse;
-    Execute(fullResponse, database, errorDictionary, fullRequest);
-    
-    response.CopyFrom(fullResponse.database_response());
-  }
-
-
   OrthancPluginDatabaseV4::OrthancPluginDatabaseV4(SharedLibrary& library,
                                                    PluginsErrorDictionary&  errorDictionary,
                                                    const _OrthancPluginRegisterDatabaseBackendV4& database,
                                                    const std::string& serverIdentifier) :
     library_(library),
     errorDictionary_(errorDictionary),
-    database_(database),
+    definition_(database),
     serverIdentifier_(serverIdentifier),
     open_(false),
     databaseVersion_(0),
@@ -425,9 +620,9 @@ namespace Orthanc
     CLOG(INFO, PLUGINS) << "Identifier of this Orthanc server for the global properties "
                         << "of the custom database: \"" << serverIdentifier << "\"";
 
-    if (database_.backend == NULL ||
-        database_.operations == NULL ||
-        database_.finalize == NULL)
+    if (definition_.backend == NULL ||
+        definition_.operations == NULL ||
+        definition_.finalize == NULL)
     {
       throw OrthancException(ErrorCode_NullPointer);
     }
@@ -436,7 +631,7 @@ namespace Orthanc
   
   OrthancPluginDatabaseV4::~OrthancPluginDatabaseV4()
   {
-    database_.finalize(database_.backend);
+    definition_.finalize(definition_.backend);
   }
 
   
@@ -450,13 +645,14 @@ namespace Orthanc
     {
       DatabasePluginMessages::DatabaseRequest request;
       DatabasePluginMessages::DatabaseResponse response;
-      ExecuteDatabase(response, database_, errorDictionary_, DatabasePluginMessages::OPERATION_OPEN, request);
+      ExecuteDatabase(response, *this, DatabasePluginMessages::OPERATION_OPEN, request);
     }
 
     {
       DatabasePluginMessages::DatabaseRequest request;
       DatabasePluginMessages::DatabaseResponse response;
-      ExecuteDatabase(response, database_, errorDictionary_, DatabasePluginMessages::OPERATION_GET_SYSTEM_INFORMATION, request);
+      ExecuteDatabase(response, *this, DatabasePluginMessages::OPERATION_GET_SYSTEM_INFORMATION, request);
+      databaseVersion_ = response.get_system_information().database_version();
       hasFlushToDisk_ = response.get_system_information().supports_flush_to_disk();
       hasRevisionsSupport_ = response.get_system_information().supports_revisions();
     }
@@ -475,7 +671,7 @@ namespace Orthanc
     {
       DatabasePluginMessages::DatabaseRequest request;
       DatabasePluginMessages::DatabaseResponse response;
-      ExecuteDatabase(response, database_, errorDictionary_, DatabasePluginMessages::OPERATION_CLOSE, request);
+      ExecuteDatabase(response, *this, DatabasePluginMessages::OPERATION_CLOSE, request);
     }
   }
   
@@ -504,7 +700,7 @@ namespace Orthanc
     {
       DatabasePluginMessages::DatabaseRequest request;
       DatabasePluginMessages::DatabaseResponse response;
-      ExecuteDatabase(response, database_, errorDictionary_, DatabasePluginMessages::OPERATION_FLUSH_TO_DISK, request);
+      ExecuteDatabase(response, *this, DatabasePluginMessages::OPERATION_FLUSH_TO_DISK, request);
     }
   }
   
@@ -517,15 +713,26 @@ namespace Orthanc
       throw OrthancException(ErrorCode_BadSequenceOfCalls);
     }
 
+    DatabasePluginMessages::DatabaseRequest request;
+    
     switch (type)
     {
       case TransactionType_ReadOnly:
+        request.mutable_start_transaction()->set_type(DatabasePluginMessages::TRANSACTION_READ_ONLY);
+        break;
 
       case TransactionType_ReadWrite:
+        request.mutable_start_transaction()->set_type(DatabasePluginMessages::TRANSACTION_READ_WRITE);
+        break;
 
       default:
         throw OrthancException(ErrorCode_InternalError);
     }
+    
+    DatabasePluginMessages::DatabaseResponse response;
+    ExecuteDatabase(response, *this, DatabasePluginMessages::OPERATION_START_TRANSACTION, request);
+
+    return new Transaction(*this, listener, reinterpret_cast<void*>(response.start_transaction().transaction()));
   }
 
   
@@ -552,6 +759,7 @@ namespace Orthanc
     else
     {
       // TODO
+      throw OrthancException(ErrorCode_NotImplemented);
     }
   }
 
