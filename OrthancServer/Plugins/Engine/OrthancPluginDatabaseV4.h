@@ -38,7 +38,7 @@ namespace Orthanc
 
     SharedLibrary&                          library_;
     PluginsErrorDictionary&                 errorDictionary_;
-    _OrthancPluginRegisterDatabaseBackendV4 database_;
+    _OrthancPluginRegisterDatabaseBackendV4 definition_;
     std::string                             serverIdentifier_;
     bool                                    open_;
     unsigned int                            databaseVersion_;
@@ -54,6 +54,16 @@ namespace Orthanc
                             const std::string& serverIdentifier);
 
     virtual ~OrthancPluginDatabaseV4();
+
+    const _OrthancPluginRegisterDatabaseBackendV4& GetDefinition() const
+    {
+      return definition_;
+    }
+
+    PluginsErrorDictionary& GetErrorDictionary() const
+    {
+      return errorDictionary_;
+    }
 
     virtual void Open() ORTHANC_OVERRIDE;
 
