@@ -30,6 +30,7 @@
 #include "../../../OrthancFramework/Sources/Logging.h"
 #include "../../../OrthancFramework/Sources/OrthancException.h"
 #include "../../Sources/Database/ResourcesContent.h"
+#include "../../Sources/Database/VoidDatabaseListener.h"
 #include "PluginsEnumerations.h"
 
 #include "OrthancDatabasePlugin.pb.h"  // Auto-generated file
@@ -225,21 +226,54 @@ namespace Orthanc
   public:
     Transaction(OrthancPluginDatabaseV4& database,
                 IDatabaseListener& listener,
-                void* transaction) :
+                TransactionType type) :
       database_(database),
       listener_(listener),
-      transaction_(transaction)
+      transaction_(NULL)
     {
+      DatabasePluginMessages::DatabaseRequest request;
+
+      switch (type)
+      {
+        case TransactionType_ReadOnly:
+          request.mutable_start_transaction()->set_type(DatabasePluginMessages::TRANSACTION_READ_ONLY);
+          break;
+
+        case TransactionType_ReadWrite:
+          request.mutable_start_transaction()->set_type(DatabasePluginMessages::TRANSACTION_READ_WRITE);
+          break;
+
+        default:
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+
+      DatabasePluginMessages::DatabaseResponse response;
+      ExecuteDatabase(response, database, DatabasePluginMessages::OPERATION_START_TRANSACTION, request);
+
+      transaction_ = reinterpret_cast<void*>(response.start_transaction().transaction());
+
+      if (transaction_ == NULL)
+      {
+        throw OrthancException(ErrorCode_NullPointer);
+      }
     }
 
     
     virtual ~Transaction()
     {
-      DatabasePluginMessages::DatabaseRequest request;
-      request.mutable_finalize_transaction()->set_transaction(reinterpret_cast<intptr_t>(transaction_));
+      try
+      {
+        DatabasePluginMessages::DatabaseRequest request;
+        request.mutable_finalize_transaction()->set_transaction(reinterpret_cast<intptr_t>(transaction_));
 
-      DatabasePluginMessages::DatabaseResponse response;
-      ExecuteDatabase(response, database_, DatabasePluginMessages::OPERATION_FINALIZE_TRANSACTION, request);
+        DatabasePluginMessages::DatabaseResponse response;
+        ExecuteDatabase(response, database_, DatabasePluginMessages::OPERATION_FINALIZE_TRANSACTION, request);
+      }
+      catch (OrthancException& e)
+      {
+        // Destructors must not throw exceptions
+        LOG(ERROR) << "Cannot finalize the database engine: " << e.What();
+      }
     }
     
 
@@ -1204,27 +1238,10 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_BadSequenceOfCalls);
     }
-
-    DatabasePluginMessages::DatabaseRequest request;
-    
-    switch (type)
+    else
     {
-      case TransactionType_ReadOnly:
-        request.mutable_start_transaction()->set_type(DatabasePluginMessages::TRANSACTION_READ_ONLY);
-        break;
-
-      case TransactionType_ReadWrite:
-        request.mutable_start_transaction()->set_type(DatabasePluginMessages::TRANSACTION_READ_WRITE);
-        break;
-
-      default:
-        throw OrthancException(ErrorCode_InternalError);
+      return new Transaction(*this, listener, type);
     }
-    
-    DatabasePluginMessages::DatabaseResponse response;
-    ExecuteDatabase(response, *this, DatabasePluginMessages::OPERATION_START_TRANSACTION, request);
-
-    return new Transaction(*this, listener, reinterpret_cast<void*>(response.start_transaction().transaction()));
   }
 
   
@@ -1250,8 +1267,25 @@ namespace Orthanc
     }
     else
     {
-      // TODO
-      throw OrthancException(ErrorCode_NotImplemented);
+      VoidDatabaseListener listener;
+      Transaction transaction(*this, listener, TransactionType_ReadWrite);
+
+      try
+      {
+        DatabasePluginMessages::DatabaseRequest request;
+        request.mutable_upgrade()->set_target_version(targetVersion);
+        request.mutable_upgrade()->set_storage_area(reinterpret_cast<intptr_t>(&storageArea));
+        
+        DatabasePluginMessages::DatabaseResponse response;
+
+        ExecuteDatabase(response, *this, DatabasePluginMessages::OPERATION_UPGRADE, request);
+        transaction.Commit(0);
+      }
+      catch (OrthancException& e)
+      {
+        transaction.Rollback();
+        throw;
+      }
     }
   }
 
