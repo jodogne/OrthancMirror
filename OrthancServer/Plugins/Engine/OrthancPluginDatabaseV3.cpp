@@ -800,8 +800,16 @@ namespace Orthanc
                                       std::list<std::string>* instancesId, // Can be NULL if not needed
                                       const std::vector<DatabaseConstraint>& lookup,
                                       ResourceType queryLevel,
+                                      const std::set<std::string>& withLabels,
+                                      const std::set<std::string>& withoutLabels,
                                       uint32_t limit) ORTHANC_OVERRIDE
     {
+      if (!withLabels.empty() ||
+          !withoutLabels.empty())
+      {
+        throw OrthancException(ErrorCode_InternalError);  // "HasLabelsSupport()" has returned "false"
+      }
+      
       std::vector<OrthancPluginDatabaseConstraint> constraints;
       std::vector< std::vector<const char*> > constraintsValues;
 
@@ -1026,6 +1034,27 @@ namespace Orthanc
       {
         return false;
       }
+    }
+
+
+    virtual void AddLabel(int64_t resource,
+                          const std::string& label) ORTHANC_OVERRIDE
+    {
+      throw OrthancException(ErrorCode_InternalError);  // Not supported
+    }
+
+
+    virtual void RemoveLabel(int64_t resource,
+                             const std::string& label) ORTHANC_OVERRIDE
+    {
+      throw OrthancException(ErrorCode_InternalError);  // Not supported
+    }
+
+
+    virtual void GetLabels(std::set<std::string>& target,
+                           int64_t resource) ORTHANC_OVERRIDE
+    {
+      throw OrthancException(ErrorCode_InternalError);  // Not supported
     }
   };
 

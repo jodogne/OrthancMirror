@@ -167,8 +167,9 @@ namespace
       
       std::vector<DatabaseConstraint> lookup;
       lookup.push_back(c.ConvertToDatabaseConstraint(level, DicomTagType_Identifier));
-      
-      transaction_->ApplyLookupResources(result, NULL, lookup, level, 0 /* no limit */);
+
+      std::set<std::string> noLabel;
+      transaction_->ApplyLookupResources(result, NULL, lookup, level, noLabel, noLabel, 0 /* no limit */);
     }    
 
     void DoLookupIdentifier2(std::list<std::string>& result,
@@ -188,7 +189,8 @@ namespace
       lookup.push_back(c1.ConvertToDatabaseConstraint(level, DicomTagType_Identifier));
       lookup.push_back(c2.ConvertToDatabaseConstraint(level, DicomTagType_Identifier));
       
-      transaction_->ApplyLookupResources(result, NULL, lookup, level, 0 /* no limit */);
+      std::set<std::string> noLabel;
+      transaction_->ApplyLookupResources(result, NULL, lookup, level, noLabel, noLabel, 0 /* no limit */);
     }
   };
 }
