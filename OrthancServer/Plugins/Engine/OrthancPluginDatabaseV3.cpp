@@ -1051,8 +1051,8 @@ namespace Orthanc
     }
 
 
-    virtual void GetLabels(std::set<std::string>& target,
-                           int64_t resource) ORTHANC_OVERRIDE
+    virtual void ListLabels(std::set<std::string>& target,
+                            int64_t resource) ORTHANC_OVERRIDE
     {
       throw OrthancException(ErrorCode_InternalError);  // Not supported
     }

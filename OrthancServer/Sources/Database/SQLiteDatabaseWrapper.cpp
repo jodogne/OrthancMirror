@@ -1084,21 +1084,50 @@ namespace Orthanc
     virtual void AddLabel(int64_t resource,
                           const std::string& label) ORTHANC_OVERRIDE
     {
-      throw OrthancException(ErrorCode_NotImplemented);
+      if (label.empty())
+      {
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+      else
+      {
+        SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO Labels (internalId, label) VALUES(?, ?)");
+        s.BindInt64(0, resource);
+        s.BindString(1, label);
+        s.Run();
+      }
     }
 
 
     virtual void RemoveLabel(int64_t resource,
                              const std::string& label) ORTHANC_OVERRIDE
     {
-      throw OrthancException(ErrorCode_NotImplemented);
+      if (label.empty())
+      {
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+      else
+      {
+        SQLite::Statement s(db_, SQLITE_FROM_HERE, "DELETE FROM Labels WHERE internalId=? AND label=?");
+        s.BindInt64(0, resource);
+        s.BindString(1, label);
+        s.Run();
+      }
     }
 
 
-    virtual void GetLabels(std::set<std::string>& target,
-                           int64_t resource) ORTHANC_OVERRIDE
+    virtual void ListLabels(std::set<std::string>& target,
+                            int64_t resource) ORTHANC_OVERRIDE
     {
-      throw OrthancException(ErrorCode_NotImplemented);
+      target.clear();
+
+      SQLite::Statement s(db_, SQLITE_FROM_HERE, 
+                          "SELECT label FROM Labels WHERE internalId=?");
+      s.BindInt64(0, resource);
+
+      while (s.Step())
+      {
+        target.insert(s.ColumnString(0));
+      }
     }
   };
 
@@ -1373,15 +1402,24 @@ namespace Orthanc
                                "Incompatible version of the Orthanc database: " + tmp);
       }
 
-      // New in Orthanc 1.5.1
       if (version_ == 6)
       {
+        // New in Orthanc 1.5.1
         if (!transaction->LookupGlobalProperty(tmp, GlobalProperty_GetTotalSizeIsFast, true /* unused in SQLite */) ||
             tmp != "1")
         {
           LOG(INFO) << "Installing the SQLite triggers to track the size of the attachments";
           std::string query;
           ServerResources::GetFileResource(query, ServerResources::INSTALL_TRACK_ATTACHMENTS_SIZE);
+          db_.Execute(query);
+        }
+
+        // New in Orthanc 1.12.0
+        if (!db_.DoesTableExist("Labels"))
+        {
+          LOG(INFO) << "Installing the \"Labels\" table";
+          std::string query;
+          ServerResources::GetFileResource(query, ServerResources::INSTALL_LABELS_TABLE);
           db_.Execute(query);
         }
       }

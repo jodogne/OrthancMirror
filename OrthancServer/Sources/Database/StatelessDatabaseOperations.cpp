@@ -939,6 +939,11 @@ namespace Orthanc
             }
           }
 
+          if (expandFlags & ExpandResourceDbFlags_IncludeLabels)
+          {
+            transaction.ListLabels(target.labels_, internalId);
+          }
+
           std::string tmp;
 
           if (LookupStringMetadata(tmp, target.metadata_, MetadataType_AnonymizedFrom))
@@ -3518,5 +3523,97 @@ namespace Orthanc
                           hasOldRevision, oldRevision, oldMD5);
     Apply(operations);
     return operations.GetStatus();
+  }
+
+
+  void StatelessDatabaseOperations::ListLabels(std::set<std::string>& target,
+                                               const std::string& publicId,
+                                               ResourceType level)
+  {
+    class Operations : public ReadOnlyOperationsT3<std::set<std::string>&, const std::string&, ResourceType>
+    {
+    public:
+      virtual void ApplyTuple(ReadOnlyTransaction& transaction,
+                              const Tuple& tuple) ORTHANC_OVERRIDE
+      {
+        ResourceType type;
+        int64_t id;
+        if (!transaction.LookupResource(id, type, tuple.get<1>()) ||
+            tuple.get<2>() != type)
+        {
+          throw OrthancException(ErrorCode_UnknownResource);
+        }
+        else
+        {
+          transaction.ListLabels(tuple.get<0>(), id);
+        }
+      }
+    };
+
+    Operations operations;
+    operations.Apply(*this, target, publicId, level);
+  }
+
+
+  void StatelessDatabaseOperations::ModifyLabel(const std::string& publicId,
+                                                ResourceType level,
+                                                const std::string& label,
+                                                LabelOperation operation)
+  {
+    class Operations : public IReadWriteOperations
+    {
+    private:
+      const std::string& publicId_;
+      ResourceType       level_;
+      const std::string& label_;
+      LabelOperation     operation_;
+
+    public:
+      Operations(const std::string& publicId,
+                 ResourceType level,
+                 const std::string& label,
+                 LabelOperation operation) :
+        publicId_(publicId),
+        level_(level),
+        label_(label),
+        operation_(operation)
+      {
+      }
+
+      virtual void Apply(ReadWriteTransaction& transaction) ORTHANC_OVERRIDE
+      {
+        ResourceType type;
+        int64_t id;
+        if (!transaction.LookupResource(id, type, publicId_) ||
+            level_ != type)
+        {
+          throw OrthancException(ErrorCode_UnknownResource);
+        }
+        else
+        {
+          switch (operation_)
+          {
+            case LabelOperation_Add:
+              transaction.AddLabel(id, label_);
+              break;
+
+            case LabelOperation_Remove:
+              transaction.RemoveLabel(id, label_);
+              break;
+
+            default:
+              throw OrthancException(ErrorCode_ParameterOutOfRange);
+          }
+        }
+      }
+    };
+
+    if (!Toolbox::IsAsciiString(label))
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange, "A label must only contain ASCII characters");
+    }
+    
+    Operations operations(publicId, level, label, operation);
+    Apply(operations);
   }
 }
