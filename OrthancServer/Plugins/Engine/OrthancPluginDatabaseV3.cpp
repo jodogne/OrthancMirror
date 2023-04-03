@@ -388,8 +388,8 @@ namespace Orthanc
     
     virtual void GetAllPublicIds(std::list<std::string>& target,
                                  ResourceType resourceType,
-                                 size_t since,
-                                 size_t limit) ORTHANC_OVERRIDE
+                                 int64_t since,
+                                 uint32_t limit) ORTHANC_OVERRIDE
     {
       CheckSuccess(that_.backend_.getAllPublicIdsWithLimit(
                      transaction_, Plugins::Convert(resourceType),
@@ -403,10 +403,10 @@ namespace Orthanc
     virtual void GetChanges(std::list<ServerIndexChange>& target /*out*/,
                             bool& done /*out*/,
                             int64_t since,
-                            uint32_t maxResults) ORTHANC_OVERRIDE
+                            uint32_t limit) ORTHANC_OVERRIDE
     {
       uint8_t tmpDone = true;
-      CheckSuccess(that_.backend_.getChanges(transaction_, &tmpDone, since, maxResults));
+      CheckSuccess(that_.backend_.getChanges(transaction_, &tmpDone, since, limit));
       CheckNoEvent();
 
       done = (tmpDone != 0);
@@ -454,10 +454,10 @@ namespace Orthanc
     virtual void GetExportedResources(std::list<ExportedResource>& target /*out*/,
                                       bool& done /*out*/,
                                       int64_t since,
-                                      uint32_t maxResults) ORTHANC_OVERRIDE
+                                      uint32_t limit) ORTHANC_OVERRIDE
     {
       uint8_t tmpDone = true;
-      CheckSuccess(that_.backend_.getExportedResources(transaction_, &tmpDone, since, maxResults));
+      CheckSuccess(that_.backend_.getExportedResources(transaction_, &tmpDone, since, limit));
       CheckNoEvent();
 
       done = (tmpDone != 0);
@@ -797,7 +797,7 @@ namespace Orthanc
                                       std::list<std::string>* instancesId, // Can be NULL if not needed
                                       const std::vector<DatabaseConstraint>& lookup,
                                       ResourceType queryLevel,
-                                      size_t limit) ORTHANC_OVERRIDE
+                                      uint32_t limit) ORTHANC_OVERRIDE
     {
       std::vector<OrthancPluginDatabaseConstraint> constraints;
       std::vector< std::vector<const char*> > constraintsValues;

@@ -565,7 +565,7 @@ namespace Orthanc
                                       std::list<std::string>* instancesId,
                                       const std::vector<DatabaseConstraint>& lookup,
                                       ResourceType queryLevel,
-                                      size_t limit) ORTHANC_OVERRIDE
+                                      uint32_t limit) ORTHANC_OVERRIDE
     {
       if (that_.extensions_.lookupResources == NULL)
       {
@@ -800,8 +800,8 @@ namespace Orthanc
 
     virtual void GetAllPublicIds(std::list<std::string>& target,
                                  ResourceType resourceType,
-                                 size_t since,
-                                 size_t limit) ORTHANC_OVERRIDE
+                                 int64_t since,
+                                 uint32_t limit) ORTHANC_OVERRIDE
     {
       if (that_.extensions_.getAllPublicIdsWithLimit != NULL)
       {
@@ -847,14 +847,14 @@ namespace Orthanc
     virtual void GetChanges(std::list<ServerIndexChange>& target /*out*/,
                             bool& done /*out*/,
                             int64_t since,
-                            uint32_t maxResults) ORTHANC_OVERRIDE
+                            uint32_t limit) ORTHANC_OVERRIDE
     {
       ResetAnswers();
       answerChanges_ = &target;
       answerDone_ = &done;
       done = false;
 
-      CheckSuccess(that_.backend_.getChanges(that_.GetContext(), that_.payload_, since, maxResults));
+      CheckSuccess(that_.backend_.getChanges(that_.GetContext(), that_.payload_, since, limit));
     }
 
 
@@ -897,14 +897,14 @@ namespace Orthanc
     virtual void GetExportedResources(std::list<ExportedResource>& target /*out*/,
                                       bool& done /*out*/,
                                       int64_t since,
-                                      uint32_t maxResults) ORTHANC_OVERRIDE
+                                      uint32_t limit) ORTHANC_OVERRIDE
     {
       ResetAnswers();
       answerExportedResources_ = &target;
       answerDone_ = &done;
       done = false;
 
-      CheckSuccess(that_.backend_.getExportedResources(that_.GetContext(), that_.payload_, since, maxResults));
+      CheckSuccess(that_.backend_.getExportedResources(that_.GetContext(), that_.payload_, since, limit));
     }
 
 
