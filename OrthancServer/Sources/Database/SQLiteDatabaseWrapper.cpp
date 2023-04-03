@@ -756,14 +756,17 @@ namespace Orthanc
     }
 
 
-    virtual void LogChange(int64_t internalId,
-                           const ServerIndexChange& change) ORTHANC_OVERRIDE
+    virtual void LogChange(ChangeType changeType,
+                           ResourceType resourceType,
+                           int64_t internalId,
+                           const std::string& /* publicId - unused */,
+                           const std::string& date) ORTHANC_OVERRIDE
     {
       SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO Changes (seq, changeType, internalId, resourceType, date) VALUES(NULL, ?, ?, ?, ?)");
-      s.BindInt(0, change.GetChangeType());
+      s.BindInt(0, changeType);
       s.BindInt64(1, internalId);
-      s.BindInt(2, change.GetResourceType());
-      s.BindString(3, change.GetDate());
+      s.BindInt(2, resourceType);
+      s.BindString(3, date);
       s.Run();
     }
 

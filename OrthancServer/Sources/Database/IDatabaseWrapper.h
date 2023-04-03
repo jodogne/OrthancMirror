@@ -135,8 +135,11 @@ namespace Orthanc
       virtual void ListAvailableAttachments(std::set<FileContentType>& target,
                                             int64_t id) = 0;
 
-      virtual void LogChange(int64_t internalId,
-                             const ServerIndexChange& change) = 0;
+      virtual void LogChange(ChangeType changeType,
+                             ResourceType resourceType,
+                             int64_t internalId,
+                             const std::string& publicId,  /* only for compatibility with V1 and V2 plugins */
+                             const std::string& date) = 0;
 
       virtual void LogExportedResource(const ExportedResource& resource) = 0;
     
