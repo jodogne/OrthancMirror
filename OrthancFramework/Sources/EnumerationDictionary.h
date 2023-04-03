@@ -105,5 +105,10 @@ namespace Orthanc
         return found->second;
       }
     }
+
+    const std::map<std::string, Enumeration>& GetAllEntries() const
+    {
+      return stringToEnumeration_;
+    }
   };
 }
