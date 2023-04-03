@@ -488,36 +488,51 @@ static bool ProcessChanges(bool needsReconstruct, bool needsReingest, const DbCo
     OrthancPlugins::RestApiGet(changes, "/changes?since=" + boost::lexical_cast<std::string>(pluginStatus_.lastProcessedChange) + "&limit=100", false);
   }
 
-  for (Json::ArrayIndex i = 0; i < changes["Changes"].size(); i++)
+  if (changes["Changes"].size() > 0)
   {
-    const Json::Value& change = changes["Changes"][i];
-    int64_t seq = change["Seq"].asInt64();
-
-    if (change["ChangeType"] == "NewStudy") // some StableStudy might be missing if orthanc was shutdown during a StableAge -> consider only the NewStudy events that can not be missed
+    for (Json::ArrayIndex i = 0; i < changes["Changes"].size(); i++)
     {
-      Json::Value result;
-      Json::Value request;
-      if (needsReingest)
-      {
-        request["ReconstructFiles"] = true;
-      }
-      OrthancPlugins::RestApiPost(result, "/studies/" + change["ID"].asString() + "/reconstruct", request, false);
-    }
+      const Json::Value& change = changes["Changes"][i];
+      int64_t seq = change["Seq"].asInt64();
 
+      if (change["ChangeType"] == "NewStudy") // some StableStudy might be missing if orthanc was shutdown during a StableAge -> consider only the NewStudy events that can not be missed
+      {
+        Json::Value result;
+        Json::Value request;
+        if (needsReingest)
+        {
+          request["ReconstructFiles"] = true;
+        }
+        OrthancPlugins::RestApiPost(result, "/studies/" + change["ID"].asString() + "/reconstruct", request, false);
+      }
+
+      {
+        boost::recursive_mutex::scoped_lock lock(pluginStatusMutex_);
+
+        pluginStatus_.lastProcessedChange = seq;
+
+        if (seq >= pluginStatus_.lastChangeToProcess)  // we are done !
+        {
+          return true;
+        }
+      }
+
+      if (change["ChangeType"] == "NewStudy")
+      {
+        boost::this_thread::sleep(boost::posix_time::milliseconds(throttleDelay_ * 1000));
+      }
+    }
+  }
+  else
+  {
+    // if the change list is empty and Done is true, it means that there is nothing to process anymore
+    if (changes["Done"].asBool())
     {
       boost::recursive_mutex::scoped_lock lock(pluginStatusMutex_);
 
-      pluginStatus_.lastProcessedChange = seq;
+      pluginStatus_.lastProcessedChange = changes["Last"].asInt64();
 
-      if (seq >= pluginStatus_.lastChangeToProcess)  // we are done !
-      {
-        return true;
-      }
-    }
-
-    if (change["ChangeType"] == "NewStudy")
-    {
-      boost::this_thread::sleep(boost::posix_time::milliseconds(throttleDelay_ * 1000));
+      return true;
     }
   }
 
