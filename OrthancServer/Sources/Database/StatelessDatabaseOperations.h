@@ -37,15 +37,18 @@ namespace Orthanc
   class ParsedDicomFile;
   struct ServerIndexChange;
 
-  struct ExpandedResource : public boost::noncopyable
+  class ExpandedResource : public boost::noncopyable
   {
+  private:
     std::string                         id_;
-    DicomMap                            tags_;          // all main tags and main sequences from DB
+    ResourceType                        level_;
+    DicomMap                            tags_;  // all main tags and main sequences from DB
+
+  public:
     std::string                         mainDicomTagsSignature_;
     std::string                         parentId_;
     std::list<std::string>              childrenIds_;
     std::map<MetadataType, std::string> metadata_;
-    ResourceType                        type_;
     std::string                         anonymizedFrom_;
     std::string                         modifiedFrom_;
     std::string                         lastUpdate_;
@@ -65,20 +68,48 @@ namespace Orthanc
 
     // New in Orthanc 1.12.0
     std::set<std::string>               labels_;
+
+  public:
+    void SetResource(ResourceType level,
+                     const std::string& id)
+    {
+      level_ = level;
+      id_ = id;
+    }
+
+    const std::string& GetPublicId() const
+    {
+      return id_;
+    }
+
+    ResourceType GetLevel() const
+    {
+      return level_;
+    }
+
+    DicomMap& GetMainDicomTags()
+    {
+      return tags_;
+    }
+
+    const DicomMap& GetMainDicomTags() const
+    {
+      return tags_;
+    }
   };
 
-  enum ExpandResourceDbFlags
+  enum ExpandResourceFlags
   {
-    ExpandResourceDbFlags_None                    = 0,
-    ExpandResourceDbFlags_IncludeMetadata         = (1 << 0),
-    ExpandResourceDbFlags_IncludeChildren         = (1 << 1),
-    ExpandResourceDbFlags_IncludeMainDicomTags    = (1 << 2),
-    ExpandResourceDbFlags_IncludeLabels           = (1 << 3),
+    ExpandResourceFlags_None                    = 0,
+    ExpandResourceFlags_IncludeMetadata         = (1 << 0),
+    ExpandResourceFlags_IncludeChildren         = (1 << 1),
+    ExpandResourceFlags_IncludeMainDicomTags    = (1 << 2),
+    ExpandResourceFlags_IncludeLabels           = (1 << 3),
 
-    ExpandResourceDbFlags_Default = (ExpandResourceDbFlags_IncludeMetadata |
-                                     ExpandResourceDbFlags_IncludeChildren |
-                                     ExpandResourceDbFlags_IncludeMainDicomTags |
-                                     ExpandResourceDbFlags_IncludeLabels)
+    ExpandResourceFlags_Default = (ExpandResourceFlags_IncludeMetadata |
+                                     ExpandResourceFlags_IncludeChildren |
+                                     ExpandResourceFlags_IncludeMainDicomTags |
+                                     ExpandResourceFlags_IncludeLabels)
   };
 
   class StatelessDatabaseOperations : public boost::noncopyable
@@ -534,7 +565,7 @@ namespace Orthanc
                         const std::string& publicId,
                         ResourceType level,
                         const std::set<DicomTag>& requestedTags,
-                        ExpandResourceDbFlags expandFlags);
+                        ExpandResourceFlags expandFlags);
 
     void GetAllMetadata(std::map<MetadataType, std::string>& target,
                         const std::string& publicId,

@@ -715,10 +715,10 @@ namespace Orthanc
                                                    const std::string& publicId,
                                                    ResourceType level,
                                                    const std::set<DicomTag>& requestedTags,
-                                                   ExpandResourceDbFlags expandFlags)
+                                                   ExpandResourceFlags expandFlags)
   {    
     class Operations : public ReadOnlyOperationsT6<
-      bool&, ExpandedResource&, const std::string&, ResourceType, const std::set<DicomTag>&, ExpandResourceDbFlags>
+      bool&, ExpandedResource&, const std::string&, ResourceType, const std::set<DicomTag>&, ExpandResourceFlags>
     {
     private:
   
@@ -778,7 +778,7 @@ namespace Orthanc
         else
         {
           ExpandedResource& target = tuple.get<1>();
-          ExpandResourceDbFlags expandFlags = tuple.get<5>();
+          ExpandResourceFlags expandFlags = tuple.get<5>();
 
           // Set information about the parent resource (if it exists)
           if (type == ResourceType_Patient)
@@ -798,16 +798,15 @@ namespace Orthanc
             target.parentId_ = parent;
           }
 
-          target.type_ = type;
-          target.id_ = tuple.get<2>();
+          target.SetResource(type, tuple.get<2>());
 
-          if (expandFlags & ExpandResourceDbFlags_IncludeChildren)
+          if (expandFlags & ExpandResourceFlags_IncludeChildren)
           {
             // List the children resources
             transaction.GetChildrenPublicId(target.childrenIds_, internalId);
           }
 
-          if (expandFlags & ExpandResourceDbFlags_IncludeMetadata)
+          if (expandFlags & ExpandResourceFlags_IncludeMetadata)
           {
             // Extract the metadata
             transaction.GetAllMetadata(target.metadata_, internalId);
@@ -869,10 +868,10 @@ namespace Orthanc
             LookupStringMetadata(target.mainDicomTagsSignature_, target.metadata_, MetadataType_MainDicomTagsSignature);
           }
 
-          if (expandFlags & ExpandResourceDbFlags_IncludeMainDicomTags)
+          if (expandFlags & ExpandResourceFlags_IncludeMainDicomTags)
           {
             // read all tags from DB
-            transaction.GetMainDicomTags(target.tags_, internalId);
+            transaction.GetMainDicomTags(target.GetMainDicomTags(), internalId);
 
             // read all main sequences from DB
             std::string serializedSequences;
@@ -882,7 +881,7 @@ namespace Orthanc
               Toolbox::ReadJson(jsonMetadata, serializedSequences);
 
               assert(jsonMetadata["Version"].asInt() == 1);
-              target.tags_.FromDicomAsJson(jsonMetadata["Sequences"], true /* append */, true /* parseSequences */);
+              target.GetMainDicomTags().FromDicomAsJson(jsonMetadata["Sequences"], true /* append */, true /* parseSequences */);
             }
 
             // check if we have access to all requestedTags or if we must get tags from parents
@@ -895,7 +894,7 @@ namespace Orthanc
               FromDcmtkBridge::ParseListOfTags(savedMainDicomTags, target.mainDicomTagsSignature_);
 
               // read parent main dicom tags as long as we have not gathered all requested tags
-              ResourceType currentLevel = target.type_;
+              ResourceType currentLevel = target.GetLevel();
               int64_t currentInternalId = internalId;
               Toolbox::GetMissingsFromSet(target.missingRequestedTags_, requestedTags, savedMainDicomTags);
 
@@ -931,7 +930,7 @@ namespace Orthanc
                   DicomMap parentTags;
                   transaction.GetMainDicomTags(parentTags, currentParentId);
 
-                  target.tags_.Merge(parentTags);
+                  target.GetMainDicomTags().Merge(parentTags);
                 }
 
                 currentInternalId = currentParentId;
@@ -939,7 +938,7 @@ namespace Orthanc
             }
           }
 
-          if (expandFlags & ExpandResourceDbFlags_IncludeLabels)
+          if (expandFlags & ExpandResourceFlags_IncludeLabels)
           {
             transaction.ListLabels(target.labels_, internalId);
           }
