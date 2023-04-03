@@ -17,7 +17,7 @@
  *    - Possibly register its callback for received DICOM instances using ::OrthancPluginRegisterOnStoredInstanceCallback().
  *    - Possibly register its callback for changes to the DICOM store using ::OrthancPluginRegisterOnChangeCallback().
  *    - Possibly register a custom storage area using ::OrthancPluginRegisterStorageArea2().
- *    - Possibly register a custom database back-end area using OrthancPluginRegisterDatabaseBackendV3().
+ *    - Possibly register a custom database back-end area using OrthancPluginRegisterDatabaseBackendV4().
  *    - Possibly register a handler for C-Find SCP using OrthancPluginRegisterFindCallback().
  *    - Possibly register a handler for C-Find SCP against DICOM worklists using OrthancPluginRegisterWorklistCallback().
  *    - Possibly register a handler for C-Move SCP using OrthancPluginRegisterMoveCallback().
@@ -119,8 +119,8 @@
 #endif
 
 #define ORTHANC_PLUGINS_MINIMAL_MAJOR_NUMBER     1
-#define ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER     11
-#define ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER  3
+#define ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER     12
+#define ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER  0
 
 
 #if !defined(ORTHANC_PLUGINS_VERSION_IS_ABOVE)
@@ -535,7 +535,8 @@ extern "C"
     _OrthancPluginService_StorageAreaRead = 5004,
     _OrthancPluginService_StorageAreaRemove = 5005,
     _OrthancPluginService_RegisterDatabaseBackendV3 = 5006,  /* New in Orthanc 1.9.2 */
-
+    _OrthancPluginService_RegisterDatabaseBackendV4 = 5007,  /* New in Orthanc 1.12.0 */
+    
     /* Primitives for handling images */
     _OrthancPluginService_GetImagePixelFormat = 6000,
     _OrthancPluginService_GetImageWidth = 6001,
@@ -9163,6 +9164,66 @@ extern "C"
     }
   }
 
+
+  /**
+   * @brief Signature of a callback function that is triggered when
+   * the Orthanc core requests an operation from the database plugin.
+   * Both request and response are encoded as protobuf buffers.
+   * @ingroup Callbacks
+   **/
+  typedef OrthancPluginErrorCode (*OrthancPluginCallDatabaseBackendV4) (
+    OrthancPluginMemoryBuffer64* response,
+    void* backend,
+    const void* request,
+    uint64_t requestSize);
+
+  /**
+   * @brief Signature of a callback function that is triggered when
+   * the database plugin must be finalized.
+   * @ingroup Callbacks
+   **/
+  typedef void (*OrthancPluginFinalizeDatabaseBackendV4) (void* backend);
+
+  typedef struct
+  {
+    void*                                   backend;
+    uint32_t                                maxDatabaseRetries;
+    OrthancPluginCallDatabaseBackendV4      operations;
+    OrthancPluginFinalizeDatabaseBackendV4  finalize;
+  } _OrthancPluginRegisterDatabaseBackendV4;
+
+  /**
+   * Register a custom database back-end.
+   *
+   * This function was added in Orthanc SDK 1.12.0. It uses Google
+   * Protocol Buffers for the communications between the Orthanc core
+   * and database plugins. Check out "OrthancDatabasePlugin.proto" for
+   * the definition of the protobuf messages.
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param backend Pointer to the custom database backend.
+   * @param maxDatabaseRetries Maximum number of retries if transaction doesn't succeed.
+   * If no retry is successful, OrthancPluginErrorCode_DatabaseCannotSerialize is generated.
+   * @param operations Access to the operations of the custom database backend.
+   * @param finalize Callback to deallocate the custom database backend.
+   * @return 0 if success, other value if error.
+   * @ingroup Callbacks
+   **/
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginRegisterDatabaseBackendV4(
+    OrthancPluginContext*                   context,
+    void*                                   backend,
+    uint32_t                                maxDatabaseRetries,
+    OrthancPluginCallDatabaseBackendV4      operations,
+    OrthancPluginFinalizeDatabaseBackendV4  finalize)
+  {
+    _OrthancPluginRegisterDatabaseBackendV4 params;
+    params.backend = backend;
+    params.maxDatabaseRetries = maxDatabaseRetries;
+    params.operations = operations;
+    params.finalize = finalize;
+
+    return context->InvokeService(context, _OrthancPluginService_RegisterDatabaseBackendV4, &params);
+  }
 
 #ifdef  __cplusplus
 }

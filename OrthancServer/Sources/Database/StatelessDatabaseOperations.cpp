@@ -415,7 +415,7 @@ namespace Orthanc
 
     if (changeType <= ChangeType_INTERNAL_LastLogged)
     {
-      transaction_.LogChange(internalId, change);
+      transaction_.LogChange(changeType, resourceType, internalId, publicId, change.GetDate());
     }
 
     GetTransactionContext().SignalChange(change);

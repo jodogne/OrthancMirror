@@ -1,0 +1,17 @@
+diff -urEb protobuf-3.5.1.orig/src/google/protobuf/stubs/io_win32.cc protobuf-3.5.1/src/google/protobuf/stubs/io_win32.cc
+--- protobuf-3.5.1.orig/src/google/protobuf/stubs/io_win32.cc	2023-03-26 20:13:45.095021011 +0200
++++ protobuf-3.5.1/src/google/protobuf/stubs/io_win32.cc	2023-03-26 20:19:19.932920102 +0200
+@@ -91,7 +91,12 @@
+ 
+ template <typename char_type>
+ bool null_or_empty(const char_type* s) {
+-  return s == nullptr || *s == 0;
++  /**
++   * "nullptr" is not known to Visual Studio 2008, because this is a
++   * C++11 construction, which shouldn't be present in protobuf 3.5.1
++   * that is supposed to comply with C++98.
++   **/
++  return s == NULL || *s == 0;
+ }
+ 
+ // Returns true if the path starts with a drive letter, e.g. "c:".

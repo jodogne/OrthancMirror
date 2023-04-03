@@ -141,6 +141,11 @@ if (NOT ENABLE_DCMTK)
   unset(ENABLE_DCMTK_LOG CACHE)
 endif()
 
+if (NOT ENABLE_PROTOBUF)
+  unset(USE_SYSTEM_PROTOBUF CACHE)
+  add_definitions(-DORTHANC_ENABLE_PROTOBUF=0)
+endif()
+
 
 #####################################################################
 ## List of source files
@@ -476,6 +481,16 @@ if (ENABLE_GOOGLE_TEST)
 endif()
 
 
+##
+## Google Protocol Buffers
+##
+
+if (ENABLE_PROTOBUF)
+  include(${CMAKE_CURRENT_LIST_DIR}/ProtobufConfiguration.cmake)
+  add_definitions(-DORTHANC_ENABLE_PROTOBUF=1)
+endif()
+
+
 
 #####################################################################
 ## Inclusion of mandatory third-party dependencies
@@ -712,6 +727,7 @@ set(ORTHANC_CORE_SOURCES_DEPENDENCIES
   ${LUA_SOURCES}
   ${MONGOOSE_SOURCES}
   ${OPENSSL_SOURCES}
+  ${PROTOBUF_LIBRARY_SOURCES}
   ${PUGIXML_SOURCES}
   ${SQLITE_SOURCES}
   ${UUID_SOURCES}
