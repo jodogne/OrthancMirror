@@ -1,0 +1,851 @@
+/**
+ * Orthanc - A Lightweight, RESTful DICOM Store
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
+ * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2021-2023 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ *
+ * This program is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ **/
+
+
+/**
+ * This Protocol Buffers prototype describes the exchanges between the
+ * Orthanc core and its database plugins. The various calls correspond
+ * to the "IDatabaseWrapper" interface in the source code of Orthanc.
+ *
+ * WARNING: *NEVER* modify or remove existing entries. It is only
+ * allowed to *add* new stuff.
+ **/
+
+syntax = "proto3";
+
+/**
+ * Turn off protobuf reflection to avoid clashes between the Orthanc
+ * core and the database plugin, otherwise both will try to register
+ * the same messages in the process-wide descriptor pool, which would
+ * result in protobuf error "File already exists in database".
+ **/
+option optimize_for = LITE_RUNTIME;
+
+package Orthanc.DatabasePluginMessages;
+
+
+/**
+ * Data structures that are common with the Orthanc core.
+ **/
+
+message FileInfo {
+  string  uuid = 1;
+  int32   content_type = 2;      // opaque "FileContentType" in Orthanc
+  uint64  uncompressed_size = 3;
+  string  uncompressed_hash = 4;
+  int32   compression_type = 5;  // opaque "CompressionType" in Orthanc
+  uint64  compressed_size = 6;
+  string  compressed_hash = 7;
+}
+
+enum ResourceType {
+  RESOURCE_PATIENT = 0;
+  RESOURCE_STUDY = 1;
+  RESOURCE_SERIES = 2;
+  RESOURCE_INSTANCE = 3;
+}
+
+enum ConstraintType {
+  CONSTRAINT_EQUAL = 0;
+  CONSTRAINT_SMALLER_OR_EQUAL = 1;
+  CONSTRAINT_GREATER_OR_EQUAL = 2;
+  CONSTRAINT_WILDCARD = 3;
+  CONSTRAINT_LIST = 4;
+}
+
+message ServerIndexChange {
+  int64         seq = 1;
+  int32         change_type = 2;   // opaque "ChangeType" in Orthanc
+  ResourceType  resource_type = 3;
+  string        public_id = 4;
+  string        date = 5;
+}
+
+message ExportedResource {
+  int64         seq = 1;
+  ResourceType  resource_type = 2;
+  string        public_id = 3;
+  string        modality = 4;
+  string        date = 5;
+  string        patient_id = 6;
+  string        study_instance_uid = 7;
+  string        series_instance_uid = 8;
+  string        sop_instance_uid = 9;
+}
+
+message DatabaseConstraint {
+  ResourceType     level = 1;
+  uint32           tag_group = 2;
+  uint32           tag_element = 3;
+  bool             is_identifier_tag = 4;
+  bool             is_case_sensitive = 5;
+  bool             is_mandatory = 6;
+  ConstraintType   type = 7;
+  repeated string  values = 8;
+}
+
+
+/**
+ * Database-level operations.
+ **/
+
+enum DatabaseOperation {
+  OPERATION_GET_SYSTEM_INFORMATION = 0;
+  OPERATION_OPEN = 1;
+  OPERATION_CLOSE = 2;
+  OPERATION_FLUSH_TO_DISK = 3;
+  OPERATION_START_TRANSACTION = 4;
+  OPERATION_UPGRADE = 5;
+  OPERATION_FINALIZE_TRANSACTION = 6;
+}
+
+enum TransactionType {
+  TRANSACTION_READ_ONLY = 0;
+  TRANSACTION_READ_WRITE = 1;
+}
+
+message GetSystemInformation {
+  message Request {
+  }
+  message Response {
+    uint32 database_version = 1;
+    bool supports_flush_to_disk = 2;
+    bool supports_revisions = 3;
+  }
+}
+
+message Open {
+  message Request {
+  }
+  message Response {
+  }
+}
+
+message Close {
+  message Request {
+  }
+  message Response {
+  }
+}
+
+message FlushToDisk {
+  message Request {
+  }
+  message Response {
+  }
+}
+
+message StartTransaction {
+  message Request {
+    TransactionType type = 1;
+  }
+  message Response {
+    sfixed64 transaction = 1;
+  }
+}
+
+message Upgrade {
+  /**
+   * It is guaranteed that a read-write transaction is created by the
+   * Orthanc core before executing this operation.
+   **/
+  message Request {
+    uint32 target_version = 1;
+    sfixed64 storage_area = 2;
+    sfixed64 transaction = 3;
+  }
+  message Response {
+  }
+}
+
+message FinalizeTransaction {
+  message Request {
+    sfixed64 transaction = 1;
+  }
+  message Response {
+  }
+}
+
+message DatabaseRequest {
+  sfixed64           database = 1;
+  DatabaseOperation  operation = 2;
+
+  GetSystemInformation.Request  get_system_information = 100;
+  Open.Request                  open = 101;
+  Close.Request                 close = 102;
+  FlushToDisk.Request           flush_to_disk = 103;
+  StartTransaction.Request      start_transaction = 104;
+  Upgrade.Request               upgrade = 105;
+  FinalizeTransaction.Request   finalize_transaction = 106;
+}
+
+message DatabaseResponse {
+  GetSystemInformation.Response  get_system_information = 100;
+  Open.Response                  open = 101;
+  Close.Response                 close = 102;
+  FlushToDisk.Response           flush_to_disk = 103;
+  StartTransaction.Response      start_transaction = 104;
+  Upgrade.Response               upgrade = 105;
+  FinalizeTransaction.Response   finalize_transaction = 106;
+}
+
+
+/**
+ * Transaction-level operations.
+ **/
+
+enum TransactionOperation {
+  OPERATION_ROLLBACK = 0;
+  OPERATION_COMMIT = 1;
+  OPERATION_ADD_ATTACHMENT = 2;
+  OPERATION_CLEAR_CHANGES = 3;
+  OPERATION_CLEAR_EXPORTED_RESOURCES = 4;
+  OPERATION_DELETE_ATTACHMENT = 5;
+  OPERATION_DELETE_METADATA = 6;
+  OPERATION_DELETE_RESOURCE = 7;
+  OPERATION_GET_ALL_METADATA = 8;
+  OPERATION_GET_ALL_PUBLIC_IDS = 9;
+  OPERATION_GET_ALL_PUBLIC_IDS_WITH_LIMITS = 10;
+  OPERATION_GET_CHANGES = 11;
+  OPERATION_GET_CHILDREN_INTERNAL_ID = 12;
+  OPERATION_GET_CHILDREN_PUBLIC_ID = 13;
+  OPERATION_GET_EXPORTED_RESOURCES = 14;
+  OPERATION_GET_LAST_CHANGE = 15;
+  OPERATION_GET_LAST_EXPORTED_RESOURCE = 16;
+  OPERATION_GET_MAIN_DICOM_TAGS = 17;
+  OPERATION_GET_PUBLIC_ID = 18;
+  OPERATION_GET_RESOURCES_COUNT = 19;
+  OPERATION_GET_RESOURCE_TYPE = 20;
+  OPERATION_GET_TOTAL_COMPRESSED_SIZE = 21;
+  OPERATION_GET_TOTAL_UNCOMPRESSED_SIZE = 22;
+  OPERATION_IS_PROTECTED_PATIENT = 23;
+  OPERATION_LIST_AVAILABLE_ATTACHMENTS = 24;
+  OPERATION_LOG_CHANGE = 25;
+  OPERATION_LOG_EXPORTED_RESOURCE = 26;
+  OPERATION_LOOKUP_ATTACHMENT = 27;
+  OPERATION_LOOKUP_GLOBAL_PROPERTY = 28;
+  OPERATION_LOOKUP_METADATA = 29;
+  OPERATION_LOOKUP_PARENT = 30;
+  OPERATION_LOOKUP_RESOURCE = 31;
+  OPERATION_SELECT_PATIENT_TO_RECYCLE = 32;
+  OPERATION_SELECT_PATIENT_TO_RECYCLE_WITH_AVOID = 33;
+  OPERATION_SET_GLOBAL_PROPERTY = 34;
+  OPERATION_CLEAR_MAIN_DICOM_TAGS = 35;
+  OPERATION_SET_METADATA = 36;
+  OPERATION_SET_PROTECTED_PATIENT = 37;
+  OPERATION_IS_DISK_SIZE_ABOVE = 38;
+  OPERATION_LOOKUP_RESOURCES = 39;
+  OPERATION_CREATE_INSTANCE = 40;
+  OPERATION_SET_RESOURCES_CONTENT = 41;
+  OPERATION_GET_CHILDREN_METADATA = 42;
+  OPERATION_GET_LAST_CHANGE_INDEX = 43;
+  OPERATION_LOOKUP_RESOURCE_AND_PARENT = 44;
+}
+
+message Rollback {
+  message Request {
+  }
+  message Response {
+  }
+}
+
+message Commit {
+  message Request {
+    int64 file_size_delta = 1;
+  }
+  message Response {
+  }
+}
+
+message AddAttachment {
+  message Request {
+    int64 id = 1;
+    FileInfo attachment = 2;
+    int64 revision = 3;
+  }
+  message Response {
+  }
+}
+
+message ClearChanges {
+  message Request {
+  }
+  message Response {
+  }
+}
+
+message ClearExportedResources {
+  message Request {
+  }
+  message Response {
+  }
+}
+
+message DeleteAttachment {
+  message Request {
+    int64 id = 1;
+    int32 type = 2;
+  }
+  message Response {
+    FileInfo deleted_attachment = 1;
+  }
+}
+
+message DeleteMetadata {
+  message Request {
+    int64 id = 1;
+    int32 type = 2;
+  }
+  message Response {
+  }
+}
+
+message DeleteResource {
+  message Request {
+    int64 id = 1;
+  }
+  message Response {
+    message Resource {
+      ResourceType level = 1;
+      string public_id = 2;
+    }
+    repeated FileInfo deleted_attachments = 1;
+    repeated Resource deleted_resources = 2;
+    bool is_remaining_ancestor = 3;
+    Resource remaining_ancestor = 4;
+  }
+}
+
+message GetAllMetadata {
+  message Request {
+    int64 id = 1;
+  }
+  message Response {
+    message Metadata {
+      int32 type = 1;
+      string value = 2;
+    }
+    repeated Metadata metadata = 1;
+  }
+}
+
+message GetAllPublicIds {
+  message Request {
+    ResourceType resource_type = 1;
+  }
+  message Response {
+    repeated string ids = 1;
+  }
+}
+
+message GetAllPublicIdsWithLimits {
+  message Request {
+    ResourceType resource_type = 1;
+    int64 since = 2;
+    uint32 limit = 3;
+  }
+  message Response {
+    repeated string ids = 1;
+  }
+}
+
+message GetChanges {
+  message Request {
+    int64 since = 1;
+    uint32 limit = 2;
+  }
+  message Response {
+    repeated ServerIndexChange changes = 1;
+    bool done = 2;
+  }
+}
+
+message GetChildrenInternalId {
+  message Request {
+    int64 id = 1;
+  }
+  message Response {
+    repeated int64 ids = 1;
+  }
+}
+
+message GetChildrenPublicId {
+  message Request {
+    int64 id = 1;
+  }
+  message Response {
+    repeated string ids = 1;
+  }
+}
+
+message GetExportedResources {
+  message Request {
+    int64 since = 1;
+    uint32 limit = 2;
+  }
+  message Response {
+    repeated ExportedResource resources = 1;
+    bool done = 2;
+  }
+}
+
+message GetLastChange {
+  message Request {
+  }
+  message Response {
+    bool found = 1;
+    ServerIndexChange change = 2;
+  }
+}
+
+message GetLastExportedResource {
+  message Request {
+  }
+  message Response {
+    bool found = 1;
+    ExportedResource resource = 2;
+  }
+}
+
+message GetMainDicomTags {
+  message Request {
+    int64 id = 1;
+  }
+  message Response {
+    message Tag {
+      uint32 group = 1;
+      uint32 element = 2;
+      string value = 3;
+    }
+    repeated Tag tags = 1;
+  }
+}
+
+message GetPublicId {
+  message Request {
+    int64 id = 1;
+  }
+  message Response {
+    string id = 1;
+  }
+}
+
+message GetResourcesCount {
+  message Request {
+    ResourceType type = 1;
+  }
+  message Response {
+    uint64 count = 1;
+  }
+}
+
+message GetResourceType {
+  message Request {
+    int64 id = 1;
+  }
+  message Response {
+    ResourceType type = 1;
+  }
+}
+
+message GetTotalCompressedSize {
+  message Request {
+  }
+  message Response {
+    uint64 size = 1;
+  }
+}
+
+message GetTotalUncompressedSize {
+  message Request {
+  }
+  message Response {
+    uint64 size = 1;
+  }
+}
+
+message IsProtectedPatient {
+  message Request {
+    int64 patient_id = 1;
+  }
+  message Response {
+    bool protected_patient = 1;
+  }
+}
+
+message ListAvailableAttachments {
+  message Request {
+    int64 id = 1;
+  }
+  message Response {
+    repeated int32 attachments = 1;
+  }
+}
+
+message LogChange {
+  message Request {
+    int32         change_type = 1;
+    ResourceType  resource_type = 2;
+    int64         resource_id = 3;
+    string        date = 4;
+  }
+  message Response {
+  }
+}
+
+message LogExportedResource {
+  message Request {
+    ResourceType  resource_type = 1;
+    string        public_id = 2;
+    string        modality = 3;
+    string        date = 4;
+    string        patient_id = 5;
+    string        study_instance_uid = 6;
+    string        series_instance_uid = 7;
+    string        sop_instance_uid = 8;
+  }
+  message Response {
+  }
+}
+
+message LookupAttachment {
+  message Request {
+    int64 id = 1;
+    int32 content_type = 2;
+  }
+  message Response {
+    bool found = 1;
+    FileInfo attachment = 2;
+    int64 revision = 3;
+  }
+}
+
+message LookupGlobalProperty {
+  message Request {
+    string server_id = 1;
+    int32 property = 2;
+  }
+  message Response {
+    bool found = 1;
+    string value = 2;
+  }
+}
+
+message LookupMetadata {
+  message Request {
+    int64 id = 1;
+    int32 metadata_type = 2;
+  }
+  message Response {
+    bool found = 1;
+    string value = 2;
+    int64 revision = 3;
+  }
+}
+
+message LookupParent {
+  message Request {
+    int64 id = 1;
+  }
+  message Response {
+    bool found = 1;
+    int64 parent = 2;
+  }
+}
+
+message LookupResource {
+  message Request {
+    string public_id = 1;
+  }
+  message Response {
+    bool found = 1;
+    int64 internal_id = 2;
+    ResourceType type = 3;
+  }
+}
+
+message SelectPatientToRecycle {
+  message Request {
+  }
+  message Response {
+    bool found = 1;
+    int64 patient_id = 2;
+  }
+}
+
+message SelectPatientToRecycleWithAvoid {
+  message Request {
+    int64 patient_id_to_avoid = 1;
+  }
+  message Response {
+    bool found = 1;
+    int64 patient_id = 2;
+  }
+}
+
+message SetGlobalProperty {
+  message Request {
+    string server_id = 1;
+    int32 property = 2;
+    string value = 3;
+  }
+  message Response {
+  }
+}
+
+message ClearMainDicomTags {
+  message Request {
+    int64 id = 1;
+  }
+  message Response {
+  }
+}
+
+message SetMetadata {
+  message Request {
+    int64 id = 1;
+    int32 metadata_type = 2;
+    string value = 3;
+    int64 revision = 4;
+  }
+  message Response {
+  }
+}
+
+message SetProtectedPatient {
+  message Request {
+    int64 patient_id = 1;
+    bool protected_patient = 2;
+  }
+  message Response {
+  }
+}
+
+message IsDiskSizeAbove {
+  message Request {
+    uint64 threshold = 1;
+  }
+  message Response {
+    bool result = 1;
+  }
+}
+
+message LookupResources {
+  message Request {
+    repeated DatabaseConstraint lookup = 1;
+    ResourceType query_level = 2;
+    uint32 limit = 3;
+    bool retrieve_instances_ids = 4;
+  }
+  message Response {
+    repeated string resources_ids = 1;
+    repeated string instances_ids = 2;  // Only filled if "retrieve_instances" is true
+  }
+}
+
+message CreateInstance {
+  message Request {
+    string patient = 1;
+    string study = 2;
+    string series = 3;
+    string instance = 4;
+  }
+  message Response {
+    bool is_new_instance = 1;
+    int64 instance_id = 2;
+
+    // The fields below are only set if "is_new_instance" is true
+    bool is_new_patient = 3;
+    bool is_new_study = 4;
+    bool is_new_series = 5;
+    int64 patient_id = 6;
+    int64 study_id = 7;
+    int64 series_id = 8;
+  }
+}
+
+message SetResourcesContent {
+  message Request {
+    message Tag {
+      int64 resource_id = 1;
+      bool is_identifier = 2;
+      uint32 group = 3;
+      uint32 element = 4;
+      string value = 5;
+    }
+
+    message Metadata {
+      int64 resource_id = 1;
+      int32 metadata = 2;
+      string value = 3;
+    }
+
+    repeated Tag tags = 1;
+    repeated Metadata metadata = 2;
+  }
+  message Response {
+  }
+}
+
+message GetChildrenMetadata {
+  message Request {
+    int64 id = 1;
+    int32 metadata = 2;
+  }
+  message Response {
+    repeated string values = 1;
+  }
+}
+
+message GetLastChangeIndex {
+  message Request {
+  }
+  message Response {
+    int64 result = 1;
+  }
+}
+
+message LookupResourceAndParent {
+  message Request {
+    string public_id = 1;
+  }
+  message Response {
+    bool found = 1;
+    int64 id = 2;
+    ResourceType type = 3;
+    string parent_public_id = 4;  // Only for study, series, or instance
+  }
+}
+
+message TransactionRequest {
+  sfixed64              transaction = 1;
+  TransactionOperation  operation = 2;
+
+  Rollback.Request                        rollback = 100;
+  Commit.Request                          commit = 101;
+  AddAttachment.Request                   add_attachment = 102;
+  ClearChanges.Request                    clear_changes = 103;
+  ClearExportedResources.Request          clear_exported_resources = 104;
+  DeleteAttachment.Request                delete_attachment = 105;
+  DeleteMetadata.Request                  delete_metadata = 106;
+  DeleteResource.Request                  delete_resource = 107;
+  GetAllMetadata.Request                  get_all_metadata = 108;
+  GetAllPublicIds.Request                 get_all_public_ids = 109;
+  GetAllPublicIdsWithLimits.Request       get_all_public_ids_with_limits = 110;
+  GetChanges.Request                      get_changes = 111;
+  GetChildrenInternalId.Request           get_children_internal_id = 112;
+  GetChildrenPublicId.Request             get_children_public_id = 113;
+  GetExportedResources.Request            get_exported_resources = 114;
+  GetLastChange.Request                   get_last_change = 115;
+  GetLastExportedResource.Request         get_last_exported_resource = 116;
+  GetMainDicomTags.Request                get_main_dicom_tags = 117;
+  GetPublicId.Request                     get_public_id = 118;
+  GetResourcesCount.Request               get_resources_count = 119;
+  GetResourceType.Request                 get_resource_type = 120;
+  GetTotalCompressedSize.Request          get_total_compressed_size = 121;
+  GetTotalUncompressedSize.Request        get_total_uncompressed_size = 122;
+  IsProtectedPatient.Request              is_protected_patient = 123;
+  ListAvailableAttachments.Request        list_available_attachments = 124;
+  LogChange.Request                       log_change = 125;
+  LogExportedResource.Request             log_exported_resource = 126;
+  LookupAttachment.Request                lookup_attachment = 127;
+  LookupGlobalProperty.Request            lookup_global_property = 128;
+  LookupMetadata.Request                  lookup_metadata = 129;
+  LookupParent.Request                    lookup_parent = 130;
+  LookupResource.Request                  lookup_resource = 131;
+  SelectPatientToRecycle.Request          select_patient_to_recycle = 132;
+  SelectPatientToRecycleWithAvoid.Request select_patient_to_recycle_with_avoid = 133;
+  SetGlobalProperty.Request               set_global_property = 134;
+  ClearMainDicomTags.Request              clear_main_dicom_tags = 135;
+  SetMetadata.Request                     set_metadata = 136;
+  SetProtectedPatient.Request             set_protected_patient = 137;
+  IsDiskSizeAbove.Request                 is_disk_size_above = 138;
+  LookupResources.Request                 lookup_resources = 139;
+  CreateInstance.Request                  create_instance = 140;
+  SetResourcesContent.Request             set_resources_content = 141;
+  GetChildrenMetadata.Request             get_children_metadata = 142;
+  GetLastChangeIndex.Request              get_last_change_index = 143;
+  LookupResourceAndParent.Request         lookup_resource_and_parent = 144;
+}
+
+message TransactionResponse {
+  Rollback.Response                        rollback = 100;
+  Commit.Response                          commit = 101;
+  AddAttachment.Response                   add_attachment = 102;
+  ClearChanges.Response                    clear_changes = 103;
+  ClearExportedResources.Response          clear_exported_resources = 104;
+  DeleteAttachment.Response                delete_attachment = 105;
+  DeleteMetadata.Response                  delete_metadata = 106;
+  DeleteResource.Response                  delete_resource = 107;
+  GetAllMetadata.Response                  get_all_metadata = 108;
+  GetAllPublicIds.Response                 get_all_public_ids = 109;
+  GetAllPublicIdsWithLimits.Response       get_all_public_ids_with_limits = 110;
+  GetChanges.Response                      get_changes = 111;
+  GetChildrenInternalId.Response           get_children_internal_id = 112;
+  GetChildrenPublicId.Response             get_children_public_id = 113;
+  GetExportedResources.Response            get_exported_resources = 114;
+  GetLastChange.Response                   get_last_change = 115;
+  GetLastExportedResource.Response         get_last_exported_resource = 116;
+  GetMainDicomTags.Response                get_main_dicom_tags = 117;
+  GetPublicId.Response                     get_public_id = 118;
+  GetResourcesCount.Response               get_resources_count = 119;
+  GetResourceType.Response                 get_resource_type = 120;
+  GetTotalCompressedSize.Response          get_total_compressed_size = 121;
+  GetTotalUncompressedSize.Response        get_total_uncompressed_size = 122;
+  IsProtectedPatient.Response              is_protected_patient = 123;
+  ListAvailableAttachments.Response        list_available_attachments = 124;
+  LogChange.Response                       log_change = 125;
+  LogExportedResource.Response             log_exported_resource = 126;
+  LookupAttachment.Response                lookup_attachment = 127;
+  LookupGlobalProperty.Response            lookup_global_property = 128;
+  LookupMetadata.Response                  lookup_metadata = 129;
+  LookupParent.Response                    lookup_parent = 130;
+  LookupResource.Response                  lookup_resource = 131;
+  SelectPatientToRecycle.Response          select_patient_to_recycle = 132;
+  SelectPatientToRecycleWithAvoid.Response select_patient_to_recycle_with_avoid = 133;
+  SetGlobalProperty.Response               set_global_property = 134;
+  ClearMainDicomTags.Response              clear_main_dicom_tags = 135;
+  SetMetadata.Response                     set_metadata = 136;
+  SetProtectedPatient.Response             set_protected_patient = 137;
+  IsDiskSizeAbove.Response                 is_disk_size_above = 138;
+  LookupResources.Response                 lookup_resources = 139;
+  CreateInstance.Response                  create_instance = 140;
+  SetResourcesContent.Response             set_resources_content = 141;
+  GetChildrenMetadata.Response             get_children_metadata = 142;
+  GetLastChangeIndex.Response              get_last_change_index = 143;
+  LookupResourceAndParent.Response         lookup_resource_and_parent = 144;
+}
+
+enum RequestType {
+  REQUEST_DATABASE = 0;
+  REQUEST_TRANSACTION = 1;
+}
+
+message Request {
+  RequestType         type = 1;
+  DatabaseRequest     database_request = 2;
+  TransactionRequest  transaction_request = 3;
+}
+
+message Response {
+  DatabaseResponse     database_response = 2;
+  TransactionResponse  transaction_response = 3;
+}

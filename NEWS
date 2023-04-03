@@ -5,18 +5,20 @@ REST API
 --------
 
 * API version upgraded to 20
-* /system: added UserMetadata
+* /system: added "UserMetadata"
+
+Plugins
+-------
+
+* Added "OrthancPluginRegisterDatabaseBackendV4()" to communicate using Google
+  Protocol Buffers between the Orthanc core and database plugins
 
 Maintenance
 -----------
 
 * Enforce the existence of the patient/study/instance while creating its archive
 * Security: New configuration option "RestApiWriteToFileSystemEnabled"
-  to allow "/instances/../export" that is now disabled by default.
-
-Bug Fixes
----------
-
+  to allow "/instances/../export" that is now disabled by default
 * Fix issue 214: VOILUTSequence is not returned in Wado-RS
 * Fix /tools/reset crashing when ExtraMainDicomTags were defined
 

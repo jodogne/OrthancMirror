@@ -63,6 +63,7 @@
 #include "../../Sources/ServerToolbox.h"
 #include "OrthancPluginDatabase.h"
 #include "OrthancPluginDatabaseV3.h"
+#include "OrthancPluginDatabaseV4.h"
 #include "PluginsEnumerations.h"
 #include "PluginsJob.h"
 
@@ -1544,8 +1545,9 @@ namespace Orthanc
     Properties properties_;
     int argc_;
     char** argv_;
-    std::unique_ptr<OrthancPluginDatabase>  database_;
+    std::unique_ptr<OrthancPluginDatabase>    database_;
     std::unique_ptr<OrthancPluginDatabaseV3>  databaseV3_;  // New in Orthanc 1.9.2
+    std::unique_ptr<OrthancPluginDatabaseV4>  databaseV4_;  // New in Orthanc 1.12.0
     PluginsErrorDictionary  dictionary_;
     std::string databaseServerIdentifier_;   // New in Orthanc 1.9.2
     unsigned int maxDatabaseRetries_;   // New in Orthanc 1.9.2
@@ -5487,14 +5489,15 @@ namespace Orthanc
 
       case _OrthancPluginService_RegisterDatabaseBackend:
       {
-        LOG(WARNING) << "Performance warning: Plugin has registered a custom database back-end with an old API";
+        LOG(WARNING) << "Performance warning: Plugin has registered a custom database back-end with an old API (version 1)";
         LOG(WARNING) << "The database backend has *no* support for revisions of metadata and attachments";
 
         const _OrthancPluginRegisterDatabaseBackend& p =
           *reinterpret_cast<const _OrthancPluginRegisterDatabaseBackend*>(parameters);
 
         if (pimpl_->database_.get() == NULL &&
-            pimpl_->databaseV3_.get() == NULL)
+            pimpl_->databaseV3_.get() == NULL &&
+            pimpl_->databaseV4_.get() == NULL)
         {
           pimpl_->database_.reset(new OrthancPluginDatabase(plugin, GetErrorDictionary(), 
                                                             *p.backend, NULL, 0, p.payload));
@@ -5511,14 +5514,15 @@ namespace Orthanc
 
       case _OrthancPluginService_RegisterDatabaseBackendV2:
       {
-        LOG(WARNING) << "Performance warning: Plugin has registered a custom database back-end with an old API";
+        LOG(WARNING) << "Performance warning: Plugin has registered a custom database back-end with an old API (version 2)";
         LOG(WARNING) << "The database backend has *no* support for revisions of metadata and attachments";
 
         const _OrthancPluginRegisterDatabaseBackendV2& p =
           *reinterpret_cast<const _OrthancPluginRegisterDatabaseBackendV2*>(parameters);
 
         if (pimpl_->database_.get() == NULL &&
-            pimpl_->databaseV3_.get() == NULL)
+            pimpl_->databaseV3_.get() == NULL &&
+            pimpl_->databaseV4_.get() == NULL)
         {
           pimpl_->database_.reset(new OrthancPluginDatabase(plugin, GetErrorDictionary(),
                                                             *p.backend, p.extensions,
@@ -5536,16 +5540,39 @@ namespace Orthanc
 
       case _OrthancPluginService_RegisterDatabaseBackendV3:
       {
-        CLOG(INFO, PLUGINS) << "Plugin has registered a custom database back-end";
+        LOG(WARNING) << "Performance warning: Plugin has registered a custom database back-end with an old API (version 3)";
 
         const _OrthancPluginRegisterDatabaseBackendV3& p =
           *reinterpret_cast<const _OrthancPluginRegisterDatabaseBackendV3*>(parameters);
 
         if (pimpl_->database_.get() == NULL &&
-            pimpl_->databaseV3_.get() == NULL)
+            pimpl_->databaseV3_.get() == NULL &&
+            pimpl_->databaseV4_.get() == NULL)
         {
           pimpl_->databaseV3_.reset(new OrthancPluginDatabaseV3(plugin, GetErrorDictionary(), p.backend,
                                                                 p.backendSize, p.database, pimpl_->databaseServerIdentifier_));
+          pimpl_->maxDatabaseRetries_ = p.maxDatabaseRetries;
+        }
+        else
+        {
+          throw OrthancException(ErrorCode_DatabaseBackendAlreadyRegistered);
+        }
+
+        return true;
+      }
+
+      case _OrthancPluginService_RegisterDatabaseBackendV4:
+      {
+        CLOG(INFO, PLUGINS) << "Plugin has registered a custom database back-end";
+
+        const _OrthancPluginRegisterDatabaseBackendV4& p =
+          *reinterpret_cast<const _OrthancPluginRegisterDatabaseBackendV4*>(parameters);
+
+        if (pimpl_->database_.get() == NULL &&
+            pimpl_->databaseV3_.get() == NULL &&
+            pimpl_->databaseV4_.get() == NULL)
+        {
+          pimpl_->databaseV4_.reset(new OrthancPluginDatabaseV4(plugin, GetErrorDictionary(), p, pimpl_->databaseServerIdentifier_));
           pimpl_->maxDatabaseRetries_ = p.maxDatabaseRetries;
         }
         else
@@ -5695,7 +5722,8 @@ namespace Orthanc
   {
     boost::recursive_mutex::scoped_lock lock(pimpl_->invokeServiceMutex_);
     return (pimpl_->database_.get() != NULL ||
-            pimpl_->databaseV3_.get() != NULL);
+            pimpl_->databaseV3_.get() != NULL ||
+            pimpl_->databaseV4_.get() != NULL);
   }
 
 
@@ -5735,6 +5763,10 @@ namespace Orthanc
     {
       return *pimpl_->databaseV3_;
     }
+    else if (pimpl_->databaseV4_.get() != NULL)
+    {
+      return *pimpl_->databaseV4_;
+    }
     else
     {
       throw OrthancException(ErrorCode_BadSequenceOfCalls);
@@ -5751,6 +5783,10 @@ namespace Orthanc
     else if (pimpl_->databaseV3_.get() != NULL)
     {
       return pimpl_->databaseV3_->GetSharedLibrary();
+    }
+    else if (pimpl_->databaseV4_.get() != NULL)
+    {
+      return pimpl_->databaseV4_->GetSharedLibrary();
     }
     else
     {
