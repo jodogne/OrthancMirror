@@ -94,13 +94,13 @@ namespace Orthanc
 
       virtual void GetAllPublicIds(std::list<std::string>& target,
                                    ResourceType resourceType,
-                                   size_t since,
-                                   size_t limit) = 0;
+                                   int64_t since,
+                                   uint32_t limit) = 0;
 
       virtual void GetChanges(std::list<ServerIndexChange>& target /*out*/,
                               bool& done /*out*/,
                               int64_t since,
-                              uint32_t maxResults) = 0;
+                              uint32_t limit) = 0;
 
       virtual void GetChildrenInternalId(std::list<int64_t>& target,
                                          int64_t id) = 0;
@@ -111,7 +111,7 @@ namespace Orthanc
       virtual void GetExportedResources(std::list<ExportedResource>& target /*out*/,
                                         bool& done /*out*/,
                                         int64_t since,
-                                        uint32_t maxResults) = 0;
+                                        uint32_t limit) = 0;
 
       virtual void GetLastChange(std::list<ServerIndexChange>& target /*out*/) = 0;
 
@@ -197,7 +197,7 @@ namespace Orthanc
                                         std::list<std::string>* instancesId, // Can be NULL if not needed
                                         const std::vector<DatabaseConstraint>& lookup,
                                         ResourceType queryLevel,
-                                        size_t limit) = 0;
+                                        uint32_t limit) = 0;
 
       // Returns "true" iff. the instance is new and has been inserted
       // into the database. If "false" is returned, the content of

@@ -386,8 +386,8 @@ namespace Orthanc
     
     virtual void GetAllPublicIds(std::list<std::string>& target,
                                  ResourceType resourceType,
-                                 size_t since,
-                                 size_t limit) ORTHANC_OVERRIDE
+                                 int64_t since,
+                                 uint32_t limit) ORTHANC_OVERRIDE
     {
       DatabasePluginMessages::TransactionRequest request;
       request.mutable_get_all_public_ids_with_limits()->set_resource_type(Convert(resourceType));
@@ -408,11 +408,11 @@ namespace Orthanc
     virtual void GetChanges(std::list<ServerIndexChange>& target /*out*/,
                             bool& done /*out*/,
                             int64_t since,
-                            uint32_t maxResults) ORTHANC_OVERRIDE
+                            uint32_t limit) ORTHANC_OVERRIDE
     {
       DatabasePluginMessages::TransactionRequest request;
       request.mutable_get_changes()->set_since(since);
-      request.mutable_get_changes()->set_limit(maxResults);
+      request.mutable_get_changes()->set_limit(limit);
 
       DatabasePluginMessages::TransactionResponse response;
       ExecuteTransaction(response, DatabasePluginMessages::OPERATION_GET_CHANGES, request);
@@ -464,11 +464,11 @@ namespace Orthanc
     virtual void GetExportedResources(std::list<ExportedResource>& target /*out*/,
                                       bool& done /*out*/,
                                       int64_t since,
-                                      uint32_t maxResults) ORTHANC_OVERRIDE
+                                      uint32_t limit) ORTHANC_OVERRIDE
     {
       DatabasePluginMessages::TransactionRequest request;
       request.mutable_get_exported_resources()->set_since(since);
-      request.mutable_get_exported_resources()->set_limit(maxResults);
+      request.mutable_get_exported_resources()->set_limit(limit);
 
       DatabasePluginMessages::TransactionResponse response;
       ExecuteTransaction(response, DatabasePluginMessages::OPERATION_GET_EXPORTED_RESOURCES, request);
@@ -874,10 +874,8 @@ namespace Orthanc
                                       std::list<std::string>* instancesId, // Can be NULL if not needed
                                       const std::vector<DatabaseConstraint>& lookup,
                                       ResourceType queryLevel,
-                                      size_t limit) ORTHANC_OVERRIDE
+                                      uint32_t limit) ORTHANC_OVERRIDE
     {
-      // TODO => "size_t limit" : uint32_t
-      
       DatabasePluginMessages::TransactionRequest request;
       request.mutable_lookup_resources()->set_query_level(Convert(queryLevel));
       request.mutable_lookup_resources()->set_limit(limit);

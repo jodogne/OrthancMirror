@@ -233,11 +233,11 @@ namespace Orthanc
     void GetChangesInternal(std::list<ServerIndexChange>& target,
                             bool& done,
                             SQLite::Statement& s,
-                            uint32_t maxResults)
+                            uint32_t limit)
     {
       target.clear();
 
-      while (target.size() < maxResults && s.Step())
+      while (target.size() < limit && s.Step())
       {
         int64_t seq = s.ColumnInt64(0);
         ChangeType changeType = static_cast<ChangeType>(s.ColumnInt(1));
@@ -250,18 +250,18 @@ namespace Orthanc
         target.push_back(ServerIndexChange(seq, changeType, resourceType, publicId, date));
       }
 
-      done = !(target.size() == maxResults && s.Step());
+      done = !(target.size() == limit && s.Step());
     }
 
 
     void GetExportedResourcesInternal(std::list<ExportedResource>& target,
                                       bool& done,
                                       SQLite::Statement& s,
-                                      uint32_t maxResults)
+                                      uint32_t limit)
     {
       target.clear();
 
-      while (target.size() < maxResults && s.Step())
+      while (target.size() < limit && s.Step())
       {
         int64_t seq = s.ColumnInt64(0);
         ResourceType resourceType = static_cast<ResourceType>(s.ColumnInt(1));
@@ -280,7 +280,7 @@ namespace Orthanc
         target.push_back(resource);
       }
 
-      done = !(target.size() == maxResults && s.Step());
+      done = !(target.size() == limit && s.Step());
     }
 
 
@@ -341,7 +341,7 @@ namespace Orthanc
                                       std::list<std::string>* instancesId,
                                       const std::vector<DatabaseConstraint>& lookup,
                                       ResourceType queryLevel,
-                                      size_t limit) ORTHANC_OVERRIDE
+                                      uint32_t limit) ORTHANC_OVERRIDE
     {
       LookupFormatter formatter;
 
@@ -509,8 +509,8 @@ namespace Orthanc
 
     virtual void GetAllPublicIds(std::list<std::string>& target,
                                  ResourceType resourceType,
-                                 size_t since,
-                                 size_t limit) ORTHANC_OVERRIDE
+                                 int64_t since,
+                                 uint32_t limit) ORTHANC_OVERRIDE
     {
       if (limit == 0)
       {
@@ -536,12 +536,12 @@ namespace Orthanc
     virtual void GetChanges(std::list<ServerIndexChange>& target /*out*/,
                             bool& done /*out*/,
                             int64_t since,
-                            uint32_t maxResults) ORTHANC_OVERRIDE
+                            uint32_t limit) ORTHANC_OVERRIDE
     {
       SQLite::Statement s(db_, SQLITE_FROM_HERE, "SELECT * FROM Changes WHERE seq>? ORDER BY seq LIMIT ?");
       s.BindInt64(0, since);
-      s.BindInt(1, maxResults + 1);
-      GetChangesInternal(target, done, s, maxResults);
+      s.BindInt(1, limit + 1);
+      GetChangesInternal(target, done, s, limit);
     }
 
 
@@ -588,13 +588,13 @@ namespace Orthanc
     virtual void GetExportedResources(std::list<ExportedResource>& target,
                                       bool& done,
                                       int64_t since,
-                                      uint32_t maxResults) ORTHANC_OVERRIDE
+                                      uint32_t limit) ORTHANC_OVERRIDE
     {
       SQLite::Statement s(db_, SQLITE_FROM_HERE, 
                           "SELECT * FROM ExportedResources WHERE seq>? ORDER BY seq LIMIT ?");
       s.BindInt64(0, since);
-      s.BindInt(1, maxResults + 1);
-      GetExportedResourcesInternal(target, done, s, maxResults);
+      s.BindInt(1, limit + 1);
+      GetExportedResourcesInternal(target, done, s, limit);
     }
 
 

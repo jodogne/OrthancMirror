@@ -354,7 +354,7 @@ message GetAllPublicIds {
 message GetAllPublicIdsWithLimits {
   message Request {
     ResourceType resource_type = 1;
-    uint64 since = 2;
+    int64 since = 2;
     uint32 limit = 3;
   }
   message Response {
