@@ -281,14 +281,8 @@ namespace Orthanc
           std::string resultPublicId;  // ignored
           std::unique_ptr<DicomInstanceToStore> dicomInstancetoStore(DicomInstanceToStore::CreateFromParsedDicomFile(locker.GetDicom()));
 
-          context.GetIndex().GetAllMetadata(instanceMetadata, *it, ResourceType_Instance);
-          
-          for (InstanceMetadata::const_iterator itm = instanceMetadata.begin();
-              itm != instanceMetadata.end(); ++itm)
-          {
-            dicomInstancetoStore->AddMetadata(ResourceType_Instance, itm->first, itm->second);
-          }
-
+          // TODO: TranscodeAndStore and specifically ServerIndex::Store have been "poluted" by the isReconstruct parameter
+          // we should very likely refactor it
           context.TranscodeAndStore(resultPublicId, dicomInstancetoStore.get(), StoreInstanceMode_OverwriteDuplicate, true);
         }
       }
