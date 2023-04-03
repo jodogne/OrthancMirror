@@ -50,12 +50,21 @@ namespace Orthanc
 
   static void GetMainDicomTagsConfiguration(Json::Value& result)
   {
-      Json::Value v;
-      
       result["Patient"] = DicomMap::GetMainDicomTagsSignature(ResourceType_Patient);
       result["Study"] = DicomMap::GetMainDicomTagsSignature(ResourceType_Study);
       result["Series"] = DicomMap::GetMainDicomTagsSignature(ResourceType_Series);
       result["Instance"] = DicomMap::GetMainDicomTagsSignature(ResourceType_Instance);
+  }
+
+  static void GetUserMetadataConfiguration(Json::Value& result)
+  {
+    std::map<std::string, int> userMetadata;
+    Orthanc::GetRegisteredUserMetadata(userMetadata);
+
+    for (std::map<std::string, int>::const_iterator it = userMetadata.begin(); it != userMetadata.end(); ++it)
+    {
+      result[it->first] = it->second;
+    }
   }
 
   static void GetSystemInformation(RestApiGetCall& call)
@@ -79,6 +88,7 @@ namespace Orthanc
     static const char* const INGEST_TRANSCODING = "IngestTranscoding";
     static const char* const MAXIMUM_STORAGE_SIZE = "MaximumStorageSize";
     static const char* const MAXIMUM_STORAGE_MODE = "MaximumStorageMode";
+    static const char* const USER_METADATA = "UserMetadata";
 
     if (call.IsDocumentation())
     {
@@ -119,6 +129,8 @@ namespace Orthanc
                         "The configured MaximumStorageSize in MB (new in Orthanc 1.11.3)")
         .SetAnswerField(MAXIMUM_STORAGE_MODE, RestApiCallDocumentation::Type_String,
                         "The configured MaximumStorageMode (new in Orthanc 1.11.3)")
+        .SetAnswerField(USER_METADATA, RestApiCallDocumentation::Type_JsonObject,
+                        "The configured UserMetadata (new in Orthanc 1.12.0)")
         .SetHttpGetSample("https://demo.orthanc-server.com/system", true);
       return;
     }
@@ -171,6 +183,9 @@ namespace Orthanc
 
     result[MAIN_DICOM_TAGS] = Json::objectValue;
     GetMainDicomTagsConfiguration(result[MAIN_DICOM_TAGS]);
+
+    result[USER_METADATA] = Json::objectValue;
+    GetUserMetadataConfiguration(result[USER_METADATA]);
 
     call.GetOutput().AnswerJson(result);
   }
