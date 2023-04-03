@@ -9166,7 +9166,9 @@ extern "C"
 
 
   /**
-   * @brief 
+   * @brief Signature of a callback function that is triggered when
+   * the Orthanc core requests an operation from the database plugin.
+   * Both request and response are encoded as protobuf buffers.
    * @ingroup Callbacks
    **/
   typedef OrthancPluginErrorCode (*OrthancPluginCallDatabaseBackendV4) (
@@ -9176,7 +9178,8 @@ extern "C"
     uint64_t requestSize);
 
   /**
-   * @brief 
+   * @brief Signature of a callback function that is triggered when
+   * the database plugin must be finalized.
    * @ingroup Callbacks
    **/
   typedef void (*OrthancPluginFinalizeDatabaseBackendV4) (void* backend);
@@ -9192,17 +9195,24 @@ extern "C"
   /**
    * Register a custom database back-end.
    *
+   * This function was added in Orthanc SDK 1.12.0. It uses Google
+   * Protocol Buffers for the communications between the Orthanc core
+   * and database plugins. Check out "OrthancDatabasePlugin.proto" for
+   * the definition of the protobuf messages.
+   *
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param backend Pointer to the custom database backend.
+   * @param maxDatabaseRetries Maximum number of retries if transaction doesn't succeed.
+   * If no retry is successful, OrthancPluginErrorCode_DatabaseCannotSerialize is generated.
    * @param operations Access to the operations of the custom database backend.
    * @param finalize Callback to deallocate the custom database backend.
-   * @param backend Pointer to the custom database backend.
    * @return 0 if success, other value if error.
    * @ingroup Callbacks
    **/
   ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginRegisterDatabaseBackendV4(
     OrthancPluginContext*                   context,
     void*                                   backend,
-    uint32_t                                maxDatabaseRetries,  /* To handle "OrthancPluginErrorCode_DatabaseCannotSerialize" */
+    uint32_t                                maxDatabaseRetries,
     OrthancPluginCallDatabaseBackendV4      operations,
     OrthancPluginFinalizeDatabaseBackendV4  finalize)
   {
