@@ -535,7 +535,7 @@ extern "C"
     _OrthancPluginService_StorageAreaRead = 5004,
     _OrthancPluginService_StorageAreaRemove = 5005,
     _OrthancPluginService_RegisterDatabaseBackendV3 = 5006,  /* New in Orthanc 1.9.2 */
-    _OrthancPluginService_RegisterDatabaseBackendV4 = 5007,  /* New in Orthanc 1.11.4 */
+    _OrthancPluginService_RegisterDatabaseBackendV4 = 5007,  /* New in Orthanc 1.12.0 */
     
     /* Primitives for handling images */
     _OrthancPluginService_GetImagePixelFormat = 6000,
