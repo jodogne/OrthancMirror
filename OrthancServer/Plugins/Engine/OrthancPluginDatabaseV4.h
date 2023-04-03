@@ -65,6 +65,11 @@ namespace Orthanc
       return errorDictionary_;
     }
 
+    const std::string& GetServerIdentifier() const
+    {
+      return serverIdentifier_;
+    }
+    
     virtual void Open() ORTHANC_OVERRIDE;
 
     virtual void Close() ORTHANC_OVERRIDE;
