@@ -275,6 +275,12 @@ namespace Orthanc
         LOG(ERROR) << "Cannot finalize the database engine: " << e.What();
       }
     }
+
+
+    void* GetTransactionObject()
+    {
+      return transaction_;
+    }
     
 
     virtual void Rollback() ORTHANC_OVERRIDE
@@ -1024,28 +1030,26 @@ namespace Orthanc
     
     virtual void SetResourcesContent(const ResourcesContent& content) ORTHANC_OVERRIDE
     {
-      // TODO: "ResourcesContent" => getters
-      
       DatabasePluginMessages::TransactionRequest request;
 
       request.mutable_set_resources_content()->mutable_tags()->Reserve(content.GetListTags().size());
       for (ResourcesContent::ListTags::const_iterator it = content.GetListTags().begin(); it != content.GetListTags().end(); ++it)
       {
         DatabasePluginMessages::SetResourcesContent_Request_Tag* tag = request.mutable_set_resources_content()->add_tags();
-        tag->set_resource_id(it->resourceId_);
-        tag->set_is_identifier(it->isIdentifier_);
-        tag->set_group(it->tag_.GetGroup());
-        tag->set_element(it->tag_.GetElement());
-        tag->set_value(it->value_);
+        tag->set_resource_id(it->GetResourceId());
+        tag->set_is_identifier(it->IsIdentifier());
+        tag->set_group(it->GetTag().GetGroup());
+        tag->set_element(it->GetTag().GetElement());
+        tag->set_value(it->GetValue());
       }
       
       request.mutable_set_resources_content()->mutable_metadata()->Reserve(content.GetListMetadata().size());
       for (ResourcesContent::ListMetadata::const_iterator it = content.GetListMetadata().begin(); it != content.GetListMetadata().end(); ++it)
       {
         DatabasePluginMessages::SetResourcesContent_Request_Metadata* metadata = request.mutable_set_resources_content()->add_metadata();
-        metadata->set_resource_id(it->resourceId_);
-        metadata->set_metadata(it->metadata_);
-        metadata->set_value(it->value_);
+        metadata->set_resource_id(it->GetResourceId());
+        metadata->set_metadata(it->GetType());
+        metadata->set_value(it->GetValue());
       }
 
       ExecuteTransaction(DatabasePluginMessages::OPERATION_SET_RESOURCES_CONTENT, request);
@@ -1275,6 +1279,7 @@ namespace Orthanc
         DatabasePluginMessages::DatabaseRequest request;
         request.mutable_upgrade()->set_target_version(targetVersion);
         request.mutable_upgrade()->set_storage_area(reinterpret_cast<intptr_t>(&storageArea));
+        request.mutable_upgrade()->set_transaction(reinterpret_cast<intptr_t>(transaction.GetTransactionObject()));
         
         DatabasePluginMessages::DatabaseResponse response;
 
