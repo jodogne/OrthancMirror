@@ -726,8 +726,7 @@ message LookupResourceAndParent {
     bool found = 1;
     int64 id = 2;
     ResourceType type = 3;
-    bool has_parent = 4;
-    string parent_public_id = 5;
+    string parent_public_id = 4;  // Only for study, series, or instance
   }
 }
 
