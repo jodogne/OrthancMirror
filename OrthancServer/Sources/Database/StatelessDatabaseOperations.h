@@ -62,6 +62,9 @@ namespace Orthanc
     size_t                              fileSize_;
     std::string                         fileUuid_;
     int                                 indexInSeries_;
+
+    // New in Orthanc 1.12.0
+    std::set<std::string>               labels_;
   };
 
   enum ExpandResourceDbFlags
@@ -70,10 +73,12 @@ namespace Orthanc
     ExpandResourceDbFlags_IncludeMetadata         = (1 << 0),
     ExpandResourceDbFlags_IncludeChildren         = (1 << 1),
     ExpandResourceDbFlags_IncludeMainDicomTags    = (1 << 2),
+    ExpandResourceDbFlags_IncludeLabels           = (1 << 3),
 
     ExpandResourceDbFlags_Default = (ExpandResourceDbFlags_IncludeMetadata |
                                      ExpandResourceDbFlags_IncludeChildren |
-                                     ExpandResourceDbFlags_IncludeMainDicomTags)
+                                     ExpandResourceDbFlags_IncludeMainDicomTags |
+                                     ExpandResourceDbFlags_IncludeLabels)
   };
 
   class StatelessDatabaseOperations : public boost::noncopyable
@@ -81,6 +86,12 @@ namespace Orthanc
   public:
     typedef std::list<FileInfo> Attachments;
     typedef std::map<std::pair<ResourceType, MetadataType>, std::string>  MetadataMap;
+
+    enum LabelOperation
+    {
+      LabelOperation_Add,
+      LabelOperation_Remove
+    };
 
     class ITransactionContext : public IDatabaseListener
     {
@@ -312,6 +323,12 @@ namespace Orthanc
       {
         return transaction_.LookupResourceAndParent(id, type, parentPublicId, publicId);
       }
+
+      void ListLabels(std::set<std::string>& target,
+                      int64_t id)
+      {
+        transaction_.ListLabels(target, id);
+      }
     };
 
 
@@ -424,6 +441,18 @@ namespace Orthanc
                              unsigned int maximumPatients,
                              uint64_t addedInstanceSize,
                              const std::string& newPatientId);
+
+      void AddLabel(int64_t id,
+                    const std::string& label)
+      {
+        transaction_.AddLabel(id, label);
+      }
+
+      void RemoveLabel(int64_t id,
+                    const std::string& label)
+      {
+        transaction_.RemoveLabel(id, label);
+      }
     };
 
 
@@ -687,5 +716,14 @@ namespace Orthanc
                               bool hasOldRevision,
                               int64_t oldRevision,
                               const std::string& oldMd5);
+
+    void ListLabels(std::set<std::string>& target,
+                    const std::string& publicId,
+                    ResourceType level);
+
+    void ModifyLabel(const std::string& publicId,
+                     ResourceType level,
+                     const std::string& label,
+                     LabelOperation operation);
   };
 }

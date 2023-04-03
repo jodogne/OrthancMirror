@@ -91,6 +91,12 @@ CREATE TABLE PatientRecyclingOrder(
        patientId INTEGER REFERENCES Resources(internalId) ON DELETE CASCADE
        );
 
+-- New in Orthanc 1.12.0
+CREATE TABLE Labels(
+       internalId INTEGER REFERENCES Resources(internalId) ON DELETE CASCADE,
+       label TEXT
+       );
+
 CREATE INDEX ChildrenIndex ON Resources(parentId);
 CREATE INDEX PublicIndex ON Resources(publicId);
 CREATE INDEX ResourceTypeIndex ON Resources(resourceType);

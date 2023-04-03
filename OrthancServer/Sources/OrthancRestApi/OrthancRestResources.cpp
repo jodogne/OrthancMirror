@@ -1971,6 +1971,129 @@ namespace Orthanc
 
 
 
+  // Handling of labels -------------------------------------------------------
+
+  static void ListLabels(RestApiGetCall& call)
+  {
+    if (call.IsDocumentation())
+    {
+      ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
+      std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      call.GetDocumentation()
+        .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
+        .SetSummary("List labels (new in Orthanc 1.12.0)")
+        .SetDescription("Get the labels that are associated with the given " + r)
+        .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
+        .AddAnswerType(MimeType_Json, "JSON array containing the names of the labels")
+        .SetHttpGetSample(GetDocumentationSampleResource(t) + "/labels", true);
+      return;
+    }
+
+    assert(!call.GetFullUri().empty());
+    const std::string publicId = call.GetUriComponent("id", "");
+    ResourceType level = StringToResourceType(call.GetFullUri() [0].c_str());
+
+    std::set<std::string> labels;
+    OrthancRestApi::GetIndex(call).ListLabels(labels, publicId, level);
+
+    Json::Value result = Json::arrayValue;
+
+    for (std::set<std::string>::const_iterator it = labels.begin(); it != labels.end(); ++it)
+    {
+      result.append(*it);
+    }
+
+    call.GetOutput().AnswerJson(result);
+  }
+  
+
+  static void GetLabel(RestApiGetCall& call)
+  {
+    if (call.IsDocumentation())
+    {
+      ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
+      std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      call.GetDocumentation()
+        .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
+        .SetSummary("Test label")
+        .SetDescription("Test whether the " + r + " is associated with the given label")
+        .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
+        .SetUriArgument("label", "The label of interest")
+        .AddAnswerType(MimeType_PlainText, "Empty string is returned in the case of presence, error 404 in the case of absence");
+      return;
+    }
+
+    CheckValidResourceType(call);
+
+    assert(!call.GetFullUri().empty());
+    const std::string publicId = call.GetUriComponent("id", "");
+    const ResourceType level = StringToResourceType(call.GetFullUri() [0].c_str());
+
+    std::string label = call.GetUriComponent("label", "");
+
+    std::set<std::string> labels;
+    OrthancRestApi::GetIndex(call).ListLabels(labels, publicId, level);
+    
+    if (labels.find(label) != labels.end())
+    {
+      call.GetOutput().AnswerBuffer("", MimeType_PlainText);
+    }
+  }
+
+
+  static void AddLabel(RestApiPutCall& call)
+  {
+    if (call.IsDocumentation())
+    {
+      ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
+      std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      call.GetDocumentation()
+        .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
+        .SetSummary("Add label")
+        .SetDescription("Associate a label with a " + r)
+        .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
+        .SetUriArgument("label", "The label to be added");
+      return;
+    }
+
+    CheckValidResourceType(call);
+
+    std::string publicId = call.GetUriComponent("id", "");
+    const ResourceType level = StringToResourceType(call.GetFullUri() [0].c_str());
+
+    std::string label = call.GetUriComponent("label", "");
+    OrthancRestApi::GetIndex(call).ModifyLabel(publicId, level, label, StatelessDatabaseOperations::LabelOperation_Add);
+
+    call.GetOutput().AnswerBuffer("", MimeType_PlainText);
+  }
+
+
+  static void RemoveLabel(RestApiDeleteCall& call)
+  {
+    if (call.IsDocumentation())
+    {
+      ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
+      std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      call.GetDocumentation()
+        .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
+        .SetSummary("Remove label")
+        .SetDescription("Remove a label associated with a " + r)
+        .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
+        .SetUriArgument("label", "The label to be removed");
+      return;
+    }
+
+    CheckValidResourceType(call);
+
+    std::string publicId = call.GetUriComponent("id", "");
+    const ResourceType level = StringToResourceType(call.GetFullUri() [0].c_str());
+
+    std::string label = call.GetUriComponent("label", "");
+    OrthancRestApi::GetIndex(call).ModifyLabel(publicId, level, label, StatelessDatabaseOperations::LabelOperation_Remove);
+
+    call.GetOutput().AnswerBuffer("", MimeType_PlainText);
+  }
+  
 
   // Handling of attached files -----------------------------------------------
 
@@ -3853,6 +3976,12 @@ namespace Orthanc
       Register("/" + resourceTypes[i] + "/{id}/metadata/{name}", DeleteMetadata);
       Register("/" + resourceTypes[i] + "/{id}/metadata/{name}", GetMetadata);
       Register("/" + resourceTypes[i] + "/{id}/metadata/{name}", SetMetadata);
+
+      // New in Orthanc 1.12.0
+      Register("/" + resourceTypes[i] + "/{id}/labels", ListLabels);
+      Register("/" + resourceTypes[i] + "/{id}/labels/{label}", GetLabel);
+      Register("/" + resourceTypes[i] + "/{id}/labels/{label}", RemoveLabel);
+      Register("/" + resourceTypes[i] + "/{id}/labels/{label}", AddLabel);
 
       Register("/" + resourceTypes[i] + "/{id}/attachments", ListAttachments);
       Register("/" + resourceTypes[i] + "/{id}/attachments/{name}", DeleteAttachment);

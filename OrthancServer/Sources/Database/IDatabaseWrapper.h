@@ -250,8 +250,8 @@ namespace Orthanc
       virtual void RemoveLabel(int64_t resource,
                                const std::string& label) = 0;
 
-      virtual void GetLabels(std::set<std::string>& target,
-                             int64_t resource) = 0;
+      virtual void ListLabels(std::set<std::string>& target,
+                              int64_t resource) = 0;
     };
 
 

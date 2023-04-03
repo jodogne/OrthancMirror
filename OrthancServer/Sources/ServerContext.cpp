@@ -2144,6 +2144,16 @@ namespace Orthanc
 
     }
 
+    {
+      Json::Value labels = Json::arrayValue;
+
+      for (std::set<std::string>::const_iterator it = resource.labels_.begin(); it != resource.labels_.end(); ++it)
+      {
+        labels.append(*it);
+      }
+
+      target["Labels"] = labels;
+    }
   }
 
 
