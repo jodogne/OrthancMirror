@@ -825,7 +825,7 @@ namespace Orthanc
         std::list<std::string> tmp;
         GetAllPublicIds(tmp, resourceType);
     
-        if (tmp.size() <= since)
+        if (tmp.size() <= static_cast<size_t>(since))
         {
           // Not enough results => empty answer
           return;
@@ -1362,12 +1362,12 @@ namespace Orthanc
                it = content.GetListTags().begin(); it != content.GetListTags().end(); ++it)
         {
           OrthancPluginResourcesContentTags tmp;
-          tmp.resource = it->resourceId_;
-          tmp.group = it->tag_.GetGroup();
-          tmp.element = it->tag_.GetElement();
-          tmp.value = it->value_.c_str();
+          tmp.resource = it->GetResourceId();
+          tmp.group = it->GetTag().GetGroup();
+          tmp.element = it->GetTag().GetElement();
+          tmp.value = it->GetValue().c_str();
 
-          if (it->isIdentifier_)
+          if (it->IsIdentifier())
           {
             identifierTags.push_back(tmp);
           }
@@ -1381,9 +1381,9 @@ namespace Orthanc
                it = content.GetListMetadata().begin(); it != content.GetListMetadata().end(); ++it)
         {
           OrthancPluginResourcesContentMetadata tmp;
-          tmp.resource = it->resourceId_;
-          tmp.metadata = it->metadata_;
-          tmp.value = it->value_.c_str();
+          tmp.resource = it->GetResourceId();
+          tmp.metadata = it->GetType();
+          tmp.value = it->GetValue().c_str();
           metadata.push_back(tmp);
         }
 

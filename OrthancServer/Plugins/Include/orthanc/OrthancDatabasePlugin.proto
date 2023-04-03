@@ -163,9 +163,14 @@ message StartTransaction {
 }
 
 message Upgrade {
+  /**
+   * It is guaranteed that a read-write transaction is created by the
+   * Orthanc core before executing this operation.
+   **/
   message Request {
     uint32 target_version = 1;
     sfixed64 storage_area = 2;
+    sfixed64 transaction = 3;
   }
   message Response {
   }
