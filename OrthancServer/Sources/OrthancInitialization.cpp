@@ -51,6 +51,10 @@
 
 #include <dcmtk/dcmnet/diutil.h>  // For DCM_dcmnetLogger
 
+#if ORTHANC_ENABLE_PLUGINS == 1
+#  include <google/protobuf/any.h>
+#endif
+
 
 static const char* const STORAGE_DIRECTORY = "StorageDirectory";
 static const char* const ORTHANC_STORAGE = "OrthancStorage";
@@ -315,6 +319,10 @@ namespace Orthanc
     
     OrthancConfiguration::WriterLock lock;
 
+#if ORTHANC_ENABLE_PLUGINS == 1
+    GOOGLE_PROTOBUF_VERIFY_VERSION;
+#endif
+    
     InitializeServerEnumerations();
 
     // Read the user-provided configuration
@@ -391,6 +399,10 @@ namespace Orthanc
   {
     OrthancConfiguration::WriterLock lock;
     Orthanc::FinalizeFramework();
+
+#if ORTHANC_ENABLE_PLUGINS == 1
+    google::protobuf::ShutdownProtobufLibrary();
+#endif
   }
 
 

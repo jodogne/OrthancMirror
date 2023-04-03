@@ -565,7 +565,7 @@ namespace Orthanc
                                       std::list<std::string>* instancesId,
                                       const std::vector<DatabaseConstraint>& lookup,
                                       ResourceType queryLevel,
-                                      size_t limit) ORTHANC_OVERRIDE
+                                      uint32_t limit) ORTHANC_OVERRIDE
     {
       if (that_.extensions_.lookupResources == NULL)
       {
@@ -800,8 +800,8 @@ namespace Orthanc
 
     virtual void GetAllPublicIds(std::list<std::string>& target,
                                  ResourceType resourceType,
-                                 size_t since,
-                                 size_t limit) ORTHANC_OVERRIDE
+                                 int64_t since,
+                                 uint32_t limit) ORTHANC_OVERRIDE
     {
       if (that_.extensions_.getAllPublicIdsWithLimit != NULL)
       {
@@ -825,7 +825,7 @@ namespace Orthanc
         std::list<std::string> tmp;
         GetAllPublicIds(tmp, resourceType);
     
-        if (tmp.size() <= since)
+        if (tmp.size() <= static_cast<size_t>(since))
         {
           // Not enough results => empty answer
           return;
@@ -847,14 +847,14 @@ namespace Orthanc
     virtual void GetChanges(std::list<ServerIndexChange>& target /*out*/,
                             bool& done /*out*/,
                             int64_t since,
-                            uint32_t maxResults) ORTHANC_OVERRIDE
+                            uint32_t limit) ORTHANC_OVERRIDE
     {
       ResetAnswers();
       answerChanges_ = &target;
       answerDone_ = &done;
       done = false;
 
-      CheckSuccess(that_.backend_.getChanges(that_.GetContext(), that_.payload_, since, maxResults));
+      CheckSuccess(that_.backend_.getChanges(that_.GetContext(), that_.payload_, since, limit));
     }
 
 
@@ -897,14 +897,14 @@ namespace Orthanc
     virtual void GetExportedResources(std::list<ExportedResource>& target /*out*/,
                                       bool& done /*out*/,
                                       int64_t since,
-                                      uint32_t maxResults) ORTHANC_OVERRIDE
+                                      uint32_t limit) ORTHANC_OVERRIDE
     {
       ResetAnswers();
       answerExportedResources_ = &target;
       answerDone_ = &done;
       done = false;
 
-      CheckSuccess(that_.backend_.getExportedResources(that_.GetContext(), that_.payload_, since, maxResults));
+      CheckSuccess(that_.backend_.getExportedResources(that_.GetContext(), that_.payload_, since, limit));
     }
 
 
@@ -1021,14 +1021,6 @@ namespace Orthanc
     }
 
 
-    virtual bool IsExistingResource(int64_t internalId) ORTHANC_OVERRIDE
-    {
-      int32_t existing;
-      CheckSuccess(that_.backend_.isExistingResource(&existing, that_.payload_, internalId));
-      return (existing != 0);
-    }
-
-
     virtual bool IsProtectedPatient(int64_t internalId) ORTHANC_OVERRIDE
     {
       int32_t isProtected;
@@ -1063,15 +1055,18 @@ namespace Orthanc
     }
 
 
-    virtual void LogChange(int64_t internalId,
-                           const ServerIndexChange& change) ORTHANC_OVERRIDE
+    virtual void LogChange(ChangeType changeType,
+                           ResourceType resourceType,
+                           int64_t internalId,
+                           const std::string& publicId,
+                           const std::string& date) ORTHANC_OVERRIDE
     {
       OrthancPluginChange tmp;
-      tmp.seq = change.GetSeq();
-      tmp.changeType = static_cast<int32_t>(change.GetChangeType());
-      tmp.resourceType = Plugins::Convert(change.GetResourceType());
-      tmp.publicId = change.GetPublicId().c_str();
-      tmp.date = change.GetDate().c_str();
+      tmp.seq = -1;  // Unused (it is attributed by the database engine)
+      tmp.changeType = static_cast<int32_t>(changeType);
+      tmp.resourceType = Plugins::Convert(resourceType);
+      tmp.publicId = publicId.c_str();
+      tmp.date = date.c_str();
 
       CheckSuccess(that_.backend_.logChange(that_.payload_, &tmp));
     }
@@ -1370,12 +1365,12 @@ namespace Orthanc
                it = content.GetListTags().begin(); it != content.GetListTags().end(); ++it)
         {
           OrthancPluginResourcesContentTags tmp;
-          tmp.resource = it->resourceId_;
-          tmp.group = it->tag_.GetGroup();
-          tmp.element = it->tag_.GetElement();
-          tmp.value = it->value_.c_str();
+          tmp.resource = it->GetResourceId();
+          tmp.group = it->GetTag().GetGroup();
+          tmp.element = it->GetTag().GetElement();
+          tmp.value = it->GetValue().c_str();
 
-          if (it->isIdentifier_)
+          if (it->IsIdentifier())
           {
             identifierTags.push_back(tmp);
           }
@@ -1389,9 +1384,9 @@ namespace Orthanc
                it = content.GetListMetadata().begin(); it != content.GetListMetadata().end(); ++it)
         {
           OrthancPluginResourcesContentMetadata tmp;
-          tmp.resource = it->resourceId_;
-          tmp.metadata = it->metadata_;
-          tmp.value = it->value_.c_str();
+          tmp.resource = it->GetResourceId();
+          tmp.metadata = it->GetType();
+          tmp.value = it->GetValue().c_str();
           metadata.push_back(tmp);
         }
 

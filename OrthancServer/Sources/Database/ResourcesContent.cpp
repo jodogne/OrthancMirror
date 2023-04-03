@@ -140,13 +140,13 @@ namespace Orthanc
     for (std::list<TagValue>::const_iterator
            it = tags_.begin(); it != tags_.end(); ++it)
     {
-      if (it->isIdentifier_)
+      if (it->IsIdentifier())
       {
-        compatibility.SetIdentifierTag(it->resourceId_, it->tag_,  it->value_);
+        compatibility.SetIdentifierTag(it->GetResourceId(), it->GetTag(),  it->GetValue());
       }
       else
       {
-        compatibility.SetMainDicomTag(it->resourceId_, it->tag_,  it->value_);
+        compatibility.SetMainDicomTag(it->GetResourceId(), it->GetTag(),  it->GetValue());
       }
     }
 
@@ -154,7 +154,7 @@ namespace Orthanc
            it = metadata_.begin(); it != metadata_.end(); ++it)
     {
       assert(isNewResource_);
-      compatibility.SetMetadata(it->resourceId_, it->metadata_,  it->value_, 0 /* initial revision number */);
+      compatibility.SetMetadata(it->GetResourceId(), it->GetType(),  it->GetValue(), 0 /* initial revision number */);
     }
   }
 }
