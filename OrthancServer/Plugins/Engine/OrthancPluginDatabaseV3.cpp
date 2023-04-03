@@ -622,12 +622,15 @@ namespace Orthanc
     }
 
     
-    virtual void LogChange(int64_t internalId,
-                           const ServerIndexChange& change) ORTHANC_OVERRIDE
+    virtual void LogChange(ChangeType changeType,
+                           ResourceType resourceType,
+                           int64_t internalId,
+                           const std::string& /* publicId - unused */,
+                           const std::string& date) ORTHANC_OVERRIDE
     {
-      CheckSuccess(that_.backend_.logChange(transaction_, static_cast<int32_t>(change.GetChangeType()),
-                                            internalId, Plugins::Convert(change.GetResourceType()),
-                                            change.GetDate().c_str()));
+      CheckSuccess(that_.backend_.logChange(transaction_, static_cast<int32_t>(changeType),
+                                            internalId, Plugins::Convert(resourceType),
+                                            date.c_str()));
       CheckNoEvent();
     }
 

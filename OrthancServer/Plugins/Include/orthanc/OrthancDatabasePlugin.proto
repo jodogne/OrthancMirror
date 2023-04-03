@@ -503,8 +503,8 @@ message ListAvailableAttachments {
 message LogChange {
   message Request {
     int32         change_type = 1;
-    int64         resource_id = 2;
-    ResourceType  resource_type = 3;
+    ResourceType  resource_type = 2;
+    int64         resource_id = 3;
     string        date = 4;
   }
   message Response {

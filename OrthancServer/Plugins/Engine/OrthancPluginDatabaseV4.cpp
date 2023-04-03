@@ -662,16 +662,17 @@ namespace Orthanc
     }
 
     
-    virtual void LogChange(int64_t internalId,
-                           const ServerIndexChange& change) ORTHANC_OVERRIDE
+    virtual void LogChange(ChangeType changeType,
+                           ResourceType resourceType,
+                           int64_t internalId,
+                           const std::string& /* publicId - unused */,
+                           const std::string& date) ORTHANC_OVERRIDE
     {
-      // TODO => Simplify "IDatabaseWrapper"
-      
       DatabasePluginMessages::TransactionRequest request;
-      request.mutable_log_change()->set_change_type(change.GetChangeType());
+      request.mutable_log_change()->set_change_type(changeType);
+      request.mutable_log_change()->set_resource_type(Convert(resourceType));
       request.mutable_log_change()->set_resource_id(internalId);
-      request.mutable_log_change()->set_resource_type(Convert(change.GetResourceType()));
-      request.mutable_log_change()->set_date(change.GetDate());
+      request.mutable_log_change()->set_date(date);
 
       ExecuteTransaction(DatabasePluginMessages::OPERATION_LOG_CHANGE, request);
     }

@@ -1055,15 +1055,18 @@ namespace Orthanc
     }
 
 
-    virtual void LogChange(int64_t internalId,
-                           const ServerIndexChange& change) ORTHANC_OVERRIDE
+    virtual void LogChange(ChangeType changeType,
+                           ResourceType resourceType,
+                           int64_t internalId,
+                           const std::string& publicId,
+                           const std::string& date) ORTHANC_OVERRIDE
     {
       OrthancPluginChange tmp;
-      tmp.seq = change.GetSeq();
-      tmp.changeType = static_cast<int32_t>(change.GetChangeType());
-      tmp.resourceType = Plugins::Convert(change.GetResourceType());
-      tmp.publicId = change.GetPublicId().c_str();
-      tmp.date = change.GetDate().c_str();
+      tmp.seq = -1;  // Unused (it is attributed by the database engine)
+      tmp.changeType = static_cast<int32_t>(changeType);
+      tmp.resourceType = Plugins::Convert(resourceType);
+      tmp.publicId = publicId.c_str();
+      tmp.date = date.c_str();
 
       CheckSuccess(that_.backend_.logChange(that_.payload_, &tmp));
     }
