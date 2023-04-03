@@ -42,7 +42,7 @@ namespace Orthanc
   class IDatabaseWrapper : public boost::noncopyable
   {
   public:
-    struct CreateInstanceResult
+    struct CreateInstanceResult : public boost::noncopyable
     {
       bool     isNewPatient_;
       bool     isNewStudy_;
@@ -94,13 +94,13 @@ namespace Orthanc
 
       virtual void GetAllPublicIds(std::list<std::string>& target,
                                    ResourceType resourceType,
-                                   size_t since,
-                                   size_t limit) = 0;
+                                   int64_t since,
+                                   uint32_t limit) = 0;
 
       virtual void GetChanges(std::list<ServerIndexChange>& target /*out*/,
                               bool& done /*out*/,
                               int64_t since,
-                              uint32_t maxResults) = 0;
+                              uint32_t limit) = 0;
 
       virtual void GetChildrenInternalId(std::list<int64_t>& target,
                                          int64_t id) = 0;
@@ -111,7 +111,7 @@ namespace Orthanc
       virtual void GetExportedResources(std::list<ExportedResource>& target /*out*/,
                                         bool& done /*out*/,
                                         int64_t since,
-                                        uint32_t maxResults) = 0;
+                                        uint32_t limit) = 0;
 
       virtual void GetLastChange(std::list<ServerIndexChange>& target /*out*/) = 0;
 
@@ -130,15 +130,16 @@ namespace Orthanc
     
       virtual uint64_t GetTotalUncompressedSize() = 0;
 
-      virtual bool IsExistingResource(int64_t internalId) = 0;
-
       virtual bool IsProtectedPatient(int64_t internalId) = 0;
 
       virtual void ListAvailableAttachments(std::set<FileContentType>& target,
                                             int64_t id) = 0;
 
-      virtual void LogChange(int64_t internalId,
-                             const ServerIndexChange& change) = 0;
+      virtual void LogChange(ChangeType changeType,
+                             ResourceType resourceType,
+                             int64_t internalId,
+                             const std::string& publicId,  /* only for compatibility with V1 and V2 plugins */
+                             const std::string& date) = 0;
 
       virtual void LogExportedResource(const ExportedResource& resource) = 0;
     
@@ -199,7 +200,7 @@ namespace Orthanc
                                         std::list<std::string>* instancesId, // Can be NULL if not needed
                                         const std::vector<DatabaseConstraint>& lookup,
                                         ResourceType queryLevel,
-                                        size_t limit) = 0;
+                                        uint32_t limit) = 0;
 
       // Returns "true" iff. the instance is new and has been inserted
       // into the database. If "false" is returned, the content of

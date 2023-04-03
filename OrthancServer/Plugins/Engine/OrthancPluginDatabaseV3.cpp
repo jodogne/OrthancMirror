@@ -388,8 +388,8 @@ namespace Orthanc
     
     virtual void GetAllPublicIds(std::list<std::string>& target,
                                  ResourceType resourceType,
-                                 size_t since,
-                                 size_t limit) ORTHANC_OVERRIDE
+                                 int64_t since,
+                                 uint32_t limit) ORTHANC_OVERRIDE
     {
       CheckSuccess(that_.backend_.getAllPublicIdsWithLimit(
                      transaction_, Plugins::Convert(resourceType),
@@ -403,10 +403,10 @@ namespace Orthanc
     virtual void GetChanges(std::list<ServerIndexChange>& target /*out*/,
                             bool& done /*out*/,
                             int64_t since,
-                            uint32_t maxResults) ORTHANC_OVERRIDE
+                            uint32_t limit) ORTHANC_OVERRIDE
     {
       uint8_t tmpDone = true;
-      CheckSuccess(that_.backend_.getChanges(transaction_, &tmpDone, since, maxResults));
+      CheckSuccess(that_.backend_.getChanges(transaction_, &tmpDone, since, limit));
       CheckNoEvent();
 
       done = (tmpDone != 0);
@@ -454,10 +454,10 @@ namespace Orthanc
     virtual void GetExportedResources(std::list<ExportedResource>& target /*out*/,
                                       bool& done /*out*/,
                                       int64_t since,
-                                      uint32_t maxResults) ORTHANC_OVERRIDE
+                                      uint32_t limit) ORTHANC_OVERRIDE
     {
       uint8_t tmpDone = true;
-      CheckSuccess(that_.backend_.getExportedResources(transaction_, &tmpDone, since, maxResults));
+      CheckSuccess(that_.backend_.getExportedResources(transaction_, &tmpDone, since, limit));
       CheckNoEvent();
 
       done = (tmpDone != 0);
@@ -594,15 +594,6 @@ namespace Orthanc
     }
 
     
-    virtual bool IsExistingResource(int64_t internalId) ORTHANC_OVERRIDE
-    {
-      uint8_t b;
-      CheckSuccess(that_.backend_.isExistingResource(transaction_, &b, internalId));
-      CheckNoEvent();
-      return (b != 0);
-    }
-
-    
     virtual bool IsProtectedPatient(int64_t internalId) ORTHANC_OVERRIDE
     {
       uint8_t b;
@@ -631,12 +622,15 @@ namespace Orthanc
     }
 
     
-    virtual void LogChange(int64_t internalId,
-                           const ServerIndexChange& change) ORTHANC_OVERRIDE
+    virtual void LogChange(ChangeType changeType,
+                           ResourceType resourceType,
+                           int64_t internalId,
+                           const std::string& /* publicId - unused */,
+                           const std::string& date) ORTHANC_OVERRIDE
     {
-      CheckSuccess(that_.backend_.logChange(transaction_, static_cast<int32_t>(change.GetChangeType()),
-                                            internalId, Plugins::Convert(change.GetResourceType()),
-                                            change.GetDate().c_str()));
+      CheckSuccess(that_.backend_.logChange(transaction_, static_cast<int32_t>(changeType),
+                                            internalId, Plugins::Convert(resourceType),
+                                            date.c_str()));
       CheckNoEvent();
     }
 
@@ -806,7 +800,7 @@ namespace Orthanc
                                       std::list<std::string>* instancesId, // Can be NULL if not needed
                                       const std::vector<DatabaseConstraint>& lookup,
                                       ResourceType queryLevel,
-                                      size_t limit) ORTHANC_OVERRIDE
+                                      uint32_t limit) ORTHANC_OVERRIDE
     {
       std::vector<OrthancPluginDatabaseConstraint> constraints;
       std::vector< std::vector<const char*> > constraintsValues;
@@ -910,12 +904,12 @@ namespace Orthanc
              it = content.GetListTags().begin(); it != content.GetListTags().end(); ++it)
       {
         OrthancPluginResourcesContentTags tmp;
-        tmp.resource = it->resourceId_;
-        tmp.group = it->tag_.GetGroup();
-        tmp.element = it->tag_.GetElement();
-        tmp.value = it->value_.c_str();
+        tmp.resource = it->GetResourceId();
+        tmp.group = it->GetTag().GetGroup();
+        tmp.element = it->GetTag().GetElement();
+        tmp.value = it->GetValue().c_str();
 
-        if (it->isIdentifier_)
+        if (it->IsIdentifier())
         {
           identifierTags.push_back(tmp);
         }
@@ -929,9 +923,9 @@ namespace Orthanc
              it = content.GetListMetadata().begin(); it != content.GetListMetadata().end(); ++it)
       {
         OrthancPluginResourcesContentMetadata tmp;
-        tmp.resource = it->resourceId_;
-        tmp.metadata = it->metadata_;
-        tmp.value = it->value_.c_str();
+        tmp.resource = it->GetResourceId();
+        tmp.metadata = it->GetType();
+        tmp.value = it->GetValue().c_str();
         metadata.push_back(tmp);
       }
 
