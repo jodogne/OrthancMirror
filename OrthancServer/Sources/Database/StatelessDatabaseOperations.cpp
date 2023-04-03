@@ -1066,7 +1066,7 @@ namespace Orthanc
   void StatelessDatabaseOperations::GetAllUuids(std::list<std::string>& target,
                                                 ResourceType resourceType,
                                                 size_t since,
-                                                size_t limit)
+                                                uint32_t limit)
   {
     if (limit == 0)
     {
@@ -1646,7 +1646,9 @@ namespace Orthanc
       {
         // TODO - CANDIDATE FOR "TransactionType_Implicit"
         std::list<std::string> tmp;
-        transaction.ApplyLookupResources(tmp, NULL, query_, level_, 0);
+        std::set<std::string> withLabels;
+        std::set<std::string> withoutLabels;
+        transaction.ApplyLookupResources(tmp, NULL, query_, level_, withLabels, withoutLabels, 0);
         CopyListToVector(result_, tmp);
       }
     };
@@ -1915,9 +1917,12 @@ namespace Orthanc
                                                          std::vector<std::string>* instancesId,
                                                          const DatabaseLookup& lookup,
                                                          ResourceType queryLevel,
-                                                         size_t limit)
+                                                         const std::set<std::string>& withLabels,
+                                                         const std::set<std::string>& withoutLabels,
+                                                         uint32_t limit)
   {
-    class Operations : public ReadOnlyOperationsT4<bool, const std::vector<DatabaseConstraint>&, ResourceType, size_t>
+    class Operations : public ReadOnlyOperationsT6<bool, const std::vector<DatabaseConstraint>&, ResourceType,
+                                                   const std::set<std::string>&, const std::set<std::string>&, size_t>
     {
     private:
       std::list<std::string>  resourcesList_;
@@ -1940,11 +1945,13 @@ namespace Orthanc
         // TODO - CANDIDATE FOR "TransactionType_Implicit"
         if (tuple.get<0>())
         {
-          transaction.ApplyLookupResources(resourcesList_, &instancesList_, tuple.get<1>(), tuple.get<2>(), tuple.get<3>());
+          transaction.ApplyLookupResources(
+            resourcesList_, &instancesList_, tuple.get<1>(), tuple.get<2>(), tuple.get<3>(), tuple.get<4>(), tuple.get<5>());
         }
         else
         {
-          transaction.ApplyLookupResources(resourcesList_, NULL, tuple.get<1>(), tuple.get<2>(), tuple.get<3>());
+          transaction.ApplyLookupResources(
+            resourcesList_, NULL, tuple.get<1>(), tuple.get<2>(), tuple.get<3>(), tuple.get<4>(), tuple.get<5>());
         }
       }
     };
@@ -1954,7 +1961,7 @@ namespace Orthanc
     NormalizeLookup(normalized, lookup, queryLevel);
 
     Operations operations;
-    operations.Apply(*this, (instancesId != NULL), normalized, queryLevel, limit);
+    operations.Apply(*this, (instancesId != NULL), normalized, queryLevel, withLabels, withoutLabels, limit);
     
     CopyListToVector(resourcesId, operations.GetResourcesList());
 

@@ -157,9 +157,11 @@ namespace Orthanc
                                 std::list<std::string>* instancesId, // Can be NULL if not needed
                                 const std::vector<DatabaseConstraint>& lookup,
                                 ResourceType queryLevel,
-                                size_t limit)
+                                const std::set<std::string>& withLabels,
+                                const std::set<std::string>& withoutLabels,
+                                uint32_t limit)
       {
-        return transaction_.ApplyLookupResources(resourcesId, instancesId, lookup, queryLevel, limit);
+        return transaction_.ApplyLookupResources(resourcesId, instancesId, lookup, queryLevel, withLabels, withoutLabels, limit);
       }
 
       void GetAllMetadata(std::map<MetadataType, std::string>& target,
@@ -177,7 +179,7 @@ namespace Orthanc
       void GetAllPublicIds(std::list<std::string>& target,
                            ResourceType resourceType,
                            size_t since,
-                           size_t limit)
+                           uint32_t limit)
       {
         return transaction_.GetAllPublicIds(target, resourceType, since, limit);
       }  
@@ -185,9 +187,9 @@ namespace Orthanc
       void GetChanges(std::list<ServerIndexChange>& target /*out*/,
                       bool& done /*out*/,
                       int64_t since,
-                      uint32_t maxResults)
+                      uint32_t limit)
       {
-        transaction_.GetChanges(target, done, since, maxResults);
+        transaction_.GetChanges(target, done, since, limit);
       }
 
       void GetChildrenInternalId(std::list<int64_t>& target,
@@ -205,9 +207,9 @@ namespace Orthanc
       void GetExportedResources(std::list<ExportedResource>& target /*out*/,
                                 bool& done /*out*/,
                                 int64_t since,
-                                uint32_t maxResults)
+                                uint32_t limit)
       {
-        return transaction_.GetExportedResources(target, done, since, maxResults);
+        return transaction_.GetExportedResources(target, done, since, limit);
       }
 
       void GetLastChange(std::list<ServerIndexChange>& target /*out*/)
@@ -515,7 +517,7 @@ namespace Orthanc
     void GetAllUuids(std::list<std::string>& target,
                      ResourceType resourceType,
                      size_t since,
-                     size_t limit);
+                     uint32_t limit);
 
     void GetGlobalStatistics(/* out */ uint64_t& diskSize,
                              /* out */ uint64_t& uncompressedSize,
@@ -531,13 +533,13 @@ namespace Orthanc
 
     void GetChanges(Json::Value& target,
                     int64_t since,
-                    unsigned int maxResults);
+                    uint32_t limit);
 
     void GetLastChange(Json::Value& target);
 
     void GetExportedResources(Json::Value& target,
                               int64_t since,
-                              unsigned int maxResults);
+                              uint32_t limit);
 
     void GetLastExportedResource(Json::Value& target);
 
@@ -605,7 +607,9 @@ namespace Orthanc
                               std::vector<std::string>* instancesId,  // Can be NULL if not needed
                               const DatabaseLookup& lookup,
                               ResourceType queryLevel,
-                              size_t limit);
+                              const std::set<std::string>& withLabels,
+                              const std::set<std::string>& withoutLabels,
+                              uint32_t limit);
 
     bool DeleteResource(Json::Value& remainingAncestor /* out */,
                         const std::string& uuid,

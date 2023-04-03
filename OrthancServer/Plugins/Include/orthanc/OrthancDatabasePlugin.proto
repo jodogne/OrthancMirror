@@ -129,6 +129,7 @@ message GetSystemInformation {
     uint32 database_version = 1;
     bool supports_flush_to_disk = 2;
     bool supports_revisions = 3;
+    bool supports_labels = 4;
   }
 }
 

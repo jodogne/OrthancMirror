@@ -341,8 +341,16 @@ namespace Orthanc
                                       std::list<std::string>* instancesId,
                                       const std::vector<DatabaseConstraint>& lookup,
                                       ResourceType queryLevel,
+                                      const std::set<std::string>& withLabels,
+                                      const std::set<std::string>& withoutLabels,
                                       uint32_t limit) ORTHANC_OVERRIDE
     {
+      if (!withLabels.empty() ||
+          !withoutLabels.empty())
+      {
+        throw OrthancException(ErrorCode_NotImplemented);
+      }
+      
       LookupFormatter formatter;
 
       std::string sql;
@@ -1070,6 +1078,27 @@ namespace Orthanc
         s.BindInt64(0, patient);
         s.Run();
       }
+    }
+
+
+    virtual void AddLabel(int64_t resource,
+                          const std::string& label) ORTHANC_OVERRIDE
+    {
+      throw OrthancException(ErrorCode_NotImplemented);
+    }
+
+
+    virtual void RemoveLabel(int64_t resource,
+                             const std::string& label) ORTHANC_OVERRIDE
+    {
+      throw OrthancException(ErrorCode_NotImplemented);
+    }
+
+
+    virtual void GetLabels(std::set<std::string>& target,
+                           int64_t resource) ORTHANC_OVERRIDE
+    {
+      throw OrthancException(ErrorCode_NotImplemented);
     }
   };
 

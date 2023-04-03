@@ -565,8 +565,16 @@ namespace Orthanc
                                       std::list<std::string>* instancesId,
                                       const std::vector<DatabaseConstraint>& lookup,
                                       ResourceType queryLevel,
+                                      const std::set<std::string>& withLabels,
+                                      const std::set<std::string>& withoutLabels,
                                       uint32_t limit) ORTHANC_OVERRIDE
     {
+      if (!withLabels.empty() ||
+          !withoutLabels.empty())
+      {
+        throw OrthancException(ErrorCode_InternalError);  // "HasLabelsSupport()" has returned "false"
+      }
+      
       if (that_.extensions_.lookupResources == NULL)
       {
         // Fallback to compatibility mode
@@ -1412,6 +1420,27 @@ namespace Orthanc
       {
         CheckSuccess(that_.extensions_.tagMostRecentPatient(that_.payload_, patient));
       }
+    }
+
+
+    virtual void AddLabel(int64_t resource,
+                          const std::string& label) ORTHANC_OVERRIDE
+    {
+      throw OrthancException(ErrorCode_InternalError);  // Not supported
+    }
+
+
+    virtual void RemoveLabel(int64_t resource,
+                             const std::string& label) ORTHANC_OVERRIDE
+    {
+      throw OrthancException(ErrorCode_InternalError);  // Not supported
+    }
+
+
+    virtual void GetLabels(std::set<std::string>& target,
+                           int64_t resource) ORTHANC_OVERRIDE
+    {
+      throw OrthancException(ErrorCode_InternalError);  // Not supported
     }
   };
 

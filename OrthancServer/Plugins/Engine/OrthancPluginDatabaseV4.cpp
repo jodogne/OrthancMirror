@@ -915,8 +915,17 @@ namespace Orthanc
                                       std::list<std::string>* instancesId, // Can be NULL if not needed
                                       const std::vector<DatabaseConstraint>& lookup,
                                       ResourceType queryLevel,
+                                      const std::set<std::string>& withLabels,
+                                      const std::set<std::string>& withoutLabels,
                                       uint32_t limit) ORTHANC_OVERRIDE
     {
+      if (!database_.HasLabelsSupport() &&
+          (!withLabels.empty() ||
+           !withoutLabels.empty()))
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+
       DatabasePluginMessages::TransactionRequest request;
       request.mutable_lookup_resources()->set_query_level(Convert(queryLevel));
       request.mutable_lookup_resources()->set_limit(limit);
@@ -965,6 +974,12 @@ namespace Orthanc
           default:
             throw OrthancException(ErrorCode_ParameterOutOfRange);
         }
+      }
+
+      if (!withLabels.empty() ||
+          !withoutLabels.empty())
+      {
+        throw OrthancException(ErrorCode_NotImplemented);  // TODO
       }
       
       DatabasePluginMessages::TransactionResponse response;
@@ -1132,6 +1147,27 @@ namespace Orthanc
         return false;
       }
     }
+
+    
+    virtual void AddLabel(int64_t resource,
+                          const std::string& label) ORTHANC_OVERRIDE
+    {
+      throw OrthancException(ErrorCode_NotImplemented);
+    }
+
+
+    virtual void RemoveLabel(int64_t resource,
+                             const std::string& label) ORTHANC_OVERRIDE
+    {
+      throw OrthancException(ErrorCode_NotImplemented);
+    }
+
+
+    virtual void GetLabels(std::set<std::string>& target,
+                           int64_t resource) ORTHANC_OVERRIDE
+    {
+      throw OrthancException(ErrorCode_NotImplemented);
+    }
   };
 
 
@@ -1146,7 +1182,8 @@ namespace Orthanc
     open_(false),
     databaseVersion_(0),
     hasFlushToDisk_(false),
-    hasRevisionsSupport_(false)
+    hasRevisionsSupport_(false),
+    hasLabelsSupport_(false)
   {
     CLOG(INFO, PLUGINS) << "Identifier of this Orthanc server for the global properties "
                         << "of the custom database: \"" << serverIdentifier << "\"";
@@ -1186,6 +1223,7 @@ namespace Orthanc
       databaseVersion_ = response.get_system_information().database_version();
       hasFlushToDisk_ = response.get_system_information().supports_flush_to_disk();
       hasRevisionsSupport_ = response.get_system_information().supports_revisions();
+      hasLabelsSupport_ = response.get_system_information().supports_labels();
     }
 
     open_ = true;    
@@ -1305,6 +1343,19 @@ namespace Orthanc
     else
     {
       return hasRevisionsSupport_;
+    }
+  }
+
+  
+  bool OrthancPluginDatabaseV4::HasLabelsSupport() const
+  {
+    if (!open_)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    else
+    {
+      return hasLabelsSupport_;
     }
   }
 }

@@ -368,4 +368,30 @@ namespace Orthanc
 
     return clone.release();
   }
+
+
+  void DatabaseLookup::AddWithLabel(const std::string& label)
+  {
+    if (label.empty())
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+    else
+    {
+      withLabels_.insert(label);
+    }
+  }
+  
+
+  void DatabaseLookup::AddWithoutLabel(const std::string& label)
+  {
+    if (label.empty())
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+    else
+    {
+      withoutLabels_.insert(label);
+    }
+  }
 }

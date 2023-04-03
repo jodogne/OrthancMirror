@@ -32,6 +32,8 @@ namespace Orthanc
   {
   private:
     std::vector<DicomTagConstraint*>  constraints_;
+    std::set<std::string>             withLabels_;
+    std::set<std::string>             withoutLabels_;
 
     void AddDicomConstraintInternal(const DicomTag& tag,
                                     ValueRepresentation vr,
@@ -92,5 +94,19 @@ namespace Orthanc
     bool HasTag(const DicomTag& tag) const;
 
     void RemoveConstraint(const DicomTag& tag);
+
+    void AddWithLabel(const std::string& label);
+
+    void AddWithoutLabel(const std::string& label);
+
+    const std::set<std::string>& GetWithLabels() const
+    {
+      return withLabels_;
+    }
+
+    const std::set<std::string>& GetWithoutLabels() const
+    {
+      return withoutLabels_;
+    }
   };
 }

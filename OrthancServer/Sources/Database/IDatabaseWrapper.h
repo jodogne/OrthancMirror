@@ -200,6 +200,8 @@ namespace Orthanc
                                         std::list<std::string>* instancesId, // Can be NULL if not needed
                                         const std::vector<DatabaseConstraint>& lookup,
                                         ResourceType queryLevel,
+                                        const std::set<std::string>& withLabels,
+                                        const std::set<std::string>& withoutLabels,
                                         uint32_t limit) = 0;
 
       // Returns "true" iff. the instance is new and has been inserted
@@ -236,6 +238,20 @@ namespace Orthanc
                                            ResourceType& type,
                                            std::string& parentPublicId,
                                            const std::string& publicId) = 0;
+
+
+      /**
+       * Primitives introduced in Orthanc 1.12.0
+       **/
+
+      virtual void AddLabel(int64_t resource,
+                            const std::string& label) = 0;
+
+      virtual void RemoveLabel(int64_t resource,
+                               const std::string& label) = 0;
+
+      virtual void GetLabels(std::set<std::string>& target,
+                             int64_t resource) = 0;
     };
 
 
@@ -260,5 +276,7 @@ namespace Orthanc
                          IStorageArea& storageArea) = 0;
 
     virtual bool HasRevisionsSupport() const = 0;
+
+    virtual bool HasLabelsSupport() const = 0;
   };
 }
