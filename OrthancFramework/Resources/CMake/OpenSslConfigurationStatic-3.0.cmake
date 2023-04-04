@@ -293,7 +293,6 @@ list(REMOVE_ITEM OPENSSL_SOURCES
   ${OPENSSL_SOURCES_DIR}/crypto/LPdir_win32.c
   ${OPENSSL_SOURCES_DIR}/crypto/LPdir_wince.c
   ${OPENSSL_SOURCES_DIR}/crypto/aes/aes_x86core.c
-  ${OPENSSL_SOURCES_DIR}/crypto/armcap.c
   ${OPENSSL_SOURCES_DIR}/crypto/des/ncbc_enc.c
   ${OPENSSL_SOURCES_DIR}/crypto/ec/ecp_nistp224.c
   ${OPENSSL_SOURCES_DIR}/crypto/ec/ecp_nistp256.c
@@ -304,7 +303,6 @@ list(REMOVE_ITEM OPENSSL_SOURCES
   ${OPENSSL_SOURCES_DIR}/crypto/ec/ecx_s390x.c
   ${OPENSSL_SOURCES_DIR}/crypto/poly1305/poly1305_base2_44.c
   ${OPENSSL_SOURCES_DIR}/crypto/rsa/rsa_acvp_test_params.c
-  ${OPENSSL_SOURCES_DIR}/crypto/s390xcap.c
   ${OPENSSL_SOURCES_DIR}/engines/e_devcrypto.c
   ${OPENSSL_SOURCES_DIR}/engines/e_loader_attic.c
   ${OPENSSL_SOURCES_DIR}/providers/common/securitycheck_fips.c
@@ -320,14 +318,18 @@ list(REMOVE_ITEM OPENSSL_SOURCES
   ${OPENSSL_SOURCES_DIR}/crypto/chacha/chacha_ppc.c
   ${OPENSSL_SOURCES_DIR}/crypto/ec/ecp_ppc.c
   ${OPENSSL_SOURCES_DIR}/crypto/poly1305/poly1305_ppc.c
-  ${OPENSSL_SOURCES_DIR}/crypto/ppccap.c
   ${OPENSSL_SOURCES_DIR}/crypto/sha/sha_ppc.c
 
   # Disable SPARC sources
   ${OPENSSL_SOURCES_DIR}/crypto/bn/bn_sparc.c
-  ${OPENSSL_SOURCES_DIR}/crypto/sparcv9cap.c
 
+  # Disable CPUID for non-x86 platforms
+  ${OPENSSL_SOURCES_DIR}/crypto/armcap.c
   ${OPENSSL_SOURCES_DIR}/crypto/loongarchcap.c
+  ${OPENSSL_SOURCES_DIR}/crypto/ppccap.c
+  ${OPENSSL_SOURCES_DIR}/crypto/riscvcap.c
+  ${OPENSSL_SOURCES_DIR}/crypto/s390xcap.c
+  ${OPENSSL_SOURCES_DIR}/crypto/sparcv9cap.c
   )
 
 
