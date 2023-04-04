@@ -716,7 +716,7 @@ TEST(DicomMap, FromDicomAsJsonAndSequences)
     DicomMap sequencesOnly;
     m.ExtractSequences(sequencesOnly);
 
-    ASSERT_EQ(1, sequencesOnly.GetSize());
+    ASSERT_EQ(1u, sequencesOnly.GetSize());
     ASSERT_TRUE(sequencesOnly.HasTag(0x0008, 0x1111));
     ASSERT_TRUE(sequencesOnly.GetValue(0x0008, 0x1111).GetSequenceContent()[0].isMember("0008,1150"));
 
@@ -724,7 +724,7 @@ TEST(DicomMap, FromDicomAsJsonAndSequences)
     DicomMap sequencesCopy;
     sequencesCopy.SetValue(0x0008, 0x1111, sequencesOnly.GetValue(0x0008, 0x1111));
 
-    ASSERT_EQ(1, sequencesCopy.GetSize());
+    ASSERT_EQ(1u, sequencesCopy.GetSize());
     ASSERT_TRUE(sequencesCopy.HasTag(0x0008, 0x1111));
     ASSERT_TRUE(sequencesCopy.GetValue(0x0008, 0x1111).GetSequenceContent()[0].isMember("0008,1150"));
   }
