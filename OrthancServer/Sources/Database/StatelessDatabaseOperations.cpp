@@ -2967,6 +2967,10 @@ namespace Orthanc
                                       MetadataType metadata,
                                       const std::string& value)
       {
+        if (metadata == 15)
+        {
+          LOG(INFO) << "toto";
+        }
         content.AddMetadata(instance, metadata, value);
         instanceMetadata[metadata] = value;
       }
@@ -3092,13 +3096,21 @@ namespace Orthanc
         {
           IDatabaseWrapper::CreateInstanceResult status;
           int64_t instanceId;
+          
+          bool isNewInstance = transaction.CreateInstance(status, instanceId, hashPatient_,
+                                                          hashStudy_, hashSeries_, hashInstance_);
+
+          if (isReconstruct_ && isNewInstance)
+          {
+            // In case of reconstruct, we just want to modify the attachments and some metadata like the TransferSyntex
+            // The DicomTags and many metadata have already been updated before we get here in ReconstructInstance
+            throw OrthancException(ErrorCode_InternalError, "New instance while reconstructing; this should not happen.");
+          }
 
           // Check whether this instance is already stored
-          if (!transaction.CreateInstance(status, instanceId, hashPatient_,
-                                          hashStudy_, hashSeries_, hashInstance_))
+          if (!isNewInstance && !isReconstruct_)
           {
             // The instance already exists
-        
             if (overwrite_)
             {
               // Overwrite the old instance
@@ -3109,7 +3121,7 @@ namespace Orthanc
               if (!transaction.CreateInstance(status, instanceId, hashPatient_,
                                               hashStudy_, hashSeries_, hashInstance_))
               {
-                throw OrthancException(ErrorCode_InternalError);
+                throw OrthancException(ErrorCode_InternalError, "No new instance while overwriting; this should not happen.");
               }
             }
             else
@@ -3184,13 +3196,18 @@ namespace Orthanc
           for (Attachments::const_iterator it = attachments_.begin();
                it != attachments_.end(); ++it)
           {
+            if (isReconstruct_)
+            {
+              // we are replacing attachments during a reconstruction
+              transaction.DeleteAttachment(instanceId, it->GetContentType());
+            }
+
             transaction.AddAttachment(instanceId, *it, 0 /* this is the first revision */);
           }
 
-      
+          if (!isReconstruct_)
           {
             ResourcesContent content(true /* new resource, metadata can be set */);
-
 
             // Attach the user-specified metadata (in case of reconstruction, metadata_ contains all past metadata, including the system ones we want to keep)
             for (MetadataMap::const_iterator 
@@ -3220,62 +3237,52 @@ namespace Orthanc
               }
             }
 
-            // Populate the tags of the newly-created resources
-
-            content.AddResource(instanceId, ResourceType_Instance, dicomSummary_);
-            SetInstanceMetadata(content, instanceMetadata_, instanceId, MetadataType_MainDicomTagsSignature, DicomMap::GetMainDicomTagsSignature(ResourceType_Instance));  // New in Orthanc 1.11.0
-            SetMainDicomSequenceMetadata(content, instanceId, dicomSummary_, ResourceType_Instance);   // new in Orthanc 1.11.1
-
-            if (status.isNewSeries_)
+            if (!isReconstruct_)
             {
-              content.AddResource(status.seriesId_, ResourceType_Series, dicomSummary_);
-              content.AddMetadata(status.seriesId_, MetadataType_MainDicomTagsSignature, DicomMap::GetMainDicomTagsSignature(ResourceType_Series));  // New in Orthanc 1.11.0
-              SetMainDicomSequenceMetadata(content, status.seriesId_, dicomSummary_, ResourceType_Series);   // new in Orthanc 1.11.1
-            }
+              // Populate the tags of the newly-created resources
+              content.AddResource(instanceId, ResourceType_Instance, dicomSummary_);
+              SetInstanceMetadata(content, instanceMetadata_, instanceId, MetadataType_MainDicomTagsSignature, DicomMap::GetMainDicomTagsSignature(ResourceType_Instance));  // New in Orthanc 1.11.0
+              SetMainDicomSequenceMetadata(content, instanceId, dicomSummary_, ResourceType_Instance);   // new in Orthanc 1.11.1
 
-            if (status.isNewStudy_)
-            {
-              content.AddResource(status.studyId_, ResourceType_Study, dicomSummary_);
-              content.AddMetadata(status.studyId_, MetadataType_MainDicomTagsSignature, DicomMap::GetMainDicomTagsSignature(ResourceType_Study));  // New in Orthanc 1.11.0
-              SetMainDicomSequenceMetadata(content, status.studyId_, dicomSummary_, ResourceType_Study);   // new in Orthanc 1.11.1
-            }
-
-            if (status.isNewPatient_)
-            {
-              content.AddResource(status.patientId_, ResourceType_Patient, dicomSummary_);
-              content.AddMetadata(status.patientId_, MetadataType_MainDicomTagsSignature, DicomMap::GetMainDicomTagsSignature(ResourceType_Patient));  // New in Orthanc 1.11.0
-              SetMainDicomSequenceMetadata(content, status.patientId_, dicomSummary_, ResourceType_Patient);   // new in Orthanc 1.11.1
-            }
-
-            // Attach the auto-computed metadata for the patient/study/series levels
-            std::string now = SystemToolbox::GetNowIsoString(true /* use UTC time (not local time) */);
-            content.AddMetadata(status.seriesId_, MetadataType_LastUpdate, now);
-            content.AddMetadata(status.studyId_, MetadataType_LastUpdate, now);
-            content.AddMetadata(status.patientId_, MetadataType_LastUpdate, now);
-
-            if (status.isNewSeries_)
-            {
-              if (hasExpectedInstances_)
+              if (status.isNewSeries_)
               {
-                content.AddMetadata(status.seriesId_, MetadataType_Series_ExpectedNumberOfInstances,
-                                    boost::lexical_cast<std::string>(expectedInstances_));
+                content.AddResource(status.seriesId_, ResourceType_Series, dicomSummary_);
+                content.AddMetadata(status.seriesId_, MetadataType_MainDicomTagsSignature, DicomMap::GetMainDicomTagsSignature(ResourceType_Series));  // New in Orthanc 1.11.0
+                SetMainDicomSequenceMetadata(content, status.seriesId_, dicomSummary_, ResourceType_Series);   // new in Orthanc 1.11.1
               }
 
-              // New in Orthanc 1.9.0
-              content.AddMetadata(status.seriesId_, MetadataType_RemoteAet,
-                                  origin_.GetRemoteAetC());
-            }
+              if (status.isNewStudy_)
+              {
+                content.AddResource(status.studyId_, ResourceType_Study, dicomSummary_);
+                content.AddMetadata(status.studyId_, MetadataType_MainDicomTagsSignature, DicomMap::GetMainDicomTagsSignature(ResourceType_Study));  // New in Orthanc 1.11.0
+                SetMainDicomSequenceMetadata(content, status.studyId_, dicomSummary_, ResourceType_Study);   // new in Orthanc 1.11.1
+              }
 
-            if (hasTransferSyntax_)
-            {
-              // New in Orthanc 1.2.0
-              SetInstanceMetadata(content, instanceMetadata_, instanceId,
-                                  MetadataType_Instance_TransferSyntax,
-                                  GetTransferSyntaxUid(transferSyntax_));
-            }
+              if (status.isNewPatient_)
+              {
+                content.AddResource(status.patientId_, ResourceType_Patient, dicomSummary_);
+                content.AddMetadata(status.patientId_, MetadataType_MainDicomTagsSignature, DicomMap::GetMainDicomTagsSignature(ResourceType_Patient));  // New in Orthanc 1.11.0
+                SetMainDicomSequenceMetadata(content, status.patientId_, dicomSummary_, ResourceType_Patient);   // new in Orthanc 1.11.1
+              }
 
-            if (!isReconstruct_) // don't change origin metadata
-            {        
+              // Attach the auto-computed metadata for the patient/study/series levels
+              std::string now = SystemToolbox::GetNowIsoString(true /* use UTC time (not local time) */);
+              content.AddMetadata(status.seriesId_, MetadataType_LastUpdate, now);
+              content.AddMetadata(status.studyId_, MetadataType_LastUpdate, now);
+              content.AddMetadata(status.patientId_, MetadataType_LastUpdate, now);
+
+              if (status.isNewSeries_)
+              {
+                if (hasExpectedInstances_)
+                {
+                  content.AddMetadata(status.seriesId_, MetadataType_Series_ExpectedNumberOfInstances,
+                                      boost::lexical_cast<std::string>(expectedInstances_));
+                }
+
+                // New in Orthanc 1.9.0
+                content.AddMetadata(status.seriesId_, MetadataType_RemoteAet,
+                                    origin_.GetRemoteAetC());
+              }
               // Attach the auto-computed metadata for the instance level,
               // reflecting these additions into the input metadata map
               SetInstanceMetadata(content, instanceMetadata_, instanceId,
@@ -3307,6 +3314,17 @@ namespace Orthanc
                 SetInstanceMetadata(content, instanceMetadata_, instanceId,
                                     MetadataType_Instance_HttpUsername, s);
               }
+            }
+
+            // Following metadatas are also updated if reconstructing the instance.
+            // They might be missing since they have been introduced along Orthanc versions.
+
+            if (hasTransferSyntax_)
+            {
+              // New in Orthanc 1.2.0
+              SetInstanceMetadata(content, instanceMetadata_, instanceId,
+                                  MetadataType_Instance_TransferSyntax,
+                                  GetTransferSyntaxUid(transferSyntax_));
             }
 
             if (hasPixelDataOffset_)

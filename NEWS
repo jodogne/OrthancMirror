@@ -29,6 +29,9 @@ Maintenance
   to allow "/instances/../export" (the latter is now disabled by default)
 * Fix issue 214: VOILUTSequence is not returned in Wado-RS
 * Fix /tools/reset crashing when ExtraMainDicomTags were defined
+* Fix Housekeeper plugin infinite loop if Orthanc is empty.
+* Fix a crash in /tools/reconstruct triggered by the Housekeeper plugin 
+  when only changing the StorageCompression.
 
 
 Version 1.11.3 (2023-02-03)
