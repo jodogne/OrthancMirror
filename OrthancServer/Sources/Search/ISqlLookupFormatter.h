@@ -60,6 +60,8 @@ namespace Orthanc
                       ISqlLookupFormatter& formatter,
                       const std::vector<DatabaseConstraint>& lookup,
                       ResourceType queryLevel,
+                      const std::set<std::string>& withLabels,     // New in Orthanc 1.12.0
+                      const std::set<std::string>& withoutLabels,  // New in Orthanc 1.12.0
                       size_t limit);
   };
 }

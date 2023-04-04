@@ -39,6 +39,7 @@
 #include "DatabaseConstraint.h"
 
 #include <boost/lexical_cast.hpp>
+#include <list>
 
 
 namespace Orthanc
@@ -268,12 +269,46 @@ namespace Orthanc
                " AND " + tag + ".tagElement = " +
                boost::lexical_cast<std::string>(constraint.GetTag().GetElement()));
   }
+
+
+  static std::string Join(const std::list<std::string>& values,
+                          const std::string& prefix,
+                          const std::string& separator)
+  {
+    if (values.empty())
+    {
+      return "";
+    }
+    else
+    {
+      std::string s = prefix;
+
+      bool first = true;
+      for (std::list<std::string>::const_iterator it = values.begin(); it != values.end(); ++it)
+      {
+        if (first)
+        {
+          first = false;
+        }
+        else
+        {
+          s += separator;
+        }
+
+        s += *it;
+      }
+
+      return s;
+    }
+  }
   
 
   void ISqlLookupFormatter::Apply(std::string& sql,
                                   ISqlLookupFormatter& formatter,
                                   const std::vector<DatabaseConstraint>& lookup,
                                   ResourceType queryLevel,
+                                  const std::set<std::string>& withLabels,
+                                  const std::set<std::string>& withoutLabels,
                                   size_t limit)
   {
     assert(ResourceType_Patient < ResourceType_Study &&
@@ -346,9 +381,44 @@ namespace Orthanc
               FormatLevel(static_cast<ResourceType>(level - 1)) + ".internalId=" +
               FormatLevel(static_cast<ResourceType>(level)) + ".parentId");
     }
-      
-    sql += (joins + " WHERE " + FormatLevel(queryLevel) + ".resourceType = " +
-            formatter.FormatResourceType(queryLevel) + comparisons);
+
+    std::list<std::string> where;
+
+    if (!withLabels.empty())
+    {
+      std::list<std::string> labels;
+      for (std::set<std::string>::const_iterator it = withLabels.begin(); it != withLabels.end(); ++it)
+      {
+        labels.push_back(formatter.GenerateParameter(*it));
+      }
+
+      where.push_back(boost::lexical_cast<std::string>(withLabels.size()) +
+                      " = (SELECT COUNT(1) FROM Labels WHERE internalId = " + FormatLevel(queryLevel) +
+                      ".internalId AND label IN (" + Join(labels, "", ", ") + "))");
+    }
+    
+    if (!withoutLabels.empty())
+    {
+      /**
+       * "In SQL Server, NOT EXISTS and NOT IN predicates are the best
+       * way to search for missing values, as long as both columns in
+       * question are NOT NULL."
+       * https://explainextended.com/2009/09/15/not-in-vs-not-exists-vs-left-join-is-null-sql-server/
+       **/
+      std::list<std::string> labels;
+      for (std::set<std::string>::const_iterator it = withoutLabels.begin(); it != withoutLabels.end(); ++it)
+      {
+        labels.push_back(formatter.GenerateParameter(*it));
+      }
+
+      where.push_back("NOT EXISTS (SELECT 1 FROM Labels WHERE internalId = " + FormatLevel(queryLevel) +
+                      ".internalId AND label IN (" + Join(labels, "", ", ") + "))");
+    }
+    
+    where.push_back(FormatLevel(queryLevel) + ".resourceType = " +
+                    formatter.FormatResourceType(queryLevel) + comparisons);
+
+    sql += joins + Join(where, " WHERE ", " AND ");
 
     if (limit != 0)
     {
