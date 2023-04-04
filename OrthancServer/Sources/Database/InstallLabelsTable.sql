@@ -20,5 +20,9 @@
 
 CREATE TABLE Labels(
        internalId INTEGER REFERENCES Resources(internalId) ON DELETE CASCADE,
-       label TEXT
+       label TEXT NOT NULL,
+       PRIMARY KEY(internalId, label)  -- Prevents duplicates
        );
+
+CREATE INDEX LabelsIndex1 ON Labels(internalId);
+CREATE INDEX LabelsIndex2 ON Labels(label);  -- This index allows efficient lookups

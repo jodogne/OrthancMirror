@@ -345,16 +345,10 @@ namespace Orthanc
                                       const std::set<std::string>& withoutLabels,
                                       uint32_t limit) ORTHANC_OVERRIDE
     {
-      if (!withLabels.empty() ||
-          !withoutLabels.empty())
-      {
-        throw OrthancException(ErrorCode_NotImplemented);
-      }
-      
       LookupFormatter formatter;
 
       std::string sql;
-      LookupFormatter::Apply(sql, formatter, lookup, queryLevel, limit);
+      LookupFormatter::Apply(sql, formatter, lookup, queryLevel, withLabels, withoutLabels, limit);
 
       sql = "CREATE TEMPORARY TABLE Lookup AS " + sql;
     
@@ -1090,7 +1084,7 @@ namespace Orthanc
       }
       else
       {
-        SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO Labels (internalId, label) VALUES(?, ?)");
+        SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT OR IGNORE INTO Labels (internalId, label) VALUES(?, ?)");
         s.BindInt64(0, resource);
         s.BindString(1, label);
         s.Run();
