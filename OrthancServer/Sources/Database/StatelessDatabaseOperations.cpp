@@ -2956,10 +2956,6 @@ namespace Orthanc
                                       MetadataType metadata,
                                       const std::string& value)
       {
-        if (metadata == 15)
-        {
-          LOG(INFO) << "toto";
-        }
         content.AddMetadata(instance, metadata, value);
         instanceMetadata[metadata] = value;
       }
