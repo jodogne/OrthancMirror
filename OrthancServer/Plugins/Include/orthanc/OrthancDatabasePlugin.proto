@@ -259,6 +259,9 @@ enum TransactionOperation {
   OPERATION_GET_CHILDREN_METADATA = 42;
   OPERATION_GET_LAST_CHANGE_INDEX = 43;
   OPERATION_LOOKUP_RESOURCE_AND_PARENT = 44;
+  OPERATION_ADD_LABEL = 45;     // New in Orthanc 1.12.0
+  OPERATION_REMOVE_LABEL = 46;  // New in Orthanc 1.12.0
+  OPERATION_LIST_LABELS = 47;   // New in Orthanc 1.12.0
 }
 
 message Rollback {
@@ -655,6 +658,8 @@ message LookupResources {
     ResourceType query_level = 2;
     uint32 limit = 3;
     bool retrieve_instances_ids = 4;
+    repeated string with_labels = 5;     // New in Orthanc 1.12.0
+    repeated string without_labels = 6;  // New in Orthanc 1.12.0
   }
   message Response {
     repeated string resources_ids = 1;
@@ -736,6 +741,33 @@ message LookupResourceAndParent {
   }
 }
 
+message AddLabel {
+  message Request {
+    int64 id = 1;
+    string label = 2;
+  }
+  message Response {
+  }
+}
+
+message RemoveLabel {
+  message Request {
+    int64 id = 1;
+    string label = 2;
+  }
+  message Response {
+  }
+}
+
+message ListLabels {
+  message Request {
+    int64 id = 1;
+  }
+  message Response {
+    repeated string labels = 1;
+  }
+}
+
 message TransactionRequest {
   sfixed64              transaction = 1;
   TransactionOperation  operation = 2;
@@ -785,6 +817,9 @@ message TransactionRequest {
   GetChildrenMetadata.Request             get_children_metadata = 142;
   GetLastChangeIndex.Request              get_last_change_index = 143;
   LookupResourceAndParent.Request         lookup_resource_and_parent = 144;
+  AddLabel.Request                        add_label = 145;
+  RemoveLabel.Request                     remove_label = 146;
+  ListLabels.Request                      list_labels = 147;
 }
 
 message TransactionResponse {
@@ -833,6 +868,9 @@ message TransactionResponse {
   GetChildrenMetadata.Response             get_children_metadata = 142;
   GetLastChangeIndex.Response              get_last_change_index = 143;
   LookupResourceAndParent.Response         lookup_resource_and_parent = 144;
+  AddLabel.Response                        add_label = 145;
+  RemoveLabel.Response                     remove_label = 146;
+  ListLabels.Response                      list_labels = 147;
 }
 
 enum RequestType {
