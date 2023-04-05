@@ -65,6 +65,12 @@ var ANONYMIZED_FROM = 'AnonymizedFrom';
 var MODIFIED_FROM = 'ModifiedFrom';
 
 
+function IsAlphanumeric(s)
+{
+  return s.match(/^[0-9a-zA-Z]+$/);
+}
+
+
 function DeepCopy(obj)
 {
   return jQuery.extend(true, {}, obj);
@@ -701,8 +707,81 @@ function SetupAttachments(accessSelector, liClass, resourceId, resourceType) {
     }
     target.listview('refresh');
   });
-
 }
+
+
+
+function RefreshLabels(nodeLabels, resourceLevel, resourceId)
+{
+  GetResource('/' + resourceLevel + '/' + resourceId + '/labels', function(labels) {
+    nodeLabels.empty();
+    
+    if (labels.length > 0) {
+      for (var i = 0; i < labels.length; i++) {
+        var removeButton = $('<button>').text('X').attr('title', 'Remove label "' + labels[i] + '"');
+
+        removeButton.click({
+          label : labels[i],
+          nodeLabels : nodeLabels
+        }, function(s) {
+          $.ajax({
+            url: '../' + resourceLevel + '/' + resourceId + '/labels/' + s.data.label,
+            dataType: 'json',
+            type: 'DELETE',
+            success: function(ss) {
+              RefreshLabels(nodeLabels, resourceLevel, resourceId);
+            }
+          });
+        });
+        
+        nodeLabels.append($('<span>').text(labels[i] + ' ').addClass('label').append(removeButton));
+      }
+    } else {
+      nodeLabels.css('display', 'none');
+    }
+  });
+}
+
+
+function ConfigureLabels(nodeLabels, addLabelButton, resourceLevel, resourceId)
+{
+  RefreshLabels(nodeLabels, resourceLevel, resourceId);
+
+  addLabelButton.click(function(s) {
+    $('#dialog').simpledialog2({
+      mode: 'button',
+      animate: false,
+      headerText: 'Add label',
+      headerClose: true,
+      buttonPrommpt: 'Enter the new label',
+      buttonInput: true,
+      width: '100%',
+      buttons : {
+        'OK': {
+          click: function () {
+            var label = $.mobile.sdLastInput;
+            if (label.length > 0) {
+              if (IsAlphanumeric(label)) {
+                $.ajax({
+                  url: '../' + resourceLevel + '/' + resourceId + '/labels/' + label,
+                  dataType: 'json',
+                  type: 'PUT',
+                  data: '',
+                  success: function(ss) {
+                    RefreshLabels(nodeLabels, resourceLevel, resourceId);
+                  }
+                });
+              } else {
+                alert('Error: Labels can only contain alphanumeric characters');
+              }
+            }
+          }
+        },
+      }
+    });
+  });
+}
+
 
 function RefreshPatient()
 {
@@ -771,43 +850,58 @@ function RefreshStudy()
   if ($.mobile.pageData) {
     pageData = DeepCopy($.mobile.pageData);
 
-    GetResource('/studies/' + pageData.uuid + '?full', function(study) {
-      GetResource('/patients/' + study.ParentPatient + '?full', function(patient) {
-        GetResource('/studies/' + pageData.uuid + '/series?full', function(series) {
-          SortOnDicomTag(series, SERIES_DATE, false, true);
-
-          $('#study .patient-link').attr('href', '#patient?uuid=' + patient.ID);
-          $('#study-info li').remove();
-          $('#study-info')
-            .append('<li data-role="list-divider">Patient</li>')
-            .append(FormatPatient(patient, '#patient?uuid=' + patient.ID, true))
-            .append('<li data-role="list-divider">Study</li>')
-            .append(FormatStudy(study))
-            .listview('refresh');
-
-          SetupAnonymizedOrModifiedFrom('#study-anonymized-from', study, 'study', ANONYMIZED_FROM);
-          SetupAnonymizedOrModifiedFrom('#study-modified-from', study, 'study', MODIFIED_FROM);
-          SetupAttachments('#study-access', 'study-attachment', pageData.uuid, 'studies');
-
-          target = $('#list-series');
-          $('li', target).remove();
-          for (var i = 0; i < series.length; i++) {
-            if (i == 0 ||
-                GetMainDicomTag(series[i].MainDicomTags, SERIES_DATE) !=
-                GetMainDicomTag(series[i - 1].MainDicomTags, SERIES_DATE))
-            {
-              target.append($('<li>')
-                            .attr('data-role', 'list-divider')
-                            .text(FormatDicomDate(GetMainDicomTag(series[i].MainDicomTags, SERIES_DATE))));
-            }
+    GetResource('/system', function(system) {
+      GetResource('/studies/' + pageData.uuid + '?full', function(study) {
+        GetResource('/patients/' + study.ParentPatient + '?full', function(patient) {
+          GetResource('/studies/' + pageData.uuid + '/series?full', function(series) {
+            SortOnDicomTag(series, SERIES_DATE, false, true);
             
-            target.append(FormatSeries(series[i], '#series?uuid=' + series[i].ID));
-          }
-          target.listview('refresh');
+            $('#study .patient-link').attr('href', '#patient?uuid=' + patient.ID);
+            $('#study-info li').remove();
+
+            var info = $('#study-info')
+                .append('<li data-role="list-divider">Patient</li>')
+                .append(FormatPatient(patient, '#patient?uuid=' + patient.ID, true))
+                .append('<li data-role="list-divider">Study</li>')
+                .append(FormatStudy(study));
+
+            if (system.HasLabels === true) {
+              var nodeLabels = $('<li>').append($('<div>'));
+              var addLabelButton = $('<a>').text('Add label');
+              ConfigureLabels(nodeLabels, addLabelButton, 'studies', study.ID)
+            
+              info
+                .append('<li data-role="list-divider">Labels</li>')
+                .append(nodeLabels)
+                .append($('<li>').attr('data-icon', 'plus').append(addLabelButton));
+            }
+
+            info.listview('refresh');
+
+            SetupAnonymizedOrModifiedFrom('#study-anonymized-from', study, 'study', ANONYMIZED_FROM);
+            SetupAnonymizedOrModifiedFrom('#study-modified-from', study, 'study', MODIFIED_FROM);
+            SetupAttachments('#study-access', 'study-attachment', pageData.uuid, 'studies');
+
+            target = $('#list-series');
+            $('li', target).remove();
+            for (var i = 0; i < series.length; i++) {
+              if (i == 0 ||
+                  GetMainDicomTag(series[i].MainDicomTags, SERIES_DATE) !=
+                  GetMainDicomTag(series[i - 1].MainDicomTags, SERIES_DATE))
+              {
+                target.append($('<li>')
+                              .attr('data-role', 'list-divider')
+                              .text(FormatDicomDate(GetMainDicomTag(series[i].MainDicomTags, SERIES_DATE))));
+              }
+              
+              target.append(FormatSeries(series[i], '#series?uuid=' + series[i].ID));
+            }
+            target.listview('refresh');
 
 
-          currentPage = 'study';
-          currentUuid = pageData.uuid;
+            currentPage = 'study';
+            currentUuid = pageData.uuid;
+          });
         });
       });
     });
