@@ -166,14 +166,17 @@ namespace Orthanc
     {
     private:
       ITransactionContext&  context_;
+      bool                  hasLabelsSupport_;
       
     protected:
       IDatabaseWrapper::ITransaction&  transaction_;
       
     public:
       explicit ReadOnlyTransaction(IDatabaseWrapper::ITransaction& transaction,
-                                   ITransactionContext& context) :
+                                   ITransactionContext& context,
+                                   bool hasLabelsSupport) :
         context_(context),
+        hasLabelsSupport_(hasLabelsSupport),
         transaction_(transaction)
       {
       }
@@ -181,6 +184,11 @@ namespace Orthanc
       ITransactionContext& GetTransactionContext()
       {
         return context_;
+      }
+
+      bool HasLabelsSupport() const
+      {
+        return hasLabelsSupport_;
       }
 
       /**
@@ -367,8 +375,9 @@ namespace Orthanc
     {
     public:
       ReadWriteTransaction(IDatabaseWrapper::ITransaction& transaction,
-                           ITransactionContext& context) :
-        ReadOnlyTransaction(transaction, context)
+                           ITransactionContext& context,
+                           bool hasLabelsSupport) :
+        ReadOnlyTransaction(transaction, context, hasLabelsSupport)
       {
       }
 
