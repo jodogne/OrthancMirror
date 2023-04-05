@@ -717,6 +717,8 @@ function RefreshLabels(nodeLabels, resourceLevel, resourceId)
     nodeLabels.empty();
     
     if (labels.length > 0) {
+      nodeLabels.css('display', 'block');
+
       for (var i = 0; i < labels.length; i++) {
         var removeButton = $('<button>').text('X').attr('title', 'Remove label "' + labels[i] + '"');
 
