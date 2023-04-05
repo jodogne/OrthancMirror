@@ -765,5 +765,7 @@ namespace Orthanc
                      ResourceType level,
                      const std::string& label,
                      LabelOperation operation);
+
+    bool HasLabelsSupport();
   };
 }
