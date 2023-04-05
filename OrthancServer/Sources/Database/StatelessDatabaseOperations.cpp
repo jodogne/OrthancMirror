@@ -1961,6 +1961,11 @@ namespace Orthanc
       }
     };
 
+    if ((!withLabels.empty() || !withoutLabels.empty()) &&
+        !db_.HasLabelsSupport())
+    {
+      throw OrthancException(ErrorCode_NotImplemented, "The database backend doesn't support labels");
+    }
 
     std::vector<DatabaseConstraint> normalized;
     NormalizeLookup(normalized, lookup, queryLevel);
@@ -3629,5 +3634,12 @@ namespace Orthanc
     
     Operations operations(publicId, level, label, operation);
     Apply(operations);
+  }
+
+
+  bool StatelessDatabaseOperations::HasLabelsSupport()
+  {
+    boost::shared_lock<boost::shared_mutex> lock(mutex_);
+    return db_.HasLabelsSupport();
   }
 }

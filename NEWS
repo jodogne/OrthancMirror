@@ -12,9 +12,9 @@ REST API
 * API version upgraded to 20
 * New URIs "/.../{id}/labels/{label}" to test/set/remove labels
 * "/tools/find" accepts the "WithLabels" and "WithoutLabels" arguments
-* The "/patients/{id}", "/studies/{id}", "/series/{id}" and "/instances/{id}"
+* "/patients/{id}", "/studies/{id}", "/series/{id}" and "/instances/{id}"
   contain the "Labels" field
-* "/system": added "UserMetadata"
+* "/system": added "UserMetadata" and "HasLabels"
 
 Plugins
 -------
