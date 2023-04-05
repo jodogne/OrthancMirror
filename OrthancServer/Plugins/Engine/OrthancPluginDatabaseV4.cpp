@@ -976,10 +976,14 @@ namespace Orthanc
         }
       }
 
-      if (!withLabels.empty() ||
-          !withoutLabels.empty())
+      for (std::set<std::string>::const_iterator it = withLabels.begin(); it != withLabels.end(); ++it)
       {
-        throw OrthancException(ErrorCode_NotImplemented);  // TODO
+        request.mutable_lookup_resources()->add_with_labels(*it);
+      }
+      
+      for (std::set<std::string>::const_iterator it = withoutLabels.begin(); it != withoutLabels.end(); ++it)
+      {
+        request.mutable_lookup_resources()->add_without_labels(*it);
       }
       
       DatabasePluginMessages::TransactionResponse response;
@@ -1152,21 +1156,63 @@ namespace Orthanc
     virtual void AddLabel(int64_t resource,
                           const std::string& label) ORTHANC_OVERRIDE
     {
-      throw OrthancException(ErrorCode_NotImplemented);
+      if (database_.HasLabelsSupport())
+      {
+        DatabasePluginMessages::TransactionRequest request;
+        request.mutable_add_label()->set_id(resource);
+        request.mutable_add_label()->set_label(label);
+
+        ExecuteTransaction(DatabasePluginMessages::OPERATION_ADD_LABEL, request);
+      }
+      else
+      {
+        // This method shouldn't have been called
+        throw OrthancException(ErrorCode_InternalError);
+      }
     }
 
 
     virtual void RemoveLabel(int64_t resource,
                              const std::string& label) ORTHANC_OVERRIDE
     {
-      throw OrthancException(ErrorCode_NotImplemented);
+      if (database_.HasLabelsSupport())
+      {
+        DatabasePluginMessages::TransactionRequest request;
+        request.mutable_remove_label()->set_id(resource);
+        request.mutable_remove_label()->set_label(label);
+
+        ExecuteTransaction(DatabasePluginMessages::OPERATION_REMOVE_LABEL, request);
+      }
+      else
+      {
+        // This method shouldn't have been called
+        throw OrthancException(ErrorCode_InternalError);
+      }
     }
 
 
     virtual void ListLabels(std::set<std::string>& target,
                             int64_t resource) ORTHANC_OVERRIDE
     {
-      throw OrthancException(ErrorCode_NotImplemented);
+      if (database_.HasLabelsSupport())
+      {
+        DatabasePluginMessages::TransactionRequest request;
+        request.mutable_list_labels()->set_id(resource);
+
+        DatabasePluginMessages::TransactionResponse response;
+        ExecuteTransaction(response, DatabasePluginMessages::OPERATION_LIST_LABELS, request);
+
+        target.clear();
+        for (int i = 0; i < response.list_labels().labels().size(); i++)
+        {
+          target.insert(response.list_labels().labels(i));
+        }
+      }
+      else
+      {
+        // This method shouldn't have been called
+        throw OrthancException(ErrorCode_InternalError);
+      }
     }
   };
 
