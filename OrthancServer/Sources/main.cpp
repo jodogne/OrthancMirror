@@ -1664,8 +1664,12 @@ static bool ConfigureDatabase(IDatabaseWrapper& database,
     }
   }
 
-  bool success = ConfigureServerContext
-    (database, storageArea, plugins, loadJobsFromDatabase);
+  if (!database.HasLabelsSupport())
+  {
+    LOG(WARNING) << "The custom database back-end has *no* support for labels";
+  }
+
+  bool success = ConfigureServerContext(database, storageArea, plugins, loadJobsFromDatabase);
 
   database.Close();
 

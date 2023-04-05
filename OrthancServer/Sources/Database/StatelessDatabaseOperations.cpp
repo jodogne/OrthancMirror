@@ -607,7 +607,7 @@ namespace Orthanc
           
           Transaction transaction(db_, *factory_, TransactionType_ReadOnly);  // TODO - Only if not "TransactionType_Implicit"
           {
-            ReadOnlyTransaction t(transaction.GetDatabaseTransaction(), transaction.GetContext());
+            ReadOnlyTransaction t(transaction.GetDatabaseTransaction(), transaction.GetContext(), db_.HasLabelsSupport());
             readOperations->Apply(t);
           }
           transaction.Commit();
@@ -618,7 +618,7 @@ namespace Orthanc
           
           Transaction transaction(db_, *factory_, TransactionType_ReadWrite);
           {
-            ReadWriteTransaction t(transaction.GetDatabaseTransaction(), transaction.GetContext());
+            ReadWriteTransaction t(transaction.GetDatabaseTransaction(), transaction.GetContext(), db_.HasLabelsSupport());
             writeOperations->Apply(t);
           }
           transaction.Commit();
@@ -938,7 +938,8 @@ namespace Orthanc
             }
           }
 
-          if (expandFlags & ExpandResourceFlags_IncludeLabels)
+          if ((expandFlags & ExpandResourceFlags_IncludeLabels) &&
+              transaction.HasLabelsSupport())
           {
             transaction.ListLabels(target.labels_, internalId);
           }
