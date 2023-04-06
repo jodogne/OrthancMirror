@@ -372,12 +372,9 @@ namespace Orthanc
 
   void DatabaseLookup::AddWithLabel(const std::string& label)
   {
-    if (label.empty())
+    if (!label.empty())
     {
-      throw OrthancException(ErrorCode_ParameterOutOfRange);
-    }
-    else
-    {
+      ServerToolbox::CheckValidLabel(label);
       withLabels_.insert(label);
     }
   }
@@ -385,12 +382,9 @@ namespace Orthanc
 
   void DatabaseLookup::AddWithoutLabel(const std::string& label)
   {
-    if (label.empty())
+    if (!label.empty())
     {
-      throw OrthancException(ErrorCode_ParameterOutOfRange);
-    }
-    else
-    {
+      ServerToolbox::CheckValidLabel(label);
       withoutLabels_.insert(label);
     }
   }
