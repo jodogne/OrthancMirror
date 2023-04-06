@@ -1040,3 +1040,14 @@ TEST(ServerIndex, DicomUntilPixelData)
     }
   }
 }
+
+
+TEST(ServerToolbox, ValidLabels)
+{
+  ASSERT_TRUE(ServerToolbox::IsValidLabel("abcdefghijklmnopqrstuvwxyz"
+                                          "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+                                          "0123456789-_."));
+  ASSERT_FALSE(ServerToolbox::IsValidLabel(""));
+  ASSERT_FALSE(ServerToolbox::IsValidLabel(" "));
+  ASSERT_FALSE(ServerToolbox::IsValidLabel("&"));
+}

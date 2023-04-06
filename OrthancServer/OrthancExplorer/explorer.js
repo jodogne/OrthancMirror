@@ -485,6 +485,14 @@ $('[data-role="page"]').live('pagebeforeshow', function() {
       } else {
         $('.warning-insecure').hide();
       }
+
+      // New in Orthanc 1.12.0
+      if ('HasLabels' in s &&
+          s.HasLabels) {
+        $('#lookup-study-labels-div').show();
+      } else {
+        $('#lookup-study-labels-div').hide();
+      }
     }
   });
 });
@@ -555,6 +563,10 @@ $('#lookup-submit').live('click', function() {
       }
       else if (input.id == 'lookup-study-date-specific') {
         // Ignore
+      }
+      else if (input.id == 'lookup-study-labels') {
+        // New in Orthanc 1.12.0
+        lookup['WithLabels'] = input.value.split(' ');
       }
       else {
         console.error('Unknown lookup field: ' + input.id);

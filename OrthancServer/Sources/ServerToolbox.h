@@ -56,5 +56,9 @@ namespace Orthanc
     void ReconstructResource(ServerContext& context,
                              const std::string& resource,
                              bool reconstructFiles);
+
+    bool IsValidLabel(const std::string& label);
+
+    void CheckValidLabel(const std::string& label);
   }
 }

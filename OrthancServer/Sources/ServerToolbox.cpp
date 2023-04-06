@@ -287,5 +287,40 @@ namespace Orthanc
         }
       }
     }
+
+    
+    bool IsValidLabel(const std::string& label)
+    {
+      if (label.empty())
+      {
+        return false;
+      }
+      
+      for (size_t i = 0; i < label.size(); i++)
+      {
+        if (!(label[i] == '.' ||
+              label[i] == '_' ||
+              label[i] == '-' ||
+              (label[i] >= 'a' && label[i] <= 'z') ||
+              (label[i] >= 'A' && label[i] <= 'Z') ||
+              (label[i] >= '0' && label[i] <= '9')))
+        {
+          return false;
+        }
+      }
+
+      return true;
+    }
+
+
+    void CheckValidLabel(const std::string& label)
+    {
+      if (!IsValidLabel(label))
+      {
+        throw OrthancException(ErrorCode_ParameterOutOfRange,
+                               "A label must be a non-empty, alphanumeric string, "
+                               "possibly with '.', '_', or '-' characters, but got: " + label);
+      }
+    }
   }
 }

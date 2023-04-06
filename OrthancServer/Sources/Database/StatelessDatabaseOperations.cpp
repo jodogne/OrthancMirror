@@ -1918,6 +1918,15 @@ namespace Orthanc
   }
 
 
+  static void CheckValidLabels(const std::set<std::string>& labels)
+  {
+    for (std::set<std::string>::const_iterator it = labels.begin(); it != labels.end(); ++it)
+    {
+      ServerToolbox::CheckValidLabel(*it);
+    }
+  }
+  
+
   void StatelessDatabaseOperations::ApplyLookupResources(std::vector<std::string>& resourcesId,
                                                          std::vector<std::string>* instancesId,
                                                          const DatabaseLookup& lookup,
@@ -1966,6 +1975,9 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_NotImplemented, "The database backend doesn't support labels");
     }
+
+    CheckValidLabels(withLabels);
+    CheckValidLabels(withoutLabels);
 
     std::vector<DatabaseConstraint> normalized;
     NormalizeLookup(normalized, lookup, queryLevel);
@@ -3627,10 +3639,7 @@ namespace Orthanc
       }
     };
 
-    if (!Toolbox::IsAsciiString(label))
-    {
-      throw OrthancException(ErrorCode_ParameterOutOfRange, "A label must only contain ASCII characters");
-    }
+    ServerToolbox::CheckValidLabel(label);
     
     Operations operations(publicId, level, label, operation);
     Apply(operations);
