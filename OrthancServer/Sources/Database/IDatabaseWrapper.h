@@ -26,6 +26,7 @@
 #include "../../../OrthancFramework/Sources/FileStorage/FileInfo.h"
 #include "../../../OrthancFramework/Sources/FileStorage/IStorageArea.h"
 #include "../ExportedResource.h"
+#include "../Search/ISqlLookupFormatter.h"
 #include "../ServerIndexChange.h"
 #include "IDatabaseListener.h"
 
@@ -200,8 +201,8 @@ namespace Orthanc
                                         std::list<std::string>* instancesId, // Can be NULL if not needed
                                         const std::vector<DatabaseConstraint>& lookup,
                                         ResourceType queryLevel,
-                                        const std::set<std::string>& withLabels,
-                                        const std::set<std::string>& withoutLabels,
+                                        const std::set<std::string>& labels,
+                                        LabelsConstraint labelsConstraint,
                                         uint32_t limit) = 0;
 
       // Returns "true" iff. the instance is new and has been inserted

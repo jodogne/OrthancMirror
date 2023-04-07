@@ -307,8 +307,8 @@ namespace Orthanc
                                   ISqlLookupFormatter& formatter,
                                   const std::vector<DatabaseConstraint>& lookup,
                                   ResourceType queryLevel,
-                                  const std::set<std::string>& withLabels,
-                                  const std::set<std::string>& withoutLabels,
+                                  const std::set<std::string>& labels,
+                                  LabelsConstraint labelsConstraint,
                                   size_t limit)
   {
     assert(ResourceType_Patient < ResourceType_Study &&
@@ -384,20 +384,7 @@ namespace Orthanc
 
     std::list<std::string> where;
 
-    if (!withLabels.empty())
-    {
-      std::list<std::string> labels;
-      for (std::set<std::string>::const_iterator it = withLabels.begin(); it != withLabels.end(); ++it)
-      {
-        labels.push_back(formatter.GenerateParameter(*it));
-      }
-
-      where.push_back(boost::lexical_cast<std::string>(withLabels.size()) +
-                      " = (SELECT COUNT(1) FROM Labels WHERE internalId = " + FormatLevel(queryLevel) +
-                      ".internalId AND label IN (" + Join(labels, "", ", ") + "))");
-    }
-    
-    if (!withoutLabels.empty())
+    if (!labels.empty())
     {
       /**
        * "In SQL Server, NOT EXISTS and NOT IN predicates are the best
@@ -405,14 +392,34 @@ namespace Orthanc
        * question are NOT NULL."
        * https://explainextended.com/2009/09/15/not-in-vs-not-exists-vs-left-join-is-null-sql-server/
        **/
-      std::list<std::string> labels;
-      for (std::set<std::string>::const_iterator it = withoutLabels.begin(); it != withoutLabels.end(); ++it)
+
+      std::list<std::string> formattedLabels;
+      for (std::set<std::string>::const_iterator it = labels.begin(); it != labels.end(); ++it)
       {
-        labels.push_back(formatter.GenerateParameter(*it));
+        formattedLabels.push_back(formatter.GenerateParameter(*it));
       }
 
-      where.push_back("NOT EXISTS (SELECT 1 FROM Labels WHERE internalId = " + FormatLevel(queryLevel) +
-                      ".internalId AND label IN (" + Join(labels, "", ", ") + "))");
+      std::string condition;
+      switch (labelsConstraint)
+      {
+        case LabelsConstraint_Any:
+          condition = "> 0";
+          break;
+          
+        case LabelsConstraint_All:
+          condition = "= " + boost::lexical_cast<std::string>(labels.size());
+          break;
+          
+        case LabelsConstraint_None:
+          condition = "= 0";
+          break;
+          
+        default:
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+      
+      where.push_back("(SELECT COUNT(1) FROM Labels WHERE internalId = " + FormatLevel(queryLevel) +
+                      ".internalId AND label IN (" + Join(formattedLabels, "", ", ") + ")) " + condition);
     }
     
     where.push_back(FormatLevel(queryLevel) + ".resourceType = " +

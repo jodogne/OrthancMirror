@@ -169,7 +169,7 @@ namespace
       lookup.push_back(c.ConvertToDatabaseConstraint(level, DicomTagType_Identifier));
 
       std::set<std::string> noLabel;
-      transaction_->ApplyLookupResources(result, NULL, lookup, level, noLabel, noLabel, 0 /* no limit */);
+      transaction_->ApplyLookupResources(result, NULL, lookup, level, noLabel, LabelsConstraint_All, 0 /* no limit */);
     }    
 
     void DoLookupIdentifier2(std::list<std::string>& result,
@@ -190,7 +190,7 @@ namespace
       lookup.push_back(c2.ConvertToDatabaseConstraint(level, DicomTagType_Identifier));
       
       std::set<std::string> noLabel;
-      transaction_->ApplyLookupResources(result, NULL, lookup, level, noLabel, noLabel, 0 /* no limit */);
+      transaction_->ApplyLookupResources(result, NULL, lookup, level, noLabel, LabelsConstraint_All, 0 /* no limit */);
     }
   };
 }

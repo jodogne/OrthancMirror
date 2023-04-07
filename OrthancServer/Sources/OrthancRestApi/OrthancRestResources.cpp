@@ -3072,8 +3072,8 @@ namespace Orthanc
     static const char* const KEY_QUERY = "Query";
     static const char* const KEY_REQUESTED_TAGS = "RequestedTags";
     static const char* const KEY_SINCE = "Since";
-    static const char* const KEY_WITH_LABELS = "WithLabels";        // New in Orthanc 1.12.0
-    static const char* const KEY_WITHOUT_LABELS = "WithoutLabels";  // New in Orthanc 1.12.0
+    static const char* const KEY_LABELS = "Labels";                       // New in Orthanc 1.12.0
+    static const char* const KEY_LABELS_CONSTRAINT = "LabelsConstraint";  // New in Orthanc 1.12.0
 
     if (call.IsDocumentation())
     {
@@ -3103,10 +3103,10 @@ namespace Orthanc
                          "all Main Dicom Tags to keep backward compatibility with Orthanc prior to 1.11.0.", false)
         .SetRequestField(KEY_QUERY, RestApiCallDocumentation::Type_JsonObject,
                          "Associative array containing the filter on the values of the DICOM tags", true)
-        .SetRequestField(KEY_WITH_LABELS, RestApiCallDocumentation::Type_JsonListOfStrings,
-                         "List of strings specifying which labels must be present in the resources (new in Orthanc 1.12.0)", true)
-        .SetRequestField(KEY_WITHOUT_LABELS, RestApiCallDocumentation::Type_JsonListOfStrings,
-                         "List of strings specifying which labels must not be present in the resources (new in Orthanc 1.12.0)", true)
+        .SetRequestField(KEY_LABELS, RestApiCallDocumentation::Type_JsonListOfStrings,
+                         "List of strings specifying which labels to look for in the resources (new in Orthanc 1.12.0)", true)
+        .SetRequestField(KEY_LABELS_CONSTRAINT, RestApiCallDocumentation::Type_String,
+                         "Constraint on the labels, can be `All`, `Any`, or `None` (defaults to `All`, new in Orthanc 1.12.0)", true)
         .AddAnswerType(MimeType_Json, "JSON array containing either the Orthanc identifiers, or detailed information "
                        "about the reported resources (if `Expand` argument is `true`)");
       return;
@@ -3157,17 +3157,17 @@ namespace Orthanc
       throw OrthancException(ErrorCode_BadRequest, 
                              "Field \"" + std::string(KEY_REQUESTED_TAGS) + "\" must be an array");
     }
-    else if (request.isMember(KEY_WITH_LABELS) &&
-             request[KEY_WITH_LABELS].type() != Json::arrayValue)
+    else if (request.isMember(KEY_LABELS) &&
+             request[KEY_LABELS].type() != Json::arrayValue)
     {
       throw OrthancException(ErrorCode_BadRequest, 
-                             "Field \"" + std::string(KEY_WITH_LABELS) + "\" must be an array of strings");
+                             "Field \"" + std::string(KEY_LABELS) + "\" must be an array of strings");
     }
-    else if (request.isMember(KEY_WITHOUT_LABELS) &&
-             request[KEY_WITHOUT_LABELS].type() != Json::arrayValue)
+    else if (request.isMember(KEY_LABELS_CONSTRAINT) &&
+             request[KEY_LABELS_CONSTRAINT].type() != Json::stringValue)
     {
       throw OrthancException(ErrorCode_BadRequest, 
-                             "Field \"" + std::string(KEY_WITHOUT_LABELS) + "\" must be an array of strings");
+                             "Field \"" + std::string(KEY_LABELS_CONSTRAINT) + "\" must be an array of strings");
     }
     else
     {
@@ -3241,33 +3241,41 @@ namespace Orthanc
         }
       }
 
-      if (request.isMember(KEY_WITH_LABELS))  // New in Orthanc 1.12.0
+      if (request.isMember(KEY_LABELS))  // New in Orthanc 1.12.0
       {
-        for (Json::Value::ArrayIndex i = 0; i < request[KEY_WITH_LABELS].size(); i++)
+        for (Json::Value::ArrayIndex i = 0; i < request[KEY_LABELS].size(); i++)
         {
-          if (request[KEY_WITH_LABELS][i].type() != Json::stringValue)
+          if (request[KEY_LABELS][i].type() != Json::stringValue)
           {
-            throw OrthancException(ErrorCode_BadRequest, "Field \""+ std::string(KEY_WITH_LABELS) + "\" must contain strings");
+            throw OrthancException(ErrorCode_BadRequest, "Field \"" + std::string(KEY_LABELS) + "\" must contain strings");
           }
           else
           {
-            query.AddWithLabel(request[KEY_WITH_LABELS][i].asString());
+            query.AddLabel(request[KEY_LABELS][i].asString());
           }
         }
       }
+
+      query.SetLabelsConstraint(LabelsConstraint_All);
       
-      if (request.isMember(KEY_WITHOUT_LABELS))  // New in Orthanc 1.12.0
+      if (request.isMember(KEY_LABELS_CONSTRAINT))
       {
-        for (Json::Value::ArrayIndex i = 0; i < request[KEY_WITHOUT_LABELS].size(); i++)
+        const std::string& s = request[KEY_LABELS_CONSTRAINT].asString();
+        if (s == "All")
         {
-          if (request[KEY_WITHOUT_LABELS][i].type() != Json::stringValue)
-          {
-            throw OrthancException(ErrorCode_BadRequest, "Field \""+ std::string(KEY_WITHOUT_LABELS) + "\" must contain strings");
-          }
-          else
-          {
-            query.AddWithoutLabel(request[KEY_WITHOUT_LABELS][i].asString());
-          }
+          query.SetLabelsConstraint(LabelsConstraint_All);
+        }
+        else if (s == "Any")
+        {
+          query.SetLabelsConstraint(LabelsConstraint_Any);
+        }
+        else if (s == "None")
+        {
+          query.SetLabelsConstraint(LabelsConstraint_None);
+        }
+        else
+        {
+          throw OrthancException(ErrorCode_BadRequest, "Field \"" + std::string(KEY_LABELS_CONSTRAINT) + "\" must be \"All\", \"Any\", or \"None\"");
         }
       }
       

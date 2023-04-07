@@ -370,22 +370,12 @@ namespace Orthanc
   }
 
 
-  void DatabaseLookup::AddWithLabel(const std::string& label)
+  void DatabaseLookup::AddLabel(const std::string& label)
   {
     if (!label.empty())
     {
       ServerToolbox::CheckValidLabel(label);
-      withLabels_.insert(label);
-    }
-  }
-  
-
-  void DatabaseLookup::AddWithoutLabel(const std::string& label)
-  {
-    if (!label.empty())
-    {
-      ServerToolbox::CheckValidLabel(label);
-      withoutLabels_.insert(label);
+      labels_.insert(label);
     }
   }
 }

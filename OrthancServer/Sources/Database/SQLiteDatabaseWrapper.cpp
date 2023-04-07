@@ -341,14 +341,14 @@ namespace Orthanc
                                       std::list<std::string>* instancesId,
                                       const std::vector<DatabaseConstraint>& lookup,
                                       ResourceType queryLevel,
-                                      const std::set<std::string>& withLabels,
-                                      const std::set<std::string>& withoutLabels,
+                                      const std::set<std::string>& labels,
+                                      LabelsConstraint labelsConstraint,
                                       uint32_t limit) ORTHANC_OVERRIDE
     {
       LookupFormatter formatter;
 
       std::string sql;
-      LookupFormatter::Apply(sql, formatter, lookup, queryLevel, withLabels, withoutLabels, limit);
+      LookupFormatter::Apply(sql, formatter, lookup, queryLevel, labels, labelsConstraint, limit);
 
       sql = "CREATE TEMPORARY TABLE Lookup AS " + sql;
     

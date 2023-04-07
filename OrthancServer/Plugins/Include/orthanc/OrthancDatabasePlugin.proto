@@ -71,6 +71,12 @@ enum ConstraintType {
   CONSTRAINT_LIST = 4;
 }
 
+enum LabelsConstraintType {
+  LABELS_CONSTRAINT_ALL = 0;
+  LABELS_CONSTRAINT_ANY = 1;
+  LABELS_CONSTRAINT_NONE = 2;
+}
+
 message ServerIndexChange {
   int64         seq = 1;
   int32         change_type = 2;   // opaque "ChangeType" in Orthanc
@@ -658,8 +664,8 @@ message LookupResources {
     ResourceType query_level = 2;
     uint32 limit = 3;
     bool retrieve_instances_ids = 4;
-    repeated string with_labels = 5;     // New in Orthanc 1.12.0
-    repeated string without_labels = 6;  // New in Orthanc 1.12.0
+    repeated string labels = 5;                  // New in Orthanc 1.12.0
+    LabelsConstraintType labels_constraint = 6;  // New in Orthanc 1.12.0
   }
   message Response {
     repeated string resources_ids = 1;

@@ -1450,7 +1450,7 @@ namespace Orthanc
     {
       const size_t lookupLimit = (databaseLimit == 0 ? 0 : databaseLimit + 1);
       GetIndex().ApplyLookupResources(resources, &instances, *fastLookup, queryLevel,
-                                      lookup.GetWithLabels(), lookup.GetWithoutLabels(), lookupLimit);
+                                      lookup.GetLabels(), lookup.GetLabelsConstraint(), lookupLimit);
     }
 
     bool complete = (databaseLimit == 0 ||
