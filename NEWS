@@ -22,6 +22,11 @@ Plugins
 * Added "OrthancPluginRegisterDatabaseBackendV4()" to communicate using Google
   Protocol Buffers between the Orthanc core and database plugins
 
+Orthanc Explorer
+----------------
+
+* Added buttons to copy the URL of ZIP archives and DICOM files to the clipboard
+
 Maintenance
 -----------
 

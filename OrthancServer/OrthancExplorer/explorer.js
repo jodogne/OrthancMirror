@@ -1482,6 +1482,36 @@ $('#series-media').live('click', function(e) {
   window.location.href = '../series/' + $.mobile.pageData.uuid + '/media';
 });
 
+
+$('#patient-archive-link').live('click', function(e) {
+  e.preventDefault();
+  var url = new URL('../patients/' + $.mobile.pageData.uuid + '/archive', window.location.href);
+  navigator.clipboard.writeText(url.href);
+  $(e.target).closest('li').buttonMarkup({ icon: 'check' });
+});
+
+$('#study-archive-link').live('click', function(e) {
+  e.preventDefault();
+  var url = new URL('../studies/' + $.mobile.pageData.uuid + '/archive', window.location.href);
+  navigator.clipboard.writeText(url.href);
+  $(e.target).closest('li').buttonMarkup({ icon: 'check' });
+});
+
+$('#series-archive-link').live('click', function(e) {
+  e.preventDefault();
+  var url = new URL('../series/' + $.mobile.pageData.uuid + '/archive', window.location.href);
+  navigator.clipboard.writeText(url.href);
+  $(e.target).closest('li').buttonMarkup({ icon: 'check' });
+});
+
+$('#instance-download-link').live('click', function(e) {
+  e.preventDefault();
+  var url = new URL('../instances/' + $.mobile.pageData.uuid + '/file', window.location.href);
+  navigator.clipboard.writeText(url.href);
+  $(e.target).closest('li').buttonMarkup({ icon: 'check' });
+});
+
+
 $('.patient-attachment').live('click', function(e) {
   e.preventDefault();  //stop the browser from following
   window.location.href = '../patients/' + $.mobile.pageData.uuid + '/attachments/' + e.target.id + '/data';
