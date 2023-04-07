@@ -295,6 +295,13 @@ namespace Orthanc
       {
         return false;
       }
+
+      if (label.size() > 64)
+      {
+        // This limitation is for MySQL, which cannot use a TEXT
+        // column of undefined length as a primary key
+        return false;
+      }
       
       for (size_t i = 0; i < label.size(); i++)
       {
@@ -319,7 +326,8 @@ namespace Orthanc
       {
         throw OrthancException(ErrorCode_ParameterOutOfRange,
                                "A label must be a non-empty, alphanumeric string, "
-                               "possibly with '.', '_', or '-' characters, but got: " + label);
+                               "possibly with '.', '_', or '-' characters, "
+                               "with maximum 64 characters, but got: " + label);
       }
     }
   }

@@ -25,6 +25,7 @@ Plugins
 Orthanc Explorer
 ----------------
 
+* Added support for labels
 * Added buttons to copy the URL of ZIP archives and DICOM files to the clipboard
 
 Maintenance
