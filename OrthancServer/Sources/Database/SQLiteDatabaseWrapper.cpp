@@ -1123,6 +1123,20 @@ namespace Orthanc
         target.insert(s.ColumnString(0));
       }
     }
+
+
+    virtual void ListAllLabels(std::set<std::string>& target) ORTHANC_OVERRIDE
+    {
+      target.clear();
+
+      SQLite::Statement s(db_, SQLITE_FROM_HERE, 
+                          "SELECT DISTINCT label FROM Labels");
+
+      while (s.Step())
+      {
+        target.insert(s.ColumnString(0));
+      }
+    }
   };
 
 

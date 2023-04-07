@@ -369,6 +369,11 @@ namespace Orthanc
       {
         transaction_.ListLabels(target, id);
       }
+
+      void ListAllLabels(std::set<std::string>& target)
+      {
+        transaction_.ListAllLabels(target);
+      }
     };
 
 
@@ -761,6 +766,8 @@ namespace Orthanc
     void ListLabels(std::set<std::string>& target,
                     const std::string& publicId,
                     ResourceType level);
+
+    void ListAllLabels(std::set<std::string>& target);
 
     void ModifyLabel(const std::string& publicId,
                      ResourceType level,

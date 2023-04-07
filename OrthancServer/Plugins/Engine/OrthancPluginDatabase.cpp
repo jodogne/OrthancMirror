@@ -1441,6 +1441,12 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_InternalError);  // Not supported
     }
+    
+
+    virtual void ListAllLabels(std::set<std::string>& target) ORTHANC_OVERRIDE
+    {
+      throw OrthancException(ErrorCode_InternalError);  // Not supported
+    }
   };
 
 

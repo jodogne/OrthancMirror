@@ -3578,6 +3578,23 @@ namespace Orthanc
   }
 
 
+  void StatelessDatabaseOperations::ListAllLabels(std::set<std::string>& target)
+  {
+    class Operations : public ReadOnlyOperationsT1<std::set<std::string>& >
+    {
+    public:
+      virtual void ApplyTuple(ReadOnlyTransaction& transaction,
+                              const Tuple& tuple) ORTHANC_OVERRIDE
+      {
+        transaction.ListAllLabels(tuple.get<0>());
+      }
+    };
+
+    Operations operations;
+    operations.Apply(*this, target);
+  }
+  
+
   void StatelessDatabaseOperations::ModifyLabel(const std::string& publicId,
                                                 ResourceType level,
                                                 const std::string& label,
