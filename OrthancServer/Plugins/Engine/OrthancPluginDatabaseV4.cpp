@@ -223,6 +223,33 @@ namespace Orthanc
     }
 
 
+    void ListLabelsInternal(std::set<std::string>& target,
+                            bool isSingleResource,
+                            int64_t resource)
+    {
+      if (database_.HasLabelsSupport())
+      {
+        DatabasePluginMessages::TransactionRequest request;
+        request.mutable_list_labels()->set_single_resource(isSingleResource);
+        request.mutable_list_labels()->set_id(resource);
+
+        DatabasePluginMessages::TransactionResponse response;
+        ExecuteTransaction(response, DatabasePluginMessages::OPERATION_LIST_LABELS, request);
+
+        target.clear();
+        for (int i = 0; i < response.list_labels().labels().size(); i++)
+        {
+          target.insert(response.list_labels().labels(i));
+        }
+      }
+      else
+      {
+        // This method shouldn't have been called
+        throw OrthancException(ErrorCode_InternalError);
+      }
+    }
+    
+
   public:
     Transaction(OrthancPluginDatabaseV4& database,
                 IDatabaseListener& listener,
@@ -1206,25 +1233,13 @@ namespace Orthanc
     virtual void ListLabels(std::set<std::string>& target,
                             int64_t resource) ORTHANC_OVERRIDE
     {
-      if (database_.HasLabelsSupport())
-      {
-        DatabasePluginMessages::TransactionRequest request;
-        request.mutable_list_labels()->set_id(resource);
+      ListLabelsInternal(target, true, resource);
+    }
 
-        DatabasePluginMessages::TransactionResponse response;
-        ExecuteTransaction(response, DatabasePluginMessages::OPERATION_LIST_LABELS, request);
-
-        target.clear();
-        for (int i = 0; i < response.list_labels().labels().size(); i++)
-        {
-          target.insert(response.list_labels().labels(i));
-        }
-      }
-      else
-      {
-        // This method shouldn't have been called
-        throw OrthancException(ErrorCode_InternalError);
-      }
+    
+    virtual void ListAllLabels(std::set<std::string>& target) ORTHANC_OVERRIDE
+    {
+      ListLabelsInternal(target, false, -1);
     }
   };
 

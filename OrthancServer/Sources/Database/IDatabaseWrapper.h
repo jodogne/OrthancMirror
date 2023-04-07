@@ -251,8 +251,12 @@ namespace Orthanc
       virtual void RemoveLabel(int64_t resource,
                                const std::string& label) = 0;
 
+      // List the labels of one single resource
       virtual void ListLabels(std::set<std::string>& target,
                               int64_t resource) = 0;
+
+      // List all the labels that are present in any resource
+      virtual void ListAllLabels(std::set<std::string>& target) = 0;
     };
 
 

@@ -265,9 +265,9 @@ enum TransactionOperation {
   OPERATION_GET_CHILDREN_METADATA = 42;
   OPERATION_GET_LAST_CHANGE_INDEX = 43;
   OPERATION_LOOKUP_RESOURCE_AND_PARENT = 44;
-  OPERATION_ADD_LABEL = 45;     // New in Orthanc 1.12.0
-  OPERATION_REMOVE_LABEL = 46;  // New in Orthanc 1.12.0
-  OPERATION_LIST_LABELS = 47;   // New in Orthanc 1.12.0
+  OPERATION_ADD_LABEL = 45;        // New in Orthanc 1.12.0
+  OPERATION_REMOVE_LABEL = 46;     // New in Orthanc 1.12.0
+  OPERATION_LIST_LABELS = 47;      // New in Orthanc 1.12.0
 }
 
 message Rollback {
@@ -767,7 +767,8 @@ message RemoveLabel {
 
 message ListLabels {
   message Request {
-    int64 id = 1;
+    bool single_resource = 1;
+    int64 id = 2;  // Only if "single_resource" is "true"
   }
   message Response {
     repeated string labels = 1;
