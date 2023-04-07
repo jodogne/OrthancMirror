@@ -565,12 +565,11 @@ namespace Orthanc
                                       std::list<std::string>* instancesId,
                                       const std::vector<DatabaseConstraint>& lookup,
                                       ResourceType queryLevel,
-                                      const std::set<std::string>& withLabels,
-                                      const std::set<std::string>& withoutLabels,
+                                      const std::set<std::string>& labels,
+                                      LabelsConstraint labelsConstraint,
                                       uint32_t limit) ORTHANC_OVERRIDE
     {
-      if (!withLabels.empty() ||
-          !withoutLabels.empty())
+      if (!labels.empty())
       {
         throw OrthancException(ErrorCode_InternalError);  // "HasLabelsSupport()" has returned "false"
       }

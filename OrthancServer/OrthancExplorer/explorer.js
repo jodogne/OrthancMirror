@@ -566,7 +566,7 @@ $('#lookup-submit').live('click', function() {
       }
       else if (input.id == 'lookup-study-labels') {
         // New in Orthanc 1.12.0
-        lookup['WithLabels'] = input.value.split(' ');
+        lookup['Labels'] = input.value.split(' ');
       }
       else {
         console.error('Unknown lookup field: ' + input.id);

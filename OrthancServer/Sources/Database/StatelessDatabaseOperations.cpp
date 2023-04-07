@@ -1651,9 +1651,8 @@ namespace Orthanc
       {
         // TODO - CANDIDATE FOR "TransactionType_Implicit"
         std::list<std::string> tmp;
-        std::set<std::string> withLabels;
-        std::set<std::string> withoutLabels;
-        transaction.ApplyLookupResources(tmp, NULL, query_, level_, withLabels, withoutLabels, 0);
+        std::set<std::string> labels;
+        transaction.ApplyLookupResources(tmp, NULL, query_, level_, labels, LabelsConstraint_Any, 0);
         CopyListToVector(result_, tmp);
       }
     };
@@ -1918,25 +1917,16 @@ namespace Orthanc
   }
 
 
-  static void CheckValidLabels(const std::set<std::string>& labels)
-  {
-    for (std::set<std::string>::const_iterator it = labels.begin(); it != labels.end(); ++it)
-    {
-      ServerToolbox::CheckValidLabel(*it);
-    }
-  }
-  
-
   void StatelessDatabaseOperations::ApplyLookupResources(std::vector<std::string>& resourcesId,
                                                          std::vector<std::string>* instancesId,
                                                          const DatabaseLookup& lookup,
                                                          ResourceType queryLevel,
-                                                         const std::set<std::string>& withLabels,
-                                                         const std::set<std::string>& withoutLabels,
+                                                         const std::set<std::string>& labels,
+                                                         LabelsConstraint labelsConstraint,
                                                          uint32_t limit)
   {
     class Operations : public ReadOnlyOperationsT6<bool, const std::vector<DatabaseConstraint>&, ResourceType,
-                                                   const std::set<std::string>&, const std::set<std::string>&, size_t>
+                                                   const std::set<std::string>&, LabelsConstraint, size_t>
     {
     private:
       std::list<std::string>  resourcesList_;
@@ -1970,20 +1960,22 @@ namespace Orthanc
       }
     };
 
-    if ((!withLabels.empty() || !withoutLabels.empty()) &&
+    if (!labels.empty() &&
         !db_.HasLabelsSupport())
     {
       throw OrthancException(ErrorCode_NotImplemented, "The database backend doesn't support labels");
     }
 
-    CheckValidLabels(withLabels);
-    CheckValidLabels(withoutLabels);
+    for (std::set<std::string>::const_iterator it = labels.begin(); it != labels.end(); ++it)
+    {
+      ServerToolbox::CheckValidLabel(*it);
+    }
 
     std::vector<DatabaseConstraint> normalized;
     NormalizeLookup(normalized, lookup, queryLevel);
 
     Operations operations;
-    operations.Apply(*this, (instancesId != NULL), normalized, queryLevel, withLabels, withoutLabels, limit);
+    operations.Apply(*this, (instancesId != NULL), normalized, queryLevel, labels, labelsConstraint, limit);
     
     CopyListToVector(resourcesId, operations.GetResourcesList());
 

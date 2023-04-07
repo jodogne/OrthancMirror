@@ -35,6 +35,13 @@ namespace Orthanc
 {
   class DatabaseConstraint;
   
+  enum LabelsConstraint
+  {
+    LabelsConstraint_All,
+    LabelsConstraint_Any,
+    LabelsConstraint_None
+  };
+
   // This class is also used by the "orthanc-databases" project
   class ISqlLookupFormatter : public boost::noncopyable
   {
@@ -60,8 +67,8 @@ namespace Orthanc
                       ISqlLookupFormatter& formatter,
                       const std::vector<DatabaseConstraint>& lookup,
                       ResourceType queryLevel,
-                      const std::set<std::string>& withLabels,     // New in Orthanc 1.12.0
-                      const std::set<std::string>& withoutLabels,  // New in Orthanc 1.12.0
+                      const std::set<std::string>& labels,  // New in Orthanc 1.12.0
+                      LabelsConstraint labelsConstraint,    // New in Orthanc 1.12.0
                       size_t limit);
   };
 }

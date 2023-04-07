@@ -915,13 +915,12 @@ namespace Orthanc
                                       std::list<std::string>* instancesId, // Can be NULL if not needed
                                       const std::vector<DatabaseConstraint>& lookup,
                                       ResourceType queryLevel,
-                                      const std::set<std::string>& withLabels,
-                                      const std::set<std::string>& withoutLabels,
+                                      const std::set<std::string>& labels,
+                                      LabelsConstraint labelsConstraint,
                                       uint32_t limit) ORTHANC_OVERRIDE
     {
       if (!database_.HasLabelsSupport() &&
-          (!withLabels.empty() ||
-           !withoutLabels.empty()))
+          !labels.empty())
       {
         throw OrthancException(ErrorCode_InternalError);
       }
@@ -976,14 +975,27 @@ namespace Orthanc
         }
       }
 
-      for (std::set<std::string>::const_iterator it = withLabels.begin(); it != withLabels.end(); ++it)
+      for (std::set<std::string>::const_iterator it = labels.begin(); it != labels.end(); ++it)
       {
-        request.mutable_lookup_resources()->add_with_labels(*it);
+        request.mutable_lookup_resources()->add_labels(*it);
       }
-      
-      for (std::set<std::string>::const_iterator it = withoutLabels.begin(); it != withoutLabels.end(); ++it)
+
+      switch (labelsConstraint)
       {
-        request.mutable_lookup_resources()->add_without_labels(*it);
+        case LabelsConstraint_All:
+          request.mutable_lookup_resources()->set_labels_constraint(DatabasePluginMessages::LABELS_CONSTRAINT_ALL);
+          break;
+            
+        case LabelsConstraint_Any:
+          request.mutable_lookup_resources()->set_labels_constraint(DatabasePluginMessages::LABELS_CONSTRAINT_ANY);
+          break;
+            
+        case LabelsConstraint_None:
+          request.mutable_lookup_resources()->set_labels_constraint(DatabasePluginMessages::LABELS_CONSTRAINT_NONE);
+          break;
+            
+        default:
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
       }
       
       DatabasePluginMessages::TransactionResponse response;

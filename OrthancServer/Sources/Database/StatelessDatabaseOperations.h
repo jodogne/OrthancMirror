@@ -207,11 +207,12 @@ namespace Orthanc
                                 std::list<std::string>* instancesId, // Can be NULL if not needed
                                 const std::vector<DatabaseConstraint>& lookup,
                                 ResourceType queryLevel,
-                                const std::set<std::string>& withLabels,
-                                const std::set<std::string>& withoutLabels,
+                                const std::set<std::string>& labels,  // New in Orthanc 1.12.0
+                                LabelsConstraint labelsConstraint,    // New in Orthanc 1.12.0
                                 uint32_t limit)
       {
-        return transaction_.ApplyLookupResources(resourcesId, instancesId, lookup, queryLevel, withLabels, withoutLabels, limit);
+        return transaction_.ApplyLookupResources(resourcesId, instancesId, lookup, queryLevel,
+                                                 labels, labelsConstraint, limit);
       }
 
       void GetAllMetadata(std::map<MetadataType, std::string>& target,
@@ -676,8 +677,8 @@ namespace Orthanc
                               std::vector<std::string>* instancesId,  // Can be NULL if not needed
                               const DatabaseLookup& lookup,
                               ResourceType queryLevel,
-                              const std::set<std::string>& withLabels,
-                              const std::set<std::string>& withoutLabels,
+                              const std::set<std::string>& labels,
+                              LabelsConstraint labelsConstraint,
                               uint32_t limit);
 
     bool DeleteResource(Json::Value& remainingAncestor /* out */,
