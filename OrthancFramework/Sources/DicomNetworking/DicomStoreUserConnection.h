@@ -96,11 +96,13 @@ namespace Orthanc
                                       bool hasPreferred,
                                       DicomTransferSyntax preferred);
 
+#if ORTHANC_ENABLE_DCMTK_TRANSCODING == 1
     void LookupTranscoding(std::set<DicomTransferSyntax>& acceptedSyntaxes,
                            const std::string& sopClassUid,
                            DicomTransferSyntax sourceSyntax,
                            bool hasPreferred,
                            DicomTransferSyntax preferred);
+#endif
 
   public:
     explicit DicomStoreUserConnection(const DicomAssociationParameters& params);
@@ -142,6 +144,7 @@ namespace Orthanc
                           DicomTransferSyntax& transferSyntax,
                           DcmFileFormat& dicom);
 
+#if ORTHANC_ENABLE_DCMTK_TRANSCODING == 1
     void Transcode(std::string& sopClassUid /* out */,
                    std::string& sopInstanceUid /* out */,
                    IDicomTranscoder& transcoder,
@@ -151,7 +154,9 @@ namespace Orthanc
                    bool hasMoveOriginator,
                    const std::string& moveOriginatorAET,
                    uint16_t moveOriginatorID);
-
+#endif
+    
+#if ORTHANC_ENABLE_DCMTK_TRANSCODING == 1
     void Transcode(std::string& sopClassUid /* out */,
                    std::string& sopInstanceUid /* out */,
                    IDicomTranscoder& transcoder,
@@ -160,5 +165,6 @@ namespace Orthanc
                    bool hasMoveOriginator,
                    const std::string& moveOriginatorAET,
                    uint16_t moveOriginatorID);
+#endif
   };
 }
