@@ -472,6 +472,7 @@ namespace Orthanc
   }
 
 
+#if ORTHANC_ENABLE_DCMTK_TRANSCODING == 1
   void DicomStoreUserConnection::LookupTranscoding(std::set<DicomTransferSyntax>& acceptedSyntaxes,
                                                    const std::string& sopClassUid,
                                                    DicomTransferSyntax sourceSyntax,
@@ -496,8 +497,10 @@ namespace Orthanc
       }
     }
   }
+#endif
+  
 
-
+#if ORTHANC_ENABLE_DCMTK_TRANSCODING == 1
   void DicomStoreUserConnection::Transcode(std::string& sopClassUid /* out */,
                                            std::string& sopInstanceUid /* out */,
                                            IDicomTranscoder& transcoder,
@@ -632,8 +635,10 @@ namespace Orthanc
       }
     }
   }
-
+#endif
   
+  
+#if ORTHANC_ENABLE_DCMTK_TRANSCODING == 1
   void DicomStoreUserConnection::Transcode(std::string& sopClassUid /* out */,
                                            std::string& sopInstanceUid /* out */,
                                            IDicomTranscoder& transcoder,
@@ -646,4 +651,5 @@ namespace Orthanc
     Transcode(sopClassUid, sopInstanceUid, transcoder, buffer, size, DicomTransferSyntax_LittleEndianExplicit,
               hasMoveOriginator, moveOriginatorAET, moveOriginatorID);
   }
+#endif
 }
