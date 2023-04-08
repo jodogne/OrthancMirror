@@ -305,8 +305,7 @@ namespace Orthanc
       
       for (size_t i = 0; i < label.size(); i++)
       {
-        if (!(label[i] == '.' ||
-              label[i] == '_' ||
+        if (!(label[i] == '_' ||
               label[i] == '-' ||
               (label[i] >= 'a' && label[i] <= 'z') ||
               (label[i] >= 'A' && label[i] <= 'Z') ||
@@ -326,7 +325,7 @@ namespace Orthanc
       {
         throw OrthancException(ErrorCode_ParameterOutOfRange,
                                "A label must be a non-empty, alphanumeric string, "
-                               "possibly with '.', '_', or '-' characters, "
+                               "possibly with '_' or '-' characters, "
                                "with maximum 64 characters, but got: " + label);
       }
     }
