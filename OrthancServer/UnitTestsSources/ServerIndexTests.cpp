@@ -1046,8 +1046,9 @@ TEST(ServerToolbox, ValidLabels)
 {
   ASSERT_TRUE(ServerToolbox::IsValidLabel("abcdefghijklmnopqrstuvwxyz"
                                           "ABCDEFGHIJKLMNOPQRSTUVWXYZ"));
-  ASSERT_TRUE(ServerToolbox::IsValidLabel("0123456789-_."));
+  ASSERT_TRUE(ServerToolbox::IsValidLabel("0123456789-_"));
   ASSERT_FALSE(ServerToolbox::IsValidLabel(""));
   ASSERT_FALSE(ServerToolbox::IsValidLabel(" "));
   ASSERT_FALSE(ServerToolbox::IsValidLabel("&"));
+  ASSERT_FALSE(ServerToolbox::IsValidLabel("."));
 }
