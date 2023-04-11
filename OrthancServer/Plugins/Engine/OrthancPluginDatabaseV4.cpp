@@ -27,10 +27,12 @@
 #  error The plugin support is disabled
 #endif
 
+#include "../../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.h"
 #include "../../../OrthancFramework/Sources/Logging.h"
 #include "../../../OrthancFramework/Sources/OrthancException.h"
 #include "../../Sources/Database/ResourcesContent.h"
 #include "../../Sources/Database/VoidDatabaseListener.h"
+#include "../../Sources/ServerToolbox.h"
 #include "PluginsEnumerations.h"
 
 #include "OrthancDatabasePlugin.pb.h"  // Auto-generated file
@@ -1275,6 +1277,31 @@ namespace Orthanc
     definition_.finalize(definition_.backend);
   }
 
+
+  static void AddIdentifierTags(DatabasePluginMessages::Open::Request& request,
+                                ResourceType level)
+  {
+    const DicomTag* tags = NULL;
+    size_t size;
+
+    ServerToolbox::LoadIdentifiers(tags, size, level);
+
+    if (tags == NULL ||
+        size == 0)
+    {
+      throw Orthanc::OrthancException(Orthanc::ErrorCode_InternalError);
+    }
+
+    for (size_t i = 0; i < size; i++)
+    {
+      DatabasePluginMessages::Open_Request_IdentifierTag* tag = request.add_identifier_tags();
+      tag->set_level(Convert(level));
+      tag->set_group(tags[i].GetGroup());
+      tag->set_element(tags[i].GetElement());
+      tag->set_name(FromDcmtkBridge::GetTagName(tags[i], ""));
+    }
+  }
+
   
   void OrthancPluginDatabaseV4::Open()
   {
@@ -1285,6 +1312,11 @@ namespace Orthanc
     
     {
       DatabasePluginMessages::DatabaseRequest request;
+      AddIdentifierTags(*request.mutable_open(), ResourceType_Patient);
+      AddIdentifierTags(*request.mutable_open(), ResourceType_Study);
+      AddIdentifierTags(*request.mutable_open(), ResourceType_Series);
+      AddIdentifierTags(*request.mutable_open(), ResourceType_Instance);
+
       DatabasePluginMessages::DatabaseResponse response;
       ExecuteDatabase(response, *this, DatabasePluginMessages::OPERATION_OPEN, request);
     }
@@ -1299,7 +1331,7 @@ namespace Orthanc
       hasLabelsSupport_ = response.get_system_information().supports_labels();
     }
 
-    open_ = true;    
+    open_ = true;
   }
 
 

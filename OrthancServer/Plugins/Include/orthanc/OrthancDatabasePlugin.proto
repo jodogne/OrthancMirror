@@ -141,6 +141,13 @@ message GetSystemInformation {
 
 message Open {
   message Request {
+    message IdentifierTag {
+      ResourceType level = 1;
+      uint32 group = 2;
+      uint32 element = 3;
+      string name = 4;
+    }
+    repeated IdentifierTag identifier_tags = 1;
   }
   message Response {
   }
