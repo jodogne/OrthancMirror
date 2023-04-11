@@ -1431,7 +1431,7 @@ namespace Orthanc
                          "Host that is used for this commands, defaults to `Host` configuration option. "
                          "Allows you to overwrite the destination host for a specific operation.", false)
         .SetRequestField(KEY_PORT, RestApiCallDocumentation::Type_Number,
-                         "Port that is used for this commands, defaults to `Port` configuration option. "
+                         "Port that is used for this command, defaults to `Port` configuration option. "
                          "Allows you to overwrite the destination port for a specific operation.", false)
         .SetRequestField(KEY_MOVE_ORIGINATOR_AET, RestApiCallDocumentation::Type_String,
                          "Move originator AET that is used for this commands, in order to fake a C-MOVE SCU", false)
