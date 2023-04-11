@@ -72,6 +72,21 @@ namespace Orthanc
   }
 
 
+  std::string SerializationToolbox::ReadString(const Json::Value& value,
+                                               const std::string& field,
+                                               const std::string& defaultValue)
+  {
+    if (value.isMember(field.c_str()))
+    {
+      return ReadString(value, field);
+    }
+    else
+    {
+      return defaultValue;
+    }
+  }
+
+
   int SerializationToolbox::ReadInteger(const Json::Value& value,
                                         const std::string& field)
   {
