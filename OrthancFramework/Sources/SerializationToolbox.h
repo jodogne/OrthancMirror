@@ -38,6 +38,10 @@ namespace Orthanc
     static std::string ReadString(const Json::Value& value,
                                   const std::string& field);
 
+    static std::string ReadString(const Json::Value& value,
+                                  const std::string& field,
+                                  const std::string& defaultValue);
+
     static int ReadInteger(const Json::Value& value,
                            const std::string& field);
 
