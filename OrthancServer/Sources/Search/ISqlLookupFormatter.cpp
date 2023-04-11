@@ -383,6 +383,8 @@ namespace Orthanc
     }
 
     std::list<std::string> where;
+    where.push_back(FormatLevel(queryLevel) + ".resourceType = " +
+                    formatter.FormatResourceType(queryLevel) + comparisons);
 
     if (!labels.empty())
     {
@@ -418,12 +420,9 @@ namespace Orthanc
           throw OrthancException(ErrorCode_ParameterOutOfRange);
       }
       
-      where.push_back("(SELECT COUNT(1) FROM Labels WHERE internalId = " + FormatLevel(queryLevel) +
-                      ".internalId AND label IN (" + Join(formattedLabels, "", ", ") + ")) " + condition);
+      where.push_back("(SELECT COUNT(1) FROM Labels AS selectedLabels WHERE selectedLabels.id = " + FormatLevel(queryLevel) +
+                      ".internalId AND selectedLabels.label IN (" + Join(formattedLabels, "", ", ") + ")) " + condition);
     }
-    
-    where.push_back(FormatLevel(queryLevel) + ".resourceType = " +
-                    formatter.FormatResourceType(queryLevel) + comparisons);
 
     sql += joins + Join(where, " WHERE ", " AND ");
 

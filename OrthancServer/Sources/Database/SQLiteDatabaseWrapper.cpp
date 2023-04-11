@@ -1084,7 +1084,7 @@ namespace Orthanc
       }
       else
       {
-        SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT OR IGNORE INTO Labels (internalId, label) VALUES(?, ?)");
+        SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT OR IGNORE INTO Labels (id, label) VALUES(?, ?)");
         s.BindInt64(0, resource);
         s.BindString(1, label);
         s.Run();
@@ -1101,7 +1101,7 @@ namespace Orthanc
       }
       else
       {
-        SQLite::Statement s(db_, SQLITE_FROM_HERE, "DELETE FROM Labels WHERE internalId=? AND label=?");
+        SQLite::Statement s(db_, SQLITE_FROM_HERE, "DELETE FROM Labels WHERE id=? AND label=?");
         s.BindInt64(0, resource);
         s.BindString(1, label);
         s.Run();
@@ -1115,7 +1115,7 @@ namespace Orthanc
       target.clear();
 
       SQLite::Statement s(db_, SQLITE_FROM_HERE, 
-                          "SELECT label FROM Labels WHERE internalId=?");
+                          "SELECT label FROM Labels WHERE id=?");
       s.BindInt64(0, resource);
 
       while (s.Step())
