@@ -368,4 +368,14 @@ namespace Orthanc
 
     return clone.release();
   }
+
+
+  void DatabaseLookup::AddLabel(const std::string& label)
+  {
+    if (!label.empty())
+    {
+      ServerToolbox::CheckValidLabel(label);
+      labels_.insert(label);
+    }
+  }
 }

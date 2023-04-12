@@ -82,6 +82,11 @@ namespace Orthanc
                          IStorageArea& storageArea) ORTHANC_OVERRIDE;    
 
     virtual bool HasRevisionsSupport() const ORTHANC_OVERRIDE;
+
+    virtual bool HasLabelsSupport() const ORTHANC_OVERRIDE
+    {
+      return false;
+    }
   };
 }
 

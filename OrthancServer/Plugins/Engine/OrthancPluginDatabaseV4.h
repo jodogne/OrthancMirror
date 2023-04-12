@@ -44,6 +44,7 @@ namespace Orthanc
     unsigned int                            databaseVersion_;
     bool                                    hasFlushToDisk_;
     bool                                    hasRevisionsSupport_;
+    bool                                    hasLabelsSupport_;
 
     void CheckSuccess(OrthancPluginErrorCode code) const;
 
@@ -93,6 +94,8 @@ namespace Orthanc
                          IStorageArea& storageArea) ORTHANC_OVERRIDE;    
 
     virtual bool HasRevisionsSupport() const ORTHANC_OVERRIDE;
+
+    virtual bool HasLabelsSupport() const ORTHANC_OVERRIDE;
   };
 }
 

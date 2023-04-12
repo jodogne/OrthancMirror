@@ -607,7 +607,7 @@ namespace Orthanc
           
           Transaction transaction(db_, *factory_, TransactionType_ReadOnly);  // TODO - Only if not "TransactionType_Implicit"
           {
-            ReadOnlyTransaction t(transaction.GetDatabaseTransaction(), transaction.GetContext());
+            ReadOnlyTransaction t(transaction.GetDatabaseTransaction(), transaction.GetContext(), db_.HasLabelsSupport());
             readOperations->Apply(t);
           }
           transaction.Commit();
@@ -618,7 +618,7 @@ namespace Orthanc
           
           Transaction transaction(db_, *factory_, TransactionType_ReadWrite);
           {
-            ReadWriteTransaction t(transaction.GetDatabaseTransaction(), transaction.GetContext());
+            ReadWriteTransaction t(transaction.GetDatabaseTransaction(), transaction.GetContext(), db_.HasLabelsSupport());
             writeOperations->Apply(t);
           }
           transaction.Commit();
@@ -715,10 +715,10 @@ namespace Orthanc
                                                    const std::string& publicId,
                                                    ResourceType level,
                                                    const std::set<DicomTag>& requestedTags,
-                                                   ExpandResourceDbFlags expandFlags)
+                                                   ExpandResourceFlags expandFlags)
   {    
     class Operations : public ReadOnlyOperationsT6<
-      bool&, ExpandedResource&, const std::string&, ResourceType, const std::set<DicomTag>&, ExpandResourceDbFlags>
+      bool&, ExpandedResource&, const std::string&, ResourceType, const std::set<DicomTag>&, ExpandResourceFlags>
     {
     private:
   
@@ -778,7 +778,7 @@ namespace Orthanc
         else
         {
           ExpandedResource& target = tuple.get<1>();
-          ExpandResourceDbFlags expandFlags = tuple.get<5>();
+          ExpandResourceFlags expandFlags = tuple.get<5>();
 
           // Set information about the parent resource (if it exists)
           if (type == ResourceType_Patient)
@@ -798,16 +798,15 @@ namespace Orthanc
             target.parentId_ = parent;
           }
 
-          target.type_ = type;
-          target.id_ = tuple.get<2>();
+          target.SetResource(type, tuple.get<2>());
 
-          if (expandFlags & ExpandResourceDbFlags_IncludeChildren)
+          if (expandFlags & ExpandResourceFlags_IncludeChildren)
           {
             // List the children resources
             transaction.GetChildrenPublicId(target.childrenIds_, internalId);
           }
 
-          if (expandFlags & ExpandResourceDbFlags_IncludeMetadata)
+          if (expandFlags & ExpandResourceFlags_IncludeMetadata)
           {
             // Extract the metadata
             transaction.GetAllMetadata(target.metadata_, internalId);
@@ -869,10 +868,10 @@ namespace Orthanc
             LookupStringMetadata(target.mainDicomTagsSignature_, target.metadata_, MetadataType_MainDicomTagsSignature);
           }
 
-          if (expandFlags & ExpandResourceDbFlags_IncludeMainDicomTags)
+          if (expandFlags & ExpandResourceFlags_IncludeMainDicomTags)
           {
             // read all tags from DB
-            transaction.GetMainDicomTags(target.tags_, internalId);
+            transaction.GetMainDicomTags(target.GetMainDicomTags(), internalId);
 
             // read all main sequences from DB
             std::string serializedSequences;
@@ -882,7 +881,7 @@ namespace Orthanc
               Toolbox::ReadJson(jsonMetadata, serializedSequences);
 
               assert(jsonMetadata["Version"].asInt() == 1);
-              target.tags_.FromDicomAsJson(jsonMetadata["Sequences"], true /* append */, true /* parseSequences */);
+              target.GetMainDicomTags().FromDicomAsJson(jsonMetadata["Sequences"], true /* append */, true /* parseSequences */);
             }
 
             // check if we have access to all requestedTags or if we must get tags from parents
@@ -895,7 +894,7 @@ namespace Orthanc
               FromDcmtkBridge::ParseListOfTags(savedMainDicomTags, target.mainDicomTagsSignature_);
 
               // read parent main dicom tags as long as we have not gathered all requested tags
-              ResourceType currentLevel = target.type_;
+              ResourceType currentLevel = target.GetLevel();
               int64_t currentInternalId = internalId;
               Toolbox::GetMissingsFromSet(target.missingRequestedTags_, requestedTags, savedMainDicomTags);
 
@@ -931,12 +930,18 @@ namespace Orthanc
                   DicomMap parentTags;
                   transaction.GetMainDicomTags(parentTags, currentParentId);
 
-                  target.tags_.Merge(parentTags);
+                  target.GetMainDicomTags().Merge(parentTags);
                 }
 
                 currentInternalId = currentParentId;
               }
             }
+          }
+
+          if ((expandFlags & ExpandResourceFlags_IncludeLabels) &&
+              transaction.HasLabelsSupport())
+          {
+            transaction.ListLabels(target.labels_, internalId);
           }
 
           std::string tmp;
@@ -1066,7 +1071,7 @@ namespace Orthanc
   void StatelessDatabaseOperations::GetAllUuids(std::list<std::string>& target,
                                                 ResourceType resourceType,
                                                 size_t since,
-                                                size_t limit)
+                                                uint32_t limit)
   {
     if (limit == 0)
     {
@@ -1646,7 +1651,8 @@ namespace Orthanc
       {
         // TODO - CANDIDATE FOR "TransactionType_Implicit"
         std::list<std::string> tmp;
-        transaction.ApplyLookupResources(tmp, NULL, query_, level_, 0);
+        std::set<std::string> labels;
+        transaction.ApplyLookupResources(tmp, NULL, query_, level_, labels, LabelsConstraint_Any, 0);
         CopyListToVector(result_, tmp);
       }
     };
@@ -1915,9 +1921,12 @@ namespace Orthanc
                                                          std::vector<std::string>* instancesId,
                                                          const DatabaseLookup& lookup,
                                                          ResourceType queryLevel,
-                                                         size_t limit)
+                                                         const std::set<std::string>& labels,
+                                                         LabelsConstraint labelsConstraint,
+                                                         uint32_t limit)
   {
-    class Operations : public ReadOnlyOperationsT4<bool, const std::vector<DatabaseConstraint>&, ResourceType, size_t>
+    class Operations : public ReadOnlyOperationsT6<bool, const std::vector<DatabaseConstraint>&, ResourceType,
+                                                   const std::set<std::string>&, LabelsConstraint, size_t>
     {
     private:
       std::list<std::string>  resourcesList_;
@@ -1940,21 +1949,33 @@ namespace Orthanc
         // TODO - CANDIDATE FOR "TransactionType_Implicit"
         if (tuple.get<0>())
         {
-          transaction.ApplyLookupResources(resourcesList_, &instancesList_, tuple.get<1>(), tuple.get<2>(), tuple.get<3>());
+          transaction.ApplyLookupResources(
+            resourcesList_, &instancesList_, tuple.get<1>(), tuple.get<2>(), tuple.get<3>(), tuple.get<4>(), tuple.get<5>());
         }
         else
         {
-          transaction.ApplyLookupResources(resourcesList_, NULL, tuple.get<1>(), tuple.get<2>(), tuple.get<3>());
+          transaction.ApplyLookupResources(
+            resourcesList_, NULL, tuple.get<1>(), tuple.get<2>(), tuple.get<3>(), tuple.get<4>(), tuple.get<5>());
         }
       }
     };
 
+    if (!labels.empty() &&
+        !db_.HasLabelsSupport())
+    {
+      throw OrthancException(ErrorCode_NotImplemented, "The database backend doesn't support labels");
+    }
+
+    for (std::set<std::string>::const_iterator it = labels.begin(); it != labels.end(); ++it)
+    {
+      ServerToolbox::CheckValidLabel(*it);
+    }
 
     std::vector<DatabaseConstraint> normalized;
     NormalizeLookup(normalized, lookup, queryLevel);
 
     Operations operations;
-    operations.Apply(*this, (instancesId != NULL), normalized, queryLevel, limit);
+    operations.Apply(*this, (instancesId != NULL), normalized, queryLevel, labels, labelsConstraint, limit);
     
     CopyListToVector(resourcesId, operations.GetResourcesList());
 
@@ -3525,5 +3546,118 @@ namespace Orthanc
                           hasOldRevision, oldRevision, oldMD5);
     Apply(operations);
     return operations.GetStatus();
+  }
+
+
+  void StatelessDatabaseOperations::ListLabels(std::set<std::string>& target,
+                                               const std::string& publicId,
+                                               ResourceType level)
+  {
+    class Operations : public ReadOnlyOperationsT3<std::set<std::string>&, const std::string&, ResourceType>
+    {
+    public:
+      virtual void ApplyTuple(ReadOnlyTransaction& transaction,
+                              const Tuple& tuple) ORTHANC_OVERRIDE
+      {
+        ResourceType type;
+        int64_t id;
+        if (!transaction.LookupResource(id, type, tuple.get<1>()) ||
+            tuple.get<2>() != type)
+        {
+          throw OrthancException(ErrorCode_UnknownResource);
+        }
+        else
+        {
+          transaction.ListLabels(tuple.get<0>(), id);
+        }
+      }
+    };
+
+    Operations operations;
+    operations.Apply(*this, target, publicId, level);
+  }
+
+
+  void StatelessDatabaseOperations::ListAllLabels(std::set<std::string>& target)
+  {
+    class Operations : public ReadOnlyOperationsT1<std::set<std::string>& >
+    {
+    public:
+      virtual void ApplyTuple(ReadOnlyTransaction& transaction,
+                              const Tuple& tuple) ORTHANC_OVERRIDE
+      {
+        transaction.ListAllLabels(tuple.get<0>());
+      }
+    };
+
+    Operations operations;
+    operations.Apply(*this, target);
+  }
+  
+
+  void StatelessDatabaseOperations::ModifyLabel(const std::string& publicId,
+                                                ResourceType level,
+                                                const std::string& label,
+                                                LabelOperation operation)
+  {
+    class Operations : public IReadWriteOperations
+    {
+    private:
+      const std::string& publicId_;
+      ResourceType       level_;
+      const std::string& label_;
+      LabelOperation     operation_;
+
+    public:
+      Operations(const std::string& publicId,
+                 ResourceType level,
+                 const std::string& label,
+                 LabelOperation operation) :
+        publicId_(publicId),
+        level_(level),
+        label_(label),
+        operation_(operation)
+      {
+      }
+
+      virtual void Apply(ReadWriteTransaction& transaction) ORTHANC_OVERRIDE
+      {
+        ResourceType type;
+        int64_t id;
+        if (!transaction.LookupResource(id, type, publicId_) ||
+            level_ != type)
+        {
+          throw OrthancException(ErrorCode_UnknownResource);
+        }
+        else
+        {
+          switch (operation_)
+          {
+            case LabelOperation_Add:
+              transaction.AddLabel(id, label_);
+              break;
+
+            case LabelOperation_Remove:
+              transaction.RemoveLabel(id, label_);
+              break;
+
+            default:
+              throw OrthancException(ErrorCode_ParameterOutOfRange);
+          }
+        }
+      }
+    };
+
+    ServerToolbox::CheckValidLabel(label);
+    
+    Operations operations(publicId, level, label, operation);
+    Apply(operations);
+  }
+
+
+  bool StatelessDatabaseOperations::HasLabelsSupport()
+  {
+    boost::shared_lock<boost::shared_mutex> lock(mutex_);
+    return db_.HasLabelsSupport();
   }
 }

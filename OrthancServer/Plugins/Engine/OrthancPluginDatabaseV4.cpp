@@ -27,10 +27,12 @@
 #  error The plugin support is disabled
 #endif
 
+#include "../../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.h"
 #include "../../../OrthancFramework/Sources/Logging.h"
 #include "../../../OrthancFramework/Sources/OrthancException.h"
 #include "../../Sources/Database/ResourcesContent.h"
 #include "../../Sources/Database/VoidDatabaseListener.h"
+#include "../../Sources/ServerToolbox.h"
 #include "PluginsEnumerations.h"
 
 #include "OrthancDatabasePlugin.pb.h"  // Auto-generated file
@@ -222,6 +224,33 @@ namespace Orthanc
       ExecuteTransaction(response, operation, request);
     }
 
+
+    void ListLabelsInternal(std::set<std::string>& target,
+                            bool isSingleResource,
+                            int64_t resource)
+    {
+      if (database_.HasLabelsSupport())
+      {
+        DatabasePluginMessages::TransactionRequest request;
+        request.mutable_list_labels()->set_single_resource(isSingleResource);
+        request.mutable_list_labels()->set_id(resource);
+
+        DatabasePluginMessages::TransactionResponse response;
+        ExecuteTransaction(response, DatabasePluginMessages::OPERATION_LIST_LABELS, request);
+
+        target.clear();
+        for (int i = 0; i < response.list_labels().labels().size(); i++)
+        {
+          target.insert(response.list_labels().labels(i));
+        }
+      }
+      else
+      {
+        // This method shouldn't have been called
+        throw OrthancException(ErrorCode_InternalError);
+      }
+    }
+    
 
   public:
     Transaction(OrthancPluginDatabaseV4& database,
@@ -915,8 +944,16 @@ namespace Orthanc
                                       std::list<std::string>* instancesId, // Can be NULL if not needed
                                       const std::vector<DatabaseConstraint>& lookup,
                                       ResourceType queryLevel,
+                                      const std::set<std::string>& labels,
+                                      LabelsConstraint labelsConstraint,
                                       uint32_t limit) ORTHANC_OVERRIDE
     {
+      if (!database_.HasLabelsSupport() &&
+          !labels.empty())
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+
       DatabasePluginMessages::TransactionRequest request;
       request.mutable_lookup_resources()->set_query_level(Convert(queryLevel));
       request.mutable_lookup_resources()->set_limit(limit);
@@ -965,6 +1002,29 @@ namespace Orthanc
           default:
             throw OrthancException(ErrorCode_ParameterOutOfRange);
         }
+      }
+
+      for (std::set<std::string>::const_iterator it = labels.begin(); it != labels.end(); ++it)
+      {
+        request.mutable_lookup_resources()->add_labels(*it);
+      }
+
+      switch (labelsConstraint)
+      {
+        case LabelsConstraint_All:
+          request.mutable_lookup_resources()->set_labels_constraint(DatabasePluginMessages::LABELS_CONSTRAINT_ALL);
+          break;
+            
+        case LabelsConstraint_Any:
+          request.mutable_lookup_resources()->set_labels_constraint(DatabasePluginMessages::LABELS_CONSTRAINT_ANY);
+          break;
+            
+        case LabelsConstraint_None:
+          request.mutable_lookup_resources()->set_labels_constraint(DatabasePluginMessages::LABELS_CONSTRAINT_NONE);
+          break;
+            
+        default:
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
       }
       
       DatabasePluginMessages::TransactionResponse response;
@@ -1132,6 +1192,57 @@ namespace Orthanc
         return false;
       }
     }
+
+    
+    virtual void AddLabel(int64_t resource,
+                          const std::string& label) ORTHANC_OVERRIDE
+    {
+      if (database_.HasLabelsSupport())
+      {
+        DatabasePluginMessages::TransactionRequest request;
+        request.mutable_add_label()->set_id(resource);
+        request.mutable_add_label()->set_label(label);
+
+        ExecuteTransaction(DatabasePluginMessages::OPERATION_ADD_LABEL, request);
+      }
+      else
+      {
+        // This method shouldn't have been called
+        throw OrthancException(ErrorCode_InternalError);
+      }
+    }
+
+
+    virtual void RemoveLabel(int64_t resource,
+                             const std::string& label) ORTHANC_OVERRIDE
+    {
+      if (database_.HasLabelsSupport())
+      {
+        DatabasePluginMessages::TransactionRequest request;
+        request.mutable_remove_label()->set_id(resource);
+        request.mutable_remove_label()->set_label(label);
+
+        ExecuteTransaction(DatabasePluginMessages::OPERATION_REMOVE_LABEL, request);
+      }
+      else
+      {
+        // This method shouldn't have been called
+        throw OrthancException(ErrorCode_InternalError);
+      }
+    }
+
+
+    virtual void ListLabels(std::set<std::string>& target,
+                            int64_t resource) ORTHANC_OVERRIDE
+    {
+      ListLabelsInternal(target, true, resource);
+    }
+
+    
+    virtual void ListAllLabels(std::set<std::string>& target) ORTHANC_OVERRIDE
+    {
+      ListLabelsInternal(target, false, -1);
+    }
   };
 
 
@@ -1146,7 +1257,8 @@ namespace Orthanc
     open_(false),
     databaseVersion_(0),
     hasFlushToDisk_(false),
-    hasRevisionsSupport_(false)
+    hasRevisionsSupport_(false),
+    hasLabelsSupport_(false)
   {
     CLOG(INFO, PLUGINS) << "Identifier of this Orthanc server for the global properties "
                         << "of the custom database: \"" << serverIdentifier << "\"";
@@ -1165,6 +1277,31 @@ namespace Orthanc
     definition_.finalize(definition_.backend);
   }
 
+
+  static void AddIdentifierTags(DatabasePluginMessages::Open::Request& request,
+                                ResourceType level)
+  {
+    const DicomTag* tags = NULL;
+    size_t size;
+
+    ServerToolbox::LoadIdentifiers(tags, size, level);
+
+    if (tags == NULL ||
+        size == 0)
+    {
+      throw Orthanc::OrthancException(Orthanc::ErrorCode_InternalError);
+    }
+
+    for (size_t i = 0; i < size; i++)
+    {
+      DatabasePluginMessages::Open_Request_IdentifierTag* tag = request.add_identifier_tags();
+      tag->set_level(Convert(level));
+      tag->set_group(tags[i].GetGroup());
+      tag->set_element(tags[i].GetElement());
+      tag->set_name(FromDcmtkBridge::GetTagName(tags[i], ""));
+    }
+  }
+
   
   void OrthancPluginDatabaseV4::Open()
   {
@@ -1175,6 +1312,11 @@ namespace Orthanc
     
     {
       DatabasePluginMessages::DatabaseRequest request;
+      AddIdentifierTags(*request.mutable_open(), ResourceType_Patient);
+      AddIdentifierTags(*request.mutable_open(), ResourceType_Study);
+      AddIdentifierTags(*request.mutable_open(), ResourceType_Series);
+      AddIdentifierTags(*request.mutable_open(), ResourceType_Instance);
+
       DatabasePluginMessages::DatabaseResponse response;
       ExecuteDatabase(response, *this, DatabasePluginMessages::OPERATION_OPEN, request);
     }
@@ -1186,9 +1328,10 @@ namespace Orthanc
       databaseVersion_ = response.get_system_information().database_version();
       hasFlushToDisk_ = response.get_system_information().supports_flush_to_disk();
       hasRevisionsSupport_ = response.get_system_information().supports_revisions();
+      hasLabelsSupport_ = response.get_system_information().supports_labels();
     }
 
-    open_ = true;    
+    open_ = true;
   }
 
 
@@ -1305,6 +1448,19 @@ namespace Orthanc
     else
     {
       return hasRevisionsSupport_;
+    }
+  }
+
+  
+  bool OrthancPluginDatabaseV4::HasLabelsSupport() const
+  {
+    if (!open_)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    else
+    {
+      return hasLabelsSupport_;
     }
   }
 }

@@ -91,6 +91,13 @@ CREATE TABLE PatientRecyclingOrder(
        patientId INTEGER REFERENCES Resources(internalId) ON DELETE CASCADE
        );
 
+-- New in Orthanc 1.12.0
+CREATE TABLE Labels(
+       id INTEGER REFERENCES Resources(internalId) ON DELETE CASCADE,
+       label TEXT NOT NULL,
+       PRIMARY KEY(id, label)  -- Prevents duplicates
+       );
+
 CREATE INDEX ChildrenIndex ON Resources(parentId);
 CREATE INDEX PublicIndex ON Resources(publicId);
 CREATE INDEX ResourceTypeIndex ON Resources(resourceType);
@@ -107,6 +114,10 @@ CREATE INDEX DicomIdentifiersIndex2 ON DicomIdentifiers(tagGroup, tagElement);
 CREATE INDEX DicomIdentifiersIndexValues ON DicomIdentifiers(value COLLATE BINARY);
 
 CREATE INDEX ChangesIndex ON Changes(internalId);
+
+-- New in Orthanc 1.12.0
+CREATE INDEX LabelsIndex1 ON Labels(id);
+CREATE INDEX LabelsIndex2 ON Labels(label);  -- This index allows efficient lookups
 
 CREATE TRIGGER AttachedFileDeleted
 AFTER DELETE ON AttachedFiles

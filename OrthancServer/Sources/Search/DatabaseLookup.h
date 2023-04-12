@@ -22,6 +22,7 @@
 
 #pragma once
 
+#include "../Search/ISqlLookupFormatter.h"
 #include "DicomTagConstraint.h"
 
 class DcmItem;
@@ -32,6 +33,8 @@ namespace Orthanc
   {
   private:
     std::vector<DicomTagConstraint*>  constraints_;
+    std::set<std::string>             labels_;
+    LabelsConstraint                  labelsConstraint_;
 
     void AddDicomConstraintInternal(const DicomTag& tag,
                                     ValueRepresentation vr,
@@ -42,7 +45,8 @@ namespace Orthanc
     void AddConstraintInternal(DicomTagConstraint* constraint);  // Takes ownership
 
   public:
-    DatabaseLookup()
+    DatabaseLookup() :
+      labelsConstraint_(LabelsConstraint_All)
     {
     }
 
@@ -92,5 +96,22 @@ namespace Orthanc
     bool HasTag(const DicomTag& tag) const;
 
     void RemoveConstraint(const DicomTag& tag);
+
+    void AddLabel(const std::string& label);
+
+    void SetLabelsConstraint(LabelsConstraint constraint)
+    {
+      labelsConstraint_ = constraint;
+    }
+
+    const std::set<std::string>& GetLabels() const
+    {
+      return labels_;
+    }
+
+    LabelsConstraint GetLabelsConstraint() const
+    {
+      return labelsConstraint_;
+    }
   };
 }

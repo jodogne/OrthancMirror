@@ -585,7 +585,7 @@ namespace Orthanc
                         const Json::Value* dicomAsJson,   // optional: the dicom-as-json for the resource
                         ResourceType level,
                         const std::set<DicomTag>& requestedTags,
-                        ExpandResourceDbFlags expandFlags,
+                        ExpandResourceFlags expandFlags,
                         bool allowStorageAccess);
 
     FindStorageAccessMode GetFindStorageAccessMode() const

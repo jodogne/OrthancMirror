@@ -341,12 +341,14 @@ namespace Orthanc
                                       std::list<std::string>* instancesId,
                                       const std::vector<DatabaseConstraint>& lookup,
                                       ResourceType queryLevel,
+                                      const std::set<std::string>& labels,
+                                      LabelsConstraint labelsConstraint,
                                       uint32_t limit) ORTHANC_OVERRIDE
     {
       LookupFormatter formatter;
 
       std::string sql;
-      LookupFormatter::Apply(sql, formatter, lookup, queryLevel, limit);
+      LookupFormatter::Apply(sql, formatter, lookup, queryLevel, labels, labelsConstraint, limit);
 
       sql = "CREATE TEMPORARY TABLE Lookup AS " + sql;
     
@@ -1071,6 +1073,70 @@ namespace Orthanc
         s.Run();
       }
     }
+
+
+    virtual void AddLabel(int64_t resource,
+                          const std::string& label) ORTHANC_OVERRIDE
+    {
+      if (label.empty())
+      {
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+      else
+      {
+        SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT OR IGNORE INTO Labels (id, label) VALUES(?, ?)");
+        s.BindInt64(0, resource);
+        s.BindString(1, label);
+        s.Run();
+      }
+    }
+
+
+    virtual void RemoveLabel(int64_t resource,
+                             const std::string& label) ORTHANC_OVERRIDE
+    {
+      if (label.empty())
+      {
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+      else
+      {
+        SQLite::Statement s(db_, SQLITE_FROM_HERE, "DELETE FROM Labels WHERE id=? AND label=?");
+        s.BindInt64(0, resource);
+        s.BindString(1, label);
+        s.Run();
+      }
+    }
+
+
+    virtual void ListLabels(std::set<std::string>& target,
+                            int64_t resource) ORTHANC_OVERRIDE
+    {
+      target.clear();
+
+      SQLite::Statement s(db_, SQLITE_FROM_HERE, 
+                          "SELECT label FROM Labels WHERE id=?");
+      s.BindInt64(0, resource);
+
+      while (s.Step())
+      {
+        target.insert(s.ColumnString(0));
+      }
+    }
+
+
+    virtual void ListAllLabels(std::set<std::string>& target) ORTHANC_OVERRIDE
+    {
+      target.clear();
+
+      SQLite::Statement s(db_, SQLITE_FROM_HERE, 
+                          "SELECT DISTINCT label FROM Labels");
+
+      while (s.Step())
+      {
+        target.insert(s.ColumnString(0));
+      }
+    }
   };
 
 
@@ -1344,15 +1410,24 @@ namespace Orthanc
                                "Incompatible version of the Orthanc database: " + tmp);
       }
 
-      // New in Orthanc 1.5.1
       if (version_ == 6)
       {
+        // New in Orthanc 1.5.1
         if (!transaction->LookupGlobalProperty(tmp, GlobalProperty_GetTotalSizeIsFast, true /* unused in SQLite */) ||
             tmp != "1")
         {
           LOG(INFO) << "Installing the SQLite triggers to track the size of the attachments";
           std::string query;
           ServerResources::GetFileResource(query, ServerResources::INSTALL_TRACK_ATTACHMENTS_SIZE);
+          db_.Execute(query);
+        }
+
+        // New in Orthanc 1.12.0
+        if (!db_.DoesTableExist("Labels"))
+        {
+          LOG(INFO) << "Installing the \"Labels\" table";
+          std::string query;
+          ServerResources::GetFileResource(query, ServerResources::INSTALL_LABELS_TABLE);
           db_.Execute(query);
         }
       }
