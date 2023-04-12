@@ -146,9 +146,13 @@ extern "C"
 }
 
 
-#if defined(ORTHANC_STATIC_ICU) && (ORTHANC_ENABLE_ICU == 1)
-#  if (ORTHANC_STATIC_ICU == 1 && ORTHANC_ENABLE_LOCALE == 1)
+#if defined(ORTHANC_STATIC_ICU)
+
+#  if (ORTHANC_STATIC_ICU == 1) && (ORTHANC_ENABLE_ICU == 1)
 #    include <OrthancFrameworkResources.h>
+#  endif
+
+#  if (ORTHANC_STATIC_ICU == 1 && ORTHANC_ENABLE_LOCALE == 1)
 #    include <unicode/udata.h>
 #    include <unicode/uloc.h>
 #    include "Compression/GzipCompressor.h"
