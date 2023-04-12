@@ -29,6 +29,7 @@ Maintenance
 * Fix Housekeeper plugin infinite loop if Orthanc is empty.
 * Fix a crash in /tools/reconstruct triggered by the Housekeeper plugin 
   when only changing the StorageCompression.
+* Avoid the use of "externalproject_add()" to build the sample plugins
 * Upgraded dependencies for static builds:
   - openssl 3.1.0
 
