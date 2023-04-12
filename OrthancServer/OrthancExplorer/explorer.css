@@ -63,3 +63,22 @@ ul.tree ul {
 .switch-container .ui-slider-switch {
     width: 100%;
 }
+
+.label {
+    display: inline-block;
+    background-color: gray;
+    margin: 5px;
+    padding: 5px;
+    border-radius: 10px;
+}
+
+.label button {
+    background-color: transparent;
+    border: 0px;
+    cursor: pointer;
+    border-radius: 10px;
+}
+
+.label button:hover {
+    background-color: lightgray;
+}

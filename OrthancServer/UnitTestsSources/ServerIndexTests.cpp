@@ -167,8 +167,9 @@ namespace
       
       std::vector<DatabaseConstraint> lookup;
       lookup.push_back(c.ConvertToDatabaseConstraint(level, DicomTagType_Identifier));
-      
-      transaction_->ApplyLookupResources(result, NULL, lookup, level, 0 /* no limit */);
+
+      std::set<std::string> noLabel;
+      transaction_->ApplyLookupResources(result, NULL, lookup, level, noLabel, LabelsConstraint_All, 0 /* no limit */);
     }    
 
     void DoLookupIdentifier2(std::list<std::string>& result,
@@ -188,7 +189,8 @@ namespace
       lookup.push_back(c1.ConvertToDatabaseConstraint(level, DicomTagType_Identifier));
       lookup.push_back(c2.ConvertToDatabaseConstraint(level, DicomTagType_Identifier));
       
-      transaction_->ApplyLookupResources(result, NULL, lookup, level, 0 /* no limit */);
+      std::set<std::string> noLabel;
+      transaction_->ApplyLookupResources(result, NULL, lookup, level, noLabel, LabelsConstraint_All, 0 /* no limit */);
     }
   };
 }
@@ -1037,4 +1039,16 @@ TEST(ServerIndex, DicomUntilPixelData)
       }
     }
   }
+}
+
+
+TEST(ServerToolbox, ValidLabels)
+{
+  ASSERT_TRUE(ServerToolbox::IsValidLabel("abcdefghijklmnopqrstuvwxyz"
+                                          "ABCDEFGHIJKLMNOPQRSTUVWXYZ"));
+  ASSERT_TRUE(ServerToolbox::IsValidLabel("0123456789-_"));
+  ASSERT_FALSE(ServerToolbox::IsValidLabel(""));
+  ASSERT_FALSE(ServerToolbox::IsValidLabel(" "));
+  ASSERT_FALSE(ServerToolbox::IsValidLabel("&"));
+  ASSERT_FALSE(ServerToolbox::IsValidLabel("."));
 }

@@ -1971,6 +1971,129 @@ namespace Orthanc
 
 
 
+  // Handling of labels -------------------------------------------------------
+
+  static void ListLabels(RestApiGetCall& call)
+  {
+    if (call.IsDocumentation())
+    {
+      ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
+      std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      call.GetDocumentation()
+        .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
+        .SetSummary("List labels (new in Orthanc 1.12.0)")
+        .SetDescription("Get the labels that are associated with the given " + r)
+        .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
+        .AddAnswerType(MimeType_Json, "JSON array containing the names of the labels")
+        .SetHttpGetSample(GetDocumentationSampleResource(t) + "/labels", true);
+      return;
+    }
+
+    assert(!call.GetFullUri().empty());
+    const std::string publicId = call.GetUriComponent("id", "");
+    ResourceType level = StringToResourceType(call.GetFullUri() [0].c_str());
+
+    std::set<std::string> labels;
+    OrthancRestApi::GetIndex(call).ListLabels(labels, publicId, level);
+
+    Json::Value result = Json::arrayValue;
+
+    for (std::set<std::string>::const_iterator it = labels.begin(); it != labels.end(); ++it)
+    {
+      result.append(*it);
+    }
+
+    call.GetOutput().AnswerJson(result);
+  }
+  
+
+  static void GetLabel(RestApiGetCall& call)
+  {
+    if (call.IsDocumentation())
+    {
+      ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
+      std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      call.GetDocumentation()
+        .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
+        .SetSummary("Test label")
+        .SetDescription("Test whether the " + r + " is associated with the given label")
+        .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
+        .SetUriArgument("label", "The label of interest")
+        .AddAnswerType(MimeType_PlainText, "Empty string is returned in the case of presence, error 404 in the case of absence");
+      return;
+    }
+
+    CheckValidResourceType(call);
+
+    assert(!call.GetFullUri().empty());
+    const std::string publicId = call.GetUriComponent("id", "");
+    const ResourceType level = StringToResourceType(call.GetFullUri() [0].c_str());
+
+    std::string label = call.GetUriComponent("label", "");
+
+    std::set<std::string> labels;
+    OrthancRestApi::GetIndex(call).ListLabels(labels, publicId, level);
+    
+    if (labels.find(label) != labels.end())
+    {
+      call.GetOutput().AnswerBuffer("", MimeType_PlainText);
+    }
+  }
+
+
+  static void AddLabel(RestApiPutCall& call)
+  {
+    if (call.IsDocumentation())
+    {
+      ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
+      std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      call.GetDocumentation()
+        .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
+        .SetSummary("Add label")
+        .SetDescription("Associate a label with a " + r)
+        .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
+        .SetUriArgument("label", "The label to be added");
+      return;
+    }
+
+    CheckValidResourceType(call);
+
+    std::string publicId = call.GetUriComponent("id", "");
+    const ResourceType level = StringToResourceType(call.GetFullUri() [0].c_str());
+
+    std::string label = call.GetUriComponent("label", "");
+    OrthancRestApi::GetIndex(call).ModifyLabel(publicId, level, label, StatelessDatabaseOperations::LabelOperation_Add);
+
+    call.GetOutput().AnswerBuffer("", MimeType_PlainText);
+  }
+
+
+  static void RemoveLabel(RestApiDeleteCall& call)
+  {
+    if (call.IsDocumentation())
+    {
+      ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
+      std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      call.GetDocumentation()
+        .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
+        .SetSummary("Remove label")
+        .SetDescription("Remove a label associated with a " + r)
+        .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
+        .SetUriArgument("label", "The label to be removed");
+      return;
+    }
+
+    CheckValidResourceType(call);
+
+    std::string publicId = call.GetUriComponent("id", "");
+    const ResourceType level = StringToResourceType(call.GetFullUri() [0].c_str());
+
+    std::string label = call.GetUriComponent("label", "");
+    OrthancRestApi::GetIndex(call).ModifyLabel(publicId, level, label, StatelessDatabaseOperations::LabelOperation_Remove);
+
+    call.GetOutput().AnswerBuffer("", MimeType_PlainText);
+  }
+  
 
   // Handling of attached files -----------------------------------------------
 
@@ -2949,6 +3072,8 @@ namespace Orthanc
     static const char* const KEY_QUERY = "Query";
     static const char* const KEY_REQUESTED_TAGS = "RequestedTags";
     static const char* const KEY_SINCE = "Since";
+    static const char* const KEY_LABELS = "Labels";                       // New in Orthanc 1.12.0
+    static const char* const KEY_LABELS_CONSTRAINT = "LabelsConstraint";  // New in Orthanc 1.12.0
 
     if (call.IsDocumentation())
     {
@@ -2978,6 +3103,10 @@ namespace Orthanc
                          "all Main Dicom Tags to keep backward compatibility with Orthanc prior to 1.11.0.", false)
         .SetRequestField(KEY_QUERY, RestApiCallDocumentation::Type_JsonObject,
                          "Associative array containing the filter on the values of the DICOM tags", true)
+        .SetRequestField(KEY_LABELS, RestApiCallDocumentation::Type_JsonListOfStrings,
+                         "List of strings specifying which labels to look for in the resources (new in Orthanc 1.12.0)", true)
+        .SetRequestField(KEY_LABELS_CONSTRAINT, RestApiCallDocumentation::Type_String,
+                         "Constraint on the labels, can be `All`, `Any`, or `None` (defaults to `All`, new in Orthanc 1.12.0)", true)
         .AddAnswerType(MimeType_Json, "JSON array containing either the Orthanc identifiers, or detailed information "
                        "about the reported resources (if `Expand` argument is `true`)");
       return;
@@ -3008,25 +3137,37 @@ namespace Orthanc
              request[KEY_CASE_SENSITIVE].type() != Json::booleanValue)
     {
       throw OrthancException(ErrorCode_BadRequest, 
-                             "Field \"" + std::string(KEY_CASE_SENSITIVE) + "\" should be a Boolean");
+                             "Field \"" + std::string(KEY_CASE_SENSITIVE) + "\" must be a Boolean");
     }
     else if (request.isMember(KEY_LIMIT) && 
              request[KEY_LIMIT].type() != Json::intValue)
     {
       throw OrthancException(ErrorCode_BadRequest, 
-                             "Field \"" + std::string(KEY_LIMIT) + "\" should be an integer");
+                             "Field \"" + std::string(KEY_LIMIT) + "\" must be an integer");
     }
     else if (request.isMember(KEY_SINCE) &&
              request[KEY_SINCE].type() != Json::intValue)
     {
       throw OrthancException(ErrorCode_BadRequest, 
-                             "Field \"" + std::string(KEY_SINCE) + "\" should be an integer");
+                             "Field \"" + std::string(KEY_SINCE) + "\" must be an integer");
     }
     else if (request.isMember(KEY_REQUESTED_TAGS) &&
              request[KEY_REQUESTED_TAGS].type() != Json::arrayValue)
     {
       throw OrthancException(ErrorCode_BadRequest, 
-                             "Field \"" + std::string(KEY_REQUESTED_TAGS) + "\" should be an array");
+                             "Field \"" + std::string(KEY_REQUESTED_TAGS) + "\" must be an array");
+    }
+    else if (request.isMember(KEY_LABELS) &&
+             request[KEY_LABELS].type() != Json::arrayValue)
+    {
+      throw OrthancException(ErrorCode_BadRequest, 
+                             "Field \"" + std::string(KEY_LABELS) + "\" must be an array of strings");
+    }
+    else if (request.isMember(KEY_LABELS_CONSTRAINT) &&
+             request[KEY_LABELS_CONSTRAINT].type() != Json::stringValue)
+    {
+      throw OrthancException(ErrorCode_BadRequest, 
+                             "Field \"" + std::string(KEY_LABELS_CONSTRAINT) + "\" must be an array of strings");
     }
     else
     {
@@ -3049,7 +3190,7 @@ namespace Orthanc
         if (tmp < 0)
         {
           throw OrthancException(ErrorCode_ParameterOutOfRange,
-                                 "Field \"" + std::string(KEY_LIMIT) + "\" should be a positive integer");
+                                 "Field \"" + std::string(KEY_LIMIT) + "\" must be a positive integer");
         }
 
         limit = static_cast<size_t>(tmp);
@@ -3062,7 +3203,7 @@ namespace Orthanc
         if (tmp < 0)
         {
           throw OrthancException(ErrorCode_ParameterOutOfRange,
-                                 "Field \"" + std::string(KEY_SINCE) + "\" should be a positive integer");
+                                 "Field \"" + std::string(KEY_SINCE) + "\" must be a positive integer");
         }
 
         since = static_cast<size_t>(tmp);
@@ -3085,7 +3226,7 @@ namespace Orthanc
         if (request[KEY_QUERY][members[i]].type() != Json::stringValue)
         {
           throw OrthancException(ErrorCode_BadRequest,
-                                 "Tag \"" + members[i] + "\" should be associated with a string");
+                                 "Tag \"" + members[i] + "\" must be associated with a string");
         }
 
         const std::string value = request[KEY_QUERY][members[i]].asString();
@@ -3100,6 +3241,44 @@ namespace Orthanc
         }
       }
 
+      if (request.isMember(KEY_LABELS))  // New in Orthanc 1.12.0
+      {
+        for (Json::Value::ArrayIndex i = 0; i < request[KEY_LABELS].size(); i++)
+        {
+          if (request[KEY_LABELS][i].type() != Json::stringValue)
+          {
+            throw OrthancException(ErrorCode_BadRequest, "Field \"" + std::string(KEY_LABELS) + "\" must contain strings");
+          }
+          else
+          {
+            query.AddLabel(request[KEY_LABELS][i].asString());
+          }
+        }
+      }
+
+      query.SetLabelsConstraint(LabelsConstraint_All);
+      
+      if (request.isMember(KEY_LABELS_CONSTRAINT))
+      {
+        const std::string& s = request[KEY_LABELS_CONSTRAINT].asString();
+        if (s == "All")
+        {
+          query.SetLabelsConstraint(LabelsConstraint_All);
+        }
+        else if (s == "Any")
+        {
+          query.SetLabelsConstraint(LabelsConstraint_Any);
+        }
+        else if (s == "None")
+        {
+          query.SetLabelsConstraint(LabelsConstraint_None);
+        }
+        else
+        {
+          throw OrthancException(ErrorCode_BadRequest, "Field \"" + std::string(KEY_LABELS_CONSTRAINT) + "\" must be \"All\", \"Any\", or \"None\"");
+        }
+      }
+      
       FindVisitor visitor(OrthancRestApi::GetDicomFormat(request, DicomToJsonFormat_Human), context.GetFindStorageAccessMode());
       context.Apply(visitor, query, level, since, limit);
       visitor.Answer(call.GetOutput(), context, level, expand, requestedTags);
@@ -3853,6 +4032,12 @@ namespace Orthanc
       Register("/" + resourceTypes[i] + "/{id}/metadata/{name}", DeleteMetadata);
       Register("/" + resourceTypes[i] + "/{id}/metadata/{name}", GetMetadata);
       Register("/" + resourceTypes[i] + "/{id}/metadata/{name}", SetMetadata);
+
+      // New in Orthanc 1.12.0
+      Register("/" + resourceTypes[i] + "/{id}/labels", ListLabels);
+      Register("/" + resourceTypes[i] + "/{id}/labels/{label}", GetLabel);
+      Register("/" + resourceTypes[i] + "/{id}/labels/{label}", RemoveLabel);
+      Register("/" + resourceTypes[i] + "/{id}/labels/{label}", AddLabel);
 
       Register("/" + resourceTypes[i] + "/{id}/attachments", ListAttachments);
       Register("/" + resourceTypes[i] + "/{id}/attachments/{name}", DeleteAttachment);

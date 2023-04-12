@@ -433,8 +433,8 @@
     //  "AllowStore" : true,
     //  "AllowStorageCommitment" : false,  // new in 1.6.0
     //  "AllowTranscoding" : true,         // new in 1.7.0
-    //  "UseDicomTls" : false              // new in 1.9.0
-    //  "LocalAet" : "HELLO"               // new in 1.9.0
+    //  "UseDicomTls" : false,             // new in 1.9.0
+    //  "LocalAet" : "HELLO",              // new in 1.9.0
     //  "Timeout" : 60                     // new in 1.9.1
     //}
   },

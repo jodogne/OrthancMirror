@@ -1,11 +1,21 @@
 Pending changes in the mainline
 ===============================
 
+General
+-------
+
+* Support for labels associated with patients, studies, series, and instances
+
 REST API
 --------
 
 * API version upgraded to 20
-* /system: added "UserMetadata"
+* New URIs "/.../{id}/labels/{label}" to test/set/remove labels
+* "/patients/{id}", "/studies/{id}", "/series/{id}" and "/instances/{id}"
+  contain the "Labels" field
+* "/tools/find" now accepts the "Labels" and "LabelsConstraint" arguments
+* "/tools/labels" lists all the labels that are associated with any resource
+* "/system": added "UserMetadata" and "HasLabels"
 
 Plugins
 -------
@@ -16,6 +26,7 @@ Plugins
 Orthanc Explorer
 ----------------
 
+* Added support for labels
 * Added buttons to copy the URL of ZIP archives and DICOM files to the clipboard
 
 Maintenance
@@ -23,7 +34,7 @@ Maintenance
 
 * Enforce the existence of the patient/study/instance while creating its archive
 * Security: New configuration option "RestApiWriteToFileSystemEnabled"
-  to allow "/instances/../export" that is now disabled by default
+  to allow "/instances/../export" (the latter is now disabled by default)
 * Fix issue 214: VOILUTSequence is not returned in Wado-RS
 * Fix /tools/reset crashing when ExtraMainDicomTags were defined
 * Fix Housekeeper plugin infinite loop if Orthanc is empty.
@@ -45,7 +56,7 @@ General
   AcceptedTransferSyntaxes.
 * Made the default SQLite DB more robust wrt future updates like
   adding new columns in DB.
-* Made the HTTP Client errors more verbose by including the url in the logs.
+* Made the HTTP Client errors more verbose by including the URL in the logs.
 * Optimization: now using multiple threads to transcode files for
   asynchronous download of studies archive.
 * New configuration "KeepAliveTimeout" with a default value of 1 second.
@@ -156,7 +167,7 @@ Maintenance
 * Housekeeper plugin: Fix resume of previous processing
 * Added missing MOVEPatientRootQueryRetrieveInformationModel in 
   DicomControlUserConnection::SetupPresentationContexts()
-* Improved HttpClient error logging (add method + url)
+* Improved HttpClient error logging (add method + URL)
 
 REST API
 --------

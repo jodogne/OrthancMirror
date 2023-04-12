@@ -675,9 +675,12 @@ namespace Orthanc
       replacePatientMainDicomTags |= DicomMap::IsMainDicomTag(*it, ResourceType_Patient);
     }
 
-    if ((modificationLevel == ResourceType_Study || modificationLevel == ResourceType_Patient)
-        && !modification_->IsReplaced(DICOM_TAG_PATIENT_ID) 
-        && modification_->IsKept(DICOM_TAG_STUDY_INSTANCE_UID) && modification_->IsKept(DICOM_TAG_SERIES_INSTANCE_UID) && modification_->IsKept(DICOM_TAG_SOP_INSTANCE_UID))
+    if ((modificationLevel == ResourceType_Study ||
+         modificationLevel == ResourceType_Patient) &&
+        !modification_->IsReplaced(DICOM_TAG_PATIENT_ID) &&
+        modification_->IsKept(DICOM_TAG_STUDY_INSTANCE_UID) &&
+        modification_->IsKept(DICOM_TAG_SERIES_INSTANCE_UID) &&
+        modification_->IsKept(DICOM_TAG_SOP_INSTANCE_UID))
     {
       // if we keep the SOPInstanceUID, it very likely means that we are modifying existing resources 'in place'
 
@@ -715,9 +718,9 @@ namespace Orthanc
         else
         {
           ExpandedResource originalStudy;
-          if (GetContext().GetIndex().ExpandResource(originalStudy, *studyId, ResourceType_Study, emptyRequestedTags, ExpandResourceDbFlags_IncludeMainDicomTags))
+          if (GetContext().GetIndex().ExpandResource(originalStudy, *studyId, ResourceType_Study, emptyRequestedTags, ExpandResourceFlags_IncludeMainDicomTags))
           {
-            targetPatientId = originalStudy.tags_.GetStringValue(DICOM_TAG_PATIENT_ID, "", false);
+            targetPatientId = originalStudy.GetMainDicomTags().GetStringValue(DICOM_TAG_PATIENT_ID, "", false);
           }
           else
           {
@@ -734,7 +737,7 @@ namespace Orthanc
         {
           ExpandedResource targetPatient;
           
-          if (GetContext().GetIndex().ExpandResource(targetPatient, lookupPatientResult[0], ResourceType_Patient, emptyRequestedTags, static_cast<ExpandResourceDbFlags>(ExpandResourceDbFlags_IncludeMainDicomTags | ExpandResourceDbFlags_IncludeChildren)))
+          if (GetContext().GetIndex().ExpandResource(targetPatient, lookupPatientResult[0], ResourceType_Patient, emptyRequestedTags, static_cast<ExpandResourceFlags>(ExpandResourceFlags_IncludeMainDicomTags | ExpandResourceFlags_IncludeChildren)))
           {
             const std::list<std::string> childrenIds = targetPatient.childrenIds_;
             bool targetPatientHasOtherStudies = childrenIds.size() > 1;
@@ -747,7 +750,7 @@ namespace Orthanc
             {
               // this is allowed if all patient replacedTags do match the target patient tags
               DicomMap targetPatientTags;
-              targetPatient.tags_.ExtractPatientInformation(targetPatientTags);
+              targetPatient.GetMainDicomTags().ExtractPatientInformation(targetPatientTags);
 
               std::set<DicomTag> mainPatientTags;
               DicomMap::GetMainDicomTags(mainPatientTags, ResourceType_Patient);
@@ -755,9 +758,9 @@ namespace Orthanc
               for (std::set<DicomTag>::const_iterator mainPatientTag = mainPatientTags.begin();
                    mainPatientTag != mainPatientTags.end(); ++mainPatientTag)
               {
-                if (targetPatientTags.HasTag(*mainPatientTag) 
-                    && (!modification_->IsReplaced(*mainPatientTag) 
-                        || modification_->GetReplacementAsString(*mainPatientTag) != targetPatientTags.GetStringValue(*mainPatientTag, "", false)))
+                if (targetPatientTags.HasTag(*mainPatientTag) &&
+                    (!modification_->IsReplaced(*mainPatientTag) ||
+                     modification_->GetReplacementAsString(*mainPatientTag) != targetPatientTags.GetStringValue(*mainPatientTag, "", false)))
                 {
                   throw OrthancException(ErrorCode_BadRequest, std::string("Trying to change patient tags in a study.  The Patient already exists and has other studies.  All the 'Replace' tags should match the existing patient main dicom tags.  Try using /patients/../modify instead to modify the patient. Failing tag: ") + mainPatientTag->Format());
                 }
@@ -769,8 +772,7 @@ namespace Orthanc
             }
           }
         }
-      }
-      
+      }      
     }
   }
 }

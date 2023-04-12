@@ -89,6 +89,7 @@ namespace Orthanc
     static const char* const MAXIMUM_STORAGE_SIZE = "MaximumStorageSize";
     static const char* const MAXIMUM_STORAGE_MODE = "MaximumStorageMode";
     static const char* const USER_METADATA = "UserMetadata";
+    static const char* const HAS_LABELS = "HasLabels";
 
     if (call.IsDocumentation())
     {
@@ -131,6 +132,8 @@ namespace Orthanc
                         "The configured MaximumStorageMode (new in Orthanc 1.11.3)")
         .SetAnswerField(USER_METADATA, RestApiCallDocumentation::Type_JsonObject,
                         "The configured UserMetadata (new in Orthanc 1.12.0)")
+        .SetAnswerField(HAS_LABELS, RestApiCallDocumentation::Type_Boolean,
+                        "Whether the database back-end supports labels (new in Orthanc 1.12.0)")
         .SetHttpGetSample("https://demo.orthanc-server.com/system", true);
       return;
     }
@@ -187,6 +190,8 @@ namespace Orthanc
     result[USER_METADATA] = Json::objectValue;
     GetUserMetadataConfiguration(result[USER_METADATA]);
 
+    result[HAS_LABELS] = OrthancRestApi::GetIndex(call).HasLabelsSupport();
+    
     call.GetOutput().AnswerJson(result);
   }
 
@@ -1042,6 +1047,31 @@ namespace Orthanc
   }
 
 
+  static void ListAllLabels(RestApiGetCall& call)
+  {
+    if (call.IsDocumentation())
+    {
+      call.GetDocumentation()
+        .SetTag("System")
+        .SetSummary("Get all the used labels")
+        .SetDescription("List all the labels that are associated with any resource of the Orthanc database")
+        .AddAnswerType(MimeType_Json, "JSON array containing the labels");
+      return;
+    }
+
+    std::set<std::string> labels;
+    OrthancRestApi::GetIndex(call).ListAllLabels(labels);
+
+    Json::Value json = Json::arrayValue;
+    for (std::set<std::string>::const_iterator it = labels.begin(); it != labels.end(); ++it)
+    {
+      json.append(*it);
+    }
+    
+    call.GetOutput().AnswerJson(json);
+   }
+
+
   void OrthancRestApi::RegisterSystem(bool orthancExplorerEnabled)
   {
     if (orthancExplorerEnabled)
@@ -1089,5 +1119,7 @@ namespace Orthanc
     Register("/tools/accepted-transfer-syntaxes", SetAcceptedTransferSyntaxes);
     Register("/tools/unknown-sop-class-accepted", GetUnknownSopClassAccepted);
     Register("/tools/unknown-sop-class-accepted", SetUnknownSopClassAccepted);
+
+    Register("/tools/labels", ListAllLabels);  // New in Orthanc 1.12.0
   }
 }

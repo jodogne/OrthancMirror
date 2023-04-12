@@ -113,6 +113,11 @@ namespace Orthanc
       return false;  // No support for revisions in old API
     }
 
+    virtual bool HasLabelsSupport() const ORTHANC_OVERRIDE
+    {
+      return false;
+    }
+
     void AnswerReceived(const _OrthancPluginDatabaseAnswer& answer);
   };
 }

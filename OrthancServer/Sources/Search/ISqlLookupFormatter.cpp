@@ -39,6 +39,7 @@
 #include "DatabaseConstraint.h"
 
 #include <boost/lexical_cast.hpp>
+#include <list>
 
 
 namespace Orthanc
@@ -268,12 +269,46 @@ namespace Orthanc
                " AND " + tag + ".tagElement = " +
                boost::lexical_cast<std::string>(constraint.GetTag().GetElement()));
   }
+
+
+  static std::string Join(const std::list<std::string>& values,
+                          const std::string& prefix,
+                          const std::string& separator)
+  {
+    if (values.empty())
+    {
+      return "";
+    }
+    else
+    {
+      std::string s = prefix;
+
+      bool first = true;
+      for (std::list<std::string>::const_iterator it = values.begin(); it != values.end(); ++it)
+      {
+        if (first)
+        {
+          first = false;
+        }
+        else
+        {
+          s += separator;
+        }
+
+        s += *it;
+      }
+
+      return s;
+    }
+  }
   
 
   void ISqlLookupFormatter::Apply(std::string& sql,
                                   ISqlLookupFormatter& formatter,
                                   const std::vector<DatabaseConstraint>& lookup,
                                   ResourceType queryLevel,
+                                  const std::set<std::string>& labels,
+                                  LabelsConstraint labelsConstraint,
                                   size_t limit)
   {
     assert(ResourceType_Patient < ResourceType_Study &&
@@ -346,9 +381,50 @@ namespace Orthanc
               FormatLevel(static_cast<ResourceType>(level - 1)) + ".internalId=" +
               FormatLevel(static_cast<ResourceType>(level)) + ".parentId");
     }
+
+    std::list<std::string> where;
+    where.push_back(FormatLevel(queryLevel) + ".resourceType = " +
+                    formatter.FormatResourceType(queryLevel) + comparisons);
+
+    if (!labels.empty())
+    {
+      /**
+       * "In SQL Server, NOT EXISTS and NOT IN predicates are the best
+       * way to search for missing values, as long as both columns in
+       * question are NOT NULL."
+       * https://explainextended.com/2009/09/15/not-in-vs-not-exists-vs-left-join-is-null-sql-server/
+       **/
+
+      std::list<std::string> formattedLabels;
+      for (std::set<std::string>::const_iterator it = labels.begin(); it != labels.end(); ++it)
+      {
+        formattedLabels.push_back(formatter.GenerateParameter(*it));
+      }
+
+      std::string condition;
+      switch (labelsConstraint)
+      {
+        case LabelsConstraint_Any:
+          condition = "> 0";
+          break;
+          
+        case LabelsConstraint_All:
+          condition = "= " + boost::lexical_cast<std::string>(labels.size());
+          break;
+          
+        case LabelsConstraint_None:
+          condition = "= 0";
+          break;
+          
+        default:
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
       
-    sql += (joins + " WHERE " + FormatLevel(queryLevel) + ".resourceType = " +
-            formatter.FormatResourceType(queryLevel) + comparisons);
+      where.push_back("(SELECT COUNT(1) FROM Labels AS selectedLabels WHERE selectedLabels.id = " + FormatLevel(queryLevel) +
+                      ".internalId AND selectedLabels.label IN (" + Join(formattedLabels, "", ", ") + ")) " + condition);
+    }
+
+    sql += joins + Join(where, " WHERE ", " AND ");
 
     if (limit != 0)
     {

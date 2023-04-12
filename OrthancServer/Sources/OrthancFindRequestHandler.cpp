@@ -59,7 +59,8 @@ namespace Orthanc
     requestedTags.erase(DICOM_TAG_QUERY_RETRIEVE_LEVEL); // this is not part of the answer
 
     // reuse ExpandResource to get missing tags and computed tags (ModalitiesInStudy ...).  This code is therefore shared between C-Find, tools/find, list-resources and QIDO-RS
-    context.ExpandResource(resource, publicId, mainDicomTags, instanceId, dicomAsJson, level, requestedTags, ExpandResourceDbFlags_IncludeMainDicomTags, allowStorageAccess);
+    context.ExpandResource(resource, publicId, mainDicomTags, instanceId, dicomAsJson,
+                           level, requestedTags, ExpandResourceFlags_IncludeMainDicomTags, allowStorageAccess);
 
     DicomMap result;
 
@@ -84,7 +85,7 @@ namespace Orthanc
       else
       {
         const DicomTag& tag = query.GetElement(i).GetTag();
-        const DicomValue* value = resource.tags_.TestAndGetValue(tag);
+        const DicomValue* value = resource.GetMainDicomTags().TestAndGetValue(tag);
 
         if (value != NULL &&
             !value->IsNull() &&
