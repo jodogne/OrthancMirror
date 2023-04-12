@@ -25,8 +25,7 @@
 #include "../../../../OrthancFramework/Sources/FileStorage/FilesystemStorage.h"
 #include "../../../../OrthancFramework/Sources/Logging.h"
 #include "../../../../OrthancFramework/Sources/MultiThreading/SharedMessageQueue.h"
-#include "../../../../OrthancServer/Plugins/Engine/PluginsEnumerations.h"
-#include "../../../../OrthancServer/Plugins/Samples/Common/OrthancPluginCppWrapper.h"
+#include "../Common/OrthancPluginCppWrapper.h"
 
 #include <boost/thread.hpp>
 
@@ -67,6 +66,25 @@ static const char*                                  databaseServerIdentifier_ = 
 static unsigned int                                 throttleDelayMs_ = 0;
 
 
+static Orthanc::FileContentType Convert(OrthancPluginContentType type)
+{
+  switch (type)
+  {
+    case OrthancPluginContentType_Dicom:
+      return Orthanc::FileContentType_Dicom;
+
+    case OrthancPluginContentType_DicomAsJson:
+      return Orthanc::FileContentType_DicomAsJson;
+
+    case OrthancPluginContentType_DicomUntilPixelData:
+      return Orthanc::FileContentType_DicomUntilPixelData;
+
+    default:
+      return Orthanc::FileContentType_Unknown;
+  }
+}
+
+
 static OrthancPluginErrorCode StorageCreate(const char* uuid,
                                             const void* content,
                                             int64_t size,
@@ -74,7 +92,7 @@ static OrthancPluginErrorCode StorageCreate(const char* uuid,
 {
   try
   {
-    storage_->Create(uuid, content, size, Orthanc::Plugins::Convert(type));
+    storage_->Create(uuid, content, size, Convert(type));
     return OrthancPluginErrorCode_Success;
   }
   catch (Orthanc::OrthancException& e)
@@ -94,7 +112,7 @@ static OrthancPluginErrorCode StorageReadWhole(OrthancPluginMemoryBuffer64* targ
 {
   try
   {
-    std::unique_ptr<Orthanc::IMemoryBuffer> buffer(storage_->Read(uuid, Orthanc::Plugins::Convert(type)));
+    std::unique_ptr<Orthanc::IMemoryBuffer> buffer(storage_->Read(uuid, Convert(type)));
 
     // copy from a buffer allocated on plugin's heap into a buffer allocated on core's heap
     if (OrthancPluginCreateMemoryBuffer64(OrthancPlugins::GetGlobalContext(), target, buffer->GetSize()) != OrthancPluginErrorCode_Success)
@@ -125,7 +143,7 @@ static OrthancPluginErrorCode StorageReadRange(OrthancPluginMemoryBuffer64* targ
 {
   try
   {
-    std::unique_ptr<Orthanc::IMemoryBuffer> buffer(storage_->ReadRange(uuid, Orthanc::Plugins::Convert(type), rangeStart, rangeStart + target->size));
+    std::unique_ptr<Orthanc::IMemoryBuffer> buffer(storage_->ReadRange(uuid, Convert(type), rangeStart, rangeStart + target->size));
 
     assert(buffer->GetSize() == target->size);
 
@@ -152,7 +170,7 @@ static OrthancPluginErrorCode StorageRemove(const char* uuid,
   try
   {
     LOG(INFO) << "DelayedDeletion - Scheduling delayed deletion of " << uuid;
-    db_->Enqueue(uuid, Orthanc::Plugins::Convert(type));
+    db_->Enqueue(uuid, Convert(type));
     
     return OrthancPluginErrorCode_Success;
   }
