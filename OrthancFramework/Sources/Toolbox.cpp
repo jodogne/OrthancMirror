@@ -36,6 +36,10 @@
 #  error Cannot access the version of JsonCpp
 #endif
 
+#if !defined(ORTHANC_ENABLE_ICU)
+#  define ORTHANC_ENABLE_ICU 1
+#endif
+
 
 /**
  * We use deprecated "Json::Reader", "Json::StyledWriter" and
@@ -142,7 +146,7 @@ extern "C"
 }
 
 
-#if defined(ORTHANC_STATIC_ICU)
+#if defined(ORTHANC_STATIC_ICU) && (ORTHANC_ENABLE_ICU == 1)
 #  if (ORTHANC_STATIC_ICU == 1 && ORTHANC_ENABLE_LOCALE == 1)
 #    include <OrthancFrameworkResources.h>
 #    include <unicode/udata.h>
@@ -626,11 +630,15 @@ namespace Orthanc
                                      bool hasCodeExtensions)
   {
 #if ORTHANC_STATIC_ICU == 1
+#  if ORTHANC_ENABLE_ICU == 0
+    throw OrthancException(ErrorCode_NotImplemented, "ICU is disabled for this target");
+#  else
     if (globalIcuData_.empty())
     {
       throw OrthancException(ErrorCode_BadSequenceOfCalls,
                              "Call Toolbox::InitializeGlobalLocale()");
     }
+#  endif
 #endif
 
     // The "::skip" flag makes boost skip invalid UTF-8
@@ -685,11 +693,15 @@ namespace Orthanc
                                        Encoding targetEncoding)
   {
 #if ORTHANC_STATIC_ICU == 1
+#  if ORTHANC_ENABLE_ICU == 0
+    throw OrthancException(ErrorCode_NotImplemented, "ICU is disabled for this target");
+#  else
     if (globalIcuData_.empty())
     {
       throw OrthancException(ErrorCode_BadSequenceOfCalls,
                              "Call Toolbox::InitializeGlobalLocale()");
     }
+#  endif
 #endif
 
     // The "::skip" flag makes boost skip invalid UTF-8
@@ -1525,7 +1537,7 @@ namespace Orthanc
   
   static void InitializeIcu()
   {
-#if ORTHANC_STATIC_ICU == 1
+#if (ORTHANC_STATIC_ICU == 1) && (ORTHANC_ENABLE_ICU == 1)
     if (globalIcuData_.empty())
     {
       LOG(INFO) << "Setting up the ICU common data";
@@ -1693,10 +1705,14 @@ namespace Orthanc
     bool error = (globalLocale_.get() == NULL);
 
 #if ORTHANC_STATIC_ICU == 1
+#  if ORTHANC_ENABLE_ICU == 0
+    throw OrthancException(ErrorCode_NotImplemented, "ICU is disabled for this target");
+#  else
     if (globalIcuData_.empty())
     {
       error = true;
     }
+#  endif
 #endif
     
     if (error)

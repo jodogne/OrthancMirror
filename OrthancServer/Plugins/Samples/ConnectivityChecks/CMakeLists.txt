@@ -50,8 +50,9 @@ endif()
 
 EmbedResources(
   --framework-path=${CMAKE_SOURCE_DIR}/../../../../OrthancFramework/Sources
+  --target=ConnectivityChecksResources
   WEB_RESOURCES  ${CMAKE_CURRENT_SOURCE_DIR}/WebResources
-  LIBRARIES      ${JAVASCRIPT_LIBS_DIR}
+  LIBRARIES      ${CONNECTIVITY_CHECKS_JAVASCRIPT_DIR}
   )
 
 add_definitions(
