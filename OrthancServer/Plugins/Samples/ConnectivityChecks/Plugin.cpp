@@ -20,7 +20,7 @@
  **/
 
 
-#include <EmbeddedResources.h>
+#include <ConnectivityChecksResources.h>
 #include <orthanc/OrthancCPlugin.h>
 
 #include "../../../../OrthancFramework/Sources/OrthancException.h"
