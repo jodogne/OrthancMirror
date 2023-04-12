@@ -711,7 +711,6 @@ if (ENABLE_PLUGINS AND BUILD_DELAYED_DELETION)
   # The "OrthancFrameworkDependencies.cpp" file is used to bypass the
   # precompiled headers if compiling with Visual Studio
   add_library(DelayedDeletion SHARED 
-    ${CMAKE_SOURCE_DIR}/Plugins/Engine/PluginsEnumerations.cpp
     ${CMAKE_SOURCE_DIR}/Plugins/Samples/DelayedDeletion/PendingDeletionsDatabase.cpp
     ${CMAKE_SOURCE_DIR}/Plugins/Samples/DelayedDeletion/Plugin.cpp
     ${CMAKE_SOURCE_DIR}/Plugins/Samples/DelayedDeletion/OrthancFrameworkDependencies.cpp
