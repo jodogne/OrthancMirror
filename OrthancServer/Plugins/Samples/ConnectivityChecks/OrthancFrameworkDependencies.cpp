@@ -20,29 +20,17 @@
  **/
 
 
-#pragma once
+/**
+ * Remove the dependency upon ICU in plugins, as this greatly increase
+ * the size of the resulting binaries, since they must embed the ICU
+ * dictionary.
+ **/
 
+#define ORTHANC_ENABLE_ICU 0
 
-#include "../../../../OrthancFramework/Sources/SQLite/Connection.h"
-#include <boost/thread/mutex.hpp>
-#include <boost/noncopyable.hpp>
-
-class PendingDeletionsDatabase : public boost::noncopyable
-{
-private:
-  boost::mutex                 mutex_;
-  Orthanc::SQLite::Connection  db_;
-
-  void Setup();
-  
-public:
-  PendingDeletionsDatabase(const std::string& path);
-
-  void Enqueue(const std::string& uuid,
-               Orthanc::FileContentType type);
-  
-  bool Dequeue(std::string& uuid,
-               Orthanc::FileContentType& type);
-
-  unsigned int GetSize();
-};
+#include "../../../../OrthancFramework/Sources/ChunkedBuffer.cpp"
+#include "../../../../OrthancFramework/Sources/Enumerations.cpp"
+#include "../../../../OrthancFramework/Sources/Logging.cpp"
+#include "../../../../OrthancFramework/Sources/OrthancException.cpp"
+#include "../../../../OrthancFramework/Sources/SystemToolbox.cpp"
+#include "../../../../OrthancFramework/Sources/Toolbox.cpp"
