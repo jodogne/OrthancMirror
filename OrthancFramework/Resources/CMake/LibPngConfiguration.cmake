@@ -21,7 +21,7 @@
 
 if (STATIC_BUILD OR NOT USE_SYSTEM_LIBPNG)
   SET(LIBPNG_SOURCES_DIR ${CMAKE_BINARY_DIR}/libpng-1.6.36)
-  SET(LIBPNG_URL "http://orthanc.osimis.io/ThirdPartyDownloads/libpng-1.6.36.tar.gz")
+  SET(LIBPNG_URL "https://orthanc.uclouvain.be/third-party-downloads/libpng-1.6.36.tar.gz")
   SET(LIBPNG_MD5 "65afdeaa05f5ec14e31d9276143012e9")
 
   DownloadPackage(${LIBPNG_MD5} ${LIBPNG_URL} "${LIBPNG_SOURCES_DIR}")

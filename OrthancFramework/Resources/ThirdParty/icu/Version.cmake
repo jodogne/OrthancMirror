@@ -32,7 +32,7 @@ else()
   set(LIBICU_SUFFIX "l")
 endif()
 
-set(LIBICU_BASE_URL "http://orthanc.osimis.io/ThirdPartyDownloads")
+set(LIBICU_BASE_URL "https://orthanc.uclouvain.be/third-party-downloads")
 
 if (USE_LEGACY_LIBICU)
   # This is the latest version of icu that compiles without C++11
