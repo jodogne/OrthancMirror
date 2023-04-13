@@ -20,7 +20,7 @@
 
 
 SET(OPENSSL_SOURCES_DIR ${CMAKE_BINARY_DIR}/openssl-1.1.1k)
-SET(OPENSSL_URL "http://orthanc.osimis.io/ThirdPartyDownloads/openssl-1.1.1k.tar.gz")
+SET(OPENSSL_URL "https://orthanc.uclouvain.be/third-party-downloads/openssl-1.1.1k.tar.gz")
 SET(OPENSSL_MD5 "c4e7d95f782b08116afa27b30393dd27")
 
 if (IS_DIRECTORY "${OPENSSL_SOURCES_DIR}")

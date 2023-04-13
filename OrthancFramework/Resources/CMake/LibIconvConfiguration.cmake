@@ -23,7 +23,7 @@ message("Using libiconv")
 
 if (STATIC_BUILD OR NOT USE_SYSTEM_LIBICONV)
   set(LIBICONV_SOURCES_DIR ${CMAKE_BINARY_DIR}/libiconv-1.15)
-  set(LIBICONV_URL "http://orthanc.osimis.io/ThirdPartyDownloads/libiconv-1.15.tar.gz")
+  set(LIBICONV_URL "https://orthanc.uclouvain.be/third-party-downloads/libiconv-1.15.tar.gz")
   set(LIBICONV_MD5 "ace8b5f2db42f7b3b3057585e80d9808")
 
   DownloadPackage(${LIBICONV_MD5} ${LIBICONV_URL} "${LIBICONV_SOURCES_DIR}")

@@ -18,7 +18,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 
-set(BASE_URL "http://orthanc.osimis.io/ThirdPartyDownloads")
+set(BASE_URL "https://orthanc.uclouvain.be/third-party-downloads")
 
 DownloadPackage(
   "da0189f7c33bf9f652ea65401e0a3dc9"
