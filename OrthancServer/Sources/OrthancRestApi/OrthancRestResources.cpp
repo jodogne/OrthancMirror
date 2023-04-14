@@ -430,10 +430,8 @@ namespace Orthanc
         .SetSummary("Write DICOM onto filesystem")
         .SetDescription("Write the DICOM file onto the filesystem where Orthanc is running.  This is insecure for "
                         "Orthanc servers that are remotely accessible since one could overwrite any system file.  "
-                        "Since Orthanc 1.12.0, this route is disabled by default and can be enabled thanks to "
-                        "the `RestApiWriteToFileSystemEnabled` configuration.")
-        .AddRequestType(MimeType_PlainText, "The Lua script to be executed")
-
+                        "Since Orthanc 1.12.0, this route is disabled by default, but can be enabled using "
+                        "the `RestApiWriteToFileSystemEnabled` configuration option.")
         .SetUriArgument("id", "Orthanc identifier of the DICOM instance of interest")
         .AddRequestType(MimeType_PlainText, "Target path on the filesystem");
       return;
@@ -2001,8 +1999,8 @@ namespace Orthanc
       std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
       call.GetDocumentation()
         .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
-        .SetSummary("List labels (new in Orthanc 1.12.0)")
-        .SetDescription("Get the labels that are associated with the given " + r)
+        .SetSummary("List labels")
+        .SetDescription("Get the labels that are associated with the given " + r + " (new in Orthanc 1.12.0)")
         .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
         .AddAnswerType(MimeType_Json, "JSON array containing the names of the labels")
         .SetHttpGetSample(GetDocumentationSampleResource(t) + "/labels", true);

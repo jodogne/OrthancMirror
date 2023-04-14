@@ -33,6 +33,10 @@
 #include "../OrthancException.h"
 #include "NetworkingCompatibility.h"
 
+#ifdef _WIN32
+#  include <winsock.h>
+#endif
+
 #include <dcmtk/dcmnet/diutil.h>  // For dcmConnectionTimeout()
 #include <dcmtk/dcmdata/dcdeftag.h>
 
