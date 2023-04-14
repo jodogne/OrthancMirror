@@ -149,7 +149,9 @@ extern "C"
 #if defined(ORTHANC_STATIC_ICU)
 
 #  if (ORTHANC_STATIC_ICU == 1) && (ORTHANC_ENABLE_ICU == 1)
-#    include <OrthancFrameworkResources.h>
+#    if !defined(ORTHANC_FRAMEWORK_INCLUDE_RESOURCES) || (ORTHANC_FRAMEWORK_INCLUDE_RESOURCES == 1)
+#      include <OrthancFrameworkResources.h>
+#    endif
 #  endif
 
 #  if (ORTHANC_STATIC_ICU == 1 && ORTHANC_ENABLE_LOCALE == 1)
