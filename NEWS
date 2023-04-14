@@ -17,6 +17,7 @@ REST API
 * "/tools/find" now accepts the "Labels" and "LabelsConstraint" arguments
 * "/tools/labels" lists all the labels that are associated with any resource
 * "/system": added "UserMetadata" and "HasLabels"
+* Added option "?numeric" if listing metadata
 
 Plugins
 -------

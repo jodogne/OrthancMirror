@@ -1679,6 +1679,8 @@ namespace Orthanc
         .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
         .SetHttpGetArgument("expand", RestApiCallDocumentation::Type_String,
                             "If present, also retrieve the value of the individual metadata", false)
+        .SetHttpGetArgument("numeric", RestApiCallDocumentation::Type_String,
+                            "If present, use the numeric identifier of the metadata instead of its symbolic name", false)
         .AddAnswerType(MimeType_Json, "JSON array containing the names of the available metadata, "
                        "or JSON associative array mapping metadata to their values (if `expand` argument is provided)")
         .SetHttpGetSample(GetDocumentationSampleResource(t) + "/metadata", true);
@@ -1696,15 +1698,26 @@ namespace Orthanc
 
     Json::Value result;
 
+    bool isNumeric = call.HasArgument("numeric");
+
     if (call.HasArgument("expand"))
     {
       result = Json::objectValue;
       
       for (Metadata::const_iterator it = metadata.begin(); it != metadata.end(); ++it)
       {
-        std::string key = EnumerationToString(it->first);
+        std::string key;
+        if (isNumeric)
+        {
+          key = boost::lexical_cast<std::string>(it->first);
+        }
+        else
+        {
+          key = EnumerationToString(it->first);
+        }
+
         result[key] = it->second;
-      }      
+      }
     }
     else
     {
@@ -1712,7 +1725,14 @@ namespace Orthanc
       
       for (Metadata::const_iterator it = metadata.begin(); it != metadata.end(); ++it)
       {       
-        result.append(EnumerationToString(it->first));
+        if (isNumeric)
+        {
+          result.append(it->first);
+        }
+        else
+        {
+          result.append(EnumerationToString(it->first));
+        }
       }
     }
 
