@@ -70,6 +70,16 @@ namespace Orthanc
     std::set<std::string>               labels_;
 
   public:
+    // TODO - Cleanup
+    ExpandedResource() :
+      level_(ResourceType_Instance),
+      isStable_(false),
+      expectedNumberOfInstances_(0),
+      fileSize_(0),
+      indexInSeries_(0)
+    {
+    }
+    
     void SetResource(ResourceType level,
                      const std::string& id)
     {

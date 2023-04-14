@@ -13,10 +13,10 @@ constParameter:../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.cpp
 knownArgument:../../OrthancFramework/UnitTestsSources/ImageTests.cpp
 knownConditionTrueFalse:../../OrthancServer/Plugins/Engine/OrthancPlugins.cpp
 nullPointer:../../OrthancFramework/UnitTestsSources/RestApiTests.cpp:322
-stlFindInsert:../../OrthancFramework/Sources/DicomFormat/DicomMap.cpp:1403
+stlFindInsert:../../OrthancFramework/Sources/DicomFormat/DicomMap.cpp:1475
 stlFindInsert:../../OrthancFramework/Sources/RestApi/RestApiCallDocumentation.cpp:165
 stlFindInsert:../../OrthancFramework/Sources/RestApi/RestApiCallDocumentation.cpp:73
-stlFindInsert:../../OrthancServer/Sources/Database/StatelessDatabaseOperations.cpp:372
+stlFindInsert:../../OrthancServer/Sources/Database/StatelessDatabaseOperations.cpp:373
 stlFindInsert:../../OrthancServer/Sources/OrthancWebDav.cpp:377
 stlFindInsert:../../OrthancServer/Sources/ServerJobs/MergeStudyJob.cpp:40
 stlFindInsert:../../OrthancServer/Sources/ServerJobs/SplitStudyJob.cpp:190
@@ -33,10 +33,10 @@ useInitializationList:../../OrthancFramework/Sources/Images/PngReader.cpp:90
 useInitializationList:../../OrthancFramework/Sources/Images/PngWriter.cpp:98
 useInitializationList:../../OrthancServer/Sources/ServerJobs/DicomModalityStoreJob.cpp:274
 assertWithSideEffect:../../OrthancServer/Plugins/Engine/OrthancPluginDatabase.cpp:276
-assertWithSideEffect:../../OrthancServer/Plugins/Engine/OrthancPluginDatabase.cpp:1018
+assertWithSideEffect:../../OrthancServer/Plugins/Engine/OrthancPluginDatabase.cpp:1025
 assertWithSideEffect:../../OrthancServer/Sources/Database/Compatibility/DatabaseLookup.cpp:289
 assertWithSideEffect:../../OrthancServer/Sources/Database/Compatibility/DatabaseLookup.cpp:388
-assertWithSideEffect:../../OrthancServer/Sources/Database/StatelessDatabaseOperations.cpp:3490
+assertWithSideEffect:../../OrthancServer/Sources/Database/StatelessDatabaseOperations.cpp:3526
 assertWithSideEffect:../../OrthancServer/Sources/ServerJobs/ResourceModificationJob.cpp:272
 EOF
 
