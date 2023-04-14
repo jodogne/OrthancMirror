@@ -32,7 +32,6 @@
  * http://msdn.microsoft.com/en-us/library/windows/desktop/ms738527(v=vs.85).aspx
  **/
 #  define HOST_NAME_MAX 256
-#  include <winsock.h>
 #endif 
 
 
