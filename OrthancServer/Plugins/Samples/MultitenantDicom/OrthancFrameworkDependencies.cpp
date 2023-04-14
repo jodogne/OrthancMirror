@@ -31,7 +31,10 @@
 
 #include <MultitenantDicomResources.h>
 
-#ifdef _WIN32
+#if defined(_WIN32)
+#  if !defined(NOMINMAX)
+#    define NOMINMAX
+#  endif
 // Make sure that "winsock2.h" is included before "winsock.h"
 #  include <winsock2.h>
 #endif
