@@ -5,6 +5,7 @@ General
 -------
 
 * Support for labels associated with patients, studies, series, and instances
+* Added a sample plugin bringing multitenant DICOM support through labels
 
 REST API
 --------

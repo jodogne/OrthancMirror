@@ -93,7 +93,9 @@
 #endif
 
 #if DCMTK_USE_EMBEDDED_DICTIONARIES == 1
-#  include <OrthancFrameworkResources.h>
+#  if !defined(ORTHANC_FRAMEWORK_INCLUDE_RESOURCES) || (ORTHANC_FRAMEWORK_INCLUDE_RESOURCES == 1)
+#    include <OrthancFrameworkResources.h>
+#  endif
 #endif
 
 #if ORTHANC_ENABLE_DCMTK_JPEG == 1
