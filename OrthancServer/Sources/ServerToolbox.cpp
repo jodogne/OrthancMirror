@@ -274,10 +274,6 @@ namespace Orthanc
 
         if (reconstructFiles)
         {
-          // preserve metadata from old resource
-          typedef std::map<MetadataType, std::string>  InstanceMetadata;
-          InstanceMetadata  instanceMetadata;
-
           std::string resultPublicId;  // ignored
           std::unique_ptr<DicomInstanceToStore> dicomInstancetoStore(DicomInstanceToStore::CreateFromParsedDicomFile(locker.GetDicom()));
 

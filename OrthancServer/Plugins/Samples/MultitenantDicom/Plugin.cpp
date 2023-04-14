@@ -120,10 +120,9 @@ extern "C"
       return -1;
     }
 
-    Orthanc::FromDcmtkBridge::InitializeDictionary(false /* loadPrivateDictionary */);
     /* Disable "gethostbyaddr" (which results in memory leaks) and use raw IP addresses */
     dcmDisableGethostbyaddr.set(OFTrue);
-    
+
     OrthancPluginSetDescription(context, "Multitenant plugin for Orthanc.");
 
     OrthancPluginRegisterOnChangeCallback(context, OnChangeCallback);
