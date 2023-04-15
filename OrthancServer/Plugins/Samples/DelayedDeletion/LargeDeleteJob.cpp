@@ -168,6 +168,7 @@ LargeDeleteJob::LargeDeleteJob(const std::vector<std::string>& resources,
   levels_(levels),
   posResources_(0),
   posInstances_(0),
+  posSeries_(0),
   posDelete_(0)
 {
   if (resources.size() != levels.size())

@@ -151,11 +151,12 @@ OrthancPluginErrorCode Callback(OrthancPluginWorklistAnswers*     answers,
 
     fs::path source(folder_);
     fs::directory_iterator end;
-    unsigned int parsedFilesCount = 0;
-    unsigned int matchedWorklistCount = 0;
 
     try
     {
+      unsigned int parsedFilesCount = 0;
+      unsigned int matchedWorklistCount = 0;
+      
       for (fs::directory_iterator it(source); it != end; ++it)
       {
         fs::file_type type(it->status().type());

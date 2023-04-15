@@ -47,12 +47,12 @@ public:
   {
   }
 
-  unsigned int GetSubOperationCount() const
+  virtual unsigned int GetSubOperationCount() const ORTHANC_OVERRIDE
   {
     return 1;
   }
 
-  Status DoNext()
+  virtual Status DoNext() ORTHANC_OVERRIDE
   {
     Json::Value answer;
 
@@ -95,15 +95,15 @@ void MoveRequestHandler::ExecuteLookup(std::set<std::string>& publicIds,
       if (OrthancPlugins::RestApiPost(response, "/tools/find", request, false) &&
           response.type() == Json::arrayValue)
       {
-        for (Json::Value::ArrayIndex i = 0; i < response.size(); i++)
+        for (Json::Value::ArrayIndex j = 0; j < response.size(); j++)
         {
-          if (response[i].type() != Json::stringValue)
+          if (response[j].type() != Json::stringValue)
           {
             throw Orthanc::OrthancException(Orthanc::ErrorCode_InternalError);
           }
           else
           {
-            publicIds.insert(response[i].asString());
+            publicIds.insert(response[j].asString());
           }
         }
       }
