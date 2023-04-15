@@ -61,7 +61,7 @@ private:
   std::unique_ptr<Orthanc::DicomServer>  server_;
 
 public:
-  MultitenantDicomServer(const Json::Value& serverConfig);
+  explicit MultitenantDicomServer(const Json::Value& serverConfig);
 
   void Start();
 

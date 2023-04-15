@@ -253,14 +253,15 @@ namespace OrthancPlugins
   // helper class to convert std::map of headers to the plugin SDK C structure
   class PluginHttpHeaders
   {
+  private:
     std::vector<const char*> headersKeys_;
     std::vector<const char*> headersValues_;
-  public:
 
-    PluginHttpHeaders(const std::map<std::string, std::string>& httpHeaders)
+  public:
+    explicit PluginHttpHeaders(const std::map<std::string, std::string>& httpHeaders)
     {
       for (std::map<std::string, std::string>::const_iterator
-           it = httpHeaders.begin(); it != httpHeaders.end(); it++)
+           it = httpHeaders.begin(); it != httpHeaders.end(); ++it)
       {
         headersKeys_.push_back(it->first.c_str());
         headersValues_.push_back(it->second.c_str());

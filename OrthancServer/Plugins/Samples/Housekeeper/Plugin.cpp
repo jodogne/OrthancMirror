@@ -127,7 +127,7 @@ struct RunningPeriods
     Json::Value::Members names = scheduleConfiguration.getMemberNames();
 
     for (Json::Value::Members::const_iterator it = names.begin();
-      it != names.end(); it++)
+      it != names.end(); ++it)
     {
       for (Json::Value::ArrayIndex i = 0; i < scheduleConfiguration[*it].size(); i++)
       {
@@ -144,7 +144,7 @@ struct RunningPeriods
     }
 
     for (std::list<RunningPeriod>::const_iterator it = runningPeriods_.begin();
-      it != runningPeriods_.end(); it++)
+      it != runningPeriods_.end(); ++it)
     {
       if (it->isInPeriod())
       {

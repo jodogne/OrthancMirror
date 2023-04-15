@@ -88,6 +88,7 @@ ${CPPCHECK} --enable=all --quiet --std=c++11 \
             -D__cplusplus=201103 \
             -D__linux__ \
             -UNDEBUG \
+            -DHAS_ORTHANC_EXCEPTION=1 \
             \
             ../../OrthancFramework/Sources \
             ../../OrthancFramework/UnitTestsSources \
@@ -95,5 +96,11 @@ ${CPPCHECK} --enable=all --quiet --std=c++11 \
             ../../OrthancServer/Plugins/Include \
             ../../OrthancServer/Sources \
             ../../OrthancServer/UnitTestsSources \
+            ../../OrthancServer/Plugins/Samples/Common \
+            ../../OrthancServer/Plugins/Samples/ConnectivityChecks \
+            ../../OrthancServer/Plugins/Samples/DelayedDeletion \
+            ../../OrthancServer/Plugins/Samples/Housekeeper \
+            ../../OrthancServer/Plugins/Samples/ModalityWorklists \
+            ../../OrthancServer/Plugins/Samples/MultitenantDicom \
             \
             2>&1
