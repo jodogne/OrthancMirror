@@ -241,7 +241,7 @@ namespace Orthanc
 
           if (DicomMap::IsComputedTag(tag))
           {
-            LOG(WARNING) << "  - " << tagName << " can not be added in the Extra Main Dicom Tags since the value of this tag is computed when requested";
+            LOG(WARNING) << "  - " << tagName << " cannot be added in the Extra Main Dicom Tags since the value of this tag is computed when requested";
           }
           else
           {

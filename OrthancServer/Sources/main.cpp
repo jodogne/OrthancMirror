@@ -1181,7 +1181,7 @@ static bool StartHttpServer(ServerContext& context,
       else
       {
         context.SetRestApiWriteToFileSystemEnabled(false);
-        LOG(WARNING) << "REST API can not write to the file system.";
+        LOG(WARNING) << "REST API cannot write to the file system.";
       }
 
       if (lock.GetConfiguration().GetBooleanParameter("WebDavEnabled", true))
