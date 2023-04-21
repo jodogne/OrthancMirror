@@ -745,11 +745,20 @@ namespace Orthanc
                                "Cannot decode a non-palette image");
       }
 
+      std::string colorModel = Orthanc::Toolbox::StripSpaces(decompressedColorModel.c_str());
+
       if (target->GetFormat() == PixelFormat_RGB24 &&
-          Orthanc::Toolbox::StripSpaces(decompressedColorModel.c_str()) == "RGB" &&
+          (colorModel == "RGB" || colorModel == "YBR_FULL") &&
           info.IsPlanar())
       {
-        return DecodePlanarConfiguration(*target);
+        std::unique_ptr<ImageAccessor> output(DecodePlanarConfiguration(*target));
+
+        if (colorModel == "YBR_FULL")
+        {
+          ImageProcessing::ConvertJpegYCbCrToRgb(*output);
+        }
+
+        return output.release();
       }
       else
       {
