@@ -211,6 +211,13 @@ namespace Orthanc
       std::string t;
       t.reserve(value.size());
 
+#if 0
+      // This version solves some indexing issue (https://discourse.orthanc-server.org/t/postgress-index-effectively-disabled-when-searching-for-greek-names/3371)
+      // and seems functional: I could run the integration tests with both SQLite and PG + the DicomWeb tests with PG.
+      // However, it can not go into production because NormalizeIdentifier is used both at ingest time and at search time;
+      // therefore, if we change it while we have an already populated DB, the searches won't work anymore and, on very large
+      // systems, running the Housekeeper to rebuild the indexes might take months ...
+      // We keep it here because it might be handy once we refactor the DicomIdentifier searches in the future.
       for (size_t i = 0; i < value.size(); i++)
       {
         if (value[i] == '%' ||
@@ -218,7 +225,7 @@ namespace Orthanc
         {
           t.push_back(' ');  // These characters might break wildcard queries in SQL
         }
-        else if (isascii(value[i]) &&
+        else if (//isascii(value[i]) &&
                  !iscntrl(value[i]) &&
                  (!isspace(value[i]) || value[i] == ' '))
         {
@@ -226,7 +233,25 @@ namespace Orthanc
         }
       }
 
-      Toolbox::ToUpperCase(t);
+      //Toolbox::ToUpperCase(t);
+      t = Toolbox::ToUpperCaseWithAccents(t);
+#else
+      for (size_t i = 0; i < value.size(); i++)
+      {
+        if (value[i] == '%' ||
+            value[i] == '_')
+        {
+          t.push_back(' ');  // These characters might break wildcard queries in SQL
+        }
+        else if (!iscntrl(value[i]) &&
+                 (!isspace(value[i]) || value[i] == ' '))
+        {
+          t.push_back(value[i]);
+        }
+      }
+
+      t = Toolbox::ToUpperCaseWithAccents(t);
+#endif
 
       return Toolbox::StripSpaces(t);
     }
