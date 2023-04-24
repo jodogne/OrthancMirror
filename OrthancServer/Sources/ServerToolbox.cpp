@@ -251,7 +251,7 @@ namespace Orthanc
         }
       }
 
-      t = Toolbox::ToUpperCase(t);
+      Toolbox::ToUpperCase(t);
 #endif
 
       return Toolbox::StripSpaces(t);
