@@ -243,14 +243,15 @@ namespace Orthanc
         {
           t.push_back(' ');  // These characters might break wildcard queries in SQL
         }
-        else if (!iscntrl(value[i]) &&
+        else if (isascii(value[i]) &&
+                 !iscntrl(value[i]) &&
                  (!isspace(value[i]) || value[i] == ' '))
         {
           t.push_back(value[i]);
         }
       }
 
-      t = Toolbox::ToUpperCaseWithAccents(t);
+      t = Toolbox::ToUpperCase(t);
 #endif
 
       return Toolbox::StripSpaces(t);
