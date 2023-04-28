@@ -3216,7 +3216,128 @@ TEST(DicomMap, DicomWebWithInteger64)
   m.FromDicomWeb(v);
 }
 
+TEST(DicomMap, MainDicomTagsDicomWebJson)
+{
+  std::unique_ptr<ParsedDicomFile> dicom;
 
+  {
+    std::string source = "{"
+      "\"0008,0005\" : {"
+         "\"Name\" : \"SpecificCharacterSet\","
+         "\"Type\" : \"String\","
+         "\"Value\" : \"ISO_IR 192\""
+      "},"
+      "\"0008,0008\" : {"
+         "\"Name\" : \"ImageType\","
+         "\"Type\" : \"String\","
+         "\"Value\" : \"DERIVED\\\\PRIMARY\\\\AXIAL\""
+      "},"
+      "\"0008,0016\" : {"
+         "\"Name\" : \"SOPClassUID\","
+         "\"Type\" : \"String\","
+         "\"Value\" : \"1.2.840.10008.5.1.4.1.1.2\""
+      "},"
+      "\"0008,0018\" : {"
+         "\"Name\" : \"SOPInstanceUID\","
+         "\"Type\" : \"String\","
+         "\"Value\" : \"1.2.276.0.7230010.3.1.4.1215942821.4756.1664833117.11987\""
+      "},"
+      "\"0018,0050\" : {"
+         "\"Name\" : \"SliceThickness\","
+         "\"Type\" : \"String\","
+         "\"Value\" : \"0.19816064757161\""
+      "},"
+      "\"0020,0013\" : {"
+         "\"Name\" : \"InstanceNumber\","
+         "\"Type\" : \"String\","
+         "\"Value\" : \"0\""
+      "},"
+      "\"0020,0032\" : {"
+         "\"Name\" : \"ImagePositionPatient\","
+         "\"Type\" : \"String\","
+         "\"Value\" : \"-79.462419676214\\\\-79.462419676214\\\\-59.150953300125\""
+      "},"
+      "\"0020,0037\" : {"
+         "\"Name\" : \"ImageOrientationPatient\","
+         "\"Type\" : \"String\","
+         "\"Value\" : \"1\\\\-0\\\\0\\\\-0\\\\1\\\\-0\""
+      "},"
+      "\"0028,0004\" : {"
+         "\"Name\" : \"PhotometricInterpretation\","
+         "\"Type\" : \"String\","
+         "\"Value\" : \"MONOCHROME2\""
+      "},"
+      "\"0028,0010\" : {"
+         "\"Name\" : \"Rows\","
+         "\"Type\" : \"String\","
+         "\"Value\" : \"803\""
+      "},"
+      "\"0028,0011\" : {"
+         "\"Name\" : \"Columns\","
+         "\"Type\" : \"String\","
+         "\"Value\" : \"803\""
+      "},"
+      "\"0028,0030\" : {"
+         "\"Name\" : \"PixelSpacing\","
+         "\"Type\" : \"String\","
+         "\"Value\" : \"0.19816064757161\\\\0.19816064757161\""
+      "},"
+      "\"0028,0100\" : {"
+         "\"Name\" : \"BitsAllocated\","
+         "\"Type\" : \"String\","
+         "\"Value\" : \"16\""
+      "},"
+      "\"0028,0101\" : {"
+         "\"Name\" : \"BitsStored\","
+         "\"Type\" : \"String\","
+         "\"Value\" : \"16\""
+      "},"
+      "\"0028,0103\" : {"
+         "\"Name\" : \"PixelRepresentation\","
+         "\"Type\" : \"String\","
+         "\"Value\" : \"0\""
+      "},"
+      "\"0028,1050\" : {"
+         "\"Name\" : \"WindowCenter\","
+         "\"Type\" : \"String\","
+         "\"Value\" : \"1023.96875\""
+      "},"
+      "\"0028,1051\" : {"
+         "\"Name\" : \"WindowWidth\","
+         "\"Type\" : \"String\","
+         "\"Value\" : \"4095.9375\""
+      "},"
+      "\"0028,1052\" : {"
+         "\"Name\" : \"RescaleIntercept\","
+         "\"Type\" : \"String\","
+         "\"Value\" : \"-1024\""
+      "},"
+      "\"0028,1053\" : {"
+         "\"Name\" : \"RescaleSlope\","
+         "\"Type\" : \"String\","
+         "\"Value\" : \"0.0625\""
+      "}"
+   "}";
+
+    Json::Value v;
+    Orthanc::Toolbox::ReadJson(v, source);
+
+    LOG(INFO) << source;
+    LOG(INFO) << v.toStyledString();
+    Json::Value result = Json::objectValue;
+    DicomMap map;
+    map.FromDicomAsJson(v, false, true);
+
+// for profiling    for (int i=0; i < 100; ++i)
+    {
+      result = Json::objectValue;
+      FromDcmtkBridge::ToJson(result, map, Orthanc::DicomToJsonFormat_DicomWeb);
+    }
+
+    ASSERT_TRUE(result.isMember("00281053"));
+    ASSERT_EQ("0.0625", result["00281053"]["Value"].asString());
+  }
+}
 
 
 #if ORTHANC_ENABLE_DCMTK_TRANSCODING == 1

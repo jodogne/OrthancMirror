@@ -158,11 +158,11 @@ namespace Orthanc
                                  *(mainDicomTags->second.get()),
                                  instanceId->second,
                                  dicomAsJson->second.get(),
-                                 level, format, requestedTags, allowStorageAccess);
+                                 level, format, requestedTags, ExpandResourceFlags_Default, allowStorageAccess);
         }
         else
         {
-          context.ExpandResource(expanded, *resource, level, format, requestedTags, allowStorageAccess);
+          context.ExpandResource(expanded, *resource, level, format, requestedTags, ExpandResourceFlags_Default, allowStorageAccess);
         }
 
         if (expanded.type() == Json::objectValue)
@@ -288,7 +288,7 @@ namespace Orthanc
 
     Json::Value json;
     if (OrthancRestApi::GetContext(call).ExpandResource(
-          json, call.GetUriComponent("id", ""), resourceType, format, requestedTags, true /* allowStorageAccess */))
+          json, call.GetUriComponent("id", ""), resourceType, format, requestedTags, ExpandResourceFlags_Default, true /* allowStorageAccess */))
     {
       call.GetOutput().AnswerJson(json);
     }
@@ -3355,12 +3355,13 @@ namespace Orthanc
     Json::Value result = Json::arrayValue;
 
     const DicomToJsonFormat format = OrthancRestApi::GetDicomFormat(call, DicomToJsonFormat_Human);
+    ExpandResourceFlags expandResource = OrthancRestApi::GetResponseContent(call, ExpandResourceFlags_Default);
 
     for (std::list<std::string>::const_iterator
            it = a.begin(); it != a.end(); ++it)
     {
       Json::Value resource;
-      if (OrthancRestApi::GetContext(call).ExpandResource(resource, *it, end, format, requestedTags, true /* allowStorageAccess */))
+      if (OrthancRestApi::GetContext(call).ExpandResource(resource, *it, end, format, requestedTags, expandResource, true /* allowStorageAccess */))
       {
         result.append(resource);
       }
@@ -3479,7 +3480,7 @@ namespace Orthanc
     const DicomToJsonFormat format = OrthancRestApi::GetDicomFormat(call, DicomToJsonFormat_Human);
 
     Json::Value resource;
-    if (OrthancRestApi::GetContext(call).ExpandResource(resource, current, end, format, requestedTags, true /* allowStorageAccess */))
+    if (OrthancRestApi::GetContext(call).ExpandResource(resource, current, end, format, requestedTags, ExpandResourceFlags_Default, true /* allowStorageAccess */))
     {
       call.GetOutput().AnswerJson(resource);
     }
@@ -3886,7 +3887,7 @@ namespace Orthanc
           Json::Value item;
           std::set<DicomTag> emptyRequestedTags;  // not supported for bulk content
 
-          if (OrthancRestApi::GetContext(call).ExpandResource(item, *it, level, format, emptyRequestedTags, true /* allowStorageAccess */))
+          if (OrthancRestApi::GetContext(call).ExpandResource(item, *it, level, format, emptyRequestedTags, ExpandResourceFlags_Default, true /* allowStorageAccess */))
           {
             if (metadata)
             {
@@ -3911,7 +3912,7 @@ namespace Orthanc
           std::set<DicomTag> emptyRequestedTags;  // not supported for bulk content
 
           if (index.LookupResourceType(level, *it) &&
-              OrthancRestApi::GetContext(call).ExpandResource(item, *it, level, format, emptyRequestedTags, true /* allowStorageAccess */))
+              OrthancRestApi::GetContext(call).ExpandResource(item, *it, level, format, emptyRequestedTags, ExpandResourceFlags_Default, true /* allowStorageAccess */))
           {
             if (metadata)
             {

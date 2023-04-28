@@ -115,11 +115,13 @@ namespace Orthanc
     ExpandResourceFlags_IncludeChildren         = (1 << 1),
     ExpandResourceFlags_IncludeMainDicomTags    = (1 << 2),
     ExpandResourceFlags_IncludeLabels           = (1 << 3),
+    ExpandResourceFlags_IncludeRequestedTags    = (1 << 3),
 
     ExpandResourceFlags_Default = (ExpandResourceFlags_IncludeMetadata |
                                      ExpandResourceFlags_IncludeChildren |
                                      ExpandResourceFlags_IncludeMainDicomTags |
-                                     ExpandResourceFlags_IncludeLabels)
+                                     ExpandResourceFlags_IncludeLabels |
+                                     ExpandResourceFlags_IncludeRequestedTags)
   };
 
   class StatelessDatabaseOperations : public boost::noncopyable
