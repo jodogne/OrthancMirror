@@ -28,7 +28,7 @@
 #include "../../../OrthancFramework/Sources/RestApi/RestApi.h"
 #include "../ServerJobs/ThreadedSetOfInstancesJob.h"
 #include "../ServerEnumerations.h"
-
+#include "../Database/StatelessDatabaseOperations.h"
 #include <set>
 
 namespace Orthanc
@@ -146,6 +146,9 @@ namespace Orthanc
 
     static DicomToJsonFormat GetDicomFormat(const Json::Value& body,
                                             DicomToJsonFormat defaultFormat);
+
+    static ExpandResourceFlags GetResponseContent(const RestApiGetCall& call,
+                                                  ExpandResourceFlags defaultContent);
 
     static void DocumentDicomFormat(RestApiGetCall& call,
                                     DicomToJsonFormat defaultFormat);

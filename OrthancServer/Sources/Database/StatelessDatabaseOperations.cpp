@@ -868,7 +868,8 @@ namespace Orthanc
             LookupStringMetadata(target.mainDicomTagsSignature_, target.metadata_, MetadataType_MainDicomTagsSignature);
           }
 
-          if (expandFlags & ExpandResourceFlags_IncludeMainDicomTags)
+          if (expandFlags & ExpandResourceFlags_IncludeMainDicomTags
+              || expandFlags & ExpandResourceFlags_IncludeRequestedTags)
           {
             // read all tags from DB
             transaction.GetMainDicomTags(target.GetMainDicomTags(), internalId);

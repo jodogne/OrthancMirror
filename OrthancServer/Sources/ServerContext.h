@@ -566,6 +566,7 @@ namespace Orthanc
                         ResourceType level,
                         DicomToJsonFormat format,
                         const std::set<DicomTag>& requestedTags,
+                        ExpandResourceFlags expandFlags,
                         bool allowStorageAccess);
 
     bool ExpandResource(Json::Value& target,
@@ -576,6 +577,7 @@ namespace Orthanc
                         ResourceType level,
                         DicomToJsonFormat format,
                         const std::set<DicomTag>& requestedTags,
+                        ExpandResourceFlags expandFlags,
                         bool allowStorageAccess);
 
     bool ExpandResource(ExpandedResource& target,

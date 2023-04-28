@@ -64,6 +64,7 @@
 #include "../../../../OrthancFramework/Sources/DicomNetworking/Internals/StoreScp.cpp"
 #include "../../../../OrthancFramework/Sources/DicomNetworking/RemoteModalityParameters.cpp"
 #include "../../../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.cpp"
+#include "../../../../OrthancFramework/Sources/DicomParsing/DicomWebJsonVisitor.cpp"
 #include "../../../../OrthancFramework/Sources/DicomParsing/Internals/DicomFrameIndex.cpp"
 #include "../../../../OrthancFramework/Sources/DicomParsing/Internals/DicomImageDecoder.cpp"
 #include "../../../../OrthancFramework/Sources/DicomParsing/ParsedDicomFile.cpp"

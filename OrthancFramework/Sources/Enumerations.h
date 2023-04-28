@@ -581,7 +581,8 @@ namespace Orthanc
   {
     DicomToJsonFormat_Full,
     DicomToJsonFormat_Short,
-    DicomToJsonFormat_Human
+    DicomToJsonFormat_Human,
+    DicomToJsonFormat_DicomWeb
   };
 
   enum DicomToJsonFlags

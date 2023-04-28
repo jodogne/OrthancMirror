@@ -489,7 +489,9 @@ namespace Orthanc
   static const std::string GET_SIMPLIFY = "simplify";
   static const std::string GET_FULL = "full";
   static const std::string GET_SHORT = "short";
+  static const std::string GET_DICOM_WEB = "dicomWeb";
   static const std::string GET_REQUESTED_TAGS = "requestedTags";
+  static const std::string GET_INCLUDE = "include";
 
   static const std::string POST_SIMPLIFY = "Simplify";
   static const std::string POST_FULL = "Full";
@@ -506,6 +508,45 @@ namespace Orthanc
     "report the DICOM tags in full format (tags indexed by their hexadecimal "
     "format, associated with their symbolic name and their value)";
 
+  ExpandResourceFlags OrthancRestApi::GetResponseContent(const RestApiGetCall& call,
+                                                         ExpandResourceFlags defaultContent)
+  {
+    if (call.HasArgument(GET_INCLUDE))
+    {
+      std::vector<std::string> includes;
+      Toolbox::TokenizeString(includes, call.GetArgument(GET_INCLUDE, ""), ',');
+
+      unsigned int result = static_cast<unsigned int>(ExpandResourceFlags_None);
+      for (size_t i = 0; i < includes.size(); ++i)
+      {
+        if (includes[i] == "MainDicomTags")
+        {
+          result |= static_cast<unsigned int>(ExpandResourceFlags_IncludeMainDicomTags);
+        }
+        else if (includes[i] == "RequestedTags")
+        {
+          result |= static_cast<unsigned int>(ExpandResourceFlags_IncludeRequestedTags);
+        }
+        else if (includes[i] == "Labels")
+        {
+          result |= static_cast<unsigned int>(ExpandResourceFlags_IncludeLabels);
+        }
+        else if (includes[i] == "Children")
+        {
+          result |= static_cast<unsigned int>(ExpandResourceFlags_IncludeChildren);
+        }
+        else if (includes[i] == "Metadata")
+        {
+          result |= static_cast<unsigned int>(ExpandResourceFlags_IncludeMetadata);
+        }
+      }
+
+      return static_cast<ExpandResourceFlags>(result);
+    }
+
+    return defaultContent;
+  }
+
 
   DicomToJsonFormat OrthancRestApi::GetDicomFormat(const RestApiGetCall& call,
                                                    DicomToJsonFormat defaultFormat)
@@ -521,6 +562,10 @@ namespace Orthanc
     else if (call.HasArgument(GET_FULL))
     {
       return DicomToJsonFormat_Full;
+    }
+    else if (call.HasArgument(GET_DICOM_WEB))
+    {
+      return DicomToJsonFormat_DicomWeb;
     }
     else
     {

@@ -41,6 +41,9 @@
 #include "../Logging.h"
 #include "../Toolbox.h"
 #include "../OrthancException.h"
+#include "DicomWebJsonVisitor.h"
+#include "ParsedDicomFile.h"
+#include <boost/date_time/posix_time/posix_time.hpp>
 
 #if ORTHANC_SANDBOXED == 0
 #  include "../TemporaryFile.h"
@@ -1443,6 +1446,16 @@ namespace Orthanc
     }
 
     result.clear();
+
+    if (format == DicomToJsonFormat_DicomWeb)
+    {
+      DicomWebJsonVisitor visitor;
+
+      ParsedDicomFile dicom(values, Encoding_Utf8, true);
+      dicom.Apply(visitor);
+      result = visitor.GetResult();
+      return;
+    }
 
     for (DicomMap::Content::const_iterator 
            it = values.content_.begin(); it != values.content_.end(); ++it)

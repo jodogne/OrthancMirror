@@ -1183,6 +1183,9 @@ namespace Orthanc
       case DicomToJsonFormat_Short:
         return "Short";
 
+      case DicomToJsonFormat_DicomWeb:
+        return "DicomWeb";
+
       default:
         throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
@@ -1883,6 +1886,10 @@ namespace Orthanc
     else if (format == "Simplify")
     {
       return DicomToJsonFormat_Human;
+    }
+    else if (format == "DicomWeb")
+    {
+      return DicomToJsonFormat_DicomWeb;
     }
     else
     {
