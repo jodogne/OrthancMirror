@@ -90,10 +90,10 @@ if (BOOST_STATIC AND NOT USE_LEGACY_BOOST)
   ## Parameters for static compilation of Boost 
   ##
   
-  set(BOOST_NAME boost_1_80_0)
-  set(BOOST_VERSION 1.80.0)
-  set(BOOST_BCP_SUFFIX bcpdigest-1.11.2)
-  set(BOOST_MD5 "7734e19f9a39a4411b807a9913e4a5ff")
+  set(BOOST_NAME boost_1_82_0)
+  set(BOOST_VERSION 1.82.0)
+  set(BOOST_BCP_SUFFIX bcpdigest-1.12.1)
+  set(BOOST_MD5 "9d02d026c61870b1838b53293692326f")
   set(BOOST_URL "https://orthanc.uclouvain.be/third-party-downloads/${BOOST_NAME}_${BOOST_BCP_SUFFIX}.tar.gz")
   set(BOOST_SOURCES_DIR ${CMAKE_BINARY_DIR}/${BOOST_NAME})
 
@@ -310,12 +310,14 @@ if (BOOST_STATIC AND NOT USE_LEGACY_BOOST)
       ${BOOST_SOURCES_DIR}/libs/locale/src/boost/locale/shared/date_time.cpp
       ${BOOST_SOURCES_DIR}/libs/locale/src/boost/locale/shared/formatting.cpp
       ${BOOST_SOURCES_DIR}/libs/locale/src/boost/locale/shared/generator.cpp
+      ${BOOST_SOURCES_DIR}/libs/locale/src/boost/locale/shared/iconv_codecvt.cpp
       ${BOOST_SOURCES_DIR}/libs/locale/src/boost/locale/shared/ids.cpp
       ${BOOST_SOURCES_DIR}/libs/locale/src/boost/locale/shared/localization_backend.cpp
       ${BOOST_SOURCES_DIR}/libs/locale/src/boost/locale/shared/message.cpp
       ${BOOST_SOURCES_DIR}/libs/locale/src/boost/locale/shared/mo_lambda.cpp
       ${BOOST_SOURCES_DIR}/libs/locale/src/boost/locale/util/codecvt_converter.cpp
       ${BOOST_SOURCES_DIR}/libs/locale/src/boost/locale/util/default_locale.cpp
+      ${BOOST_SOURCES_DIR}/libs/locale/src/boost/locale/util/encoding.cpp
       ${BOOST_SOURCES_DIR}/libs/locale/src/boost/locale/util/gregorian.cpp
       ${BOOST_SOURCES_DIR}/libs/locale/src/boost/locale/util/info.cpp
       ${BOOST_SOURCES_DIR}/libs/locale/src/boost/locale/util/locale_data.cpp
