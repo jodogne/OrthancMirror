@@ -161,7 +161,7 @@ SUPPORTED - Ubuntu 18.04 LTS
        	       	       uuid-dev libcurl4-openssl-dev liblua5.3-dev \
        	       	       libgtest-dev libpng-dev libsqlite3-dev libssl-dev libjpeg-dev \
 		       zlib1g-dev libdcmtk-dev libboost-all-dev libwrap0-dev \
-                       libcharls-dev libjsoncpp-dev libpugixml-dev locales
+                       libcharls-dev libjsoncpp-dev libpugixml-dev locales protobuf-compiler
 
 # cd ./Build
 # cmake -DALLOW_DOWNLOADS=ON \
