@@ -6,6 +6,7 @@ Maintenance
 
 * Fix decoding of YBR_FULL RLE images for which the "Planar Configuration" 
   tag (0028,0006) equals 1
+* Made Orthanc more resilient to common spelling errors in SpecificCharacterSet
 * Upgraded dependencies for static builds:
   - boost 1.82.0
 
