@@ -396,10 +396,6 @@ namespace Orthanc
       const std::string s = value.asString();
       lua_pushlstring(lua_, s.c_str(), s.size());
     }
-    else if (value.isDouble())
-    {
-      lua_pushnumber(lua_, value.asDouble());
-    }
     else if (value.isInt())
     {
       lua_pushinteger(lua_, value.asInt());
@@ -407,6 +403,10 @@ namespace Orthanc
     else if (value.isUInt())
     {
       lua_pushinteger(lua_, value.asUInt());
+    }
+    else if (value.isDouble())
+    {
+      lua_pushnumber(lua_, value.asDouble());
     }
     else if (value.isBool())
     {
