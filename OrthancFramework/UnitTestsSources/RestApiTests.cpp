@@ -95,22 +95,15 @@ TEST(HttpClient, Basic)
 /**
    The HTTPS CA certificates for BitBucket were extracted as follows:
    
-   (1) We retrieve the certification chain of BitBucket:
+   (1) We retrieve the URI of the root CA of BitBucket:
 
-   # echo | openssl s_client -showcerts -connect www.bitbucket.org:443
+   # echo | openssl s_client -servername bitbucket.org -connect bitbucket.org:443 2>/dev/null | openssl x509 -text | grep "CA Issuers"
 
-   (2) We see that the certification authority (CA) is
-   "www.digicert.com", and the root certificate is "DigiCert High
-   Assurance EV Root CA". As a consequence, we navigate to DigiCert to
-   find the URL to this CA certificate:
-
-   firefox https://www.digicert.com/digicert-root-certificates.htm
-
-   (3) Once we get the URL to the CA certificate, we convert it to a C
+   (2) Once we get the URL to the CA certificate, we convert it to a C
    macro that can be used by libcurl:
 
    # cd UnitTestsSources
-   # ../Resources/RetrieveCACertificates.py BITBUCKET_CERTIFICATES https://cacerts.digicert.com/DigiCertTLSHybridECCSHA3842020CA1-1.crt > BitbucketCACertificates.h
+   # python2 ../Resources/RetrieveCACertificates.py BITBUCKET_CERTIFICATES http://cacerts.digicert.com/DigiCertSHA2ExtendedValidationServerCA.crt > BitbucketCACertificates.h
 **/
 
 #include "BitbucketCACertificates.h"
