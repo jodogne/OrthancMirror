@@ -2036,6 +2036,24 @@ namespace Orthanc
             remainingAncestor_["RemainingAncestor"]["Path"] = GetBasePath(remainingLevel, remainingPublicId);
             remainingAncestor_["RemainingAncestor"]["Type"] = EnumerationToString(remainingLevel);
             remainingAncestor_["RemainingAncestor"]["ID"] = remainingPublicId;
+
+            { // update the LastUpdate metadata of all parents
+              std::string now = SystemToolbox::GetNowIsoString(true /* use UTC time (not local time) */);
+              ResourcesContent content(true);
+
+              int64_t parentId = 0;
+              if (transaction.LookupResource(parentId, remainingLevel, remainingPublicId))
+              {
+
+                do
+                {
+                  content.AddMetadata(parentId, MetadataType_LastUpdate, now);
+                }
+                while (transaction.LookupParent(parentId, parentId));
+    
+                transaction.SetResourcesContent(content);
+              }
+            }
           }
           else
           {
