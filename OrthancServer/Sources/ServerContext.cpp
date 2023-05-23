@@ -1129,32 +1129,47 @@ namespace Orthanc
   void ServerContext::ReadDicomForHeader(std::string& dicom,
                                          const std::string& instancePublicId)
   {
-    if (!ReadDicomUntilPixelData(dicom, instancePublicId))
-    {
-      ReadDicom(dicom, instancePublicId);
-    }
+    ReadDicomUntilPixelData(dicom, instancePublicId);
   }
 
   bool ServerContext::ReadDicomUntilPixelData(std::string& dicom,
                                               const std::string& instancePublicId)
   {
-    if (!area_.HasReadRange())
-    {
-      return false;
-    }
-    
     FileInfo attachment;
     int64_t revision;  // Ignored
+
+    // if the attachment exists as such return it directly
+    if (index_.LookupAttachment(attachment, revision, instancePublicId, FileContentType_DicomUntilPixelData))
+    {
+      StorageAccessor accessor(area_, storageCache_, GetMetricsRegistry());
+      accessor.Read(dicom, attachment);
+      return true;
+    }
+
+    // if the storage area can not read part of files, return the whole file
+    if (!area_.HasReadRange())
+    {
+      ReadDicom(dicom, instancePublicId);
+      return true;
+    }
+
+    // else, read the start of the dicom file
+
     if (!index_.LookupAttachment(attachment, revision, instancePublicId, FileContentType_Dicom))
     {
       throw OrthancException(ErrorCode_InternalError,
-                             "Unable to read the DICOM file of instance " + instancePublicId);
+                            "Unable to read the DICOM file of instance " + instancePublicId);
+    }
+
+    // if the attachment is compressed, return the whole file
+    if (attachment.GetCompressionType() != CompressionType_None)
+    {
+      ReadDicom(dicom, instancePublicId);
+      return true;
     }
 
     std::string s;
-
-    if (attachment.GetCompressionType() == CompressionType_None &&
-        index_.LookupMetadata(s, revision, instancePublicId, ResourceType_Instance,
+    if (index_.LookupMetadata(s, revision, instancePublicId, ResourceType_Instance,
                               MetadataType_Instance_PixelDataOffset) &&
         !s.empty())
     {
@@ -1175,7 +1190,8 @@ namespace Orthanc
       }
     }
 
-    return false;
+    ReadDicom(dicom, instancePublicId);
+    return true;
   }
   
 

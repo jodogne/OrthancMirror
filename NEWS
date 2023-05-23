@@ -1,6 +1,11 @@
 Pending changes in the mainline
 ===============================
 
+REST API
+--------
+
+* New URI /instances/{id}/file-until-pixel-data
+
 Maintenance
 -----------
 
