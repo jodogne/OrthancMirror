@@ -421,6 +421,30 @@ namespace Orthanc
   }
 
 
+  static void GetInstanceFileUntiPixelData(RestApiGetCall& call)
+  {
+    if (call.IsDocumentation())
+    {
+      call.GetDocumentation()
+        .SetTag("Instances")
+        .SetSummary("Download DICOM Header (without the pixel data)")
+        .SetDescription("Download one DICOM instance header")
+        .SetUriArgument("id", "Orthanc identifier of the DICOM instance of interest")
+        .SetHttpHeader("Accept", "This HTTP header can be set to retrieve the DICOM instance in DICOMweb format")
+        .AddAnswerType(MimeType_Dicom, "The DICOM instance");
+      return;
+    }
+
+    ServerContext& context = OrthancRestApi::GetContext(call);
+
+    std::string publicId = call.GetUriComponent("id", "");
+
+    std::string buffer;
+    context.ReadDicomUntilPixelData(buffer, publicId);
+    call.GetOutput().AnswerBuffer(buffer, MimeType_Binary);
+  }
+
+
   static void ExportInstanceFile(RestApiPostCall& call)
   {
     if (call.IsDocumentation())
@@ -4011,6 +4035,7 @@ namespace Orthanc
     Register("/studies/{id}/module-patient", GetModule<ResourceType_Study, DicomModule_Patient>);
 
     Register("/instances/{id}/file", GetInstanceFile);
+    Register("/instances/{id}/file-until-pixel-data", GetInstanceFileUntiPixelData);
     Register("/instances/{id}/export", ExportInstanceFile);
     Register("/instances/{id}/tags", GetInstanceTags);
     Register("/instances/{id}/simplified-tags", GetInstanceSimplifiedTags);
