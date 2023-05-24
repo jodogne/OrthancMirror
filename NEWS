@@ -13,6 +13,7 @@ Maintenance
 * Fix orphan files remaining in storage when working with MaximumStorageSize
   (https://discourse.orthanc-server.org/t/issue-with-deleting-incoming-dicoms-when-maximumstoragesize-is-reached/3510)
 * When deleting a resource, its parents LastUpdate metadata are now updated.
+* Reduced the memory usage when downloading archives when "ZipLoaderThreads" > 0.
 
 
 Version 1.12.0 (2023-04-14)
