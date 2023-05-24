@@ -3322,8 +3322,8 @@ TEST(DicomMap, MainDicomTagsDicomWebJson)
     Json::Value v;
     Orthanc::Toolbox::ReadJson(v, source);
 
-    LOG(INFO) << source;
-    LOG(INFO) << v.toStyledString();
+//    LOG(INFO) << source;
+//    LOG(INFO) << v.toStyledString();
     Json::Value result = Json::objectValue;
     DicomMap map;
     map.FromDicomAsJson(v, false, true);
@@ -3334,8 +3334,9 @@ TEST(DicomMap, MainDicomTagsDicomWebJson)
       FromDcmtkBridge::ToJson(result, map, Orthanc::DicomToJsonFormat_DicomWeb);
     }
 
+    LOG(INFO) << result.toStyledString();
     ASSERT_TRUE(result.isMember("00281053"));
-    ASSERT_EQ("0.0625", result["00281053"]["Value"].asString());
+    ASSERT_DOUBLE_EQ(0.0625, result["00281053"]["Value"][0].asDouble());
   }
 }
 
