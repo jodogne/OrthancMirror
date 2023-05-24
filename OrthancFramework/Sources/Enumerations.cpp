@@ -31,6 +31,7 @@
 #include <boost/thread/mutex.hpp>
 #include <string.h>
 #include <cassert>
+#include <boost/algorithm/string/replace.hpp>
 
 namespace Orthanc
 {
@@ -1939,6 +1940,11 @@ namespace Orthanc
   {
     std::string s = Toolbox::StripSpaces(specificCharacterSet);
     Toolbox::ToUpperCase(s);
+
+    // handle common spelling mistakes
+    boost::replace_all(s, "ISO_IR_", "ISO_IR ");
+    boost::replace_all(s, "ISO_2022_IR_", "ISO 2022 IR ");
+
 
     // http://dicom.nema.org/medical/dicom/current/output/html/part03.html#sect_C.12.1.1.2
     // https://github.com/dcm4che/dcm4che/blob/master/dcm4che-core/src/main/java/org/dcm4che3/data/SpecificCharacterSet.java

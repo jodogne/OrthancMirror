@@ -688,8 +688,12 @@ namespace Orthanc
             break;
 
           case StoreStatus_Failure:
-            LOG(ERROR) << "Store failure";
-            break;
+            LOG(ERROR) << "Unknown store failure";
+            throw OrthancException(ErrorCode_InternalError, HttpStatus_500_InternalServerError);
+
+          case StoreStatus_StorageFull:
+            LOG(ERROR) << "Storage full";
+            throw OrthancException(ErrorCode_FullStorage, HttpStatus_507_InsufficientStorage);
 
           default:
             // This should never happen

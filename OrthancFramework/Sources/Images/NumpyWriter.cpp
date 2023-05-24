@@ -154,7 +154,7 @@ namespace Orthanc
   {
     if (compress)
     {
-#if ORTHANC_ENABLE_ZLIB == 1
+#if (ORTHANC_ENABLE_ZLIB == 1) && (ORTHANC_SANDBOXED == 0)
       // This is the default name of the first array if arrays are
       // specified as positional arguments in "numpy.savez()"
       // https://numpy.org/doc/stable/reference/generated/numpy.savez.html
@@ -172,7 +172,7 @@ namespace Orthanc
       writer.Write(uncompressed);
       writer.Close();
 #else
-      throw OrthancException(ErrorCode_InternalError, "Orthanc was compiled without support for zlib");
+      throw OrthancException(ErrorCode_InternalError, "Orthanc was compiled without support for ZIP");
 #endif
     }
     else

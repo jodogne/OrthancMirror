@@ -248,6 +248,8 @@ namespace Orthanc
   {
     std::unique_ptr<DcmDataset> target(new DcmDataset);
 
+    std::string currentPrivateCreator = "";
+
     for (std::set<DicomTag>::const_iterator it = flatTags_.begin();
          it != flatTags_.end(); ++it)
     {
@@ -257,13 +259,19 @@ namespace Orthanc
       if (source.findAndGetElement(tag, element).good() &&
           element != NULL)
       {
-        if (it->IsPrivate())
+        if (tag.isPrivateReservation())
         {
-          throw OrthancException(ErrorCode_NotImplemented,
-                                 "Not applicable to private tags: " + it->Format());
+          OFString privateCreator;
+          element->getOFString(privateCreator, 0, false);
+          currentPrivateCreator = privateCreator.c_str();
         }
-        
-        std::unique_ptr<DcmElement> cloned(FromDcmtkBridge::CreateElementForTag(*it, "" /* no private creator */));
+        else if (!it->IsPrivate())
+        {
+          // reset the private creator as soon as we reach the end of the current private block
+          currentPrivateCreator = "";
+        }
+
+        std::unique_ptr<DcmElement> cloned(FromDcmtkBridge::CreateElementForTag(*it, currentPrivateCreator.c_str()));
         cloned->copyFrom(*element);
         target->insert(cloned.release());
       }

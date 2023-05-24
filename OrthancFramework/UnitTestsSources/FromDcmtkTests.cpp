@@ -314,6 +314,10 @@ TEST(FromDcmtkBridge, Enumerations)
   ASSERT_TRUE(GetDicomEncoding(e, "ISO_IR 192"));  ASSERT_EQ(Encoding_Utf8, e);
   ASSERT_TRUE(GetDicomEncoding(e, "GB18030"));     ASSERT_EQ(Encoding_Chinese, e);
   ASSERT_TRUE(GetDicomEncoding(e, "GBK"));         ASSERT_EQ(Encoding_Chinese, e);
+
+  // common spelling mistakes
+  ASSERT_TRUE(GetDicomEncoding(e, "ISO_IR_100"));  ASSERT_EQ(Encoding_Latin1, e);
+  ASSERT_TRUE(GetDicomEncoding(e, "ISO_2022_IR_6"));  ASSERT_EQ(Encoding_Ascii, e);
 }
 
 

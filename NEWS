@@ -11,6 +11,14 @@ Maintenance
 
 * Fix decoding of YBR_FULL RLE images for which the "Planar Configuration" 
   tag (0028,0006) equals 1
+* Made Orthanc more resilient to common spelling errors in SpecificCharacterSet
+* Modality worklists plugin: allow searching on private tags (exact match only)
+* Upgraded dependencies for static builds:
+  - boost 1.82.0
+* Fix orphan files remaining in storage when working with MaximumStorageSize
+  (https://discourse.orthanc-server.org/t/issue-with-deleting-incoming-dicoms-when-maximumstoragesize-is-reached/3510)
+* When deleting a resource, its parents LastUpdate metadata are now updated.
+
 * WIP: new dicomWeb Json format for some of the Rest API routes.
 * WIP: new 'include' get arguments for some of the Rest API routes to define
   the content of the response.  Useful since the dicomWeb format is very slow

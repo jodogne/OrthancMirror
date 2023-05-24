@@ -2037,6 +2037,24 @@ namespace Orthanc
             remainingAncestor_["RemainingAncestor"]["Path"] = GetBasePath(remainingLevel, remainingPublicId);
             remainingAncestor_["RemainingAncestor"]["Type"] = EnumerationToString(remainingLevel);
             remainingAncestor_["RemainingAncestor"]["ID"] = remainingPublicId;
+
+            { // update the LastUpdate metadata of all parents
+              std::string now = SystemToolbox::GetNowIsoString(true /* use UTC time (not local time) */);
+              ResourcesContent content(true);
+
+              int64_t parentId = 0;
+              if (transaction.LookupResource(parentId, remainingLevel, remainingPublicId))
+              {
+
+                do
+                {
+                  content.AddMetadata(parentId, MetadataType_LastUpdate, now);
+                }
+                while (transaction.LookupParent(parentId, parentId));
+    
+                transaction.SetResourcesContent(content);
+              }
+            }
           }
           else
           {
@@ -3099,317 +3117,295 @@ namespace Orthanc
         
       virtual void Apply(ReadWriteTransaction& transaction) ORTHANC_OVERRIDE
       {
-        try
+        IDatabaseWrapper::CreateInstanceResult status;
+        int64_t instanceId;
+        
+        bool isNewInstance = transaction.CreateInstance(status, instanceId, hashPatient_,
+                                                        hashStudy_, hashSeries_, hashInstance_);
+
+        if (isReconstruct_ && isNewInstance)
         {
-          IDatabaseWrapper::CreateInstanceResult status;
-          int64_t instanceId;
-          
-          bool isNewInstance = transaction.CreateInstance(status, instanceId, hashPatient_,
-                                                          hashStudy_, hashSeries_, hashInstance_);
+          // In case of reconstruct, we just want to modify the attachments and some metadata like the TransferSyntex
+          // The DicomTags and many metadata have already been updated before we get here in ReconstructInstance
+          throw OrthancException(ErrorCode_InternalError, "New instance while reconstructing; this should not happen.");
+        }
 
-          if (isReconstruct_ && isNewInstance)
+        // Check whether this instance is already stored
+        if (!isNewInstance && !isReconstruct_)
+        {
+          // The instance already exists
+          if (overwrite_)
           {
-            // In case of reconstruct, we just want to modify the attachments and some metadata like the TransferSyntex
-            // The DicomTags and many metadata have already been updated before we get here in ReconstructInstance
-            throw OrthancException(ErrorCode_InternalError, "New instance while reconstructing; this should not happen.");
-          }
+            // Overwrite the old instance
+            LOG(INFO) << "Overwriting instance: " << hashInstance_;
+            transaction.DeleteResource(instanceId);
 
-          // Check whether this instance is already stored
-          if (!isNewInstance && !isReconstruct_)
-          {
-            // The instance already exists
-            if (overwrite_)
+            // Re-create the instance, now that the old one is removed
+            if (!transaction.CreateInstance(status, instanceId, hashPatient_,
+                                            hashStudy_, hashSeries_, hashInstance_))
             {
-              // Overwrite the old instance
-              LOG(INFO) << "Overwriting instance: " << hashInstance_;
-              transaction.DeleteResource(instanceId);
-
-              // Re-create the instance, now that the old one is removed
-              if (!transaction.CreateInstance(status, instanceId, hashPatient_,
-                                              hashStudy_, hashSeries_, hashInstance_))
-              {
-                throw OrthancException(ErrorCode_InternalError, "No new instance while overwriting; this should not happen.");
-              }
-            }
-            else
-            {
-              // Do nothing if the instance already exists and overwriting is disabled
-              transaction.GetAllMetadata(instanceMetadata_, instanceId);
-              storeStatus_ = StoreStatus_AlreadyStored;
-              return;
+              throw OrthancException(ErrorCode_InternalError, "No new instance while overwriting; this should not happen.");
             }
           }
-
-
-          if (!isReconstruct_)  // don't signal new resources if this is a reconstruction
+          else
           {
-            // Warn about the creation of new resources. The order must be
-            // from instance to patient.
+            // Do nothing if the instance already exists and overwriting is disabled
+            transaction.GetAllMetadata(instanceMetadata_, instanceId);
+            storeStatus_ = StoreStatus_AlreadyStored;
+            return;
+          }
+        }
 
-            // NB: In theory, could be sped up by grouping the underlying
-            // calls to "transaction.LogChange()". However, this would only have an
-            // impact when new patient/study/series get created, which
-            // occurs far less often that creating new instances. The
-            // positive impact looks marginal in practice.
-            transaction.LogChange(instanceId, ChangeType_NewInstance, ResourceType_Instance, hashInstance_);
 
-            if (status.isNewSeries_)
-            {
-              transaction.LogChange(status.seriesId_, ChangeType_NewSeries, ResourceType_Series, hashSeries_);
-            }
-        
-            if (status.isNewStudy_)
-            {
-              transaction.LogChange(status.studyId_, ChangeType_NewStudy, ResourceType_Study, hashStudy_);
-            }
-        
-            if (status.isNewPatient_)
-            {
-              transaction.LogChange(status.patientId_, ChangeType_NewPatient, ResourceType_Patient, hashPatient_);
-            }
-          }      
+        if (!isReconstruct_)  // don't signal new resources if this is a reconstruction
+        {
+          // Warn about the creation of new resources. The order must be
+          // from instance to patient.
+
+          // NB: In theory, could be sped up by grouping the underlying
+          // calls to "transaction.LogChange()". However, this would only have an
+          // impact when new patient/study/series get created, which
+          // occurs far less often that creating new instances. The
+          // positive impact looks marginal in practice.
+          transaction.LogChange(instanceId, ChangeType_NewInstance, ResourceType_Instance, hashInstance_);
+
+          if (status.isNewSeries_)
+          {
+            transaction.LogChange(status.seriesId_, ChangeType_NewSeries, ResourceType_Series, hashSeries_);
+          }
       
-          // Ensure there is enough room in the storage for the new instance
-          uint64_t instanceSize = 0;
-          for (Attachments::const_iterator it = attachments_.begin();
-               it != attachments_.end(); ++it)
+          if (status.isNewStudy_)
           {
-            instanceSize += it->GetCompressedSize();
+            transaction.LogChange(status.studyId_, ChangeType_NewStudy, ResourceType_Study, hashStudy_);
+          }
+      
+          if (status.isNewPatient_)
+          {
+            transaction.LogChange(status.patientId_, ChangeType_NewPatient, ResourceType_Patient, hashPatient_);
+          }
+        }      
+    
+        // Ensure there is enough room in the storage for the new instance
+        uint64_t instanceSize = 0;
+        for (Attachments::const_iterator it = attachments_.begin();
+              it != attachments_.end(); ++it)
+        {
+          instanceSize += it->GetCompressedSize();
+        }
+
+        if (!isReconstruct_)  // reconstruction should not affect recycling
+        {
+          if (maximumStorageMode_ == MaxStorageMode_Reject)
+          {
+            if (transaction.HasReachedMaxStorageSize(maximumStorageSize_, instanceSize))
+            {
+              storeStatus_ = StoreStatus_StorageFull;
+              throw OrthancException(ErrorCode_FullStorage, HttpStatus_507_InsufficientStorage, "Maximum storage size reached"); // throw to cancel the transaction
+            }
+            if (transaction.HasReachedMaxPatientCount(maximumPatientCount_, hashPatient_))
+            {
+              storeStatus_ = StoreStatus_StorageFull;
+              throw OrthancException(ErrorCode_FullStorage, HttpStatus_507_InsufficientStorage, "Maximum patient count reached");  // throw to cancel the transaction
+            }
+          }
+          else
+          {
+            transaction.Recycle(maximumStorageSize_, maximumPatientCount_,
+                                instanceSize, hashPatient_ /* don't consider the current patient for recycling */);
+          }
+        }  
+    
+        // Attach the files to the newly created instance
+        for (Attachments::const_iterator it = attachments_.begin();
+              it != attachments_.end(); ++it)
+        {
+          if (isReconstruct_)
+          {
+            // we are replacing attachments during a reconstruction
+            transaction.DeleteAttachment(instanceId, it->GetContentType());
           }
 
-          if (!isReconstruct_)  // reconstruction should not affect recycling
-          {
-            if (maximumStorageMode_ == MaxStorageMode_Reject)
-            {
-              if (transaction.HasReachedMaxStorageSize(maximumStorageSize_, instanceSize))
-              {
-                storeStatus_ = StoreStatus_StorageFull;
-                throw OrthancException(ErrorCode_FullStorage, HttpStatus_507_InsufficientStorage, "Maximum storage size reached"); // throw to cancel the transaction
-              }
-              if (transaction.HasReachedMaxPatientCount(maximumPatientCount_, hashPatient_))
-              {
-                storeStatus_ = StoreStatus_StorageFull;
-                throw OrthancException(ErrorCode_FullStorage, HttpStatus_507_InsufficientStorage, "Maximum patient count reached");  // throw to cancel the transaction
-              }
-            }
-            else
-            {
-              transaction.Recycle(maximumStorageSize_, maximumPatientCount_,
-                                  instanceSize, hashPatient_ /* don't consider the current patient for recycling */);
-            }
-          }  
-     
-          // Attach the files to the newly created instance
-          for (Attachments::const_iterator it = attachments_.begin();
-               it != attachments_.end(); ++it)
-          {
-            if (isReconstruct_)
-            {
-              // we are replacing attachments during a reconstruction
-              transaction.DeleteAttachment(instanceId, it->GetContentType());
-            }
+          transaction.AddAttachment(instanceId, *it, 0 /* this is the first revision */);
+        }
 
-            transaction.AddAttachment(instanceId, *it, 0 /* this is the first revision */);
+        if (!isReconstruct_)
+        {
+          ResourcesContent content(true /* new resource, metadata can be set */);
+
+          // Attach the user-specified metadata (in case of reconstruction, metadata_ contains all past metadata, including the system ones we want to keep)
+          for (MetadataMap::const_iterator 
+                  it = metadata_.begin(); it != metadata_.end(); ++it)
+          {
+            switch (it->first.first)
+            {
+              case ResourceType_Patient:
+                content.AddMetadata(status.patientId_, it->first.second, it->second);
+                break;
+
+              case ResourceType_Study:
+                content.AddMetadata(status.studyId_, it->first.second, it->second);
+                break;
+
+              case ResourceType_Series:
+                content.AddMetadata(status.seriesId_, it->first.second, it->second);
+                break;
+
+              case ResourceType_Instance:
+                SetInstanceMetadata(content, instanceMetadata_, instanceId,
+                                    it->first.second, it->second);
+                break;
+
+              default:
+                throw OrthancException(ErrorCode_ParameterOutOfRange);
+            }
           }
 
           if (!isReconstruct_)
           {
-            ResourcesContent content(true /* new resource, metadata can be set */);
+            // Populate the tags of the newly-created resources
+            content.AddResource(instanceId, ResourceType_Instance, dicomSummary_);
+            SetInstanceMetadata(content, instanceMetadata_, instanceId, MetadataType_MainDicomTagsSignature, DicomMap::GetMainDicomTagsSignature(ResourceType_Instance));  // New in Orthanc 1.11.0
+            SetMainDicomSequenceMetadata(content, instanceId, dicomSummary_, ResourceType_Instance);   // new in Orthanc 1.11.1
 
-            // Attach the user-specified metadata (in case of reconstruction, metadata_ contains all past metadata, including the system ones we want to keep)
-            for (MetadataMap::const_iterator 
-                   it = metadata_.begin(); it != metadata_.end(); ++it)
+            if (status.isNewSeries_)
             {
-              switch (it->first.first)
-              {
-                case ResourceType_Patient:
-                  content.AddMetadata(status.patientId_, it->first.second, it->second);
-                  break;
-
-                case ResourceType_Study:
-                  content.AddMetadata(status.studyId_, it->first.second, it->second);
-                  break;
-
-                case ResourceType_Series:
-                  content.AddMetadata(status.seriesId_, it->first.second, it->second);
-                  break;
-
-                case ResourceType_Instance:
-                  SetInstanceMetadata(content, instanceMetadata_, instanceId,
-                                      it->first.second, it->second);
-                  break;
-
-                default:
-                  throw OrthancException(ErrorCode_ParameterOutOfRange);
-              }
+              content.AddResource(status.seriesId_, ResourceType_Series, dicomSummary_);
+              content.AddMetadata(status.seriesId_, MetadataType_MainDicomTagsSignature, DicomMap::GetMainDicomTagsSignature(ResourceType_Series));  // New in Orthanc 1.11.0
+              SetMainDicomSequenceMetadata(content, status.seriesId_, dicomSummary_, ResourceType_Series);   // new in Orthanc 1.11.1
             }
 
-            if (!isReconstruct_)
+            if (status.isNewStudy_)
             {
-              // Populate the tags of the newly-created resources
-              content.AddResource(instanceId, ResourceType_Instance, dicomSummary_);
-              SetInstanceMetadata(content, instanceMetadata_, instanceId, MetadataType_MainDicomTagsSignature, DicomMap::GetMainDicomTagsSignature(ResourceType_Instance));  // New in Orthanc 1.11.0
-              SetMainDicomSequenceMetadata(content, instanceId, dicomSummary_, ResourceType_Instance);   // new in Orthanc 1.11.1
+              content.AddResource(status.studyId_, ResourceType_Study, dicomSummary_);
+              content.AddMetadata(status.studyId_, MetadataType_MainDicomTagsSignature, DicomMap::GetMainDicomTagsSignature(ResourceType_Study));  // New in Orthanc 1.11.0
+              SetMainDicomSequenceMetadata(content, status.studyId_, dicomSummary_, ResourceType_Study);   // new in Orthanc 1.11.1
+            }
 
-              if (status.isNewSeries_)
+            if (status.isNewPatient_)
+            {
+              content.AddResource(status.patientId_, ResourceType_Patient, dicomSummary_);
+              content.AddMetadata(status.patientId_, MetadataType_MainDicomTagsSignature, DicomMap::GetMainDicomTagsSignature(ResourceType_Patient));  // New in Orthanc 1.11.0
+              SetMainDicomSequenceMetadata(content, status.patientId_, dicomSummary_, ResourceType_Patient);   // new in Orthanc 1.11.1
+            }
+
+            // Attach the auto-computed metadata for the patient/study/series levels
+            std::string now = SystemToolbox::GetNowIsoString(true /* use UTC time (not local time) */);
+            content.AddMetadata(status.seriesId_, MetadataType_LastUpdate, now);
+            content.AddMetadata(status.studyId_, MetadataType_LastUpdate, now);
+            content.AddMetadata(status.patientId_, MetadataType_LastUpdate, now);
+
+            if (status.isNewSeries_)
+            {
+              if (hasExpectedInstances_)
               {
-                content.AddResource(status.seriesId_, ResourceType_Series, dicomSummary_);
-                content.AddMetadata(status.seriesId_, MetadataType_MainDicomTagsSignature, DicomMap::GetMainDicomTagsSignature(ResourceType_Series));  // New in Orthanc 1.11.0
-                SetMainDicomSequenceMetadata(content, status.seriesId_, dicomSummary_, ResourceType_Series);   // new in Orthanc 1.11.1
+                content.AddMetadata(status.seriesId_, MetadataType_Series_ExpectedNumberOfInstances,
+                                    boost::lexical_cast<std::string>(expectedInstances_));
               }
 
-              if (status.isNewStudy_)
-              {
-                content.AddResource(status.studyId_, ResourceType_Study, dicomSummary_);
-                content.AddMetadata(status.studyId_, MetadataType_MainDicomTagsSignature, DicomMap::GetMainDicomTagsSignature(ResourceType_Study));  // New in Orthanc 1.11.0
-                SetMainDicomSequenceMetadata(content, status.studyId_, dicomSummary_, ResourceType_Study);   // new in Orthanc 1.11.1
-              }
-
-              if (status.isNewPatient_)
-              {
-                content.AddResource(status.patientId_, ResourceType_Patient, dicomSummary_);
-                content.AddMetadata(status.patientId_, MetadataType_MainDicomTagsSignature, DicomMap::GetMainDicomTagsSignature(ResourceType_Patient));  // New in Orthanc 1.11.0
-                SetMainDicomSequenceMetadata(content, status.patientId_, dicomSummary_, ResourceType_Patient);   // new in Orthanc 1.11.1
-              }
-
-              // Attach the auto-computed metadata for the patient/study/series levels
-              std::string now = SystemToolbox::GetNowIsoString(true /* use UTC time (not local time) */);
-              content.AddMetadata(status.seriesId_, MetadataType_LastUpdate, now);
-              content.AddMetadata(status.studyId_, MetadataType_LastUpdate, now);
-              content.AddMetadata(status.patientId_, MetadataType_LastUpdate, now);
-
-              if (status.isNewSeries_)
-              {
-                if (hasExpectedInstances_)
-                {
-                  content.AddMetadata(status.seriesId_, MetadataType_Series_ExpectedNumberOfInstances,
-                                      boost::lexical_cast<std::string>(expectedInstances_));
-                }
-
-                // New in Orthanc 1.9.0
-                content.AddMetadata(status.seriesId_, MetadataType_RemoteAet,
-                                    origin_.GetRemoteAetC());
-              }
-              // Attach the auto-computed metadata for the instance level,
-              // reflecting these additions into the input metadata map
-              SetInstanceMetadata(content, instanceMetadata_, instanceId,
-                                  MetadataType_Instance_ReceptionDate, now);
-              SetInstanceMetadata(content, instanceMetadata_, instanceId, MetadataType_RemoteAet,
+              // New in Orthanc 1.9.0
+              content.AddMetadata(status.seriesId_, MetadataType_RemoteAet,
                                   origin_.GetRemoteAetC());
-              SetInstanceMetadata(content, instanceMetadata_, instanceId, MetadataType_Instance_Origin, 
-                                  EnumerationToString(origin_.GetRequestOrigin()));
-
-              std::string s;
-
-              if (origin_.LookupRemoteIp(s))
-              {
-                // New in Orthanc 1.4.0
-                SetInstanceMetadata(content, instanceMetadata_, instanceId,
-                                    MetadataType_Instance_RemoteIp, s);
-              }
-
-              if (origin_.LookupCalledAet(s))
-              {
-                // New in Orthanc 1.4.0
-                SetInstanceMetadata(content, instanceMetadata_, instanceId,
-                                    MetadataType_Instance_CalledAet, s);
-              }
-
-              if (origin_.LookupHttpUsername(s))
-              {
-                // New in Orthanc 1.4.0
-                SetInstanceMetadata(content, instanceMetadata_, instanceId,
-                                    MetadataType_Instance_HttpUsername, s);
-              }
             }
+            // Attach the auto-computed metadata for the instance level,
+            // reflecting these additions into the input metadata map
+            SetInstanceMetadata(content, instanceMetadata_, instanceId,
+                                MetadataType_Instance_ReceptionDate, now);
+            SetInstanceMetadata(content, instanceMetadata_, instanceId, MetadataType_RemoteAet,
+                                origin_.GetRemoteAetC());
+            SetInstanceMetadata(content, instanceMetadata_, instanceId, MetadataType_Instance_Origin, 
+                                EnumerationToString(origin_.GetRequestOrigin()));
 
-            // Following metadatas are also updated if reconstructing the instance.
-            // They might be missing since they have been introduced along Orthanc versions.
+            std::string s;
 
-            if (hasTransferSyntax_)
+            if (origin_.LookupRemoteIp(s))
             {
-              // New in Orthanc 1.2.0
+              // New in Orthanc 1.4.0
               SetInstanceMetadata(content, instanceMetadata_, instanceId,
-                                  MetadataType_Instance_TransferSyntax,
-                                  GetTransferSyntaxUid(transferSyntax_));
+                                  MetadataType_Instance_RemoteIp, s);
             }
 
-            if (hasPixelDataOffset_)
+            if (origin_.LookupCalledAet(s))
             {
-              // New in Orthanc 1.9.1
+              // New in Orthanc 1.4.0
               SetInstanceMetadata(content, instanceMetadata_, instanceId,
-                                  MetadataType_Instance_PixelDataOffset,
-                                  boost::lexical_cast<std::string>(pixelDataOffset_));
+                                  MetadataType_Instance_CalledAet, s);
             }
-        
-            const DicomValue* value;
-            if ((value = dicomSummary_.TestAndGetValue(DICOM_TAG_SOP_CLASS_UID)) != NULL &&
-                !value->IsNull() &&
+
+            if (origin_.LookupHttpUsername(s))
+            {
+              // New in Orthanc 1.4.0
+              SetInstanceMetadata(content, instanceMetadata_, instanceId,
+                                  MetadataType_Instance_HttpUsername, s);
+            }
+          }
+
+          // Following metadatas are also updated if reconstructing the instance.
+          // They might be missing since they have been introduced along Orthanc versions.
+
+          if (hasTransferSyntax_)
+          {
+            // New in Orthanc 1.2.0
+            SetInstanceMetadata(content, instanceMetadata_, instanceId,
+                                MetadataType_Instance_TransferSyntax,
+                                GetTransferSyntaxUid(transferSyntax_));
+          }
+
+          if (hasPixelDataOffset_)
+          {
+            // New in Orthanc 1.9.1
+            SetInstanceMetadata(content, instanceMetadata_, instanceId,
+                                MetadataType_Instance_PixelDataOffset,
+                                boost::lexical_cast<std::string>(pixelDataOffset_));
+          }
+      
+          const DicomValue* value;
+          if ((value = dicomSummary_.TestAndGetValue(DICOM_TAG_SOP_CLASS_UID)) != NULL &&
+              !value->IsNull() &&
+              !value->IsBinary())
+          {
+            SetInstanceMetadata(content, instanceMetadata_, instanceId,
+                                MetadataType_Instance_SopClassUid, value->GetContent());
+          }
+
+
+          if ((value = dicomSummary_.TestAndGetValue(DICOM_TAG_INSTANCE_NUMBER)) != NULL ||
+              (value = dicomSummary_.TestAndGetValue(DICOM_TAG_IMAGE_INDEX)) != NULL)
+          {
+            if (!value->IsNull() && 
                 !value->IsBinary())
             {
               SetInstanceMetadata(content, instanceMetadata_, instanceId,
-                                  MetadataType_Instance_SopClassUid, value->GetContent());
-            }
-
-
-            if ((value = dicomSummary_.TestAndGetValue(DICOM_TAG_INSTANCE_NUMBER)) != NULL ||
-                (value = dicomSummary_.TestAndGetValue(DICOM_TAG_IMAGE_INDEX)) != NULL)
-            {
-              if (!value->IsNull() && 
-                  !value->IsBinary())
-              {
-                SetInstanceMetadata(content, instanceMetadata_, instanceId,
-                                    MetadataType_Instance_IndexInSeries, Toolbox::StripSpaces(value->GetContent()));
-              }
-            }
-
-        
-            transaction.SetResourcesContent(content);
-          }
-
-  
-          // Check whether the series of this new instance is now completed
-          int64_t expectedNumberOfInstances;
-          if (ComputeExpectedNumberOfInstances(expectedNumberOfInstances, dicomSummary_))
-          {
-            SeriesStatus seriesStatus = transaction.GetSeriesStatus(status.seriesId_, expectedNumberOfInstances);
-            if (seriesStatus == SeriesStatus_Complete)
-            {
-              transaction.LogChange(status.seriesId_, ChangeType_CompletedSeries, ResourceType_Series, hashSeries_);
+                                  MetadataType_Instance_IndexInSeries, Toolbox::StripSpaces(value->GetContent()));
             }
           }
-          
-          transaction.LogChange(status.seriesId_, ChangeType_NewChildInstance, ResourceType_Series, hashSeries_);
-          transaction.LogChange(status.studyId_, ChangeType_NewChildInstance, ResourceType_Study, hashStudy_);
-          transaction.LogChange(status.patientId_, ChangeType_NewChildInstance, ResourceType_Patient, hashPatient_);
-          
-          // Mark the parent resources of this instance as unstable
-          transaction.GetTransactionContext().MarkAsUnstable(status.seriesId_, ResourceType_Series, hashSeries_);
-          transaction.GetTransactionContext().MarkAsUnstable(status.studyId_, ResourceType_Study, hashStudy_);
-          transaction.GetTransactionContext().MarkAsUnstable(status.patientId_, ResourceType_Patient, hashPatient_);
-          transaction.GetTransactionContext().SignalAttachmentsAdded(instanceSize);
 
-          storeStatus_ = StoreStatus_Success;          
+      
+          transaction.SetResourcesContent(content);
         }
-        catch (OrthancException& e)
+
+
+        // Check whether the series of this new instance is now completed
+        int64_t expectedNumberOfInstances;
+        if (ComputeExpectedNumberOfInstances(expectedNumberOfInstances, dicomSummary_))
         {
-          if (e.GetErrorCode() == ErrorCode_DatabaseCannotSerialize)
+          SeriesStatus seriesStatus = transaction.GetSeriesStatus(status.seriesId_, expectedNumberOfInstances);
+          if (seriesStatus == SeriesStatus_Complete)
           {
-            throw;  // the transaction has failed -> do not commit the current transaction (and retry)
-          }
-          else
-          {
-            LOG(ERROR) << "EXCEPTION [" << e.What() << " - " << e.GetDetails() << "]";
-
-            if (e.GetErrorCode() == ErrorCode_FullStorage)
-            {
-              throw; // do not commit the current transaction
-            }
-
-            // this is an expected failure, exit normaly and commit the current transaction
-            storeStatus_ = StoreStatus_Failure;
+            transaction.LogChange(status.seriesId_, ChangeType_CompletedSeries, ResourceType_Series, hashSeries_);
           }
         }
+        
+        transaction.LogChange(status.seriesId_, ChangeType_NewChildInstance, ResourceType_Series, hashSeries_);
+        transaction.LogChange(status.studyId_, ChangeType_NewChildInstance, ResourceType_Study, hashStudy_);
+        transaction.LogChange(status.patientId_, ChangeType_NewChildInstance, ResourceType_Patient, hashPatient_);
+        
+        // Mark the parent resources of this instance as unstable
+        transaction.GetTransactionContext().MarkAsUnstable(status.seriesId_, ResourceType_Series, hashSeries_);
+        transaction.GetTransactionContext().MarkAsUnstable(status.studyId_, ResourceType_Study, hashStudy_);
+        transaction.GetTransactionContext().MarkAsUnstable(status.patientId_, ResourceType_Patient, hashPatient_);
+        transaction.GetTransactionContext().SignalAttachmentsAdded(instanceSize);
+
+        storeStatus_ = StoreStatus_Success;          
       }
     };
 
@@ -3417,8 +3413,24 @@ namespace Orthanc
     Operations operations(instanceMetadata, dicomSummary, attachments, metadata, origin,
                           overwrite, hasTransferSyntax, transferSyntax, hasPixelDataOffset,
                           pixelDataOffset, maximumStorageMode, maximumStorageSize, maximumPatients, isReconstruct);
-    Apply(operations);
-    return operations.GetStoreStatus();
+
+    try
+    {
+      Apply(operations);
+      return operations.GetStoreStatus();
+    }
+    catch (OrthancException& e)
+    {
+      if (e.GetErrorCode() == ErrorCode_FullStorage)
+      {
+        return StoreStatus_StorageFull;
+      }
+      else
+      {
+        // the transaction has failed -> do not commit the current transaction (and retry)
+        throw;
+      }
+    }
   }
 
 
@@ -3476,7 +3488,7 @@ namespace Orthanc
         int64_t resourceId;
         if (!transaction.LookupResource(resourceId, resourceType, publicId_))
         {
-          status_ = StoreStatus_Failure;  // Inexistent resource
+          throw OrthancException(ErrorCode_InexistentItem, HttpStatus_404_NotFound);
         }
         else
         {
