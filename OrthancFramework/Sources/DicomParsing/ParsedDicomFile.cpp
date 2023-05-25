@@ -1755,8 +1755,19 @@ namespace Orthanc
   }
 
 
-  void ParsedDicomFile::Apply(ITagVisitor& visitor) const
+  void ParsedDicomFile::Apply(ITagVisitor& visitor, bool injectEmptyPixelData) const
   {
+    DcmItem& dataset = *GetDcmtkObjectConst().getDataset();
+
+    if (injectEmptyPixelData)
+    {
+      DcmTag emptyPixelData(DCM_PixelData, EVR_PixelData);
+      if (!dataset.insertEmptyElement(emptyPixelData, false).good())
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+    }
+
     FromDcmtkBridge::Apply(*GetDcmtkObjectConst().getDataset(), visitor, GetDefaultDicomEncoding());
   }
 

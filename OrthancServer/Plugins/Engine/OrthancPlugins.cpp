@@ -1052,12 +1052,13 @@ namespace Orthanc
 
       void Apply(char** target,
                  bool isJson,
-                 const ParsedDicomFile& dicom)
+                 const ParsedDicomFile& dicom,
+                 bool injectEmptyPixelData)
       {
         DicomWebJsonVisitor visitor;
         visitor.SetFormatter(*this);
 
-        dicom.Apply(visitor);
+        dicom.Apply(visitor, injectEmptyPixelData);
 
         std::string s;
 
@@ -1077,10 +1078,11 @@ namespace Orthanc
       void Apply(char** target,
                  bool isJson,
                  const void* dicom,
-                 size_t dicomSize) 
+                 size_t dicomSize,
+                 bool injectEmptyPixelData) 
       {
         ParsedDicomFile parsed(dicom, dicomSize);
-        Apply(target, isJson, parsed);
+        Apply(target, isJson, parsed, injectEmptyPixelData);
       }
     };
   }
@@ -3636,7 +3638,8 @@ namespace Orthanc
         DicomWebBinaryFormatter formatter(p.dicomWebCallback, p.dicomWebPayload);
         formatter.Apply(p.targetStringToFree,
                         (service == _OrthancPluginService_GetInstanceDicomWebJson),
-                        instance.GetParsedDicomFile());
+                        instance.GetParsedDicomFile(),
+                        false);
         return;
       }
 
@@ -5195,7 +5198,7 @@ namespace Orthanc
         DicomWebBinaryFormatter formatter(p.callback);
         formatter.Apply(p.target,
                         (service == _OrthancPluginService_EncodeDicomWebJson),
-                        p.dicom, p.dicomSize);
+                        p.dicom, p.dicomSize, false);
         return true;
       }
 
@@ -5208,7 +5211,19 @@ namespace Orthanc
         DicomWebBinaryFormatter formatter(p.callback, p.payload);
         formatter.Apply(p.target,
                         (service == _OrthancPluginService_EncodeDicomWebJson2),
-                        p.dicom, p.dicomSize);
+                        p.dicom, p.dicomSize, false);
+        return true;
+      }
+
+      case _OrthancPluginService_EncodeDicomWebJson3:
+      {
+        const _OrthancPluginEncodeDicomWeb3& p =
+          *reinterpret_cast<const _OrthancPluginEncodeDicomWeb3*>(parameters);
+
+        DicomWebBinaryFormatter formatter(p.callback, p.payload);
+        formatter.Apply(p.target,
+                        (service == _OrthancPluginService_EncodeDicomWebJson3),
+                        p.dicom, p.dicomSize, p.injectEmptyPixelData);
         return true;
       }
 

@@ -24,6 +24,12 @@ Maintenance
   the content of the response.  Useful since the dicomWeb format is very slow
   to serialize.
 
+* New functions in the SDK:
+  - OrthancPluginEncodeDicomWebJson3()
+  TODO: Xml version
+
+
+
 Version 1.12.0 (2023-04-14)
 ===========================
 

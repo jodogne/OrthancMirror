@@ -273,7 +273,7 @@ namespace Orthanc
 
     bool LookupPhotometricInterpretation(PhotometricInterpretation& result) const;
 
-    void Apply(ITagVisitor& visitor) const;
+    void Apply(ITagVisitor& visitor, bool injectEmptyPixelData = false) const;
 
     // Decode the given frame, using the built-in DICOM decoder of Orthanc
     ImageAccessor* DecodeFrame(unsigned int frame) const;
