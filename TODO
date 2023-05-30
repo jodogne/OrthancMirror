@@ -322,6 +322,8 @@ Code quality and integration tests
 * Add more complex testing scenarios like data-migration, change of 
   configuration files, multiple orthanc interacting togethers with various 
   config.  This should probably look like the python toolbox tests ...
+  - add a test to validate Modalities and Peers stored in DB are not lost 
+    while upgrading from one version to the other (Sylvain)
   
 
 ---------------------
