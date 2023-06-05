@@ -14,6 +14,8 @@ Maintenance
   (https://discourse.orthanc-server.org/t/issue-with-deleting-incoming-dicoms-when-maximumstoragesize-is-reached/3510)
 * When deleting a resource, its parents LastUpdate metadata are now updated.
 * Reduced the memory usage when downloading archives when "ZipLoaderThreads" > 0.
+* Disabled automatic conversion from YBR to RGB when transcoding JPEG to RAW transfer-syntax
+  (https://discourse.orthanc-server.org/t/orthanc-convert-ybr-to-rgb-but-does-not-change-metadata/3533)
 
 
 Version 1.12.0 (2023-04-14)

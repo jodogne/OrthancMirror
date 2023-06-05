@@ -2460,7 +2460,7 @@ namespace Orthanc
 
 #if ORTHANC_ENABLE_DCMTK_JPEG == 1
     CLOG(INFO, DICOM) << "Registering JPEG codecs in DCMTK";
-    DJDecoderRegistration::registerCodecs(); 
+    DJDecoderRegistration::registerCodecs(EDC_never);  // disable automatic conversion from YBR to RGB when transcoding JPEG to RAW transfer-syntax (https://discourse.orthanc-server.org/t/orthanc-convert-ybr-to-rgb-but-does-not-change-metadata/3533)
 # if ORTHANC_ENABLE_DCMTK_TRANSCODING == 1
     DJEncoderRegistration::registerCodecs();
 # endif
