@@ -188,6 +188,8 @@ Performance
     - ModalitiesInStudy
     - all computed counters at series/study/patient level
     - RequestAttributesSequence (sequence that must be included in all DicomWeb QIDO-RS for series)
+* Investigate increase of CPU consumption while idle after anonymize/delete
+  (https://discourse.orthanc-server.org/t/onchange-callbacks-and-cpu-loads/3534)
 
 * Long-shot & not sure it is even feasible at all: try to reduce memory usage by implementing streaming
   when receiving DICOM instances from the Rest API or from DICOM and store files directly to disk as they
