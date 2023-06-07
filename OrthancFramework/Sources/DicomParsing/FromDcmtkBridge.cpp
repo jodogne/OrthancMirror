@@ -1981,7 +1981,14 @@ namespace Orthanc
         case EVR_OL:  // other long (requires byte-swapping)
 #endif
         {
-          ok = element.putUint32(boost::lexical_cast<Uint32>(*decoded)).good();
+          if (decoded->find('\\') != std::string::npos)
+          {
+            ok = element.putString(decoded->c_str()).good();
+          }
+          else
+          {
+            ok = element.putUint32(boost::lexical_cast<Uint32>(*decoded)).good();
+          }
           break;
         }
 
