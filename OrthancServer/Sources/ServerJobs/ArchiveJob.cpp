@@ -1459,4 +1459,27 @@ namespace Orthanc
       return false;
     }
   }
+
+  bool ArchiveJob::DeleteOutput(const std::string& key)
+  {   
+    if (key == "archive" &&
+        !mediaArchiveId_.empty())
+    {
+      SharedArchive::Accessor accessor(context_.GetMediaArchive(), mediaArchiveId_);
+
+      if (accessor.IsValid())
+      {
+        context_.GetMediaArchive().Remove(mediaArchiveId_);
+        return true;
+      }
+      else
+      {
+        return false;
+      }
+    }    
+    else
+    {
+      return false;
+    }
+  }
 }

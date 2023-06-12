@@ -106,6 +106,14 @@ namespace Orthanc
     virtual bool GetOutput(std::string& output,
                            MimeType& mime,
                            std::string& filename,
-                           const std::string& key) ORTHANC_OVERRIDE;
+                           const std::string& key) ORTHANC_OVERRIDE
+    {
+      return false;
+    }
+
+    virtual bool DeleteOutput(const std::string& key) ORTHANC_OVERRIDE
+    {
+      return false;
+    }
   };
 }
