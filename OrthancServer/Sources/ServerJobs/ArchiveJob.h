@@ -120,5 +120,7 @@ namespace Orthanc
                            MimeType& mime,
                            std::string& filename,
                            const std::string& key) ORTHANC_OVERRIDE;
+
+    virtual bool DeleteOutput(const std::string& key) ORTHANC_OVERRIDE;
   };
 }

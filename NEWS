@@ -1,6 +1,13 @@
 Pending changes in the mainline
 ===============================
 
+REST API
+--------
+
+* API version upgraded to 21
+* added a route to delete the output of an asynchronous job (right now only for archive jobs):
+  e.g. DELETE /jobs/../archive
+
 Maintenance
 -----------
 

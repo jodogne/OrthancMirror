@@ -679,6 +679,33 @@ namespace Orthanc
     }
   }
 
+  bool JobsRegistry::DeleteJobOutput(const std::string& job,
+                                     const std::string& key)
+  {
+    boost::mutex::scoped_lock lock(mutex_);
+    CheckInvariants();
+
+    JobsIndex::const_iterator found = jobsIndex_.find(job);
+
+    if (found == jobsIndex_.end())
+    {
+      return false;
+    }
+    else
+    {
+      const JobHandler& handler = *found->second;
+
+      if (handler.GetState() == JobState_Success)
+      {
+        return handler.GetJob().DeleteOutput(key);
+      }
+      else
+      {
+        return false;
+      }
+    }
+  }
+
 
   void JobsRegistry::SubmitInternal(std::string& id,
                                     JobHandler* handler)

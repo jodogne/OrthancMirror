@@ -76,6 +76,12 @@ namespace Orthanc
       // TODO
       return false;
     }
+
+    virtual bool DeleteOutput(const std::string& key) ORTHANC_OVERRIDE
+    {
+      // TODO
+      return false;
+    }
   };
 }
 
