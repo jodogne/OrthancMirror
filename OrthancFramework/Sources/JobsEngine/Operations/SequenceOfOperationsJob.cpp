@@ -447,13 +447,6 @@ namespace Orthanc
     return true;
   }
 
-  bool SequenceOfOperationsJob::GetOutput(std::string& output,
-                                          MimeType& mime,
-                                          std::string& filename,
-                                          const std::string& key)
-  {
-    return false;
-  }
 
   void SequenceOfOperationsJob::AwakeTrailingSleep()
   {

@@ -176,6 +176,7 @@ namespace Orthanc
   class ArchiveJob::ThreadedInstanceLoader : public ArchiveJob::InstanceLoader
   {
     Semaphore                           availableInstancesSemaphore_;
+    Semaphore                           bufferedInstancesSemaphore_;
     std::map<std::string, boost::shared_ptr<std::string> >  availableInstances_;
     boost::mutex                        availableInstancesMutex_;
     SharedMessageQueue                  instancesToPreload_;
@@ -185,7 +186,8 @@ namespace Orthanc
   public:
     ThreadedInstanceLoader(ServerContext& context, size_t threadCount, bool transcode, DicomTransferSyntax transferSyntax)
     : InstanceLoader(context, transcode, transferSyntax),
-      availableInstancesSemaphore_(0)
+      availableInstancesSemaphore_(0),
+      bufferedInstancesSemaphore_(3*threadCount)
     {
       for (size_t i = 0; i < threadCount; i++)
       {
@@ -227,6 +229,9 @@ namespace Orthanc
         {
           return;
         }
+        
+        // wait for the consumers (zip writer), no need to accumulate instances in memory if loaders are faster than writers
+        that->bufferedInstancesSemaphore_.Acquire();
 
         try
         {
@@ -270,6 +275,7 @@ namespace Orthanc
       {
         // wait for an instance to be available but this might not be the one we are waiting for !
         availableInstancesSemaphore_.Acquire();
+        bufferedInstancesSemaphore_.Release(); // unlock the "flow" of loaders
 
         boost::shared_ptr<std::string> dicomContent;
         {
@@ -1441,6 +1447,29 @@ namespace Orthanc
         f.GetFile().Read(output);
         mime = MimeType_Zip;
         filename = "archive.zip";
+        return true;
+      }
+      else
+      {
+        return false;
+      }
+    }    
+    else
+    {
+      return false;
+    }
+  }
+
+  bool ArchiveJob::DeleteOutput(const std::string& key)
+  {   
+    if (key == "archive" &&
+        !mediaArchiveId_.empty())
+    {
+      SharedArchive::Accessor accessor(context_.GetMediaArchive(), mediaArchiveId_);
+
+      if (accessor.IsValid())
+      {
+        context_.GetMediaArchive().Remove(mediaArchiveId_);
         return true;
       }
       else

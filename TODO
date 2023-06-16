@@ -99,6 +99,8 @@ Mid-term
   https://groups.google.com/g/orthanc-users/c/y3-xa_GcdLM/m/m0Kr5G5UPAAJ
 * (1) Specify the transfer syntax in /tools/create-dicom
   https://groups.google.com/g/orthanc-users/c/o15Dekecgds/m/xmPE2y3bAwAJ
+* Support Palette PNG in /tools/create-dicom:
+  https://discourse.orthanc-server.org/t/404-on-tools-create-dicom-endpoint-with-specific-png/3562
 * (1) In the /studies/{id}/anonymize route, add an option to remove
   secondary captures.  They usually contains Patient info in the
   image. The SOPClassUID might be used to identify such secondary
@@ -186,6 +188,8 @@ Performance
     - ModalitiesInStudy
     - all computed counters at series/study/patient level
     - RequestAttributesSequence (sequence that must be included in all DicomWeb QIDO-RS for series)
+* Investigate increase of CPU consumption while idle after anonymize/delete
+  (https://discourse.orthanc-server.org/t/onchange-callbacks-and-cpu-loads/3534)
 
 * Long-shot & not sure it is even feasible at all: try to reduce memory usage by implementing streaming
   when receiving DICOM instances from the Rest API or from DICOM and store files directly to disk as they
@@ -322,6 +326,8 @@ Code quality and integration tests
 * Add more complex testing scenarios like data-migration, change of 
   configuration files, multiple orthanc interacting togethers with various 
   config.  This should probably look like the python toolbox tests ...
+  - add a test to validate Modalities and Peers stored in DB are not lost 
+    while upgrading from one version to the other (Sylvain)
   
 
 ---------------------

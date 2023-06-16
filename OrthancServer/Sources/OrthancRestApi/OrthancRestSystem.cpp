@@ -770,6 +770,36 @@ namespace Orthanc
   }
 
 
+  static void DeleteJobOutput(RestApiDeleteCall& call)
+  {
+    if (call.IsDocumentation())
+    {
+      call.GetDocumentation()
+        .SetTag("Jobs")
+        .SetSummary("Delete a job output")
+        .SetDescription("Delete the output produced by a job. As of Orthanc 1.12.1, only the jobs that generate a "
+                        "DICOMDIR media or a ZIP archive provide such an output (with `key` equals to `archive`).")
+        .SetUriArgument("id", "Identifier of the job of interest")
+        .SetUriArgument("key", "Name of the output of interest");
+      return;
+    }
+
+    std::string job = call.GetUriComponent("id", "");
+    std::string key = call.GetUriComponent("key", "");
+
+    if (OrthancRestApi::GetContext(call).GetJobsEngine().
+        GetRegistry().DeleteJobOutput(job, key))
+    {
+      call.GetOutput().AnswerBuffer("", MimeType_PlainText);
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_InexistentItem,
+                             "Job has no such output: " + key);
+    }
+  }
+
+
   enum JobAction
   {
     JobAction_Cancel,
@@ -1113,6 +1143,7 @@ namespace Orthanc
     Register("/jobs/{id}/resubmit", ApplyJobAction<JobAction_Resubmit>);
     Register("/jobs/{id}/resume", ApplyJobAction<JobAction_Resume>);
     Register("/jobs/{id}/{key}", GetJobOutput);
+    Register("/jobs/{id}/{key}", DeleteJobOutput);
 
     // New in Orthanc 1.9.0
     Register("/tools/accepted-transfer-syntaxes", GetAcceptedTransferSyntaxes);

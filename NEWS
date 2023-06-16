@@ -4,7 +4,10 @@ Pending changes in the mainline
 REST API
 --------
 
+* API version upgraded to 21
 * New URI /instances/{id}/file-until-pixel-data
+* added a route to delete the output of an asynchronous job (right now only for archive jobs):
+  e.g. DELETE /jobs/../archive
 
 Maintenance
 -----------
@@ -18,6 +21,11 @@ Maintenance
 * Fix orphan files remaining in storage when working with MaximumStorageSize
   (https://discourse.orthanc-server.org/t/issue-with-deleting-incoming-dicoms-when-maximumstoragesize-is-reached/3510)
 * When deleting a resource, its parents LastUpdate metadata are now updated.
+* Reduced the memory usage when downloading archives when "ZipLoaderThreads" > 0.
+* Disabled automatic conversion from YBR to RGB when transcoding JPEG to RAW transfer-syntax
+  (https://discourse.orthanc-server.org/t/orthanc-convert-ybr-to-rgb-but-does-not-change-metadata/3533).
+  This might have an impact on the image returned by /dicom-web/studies/../series/../instances/../frames/1; the
+  image format is now consistent with the PhotometricIntepretation DICOM Tag.
 
 * WIP: new dicomWeb Json format for some of the Rest API routes.
 * WIP: new 'include' get arguments for some of the Rest API routes to define

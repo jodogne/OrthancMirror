@@ -269,14 +269,6 @@ namespace Orthanc
     return true;
   }
 
-  bool SetOfCommandsJob::GetOutput(std::string &output,
-                                   MimeType &mime,
-                                   std::string& filename,
-                                   const std::string &key)
-  {
-    return false;
-  }
-
 
   SetOfCommandsJob::SetOfCommandsJob(ICommandUnserializer* unserializer,
                                      const Json::Value& source) :

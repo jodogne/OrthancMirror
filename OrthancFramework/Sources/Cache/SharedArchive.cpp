@@ -102,7 +102,7 @@ namespace Orthanc
 
   std::string SharedArchive::Add(IDynamicObject* obj)
   {
-    boost::mutex::scoped_lock lock(mutex_);
+    boost::recursive_mutex::scoped_lock lock(mutex_);
 
     if (archive_.size() == maxSize_)
     {
@@ -122,7 +122,7 @@ namespace Orthanc
 
   void SharedArchive::Remove(const std::string& id)
   {
-    boost::mutex::scoped_lock lock(mutex_);
+    boost::recursive_mutex::scoped_lock lock(mutex_);
     RemoveInternal(id);      
   }
 
@@ -132,7 +132,7 @@ namespace Orthanc
     items.clear();
 
     {
-      boost::mutex::scoped_lock lock(mutex_);
+      boost::recursive_mutex::scoped_lock lock(mutex_);
 
       for (Archive::const_iterator it = archive_.begin();
            it != archive_.end(); ++it)

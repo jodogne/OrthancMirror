@@ -153,6 +153,9 @@ namespace Orthanc
                       const std::string& job,
                       const std::string& key);
 
+    bool DeleteJobOutput(const std::string& job,
+                         const std::string& key);
+
     void Serialize(Json::Value& target);
 
     void Submit(std::string& id,
