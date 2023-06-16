@@ -295,15 +295,6 @@ namespace Orthanc
   }
 
 
-  bool ThreadedSetOfInstancesJob::GetOutput(std::string &output,
-                                            MimeType &mime,
-                                            std::string& filename,
-                                            const std::string &key)
-  {
-    return false;
-  }
-
-
   size_t ThreadedSetOfInstancesJob::GetInstancesCount() const
   {
     boost::recursive_mutex::scoped_lock lock(mutex_);

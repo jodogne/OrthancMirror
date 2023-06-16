@@ -134,6 +134,11 @@ namespace
     {
       return false;
     }
+
+    virtual bool DeleteOutput(const std::string& key) ORTHANC_OVERRIDE
+    {
+      return false;
+    }
   };
 
 

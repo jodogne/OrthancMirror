@@ -1994,7 +1994,14 @@ namespace Orthanc
         case EVR_OL:  // other long (requires byte-swapping)
 #endif
         {
-          ok = element.putUint32(boost::lexical_cast<Uint32>(*decoded)).good();
+          if (decoded->find('\\') != std::string::npos)
+          {
+            ok = element.putString(decoded->c_str()).good();
+          }
+          else
+          {
+            ok = element.putUint32(boost::lexical_cast<Uint32>(*decoded)).good();
+          }
           break;
         }
 
@@ -2473,7 +2480,7 @@ namespace Orthanc
 
 #if ORTHANC_ENABLE_DCMTK_JPEG == 1
     CLOG(INFO, DICOM) << "Registering JPEG codecs in DCMTK";
-    DJDecoderRegistration::registerCodecs(); 
+    DJDecoderRegistration::registerCodecs(EDC_never);  // disable automatic conversion from YBR to RGB when transcoding JPEG to RAW transfer-syntax (https://discourse.orthanc-server.org/t/orthanc-convert-ybr-to-rgb-but-does-not-change-metadata/3533)
 # if ORTHANC_ENABLE_DCMTK_TRANSCODING == 1
     DJEncoderRegistration::registerCodecs();
 # endif
