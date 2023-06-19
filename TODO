@@ -120,6 +120,9 @@ Mid-term
 * Also implement a GET variant of /tools/create-archive + sibling routes
   in which resources & transcode options are provided as get arguments.
   https://groups.google.com/g/orthanc-users/c/PmaRZ609ztA/m/JdwXvIBKAQAJ
+* Allow skiping automatic conversion of color-space in transcoding/decoding.
+  The patch that was initialy provided was breaking the IngestTranscoding.
+  https://discourse.orthanc-server.org/t/orthanc-convert-ybr-to-rgb-but-does-not-change-metadata/3533/9
 
 
 ---------
