@@ -1363,7 +1363,7 @@ function ChooseDicomModality(callback)
                 href: '#',
                 rel: 'close',
                 text: name
-              })
+              });
               liElement.append(aElement);
     
               items.append(liElement);
