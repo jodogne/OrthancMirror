@@ -742,18 +742,21 @@ TEST(ServerIndex, AttachmentRecycling)
       ASSERT_EQ(StoreStatus_Success, index.Store(
                   instanceMetadata, summary, attachments, toStore->GetMetadata(),
                   toStore->GetOrigin(), false /* don't overwrite */,
-                  hasTransferSyntax, transferSyntax, true /* pixel data offset */, 42, false));
+                  hasTransferSyntax, transferSyntax, true /* has pixel data */, 42 /* pixel data offset */,
+                  ValueRepresentation_PersonName /* pixel data VR */, false));
     }
     
-    ASSERT_EQ(7u, instanceMetadata.size());
+    ASSERT_EQ(8u, instanceMetadata.size());
     ASSERT_TRUE(instanceMetadata.find(MetadataType_RemoteAet) != instanceMetadata.end());
     ASSERT_TRUE(instanceMetadata.find(MetadataType_Instance_ReceptionDate) != instanceMetadata.end());
     ASSERT_TRUE(instanceMetadata.find(MetadataType_Instance_TransferSyntax) != instanceMetadata.end());
     ASSERT_TRUE(instanceMetadata.find(MetadataType_Instance_SopClassUid) != instanceMetadata.end());
     ASSERT_TRUE(instanceMetadata.find(MetadataType_Instance_PixelDataOffset) != instanceMetadata.end());
     ASSERT_TRUE(instanceMetadata.find(MetadataType_MainDicomTagsSignature) != instanceMetadata.end());
+    ASSERT_TRUE(instanceMetadata.find(MetadataType_Instance_PixelDataVR) != instanceMetadata.end());
 
     ASSERT_EQ("42", instanceMetadata[MetadataType_Instance_PixelDataOffset]);
+    ASSERT_EQ("PN", instanceMetadata[MetadataType_Instance_PixelDataVR]);
 
     // The default transfer syntax depends on the OS endianness
     std::string s = instanceMetadata[MetadataType_Instance_TransferSyntax];

@@ -552,8 +552,9 @@ namespace Orthanc
 
     bool hasPixelDataOffset;
     uint64_t pixelDataOffset;
+    ValueRepresentation pixelDataVR;
     hasPixelDataOffset = DicomStreamReader::LookupPixelDataOffset(
-      pixelDataOffset, dicom.GetBufferData(), dicom.GetBufferSize());
+      pixelDataOffset, pixelDataVR, dicom.GetBufferData(), dicom.GetBufferSize());
 
     DicomTransferSyntax transferSyntax;
     bool hasTransferSyntax = dicom.LookupTransferSyntax(transferSyntax);
@@ -653,7 +654,7 @@ namespace Orthanc
       InstanceMetadata  instanceMetadata;
       result.SetStatus(index_.Store(
         instanceMetadata, summary, attachments, dicom.GetMetadata(), dicom.GetOrigin(), overwrite,
-        hasTransferSyntax, transferSyntax, hasPixelDataOffset, pixelDataOffset, isReconstruct));
+        hasTransferSyntax, transferSyntax, hasPixelDataOffset, pixelDataOffset, pixelDataVR, isReconstruct));
 
       // Only keep the metadata for the "instance" level
       dicom.ClearMetadata();
@@ -1094,11 +1095,14 @@ namespace Orthanc
            * Orthanc have failed. Try again this precomputation now
            * for future calls.
            **/
-          if (DicomStreamReader::LookupPixelDataOffset(pixelDataOffset, dicom) &&
+          ValueRepresentation pixelDataVR;
+          if (DicomStreamReader::LookupPixelDataOffset(pixelDataOffset, pixelDataVR, dicom) &&
               pixelDataOffset < dicom.size())
           {
             index_.OverwriteMetadata(instancePublicId, MetadataType_Instance_PixelDataOffset,
                                      boost::lexical_cast<std::string>(pixelDataOffset));
+            index_.OverwriteMetadata(instancePublicId, MetadataType_Instance_PixelDataVR,
+                                     EnumerationToString(pixelDataVR));
 
             if (!area_.HasReadRange() ||
                 compressionEnabled_)

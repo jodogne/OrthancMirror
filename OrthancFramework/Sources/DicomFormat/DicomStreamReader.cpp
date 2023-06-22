@@ -579,13 +579,15 @@ namespace Orthanc
   class DicomStreamReader::PixelDataVisitor : public DicomStreamReader::IVisitor
   {
   private:
-    bool      hasPixelData_;
-    uint64_t  pixelDataOffset_;
+    bool                 hasPixelData_;
+    uint64_t             pixelDataOffset_;
+    ValueRepresentation  pixelDataVR_;
     
   public:
     PixelDataVisitor() :
       hasPixelData_(false),
-      pixelDataOffset_(0)
+      pixelDataOffset_(0),
+      pixelDataVR_(ValueRepresentation_Unknown)
     {
     }
     
@@ -609,6 +611,7 @@ namespace Orthanc
       {
         hasPixelData_ = true;
         pixelDataOffset_ = fileOffset;
+        pixelDataVR_ = vr;
       }
 
       // Stop processing once pixel data has been passed
@@ -625,7 +628,13 @@ namespace Orthanc
       return pixelDataOffset_;
     }
 
+    ValueRepresentation GetPixelDataVR() const
+    {
+      return pixelDataVR_;
+    }
+
     static bool LookupPixelDataOffset(uint64_t& offset,
+                                      ValueRepresentation& vr,
                                       std::istream& stream)
     {
       PixelDataVisitor visitor;
@@ -672,6 +681,7 @@ namespace Orthanc
             s[3] == char(0x00))
         {
           offset = visitor.GetPixelDataOffset();
+          vr = visitor.GetPixelDataVR();
           return true;
         }
         else
@@ -688,20 +698,22 @@ namespace Orthanc
 
   
   bool DicomStreamReader::LookupPixelDataOffset(uint64_t& offset,
+                                                ValueRepresentation& vr,
                                                 const std::string& dicom)
   {
     std::stringstream stream(dicom);
-    return PixelDataVisitor::LookupPixelDataOffset(offset, stream);
+    return PixelDataVisitor::LookupPixelDataOffset(offset, vr, stream);
   }
   
 
   bool DicomStreamReader::LookupPixelDataOffset(uint64_t& offset,
+                                                ValueRepresentation& vr,
                                                 const void* buffer,
                                                 size_t size)
   {
     boost::iostreams::array_source source(reinterpret_cast<const char*>(buffer), size);
     boost::iostreams::stream<boost::iostreams::array_source> stream(source);
-    return PixelDataVisitor::LookupPixelDataOffset(offset, stream);
+    return PixelDataVisitor::LookupPixelDataOffset(offset, vr, stream);
   }
 }
 

@@ -88,7 +88,8 @@ namespace Orthanc
                       DicomTransferSyntax transferSyntax,
                       bool hasPixelDataOffset,
                       uint64_t pixelDataOffset,
-                      bool isResonstruct);
+                      ValueRepresentation pixelDataVR,
+                      bool isReconstruct);
 
     StoreStatus AddAttachment(int64_t& newRevision /*out*/,
                               const FileInfo& attachment,

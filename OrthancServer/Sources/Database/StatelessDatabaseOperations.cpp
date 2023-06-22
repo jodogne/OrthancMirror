@@ -2956,6 +2956,7 @@ namespace Orthanc
                                                  DicomTransferSyntax transferSyntax,
                                                  bool hasPixelDataOffset,
                                                  uint64_t pixelDataOffset,
+                                                 ValueRepresentation pixelDataVR,
                                                  MaxStorageMode maximumStorageMode,
                                                  uint64_t maximumStorageSize,
                                                  unsigned int maximumPatients,
@@ -2975,6 +2976,7 @@ namespace Orthanc
       DicomTransferSyntax                  transferSyntax_;
       bool                                 hasPixelDataOffset_;
       uint64_t                             pixelDataOffset_;
+      ValueRepresentation                  pixelDataVR_;
       MaxStorageMode                       maximumStorageMode_;
       uint64_t                             maximumStorageSize_;
       unsigned int                         maximumPatientCount_;
@@ -3078,6 +3080,7 @@ namespace Orthanc
                  DicomTransferSyntax transferSyntax,
                  bool hasPixelDataOffset,
                  uint64_t pixelDataOffset,
+                 ValueRepresentation pixelDataVR,
                  MaxStorageMode maximumStorageMode,
                  uint64_t maximumStorageSize,
                  unsigned int maximumPatientCount,
@@ -3093,6 +3096,7 @@ namespace Orthanc
         transferSyntax_(transferSyntax),
         hasPixelDataOffset_(hasPixelDataOffset),
         pixelDataOffset_(pixelDataOffset),
+        pixelDataVR_(pixelDataVR),
         maximumStorageMode_(maximumStorageMode),
         maximumStorageSize_(maximumStorageSize),
         maximumPatientCount_(maximumPatientCount),
@@ -3355,6 +3359,11 @@ namespace Orthanc
             SetInstanceMetadata(content, instanceMetadata_, instanceId,
                                 MetadataType_Instance_PixelDataOffset,
                                 boost::lexical_cast<std::string>(pixelDataOffset_));
+
+            // New in Orthanc 1.12.1
+            SetInstanceMetadata(content, instanceMetadata_, instanceId,
+                                MetadataType_Instance_PixelDataVR,
+                                EnumerationToString(pixelDataVR_));
           }
       
           const DicomValue* value;
@@ -3409,9 +3418,9 @@ namespace Orthanc
     };
 
 
-    Operations operations(instanceMetadata, dicomSummary, attachments, metadata, origin,
-                          overwrite, hasTransferSyntax, transferSyntax, hasPixelDataOffset,
-                          pixelDataOffset, maximumStorageMode, maximumStorageSize, maximumPatients, isReconstruct);
+    Operations operations(instanceMetadata, dicomSummary, attachments, metadata, origin, overwrite,
+                          hasTransferSyntax, transferSyntax, hasPixelDataOffset, pixelDataOffset,
+                          pixelDataVR, maximumStorageMode, maximumStorageSize, maximumPatients, isReconstruct);
 
     try
     {

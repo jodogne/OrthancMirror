@@ -538,6 +538,7 @@ namespace Orthanc
                                  DicomTransferSyntax transferSyntax,
                                  bool hasPixelDataOffset,
                                  uint64_t pixelDataOffset,
+                                 ValueRepresentation pixelDataVR,
                                  bool isReconstruct)
   {
     uint64_t maximumStorageSize;
@@ -553,7 +554,8 @@ namespace Orthanc
 
     return StatelessDatabaseOperations::Store(
       instanceMetadata, dicomSummary, attachments, metadata, origin, overwrite, hasTransferSyntax,
-      transferSyntax, hasPixelDataOffset, pixelDataOffset, maximumStorageMode, maximumStorageSize, maximumPatients, isReconstruct);
+      transferSyntax, hasPixelDataOffset, pixelDataOffset, pixelDataVR, maximumStorageMode,
+      maximumStorageSize, maximumPatients, isReconstruct);
   }
 
   

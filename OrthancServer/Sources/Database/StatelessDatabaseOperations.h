@@ -759,6 +759,7 @@ namespace Orthanc
                       DicomTransferSyntax transferSyntax,
                       bool hasPixelDataOffset,
                       uint64_t pixelDataOffset,
+                      ValueRepresentation pixelDataVR,
                       MaxStorageMode maximumStorageMode,
                       uint64_t maximumStorageSize,
                       unsigned int maximumPatients,

@@ -128,10 +128,12 @@ namespace Orthanc
 
     uint64_t GetProcessedBytes() const;
 
-    static bool LookupPixelDataOffset(uint64_t& offset,
+    static bool LookupPixelDataOffset(uint64_t& offset /* out */,
+                                      ValueRepresentation& vr /* out */,
                                       const std::string& dicom);
 
-    static bool LookupPixelDataOffset(uint64_t& offset,
+    static bool LookupPixelDataOffset(uint64_t& offset /* out */,
+                                      ValueRepresentation& vr /* out */,
                                       const void* buffer,
                                       size_t size);
   };
