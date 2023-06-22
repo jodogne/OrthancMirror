@@ -42,6 +42,7 @@
 #include "../Sources/DicomParsing/DicomWebJsonVisitor.h"
 
 #include <boost/lexical_cast.hpp>
+#include <boost/tuple/tuple.hpp>
 
 using namespace Orthanc;
 
@@ -1288,50 +1289,61 @@ TEST(DicomStreamReader, DISABLED_Tutu)
 {
   static const std::string PATH = "/home/jodogne/Subversion/orthanc-tests/Database/TransferSyntaxes/";
 
-  typedef std::list< std::pair<std::string, uint64_t> >  Sources;
+  typedef boost::tuple<std::string, uint64_t, ValueRepresentation> Source;
+  typedef std::list<Source>  Sources;
+
+  // $ ~/Subversion/orthanc-tests/Tests/GetPixelDataVR.py ~/Subversion/orthanc-tests/Database/ColorTestMalaterre.dcm ~/Subversion/orthanc-tests/Database/ColorTestImageJ.dcm ~/Subversion/orthanc-tests/Database/Knee/T1/IM-0001-0001.dcm ~/Subversion/orthanc-tests/Database/TransferSyntaxes/*.dcm
 
   Sources sources;
-  sources.push_back(std::make_pair(PATH + "../ColorTestMalaterre.dcm", 0x03a0u));
-  sources.push_back(std::make_pair(PATH + "1.2.840.10008.1.2.1.dcm", 0x037cu));
-  sources.push_back(std::make_pair(PATH + "1.2.840.10008.1.2.2.dcm", 0x03e8u));  // Big Endian
-  sources.push_back(std::make_pair(PATH + "1.2.840.10008.1.2.4.50.dcm", 0x04acu));
-  sources.push_back(std::make_pair(PATH + "1.2.840.10008.1.2.4.51.dcm", 0x072cu));
-  sources.push_back(std::make_pair(PATH + "1.2.840.10008.1.2.4.57.dcm", 0x0620u));
-  sources.push_back(std::make_pair(PATH + "1.2.840.10008.1.2.4.70.dcm", 0x065au));
-  sources.push_back(std::make_pair(PATH + "1.2.840.10008.1.2.4.80.dcm", 0x0b46u));
-  sources.push_back(std::make_pair(PATH + "1.2.840.10008.1.2.4.81.dcm", 0x073eu));
-  sources.push_back(std::make_pair(PATH + "1.2.840.10008.1.2.4.90.dcm", 0x0b66u));
-  sources.push_back(std::make_pair(PATH + "1.2.840.10008.1.2.4.91.dcm", 0x19b8u));
-  sources.push_back(std::make_pair(PATH + "1.2.840.10008.1.2.5.dcm", 0x0b0au));
+  sources.push_back(Source(PATH + "../ColorTestMalaterre.dcm",   0x03a0u, ValueRepresentation_Unknown));  // This file has strange VR
+  sources.push_back(Source(PATH + "../ColorTestImageJ.dcm",      0x00924, ValueRepresentation_OtherByte));
+  sources.push_back(Source(PATH + "../Knee/T1/IM-0001-0001.dcm", 0x00c78, ValueRepresentation_OtherWord));
+  sources.push_back(Source(PATH + "1.2.840.10008.1.2.1.dcm",     0x037cu, ValueRepresentation_OtherByte));
+  sources.push_back(Source(PATH + "1.2.840.10008.1.2.2.dcm",     0x03e8u, ValueRepresentation_OtherByte));  // Big Endian
+  sources.push_back(Source(PATH + "1.2.840.10008.1.2.4.50.dcm",  0x04acu, ValueRepresentation_OtherByte));
+  sources.push_back(Source(PATH + "1.2.840.10008.1.2.4.51.dcm",  0x072cu, ValueRepresentation_OtherByte));
+  sources.push_back(Source(PATH + "1.2.840.10008.1.2.4.57.dcm",  0x0620u, ValueRepresentation_OtherByte));
+  sources.push_back(Source(PATH + "1.2.840.10008.1.2.4.70.dcm",  0x065au, ValueRepresentation_OtherByte));
+  sources.push_back(Source(PATH + "1.2.840.10008.1.2.4.80.dcm",  0x0b46u, ValueRepresentation_OtherByte));
+  sources.push_back(Source(PATH + "1.2.840.10008.1.2.4.81.dcm",  0x073eu, ValueRepresentation_OtherByte));
+  sources.push_back(Source(PATH + "1.2.840.10008.1.2.4.90.dcm",  0x0b66u, ValueRepresentation_OtherByte));
+  sources.push_back(Source(PATH + "1.2.840.10008.1.2.4.91.dcm",  0x19b8u, ValueRepresentation_OtherByte));
+  sources.push_back(Source(PATH + "1.2.840.10008.1.2.5.dcm",     0x0b0au, ValueRepresentation_OtherByte));
 
   {
     std::string dicom;
 
     uint64_t offset;
+    ValueRepresentation vr;
+
     // Not a DICOM image
     SystemToolbox::ReadFile(dicom, PATH + "1.2.840.10008.1.2.4.50.png", false);
-    ASSERT_FALSE(DicomStreamReader::LookupPixelDataOffset(offset, dicom));
+    ASSERT_FALSE(DicomStreamReader::LookupPixelDataOffset(offset, vr, dicom));
 
     // Image without valid DICOM preamble
     SystemToolbox::ReadFile(dicom, PATH + "1.2.840.10008.1.2.dcm", false);
-    ASSERT_FALSE(DicomStreamReader::LookupPixelDataOffset(offset, dicom));
+    ASSERT_FALSE(DicomStreamReader::LookupPixelDataOffset(offset, vr, dicom));
   }
   
   for (Sources::const_iterator it = sources.begin(); it != sources.end(); ++it)
   {
     std::string dicom;
-    SystemToolbox::ReadFile(dicom, it->first, false);
+    SystemToolbox::ReadFile(dicom, it->get<0>(), false);
 
     {
       uint64_t offset;
-      ASSERT_TRUE(DicomStreamReader::LookupPixelDataOffset(offset, dicom));
-      ASSERT_EQ(it->second, offset);
+      ValueRepresentation vr;
+      ASSERT_TRUE(DicomStreamReader::LookupPixelDataOffset(offset, vr, dicom));
+      ASSERT_EQ(it->get<1>(), offset);
+      ASSERT_EQ(it->get<2>(), vr);
     }
     
     {
       uint64_t offset;
-      ASSERT_TRUE(DicomStreamReader::LookupPixelDataOffset(offset, dicom.c_str(), dicom.size()));
-      ASSERT_EQ(it->second, offset);
+      ValueRepresentation vr;
+      ASSERT_TRUE(DicomStreamReader::LookupPixelDataOffset(offset, vr, dicom.c_str(), dicom.size()));
+      ASSERT_EQ(it->get<1>(), offset);
+      ASSERT_EQ(it->get<2>(), vr);
     }
     
     ParsedDicomFile a(dicom);
@@ -1355,7 +1367,7 @@ TEST(DicomStreamReader, DISABLED_Tutu)
 
     r.Consume(visitor);
 
-    ASSERT_EQ(it->second, visitor.GetPixelDataOffset());
+    ASSERT_EQ(it->get<1>(), visitor.GetPixelDataOffset());
 
     // Truncate the original DICOM up to pixel data
     dicom.resize(visitor.GetPixelDataOffset());
