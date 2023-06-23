@@ -2121,6 +2121,41 @@ namespace Orthanc
     }
   }
 
+  
+  void ParsedDicomFile::InjectEmptyPixelData(ValueRepresentation vr)
+  {
+    DcmTag k(DICOM_TAG_PIXEL_DATA.GetGroup(),
+             DICOM_TAG_PIXEL_DATA.GetElement());
+
+    DcmItem& dataset = *GetDcmtkObjectConst().getDataset();
+
+    DcmElement *element = NULL;
+    if (!dataset.findAndGetElement(k, element).good() ||
+        element == NULL)
+    {
+      // The pixel data is indeed nonexistent, insert it now
+      switch (vr)
+      {
+        case ValueRepresentation_OtherByte:
+          if (!dataset.putAndInsertUint8Array(k, NULL, 0).good())
+          {
+            throw OrthancException(ErrorCode_InternalError);
+          }
+          break;
+
+        case ValueRepresentation_OtherWord:
+          if (!dataset.putAndInsertUint16Array(k, NULL, 0).good())
+          {
+            throw OrthancException(ErrorCode_InternalError);
+          }
+          break;
+
+        default:
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+    }
+  }
+
 
 #if ORTHANC_BUILDING_FRAMEWORK_LIBRARY == 1
   // Alias for binary compatibility with Orthanc Framework 1.7.2 => don't use it anymore

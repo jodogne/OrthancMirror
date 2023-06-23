@@ -3221,6 +3221,98 @@ TEST(DicomMap, DicomWebWithInteger64)
 }
 
 
+TEST(ParsedDicomFile, InjectEmptyPixelData)
+{
+  static const char* PIXEL_DATA = "7FE00010";
+
+  {
+    ParsedDicomFile dicom(true);
+
+    DicomWebJsonVisitor visitor;
+    dicom.Apply(visitor);
+
+    ASSERT_FALSE(visitor.GetResult().isMember(PIXEL_DATA));
+  }
+
+  {
+    ParsedDicomFile dicom(true);
+    dicom.InjectEmptyPixelData(ValueRepresentation_OtherByte);
+    dicom.InjectEmptyPixelData(ValueRepresentation_OtherWord); // Must be ignored
+
+    DicomWebJsonVisitor visitor;
+    dicom.Apply(visitor);
+
+    ASSERT_TRUE(visitor.GetResult().isMember(PIXEL_DATA));
+    ASSERT_EQ(2u, visitor.GetResult() [PIXEL_DATA].size());
+    ASSERT_EQ("", visitor.GetResult() [PIXEL_DATA]["InlineBinary"].asString());
+    ASSERT_EQ("OB", visitor.GetResult() [PIXEL_DATA]["vr"].asString());
+  }
+
+  {
+    ParsedDicomFile dicom(true);
+    dicom.InjectEmptyPixelData(ValueRepresentation_OtherWord);
+    dicom.InjectEmptyPixelData(ValueRepresentation_OtherByte); // Must be ignored
+
+    DicomWebJsonVisitor visitor;
+    dicom.Apply(visitor);
+
+    ASSERT_TRUE(visitor.GetResult().isMember(PIXEL_DATA));
+    ASSERT_EQ(2u, visitor.GetResult() [PIXEL_DATA].size());
+    ASSERT_EQ("", visitor.GetResult() [PIXEL_DATA]["InlineBinary"].asString());
+    ASSERT_EQ("OW", visitor.GetResult() [PIXEL_DATA]["vr"].asString());
+  }
+}
+
+
+TEST(ParsedDicomFile, DISABLED_InjectEmptyPixelData2)
+{
+  static const char* PIXEL_DATA = "7FE00010";
+
+  for (int i = 0; i <= DicomTransferSyntax_XML; i++)
+  {
+    DicomTransferSyntax a = (DicomTransferSyntax) i;
+
+    std::string path = (std::string(getenv("HOME")) +
+                        "/Subversion/orthanc-tests/Database/TransferSyntaxes/" +
+                        std::string(GetTransferSyntaxUid(a)) + ".dcm");
+    if (Orthanc::SystemToolbox::IsRegularFile(path))
+    {
+      printf("\n======= %s\n", GetTransferSyntaxUid(a));
+
+      std::string source;
+      Orthanc::SystemToolbox::ReadFile(source, path);
+
+      ParsedDicomFile dicom(source);
+      std::unique_ptr<DcmElement> removal(dicom.GetDcmtkObject().getDataset()->remove(DCM_PixelData));
+
+      {
+        DicomWebJsonVisitor visitor;
+        dicom.Apply(visitor);
+        ASSERT_FALSE(visitor.GetResult().isMember(PIXEL_DATA));
+      }
+
+      {
+        DicomWebJsonVisitor visitor;
+        dicom.InjectEmptyPixelData(ValueRepresentation_OtherByte);
+        dicom.Apply(visitor);
+        ASSERT_TRUE(visitor.GetResult().isMember(PIXEL_DATA));
+        ASSERT_EQ("OB", visitor.GetResult() [PIXEL_DATA]["vr"].asString());
+      }
+
+      removal.reset(dicom.GetDcmtkObject().getDataset()->remove(DCM_PixelData));
+
+      {
+        DicomWebJsonVisitor visitor;
+        dicom.InjectEmptyPixelData(ValueRepresentation_OtherWord);
+        dicom.Apply(visitor);
+        ASSERT_TRUE(visitor.GetResult().isMember(PIXEL_DATA));
+        ASSERT_EQ("OW", visitor.GetResult() [PIXEL_DATA]["vr"].asString());
+      }
+    }
+  }
+}
+
+
 
 
 #if ORTHANC_ENABLE_DCMTK_TRANSCODING == 1
@@ -3240,11 +3332,13 @@ TEST(Toto, DISABLED_Transcode3)
   DcmtkTranscoder transcoder;
 
   for (int j = 0; j < 2; j++)
+  {
     for (int i = 0; i <= DicomTransferSyntax_XML; i++)
     {
       DicomTransferSyntax a = (DicomTransferSyntax) i;
 
-      std::string path = ("/home/jodogne/Subversion/orthanc-tests/Database/TransferSyntaxes/" +
+      std::string path = (std::string(getenv("HOME")) +
+                          "/Subversion/orthanc-tests/Database/TransferSyntaxes/" +
                           std::string(GetTransferSyntaxUid(a)) + ".dcm");
       if (Orthanc::SystemToolbox::IsRegularFile(path))
       {
@@ -3272,6 +3366,7 @@ TEST(Toto, DISABLED_Transcode3)
         }
       }
     }
+  }
 }
 
 
@@ -3281,7 +3376,8 @@ TEST(Toto, DISABLED_Transcode4)
 
   {
     std::string source;
-    Orthanc::SystemToolbox::ReadFile(source, "/home/jodogne/Subversion/orthanc-tests/Database/KarstenHilbertRF.dcm");
+    Orthanc::SystemToolbox::ReadFile(source, std::string(getenv("HOME")) +
+                                     "/Subversion/orthanc-tests/Database/KarstenHilbertRF.dcm");
     toto.reset(FromDcmtkBridge::LoadFromMemoryBuffer(source.c_str(), source.size()));
   }
   
