@@ -309,5 +309,7 @@ namespace Orthanc
 
     ImageAccessor* DecodeAllOverlays(int& originX,
                                      int& originY) const;
+
+    void InjectEmptyPixelData(ValueRepresentation vr);
   };
 }
