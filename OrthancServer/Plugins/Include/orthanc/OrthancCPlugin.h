@@ -120,7 +120,7 @@
 
 #define ORTHANC_PLUGINS_MINIMAL_MAJOR_NUMBER     1
 #define ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER     12
-#define ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER  0
+#define ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER  1
 
 
 #if !defined(ORTHANC_PLUGINS_VERSION_IS_ABOVE)
@@ -526,6 +526,7 @@ extern "C"
     _OrthancPluginService_GetInstanceAdvancedJson = 4017,  /* New in Orthanc 1.7.0 */
     _OrthancPluginService_GetInstanceDicomWebJson = 4018,  /* New in Orthanc 1.7.0 */
     _OrthancPluginService_GetInstanceDicomWebXml = 4019,   /* New in Orthanc 1.7.0 */
+    _OrthancPluginService_LoadDicomInstance = 4020,        /* New in Orthanc 1.12.1 */
     
     /* Services for plugins implementing a database back-end */
     _OrthancPluginService_RegisterDatabaseBackend = 5000,    /* New in Orthanc 0.8.6 */
@@ -1021,6 +1022,28 @@ extern "C"
 
     _OrthancPluginReceivedInstanceAction_INTERNAL = 0x7fffffff
   } OrthancPluginReceivedInstanceAction;
+
+
+  /**
+   * Mode specifying how to load a DICOM instance.
+   * @see OrthancPluginLoadDicomInstance
+   **/
+  typedef enum
+  {
+    OrthancPluginLoadDicomInstanceMode_WholeDicom = 1,
+    /*!< Load the whole DICOM file, including pixel data */
+
+    OrthancPluginLoadDicomInstanceMode_UntilPixelData = 2,
+    /*!< Load the whole DICOM file until pixel data, which will speed
+      up the loading */
+
+    OrthancPluginLoadDicomInstanceMode_EmptyPixelData = 3,
+    /*!< Load the whole DICOM file until pixel data, and replace pixel
+      data by an empty tag whose VR (value representation) is the same
+      as those of the original DICOM file */
+
+    _OrthancPluginLoadDicomInstanceMode_INTERNAL = 0x7fffffff
+  } OrthancPluginLoadDicomInstanceMode;
 
 
   /**
@@ -1906,7 +1929,7 @@ extern "C"
         sizeof(int32_t) != sizeof(OrthancPluginMetricsType) ||
         sizeof(int32_t) != sizeof(OrthancPluginDicomWebBinaryMode) ||
         sizeof(int32_t) != sizeof(OrthancPluginStorageCommitmentFailureReason) ||
-        sizeof(int32_t) != sizeof(OrthancPluginReceivedInstanceAction))
+        sizeof(int32_t) != sizeof(OrthancPluginLoadDicomInstanceMode))
     {
       /* Mismatch in the size of the enumerations */
       return 0;
@@ -9224,6 +9247,51 @@ extern "C"
 
     return context->InvokeService(context, _OrthancPluginService_RegisterDatabaseBackendV4, &params);
   }
+
+
+  typedef struct
+  {
+    OrthancPluginDicomInstance**        target;
+    const char*                         instanceId;
+    OrthancPluginLoadDicomInstanceMode  mode;
+  } _OrthancPluginLoadDicomInstance;
+
+  /**
+   * @brief Load a DICOM instance from the Orthanc server.
+   *
+   * This function loads a DICOM instance from the content of the
+   * Orthanc database. The function returns a new pointer to a data
+   * structure that is managed by the Orthanc core.
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param instanceId The Orthanc identifier of the DICOM instance of interest.
+   * @param mode Flag specifying how to deal with pixel data.
+   * @return The newly allocated DICOM instance. It must be freed with OrthancPluginFreeDicomInstance().
+   * @ingroup DicomInstance
+   **/
+  ORTHANC_PLUGIN_INLINE OrthancPluginDicomInstance* OrthancPluginLoadDicomInstance(
+    OrthancPluginContext*               context,
+    const char*                         instanceId,
+    OrthancPluginLoadDicomInstanceMode  mode)
+  {
+    OrthancPluginDicomInstance* target = NULL;
+
+    _OrthancPluginLoadDicomInstance params;
+    params.target = &target;
+    params.instanceId = instanceId;
+    params.mode = mode;
+
+    if (context->InvokeService(context, _OrthancPluginService_LoadDicomInstance, &params) != OrthancPluginErrorCode_Success)
+    {
+      /* Error */
+      return NULL;
+    }
+    else
+    {
+      return target;
+    }
+  }
+
 
 #ifdef  __cplusplus
 }

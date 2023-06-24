@@ -311,5 +311,10 @@ namespace Orthanc
                                      int& originY) const;
 
     void InjectEmptyPixelData(ValueRepresentation vr);
+
+    // Remove all the tags after pixel data
+    void RemoveFromPixelData();
+
+    ValueRepresentation GuessPixelDataValueRepresentation() const;
   };
 }

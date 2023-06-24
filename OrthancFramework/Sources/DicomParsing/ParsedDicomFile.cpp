@@ -2124,27 +2124,24 @@ namespace Orthanc
   
   void ParsedDicomFile::InjectEmptyPixelData(ValueRepresentation vr)
   {
-    DcmTag k(DICOM_TAG_PIXEL_DATA.GetGroup(),
-             DICOM_TAG_PIXEL_DATA.GetElement());
-
-    DcmItem& dataset = *GetDcmtkObjectConst().getDataset();
+    DcmItem& dataset = *GetDcmtkObject().getDataset();
 
     DcmElement *element = NULL;
-    if (!dataset.findAndGetElement(k, element).good() ||
+    if (!dataset.findAndGetElement(DCM_PixelData, element).good() ||
         element == NULL)
     {
       // The pixel data is indeed nonexistent, insert it now
       switch (vr)
       {
         case ValueRepresentation_OtherByte:
-          if (!dataset.putAndInsertUint8Array(k, NULL, 0).good())
+          if (!dataset.putAndInsertUint8Array(DCM_PixelData, NULL, 0).good())
           {
             throw OrthancException(ErrorCode_InternalError);
           }
           break;
 
         case ValueRepresentation_OtherWord:
-          if (!dataset.putAndInsertUint16Array(k, NULL, 0).good())
+          if (!dataset.putAndInsertUint16Array(DCM_PixelData, NULL, 0).good())
           {
             throw OrthancException(ErrorCode_InternalError);
           }
@@ -2153,6 +2150,81 @@ namespace Orthanc
         default:
           throw OrthancException(ErrorCode_ParameterOutOfRange);
       }
+    }
+  }
+
+
+  void ParsedDicomFile::RemoveFromPixelData()
+  {
+    DcmItem& dataset = *GetDcmtkObject().getDataset();
+
+    // We need to go backward, otherwise "dataset.card()" is invalidated
+    for (unsigned long i = dataset.card(); i > 0; i--)
+    {
+      DcmElement* element = dataset.getElement(i - 1);
+      if (element == NULL)
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+
+      if (element->getTag().getGroup() > DCM_PixelData.getGroup() ||
+          (element->getTag().getGroup() == DCM_PixelData.getGroup() &&
+           element->getTag().getElement() >= DCM_PixelData.getElement()))
+      {
+        std::unique_ptr<DcmElement> removal(dataset.remove(i - 1));
+      }
+    }
+  }
+  
+
+  ValueRepresentation ParsedDicomFile::GuessPixelDataValueRepresentation() const
+  {
+    /**
+     * DICOM specification is at:
+     * https://dicom.nema.org/medical/dicom/current/output/chtml/part05/chapter_d.html
+     *
+     * Our algorithm for guessing the pixel data VR is imperfect, and
+     * inspired from: https://forum.dcmtk.org/viewtopic.php?t=4961
+     *
+     * "The baseline for Little Endian Implicit/Explicit is: (a) if
+     * the TS is Explicit Little Endian and the pixeldata is <= 8bpp,
+     * VR of pixel data shall be VR_OB, and (b) in all other cases, VR
+     * of pixel data shall be VR_OW."
+     **/
+    
+    DicomTransferSyntax ts;
+    if (LookupTransferSyntax(ts))
+    {
+      if (ts == DicomTransferSyntax_LittleEndianExplicit ||
+          ts == DicomTransferSyntax_BigEndianExplicit)
+      {
+        DcmItem& dataset = *GetDcmtkObjectConst().getDataset();
+        
+        uint16_t bitsAllocated;
+        if (dataset.findAndGetUint16(DCM_BitsAllocated, bitsAllocated).good() &&
+            bitsAllocated > 8)
+        {
+          return ValueRepresentation_OtherWord;
+        }
+        else
+        {
+          return ValueRepresentation_OtherByte;
+        }
+      }
+      else if (ts == DicomTransferSyntax_LittleEndianImplicit)
+      {
+        return ValueRepresentation_OtherWord;
+      }
+      else
+      {
+        // Assume "OB" for all the compressed transfer syntaxes
+        return ValueRepresentation_OtherByte;
+      }
+    }
+    else
+    {
+      // Assume "OB" if transfer syntax is not available
+      return ValueRepresentation_OtherByte;
     }
   }
 

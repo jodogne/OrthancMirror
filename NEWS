@@ -5,8 +5,13 @@ REST API
 --------
 
 * API version upgraded to 21
-* added a route to delete the output of an asynchronous job (right now only for archive jobs):
-  e.g. DELETE /jobs/../archive
+* Added a route to delete the output of an asynchronous job (right now
+  only for archive jobs): e.g. DELETE /jobs/../archive
+
+Plugins
+-------
+
+* Added "OrthancPluginLoadDicomInstance()" to load DICOM instances from the database
 
 Maintenance
 -----------
@@ -15,8 +20,6 @@ Maintenance
   tag (0028,0006) equals 1
 * Made Orthanc more resilient to common spelling errors in SpecificCharacterSet
 * Modality worklists plugin: allow searching on private tags (exact match only)
-* Upgraded dependencies for static builds:
-  - boost 1.82.0
 * Fix orphan files remaining in storage when working with MaximumStorageSize
   (https://discourse.orthanc-server.org/t/issue-with-deleting-incoming-dicoms-when-maximumstoragesize-is-reached/3510)
 * When deleting a resource, its parents LastUpdate metadata are now updated.
@@ -25,6 +28,8 @@ Maintenance
   (https://discourse.orthanc-server.org/t/orthanc-convert-ybr-to-rgb-but-does-not-change-metadata/3533).
   This might have an impact on the image returned by /dicom-web/studies/../series/../instances/../frames/1; the
   image format is now consistent with the PhotometricIntepretation DICOM Tag.
+* Upgraded dependencies for static builds:
+  - boost 1.82.0
 
 
 Version 1.12.0 (2023-04-14)
