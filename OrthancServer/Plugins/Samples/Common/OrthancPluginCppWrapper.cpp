@@ -3752,6 +3752,27 @@ namespace OrthancPlugins
 #endif
 
 
+#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 12, 1)
+  DicomInstance* DicomInstance::Load(const std::string& instanceId,
+                                     OrthancPluginLoadDicomInstanceMode mode)
+  {
+    OrthancPluginDicomInstance* instance = OrthancPluginLoadDicomInstance(
+      GetGlobalContext(), instanceId.c_str(), mode);
+
+    if (instance == NULL)
+    {
+      ORTHANC_PLUGINS_THROW_EXCEPTION(Plugin);
+    }
+    else
+    {
+      boost::movelib::unique_ptr<DicomInstance> result(new DicomInstance(instance));
+      result->toFree_ = true;
+      return result.release();
+    }
+  }
+#endif
+
+
 #if HAS_ORTHANC_PLUGIN_WEBDAV == 1
   static std::vector<std::string> WebDavConvertPath(uint32_t pathSize,
                                                     const char* const*  pathItems)

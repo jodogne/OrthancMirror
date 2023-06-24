@@ -1318,6 +1318,11 @@ namespace OrthancPlugins
                                     size_t size,
                                     const std::string& transferSyntax);
 #endif
+
+#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 12, 1)
+    static DicomInstance* Load(const std::string& instanceId,
+                               OrthancPluginLoadDicomInstanceMode mode);
+#endif
   };
 
 // helper method to convert Http headers from the plugin SDK to a std::map
