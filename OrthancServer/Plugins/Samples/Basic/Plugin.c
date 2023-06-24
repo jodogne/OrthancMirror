@@ -282,6 +282,60 @@ void DicomWebBinaryCallback(
 }
 
 
+OrthancPluginErrorCode CallbackDicomWeb(OrthancPluginRestOutput* output,
+                                        const char* url,
+                                        const OrthancPluginHttpRequest* request)
+{
+  if (request->method != OrthancPluginHttpMethod_Get)
+  {
+    OrthancPluginSendMethodNotAllowed(context, output, "GET");
+  }
+  else
+  {
+    OrthancPluginLoadDicomInstanceMode mode = OrthancPluginLoadDicomInstanceMode_WholeDicom;
+    if (request->getCount == 1)
+    {
+      if (strcmp(request->getKeys[0], "until-pixel-data") == 0)
+      {
+        mode = OrthancPluginLoadDicomInstanceMode_UntilPixelData;
+      }
+      else if (strcmp(request->getKeys[0], "empty-pixel-data") == 0)
+      {
+        mode = OrthancPluginLoadDicomInstanceMode_EmptyPixelData;
+      }
+      else
+      {
+        return OrthancPluginErrorCode_ParameterOutOfRange;
+      }
+    }
+    
+    OrthancPluginDicomInstance* instance = OrthancPluginLoadDicomInstance(context, request->groups[0], mode);
+    if (instance == NULL)
+    {
+      return OrthancPluginErrorCode_UnknownResource;
+    }
+
+    char* json = OrthancPluginEncodeDicomWebXml(context,
+                                                OrthancPluginGetInstanceData(context, instance),
+                                                OrthancPluginGetInstanceSize(context, instance),
+                                                DicomWebBinaryCallback);
+    OrthancPluginFreeDicomInstance(context, instance);
+
+    if (json != NULL)
+    {
+      OrthancPluginAnswerBuffer(context, output, json, strlen(json), "application/json");
+      OrthancPluginFreeString(context, json);
+    }
+    else
+    {
+      return OrthancPluginErrorCode_InternalError;
+    }
+  }
+
+  return OrthancPluginErrorCode_Success;
+}
+
+
 OrthancPluginErrorCode OnStoredCallback(const OrthancPluginDicomInstance* instance,
                                         const char* instanceId)
 {
@@ -511,6 +565,7 @@ ORTHANC_PLUGINS_API int32_t OrthancPluginInitialize(OrthancPluginContext* c)
   OrthancPluginRegisterRestCallback(context, "/forward/(built-in)(/.+)", Callback5);
   OrthancPluginRegisterRestCallback(context, "/forward/(plugins)(/.+)", Callback5);
   OrthancPluginRegisterRestCallback(context, "/plugin/create", CallbackCreateDicom);
+  OrthancPluginRegisterRestCallback(context, "/instances/([^/]+)/dicom-web", CallbackDicomWeb);
 
   OrthancPluginRegisterOnStoredInstanceCallback(context, OnStoredCallback);
   OrthancPluginRegisterOnChangeCallback(context, OnChangeCallback);

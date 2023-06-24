@@ -3264,6 +3264,54 @@ TEST(ParsedDicomFile, InjectEmptyPixelData)
 }
 
 
+#include "../Sources/DicomFormat/DicomArray.h"
+TEST(ParsedDicomFile, RemoveFromPixelData)
+{
+  ParsedDicomFile dicom(true);
+  ASSERT_TRUE(dicom.GetDcmtkObject().getDataset()->putAndInsertString(DcmTag(0x7fe0, 0x0000), "").good());
+  ASSERT_TRUE(dicom.GetDcmtkObject().getDataset()->putAndInsertString(DcmTag(0x7fe0, 0x0009), "").good());
+  ASSERT_TRUE(dicom.GetDcmtkObject().getDataset()->putAndInsertUint8Array(DcmTag(0x7fe0, 0x0010), NULL, 0).good());
+  ASSERT_TRUE(dicom.GetDcmtkObject().getDataset()->putAndInsertString(DcmTag(0x7fe0, 0x0011), "").good());
+  ASSERT_TRUE(dicom.GetDcmtkObject().getDataset()->putAndInsertString(DcmTag(0x7fe1, 0x0000), "").good());
+
+  {
+    DicomMap m;
+    dicom.ExtractDicomSummary(m, 0);
+
+    ASSERT_EQ(10u, m.GetSize());
+    ASSERT_TRUE(m.HasTag(DICOM_TAG_MEDIA_STORAGE_SOP_INSTANCE_UID));
+    ASSERT_TRUE(m.HasTag(DICOM_TAG_SOP_INSTANCE_UID));
+    ASSERT_TRUE(m.HasTag(DICOM_TAG_PATIENT_ID));
+    ASSERT_TRUE(m.HasTag(DICOM_TAG_SERIES_INSTANCE_UID));
+    ASSERT_TRUE(m.HasTag(DICOM_TAG_STUDY_INSTANCE_UID));
+    ASSERT_TRUE(m.HasTag(0x7fe0, 0x0000));
+    ASSERT_TRUE(m.HasTag(0x7fe0, 0x0009));
+    ASSERT_TRUE(m.HasTag(DICOM_TAG_PIXEL_DATA));
+    ASSERT_TRUE(m.HasTag(0x7fe0, 0x0011));
+    ASSERT_TRUE(m.HasTag(0x7fe1, 0x0000));
+  }
+
+  dicom.RemoveFromPixelData();
+
+  {
+    DicomMap m;
+    dicom.ExtractDicomSummary(m, 0);
+
+    ASSERT_EQ(7u, m.GetSize());
+    ASSERT_TRUE(m.HasTag(DICOM_TAG_MEDIA_STORAGE_SOP_INSTANCE_UID));
+    ASSERT_TRUE(m.HasTag(DICOM_TAG_SOP_INSTANCE_UID));
+    ASSERT_TRUE(m.HasTag(DICOM_TAG_PATIENT_ID));
+    ASSERT_TRUE(m.HasTag(DICOM_TAG_SERIES_INSTANCE_UID));
+    ASSERT_TRUE(m.HasTag(DICOM_TAG_STUDY_INSTANCE_UID));
+    ASSERT_TRUE(m.HasTag(0x7fe0, 0x0000));
+    ASSERT_TRUE(m.HasTag(0x7fe0, 0x0009));
+    ASSERT_FALSE(m.HasTag(DICOM_TAG_PIXEL_DATA));
+    ASSERT_FALSE(m.HasTag(0x7fe0, 0x0011));
+    ASSERT_FALSE(m.HasTag(0x7fe1, 0x0000));
+  }
+}
+
+
 TEST(ParsedDicomFile, DISABLED_InjectEmptyPixelData2)
 {
   static const char* PIXEL_DATA = "7FE00010";

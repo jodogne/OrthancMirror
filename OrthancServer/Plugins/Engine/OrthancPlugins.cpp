@@ -2060,6 +2060,7 @@ namespace Orthanc
         sizeof(int32_t) != sizeof(OrthancPluginDicomWebBinaryMode) ||
         sizeof(int32_t) != sizeof(OrthancPluginStorageCommitmentFailureReason) ||
         sizeof(int32_t) != sizeof(OrthancPluginReceivedInstanceAction) ||
+        sizeof(int32_t) != sizeof(OrthancPluginLoadDicomInstanceMode) ||
         static_cast<int>(OrthancPluginDicomToJsonFlags_IncludeBinary) != static_cast<int>(DicomToJsonFlags_IncludeBinary) ||
         static_cast<int>(OrthancPluginDicomToJsonFlags_IncludePrivateTags) != static_cast<int>(DicomToJsonFlags_IncludePrivateTags) ||
         static_cast<int>(OrthancPluginDicomToJsonFlags_IncludeUnknownTags) != static_cast<int>(DicomToJsonFlags_IncludeUnknownTags) ||
@@ -2502,14 +2503,25 @@ namespace Orthanc
     std::string                            buffer_;
     std::unique_ptr<DicomInstanceToStore>  instance_;
 
-  public:
-    DicomInstanceFromBuffer(const void* buffer,
-                            size_t size)
+    void Setup(const void* buffer,
+               size_t size)
     {
       buffer_.assign(reinterpret_cast<const char*>(buffer), size);
 
       instance_.reset(DicomInstanceToStore::CreateFromBuffer(buffer_));
       instance_->SetOrigin(DicomInstanceOrigin::FromPlugins());
+    }
+
+  public:
+    DicomInstanceFromBuffer(const void* buffer,
+                            size_t size)
+    {
+      Setup(buffer, size);
+    }
+
+    DicomInstanceFromBuffer(const std::string& buffer)
+    {
+      Setup(buffer.empty() ? NULL : buffer.c_str(), buffer.size());
     }
 
     virtual bool CanBeFreed() const ORTHANC_OVERRIDE
@@ -2524,23 +2536,36 @@ namespace Orthanc
   };
 
 
-  class OrthancPlugins::DicomInstanceFromTranscoded : public IDicomInstance
+  class OrthancPlugins::DicomInstanceFromParsed : public IDicomInstance
   {
   private:
     std::unique_ptr<ParsedDicomFile>       parsed_;
     std::unique_ptr<DicomInstanceToStore>  instance_;
 
-  public:
-    explicit DicomInstanceFromTranscoded(IDicomTranscoder::DicomImage& transcoded) :
-      parsed_(transcoded.ReleaseAsParsedDicomFile())
+    void Setup(ParsedDicomFile* parsed)
     {
+      parsed_.reset(parsed);
+      
       if (parsed_.get() == NULL)
       {
-        throw OrthancException(ErrorCode_InternalError);
+        throw OrthancException(ErrorCode_NullPointer);
       }
-      
-      instance_.reset(DicomInstanceToStore::CreateFromParsedDicomFile(*parsed_));
-      instance_->SetOrigin(DicomInstanceOrigin::FromPlugins());
+      else
+      {
+        instance_.reset(DicomInstanceToStore::CreateFromParsedDicomFile(*parsed_));
+        instance_->SetOrigin(DicomInstanceOrigin::FromPlugins());
+      }
+    }
+
+  public:
+    explicit DicomInstanceFromParsed(IDicomTranscoder::DicomImage& transcoded)
+    {
+      Setup(transcoded.ReleaseAsParsedDicomFile());
+    }
+
+    explicit DicomInstanceFromParsed(ParsedDicomFile* parsed /* takes ownership */)
+    {
+      Setup(parsed);
     }
 
     virtual bool CanBeFreed() const ORTHANC_OVERRIDE
@@ -4386,7 +4411,99 @@ namespace Orthanc
     
     reinterpret_cast<PImpl::PluginHttpOutput*>(p.output)->SendMultipartItem(p.answer, p.answerSize, headers);
   }
-      
+
+
+  void OrthancPlugins::ApplyLoadDicomInstance(const _OrthancPluginLoadDicomInstance& params)
+  {
+    std::unique_ptr<IDicomInstance> target;
+    
+    switch (params.mode)
+    {
+      case OrthancPluginLoadDicomInstanceMode_WholeDicom:
+      {
+        std::string buffer;
+
+        {
+          PImpl::ServerContextLock lock(*pimpl_);
+          lock.GetContext().ReadDicom(buffer, params.instanceId);
+        }
+
+        target.reset(new DicomInstanceFromBuffer(buffer));
+        break;
+      }
+        
+      case OrthancPluginLoadDicomInstanceMode_UntilPixelData:
+      case OrthancPluginLoadDicomInstanceMode_EmptyPixelData:
+      {
+        std::unique_ptr<ParsedDicomFile> parsed;
+
+        {
+          std::string buffer;
+        
+          {
+            PImpl::ServerContextLock lock(*pimpl_);
+            if (!lock.GetContext().ReadDicomUntilPixelData(buffer, params.instanceId))
+            {
+              lock.GetContext().ReadDicom(buffer, params.instanceId);
+            }
+          }
+
+          parsed.reset(new ParsedDicomFile(buffer));
+        }
+
+        parsed->RemoveFromPixelData();
+
+        if (params.mode == OrthancPluginLoadDicomInstanceMode_EmptyPixelData)
+        {
+          ValueRepresentation vr = parsed->GuessPixelDataValueRepresentation();
+
+          // Try and retrieve the VR of pixel data from the metadata of the instance
+          {
+            PImpl::ServerContextLock lock(*pimpl_);
+
+            std::string s;
+            int64_t revision;  // unused
+            if (lock.GetContext().GetIndex().LookupMetadata(
+                  s, revision, params.instanceId,
+                  ResourceType_Instance, MetadataType_Instance_PixelDataVR))
+            {
+              if (s == "OB")
+              {
+                vr = ValueRepresentation_OtherByte;
+              }
+              else if (s == "OW")
+              {
+                vr = ValueRepresentation_OtherWord;
+              }
+              else
+              {
+                LOG(WARNING) << "Corrupted PixelDataVR metadata associated with instance "
+                             << params.instanceId << ": " << s;
+              }
+            }
+          }
+          
+          parsed->InjectEmptyPixelData(vr);
+        }
+
+        target.reset(new DicomInstanceFromParsed(parsed.release()));
+        break;
+      }
+        
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+    if (target.get() == NULL)
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+    else
+    {
+      *params.target = reinterpret_cast<OrthancPluginDicomInstance*>(target.release());
+    } 
+  }
+  
 
   void OrthancPlugins::DatabaseAnswer(const void* parameters)
   {
@@ -5279,7 +5396,7 @@ namespace Orthanc
           if (success)
           {
             *(p.target) = reinterpret_cast<OrthancPluginDicomInstance*>(
-              new DicomInstanceFromTranscoded(transcoded));
+              new DicomInstanceFromParsed(transcoded));
             return true;
           }
           else
@@ -5340,6 +5457,14 @@ namespace Orthanc
       case _OrthancPluginService_RegisterIncomingHttpRequestFilter2:
         RegisterIncomingHttpRequestFilter2(parameters);
         return true;
+
+      case _OrthancPluginService_LoadDicomInstance:
+      {
+        const _OrthancPluginLoadDicomInstance& p =
+          *reinterpret_cast<const _OrthancPluginLoadDicomInstance*>(parameters);
+        ApplyLoadDicomInstance(p);
+        return true;
+      }
 
       default:
         return false;

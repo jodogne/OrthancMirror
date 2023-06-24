@@ -89,7 +89,7 @@ namespace Orthanc
     class IDicomInstance;
     class DicomInstanceFromCallback;
     class DicomInstanceFromBuffer;
-    class DicomInstanceFromTranscoded;
+    class DicomInstanceFromParsed;
     class WebDavCollection;
     
     void RegisterRestCallback(const void* parameters,
@@ -216,6 +216,8 @@ namespace Orthanc
     void ApplySendMultipartItem(const void* parameters);
 
     void ApplySendMultipartItem2(const void* parameters);
+
+    void ApplyLoadDicomInstance(const _OrthancPluginLoadDicomInstance& parameters);
 
     void ComputeHash(_OrthancPluginService service,
                      const void* parameters);
