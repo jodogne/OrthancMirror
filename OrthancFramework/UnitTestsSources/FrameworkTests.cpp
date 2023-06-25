@@ -1311,7 +1311,7 @@ TEST(MetricsRegistry, Basic)
   {
     MetricsRegistry m;
     m.SetEnabled(false);
-    m.SetValue("hello.world", 42.5f);
+    m.SetValue("hello.world", 42);
     
     std::string s;
     m.ExportPrometheusText(s);
@@ -1329,7 +1329,7 @@ TEST(MetricsRegistry, Basic)
 
   {
     MetricsRegistry m;
-    m.SetValue("hello.world", 42.5f);
+    m.SetValue("hello.world", -42);
     ASSERT_EQ(MetricsType_Default, m.GetMetricsType("hello.world"));
     ASSERT_THROW(m.GetMetricsType("nope"), OrthancException);
     
@@ -1339,7 +1339,7 @@ TEST(MetricsRegistry, Basic)
     std::vector<std::string> t;
     Toolbox::TokenizeString(t, s, '\n');
     ASSERT_EQ(2u, t.size());
-    ASSERT_EQ("hello.world 42.5 ", t[0].substr(0, 17));
+    ASSERT_EQ("hello.world -42 ", t[0].substr(0, 16));
     ASSERT_TRUE(t[1].empty());
   }
 

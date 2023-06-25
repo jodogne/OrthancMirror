@@ -447,6 +447,7 @@ extern "C"
     _OrthancPluginService_CreateMemoryBuffer64 = 40, /* New in Orthanc 1.9.0 */
     _OrthancPluginService_CreateDicom2 = 41,         /* New in Orthanc 1.9.0 */
     _OrthancPluginService_GetDatabaseServerIdentifier = 42,         /* New in Orthanc 1.11.1 */
+    _OrthancPluginService_SetMetricsIntegerValue = 43,              /* New in Orthanc 1.12.1 */
 
     /* Registration of callbacks */
     _OrthancPluginService_RegisterRestCallback = 1000,
@@ -1746,7 +1747,8 @@ extern "C"
    * Signature of a callback function that is called by Orthanc
    * whenever a monitoring tool (such as Prometheus) asks the current
    * values of the metrics. This callback gives the plugin a chance to
-   * update its metrics, by calling OrthancPluginSetMetricsValue().
+   * update its metrics, by calling OrthancPluginSetMetricsValue() or
+   * OrthancPluginSetMetricsIntegerValue().
    * This is typically useful for metrics that are expensive to
    * acquire.
    * 
@@ -7078,11 +7080,12 @@ extern "C"
   } _OrthancPluginSetMetricsValue;
 
   /**
-   * @brief Set the value of a metrics.
+   * @brief Set the value of a floating-point metrics.
    *
-   * This function sets the value of a metrics to monitor the behavior
-   * of the plugin through tools such as Prometheus. The values of all
-   * the metrics are stored within the Orthanc context.
+   * This function sets the value of a floating-point metrics to
+   * monitor the behavior of the plugin through tools such as
+   * Prometheus. The values of all the metrics are stored within the
+   * Orthanc context.
    * 
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param name The name of the metrics to be set.
@@ -7090,6 +7093,7 @@ extern "C"
    * @param type The type of the metrics. This parameter is only taken into consideration
    * the first time this metrics is set.
    * @ingroup Toolbox
+   * @see OrthancPluginSetMetricsIntegerValue()
    **/
   ORTHANC_PLUGIN_INLINE void OrthancPluginSetMetricsValue(
     OrthancPluginContext*     context,
@@ -7115,7 +7119,8 @@ extern "C"
    * @brief Register a callback to refresh the metrics.
    *
    * This function registers a callback to refresh the metrics. The
-   * callback must make calls to OrthancPluginSetMetricsValue().
+   * callback must make calls to OrthancPluginSetMetricsValue() or
+   * OrthancPluginSetMetricsIntegerValue().
    *
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param callback The callback function to handle the refresh.
@@ -9290,6 +9295,42 @@ extern "C"
     {
       return target;
     }
+  }
+
+
+  typedef struct
+  {
+    const char*               name;
+    int64_t                   value;
+    OrthancPluginMetricsType  type;
+  } _OrthancPluginSetMetricsIntegerValue;
+
+  /**
+   * @brief Set the value of an integer metrics.
+   *
+   * This function sets the value of an integer metrics to monitor the
+   * behavior of the plugin through tools such as Prometheus. The
+   * values of all the metrics are stored within the Orthanc context.
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param name The name of the metrics to be set.
+   * @param value The value of the metrics.
+   * @param type The type of the metrics. This parameter is only taken into consideration
+   * the first time this metrics is set.
+   * @ingroup Toolbox
+   * @see OrthancPluginSetMetricsValue()
+   **/
+  ORTHANC_PLUGIN_INLINE void OrthancPluginSetMetricsIntegerValue(
+    OrthancPluginContext*     context,
+    const char*               name,
+    int64_t                   value,
+    OrthancPluginMetricsType  type)
+  {
+    _OrthancPluginSetMetricsIntegerValue params;
+    params.name = name;
+    params.value = value;
+    params.type = type;
+    context->InvokeService(context, _OrthancPluginService_SetMetricsIntegerValue, &params);
   }
 
 

@@ -37,6 +37,9 @@ General
 * Add configurations to enable/disable warnings:
   - Modifying an instance while keeping its original SOPInstanceUID: This should be avoided!
   - Modifying a study while keeping its original StudyInstanceUID: This should be avoided!
+* In Orthanc <= 1.12.0, all the metrics were floating-point.
+  Since Orthanc >= 1.12.1, all the metrics are integer.
+  => Add a data type in class MetricsRegistry.
 
 
 ============================

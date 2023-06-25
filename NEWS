@@ -12,6 +12,7 @@ Plugins
 -------
 
 * Added "OrthancPluginLoadDicomInstance()" to load DICOM instances from the database
+* Added "OrthancPluginSetMetricsIntegerValue()" to track metrics with integer values
 
 Maintenance
 -----------
@@ -22,8 +23,9 @@ Maintenance
 * Modality worklists plugin: allow searching on private tags (exact match only)
 * Fix orphan files remaining in storage when working with MaximumStorageSize
   (https://discourse.orthanc-server.org/t/issue-with-deleting-incoming-dicoms-when-maximumstoragesize-is-reached/3510)
-* When deleting a resource, its parents LastUpdate metadata are now updated.
-* Reduced the memory usage when downloading archives when "ZipLoaderThreads" > 0.
+* When deleting a resource, its parents LastUpdate metadata are now updated
+* Reduced the memory usage when downloading archives when "ZipLoaderThreads" > 0
+* Metrics are now stored as integers instead of floats to avoid precision loss in increments
 * Upgraded dependencies for static builds:
   - boost 1.82.0
 

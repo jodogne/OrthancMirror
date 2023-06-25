@@ -31,6 +31,7 @@
  * "orthanc-databases" project.
  **/
 
+#include "../../../OrthancFramework/Sources/MetricsRegistry.h"
 #include "../../Sources/Search/DatabaseConstraint.h"
 #include "../../Sources/ServerEnumerations.h"
 #include "../Include/orthanc/OrthancCPlugin.h"
@@ -71,6 +72,8 @@ namespace Orthanc
     JobStepCode Convert(OrthancPluginJobStepStatus step);
 
     StorageCommitmentFailureReason Convert(OrthancPluginStorageCommitmentFailureReason reason);
+
+    MetricsType Convert(OrthancPluginMetricsType type);
   }
 }
 

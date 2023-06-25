@@ -298,9 +298,8 @@ namespace Orthanc
   void ServerContext::PublishDicomCacheMetrics()
   {
     metricsRegistry_->SetValue("orthanc_dicom_cache_size",
-                               static_cast<float>(dicomCache_.GetCurrentSize()) / static_cast<float>(1024 * 1024));
-    metricsRegistry_->SetValue("orthanc_dicom_cache_count",
-                               static_cast<float>(dicomCache_.GetNumberOfItems()));
+                               boost::math::llround(static_cast<float>(dicomCache_.GetCurrentSize()) / static_cast<float>(1024 * 1024)));
+    metricsRegistry_->SetValue("orthanc_dicom_cache_count", dicomCache_.GetNumberOfItems());
   }
 
 
