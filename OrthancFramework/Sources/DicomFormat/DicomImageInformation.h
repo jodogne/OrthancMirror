@@ -95,5 +95,8 @@ namespace Orthanc
      * was implicitly used in Orthanc <= 1.7.2.
      **/
     static unsigned int GetUsefulTagLength();
+
+    static ValueRepresentation GuessPixelDataValueRepresentation(const DicomTransferSyntax& transferSyntax,
+                                                                 unsigned int bitsAllocated);
   };
 }

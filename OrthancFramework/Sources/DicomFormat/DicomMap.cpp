@@ -34,6 +34,7 @@
 #include "../OrthancException.h"
 #include "../Toolbox.h"
 #include "DicomArray.h"
+#include "DicomImageInformation.h"
 
 #if ORTHANC_ENABLE_DCMTK == 1
 #include "../DicomParsing/FromDcmtkBridge.h"
@@ -418,7 +419,7 @@ namespace Orthanc
     SetValueInternal(group, element, new DicomValue(str, isBinary));
   }
 
-  void DicomMap::SetValue(const DicomTag& tag, const Json::Value& value)
+  void DicomMap::SetSequenceValue(const DicomTag& tag, const Json::Value& value)
   {
     SetValueInternal(tag.GetGroup(), tag.GetElement(), new DicomValue(value));
   }
@@ -1456,7 +1457,7 @@ namespace Orthanc
         }
         else
         {
-          SetValue(tag, value["Value"]);
+          SetSequenceValue(tag, value["Value"]);
         }
       }
     }
@@ -1530,7 +1531,7 @@ namespace Orthanc
     {
       if (it->second->IsSequence())
       {
-        result.SetValue(it->first, it->second->GetSequenceContent());
+        result.SetSequenceValue(it->first, it->second->GetSequenceContent());
       }
     }
   }
@@ -1808,6 +1809,19 @@ namespace Orthanc
   }
   
 
+  ValueRepresentation DicomMap::GuessPixelDataValueRepresentation(DicomTransferSyntax transferSyntax) const
+  {
+    const DicomValue* value = TestAndGetValue(DICOM_TAG_BITS_ALLOCATED);
+
+    uint32_t bitsAllocated;
+    if (value == NULL ||
+        !value->ParseUnsignedInteger32(bitsAllocated))
+    {
+      bitsAllocated = 8;
+    }
+
+    return DicomImageInformation::GuessPixelDataValueRepresentation(transferSyntax, bitsAllocated);
+  }
   
 
   void DicomMap::Print(FILE* fp) const

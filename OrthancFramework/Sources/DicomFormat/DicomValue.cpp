@@ -66,6 +66,10 @@ namespace Orthanc
     type_(Type_SequenceAsJson),
     sequenceJson_(value)
   {
+    if (value.type() != Json::arrayValue)
+    {
+      throw OrthancException(ErrorCode_BadParameterType);
+    }
   }
   
   const std::string& DicomValue::GetContent() const
