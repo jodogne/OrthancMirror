@@ -3361,9 +3361,13 @@ namespace Orthanc
                                 boost::lexical_cast<std::string>(pixelDataOffset_));
 
             // New in Orthanc 1.12.1
-            SetInstanceMetadata(content, instanceMetadata_, instanceId,
-                                MetadataType_Instance_PixelDataVR,
-                                EnumerationToString(pixelDataVR_));
+            if (dicomSummary_.GuessPixelDataValueRepresentation(transferSyntax_) != pixelDataVR_)
+            {
+              // Store the VR of pixel data if it doesn't comply with the standard
+              SetInstanceMetadata(content, instanceMetadata_, instanceId,
+                                  MetadataType_Instance_PixelDataVR,
+                                  EnumerationToString(pixelDataVR_));
+            }
           }
       
           const DicomValue* value;

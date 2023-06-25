@@ -1101,8 +1101,6 @@ namespace Orthanc
           {
             index_.OverwriteMetadata(instancePublicId, MetadataType_Instance_PixelDataOffset,
                                      boost::lexical_cast<std::string>(pixelDataOffset));
-            index_.OverwriteMetadata(instancePublicId, MetadataType_Instance_PixelDataVR,
-                                     EnumerationToString(pixelDataVR));
 
             if (!area_.HasReadRange() ||
                 compressionEnabled_)
