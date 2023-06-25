@@ -214,24 +214,22 @@ namespace Orthanc
     }    
   }
 
-  void MetricsRegistry::SetValueInternal(const std::string& name,
-                                         float value,
-                                         MetricsType type)
-  {
-    boost::mutex::scoped_lock lock(mutex_);
 
+  MetricsRegistry::Item& MetricsRegistry::GetItemInternal(const std::string& name,
+                                                          MetricsType type)
+  {
     Content::iterator found = content_.find(name);
 
     if (found == content_.end())
     {
-      std::unique_ptr<Item> item(new Item(type));
-      item->Update(value);
-      content_[name] = item.release();
+      Item* item = new Item(type);
+      content_[name] = item;
+      return *item;
     }
     else
     {
       assert(found->second != NULL);
-      found->second->Update(value);
+      return *found->second;
     }
   }
 
@@ -248,14 +246,30 @@ namespace Orthanc
     // Inlining to avoid loosing time if metrics are disabled
     if (enabled_)
     {
-      SetValueInternal(name, value, type);
+      boost::mutex::scoped_lock lock(mutex_);
+      GetItemInternal(name, type).Update(value);
     }
   }
 
 
-  void MetricsRegistry::SetValue(const std::string &name, float value)
+  void MetricsRegistry::IncrementValue(const std::string &name,
+                                       float delta)
   {
-    SetValue(name, value, MetricsType_Default);
+    // Inlining to avoid loosing time if metrics are disabled
+    if (enabled_)
+    {
+      boost::mutex::scoped_lock lock(mutex_);
+      Item& item = GetItemInternal(name, MetricsType_Default);
+
+      if (item.HasValue())
+      {
+        item.Update(item.GetValue() + delta);
+      }
+      else
+      {
+        item.Update(delta);
+      }
+    }
   }
 
 

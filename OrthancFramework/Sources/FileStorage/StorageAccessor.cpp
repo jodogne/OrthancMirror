@@ -38,9 +38,9 @@
 #endif
 
 
-static const std::string METRICS_CREATE = "orthanc_storage_create_duration_ms";
-static const std::string METRICS_READ = "orthanc_storage_read_duration_ms";
-static const std::string METRICS_REMOVE = "orthanc_storage_remove_duration_ms";
+static const std::string METRICS_CREATE_DURATION = "orthanc_storage_create_duration_ms";
+static const std::string METRICS_READ_DURATION = "orthanc_storage_read_duration_ms";
+static const std::string METRICS_REMOVE_DURATION = "orthanc_storage_remove_duration_ms";
 
 
 namespace Orthanc
@@ -116,7 +116,7 @@ namespace Orthanc
     {
       case CompressionType_None:
       {
-        MetricsTimer timer(*this, METRICS_CREATE);
+        MetricsTimer timer(*this, METRICS_CREATE_DURATION);
 
         area_.Create(uuid, data, size, type);
         
@@ -143,7 +143,7 @@ namespace Orthanc
         }
 
         {
-          MetricsTimer timer(*this, METRICS_CREATE);
+          MetricsTimer timer(*this, METRICS_CREATE_DURATION);
 
           if (compressed.size() > 0)
           {
@@ -189,7 +189,7 @@ namespace Orthanc
       {
         case CompressionType_None:
         {
-          MetricsTimer timer(*this, METRICS_READ);
+          MetricsTimer timer(*this, METRICS_READ_DURATION);
           std::unique_ptr<IMemoryBuffer> buffer(area_.Read(info.GetUuid(), info.GetContentType()));
           buffer->MoveToString(content);
 
@@ -203,7 +203,7 @@ namespace Orthanc
           std::unique_ptr<IMemoryBuffer> compressed;
           
           {
-            MetricsTimer timer(*this, METRICS_READ);
+            MetricsTimer timer(*this, METRICS_READ_DURATION);
             compressed.reset(area_.Read(info.GetUuid(), info.GetContentType()));
           }
           
@@ -234,7 +234,7 @@ namespace Orthanc
   {
     if (cache_ == NULL || !cache_->Fetch(content, info.GetUuid(), info.GetContentType()))
     {
-      MetricsTimer timer(*this, METRICS_READ);
+      MetricsTimer timer(*this, METRICS_READ_DURATION);
       std::unique_ptr<IMemoryBuffer> buffer(area_.Read(info.GetUuid(), info.GetContentType()));
       buffer->MoveToString(content);
     }
@@ -250,7 +250,7 @@ namespace Orthanc
     }
 
     {
-      MetricsTimer timer(*this, METRICS_REMOVE);
+      MetricsTimer timer(*this, METRICS_REMOVE_DURATION);
       area_.Remove(fileUuid, type);
     }
   }
@@ -269,7 +269,7 @@ namespace Orthanc
   {
     if (cache_ == NULL || !cache_->FetchStartRange(target, fileUuid, contentType, end))
     {
-      MetricsTimer timer(*this, METRICS_READ);
+      MetricsTimer timer(*this, METRICS_READ_DURATION);
       std::unique_ptr<IMemoryBuffer> buffer(area_.ReadRange(fileUuid, contentType, 0, end));
       assert(buffer->GetSize() == end);
       buffer->MoveToString(target);
