@@ -3264,7 +3264,6 @@ TEST(ParsedDicomFile, InjectEmptyPixelData)
 }
 
 
-#include "../Sources/DicomFormat/DicomArray.h"
 TEST(ParsedDicomFile, RemoveFromPixelData)
 {
   ParsedDicomFile dicom(true);
@@ -3308,6 +3307,116 @@ TEST(ParsedDicomFile, RemoveFromPixelData)
     ASSERT_FALSE(m.HasTag(DICOM_TAG_PIXEL_DATA));
     ASSERT_FALSE(m.HasTag(0x7fe0, 0x0011));
     ASSERT_FALSE(m.HasTag(0x7fe1, 0x0000));
+  }
+}
+
+
+TEST(ParsedDicomFile, GuessPixelDataValueRepresentation)
+{
+  typedef std::list< std::pair<E_TransferSyntax, DicomTransferSyntax> > Syntaxes;
+
+  // Create a list of the main non-retired transfer syntaxes, from:
+  // https://www.dicomlibrary.com/dicom/transfer-syntax/
+  Syntaxes compressedSyntaxes;
+  compressedSyntaxes.push_back(std::make_pair(EXS_DeflatedLittleEndianExplicit, DicomTransferSyntax_DeflatedLittleEndianExplicit));
+  compressedSyntaxes.push_back(std::make_pair(EXS_JPEGProcess1, DicomTransferSyntax_JPEGProcess1));
+  compressedSyntaxes.push_back(std::make_pair(EXS_JPEGProcess2_4, DicomTransferSyntax_JPEGProcess2_4));
+  compressedSyntaxes.push_back(std::make_pair(EXS_JPEGProcess14, DicomTransferSyntax_JPEGProcess14));
+  compressedSyntaxes.push_back(std::make_pair(EXS_JPEGProcess14SV1, DicomTransferSyntax_JPEGProcess14SV1));
+  compressedSyntaxes.push_back(std::make_pair(EXS_JPEGLSLossless, DicomTransferSyntax_JPEGLSLossless));
+  compressedSyntaxes.push_back(std::make_pair(EXS_JPEGLSLossy, DicomTransferSyntax_JPEGLSLossy));
+  compressedSyntaxes.push_back(std::make_pair(EXS_JPEG2000LosslessOnly, DicomTransferSyntax_JPEG2000LosslessOnly));
+  compressedSyntaxes.push_back(std::make_pair(EXS_JPEG2000, DicomTransferSyntax_JPEG2000));
+  compressedSyntaxes.push_back(std::make_pair(EXS_JPEG2000MulticomponentLosslessOnly, DicomTransferSyntax_JPEG2000MulticomponentLosslessOnly));
+  compressedSyntaxes.push_back(std::make_pair(EXS_JPEG2000Multicomponent, DicomTransferSyntax_JPEG2000Multicomponent));
+  compressedSyntaxes.push_back(std::make_pair(EXS_JPIPReferenced, DicomTransferSyntax_JPIPReferenced));
+  compressedSyntaxes.push_back(std::make_pair(EXS_JPIPReferencedDeflate, DicomTransferSyntax_JPIPReferencedDeflate));
+  compressedSyntaxes.push_back(std::make_pair(EXS_RLELossless, DicomTransferSyntax_RLELossless));
+  compressedSyntaxes.push_back(std::make_pair(EXS_MPEG2MainProfileAtMainLevel, DicomTransferSyntax_MPEG2MainProfileAtMainLevel));
+  compressedSyntaxes.push_back(std::make_pair(EXS_MPEG4HighProfileLevel4_1, DicomTransferSyntax_MPEG4HighProfileLevel4_1));
+  compressedSyntaxes.push_back(std::make_pair(EXS_MPEG4BDcompatibleHighProfileLevel4_1, DicomTransferSyntax_MPEG4BDcompatibleHighProfileLevel4_1));
+
+  for (unsigned int i = 0; i < 3; i++)
+  {
+    unsigned int bitsAllocated;
+    switch (i)
+    {
+      case 0: bitsAllocated = 1;   break;
+      case 1: bitsAllocated = 8;   break;
+      case 2: bitsAllocated = 16;  break;
+      default:
+        throw OrthancException(ErrorCode_InternalError);
+    }
+      
+    for (Syntaxes::const_iterator it = compressedSyntaxes.begin(); it != compressedSyntaxes.end(); ++it)
+    {
+      // All the compressed transfer syntaxes must have "OB" pixel data
+      ParsedDicomFile dicom(true);
+      ASSERT_TRUE(dicom.GetDcmtkObject().getDataset()->putAndInsertUint16(DCM_BitsAllocated, bitsAllocated).good());
+      ASSERT_TRUE(dicom.GetDcmtkObject().chooseRepresentation(it->first, NULL).good());
+      dicom.GetDcmtkObject().removeAllButCurrentRepresentations();
+      DicomTransferSyntax ts;
+      ASSERT_TRUE(dicom.LookupTransferSyntax(ts));
+      ASSERT_EQ(ts, it->second);
+      ASSERT_EQ(ValueRepresentation_OtherByte, dicom.GuessPixelDataValueRepresentation());
+    }
+
+    {
+      // Little endian implicit is always OW
+      ParsedDicomFile dicom(true);
+      ASSERT_TRUE(dicom.GetDcmtkObject().getDataset()->putAndInsertUint16(DCM_BitsAllocated, bitsAllocated).good());
+      ASSERT_TRUE(dicom.GetDcmtkObject().chooseRepresentation(EXS_LittleEndianImplicit, NULL).good());
+      dicom.GetDcmtkObject().removeAllButCurrentRepresentations();
+      ASSERT_EQ(ValueRepresentation_OtherWord, dicom.GuessPixelDataValueRepresentation());
+    }
+  }
+
+  // Explicit little and big endian with <= 8 bpp is OB
+
+  for (unsigned int i = 0; i < 2; i++)
+  {
+    unsigned int bitsAllocated;
+    switch (i)
+    {
+      case 0: bitsAllocated = 1;   break;
+      case 1: bitsAllocated = 8;   break;
+      default:
+        throw OrthancException(ErrorCode_InternalError);
+    }
+    
+    {
+      ParsedDicomFile dicom(true);
+      ASSERT_TRUE(dicom.GetDcmtkObject().getDataset()->putAndInsertUint16(DCM_BitsAllocated, bitsAllocated).good());
+      ASSERT_TRUE(dicom.GetDcmtkObject().chooseRepresentation(EXS_LittleEndianExplicit, NULL).good());
+      dicom.GetDcmtkObject().removeAllButCurrentRepresentations();
+      ASSERT_EQ(ValueRepresentation_OtherByte, dicom.GuessPixelDataValueRepresentation());
+    }
+
+    {
+      ParsedDicomFile dicom(true);
+      ASSERT_TRUE(dicom.GetDcmtkObject().getDataset()->putAndInsertUint16(DCM_BitsAllocated, bitsAllocated).good());
+      ASSERT_TRUE(dicom.GetDcmtkObject().chooseRepresentation(EXS_BigEndianExplicit, NULL).good());
+      dicom.GetDcmtkObject().removeAllButCurrentRepresentations();
+      ASSERT_EQ(ValueRepresentation_OtherByte, dicom.GuessPixelDataValueRepresentation());
+    }
+  }
+
+  // Explicit little and big endian with > 8 bpp is OW
+
+  {
+    ParsedDicomFile dicom(true);
+    ASSERT_TRUE(dicom.GetDcmtkObject().getDataset()->putAndInsertUint16(DCM_BitsAllocated, 16).good());
+    ASSERT_TRUE(dicom.GetDcmtkObject().chooseRepresentation(EXS_LittleEndianExplicit, NULL).good());
+    dicom.GetDcmtkObject().removeAllButCurrentRepresentations();
+    ASSERT_EQ(ValueRepresentation_OtherWord, dicom.GuessPixelDataValueRepresentation());
+  }
+
+  {
+    ParsedDicomFile dicom(true);
+    ASSERT_TRUE(dicom.GetDcmtkObject().getDataset()->putAndInsertUint16(DCM_BitsAllocated, 16).good());
+    ASSERT_TRUE(dicom.GetDcmtkObject().chooseRepresentation(EXS_BigEndianExplicit, NULL).good());
+    dicom.GetDcmtkObject().removeAllButCurrentRepresentations();
+    ASSERT_EQ(ValueRepresentation_OtherWord, dicom.GuessPixelDataValueRepresentation());
   }
 }
 
