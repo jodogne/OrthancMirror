@@ -1027,7 +1027,7 @@ extern "C"
 
   /**
    * Mode specifying how to load a DICOM instance.
-   * @see OrthancPluginLoadDicomInstance
+   * @see OrthancPluginLoadDicomInstance()
    **/
   typedef enum
   {
@@ -1899,7 +1899,7 @@ extern "C"
    * @param expectedRevision Expected revision.
    * @return 1 if and only if the versions are compatible. If the
    * result is 0, the initialization of the plugin should fail.
-   * @see OrthancPluginCheckVersion
+   * @see OrthancPluginCheckVersion()
    * @ingroup Callbacks
    **/
   ORTHANC_PLUGIN_INLINE int  OrthancPluginCheckVersionAdvanced(
@@ -2005,7 +2005,7 @@ extern "C"
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @return 1 if and only if the versions are compatible. If the
    * result is 0, the initialization of the plugin should fail.
-   * @see OrthancPluginCheckVersionAdvanced
+   * @see OrthancPluginCheckVersionAdvanced()
    * @ingroup Callbacks
    **/
   ORTHANC_PLUGIN_INLINE int  OrthancPluginCheckVersion(
@@ -2365,7 +2365,7 @@ extern "C"
    * @param uri The URI in the built-in Orthanc API.
    * @return 0 if success, or the error code if failure.
    * @note If the resource is not existing (error 404), the error code will be OrthancPluginErrorCode_UnknownResource.
-   * @see OrthancPluginRestApiGetAfterPlugins
+   * @see OrthancPluginRestApiGetAfterPlugins()
    * @ingroup Orthanc
    **/
   ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginRestApiGet(
@@ -2395,7 +2395,7 @@ extern "C"
    * @param uri The URI in the built-in Orthanc API.
    * @return 0 if success, or the error code if failure.
    * @note If the resource is not existing (error 404), the error code will be OrthancPluginErrorCode_UnknownResource.
-   * @see OrthancPluginRestApiGet
+   * @see OrthancPluginRestApiGet()
    * @ingroup Orthanc
    **/
   ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginRestApiGetAfterPlugins(
@@ -2432,7 +2432,7 @@ extern "C"
    * @param bodySize The size of the body.
    * @return 0 if success, or the error code if failure.
    * @note If the resource is not existing (error 404), the error code will be OrthancPluginErrorCode_UnknownResource.
-   * @see OrthancPluginRestApiPostAfterPlugins
+   * @see OrthancPluginRestApiPostAfterPlugins()
    * @ingroup Orthanc
    **/
   ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginRestApiPost(
@@ -2467,7 +2467,7 @@ extern "C"
    * @param bodySize The size of the body.
    * @return 0 if success, or the error code if failure.
    * @note If the resource is not existing (error 404), the error code will be OrthancPluginErrorCode_UnknownResource.
-   * @see OrthancPluginRestApiPost
+   * @see OrthancPluginRestApiPost()
    * @ingroup Orthanc
    **/
   ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginRestApiPostAfterPlugins(
@@ -2496,7 +2496,7 @@ extern "C"
    * @param uri The URI to delete in the built-in Orthanc API.
    * @return 0 if success, or the error code if failure.
    * @note If the resource is not existing (error 404), the error code will be OrthancPluginErrorCode_UnknownResource.
-   * @see OrthancPluginRestApiDeleteAfterPlugins
+   * @see OrthancPluginRestApiDeleteAfterPlugins()
    * @ingroup Orthanc
    **/
   ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginRestApiDelete(
@@ -2519,7 +2519,7 @@ extern "C"
    * @param uri The URI to delete in the built-in Orthanc API.
    * @return 0 if success, or the error code if failure.
    * @note If the resource is not existing (error 404), the error code will be OrthancPluginErrorCode_UnknownResource.
-   * @see OrthancPluginRestApiDelete
+   * @see OrthancPluginRestApiDelete()
    * @ingroup Orthanc
    **/
   ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginRestApiDeleteAfterPlugins(
@@ -2544,7 +2544,7 @@ extern "C"
    * @param bodySize The size of the body.
    * @return 0 if success, or the error code if failure.
    * @note If the resource is not existing (error 404), the error code will be OrthancPluginErrorCode_UnknownResource.
-   * @see OrthancPluginRestApiPutAfterPlugins
+   * @see OrthancPluginRestApiPutAfterPlugins()
    * @ingroup Orthanc
    **/
   ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginRestApiPut(
@@ -2580,7 +2580,7 @@ extern "C"
    * @param bodySize The size of the body.
    * @return 0 if success, or the error code if failure.
    * @note If the resource is not existing (error 404), the error code will be OrthancPluginErrorCode_UnknownResource.
-   * @see OrthancPluginRestApiPut
+   * @see OrthancPluginRestApiPut()
    * @ingroup Orthanc
    **/
   ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginRestApiPutAfterPlugins(
@@ -5058,7 +5058,7 @@ extern "C"
    * @return The NULL value if the case of an error, or the JSON
    * string. This string must be freed by OrthancPluginFreeString().
    * @ingroup Toolbox
-   * @see OrthancPluginDicomInstanceToJson
+   * @see OrthancPluginDicomInstanceToJson()
    **/
   ORTHANC_PLUGIN_INLINE char* OrthancPluginDicomBufferToJson(
     OrthancPluginContext*           context,
@@ -5107,7 +5107,7 @@ extern "C"
    * @return The NULL value if the case of an error, or the JSON
    * string. This string must be freed by OrthancPluginFreeString().
    * @ingroup Toolbox
-   * @see OrthancPluginDicomInstanceToJson
+   * @see OrthancPluginDicomInstanceToJson()
    **/
   ORTHANC_PLUGIN_INLINE char* OrthancPluginDicomInstanceToJson(
     OrthancPluginContext*           context,
@@ -5164,7 +5164,7 @@ extern "C"
    * @param afterPlugins If 0, the built-in API of Orthanc is used.
    * If 1, the API is tainted by the plugins.
    * @return 0 if success, or the error code if failure.
-   * @see OrthancPluginRestApiGet, OrthancPluginRestApiGetAfterPlugins
+   * @see OrthancPluginRestApiGet(), OrthancPluginRestApiGetAfterPlugins()
    * @ingroup Orthanc
    **/
   ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginRestApiGet2(
@@ -5427,8 +5427,8 @@ extern "C"
    * @param flags Flags governing the output.
    * @return 0 if success, other value if error.
    * @ingroup Toolbox
-   * @see OrthancPluginCreateDicom2
-   * @see OrthancPluginDicomBufferToJson
+   * @see OrthancPluginCreateDicom2()
+   * @see OrthancPluginDicomBufferToJson()
    **/
   ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginCreateDicom(
     OrthancPluginContext*          context,
@@ -8430,7 +8430,7 @@ extern "C"
    * @return The NULL value if the case of an error, or the JSON
    * string. This string must be freed by OrthancPluginFreeString().
    * @ingroup DicomInstance
-   * @see OrthancPluginDicomBufferToJson
+   * @see OrthancPluginDicomBufferToJson()
    **/
   ORTHANC_PLUGIN_INLINE char* OrthancPluginGetInstanceAdvancedJson(
     OrthancPluginContext*              context,
@@ -8787,8 +8787,8 @@ extern "C"
    * Check out the global configuration option "Dictionary" of Orthanc.
    * @return 0 if success, other value if error.
    * @ingroup Toolbox
-   * @see OrthancPluginCreateDicom
-   * @see OrthancPluginDicomBufferToJson
+   * @see OrthancPluginCreateDicom()
+   * @see OrthancPluginDicomBufferToJson()
    **/
   ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginCreateDicom2(
     OrthancPluginContext*          context,
@@ -8855,7 +8855,7 @@ extern "C"
    * @param afterPlugins If 0, the built-in API of Orthanc is used.
    * If 1, the API is tainted by the plugins.
    * @return 0 if success, or the error code if failure.
-   * @see OrthancPluginRestApiGet2, OrthancPluginRestApiPost, OrthancPluginRestApiPut, OrthancPluginRestApiDelete
+   * @see OrthancPluginRestApiGet2(), OrthancPluginRestApiPost(), OrthancPluginRestApiPut(), OrthancPluginRestApiDelete()
    * @ingroup Orthanc
    **/
   ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginCallRestApi(
