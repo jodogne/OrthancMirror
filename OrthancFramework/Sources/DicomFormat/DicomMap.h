@@ -85,8 +85,8 @@ namespace Orthanc
                   const std::string& str,
                   bool isBinary);
 
-    void SetValue(const DicomTag& tag,
-                  const Json::Value& value);
+    void SetSequenceValue(const DicomTag& tag,
+                          const Json::Value& value);
 
     bool HasTag(uint16_t group, uint16_t element) const;
 
@@ -229,6 +229,8 @@ namespace Orthanc
 
     void DumpMainDicomTags(Json::Value& target,
                            ResourceType level) const;
+
+    ValueRepresentation GuessPixelDataValueRepresentation(DicomTransferSyntax transferSyntax) const;
 
     void Print(FILE* fp) const;  // For debugging only
   };

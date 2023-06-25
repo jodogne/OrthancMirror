@@ -76,6 +76,7 @@
 #include "Internals/DicomImageDecoder.h"
 #include "ToDcmtkBridge.h"
 
+#include "../DicomFormat/DicomImageInformation.h"
 #include "../Images/Image.h"
 #include "../Images/ImageProcessing.h"
 #include "../Images/PamReader.h"
@@ -2179,49 +2180,18 @@ namespace Orthanc
 
   ValueRepresentation ParsedDicomFile::GuessPixelDataValueRepresentation() const
   {
-    /**
-     * This approach is validated in "Tests/GuessPixelDataVR.py":
-     * https://hg.orthanc-server.com/orthanc-tests/file/tip/Tests/GuessPixelDataVR.py
-     **/
-    
     DicomTransferSyntax ts;
     if (LookupTransferSyntax(ts))
     {
-      if (ts == DicomTransferSyntax_LittleEndianExplicit ||
-          ts == DicomTransferSyntax_BigEndianExplicit)
+      DcmItem& dataset = *GetDcmtkObjectConst().getDataset();
+
+      uint16_t bitsAllocated;
+      if (!dataset.findAndGetUint16(DCM_BitsAllocated, bitsAllocated).good())
       {
-        /**
-         * Same rules apply to Little Endian Explicit and Big Endian
-         * Explicit (now retired). The VR of the pixel data directly
-         * depends upon the "Bits Allocated (0028,0100)" tag:
-         * https://dicom.nema.org/medical/dicom/current/output/chtml/part05/sect_A.2.html
-         * https://dicom.nema.org/medical/dicom/2016b/output/chtml/part05/sect_A.3.html
-         **/
-        DcmItem& dataset = *GetDcmtkObjectConst().getDataset();
-        
-        uint16_t bitsAllocated;
-        if (dataset.findAndGetUint16(DCM_BitsAllocated, bitsAllocated).good() &&
-            bitsAllocated > 8)
-        {
-          return ValueRepresentation_OtherWord;
-        }
-        else
-        {
-          return ValueRepresentation_OtherByte;
-        }
+        bitsAllocated = 8;
       }
-      else if (ts == DicomTransferSyntax_LittleEndianImplicit)
-      {
-        // Assume "OW" for DICOM Implicit VR Little Endian Transfer Syntax
-        // https://dicom.nema.org/medical/dicom/current/output/chtml/part05/chapter_A.html#sect_A.1
-        return ValueRepresentation_OtherWord;
-      }
-      else
-      {
-        // Assume "OB" for all the compressed transfer syntaxes
-        // https://dicom.nema.org/medical/dicom/current/output/chtml/part05/sect_A.4.html
-        return ValueRepresentation_OtherByte;
-      }
+
+      return DicomImageInformation::GuessPixelDataValueRepresentation(ts, bitsAllocated);
     }
     else
     {

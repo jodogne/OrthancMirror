@@ -582,8 +582,8 @@ namespace Orthanc
                           ignoreTagLength, 1);
           }
 
-          target.SetValue(DicomTag(element->getTag().getGTag(), element->getTag().getETag()),
-                          jsonSequence);
+          target.SetSequenceValue(DicomTag(element->getTag().getGTag(), element->getTag().getETag()),
+                                  jsonSequence);
         }
       }
     }

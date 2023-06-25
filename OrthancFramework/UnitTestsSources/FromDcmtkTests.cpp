@@ -37,6 +37,7 @@
 #include <gtest/gtest.h>
 
 #include "../Sources/Compatibility.h"
+#include "../Sources/DicomFormat/DicomImageInformation.h"
 #include "../Sources/DicomFormat/DicomPath.h"
 #include "../Sources/DicomNetworking/DicomFindAnswers.h"
 #include "../Sources/DicomParsing/DicomModification.h"
@@ -3351,24 +3352,55 @@ TEST(ParsedDicomFile, GuessPixelDataValueRepresentation)
     for (Syntaxes::const_iterator it = compressedSyntaxes.begin(); it != compressedSyntaxes.end(); ++it)
     {
       // All the compressed transfer syntaxes must have "OB" pixel data
-      ParsedDicomFile dicom(true);
-      ASSERT_TRUE(dicom.GetDcmtkObject().getDataset()->putAndInsertUint16(DCM_BitsAllocated, bitsAllocated).good());
-      ASSERT_TRUE(dicom.GetDcmtkObject().chooseRepresentation(it->first, NULL).good());
-      dicom.GetDcmtkObject().removeAllButCurrentRepresentations();
-      DicomTransferSyntax ts;
-      ASSERT_TRUE(dicom.LookupTransferSyntax(ts));
-      ASSERT_EQ(ts, it->second);
-      ASSERT_EQ(ValueRepresentation_OtherByte, dicom.GuessPixelDataValueRepresentation());
+      ASSERT_EQ(ValueRepresentation_OtherByte, DicomImageInformation::GuessPixelDataValueRepresentation(it->second, bitsAllocated));
+
+      {
+        DicomMap dicom;
+        dicom.SetValue(DICOM_TAG_BITS_ALLOCATED, boost::lexical_cast<std::string>(bitsAllocated), false);
+        ASSERT_EQ(ValueRepresentation_OtherByte, dicom.GuessPixelDataValueRepresentation(it->second));
+      }
+
+      {
+        DicomMap dicom;
+        ASSERT_EQ(ValueRepresentation_OtherByte, dicom.GuessPixelDataValueRepresentation(it->second));
+      }
+
+      {
+        ParsedDicomFile dicom(true);
+        ASSERT_TRUE(dicom.GetDcmtkObject().getDataset()->putAndInsertUint16(DCM_BitsAllocated, bitsAllocated).good());
+        ASSERT_TRUE(dicom.GetDcmtkObject().chooseRepresentation(it->first, NULL).good());
+        dicom.GetDcmtkObject().removeAllButCurrentRepresentations();
+        DicomTransferSyntax ts;
+        ASSERT_TRUE(dicom.LookupTransferSyntax(ts));
+        ASSERT_EQ(ts, it->second);
+        ASSERT_EQ(ValueRepresentation_OtherByte, dicom.GuessPixelDataValueRepresentation());
+      }
     }
 
     {
       // Little endian implicit is always OW
-      ParsedDicomFile dicom(true);
-      ASSERT_TRUE(dicom.GetDcmtkObject().getDataset()->putAndInsertUint16(DCM_BitsAllocated, bitsAllocated).good());
-      ASSERT_TRUE(dicom.GetDcmtkObject().chooseRepresentation(EXS_LittleEndianImplicit, NULL).good());
-      dicom.GetDcmtkObject().removeAllButCurrentRepresentations();
-      ASSERT_EQ(ValueRepresentation_OtherWord, dicom.GuessPixelDataValueRepresentation());
+      ASSERT_EQ(ValueRepresentation_OtherWord, DicomImageInformation::GuessPixelDataValueRepresentation(DicomTransferSyntax_LittleEndianImplicit, bitsAllocated));
+
+      {
+        DicomMap dicom;
+        dicom.SetValue(DICOM_TAG_BITS_ALLOCATED, boost::lexical_cast<std::string>(bitsAllocated), false);
+        ASSERT_EQ(ValueRepresentation_OtherWord, dicom.GuessPixelDataValueRepresentation(DicomTransferSyntax_LittleEndianImplicit));
+      }
+
+      {
+        DicomMap dicom;
+        ASSERT_EQ(ValueRepresentation_OtherWord, dicom.GuessPixelDataValueRepresentation(DicomTransferSyntax_LittleEndianImplicit));
+      }
+
+      {
+        ParsedDicomFile dicom(true);
+        ASSERT_TRUE(dicom.GetDcmtkObject().getDataset()->putAndInsertUint16(DCM_BitsAllocated, bitsAllocated).good());
+        ASSERT_TRUE(dicom.GetDcmtkObject().chooseRepresentation(EXS_LittleEndianImplicit, NULL).good());
+        dicom.GetDcmtkObject().removeAllButCurrentRepresentations();
+        ASSERT_EQ(ValueRepresentation_OtherWord, dicom.GuessPixelDataValueRepresentation());
+      }
     }
+
   }
 
   // Explicit little and big endian with <= 8 bpp is OB
@@ -3382,6 +3414,22 @@ TEST(ParsedDicomFile, GuessPixelDataValueRepresentation)
       case 1: bitsAllocated = 8;   break;
       default:
         throw OrthancException(ErrorCode_InternalError);
+    }
+
+    ASSERT_EQ(ValueRepresentation_OtherByte, DicomImageInformation::GuessPixelDataValueRepresentation(DicomTransferSyntax_LittleEndianExplicit, bitsAllocated));
+    ASSERT_EQ(ValueRepresentation_OtherByte, DicomImageInformation::GuessPixelDataValueRepresentation(DicomTransferSyntax_BigEndianExplicit, bitsAllocated));
+
+    {
+      DicomMap dicom;
+      dicom.SetValue(DICOM_TAG_BITS_ALLOCATED, boost::lexical_cast<std::string>(bitsAllocated), false);
+      ASSERT_EQ(ValueRepresentation_OtherByte, dicom.GuessPixelDataValueRepresentation(DicomTransferSyntax_LittleEndianExplicit));
+      ASSERT_EQ(ValueRepresentation_OtherByte, dicom.GuessPixelDataValueRepresentation(DicomTransferSyntax_BigEndianExplicit));
+    }
+
+    {
+      DicomMap dicom;
+      ASSERT_EQ(ValueRepresentation_OtherByte, dicom.GuessPixelDataValueRepresentation(DicomTransferSyntax_LittleEndianExplicit));
+      ASSERT_EQ(ValueRepresentation_OtherByte, dicom.GuessPixelDataValueRepresentation(DicomTransferSyntax_BigEndianExplicit));
     }
     
     {
@@ -3402,6 +3450,16 @@ TEST(ParsedDicomFile, GuessPixelDataValueRepresentation)
   }
 
   // Explicit little and big endian with > 8 bpp is OW
+  
+  ASSERT_EQ(ValueRepresentation_OtherWord, DicomImageInformation::GuessPixelDataValueRepresentation(DicomTransferSyntax_LittleEndianExplicit, 16));
+  ASSERT_EQ(ValueRepresentation_OtherWord, DicomImageInformation::GuessPixelDataValueRepresentation(DicomTransferSyntax_BigEndianExplicit, 16));
+
+  {
+    DicomMap dicom;
+    dicom.SetValue(DICOM_TAG_BITS_ALLOCATED, "16", false);
+    ASSERT_EQ(ValueRepresentation_OtherWord, dicom.GuessPixelDataValueRepresentation(DicomTransferSyntax_LittleEndianExplicit));
+    ASSERT_EQ(ValueRepresentation_OtherWord, dicom.GuessPixelDataValueRepresentation(DicomTransferSyntax_BigEndianExplicit));
+  }
 
   {
     ParsedDicomFile dicom(true);

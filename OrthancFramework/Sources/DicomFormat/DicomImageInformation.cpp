@@ -423,4 +423,46 @@ namespace Orthanc
   {
     return 256;
   }
+
+
+  ValueRepresentation DicomImageInformation::GuessPixelDataValueRepresentation(const DicomTransferSyntax& transferSyntax,
+                                                                               unsigned int bitsAllocated)
+  {
+    /**
+     * This approach is validated in "Tests/GuessPixelDataVR.py":
+     * https://hg.orthanc-server.com/orthanc-tests/file/tip/Tests/GuessPixelDataVR.py
+     **/
+
+    if (transferSyntax == DicomTransferSyntax_LittleEndianExplicit ||
+        transferSyntax == DicomTransferSyntax_BigEndianExplicit)
+    {
+      /**
+       * Same rules apply to Little Endian Explicit and Big Endian
+       * Explicit (now retired). The VR of the pixel data directly
+       * depends upon the "Bits Allocated (0028,0100)" tag:
+       * https://dicom.nema.org/medical/dicom/current/output/chtml/part05/sect_A.2.html
+       * https://dicom.nema.org/medical/dicom/2016b/output/chtml/part05/sect_A.3.html
+       **/
+      if (bitsAllocated > 8)
+      {
+        return ValueRepresentation_OtherWord;
+      }
+      else
+      {
+        return ValueRepresentation_OtherByte;
+      }
+    }
+    else if (transferSyntax == DicomTransferSyntax_LittleEndianImplicit)
+    {
+      // Assume "OW" for DICOM Implicit VR Little Endian Transfer Syntax
+      // https://dicom.nema.org/medical/dicom/current/output/chtml/part05/chapter_A.html#sect_A.1
+      return ValueRepresentation_OtherWord;
+    }
+    else
+    {
+      // Assume "OB" for all the compressed transfer syntaxes
+      // https://dicom.nema.org/medical/dicom/current/output/chtml/part05/sect_A.4.html
+      return ValueRepresentation_OtherByte;
+    }
+  }
 }
