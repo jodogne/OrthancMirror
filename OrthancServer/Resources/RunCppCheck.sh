@@ -12,8 +12,8 @@ cat <<EOF > /tmp/cppcheck-suppressions.txt
 constParameter:../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.cpp
 knownArgument:../../OrthancFramework/UnitTestsSources/ImageTests.cpp
 knownConditionTrueFalse:../../OrthancServer/Plugins/Engine/OrthancPlugins.cpp
-nullPointer:../../OrthancFramework/UnitTestsSources/RestApiTests.cpp:322
-stlFindInsert:../../OrthancFramework/Sources/DicomFormat/DicomMap.cpp:1475
+nullPointer:../../OrthancFramework/UnitTestsSources/RestApiTests.cpp:315
+stlFindInsert:../../OrthancFramework/Sources/DicomFormat/DicomMap.cpp:1476
 stlFindInsert:../../OrthancFramework/Sources/RestApi/RestApiCallDocumentation.cpp:165
 stlFindInsert:../../OrthancFramework/Sources/RestApi/RestApiCallDocumentation.cpp:73
 stlFindInsert:../../OrthancServer/Sources/Database/StatelessDatabaseOperations.cpp:373
@@ -22,7 +22,7 @@ stlFindInsert:../../OrthancServer/Sources/ServerJobs/MergeStudyJob.cpp:40
 stlFindInsert:../../OrthancServer/Sources/ServerJobs/SplitStudyJob.cpp:190
 stlFindInsert:../../OrthancServer/Sources/ServerJobs/ResourceModificationJob.cpp:334
 syntaxError:../../OrthancFramework/Sources/SQLite/FunctionContext.h:52
-syntaxError:../../OrthancFramework/UnitTestsSources/DicomMapTests.cpp:72
+syntaxError:../../OrthancFramework/UnitTestsSources/DicomMapTests.cpp:73
 syntaxError:../../OrthancFramework/UnitTestsSources/ZipTests.cpp:132
 syntaxError:../../OrthancServer/UnitTestsSources/UnitTestsMain.cpp:310
 uninitMemberVar:../../OrthancServer/Sources/ServerJobs/StorageCommitmentScpJob.cpp:416
@@ -36,8 +36,9 @@ assertWithSideEffect:../../OrthancServer/Plugins/Engine/OrthancPluginDatabase.cp
 assertWithSideEffect:../../OrthancServer/Plugins/Engine/OrthancPluginDatabase.cpp:1025
 assertWithSideEffect:../../OrthancServer/Sources/Database/Compatibility/DatabaseLookup.cpp:289
 assertWithSideEffect:../../OrthancServer/Sources/Database/Compatibility/DatabaseLookup.cpp:388
-assertWithSideEffect:../../OrthancServer/Sources/Database/StatelessDatabaseOperations.cpp:3526
+assertWithSideEffect:../../OrthancServer/Sources/Database/StatelessDatabaseOperations.cpp:3551
 assertWithSideEffect:../../OrthancServer/Sources/ServerJobs/ResourceModificationJob.cpp:272
+assertWithSideEffect:../../OrthancFramework/Sources/DicomNetworking/Internals/CommandDispatcher.cpp:453
 EOF
 
 ${CPPCHECK} --enable=all --quiet --std=c++11 \

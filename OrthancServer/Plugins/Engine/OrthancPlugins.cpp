@@ -2519,7 +2519,7 @@ namespace Orthanc
       Setup(buffer, size);
     }
 
-    DicomInstanceFromBuffer(const std::string& buffer)
+    explicit DicomInstanceFromBuffer(const std::string& buffer)
     {
       Setup(buffer.empty() ? NULL : buffer.c_str(), buffer.size());
     }
