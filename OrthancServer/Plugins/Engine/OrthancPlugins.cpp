@@ -5280,24 +5280,23 @@ namespace Orthanc
         const _OrthancPluginSetMetricsValue& p =
           *reinterpret_cast<const _OrthancPluginSetMetricsValue*>(parameters);
 
-        MetricsType type;
-        switch (p.type)
-        {
-          case OrthancPluginMetricsType_Default:
-            type = MetricsType_Default;
-            break;
-
-          case OrthancPluginMetricsType_Timer:
-            type = MetricsType_MaxOver10Seconds;
-            break;
-
-          default:
-            throw OrthancException(ErrorCode_ParameterOutOfRange);
-        }
-        
         {
           PImpl::ServerContextLock lock(*pimpl_);
-          lock.GetContext().GetMetricsRegistry().SetValue(p.name, p.value, type);
+          lock.GetContext().GetMetricsRegistry().SetValue(p.name, boost::math::llround(p.value),
+                                                          Plugins::Convert(p.type));
+        }
+
+        return true;
+      }
+
+      case _OrthancPluginService_SetMetricsIntegerValue:
+      {
+        const _OrthancPluginSetMetricsIntegerValue& p =
+          *reinterpret_cast<const _OrthancPluginSetMetricsIntegerValue*>(parameters);
+
+        {
+          PImpl::ServerContextLock lock(*pimpl_);
+          lock.GetContext().GetMetricsRegistry().SetValue(p.name, p.value, Plugins::Convert(p.type));
         }
 
         return true;

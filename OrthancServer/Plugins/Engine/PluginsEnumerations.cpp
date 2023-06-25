@@ -578,5 +578,21 @@ namespace Orthanc
           throw OrthancException(ErrorCode_ParameterOutOfRange);
       }
     }
+
+
+    MetricsType Convert(OrthancPluginMetricsType type)
+    {
+      switch (type)
+      {
+        case OrthancPluginMetricsType_Default:
+          return MetricsType_Default;
+
+        case OrthancPluginMetricsType_Timer:
+          return MetricsType_MaxOver10Seconds;
+
+        default:
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+    }
   }
 }

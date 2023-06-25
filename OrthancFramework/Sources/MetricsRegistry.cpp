@@ -41,9 +41,9 @@ namespace Orthanc
     MetricsType               type_;
     boost::posix_time::ptime  time_;
     bool                      hasValue_;
-    float                     value_;
+    int64_t                   value_;
     
-    void Touch(float value,
+    void Touch(int64_t value,
                const boost::posix_time::ptime& now)
     {
       hasValue_ = true;
@@ -51,12 +51,12 @@ namespace Orthanc
       time_ = now;
     }
 
-    void Touch(float value)
+    void Touch(int64_t value)
     {
       Touch(value, GetNow());
     }
 
-    void UpdateMax(float value,
+    void UpdateMax(int64_t value,
                    int duration)
     {
       if (hasValue_)
@@ -75,7 +75,7 @@ namespace Orthanc
       }
     }
     
-    void UpdateMin(float value,
+    void UpdateMin(int64_t value,
                    int duration)
     {
       if (hasValue_)
@@ -107,7 +107,7 @@ namespace Orthanc
       return type_;
     }
 
-    void Update(float value)
+    void Update(int64_t value)
     {
       switch (type_)
       {
@@ -153,7 +153,7 @@ namespace Orthanc
       }
     }
 
-    float GetValue() const
+    int64_t GetValue() const
     {
       if (hasValue_)
       {
@@ -240,7 +240,7 @@ namespace Orthanc
 
 
   void MetricsRegistry::SetValue(const std::string &name,
-                                 float value,
+                                 int64_t value,
                                  MetricsType type)
   {
     // Inlining to avoid loosing time if metrics are disabled
@@ -253,7 +253,7 @@ namespace Orthanc
 
 
   void MetricsRegistry::IncrementValue(const std::string &name,
-                                       float delta)
+                                       int64_t delta)
   {
     // Inlining to avoid loosing time if metrics are disabled
     if (enabled_)
@@ -337,7 +337,7 @@ namespace Orthanc
   {
   }
 
-  void MetricsRegistry::SharedMetrics::Add(float delta)
+  void MetricsRegistry::SharedMetrics::Add(int64_t delta)
   {
     boost::mutex::scoped_lock lock(mutex_);
     value_ += delta;
@@ -398,7 +398,7 @@ namespace Orthanc
     {
       boost::posix_time::time_duration diff = GetNow() - start_;
       registry_.SetValue(
-            name_, static_cast<float>(diff.total_milliseconds()), type_);
+            name_, static_cast<int64_t>(diff.total_milliseconds()), type_);
     }
   }
 }

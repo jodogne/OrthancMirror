@@ -35,6 +35,7 @@
 
 #include <boost/thread/mutex.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
+#include <stdint.h>
 
 namespace Orthanc
 {
@@ -75,17 +76,17 @@ namespace Orthanc
                   MetricsType type);
 
     void SetValue(const std::string& name,
-                  float value,
+                  int64_t value,
                   MetricsType type);
     
     void SetValue(const std::string& name,
-                  float value)
+                  int64_t value)
     {
       SetValue(name, value, MetricsType_Default);
     }
 
     void IncrementValue(const std::string& name,
-                        float delta);
+                        int64_t delta);
 
     MetricsType GetMetricsType(const std::string& name);
 
@@ -99,14 +100,14 @@ namespace Orthanc
       boost::mutex      mutex_;
       MetricsRegistry&  registry_;
       std::string       name_;
-      float             value_;
+      int64_t           value_;
 
     public:
       SharedMetrics(MetricsRegistry& registry,
                     const std::string& name,
                     MetricsType type);
 
-      void Add(float delta);
+      void Add(int64_t delta);
     };
 
 
