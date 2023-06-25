@@ -58,8 +58,8 @@ namespace Orthanc
     boost::mutex  mutex_;
     Content       content_;
 
-    void SetValueInternal(const std::string& name,
-                          float value,
+    // The mutex must be locked
+    Item& GetItemInternal(const std::string& name,
                           MetricsType type);
 
   public:
@@ -79,7 +79,13 @@ namespace Orthanc
                   MetricsType type);
     
     void SetValue(const std::string& name,
-                  float value);
+                  float value)
+    {
+      SetValue(name, value, MetricsType_Default);
+    }
+
+    void IncrementValue(const std::string& name,
+                        float delta);
 
     MetricsType GetMetricsType(const std::string& name);
 
