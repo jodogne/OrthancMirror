@@ -41,6 +41,8 @@
 static const std::string METRICS_CREATE_DURATION = "orthanc_storage_create_duration_ms";
 static const std::string METRICS_READ_DURATION = "orthanc_storage_read_duration_ms";
 static const std::string METRICS_REMOVE_DURATION = "orthanc_storage_remove_duration_ms";
+static const std::string METRICS_READ_BYTES = "orthanc_storage_read_bytes";
+static const std::string METRICS_WRITTEN_BYTES = "orthanc_storage_written_bytes";
 
 
 namespace Orthanc
@@ -116,9 +118,15 @@ namespace Orthanc
     {
       case CompressionType_None:
       {
-        MetricsTimer timer(*this, METRICS_CREATE_DURATION);
+        {
+          MetricsTimer timer(*this, METRICS_CREATE_DURATION);
+          area_.Create(uuid, data, size, type);
+        }
 
-        area_.Create(uuid, data, size, type);
+        if (metrics_ != NULL)
+        {
+          metrics_->IncrementValue(METRICS_WRITTEN_BYTES, size);
+        }
         
         if (cache_ != NULL)
         {
@@ -155,6 +163,11 @@ namespace Orthanc
           }
         }
 
+        if (metrics_ != NULL)
+        {
+          metrics_->IncrementValue(METRICS_WRITTEN_BYTES, compressed.size());
+        }
+
         if (cache_ != NULL)
         {
           cache_->Add(uuid, type, data, size);  // always add uncompressed data to cache
@@ -189,8 +202,18 @@ namespace Orthanc
       {
         case CompressionType_None:
         {
-          MetricsTimer timer(*this, METRICS_READ_DURATION);
-          std::unique_ptr<IMemoryBuffer> buffer(area_.Read(info.GetUuid(), info.GetContentType()));
+          std::unique_ptr<IMemoryBuffer> buffer;
+
+          {
+            MetricsTimer timer(*this, METRICS_READ_DURATION);
+            buffer.reset(area_.Read(info.GetUuid(), info.GetContentType()));
+          }
+
+          if (metrics_ != NULL)
+          {
+            metrics_->IncrementValue(METRICS_READ_BYTES, buffer->GetSize());
+          }
+
           buffer->MoveToString(content);
 
           break;
@@ -207,6 +230,11 @@ namespace Orthanc
             compressed.reset(area_.Read(info.GetUuid(), info.GetContentType()));
           }
           
+          if (metrics_ != NULL)
+          {
+            metrics_->IncrementValue(METRICS_READ_BYTES, compressed->GetSize());
+          }
+
           zlib.Uncompress(content, compressed->GetData(), compressed->GetSize());
 
           break;
@@ -234,8 +262,18 @@ namespace Orthanc
   {
     if (cache_ == NULL || !cache_->Fetch(content, info.GetUuid(), info.GetContentType()))
     {
-      MetricsTimer timer(*this, METRICS_READ_DURATION);
-      std::unique_ptr<IMemoryBuffer> buffer(area_.Read(info.GetUuid(), info.GetContentType()));
+      std::unique_ptr<IMemoryBuffer> buffer;
+
+      {
+        MetricsTimer timer(*this, METRICS_READ_DURATION);
+        buffer.reset(area_.Read(info.GetUuid(), info.GetContentType()));
+      }
+
+      if (metrics_ != NULL)
+      {
+        metrics_->IncrementValue(METRICS_READ_BYTES, buffer->GetSize());
+      }
+
       buffer->MoveToString(content);
     }
   }
@@ -269,9 +307,19 @@ namespace Orthanc
   {
     if (cache_ == NULL || !cache_->FetchStartRange(target, fileUuid, contentType, end))
     {
-      MetricsTimer timer(*this, METRICS_READ_DURATION);
-      std::unique_ptr<IMemoryBuffer> buffer(area_.ReadRange(fileUuid, contentType, 0, end));
-      assert(buffer->GetSize() == end);
+      std::unique_ptr<IMemoryBuffer> buffer;
+
+      {
+        MetricsTimer timer(*this, METRICS_READ_DURATION);
+        buffer.reset(area_.ReadRange(fileUuid, contentType, 0, end));
+        assert(buffer->GetSize() == end);
+      }
+
+      if (metrics_ != NULL)
+      {
+        metrics_->IncrementValue(METRICS_READ_BYTES, buffer->GetSize());
+      }
+
       buffer->MoveToString(target);
 
       if (cache_ != NULL)

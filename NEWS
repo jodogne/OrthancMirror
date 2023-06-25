@@ -26,6 +26,7 @@ Maintenance
 * When deleting a resource, its parents LastUpdate metadata are now updated
 * Reduced the memory usage when downloading archives when "ZipLoaderThreads" > 0
 * Metrics are now stored as integers instead of floats to avoid precision loss in increments
+* Added metrics "orthanc_storage_read_bytes" and "orthanc_storage_written_bytes"
 * Upgraded dependencies for static builds:
   - boost 1.82.0
 
