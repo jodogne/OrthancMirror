@@ -582,12 +582,14 @@ namespace Orthanc
     bool                 hasPixelData_;
     uint64_t             pixelDataOffset_;
     ValueRepresentation  pixelDataVR_;
+    DicomTransferSyntax  transferSyntax_;
     
   public:
     PixelDataVisitor() :
       hasPixelData_(false),
       pixelDataOffset_(0),
-      pixelDataVR_(ValueRepresentation_Unknown)
+      pixelDataVR_(ValueRepresentation_Unknown),
+      transferSyntax_(DicomTransferSyntax_LittleEndianImplicit) // Default DICOM transfer syntax
     {
     }
     
@@ -599,6 +601,7 @@ namespace Orthanc
 
     virtual void VisitTransferSyntax(DicomTransferSyntax transferSyntax) ORTHANC_OVERRIDE
     {
+      transferSyntax_ = transferSyntax;
     }
     
     virtual bool VisitDatasetTag(const DicomTag& tag,
@@ -611,7 +614,23 @@ namespace Orthanc
       {
         hasPixelData_ = true;
         pixelDataOffset_ = fileOffset;
-        pixelDataVR_ = vr;
+
+        if (transferSyntax_ == DicomTransferSyntax_LittleEndianImplicit)
+        {
+          // Implicit Little Endian has always "OW" VR for pixel data
+          // https://dicom.nema.org/medical/dicom/current/output/chtml/part05/chapter_A.html
+          pixelDataVR_ = ValueRepresentation_OtherWord;
+        }
+        else if (transferSyntax_ == DicomTransferSyntax_LittleEndianExplicit ||
+                 transferSyntax_ == DicomTransferSyntax_BigEndianExplicit)
+        {
+          pixelDataVR_ = vr;
+        }
+        else
+        {
+          // Compressed transfer syntaxes must always be OB
+          pixelDataVR_ = ValueRepresentation_OtherByte;
+        }
       }
 
       // Stop processing once pixel data has been passed
