@@ -67,6 +67,7 @@
 #include "PluginsEnumerations.h"
 #include "PluginsJob.h"
 
+#include <boost/math/special_functions/round.hpp>
 #include <boost/regex.hpp>
 #include <dcmtk/dcmdata/dcdict.h>
 #include <dcmtk/dcmdata/dcdicent.h>

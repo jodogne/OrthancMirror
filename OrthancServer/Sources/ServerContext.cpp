@@ -46,6 +46,7 @@
 #include "ServerToolbox.h"
 #include "StorageCommitmentReports.h"
 
+#include <boost/math/special_functions/round.hpp>
 #include <dcmtk/dcmdata/dcfilefo.h>
 #include <dcmtk/dcmnet/dimse.h>
 
