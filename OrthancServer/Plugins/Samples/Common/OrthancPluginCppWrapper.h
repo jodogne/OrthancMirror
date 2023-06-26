@@ -1264,6 +1264,11 @@ namespace OrthancPlugins
 
     ~DicomInstance();
 
+    const OrthancPluginDicomInstance* GetObject() const
+    {
+      return instance_;
+    }
+
     std::string GetRemoteAet() const;
 
     const void* GetBuffer() const
