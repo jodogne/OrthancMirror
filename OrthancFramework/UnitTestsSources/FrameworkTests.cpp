@@ -1312,7 +1312,7 @@ TEST(MetricsRegistry, Basic)
   {
     MetricsRegistry m;
     m.SetEnabled(false);
-    m.SetValue("hello.world", 42);
+    m.SetIntegerValue("hello.world", 42);
     
     std::string s;
     m.ExportPrometheusText(s);
@@ -1321,7 +1321,7 @@ TEST(MetricsRegistry, Basic)
 
   {
     MetricsRegistry m;
-    m.Register("hello.world", MetricsUpdate_Directly);
+    m.Register("hello.world", MetricsUpdatePolicy_Directly, MetricsDataType_Integer);
     
     std::string s;
     m.ExportPrometheusText(s);
@@ -1330,9 +1330,9 @@ TEST(MetricsRegistry, Basic)
 
   {
     MetricsRegistry m;
-    m.SetValue("hello.world", -42);
-    ASSERT_EQ(MetricsUpdate_Directly, m.GetMetricsUpdate("hello.world"));
-    ASSERT_THROW(m.GetMetricsUpdate("nope"), OrthancException);
+    m.SetIntegerValue("hello.world", -42);
+    ASSERT_EQ(MetricsUpdatePolicy_Directly, m.GetUpdatePolicy("hello.world"));
+    ASSERT_THROW(m.GetUpdatePolicy("nope"), OrthancException);
     
     std::string s;
     m.ExportPrometheusText(s);
@@ -1346,27 +1346,27 @@ TEST(MetricsRegistry, Basic)
 
   {
     MetricsRegistry m;
-    m.Register("hello.max", MetricsUpdate_MaxOver10Seconds);
-    m.SetValue("hello.max", 10);
-    m.SetValue("hello.max", 20);
-    m.SetValue("hello.max", -10);
-    m.SetValue("hello.max", 5);
+    m.Register("hello.max", MetricsUpdatePolicy_MaxOver10Seconds, MetricsDataType_Integer);
+    m.SetIntegerValue("hello.max", 10);
+    m.SetIntegerValue("hello.max", 20);
+    m.SetIntegerValue("hello.max", -10);
+    m.SetIntegerValue("hello.max", 5);
 
-    m.Register("hello.min", MetricsUpdate_MinOver10Seconds);
-    m.SetValue("hello.min", 10);
-    m.SetValue("hello.min", 20);
-    m.SetValue("hello.min", -10);
-    m.SetValue("hello.min", 5);
+    m.Register("hello.min", MetricsUpdatePolicy_MinOver10Seconds, MetricsDataType_Integer);
+    m.SetIntegerValue("hello.min", 10);
+    m.SetIntegerValue("hello.min", 20);
+    m.SetIntegerValue("hello.min", -10);
+    m.SetIntegerValue("hello.min", 5);
     
-    m.Register("hello.directly", MetricsUpdate_Directly);
-    m.SetValue("hello.directly", 10);
-    m.SetValue("hello.directly", 20);
-    m.SetValue("hello.directly", -10);
-    m.SetValue("hello.directly", 5);
+    m.Register("hello.directly", MetricsUpdatePolicy_Directly, MetricsDataType_Integer);
+    m.SetIntegerValue("hello.directly", 10);
+    m.SetIntegerValue("hello.directly", 20);
+    m.SetIntegerValue("hello.directly", -10);
+    m.SetIntegerValue("hello.directly", 5);
     
-    ASSERT_EQ(MetricsUpdate_MaxOver10Seconds, m.GetMetricsUpdate("hello.max"));
-    ASSERT_EQ(MetricsUpdate_MinOver10Seconds, m.GetMetricsUpdate("hello.min"));
-    ASSERT_EQ(MetricsUpdate_Directly, m.GetMetricsUpdate("hello.directly"));
+    ASSERT_EQ(MetricsUpdatePolicy_MaxOver10Seconds, m.GetUpdatePolicy("hello.max"));
+    ASSERT_EQ(MetricsUpdatePolicy_MinOver10Seconds, m.GetUpdatePolicy("hello.min"));
+    ASSERT_EQ(MetricsUpdatePolicy_Directly, m.GetUpdatePolicy("hello.directly"));
 
     std::string s;
     m.ExportPrometheusText(s);
@@ -1392,19 +1392,19 @@ TEST(MetricsRegistry, Basic)
   {
     MetricsRegistry m;
 
-    m.SetValue("a", 10);
-    m.SetValue("b", 10, MetricsUpdate_MinOver10Seconds);
+    m.SetIntegerValue("a", 10);
+    m.SetIntegerValue("b", 10, MetricsUpdatePolicy_MinOver10Seconds);
 
-    m.Register("c", MetricsUpdate_MaxOver10Seconds);
-    m.SetValue("c", 10, MetricsUpdate_MinOver10Seconds);
+    m.Register("c", MetricsUpdatePolicy_MaxOver10Seconds, MetricsDataType_Integer);
+    m.SetIntegerValue("c", 10, MetricsUpdatePolicy_MinOver10Seconds);
 
-    m.Register("d", MetricsUpdate_MaxOver10Seconds);
-    m.Register("d", MetricsUpdate_Directly);
+    m.Register("d", MetricsUpdatePolicy_MaxOver10Seconds, MetricsDataType_Integer);
+    ASSERT_THROW(m.Register("d", MetricsUpdatePolicy_Directly, MetricsDataType_Integer), OrthancException);
 
-    ASSERT_EQ(MetricsUpdate_Directly, m.GetMetricsUpdate("a"));
-    ASSERT_EQ(MetricsUpdate_MinOver10Seconds, m.GetMetricsUpdate("b"));
-    ASSERT_EQ(MetricsUpdate_MaxOver10Seconds, m.GetMetricsUpdate("c"));
-    ASSERT_EQ(MetricsUpdate_Directly, m.GetMetricsUpdate("d"));
+    ASSERT_EQ(MetricsUpdatePolicy_Directly, m.GetUpdatePolicy("a"));
+    ASSERT_EQ(MetricsUpdatePolicy_MinOver10Seconds, m.GetUpdatePolicy("b"));
+    ASSERT_EQ(MetricsUpdatePolicy_MaxOver10Seconds, m.GetUpdatePolicy("c"));
+    ASSERT_EQ(MetricsUpdatePolicy_MaxOver10Seconds, m.GetUpdatePolicy("d"));
   }
 
   {
@@ -1412,11 +1412,47 @@ TEST(MetricsRegistry, Basic)
 
     {
       MetricsRegistry::Timer t1(m, "a");
-      MetricsRegistry::Timer t2(m, "b", MetricsUpdate_MinOver10Seconds);
+      MetricsRegistry::Timer t2(m, "b", MetricsUpdatePolicy_MinOver10Seconds);
     }
 
-    ASSERT_EQ(MetricsUpdate_MaxOver10Seconds, m.GetMetricsUpdate("a"));
-    ASSERT_EQ(MetricsUpdate_MinOver10Seconds, m.GetMetricsUpdate("b"));
+    ASSERT_EQ(MetricsUpdatePolicy_MaxOver10Seconds, m.GetUpdatePolicy("a"));
+    ASSERT_EQ(MetricsUpdatePolicy_MinOver10Seconds, m.GetUpdatePolicy("b"));
+  }
+
+  {
+    MetricsRegistry m;
+    m.Register("c", MetricsUpdatePolicy_MaxOver10Seconds, MetricsDataType_Integer);
+    m.SetFloatValue("c", 100, MetricsUpdatePolicy_MinOver10Seconds);
+
+    ASSERT_EQ(MetricsUpdatePolicy_MaxOver10Seconds, m.GetUpdatePolicy("c"));
+    ASSERT_EQ(MetricsDataType_Integer, m.GetDataType("c"));
+  }
+
+  {
+    MetricsRegistry m;
+    m.Register("c", MetricsUpdatePolicy_MaxOver10Seconds, MetricsDataType_Float);
+    m.SetIntegerValue("c", 100, MetricsUpdatePolicy_MinOver10Seconds);
+
+    ASSERT_EQ(MetricsUpdatePolicy_MaxOver10Seconds, m.GetUpdatePolicy("c"));
+    ASSERT_EQ(MetricsDataType_Float, m.GetDataType("c"));
+  }
+
+  {
+    MetricsRegistry m;
+    m.SetIntegerValue("c", 100, MetricsUpdatePolicy_MinOver10Seconds);
+    m.SetFloatValue("c", 101, MetricsUpdatePolicy_MaxOver10Seconds);
+
+    ASSERT_EQ(MetricsUpdatePolicy_MinOver10Seconds, m.GetUpdatePolicy("c"));
+    ASSERT_EQ(MetricsDataType_Integer, m.GetDataType("c"));
+  }
+
+  {
+    MetricsRegistry m;
+    m.SetIntegerValue("c", 100);
+    m.SetFloatValue("c", 101, MetricsUpdatePolicy_MaxOver10Seconds);
+
+    ASSERT_EQ(MetricsUpdatePolicy_Directly, m.GetUpdatePolicy("c"));
+    ASSERT_EQ(MetricsDataType_Integer, m.GetDataType("c"));
   }
 }
 #endif

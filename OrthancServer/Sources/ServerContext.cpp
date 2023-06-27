@@ -46,7 +46,6 @@
 #include "ServerToolbox.h"
 #include "StorageCommitmentReports.h"
 
-#include <boost/math/special_functions/round.hpp>
 #include <dcmtk/dcmdata/dcfilefo.h>
 #include <dcmtk/dcmnet/dimse.h>
 
@@ -298,9 +297,9 @@ namespace Orthanc
 
   void ServerContext::PublishDicomCacheMetrics()
   {
-    metricsRegistry_->SetValue("orthanc_dicom_cache_size",
-                               boost::math::llround(static_cast<float>(dicomCache_.GetCurrentSize()) / static_cast<float>(1024 * 1024)));
-    metricsRegistry_->SetValue("orthanc_dicom_cache_count", dicomCache_.GetNumberOfItems());
+    metricsRegistry_->SetFloatValue("orthanc_dicom_cache_size",
+                                    static_cast<float>(dicomCache_.GetCurrentSize()) / static_cast<float>(1024 * 1024));
+    metricsRegistry_->SetIntegerValue("orthanc_dicom_cache_count", dicomCache_.GetNumberOfItems());
   }
 
 
