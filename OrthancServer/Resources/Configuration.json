@@ -852,9 +852,9 @@
 
   // If "DeidentifyLogs" is true, this sets the DICOM standard to
   // follow for the deidentification/anonymization of the query
-  // contents. Possible values are "2008", "2017c" and "2021b" (new
-  // in Orthanc 1.8.2)
-  "DeidentifyLogsDicomVersion" : "2021b",
+  // contents. Possible values are "2008", "2017c", "2021b" (new
+  // in Orthanc 1.8.2), and "2023b" (new in Orthanc 1.12.1)
+  "DeidentifyLogsDicomVersion" : "2023b",
 
   // Maximum length of the PDU (Protocol Data Unit) in the DICOM
   // network protocol, expressed in bytes. This value affects both

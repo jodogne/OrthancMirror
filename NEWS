@@ -1,6 +1,12 @@
 Pending changes in the mainline
 ===============================
 
+General
+-------
+
+* Orthanc now anonymizes according to Basic Profile of PS 3.15-2023b Table E.1-1
+* Added metrics "orthanc_storage_read_bytes" and "orthanc_storage_written_bytes"
+
 REST API
 --------
 
@@ -26,7 +32,6 @@ Maintenance
 * When deleting a resource, its parents LastUpdate metadata are now updated
 * Reduced the memory usage when downloading archives when "ZipLoaderThreads" > 0
 * Metrics are now stored as integers instead of floats to avoid precision loss in increments
-* Added metrics "orthanc_storage_read_bytes" and "orthanc_storage_written_bytes"
 * Upgraded dependencies for static builds:
   - boost 1.82.0
 

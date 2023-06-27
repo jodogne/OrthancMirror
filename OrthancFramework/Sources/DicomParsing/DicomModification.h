@@ -179,6 +179,8 @@ namespace Orthanc
 
     void SetupAnonymization2021b();
 
+    void SetupAnonymization2023b();
+
     void UnserializeUidMap(ResourceType level,
                            const Json::Value& serialized,
                            const char* field);
