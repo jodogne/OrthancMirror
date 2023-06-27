@@ -725,7 +725,7 @@ TEST_F(OrthancJobsSerialization, Operations)
 
   {
     std::unique_ptr<DicomModification> modification(new DicomModification);
-    modification->SetupAnonymization(DicomVersion_2021b);
+    modification->SetupAnonymization(DicomVersion_2023b);
     
     ModifyInstanceOperation operation(GetContext(), RequestOrigin_Lua, modification.release());
 

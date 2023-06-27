@@ -620,7 +620,8 @@ namespace Orthanc
   {
     DicomVersion_2008,
     DicomVersion_2017c,
-    DicomVersion_2021b
+    DicomVersion_2021b,
+    DicomVersion_2023b
   };
 
   enum ModalityManufacturer

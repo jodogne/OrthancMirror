@@ -878,15 +878,15 @@ namespace Orthanc
     {
       case DicomVersion_2008:
         return "2008";
-        break;
 
       case DicomVersion_2017c:
         return "2017c";
-        break;
 
       case DicomVersion_2021b:
         return "2021b";
-        break;
+
+      case DicomVersion_2023b:
+        return "2023b";
 
       default: 
         throw OrthancException(ErrorCode_ParameterOutOfRange);
@@ -1641,6 +1641,10 @@ namespace Orthanc
     else if (version == "2021b")
     {
       return DicomVersion_2021b;
+    }
+    else if (version == "2023b")
+    {
+      return DicomVersion_2023b;
     }
     else
     {

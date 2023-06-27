@@ -43,6 +43,9 @@ static const std::string ORTHANC_DEIDENTIFICATION_METHOD_2017c =
 static const std::string ORTHANC_DEIDENTIFICATION_METHOD_2021b =
   "Orthanc " ORTHANC_VERSION " - PS 3.15-2021b Table E.1-1 Basic Profile";
 
+static const std::string ORTHANC_DEIDENTIFICATION_METHOD_2023b =
+  "Orthanc " ORTHANC_VERSION " - PS 3.15-2023b Table E.1-1 Basic Profile";
+
 namespace Orthanc
 {
   namespace
@@ -427,7 +430,8 @@ namespace Orthanc
 
       if (it->second->asString() == ORTHANC_DEIDENTIFICATION_METHOD_2008 ||
           it->second->asString() == ORTHANC_DEIDENTIFICATION_METHOD_2017c ||
-          it->second->asString() == ORTHANC_DEIDENTIFICATION_METHOD_2021b)
+          it->second->asString() == ORTHANC_DEIDENTIFICATION_METHOD_2021b ||
+          it->second->asString() == ORTHANC_DEIDENTIFICATION_METHOD_2023b)
       {
         delete it->second;
         replacements_.erase(it);
@@ -831,15 +835,32 @@ namespace Orthanc
      * generated automatically by calling:
      * "../../../OrthancServer/Resources/GenerateAnonymizationProfile.py
      * https://raw.githubusercontent.com/jodogne/dicom-specification/master/2021b/part15.xml"
-     *
-     * http://dicom.nema.org/medical/dicom/2021b/output/chtml/part15/chapter_E.html#table_E.1-1a
-     * http://dicom.nema.org/medical/dicom/2021b/output/chtml/part15/chapter_E.html#table_E.1-1
      **/
     
 #include "DicomModification_Anonymization2021b.impl.h"
     
     // Set the DeidentificationMethod tag
     ReplaceInternal(DICOM_TAG_DEIDENTIFICATION_METHOD, ORTHANC_DEIDENTIFICATION_METHOD_2021b);
+  }
+  
+
+  void DicomModification::SetupAnonymization2023b()
+  {
+    /**
+     * This is Table E.1-1 from PS 3.15-2023b (DICOM Part 15: Security
+     * and System Management Profiles), "basic profile" column. It was
+     * generated automatically by calling:
+     * "../../../OrthancServer/Resources/GenerateAnonymizationProfile.py
+     * https://raw.githubusercontent.com/jodogne/dicom-specification/master/2023b/part15.xml"
+     *
+     * http://dicom.nema.org/medical/dicom/current/output/chtml/part15/chapter_E.html#table_E.1-1a
+     * http://dicom.nema.org/medical/dicom/current/output/chtml/part15/chapter_E.html#table_E.1-1
+     **/
+    
+#include "DicomModification_Anonymization2023b.impl.h"
+    
+    // Set the DeidentificationMethod tag
+    ReplaceInternal(DICOM_TAG_DEIDENTIFICATION_METHOD, ORTHANC_DEIDENTIFICATION_METHOD_2023b);
   }
   
 
@@ -872,6 +893,10 @@ namespace Orthanc
 
       case DicomVersion_2021b:
         SetupAnonymization2021b();
+        break;
+
+      case DicomVersion_2023b:
+        SetupAnonymization2023b();
         break;
 
       default:
@@ -1344,7 +1369,9 @@ namespace Orthanc
       
     // DicomVersion version = DicomVersion_2008;   // For Orthanc <= 1.2.0
     // DicomVersion version = DicomVersion_2017c;  // For Orthanc between 1.3.0 and 1.9.3
-    DicomVersion version = DicomVersion_2021b;     // For Orthanc >= 1.9.4
+    // DicomVersion version = DicomVersion_2021b;  // For Orthanc >= 1.9.4
+    DicomVersion version = DicomVersion_2023b;     // For Orthanc >= 1.12.1
+    
     if (request.isMember("DicomVersion"))
     {
       if (request["DicomVersion"].type() != Json::stringValue)

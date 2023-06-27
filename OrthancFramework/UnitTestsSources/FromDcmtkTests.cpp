@@ -2772,7 +2772,7 @@ TEST(ParsedDicomFile, DicomPath)
 
     {
       DicomModification modif;
-      modif.SetupAnonymization(DicomVersion_2021b);
+      modif.SetupAnonymization(DicomVersion_2023b);
       modif.Apply(*dicom1);
       modif.Apply(*dicom2);
     }
@@ -2799,7 +2799,7 @@ TEST(ParsedDicomFile, DicomPath)
 
     {
       DicomModification modif;
-      modif.SetupAnonymization(DicomVersion_2021b);
+      modif.SetupAnonymization(DicomVersion_2023b);
       modif.Keep(DicomPath::Parse("ReferencedImageSequence[1].ReferencedSOPInstanceUID"));
       modif.Keep(DicomPath::Parse("RelatedSeriesSequence"));
       modif.Apply(*dicom);

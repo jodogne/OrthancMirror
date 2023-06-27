@@ -26,7 +26,7 @@ import sys
 import xml.etree.ElementTree as ET
 
 # Usage:
-# ./GenerateAnonymizationProfile.py https://raw.githubusercontent.com/jodogne/dicom-specification/master/2021b/part15.xml
+# ./GenerateAnonymizationProfile.py https://raw.githubusercontent.com/jodogne/dicom-specification/master/2023b/part15.xml > ../../OrthancFramework/Sources/DicomParsing/DicomModification_Anonymization2023b.impl.h
 
 if len(sys.argv) != 2:
     raise Exception('Please provide the path or the URL to the part15.xml file from the DICOM standard')
