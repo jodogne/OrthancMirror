@@ -43,54 +43,41 @@ namespace Orthanc
     bool                      hasValue_;
     int64_t                   value_;
     
-    void Touch(int64_t value,
-               const boost::posix_time::ptime& now)
+    void SetValue(int64_t value,
+                  const boost::posix_time::ptime& now)
     {
       hasValue_ = true;
       value_ = value;
       time_ = now;
     }
 
-    void Touch(int64_t value)
-    {
-      Touch(value, GetNow());
-    }
-
-    void UpdateMax(int64_t value,
-                   int duration)
+    bool IsLargerOverPeriod(int64_t value,
+                            int duration,
+                            const boost::posix_time::ptime& now) const
     {
       if (hasValue_)
       {
-        const boost::posix_time::ptime now = GetNow();
-
-        if (value > value_ ||
-            (now - time_).total_seconds() > duration)
-        {
-          Touch(value, now);
-        }
+        return (value > value_ ||
+                (now - time_).total_seconds() > duration /* old value has expired */);
       }
       else
       {
-        Touch(value);
+        return true;  // No value yet
       }
     }
-    
-    void UpdateMin(int64_t value,
-                   int duration)
+
+    bool IsSmallerOverPeriod(int64_t value,
+                             int duration,
+                             const boost::posix_time::ptime& now) const
     {
       if (hasValue_)
       {
-        const boost::posix_time::ptime now = GetNow();
-        
-        if (value < value_ ||
-            (now - time_).total_seconds() > duration)
-        {
-          Touch(value, now);
-        }
+        return (value < value_ ||
+                (now - time_).total_seconds() > duration /* old value has expired */);
       }
       else
       {
-        Touch(value);
+        return true;  // No value yet
       }
     }
 
@@ -109,26 +96,40 @@ namespace Orthanc
 
     void Update(int64_t value)
     {
+      const boost::posix_time::ptime now = GetNow();
+
       switch (type_)
       {
         case MetricsType_Default:
-          Touch(value);
+          SetValue(value, now);
           break;
           
         case MetricsType_MaxOver10Seconds:
-          UpdateMax(value, 10);
+          if (IsLargerOverPeriod(value, 10, now))
+          {
+            SetValue(value, now);
+          }
           break;
 
         case MetricsType_MaxOver1Minute:
-          UpdateMax(value, 60);
+          if (IsLargerOverPeriod(value, 60, now))
+          {
+            SetValue(value, now);
+          }
           break;
 
         case MetricsType_MinOver10Seconds:
-          UpdateMin(value, 10);
+          if (IsSmallerOverPeriod(value, 10, now))
+          {
+            SetValue(value, now);
+          }
           break;
 
         case MetricsType_MinOver1Minute:
-          UpdateMin(value, 60);
+          if (IsSmallerOverPeriod(value, 60, now))
+          {
+            SetValue(value, now);
+          }
           break;
 
         default:
