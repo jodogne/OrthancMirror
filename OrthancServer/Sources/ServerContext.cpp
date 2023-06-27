@@ -1144,13 +1144,23 @@ namespace Orthanc
   bool ServerContext::ReadDicomUntilPixelData(std::string& dicom,
                                               const std::string& instancePublicId)
   {
+    FileInfo attachment;
+    int64_t revision;  // Ignored
+    if (index_.LookupAttachment(attachment, revision, instancePublicId, FileContentType_DicomUntilPixelData))
+    {
+      StorageAccessor accessor(area_, storageCache_, GetMetricsRegistry());
+
+      accessor.Read(dicom, attachment);
+      assert(dicom.size() == attachment.GetUncompressedSize());
+
+      return true;
+    }
+
     if (!area_.HasReadRange())
     {
       return false;
     }
     
-    FileInfo attachment;
-    int64_t revision;  // Ignored
     if (!index_.LookupAttachment(attachment, revision, instancePublicId, FileContentType_Dicom))
     {
       throw OrthancException(ErrorCode_InternalError,
