@@ -39,13 +39,13 @@
 
 namespace Orthanc
 {
-  enum MetricsType
+  enum MetricsUpdate
   {
-    MetricsType_Default,
-    MetricsType_MaxOver10Seconds,
-    MetricsType_MaxOver1Minute,
-    MetricsType_MinOver10Seconds,
-    MetricsType_MinOver1Minute
+    MetricsUpdate_Directly,
+    MetricsUpdate_MaxOver10Seconds,
+    MetricsUpdate_MaxOver1Minute,
+    MetricsUpdate_MinOver10Seconds,
+    MetricsUpdate_MinOver1Minute
   };
   
   class ORTHANC_PUBLIC MetricsRegistry : public boost::noncopyable
@@ -61,7 +61,7 @@ namespace Orthanc
 
     // The mutex must be locked
     Item& GetItemInternal(const std::string& name,
-                          MetricsType type);
+                          MetricsUpdate update);
 
   public:
     MetricsRegistry();
@@ -73,22 +73,22 @@ namespace Orthanc
     void SetEnabled(bool enabled);
 
     void Register(const std::string& name,
-                  MetricsType type);
+                  MetricsUpdate update);
 
     void SetValue(const std::string& name,
                   int64_t value,
-                  MetricsType type);
+                  MetricsUpdate update);
     
     void SetValue(const std::string& name,
                   int64_t value)
     {
-      SetValue(name, value, MetricsType_Default);
+      SetValue(name, value, MetricsUpdate_Directly);
     }
 
     void IncrementValue(const std::string& name,
                         int64_t delta);
 
-    MetricsType GetMetricsType(const std::string& name);
+    MetricsUpdate GetMetricsUpdate(const std::string& name);
 
     // https://prometheus.io/docs/instrumenting/exposition_formats/#text-based-format
     void ExportPrometheusText(std::string& s);
@@ -105,7 +105,7 @@ namespace Orthanc
     public:
       SharedMetrics(MetricsRegistry& registry,
                     const std::string& name,
-                    MetricsType type);
+                    MetricsUpdate update);
 
       void Add(int64_t delta);
     };
@@ -128,7 +128,7 @@ namespace Orthanc
     private:
       MetricsRegistry&          registry_;
       std::string               name_;
-      MetricsType               type_;
+      MetricsUpdate             update_;
       bool                      active_;
       boost::posix_time::ptime  start_;
 
@@ -140,7 +140,7 @@ namespace Orthanc
 
       Timer(MetricsRegistry& registry,
             const std::string& name,
-            MetricsType type);
+            MetricsUpdate update);
 
       ~Timer();
     };

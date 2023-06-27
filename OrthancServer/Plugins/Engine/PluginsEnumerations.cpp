@@ -580,15 +580,15 @@ namespace Orthanc
     }
 
 
-    MetricsType Convert(OrthancPluginMetricsType type)
+    MetricsUpdate Convert(OrthancPluginMetricsType type)
     {
       switch (type)
       {
         case OrthancPluginMetricsType_Default:
-          return MetricsType_Default;
+          return MetricsUpdate_Directly;
 
         case OrthancPluginMetricsType_Timer:
-          return MetricsType_MaxOver10Seconds;
+          return MetricsUpdate_MaxOver10Seconds;
 
         default:
           throw OrthancException(ErrorCode_ParameterOutOfRange);

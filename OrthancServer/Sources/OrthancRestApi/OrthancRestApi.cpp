@@ -259,7 +259,7 @@ namespace Orthanc
     resetRequestReceived_(false),
     activeRequests_(context.GetMetricsRegistry(), 
                     "orthanc_rest_api_active_requests", 
-                    MetricsType_MaxOver10Seconds)
+                    MetricsUpdate_MaxOver10Seconds)
   {
     RegisterSystem(orthancExplorerEnabled);
 

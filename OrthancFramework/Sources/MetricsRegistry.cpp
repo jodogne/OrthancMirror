@@ -35,10 +35,10 @@ namespace Orthanc
     return boost::posix_time::microsec_clock::universal_time();
   }
 
-  class MetricsRegistry::Item
+  class MetricsRegistry::Item : public boost::noncopyable
   {
   private:
-    MetricsType               type_;
+    MetricsUpdate             update_;
     boost::posix_time::ptime  time_;
     bool                      hasValue_;
     int64_t                   value_;
@@ -82,50 +82,50 @@ namespace Orthanc
     }
 
   public:
-    explicit Item(MetricsType type) :
-      type_(type),
+    explicit Item(MetricsUpdate update) :
+      update_(update),
       hasValue_(false),
       value_(0)
     {
     }
 
-    MetricsType GetType() const
+    MetricsUpdate GetUpdate() const
     {
-      return type_;
+      return update_;
     }
 
     void Update(int64_t value)
     {
       const boost::posix_time::ptime now = GetNow();
 
-      switch (type_)
+      switch (update_)
       {
-        case MetricsType_Default:
+        case MetricsUpdate_Directly:
           SetValue(value, now);
           break;
           
-        case MetricsType_MaxOver10Seconds:
+        case MetricsUpdate_MaxOver10Seconds:
           if (IsLargerOverPeriod(value, 10, now))
           {
             SetValue(value, now);
           }
           break;
 
-        case MetricsType_MaxOver1Minute:
+        case MetricsUpdate_MaxOver1Minute:
           if (IsLargerOverPeriod(value, 60, now))
           {
             SetValue(value, now);
           }
           break;
 
-        case MetricsType_MinOver10Seconds:
+        case MetricsUpdate_MinOver10Seconds:
           if (IsSmallerOverPeriod(value, 10, now))
           {
             SetValue(value, now);
           }
           break;
 
-        case MetricsType_MinOver1Minute:
+        case MetricsUpdate_MinOver1Minute:
           if (IsSmallerOverPeriod(value, 60, now))
           {
             SetValue(value, now);
@@ -191,7 +191,7 @@ namespace Orthanc
 
 
   void MetricsRegistry::Register(const std::string& name,
-                                 MetricsType type)
+                                 MetricsUpdate update)
   {
     boost::mutex::scoped_lock lock(mutex_);
 
@@ -199,7 +199,7 @@ namespace Orthanc
 
     if (found == content_.end())
     {
-      content_[name] = new Item(type);
+      content_[name] = new Item(update);
     }
     else
     {
@@ -207,23 +207,23 @@ namespace Orthanc
 
       // This metrics already exists: Only recreate it if there is a
       // mismatch in the type of metrics
-      if (found->second->GetType() != type)
+      if (found->second->GetUpdate() != update)
       {
         delete found->second;
-        found->second = new Item(type);
+        found->second = new Item(update);
       }
     }    
   }
 
 
   MetricsRegistry::Item& MetricsRegistry::GetItemInternal(const std::string& name,
-                                                          MetricsType type)
+                                                          MetricsUpdate update)
   {
     Content::iterator found = content_.find(name);
 
     if (found == content_.end())
     {
-      Item* item = new Item(type);
+      Item* item = new Item(update);
       content_[name] = item;
       return *item;
     }
@@ -242,13 +242,13 @@ namespace Orthanc
 
   void MetricsRegistry::SetValue(const std::string &name,
                                  int64_t value,
-                                 MetricsType type)
+                                 MetricsUpdate update)
   {
     // Inlining to avoid loosing time if metrics are disabled
     if (enabled_)
     {
       boost::mutex::scoped_lock lock(mutex_);
-      GetItemInternal(name, type).Update(value);
+      GetItemInternal(name, update).Update(value);
     }
   }
 
@@ -260,7 +260,7 @@ namespace Orthanc
     if (enabled_)
     {
       boost::mutex::scoped_lock lock(mutex_);
-      Item& item = GetItemInternal(name, MetricsType_Default);
+      Item& item = GetItemInternal(name, MetricsUpdate_Directly);
 
       if (item.HasValue())
       {
@@ -274,7 +274,7 @@ namespace Orthanc
   }
 
 
-  MetricsType MetricsRegistry::GetMetricsType(const std::string& name)
+  MetricsUpdate MetricsRegistry::GetMetricsUpdate(const std::string& name)
   {
     boost::mutex::scoped_lock lock(mutex_);
 
@@ -287,7 +287,7 @@ namespace Orthanc
     else
     {
       assert(found->second != NULL);
-      return found->second->GetType();
+      return found->second->GetUpdate();
     }
   }
 
@@ -331,7 +331,7 @@ namespace Orthanc
 
   MetricsRegistry::SharedMetrics::SharedMetrics(MetricsRegistry &registry,
                                                 const std::string &name,
-                                                MetricsType type) :
+                                                MetricsUpdate update) :
     registry_(registry),
     name_(name),
     value_(0)
@@ -376,7 +376,7 @@ namespace Orthanc
                                 const std::string &name) :
     registry_(registry),
     name_(name),
-    type_(MetricsType_MaxOver10Seconds)
+    update_(MetricsUpdate_MaxOver10Seconds)
   {
     Start();
   }
@@ -384,10 +384,10 @@ namespace Orthanc
 
   MetricsRegistry::Timer::Timer(MetricsRegistry &registry,
                                 const std::string &name,
-                                MetricsType type) :
+                                MetricsUpdate update) :
     registry_(registry),
     name_(name),
-    type_(type)
+    update_(update)
   {
     Start();
   }
@@ -399,7 +399,7 @@ namespace Orthanc
     {
       boost::posix_time::time_duration diff = GetNow() - start_;
       registry_.SetValue(
-            name_, static_cast<int64_t>(diff.total_milliseconds()), type_);
+        name_, static_cast<int64_t>(diff.total_milliseconds()), update_);
     }
   }
 }
