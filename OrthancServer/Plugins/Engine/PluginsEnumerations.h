@@ -73,7 +73,7 @@ namespace Orthanc
 
     StorageCommitmentFailureReason Convert(OrthancPluginStorageCommitmentFailureReason reason);
 
-    MetricsType Convert(OrthancPluginMetricsType type);
+    MetricsUpdate Convert(OrthancPluginMetricsType type);
   }
 }
 
