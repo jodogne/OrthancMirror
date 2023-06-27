@@ -5299,8 +5299,7 @@ namespace Orthanc
 
         {
           PImpl::ServerContextLock lock(*pimpl_);
-          lock.GetContext().GetMetricsRegistry().SetValue(p.name, boost::math::llround(p.value),
-                                                          Plugins::Convert(p.type));
+          lock.GetContext().GetMetricsRegistry().SetFloatValue(p.name, p.value, Plugins::Convert(p.type));
         }
 
         return true;
@@ -5313,7 +5312,7 @@ namespace Orthanc
 
         {
           PImpl::ServerContextLock lock(*pimpl_);
-          lock.GetContext().GetMetricsRegistry().SetValue(p.name, p.value, Plugins::Convert(p.type));
+          lock.GetContext().GetMetricsRegistry().SetIntegerValue(p.name, p.value, Plugins::Convert(p.type));
         }
 
         return true;

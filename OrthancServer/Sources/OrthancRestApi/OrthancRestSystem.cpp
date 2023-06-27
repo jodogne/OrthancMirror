@@ -32,7 +32,6 @@
 #include "../ServerContext.h"
 
 #include <boost/algorithm/string/predicate.hpp>
-#include <boost/math/special_functions/round.hpp>
 
 
 namespace Orthanc
@@ -914,19 +913,19 @@ namespace Orthanc
     context.GetIndex().GetLastChange(lastChange);
 
     MetricsRegistry& registry = context.GetMetricsRegistry();
-    registry.SetValue("orthanc_disk_size_mb", boost::math::llround(static_cast<float>(diskSize) / MEGA_BYTES));
-    registry.SetValue("orthanc_uncompressed_size_mb", boost::math::llround(static_cast<float>(diskSize) / MEGA_BYTES));
-    registry.SetValue("orthanc_count_patients", static_cast<int64_t>(countPatients));
-    registry.SetValue("orthanc_count_studies", static_cast<int64_t>(countStudies));
-    registry.SetValue("orthanc_count_series", static_cast<int64_t>(countSeries));
-    registry.SetValue("orthanc_count_instances", static_cast<int64_t>(countInstances));
-    registry.SetValue("orthanc_jobs_pending", jobsPending);
-    registry.SetValue("orthanc_jobs_running", jobsRunning);
-    registry.SetValue("orthanc_jobs_completed", jobsSuccess + jobsFailed);
-    registry.SetValue("orthanc_jobs_success", jobsSuccess);
-    registry.SetValue("orthanc_jobs_failed", jobsFailed);
-    registry.SetValue("orthanc_up_time_s", serverUpTime);
-    registry.SetValue("orthanc_last_change", lastChange["Last"].asInt64());
+    registry.SetFloatValue("orthanc_disk_size_mb", static_cast<float>(diskSize) / MEGA_BYTES);
+    registry.SetFloatValue("orthanc_uncompressed_size_mb", static_cast<float>(diskSize) / MEGA_BYTES);
+    registry.SetIntegerValue("orthanc_count_patients", static_cast<int64_t>(countPatients));
+    registry.SetIntegerValue("orthanc_count_studies", static_cast<int64_t>(countStudies));
+    registry.SetIntegerValue("orthanc_count_series", static_cast<int64_t>(countSeries));
+    registry.SetIntegerValue("orthanc_count_instances", static_cast<int64_t>(countInstances));
+    registry.SetIntegerValue("orthanc_jobs_pending", jobsPending);
+    registry.SetIntegerValue("orthanc_jobs_running", jobsRunning);
+    registry.SetIntegerValue("orthanc_jobs_completed", jobsSuccess + jobsFailed);
+    registry.SetIntegerValue("orthanc_jobs_success", jobsSuccess);
+    registry.SetIntegerValue("orthanc_jobs_failed", jobsFailed);
+    registry.SetIntegerValue("orthanc_up_time_s", serverUpTime);
+    registry.SetIntegerValue("orthanc_last_change", lastChange["Last"].asInt64());
 
     std::string s;
     registry.ExportPrometheusText(s);

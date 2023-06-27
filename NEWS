@@ -31,7 +31,7 @@ Maintenance
   (https://discourse.orthanc-server.org/t/issue-with-deleting-incoming-dicoms-when-maximumstoragesize-is-reached/3510)
 * When deleting a resource, its parents LastUpdate metadata are now updated
 * Reduced the memory usage when downloading archives when "ZipLoaderThreads" > 0
-* Metrics are now stored as integers instead of floats to avoid precision loss in increments
+* Metrics can be stored either as floating-point numbers, or as integers
 * Upgraded dependencies for static builds:
   - boost 1.82.0
 
