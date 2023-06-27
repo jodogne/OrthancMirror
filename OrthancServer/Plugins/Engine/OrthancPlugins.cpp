@@ -4456,9 +4456,9 @@ namespace Orthanc
 
         if (params.mode == OrthancPluginLoadDicomInstanceMode_EmptyPixelData)
         {
-          ValueRepresentation vr = parsed->GuessPixelDataValueRepresentation();
+          bool hasPixelData = false;
+          ValueRepresentation pixelDataVR = parsed->GuessPixelDataValueRepresentation();
 
-          // Try and retrieve the VR of pixel data from the metadata of the instance
           {
             PImpl::ServerContextLock lock(*pimpl_);
 
@@ -4468,13 +4468,14 @@ namespace Orthanc
                   s, revision, params.instanceId,
                   ResourceType_Instance, MetadataType_Instance_PixelDataVR))
             {
+              hasPixelData = true;
               if (s == "OB")
               {
-                vr = ValueRepresentation_OtherByte;
+                pixelDataVR = ValueRepresentation_OtherByte;
               }
               else if (s == "OW")
               {
-                vr = ValueRepresentation_OtherWord;
+                pixelDataVR = ValueRepresentation_OtherWord;
               }
               else
               {
@@ -4482,9 +4483,24 @@ namespace Orthanc
                              << params.instanceId << ": " << s;
               }
             }
+            else if (lock.GetContext().GetIndex().LookupMetadata(
+                       s, revision, params.instanceId,
+                       ResourceType_Instance, MetadataType_Instance_PixelDataOffset))
+            {
+              // This file was stored by an older version of Orthanc,
+              // "PixelDataVR" is not available, so use the guess
+              hasPixelData = true;
+            }
+            else
+            {
+              hasPixelData = false;
+            }
           }
-          
-          parsed->InjectEmptyPixelData(vr);
+
+          if (hasPixelData)
+          {
+            parsed->InjectEmptyPixelData(pixelDataVR);
+          }
         }
 
         target.reset(new DicomInstanceFromParsed(parsed.release()));
