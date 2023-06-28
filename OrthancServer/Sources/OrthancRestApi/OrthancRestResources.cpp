@@ -639,7 +639,8 @@ namespace Orthanc
       }
 
       virtual void Handle(const std::string& type,
-                          const std::string& subtype) ORTHANC_OVERRIDE
+                          const std::string& subtype,
+                          const HttpContentNegociation::Dictionary& parameters) ORTHANC_OVERRIDE
       {
         assert(type == "image");
         assert(subtype == "png");
@@ -658,7 +659,8 @@ namespace Orthanc
       }
 
       virtual void Handle(const std::string& type,
-                          const std::string& subtype) ORTHANC_OVERRIDE
+                          const std::string& subtype,
+                          const HttpContentNegociation::Dictionary& parameters) ORTHANC_OVERRIDE
       {
         assert(type == "image");
         assert(subtype == "x-portable-arbitrarymap");
@@ -698,7 +700,8 @@ namespace Orthanc
       }
 
       virtual void Handle(const std::string& type,
-                          const std::string& subtype) ORTHANC_OVERRIDE
+                          const std::string& subtype,
+                          const HttpContentNegociation::Dictionary& parameters) ORTHANC_OVERRIDE
       {
         assert(type == "image");
         assert(subtype == "jpeg");
