@@ -66,7 +66,6 @@ namespace Orthanc
     const Handler&  handler_;
     uint8_t         level_;
     float           quality_;
-    std::string     application_;
     Dictionary      parameters_;
 
     static float GetQuality(const Dictionary& parameters)
@@ -111,7 +110,6 @@ namespace Orthanc
               const Dictionary& parameters) :
       handler_(handler),
       quality_(GetQuality(parameters)),
-      application_(type + "/" + subtype),
       parameters_(parameters)
     {
       if (type == "*" && subtype == "*")
@@ -248,7 +246,17 @@ namespace Orthanc
         {
           std::string key, value;
           
-          if (!SplitPair(key, value, tokens[i], '='))
+          if (SplitPair(key, value, tokens[i], '='))
+          {
+            // Remove the enclosing quotes, if present
+            if (!value.empty() &&
+                value[0] == '"' &&
+                value[value.size() - 1] == '"')
+            {
+              value = value.substr(1, value.size() - 2);
+            }
+          }
+          else
           {
             key = Toolbox::StripSpaces(tokens[i]);
             value = "";

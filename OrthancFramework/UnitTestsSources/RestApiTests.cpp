@@ -461,7 +461,7 @@ TEST(RestApi, HttpContentNegociation)
   // preferred media types, but if they do not exist, then send the
   // text/x-dvi entity, and if that does not exist, send the
   // text/plain entity.""
-  const std::string T1 = "text/plain; q=0.5, text/html ;  hello  = world   , text/x-dvi; q=0.8, text/x-c";
+  const std::string T1 = "text/plain; q=0.5, text/html ;  hello  = \"world\"   , text/x-dvi; q=0.8, text/x-c";
   
   {
     HttpContentNegociation d;
@@ -525,6 +525,49 @@ TEST(RestApi, HttpContentNegociation)
     ASSERT_EQ("plain", h.GetSubType());
     ASSERT_EQ(1u, h.GetParameters().size());
     ASSERT_EQ("0.5", h.GetParameters() ["q"]);
+  }
+
+  // Below are the tests from issue 216:
+  // https://bugs.orthanc-server.com/show_bug.cgi?id=216
+
+  {
+    HttpContentNegociation d;
+    d.Register("application/dicom+json", h);
+    ASSERT_TRUE(d.Apply("image/webp, */*;q=0.8, text/html, application/xhtml+xml, application/xml;q=0.9"));
+    ASSERT_EQ("application", h.GetType());
+    ASSERT_EQ("dicom+json", h.GetSubType());
+    ASSERT_EQ(1u, h.GetParameters().size());
+    ASSERT_EQ("0.8", h.GetParameters() ["q"]);
+  }
+
+  {
+    HttpContentNegociation d;
+    d.Register("application/dicom+json", h);
+    ASSERT_TRUE(d.Apply("image/webp, */*; q  = \"0.8\"  , text/html, application/xhtml+xml, application/xml;q=0.9"));
+    ASSERT_EQ("application", h.GetType());
+    ASSERT_EQ("dicom+json", h.GetSubType());
+    ASSERT_EQ(1u, h.GetParameters().size());
+    ASSERT_EQ("0.8", h.GetParameters() ["q"]);
+  }
+
+  {
+    HttpContentNegociation d;
+    d.Register("application/dicom+json", h);
+    ASSERT_TRUE(d.Apply("text/html, application/xhtml+xml, application/xml, image/webp, */*;q=0.8"));
+    ASSERT_EQ("application", h.GetType());
+    ASSERT_EQ("dicom+json", h.GetSubType());
+    ASSERT_EQ(1u, h.GetParameters().size());
+    ASSERT_EQ("0.8", h.GetParameters() ["q"]);
+  }
+
+  {
+    HttpContentNegociation d;
+    d.Register("application/dicom+json", h);
+    ASSERT_TRUE(d.Apply("text/html, image/gif, image/jpeg, *; q=.2, */*; q=.2"));
+    ASSERT_EQ("application", h.GetType());
+    ASSERT_EQ("dicom+json", h.GetSubType());
+    ASSERT_EQ(1u, h.GetParameters().size());
+    ASSERT_EQ(".2", h.GetParameters() ["q"]);
   }
 }
 
