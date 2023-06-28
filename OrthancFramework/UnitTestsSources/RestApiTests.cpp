@@ -384,6 +384,7 @@ namespace
   private:
     std::string type_;
     std::string subtype_;
+    HttpContentNegociation::Dictionary parameters_;
 
   public:
     AcceptHandler()
@@ -393,7 +394,8 @@ namespace
 
     void Reset()
     {
-      Handle("nope", "nope");
+      HttpContentNegociation::Dictionary parameters;
+      Handle("nope", "nope", parameters);
     }
 
     const std::string& GetType() const
@@ -406,11 +408,18 @@ namespace
       return subtype_;
     }
 
+    HttpContentNegociation::Dictionary& GetParameters()
+    {
+      return parameters_;
+    }
+
     virtual void Handle(const std::string& type,
-                        const std::string& subtype) ORTHANC_OVERRIDE
+                        const std::string& subtype,
+                        const HttpContentNegociation::Dictionary& parameters) ORTHANC_OVERRIDE
     {
       type_ = type;
       subtype_ = subtype;
+      parameters_ = parameters;
     }
   };
 }
@@ -430,22 +439,29 @@ TEST(RestApi, HttpContentNegociation)
     ASSERT_TRUE(d.Apply("audio/*; q=0.2, audio/basic"));
     ASSERT_EQ("audio", h.GetType());
     ASSERT_EQ("basic", h.GetSubType());
+    ASSERT_EQ(0u, h.GetParameters().size());
 
-    ASSERT_TRUE(d.Apply("audio/*; q=0.2, audio/nope"));
+    ASSERT_TRUE(d.Apply("audio/*; q=0.2 ;  type =   test   ;  hello  , audio/nope"));
     ASSERT_EQ("audio", h.GetType());
     ASSERT_EQ("mp3", h.GetSubType());
+    ASSERT_EQ(3u, h.GetParameters().size());
+    ASSERT_EQ("0.2", h.GetParameters() ["q"]);
+    ASSERT_EQ("test", h.GetParameters() ["type"]);
+    ASSERT_EQ("", h.GetParameters() ["hello"]);
     
     ASSERT_FALSE(d.Apply("application/*; q=0.2, application/pdf"));
     
-    ASSERT_TRUE(d.Apply("*/*; application/*; q=0.2, application/pdf"));
+    ASSERT_TRUE(d.Apply("*/*; hello=world, application/*; q=0.2, application/pdf"));
     ASSERT_EQ("audio", h.GetType());
+    ASSERT_EQ(1u, h.GetParameters().size());
+    ASSERT_EQ("world", h.GetParameters() ["hello"]);
   }
 
   // "This would be interpreted as "text/html and text/x-c are the
   // preferred media types, but if they do not exist, then send the
   // text/x-dvi entity, and if that does not exist, send the
   // text/plain entity.""
-  const std::string T1 = "text/plain; q=0.5, text/html, text/x-dvi; q=0.8, text/x-c";
+  const std::string T1 = "text/plain; q=0.5, text/html ;  hello  = \"world\"   , text/x-dvi; q=0.8, text/x-c";
   
   {
     HttpContentNegociation d;
@@ -455,6 +471,8 @@ TEST(RestApi, HttpContentNegociation)
     ASSERT_TRUE(d.Apply(T1));
     ASSERT_EQ("text", h.GetType());
     ASSERT_EQ("html", h.GetSubType());
+    ASSERT_EQ(1u, h.GetParameters().size());
+    ASSERT_EQ("world", h.GetParameters() ["hello"]);
   }
   
   {
@@ -465,6 +483,7 @@ TEST(RestApi, HttpContentNegociation)
     ASSERT_TRUE(d.Apply(T1));
     ASSERT_EQ("text", h.GetType());
     ASSERT_EQ("x-c", h.GetSubType());
+    ASSERT_EQ(0u, h.GetParameters().size());
   }
   
   {
@@ -476,6 +495,15 @@ TEST(RestApi, HttpContentNegociation)
     ASSERT_TRUE(d.Apply(T1));
     ASSERT_EQ("text", h.GetType());
     ASSERT_TRUE(h.GetSubType() == "x-c" || h.GetSubType() == "html");
+    if (h.GetSubType() == "x-c")
+    {
+      ASSERT_EQ(0u, h.GetParameters().size());
+    }
+    else
+    {
+      ASSERT_EQ(1u, h.GetParameters().size());
+      ASSERT_EQ("world", h.GetParameters() ["hello"]);
+    }
   }
   
   {
@@ -485,6 +513,8 @@ TEST(RestApi, HttpContentNegociation)
     ASSERT_TRUE(d.Apply(T1));
     ASSERT_EQ("text", h.GetType());
     ASSERT_EQ("x-dvi", h.GetSubType());
+    ASSERT_EQ(1u, h.GetParameters().size());
+    ASSERT_EQ("0.8", h.GetParameters() ["q"]);
   }
   
   {
@@ -493,6 +523,51 @@ TEST(RestApi, HttpContentNegociation)
     ASSERT_TRUE(d.Apply(T1));
     ASSERT_EQ("text", h.GetType());
     ASSERT_EQ("plain", h.GetSubType());
+    ASSERT_EQ(1u, h.GetParameters().size());
+    ASSERT_EQ("0.5", h.GetParameters() ["q"]);
+  }
+
+  // Below are the tests from issue 216:
+  // https://bugs.orthanc-server.com/show_bug.cgi?id=216
+
+  {
+    HttpContentNegociation d;
+    d.Register("application/dicom+json", h);
+    ASSERT_TRUE(d.Apply("image/webp, */*;q=0.8, text/html, application/xhtml+xml, application/xml;q=0.9"));
+    ASSERT_EQ("application", h.GetType());
+    ASSERT_EQ("dicom+json", h.GetSubType());
+    ASSERT_EQ(1u, h.GetParameters().size());
+    ASSERT_EQ("0.8", h.GetParameters() ["q"]);
+  }
+
+  {
+    HttpContentNegociation d;
+    d.Register("application/dicom+json", h);
+    ASSERT_TRUE(d.Apply("image/webp, */*; q  = \"0.8\"  , text/html, application/xhtml+xml, application/xml;q=0.9"));
+    ASSERT_EQ("application", h.GetType());
+    ASSERT_EQ("dicom+json", h.GetSubType());
+    ASSERT_EQ(1u, h.GetParameters().size());
+    ASSERT_EQ("0.8", h.GetParameters() ["q"]);
+  }
+
+  {
+    HttpContentNegociation d;
+    d.Register("application/dicom+json", h);
+    ASSERT_TRUE(d.Apply("text/html, application/xhtml+xml, application/xml, image/webp, */*;q=0.8"));
+    ASSERT_EQ("application", h.GetType());
+    ASSERT_EQ("dicom+json", h.GetSubType());
+    ASSERT_EQ(1u, h.GetParameters().size());
+    ASSERT_EQ("0.8", h.GetParameters() ["q"]);
+  }
+
+  {
+    HttpContentNegociation d;
+    d.Register("application/dicom+json", h);
+    ASSERT_TRUE(d.Apply("text/html, image/gif, image/jpeg, *; q=.2, */*; q=.2"));
+    ASSERT_EQ("application", h.GetType());
+    ASSERT_EQ("dicom+json", h.GetSubType());
+    ASSERT_EQ(1u, h.GetParameters().size());
+    ASSERT_EQ(".2", h.GetParameters() ["q"]);
   }
 }
 
