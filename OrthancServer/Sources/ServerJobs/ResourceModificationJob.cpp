@@ -762,11 +762,15 @@ namespace Orthanc
                     (!modification_->IsReplaced(*mainPatientTag) ||
                      modification_->GetReplacementAsString(*mainPatientTag) != targetPatientTags.GetStringValue(*mainPatientTag, "", false)))
                 {
-                  throw OrthancException(ErrorCode_BadRequest, std::string("Trying to change patient tags in a study.  The Patient already exists and has other studies.  All the 'Replace' tags should match the existing patient main dicom tags.  Try using /patients/../modify instead to modify the patient. Failing tag: ") + mainPatientTag->Format());
+                  throw OrthancException(ErrorCode_BadRequest, std::string("Trying to change patient tags in a study.  " 
+                    "The Patient already exists and has other studies.  All the 'Replace' tags should match the existing patient main dicom tags "
+                    "and you should specify all Patient MainDicomTags in your query.  Try using /patients/../modify instead to modify the patient. Failing tag: ") + mainPatientTag->Format());
                 }
                 else if (!targetPatientTags.HasTag(*mainPatientTag) && modification_->IsReplaced(*mainPatientTag) )
                 {
-                  throw OrthancException(ErrorCode_BadRequest, std::string("Trying to change patient tags in a study.  The Patient already exists and has other studies.  You are trying to replace a tag that is not defined yet in this patient.  Try using /patients/../modify instead to modify the patient. Failing tag: ") + mainPatientTag->Format());
+                  throw OrthancException(ErrorCode_BadRequest, std::string("Trying to change patient tags in a study.  "
+                    "The Patient already exists and has other studies.  You are trying to replace a tag that is not defined yet in this patient. " 
+                    "Try using /patients/../modify instead to modify the patient. Failing tag: ") + mainPatientTag->Format());
                 }
               }
             }
