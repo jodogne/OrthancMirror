@@ -28,6 +28,8 @@
 #include "Compatibility.h"
 #include "OrthancException.h"
 
+#include <boost/math/special_functions/round.hpp>
+
 namespace Orthanc
 {
   static const boost::posix_time::ptime GetNow()
@@ -35,135 +37,277 @@ namespace Orthanc
     return boost::posix_time::microsec_clock::universal_time();
   }
 
+  namespace
+  {
+    template <typename T>
+    class TimestampedValue : public boost::noncopyable
+    {
+    private:
+      boost::posix_time::ptime  time_;
+      bool                      hasValue_;
+      T                         value_;
+
+      void SetValue(const T& value,
+                    const boost::posix_time::ptime& now)
+      {
+        hasValue_ = true;
+        value_ = value;
+        time_ = now;
+      }
+
+      bool IsLargerOverPeriod(const T& value,
+                              int duration,
+                              const boost::posix_time::ptime& now) const
+      {
+        if (hasValue_)
+        {
+          return (value > value_ ||
+                  (now - time_).total_seconds() > duration /* old value has expired */);
+        }
+        else
+        {
+          return true;  // No value yet
+        }
+      }
+
+      bool IsSmallerOverPeriod(const T& value,
+                               int duration,
+                               const boost::posix_time::ptime& now) const
+      {
+        if (hasValue_)
+        {
+          return (value < value_ ||
+                  (now - time_).total_seconds() > duration /* old value has expired */);
+        }
+        else
+        {
+          return true;  // No value yet
+        }
+      }
+
+    public:
+      explicit TimestampedValue() :
+        hasValue_(false),
+        value_(0)
+      {
+      }
+
+      void Update(const T& value,
+                  const MetricsUpdatePolicy& policy)
+      {
+        const boost::posix_time::ptime now = GetNow();
+
+        switch (policy)
+        {
+          case MetricsUpdatePolicy_Directly:
+            SetValue(value, now);
+            break;
+          
+          case MetricsUpdatePolicy_MaxOver10Seconds:
+            if (IsLargerOverPeriod(value, 10, now))
+            {
+              SetValue(value, now);
+            }
+            break;
+
+          case MetricsUpdatePolicy_MaxOver1Minute:
+            if (IsLargerOverPeriod(value, 60, now))
+            {
+              SetValue(value, now);
+            }
+            break;
+
+          case MetricsUpdatePolicy_MinOver10Seconds:
+            if (IsSmallerOverPeriod(value, 10, now))
+            {
+              SetValue(value, now);
+            }
+            break;
+
+          case MetricsUpdatePolicy_MinOver1Minute:
+            if (IsSmallerOverPeriod(value, 60, now))
+            {
+              SetValue(value, now);
+            }
+            break;
+
+          default:
+            throw OrthancException(ErrorCode_NotImplemented);
+        }
+      }
+
+      void Increment(const T& delta)
+      {
+        if (hasValue_)
+        {
+          value_ += delta;
+        }
+        else
+        {
+          value_ = delta;
+        }
+      }
+
+      bool HasValue() const
+      {
+        return hasValue_;
+      }
+
+      const boost::posix_time::ptime& GetTime() const
+      {
+        if (hasValue_)
+        {
+          return time_;
+        }
+        else
+        {
+          throw OrthancException(ErrorCode_BadSequenceOfCalls);
+        }
+      }
+
+      const T& GetValue() const
+      {
+        if (hasValue_)
+        {
+          return value_;
+        }
+        else
+        {
+          throw OrthancException(ErrorCode_BadSequenceOfCalls);
+        }
+      }
+    };
+  }
+
+
   class MetricsRegistry::Item : public boost::noncopyable
   {
   private:
-    MetricsUpdate             update_;
-    boost::posix_time::ptime  time_;
-    bool                      hasValue_;
-    int64_t                   value_;
+    MetricsUpdatePolicy   policy_;
     
-    void SetValue(int64_t value,
-                  const boost::posix_time::ptime& now)
+  public:
+    Item(MetricsUpdatePolicy policy) :
+      policy_(policy)
     {
-      hasValue_ = true;
-      value_ = value;
-      time_ = now;
+    }
+    
+    virtual ~Item()
+    {
     }
 
-    bool IsLargerOverPeriod(int64_t value,
-                            int duration,
-                            const boost::posix_time::ptime& now) const
+    MetricsUpdatePolicy GetPolicy() const
     {
-      if (hasValue_)
-      {
-        return (value > value_ ||
-                (now - time_).total_seconds() > duration /* old value has expired */);
-      }
-      else
-      {
-        return true;  // No value yet
-      }
+      return policy_;
     }
 
-    bool IsSmallerOverPeriod(int64_t value,
-                             int duration,
-                             const boost::posix_time::ptime& now) const
-    {
-      if (hasValue_)
-      {
-        return (value < value_ ||
-                (now - time_).total_seconds() > duration /* old value has expired */);
-      }
-      else
-      {
-        return true;  // No value yet
-      }
-    }
+    virtual void UpdateFloat(float value) = 0;
+
+    virtual void UpdateInteger(int64_t value) = 0;
+
+    virtual void IncrementInteger(int64_t delta) = 0;
+
+    virtual MetricsDataType GetDataType() const = 0;
+
+    virtual bool HasValue() const = 0;
+
+    virtual const boost::posix_time::ptime& GetTime() const = 0;
+    
+    virtual std::string FormatValue() const = 0;
+  };
+
+  
+  class MetricsRegistry::FloatItem : public Item
+  {
+  private:
+    TimestampedValue<float>  value_;
 
   public:
-    explicit Item(MetricsUpdate update) :
-      update_(update),
-      hasValue_(false),
-      value_(0)
+    FloatItem(MetricsUpdatePolicy policy) :
+      Item(policy)
     {
     }
-
-    MetricsUpdate GetUpdate() const
+    
+    virtual void UpdateFloat(float value) ORTHANC_OVERRIDE
     {
-      return update_;
+      value_.Update(value, GetPolicy());
     }
 
-    void Update(int64_t value)
+    virtual void UpdateInteger(int64_t value) ORTHANC_OVERRIDE
     {
-      const boost::posix_time::ptime now = GetNow();
-
-      switch (update_)
-      {
-        case MetricsUpdate_Directly:
-          SetValue(value, now);
-          break;
-          
-        case MetricsUpdate_MaxOver10Seconds:
-          if (IsLargerOverPeriod(value, 10, now))
-          {
-            SetValue(value, now);
-          }
-          break;
-
-        case MetricsUpdate_MaxOver1Minute:
-          if (IsLargerOverPeriod(value, 60, now))
-          {
-            SetValue(value, now);
-          }
-          break;
-
-        case MetricsUpdate_MinOver10Seconds:
-          if (IsSmallerOverPeriod(value, 10, now))
-          {
-            SetValue(value, now);
-          }
-          break;
-
-        case MetricsUpdate_MinOver1Minute:
-          if (IsSmallerOverPeriod(value, 60, now))
-          {
-            SetValue(value, now);
-          }
-          break;
-
-        default:
-          throw OrthancException(ErrorCode_NotImplemented);
-      }
+      value_.Update(static_cast<float>(value), GetPolicy());
     }
 
-    bool HasValue() const
+    virtual void IncrementInteger(int64_t delta) ORTHANC_OVERRIDE
     {
-      return hasValue_;
+      value_.Increment(static_cast<float>(delta));
     }
 
-    const boost::posix_time::ptime& GetTime() const
+    virtual MetricsDataType GetDataType() const ORTHANC_OVERRIDE
     {
-      if (hasValue_)
-      {
-        return time_;
-      }
-      else
-      {
-        throw OrthancException(ErrorCode_BadSequenceOfCalls);
-      }
+      return MetricsDataType_Float;
     }
 
-    int64_t GetValue() const
+    virtual bool HasValue() const ORTHANC_OVERRIDE
     {
-      if (hasValue_)
-      {
-        return value_;
-      }
-      else
-      {
-        throw OrthancException(ErrorCode_BadSequenceOfCalls);
-      }
+      return value_.HasValue();
+    }
+
+    virtual const boost::posix_time::ptime& GetTime() const ORTHANC_OVERRIDE
+    {
+      return value_.GetTime();
+    }
+    
+    virtual std::string FormatValue() const ORTHANC_OVERRIDE
+    {
+      return boost::lexical_cast<std::string>(value_.GetValue());
+    }
+  };
+
+  
+  class MetricsRegistry::IntegerItem : public Item
+  {
+  private:
+    TimestampedValue<int64_t>  value_;
+
+  public:
+    IntegerItem(MetricsUpdatePolicy policy) :
+      Item(policy)
+    {
+    }
+    
+    virtual void UpdateFloat(float value) ORTHANC_OVERRIDE
+    {
+      value_.Update(boost::math::llround(value), GetPolicy());
+    }
+
+    virtual void UpdateInteger(int64_t value) ORTHANC_OVERRIDE
+    {
+      value_.Update(value, GetPolicy());
+    }
+
+    virtual void IncrementInteger(int64_t delta) ORTHANC_OVERRIDE
+    {
+      value_.Increment(delta);
+    }
+
+    virtual MetricsDataType GetDataType() const ORTHANC_OVERRIDE
+    {
+      return MetricsDataType_Integer;
+    }
+
+    virtual bool HasValue() const ORTHANC_OVERRIDE
+    {
+      return value_.HasValue();
+    }
+
+    virtual const boost::posix_time::ptime& GetTime() const ORTHANC_OVERRIDE
+    {
+      return value_.GetTime();
+    }
+    
+    virtual std::string FormatValue() const ORTHANC_OVERRIDE
+    {
+      return boost::lexical_cast<std::string>(value_.GetValue());
     }
   };
 
@@ -191,39 +335,46 @@ namespace Orthanc
 
 
   void MetricsRegistry::Register(const std::string& name,
-                                 MetricsUpdate update)
+                                 MetricsUpdatePolicy policy,
+                                 MetricsDataType type)
   {
     boost::mutex::scoped_lock lock(mutex_);
 
-    Content::iterator found = content_.find(name);
-
-    if (found == content_.end())
+    if (content_.find(name) != content_.end())
     {
-      content_[name] = new Item(update);
+      throw OrthancException(ErrorCode_BadSequenceOfCalls, "Cannot register twice the same metrics: " + name);
     }
     else
     {
-      assert(found->second != NULL);
-
-      // This metrics already exists: Only recreate it if there is a
-      // mismatch in the type of metrics
-      if (found->second->GetUpdate() != update)
-      {
-        delete found->second;
-        found->second = new Item(update);
-      }
-    }    
+      GetItemInternal(name, policy, type);
+    }
   }
 
 
   MetricsRegistry::Item& MetricsRegistry::GetItemInternal(const std::string& name,
-                                                          MetricsUpdate update)
+                                                          MetricsUpdatePolicy policy,
+                                                          MetricsDataType type)
   {
     Content::iterator found = content_.find(name);
 
     if (found == content_.end())
     {
-      Item* item = new Item(update);
+      Item* item = NULL;
+      
+      switch (type)
+      {
+        case MetricsDataType_Float:
+          item = new FloatItem(policy);
+          break;
+
+        case MetricsDataType_Integer:
+          item = new IntegerItem(policy);
+          break;
+
+        default:
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+
       content_[name] = item;
       return *item;
     }
@@ -240,45 +391,49 @@ namespace Orthanc
   }
 
 
-  void MetricsRegistry::SetValue(const std::string &name,
-                                 int64_t value,
-                                 MetricsUpdate update)
+  void MetricsRegistry::SetFloatValue(const std::string& name,
+                                      float value,
+                                      MetricsUpdatePolicy policy)
   {
     // Inlining to avoid loosing time if metrics are disabled
     if (enabled_)
     {
       boost::mutex::scoped_lock lock(mutex_);
-      GetItemInternal(name, update).Update(value);
+      GetItemInternal(name, policy, MetricsDataType_Float).UpdateFloat(value);
     }
   }
+  
 
-
-  void MetricsRegistry::IncrementValue(const std::string &name,
-                                       int64_t delta)
+  void MetricsRegistry::SetIntegerValue(const std::string &name,
+                                        int64_t value,
+                                        MetricsUpdatePolicy policy)
   {
     // Inlining to avoid loosing time if metrics are disabled
     if (enabled_)
     {
       boost::mutex::scoped_lock lock(mutex_);
-      Item& item = GetItemInternal(name, MetricsUpdate_Directly);
-
-      if (item.HasValue())
-      {
-        item.Update(item.GetValue() + delta);
-      }
-      else
-      {
-        item.Update(delta);
-      }
+      GetItemInternal(name, policy, MetricsDataType_Integer).UpdateInteger(value);
     }
   }
 
 
-  MetricsUpdate MetricsRegistry::GetMetricsUpdate(const std::string& name)
+  void MetricsRegistry::IncrementIntegerValue(const std::string &name,
+                                              int64_t delta)
+  {
+    // Inlining to avoid loosing time if metrics are disabled
+    if (enabled_)
+    {
+      boost::mutex::scoped_lock lock(mutex_);
+      GetItemInternal(name, MetricsUpdatePolicy_Directly, MetricsDataType_Integer).IncrementInteger(delta);
+    }
+  }
+
+
+  MetricsUpdatePolicy MetricsRegistry::GetUpdatePolicy(const std::string& metrics)
   {
     boost::mutex::scoped_lock lock(mutex_);
 
-    Content::const_iterator found = content_.find(name);
+    Content::const_iterator found = content_.find(metrics);
 
     if (found == content_.end())
     {
@@ -287,7 +442,25 @@ namespace Orthanc
     else
     {
       assert(found->second != NULL);
-      return found->second->GetUpdate();
+      return found->second->GetPolicy();
+    }
+  }
+
+
+  MetricsDataType MetricsRegistry::GetDataType(const std::string& metrics)
+  {
+    boost::mutex::scoped_lock lock(mutex_);
+
+    Content::const_iterator found = content_.find(metrics);
+
+    if (found == content_.end())
+    {
+      throw OrthancException(ErrorCode_InexistentItem);
+    }
+    else
+    {
+      assert(found->second != NULL);
+      return found->second->GetDataType();
     }
   }
 
@@ -318,7 +491,7 @@ namespace Orthanc
         boost::posix_time::time_duration diff = it->second->GetTime() - EPOCH;
 
         std::string line = (it->first + " " +
-                            boost::lexical_cast<std::string>(it->second->GetValue()) + " " + 
+                            it->second->FormatValue() + " " + 
                             boost::lexical_cast<std::string>(diff.total_milliseconds()) + "\n");
 
         buffer.AddChunk(line);
@@ -331,7 +504,7 @@ namespace Orthanc
 
   MetricsRegistry::SharedMetrics::SharedMetrics(MetricsRegistry &registry,
                                                 const std::string &name,
-                                                MetricsUpdate update) :
+                                                MetricsUpdatePolicy policy) :
     registry_(registry),
     name_(name),
     value_(0)
@@ -342,7 +515,7 @@ namespace Orthanc
   {
     boost::mutex::scoped_lock lock(mutex_);
     value_ += delta;
-    registry_.SetValue(name_, value_);
+    registry_.SetIntegerValue(name_, value_);
   }
 
 
@@ -376,7 +549,7 @@ namespace Orthanc
                                 const std::string &name) :
     registry_(registry),
     name_(name),
-    update_(MetricsUpdate_MaxOver10Seconds)
+    policy_(MetricsUpdatePolicy_MaxOver10Seconds)
   {
     Start();
   }
@@ -384,10 +557,10 @@ namespace Orthanc
 
   MetricsRegistry::Timer::Timer(MetricsRegistry &registry,
                                 const std::string &name,
-                                MetricsUpdate update) :
+                                MetricsUpdatePolicy policy) :
     registry_(registry),
     name_(name),
-    update_(update)
+    policy_(policy)
   {
     Start();
   }
@@ -398,8 +571,7 @@ namespace Orthanc
     if (active_)
     {
       boost::posix_time::time_duration diff = GetNow() - start_;
-      registry_.SetValue(
-        name_, static_cast<int64_t>(diff.total_milliseconds()), update_);
+      registry_.SetIntegerValue(name_, static_cast<int64_t>(diff.total_milliseconds()), policy_);
     }
   }
 }

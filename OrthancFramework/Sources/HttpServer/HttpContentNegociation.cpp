@@ -49,28 +49,68 @@ namespace Orthanc
     {
       return true;
     }
-        
-    if (subtype == "*" && type == type_)
+    else if (subtype == "*" && type == type_)
     {
       return true;
     }
-
-    return type == type_ && subtype == subtype_;
+    else
+    {
+      return type == type_ && subtype == subtype_;
+    }
   }
 
 
-  struct HttpContentNegociation::Reference : public boost::noncopyable
+  class HttpContentNegociation::Reference : public boost::noncopyable
   {
+  private:
     const Handler&  handler_;
     uint8_t         level_;
     float           quality_;
+    Dictionary      parameters_;
 
+    static float GetQuality(const Dictionary& parameters)
+    {
+      Dictionary::const_iterator found = parameters.find("q");
+
+      if (found != parameters.end())
+      {
+        float quality;
+        bool ok = false;
+
+        try
+        {
+          quality = boost::lexical_cast<float>(found->second);
+          ok = (quality >= 0.0f && quality <= 1.0f);
+        }
+        catch (boost::bad_lexical_cast&)
+        {
+        }
+
+        if (ok)
+        {
+          return quality;
+        }
+        else
+        {
+          throw OrthancException(
+            ErrorCode_BadRequest,
+            "Quality parameter out of range in a HTTP request (must be between 0 and 1): " + found->second);
+        }
+      }
+      else
+      {
+        return 1.0f;  // Default quality
+      }
+    }
+
+  public:
     Reference(const Handler& handler,
               const std::string& type,
               const std::string& subtype,
-              float quality) :
+              const Dictionary& parameters) :
       handler_(handler),
-      quality_(quality)
+      quality_(GetQuality(parameters)),
+      parameters_(parameters)
     {
       if (type == "*" && subtype == "*")
       {
@@ -85,6 +125,11 @@ namespace Orthanc
         level_ = 2;
       }
     }
+
+    void Call() const
+    {
+      handler_.Call(parameters_);
+    }
       
     bool operator< (const Reference& other) const
     {
@@ -92,13 +137,14 @@ namespace Orthanc
       {
         return true;
       }
-
-      if (level_ > other.level_)
+      else if (level_ > other.level_)
       {
         return false;
       }
-
-      return quality_ < other.quality_;
+      else
+      {
+        return quality_ < other.quality_;
+      }
     }
   };
 
@@ -123,58 +169,21 @@ namespace Orthanc
   }
 
 
-  float HttpContentNegociation::GetQuality(const Tokens& parameters)
-  {
-    for (size_t i = 1; i < parameters.size(); i++)
-    {
-      std::string key, value;
-      if (SplitPair(key, value, parameters[i], '=') &&
-          key == "q")
-      {
-        float quality;
-        bool ok = false;
-
-        try
-        {
-          quality = boost::lexical_cast<float>(value);
-          ok = (quality >= 0.0f && quality <= 1.0f);
-        }
-        catch (boost::bad_lexical_cast&)
-        {
-        }
-
-        if (ok)
-        {
-          return quality;
-        }
-        else
-        {
-          throw OrthancException(
-            ErrorCode_BadRequest,
-            "Quality parameter out of range in a HTTP request (must be between 0 and 1): " + value);
-        }
-      }
-    }
-
-    return 1.0f;  // Default quality
-  }
-
-
-  void HttpContentNegociation::SelectBestMatch(std::unique_ptr<Reference>& best,
+  void HttpContentNegociation::SelectBestMatch(std::unique_ptr<Reference>& target,
                                                const Handler& handler,
                                                const std::string& type,
                                                const std::string& subtype,
-                                               float quality)
+                                               const Dictionary& parameters)
   {
-    std::unique_ptr<Reference> match(new Reference(handler, type, subtype, quality));
+    std::unique_ptr<Reference> match(new Reference(handler, type, subtype, parameters));
 
-    if (best.get() == NULL ||
-        *best < *match)
+    if (target.get() == NULL ||
+        *target < *match)
     {
 #if __cplusplus < 201103L
-      best.reset(match.release());
+      target.reset(match.release());
 #else
-      best = std::move(match);
+      target = std::move(match);
 #endif
     }
   }
@@ -198,9 +207,9 @@ namespace Orthanc
   }
 
     
-  bool HttpContentNegociation::Apply(const HttpHeaders& headers)
+  bool HttpContentNegociation::Apply(const Dictionary& headers)
   {
-    HttpHeaders::const_iterator accept = headers.find("accept");
+    Dictionary::const_iterator accept = headers.find("accept");
     if (accept != headers.end())
     {
       return Apply(accept->second);
@@ -222,26 +231,49 @@ namespace Orthanc
     Toolbox::TokenizeString(mediaRanges, accept, ',');
 
     std::unique_ptr<Reference> bestMatch;
+    Dictionary bestParameters;
 
     for (Tokens::const_iterator it = mediaRanges.begin();
          it != mediaRanges.end(); ++it)
     {
-      Tokens parameters;
-      Toolbox::TokenizeString(parameters, *it, ';');
+      Tokens tokens;
+      Toolbox::TokenizeString(tokens, *it, ';');
 
-      if (parameters.size() > 0)
+      if (tokens.size() > 0)
       {
-        float quality = GetQuality(parameters);
+        Dictionary parameters;
+        for (size_t i = 1; i < tokens.size(); i++)
+        {
+          std::string key, value;
+          
+          if (SplitPair(key, value, tokens[i], '='))
+          {
+            // Remove the enclosing quotes, if present
+            if (!value.empty() &&
+                value[0] == '"' &&
+                value[value.size() - 1] == '"')
+            {
+              value = value.substr(1, value.size() - 2);
+            }
+          }
+          else
+          {
+            key = Toolbox::StripSpaces(tokens[i]);
+            value = "";
+          }
 
+          parameters[key] = value;
+        }
+        
         std::string type, subtype;
-        if (SplitPair(type, subtype, parameters[0], '/'))
+        if (SplitPair(type, subtype, tokens[0], '/'))
         {
           for (Handlers::const_iterator it2 = handlers_.begin();
                it2 != handlers_.end(); ++it2)
           {
             if (it2->IsMatch(type, subtype))
             {
-              SelectBestMatch(bestMatch, *it2, type, subtype, quality);
+              SelectBestMatch(bestMatch, *it2, type, subtype, parameters);
             }
           }
         }
@@ -254,7 +286,7 @@ namespace Orthanc
     }
     else
     {
-      bestMatch->handler_.Call();
+      bestMatch->Call();
       return true;
     }
   }

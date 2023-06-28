@@ -39,19 +39,27 @@
 
 namespace Orthanc
 {
-  enum MetricsUpdate
+  enum MetricsUpdatePolicy
   {
-    MetricsUpdate_Directly,
-    MetricsUpdate_MaxOver10Seconds,
-    MetricsUpdate_MaxOver1Minute,
-    MetricsUpdate_MinOver10Seconds,
-    MetricsUpdate_MinOver1Minute
+    MetricsUpdatePolicy_Directly,
+    MetricsUpdatePolicy_MaxOver10Seconds,
+    MetricsUpdatePolicy_MaxOver1Minute,
+    MetricsUpdatePolicy_MinOver10Seconds,
+    MetricsUpdatePolicy_MinOver1Minute
+  };
+  
+  enum MetricsDataType
+  {
+    MetricsDataType_Float,
+    MetricsDataType_Integer
   };
   
   class ORTHANC_PUBLIC MetricsRegistry : public boost::noncopyable
   {
   private:
     class Item;
+    class FloatItem;
+    class IntegerItem;
 
     typedef std::map<std::string, Item*>   Content;
 
@@ -61,7 +69,8 @@ namespace Orthanc
 
     // The mutex must be locked
     Item& GetItemInternal(const std::string& name,
-                          MetricsUpdate update);
+                          MetricsUpdatePolicy policy,
+                          MetricsDataType type);
 
   public:
     MetricsRegistry();
@@ -73,22 +82,35 @@ namespace Orthanc
     void SetEnabled(bool enabled);
 
     void Register(const std::string& name,
-                  MetricsUpdate update);
+                  MetricsUpdatePolicy policy,
+                  MetricsDataType type);
 
-    void SetValue(const std::string& name,
-                  int64_t value,
-                  MetricsUpdate update);
+    void SetFloatValue(const std::string& name,
+                       float value,
+                       MetricsUpdatePolicy policy /* only used if this is a new metrics */);
     
-    void SetValue(const std::string& name,
-                  int64_t value)
+    void SetFloatValue(const std::string& name,
+                       float value)
     {
-      SetValue(name, value, MetricsUpdate_Directly);
+      SetFloatValue(name, value, MetricsUpdatePolicy_Directly);
     }
+    
+    void SetIntegerValue(const std::string& name,
+                         int64_t value,
+                         MetricsUpdatePolicy policy /* only used if this is a new metrics */);
+    
+    void SetIntegerValue(const std::string& name,
+                         int64_t value)
+    {
+      SetIntegerValue(name, value, MetricsUpdatePolicy_Directly);
+    }
+    
+    void IncrementIntegerValue(const std::string& name,
+                               int64_t delta);
 
-    void IncrementValue(const std::string& name,
-                        int64_t delta);
+    MetricsUpdatePolicy GetUpdatePolicy(const std::string& metrics);
 
-    MetricsUpdate GetMetricsUpdate(const std::string& name);
+    MetricsDataType GetDataType(const std::string& metrics);
 
     // https://prometheus.io/docs/instrumenting/exposition_formats/#text-based-format
     void ExportPrometheusText(std::string& s);
@@ -105,7 +127,7 @@ namespace Orthanc
     public:
       SharedMetrics(MetricsRegistry& registry,
                     const std::string& name,
-                    MetricsUpdate update);
+                    MetricsUpdatePolicy policy);
 
       void Add(int64_t delta);
     };
@@ -128,7 +150,7 @@ namespace Orthanc
     private:
       MetricsRegistry&          registry_;
       std::string               name_;
-      MetricsUpdate             update_;
+      MetricsUpdatePolicy       policy_;
       bool                      active_;
       boost::posix_time::ptime  start_;
 
@@ -140,7 +162,7 @@ namespace Orthanc
 
       Timer(MetricsRegistry& registry,
             const std::string& name,
-            MetricsUpdate update);
+            MetricsUpdatePolicy policy);
 
       ~Timer();
     };
