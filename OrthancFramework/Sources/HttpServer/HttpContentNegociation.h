@@ -39,7 +39,7 @@ namespace Orthanc
   class ORTHANC_PUBLIC HttpContentNegociation : public boost::noncopyable
   {
   public:
-    typedef std::map<std::string, std::string>  HttpHeaders;
+    typedef std::map<std::string, std::string>  Dictionary;
 
     class IHandler : public boost::noncopyable
     {
@@ -49,7 +49,8 @@ namespace Orthanc
       }
 
       virtual void Handle(const std::string& type,
-                          const std::string& subtype) = 0;
+                          const std::string& subtype,
+                          const Dictionary& parameters) = 0;
     };
 
   private:
@@ -66,9 +67,9 @@ namespace Orthanc
       bool IsMatch(const std::string& type,
                    const std::string& subtype) const;
 
-      void Call() const
+      void Call(const Dictionary& parameters) const
       {
-        handler_.Handle(type_, subtype_);
+        handler_.Handle(type_, subtype_, parameters);
       }
    };
 
@@ -86,19 +87,17 @@ namespace Orthanc
                           const std::string& source,
                           char separator);
 
-    static float GetQuality(const Tokens& parameters);
-
-    static void SelectBestMatch(std::unique_ptr<Reference>& best,
+    static void SelectBestMatch(std::unique_ptr<Reference>& target,
                                 const Handler& handler,
                                 const std::string& type,
                                 const std::string& subtype,
-                                float quality);
+                                const Dictionary& parameters);
 
   public:
     void Register(const std::string& mime,
                   IHandler& handler);
     
-    bool Apply(const HttpHeaders& headers);
+    bool Apply(const Dictionary& headers);
 
     bool Apply(const std::string& accept);
   };
