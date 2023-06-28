@@ -231,7 +231,6 @@ namespace Orthanc
     Toolbox::TokenizeString(mediaRanges, accept, ',');
 
     std::unique_ptr<Reference> bestMatch;
-    Dictionary bestParameters;
 
     for (Tokens::const_iterator it = mediaRanges.begin();
          it != mediaRanges.end(); ++it)

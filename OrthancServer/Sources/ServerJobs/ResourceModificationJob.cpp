@@ -222,7 +222,7 @@ namespace Orthanc
     catch (OrthancException& e)
     {
       LOG(WARNING) << "An error occurred while executing a Modification job on instance " << instance << ": " << e.GetDetails();
-      throw e;
+      throw;
     }
 
 

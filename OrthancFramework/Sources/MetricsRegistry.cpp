@@ -186,7 +186,7 @@ namespace Orthanc
     MetricsUpdatePolicy   policy_;
     
   public:
-    Item(MetricsUpdatePolicy policy) :
+    explicit Item(MetricsUpdatePolicy policy) :
       policy_(policy)
     {
     }
@@ -222,7 +222,7 @@ namespace Orthanc
     TimestampedValue<float>  value_;
 
   public:
-    FloatItem(MetricsUpdatePolicy policy) :
+    explicit FloatItem(MetricsUpdatePolicy policy) :
       Item(policy)
     {
     }
@@ -270,7 +270,7 @@ namespace Orthanc
     TimestampedValue<int64_t>  value_;
 
   public:
-    IntegerItem(MetricsUpdatePolicy policy) :
+    explicit IntegerItem(MetricsUpdatePolicy policy) :
       Item(policy)
     {
     }
