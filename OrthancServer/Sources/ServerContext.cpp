@@ -110,16 +110,28 @@ namespace Orthanc
 
 #if HAVE_MALLOC_TRIM == 1
   void ServerContext::MemoryTrimmingThread(ServerContext* that,
-                                           unsigned int sleepDelay)
+                                           unsigned int intervalInSeconds)
   {
+    boost::posix_time::ptime lastExecution = boost::posix_time::second_clock::universal_time();
+
     // This thread is started only if malloc_trim is defined
     while (!that->done_)
     {
-      boost::this_thread::sleep(boost::posix_time::milliseconds(sleepDelay));
-      
-      // If possible, gives memory back to the system 
-      // (see OrthancServer/Resources/ImplementationNotes/memory_consumption.txt)
-      malloc_trim(128*1024);
+      boost::posix_time::ptime now = boost::posix_time::second_clock::universal_time();
+      boost::posix_time::time_duration elapsed = now - lastExecution;
+
+      if (elapsed.total_seconds() > intervalInSeconds)
+      {
+        // If possible, gives memory back to the system 
+        // (see OrthancServer/Resources/ImplementationNotes/memory_consumption.txt)
+        {
+          MetricsRegistry::Timer timer(that->GetMetricsRegistry(), "orthanc_memory_trimming_duration_ms");
+          malloc_trim(128*1024);
+        }
+        lastExecution = boost::posix_time::second_clock::universal_time();
+      }
+
+      boost::this_thread::sleep(boost::posix_time::milliseconds(100));
     }
   }
 #endif
@@ -439,7 +451,8 @@ namespace Orthanc
       changeThread_ = boost::thread(ChangeThread, this, (unitTesting ? 20 : 100));
       
 #if HAVE_MALLOC_TRIM == 1
-      memoryTrimmingThread_ = boost::thread(MemoryTrimmingThread, this, 100);
+      LOG(INFO) << "Starting memory trimming thread at 30 seconds interval";
+      memoryTrimmingThread_ = boost::thread(MemoryTrimmingThread, this, 30);
 #else
       LOG(INFO) << "Your platform does not support malloc_trim(), not starting the memory trimming thread";
 #endif

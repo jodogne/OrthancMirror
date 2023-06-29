@@ -189,7 +189,7 @@ namespace Orthanc
 
 #if HAVE_MALLOC_TRIM == 1
     static void MemoryTrimmingThread(ServerContext* that,
-                                     unsigned int sleepDelay);
+                                     unsigned int intervalInSeconds);
 #endif
 
     void SaveJobsEngine();

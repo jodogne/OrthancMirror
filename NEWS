@@ -5,7 +5,10 @@ General
 -------
 
 * Orthanc now anonymizes according to Basic Profile of PS 3.15-2023b Table E.1-1
-* Added metrics "orthanc_storage_read_bytes" and "orthanc_storage_written_bytes"
+* Added metrics:
+  - "orthanc_storage_read_bytes" 
+  - "orthanc_storage_written_bytes"
+  - "orthanc_memory_trimming_duration_ms"
 
 REST API
 --------
@@ -34,6 +37,8 @@ Maintenance
 * Metrics can be stored either as floating-point numbers, or as integers
 * Upgraded dependencies for static builds:
   - boost 1.82.0
+* Reduce the frequency of memory trimming from 100ms to 30s to avoid high idle
+  CPU load (https://discourse.orthanc-server.org/t/onchange-callbacks-and-cpu-loads/3534).
 
 
 Version 1.12.0 (2023-04-14)
