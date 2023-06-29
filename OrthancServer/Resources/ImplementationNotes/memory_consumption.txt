@@ -1,6 +1,7 @@
 In Orthanc 1.11.3, we have introduced a Housekeeper thread that 
 tries to give back unused memory back to the system.  This is implemented 
-by calling malloc_trim every 100ms.
+by calling malloc_trim every 30s (note: on 1.11.3 and 1.12.0, the interval
+was 100ms which caused high idle CPU load).
 
 
 Here is how we validated the effect of this new feature:
@@ -133,3 +134,16 @@ summary:
   specifies the minimum size that is released.  So, even without
   malloc_trim, Orthanc is able to give back memory to the system.
 - free() never gives back block allocated by mmap() to the system, only malloc_trim() does !
+
+UPDATE on June 2023:
+-------------------
+
+Given this discussion: https://discourse.orthanc-server.org/t/onchange-callbacks-and-cpu-loads/3534,
+changed the interval from 100ms to 30s.
+We also added a metrics to monitor the duration: orthanc_memory_trimming_duration_ms
+
+Good reference article:
+https://www.algolia.com/blog/engineering/when-allocators-are-hoarding-your-precious-memory/
+
+
+
