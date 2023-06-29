@@ -293,6 +293,9 @@ OrthancPluginErrorCode CallbackDicomWeb(OrthancPluginRestOutput* output,
   else
   {
     OrthancPluginLoadDicomInstanceMode mode = OrthancPluginLoadDicomInstanceMode_WholeDicom;
+    OrthancPluginDicomInstance* instance;
+    char* json;
+
     if (request->getCount == 1)
     {
       if (strcmp(request->getKeys[0], "until-pixel-data") == 0)
@@ -309,16 +312,16 @@ OrthancPluginErrorCode CallbackDicomWeb(OrthancPluginRestOutput* output,
       }
     }
     
-    OrthancPluginDicomInstance* instance = OrthancPluginLoadDicomInstance(context, request->groups[0], mode);
+    instance = OrthancPluginLoadDicomInstance(context, request->groups[0], mode);
     if (instance == NULL)
     {
       return OrthancPluginErrorCode_UnknownResource;
     }
 
-    char* json = OrthancPluginEncodeDicomWebXml(context,
-                                                OrthancPluginGetInstanceData(context, instance),
-                                                OrthancPluginGetInstanceSize(context, instance),
-                                                DicomWebBinaryCallback);
+    json = OrthancPluginEncodeDicomWebXml(context,
+                                          OrthancPluginGetInstanceData(context, instance),
+                                          OrthancPluginGetInstanceSize(context, instance),
+                                          DicomWebBinaryCallback);
     OrthancPluginFreeDicomInstance(context, instance);
 
     if (json != NULL)
