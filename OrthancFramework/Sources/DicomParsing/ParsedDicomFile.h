@@ -97,6 +97,9 @@ namespace Orthanc
 
     bool EmbedContentInternal(const std::string& dataUriScheme);
 
+    void EncapsulateDocument(MimeType mime,
+                             const std::string& document);
+
     // For internal use only, in order to provide const-correctness on
     // the top of DCMTK API
     DcmFileFormat& GetDcmtkObjectConst() const;
@@ -205,6 +208,7 @@ namespace Orthanc
     void SaveToFile(const std::string& path);
 #endif
 
+    // This method must only be used on the PixelData and EncapsulatedDocument tags
     void EmbedContent(const std::string& dataUriScheme);
 
     void EmbedImage(const ImageAccessor& accessor);
@@ -235,8 +239,6 @@ namespace Orthanc
                       DicomToJsonFormat format) const;
 
     bool HasTag(const DicomTag& tag) const;
-
-    void EmbedPdf(const std::string& pdf);
 
     bool ExtractPdf(std::string& pdf) const;
 

@@ -1203,7 +1203,42 @@ namespace Orthanc
         break;
 
       case MimeType_Pdf:
-        EmbedPdf(content);
+      {
+        if (content.size() < 5 ||  // (*)
+            strncmp("%PDF-", content.c_str(), 5) != 0)
+        {
+          throw OrthancException(ErrorCode_BadFileFormat, "Not a PDF file");
+        }
+        
+        EncapsulateDocument(MimeType_Pdf, content);
+
+        // In Orthanc <= 1.9.7, the "Modality" would have always be overwritten as "OT"
+        // https://groups.google.com/g/orthanc-users/c/eNSddNrQDtM/m/wc1HahimAAAJ
+
+        SetIfAbsent(DICOM_TAG_SOP_CLASS_UID, UID_EncapsulatedPDFStorage);
+        SetIfAbsent(DICOM_TAG_MODALITY, "OT");
+        SetIfAbsent(FromDcmtkBridge::Convert(DCM_ConversionType), "WSD");
+        //SetIfAbsent(FromDcmtkBridge::Convert(DCM_SeriesNumber), "1");
+
+        break;
+      }
+
+      case MimeType_Mtl:
+        EncapsulateDocument(mime, content);
+        SetIfAbsent(DICOM_TAG_SOP_CLASS_UID, "1.2.840.10008.5.1.4.1.1.104.5");
+        SetIfAbsent(DICOM_TAG_MODALITY, "M3D");
+        break;
+
+      case MimeType_Obj:
+        EncapsulateDocument(mime, content);
+        SetIfAbsent(DICOM_TAG_SOP_CLASS_UID, "1.2.840.10008.5.1.4.1.1.104.4");
+        SetIfAbsent(DICOM_TAG_MODALITY, "M3D");
+        break;
+
+      case MimeType_Stl:
+        EncapsulateDocument(mime, content);
+        SetIfAbsent(DICOM_TAG_SOP_CLASS_UID, "1.2.840.10008.5.1.4.1.1.104.3");
+        SetIfAbsent(DICOM_TAG_MODALITY, "M3D");
         break;
 
       default:
@@ -1526,28 +1561,16 @@ namespace Orthanc
   }
 
 
-  void ParsedDicomFile::EmbedPdf(const std::string& pdf)
+  void ParsedDicomFile::EncapsulateDocument(MimeType mime,
+                                            const std::string& document)
   {
-    if (pdf.size() < 5 ||  // (*)
-        strncmp("%PDF-", pdf.c_str(), 5) != 0)
-    {
-      throw OrthancException(ErrorCode_BadFileFormat, "Not a PDF file");
-    }
-
     InvalidateCache();
 
-    // In Orthanc <= 1.9.7, the "Modality" would have always be overwritten as "OT"
-    // https://groups.google.com/g/orthanc-users/c/eNSddNrQDtM/m/wc1HahimAAAJ
-    
-    ReplacePlainString(DICOM_TAG_SOP_CLASS_UID, UID_EncapsulatedPDFStorage);
-    SetIfAbsent(FromDcmtkBridge::Convert(DCM_Modality), "OT");
-    SetIfAbsent(FromDcmtkBridge::Convert(DCM_ConversionType), "WSD");
-    SetIfAbsent(FromDcmtkBridge::Convert(DCM_MIMETypeOfEncapsulatedDocument), MIME_PDF);
-    //SetIfAbsent(FromDcmtkBridge::Convert(DCM_SeriesNumber), "1");
+    ReplacePlainString(FromDcmtkBridge::Convert(DCM_MIMETypeOfEncapsulatedDocument), EnumerationToString(mime));
 
     std::unique_ptr<DcmPolymorphOBOW> element(new DcmPolymorphOBOW(DCM_EncapsulatedDocument));
 
-    size_t s = pdf.size();
+    size_t s = document.size();
     if (s & 1)
     {
       // The size of the buffer must be even
@@ -1561,10 +1584,12 @@ namespace Orthanc
       throw OrthancException(ErrorCode_NotEnoughMemory);
     }
 
-    // Blank pad byte (no access violation, as "pdf.size() >= 5" because of (*) )
-    bytes[s - 1] = 0;
+    if (s > 0)
+    {
+      bytes[s - 1] = 0;
+    }
 
-    memcpy(bytes, pdf.c_str(), pdf.size());
+    memcpy(bytes, document.c_str(), document.size());
       
     DcmPolymorphOBOW* obj = element.release();
     result = GetDcmtkObject().getDataset()->insert(obj);

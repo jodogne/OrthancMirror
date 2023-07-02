@@ -42,6 +42,11 @@ namespace Orthanc
   static const char* const MIME_XML = "application/xml";
   static const char* const MIME_XML_UTF8 = "application/xml; charset=utf-8";
 
+  // Added in Orthanc 1.12.1
+  static const char* const MIME_OBJ = "model/obj";
+  static const char* const MIME_MTL = "model/mtl";
+  static const char* const MIME_STL = "model/stl";
+
   /**
    * "No Internet Media Type (aka MIME type, content type) for PBM has
    * been registered with IANA, but the unofficial value
@@ -79,7 +84,10 @@ namespace Orthanc
     MimeType_PrometheusText,  // Prometheus text-based exposition format (for metrics)
     MimeType_DicomWebJson,
     MimeType_DicomWebXml,
-    MimeType_Ico
+    MimeType_Ico,
+    MimeType_Mtl,             // MTL - New in Orthanc 1.12.1
+    MimeType_Obj,             // OBJ - New in Orthanc 1.12.1
+    MimeType_Stl              // STL - New in Orthanc 1.12.1
   };
 
   

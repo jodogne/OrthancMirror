@@ -363,6 +363,10 @@ TEST(Uri, AutodetectMimeType)
   ASSERT_STREQ("image/svg+xml", EnumerationToString(SystemToolbox::AutodetectMimeType(".svg")));
   ASSERT_STREQ("text/css", EnumerationToString(SystemToolbox::AutodetectMimeType(".css")));
   ASSERT_STREQ("text/html", EnumerationToString(SystemToolbox::AutodetectMimeType(".html")));
+
+  ASSERT_STREQ("model/obj", EnumerationToString(SystemToolbox::AutodetectMimeType(".obj")));
+  ASSERT_STREQ("model/mtl", EnumerationToString(SystemToolbox::AutodetectMimeType(".mtl")));
+  ASSERT_STREQ("model/stl", EnumerationToString(SystemToolbox::AutodetectMimeType(".stl")));
 }
 #endif
 
@@ -791,6 +795,9 @@ TEST(Toolbox, Enumerations)
   ASSERT_EQ(MimeType_Xml, StringToMimeType(EnumerationToString(MimeType_Xml)));
   ASSERT_EQ(MimeType_DicomWebJson, StringToMimeType(EnumerationToString(MimeType_DicomWebJson)));
   ASSERT_EQ(MimeType_DicomWebXml, StringToMimeType(EnumerationToString(MimeType_DicomWebXml)));
+  ASSERT_EQ(MimeType_Mtl, StringToMimeType(EnumerationToString(MimeType_Mtl)));
+  ASSERT_EQ(MimeType_Obj, StringToMimeType(EnumerationToString(MimeType_Obj)));
+  ASSERT_EQ(MimeType_Stl, StringToMimeType(EnumerationToString(MimeType_Stl)));
   ASSERT_THROW(StringToMimeType("nope"), OrthancException);
 
   ASSERT_TRUE(IsResourceLevelAboveOrEqual(ResourceType_Patient, ResourceType_Patient));
