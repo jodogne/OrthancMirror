@@ -959,7 +959,7 @@ namespace Orthanc
     InjectTags(dicom, request[TAGS], decodeBinaryTags, privateCreator, force);
 
 
-    // Inject the content (either an image, or a PDF file)
+    // Inject the content (either an image, a PDF file, or a STL/OBJ/MTL file)
     if (request.isMember(CONTENT))
     {
       const Json::Value& content = request[CONTENT];
@@ -1000,8 +1000,9 @@ namespace Orthanc
         .SetRequestField(TAGS, RestApiCallDocumentation::Type_JsonObject,
                          "Associative array containing the tags of the new instance to be created", true)
         .SetRequestField(CONTENT, RestApiCallDocumentation::Type_String,
-                         "This field can be used to embed an image (pixel data) or a PDF inside the created DICOM instance. "
-                         "The PNG image, the JPEG image or the PDF file must be provided using their "
+                         "This field can be used to embed an image (pixel data encoded as PNG or JPEG), a PDF, or a "
+                         "3D manufactoring model (MTL/OBJ/STL) inside the created DICOM instance. "
+                         "The file to be encapsulated must be provided using its "
                          "[data URI scheme encoding](https://en.wikipedia.org/wiki/Data_URI_scheme). "
                          "This field can possibly contain a JSON array, in which case a DICOM series is created "
                          "containing one DICOM instance for each item in the `Content` field.", false)

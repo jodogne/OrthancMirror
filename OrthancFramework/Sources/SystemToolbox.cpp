@@ -825,6 +825,18 @@ namespace Orthanc
     {
       return MimeType_Zip;
     }
+    else if (extension == ".mtl")
+    {
+      return MimeType_Mtl;
+    }
+    else if (extension == ".obj")
+    {
+      return MimeType_Obj;
+    }
+    else if (extension == ".stl")
+    {
+      return MimeType_Stl;
+    }
 
     // Default type
     else

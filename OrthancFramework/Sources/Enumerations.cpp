@@ -1111,6 +1111,15 @@ namespace Orthanc
       case MimeType_Ico:
         return MIME_ICO;
 
+      case MimeType_Obj:
+        return MIME_OBJ;
+
+      case MimeType_Mtl:
+        return MIME_MTL;
+
+      case MimeType_Stl:
+        return MIME_STL;
+
       default:
         throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
@@ -1851,6 +1860,21 @@ namespace Orthanc
     else if (source == MIME_ICO)
     {
       target = MimeType_Ico;
+      return true;
+    }
+    else if (source == MIME_OBJ)
+    {
+      target = MimeType_Obj;
+      return true;
+    }
+    else if (source == MIME_MTL)
+    {
+      target = MimeType_Mtl;
+      return true;
+    }
+    else if (source == MIME_STL)
+    {
+      target = MimeType_Stl;
       return true;
     }
     else
