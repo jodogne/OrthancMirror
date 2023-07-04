@@ -331,6 +331,10 @@ Code quality and integration tests
   config.  This should probably look like the python toolbox tests ...
   - add a test to validate Modalities and Peers stored in DB are not lost 
     while upgrading from one version to the other (Sylvain)
+* On Ubuntu 20.04, accesses to unitialized memory are sometimes
+  reported in libgjpeg by valgrind, if running the following command
+  (this is probably unrelated to Orthanc):
+  $ ./Start.sh --force Orthanc.test_bitbucket_issue_141 Orthanc.test_create_pdf Orthanc.test_decode_brainix_as_jpeg
   
 
 ---------------------
