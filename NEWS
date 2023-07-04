@@ -1,6 +1,10 @@
 Pending changes in the mainline
 ===============================
 
+
+Version 1.12.1 (2023-07-04)
+===========================
+
 General
 -------
 
@@ -37,10 +41,10 @@ Maintenance
 * When deleting a resource, the "LastUpdate" metadata of its parents are now updated
 * Reduced the memory usage when downloading archives when "ZipLoaderThreads" > 0
 * Metrics can be stored either as floating-point numbers, or as integers
-* Upgraded dependencies for static builds:
-  - boost 1.82.0
 * Reduce the frequency of memory trimming from 100ms to 30s to avoid high idle
   CPU load (https://discourse.orthanc-server.org/t/onchange-callbacks-and-cpu-loads/3534).
+* Upgraded dependencies for static builds:
+  - boost 1.82.0
 
 
 Version 1.12.0 (2023-04-14)
