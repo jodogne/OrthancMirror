@@ -31,8 +31,9 @@ with open(sys.argv[1], 'r') as f:
 s = s.replace('__FILE__', '__ORTHANC_FILE__')
 
 s = """
-#undef __FILE__
-#define __FILE__ __ORTHANC_FILE__
+#if !defined(__ORTHANC_FILE__)
+#  define __ORTHANC_FILE__ __FILE__
+#endif
 """ + s
 
 with open(sys.argv[1], 'w') as f:
