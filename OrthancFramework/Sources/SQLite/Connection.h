@@ -46,7 +46,16 @@
 #include <string>
 #include <map>
 
-#define SQLITE_FROM_HERE ::Orthanc::SQLite::StatementId(__FILE__, __LINE__)
+#if !defined(__ORTHANC_FILE__)
+#  if defined(_MSC_VER)
+#    pragma message("Warning: Macro __ORTHANC_FILE__ is not defined, this will leak the full path of the source files in the binaries")
+#  else
+#    warning Warning: Macro __ORTHANC_FILE__ is not defined, this will leak the full path of the source files in the binaries
+#  endif
+#  define __ORTHANC_FILE__ __FILE__
+#endif
+
+#define SQLITE_FROM_HERE ::Orthanc::SQLite::StatementId(__ORTHANC_FILE__, __LINE__)
 
 namespace Orthanc
 {

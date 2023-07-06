@@ -51,6 +51,8 @@ add_library(Sanitizer SHARED
     ${ORTHANC_DICOM_SOURCES}
     )
 
+DefineSourceBasenameForTarget(Sanitizer)
+
 target_link_libraries(Sanitizer ${DCMTK_LIBRARIES})
 
 

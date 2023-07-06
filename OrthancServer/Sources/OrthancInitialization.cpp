@@ -52,6 +52,12 @@
 #include <dcmtk/dcmnet/diutil.h>  // For DCM_dcmnetLogger
 
 #if ORTHANC_ENABLE_PLUGINS == 1
+#  if defined(__ORTHANC_FILE__)
+//   Prevents the system-wide Google Protobuf library from leaking the
+//   full path of this source file
+#    undef __FILE__
+#    define __FILE__ __ORTHANC_FILE__
+#  endif
 #  include <google/protobuf/any.h>
 #endif
 

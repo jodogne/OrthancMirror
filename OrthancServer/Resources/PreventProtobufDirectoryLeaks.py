@@ -1,3 +1,5 @@
+#!/usr/bin/python
+
 # Orthanc - A Lightweight, RESTful DICOM Store
 # Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
 # Department, University Hospital of Liege, Belgium
@@ -18,12 +20,20 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 
-cmake_minimum_required(VERSION 2.8)
+import sys
 
-project(CustomImageDecoder)
+if len(sys.argv) != 2:
+    raise Exception('Bad number of arguments in %s' % sys.argv[0])
 
-include(${CMAKE_SOURCE_DIR}/../Common/OrthancPlugins.cmake)
+with open(sys.argv[1], 'r') as f:
+    s = f.read()
 
-add_library(PluginTest SHARED Plugin.cpp)
+s = s.replace('__FILE__', '__ORTHANC_FILE__')
 
-DefineSourceBasenameForTarget(PluginTest)
+s = """
+#undef __FILE__
+#define __FILE__ __ORTHANC_FILE__
+""" + s
+
+with open(sys.argv[1], 'w') as f:
+    f.write(s)

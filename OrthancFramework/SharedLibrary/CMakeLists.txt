@@ -305,6 +305,8 @@ else()
     # plugins (the latter being shared libraries)
     set_property(TARGET OrthancFramework PROPERTY POSITION_INDEPENDENT_CODE ON)
   endif()
+
+  DefineSourceBasenameForTarget(OrthancFramework)
 endif()
 
 

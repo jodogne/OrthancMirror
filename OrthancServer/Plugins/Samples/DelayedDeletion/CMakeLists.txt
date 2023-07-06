@@ -78,6 +78,8 @@ add_library(DelayedDeletion SHARED
   Plugin.cpp
   )
 
+DefineSourceBasenameForTarget(DelayedDeletion)
+
 set_target_properties(
   DelayedDeletion PROPERTIES 
   VERSION ${PLUGIN_VERSION} 
