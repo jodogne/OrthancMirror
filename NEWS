@@ -1,6 +1,11 @@
 Pending changes in the mainline
 ===============================
 
+Maintenance
+-----------
+
+* Prevent the leak of the full path of the source files in the binaries
+
 
 Version 1.12.1 (2023-07-04)
 ===========================

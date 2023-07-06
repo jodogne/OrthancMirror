@@ -25,3 +25,5 @@ project(Basic)
 include(${CMAKE_SOURCE_DIR}/../Common/OrthancPlugins.cmake)
 
 add_library(AutomatedJpeg2kCompression SHARED Plugin.cpp)
+
+DefineSourceBasenameForTarget(AutomatedJpeg2kCompression)

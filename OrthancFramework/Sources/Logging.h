@@ -157,15 +157,25 @@ namespace Orthanc
 #  define VLOG(unused)          ::Orthanc::Logging::NullStream()
 #  define CLOG(level, category) ::Orthanc::Logging::NullStream()
 #else /* ORTHANC_ENABLE_LOGGING == 1 */
-#  define LOG(level)     ::Orthanc::Logging::InternalLogger     \
-  (::Orthanc::Logging::LogLevel_ ## level,                      \
-   ::Orthanc::Logging::LogCategory_GENERIC, __FILE__, __LINE__)
-#  define VLOG(unused)   ::Orthanc::Logging::InternalLogger     \
-  (::Orthanc::Logging::LogLevel_TRACE,                          \
-   ::Orthanc::Logging::LogCategory_GENERIC, __FILE__, __LINE__)
+
+#if !defined(__ORTHANC_FILE__)
+#  if defined(_MSC_VER)
+#    pragma message("Warning: Macro __ORTHANC_FILE__ is not defined, this will leak the full path of the source files in the binaries")
+#  else
+#    warning Warning: Macro __ORTHANC_FILE__ is not defined, this will leak the full path of the source files in the binaries
+#  endif
+#  define __ORTHANC_FILE__ __FILE__
+#endif
+
+#  define LOG(level)     ::Orthanc::Logging::InternalLogger             \
+  (::Orthanc::Logging::LogLevel_ ## level,                              \
+   ::Orthanc::Logging::LogCategory_GENERIC, __ORTHANC_FILE__, __LINE__)
+#  define VLOG(unused)   ::Orthanc::Logging::InternalLogger             \
+  (::Orthanc::Logging::LogLevel_TRACE,                                  \
+   ::Orthanc::Logging::LogCategory_GENERIC, __ORTHANC_FILE__, __LINE__)
 #  define CLOG(level, category) ::Orthanc::Logging::InternalLogger      \
   (::Orthanc::Logging::LogLevel_ ## level,                              \
-   ::Orthanc::Logging::LogCategory_ ## category, __FILE__, __LINE__)
+   ::Orthanc::Logging::LogCategory_ ## category, __ORTHANC_FILE__, __LINE__)
 #endif
 
 

@@ -77,6 +77,8 @@ add_library(ConnectivityChecks SHARED
   Plugin.cpp
   )
 
+DefineSourceBasenameForTarget(ConnectivityChecks)
+
 set_target_properties(
   ConnectivityChecks PROPERTIES 
   VERSION ${PLUGIN_VERSION} 
