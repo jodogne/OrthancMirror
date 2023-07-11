@@ -3479,6 +3479,7 @@ TEST(ParsedDicomFile, GuessPixelDataValueRepresentation)
 }
 
 
+#if ORTHANC_SANDBOXED != 1
 TEST(ParsedDicomFile, DISABLED_InjectEmptyPixelData2)
 {
   static const char* PIXEL_DATA = "7FE00010";
@@ -3526,7 +3527,7 @@ TEST(ParsedDicomFile, DISABLED_InjectEmptyPixelData2)
     }
   }
 }
-
+#endif
 
 
 
