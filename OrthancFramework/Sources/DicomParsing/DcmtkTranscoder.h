@@ -43,7 +43,8 @@ namespace Orthanc
     bool InplaceTranscode(DicomTransferSyntax& selectedSyntax /* out */,
                           DcmFileFormat& dicom,
                           const std::set<DicomTransferSyntax>& allowedSyntaxes,
-                          bool allowNewSopInstanceUid);
+                          bool allowNewSopInstanceUid,
+                          bool enableColorMapConversion);
     
   public:
     DcmtkTranscoder();
@@ -57,6 +58,7 @@ namespace Orthanc
     virtual bool Transcode(DicomImage& target,
                            DicomImage& source /* in, "GetParsed()" possibly modified */,
                            const std::set<DicomTransferSyntax>& allowedSyntaxes,
-                           bool allowNewSopInstanceUid) ORTHANC_OVERRIDE;
+                           bool allowNewSopInstanceUid,
+                           bool enableColorMapConversion) ORTHANC_OVERRIDE;
   };
 }

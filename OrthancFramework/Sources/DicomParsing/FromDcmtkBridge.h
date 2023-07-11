@@ -205,7 +205,8 @@ namespace Orthanc
 
     static bool Transcode(DcmFileFormat& dicom,
                           DicomTransferSyntax syntax,
-                          const DcmRepresentationParameter* representation);
+                          const DcmRepresentationParameter* representation,
+                          bool enableColorMapConversion);
 
     static ValueRepresentation Convert(DcmEVR vr);
 

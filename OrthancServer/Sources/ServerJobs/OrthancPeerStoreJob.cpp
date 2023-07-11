@@ -68,7 +68,7 @@ namespace Orthanc
         IDicomTranscoder::DicomImage source, transcoded;
         source.SetExternalBuffer(dicom);
 
-        if (context_.Transcode(transcoded, source, syntaxes, true))
+        if (context_.Transcode(transcoded, source, syntaxes, true, true))
         {
           body.assign(reinterpret_cast<const char*>(transcoded.GetBufferData()),
                       transcoded.GetBufferSize());

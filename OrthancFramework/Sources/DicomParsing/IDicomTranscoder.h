@@ -113,7 +113,8 @@ namespace Orthanc
     virtual bool Transcode(DicomImage& target,
                            DicomImage& source /* in, "GetParsed()" possibly modified */,
                            const std::set<DicomTransferSyntax>& allowedSyntaxes,
-                           bool allowNewSopInstanceUid) = 0;
+                           bool allowNewSopInstanceUid,
+                           bool enableColorMapConversion) = 0;
 
     static std::string GetSopInstanceUid(DcmFileFormat& dicom);
   };

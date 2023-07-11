@@ -5384,15 +5384,31 @@ namespace Orthanc
         const _OrthancPluginCreateDicomInstance& p =
           *reinterpret_cast<const _OrthancPluginCreateDicomInstance*>(parameters);
 
+        if (p.transferSyntax == NULL)
+        {
+          throw OrthancException(ErrorCode_ParameterOutOfRange, "Unsupported NULL transfer syntax");
+        }
+
+        std::vector<std::string> transferSyntaxArgs;
+        Toolbox::TokenizeString(transferSyntaxArgs, std::string(p.transferSyntax), ';');
+
         DicomTransferSyntax transferSyntax;
-        if (p.transferSyntax == NULL ||
-            !LookupTransferSyntax(transferSyntax, p.transferSyntax))
+        if (transferSyntaxArgs.size() == 0 || !LookupTransferSyntax(transferSyntax, transferSyntaxArgs[0]))
         {
           throw OrthancException(ErrorCode_ParameterOutOfRange, "Unsupported transfer syntax: " +
                                  std::string(p.transferSyntax == NULL ? "(null)" : p.transferSyntax));
         }
         else
         {
+          bool enableColorMapConversion = true;
+          for (size_t i = 1; i < transferSyntaxArgs.size(); ++i)
+          {
+            if (transferSyntaxArgs[i] == "disable-color-map-conversion")
+            {
+              enableColorMapConversion = false;
+            }
+          }
+
           std::set<DicomTransferSyntax> syntaxes;
           syntaxes.insert(transferSyntax);
 
@@ -5405,7 +5421,7 @@ namespace Orthanc
           {
             PImpl::ServerContextLock lock(*pimpl_);
             success = lock.GetContext().Transcode(
-              transcoded, source, syntaxes, true /* allow new sop */);
+              transcoded, source, syntaxes, true /* allow new sop */, enableColorMapConversion);
           }
 
           if (success)

@@ -863,7 +863,7 @@ namespace Orthanc
         source.SetExternalBuffer(dicom->GetBufferData(), dicom->GetBufferSize());
         
         IDicomTranscoder::DicomImage transcoded;
-        if (Transcode(transcoded, source, syntaxes, true /* allow new SOP instance UID */))
+        if (Transcode(transcoded, source, syntaxes, true /* allow new SOP instance UID */, true /* enableColorMapConversion*/))
         {
           std::unique_ptr<ParsedDicomFile> tmp(transcoded.ReleaseAsParsedDicomFile());
 
@@ -1924,11 +1924,12 @@ namespace Orthanc
   bool ServerContext::Transcode(DicomImage& target,
                                 DicomImage& source /* in, "GetParsed()" possibly modified */,
                                 const std::set<DicomTransferSyntax>& allowedSyntaxes,
-                                bool allowNewSopInstanceUid)
+                                bool allowNewSopInstanceUid,
+                                bool enableColorMapConversion)
   {
     if (builtinDecoderTranscoderOrder_ == BuiltinDecoderTranscoderOrder_Before)
     {
-      if (dcmtkTranscoder_->Transcode(target, source, allowedSyntaxes, allowNewSopInstanceUid))
+      if (dcmtkTranscoder_->Transcode(target, source, allowedSyntaxes, allowNewSopInstanceUid, enableColorMapConversion))
       {
         return true;
       }
@@ -1938,7 +1939,7 @@ namespace Orthanc
     if (HasPlugins() &&
         GetPlugins().HasCustomTranscoder())
     {
-      if (GetPlugins().Transcode(target, source, allowedSyntaxes, allowNewSopInstanceUid))
+      if (GetPlugins().Transcode(target, source, allowedSyntaxes, allowNewSopInstanceUid, enableColorMapConversion))
       {
         return true;
       }
@@ -1952,7 +1953,7 @@ namespace Orthanc
 
     if (builtinDecoderTranscoderOrder_ == BuiltinDecoderTranscoderOrder_After)
     {
-      return dcmtkTranscoder_->Transcode(target, source, allowedSyntaxes, allowNewSopInstanceUid);
+      return dcmtkTranscoder_->Transcode(target, source, allowedSyntaxes, allowNewSopInstanceUid, enableColorMapConversion);
     }
     else
     {

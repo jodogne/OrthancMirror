@@ -313,7 +313,7 @@ namespace Orthanc
       std::set<DicomTransferSyntax> ts;
       ts.insert(selectedSyntax);
       
-      if (context_.Transcode(transcoded, source, ts, true))
+      if (context_.Transcode(transcoded, source, ts, true, true))
       {
         // Transcoding has succeeded
         DcmDataset *stDetailTmp = NULL;
