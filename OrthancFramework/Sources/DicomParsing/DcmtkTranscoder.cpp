@@ -87,7 +87,8 @@ namespace Orthanc
   bool DcmtkTranscoder::InplaceTranscode(DicomTransferSyntax& selectedSyntax /* out */,
                                          DcmFileFormat& dicom,
                                          const std::set<DicomTransferSyntax>& allowedSyntaxes,
-                                         bool allowNewSopInstanceUid) 
+                                         bool allowNewSopInstanceUid,
+                                         bool enableColorMapConversion) 
   {
     if (dicom.getDataset() == NULL)
     {
@@ -111,28 +112,28 @@ namespace Orthanc
     }
       
     if (allowedSyntaxes.find(DicomTransferSyntax_LittleEndianImplicit) != allowedSyntaxes.end() &&
-        FromDcmtkBridge::Transcode(dicom, DicomTransferSyntax_LittleEndianImplicit, NULL))
+        FromDcmtkBridge::Transcode(dicom, DicomTransferSyntax_LittleEndianImplicit, NULL, enableColorMapConversion))
     {
       selectedSyntax = DicomTransferSyntax_LittleEndianImplicit;
       return true;
     }
 
     if (allowedSyntaxes.find(DicomTransferSyntax_LittleEndianExplicit) != allowedSyntaxes.end() &&
-        FromDcmtkBridge::Transcode(dicom, DicomTransferSyntax_LittleEndianExplicit, NULL))
+        FromDcmtkBridge::Transcode(dicom, DicomTransferSyntax_LittleEndianExplicit, NULL, enableColorMapConversion))
     {
       selectedSyntax = DicomTransferSyntax_LittleEndianExplicit;
       return true;
     }
       
     if (allowedSyntaxes.find(DicomTransferSyntax_BigEndianExplicit) != allowedSyntaxes.end() &&
-        FromDcmtkBridge::Transcode(dicom, DicomTransferSyntax_BigEndianExplicit, NULL))
+        FromDcmtkBridge::Transcode(dicom, DicomTransferSyntax_BigEndianExplicit, NULL, enableColorMapConversion))
     {
       selectedSyntax = DicomTransferSyntax_BigEndianExplicit;
       return true;
     }
 
     if (allowedSyntaxes.find(DicomTransferSyntax_DeflatedLittleEndianExplicit) != allowedSyntaxes.end() &&
-        FromDcmtkBridge::Transcode(dicom, DicomTransferSyntax_DeflatedLittleEndianExplicit, NULL))
+        FromDcmtkBridge::Transcode(dicom, DicomTransferSyntax_DeflatedLittleEndianExplicit, NULL, enableColorMapConversion))
     {
       selectedSyntax = DicomTransferSyntax_DeflatedLittleEndianExplicit;
       return true;
@@ -146,7 +147,7 @@ namespace Orthanc
       // Check out "dcmjpeg/apps/dcmcjpeg.cc"
       DJ_RPLossy parameters(lossyQuality_);
         
-      if (FromDcmtkBridge::Transcode(dicom, DicomTransferSyntax_JPEGProcess1, &parameters))
+      if (FromDcmtkBridge::Transcode(dicom, DicomTransferSyntax_JPEGProcess1, &parameters, enableColorMapConversion))
       {
         selectedSyntax = DicomTransferSyntax_JPEGProcess1;
         return true;
@@ -161,7 +162,7 @@ namespace Orthanc
     {
       // Check out "dcmjpeg/apps/dcmcjpeg.cc"
       DJ_RPLossy parameters(lossyQuality_);
-      if (FromDcmtkBridge::Transcode(dicom, DicomTransferSyntax_JPEGProcess2_4, &parameters))
+      if (FromDcmtkBridge::Transcode(dicom, DicomTransferSyntax_JPEGProcess2_4, &parameters, enableColorMapConversion))
       {
         selectedSyntax = DicomTransferSyntax_JPEGProcess2_4;
         return true;
@@ -175,7 +176,7 @@ namespace Orthanc
       // Check out "dcmjpeg/apps/dcmcjpeg.cc"
       DJ_RPLossless parameters(6 /* opt_selection_value */,
                                0 /* opt_point_transform */);
-      if (FromDcmtkBridge::Transcode(dicom, DicomTransferSyntax_JPEGProcess14, &parameters))
+      if (FromDcmtkBridge::Transcode(dicom, DicomTransferSyntax_JPEGProcess14, &parameters, enableColorMapConversion))
       {
         selectedSyntax = DicomTransferSyntax_JPEGProcess14;
         return true;
@@ -189,7 +190,7 @@ namespace Orthanc
       // Check out "dcmjpeg/apps/dcmcjpeg.cc"
       DJ_RPLossless parameters(6 /* opt_selection_value */,
                                0 /* opt_point_transform */);
-      if (FromDcmtkBridge::Transcode(dicom, DicomTransferSyntax_JPEGProcess14SV1, &parameters))
+      if (FromDcmtkBridge::Transcode(dicom, DicomTransferSyntax_JPEGProcess14SV1, &parameters, enableColorMapConversion))
       {
         selectedSyntax = DicomTransferSyntax_JPEGProcess14SV1;
         return true;
@@ -208,7 +209,7 @@ namespace Orthanc
        * WARNING: This call results in a segmentation fault if using
        * the DCMTK package 3.6.2 from Ubuntu 18.04.
        **/              
-      if (FromDcmtkBridge::Transcode(dicom, DicomTransferSyntax_JPEGLSLossless, &parameters))
+      if (FromDcmtkBridge::Transcode(dicom, DicomTransferSyntax_JPEGLSLossless, &parameters, enableColorMapConversion))
       {
         selectedSyntax = DicomTransferSyntax_JPEGLSLossless;
         return true;
@@ -228,7 +229,7 @@ namespace Orthanc
        * WARNING: This call results in a segmentation fault if using
        * the DCMTK package 3.6.2 from Ubuntu 18.04.
        **/              
-      if (FromDcmtkBridge::Transcode(dicom, DicomTransferSyntax_JPEGLSLossy, &parameters))
+      if (FromDcmtkBridge::Transcode(dicom, DicomTransferSyntax_JPEGLSLossy, &parameters, enableColorMapConversion))
       {
         selectedSyntax = DicomTransferSyntax_JPEGLSLossy;
         return true;
@@ -274,7 +275,8 @@ namespace Orthanc
   bool DcmtkTranscoder::Transcode(DicomImage& target,
                                   DicomImage& source /* in, "GetParsed()" possibly modified */,
                                   const std::set<DicomTransferSyntax>& allowedSyntaxes,
-                                  bool allowNewSopInstanceUid)
+                                  bool allowNewSopInstanceUid,
+                                  bool enableColorMapConversion)
   {
     target.Clear();
     
@@ -320,7 +322,7 @@ namespace Orthanc
       return true;
     }
     else if (InplaceTranscode(targetSyntax, source.GetParsed(),
-                              allowedSyntaxes, allowNewSopInstanceUid))
+                              allowedSyntaxes, allowNewSopInstanceUid, enableColorMapConversion))
     {   
       // Sanity check
       DicomTransferSyntax targetSyntax2;

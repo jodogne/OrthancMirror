@@ -544,7 +544,8 @@ namespace Orthanc
     virtual bool Transcode(DicomImage& target,
                            DicomImage& source /* in, "GetParsed()" possibly modified */,
                            const std::set<DicomTransferSyntax>& allowedSyntaxes,
-                           bool allowNewSopInstanceUid) ORTHANC_OVERRIDE;
+                           bool allowNewSopInstanceUid,
+                           bool enableColorMapConversion) ORTHANC_OVERRIDE;
 
     bool IsTranscodeDicomProtocol() const
     {

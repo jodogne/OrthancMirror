@@ -216,7 +216,7 @@ namespace Orthanc
       std::set<DicomTransferSyntax> s;
       s.insert(targetSyntax);
       
-      if (context.Transcode(transcoded, source, s, true))
+      if (context.Transcode(transcoded, source, s, true, true))
       {      
         call.GetOutput().AnswerBuffer(transcoded.GetBufferData(),
                                       transcoded.GetBufferSize(), MimeType_Dicom);

@@ -59,7 +59,8 @@ namespace Orthanc
   bool MemoryBufferTranscoder::Transcode(DicomImage& target,
                                          DicomImage& source,
                                          const std::set<DicomTransferSyntax>& allowedSyntaxes,
-                                         bool allowNewSopInstanceUid)
+                                         bool allowNewSopInstanceUid,
+                                         bool /* enableColorMapConversion not supported yet */ )
   {
     target.Clear();
     

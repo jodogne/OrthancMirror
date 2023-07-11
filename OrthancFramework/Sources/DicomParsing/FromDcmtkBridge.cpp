@@ -100,9 +100,12 @@
 
 #if ORTHANC_ENABLE_DCMTK_JPEG == 1
 #  include <dcmtk/dcmjpeg/djdecode.h>
+#  include <dcmtk/dcmjpeg/djcparam.h>
+#  include <dcmtk/dcmjpeg/djdecbas.h>
 #  if ORTHANC_ENABLE_DCMTK_TRANSCODING == 1
 #    include <dcmtk/dcmjpeg/djencode.h>
 #  endif
+
 #endif
 
 #if ORTHANC_ENABLE_DCMTK_JPEG_LOSSLESS == 1
@@ -125,6 +128,41 @@ static bool hasExternalDictionaries_ = false;
 
 namespace Orthanc
 {
+#if ORTHANC_ENABLE_DCMTK_JPEG == 1
+/** representation parameter for JPEG compression without colorspace conversion.
+ */
+class DcmJpegNoConversionRepresentationParameter: public DcmRepresentationParameter
+{
+public:
+
+  DcmJpegNoConversionRepresentationParameter()
+  {}
+
+  DcmJpegNoConversionRepresentationParameter(const DcmJpegNoConversionRepresentationParameter& arg)
+  {}
+
+  virtual ~DcmJpegNoConversionRepresentationParameter()
+  {}
+  
+  virtual DcmRepresentationParameter *clone() const
+  {
+    return new DcmJpegNoConversionRepresentationParameter();
+  }
+
+  virtual const char *className() const
+  {
+    return "DcmJpegNoConversion";
+  }
+
+  virtual OFBool operator==(const DcmRepresentationParameter &arg) const
+  {
+    return arg.className() == className();
+  }
+
+};
+#endif
+
+
   static bool IsBinaryTag(const DcmTag& key)
   {
     return (key.isUnknownVR() ||
@@ -1653,7 +1691,8 @@ namespace Orthanc
 
   bool FromDcmtkBridge::Transcode(DcmFileFormat& dicom,
                                   DicomTransferSyntax syntax,
-                                  const DcmRepresentationParameter* representation)
+                                  const DcmRepresentationParameter* representation,
+                                  bool enableColorMapConversion)
   {
     E_TransferSyntax xfer;
     if (!LookupDcmtkTransferSyntax(xfer, syntax))
@@ -1665,6 +1704,27 @@ namespace Orthanc
       DicomTransferSyntax sourceSyntax;
       bool known = LookupOrthancTransferSyntax(sourceSyntax, dicom);
       
+      if (enableColorMapConversion && representation == NULL)
+      {
+        DcmJpegNoConversionRepresentationParameter param;
+        return Transcode(dicom, syntax, &param, enableColorMapConversion);
+      }
+
+    // DJCodecParameter* cp = new DJCodecParameter(
+    //   ECC_lossyYCbCr, // ignored, compression only
+    //   EDC_never,
+    //   EUC_default,
+    //   EPC_default,
+    //   OFFalse,
+    //   OFFalse,
+    //   OFFalse);
+
+    // // baseline JPEG
+    // DJDecoderBaseline* decbas = new DJDecoderBaseline();
+    // if (decbas) DcmCodecList::registerCodec(decbas, NULL, cp);
+
+
+
       if (!dicom.chooseRepresentation(xfer, representation).good() ||
           !dicom.canWriteXfer(xfer) ||
           !dicom.validateMetaInfo(xfer, EWM_updateMeta).good())
@@ -2468,6 +2528,25 @@ namespace Orthanc
 #if ORTHANC_ENABLE_DCMTK_JPEG == 1
     CLOG(INFO, DICOM) << "Registering JPEG codecs in DCMTK";
     DJDecoderRegistration::registerCodecs();
+
+    // register a "no colorspace conversion" codec (this is a copy of part of DJDecoderRegistration::registerCodecs())
+    TODO: this does not work -> ask DCMTK forum
+    DJCodecParameter* cp = new DJCodecParameter(
+      ECC_lossyYCbCr, // ignored, compression only
+      EDC_never,
+      EUC_default,
+      EPC_default,
+      OFFalse,
+      OFFalse,
+      OFFalse);
+
+    // // baseline JPEG
+    DJDecoderBaseline* decbas = new DJDecoderBaseline();
+    if (decbas) 
+    {
+      DcmCodecList::registerCodec(decbas, new DcmJpegNoConversionRepresentationParameter(), cp);
+    }
+
 # if ORTHANC_ENABLE_DCMTK_TRANSCODING == 1
     DJEncoderRegistration::registerCodecs();
 # endif

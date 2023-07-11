@@ -3615,7 +3615,7 @@ TEST(Toto, DISABLED_Transcode4)
     IDicomTranscoder::DicomImage source, target;
     source.AcquireParsed(dynamic_cast<DcmFileFormat*>(toto->clone()));
 
-    if (!transcoder.Transcode(target, source, s, true))
+    if (!transcoder.Transcode(target, source, s, true, true))
     {
       printf("**************** CANNOT: [%s] => [%s]\n",
              GetTransferSyntaxUid(sourceSyntax), GetTransferSyntaxUid(a));
