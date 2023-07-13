@@ -109,6 +109,8 @@ add_executable(UnitTests
   ${GOOGLE_TEST_SOURCES}
   )
 
+DefineSourceBasenameForTarget(UnitTests)
+
 target_link_libraries(UnitTests ${ORTHANC_FRAMEWORK_LIBRARIES})
 
 install(TARGETS UnitTests

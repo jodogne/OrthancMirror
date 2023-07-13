@@ -257,6 +257,8 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
     ${ORTHANC_DICOM_SOURCES}
     )
 
+  DefineSourceBasenameForTarget(OrthancFramework)
+
   # CMake does not natively handle SIDE_MODULE, and believes that
   # Emscripten produces a ".js" file (whereas it creates only the
   # ".wasm"). Create a dummy ".js" for target to work.
@@ -272,6 +274,8 @@ else()
       ${ORTHANC_DICOM_SOURCES}
       DllMain.cpp
       )
+
+    DefineSourceBasenameForTarget(OrthancFramework)
 
     # By default, hide all the symbols
     set_target_properties(OrthancFramework PROPERTIES C_VISIBILITY_PRESET hidden)
@@ -300,6 +304,8 @@ else()
       ${ORTHANC_CORE_SOURCES}
       ${ORTHANC_DICOM_SOURCES}
       )
+
+    DefineSourceBasenameForTarget(OrthancFramework)
 
     # Add the "-fPIC" option to use the static library from Orthanc
     # plugins (the latter being shared libraries)
