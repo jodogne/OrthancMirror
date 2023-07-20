@@ -122,5 +122,7 @@ namespace Orthanc
                            const std::string& key) ORTHANC_OVERRIDE;
 
     virtual bool DeleteOutput(const std::string& key) ORTHANC_OVERRIDE;
+
+    virtual void DeleteAllOutputs() ORTHANC_OVERRIDE;
   };
 }

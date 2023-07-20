@@ -649,6 +649,42 @@ namespace Orthanc
   }
 
 
+  bool JobsRegistry::DeleteJobInfo(const std::string& id)
+  {
+    LOG(INFO) << "Deleting job: " << id;
+
+    boost::mutex::scoped_lock lock(mutex_);
+    CheckInvariants();
+
+    JobsIndex::iterator found = jobsIndex_.find(id);
+
+    if (found == jobsIndex_.end())
+    {
+      LOG(WARNING) << "Unknown job to delete: " << id;
+      return false;
+    }
+    else
+    {
+      for (CompletedJobs::iterator it = completedJobs_.begin();
+           it != completedJobs_.end(); ++it)
+      {
+        if (*it == found->second)
+        {
+          found->second->GetJob().DeleteAllOutputs();
+          delete found->second;
+          
+          completedJobs_.erase(it);
+          jobsIndex_.erase(id);
+          return true;
+        }
+      }
+
+      LOG(WARNING) << "Can not delete a job that is not complete: " << id;
+      return false;
+    }
+  }
+
+
   bool JobsRegistry::GetJobOutput(std::string& output,
                                   MimeType& mime,
                                   std::string& filename,

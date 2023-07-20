@@ -147,6 +147,8 @@ namespace Orthanc
     bool GetJobInfo(JobInfo& target,
                     const std::string& id);
 
+    bool DeleteJobInfo(const std::string& id);
+
     bool GetJobOutput(std::string& output,
                       MimeType& mime,
                       std::string& filename,

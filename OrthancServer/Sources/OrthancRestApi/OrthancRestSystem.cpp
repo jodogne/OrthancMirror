@@ -729,6 +729,34 @@ namespace Orthanc
     }
   }
 
+  static void DeleteJobInfo(RestApiDeleteCall& call)
+  {
+    if (call.IsDocumentation())
+    {
+      call.GetDocumentation()
+        .SetTag("Jobs")
+        .SetSummary("Delete a job from history")
+        .SetDescription("Delete the job from the jobs history.  Only a completed job can be deleted. "
+                        "If the job has not run or not completed yet, you must cancel it first. "
+                        "If the job has outputs, all outputs will be deleted as well. ")
+        .SetUriArgument("id", "Identifier of the job of interest");
+      return;
+    }
+
+    std::string job = call.GetUriComponent("id", "");
+
+    if (OrthancRestApi::GetContext(call).GetJobsEngine().
+        GetRegistry().DeleteJobInfo(job))
+    {
+      call.GetOutput().AnswerBuffer("", MimeType_PlainText);
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_InexistentItem,
+                             "No job found with this id: " + job);
+    }
+  }
+
 
   static void GetJobOutput(RestApiGetCall& call)
   {
@@ -1138,6 +1166,7 @@ namespace Orthanc
 
     Register("/jobs", ListJobs);
     Register("/jobs/{id}", GetJobInfo);
+    Register("/jobs/{id}", DeleteJobInfo);
     Register("/jobs/{id}/cancel", ApplyJobAction<JobAction_Cancel>);
     Register("/jobs/{id}/pause", ApplyJobAction<JobAction_Pause>);
     Register("/jobs/{id}/resubmit", ApplyJobAction<JobAction_Resubmit>);
