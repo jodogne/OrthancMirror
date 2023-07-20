@@ -1482,4 +1482,9 @@ namespace Orthanc
       return false;
     }
   }
+
+  void ArchiveJob::DeleteAllOutputs()
+  {
+    DeleteOutput("archive");
+  }
 }

@@ -66,5 +66,9 @@ namespace Orthanc
     // This function can only be called if the job has reached its
     // "success" state
     virtual bool DeleteOutput(const std::string& key) = 0;
+
+    // This function can only be called if the job has reached its
+    // "success" state
+    virtual void DeleteAllOutputs() {}
   };
 }
