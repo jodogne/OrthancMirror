@@ -117,6 +117,8 @@ Mid-term
   https://groups.google.com/g/orthanc-users/c/rDDusFG5Lco/m/TzTUjWXLAQAJ
 * allow filtering/ordering on the /jobs route:
   https://groups.google.com/g/orthanc-users/c/hsZ1jng5rIg/m/8xZL2C1VBgAJ
+* add an "AutoDeleteIfSuccessful": false option when creating jobs 
+  https://discourse.orthanc-server.org/t/job-history-combined-with-auto-forwarding/3729/10
 * Also implement a GET variant of /tools/create-archive + sibling routes
   in which resources & transcode options are provided as get arguments.
   https://groups.google.com/g/orthanc-users/c/PmaRZ609ztA/m/JdwXvIBKAQAJ
