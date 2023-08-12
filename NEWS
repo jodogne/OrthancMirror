@@ -1,18 +1,18 @@
 Pending changes in the mainline
 ===============================
 
+REST API
+--------
+
+* API version upgraded to 22
+* Added a route to delete completed jobs from history: DELETE /jobs/{id}
+
 Maintenance
 -----------
 
 * Fix unit test PngWriter.Color16Pattern on big-endian architectures,
   as suggested by Etienne Mollier: https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=1041813
 * Prevent the leak of the full path of the source files in the binaries
-
-REST API
---------
-
-* API version upgraded to 22
-* Added a route to delete completed jobs from history: DELETE /jobs/{id}
 
 
 Version 1.12.1 (2023-07-04)
