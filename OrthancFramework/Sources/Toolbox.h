@@ -183,9 +183,20 @@ namespace Orthanc
 
     static std::string WildcardToRegularExpression(const std::string& s);
 
+    // TokenizeString result might contain empty strings (not SplitString)
     static void TokenizeString(std::vector<std::string>& result,
                                const std::string& source,
                                char separator);
+
+    // SplitString result won't contain empty strings (compared to TokenizeString)
+    static void SplitString(std::vector<std::string>& result,
+                            const std::string& source,
+                            char separator);
+
+    // SplitString result won't contain empty strings (compared to TokenizeString)
+    static void SplitString(std::set<std::string>& result,
+                            const std::string& source,
+                            char separator);
 
     static void JoinStrings(std::string& result,
                             const std::set<std::string>& source,
