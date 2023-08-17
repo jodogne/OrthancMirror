@@ -706,6 +706,82 @@ TEST(Toolbox, Tokenize)
   ASSERT_EQ("", t[3]);
 }
 
+TEST(Toolbox, SplitString)
+{
+  {
+    std::set<std::string> result;
+    Toolbox::SplitString(result, "", ';');
+    ASSERT_EQ(0u, result.size());
+  }
+
+  {
+    std::set<std::string> result;
+    Toolbox::SplitString(result, "a", ';');
+    ASSERT_EQ(1u, result.size());
+    ASSERT_TRUE(result.end() != result.find("a"));
+  }
+
+  {
+    std::set<std::string> result;
+    Toolbox::SplitString(result, "a;b", ';');
+    ASSERT_EQ(2u, result.size());
+    ASSERT_TRUE(result.end() != result.find("a"));
+    ASSERT_TRUE(result.end() != result.find("b"));
+  }
+
+  {
+    std::set<std::string> result;
+    Toolbox::SplitString(result, "a;b;", ';');
+    ASSERT_EQ(2u, result.size());
+    ASSERT_TRUE(result.end() != result.find("a"));
+    ASSERT_TRUE(result.end() != result.find("b"));
+  }
+
+  {
+    std::set<std::string> result;
+    Toolbox::SplitString(result, "a;a", ';');
+    ASSERT_EQ(1u, result.size());
+    ASSERT_TRUE(result.end() != result.find("a"));
+  }
+
+  {
+    std::vector<std::string> result;
+    Toolbox::SplitString(result, "", ';');
+    ASSERT_EQ(0u, result.size());
+  }
+
+  {
+    std::vector<std::string> result;
+    Toolbox::SplitString(result, "a", ';');
+    ASSERT_EQ(1u, result.size());
+    ASSERT_EQ("a", result[0]);
+  }
+
+  {
+    std::vector<std::string> result;
+    Toolbox::SplitString(result, "a;b", ';');
+    ASSERT_EQ(2u, result.size());
+    ASSERT_EQ("a", result[0]);
+    ASSERT_EQ("b", result[1]);
+  }
+
+  {
+    std::vector<std::string> result;
+    Toolbox::SplitString(result, "a;b;", ';');
+    ASSERT_EQ(2u, result.size());
+    ASSERT_EQ("a", result[0]);
+    ASSERT_EQ("b", result[1]);
+  }
+
+  {
+    std::vector<std::string> result;
+    Toolbox::TokenizeString(result, "a;a", ';');
+    ASSERT_EQ(2u, result.size());
+    ASSERT_EQ("a", result[0]);
+    ASSERT_EQ("a", result[1]);
+  }
+}
+
 TEST(Toolbox, Enumerations)
 {
   ASSERT_EQ(Encoding_Utf8, StringToEncoding(EnumerationToString(Encoding_Utf8)));

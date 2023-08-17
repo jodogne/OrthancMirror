@@ -1035,10 +1035,10 @@ namespace Orthanc
     return result;
   }
 
-
-  void Toolbox::TokenizeString(std::vector<std::string>& result,
+  static void TokenizeStringInternal(std::vector<std::string>& result,
                                const std::string& value,
-                               char separator)
+                               char separator,
+                               bool includeEmptyStrings)
   {
     size_t countSeparators = 0;
     
@@ -1068,7 +1068,41 @@ namespace Orthanc
       }
     }
 
-    result.push_back(currentItem);
+    if (includeEmptyStrings || !currentItem.empty())
+    {
+      result.push_back(currentItem);
+    }
+  }
+
+
+  void Toolbox::TokenizeString(std::vector<std::string>& result,
+                               const std::string& value,
+                               char separator)
+  {
+    TokenizeStringInternal(result, value, separator, true);
+  }
+
+
+  void Toolbox::SplitString(std::set<std::string>& result,
+                            const std::string& value,
+                            char separator)
+  {
+    result.clear();
+
+    std::vector<std::string> temp;
+    TokenizeStringInternal(temp, value, separator, false);
+    for (size_t i = 0; i < temp.size(); ++i)
+    {
+      result.insert(temp[i]);
+    }
+  }
+
+
+  void Toolbox::SplitString(std::vector<std::string>& result,
+                            const std::string& value,
+                            char separator)
+  {
+    TokenizeStringInternal(result, value, separator, false);
   }
 
 
