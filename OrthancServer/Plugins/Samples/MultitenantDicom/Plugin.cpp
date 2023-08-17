@@ -119,6 +119,10 @@ extern "C"
       return -1;
     }
 
+    // For static builds, this is not required - but does not harm - because the dictionary seems to be shared between the Orthanc Core and the plugin.
+    // For dynamic builds, this is however required.  See https://discourse.orthanc-server.org/t/dimse-failure-using-multitenant-plugin/3665
+    Orthanc::FromDcmtkBridge::InitializeDictionary(false /* loadPrivateDictionary */);
+
     /* Disable "gethostbyaddr" (which results in memory leaks) and use raw IP addresses */
     dcmDisableGethostbyaddr.set(OFTrue);
 
