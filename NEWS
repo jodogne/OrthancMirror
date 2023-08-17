@@ -13,6 +13,8 @@ Maintenance
 * Fix unit test PngWriter.Color16Pattern on big-endian architectures,
   as suggested by Etienne Mollier: https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=1041813
 * Prevent the leak of the full path of the source files in the binaries
+* Fix loading of DCMTK dictionary in the MultitenantDicom plugin when built dynamically:
+  https://discourse.orthanc-server.org/t/dimse-failure-using-multitenant-plugin/3665
 
 
 Version 1.12.1 (2023-07-04)
