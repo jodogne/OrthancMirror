@@ -45,7 +45,7 @@ static bool triggerOnStorageCompressionChange_ = true;
 static bool triggerOnMainDicomTagsChange_ = true;
 static bool triggerOnUnnecessaryDicomAsJsonFiles_ = true;
 static bool triggerOnIngestTranscodingChange_ = true;
-
+static bool triggerOnDicomWebCacheChange_ = true;
 
 struct RunningPeriod
 {
@@ -166,6 +166,7 @@ struct DbConfiguration
   std::string seriesMainDicomTagsSignature;
   std::string instancesMainDicomTagsSignature;
   std::string ingestTranscoding;
+  std::string dicomWebVersion;
   bool storageCompressionEnabled;
 
   DbConfiguration()
@@ -186,6 +187,7 @@ struct DbConfiguration
     seriesMainDicomTagsSignature.clear();
     instancesMainDicomTagsSignature.clear();
     ingestTranscoding.clear();
+    dicomWebVersion.clear();
   }
 
   void ToJson(Json::Value& target)
@@ -210,6 +212,7 @@ struct DbConfiguration
       target["OrthancVersion"] = orthancVersion;
       target["StorageCompressionEnabled"] = storageCompressionEnabled;
       target["IngestTranscoding"] = ingestTranscoding;
+      target["DicomWebVersion"] = dicomWebVersion;
     }
   }
 
@@ -218,6 +221,14 @@ struct DbConfiguration
     if (!source.isNull())
     {
       orthancVersion = source["OrthancVersion"].asString();
+      if (source.isMember("DicomWebVersion"))
+      {
+        dicomWebVersion = source["DicomWebVersion"].asString();
+      }
+      else
+      {
+        dicomWebVersion = "1.14"; // the first change that requires processing has been introduced between 1.14 & 1.15
+      }
 
       const Json::Value& signatures = source["MainDicomTagsSignature"];
       patientsMainDicomTagsSignature = signatures["Patient"].asString();
@@ -321,6 +332,7 @@ static void ReadStatusFromDb()
     pluginStatus_.lastTimeStarted = boost::date_time::not_a_date_time;
     
     pluginStatus_.lastProcessedConfiguration.orthancVersion = "1.9.0"; // when we don't know, we assume some files were stored with Orthanc 1.9.0 (last version saving the dicom-as-json files)
+    pluginStatus_.lastProcessedConfiguration.dicomWebVersion = "1.14"; // the first change that requires processing has been introduced between 1.14 & 1.15
 
     // default main dicom tags signature are the one from Orthanc 1.4.2 (last time the list was changed):
     pluginStatus_.lastProcessedConfiguration.patientsMainDicomTagsSignature = "0010,0010;0010,0020;0010,0030;0010,0040;0010,1000";
@@ -360,12 +372,19 @@ static void GetCurrentDbConfiguration(DbConfiguration& configuration)
   configuration.ingestTranscoding = systemInfo["IngestTranscoding"].asString();
 
   configuration.orthancVersion = OrthancPlugins::GetGlobalContext()->orthancVersion;
+
+  Json::Value pluginInfo;
+  if (OrthancPlugins::RestApiGet(pluginInfo, "/plugins/dicom-web", false))
+  {
+    configuration.dicomWebVersion = pluginInfo["Version"].asString();
+  }
 }
 
-static void CheckNeedsProcessing(bool& needsReconstruct, bool& needsReingest, const DbConfiguration& current, const DbConfiguration& last)
+static void CheckNeedsProcessing(bool& needsReconstruct, bool& needsReingest, bool& needsDicomWebCaching, const DbConfiguration& current, const DbConfiguration& last)
 {
   needsReconstruct = false;
   needsReingest = false;
+  needsDicomWebCaching = false;
 
   if (!last.IsDefined())
   {
@@ -474,9 +493,37 @@ static void CheckNeedsProcessing(bool& needsReconstruct, bool& needsReingest, co
     }
   }
 
+  if (!current.dicomWebVersion.empty())
+  {
+    if (last.dicomWebVersion.empty())
+    {
+      if (triggerOnDicomWebCacheChange_)
+      {
+        OrthancPlugins::LogWarning("Housekeeper: DicomWEB plugin is enabled and the housekeeper has never run, you might miss series metadata cache -> will perform housekeeping");
+      }
+      needsDicomWebCaching = triggerOnDicomWebCacheChange_;
+    }
+    else
+    {
+      const char* lastDicomWebVersion = last.dicomWebVersion.c_str();
+
+      if (!OrthancPlugins::CheckMinimalVersion(lastDicomWebVersion, 1, 15, 0))
+      {
+        if (triggerOnDicomWebCacheChange_)
+        {
+          OrthancPlugins::LogWarning("Housekeeper: DicomWEB plugin might miss series metadata cache -> will perform housekeeping");
+          needsDicomWebCaching = true;
+        }
+        else
+        {
+          OrthancPlugins::LogWarning("Housekeeper: DicomWEB plugin might miss series metadata cache but the trigger has been disabled");
+        }
+      }
+    }
+  }
 }
 
-static bool ProcessChanges(bool needsReconstruct, bool needsReingest, const DbConfiguration& currentDbConfiguration)
+static bool ProcessChanges(bool needsReconstruct, bool needsReingest, bool needsDicomWebCaching, const DbConfiguration& currentDbConfiguration)
 {
   Json::Value changes;
 
@@ -498,12 +545,22 @@ static bool ProcessChanges(bool needsReconstruct, bool needsReingest, const DbCo
       if (change["ChangeType"] == "NewStudy") // some StableStudy might be missing if orthanc was shutdown during a StableAge -> consider only the NewStudy events that can not be missed
       {
         Json::Value result;
-        Json::Value request;
-        if (needsReingest)
+
+        if (needsReconstruct)
         {
-          request["ReconstructFiles"] = true;
+          Json::Value request;
+          if (needsReingest)
+          {
+            request["ReconstructFiles"] = true;
+          }
+          OrthancPlugins::RestApiPost(result, "/studies/" + change["ID"].asString() + "/reconstruct", request, false);
         }
-        OrthancPlugins::RestApiPost(result, "/studies/" + change["ID"].asString() + "/reconstruct", request, false);
+
+        if (needsDicomWebCaching)
+        {
+          Json::Value request;
+          OrthancPlugins::RestApiPost(result, "/studies/" + change["ID"].asString() + "/update-dicomweb-cache", request, true);
+        }
       }
 
       {
@@ -554,13 +611,14 @@ static void WorkerThread()
   bool needsReingest = false;
   bool needsFullProcessing = false;
   bool needsProcessing = false;
+  bool needsDicomWebCaching = false;
 
   {
     boost::recursive_mutex::scoped_lock lock(pluginStatusMutex_);
 
     // compare with last full processed configuration
-    CheckNeedsProcessing(needsReconstruct, needsReingest, currentDbConfiguration, pluginStatus_.lastProcessedConfiguration);
-    needsFullProcessing = needsReconstruct || needsReingest;
+    CheckNeedsProcessing(needsReconstruct, needsReingest, needsDicomWebCaching, currentDbConfiguration, pluginStatus_.lastProcessedConfiguration);
+    needsFullProcessing = needsReconstruct || needsReingest || needsDicomWebCaching;
     needsProcessing = needsFullProcessing;
 
       // if a processing was in progress, check if the config has changed since
@@ -570,9 +628,10 @@ static void WorkerThread()
 
       bool needsReconstruct2 = false;
       bool needsReingest2 = false;
+      bool needsDicomWebCaching2 = false;
 
-      CheckNeedsProcessing(needsReconstruct2, needsReingest2, currentDbConfiguration, pluginStatus_.currentlyProcessingConfiguration);
-      needsFullProcessing = needsReconstruct2 || needsReingest2;  // if the configuration has changed compared to the config being processed, we need a full processing again
+      CheckNeedsProcessing(needsReconstruct2, needsReingest2, needsDicomWebCaching2, currentDbConfiguration, pluginStatus_.currentlyProcessingConfiguration);
+      needsFullProcessing = needsReconstruct2 || needsReingest2 || needsDicomWebCaching2;  // if the configuration has changed compared to the config being processed, we need a full processing again
     }
   }
 
@@ -621,7 +680,7 @@ static void WorkerThread()
   {
     if (runningPeriods_.isInPeriod())
     {
-      completed = ProcessChanges(needsReconstruct, needsReingest, currentDbConfiguration);
+      completed = ProcessChanges(needsReconstruct, needsReingest, needsDicomWebCaching, currentDbConfiguration);
       SaveStatusInDb();
       
       if (!completed)
@@ -794,6 +853,7 @@ extern "C"
         triggerOnMainDicomTagsChange_ = housekeeper.GetBooleanValue("MainDicomTagsChange", true);
         triggerOnUnnecessaryDicomAsJsonFiles_ = housekeeper.GetBooleanValue("UnnecessaryDicomAsJsonFiles", true);
         triggerOnIngestTranscodingChange_ = housekeeper.GetBooleanValue("IngestTranscodingChange", true);
+        triggerOnDicomWebCacheChange_ = housekeeper.GetBooleanValue("DicomWebCacheChange", true);
       }
 
       if (housekeeper.GetJson().isMember("Schedule"))
@@ -802,7 +862,7 @@ extern "C"
       }
 
       OrthancPluginRegisterOnChangeCallback(c, OnChangeCallback);
-      OrthancPluginRegisterRestCallback(c, "/housekeeper/status", GetPluginStatus);   // for bacward compatiblity with version 1.11.0
+      OrthancPluginRegisterRestCallback(c, "/housekeeper/status", GetPluginStatus);   // for backward compatiblity with version 1.11.0
       OrthancPluginRegisterRestCallback(c, "/plugins/housekeeper/status", GetPluginStatus);
     }
     else
