@@ -1,6 +1,13 @@
 Pending changes in the mainline
 ===============================
 
+General
+-------
+
+* Housekeeper plugin:
+  - Update to rebuild the cache of the DicomWeb plugin when updating to DicomWeb 1.15.
+  - New trigger configuration: "DicomWebCacheChange"
+
 REST API
 --------
 
