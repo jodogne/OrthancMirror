@@ -834,7 +834,8 @@ extern "C"
             "Triggers" : {
               "StorageCompressionChange": true,
               "MainDicomTagsChange": true,
-              "UnnecessaryDicomAsJsonFiles": true
+              "UnnecessaryDicomAsJsonFiles": true,
+              "DicomWebCacheChange": true   // new in 1.12.2
             }
 
           }
@@ -848,12 +849,14 @@ extern "C"
 
       if (housekeeper.GetJson().isMember("Triggers"))
       {
-        triggerOnStorageCompressionChange_ = housekeeper.GetBooleanValue("StorageCompressionChange", true);
+        OrthancPlugins::OrthancConfiguration triggers;
+        housekeeper.GetSection(triggers, "Triggers");
+        triggerOnStorageCompressionChange_ = triggers.GetBooleanValue("StorageCompressionChange", true);
 
-        triggerOnMainDicomTagsChange_ = housekeeper.GetBooleanValue("MainDicomTagsChange", true);
-        triggerOnUnnecessaryDicomAsJsonFiles_ = housekeeper.GetBooleanValue("UnnecessaryDicomAsJsonFiles", true);
-        triggerOnIngestTranscodingChange_ = housekeeper.GetBooleanValue("IngestTranscodingChange", true);
-        triggerOnDicomWebCacheChange_ = housekeeper.GetBooleanValue("DicomWebCacheChange", true);
+        triggerOnMainDicomTagsChange_ = triggers.GetBooleanValue("MainDicomTagsChange", true);
+        triggerOnUnnecessaryDicomAsJsonFiles_ = triggers.GetBooleanValue("UnnecessaryDicomAsJsonFiles", true);
+        triggerOnIngestTranscodingChange_ = triggers.GetBooleanValue("IngestTranscodingChange", true);
+        triggerOnDicomWebCacheChange_ = triggers.GetBooleanValue("DicomWebCacheChange", true);
       }
 
       if (housekeeper.GetJson().isMember("Schedule"))
