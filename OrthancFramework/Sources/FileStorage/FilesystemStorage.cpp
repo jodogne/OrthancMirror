@@ -122,8 +122,16 @@ namespace Orthanc
                                  size_t size,
                                  FileContentType type)
   {
-    LOG(INFO) << "Creating attachment \"" << uuid << "\" of \"" << GetDescriptionInternal(type) 
-              << "\" type (size: " << (size / (1024 * 1024) + 1) << "MB)";
+    if (size > (1024 * 1024))
+    {
+      LOG(INFO) << "Creating attachment \"" << uuid << "\" of \"" << GetDescriptionInternal(type) 
+                << "\" type (size: " << (size / (1024 * 1024) + 1) << "MB)";
+    }
+    else
+    {
+      LOG(INFO) << "Creating attachment \"" << uuid << "\" of \"" << GetDescriptionInternal(type) 
+                << "\" type (size: " << (size / 1024 + 1) << "KB)";
+    }
 
     boost::filesystem::path path;
     
