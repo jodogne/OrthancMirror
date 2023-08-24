@@ -128,6 +128,9 @@ namespace Orthanc
     static void ComputeMD5(std::string& result,
                            const void* data,
                            size_t size);
+
+    static void ComputeMD5(std::string& result,
+                           const std::set<std::string>& data);
 #endif
 
     static void ComputeSHA1(std::string& result,

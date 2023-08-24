@@ -381,6 +381,21 @@ TEST(Toolbox, ComputeMD5)
   ASSERT_EQ("8b1a9953c4611296a827abf8c47804d7", s);
   Toolbox::ComputeMD5(s, "");
   ASSERT_EQ("d41d8cd98f00b204e9800998ecf8427e", s);
+
+  Toolbox::ComputeMD5(s, "aaabbbccc");
+  ASSERT_EQ("d1aaf4767a3c10a473407a4e47b02da6", s);
+
+  std::set<std::string> set;
+
+  Toolbox::ComputeMD5(s, set);
+  ASSERT_EQ("d41d8cd98f00b204e9800998ecf8427e", s);  // empty set same as empty string
+
+  set.insert("bbb");
+  set.insert("ccc");
+  set.insert("aaa");
+
+  Toolbox::ComputeMD5(s, set);
+  ASSERT_EQ("d1aaf4767a3c10a473407a4e47b02da6", s); // set md5 same as string with the values sorted
 }
 
 TEST(Toolbox, ComputeSHA1)
