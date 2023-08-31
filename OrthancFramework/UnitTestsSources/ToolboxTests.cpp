@@ -280,6 +280,48 @@ TEST(Toolbox, IsSetInSet)
   }
 }
 
+TEST(Toolbox, GetSetIntersection)
+{
+  {
+    std::set<int> target;
+    std::set<int> a;
+    std::set<int> b;
+
+    Toolbox::GetIntersection(target, a, b);
+    ASSERT_EQ(0u, target.size());
+  }
+
+  {
+    std::set<int> target;
+    std::set<int> a;
+    std::set<int> b;
+
+    a.insert(1);
+    b.insert(1);
+
+    Toolbox::GetIntersection(target, a, b);
+    ASSERT_EQ(1u, target.size());
+    ASSERT_EQ(1u, target.count(1));
+  }
+
+  {
+    std::set<int> target;
+    std::set<int> a;
+    std::set<int> b;
+
+    a.insert(1);
+    a.insert(2);
+    b.insert(2);
+
+    Toolbox::GetIntersection(target, a, b);
+    ASSERT_EQ(1u, target.size());
+    ASSERT_EQ(0u, target.count(1));
+    ASSERT_EQ(1u, target.count(2));
+  }
+
+}
+
+
 TEST(Toolbox, JoinStrings)
 {
   {

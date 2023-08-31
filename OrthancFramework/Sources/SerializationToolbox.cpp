@@ -178,23 +178,44 @@ namespace Orthanc
         value[field.c_str()].type() != Json::arrayValue)
     {
       throw OrthancException(ErrorCode_BadFileFormat,
-                             "List of strings expected in field: " + field);
+                            "List of strings expected in field: " + field);
     }
 
     const Json::Value& arr = value[field.c_str()];
 
-    target.resize(arr.size());
-
-    for (Json::Value::ArrayIndex i = 0; i < arr.size(); i++)
+    try
     {
-      if (arr[i].type() != Json::stringValue)
+      ReadArrayOfStrings(target, arr);
+    }
+    catch (OrthancException& ex)
+    {  // more detailed error
+      throw OrthancException(ErrorCode_BadFileFormat,
+                              "List of strings expected in field: " + field);
+    }
+  }
+
+
+  void SerializationToolbox::ReadArrayOfStrings(std::vector<std::string>& target,
+                                                const Json::Value& array)
+  {
+    if (array.type() != Json::arrayValue)
+    {
+      throw OrthancException(ErrorCode_BadFileFormat,
+                             "List of strings expected");
+    }
+
+    target.resize(array.size());
+
+    for (Json::Value::ArrayIndex i = 0; i < array.size(); i++)
+    {
+      if (array[i].type() != Json::stringValue)
       {
         throw OrthancException(ErrorCode_BadFileFormat,
-                               "List of strings expected in field: " + field);
+                               "List of strings expected");
       }
       else
       {
-        target[i] = arr[i].asString();
+        target[i] = array[i].asString();
       }
     }
   }
@@ -221,6 +242,20 @@ namespace Orthanc
   {
     std::vector<std::string> tmp;
     ReadArrayOfStrings(tmp, value, field);
+
+    target.clear();
+    for (size_t i = 0; i < tmp.size(); i++)
+    {
+      target.insert(tmp[i]);
+    }
+  }
+
+
+  void SerializationToolbox::ReadSetOfStrings(std::set<std::string>& target,
+                                              const Json::Value& value)
+  {
+    std::vector<std::string> tmp;
+    ReadArrayOfStrings(tmp, value);
 
     target.clear();
     for (size_t i = 0; i < tmp.size(); i++)
