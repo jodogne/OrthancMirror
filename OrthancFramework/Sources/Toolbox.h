@@ -259,6 +259,22 @@ namespace Orthanc
       }
     }
 
+    // returns true if all element of 'needles' are found in 'haystack'
+    template <typename T> static void GetIntersection(std::set<T>& target, const std::set<T>& a, const std::set<T>& b)
+    {
+      target.clear();
+
+      for (typename std::set<T>::const_iterator it = a.begin();
+            it != a.end(); ++it)
+      {
+        if (b.count(*it) > 0)
+        {
+          target.insert(*it);
+        }
+      }
+    }
+
+
 #if ORTHANC_ENABLE_PUGIXML == 1
     static void JsonToXml(std::string& target,
                           const Json::Value& source,

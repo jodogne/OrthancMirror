@@ -63,6 +63,9 @@ namespace Orthanc
                                    const Json::Value& value,
                                    const std::string& field);
 
+    static void ReadArrayOfStrings(std::vector<std::string>& target,
+                                   const Json::Value& value);
+
     static void ReadListOfStrings(std::list<std::string>& target,
                                   const Json::Value& value,
                                   const std::string& field);
@@ -70,6 +73,9 @@ namespace Orthanc
     static void ReadSetOfStrings(std::set<std::string>& target,
                                  const Json::Value& value,
                                  const std::string& field);
+
+    static void ReadSetOfStrings(std::set<std::string>& target,
+                                 const Json::Value& value);
 
     static void ReadSetOfTags(std::set<DicomTag>& target,
                               const Json::Value& value,
