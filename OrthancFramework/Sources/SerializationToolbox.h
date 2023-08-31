@@ -60,22 +60,22 @@ namespace Orthanc
                             const std::string& field);
 
     static void ReadArrayOfStrings(std::vector<std::string>& target,
-                                   const Json::Value& value,
+                                   const Json::Value& valueObject,
                                    const std::string& field);
 
     static void ReadArrayOfStrings(std::vector<std::string>& target,
-                                   const Json::Value& value);
+                                   const Json::Value& valueArray);
 
     static void ReadListOfStrings(std::list<std::string>& target,
                                   const Json::Value& value,
                                   const std::string& field);
 
     static void ReadSetOfStrings(std::set<std::string>& target,
-                                 const Json::Value& value,
+                                 const Json::Value& valueObject,
                                  const std::string& field);
 
     static void ReadSetOfStrings(std::set<std::string>& target,
-                                 const Json::Value& value);
+                                 const Json::Value& valueArray);
 
     static void ReadSetOfTags(std::set<DicomTag>& target,
                               const Json::Value& value,
@@ -97,9 +97,12 @@ namespace Orthanc
                                    const std::list<std::string>& values,
                                    const std::string& field);
 
-    static void WriteSetOfStrings(Json::Value& target,
+    static void WriteSetOfStrings(Json::Value& targetObject,
                                   const std::set<std::string>& values,
                                   const std::string& field);
+
+    static void WriteSetOfStrings(Json::Value& targetArray,
+                                  const std::set<std::string>& values);
 
     static void WriteSetOfTags(Json::Value& target,
                                const std::set<DicomTag>& tags,
