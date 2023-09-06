@@ -122,7 +122,7 @@ path = os.path.join(BASE, 'OrthancFramework', 'Sources', 'SQLite', 'OrthancSQLit
 with open(path, 'r') as f:
     a = f.read()
 
-e = filter(lambda x: 'SQLite' in x and x['SQLite'], ERRORS)
+e = list(filter(lambda x: 'SQLite' in x and x['SQLite'], ERRORS))
 s = ',\n'.join(map(lambda x: '      ErrorCode_%s' % x['Name'], e))
 a = re.sub('(enum ErrorCode\s*{)[^}]*?(\s*};)', r'\1\n%s\2' % s, a, re.DOTALL)
 
