@@ -125,7 +125,9 @@ Mid-term
 * Allow skiping automatic conversion of color-space in transcoding/decoding.
   The patch that was initialy provided was breaking the IngestTranscoding.
   https://discourse.orthanc-server.org/t/orthanc-convert-ybr-to-rgb-but-does-not-change-metadata/3533/9
-
+* Implement a 'commit' route to force the Stable status earlier.
+  https://discourse.orthanc-server.org/t/expediting-stability-of-a-dicom-study-new-api-endpoint/1684
+  
 
 ---------
 Long-term
