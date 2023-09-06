@@ -250,6 +250,12 @@
     "Name": "MainDicomTagsMultiplyDefined",
     "Description": "A main DICOM Tag has been defined multiple times for the same resource level"
   }, 
+  {
+    "Code": 45, 
+    "HttpStatus": 403, 
+    "Name": "ForbiddenAccess", 
+    "Description": "Access to a resource is forbidden"
+  }, 
 
 
 

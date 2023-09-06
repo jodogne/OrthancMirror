@@ -148,6 +148,7 @@ namespace Orthanc
     ErrorCode_DatabaseCannotSerialize = 42    /*!< Database could not serialize access due to concurrent update, the transaction should be retried */,
     ErrorCode_Revision = 43    /*!< A bad revision number was provided, which might indicate conflict between multiple writers */,
     ErrorCode_MainDicomTagsMultiplyDefined = 44    /*!< A main DICOM Tag has been defined multiple times for the same resource level */,
+    ErrorCode_ForbiddenAccess = 45    /*!< Access to a resource is forbidden */,
     ErrorCode_SQLiteNotOpened = 1000    /*!< SQLite: The database is not opened */,
     ErrorCode_SQLiteAlreadyOpened = 1001    /*!< SQLite: Connection is already open */,
     ErrorCode_SQLiteCannotOpen = 1002    /*!< SQLite: Unable to open the database */,

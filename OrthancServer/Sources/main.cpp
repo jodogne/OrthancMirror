@@ -819,6 +819,7 @@ static void PrintErrors(const char* path)
     PrintErrorCode(ErrorCode_DatabaseCannotSerialize, "Database could not serialize access due to concurrent update, the transaction should be retried");
     PrintErrorCode(ErrorCode_Revision, "A bad revision number was provided, which might indicate conflict between multiple writers");
     PrintErrorCode(ErrorCode_MainDicomTagsMultiplyDefined, "A main DICOM Tag has been defined multiple times for the same resource level");
+    PrintErrorCode(ErrorCode_ForbiddenAccess, "Access to a resource is forbidden");
     PrintErrorCode(ErrorCode_SQLiteNotOpened, "SQLite: The database is not opened");
     PrintErrorCode(ErrorCode_SQLiteAlreadyOpened, "SQLite: Connection is already open");
     PrintErrorCode(ErrorCode_SQLiteCannotOpen, "SQLite: Unable to open the database");
