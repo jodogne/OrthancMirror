@@ -199,6 +199,9 @@ namespace Orthanc
       case ErrorCode_MainDicomTagsMultiplyDefined:
         return "A main DICOM Tag has been defined multiple times for the same resource level";
 
+      case ErrorCode_ForbiddenAccess:
+        return "Access to a resource is forbidden";
+
       case ErrorCode_SQLiteNotOpened:
         return "SQLite: The database is not opened";
 
@@ -2277,6 +2280,9 @@ namespace Orthanc
 
       case ErrorCode_Revision:
         return HttpStatus_409_Conflict;
+
+      case ErrorCode_ForbiddenAccess:
+        return HttpStatus_403_Forbidden;
 
       case ErrorCode_CreateDicomNotString:
         return HttpStatus_400_BadRequest;
