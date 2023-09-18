@@ -115,6 +115,7 @@ Mid-term
   https://groups.google.com/g/orthanc-users/c/r20kDb0axms/m/2tzbQzYJAgAJ
 * save more details in jobs e.g: the resources being sent/exported ...
   https://groups.google.com/g/orthanc-users/c/rDDusFG5Lco/m/TzTUjWXLAQAJ
+  https://discourse.orthanc-server.org/t/some-confusion-about-jobs-function/3887
 * allow filtering/ordering on the /jobs route:
   https://groups.google.com/g/orthanc-users/c/hsZ1jng5rIg/m/8xZL2C1VBgAJ
 * add an "AutoDeleteIfSuccessful": false option when creating jobs 
