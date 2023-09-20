@@ -270,6 +270,8 @@ Lua
 * Configure HTTP headers from Lua (in RestApiPost(), RestApiPut()
   and RestApiDelete().
   https://groups.google.com/forum/#!msg/orthanc-users/WNnW187OILM/6XX_bm96BwAJ
+* Retrieve HTTP status from calls to HttpGet, HttpPost, ...
+  https://discourse.orthanc-server.org/t/how-to-get-http-status-code-from-httppost/1263/4
 
 
 ================
