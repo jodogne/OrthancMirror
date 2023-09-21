@@ -1903,15 +1903,16 @@ extern "C"
    * @see OrthancPluginCheckVersion()
    * @ingroup Callbacks
    **/
-  ORTHANC_PLUGIN_INLINE int  OrthancPluginCheckVersionAdvanced(
+  ORTHANC_PLUGIN_INLINE int32_t  OrthancPluginCheckVersionAdvanced(
     OrthancPluginContext* context,
-    int expectedMajor,
-    int expectedMinor,
-    int expectedRevision)
+    int32_t expectedMajor,
+    int32_t expectedMinor,
+    int32_t expectedRevision)
   {
-    int major, minor, revision;
+    int32_t major, minor, revision;
 
-    if (sizeof(int32_t) != sizeof(OrthancPluginErrorCode) ||
+    if (sizeof(int) != sizeof(int32_t) || /* Ensure binary compatibility with Orthanc SDK <= 1.12.1 */
+        sizeof(int32_t) != sizeof(OrthancPluginErrorCode) ||
         sizeof(int32_t) != sizeof(OrthancPluginHttpMethod) ||
         sizeof(int32_t) != sizeof(_OrthancPluginService) ||
         sizeof(int32_t) != sizeof(_OrthancPluginProperty) ||
@@ -2009,7 +2010,7 @@ extern "C"
    * @see OrthancPluginCheckVersionAdvanced()
    * @ingroup Callbacks
    **/
-  ORTHANC_PLUGIN_INLINE int  OrthancPluginCheckVersion(
+  ORTHANC_PLUGIN_INLINE int32_t  OrthancPluginCheckVersion(
     OrthancPluginContext* context)
   {
     return OrthancPluginCheckVersionAdvanced(
@@ -3151,7 +3152,7 @@ extern "C"
    * @return 1 if the metadata is present, 0 if it is absent, -1 in case of error.
    * @ingroup DicomInstance
    **/
-  ORTHANC_PLUGIN_INLINE int  OrthancPluginHasInstanceMetadata(
+  ORTHANC_PLUGIN_INLINE int32_t  OrthancPluginHasInstanceMetadata(
     OrthancPluginContext*              context,
     const OrthancPluginDicomInstance*  instance,
     const char*                        metadata)
@@ -6921,7 +6922,7 @@ extern "C"
   {
     char**             resultId;
     OrthancPluginJob  *job;
-    int                priority;
+    int32_t            priority;
   } _OrthancPluginSubmitJob;
 
   /**
@@ -6940,7 +6941,7 @@ extern "C"
   ORTHANC_PLUGIN_INLINE char *OrthancPluginSubmitJob(
     OrthancPluginContext   *context,
     OrthancPluginJob       *job,
-    int                     priority)
+    int32_t                 priority)
   {
     char* resultId = NULL;
 
