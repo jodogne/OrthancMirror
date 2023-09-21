@@ -2038,7 +2038,8 @@ namespace Orthanc
   OrthancPlugins::OrthancPlugins(const std::string& databaseServerIdentifier)
   {
     /* Sanity check of the compiler */
-    if (sizeof(int32_t) != sizeof(OrthancPluginErrorCode) ||
+    if (sizeof(int32_t) != sizeof(int) ||  // Ensure binary compatibility with Orthanc SDK <= 1.12.1
+        sizeof(int32_t) != sizeof(OrthancPluginErrorCode) ||
         sizeof(int32_t) != sizeof(OrthancPluginHttpMethod) ||
         sizeof(int32_t) != sizeof(_OrthancPluginService) ||
         sizeof(int32_t) != sizeof(_OrthancPluginProperty) ||
