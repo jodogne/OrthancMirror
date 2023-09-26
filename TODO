@@ -37,7 +37,10 @@ General
 * Add configurations to enable/disable warnings:
   - Modifying an instance while keeping its original SOPInstanceUID: This should be avoided!
   - Modifying a study while keeping its original StudyInstanceUID: This should be avoided!
-
+* Store the job registry in a dedicatd table in DB ?
+  https://discourse.orthanc-server.org/t/performance-issue-when-adding-a-lot-of-jobs-in-the-queue/3915/2
+  Note: that might also be the right time to have a central jobs registry when working
+  with multiple Orthanc instances on the same DB.
 
 ============================
 Documentation (Orthanc Book)
