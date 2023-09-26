@@ -2513,6 +2513,36 @@ namespace Orthanc
       value = value.substr(1, value.size() - 2);
     }
   }
+
+  Toolbox::ElapsedTimeLogger::ElapsedTimeLogger(const std::string& message)
+  : message_(message),
+    logged_(false)
+  {
+    Restart();
+  }
+
+  Toolbox::ElapsedTimeLogger::~ElapsedTimeLogger()
+  {
+    if (!logged_)
+    {
+      StopAndLog();
+    }
+  }
+
+  void Toolbox::ElapsedTimeLogger::Restart()
+  {
+    start_ = boost::posix_time::microsec_clock::universal_time();
+  }
+
+  void Toolbox::ElapsedTimeLogger::StopAndLog()
+  {
+    boost::posix_time::ptime now = boost::posix_time::microsec_clock::universal_time();
+    boost::posix_time::time_duration diff = now - start_;
+    LOG(WARNING) << "ELAPSED TIMER: " << message_ << " (" << diff.total_microseconds() << " us)";
+    logged_ = true;
+  }
+
+
 }
 
 

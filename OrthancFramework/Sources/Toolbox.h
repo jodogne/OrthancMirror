@@ -67,6 +67,8 @@
 #  include <pugixml.hpp>
 #endif
 
+#include <boost/date_time/posix_time/posix_time.hpp>
+
 
 namespace Orthanc
 {
@@ -373,6 +375,25 @@ namespace Orthanc
                                 const Json::Value& source);
 
     static void RemoveSurroundingQuotes(std::string& value);
+
+    // This is a helper class to measure and log time spend e.g in a method.
+    // This should be used only during debugging and should likely not ever used in a release.
+    // By default, you should use it as a RAII but you may force Restart/StopAndLog manually if needed.
+    class ORTHANC_PUBLIC ElapsedTimeLogger
+    {
+    private:
+      const std::string         message_;
+      boost::posix_time::ptime  start_;
+      bool logged_;
+
+    public:
+      explicit ElapsedTimeLogger(const std::string& message);
+      ~ElapsedTimeLogger();  
+
+      void Restart();
+      void StopAndLog();
+    };
+
   };
 }
 
