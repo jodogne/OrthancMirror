@@ -2735,7 +2735,7 @@ namespace Orthanc
         .SetSummary("Get raw tag")
         .SetDescription("Get the raw content of one DICOM tag in the hierarchy of DICOM dataset")
         .SetUriArgument("id", "Orthanc identifier of the DICOM instance of interest")
-        .SetUriArgument("...", "Path to the DICOM tag. This is the interleaving of one DICOM tag, possibly followed "
+        .SetUriArgument("dicomTagPath", "Path to the DICOM tag. This is the interleaving of one DICOM tag, possibly followed "
                         "by an index for sequences. Sequences are accessible as, for instance, `/0008-1140/1/0008-1150`")
         .AddAnswerType(MimeType_Binary, "The raw value of the tag of intereset "
                        "(binary data, whose memory layout depends on the underlying transfer syntax), "
