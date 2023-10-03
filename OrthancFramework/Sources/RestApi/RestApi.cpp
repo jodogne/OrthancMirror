@@ -157,7 +157,7 @@ namespace Orthanc
         std::string path = Toolbox::FlattenUri(uri);
         if (hasTrailing)
         {
-          path += "/{...}";
+          path += "/{path}";
         }
 
         std::set<std::string> uriArgumentsNames;
@@ -173,8 +173,8 @@ namespace Orthanc
 
         if (hasTrailing)
         {
-          uriArgumentsNames.insert("...");
-          uriArguments["..."] = "";
+          uriArgumentsNames.insert("path");
+          uriArguments["path"] = "";
         }
 
         if (resource.HasHandler(HttpMethod_Get))
