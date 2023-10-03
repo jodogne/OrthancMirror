@@ -138,6 +138,7 @@ namespace Orthanc
 
     protected:
       virtual bool HandleCall(RestApiCall& call,
+                              const std::string& path,
                               const std::set<std::string>& uriArgumentsNames) = 0;
   
     public:
@@ -194,7 +195,7 @@ namespace Orthanc
           try
           {
             ok = (resource.Handle(call) &&
-                  HandleCall(call, uriArgumentsNames));
+                  HandleCall(call, path, uriArgumentsNames));
           }
           catch (OrthancException& e)
           {
@@ -232,7 +233,7 @@ namespace Orthanc
           try
           {
             ok = (resource.Handle(call) &&
-                  HandleCall(call, uriArgumentsNames));
+                  HandleCall(call, path, uriArgumentsNames));
           }
           catch (OrthancException& e)
           {
@@ -269,7 +270,7 @@ namespace Orthanc
           try
           {
             ok = (resource.Handle(call) &&
-                  HandleCall(call, uriArgumentsNames));
+                  HandleCall(call, path, uriArgumentsNames));
           }
           catch (OrthancException& e)
           {
@@ -307,7 +308,7 @@ namespace Orthanc
           try
           {
             ok = (resource.Handle(call) &&
-                  HandleCall(call, uriArgumentsNames));
+                  HandleCall(call, path, uriArgumentsNames));
           }
           catch (OrthancException& e)
           {
@@ -366,10 +367,9 @@ namespace Orthanc
 
     protected:
       virtual bool HandleCall(RestApiCall& call,
+                              const std::string& path,
                               const std::set<std::string>& uriArgumentsNames) ORTHANC_OVERRIDE
       {
-        const std::string path = Toolbox::FlattenUri(call.GetFullUri());
-
         Json::Value v;
         if (call.GetDocumentation().FormatOpenApi(v, uriArgumentsNames, path))
         {
@@ -684,9 +684,10 @@ namespace Orthanc
 
     protected:
       virtual bool HandleCall(RestApiCall& call,
+                              const std::string& _path,
                               const std::set<std::string>& uriArgumentsNames) ORTHANC_OVERRIDE
       {
-        Path& path = paths_[ Toolbox::FlattenUri(call.GetFullUri()) ];
+        Path& path = paths_[ _path ];
 
         path.AddMethod(call.GetMethod(), call.GetDocumentation().GetTag(), call.GetDocumentation().IsDeprecated());
 
