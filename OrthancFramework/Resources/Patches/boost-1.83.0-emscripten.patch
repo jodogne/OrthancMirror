@@ -1,0 +1,125 @@
+diff -urEb boost_1_83_0.orig/libs/locale/src/boost/locale/shared/date_time.cpp boost_1_83_0/libs/locale/src/boost/locale/shared/date_time.cpp
+--- boost_1_83_0.orig/libs/locale/src/boost/locale/shared/date_time.cpp	2023-10-11 14:35:14.000000000 +0200
++++ boost_1_83_0/libs/locale/src/boost/locale/shared/date_time.cpp	2023-10-11 15:10:23.949459131 +0200
+@@ -7,8 +7,10 @@
+ #include <boost/locale/date_time.hpp>
+ #include <boost/locale/formatting.hpp>
+ #include <boost/core/exchange.hpp>
+-#include <boost/thread/locks.hpp>
+-#include <boost/thread/mutex.hpp>
++#if !defined(__EMSCRIPTEN__)
++#  include <boost/thread/locks.hpp>
++#  include <boost/thread/mutex.hpp>
++#endif
+ #include <cmath>
+ 
+ namespace boost { namespace locale {
+@@ -394,6 +396,7 @@
+         return impl_->get_option(abstract_calendar::is_dst) != 0;
+     }
+ 
++#if !defined(__EMSCRIPTEN__)
+     namespace time_zone {
+         boost::mutex& tz_mutex()
+         {
+@@ -416,5 +419,6 @@
+             return boost::exchange(tz_id(), new_id);
+         }
+     } // namespace time_zone
++#endif
+ 
+ }} // namespace boost::locale
+diff -urEb boost_1_83_0.orig/libs/locale/src/boost/locale/shared/generator.cpp boost_1_83_0/libs/locale/src/boost/locale/shared/generator.cpp
+--- boost_1_83_0.orig/libs/locale/src/boost/locale/shared/generator.cpp	2023-10-11 14:35:14.000000000 +0200
++++ boost_1_83_0/libs/locale/src/boost/locale/shared/generator.cpp	2023-10-11 15:10:01.301651695 +0200
+@@ -7,8 +7,11 @@
+ #include <boost/locale/encoding.hpp>
+ #include <boost/locale/generator.hpp>
+ #include <boost/locale/localization_backend.hpp>
+-#include <boost/thread/locks.hpp>
+-#include <boost/thread/mutex.hpp>
++
++#if !defined(__EMSCRIPTEN__)
++#  include <boost/thread/locks.hpp>
++#  include <boost/thread/mutex.hpp>
++#endif
+ #include <algorithm>
+ #include <map>
+ #include <vector>
+@@ -21,7 +24,9 @@
+         {}
+ 
+         mutable std::map<std::string, std::locale> cached;
++#if !defined(__EMSCRIPTEN__)
+         mutable boost::mutex cached_lock;
++#endif
+ 
+         category_t cats;
+         char_facet_t chars;
+@@ -101,7 +106,9 @@
+     std::locale generator::generate(const std::locale& base, const std::string& id) const
+     {
+         if(d->caching_enabled) {
++#if !defined(__EMSCRIPTEN__)
+             boost::unique_lock<boost::mutex> guard(d->cached_lock);
++#endif
+             const auto p = d->cached.find(id);
+             if(p != d->cached.end())
+                 return p->second;
+@@ -126,7 +133,9 @@
+                 result = backend->install(result, facet, char_facet_t::nochar);
+         }
+         if(d->caching_enabled) {
++#if !defined(__EMSCRIPTEN__)
+             boost::unique_lock<boost::mutex> guard(d->cached_lock);
++#endif
+             const auto p = d->cached.find(id);
+             if(p == d->cached.end())
+                 d->cached[id] = result;
+diff -urEb boost_1_83_0.orig/libs/locale/src/boost/locale/shared/localization_backend.cpp boost_1_83_0/libs/locale/src/boost/locale/shared/localization_backend.cpp
+--- boost_1_83_0.orig/libs/locale/src/boost/locale/shared/localization_backend.cpp	2023-10-11 14:35:14.000000000 +0200
++++ boost_1_83_0/libs/locale/src/boost/locale/shared/localization_backend.cpp	2023-10-11 15:11:11.549053453 +0200
+@@ -5,8 +5,10 @@
+ // https://www.boost.org/LICENSE_1_0.txt
+ 
+ #include <boost/locale/localization_backend.hpp>
+-#include <boost/thread/locks.hpp>
+-#include <boost/thread/mutex.hpp>
++#if !defined(__EMSCRIPTEN__)
++#  include <boost/thread/locks.hpp>
++#  include <boost/thread/mutex.hpp>
++#endif
+ #include <functional>
+ #include <memory>
+ #include <vector>
+@@ -211,11 +213,13 @@
+             return mgr;
+         }
+ 
++#if !defined(__EMSCRIPTEN__)
+         boost::mutex& localization_backend_manager_mutex()
+         {
+             static boost::mutex the_mutex;
+             return the_mutex;
+         }
++#endif
+         localization_backend_manager& localization_backend_manager_global()
+         {
+             static localization_backend_manager the_manager = make_default_backend_mgr();
+@@ -225,12 +229,16 @@
+ 
+     localization_backend_manager localization_backend_manager::global()
+     {
++#if !defined(__EMSCRIPTEN__)
+         boost::unique_lock<boost::mutex> lock(localization_backend_manager_mutex());
++#endif
+         return localization_backend_manager_global();
+     }
+     localization_backend_manager localization_backend_manager::global(const localization_backend_manager& in)
+     {
++#if !defined(__EMSCRIPTEN__)
+         boost::unique_lock<boost::mutex> lock(localization_backend_manager_mutex());
++#endif
+         return exchange(localization_backend_manager_global(), in);
+     }
+ 

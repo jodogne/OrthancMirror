@@ -24,11 +24,11 @@
 #include "PrecompiledHeaders.h"
 #include "Enumerations.h"
 
+#include "Logging.h"
+#include "MultiThreading/Mutex.h"
 #include "OrthancException.h"
 #include "Toolbox.h"
-#include "Logging.h"
 
-#include <boost/thread/mutex.hpp>
 #include <string.h>
 #include <cassert>
 #include <boost/algorithm/string/replace.hpp>
@@ -2377,12 +2377,12 @@ namespace Orthanc
   }  
 
 
-  static boost::mutex  defaultEncodingMutex_;  // Should not be necessary
-  static Encoding      defaultEncoding_ = ORTHANC_DEFAULT_DICOM_ENCODING;
+  static Mutex     defaultEncodingMutex_;  // Should not be necessary
+  static Encoding  defaultEncoding_ = ORTHANC_DEFAULT_DICOM_ENCODING;
   
   Encoding GetDefaultDicomEncoding()
   {
-    boost::mutex::scoped_lock lock(defaultEncodingMutex_);
+    Mutex::ScopedLock lock(defaultEncodingMutex_);
     return defaultEncoding_;
   }
 
@@ -2391,7 +2391,7 @@ namespace Orthanc
     std::string name = EnumerationToString(encoding);
     
     {
-      boost::mutex::scoped_lock lock(defaultEncodingMutex_);
+      Mutex::ScopedLock lock(defaultEncodingMutex_);
       defaultEncoding_ = encoding;
     }
 
