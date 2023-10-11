@@ -24,6 +24,9 @@ Maintenance
 * Fix loading of DCMTK dictionary in the MultitenantDicom plugin when built dynamically:
   https://discourse.orthanc-server.org/t/dimse-failure-using-multitenant-plugin/3665
 * Housekeeper: Introduced a 'sleep' to lower CPU usage when idle.
+* Support multiple values in SpecificCharacterSet in C-Find answers:
+  https://discourse.orthanc-server.org/t/c-find-fails-on-unknown-specific-character-set-iso-2022-ir-6-iso-2022-ir-100/3947
+  
 
 
 Version 1.12.1 (2023-07-04)

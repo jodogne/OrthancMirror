@@ -1004,6 +1004,10 @@ namespace Orthanc
       {
         SetEncoding(encoding);
       }
+      else if (permissive)
+      {
+        SetEncoding(defaultEncoding);
+      }
       else
       {
         throw OrthancException(ErrorCode_ParameterOutOfRange,
