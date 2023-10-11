@@ -107,6 +107,25 @@ if (BOOST_STATIC AND NOT USE_LEGACY_BOOST)
 
 
   ##
+  ## Apply the patches to remove threads from boost::locale (required
+  ## since around Emscripten 3.x)
+  ##
+
+  if (FirstRun)
+    execute_process(
+      COMMAND ${PATCH_EXECUTABLE} -p0 -N -i
+      ${CMAKE_CURRENT_LIST_DIR}/../Patches/boost-1.83.0-emscripten.patch
+      WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+      RESULT_VARIABLE Failure
+      )
+
+    if (Failure)
+      message(FATAL_ERROR "Error while patching a file")
+    endif()
+  endif()
+
+
+  ##
   ## Generic configuration of Boost
   ## 
 
