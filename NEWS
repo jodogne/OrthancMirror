@@ -26,6 +26,8 @@ Maintenance
 * Housekeeper: Introduced a 'sleep' to lower CPU usage when idle.
 * Support multiple values in SpecificCharacterSet in C-Find answers:
   https://discourse.orthanc-server.org/t/c-find-fails-on-unknown-specific-character-set-iso-2022-ir-6-iso-2022-ir-100/3947
+* Upgraded dependencies for static builds:
+  - boost 1.83.0
   
 
 
