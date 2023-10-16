@@ -49,7 +49,7 @@ namespace Orthanc
     LOG(INFO) << "Creating attachment \"" << uuid << "\" of \"" << static_cast<int>(type)
               << "\" type (size: " << (size / (1024 * 1024) + 1) << "MB)";
 
-    boost::mutex::scoped_lock lock(mutex_);
+    Mutex::ScopedLock lock(mutex_);
 
     if (size != 0 &&
         content == NULL)
@@ -73,7 +73,7 @@ namespace Orthanc
     LOG(INFO) << "Reading attachment \"" << uuid << "\" of \""
               << static_cast<int>(type) << "\" content type";
 
-    boost::mutex::scoped_lock lock(mutex_);
+    Mutex::ScopedLock lock(mutex_);
 
     Content::const_iterator found = content_.find(uuid);
 
@@ -111,7 +111,7 @@ namespace Orthanc
     }
     else
     {
-      boost::mutex::scoped_lock lock(mutex_);
+      Mutex::ScopedLock lock(mutex_);
 
       Content::const_iterator found = content_.find(uuid);
 
@@ -152,7 +152,7 @@ namespace Orthanc
   {
     LOG(INFO) << "Deleting attachment \"" << uuid << "\" of type " << static_cast<int>(type);
 
-    boost::mutex::scoped_lock lock(mutex_);
+    Mutex::ScopedLock lock(mutex_);
 
     Content::iterator found = content_.find(uuid);
     

@@ -26,8 +26,8 @@
 #include "IStorageArea.h"
 
 #include "../Compatibility.h"  // For ORTHANC_OVERRIDE
+#include "../MultiThreading/Mutex.h"
 
-#include <boost/thread/mutex.hpp>
 #include <map>
 
 namespace Orthanc
@@ -37,8 +37,8 @@ namespace Orthanc
   private:
     typedef std::map<std::string, std::string*>  Content;
     
-    boost::mutex  mutex_;
-    Content       content_;
+    Mutex    mutex_;
+    Content  content_;
     
   public:
     virtual ~MemoryStorageArea();

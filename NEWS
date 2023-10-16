@@ -28,7 +28,8 @@ Maintenance
   https://discourse.orthanc-server.org/t/c-find-fails-on-unknown-specific-character-set-iso-2022-ir-6-iso-2022-ir-100/3947
 * When exporting a study archive, make sure to use the PatientName from the study and not from the patient
   in case of PatientID collision.
-
+* Upgraded dependencies for static builds:
+  - boost 1.83.0
 
 
 Version 1.12.1 (2023-07-04)
