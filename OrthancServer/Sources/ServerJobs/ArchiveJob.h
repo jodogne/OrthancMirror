@@ -76,7 +76,8 @@ namespace Orthanc
   public:
     ArchiveJob(ServerContext& context,
                bool isMedia,
-               bool enableExtendedSopClass);
+               bool enableExtendedSopClass,
+               ResourceType jobLevel);
     
     virtual ~ArchiveJob();
 

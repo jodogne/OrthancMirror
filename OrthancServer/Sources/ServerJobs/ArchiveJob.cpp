@@ -306,6 +306,91 @@ namespace Orthanc
     }
   };
 
+  // This enum defines specific resource types to be used when exporting the archive.
+  // It defines if we should use the PatientInfo from the Patient or from the Study.
+  enum ArchiveResourceType
+  {
+    ArchiveResourceType_Patient = 0,
+    ArchiveResourceType_PatientInfoFromStudy = 1,
+    ArchiveResourceType_Study = 2,
+    ArchiveResourceType_Series = 3,
+    ArchiveResourceType_Instance = 4
+  };
+
+  ResourceType GetResourceIdType(ArchiveResourceType type)
+  {
+    switch (type)
+    {
+      case ArchiveResourceType_Patient:
+        return ResourceType_Patient;
+      case ArchiveResourceType_PatientInfoFromStudy: // get the Patient tags from the Study id
+        return ResourceType_Study;
+      case ArchiveResourceType_Study:
+        return ResourceType_Study;
+      case ArchiveResourceType_Series:
+        return ResourceType_Series;
+      case ArchiveResourceType_Instance:
+        return ResourceType_Instance;
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+  ResourceType GetResourceLevel(ArchiveResourceType type)
+  {
+    switch (type)
+    {
+      case ArchiveResourceType_Patient:
+        return ResourceType_Patient;
+      case ArchiveResourceType_PatientInfoFromStudy: // this is actually the same level as the Patient
+        return ResourceType_Patient;
+      case ArchiveResourceType_Study:
+        return ResourceType_Study;
+      case ArchiveResourceType_Series:
+        return ResourceType_Series;
+      case ArchiveResourceType_Instance:
+        return ResourceType_Instance;
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+  ArchiveResourceType GetArchiveResourceType(ResourceType type)
+  {
+    switch (type)
+    {
+      case ResourceType_Patient:
+        return ArchiveResourceType_Patient;
+      case ArchiveResourceType_Study:
+       return ArchiveResourceType_PatientInfoFromStudy;
+      case ResourceType_Series:
+        return ArchiveResourceType_Series;
+      case ResourceType_Instance:
+        return ArchiveResourceType_Instance;
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+  ArchiveResourceType GetChildResourceType(ArchiveResourceType type)
+  {
+    switch (type)
+    {
+      case ArchiveResourceType_Patient:
+      case ArchiveResourceType_PatientInfoFromStudy:
+        return ArchiveResourceType_Study;
+
+      case ArchiveResourceType_Study:
+        return ArchiveResourceType_Series;
+        
+      case ArchiveResourceType_Series:
+        return ArchiveResourceType_Instance;
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
 
   class ArchiveJob::ResourceIdentifiers : public boost::noncopyable
   {
@@ -410,7 +495,7 @@ namespace Orthanc
     {
     }
 
-    virtual void Open(ResourceType level,
+    virtual void Open(ArchiveResourceType level,
                       const std::string& publicId) = 0;
 
     virtual void Close() = 0;
@@ -439,7 +524,7 @@ namespace Orthanc
     // A "NULL" value for ArchiveIndex indicates a non-expanded node
     typedef std::map<std::string, ArchiveIndex*>   Resources;
 
-    ResourceType         level_;
+    ArchiveResourceType  level_;
     Resources            resources_;   // Only at patient/study/series level
     std::list<Instance>  instances_;   // Only at instance level
 
@@ -447,7 +532,7 @@ namespace Orthanc
     void AddResourceToExpand(ServerIndex& index,
                              const std::string& id)
     {
-      if (level_ == ResourceType_Instance)
+      if (level_ == ArchiveResourceType_Instance)
       {
         FileInfo tmp;
         int64_t revision;  // ignored
@@ -464,7 +549,7 @@ namespace Orthanc
 
 
   public:
-    explicit ArchiveIndex(ResourceType level) :
+    explicit ArchiveIndex(ArchiveResourceType level) :
       level_(level)
     {
     }
@@ -482,14 +567,14 @@ namespace Orthanc
     void Add(ServerIndex& index,
              const ResourceIdentifiers& resource)
     {
-      const std::string& id = resource.GetIdentifier(level_);
+      const std::string& id = resource.GetIdentifier(GetResourceIdType(level_));
       Resources::iterator previous = resources_.find(id);
 
-      if (level_ == ResourceType_Instance)
+      if (level_ == ArchiveResourceType_Instance)
       {
         AddResourceToExpand(index, id);
       }
-      else if (resource.GetLevel() == level_)
+      else if (resource.GetLevel() == GetResourceLevel(level_))
       {
         // Mark this resource for further expansion
         if (previous != resources_.end())
@@ -519,7 +604,7 @@ namespace Orthanc
 
     void Expand(ServerIndex& index)
     {
-      if (level_ == ResourceType_Instance)
+      if (level_ == ArchiveResourceType_Instance)
       {
         // Expanding an instance node makes no sense
         return;
@@ -553,7 +638,7 @@ namespace Orthanc
 
     void Apply(IArchiveVisitor& visitor) const
     {
-      if (level_ == ResourceType_Instance)
+      if (level_ == ArchiveResourceType_Instance)
       {
         for (std::list<Instance>::const_iterator 
                it = instances_.begin(); it != instances_.end(); ++it)
@@ -823,25 +908,29 @@ namespace Orthanc
       snprintf(instanceFormat_, sizeof(instanceFormat_) - 1, "%%08d.dcm");
     }
 
-    virtual void Open(ResourceType level,
+    virtual void Open(ArchiveResourceType level,
                       const std::string& publicId) ORTHANC_OVERRIDE
     {
       std::string path;
 
       DicomMap tags;
-      if (context_.GetIndex().GetMainDicomTags(tags, publicId, level, level))
+      ResourceType resourceIdLevel = GetResourceIdType(level);
+      ResourceType interestLevel = (level == ArchiveResourceType_PatientInfoFromStudy ? ResourceType_Patient : resourceIdLevel);
+
+      if (context_.GetIndex().GetMainDicomTags(tags, publicId, resourceIdLevel, interestLevel))
       {
         switch (level)
         {
-          case ResourceType_Patient:
+          case ArchiveResourceType_Patient:
+          case ArchiveResourceType_PatientInfoFromStudy:
             path = GetTag(tags, DICOM_TAG_PATIENT_ID) + " " + GetTag(tags, DICOM_TAG_PATIENT_NAME);
             break;
 
-          case ResourceType_Study:
+          case ArchiveResourceType_Study:
             path = GetTag(tags, DICOM_TAG_ACCESSION_NUMBER) + " " + GetTag(tags, DICOM_TAG_STUDY_DESCRIPTION);
             break;
 
-          case ResourceType_Series:
+          case ArchiveResourceType_Series:
           {
             std::string modality = GetTag(tags, DICOM_TAG_MODALITY);
             path = modality + " " + GetTag(tags, DICOM_TAG_SERIES_DESCRIPTION);
@@ -875,7 +964,7 @@ namespace Orthanc
 
       if (path.empty())
       {
-        path = std::string("Unknown ") + EnumerationToString(level);
+        path = std::string("Unknown ") + EnumerationToString(GetResourceLevel(level));
       }
 
       commands_.AddOpenDirectory(path.c_str());
@@ -911,7 +1000,7 @@ namespace Orthanc
     {
     }
 
-    virtual void Open(ResourceType level,
+    virtual void Open(ArchiveResourceType level,
                       const std::string& publicId) ORTHANC_OVERRIDE
     {
     }
@@ -1102,9 +1191,10 @@ namespace Orthanc
 
   ArchiveJob::ArchiveJob(ServerContext& context,
                          bool isMedia,
-                         bool enableExtendedSopClass) :
+                         bool enableExtendedSopClass,
+                         ResourceType jobLevel) :
     context_(context),
-    archive_(new ArchiveIndex(ResourceType_Patient)),  // root
+    archive_(new ArchiveIndex(GetArchiveResourceType(jobLevel))),  // root
     isMedia_(isMedia),
     enableExtendedSopClass_(enableExtendedSopClass),
     currentStep_(0),
