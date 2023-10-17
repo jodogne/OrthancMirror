@@ -254,7 +254,7 @@ namespace Orthanc
       index.GetAllUuids(result, resourceType);
     }
 
-    AnswerListOfResources(call.GetOutput(), context, result, resourceType, call.HasArgument("expand"),
+    AnswerListOfResources(call.GetOutput(), context, result, resourceType, call.HasArgument("expand") && call.GetBooleanArgument("expand", true),
                           OrthancRestApi::GetDicomFormat(call, DicomToJsonFormat_Human),
                           requestedTags,
                           true /* allowStorageAccess */);
@@ -1701,7 +1701,7 @@ namespace Orthanc
 
     bool isNumeric = call.HasArgument("numeric");
 
-    if (call.HasArgument("expand"))
+    if (call.HasArgument("expand") && call.GetBooleanArgument("expand", true))
     {
       result = Json::objectValue;
       
@@ -3324,12 +3324,15 @@ namespace Orthanc
         .SetDescription("Get detailed information about the child " + children + " of the DICOM " +
                         resource + " whose Orthanc identifier is provided in the URL")
         .SetUriArgument("id", "Orthanc identifier of the " + resource + " of interest")
+        .SetHttpGetArgument("expand", RestApiCallDocumentation::Type_String,
+                            "If false or missing, only retrieve the list of child " + children, false)
         .AddAnswerType(MimeType_Json, "JSON array containing information about the child DICOM " + children)
         .SetTruncatedJsonHttpGetSample(GetDocumentationSampleResource(start) + "/" + children, 5);
       return;
     }
 
     ServerIndex& index = OrthancRestApi::GetIndex(call);
+    ServerContext& context = OrthancRestApi::GetContext(call);
 
     std::set<DicomTag> requestedTags;
     OrthancRestApi::GetRequestedTags(requestedTags, call);
@@ -3355,21 +3358,10 @@ namespace Orthanc
       a.splice(a.begin(), b);
     }
 
-    Json::Value result = Json::arrayValue;
-
-    const DicomToJsonFormat format = OrthancRestApi::GetDicomFormat(call, DicomToJsonFormat_Human);
-
-    for (std::list<std::string>::const_iterator
-           it = a.begin(); it != a.end(); ++it)
-    {
-      Json::Value resource;
-      if (OrthancRestApi::GetContext(call).ExpandResource(resource, *it, end, format, requestedTags, true /* allowStorageAccess */))
-      {
-        result.append(resource);
-      }
-    }
-
-    call.GetOutput().AnswerJson(result);
+    AnswerListOfResources(call.GetOutput(), context, a, type, !call.HasArgument("expand") || call.GetBooleanArgument("expand", false),  // this "expand" is the only one to have a false default value to keep backward compatibility
+                          OrthancRestApi::GetDicomFormat(call, DicomToJsonFormat_Human),
+                          requestedTags,
+                          true /* allowStorageAccess */);
   }
 
 
