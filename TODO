@@ -228,7 +228,8 @@ Performance
     to Orthanc and/or the Storage plugin (instead of passing a memory buffer) -> the object-storage plugin could 
     "stream" the file to the storage.  The HTTP server could also "stream" its response from file handles.
     Transcoding should be "file based" too.
-
+* To investigate: usage of mapped_file (not only in the indexer plugin): 
+  https://discourse.orthanc-server.org/t/patch-for-orthanc-indexer-plugin-crashing-on-big-non-dicom-files/3849/7
 
 ========
 Database
