@@ -1194,7 +1194,7 @@ namespace Orthanc
                          bool enableExtendedSopClass,
                          ResourceType jobLevel) :
     context_(context),
-    archive_(new ArchiveIndex(GetArchiveResourceType(jobLevel))),  // root
+    archive_(new ArchiveIndex(GetArchiveResourceType(jobLevel))),  // get patient Info from this level
     isMedia_(isMedia),
     enableExtendedSopClass_(enableExtendedSopClass),
     currentStep_(0),

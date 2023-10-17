@@ -627,7 +627,7 @@ namespace Orthanc
       extended = false;
     }
 
-    std::unique_ptr<ArchiveJob> job(new ArchiveJob(context, IS_MEDIA, extended, LEVEL));
+    std::unique_ptr<ArchiveJob> job(new ArchiveJob(context, IS_MEDIA, extended, (LEVEL == ResourceType_Patient ? ResourceType_Patient : ResourceType_Study))); // use patient info from study except when exporting a patient
     job->AddResource(id, true, LEVEL);
 
     if (call.HasArgument(TRANSCODE))
