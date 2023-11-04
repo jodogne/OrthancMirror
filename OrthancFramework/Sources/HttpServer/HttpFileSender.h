@@ -32,6 +32,7 @@ namespace Orthanc
   {
   private:
     std::string contentType_;
+    ContentCompression contentCompression_;
     std::string filename_;
 
   public:
@@ -39,7 +40,11 @@ namespace Orthanc
 
     void SetContentType(const std::string& contentType);
 
+    void SetContentCompression(ContentCompression contentCompression);
+
     const std::string& GetContentType() const;
+
+    ContentCompression GuessContentCompression() const;
 
     void SetContentFilename(const std::string& filename);
 

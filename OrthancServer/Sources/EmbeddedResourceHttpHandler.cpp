@@ -73,6 +73,7 @@ namespace Orthanc
       size_t size = ServerResources::GetDirectoryResourceSize(resourceId_, resourcePath.c_str());
 
       output.SetContentType(contentType);
+      output.SetContentCompression(SystemToolbox::GuessContentCompression(contentType));
       output.Answer(buffer, size);
     }
     catch (OrthancException&)

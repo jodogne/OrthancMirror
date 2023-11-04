@@ -400,11 +400,19 @@ namespace Orthanc
                                    const FileInfo& info,
                                    const std::string& mime)
   {
+    AnswerFile(output, info, mime, ContentCompression_Unknown);
+  }
+
+  void StorageAccessor::AnswerFile(RestApiOutput& output,
+                                   const FileInfo& info,
+                                   const std::string& mime,
+                                   ContentCompression contentCompression)
+  {
     BufferHttpSender sender;
     SetupSender(sender, info, mime);
   
     HttpStreamTranscoder transcoder(sender, CompressionType_None); // since 1.11.2, the storage accessor only returns uncompressed buffers
-    output.AnswerStream(transcoder);
+    output.AnswerStream(transcoder, contentCompression);
   }
 #endif
 }

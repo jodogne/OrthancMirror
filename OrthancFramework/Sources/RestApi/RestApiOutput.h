@@ -67,16 +67,31 @@ namespace Orthanc
 
     void AnswerStream(IHttpStreamAnswer& stream);
 
+    void AnswerStream(IHttpStreamAnswer& stream,
+                      ContentCompression contentCompression);
+
     void AnswerWithoutBuffering(IHttpStreamAnswer& stream);
+
+    void AnswerWithoutBuffering(IHttpStreamAnswer& stream,
+                                ContentCompression contentCompression);
 
     void AnswerJson(const Json::Value& value);
 
     void AnswerBuffer(const std::string& buffer,
                       MimeType contentType);
 
+    void AnswerBuffer(const std::string& buffer,
+                      MimeType contentType,
+                      ContentCompression contentCompression);
+
     void AnswerBuffer(const void* buffer,
                       size_t length,
                       MimeType contentType);
+
+    void AnswerBuffer(const void* buffer,
+                      size_t length,
+                      MimeType contentType,
+                      ContentCompression contentCompression);
 
     void SetContentFilename(const char* filename);
 

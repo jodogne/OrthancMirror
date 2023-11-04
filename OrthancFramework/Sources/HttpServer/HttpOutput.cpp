@@ -51,6 +51,7 @@ namespace Orthanc
                                          unsigned int keepAliveTimeout) : 
     stream_(stream),
     state_(State_WritingHeader),
+    contentCompression_(ContentCompression_Unknown),
     status_(HttpStatus_200_Ok),
     hasContentLength_(false),
     contentLength_(0),
@@ -100,6 +101,20 @@ namespace Orthanc
   void HttpOutput::StateMachine::SetContentType(const char* contentType)
   {
     AddHeader("Content-Type", contentType);
+  }
+
+  void HttpOutput::StateMachine::SetContentCompression(ContentCompression contentCompression)
+  {
+    contentCompression_ = contentCompression;
+  }
+
+  bool HttpOutput::StateMachine::IsContentCompressible() const
+  {
+    // We assume that all files that compress correctly (mainly JSON, XML) are clearly identified.
+    // Therefore, only the content identified as NotCompressed are compressed again.
+    // We consider that the content whose compression is Unknown, likely DICOM file whose transfer syntax
+    // could not be determined, must not be compressed either. 
+    return contentCompression_ == ContentCompression_NotCompressed;
   }
 
   void HttpOutput::StateMachine::SetContentFilename(const char* filename)
@@ -275,13 +290,11 @@ namespace Orthanc
 
   HttpCompression HttpOutput::GetPreferredCompression(size_t bodySize) const
   {
-#if 0
-    // TODO Do not compress small files?
-    if (bodySize < 512)
+    // Do not compress small files since there is no real size benefit.
+    if (bodySize < 2048)
     {
       return HttpCompression_None;
     }
-#endif
 
     // Prefer "gzip" over "deflate" if the choice is offered
 
@@ -375,6 +388,11 @@ namespace Orthanc
     stateMachine_.SetContentType(contentType.c_str());
   }
 
+  void HttpOutput::SetContentCompression(ContentCompression contentCompression)
+  {
+    stateMachine_.SetContentCompression(contentCompression);
+  }
+
   void HttpOutput::SetContentFilename(const char *filename)
   {
     stateMachine_.SetContentFilename(filename);
@@ -442,7 +460,7 @@ namespace Orthanc
 
     HttpCompression compression = GetPreferredCompression(length);
 
-    if (compression == HttpCompression_None)
+    if (compression == HttpCompression_None || !IsContentCompressible())
     {
       stateMachine_.SetContentLength(length);
       stateMachine_.SendBody(buffer, length);
@@ -815,6 +833,11 @@ namespace Orthanc
   void HttpOutput::Answer(IHttpStreamAnswer& stream)
   {
     HttpCompression compression = stream.SetupHttpCompression(isGzipAllowed_, isDeflateAllowed_);
+
+    if (!IsContentCompressible())
+    {
+      compression = HttpCompression_None;
+    }
 
     switch (compression)
     {

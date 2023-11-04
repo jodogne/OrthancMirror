@@ -22,6 +22,7 @@
 
 #include "../PrecompiledHeaders.h"
 #include "FilesystemHttpSender.h"
+#include "../SystemToolbox.h"
 
 #include "../OrthancException.h"
 
@@ -58,6 +59,16 @@ namespace Orthanc
                                              MimeType contentType)
   {
     SetContentType(contentType);
+    SetContentCompression(SystemToolbox::GuessContentCompression(contentType));
+    Initialize(path);
+  }
+
+  FilesystemHttpSender::FilesystemHttpSender(const std::string& path,
+                                             MimeType contentType,
+                                             ContentCompression contentCompression)
+  {
+    SetContentType(contentType);
+    SetContentCompression(SystemToolbox::GuessContentCompression(contentType));
     Initialize(path);
   }
 

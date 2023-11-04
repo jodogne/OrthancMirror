@@ -27,6 +27,7 @@
 #include "../Logging.h"
 #include "../OrthancException.h"
 #include "../Toolbox.h"
+#include "../SystemToolbox.h"
 
 #include <boost/lexical_cast.hpp>
 
@@ -72,7 +73,13 @@ namespace Orthanc
 
   void RestApiOutput::AnswerStream(IHttpStreamAnswer& stream)
   {
+    AnswerStream(stream, ContentCompression_Unknown);
+  }
+
+  void RestApiOutput::AnswerStream(IHttpStreamAnswer& stream, ContentCompression contentCompression)
+  {
     CheckStatus();
+    output_.SetContentCompression(contentCompression);
     output_.Answer(stream);
     alreadySent_ = true;
   }
@@ -80,7 +87,13 @@ namespace Orthanc
 
   void RestApiOutput::AnswerWithoutBuffering(IHttpStreamAnswer& stream)
   {
+    AnswerWithoutBuffering(stream, ContentCompression_Unknown);
+  }
+
+  void RestApiOutput::AnswerWithoutBuffering(IHttpStreamAnswer& stream, ContentCompression contentCompression)
+  {
     CheckStatus();
+    output_.SetContentCompression(contentCompression);
     output_.AnswerWithoutBuffering(stream);
     alreadySent_ = true;
   }
@@ -97,6 +110,7 @@ namespace Orthanc
       Toolbox::JsonToXml(s, value);
 
       output_.SetContentType(MIME_XML_UTF8);
+      output_.SetContentCompression(ContentCompression_NotCompressed);
       output_.Answer(s);
 #else
       throw OrthancException(ErrorCode_InternalError,
@@ -107,7 +121,8 @@ namespace Orthanc
     {
       std::string s;
       Toolbox::WriteStyledJson(s, value);
-      output_.SetContentType(MIME_JSON_UTF8);      
+      output_.SetContentType(MIME_JSON_UTF8);
+      output_.SetContentCompression(ContentCompression_NotCompressed);
       output_.Answer(s);
     }
 
@@ -117,13 +132,29 @@ namespace Orthanc
   void RestApiOutput::AnswerBuffer(const std::string& buffer,
                                    MimeType contentType)
   {
+    AnswerBuffer(buffer, contentType, SystemToolbox::GuessContentCompression(contentType));
+  }
+
+
+  void RestApiOutput::AnswerBuffer(const std::string& buffer,
+                                   MimeType contentType,
+                                   ContentCompression contentCompression)
+  {
     AnswerBuffer(buffer.size() == 0 ? NULL : buffer.c_str(),
-                 buffer.size(), contentType);
+                 buffer.size(), contentType, contentCompression);
   }
 
   void RestApiOutput::AnswerBuffer(const void* buffer,
                                    size_t length,
                                    MimeType contentType)
+  {
+    AnswerBuffer(buffer, length, contentType, SystemToolbox::GuessContentCompression(contentType));
+  }
+
+  void RestApiOutput::AnswerBuffer(const void* buffer,
+                                   size_t length,
+                                   MimeType contentType,
+                                   ContentCompression contentCompression)
   {
     CheckStatus();
 
@@ -144,6 +175,7 @@ namespace Orthanc
     else
     {
       output_.SetContentType(contentType);
+      output_.SetContentCompression(contentCompression);
       output_.Answer(buffer, length);
       alreadySent_ = true;
     }

@@ -98,6 +98,7 @@ namespace Orthanc
     s += "</html>";
 
     output.SetContentType(MimeType_Html);
+    output.SetContentCompression(SystemToolbox::GuessContentCompression(MimeType_Html));
     output.Answer(s);
   }
 
@@ -152,8 +153,12 @@ namespace Orthanc
     if (SystemToolbox::IsRegularFile(p.string()))
     {
       FilesystemHttpSender sender(p);
-      sender.SetContentType(SystemToolbox::AutodetectMimeType(p.string()));
-      output.Answer(sender);   // TODO COMPRESSION
+      MimeType mimeType = SystemToolbox::AutodetectMimeType(p.string());
+      ContentCompression contentCompression = SystemToolbox::GuessContentCompression(mimeType);
+
+      sender.SetContentType(mimeType);
+      sender.SetContentCompression(contentCompression);
+      output.Answer(sender);
     }
     else if (listDirectoryContent_ &&
              fs::exists(p) && 

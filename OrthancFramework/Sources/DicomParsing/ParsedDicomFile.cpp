@@ -360,14 +360,14 @@ namespace Orthanc
             {
               if (pixelItem->getLength() == 0)
               {
-                output.AnswerBuffer(NULL, 0, MimeType_Binary);
+                output.AnswerBuffer(NULL, 0, MimeType_Binary, ContentCompression_AlreadyCompressed);
                 return true;
               }
 
               Uint8* buffer = NULL;
               if (pixelItem->getUint8Array(buffer).good() && buffer)
               {
-                output.AnswerBuffer(buffer, pixelItem->getLength(), MimeType_Binary);
+                output.AnswerBuffer(buffer, pixelItem->getLength(), MimeType_Binary, ContentCompression_AlreadyCompressed);
                 return true;
               }
             }
@@ -378,7 +378,7 @@ namespace Orthanc
           // This is the case for raw, uncompressed image buffers
           assert(*blockUri == "0");
           DicomFieldStream stream(*element, transferSyntax);
-          output.AnswerStream(stream);
+          output.AnswerStream(stream, ContentCompression_NotCompressed);
         }
       }
     }
@@ -838,7 +838,17 @@ namespace Orthanc
     std::string serialized;
     if (FromDcmtkBridge::SaveToMemoryBuffer(serialized, *GetDcmtkObjectConst().getDataset()))
     {
-      output.AnswerBuffer(serialized, MimeType_Dicom);
+      ContentCompression contentCompression = ContentCompression_Unknown;
+      DicomTransferSyntax transferSyntax;
+
+      if (LookupTransferSyntax(transferSyntax))
+      {
+        contentCompression = (IsCompressedTransferSyntax(transferSyntax) ? ContentCompression_AlreadyCompressed : ContentCompression_NotCompressed);
+      }
+      
+      output.AnswerBuffer(serialized, 
+                          MimeType_Dicom, 
+                          contentCompression);
     }
   }
 #endif

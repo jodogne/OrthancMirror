@@ -133,6 +133,12 @@ namespace Orthanc
     void AnswerFile(RestApiOutput& output,
                     const FileInfo& info,
                     const std::string& mime);
+
+    void AnswerFile(RestApiOutput& output,
+                    const FileInfo& info,
+                    const std::string& mime,
+                    ContentCompression contentCompression);
+
 #endif
   };
 }
