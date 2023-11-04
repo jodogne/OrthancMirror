@@ -32,6 +32,11 @@
 
 namespace Orthanc
 {
+  void HttpFileSender::SetContentCompression(ContentCompression contentCompression)
+  {
+    contentCompression_ = contentCompression;
+  }
+
   void HttpFileSender::SetContentType(MimeType contentType)
   {
     contentType_ = EnumerationToString(contentType);
@@ -47,13 +52,20 @@ namespace Orthanc
     return contentType_;
   }
 
+  ContentCompression HttpFileSender::GuessContentCompression() const
+  {
+    return contentCompression_;
+  }
+
   void HttpFileSender::SetContentFilename(const std::string& filename)
   {
     filename_ = filename;
 
     if (contentType_.empty())
     {
-      contentType_ = SystemToolbox::AutodetectMimeType(filename);
+      MimeType mimeType = SystemToolbox::AutodetectMimeType(filename);
+      contentType_ = EnumerationToString(mimeType);
+      contentCompression_ = SystemToolbox::GuessContentCompression(mimeType);
     }
   }
 

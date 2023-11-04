@@ -725,6 +725,80 @@ namespace Orthanc
     }
   }
 
+  ContentCompression SystemToolbox::GuessContentCompression(MimeType mime)
+  {
+    switch (mime)
+    {
+      case MimeType_Css:
+      case MimeType_Html:
+      case MimeType_JavaScript:
+      case MimeType_Json:
+      case MimeType_Pam:
+      case MimeType_Pdf:
+      case MimeType_PlainText:
+      case MimeType_WebAssembly:
+      case MimeType_Xml:
+      case MimeType_PrometheusText:
+      case MimeType_DicomWebJson:
+      case MimeType_DicomWebXml:
+        return ContentCompression_NotCompressed;
+      case MimeType_Gif:
+      case MimeType_Jpeg:
+      case MimeType_Jpeg2000:
+      case MimeType_Png:
+      case MimeType_Svg:
+      case MimeType_Woff:
+      case MimeType_Woff2:
+      case MimeType_Zip:
+        return ContentCompression_AlreadyCompressed;
+      default: // for all other (DICOM, binary, ...) we actually don't know
+        return ContentCompression_Unknown;
+    }
+  }
+  
+  ContentCompression SystemToolbox::GuessContentCompression(const std::string& contentType)
+  {
+    if (contentType.empty())
+    {
+      return ContentCompression_Unknown;
+    }
+
+    if (contentType.find(MIME_JSON) != std::string::npos ||
+        contentType.find(MIME_XML) != std::string::npos ||
+        contentType.find(MIME_DICOM_WEB_JSON) != std::string::npos ||
+        contentType.find(MIME_DICOM_WEB_XML) != std::string::npos ||
+        contentType.find(MIME_PDF) != std::string::npos ||
+        contentType.find(MIME_CSS) != std::string::npos ||
+        contentType.find(MIME_HTML) != std::string::npos ||
+        contentType.find(MIME_JAVASCRIPT) != std::string::npos ||
+        contentType.find(MIME_PLAIN_TEXT) != std::string::npos ||
+        contentType.find(MIME_WEB_ASSEMBLY) != std::string::npos ||
+        contentType.find(MIME_XML_2) != std::string::npos ||
+        contentType.find(MIME_ICO) != std::string::npos)
+    {
+      return ContentCompression_NotCompressed;
+    }
+    else if (contentType.find(MIME_DICOM) != std::string::npos || // this must happen after the test for MIME_DICOM_WEB_JSON since application/dicom is inside application/dicom+json
+             contentType.find(MIME_BINARY) != std::string::npos)
+    {
+      // For DICOM, it is impossible to know the transfer syntax at this point so we don't know if the data is compressed or not
+      return ContentCompression_Unknown;
+    }
+    else if (contentType.find(MIME_JPEG) != std::string::npos ||
+             contentType.find(MIME_PNG) != std::string::npos ||
+             contentType.find(MIME_GIF) != std::string::npos ||
+             contentType.find(MIME_JPEG2000) != std::string::npos ||
+             contentType.find(MIME_GZIP) != std::string::npos ||
+             contentType.find(MIME_ZIP) != std::string::npos ||
+             contentType.find(MIME_SVG) != std::string::npos ||
+             contentType.find(MIME_WOFF) != std::string::npos ||
+             contentType.find(MIME_WOFF2) != std::string::npos)
+    {
+      return ContentCompression_AlreadyCompressed;
+    }
+
+    return ContentCompression_Unknown;
+  }
 
   MimeType SystemToolbox::AutodetectMimeType(const std::string& path)
   {

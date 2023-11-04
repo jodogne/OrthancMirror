@@ -219,7 +219,9 @@ namespace Orthanc
       if (context.Transcode(transcoded, source, s, true))
       {      
         call.GetOutput().AnswerBuffer(transcoded.GetBufferData(),
-                                      transcoded.GetBufferSize(), MimeType_Dicom);
+                                      transcoded.GetBufferSize(), 
+                                      MimeType_Dicom, 
+                                      (IsCompressedTransferSyntax(targetSyntax) ? ContentCompression_AlreadyCompressed : ContentCompression_NotCompressed));
       }
       else
       {

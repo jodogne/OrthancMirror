@@ -2974,6 +2974,7 @@ namespace Orthanc
 
     HttpOutput& translatedOutput = reinterpret_cast<PImpl::PluginHttpOutput*>(p.output)->GetOutput();
     translatedOutput.SetContentType(p.mimeType);
+    translatedOutput.SetContentCompression(SystemToolbox::GuessContentCompression(p.mimeType));
     translatedOutput.Answer(p.answer, p.answerSize);
   }
 
@@ -3107,6 +3108,7 @@ namespace Orthanc
         PngWriter writer;
         IImageWriter::WriteToMemory(writer, compressed, accessor);
         translatedOutput.SetContentType(MimeType_Png);
+        translatedOutput.SetContentCompression(ContentCompression_AlreadyCompressed);
         break;
       }
 
@@ -3116,6 +3118,7 @@ namespace Orthanc
         writer.SetQuality(p.quality);
         IImageWriter::WriteToMemory(writer, compressed, accessor);
         translatedOutput.SetContentType(MimeType_Jpeg);
+        translatedOutput.SetContentCompression(ContentCompression_AlreadyCompressed);
         break;
       }
 

@@ -48,6 +48,10 @@ namespace Orthanc
     FilesystemHttpSender(const std::string& path,
                          MimeType contentType);
 
+    FilesystemHttpSender(const std::string& path,
+                         MimeType contentType,
+                         ContentCompression contentCompression);
+
     FilesystemHttpSender(const FilesystemStorage& storage,
                          const std::string& uuid);
 

@@ -47,6 +47,27 @@ namespace Orthanc
   static const char* const MIME_MTL = "model/mtl";
   static const char* const MIME_STL = "model/stl";
 
+  static const char* const MIME_CSS = "text/css";
+  static const char* const MIME_DICOM = "application/dicom";
+  static const char* const MIME_GIF = "image/gif";
+  static const char* const MIME_GZIP = "application/gzip";
+  static const char* const MIME_HTML = "text/html";
+  static const char* const MIME_JAVASCRIPT = "application/javascript";
+  static const char* const MIME_JPEG2000 = "image/jp2";
+  static const char* const MIME_NACL = "application/x-nacl";
+  static const char* const MIME_PLAIN_TEXT = "text/plain";
+  static const char* const MIME_PNACL = "application/x-pnacl";
+  static const char* const MIME_SVG = "image/svg+xml";
+  static const char* const MIME_WEB_ASSEMBLY = "application/wasm";
+  static const char* const MIME_WOFF = "application/x-font-woff";
+  static const char* const MIME_WOFF2 = "font/woff2";
+  static const char* const MIME_XML_2 = "text/xml";
+  static const char* const MIME_ZIP = "application/zip";
+  static const char* const MIME_DICOM_WEB_JSON = "application/dicom+json";
+  static const char* const MIME_DICOM_WEB_XML = "application/dicom+xml";
+  static const char* const MIME_ICO = "image/x-icon";
+
+
   /**
    * "No Internet Media Type (aka MIME type, content type) for PBM has
    * been registered with IANA, but the unofficial value
@@ -460,6 +481,15 @@ namespace Orthanc
     HttpCompression_Gzip
   };
 
+  // Used to know if the content of an HTTP response is already compressed or not.
+  // If the content is already compressed, using HTTP compression on top of it is meaningless
+  // and consumes a lot of time.
+  enum ContentCompression
+  {
+    ContentCompression_Unknown,
+    ContentCompression_AlreadyCompressed,
+    ContentCompression_NotCompressed,
+  };
 
   // Specific Character Sets
   // http://dicom.nema.org/medical/dicom/current/output/html/part03.html#sect_C.12.1.1.2
@@ -920,4 +950,7 @@ ORTHANC_PUBLIC
 
   ORTHANC_PUBLIC
   void GetAllDicomTransferSyntaxes(std::set<DicomTransferSyntax>& target);
+
+  ORTHANC_PUBLIC
+  bool IsCompressedTransferSyntax(DicomTransferSyntax syntax);
 }

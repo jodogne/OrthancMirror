@@ -56,6 +56,7 @@ namespace Orthanc
       IHttpOutputStream& stream_;
       State state_;
 
+      ContentCompression contentCompression_;
       HttpStatus status_;
       bool hasContentLength_;
       uint64_t contentLength_;
@@ -81,6 +82,8 @@ namespace Orthanc
       void SetContentLength(uint64_t length);
 
       void SetContentType(const char* contentType);
+
+      void SetContentCompression(ContentCompression contentCompression);
 
       void SetContentFilename(const char* filename);
 
@@ -109,6 +112,8 @@ namespace Orthanc
       {
         return state_;
       }
+
+      bool IsContentCompressible() const;
 
       void CheckHeadersCompatibilityWithMultipart() const;
 
@@ -139,6 +144,11 @@ namespace Orthanc
 
     bool IsGzipAllowed() const;
 
+    bool IsContentCompressible() const
+    {
+      return stateMachine_.IsContentCompressible();
+    }
+
     void SendStatus(HttpStatus status,
 		    const char* message,
 		    size_t messageSize);
@@ -151,6 +161,8 @@ namespace Orthanc
     void SetContentType(MimeType contentType);
     
     void SetContentType(const std::string& contentType);
+
+    void SetContentCompression(ContentCompression contentCompression);
 
     void SetContentFilename(const char* filename);
 

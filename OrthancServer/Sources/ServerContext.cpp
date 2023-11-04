@@ -898,8 +898,23 @@ namespace Orthanc
     }
     else
     {
+      ContentCompression contentCompression = ContentCompression_Unknown;
+
+      // try to avoid compressing a large DICOM file ( > 1MB) that is already compressed (For large files, this could take multiple seconds)
+      std::string transferSyntaxString;
+      DicomTransferSyntax transferSyntax;
+      int64_t revision;
+
+      if (content == FileContentType_Dicom &&
+          attachment.GetUncompressedSize() > 1*1024*1024 &&  // don't even waste time reading the TransferSyntax from DB for "small" DICOM files
+          index_.LookupMetadata(transferSyntaxString, revision, resourceId, ResourceType_Instance, MetadataType_Instance_TransferSyntax) &&
+          LookupTransferSyntax(transferSyntax, transferSyntaxString))
+      {
+        contentCompression = (IsCompressedTransferSyntax(transferSyntax) ? ContentCompression_AlreadyCompressed : ContentCompression_NotCompressed);
+      }
+
       StorageAccessor accessor(area_, storageCache_, GetMetricsRegistry());
-      accessor.AnswerFile(output, attachment, GetFileContentMime(content));
+      accessor.AnswerFile(output, attachment, GetFileContentMime(content), contentCompression);
     }
   }
 

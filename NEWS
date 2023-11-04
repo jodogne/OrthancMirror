@@ -17,6 +17,9 @@ REST API
 * All 'expand' GET arguments now accepts expand=true and expand=false values.
   The /studies/../instances and sibling routes are the only whose expand is true if not specified.
   These routes now accepts expand=false to simply list the child resources ids.
+* Whatever the value of the "HttpCompressionEnabled" configuration, only the contents 
+  that are clearly identified as compressible (mainly JSON, XML or a raw DICOM file) are compressed.
+  - For contents provided by plugins, 
 
 
 Maintenance
