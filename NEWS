@@ -8,6 +8,16 @@ General
   - Update to rebuild the cache of the DicomWeb plugin when updating to DicomWeb 1.15.
   - New trigger configuration: "DicomWebCacheChange"
   - Fixed reading the triggers configuration.
+* HTTP Compression:
+  - The default value of the "HttpCompressionEnabled" is now false by default.  This reduces
+    the Orthanc overall CPU usage and latency.  This is suitable for setups with large  
+    bandwidth network like LAN.
+  - When "HttpCompressionEnabled" is true, only the content that is clearly identified as
+    compressible is compressed (JSON, XML, HTML, text, ...).  DICOM files are never
+    compressed over HTTP.  In prior versions, all content types were compressed.
+    This notably greatly improve loading time of large DICOM 
+    files through WADO-RS e.g in StoneViewer when working on large bandwidth networks.
+  - When "HttpCompressionEnabled" is true, content < 2KB are never compressed.
 
 REST API
 --------
