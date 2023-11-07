@@ -54,6 +54,8 @@ General
   - for job durations (+ have one histogram for each job)
   - for HTTP request handling
   - ...
+* Investigate if one could fix KeepAlive race conditions:
+  https://discourse.orthanc-server.org/t/socket-hangup-with-rest-api/4023/3
 
 ============================
 Documentation (Orthanc Book)
