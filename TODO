@@ -264,6 +264,9 @@ SDK
 * Add a primitive for user authentication (to generate 401 HTTP status, whereas
   the "RegisterIncomingHttpRequestFilter()" can only generate 403 HTTP status)
   https://groups.google.com/g/orthanc-users/c/ymtaAmgSs6Q/m/PqVBactQAQAJ
+* Add an index on the UUID column in the DelayedDeletion plugin:
+  https://discourse.orthanc-server.org/t/delayeddeletion-improvement-unique-index-on-pending-uuid-column/4032
+
 
 ----------------
 Ideas of plugins
