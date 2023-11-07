@@ -239,25 +239,14 @@ namespace Orthanc
   };
 
 
-  class LuaScripting::JobEvent : public LuaScripting::IEvent
+  class LuaScripting::LuaJobEvent : public LuaScripting::IEvent
   {
-  public:
-    enum Type
-    {
-      Type_Failure,
-      Type_Submitted,
-      Type_Success
-    };
-    
   private:
-    Type         type_;
-    std::string  jobId_;
+    JobEvent event_;
 
   public:
-    JobEvent(Type type,
-             const std::string& jobId) :
-      type_(type),
-      jobId_(jobId)
+    LuaJobEvent(const JobEvent& event) :
+      event_(event)
     {
     }
 
@@ -265,17 +254,17 @@ namespace Orthanc
     {
       std::string functionName;
       
-      switch (type_)
+      switch (event_.GetEventType())
       {
-        case Type_Failure:
+        case JobEventType_Failure:
           functionName = "OnJobFailure";
           break;
 
-        case Type_Submitted:
+        case JobEventType_Submitted:
           functionName = "OnJobSubmitted";
           break;
 
-        case Type_Success:
+        case JobEventType_Success:
           functionName = "OnJobSuccess";
           break;
 
@@ -289,7 +278,7 @@ namespace Orthanc
         if (lock.GetLua().IsExistingFunction(functionName.c_str()))
         {
           LuaFunctionCall call(lock.GetLua(), functionName.c_str());
-          call.PushString(jobId_);
+          call.PushString(event_.GetJobId());
           call.Execute();
         }
       }
@@ -1056,20 +1045,9 @@ namespace Orthanc
   }
 
   
-  void LuaScripting::SignalJobSubmitted(const std::string& jobId)
+  void LuaScripting::SignalJobEvent(const JobEvent& event)
   {
-    pendingEvents_.Enqueue(new JobEvent(JobEvent::Type_Submitted, jobId));
-  }
-  
-
-  void LuaScripting::SignalJobSuccess(const std::string& jobId)
-  {
-    pendingEvents_.Enqueue(new JobEvent(JobEvent::Type_Success, jobId));
-  }
-  
-
-  void LuaScripting::SignalJobFailure(const std::string& jobId)
-  {
-    pendingEvents_.Enqueue(new JobEvent(JobEvent::Type_Failure, jobId));
+    // Lua has its own event thread and queue to dissociate it completely from the main JobEventsThread
+    pendingEvents_.Enqueue(new LuaJobEvent(event));
   }
 }

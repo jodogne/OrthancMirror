@@ -19,6 +19,13 @@ General
     files through WADO-RS e.g in StoneViewer when working on large bandwidth networks.
   - When "HttpCompressionEnabled" is true, content < 2KB are never compressed.
 
+Bug Fixes
+---------
+
+* Solved a deadlock related to the Job Engine events and plugins.  Job events are now pushed
+  into a queue to be handled asynchronously by plugins.
+
+
 REST API
 --------
 

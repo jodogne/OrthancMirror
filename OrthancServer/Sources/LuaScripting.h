@@ -24,6 +24,7 @@
 
 #include "DicomInstanceToStore.h"
 #include "ServerIndexChange.h"
+#include "JobEvent.h"
 #include "ServerJobs/LuaJobManager.h"
 
 #include "../../OrthancFramework/Sources/MultiThreading/SharedMessageQueue.h"
@@ -47,7 +48,7 @@ namespace Orthanc
     class IEvent;
     class OnStoredInstanceEvent;
     class StableResourceEvent;
-    class JobEvent;
+    class LuaJobEvent;
     class DeleteEvent;
     class UpdateEvent;
 
@@ -128,11 +129,7 @@ namespace Orthanc
 
     void Execute(const std::string& command);
 
-    void SignalJobSubmitted(const std::string& jobId);
-
-    void SignalJobSuccess(const std::string& jobId);
-
-    void SignalJobFailure(const std::string& jobId);
+    void SignalJobEvent(const JobEvent& event);
 
     TimeoutDicomConnectionManager& GetDicomConnectionManager()
     {
