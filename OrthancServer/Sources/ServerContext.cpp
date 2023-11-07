@@ -164,13 +164,55 @@ namespace Orthanc
             }
             catch (...)
             {
-              throw OrthancException(ErrorCode_InternalError);
+              throw OrthancException(ErrorCode_InternalError, "Error while signaling a change");
             }
           }
           catch (OrthancException& e)
           {
             LOG(ERROR) << "Error in the " << it->GetDescription() 
                        << " callback while signaling a change: " << e.What()
+                       << " (code " << e.GetErrorCode() << ")";
+          }
+        }
+      }
+    }
+  }
+
+
+  void ServerContext::JobEventsThread(ServerContext* that,
+                                      unsigned int sleepDelay)
+  {
+    while (!that->done_)
+    {
+      std::unique_ptr<IDynamicObject> obj(that->pendingJobEvents_.Dequeue(sleepDelay));
+        
+      if (obj.get() != NULL)
+      {
+        const JobEvent& event = dynamic_cast<const JobEvent&>(*obj.get());
+
+        boost::shared_lock<boost::shared_mutex> lock(that->listenersMutex_);
+        for (ServerListeners::iterator it = that->listeners_.begin(); 
+             it != that->listeners_.end(); ++it)
+        {
+          try
+          {
+            try
+            {
+              it->GetListener().SignalJobEvent(event);
+            }
+            catch (std::bad_alloc&)
+            {
+              LOG(ERROR) << "Not enough memory while signaling a job event";
+            }
+            catch (...)
+            {
+              throw OrthancException(ErrorCode_InternalError, "Error while signaling a job event");
+            }
+          }
+          catch (OrthancException& e)
+          {
+            LOG(ERROR) << "Error in the " << it->GetDescription() 
+                       << " callback while signaling a job event: " << e.What()
                        << " (code " << e.GetErrorCode() << ")";
           }
         }
@@ -206,42 +248,21 @@ namespace Orthanc
   void ServerContext::SignalJobSubmitted(const std::string& jobId)
   {
     haveJobsChanged_ = true;
-    mainLua_.SignalJobSubmitted(jobId);
-
-#if ORTHANC_ENABLE_PLUGINS == 1
-    if (HasPlugins())
-    {
-      GetPlugins().SignalJobSubmitted(jobId);
-    }
-#endif
+    pendingJobEvents_.Enqueue(new JobEvent(JobEventType_Submitted, jobId));
   }
   
 
   void ServerContext::SignalJobSuccess(const std::string& jobId)
   {
     haveJobsChanged_ = true;
-    mainLua_.SignalJobSuccess(jobId);
-
-#if ORTHANC_ENABLE_PLUGINS == 1
-    if (HasPlugins())
-    {
-      GetPlugins().SignalJobSuccess(jobId);
-    }
-#endif
+    pendingJobEvents_.Enqueue(new JobEvent(JobEventType_Success, jobId));
   }
 
   
   void ServerContext::SignalJobFailure(const std::string& jobId)
   {
     haveJobsChanged_ = true;
-    mainLua_.SignalJobFailure(jobId);
-
-#if ORTHANC_ENABLE_PLUGINS == 1
-    if (HasPlugins())
-    {
-      GetPlugins().SignalJobFailure(jobId);
-    }
-#endif
+    pendingJobEvents_.Enqueue(new JobEvent(JobEventType_Failure, jobId));
   }
 
 
@@ -449,6 +470,7 @@ namespace Orthanc
 
       listeners_.push_back(ServerListener(luaListener_, "Lua"));
       changeThread_ = boost::thread(ChangeThread, this, (unitTesting ? 20 : 100));
+      jobEventsThread_ = boost::thread(JobEventsThread, this, (unitTesting ? 20 : 100));
       
 #if HAVE_MALLOC_TRIM == 1
       LOG(INFO) << "Starting memory trimming thread at 30 seconds interval";
@@ -492,6 +514,11 @@ namespace Orthanc
       if (changeThread_.joinable())
       {
         changeThread_.join();
+      }
+
+      if (jobEventsThread_.joinable())
+      {
+        jobEventsThread_.join();
       }
 
       if (saveJobsThread_.joinable())

@@ -2730,6 +2730,25 @@ namespace Orthanc
   }
 
 
+  void OrthancPlugins::SignalJobEvent(const JobEvent& event)
+  {
+    // job events are actually considered as changes inside plugins -> translate
+    switch (event.GetEventType())
+    {
+      case JobEventType_Submitted:
+        SignalChangeInternal(OrthancPluginChangeType_JobSubmitted, OrthancPluginResourceType_None, event.GetJobId().c_str());
+        break;
+      case JobEventType_Success:
+        SignalChangeInternal(OrthancPluginChangeType_JobSuccess, OrthancPluginResourceType_None, event.GetJobId().c_str());
+        break;
+      case JobEventType_Failure:
+        SignalChangeInternal(OrthancPluginChangeType_JobFailure, OrthancPluginResourceType_None, event.GetJobId().c_str());
+        break;
+      default:
+        throw OrthancException(ErrorCode_InternalError);
+    }
+  }
+
 
   void OrthancPlugins::RegisterRestCallback(const void* parameters,
                                             bool mutualExclusion)
@@ -2776,6 +2795,8 @@ namespace Orthanc
 
   void OrthancPlugins::RegisterOnChangeCallback(const void* parameters)
   {
+    boost::recursive_mutex::scoped_lock lock(pimpl_->changeCallbackMutex_);
+
     const _OrthancPluginOnChangeCallback& p = 
       *reinterpret_cast<const _OrthancPluginOnChangeCallback*>(parameters);
 

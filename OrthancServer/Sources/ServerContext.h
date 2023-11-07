@@ -139,6 +139,11 @@ namespace Orthanc
         context_.mainLua_.SignalChange(change);
       }
 
+      virtual void SignalJobEvent(const JobEvent& event) ORTHANC_OVERRIDE
+      {
+        context_.mainLua_.SignalJobEvent(event);
+      }
+
       virtual bool FilterIncomingInstance(const DicomInstanceToStore& instance,
                                           const Json::Value& simplified) ORTHANC_OVERRIDE
       {
@@ -183,6 +188,9 @@ namespace Orthanc
 
     static void ChangeThread(ServerContext* that,
                              unsigned int sleepDelay);
+
+    static void JobEventsThread(ServerContext* that,
+                                unsigned int sleepDelay);
 
     static void SaveJobsThread(ServerContext* that,
                                unsigned int sleepDelay);
@@ -233,7 +241,9 @@ namespace Orthanc
     bool haveJobsChanged_;
     bool isJobsEngineUnserialized_;
     SharedMessageQueue  pendingChanges_;
+    SharedMessageQueue  pendingJobEvents_;
     boost::thread  changeThread_;
+    boost::thread  jobEventsThread_;
     boost::thread  saveJobsThread_;
     boost::thread  memoryTrimmingThread_;
         
