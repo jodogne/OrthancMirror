@@ -269,7 +269,9 @@ namespace Orthanc
                                const void* parameters) ORTHANC_OVERRIDE;
 
     virtual void SignalChange(const ServerIndexChange& change) ORTHANC_OVERRIDE;
-    
+
+    virtual void SignalJobEvent(const JobEvent& event) ORTHANC_OVERRIDE;
+
     virtual void SignalStoredInstance(const std::string& instanceId,
                                       const DicomInstanceToStore& instance,
                                       const Json::Value& simplifiedTags) ORTHANC_OVERRIDE;
@@ -317,21 +319,6 @@ namespace Orthanc
     void SignalOrthancStopped()
     {
       SignalChangeInternal(OrthancPluginChangeType_OrthancStopped, OrthancPluginResourceType_None, NULL);
-    }
-
-    void SignalJobSubmitted(const std::string& jobId)
-    {
-      SignalChangeInternal(OrthancPluginChangeType_JobSubmitted, OrthancPluginResourceType_None, jobId.c_str());
-    }
-
-    void SignalJobSuccess(const std::string& jobId)
-    {
-      SignalChangeInternal(OrthancPluginChangeType_JobSuccess, OrthancPluginResourceType_None, jobId.c_str());
-    }
-
-    void SignalJobFailure(const std::string& jobId)
-    {
-      SignalChangeInternal(OrthancPluginChangeType_JobFailure, OrthancPluginResourceType_None, jobId.c_str());
     }
 
     void SignalUpdatedPeers()

@@ -53,7 +53,8 @@ namespace Orthanc
 
     if (contentType_.empty())
     {
-      contentType_ = SystemToolbox::AutodetectMimeType(filename);
+      MimeType mimeType = SystemToolbox::AutodetectMimeType(filename);
+      contentType_ = EnumerationToString(mimeType);
     }
   }
 

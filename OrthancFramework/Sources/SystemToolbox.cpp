@@ -725,6 +725,52 @@ namespace Orthanc
     }
   }
 
+  bool SystemToolbox::IsContentCompressible(MimeType mime)
+  {
+    switch (mime)
+    {
+      case MimeType_Css:
+      case MimeType_Html:
+      case MimeType_JavaScript:
+      case MimeType_Json:
+      case MimeType_Pam:
+      case MimeType_Pdf:
+      case MimeType_PlainText:
+      case MimeType_WebAssembly:
+      case MimeType_Xml:
+      case MimeType_PrometheusText:
+      case MimeType_DicomWebJson:
+      case MimeType_DicomWebXml:
+        return true;
+      default: // for all other (JPEG, DICOM, binary, ...)
+        return false;
+    }
+  }
+  
+  bool SystemToolbox::IsContentCompressible(const std::string& contentType)
+  {
+    if (contentType.empty())
+    {
+      return false;
+    }
+
+    if (contentType.find(MIME_JSON) != std::string::npos ||
+        contentType.find(MIME_XML) != std::string::npos ||
+        contentType.find(MIME_DICOM_WEB_JSON) != std::string::npos ||
+        contentType.find(MIME_DICOM_WEB_XML) != std::string::npos ||
+        contentType.find(MIME_PDF) != std::string::npos ||
+        contentType.find(MIME_CSS) != std::string::npos ||
+        contentType.find(MIME_HTML) != std::string::npos ||
+        contentType.find(MIME_JAVASCRIPT) != std::string::npos ||
+        contentType.find(MIME_PLAIN_TEXT) != std::string::npos ||
+        contentType.find(MIME_WEB_ASSEMBLY) != std::string::npos ||
+        contentType.find(MIME_XML_2) != std::string::npos)
+    {
+      return true;
+    }
+
+    return false;
+  }
 
   MimeType SystemToolbox::AutodetectMimeType(const std::string& path)
   {

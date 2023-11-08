@@ -108,6 +108,10 @@ namespace Orthanc
 
     static unsigned int GetHardwareConcurrency();
 
+    static bool IsContentCompressible(MimeType mime);
+
+    static bool IsContentCompressible(const std::string& contentType);
+
     static MimeType AutodetectMimeType(const std::string& path);
 
     static void GetEnvironmentVariables(std::map<std::string, std::string>& env);

@@ -153,7 +153,7 @@ namespace Orthanc
     {
       FilesystemHttpSender sender(p);
       sender.SetContentType(SystemToolbox::AutodetectMimeType(p.string()));
-      output.Answer(sender);   // TODO COMPRESSION
+      output.Answer(sender);
     }
     else if (listDirectoryContent_ &&
              fs::exists(p) && 

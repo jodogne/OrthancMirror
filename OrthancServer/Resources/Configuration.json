@@ -125,7 +125,12 @@
   // Enable HTTP compression to improve network bandwidth utilization,
   // at the expense of more computations on the server. Orthanc
   // supports the "gzip" and "deflate" HTTP encodings.
-  "HttpCompressionEnabled" : true,
+  // When working on a LAN or on localhost, you should typically set
+  // this configuration to false while when working on low-bandwidth,
+  // you should set it to true.
+  // Note in versions up to 1.12.1, the default value was "true" and is
+  // "false" since 1.12.2.
+  "HttpCompressionEnabled" : false,
 
   // Enable the publication of the content of the Orthanc server as a
   // WebDAV share (new in Orthanc 1.8.0). On the localhost, the WebDAV
@@ -244,7 +249,7 @@
   "SslVerifyPeers" : false,
 
   // Path to a file containing the concatenation of the client SSL
-  // certificate(s) that are trusted to verify the identify of remote
+  // certificate(s) that are trusted to verify the identity of remote
   // HTTP clients. The individual certificate(s) must be stored in the
   // PEM format. This option is only meaningful if "SslVerifyPeers"
   // is true.
