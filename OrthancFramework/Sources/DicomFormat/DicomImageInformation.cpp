@@ -59,60 +59,66 @@ namespace Orthanc
 
     try
     {
-      std::string p = values.GetValue(DICOM_TAG_PHOTOMETRIC_INTERPRETATION).GetContent();
-      Toolbox::ToUpperCase(p);
+      std::string p;
+      if (values.LookupStringValue(p, DICOM_TAG_PHOTOMETRIC_INTERPRETATION, false)) {
+        Toolbox::ToUpperCase(p);
 
-      if (p == "RGB")
-      {
-        photometric_ = PhotometricInterpretation_RGB;
-      }
-      else if (p == "MONOCHROME1")
-      {
-        photometric_ = PhotometricInterpretation_Monochrome1;
-      }
-      else if (p == "MONOCHROME2")
-      {
-        photometric_ = PhotometricInterpretation_Monochrome2;
-      }
-      else if (p == "PALETTE COLOR")
-      {
-        photometric_ = PhotometricInterpretation_Palette;
-      }
-      else if (p == "HSV")
-      {
-        photometric_ = PhotometricInterpretation_HSV;
-      }
-      else if (p == "ARGB")
-      {
-        photometric_ = PhotometricInterpretation_ARGB;
-      }
-      else if (p == "CMYK")
-      {
-        photometric_ = PhotometricInterpretation_CMYK;
-      }
-      else if (p == "YBR_FULL")
-      {
-        photometric_ = PhotometricInterpretation_YBRFull;
-      }
-      else if (p == "YBR_FULL_422")
-      {
-        photometric_ = PhotometricInterpretation_YBRFull422;
-      }
-      else if (p == "YBR_PARTIAL_420")
-      {
-        photometric_ = PhotometricInterpretation_YBRPartial420;
-      }
-      else if (p == "YBR_PARTIAL_422")
-      {
-        photometric_ = PhotometricInterpretation_YBRPartial422;
-      }
-      else if (p == "YBR_ICT")
-      {
-        photometric_ = PhotometricInterpretation_YBR_ICT;
-      }
-      else if (p == "YBR_RCT")
-      {
-        photometric_ = PhotometricInterpretation_YBR_RCT;
+        if (p == "RGB")
+        {
+          photometric_ = PhotometricInterpretation_RGB;
+        }
+        else if (p == "MONOCHROME1")
+        {
+          photometric_ = PhotometricInterpretation_Monochrome1;
+        }
+        else if (p == "MONOCHROME2")
+        {
+          photometric_ = PhotometricInterpretation_Monochrome2;
+        }
+        else if (p == "PALETTE COLOR")
+        {
+          photometric_ = PhotometricInterpretation_Palette;
+        }
+        else if (p == "HSV")
+        {
+          photometric_ = PhotometricInterpretation_HSV;
+        }
+        else if (p == "ARGB")
+        {
+          photometric_ = PhotometricInterpretation_ARGB;
+        }
+        else if (p == "CMYK")
+        {
+          photometric_ = PhotometricInterpretation_CMYK;
+        }
+        else if (p == "YBR_FULL")
+        {
+          photometric_ = PhotometricInterpretation_YBRFull;
+        }
+        else if (p == "YBR_FULL_422")
+        {
+          photometric_ = PhotometricInterpretation_YBRFull422;
+        }
+        else if (p == "YBR_PARTIAL_420")
+        {
+          photometric_ = PhotometricInterpretation_YBRPartial420;
+        }
+        else if (p == "YBR_PARTIAL_422")
+        {
+          photometric_ = PhotometricInterpretation_YBRPartial422;
+        }
+        else if (p == "YBR_ICT")
+        {
+          photometric_ = PhotometricInterpretation_YBR_ICT;
+        }
+        else if (p == "YBR_RCT")
+        {
+          photometric_ = PhotometricInterpretation_YBR_RCT;
+        }
+        else
+        {
+          photometric_ = PhotometricInterpretation_Unknown;
+        }
       }
       else
       {
