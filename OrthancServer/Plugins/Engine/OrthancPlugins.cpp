@@ -1491,7 +1491,7 @@ namespace Orthanc
       ~ServerContextReference()
       {
         boost::mutex::scoped_lock lock(mutex_);
-        refCount_++;
+        refCount_--;
         cond_.notify_one();
       }
 
