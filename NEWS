@@ -4,6 +4,10 @@ Pending changes in the mainline
 General
 -------
 
+* Performance:
+  - Allow multiple plugins to use the plugin SDK at the same time.  In previous versions,
+    functions like instance transcoding or instance reading where mutually exclusive.
+    This can bring some significant improvements particularly in viewers.
 * Housekeeper plugin:
   - Update to rebuild the cache of the DicomWeb plugin when updating to DicomWeb 1.15.
   - New trigger configuration: "DicomWebCacheChange"

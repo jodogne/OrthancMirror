@@ -1606,6 +1606,7 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
       lock.GetConfiguration().LoadModalitiesAndPeers();
     }
 
+    // this function exits only when Orthanc stops or resets
     return ConfigureHttpHandler(context, plugins, loadJobsFromDatabase);
   }
 }
