@@ -843,7 +843,7 @@ namespace Orthanc
       return;
     }
 
-    const bool expand = call.HasArgument("expand");
+    const bool expand = call.HasArgument("expand") && call.GetBooleanArgument("expand", true);
     const DicomToJsonFormat format = OrthancRestApi::GetDicomFormat(call, DicomToJsonFormat_Full);
     
     QueryAccessor query(call);
@@ -1649,7 +1649,7 @@ namespace Orthanc
     OrthancRestApi::SetOfStrings peers;
     lock.GetConfiguration().GetListOfOrthancPeers(peers);
 
-    if (call.HasArgument("expand"))
+    if (call.HasArgument("expand") && call.GetBooleanArgument("expand", true))
     {
       Json::Value result = Json::objectValue;
       for (OrthancRestApi::SetOfStrings::const_iterator
@@ -1933,7 +1933,7 @@ namespace Orthanc
     OrthancRestApi::SetOfStrings modalities;
     lock.GetConfiguration().GetListOfDicomModalities(modalities);
 
-    if (call.HasArgument("expand"))
+    if (call.HasArgument("expand") && call.GetBooleanArgument("expand", true))
     {
       Json::Value result = Json::objectValue;
       for (OrthancRestApi::SetOfStrings::const_iterator
