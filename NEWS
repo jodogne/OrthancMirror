@@ -4,10 +4,31 @@ Pending changes in the mainline
 General
 -------
 
+* Performance:
+  - Allow multiple plugins to use the plugin SDK at the same time.  In previous versions,
+    functions like instance transcoding or instance reading where mutually exclusive.
+    This can bring some significant improvements particularly in viewers.
 * Housekeeper plugin:
   - Update to rebuild the cache of the DicomWeb plugin when updating to DicomWeb 1.15.
   - New trigger configuration: "DicomWebCacheChange"
   - Fixed reading the triggers configuration.
+* HTTP Compression:
+  - The default value of the "HttpCompressionEnabled" is now false by default.  This reduces
+    the Orthanc overall CPU usage and latency.  This is suitable for setups with large  
+    bandwidth network like LAN.
+  - When "HttpCompressionEnabled" is true, only the content that is clearly identified as
+    compressible is compressed (JSON, XML, HTML, text, ...).  DICOM files are never
+    compressed over HTTP.  In prior versions, all content types were compressed.
+    This notably greatly improve loading time of large DICOM 
+    files through WADO-RS e.g in StoneViewer when working on large bandwidth networks.
+  - When "HttpCompressionEnabled" is true, content < 2KB are never compressed.
+
+Bug Fixes
+---------
+
+* Solved a deadlock related to the Job Engine events and plugins.  Job events are now pushed
+  into a queue to be handled asynchronously by plugins.
+
 
 REST API
 --------

@@ -137,6 +137,8 @@ namespace OrthancPlugins
 
   void SetGlobalContext(OrthancPluginContext* context);
 
+  void ResetGlobalContext();
+
   bool HasGlobalContext();
 
   OrthancPluginContext* GetGlobalContext();

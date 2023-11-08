@@ -30,6 +30,7 @@
 #include "../Logging.h"
 #include "../OrthancException.h"
 #include "../Toolbox.h"
+#include "../SystemToolbox.h"
 
 #include <iostream>
 #include <vector>
@@ -51,6 +52,7 @@ namespace Orthanc
                                          unsigned int keepAliveTimeout) : 
     stream_(stream),
     state_(State_WritingHeader),
+    isContentCompressible_(false),
     status_(HttpStatus_200_Ok),
     hasContentLength_(false),
     contentLength_(0),
@@ -100,6 +102,17 @@ namespace Orthanc
   void HttpOutput::StateMachine::SetContentType(const char* contentType)
   {
     AddHeader("Content-Type", contentType);
+  }
+
+  void HttpOutput::StateMachine::SetContentCompressible(bool isContentCompressible)
+  {
+    isContentCompressible_ = isContentCompressible;
+  }
+
+  bool HttpOutput::StateMachine::IsContentCompressible() const
+  {
+    // We assume that all files that compress correctly (mainly JSON, XML) are clearly identified.
+    return isContentCompressible_;
   }
 
   void HttpOutput::StateMachine::SetContentFilename(const char* filename)
@@ -275,13 +288,11 @@ namespace Orthanc
 
   HttpCompression HttpOutput::GetPreferredCompression(size_t bodySize) const
   {
-#if 0
-    // TODO Do not compress small files?
-    if (bodySize < 512)
+    // Do not compress small files since there is no real size benefit.
+    if (bodySize < 2048)
     {
       return HttpCompression_None;
     }
-#endif
 
     // Prefer "gzip" over "deflate" if the choice is offered
 
@@ -368,11 +379,13 @@ namespace Orthanc
   void HttpOutput::SetContentType(MimeType contentType)
   {
     stateMachine_.SetContentType(EnumerationToString(contentType));
+    stateMachine_.SetContentCompressible(SystemToolbox::IsContentCompressible(contentType));
   }
 
   void HttpOutput::SetContentType(const std::string &contentType)
   {
     stateMachine_.SetContentType(contentType.c_str());
+    stateMachine_.SetContentCompressible(SystemToolbox::IsContentCompressible(contentType));
   }
 
   void HttpOutput::SetContentFilename(const char *filename)
@@ -442,7 +455,7 @@ namespace Orthanc
 
     HttpCompression compression = GetPreferredCompression(length);
 
-    if (compression == HttpCompression_None)
+    if (compression == HttpCompression_None || !IsContentCompressible())
     {
       stateMachine_.SetContentLength(length);
       stateMachine_.SendBody(buffer, length);

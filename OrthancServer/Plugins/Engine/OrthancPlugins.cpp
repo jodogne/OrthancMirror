@@ -1090,7 +1090,10 @@ namespace Orthanc
   class OrthancPlugins::PImpl
   {
   private:
-    boost::mutex   contextMutex_;
+    boost::mutex              contextMutex_;
+    boost::condition_variable contextCond_;
+    size_t                    contextRefCount_;
+
     ServerContext* context_;
     
   public:
@@ -1458,21 +1461,38 @@ namespace Orthanc
     };
 
 
-    class ServerContextLock
+    // This class ensures that the Context remains valid while being used.
+    // But it does not prevent multiple users to use the context at the same time.
+    // (new behavior in 1.12.2.  In previous version, only one user could use the "locked" context)
+    class ServerContextReference
     {
     private:
-      boost::mutex::scoped_lock  lock_;
       ServerContext* context_;
+      boost::mutex&  mutex_;
+      boost::condition_variable& cond_;
+      size_t& refCount_;
 
     public:
-      explicit ServerContextLock(PImpl& that) : 
-        lock_(that.contextMutex_),
-        context_(that.context_)
+      explicit ServerContextReference(PImpl& that) : 
+        context_(that.context_),
+        mutex_(that.contextMutex_),
+        cond_(that.contextCond_),
+        refCount_(that.contextRefCount_)
       {
         if (context_ == NULL)
         {
           throw OrthancException(ErrorCode_DatabaseNotInitialized);
         }
+
+        boost::mutex::scoped_lock lock(mutex_);
+        refCount_++;
+      }
+
+      ~ServerContextReference()
+      {
+        boost::mutex::scoped_lock lock(mutex_);
+        refCount_--;
+        cond_.notify_one();
       }
 
       ServerContext& GetContext()
@@ -1485,7 +1505,13 @@ namespace Orthanc
 
     void SetServerContext(ServerContext* context)
     {
+      // update only the context while nobody is using it
       boost::mutex::scoped_lock lock(contextMutex_);
+
+      while (contextRefCount_ > 0)
+      {
+        contextCond_.wait(lock);
+      }
       context_ = context;
     }
 
@@ -1554,6 +1580,7 @@ namespace Orthanc
     unsigned int maxDatabaseRetries_;   // New in Orthanc 1.9.2
 
     explicit PImpl(const std::string& databaseServerIdentifier) : 
+      contextRefCount_(0),
       context_(NULL), 
       findCallback_(NULL),
       worklistCallback_(NULL),
@@ -1600,7 +1627,7 @@ namespace Orthanc
       {
         static const char* LUA_CALLBACK = "IncomingWorklistRequestFilter";
 
-        PImpl::ServerContextLock lock(*that_.pimpl_);
+        PImpl::ServerContextReference lock(*that_.pimpl_);
         LuaScripting::Lock lua(lock.GetContext().GetLuaScripting());
 
         if (!lua.GetLua().IsExistingFunction(LUA_CALLBACK))
@@ -2730,6 +2757,25 @@ namespace Orthanc
   }
 
 
+  void OrthancPlugins::SignalJobEvent(const JobEvent& event)
+  {
+    // job events are actually considered as changes inside plugins -> translate
+    switch (event.GetEventType())
+    {
+      case JobEventType_Submitted:
+        SignalChangeInternal(OrthancPluginChangeType_JobSubmitted, OrthancPluginResourceType_None, event.GetJobId().c_str());
+        break;
+      case JobEventType_Success:
+        SignalChangeInternal(OrthancPluginChangeType_JobSuccess, OrthancPluginResourceType_None, event.GetJobId().c_str());
+        break;
+      case JobEventType_Failure:
+        SignalChangeInternal(OrthancPluginChangeType_JobFailure, OrthancPluginResourceType_None, event.GetJobId().c_str());
+        break;
+      default:
+        throw OrthancException(ErrorCode_InternalError);
+    }
+  }
+
 
   void OrthancPlugins::RegisterRestCallback(const void* parameters,
                                             bool mutualExclusion)
@@ -2776,6 +2822,8 @@ namespace Orthanc
 
   void OrthancPlugins::RegisterOnChangeCallback(const void* parameters)
   {
+    boost::recursive_mutex::scoped_lock lock(pimpl_->changeCallbackMutex_);
+
     const _OrthancPluginOnChangeCallback& p = 
       *reinterpret_cast<const _OrthancPluginOnChangeCallback*>(parameters);
 
@@ -3135,7 +3183,7 @@ namespace Orthanc
     std::string dicom;
 
     {
-      PImpl::ServerContextLock lock(*pimpl_);
+      PImpl::ServerContextReference lock(*pimpl_);
       lock.GetContext().ReadDicom(dicom, p.instanceId);
     }
 
@@ -3176,7 +3224,7 @@ namespace Orthanc
     IHttpHandler* handler;
 
     {
-      PImpl::ServerContextLock lock(*pimpl_);
+      PImpl::ServerContextReference lock(*pimpl_);
       handler = &lock.GetContext().GetHttpHandler().RestrictToOrthancRestApi(!afterPlugins);
     }
 
@@ -3209,7 +3257,7 @@ namespace Orthanc
     IHttpHandler* handler;
 
     {
-      PImpl::ServerContextLock lock(*pimpl_);
+      PImpl::ServerContextReference lock(*pimpl_);
       handler = &lock.GetContext().GetHttpHandler().RestrictToOrthancRestApi(!p.afterPlugins);
     }
       
@@ -3233,7 +3281,7 @@ namespace Orthanc
     IHttpHandler* handler;
 
     {
-      PImpl::ServerContextLock lock(*pimpl_);
+      PImpl::ServerContextReference lock(*pimpl_);
       handler = &lock.GetContext().GetHttpHandler().RestrictToOrthancRestApi(!afterPlugins);
     }
       
@@ -3260,7 +3308,7 @@ namespace Orthanc
     IHttpHandler* handler;
 
     {
-      PImpl::ServerContextLock lock(*pimpl_);
+      PImpl::ServerContextReference lock(*pimpl_);
       handler = &lock.GetContext().GetHttpHandler().RestrictToOrthancRestApi(!afterPlugins);
     }
       
@@ -3319,7 +3367,7 @@ namespace Orthanc
     std::vector<std::string> result;
 
     {
-      PImpl::ServerContextLock lock(*pimpl_);
+      PImpl::ServerContextReference lock(*pimpl_);
       lock.GetContext().GetIndex().LookupIdentifierExact(result, level, tag, p.argument);
     }
 
@@ -3614,7 +3662,7 @@ namespace Orthanc
 
         std::unique_ptr<ImageAccessor> decoded;
         {
-          PImpl::ServerContextLock lock(*pimpl_);
+          PImpl::ServerContextReference lock(*pimpl_);
           decoded.reset(lock.GetContext().DecodeDicomFrame(instance, p.frameIndex));
         }
         
@@ -3697,7 +3745,7 @@ namespace Orthanc
 
       case OrthancPluginImageFormat_Dicom:
       {
-        PImpl::ServerContextLock lock(*pimpl_);
+        PImpl::ServerContextReference lock(*pimpl_);
         image.reset(lock.GetContext().DecodeDicomFrame(p.data, p.size, 0));
         break;
       }
@@ -4022,7 +4070,7 @@ namespace Orthanc
     IHttpHandler* handler;
 
     {
-      PImpl::ServerContextLock lock(*pimpl_);
+      PImpl::ServerContextReference lock(*pimpl_);
       handler = &lock.GetContext().GetHttpHandler().RestrictToOrthancRestApi(!p.afterPlugins);
     }
     
@@ -4244,7 +4292,7 @@ namespace Orthanc
       std::string content;
 
       {
-        PImpl::ServerContextLock lock(*pimpl_);
+        PImpl::ServerContextReference lock(*pimpl_);
         lock.GetContext().ReadDicom(content, p.instanceId);
       }
 
@@ -4373,7 +4421,7 @@ namespace Orthanc
 
       case _OrthancPluginService_DecodeDicomImage:
       {
-        PImpl::ServerContextLock lock(*pimpl_);
+        PImpl::ServerContextReference lock(*pimpl_);
         result.reset(lock.GetContext().DecodeDicomFrame(p.constBuffer, p.bufferSize, p.frameIndex));
         break;
       }
@@ -4426,7 +4474,7 @@ namespace Orthanc
         std::string buffer;
 
         {
-          PImpl::ServerContextLock lock(*pimpl_);
+          PImpl::ServerContextReference lock(*pimpl_);
           lock.GetContext().ReadDicom(buffer, params.instanceId);
         }
 
@@ -4443,7 +4491,7 @@ namespace Orthanc
           std::string buffer;
         
           {
-            PImpl::ServerContextLock lock(*pimpl_);
+            PImpl::ServerContextReference lock(*pimpl_);
             if (!lock.GetContext().ReadDicomUntilPixelData(buffer, params.instanceId))
             {
               lock.GetContext().ReadDicom(buffer, params.instanceId);
@@ -4461,7 +4509,7 @@ namespace Orthanc
           ValueRepresentation pixelDataVR = parsed->GuessPixelDataValueRepresentation();
 
           {
-            PImpl::ServerContextLock lock(*pimpl_);
+            PImpl::ServerContextReference lock(*pimpl_);
 
             std::string s;
             int64_t revision;  // unused
@@ -4792,7 +4840,7 @@ namespace Orthanc
         {
           // TODO - Plugins can only access global properties of their
           // own Orthanc server (no access to the shared global properties)
-          PImpl::ServerContextLock lock(*pimpl_);
+          PImpl::ServerContextReference lock(*pimpl_);
           lock.GetContext().GetIndex().SetGlobalProperty(static_cast<GlobalProperty>(p.property),
                                                          false /* not shared */, p.value);
           return true;
@@ -4809,7 +4857,7 @@ namespace Orthanc
         {
           // TODO - Plugins can only access global properties of their
           // own Orthanc server (no access to the shared global properties)
-          PImpl::ServerContextLock lock(*pimpl_);
+          PImpl::ServerContextReference lock(*pimpl_);
           result = lock.GetContext().GetIndex().GetGlobalProperty(static_cast<GlobalProperty>(p.property),
                                                                   false /* not shared */, p.value);
         }
@@ -5276,7 +5324,7 @@ namespace Orthanc
 
         std::string uuid;
 
-        PImpl::ServerContextLock lock(*pimpl_);
+        PImpl::ServerContextReference lock(*pimpl_);
         lock.GetContext().GetJobsEngine().GetRegistry().Submit
           (uuid, reinterpret_cast<PluginsJob*>(p.job), p.priority);
         
@@ -5299,7 +5347,7 @@ namespace Orthanc
           *reinterpret_cast<const _OrthancPluginSetMetricsValue*>(parameters);
 
         {
-          PImpl::ServerContextLock lock(*pimpl_);
+          PImpl::ServerContextReference lock(*pimpl_);
           lock.GetContext().GetMetricsRegistry().SetFloatValue(p.name, p.value, Plugins::Convert(p.type));
         }
 
@@ -5312,7 +5360,7 @@ namespace Orthanc
           *reinterpret_cast<const _OrthancPluginSetMetricsIntegerValue*>(parameters);
 
         {
-          PImpl::ServerContextLock lock(*pimpl_);
+          PImpl::ServerContextReference lock(*pimpl_);
           lock.GetContext().GetMetricsRegistry().SetIntegerValue(p.name, p.value, Plugins::Convert(p.type));
         }
 
@@ -5404,7 +5452,7 @@ namespace Orthanc
           bool success;
           
           {
-            PImpl::ServerContextLock lock(*pimpl_);
+            PImpl::ServerContextReference lock(*pimpl_);
             success = lock.GetContext().Transcode(
               transcoded, source, syntaxes, true /* allow new sop */);
           }

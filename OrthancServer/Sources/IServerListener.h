@@ -24,6 +24,7 @@
 
 #include "DicomInstanceToStore.h"
 #include "ServerIndexChange.h"
+#include "JobEvent.h"
 
 #include <json/value.h>
 
@@ -41,6 +42,8 @@ namespace Orthanc
                                       const Json::Value& simplifiedTags) = 0;
     
     virtual void SignalChange(const ServerIndexChange& change) = 0;
+
+    virtual void SignalJobEvent(const JobEvent& event) = 0;
 
     virtual bool FilterIncomingInstance(const DicomInstanceToStore& instance,
                                         const Json::Value& simplified) = 0;
