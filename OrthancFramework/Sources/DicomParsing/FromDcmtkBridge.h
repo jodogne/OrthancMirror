@@ -203,6 +203,10 @@ namespace Orthanc
     static bool SaveToMemoryBuffer(std::string& buffer,
                                    DcmDataset& dataSet);
 
+    static bool SaveToMemoryBuffer(std::string& buffer,
+                                   DcmDataset& dataSet,
+                                   std::string& errorMessage);
+
     static bool Transcode(DcmFileFormat& dicom,
                           DicomTransferSyntax syntax,
                           const DcmRepresentationParameter* representation);

@@ -1574,7 +1574,8 @@ namespace Orthanc
   
   static bool SaveToMemoryBufferInternal(std::string& buffer,
                                          DcmFileFormat& dicom,
-                                         E_TransferSyntax xfer)
+                                         E_TransferSyntax xfer,
+                                         std::string& errorMessage)
   {
     E_EncodingType encodingType = /*opt_sequenceType*/ EET_ExplicitLength;
 
@@ -1613,13 +1614,23 @@ namespace Orthanc
     {
       // Error
       buffer.clear();
+      errorMessage = std::string(c.text());
       return false;
     }
   }
-  
 
   bool FromDcmtkBridge::SaveToMemoryBuffer(std::string& buffer,
                                            DcmDataset& dataSet)
+  {
+    std::string errorMessageNotUsed;
+    return SaveToMemoryBuffer(buffer, dataSet, errorMessageNotUsed);
+  }
+
+
+
+  bool FromDcmtkBridge::SaveToMemoryBuffer(std::string& buffer,
+                                           DcmDataset& dataSet,
+                                           std::string& errorMessage)
   {
     // Determine the transfer syntax which shall be used to write the
     // information to the file. If not possible, switch to the Little
@@ -1647,7 +1658,7 @@ namespace Orthanc
     ff.validateMetaInfo(xfer);
     ff.removeInvalidGroups();
 
-    return SaveToMemoryBufferInternal(buffer, ff, xfer);
+    return SaveToMemoryBufferInternal(buffer, ff, xfer, errorMessage);
   }
 
 
