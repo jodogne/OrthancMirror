@@ -750,7 +750,7 @@ TEST_F(OrthancJobsSerialization, Jobs)
   // ArchiveJob
 
   {
-    ArchiveJob job(GetContext(), false, false);
+    ArchiveJob job(GetContext(), false, false, ResourceType_Patient);
     ASSERT_FALSE(job.Serialize(s));  // Cannot serialize this
   }
 

@@ -657,7 +657,7 @@ namespace Orthanc
       return;
     }
 
-    bool expand = call.HasArgument("expand");
+    bool expand = call.HasArgument("expand") && call.GetBooleanArgument("expand", true);
 
     Json::Value v = Json::arrayValue;
 

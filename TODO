@@ -41,6 +41,19 @@ General
   https://discourse.orthanc-server.org/t/performance-issue-when-adding-a-lot-of-jobs-in-the-queue/3915/2
   Note: that might also be the right time to have a central jobs registry when working
   with multiple Orthanc instances on the same DB.
+* Right now, some Stable events never occurs (e.g. when Orthanc is restarted before the event is triggered).
+  Since these events are used to e.g. generate dicom-web cache (or update it !), we should try
+  to make sure these events always happen.
+  - Generate the events when setting IsStable=true when starting an Orthanc (ok for SQLite) ?
+  - Also consider the use case of an Orthanc cluster that is being scaled-down just after one Orthanc instance
+    has received a few instances -> we can not only check for missing stable events at startup since no Orthanc will start.  
+    We would need to maintain the list of "unstable" resources in DB instead of memory only.
+* In prometheus metrics, implement Histograms or Exponential Histograms to measure durations.  Right now, we only provide
+  "average" durations that are not very relevant
+  (https://opentelemetry.io/docs/specs/otel/metrics/data-model/#histogram)
+  - for job durations (+ have one histogram for each job)
+  - for HTTP request handling
+  - ...
 
 ============================
 Documentation (Orthanc Book)
@@ -131,7 +144,6 @@ Mid-term
   https://discourse.orthanc-server.org/t/orthanc-convert-ybr-to-rgb-but-does-not-change-metadata/3533/9
 * Implement a 'commit' route to force the Stable status earlier.
   https://discourse.orthanc-server.org/t/expediting-stability-of-a-dicom-study-new-api-endpoint/1684
-  
 
 ---------
 Long-term
@@ -216,7 +228,8 @@ Performance
     to Orthanc and/or the Storage plugin (instead of passing a memory buffer) -> the object-storage plugin could 
     "stream" the file to the storage.  The HTTP server could also "stream" its response from file handles.
     Transcoding should be "file based" too.
-
+* To investigate: usage of mapped_file (not only in the indexer plugin): 
+  https://discourse.orthanc-server.org/t/patch-for-orthanc-indexer-plugin-crashing-on-big-non-dicom-files/3849/7
 
 ========
 Database

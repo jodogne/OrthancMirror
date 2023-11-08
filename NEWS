@@ -14,6 +14,10 @@ REST API
 
 * API version upgraded to 22
 * Added a route to delete completed jobs from history: DELETE /jobs/{id}
+* All 'expand' GET arguments now accepts expand=true and expand=false values.
+  The /studies/../instances and sibling routes are the only whose expand is true if not specified.
+  These routes now accepts expand=false to simply list the child resources ids.
+
 
 Maintenance
 -----------
@@ -26,9 +30,10 @@ Maintenance
 * Housekeeper: Introduced a 'sleep' to lower CPU usage when idle.
 * Support multiple values in SpecificCharacterSet in C-Find answers:
   https://discourse.orthanc-server.org/t/c-find-fails-on-unknown-specific-character-set-iso-2022-ir-6-iso-2022-ir-100/3947
+* When exporting a study archive, make sure to use the PatientName from the study and not from the patient
+  in case of PatientID collision.
 * Upgraded dependencies for static builds:
   - boost 1.83.0
-  
 
 
 Version 1.12.1 (2023-07-04)

@@ -556,7 +556,7 @@ namespace Orthanc
       GetJobParameters(synchronous, extended, transcode, transferSyntax,
                        priority, loaderThreads, body, DEFAULT_IS_EXTENDED);
       
-      std::unique_ptr<ArchiveJob> job(new ArchiveJob(context, IS_MEDIA, extended));
+      std::unique_ptr<ArchiveJob> job(new ArchiveJob(context, IS_MEDIA, extended, ResourceType_Patient));
       AddResourcesOfInterest(*job, body);
 
       if (transcode)
@@ -627,7 +627,7 @@ namespace Orthanc
       extended = false;
     }
 
-    std::unique_ptr<ArchiveJob> job(new ArchiveJob(context, IS_MEDIA, extended));
+    std::unique_ptr<ArchiveJob> job(new ArchiveJob(context, IS_MEDIA, extended, (LEVEL == ResourceType_Patient ? ResourceType_Patient : ResourceType_Study))); // use patient info from study except when exporting a patient
     job->AddResource(id, true, LEVEL);
 
     if (call.HasArgument(TRANSCODE))
@@ -679,7 +679,7 @@ namespace Orthanc
       GetJobParameters(synchronous, extended, transcode, transferSyntax,
                        priority, loaderThreads, body, false /* by default, not extented */);
       
-      std::unique_ptr<ArchiveJob> job(new ArchiveJob(context, IS_MEDIA, extended));
+      std::unique_ptr<ArchiveJob> job(new ArchiveJob(context, IS_MEDIA, extended, LEVEL));
       job->AddResource(id, true, LEVEL);
 
       if (transcode)
