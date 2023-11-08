@@ -79,6 +79,10 @@ namespace OrthancPlugins
     }
   }
 
+  void ResetGlobalContext()
+  {
+    globalContext_ = NULL;
+  }
 
   bool HasGlobalContext()
   {
