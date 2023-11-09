@@ -250,9 +250,9 @@
 
   // Path to a file containing the concatenation of the client SSL
   // certificate(s) that are trusted to verify the identity of remote
-  // HTTP clients. The individual certificate(s) must be stored in the
-  // PEM format. This option is only meaningful if "SslVerifyPeers"
-  // is true.
+  // HTTP clients. The individual certificate(s) or root CAs must be 
+  // stored in the PEM format. This option is only meaningful 
+  // if "SslVerifyPeers" is true.  
   "SslTrustedClientCertificates" : "trustedClientCertificates.pem",
   
   // Whether or not the password protection is enabled (using HTTP
