@@ -9,6 +9,6 @@ authors:
     given-names: "Sébastien"
 doi: "10.1007/s10278-018-0082-y"
 license: "GPL-3.0-or-later"
-repository-code: "https://hg.orthanc-server.com/orthanc/"
+repository-code: "https://orthanc.uclouvain.be/hg/orthanc/"
 version: 1.12.1
 date-released: 2023-07-04
