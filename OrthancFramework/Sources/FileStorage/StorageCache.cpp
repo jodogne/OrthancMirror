@@ -44,40 +44,12 @@ namespace Orthanc
   {
     return uuid + ":" + boost::lexical_cast<std::string>(contentType) + ":0";
   }
-  
+
   void StorageCache::SetMaximumSize(size_t size)
   {
     cache_.SetMaximumSize(size);
   }
   
-
-  void StorageCache::Add(const std::string& uuid, 
-                         FileContentType contentType,
-                         const std::string& value)
-  {
-    const std::string key = GetCacheKeyFullFile(uuid, contentType);
-    cache_.Add(key, value);
-  }
-  
-
-  void StorageCache::Add(const std::string& uuid, 
-                         FileContentType contentType,
-                         const void* buffer,
-                         size_t size)
-  {
-    const std::string key = GetCacheKeyFullFile(uuid, contentType);
-    cache_.Add(key, buffer, size);
-  }
-
-
-  void StorageCache::AddStartRange(const std::string& uuid, 
-                                   FileContentType contentType,
-                                   const std::string& value)
-  {
-    const std::string key = GetCacheKeyStartRange(uuid, contentType);
-    cache_.Add(key, value);
-  }
-
 
   void StorageCache::Invalidate(const std::string& uuid,
                                 FileContentType contentType)
@@ -89,14 +61,45 @@ namespace Orthanc
     const std::string keyPartialFile = GetCacheKeyStartRange(uuid, contentType);
     cache_.Invalidate(keyPartialFile);
   }
-  
 
-  bool StorageCache::Fetch(std::string& value, 
-                           const std::string& uuid,
-                           FileContentType contentType)
+
+  StorageCache::Accessor::Accessor(StorageCache& cache)
+  : MemoryStringCache::Accessor(cache.cache_)
+  {
+  }
+
+  void StorageCache::Accessor::Add(const std::string& uuid, 
+                                   FileContentType contentType,
+                                   const std::string& value)
+  {
+
+    std::string key = GetCacheKeyFullFile(uuid, contentType);
+    MemoryStringCache::Accessor::Add(key, value);
+  }
+
+  void StorageCache::Accessor::AddStartRange(const std::string& uuid, 
+                                             FileContentType contentType,
+                                             const std::string& value)
+  {
+    const std::string key = GetCacheKeyStartRange(uuid, contentType);
+    MemoryStringCache::Accessor::Add(key, value);
+  }
+
+  void StorageCache::Accessor::Add(const std::string& uuid, 
+                                   FileContentType contentType,
+                                   const void* buffer,
+                                   size_t size)
   {
     const std::string key = GetCacheKeyFullFile(uuid, contentType);
-    if (cache_.Fetch(value, key))
+    MemoryStringCache::Accessor::Add(key, reinterpret_cast<const char*>(buffer), size);
+  }                                   
+
+  bool StorageCache::Accessor::Fetch(std::string& value, 
+                                     const std::string& uuid,
+                                     FileContentType contentType)
+  {
+    const std::string key = GetCacheKeyFullFile(uuid, contentType);
+    if (MemoryStringCache::Accessor::Fetch(value, key))
     {
       LOG(INFO) << "Read attachment \"" << uuid << "\" with content type "
                 << boost::lexical_cast<std::string>(contentType) << " from cache";
@@ -108,14 +111,13 @@ namespace Orthanc
     }
   }
 
-  bool StorageCache::FetchStartRange(std::string& value, 
-                                     const std::string& uuid,
-                                     FileContentType contentType,
-                                     uint64_t end)
+  bool StorageCache::Accessor::FetchStartRange(std::string& value, 
+                                               const std::string& uuid,
+                                               FileContentType contentType,
+                                               uint64_t end /* exclusive */)
   {
-    // first try to get the start of file only from cache
     const std::string keyPartialFile = GetCacheKeyStartRange(uuid, contentType);
-    if (cache_.Fetch(value, keyPartialFile) && value.size() >= end)
+    if (MemoryStringCache::Accessor::Fetch(value, keyPartialFile) && value.size() >= end)
     {
       if (value.size() > end)  // the start range that has been cached is larger than the requested value
       {
@@ -126,23 +128,7 @@ namespace Orthanc
                 << boost::lexical_cast<std::string>(contentType) << " from cache";
       return true;
     }
-    else
-    {
-      // try to get the full file from cache
-      if (Fetch(value, uuid, contentType))
-      {
-        if (value.size() < end)
-        {
-          throw OrthancException(ErrorCode_CorruptedFile);
-        }
 
-        value.resize(end);
-        return true;
-      }
-      else
-      {
-        return false;
-      }
-    }
+    return false;
   }
 }
