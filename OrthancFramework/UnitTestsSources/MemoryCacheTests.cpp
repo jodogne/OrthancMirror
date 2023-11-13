@@ -33,6 +33,7 @@
 #include "../Sources/Cache/SharedArchive.h"
 #include "../Sources/IDynamicObject.h"
 #include "../Sources/Logging.h"
+#include "../Sources/SystemToolbox.h"
 
 #include <memory>
 #include <algorithm>
@@ -319,44 +320,260 @@ TEST(MemoryStringCache, Basic)
   Orthanc::MemoryStringCache c;
   ASSERT_THROW(c.SetMaximumSize(0), Orthanc::OrthancException);
   
-  c.SetMaximumSize(2);
+  c.SetMaximumSize(3);
 
   std::string v;
-  ASSERT_FALSE(c.Fetch(v, "hello"));
+  {
+    Orthanc::MemoryStringCache::Accessor a(c);
+    ASSERT_FALSE(a.Fetch(v, "key1"));
+  }
 
-  c.Add("hello", "a");
-  ASSERT_TRUE(c.Fetch(v, "hello"));   ASSERT_EQ("a", v);
-  ASSERT_FALSE(c.Fetch(v, "hello2"));
-  ASSERT_FALSE(c.Fetch(v, "hello3"));
+  {
+    Orthanc::MemoryStringCache::Accessor a(c);
+    ASSERT_FALSE(a.Fetch(v, "key1"));
+    a.Add("key1", "a");
+    ASSERT_TRUE(a.Fetch(v, "key1"));
+    ASSERT_EQ("a", v);
 
-  c.Add("hello2", "b");
-  ASSERT_TRUE(c.Fetch(v, "hello"));   ASSERT_EQ("a", v);
-  ASSERT_TRUE(c.Fetch(v, "hello2"));  ASSERT_EQ("b", v);
-  ASSERT_FALSE(c.Fetch(v, "hello3"));
+    ASSERT_FALSE(a.Fetch(v, "key2"));
+    ASSERT_FALSE(a.Fetch(v, "key3"));
 
-  c.Add("hello3", "too large value");
-  ASSERT_TRUE(c.Fetch(v, "hello"));   ASSERT_EQ("a", v);
-  ASSERT_TRUE(c.Fetch(v, "hello2"));  ASSERT_EQ("b", v);
-  ASSERT_FALSE(c.Fetch(v, "hello3"));
-  
-  c.Add("hello3", "c");
-  ASSERT_FALSE(c.Fetch(v, "hello"));  // Recycled
-  ASSERT_TRUE(c.Fetch(v, "hello2"));  ASSERT_EQ("b", v);
-  ASSERT_TRUE(c.Fetch(v, "hello3"));  ASSERT_EQ("c", v);
+    a.Add("key2", "b");
+    ASSERT_TRUE(a.Fetch(v, "key1"));
+    ASSERT_EQ("a", v);
+    ASSERT_TRUE(a.Fetch(v, "key2"));
+    ASSERT_EQ("b", v);
+
+    a.Add("key3", "too-large-value");
+    ASSERT_TRUE(a.Fetch(v, "key1"));
+    ASSERT_EQ("a", v);
+    ASSERT_TRUE(a.Fetch(v, "key2"));
+    ASSERT_EQ("b", v);
+    ASSERT_FALSE(a.Fetch(v, "key3"));
+
+    a.Add("key3", "c");
+    ASSERT_TRUE(a.Fetch(v, "key2"));
+    ASSERT_EQ("b", v);
+    ASSERT_TRUE(a.Fetch(v, "key1"));
+    ASSERT_EQ("a", v);
+    ASSERT_TRUE(a.Fetch(v, "key3"));
+    ASSERT_EQ("c", v);
+
+    // adding a fourth value should remove the oldest accessed value (key2)
+    a.Add("key4", "d");
+    ASSERT_FALSE(a.Fetch(v, "key2"));
+    ASSERT_TRUE(a.Fetch(v, "key1"));
+    ASSERT_EQ("a", v);
+    ASSERT_TRUE(a.Fetch(v, "key3"));
+    ASSERT_EQ("c", v);
+    ASSERT_TRUE(a.Fetch(v, "key4"));
+    ASSERT_EQ("d", v);
+
+  }
 }
-
 
 TEST(MemoryStringCache, Invalidate)
 {
   Orthanc::MemoryStringCache c;
-  c.Add("hello", "a");
-  c.Add("hello2", "b");
+  Orthanc::MemoryStringCache::Accessor a(c);
+
+  a.Add("hello", "a");
+  a.Add("hello2", "b");
 
   std::string v;
-  ASSERT_TRUE(c.Fetch(v, "hello"));   ASSERT_EQ("a", v);
-  ASSERT_TRUE(c.Fetch(v, "hello2"));  ASSERT_EQ("b", v);
+  ASSERT_TRUE(a.Fetch(v, "hello"));   
+  ASSERT_EQ("a", v);
+  ASSERT_TRUE(a.Fetch(v, "hello2"));  
+  ASSERT_EQ("b", v);
 
   c.Invalidate("hello");
-  ASSERT_FALSE(c.Fetch(v, "hello"));
-  ASSERT_TRUE(c.Fetch(v, "hello2"));  ASSERT_EQ("b", v);
+  ASSERT_FALSE(a.Fetch(v, "hello"));
+  ASSERT_TRUE(a.Fetch(v, "hello2"));  
+  ASSERT_EQ("b", v);
+}
+
+
+static int ThreadingScenarioHappyStep = 0;
+static Orthanc::MemoryStringCache ThreadingScenarioHappyCache;
+
+void ThreadingScenarioHappyThread1()
+{
+  // the first thread to call Fetch (will be in charge of adding)
+  Orthanc::MemoryStringCache::Accessor a(ThreadingScenarioHappyCache);
+  std::string v;
+
+  LOG(INFO) << "Thread1 will fetch";
+  if (!a.Fetch(v, "key1"))
+  {
+    LOG(INFO) << "Thread1 has fetch";
+    ThreadingScenarioHappyStep = 1;
+    
+    // wait for the other thread to fetch too
+    while (ThreadingScenarioHappyStep < 2)
+    {
+      Orthanc::SystemToolbox::USleep(10000);
+    }
+    LOG(INFO) << "Thread1 will add after a short sleep";
+    Orthanc::SystemToolbox::USleep(100000);
+    LOG(INFO) << "Thread1 will add";
+
+    a.Add("key1", "value1");
+
+    LOG(INFO) << "Thread1 has added";
+  }
+}
+
+void ThreadingScenarioHappyThread2()
+{
+  Orthanc::MemoryStringCache::Accessor a(ThreadingScenarioHappyCache);
+  std::string v;
+
+  // nobody has added key2 -> go
+  if (!a.Fetch(v, "key2"))
+  {
+    a.Add("key2", "value2");
+  }
+
+  // wait until thread 1 has completed its "Fetch" but not added yet
+  while (ThreadingScenarioHappyStep < 1)
+  {
+    Orthanc::SystemToolbox::USleep(10000);
+  }
+
+  ThreadingScenarioHappyStep = 2;
+  LOG(INFO) << "Thread2 will fetch";
+  // this should wait until thread 1 has added
+  if (!a.Fetch(v, "key1"))
+  {
+    ASSERT_FALSE(true); // this thread should not add since thread1 should have done it
+  }
+  LOG(INFO) << "Thread2 has fetched the value";
+  ASSERT_EQ("value1", v);
+}
+
+
+TEST(MemoryStringCache, ThreadingScenarioHappy)
+{
+  boost::thread thread1 = boost::thread(ThreadingScenarioHappyThread1);
+  boost::thread thread2 = boost::thread(ThreadingScenarioHappyThread2);
+
+  thread1.join();
+  thread2.join();
+}
+
+
+static int ThreadingScenarioFailureStep = 0;
+static Orthanc::MemoryStringCache ThreadingScenarioFailureCache;
+
+void ThreadingScenarioFailureThread1()
+{
+  // the first thread to call Fetch (will be in charge of adding)
+  Orthanc::MemoryStringCache::Accessor a(ThreadingScenarioFailureCache);
+  std::string v;
+
+  LOG(INFO) << "Thread1 will fetch";
+  if (!a.Fetch(v, "key1"))
+  {
+    LOG(INFO) << "Thread1 has fetch";
+    ThreadingScenarioFailureStep = 1;
+    
+    // wait for the other thread to fetch too
+    while (ThreadingScenarioFailureStep < 2)
+    {
+      Orthanc::SystemToolbox::USleep(10000);
+    }
+    LOG(INFO) << "Thread1 will add after a short sleep";
+    Orthanc::SystemToolbox::USleep(100000);
+    LOG(INFO) << "Thread1 fails to add because of an error";
+  }
+}
+
+void ThreadingScenarioFailureThread2()
+{
+  Orthanc::MemoryStringCache::Accessor a(ThreadingScenarioFailureCache);
+  std::string v;
+
+  // wait until thread 1 has completed its "Fetch" but not added yet
+  while (ThreadingScenarioFailureStep < 1)
+  {
+    Orthanc::SystemToolbox::USleep(10000);
+  }
+
+  ThreadingScenarioFailureStep = 2;
+  LOG(INFO) << "Thread2 will fetch and wait for thread1 to add";
+  // this should wait until thread 1 has added
+  if (!a.Fetch(v, "key1"))
+  {
+    LOG(INFO) << "Thread2 has been awaken and will add since Thread1 has failed to add";
+    a.Add("key1", "value1");
+  }
+  LOG(INFO) << "Thread2 has added the value";
+}
+
+
+TEST(MemoryStringCache, ThreadingScenarioFailure)
+{
+  boost::thread thread1 = boost::thread(ThreadingScenarioFailureThread1);
+  boost::thread thread2 = boost::thread(ThreadingScenarioFailureThread2);
+
+  thread1.join();
+  thread2.join();
+}
+
+
+static int ThreadingScenarioInvalidateStep = 0;
+static Orthanc::MemoryStringCache ThreadingScenarioInvalidateCache;
+
+void ThreadingScenarioInvalidateThread1()
+{
+  // the first thread to call Fetch (will be in charge of adding)
+  Orthanc::MemoryStringCache::Accessor a(ThreadingScenarioInvalidateCache);
+  std::string v;
+
+  LOG(INFO) << "Thread1 will fetch";
+  if (!a.Fetch(v, "key1"))
+  {
+    LOG(INFO) << "Thread1 has fetch";
+    ThreadingScenarioInvalidateStep = 1;
+    
+    // wait for the other thread to fetch too
+    while (ThreadingScenarioInvalidateStep < 2)
+    {
+      Orthanc::SystemToolbox::USleep(10000);
+    }
+    LOG(INFO) << "Thread1 will invalidate after a short sleep";
+    Orthanc::SystemToolbox::USleep(100000);
+    LOG(INFO) << "Thread1 is invalidating";
+    ThreadingScenarioInvalidateCache.Invalidate("key1");
+  }
+}
+
+void ThreadingScenarioInvalidateThread2()
+{
+  Orthanc::MemoryStringCache::Accessor a(ThreadingScenarioInvalidateCache);
+  std::string v;
+
+  // wait until thread 1 has completed its "Fetch" but not added yet
+  while (ThreadingScenarioInvalidateStep < 1)
+  {
+    Orthanc::SystemToolbox::USleep(10000);
+  }
+
+  ThreadingScenarioInvalidateStep = 2;
+  LOG(INFO) << "Thread2 will fetch and wait for thread1 to add";
+  // this should wait until thread 1 has added
+  if (!a.Fetch(v, "key1"))
+  {
+    LOG(INFO) << "Thread2 has been awaken because thread1 has invalidated the key";
+  }
+}
+
+
+TEST(MemoryStringCache, ThreadingScenarioInvalidate)
+{
+  boost::thread thread1 = boost::thread(ThreadingScenarioInvalidateThread1);
+  boost::thread thread2 = boost::thread(ThreadingScenarioInvalidateThread2);
+
+  thread1.join();
+  thread2.join();
 }
