@@ -2263,8 +2263,6 @@ namespace Orthanc
         operations.append("verify-md5");
       }
 
-      operations.append("uuid");
-
       call.GetOutput().AnswerJson(operations);
     }
   }
