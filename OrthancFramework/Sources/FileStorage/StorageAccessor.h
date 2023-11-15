@@ -108,8 +108,7 @@ namespace Orthanc
                  const FileInfo& info);
 
     void ReadStartRange(std::string& target,
-                        const std::string& fileUuid,
-                        FileContentType fullFileContentType,
+                        const FileInfo& info,
                         uint64_t end /* exclusive */);
 
     void Remove(const std::string& fileUuid,
@@ -134,5 +133,16 @@ namespace Orthanc
                     const FileInfo& info,
                     const std::string& mime);
 #endif
+  private:
+    void ReadStartRangeInternal(std::string& target,
+                                const FileInfo& info,
+                                uint64_t end /* exclusive */);
+
+    void ReadWholeInternal(std::string& content,
+                           const FileInfo& info);
+
+    void ReadRawInternal(std::string& content,
+                         const FileInfo& info);
+
   };
 }

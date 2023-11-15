@@ -1078,7 +1078,7 @@ namespace Orthanc
         
         {
           StorageAccessor accessor(area_, storageCache_, GetMetricsRegistry());
-          accessor.ReadStartRange(dicom, attachment.GetUuid(), FileContentType_Dicom, pixelDataOffset);
+          accessor.ReadStartRange(dicom, attachment, pixelDataOffset);
         }
         
         assert(dicom.size() == pixelDataOffset);
@@ -1219,7 +1219,7 @@ namespace Orthanc
 
         StorageAccessor accessor(area_, storageCache_, GetMetricsRegistry());
 
-        accessor.ReadStartRange(dicom, attachment.GetUuid(), attachment.GetContentType(), pixelDataOffset);
+        accessor.ReadStartRange(dicom, attachment, pixelDataOffset);
         assert(dicom.size() == pixelDataOffset);
         
         return true;   // Success

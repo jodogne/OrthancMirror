@@ -53,47 +53,221 @@ namespace Orthanc
     }      
   };
 
+
+  MemoryStringCache::Accessor::Accessor(MemoryStringCache& cache)
+  : cache_(cache),
+    shouldAdd_(false)
+  {
+  }
+
+
+  MemoryStringCache::Accessor::~Accessor()
+  {
+    // if this accessor was the one in charge of loading and adding the data into the cache
+    // and it failed to add, remove the key from the list to make sure others accessor
+    // stop waiting for it.
+    if (shouldAdd_)
+    {
+      cache_.RemoveFromItemsBeingLoaded(keyToAdd_);
+    }
+  }
+
+
+  bool MemoryStringCache::Accessor::Fetch(std::string& value, const std::string& key)
+  {
+    // if multiple accessors are fetching at the same time:
+    // the first one will return false and will be in charge of adding to the cache.
+    // others will wait.
+    // if the first one fails to add, or, if the content was too large to fit in the cache,
+    // the next one will be in charge of adding ...
+    if (!cache_.Fetch(value, key))
+    {
+      shouldAdd_ = true;
+      keyToAdd_ = key;
+      return false;
+    }
+
+    shouldAdd_ = false;
+    keyToAdd_.clear();
+
+    return true;
+  }
+
+
+  void MemoryStringCache::Accessor::Add(const std::string& key, const std::string& value)
+  {
+    cache_.Add(key, value);
+    shouldAdd_ = false;
+  }
+
+
+  void MemoryStringCache::Accessor::Add(const std::string& key, const char* buffer, size_t size)
+  {
+    cache_.Add(key, buffer, size);
+    shouldAdd_ = false;
+  }
+
+
+  MemoryStringCache::MemoryStringCache() :
+    currentSize_(0),
+    maxSize_(100 * 1024 * 1024)  // 100 MB
+  {
+  }
+
+
+  MemoryStringCache::~MemoryStringCache()
+  {
+    Recycle(0);
+    assert(content_.IsEmpty());
+  }
+
+
   size_t MemoryStringCache::GetMaximumSize()
   {
-    return cache_.GetMaximumSize();
+    return maxSize_;
   }
+
 
   void MemoryStringCache::SetMaximumSize(size_t size)
   {
-    cache_.SetMaximumSize(size);
+    if (size == 0)
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+      
+    // // Make sure no accessor is currently open (as its data may be
+    // // removed if recycling is needed)
+    // WriterLock contentLock(contentMutex_);
+
+    // Lock the global structure of the cache
+    boost::mutex::scoped_lock cacheLock(cacheMutex_);
+
+    Recycle(size);
+    maxSize_ = size;
   }
 
+
   void MemoryStringCache::Add(const std::string& key,
-                              const std::string& value)
+                               const std::string& value)
   {
-    cache_.Acquire(key, new StringValue(value));
+    std::unique_ptr<StringValue> item(new StringValue(value));
+    size_t size = value.size();
+
+    boost::mutex::scoped_lock cacheLock(cacheMutex_);
+
+    if (size > maxSize_)
+    {
+      // This object is too large to be stored in the cache, discard it
+    }
+    else if (content_.Contains(key))
+    {
+      // Value already stored, don't overwrite the old value but put it on top of the cache
+      content_.MakeMostRecent(key);
+    }
+    else
+    {
+      Recycle(maxSize_ - size);   // Post-condition: currentSize_ <= maxSize_ - size
+      assert(currentSize_ + size <= maxSize_);
+
+      content_.Add(key, item.release());
+      currentSize_ += size;
+    }
+
+    RemoveFromItemsBeingLoadedInternal(key);
   }
+
 
   void MemoryStringCache::Add(const std::string& key,
                               const void* buffer,
                               size_t size)
   {
-    cache_.Acquire(key, new StringValue(reinterpret_cast<const char*>(buffer), size));
+    Add(key, std::string(reinterpret_cast<const char*>(buffer), size));
   }
+
 
   void MemoryStringCache::Invalidate(const std::string &key)
   {
-    cache_.Invalidate(key);
+    boost::mutex::scoped_lock cacheLock(cacheMutex_);
+
+    StringValue* item = NULL;
+    if (content_.Contains(key, item))
+    {
+      assert(item != NULL);
+      const size_t size = item->GetMemoryUsage();
+      delete item;
+
+      content_.Invalidate(key);
+          
+      assert(currentSize_ >= size);
+      currentSize_ -= size;
+    }
+
+    RemoveFromItemsBeingLoadedInternal(key);
   }
-  
+
+
   bool MemoryStringCache::Fetch(std::string& value,
                                 const std::string& key)
   {
-    MemoryObjectCache::Accessor reader(cache_, key, false /* multiple readers are allowed */);
+    boost::mutex::scoped_lock cacheLock(cacheMutex_);
 
-    if (reader.IsValid())
+    StringValue* item;
+
+    // if another client is currently loading the item, wait for it.
+    while (itemsBeingLoaded_.find(key) != itemsBeingLoaded_.end() && !content_.Contains(key, item))
     {
-      value = dynamic_cast<StringValue&>(reader.GetValue()).GetContent();
+      cacheCond_.wait(cacheLock);
+    }
+
+    if (content_.Contains(key, item))
+    {
+      value = dynamic_cast<StringValue&>(*item).GetContent();
+      content_.MakeMostRecent(key);
+
       return true;
     }
     else
     {
+      // note that this accessor will be in charge of loading and adding.
+      itemsBeingLoaded_.insert(key);
       return false;
     }
+  }
+
+
+  void MemoryStringCache::RemoveFromItemsBeingLoaded(const std::string& key)
+  {
+    boost::mutex::scoped_lock cacheLock(cacheMutex_);
+    RemoveFromItemsBeingLoadedInternal(key);
+  }
+
+
+  void MemoryStringCache::RemoveFromItemsBeingLoadedInternal(const std::string& key)
+  {
+    // notify all waiting users, some of them potentially waiting for this item
+    itemsBeingLoaded_.erase(key);
+    cacheCond_.notify_all();
+  }
+
+  void MemoryStringCache::Recycle(size_t targetSize)
+  {
+    // WARNING: "cacheMutex_" must be locked
+    while (currentSize_ > targetSize)
+    {
+      assert(!content_.IsEmpty());
+        
+      StringValue* item = NULL;
+      content_.RemoveOldest(item);
+
+      assert(item != NULL);
+      const size_t size = item->GetMemoryUsage();
+      delete item;
+
+      assert(currentSize_ >= size);
+      currentSize_ -= size;
+    }
+
+    // Post-condition: "currentSize_ <= targetSize"
+
   }
 }
