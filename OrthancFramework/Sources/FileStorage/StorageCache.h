@@ -37,12 +37,51 @@ namespace Orthanc
    **/
    class ORTHANC_PUBLIC StorageCache : public boost::noncopyable
     {
+    public:
+
+      // The StorageCache is only accessible through this accessor.
+      // It will make sure that only one user will fill load data and fill
+      // the cache if multiple users try to access the same item at the same time.
+      // This scenario happens a lot when multiple workers from a viewer access 
+      // the same file.
+      class Accessor : public MemoryStringCache::Accessor
+      {
+      public:
+        Accessor(StorageCache& cache);
+
+        void Add(const std::string& uuid, 
+                FileContentType contentType,
+                const std::string& value);
+
+        void AddStartRange(const std::string& uuid, 
+                          FileContentType contentType,
+                          const std::string& value);
+
+        void Add(const std::string& uuid, 
+                FileContentType contentType,
+                const void* buffer,
+                size_t size);
+
+        bool Fetch(std::string& value, 
+                  const std::string& uuid,
+                  FileContentType contentType);
+
+        bool FetchStartRange(std::string& value, 
+                            const std::string& uuid,
+                            FileContentType contentType,
+                            uint64_t end /* exclusive */);
+      };
+
     private:
       MemoryStringCache   cache_;
       
     public:
       void SetMaximumSize(size_t size);
 
+      void Invalidate(const std::string& uuid,
+                      FileContentType contentType);
+
+    private:
       void Add(const std::string& uuid, 
                FileContentType contentType,
                const std::string& value);
@@ -55,9 +94,6 @@ namespace Orthanc
                FileContentType contentType,
                const void* buffer,
                size_t size);
-
-      void Invalidate(const std::string& uuid,
-                      FileContentType contentType);
 
       bool Fetch(std::string& value, 
                  const std::string& uuid,
