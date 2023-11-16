@@ -2468,6 +2468,21 @@ namespace Orthanc
       throw OrthancException(ErrorCode_InternalError);
     }
   }
+
+  DicomTransferSyntax GetTransferSyntax(const std::string& value)
+  {
+    DicomTransferSyntax syntax;
+    if (LookupTransferSyntax(syntax, value))
+    {
+      return syntax;
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange,
+                             "Unknown transfer syntax: " + value);
+    }
+  }
+
 }
 
 

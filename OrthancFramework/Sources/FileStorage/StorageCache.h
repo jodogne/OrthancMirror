@@ -50,26 +50,35 @@ namespace Orthanc
         Accessor(StorageCache& cache);
 
         void Add(const std::string& uuid, 
-                FileContentType contentType,
-                const std::string& value);
+                 FileContentType contentType,
+                 const std::string& value);
 
         void AddStartRange(const std::string& uuid, 
-                          FileContentType contentType,
-                          const std::string& value);
+                           FileContentType contentType,
+                           const std::string& value);
 
         void Add(const std::string& uuid, 
-                FileContentType contentType,
-                const void* buffer,
-                size_t size);
+                 FileContentType contentType,
+                 const void* buffer,
+                 size_t size);
 
         bool Fetch(std::string& value, 
-                  const std::string& uuid,
-                  FileContentType contentType);
+                   const std::string& uuid,
+                   FileContentType contentType);
 
         bool FetchStartRange(std::string& value, 
-                            const std::string& uuid,
-                            FileContentType contentType,
-                            uint64_t end /* exclusive */);
+                             const std::string& uuid,
+                             FileContentType contentType,
+                             uint64_t end /* exclusive */);
+
+        bool FetchTranscodedInstance(std::string& value, 
+                                     const std::string& uuid,
+                                     DicomTransferSyntax targetSyntax);
+
+        void AddTranscodedInstance(const std::string& uuid,
+                                   DicomTransferSyntax targetSyntax,
+                                   const void* buffer,
+                                   size_t size);
       };
 
     private:

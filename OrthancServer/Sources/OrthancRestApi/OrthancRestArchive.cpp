@@ -93,21 +93,6 @@ namespace Orthanc
     }
   }
 
-
-  static DicomTransferSyntax GetTransferSyntax(const std::string& value)
-  {
-    DicomTransferSyntax syntax;
-    if (LookupTransferSyntax(syntax, value))
-    {
-      return syntax;
-    }
-    else
-    {
-      throw OrthancException(ErrorCode_ParameterOutOfRange,
-                             "Unknown transfer syntax: " + value);
-    }
-  }
-  
   
   static void GetJobParameters(bool& synchronous,            /* out */
                                bool& extended,               /* out */
@@ -137,7 +122,7 @@ namespace Orthanc
         body.isMember(KEY_TRANSCODE))
     {
       transcode = true;
-      syntax = GetTransferSyntax(SerializationToolbox::ReadString(body, KEY_TRANSCODE));
+      syntax = Orthanc::GetTransferSyntax(SerializationToolbox::ReadString(body, KEY_TRANSCODE));
     }
     else
     {

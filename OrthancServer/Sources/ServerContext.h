@@ -556,6 +556,11 @@ namespace Orthanc
                            const std::set<DicomTransferSyntax>& allowedSyntaxes,
                            bool allowNewSopInstanceUid) ORTHANC_OVERRIDE;
 
+    virtual bool TranscodeWithCache(std::string& target,
+                                    const std::string& source,
+                                    const std::string& sourceInstanceId,
+                                    DicomTransferSyntax targetSyntax);
+
     bool IsTranscodeDicomProtocol() const
     {
       return transcodeDicomProtocol_;
