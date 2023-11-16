@@ -361,6 +361,8 @@ namespace Orthanc
  
   static void GetInstanceFile(RestApiGetCall& call)
   {
+    static const char* const TRANSCODE = "transcode";
+
     if (call.IsDocumentation())
     {
       call.GetDocumentation()
@@ -369,6 +371,9 @@ namespace Orthanc
         .SetDescription("Download one DICOM instance")
         .SetUriArgument("id", "Orthanc identifier of the DICOM instance of interest")
         .SetHttpHeader("Accept", "This HTTP header can be set to retrieve the DICOM instance in DICOMweb format")
+        .SetHttpGetArgument(TRANSCODE, RestApiCallDocumentation::Type_String,
+                            "If present, the DICOM file will be transcoded to the provided "
+                            "transfer syntax: https://book.orthanc-server.com/faq/transcoding.html", false)
         .AddAnswerType(MimeType_Dicom, "The DICOM instance")
         .AddAnswerType(MimeType_DicomWebJson, "The DICOM instance, in DICOMweb JSON format")
         .AddAnswerType(MimeType_DicomWebXml, "The DICOM instance, in DICOMweb XML format");
@@ -417,7 +422,22 @@ namespace Orthanc
       }
     }
 
-    context.AnswerAttachment(call.GetOutput(), publicId, FileContentType_Dicom);
+    if (call.HasArgument(TRANSCODE))
+    {
+      std::string source;
+      std::string transcoded;
+      context.ReadDicom(source, publicId);
+
+      if (context.TranscodeWithCache(transcoded, source, publicId, GetTransferSyntax(call.GetArgument(TRANSCODE, ""))))
+      {
+        call.GetOutput().AnswerBuffer(transcoded, MimeType_Dicom);
+      }
+    }
+    else
+    {
+      // return the attachment without any transcoding
+      context.AnswerAttachment(call.GetOutput(), publicId, FileContentType_Dicom);
+    }
   }
 
 

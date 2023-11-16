@@ -1948,6 +1948,36 @@ namespace Orthanc
   }
 
 
+  bool ServerContext::TranscodeWithCache(std::string& target,
+                                         const std::string& source,
+                                         const std::string& sourceInstanceId,
+                                         DicomTransferSyntax targetSyntax)
+  {
+    StorageCache::Accessor cacheAccessor(storageCache_);
+
+    if (!cacheAccessor.FetchTranscodedInstance(target, sourceInstanceId, targetSyntax))
+    {
+      IDicomTranscoder::DicomImage sourceDicom;
+      sourceDicom.SetExternalBuffer(source);
+
+      IDicomTranscoder::DicomImage targetDicom;
+      std::set<DicomTransferSyntax> syntaxes;
+      syntaxes.insert(targetSyntax);
+
+      if (Transcode(targetDicom, sourceDicom, syntaxes, true))
+      {
+        cacheAccessor.AddTranscodedInstance(sourceInstanceId, targetSyntax, reinterpret_cast<const char*>(targetDicom.GetBufferData()), targetDicom.GetBufferSize());
+        target = std::string(reinterpret_cast<const char*>(targetDicom.GetBufferData()), targetDicom.GetBufferSize());
+        return true;
+      }
+
+      return false;
+    }
+
+    return true;
+  }
+
+
   bool ServerContext::Transcode(DicomImage& target,
                                 DicomImage& source /* in, "GetParsed()" possibly modified */,
                                 const std::set<DicomTransferSyntax>& allowedSyntaxes,

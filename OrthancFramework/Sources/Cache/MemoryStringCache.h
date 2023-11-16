@@ -86,6 +86,7 @@ namespace Orthanc
 
     void Invalidate(const std::string& key);
 
+    void InvalidateByPrefix(const std::string& keyPrefix);
 
   private:
     void Add(const std::string& key,

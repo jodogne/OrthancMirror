@@ -935,6 +935,9 @@ ORTHANC_PUBLIC
                             const std::string& uid);
 
   ORTHANC_PUBLIC
+  DicomTransferSyntax GetTransferSyntax(const std::string& uid);
+
+  ORTHANC_PUBLIC
   const char* GetResourceTypeText(ResourceType type,
                                   bool isPlural,
                                   bool isUpperCase);

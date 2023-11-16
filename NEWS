@@ -10,8 +10,10 @@ General
     This can bring some significant improvements particularly in viewers.
   - Optimized the StorageCache to prevent loading the same file multiple times if
     multiple users request the same file at the same time.
+  - The StorageCache is now also storing transcoded instances that have been requested by /file?transcode=...
+    that is now used by the DICOMweb plugin.  This speeds up retrieval of transcoded frames through WADO-RS.
 * Housekeeper plugin:
-  - Update to rebuild the cache of the DicomWeb plugin when updating to DicomWeb 1.15.
+  - Update to rebuild the cache of the DICOMweb plugin when updating to DICOMweb 1.15.
   - New trigger configuration: "DicomWebCacheChange"
   - Fixed reading the triggers configuration.
 * HTTP Compression:
@@ -37,6 +39,8 @@ REST API
 
 * API version upgraded to 22
 * Added a route to delete completed jobs from history: DELETE /jobs/{id}
+* added a "transcode" option to the /file route:
+  e.g: /instances/../file?transcode=1.2.840.10008.1.2.4.80
 * All 'expand' GET arguments now accepts expand=true and expand=false values.
   The /studies/../instances and sibling routes are the only whose expand is true if not specified.
   These routes now accepts expand=false to simply list the child resources ids.

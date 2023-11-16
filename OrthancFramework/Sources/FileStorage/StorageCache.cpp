@@ -38,12 +38,21 @@ namespace Orthanc
   {
     return uuid + ":" + boost::lexical_cast<std::string>(contentType) + ":1";
   }
-  
+
+
   static std::string GetCacheKeyStartRange(const std::string& uuid,
                                            FileContentType contentType)
   {
     return uuid + ":" + boost::lexical_cast<std::string>(contentType) + ":0";
   }
+
+
+  static std::string GetCacheKeyTranscodedInstance(const std::string& uuid,
+                                                   DicomTransferSyntax transferSyntax)
+  {
+    return uuid + ":" + GetTransferSyntaxUid(transferSyntax) + ":1";
+  }
+
 
   void StorageCache::SetMaximumSize(size_t size)
   {
@@ -54,12 +63,8 @@ namespace Orthanc
   void StorageCache::Invalidate(const std::string& uuid,
                                 FileContentType contentType)
   {
-    // invalidate both full file + start range file
-    const std::string keyFullFile = GetCacheKeyFullFile(uuid, contentType);
-    cache_.Invalidate(keyFullFile);
-
-    const std::string keyPartialFile = GetCacheKeyStartRange(uuid, contentType);
-    cache_.Invalidate(keyPartialFile);
+    // invalidate full file, start range file and possible transcoded instances
+    cache_.InvalidateByPrefix(uuid);
   }
 
 
@@ -109,6 +114,32 @@ namespace Orthanc
     {
       return false;
     }
+  }
+
+  bool StorageCache::Accessor::FetchTranscodedInstance(std::string& value, 
+                                                       const std::string& uuid,
+                                                       DicomTransferSyntax targetSyntax)
+  {
+    const std::string key = GetCacheKeyTranscodedInstance(uuid, targetSyntax);
+    if (MemoryStringCache::Accessor::Fetch(value, key))
+    {
+      LOG(INFO) << "Read instance \"" << uuid << "\" transcoded to "
+                << GetTransferSyntaxUid(targetSyntax) << " from cache";
+      return true;
+    }
+    else
+    {
+      return false;
+    }
+  }
+
+  void StorageCache::Accessor::AddTranscodedInstance(const std::string& uuid,
+                                                     DicomTransferSyntax targetSyntax,
+                                                     const void* buffer,
+                                                     size_t size)
+  {
+    const std::string key = GetCacheKeyTranscodedInstance(uuid, targetSyntax);
+    MemoryStringCache::Accessor::Add(key, reinterpret_cast<const char*>(buffer), size);
   }
 
   bool StorageCache::Accessor::FetchStartRange(std::string& value, 
