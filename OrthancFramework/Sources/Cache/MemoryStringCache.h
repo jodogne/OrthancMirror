@@ -50,9 +50,14 @@ namespace Orthanc
   public:
     class Accessor : public boost::noncopyable
     {
+    protected:
       MemoryStringCache& cache_;
+
+    private:
       bool                shouldAdd_;  // when this accessor is the one who should load and add the data
       std::string         keyToAdd_;
+
+
     public:
       Accessor(MemoryStringCache& cache);
       ~Accessor();
@@ -85,8 +90,6 @@ namespace Orthanc
     void SetMaximumSize(size_t size);
 
     void Invalidate(const std::string& key);
-
-    void InvalidateByPrefix(const std::string& keyPrefix);
 
   private:
     void Add(const std::string& key,
