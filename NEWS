@@ -61,6 +61,8 @@ Maintenance
   in case of PatientID collision.
 * Upgraded dependencies for static builds:
   - boost 1.83.0
+* Upgraded minizip library to stay away from CVE-2023-45853 although Orthanc is likely not affected since zip
+  filenames are based on DICOM Tag values whose length is limited in size.
 
 
 Version 1.12.1 (2023-07-04)
