@@ -63,6 +63,7 @@ Maintenance
   - boost 1.83.0
 * Upgraded minizip library to stay away from CVE-2023-45853 although Orthanc is likely not affected since zip
   filenames are based on DICOM Tag values whose length is limited in size.
+  Great thanks to James Addison for notifying us about the vulnerability and patch to apply !
 
 
 Version 1.12.1 (2023-07-04)
