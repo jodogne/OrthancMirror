@@ -206,24 +206,6 @@ namespace Orthanc
   }
 
 
-  void MemoryStringCache::InvalidateByPrefix(const std::string& keyPrefix)
-  {
-    std::vector<std::string> allKeys;
-
-    {
-      boost::mutex::scoped_lock cacheLock(cacheMutex_);
-      content_.GetAllKeys(allKeys);
-    }
-
-    for (std::vector<std::string>::const_iterator it = allKeys.begin(); it != allKeys.end(); ++it)
-    {
-      if (it->find(keyPrefix) == 0)
-      {
-        Invalidate(*it);
-      }
-    }
-  }
-
   bool MemoryStringCache::Fetch(std::string& value,
                                 const std::string& key)
   {

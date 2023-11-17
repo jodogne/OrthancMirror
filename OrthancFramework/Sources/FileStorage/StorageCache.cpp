@@ -50,7 +50,7 @@ namespace Orthanc
   static std::string GetCacheKeyTranscodedInstance(const std::string& uuid,
                                                    DicomTransferSyntax transferSyntax)
   {
-    return uuid + ":" + GetTransferSyntaxUid(transferSyntax) + ":1";
+    return uuid + ":ts:" + GetTransferSyntaxUid(transferSyntax);
   }
 
 
@@ -63,13 +63,31 @@ namespace Orthanc
   void StorageCache::Invalidate(const std::string& uuid,
                                 FileContentType contentType)
   {
+    std::set<DicomTransferSyntax> transferSyntaxes;
+
+    {
+      boost::mutex::scoped_lock lock(subKeysMutex_);
+      transferSyntaxes = subKeysTransferSyntax_;
+    }
+
     // invalidate full file, start range file and possible transcoded instances
-    cache_.InvalidateByPrefix(uuid);
+    const std::string keyFullFile = GetCacheKeyFullFile(uuid, contentType);
+    cache_.Invalidate(keyFullFile);
+
+    const std::string keyPartialFile = GetCacheKeyStartRange(uuid, contentType);
+    cache_.Invalidate(keyPartialFile);
+    
+    for (std::set<DicomTransferSyntax>::const_iterator it = transferSyntaxes.begin(); it != transferSyntaxes.end(); ++it)
+    {
+      const std::string keyTransferSyntax = GetCacheKeyTranscodedInstance(uuid, *it);
+      cache_.Invalidate(keyTransferSyntax);
+    }
   }
 
 
   StorageCache::Accessor::Accessor(StorageCache& cache)
-  : MemoryStringCache::Accessor(cache.cache_)
+  : MemoryStringCache::Accessor(cache.cache_),
+    storageCache_(cache)
   {
   }
 
@@ -138,6 +156,11 @@ namespace Orthanc
                                                      const void* buffer,
                                                      size_t size)
   {
+    {
+      boost::mutex::scoped_lock lock(storageCache_.subKeysMutex_);
+      storageCache_.subKeysTransferSyntax_.insert(targetSyntax);
+    }
+
     const std::string key = GetCacheKeyTranscodedInstance(uuid, targetSyntax);
     MemoryStringCache::Accessor::Add(key, reinterpret_cast<const char*>(buffer), size);
   }

@@ -425,10 +425,11 @@ namespace Orthanc
     if (call.HasArgument(TRANSCODE))
     {
       std::string source;
+      std::string attachmentId;
       std::string transcoded;
-      context.ReadDicom(source, publicId);
+      context.ReadDicom(source, attachmentId, publicId);
 
-      if (context.TranscodeWithCache(transcoded, source, publicId, GetTransferSyntax(call.GetArgument(TRANSCODE, ""))))
+      if (context.TranscodeWithCache(transcoded, source, publicId, attachmentId, GetTransferSyntax(call.GetArgument(TRANSCODE, ""))))
       {
         call.GetOutput().AnswerBuffer(transcoded, MimeType_Dicom);
       }
@@ -2328,8 +2329,9 @@ namespace Orthanc
       {
         // Return the raw data (possibly compressed), as stored on the filesystem
         std::string content;
+        std::string attachmentId;
         int64_t revision;
-        context.ReadAttachment(content, revision, publicId, type, false, true /* skipCache when you absolutely need the compressed data */);
+        context.ReadAttachment(content, revision, attachmentId, publicId, type, false, true /* skipCache when you absolutely need the compressed data */);
 
         int64_t userRevision;
         std::string userMD5;
@@ -2511,7 +2513,9 @@ namespace Orthanc
 
     // First check whether the compressed data is correctly stored in the disk
     std::string data;
-    context.ReadAttachment(data, revision, publicId, StringToContentType(name), false, true /* skipCache when you absolutely need the compressed data */);
+    std::string attachmentId;
+
+    context.ReadAttachment(data, revision, attachmentId, publicId, StringToContentType(name), false, true /* skipCache when you absolutely need the compressed data */);
 
     std::string actualMD5;
     Toolbox::ComputeMD5(actualMD5, data);
@@ -2526,7 +2530,7 @@ namespace Orthanc
       }
       else
       {
-        context.ReadAttachment(data, revision, publicId, StringToContentType(name), true, true /* skipCache when you absolutely need the compressed data */);
+        context.ReadAttachment(data, revision, attachmentId, publicId, StringToContentType(name), true, true /* skipCache when you absolutely need the compressed data */);
         Toolbox::ComputeMD5(actualMD5, data);
         ok = (actualMD5 == info.GetUncompressedMD5());
       }

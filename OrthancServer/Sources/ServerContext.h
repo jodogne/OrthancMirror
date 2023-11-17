@@ -379,6 +379,10 @@ namespace Orthanc
     void ReadDicom(std::string& dicom,
                    const std::string& instancePublicId);
 
+    void ReadDicom(std::string& dicom,
+                   std::string& attachmentId,
+                   const std::string& instancePublicId);
+
     void ReadDicomForHeader(std::string& dicom,
                             const std::string& instancePublicId);
 
@@ -388,6 +392,7 @@ namespace Orthanc
     // This method is for low-level operations on "/instances/.../attachments/..."
     void ReadAttachment(std::string& result,
                         int64_t& revision,
+                        std::string& attachmentId,
                         const std::string& instancePublicId,
                         FileContentType content,
                         bool uncompressIfNeeded,
@@ -559,6 +564,7 @@ namespace Orthanc
     virtual bool TranscodeWithCache(std::string& target,
                                     const std::string& source,
                                     const std::string& sourceInstanceId,
+                                    const std::string& attachmentId, // for the storage cache
                                     DicomTransferSyntax targetSyntax);
 
     bool IsTranscodeDicomProtocol() const

@@ -46,6 +46,7 @@ namespace Orthanc
       // the same file.
       class Accessor : public MemoryStringCache::Accessor
       {
+        StorageCache& storageCache_;
       public:
         Accessor(StorageCache& cache);
 
@@ -82,8 +83,10 @@ namespace Orthanc
       };
 
     private:
-      MemoryStringCache   cache_;
-      
+      MemoryStringCache             cache_;
+      std::set<DicomTransferSyntax> subKeysTransferSyntax_;
+      boost::mutex                  subKeysMutex_;
+
     public:
       void SetMaximumSize(size_t size);
 

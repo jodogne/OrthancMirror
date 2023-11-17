@@ -1165,10 +1165,19 @@ namespace Orthanc
 
 
   void ServerContext::ReadDicom(std::string& dicom,
+                                std::string& attachmentId,
                                 const std::string& instancePublicId)
   {
     int64_t revision;
-    ReadAttachment(dicom, revision, instancePublicId, FileContentType_Dicom, true /* uncompress */);
+    ReadAttachment(dicom, revision, attachmentId, instancePublicId, FileContentType_Dicom, true /* uncompress */);
+  }
+
+
+  void ServerContext::ReadDicom(std::string& dicom,
+                                const std::string& instancePublicId)
+  {
+    std::string attachmentId;
+    ReadDicom(dicom, attachmentId, instancePublicId);    
   }
 
   void ServerContext::ReadDicomForHeader(std::string& dicom,
@@ -1236,6 +1245,7 @@ namespace Orthanc
 
   void ServerContext::ReadAttachment(std::string& result,
                                      int64_t& revision,
+                                     std::string& attachmentId,
                                      const std::string& instancePublicId,
                                      FileContentType content,
                                      bool uncompressIfNeeded,
@@ -1250,7 +1260,8 @@ namespace Orthanc
     }
 
     assert(attachment.GetContentType() == content);
-
+    attachmentId = attachment.GetUuid();
+    
     {
       std::unique_ptr<StorageAccessor> accessor;
       
@@ -1951,11 +1962,12 @@ namespace Orthanc
   bool ServerContext::TranscodeWithCache(std::string& target,
                                          const std::string& source,
                                          const std::string& sourceInstanceId,
+                                         const std::string& attachmentId,
                                          DicomTransferSyntax targetSyntax)
   {
     StorageCache::Accessor cacheAccessor(storageCache_);
 
-    if (!cacheAccessor.FetchTranscodedInstance(target, sourceInstanceId, targetSyntax))
+    if (!cacheAccessor.FetchTranscodedInstance(target, attachmentId, targetSyntax))
     {
       IDicomTranscoder::DicomImage sourceDicom;
       sourceDicom.SetExternalBuffer(source);
@@ -1966,7 +1978,7 @@ namespace Orthanc
 
       if (Transcode(targetDicom, sourceDicom, syntaxes, true))
       {
-        cacheAccessor.AddTranscodedInstance(sourceInstanceId, targetSyntax, reinterpret_cast<const char*>(targetDicom.GetBufferData()), targetDicom.GetBufferSize());
+        cacheAccessor.AddTranscodedInstance(attachmentId, targetSyntax, reinterpret_cast<const char*>(targetDicom.GetBufferData()), targetDicom.GetBufferSize());
         target = std::string(reinterpret_cast<const char*>(targetDicom.GetBufferData()), targetDicom.GetBufferSize());
         return true;
       }
