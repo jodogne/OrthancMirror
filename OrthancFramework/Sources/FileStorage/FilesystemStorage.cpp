@@ -122,16 +122,9 @@ namespace Orthanc
                                  size_t size,
                                  FileContentType type)
   {
-    if (size > (1024 * 1024))
-    {
-      LOG(INFO) << "Creating attachment \"" << uuid << "\" of \"" << GetDescriptionInternal(type) 
-                << "\" type (size: " << (size / (1024 * 1024) + 1) << "MB)";
-    }
-    else
-    {
-      LOG(INFO) << "Creating attachment \"" << uuid << "\" of \"" << GetDescriptionInternal(type) 
-                << "\" type (size: " << (size / 1024 + 1) << "KB)";
-    }
+    Toolbox::ElapsedTimer timer;
+    LOG(INFO) << "Creating attachment \"" << uuid << "\" of \"" << GetDescriptionInternal(type) 
+              << "\" type";
 
     boost::filesystem::path path;
     
@@ -160,17 +153,21 @@ namespace Orthanc
     }
 
     SystemToolbox::WriteFile(content, size, path.string(), fsyncOnWrite_);
+    LOG(INFO) << "Created attachment \"" << uuid << "\" (" << timer.GetHumanTransferSpeed(true, size) << ")";
   }
 
 
   IMemoryBuffer* FilesystemStorage::Read(const std::string& uuid,
                                          FileContentType type)
   {
+    Toolbox::ElapsedTimer timer;
     LOG(INFO) << "Reading attachment \"" << uuid << "\" of \"" << GetDescriptionInternal(type) 
               << "\" content type";
 
     std::string content;
     SystemToolbox::ReadFile(content, GetPath(uuid).string());
+
+    LOG(INFO) << "Read attachment \"" << uuid << "\" (" << timer.GetHumanTransferSpeed(true, content.size()) << ")";
 
     return StringMemoryBuffer::CreateFromSwap(content);
   }
@@ -181,6 +178,7 @@ namespace Orthanc
                                               uint64_t start /* inclusive */,
                                               uint64_t end /* exclusive */)
   {
+    Toolbox::ElapsedTimer timer;
     LOG(INFO) << "Reading attachment \"" << uuid << "\" of \"" << GetDescriptionInternal(type) 
               << "\" content type (range from " << start << " to " << end << ")";
 
@@ -188,6 +186,7 @@ namespace Orthanc
     SystemToolbox::ReadFileRange(
       content, GetPath(uuid).string(), start, end, true /* throw if overflow */);
 
+    LOG(INFO) << "Read range of attachment \"" << uuid << "\" (" << timer.GetHumanTransferSpeed(true, content.size()) << ")";
     return StringMemoryBuffer::CreateFromSwap(content);
   }
 

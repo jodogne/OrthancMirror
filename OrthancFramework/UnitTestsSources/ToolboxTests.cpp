@@ -375,3 +375,35 @@ TEST(Toolbox, JoinUri)
   ASSERT_EQ("http://test.org:8042", Toolbox::JoinUri("http://test.org:8042", ""));
   ASSERT_EQ("http://test.org:8042/", Toolbox::JoinUri("http://test.org:8042/", ""));
 }
+
+TEST(Toolbox, GetHumanFileSize)
+{
+  ASSERT_EQ("234bytes", Toolbox::GetHumanFileSize(234));
+  ASSERT_EQ("2.29KB", Toolbox::GetHumanFileSize(2345));
+  ASSERT_EQ("22.91KB", Toolbox::GetHumanFileSize(23456));
+  ASSERT_EQ("229.07KB", Toolbox::GetHumanFileSize(234567));
+  ASSERT_EQ("2.24MB", Toolbox::GetHumanFileSize(2345678));
+  ASSERT_EQ("22.37MB", Toolbox::GetHumanFileSize(23456789));
+  ASSERT_EQ("223.70MB", Toolbox::GetHumanFileSize(234567890));
+  ASSERT_EQ("2.18GB", Toolbox::GetHumanFileSize(2345678901));
+  ASSERT_EQ("21.33TB", Toolbox::GetHumanFileSize(23456789012345));
+}
+
+TEST(Toolbox, GetHumanDuration)
+{
+  ASSERT_EQ("234ns", Toolbox::GetHumanDuration(234));
+  ASSERT_EQ("2.35us", Toolbox::GetHumanDuration(2345));
+  ASSERT_EQ("23.46us", Toolbox::GetHumanDuration(23456));
+  ASSERT_EQ("234.57us", Toolbox::GetHumanDuration(234567));
+  ASSERT_EQ("2.35ms", Toolbox::GetHumanDuration(2345678));
+  ASSERT_EQ("2.35s", Toolbox::GetHumanDuration(2345678901));
+  ASSERT_EQ("23456.79s", Toolbox::GetHumanDuration(23456789012345));
+}
+
+TEST(Toolbox, GetHumanTransferSpeed)
+{
+  ASSERT_EQ("8.00Mbps", Toolbox::GetHumanTransferSpeed(false, 1000, 1000000));
+  ASSERT_EQ("8.59Gbps", Toolbox::GetHumanTransferSpeed(false, 1024*1024*1024, 1000000000));
+  ASSERT_EQ("1.00GB in 1.00s = 8.59Gbps", Toolbox::GetHumanTransferSpeed(true, 1024*1024*1024, 1000000000));
+  ASSERT_EQ("976.56KB in 1.00s = 8.00Mbps", Toolbox::GetHumanTransferSpeed(true, 1000*1000, 1000000000));
+}

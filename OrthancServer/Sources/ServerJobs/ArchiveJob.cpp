@@ -71,7 +71,7 @@ namespace Orthanc
                           countInstances >= 65535 - FILES_MARGIN);
 
     LOG(INFO) << "Creating a ZIP file with " << countInstances << " files of size "
-              << (uncompressedSize / MEGA_BYTES) << "MB using the "
+              << Toolbox::GetHumanFileSize(uncompressedSize) << " using the "
               << (isZip64 ? "ZIP64" : "ZIP32") << " file format";
 
     return isZip64;

@@ -27,6 +27,7 @@
 #include "../Logging.h"
 #include "../OrthancException.h"
 #include "../StringMemoryBuffer.h"
+#include "../Toolbox.h"
 
 namespace Orthanc
 {
@@ -47,7 +48,7 @@ namespace Orthanc
                                  FileContentType type)
   {
     LOG(INFO) << "Creating attachment \"" << uuid << "\" of \"" << static_cast<int>(type)
-              << "\" type (size: " << (size / (1024 * 1024) + 1) << "MB)";
+              << "\" type (size: " << Toolbox::GetHumanFileSize(size) << ")";
 
     Mutex::ScopedLock lock(mutex_);
 

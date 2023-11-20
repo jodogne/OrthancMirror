@@ -2514,6 +2514,45 @@ namespace Orthanc
     }
   }
 
+  Toolbox::ElapsedTimer::ElapsedTimer()
+  {
+    Restart();
+  }
+
+  void Toolbox::ElapsedTimer::Restart()
+  {
+    start_ = boost::posix_time::microsec_clock::universal_time();
+  }
+
+  uint64_t Toolbox::ElapsedTimer::GetElapsedMilliseconds()
+  {
+    return GetElapsedNanoseconds() / 1000000;
+  }
+  
+  uint64_t Toolbox::ElapsedTimer::GetElapsedMicroseconds()
+  {
+    return GetElapsedNanoseconds() / 1000;
+  }
+
+  uint64_t Toolbox::ElapsedTimer::GetElapsedNanoseconds()
+  {
+    boost::posix_time::ptime now = boost::posix_time::microsec_clock::universal_time();
+    boost::posix_time::time_duration diff = now - start_;
+    return static_cast<uint64_t>(diff.total_nanoseconds());
+  }
+
+  std::string Toolbox::ElapsedTimer::GetHumanElapsedDuration()
+  {
+    return Toolbox::GetHumanDuration(GetElapsedNanoseconds());
+  }
+
+  // in "full" mode, returns " 26.45MB in 2.25s = 94.04Mbps"
+  // else, returns "94.04Mbps"
+  std::string Toolbox::ElapsedTimer::GetHumanTransferSpeed(bool full, uint64_t sizeInBytes)
+  {
+    return Toolbox::GetHumanTransferSpeed(full, sizeInBytes, GetElapsedNanoseconds());
+  }
+
   Toolbox::ElapsedTimeLogger::ElapsedTimeLogger(const std::string& message)
   : message_(message),
     logged_(false)
@@ -2531,15 +2570,109 @@ namespace Orthanc
 
   void Toolbox::ElapsedTimeLogger::Restart()
   {
-    start_ = boost::posix_time::microsec_clock::universal_time();
+    timer_.Restart();
   }
 
   void Toolbox::ElapsedTimeLogger::StopAndLog()
   {
-    boost::posix_time::ptime now = boost::posix_time::microsec_clock::universal_time();
-    boost::posix_time::time_duration diff = now - start_;
-    LOG(WARNING) << "ELAPSED TIMER: " << message_ << " (" << diff.total_microseconds() << " us)";
+    LOG(WARNING) << "ELAPSED TIMER: " << message_ << " (" << timer_.GetElapsedMicroseconds() << " us)";
     logged_ = true;
+  }
+
+  std::string Toolbox::GetHumanFileSize(uint64_t sizeInBytes)
+  {
+    if (sizeInBytes < 1024)
+    {
+      std::ostringstream oss;
+      oss << sizeInBytes << "bytes";
+      return oss.str();
+    }
+    else
+    {
+      static const char* suffixes[] = {"KB", "MB", "GB", "TB"};
+      static const int suffixesCount = sizeof(suffixes) / sizeof(suffixes[0]);
+
+      int i = 0;
+      double size = static_cast<double>(sizeInBytes)/1024.0;
+
+      while (size >= 1024.0 && i < suffixesCount - 1) 
+      {
+        size /= 1024.0;
+        i++;
+      }
+
+      std::ostringstream oss;
+      oss << std::fixed << std::setprecision(2) << size << suffixes[i];
+      return oss.str();
+    }
+  }
+
+  std::string Toolbox::GetHumanDuration(uint64_t durationInNanoseconds)
+  {
+    if (durationInNanoseconds < 1024)
+    {
+      std::ostringstream oss;
+      oss << durationInNanoseconds << "ns";
+      return oss.str();
+    }
+    else
+    {
+      static const char* suffixes[] = {"ns", "us", "ms", "s"};
+      static const int suffixesCount = sizeof(suffixes) / sizeof(suffixes[0]);
+
+      int i = 0;
+      double duration = static_cast<double>(durationInNanoseconds);
+
+      while (duration >= 1000.0 && i < suffixesCount - 1) 
+      {
+        duration /= 1000.0;
+        i++;
+      }
+
+      std::ostringstream oss;
+      oss << std::fixed << std::setprecision(2) << duration <<  suffixes[i];
+      return oss.str();
+    }
+  }
+
+  std::string Toolbox::GetHumanTransferSpeed(bool full, uint64_t sizeInBytes, uint64_t durationInNanoseconds)
+  {
+    // in "full" mode, returns " 26.45MB in 2.25s = 94.04Mbps"    
+    // else, return "94.04Mbps"
+
+    if (full)
+    {
+      std::ostringstream oss;
+      oss << Toolbox::GetHumanFileSize(sizeInBytes) << " in " << Toolbox::GetHumanDuration(durationInNanoseconds) << " = " << GetHumanTransferSpeed(false, sizeInBytes, durationInNanoseconds);
+      return oss.str();
+    }
+
+    double throughputInBps = 8.0 * 1000000000.0 * static_cast<double>(sizeInBytes) / static_cast<double>(durationInNanoseconds);
+
+    if (throughputInBps < 1000.0)
+    {
+      std::ostringstream oss;
+      oss << throughputInBps << "bps";
+      return oss.str();
+    }
+    else
+    {
+      throughputInBps /= 1000.0;
+      static const char* suffixes[] = {"kbps", "Mbps", "Gbps"};
+      static const int suffixesCount = sizeof(suffixes) / sizeof(suffixes[0]);
+
+      int i = 0;
+
+      while (throughputInBps >= 1000.0 && i < suffixesCount - 1) 
+      {
+        throughputInBps /= 1000.0;
+        i++;
+      }
+
+      std::ostringstream oss;
+      oss << std::fixed << std::setprecision(2) << throughputInBps <<  suffixes[i];
+      return oss.str();
+    }
   }
 
 

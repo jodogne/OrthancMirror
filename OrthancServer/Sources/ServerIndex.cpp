@@ -36,8 +36,6 @@
 #include "ServerToolbox.h"
 
 
-static const uint64_t MEGA_BYTES = 1024 * 1024;
-
 namespace Orthanc
 {
   class ServerIndex::TransactionContext : public StatelessDatabaseOperations::ITransactionContext
@@ -402,7 +400,7 @@ namespace Orthanc
       }
       else
       {
-        LOG(WARNING) << "At most " << (size / MEGA_BYTES) << "MB will be used for the storage area";
+        LOG(WARNING) << "At most " << Toolbox::GetHumanFileSize(size) << " will be used for the storage area";
       }
     }
 
