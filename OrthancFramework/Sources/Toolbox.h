@@ -376,14 +376,30 @@ namespace Orthanc
 
     static void RemoveSurroundingQuotes(std::string& value);
 
+    class ORTHANC_PUBLIC ElapsedTimer
+    {
+      boost::posix_time::ptime  start_;
+    public:
+      explicit ElapsedTimer();
+
+      uint64_t GetElapsedMilliseconds();
+      uint64_t GetElapsedMicroseconds();
+      uint64_t GetElapsedNanoseconds();
+      
+      std::string GetHumanElapsedDuration();
+      std::string GetHumanTransferSpeed(bool full, uint64_t sizeInBytes);
+      
+      void Restart();
+    };
+
     // This is a helper class to measure and log time spend e.g in a method.
     // This should be used only during debugging and should likely not ever used in a release.
     // By default, you should use it as a RAII but you may force Restart/StopAndLog manually if needed.
     class ORTHANC_PUBLIC ElapsedTimeLogger
     {
     private:
-      const std::string         message_;
-      boost::posix_time::ptime  start_;
+      ElapsedTimer      timer_;
+      const std::string message_;
       bool logged_;
 
     public:
@@ -393,6 +409,12 @@ namespace Orthanc
       void Restart();
       void StopAndLog();
     };
+
+    static std::string GetHumanFileSize(uint64_t sizeInBytes);
+
+    static std::string GetHumanDuration(uint64_t durationInNanoseconds);
+
+    static std::string GetHumanTransferSpeed(bool full, uint64_t sizeInBytes, uint64_t durationInNanoseconds);
 
   };
 }

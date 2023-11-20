@@ -160,7 +160,7 @@ namespace Orthanc
 
     ServerContext& context = OrthancRestApi::GetContext(call);
 
-    CLOG(INFO, HTTP) << "Receiving a DICOM file of " << call.GetBodySize() << " bytes through HTTP";
+    CLOG(INFO, HTTP) << "Receiving a DICOM file of " << Toolbox::GetHumanFileSize(static_cast<uint64_t>(call.GetBodySize())) << " through HTTP";
 
     if (call.GetBodySize() == 0)
     {
