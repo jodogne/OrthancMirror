@@ -436,7 +436,7 @@ namespace Orthanc
   {
     /**
      * This approach is validated in "Tests/GuessPixelDataVR.py":
-     * https://hg.orthanc-server.com/orthanc-tests/file/tip/Tests/GuessPixelDataVR.py
+     * https://orthanc.uclouvain.be/hg/orthanc-tests/file/default/Tests/GuessPixelDataVR.py
      **/
 
     if (transferSyntax == DicomTransferSyntax_LittleEndianExplicit ||

@@ -189,7 +189,7 @@ namespace Orthanc
     // same fix is required for Agfa Impax. This was generalized for
     // generic manufacturer since it seems to affect PhilipsADW,
     // GEWAServer as well:
-    // https://bugs.orthanc-server.com/show_bug.cgi?id=31
+    // https://orthanc.uclouvain.be/bugs/show_bug.cgi?id=31
 
     switch (manufacturer)
     {
