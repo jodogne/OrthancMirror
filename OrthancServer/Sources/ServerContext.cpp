@@ -328,11 +328,15 @@ namespace Orthanc
   }
 
 
-  void ServerContext::PublishDicomCacheMetrics()
+  void ServerContext::PublishCacheMetrics()
   {
-    metricsRegistry_->SetFloatValue("orthanc_dicom_cache_size",
+    metricsRegistry_->SetFloatValue("orthanc_dicom_cache_size_mb",
                                     static_cast<float>(dicomCache_.GetCurrentSize()) / static_cast<float>(1024 * 1024));
     metricsRegistry_->SetIntegerValue("orthanc_dicom_cache_count", dicomCache_.GetNumberOfItems());
+
+    metricsRegistry_->SetFloatValue("orthanc_storage_cache_size_mb",
+                                    static_cast<float>(storageCache_.GetCurrentSize()) / static_cast<float>(1024 * 1024));
+    metricsRegistry_->SetIntegerValue("orthanc_storage_cache_count", storageCache_.GetNumberOfItems());
   }
 
 
@@ -668,7 +672,6 @@ namespace Orthanc
       // Remove the file from the DicomCache (useful if
       // "OverwriteInstances" is set to "true")
       dicomCache_.Invalidate(resultPublicId);
-      PublishDicomCacheMetrics();
 
       // TODO Should we use "gzip" instead?
       CompressionType compression = (compressionEnabled_ ? CompressionType_ZlibWithSize : CompressionType_None);
@@ -1328,7 +1331,6 @@ namespace Orthanc
       try
       {
         context_.dicomCache_.Acquire(instancePublicId_, dicom_.release(), dicomSize_);
-        context_.PublishDicomCacheMetrics();
       }
       catch (OrthancException&)
       {
@@ -1406,7 +1408,6 @@ namespace Orthanc
     {
       // remove the file from the DicomCache
       dicomCache_.Invalidate(uuid);
-      PublishDicomCacheMetrics();
     }
 
     return index_.DeleteResource(remainingAncestor, uuid, expectedType);
@@ -1419,7 +1420,6 @@ namespace Orthanc
         change.GetChangeType() == ChangeType_Deleted)
     {
       dicomCache_.Invalidate(change.GetPublicId());
-      PublishDicomCacheMetrics();
     }
     
     pendingChanges_.Enqueue(change.Clone());

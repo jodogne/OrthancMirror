@@ -282,8 +282,6 @@ namespace Orthanc
                                       StoreInstanceMode mode,
                                       bool isReconstruct);
 
-    void PublishDicomCacheMetrics();
-
     // This method must only be called from "ServerIndex"!
     void RemoveFile(const std::string& fileUuid,
                     FileContentType type);
@@ -615,5 +613,7 @@ namespace Orthanc
     }
 
     int64_t GetServerUpTime() const;
+
+    void PublishCacheMetrics();
   };
 }

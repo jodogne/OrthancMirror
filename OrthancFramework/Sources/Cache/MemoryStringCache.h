@@ -70,7 +70,7 @@ namespace Orthanc
   private:
     class StringValue;
 
-    boost::mutex              cacheMutex_;  // note: we can not use recursive_mutex with condition_variable
+    mutable boost::mutex      cacheMutex_;  // note: we can not use recursive_mutex with condition_variable
     boost::condition_variable cacheCond_;
     std::set<std::string>     itemsBeingLoaded_;
 
@@ -90,6 +90,10 @@ namespace Orthanc
     void SetMaximumSize(size_t size);
 
     void Invalidate(const std::string& key);
+
+    size_t GetCurrentSize() const;
+    
+    size_t GetNumberOfItems() const;
 
   private:
     void Add(const std::string& key,

@@ -955,6 +955,8 @@ namespace Orthanc
     registry.SetIntegerValue("orthanc_up_time_s", serverUpTime);
     registry.SetIntegerValue("orthanc_last_change", lastChange["Last"].asInt64());
 
+    context.PublishCacheMetrics();
+
     std::string s;
     registry.ExportPrometheusText(s);
 
