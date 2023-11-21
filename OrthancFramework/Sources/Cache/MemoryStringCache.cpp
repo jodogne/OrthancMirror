@@ -268,6 +268,20 @@ namespace Orthanc
     }
 
     // Post-condition: "currentSize_ <= targetSize"
+  }
+
+  size_t MemoryStringCache::GetCurrentSize() const
+  {
+    boost::mutex::scoped_lock cacheLock(cacheMutex_);
+
+    return currentSize_;
+  }
+    
+  size_t MemoryStringCache::GetNumberOfItems() const
+  {
+    boost::mutex::scoped_lock cacheLock(cacheMutex_);
+    return content_.GetSize();
 
   }
+
 }

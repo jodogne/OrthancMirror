@@ -185,4 +185,16 @@ namespace Orthanc
 
     return false;
   }
+
+
+  size_t StorageCache::GetCurrentSize() const
+  {
+    return cache_.GetCurrentSize();
+  }
+  
+  size_t StorageCache::GetNumberOfItems() const
+  {
+    return cache_.GetNumberOfItems();
+  }
+
 }

@@ -93,6 +93,10 @@ namespace Orthanc
       void Invalidate(const std::string& uuid,
                       FileContentType contentType);
 
+      size_t GetCurrentSize() const;
+      
+      size_t GetNumberOfItems() const;
+
     private:
       void Add(const std::string& uuid, 
                FileContentType contentType,

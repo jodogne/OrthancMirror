@@ -45,6 +45,9 @@ REST API
 * All 'expand' GET arguments now accepts expand=true and expand=false values.
   The /studies/../instances and sibling routes are the only whose expand is true if not specified.
   These routes now accepts expand=false to simply list the child resources ids.
+* In /tools/metrics-prometheus:
+  - 'orthanc_dicom_cache_size' renamed into 'orthanc_dicom_cache_size_mb'
+  - added 'orthanc_storage_cache_count' and 'orthanc_storage_cache_size_mb'
 
 
 Maintenance
