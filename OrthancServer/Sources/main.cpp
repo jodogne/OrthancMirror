@@ -1985,7 +1985,7 @@ int main(int argc, char* argv[])
           MemoryStorageArea inMemoryStorage;
           ServerContext context(inMemoryDatabase, inMemoryStorage, true /* unit testing */, 0 /* max completed jobs */);
           OrthancRestApi restApi(context, false /* no Orthanc Explorer */);
-          restApi.GenerateReStructuredTextCheatSheet(cheatsheet, "https://api.orthanc-server.com/index.html");
+          restApi.GenerateReStructuredTextCheatSheet(cheatsheet, "https://orthanc.uclouvain.be/api/index.html");
           context.Stop();
         }
 
