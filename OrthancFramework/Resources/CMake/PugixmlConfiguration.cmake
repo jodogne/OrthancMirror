@@ -22,7 +22,7 @@
 if (STATIC_BUILD OR NOT USE_SYSTEM_PUGIXML)
   set(PUGIXML_SOURCES_DIR ${CMAKE_BINARY_DIR}/pugixml-1.9)
   set(PUGIXML_MD5 "7286ee2ed11376b6b780ced19fae0b64")
-  set(PUGIXML_URL "https://orthanc.uclouvain.be/third-party-downloads/pugixml-1.9.tar.gz")
+  set(PUGIXML_URL "https://orthanc.uclouvain.be/downloads/third-party-downloads/pugixml-1.9.tar.gz")
 
   DownloadPackage(${PUGIXML_MD5} ${PUGIXML_URL} "${PUGIXML_SOURCES_DIR}")
 
