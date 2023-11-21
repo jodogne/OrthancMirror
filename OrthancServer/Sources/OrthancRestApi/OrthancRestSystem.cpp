@@ -318,7 +318,7 @@ namespace Orthanc
         .SetTag("System")
         .SetSummary("Get " + type + " time")
         .AddAnswerType(MimeType_PlainText, "The " + type + " time")
-        .SetHttpGetSample("https://demo.orthanc-server.com" + call.FlattenUri(), false);
+        .SetHttpGetSample("https://orthanc.uclouvain.be/demo" + call.FlattenUri(), false);
       return;
     }
 
