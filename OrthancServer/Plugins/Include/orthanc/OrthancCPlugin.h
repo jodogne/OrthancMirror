@@ -175,7 +175,7 @@
 /**
  * For Microsoft Visual Studio, a compatibility "stdint.h" can be
  * downloaded at the following URL:
- * https://hg.orthanc-server.com/orthanc/raw-file/tip/Resources/ThirdParty/VisualStudio/stdint.h
+ * https://orthanc.uclouvain.be/hg/orthanc/raw-file/default/OrthancFramework/Resources/ThirdParty/VisualStudio/stdint.h
  **/
 #include <stdint.h>
 

@@ -393,7 +393,7 @@ elseif ("${CMAKE_SYSTEM_VERSION}" STREQUAL "LinuxStandardBase")
     # crashes with segmentation fault in function
     # "build_SYS_str_reasons()", that is called from
     # "OPENSSL_init_ssl()"
-    # https://bugs.orthanc-server.com/show_bug.cgi?id=193
+    # https://orthanc.uclouvain.be/bugs/show_bug.cgi?id=193
     -DOPENSSL_NO_ERR
     )
 

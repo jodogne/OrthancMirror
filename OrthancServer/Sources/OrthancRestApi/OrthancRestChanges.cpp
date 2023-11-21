@@ -73,7 +73,7 @@ namespace Orthanc
                         "Whether the last reported change is the last of the full history")
         .SetAnswerField("Last", RestApiCallDocumentation::Type_Number,
                         "The index of the last reported change, can be used for the `since` argument in subsequent calls to this route")
-        .SetHttpGetSample("https://demo.orthanc-server.com/changes?since=0&limit=2", true);
+        .SetHttpGetSample("https://orthanc.uclouvain.be/demo/changes?since=0&limit=2", true);
       return;
     }
     

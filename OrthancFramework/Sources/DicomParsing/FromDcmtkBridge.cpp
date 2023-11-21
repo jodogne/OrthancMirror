@@ -1829,7 +1829,7 @@ namespace Orthanc
     {
       // This solves issue 140 (Modifying private tags with REST API
       // changes VR from LO to UN)
-      // https://bugs.orthanc-server.com/show_bug.cgi?id=140
+      // https://orthanc.uclouvain.be/bugs/show_bug.cgi?id=140
       LOG(WARNING) << "Private creator should not be empty while creating a private tag: " << tag.Format();
     }
     
@@ -2591,7 +2591,7 @@ namespace Orthanc
     {
       // So far we assume that it's alway US (as a best guess: https://forum.dcmtk.org/viewtopic.php?t=932)
       // However, e.g. in a LUTDescriptor (3 values), the middle value can be a SS depending on other tag values while first and third value are always US.
-      // This patch, although not perfect fixes  https://bugs.orthanc-server.com/show_bug.cgi?id=214.
+      // This patch, although not perfect fixes  https://orthanc.uclouvain.be/bugs/show_bug.cgi?id=214.
       // It might need some rework once we encounter a LUTDescriptor with a SS value. ref: https://dicom.nema.org/medical/dicom/current/output/chtml/part03/sect_C.11.2.html#sect_C.11.2.1.1
       evr = EVR_US;  
     }
