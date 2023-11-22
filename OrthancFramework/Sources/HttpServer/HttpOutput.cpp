@@ -555,7 +555,7 @@ namespace Orthanc
      * Full history is available at the following locations:
      * - In changeset 2248:69b0f4e8a49b:
      *   # hg history -v -r 2248
-     * - https://bugs.orthanc-server.com/show_bug.cgi?id=54
+     * - https://orthanc.uclouvain.be/bugs/show_bug.cgi?id=54
      * - https://groups.google.com/d/msg/orthanc-users/65zhIM5xbKI/TU5Q1_LhAwAJ
      **/
     std::string tmp;
@@ -577,7 +577,7 @@ namespace Orthanc
      * within the encapsulations, and must be no longer than 70
      * characters, not counting the two leading hyphens."
      * https://tools.ietf.org/html/rfc1521
-     * https://bugs.orthanc-server.com/show_bug.cgi?id=165
+     * https://orthanc.uclouvain.be/bugs/show_bug.cgi?id=165
      **/
     if (boundary.size() != 36 + 1 + 36)  // one UUID contains 36 characters
     {

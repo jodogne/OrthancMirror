@@ -8,7 +8,7 @@ General Information
 General information about this software can be found on its official
 Website, and in the Orthanc Book:
 http://www.orthanc-server.com/
-http://book.orthanc-server.com/
+https://orthanc.uclouvain.be/book/
 
 The instructions for building Orthanc can be found in the "./INSTALL"
 file.
@@ -43,7 +43,7 @@ Contributing
 
 Instructions for contributing to the Orthanc project are included in
 the Orthanc Book:
-https://book.orthanc-server.com/developers/repositories.html
+https://orthanc.uclouvain.be/book/developers/repositories.html
 
 
 Licensing
@@ -55,7 +55,7 @@ http://people.gnome.org/~markmc/openssl-and-the-gpl.html
 
 Full information about the licensing of the Orthanc ecosystem is
 available in the Orthanc Book:
-https://book.orthanc-server.com/faq/licensing.html
+https://orthanc.uclouvain.be/book/faq/licensing.html
 
 We also kindly ask scientific works and clinical studies that make
 use of Orthanc to cite Orthanc in their associated publications.

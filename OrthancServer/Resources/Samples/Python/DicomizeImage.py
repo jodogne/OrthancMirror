@@ -63,7 +63,7 @@ if True:
     # Case 1: Attach the new DICOM image as a new series in an
     # existing study. In this case, "PARENT_STUDY" indicates the
     # Orthanc identifier of the parent study:
-    # https://book.orthanc-server.com/faq/orthanc-ids.html
+    # https://orthanc.uclouvain.be/book/faq/orthanc-ids.html
     PARENT_STUDY = '66c8e41e-ac3a9029-0b85e42a-8195ee0a-92c2e62e'
 
 else:

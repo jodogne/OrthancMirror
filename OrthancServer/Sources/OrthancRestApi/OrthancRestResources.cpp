@@ -67,19 +67,19 @@ namespace Orthanc
     switch (type)
     {
       case Orthanc::ResourceType_Instance:
-        return "https://demo.orthanc-server.com/instances/d94d9a03-3003b047-a4affc69-322313b2-680530a2";
+        return "https://orthanc.uclouvain.be/demo/instances/6582b1c0-292ad5ab-ba0f088f-f7a1766f-9a29a54f";
         break;
         
       case Orthanc::ResourceType_Series:
-        return "https://demo.orthanc-server.com/series/37836232-d13a2350-fa1dedc5-962b31aa-010f8e52";
+        return "https://orthanc.uclouvain.be/demo/series/37836232-d13a2350-fa1dedc5-962b31aa-010f8e52";
         break;
         
       case Orthanc::ResourceType_Study:
-        return "https://demo.orthanc-server.com/studies/27f7126f-4f66fb14-03f4081b-f9341db2-53925988";
+        return "https://orthanc.uclouvain.be/demo/studies/27f7126f-4f66fb14-03f4081b-f9341db2-53925988";
         break;
         
       case Orthanc::ResourceType_Patient:
-        return "https://demo.orthanc-server.com/patients/46e6332c-677825b6-202fcf7c-f787bc5f-7b07c382";
+        return "https://orthanc.uclouvain.be/demo/patients/46e6332c-677825b6-202fcf7c-f787bc5f-7b07c382";
         break;
         
       default:
@@ -216,7 +216,7 @@ namespace Orthanc
                             "If present, retrieve detailed information about the individual " + resources, false)
         .AddAnswerType(MimeType_Json, "JSON array containing either the Orthanc identifiers, or detailed information "
                        "about the reported " + resources + " (if `expand` argument is provided)")
-        .SetHttpGetSample("https://demo.orthanc-server.com/" + resources + "?since=0&limit=2", true);
+        .SetHttpGetSample("https://orthanc.uclouvain.be/demo/" + resources + "?since=0&limit=2", true);
       return;
     }
     
@@ -373,7 +373,7 @@ namespace Orthanc
         .SetHttpHeader("Accept", "This HTTP header can be set to retrieve the DICOM instance in DICOMweb format")
         .SetHttpGetArgument(TRANSCODE, RestApiCallDocumentation::Type_String,
                             "If present, the DICOM file will be transcoded to the provided "
-                            "transfer syntax: https://book.orthanc-server.com/faq/transcoding.html", false)
+                            "transfer syntax: https://orthanc.uclouvain.be/book/faq/transcoding.html", false)
         .AddAnswerType(MimeType_Dicom, "The DICOM instance")
         .AddAnswerType(MimeType_DicomWebJson, "The DICOM instance, in DICOMweb JSON format")
         .AddAnswerType(MimeType_DicomWebXml, "The DICOM instance, in DICOMweb XML format");
@@ -524,7 +524,7 @@ namespace Orthanc
         .SetHttpGetArgument(IGNORE_LENGTH, RestApiCallDocumentation::Type_JsonListOfStrings,
                             "Also include the DICOM tags that are provided in this list, even if their associated value is long", false)
         .AddAnswerType(MimeType_Json, "JSON object containing the DICOM tags and their associated value")
-        .SetTruncatedJsonHttpGetSample("https://demo.orthanc-server.com/instances/7c92ce8e-bbf67ed2-ffa3b8c1-a3b35d94-7ff3ae26/tags", 10);
+        .SetTruncatedJsonHttpGetSample("https://orthanc.uclouvain.be/demo/instances/7c92ce8e-bbf67ed2-ffa3b8c1-a3b35d94-7ff3ae26/tags", 10);
       return;
     }
 
@@ -560,7 +560,7 @@ namespace Orthanc
         .SetHttpGetArgument(IGNORE_LENGTH, RestApiCallDocumentation::Type_JsonListOfStrings,
                             "Also include the DICOM tags that are provided in this list, even if their associated value is long", false)
         .AddAnswerType(MimeType_Json, "JSON object containing the DICOM tags and their associated value")
-        .SetTruncatedJsonHttpGetSample("https://demo.orthanc-server.com/instances/7c92ce8e-bbf67ed2-ffa3b8c1-a3b35d94-7ff3ae26/simplified-tags", 10);
+        .SetTruncatedJsonHttpGetSample("https://orthanc.uclouvain.be/demo/instances/7c92ce8e-bbf67ed2-ffa3b8c1-a3b35d94-7ff3ae26/simplified-tags", 10);
       return;
     }
     else
@@ -580,7 +580,7 @@ namespace Orthanc
         .SetDescription("List the frames that are available in the DICOM instance of interest")
         .SetUriArgument("id", "Orthanc identifier of the DICOM instance of interest")
         .AddAnswerType(MimeType_Json, "The list of the indices of the available frames")
-        .SetHttpGetSample("https://demo.orthanc-server.com/instances/7c92ce8e-bbf67ed2-ffa3b8c1-a3b35d94-7ff3ae26/frames", true);      
+        .SetHttpGetSample("https://orthanc.uclouvain.be/demo/instances/7c92ce8e-bbf67ed2-ffa3b8c1-a3b35d94-7ff3ae26/frames", true);      
       return;
     }
 
@@ -1481,7 +1481,7 @@ namespace Orthanc
         .SetTag("Instances")
         .SetSummary("Decode frame for Matlab")
         .SetDescription(description + ", and export this frame as a Octave/Matlab matrix to be imported with `eval()`: "
-                        "https://book.orthanc-server.com/faq/matlab.html")
+                        "https://orthanc.uclouvain.be/book/faq/matlab.html")
         .SetUriArgument("id", "Orthanc identifier of the DICOM instance of interest")
         .AddAnswerType(MimeType_PlainText, "Octave/Matlab matrix");
       return;
@@ -2248,7 +2248,7 @@ namespace Orthanc
         .SetSummary("List operations on attachments")
         .SetDescription("Get the list of the operations that are available for attachments associated with the given " + r)
         .AddAnswerType(MimeType_Json, "List of the available operations")
-        .SetHttpGetSample("https://demo.orthanc-server.com/instances/d94d9a03-3003b047-a4affc69-322313b2-680530a2/attachments/dicom", true);
+        .SetHttpGetSample("https://orthanc.uclouvain.be/demo/instances/6582b1c0-292ad5ab-ba0f088f-f7a1766f-9a29a54f/attachments/dicom", true);
       return;
     }
 
@@ -2384,7 +2384,7 @@ namespace Orthanc
         .SetSummary("Get info about the attachment")
         .SetDescription("Get all the information about the attachment associated with the given " + r)
         .AddAnswerType(MimeType_Json, "JSON object containing the information about the attachment")
-        .SetHttpGetSample("https://demo.orthanc-server.com/instances/7c92ce8e-bbf67ed2-ffa3b8c1-a3b35d94-7ff3ae26/attachments/dicom/info", true);
+        .SetHttpGetSample("https://orthanc.uclouvain.be/demo/instances/7c92ce8e-bbf67ed2-ffa3b8c1-a3b35d94-7ff3ae26/attachments/dicom/info", true);
       return;
     }
 
@@ -3127,7 +3127,7 @@ namespace Orthanc
         .SetSummary("Look for local resources")
         .SetDescription("This URI can be used to perform a search on the content of the local Orthanc server, "
                         "in a way that is similar to querying remote DICOM modalities using C-FIND SCU: "
-                        "https://book.orthanc-server.com/users/rest.html#performing-finds-within-orthanc")
+                        "https://orthanc.uclouvain.be/book/users/rest.html#performing-finds-within-orthanc")
         .SetRequestField(KEY_CASE_SENSITIVE, RestApiCallDocumentation::Type_Boolean,
                          "Enable case-sensitive search for PN value representations (defaults to configuration option `CaseSensitivePN`)", false)
         .SetRequestField(KEY_EXPAND, RestApiCallDocumentation::Type_Boolean,
@@ -3550,7 +3550,7 @@ namespace Orthanc
                         "Same information as the `Slices` field, but in a compact form")
         .SetAnswerField("Type", RestApiCallDocumentation::Type_String,
                         "Can be `Volume` (for 3D volumes) or `Sequence` (notably for cine images)")
-        .SetTruncatedJsonHttpGetSample("https://demo.orthanc-server.com/series/1e2c125c-411b8e86-3f4fe68e-a7584dd3-c6da78f0/ordered-slices", 10);
+        .SetTruncatedJsonHttpGetSample("https://orthanc.uclouvain.be/demo/series/1e2c125c-411b8e86-3f4fe68e-a7584dd3-c6da78f0/ordered-slices", 10);
       return;
     }
 
@@ -3577,7 +3577,7 @@ namespace Orthanc
                         "combines hexadecimal tags with human-readable description.")
         .SetUriArgument("id", "Orthanc identifier of the DICOM instance of interest")
         .AddAnswerType(MimeType_Json, "JSON object containing the DICOM tags and their associated value")
-        .SetHttpGetSample("https://demo.orthanc-server.com/instances/7c92ce8e-bbf67ed2-ffa3b8c1-a3b35d94-7ff3ae26/header", true);
+        .SetHttpGetSample("https://orthanc.uclouvain.be/demo/instances/7c92ce8e-bbf67ed2-ffa3b8c1-a3b35d94-7ff3ae26/header", true);
       return;
     }
 
@@ -3610,7 +3610,7 @@ namespace Orthanc
         .SetDescription("Remove all the attachments of the type \"DICOM-as-JSON\" that are associated will all the "
                         "DICOM instances stored in Orthanc. These summaries will be automatically re-created on the next access. "
                         "This is notably useful after changes to the `Dictionary` configuration option. "
-                        "https://book.orthanc-server.com/faq/orthanc-storage.html#storage-area");
+                        "https://orthanc.uclouvain.be/book/faq/orthanc-storage.html#storage-area");
       return;
     }
 

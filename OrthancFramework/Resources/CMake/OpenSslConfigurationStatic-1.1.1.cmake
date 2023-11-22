@@ -20,7 +20,7 @@
 
 
 SET(OPENSSL_SOURCES_DIR ${CMAKE_BINARY_DIR}/openssl-1.1.1k)
-SET(OPENSSL_URL "https://orthanc.uclouvain.be/third-party-downloads/openssl-1.1.1k.tar.gz")
+SET(OPENSSL_URL "https://orthanc.uclouvain.be/downloads/third-party-downloads/openssl-1.1.1k.tar.gz")
 SET(OPENSSL_MD5 "c4e7d95f782b08116afa27b30393dd27")
 
 if (IS_DIRECTORY "${OPENSSL_SOURCES_DIR}")
@@ -288,7 +288,7 @@ elseif ("${CMAKE_SYSTEM_VERSION}" STREQUAL "LinuxStandardBase")
     # crashes with segmentation fault in function
     # "build_SYS_str_reasons()", that is called from
     # "OPENSSL_init_ssl()"
-    # https://bugs.orthanc-server.com/show_bug.cgi?id=193
+    # https://orthanc.uclouvain.be/bugs/show_bug.cgi?id=193
     -DOPENSSL_NO_ERR
     )
 

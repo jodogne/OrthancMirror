@@ -317,7 +317,7 @@ namespace Orthanc
                * data sets including:
                * https://wiki.cancerimagingarchive.net/display/Public/Lung+CT+Segmentation+Challenge+2017)
                * Tested in "test_anonymize_relationships_5". Introduced
-               * in: https://hg.orthanc-server.com/orthanc/rev/3513
+               * in: https://orthanc.uclouvain.be/hg/orthanc/rev/3513
                **/
               newValue = that_.MapDicomIdentifier(value, ResourceType_Study);
             }
@@ -724,7 +724,7 @@ namespace Orthanc
      * Values below come from the hardcoded UID of Orthanc 1.9.3
      * in DicomModification::RelationshipsVisitor::VisitString() and
      * DicomModification::RelationshipsVisitor::RemoveRelationships()
-     * https://hg.orthanc-server.com/orthanc/file/Orthanc-1.9.3/OrthancFramework/Sources/DicomParsing/DicomModification.cpp#l117
+     * https://orthanc.uclouvain.be/hg/orthanc/file/Orthanc-1.9.3/OrthancFramework/Sources/DicomParsing/DicomModification.cpp#l117
      **/
     uids_.clear();
 
@@ -1620,7 +1620,7 @@ namespace Orthanc
        * 1.5.0 and 1.6.1. This compatibility was broken between 1.7.0
        * and 1.9.3: Indeed, an exception was thrown in "ReadBoolean()"
        * if "KEEP_SOP_INSTANCE_UID" was absent, because of changeset:
-       * https://hg.orthanc-server.com/orthanc/rev/3860
+       * https://orthanc.uclouvain.be/hg/orthanc/rev/3860
        **/
       keepSopInstanceUid_ = false;
     }

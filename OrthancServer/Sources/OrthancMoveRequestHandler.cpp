@@ -265,7 +265,7 @@ namespace Orthanc
       /**
        * This tokenization fixes issue 154 ("Matching against list of
        * UID-s by C-MOVE").
-       * https://bugs.orthanc-server.com/show_bug.cgi?id=154
+       * https://orthanc.uclouvain.be/bugs/show_bug.cgi?id=154
        **/
 
       std::vector<std::string> tokens;

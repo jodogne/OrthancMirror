@@ -436,7 +436,7 @@ namespace Orthanc
         /**
          * The test on "size > 0" is new in Orthanc 1.9.3, and fixes
          * issue #195 (No need for BulkDataURI when Data Element is
-         * empty): https://bugs.orthanc-server.com/show_bug.cgi?id=195
+         * empty): https://orthanc.uclouvain.be/bugs/show_bug.cgi?id=195
          **/
         if (size > 0 ||
             tag == DICOM_TAG_PIXEL_DATA ||

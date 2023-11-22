@@ -242,7 +242,7 @@ namespace Orthanc
            * in Orthanc <= 1.8.0 (i.e. make a "memcpy()" to a local
            * uint16_t variable) doesn't seem work for WebAssembly. We
            * thus use a plain old C implementation. Check out issue
-           * #99: https://bugs.orthanc-server.com/show_bug.cgi?id=99
+           * #99: https://orthanc.uclouvain.be/bugs/show_bug.cgi?id=99
            *
            * Here is the crash log on WebAssembly (2019-08-05):
            * 

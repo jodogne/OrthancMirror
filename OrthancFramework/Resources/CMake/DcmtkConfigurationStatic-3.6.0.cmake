@@ -22,7 +22,7 @@
 SET(DCMTK_VERSION_NUMBER 360)
 SET(DCMTK_PACKAGE_VERSION "3.6.0")
 SET(DCMTK_SOURCES_DIR ${CMAKE_BINARY_DIR}/dcmtk-3.6.0)
-SET(DCMTK_URL "https://orthanc.uclouvain.be/third-party-downloads/dcmtk-3.6.0.zip")
+SET(DCMTK_URL "https://orthanc.uclouvain.be/downloads/third-party-downloads/dcmtk-3.6.0.zip")
 SET(DCMTK_MD5 "219ad631b82031806147e4abbfba4fa4")
 
 if (IS_DIRECTORY "${DCMTK_SOURCES_DIR}")
