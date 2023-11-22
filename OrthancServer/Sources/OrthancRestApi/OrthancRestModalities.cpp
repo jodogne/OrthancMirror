@@ -1520,7 +1520,10 @@ namespace Orthanc
 
     std::string sopClassUid, sopInstanceUid;
     connection.Store(sopClassUid, sopInstanceUid, call.GetBodyData(),
-                     call.GetBodySize(), false /* Not a C-MOVE */, "", 0);
+                     call.GetBodySize(), 
+                     false /* Not a C-MOVE */, 
+                     "", 0, 
+                     false /* AlwaysRenegotiate: no need to renegotiate since there is only a single file*/);
 
     Json::Value answer = Json::objectValue;
     answer[SOP_CLASS_UID] = sopClassUid;
