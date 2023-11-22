@@ -285,6 +285,14 @@ namespace Orthanc
         {
           LOG(WARNING) << "Cannot unserialize the jobs engine, starting anyway: " << e.What();
         }
+        catch (const std::string& s) 
+        {
+          LOG(WARNING) << "Cannot unserialize the jobs engine, starting anyway: \"" << s << "\"";
+        }
+        catch (...)
+        {
+          LOG(WARNING) << "Cannot unserialize the jobs engine, starting anyway";
+        }
       }
       else
       {
