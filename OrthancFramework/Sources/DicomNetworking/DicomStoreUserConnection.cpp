@@ -254,7 +254,8 @@ namespace Orthanc
     DicomTransferSyntax transferSyntax,
     bool hasPreferred,
     DicomTransferSyntax preferred,
-    bool alwaysRenegotiate)
+    bool alwaysRenegotiate,
+    bool enableLogs)
   {
     /**
      * Step 1: Check whether this presentation context is already
@@ -269,17 +270,25 @@ namespace Orthanc
     // The association must be re-negotiated
     if (association_->IsOpen())
     {
-      CLOG(INFO, DICOM) << "Re-negotiating DICOM association with "
-                        << parameters_.GetRemoteModality().GetApplicationEntityTitle();
+      if (enableLogs)
+      {
+        CLOG(INFO, DICOM) << "Re-negotiating DICOM association with "
+                          << parameters_.GetRemoteModality().GetApplicationEntityTitle()
+                          << " for SOPClassUID " << sopClassUid;
+      }
 
       // Don't renegociate if we know that the remote modality was
       // already proposed this individual transfer syntax (**)
-      if (!alwaysRenegotiate &&
+      if (!alwaysRenegotiate && 
           proposedOriginalClasses_.find(std::make_pair(sopClassUid, transferSyntax)) != proposedOriginalClasses_.end())
       {
-        CLOG(INFO, DICOM) << "The remote modality has already rejected SOP class UID \""
-                          << sopClassUid << "\" with transfer syntax \""
-                          << GetTransferSyntaxUid(transferSyntax) << "\", don't renegotiate";
+        if (enableLogs)
+        {
+          CLOG(INFO, DICOM) << "The remote modality has already rejected SOP class UID \""
+                            << sopClassUid << "\" with transfer syntax \""
+                            << GetTransferSyntaxUid(transferSyntax) << "\", don't renegotiate";
+        }
+
         return false;
       }
     }
@@ -378,7 +387,7 @@ namespace Orthanc
 
     uint8_t presID;
     if (!NegotiatePresentationContext(presID, sopClassUid, transferSyntax, proposeUncompressedSyntaxes_,
-                                      DicomTransferSyntax_LittleEndianExplicit, alwaysRenegotiate))
+                                      DicomTransferSyntax_LittleEndianExplicit, alwaysRenegotiate, true))
     {
       throw OrthancException(ErrorCode_NetworkProtocol,
                              "No valid presentation context was negotiated for "
@@ -489,7 +498,7 @@ namespace Orthanc
     // syntax. We don't use the return code: Transcoding is possible
     // even if the "sourceSyntax" is not supported.
     uint8_t presID;
-    NegotiatePresentationContext(presID, sopClassUid, sourceSyntax, hasPreferred, preferred, alwaysRenegotiate);
+    NegotiatePresentationContext(presID, sopClassUid, sourceSyntax, hasPreferred, preferred, alwaysRenegotiate, false);
 
     std::map<DicomTransferSyntax, uint8_t> contexts;
     if (association_->LookupAcceptedPresentationContext(contexts, sopClassUid))
@@ -528,6 +537,12 @@ namespace Orthanc
 
     std::set<DicomTransferSyntax> accepted;
     LookupTranscoding(accepted, sopClassUid, sourceSyntax, true, preferredTransferSyntax, alwaysRenegotiate);
+
+    if (accepted.size() == 0)
+    {
+      throw OrthancException(ErrorCode_NoPresentationContext, "Cannot store instance of SOPClassUID " + 
+                              sopClassUid + ", the destination has not accepted any TransferSyntax for this SOPClassUID.");
+    }
 
     if (accepted.find(sourceSyntax) != accepted.end())
     {
@@ -634,7 +649,8 @@ namespace Orthanc
           s += " " + std::string(GetTransferSyntaxUid(*it));
         }
         
-        throw OrthancException(ErrorCode_NotImplemented, "Cannot transcode from " +
+        throw OrthancException(ErrorCode_NotImplemented, "Cannot transcode instance of SOPClassUID " + 
+                               sopClassUid + " from " +
                                std::string(GetTransferSyntaxUid(sourceSyntax)) +
                                " to one of [" + s + " ]");
       }

@@ -95,7 +95,8 @@ namespace Orthanc
                                       DicomTransferSyntax transferSyntax,
                                       bool hasPreferred,
                                       DicomTransferSyntax preferred,
-                                      bool alwaysRenegotiate);
+                                      bool alwaysRenegotiate,
+                                      bool enableLogs);
 
 #if ORTHANC_ENABLE_DCMTK_TRANSCODING == 1
     void LookupTranscoding(std::set<DicomTransferSyntax>& acceptedSyntaxes,
