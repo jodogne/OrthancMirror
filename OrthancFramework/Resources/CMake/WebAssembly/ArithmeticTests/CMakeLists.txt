@@ -51,7 +51,7 @@ include(${CMAKE_SOURCE_DIR}/../../Compiler.cmake)
 include(${CMAKE_SOURCE_DIR}/../../DownloadPackage.cmake)
 
 set(DCMTK_SOURCES_DIR ${CMAKE_BINARY_DIR}/dcmtk-3.6.2)
-set(DCMTK_URL "https://orthanc.uclouvain.be/third-party-downloads/dcmtk-3.6.2.tar.gz")
+set(DCMTK_URL "https://orthanc.uclouvain.be/downloads/third-party-downloads/dcmtk-3.6.2.tar.gz")
 set(DCMTK_MD5 "d219a4152772985191c9b89d75302d12")
 
 if (IS_DIRECTORY "${DCMTK_SOURCES_DIR}")

@@ -907,7 +907,7 @@
 
   // Extra Main Dicom tags that are stored in DB together with all default
   // Main Dicom tags that are already stored.
-  // see https://book.orthanc-server.com/faq/main-dicom-tags.html 
+  // see https://orthanc.uclouvain.be/book/faq/main-dicom-tags.html 
   // (new in Orthanc 1.11.0)
   // Sequences tags are not supported.
   /**
@@ -932,7 +932,7 @@
 
   // Enables/disables warnings in the logs.
   // "true" enables a warning.  All warnings are enabled by default
-  // see https://book.orthanc-server.com/faq/main-dicom-tags.html#warnings
+  // see https://orthanc.uclouvain.be/book/faq/main-dicom-tags.html#warnings
   // (new in Orthanc 1.11.0)
   "Warnings" : {
     // A "RequestedTags" has been read from storage which is slower than

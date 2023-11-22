@@ -85,7 +85,7 @@ namespace Orthanc
     call.GetDocumentation()
       .SetRequestField(TRANSCODE, RestApiCallDocumentation::Type_String,
                        "Transcode the DICOM instances to the provided DICOM transfer syntax: "
-                       "https://book.orthanc-server.com/faq/transcoding.html", false)
+                       "https://orthanc.uclouvain.be/book/faq/transcoding.html", false)
       .SetRequestField(FORCE, RestApiCallDocumentation::Type_Boolean,
                        "Allow the modification of tags related to DICOM identifiers, at the risk of "
                        "breaking the DICOM model of the real world", false)
@@ -113,7 +113,7 @@ namespace Orthanc
     call.GetDocumentation()
       .SetRequestField(TRANSCODE, RestApiCallDocumentation::Type_String,
                        "Transcode the DICOM instances to the provided DICOM transfer syntax: "
-                       "https://book.orthanc-server.com/faq/transcoding.html", false)
+                       "https://orthanc.uclouvain.be/book/faq/transcoding.html", false)
       .SetRequestField(FORCE, RestApiCallDocumentation::Type_Boolean,
                        "Allow the modification of tags related to DICOM identifiers, at the risk of "
                        "breaking the DICOM model of the real world", false)
@@ -265,7 +265,7 @@ namespace Orthanc
         .SetTag("Instances")
         .SetSummary("Modify instance")
         .SetDescription("Download a modified version of the DICOM instance whose Orthanc identifier is provided in the URL: "
-                        "https://book.orthanc-server.com/users/anonymization.html#modification-of-a-single-instance")
+                        "https://orthanc.uclouvain.be/book/users/anonymization.html#modification-of-a-single-instance")
         .SetUriArgument("id", "Orthanc identifier of the instance of interest")
         .AddAnswerType(MimeType_Dicom, "The modified DICOM instance");
       return;
@@ -310,7 +310,7 @@ namespace Orthanc
         .SetTag("Instances")
         .SetSummary("Anonymize instance")
         .SetDescription("Download an anonymized version of the DICOM instance whose Orthanc identifier is provided in the URL: "
-                        "https://book.orthanc-server.com/users/anonymization.html#anonymization-of-a-single-instance")
+                        "https://orthanc.uclouvain.be/book/users/anonymization.html#anonymization-of-a-single-instance")
         .SetUriArgument("id", "Orthanc identifier of the instance of interest")
         .AddAnswerType(MimeType_Dicom, "The anonymized DICOM instance");
       return;
@@ -441,7 +441,7 @@ namespace Orthanc
         .SetDescription("Start a job that will modify all the DICOM instances within the " + r +
                         " whose identifier is provided in the URL. The modified DICOM instances will be "
                         "stored into a brand new " + r + ", whose Orthanc identifiers will be returned by the job. "
-                        "https://book.orthanc-server.com/users/anonymization.html#modification-of-studies-or-series")
+                        "https://orthanc.uclouvain.be/book/users/anonymization.html#modification-of-studies-or-series")
         .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest");
       return;
     }
@@ -514,7 +514,7 @@ namespace Orthanc
         .SetDescription("Start a job that will anonymize all the DICOM instances within the " + r +
                         " whose identifier is provided in the URL. The modified DICOM instances will be "
                         "stored into a brand new " + r + ", whose Orthanc identifiers will be returned by the job. "
-                        "https://book.orthanc-server.com/users/anonymization.html#anonymization-of-patients-studies-or-series")
+                        "https://orthanc.uclouvain.be/book/users/anonymization.html#anonymization-of-patients-studies-or-series")
         .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest");
       return;
     }
@@ -1059,7 +1059,7 @@ namespace Orthanc
         .SetDescription("Start a new job so as to split the DICOM study whose Orthanc identifier is provided in the URL, "
                         "by taking some of its children series or instances out of it and putting them into a brand new study "
                         "(this new study is created by setting the `StudyInstanceUID` tag to a random identifier): "
-                        "https://book.orthanc-server.com/users/anonymization.html#splitting")
+                        "https://orthanc.uclouvain.be/book/users/anonymization.html#splitting")
         .SetUriArgument("id", "Orthanc identifier of the study of interest")
         .SetRequestField(SERIES, RestApiCallDocumentation::Type_JsonListOfStrings,
                          "The list of series to be separated from the parent study. "
@@ -1185,7 +1185,7 @@ namespace Orthanc
         .SetTag("Studies")
         .SetSummary("Merge study")
         .SetDescription("Start a new job so as to move some DICOM resources into the DICOM study whose Orthanc identifier "
-                        "is provided in the URL: https://book.orthanc-server.com/users/anonymization.html#merging")
+                        "is provided in the URL: https://orthanc.uclouvain.be/book/users/anonymization.html#merging")
         .SetUriArgument("id", "Orthanc identifier of the study of interest")
         .SetRequestField(RESOURCES, RestApiCallDocumentation::Type_JsonListOfStrings,
                          "The list of DICOM resources (studies, series, and/or instances) to be merged "

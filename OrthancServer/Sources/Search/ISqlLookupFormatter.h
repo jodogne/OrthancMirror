@@ -59,7 +59,7 @@ namespace Orthanc
     /**
      * Whether to escape '[' and ']', which is only needed for
      * MSSQL. New in Orthanc 1.10.0, from the following changeset:
-     * https://hg.orthanc-server.com/orthanc-databases/rev/389c037387ea
+     * https://orthanc.uclouvain.be/hg/orthanc-databases/rev/389c037387ea
      **/
     virtual bool IsEscapeBrackets() const = 0;
 

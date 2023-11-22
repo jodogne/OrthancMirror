@@ -25,7 +25,7 @@ set(OPENSSL_VERSION_PATCH 0)
 set(OPENSSL_VERSION_PRE_RELEASE "")
 set(OPENSSL_VERSION_FULL "${OPENSSL_VERSION_MAJOR}.${OPENSSL_VERSION_MINOR}.${OPENSSL_VERSION_PATCH}${OPENSSL_VERSION_PRE_RELEASE}")
 SET(OPENSSL_SOURCES_DIR ${CMAKE_BINARY_DIR}/openssl-${OPENSSL_VERSION_FULL})
-SET(OPENSSL_URL "https://orthanc.uclouvain.be/third-party-downloads/openssl-${OPENSSL_VERSION_FULL}.tar.gz")
+SET(OPENSSL_URL "https://orthanc.uclouvain.be/downloads/third-party-downloads/openssl-${OPENSSL_VERSION_FULL}.tar.gz")
 SET(OPENSSL_MD5 "f6c520aa2206d4d1fa71ea30b5e9a56d")
 
 if (IS_DIRECTORY "${OPENSSL_SOURCES_DIR}")
@@ -393,7 +393,7 @@ elseif ("${CMAKE_SYSTEM_VERSION}" STREQUAL "LinuxStandardBase")
     # crashes with segmentation fault in function
     # "build_SYS_str_reasons()", that is called from
     # "OPENSSL_init_ssl()"
-    # https://bugs.orthanc-server.com/show_bug.cgi?id=193
+    # https://orthanc.uclouvain.be/bugs/show_bug.cgi?id=193
     -DOPENSSL_NO_ERR
     )
 

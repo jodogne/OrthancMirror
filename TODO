@@ -4,7 +4,7 @@
 
 For higher-level ideas in the roadmap, please first read the
 "Contributing to Orthanc" section of the Orthanc Book:
-https://book.orthanc-server.com/contributing.html
+https://orthanc.uclouvain.be/book/contributing.html
 
 
 Some features are being funded by an OpenCollective one-time donations.
@@ -21,7 +21,7 @@ General
 * Support partial file retrieval in Orthanc::HttpClient
 * Support retry counter in Orthanc::HttpClient
 * Option to enable DNS lookups in DICOM:
-  https://hg.orthanc-server.com/orthanc/file/Orthanc-1.9.3/OrthancFramework/Sources/OrthancFramework.cpp#l88
+  https://orthanc.uclouvain.be/hg/orthanc/file/Orthanc-1.9.3/OrthancFramework/Sources/OrthancFramework.cpp#l88
 * Toolbox::ComputeMD5() fails on files larger than 4GB
 * Add an option to run Orthanc in read-only mode both for DICOM and for Rest API.
 * Logging: add some information like Thread-Id/job-id to contextualize the logs.
@@ -62,7 +62,7 @@ Documentation (Orthanc Book)
 ============================
 
 * Write a getting started guide (step by step) for each platform to replace
-  https://book.orthanc-server.com/users/cookbook.html :
+  https://orthanc.uclouvain.be/book/users/cookbook.html :
   - Ubuntu/Debian
   - Windows
   - OSX
@@ -80,7 +80,7 @@ Documentation (Orthanc Book)
 * How to reproduce issues by replacing Orthanc with storescp or wlmscpfs
 * How to capture TCP traffic of DICOM protocol using tcpdump and Wireshark
 * Add more configurations of viewers (Weasis, Slicer...):
-  https://book.orthanc-server.com/integrations.html
+  https://orthanc.uclouvain.be/book/integrations.html
 * Discuss HL7 in a dedicated page:
   https://groups.google.com/d/msg/orthanc-users/4dt4992O0lQ/opTjTFU2BgAJ
   https://groups.google.com/g/orthanc-users/c/Spjtcj9vSPo/m/ktUArWxUDQAJ
@@ -166,7 +166,7 @@ Mid-term
 
 * Support C-GET SCU (note that C-GET SCP was introduced in Orthanc 1.7.0)
 * Support "Retrieve AE Title" (0008,0054) in C-FIND:
-  - On SCP side: done by https://hg.orthanc-server.com/orthanc/rev/1ec3e1e18f50
+  - On SCP side: done by https://orthanc.uclouvain.be/hg/orthanc/rev/1ec3e1e18f50
   - On SCU side:
     https://groups.google.com/d/msg/orthanc-users/wPl0g5mqZco/5X1Z8tEzBgAJ
 * Check Big Endian transfer syntax in ParsedDicomFile::EmbedImage and
@@ -256,7 +256,7 @@ SDK
 * Provide access to the Orthanc::DicomUserConnection class in plugins:
   https://groups.google.com/d/msg/orthanc-users/ycDA1xPuTRY/nsT2_GOtEgAJ
 * Provide a C++ callback similar to "ReceivedInstanceFilter()" in Lua
-  https://book.orthanc-server.com/users/lua.html#filtering-incoming-dicom-instances
+  https://orthanc.uclouvain.be/book/users/lua.html#filtering-incoming-dicom-instances
   https://groups.google.com/d/msg/orthanc-users/BtvLTE5Ni8A/vIMhmMgfBAAJ
 * In "OrthancPluginLog[Error|Warning|Info]()", prefix the log line with
   the name of the plugin, as retrieved by "OrthancPluginGetName()"

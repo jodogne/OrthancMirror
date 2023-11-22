@@ -682,7 +682,7 @@ static void PrintHelp(const char* path)
     << "case of a directory, all the JSON files it contains will be merged. " << std::endl
     << "If no configuration path is given on the command line, a set of default " << std::endl
     << "parameters is used. Please refer to the Orthanc Book for the full " << std::endl
-    << "instructions about how to use Orthanc <http://book.orthanc-server.com/>." << std::endl
+    << "instructions about how to use Orthanc <https://orthanc.uclouvain.be/book/>." << std::endl
     << std::endl
     << "Pay attention to the fact that the order of the options is important." << std::endl
     << "Options are read left to right. In particular, options such as \"--verbose\" can " << std::endl
@@ -1431,7 +1431,7 @@ static void UpgradeDatabase(IDatabaseWrapper& database,
   catch (OrthancException&)
   {
     LOG(ERROR) << "Unable to run the automated upgrade, please use the replication instructions: "
-               << "http://book.orthanc-server.com/users/replication.html";
+               << "https://orthanc.uclouvain.be/book/users/replication.html";
     throw;
   }
     
@@ -1941,15 +1941,15 @@ int main(int argc, char* argv[])
         openapi["info"]["version"] = ORTHANC_VERSION;
         openapi["info"]["title"] = "Orthanc API";
         openapi["info"]["description"] =
-          "This is the full documentation of the [REST API](https://book.orthanc-server.com/users/rest.html) "
+          "This is the full documentation of the [REST API](https://orthanc.uclouvain.be/book/users/rest.html) "
           "of Orthanc.<p>This reference is automatically generated from the source code of Orthanc. A "
-          "[shorter cheat sheet](https://book.orthanc-server.com/users/rest-cheatsheet.html) is part of "
+          "[shorter cheat sheet](https://orthanc.uclouvain.be/book/users/rest-cheatsheet.html) is part of "
           "the Orthanc Book.<p>An earlier, manually crafted version from August 2019, is [still available]"
           "(2019-08-orthanc-openapi.html), but is not up-to-date anymore ([source]"
           "(https://groups.google.com/g/orthanc-users/c/NUiJTEICSl8/m/xKeqMrbqAAAJ)).";
 
         Json::Value server = Json::objectValue;
-        server["url"] = "https://demo.orthanc-server.com/";
+        server["url"] = "https://orthanc.uclouvain.be/demo/";
         openapi["servers"].append(server);
         
         std::string s;
@@ -1985,7 +1985,7 @@ int main(int argc, char* argv[])
           MemoryStorageArea inMemoryStorage;
           ServerContext context(inMemoryDatabase, inMemoryStorage, true /* unit testing */, 0 /* max completed jobs */);
           OrthancRestApi restApi(context, false /* no Orthanc Explorer */);
-          restApi.GenerateReStructuredTextCheatSheet(cheatsheet, "https://api.orthanc-server.com/index.html");
+          restApi.GenerateReStructuredTextCheatSheet(cheatsheet, "https://orthanc.uclouvain.be/api/index.html");
           context.Stop();
         }
 

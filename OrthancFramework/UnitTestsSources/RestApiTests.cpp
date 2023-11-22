@@ -528,7 +528,7 @@ TEST(RestApi, HttpContentNegociation)
   }
 
   // Below are the tests from issue 216:
-  // https://bugs.orthanc-server.com/show_bug.cgi?id=216
+  // https://orthanc.uclouvain.be/bugs/show_bug.cgi?id=216
 
   {
     HttpContentNegociation d;
@@ -1113,8 +1113,8 @@ TEST(MultipartStreamReader, BytePerByte)
 
 TEST(MultipartStreamReader, Issue190)
 {
-  // https://bugs.orthanc-server.com/show_bug.cgi?id=190
-  // https://hg.orthanc-server.com/orthanc-dicomweb/rev/6dc2f79b5579
+  // https://orthanc.uclouvain.be/bugs/show_bug.cgi?id=190
+  // https://orthanc.uclouvain.be/hg/orthanc-dicomweb/rev/6dc2f79b5579
 
   std::map<std::string, std::string> headers;
   headers["content-type"] = "multipart/related; type=application/dicom; boundary=0f3cf5c0-70e0-41ef-baef-c6f9f65ec3e1";
@@ -1323,7 +1323,7 @@ namespace
 
 TEST(HttpClient, DISABLED_Issue156_Slow)
 {
-  // https://bugs.orthanc-server.com/show_bug.cgi?id=156
+  // https://orthanc.uclouvain.be/bugs/show_bug.cgi?id=156
   
   TotoServer handler;
   HttpServer server;

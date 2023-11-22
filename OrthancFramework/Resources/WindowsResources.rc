@@ -16,7 +16,7 @@ VS_VERSION_INFO VERSIONINFO
             VALUE "FileVersion", "${VERSION_MAJOR}.${VERSION_MINOR}.0.${VERSION_PATCH}"
             VALUE "InternalName", "${PRODUCT}"
             VALUE "LegalCopyright", "(c) 2012-${YEAR}, Sebastien Jodogne, University Hospital of Liege, Osimis S.A., and ICTEAM UCLouvain"
-            VALUE "LegalTrademarks", "Licensing information is available at http://www.orthanc-server.com/"
+            VALUE "LegalTrademarks", "Licensing information is available at https://orthanc.uclouvain.be/book/faq/licensing.html"
             VALUE "OriginalFilename", "${FILENAME}"
             VALUE "ProductName", "${PRODUCT}"
             VALUE "ProductVersion", "${VERSION_MAJOR}.${VERSION_MINOR}"

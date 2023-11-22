@@ -22,7 +22,7 @@
 if (STATIC_BUILD OR NOT USE_SYSTEM_LUA)
   SET(LUA_SOURCES_DIR ${CMAKE_BINARY_DIR}/lua-5.3.5)
   SET(LUA_MD5 "4f4b4f323fd3514a68e0ab3da8ce3455")
-  SET(LUA_URL "https://orthanc.uclouvain.be/third-party-downloads/lua-5.3.5.tar.gz")
+  SET(LUA_URL "https://orthanc.uclouvain.be/downloads/third-party-downloads/lua-5.3.5.tar.gz")
 
   DownloadPackage(${LUA_MD5} ${LUA_URL} "${LUA_SOURCES_DIR}")
 

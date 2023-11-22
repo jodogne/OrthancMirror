@@ -100,11 +100,11 @@ namespace Orthanc
         .SetAnswerField(API_VERSION, RestApiCallDocumentation::Type_Number, "Version of the REST API")
         .SetAnswerField(VERSION, RestApiCallDocumentation::Type_String, "Version of Orthanc")
         .SetAnswerField(DATABASE_VERSION, RestApiCallDocumentation::Type_Number,
-                        "Version of the database: https://book.orthanc-server.com/developers/db-versioning.html")
+                        "Version of the database: https://orthanc.uclouvain.be/book/developers/db-versioning.html")
         .SetAnswerField(DATABASE_SERVER_IDENTIFIER, RestApiCallDocumentation::Type_String,
                         "ID of the server in the database (when running multiple Orthanc on the same DB)")
         .SetAnswerField(IS_HTTP_SERVER_SECURE, RestApiCallDocumentation::Type_Boolean,
-                        "Whether the REST API is properly secured (assuming no reverse proxy is in use): https://book.orthanc-server.com/faq/security.html#securing-the-http-server")
+                        "Whether the REST API is properly secured (assuming no reverse proxy is in use): https://orthanc.uclouvain.be/book/faq/security.html#securing-the-http-server")
         .SetAnswerField(STORAGE_AREA_PLUGIN, RestApiCallDocumentation::Type_String,
                         "Information about the installed storage area plugin (`null` if no such plugin is installed)")
         .SetAnswerField(DATABASE_BACKEND_PLUGIN, RestApiCallDocumentation::Type_String,
@@ -134,7 +134,7 @@ namespace Orthanc
                         "The configured UserMetadata (new in Orthanc 1.12.0)")
         .SetAnswerField(HAS_LABELS, RestApiCallDocumentation::Type_Boolean,
                         "Whether the database back-end supports labels (new in Orthanc 1.12.0)")
-        .SetHttpGetSample("https://demo.orthanc-server.com/system", true);
+        .SetHttpGetSample("https://orthanc.uclouvain.be/demo/system", true);
       return;
     }
 
@@ -211,7 +211,7 @@ namespace Orthanc
         .SetAnswerField("TotalDiskSizeMB", RestApiCallDocumentation::Type_Number, "Size of the storage area (in megabytes)")
         .SetAnswerField("TotalUncompressedSize", RestApiCallDocumentation::Type_String, "Total size of all the files once uncompressed (in bytes). This corresponds to `TotalDiskSize` if no compression is enabled, cf. `StorageCompression` configuration option")
         .SetAnswerField("TotalUncompressedSizeMB", RestApiCallDocumentation::Type_Number, "Total size of all the files once uncompressed (in megabytes)")
-        .SetHttpGetSample("https://demo.orthanc-server.com/statistics", true);
+        .SetHttpGetSample("https://orthanc.uclouvain.be/demo/statistics", true);
       return;
     }
 
@@ -318,7 +318,7 @@ namespace Orthanc
         .SetTag("System")
         .SetSummary("Get " + type + " time")
         .AddAnswerType(MimeType_PlainText, "The " + type + " time")
-        .SetHttpGetSample("https://demo.orthanc-server.com" + call.FlattenUri(), false);
+        .SetHttpGetSample("https://orthanc.uclouvain.be/demo" + call.FlattenUri(), false);
       return;
     }
 
@@ -508,7 +508,7 @@ namespace Orthanc
         .SetSummary("List plugins")
         .SetDescription("List all the installed plugins")
         .AddAnswerType(MimeType_Json, "JSON array containing the identifiers of the installed plugins")
-        .SetHttpGetSample("https://demo.orthanc-server.com/plugins", true);
+        .SetHttpGetSample("https://orthanc.uclouvain.be/demo/plugins", true);
       return;
     }
 
@@ -544,7 +544,7 @@ namespace Orthanc
         .SetDescription("Get system information about the plugin whose identifier is provided in the URL")
         .SetUriArgument("id", "Identifier of the job of interest")
         .AddAnswerType(MimeType_Json, "JSON object containing information about the plugin")
-        .SetHttpGetSample("https://demo.orthanc-server.com/plugins/dicom-web", true);
+        .SetHttpGetSample("https://orthanc.uclouvain.be/demo/plugins/dicom-web", true);
       return;
     }
 
@@ -653,7 +653,7 @@ namespace Orthanc
                             "If present, retrieve detailed information about the individual jobs", false)
         .AddAnswerType(MimeType_Json, "JSON array containing either the jobs identifiers, or detailed information "
                        "about the reported jobs (if `expand` argument is provided)")
-        .SetTruncatedJsonHttpGetSample("https://demo.orthanc-server.com/jobs", 3);
+        .SetTruncatedJsonHttpGetSample("https://orthanc.uclouvain.be/demo/jobs", 3);
       return;
     }
 
@@ -711,7 +711,7 @@ namespace Orthanc
         .SetTag("Jobs")
         .SetSummary("Get job")
         .SetDescription("Retrieve detailed information about the job whose identifier is provided in the URL: "
-                        "https://book.orthanc-server.com/users/advanced-rest.html#jobs")
+                        "https://orthanc.uclouvain.be/book/users/advanced-rest.html#jobs")
         .SetUriArgument("id", "Identifier of the job of interest")
         .AddAnswerType(MimeType_Json, "JSON object detailing the job")
         .SetSample(sample);
@@ -869,7 +869,7 @@ namespace Orthanc
         .SetSummary(verb + " job")
         .SetDescription(verb + " the job whose identifier is provided in the URL. Check out the "
                         "Orthanc Book for more information about the state machine applicable to jobs: "
-                        "https://book.orthanc-server.com/users/advanced-rest.html#jobs")
+                        "https://orthanc.uclouvain.be/book/users/advanced-rest.html#jobs")
         .SetUriArgument("id", "Identifier of the job of interest")
         .AddAnswerType(MimeType_Json, "Empty JSON object in the case of a success");
       return;
@@ -916,8 +916,8 @@ namespace Orthanc
         .SetTag("System")
         .SetSummary("Get usage metrics")
         .SetDescription("Get usage metrics of Orthanc in the Prometheus file format (OpenMetrics): "
-                        "https://book.orthanc-server.com/users/advanced-rest.html#instrumentation-with-prometheus")
-        .SetHttpGetSample("https://demo.orthanc-server.com/tools/metrics-prometheus", false);
+                        "https://orthanc.uclouvain.be/book/users/advanced-rest.html#instrumentation-with-prometheus")
+        .SetHttpGetSample("https://orthanc.uclouvain.be/demo/tools/metrics-prometheus", false);
       return;
     }
 

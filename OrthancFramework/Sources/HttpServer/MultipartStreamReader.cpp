@@ -384,7 +384,7 @@ namespace Orthanc
         {
           boundary = Toolbox::StripSpaces(items[1]);
 
-          // https://bugs.orthanc-server.com/show_bug.cgi?id=190
+          // https://orthanc.uclouvain.be/bugs/show_bug.cgi?id=190
           RemoveSurroundingQuotes(boundary);
           
           valid = !boundary.empty();
@@ -394,7 +394,7 @@ namespace Orthanc
           subType = Toolbox::StripSpaces(items[1]);
           Toolbox::ToLowerCase(subType);
 
-          // https://bugs.orthanc-server.com/show_bug.cgi?id=54
+          // https://orthanc.uclouvain.be/bugs/show_bug.cgi?id=54
           // https://tools.ietf.org/html/rfc7231#section-3.1.1.1
           RemoveSurroundingQuotes(subType);
         }

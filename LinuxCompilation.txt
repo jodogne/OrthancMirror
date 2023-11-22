@@ -235,7 +235,7 @@ not work anymore as such, they can serve as a basis.
 
 You can find build instructions for Orthanc up to 0.7.0 on the
 following Wiki page:
-https://book.orthanc-server.com/faq/compiling-old.html
+https://orthanc.uclouvain.be/book/faq/compiling-old.html
 
 These instructions will not work as such beyond Orthanc 0.7.0, but
 they might give indications.

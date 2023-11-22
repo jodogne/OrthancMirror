@@ -520,7 +520,7 @@ namespace Orthanc
   {
     // This is an adapted version of the patch proposed in issue #64
     // without an explicit call to "malloc()" to prevent memory leak
-    // https://bugs.orthanc-server.com/show_bug.cgi?id=64
+    // https://orthanc.uclouvain.be/bugs/show_bug.cgi?id=64
     // https://stackoverflow.com/q/31494901/881731
 
     const int mib[4] = { CTL_KERN, KERN_PROC_ARGS, getpid(), KERN_PROC_ARGV };

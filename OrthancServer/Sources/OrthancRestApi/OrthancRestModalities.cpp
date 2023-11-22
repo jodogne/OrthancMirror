@@ -213,7 +213,7 @@ namespace Orthanc
         .SetTag("Networking")
         .SetSummary("Trigger C-ECHO SCU")
         .SetDescription("Trigger C-ECHO SCU command against the DICOM modality whose identifier is provided in URL: "
-                        "https://book.orthanc-server.com/users/rest.html#performing-c-echo")
+                        "https://orthanc.uclouvain.be/book/users/rest.html#performing-c-echo")
         .SetUriArgument("id", "Identifier of the modality of interest");
       return;
     }
@@ -657,7 +657,7 @@ namespace Orthanc
         .SetTag("Networking")
         .SetSummary("Trigger C-FIND SCU")
         .SetDescription("Trigger C-FIND SCU command against the DICOM modality whose identifier is provided in URL: "
-                        "https://book.orthanc-server.com/users/rest.html#performing-query-retrieve-c-find-and-find-with-rest")
+                        "https://orthanc.uclouvain.be/book/users/rest.html#performing-query-retrieve-c-find-and-find-with-rest")
         .SetUriArgument("id", "Identifier of the modality of interest")
         .SetRequestField(KEY_QUERY, RestApiCallDocumentation::Type_JsonObject,
                          "Associative array containing the filter on the values of the DICOM tags", true)
@@ -760,7 +760,7 @@ namespace Orthanc
         .SetDescription("List the identifiers of all the query/retrieve operations on DICOM modalities, "
                         "as initiated by calls to `/modalities/{id}/query`. The length of this list is bounded "
                         "by the `QueryRetrieveSize` configuration option of Orthanc. "
-                        "https://book.orthanc-server.com/users/rest.html#performing-query-retrieve-c-find-and-find-with-rest")
+                        "https://orthanc.uclouvain.be/book/users/rest.html#performing-query-retrieve-c-find-and-find-with-rest")
         .AddAnswerType(MimeType_Json, "JSON array containing the identifiers");
       return;
     }
@@ -997,7 +997,7 @@ namespace Orthanc
         .SetSummary("Retrieve one answer")
         .SetDescription("Start a C-MOVE SCU command as a job, in order to retrieve one answer associated with the "
                         "query/retrieve operation whose identifiers are provided in the URL: "
-                        "https://book.orthanc-server.com/users/rest.html#performing-retrieve-c-move")
+                        "https://orthanc.uclouvain.be/book/users/rest.html#performing-retrieve-c-move")
         .SetUriArgument("index", "Index of the answer");
       return;
     }
@@ -1016,7 +1016,7 @@ namespace Orthanc
         .SetSummary("Retrieve all answers")
         .SetDescription("Start a C-MOVE SCU command as a job, in order to retrieve all the answers associated with the "
                         "query/retrieve operation whose identifier is provided in the URL: "
-                        "https://book.orthanc-server.com/users/rest.html#performing-retrieve-c-move");
+                        "https://orthanc.uclouvain.be/book/users/rest.html#performing-retrieve-c-move");
       return;
     }
 
@@ -1417,7 +1417,7 @@ namespace Orthanc
         .SetSummary("Trigger C-STORE SCU")
         .SetDescription("Start a C-STORE SCU command as a job, in order to send DICOM resources stored locally "
                         "to some remote DICOM modality whose identifier is provided in the URL: "
-                        "https://book.orthanc-server.com/users/rest.html#rest-store-scu")
+                        "https://orthanc.uclouvain.be/book/users/rest.html#rest-store-scu")
         .AddRequestType(MimeType_PlainText, "The Orthanc identifier of one resource to be sent")
         .SetRequestField(KEY_RESOURCES, RestApiCallDocumentation::Type_JsonListOfStrings,
                          "List of the Orthanc identifiers of all the DICOM resources to be sent", true)
@@ -1439,7 +1439,7 @@ namespace Orthanc
                          "Move originator ID that is used for this commands, in order to fake a C-MOVE SCU", false)
         .SetRequestField(KEY_STORAGE_COMMITMENT, RestApiCallDocumentation::Type_Boolean,
                          "Whether to chain C-STORE with DICOM storage commitment to validate the success of the transmission: "
-                         "https://book.orthanc-server.com/users/storage-commitment.html#chaining-c-store-with-storage-commitment", false)
+                         "https://orthanc.uclouvain.be/book/users/storage-commitment.html#chaining-c-store-with-storage-commitment", false)
         .SetRequestField(KEY_TIMEOUT, RestApiCallDocumentation::Type_Number,
                          "Timeout for the C-STORE command, in seconds", false)
         .SetUriArgument("id", "Identifier of the modality of interest");
@@ -1544,7 +1544,7 @@ namespace Orthanc
         .SetSummary("Trigger C-MOVE SCU")
         .SetDescription("Start a C-MOVE SCU command as a job, in order to drive the execution of a sequence of "
                         "C-STORE commands by some remote DICOM modality whose identifier is provided in the URL: "
-                        "https://book.orthanc-server.com/users/rest.html#performing-c-move")
+                        "https://orthanc.uclouvain.be/book/users/rest.html#performing-c-move")
         .SetRequestField(KEY_RESOURCES, RestApiCallDocumentation::Type_JsonListOfObjects,
                          "List of queries identifying all the DICOM resources to be sent", true)
         .SetRequestField(KEY_LEVEL, RestApiCallDocumentation::Type_String,
@@ -1716,7 +1716,7 @@ namespace Orthanc
         .SetTag("Networking")
         .SetSummary("Send to Orthanc peer")
         .SetDescription("Send DICOM resources stored locally to some remote Orthanc peer whose identifier is provided in the URL: "
-                        "https://book.orthanc-server.com/users/rest.html#sending-one-resource")
+                        "https://orthanc.uclouvain.be/book/users/rest.html#sending-one-resource")
         .AddRequestType(MimeType_PlainText, "The Orthanc identifier of one resource to be sent")
         .SetRequestField(KEY_RESOURCES, RestApiCallDocumentation::Type_JsonListOfStrings,
                          "List of the Orthanc identifiers of all the DICOM resources to be sent", true)
@@ -2234,7 +2234,7 @@ namespace Orthanc
         .SetTag("Networking")
         .SetSummary("Trigger storage commitment request")
         .SetDescription("Trigger a storage commitment request to some remote DICOM modality whose identifier is provided "
-                        "in the URL: https://book.orthanc-server.com/users/storage-commitment.html#storage-commitment-scu")
+                        "in the URL: https://orthanc.uclouvain.be/book/users/storage-commitment.html#storage-commitment-scu")
         .SetRequestField(ORTHANC_RESOURCES, RestApiCallDocumentation::Type_JsonListOfStrings,
                          "List of the Orthanc identifiers of the DICOM resources to be checked by storage commitment", true)
         .SetRequestField(DICOM_INSTANCES, RestApiCallDocumentation::Type_JsonListOfObjects,
@@ -2423,7 +2423,7 @@ namespace Orthanc
         .SetTag("Networking")
         .SetSummary("Get storage commitment report")
         .SetDescription("Get the storage commitment report whose identifier is provided in the URL: "
-                        "https://book.orthanc-server.com/users/storage-commitment.html#storage-commitment-scu")
+                        "https://orthanc.uclouvain.be/book/users/storage-commitment.html#storage-commitment-scu")
         .SetAnswerField("Status", RestApiCallDocumentation::Type_String,
                         "Can be `Success`, `Failure`, or `Pending` (the latter means that no report has been received yet)")
         .SetAnswerField("RemoteAET", RestApiCallDocumentation::Type_String,
@@ -2471,7 +2471,7 @@ namespace Orthanc
         .SetDescription("Remove out of Orthanc, the DICOM instances that have been reported to have been properly "
                         "received the storage commitment report whose identifier is provided in the URL. This is "
                         "only possible if the `Status` of the storage commitment report is `Success`. "
-                        "https://book.orthanc-server.com/users/storage-commitment.html#removing-the-instances")
+                        "https://orthanc.uclouvain.be/book/users/storage-commitment.html#removing-the-instances")
         .SetUriArgument("id", "Identifier of the storage commitment report");
       return;
     }

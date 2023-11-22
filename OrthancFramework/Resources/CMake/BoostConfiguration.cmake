@@ -54,7 +54,7 @@ else()
   
   # Patch by xnox to fix issue #166 (CMake find_boost version is now
   # broken with newer boost/cmake)
-  # https://bugs.orthanc-server.com/show_bug.cgi?id=166
+  # https://orthanc.uclouvain.be/bugs/show_bug.cgi?id=166
   if (POLICY CMP0093)
     set(BOOST144 1.44)
   else()
@@ -94,7 +94,7 @@ if (BOOST_STATIC AND NOT USE_LEGACY_BOOST)
   set(BOOST_VERSION 1.83.0)
   set(BOOST_BCP_SUFFIX bcpdigest-1.12.2)
   set(BOOST_MD5 "6a9c4af273635301ed1e221054c34c69")
-  set(BOOST_URL "https://orthanc.uclouvain.be/third-party-downloads/${BOOST_NAME}_${BOOST_BCP_SUFFIX}.tar.gz")
+  set(BOOST_URL "https://orthanc.uclouvain.be/downloads/third-party-downloads/${BOOST_NAME}_${BOOST_BCP_SUFFIX}.tar.gz")
   set(BOOST_SOURCES_DIR ${CMAKE_BINARY_DIR}/${BOOST_NAME})
 
   if (IS_DIRECTORY "${BOOST_SOURCES_DIR}")

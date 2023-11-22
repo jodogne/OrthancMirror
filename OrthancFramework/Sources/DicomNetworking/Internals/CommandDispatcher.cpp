@@ -481,7 +481,7 @@ namespace Orthanc
 #if DCMTK_VERSION_NUMBER >= 362
           // The global variable "numberOfDcmAllStorageSOPClassUIDs" is
           // only published if DCMTK >= 3.6.2:
-          // https://bugs.orthanc-server.com/show_bug.cgi?id=137
+          // https://orthanc.uclouvain.be/bugs/show_bug.cgi?id=137
           assert(static_cast<int>(count) == numberOfDcmAllStorageSOPClassUIDs);
 #endif
       
