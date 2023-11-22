@@ -94,14 +94,16 @@ namespace Orthanc
                                       const std::string& sopClassUid,
                                       DicomTransferSyntax transferSyntax,
                                       bool hasPreferred,
-                                      DicomTransferSyntax preferred);
+                                      DicomTransferSyntax preferred,
+                                      bool alwaysRenegotiate);
 
 #if ORTHANC_ENABLE_DCMTK_TRANSCODING == 1
     void LookupTranscoding(std::set<DicomTransferSyntax>& acceptedSyntaxes,
                            const std::string& sopClassUid,
                            DicomTransferSyntax sourceSyntax,
                            bool hasPreferred,
-                           DicomTransferSyntax preferred);
+                           DicomTransferSyntax preferred,
+                           bool alwaysRenegotiate);
 #endif
 
   public:
@@ -129,7 +131,8 @@ namespace Orthanc
                DcmFileFormat& dicom,
                bool hasMoveOriginator,
                const std::string& moveOriginatorAET,
-               uint16_t moveOriginatorID);
+               uint16_t moveOriginatorID,
+               bool alwaysRenegotiate);
 
     void Store(std::string& sopClassUid,
                std::string& sopInstanceUid,
@@ -137,7 +140,8 @@ namespace Orthanc
                size_t size,
                bool hasMoveOriginator,
                const std::string& moveOriginatorAET,
-               uint16_t moveOriginatorID);
+               uint16_t moveOriginatorID,
+               bool alwaysRenegotiate);
 
     void LookupParameters(std::string& sopClassUid,
                           std::string& sopInstanceUid,
@@ -153,7 +157,8 @@ namespace Orthanc
                    DicomTransferSyntax preferredTransferSyntax,
                    bool hasMoveOriginator,
                    const std::string& moveOriginatorAET,
-                   uint16_t moveOriginatorID);
+                   uint16_t moveOriginatorID,
+                   bool alwaysRenegotiate);
 #endif
     
 #if ORTHANC_ENABLE_DCMTK_TRANSCODING == 1
@@ -164,7 +169,8 @@ namespace Orthanc
                    size_t size,
                    bool hasMoveOriginator,
                    const std::string& moveOriginatorAET,
-                   uint16_t moveOriginatorID);
+                   uint16_t moveOriginatorID,
+                   bool alwaysRenegotiate);
 #endif
   };
 }

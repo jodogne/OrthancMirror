@@ -253,7 +253,8 @@ namespace Orthanc
     const std::string& sopClassUid,
     DicomTransferSyntax transferSyntax,
     bool hasPreferred,
-    DicomTransferSyntax preferred)
+    DicomTransferSyntax preferred,
+    bool alwaysRenegotiate)
   {
     /**
      * Step 1: Check whether this presentation context is already
@@ -273,8 +274,8 @@ namespace Orthanc
 
       // Don't renegociate if we know that the remote modality was
       // already proposed this individual transfer syntax (**)
-      if (proposedOriginalClasses_.find(std::make_pair(sopClassUid, transferSyntax)) !=
-          proposedOriginalClasses_.end())
+      if (!alwaysRenegotiate &&
+          proposedOriginalClasses_.find(std::make_pair(sopClassUid, transferSyntax)) != proposedOriginalClasses_.end())
       {
         CLOG(INFO, DICOM) << "The remote modality has already rejected SOP class UID \""
                           << sopClassUid << "\" with transfer syntax \""
@@ -369,14 +370,15 @@ namespace Orthanc
                                        DcmFileFormat& dicom,
                                        bool hasMoveOriginator,
                                        const std::string& moveOriginatorAET,
-                                       uint16_t moveOriginatorID)
+                                       uint16_t moveOriginatorID,
+                                       bool alwaysRenegotiate)
   {
     DicomTransferSyntax transferSyntax;
     LookupParameters(sopClassUid, sopInstanceUid, transferSyntax, dicom);
 
     uint8_t presID;
     if (!NegotiatePresentationContext(presID, sopClassUid, transferSyntax, proposeUncompressedSyntaxes_,
-                                      DicomTransferSyntax_LittleEndianExplicit))
+                                      DicomTransferSyntax_LittleEndianExplicit, alwaysRenegotiate))
     {
       throw OrthancException(ErrorCode_NetworkProtocol,
                              "No valid presentation context was negotiated for "
@@ -458,7 +460,8 @@ namespace Orthanc
                                        size_t size,
                                        bool hasMoveOriginator,
                                        const std::string& moveOriginatorAET,
-                                       uint16_t moveOriginatorID)
+                                       uint16_t moveOriginatorID,
+                                       bool alwaysRenegotiate)
   {
     std::unique_ptr<DcmFileFormat> dicom(
       FromDcmtkBridge::LoadFromMemoryBuffer(buffer, size));
@@ -468,7 +471,7 @@ namespace Orthanc
       throw OrthancException(ErrorCode_InternalError);
     }
     
-    Store(sopClassUid, sopInstanceUid, *dicom, hasMoveOriginator, moveOriginatorAET, moveOriginatorID);
+    Store(sopClassUid, sopInstanceUid, *dicom, hasMoveOriginator, moveOriginatorAET, moveOriginatorID, alwaysRenegotiate);
   }
 
 
@@ -477,7 +480,8 @@ namespace Orthanc
                                                    const std::string& sopClassUid,
                                                    DicomTransferSyntax sourceSyntax,
                                                    bool hasPreferred,
-                                                   DicomTransferSyntax preferred)
+                                                   DicomTransferSyntax preferred,
+                                                   bool alwaysRenegotiate)
   {
     acceptedSyntaxes.clear();
 
@@ -485,7 +489,7 @@ namespace Orthanc
     // syntax. We don't use the return code: Transcoding is possible
     // even if the "sourceSyntax" is not supported.
     uint8_t presID;
-    NegotiatePresentationContext(presID, sopClassUid, sourceSyntax, hasPreferred, preferred);
+    NegotiatePresentationContext(presID, sopClassUid, sourceSyntax, hasPreferred, preferred, alwaysRenegotiate);
 
     std::map<DicomTransferSyntax, uint8_t> contexts;
     if (association_->LookupAcceptedPresentationContext(contexts, sopClassUid))
@@ -509,7 +513,8 @@ namespace Orthanc
                                            DicomTransferSyntax preferredTransferSyntax,
                                            bool hasMoveOriginator,
                                            const std::string& moveOriginatorAET,
-                                           uint16_t moveOriginatorID)
+                                           uint16_t moveOriginatorID,
+                                           bool alwaysRenegotiate)
   {
     std::unique_ptr<DcmFileFormat> dicom(FromDcmtkBridge::LoadFromMemoryBuffer(buffer, size));
     if (dicom.get() == NULL ||
@@ -522,13 +527,13 @@ namespace Orthanc
     LookupParameters(sopClassUid, sopInstanceUid, sourceSyntax, *dicom);
 
     std::set<DicomTransferSyntax> accepted;
-    LookupTranscoding(accepted, sopClassUid, sourceSyntax, true, preferredTransferSyntax);
+    LookupTranscoding(accepted, sopClassUid, sourceSyntax, true, preferredTransferSyntax, alwaysRenegotiate);
 
     if (accepted.find(sourceSyntax) != accepted.end())
     {
       // No need for transcoding
       Store(sopClassUid, sopInstanceUid, *dicom,
-            hasMoveOriginator, moveOriginatorAET, moveOriginatorID);
+            hasMoveOriginator, moveOriginatorAET, moveOriginatorID, alwaysRenegotiate);
     }
     else
     {
@@ -617,7 +622,7 @@ namespace Orthanc
         else
         {
           Store(sopClassUid, sopInstanceUid, transcoded.GetParsed(),
-                hasMoveOriginator, moveOriginatorAET, moveOriginatorID);
+                hasMoveOriginator, moveOriginatorAET, moveOriginatorID, alwaysRenegotiate);
         }
       }
       else
@@ -646,10 +651,11 @@ namespace Orthanc
                                            size_t size,
                                            bool hasMoveOriginator,
                                            const std::string& moveOriginatorAET,
-                                           uint16_t moveOriginatorID)
+                                           uint16_t moveOriginatorID,
+                                           bool alwaysRenegotiate)
   {
     Transcode(sopClassUid, sopInstanceUid, transcoder, buffer, size, DicomTransferSyntax_LittleEndianExplicit,
-              hasMoveOriginator, moveOriginatorAET, moveOriginatorID);
+              hasMoveOriginator, moveOriginatorAET, moveOriginatorID, alwaysRenegotiate);
   }
 #endif
 }

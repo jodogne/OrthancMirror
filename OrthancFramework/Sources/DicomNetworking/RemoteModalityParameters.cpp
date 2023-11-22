@@ -186,6 +186,11 @@ namespace Orthanc
     manufacturer_ = StringToModalityManufacturer(manufacturer);
   }
 
+  bool RemoteModalityParameters::IsAlwaysRenegotiate() const
+  {
+    return manufacturer_ == ModalityManufacturer_Telemis;
+  }
+
 
   void RemoteModalityParameters::UnserializeArray(const Json::Value& serialized)
   {
