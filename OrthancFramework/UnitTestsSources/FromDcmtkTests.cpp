@@ -3567,7 +3567,7 @@ TEST(Toto, DISABLED_Transcode3)
         try
         {
           scu.Transcode(c, k, transcoder, source.c_str(), source.size(),
-                        DicomTransferSyntax_LittleEndianExplicit, false, "", 0);
+                        DicomTransferSyntax_LittleEndianExplicit, false, "", 0, false);
         }
         catch (OrthancException& e)
         {
