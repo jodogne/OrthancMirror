@@ -262,25 +262,32 @@ namespace Orthanc
 
     if (LookupPresentationContext(presentationContextId, sopClassUid, transferSyntax))
     {
+      CLOG(INFO, DICOM) << "Found an accepted presentation context for SOPClassUID " << sopClassUid << " and transfer syntax " << GetTransferSyntaxUid(transferSyntax);
       return true;
     }
 
     // The association must be re-negotiated
     if (association_->IsOpen())
     {
-      CLOG(INFO, DICOM) << "Re-negotiating DICOM association with "
-                        << parameters_.GetRemoteModality().GetApplicationEntityTitle();
+      CLOG(INFO, DICOM) << "No accepted presentation context found, re-negotiating DICOM association with "
+                        << parameters_.GetRemoteModality().GetApplicationEntityTitle()
+                        << " for SOPClassUID " << sopClassUid << " TransferSyntax =" << GetTransferSyntaxUid(transferSyntax);
 
-      // Don't renegociate if we know that the remote modality was
+      // Check if we know that the remote modality was
       // already proposed this individual transfer syntax (**)
-      if (proposedOriginalClasses_.find(std::make_pair(sopClassUid, transferSyntax)) !=
-          proposedOriginalClasses_.end())
+      if (proposedOriginalClasses_.find(std::make_pair(sopClassUid, transferSyntax)) != proposedOriginalClasses_.end())
       {
         CLOG(INFO, DICOM) << "The remote modality has already rejected SOP class UID \""
                           << sopClassUid << "\" with transfer syntax \""
-                          << GetTransferSyntaxUid(transferSyntax) << "\", don't renegotiate";
-        return false;
+                          << GetTransferSyntaxUid(transferSyntax) << "\", but we will renegotiate anyway";
+        // always renegotiating since 1.12.2 // return false;
       }
+    }
+    else
+    {
+      CLOG(INFO, DICOM) << "Negotiating DICOM association with "
+                        << parameters_.GetRemoteModality().GetApplicationEntityTitle()
+                        << " for SOPClassUID " << sopClassUid << " TransferSyntax =" << GetTransferSyntaxUid(transferSyntax);
     }
 
     association_->ClearPresentationContexts();
@@ -373,6 +380,8 @@ namespace Orthanc
   {
     DicomTransferSyntax transferSyntax;
     LookupParameters(sopClassUid, sopInstanceUid, transferSyntax, dicom);
+
+    LOG(INFO) << "Performing C-Store on instance of SOPClassUID '" << sopClassUid << "'";
 
     uint8_t presID;
     if (!NegotiatePresentationContext(presID, sopClassUid, transferSyntax, proposeUncompressedSyntaxes_,
@@ -480,14 +489,17 @@ namespace Orthanc
                                                    DicomTransferSyntax preferred)
   {
     acceptedSyntaxes.clear();
+    std::map<DicomTransferSyntax, uint8_t> contexts;
 
     // Make sure a negotiation has already occurred for this transfer
-    // syntax. We don't use the return code: Transcoding is possible
-    // even if the "sourceSyntax" is not supported.
-    uint8_t presID;
-    NegotiatePresentationContext(presID, sopClassUid, sourceSyntax, hasPreferred, preferred);
+    // syntax if we have not negotiated yet. 
+    // We don't use the return code: Transcoding is possible even if the "sourceSyntax" is not supported.
+    if (!association_->IsOpen() || !association_->LookupAcceptedPresentationContext(contexts, sopClassUid))
+    {
+      uint8_t presID;
+      NegotiatePresentationContext(presID, sopClassUid, sourceSyntax, hasPreferred, preferred);
+    }
 
-    std::map<DicomTransferSyntax, uint8_t> contexts;
     if (association_->LookupAcceptedPresentationContext(contexts, sopClassUid))
     {
       for (std::map<DicomTransferSyntax, uint8_t>::const_iterator
@@ -524,6 +536,12 @@ namespace Orthanc
     std::set<DicomTransferSyntax> accepted;
     LookupTranscoding(accepted, sopClassUid, sourceSyntax, true, preferredTransferSyntax);
 
+    if (accepted.size() == 0)
+    {
+      throw OrthancException(ErrorCode_NoPresentationContext, "Cannot C-Store an instance of SOPClassUID " + 
+                             sopClassUid + ", the destination has not accepted any TransferSyntax for this SOPClassUID.");
+    }
+
     if (accepted.find(sourceSyntax) != accepted.end())
     {
       // No need for transcoding
@@ -543,6 +561,8 @@ namespace Orthanc
       bool success = false;
       bool isDestructiveCompressionAllowed = false;
       std::set<DicomTransferSyntax> attemptedSyntaxes;
+
+      LOG(INFO) << "Transcoding is required to C-Store an instance of SOPClassUID '" << sopClassUid << "', preferredTransferSyntax is " << GetTransferSyntaxUid(preferredTransferSyntax);
 
       if (accepted.find(preferredTransferSyntax) != accepted.end())
       {
@@ -629,7 +649,8 @@ namespace Orthanc
           s += " " + std::string(GetTransferSyntaxUid(*it));
         }
         
-        throw OrthancException(ErrorCode_NotImplemented, "Cannot transcode from " +
+        throw OrthancException(ErrorCode_NotImplemented, "Cannot transcode instance of SOPClassUID " + 
+                               sopClassUid + " from " +
                                std::string(GetTransferSyntaxUid(sourceSyntax)) +
                                " to one of [" + s + " ]");
       }

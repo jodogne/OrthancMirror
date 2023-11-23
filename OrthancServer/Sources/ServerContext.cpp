@@ -1952,9 +1952,10 @@ namespace Orthanc
                                            uint16_t moveOriginatorId)
   {
     const void* data = dicom.empty() ? NULL : dicom.c_str();
-    
+    const RemoteModalityParameters& modality = connection.GetParameters().GetRemoteModality();
+
     if (!transcodeDicomProtocol_ ||
-        !connection.GetParameters().GetRemoteModality().IsTranscodingAllowed())
+        !modality.IsTranscodingAllowed())
     {
       connection.Store(sopClassUid, sopInstanceUid, data, dicom.size(),
                        hasMoveOriginator, moveOriginatorAet, moveOriginatorId);

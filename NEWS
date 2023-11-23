@@ -63,6 +63,11 @@ Maintenance
   https://discourse.orthanc-server.org/t/c-find-fails-on-unknown-specific-character-set-iso-2022-ir-6-iso-2022-ir-100/3947
 * When exporting a study archive, make sure to use the PatientName from the study and not from the patient
   in case of PatientID collision.
+* DICOM C-Store:
+  - Avoid some unneccessary renegotiation of DICOM association.
+  - Force renegotiation in case no presentation context were accepted in previous association (we have
+    observed PACS that were not consistent in the accepted presentation contexts)
+  - Improved logging
 * Upgraded dependencies for static builds:
   - boost 1.83.0
 * Upgraded minizip library to stay away from CVE-2023-45853 although Orthanc is likely not affected since zip

@@ -186,7 +186,6 @@ namespace Orthanc
     manufacturer_ = StringToModalityManufacturer(manufacturer);
   }
 
-
   void RemoteModalityParameters::UnserializeArray(const Json::Value& serialized)
   {
     assert(serialized.type() == Json::arrayValue);
