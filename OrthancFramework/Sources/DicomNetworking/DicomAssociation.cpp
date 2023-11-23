@@ -108,6 +108,8 @@ namespace Orthanc
     
   void DicomAssociation::CloseInternal()
   {
+    CLOG(INFO, DICOM) << "Closing DICOM association";
+
 #if ORTHANC_ENABLE_SSL == 1
     tls_.reset(NULL);  // Transport layer must be destroyed before the association itself
 #endif
@@ -393,8 +395,10 @@ namespace Orthanc
       LST_Position(l, (LST_NODE*)pc);
       while (pc)
       {
-        if (pc->result == ASC_P_ACCEPTANCE)
+        if (pc->result == ASC_P_ACCEPTANCE && strlen(pc->abstractSyntax) > 0)
         {
+          CLOG(TRACE, DICOM) << "DicomAssociation::Open, adding SOPClassUID " << pc->abstractSyntax << " - TS " << pc->acceptedTransferSyntax << " - PC ID " << boost::lexical_cast<std::string>(static_cast<int>(pc->presentationContextID));
+
           DicomTransferSyntax transferSyntax;
           if (LookupTransferSyntax(transferSyntax, pc->acceptedTransferSyntax))
           {
