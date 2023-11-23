@@ -1958,12 +1958,12 @@ namespace Orthanc
         !modality.IsTranscodingAllowed())
     {
       connection.Store(sopClassUid, sopInstanceUid, data, dicom.size(),
-                       hasMoveOriginator, moveOriginatorAet, moveOriginatorId, modality.IsAlwaysRenegotiate());
+                       hasMoveOriginator, moveOriginatorAet, moveOriginatorId);
     }
     else
     {
       connection.Transcode(sopClassUid, sopInstanceUid, *this, data, dicom.size(), preferredTransferSyntax_,
-                           hasMoveOriginator, moveOriginatorAet, moveOriginatorId, modality.IsAlwaysRenegotiate());
+                           hasMoveOriginator, moveOriginatorAet, moveOriginatorId);
     }
   }
 

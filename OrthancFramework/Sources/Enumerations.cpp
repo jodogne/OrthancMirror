@@ -807,9 +807,6 @@ namespace Orthanc
       case ModalityManufacturer_GE:
         return "GE";
       
-      case ModalityManufacturer_Telemis:
-        return "Telemis";
-
       default:
         throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
@@ -1588,10 +1585,6 @@ namespace Orthanc
     else if (manufacturer == "GE")
     {
       return ModalityManufacturer_GE;
-    }
-    else if (manufacturer == "Telemis")
-    {
-      return ModalityManufacturer_Telemis;
     }
     else if (manufacturer == "AgfaImpax" ||
              manufacturer == "SyngoVia")

@@ -660,8 +660,7 @@ namespace Orthanc
     ModalityManufacturer_GenericNoWildcardInDates,
     ModalityManufacturer_GenericNoUniversalWildcard,
     ModalityManufacturer_Vitrea,
-    ModalityManufacturer_GE,
-    ModalityManufacturer_Telemis
+    ModalityManufacturer_GE
   };
 
   enum DicomRequestType
