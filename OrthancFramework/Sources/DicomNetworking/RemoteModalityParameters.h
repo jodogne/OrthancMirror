@@ -85,8 +85,6 @@ namespace Orthanc
 
     void SetManufacturer(const std::string& manufacturer);
 
-    bool IsAlwaysRenegotiate() const;
-
     bool IsRequestAllowed(DicomRequestType type) const;
 
     void SetRequestAllowed(DicomRequestType type,

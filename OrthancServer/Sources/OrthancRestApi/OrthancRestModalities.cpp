@@ -1522,8 +1522,7 @@ namespace Orthanc
     connection.Store(sopClassUid, sopInstanceUid, call.GetBodyData(),
                      call.GetBodySize(), 
                      false /* Not a C-MOVE */, 
-                     "", 0, 
-                     false /* AlwaysRenegotiate: no need to renegotiate since there is only a single file*/);
+                     "", 0);
 
     Json::Value answer = Json::objectValue;
     answer[SOP_CLASS_UID] = sopClassUid;
