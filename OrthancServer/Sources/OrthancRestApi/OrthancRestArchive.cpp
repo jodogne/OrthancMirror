@@ -28,6 +28,7 @@
 #include "../../../OrthancFramework/Sources/Logging.h"
 #include "../../../OrthancFramework/Sources/OrthancException.h"
 #include "../../../OrthancFramework/Sources/SerializationToolbox.h"
+#include "../../../OrthancFramework/Sources/Toolbox.h"
 #include "../OrthancConfiguration.h"
 #include "../ServerContext.h"
 #include "../ServerJobs/ArchiveJob.h"
@@ -42,6 +43,19 @@ namespace Orthanc
   static const char* const KEY_TRANSCODE = "Transcode";
 
   static const char* const CONFIG_LOADER_THREADS = "ZipLoaderThreads";
+
+
+  static void AddResourcesOfInterestFromString(ArchiveJob& job,
+                                              const std::string& resourcesList)
+  {
+    std::set<std::string> resources;
+    Toolbox::SplitString(resources, resourcesList, ',');
+
+    for (std::set<std::string>::const_iterator it = resources.begin(); it != resources.end(); ++it)
+    {
+      job.AddResource(*it, false, ResourceType_Patient /* dummy value */);
+    }
+  }
 
   static void AddResourcesOfInterestFromArray(ArchiveJob& job,
                                               const Json::Value& resources)
@@ -513,7 +527,7 @@ namespace Orthanc
   
   template <bool IS_MEDIA,
             bool DEFAULT_IS_EXTENDED  /* only makes sense for media (i.e. not ZIP archives) */ >
-  static void CreateBatch(RestApiPostCall& call)
+  static void CreateBatchPost(RestApiPostCall& call)
   {
     if (call.IsDocumentation())
     {
@@ -560,6 +574,56 @@ namespace Orthanc
     }
   }
   
+
+  template <bool IS_MEDIA,
+            bool DEFAULT_IS_EXTENDED  /* only makes sense for media (i.e. not ZIP archives) */ >
+  static void CreateBatchGet(RestApiGetCall& call)
+  {
+    static const char* const TRANSCODE = "transcode";
+    static const char* const RESOURCES = "resources";
+
+    if (call.IsDocumentation())
+    {
+      std::string m = (IS_MEDIA ? "DICOMDIR media" : "ZIP archive");
+      call.GetDocumentation()
+        .SetTag("System")
+        .SetSummary("Create " + m)
+        .SetDescription("Create a " + m + " containing the DICOM resources (patients, studies, series, or instances) "
+                        "whose Orthanc identifiers are provided in the 'resources' argument")
+        .SetHttpGetArgument(TRANSCODE, RestApiCallDocumentation::Type_String,
+                            "If present, the DICOM files will be transcoded to the provided "
+                            "transfer syntax: https://orthanc.uclouvain.be/book/faq/transcoding.html", false)
+        .SetHttpGetArgument(RESOURCES, RestApiCallDocumentation::Type_String,
+                            "A comma separated list of Orthanc resource identifiers to include in the " + m + ".", true);
+      return;
+    }
+
+    ServerContext& context = OrthancRestApi::GetContext(call);
+    bool transcode = false;
+    DicomTransferSyntax transferSyntax;
+
+    if (call.HasArgument(TRANSCODE))
+    {
+      transcode = true;
+      transferSyntax = GetTransferSyntax(call.GetArgument(TRANSCODE, ""));
+    }
+    
+    if (!call.HasArgument(RESOURCES))
+    {
+      throw OrthancException(Orthanc::ErrorCode_BadRequest, std::string("Missing ") + RESOURCES + " argument");
+    }
+
+    std::unique_ptr<ArchiveJob> job(new ArchiveJob(context, IS_MEDIA, DEFAULT_IS_EXTENDED, ResourceType_Patient));
+    AddResourcesOfInterestFromString(*job, call.GetArgument(RESOURCES, ""));
+
+    if (transcode)
+    {
+      job->SetTranscode(transferSyntax);
+    }
+
+    SubmitJob(call.GetOutput(), context, job, 0, true, "Archive.zip");
+  }
+
 
   template <ResourceType LEVEL,
             bool IS_MEDIA>
@@ -699,10 +763,18 @@ namespace Orthanc
     Register("/studies/{id}/media",    CreateSinglePost<ResourceType_Study, true /* media */>);
 
     Register("/tools/create-archive",
-             CreateBatch<false /* ZIP */,  false /* extended makes no sense in ZIP */>);
+             CreateBatchPost<false /* ZIP */,  false /* extended makes no sense in ZIP */>);
     Register("/tools/create-media",
-             CreateBatch<true /* media */, false /* not extended by default */>);
+             CreateBatchPost<true /* media */, false /* not extended by default */>);
     Register("/tools/create-media-extended",
-             CreateBatch<true /* media */, true /* extended by default */>);
+             CreateBatchPost<true /* media */, true /* extended by default */>);
+
+    Register("/tools/create-archive",
+             CreateBatchGet<false /* ZIP */,  false /* extended makes no sense in ZIP */>);
+    Register("/tools/create-media",
+             CreateBatchGet<true /* media */, false /* not extended by default */>);
+    Register("/tools/create-media-extended",
+             CreateBatchGet<true /* media */, true /* extended by default */>);
+
   }
 }
