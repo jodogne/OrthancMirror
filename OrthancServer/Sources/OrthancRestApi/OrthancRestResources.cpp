@@ -1912,7 +1912,8 @@ namespace Orthanc
     std::string name = call.GetUriComponent("name", "");
     MetadataType metadata = StringToMetadata(name);
 
-    if (IsUserMetadata(metadata))  // It is forbidden to modify internal metadata
+    if (IsUserMetadata(metadata) ||  // It is forbidden to delete internal metadata...
+        call.GetRequestOrigin() == RequestOrigin_Plugins)     // ...except for plugins
     {
       bool found;
       int64_t revision;
@@ -1978,7 +1979,8 @@ namespace Orthanc
     std::string value;
     call.BodyToString(value);
 
-    if (IsUserMetadata(metadata))  // It is forbidden to modify internal metadata
+    if (IsUserMetadata(metadata) ||  // It is forbidden to modify internal metadata...
+        call.GetRequestOrigin() == RequestOrigin_Plugins)     // ...except for plugins
     {
       int64_t oldRevision;
       std::string oldMD5;
@@ -2574,7 +2576,8 @@ namespace Orthanc
     std::string name = call.GetUriComponent("name", "");
 
     FileContentType contentType = StringToContentType(name);
-    if (IsUserContentType(contentType))  // It is forbidden to modify internal attachments
+    if (IsUserContentType(contentType) ||  // It is forbidden to modify internal attachments...
+        call.GetRequestOrigin() == RequestOrigin_Plugins)   // ...except for plugins
     {
       int64_t oldRevision;
       std::string oldMD5;
@@ -2633,7 +2636,8 @@ namespace Orthanc
     FileContentType contentType = StringToContentType(name);
 
     bool allowed;
-    if (IsUserContentType(contentType))
+    if (IsUserContentType(contentType) ||  // It is forbidden to delete internal attachments...
+        call.GetRequestOrigin() == RequestOrigin_Plugins)   // ...except for plugins
     {
       allowed = true;
     }
