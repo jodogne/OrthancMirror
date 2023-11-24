@@ -42,6 +42,10 @@ REST API
 * Added a route to delete completed jobs from history: DELETE /jobs/{id}
 * added a "transcode" option to the /file route:
   e.g: /instances/../file?transcode=1.2.840.10008.1.2.4.80
+* now accepting GET requests on these 3 routes to create archive/media:
+  /tools/create-archive?resources=..,..2&transcode=1.2.840.10008.1.2.4.80
+  /tools/create-media?resources=..,..2&transcode=1.2.840.10008.1.2.4.80
+  /tools/create-media-extended?resources=..,..2&transcode=1.2.840.10008.1.2.4.80
 * All 'expand' GET arguments now accepts expand=true and expand=false values.
   The /studies/../instances and sibling routes are the only whose expand is true if not specified.
   These routes now accepts expand=false to simply list the child resources ids.
