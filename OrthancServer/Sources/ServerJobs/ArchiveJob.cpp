@@ -34,6 +34,7 @@
 #include "../ServerContext.h"
 
 #include <stdio.h>
+#include <boost/range/algorithm/count.hpp>
 
 #if defined(_MSC_VER)
 #define snprintf _snprintf
@@ -962,7 +963,8 @@ namespace Orthanc
 
       path = Toolbox::StripSpaces(Toolbox::ConvertToAscii(path));
 
-      if (path.empty())
+      if (path.empty() 
+          || (static_cast<size_t>(boost::count(path, '^')) == path.size()))  // this happens with non ASCII patient names: only the '^' remains and this is not a valid zip folder name
       {
         path = std::string("Unknown ") + EnumerationToString(GetResourceLevel(level));
       }
