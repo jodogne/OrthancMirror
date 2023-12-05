@@ -27,6 +27,7 @@
 #include "OrthancException.h"
 
 #include <stdint.h>
+#include <boost/thread/thread.hpp>
 
 
 /*********************************************************
@@ -534,16 +535,24 @@ namespace
 
 
 
-static std::unique_ptr<LoggingStreamsContext> loggingStreamsContext_;
-static boost::mutex                           loggingStreamsMutex_;
-static Orthanc::Logging::NullStream           nullStream_;
-static OrthancPluginContext*                  pluginContext_ = NULL;
+static std::unique_ptr<LoggingStreamsContext>   loggingStreamsContext_;
+static boost::mutex                             loggingStreamsMutex_;
+static Orthanc::Logging::NullStream             nullStream_;
+static OrthancPluginContext*                    pluginContext_ = NULL;
+static std::map<boost::thread::id, std::string> threadNames_;
+static bool                                     enableThreadNames_ = true;
+
 
 
 namespace Orthanc
 {
   namespace Logging
   {
+    void EnableThreadNames(bool enabled)
+    {
+      enableThreadNames_ = enabled;
+    }
+
     static void GetLogPath(boost::filesystem::path& log,
                            boost::filesystem::path& link,
                            const std::string& suffix,
@@ -612,7 +621,45 @@ namespace Orthanc
         throw OrthancException(ErrorCode_CannotWriteFile);
       }
     }
-    
+
+    void SetCurrentThreadNameInternal(const boost::thread::id& id, const std::string& name)
+    {
+      // this method assumes that the loggingStreamsMutex is already locked
+      if (name.size() > 16)
+      {
+        throw OrthancException(ErrorCode_InternalError, std::string("Thread name can not exceed 16 characters: ") + name);
+      }
+
+      threadNames_[id] = name;
+    }
+
+    void SetCurrentThreadName(const std::string& name)
+    {
+      boost::mutex::scoped_lock lock(loggingStreamsMutex_);
+      SetCurrentThreadNameInternal(boost::this_thread::get_id(), name);
+    }
+
+    bool HasCurrentThreadName()
+    {
+      boost::thread::id threadId = boost::this_thread::get_id();
+
+      boost::mutex::scoped_lock lock(loggingStreamsMutex_);
+      return threadNames_.find(threadId) != threadNames_.end();
+    }
+
+    static std::string GetCurrentThreadName()
+    {
+      // this method assumes that the loggingStreamsMutex is already locked
+      boost::thread::id threadId = boost::this_thread::get_id();
+
+      if (threadNames_.find(threadId) == threadNames_.end())
+      {
+        // set the threadId as the thread name
+        SetCurrentThreadNameInternal(threadId, boost::lexical_cast<std::string>(threadId));
+      }
+
+      return threadNames_[threadId];
+    }    
 
     static void GetLinePrefix(std::string& prefix,
                               LogLevel level,
@@ -679,7 +726,17 @@ namespace Orthanc
               static_cast<int>(duration.seconds()),
               static_cast<int>(duration.fractional_seconds()));
 
-      prefix = (std::string(date) + path.filename().string() + ":" +
+      char threadName[20]; // thread names are limited to 16 char + a space
+      if (enableThreadNames_)
+      {
+        sprintf(threadName, "%16s ", GetCurrentThreadName().c_str());
+      }
+      else
+      {
+        threadName[0] = '\0';
+      }
+
+      prefix = (std::string(date) + threadName + path.filename().string() + ":" +
                 boost::lexical_cast<std::string>(line) + "] ");
 
       if (level != LogLevel_ERROR &&

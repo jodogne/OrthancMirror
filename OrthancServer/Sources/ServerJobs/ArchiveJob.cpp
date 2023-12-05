@@ -223,6 +223,9 @@ namespace Orthanc
 
     static void PreloaderWorkerThread(ThreadedInstanceLoader* that)
     {
+      static uint16_t threadCounter = 0;
+      Logging::SetCurrentThreadName(std::string("ARCH-LOAD-") + boost::lexical_cast<std::string>(threadCounter++));
+
       while (true)
       {
         std::unique_ptr<InstanceId> instanceId(dynamic_cast<InstanceId*>(that->instancesToPreload_.Dequeue(0)));

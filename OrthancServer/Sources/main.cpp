@@ -1780,6 +1780,7 @@ static bool DisplayPerformanceWarning()
 int main(int argc, char* argv[]) 
 {
   Logging::Initialize();
+  Logging::SetCurrentThreadName("MAIN");
   SetGlobalVerbosity(Verbosity_Default);
 
   bool upgradeDatabase = false;
@@ -1833,6 +1834,10 @@ int main(int argc, char* argv[])
     else if (argument == "--verbose")
     {
       SetGlobalVerbosity(Verbosity_Verbose);
+    }
+    else if (argument == "--logs-no-thread")
+    {
+      Logging::EnableThreadNames(false);
     }
     else if (argument == "--trace")
     {

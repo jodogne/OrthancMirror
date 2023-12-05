@@ -243,6 +243,9 @@ namespace Orthanc
 
   void ThreadedSetOfInstancesJob::InstanceWorkerThread(ThreadedSetOfInstancesJob* that)
   {
+    static uint8_t threadCounter = 0;
+    Logging::SetCurrentThreadName(std::string("JOB-INS-WORK-") + boost::lexical_cast<std::string>(threadCounter++));
+
     while (true)
     {
       std::unique_ptr<SingleValueObject<std::string> > instanceId(dynamic_cast<SingleValueObject<std::string>*>(that->instancesToProcessQueue_.Dequeue(0)));
