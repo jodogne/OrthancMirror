@@ -86,6 +86,12 @@ namespace Orthanc
 
     ORTHANC_PUBLIC void Flush();
 
+    ORTHANC_PUBLIC void SetCurrentThreadName(const std::string& name);
+
+    ORTHANC_PUBLIC bool HasCurrentThreadName();
+
+    ORTHANC_PUBLIC void EnableThreadNames(bool enabled);
+
     ORTHANC_PUBLIC void EnableInfoLevel(bool enabled);
 
     ORTHANC_PUBLIC void EnableTraceLevel(bool enabled);

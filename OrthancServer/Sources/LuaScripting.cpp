@@ -776,6 +776,8 @@ namespace Orthanc
 
   void LuaScripting::HeartBeatThread(LuaScripting* that)
   {
+    Logging::SetCurrentThreadName("LUA-HEARTBEAT");
+
     static const unsigned int GRANULARITY = 100;  // In milliseconds
     
     const boost::posix_time::time_duration PERIODICITY =
@@ -812,6 +814,8 @@ namespace Orthanc
 
   void LuaScripting::EventThread(LuaScripting* that)
   {
+    Logging::SetCurrentThreadName("LUA-EVENTS");
+
     for (;;)
     {
       std::unique_ptr<IDynamicObject> event(that->pendingEvents_.Dequeue(100));
