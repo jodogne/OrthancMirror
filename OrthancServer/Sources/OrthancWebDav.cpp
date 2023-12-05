@@ -1221,6 +1221,8 @@ namespace Orthanc
 
   void OrthancWebDav::UploadWorker(OrthancWebDav* that)
   {
+    Logging::SetCurrentThreadName("WEBDAV-UPLOAD");
+
     assert(that != NULL);
 
     boost::posix_time::ptime lastModification = GetNow();

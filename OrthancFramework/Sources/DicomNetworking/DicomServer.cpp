@@ -61,6 +61,7 @@ namespace Orthanc
                                  unsigned int maximumPduLength,
                                  bool useDicomTls)
   {
+    Logging::SetCurrentThreadName("DICOM-SERVER");
     CLOG(INFO, DICOM) << "DICOM server started";
 
     while (server->continue_)
@@ -429,7 +430,7 @@ namespace Orthanc
 
     CLOG(INFO, DICOM) << "The embedded DICOM server will use " << threadsCount_ << " threads";
 
-    pimpl_->workers_.reset(new RunnableWorkersPool(threadsCount_));
+    pimpl_->workers_.reset(new RunnableWorkersPool(threadsCount_, "DICOM-"));
     pimpl_->thread_ = boost::thread(ServerThread, this, maximumPduLength_, useDicomTls_);
   }
 
