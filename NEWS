@@ -27,6 +27,11 @@ General
     This notably greatly improve loading time of large DICOM 
     files through WADO-RS e.g in StoneViewer when working on large bandwidth networks.
   - When "HttpCompressionEnabled" is true, content < 2KB are never compressed.
+* Logs:
+  - Each line of log now contains the name of the thread that is logging the message.
+    A new '--logs-no-thread' command line option can be used to get back to the previous behavior to
+    keep backward compatibility.
+
 
 Bug Fixes
 ---------
