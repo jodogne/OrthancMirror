@@ -65,6 +65,7 @@ Plugins
 
 * Plugins are now allowed to modify/delete private metadata/attachments
   (i.e. whose identifiers are < 1024)
+* Added "OrthancPluginSetCurrentThreadName()" in the plugin SDK.
 
 
 Maintenance
