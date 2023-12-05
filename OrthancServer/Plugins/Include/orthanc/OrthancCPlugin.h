@@ -449,6 +449,8 @@ extern "C"
     _OrthancPluginService_CreateDicom2 = 41,         /* New in Orthanc 1.9.0 */
     _OrthancPluginService_GetDatabaseServerIdentifier = 42,         /* New in Orthanc 1.11.1 */
     _OrthancPluginService_SetMetricsIntegerValue = 43,              /* New in Orthanc 1.12.1 */
+    _OrthancPluginService_SetCurrentThreadName = 44,                /* New in Orthanc 1.12.2 */
+
 
     /* Registration of callbacks */
     _OrthancPluginService_RegisterRestCallback = 1000,
@@ -9355,6 +9357,25 @@ extern "C"
     context->InvokeService(context, _OrthancPluginService_SetMetricsIntegerValue, &params);
   }
 
+
+/**
+   * @brief Sets the name of the current thread
+   *
+   * This function sets the name of the thread that is calling it.
+   * This name is used in the logs.  This function shall be called only from threads that
+   * the plugin has created itself.
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param threadName The name of the current thread.  A Thread name can not be larger than 16 characters.
+   * @return 0 if success, other value if error.
+   * @ingroup Toolbox
+   **/
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginSetCurrentThreadName(
+    OrthancPluginContext*                        context,
+    const char*                                  threadName)
+  {
+    return context->InvokeService(context, _OrthancPluginService_SetCurrentThreadName, threadName);
+  }
 
 #ifdef  __cplusplus
 }

@@ -539,6 +539,7 @@ static std::unique_ptr<LoggingStreamsContext>   loggingStreamsContext_;
 static boost::mutex                             loggingStreamsMutex_;
 static Orthanc::Logging::NullStream             nullStream_;
 static OrthancPluginContext*                    pluginContext_ = NULL;
+static boost::recursive_mutex                   threadNamesMutex_;
 static std::map<boost::thread::id, std::string> threadNames_;
 static bool                                     enableThreadNames_ = true;
 
@@ -624,7 +625,8 @@ namespace Orthanc
 
     void SetCurrentThreadNameInternal(const boost::thread::id& id, const std::string& name)
     {
-      // this method assumes that the loggingStreamsMutex is already locked
+      boost::recursive_mutex::scoped_lock lock(threadNamesMutex_);
+
       if (name.size() > 16)
       {
         throw OrthancException(ErrorCode_InternalError, std::string("Thread name can not exceed 16 characters: ") + name);
@@ -635,7 +637,7 @@ namespace Orthanc
 
     void SetCurrentThreadName(const std::string& name)
     {
-      boost::mutex::scoped_lock lock(loggingStreamsMutex_);
+      boost::recursive_mutex::scoped_lock lock(threadNamesMutex_);
       SetCurrentThreadNameInternal(boost::this_thread::get_id(), name);
     }
 
@@ -649,8 +651,9 @@ namespace Orthanc
 
     static std::string GetCurrentThreadName()
     {
-      // this method assumes that the loggingStreamsMutex is already locked
       boost::thread::id threadId = boost::this_thread::get_id();
+
+      boost::recursive_mutex::scoped_lock lock(threadNamesMutex_);
 
       if (threadNames_.find(threadId) == threadNames_.end())
       {

@@ -5530,6 +5530,12 @@ namespace Orthanc
         return true;
       }
 
+      case _OrthancPluginService_SetCurrentThreadName:
+      {
+        Logging::SetCurrentThreadName(std::string(reinterpret_cast<const char*>(parameters)));
+        return true;
+      }
+
       default:
         return false;
     }
