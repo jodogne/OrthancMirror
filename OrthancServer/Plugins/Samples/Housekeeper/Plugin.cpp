@@ -599,6 +599,8 @@ static bool ProcessChanges(bool needsReconstruct, bool needsReingest, bool needs
 
 static void WorkerThread()
 {
+  OrthancPluginSetCurrentThreadName(OrthancPlugins::GetGlobalContext(), "HOUSEKEEPER");
+
   DbConfiguration currentDbConfiguration;
 
   OrthancPluginLogWarning(OrthancPlugins::GetGlobalContext(), "Starting Housekeeper worker thread");
