@@ -136,6 +136,7 @@ message GetSystemInformation {
     bool supports_flush_to_disk = 2;
     bool supports_revisions = 3;
     bool supports_labels = 4;
+    bool supports_increment_global_property = 5;
   }
 }
 
@@ -275,6 +276,7 @@ enum TransactionOperation {
   OPERATION_ADD_LABEL = 45;        // New in Orthanc 1.12.0
   OPERATION_REMOVE_LABEL = 46;     // New in Orthanc 1.12.0
   OPERATION_LIST_LABELS = 47;      // New in Orthanc 1.12.0
+  OPERATION_INCREMENT_GLOBAL_PROPERTY = 48;      // New in Orthanc 1.12.X
 }
 
 message Rollback {
@@ -628,6 +630,17 @@ message SetGlobalProperty {
   }
 }
 
+message IncrementGlobalProperty {
+  message Request {
+    string server_id = 1;
+    int32 property = 2;
+    int64 increment = 3;
+  }
+  message Response {
+    int64 new_value = 1;
+  }
+}
+
 message ClearMainDicomTags {
   message Request {
     int64 id = 1;
@@ -834,6 +847,7 @@ message TransactionRequest {
   AddLabel.Request                        add_label = 145;
   RemoveLabel.Request                     remove_label = 146;
   ListLabels.Request                      list_labels = 147;
+  IncrementGlobalProperty.Request         increment_global_property = 148;
 }
 
 message TransactionResponse {
@@ -885,6 +899,7 @@ message TransactionResponse {
   AddLabel.Response                        add_label = 145;
   RemoveLabel.Response                     remove_label = 146;
   ListLabels.Response                      list_labels = 147;
+  IncrementGlobalProperty.Response         increment_global_property = 148;
 }
 
 enum RequestType {

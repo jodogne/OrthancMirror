@@ -1643,7 +1643,7 @@ static bool ConfigureDatabase(IDatabaseWrapper& database,
     
     if (lock.GetConfiguration().GetBooleanParameter(CHECK_REVISIONS, false))
     {
-      if (database.HasRevisionsSupport())
+      if (database.GetDatabaseCapabilities().HasRevisionsSupport())
       {
         LOG(INFO) << "Handling of revisions is enabled, and the custom database back-end *has* "
                   << "support for revisions of metadata and attachments";
@@ -1666,7 +1666,7 @@ static bool ConfigureDatabase(IDatabaseWrapper& database,
     }
   }
 
-  if (!database.HasLabelsSupport())
+  if (!database.GetDatabaseCapabilities().HasLabelsSupport())
   {
     LOG(WARNING) << "The custom database back-end has *no* support for labels";
   }

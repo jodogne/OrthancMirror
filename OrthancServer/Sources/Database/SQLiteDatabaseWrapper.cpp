@@ -300,17 +300,25 @@ namespace Orthanc
     boost::mutex::scoped_lock  lock_;
     IDatabaseListener&         listener_;
     SignalRemainingAncestor&   signalRemainingAncestor_;
+    const IDatabaseWrapper::Capabilities& dbCapabilities_;
 
   public:
     TransactionBase(boost::mutex& mutex,
                     SQLite::Connection& db,
                     IDatabaseListener& listener,
-                    SignalRemainingAncestor& signalRemainingAncestor) :
+                    SignalRemainingAncestor& signalRemainingAncestor,
+                    const IDatabaseWrapper::Capabilities& dbCapabilities) :
       UnitTestsTransaction(db),
       lock_(mutex),
       listener_(listener),
-      signalRemainingAncestor_(signalRemainingAncestor)
+      signalRemainingAncestor_(signalRemainingAncestor),
+      dbCapabilities_(dbCapabilities)
     {
+    }
+
+    virtual const IDatabaseWrapper::Capabilities& GetDatabaseCapabilities() const ORTHANC_OVERRIDE
+    {
+      return dbCapabilities_;
     }
 
     IDatabaseListener& GetListener() const
@@ -1137,6 +1145,7 @@ namespace Orthanc
         target.insert(s.ColumnString(0));
       }
     }
+
   };
 
 
@@ -1234,7 +1243,7 @@ namespace Orthanc
   public:
     ReadWriteTransaction(SQLiteDatabaseWrapper& that,
                          IDatabaseListener& listener) :
-      TransactionBase(that.mutex_, that.db_, listener, *that.signalRemainingAncestor_),
+      TransactionBase(that.mutex_, that.db_, listener, *that.signalRemainingAncestor_, that.GetDatabaseCapabilities()),
       that_(that),
       transaction_(new SQLite::Transaction(that_.db_))
     {
@@ -1288,7 +1297,7 @@ namespace Orthanc
   public:
     ReadOnlyTransaction(SQLiteDatabaseWrapper& that,
                         IDatabaseListener& listener) :
-      TransactionBase(that.mutex_, that.db_, listener, *that.signalRemainingAncestor_),
+      TransactionBase(that.mutex_, that.db_, listener, *that.signalRemainingAncestor_, that.GetDatabaseCapabilities()),
       that_(that)
     {
       if (that_.activeTransaction_ != NULL)
@@ -1322,7 +1331,8 @@ namespace Orthanc
   SQLiteDatabaseWrapper::SQLiteDatabaseWrapper(const std::string& path) : 
     activeTransaction_(NULL), 
     signalRemainingAncestor_(NULL),
-    version_(0)
+    version_(0),
+    dbCapabilities_(true, false /* TODO: implement revisions in SQLite */, true, false)
   {
     db_.Open(path);
   }
@@ -1331,7 +1341,8 @@ namespace Orthanc
   SQLiteDatabaseWrapper::SQLiteDatabaseWrapper() : 
     activeTransaction_(NULL), 
     signalRemainingAncestor_(NULL),
-    version_(0)
+    version_(0),
+    dbCapabilities_(true, false /* TODO: implement revisions in SQLite */, true, false)
   {
     db_.OpenInMemory();
   }

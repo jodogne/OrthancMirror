@@ -25,13 +25,13 @@
 #if ORTHANC_ENABLE_PLUGINS == 1
 
 #include "../../../OrthancFramework/Sources/SharedLibrary.h"
-#include "../../Sources/Database/IDatabaseWrapper.h"
+#include "../../Sources/Database/BaseDatabaseWrapper.h"
 #include "../Include/orthanc/OrthancCDatabasePlugin.h"
 #include "PluginsErrorDictionary.h"
 
 namespace Orthanc
 {
-  class OrthancPluginDatabaseV3 : public IDatabaseWrapper
+  class OrthancPluginDatabaseV3 : public BaseDatabaseWrapper
   {
   private:
     class Transaction;
@@ -41,6 +41,7 @@ namespace Orthanc
     OrthancPluginDatabaseBackendV3  backend_;
     void*                           database_;
     std::string                     serverIdentifier_;
+    IDatabaseWrapper::Capabilities  dbCapabilities_;
 
     void CheckSuccess(OrthancPluginErrorCode code) const;
 
@@ -67,11 +68,6 @@ namespace Orthanc
     {
     }
 
-    virtual bool HasFlushToDisk() const ORTHANC_OVERRIDE
-    {
-      return false;
-    }
-
     virtual IDatabaseWrapper::ITransaction* StartTransaction(TransactionType type,
                                                              IDatabaseListener& listener)
       ORTHANC_OVERRIDE;
@@ -81,12 +77,11 @@ namespace Orthanc
     virtual void Upgrade(unsigned int targetVersion,
                          IStorageArea& storageArea) ORTHANC_OVERRIDE;    
 
-    virtual bool HasRevisionsSupport() const ORTHANC_OVERRIDE;
-
-    virtual bool HasLabelsSupport() const ORTHANC_OVERRIDE
+    const IDatabaseWrapper::Capabilities& GetDatabaseCapabilities() const ORTHANC_OVERRIDE
     {
-      return false;
+      return dbCapabilities_;
     }
+
   };
 }
 
