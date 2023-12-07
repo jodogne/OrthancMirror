@@ -229,7 +229,7 @@ namespace Orthanc
                             bool isSingleResource,
                             int64_t resource)
     {
-      if (database_.HasLabelsSupport())
+      if (database_.GetDatabaseCapabilities().HasLabelsSupport())
       {
         DatabasePluginMessages::TransactionRequest request;
         request.mutable_list_labels()->set_single_resource(isSingleResource);
@@ -305,6 +305,10 @@ namespace Orthanc
       }
     }
 
+    virtual const IDatabaseWrapper::Capabilities& GetDatabaseCapabilities() const ORTHANC_OVERRIDE
+    {
+      return database_.GetDatabaseCapabilities();
+    }
 
     void* GetTransactionObject()
     {
@@ -772,6 +776,21 @@ namespace Orthanc
       }
     }
 
+
+    virtual int64_t IncrementGlobalProperty(GlobalProperty property,
+                                            int64_t increment,
+                                            bool shared) ORTHANC_OVERRIDE
+    {
+      DatabasePluginMessages::TransactionRequest request;
+      request.mutable_increment_global_property()->set_server_id(shared ? "" : database_.GetServerIdentifier());
+      request.mutable_increment_global_property()->set_property(property);
+      request.mutable_increment_global_property()->set_increment(increment);
+
+      DatabasePluginMessages::TransactionResponse response;
+      ExecuteTransaction(response, DatabasePluginMessages::OPERATION_INCREMENT_GLOBAL_PROPERTY, request);
+
+      return response.increment_global_property().new_value();
+    }
     
     virtual bool LookupMetadata(std::string& target,
                                 int64_t& revision,
@@ -948,7 +967,7 @@ namespace Orthanc
                                       LabelsConstraint labelsConstraint,
                                       uint32_t limit) ORTHANC_OVERRIDE
     {
-      if (!database_.HasLabelsSupport() &&
+      if (!database_.GetDatabaseCapabilities().HasLabelsSupport() &&
           !labels.empty())
       {
         throw OrthancException(ErrorCode_InternalError);
@@ -1197,7 +1216,7 @@ namespace Orthanc
     virtual void AddLabel(int64_t resource,
                           const std::string& label) ORTHANC_OVERRIDE
     {
-      if (database_.HasLabelsSupport())
+      if (database_.GetDatabaseCapabilities().HasLabelsSupport())
       {
         DatabasePluginMessages::TransactionRequest request;
         request.mutable_add_label()->set_id(resource);
@@ -1216,7 +1235,7 @@ namespace Orthanc
     virtual void RemoveLabel(int64_t resource,
                              const std::string& label) ORTHANC_OVERRIDE
     {
-      if (database_.HasLabelsSupport())
+      if (database_.GetDatabaseCapabilities().HasLabelsSupport())
       {
         DatabasePluginMessages::TransactionRequest request;
         request.mutable_remove_label()->set_id(resource);
@@ -1256,9 +1275,7 @@ namespace Orthanc
     serverIdentifier_(serverIdentifier),
     open_(false),
     databaseVersion_(0),
-    hasFlushToDisk_(false),
-    hasRevisionsSupport_(false),
-    hasLabelsSupport_(false)
+    dbCapabilities_(false, false, false, false) // updated in Open()
   {
     CLOG(INFO, PLUGINS) << "Identifier of this Orthanc server for the global properties "
                         << "of the custom database: \"" << serverIdentifier << "\"";
@@ -1325,10 +1342,13 @@ namespace Orthanc
       DatabasePluginMessages::DatabaseRequest request;
       DatabasePluginMessages::DatabaseResponse response;
       ExecuteDatabase(response, *this, DatabasePluginMessages::OPERATION_GET_SYSTEM_INFORMATION, request);
-      databaseVersion_ = response.get_system_information().database_version();
-      hasFlushToDisk_ = response.get_system_information().supports_flush_to_disk();
-      hasRevisionsSupport_ = response.get_system_information().supports_revisions();
-      hasLabelsSupport_ = response.get_system_information().supports_labels();
+      
+      const ::Orthanc::DatabasePluginMessages::GetSystemInformation_Response& systemInfo = response.get_system_information();
+      databaseVersion_ = systemInfo.database_version();
+      dbCapabilities_.hasFlushToDisk_ = systemInfo.supports_flush_to_disk();
+      dbCapabilities_.hasRevisionsSupport_ = systemInfo.supports_revisions();
+      dbCapabilities_.hasLabelsSupport_ = systemInfo.supports_labels();
+      dbCapabilities_.hasAtomicIncrementGlobalProperty_ = systemInfo.supports_increment_global_property();
     }
 
     open_ = true;
@@ -1350,23 +1370,11 @@ namespace Orthanc
   }
   
 
-  bool OrthancPluginDatabaseV4::HasFlushToDisk() const
-  {
-    if (!open_)
-    {
-      throw OrthancException(ErrorCode_BadSequenceOfCalls);
-    }
-    else
-    {
-      return hasFlushToDisk_;
-    }
-  }
-
 
   void OrthancPluginDatabaseV4::FlushToDisk()
   {
     if (!open_ ||
-        !hasFlushToDisk_)
+        !GetDatabaseCapabilities().HasFlushToDisk())
     {
       throw OrthancException(ErrorCode_BadSequenceOfCalls);
     }
@@ -1438,8 +1446,8 @@ namespace Orthanc
     }
   }
 
-  
-  bool OrthancPluginDatabaseV4::HasRevisionsSupport() const
+
+  const IDatabaseWrapper::Capabilities& OrthancPluginDatabaseV4::GetDatabaseCapabilities() const
   {
     if (!open_)
     {
@@ -1447,20 +1455,9 @@ namespace Orthanc
     }
     else
     {
-      return hasRevisionsSupport_;
+      return dbCapabilities_;
     }
   }
 
-  
-  bool OrthancPluginDatabaseV4::HasLabelsSupport() const
-  {
-    if (!open_)
-    {
-      throw OrthancException(ErrorCode_BadSequenceOfCalls);
-    }
-    else
-    {
-      return hasLabelsSupport_;
-    }
-  }
+
 }

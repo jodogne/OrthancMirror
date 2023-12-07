@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "IDatabaseWrapper.h"
+#include "BaseDatabaseWrapper.h"
 
 #include "../../../OrthancFramework/Sources/SQLite/Connection.h"
 
@@ -35,7 +35,7 @@ namespace Orthanc
    * translates low-level requests into SQL statements. Mutual
    * exclusion MUST be implemented at a higher level.
    **/
-  class SQLiteDatabaseWrapper : public IDatabaseWrapper
+  class SQLiteDatabaseWrapper : public BaseDatabaseWrapper
   {
   private:
     class TransactionBase;
@@ -51,6 +51,7 @@ namespace Orthanc
     TransactionBase*          activeTransaction_;
     SignalRemainingAncestor*  signalRemainingAncestor_;
     unsigned int              version_;
+    IDatabaseWrapper::Capabilities  dbCapabilities_;
 
     void GetChangesInternal(std::list<ServerIndexChange>& target,
                             bool& done,
@@ -79,11 +80,6 @@ namespace Orthanc
 
     virtual void FlushToDisk() ORTHANC_OVERRIDE;
 
-    virtual bool HasFlushToDisk() const ORTHANC_OVERRIDE
-    {
-      return true;
-    }
-
     virtual unsigned int GetDatabaseVersion() ORTHANC_OVERRIDE
     {
       return version_;
@@ -92,16 +88,10 @@ namespace Orthanc
     virtual void Upgrade(unsigned int targetVersion,
                          IStorageArea& storageArea) ORTHANC_OVERRIDE;
 
-    virtual bool HasRevisionsSupport() const ORTHANC_OVERRIDE
+    virtual const IDatabaseWrapper::Capabilities& GetDatabaseCapabilities() const ORTHANC_OVERRIDE
     {
-      return false;  // TODO - REVISIONS
+      return dbCapabilities_;
     }
-
-    virtual bool HasLabelsSupport() const ORTHANC_OVERRIDE
-    {
-      return true;
-    }
-
 
     /**
      * The "StartTransaction()" method is guaranteed to return a class
@@ -109,7 +99,7 @@ namespace Orthanc
      * "UnitTestsTransaction" give access to additional information
      * about the underlying SQLite database to be used in unit tests.
      **/
-    class UnitTestsTransaction : public ITransaction
+    class UnitTestsTransaction : public BaseDatabaseWrapper::BaseTransaction
     {
     protected:
       SQLite::Connection& db_;

@@ -176,17 +176,17 @@ namespace Orthanc
     {
     private:
       ITransactionContext&  context_;
-      bool                  hasLabelsSupport_;
-      
+      const IDatabaseWrapper::Capabilities& dbCapabilities_;
+
     protected:
       IDatabaseWrapper::ITransaction&  transaction_;
       
     public:
       explicit ReadOnlyTransaction(IDatabaseWrapper::ITransaction& transaction,
                                    ITransactionContext& context,
-                                   bool hasLabelsSupport) :
+                                   const IDatabaseWrapper::Capabilities& dbCapabilities) :
         context_(context),
-        hasLabelsSupport_(hasLabelsSupport),
+        dbCapabilities_(dbCapabilities),
         transaction_(transaction)
       {
       }
@@ -196,9 +196,9 @@ namespace Orthanc
         return context_;
       }
 
-      bool HasLabelsSupport() const
+      const IDatabaseWrapper::Capabilities& GetDatabaseCapabilities() const
       {
-        return hasLabelsSupport_;
+        return dbCapabilities_;
       }
 
       /**
@@ -392,8 +392,8 @@ namespace Orthanc
     public:
       ReadWriteTransaction(IDatabaseWrapper::ITransaction& transaction,
                            ITransactionContext& context,
-                           bool hasLabelsSupport) :
-        ReadOnlyTransaction(transaction, context, hasLabelsSupport)
+                           const IDatabaseWrapper::Capabilities& dbCapabilities) :
+        ReadOnlyTransaction(transaction, context, dbCapabilities)
       {
       }
 
@@ -461,6 +461,13 @@ namespace Orthanc
                              const std::string& value)
       {
         transaction_.SetGlobalProperty(property, shared, value);
+      }
+
+      int64_t IncrementGlobalProperty(GlobalProperty sequence,
+                                      bool shared,
+                                      int64_t increment)
+      {
+        return transaction_.IncrementGlobalProperty(sequence, shared, increment);
       }
 
       void SetMetadata(int64_t id,
@@ -540,7 +547,6 @@ namespace Orthanc
 
     IDatabaseWrapper&                            db_;
     boost::shared_ptr<MainDicomTagsRegistry>     mainDicomTagsRegistry_;  // "shared_ptr" because of PImpl
-    bool                                         hasFlushToDisk_;
 
     // Mutex to protect the configuration options
     boost::shared_mutex                          mutex_;
@@ -575,12 +581,13 @@ namespace Orthanc
       return db_.GetDatabaseVersion();
     }
 
+    const IDatabaseWrapper::Capabilities& GetDatabaseCapabilities() const
+    {
+      return db_.GetDatabaseCapabilities();
+    }
+
     void FlushToDisk();
 
-    bool HasFlushToDisk() const
-    {
-      return hasFlushToDisk_;
-    }
 
     void Apply(IReadOnlyOperations& operations);
   

@@ -45,7 +45,7 @@
 
 namespace Orthanc
 {
-  class OrthancPluginDatabaseV3::Transaction : public IDatabaseWrapper::ITransaction
+  class OrthancPluginDatabaseV3::Transaction : public BaseDatabaseWrapper::BaseTransaction
   {
   private:
     OrthancPluginDatabaseV3&           that_;
@@ -278,6 +278,10 @@ namespace Orthanc
       }
     }
     
+    virtual const IDatabaseWrapper::Capabilities& GetDatabaseCapabilities() const ORTHANC_OVERRIDE
+    {
+      return that_.GetDatabaseCapabilities();
+    }
 
     virtual void Rollback() ORTHANC_OVERRIDE
     {
@@ -1083,7 +1087,8 @@ namespace Orthanc
     library_(library),
     errorDictionary_(errorDictionary),
     database_(database),
-    serverIdentifier_(serverIdentifier)
+    serverIdentifier_(serverIdentifier),
+    dbCapabilities_(false, false /* revision support is updated in open() */, false, false)
   {
     CLOG(INFO, PLUGINS) << "Identifier of this Orthanc server for the global properties "
                         << "of the custom database: \"" << serverIdentifier << "\"";
@@ -1190,6 +1195,11 @@ namespace Orthanc
   void OrthancPluginDatabaseV3::Open()
   {
     CheckSuccess(backend_.open(database_));
+
+    // update the db capabilities
+    uint8_t hasRevisions;
+    CheckSuccess(backend_.hasRevisionsSupport(database_, &hasRevisions));
+    dbCapabilities_.hasRevisionsSupport_ = (hasRevisions != 0);
   }
 
 
@@ -1250,12 +1260,4 @@ namespace Orthanc
     }
   }
 
-  
-  bool OrthancPluginDatabaseV3::HasRevisionsSupport() const
-  {
-    // WARNING: This method requires "Open()" to have been called
-    uint8_t hasRevisions;
-    CheckSuccess(backend_.hasRevisionsSupport(database_, &hasRevisions));
-    return (hasRevisions != 0);
-  }
 }

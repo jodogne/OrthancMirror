@@ -39,10 +39,57 @@ namespace Orthanc
   class DatabaseConstraint;
   class ResourcesContent;
 
+  class OrthancPluginDatabaseV3;
+  class OrthancPluginDatabaseV4;
   
   class IDatabaseWrapper : public boost::noncopyable
   {
   public:
+
+    struct Capabilities
+    {
+      friend OrthancPluginDatabaseV3;
+      friend OrthancPluginDatabaseV4;
+
+    protected:
+      bool hasFlushToDisk_;
+      bool hasRevisionsSupport_;
+      bool hasLabelsSupport_;
+      bool hasAtomicIncrementGlobalProperty_;
+
+    public:
+      Capabilities(bool hasFlushToDisk,
+                   bool hasRevisionsSupport,
+                   bool hasLabelsSupport,
+                   bool hasAtomicIncrementGlobalProperty)
+      : hasFlushToDisk_(hasFlushToDisk),
+        hasRevisionsSupport_(hasRevisionsSupport),
+        hasLabelsSupport_(hasLabelsSupport),
+        hasAtomicIncrementGlobalProperty_(hasAtomicIncrementGlobalProperty)
+      {
+      }
+
+      bool HasFlushToDisk() const
+      {
+        return hasFlushToDisk_;
+      }
+
+      bool HasRevisionsSupport() const
+      {
+        return hasRevisionsSupport_;
+      }
+
+      bool HasLabelsSupport() const
+      {
+        return hasLabelsSupport_;
+      }
+
+      bool HasAtomicIncrementGlobalProperty() const
+      {
+        return hasAtomicIncrementGlobalProperty_;
+      }
+    };
+
     struct CreateInstanceResult : public boost::noncopyable
     {
       bool     isNewPatient_;
@@ -257,6 +304,12 @@ namespace Orthanc
 
       // List all the labels that are present in any resource
       virtual void ListAllLabels(std::set<std::string>& target) = 0;
+    
+      virtual const IDatabaseWrapper::Capabilities& GetDatabaseCapabilities() const = 0;
+
+      virtual int64_t IncrementGlobalProperty(GlobalProperty property,
+                                              int64_t increment,
+                                              bool shared) = 0;
     };
 
 
@@ -270,8 +323,6 @@ namespace Orthanc
 
     virtual void FlushToDisk() = 0;
 
-    virtual bool HasFlushToDisk() const = 0;
-
     virtual ITransaction* StartTransaction(TransactionType type,
                                            IDatabaseListener& listener) = 0;
 
@@ -280,8 +331,6 @@ namespace Orthanc
     virtual void Upgrade(unsigned int targetVersion,
                          IStorageArea& storageArea) = 0;
 
-    virtual bool HasRevisionsSupport() const = 0;
-
-    virtual bool HasLabelsSupport() const = 0;
+    virtual const IDatabaseWrapper::Capabilities& GetDatabaseCapabilities() const = 0;
   };
 }

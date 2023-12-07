@@ -607,7 +607,7 @@ namespace Orthanc
           
           Transaction transaction(db_, *factory_, TransactionType_ReadOnly);  // TODO - Only if not "TransactionType_Implicit"
           {
-            ReadOnlyTransaction t(transaction.GetDatabaseTransaction(), transaction.GetContext(), db_.HasLabelsSupport());
+            ReadOnlyTransaction t(transaction.GetDatabaseTransaction(), transaction.GetContext(), db_.GetDatabaseCapabilities());
             readOperations->Apply(t);
           }
           transaction.Commit();
@@ -618,7 +618,7 @@ namespace Orthanc
           
           Transaction transaction(db_, *factory_, TransactionType_ReadWrite);
           {
-            ReadWriteTransaction t(transaction.GetDatabaseTransaction(), transaction.GetContext(), db_.HasLabelsSupport());
+            ReadWriteTransaction t(transaction.GetDatabaseTransaction(), transaction.GetContext(), db_.GetDatabaseCapabilities());
             writeOperations->Apply(t);
           }
           transaction.Commit();
@@ -654,7 +654,6 @@ namespace Orthanc
   StatelessDatabaseOperations::StatelessDatabaseOperations(IDatabaseWrapper& db) : 
     db_(db),
     mainDicomTagsRegistry_(new MainDicomTagsRegistry),
-    hasFlushToDisk_(db.HasFlushToDisk()),
     maxRetries_(0)
   {
   }
@@ -939,7 +938,7 @@ namespace Orthanc
           }
 
           if ((expandFlags & ExpandResourceFlags_IncludeLabels) &&
-              transaction.HasLabelsSupport())
+              transaction.GetDatabaseCapabilities().HasLabelsSupport())
           {
             transaction.ListLabels(target.labels_, internalId);
           }
@@ -1961,7 +1960,7 @@ namespace Orthanc
     };
 
     if (!labels.empty() &&
-        !db_.HasLabelsSupport())
+        !db_.GetDatabaseCapabilities().HasLabelsSupport())
     {
       throw OrthancException(ErrorCode_NotImplemented, "The database backend doesn't support labels");
     }
@@ -2431,32 +2430,39 @@ namespace Orthanc
 
       virtual void Apply(ReadWriteTransaction& transaction) ORTHANC_OVERRIDE
       {
-        std::string oldString;
-
-        if (transaction.LookupGlobalProperty(oldString, sequence_, shared_))
+        if (transaction.GetDatabaseCapabilities().HasAtomicIncrementGlobalProperty())
         {
-          uint64_t oldValue;
-      
-          try
-          {
-            oldValue = boost::lexical_cast<uint64_t>(oldString);
-          }
-          catch (boost::bad_lexical_cast&)
-          {
-            LOG(ERROR) << "Cannot read the global sequence "
-                       << boost::lexical_cast<std::string>(sequence_) << ", resetting it";
-            oldValue = 0;
-          }
-
-          newValue_ = oldValue + 1;
+          newValue_ = static_cast<uint64_t>(transaction.IncrementGlobalProperty(sequence_, shared_, 1));
         }
         else
         {
-          // Initialize the sequence at "1"
-          newValue_ = 1;
-        }
+          std::string oldString;
 
-        transaction.SetGlobalProperty(sequence_, shared_, boost::lexical_cast<std::string>(newValue_));
+          if (transaction.LookupGlobalProperty(oldString, sequence_, shared_))
+          {
+            uint64_t oldValue;
+        
+            try
+            {
+              oldValue = boost::lexical_cast<uint64_t>(oldString);
+            }
+            catch (boost::bad_lexical_cast&)
+            {
+              LOG(ERROR) << "Cannot read the global sequence "
+                        << boost::lexical_cast<std::string>(sequence_) << ", resetting it";
+              oldValue = 0;
+            }
+
+            newValue_ = oldValue + 1;
+          }
+          else
+          {
+            // Initialize the sequence at "1"
+            newValue_ = 1;
+          }
+
+          transaction.SetGlobalProperty(sequence_, shared_, boost::lexical_cast<std::string>(newValue_));
+        }
       }
     };
 
@@ -3683,6 +3689,6 @@ namespace Orthanc
   bool StatelessDatabaseOperations::HasLabelsSupport()
   {
     boost::shared_lock<boost::shared_mutex> lock(mutex_);
-    return db_.HasLabelsSupport();
+    return db_.GetDatabaseCapabilities().HasLabelsSupport();
   }
 }

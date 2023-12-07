@@ -42,9 +42,7 @@ namespace Orthanc
     std::string                             serverIdentifier_;
     bool                                    open_;
     unsigned int                            databaseVersion_;
-    bool                                    hasFlushToDisk_;
-    bool                                    hasRevisionsSupport_;
-    bool                                    hasLabelsSupport_;
+    IDatabaseWrapper::Capabilities          dbCapabilities_;
 
     void CheckSuccess(OrthancPluginErrorCode code) const;
 
@@ -82,8 +80,6 @@ namespace Orthanc
 
     virtual void FlushToDisk() ORTHANC_OVERRIDE;
 
-    virtual bool HasFlushToDisk() const ORTHANC_OVERRIDE;
-
     virtual IDatabaseWrapper::ITransaction* StartTransaction(TransactionType type,
                                                              IDatabaseListener& listener)
       ORTHANC_OVERRIDE;
@@ -93,9 +89,7 @@ namespace Orthanc
     virtual void Upgrade(unsigned int targetVersion,
                          IStorageArea& storageArea) ORTHANC_OVERRIDE;    
 
-    virtual bool HasRevisionsSupport() const ORTHANC_OVERRIDE;
-
-    virtual bool HasLabelsSupport() const ORTHANC_OVERRIDE;
+    virtual const IDatabaseWrapper::Capabilities& GetDatabaseCapabilities() const ORTHANC_OVERRIDE;
   };
 }
 

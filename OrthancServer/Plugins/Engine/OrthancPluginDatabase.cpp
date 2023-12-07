@@ -43,7 +43,7 @@
 namespace Orthanc
 {
   class OrthancPluginDatabase::Transaction :
-    public IDatabaseWrapper::ITransaction,
+    public BaseDatabaseWrapper::BaseTransaction,
     public Compatibility::ICreateInstance,
     public Compatibility::IGetChildrenMetadata,
     public Compatibility::ILookupResources,
@@ -241,6 +241,11 @@ namespace Orthanc
     {
       assert(that_.activeTransaction_ != NULL);    
       that_.activeTransaction_ = NULL;
+    }
+
+    virtual const IDatabaseWrapper::Capabilities& GetDatabaseCapabilities() const ORTHANC_OVERRIDE
+    {
+      return that_.GetDatabaseCapabilities();
     }
 
     IDatabaseListener& GetDatabaseListener() const
@@ -1472,7 +1477,8 @@ namespace Orthanc
     payload_(payload),
     activeTransaction_(NULL),
     fastGetTotalSize_(false),
-    currentDiskSize_(0)
+    currentDiskSize_(0),
+    dbCapabilities_(false, false, false, false)
   {
     static const char* const MISSING = "  Missing extension in database index plugin: ";
     
