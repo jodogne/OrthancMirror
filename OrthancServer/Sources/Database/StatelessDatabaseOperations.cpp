@@ -3153,7 +3153,11 @@ namespace Orthanc
             if (!transaction.CreateInstance(status, instanceId, hashPatient_,
                                             hashStudy_, hashSeries_, hashInstance_))
             {
-              throw OrthancException(ErrorCode_InternalError, "No new instance while overwriting; this should not happen.");
+              // Note that, sometime, it does not create a new instance, 
+              // in very rare occasions in READ COMMITTED mode when multiple clients are pushing the same instance at the same time,
+              // this thread will not create the instance because another thread has created it in the meantime.
+              // At the end, there is always a thread that creates the instance and this is what we expect.
+              throw OrthancException(ErrorCode_InternalError, HttpStatus_409_Conflict, "No new instance while overwriting; this might happen if another client has pushed the same instance at the same time.");
             }
           }
           else
