@@ -1182,7 +1182,7 @@ static bool StartHttpServer(ServerContext& context,
       else
       {
         context.SetRestApiWriteToFileSystemEnabled(false);
-        LOG(WARNING) << "REST API cannot write to the file system.";
+        LOG(WARNING) << "REST API cannot write to the file system bacause the \"RestApiWriteToFileSystemEnabled\" configuration is set to false.  The URI /instances/../export is disabled.  This is the most secure configuration.";
       }
 
       if (lock.GetConfiguration().GetBooleanParameter("WebDavEnabled", true))
