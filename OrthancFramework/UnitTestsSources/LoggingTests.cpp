@@ -69,7 +69,7 @@ static bool GetLogLinePayload(std::string& payload,
                               const std::string& logLine)
 {
   const char* regexStr = "[A-Z][0-9]{4} [0-9]{2}:[0-9]{2}:[0-9]{2}.[0-9]{6} "
-    "[a-zA-Z\\.\\-_]+:[0-9]+\\] (.*)" EOLSTRING "$";
+    ".{16} [a-zA-Z\\.\\-_]+:[0-9]+\\] (.*)" EOLSTRING "$";
 
   boost::regex regexObj(regexStr);
 
