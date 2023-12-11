@@ -48,7 +48,7 @@ namespace Orthanc
       {
         StorageCache& storageCache_;
       public:
-        Accessor(StorageCache& cache);
+        explicit Accessor(StorageCache& cache);
 
         void Add(const std::string& uuid, 
                  FileContentType contentType,

@@ -59,7 +59,7 @@ namespace Orthanc
 
 
     public:
-      Accessor(MemoryStringCache& cache);
+      explicit Accessor(MemoryStringCache& cache);
       ~Accessor();
 
       bool Fetch(std::string& value, const std::string& key);
