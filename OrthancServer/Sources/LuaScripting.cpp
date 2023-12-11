@@ -245,7 +245,7 @@ namespace Orthanc
     JobEvent event_;
 
   public:
-    LuaJobEvent(const JobEvent& event) :
+    explicit LuaJobEvent(const JobEvent& event) :
       event_(event)
     {
     }
