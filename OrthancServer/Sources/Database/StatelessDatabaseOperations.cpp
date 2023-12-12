@@ -3157,7 +3157,9 @@ namespace Orthanc
               // in very rare occasions in READ COMMITTED mode when multiple clients are pushing the same instance at the same time,
               // this thread will not create the instance because another thread has created it in the meantime.
               // At the end, there is always a thread that creates the instance and this is what we expect.
-              throw OrthancException(ErrorCode_InternalError, HttpStatus_409_Conflict, "No new instance while overwriting; this might happen if another client has pushed the same instance at the same time.");
+
+              // Note, we must delete the attachments that have already been stored from this failed insertion (they have not yet been added into the DB)
+              throw OrthancException(ErrorCode_DuplicateResource, "No new instance while overwriting; this might happen if another client has pushed the same instance at the same time.");
             }
           }
           else
