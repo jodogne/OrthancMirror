@@ -178,6 +178,9 @@ namespace Orthanc
 
     if (state_ == State_WritingHeader)
     {
+      // always include this header to prevent MIME Confusion attacks: https://cheatsheetseries.owasp.org/cheatsheets/HTTP_Headers_Cheat_Sheet.html#x-content-type-options
+      AddHeader("X-Content-Type-Options", "nosniff");
+
       // Send the HTTP header before writing the body
 
       stream_.OnHttpStatusReceived(status_);
@@ -318,8 +321,6 @@ namespace Orthanc
     isDeflateAllowed_(false),
     isGzipAllowed_(false)
   {
-    // prevent MIME Confusion attacks: https://cheatsheetseries.owasp.org/cheatsheets/HTTP_Headers_Cheat_Sheet.html#x-content-type-options
-    stateMachine_.AddHeader("X-Content-Type-Options", "nosniff");
   }
 
   void HttpOutput::SetDeflateAllowed(bool allowed)
