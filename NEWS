@@ -91,6 +91,9 @@ Maintenance
 * Upgraded minizip library to stay away from CVE-2023-45853 although Orthanc is likely not affected since zip
   filenames are based on DICOM Tag values whose length is limited in size.
   Great thanks to James Addison for notifying us about the vulnerability and patch to apply !
+* Fix XSS in Orthanc error reporting (as reported by Sébastien Doria, Vumetric Cybersecurity) by:
+  - always including a 'Content-Type' header in HTTP responses with a body.
+  - always including 'X-Content-Type-Options: nosniff'
 
 
 Version 1.12.1 (2023-07-04)
