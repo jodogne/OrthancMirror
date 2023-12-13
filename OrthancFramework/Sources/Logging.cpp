@@ -27,7 +27,6 @@
 #include "OrthancException.h"
 
 #include <stdint.h>
-#include <boost/thread/thread.hpp>
 
 
 /*********************************************************
@@ -473,6 +472,7 @@ namespace Orthanc
  * mimics behavior from Google Log.
  *********************************************************/
 
+#include <boost/thread/thread.hpp>
 #include <cassert>
 
 namespace

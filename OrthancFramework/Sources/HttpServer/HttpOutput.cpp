@@ -178,6 +178,9 @@ namespace Orthanc
 
     if (state_ == State_WritingHeader)
     {
+      // always include this header to prevent MIME Confusion attacks: https://cheatsheetseries.owasp.org/cheatsheets/HTTP_Headers_Cheat_Sheet.html#x-content-type-options
+      AddHeader("X-Content-Type-Options", "nosniff");
+
       // Send the HTTP header before writing the body
 
       stream_.OnHttpStatusReceived(status_);
@@ -351,8 +354,8 @@ namespace Orthanc
 
 
   void HttpOutput::SendStatus(HttpStatus status,
-			      const char* message,
-			      size_t messageSize)
+                              const char* message,
+                              size_t messageSize)
   {
     if (status == HttpStatus_301_MovedPermanently ||
         //status == HttpStatus_401_Unauthorized ||
@@ -363,6 +366,13 @@ namespace Orthanc
     }
     
     stateMachine_.SetHttpStatus(status);
+
+    if (messageSize > 0)
+    {
+      // we assume that the body always contains a json description of the error
+      stateMachine_.SetContentType("application/json");
+    }
+
     stateMachine_.SendBody(message, messageSize);
   }
 

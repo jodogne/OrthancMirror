@@ -664,7 +664,6 @@ namespace Orthanc
 
     if (mainDicomTagsComparisons.size() > 0)
     {
-      std::string comparisons;
       for (std::vector<std::string>::const_iterator it = mainDicomTagsComparisons.begin(); it < mainDicomTagsComparisons.end(); ++it)
       {
         sql += (" AND internalId IN (SELECT id FROM MainDicomTags WHERE " + *it + ") ");
