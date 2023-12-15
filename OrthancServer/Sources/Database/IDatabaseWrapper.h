@@ -56,16 +56,19 @@ namespace Orthanc
       bool hasRevisionsSupport_;
       bool hasLabelsSupport_;
       bool hasAtomicIncrementGlobalProperty_;
+      bool hasUpdateAndGetStatistics_;
 
     public:
       Capabilities(bool hasFlushToDisk,
                    bool hasRevisionsSupport,
                    bool hasLabelsSupport,
-                   bool hasAtomicIncrementGlobalProperty)
+                   bool hasAtomicIncrementGlobalProperty,
+                   bool hasUpdateAndGetStatistics)
       : hasFlushToDisk_(hasFlushToDisk),
         hasRevisionsSupport_(hasRevisionsSupport),
         hasLabelsSupport_(hasLabelsSupport),
-        hasAtomicIncrementGlobalProperty_(hasAtomicIncrementGlobalProperty)
+        hasAtomicIncrementGlobalProperty_(hasAtomicIncrementGlobalProperty),
+        hasUpdateAndGetStatistics_(hasUpdateAndGetStatistics)
       {
       }
 
@@ -88,6 +91,12 @@ namespace Orthanc
       {
         return hasAtomicIncrementGlobalProperty_;
       }
+
+      bool HasUpdateAndGetStatistics() const
+      {
+        return hasUpdateAndGetStatistics_;
+      }
+
     };
 
     struct CreateInstanceResult : public boost::noncopyable
@@ -310,6 +319,13 @@ namespace Orthanc
       virtual int64_t IncrementGlobalProperty(GlobalProperty property,
                                               int64_t increment,
                                               bool shared) = 0;
+
+      virtual void UpdateAndGetStatistics(int64_t& patientsCount,
+                                          int64_t& studiesCount,
+                                          int64_t& seriesCount,
+                                          int64_t& instancesCount,
+                                          int64_t& compressedSize,
+                                          int64_t& uncompressedSize) = 0;
     };
 
 

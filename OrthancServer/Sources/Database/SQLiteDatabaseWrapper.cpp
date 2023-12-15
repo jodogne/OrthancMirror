@@ -1332,7 +1332,11 @@ namespace Orthanc
     activeTransaction_(NULL), 
     signalRemainingAncestor_(NULL),
     version_(0),
-    dbCapabilities_(true, false /* TODO: implement revisions in SQLite */, true, false)
+    dbCapabilities_(true,  /* hasFlushToDisk */
+                    false, /* hasRevisionsSupport TODO: implement revisions in SQLite */ 
+                    true,  /* hasLabelsSupport */
+                    false, /* hasAtomicIncrementGlobalProperty */
+                    false  /* hasUpdateAndGetStatistics */)
   {
     db_.Open(path);
   }
@@ -1342,7 +1346,11 @@ namespace Orthanc
     activeTransaction_(NULL), 
     signalRemainingAncestor_(NULL),
     version_(0),
-    dbCapabilities_(true, false /* TODO: implement revisions in SQLite */, true, false)
+    dbCapabilities_(true,  /* hasFlushToDisk */
+                    false, /* hasRevisionsSupport TODO: implement revisions in SQLite */ 
+                    true,  /* hasLabelsSupport */
+                    false, /* hasAtomicIncrementGlobalProperty */
+                    false  /* hasUpdateAndGetStatistics */)
   {
     db_.OpenInMemory();
   }

@@ -1102,7 +1102,54 @@ namespace Orthanc
                                                         /* out */ uint64_t& countSeries, 
                                                         /* out */ uint64_t& countInstances)
   {
-    class Operations : public ReadOnlyOperationsT6<uint64_t&, uint64_t&, uint64_t&, uint64_t&, uint64_t&, uint64_t&>
+    // new code that updates and gets all statistics.
+    // I.e, PostgreSQL now store "changes" to apply to the statistics to prevent row locking
+    // of the GlobalIntegers table while multiple clients are inserting/deleting new resources.
+    // Then, the statistics are updated when requested to make sure they are correct.
+    class Operations : public IReadWriteOperations
+    {
+    private:
+      int64_t diskSize_;
+      int64_t uncompressedSize_;
+      int64_t countPatients_;
+      int64_t countStudies_;
+      int64_t countSeries_;
+      int64_t countInstances_;
+
+    public:
+      Operations() :
+        diskSize_(0),
+        uncompressedSize_(0),
+        countPatients_(0),
+        countStudies_(0),
+        countSeries_(0),
+        countInstances_(0)
+      {
+      }
+
+      void GetValues(uint64_t& diskSize,
+                     uint64_t& uncompressedSize,
+                     uint64_t& countPatients, 
+                     uint64_t& countStudies, 
+                     uint64_t& countSeries, 
+                     uint64_t& countInstances) const
+      {
+        diskSize = static_cast<uint64_t>(diskSize_);
+        uncompressedSize = static_cast<uint64_t>(uncompressedSize_);
+        countPatients = static_cast<uint64_t>(countPatients_);
+        countStudies = static_cast<uint64_t>(countStudies_);
+        countSeries = static_cast<uint64_t>(countSeries_);
+        countInstances = static_cast<uint64_t>(countInstances_);
+      }
+
+      virtual void Apply(ReadWriteTransaction& transaction) ORTHANC_OVERRIDE
+      {
+        transaction.UpdateAndGetStatistics(countPatients_, countStudies_, countSeries_, countInstances_, diskSize_, uncompressedSize_);
+      }
+    };
+
+    // legacy oprations that reads each entry individualy
+    class LegacyOperations : public ReadOnlyOperationsT6<uint64_t&, uint64_t&, uint64_t&, uint64_t&, uint64_t&, uint64_t&>
     {
     public:
       virtual void ApplyTuple(ReadOnlyTransaction& transaction,
@@ -1116,10 +1163,20 @@ namespace Orthanc
         tuple.get<5>() = transaction.GetResourcesCount(ResourceType_Instance);
       }
     };
-    
-    Operations operations;
-    operations.Apply(*this, diskSize, uncompressedSize, countPatients,
-                     countStudies, countSeries, countInstances);
+
+    if (GetDatabaseCapabilities().HasUpdateAndGetStatistics())
+    {
+      Operations operations;
+      Apply(operations);
+
+      operations.GetValues(diskSize, uncompressedSize, countPatients, countStudies, countSeries, countInstances);
+    } 
+    else
+    {   
+      LegacyOperations operations;
+      operations.Apply(*this, diskSize, uncompressedSize, countPatients,
+                       countStudies, countSeries, countInstances);
+    }
   }
 
 

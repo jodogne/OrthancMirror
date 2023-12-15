@@ -791,7 +791,25 @@ namespace Orthanc
 
       return response.increment_global_property().new_value();
     }
-    
+
+    virtual void UpdateAndGetStatistics(int64_t& patientsCount,
+                                        int64_t& studiesCount,
+                                        int64_t& seriesCount,
+                                        int64_t& instancesCount,
+                                        int64_t& compressedSize,
+                                        int64_t& uncompressedSize) ORTHANC_OVERRIDE
+    {
+      DatabasePluginMessages::TransactionResponse response;
+      ExecuteTransaction(response, DatabasePluginMessages::OPERATION_UPDATE_AND_GET_STATISTICS);
+
+      patientsCount = response.update_and_get_statistics().patients_count();
+      studiesCount = response.update_and_get_statistics().studies_count();
+      seriesCount = response.update_and_get_statistics().series_count();
+      instancesCount = response.update_and_get_statistics().instances_count();
+      compressedSize = response.update_and_get_statistics().total_compressed_size();
+      uncompressedSize = response.update_and_get_statistics().total_uncompressed_size();
+    }
+
     virtual bool LookupMetadata(std::string& target,
                                 int64_t& revision,
                                 int64_t id,
@@ -1275,7 +1293,7 @@ namespace Orthanc
     serverIdentifier_(serverIdentifier),
     open_(false),
     databaseVersion_(0),
-    dbCapabilities_(false, false, false, false) // updated in Open()
+    dbCapabilities_(false, false, false, false, false) // updated in Open()
   {
     CLOG(INFO, PLUGINS) << "Identifier of this Orthanc server for the global properties "
                         << "of the custom database: \"" << serverIdentifier << "\"";
@@ -1349,6 +1367,7 @@ namespace Orthanc
       dbCapabilities_.hasRevisionsSupport_ = systemInfo.supports_revisions();
       dbCapabilities_.hasLabelsSupport_ = systemInfo.supports_labels();
       dbCapabilities_.hasAtomicIncrementGlobalProperty_ = systemInfo.supports_increment_global_property();
+      dbCapabilities_.hasUpdateAndGetStatistics_ = systemInfo.has_update_and_get_statistics();
     }
 
     open_ = true;

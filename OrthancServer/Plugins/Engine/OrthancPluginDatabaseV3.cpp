@@ -1088,7 +1088,11 @@ namespace Orthanc
     errorDictionary_(errorDictionary),
     database_(database),
     serverIdentifier_(serverIdentifier),
-    dbCapabilities_(false, false /* revision support is updated in open() */, false, false)
+    dbCapabilities_(false,  /* hasFlushToDisk */
+                    false,  /* revision support is updated in open() */ 
+                    false,  /* hasLabelsSupport */
+                    false,  /* hasAtomicIncrementGlobalProperty */
+                    false   /* hasUpdateAndGetStatistics */)
   {
     CLOG(INFO, PLUGINS) << "Identifier of this Orthanc server for the global properties "
                         << "of the custom database: \"" << serverIdentifier << "\"";
