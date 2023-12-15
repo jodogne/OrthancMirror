@@ -42,6 +42,17 @@ namespace Orthanc
       {
         throw OrthancException(ErrorCode_NotImplemented);  // Not supported
       }
+
+      virtual void UpdateAndGetStatistics(int64_t& patientsCount,
+                                          int64_t& studiesCount,
+                                          int64_t& seriesCount,
+                                          int64_t& instancesCount,
+                                          int64_t& compressedSize,
+                                          int64_t& uncompressedSize) ORTHANC_OVERRIDE
+      {
+        throw OrthancException(ErrorCode_NotImplemented);  // Not supported
+      }
+
     };
 
   };

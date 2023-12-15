@@ -470,6 +470,16 @@ namespace Orthanc
         return transaction_.IncrementGlobalProperty(sequence, shared, increment);
       }
 
+      void UpdateAndGetStatistics(int64_t& patientsCount,
+                                  int64_t& studiesCount,
+                                  int64_t& seriesCount,
+                                  int64_t& instancesCount,
+                                  int64_t& compressedSize,
+                                  int64_t& uncompressedSize)
+      {
+        return transaction_.UpdateAndGetStatistics(patientsCount, studiesCount, seriesCount, instancesCount, compressedSize, uncompressedSize);
+      }
+
       void SetMetadata(int64_t id,
                        MetadataType type,
                        const std::string& value,

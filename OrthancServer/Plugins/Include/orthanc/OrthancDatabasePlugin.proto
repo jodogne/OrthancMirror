@@ -137,6 +137,7 @@ message GetSystemInformation {
     bool supports_revisions = 3;
     bool supports_labels = 4;
     bool supports_increment_global_property = 5;
+    bool has_update_and_get_statistics = 6;
   }
 }
 
@@ -277,6 +278,7 @@ enum TransactionOperation {
   OPERATION_REMOVE_LABEL = 46;     // New in Orthanc 1.12.0
   OPERATION_LIST_LABELS = 47;      // New in Orthanc 1.12.0
   OPERATION_INCREMENT_GLOBAL_PROPERTY = 48;      // New in Orthanc 1.12.X
+  OPERATION_UPDATE_AND_GET_STATISTICS = 49;      // New in Orthanc 1.12.X
 }
 
 message Rollback {
@@ -641,6 +643,19 @@ message IncrementGlobalProperty {
   }
 }
 
+message UpdateAndGetStatistics {
+  message Request {
+  }
+  message Response {
+    int64 patients_count = 1;
+    int64 studies_count = 2;
+    int64 series_count = 3;
+    int64 instances_count = 4;
+    int64 total_compressed_size = 5;
+    int64 total_uncompressed_size = 6;
+  }
+}
+
 message ClearMainDicomTags {
   message Request {
     int64 id = 1;
@@ -848,6 +863,7 @@ message TransactionRequest {
   RemoveLabel.Request                     remove_label = 146;
   ListLabels.Request                      list_labels = 147;
   IncrementGlobalProperty.Request         increment_global_property = 148;
+  UpdateAndGetStatistics.Request          update_and_get_statistics = 149;
 }
 
 message TransactionResponse {
@@ -900,6 +916,7 @@ message TransactionResponse {
   RemoveLabel.Response                     remove_label = 146;
   ListLabels.Response                      list_labels = 147;
   IncrementGlobalProperty.Response         increment_global_property = 148;
+  UpdateAndGetStatistics.Response          update_and_get_statistics = 149;
 }
 
 enum RequestType {
