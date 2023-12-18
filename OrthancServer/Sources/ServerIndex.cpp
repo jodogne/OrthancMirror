@@ -417,11 +417,17 @@ namespace Orthanc
       
       if (mode == MaxStorageMode_Recycle)
       {
-        LOG(WARNING) << "Maximum Storage mode: Recycle";
+        if (maximumStorageSize_ > 0 || maximumPatients_ > 0)
+        {
+          LOG(WARNING) << "Maximum Storage mode: Recycle";
+        }
       }
       else
       {
-        LOG(WARNING) << "Maximum Storage mode: Reject";
+        if (maximumStorageSize_ > 0 || maximumPatients_ > 0)
+        {
+          LOG(WARNING) << "Maximum Storage mode: Reject";
+        }
       }
     }
 
