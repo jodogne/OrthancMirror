@@ -51,7 +51,9 @@
   // In "Reject" mode, the sender will receive a 0xA700 DIMSE status code
   // if the instance was sent through C-Store, a 507 HTTP status code
   // if using the REST API and a 0xA700 Failure reason when using
-  // DicomWeb Stow-RS 
+  // DicomWeb Stow-RS.
+  // Note: this value is taken into account only if you have set 
+  // a MaximumStorageSize != 0 or a MaximumPatientCount != 0
   // Allowed values: "Recycle", "Reject"
   // (new in Orthanc 1.11.2)
   "MaximumStorageMode" : "Recycle",

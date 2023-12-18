@@ -342,8 +342,10 @@ namespace Orthanc
     {
       call.GetDocumentation()
         .SetTag("Patients")
-        .SetSummary("Protect one patient against recycling")
-        .SetDescription("Check out configuration options `MaximumStorageSize` and `MaximumPatientCount`")
+        .SetSummary("Protect/Unprotect a patient against recycling")
+        .SetDescription("Protects a patient by sending `1` or `true` in the payload request. "
+                        "Unprotects a patient by sending `0` or `false` in the payload requests. "
+                        "More info: https://orthanc.uclouvain.be/book/faq/features.html#recycling-protection")
         .SetUriArgument("id", "Orthanc identifier of the patient of interest");
       return;
     }
