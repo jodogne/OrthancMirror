@@ -64,6 +64,7 @@ namespace Orthanc
       bool keepAlive_;
       unsigned int keepAliveTimeout_;
       std::list<std::string> headers_;
+      bool hasXContentTypeOptions_;
 
       std::string multipartBoundary_;
       std::string multipartContentType_;
