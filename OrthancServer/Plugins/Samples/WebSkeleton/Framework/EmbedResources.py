@@ -224,7 +224,7 @@ def WriteResource(cpp, item):
 
 cpp = open(TARGET_BASE_FILENAME + '.cpp', 'w')
 
-print os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+print(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 cpp.write("""
 #include "%s.h"
