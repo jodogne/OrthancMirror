@@ -124,7 +124,7 @@ if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux" OR
     ${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD" OR
     ${CMAKE_SYSTEM_NAME} STREQUAL "OpenBSD")
 
-  if (NOT ${CMAKE_SYSTEM_VERSION} STREQUAL "LinuxStandardBase" AND
+  if (# NOT ${CMAKE_SYSTEM_VERSION} STREQUAL "LinuxStandardBase" AND
       NOT ${CMAKE_SYSTEM_NAME} STREQUAL "OpenBSD" AND
       NOT ${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD")
     # The "--no-undefined" linker flag makes the shared libraries
