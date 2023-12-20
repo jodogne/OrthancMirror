@@ -28,6 +28,7 @@
 #include "../OrthancException.h"
 #include "../Toolbox.h"
 
+#include <cassert>
 #include <boost/lexical_cast.hpp>
 
 
