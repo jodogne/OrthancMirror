@@ -40,6 +40,7 @@
 
 #include "DatabaseConstraint.h"
 
+#include <cassert>
 #include <boost/lexical_cast.hpp>
 #include <list>
 
