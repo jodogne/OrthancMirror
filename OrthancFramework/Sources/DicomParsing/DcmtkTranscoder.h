@@ -41,6 +41,7 @@ namespace Orthanc
     unsigned int  lossyQuality_;
     
     bool InplaceTranscode(DicomTransferSyntax& selectedSyntax /* out */,
+                          std::string& failureReason /* out */,
                           DcmFileFormat& dicom,
                           const std::set<DicomTransferSyntax>& allowedSyntaxes,
                           bool allowNewSopInstanceUid);
