@@ -120,7 +120,7 @@
 
 #define ORTHANC_PLUGINS_MINIMAL_MAJOR_NUMBER     1
 #define ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER     12
-#define ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER  1
+#define ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER  2
 
 
 #if !defined(ORTHANC_PLUGINS_VERSION_IS_ABOVE)
@@ -9359,21 +9359,22 @@ extern "C"
   }
 
 
-/**
-   * @brief Sets the name of the current thread
+  /**
+   * @brief Set the name of the current thread.
    *
-   * This function sets the name of the thread that is calling it.
-   * This name is used in the logs.  This function shall be called only from threads that
-   * the plugin has created itself.
-   * 
+   * This function gives a name to the thread that is calling this
+   * function. This name is used in the Orthanc logs. This function
+   * must only be called from threads that the plugin has created
+   * itself.
+   *
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
-   * @param threadName The name of the current thread.  A Thread name can not be larger than 16 characters.
+   * @param threadName The name of the current thread. A thread name cannot be longer than 16 characters.
    * @return 0 if success, other value if error.
    * @ingroup Toolbox
    **/
   ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginSetCurrentThreadName(
-    OrthancPluginContext*                        context,
-    const char*                                  threadName)
+    OrthancPluginContext*  context,
+    const char*            threadName)
   {
     return context->InvokeService(context, _OrthancPluginService_SetCurrentThreadName, threadName);
   }

@@ -37,6 +37,7 @@
 #include "Image.h"
 #include "ImageProcessing.h"
 
+#include <cassert>
 #include <stdio.h>
 #include <memory>
 #include <boost/lexical_cast.hpp>

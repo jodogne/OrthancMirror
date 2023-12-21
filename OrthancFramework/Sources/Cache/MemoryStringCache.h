@@ -48,7 +48,7 @@ namespace Orthanc
   class ORTHANC_PUBLIC MemoryStringCache : public boost::noncopyable
   {
   public:
-    class Accessor : public boost::noncopyable
+    class ORTHANC_PUBLIC Accessor : public boost::noncopyable
     {
     protected:
       MemoryStringCache& cache_;

@@ -44,6 +44,8 @@
 #  endif
 #endif
 
+static const std::string X_CONTENT_TYPE_OPTIONS = "X-Content-Type-Options";
+
 
 namespace Orthanc
 {
@@ -58,7 +60,8 @@ namespace Orthanc
     contentLength_(0),
     contentPosition_(0),
     keepAlive_(isKeepAlive),
-    keepAliveTimeout_(keepAliveTimeout)
+    keepAliveTimeout_(keepAliveTimeout),
+    hasXContentTypeOptions_(false)
   {
   }
 
@@ -142,6 +145,11 @@ namespace Orthanc
       throw OrthancException(ErrorCode_BadSequenceOfCalls);
     }
 
+    if (header == X_CONTENT_TYPE_OPTIONS)
+    {
+      hasXContentTypeOptions_ = true;
+    }
+
     headers_.push_back(header + ": " + value + "\r\n");
   }
 
@@ -178,9 +186,6 @@ namespace Orthanc
 
     if (state_ == State_WritingHeader)
     {
-      // always include this header to prevent MIME Confusion attacks: https://cheatsheetseries.owasp.org/cheatsheets/HTTP_Headers_Cheat_Sheet.html#x-content-type-options
-      AddHeader("X-Content-Type-Options", "nosniff");
-
       // Send the HTTP header before writing the body
 
       stream_.OnHttpStatusReceived(status_);
@@ -218,6 +223,13 @@ namespace Orthanc
              it = headers_.begin(); it != headers_.end(); ++it)
       {
         s += *it;
+      }
+
+      if (!hasXContentTypeOptions_)
+      {
+        // Always include this header to prevent MIME Confusion attacks:
+        // https://cheatsheetseries.owasp.org/cheatsheets/HTTP_Headers_Cheat_Sheet.html#x-content-type-options
+        s += X_CONTENT_TYPE_OPTIONS + ": nosniff\r\n";
       }
 
       if (status_ != HttpStatus_200_Ok)
@@ -369,8 +381,8 @@ namespace Orthanc
 
     if (messageSize > 0)
     {
-      // we assume that the body always contains a json description of the error
-      stateMachine_.SetContentType("application/json");
+      // Assume that the body always contains a textual description of the error
+      stateMachine_.SetContentType("text/plain");
     }
 
     stateMachine_.SendBody(message, messageSize);
