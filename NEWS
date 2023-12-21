@@ -1,72 +1,66 @@
 Pending changes in the mainline
 ===============================
 
+
+Version 1.12.2 (2023-12-19)
+===========================
+
 General
 -------
 
 * Performance:
   - Allow multiple plugins to use the plugin SDK at the same time.  In previous versions,
     functions like instance transcoding or instance reading where mutually exclusive.
-    This can bring some significant improvements particularly in viewers.
+    This can bring some significant improvements, especially in viewers.
   - Optimized the StorageCache to prevent loading the same file multiple times if
     multiple users request the same file at the same time.
   - The StorageCache is now also storing transcoded instances that have been requested by /file?transcode=...
     that is now used by the DICOMweb plugin.  This speeds up retrieval of transcoded frames through WADO-RS.
   - Now displaying timings when reading from/writing to disk in the verbose logs.
-* Housekeeper plugin:
-  - Update to rebuild the cache of the DICOMweb plugin when updating to DICOMweb 1.15.
-  - New trigger configuration: "DicomWebCacheChange"
-  - Fixed reading the triggers configuration.
-* HTTP Compression:
+* HTTP compression:
   - The default value of the "HttpCompressionEnabled" is now false by default.  This reduces
     the Orthanc overall CPU usage and latency.  This is suitable for setups with large  
     bandwidth network like LAN.
   - When "HttpCompressionEnabled" is true, only the content that is clearly identified as
     compressible is compressed (JSON, XML, HTML, text, ...).  DICOM files are never
     compressed over HTTP.  In prior versions, all content types were compressed.
-    This notably greatly improve loading time of large DICOM 
+    This notably greatly improves loading time of large DICOM 
     files through WADO-RS e.g in StoneViewer when working on large bandwidth networks.
   - When "HttpCompressionEnabled" is true, content < 2KB are never compressed.
 * Logs:
   - Each line of log now contains the name of the thread that is logging the message.
-    A new '--logs-no-thread' command line option can be used to get back to the previous behavior to
+    A new "--logs-no-thread" command line option can be used to get back to the previous behavior to
     keep backward compatibility.
-
-
-Bug Fixes
----------
-
-* Solved a deadlock related to the Job Engine events and plugins.  Job events are now pushed
-  into a queue to be handled asynchronously by plugins.
-* Zip of studies whose PatientName and PatientID did not contain any ASCII character are now valid.
-
 
 REST API
 --------
 
 * API version upgraded to 22
 * Added a route to delete completed jobs from history: DELETE /jobs/{id}
-* added a "transcode" option to the /file route:
+* Added a "transcode" option to the /file route:
   e.g: /instances/../file?transcode=1.2.840.10008.1.2.4.80
 * now accepting GET requests on these 3 routes to create archive/media:
   /tools/create-archive?resources=..,..2&transcode=1.2.840.10008.1.2.4.80
   /tools/create-media?resources=..,..2&transcode=1.2.840.10008.1.2.4.80
   /tools/create-media-extended?resources=..,..2&transcode=1.2.840.10008.1.2.4.80
-* All 'expand' GET arguments now accepts expand=true and expand=false values.
+* All "expand" GET arguments now accepts "expand=true" and "expand=false" values.
   The /studies/../instances and sibling routes are the only whose expand is true if not specified.
-  These routes now accepts expand=false to simply list the child resources ids.
+  These routes now accepts "expand=false" to simply list the child resources ids.
 * In /tools/metrics-prometheus:
-  - 'orthanc_dicom_cache_size' renamed into 'orthanc_dicom_cache_size_mb'
-  - added 'orthanc_storage_cache_count' and 'orthanc_storage_cache_size_mb'
-
+  - "orthanc_dicom_cache_size" renamed as "orthanc_dicom_cache_size_mb"
+  - added "orthanc_storage_cache_count" and "orthanc_storage_cache_size_mb"
 
 Plugins
 -------
 
+* Housekeeper plugin:
+  - Update to rebuild the cache of the DICOMweb plugin when updating to DICOMweb 1.15.
+  - New trigger configuration: "DicomWebCacheChange"
+  - Fixed reading the triggers configuration.
+  - Introduced a "sleep" to lower CPU usage when idle.
 * Plugins are now allowed to modify/delete private metadata/attachments
   (i.e. whose identifiers are < 1024)
 * Added "OrthancPluginSetCurrentThreadName()" in the plugin SDK.
-
 
 Maintenance
 -----------
@@ -76,24 +70,26 @@ Maintenance
 * Prevent the leak of the full path of the source files in the binaries
 * Fix loading of DCMTK dictionary in the MultitenantDicom plugin when built dynamically:
   https://discourse.orthanc-server.org/t/dimse-failure-using-multitenant-plugin/3665
-* Housekeeper: Introduced a 'sleep' to lower CPU usage when idle.
 * Support multiple values in SpecificCharacterSet in C-Find answers:
   https://discourse.orthanc-server.org/t/c-find-fails-on-unknown-specific-character-set-iso-2022-ir-6-iso-2022-ir-100/3947
 * When exporting a study archive, make sure to use the PatientName from the study and not from the patient
   in case of PatientID collision.
 * DICOM C-Store:
-  - Avoid some unneccessary renegotiation of DICOM association.
+  - Avoid some unnecessary renegotiation of DICOM association.
   - Force renegotiation in case no presentation context were accepted in previous association (we have
     observed PACS that were not consistent in the accepted presentation contexts)
   - Improved logging
-* Upgraded dependencies for static builds:
-  - boost 1.83.0
-* Upgraded minizip library to stay away from CVE-2023-45853 although Orthanc is likely not affected since zip
+* Solved a deadlock related to the Job Engine events and plugins.  Job events are now pushed
+  into a queue to be handled asynchronously by plugins.
+* ZIP of studies whose PatientName and PatientID did not contain any ASCII character are now valid.
+* Upgraded minizip library to stay away from CVE-2023-45853 although Orthanc is likely not affected since ZIP
   filenames are based on DICOM Tag values whose length is limited in size.
   Great thanks to James Addison for notifying us about the vulnerability and patch to apply !
 * Fix XSS in Orthanc error reporting (as reported by Sébastien Doria, Vumetric Cybersecurity) by:
-  - always including a 'Content-Type' header in HTTP responses with a body.
-  - always including 'X-Content-Type-Options: nosniff'
+  - always including a "Content-Type" header in HTTP responses with a body.
+  - always including "X-Content-Type-Options: nosniff"
+* Upgraded dependencies for static builds:
+  - boost 1.83.0
 
 
 Version 1.12.1 (2023-07-04)

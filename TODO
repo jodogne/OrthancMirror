@@ -138,11 +138,9 @@ Mid-term
   https://groups.google.com/g/orthanc-users/c/hsZ1jng5rIg/m/8xZL2C1VBgAJ
 * add an "AutoDeleteIfSuccessful": false option when creating jobs 
   https://discourse.orthanc-server.org/t/job-history-combined-with-auto-forwarding/3729/10
-* Also implement a GET variant of /tools/create-archive + sibling routes
-  in which resources & transcode options are provided as get arguments.
-  https://groups.google.com/g/orthanc-users/c/PmaRZ609ztA/m/JdwXvIBKAQAJ
 * Allow skiping automatic conversion of color-space in transcoding/decoding.
   The patch that was initialy provided was breaking the IngestTranscoding.
+  This might require a DCMTK decoding plugin ?
   https://discourse.orthanc-server.org/t/orthanc-convert-ybr-to-rgb-but-does-not-change-metadata/3533/9
 * Implement a 'commit' route to force the Stable status earlier.
   https://discourse.orthanc-server.org/t/expediting-stability-of-a-dicom-study-new-api-endpoint/1684
