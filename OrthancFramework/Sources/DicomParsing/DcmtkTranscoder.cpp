@@ -37,6 +37,7 @@
 #include "FromDcmtkBridge.h"
 #include "../Logging.h"
 #include "../OrthancException.h"
+#include "../Toolbox.h"
 
 #include <dcmtk/dcmdata/dcdeftag.h>
 #include <dcmtk/dcmjpeg/djrploss.h>  // for DJ_RPLossy
@@ -83,12 +84,33 @@ namespace Orthanc
     return lossyQuality_;
   }
 
+  bool TryTranscode(std::vector<std::string>& failureReasons, /* out */
+                    DicomTransferSyntax& selectedSyntax, /* out*/
+                    DcmFileFormat& dicom, /* in/out */
+                    const std::set<DicomTransferSyntax>& allowedSyntaxes,
+                    DicomTransferSyntax trySyntax)
+  {
+    if (allowedSyntaxes.find(trySyntax) != allowedSyntaxes.end())
+    {
+      if (FromDcmtkBridge::Transcode(dicom, trySyntax, NULL))
+      {
+        selectedSyntax = trySyntax;
+        return true;
+      }
+
+      failureReasons.push_back(std::string("Internal error while transcoding to ") + GetTransferSyntaxUid(trySyntax));
+    }
+    return false;
+  }
 
   bool DcmtkTranscoder::InplaceTranscode(DicomTransferSyntax& selectedSyntax /* out */,
-                                         DcmFileFormat& dicom,
+                                         std::string& failureReason /* out */,
+                                         DcmFileFormat& dicom, /* in/out */
                                          const std::set<DicomTransferSyntax>& allowedSyntaxes,
                                          bool allowNewSopInstanceUid) 
   {
+    std::vector<std::string> failureReasons;
+
     if (dicom.getDataset() == NULL)
     {
       throw OrthancException(ErrorCode_InternalError);
@@ -109,62 +131,75 @@ namespace Orthanc
       // No transcoding is needed
       return true;
     }
-      
-    if (allowedSyntaxes.find(DicomTransferSyntax_LittleEndianImplicit) != allowedSyntaxes.end() &&
-        FromDcmtkBridge::Transcode(dicom, DicomTransferSyntax_LittleEndianImplicit, NULL))
+    
+    if (TryTranscode(failureReasons, selectedSyntax, dicom, allowedSyntaxes, DicomTransferSyntax_LittleEndianImplicit))
     {
-      selectedSyntax = DicomTransferSyntax_LittleEndianImplicit;
       return true;
     }
 
-    if (allowedSyntaxes.find(DicomTransferSyntax_LittleEndianExplicit) != allowedSyntaxes.end() &&
-        FromDcmtkBridge::Transcode(dicom, DicomTransferSyntax_LittleEndianExplicit, NULL))
+    if (TryTranscode(failureReasons, selectedSyntax, dicom, allowedSyntaxes, DicomTransferSyntax_LittleEndianExplicit))
     {
-      selectedSyntax = DicomTransferSyntax_LittleEndianExplicit;
-      return true;
-    }
-      
-    if (allowedSyntaxes.find(DicomTransferSyntax_BigEndianExplicit) != allowedSyntaxes.end() &&
-        FromDcmtkBridge::Transcode(dicom, DicomTransferSyntax_BigEndianExplicit, NULL))
-    {
-      selectedSyntax = DicomTransferSyntax_BigEndianExplicit;
       return true;
     }
 
-    if (allowedSyntaxes.find(DicomTransferSyntax_DeflatedLittleEndianExplicit) != allowedSyntaxes.end() &&
-        FromDcmtkBridge::Transcode(dicom, DicomTransferSyntax_DeflatedLittleEndianExplicit, NULL))
+    if (TryTranscode(failureReasons, selectedSyntax, dicom, allowedSyntaxes, DicomTransferSyntax_BigEndianExplicit))
     {
-      selectedSyntax = DicomTransferSyntax_DeflatedLittleEndianExplicit;
       return true;
     }
+
+    if (TryTranscode(failureReasons, selectedSyntax, dicom, allowedSyntaxes, DicomTransferSyntax_DeflatedLittleEndianExplicit))
+    {
+      return true;
+    }
+
 
 #if ORTHANC_ENABLE_DCMTK_JPEG == 1
-    if (allowedSyntaxes.find(DicomTransferSyntax_JPEGProcess1) != allowedSyntaxes.end() &&
-        allowNewSopInstanceUid &&
-        (!hasBitsStored || bitsStored == 8))
+    if (allowedSyntaxes.find(DicomTransferSyntax_JPEGProcess1) != allowedSyntaxes.end())
     {
-      // Check out "dcmjpeg/apps/dcmcjpeg.cc"
-      DJ_RPLossy parameters(lossyQuality_);
-        
-      if (FromDcmtkBridge::Transcode(dicom, DicomTransferSyntax_JPEGProcess1, &parameters))
+      if (!allowNewSopInstanceUid)
       {
-        selectedSyntax = DicomTransferSyntax_JPEGProcess1;
-        return true;
+        failureReasons.push_back(std::string("Can not transcode to ") + GetTransferSyntaxUid(DicomTransferSyntax_JPEGProcess1) + " without generating new SOPInstanceUID");
+      }
+      else if (hasBitsStored && bitsStored != 8)
+      {
+        failureReasons.push_back(std::string("Can not transcode to ") + GetTransferSyntaxUid(DicomTransferSyntax_JPEGProcess1) + " if BitsStored != 8");
+      }
+      else
+      {
+        // Check out "dcmjpeg/apps/dcmcjpeg.cc"
+        DJ_RPLossy parameters(lossyQuality_);
+          
+        if (FromDcmtkBridge::Transcode(dicom, DicomTransferSyntax_JPEGProcess1, &parameters))
+        {
+          selectedSyntax = DicomTransferSyntax_JPEGProcess1;
+          return true;
+        }
+        failureReasons.push_back(std::string("Internal error while transcoding to ") + GetTransferSyntaxUid(DicomTransferSyntax_JPEGProcess1));
       }
     }
 #endif
       
 #if ORTHANC_ENABLE_DCMTK_JPEG == 1
-    if (allowedSyntaxes.find(DicomTransferSyntax_JPEGProcess2_4) != allowedSyntaxes.end() &&
-        allowNewSopInstanceUid &&
-        (!hasBitsStored || bitsStored <= 12))
+    if (allowedSyntaxes.find(DicomTransferSyntax_JPEGProcess2_4) != allowedSyntaxes.end())
     {
-      // Check out "dcmjpeg/apps/dcmcjpeg.cc"
-      DJ_RPLossy parameters(lossyQuality_);
-      if (FromDcmtkBridge::Transcode(dicom, DicomTransferSyntax_JPEGProcess2_4, &parameters))
+      if (!allowNewSopInstanceUid)
       {
-        selectedSyntax = DicomTransferSyntax_JPEGProcess2_4;
-        return true;
+        failureReasons.push_back(std::string("Can not transcode to ") + GetTransferSyntaxUid(DicomTransferSyntax_JPEGProcess2_4) + " without generating new SOPInstanceUID");
+      }
+      else if (hasBitsStored && bitsStored > 12)
+      {
+        failureReasons.push_back(std::string("Can not transcode to ") + GetTransferSyntaxUid(DicomTransferSyntax_JPEGProcess2_4) + " if BitsStored != 8");
+      }
+      else
+      {
+        // Check out "dcmjpeg/apps/dcmcjpeg.cc"
+        DJ_RPLossy parameters(lossyQuality_);
+        if (FromDcmtkBridge::Transcode(dicom, DicomTransferSyntax_JPEGProcess2_4, &parameters))
+        {
+          selectedSyntax = DicomTransferSyntax_JPEGProcess2_4;
+          return true;
+        }
+        failureReasons.push_back(std::string("Internal error while transcoding to ") + GetTransferSyntaxUid(DicomTransferSyntax_JPEGProcess2_4));
       }
     }
 #endif
@@ -180,6 +215,7 @@ namespace Orthanc
         selectedSyntax = DicomTransferSyntax_JPEGProcess14;
         return true;
       }
+      failureReasons.push_back(std::string("Internal error while transcoding to ") + GetTransferSyntaxUid(DicomTransferSyntax_JPEGProcess14));
     }
 #endif
       
@@ -194,6 +230,7 @@ namespace Orthanc
         selectedSyntax = DicomTransferSyntax_JPEGProcess14SV1;
         return true;
       }
+      failureReasons.push_back(std::string("Internal error while transcoding to ") + GetTransferSyntaxUid(DicomTransferSyntax_JPEGProcess14SV1));
     }
 #endif
       
@@ -213,6 +250,7 @@ namespace Orthanc
         selectedSyntax = DicomTransferSyntax_JPEGLSLossless;
         return true;
       }
+      failureReasons.push_back(std::string("Internal error while transcoding to ") + GetTransferSyntaxUid(DicomTransferSyntax_JPEGLSLossless));
     }
 #endif
       
@@ -233,9 +271,11 @@ namespace Orthanc
         selectedSyntax = DicomTransferSyntax_JPEGLSLossy;
         return true;
       }
+      failureReasons.push_back(std::string("Internal error while transcoding to ") + GetTransferSyntaxUid(DicomTransferSyntax_JPEGLSLossy));
     }
 #endif
 
+    Orthanc::Toolbox::JoinStrings(failureReason, failureReasons, ", ");
     return false;
   }
 
@@ -285,27 +325,26 @@ namespace Orthanc
       return false;
     }
 
+    std::string failureReason;
+    std::string s;
+    for (std::set<DicomTransferSyntax>::const_iterator
+            it = allowedSyntaxes.begin(); it != allowedSyntaxes.end(); ++it)
     {
-      std::string s;
-      for (std::set<DicomTransferSyntax>::const_iterator
-             it = allowedSyntaxes.begin(); it != allowedSyntaxes.end(); ++it)
+      if (!s.empty())
       {
-        if (!s.empty())
-        {
-          s += ", ";
-        }
-
-        s += GetTransferSyntaxUid(*it);
+        s += ", ";
       }
 
-      if (s.empty())
-      {
-        s = "<none>";
-      }
-      
-      LOG(INFO) << "DCMTK transcoding from " << GetTransferSyntaxUid(sourceSyntax)
-                << " to one of: " << s;
+      s += GetTransferSyntaxUid(*it);
     }
+
+    if (s.empty())
+    {
+      s = "<none>";
+    }
+
+    LOG(INFO) << "DCMTK transcoding from " << GetTransferSyntaxUid(sourceSyntax)
+              << " to one of: " << s;
 
 #if !defined(NDEBUG)
     const std::string sourceSopInstanceUid = GetSopInstanceUid(source.GetParsed());
@@ -319,7 +358,7 @@ namespace Orthanc
       target.AcquireBuffer(source);
       return true;
     }
-    else if (InplaceTranscode(targetSyntax, source.GetParsed(),
+    else if (InplaceTranscode(targetSyntax, failureReason, source.GetParsed(),
                               allowedSyntaxes, allowNewSopInstanceUid))
     {   
       // Sanity check
@@ -347,6 +386,8 @@ namespace Orthanc
     else
     {
       // Cannot transcode
+      LOG(WARNING) << "DCMTK was unable to transcode from " << GetTransferSyntaxUid(sourceSyntax)
+                   << " to one of: " << s << " " << failureReason;
       return false;
     }
   }
