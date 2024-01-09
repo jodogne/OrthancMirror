@@ -92,6 +92,7 @@ endif()
 
 include_directories(
   ${DCMTK_SOURCES_DIR}/dcmiod/include
+  ${DCMTK_SOURCES_DIR}/oficonv/include
   )
 
 
@@ -231,6 +232,9 @@ elseif (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
     ${DCMTK_SOURCES_DIR}/oflog/libsrc/clfsap.cc
     )
 endif()
+
+
+AUX_SOURCE_DIRECTORY(${DCMTK_SOURCES_DIR}/oficonv/libsrc DCMTK_SOURCES)
 
 
 # Starting with DCMTK 3.6.2, the Nagle algorithm is not disabled by
