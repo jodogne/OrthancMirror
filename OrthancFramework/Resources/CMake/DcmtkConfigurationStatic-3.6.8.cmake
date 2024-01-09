@@ -187,6 +187,17 @@ else()
 endif()
 
 
+# "DCMTK_ENABLE_CHARSET_CONVERSION" is defined by "osconfig.h.in"
+if (BOOST_LOCALE_BACKEND STREQUAL "gcc")
+  set(DCMTK_ENABLE_CHARSET_CONVERSION "DCMTK_CHARSET_CONVERSION_STDLIBC_ICONV")
+elseif (BOOST_LOCALE_BACKEND STREQUAL "libiconv")
+  set(DCMTK_ENABLE_CHARSET_CONVERSION "DCMTK_CHARSET_CONVERSION_ICONV")
+elseif (BOOST_LOCALE_BACKEND STREQUAL "icu")
+  set(DCMTK_ENABLE_CHARSET_CONVERSION "DCMTK_CHARSET_CONVERSION_ICU")
+else()
+  message(FATAL_ERROR "Invalid value for BOOST_LOCALE_BACKEND: ${BOOST_LOCALE_BACKEND}")
+endif()
+
 CONFIGURE_FILE(
   ${DCMTK_SOURCES_DIR}/CMake/osconfig.h.in
   ${DCMTK_SOURCES_DIR}/config/include/dcmtk/config/osconfig.h)
@@ -232,9 +243,6 @@ elseif (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
     ${DCMTK_SOURCES_DIR}/oflog/libsrc/clfsap.cc
     )
 endif()
-
-
-AUX_SOURCE_DIRECTORY(${DCMTK_SOURCES_DIR}/oficonv/libsrc DCMTK_SOURCES)
 
 
 # Starting with DCMTK 3.6.2, the Nagle algorithm is not disabled by
