@@ -132,7 +132,18 @@ namespace Orthanc
                                ownPrivateKeyPath);
       }
 
-      if (IsFailure(tls->setCertificateFile(ownCertificatePath.c_str(), DCF_Filetype_PEM /*opt_keyFileFormat*/)))
+      if (IsFailure(tls->setCertificateFile(
+                      ownCertificatePath.c_str(), DCF_Filetype_PEM /*opt_keyFileFormat*/
+#if DCMTK_VERSION_NUMBER >= 368
+                      /**
+                       * DICOM BCP 195 RFC 8996 TLS Profile, based on RFC 8996 and RFC 9325.
+                       * This profile only negotiates TLS 1.2 or newer, and will not fall back to
+                       * previous TLS versions. It provides the higher security level offered by the
+                       * 2021 revised edition of BCP 195.
+                       **/
+                      , TSP_Profile_BCP_195_RFC_8996
+#endif
+                      )))
       {
         throw OrthancException(ErrorCode_BadFileFormat, "Cannot parse PEM file with own certificate for DICOM TLS: " +
                                ownCertificatePath);

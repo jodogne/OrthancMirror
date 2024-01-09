@@ -1,6 +1,12 @@
 Pending changes in the mainline
 ===============================
 
+Maintenance
+-----------
+
+* Upgraded dependencies for static builds:
+  - dcmtk 3.6.8
+
 
 Version 1.12.2 (2023-12-19)
 ===========================
