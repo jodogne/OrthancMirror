@@ -301,6 +301,7 @@ if (NOT DCMTK_USE_EMBEDDED_DICTIONARIES)
       /usr/share/libdcmtk19
       /usr/share/libdcmtk20
       /usr/local/share/dcmtk
+      /usr/local/share/dcmtk-3.6.8
       )
 
     if (${DCMTK_DICTIONARY_DIR_AUTO} MATCHES "DCMTK_DICTIONARY_DIR_AUTO-NOTFOUND")
