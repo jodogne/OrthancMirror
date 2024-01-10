@@ -632,6 +632,7 @@ namespace Orthanc
         {
           if (attempt >= maxRetries_)
           {
+            LOG(ERROR) << "Maximum transactions retries reached " << e.GetDetails();
             throw;
           }
           else
