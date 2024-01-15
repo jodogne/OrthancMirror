@@ -109,6 +109,10 @@ namespace Orthanc
       return dbCapabilities_;
     }
 
+    virtual uint64_t MeasureLatency() ORTHANC_OVERRIDE
+    {
+      throw OrthancException(ErrorCode_NotImplemented);  // only implemented in V4
+    }
 
     void AnswerReceived(const _OrthancPluginDatabaseAnswer& answer);
   };

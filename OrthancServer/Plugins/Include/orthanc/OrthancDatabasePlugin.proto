@@ -121,6 +121,7 @@ enum DatabaseOperation {
   OPERATION_START_TRANSACTION = 4;
   OPERATION_UPGRADE = 5;
   OPERATION_FINALIZE_TRANSACTION = 6;
+  OPERATION_MEASURE_LATENCY = 7;         // New in Orthanc 1.12.X
 }
 
 enum TransactionType {
@@ -138,6 +139,7 @@ message GetSystemInformation {
     bool supports_labels = 4;
     bool supports_increment_global_property = 5;
     bool has_update_and_get_statistics = 6;
+    bool has_measure_latency = 7;
   }
 }
 
@@ -200,6 +202,15 @@ message FinalizeTransaction {
   }
 }
 
+message MeasureLatency {
+  message Request {
+  }
+  message Response {
+    int64 latency_us = 1;
+  }
+}
+
+
 message DatabaseRequest {
   sfixed64           database = 1;
   DatabaseOperation  operation = 2;
@@ -210,7 +221,8 @@ message DatabaseRequest {
   FlushToDisk.Request           flush_to_disk = 103;
   StartTransaction.Request      start_transaction = 104;
   Upgrade.Request               upgrade = 105;
-  FinalizeTransaction.Request   finalize_transaction = 106;
+  FinalizeTransaction.Request   finalize_transaction = 106; 
+  MeasureLatency.Request        measure_latency = 107;
 }
 
 message DatabaseResponse {
@@ -221,6 +233,7 @@ message DatabaseResponse {
   StartTransaction.Response      start_transaction = 104;
   Upgrade.Response               upgrade = 105;
   FinalizeTransaction.Response   finalize_transaction = 106;
+  MeasureLatency.Response        measure_latency = 107;
 }
 
 

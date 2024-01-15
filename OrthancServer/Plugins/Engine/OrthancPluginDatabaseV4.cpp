@@ -1293,7 +1293,7 @@ namespace Orthanc
     serverIdentifier_(serverIdentifier),
     open_(false),
     databaseVersion_(0),
-    dbCapabilities_(false, false, false, false, false) // updated in Open()
+    dbCapabilities_(false, false, false, false, false, false) // updated in Open()
   {
     CLOG(INFO, PLUGINS) << "Identifier of this Orthanc server for the global properties "
                         << "of the custom database: \"" << serverIdentifier << "\"";
@@ -1368,6 +1368,7 @@ namespace Orthanc
       dbCapabilities_.hasLabelsSupport_ = systemInfo.supports_labels();
       dbCapabilities_.hasAtomicIncrementGlobalProperty_ = systemInfo.supports_increment_global_property();
       dbCapabilities_.hasUpdateAndGetStatistics_ = systemInfo.has_update_and_get_statistics();
+      dbCapabilities_.hasMeasureLatency_ = systemInfo.has_measure_latency();
     }
 
     open_ = true;
@@ -1465,6 +1466,30 @@ namespace Orthanc
     }
   }
 
+
+  uint64_t OrthancPluginDatabaseV4::MeasureLatency()
+  {
+    if (!open_)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    else
+    {
+      try
+      {
+        DatabasePluginMessages::DatabaseRequest request;
+        DatabasePluginMessages::DatabaseResponse response;
+
+        ExecuteDatabase(response, *this, DatabasePluginMessages::OPERATION_MEASURE_LATENCY, request);
+        return response.measure_latency().latency_us();
+
+      }
+      catch (OrthancException& e)
+      {
+        throw;
+      }
+    }
+  }
 
   const IDatabaseWrapper::Capabilities& OrthancPluginDatabaseV4::GetDatabaseCapabilities() const
   {

@@ -1336,7 +1336,8 @@ namespace Orthanc
                     false, /* hasRevisionsSupport TODO: implement revisions in SQLite */ 
                     true,  /* hasLabelsSupport */
                     false, /* hasAtomicIncrementGlobalProperty */
-                    false  /* hasUpdateAndGetStatistics */)
+                    false, /* hasUpdateAndGetStatistics */
+                    false  /* hasMeasureLatency */)
   {
     db_.Open(path);
   }
@@ -1350,7 +1351,8 @@ namespace Orthanc
                     false, /* hasRevisionsSupport TODO: implement revisions in SQLite */ 
                     true,  /* hasLabelsSupport */
                     false, /* hasAtomicIncrementGlobalProperty */
-                    false  /* hasUpdateAndGetStatistics */)
+                    false, /* hasUpdateAndGetStatistics */
+                    false  /* hasMeasureLatency */)
   {
     db_.OpenInMemory();
   }

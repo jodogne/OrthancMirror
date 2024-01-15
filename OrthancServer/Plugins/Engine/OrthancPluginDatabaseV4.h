@@ -89,6 +89,8 @@ namespace Orthanc
     virtual void Upgrade(unsigned int targetVersion,
                          IStorageArea& storageArea) ORTHANC_OVERRIDE;    
 
+    virtual uint64_t MeasureLatency() ORTHANC_OVERRIDE;
+
     virtual const IDatabaseWrapper::Capabilities& GetDatabaseCapabilities() const ORTHANC_OVERRIDE;
   };
 }

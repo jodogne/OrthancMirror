@@ -57,18 +57,21 @@ namespace Orthanc
       bool hasLabelsSupport_;
       bool hasAtomicIncrementGlobalProperty_;
       bool hasUpdateAndGetStatistics_;
+      bool hasMeasureLatency_;
 
     public:
       Capabilities(bool hasFlushToDisk,
                    bool hasRevisionsSupport,
                    bool hasLabelsSupport,
                    bool hasAtomicIncrementGlobalProperty,
-                   bool hasUpdateAndGetStatistics)
+                   bool hasUpdateAndGetStatistics,
+                   bool hasMeasureLatency)
       : hasFlushToDisk_(hasFlushToDisk),
         hasRevisionsSupport_(hasRevisionsSupport),
         hasLabelsSupport_(hasLabelsSupport),
         hasAtomicIncrementGlobalProperty_(hasAtomicIncrementGlobalProperty),
-        hasUpdateAndGetStatistics_(hasUpdateAndGetStatistics)
+        hasUpdateAndGetStatistics_(hasUpdateAndGetStatistics),
+        hasMeasureLatency_(hasMeasureLatency)
       {
       }
 
@@ -95,6 +98,11 @@ namespace Orthanc
       bool HasUpdateAndGetStatistics() const
       {
         return hasUpdateAndGetStatistics_;
+      }
+
+      bool HasMeasureLatency() const
+      {
+        return hasMeasureLatency_;
       }
 
     };
@@ -348,5 +356,7 @@ namespace Orthanc
                          IStorageArea& storageArea) = 0;
 
     virtual const IDatabaseWrapper::Capabilities& GetDatabaseCapabilities() const = 0;
+
+    virtual uint64_t MeasureLatency() = 0;
   };
 }
