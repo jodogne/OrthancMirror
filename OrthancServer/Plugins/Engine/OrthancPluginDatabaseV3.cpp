@@ -1092,7 +1092,9 @@ namespace Orthanc
                     false,  /* revision support is updated in open() */ 
                     false,  /* hasLabelsSupport */
                     false,  /* hasAtomicIncrementGlobalProperty */
-                    false   /* hasUpdateAndGetStatistics */)
+                    false, /* hasUpdateAndGetStatistics */
+                    false  /* hasMeasureLatency */)
+
   {
     CLOG(INFO, PLUGINS) << "Identifier of this Orthanc server for the global properties "
                         << "of the custom database: \"" << serverIdentifier << "\"";

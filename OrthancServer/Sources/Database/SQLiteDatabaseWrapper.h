@@ -93,6 +93,11 @@ namespace Orthanc
       return dbCapabilities_;
     }
 
+    virtual uint64_t MeasureLatency() ORTHANC_OVERRIDE
+    {
+      throw OrthancException(ErrorCode_NotImplemented);
+    }
+
     /**
      * The "StartTransaction()" method is guaranteed to return a class
      * derived from "UnitTestsTransaction". The methods of

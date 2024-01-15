@@ -1,6 +1,17 @@
 Pending changes in the mainline
 ===============================
 
+General
+-------
+
+* Performance:
+  - Databases:
+    - At startup, when using a database plugin, display the latency to access the DB.
+    - Added support for new DB primitives to enable the "READ COMMITTED" transaction mode
+      in the PostgreSQL plugin.
+
+
+
 
 Version 1.12.2 (2023-12-19)
 ===========================

@@ -1672,6 +1672,12 @@ static bool ConfigureDatabase(IDatabaseWrapper& database,
     LOG(WARNING) << "The custom database back-end has *no* support for labels";
   }
 
+  if (database.GetDatabaseCapabilities().HasMeasureLatency())
+  {
+    LOG(WARNING) << "The DB latency is " << database.MeasureLatency() << " µs";
+  }
+
+
   bool success = ConfigureServerContext(database, storageArea, plugins, loadJobsFromDatabase);
 
   database.Close();

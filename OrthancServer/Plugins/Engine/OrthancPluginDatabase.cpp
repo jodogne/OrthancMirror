@@ -1478,7 +1478,7 @@ namespace Orthanc
     activeTransaction_(NULL),
     fastGetTotalSize_(false),
     currentDiskSize_(0),
-    dbCapabilities_(false, false, false, false, false)
+    dbCapabilities_(false, false, false, false, false, false)
   {
     static const char* const MISSING = "  Missing extension in database index plugin: ";
     
