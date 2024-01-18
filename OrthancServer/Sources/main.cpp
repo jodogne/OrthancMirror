@@ -1674,7 +1674,8 @@ static bool ConfigureDatabase(IDatabaseWrapper& database,
 
   if (database.GetDatabaseCapabilities().HasMeasureLatency())
   {
-    LOG(WARNING) << "The DB latency is " << database.MeasureLatency() << " µs";
+    uint64_t latency = database.MeasureLatency();
+    LOG(WARNING) << "The DB latency is " << latency << " µs";
   }
 
 
