@@ -3620,6 +3620,17 @@ namespace Orthanc
   }
   
 
+  void StatelessDatabaseOperations::AddLabels(const std::string& publicId,
+                                              ResourceType level,
+                                              const std::set<std::string>& labels)
+  {
+    for (std::set<std::string>::const_iterator it = labels.begin(); it != labels.end(); ++it)
+    {
+      ModifyLabel(publicId, level, *it, LabelOperation_Add);
+    }
+  }
+
+
   void StatelessDatabaseOperations::ModifyLabel(const std::string& publicId,
                                                 ResourceType level,
                                                 const std::string& label,

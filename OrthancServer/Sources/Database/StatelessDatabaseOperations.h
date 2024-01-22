@@ -785,6 +785,10 @@ namespace Orthanc
                      const std::string& label,
                      LabelOperation operation);
 
+    void AddLabels(const std::string& publicId,
+                   ResourceType level,
+                   const std::set<std::string>& labels);
+
     bool HasLabelsSupport();
   };
 }

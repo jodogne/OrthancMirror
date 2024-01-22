@@ -525,6 +525,7 @@ namespace Orthanc
   
   DicomModification::DicomModification() :
     removePrivateTags_(false),
+    keepLabels_(false),
     level_(ResourceType_Instance),
     allowManualIdentifiers_(true),
     keepStudyInstanceUid_(false),
@@ -690,6 +691,16 @@ namespace Orthanc
   bool DicomModification::ArePrivateTagsRemoved() const
   {
     return removePrivateTags_;
+  }
+
+  void DicomModification::SetKeepLabels(bool keep)
+  {
+    keepLabels_ = keep;
+  }
+
+  bool DicomModification::AreLabelsKept() const
+  {
+    return keepLabels_;
   }
 
   void DicomModification::SetLevel(ResourceType level)
@@ -1273,6 +1284,11 @@ namespace Orthanc
       SetRemovePrivateTags(true);
     }
 
+    if (GetBooleanValue("KeepLabels", request, false))
+    {
+      SetKeepLabels(true);
+    }
+
     if (request.isMember("Remove"))
     {
       ParseListOfTags(*this, request["Remove"], TagOperation_Remove, force);
@@ -1389,6 +1405,11 @@ namespace Orthanc
     if (GetBooleanValue("KeepPrivateTags", request, false))
     {
       SetRemovePrivateTags(false);
+    }
+
+    if (GetBooleanValue("KeepLabels", request, false))
+    {
+      SetKeepLabels(true);
     }
 
     if (request.isMember("Remove"))

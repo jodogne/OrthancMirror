@@ -210,7 +210,11 @@ namespace Orthanc
     
     std::unique_ptr<DicomInstanceHasher> originalHasher;
     std::unique_ptr<ParsedDicomFile> modified;
-
+    std::set<std::string> instanceLabels;
+    std::set<std::string> seriesLabels;
+    std::set<std::string> studyLabels;
+    std::set<std::string> patientLabels;
+ 
     try
     {
       ServerContext::DicomCacheLocker locker(GetContext(), instance);
@@ -234,6 +238,15 @@ namespace Orthanc
       boost::recursive_mutex::scoped_lock lock(mutex_);  // DicomModification object is not thread safe, we must protect it from here
 
       modification_->Apply(*modified);
+
+      if (modification_->AreLabelsKept())
+      {
+        GetContext().GetIndex().ListLabels(instanceLabels, instance, ResourceType_Instance);
+        // we must also save the parent labels.  This instance might currently be the only one in the hierarchy and therefore it might be in charge of restoring all labels of the hierarchy
+        GetContext().GetIndex().ListLabels(seriesLabels, originalHasher->HashSeries(), ResourceType_Series);
+        GetContext().GetIndex().ListLabels(studyLabels, originalHasher->HashStudy(), ResourceType_Study);
+        GetContext().GetIndex().ListLabels(patientLabels, originalHasher->HashPatient(), ResourceType_Patient);
+      }
     }
 
     const std::string modifiedUid = IDicomTranscoder::GetSopInstanceUid(modified->GetDcmtkObject());
@@ -317,6 +330,19 @@ namespace Orthanc
       throw OrthancException(ErrorCode_CannotStoreInstance,
                              "Error while storing a modified instance " + instance);
     }
+
+    {
+      boost::recursive_mutex::scoped_lock lock(mutex_);  // DicomModification object is not thread safe, we must protect it from here
+
+      if (modification_->AreLabelsKept())
+      {
+        GetContext().GetIndex().AddLabels(instance, ResourceType_Instance, instanceLabels);
+        GetContext().GetIndex().AddLabels(modifiedHasher.HashSeries(), ResourceType_Series, seriesLabels);
+        GetContext().GetIndex().AddLabels(modifiedHasher.HashStudy(), ResourceType_Study, studyLabels);
+        GetContext().GetIndex().AddLabels(modifiedHasher.HashPatient(), ResourceType_Patient, patientLabels);
+      }
+    }
+
 
     /**
      * The assertion below will fail if automated transcoding to a
