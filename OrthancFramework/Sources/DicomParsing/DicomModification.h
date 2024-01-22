@@ -131,6 +131,7 @@ namespace Orthanc
     SetOfTags keep_;
     Replacements replacements_;
     bool removePrivateTags_;
+    bool keepLabels_;
     ResourceType level_;
     UidMap uidMap_;
     SetOfTags privateTagsToKeep_;
@@ -222,6 +223,10 @@ namespace Orthanc
     void SetRemovePrivateTags(bool removed);
 
     bool ArePrivateTagsRemoved() const;
+
+    void SetKeepLabels(bool keep);
+
+    bool AreLabelsKept() const;
 
     void SetLevel(ResourceType level);
 
