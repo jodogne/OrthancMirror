@@ -1,8 +1,8 @@
 # Orthanc - A Lightweight, RESTful DICOM Store
 # Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
 # Department, University Hospital of Liege, Belgium
-# Copyright (C) 2017-2023 Osimis S.A., Belgium
-# Copyright (C) 2021-2023 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+# Copyright (C) 2017-2024 Osimis S.A., Belgium
+# Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
 #
 # This program is free software: you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public License
@@ -36,6 +36,8 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
     include(${CMAKE_CURRENT_LIST_DIR}/DcmtkConfigurationStatic-3.6.6.cmake)
   elseif (DCMTK_STATIC_VERSION STREQUAL "3.6.7")
     include(${CMAKE_CURRENT_LIST_DIR}/DcmtkConfigurationStatic-3.6.7.cmake)
+  elseif (DCMTK_STATIC_VERSION STREQUAL "3.6.8")
+    include(${CMAKE_CURRENT_LIST_DIR}/DcmtkConfigurationStatic-3.6.8.cmake)
   else()
     message(FATAL_ERROR "Unsupported version of DCMTK: ${DCMTK_STATIC_VERSION}")
   endif()
@@ -301,6 +303,7 @@ if (NOT DCMTK_USE_EMBEDDED_DICTIONARIES)
       /usr/share/libdcmtk19
       /usr/share/libdcmtk20
       /usr/local/share/dcmtk
+      /usr/local/share/dcmtk-3.6.8
       )
 
     if (${DCMTK_DICTIONARY_DIR_AUTO} MATCHES "DCMTK_DICTIONARY_DIR_AUTO-NOTFOUND")

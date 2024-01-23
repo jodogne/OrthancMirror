@@ -10,7 +10,17 @@ General
     - Added support for new DB primitives to enable the "READ COMMITTED" transaction mode
       in the PostgreSQL plugin.
 
+REST API
+--------
 
+* API version upgraded to 23
+* Added a 'KeepLabels' option in /modify routes (default = false)
+
+Maintenance
+-----------
+
+* Upgraded dependencies for static builds:
+  - dcmtk 3.6.8
 
 
 Version 1.12.2 (2023-12-19)

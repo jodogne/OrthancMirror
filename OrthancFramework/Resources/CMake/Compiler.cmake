@@ -1,8 +1,8 @@
 # Orthanc - A Lightweight, RESTful DICOM Store
 # Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
 # Department, University Hospital of Liege, Belgium
-# Copyright (C) 2017-2023 Osimis S.A., Belgium
-# Copyright (C) 2021-2023 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+# Copyright (C) 2017-2024 Osimis S.A., Belgium
+# Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
 #
 # This program is free software: you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public License
@@ -43,6 +43,13 @@ if ("${CMAKE_SYSTEM_VERSION}" STREQUAL "LinuxStandardBase")
   # use by "ExternalProject" in CMake
   SET(CMAKE_LSB_CC $ENV{LSB_CC} CACHE STRING "")
   SET(CMAKE_LSB_CXX $ENV{LSB_CXX} CACHE STRING "")
+
+  # This is necessary to build "Orthanc mainline - Framework LSB
+  # Release" on "buildbot-worker-debian11"
+  set(LSB_PTHREAD_NONSHARED "${LSB_PATH}/lib64-${LSB_TARGET_VERSION}/libpthread_nonshared.a")
+  if (EXISTS ${LSB_PTHREAD_NONSHARED})
+    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${LSB_PTHREAD_NONSHARED}")
+  endif()
 endif()
 
 
@@ -130,9 +137,11 @@ if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux" OR
     # The "--no-undefined" linker flag makes the shared libraries
     # (plugins ModalityWorklists and ServeFolders) fail to compile on
     # OpenBSD, and make the PostgreSQL plugin complain about missing
-    # "environ" global variable in FreeBSD. Furthermore, on Linux
-    # Standard Base running on Debian 12, the "-Wl,--no-undefined"
-    # breaks the compilation (added after Orthanc 1.12.2).
+    # "environ" global variable in FreeBSD.
+    #
+    # TODO - Furthermore, on Linux Standard Base running on Debian 12,
+    # the "-Wl,--no-undefined" seems to break the compilation (added
+    # after Orthanc 1.12.2). This is disabled for now.
     set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} -Wl,--no-undefined")
     set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--no-undefined")
   endif()

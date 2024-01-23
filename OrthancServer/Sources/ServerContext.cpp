@@ -2,8 +2,8 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2023 Osimis S.A., Belgium
- * Copyright (C) 2021-2023 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2024 Osimis S.A., Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -759,19 +759,19 @@ namespace Orthanc
         switch (result.GetStatus())
         {
           case StoreStatus_Success:
-            LOG(INFO) << "New instance stored";
+            LOG(INFO) << "New instance stored (" << resultPublicId << ")";
             break;
 
           case StoreStatus_AlreadyStored:
-            LOG(INFO) << "Already stored";
+            LOG(INFO) << "Instance already stored (" << resultPublicId << ")";
             break;
 
           case StoreStatus_Failure:
-            LOG(ERROR) << "Unknown store failure";
+            LOG(ERROR) << "Unknown store failure while storing instance " << resultPublicId;
             throw OrthancException(ErrorCode_InternalError, HttpStatus_500_InternalServerError);
 
           case StoreStatus_StorageFull:
-            LOG(ERROR) << "Storage full";
+            LOG(ERROR) << "Storage full while storing instance " << resultPublicId;
             throw OrthancException(ErrorCode_FullStorage, HttpStatus_507_InsufficientStorage);
 
           default:
