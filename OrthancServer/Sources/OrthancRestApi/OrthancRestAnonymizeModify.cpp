@@ -2,8 +2,8 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2023 Osimis S.A., Belgium
- * Copyright (C) 2021-2023 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2024 Osimis S.A., Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -46,6 +46,7 @@ static const char* const INSTANCES = "Instances";
 static const char* const INTERPRET_BINARY_TAGS = "InterpretBinaryTags";
 static const char* const KEEP = "Keep";
 static const char* const KEEP_PRIVATE_TAGS = "KeepPrivateTags";
+static const char* const KEEP_LABELS = "KeepLabels";
 static const char* const KEEP_SOURCE = "KeepSource";
 static const char* const LEVEL = "Level";
 static const char* const PARENT = "Parent";
@@ -122,6 +123,8 @@ namespace Orthanc
                        "configuration option `DeidentifyLogsDicomVersion` for possible values.", false)
       .SetRequestField(KEEP_PRIVATE_TAGS, RestApiCallDocumentation::Type_Boolean,
                        "Keep the private tags from the DICOM instances (defaults to `false`)", false)
+      .SetRequestField(KEEP_LABELS, RestApiCallDocumentation::Type_Boolean,
+                       "Keep the labels of all resources level (defaults to `false`)", false)
       .SetRequestField(REPLACE, RestApiCallDocumentation::Type_JsonObject,
                        "Associative array to change the value of some DICOM tags in the DICOM instances. " INFO_SUBSEQUENCES, false)
       .SetRequestField(REMOVE, RestApiCallDocumentation::Type_JsonListOfStrings,
@@ -1068,6 +1071,8 @@ namespace Orthanc
                          "Associative array to change the value of some DICOM tags in the new study. "
                          "These tags must be part of the \"Patient Module Attributes\" or the \"General Study "
                          "Module Attributes\", as specified by the DICOM 2011 standard in Tables C.7-1 and C.7-3.", false)
+        .SetRequestField(KEEP_LABELS, RestApiCallDocumentation::Type_Boolean,
+                         "Keep the labels of all resources level (defaults to `false`)", false)
         .SetRequestField(REMOVE, RestApiCallDocumentation::Type_JsonListOfStrings,
                          "List of tags that must be removed in the new study (from the same modules as in the `Replace` option)", false)
         .SetRequestField(KEEP_SOURCE, RestApiCallDocumentation::Type_Boolean,

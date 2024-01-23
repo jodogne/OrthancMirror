@@ -1,8 +1,8 @@
 # Orthanc - A Lightweight, RESTful DICOM Store
 # Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
 # Department, University Hospital of Liege, Belgium
-# Copyright (C) 2017-2023 Osimis S.A., Belgium
-# Copyright (C) 2021-2023 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+# Copyright (C) 2017-2024 Osimis S.A., Belgium
+# Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
 #
 # This program is free software: you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public License
@@ -38,7 +38,7 @@ set(ORTHANC_DATABASE_VERSION 6)
 # Version of the Orthanc API, can be retrieved from "/system" URI in
 # order to check whether new URI endpoints are available even if using
 # the mainline version of Orthanc
-set(ORTHANC_API_VERSION "22")
+set(ORTHANC_API_VERSION "23")
 
 
 #####################################################################
@@ -78,7 +78,7 @@ set(USE_SYSTEM_ZLIB ON CACHE BOOL "Use the system version of ZLib")
 
 # Parameters specific to DCMTK
 set(DCMTK_DICTIONARY_DIR "" CACHE PATH "Directory containing the DCMTK dictionaries \"dicom.dic\" and \"private.dic\" (only when using system version of DCMTK)")
-set(DCMTK_STATIC_VERSION "3.6.7" CACHE STRING "Version of DCMTK to be used in static builds (can be \"3.6.0\", \"3.6.2\", \"3.6.4\", \"3.6.5\", \"3.6.6\", or \"3.6.7\")")
+set(DCMTK_STATIC_VERSION "3.6.8" CACHE STRING "Version of DCMTK to be used in static builds (can be \"3.6.0\", \"3.6.2\", \"3.6.4\", \"3.6.5\", \"3.6.6\", \"3.6.7\", or \"3.6.8\")")
 set(USE_DCMTK_362_PRIVATE_DIC ON CACHE BOOL "Use the dictionary of private tags from DCMTK 3.6.2 if using DCMTK 3.6.0")
 set(USE_SYSTEM_DCMTK ON CACHE BOOL "Use the system version of DCMTK")
 set(ENABLE_DCMTK_LOG ON CACHE BOOL "Enable logging internal to DCMTK")
