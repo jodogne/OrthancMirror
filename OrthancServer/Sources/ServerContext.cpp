@@ -739,19 +739,19 @@ namespace Orthanc
         switch (result.GetStatus())
         {
           case StoreStatus_Success:
-            LOG(INFO) << "New instance stored";
+            LOG(INFO) << "New instance stored (" << resultPublicId << ")";
             break;
 
           case StoreStatus_AlreadyStored:
-            LOG(INFO) << "Already stored";
+            LOG(INFO) << "Instance already stored (" << resultPublicId << ")";
             break;
 
           case StoreStatus_Failure:
-            LOG(ERROR) << "Unknown store failure";
+            LOG(ERROR) << "Unknown store failure while storing instance " << resultPublicId;
             throw OrthancException(ErrorCode_InternalError, HttpStatus_500_InternalServerError);
 
           case StoreStatus_StorageFull:
-            LOG(ERROR) << "Storage full";
+            LOG(ERROR) << "Storage full while storing instance " << resultPublicId;
             throw OrthancException(ErrorCode_FullStorage, HttpStatus_507_InsufficientStorage);
 
           default:
