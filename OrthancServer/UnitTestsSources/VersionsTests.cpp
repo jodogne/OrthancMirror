@@ -124,8 +124,8 @@ TEST(Versions, CurlStatic)
 
 TEST(Versions, PngStatic)
 {
-  ASSERT_EQ(10636u, png_access_version_number());
-  ASSERT_STREQ("1.6.36", PNG_LIBPNG_VER_STRING);
+  ASSERT_EQ(10640u, png_access_version_number());
+  ASSERT_STREQ("1.6.40", PNG_LIBPNG_VER_STRING);
 }
 
 TEST(Versions, JpegStatic)
