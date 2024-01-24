@@ -12,6 +12,7 @@ Maintenance
 
 * Upgraded dependencies for static builds:
   - boost 1.84.0
+  - curl 8.5.0
   - dcmtk 3.6.8
   - openssl 3.1.4
 
