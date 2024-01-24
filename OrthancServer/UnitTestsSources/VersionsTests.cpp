@@ -112,14 +112,14 @@ TEST(Versions, ZlibStatic)
 
 TEST(Versions, BoostStatic)
 {
-  ASSERT_TRUE(std::string(BOOST_LIB_VERSION) == "1_83" ||
+  ASSERT_TRUE(std::string(BOOST_LIB_VERSION) == "1_84" ||
               std::string(BOOST_LIB_VERSION) == "1_69" /* if USE_LEGACY_BOOST */);
 }
 
 TEST(Versions, CurlStatic)
 {
   curl_version_info_data* v = curl_version_info(CURLVERSION_NOW);
-  ASSERT_STREQ("7.77.0", v->version);
+  ASSERT_STREQ("8.5.0", v->version);
 }
 
 TEST(Versions, PngStatic)
@@ -167,11 +167,11 @@ TEST(Version, LibIconvStatic)
 #if ORTHANC_ENABLE_SSL == 1
 TEST(Version, OpenSslStatic)
 {
-  // openssl-3.1.0
+  // openssl-3.1.4
   // https://www.openssl.org/docs/man3.0/man3/OPENSSL_VERSION_NUMBER.html
   ASSERT_EQ(3 /* major */ * 0x10000000L +
             1 /* minor */ * 0x00100000L +
-            0 /* patch */ * 0x00000010L, OPENSSL_VERSION_NUMBER);
+            4 /* patch */ * 0x00000010L, OPENSSL_VERSION_NUMBER);
 }
 #endif
 
