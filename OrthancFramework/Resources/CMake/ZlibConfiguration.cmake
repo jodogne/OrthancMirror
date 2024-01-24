@@ -27,7 +27,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_ZLIB)
   DownloadPackage(${ZLIB_MD5} ${ZLIB_URL} "${ZLIB_SOURCES_DIR}")
 
   include_directories(
-    BEFORE SYSTEM
+    BEFORE  # Adding "SYSTEM" here makes LSB compilation fail
     ${ZLIB_SOURCES_DIR}
     )
 
