@@ -107,7 +107,7 @@ TEST(Versions, Lua)
 
 TEST(Versions, ZlibStatic)
 {
-  ASSERT_STREQ("1.2.11", zlibVersion());
+  ASSERT_STREQ("1.3.1", zlibVersion());
 }
 
 TEST(Versions, BoostStatic)

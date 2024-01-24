@@ -66,6 +66,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
   if (ENABLE_DCMTK_NETWORKING)
     AUX_SOURCE_DIRECTORY(${DCMTK_SOURCES_DIR}/dcmnet/libsrc DCMTK_SOURCES)
     include_directories(
+      BEFORE SYSTEM
       ${DCMTK_SOURCES_DIR}/dcmnet/include
       )
   endif()
@@ -74,6 +75,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
     AUX_SOURCE_DIRECTORY(${DCMTK_SOURCES_DIR}/dcmimgle/libsrc DCMTK_SOURCES)
     AUX_SOURCE_DIRECTORY(${DCMTK_SOURCES_DIR}/dcmimage/libsrc DCMTK_SOURCES)
     include_directories(
+      BEFORE SYSTEM
       ${DCMTK_SOURCES_DIR}/dcmimage/include
       )
   endif()
@@ -84,6 +86,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
     AUX_SOURCE_DIRECTORY(${DCMTK_SOURCES_DIR}/dcmjpeg/libijg12 DCMTK_SOURCES)
     AUX_SOURCE_DIRECTORY(${DCMTK_SOURCES_DIR}/dcmjpeg/libijg16 DCMTK_SOURCES)
     include_directories(
+      BEFORE SYSTEM
       ${DCMTK_SOURCES_DIR}/dcmjpeg/include
       ${DCMTK_SOURCES_DIR}/dcmjpeg/libijg8
       ${DCMTK_SOURCES_DIR}/dcmjpeg/libijg12
@@ -120,6 +123,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
     AUX_SOURCE_DIRECTORY(${DCMTK_SOURCES_DIR}/dcmjpls/libsrc DCMTK_SOURCES)
     AUX_SOURCE_DIRECTORY(${DCMTK_SOURCES_DIR}/dcmjpls/libcharls DCMTK_SOURCES)
     include_directories(
+      BEFORE SYSTEM
       ${DCMTK_SOURCES_DIR}/dcmjpeg/include
       ${DCMTK_SOURCES_DIR}/dcmjpls/include
       ${DCMTK_SOURCES_DIR}/dcmjpls/libcharls
@@ -143,6 +147,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
   if (ENABLE_DCMTK_NETWORKING AND ENABLE_SSL)
     AUX_SOURCE_DIRECTORY(${DCMTK_SOURCES_DIR}/dcmtls/libsrc DCMTK_SOURCES)
     include_directories(
+      BEFORE SYSTEM
       ${DCMTK_SOURCES_DIR}/dcmtls/include
       )
 
@@ -189,6 +194,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
   endif()
 
   include_directories(
+    BEFORE SYSTEM
     #${DCMTK_SOURCES_DIR}
     ${DCMTK_SOURCES_DIR}/config/include
     ${DCMTK_SOURCES_DIR}/ofstd/include
