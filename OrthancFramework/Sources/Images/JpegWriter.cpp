@@ -177,7 +177,7 @@ namespace Orthanc
     Internals::JpegErrorManager jerr;
 
     unsigned char* data = NULL;
-    unsigned long size;
+    size_t size;
 
     if (setjmp(jerr.GetJumpBuffer())) 
     {
