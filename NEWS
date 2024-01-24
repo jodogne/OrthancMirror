@@ -11,6 +11,7 @@ Maintenance
 -----------
 
 * Upgraded dependencies for static builds:
+  - boost 1.84.0
   - dcmtk 3.6.8
 
 
