@@ -134,7 +134,7 @@ if (BOOST_STATIC AND NOT USE_LEGACY_BOOST)
   endif()
 
   include_directories(
-    BEFORE
+    BEFORE SYSTEM
     ${BOOST_SOURCES_DIR}
     ${BOOST_SOURCES_DIR}/libs/atomic/src/
     ${BOOST_SOURCES_DIR}/libs/locale/src/
