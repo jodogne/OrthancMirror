@@ -46,15 +46,14 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_CURL)
   endif()
   
   include_directories(
-    SYSTEM BEFORE
     ${CURL_SOURCES_DIR}/include
-    ${CURL_SOURCES_DIR}/lib
     )
 
   AUX_SOURCE_DIRECTORY(${CURL_SOURCES_DIR}/lib CURL_SOURCES)
   AUX_SOURCE_DIRECTORY(${CURL_SOURCES_DIR}/lib/vauth CURL_SOURCES)
-  AUX_SOURCE_DIRECTORY(${CURL_SOURCES_DIR}/lib/vquic CURL_SOURCES)
+  AUX_SOURCE_DIRECTORY(${CURL_SOURCES_DIR}/lib/vssh CURL_SOURCES)
   AUX_SOURCE_DIRECTORY(${CURL_SOURCES_DIR}/lib/vtls CURL_SOURCES)
+  AUX_SOURCE_DIRECTORY(${CURL_SOURCES_DIR}/lib/vquic CURL_SOURCES)
   source_group(ThirdParty\\LibCurl REGULAR_EXPRESSION ${CURL_SOURCES_DIR}/.*)
 
   add_definitions(
@@ -85,17 +84,18 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_CURL)
   endif()
 
   if (NOT EXISTS "${CURL_SOURCES_DIR}/lib/vauth/vauth/vauth.h")
-    #file(WRITE ${CURL_SOURCES_DIR}/lib/curl_config.h "")
-
-    file(WRITE ${CURL_SOURCES_DIR}/lib/vauth/vauth/vauth.h "#include \"../vauth.h\"\n")
     file(WRITE ${CURL_SOURCES_DIR}/lib/vauth/vauth/digest.h "#include \"../digest.h\"\n")
     file(WRITE ${CURL_SOURCES_DIR}/lib/vauth/vauth/ntlm.h "#include \"../ntlm.h\"\n")
+    file(WRITE ${CURL_SOURCES_DIR}/lib/vauth/vauth/vauth.h "#include \"../vauth.h\"\n")
     file(WRITE ${CURL_SOURCES_DIR}/lib/vauth/vtls/vtls.h "#include \"../../vtls/vtls.h\"\n")
+    file(WRITE ${CURL_SOURCES_DIR}/lib/vssh/curl_setup.h "#include \"../curl_setup.h\"\n")
+    file(WRITE ${CURL_SOURCES_DIR}/lib/vtls/vauth/vauth.h "#include \"../../vauth/vauth.h\"\n")
 
     file(GLOB CURL_LIBS_HEADERS ${CURL_SOURCES_DIR}/lib/*.h)
     foreach (header IN LISTS CURL_LIBS_HEADERS)
       get_filename_component(filename ${header} NAME)
       file(WRITE ${CURL_SOURCES_DIR}/lib/vauth/${filename} "#include \"../${filename}\"\n")
+      file(WRITE ${CURL_SOURCES_DIR}/lib/vquic/${filename} "#include \"../${filename}\"\n")
       file(WRITE ${CURL_SOURCES_DIR}/lib/vtls/${filename} "#include \"../${filename}\"\n")
     endforeach()
   endif()

@@ -107,7 +107,7 @@ TEST(Versions, Lua)
 
 TEST(Versions, ZlibStatic)
 {
-  ASSERT_STREQ("1.2.11", zlibVersion());
+  ASSERT_STREQ("1.3.1", zlibVersion());
 }
 
 TEST(Versions, BoostStatic)
@@ -124,14 +124,14 @@ TEST(Versions, CurlStatic)
 
 TEST(Versions, PngStatic)
 {
-  ASSERT_EQ(10636u, png_access_version_number());
-  ASSERT_STREQ("1.6.36", PNG_LIBPNG_VER_STRING);
+  ASSERT_EQ(10640u, png_access_version_number());
+  ASSERT_STREQ("1.6.40", PNG_LIBPNG_VER_STRING);
 }
 
 TEST(Versions, JpegStatic)
 {
   ASSERT_EQ(9, JPEG_LIB_VERSION_MAJOR);
-  ASSERT_EQ(3, JPEG_LIB_VERSION_MINOR);
+  ASSERT_EQ(6 /* f */, JPEG_LIB_VERSION_MINOR);
 }
 
 TEST(Versions, CurlSslStatic)
@@ -148,14 +148,14 @@ TEST(Versions, CurlSslStatic)
 #endif
 }
 
-TEST(Version, LuaStatic)
+TEST(Versions, LuaStatic)
 {
   ASSERT_STREQ("Lua 5.3.5", LUA_RELEASE);
 }
 
 
 #if BUILDING_LIBICONV == 1
-TEST(Version, LibIconvStatic)
+TEST(Versions, LibIconvStatic)
 {
   static const int major = 1;
   static const int minor = 15;  
@@ -165,7 +165,7 @@ TEST(Version, LibIconvStatic)
 
 
 #if ORTHANC_ENABLE_SSL == 1
-TEST(Version, OpenSslStatic)
+TEST(Versions, OpenSslStatic)
 {
   // openssl-3.1.4
   // https://www.openssl.org/docs/man3.0/man3/OPENSSL_VERSION_NUMBER.html
@@ -178,12 +178,12 @@ TEST(Version, OpenSslStatic)
 
 #include <json/version.h>
 
-TEST(Version, JsonCpp)
+TEST(Versions, JsonCpp)
 {
 #if ORTHANC_LEGACY_JSONCPP == 1
   ASSERT_STREQ("0.10.6", JSONCPP_VERSION_STRING);
 #elif ORTHANC_LEGACY_JSONCPP == 0
-  ASSERT_STREQ("1.9.4", JSONCPP_VERSION_STRING);
+  ASSERT_STREQ("1.9.5", JSONCPP_VERSION_STRING);
 #else
 #  error Macro ORTHANC_LEGACY_JSONCPP should be set
 #endif
@@ -191,7 +191,7 @@ TEST(Version, JsonCpp)
 
 
 #if ORTHANC_ENABLE_CIVETWEB == 1
-TEST(Version, Civetweb)
+TEST(Versions, Civetweb)
 {
   ASSERT_EQ(1, CIVETWEB_VERSION_MAJOR);
   ASSERT_EQ(14, CIVETWEB_VERSION_MINOR);
@@ -201,9 +201,9 @@ TEST(Version, Civetweb)
 
 
 #if ORTHANC_ENABLE_PUGIXML == 1
-TEST(Version, Pugixml)
+TEST(Versions, Pugixml)
 {
-  ASSERT_EQ(190, PUGIXML_VERSION);
+  ASSERT_EQ(1140, PUGIXML_VERSION);
 }
 #endif
 

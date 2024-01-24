@@ -20,10 +20,10 @@
 
 
 if (STATIC_BUILD OR NOT USE_SYSTEM_LIBJPEG)
-  set(LIBJPEG_SOURCES_DIR ${CMAKE_BINARY_DIR}/jpeg-9c)
+  set(LIBJPEG_SOURCES_DIR ${CMAKE_BINARY_DIR}/jpeg-9f)
   DownloadPackage(
-    "93c62597eeef81a84d988bccbda1e990"
-    "https://orthanc.uclouvain.be/downloads/third-party-downloads/jpegsrc.v9c.tar.gz"
+    "9ca58d68febb0fa9c1c087045b9a5483"
+    "https://orthanc.uclouvain.be/downloads/third-party-downloads/jpegsrc.v9f.tar.gz"
     "${LIBJPEG_SOURCES_DIR}")
 
   include_directories(
