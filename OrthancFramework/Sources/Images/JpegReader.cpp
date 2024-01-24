@@ -158,8 +158,7 @@ namespace Orthanc
     jpeg_create_decompress(&cinfo);
     jpeg_mem_src(&cinfo, 
       const_cast<unsigned char*>(
-        reinterpret_cast<const unsigned char*>(buffer)),
-      static_cast<unsigned long>(size));
+        reinterpret_cast<const unsigned char*>(buffer)), size);
 
     try
     {

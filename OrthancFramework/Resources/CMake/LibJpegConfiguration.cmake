@@ -27,7 +27,6 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_LIBJPEG)
     "${LIBJPEG_SOURCES_DIR}")
 
   include_directories(
-    BEFORE  # Adding "SYSTEM" here makes LSB compilation fail
     ${LIBJPEG_SOURCES_DIR}
     )
 

@@ -27,7 +27,6 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_LIBPNG)
   DownloadPackage(${LIBPNG_MD5} ${LIBPNG_URL} "${LIBPNG_SOURCES_DIR}")
 
   include_directories(
-    BEFORE  # Adding "SYSTEM" here makes LSB compilation fail
     ${LIBPNG_SOURCES_DIR}
     )
 

@@ -27,7 +27,6 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_PUGIXML)
   DownloadPackage(${PUGIXML_MD5} ${PUGIXML_URL} "${PUGIXML_SOURCES_DIR}")
 
   include_directories(
-    BEFORE SYSTEM
     ${PUGIXML_SOURCES_DIR}/src
     )
 
