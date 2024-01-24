@@ -26,6 +26,7 @@
 
 #include "OrthancException.h"
 
+#include <cassert>
 #include <stdint.h>
 
 
