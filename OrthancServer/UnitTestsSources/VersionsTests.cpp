@@ -131,7 +131,7 @@ TEST(Versions, PngStatic)
 TEST(Versions, JpegStatic)
 {
   ASSERT_EQ(9, JPEG_LIB_VERSION_MAJOR);
-  ASSERT_EQ(3, JPEG_LIB_VERSION_MINOR);
+  ASSERT_EQ(6 /* f */, JPEG_LIB_VERSION_MINOR);
 }
 
 TEST(Versions, CurlSslStatic)
