@@ -20,9 +20,9 @@
 
 
 if (STATIC_BUILD OR NOT USE_SYSTEM_CURL)
-  SET(CURL_SOURCES_DIR ${CMAKE_BINARY_DIR}/curl-7.77.0)
-  SET(CURL_URL "https://orthanc.uclouvain.be/downloads/third-party-downloads/curl-7.77.0.tar.gz")
-  SET(CURL_MD5 "478e8b06801d9d030609c9e6cf859229")
+  SET(CURL_SOURCES_DIR ${CMAKE_BINARY_DIR}/curl-8.5.0)
+  SET(CURL_URL "https://orthanc.uclouvain.be/downloads/third-party-downloads/curl-8.5.0.tar.gz")
+  SET(CURL_MD5 "0bc69288b20ae165ff4b7d6d7bbe70d2")
 
   if (IS_DIRECTORY "${CURL_SOURCES_DIR}")
     set(FirstRun OFF)
@@ -35,7 +35,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_CURL)
   if (FirstRun)
     execute_process(
       COMMAND ${PATCH_EXECUTABLE} -p0 -N -i
-      ${CMAKE_CURRENT_LIST_DIR}/../Patches/curl-7.77.0.patch
+      ${CMAKE_CURRENT_LIST_DIR}/../Patches/curl-8.5.0.patch
       WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
       RESULT_VARIABLE Failure
       )
@@ -46,11 +46,14 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_CURL)
   endif()
   
   include_directories(
+    SYSTEM BEFORE
     ${CURL_SOURCES_DIR}/include
+    ${CURL_SOURCES_DIR}/lib
     )
 
   AUX_SOURCE_DIRECTORY(${CURL_SOURCES_DIR}/lib CURL_SOURCES)
   AUX_SOURCE_DIRECTORY(${CURL_SOURCES_DIR}/lib/vauth CURL_SOURCES)
+  AUX_SOURCE_DIRECTORY(${CURL_SOURCES_DIR}/lib/vquic CURL_SOURCES)
   AUX_SOURCE_DIRECTORY(${CURL_SOURCES_DIR}/lib/vtls CURL_SOURCES)
   source_group(ThirdParty\\LibCurl REGULAR_EXPRESSION ${CURL_SOURCES_DIR}/.*)
 

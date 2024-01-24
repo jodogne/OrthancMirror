@@ -1,0 +1,12 @@
+diff -urEb curl-8.5.0.orig/CMake/Macros.cmake curl-8.5.0/CMake/Macros.cmake
+--- curl-8.5.0.orig/CMake/Macros.cmake	2024-01-24 17:21:21.387965189 +0100
++++ curl-8.5.0/CMake/Macros.cmake	2024-01-24 17:21:48.523719072 +0100
+@@ -48,7 +48,7 @@
+     message(STATUS "Performing Curl Test ${CURL_TEST}")
+     try_compile(${CURL_TEST}
+       ${CMAKE_BINARY_DIR}
+-      ${CMAKE_CURRENT_SOURCE_DIR}/CMake/CurlTests.c
++      ${CURL_SOURCES_DIR}/CMake/CurlTests.c
+       CMAKE_FLAGS -DCOMPILE_DEFINITIONS:STRING=${MACRO_CHECK_FUNCTION_DEFINITIONS}
+       "${CURL_TEST_ADD_LIBRARIES}"
+       OUTPUT_VARIABLE OUTPUT)

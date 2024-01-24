@@ -1,7 +1,7 @@
-diff -urEb boost_1_83_0.orig/libs/locale/src/boost/locale/shared/date_time.cpp boost_1_83_0/libs/locale/src/boost/locale/shared/date_time.cpp
---- boost_1_83_0.orig/libs/locale/src/boost/locale/shared/date_time.cpp	2023-10-11 14:35:14.000000000 +0200
-+++ boost_1_83_0/libs/locale/src/boost/locale/shared/date_time.cpp	2023-10-11 15:10:23.949459131 +0200
-@@ -7,8 +7,10 @@
+diff -urEb boost_1_84_0.orig/libs/locale/src/boost/locale/shared/date_time.cpp boost_1_84_0/libs/locale/src/boost/locale/shared/date_time.cpp
+--- boost_1_84_0.orig/libs/locale/src/boost/locale/shared/date_time.cpp	2024-01-24 16:33:34.349801130 +0100
++++ boost_1_84_0/libs/locale/src/boost/locale/shared/date_time.cpp	2024-01-24 16:35:29.516750122 +0100
+@@ -12,8 +12,10 @@
  #include <boost/locale/date_time.hpp>
  #include <boost/locale/formatting.hpp>
  #include <boost/core/exchange.hpp>
@@ -14,7 +14,7 @@ diff -urEb boost_1_83_0.orig/libs/locale/src/boost/locale/shared/date_time.cpp b
  #include <cmath>
  
  namespace boost { namespace locale {
-@@ -394,6 +396,7 @@
+@@ -400,6 +402,7 @@
          return impl_->get_option(abstract_calendar::is_dst) != 0;
      }
  
@@ -22,23 +22,23 @@ diff -urEb boost_1_83_0.orig/libs/locale/src/boost/locale/shared/date_time.cpp b
      namespace time_zone {
          boost::mutex& tz_mutex()
          {
-@@ -416,5 +419,6 @@
+@@ -422,6 +425,7 @@
              return boost::exchange(tz_id(), new_id);
          }
      } // namespace time_zone
 +#endif
  
  }} // namespace boost::locale
-diff -urEb boost_1_83_0.orig/libs/locale/src/boost/locale/shared/generator.cpp boost_1_83_0/libs/locale/src/boost/locale/shared/generator.cpp
---- boost_1_83_0.orig/libs/locale/src/boost/locale/shared/generator.cpp	2023-10-11 14:35:14.000000000 +0200
-+++ boost_1_83_0/libs/locale/src/boost/locale/shared/generator.cpp	2023-10-11 15:10:01.301651695 +0200
-@@ -7,8 +7,11 @@
+ 
+diff -urEb boost_1_84_0.orig/libs/locale/src/boost/locale/shared/generator.cpp boost_1_84_0/libs/locale/src/boost/locale/shared/generator.cpp
+--- boost_1_84_0.orig/libs/locale/src/boost/locale/shared/generator.cpp	2024-01-24 16:33:34.349801130 +0100
++++ boost_1_84_0/libs/locale/src/boost/locale/shared/generator.cpp	2024-01-24 16:36:33.212167880 +0100
+@@ -7,8 +7,10 @@
  #include <boost/locale/encoding.hpp>
  #include <boost/locale/generator.hpp>
  #include <boost/locale/localization_backend.hpp>
 -#include <boost/thread/locks.hpp>
 -#include <boost/thread/mutex.hpp>
-+
 +#if !defined(__EMSCRIPTEN__)
 +#  include <boost/thread/locks.hpp>
 +#  include <boost/thread/mutex.hpp>
@@ -46,7 +46,7 @@ diff -urEb boost_1_83_0.orig/libs/locale/src/boost/locale/shared/generator.cpp b
  #include <algorithm>
  #include <map>
  #include <vector>
-@@ -21,7 +24,9 @@
+@@ -21,7 +23,9 @@
          {}
  
          mutable std::map<std::string, std::locale> cached;
@@ -56,7 +56,7 @@ diff -urEb boost_1_83_0.orig/libs/locale/src/boost/locale/shared/generator.cpp b
  
          category_t cats;
          char_facet_t chars;
-@@ -101,7 +106,9 @@
+@@ -101,7 +105,9 @@
      std::locale generator::generate(const std::locale& base, const std::string& id) const
      {
          if(d->caching_enabled) {
@@ -66,7 +66,7 @@ diff -urEb boost_1_83_0.orig/libs/locale/src/boost/locale/shared/generator.cpp b
              const auto p = d->cached.find(id);
              if(p != d->cached.end())
                  return p->second;
-@@ -126,7 +133,9 @@
+@@ -126,7 +132,9 @@
                  result = backend->install(result, facet, char_facet_t::nochar);
          }
          if(d->caching_enabled) {
@@ -76,9 +76,9 @@ diff -urEb boost_1_83_0.orig/libs/locale/src/boost/locale/shared/generator.cpp b
              const auto p = d->cached.find(id);
              if(p == d->cached.end())
                  d->cached[id] = result;
-diff -urEb boost_1_83_0.orig/libs/locale/src/boost/locale/shared/localization_backend.cpp boost_1_83_0/libs/locale/src/boost/locale/shared/localization_backend.cpp
---- boost_1_83_0.orig/libs/locale/src/boost/locale/shared/localization_backend.cpp	2023-10-11 14:35:14.000000000 +0200
-+++ boost_1_83_0/libs/locale/src/boost/locale/shared/localization_backend.cpp	2023-10-11 15:11:11.549053453 +0200
+diff -urEb boost_1_84_0.orig/libs/locale/src/boost/locale/shared/localization_backend.cpp boost_1_84_0/libs/locale/src/boost/locale/shared/localization_backend.cpp
+--- boost_1_84_0.orig/libs/locale/src/boost/locale/shared/localization_backend.cpp	2024-01-24 16:33:34.349801130 +0100
++++ boost_1_84_0/libs/locale/src/boost/locale/shared/localization_backend.cpp	2024-01-24 16:40:12.134162584 +0100
 @@ -5,8 +5,10 @@
  // https://www.boost.org/LICENSE_1_0.txt
  
