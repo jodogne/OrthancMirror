@@ -124,7 +124,7 @@ add_definitions(
 
 
 include_directories(
-  BEFORE SYSTEM
+  BEFORE
   ${OPENSSL_SOURCES_DIR}
   ${OPENSSL_SOURCES_DIR}/crypto/asn1
   ${OPENSSL_SOURCES_DIR}/crypto/ec/curve448

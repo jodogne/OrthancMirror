@@ -91,7 +91,6 @@ endif()
 
 
 include_directories(
-  BEFORE SYSTEM
   ${DCMTK_SOURCES_DIR}/dcmiod/include
   ${DCMTK_SOURCES_DIR}/oficonv/include
   )

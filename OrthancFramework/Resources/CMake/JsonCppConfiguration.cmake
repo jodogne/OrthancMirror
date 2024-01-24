@@ -44,7 +44,6 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_JSONCPP)
     )
 
   include_directories(
-    BEFORE SYSTEM
     ${JSONCPP_SOURCES_DIR}/include
     )
 
