@@ -1,6 +1,6 @@
-diff -urEb openssl-3.1.0.orig/crypto/riscvcap.c openssl-3.1.0/crypto/riscvcap.c
---- openssl-3.1.0.orig/crypto/riscvcap.c	2023-03-14 13:59:07.000000000 +0100
-+++ openssl-3.1.0/crypto/riscvcap.c	2023-04-04 17:18:21.018468423 +0200
+diff -urEb openssl-3.1.4.orig/crypto/riscvcap.c openssl-3.1.4/crypto/riscvcap.c
+--- openssl-3.1.4.orig/crypto/riscvcap.c	2024-01-24 16:58:48.308108757 +0100
++++ openssl-3.1.4/crypto/riscvcap.c	2024-01-24 17:01:04.114914015 +0100
 @@ -37,7 +37,8 @@
  
  static void strtoupper(char *str)
@@ -26,9 +26,9 @@ diff -urEb openssl-3.1.0.orig/crypto/riscvcap.c openssl-3.1.0/crypto/riscvcap.c
          /* Prefix capability with underscore in preparation for search */
          BIO_snprintf(buf, BUFLEN, "_%s", RISCV_capabilities[i].name);
          if (strstr(envstrupper, buf) != NULL) {
-diff -urEb openssl-3.1.0.orig/providers/implementations/rands/seeding/rand_unix.c openssl-3.1.0/providers/implementations/rands/seeding/rand_unix.c
---- openssl-3.1.0.orig/providers/implementations/rands/seeding/rand_unix.c	2023-03-14 13:59:07.000000000 +0100
-+++ openssl-3.1.0/providers/implementations/rands/seeding/rand_unix.c	2023-04-04 17:17:43.874649403 +0200
+diff -urEb openssl-3.1.4.orig/providers/implementations/rands/seeding/rand_unix.c openssl-3.1.4/providers/implementations/rands/seeding/rand_unix.c
+--- openssl-3.1.4.orig/providers/implementations/rands/seeding/rand_unix.c	2024-01-24 16:58:48.332108547 +0100
++++ openssl-3.1.4/providers/implementations/rands/seeding/rand_unix.c	2024-01-24 17:01:30.182683539 +0100
 @@ -452,6 +452,7 @@
               * system call and this should always succeed which renders
               * this alternative but essentially identical source moot.
