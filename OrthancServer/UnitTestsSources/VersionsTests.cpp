@@ -112,7 +112,7 @@ TEST(Versions, ZlibStatic)
 
 TEST(Versions, BoostStatic)
 {
-  ASSERT_TRUE(std::string(BOOST_LIB_VERSION) == "1_83" ||
+  ASSERT_TRUE(std::string(BOOST_LIB_VERSION) == "1_84" ||
               std::string(BOOST_LIB_VERSION) == "1_69" /* if USE_LEGACY_BOOST */);
 }
 
