@@ -305,7 +305,7 @@ namespace Orthanc
       }
     }
 
-    virtual const IDatabaseWrapper::Capabilities& GetDatabaseCapabilities() const ORTHANC_OVERRIDE
+    virtual const Capabilities GetDatabaseCapabilities() const ORTHANC_OVERRIDE
     {
       return database_.GetDatabaseCapabilities();
     }
@@ -1292,8 +1292,7 @@ namespace Orthanc
     definition_(database),
     serverIdentifier_(serverIdentifier),
     open_(false),
-    databaseVersion_(0),
-    dbCapabilities_(false, false, false, false, false, false) // updated in Open()
+    databaseVersion_(0)
   {
     CLOG(INFO, PLUGINS) << "Identifier of this Orthanc server for the global properties "
                         << "of the custom database: \"" << serverIdentifier << "\"";
@@ -1363,12 +1362,12 @@ namespace Orthanc
       
       const ::Orthanc::DatabasePluginMessages::GetSystemInformation_Response& systemInfo = response.get_system_information();
       databaseVersion_ = systemInfo.database_version();
-      dbCapabilities_.hasFlushToDisk_ = systemInfo.supports_flush_to_disk();
-      dbCapabilities_.hasRevisionsSupport_ = systemInfo.supports_revisions();
-      dbCapabilities_.hasLabelsSupport_ = systemInfo.supports_labels();
-      dbCapabilities_.hasAtomicIncrementGlobalProperty_ = systemInfo.supports_increment_global_property();
-      dbCapabilities_.hasUpdateAndGetStatistics_ = systemInfo.has_update_and_get_statistics();
-      dbCapabilities_.hasMeasureLatency_ = systemInfo.has_measure_latency();
+      dbCapabilities_.SetFlushToDisk(systemInfo.supports_flush_to_disk());
+      dbCapabilities_.SetRevisionsSupport(systemInfo.supports_revisions());
+      dbCapabilities_.SetLabelsSupport(systemInfo.supports_labels());
+      dbCapabilities_.SetAtomicIncrementGlobalProperty(systemInfo.supports_increment_global_property());
+      dbCapabilities_.SetUpdateAndGetStatistics(systemInfo.has_update_and_get_statistics());
+      dbCapabilities_.SetMeasureLatency(systemInfo.has_measure_latency());
     }
 
     open_ = true;
@@ -1491,7 +1490,8 @@ namespace Orthanc
     }
   }
 
-  const IDatabaseWrapper::Capabilities& OrthancPluginDatabaseV4::GetDatabaseCapabilities() const
+
+  const IDatabaseWrapper::Capabilities OrthancPluginDatabaseV4::GetDatabaseCapabilities() const
   {
     if (!open_)
     {
@@ -1502,6 +1502,4 @@ namespace Orthanc
       return dbCapabilities_;
     }
   }
-
-
 }

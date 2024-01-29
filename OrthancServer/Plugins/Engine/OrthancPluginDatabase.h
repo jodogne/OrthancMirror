@@ -104,7 +104,7 @@ namespace Orthanc
     virtual void Upgrade(unsigned int targetVersion,
                          IStorageArea& storageArea) ORTHANC_OVERRIDE;    
 
-    const IDatabaseWrapper::Capabilities& GetDatabaseCapabilities() const ORTHANC_OVERRIDE
+    virtual const Capabilities GetDatabaseCapabilities() const ORTHANC_OVERRIDE
     {
       return dbCapabilities_;
     }

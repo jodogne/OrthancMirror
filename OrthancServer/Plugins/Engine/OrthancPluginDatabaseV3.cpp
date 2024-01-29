@@ -278,7 +278,7 @@ namespace Orthanc
       }
     }
     
-    virtual const IDatabaseWrapper::Capabilities& GetDatabaseCapabilities() const ORTHANC_OVERRIDE
+    virtual const Capabilities GetDatabaseCapabilities() const ORTHANC_OVERRIDE
     {
       return that_.GetDatabaseCapabilities();
     }
@@ -1087,13 +1087,7 @@ namespace Orthanc
     library_(library),
     errorDictionary_(errorDictionary),
     database_(database),
-    serverIdentifier_(serverIdentifier),
-    dbCapabilities_(false,  /* hasFlushToDisk */
-                    false,  /* revision support is updated in open() */ 
-                    false,  /* hasLabelsSupport */
-                    false,  /* hasAtomicIncrementGlobalProperty */
-                    false, /* hasUpdateAndGetStatistics */
-                    false  /* hasMeasureLatency */)
+    serverIdentifier_(serverIdentifier)
 
   {
     CLOG(INFO, PLUGINS) << "Identifier of this Orthanc server for the global properties "
@@ -1205,7 +1199,7 @@ namespace Orthanc
     // update the db capabilities
     uint8_t hasRevisions;
     CheckSuccess(backend_.hasRevisionsSupport(database_, &hasRevisions));
-    dbCapabilities_.hasRevisionsSupport_ = (hasRevisions != 0);
+    dbCapabilities_.SetRevisionsSupport(hasRevisions != 0);
   }
 
 

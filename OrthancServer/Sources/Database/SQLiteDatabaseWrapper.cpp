@@ -316,7 +316,7 @@ namespace Orthanc
     {
     }
 
-    virtual const IDatabaseWrapper::Capabilities& GetDatabaseCapabilities() const ORTHANC_OVERRIDE
+    virtual const Capabilities GetDatabaseCapabilities() const ORTHANC_OVERRIDE
     {
       return dbCapabilities_;
     }
@@ -1331,14 +1331,11 @@ namespace Orthanc
   SQLiteDatabaseWrapper::SQLiteDatabaseWrapper(const std::string& path) : 
     activeTransaction_(NULL), 
     signalRemainingAncestor_(NULL),
-    version_(0),
-    dbCapabilities_(true,  /* hasFlushToDisk */
-                    false, /* hasRevisionsSupport TODO: implement revisions in SQLite */ 
-                    true,  /* hasLabelsSupport */
-                    false, /* hasAtomicIncrementGlobalProperty */
-                    false, /* hasUpdateAndGetStatistics */
-                    false  /* hasMeasureLatency */)
+    version_(0)
   {
+    // TODO: implement revisions in SQLite
+    dbCapabilities_.SetFlushToDisk(true);
+    dbCapabilities_.SetLabelsSupport(true);
     db_.Open(path);
   }
 
@@ -1346,14 +1343,11 @@ namespace Orthanc
   SQLiteDatabaseWrapper::SQLiteDatabaseWrapper() : 
     activeTransaction_(NULL), 
     signalRemainingAncestor_(NULL),
-    version_(0),
-    dbCapabilities_(true,  /* hasFlushToDisk */
-                    false, /* hasRevisionsSupport TODO: implement revisions in SQLite */ 
-                    true,  /* hasLabelsSupport */
-                    false, /* hasAtomicIncrementGlobalProperty */
-                    false, /* hasUpdateAndGetStatistics */
-                    false  /* hasMeasureLatency */)
+    version_(0)
   {
+    // TODO: implement revisions in SQLite
+    dbCapabilities_.SetFlushToDisk(true);
+    dbCapabilities_.SetLabelsSupport(true);
     db_.OpenInMemory();
   }
 

@@ -82,11 +82,10 @@ namespace Orthanc
       throw OrthancException(ErrorCode_NotImplemented);  // only implemented in V4
     }
 
-    const IDatabaseWrapper::Capabilities& GetDatabaseCapabilities() const ORTHANC_OVERRIDE
+    virtual const Capabilities GetDatabaseCapabilities() const ORTHANC_OVERRIDE
     {
       return dbCapabilities_;
     }
-
   };
 }
 
