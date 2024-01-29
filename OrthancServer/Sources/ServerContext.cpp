@@ -729,9 +729,9 @@ namespace Orthanc
           {
             accessor.Remove(dicomUntilPixelData);
           }
-
-          throw;
         }
+
+        throw;
       }
 
       // Only keep the metadata for the "instance" level
