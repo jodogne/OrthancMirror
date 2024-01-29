@@ -91,7 +91,7 @@ namespace Orthanc
 
     virtual uint64_t MeasureLatency() ORTHANC_OVERRIDE;
 
-    virtual const IDatabaseWrapper::Capabilities& GetDatabaseCapabilities() const ORTHANC_OVERRIDE;
+    virtual const Capabilities GetDatabaseCapabilities() const ORTHANC_OVERRIDE;
   };
 }
 

@@ -243,7 +243,7 @@ namespace Orthanc
       that_.activeTransaction_ = NULL;
     }
 
-    virtual const IDatabaseWrapper::Capabilities& GetDatabaseCapabilities() const ORTHANC_OVERRIDE
+    virtual const Capabilities GetDatabaseCapabilities() const ORTHANC_OVERRIDE
     {
       return that_.GetDatabaseCapabilities();
     }
@@ -1477,8 +1477,7 @@ namespace Orthanc
     payload_(payload),
     activeTransaction_(NULL),
     fastGetTotalSize_(false),
-    currentDiskSize_(0),
-    dbCapabilities_(false, false, false, false, false, false)
+    currentDiskSize_(0)
   {
     static const char* const MISSING = "  Missing extension in database index plugin: ";
     

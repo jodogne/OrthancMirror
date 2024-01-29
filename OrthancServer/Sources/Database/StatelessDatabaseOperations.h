@@ -591,7 +591,7 @@ namespace Orthanc
       return db_.GetDatabaseVersion();
     }
 
-    const IDatabaseWrapper::Capabilities& GetDatabaseCapabilities() const
+    const IDatabaseWrapper::Capabilities GetDatabaseCapabilities() const
     {
       return db_.GetDatabaseCapabilities();
     }

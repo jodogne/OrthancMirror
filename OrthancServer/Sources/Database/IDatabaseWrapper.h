@@ -39,19 +39,12 @@ namespace Orthanc
   class DatabaseConstraint;
   class ResourcesContent;
 
-  class OrthancPluginDatabaseV3;
-  class OrthancPluginDatabaseV4;
-  
   class IDatabaseWrapper : public boost::noncopyable
   {
   public:
-
-    struct Capabilities
+    class Capabilities
     {
-      friend OrthancPluginDatabaseV3;
-      friend OrthancPluginDatabaseV4;
-
-    protected:
+    private:
       bool hasFlushToDisk_;
       bool hasRevisionsSupport_;
       bool hasLabelsSupport_;
@@ -60,19 +53,19 @@ namespace Orthanc
       bool hasMeasureLatency_;
 
     public:
-      Capabilities(bool hasFlushToDisk,
-                   bool hasRevisionsSupport,
-                   bool hasLabelsSupport,
-                   bool hasAtomicIncrementGlobalProperty,
-                   bool hasUpdateAndGetStatistics,
-                   bool hasMeasureLatency)
-      : hasFlushToDisk_(hasFlushToDisk),
-        hasRevisionsSupport_(hasRevisionsSupport),
-        hasLabelsSupport_(hasLabelsSupport),
-        hasAtomicIncrementGlobalProperty_(hasAtomicIncrementGlobalProperty),
-        hasUpdateAndGetStatistics_(hasUpdateAndGetStatistics),
-        hasMeasureLatency_(hasMeasureLatency)
+      Capabilities() :
+        hasFlushToDisk_(false),
+        hasRevisionsSupport_(false),
+        hasLabelsSupport_(false),
+        hasAtomicIncrementGlobalProperty_(false),
+        hasUpdateAndGetStatistics_(false),
+        hasMeasureLatency_(false)
       {
+      }
+
+      void SetFlushToDisk(bool value)
+      {
+        hasFlushToDisk_ = value;
       }
 
       bool HasFlushToDisk() const
@@ -80,9 +73,19 @@ namespace Orthanc
         return hasFlushToDisk_;
       }
 
+      void SetRevisionsSupport(bool value)
+      {
+        hasRevisionsSupport_ = value;
+      }
+
       bool HasRevisionsSupport() const
       {
         return hasRevisionsSupport_;
+      }
+
+      void SetLabelsSupport(bool value)
+      {
+        hasLabelsSupport_ = value;
       }
 
       bool HasLabelsSupport() const
@@ -90,9 +93,19 @@ namespace Orthanc
         return hasLabelsSupport_;
       }
 
+      void SetAtomicIncrementGlobalProperty(bool value)
+      {
+        hasAtomicIncrementGlobalProperty_ = value;
+      }
+
       bool HasAtomicIncrementGlobalProperty() const
       {
         return hasAtomicIncrementGlobalProperty_;
+      }
+
+      void SetUpdateAndGetStatistics(bool value)
+      {
+        hasUpdateAndGetStatistics_ = value;
       }
 
       bool HasUpdateAndGetStatistics() const
@@ -100,12 +113,17 @@ namespace Orthanc
         return hasUpdateAndGetStatistics_;
       }
 
+      void SetMeasureLatency(bool value)
+      {
+        hasMeasureLatency_ = value;
+      }
+
       bool HasMeasureLatency() const
       {
         return hasMeasureLatency_;
       }
-
     };
+
 
     struct CreateInstanceResult : public boost::noncopyable
     {
@@ -321,8 +339,8 @@ namespace Orthanc
 
       // List all the labels that are present in any resource
       virtual void ListAllLabels(std::set<std::string>& target) = 0;
-    
-      virtual const IDatabaseWrapper::Capabilities& GetDatabaseCapabilities() const = 0;
+
+      virtual const Capabilities GetDatabaseCapabilities() const = 0;
 
       virtual int64_t IncrementGlobalProperty(GlobalProperty property,
                                               int64_t increment,
@@ -355,7 +373,7 @@ namespace Orthanc
     virtual void Upgrade(unsigned int targetVersion,
                          IStorageArea& storageArea) = 0;
 
-    virtual const IDatabaseWrapper::Capabilities& GetDatabaseCapabilities() const = 0;
+    virtual const Capabilities GetDatabaseCapabilities() const = 0;
 
     virtual uint64_t MeasureLatency() = 0;
   };
