@@ -23,7 +23,6 @@
 #pragma once
 
 #include "IDatabaseWrapper.h"
-#include "../../../OrthancFramework/Sources/OrthancException.h"
 
 namespace Orthanc
 {
@@ -36,24 +35,17 @@ namespace Orthanc
   public:
     class BaseTransaction : public IDatabaseWrapper::ITransaction
     {
+    public:
       virtual int64_t IncrementGlobalProperty(GlobalProperty property,
                                               int64_t increment,
-                                              bool shared) ORTHANC_OVERRIDE
-      {
-        throw OrthancException(ErrorCode_NotImplemented);  // Not supported
-      }
+                                              bool shared) ORTHANC_OVERRIDE;
 
       virtual void UpdateAndGetStatistics(int64_t& patientsCount,
                                           int64_t& studiesCount,
                                           int64_t& seriesCount,
                                           int64_t& instancesCount,
                                           int64_t& compressedSize,
-                                          int64_t& uncompressedSize) ORTHANC_OVERRIDE
-      {
-        throw OrthancException(ErrorCode_NotImplemented);  // Not supported
-      }
-
+                                          int64_t& uncompressedSize) ORTHANC_OVERRIDE;
     };
-
   };
 }
