@@ -176,17 +176,14 @@ namespace Orthanc
     {
     private:
       ITransactionContext&  context_;
-      const IDatabaseWrapper::Capabilities& dbCapabilities_;
 
     protected:
       IDatabaseWrapper::ITransaction&  transaction_;
       
     public:
       explicit ReadOnlyTransaction(IDatabaseWrapper::ITransaction& transaction,
-                                   ITransactionContext& context,
-                                   const IDatabaseWrapper::Capabilities& dbCapabilities) :
+                                   ITransactionContext& context) :
         context_(context),
-        dbCapabilities_(dbCapabilities),
         transaction_(transaction)
       {
       }
@@ -194,11 +191,6 @@ namespace Orthanc
       ITransactionContext& GetTransactionContext()
       {
         return context_;
-      }
-
-      const IDatabaseWrapper::Capabilities& GetDatabaseCapabilities() const
-      {
-        return dbCapabilities_;
       }
 
       /**
@@ -391,9 +383,8 @@ namespace Orthanc
     {
     public:
       ReadWriteTransaction(IDatabaseWrapper::ITransaction& transaction,
-                           ITransactionContext& context,
-                           const IDatabaseWrapper::Capabilities& dbCapabilities) :
-        ReadOnlyTransaction(transaction, context, dbCapabilities)
+                           ITransactionContext& context) :
+        ReadOnlyTransaction(transaction, context)
       {
       }
 
