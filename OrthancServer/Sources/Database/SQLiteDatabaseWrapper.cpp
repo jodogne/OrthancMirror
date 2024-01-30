@@ -300,19 +300,16 @@ namespace Orthanc
     boost::mutex::scoped_lock  lock_;
     IDatabaseListener&         listener_;
     SignalRemainingAncestor&   signalRemainingAncestor_;
-    const IDatabaseWrapper::Capabilities& dbCapabilities_;
 
   public:
     TransactionBase(boost::mutex& mutex,
                     SQLite::Connection& db,
                     IDatabaseListener& listener,
-                    SignalRemainingAncestor& signalRemainingAncestor,
-                    const IDatabaseWrapper::Capabilities& dbCapabilities) :
+                    SignalRemainingAncestor& signalRemainingAncestor) :
       UnitTestsTransaction(db),
       lock_(mutex),
       listener_(listener),
-      signalRemainingAncestor_(signalRemainingAncestor),
-      dbCapabilities_(dbCapabilities)
+      signalRemainingAncestor_(signalRemainingAncestor)
     {
     }
 
@@ -1140,7 +1137,6 @@ namespace Orthanc
         target.insert(s.ColumnString(0));
       }
     }
-
   };
 
 
@@ -1238,7 +1234,7 @@ namespace Orthanc
   public:
     ReadWriteTransaction(SQLiteDatabaseWrapper& that,
                          IDatabaseListener& listener) :
-      TransactionBase(that.mutex_, that.db_, listener, *that.signalRemainingAncestor_, that.GetDatabaseCapabilities()),
+      TransactionBase(that.mutex_, that.db_, listener, *that.signalRemainingAncestor_),
       that_(that),
       transaction_(new SQLite::Transaction(that_.db_))
     {
@@ -1292,7 +1288,7 @@ namespace Orthanc
   public:
     ReadOnlyTransaction(SQLiteDatabaseWrapper& that,
                         IDatabaseListener& listener) :
-      TransactionBase(that.mutex_, that.db_, listener, *that.signalRemainingAncestor_, that.GetDatabaseCapabilities()),
+      TransactionBase(that.mutex_, that.db_, listener, *that.signalRemainingAncestor_),
       that_(that)
     {
       if (that_.activeTransaction_ != NULL)
