@@ -607,7 +607,7 @@ namespace Orthanc
           
           Transaction transaction(db_, *factory_, TransactionType_ReadOnly);  // TODO - Only if not "TransactionType_Implicit"
           {
-            ReadOnlyTransaction t(transaction.GetDatabaseTransaction(), transaction.GetContext(), db_.GetDatabaseCapabilities());
+            ReadOnlyTransaction t(transaction.GetDatabaseTransaction(), transaction.GetContext());
             readOperations->Apply(t);
           }
           transaction.Commit();
@@ -618,7 +618,7 @@ namespace Orthanc
           
           Transaction transaction(db_, *factory_, TransactionType_ReadWrite);
           {
-            ReadWriteTransaction t(transaction.GetDatabaseTransaction(), transaction.GetContext(), db_.GetDatabaseCapabilities());
+            ReadWriteTransaction t(transaction.GetDatabaseTransaction(), transaction.GetContext());
             writeOperations->Apply(t);
           }
           transaction.Commit();
@@ -721,7 +721,8 @@ namespace Orthanc
       bool&, ExpandedResource&, const std::string&, ResourceType, const std::set<DicomTag>&, ExpandResourceFlags>
     {
     private:
-  
+      bool hasLabelsSupport_;
+
       static bool LookupStringMetadata(std::string& result,
                                        const std::map<MetadataType, std::string>& metadata,
                                        MetadataType type)
@@ -763,6 +764,11 @@ namespace Orthanc
 
 
     public:
+      Operations(bool hasLabelsSupport) :
+        hasLabelsSupport_(hasLabelsSupport)
+      {
+      }
+
       virtual void ApplyTuple(ReadOnlyTransaction& transaction,
                               const Tuple& tuple) ORTHANC_OVERRIDE
       {
@@ -939,7 +945,7 @@ namespace Orthanc
           }
 
           if ((expandFlags & ExpandResourceFlags_IncludeLabels) &&
-              transaction.GetDatabaseCapabilities().HasLabelsSupport())
+              hasLabelsSupport_)
           {
             transaction.ListLabels(target.labels_, internalId);
           }
@@ -978,7 +984,7 @@ namespace Orthanc
     };
 
     bool found;
-    Operations operations;
+    Operations operations(db_.GetDatabaseCapabilities().HasLabelsSupport());
     operations.Apply(*this, found, target, publicId, level, requestedTags, expandFlags);
     return found;
   }
@@ -2471,13 +2477,16 @@ namespace Orthanc
       uint64_t       newValue_;
       GlobalProperty sequence_;
       bool           shared_;
+      bool           hasAtomicIncrementGlobalProperty_;
 
     public:
       Operations(GlobalProperty sequence,
-                 bool shared) :
+                 bool shared,
+                 bool hasAtomicIncrementGlobalProperty) :
         newValue_(0),  // Dummy initialization
         sequence_(sequence),
-        shared_(shared)
+        shared_(shared),
+        hasAtomicIncrementGlobalProperty_(hasAtomicIncrementGlobalProperty)
       {
       }
 
@@ -2488,7 +2497,7 @@ namespace Orthanc
 
       virtual void Apply(ReadWriteTransaction& transaction) ORTHANC_OVERRIDE
       {
-        if (transaction.GetDatabaseCapabilities().HasAtomicIncrementGlobalProperty())
+        if (hasAtomicIncrementGlobalProperty_)
         {
           newValue_ = static_cast<uint64_t>(transaction.IncrementGlobalProperty(sequence_, shared_, 1));
         }
@@ -2524,7 +2533,7 @@ namespace Orthanc
       }
     };
 
-    Operations operations(sequence, shared);
+    Operations operations(sequence, shared, GetDatabaseCapabilities().HasAtomicIncrementGlobalProperty());
     Apply(operations);
     assert(operations.GetNewValue() != 0);
     return operations.GetNewValue();
