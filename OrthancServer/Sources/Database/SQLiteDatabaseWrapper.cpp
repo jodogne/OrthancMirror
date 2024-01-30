@@ -316,11 +316,6 @@ namespace Orthanc
     {
     }
 
-    virtual const Capabilities GetDatabaseCapabilities() const ORTHANC_OVERRIDE
-    {
-      return dbCapabilities_;
-    }
-
     IDatabaseListener& GetListener() const
     {
       return listener_;

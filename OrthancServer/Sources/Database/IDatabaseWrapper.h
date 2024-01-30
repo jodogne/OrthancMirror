@@ -340,8 +340,6 @@ namespace Orthanc
       // List all the labels that are present in any resource
       virtual void ListAllLabels(std::set<std::string>& target) = 0;
 
-      virtual const Capabilities GetDatabaseCapabilities() const = 0;
-
       virtual int64_t IncrementGlobalProperty(GlobalProperty property,
                                               int64_t increment,
                                               bool shared) = 0;

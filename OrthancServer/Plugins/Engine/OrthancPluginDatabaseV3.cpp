@@ -278,11 +278,6 @@ namespace Orthanc
       }
     }
     
-    virtual const Capabilities GetDatabaseCapabilities() const ORTHANC_OVERRIDE
-    {
-      return that_.GetDatabaseCapabilities();
-    }
-
     virtual void Rollback() ORTHANC_OVERRIDE
     {
       CheckSuccess(that_.backend_.rollback(transaction_));
