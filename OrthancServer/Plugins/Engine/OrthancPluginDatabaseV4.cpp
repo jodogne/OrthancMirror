@@ -1469,19 +1469,11 @@ namespace Orthanc
     }
     else
     {
-      try
-      {
-        DatabasePluginMessages::DatabaseRequest request;
-        DatabasePluginMessages::DatabaseResponse response;
+      DatabasePluginMessages::DatabaseRequest request;
+      DatabasePluginMessages::DatabaseResponse response;
 
-        ExecuteDatabase(response, *this, DatabasePluginMessages::OPERATION_MEASURE_LATENCY, request);
-        return response.measure_latency().latency_us();
-
-      }
-      catch (OrthancException& e)
-      {
-        throw;
-      }
+      ExecuteDatabase(response, *this, DatabasePluginMessages::OPERATION_MEASURE_LATENCY, request);
+      return response.measure_latency().latency_us();
     }
   }
 
