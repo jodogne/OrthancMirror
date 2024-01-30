@@ -77,11 +77,6 @@ namespace Orthanc
     virtual void Upgrade(unsigned int targetVersion,
                          IStorageArea& storageArea) ORTHANC_OVERRIDE;    
 
-    virtual uint64_t MeasureLatency() ORTHANC_OVERRIDE
-    {
-      throw OrthancException(ErrorCode_NotImplemented);  // only implemented in V4
-    }
-
     virtual const Capabilities GetDatabaseCapabilities() const ORTHANC_OVERRIDE
     {
       return dbCapabilities_;

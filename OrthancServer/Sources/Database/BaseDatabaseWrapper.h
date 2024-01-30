@@ -47,5 +47,7 @@ namespace Orthanc
                                           int64_t& compressedSize,
                                           int64_t& uncompressedSize) ORTHANC_OVERRIDE;
     };
+
+    virtual uint64_t MeasureLatency() ORTHANC_OVERRIDE;
   };
 }

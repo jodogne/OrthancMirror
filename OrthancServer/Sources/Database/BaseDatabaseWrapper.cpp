@@ -43,4 +43,10 @@ namespace Orthanc
   {
     throw OrthancException(ErrorCode_NotImplemented);  // Not supported
   }
+
+
+  uint64_t BaseDatabaseWrapper::MeasureLatency()
+  {
+    throw OrthancException(ErrorCode_NotImplemented);  // only implemented in V4
+  }
 }
