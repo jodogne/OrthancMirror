@@ -243,11 +243,6 @@ namespace Orthanc
       that_.activeTransaction_ = NULL;
     }
 
-    virtual const Capabilities GetDatabaseCapabilities() const ORTHANC_OVERRIDE
-    {
-      return that_.GetDatabaseCapabilities();
-    }
-
     IDatabaseListener& GetDatabaseListener() const
     {
       return listener_;

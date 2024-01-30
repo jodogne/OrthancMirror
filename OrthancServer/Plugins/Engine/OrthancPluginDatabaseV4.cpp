@@ -305,11 +305,6 @@ namespace Orthanc
       }
     }
 
-    virtual const Capabilities GetDatabaseCapabilities() const ORTHANC_OVERRIDE
-    {
-      return database_.GetDatabaseCapabilities();
-    }
-
     void* GetTransactionObject()
     {
       return transaction_;
