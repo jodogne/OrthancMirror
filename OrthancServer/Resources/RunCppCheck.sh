@@ -20,7 +20,7 @@ stlFindInsert:../../OrthancServer/Sources/Database/StatelessDatabaseOperations.c
 stlFindInsert:../../OrthancServer/Sources/OrthancWebDav.cpp:377
 stlFindInsert:../../OrthancServer/Sources/ServerJobs/MergeStudyJob.cpp:40
 stlFindInsert:../../OrthancServer/Sources/ServerJobs/SplitStudyJob.cpp:190
-stlFindInsert:../../OrthancServer/Sources/ServerJobs/ResourceModificationJob.cpp:334
+stlFindInsert:../../OrthancServer/Sources/ServerJobs/ResourceModificationJob.cpp:360
 syntaxError:../../OrthancFramework/Sources/SQLite/FunctionContext.h:52
 syntaxError:../../OrthancFramework/UnitTestsSources/DicomMapTests.cpp:73
 syntaxError:../../OrthancFramework/UnitTestsSources/ZipTests.cpp:132
@@ -36,8 +36,8 @@ assertWithSideEffect:../../OrthancServer/Plugins/Engine/OrthancPluginDatabase.cp
 assertWithSideEffect:../../OrthancServer/Plugins/Engine/OrthancPluginDatabase.cpp:1025
 assertWithSideEffect:../../OrthancServer/Sources/Database/Compatibility/DatabaseLookup.cpp:289
 assertWithSideEffect:../../OrthancServer/Sources/Database/Compatibility/DatabaseLookup.cpp:388
-assertWithSideEffect:../../OrthancServer/Sources/Database/StatelessDatabaseOperations.cpp:3551
-assertWithSideEffect:../../OrthancServer/Sources/ServerJobs/ResourceModificationJob.cpp:272
+assertWithSideEffect:../../OrthancServer/Sources/Database/StatelessDatabaseOperations.cpp:3630
+assertWithSideEffect:../../OrthancServer/Sources/ServerJobs/ResourceModificationJob.cpp:285
 assertWithSideEffect:../../OrthancFramework/Sources/DicomNetworking/Internals/CommandDispatcher.cpp:453
 EOF
 
