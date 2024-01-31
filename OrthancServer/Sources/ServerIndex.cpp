@@ -331,7 +331,7 @@ namespace Orthanc
     // execution of Orthanc
     StandaloneRecycling(maximumStorageMode_, maximumStorageSize_, maximumPatients_);
 
-    if (HasFlushToDisk())
+    if (GetDatabaseCapabilities().HasFlushToDisk())
     {
       flushThread_ = boost::thread(FlushThread, this, threadSleepGranularityMilliseconds);
     }

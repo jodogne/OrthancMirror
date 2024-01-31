@@ -182,6 +182,9 @@ namespace Orthanc
       case ErrorCode_ForbiddenAccess:
         return "Access to a resource is forbidden";
 
+      case ErrorCode_DuplicateResource:
+        return "Duplicate resource";
+
       case ErrorCode_SQLiteNotOpened:
         return "SQLite: The database is not opened";
 
@@ -2263,6 +2266,9 @@ namespace Orthanc
 
       case ErrorCode_ForbiddenAccess:
         return HttpStatus_403_Forbidden;
+
+      case ErrorCode_DuplicateResource:
+        return HttpStatus_409_Conflict;
 
       case ErrorCode_CreateDicomNotString:
         return HttpStatus_400_BadRequest;

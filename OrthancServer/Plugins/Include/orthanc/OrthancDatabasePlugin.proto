@@ -121,6 +121,7 @@ enum DatabaseOperation {
   OPERATION_START_TRANSACTION = 4;
   OPERATION_UPGRADE = 5;
   OPERATION_FINALIZE_TRANSACTION = 6;
+  OPERATION_MEASURE_LATENCY = 7;         // New in Orthanc 1.12.X
 }
 
 enum TransactionType {
@@ -136,6 +137,9 @@ message GetSystemInformation {
     bool supports_flush_to_disk = 2;
     bool supports_revisions = 3;
     bool supports_labels = 4;
+    bool supports_increment_global_property = 5;
+    bool has_update_and_get_statistics = 6;
+    bool has_measure_latency = 7;
   }
 }
 
@@ -198,6 +202,15 @@ message FinalizeTransaction {
   }
 }
 
+message MeasureLatency {
+  message Request {
+  }
+  message Response {
+    int64 latency_us = 1;
+  }
+}
+
+
 message DatabaseRequest {
   sfixed64           database = 1;
   DatabaseOperation  operation = 2;
@@ -208,7 +221,8 @@ message DatabaseRequest {
   FlushToDisk.Request           flush_to_disk = 103;
   StartTransaction.Request      start_transaction = 104;
   Upgrade.Request               upgrade = 105;
-  FinalizeTransaction.Request   finalize_transaction = 106;
+  FinalizeTransaction.Request   finalize_transaction = 106; 
+  MeasureLatency.Request        measure_latency = 107;
 }
 
 message DatabaseResponse {
@@ -219,6 +233,7 @@ message DatabaseResponse {
   StartTransaction.Response      start_transaction = 104;
   Upgrade.Response               upgrade = 105;
   FinalizeTransaction.Response   finalize_transaction = 106;
+  MeasureLatency.Response        measure_latency = 107;
 }
 
 
@@ -275,6 +290,8 @@ enum TransactionOperation {
   OPERATION_ADD_LABEL = 45;        // New in Orthanc 1.12.0
   OPERATION_REMOVE_LABEL = 46;     // New in Orthanc 1.12.0
   OPERATION_LIST_LABELS = 47;      // New in Orthanc 1.12.0
+  OPERATION_INCREMENT_GLOBAL_PROPERTY = 48;      // New in Orthanc 1.12.X
+  OPERATION_UPDATE_AND_GET_STATISTICS = 49;      // New in Orthanc 1.12.X
 }
 
 message Rollback {
@@ -628,6 +645,30 @@ message SetGlobalProperty {
   }
 }
 
+message IncrementGlobalProperty {
+  message Request {
+    string server_id = 1;
+    int32 property = 2;
+    int64 increment = 3;
+  }
+  message Response {
+    int64 new_value = 1;
+  }
+}
+
+message UpdateAndGetStatistics {
+  message Request {
+  }
+  message Response {
+    int64 patients_count = 1;
+    int64 studies_count = 2;
+    int64 series_count = 3;
+    int64 instances_count = 4;
+    int64 total_compressed_size = 5;
+    int64 total_uncompressed_size = 6;
+  }
+}
+
 message ClearMainDicomTags {
   message Request {
     int64 id = 1;
@@ -834,6 +875,8 @@ message TransactionRequest {
   AddLabel.Request                        add_label = 145;
   RemoveLabel.Request                     remove_label = 146;
   ListLabels.Request                      list_labels = 147;
+  IncrementGlobalProperty.Request         increment_global_property = 148;
+  UpdateAndGetStatistics.Request          update_and_get_statistics = 149;
 }
 
 message TransactionResponse {
@@ -885,6 +928,8 @@ message TransactionResponse {
   AddLabel.Response                        add_label = 145;
   RemoveLabel.Response                     remove_label = 146;
   ListLabels.Response                      list_labels = 147;
+  IncrementGlobalProperty.Response         increment_global_property = 148;
+  UpdateAndGetStatistics.Response          update_and_get_statistics = 149;
 }
 
 enum RequestType {

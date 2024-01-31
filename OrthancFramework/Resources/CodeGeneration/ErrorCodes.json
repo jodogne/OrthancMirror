@@ -256,6 +256,12 @@
     "Name": "ForbiddenAccess", 
     "Description": "Access to a resource is forbidden"
   }, 
+  {
+    "Code": 46,
+    "HttpStatus": 409,
+    "Name": "DuplicateResource", 
+    "Description": "Duplicate resource"
+  }, 
 
 
 

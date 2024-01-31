@@ -1324,6 +1324,9 @@ namespace Orthanc
     signalRemainingAncestor_(NULL),
     version_(0)
   {
+    // TODO: implement revisions in SQLite
+    dbCapabilities_.SetFlushToDisk(true);
+    dbCapabilities_.SetLabelsSupport(true);
     db_.Open(path);
   }
 
@@ -1333,6 +1336,9 @@ namespace Orthanc
     signalRemainingAncestor_(NULL),
     version_(0)
   {
+    // TODO: implement revisions in SQLite
+    dbCapabilities_.SetFlushToDisk(true);
+    dbCapabilities_.SetLabelsSupport(true);
     db_.OpenInMemory();
   }
 

@@ -607,7 +607,7 @@ namespace Orthanc
           
           Transaction transaction(db_, *factory_, TransactionType_ReadOnly);  // TODO - Only if not "TransactionType_Implicit"
           {
-            ReadOnlyTransaction t(transaction.GetDatabaseTransaction(), transaction.GetContext(), db_.HasLabelsSupport());
+            ReadOnlyTransaction t(transaction.GetDatabaseTransaction(), transaction.GetContext());
             readOperations->Apply(t);
           }
           transaction.Commit();
@@ -618,7 +618,7 @@ namespace Orthanc
           
           Transaction transaction(db_, *factory_, TransactionType_ReadWrite);
           {
-            ReadWriteTransaction t(transaction.GetDatabaseTransaction(), transaction.GetContext(), db_.HasLabelsSupport());
+            ReadWriteTransaction t(transaction.GetDatabaseTransaction(), transaction.GetContext());
             writeOperations->Apply(t);
           }
           transaction.Commit();
@@ -632,6 +632,7 @@ namespace Orthanc
         {
           if (attempt >= maxRetries_)
           {
+            LOG(ERROR) << "Maximum transactions retries reached " << e.GetDetails();
             throw;
           }
           else
@@ -654,7 +655,6 @@ namespace Orthanc
   StatelessDatabaseOperations::StatelessDatabaseOperations(IDatabaseWrapper& db) : 
     db_(db),
     mainDicomTagsRegistry_(new MainDicomTagsRegistry),
-    hasFlushToDisk_(db.HasFlushToDisk()),
     maxRetries_(0)
   {
   }
@@ -721,7 +721,8 @@ namespace Orthanc
       bool&, ExpandedResource&, const std::string&, ResourceType, const std::set<DicomTag>&, ExpandResourceFlags>
     {
     private:
-  
+      bool hasLabelsSupport_;
+
       static bool LookupStringMetadata(std::string& result,
                                        const std::map<MetadataType, std::string>& metadata,
                                        MetadataType type)
@@ -763,6 +764,11 @@ namespace Orthanc
 
 
     public:
+      Operations(bool hasLabelsSupport) :
+        hasLabelsSupport_(hasLabelsSupport)
+      {
+      }
+
       virtual void ApplyTuple(ReadOnlyTransaction& transaction,
                               const Tuple& tuple) ORTHANC_OVERRIDE
       {
@@ -939,7 +945,7 @@ namespace Orthanc
           }
 
           if ((expandFlags & ExpandResourceFlags_IncludeLabels) &&
-              transaction.HasLabelsSupport())
+              hasLabelsSupport_)
           {
             transaction.ListLabels(target.labels_, internalId);
           }
@@ -978,7 +984,7 @@ namespace Orthanc
     };
 
     bool found;
-    Operations operations;
+    Operations operations(db_.GetDatabaseCapabilities().HasLabelsSupport());
     operations.Apply(*this, found, target, publicId, level, requestedTags, expandFlags);
     return found;
   }
@@ -1103,7 +1109,54 @@ namespace Orthanc
                                                         /* out */ uint64_t& countSeries, 
                                                         /* out */ uint64_t& countInstances)
   {
-    class Operations : public ReadOnlyOperationsT6<uint64_t&, uint64_t&, uint64_t&, uint64_t&, uint64_t&, uint64_t&>
+    // Code introduced in Orthanc 1.12.3 that updates and gets all statistics.
+    // I.e, PostgreSQL now store "changes" to apply to the statistics to prevent row locking
+    // of the GlobalIntegers table while multiple clients are inserting/deleting new resources.
+    // Then, the statistics are updated when requested to make sure they are correct.
+    class Operations : public IReadWriteOperations
+    {
+    private:
+      int64_t diskSize_;
+      int64_t uncompressedSize_;
+      int64_t countPatients_;
+      int64_t countStudies_;
+      int64_t countSeries_;
+      int64_t countInstances_;
+
+    public:
+      Operations() :
+        diskSize_(0),
+        uncompressedSize_(0),
+        countPatients_(0),
+        countStudies_(0),
+        countSeries_(0),
+        countInstances_(0)
+      {
+      }
+
+      void GetValues(uint64_t& diskSize,
+                     uint64_t& uncompressedSize,
+                     uint64_t& countPatients, 
+                     uint64_t& countStudies, 
+                     uint64_t& countSeries, 
+                     uint64_t& countInstances) const
+      {
+        diskSize = static_cast<uint64_t>(diskSize_);
+        uncompressedSize = static_cast<uint64_t>(uncompressedSize_);
+        countPatients = static_cast<uint64_t>(countPatients_);
+        countStudies = static_cast<uint64_t>(countStudies_);
+        countSeries = static_cast<uint64_t>(countSeries_);
+        countInstances = static_cast<uint64_t>(countInstances_);
+      }
+
+      virtual void Apply(ReadWriteTransaction& transaction) ORTHANC_OVERRIDE
+      {
+        transaction.UpdateAndGetStatistics(countPatients_, countStudies_, countSeries_, countInstances_, diskSize_, uncompressedSize_);
+      }
+    };
+
+    // Compatibility with Orthanc SDK <= 1.12.2 that reads each entry individualy
+    class LegacyOperations : public ReadOnlyOperationsT6<uint64_t&, uint64_t&, uint64_t&, uint64_t&, uint64_t&, uint64_t&>
     {
     public:
       virtual void ApplyTuple(ReadOnlyTransaction& transaction,
@@ -1117,10 +1170,20 @@ namespace Orthanc
         tuple.get<5>() = transaction.GetResourcesCount(ResourceType_Instance);
       }
     };
-    
-    Operations operations;
-    operations.Apply(*this, diskSize, uncompressedSize, countPatients,
-                     countStudies, countSeries, countInstances);
+
+    if (GetDatabaseCapabilities().HasUpdateAndGetStatistics())
+    {
+      Operations operations;
+      Apply(operations);
+
+      operations.GetValues(diskSize, uncompressedSize, countPatients, countStudies, countSeries, countInstances);
+    } 
+    else
+    {   
+      LegacyOperations operations;
+      operations.Apply(*this, diskSize, uncompressedSize, countPatients,
+                       countStudies, countSeries, countInstances);
+    }
   }
 
 
@@ -1961,7 +2024,7 @@ namespace Orthanc
     };
 
     if (!labels.empty() &&
-        !db_.HasLabelsSupport())
+        !db_.GetDatabaseCapabilities().HasLabelsSupport())
     {
       throw OrthancException(ErrorCode_NotImplemented, "The database backend doesn't support labels");
     }
@@ -2414,13 +2477,16 @@ namespace Orthanc
       uint64_t       newValue_;
       GlobalProperty sequence_;
       bool           shared_;
+      bool           hasAtomicIncrementGlobalProperty_;
 
     public:
       Operations(GlobalProperty sequence,
-                 bool shared) :
+                 bool shared,
+                 bool hasAtomicIncrementGlobalProperty) :
         newValue_(0),  // Dummy initialization
         sequence_(sequence),
-        shared_(shared)
+        shared_(shared),
+        hasAtomicIncrementGlobalProperty_(hasAtomicIncrementGlobalProperty)
       {
       }
 
@@ -2431,36 +2497,43 @@ namespace Orthanc
 
       virtual void Apply(ReadWriteTransaction& transaction) ORTHANC_OVERRIDE
       {
-        std::string oldString;
-
-        if (transaction.LookupGlobalProperty(oldString, sequence_, shared_))
+        if (hasAtomicIncrementGlobalProperty_)
         {
-          uint64_t oldValue;
-      
-          try
-          {
-            oldValue = boost::lexical_cast<uint64_t>(oldString);
-          }
-          catch (boost::bad_lexical_cast&)
-          {
-            LOG(ERROR) << "Cannot read the global sequence "
-                       << boost::lexical_cast<std::string>(sequence_) << ", resetting it";
-            oldValue = 0;
-          }
-
-          newValue_ = oldValue + 1;
+          newValue_ = static_cast<uint64_t>(transaction.IncrementGlobalProperty(sequence_, shared_, 1));
         }
         else
         {
-          // Initialize the sequence at "1"
-          newValue_ = 1;
-        }
+          std::string oldString;
 
-        transaction.SetGlobalProperty(sequence_, shared_, boost::lexical_cast<std::string>(newValue_));
+          if (transaction.LookupGlobalProperty(oldString, sequence_, shared_))
+          {
+            uint64_t oldValue;
+        
+            try
+            {
+              oldValue = boost::lexical_cast<uint64_t>(oldString);
+            }
+            catch (boost::bad_lexical_cast&)
+            {
+              LOG(ERROR) << "Cannot read the global sequence "
+                        << boost::lexical_cast<std::string>(sequence_) << ", resetting it";
+              oldValue = 0;
+            }
+
+            newValue_ = oldValue + 1;
+          }
+          else
+          {
+            // Initialize the sequence at "1"
+            newValue_ = 1;
+          }
+
+          transaction.SetGlobalProperty(sequence_, shared_, boost::lexical_cast<std::string>(newValue_));
+        }
       }
     };
 
-    Operations operations(sequence, shared);
+    Operations operations(sequence, shared, GetDatabaseCapabilities().HasAtomicIncrementGlobalProperty());
     Apply(operations);
     assert(operations.GetNewValue() != 0);
     return operations.GetNewValue();
@@ -3147,7 +3220,13 @@ namespace Orthanc
             if (!transaction.CreateInstance(status, instanceId, hashPatient_,
                                             hashStudy_, hashSeries_, hashInstance_))
             {
-              throw OrthancException(ErrorCode_InternalError, "No new instance while overwriting; this should not happen.");
+              // Note that, sometime, it does not create a new instance, 
+              // in very rare occasions in READ COMMITTED mode when multiple clients are pushing the same instance at the same time,
+              // this thread will not create the instance because another thread has created it in the meantime.
+              // At the end, there is always a thread that creates the instance and this is what we expect.
+
+              // Note, we must delete the attachments that have already been stored from this failed insertion (they have not yet been added into the DB)
+              throw OrthancException(ErrorCode_DuplicateResource, "No new instance while overwriting; this might happen if another client has pushed the same instance at the same time.");
             }
           }
           else
@@ -3694,6 +3773,6 @@ namespace Orthanc
   bool StatelessDatabaseOperations::HasLabelsSupport()
   {
     boost::shared_lock<boost::shared_mutex> lock(mutex_);
-    return db_.HasLabelsSupport();
+    return db_.GetDatabaseCapabilities().HasLabelsSupport();
   }
 }
