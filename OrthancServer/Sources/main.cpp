@@ -820,6 +820,7 @@ static void PrintErrors(const char* path)
     PrintErrorCode(ErrorCode_Revision, "A bad revision number was provided, which might indicate conflict between multiple writers");
     PrintErrorCode(ErrorCode_MainDicomTagsMultiplyDefined, "A main DICOM Tag has been defined multiple times for the same resource level");
     PrintErrorCode(ErrorCode_ForbiddenAccess, "Access to a resource is forbidden");
+    PrintErrorCode(ErrorCode_DuplicateResource, "Duplicate resource");
     PrintErrorCode(ErrorCode_SQLiteNotOpened, "SQLite: The database is not opened");
     PrintErrorCode(ErrorCode_SQLiteAlreadyOpened, "SQLite: Connection is already open");
     PrintErrorCode(ErrorCode_SQLiteCannotOpen, "SQLite: Unable to open the database");
@@ -1643,7 +1644,7 @@ static bool ConfigureDatabase(IDatabaseWrapper& database,
     
     if (lock.GetConfiguration().GetBooleanParameter(CHECK_REVISIONS, false))
     {
-      if (database.HasRevisionsSupport())
+      if (database.GetDatabaseCapabilities().HasRevisionsSupport())
       {
         LOG(INFO) << "Handling of revisions is enabled, and the custom database back-end *has* "
                   << "support for revisions of metadata and attachments";
@@ -1666,10 +1667,17 @@ static bool ConfigureDatabase(IDatabaseWrapper& database,
     }
   }
 
-  if (!database.HasLabelsSupport())
+  if (!database.GetDatabaseCapabilities().HasLabelsSupport())
   {
     LOG(WARNING) << "The custom database back-end has *no* support for labels";
   }
+
+  if (database.GetDatabaseCapabilities().HasMeasureLatency())
+  {
+    uint64_t latency = database.MeasureLatency();
+    LOG(WARNING) << "The DB latency is " << latency << " µs";
+  }
+
 
   bool success = ConfigureServerContext(database, storageArea, plugins, loadJobsFromDatabase);
 

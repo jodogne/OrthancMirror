@@ -710,9 +710,29 @@ namespace Orthanc
 
       typedef std::map<MetadataType, std::string>  InstanceMetadata;
       InstanceMetadata  instanceMetadata;
-      result.SetStatus(index_.Store(
-        instanceMetadata, summary, attachments, dicom.GetMetadata(), dicom.GetOrigin(), overwrite,
-        hasTransferSyntax, transferSyntax, hasPixelDataOffset, pixelDataOffset, pixelDataVR, isReconstruct));
+
+      try 
+      {
+        result.SetStatus(index_.Store(
+          instanceMetadata, summary, attachments, dicom.GetMetadata(), dicom.GetOrigin(), overwrite,
+          hasTransferSyntax, transferSyntax, hasPixelDataOffset, pixelDataOffset, pixelDataVR, isReconstruct));
+      }
+      catch (OrthancException& ex)
+      {
+        if (ex.GetErrorCode() == ErrorCode_DuplicateResource)
+        {
+          LOG(WARNING) << "Duplicate instance, deleting the attachments";
+
+          accessor.Remove(dicomInfo);
+
+          if (dicomUntilPixelData.IsValid())
+          {
+            accessor.Remove(dicomUntilPixelData);
+          }
+        }
+
+        throw;
+      }
 
       // Only keep the metadata for the "instance" level
       dicom.ClearMetadata();

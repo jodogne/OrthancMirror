@@ -39,10 +39,92 @@ namespace Orthanc
   class DatabaseConstraint;
   class ResourcesContent;
 
-  
   class IDatabaseWrapper : public boost::noncopyable
   {
   public:
+    class Capabilities
+    {
+    private:
+      bool hasFlushToDisk_;
+      bool hasRevisionsSupport_;
+      bool hasLabelsSupport_;
+      bool hasAtomicIncrementGlobalProperty_;
+      bool hasUpdateAndGetStatistics_;
+      bool hasMeasureLatency_;
+
+    public:
+      Capabilities() :
+        hasFlushToDisk_(false),
+        hasRevisionsSupport_(false),
+        hasLabelsSupport_(false),
+        hasAtomicIncrementGlobalProperty_(false),
+        hasUpdateAndGetStatistics_(false),
+        hasMeasureLatency_(false)
+      {
+      }
+
+      void SetFlushToDisk(bool value)
+      {
+        hasFlushToDisk_ = value;
+      }
+
+      bool HasFlushToDisk() const
+      {
+        return hasFlushToDisk_;
+      }
+
+      void SetRevisionsSupport(bool value)
+      {
+        hasRevisionsSupport_ = value;
+      }
+
+      bool HasRevisionsSupport() const
+      {
+        return hasRevisionsSupport_;
+      }
+
+      void SetLabelsSupport(bool value)
+      {
+        hasLabelsSupport_ = value;
+      }
+
+      bool HasLabelsSupport() const
+      {
+        return hasLabelsSupport_;
+      }
+
+      void SetAtomicIncrementGlobalProperty(bool value)
+      {
+        hasAtomicIncrementGlobalProperty_ = value;
+      }
+
+      bool HasAtomicIncrementGlobalProperty() const
+      {
+        return hasAtomicIncrementGlobalProperty_;
+      }
+
+      void SetUpdateAndGetStatistics(bool value)
+      {
+        hasUpdateAndGetStatistics_ = value;
+      }
+
+      bool HasUpdateAndGetStatistics() const
+      {
+        return hasUpdateAndGetStatistics_;
+      }
+
+      void SetMeasureLatency(bool value)
+      {
+        hasMeasureLatency_ = value;
+      }
+
+      bool HasMeasureLatency() const
+      {
+        return hasMeasureLatency_;
+      }
+    };
+
+
     struct CreateInstanceResult : public boost::noncopyable
     {
       bool     isNewPatient_;
@@ -257,6 +339,17 @@ namespace Orthanc
 
       // List all the labels that are present in any resource
       virtual void ListAllLabels(std::set<std::string>& target) = 0;
+
+      virtual int64_t IncrementGlobalProperty(GlobalProperty property,
+                                              int64_t increment,
+                                              bool shared) = 0;
+
+      virtual void UpdateAndGetStatistics(int64_t& patientsCount,
+                                          int64_t& studiesCount,
+                                          int64_t& seriesCount,
+                                          int64_t& instancesCount,
+                                          int64_t& compressedSize,
+                                          int64_t& uncompressedSize) = 0;
     };
 
 
@@ -270,8 +363,6 @@ namespace Orthanc
 
     virtual void FlushToDisk() = 0;
 
-    virtual bool HasFlushToDisk() const = 0;
-
     virtual ITransaction* StartTransaction(TransactionType type,
                                            IDatabaseListener& listener) = 0;
 
@@ -280,8 +371,8 @@ namespace Orthanc
     virtual void Upgrade(unsigned int targetVersion,
                          IStorageArea& storageArea) = 0;
 
-    virtual bool HasRevisionsSupport() const = 0;
+    virtual const Capabilities GetDatabaseCapabilities() const = 0;
 
-    virtual bool HasLabelsSupport() const = 0;
+    virtual uint64_t MeasureLatency() = 0;
   };
 }

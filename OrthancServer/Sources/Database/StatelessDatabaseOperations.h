@@ -176,17 +176,14 @@ namespace Orthanc
     {
     private:
       ITransactionContext&  context_;
-      bool                  hasLabelsSupport_;
-      
+
     protected:
       IDatabaseWrapper::ITransaction&  transaction_;
       
     public:
       explicit ReadOnlyTransaction(IDatabaseWrapper::ITransaction& transaction,
-                                   ITransactionContext& context,
-                                   bool hasLabelsSupport) :
+                                   ITransactionContext& context) :
         context_(context),
-        hasLabelsSupport_(hasLabelsSupport),
         transaction_(transaction)
       {
       }
@@ -194,11 +191,6 @@ namespace Orthanc
       ITransactionContext& GetTransactionContext()
       {
         return context_;
-      }
-
-      bool HasLabelsSupport() const
-      {
-        return hasLabelsSupport_;
       }
 
       /**
@@ -391,9 +383,8 @@ namespace Orthanc
     {
     public:
       ReadWriteTransaction(IDatabaseWrapper::ITransaction& transaction,
-                           ITransactionContext& context,
-                           bool hasLabelsSupport) :
-        ReadOnlyTransaction(transaction, context, hasLabelsSupport)
+                           ITransactionContext& context) :
+        ReadOnlyTransaction(transaction, context)
       {
       }
 
@@ -461,6 +452,23 @@ namespace Orthanc
                              const std::string& value)
       {
         transaction_.SetGlobalProperty(property, shared, value);
+      }
+
+      int64_t IncrementGlobalProperty(GlobalProperty sequence,
+                                      bool shared,
+                                      int64_t increment)
+      {
+        return transaction_.IncrementGlobalProperty(sequence, shared, increment);
+      }
+
+      void UpdateAndGetStatistics(int64_t& patientsCount,
+                                  int64_t& studiesCount,
+                                  int64_t& seriesCount,
+                                  int64_t& instancesCount,
+                                  int64_t& compressedSize,
+                                  int64_t& uncompressedSize)
+      {
+        return transaction_.UpdateAndGetStatistics(patientsCount, studiesCount, seriesCount, instancesCount, compressedSize, uncompressedSize);
       }
 
       void SetMetadata(int64_t id,
@@ -540,7 +548,6 @@ namespace Orthanc
 
     IDatabaseWrapper&                            db_;
     boost::shared_ptr<MainDicomTagsRegistry>     mainDicomTagsRegistry_;  // "shared_ptr" because of PImpl
-    bool                                         hasFlushToDisk_;
 
     // Mutex to protect the configuration options
     boost::shared_mutex                          mutex_;
@@ -575,12 +582,13 @@ namespace Orthanc
       return db_.GetDatabaseVersion();
     }
 
+    const IDatabaseWrapper::Capabilities GetDatabaseCapabilities() const
+    {
+      return db_.GetDatabaseCapabilities();
+    }
+
     void FlushToDisk();
 
-    bool HasFlushToDisk() const
-    {
-      return hasFlushToDisk_;
-    }
 
     void Apply(IReadOnlyOperations& operations);
   

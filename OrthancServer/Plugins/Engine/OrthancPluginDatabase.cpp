@@ -43,7 +43,7 @@
 namespace Orthanc
 {
   class OrthancPluginDatabase::Transaction :
-    public IDatabaseWrapper::ITransaction,
+    public BaseDatabaseWrapper::BaseTransaction,
     public Compatibility::ICreateInstance,
     public Compatibility::IGetChildrenMetadata,
     public Compatibility::ILookupResources,
