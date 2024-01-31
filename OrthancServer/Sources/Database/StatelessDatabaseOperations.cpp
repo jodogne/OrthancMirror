@@ -1109,7 +1109,7 @@ namespace Orthanc
                                                         /* out */ uint64_t& countSeries, 
                                                         /* out */ uint64_t& countInstances)
   {
-    // new code that updates and gets all statistics.
+    // Code introduced in Orthanc 1.12.3 that updates and gets all statistics.
     // I.e, PostgreSQL now store "changes" to apply to the statistics to prevent row locking
     // of the GlobalIntegers table while multiple clients are inserting/deleting new resources.
     // Then, the statistics are updated when requested to make sure they are correct.
@@ -1155,7 +1155,7 @@ namespace Orthanc
       }
     };
 
-    // legacy oprations that reads each entry individualy
+    // Compatibility with Orthanc SDK <= 1.12.2 that reads each entry individualy
     class LegacyOperations : public ReadOnlyOperationsT6<uint64_t&, uint64_t&, uint64_t&, uint64_t&, uint64_t&, uint64_t&>
     {
     public:
