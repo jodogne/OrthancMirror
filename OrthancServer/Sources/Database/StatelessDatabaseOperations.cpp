@@ -764,7 +764,7 @@ namespace Orthanc
 
 
     public:
-      Operations(bool hasLabelsSupport) :
+      explicit Operations(bool hasLabelsSupport) :
         hasLabelsSupport_(hasLabelsSupport)
       {
       }
