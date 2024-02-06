@@ -722,15 +722,19 @@ namespace Orthanc
         if (ex.GetErrorCode() == ErrorCode_DuplicateResource)
         {
           LOG(WARNING) << "Duplicate instance, deleting the attachments";
-
-          accessor.Remove(dicomInfo);
-
-          if (dicomUntilPixelData.IsValid())
-          {
-            accessor.Remove(dicomUntilPixelData);
-          }
+        }
+        else
+        {
+          LOG(ERROR) << "Unexpected error while storing an instance in DB, cancelling and deleting the attachments: " << ex.GetDetails();
         }
 
+        accessor.Remove(dicomInfo);
+
+        if (dicomUntilPixelData.IsValid())
+        {
+          accessor.Remove(dicomUntilPixelData);
+        }
+        
         throw;
       }
 
