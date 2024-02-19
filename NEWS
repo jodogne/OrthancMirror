@@ -1,6 +1,13 @@
 Pending changes in the mainline
 ===============================
 
+REST API
+--------
+
+* API version upgraded to 24
+* Added "MaximumPatientCount" in /system
+
+
 
 Version 1.12.3 (2024-01-31)
 ===========================
