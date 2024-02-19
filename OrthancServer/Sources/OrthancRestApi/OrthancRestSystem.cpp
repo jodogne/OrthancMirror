@@ -87,6 +87,7 @@ namespace Orthanc
     static const char* const OVERWRITE_INSTANCES = "OverwriteInstances";
     static const char* const INGEST_TRANSCODING = "IngestTranscoding";
     static const char* const MAXIMUM_STORAGE_SIZE = "MaximumStorageSize";
+    static const char* const MAXIMUM_PATIENT_COUNT = "MaximumPatientCount";
     static const char* const MAXIMUM_STORAGE_MODE = "MaximumStorageMode";
     static const char* const USER_METADATA = "UserMetadata";
     static const char* const HAS_LABELS = "HasLabels";
@@ -128,6 +129,8 @@ namespace Orthanc
                         "Whether instances are transcoded when ingested into Orthanc (`""` if no transcoding is performed) (new in Orthanc 1.11.0)")
         .SetAnswerField(MAXIMUM_STORAGE_SIZE, RestApiCallDocumentation::Type_Number,
                         "The configured MaximumStorageSize in MB (new in Orthanc 1.11.3)")
+        .SetAnswerField(MAXIMUM_PATIENT_COUNT, RestApiCallDocumentation::Type_Number,
+                        "The configured MaximumPatientCount (new in Orthanc 1.12.4)")
         .SetAnswerField(MAXIMUM_STORAGE_MODE, RestApiCallDocumentation::Type_String,
                         "The configured MaximumStorageMode (new in Orthanc 1.11.3)")
         .SetAnswerField(USER_METADATA, RestApiCallDocumentation::Type_JsonObject,
@@ -159,6 +162,7 @@ namespace Orthanc
       result[INGEST_TRANSCODING] = lock.GetConfiguration().GetStringParameter(INGEST_TRANSCODING, ""); // New in Orthanc 1.11.0
       result[DATABASE_SERVER_IDENTIFIER] = lock.GetConfiguration().GetDatabaseServerIdentifier();
       result[MAXIMUM_STORAGE_SIZE] = lock.GetConfiguration().GetUnsignedIntegerParameter(MAXIMUM_STORAGE_SIZE, 0); // New in Orthanc 1.11.3
+      result[MAXIMUM_PATIENT_COUNT] = lock.GetConfiguration().GetUnsignedIntegerParameter(MAXIMUM_PATIENT_COUNT, 0); // New in Orthanc 1.11.3
       result[MAXIMUM_STORAGE_MODE] = lock.GetConfiguration().GetStringParameter(MAXIMUM_STORAGE_MODE, "Recycle"); // New in Orthanc 1.11.3
     }
 
