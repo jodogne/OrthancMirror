@@ -1,6 +1,17 @@
 Pending changes in the mainline
 ===============================
 
+Maintenance
+-----------
+
+* In C-Find queries including GenericGroupLength tags, Orthanc was still
+  extracting these tags from the storage although they were already ignored
+  and not returned in the response.  
+  They are now removed from the query earlier to avoid this disk access that 
+  could slow down the response time.  Note that this seems to happen mainly 
+  when the query originates from some GE devices (AWS).
+
+
 REST API
 --------
 
