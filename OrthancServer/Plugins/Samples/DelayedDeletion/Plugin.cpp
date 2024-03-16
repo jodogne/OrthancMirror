@@ -306,7 +306,7 @@ extern "C"
       return -1;
     }
 
-    OrthancPluginSetDescription(context, "Plugin removing files from storage asynchronously.");
+    OrthancPluginSetDescription2(context, ORTHANC_PLUGIN_NAME, "Plugin removing files from storage asynchronously.");
 
     OrthancPlugins::OrthancConfiguration orthancConfig;
 

@@ -20,6 +20,8 @@
  **/
 
 
+#define HOUSEKEEPER_NAME "housekeeper"
+
 #include "../../../../OrthancFramework/Sources/Compatibility.h"
 #include "../Common/OrthancPluginCppWrapper.h"
 
@@ -788,7 +790,7 @@ extern "C"
     }
 
     OrthancPlugins::LogWarning("Housekeeper plugin is initializing");
-    OrthancPluginSetDescription(c, "Optimizes your DB and storage.");
+    OrthancPluginSetDescription2(c, HOUSEKEEPER_NAME, "Optimizes your DB and storage.");
 
     OrthancPlugins::OrthancConfiguration orthancConfiguration;
 
@@ -889,7 +891,7 @@ extern "C"
 
   ORTHANC_PLUGINS_API const char* OrthancPluginGetName()
   {
-    return "housekeeper";
+    return HOUSEKEEPER_NAME;
   }
 
 

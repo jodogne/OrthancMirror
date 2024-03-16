@@ -20,6 +20,8 @@
  **/
 
 
+#define ORTHANC_PLUGIN_NAME "multitenant-dicom"
+
 #include "MultitenantDicomServer.h"
 
 #include "../../../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.h"
@@ -126,7 +128,7 @@ extern "C"
     /* Disable "gethostbyaddr" (which results in memory leaks) and use raw IP addresses */
     dcmDisableGethostbyaddr.set(OFTrue);
 
-    OrthancPluginSetDescription(context, "Multitenant plugin for Orthanc.");
+    OrthancPluginSetDescription2(context, ORTHANC_PLUGIN_NAME, "Multitenant plugin for Orthanc.");
 
     OrthancPluginRegisterOnChangeCallback(context, OnChangeCallback);
     
@@ -186,7 +188,7 @@ extern "C"
 
   ORTHANC_PLUGINS_API const char* OrthancPluginGetName()
   {
-    return "multitenant-dicom";
+    return ORTHANC_PLUGIN_NAME;
   }
 
 
