@@ -20,6 +20,8 @@
  **/
 
 
+#define MODALITY_WORKLISTS_NAME "worklists"
+
 #include "../../../../OrthancFramework/Sources/Compatibility.h"
 #include "../Common/OrthancPluginCppWrapper.h"
 
@@ -226,7 +228,7 @@ extern "C"
     }
 
     OrthancPlugins::LogWarning("Sample worklist plugin is initializing");
-    OrthancPluginSetDescription(c, "Serve DICOM modality worklists from a folder with Orthanc.");
+    OrthancPluginSetDescription2(c, MODALITY_WORKLISTS_NAME, "Serve DICOM modality worklists from a folder with Orthanc.");
 
     OrthancPlugins::OrthancConfiguration configuration;
 
@@ -267,7 +269,7 @@ extern "C"
 
   ORTHANC_PLUGINS_API const char* OrthancPluginGetName()
   {
-    return "worklists";
+    return MODALITY_WORKLISTS_NAME;
   }
 
 

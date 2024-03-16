@@ -3482,7 +3482,7 @@ extern "C"
    * @param plugin Identifier of your plugin (it must match "OrthancPluginGetName()").
    * @param uri The root URI for this plugin.
    **/
-  ORTHANC_PLUGIN_DEPRECATED ORTHANC_PLUGIN_INLINE void OrthancPluginSetRootUri2(
+  ORTHANC_PLUGIN_INLINE void OrthancPluginSetRootUri2(
     OrthancPluginContext*  context,
     const char*            plugin,
     const char*            uri)
@@ -3532,7 +3532,7 @@ extern "C"
    * @param plugin Identifier of your plugin (it must match "OrthancPluginGetName()").
    * @param description The description.
    **/
-  ORTHANC_PLUGIN_DEPRECATED ORTHANC_PLUGIN_INLINE void OrthancPluginSetDescription2(
+  ORTHANC_PLUGIN_INLINE void OrthancPluginSetDescription2(
     OrthancPluginContext*  context,
     const char*            plugin,
     const char*            description)
@@ -3582,7 +3582,7 @@ extern "C"
    * @param plugin Identifier of your plugin (it must match "OrthancPluginGetName()").
    * @param javascript The custom JavaScript code.
    **/
-  ORTHANC_PLUGIN_DEPRECATED ORTHANC_PLUGIN_INLINE void OrthancPluginExtendOrthancExplorer2(
+  ORTHANC_PLUGIN_INLINE void OrthancPluginExtendOrthancExplorer2(
     OrthancPluginContext*  context,
     const char*            plugin,
     const char*            javascript)

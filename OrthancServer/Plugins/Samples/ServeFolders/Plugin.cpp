@@ -20,6 +20,8 @@
  **/
 
 
+#define SERVE_FOLDERS_NAME "serve-folders"
+
 #include "../Common/OrthancPluginCppWrapper.h"
 
 #include <json/value.h>
@@ -432,8 +434,8 @@ extern "C"
     }
 
     RegisterDefaultExtensions();
-    OrthancPluginSetDescription(context, "Serve additional folders with the HTTP server of Orthanc.");
-    OrthancPluginSetRootUri(context, INDEX_URI);
+    OrthancPluginSetDescription2(context, SERVE_FOLDERS_NAME, "Serve additional folders with the HTTP server of Orthanc.");
+    OrthancPluginSetRootUri2(context, SERVE_FOLDERS_NAME, INDEX_URI);
     OrthancPlugins::RegisterRestCallback<ListServedFolders>(INDEX_URI, true);
 
     try
@@ -457,7 +459,7 @@ extern "C"
 
   ORTHANC_PLUGINS_API const char* OrthancPluginGetName()
   {
-    return "serve-folders";
+    return SERVE_FOLDERS_NAME;
   }
 
 
