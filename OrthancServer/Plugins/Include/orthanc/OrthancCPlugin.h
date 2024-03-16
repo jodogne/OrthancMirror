@@ -167,6 +167,20 @@
 #endif
 
 
+#ifndef ORTHANC_PLUGIN_DEPRECATED
+#  if defined(_MSC_VER)
+#    define ORTHANC_PLUGIN_DEPRECATED __declspec(deprecated)
+#  elif __GNUC__ >= 4
+#    define ORTHANC_PLUGIN_DEPRECATED __attribute__ ((deprecated))
+#  elif defined(__clang__)
+#    define ORTHANC_PLUGIN_DEPRECATED __attribute__ ((deprecated))
+#  else
+#    pragma message("WARNING: You need to implement ORTHANC_PLUGINS_DEPRECATED for this compiler")
+#    define ORTHANC_PLUGIN_DEPRECATED
+#  endif
+#endif
+
+
 
 /********************************************************************
  ** Inclusion of standard libraries.
@@ -3265,7 +3279,7 @@ extern "C"
    * @ingroup Callbacks
    * @deprecated Please use OrthancPluginRegisterStorageArea2()
    **/
-  ORTHANC_PLUGIN_INLINE void OrthancPluginRegisterStorageArea(
+  ORTHANC_PLUGIN_DEPRECATED ORTHANC_PLUGIN_INLINE void OrthancPluginRegisterStorageArea(
     OrthancPluginContext*       context,
     OrthancPluginStorageCreate  create,
     OrthancPluginStorageRead    read,
@@ -3362,7 +3376,7 @@ extern "C"
    * OrthancPluginFreeString().
    * @see OrthancPluginGetConfiguration()
    **/
-  ORTHANC_PLUGIN_INLINE char *OrthancPluginGetConfigurationPath(OrthancPluginContext* context)
+  ORTHANC_PLUGIN_DEPRECATED ORTHANC_PLUGIN_INLINE char *OrthancPluginGetConfigurationPath(OrthancPluginContext* context)
   {
     char* result;
 
@@ -3438,13 +3452,43 @@ extern "C"
    * 
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param uri The root URI for this plugin.
+   *
+   * @deprecated This function should not be used anymore because the
+   * result of the call to "OrthancPluginGetName()" depends on the
+   * system. Use "OrthancPluginSetRootUri2()" instead.
    **/ 
-  ORTHANC_PLUGIN_INLINE void OrthancPluginSetRootUri(
+  ORTHANC_PLUGIN_DEPRECATED ORTHANC_PLUGIN_INLINE void OrthancPluginSetRootUri(
     OrthancPluginContext*  context,
     const char*            uri)
   {
     _OrthancPluginSetPluginProperty params;
     params.plugin = OrthancPluginGetName();
+    params.property = _OrthancPluginProperty_RootUri;
+    params.value = uri;
+
+    context->InvokeService(context, _OrthancPluginService_SetPluginProperty, &params);
+  }
+
+
+  /**
+   * @brief Set the URI where the plugin provides its Web interface.
+   *
+   * For plugins that come with a Web interface, this function
+   * declares the entry path where to find this interface. This
+   * information is notably used in the "Plugins" page of Orthanc
+   * Explorer.
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param plugin Identifier of your plugin (it must match "OrthancPluginGetName()").
+   * @param uri The root URI for this plugin.
+   **/
+  ORTHANC_PLUGIN_DEPRECATED ORTHANC_PLUGIN_INLINE void OrthancPluginSetRootUri2(
+    OrthancPluginContext*  context,
+    const char*            plugin,
+    const char*            uri)
+  {
+    _OrthancPluginSetPluginProperty params;
+    params.plugin = plugin;
     params.property = _OrthancPluginProperty_RootUri;
     params.value = uri;
 
@@ -3460,13 +3504,41 @@ extern "C"
    * 
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param description The description.
+   *
+   * @deprecated This function should not be used anymore because the
+   * result of the call to "OrthancPluginGetName()" depends on the
+   * system. Use "OrthancPluginSetDescription2()" instead.
    **/ 
-  ORTHANC_PLUGIN_INLINE void OrthancPluginSetDescription(
+  ORTHANC_PLUGIN_DEPRECATED ORTHANC_PLUGIN_INLINE void OrthancPluginSetDescription(
     OrthancPluginContext*  context,
     const char*            description)
   {
     _OrthancPluginSetPluginProperty params;
     params.plugin = OrthancPluginGetName();
+    params.property = _OrthancPluginProperty_Description;
+    params.value = description;
+
+    context->InvokeService(context, _OrthancPluginService_SetPluginProperty, &params);
+  }
+
+
+  /**
+   * @brief Set a description for this plugin.
+   *
+   * Set a description for this plugin. It is displayed in the
+   * "Plugins" page of Orthanc Explorer.
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param plugin Identifier of your plugin (it must match "OrthancPluginGetName()").
+   * @param description The description.
+   **/
+  ORTHANC_PLUGIN_DEPRECATED ORTHANC_PLUGIN_INLINE void OrthancPluginSetDescription2(
+    OrthancPluginContext*  context,
+    const char*            plugin,
+    const char*            description)
+  {
+    _OrthancPluginSetPluginProperty params;
+    params.plugin = plugin;
     params.property = _OrthancPluginProperty_Description;
     params.value = description;
 
@@ -3482,13 +3554,41 @@ extern "C"
    * 
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param javascript The custom JavaScript code.
+   *
+   * @deprecated This function should not be used anymore because the
+   * result of the call to "OrthancPluginGetName()" depends on the
+   * system. Use "OrthancPluginExtendOrthancExplorer2()" instead.
    **/ 
-  ORTHANC_PLUGIN_INLINE void OrthancPluginExtendOrthancExplorer(
+  ORTHANC_PLUGIN_DEPRECATED ORTHANC_PLUGIN_INLINE void OrthancPluginExtendOrthancExplorer(
     OrthancPluginContext*  context,
     const char*            javascript)
   {
     _OrthancPluginSetPluginProperty params;
     params.plugin = OrthancPluginGetName();
+    params.property = _OrthancPluginProperty_OrthancExplorer;
+    params.value = javascript;
+
+    context->InvokeService(context, _OrthancPluginService_SetPluginProperty, &params);
+  }
+
+
+  /**
+   * @brief Extend the JavaScript code of Orthanc Explorer.
+   *
+   * Add JavaScript code to customize the default behavior of Orthanc
+   * Explorer. This can for instance be used to add new buttons.
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param plugin Identifier of your plugin (it must match "OrthancPluginGetName()").
+   * @param javascript The custom JavaScript code.
+   **/
+  ORTHANC_PLUGIN_DEPRECATED ORTHANC_PLUGIN_INLINE void OrthancPluginExtendOrthancExplorer2(
+    OrthancPluginContext*  context,
+    const char*            plugin,
+    const char*            javascript)
+  {
+    _OrthancPluginSetPluginProperty params;
+    params.plugin = plugin;
     params.property = _OrthancPluginProperty_OrthancExplorer;
     params.value = javascript;
 
@@ -4766,7 +4866,7 @@ extern "C"
    * @deprecated This function should not be used anymore. Use "OrthancPluginRestApiPut()" on
    * "/{patients|studies|series|instances}/{id}/attachments/{name}" instead.
    **/
-  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginStorageAreaCreate(
+  ORTHANC_PLUGIN_DEPRECATED ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginStorageAreaCreate(
     OrthancPluginContext*       context,
     OrthancPluginStorageArea*   storageArea,
     const char*                 uuid,
@@ -4810,7 +4910,7 @@ extern "C"
    * @deprecated This function should not be used anymore. Use "OrthancPluginRestApiGet()" on
    * "/{patients|studies|series|instances}/{id}/attachments/{name}" instead.
    **/
-  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginStorageAreaRead(
+  ORTHANC_PLUGIN_DEPRECATED ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginStorageAreaRead(
     OrthancPluginContext*       context,
     OrthancPluginMemoryBuffer*  target,
     OrthancPluginStorageArea*   storageArea,
@@ -4849,7 +4949,7 @@ extern "C"
    * @deprecated This function should not be used anymore. Use "OrthancPluginRestApiDelete()" on
    * "/{patients|studies|series|instances}/{id}/attachments/{name}" instead.
    **/
-  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginStorageAreaRemove(
+  ORTHANC_PLUGIN_DEPRECATED ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginStorageAreaRemove(
     OrthancPluginContext*       context,
     OrthancPluginStorageArea*   storageArea,
     const char*                 uuid,
@@ -5827,7 +5927,7 @@ extern "C"
    * @ingroup Callbacks
    * @deprecated Please instead use OrthancPluginRegisterIncomingHttpRequestFilter2()
    **/
-  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginRegisterIncomingHttpRequestFilter(
+  ORTHANC_PLUGIN_DEPRECATED ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginRegisterIncomingHttpRequestFilter(
     OrthancPluginContext*                   context,
     OrthancPluginIncomingHttpRequestFilter  callback)
   {
@@ -6788,7 +6888,7 @@ extern "C"
    * @ingroup Toolbox
    * @deprecated This signature should not be used anymore since Orthanc SDK 1.11.3.
    **/
-  ORTHANC_PLUGIN_INLINE OrthancPluginJob *OrthancPluginCreateJob(
+  ORTHANC_PLUGIN_DEPRECATED ORTHANC_PLUGIN_INLINE OrthancPluginJob *OrthancPluginCreateJob(
     OrthancPluginContext           *context,
     void                           *job,
     OrthancPluginJobFinalize        finalize,
@@ -7187,7 +7287,7 @@ extern "C"
    * @deprecated OrthancPluginEncodeDicomWebJson2()
    * @ingroup Toolbox
    **/
-  ORTHANC_PLUGIN_INLINE char* OrthancPluginEncodeDicomWebJson(
+  ORTHANC_PLUGIN_DEPRECATED ORTHANC_PLUGIN_INLINE char* OrthancPluginEncodeDicomWebJson(
     OrthancPluginContext*                context,
     const void*                          dicom,
     uint32_t                             dicomSize,
@@ -7229,7 +7329,7 @@ extern "C"
    * @deprecated OrthancPluginEncodeDicomWebXml2()
    * @ingroup Toolbox
    **/
-  ORTHANC_PLUGIN_INLINE char* OrthancPluginEncodeDicomWebXml(
+  ORTHANC_PLUGIN_DEPRECATED ORTHANC_PLUGIN_INLINE char* OrthancPluginEncodeDicomWebXml(
     OrthancPluginContext*                context,
     const void*                          dicom,
     uint32_t                             dicomSize,
