@@ -124,6 +124,8 @@ Mid-term
   image. The SOPClassUID might be used to identify such secondary
   captures.
 * Support "/preview" and "/matlab" for LUT color images
+* /preview should be able to display a dose report:
+  https://discourse.orthanc-server.org/t/orthanc-image-preview-shows-empty-image/4459
 * Try to transcode files if a simple decoding fails:
   https://groups.google.com/g/orthanc-users/c/b8168-NkAhA/m/Df3j-CO9CgAJ
 * (2) Ranges of DICOM tags for "Keep" and "Remove" in ".../modify" and ".../anonymize": 
