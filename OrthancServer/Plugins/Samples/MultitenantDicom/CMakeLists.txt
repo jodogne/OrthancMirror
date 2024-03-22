@@ -30,6 +30,7 @@ include(${CMAKE_SOURCE_DIR}/../Common/OrthancPlugins.cmake)
 include(${CMAKE_SOURCE_DIR}/../../../../OrthancFramework/Resources/CMake/OrthancFrameworkParameters.cmake)
 
 set(ENABLE_LOCALE ON CACHE INTERNAL "")
+set(ENABLE_ZLIB ON CACHE INTERNAL "")  # This is necessary for static builds with ICU
 set(ENABLE_DCMTK ON CACHE INTERNAL "")
 set(ENABLE_DCMTK_NETWORKING ON CACHE INTERNAL "")
 set(ENABLE_DCMTK_TRANSCODING OFF CACHE INTERNAL "")

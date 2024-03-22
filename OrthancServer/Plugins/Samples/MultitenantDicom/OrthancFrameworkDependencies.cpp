@@ -86,8 +86,20 @@
 #include "../../../../OrthancFramework/Sources/MultiThreading/RunnableWorkersPool.cpp"
 #include "../../../../OrthancFramework/Sources/MultiThreading/SharedMessageQueue.cpp"
 #include "../../../../OrthancFramework/Sources/OrthancException.cpp"
+#include "../../../../OrthancFramework/Sources/OrthancFramework.cpp"
 #include "../../../../OrthancFramework/Sources/RestApi/RestApiOutput.cpp"
 #include "../../../../OrthancFramework/Sources/SerializationToolbox.cpp"
 #include "../../../../OrthancFramework/Sources/SystemToolbox.cpp"
-#include "../../../../OrthancFramework/Sources/Toolbox.cpp"
 #include "../../../../OrthancFramework/Sources/TemporaryFile.cpp"
+#include "../../../../OrthancFramework/Sources/Toolbox.cpp"
+
+namespace Orthanc
+{
+  void HttpClient::GlobalInitialize()
+  {
+  }
+
+  void HttpClient::GlobalFinalize()
+  {
+  }
+}
