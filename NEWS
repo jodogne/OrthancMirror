@@ -11,13 +11,16 @@ Maintenance
   could slow down the response time.  Note that this seems to happen mainly 
   when the query originates from some GE devices (AWS).
 
-
 REST API
 --------
 
 * API version upgraded to 24
 * Added "MaximumPatientCount" in /system
 
+Plugins
+-------
+
+* Multitenant DICOM plugin: added support for locales
 
 
 Version 1.12.3 (2024-01-31)

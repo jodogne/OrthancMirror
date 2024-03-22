@@ -319,6 +319,7 @@ if (BOOST_STATIC AND NOT USE_LEGACY_BOOST)
       ${BOOST_SOURCES_DIR}/libs/locale/src/boost/locale/icu/conversion.cpp
       ${BOOST_SOURCES_DIR}/libs/locale/src/boost/locale/icu/date_time.cpp
       ${BOOST_SOURCES_DIR}/libs/locale/src/boost/locale/icu/formatter.cpp
+      ${BOOST_SOURCES_DIR}/libs/locale/src/boost/locale/icu/formatters_cache.cpp
       ${BOOST_SOURCES_DIR}/libs/locale/src/boost/locale/icu/icu_backend.cpp
       ${BOOST_SOURCES_DIR}/libs/locale/src/boost/locale/icu/numeric.cpp
       ${BOOST_SOURCES_DIR}/libs/locale/src/boost/locale/icu/time_zone.cpp

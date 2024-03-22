@@ -27,6 +27,7 @@
 #include "../../../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.h"
 #include "../../../../OrthancFramework/Sources/Logging.h"
 #include "../../../../OrthancFramework/Sources/OrthancException.h"
+#include "../../../../OrthancFramework/Sources/OrthancFramework.h"
 
 #include "../Common/OrthancPluginCppWrapper.h"
 
@@ -90,6 +91,31 @@ static OrthancPluginErrorCode OnChangeCallback(OrthancPluginChangeType changeTyp
 }
 
 
+static void MyInitialization(const OrthancPlugins::OrthancConfiguration& config)
+{
+  static const char* const LOCALE = "Locale";
+  static const char* const DEFAULT_ENCODING = "DefaultEncoding";
+
+  /**
+   * This function is a simplified version of function
+   * "Orthanc::OrthancInitialize()" that is executed when starting the
+   * Orthanc server.
+   **/
+
+  Orthanc::InitializeFramework(config.GetStringValue(LOCALE, ""), false /* loadPrivateDictionary */);
+
+  std::string encoding;
+  if (config.LookupStringValue(encoding, DEFAULT_ENCODING))
+  {
+    Orthanc::SetDefaultDicomEncoding(Orthanc::StringToEncoding(encoding.c_str()));
+  }
+  else
+  {
+    Orthanc::SetDefaultDicomEncoding(Orthanc::ORTHANC_DEFAULT_DICOM_ENCODING);
+  }
+}
+
+
 extern "C"
 {
   ORTHANC_PLUGINS_API int32_t OrthancPluginInitialize(OrthancPluginContext* context)
@@ -121,13 +147,6 @@ extern "C"
       return -1;
     }
 
-    // For static builds, this is not required - but does not harm - because the dictionary seems to be shared between the Orthanc Core and the plugin.
-    // For dynamic builds, this is however required.  See https://discourse.orthanc-server.org/t/dimse-failure-using-multitenant-plugin/3665
-    Orthanc::FromDcmtkBridge::InitializeDictionary(false /* loadPrivateDictionary */);
-
-    /* Disable "gethostbyaddr" (which results in memory leaks) and use raw IP addresses */
-    dcmDisableGethostbyaddr.set(OFTrue);
-
     OrthancPluginSetDescription2(context, ORTHANC_PLUGIN_NAME, "Multitenant plugin for Orthanc.");
 
     OrthancPluginRegisterOnChangeCallback(context, OnChangeCallback);
@@ -135,6 +154,7 @@ extern "C"
     try
     {
       OrthancPlugins::OrthancConfiguration globalConfig;
+      MyInitialization(globalConfig);
 
       OrthancPlugins::OrthancConfiguration pluginConfig;
       globalConfig.GetSection(pluginConfig, KEY_MULTITENANT_DICOM);
@@ -183,6 +203,8 @@ extern "C"
         }
       }
     }
+
+    Orthanc::FinalizeFramework();
   }
 
 
