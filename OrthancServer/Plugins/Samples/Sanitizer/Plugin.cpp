@@ -30,7 +30,7 @@
 #include <string.h>
 #include <iostream>
 
-
+#define ORTHANC_PLUGIN_NAME  "sanitizer"
 
 
 OrthancPluginReceivedInstanceAction ReceivedInstanceCallback(OrthancPluginMemoryBuffer64* modifiedDicomBuffer,
@@ -71,7 +71,7 @@ extern "C"
     }
     
     OrthancPlugins::LogWarning("Sanitizer plugin is initializing");
-    OrthancPluginSetDescription(c, "Sample plugin to sanitize incoming DICOM instances.");
+    OrthancPlugins::SetDescription(ORTHANC_PLUGIN_NAME, "Sample plugin to sanitize incoming DICOM instances.");
 
     OrthancPluginRegisterReceivedInstanceCallback(c, ReceivedInstanceCallback);
 
@@ -88,7 +88,7 @@ extern "C"
 
   ORTHANC_PLUGINS_API const char* OrthancPluginGetName()
   {
-    return "sanitizer";
+    return ORTHANC_PLUGIN_NAME;
   }
 
 
