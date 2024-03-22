@@ -24,6 +24,8 @@
 
 #include <json/value.h>
 
+#define ORTHANC_PLUGIN_NAME  "storage-commitment-scp"
+
 
 class StorageCommitmentSample : public OrthancPlugins::IStorageCommitmentScpHandler
 {
@@ -86,7 +88,7 @@ extern "C"
       return -1;
     }
 
-    OrthancPluginSetDescription(c, "Sample storage commitment SCP plugin.");
+    OrthancPlugins::SetDescription(ORTHANC_PLUGIN_NAME, "Sample storage commitment SCP plugin.");
 
     OrthancPluginRegisterStorageCommitmentScpCallback(
       c, StorageCommitmentScp,
@@ -104,7 +106,7 @@ extern "C"
 
   ORTHANC_PLUGINS_API const char* OrthancPluginGetName()
   {
-    return "storage-commitment-scp";
+    return ORTHANC_PLUGIN_NAME;
   }
 
 
