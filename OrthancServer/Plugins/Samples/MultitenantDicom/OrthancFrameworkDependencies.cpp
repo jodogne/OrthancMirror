@@ -20,17 +20,6 @@
  **/
 
 
-/**
- * Remove the dependency upon ICU in plugins, as this greatly increase
- * the size of the resulting binaries, since they must embed the ICU
- * dictionary.
- **/
-
-#define ORTHANC_ENABLE_ICU 0
-#define ORTHANC_FRAMEWORK_INCLUDE_RESOURCES 0
-
-#include <MultitenantDicomResources.h>
-
 #if defined(_WIN32)
 #  if !defined(NOMINMAX)
 #    define NOMINMAX
