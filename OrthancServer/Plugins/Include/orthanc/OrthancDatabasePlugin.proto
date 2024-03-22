@@ -121,7 +121,7 @@ enum DatabaseOperation {
   OPERATION_START_TRANSACTION = 4;
   OPERATION_UPGRADE = 5;
   OPERATION_FINALIZE_TRANSACTION = 6;
-  OPERATION_MEASURE_LATENCY = 7;         // New in Orthanc 1.12.X
+  OPERATION_MEASURE_LATENCY = 7;         // New in Orthanc 1.12.3
 }
 
 enum TransactionType {
@@ -290,8 +290,8 @@ enum TransactionOperation {
   OPERATION_ADD_LABEL = 45;        // New in Orthanc 1.12.0
   OPERATION_REMOVE_LABEL = 46;     // New in Orthanc 1.12.0
   OPERATION_LIST_LABELS = 47;      // New in Orthanc 1.12.0
-  OPERATION_INCREMENT_GLOBAL_PROPERTY = 48;      // New in Orthanc 1.12.X
-  OPERATION_UPDATE_AND_GET_STATISTICS = 49;      // New in Orthanc 1.12.X
+  OPERATION_INCREMENT_GLOBAL_PROPERTY = 48;      // New in Orthanc 1.12.3
+  OPERATION_UPDATE_AND_GET_STATISTICS = 49;      // New in Orthanc 1.12.3
 }
 
 message Rollback {
