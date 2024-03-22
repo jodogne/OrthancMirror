@@ -820,6 +820,7 @@ if (ENABLE_PLUGINS AND BUILD_MULTITENANT_DICOM)
     --target=MultitenantDicomResources
     --namespace=Orthanc.FrameworkResources
     --framework-path=${CMAKE_SOURCE_DIR}/../OrthancFramework/Sources
+    ${LIBICU_RESOURCES}
     ${DCMTK_DICTIONARIES}
     )
 
