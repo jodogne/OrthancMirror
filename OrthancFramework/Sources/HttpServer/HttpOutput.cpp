@@ -75,7 +75,7 @@ namespace Orthanc
 
     if (hasContentLength_ && contentPosition_ != contentLength_)
     {
-      LOG(ERROR) << "This HTTP answer has not sent the proper number of bytes in its body";
+      LOG(ERROR) << "This HTTP answer has not sent the proper number of bytes in its body.  The remote client has likely closed the connection.";
     }
   }
 
