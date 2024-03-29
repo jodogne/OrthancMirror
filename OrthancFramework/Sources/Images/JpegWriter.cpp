@@ -177,7 +177,17 @@ namespace Orthanc
     Internals::JpegErrorManager jerr;
 
     unsigned char* data = NULL;
-    unsigned long size;  // jpeg_mem_dest() uses "unsigned long*" instead of "size_t*"
+
+#if ((JPEG_LIB_VERSION_MAJOR < 9) ||                                    \
+     (JPEG_LIB_VERSION_MAJOR == 9 && JPEG_LIB_VERSION_MINOR <= 3))
+    /**
+     * jpeg_mem_dest() has "unsigned long*" as its 3rd parameter until
+     * jpeg-9c. Since jpeg-9d, this is a "size_t*".
+     **/
+    unsigned long size;
+#else
+    size_t size;
+#endif
 
     if (setjmp(jerr.GetJumpBuffer())) 
     {
