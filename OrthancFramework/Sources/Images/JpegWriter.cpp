@@ -177,7 +177,7 @@ namespace Orthanc
     Internals::JpegErrorManager jerr;
 
     unsigned char* data = NULL;
-    size_t size;
+    unsigned long size;  // jpeg_mem_dest() uses "unsigned long*" instead of "size_t*"
 
     if (setjmp(jerr.GetJumpBuffer())) 
     {
@@ -202,7 +202,7 @@ namespace Orthanc
 
     // Everything went fine, "setjmp()" didn't get called
 
-    jpeg.assign(reinterpret_cast<const char*>(data), size);
+    jpeg.assign(reinterpret_cast<const char*>(data), static_cast<size_t>(size));
     free(data);
   }
 
