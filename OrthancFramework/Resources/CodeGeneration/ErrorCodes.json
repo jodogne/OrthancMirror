@@ -337,7 +337,7 @@
   {
     "Code": 1011, 
     "Name": "SQLiteBindOutOfRange", 
-    "Description": "SQLite: Bing a value while out of range (serious error)",
+    "Description": "SQLite: Bind a value while out of range (serious error)",
     "SQLite": true
   },
   {

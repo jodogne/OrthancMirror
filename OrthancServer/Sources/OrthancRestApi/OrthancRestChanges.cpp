@@ -29,12 +29,14 @@ namespace Orthanc
 {
   // Changes API --------------------------------------------------------------
  
-  static void GetSinceAndLimit(int64_t& since,
-                               unsigned int& limit,
-                               bool& last,
-                               const RestApiGetCall& call)
+  static void GetSinceToAndLimit(int64_t& since,
+                                 int64_t& to,
+                                 unsigned int& limit,
+                                 bool& last,
+                                 const RestApiGetCall& call)
   {
     static const unsigned int DEFAULT_LIMIT = 100;
+    static const int64_t DEFAULT_TO = -1;
     
     if (call.HasArgument("last"))
     {
@@ -47,11 +49,13 @@ namespace Orthanc
     try
     {
       since = boost::lexical_cast<int64_t>(call.GetArgument("since", "0"));
+      to = boost::lexical_cast<int64_t>(call.GetArgument("to", boost::lexical_cast<std::string>(DEFAULT_TO)));
       limit = boost::lexical_cast<unsigned int>(call.GetArgument("limit", boost::lexical_cast<std::string>(DEFAULT_LIMIT)));
     }
     catch (boost::bad_lexical_cast&)
     {
       since = 0;
+      to = DEFAULT_TO;
       limit = DEFAULT_LIMIT;
       return;
     }
@@ -79,11 +83,11 @@ namespace Orthanc
     
     ServerContext& context = OrthancRestApi::GetContext(call);
 
-    //std::string filter = GetArgument(getArguments, "filter", "");
     int64_t since;
+    int64_t toNotUsed;
     unsigned int limit;
     bool last;
-    GetSinceAndLimit(since, limit, last, call);
+    GetSinceToAndLimit(since, toNotUsed, limit, last, call);
 
     Json::Value result;
     if (last)
@@ -93,6 +97,61 @@ namespace Orthanc
     else
     {
       context.GetIndex().GetChanges(result, since, limit);
+    }
+
+    call.GetOutput().AnswerJson(result);
+  }
+
+  static void GetChanges2(RestApiGetCall& call)
+  {
+    if (call.IsDocumentation())
+    {
+      call.GetDocumentation()
+        .SetTag("Tracking changes")
+        .SetSummary("List changes")
+        .SetDescription("Whenever Orthanc receives a new DICOM instance, this event is recorded in the so-called _Changes Log_. This enables remote scripts to react to the arrival of new DICOM resources. A typical application is auto-routing, where an external script waits for a new DICOM instance to arrive into Orthanc, then forward this instance to another modality.")
+        .SetHttpGetArgument("limit", RestApiCallDocumentation::Type_Number, "Limit the number of results", false)
+        .SetHttpGetArgument("since", RestApiCallDocumentation::Type_Number, "Show only the resources since the provided index", false)
+        .SetHttpGetArgument("to", RestApiCallDocumentation::Type_Number, "Show only the resources till the provided index", false)
+        .SetHttpGetArgument("type", RestApiCallDocumentation::Type_String, "Show only the changes of the provided type", false)
+        .AddAnswerType(MimeType_Json, "The list of changes")
+        .SetAnswerField("Changes", RestApiCallDocumentation::Type_JsonListOfObjects, "The individual changes")
+        .SetAnswerField("Done", RestApiCallDocumentation::Type_Boolean,
+                        "Whether the last reported change is the last of the full history")
+        .SetAnswerField("Last", RestApiCallDocumentation::Type_Number,
+                        "The index of the last reported change, can be used for the `since` argument in subsequent calls to this route")
+        .SetHttpGetSample("https://orthanc.uclouvain.be/demo/changes?since=0&limit=2", true);
+      return;
+    }
+    
+    ServerContext& context = OrthancRestApi::GetContext(call);
+
+    int64_t since, to;
+    ChangeType filterType = ChangeType_INTERNAL_All;
+
+    unsigned int limit;
+    bool last;
+    GetSinceToAndLimit(since, to, limit, last, call);
+
+    std::string filterArgument = call.GetArgument("type", "all");
+    if (filterArgument != "all" && filterArgument != "All")
+    {
+      filterType = StringToChangeType(filterArgument);
+    }
+
+    Json::Value result;
+    if (last)
+    {
+      context.GetIndex().GetLastChange(result);
+    }
+    else
+    {
+      if (filterType != ChangeType_INTERNAL_All && !context.GetIndex().HasExtendedApiV1())
+      {
+        throw OrthancException(ErrorCode_ParameterOutOfRange, "Trying to filter changes while the Database backend does not support it (requires ExtendedApiV1)");
+      }
+
+      context.GetIndex().GetChanges2(result, since, to, limit, filterType);
     }
 
     call.GetOutput().AnswerJson(result);
@@ -138,10 +197,10 @@ namespace Orthanc
 
     ServerContext& context = OrthancRestApi::GetContext(call);
 
-    int64_t since;
+    int64_t since, to;
     unsigned int limit;
     bool last;
-    GetSinceAndLimit(since, limit, last, call);
+    GetSinceToAndLimit(since, to, limit, last, call);
 
     Json::Value result;
     if (last)
@@ -179,5 +238,9 @@ namespace Orthanc
     Register("/changes", DeleteChanges);
     Register("/exports", GetExports);
     Register("/exports", DeleteExports);
+    if (context_.GetIndex().HasExtendedApiV1())
+    {
+      Register("/extended-api-v1/changes", GetChanges2);
+    }
   }
 }

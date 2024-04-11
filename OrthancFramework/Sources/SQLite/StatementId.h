@@ -54,12 +54,17 @@ namespace Orthanc
     private:
       const char* file_;
       int line_;
+      std::string statement_;
 
       StatementId(); // Forbidden
 
     public:
       StatementId(const char* file,
                   int line);
+
+      StatementId(const char* file,
+                  int line,
+                  const std::string& statement);
 
       bool operator< (const StatementId& other) const;
     };

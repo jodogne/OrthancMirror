@@ -140,6 +140,7 @@ message GetSystemInformation {
     bool supports_increment_global_property = 5;
     bool has_update_and_get_statistics = 6;
     bool has_measure_latency = 7;
+    bool has_extended_api_v1 = 8;
   }
 }
 
@@ -292,6 +293,7 @@ enum TransactionOperation {
   OPERATION_LIST_LABELS = 47;      // New in Orthanc 1.12.0
   OPERATION_INCREMENT_GLOBAL_PROPERTY = 48;      // New in Orthanc 1.12.3
   OPERATION_UPDATE_AND_GET_STATISTICS = 49;      // New in Orthanc 1.12.3
+  OPERATION_GET_CHANGES_2 = 50;    // New in Orthanc 1.13.0
 }
 
 message Rollback {
@@ -405,6 +407,19 @@ message GetChanges {
   message Request {
     int64 since = 1;
     uint32 limit = 2;
+  }
+  message Response {
+    repeated ServerIndexChange changes = 1;
+    bool done = 2;
+  }
+}
+
+message GetChanges2 {
+  message Request {
+    int64 since = 1;
+    int64 to = 2;
+    int32 change_type = 3;
+    uint32 limit = 4;
   }
   message Response {
     repeated ServerIndexChange changes = 1;
@@ -877,6 +892,7 @@ message TransactionRequest {
   ListLabels.Request                      list_labels = 147;
   IncrementGlobalProperty.Request         increment_global_property = 148;
   UpdateAndGetStatistics.Request          update_and_get_statistics = 149;
+  GetChanges2.Request                     get_changes2 = 150;
 }
 
 message TransactionResponse {
@@ -930,6 +946,7 @@ message TransactionResponse {
   ListLabels.Response                      list_labels = 147;
   IncrementGlobalProperty.Response         increment_global_property = 148;
   UpdateAndGetStatistics.Response          update_and_get_statistics = 149;
+  GetChanges2.Response                     get_changes2 = 150;
 }
 
 enum RequestType {

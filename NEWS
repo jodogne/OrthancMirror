@@ -16,6 +16,12 @@ REST API
 
 * API version upgraded to 24
 * Added "MaximumPatientCount" in /system
+* Added "ExtendedApiV1" if you have a DB that supports it (the default SQLite DB
+  or PostgreSQL vX.X, MySQL vX.X, ODBC vX.X).
+  - /extended-api-v1/changes now supports 2 more options: 'type' to filter
+    the changes returned by the query and 'to' to potentially cycle through
+    changes in reverse order.
+    example: /extended-api-v1/changes?type=StableStudy&to=7584&limit=100
 
 Plugins
 -------

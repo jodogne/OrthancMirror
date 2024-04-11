@@ -233,11 +233,12 @@ namespace Orthanc
     void GetChangesInternal(std::list<ServerIndexChange>& target,
                             bool& done,
                             SQLite::Statement& s,
-                            uint32_t limit)
+                            uint32_t limit,
+                            bool returnFirstResults) // the statement usually returns limit+1 results while we only need the limit results -> we need to know which ones to return, the firsts or the lasts
     {
       target.clear();
 
-      while (target.size() < limit && s.Step())
+      while (s.Step())
       {
         int64_t seq = s.ColumnInt64(0);
         ChangeType changeType = static_cast<ChangeType>(s.ColumnInt(1));
@@ -250,7 +251,22 @@ namespace Orthanc
         target.push_back(ServerIndexChange(seq, changeType, resourceType, publicId, date));
       }
 
-      done = !(target.size() == limit && s.Step());
+      done = target.size() <= limit;  // 'done' means "there are no more other changes of this type in that direction (depending on since/to)"
+      
+      // if we have retrieved more changes than requested -> cleanup
+      if (target.size() > limit)
+      {
+        assert(target.size() == limit+1); // the statement should only request 1 element more
+
+        if (returnFirstResults)
+        {
+          target.pop_back();
+        }
+        else
+        {
+          target.pop_front();
+        }
+      }
     }
 
 
@@ -540,10 +556,76 @@ namespace Orthanc
                             int64_t since,
                             uint32_t limit) ORTHANC_OVERRIDE
     {
-      SQLite::Statement s(db_, SQLITE_FROM_HERE, "SELECT * FROM Changes WHERE seq>? ORDER BY seq LIMIT ?");
-      s.BindInt64(0, since);
-      s.BindInt(1, limit + 1);
-      GetChangesInternal(target, done, s, limit);
+      GetChanges2(target, done, since, -1, limit, ChangeType_INTERNAL_All);
+    }
+
+    virtual void GetChanges2(std::list<ServerIndexChange>& target /*out*/,
+                             bool& done /*out*/,
+                             int64_t since,
+                             int64_t to,
+                             uint32_t limit,
+                             ChangeType filterType) ORTHANC_OVERRIDE
+    {
+      std::vector<std::string> filters;
+      bool hasSince = false;
+      bool hasTo = false;
+      bool hasFilterType = false;
+
+      if (since > 0)
+      {
+        hasSince = true;
+        filters.push_back("seq>?");
+      }
+      if (to != -1)
+      {
+        hasTo = true;
+        filters.push_back("seq<=?");
+      }
+      if (filterType != ChangeType_INTERNAL_All)
+      {
+        hasFilterType = true;
+        filters.push_back("changeType=?");
+      }
+
+      std::string filtersString;
+      if (filters.size() > 0)
+      {
+        Toolbox::JoinStrings(filtersString, filters, " AND ");
+        filtersString = "WHERE " + filtersString;
+      }
+
+      std::string sql;
+      bool returnFirstResults;
+      if (hasTo && !hasSince)
+      {
+        // in this case, we want the largest values in the LIMIT clause but we want them ordered in ascending order
+        sql = "SELECT * FROM (SELECT * FROM Changes " + filtersString + " ORDER BY seq DESC LIMIT ?) ORDER BY seq ASC";
+        returnFirstResults = false;
+      }
+      else
+      {
+        // default query: we want the smallest values ordered in ascending order
+        sql = "SELECT * FROM Changes " + filtersString + " ORDER BY seq ASC LIMIT ?";
+        returnFirstResults = true;
+      }
+       
+      SQLite::Statement s(db_, SQLITE_FROM_HERE_DYNAMIC(sql), sql);
+
+      int paramCounter = 0;
+      if (hasSince)
+      {
+        s.BindInt64(paramCounter++, since);
+      }
+      if (hasTo)
+      {
+        s.BindInt64(paramCounter++, to);
+      }
+      if (hasFilterType)
+      {
+        s.BindInt(paramCounter++, filterType);
+      }
+      s.BindInt(paramCounter++, limit + 1); // we take limit+1 because we use the +1 to know if "Done" must be set to true
+      GetChangesInternal(target, done, s, limit, returnFirstResults);
     }
 
 
@@ -604,7 +686,7 @@ namespace Orthanc
     {
       bool done;  // Ignored
       SQLite::Statement s(db_, SQLITE_FROM_HERE, "SELECT * FROM Changes ORDER BY seq DESC LIMIT 1");
-      GetChangesInternal(target, done, s, 1);
+      GetChangesInternal(target, done, s, 1, true);
     }
 
 
@@ -1327,6 +1409,7 @@ namespace Orthanc
     // TODO: implement revisions in SQLite
     dbCapabilities_.SetFlushToDisk(true);
     dbCapabilities_.SetLabelsSupport(true);
+    dbCapabilities_.SetHasExtendedApiV1(true);
     db_.Open(path);
   }
 
@@ -1339,6 +1422,7 @@ namespace Orthanc
     // TODO: implement revisions in SQLite
     dbCapabilities_.SetFlushToDisk(true);
     dbCapabilities_.SetLabelsSupport(true);
+    dbCapabilities_.SetHasExtendedApiV1(true);
     db_.OpenInMemory();
   }
 
