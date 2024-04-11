@@ -56,6 +56,8 @@
 #endif
 
 #define SQLITE_FROM_HERE ::Orthanc::SQLite::StatementId(__ORTHANC_FILE__, __LINE__)
+#define SQLITE_FROM_HERE_DYNAMIC(sql) ::Orthanc::SQLite::StatementId(__ORTHANC_FILE__, __LINE__, sql)
+
 
 namespace Orthanc
 {

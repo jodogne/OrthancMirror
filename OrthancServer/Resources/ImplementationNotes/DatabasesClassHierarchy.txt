@@ -1,0 +1,30 @@
+The main object to access the DB is the ServerIndex class that is accessible from the ServerContext.
+
+ServerIndex inherits from StatelessDatabaseOperations.
+
+StatelessDatabaseOperations owns an IDatabaseWrapper member (db).
+StatelessDatabaseOperations has 2 internal Transaction classes (ReadOnlyTransactions and ReadWriteTransactions) that implements the DB
+operations by calling the methods from IDatabaseWrapper:ITransaction.
+
+IDatabaseWrapper has 2 direct derived classes:
+- BaseDatabaseWrapper which simply provides a "not implemented" implementation of new methods to its derived classes:
+  - OrthancPluginDatabase    that is a legacy plugin interface
+  - OrthancPluginDatabaseV3  that is a legacy plugin interface
+  - SQLiteDatabaseWrapper    that is used by the default SQLite DB in Orthanc
+- OrthancPluginDatabaseV4 that is the latest plugin interface and uses protobuf
+
+When you add a new method in the DB (e.g: UpdateAndGetStatistics with a new signature), you must:
+- define it as a member of StatelessDatabaseOperations
+- define it as a member of StatelessDatabaseOperations::ReadWriteTransactions or StatelessDatabaseOperations::ReadOnlyTransactions
+- define it as a member of IDatabaseWrapper:ITransaction
+- define it in OrthancDatabasePlugin.proto (new request + new response + new message)
+- define it in OrthancPluginDatabaseV4
+- define a NotImplemented default implementation in BaseDatabaseWrapper
+- optionally define it in SQLiteDatabaseWrapper if it can be implemented in SQLite
+- very likely define it as a DbCapabilities in IDatabaseWrapper::DbCapabilities (e.g: Has/SetUpdateAndGetStatistics()) such that the Orthanc
+  core knows if it can use it or not.
+
+Then, in the orthanc-databases repo, you should:
+- define it as a virtual member of IDatabaseBackend
+- define it as a member of IndexBackend
+- add a handler for the new protobuf message in DatabaseBackendAdapterV4

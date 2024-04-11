@@ -51,6 +51,7 @@ namespace Orthanc
       bool hasAtomicIncrementGlobalProperty_;
       bool hasUpdateAndGetStatistics_;
       bool hasMeasureLatency_;
+      bool hasExtendedApiV1_;
 
     public:
       Capabilities() :
@@ -59,7 +60,8 @@ namespace Orthanc
         hasLabelsSupport_(false),
         hasAtomicIncrementGlobalProperty_(false),
         hasUpdateAndGetStatistics_(false),
-        hasMeasureLatency_(false)
+        hasMeasureLatency_(false),
+        hasExtendedApiV1_(false)
       {
       }
 
@@ -91,6 +93,16 @@ namespace Orthanc
       bool HasLabelsSupport() const
       {
         return hasLabelsSupport_;
+      }
+
+      void SetHasExtendedApiV1(bool value)
+      {
+        hasExtendedApiV1_ = value;
+      }
+
+      bool HasExtendedApiV1() const
+      {
+        return hasExtendedApiV1_;
       }
 
       void SetAtomicIncrementGlobalProperty(bool value)
@@ -344,12 +356,22 @@ namespace Orthanc
                                               int64_t increment,
                                               bool shared) = 0;
 
+      // New in Orthanc 1.12.3
       virtual void UpdateAndGetStatistics(int64_t& patientsCount,
                                           int64_t& studiesCount,
                                           int64_t& seriesCount,
                                           int64_t& instancesCount,
                                           int64_t& compressedSize,
                                           int64_t& uncompressedSize) = 0;
+
+      // New in Orthanc 1.13.0
+      virtual void GetChanges2(std::list<ServerIndexChange>& target /*out*/,
+                               bool& done /*out*/,
+                               int64_t since,
+                               int64_t to,
+                               uint32_t limit,
+                               ChangeType filterType) = 0;
+
     };
 
 

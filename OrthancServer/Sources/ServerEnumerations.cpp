@@ -430,6 +430,86 @@ namespace Orthanc
     }
   }
 
+  ChangeType StringToChangeType(const std::string& value)
+  {
+    if (value == "CompletedSeries")
+    {
+      return ChangeType_CompletedSeries;
+    }
+    else if (value == "NewInstance")
+    {
+      return ChangeType_NewInstance;
+    }
+    else if (value == "NewPatient")
+    {
+      return ChangeType_NewPatient;
+    }
+    else if (value == "NewSeries")
+    {
+      return ChangeType_NewSeries;
+    }
+    else if (value == "NewStudy")
+    {
+      return ChangeType_NewStudy;
+    }
+    else if (value == "AnonymizedStudy")
+    {
+      return ChangeType_AnonymizedStudy;
+    }
+    else if (value == "AnonymizedSeries")
+    {
+      return ChangeType_AnonymizedSeries;
+    }
+    else if (value == "ModifiedStudy")
+    {
+      return ChangeType_ModifiedStudy;
+    }
+    else if (value == "ModifiedSeries")
+    {
+      return ChangeType_ModifiedSeries;
+    }
+    else if (value == "AnonymizedPatient")
+    {
+      return ChangeType_AnonymizedPatient;
+    }
+    else if (value == "ModifiedPatient")
+    {
+      return ChangeType_ModifiedPatient;
+    }
+    else if (value == "StablePatient")
+    {
+      return ChangeType_StablePatient;
+    }
+    else if (value == "StableStudy")
+    {
+      return ChangeType_StableStudy;
+    }
+    else if (value == "StableSeries")
+    {
+      return ChangeType_StableSeries;
+    }
+    else if (value == "Deleted")
+    {
+      return ChangeType_Deleted;
+    }
+    else if (value == "NewChildInstance")
+    {
+      return ChangeType_NewChildInstance;
+    }
+    else if (value == "UpdatedAttachment")
+    {
+      return ChangeType_UpdatedAttachment;
+    }
+    else if (value == "UpdatedMetadata")
+    {
+      return ChangeType_UpdatedMetadata;
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange, "Invalid value for a change: " + value);
+    }
+  }
+
 
   const char* EnumerationToString(Verbosity verbosity)
   {

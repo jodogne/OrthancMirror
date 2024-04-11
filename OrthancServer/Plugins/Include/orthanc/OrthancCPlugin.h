@@ -119,8 +119,8 @@
 #endif
 
 #define ORTHANC_PLUGINS_MINIMAL_MAJOR_NUMBER     1
-#define ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER     12
-#define ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER  4
+#define ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER     13
+#define ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER  0
 
 
 #if !defined(ORTHANC_PLUGINS_VERSION_IS_ABOVE)
@@ -746,6 +746,7 @@ extern "C"
 
   /**
    * The supported types of changes that can be signaled to the change callback.
+   * Note: this enum is not used to store changes in the DB !
    * @ingroup Callbacks
    **/
   typedef enum
@@ -770,6 +771,7 @@ extern "C"
     OrthancPluginChangeType_JobSuccess = 17,        /*!< A Job has completed successfully */
     OrthancPluginChangeType_JobFailure = 18,        /*!< A Job has failed */
 
+    _OrthancPluginChangeType_All = 65535,           /*!< All jobs (when used as a filter in GetChanges) */
     _OrthancPluginChangeType_INTERNAL = 0x7fffffff
   } OrthancPluginChangeType;
 

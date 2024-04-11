@@ -44,6 +44,17 @@ namespace Orthanc
     throw OrthancException(ErrorCode_NotImplemented);  // Not supported
   }
 
+  void BaseDatabaseWrapper::BaseTransaction::GetChanges2(std::list<ServerIndexChange>& target /*out*/,
+                                                         bool& done /*out*/,
+                                                         int64_t since,
+                                                         int64_t to,
+                                                         uint32_t limit,
+                                                         ChangeType filterType)
+  {
+    throw OrthancException(ErrorCode_NotImplemented);  // Not supported
+  }
+
+
 
   uint64_t BaseDatabaseWrapper::MeasureLatency()
   {
