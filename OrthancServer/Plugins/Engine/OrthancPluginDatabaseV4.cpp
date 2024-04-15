@@ -30,6 +30,7 @@
 #include "../../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.h"
 #include "../../../OrthancFramework/Sources/Logging.h"
 #include "../../../OrthancFramework/Sources/OrthancException.h"
+#include "../../Sources/Database/Compatibility/GenericFind.h"
 #include "../../Sources/Database/ResourcesContent.h"
 #include "../../Sources/Database/VoidDatabaseListener.h"
 #include "../../Sources/ServerToolbox.h"
@@ -1274,6 +1275,14 @@ namespace Orthanc
     virtual void ListAllLabels(std::set<std::string>& target) ORTHANC_OVERRIDE
     {
       ListLabelsInternal(target, false, -1);
+    }
+
+
+    virtual void ExecuteFind(FindResponse& response,
+                             const FindRequest& request) ORTHANC_OVERRIDE
+    {
+      Compatibility::GenericFind find(*this);
+      find.Execute(response, request);
     }
   };
 

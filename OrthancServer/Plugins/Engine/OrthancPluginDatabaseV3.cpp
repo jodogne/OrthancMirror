@@ -29,6 +29,7 @@
 
 #include "../../../OrthancFramework/Sources/Logging.h"
 #include "../../../OrthancFramework/Sources/OrthancException.h"
+#include "../../Sources/Database/Compatibility/GenericFind.h"
 #include "../../Sources/Database/ResourcesContent.h"
 #include "../../Sources/Database/VoidDatabaseListener.h"
 #include "PluginsEnumerations.h"
@@ -1059,6 +1060,14 @@ namespace Orthanc
     virtual void ListAllLabels(std::set<std::string>& target) ORTHANC_OVERRIDE
     {
       throw OrthancException(ErrorCode_InternalError);  // Not supported
+    }
+
+
+    virtual void ExecuteFind(FindResponse& response,
+                             const FindRequest& request) ORTHANC_OVERRIDE
+    {
+      Compatibility::GenericFind find(*this);
+      find.Execute(response, request);
     }
   };
 

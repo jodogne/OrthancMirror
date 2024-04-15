@@ -28,6 +28,8 @@
 #include "../ExportedResource.h"
 #include "../Search/ISqlLookupFormatter.h"
 #include "../ServerIndexChange.h"
+#include "FindRequest.h"
+#include "FindResponse.h"
 #include "IDatabaseListener.h"
 
 #include <list>
@@ -350,6 +352,13 @@ namespace Orthanc
                                           int64_t& instancesCount,
                                           int64_t& compressedSize,
                                           int64_t& uncompressedSize) = 0;
+
+      /**
+       * Primitives introduced in Orthanc 1.12.4
+       **/
+
+      virtual void ExecuteFind(FindResponse& response,
+                               const FindRequest& request) = 0;
     };
 
 

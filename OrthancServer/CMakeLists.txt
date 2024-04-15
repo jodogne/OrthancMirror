@@ -89,11 +89,15 @@ include(${CMAKE_SOURCE_DIR}/Plugins/Samples/Common/OrthancPluginsExports.cmake)
 set(ORTHANC_SERVER_SOURCES
   ${CMAKE_SOURCE_DIR}/Sources/Database/BaseDatabaseWrapper.cpp
   ${CMAKE_SOURCE_DIR}/Sources/Database/Compatibility/DatabaseLookup.cpp
+  ${CMAKE_SOURCE_DIR}/Sources/Database/Compatibility/GenericFind.cpp
   ${CMAKE_SOURCE_DIR}/Sources/Database/Compatibility/ICreateInstance.cpp
   ${CMAKE_SOURCE_DIR}/Sources/Database/Compatibility/IGetChildrenMetadata.cpp
   ${CMAKE_SOURCE_DIR}/Sources/Database/Compatibility/ILookupResourceAndParent.cpp
   ${CMAKE_SOURCE_DIR}/Sources/Database/Compatibility/ILookupResources.cpp
   ${CMAKE_SOURCE_DIR}/Sources/Database/Compatibility/SetOfResources.cpp
+  ${CMAKE_SOURCE_DIR}/Sources/Database/FindRequest.cpp
+  ${CMAKE_SOURCE_DIR}/Sources/Database/FindResponse.cpp
+  ${CMAKE_SOURCE_DIR}/Sources/Database/OrthancIdentifiers.cpp
   ${CMAKE_SOURCE_DIR}/Sources/Database/ResourcesContent.cpp
   ${CMAKE_SOURCE_DIR}/Sources/Database/SQLiteDatabaseWrapper.cpp
   ${CMAKE_SOURCE_DIR}/Sources/Database/StatelessDatabaseOperations.cpp
