@@ -10,6 +10,9 @@ Maintenance
   They are now removed from the query earlier to avoid this disk access that 
   could slow down the response time.  Note that this seems to happen mainly 
   when the query originates from some GE devices (AWS).
+* The 0x0111 DIMSE Status is now considered as a warning instead of an error
+  when received as a response to a C-Store. 
+  See https://discourse.orthanc-server.org/t/ignore-dimse-status-0x0111-when-sending-partial-duplicate-studies/4555/3
 
 REST API
 --------
