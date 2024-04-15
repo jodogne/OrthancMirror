@@ -126,7 +126,7 @@ namespace Orthanc
 
   // List all the patients, studies, series or instances ----------------------
  
-  static void AnswerListOfResources(RestApiOutput& output,
+  static void AnswerListOfResources1(RestApiOutput& output,
                                     ServerContext& context,
                                     const std::list<std::string>& resources,
                                     const std::map<std::string, std::string>& instancesIds, // optional: the id of an instance for each found resource.
@@ -180,7 +180,7 @@ namespace Orthanc
   }
 
 
-  static void AnswerListOfResources(RestApiOutput& output,
+  static void AnswerListOfResources2(RestApiOutput& output,
                                     ServerContext& context,
                                     const std::list<std::string>& resources,
                                     ResourceType level,
@@ -193,7 +193,7 @@ namespace Orthanc
     std::map<std::string, boost::shared_ptr<DicomMap> > unusedResourcesMainDicomTags;
     std::map<std::string, boost::shared_ptr<Json::Value> > unusedResourcesDicomAsJson;
 
-    AnswerListOfResources(output, context, resources, unusedInstancesIds, unusedResourcesMainDicomTags, unusedResourcesDicomAsJson, level, expand, format, requestedTags, allowStorageAccess);
+    AnswerListOfResources1(output, context, resources, unusedInstancesIds, unusedResourcesMainDicomTags, unusedResourcesDicomAsJson, level, expand, format, requestedTags, allowStorageAccess);
   }
 
 
@@ -223,41 +223,141 @@ namespace Orthanc
     ServerIndex& index = OrthancRestApi::GetIndex(call);
     ServerContext& context = OrthancRestApi::GetContext(call);
 
-    std::list<std::string> result;
-
-    std::set<DicomTag> requestedTags;
-    OrthancRestApi::GetRequestedTags(requestedTags, call);
-
-    if (call.HasArgument("limit") ||
-        call.HasArgument("since"))
+    if (true)
     {
-      if (!call.HasArgument("limit"))
+      /**
+       * EXPERIMENTAL VERSION
+       **/
+
+      const bool expand = (call.HasArgument("expand") &&
+                           call.GetBooleanArgument("expand", true));
+
+      FindRequest request(resourceType);
+
+#if 0
+      // TODO - This version should be executed if no disk access is needed
+      if (expand)
       {
-        throw OrthancException(ErrorCode_BadRequest,
-                               "Missing \"limit\" argument for GET request against: " +
-                               call.FlattenUri());
+        request.SetResponseType(FindRequest::ResponseType_DicomMap);
+        request.SetMetadataMode(FindRequest::MetadataMode_Retrieve);
+        request.SetRetrieveTagsAtLevel(resourceType, true);
+
+        if (resourceType == ResourceType_Study)
+        {
+          request.SetRetrieveTagsAtLevel(ResourceType_Patient, true);
+        }
+      }
+      else
+      {
+        request.SetResponseType(FindRequest::ResponseType_OrthancIdentifiers);
+        request.SetMetadataMode(FindRequest::MetadataMode_None);
+      }
+#else
+      request.SetResponseType(FindRequest::ResponseType_OrthancIdentifiers);
+      request.SetMetadataMode(FindRequest::MetadataMode_None);
+#endif
+
+      if (call.HasArgument("limit") ||
+          call.HasArgument("since"))
+      {
+        if (!call.HasArgument("limit"))
+        {
+          throw OrthancException(ErrorCode_BadRequest,
+                                 "Missing \"limit\" argument for GET request against: " +
+                                 call.FlattenUri());
+        }
+
+        if (!call.HasArgument("since"))
+        {
+          throw OrthancException(ErrorCode_BadRequest,
+                                 "Missing \"since\" argument for GET request against: " +
+                                 call.FlattenUri());
+        }
+
+        uint64_t since = boost::lexical_cast<uint64_t>(call.GetArgument("since", ""));
+        uint64_t limit = boost::lexical_cast<uint64_t>(call.GetArgument("limit", ""));
+        request.SetLimits(since, limit);
       }
 
-      if (!call.HasArgument("since"))
+      FindResponse response;
+      index.ExecuteFind(response, request);
+
+      std::set<DicomTag> requestedTags;
+      OrthancRestApi::GetRequestedTags(requestedTags, call);
+
+      const DicomToJsonFormat format = OrthancRestApi::GetDicomFormat(call, DicomToJsonFormat_Human);
+
+      Json::Value answer = Json::arrayValue;
+
+      for (size_t i = 0; i < response.GetSize(); i++)
       {
-        throw OrthancException(ErrorCode_BadRequest,
-                               "Missing \"since\" argument for GET request against: " +
-                               call.FlattenUri());
+        std::string resourceId = response.GetItem(i).GetIdentifiers().GetLevel(resourceType);
+
+        if (expand)
+        {
+          Json::Value expanded;
+
+          context.ExpandResource(expanded, resourceId, resourceType, format, requestedTags, true /* allowStorageAccess */);
+
+          if (expanded.type() == Json::objectValue)
+          {
+            answer.append(expanded);
+          }
+          else
+          {
+            throw OrthancException(ErrorCode_InternalError);
+          }
+        }
+        else
+        {
+          answer.append(resourceId);
+        }
       }
 
-      size_t since = boost::lexical_cast<size_t>(call.GetArgument("since", ""));
-      size_t limit = boost::lexical_cast<size_t>(call.GetArgument("limit", ""));
-      index.GetAllUuids(result, resourceType, since, limit);
+      call.GetOutput().AnswerJson(answer);
     }
     else
     {
-      index.GetAllUuids(result, resourceType);
-    }
+      /**
+       * VERSION IN ORTHANC <= 1.12.3
+       **/
 
-    AnswerListOfResources(call.GetOutput(), context, result, resourceType, call.HasArgument("expand") && call.GetBooleanArgument("expand", true),
-                          OrthancRestApi::GetDicomFormat(call, DicomToJsonFormat_Human),
-                          requestedTags,
-                          true /* allowStorageAccess */);
+      std::list<std::string> result;
+
+      std::set<DicomTag> requestedTags;
+      OrthancRestApi::GetRequestedTags(requestedTags, call);
+
+      if (call.HasArgument("limit") ||
+          call.HasArgument("since"))
+      {
+        if (!call.HasArgument("limit"))
+        {
+          throw OrthancException(ErrorCode_BadRequest,
+                                 "Missing \"limit\" argument for GET request against: " +
+                                 call.FlattenUri());
+        }
+
+        if (!call.HasArgument("since"))
+        {
+          throw OrthancException(ErrorCode_BadRequest,
+                                 "Missing \"since\" argument for GET request against: " +
+                                 call.FlattenUri());
+        }
+
+        size_t since = boost::lexical_cast<size_t>(call.GetArgument("since", ""));
+        size_t limit = boost::lexical_cast<size_t>(call.GetArgument("limit", ""));
+        index.GetAllUuids(result, resourceType, since, limit);
+      }
+      else
+      {
+        index.GetAllUuids(result, resourceType);
+      }
+
+      AnswerListOfResources2(call.GetOutput(), context, result, resourceType, call.HasArgument("expand") && call.GetBooleanArgument("expand", true),
+                            OrthancRestApi::GetDicomFormat(call, DicomToJsonFormat_Human),
+                            requestedTags,
+                            true /* allowStorageAccess */);
+    }
   }
 
 
@@ -3106,7 +3206,7 @@ namespace Orthanc
                   bool expand,
                   const std::set<DicomTag>& requestedTags) const
       {
-        AnswerListOfResources(output, context, resources_, instancesIds_, resourcesMainDicomTags_, resourcesDicomAsJson_, level, expand, format_, requestedTags, IsStorageAccessAllowedForAnswers(findStorageAccessMode_));
+        AnswerListOfResources1(output, context, resources_, instancesIds_, resourcesMainDicomTags_, resourcesDicomAsJson_, level, expand, format_, requestedTags, IsStorageAccessAllowedForAnswers(findStorageAccessMode_));
       }
     };
   }
@@ -3386,7 +3486,7 @@ namespace Orthanc
       a.splice(a.begin(), b);
     }
 
-    AnswerListOfResources(call.GetOutput(), context, a, type, !call.HasArgument("expand") || call.GetBooleanArgument("expand", false),  // this "expand" is the only one to have a false default value to keep backward compatibility
+    AnswerListOfResources2(call.GetOutput(), context, a, type, !call.HasArgument("expand") || call.GetBooleanArgument("expand", false),  // this "expand" is the only one to have a false default value to keep backward compatibility
                           OrthancRestApi::GetDicomFormat(call, DicomToJsonFormat_Human),
                           requestedTags,
                           true /* allowStorageAccess */);

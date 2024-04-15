@@ -28,6 +28,7 @@
 #include "../../../OrthancFramework/Sources/SQLite/Transaction.h"
 #include "../Search/ISqlLookupFormatter.h"
 #include "../ServerToolbox.h"
+#include "Compatibility/GenericFind.h"
 #include "Compatibility/ICreateInstance.h"
 #include "Compatibility/IGetChildrenMetadata.h"
 #include "Compatibility/ILookupResourceAndParent.h"
@@ -1136,6 +1137,14 @@ namespace Orthanc
       {
         target.insert(s.ColumnString(0));
       }
+    }
+
+
+    virtual void ExecuteFind(FindResponse& response,
+                             const FindRequest& request) ORTHANC_OVERRIDE
+    {
+      Compatibility::GenericFind find(*this);
+      find.Execute(response, request);
     }
   };
 

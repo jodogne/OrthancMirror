@@ -3775,4 +3775,22 @@ namespace Orthanc
     boost::shared_lock<boost::shared_mutex> lock(mutex_);
     return db_.GetDatabaseCapabilities().HasLabelsSupport();
   }
+
+
+  void StatelessDatabaseOperations::ExecuteFind(FindResponse& response,
+                                                const FindRequest& request)
+  {
+    class Operations : public ReadOnlyOperationsT2<FindResponse&, const FindRequest&>
+    {
+    public:
+      virtual void ApplyTuple(ReadOnlyTransaction& transaction,
+                              const Tuple& tuple) ORTHANC_OVERRIDE
+      {
+        transaction.ExecuteFind(tuple.get<0>(), tuple.get<1>());
+      }
+    };
+
+    Operations operations;
+    operations.Apply(*this, response, request);
+  }
 }

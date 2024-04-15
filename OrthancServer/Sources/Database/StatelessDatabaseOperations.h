@@ -376,6 +376,12 @@ namespace Orthanc
       {
         transaction_.ListAllLabels(target);
       }
+
+      void ExecuteFind(FindResponse& response,
+                       const FindRequest& request)
+      {
+        transaction_.ExecuteFind(response, request);
+      }
     };
 
 
@@ -798,5 +804,8 @@ namespace Orthanc
                    const std::set<std::string>& labels);
 
     bool HasLabelsSupport();
+
+    void ExecuteFind(FindResponse& response,
+                     const FindRequest& request);
   };
 }
