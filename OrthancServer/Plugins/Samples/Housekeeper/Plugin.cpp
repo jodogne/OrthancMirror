@@ -48,6 +48,10 @@ static bool triggerOnMainDicomTagsChange_ = true;
 static bool triggerOnUnnecessaryDicomAsJsonFiles_ = true;
 static bool triggerOnIngestTranscodingChange_ = true;
 static bool triggerOnDicomWebCacheChange_ = true;
+static std::string limitMainDicomTagsReconstructLevel_ = "";
+static std::string limitToChange_ = "";
+static std::string limitToUrl_ = "";
+
 
 struct RunningPeriod
 {
@@ -544,24 +548,38 @@ static bool ProcessChanges(bool needsReconstruct, bool needsReingest, bool needs
       const Json::Value& change = changes["Changes"][i];
       int64_t seq = change["Seq"].asInt64();
 
-      if (change["ChangeType"] == "NewStudy") // some StableStudy might be missing if orthanc was shutdown during a StableAge -> consider only the NewStudy events that can not be missed
+      if (!limitToChange_.empty()) // if updating only maindicomtags for a single level 
       {
-        Json::Value result;
-
-        if (needsReconstruct)
+        if (change["ChangeType"] == limitToChange_)
         {
+          Json::Value result;
           Json::Value request;
-          if (needsReingest)
-          {
-            request["ReconstructFiles"] = true;
-          }
-          OrthancPlugins::RestApiPost(result, "/studies/" + change["ID"].asString() + "/reconstruct", request, false);
+          request["ReconstructFiles"] = false;
+          request["LimitToThisLevelMainDicomTags"] = true;
+          OrthancPlugins::RestApiPost(result, "/" + limitToUrl_ + "/" + change["ID"].asString() + "/reconstruct", request, false);
         }
-
-        if (needsDicomWebCaching)
+      }
+      else
+      {
+        if (change["ChangeType"] == "NewStudy") // some StableStudy might be missing if orthanc was shutdown during a StableAge -> consider only the NewStudy events that can not be missed
         {
-          Json::Value request;
-          OrthancPlugins::RestApiPost(result, "/studies/" + change["ID"].asString() + "/update-dicomweb-cache", request, true);
+          Json::Value result;
+
+          if (needsReconstruct)
+          {
+            Json::Value request;
+            if (needsReingest)
+            {
+              request["ReconstructFiles"] = true;
+            }
+            OrthancPlugins::RestApiPost(result, "/studies/" + change["ID"].asString() + "/reconstruct", request, false);
+          }
+
+          if (needsDicomWebCaching)
+          {
+            Json::Value request;
+            OrthancPlugins::RestApiPost(result, "/studies/" + change["ID"].asString() + "/update-dicomweb-cache", request, true);
+          }
         }
       }
 
@@ -842,7 +860,11 @@ extern "C"
               "MainDicomTagsChange": true,
               "UnnecessaryDicomAsJsonFiles": true,
               "DicomWebCacheChange": true   // new in 1.12.2
-            }
+            },
+
+            // When rebuilding MainDicomTags, limit to a single level of resource.
+            // Allowed values: "Patient", "Study", "Series", "Instance"
+            "LimitMainDicomTagsReconstructLevel": "Study"
 
           }
         }
@@ -863,6 +885,33 @@ extern "C"
         triggerOnUnnecessaryDicomAsJsonFiles_ = triggers.GetBooleanValue("UnnecessaryDicomAsJsonFiles", true);
         triggerOnIngestTranscodingChange_ = triggers.GetBooleanValue("IngestTranscodingChange", true);
         triggerOnDicomWebCacheChange_ = triggers.GetBooleanValue("DicomWebCacheChange", true);
+      }
+
+      limitMainDicomTagsReconstructLevel_ = housekeeper.GetStringValue("LimitMainDicomTagsReconstructLevel", "");
+      if (limitMainDicomTagsReconstructLevel_ != "Patient" && limitMainDicomTagsReconstructLevel_ != "Study"
+        && limitMainDicomTagsReconstructLevel_ != "Series" && limitMainDicomTagsReconstructLevel_ != "Instance")
+      {
+        OrthancPlugins::LogError("Housekeeper invalid value for 'LimitMainDicomTagsReconstructLevel': '" + limitMainDicomTagsReconstructLevel_ + "'");
+      }
+      else if (limitMainDicomTagsReconstructLevel_ == "Patient")
+      {
+        limitToChange_ = "NewPatient";
+        limitToUrl_ = "patients";
+      }
+      else if (limitMainDicomTagsReconstructLevel_ == "Study")
+      {
+        limitToChange_ = "NewStudy";
+        limitToUrl_ = "studies";
+      }
+      else if (limitMainDicomTagsReconstructLevel_ == "Series")
+      {
+        limitToChange_ = "NewSeries";
+        limitToUrl_ = "series";
+      }
+      else if (limitMainDicomTagsReconstructLevel_ == "Instance")
+      {
+        limitToChange_ = "NewInstance";
+        limitToUrl_ = "instances";
       }
 
       if (housekeeper.GetJson().isMember("Schedule"))

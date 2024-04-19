@@ -2764,13 +2764,15 @@ namespace Orthanc
   }
 
 
-  void StatelessDatabaseOperations::ReconstructInstance(const ParsedDicomFile& dicom)
+  void StatelessDatabaseOperations::ReconstructInstance(const ParsedDicomFile& dicom, bool limitToThisLevelDicomTags, ResourceType limitToLevel)
   {
     class Operations : public IReadWriteOperations
     {
     private:
       DicomMap                              summary_;
       std::unique_ptr<DicomInstanceHasher>  hasher_;
+      bool                                  limitToThisLevelDicomTags_;
+      ResourceType                          limitToLevel_;
       bool                                  hasTransferSyntax_;
       DicomTransferSyntax                   transferSyntax_;
 
@@ -2812,7 +2814,9 @@ namespace Orthanc
       }
 
     public:
-      explicit Operations(const ParsedDicomFile& dicom)
+      explicit Operations(const ParsedDicomFile& dicom, bool limitToThisLevelDicomTags, ResourceType limitToLevel)
+      : limitToThisLevelDicomTags_(limitToThisLevelDicomTags),
+        limitToLevel_(limitToLevel)
       {
         OrthancConfiguration::DefaultExtractDicomSummary(summary_, dicom);
         hasher_.reset(new DicomInstanceHasher(summary_));
@@ -2840,48 +2844,76 @@ namespace Orthanc
           throw OrthancException(ErrorCode_InternalError);
         }
 
-        transaction.ClearMainDicomTags(patient);
-        transaction.ClearMainDicomTags(study);
-        transaction.ClearMainDicomTags(series);
-        transaction.ClearMainDicomTags(instance);
-
+        if (limitToThisLevelDicomTags_)
         {
           ResourcesContent content(false /* prevent the setting of metadata */);
-          content.AddResource(patient, ResourceType_Patient, summary_);
-          content.AddResource(study, ResourceType_Study, summary_);
-          content.AddResource(series, ResourceType_Series, summary_);
-          content.AddResource(instance, ResourceType_Instance, summary_);
+          int64_t resource = -1;
+          if (limitToLevel_ == ResourceType_Patient)
+          {
+            resource = patient;
+          }
+          else if (limitToLevel_ == ResourceType_Study)
+          {
+            resource = study;
+          }
+          else if (limitToLevel_ == ResourceType_Series)
+          {
+            resource = series;
+          }
+          else if (limitToLevel_ == ResourceType_Instance)
+          {
+            resource = instance;
+          }
 
+          transaction.ClearMainDicomTags(resource);
+          content.AddResource(resource, limitToLevel_, summary_);
           transaction.SetResourcesContent(content);
-
-          ReplaceMetadata(transaction, patient, MetadataType_MainDicomTagsSignature, DicomMap::GetMainDicomTagsSignature(ResourceType_Patient));    // New in Orthanc 1.11.0
-          ReplaceMetadata(transaction, study, MetadataType_MainDicomTagsSignature, DicomMap::GetMainDicomTagsSignature(ResourceType_Study));        // New in Orthanc 1.11.0
-          ReplaceMetadata(transaction, series, MetadataType_MainDicomTagsSignature, DicomMap::GetMainDicomTagsSignature(ResourceType_Series));      // New in Orthanc 1.11.0
-          ReplaceMetadata(transaction, instance, MetadataType_MainDicomTagsSignature, DicomMap::GetMainDicomTagsSignature(ResourceType_Instance));  // New in Orthanc 1.11.0
-        
-          SetMainDicomSequenceMetadata(transaction, patient, summary_, ResourceType_Patient);
-          SetMainDicomSequenceMetadata(transaction, study, summary_, ResourceType_Study);
-          SetMainDicomSequenceMetadata(transaction, series, summary_, ResourceType_Series);
-          SetMainDicomSequenceMetadata(transaction, instance, summary_, ResourceType_Instance);
+          ReplaceMetadata(transaction, resource, MetadataType_MainDicomTagsSignature, DicomMap::GetMainDicomTagsSignature(limitToLevel_));
         }
-
-        if (hasTransferSyntax_)
+        else
         {
-          ReplaceMetadata(transaction, instance, MetadataType_Instance_TransferSyntax, GetTransferSyntaxUid(transferSyntax_));
-        }
+          transaction.ClearMainDicomTags(patient);
+          transaction.ClearMainDicomTags(study);
+          transaction.ClearMainDicomTags(series);
+          transaction.ClearMainDicomTags(instance);
 
-        const DicomValue* value;
-        if ((value = summary_.TestAndGetValue(DICOM_TAG_SOP_CLASS_UID)) != NULL &&
-            !value->IsNull() &&
-            !value->IsBinary())
-        {
-          ReplaceMetadata(transaction, instance, MetadataType_Instance_SopClassUid, value->GetContent());
-        }
+          {
+            ResourcesContent content(false /* prevent the setting of metadata */);
+            content.AddResource(patient, ResourceType_Patient, summary_);
+            content.AddResource(study, ResourceType_Study, summary_);
+            content.AddResource(series, ResourceType_Series, summary_);
+            content.AddResource(instance, ResourceType_Instance, summary_);
 
+            transaction.SetResourcesContent(content);
+
+            ReplaceMetadata(transaction, patient, MetadataType_MainDicomTagsSignature, DicomMap::GetMainDicomTagsSignature(ResourceType_Patient));    // New in Orthanc 1.11.0
+            ReplaceMetadata(transaction, study, MetadataType_MainDicomTagsSignature, DicomMap::GetMainDicomTagsSignature(ResourceType_Study));        // New in Orthanc 1.11.0
+            ReplaceMetadata(transaction, series, MetadataType_MainDicomTagsSignature, DicomMap::GetMainDicomTagsSignature(ResourceType_Series));      // New in Orthanc 1.11.0
+            ReplaceMetadata(transaction, instance, MetadataType_MainDicomTagsSignature, DicomMap::GetMainDicomTagsSignature(ResourceType_Instance));  // New in Orthanc 1.11.0
+          
+            SetMainDicomSequenceMetadata(transaction, patient, summary_, ResourceType_Patient);
+            SetMainDicomSequenceMetadata(transaction, study, summary_, ResourceType_Study);
+            SetMainDicomSequenceMetadata(transaction, series, summary_, ResourceType_Series);
+            SetMainDicomSequenceMetadata(transaction, instance, summary_, ResourceType_Instance);
+          }
+
+          if (hasTransferSyntax_)
+          {
+            ReplaceMetadata(transaction, instance, MetadataType_Instance_TransferSyntax, GetTransferSyntaxUid(transferSyntax_));
+          }
+
+          const DicomValue* value;
+          if ((value = summary_.TestAndGetValue(DICOM_TAG_SOP_CLASS_UID)) != NULL &&
+              !value->IsNull() &&
+              !value->IsBinary())
+          {
+            ReplaceMetadata(transaction, instance, MetadataType_Instance_SopClassUid, value->GetContent());
+          }
+        }
       }
     };
 
-    Operations operations(dicom);
+    Operations operations(dicom, limitToThisLevelDicomTags, limitToLevel);
     Apply(operations);
   }
 

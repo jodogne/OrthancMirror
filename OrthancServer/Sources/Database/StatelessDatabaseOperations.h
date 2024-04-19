@@ -755,7 +755,9 @@ namespace Orthanc
                    const std::string& publicId,
                    ResourceType level);
 
-    void ReconstructInstance(const ParsedDicomFile& dicom);
+    void ReconstructInstance(const ParsedDicomFile& dicom, 
+                             bool limitToThisLevelDicomTags, 
+                             ResourceType limitToLevel_);
 
     StoreStatus Store(std::map<MetadataType, std::string>& instanceMetadata,
                       const DicomMap& dicomSummary,
