@@ -56,6 +56,11 @@ General
   - ...
 * Investigate if one could fix KeepAlive race conditions:
   https://discourse.orthanc-server.org/t/socket-hangup-with-rest-api/4023/3
+* Logging: PHI can appear in logs when failing to write an archive:
+  E0418 14:05:41.769994 OrthancException.cpp:61] Error in the network protocol: HTTP client has disconnected while creating an archive in synchronous mode
+  E0418 14:05:41.769994 OrthancException.cpp:61] Cannot write to file: Cannot add new file inside ZIP archive: 13...63 S......RI 40Y M/DR D B...I L SPINE TBI/MR t1_fse_sag/MR000026.dcm
+  E0418 14:05:41.769994 ArchiveJob.cpp:1342] Error while creating an archive: Cannot write to file
+
 
 ============================
 Documentation (Orthanc Book)
