@@ -60,7 +60,11 @@ General
   E0418 14:05:41.769994 OrthancException.cpp:61] Error in the network protocol: HTTP client has disconnected while creating an archive in synchronous mode
   E0418 14:05:41.769994 OrthancException.cpp:61] Cannot write to file: Cannot add new file inside ZIP archive: 13...63 S......RI 40Y M/DR D B...I L SPINE TBI/MR t1_fse_sag/MR000026.dcm
   E0418 14:05:41.769994 ArchiveJob.cpp:1342] Error while creating an archive: Cannot write to file
-
+* The DICOM file cache shall keep a MD5 of the cached file and compare it with MD5
+  from the DB.  That would allow 2 orthancs in a swarm to realize when the other
+  Orthanc has updated the file:
+  https://discourse.orthanc-server.org/t/instances-id-content-api-results-are-different-in-docker-swarm-replicas-of-orthanc/4582
+  
 
 ============================
 Documentation (Orthanc Book)
