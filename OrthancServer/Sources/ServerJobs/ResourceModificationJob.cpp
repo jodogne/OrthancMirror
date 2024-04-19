@@ -186,7 +186,7 @@ namespace Orthanc
         ServerContext::DicomCacheLocker locker(GetContext(), *it);
         ParsedDicomFile& modifiedDicom = locker.GetDicom();
 
-        GetContext().GetIndex().ReconstructInstance(modifiedDicom);
+        GetContext().GetIndex().ReconstructInstance(modifiedDicom, false, ResourceType_Instance /* dummy */);
       }
     }
     

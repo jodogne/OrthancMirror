@@ -19,11 +19,18 @@ REST API
 
 * API version upgraded to 24
 * Added "MaximumPatientCount" in /system
+* Added a new "LimitToThisLevelMainDicomTags" field in the payload of 
+  /patients|studies|series/instances/../reconstruct to speed up the reconstruction
+  in case you just want to update the MainDicomTags of that resource level only 
+  e.g. after you have updated the 'ExtraMainDicomTags' for this level.
 
 Plugins
 -------
 
 * Multitenant DICOM plugin: added support for locales
+* Housekeeper plugin: Added an option "LimitMainDicomTagsReconstructLevel"
+  (allowed values: "Patient", "Study", "Series", "Instance").  This can greatly speed
+  up the housekeeper process e.g. if you have only update the Study level ExtraMainDicomTags.
 
 
 Version 1.12.3 (2024-01-31)
