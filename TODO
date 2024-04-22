@@ -64,7 +64,9 @@ General
   from the DB.  That would allow 2 orthancs in a swarm to realize when the other
   Orthanc has updated the file:
   https://discourse.orthanc-server.org/t/instances-id-content-api-results-are-different-in-docker-swarm-replicas-of-orthanc/4582
-  
+* Allow saving PrivateTags in ExtraMainDicomTags.
+  Note: they can actually be stored but they then appear as "Unknown Tag & Data" in the responses.
+  If we try to add the PrivateCreator in the ExtraMainDicomTags, then, the DICOMWeb plugin fails to initialize because the private tags are not known.
 
 ============================
 Documentation (Orthanc Book)
