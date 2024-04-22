@@ -13,6 +13,9 @@ Maintenance
 * The 0x0111 DIMSE Status is now considered as a warning instead of an error
   when received as a response to a C-Store. 
   See https://discourse.orthanc-server.org/t/ignore-dimse-status-0x0111-when-sending-partial-duplicate-studies/4555/3
+* Removed potential PHI from the logs when Orthanc encounters an error while
+  creating a zip file.
+
 
 REST API
 --------
