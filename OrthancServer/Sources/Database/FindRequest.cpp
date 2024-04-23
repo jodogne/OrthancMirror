@@ -59,10 +59,10 @@ namespace Orthanc
 
   FindRequest::FindRequest(ResourceType level) :
     level_(level),
-    responseContent_(ResponseContent_IdentifiersOnly),
     hasLimits_(false),
     limitsSince_(0),
     limitsCount_(0),
+    responseContent_(ResponseContent_IdentifiersOnly),
     retrievePatientTags_(false),
     retrieveStudyTags_(false),
     retrieveSeriesTags_(false),
@@ -73,7 +73,13 @@ namespace Orthanc
 
   FindRequest::~FindRequest()
   {
-    for (std::deque<TagConstraint*>::iterator it = tagConstraints_.begin(); it != tagConstraints_.end(); ++it)
+    for (std::deque<FilterConstraint*>::iterator it = filterConstraints_.begin(); it != filterConstraints_.end(); ++it)
+    {
+      assert(*it != NULL);
+      delete *it;
+    }
+
+    for (std::deque<Ordering*>::iterator it = ordering_.begin(); it != ordering_.end(); ++it)
     {
       assert(*it != NULL);
       delete *it;
@@ -81,7 +87,7 @@ namespace Orthanc
   }
 
 
-  void FindRequest::AddTagConstraint(TagConstraint* constraint /* takes ownership */)
+  void FindRequest::AddFilterConstraint(FilterConstraint* constraint /* takes ownership */)
   {
     if (constraint == NULL)
     {
@@ -89,21 +95,21 @@ namespace Orthanc
     }
     else
     {
-      tagConstraints_.push_back(constraint);
+      filterConstraints_.push_back(constraint);
     }
   }
 
 
-  const FindRequest::TagConstraint& FindRequest::GetTagConstraint(size_t index) const
+  const FindRequest::FilterConstraint& FindRequest::GetFilterConstraint(size_t index) const
   {
-    if (index >= tagConstraints_.size())
+    if (index >= filterConstraints_.size())
     {
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
     else
     {
-      assert(tagConstraints_[index] != NULL);
-      return *tagConstraints_[index];
+      assert(filterConstraints_[index] != NULL);
+      return *filterConstraints_[index];
     }
   }
 
@@ -204,39 +210,16 @@ namespace Orthanc
   }
 
 
-  void FindRequest::SetTagOrdering(DicomTag tag,
-                                   Ordering ordering)
+  void FindRequest::AddOrdering(const DicomTag& tag,
+                                OrderingDirection direction)
   {
-    switch (ordering)
-    {
-      case Ordering_None:
-        tagOrdering_.erase(tag);
-        break;
-
-      case Ordering_Ascending:
-        tagOrdering_[tag] = Ordering_Ascending;
-        break;
-
-      case Ordering_Descending:
-        tagOrdering_[tag] = Ordering_Descending;
-        break;
-
-      default:
-        throw OrthancException(ErrorCode_ParameterOutOfRange);
-    }
+    ordering_.push_back(new Ordering(Key(tag), direction));
   }
 
-
-  void FindRequest::AddMetadataConstraint(MetadataType metadata,
-                                          const std::string& value)
+  void FindRequest::AddOrdering(MetadataType metadataType, 
+                                OrderingDirection direction)
   {
-    if (metadataConstraints_.find(metadata) == metadataConstraints_.end())
-    {
-      metadataConstraints_[metadata] = value;
-    }
-    else
-    {
-      throw OrthancException(ErrorCode_BadSequenceOfCalls);
-    }
+    ordering_.push_back(new Ordering(Key(metadataType), direction));
   }
+
 }
