@@ -56,10 +56,6 @@ General
   - ...
 * Investigate if one could fix KeepAlive race conditions:
   https://discourse.orthanc-server.org/t/socket-hangup-with-rest-api/4023/3
-* Logging: PHI can appear in logs when failing to write an archive:
-  E0418 14:05:41.769994 OrthancException.cpp:61] Error in the network protocol: HTTP client has disconnected while creating an archive in synchronous mode
-  E0418 14:05:41.769994 OrthancException.cpp:61] Cannot write to file: Cannot add new file inside ZIP archive: 13...63 S......RI 40Y M/DR D B...I L SPINE TBI/MR t1_fse_sag/MR000026.dcm
-  E0418 14:05:41.769994 ArchiveJob.cpp:1342] Error while creating an archive: Cannot write to file
 * The DICOM file cache shall keep a MD5 of the cached file and compare it with MD5
   from the DB.  That would allow 2 orthancs in a swarm to realize when the other
   Orthanc has updated the file:
@@ -269,8 +265,6 @@ SDK
 * Provide a C++ callback similar to "ReceivedInstanceFilter()" in Lua
   https://orthanc.uclouvain.be/book/users/lua.html#filtering-incoming-dicom-instances
   https://groups.google.com/d/msg/orthanc-users/BtvLTE5Ni8A/vIMhmMgfBAAJ
-* In "OrthancPluginLog[Error|Warning|Info]()", prefix the log line with
-  the name of the plugin, as retrieved by "OrthancPluginGetName()"
 * Update the SDK to handle buffer sizes > 4GB (all sizes are currently coded in uint32_t)
 * Add a C-Get SCP handler: OrthancPluginRegisterGetCallback
   https://groups.google.com/g/orthanc-users/c/NRhPkYX9IXQ/m/mWS11g0jBwAJ

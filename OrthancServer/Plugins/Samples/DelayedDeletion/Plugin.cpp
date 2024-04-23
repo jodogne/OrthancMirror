@@ -117,7 +117,7 @@ static OrthancPluginErrorCode StorageReadWhole(OrthancPluginMemoryBuffer64* targ
     // copy from a buffer allocated on plugin's heap into a buffer allocated on core's heap
     if (OrthancPluginCreateMemoryBuffer64(OrthancPlugins::GetGlobalContext(), target, buffer->GetSize()) != OrthancPluginErrorCode_Success)
     {
-      OrthancPlugins::LogError("Delayed deletion plugin: error while reading object " + std::string(uuid) + ", cannot allocate memory of size " + boost::lexical_cast<std::string>(buffer->GetSize()) + " bytes");
+      LOG(ERROR) << "Delayed deletion plugin: error while reading object " << uuid << ", cannot allocate memory of size " << buffer->GetSize() << " bytes";
       return OrthancPluginErrorCode_StorageAreaPlugin;
     }
 

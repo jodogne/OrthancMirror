@@ -120,7 +120,7 @@ extern "C"
 {
   ORTHANC_PLUGINS_API int32_t OrthancPluginInitialize(OrthancPluginContext* context)
   {
-    OrthancPlugins::SetGlobalContext(context);
+    OrthancPlugins::SetGlobalContext(context, ORTHANC_PLUGIN_NAME);
 
     /* Check the version of the Orthanc core */
     if (OrthancPluginCheckVersion(OrthancPlugins::GetGlobalContext()) == 0)
@@ -141,9 +141,9 @@ extern "C"
     Orthanc::Logging::Initialize(context);
 #endif
 
-    if (!OrthancPlugins::CheckMinimalOrthancVersion(1, 12, 0))
+    if (!OrthancPlugins::CheckMinimalOrthancVersion(1, 12, 4))
     {
-      OrthancPlugins::ReportMinimalOrthancVersion(1, 12, 0);
+      OrthancPlugins::ReportMinimalOrthancVersion(1, 12, 4);
       return -1;
     }
 
