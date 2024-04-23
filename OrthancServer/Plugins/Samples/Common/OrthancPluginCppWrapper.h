@@ -137,6 +137,10 @@ namespace OrthancPlugins
 
   void SetGlobalContext(OrthancPluginContext* context);
 
+#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 12, 4) && ORTHANC_FRAMEWORK_VERSION_IS_ABOVE(1, 12, 4)
+  void SetGlobalContext(OrthancPluginContext* context, const char* pluginName);
+#endif
+
   void ResetGlobalContext();
 
   bool HasGlobalContext();
@@ -637,11 +641,11 @@ namespace OrthancPlugins
   const char* AutodetectMimeType(const std::string& path);
 #endif
 
-  void LogError(const std::string& message);
+  void LogError(const std::string& message);   // From Orthanc 1.12.4, use LOG(ERROR) to display the plugin name, file and line (First set a plugin name in Orthanc::Logging::InitializePluginContext)
 
-  void LogWarning(const std::string& message);
+  void LogWarning(const std::string& message); // From Orthanc 1.12.4, use LOG(WARNING) to display the plugin name, file and line (First set a plugin name in Orthanc::Logging::InitializePluginContext)
 
-  void LogInfo(const std::string& message);
+  void LogInfo(const std::string& message);    // From Orthanc 1.12.4, use LOG(INFO) to display the plugin name, file and line (First set a plugin name in Orthanc::Logging::InitializePluginContext)
 
   void ReportMinimalOrthancVersion(unsigned int major,
                                    unsigned int minor,
