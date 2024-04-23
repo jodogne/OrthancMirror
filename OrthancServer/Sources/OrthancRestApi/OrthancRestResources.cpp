@@ -238,8 +238,13 @@ namespace Orthanc
       // TODO - This version should be executed if no disk access is needed
       if (expand)
       {
-        request.SetResponseType(FindRequest::ResponseType_DicomMap);
-        request.SetMetadataMode(FindRequest::MetadataMode_Retrieve);
+        request.SetResponseContent(FindRequest::ResponseContent_MainDicomTags |
+                                   FindRequest::ResponseContent_Metadata |
+                                   FindRequest::ResponseContent_Labels |
+                                   FindRequest::ResponseContent_Attachments |
+                                   FindRequest::ResponseContent_Parent |
+                                   FindRequest::ResponseContent_Children)
+
         request.SetRetrieveTagsAtLevel(resourceType, true);
 
         if (resourceType == ResourceType_Study)
@@ -249,12 +254,10 @@ namespace Orthanc
       }
       else
       {
-        request.SetResponseType(FindRequest::ResponseType_OrthancIdentifiers);
-        request.SetMetadataMode(FindRequest::MetadataMode_None);
+        request.SetResponseContent(FindRequest::ResponseContent_IdentifiersOnly);
       }
 #else
-      request.SetResponseType(FindRequest::ResponseType_OrthancIdentifiers);
-      request.SetMetadataMode(FindRequest::MetadataMode_None);
+      request.SetResponseContent(FindRequest::ResponseContent_IdentifiersOnly);
 #endif
 
       if (call.HasArgument("limit") ||

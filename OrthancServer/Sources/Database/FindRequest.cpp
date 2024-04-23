@@ -59,11 +59,10 @@ namespace Orthanc
 
   FindRequest::FindRequest(ResourceType level) :
     level_(level),
-    responseType_(ResponseType_OrthancIdentifiers),
+    responseContent_(ResponseContent_IdentifiersOnly),
     hasLimits_(false),
     limitsSince_(0),
     limitsCount_(0),
-    metadataMode_(MetadataMode_None),
     retrievePatientTags_(false),
     retrieveStudyTags_(false),
     retrieveSeriesTags_(false),
