@@ -56,12 +56,24 @@ namespace Orthanc
     {
     }
 
+    Orthanc::SQLite::StatementId::StatementId(const char *file,
+                                              int line,
+                                              const std::string& statement) :
+      file_(file),
+      line_(line),
+      statement_(statement)
+    {
+    }
+
     bool StatementId::operator< (const StatementId& other) const
     {
       if (line_ != other.line_)
         return line_ < other.line_;
 
-      return strcmp(file_, other.file_) < 0;
+      if (strcmp(file_, other.file_) < 0)
+        return true;
+
+      return statement_ < other.statement_;
     }
   }
 }
