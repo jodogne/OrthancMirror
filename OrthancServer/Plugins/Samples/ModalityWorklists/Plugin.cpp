@@ -214,7 +214,8 @@ extern "C"
 {
   ORTHANC_PLUGINS_API int32_t OrthancPluginInitialize(OrthancPluginContext* c)
   {
-    OrthancPlugins::SetGlobalContext(c);
+    Orthanc::Logging::InitializePluginContext(c, MODALITY_WORKLISTS_NAME);
+    OrthancPlugins::SetGlobalContext(c, MODALITY_WORKLISTS_NAME);
 
     /* Check the version of the Orthanc core */
     if (OrthancPluginCheckVersion(c) == 0)

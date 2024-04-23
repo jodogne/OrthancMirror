@@ -913,7 +913,7 @@ namespace Orthanc
       
           if (loggingStreamsContext_.get() == NULL)
           {
-            fprintf(stderr, "ERROR: Trying to log a message after the finalization of the logging engine\n");
+            fprintf(stderr, "ERROR: Trying to log a message after the finalization of the logging engine (or did you forgot to initialize it ?)\n"); // have you called Orthanc::Logging::InitializePluginContext ?
             lock_.unlock();
             return;
           }
