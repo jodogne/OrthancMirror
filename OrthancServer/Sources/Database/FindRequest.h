@@ -25,11 +25,13 @@
 #include "../../../OrthancFramework/Sources/DicomFormat/DicomTag.h"
 #include "../ServerEnumerations.h"
 #include "OrthancIdentifiers.h"
+//#include "../Search/DatabaseConstraint.h"
 
 #include <deque>
 #include <map>
 #include <set>
-
+#include <cassert>
+#include <boost/shared_ptr.hpp>
 
 namespace Orthanc
 {
@@ -60,42 +62,119 @@ namespace Orthanc
       ConstraintType_List
     };
 
-
-    enum Ordering
+    enum KeyType  // used for ordering and filters
     {
-      Ordering_Ascending,
-      Ordering_Descending,
-      Ordering_None
+      KeyType_DicomTag,
+      KeyType_Metadata
+    };
+
+    enum OrderingDirection
+    {
+      OrderingDirection_Ascending,
+      OrderingDirection_Descending
+    };
+
+    enum LabelsConstraint
+    {
+      LabelsConstraint_All,
+      LabelsConstraint_Any,
+      LabelsConstraint_None
+    };
+
+    class Key
+    {
+      KeyType                       type_;
+      boost::shared_ptr<DicomTag>   dicomTag_;
+      MetadataType                  metadata_;
+    public:
+      Key(const DicomTag& dicomTag) :
+        type_(KeyType_DicomTag),
+        dicomTag_(new DicomTag(dicomTag)),
+        metadata_(MetadataType_EndUser)
+      {
+      }
+
+      Key(MetadataType metadata) :
+        type_(KeyType_Metadata),
+        metadata_(metadata)
+      {
+      }
+
+      KeyType GetType() const
+      {
+        return type_;
+      }
+
+      const DicomTag& GetDicomTag() const
+      {
+        assert(GetType() == KeyType_DicomTag);
+        return *dicomTag_;
+      }
+
+      MetadataType GetMetadataType() const
+      {
+        assert(GetType() == KeyType_Metadata);
+        return metadata_;
+      }
+    };
+
+    class Ordering : public boost::noncopyable
+    {
+      OrderingDirection   direction_;
+      Key                 key_;
+
+    public:
+      Ordering(const Key& key,
+               OrderingDirection direction) :
+        direction_(direction),
+        key_(key)
+      {
+      }
+
+    public:
+      KeyType GetKeyType() const
+      {
+        return key_.GetType();
+      }
+
+      OrderingDirection GetDirection() const
+      {
+        return direction_;
+      }
+
+      MetadataType GetMetadataType() const
+      {
+        return key_.GetMetadataType();
+      }
+
+      DicomTag GetDicomTag() const
+      {
+        return key_.GetDicomTag();
+      }
     };
 
 
-    class TagConstraint : public boost::noncopyable
+    class FilterConstraint : public boost::noncopyable
     {
-    private:
-      DicomTag  tag_;
+      Key              key_;
+    
+    protected:
+      FilterConstraint(const Key& key) :
+        key_(key)
+      {
+      }
 
     public:
-      TagConstraint(DicomTag tag) :
-        tag_(tag)
+      virtual ~FilterConstraint()
       {
-      }
-
-      virtual ~TagConstraint()
-      {
-      }
-
-      virtual DicomTag GetTag() const
-      {
-        return tag_;
       }
 
       virtual ConstraintType GetType() const = 0;
-
       virtual bool IsCaseSensitive() const = 0;  // Needed for PN VR
     };
 
 
-    class MandatoryConstraint : public TagConstraint
+    class MandatoryConstraint : public FilterConstraint
     {
     public:
       virtual ConstraintType GetType() const ORTHANC_OVERRIDE
@@ -105,15 +184,15 @@ namespace Orthanc
     };
 
 
-    class StringConstraint : public TagConstraint
+    class StringConstraint : public FilterConstraint
     {
     private:
       bool  caseSensitive_;
 
     public:
-      StringConstraint(DicomTag tag,
+      StringConstraint(Key key,
                        bool caseSensitive) :
-        TagConstraint(tag),
+        FilterConstraint(key),
         caseSensitive_(caseSensitive)
       {
       }
@@ -131,10 +210,10 @@ namespace Orthanc
       std::string  value_;
 
     public:
-      explicit EqualityConstraint(DicomTag tag,
+      explicit EqualityConstraint(Key key,
                                   bool caseSensitive,
                                   const std::string& value) :
-        StringConstraint(tag, caseSensitive),
+        StringConstraint(key, caseSensitive),
         value_(value)
       {
       }
@@ -158,11 +237,11 @@ namespace Orthanc
       std::string  end_;    // Inclusive
 
     public:
-      RangeConstraint(DicomTag tag,
+      RangeConstraint(Key key,
                       bool caseSensitive,
                       const std::string& start,
                       const std::string& end) :
-        StringConstraint(tag, caseSensitive),
+        StringConstraint(key, caseSensitive),
         start_(start),
         end_(end)
       {
@@ -191,10 +270,10 @@ namespace Orthanc
       std::string  value_;
 
     public:
-      explicit WildcardConstraint(DicomTag& tag,
+      explicit WildcardConstraint(Key& key,
                                   bool caseSensitive,
                                   const std::string& value) :
-        StringConstraint(tag, caseSensitive),
+        StringConstraint(key, caseSensitive),
         value_(value)
       {
       }
@@ -217,9 +296,9 @@ namespace Orthanc
       std::set<std::string>  values_;
 
     public:
-      ListConstraint(DicomTag tag,
+      ListConstraint(Key key,
                      bool caseSensitive) :
-        StringConstraint(tag, caseSensitive)
+        StringConstraint(key, caseSensitive)
       {
       }
 
@@ -236,20 +315,26 @@ namespace Orthanc
 
 
   private:
-    ResourceType                         level_;
-    ResponseContent                      responseContent_;
-    OrthancIdentifiers                   orthancIdentifiers_;
-    std::deque<TagConstraint*>           tagConstraints_;
+
+    // filter & ordering fields
+    ResourceType                         level_;                // The level of the response (the filtering on tags, labels and metadata also happens at this level)
+    OrthancIdentifiers                   orthancIdentifiers_;   // The response must belong to this Orthanc resources hierarchy
+    std::deque<FilterConstraint*>        filterConstraints_;    // All tags and metadata filters (note: the order is not important)
     bool                                 hasLimits_;
     uint64_t                             limitsSince_;
     uint64_t                             limitsCount_;
+    std::set<std::string>                labels_;
+    LabelsConstraint                     labelsContraint_;
+    std::deque<Ordering*>                ordering_;             // The ordering criteria (note: the order is important !)
+
+    // response fields
+    ResponseContent                      responseContent_;
+    
+    // TODO: check if these 4 options are required.  We might just have a retrieveParentTags that could be part of the ResponseContent enum ?
     bool                                 retrievePatientTags_;
     bool                                 retrieveStudyTags_;
     bool                                 retrieveSeriesTags_;
     bool                                 retrieveInstanceTags_;
-    std::map<DicomTag, Ordering>         tagOrdering_;
-    std::set<std::string>                labels_;
-    std::map<MetadataType, std::string>  metadataConstraints_;
 
     bool IsCompatibleLevel(ResourceType levelOfInterest) const;
 
@@ -262,6 +347,10 @@ namespace Orthanc
     {
       return level_;
     }
+
+    // void GetDatabaseConstraints(std::vector<DatabaseConstraint>& target) const;  // conversion to DatabaseConstraint is required to feed to the LookupFormatter
+    // void GetOrdering(std::vector<Ordering>& target) const;
+
 
     void SetResponseContent(ResponseContent content)
     {
@@ -308,14 +397,14 @@ namespace Orthanc
       return orthancIdentifiers_;
     }
 
-    void AddTagConstraint(TagConstraint* constraint /* takes ownership */);
+    void AddFilterConstraint(FilterConstraint* constraint /* takes ownership */);
 
-    size_t GetTagConstraintsCount() const
+    size_t GetFilterConstraintsCount() const
     {
-      return tagConstraints_.size();
+      return filterConstraints_.size();
     }
 
-    const TagConstraint& GetTagConstraint(size_t index) const;
+    const FilterConstraint& GetFilterConstraint(size_t index) const;
 
     void SetLimits(uint64_t since,
                    uint64_t count);
@@ -335,12 +424,13 @@ namespace Orthanc
 
     bool IsRetrieveTagsAtLevel(ResourceType levelOfInterest) const;
 
-    void SetTagOrdering(DicomTag tag,
-                        Ordering ordering);
+    void AddOrdering(const DicomTag& tag, OrderingDirection direction);
 
-    const std::map<DicomTag, Ordering>& GetTagOrdering() const
+    void AddOrdering(MetadataType metadataType, OrderingDirection direction);
+
+    const std::deque<Ordering*>& GetOrdering() const
     {
-      return tagOrdering_;
+      return ordering_;
     }
 
     void AddLabel(const std::string& label)
@@ -351,14 +441,6 @@ namespace Orthanc
     const std::set<std::string>& GetLabels() const
     {
       return labels_;
-    }
-
-    void AddMetadataConstraint(MetadataType metadata,
-                               const std::string& value);
-
-    const std::map<MetadataType, std::string>& GetMetadataConstraints() const
-    {
-      return metadataConstraints_;
     }
   };
 }

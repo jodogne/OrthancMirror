@@ -1143,8 +1143,22 @@ namespace Orthanc
     virtual void ExecuteFind(FindResponse& response,
                              const FindRequest& request) ORTHANC_OVERRIDE
     {
+#if 1
       Compatibility::GenericFind find(*this);
       find.Execute(response, request);
+#else
+      {
+        SQLite::Statement s(db_, SQLITE_FROM_HERE, "DROP TABLE IF EXISTS FilteredResourcesIds");
+        s.Run();
+      }
+
+      {
+        std::string sql;
+        // sql = "CREATE TEMPORARY TABLE FilteredResourcesIds AS ";
+        sql = "..";
+        SQLite::Statement s(db_, SQLITE_FROM_HERE_DYNAMIC(sql), sql);
+      }
+#endif
     }
   };
 

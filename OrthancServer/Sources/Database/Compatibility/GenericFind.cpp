@@ -37,14 +37,13 @@ namespace Orthanc
           !request.GetOrthancIdentifiers().HasStudyId() &&
           !request.GetOrthancIdentifiers().HasSeriesId() &&
           !request.GetOrthancIdentifiers().HasInstanceId() &&
-          request.GetTagConstraintsCount() == 0 &&
+          request.GetFilterConstraintsCount() == 0 &&
           !request.IsRetrieveTagsAtLevel(ResourceType_Patient) &&
           !request.IsRetrieveTagsAtLevel(ResourceType_Study) &&
           !request.IsRetrieveTagsAtLevel(ResourceType_Series) &&
           !request.IsRetrieveTagsAtLevel(ResourceType_Instance) &&
-          request.GetTagOrdering().empty() &&
-          request.GetLabels().empty() &&
-          request.GetMetadataConstraints().empty())
+          request.GetOrdering().empty() &&
+          request.GetLabels().empty())
       {
         std::list<std::string> ids;
 
