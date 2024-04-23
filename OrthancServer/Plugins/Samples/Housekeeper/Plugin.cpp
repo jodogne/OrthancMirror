@@ -795,7 +795,8 @@ extern "C"
 
   ORTHANC_PLUGINS_API int32_t OrthancPluginInitialize(OrthancPluginContext* c)
   {
-    OrthancPlugins::SetGlobalContext(c);
+    OrthancPlugins::SetGlobalContext(c, HOUSEKEEPER_NAME);
+    Orthanc::Logging::InitializePluginContext(c, HOUSEKEEPER_NAME);
 
     /* Check the version of the Orthanc core */
     if (OrthancPluginCheckVersion(c) == 0)
