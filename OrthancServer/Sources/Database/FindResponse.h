@@ -25,11 +25,13 @@
 #include "../../../OrthancFramework/Sources/DicomFormat/DicomMap.h"
 #include "../ServerEnumerations.h"
 #include "OrthancIdentifiers.h"
+#include "FindRequest.h"
 
 #include <boost/noncopyable.hpp>
 #include <deque>
 #include <map>
 #include <set>
+#include <list>
 
 
 namespace Orthanc
@@ -37,23 +39,67 @@ namespace Orthanc
   class FindResponse : public boost::noncopyable
   {
   public:
+    class StringWithRevision
+    {
+    private:
+      std::string         value_;
+      int64_t             revision_;
+    public:
+      StringWithRevision(const std::string& value,
+                          int64_t revision) :
+        value_(value),
+        revision_(revision)
+      {
+      }
+
+      StringWithRevision(const StringWithRevision& other) :
+        value_(other.value_),
+        revision_(other.revision_)
+      {
+      }
+
+      StringWithRevision() :
+        revision_(-1)
+      {
+      }
+
+      const std::string& GetValue() const
+      {
+        return value_;
+      }
+
+      int64_t GetRevision() const
+      {
+        return revision_;
+      }
+    };
+
+
     class Item : public boost::noncopyable
     {
     private:
-      ResourceType                         level_;
-      OrthancIdentifiers                   identifiers_;
-      std::map<MetadataType, std::string>  metadata_;
-      std::unique_ptr<DicomMap>            dicomMap_;
+      FindRequest::ResponseContent          responseContent_;    // what has been requested
+      ResourceType                          level_;
+      OrthancIdentifiers                    identifiers_;
+      std::unique_ptr<DicomMap>             dicomMap_;
+      std::list<std::string>                children_;
+      std::string                           childInstanceId_;
+      std::list<std::string>                labels_;      
+      std::map<MetadataType, StringWithRevision>    metadata_;
+      std::map<uint16_t, StringWithRevision>        attachments_;
 
     public:
-      Item(ResourceType level,
+      Item(FindRequest::ResponseContent responseContent,
+           ResourceType level,
            const OrthancIdentifiers& identifiers) :
+        responseContent_(responseContent),
         level_(level),
         identifiers_(identifiers)
       {
       }
 
-      Item(ResourceType level,
+      Item(FindRequest::ResponseContent responseContent,
+           ResourceType level,
            DicomMap* dicomMap /* takes ownership */);
 
       ResourceType GetLevel() const
@@ -67,17 +113,18 @@ namespace Orthanc
       }
 
       void AddMetadata(MetadataType metadata,
-                       const std::string& value);
+                       const std::string& value,
+                       int64_t revision);
 
       bool HasMetadata(MetadataType metadata) const
       {
         return metadata_.find(metadata) != metadata_.end();
       }
 
-      bool LookupMetadata(std::string& value,
+      bool LookupMetadata(std::string& value, int64_t revision,
                           MetadataType metadata) const;
 
-      void ListMetadata(std::set<MetadataType> metadata) const;
+      void ListMetadata(std::set<MetadataType>& metadata) const;
 
       bool HasDicomMap() const
       {
@@ -85,6 +132,9 @@ namespace Orthanc
       }
 
       const DicomMap& GetDicomMap() const;
+
+
+      // TODO: add other getters and setters
     };
 
   private:

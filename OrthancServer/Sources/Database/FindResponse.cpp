@@ -114,8 +114,10 @@ namespace Orthanc
   }
 
 
-  FindResponse::Item::Item(ResourceType level,
+  FindResponse::Item::Item(FindRequest::ResponseContent responseContent,
+                           ResourceType level,
                            DicomMap* dicomMap /* takes ownership */) :
+    responseContent_(responseContent),
     level_(level),
     dicomMap_(dicomMap)
   {
@@ -131,7 +133,8 @@ namespace Orthanc
 
 
   void FindResponse::Item::AddMetadata(MetadataType metadata,
-                                       const std::string& value)
+                                       const std::string& value,
+                                       int64_t revision)
   {
     if (metadata_.find(metadata) != metadata_.end())
     {
@@ -139,15 +142,16 @@ namespace Orthanc
     }
     else
     {
-      metadata_[metadata] = value;
+      metadata_[metadata] = StringWithRevision(value, revision);
     }
   }
 
 
   bool FindResponse::Item::LookupMetadata(std::string& value,
+                                          int64_t revision,
                                           MetadataType metadata) const
   {
-    std::map<MetadataType, std::string>::const_iterator found = metadata_.find(metadata);
+    std::map<MetadataType, StringWithRevision>::const_iterator found = metadata_.find(metadata);
 
     if (found == metadata_.end())
     {
@@ -155,17 +159,18 @@ namespace Orthanc
     }
     else
     {
-      value = found->second;
+      value = found->second.GetValue();
+      revision = found->second.GetRevision();
       return true;
     }
   }
 
 
-  void FindResponse::Item::ListMetadata(std::set<MetadataType> target) const
+  void FindResponse::Item::ListMetadata(std::set<MetadataType>& target) const
   {
     target.clear();
 
-    for (std::map<MetadataType, std::string>::const_iterator it = metadata_.begin(); it != metadata_.end(); ++it)
+    for (std::map<MetadataType, StringWithRevision>::const_iterator it = metadata_.begin(); it != metadata_.end(); ++it)
     {
       target.insert(it->first);
     }

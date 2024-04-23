@@ -32,13 +32,12 @@ namespace Orthanc
     void GenericFind::Execute(FindResponse& response,
                               const FindRequest& request)
     {
-      if (request.GetResponseType() == FindRequest::ResponseType_OrthancIdentifiers &&
+      if (request.GetResponseContent() == FindRequest::ResponseContent_IdentifiersOnly &&
           !request.GetOrthancIdentifiers().HasPatientId() &&
           !request.GetOrthancIdentifiers().HasStudyId() &&
           !request.GetOrthancIdentifiers().HasSeriesId() &&
           !request.GetOrthancIdentifiers().HasInstanceId() &&
           request.GetTagConstraintsCount() == 0 &&
-          request.GetMetadataMode() == FindRequest::MetadataMode_None &&
           !request.IsRetrieveTagsAtLevel(ResourceType_Patient) &&
           !request.IsRetrieveTagsAtLevel(ResourceType_Study) &&
           !request.IsRetrieveTagsAtLevel(ResourceType_Series) &&
@@ -63,7 +62,9 @@ namespace Orthanc
           OrthancIdentifiers identifiers;
           identifiers.SetLevel(request.GetLevel(), *it);
 
-          response.Add(new FindResponse::Item(request.GetLevel(), identifiers));
+          response.Add(new FindResponse::Item(request.GetResponseContent(),
+                                              request.GetLevel(), 
+                                              identifiers));
         }
       }
       else
@@ -85,21 +86,13 @@ namespace Orthanc
           throw OrthancException(ErrorCode_InternalError);
         }
 
-        switch (request.GetResponseType())
+        if (request.HasResponseContent(FindRequest::ResponseContent_MainDicomTags)
+            && !item.HasDicomMap())
         {
-          case FindRequest::ResponseType_OrthancIdentifiers:
-            break;
-
-          case FindRequest::ResponseType_DicomMap:
-            if (!item.HasDicomMap())
-            {
-              throw OrthancException(ErrorCode_InternalError);
-            }
-            break;
-
-          default:
-            throw OrthancException(ErrorCode_NotImplemented);
+          throw OrthancException(ErrorCode_InternalError);
         }
+
+        // TODO: other sanity checks
       }
     }
   }

@@ -36,10 +36,19 @@ namespace Orthanc
   class FindRequest : public boost::noncopyable
   {
   public:
-    enum ResponseType
+    enum ResponseContent
     {
-      ResponseType_OrthancIdentifiers,
-      ResponseType_DicomMap
+      ResponseContent_MainDicomTags         = (1 << 0),     // retrieve all tags from MainDicomTags and DicomIdentifiers
+      ResponseContent_Metadata              = (1 << 1),     // retrieve all metadata, their values and revision
+      ResponseContent_Labels                = (1 << 2),     // get all labels
+      ResponseContent_Attachments           = (1 << 3),     // retrieve all attachments, their values and revision
+      ResponseContent_Parent                = (1 << 4),     // get the id of the parent
+      ResponseContent_Children              = (1 << 5),     // retrieve the list of children ids
+      ResponseContent_ChildInstanceId       = (1 << 6),     // When you need to access all tags from a patient/study/series, you might need to open the DICOM file of a child instance
+      ResponseContent_IsStable              = (1 << 7),     // This is currently not saved in DB but it could be in the future.
+
+      ResponseContent_IdentifiersOnly       = 0,
+      ResponseContent_INTERNAL              = 0x7FFFFFFF
     };
 
     enum ConstraintType
@@ -51,12 +60,6 @@ namespace Orthanc
       ConstraintType_List
     };
 
-    enum MetadataMode
-    {
-      MetadataMode_None,
-      MetadataMode_List,
-      MetadataMode_Retrieve
-    };
 
     enum Ordering
     {
@@ -234,13 +237,12 @@ namespace Orthanc
 
   private:
     ResourceType                         level_;
-    ResponseType                         responseType_;
+    ResponseContent                      responseContent_;
     OrthancIdentifiers                   orthancIdentifiers_;
     std::deque<TagConstraint*>           tagConstraints_;
     bool                                 hasLimits_;
     uint64_t                             limitsSince_;
     uint64_t                             limitsCount_;
-    MetadataMode                         metadataMode_;
     bool                                 retrievePatientTags_;
     bool                                 retrieveStudyTags_;
     bool                                 retrieveSeriesTags_;
@@ -261,14 +263,24 @@ namespace Orthanc
       return level_;
     }
 
-    void SetResponseType(ResponseType type)
+    void SetResponseContent(ResponseContent content)
     {
-      responseType_ = type;
+      responseContent_ = content;
     }
 
-    ResponseType GetResponseType() const
+    void AddResponseContent(ResponseContent content)
     {
-      return responseType_;
+      responseContent_ = static_cast<ResponseContent>(static_cast<uint32_t>(responseContent_) | content);
+    }
+
+    ResponseContent GetResponseContent() const
+    {
+      return responseContent_;
+    }
+
+    bool HasResponseContent(ResponseContent content) const
+    {
+      return (responseContent_ & content) == content;
     }
 
     void SetOrthancPatientId(const std::string& id)
@@ -317,15 +329,6 @@ namespace Orthanc
 
     uint64_t GetLimitsCount() const;
 
-    void SetMetadataMode(MetadataMode mode)
-    {
-      metadataMode_ = mode;
-    }
-
-    MetadataMode GetMetadataMode() const
-    {
-      return metadataMode_;
-    }
 
     void SetRetrieveTagsAtLevel(ResourceType levelOfInterest,
                                 bool retrieve);
