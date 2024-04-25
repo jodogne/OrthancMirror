@@ -37,7 +37,8 @@ namespace Orthanc
           !request.GetOrthancIdentifiers().HasStudyId() &&
           !request.GetOrthancIdentifiers().HasSeriesId() &&
           !request.GetOrthancIdentifiers().HasInstanceId() &&
-          request.GetFilterConstraintsCount() == 0 &&
+          request.GetDicomTagConstraintsCount() == 0 &&
+          request.GetMetadataConstraintsCount() == 0 &&
           !request.IsRetrieveTagsAtLevel(ResourceType_Patient) &&
           !request.IsRetrieveTagsAtLevel(ResourceType_Study) &&
           !request.IsRetrieveTagsAtLevel(ResourceType_Series) &&

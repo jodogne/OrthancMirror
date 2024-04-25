@@ -743,7 +743,7 @@ extern "C"
   } OrthancPluginResourceType;
 
 
-
+  
   /**
    * The supported types of changes that can be signaled to the change callback.
    * @ingroup Callbacks

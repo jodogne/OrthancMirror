@@ -73,11 +73,6 @@ namespace Orthanc
 
   FindRequest::~FindRequest()
   {
-    for (std::deque<FilterConstraint*>::iterator it = filterConstraints_.begin(); it != filterConstraints_.end(); ++it)
-    {
-      assert(*it != NULL);
-      delete *it;
-    }
 
     for (std::deque<Ordering*>::iterator it = ordering_.begin(); it != ordering_.end(); ++it)
     {
@@ -86,30 +81,20 @@ namespace Orthanc
     }
   }
 
-
-  void FindRequest::AddFilterConstraint(FilterConstraint* constraint /* takes ownership */)
+  void FindRequest::AddDicomTagConstraint(const DicomTagConstraint& constraint)
   {
-    if (constraint == NULL)
-    {
-      throw OrthancException(ErrorCode_NullPointer);
-    }
-    else
-    {
-      filterConstraints_.push_back(constraint);
-    }
+    dicomTagConstraints_.push_back(constraint);
   }
 
-
-  const FindRequest::FilterConstraint& FindRequest::GetFilterConstraint(size_t index) const
+  const DicomTagConstraint& FindRequest::GetDicomTagConstraint(size_t index) const
   {
-    if (index >= filterConstraints_.size())
+    if (index >= dicomTagConstraints_.size())
     {
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
     else
     {
-      assert(filterConstraints_[index] != NULL);
-      return *filterConstraints_[index];
+      return dicomTagConstraints_[index];
     }
   }
 

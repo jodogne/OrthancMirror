@@ -16,6 +16,8 @@ REST API
 
 * API version upgraded to 24
 * Added "MaximumPatientCount" in /system
+* TODO-FIND: complete the list of updated routes:
+  /studies?expand and sibbling routes now also return "Metadata"
 
 Plugins
 -------

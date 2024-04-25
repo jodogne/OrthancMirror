@@ -234,16 +234,14 @@ namespace Orthanc
 
       FindRequest request(resourceType);
 
-#if 0
-      // TODO - This version should be executed if no disk access is needed
       if (expand)
       {
-        request.SetResponseContent(FindRequest::ResponseContent_MainDicomTags |
+        request.SetResponseContent(static_cast<FindRequest::ResponseContent>(FindRequest::ResponseContent_MainDicomTags |
                                    FindRequest::ResponseContent_Metadata |
                                    FindRequest::ResponseContent_Labels |
                                    FindRequest::ResponseContent_Attachments |
                                    FindRequest::ResponseContent_Parent |
-                                   FindRequest::ResponseContent_Children)
+                                   FindRequest::ResponseContent_Children));
 
         request.SetRetrieveTagsAtLevel(resourceType, true);
 
@@ -256,9 +254,6 @@ namespace Orthanc
       {
         request.SetResponseContent(FindRequest::ResponseContent_IdentifiersOnly);
       }
-#else
-      request.SetResponseContent(FindRequest::ResponseContent_IdentifiersOnly);
-#endif
 
       if (call.HasArgument("limit") ||
           call.HasArgument("since"))
@@ -285,35 +280,27 @@ namespace Orthanc
       FindResponse response;
       index.ExecuteFind(response, request);
 
-      std::set<DicomTag> requestedTags;
-      OrthancRestApi::GetRequestedTags(requestedTags, call);
-
-      const DicomToJsonFormat format = OrthancRestApi::GetDicomFormat(call, DicomToJsonFormat_Human);
-
+      // TODO-FIND: put this in an AnswerFindResponse method !
       Json::Value answer = Json::arrayValue;
 
-      for (size_t i = 0; i < response.GetSize(); i++)
+      if (request.IsResponseIdentifiersOnly())
       {
-        std::string resourceId = response.GetItem(i).GetIdentifiers().GetLevel(resourceType);
-
-        if (expand)
+        for (size_t i = 0; i < response.GetSize(); i++)
         {
-          Json::Value expanded;
-
-          context.ExpandResource(expanded, resourceId, resourceType, format, requestedTags, true /* allowStorageAccess */);
-
-          if (expanded.type() == Json::objectValue)
-          {
-            answer.append(expanded);
-          }
-          else
-          {
-            throw OrthancException(ErrorCode_InternalError);
-          }
-        }
-        else
-        {
+          std::string resourceId = response.GetItem(i).GetResourceId();
           answer.append(resourceId);
+        }
+      }
+      else
+      {
+        std::set<DicomTag> requestedTags;
+        OrthancRestApi::GetRequestedTags(requestedTags, call);
+
+        const DicomToJsonFormat format = OrthancRestApi::GetDicomFormat(call, DicomToJsonFormat_Human);
+
+        for (size_t i = 0; i < response.GetSize(); i++)
+        {
+          context.AppendFindResponse(answer, response.GetItem(i), format, requestedTags, true /* allowStorageAccess */);
         }
       }
 

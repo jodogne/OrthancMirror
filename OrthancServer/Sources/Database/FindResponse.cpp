@@ -133,8 +133,7 @@ namespace Orthanc
 
 
   void FindResponse::Item::AddMetadata(MetadataType metadata,
-                                       const std::string& value,
-                                       int64_t revision)
+                                       const std::string& value)
   {
     if (metadata_.find(metadata) != metadata_.end())
     {
@@ -142,16 +141,15 @@ namespace Orthanc
     }
     else
     {
-      metadata_[metadata] = StringWithRevision(value, revision);
+      metadata_[metadata] = value;
     }
   }
 
 
   bool FindResponse::Item::LookupMetadata(std::string& value,
-                                          int64_t revision,
                                           MetadataType metadata) const
   {
-    std::map<MetadataType, StringWithRevision>::const_iterator found = metadata_.find(metadata);
+    std::map<MetadataType, std::string>::const_iterator found = metadata_.find(metadata);
 
     if (found == metadata_.end())
     {
@@ -159,8 +157,7 @@ namespace Orthanc
     }
     else
     {
-      value = found->second.GetValue();
-      revision = found->second.GetRevision();
+      value = found->second;
       return true;
     }
   }
@@ -170,7 +167,7 @@ namespace Orthanc
   {
     target.clear();
 
-    for (std::map<MetadataType, StringWithRevision>::const_iterator it = metadata_.begin(); it != metadata_.end(); ++it)
+    for (std::map<MetadataType, std::string>::const_iterator it = metadata_.begin(); it != metadata_.end(); ++it)
     {
       target.insert(it->first);
     }
@@ -225,4 +222,21 @@ namespace Orthanc
       return *items_[index];
     }
   }
+
+  void FindResponse::Item::AddDicomTag(uint16_t group, uint16_t element, const std::string& value, bool isBinary)
+  {
+    if (dicomMap_.get() == NULL)
+    {
+      dicomMap_.reset(new DicomMap());
+    }
+
+    dicomMap_->SetValue(group, element, value, isBinary);
+  }
+
+  void FindResponse::Item::AddChild(const std::string& childId)
+  {
+    children_.push_back(childId);
+  }
+
+
 }

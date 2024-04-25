@@ -2125,124 +2125,137 @@ namespace Orthanc
   static void SerializeExpandedResource(Json::Value& target,
                                         const ExpandedResource& resource,
                                         DicomToJsonFormat format,
-                                        const std::set<DicomTag>& requestedTags)
+                                        const std::set<DicomTag>& requestedTags,
+                                        ExpandResourceFlags expandFlags)
   {
     target = Json::objectValue;
 
     target["Type"] = GetResourceTypeText(resource.GetLevel(), false, true);
     target["ID"] = resource.GetPublicId();
 
-    switch (resource.GetLevel())
+    if (!resource.parentId_.empty())
     {
-      case ResourceType_Patient:
-        break;
-
-      case ResourceType_Study:
-        target["ParentPatient"] = resource.parentId_;
-        break;
-
-      case ResourceType_Series:
-        target["ParentStudy"] = resource.parentId_;
-        break;
-
-      case ResourceType_Instance:
-        target["ParentSeries"] = resource.parentId_;
-        break;
-
-      default:
-        throw OrthancException(ErrorCode_InternalError);
-    }
-
-    switch (resource.GetLevel())
-    {
-      case ResourceType_Patient:
-      case ResourceType_Study:
-      case ResourceType_Series:
+      switch (resource.GetLevel())
       {
-        Json::Value c = Json::arrayValue;
+        case ResourceType_Patient:
+          break;
 
-        for (std::list<std::string>::const_iterator
-                it = resource.childrenIds_.begin(); it != resource.childrenIds_.end(); ++it)
-        {
-          c.append(*it);
-        }
+        case ResourceType_Study:
+          target["ParentPatient"] = resource.parentId_;
+          break;
 
-        if (resource.GetLevel() == ResourceType_Patient)
-        {
-          target["Studies"] = c;
-        }
-        else if (resource.GetLevel() == ResourceType_Study)
-        {
-          target["Series"] = c;
-        }
-        else
-        {
-          target["Instances"] = c;
-        }
-        break;
+        case ResourceType_Series:
+          target["ParentStudy"] = resource.parentId_;
+          break;
+
+        case ResourceType_Instance:
+          target["ParentSeries"] = resource.parentId_;
+          break;
+
+        default:
+          throw OrthancException(ErrorCode_InternalError);
       }
-
-      case ResourceType_Instance:
-        break;
-
-      default:
-        throw OrthancException(ErrorCode_InternalError);
     }
 
-    switch (resource.GetLevel())
+    if ((expandFlags & ExpandResourceFlags_IncludeChildren) != 0)
     {
-      case ResourceType_Patient:
-      case ResourceType_Study:
-        break;
-
-      case ResourceType_Series:
-        if (resource.expectedNumberOfInstances_ < 0)
-        {
-          target["ExpectedNumberOfInstances"] = Json::nullValue;
-        }
-        else
-        {
-          target["ExpectedNumberOfInstances"] = resource.expectedNumberOfInstances_;
-        }
-        target["Status"] = resource.status_;
-        break;
-
-      case ResourceType_Instance:
+      switch (resource.GetLevel())
       {
-        target["FileSize"] = static_cast<unsigned int>(resource.fileSize_);
-        target["FileUuid"] = resource.fileUuid_;
-
-        if (resource.indexInSeries_ < 0)
+        case ResourceType_Patient:
+        case ResourceType_Study:
+        case ResourceType_Series:
         {
-          target["IndexInSeries"] = Json::nullValue;
-        }
-        else
-        {
-          target["IndexInSeries"] = resource.indexInSeries_;
+          Json::Value c = Json::arrayValue;
+
+          for (std::list<std::string>::const_iterator
+                  it = resource.childrenIds_.begin(); it != resource.childrenIds_.end(); ++it)
+          {
+            c.append(*it);
+          }
+
+          if (resource.GetLevel() == ResourceType_Patient)
+          {
+            target["Studies"] = c;
+          }
+          else if (resource.GetLevel() == ResourceType_Study)
+          {
+            target["Series"] = c;
+          }
+          else
+          {
+            target["Instances"] = c;
+          }
+          break;
         }
 
-        break;
+        case ResourceType_Instance:
+          break;
+
+        default:
+          throw OrthancException(ErrorCode_InternalError);
       }
-
-      default:
-        throw OrthancException(ErrorCode_InternalError);
     }
 
-    if (!resource.anonymizedFrom_.empty())
+    if ((expandFlags & ExpandResourceFlags_IncludeMetadata) != 0)
     {
-      target["AnonymizedFrom"] = resource.anonymizedFrom_;
-    }
+      switch (resource.GetLevel())
+      {
+        case ResourceType_Patient:
+        case ResourceType_Study:
+          break;
+
+        case ResourceType_Series:
+          if (resource.expectedNumberOfInstances_ < 0)
+          {
+            target["ExpectedNumberOfInstances"] = Json::nullValue;
+          }
+          else
+          {
+            target["ExpectedNumberOfInstances"] = resource.expectedNumberOfInstances_;
+          }
+          target["Status"] = resource.status_;
+          break;
+
+        case ResourceType_Instance:
+        {
+          target["FileSize"] = static_cast<unsigned int>(resource.fileSize_);
+          target["FileUuid"] = resource.fileUuid_;
+
+          if (resource.indexInSeries_ < 0)
+          {
+            target["IndexInSeries"] = Json::nullValue;
+          }
+          else
+          {
+            target["IndexInSeries"] = resource.indexInSeries_;
+          }
+
+          break;
+        }
+
+        default:
+          throw OrthancException(ErrorCode_InternalError);
+      }
     
-    if (!resource.modifiedFrom_.empty())
-    {
-      target["ModifiedFrom"] = resource.modifiedFrom_;
+      if (!resource.anonymizedFrom_.empty())
+      {
+        target["AnonymizedFrom"] = resource.anonymizedFrom_;
+      }
+      
+      if (!resource.modifiedFrom_.empty())
+      {
+        target["ModifiedFrom"] = resource.modifiedFrom_;
+      }
     }
 
     if (resource.GetLevel() == ResourceType_Patient ||
         resource.GetLevel() == ResourceType_Study ||
         resource.GetLevel() == ResourceType_Series)
     {
-      target["IsStable"] = resource.isStable_;
+      if ((expandFlags & ExpandResourceFlags_IncludeIsStable) != 0)
+      {
+        target["IsStable"] = resource.isStable_;
+      }
 
       if (!resource.lastUpdate_.empty())
       {
@@ -2250,38 +2263,42 @@ namespace Orthanc
       }
     }
 
-    // serialize tags
-
-    static const char* const MAIN_DICOM_TAGS = "MainDicomTags";
-    static const char* const PATIENT_MAIN_DICOM_TAGS = "PatientMainDicomTags";
-
-    DicomMap mainDicomTags;
-    resource.GetMainDicomTags().ExtractResourceInformation(mainDicomTags, resource.GetLevel());
-
-    target[MAIN_DICOM_TAGS] = Json::objectValue;
-    FromDcmtkBridge::ToJson(target[MAIN_DICOM_TAGS], mainDicomTags, format);
-    
-    if (resource.GetLevel() == ResourceType_Study)
+    if ((expandFlags & ExpandResourceFlags_IncludeMainDicomTags) != 0)
     {
-      DicomMap patientMainDicomTags;
-      resource.GetMainDicomTags().ExtractPatientInformation(patientMainDicomTags);
+      // serialize tags
 
-      target[PATIENT_MAIN_DICOM_TAGS] = Json::objectValue;
-      FromDcmtkBridge::ToJson(target[PATIENT_MAIN_DICOM_TAGS], patientMainDicomTags, format);
+      static const char* const MAIN_DICOM_TAGS = "MainDicomTags";
+      static const char* const PATIENT_MAIN_DICOM_TAGS = "PatientMainDicomTags";
+
+      DicomMap mainDicomTags;
+      resource.GetMainDicomTags().ExtractResourceInformation(mainDicomTags, resource.GetLevel());
+
+      target[MAIN_DICOM_TAGS] = Json::objectValue;
+      FromDcmtkBridge::ToJson(target[MAIN_DICOM_TAGS], mainDicomTags, format);
+      
+      if (resource.GetLevel() == ResourceType_Study)
+      {
+        DicomMap patientMainDicomTags;
+        resource.GetMainDicomTags().ExtractPatientInformation(patientMainDicomTags);
+
+        target[PATIENT_MAIN_DICOM_TAGS] = Json::objectValue;
+        FromDcmtkBridge::ToJson(target[PATIENT_MAIN_DICOM_TAGS], patientMainDicomTags, format);
+      }
+
+      if (requestedTags.size() > 0)
+      {
+        static const char* const REQUESTED_TAGS = "RequestedTags";
+
+        DicomMap tags;
+        resource.GetMainDicomTags().ExtractTags(tags, requestedTags);
+
+        target[REQUESTED_TAGS] = Json::objectValue;
+        FromDcmtkBridge::ToJson(target[REQUESTED_TAGS], tags, format);
+
+      }
     }
 
-    if (requestedTags.size() > 0)
-    {
-      static const char* const REQUESTED_TAGS = "RequestedTags";
-
-      DicomMap tags;
-      resource.GetMainDicomTags().ExtractTags(tags, requestedTags);
-
-      target[REQUESTED_TAGS] = Json::objectValue;
-      FromDcmtkBridge::ToJson(target[REQUESTED_TAGS], tags, format);
-
-    }
-
+    if ((expandFlags & ExpandResourceFlags_IncludeLabels) != 0)
     {
       Json::Value labels = Json::arrayValue;
 
@@ -2291,6 +2308,19 @@ namespace Orthanc
       }
 
       target["Labels"] = labels;
+    }
+
+    // new in Orthanc 1.12.4
+    if ((expandFlags & ExpandResourceFlags_IncludeAllMetadata) != 0)
+    {
+      Json::Value metadata = Json::objectValue;
+
+      for (std::map<MetadataType, std::string>::const_iterator it = resource.metadata_.begin(); it != resource.metadata_.end(); ++it)
+      {
+        metadata[EnumerationToString(it->first)] = it->second;
+      }
+
+      target["Metadata"] = metadata;
     }
   }
 
@@ -2537,9 +2567,9 @@ namespace Orthanc
   {
     ExpandedResource resource;
 
-    if (ExpandResource(resource, publicId, mainDicomTags, instanceId, dicomAsJson, level, requestedTags, ExpandResourceFlags_Default, allowStorageAccess))
+    if (ExpandResource(resource, publicId, mainDicomTags, instanceId, dicomAsJson, level, requestedTags, ExpandResourceFlags_DefaultExtract, allowStorageAccess))
     {
-      SerializeExpandedResource(target, resource, format, requestedTags);
+      SerializeExpandedResource(target, resource, format, requestedTags, ExpandResourceFlags_DefaultOutput);
       return true;
     }
 
@@ -2686,5 +2716,42 @@ namespace Orthanc
 
     return elapsed.total_seconds();
   }
+
+  void ServerContext::AppendFindResponse(Json::Value& target,
+                                         const FindResponse::Item& item,
+                                         DicomToJsonFormat format,
+                                         const std::set<DicomTag>& requestedTags,
+                                         bool allowStorageAccess)
+  {
+    // convert to ExpandedResource to re-use the serialization code TODO-FIND: check if this is the right way to do.  shouldn't we copy the code and finally get rid of ExpandedResource ? 
+    ExpandedResource resource(item);
+
+    ExpandResourceFlags expandFlags = ExpandResourceFlags_None;
+    if (item.HasResponseContent(FindRequest::ResponseContent_Children))
+    {
+      expandFlags = static_cast<ExpandResourceFlags>(expandFlags | ExpandResourceFlags_IncludeChildren);
+    }
+    if (item.HasResponseContent(FindRequest::ResponseContent_Metadata))
+    {
+      expandFlags = static_cast<ExpandResourceFlags>(expandFlags | ExpandResourceFlags_IncludeAllMetadata | ExpandResourceFlags_IncludeMetadata );
+    }
+    if (item.HasResponseContent(FindRequest::ResponseContent_MainDicomTags))
+    {
+      expandFlags = static_cast<ExpandResourceFlags>(expandFlags | ExpandResourceFlags_IncludeMainDicomTags);
+    }
+    if (item.HasResponseContent(FindRequest::ResponseContent_IsStable))
+    {
+      expandFlags = static_cast<ExpandResourceFlags>(expandFlags | ExpandResourceFlags_IncludeIsStable);
+    }
+    if (item.HasResponseContent(FindRequest::ResponseContent_Labels))
+    {
+      expandFlags = static_cast<ExpandResourceFlags>(expandFlags | ExpandResourceFlags_IncludeLabels);
+    }
+
+    Json::Value jsonItem;
+    SerializeExpandedResource(jsonItem, resource, format, requestedTags, expandFlags);
+    target.append(jsonItem);
+  }
+
 
 }

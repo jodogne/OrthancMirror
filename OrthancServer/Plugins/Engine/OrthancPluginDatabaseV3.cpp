@@ -1064,7 +1064,8 @@ namespace Orthanc
 
 
     virtual void ExecuteFind(FindResponse& response,
-                             const FindRequest& request) ORTHANC_OVERRIDE
+                             const FindRequest& request, 
+                             const std::vector<DatabaseConstraint>& normalized) ORTHANC_OVERRIDE
     {
       Compatibility::GenericFind find(*this);
       find.Execute(response, request);

@@ -9,7 +9,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- *
+ * 
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -22,26 +22,12 @@
 
 #pragma once
 
-#include "../IDatabaseWrapper.h"
-
 namespace Orthanc
 {
-  namespace Compatibility
+  enum LabelsConstraint
   {
-    // TODO-FIND: remove this class that only contains a temporary implementation
-    class GenericFind : public boost::noncopyable
-    {
-    private:
-      IDatabaseWrapper::ITransaction&  transaction_;
-
-    public:
-      GenericFind(IDatabaseWrapper::ITransaction& transaction) :
-        transaction_(transaction)
-      {
-      }
-
-      void Execute(FindResponse& response,
-                   const FindRequest& request);
-    };
-  }
+    LabelsConstraint_All,
+    LabelsConstraint_Any,
+    LabelsConstraint_None
+  };
 }

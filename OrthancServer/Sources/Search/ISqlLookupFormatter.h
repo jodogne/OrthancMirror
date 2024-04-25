@@ -24,6 +24,7 @@
 
 #if ORTHANC_BUILDING_SERVER_LIBRARY == 1
 #  include "../../../OrthancFramework/Sources/Enumerations.h"
+#  include "../Search/LabelsConstraint.h"
 #else
 #  include <Enumerations.h>
 #endif
@@ -35,13 +36,6 @@ namespace Orthanc
 {
   class DatabaseConstraint;
   
-  enum LabelsConstraint
-  {
-    LabelsConstraint_All,
-    LabelsConstraint_Any,
-    LabelsConstraint_None
-  };
-
   // This class is also used by the "orthanc-databases" project
   class ISqlLookupFormatter : public boost::noncopyable
   {
