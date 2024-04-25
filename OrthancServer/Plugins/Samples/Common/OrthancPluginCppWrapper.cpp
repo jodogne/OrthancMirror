@@ -92,7 +92,9 @@ namespace OrthancPlugins
   void ResetGlobalContext()
   {
     globalContext_ = NULL;
+#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 12, 4) && ORTHANC_FRAMEWORK_VERSION_IS_ABOVE(1, 12, 4)
     pluginName_ = NULL;
+#endif
   }
 
   bool HasGlobalContext()
