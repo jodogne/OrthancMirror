@@ -10,12 +10,22 @@ Maintenance
   They are now removed from the query earlier to avoid this disk access that 
   could slow down the response time.  Note that this seems to happen mainly 
   when the query originates from some GE devices (AWS).
+* The 0x0111 DIMSE Status is now considered as a warning instead of an error
+  when received as a response to a C-Store. 
+  See https://discourse.orthanc-server.org/t/ignore-dimse-status-0x0111-when-sending-partial-duplicate-studies/4555/3
+* Removed potential PHI from the logs when Orthanc encounters an error while
+  creating a zip file.
+
 
 REST API
 --------
 
 * API version upgraded to 24
 * Added "MaximumPatientCount" in /system
+* Added a new "LimitToThisLevelMainDicomTags" field in the payload of 
+  /patients|studies|series/instances/../reconstruct to speed up the reconstruction
+  in case you just want to update the MainDicomTags of that resource level only 
+  e.g. after you have updated the 'ExtraMainDicomTags' for this level.
 * TODO-FIND: complete the list of updated routes:
   /studies?expand and sibbling routes now also return "Metadata"
 
@@ -23,6 +33,13 @@ Plugins
 -------
 
 * Multitenant DICOM plugin: added support for locales
+* Housekeeper plugin: Added an option "LimitMainDicomTagsReconstructLevel"
+  (allowed values: "Patient", "Study", "Series", "Instance").  This can greatly speed
+  up the housekeeper process e.g. if you have only update the Study level ExtraMainDicomTags.
+* SDK: added OrthancPluginLogMessage that is a new primitive for plugins to log messages.
+  This new primitive will display the plugin name, plugin file name and plugin line number
+  in the logs.  If they are using the OrthancFramework, plugins should now use LOG(INFO),
+  LOG(WARNING) and LOG(ERROR) to log their messages.
 
 
 Version 1.12.3 (2024-01-31)

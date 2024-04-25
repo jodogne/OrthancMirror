@@ -621,7 +621,7 @@ namespace Orthanc
   {
       call.GetDocumentation().SetHttpGetArgument(GET_REQUESTED_TAGS, RestApiCallDocumentation::Type_String,
                           "If present, list the DICOM Tags you want to list in the response.  This argument is a semi-column separated list "
-                          "of DICOM Tags identifiers; e.g: 'requestedTags=0010,0010;PatientBirthDate'.  "
+                          "of DICOM Tags identifiers; e.g: '" + GET_REQUESTED_TAGS + "=0010,0010;PatientBirthDate'.  "
                           "The tags requested tags are returned in the 'RequestedTags' field in the response.  "
                           "Note that, if you are requesting tags that are not listed in the Main Dicom Tags stored in DB, building the response "
                           "might be slow since Orthanc will need to access the DICOM files.  If not specified, Orthanc will return ", false);

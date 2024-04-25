@@ -56,6 +56,13 @@ General
   - ...
 * Investigate if one could fix KeepAlive race conditions:
   https://discourse.orthanc-server.org/t/socket-hangup-with-rest-api/4023/3
+* The DICOM file cache shall keep a MD5 of the cached file and compare it with MD5
+  from the DB.  That would allow 2 orthancs in a swarm to realize when the other
+  Orthanc has updated the file:
+  https://discourse.orthanc-server.org/t/instances-id-content-api-results-are-different-in-docker-swarm-replicas-of-orthanc/4582
+* Allow saving PrivateTags in ExtraMainDicomTags.
+  Note: they can actually be stored but they then appear as "Unknown Tag & Data" in the responses.
+  If we try to add the PrivateCreator in the ExtraMainDicomTags, then, the DICOMWeb plugin fails to initialize because the private tags are not known.
 
 ============================
 Documentation (Orthanc Book)
@@ -258,8 +265,6 @@ SDK
 * Provide a C++ callback similar to "ReceivedInstanceFilter()" in Lua
   https://orthanc.uclouvain.be/book/users/lua.html#filtering-incoming-dicom-instances
   https://groups.google.com/d/msg/orthanc-users/BtvLTE5Ni8A/vIMhmMgfBAAJ
-* In "OrthancPluginLog[Error|Warning|Info]()", prefix the log line with
-  the name of the plugin, as retrieved by "OrthancPluginGetName()"
 * Update the SDK to handle buffer sizes > 4GB (all sizes are currently coded in uint32_t)
 * Add a C-Get SCP handler: OrthancPluginRegisterGetCallback
   https://groups.google.com/g/orthanc-users/c/NRhPkYX9IXQ/m/mWS11g0jBwAJ

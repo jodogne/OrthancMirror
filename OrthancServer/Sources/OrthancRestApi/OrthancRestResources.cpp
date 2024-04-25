@@ -58,6 +58,7 @@ static const std::string CHECK_REVISIONS = "CheckRevisions";
 
 static const char* const IGNORE_LENGTH = "ignore-length";
 static const char* const RECONSTRUCT_FILES = "ReconstructFiles";
+static const char* const LIMIT_TO_THIS_LEVEL_MAIN_DICOM_TAGS = "LimitToThisLevelMainDicomTags";
 
 
 namespace Orthanc
@@ -3734,12 +3735,21 @@ namespace Orthanc
     call.GetOutput().AnswerBuffer("", MimeType_PlainText);
   }
 
-  void DocumentReconstructFilesField(RestApiPostCall& call)
+  void DocumentReconstructFilesField(RestApiPostCall& call, bool documentLimitField)
   {
     call.GetDocumentation()
       .SetRequestField(RECONSTRUCT_FILES, RestApiCallDocumentation::Type_Boolean,
                        "Also reconstruct the files of the resources (e.g: apply IngestTranscoding, StorageCompression). "
                        "'false' by default. (New in Orthanc 1.11.0)", false);
+    if (documentLimitField)
+    {
+      call.GetDocumentation()
+        .SetRequestField(LIMIT_TO_THIS_LEVEL_MAIN_DICOM_TAGS, RestApiCallDocumentation::Type_Boolean,
+                        "Only reconstruct this level MainDicomTags by re-reading them from a random child instance of the resource. "
+                        "This option is much faster than a full reconstruct and is usefull e.g. if you have modified the "
+                        "'ExtraMainDicomTags' at the Study level to optimize the speed of some C-Find. "
+                        "'false' by default. (New in Orthanc 1.12.4)", false);
+    }
   }
 
   bool GetReconstructFilesField(const RestApiPostCall& call)
@@ -3761,6 +3771,26 @@ namespace Orthanc
     return reconstructFiles;
   }
 
+  bool GetLimitToThisLevelMainDicomTags(const RestApiPostCall& call)
+  {
+    bool limitToThisLevel = false;
+    Json::Value request;
+
+    if (call.GetBodySize() > 0 && call.ParseJsonRequest(request) && request.isMember(LIMIT_TO_THIS_LEVEL_MAIN_DICOM_TAGS))
+    {
+      if (!request[LIMIT_TO_THIS_LEVEL_MAIN_DICOM_TAGS].isBool())
+      {
+        throw OrthancException(ErrorCode_BadFileFormat,
+                               "The field " + std::string(LIMIT_TO_THIS_LEVEL_MAIN_DICOM_TAGS) + " must contain a Boolean");
+      }
+
+      limitToThisLevel = request[LIMIT_TO_THIS_LEVEL_MAIN_DICOM_TAGS].asBool();
+    }
+
+    return limitToThisLevel;
+  }
+
+
   template <enum ResourceType type>
   static void ReconstructResource(RestApiPostCall& call)
   {
@@ -3776,13 +3806,13 @@ namespace Orthanc
                         "Beware that this is a time-consuming operation, as all the children DICOM instances will be "
                         "parsed again, and the Orthanc index will be updated accordingly.")
         .SetUriArgument("id", "Orthanc identifier of the " + resource + " of interest");
-        DocumentReconstructFilesField(call);
+        DocumentReconstructFilesField(call, true);
 
       return;
     }
 
     ServerContext& context = OrthancRestApi::GetContext(call);
-    ServerToolbox::ReconstructResource(context, call.GetUriComponent("id", ""), GetReconstructFilesField(call));
+    ServerToolbox::ReconstructResource(context, call.GetUriComponent("id", ""), GetReconstructFilesField(call), GetLimitToThisLevelMainDicomTags(call), type);
     call.GetOutput().AnswerBuffer("", MimeType_PlainText);
   }
 
@@ -3800,7 +3830,7 @@ namespace Orthanc
                         "as all the DICOM instances will be parsed again, and as all the Orthanc index will be regenerated. "
                         "If you have a large database to process, it is advised to use the Housekeeper plugin to perform "
                         "this action resource by resource");
-        DocumentReconstructFilesField(call);
+        DocumentReconstructFilesField(call, false);
 
       return;
     }
@@ -3814,7 +3844,7 @@ namespace Orthanc
     for (std::list<std::string>::const_iterator 
            study = studies.begin(); study != studies.end(); ++study)
     {
-      ServerToolbox::ReconstructResource(context, *study, reconstructFiles);
+      ServerToolbox::ReconstructResource(context, *study, reconstructFiles, false, ResourceType_Study /*  dummy */);
     }
     
     call.GetOutput().AnswerBuffer("", MimeType_PlainText);

@@ -465,6 +465,7 @@ extern "C"
     _OrthancPluginService_GetDatabaseServerIdentifier = 42,         /* New in Orthanc 1.11.1 */
     _OrthancPluginService_SetMetricsIntegerValue = 43,              /* New in Orthanc 1.12.1 */
     _OrthancPluginService_SetCurrentThreadName = 44,                /* New in Orthanc 1.12.2 */
+    _OrthancPluginService_LogMessage = 45,                          /* New in Orthanc 1.12.4 */
 
 
     /* Registration of callbacks */
@@ -9478,6 +9479,79 @@ extern "C"
   {
     return context->InvokeService(context, _OrthancPluginService_SetCurrentThreadName, threadName);
   }
+
+  typedef enum
+  {
+    // these values must match LogLevel in the Orthanc Core
+    OrthancPluginLogLevel_Error = 0,    /*!< Error log level */
+    OrthancPluginLogLevel_Warning = 1,  /*!< Warning log level */
+    OrthancPluginLogLevel_Info = 2,     /*!< Info log level */
+    OrthancPluginLogLevel_Trace = 3,    /*!< Trace log level */
+  
+    // Force the enum to be 32 bits
+    OrthancPluginLogLevel_INTERNAL = 0x7FFFFFFF
+  } OrthancPluginLogLevel;
+
+  typedef enum
+  {
+    // these values must match LogCategory in the Orthanc Core
+    OrthancPluginLogCategory_Generic = (1 << 0),  /*!< Generic (default) category */
+    OrthancPluginLogCategory_Plugins = (1 << 1),  /*!< Plugin engine related logs (shall not be used by plugins) */
+    OrthancPluginLogCategory_Http    = (1 << 2),  /*!< HTTP related logs */
+    OrthancPluginLogCategory_Sqlite  = (1 << 3),  /*!< SQLite related logs (shall not be used by plugins) */
+    OrthancPluginLogCategory_Dicom   = (1 << 4),  /*!< DICOM related logs */
+    OrthancPluginLogCategory_Jobs    = (1 << 5),  /*!< jobs related logs */
+    OrthancPluginLogCategory_Lua     = (1 << 6),  /*!< Lua related logs (shall not be used by plugins) */
+
+    // Force the enum to be 32 bits
+    OrthancPluginLogCategory_INTERNAL = 0x7FFFFFFF
+  } OrthancPluginLogCategory;
+
+
+  // note: this structure is also defined in Logging.h and it must be binary compatible
+  typedef struct
+  {
+    const char*               message;
+    const char*               plugin;
+    const char*               file;
+    uint32_t                  line;
+    OrthancPluginLogCategory  category;
+    OrthancPluginLogLevel     level;
+  } _OrthancPluginLogMessage;
+
+
+  /**
+   * @brief Log a message.
+   *
+   * Log a message using the Orthanc logging system.
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param message The message to be logged.
+   * @param plugin The plugin name.
+   * @param file The filename in the plugin code.
+   * @param line The file line in the plugin code.
+   * @param category The category.
+   * @param level The level of the message.
+   **/
+  ORTHANC_PLUGIN_INLINE void OrthancPluginLogMessage(
+    OrthancPluginContext* context,
+    const char* message,
+    const char* plugin,
+    const char* file,
+    uint32_t line,
+    OrthancPluginLogCategory category,
+    OrthancPluginLogLevel level)
+  {
+    _OrthancPluginLogMessage m;
+    m.message = message;
+    m.plugin = plugin;
+    m.file = file;
+    m.category = category;
+    m.line = line;
+    m.level = level;
+    context->InvokeService(context, _OrthancPluginService_LogMessage, &m);
+  }
+
 
 #ifdef  __cplusplus
 }

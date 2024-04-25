@@ -55,7 +55,9 @@ namespace Orthanc
 
     void ReconstructResource(ServerContext& context,
                              const std::string& resource,
-                             bool reconstructFiles);
+                             bool reconstructFiles,
+                             bool limitToThisLevelDicomTags,
+                             ResourceType limitToLevel);
 
     bool IsValidLabel(const std::string& label);
 

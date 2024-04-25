@@ -120,7 +120,8 @@ extern "C"
 {
   ORTHANC_PLUGINS_API int32_t OrthancPluginInitialize(OrthancPluginContext* context)
   {
-    OrthancPlugins::SetGlobalContext(context);
+    OrthancPlugins::SetGlobalContext(context, ORTHANC_PLUGIN_NAME);
+    Orthanc::Logging::InitializePluginContext(context, ORTHANC_PLUGIN_NAME);
 
     /* Check the version of the Orthanc core */
     if (OrthancPluginCheckVersion(OrthancPlugins::GetGlobalContext()) == 0)
@@ -132,18 +133,6 @@ extern "C"
               ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER,
               ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER);
       OrthancPluginLogError(OrthancPlugins::GetGlobalContext(), info);
-      return -1;
-    }
-
-#if ORTHANC_FRAMEWORK_VERSION_IS_ABOVE(1, 7, 2)
-    Orthanc::Logging::InitializePluginContext(context);
-#else
-    Orthanc::Logging::Initialize(context);
-#endif
-
-    if (!OrthancPlugins::CheckMinimalOrthancVersion(1, 12, 0))
-    {
-      OrthancPlugins::ReportMinimalOrthancVersion(1, 12, 0);
       return -1;
     }
 

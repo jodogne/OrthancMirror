@@ -449,7 +449,8 @@ namespace Orthanc
     if (response.DimseStatus != 0x0000 &&  // Success
         response.DimseStatus != 0xB000 &&  // Warning - Coercion of Data Elements
         response.DimseStatus != 0xB007 &&  // Warning - Data Set does not match SOP Class
-        response.DimseStatus != 0xB006)    // Warning - Elements Discarded
+        response.DimseStatus != 0xB006 &&  // Warning - Elements Discarded
+        response.DimseStatus != 0x0111)    // Warning - Duplicate SOPInstanceUID (https://discourse.orthanc-server.org/t/ignore-dimse-status-0x0111-when-sending-partial-duplicate-studies/4555/3)
     {
       char buf[16];
       sprintf(buf, "%04X", response.DimseStatus);

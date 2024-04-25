@@ -46,12 +46,13 @@ namespace Orthanc
 {
   namespace Logging
   {
+    // Note: these values must match the ones in OrthancCPlugin.h
     enum LogLevel
     {
-      LogLevel_ERROR,
-      LogLevel_WARNING,
-      LogLevel_INFO,
-      LogLevel_TRACE
+      LogLevel_ERROR     = 0,
+      LogLevel_WARNING   = 1,
+      LogLevel_INFO      = 2,
+      LogLevel_TRACE     = 3
     };
 
     /**
@@ -59,6 +60,7 @@ namespace Orthanc
      * mask. As a consequence, there can be up to 31 log categories
      * (not 32, as the value GENERIC is reserved for the log commands
      * that don't fall in a specific category).
+     * Note: these values must match the ones in OrthancCPlugin.h
      **/
     enum LogCategory
     {
@@ -77,6 +79,9 @@ namespace Orthanc
 
     // "pluginContext" must be of type "OrthancPluginContext"
     ORTHANC_PUBLIC void InitializePluginContext(void* pluginContext);
+
+    // note: this variant shall be called only from a plugin and only if ORTHANC_FRAMEWORK_VERSION_IS_ABOVE(1, 12, 4) && ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 12, 4)
+    ORTHANC_PUBLIC void InitializePluginContext(void* pluginContext, const char* pluginName);
 
     ORTHANC_PUBLIC void Initialize();
 
@@ -162,6 +167,7 @@ namespace Orthanc
 #  define LOG(level)            ::Orthanc::Logging::NullStream()
 #  define VLOG(unused)          ::Orthanc::Logging::NullStream()
 #  define CLOG(level, category) ::Orthanc::Logging::NullStream()
+#  define LOG_FROM_PLUGIN(level, category, pluginName, file, line)  ::Orthanc::Logging::NullStream()
 #else /* ORTHANC_ENABLE_LOGGING == 1 */
 
 #if !defined(__ORTHANC_FILE__)
@@ -182,6 +188,8 @@ namespace Orthanc
 #  define CLOG(level, category) ::Orthanc::Logging::InternalLogger      \
   (::Orthanc::Logging::LogLevel_ ## level,                              \
    ::Orthanc::Logging::LogCategory_ ## category, __ORTHANC_FILE__, __LINE__)
+#  define LOG_FROM_PLUGIN(level, category, pluginName, file, line)  ::Orthanc::Logging::InternalLogger      \
+  (level, category, pluginName, file, line)
 #endif
 
 
@@ -258,14 +266,24 @@ namespace Orthanc
       LogLevel                            level_;
       std::unique_ptr<std::stringstream>  pluginStream_;
       std::ostream*                       stream_;
+      LogCategory                         category_;
+      const char*                         file_;
+      uint32_t                            line_;
 
       void Setup(LogCategory category,
+                 const char* pluginName,
                  const char* file,
                  int line);
 
     public:
       InternalLogger(LogLevel level,
                      LogCategory category,
+                     const char* file,
+                     int line);
+
+      InternalLogger(LogLevel level,
+                     LogCategory category,
+                     const char* pluginName,
                      const char* file,
                      int line);
 
