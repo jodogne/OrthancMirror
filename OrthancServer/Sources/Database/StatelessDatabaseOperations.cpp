@@ -501,6 +501,38 @@ namespace Orthanc
     }
   }
 
+  void StatelessDatabaseOperations::NormalizeLookup(std::vector<DatabaseConstraint>& target,
+                                                    const FindRequest& findRequest) const
+  {
+    assert(mainDicomTagsRegistry_.get() != NULL);
+
+    target.clear();
+    target.reserve(findRequest.GetDicomTagConstraintsCount());
+
+    for (size_t i = 0; i < findRequest.GetDicomTagConstraintsCount(); i++)
+    {
+      ResourceType level;
+      DicomTagType type;
+      
+      mainDicomTagsRegistry_->LookupTag(level, type, findRequest.GetDicomTagConstraint(i).GetTag());
+
+      if (type == DicomTagType_Identifier ||
+          type == DicomTagType_Main)
+      {
+        // Use the fact that patient-level tags are copied at the study level
+        if (level == ResourceType_Patient &&
+            findRequest.GetLevel() != ResourceType_Patient)
+        {
+          level = ResourceType_Study;
+        }
+        
+        target.push_back(findRequest.GetDicomTagConstraint(i).ConvertToDatabaseConstraint(level, type));
+      }
+    }
+
+    // TODO-FIND: add metadata constraints
+  }
+
 
   class StatelessDatabaseOperations::Transaction : public boost::noncopyable
   {
@@ -3780,17 +3812,88 @@ namespace Orthanc
   void StatelessDatabaseOperations::ExecuteFind(FindResponse& response,
                                                 const FindRequest& request)
   {
-    class Operations : public ReadOnlyOperationsT2<FindResponse&, const FindRequest&>
+    class Operations : public ReadOnlyOperationsT3<FindResponse&, const FindRequest&, const std::vector<DatabaseConstraint>&>
     {
     public:
       virtual void ApplyTuple(ReadOnlyTransaction& transaction,
                               const Tuple& tuple) ORTHANC_OVERRIDE
       {
-        transaction.ExecuteFind(tuple.get<0>(), tuple.get<1>());
+        transaction.ExecuteFind(tuple.get<0>(), tuple.get<1>(), tuple.get<2>());
       }
     };
 
+    std::vector<DatabaseConstraint> normalized;
+    NormalizeLookup(normalized, request);
+
     Operations operations;
-    operations.Apply(*this, response, request);
+    operations.Apply(*this, response, request, normalized);
+  }
+
+  // TODO-FIND: we reuse the ExpandedResource class to reuse Serialization code from ExpandedResource
+  // But, finally, we might just get rid of ExpandedResource and replace it by FindResponse
+  ExpandedResource::ExpandedResource(const FindResponse::Item& item) :
+    id_(item.GetResourceId()),
+    level_(item.GetLevel()),
+    isStable_(false),
+    expectedNumberOfInstances_(0),
+    fileSize_(0),
+    indexInSeries_(0)
+  {
+    if (item.HasResponseContent(FindRequest::ResponseContent_MainDicomTags))
+    {
+      tags_.Assign(item.GetDicomMap());
+    }
+
+    if (item.HasResponseContent(FindRequest::ResponseContent_Children))
+    {
+      childrenIds_ = item.GetChildren();
+    }
+
+    if (item.HasResponseContent(FindRequest::ResponseContent_Parent))
+    {
+      parentId_ = item.GetParent();
+    }
+
+    if (item.HasResponseContent(FindRequest::ResponseContent_Metadata))
+    {
+      metadata_ = item.GetMetadata();
+      std::string value;
+      if (item.LookupMetadata(value, MetadataType_MainDicomTagsSignature))
+      {
+        mainDicomTagsSignature_ = value;
+      }
+      if (item.LookupMetadata(value, MetadataType_AnonymizedFrom))
+      {
+        anonymizedFrom_ = value;
+      }
+      if (item.LookupMetadata(value, MetadataType_ModifiedFrom))
+      {
+        modifiedFrom_ = value;
+      }
+      if (item.LookupMetadata(value, MetadataType_LastUpdate))
+      {
+        lastUpdate_ = value;
+      }
+      if (item.GetLevel() == ResourceType_Series)
+      {
+        if (item.LookupMetadata(value, MetadataType_Series_ExpectedNumberOfInstances))
+        {
+          expectedNumberOfInstances_ = boost::lexical_cast<int>(value);
+        }
+      }
+      if (item.GetLevel() == ResourceType_Instance)
+      {
+        if (item.LookupMetadata(value, MetadataType_Instance_IndexInSeries))
+        {
+          indexInSeries_ = boost::lexical_cast<int>(value);
+        }
+      }
+    }
+
+    if (item.HasResponseContent(FindRequest::ResponseContent_Labels))
+    {
+      labels_ = item.GetLabels();
+    }
+    // TODO-FIND: continue: isStable_, satus_, fileSize_, fileUuid_
   }
 }

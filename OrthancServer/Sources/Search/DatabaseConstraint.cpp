@@ -152,6 +152,7 @@ namespace Orthanc
                                          const std::vector<std::string>& values,
                                          bool caseSensitive,
                                          bool mandatory) :
+    keyType_(DatabaseConstraint::KeyType_DicomTag),
     level_(level),
     tag_(tag),
     isIdentifier_(isIdentifier),

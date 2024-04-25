@@ -607,6 +607,12 @@ namespace Orthanc
                         ExpandResourceFlags expandFlags,
                         bool allowStorageAccess);
 
+    void AppendFindResponse(Json::Value& target,
+                            const FindResponse::Item& item,
+                            DicomToJsonFormat format,
+                            const std::set<DicomTag>& requestedTags,
+                            bool allowStorageAccess);
+
     FindStorageAccessMode GetFindStorageAccessMode() const
     {
       return findStorageAccessMode_;

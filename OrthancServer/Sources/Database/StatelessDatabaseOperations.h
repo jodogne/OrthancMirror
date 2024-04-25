@@ -80,6 +80,8 @@ namespace Orthanc
     {
     }
     
+    ExpandedResource(const FindResponse::Item& item);
+
     void SetResource(ResourceType level,
                      const std::string& id)
     {
@@ -111,15 +113,26 @@ namespace Orthanc
   enum ExpandResourceFlags
   {
     ExpandResourceFlags_None                    = 0,
+    // used to fetch from DB and for output
     ExpandResourceFlags_IncludeMetadata         = (1 << 0),
     ExpandResourceFlags_IncludeChildren         = (1 << 1),
     ExpandResourceFlags_IncludeMainDicomTags    = (1 << 2),
     ExpandResourceFlags_IncludeLabels           = (1 << 3),
 
-    ExpandResourceFlags_Default = (ExpandResourceFlags_IncludeMetadata |
-                                     ExpandResourceFlags_IncludeChildren |
-                                     ExpandResourceFlags_IncludeMainDicomTags |
-                                     ExpandResourceFlags_IncludeLabels)
+    // only used for output
+    ExpandResourceFlags_IncludeAllMetadata      = (1 << 4),  // new in Orthanc 1.12.4
+    ExpandResourceFlags_IncludeIsStable         = (1 << 5),  // new in Orthanc 1.12.4
+
+    ExpandResourceFlags_DefaultExtract = (ExpandResourceFlags_IncludeMetadata |
+                                          ExpandResourceFlags_IncludeChildren |
+                                          ExpandResourceFlags_IncludeMainDicomTags |
+                                          ExpandResourceFlags_IncludeLabels),
+
+    ExpandResourceFlags_DefaultOutput = (ExpandResourceFlags_IncludeMetadata |
+                                         ExpandResourceFlags_IncludeChildren |
+                                         ExpandResourceFlags_IncludeMainDicomTags |
+                                         ExpandResourceFlags_IncludeLabels |
+                                         ExpandResourceFlags_IncludeIsStable)
   };
 
   class StatelessDatabaseOperations : public boost::noncopyable
@@ -378,9 +391,10 @@ namespace Orthanc
       }
 
       void ExecuteFind(FindResponse& response,
-                       const FindRequest& request)
+                       const FindRequest& request, 
+                       const std::vector<DatabaseConstraint>& normalized)
       {
-        transaction_.ExecuteFind(response, request);
+        transaction_.ExecuteFind(response, request, normalized);
       }
     };
 
@@ -563,6 +577,9 @@ namespace Orthanc
     void NormalizeLookup(std::vector<DatabaseConstraint>& target,
                          const DatabaseLookup& source,
                          ResourceType level) const;
+
+    void NormalizeLookup(std::vector<DatabaseConstraint>& target,
+                         const FindRequest& findRequest) const;
 
     void ApplyInternal(IReadOnlyOperations* readOperations,
                        IReadWriteOperations* writeOperations);

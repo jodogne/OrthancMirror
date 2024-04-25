@@ -79,9 +79,18 @@ namespace Orthanc
   // This class is also used by the "orthanc-databases" project
   class DatabaseConstraint
   {
+  public:
+    enum KeyType  // used for ordering and filters
+    {
+      KeyType_DicomTag,
+      KeyType_Metadata
+    };
+
   private:
+    KeyType                   keyType_;
     ResourceType              level_;
     DicomTag                  tag_;
+    uint32_t                  metadataType_;  // TODO: implement
     bool                      isIdentifier_;
     ConstraintType            constraintType_;
     std::vector<std::string>  values_;

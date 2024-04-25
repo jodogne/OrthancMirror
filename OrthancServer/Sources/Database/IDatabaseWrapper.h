@@ -358,7 +358,8 @@ namespace Orthanc
        **/
 
       virtual void ExecuteFind(FindResponse& response,
-                               const FindRequest& request) = 0;
+                               const FindRequest& request,
+                               const std::vector<DatabaseConstraint>& normalized) = 0;
     };
 
 

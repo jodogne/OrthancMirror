@@ -39,6 +39,8 @@ namespace Orthanc
   class FindResponse : public boost::noncopyable
   {
   public:
+
+    // TODO-FIND: does it actually make sense to retrieve revisions for metadata and attachments ?
     class StringWithRevision
     {
     private:
@@ -80,13 +82,15 @@ namespace Orthanc
     private:
       FindRequest::ResponseContent          responseContent_;    // what has been requested
       ResourceType                          level_;
-      OrthancIdentifiers                    identifiers_;
+      std::string                           resourceId_;
+      std::string                           parent_;
+      OrthancIdentifiers                    identifiers_;  // TODO-FIND: not convenient to use here.  A simple resourceId seems enough
       std::unique_ptr<DicomMap>             dicomMap_;
       std::list<std::string>                children_;
       std::string                           childInstanceId_;
-      std::list<std::string>                labels_;      
-      std::map<MetadataType, StringWithRevision>    metadata_;
-      std::map<uint16_t, StringWithRevision>        attachments_;
+      std::set<std::string>                 labels_;      
+      std::map<MetadataType, std::string>   metadata_;
+      std::map<uint16_t, std::string>       attachments_;
 
     public:
       Item(FindRequest::ResponseContent responseContent,
@@ -100,6 +104,15 @@ namespace Orthanc
 
       Item(FindRequest::ResponseContent responseContent,
            ResourceType level,
+           const std::string& resourceId) :
+        responseContent_(responseContent),
+        level_(level),
+        resourceId_(resourceId)
+      {
+      }
+
+      Item(FindRequest::ResponseContent responseContent,
+           ResourceType level,
            DicomMap* dicomMap /* takes ownership */);
 
       ResourceType GetLevel() const
@@ -107,21 +120,43 @@ namespace Orthanc
         return level_;
       }
 
+      const std::string& GetResourceId() const
+      {
+        return resourceId_;
+      }
+
       const OrthancIdentifiers& GetIdentifiers() const
       {
         return identifiers_;
       }
 
+      FindRequest::ResponseContent GetResponseContent() const
+      {
+        return responseContent_;
+      }
+
+      bool HasResponseContent(FindRequest::ResponseContent content) const
+      {
+        return (responseContent_ & content) == content;
+      }
+
+      void AddDicomTag(uint16_t group, uint16_t element, const std::string& value, bool isBinary);
+
       void AddMetadata(MetadataType metadata,
-                       const std::string& value,
-                       int64_t revision);
+                       const std::string& value);
+                       //int64_t revision);
+
+      const std::map<MetadataType, std::string>& GetMetadata() const
+      {
+        return metadata_;
+      }
 
       bool HasMetadata(MetadataType metadata) const
       {
         return metadata_.find(metadata) != metadata_.end();
       }
 
-      bool LookupMetadata(std::string& value, int64_t revision,
+      bool LookupMetadata(std::string& value, /* int64_t revision, */
                           MetadataType metadata) const;
 
       void ListMetadata(std::set<MetadataType>& metadata) const;
@@ -133,8 +168,33 @@ namespace Orthanc
 
       const DicomMap& GetDicomMap() const;
 
+      void AddChild(const std::string& childId);
 
-      // TODO: add other getters and setters
+      const std::list<std::string>& GetChildren() const
+      {
+        return children_;
+      }
+
+      void SetParent(const std::string& parent)
+      {
+        parent_ = parent;
+      }
+
+      const std::string& GetParent() const
+      {
+        return parent_;
+      }
+
+      void AddLabel(const std::string& label)
+      {
+        labels_.insert(label);
+      }
+
+      const std::set<std::string>& GetLabels() const
+      {
+        return labels_;
+      }
+      // TODO-FIND: add other getters and setters
     };
 
   private:

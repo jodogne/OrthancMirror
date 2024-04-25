@@ -1141,9 +1141,10 @@ namespace Orthanc
 
 
     virtual void ExecuteFind(FindResponse& response,
-                             const FindRequest& request) ORTHANC_OVERRIDE
+                             const FindRequest& request, 
+                             const std::vector<DatabaseConstraint>& normalized) ORTHANC_OVERRIDE
     {
-#if 1
+#if 0
       Compatibility::GenericFind find(*this);
       find.Execute(response, request);
 #else
@@ -1153,11 +1154,142 @@ namespace Orthanc
       }
 
       {
-        std::string sql;
-        // sql = "CREATE TEMPORARY TABLE FilteredResourcesIds AS ";
-        sql = "..";
-        SQLite::Statement s(db_, SQLITE_FROM_HERE_DYNAMIC(sql), sql);
+
+        LookupFormatter formatter;
+
+        std::string sqlLookup;
+        LookupFormatter::Apply(sqlLookup, 
+                               formatter, 
+                               normalized, 
+                               request.GetLevel(),
+                               request.GetLabels(),
+                               request.GetLabelsConstraint(),
+                               (request.HasLimits() ? request.GetLimitsCount() : 0));  // TODO: handles since and count
+
+        if (request.IsResponseIdentifiersOnly())
+        {
+          SQLite::Statement statement(db_, SQLITE_FROM_HERE_DYNAMIC(sqlLookup), sqlLookup);
+          formatter.Bind(statement);
+
+          while (statement.Step())
+          {
+            FindResponse::Item* item = new FindResponse::Item(request.GetResponseContent(),
+                                                              request.GetLevel(),
+                                                              statement.ColumnString(0));
+            response.Add(item);
+          }
+        }
+        else
+        {
+          std::map<std::string, FindResponse::Item*> items;  // cache to the response items
+
+          {// first create a temporary table that with the filtered and ordered results
+            sqlLookup = "CREATE TEMPORARY TABLE FilteredResourcesIds AS " + sqlLookup;
+
+            SQLite::Statement statement(db_, SQLITE_FROM_HERE_DYNAMIC(sqlLookup), sqlLookup);
+            formatter.Bind(statement);
+            statement.Run();
+          }
+
+          {
+            // create the response item with the public ids only
+            SQLite::Statement statement(db_, SQLITE_FROM_HERE, "SELECT publicId FROM FilteredResourcesIds");
+            formatter.Bind(statement);
+
+            while (statement.Step())
+            {
+              const std::string& resourceId = statement.ColumnString(0);
+              FindResponse::Item* item = new FindResponse::Item(request.GetResponseContent(),
+                                                                request.GetLevel(),
+                                                                resourceId);
+              items[resourceId] = item;
+              response.Add(item);
+            }
+          }
+
+          // request Each response content through INNER JOIN with the temporary table
+          if (request.HasResponseContent(FindRequest::ResponseContent_MainDicomTags))
+          {
+            // TODO-FIND: handle the case where we request tags from multiple levels
+            SQLite::Statement statement(db_, SQLITE_FROM_HERE, 
+                                        "SELECT publicId, tagGroup, tagElement, value FROM MainDicomTags AS tags "
+                                        "  INNER JOIN FilteredResourcesIds  ON tags.id = FilteredResourcesIds.internalId");
+            formatter.Bind(statement);
+
+            while (statement.Step())
+            {
+              const std::string& resourceId = statement.ColumnString(0);
+              items[resourceId]->AddDicomTag(statement.ColumnInt(1),
+                                             statement.ColumnInt(2),
+                                             statement.ColumnString(3), false);
+            }
+          }
+
+          if (request.HasResponseContent(FindRequest::ResponseContent_Children))
+          {
+            SQLite::Statement statement(db_, SQLITE_FROM_HERE, 
+                "SELECT filtered.publicId, childLevel.publicId AS childPublicId "
+                "FROM Resources as currentLevel "
+                "    INNER JOIN FilteredResourcesIds filtered ON filtered.internalId = currentLevel.internalId "
+                "    INNER JOIN Resources childLevel ON childLevel.parentId = currentLevel.internalId");
+            formatter.Bind(statement);
+
+            while (statement.Step())
+            {
+              const std::string& resourceId = statement.ColumnString(0);
+              items[resourceId]->AddChild(statement.ColumnString(1));
+            }
+          }
+
+          if (request.HasResponseContent(FindRequest::ResponseContent_Parent))
+          {
+            SQLite::Statement statement(db_, SQLITE_FROM_HERE, 
+                "SELECT filtered.publicId, parentLevel.publicId AS parentPublicId "
+                "FROM Resources as currentLevel "
+                "    INNER JOIN FilteredResourcesIds filtered ON filtered.internalId = currentLevel.internalId "
+                "    INNER JOIN Resources parentLevel ON currentLevel.parentId = parentLevel.internalId");
+
+            while (statement.Step())
+            {
+              const std::string& resourceId = statement.ColumnString(0);
+              items[resourceId]->SetParent(statement.ColumnString(1));
+            }
+          }
+
+          if (request.HasResponseContent(FindRequest::ResponseContent_Metadata))
+          {
+            SQLite::Statement statement(db_, SQLITE_FROM_HERE, 
+                "SELECT filtered.publicId, metadata.type, metadata.value "
+                "FROM Metadata "
+                "  INNER JOIN FilteredResourcesIds filtered ON filtered.internalId = Metadata.id");
+
+            while (statement.Step())
+            {
+              const std::string& resourceId = statement.ColumnString(0);
+              items[resourceId]->AddMetadata(static_cast<MetadataType>(statement.ColumnInt(1)),
+                                             statement.ColumnString(2));
+            }
+          }
+
+          if (request.HasResponseContent(FindRequest::ResponseContent_Labels))
+          {
+            SQLite::Statement statement(db_, SQLITE_FROM_HERE, 
+                "SELECT filtered.publicId, label "
+                "FROM Labels "
+                "  INNER JOIN FilteredResourcesIds filtered ON filtered.internalId = Labels.id");
+
+            while (statement.Step())
+            {
+              const std::string& resourceId = statement.ColumnString(0);
+              items[resourceId]->AddLabel(statement.ColumnString(1));
+            }
+          }
+
+          // TODO-FIND: implement other responseContent: ResponseContent_ChildInstanceId, ResponseContent_Attachments, (later: ResponseContent_IsStable)
+
+        }
       }
+
 #endif
     }
   };

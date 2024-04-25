@@ -25,7 +25,9 @@
 #include "../../../OrthancFramework/Sources/DicomFormat/DicomTag.h"
 #include "../ServerEnumerations.h"
 #include "OrthancIdentifiers.h"
-//#include "../Search/DatabaseConstraint.h"
+#include "../Search/DicomTagConstraint.h"
+#include "../Search/LabelsConstraint.h"
+#include "../Search/DatabaseConstraint.h"
 
 #include <deque>
 #include <map>
@@ -74,18 +76,18 @@ namespace Orthanc
       OrderingDirection_Descending
     };
 
-    enum LabelsConstraint
-    {
-      LabelsConstraint_All,
-      LabelsConstraint_Any,
-      LabelsConstraint_None
-    };
 
     class Key
     {
       KeyType                       type_;
       boost::shared_ptr<DicomTag>   dicomTag_;
       MetadataType                  metadata_;
+      
+      // TODO-FIND: to execute the query, we actually need:
+      // ResourceType level_;
+      // DicomTagType dicomTagType_;
+      // these are however only populated in StatelessDatabaseOperations -> we had to add the normalized lookup arg to ExecuteFind
+
     public:
       Key(const DicomTag& dicomTag) :
         type_(KeyType_DicomTag),
@@ -153,165 +155,175 @@ namespace Orthanc
       }
     };
 
-
-    class FilterConstraint : public boost::noncopyable
-    {
-      Key              key_;
+    // TODO-FIND: this class hierarchy actually adds complexity and is very redundant with DicomTagConstraint.
+    //       e.g, in this class hierarchy, it is difficult to implement an equivalent to DicomTagConstraint::ConvertToDatabaseConstraint
+    //       I have the feeling we can just have a MetadataConstraint in the same way as DicomTagConstraint
+    //       and both convert to a DatabaseConstraint in StatelessDatabaseOperations
+    // class FilterConstraint : public boost::noncopyable
+    // {
+    //   Key              key_;
     
-    protected:
-      FilterConstraint(const Key& key) :
-        key_(key)
-      {
-      }
+    // protected:
+    //   FilterConstraint(const Key& key) :
+    //     key_(key)
+    //   {
+    //   }
 
-    public:
-      virtual ~FilterConstraint()
-      {
-      }
+    // public:
+    //   virtual ~FilterConstraint()
+    //   {
+    //   }
 
-      virtual ConstraintType GetType() const = 0;
-      virtual bool IsCaseSensitive() const = 0;  // Needed for PN VR
-    };
+    //   const Key& GetKey() const
+    //   {
+    //     return key_;
+    //   }
 
-
-    class MandatoryConstraint : public FilterConstraint
-    {
-    public:
-      virtual ConstraintType GetType() const ORTHANC_OVERRIDE
-      {
-        return ConstraintType_Mandatory;
-      }
-    };
+    //   virtual ConstraintType GetType() const = 0;
+    //   virtual bool IsCaseSensitive() const = 0;  // Needed for PN VR
 
 
-    class StringConstraint : public FilterConstraint
-    {
-    private:
-      bool  caseSensitive_;
-
-    public:
-      StringConstraint(Key key,
-                       bool caseSensitive) :
-        FilterConstraint(key),
-        caseSensitive_(caseSensitive)
-      {
-      }
-
-      bool IsCaseSensitive() const
-      {
-        return caseSensitive_;
-      }
-    };
+    // };
 
 
-    class EqualityConstraint : public StringConstraint
-    {
-    private:
-      std::string  value_;
-
-    public:
-      explicit EqualityConstraint(Key key,
-                                  bool caseSensitive,
-                                  const std::string& value) :
-        StringConstraint(key, caseSensitive),
-        value_(value)
-      {
-      }
-
-      virtual ConstraintType GetType() const ORTHANC_OVERRIDE
-      {
-        return ConstraintType_Equality;
-      }
-
-      const std::string& GetValue() const
-      {
-        return value_;
-      }
-    };
+    // class MandatoryConstraint : public FilterConstraint
+    // {
+    // public:
+    //   virtual ConstraintType GetType() const ORTHANC_OVERRIDE
+    //   {
+    //     return ConstraintType_Mandatory;
+    //   }
+    // };
 
 
-    class RangeConstraint : public StringConstraint
-    {
-    private:
-      std::string  start_;
-      std::string  end_;    // Inclusive
+    // class StringConstraint : public FilterConstraint
+    // {
+    // private:
+    //   bool  caseSensitive_;
 
-    public:
-      RangeConstraint(Key key,
-                      bool caseSensitive,
-                      const std::string& start,
-                      const std::string& end) :
-        StringConstraint(key, caseSensitive),
-        start_(start),
-        end_(end)
-      {
-      }
+    // public:
+    //   StringConstraint(Key key,
+    //                    bool caseSensitive) :
+    //     FilterConstraint(key),
+    //     caseSensitive_(caseSensitive)
+    //   {
+    //   }
 
-      virtual ConstraintType GetType() const ORTHANC_OVERRIDE
-      {
-        return ConstraintType_Range;
-      }
-
-      const std::string& GetStart() const
-      {
-        return start_;
-      }
-
-      const std::string& GetEnd() const
-      {
-        return end_;
-      }
-    };
+    //   bool IsCaseSensitive() const
+    //   {
+    //     return caseSensitive_;
+    //   }
+    // };
 
 
-    class WildcardConstraint : public StringConstraint
-    {
-    private:
-      std::string  value_;
+    // class EqualityConstraint : public StringConstraint
+    // {
+    // private:
+    //   std::string  value_;
 
-    public:
-      explicit WildcardConstraint(Key& key,
-                                  bool caseSensitive,
-                                  const std::string& value) :
-        StringConstraint(key, caseSensitive),
-        value_(value)
-      {
-      }
+    // public:
+    //   explicit EqualityConstraint(Key key,
+    //                               bool caseSensitive,
+    //                               const std::string& value) :
+    //     StringConstraint(key, caseSensitive),
+    //     value_(value)
+    //   {
+    //   }
 
-      virtual ConstraintType GetType() const ORTHANC_OVERRIDE
-      {
-        return ConstraintType_Wildcard;
-      }
+    //   virtual ConstraintType GetType() const ORTHANC_OVERRIDE
+    //   {
+    //     return ConstraintType_Equality;
+    //   }
 
-      const std::string& GetValue() const
-      {
-        return value_;
-      }
-    };
+    //   const std::string& GetValue() const
+    //   {
+    //     return value_;
+    //   }
+    // };
 
 
-    class ListConstraint : public StringConstraint
-    {
-    private:
-      std::set<std::string>  values_;
+    // class RangeConstraint : public StringConstraint
+    // {
+    // private:
+    //   std::string  start_;
+    //   std::string  end_;    // Inclusive
 
-    public:
-      ListConstraint(Key key,
-                     bool caseSensitive) :
-        StringConstraint(key, caseSensitive)
-      {
-      }
+    // public:
+    //   RangeConstraint(Key key,
+    //                   bool caseSensitive,
+    //                   const std::string& start,
+    //                   const std::string& end) :
+    //     StringConstraint(key, caseSensitive),
+    //     start_(start),
+    //     end_(end)
+    //   {
+    //   }
 
-      virtual ConstraintType GetType() const ORTHANC_OVERRIDE
-      {
-        return ConstraintType_List;
-      }
+    //   virtual ConstraintType GetType() const ORTHANC_OVERRIDE
+    //   {
+    //     return ConstraintType_Range;
+    //   }
 
-      const std::set<std::string>& GetValues() const
-      {
-        return values_;
-      }
-    };
+    //   const std::string& GetStart() const
+    //   {
+    //     return start_;
+    //   }
+
+    //   const std::string& GetEnd() const
+    //   {
+    //     return end_;
+    //   }
+    // };
+
+
+    // class WildcardConstraint : public StringConstraint
+    // {
+    // private:
+    //   std::string  value_;
+
+    // public:
+    //   explicit WildcardConstraint(Key& key,
+    //                               bool caseSensitive,
+    //                               const std::string& value) :
+    //     StringConstraint(key, caseSensitive),
+    //     value_(value)
+    //   {
+    //   }
+
+    //   virtual ConstraintType GetType() const ORTHANC_OVERRIDE
+    //   {
+    //     return ConstraintType_Wildcard;
+    //   }
+
+    //   const std::string& GetValue() const
+    //   {
+    //     return value_;
+    //   }
+    // };
+
+
+    // class ListConstraint : public StringConstraint
+    // {
+    // private:
+    //   std::set<std::string>  values_;
+
+    // public:
+    //   ListConstraint(Key key,
+    //                  bool caseSensitive) :
+    //     StringConstraint(key, caseSensitive)
+    //   {
+    //   }
+
+    //   virtual ConstraintType GetType() const ORTHANC_OVERRIDE
+    //   {
+    //     return ConstraintType_List;
+    //   }
+
+    //   const std::set<std::string>& GetValues() const
+    //   {
+    //     return values_;
+    //   }
+    // };
 
 
   private:
@@ -319,7 +331,9 @@ namespace Orthanc
     // filter & ordering fields
     ResourceType                         level_;                // The level of the response (the filtering on tags, labels and metadata also happens at this level)
     OrthancIdentifiers                   orthancIdentifiers_;   // The response must belong to this Orthanc resources hierarchy
-    std::deque<FilterConstraint*>        filterConstraints_;    // All tags and metadata filters (note: the order is not important)
+    // std::deque<FilterConstraint*>        filterConstraints_;    // All tags and metadata filters (note: the order is not important)
+    std::vector<DicomTagConstraint>      dicomTagConstraints_;  // All tags filters (note: the order is not important)
+    std::deque<void*>   /* TODO-FIND */       metadataConstraints_;  // All metadata filters (note: the order is not important)
     bool                                 hasLimits_;
     uint64_t                             limitsSince_;
     uint64_t                             limitsCount_;
@@ -348,9 +362,6 @@ namespace Orthanc
       return level_;
     }
 
-    // void GetDatabaseConstraints(std::vector<DatabaseConstraint>& target) const;  // conversion to DatabaseConstraint is required to feed to the LookupFormatter
-    // void GetOrdering(std::vector<Ordering>& target) const;
-
 
     void SetResponseContent(ResponseContent content)
     {
@@ -370,6 +381,11 @@ namespace Orthanc
     bool HasResponseContent(ResponseContent content) const
     {
       return (responseContent_ & content) == content;
+    }
+
+    bool IsResponseIdentifiersOnly() const
+    {
+      return responseContent_ == ResponseContent_IdentifiersOnly;
     }
 
     void SetOrthancPatientId(const std::string& id)
@@ -397,14 +413,20 @@ namespace Orthanc
       return orthancIdentifiers_;
     }
 
-    void AddFilterConstraint(FilterConstraint* constraint /* takes ownership */);
 
-    size_t GetFilterConstraintsCount() const
+    void AddDicomTagConstraint(const DicomTagConstraint& constraint);
+
+    size_t GetDicomTagConstraintsCount() const
     {
-      return filterConstraints_.size();
+      return dicomTagConstraints_.size();
     }
 
-    const FilterConstraint& GetFilterConstraint(size_t index) const;
+    size_t GetMetadataConstraintsCount() const
+    {
+      return metadataConstraints_.size();
+    }
+
+    const DicomTagConstraint& GetDicomTagConstraint(size_t index) const;
 
     void SetLimits(uint64_t since,
                    uint64_t count);
@@ -441,6 +463,11 @@ namespace Orthanc
     const std::set<std::string>& GetLabels() const
     {
       return labels_;
+    }
+
+    LabelsConstraint GetLabelsConstraint() const
+    {
+      return labelsContraint_;
     }
   };
 }
