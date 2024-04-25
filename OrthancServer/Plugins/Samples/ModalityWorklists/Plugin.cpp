@@ -23,6 +23,7 @@
 #define MODALITY_WORKLISTS_NAME "worklists"
 
 #include "../../../../OrthancFramework/Sources/Compatibility.h"
+#include "../../../../OrthancFramework/Sources/Logging.h"
 #include "../Common/OrthancPluginCppWrapper.h"
 
 #include <boost/filesystem.hpp>
@@ -54,7 +55,7 @@ static bool MatchWorklist(OrthancPluginWorklistAnswers*      answers,
 
     if (code != OrthancPluginErrorCode_Success)
     {
-      OrthancPlugins::LogError("Error while adding an answer to a worklist request");
+      LOG(ERROR) << "Error while adding an answer to a worklist request";
       ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(code);
     }
 
@@ -77,8 +78,7 @@ static OrthancPlugins::FindMatcher* CreateMatcher(const OrthancPluginWorklistQue
   dicom.DicomToJson(json, OrthancPluginDicomToJsonFormat_Short,
                     static_cast<OrthancPluginDicomToJsonFlags>(0), 0);
 
-  OrthancPlugins::LogInfo("Received worklist query from remote modality " +
-                          std::string(issuerAet) + ":\n" + json.toStyledString());
+  LOG(INFO) << "Received worklist query from remote modality " << issuerAet << ":\n" + json.toStyledString();
 
   if (!filterIssuerAet_)
   {
@@ -185,21 +185,19 @@ OrthancPluginErrorCode Callback(OrthancPluginWorklistAnswers*     answers,
                 return OrthancPluginErrorCode_Success;
               }
               
-              OrthancPlugins::LogInfo("Worklist matched: " + it->path().string());
+              LOG(INFO) << "Worklist matched: " << it->path().string();
               matchedWorklistCount++;
             }
           }
         }
       }
 
-      std::ostringstream message;
-      message << "Worklist C-Find: parsed " << parsedFilesCount
-              << " files, found " << matchedWorklistCount << " match(es)";
-      OrthancPlugins::LogInfo(message.str());
+      LOG(INFO) << "Worklist C-Find: parsed " << parsedFilesCount
+                << " files, found " << matchedWorklistCount << " match(es)";
     }
     catch (fs::filesystem_error&)
     {
-      OrthancPlugins::LogError("Inexistent folder while scanning for worklists: " + source.string());
+      LOG(ERROR) << "Inexistent folder while scanning for worklists: " << source.string();
       return OrthancPluginErrorCode_DirectoryExpected;
     }
 
@@ -216,7 +214,8 @@ extern "C"
 {
   ORTHANC_PLUGINS_API int32_t OrthancPluginInitialize(OrthancPluginContext* c)
   {
-    OrthancPlugins::SetGlobalContext(c);
+    Orthanc::Logging::InitializePluginContext(c, MODALITY_WORKLISTS_NAME);
+    OrthancPlugins::SetGlobalContext(c, MODALITY_WORKLISTS_NAME);
 
     /* Check the version of the Orthanc core */
     if (OrthancPluginCheckVersion(c) == 0)
@@ -227,7 +226,7 @@ extern "C"
       return -1;
     }
 
-    OrthancPlugins::LogWarning("Sample worklist plugin is initializing");
+    LOG(WARNING) << "Sample worklist plugin is initializing";
     OrthancPluginSetDescription2(c, MODALITY_WORKLISTS_NAME, "Serve DICOM modality worklists from a folder with Orthanc.");
 
     OrthancPlugins::OrthancConfiguration configuration;
@@ -240,12 +239,12 @@ extern "C"
     {
       if (worklists.LookupStringValue(folder_, "Database"))
       {
-        OrthancPlugins::LogWarning("The database of worklists will be read from folder: " + folder_);
+        LOG(WARNING) << "The database of worklists will be read from folder: " << folder_;
         OrthancPluginRegisterWorklistCallback(OrthancPlugins::GetGlobalContext(), Callback);
       }
       else
       {
-        OrthancPlugins::LogError("The configuration option \"Worklists.Database\" must contain a path");
+        LOG(ERROR) << "The configuration option \"Worklists.Database\" must contain a path";
         return -1;
       }
 
@@ -254,7 +253,7 @@ extern "C"
     }
     else
     {
-      OrthancPlugins::LogWarning("Worklist server is disabled by the configuration file");
+      LOG(WARNING) << "Worklist server is disabled by the configuration file";
     }
 
     return 0;
@@ -263,7 +262,7 @@ extern "C"
 
   ORTHANC_PLUGINS_API void OrthancPluginFinalize()
   {
-    OrthancPlugins::LogWarning("Sample worklist plugin is finalizing");
+    LOG(WARNING) << "Sample worklist plugin is finalizing";
   }
 
 

@@ -161,6 +161,18 @@ namespace Orthanc
         CLOG(INFO, PLUGINS) << reinterpret_cast<const char*>(params);
         return OrthancPluginErrorCode_Success;
 
+      case _OrthancPluginService_LogMessage:
+        {
+          const _OrthancPluginLogMessage& m = *reinterpret_cast<const _OrthancPluginLogMessage*>(params);
+          // we may convert directly from OrthancPluginLogLevel to LogLevel (and category) because the enum values must be identical 
+          // for Orthanc::Logging to work both in the core and in the plugins
+          Orthanc::Logging::LogLevel level = static_cast<Orthanc::Logging::LogLevel>(m.level);
+          Orthanc::Logging::LogCategory category = static_cast<Orthanc::Logging::LogCategory>(m.category);
+          
+          LOG_FROM_PLUGIN(level, category, m.plugin, m.file, m.line) << m.message;
+          return OrthancPluginErrorCode_Success;
+        };
+
       default:
         break;
     }
