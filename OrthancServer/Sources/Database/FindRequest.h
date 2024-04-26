@@ -49,7 +49,8 @@ namespace Orthanc
       ResponseContent_Parent                = (1 << 4),     // get the id of the parent
       ResponseContent_Children              = (1 << 5),     // retrieve the list of children ids
       ResponseContent_ChildInstanceId       = (1 << 6),     // When you need to access all tags from a patient/study/series, you might need to open the DICOM file of a child instance
-      ResponseContent_IsStable              = (1 << 7),     // This is currently not saved in DB but it could be in the future.
+      ResponseContent_ChildrenMetadata      = (1 << 7),     // That is actually required to compute the series status but could be usefull for other stuffs.
+      ResponseContent_IsStable              = (1 << 8),     // This is currently not saved in DB but it could be in the future.
 
       ResponseContent_IdentifiersOnly       = 0,
       ResponseContent_INTERNAL              = 0x7FFFFFFF

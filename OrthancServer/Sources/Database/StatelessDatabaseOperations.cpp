@@ -3926,6 +3926,24 @@ namespace Orthanc
     {
       labels_ = item.GetLabels();
     }
-    // TODO-FIND: continue: isStable_, satus_, fileSize_, fileUuid_
+
+    if (item.HasResponseContent(FindRequest::ResponseContent_Attachments))
+    {
+      FileInfo attachment;
+      if (item.LookupAttachment(attachment, FileContentType_Dicom))
+      {
+        fileSize_ = attachment.GetUncompressedSize();
+        fileUuid_ = attachment.GetUuid();
+      }
+    }
+
+    if (item.HasResponseContent(FindRequest::ResponseContent_ChildrenMetadata))
+    {
+      // TODO-FIND: the status_ is normally obtained from transaction.GetSeriesStatus(internalId, i)
+      // but, that's an heavy operation for something that is rarely used -> we should have dedicated SQL code 
+      // to compute it AFAP and we should compute it only if the user request it !
+    }
+
+    // TODO-FIND: continue: isStable_, status_
   }
 }

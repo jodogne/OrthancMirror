@@ -23,6 +23,8 @@
 #pragma once
 
 #include "../../../OrthancFramework/Sources/DicomFormat/DicomMap.h"
+#include "../../../OrthancFramework/Sources/Enumerations.h"
+#include "../../../OrthancFramework/Sources/FileStorage/FileInfo.h"
 #include "../ServerEnumerations.h"
 #include "OrthancIdentifiers.h"
 #include "FindRequest.h"
@@ -90,7 +92,7 @@ namespace Orthanc
       std::string                           childInstanceId_;
       std::set<std::string>                 labels_;      
       std::map<MetadataType, std::string>   metadata_;
-      std::map<uint16_t, std::string>       attachments_;
+      std::map<FileContentType, FileInfo>   attachments_;
 
     public:
       Item(FindRequest::ResponseContent responseContent,
@@ -194,6 +196,29 @@ namespace Orthanc
       {
         return labels_;
       }
+
+      void AddAttachment(const FileInfo& attachment)
+      {
+        attachments_[attachment.GetContentType()] = attachment;
+      }
+
+      const std::map<FileContentType, FileInfo>& GetAttachments() const
+      {
+        return attachments_;
+      }
+
+      bool LookupAttachment(FileInfo& target, FileContentType type) const
+      {
+        std::map<FileContentType, FileInfo>::const_iterator it = attachments_.find(type);
+        if (it != attachments_.end())
+        {
+          target = it->second;
+          return true;
+        }
+
+        return false;
+      }
+
       // TODO-FIND: add other getters and setters
     };
 

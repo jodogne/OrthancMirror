@@ -230,20 +230,47 @@ namespace Orthanc
        * EXPERIMENTAL VERSION
        **/
 
+      // TODO-FIND: include the FindRequest options parsing in a method (parse from get-arguments and from post payload)
+      // TODO-FIND: support other values for expand like expand=MainDicomTags,Labels,Parent,SeriesStatus
       const bool expand = (call.HasArgument("expand") &&
                            call.GetBooleanArgument("expand", true));
+
+      std::set<DicomTag> requestedTags;
+      OrthancRestApi::GetRequestedTags(requestedTags, call);
+
+      const DicomToJsonFormat format = OrthancRestApi::GetDicomFormat(call, DicomToJsonFormat_Human);
 
       FindRequest request(resourceType);
 
       if (expand)
       {
-        request.SetResponseContent(static_cast<FindRequest::ResponseContent>(FindRequest::ResponseContent_MainDicomTags |
+        // compatibility with default expand option
+        FindRequest::ResponseContent responseContent = static_cast<FindRequest::ResponseContent>(FindRequest::ResponseContent_MainDicomTags |
                                    FindRequest::ResponseContent_Metadata |
-                                   FindRequest::ResponseContent_Labels |
-                                   FindRequest::ResponseContent_Attachments |
-                                   FindRequest::ResponseContent_Parent |
-                                   FindRequest::ResponseContent_Children));
+                                   FindRequest::ResponseContent_Labels);
+        
+        if (requestedTags.size() > 0 && resourceType != ResourceType_Instance) // if we are requesting specific tags that might be outside of the MainDicomTags, we must get a childInstanceId too
+        {
+          responseContent = static_cast<FindRequest::ResponseContent>(responseContent | FindRequest::ResponseContent_ChildInstanceId);
+        }
+        if (resourceType == ResourceType_Series)
+        {
+          responseContent = static_cast<FindRequest::ResponseContent>(responseContent | FindRequest::ResponseContent_ChildrenMetadata); // required for the SeriesStatus
+        }
+        if (resourceType != ResourceType_Instance)
+        {
+          responseContent = static_cast<FindRequest::ResponseContent>(responseContent | FindRequest::ResponseContent_Children);
+        }
+        if (resourceType == ResourceType_Instance)
+        {
+          responseContent = static_cast<FindRequest::ResponseContent>(responseContent | FindRequest::ResponseContent_Attachments); // for FileSize & FileUuid
+        }
+        if (resourceType != ResourceType_Patient)
+        {
+          responseContent = static_cast<FindRequest::ResponseContent>(responseContent | FindRequest::ResponseContent_Parent);
+        }
 
+        request.SetResponseContent(responseContent);
         request.SetRetrieveTagsAtLevel(resourceType, true);
 
         if (resourceType == ResourceType_Study)
@@ -294,11 +321,6 @@ namespace Orthanc
       }
       else
       {
-        std::set<DicomTag> requestedTags;
-        OrthancRestApi::GetRequestedTags(requestedTags, call);
-
-        const DicomToJsonFormat format = OrthancRestApi::GetDicomFormat(call, DicomToJsonFormat_Human);
-
         for (size_t i = 0; i < response.GetSize(); i++)
         {
           context.AppendFindResponse(answer, response.GetItem(i), format, requestedTags, true /* allowStorageAccess */);
