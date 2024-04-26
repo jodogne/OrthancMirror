@@ -80,8 +80,8 @@ namespace Orthanc
     // "pluginContext" must be of type "OrthancPluginContext"
     ORTHANC_PUBLIC void InitializePluginContext(void* pluginContext);
 
-    // note: this variant shall be called only from a plugin and only if ORTHANC_FRAMEWORK_VERSION_IS_ABOVE(1, 12, 4) && ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 12, 4)
-    ORTHANC_PUBLIC void InitializePluginContext(void* pluginContext, const char* pluginName);
+    ORTHANC_PUBLIC void InitializePluginContext(void* pluginContext,
+                                                const std::string& pluginName);
 
     ORTHANC_PUBLIC void Initialize();
 

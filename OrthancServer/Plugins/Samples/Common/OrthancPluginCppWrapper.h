@@ -53,6 +53,16 @@
 #endif
 
 
+#if !defined(ORTHANC_FRAMEWORK_VERSION_IS_ABOVE)
+#define ORTHANC_FRAMEWORK_VERSION_IS_ABOVE(major, minor, revision)      \
+  (ORTHANC_VERSION_MAJOR > major ||                                     \
+   (ORTHANC_VERSION_MAJOR == major &&                                   \
+    (ORTHANC_VERSION_MINOR > minor ||                                   \
+     (ORTHANC_VERSION_MINOR == minor &&                                 \
+      ORTHANC_VERSION_REVISION >= revision))))
+#endif
+
+
 #if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 2, 0)
 // The "OrthancPluginFindMatcher()" primitive was introduced in Orthanc 1.2.0
 #  define HAS_ORTHANC_PLUGIN_FIND_MATCHER  1
@@ -117,16 +127,22 @@
 #  define HAS_ORTHANC_PLUGIN_WEBDAV  0
 #endif
 
-
-// Macro "ORTHANC_PLUGINS_DEPRECATED" tags a function as having been deprecated
-#if (__cplusplus >= 201402L)  // C++14
-#  define ORTHANC_PLUGINS_DEPRECATED(f) [[deprecated]] f
-#elif defined(__GNUC__) || defined(__clang__)
-#  define ORTHANC_PLUGINS_DEPRECATED(f) f __attribute__((deprecated))
-#elif defined(_MSC_VER)
-#  define ORTHANC_PLUGINS_DEPRECATED(f) __declspec(deprecated) f
+#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 12, 4)
+#  define HAS_ORTHANC_PLUGIN_LOG_MESSAGE  1
 #else
-#  define ORTHANC_PLUGINS_DEPRECATED
+#  define HAS_ORTHANC_PLUGIN_LOG_MESSAGE  0
+#endif
+
+
+// Macro to tag a function as having been deprecated
+#if (__cplusplus >= 201402L)  // C++14
+#  define ORTHANC_PLUGIN_CPP_WRAPPER_DEPRECATED(f) [[deprecated]] f
+#elif defined(__GNUC__) || defined(__clang__)
+#  define ORTHANC_PLUGIN_CPP_WRAPPER_DEPRECATED(f) f __attribute__((deprecated))
+#elif defined(_MSC_VER)
+#  define ORTHANC_PLUGIN_CPP_WRAPPER_DEPRECATED(f) __declspec(deprecated) f
+#else
+#  define ORTHANC_PLUGIN_CPP_WRAPPER_DEPRECATED
 #endif
 
 
@@ -139,9 +155,16 @@
 #  define __ORTHANC_FILE__ __FILE__
 #endif
 
-#define ORTHANC_PLUGINS_LOG_ERROR(msg)   ::OrthancPlugins::LogMessage(OrthancPluginLogLevel_Error, __ORTHANC_FILE__, __LINE__, msg);
-#define ORTHANC_PLUGINS_LOG_WARNING(msg) ::OrthancPlugins::LogMessage(OrthancPluginLogLevel_Warning, __ORTHANC_FILE__, __LINE__, msg);
-#define ORTHANC_PLUGINS_LOG_INFO(msg)    ::OrthancPlugins::LogMessage(OrthancPluginLogLevel_Info, __ORTHANC_FILE__, __LINE__, msg);
+
+#if HAS_ORTHANC_PLUGIN_LOG_MESSAGE == 1
+#  define ORTHANC_PLUGINS_LOG_ERROR(msg)   ::OrthancPlugins::LogMessage(OrthancPluginLogLevel_Error, __ORTHANC_FILE__, __LINE__, msg)
+#  define ORTHANC_PLUGINS_LOG_WARNING(msg) ::OrthancPlugins::LogMessage(OrthancPluginLogLevel_Warning, __ORTHANC_FILE__, __LINE__, msg)
+#  define ORTHANC_PLUGINS_LOG_INFO(msg)    ::OrthancPlugins::LogMessage(OrthancPluginLogLevel_Info, __ORTHANC_FILE__, __LINE__, msg)
+#else
+#  define ORTHANC_PLUGINS_LOG_ERROR(msg)   ::OrthancPlugins::LogError(msg)
+#  define ORTHANC_PLUGINS_LOG_WARNING(msg) ::OrthancPlugins::LogWarning(msg)
+#  define ORTHANC_PLUGINS_LOG_INFO(msg)    ::OrthancPlugins::LogInfo(msg)
+#endif
 
 
 namespace OrthancPlugins
@@ -655,19 +678,33 @@ namespace OrthancPlugins
   const char* AutodetectMimeType(const std::string& path);
 #endif
 
+#if HAS_ORTHANC_PLUGIN_LOG_MESSAGE == 1
   void LogMessage(OrthancPluginLogLevel level,
                   const char* file,
                   uint32_t line,
                   const std::string& message);
+#endif
 
+#if HAS_ORTHANC_PLUGIN_LOG_MESSAGE == 1
   // Use macro ORTHANC_PLUGINS_LOG_ERROR() instead
-  ORTHANC_PLUGINS_DEPRECATED(void LogError(const std::string& message));
+  ORTHANC_PLUGIN_CPP_WRAPPER_DEPRECATED(void LogError(const std::string& message));
+#else
+  void LogError(const std::string& message);
+#endif
 
+#if HAS_ORTHANC_PLUGIN_LOG_MESSAGE == 1
   // Use macro ORTHANC_PLUGINS_LOG_WARNING() instead
-  ORTHANC_PLUGINS_DEPRECATED(void LogWarning(const std::string& message));
+  ORTHANC_PLUGIN_CPP_WRAPPER_DEPRECATED(void LogWarning(const std::string& message));
+#else
+  void LogWarning(const std::string& message);
+#endif
 
+#if HAS_ORTHANC_PLUGIN_LOG_MESSAGE == 1
   // Use macro ORTHANC_PLUGINS_LOG_INFO() instead
-  ORTHANC_PLUGINS_DEPRECATED(void LogInfo(const std::string& message));
+  ORTHANC_PLUGIN_CPP_WRAPPER_DEPRECATED(void LogInfo(const std::string& message));
+#else
+  void LogInfo(const std::string& message);
+#endif
 
   void ReportMinimalOrthancVersion(unsigned int major,
                                    unsigned int minor,
