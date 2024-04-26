@@ -27,7 +27,7 @@ REST API
   in case you just want to update the MainDicomTags of that resource level only 
   e.g. after you have updated the 'ExtraMainDicomTags' for this level.
 * TODO-FIND: complete the list of updated routes:
-  /studies?expand and sibbling routes now also return "Metadata"
+  /studies?expand and sibbling routes now also return "Metadata" (if the DB implements 'extended-api-v1')
 
 Plugins
 -------

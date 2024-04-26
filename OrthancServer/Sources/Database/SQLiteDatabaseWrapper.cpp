@@ -1285,7 +1285,29 @@ namespace Orthanc
             }
           }
 
-          // TODO-FIND: implement other responseContent: ResponseContent_ChildInstanceId, ResponseContent_Attachments, (later: ResponseContent_IsStable)
+          if (request.HasResponseContent(FindRequest::ResponseContent_Attachments))
+          {
+            SQLite::Statement statement(db_, SQLITE_FROM_HERE, 
+                "SELECT filtered.publicId, uuid, fileType, uncompressedSize, compressionType, compressedSize, "
+                "       uncompressedMD5, compressedMD5 "
+                "FROM AttachedFiles "
+                "  INNER JOIN FilteredResourcesIds filtered ON filtered.internalId = AttachedFiles.id");
+
+            while (statement.Step())
+            {
+              const std::string& resourceId = statement.ColumnString(0);
+              FileInfo attachment = FileInfo(statement.ColumnString(1),
+                                             static_cast<FileContentType>(statement.ColumnInt(2)),
+                                             statement.ColumnInt64(3),
+                                             statement.ColumnString(6),
+                                             static_cast<CompressionType>(statement.ColumnInt(4)),
+                                             statement.ColumnInt64(5),
+                                             statement.ColumnString(7));
+              items[resourceId]->AddAttachment(attachment);
+            };
+          }
+
+          // TODO-FIND: implement other responseContent: ResponseContent_ChildInstanceId, ResponseContent_ChildrenMetadata (later: ResponseContent_IsStable)
 
         }
       }
