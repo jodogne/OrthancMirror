@@ -23,7 +23,6 @@
 #define SERVE_FOLDERS_NAME "serve-folders"
 
 #include "../Common/OrthancPluginCppWrapper.h"
-#include "../../../OrthancFramework/Sources/Logging.h"
 
 #include <json/value.h>
 #include <boost/filesystem.hpp>
@@ -95,7 +94,7 @@ static std::string GetMimeType(const std::string& path)
   }
   else
   {
-    LOG(WARNING) << "ServeFolders: Unknown MIME type for extension \"" << extension << "\"";
+    ORTHANC_PLUGINS_LOG_WARNING("ServeFolders: Unknown MIME type for extension \"" + extension + "\"");
     return "application/octet-stream";
   }
 }
@@ -110,7 +109,7 @@ static bool LookupFolder(std::string& folder,
   std::map<std::string, std::string>::const_iterator found = folders_.find(uri);
   if (found == folders_.end())
   {
-    LOG(ERROR) << "Unknown URI in plugin server-folders: " << uri;
+    ORTHANC_PLUGINS_LOG_ERROR("Unknown URI in plugin server-folders: " + uri);
     OrthancPluginSendHttpStatusCode(OrthancPlugins::GetGlobalContext(), output, 404);
     return false;
   }
@@ -266,7 +265,7 @@ static void ConfigureFolders(const Json::Value& folders)
 {
   if (folders.type() != Json::objectValue)
   {
-    LOG(ERROR) << "The list of folders to be served is badly formatted (must be a JSON object)";
+    ORTHANC_PLUGINS_LOG_ERROR("The list of folders to be served is badly formatted (must be a JSON object)");
     ORTHANC_PLUGINS_THROW_EXCEPTION(BadFileFormat);
   }
 
@@ -278,8 +277,8 @@ static void ConfigureFolders(const Json::Value& folders)
   {
     if (folders[*it].type() != Json::stringValue)
     {
-      LOG(ERROR) << "The folder to be served \"" << *it << 
-                    "\" must be associated with a string value (its mapped URI)";
+      ORTHANC_PLUGINS_LOG_ERROR("The folder to be served \"" + *it + 
+                                "\" must be associated with a string value (its mapped URI)");
       ORTHANC_PLUGINS_THROW_EXCEPTION(BadFileFormat);
     }
 
@@ -300,7 +299,7 @@ static void ConfigureFolders(const Json::Value& folders)
 
     if (baseUri.empty())
     {
-      LOG(ERROR) << "The URI of a folder to be served cannot be empty";
+      ORTHANC_PLUGINS_LOG_ERROR("The URI of a folder to be served cannot be empty");
       ORTHANC_PLUGINS_THROW_EXCEPTION(BadFileFormat);
     }
 
@@ -308,7 +307,7 @@ static void ConfigureFolders(const Json::Value& folders)
     const std::string folder = folders[*it].asString();
     if (!boost::filesystem::is_directory(folder))
     {
-      LOG(ERROR) << "Trying to serve an inexistent folder: " + folder;
+      ORTHANC_PLUGINS_LOG_ERROR("Trying to serve an inexistent folder: " + folder);
       ORTHANC_PLUGINS_THROW_EXCEPTION(InexistentFile);
     }
 
@@ -327,7 +326,7 @@ static void ConfigureExtensions(const Json::Value& extensions)
 {
   if (extensions.type() != Json::objectValue)
   {
-    LOG(ERROR) << "The list of extensions is badly formatted (must be a JSON object)";
+    ORTHANC_PLUGINS_LOG_ERROR("The list of extensions is badly formatted (must be a JSON object)");
     ORTHANC_PLUGINS_THROW_EXCEPTION(BadFileFormat);
   }
 
@@ -338,8 +337,8 @@ static void ConfigureExtensions(const Json::Value& extensions)
   {
     if (extensions[*it].type() != Json::stringValue)
     {
-      LOG(ERROR) << "The file extension \"" << *it << 
-                    "\" must be associated with a string value (its MIME type)";
+      ORTHANC_PLUGINS_LOG_ERROR("The file extension \"" + *it + 
+                                "\" must be associated with a string value (its MIME type)");
       ORTHANC_PLUGINS_THROW_EXCEPTION(BadFileFormat);
     }
 
@@ -357,11 +356,13 @@ static void ConfigureExtensions(const Json::Value& extensions)
 
     if (mime.empty())
     {
-      LOG(WARNING) << "ServeFolders: Removing MIME type for file extension \"." << name << "\"";
+      ORTHANC_PLUGINS_LOG_WARNING("ServeFolders: Removing MIME type for file extension \"." +
+                                  name + "\"");
     }
     else
     {
-      LOG(WARNING) << "ServeFolders: Associating file extension \"." << name << "\" with MIME type \"" << mime << "\"";
+      ORTHANC_PLUGINS_LOG_WARNING("ServeFolders: Associating file extension \"." + name +
+                                  "\" with MIME type \"" + mime + "\"");
     }
   }  
 }
@@ -391,13 +392,16 @@ static void ReadConfiguration()
     if (configuration.LookupBooleanValue(tmp, "AllowCache"))
     {
       allowCache_ = tmp;
-      LOG(WARNING) << "ServeFolders: Requesting the HTTP client to " << (tmp ? "enable" : "disable") << " its caching mechanism";
+      ORTHANC_PLUGINS_LOG_WARNING("ServeFolders: Requesting the HTTP client to " +
+                                  std::string(tmp ? "enable" : "disable") +
+                                  " its caching mechanism");
     }
 
     if (configuration.LookupBooleanValue(tmp, "GenerateETag"))
     {
       generateETag_ = tmp;
-      LOG(WARNING) << "ServeFolders: The computation of an ETag for the served resources is " << (tmp ? "enabled" : "disabled");
+      ORTHANC_PLUGINS_LOG_WARNING("ServeFolders: The computation of an ETag for the served resources is " +
+                                  std::string(tmp ? "enabled" : "disabled"));
     }
 
     OrthancPlugins::OrthancConfiguration extensions;
@@ -407,7 +411,7 @@ static void ReadConfiguration()
 
   if (folders_.empty())
   {
-    LOG(WARNING) << "ServeFolders: Empty configuration file: No additional folder will be served!";
+    ORTHANC_PLUGINS_LOG_WARNING("ServeFolders: Empty configuration file: No additional folder will be served!");
   }
 }
 
@@ -417,7 +421,6 @@ extern "C"
   ORTHANC_PLUGINS_API int32_t OrthancPluginInitialize(OrthancPluginContext* context)
   {
     OrthancPlugins::SetGlobalContext(context, SERVE_FOLDERS_NAME);
-    Orthanc::Logging::InitializePluginContext(context, SERVE_FOLDERS_NAME);
 
     /* Check the version of the Orthanc core */
     if (OrthancPluginCheckVersion(context) == 0)
@@ -439,7 +442,8 @@ extern "C"
     }
     catch (OrthancPlugins::PluginException& e)
     {
-      LOG(ERROR) << "Error while initializing the ServeFolders plugin: " << e.What(context);
+      ORTHANC_PLUGINS_LOG_ERROR("Error while initializing the ServeFolders plugin: " +
+                                std::string(e.What(context)));
     }
 
     return 0;
