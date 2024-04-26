@@ -525,6 +525,7 @@ namespace
 
 #include "Enumerations.h"
 #include "SystemToolbox.h"
+#include "Toolbox.h"
 
 #include <fstream>
 #include <boost/filesystem.hpp>
@@ -560,7 +561,8 @@ static std::unique_ptr<LoggingStreamsContext>   loggingStreamsContext_;
 static boost::mutex                             loggingStreamsMutex_;
 static Orthanc::Logging::NullStream             nullStream_;
 static OrthancPluginContext*                    pluginContext_ = NULL;    // this is != NULL only when running from a plugin
-static const char*                              pluginName_ = NULL;       // this is != NULL only when running from a plugin
+static std::string                              pluginName_;              // this string can only be non-empty if running from a plugin
+static bool                                     hasOrthancAdvancedLogging_ = false;  // Whether the Orthanc runtime is >= 1.12.4
 static boost::recursive_mutex                   threadNamesMutex_;
 static std::map<boost::thread::id, std::string> threadNames_;
 static bool                                     enableThreadNames_ = true;
@@ -784,14 +786,23 @@ namespace Orthanc
     {
       assert(sizeof(_OrthancPluginService) == sizeof(int32_t));
 
+      if (pluginContext == NULL)
+      {
+        throw OrthancException(ErrorCode_NullPointer);
+      }
+
       boost::mutex::scoped_lock lock(loggingStreamsMutex_);
       loggingStreamsContext_.reset(NULL);
       pluginContext_ = reinterpret_cast<OrthancPluginContext*>(pluginContext);
 
+      // The value "hasOrthancAdvancedLogging_" is cached to avoid computing it on every logged message
+      hasOrthancAdvancedLogging_ = Toolbox::IsVersionAbove(pluginContext_->orthancVersion, 1, 12, 4);
+
       EnableInfoLevel(true);  // allow the plugin to log at info level (but the Orthanc Core still decides of the level)
     }
 
-    void InitializePluginContext(void* pluginContext, const char* pluginName)
+
+    void InitializePluginContext(void* pluginContext, const std::string& pluginName)
     {
       InitializePluginContext(pluginContext);
       pluginName_ = pluginName;
@@ -983,14 +994,15 @@ namespace Orthanc
 
         if (pluginContext_ != NULL)
         {
-          if (pluginName_ != NULL) // this shall happen only if ORTHANC_FRAMEWORK_VERSION_IS_ABOVE(1, 12, 4) && ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 12, 4)
+          if (!pluginName_.empty() &&
+              hasOrthancAdvancedLogging_)
           {
             _OrthancPluginLogMessage m;
             m.category = category_;
             m.level = level_;
             m.file = file_;
             m.line = line_;
-            m.plugin = pluginName_;
+            m.plugin = pluginName_.c_str();
             m.message = message.c_str();
             pluginContext_->InvokeService(pluginContext_, _OrthancPluginService_LogMessage, &m);
           }

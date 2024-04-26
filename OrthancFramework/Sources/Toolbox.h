@@ -416,6 +416,15 @@ namespace Orthanc
 
     static std::string GetHumanTransferSpeed(bool full, uint64_t sizeInBytes, uint64_t durationInNanoseconds);
 
+    static bool ParseVersion(unsigned int& major,
+                             unsigned int& minor,
+                             unsigned int& revision,
+                             const char* version);
+
+    static bool IsVersionAbove(const char* version,
+                               unsigned int major,
+                               unsigned int minor,
+                               unsigned int revision);
   };
 }
 

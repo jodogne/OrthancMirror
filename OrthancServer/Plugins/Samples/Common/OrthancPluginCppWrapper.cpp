@@ -113,6 +113,8 @@ namespace OrthancPlugins
     }
   }
 
+
+#if HAS_ORTHANC_PLUGIN_LOG_MESSAGE == 1
   void LogMessage(OrthancPluginLogLevel level,
                   const char* file,
                   uint32_t line,
@@ -120,7 +122,7 @@ namespace OrthancPlugins
   {
     if (HasGlobalContext())
     {
-#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 12, 4)
+#if HAS_ORTHANC_PLUGIN_LOG_MESSAGE == 1
       const char* pluginName = (pluginName_.empty() ? NULL : pluginName_.c_str());
       OrthancPluginLogMessage(GetGlobalContext(), message.c_str(), pluginName, file, line, OrthancPluginLogCategory_Generic, level);
 #else
@@ -144,6 +146,8 @@ namespace OrthancPlugins
 #endif
     }
   }
+#endif
+
 
   void LogError(const std::string& message)
   {
