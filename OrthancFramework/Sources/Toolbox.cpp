@@ -2676,6 +2676,139 @@ namespace Orthanc
   }
 
 
+  bool Toolbox::ParseVersion(unsigned int& major,
+                             unsigned int& minor,
+                             unsigned int& revision,
+                             const char* version)
+  {
+    if (version == NULL)
+    {
+      throw OrthancException(ErrorCode_NullPointer);
+    }
+
+#ifdef _MSC_VER
+#define ORTHANC_SCANF sscanf_s
+#else
+#define ORTHANC_SCANF sscanf
+#endif
+
+    int a, b, c;
+    if (ORTHANC_SCANF(version, "%4d.%4d.%4d", &a, &b, &c) == 3)
+    {
+      if (a >= 0 &&
+          b >= 0 &&
+          c >= 0)
+      {
+        major = static_cast<unsigned int>(a);
+        minor = static_cast<unsigned int>(b);
+        revision = static_cast<unsigned int>(c);
+        return true;
+      }
+      else
+      {
+        return false;
+      }
+    }
+    else if (ORTHANC_SCANF(version, "%4d.%4d", &a, &b) == 2)
+    {
+      if (a >= 0 &&
+          b >= 0)
+      {
+        major = static_cast<unsigned int>(a);
+        minor = static_cast<unsigned int>(b);
+        revision = 0;
+        return true;
+      }
+      else
+      {
+        return false;
+      }
+    }
+    else if (ORTHANC_SCANF(version, "%4d", &a) == 1 &&
+             a >= 0)
+    {
+      if (a >= 0)
+      {
+        major = static_cast<unsigned int>(a);
+        minor = 0;
+        revision = 0;
+        return true;
+      }
+      else
+      {
+        return false;
+      }
+    }
+    else
+    {
+      return false;
+    }
+  }
+
+
+  bool Toolbox::IsVersionAbove(const char* version,
+                               unsigned int major,
+                               unsigned int minor,
+                               unsigned int revision)
+  {
+    /**
+     * Note: Similar standalone functions are implemented in
+     * "OrthancCPlugin.h" and "OrthancPluginCppWrapper.cpp".
+     **/
+
+    unsigned int actualMajor, actualMinor, actualRevision;
+
+    if (version == NULL)
+    {
+      throw OrthancException(ErrorCode_NullPointer);
+    }
+    else if (!strcmp(version, "mainline"))
+    {
+      // Assume compatibility with the mainline
+      return true;
+    }
+    else if (ParseVersion(actualMajor, actualMinor, actualRevision, version))
+    {
+      if (actualMajor > major)
+      {
+        return true;
+      }
+
+      if (actualMajor < major)
+      {
+        return false;
+      }
+
+      // Check the minor version number
+      assert(actualMajor == major);
+
+      if (actualMinor > minor)
+      {
+        return true;
+      }
+
+      if (actualMinor < minor)
+      {
+        return false;
+      }
+
+      // Check the patch level version number
+      assert(actualMajor == major);
+
+      if (actualRevision >= revision)
+      {
+        return true;
+      }
+      else
+      {
+        return false;
+      }
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange, "Not a valid version: " + std::string(version));
+    }
+  }
 }
 
 

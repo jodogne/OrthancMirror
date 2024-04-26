@@ -500,10 +500,6 @@ if (ENABLE_PLUGINS AND
     
     ${CMAKE_SOURCE_DIR}/../OrthancFramework/Resources/ThirdParty/base64/base64.cpp
     ${CMAKE_SOURCE_DIR}/../OrthancFramework/Resources/ThirdParty/md5/md5.c
-
-    # the orthanc framework sources
-    ${ORTHANC_CORE_SOURCES}
-
     Plugins/Samples/Common/OrthancPluginCppWrapper.cpp
     )
 
@@ -527,8 +523,6 @@ if (ENABLE_PLUGINS AND
     )
 
   DefineSourceBasenameForTarget(PluginsDependencies)
-
-  target_include_directories(PluginsDependencies PUBLIC ${CMAKE_SOURCE_DIR}/../OrthancFramework/Sources)
 
   # Add the "-fPIC" option as this static library must be embedded
   # inside shared libraries (important on UNIX)

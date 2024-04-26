@@ -164,7 +164,7 @@ public:
 
     if (content_.find(name) != content_.end())
     {
-      OrthancPlugins::LogError("Already existing: " + name);
+      ORTHANC_PLUGINS_LOG_ERROR("Already existing: " + name);
       ORTHANC_PLUGINS_THROW_EXCEPTION(BadRequest);
     }
     else
@@ -177,7 +177,7 @@ public:
   {
     if (content_.find(name) != content_.end())
     {
-      OrthancPlugins::LogError("Already existing: " + name);
+      ORTHANC_PLUGINS_LOG_ERROR("Already existing: " + name);
       ORTHANC_PLUGINS_THROW_EXCEPTION(BadRequest);
     }
     else
@@ -192,7 +192,7 @@ public:
 
     if (found == content_.end())
     {
-      OrthancPlugins::LogError("Cannot delete inexistent path: " + name);
+      ORTHANC_PLUGINS_LOG_ERROR("Cannot delete inexistent path: " + name);
       ORTHANC_PLUGINS_THROW_EXCEPTION(InexistentItem);
     }
     else
@@ -215,7 +215,7 @@ private:
   {
     if (path.empty())
     {
-      OrthancPlugins::LogError("Empty path");
+      ORTHANC_PLUGINS_LOG_ERROR("Empty path");
       ORTHANC_PLUGINS_THROW_EXCEPTION(ParameterOutOfRange);
     }
     else

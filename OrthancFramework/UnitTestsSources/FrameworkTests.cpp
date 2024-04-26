@@ -1602,3 +1602,53 @@ TEST(Toolbox, GetMacAddressess)
   }
 }
 #endif
+
+
+TEST(Toolbox, IsVersionAbove)
+{
+  unsigned int a, b, c;
+  ASSERT_FALSE(Toolbox::ParseVersion(a, b, c, "nope"));
+  ASSERT_FALSE(Toolbox::ParseVersion(a, b, c, "mainline"));
+  ASSERT_FALSE(Toolbox::ParseVersion(a, b, c, ""));
+  ASSERT_FALSE(Toolbox::ParseVersion(a, b, c, "-1"));
+  ASSERT_FALSE(Toolbox::ParseVersion(a, b, c, "1.-1"));
+  ASSERT_FALSE(Toolbox::ParseVersion(a, b, c, "1.1.-1"));
+
+  ASSERT_TRUE(Toolbox::ParseVersion(a, b, c, "14.17.20"));
+  ASSERT_EQ(14u, a);
+  ASSERT_EQ(17u, b);
+  ASSERT_EQ(20u, c);
+
+  ASSERT_TRUE(Toolbox::ParseVersion(a, b, c, "18.19"));
+  ASSERT_EQ(18u, a);
+  ASSERT_EQ(19u, b);
+  ASSERT_EQ(0u, c);
+
+  ASSERT_TRUE(Toolbox::ParseVersion(a, b, c, "78"));
+  ASSERT_EQ(78u, a);
+  ASSERT_EQ(0u, b);
+  ASSERT_EQ(0u, c);
+
+  ASSERT_TRUE(Toolbox::IsVersionAbove("mainline", 99, 99, 99));
+
+  ASSERT_TRUE(Toolbox::IsVersionAbove("18", 17, 99, 99));
+  ASSERT_TRUE(Toolbox::IsVersionAbove("18", 18, 0, 0));
+  ASSERT_FALSE(Toolbox::IsVersionAbove("18", 18, 0, 1));
+  ASSERT_FALSE(Toolbox::IsVersionAbove("18", 18, 1, 0));
+  ASSERT_FALSE(Toolbox::IsVersionAbove("18", 19, 0, 0));
+
+  ASSERT_TRUE(Toolbox::IsVersionAbove("18.19", 17, 99, 99));
+  ASSERT_TRUE(Toolbox::IsVersionAbove("18.19", 18, 18, 99));
+  ASSERT_TRUE(Toolbox::IsVersionAbove("18.19", 18, 19, 0));
+  ASSERT_FALSE(Toolbox::IsVersionAbove("18.19", 18, 19, 1));
+  ASSERT_FALSE(Toolbox::IsVersionAbove("18.19", 18, 20, 0));
+  ASSERT_FALSE(Toolbox::IsVersionAbove("18.19", 19, 0, 0));
+
+  ASSERT_TRUE(Toolbox::IsVersionAbove("18.19.20", 17, 99, 99));
+  ASSERT_TRUE(Toolbox::IsVersionAbove("18.19.20", 18, 18, 99));
+  ASSERT_TRUE(Toolbox::IsVersionAbove("18.19.20", 18, 19, 19));
+  ASSERT_TRUE(Toolbox::IsVersionAbove("18.19.20", 18, 19, 20));
+  ASSERT_FALSE(Toolbox::IsVersionAbove("18.19.20", 18, 19, 21));
+  ASSERT_FALSE(Toolbox::IsVersionAbove("18.19.20", 18, 20, 0));
+  ASSERT_FALSE(Toolbox::IsVersionAbove("18.19.20", 19, 0, 0));
+}
