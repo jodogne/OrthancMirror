@@ -23,6 +23,7 @@
 #define HOUSEKEEPER_NAME "housekeeper"
 
 #include "../Common/OrthancPluginCppWrapper.h"
+#include "../../../../OrthancFramework/Sources/Compatibility.h"
 
 #include <boost/thread.hpp>
 #include <boost/algorithm/string.hpp>
