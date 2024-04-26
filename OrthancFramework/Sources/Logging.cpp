@@ -870,10 +870,17 @@ namespace Orthanc
     }
 
 
-    void InternalLogger::Setup(LogCategory category,
-                               const char* pluginName,
-                               const char* file,
-                               int line)
+    InternalLogger::InternalLogger(LogLevel level,
+                                   LogCategory category,
+                                   const char* pluginName,
+                                   const char* file,
+                                   int line) :
+      lock_(loggingStreamsMutex_, boost::defer_lock_t()),
+      level_(level),
+      stream_(&nullStream_),  // By default, logging to "/dev/null" is simulated
+      category_(category),
+      file_(file),
+      line_(line)
     {
       if (pluginContext_ != NULL)
       {
@@ -913,7 +920,9 @@ namespace Orthanc
       
           if (loggingStreamsContext_.get() == NULL)
           {
-            fprintf(stderr, "ERROR: Trying to log a message after the finalization of the logging engine (or did you forgot to initialize it ?)\n"); // have you called Orthanc::Logging::InitializePluginContext ?
+            // Have you called Orthanc::Logging::InitializePluginContext()?
+            fprintf(stderr, "ERROR: Trying to log a message after the finalization of the logging engine "
+                    "(or did you forgot to initialize it?)\n");
             lock_.unlock();
             return;
           }
@@ -962,50 +971,6 @@ namespace Orthanc
       }
     }
 
-
-    InternalLogger::InternalLogger(LogLevel level,
-                                   LogCategory category,
-                                   const char* file,
-                                   int line) :
-      lock_(loggingStreamsMutex_, boost::defer_lock_t()),
-      level_(level),
-      stream_(&nullStream_),  // By default, logging to "/dev/null" is simulated
-      category_(category),
-      file_(file),
-      line_(line)
-    {
-      Setup(category, NULL, file, line);
-    }
-
-    InternalLogger::InternalLogger(LogLevel level,
-                                   LogCategory category,
-                                   const char* pluginName,
-                                   const char* file,
-                                   int line) :
-      lock_(loggingStreamsMutex_, boost::defer_lock_t()),
-      level_(level),
-      stream_(&nullStream_),  // By default, logging to "/dev/null" is simulated
-      category_(category),
-      file_(file),
-      line_(line)
-    {
-      Setup(category, pluginName, file, line);
-    }
-
-
-
-    InternalLogger::InternalLogger(LogLevel level,
-                                   const char* file,
-                                   int line) :
-      lock_(loggingStreamsMutex_, boost::defer_lock_t()),
-      level_(level),
-      stream_(&nullStream_),  // By default, logging to "/dev/null" is simulated
-      category_(LogCategory_GENERIC),
-      file_(file),
-      line_(line)
-    {
-      Setup(LogCategory_GENERIC, NULL, file, line);
-    }
 
 
     InternalLogger::~InternalLogger()
