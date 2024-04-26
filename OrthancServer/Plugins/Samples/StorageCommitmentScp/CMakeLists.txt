@@ -40,6 +40,8 @@ add_library(StorageCommitmentScp SHARED
   ${BOOST_SOURCES}
   )
 
+DefineSourceBasenameForTarget(StorageCommitmentScp)
+
 message("Setting the version of the plugin to ${PLUGIN_VERSION}")
 add_definitions(
   -DPLUGIN_VERSION="${PLUGIN_VERSION}"

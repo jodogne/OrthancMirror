@@ -40,6 +40,8 @@ add_library(ModalityWorklists SHARED
   ${BOOST_SOURCES}
   )
 
+DefineSourceBasenameForTarget(ModalityWorklists)
+
 message("Setting the version of the plugin to ${MODALITY_WORKLISTS_VERSION}")
 add_definitions(
   -DMODALITY_WORKLISTS_VERSION="${MODALITY_WORKLISTS_VERSION}"

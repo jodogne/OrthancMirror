@@ -40,3 +40,5 @@ add_library(WebDavFilesystem SHARED
   ${JSONCPP_SOURCES}
   ${BOOST_SOURCES}
   )
+
+DefineSourceBasenameForTarget(WebDavFilesystem)
