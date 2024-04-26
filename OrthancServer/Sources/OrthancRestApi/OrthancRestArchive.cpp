@@ -600,7 +600,7 @@ namespace Orthanc
 
     ServerContext& context = OrthancRestApi::GetContext(call);
     bool transcode = false;
-    DicomTransferSyntax transferSyntax;
+    DicomTransferSyntax transferSyntax = DicomTransferSyntax_LittleEndianImplicit;  // Initialize variable to avoid warnings
 
     if (call.HasArgument(TRANSCODE))
     {

@@ -40,6 +40,8 @@ add_library(ServeFolders SHARED
   ${BOOST_SOURCES}
   )
 
+DefineSourceBasenameForTarget(ServeFolders)
+
 add_definitions(-DHAS_ORTHANC_EXCEPTION=0)
 
 message("Setting the version of the plugin to ${SERVE_FOLDERS_VERSION}")

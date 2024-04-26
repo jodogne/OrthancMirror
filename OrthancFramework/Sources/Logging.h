@@ -80,8 +80,8 @@ namespace Orthanc
     // "pluginContext" must be of type "OrthancPluginContext"
     ORTHANC_PUBLIC void InitializePluginContext(void* pluginContext);
 
-    // note: this variant shall be called only from a plugin and only if ORTHANC_FRAMEWORK_VERSION_IS_ABOVE(1, 12, 4) && ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 12, 4)
-    ORTHANC_PUBLIC void InitializePluginContext(void* pluginContext, const char* pluginName);
+    ORTHANC_PUBLIC void InitializePluginContext(void* pluginContext,
+                                                const std::string& pluginName);
 
     ORTHANC_PUBLIC void Initialize();
 
@@ -181,15 +181,22 @@ namespace Orthanc
 
 #  define LOG(level)     ::Orthanc::Logging::InternalLogger             \
   (::Orthanc::Logging::LogLevel_ ## level,                              \
-   ::Orthanc::Logging::LogCategory_GENERIC, __ORTHANC_FILE__, __LINE__)
+   ::Orthanc::Logging::LogCategory_GENERIC, NULL /* no plugin */,       \
+   __ORTHANC_FILE__, __LINE__)
+
 #  define VLOG(unused)   ::Orthanc::Logging::InternalLogger             \
   (::Orthanc::Logging::LogLevel_TRACE,                                  \
-   ::Orthanc::Logging::LogCategory_GENERIC, __ORTHANC_FILE__, __LINE__)
+   ::Orthanc::Logging::LogCategory_GENERIC, NULL /* no plugin */,       \
+   __ORTHANC_FILE__, __LINE__)
+
 #  define CLOG(level, category) ::Orthanc::Logging::InternalLogger      \
   (::Orthanc::Logging::LogLevel_ ## level,                              \
-   ::Orthanc::Logging::LogCategory_ ## category, __ORTHANC_FILE__, __LINE__)
-#  define LOG_FROM_PLUGIN(level, category, pluginName, file, line)  ::Orthanc::Logging::InternalLogger      \
-  (level, category, pluginName, file, line)
+   ::Orthanc::Logging::LogCategory_ ## category, NULL /* no plugin */,  \
+   __ORTHANC_FILE__, __LINE__)
+
+#  define LOG_FROM_PLUGIN(level, category, pluginName, file, line)      \
+  ::Orthanc::Logging::InternalLogger(level, category, pluginName, file, line)
+
 #endif
 
 
@@ -270,25 +277,10 @@ namespace Orthanc
       const char*                         file_;
       uint32_t                            line_;
 
-      void Setup(LogCategory category,
-                 const char* pluginName,
-                 const char* file,
-                 int line);
-
     public:
       InternalLogger(LogLevel level,
                      LogCategory category,
-                     const char* file,
-                     int line);
-
-      InternalLogger(LogLevel level,
-                     LogCategory category,
                      const char* pluginName,
-                     const char* file,
-                     int line);
-
-      // For backward binary compatibility with Orthanc Framework <= 1.8.0
-      InternalLogger(LogLevel level,
                      const char* file,
                      int line);
 

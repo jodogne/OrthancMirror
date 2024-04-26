@@ -36,10 +36,12 @@ Plugins
 * Housekeeper plugin: Added an option "LimitMainDicomTagsReconstructLevel"
   (allowed values: "Patient", "Study", "Series", "Instance").  This can greatly speed
   up the housekeeper process e.g. if you have only update the Study level ExtraMainDicomTags.
-* SDK: added OrthancPluginLogMessage that is a new primitive for plugins to log messages.
-  This new primitive will display the plugin name, plugin file name and plugin line number
-  in the logs.  If they are using the OrthancFramework, plugins should now use LOG(INFO),
-  LOG(WARNING) and LOG(ERROR) to log their messages.
+* SDK: added OrthancPluginLogMessage() that is a new primitive for
+  plugins to log messages.  This new primitive will display the plugin
+  name, the plugin file name, and the plugin line number in the
+  logs. If they are not using the LOG() facilities provided by the
+  OrthancFramework, plugins should now use ORTHANC_PLUGINS_LOG_INFO(),
+  ORTHANC_PLUGINS_LOG_WARNING(), and ORTHANC_PLUGINS_LOG_ERROR().
 
 
 Version 1.12.3 (2024-01-31)
