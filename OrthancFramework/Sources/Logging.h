@@ -28,6 +28,7 @@
 #include "Compatibility.h"
 
 #include <iostream>
+#include <stdint.h>
 
 #if !defined(ORTHANC_ENABLE_LOGGING)
 #  error The macro ORTHANC_ENABLE_LOGGING must be defined
