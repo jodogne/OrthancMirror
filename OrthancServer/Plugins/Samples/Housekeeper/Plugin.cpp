@@ -22,8 +22,6 @@
 
 #define HOUSEKEEPER_NAME "housekeeper"
 
-#include "../../../../OrthancFramework/Sources/Compatibility.h"
-#include "../../../../OrthancFramework/Sources/Logging.h"
 #include "../Common/OrthancPluginCppWrapper.h"
 
 #include <boost/thread.hpp>
@@ -92,7 +90,7 @@ struct RunningPeriod
     }
     else
     {
-      LOG(WARNING) << "Housekeeper: invalid schedule: unknown 'day': " << weekday;
+      ORTHANC_PLUGINS_LOG_WARNING("Housekeeper: invalid schedule: unknown 'day': " + weekday);
       ORTHANC_PLUGINS_THROW_EXCEPTION(BadFileFormat);
     }
 
@@ -404,12 +402,12 @@ static void CheckNeedsProcessing(bool& needsReconstruct, bool& needsReingest, bo
   {
     if (triggerOnUnnecessaryDicomAsJsonFiles_)
     {
-      LOG(WARNING) << "Housekeeper: your storage might still contain some dicom-as-json files -> will perform housekeeping";
+      ORTHANC_PLUGINS_LOG_WARNING("Housekeeper: your storage might still contain some dicom-as-json files -> will perform housekeeping");
       needsReconstruct = true;  // the default reconstruct removes the dicom-as-json
     }
     else
     {
-      LOG(WARNING) << "Housekeeper: your storage might still contain some dicom-as-json files but the trigger has been disabled";
+      ORTHANC_PLUGINS_LOG_WARNING("Housekeeper: your storage might still contain some dicom-as-json files but the trigger has been disabled");
     }
   }
 
@@ -417,12 +415,12 @@ static void CheckNeedsProcessing(bool& needsReconstruct, bool& needsReingest, bo
   {
     if (triggerOnMainDicomTagsChange_)
     {
-      LOG(WARNING) << "Housekeeper: Patient main dicom tags have changed, -> will perform housekeeping";
+      ORTHANC_PLUGINS_LOG_WARNING("Housekeeper: Patient main dicom tags have changed, -> will perform housekeeping");
       needsReconstruct = true;
     }
     else
     {
-      LOG(WARNING) << "Housekeeper: Patient main dicom tags have changed but the trigger is disabled";
+      ORTHANC_PLUGINS_LOG_WARNING("Housekeeper: Patient main dicom tags have changed but the trigger is disabled");
     }
   }
 
@@ -430,12 +428,12 @@ static void CheckNeedsProcessing(bool& needsReconstruct, bool& needsReingest, bo
   {
     if (triggerOnMainDicomTagsChange_)
     {
-      LOG(WARNING) << "Housekeeper: Study main dicom tags have changed, -> will perform housekeeping";
+      ORTHANC_PLUGINS_LOG_WARNING("Housekeeper: Study main dicom tags have changed, -> will perform housekeeping");
       needsReconstruct = true;
     }
     else
     {
-      LOG(WARNING) << "Housekeeper: Study main dicom tags have changed but the trigger is disabled";
+      ORTHANC_PLUGINS_LOG_WARNING("Housekeeper: Study main dicom tags have changed but the trigger is disabled");
     }
   }
 
@@ -443,12 +441,12 @@ static void CheckNeedsProcessing(bool& needsReconstruct, bool& needsReingest, bo
   {
     if (triggerOnMainDicomTagsChange_)
     {
-      LOG(WARNING) << "Housekeeper: Series main dicom tags have changed, -> will perform housekeeping";
+      ORTHANC_PLUGINS_LOG_WARNING("Housekeeper: Series main dicom tags have changed, -> will perform housekeeping");
       needsReconstruct = true;
     }
     else
     {
-      LOG(WARNING) << "Housekeeper: Series main dicom tags have changed but the trigger is disabled";
+      ORTHANC_PLUGINS_LOG_WARNING("Housekeeper: Series main dicom tags have changed but the trigger is disabled");
     }
   }
 
@@ -456,12 +454,12 @@ static void CheckNeedsProcessing(bool& needsReconstruct, bool& needsReingest, bo
   {
     if (triggerOnMainDicomTagsChange_)
     {
-      LOG(WARNING) << "Housekeeper: Instance main dicom tags have changed, -> will perform housekeeping";
+      ORTHANC_PLUGINS_LOG_WARNING("Housekeeper: Instance main dicom tags have changed, -> will perform housekeeping");
       needsReconstruct = true;
     }
     else
     {
-      LOG(WARNING) << "Housekeeper: Instance main dicom tags have changed but the trigger is disabled";
+      ORTHANC_PLUGINS_LOG_WARNING("Housekeeper: Instance main dicom tags have changed but the trigger is disabled");
     }
   }
 
@@ -471,18 +469,18 @@ static void CheckNeedsProcessing(bool& needsReconstruct, bool& needsReingest, bo
     {
       if (current.storageCompressionEnabled)
       {
-        LOG(WARNING) << "Housekeeper: storage compression is now enabled -> will perform housekeeping";
+        ORTHANC_PLUGINS_LOG_WARNING("Housekeeper: storage compression is now enabled -> will perform housekeeping");
       }
       else
       {
-        LOG(WARNING) << "Housekeeper: storage compression is now disabled -> will perform housekeeping";
+        ORTHANC_PLUGINS_LOG_WARNING("Housekeeper: storage compression is now disabled -> will perform housekeeping");
       }
       
       needsReingest = true;
     }
     else
     {
-      LOG(WARNING) << "Housekeeper: storage compression has changed but the trigger is disabled";
+      ORTHANC_PLUGINS_LOG_WARNING("Housekeeper: storage compression has changed but the trigger is disabled");
     }
   }
 
@@ -490,13 +488,13 @@ static void CheckNeedsProcessing(bool& needsReconstruct, bool& needsReingest, bo
   {
     if (triggerOnIngestTranscodingChange_)
     {
-      LOG(WARNING) << "Housekeeper: ingest transcoding has changed -> will perform housekeeping";
+      ORTHANC_PLUGINS_LOG_WARNING("Housekeeper: ingest transcoding has changed -> will perform housekeeping");
       
       needsReingest = true;
     }
     else
     {
-      LOG(WARNING) << "Housekeeper: ingest transcoding has changed but the trigger is disabled";
+      ORTHANC_PLUGINS_LOG_WARNING("Housekeeper: ingest transcoding has changed but the trigger is disabled");
     }
   }
 
@@ -506,7 +504,7 @@ static void CheckNeedsProcessing(bool& needsReconstruct, bool& needsReingest, bo
     {
       if (triggerOnDicomWebCacheChange_)
       {
-        LOG(WARNING) << "Housekeeper: DicomWEB plugin is enabled and the housekeeper has never run, you might miss series metadata cache -> will perform housekeeping";
+        ORTHANC_PLUGINS_LOG_WARNING("Housekeeper: DicomWEB plugin is enabled and the housekeeper has never run, you might miss series metadata cache -> will perform housekeeping");
       }
       needsDicomWebCaching = triggerOnDicomWebCacheChange_;
     }
@@ -518,12 +516,12 @@ static void CheckNeedsProcessing(bool& needsReconstruct, bool& needsReingest, bo
       {
         if (triggerOnDicomWebCacheChange_)
         {
-          LOG(WARNING) << "Housekeeper: DicomWEB plugin might miss series metadata cache -> will perform housekeeping";
+          ORTHANC_PLUGINS_LOG_WARNING("Housekeeper: DicomWEB plugin might miss series metadata cache -> will perform housekeeping");
           needsDicomWebCaching = true;
         }
         else
         {
-          LOG(WARNING) << "Housekeeper: DicomWEB plugin might miss series metadata cache but the trigger has been disabled";
+          ORTHANC_PLUGINS_LOG_WARNING("Housekeeper: DicomWEB plugin might miss series metadata cache but the trigger has been disabled");
         }
       }
     }
@@ -660,7 +658,7 @@ static void WorkerThread()
 
   if (!needsProcessing)
   {
-    LOG(WARNING) << "Housekeeper: everything has been processed already !";
+    ORTHANC_PLUGINS_LOG_WARNING("Housekeeper: everything has been processed already !");
     return;
   }
 
@@ -668,11 +666,11 @@ static void WorkerThread()
   {
     if (force_)
     {
-      LOG(WARNING) << "Housekeeper: forcing execution -> will perform housekeeping";
+      ORTHANC_PLUGINS_LOG_WARNING("Housekeeper: forcing execution -> will perform housekeeping");
     }
     else
     {
-      LOG(WARNING) << "Housekeeper: the DB configuration has changed since last run, will reprocess the whole DB !";
+      ORTHANC_PLUGINS_LOG_WARNING("Housekeeper: the DB configuration has changed since last run, will reprocess the whole DB !");
     }
     
     Json::Value changes;
@@ -688,7 +686,7 @@ static void WorkerThread()
   }
   else
   {
-    LOG(WARNING) << "Housekeeper: the DB configuration has not changed since last run, will continue processing changes";
+    ORTHANC_PLUGINS_LOG_WARNING("Housekeeper: the DB configuration has not changed since last run, will continue processing changes");
   }
 
   bool completed = false;
@@ -710,7 +708,8 @@ static void WorkerThread()
       {
         boost::recursive_mutex::scoped_lock lock(pluginStatusMutex_);
     
-        LOG(INFO) << "Housekeeper: processed changes " << pluginStatus_.lastProcessedChange << " / " << pluginStatus_.lastChangeToProcess;
+        ORTHANC_PLUGINS_LOG_INFO("Housekeeper: processed changes " + boost::lexical_cast<std::string>(pluginStatus_.lastProcessedChange) +
+                                 " / " + boost::lexical_cast<std::string>(pluginStatus_.lastChangeToProcess));
         
         boost::this_thread::sleep(boost::posix_time::milliseconds(throttleDelay_ * 100));  // wait 1/10 of the delay between changes
       }
@@ -721,7 +720,7 @@ static void WorkerThread()
     {
       if (!loggedNotRightPeriodChangeMessage)
       {
-        LOG(INFO) << "Housekeeper: entering quiet period";
+        ORTHANC_PLUGINS_LOG_INFO("Housekeeper: entering quiet period");
         loggedNotRightPeriodChangeMessage = true;
       }
 
@@ -796,7 +795,6 @@ extern "C"
   ORTHANC_PLUGINS_API int32_t OrthancPluginInitialize(OrthancPluginContext* c)
   {
     OrthancPlugins::SetGlobalContext(c, HOUSEKEEPER_NAME);
-    Orthanc::Logging::InitializePluginContext(c, HOUSEKEEPER_NAME);
 
     /* Check the version of the Orthanc core */
     if (OrthancPluginCheckVersion(c) == 0)
@@ -807,7 +805,7 @@ extern "C"
       return -1;
     }
 
-    LOG(WARNING) << "Housekeeper plugin is initializing";
+    ORTHANC_PLUGINS_LOG_WARNING("Housekeeper plugin is initializing");
     OrthancPluginSetDescription2(c, HOUSEKEEPER_NAME, "Optimizes your DB and storage.");
 
     OrthancPlugins::OrthancConfiguration orthancConfiguration;
@@ -891,7 +889,7 @@ extern "C"
       if (limitMainDicomTagsReconstructLevel_ != "Patient" && limitMainDicomTagsReconstructLevel_ != "Study"
         && limitMainDicomTagsReconstructLevel_ != "Series" && limitMainDicomTagsReconstructLevel_ != "Instance")
       {
-        LOG(ERROR) << "Housekeeper invalid value for 'LimitMainDicomTagsReconstructLevel': '" << limitMainDicomTagsReconstructLevel_ << "'";
+        ORTHANC_PLUGINS_LOG_ERROR("Housekeeper invalid value for 'LimitMainDicomTagsReconstructLevel': '" + limitMainDicomTagsReconstructLevel_ + "'");
       }
       else if (limitMainDicomTagsReconstructLevel_ == "Patient")
       {
@@ -925,7 +923,7 @@ extern "C"
     }
     else
     {
-      LOG(WARNING) << "Housekeeper plugin is disabled by the configuration file";
+      ORTHANC_PLUGINS_LOG_WARNING("Housekeeper plugin is disabled by the configuration file");
     }
 
     return 0;
@@ -934,7 +932,7 @@ extern "C"
 
   ORTHANC_PLUGINS_API void OrthancPluginFinalize()
   {
-    LOG(WARNING) << "Housekeeper plugin is finalizing";
+    ORTHANC_PLUGINS_LOG_WARNING("Housekeeper plugin is finalizing");
   }
 
 
