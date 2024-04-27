@@ -62,9 +62,7 @@ namespace Orthanc
           OrthancIdentifiers identifiers;
           identifiers.SetLevel(request.GetLevel(), *it);
 
-          response.Add(new FindResponse::Item(request.GetResponseContent(),
-                                              request.GetLevel(), 
-                                              identifiers));
+          response.Add(new FindResponse::Item(request.GetResponseContent(), identifiers));
         }
       }
       else
@@ -80,11 +78,6 @@ namespace Orthanc
       for (size_t i = 0; i < response.GetSize(); i++)
       {
         const FindResponse::Item& item = response.GetItem(i);
-
-        if (item.GetLevel() != request.GetLevel())
-        {
-          throw OrthancException(ErrorCode_InternalError);
-        }
 
         if (request.HasResponseContent(FindRequest::ResponseContent_MainDicomTags)
             && !item.HasDicomMap())

@@ -1176,8 +1176,7 @@ namespace Orthanc
             OrthancIdentifiers id;
             id.SetLevel(request.GetLevel(), statement.ColumnString(0));
 
-            FindResponse::Item* item = new FindResponse::Item(request.GetResponseContent(),
-                                                              request.GetLevel(), id);
+            FindResponse::Item* item = new FindResponse::Item(request.GetResponseContent(), id);
             response.Add(item);
           }
         }
@@ -1205,8 +1204,7 @@ namespace Orthanc
               OrthancIdentifiers id;
               id.SetLevel(request.GetLevel(), resourceId);
 
-              FindResponse::Item* item = new FindResponse::Item(request.GetResponseContent(),
-                                                                request.GetLevel(), id);
+              FindResponse::Item* item = new FindResponse::Item(request.GetResponseContent(), id);
               items[resourceId] = item;
               response.Add(item);
             }
