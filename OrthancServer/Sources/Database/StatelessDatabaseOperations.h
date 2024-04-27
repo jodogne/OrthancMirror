@@ -80,7 +80,7 @@ namespace Orthanc
     {
     }
     
-    ExpandedResource(ResourceType level,
+    ExpandedResource(const FindRequest& request,
                      const FindResponse::Item& item);
 
     void SetResource(ResourceType level,
