@@ -114,10 +114,8 @@ namespace Orthanc
   }
 
 
-  FindResponse::Item::Item(FindRequest::ResponseContent responseContent,
-                           ResourceType level,
+  FindResponse::Item::Item(ResourceType level,
                            DicomMap* dicomMap /* takes ownership */) :
-    responseContent_(responseContent),
     dicomMap_(dicomMap)
   {
     if (dicomMap == NULL)

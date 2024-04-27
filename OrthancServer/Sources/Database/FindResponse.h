@@ -82,7 +82,6 @@ namespace Orthanc
     class Item : public boost::noncopyable
     {
     private:
-      FindRequest::ResponseContent          responseContent_;  // TODO REMOVE  // what has been requested
       OrthancIdentifiers                    identifiers_;
       std::unique_ptr<DicomMap>             dicomMap_;
       std::list<std::string>                children_;
@@ -92,30 +91,17 @@ namespace Orthanc
       std::map<FileContentType, FileInfo>   attachments_;
 
     public:
-      Item(FindRequest::ResponseContent responseContent,
-           const OrthancIdentifiers& identifiers) :
-        responseContent_(responseContent),
+      explicit Item(const OrthancIdentifiers& identifiers) :
         identifiers_(identifiers)
       {
       }
 
-      Item(FindRequest::ResponseContent responseContent,
-           ResourceType level,
+      Item(ResourceType level,
            DicomMap* dicomMap /* takes ownership */);
 
       const OrthancIdentifiers& GetIdentifiers() const
       {
         return identifiers_;
-      }
-
-      FindRequest::ResponseContent GetResponseContent() const
-      {
-        return responseContent_;
-      }
-
-      bool HasResponseContent(FindRequest::ResponseContent content) const
-      {
-        return (responseContent_ & content) == content;
       }
 
       void AddDicomTag(uint16_t group, uint16_t element, const std::string& value, bool isBinary);
