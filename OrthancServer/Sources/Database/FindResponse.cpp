@@ -118,7 +118,6 @@ namespace Orthanc
                            ResourceType level,
                            DicomMap* dicomMap /* takes ownership */) :
     responseContent_(responseContent),
-    level_(level),
     dicomMap_(dicomMap)
   {
     if (dicomMap == NULL)

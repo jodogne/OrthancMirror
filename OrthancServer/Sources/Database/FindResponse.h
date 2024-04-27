@@ -83,7 +83,6 @@ namespace Orthanc
     {
     private:
       FindRequest::ResponseContent          responseContent_;  // TODO REMOVE  // what has been requested
-      ResourceType                          level_;   // TODO REMOVE
       OrthancIdentifiers                    identifiers_;
       std::unique_ptr<DicomMap>             dicomMap_;
       std::list<std::string>                children_;
@@ -94,10 +93,8 @@ namespace Orthanc
 
     public:
       Item(FindRequest::ResponseContent responseContent,
-           ResourceType level,
            const OrthancIdentifiers& identifiers) :
         responseContent_(responseContent),
-        level_(level),
         identifiers_(identifiers)
       {
       }
@@ -105,11 +102,6 @@ namespace Orthanc
       Item(FindRequest::ResponseContent responseContent,
            ResourceType level,
            DicomMap* dicomMap /* takes ownership */);
-
-      ResourceType GetLevel() const
-      {
-        return level_;
-      }
 
       const OrthancIdentifiers& GetIdentifiers() const
       {

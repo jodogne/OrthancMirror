@@ -3866,7 +3866,7 @@ namespace Orthanc
   ExpandedResource::ExpandedResource(const FindRequest& request,
                                      const FindResponse::Item& item) :
     id_(item.GetIdentifiers().GetLevel(request.GetLevel())),
-    level_(item.GetLevel()),
+    level_(request.GetLevel()),
     isStable_(false),
     expectedNumberOfInstances_(0),
     fileSize_(0),
@@ -3907,14 +3907,14 @@ namespace Orthanc
       {
         lastUpdate_ = value;
       }
-      if (item.GetLevel() == ResourceType_Series)
+      if (request.GetLevel() == ResourceType_Series)
       {
         if (item.LookupMetadata(value, MetadataType_Series_ExpectedNumberOfInstances))
         {
           expectedNumberOfInstances_ = boost::lexical_cast<int>(value);
         }
       }
-      if (item.GetLevel() == ResourceType_Instance)
+      if (request.GetLevel() == ResourceType_Instance)
       {
         if (item.LookupMetadata(value, MetadataType_Instance_IndexInSeries))
         {
