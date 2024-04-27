@@ -2725,26 +2725,26 @@ namespace Orthanc
                                          bool allowStorageAccess)
   {
     // convert to ExpandedResource to re-use the serialization code TODO-FIND: check if this is the right way to do.  shouldn't we copy the code and finally get rid of ExpandedResource ? 
-    ExpandedResource resource(request.GetLevel(), item);
+    ExpandedResource resource(request, item);
 
     ExpandResourceFlags expandFlags = ExpandResourceFlags_None;
-    if (item.HasResponseContent(FindRequest::ResponseContent_Children))
+    if (request.HasResponseContent(FindRequest::ResponseContent_Children))
     {
       expandFlags = static_cast<ExpandResourceFlags>(expandFlags | ExpandResourceFlags_IncludeChildren);
     }
-    if (item.HasResponseContent(FindRequest::ResponseContent_Metadata))
+    if (request.HasResponseContent(FindRequest::ResponseContent_Metadata))
     {
       expandFlags = static_cast<ExpandResourceFlags>(expandFlags | ExpandResourceFlags_IncludeAllMetadata | ExpandResourceFlags_IncludeMetadata );
     }
-    if (item.HasResponseContent(FindRequest::ResponseContent_MainDicomTags))
+    if (request.HasResponseContent(FindRequest::ResponseContent_MainDicomTags))
     {
       expandFlags = static_cast<ExpandResourceFlags>(expandFlags | ExpandResourceFlags_IncludeMainDicomTags);
     }
-    if (item.HasResponseContent(FindRequest::ResponseContent_IsStable))
+    if (request.HasResponseContent(FindRequest::ResponseContent_IsStable))
     {
       expandFlags = static_cast<ExpandResourceFlags>(expandFlags | ExpandResourceFlags_IncludeIsStable);
     }
-    if (item.HasResponseContent(FindRequest::ResponseContent_Labels))
+    if (request.HasResponseContent(FindRequest::ResponseContent_Labels))
     {
       expandFlags = static_cast<ExpandResourceFlags>(expandFlags | ExpandResourceFlags_IncludeLabels);
     }

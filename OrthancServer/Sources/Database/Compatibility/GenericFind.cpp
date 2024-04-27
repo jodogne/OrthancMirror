@@ -62,7 +62,7 @@ namespace Orthanc
           OrthancIdentifiers identifiers;
           identifiers.SetLevel(request.GetLevel(), *it);
 
-          response.Add(new FindResponse::Item(request.GetResponseContent(), identifiers));
+          response.Add(new FindResponse::Item(identifiers));
         }
       }
       else

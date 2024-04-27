@@ -80,6 +80,7 @@ namespace Orthanc
 
     class Key
     {
+    private:
       KeyType                       type_;
       boost::shared_ptr<DicomTag>   dicomTag_;
       MetadataType                  metadata_;
@@ -90,14 +91,14 @@ namespace Orthanc
       // these are however only populated in StatelessDatabaseOperations -> we had to add the normalized lookup arg to ExecuteFind
 
     public:
-      Key(const DicomTag& dicomTag) :
+      explicit Key(const DicomTag& dicomTag) :
         type_(KeyType_DicomTag),
         dicomTag_(new DicomTag(dicomTag)),
         metadata_(MetadataType_EndUser)
       {
       }
 
-      Key(MetadataType metadata) :
+      explicit Key(MetadataType metadata) :
         type_(KeyType_Metadata),
         metadata_(metadata)
       {
@@ -123,6 +124,7 @@ namespace Orthanc
 
     class Ordering : public boost::noncopyable
     {
+    private:
       OrderingDirection   direction_;
       Key                 key_;
 
@@ -134,7 +136,6 @@ namespace Orthanc
       {
       }
 
-    public:
       KeyType GetKeyType() const
       {
         return key_.GetType();
@@ -354,7 +355,7 @@ namespace Orthanc
     bool IsCompatibleLevel(ResourceType levelOfInterest) const;
 
   public:
-    FindRequest(ResourceType level);
+    explicit FindRequest(ResourceType level);
 
     ~FindRequest();
 

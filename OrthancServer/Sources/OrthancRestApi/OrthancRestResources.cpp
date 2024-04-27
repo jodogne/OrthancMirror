@@ -323,7 +323,7 @@ namespace Orthanc
       {
         for (size_t i = 0; i < response.GetSize(); i++)
         {
-          context.AppendFindResponse(answer, resourceType, response.GetItem(i), format, requestedTags, true /* allowStorageAccess */);
+          context.AppendFindResponse(answer, request, response.GetItem(i), format, requestedTags, true /* allowStorageAccess */);
         }
       }
 

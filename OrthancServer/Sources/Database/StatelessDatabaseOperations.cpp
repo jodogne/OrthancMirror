@@ -3872,22 +3872,22 @@ namespace Orthanc
     fileSize_(0),
     indexInSeries_(0)
   {
-    if (item.HasResponseContent(FindRequest::ResponseContent_MainDicomTags))
+    if (request.HasResponseContent(FindRequest::ResponseContent_MainDicomTags))
     {
       tags_.Assign(item.GetDicomMap());
     }
 
-    if (item.HasResponseContent(FindRequest::ResponseContent_Children))
+    if (request.HasResponseContent(FindRequest::ResponseContent_Children))
     {
       childrenIds_ = item.GetChildren();
     }
 
-    if (item.HasResponseContent(FindRequest::ResponseContent_Parent))
+    if (request.HasResponseContent(FindRequest::ResponseContent_Parent))
     {
       parentId_ = item.GetIdentifiers().GetLevel(GetParentResourceType(request.GetLevel()));
     }
 
-    if (item.HasResponseContent(FindRequest::ResponseContent_Metadata))
+    if (request.HasResponseContent(FindRequest::ResponseContent_Metadata))
     {
       metadata_ = item.GetMetadata();
       std::string value;
@@ -3923,12 +3923,12 @@ namespace Orthanc
       }
     }
 
-    if (item.HasResponseContent(FindRequest::ResponseContent_Labels))
+    if (request.HasResponseContent(FindRequest::ResponseContent_Labels))
     {
       labels_ = item.GetLabels();
     }
 
-    if (item.HasResponseContent(FindRequest::ResponseContent_Attachments))
+    if (request.HasResponseContent(FindRequest::ResponseContent_Attachments))
     {
       FileInfo attachment;
       if (item.LookupAttachment(attachment, FileContentType_Dicom))
@@ -3938,7 +3938,7 @@ namespace Orthanc
       }
     }
 
-    if (item.HasResponseContent(FindRequest::ResponseContent_ChildrenMetadata))
+    if (request.HasResponseContent(FindRequest::ResponseContent_ChildrenMetadata))
     {
       // TODO-FIND: the status_ is normally obtained from transaction.GetSeriesStatus(internalId, i)
       // but, that's an heavy operation for something that is rarely used -> we should have dedicated SQL code 
