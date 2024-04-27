@@ -3884,7 +3884,7 @@ namespace Orthanc
 
     if (item.HasResponseContent(FindRequest::ResponseContent_Parent))
     {
-      parentId_ = item.GetParent();
+      parentId_ = item.GetIdentifiers().GetLevel(GetParentResourceType(level));
     }
 
     if (item.HasResponseContent(FindRequest::ResponseContent_Metadata))

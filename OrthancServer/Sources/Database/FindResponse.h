@@ -84,8 +84,7 @@ namespace Orthanc
     private:
       FindRequest::ResponseContent          responseContent_;    // what has been requested
       ResourceType                          level_;
-      std::string                           parent_;    // TODO-FIND: Remove this, as it is redundant with "identifiers_"
-      OrthancIdentifiers                    identifiers_;  // TODO-FIND: not convenient to use here.  A simple resourceId seems enough
+      OrthancIdentifiers                    identifiers_;
       std::unique_ptr<DicomMap>             dicomMap_;
       std::list<std::string>                children_;
       std::string                           childInstanceId_;
@@ -162,16 +161,6 @@ namespace Orthanc
         return children_;
       }
 
-      void SetParent(const std::string& parent)
-      {
-        parent_ = parent;
-      }
-
-      const std::string& GetParent() const
-      {
-        return parent_;
-      }
-
       void AddLabel(const std::string& label)
       {
         labels_.insert(label);
@@ -202,6 +191,12 @@ namespace Orthanc
         }
 
         return false;
+      }
+
+      void SetIdentifier(ResourceType level,
+                         const std::string& id)
+      {
+        identifiers_.SetLevel(level, id);
       }
 
       // TODO-FIND: add other getters and setters
