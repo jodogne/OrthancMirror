@@ -3863,8 +3863,9 @@ namespace Orthanc
 
   // TODO-FIND: we reuse the ExpandedResource class to reuse Serialization code from ExpandedResource
   // But, finally, we might just get rid of ExpandedResource and replace it by FindResponse
-  ExpandedResource::ExpandedResource(const FindResponse::Item& item) :
-    id_(item.GetResourceId()),
+  ExpandedResource::ExpandedResource(ResourceType level,
+                                     const FindResponse::Item& item) :
+    id_(item.GetIdentifiers().GetLevel(level)),
     level_(item.GetLevel()),
     isStable_(false),
     expectedNumberOfInstances_(0),

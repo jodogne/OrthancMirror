@@ -315,7 +315,7 @@ namespace Orthanc
       {
         for (size_t i = 0; i < response.GetSize(); i++)
         {
-          std::string resourceId = response.GetItem(i).GetResourceId();
+          std::string resourceId = response.GetItem(i).GetIdentifiers().GetLevel(resourceType);
           answer.append(resourceId);
         }
       }
@@ -323,7 +323,7 @@ namespace Orthanc
       {
         for (size_t i = 0; i < response.GetSize(); i++)
         {
-          context.AppendFindResponse(answer, response.GetItem(i), format, requestedTags, true /* allowStorageAccess */);
+          context.AppendFindResponse(answer, resourceType, response.GetItem(i), format, requestedTags, true /* allowStorageAccess */);
         }
       }
 
