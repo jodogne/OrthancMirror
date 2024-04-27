@@ -608,7 +608,7 @@ namespace Orthanc
                         bool allowStorageAccess);
 
     void AppendFindResponse(Json::Value& target,
-                            ResourceType level,
+                            const FindRequest& request,
                             const FindResponse::Item& item,
                             DicomToJsonFormat format,
                             const std::set<DicomTag>& requestedTags,

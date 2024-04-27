@@ -82,8 +82,8 @@ namespace Orthanc
     class Item : public boost::noncopyable
     {
     private:
-      FindRequest::ResponseContent          responseContent_;    // what has been requested
-      ResourceType                          level_;
+      FindRequest::ResponseContent          responseContent_;  // TODO REMOVE  // what has been requested
+      ResourceType                          level_;   // TODO REMOVE
       OrthancIdentifiers                    identifiers_;
       std::unique_ptr<DicomMap>             dicomMap_;
       std::list<std::string>                children_;
