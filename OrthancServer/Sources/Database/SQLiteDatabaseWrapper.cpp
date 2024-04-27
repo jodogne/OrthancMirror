@@ -1173,9 +1173,11 @@ namespace Orthanc
 
           while (statement.Step())
           {
+            OrthancIdentifiers id;
+            id.SetLevel(request.GetLevel(), statement.ColumnString(0));
+
             FindResponse::Item* item = new FindResponse::Item(request.GetResponseContent(),
-                                                              request.GetLevel(),
-                                                              statement.ColumnString(0));
+                                                              request.GetLevel(), id);
             response.Add(item);
           }
         }
@@ -1198,10 +1200,13 @@ namespace Orthanc
 
             while (statement.Step())
             {
-              const std::string& resourceId = statement.ColumnString(0);
+              const std::string resourceId = statement.ColumnString(0);
+
+              OrthancIdentifiers id;
+              id.SetLevel(request.GetLevel(), resourceId);
+
               FindResponse::Item* item = new FindResponse::Item(request.GetResponseContent(),
-                                                                request.GetLevel(),
-                                                                resourceId);
+                                                                request.GetLevel(), id);
               items[resourceId] = item;
               response.Add(item);
             }

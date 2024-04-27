@@ -2718,13 +2718,14 @@ namespace Orthanc
   }
 
   void ServerContext::AppendFindResponse(Json::Value& target,
+                                         ResourceType level,
                                          const FindResponse::Item& item,
                                          DicomToJsonFormat format,
                                          const std::set<DicomTag>& requestedTags,
                                          bool allowStorageAccess)
   {
     // convert to ExpandedResource to re-use the serialization code TODO-FIND: check if this is the right way to do.  shouldn't we copy the code and finally get rid of ExpandedResource ? 
-    ExpandedResource resource(item);
+    ExpandedResource resource(level, item);
 
     ExpandResourceFlags expandFlags = ExpandResourceFlags_None;
     if (item.HasResponseContent(FindRequest::ResponseContent_Children))
