@@ -2736,7 +2736,7 @@ namespace Orthanc
     {
       expandFlags = static_cast<ExpandResourceFlags>(expandFlags | ExpandResourceFlags_IncludeAllMetadata | ExpandResourceFlags_IncludeMetadata );
     }
-    if (request.IsRetrieveTagsAtLevel(request.GetLevel()))
+    if (request.IsRetrieveMainDicomTags())
     {
       expandFlags = static_cast<ExpandResourceFlags>(expandFlags | ExpandResourceFlags_IncludeMainDicomTags);
     }

@@ -30,7 +30,7 @@
 
 namespace Orthanc
 {
-  class FindResponse::DicomTagsAtLevel::DicomValue : public boost::noncopyable
+  class FindResponse::Resource::DicomValue : public boost::noncopyable
   {
   public:
     enum ValueType
@@ -73,24 +73,14 @@ namespace Orthanc
   };
 
 
-  FindResponse::DicomTagsAtLevel::~DicomTagsAtLevel()
-  {
-    for (Content::iterator it = content_.begin(); it != content_.end(); ++it)
-    {
-      assert(it->second != NULL);
-      delete it->second;
-    }
-  }
-
-
-  void FindResponse::DicomTagsAtLevel::AddNullValue(uint16_t group,
-                                                    uint16_t element)
+  void FindResponse::Resource::AddNullDicomTag(uint16_t group,
+                                               uint16_t element)
   {
     const DicomTag tag(group, element);
 
-    if (content_.find(tag) == content_.end())
+    if (mainDicomTags_.find(tag) == mainDicomTags_.end())
     {
-      content_[tag] = new DicomValue(DicomValue::ValueType_Null, "");
+      mainDicomTags_[tag] = new DicomValue(DicomValue::ValueType_Null, "");
     }
     else
     {
@@ -99,15 +89,15 @@ namespace Orthanc
   }
 
 
-  void FindResponse::DicomTagsAtLevel::AddStringValue(uint16_t group,
-                                                      uint16_t element,
-                                                      const std::string& value)
+  void FindResponse::Resource::AddStringDicomTag(uint16_t group,
+                                                 uint16_t element,
+                                                 const std::string& value)
   {
     const DicomTag tag(group, element);
 
-    if (content_.find(tag) == content_.end())
+    if (mainDicomTags_.find(tag) == mainDicomTags_.end())
     {
-      content_[tag] = new DicomValue(DicomValue::ValueType_String, value);
+      mainDicomTags_[tag] = new DicomValue(DicomValue::ValueType_String, value);
     }
     else
     {
@@ -116,9 +106,9 @@ namespace Orthanc
   }
 
 
-  void FindResponse::DicomTagsAtLevel::Fill(DicomMap& target) const
+  void FindResponse::Resource::GetMainDicomTags(DicomMap& target) const
   {
-    for (Content::const_iterator it = content_.begin(); it != content_.end(); ++it)
+    for (MainDicomTags::const_iterator it = mainDicomTags_.begin(); it != mainDicomTags_.end(); ++it)
     {
       assert(it->second != NULL);
 
@@ -148,28 +138,6 @@ namespace Orthanc
     else
     {
       throw OrthancException(ErrorCode_BadSequenceOfCalls);
-    }
-  }
-
-
-  FindResponse::DicomTagsAtLevel& FindResponse::Resource::GetDicomTagsAtLevel(ResourceType level)
-  {
-    switch (level)
-    {
-      case ResourceType_Patient:
-        return patientTags_;
-
-      case ResourceType_Study:
-        return studyTags_;
-
-      case ResourceType_Series:
-        return seriesTags_;
-
-      case ResourceType_Instance:
-        return instanceTags_;
-
-      default:
-        throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
   }
 
@@ -271,6 +239,16 @@ namespace Orthanc
     else
     {
       throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+  }
+
+
+  FindResponse::Resource::~Resource()
+  {
+    for (MainDicomTags::iterator it = mainDicomTags_.begin(); it != mainDicomTags_.end(); ++it)
+    {
+      assert(it->second != NULL);
+      delete it->second;
     }
   }
 

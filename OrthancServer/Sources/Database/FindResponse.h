@@ -41,29 +41,6 @@ namespace Orthanc
   class FindResponse : public boost::noncopyable
   {
   private:
-    class DicomTagsAtLevel : public boost::noncopyable
-    {
-    private:
-      class DicomValue;
-
-      typedef std::map<DicomTag, DicomValue*>  Content;
-
-      Content  content_;
-
-    public:
-      ~DicomTagsAtLevel();
-
-      void AddNullValue(uint16_t group,
-                        uint16_t element);
-
-      void AddStringValue(uint16_t group,
-                          uint16_t element,
-                          const std::string& value);
-
-      void Fill(DicomMap& target) const;
-    };
-
-
     class ChildrenAtLevel : public boost::noncopyable
     {
     private:
@@ -83,13 +60,14 @@ namespace Orthanc
     class Resource : public boost::noncopyable
     {
     private:
+      class DicomValue;
+
+      typedef std::map<DicomTag, DicomValue*>  MainDicomTags;
+
       ResourceType                          level_;
       std::string                           identifier_;
       std::unique_ptr<std::string>          parentIdentifier_;
-      DicomTagsAtLevel                      patientTags_;
-      DicomTagsAtLevel                      studyTags_;
-      DicomTagsAtLevel                      seriesTags_;
-      DicomTagsAtLevel                      instanceTags_;
+      MainDicomTags                         mainDicomTags_;
       ChildrenAtLevel                       childrenStudies_;
       ChildrenAtLevel                       childrenSeries_;
       ChildrenAtLevel                       childrenInstances_;
@@ -97,17 +75,17 @@ namespace Orthanc
       std::map<MetadataType, std::string>   metadata_;
       std::map<FileContentType, FileInfo>   attachments_;
 
-      DicomTagsAtLevel& GetDicomTagsAtLevel(ResourceType level);
-
       ChildrenAtLevel& GetChildrenAtLevel(ResourceType level);
 
     public:
-      explicit Resource(ResourceType level,
-                        const std::string& identifier) :
+      Resource(ResourceType level,
+               const std::string& identifier) :
         level_(level),
         identifier_(identifier)
       {
       }
+
+      ~Resource();
 
       ResourceType GetLevel() const
       {
@@ -125,29 +103,16 @@ namespace Orthanc
 
       bool HasParentIdentifier() const;
 
-      void AddStringDicomTag(ResourceType level,
-                             uint16_t group,
+      void AddStringDicomTag(uint16_t group,
                              uint16_t element,
-                             const std::string& value)
-      {
-        GetDicomTagsAtLevel(level).AddStringValue(group, element, value);
-      }
+                             const std::string& value);
 
       // The "Null" value could be used in the future to indicate a
       // value that is not available, typically a new "ExtraMainDicomTag"
-      void AddNullDicomTag(ResourceType level,
-                           uint16_t group,
-                           uint16_t element,
-                           const std::string& value)
-      {
-        GetDicomTagsAtLevel(level).AddNullValue(group, element);
-      }
+      void AddNullDicomTag(uint16_t group,
+                           uint16_t element);
 
-      void GetDicomTagsAtLevel(DicomMap& target,
-                               ResourceType level) const
-      {
-        const_cast<Resource&>(*this).GetDicomTagsAtLevel(level).Fill(target);
-      }
+      void GetMainDicomTags(DicomMap& target) const;
 
       void AddChildIdentifier(ResourceType level,
                               const std::string& childId)
