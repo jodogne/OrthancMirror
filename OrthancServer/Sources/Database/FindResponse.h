@@ -109,11 +109,6 @@ namespace Orthanc
       {
       }
 
-      ResourceType GetLevel() const
-      {
-        return level_;
-      }
-
       const std::string& GetIdentifier() const
       {
         return identifier_;
