@@ -2728,23 +2728,23 @@ namespace Orthanc
     ExpandedResource resource(request, item);
 
     ExpandResourceFlags expandFlags = ExpandResourceFlags_None;
-    if (request.HasResponseContent(FindRequest::ResponseContent_Children))
+    if (request.IsRetrieveChildrenIdentifiers())
     {
       expandFlags = static_cast<ExpandResourceFlags>(expandFlags | ExpandResourceFlags_IncludeChildren);
     }
-    if (request.HasResponseContent(FindRequest::ResponseContent_Metadata))
+    if (request.IsRetrieveMetadata())
     {
       expandFlags = static_cast<ExpandResourceFlags>(expandFlags | ExpandResourceFlags_IncludeAllMetadata | ExpandResourceFlags_IncludeMetadata );
     }
-    if (request.HasResponseContent(FindRequest::ResponseContent_MainDicomTags))
+    if (request.IsRetrieveTagsAtLevel(request.GetLevel()))
     {
       expandFlags = static_cast<ExpandResourceFlags>(expandFlags | ExpandResourceFlags_IncludeMainDicomTags);
     }
-    if (request.HasResponseContent(FindRequest::ResponseContent_IsStable))
+    if (true /* request.HasResponseContent(FindRequest::ResponseContent_IsStable) */)  // TODO-FIND: Is this correct?
     {
       expandFlags = static_cast<ExpandResourceFlags>(expandFlags | ExpandResourceFlags_IncludeIsStable);
     }
-    if (request.HasResponseContent(FindRequest::ResponseContent_Labels))
+    if (request.IsRetrieveLabels())
     {
       expandFlags = static_cast<ExpandResourceFlags>(expandFlags | ExpandResourceFlags_IncludeLabels);
     }

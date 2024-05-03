@@ -62,11 +62,16 @@ namespace Orthanc
     hasLimits_(false),
     limitsSince_(0),
     limitsCount_(0),
-    responseContent_(ResponseContent_IdentifiersOnly),
     retrievePatientTags_(false),
     retrieveStudyTags_(false),
     retrieveSeriesTags_(false),
-    retrieveInstanceTags_(false)
+    retrieveInstanceTags_(false),
+    retrieveMetadata_(false),
+    retrieveLabels_(false),
+    retrieveAttachments_(false),
+    retrieveParentIdentifier_(false),
+    retrieveChildrenIdentifiers_(false),
+    retrieveChildrenMetadata_(false)
   {
   }
 
@@ -207,4 +212,42 @@ namespace Orthanc
     ordering_.push_back(new Ordering(Key(metadataType), direction));
   }
 
+
+  void FindRequest::SetRetrieveParentIdentifier(bool retrieve)
+  {
+    if (level_ == ResourceType_Patient)
+    {
+      throw OrthancException(ErrorCode_BadParameterType);
+    }
+    else
+    {
+      retrieveParentIdentifier_ = retrieve;
+    }
+  }
+
+
+  void FindRequest::SetRetrieveChildrenIdentifiers(bool retrieve)
+  {
+    if (level_ == ResourceType_Instance)
+    {
+      throw OrthancException(ErrorCode_BadParameterType);
+    }
+    else
+    {
+      retrieveChildrenIdentifiers_ = retrieve;
+    }
+  }
+
+
+  void FindRequest::SetRetrieveChildrenMetadata(bool retrieve)
+  {
+    if (level_ == ResourceType_Instance)
+    {
+      throw OrthancException(ErrorCode_BadParameterType);
+    }
+    else
+    {
+      retrieveChildrenMetadata_ = retrieve;
+    }
+  }
 }
