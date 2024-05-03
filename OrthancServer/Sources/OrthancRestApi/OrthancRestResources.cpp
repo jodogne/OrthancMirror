@@ -315,8 +315,7 @@ namespace Orthanc
       {
         for (size_t i = 0; i < response.GetSize(); i++)
         {
-          std::string resourceId = response.GetItem(i).GetIdentifiers().GetLevel(resourceType);
-          answer.append(resourceId);
+          answer.append(response.GetItem(i).GetIdentifier());
         }
       }
       else

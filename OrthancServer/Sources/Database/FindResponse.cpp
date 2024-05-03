@@ -30,101 +30,189 @@
 
 namespace Orthanc
 {
-  static void ExtractOrthancIdentifiers(OrthancIdentifiers& identifiers,
-                                        ResourceType level,
-                                        const DicomMap& dicom)
+  class FindResponse::DicomTagsAtLevel::DicomValue : public boost::noncopyable
   {
-    switch (level)
+  public:
+    enum ValueType
     {
-      case ResourceType_Patient:
-      {
-        std::string patientId;
-        if (!dicom.LookupStringValue(patientId, Orthanc::DICOM_TAG_PATIENT_ID, false))
-        {
-          throw OrthancException(ErrorCode_ParameterOutOfRange);
-        }
-        else
-        {
-          DicomInstanceHasher hasher(patientId, "", "", "");
-          identifiers.SetPatientId(hasher.HashPatient());
-        }
-        break;
-      }
+      ValueType_String,
+      ValueType_Null
+    };
 
-      case ResourceType_Study:
-      {
-        std::string patientId, studyInstanceUid;
-        if (!dicom.LookupStringValue(patientId, Orthanc::DICOM_TAG_PATIENT_ID, false) ||
-            !dicom.LookupStringValue(studyInstanceUid, Orthanc::DICOM_TAG_STUDY_INSTANCE_UID, false))
-        {
-          throw OrthancException(ErrorCode_ParameterOutOfRange);
-        }
-        else
-        {
-          DicomInstanceHasher hasher(patientId, studyInstanceUid, "", "");
-          identifiers.SetPatientId(hasher.HashPatient());
-          identifiers.SetStudyId(hasher.HashStudy());
-        }
-        break;
-      }
+  private:
+    ValueType     type_;
+    std::string   value_;
 
-      case ResourceType_Series:
-      {
-        std::string patientId, studyInstanceUid, seriesInstanceUid;
-        if (!dicom.LookupStringValue(patientId, Orthanc::DICOM_TAG_PATIENT_ID, false) ||
-            !dicom.LookupStringValue(studyInstanceUid, Orthanc::DICOM_TAG_STUDY_INSTANCE_UID, false) ||
-            !dicom.LookupStringValue(seriesInstanceUid, Orthanc::DICOM_TAG_SERIES_INSTANCE_UID, false))
-        {
-          throw OrthancException(ErrorCode_ParameterOutOfRange);
-        }
-        else
-        {
-          DicomInstanceHasher hasher(patientId, studyInstanceUid, seriesInstanceUid, "");
-          identifiers.SetPatientId(hasher.HashPatient());
-          identifiers.SetStudyId(hasher.HashStudy());
-          identifiers.SetSeriesId(hasher.HashSeries());
-        }
-        break;
-      }
+  public:
+    DicomValue(ValueType type,
+               const std::string& value) :
+      type_(type),
+      value_(value)
+    {
+    }
 
-      case ResourceType_Instance:
-      {
-        std::string patientId, studyInstanceUid, seriesInstanceUid, sopInstanceUid;
-        if (!dicom.LookupStringValue(patientId, Orthanc::DICOM_TAG_PATIENT_ID, false) ||
-            !dicom.LookupStringValue(studyInstanceUid, Orthanc::DICOM_TAG_STUDY_INSTANCE_UID, false) ||
-            !dicom.LookupStringValue(seriesInstanceUid, Orthanc::DICOM_TAG_SERIES_INSTANCE_UID, false) ||
-            !dicom.LookupStringValue(sopInstanceUid, Orthanc::DICOM_TAG_SOP_INSTANCE_UID, false))
-        {
-          throw OrthancException(ErrorCode_ParameterOutOfRange);
-        }
-        else
-        {
-          DicomInstanceHasher hasher(patientId, studyInstanceUid, seriesInstanceUid, sopInstanceUid);
-          identifiers.SetPatientId(hasher.HashPatient());
-          identifiers.SetStudyId(hasher.HashStudy());
-          identifiers.SetSeriesId(hasher.HashSeries());
-          identifiers.SetInstanceId(hasher.HashInstance());
-        }
-        break;
-      }
+    ValueType GetType() const
+    {
+      return type_;
+    }
 
-      default:
-        throw OrthancException(ErrorCode_NotImplemented);
+    const std::string& GetValue() const
+    {
+      switch (type_)
+      {
+        case ValueType_Null:
+          throw OrthancException(ErrorCode_BadSequenceOfCalls);
+
+        case ValueType_String:
+          return value_;
+
+        default:
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+    }
+  };
+
+
+  FindResponse::DicomTagsAtLevel::~DicomTagsAtLevel()
+  {
+    for (Content::iterator it = content_.begin(); it != content_.end(); ++it)
+    {
+      assert(it->second != NULL);
+      delete it->second;
     }
   }
 
 
-  FindResponse::Item::Item(ResourceType level,
-                           DicomMap* dicomMap /* takes ownership */) :
-    dicomMap_(dicomMap)
+  void FindResponse::DicomTagsAtLevel::AddNullValue(uint16_t group,
+                                                    uint16_t element)
   {
-    if (dicomMap == NULL)
+    const DicomTag tag(group, element);
+
+    if (content_.find(tag) == content_.end())
     {
-      throw OrthancException(ErrorCode_NullPointer);
+      content_[tag] = new DicomValue(DicomValue::ValueType_Null, "");
     }
     else
     {
-      ExtractOrthancIdentifiers(identifiers_, level, *dicomMap);
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+  }
+
+
+  void FindResponse::DicomTagsAtLevel::AddStringValue(uint16_t group,
+                                                      uint16_t element,
+                                                      const std::string& value)
+  {
+    const DicomTag tag(group, element);
+
+    if (content_.find(tag) == content_.end())
+    {
+      content_[tag] = new DicomValue(DicomValue::ValueType_String, value);
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+  }
+
+
+  void FindResponse::DicomTagsAtLevel::Fill(DicomMap& target) const
+  {
+    for (Content::const_iterator it = content_.begin(); it != content_.end(); ++it)
+    {
+      assert(it->second != NULL);
+
+      switch (it->second->GetType())
+      {
+        case DicomValue::ValueType_String:
+          target.SetValue(it->first, it->second->GetValue(), false /* not binary */);
+          break;
+
+        case DicomValue::ValueType_Null:
+          target.SetNullValue(it->first);
+          break;
+
+        default:
+          throw OrthancException(ErrorCode_InternalError);
+      }
+    }
+  }
+
+
+  void FindResponse::ChildrenAtLevel::AddIdentifier(const std::string& identifier)
+  {
+    if (identifiers_.find(identifier) == identifiers_.end())
+    {
+      identifiers_.insert(identifier);
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+  }
+
+
+  FindResponse::DicomTagsAtLevel& FindResponse::Item::GetDicomTagsAtLevel(ResourceType level)
+  {
+    switch (level)
+    {
+      case ResourceType_Patient:
+        return patientTags_;
+
+      case ResourceType_Study:
+        return studyTags_;
+
+      case ResourceType_Series:
+        return seriesTags_;
+
+      case ResourceType_Instance:
+        return instanceTags_;
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+
+  FindResponse::ChildrenAtLevel& FindResponse::Item::GetChildrenAtLevel(ResourceType level)
+  {
+    switch (level)
+    {
+      case ResourceType_Study:
+        if (level_ == ResourceType_Patient)
+        {
+          return childrenStudies_;
+        }
+        else
+        {
+          throw OrthancException(ErrorCode_BadParameterType);
+        }
+
+      case ResourceType_Series:
+        if (level_ == ResourceType_Patient ||
+            level_ == ResourceType_Study)
+        {
+          return childrenSeries_;
+        }
+        else
+        {
+          throw OrthancException(ErrorCode_BadParameterType);
+        }
+
+      case ResourceType_Instance:
+        if (level_ == ResourceType_Patient ||
+            level_ == ResourceType_Study ||
+            level_ == ResourceType_Series)
+        {
+          return childrenInstances_;
+        }
+        else
+        {
+          throw OrthancException(ErrorCode_BadParameterType);
+        }
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
   }
 
@@ -170,16 +258,90 @@ namespace Orthanc
     }
   }
 
-
-  const DicomMap& FindResponse::Item::GetDicomMap() const
+  const std::string& FindResponse::Item::GetParentIdentifier() const
   {
-    if (dicomMap_.get() == NULL)
+    if (level_ == ResourceType_Patient)
+    {
+      throw OrthancException(ErrorCode_BadParameterType);
+    }
+    else if (HasParentIdentifier())
+    {
+      return *parentIdentifier_;
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+  }
+
+
+  void FindResponse::Item::SetParentIdentifier(const std::string& id)
+  {
+    if (level_ == ResourceType_Patient)
+    {
+      throw OrthancException(ErrorCode_BadParameterType);
+    }
+    else if (HasParentIdentifier())
     {
       throw OrthancException(ErrorCode_BadSequenceOfCalls);
     }
     else
     {
-      return *dicomMap_;
+      parentIdentifier_.reset(new std::string(id));
+    }
+  }
+
+
+  bool FindResponse::Item::HasParentIdentifier() const
+  {
+    if (level_ == ResourceType_Patient)
+    {
+      throw OrthancException(ErrorCode_BadParameterType);
+    }
+    else
+    {
+      return parentIdentifier_.get() != NULL;
+    }
+  }
+
+
+  void FindResponse::Item::AddLabel(const std::string& label)
+  {
+    if (labels_.find(label) == labels_.end())
+    {
+      labels_.insert(label);
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+  }
+
+
+  void FindResponse::Item::AddAttachment(const FileInfo& attachment)
+  {
+    if (attachments_.find(attachment.GetContentType()) == attachments_.end())
+    {
+      attachments_[attachment.GetContentType()] = attachment;
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+  }
+
+
+  bool FindResponse::Item::LookupAttachment(FileInfo& target, FileContentType type) const
+  {
+    std::map<FileContentType, FileInfo>::const_iterator it = attachments_.find(type);
+    if (it != attachments_.end())
+    {
+      target = it->second;
+      return true;
+    }
+    else
+    {
+      return false;
     }
   }
 
@@ -196,13 +358,25 @@ namespace Orthanc
 
   void FindResponse::Add(Item* item /* takes ownership */)
   {
+    std::unique_ptr<Item> protection(item);
+
     if (item == NULL)
     {
       throw OrthancException(ErrorCode_NullPointer);
     }
     else
     {
-      items_.push_back(item);
+      const std::string& id = item->GetIdentifier();
+
+      if (index_.find(id) == index_.end())
+      {
+        items_.push_back(protection.release());
+        index_[id] = item;
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_BadSequenceOfCalls, "This resource has already been added: " + id);
+      }
     }
   }
 
@@ -220,20 +394,19 @@ namespace Orthanc
     }
   }
 
-  void FindResponse::Item::AddDicomTag(uint16_t group, uint16_t element, const std::string& value, bool isBinary)
+
+  const FindResponse::Item* FindResponse::LookupItem(const std::string& id) const
   {
-    if (dicomMap_.get() == NULL)
+    Index::const_iterator found = index_.find(id);
+
+    if (found == index_.end())
     {
-      dicomMap_.reset(new DicomMap());
+      return NULL;
     }
-
-    dicomMap_->SetValue(group, element, value, isBinary);
+    else
+    {
+      assert(found->second != NULL);
+      return found->second;
+    }
   }
-
-  void FindResponse::Item::AddChild(const std::string& childId)
-  {
-    children_.push_back(childId);
-  }
-
-
 }

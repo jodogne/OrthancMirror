@@ -1173,11 +1173,7 @@ namespace Orthanc
 
           while (statement.Step())
           {
-            OrthancIdentifiers id;
-            id.SetLevel(request.GetLevel(), statement.ColumnString(0));
-
-            FindResponse::Item* item = new FindResponse::Item(id);
-            response.Add(item);
+            response.Add(new FindResponse::Item(request.GetLevel(), statement.ColumnString(0)));
           }
         }
         else
@@ -1201,10 +1197,7 @@ namespace Orthanc
             {
               const std::string resourceId = statement.ColumnString(0);
 
-              OrthancIdentifiers id;
-              id.SetLevel(request.GetLevel(), resourceId);
-
-              FindResponse::Item* item = new FindResponse::Item(id);
+              FindResponse::Item* item = new FindResponse::Item(request.GetLevel(), resourceId);
               items[resourceId] = item;
               response.Add(item);
             }
@@ -1222,9 +1215,10 @@ namespace Orthanc
             while (statement.Step())
             {
               const std::string& resourceId = statement.ColumnString(0);
-              items[resourceId]->AddDicomTag(statement.ColumnInt(1),
-                                             statement.ColumnInt(2),
-                                             statement.ColumnString(3), false);
+              items[resourceId]->AddStringDicomTag(request.GetLevel(),
+                                                   statement.ColumnInt(1),
+                                                   statement.ColumnInt(2),
+                                                   statement.ColumnString(3));
             }
           }
 
@@ -1240,7 +1234,7 @@ namespace Orthanc
             while (statement.Step())
             {
               const std::string& resourceId = statement.ColumnString(0);
-              items[resourceId]->AddChild(statement.ColumnString(1));
+              items[resourceId]->AddChildIdentifier(GetChildResourceType(request.GetLevel()), statement.ColumnString(1));
             }
           }
 
@@ -1255,7 +1249,8 @@ namespace Orthanc
             while (statement.Step())
             {
               const std::string& resourceId = statement.ColumnString(0);
-              items[resourceId]->SetIdentifier(GetParentResourceType(request.GetLevel()), statement.ColumnString(1));
+              const std::string& parentId = statement.ColumnString(1);
+              items[resourceId]->SetParentIdentifier(parentId);
             }
           }
 
