@@ -23,11 +23,11 @@
 #pragma once
 
 #include "../../../OrthancFramework/Sources/DicomFormat/DicomTag.h"
+#include "../Search/DatabaseConstraint.h"
+#include "../Search/DicomTagConstraint.h"
+#include "../Search/ISqlLookupFormatter.h"
 #include "../ServerEnumerations.h"
 #include "OrthancIdentifiers.h"
-#include "../Search/DicomTagConstraint.h"
-#include "../Search/LabelsConstraint.h"
-#include "../Search/DatabaseConstraint.h"
 
 #include <deque>
 #include <map>
