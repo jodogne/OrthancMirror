@@ -224,19 +224,11 @@ namespace Orthanc
     public:
       InternalLogger(LogLevel level,
                      LogCategory category,
+                     const char* pluginName /* ignored */,
                      const char* file  /* ignored */,
                      int line  /* ignored */) :
         level_(level),
         category_(category)
-      {
-      }
-
-      // For backward binary compatibility with Orthanc Framework <= 1.8.0
-      InternalLogger(LogLevel level,
-                     const char* file  /* ignored */,
-                     int line  /* ignored */) :
-        level_(level),
-        category_(LogCategory_GENERIC)
       {
       }
 
