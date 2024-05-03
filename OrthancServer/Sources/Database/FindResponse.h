@@ -40,75 +40,135 @@ namespace Orthanc
 {
   class FindResponse : public boost::noncopyable
   {
-  public:
-
-    // TODO-FIND: does it actually make sense to retrieve revisions for metadata and attachments ?
-    class StringWithRevision
+  private:
+    class DicomTagsAtLevel : public boost::noncopyable
     {
     private:
-      std::string         value_;
-      int64_t             revision_;
+      class DicomValue;
+
+      typedef std::map<DicomTag, DicomValue*>  Content;
+
+      Content  content_;
+
     public:
-      StringWithRevision(const std::string& value,
-                          int64_t revision) :
-        value_(value),
-        revision_(revision)
-      {
-      }
+      ~DicomTagsAtLevel();
 
-      StringWithRevision(const StringWithRevision& other) :
-        value_(other.value_),
-        revision_(other.revision_)
-      {
-      }
+      void AddNullValue(uint16_t group,
+                        uint16_t element);
 
-      StringWithRevision() :
-        revision_(-1)
-      {
-      }
+      void AddStringValue(uint16_t group,
+                          uint16_t element,
+                          const std::string& value);
 
-      const std::string& GetValue() const
-      {
-        return value_;
-      }
+      void Fill(DicomMap& target) const;
+    };
 
-      int64_t GetRevision() const
+
+    class ChildrenAtLevel : public boost::noncopyable
+    {
+    private:
+      std::set<std::string>  identifiers_;
+
+    public:
+      void AddIdentifier(const std::string& identifier);
+
+      const std::set<std::string>& GetIdentifiers() const
       {
-        return revision_;
+        return identifiers_;
       }
     };
 
 
+  public:
     class Item : public boost::noncopyable
     {
     private:
-      OrthancIdentifiers                    identifiers_;
-      std::unique_ptr<DicomMap>             dicomMap_;
-      std::list<std::string>                children_;
-      std::string                           childInstanceId_;
+      ResourceType                          level_;
+      std::string                           identifier_;
+      std::unique_ptr<std::string>          parentIdentifier_;
+      DicomTagsAtLevel                      patientTags_;
+      DicomTagsAtLevel                      studyTags_;
+      DicomTagsAtLevel                      seriesTags_;
+      DicomTagsAtLevel                      instanceTags_;
+      ChildrenAtLevel                       childrenStudies_;
+      ChildrenAtLevel                       childrenSeries_;
+      ChildrenAtLevel                       childrenInstances_;
       std::set<std::string>                 labels_;      
       std::map<MetadataType, std::string>   metadata_;
       std::map<FileContentType, FileInfo>   attachments_;
 
+      DicomTagsAtLevel& GetDicomTagsAtLevel(ResourceType level);
+
+      ChildrenAtLevel& GetChildrenAtLevel(ResourceType level);
+
     public:
-      explicit Item(const OrthancIdentifiers& identifiers) :
-        identifiers_(identifiers)
+      explicit Item(ResourceType level,
+                    const std::string& identifier) :
+        level_(level),
+        identifier_(identifier)
       {
       }
 
-      Item(ResourceType level,
-           DicomMap* dicomMap /* takes ownership */);
-
-      const OrthancIdentifiers& GetIdentifiers() const
+      ResourceType GetLevel() const
       {
-        return identifiers_;
+        return level_;
       }
 
-      void AddDicomTag(uint16_t group, uint16_t element, const std::string& value, bool isBinary);
+      const std::string& GetIdentifier() const
+      {
+        return identifier_;
+      }
+
+      const std::string& GetParentIdentifier() const;
+
+      void SetParentIdentifier(const std::string& id);
+
+      bool HasParentIdentifier() const;
+
+      void AddStringDicomTag(ResourceType level,
+                             uint16_t group,
+                             uint16_t element,
+                             const std::string& value)
+      {
+        GetDicomTagsAtLevel(level).AddStringValue(group, element, value);
+      }
+
+      // The "Null" value could be used in the future to indicate a
+      // value that is not available, typically a new "ExtraMainDicomTag"
+      void AddNullDicomTag(ResourceType level,
+                           uint16_t group,
+                           uint16_t element,
+                           const std::string& value)
+      {
+        GetDicomTagsAtLevel(level).AddNullValue(group, element);
+      }
+
+      void GetDicomTagsAtLevel(DicomMap& target,
+                               ResourceType level) const
+      {
+        const_cast<Item&>(*this).GetDicomTagsAtLevel(level).Fill(target);
+      }
+
+      void AddChildIdentifier(ResourceType level,
+                              const std::string& childId)
+      {
+        GetChildrenAtLevel(level).AddIdentifier(childId);
+      }
+
+      const std::set<std::string>& GetChildrenIdentifiers(ResourceType level) const
+      {
+        return const_cast<Item&>(*this).GetChildrenAtLevel(level).GetIdentifiers();
+      }
+
+      void AddLabel(const std::string& label);
+
+      const std::set<std::string>& GetLabels() const
+      {
+        return labels_;
+      }
 
       void AddMetadata(MetadataType metadata,
                        const std::string& value);
-                       //int64_t revision);
 
       const std::map<MetadataType, std::string>& GetMetadata() const
       {
@@ -120,68 +180,22 @@ namespace Orthanc
         return metadata_.find(metadata) != metadata_.end();
       }
 
-      bool LookupMetadata(std::string& value, /* int64_t revision, */
+      bool LookupMetadata(std::string& value,
                           MetadataType metadata) const;
 
       void ListMetadata(std::set<MetadataType>& metadata) const;
 
-      bool HasDicomMap() const
-      {
-        return dicomMap_.get() != NULL;
-      }
+      void AddAttachment(const FileInfo& attachment);
 
-      const DicomMap& GetDicomMap() const;
-
-      void AddChild(const std::string& childId);
-
-      const std::list<std::string>& GetChildren() const
-      {
-        return children_;
-      }
-
-      void AddLabel(const std::string& label)
-      {
-        labels_.insert(label);
-      }
-
-      const std::set<std::string>& GetLabels() const
-      {
-        return labels_;
-      }
-
-      void AddAttachment(const FileInfo& attachment)
-      {
-        attachments_[attachment.GetContentType()] = attachment;
-      }
-
-      const std::map<FileContentType, FileInfo>& GetAttachments() const
-      {
-        return attachments_;
-      }
-
-      bool LookupAttachment(FileInfo& target, FileContentType type) const
-      {
-        std::map<FileContentType, FileInfo>::const_iterator it = attachments_.find(type);
-        if (it != attachments_.end())
-        {
-          target = it->second;
-          return true;
-        }
-
-        return false;
-      }
-
-      void SetIdentifier(ResourceType level,
-                         const std::string& id)
-      {
-        identifiers_.SetLevel(level, id);
-      }
-
-      // TODO-FIND: add other getters and setters
+      bool LookupAttachment(FileInfo& target,
+                            FileContentType type) const;
     };
 
   private:
+    typedef std::map<std::string, Item*>  Index;
+
     std::deque<Item*>  items_;
+    Index              index_;
 
   public:
     ~FindResponse();
@@ -194,5 +208,7 @@ namespace Orthanc
     }
 
     const Item& GetItem(size_t index) const;
+
+    const Item* LookupItem(const std::string& id) const;
   };
 }

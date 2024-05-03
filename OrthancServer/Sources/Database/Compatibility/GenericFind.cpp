@@ -59,10 +59,7 @@ namespace Orthanc
 
         for (std::list<std::string>::const_iterator it = ids.begin(); it != ids.end(); ++it)
         {
-          OrthancIdentifiers identifiers;
-          identifiers.SetLevel(request.GetLevel(), *it);
-
-          response.Add(new FindResponse::Item(identifiers));
+          response.Add(new FindResponse::Item(request.GetLevel(), *it));
         }
       }
       else
@@ -79,10 +76,14 @@ namespace Orthanc
       {
         const FindResponse::Item& item = response.GetItem(i);
 
-        if (request.HasResponseContent(FindRequest::ResponseContent_MainDicomTags)
-            && !item.HasDicomMap())
+        if (request.HasResponseContent(FindRequest::ResponseContent_MainDicomTags))
         {
-          throw OrthancException(ErrorCode_InternalError);
+          DicomMap tmp;
+          item.GetDicomTagsAtLevel(tmp, request.GetLevel());
+          if (tmp.GetSize() == 0)
+          {
+            throw OrthancException(ErrorCode_InternalError);
+          }
         }
 
         // TODO: other sanity checks

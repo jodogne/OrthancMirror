@@ -3865,7 +3865,7 @@ namespace Orthanc
   // But, finally, we might just get rid of ExpandedResource and replace it by FindResponse
   ExpandedResource::ExpandedResource(const FindRequest& request,
                                      const FindResponse::Item& item) :
-    id_(item.GetIdentifiers().GetLevel(request.GetLevel())),
+    id_(item.GetIdentifier()),
     level_(request.GetLevel()),
     isStable_(false),
     expectedNumberOfInstances_(0),
@@ -3874,17 +3874,21 @@ namespace Orthanc
   {
     if (request.HasResponseContent(FindRequest::ResponseContent_MainDicomTags))
     {
-      tags_.Assign(item.GetDicomMap());
+      item.GetDicomTagsAtLevel(tags_, request.GetLevel());
     }
 
     if (request.HasResponseContent(FindRequest::ResponseContent_Children))
     {
-      childrenIds_ = item.GetChildren();
+      const std::set<std::string>& s = item.GetChildrenIdentifiers(GetChildResourceType(request.GetLevel()));
+      for (std::set<std::string>::const_iterator it = s.begin(); it != s.end(); ++it)
+      {
+        childrenIds_.push_back(*it);
+      }
     }
 
     if (request.HasResponseContent(FindRequest::ResponseContent_Parent))
     {
-      parentId_ = item.GetIdentifiers().GetLevel(GetParentResourceType(request.GetLevel()));
+      parentId_ = item.GetParentIdentifier();
     }
 
     if (request.HasResponseContent(FindRequest::ResponseContent_Metadata))
