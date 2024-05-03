@@ -2719,7 +2719,7 @@ namespace Orthanc
 
   void ServerContext::AppendFindResponse(Json::Value& target,
                                          const FindRequest& request,
-                                         const FindResponse::Item& item,
+                                         const FindResponse::Resource& item,
                                          DicomToJsonFormat format,
                                          const std::set<DicomTag>& requestedTags,
                                          bool allowStorageAccess)

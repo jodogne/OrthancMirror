@@ -315,14 +315,14 @@ namespace Orthanc
       {
         for (size_t i = 0; i < response.GetSize(); i++)
         {
-          answer.append(response.GetItem(i).GetIdentifier());
+          answer.append(response.GetResource(i).GetIdentifier());
         }
       }
       else
       {
         for (size_t i = 0; i < response.GetSize(); i++)
         {
-          context.AppendFindResponse(answer, request, response.GetItem(i), format, requestedTags, true /* allowStorageAccess */);
+          context.AppendFindResponse(answer, request, response.GetResource(i), format, requestedTags, true /* allowStorageAccess */);
         }
       }
 

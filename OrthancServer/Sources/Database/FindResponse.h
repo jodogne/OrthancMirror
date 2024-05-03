@@ -80,7 +80,7 @@ namespace Orthanc
 
 
   public:
-    class Item : public boost::noncopyable
+    class Resource : public boost::noncopyable
     {
     private:
       ResourceType                          level_;
@@ -102,8 +102,8 @@ namespace Orthanc
       ChildrenAtLevel& GetChildrenAtLevel(ResourceType level);
 
     public:
-      explicit Item(ResourceType level,
-                    const std::string& identifier) :
+      explicit Resource(ResourceType level,
+                        const std::string& identifier) :
         level_(level),
         identifier_(identifier)
       {
@@ -146,7 +146,7 @@ namespace Orthanc
       void GetDicomTagsAtLevel(DicomMap& target,
                                ResourceType level) const
       {
-        const_cast<Item&>(*this).GetDicomTagsAtLevel(level).Fill(target);
+        const_cast<Resource&>(*this).GetDicomTagsAtLevel(level).Fill(target);
       }
 
       void AddChildIdentifier(ResourceType level,
@@ -157,7 +157,7 @@ namespace Orthanc
 
       const std::set<std::string>& GetChildrenIdentifiers(ResourceType level) const
       {
-        return const_cast<Item&>(*this).GetChildrenAtLevel(level).GetIdentifiers();
+        return const_cast<Resource&>(*this).GetChildrenAtLevel(level).GetIdentifiers();
       }
 
       void AddLabel(const std::string& label);
@@ -192,31 +192,31 @@ namespace Orthanc
     };
 
   private:
-    typedef std::map<std::string, Item*>  Index;
+    typedef std::map<std::string, Resource*>  Index;
 
-    std::deque<Item*>  items_;
-    Index              index_;
+    std::deque<Resource*>  items_;
+    Index                  index_;
 
   public:
     ~FindResponse();
 
-    void Add(Item* item /* takes ownership */);
+    void Add(Resource* item /* takes ownership */);
 
     size_t GetSize() const
     {
       return items_.size();
     }
 
-    const Item& GetItem(size_t index) const;
+    const Resource& GetResource(size_t index) const;
 
-    Item& GetItem(const std::string& id);
+    Resource& GetResource(const std::string& id);
 
-    const Item& GetItem(const std::string& id) const
+    const Resource& GetResource(const std::string& id) const
     {
-      return const_cast<FindResponse&>(*this).GetItem(id);
+      return const_cast<FindResponse&>(*this).GetResource(id);
     }
 
-    bool HasItem(const std::string& id) const
+    bool HasResource(const std::string& id) const
     {
       return (index_.find(id) != index_.end());
     }
