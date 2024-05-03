@@ -32,8 +32,7 @@ namespace Orthanc
     void GenericFind::Execute(FindResponse& response,
                               const FindRequest& request)
     {
-      if (request.GetResponseContent() == FindRequest::ResponseContent_IdentifiersOnly &&
-          !request.GetOrthancIdentifiers().HasPatientId() &&
+      if (!request.GetOrthancIdentifiers().HasPatientId() &&
           !request.GetOrthancIdentifiers().HasStudyId() &&
           !request.GetOrthancIdentifiers().HasSeriesId() &&
           !request.GetOrthancIdentifiers().HasInstanceId() &&
@@ -76,7 +75,7 @@ namespace Orthanc
       {
         const FindResponse::Resource& resource = response.GetResource(i);
 
-        if (request.HasResponseContent(FindRequest::ResponseContent_MainDicomTags))
+        if (request.IsRetrieveTagsAtLevel(request.GetLevel()))
         {
           DicomMap tmp;
           resource.GetDicomTagsAtLevel(tmp, request.GetLevel());

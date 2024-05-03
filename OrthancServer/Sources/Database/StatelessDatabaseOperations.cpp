@@ -3877,12 +3877,12 @@ namespace Orthanc
       throw OrthancException(ErrorCode_InternalError);
     }
 
-    if (request.HasResponseContent(FindRequest::ResponseContent_MainDicomTags))
+    if (request.IsRetrieveTagsAtLevel(request.GetLevel()))
     {
       resource.GetDicomTagsAtLevel(tags_, request.GetLevel());
     }
 
-    if (request.HasResponseContent(FindRequest::ResponseContent_Children))
+    if (request.IsRetrieveChildrenIdentifiers())
     {
       const std::set<std::string>& s = resource.GetChildrenIdentifiers(GetChildResourceType(request.GetLevel()));
       for (std::set<std::string>::const_iterator it = s.begin(); it != s.end(); ++it)
@@ -3891,12 +3891,12 @@ namespace Orthanc
       }
     }
 
-    if (request.HasResponseContent(FindRequest::ResponseContent_Parent))
+    if (request.IsRetrieveParentIdentifier())
     {
       parentId_ = resource.GetParentIdentifier();
     }
 
-    if (request.HasResponseContent(FindRequest::ResponseContent_Metadata))
+    if (request.IsRetrieveMetadata())
     {
       metadata_ = resource.GetMetadata();
       std::string value;
@@ -3932,12 +3932,12 @@ namespace Orthanc
       }
     }
 
-    if (request.HasResponseContent(FindRequest::ResponseContent_Labels))
+    if (request.IsRetrieveLabels())
     {
       labels_ = resource.GetLabels();
     }
 
-    if (request.HasResponseContent(FindRequest::ResponseContent_Attachments))
+    if (request.IsRetrieveAttachments())
     {
       FileInfo attachment;
       if (resource.LookupAttachment(attachment, FileContentType_Dicom))
@@ -3947,7 +3947,7 @@ namespace Orthanc
       }
     }
 
-    if (request.HasResponseContent(FindRequest::ResponseContent_ChildrenMetadata))
+    if (request.IsRetrieveChildrenMetadata())
     {
       // TODO-FIND: the status_ is normally obtained from transaction.GetSeriesStatus(internalId, i)
       // but, that's an heavy operation for something that is rarely used -> we should have dedicated SQL code 

@@ -40,36 +40,29 @@ namespace Orthanc
   class FindRequest : public boost::noncopyable
   {
   public:
-    enum ResponseContent
-    {
-      ResponseContent_MainDicomTags         = (1 << 0),     // retrieve all tags from MainDicomTags and DicomIdentifiers
-      ResponseContent_Metadata              = (1 << 1),     // retrieve all metadata, their values and revision
-      ResponseContent_Labels                = (1 << 2),     // get all labels
-      ResponseContent_Attachments           = (1 << 3),     // retrieve all attachments, their values and revision
-      ResponseContent_Parent                = (1 << 4),     // get the id of the parent
-      ResponseContent_Children              = (1 << 5),     // retrieve the list of children ids
-      ResponseContent_ChildInstanceId       = (1 << 6),     // When you need to access all tags from a patient/study/series, you might need to open the DICOM file of a child instance
-      ResponseContent_ChildrenMetadata      = (1 << 7),     // That is actually required to compute the series status but could be usefull for other stuffs.
-      ResponseContent_IsStable              = (1 << 8),     // This is currently not saved in DB but it could be in the future.
+    /**
 
-      ResponseContent_IdentifiersOnly       = 0,
-      ResponseContent_INTERNAL              = 0x7FFFFFFF
-    };
+       TO DISCUSS:
 
-    enum ConstraintType
-    {
-      ConstraintType_Mandatory,
-      ConstraintType_Equality,
-      ConstraintType_Range,
-      ConstraintType_Wildcard,
-      ConstraintType_List
-    };
+       (1) ResponseContent_ChildInstanceId       = (1 << 6),     // When you need to access all tags from a patient/study/series, you might need to open the DICOM file of a child instance
+
+       if (requestedTags.size() > 0 && resourceType != ResourceType_Instance) // if we are requesting specific tags that might be outside of the MainDicomTags, we must get a childInstanceId too
+       {
+       responseContent = static_cast<FindRequest::ResponseContent>(responseContent | FindRequest::ResponseContent_ChildInstanceId);
+       }
+
+
+       (2) ResponseContent_IsStable              = (1 << 8),     // This is currently not saved in DB but it could be in the future.
+
+     **/
+
 
     enum KeyType  // used for ordering and filters
     {
       KeyType_DicomTag,
       KeyType_Metadata
     };
+
 
     enum OrderingDirection
     {
@@ -172,14 +165,17 @@ namespace Orthanc
     LabelsConstraint                     labelsContraint_;
     std::deque<Ordering*>                ordering_;             // The ordering criteria (note: the order is important !)
 
-    // response fields
-    ResponseContent                      responseContent_;
-    
-    // TODO: check if these 4 options are required.  We might just have a retrieveParentTags that could be part of the ResponseContent enum ?
     bool                                 retrievePatientTags_;
     bool                                 retrieveStudyTags_;
     bool                                 retrieveSeriesTags_;
     bool                                 retrieveInstanceTags_;
+
+    bool                                 retrieveMetadata_;
+    bool                                 retrieveLabels_;
+    bool                                 retrieveAttachments_;
+    bool                                 retrieveParentIdentifier_;
+    bool                                 retrieveChildrenIdentifiers_;
+    bool                                 retrieveChildrenMetadata_;
 
     bool IsCompatibleLevel(ResourceType levelOfInterest) const;
 
@@ -191,32 +187,6 @@ namespace Orthanc
     ResourceType GetLevel() const
     {
       return level_;
-    }
-
-
-    void SetResponseContent(ResponseContent content)
-    {
-      responseContent_ = content;
-    }
-
-    void AddResponseContent(ResponseContent content)
-    {
-      responseContent_ = static_cast<ResponseContent>(static_cast<uint32_t>(responseContent_) | content);
-    }
-
-    ResponseContent GetResponseContent() const
-    {
-      return responseContent_;
-    }
-
-    bool HasResponseContent(ResponseContent content) const
-    {
-      return (responseContent_ & content) == content;
-    }
-
-    bool IsResponseIdentifiersOnly() const
-    {
-      return responseContent_ == ResponseContent_IdentifiersOnly;
     }
 
     void SetOrthancPatientId(const std::string& id)
@@ -244,7 +214,6 @@ namespace Orthanc
       return orthancIdentifiers_;
     }
 
-
     void AddDicomTagConstraint(const DicomTagConstraint& constraint);
 
     size_t GetDicomTagConstraintsCount() const
@@ -270,7 +239,6 @@ namespace Orthanc
     uint64_t GetLimitsSince() const;
 
     uint64_t GetLimitsCount() const;
-
 
     void SetRetrieveTagsAtLevel(ResourceType levelOfInterest,
                                 bool retrieve);
@@ -299,6 +267,57 @@ namespace Orthanc
     LabelsConstraint GetLabelsConstraint() const
     {
       return labelsContraint_;
+    }
+
+    void SetRetrieveMetadata(bool retrieve)
+    {
+      retrieveMetadata_ = retrieve;
+    }
+
+    bool IsRetrieveMetadata() const
+    {
+      return retrieveMetadata_;
+    }
+
+    void SetRetrieveLabels(bool retrieve)
+    {
+      retrieveLabels_ = retrieve;
+    }
+
+    bool IsRetrieveLabels() const
+    {
+      return retrieveLabels_;
+    }
+
+    void SetRetrieveAttachments(bool retrieve)
+    {
+      retrieveAttachments_ = retrieve;
+    }
+
+    bool IsRetrieveAttachments() const
+    {
+      return retrieveAttachments_;
+    }
+
+    void SetRetrieveParentIdentifier(bool retrieve);
+
+    bool IsRetrieveParentIdentifier() const
+    {
+      return retrieveParentIdentifier_;
+    }
+
+    void SetRetrieveChildrenIdentifiers(bool retrieve);
+
+    bool IsRetrieveChildrenIdentifiers() const
+    {
+      return retrieveChildrenIdentifiers_;
+    }
+
+    void SetRetrieveChildrenMetadata(bool retrieve);
+
+    bool IsRetrieveChildrenMetadata() const
+    {
+      return retrieveChildrenMetadata_;
     }
   };
 }

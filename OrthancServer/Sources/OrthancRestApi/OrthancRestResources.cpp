@@ -245,42 +245,33 @@ namespace Orthanc
       if (expand)
       {
         // compatibility with default expand option
-        FindRequest::ResponseContent responseContent = static_cast<FindRequest::ResponseContent>(FindRequest::ResponseContent_MainDicomTags |
-                                   FindRequest::ResponseContent_Metadata |
-                                   FindRequest::ResponseContent_Labels);
-        
-        if (requestedTags.size() > 0 && resourceType != ResourceType_Instance) // if we are requesting specific tags that might be outside of the MainDicomTags, we must get a childInstanceId too
-        {
-          responseContent = static_cast<FindRequest::ResponseContent>(responseContent | FindRequest::ResponseContent_ChildInstanceId);
-        }
+        request.SetRetrieveTagsAtLevel(resourceType, true);
+        request.SetRetrieveMetadata(true);
+        request.SetRetrieveLabels(true);
+
         if (resourceType == ResourceType_Series)
         {
-          responseContent = static_cast<FindRequest::ResponseContent>(responseContent | FindRequest::ResponseContent_ChildrenMetadata); // required for the SeriesStatus
-        }
-        if (resourceType != ResourceType_Instance)
-        {
-          responseContent = static_cast<FindRequest::ResponseContent>(responseContent | FindRequest::ResponseContent_Children);
-        }
-        if (resourceType == ResourceType_Instance)
-        {
-          responseContent = static_cast<FindRequest::ResponseContent>(responseContent | FindRequest::ResponseContent_Attachments); // for FileSize & FileUuid
-        }
-        if (resourceType != ResourceType_Patient)
-        {
-          responseContent = static_cast<FindRequest::ResponseContent>(responseContent | FindRequest::ResponseContent_Parent);
+          request.SetRetrieveChildrenMetadata(true); // required for the SeriesStatus
         }
 
-        request.SetResponseContent(responseContent);
-        request.SetRetrieveTagsAtLevel(resourceType, true);
+        if (resourceType == ResourceType_Instance)
+        {
+          request.SetRetrieveAttachments(true); // for FileSize & FileUuid
+        }
+        else
+        {
+          request.SetRetrieveChildrenIdentifiers(true);
+        }
+
+        if (resourceType != ResourceType_Patient)
+        {
+          request.SetRetrieveParentIdentifier(true);
+        }
 
         if (resourceType == ResourceType_Study)
         {
           request.SetRetrieveTagsAtLevel(ResourceType_Patient, true);
         }
-      }
-      else
-      {
-        request.SetResponseContent(FindRequest::ResponseContent_IdentifiersOnly);
       }
 
       if (call.HasArgument("limit") ||
@@ -311,18 +302,18 @@ namespace Orthanc
       // TODO-FIND: put this in an AnswerFindResponse method !
       Json::Value answer = Json::arrayValue;
 
-      if (request.IsResponseIdentifiersOnly())
+      if (expand)
       {
         for (size_t i = 0; i < response.GetSize(); i++)
         {
-          answer.append(response.GetResource(i).GetIdentifier());
+          context.AppendFindResponse(answer, request, response.GetResource(i), format, requestedTags, true /* allowStorageAccess */);
         }
       }
       else
       {
         for (size_t i = 0; i < response.GetSize(); i++)
         {
-          context.AppendFindResponse(answer, request, response.GetResource(i), format, requestedTags, true /* allowStorageAccess */);
+          answer.append(response.GetResource(i).GetIdentifier());
         }
       }
 
