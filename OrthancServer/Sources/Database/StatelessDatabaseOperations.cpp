@@ -3877,9 +3877,9 @@ namespace Orthanc
       throw OrthancException(ErrorCode_InternalError);
     }
 
-    if (request.IsRetrieveTagsAtLevel(request.GetLevel()))
+    if (request.IsRetrieveMainDicomTags())
     {
-      resource.GetDicomTagsAtLevel(tags_, request.GetLevel());
+      resource.GetMainDicomTags(tags_);
     }
 
     if (request.IsRetrieveChildrenIdentifiers())

@@ -165,19 +165,13 @@ namespace Orthanc
     LabelsConstraint                     labelsContraint_;
     std::deque<Ordering*>                ordering_;             // The ordering criteria (note: the order is important !)
 
-    bool                                 retrievePatientTags_;
-    bool                                 retrieveStudyTags_;
-    bool                                 retrieveSeriesTags_;
-    bool                                 retrieveInstanceTags_;
-
+    bool                                 retrieveMainDicomTags_;
     bool                                 retrieveMetadata_;
     bool                                 retrieveLabels_;
     bool                                 retrieveAttachments_;
     bool                                 retrieveParentIdentifier_;
     bool                                 retrieveChildrenIdentifiers_;
     bool                                 retrieveChildrenMetadata_;
-
-    bool IsCompatibleLevel(ResourceType levelOfInterest) const;
 
   public:
     explicit FindRequest(ResourceType level);
@@ -240,11 +234,6 @@ namespace Orthanc
 
     uint64_t GetLimitsCount() const;
 
-    void SetRetrieveTagsAtLevel(ResourceType levelOfInterest,
-                                bool retrieve);
-
-    bool IsRetrieveTagsAtLevel(ResourceType levelOfInterest) const;
-
     void AddOrdering(const DicomTag& tag, OrderingDirection direction);
 
     void AddOrdering(MetadataType metadataType, OrderingDirection direction);
@@ -272,6 +261,16 @@ namespace Orthanc
     void SetRetrieveMetadata(bool retrieve)
     {
       retrieveMetadata_ = retrieve;
+    }
+
+    bool IsRetrieveMainDicomTags() const
+    {
+      return retrieveMainDicomTags_;
+    }
+
+    void SetRetrieveMainDicomTags(bool retrieve)
+    {
+      retrieveMainDicomTags_ = retrieve;
     }
 
     bool IsRetrieveMetadata() const

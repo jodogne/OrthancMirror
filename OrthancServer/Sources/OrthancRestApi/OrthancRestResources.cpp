@@ -245,7 +245,7 @@ namespace Orthanc
       if (expand)
       {
         // compatibility with default expand option
-        request.SetRetrieveTagsAtLevel(resourceType, true);
+        request.SetRetrieveMainDicomTags(true);
         request.SetRetrieveMetadata(true);
         request.SetRetrieveLabels(true);
 
@@ -266,11 +266,6 @@ namespace Orthanc
         if (resourceType != ResourceType_Patient)
         {
           request.SetRetrieveParentIdentifier(true);
-        }
-
-        if (resourceType == ResourceType_Study)
-        {
-          request.SetRetrieveTagsAtLevel(ResourceType_Patient, true);
         }
       }
 

@@ -22,6 +22,7 @@
 
 #include "GenericFind.h"
 
+#include "../../../../OrthancFramework/Sources/DicomFormat/DicomArray.h"
 #include "../../../../OrthancFramework/Sources/OrthancException.h"
 
 
@@ -38,10 +39,6 @@ namespace Orthanc
           !request.GetOrthancIdentifiers().HasInstanceId() &&
           request.GetDicomTagConstraintsCount() == 0 &&
           request.GetMetadataConstraintsCount() == 0 &&
-          !request.IsRetrieveTagsAtLevel(ResourceType_Patient) &&
-          !request.IsRetrieveTagsAtLevel(ResourceType_Study) &&
-          !request.IsRetrieveTagsAtLevel(ResourceType_Series) &&
-          !request.IsRetrieveTagsAtLevel(ResourceType_Instance) &&
           request.GetOrdering().empty() &&
           request.GetLabels().empty())
       {
@@ -58,7 +55,53 @@ namespace Orthanc
 
         for (std::list<std::string>::const_iterator it = ids.begin(); it != ids.end(); ++it)
         {
-          response.Add(new FindResponse::Resource(request.GetLevel(), *it));
+          int64_t internalId;
+          ResourceType t;
+          if (!transaction_.LookupResource(internalId, t, *it) ||
+              t != request.GetLevel())
+          {
+            throw OrthancException(ErrorCode_InternalError);
+          }
+
+          std::unique_ptr<FindResponse::Resource> resource(new FindResponse::Resource(request.GetLevel(), *it));
+
+          if (request.IsRetrieveMainDicomTags())
+          {
+            DicomMap m;
+            transaction_.GetMainDicomTags(m, internalId);
+
+            DicomArray a(m);
+            for (size_t i = 0; i < a.GetSize(); i++)
+            {
+              const DicomElement& element = a.GetElement(i);
+              if (element.GetValue().IsString())
+              {
+                resource->AddStringDicomTag(element.GetTag().GetGroup(), element.GetTag().GetElement(),
+                                            element.GetValue().GetContent());
+              }
+              else
+              {
+                throw OrthancException(ErrorCode_BadParameterType);
+              }
+            }
+          }
+
+          if (request.IsRetrieveParentIdentifier())
+          {
+            int64_t parentId;
+            if (transaction_.LookupParent(parentId, internalId))
+            {
+              resource->SetParentIdentifier(transaction_.GetPublicId(parentId));
+            }
+            else
+            {
+              throw OrthancException(ErrorCode_InternalError);
+            }
+          }
+
+          // TODO-FIND: Continue
+
+          response.Add(resource.release());
         }
       }
       else
@@ -75,10 +118,10 @@ namespace Orthanc
       {
         const FindResponse::Resource& resource = response.GetResource(i);
 
-        if (request.IsRetrieveTagsAtLevel(request.GetLevel()))
+        if (request.IsRetrieveMainDicomTags())
         {
           DicomMap tmp;
-          resource.GetDicomTagsAtLevel(tmp, request.GetLevel());
+          resource.GetMainDicomTags(tmp);
           if (tmp.GetSize() == 0)
           {
             throw OrthancException(ErrorCode_InternalError);

@@ -1188,7 +1188,7 @@ namespace Orthanc
         }
 
         // request Each response content through INNER JOIN with the temporary table
-        if (request.IsRetrieveTagsAtLevel(request.GetLevel()))
+        if (request.IsRetrieveMainDicomTags())
         {
           // TODO-FIND: handle the case where we request tags from multiple levels
           SQLite::Statement statement(db_, SQLITE_FROM_HERE, 
@@ -1200,8 +1200,7 @@ namespace Orthanc
           {
             const std::string& resourceId = statement.ColumnString(0);
             assert(response.HasResource(resourceId));
-            response.GetResource(resourceId).AddStringDicomTag(request.GetLevel(),
-                                                               statement.ColumnInt(1),
+            response.GetResource(resourceId).AddStringDicomTag(statement.ColumnInt(1),
                                                                statement.ColumnInt(2),
                                                                statement.ColumnString(3));
           }

@@ -29,43 +29,12 @@
 
 namespace Orthanc
 {
-  bool FindRequest::IsCompatibleLevel(ResourceType levelOfInterest) const
-  {
-    switch (level_)
-    {
-      case ResourceType_Patient:
-        return (levelOfInterest == ResourceType_Patient);
-
-      case ResourceType_Study:
-        return (levelOfInterest == ResourceType_Patient ||
-                levelOfInterest == ResourceType_Study);
-
-      case ResourceType_Series:
-        return (levelOfInterest == ResourceType_Patient ||
-                levelOfInterest == ResourceType_Study ||
-                levelOfInterest == ResourceType_Series);
-
-      case ResourceType_Instance:
-        return (levelOfInterest == ResourceType_Patient ||
-                levelOfInterest == ResourceType_Study ||
-                levelOfInterest == ResourceType_Series ||
-                levelOfInterest == ResourceType_Instance);
-
-      default:
-        throw OrthancException(ErrorCode_ParameterOutOfRange);
-    }
-  }
-
-
   FindRequest::FindRequest(ResourceType level) :
     level_(level),
     hasLimits_(false),
     limitsSince_(0),
     limitsCount_(0),
-    retrievePatientTags_(false),
-    retrieveStudyTags_(false),
-    retrieveSeriesTags_(false),
-    retrieveInstanceTags_(false),
+    retrieveMainDicomTags_(false),
     retrieveMetadata_(false),
     retrieveLabels_(false),
     retrieveAttachments_(false),
@@ -146,65 +115,12 @@ namespace Orthanc
   }
 
 
-  void FindRequest::SetRetrieveTagsAtLevel(ResourceType levelOfInterest,
-                                           bool retrieve)
-  {
-    if (!IsCompatibleLevel(levelOfInterest))
-    {
-      throw OrthancException(ErrorCode_ParameterOutOfRange);
-    }
-
-    switch (levelOfInterest)
-    {
-      case ResourceType_Patient:
-        retrievePatientTags_ = true;
-        break;
-
-      case ResourceType_Study:
-        retrieveStudyTags_ = true;
-        break;
-
-      case ResourceType_Series:
-        retrieveSeriesTags_ = true;
-        break;
-
-      case ResourceType_Instance:
-        retrieveInstanceTags_ = true;
-        break;
-
-      default:
-        throw OrthancException(ErrorCode_ParameterOutOfRange);
-    }
-  }
-
-
-  bool FindRequest::IsRetrieveTagsAtLevel(ResourceType levelOfInterest) const
-  {
-    switch (levelOfInterest)
-    {
-      case ResourceType_Patient:
-        return retrievePatientTags_;
-
-      case ResourceType_Study:
-        return retrieveStudyTags_;
-
-      case ResourceType_Series:
-        return retrieveSeriesTags_;
-
-      case ResourceType_Instance:
-        return retrieveInstanceTags_;
-
-      default:
-        throw OrthancException(ErrorCode_ParameterOutOfRange);
-    }
-  }
-
-
   void FindRequest::AddOrdering(const DicomTag& tag,
                                 OrderingDirection direction)
   {
     ordering_.push_back(new Ordering(Key(tag), direction));
   }
+
 
   void FindRequest::AddOrdering(MetadataType metadataType, 
                                 OrderingDirection direction)
