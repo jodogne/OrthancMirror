@@ -364,6 +364,11 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_NullPointer);
     }
+    else if (!items_.empty() &&
+             items_[0]->GetLevel() != item->GetLevel())
+    {
+      throw OrthancException(ErrorCode_BadParameterType, "A find response must only contain resources of the same type");
+    }
     else
     {
       const std::string& id = item->GetIdentifier();
@@ -395,18 +400,18 @@ namespace Orthanc
   }
 
 
-  const FindResponse::Item* FindResponse::LookupItem(const std::string& id) const
+  FindResponse::Item& FindResponse::GetItem(const std::string& id)
   {
     Index::const_iterator found = index_.find(id);
 
     if (found == index_.end())
     {
-      return NULL;
+      throw OrthancException(ErrorCode_InexistentItem);
     }
     else
     {
       assert(found->second != NULL);
-      return found->second;
+      return *found->second;
     }
   }
 }
