@@ -609,7 +609,7 @@ namespace Orthanc
 
     void AppendFindResponse(Json::Value& target,
                             const FindRequest& request,
-                            const FindResponse::Item& item,
+                            const FindResponse::Resource& resource,
                             DicomToJsonFormat format,
                             const std::set<DicomTag>& requestedTags,
                             bool allowStorageAccess);

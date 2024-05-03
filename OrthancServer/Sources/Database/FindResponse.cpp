@@ -152,7 +152,7 @@ namespace Orthanc
   }
 
 
-  FindResponse::DicomTagsAtLevel& FindResponse::Item::GetDicomTagsAtLevel(ResourceType level)
+  FindResponse::DicomTagsAtLevel& FindResponse::Resource::GetDicomTagsAtLevel(ResourceType level)
   {
     switch (level)
     {
@@ -174,7 +174,7 @@ namespace Orthanc
   }
 
 
-  FindResponse::ChildrenAtLevel& FindResponse::Item::GetChildrenAtLevel(ResourceType level)
+  FindResponse::ChildrenAtLevel& FindResponse::Resource::GetChildrenAtLevel(ResourceType level)
   {
     switch (level)
     {
@@ -217,8 +217,8 @@ namespace Orthanc
   }
 
 
-  void FindResponse::Item::AddMetadata(MetadataType metadata,
-                                       const std::string& value)
+  void FindResponse::Resource::AddMetadata(MetadataType metadata,
+                                           const std::string& value)
   {
     if (metadata_.find(metadata) != metadata_.end())
     {
@@ -231,8 +231,8 @@ namespace Orthanc
   }
 
 
-  bool FindResponse::Item::LookupMetadata(std::string& value,
-                                          MetadataType metadata) const
+  bool FindResponse::Resource::LookupMetadata(std::string& value,
+                                              MetadataType metadata) const
   {
     std::map<MetadataType, std::string>::const_iterator found = metadata_.find(metadata);
 
@@ -248,7 +248,7 @@ namespace Orthanc
   }
 
 
-  void FindResponse::Item::ListMetadata(std::set<MetadataType>& target) const
+  void FindResponse::Resource::ListMetadata(std::set<MetadataType>& target) const
   {
     target.clear();
 
@@ -258,7 +258,7 @@ namespace Orthanc
     }
   }
 
-  const std::string& FindResponse::Item::GetParentIdentifier() const
+  const std::string& FindResponse::Resource::GetParentIdentifier() const
   {
     if (level_ == ResourceType_Patient)
     {
@@ -275,7 +275,7 @@ namespace Orthanc
   }
 
 
-  void FindResponse::Item::SetParentIdentifier(const std::string& id)
+  void FindResponse::Resource::SetParentIdentifier(const std::string& id)
   {
     if (level_ == ResourceType_Patient)
     {
@@ -292,7 +292,7 @@ namespace Orthanc
   }
 
 
-  bool FindResponse::Item::HasParentIdentifier() const
+  bool FindResponse::Resource::HasParentIdentifier() const
   {
     if (level_ == ResourceType_Patient)
     {
@@ -305,7 +305,7 @@ namespace Orthanc
   }
 
 
-  void FindResponse::Item::AddLabel(const std::string& label)
+  void FindResponse::Resource::AddLabel(const std::string& label)
   {
     if (labels_.find(label) == labels_.end())
     {
@@ -318,7 +318,7 @@ namespace Orthanc
   }
 
 
-  void FindResponse::Item::AddAttachment(const FileInfo& attachment)
+  void FindResponse::Resource::AddAttachment(const FileInfo& attachment)
   {
     if (attachments_.find(attachment.GetContentType()) == attachments_.end())
     {
@@ -331,7 +331,7 @@ namespace Orthanc
   }
 
 
-  bool FindResponse::Item::LookupAttachment(FileInfo& target, FileContentType type) const
+  bool FindResponse::Resource::LookupAttachment(FileInfo& target, FileContentType type) const
   {
     std::map<FileContentType, FileInfo>::const_iterator it = attachments_.find(type);
     if (it != attachments_.end())
@@ -356,9 +356,9 @@ namespace Orthanc
   }
 
 
-  void FindResponse::Add(Item* item /* takes ownership */)
+  void FindResponse::Add(Resource* item /* takes ownership */)
   {
-    std::unique_ptr<Item> protection(item);
+    std::unique_ptr<Resource> protection(item);
 
     if (item == NULL)
     {
@@ -386,7 +386,7 @@ namespace Orthanc
   }
 
 
-  const FindResponse::Item& FindResponse::GetItem(size_t index) const
+  const FindResponse::Resource& FindResponse::GetResource(size_t index) const
   {
     if (index >= items_.size())
     {
@@ -400,7 +400,7 @@ namespace Orthanc
   }
 
 
-  FindResponse::Item& FindResponse::GetItem(const std::string& id)
+  FindResponse::Resource& FindResponse::GetResource(const std::string& id)
   {
     Index::const_iterator found = index_.find(id);
 

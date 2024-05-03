@@ -3864,22 +3864,27 @@ namespace Orthanc
   // TODO-FIND: we reuse the ExpandedResource class to reuse Serialization code from ExpandedResource
   // But, finally, we might just get rid of ExpandedResource and replace it by FindResponse
   ExpandedResource::ExpandedResource(const FindRequest& request,
-                                     const FindResponse::Item& item) :
-    id_(item.GetIdentifier()),
+                                     const FindResponse::Resource& resource) :
+    id_(resource.GetIdentifier()),
     level_(request.GetLevel()),
     isStable_(false),
     expectedNumberOfInstances_(0),
     fileSize_(0),
     indexInSeries_(0)
   {
+    if (request.GetLevel() != resource.GetLevel())
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+
     if (request.HasResponseContent(FindRequest::ResponseContent_MainDicomTags))
     {
-      item.GetDicomTagsAtLevel(tags_, request.GetLevel());
+      resource.GetDicomTagsAtLevel(tags_, request.GetLevel());
     }
 
     if (request.HasResponseContent(FindRequest::ResponseContent_Children))
     {
-      const std::set<std::string>& s = item.GetChildrenIdentifiers(GetChildResourceType(request.GetLevel()));
+      const std::set<std::string>& s = resource.GetChildrenIdentifiers(GetChildResourceType(request.GetLevel()));
       for (std::set<std::string>::const_iterator it = s.begin(); it != s.end(); ++it)
       {
         childrenIds_.push_back(*it);
@@ -3888,39 +3893,39 @@ namespace Orthanc
 
     if (request.HasResponseContent(FindRequest::ResponseContent_Parent))
     {
-      parentId_ = item.GetParentIdentifier();
+      parentId_ = resource.GetParentIdentifier();
     }
 
     if (request.HasResponseContent(FindRequest::ResponseContent_Metadata))
     {
-      metadata_ = item.GetMetadata();
+      metadata_ = resource.GetMetadata();
       std::string value;
-      if (item.LookupMetadata(value, MetadataType_MainDicomTagsSignature))
+      if (resource.LookupMetadata(value, MetadataType_MainDicomTagsSignature))
       {
         mainDicomTagsSignature_ = value;
       }
-      if (item.LookupMetadata(value, MetadataType_AnonymizedFrom))
+      if (resource.LookupMetadata(value, MetadataType_AnonymizedFrom))
       {
         anonymizedFrom_ = value;
       }
-      if (item.LookupMetadata(value, MetadataType_ModifiedFrom))
+      if (resource.LookupMetadata(value, MetadataType_ModifiedFrom))
       {
         modifiedFrom_ = value;
       }
-      if (item.LookupMetadata(value, MetadataType_LastUpdate))
+      if (resource.LookupMetadata(value, MetadataType_LastUpdate))
       {
         lastUpdate_ = value;
       }
       if (request.GetLevel() == ResourceType_Series)
       {
-        if (item.LookupMetadata(value, MetadataType_Series_ExpectedNumberOfInstances))
+        if (resource.LookupMetadata(value, MetadataType_Series_ExpectedNumberOfInstances))
         {
           expectedNumberOfInstances_ = boost::lexical_cast<int>(value);
         }
       }
       if (request.GetLevel() == ResourceType_Instance)
       {
-        if (item.LookupMetadata(value, MetadataType_Instance_IndexInSeries))
+        if (resource.LookupMetadata(value, MetadataType_Instance_IndexInSeries))
         {
           indexInSeries_ = boost::lexical_cast<int>(value);
         }
@@ -3929,13 +3934,13 @@ namespace Orthanc
 
     if (request.HasResponseContent(FindRequest::ResponseContent_Labels))
     {
-      labels_ = item.GetLabels();
+      labels_ = resource.GetLabels();
     }
 
     if (request.HasResponseContent(FindRequest::ResponseContent_Attachments))
     {
       FileInfo attachment;
-      if (item.LookupAttachment(attachment, FileContentType_Dicom))
+      if (resource.LookupAttachment(attachment, FileContentType_Dicom))
       {
         fileSize_ = attachment.GetUncompressedSize();
         fileUuid_ = attachment.GetUuid();

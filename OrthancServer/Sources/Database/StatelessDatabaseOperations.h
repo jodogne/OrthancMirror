@@ -81,7 +81,7 @@ namespace Orthanc
     }
     
     ExpandedResource(const FindRequest& request,
-                     const FindResponse::Item& item);
+                     const FindResponse::Resource& resource);
 
     void SetResource(ResourceType level,
                      const std::string& id)
