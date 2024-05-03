@@ -109,6 +109,11 @@ namespace Orthanc
       {
       }
 
+      ResourceType GetLevel() const
+      {
+        return level_;
+      }
+
       const std::string& GetIdentifier() const
       {
         return identifier_;
@@ -204,6 +209,16 @@ namespace Orthanc
 
     const Item& GetItem(size_t index) const;
 
-    const Item* LookupItem(const std::string& id) const;
+    Item& GetItem(const std::string& id);
+
+    const Item& GetItem(const std::string& id) const
+    {
+      return const_cast<FindResponse&>(*this).GetItem(id);
+    }
+
+    bool HasItem(const std::string& id) const
+    {
+      return (index_.find(id) != index_.end());
+    }
   };
 }

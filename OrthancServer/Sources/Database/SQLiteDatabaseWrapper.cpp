@@ -1178,9 +1178,8 @@ namespace Orthanc
         }
         else
         {
-          std::map<std::string, FindResponse::Item*> items;  // cache to the response items
-
-          {// first create a temporary table that with the filtered and ordered results
+          {
+            // first create a temporary table that with the filtered and ordered results
             sqlLookup = "CREATE TEMPORARY TABLE FilteredResourcesIds AS " + sqlLookup;
 
             SQLite::Statement statement(db_, SQLITE_FROM_HERE_DYNAMIC(sqlLookup), sqlLookup);
@@ -1196,10 +1195,7 @@ namespace Orthanc
             while (statement.Step())
             {
               const std::string resourceId = statement.ColumnString(0);
-
-              FindResponse::Item* item = new FindResponse::Item(request.GetLevel(), resourceId);
-              items[resourceId] = item;
-              response.Add(item);
+              response.Add(new FindResponse::Item(request.GetLevel(), resourceId));
             }
           }
 
@@ -1215,10 +1211,11 @@ namespace Orthanc
             while (statement.Step())
             {
               const std::string& resourceId = statement.ColumnString(0);
-              items[resourceId]->AddStringDicomTag(request.GetLevel(),
-                                                   statement.ColumnInt(1),
-                                                   statement.ColumnInt(2),
-                                                   statement.ColumnString(3));
+              assert(response.HasItem(resourceId));
+              response.GetItem(resourceId).AddStringDicomTag(request.GetLevel(),
+                                                             statement.ColumnInt(1),
+                                                             statement.ColumnInt(2),
+                                                             statement.ColumnString(3));
             }
           }
 
@@ -1234,7 +1231,8 @@ namespace Orthanc
             while (statement.Step())
             {
               const std::string& resourceId = statement.ColumnString(0);
-              items[resourceId]->AddChildIdentifier(GetChildResourceType(request.GetLevel()), statement.ColumnString(1));
+              assert(response.HasItem(resourceId));
+              response.GetItem(resourceId).AddChildIdentifier(GetChildResourceType(request.GetLevel()), statement.ColumnString(1));
             }
           }
 
@@ -1250,7 +1248,8 @@ namespace Orthanc
             {
               const std::string& resourceId = statement.ColumnString(0);
               const std::string& parentId = statement.ColumnString(1);
-              items[resourceId]->SetParentIdentifier(parentId);
+              assert(response.HasItem(resourceId));
+              response.GetItem(resourceId).SetParentIdentifier(parentId);
             }
           }
 
@@ -1264,8 +1263,9 @@ namespace Orthanc
             while (statement.Step())
             {
               const std::string& resourceId = statement.ColumnString(0);
-              items[resourceId]->AddMetadata(static_cast<MetadataType>(statement.ColumnInt(1)),
-                                             statement.ColumnString(2));
+              assert(response.HasItem(resourceId));
+              response.GetItem(resourceId).AddMetadata(static_cast<MetadataType>(statement.ColumnInt(1)),
+                                                       statement.ColumnString(2));
             }
           }
 
@@ -1279,7 +1279,8 @@ namespace Orthanc
             while (statement.Step())
             {
               const std::string& resourceId = statement.ColumnString(0);
-              items[resourceId]->AddLabel(statement.ColumnString(1));
+              assert(response.HasItem(resourceId));
+              response.GetItem(resourceId).AddLabel(statement.ColumnString(1));
             }
           }
 
@@ -1301,7 +1302,9 @@ namespace Orthanc
                                              static_cast<CompressionType>(statement.ColumnInt(4)),
                                              statement.ColumnInt64(5),
                                              statement.ColumnString(7));
-              items[resourceId]->AddAttachment(attachment);
+
+              assert(response.HasItem(resourceId));
+              response.GetItem(resourceId).AddAttachment(attachment);
             };
           }
 
