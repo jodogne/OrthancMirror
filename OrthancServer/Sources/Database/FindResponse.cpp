@@ -324,6 +324,115 @@ namespace Orthanc
   }
 
 
+  void FindResponse::Resource::Format(Json::Value& target,
+                                      const FindRequest& request) const
+  {
+    /**
+
+       TODO-FIND:
+
+       - Metadata / Series / ExpectedNumberOfInstances
+
+       - Metadata / Series / Status
+
+       - Metadata / Instance / FileSize
+
+       - Metadata / Instance / FileUuid
+
+       - Metadata / Instance / IndexInSeries
+
+       - Metadata / AnonymizedFrom
+
+       - Metadata / ModifiedFrom
+
+     **/
+
+    target = Json::objectValue;
+    target["ID"] = identifier_;
+    target["Type"] = GetResourceTypeText(level_, false, true);
+
+    if (request.IsRetrieveMetadata())
+    {
+      Json::Value metadata = Json::objectValue;
+
+      for (std::map<MetadataType, std::string>::const_iterator
+             it = metadata_.begin(); it != metadata_.end(); ++it)
+      {
+        metadata[EnumerationToString(it->first)] = it->second;
+      }
+
+      target["Metadata"] = metadata;
+    }
+
+    if (request.IsRetrieveLabels())
+    {
+      Json::Value labels = Json::arrayValue;
+
+      for (std::set<std::string>::const_iterator it = labels_.begin(); it != labels_.end(); ++it)
+      {
+        labels.append(*it);
+      }
+
+      target["Labels"] = labels;
+    }
+
+    if (request.IsRetrieveParentIdentifier())
+    {
+      switch (level_)
+      {
+        case ResourceType_Patient:
+          break;
+
+        case ResourceType_Study:
+          target["ParentPatient"] = GetParentIdentifier();
+          break;
+
+        case ResourceType_Series:
+          target["ParentStudy"] = GetParentIdentifier();
+          break;
+
+        case ResourceType_Instance:
+          target["ParentSeries"] = GetParentIdentifier();
+          break;
+
+        default:
+          throw OrthancException(ErrorCode_InternalError);
+      }
+    }
+
+    if (request.IsRetrieveChildrenIdentifiers())
+    {
+      Json::Value c = Json::arrayValue;
+
+      const std::set<std::string>& children = GetChildrenAtLevel(GetChildResourceType(level_)).GetIdentifiers();
+
+      for (std::set<std::string>::const_iterator
+             it = children.begin(); it != children.end(); ++it)
+      {
+        c.append(*it);
+      }
+
+      switch (level_)
+      {
+        case ResourceType_Patient:
+          target["Studies"] = c;
+          break;
+
+        case ResourceType_Study:
+          target["Series"] = c;
+          break;
+
+        case ResourceType_Series:
+          target["Instances"] = c;
+          break;
+
+        default:
+          throw OrthancException(ErrorCode_InternalError);
+      }
+    }
+  }
+
+
   FindResponse::~FindResponse()
   {
     for (size_t i = 0; i < items_.size(); i++)

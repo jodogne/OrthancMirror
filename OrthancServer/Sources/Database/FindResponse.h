@@ -77,6 +77,11 @@ namespace Orthanc
 
       ChildrenAtLevel& GetChildrenAtLevel(ResourceType level);
 
+      const ChildrenAtLevel& GetChildrenAtLevel(ResourceType level) const
+      {
+        return const_cast<Resource&>(*this).GetChildrenAtLevel(level);
+      }
+
     public:
       Resource(ResourceType level,
                const std::string& identifier) :
@@ -127,6 +132,11 @@ namespace Orthanc
 
       void AddLabel(const std::string& label);
 
+      std::set<std::string>& GetLabels()
+      {
+        return labels_;
+      }
+
       const std::set<std::string>& GetLabels() const
       {
         return labels_;
@@ -134,6 +144,11 @@ namespace Orthanc
 
       void AddMetadata(MetadataType metadata,
                        const std::string& value);
+
+      std::map<MetadataType, std::string>& GetMetadata()
+      {
+        return metadata_;
+      }
 
       const std::map<MetadataType, std::string>& GetMetadata() const
       {
@@ -154,6 +169,9 @@ namespace Orthanc
 
       bool LookupAttachment(FileInfo& target,
                             FileContentType type) const;
+
+      void Format(Json::Value& target,
+                  const FindRequest& request) const;
     };
 
   private:

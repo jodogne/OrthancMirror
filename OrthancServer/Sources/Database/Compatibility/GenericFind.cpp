@@ -40,8 +40,8 @@ namespace Orthanc
           !request.GetOrthancIdentifiers().HasInstanceId() &&
           request.GetDicomTagConstraintsCount() == 0 &&
           request.GetMetadataConstraintsCount() == 0 &&
-          request.GetOrdering().empty() &&
-          request.GetLabels().empty())
+          request.GetLabels().empty() &&
+          request.GetOrdering().empty())
       {
         if (request.HasLimits())
         {
@@ -64,9 +64,9 @@ namespace Orthanc
                                     const std::string& identifier)
     {
       int64_t internalId;
-      ResourceType t;
-      if (!transaction_.LookupResource(internalId, t, identifier) ||
-          t != request.GetLevel())
+      ResourceType level;
+      if (!transaction_.LookupResource(internalId, level, identifier) ||
+          level != request.GetLevel())
       {
         throw OrthancException(ErrorCode_InternalError);
       }
@@ -94,6 +94,37 @@ namespace Orthanc
         }
       }
 
+      if (request.IsRetrieveMetadata())
+      {
+        transaction_.GetAllMetadata(resource->GetMetadata(), internalId);
+      }
+
+      if (request.IsRetrieveLabels())
+      {
+        transaction_.ListLabels(resource->GetLabels(), internalId);
+      }
+
+      if (request.IsRetrieveAttachments())
+      {
+        std::set<FileContentType> attachments;
+        transaction_.ListAvailableAttachments(attachments, internalId);
+
+        for (std::set<FileContentType>::const_iterator it = attachments.begin(); it != attachments.end(); ++it)
+        {
+          FileInfo info;
+          int64_t revision;
+          if (transaction_.LookupAttachment(info, revision, internalId, *it) &&
+              info.GetContentType() == *it)
+          {
+            resource->AddAttachment(info);
+          }
+          else
+          {
+            throw OrthancException(ErrorCode_InternalError);
+          }
+        }
+      }
+
       if (request.IsRetrieveParentIdentifier())
       {
         int64_t parentId;
@@ -107,23 +138,22 @@ namespace Orthanc
         }
       }
 
-      // TODO-FIND: Continue
-
-
-      /**
-       * Sanity checks
-       **/
-
-      if (request.IsRetrieveMainDicomTags())
+      if (request.IsRetrieveChildrenIdentifiers())
       {
-        DicomMap tmp;
-        resource->GetMainDicomTags(tmp);
-        if (tmp.GetSize() == 0)
+        std::list<std::string> children;
+        transaction_.GetChildrenPublicId(children, internalId);
+
+        for (std::list<std::string>::const_iterator it = children.begin(); it != children.end(); ++it)
         {
-          throw OrthancException(ErrorCode_InternalError);
+          resource->AddChildIdentifier(GetChildResourceType(level), *it);
         }
       }
 
+      if (request.IsRetrieveChildrenMetadata())
+      {
+        // TODO-FIND
+        throw OrthancException(ErrorCode_NotImplemented);
+      }
 
       response.Add(resource.release());
     }
