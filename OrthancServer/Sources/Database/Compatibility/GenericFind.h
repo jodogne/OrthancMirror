@@ -28,7 +28,6 @@ namespace Orthanc
 {
   namespace Compatibility
   {
-    // TODO-FIND: remove this class that only contains a temporary implementation
     class GenericFind : public boost::noncopyable
     {
     private:
@@ -40,8 +39,13 @@ namespace Orthanc
       {
       }
 
-      void Execute(FindResponse& response,
-                   const FindRequest& request);
+      void ExecuteFind(std::list<std::string>& identifiers,
+                       const FindRequest& request,
+                       const std::vector<DatabaseConstraint>& normalized);
+
+      void ExecuteExpand(FindResponse& response,
+                         const FindRequest& request,
+                         const std::string& identifier);
     };
   }
 }

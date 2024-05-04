@@ -23,6 +23,7 @@
 #include "BaseDatabaseWrapper.h"
 
 #include "../../../OrthancFramework/Sources/OrthancException.h"
+#include "Compatibility/GenericFind.h"
 
 namespace Orthanc
 {
@@ -42,6 +43,32 @@ namespace Orthanc
                                                                     int64_t& uncompressedSize)
   {
     throw OrthancException(ErrorCode_NotImplemented);  // Not supported
+  }
+
+
+  void BaseDatabaseWrapper::BaseTransaction::ExecuteFind(FindResponse& response,
+                                                         const FindRequest& request,
+                                                         const std::vector<DatabaseConstraint>& normalized)
+  {
+    throw OrthancException(ErrorCode_NotImplemented);  // Not supported
+  }
+
+
+  void BaseDatabaseWrapper::BaseTransaction::ExecuteFind(std::list<std::string>& identifiers,
+                                                         const FindRequest& request,
+                                                         const std::vector<DatabaseConstraint>& normalized)
+  {
+    Compatibility::GenericFind find(*this);
+    find.ExecuteFind(identifiers, request, normalized);
+  }
+
+
+  void BaseDatabaseWrapper::BaseTransaction::ExecuteExpand(FindResponse& response,
+                                                           const FindRequest& request,
+                                                           const std::string& identifier)
+  {
+    Compatibility::GenericFind find(*this);
+    find.ExecuteExpand(response, request, identifier);
   }
 
 

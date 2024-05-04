@@ -3844,7 +3844,7 @@ namespace Orthanc
   void StatelessDatabaseOperations::ExecuteFind(FindResponse& response,
                                                 const FindRequest& request)
   {
-    class Operations : public ReadOnlyOperationsT3<FindResponse&, const FindRequest&, const std::vector<DatabaseConstraint>&>
+    class IntegratedFind : public ReadOnlyOperationsT3<FindResponse&, const FindRequest&, const std::vector<DatabaseConstraint>&>
     {
     public:
       virtual void ApplyTuple(ReadOnlyTransaction& transaction,
@@ -3854,11 +3854,62 @@ namespace Orthanc
       }
     };
 
+    class FindStage : public ReadOnlyOperationsT3<std::list<std::string>&, const FindRequest&, const std::vector<DatabaseConstraint>&>
+    {
+    public:
+      virtual void ApplyTuple(ReadOnlyTransaction& transaction,
+                              const Tuple& tuple) ORTHANC_OVERRIDE
+      {
+        transaction.ExecuteFind(tuple.get<0>(), tuple.get<1>(), tuple.get<2>());
+      }
+    };
+
+    class ExpandStage : public ReadOnlyOperationsT3<FindResponse&, const FindRequest&, const std::string&>
+    {
+    public:
+      virtual void ApplyTuple(ReadOnlyTransaction& transaction,
+                              const Tuple& tuple) ORTHANC_OVERRIDE
+      {
+        transaction.ExecuteExpand(tuple.get<0>(), tuple.get<1>(), tuple.get<2>());
+      }
+    };
+
     std::vector<DatabaseConstraint> normalized;
     NormalizeLookup(normalized, request);
 
-    Operations operations;
-    operations.Apply(*this, response, request, normalized);
+    if (db_.HasIntegratedFind())
+    {
+      /**
+       * In this flavor, the "find" and the "expand" phases are
+       * executed in one single transaction.
+       **/
+      IntegratedFind operations;
+      operations.Apply(*this, response, request, normalized);
+    }
+    else
+    {
+      /**
+       * In this flavor, the "find" and the "expand" phases for each
+       * found resource are executed in distinct transactions. This is
+       * the compatibility mode equivalent to Orthanc <= 1.12.3.
+       **/
+      std::list<std::string> identifiers;
+
+      FindStage find;
+      find.Apply(*this, identifiers, request, normalized);
+
+      ExpandStage expand;
+
+      for (std::list<std::string>::const_iterator it = identifiers.begin(); it != identifiers.end(); ++it)
+      {
+        /**
+         * Not that the resource might have been deleted (as we are in
+         * another transaction). The database engine must ignore such
+         * error cases.
+         **/
+        expand.Apply(*this, response, request, *it);
+      }
+    }
   }
 
   // TODO-FIND: we reuse the ExpandedResource class to reuse Serialization code from ExpandedResource

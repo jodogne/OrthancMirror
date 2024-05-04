@@ -397,6 +397,20 @@ namespace Orthanc
       {
         transaction_.ExecuteFind(response, request, normalized);
       }
+
+      void ExecuteFind(std::list<std::string>& identifiers,
+                       const FindRequest& request,
+                       const std::vector<DatabaseConstraint>& normalized)
+      {
+        transaction_.ExecuteFind(identifiers, request, normalized);
+      }
+
+      void ExecuteExpand(FindResponse& response,
+                         const FindRequest& request,
+                         const std::string& identifier)
+      {
+        transaction_.ExecuteExpand(response, request, identifier);
+      }
     };
 
 

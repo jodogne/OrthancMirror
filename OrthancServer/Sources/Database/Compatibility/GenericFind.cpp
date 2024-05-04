@@ -30,8 +30,9 @@ namespace Orthanc
 {
   namespace Compatibility
   {
-    void GenericFind::Execute(FindResponse& response,
-                              const FindRequest& request)
+    void GenericFind::ExecuteFind(std::list<std::string>& identifiers,
+                                  const FindRequest& request,
+                                  const std::vector<DatabaseConstraint>& normalized)
     {
       if (!request.GetOrthancIdentifiers().HasPatientId() &&
           !request.GetOrthancIdentifiers().HasStudyId() &&
@@ -42,94 +43,89 @@ namespace Orthanc
           request.GetOrdering().empty() &&
           request.GetLabels().empty())
       {
-        std::list<std::string> ids;
-
         if (request.HasLimits())
         {
-          transaction_.GetAllPublicIds(ids, request.GetLevel(), request.GetLimitsSince(), request.GetLimitsCount());
+          transaction_.GetAllPublicIds(identifiers, request.GetLevel(), request.GetLimitsSince(), request.GetLimitsCount());
         }
         else
         {
-          transaction_.GetAllPublicIds(ids, request.GetLevel());
-        }
-
-        for (std::list<std::string>::const_iterator it = ids.begin(); it != ids.end(); ++it)
-        {
-          int64_t internalId;
-          ResourceType t;
-          if (!transaction_.LookupResource(internalId, t, *it) ||
-              t != request.GetLevel())
-          {
-            throw OrthancException(ErrorCode_InternalError);
-          }
-
-          std::unique_ptr<FindResponse::Resource> resource(new FindResponse::Resource(request.GetLevel(), *it));
-
-          if (request.IsRetrieveMainDicomTags())
-          {
-            DicomMap m;
-            transaction_.GetMainDicomTags(m, internalId);
-
-            DicomArray a(m);
-            for (size_t i = 0; i < a.GetSize(); i++)
-            {
-              const DicomElement& element = a.GetElement(i);
-              if (element.GetValue().IsString())
-              {
-                resource->AddStringDicomTag(element.GetTag().GetGroup(), element.GetTag().GetElement(),
-                                            element.GetValue().GetContent());
-              }
-              else
-              {
-                throw OrthancException(ErrorCode_BadParameterType);
-              }
-            }
-          }
-
-          if (request.IsRetrieveParentIdentifier())
-          {
-            int64_t parentId;
-            if (transaction_.LookupParent(parentId, internalId))
-            {
-              resource->SetParentIdentifier(transaction_.GetPublicId(parentId));
-            }
-            else
-            {
-              throw OrthancException(ErrorCode_InternalError);
-            }
-          }
-
-          // TODO-FIND: Continue
-
-          response.Add(resource.release());
+          transaction_.GetAllPublicIds(identifiers, request.GetLevel());
         }
       }
       else
       {
-        throw OrthancException(ErrorCode_NotImplemented);
+        throw OrthancException(ErrorCode_NotImplemented);  // Not supported
       }
+    }
+
+
+    void GenericFind::ExecuteExpand(FindResponse& response,
+                                    const FindRequest& request,
+                                    const std::string& identifier)
+    {
+      int64_t internalId;
+      ResourceType t;
+      if (!transaction_.LookupResource(internalId, t, identifier) ||
+          t != request.GetLevel())
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+
+      std::unique_ptr<FindResponse::Resource> resource(new FindResponse::Resource(request.GetLevel(), identifier));
+
+      if (request.IsRetrieveMainDicomTags())
+      {
+        DicomMap m;
+        transaction_.GetMainDicomTags(m, internalId);
+
+        DicomArray a(m);
+        for (size_t i = 0; i < a.GetSize(); i++)
+        {
+          const DicomElement& element = a.GetElement(i);
+          if (element.GetValue().IsString())
+          {
+            resource->AddStringDicomTag(element.GetTag().GetGroup(), element.GetTag().GetElement(),
+                                        element.GetValue().GetContent());
+          }
+          else
+          {
+            throw OrthancException(ErrorCode_BadParameterType);
+          }
+        }
+      }
+
+      if (request.IsRetrieveParentIdentifier())
+      {
+        int64_t parentId;
+        if (transaction_.LookupParent(parentId, internalId))
+        {
+          resource->SetParentIdentifier(transaction_.GetPublicId(parentId));
+        }
+        else
+        {
+          throw OrthancException(ErrorCode_InternalError);
+        }
+      }
+
+      // TODO-FIND: Continue
 
 
       /**
        * Sanity checks
        **/
 
-      for (size_t i = 0; i < response.GetSize(); i++)
+      if (request.IsRetrieveMainDicomTags())
       {
-        const FindResponse::Resource& resource = response.GetResource(i);
-
-        if (request.IsRetrieveMainDicomTags())
+        DicomMap tmp;
+        resource->GetMainDicomTags(tmp);
+        if (tmp.GetSize() == 0)
         {
-          DicomMap tmp;
-          resource.GetMainDicomTags(tmp);
-          if (tmp.GetSize() == 0)
-          {
-            throw OrthancException(ErrorCode_InternalError);
-          }
+          throw OrthancException(ErrorCode_InternalError);
         }
-
-        // TODO: other sanity checks
       }
+
+
+      response.Add(resource.release());
     }
   }
 }
