@@ -357,9 +357,28 @@ namespace Orthanc
        * Primitives introduced in Orthanc 1.12.4
        **/
 
+      // This is only implemented if "HasIntegratedFind()" is "true"
       virtual void ExecuteFind(FindResponse& response,
                                const FindRequest& request,
                                const std::vector<DatabaseConstraint>& normalized) = 0;
+
+      // This is only implemented if "HasIntegratedFind()" is "false"
+      virtual void ExecuteFind(std::list<std::string>& identifiers,
+                               const FindRequest& request,
+                               const std::vector<DatabaseConstraint>& normalized) = 0;
+
+      /**
+       * This is only implemented if "HasIntegratedFind()" is
+       * "false". In this flavor, the resource of interest might have
+       * been deleted, as the expansion is not done in the same
+       * transaction as the "ExecuteFind()". In such cases, the
+       * wrapper should not throw an exception, but simply ignore the
+       * request to expand the resource (i.e., "response" must not be
+       * modified).
+       **/
+      virtual void ExecuteExpand(FindResponse& response,
+                                 const FindRequest& request,
+                                 const std::string& identifier) = 0;
     };
 
 
@@ -384,5 +403,9 @@ namespace Orthanc
     virtual const Capabilities GetDatabaseCapabilities() const = 0;
 
     virtual uint64_t MeasureLatency() = 0;
+
+    // Returns "true" iff. the database engine supports the
+    // simultaneous find and expansion of resources.
+    virtual bool HasIntegratedFind() const = 0;
   };
 }

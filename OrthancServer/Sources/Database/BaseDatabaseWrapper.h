@@ -46,8 +46,25 @@ namespace Orthanc
                                           int64_t& instancesCount,
                                           int64_t& compressedSize,
                                           int64_t& uncompressedSize) ORTHANC_OVERRIDE;
+
+      virtual void ExecuteFind(FindResponse& response,
+                               const FindRequest& request,
+                               const std::vector<DatabaseConstraint>& normalized) ORTHANC_OVERRIDE;
+
+      virtual void ExecuteFind(std::list<std::string>& identifiers,
+                               const FindRequest& request,
+                               const std::vector<DatabaseConstraint>& normalized) ORTHANC_OVERRIDE;
+
+      virtual void ExecuteExpand(FindResponse& response,
+                                 const FindRequest& request,
+                                 const std::string& identifier) ORTHANC_OVERRIDE;
     };
 
     virtual uint64_t MeasureLatency() ORTHANC_OVERRIDE;
+
+    virtual bool HasIntegratedFind() const ORTHANC_OVERRIDE
+    {
+      return false;
+    }
   };
 }

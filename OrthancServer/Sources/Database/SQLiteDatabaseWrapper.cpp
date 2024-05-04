@@ -1140,6 +1140,10 @@ namespace Orthanc
     }
 
 
+#if 0
+    // TODO-FIND: Remove this implementation, as it should be done by
+    // the compatibility mode implemented by "GenericFind"
+    
     virtual void ExecuteFind(FindResponse& response,
                              const FindRequest& request, 
                              const std::vector<DatabaseConstraint>& normalized) ORTHANC_OVERRIDE
@@ -1301,6 +1305,8 @@ namespace Orthanc
 
 #endif
     }
+#endif
+
   };
 
 
