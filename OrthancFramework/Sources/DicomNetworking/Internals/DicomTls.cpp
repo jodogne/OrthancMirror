@@ -76,7 +76,7 @@ namespace Orthanc
         throw OrthancException(ErrorCode_ParameterOutOfRange, "Unknown role");
       }
     
-      if (!SystemToolbox::IsRegularFile(trustedCertificatesPath))
+      if (requireRemoteCertificate && !SystemToolbox::IsRegularFile(trustedCertificatesPath))
       {
         throw OrthancException(ErrorCode_InexistentFile, "Cannot read file with trusted certificates for DICOM TLS: " +
                                trustedCertificatesPath);
@@ -120,7 +120,7 @@ namespace Orthanc
         new DcmTLSTransportLayer(tmpRole /*opt_networkRole*/, NULL /*opt_readSeedFile*/,
                                  OFFalse /*initializeOpenSSL, done by Orthanc::Toolbox::InitializeOpenSsl()*/));
 
-      if (IsFailure(tls->addTrustedCertificateFile(trustedCertificatesPath.c_str(), DCF_Filetype_PEM /*opt_keyFileFormat*/)))
+      if (requireRemoteCertificate && IsFailure(tls->addTrustedCertificateFile(trustedCertificatesPath.c_str(), DCF_Filetype_PEM /*opt_keyFileFormat*/)))
       {
         throw OrthancException(ErrorCode_BadFileFormat, "Cannot parse PEM file with trusted certificates for DICOM TLS: " +
                                trustedCertificatesPath);

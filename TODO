@@ -126,6 +126,7 @@ Mid-term
   https://groups.google.com/g/orthanc-users/c/o15Dekecgds/m/xmPE2y3bAwAJ
 * Support Palette PNG in /tools/create-dicom:
   https://discourse.orthanc-server.org/t/404-on-tools-create-dicom-endpoint-with-specific-png/3562
+* Support creation of DICOM files from MP4 in /tools/create-dicom
 * (1) In the /studies/{id}/anonymize route, add an option to remove
   secondary captures.  They usually contains Patient info in the
   image. The SOPClassUID might be used to identify such secondary

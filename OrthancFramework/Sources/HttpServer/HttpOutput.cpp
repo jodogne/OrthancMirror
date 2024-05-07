@@ -428,8 +428,13 @@ namespace Orthanc
 
   void HttpOutput::Redirect(const std::string& path)
   {
+    /**
+     * "HttpStatus_301_MovedPermanently" was used in Orthanc <=
+     * 1.12.3. This caused issues on changes in the configuration of
+     * Orthanc.
+     **/
     stateMachine_.ClearHeaders();
-    stateMachine_.SetHttpStatus(HttpStatus_301_MovedPermanently);
+    stateMachine_.SetHttpStatus(HttpStatus_307_TemporaryRedirect);
     stateMachine_.AddHeader("Location", path);
     stateMachine_.SendBody(NULL, 0);
   }

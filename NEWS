@@ -16,6 +16,12 @@ Maintenance
 * Removed potential PHI from the logs when Orthanc encounters an error while
   creating a zip file.
 
+Bug Fixes
+---------
+
+* When working with "DicomTlsEnabled": true and "DicomTlsRemoteCertificateRequired": false,
+  Orthanc was refusing to start if no "DicomTlsTrustedCertificates" was provided.
+
 
 REST API
 --------
