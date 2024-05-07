@@ -198,12 +198,6 @@ namespace Orthanc
       bool LookupAttachmentOfOneInstance(FileInfo& target,
                                          FileContentType type) const;
 
-      SeriesStatus GetSeriesStatus(uint32_t& expecterNumberOfInstances) const;
-
-      void Expand(Json::Value& target,
-                  const FindRequest& request,
-                  bool includeAllMetadata) const;
-
       void DebugExport(Json::Value& target,
                        const FindRequest& request) const;
     };
