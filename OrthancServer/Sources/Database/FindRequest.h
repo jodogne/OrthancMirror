@@ -74,9 +74,9 @@ namespace Orthanc
     class Key
     {
     private:
-      KeyType                       type_;
-      boost::shared_ptr<DicomTag>   dicomTag_;
-      MetadataType                  metadata_;
+      KeyType       type_;
+      DicomTag      dicomTag_;
+      MetadataType  metadata_;
       
       // TODO-FIND: to execute the query, we actually need:
       // ResourceType level_;
@@ -86,13 +86,14 @@ namespace Orthanc
     public:
       explicit Key(const DicomTag& dicomTag) :
         type_(KeyType_DicomTag),
-        dicomTag_(new DicomTag(dicomTag)),
+        dicomTag_(dicomTag),
         metadata_(MetadataType_EndUser)
       {
       }
 
       explicit Key(MetadataType metadata) :
         type_(KeyType_Metadata),
+        dicomTag_(0, 0),
         metadata_(metadata)
       {
       }
@@ -105,7 +106,7 @@ namespace Orthanc
       const DicomTag& GetDicomTag() const
       {
         assert(GetType() == KeyType_DicomTag);
-        return *dicomTag_;
+        return dicomTag_;
       }
 
       MetadataType GetMetadataType() const
@@ -171,7 +172,7 @@ namespace Orthanc
     bool                                 retrieveAttachments_;
     bool                                 retrieveParentIdentifier_;
     bool                                 retrieveChildrenIdentifiers_;
-    bool                                 retrieveChildrenMetadata_;
+    std::set<MetadataType>               retrieveChildrenMetadata_;
 
   public:
     explicit FindRequest(ResourceType level);
@@ -312,9 +313,14 @@ namespace Orthanc
       return retrieveChildrenIdentifiers_;
     }
 
-    void SetRetrieveChildrenMetadata(bool retrieve);
+    void AddRetrieveChildrenMetadata(MetadataType metadata);
 
-    bool IsRetrieveChildrenMetadata() const
+    bool IsRetrieveChildrenMetadata(MetadataType metadata) const
+    {
+      return retrieveChildrenMetadata_.find(metadata) != retrieveChildrenMetadata_.end();
+    }
+
+    const std::set<MetadataType>& GetRetrieveChildrenMetadata() const
     {
       return retrieveChildrenMetadata_;
     }

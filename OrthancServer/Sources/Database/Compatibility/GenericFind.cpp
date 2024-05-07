@@ -65,13 +65,50 @@ namespace Orthanc
     {
       int64_t internalId;
       ResourceType level;
-      if (!transaction_.LookupResource(internalId, level, identifier) ||
-          level != request.GetLevel())
+      std::string parent;
+
+      if (request.IsRetrieveParentIdentifier())
       {
-        throw OrthancException(ErrorCode_InternalError);
+        if (!transaction_.LookupResourceAndParent(internalId, level, parent, identifier))
+        {
+          return;  // The resource is not available anymore
+        }
+
+        if (level == ResourceType_Patient)
+        {
+          if (!parent.empty())
+          {
+            throw OrthancException(ErrorCode_DatabasePlugin);
+          }
+        }
+        else
+        {
+          if (parent.empty())
+          {
+            throw OrthancException(ErrorCode_DatabasePlugin);
+          }
+        }
+      }
+      else
+      {
+        if (!transaction_.LookupResource(internalId, level, identifier))
+        {
+          return;  // The resource is not available anymore
+        }
+      }
+
+      if (level != request.GetLevel())
+      {
+        throw OrthancException(ErrorCode_DatabasePlugin);
       }
 
       std::unique_ptr<FindResponse::Resource> resource(new FindResponse::Resource(request.GetLevel(), identifier));
+
+      if (request.IsRetrieveParentIdentifier())
+      {
+        assert(!parent.empty());
+        resource->SetParentIdentifier(parent);
+      }
 
       if (request.IsRetrieveMainDicomTags())
       {
@@ -120,21 +157,8 @@ namespace Orthanc
           }
           else
           {
-            throw OrthancException(ErrorCode_InternalError);
+            throw OrthancException(ErrorCode_DatabasePlugin);
           }
-        }
-      }
-
-      if (request.IsRetrieveParentIdentifier())
-      {
-        int64_t parentId;
-        if (transaction_.LookupParent(parentId, internalId))
-        {
-          resource->SetParentIdentifier(transaction_.GetPublicId(parentId));
-        }
-        else
-        {
-          throw OrthancException(ErrorCode_InternalError);
         }
       }
 
@@ -149,10 +173,12 @@ namespace Orthanc
         }
       }
 
-      if (request.IsRetrieveChildrenMetadata())
+      for (std::set<MetadataType>::const_iterator it = request.GetRetrieveChildrenMetadata().begin();
+           it != request.GetRetrieveChildrenMetadata().end(); ++it)
       {
-        // TODO-FIND
-        throw OrthancException(ErrorCode_NotImplemented);
+        std::list<std::string> values;
+        transaction_.GetChildrenMetadata(values, internalId, *it);
+        resource->AddChildrenMetadata(*it, values);
       }
 
       response.Add(resource.release());
