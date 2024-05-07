@@ -3928,15 +3928,15 @@ namespace Orthanc
       throw OrthancException(ErrorCode_InternalError);
     }
 
-    if (request.IsRetrieveMainDicomTags())
+    if (request.IsRetrieveMainDicomTags(request.GetLevel()))
     {
-      resource.GetMainDicomTags(tags_);
+      resource.GetMainDicomTags(tags_, request.GetLevel());
     }
 
     if (request.IsRetrieveChildrenIdentifiers())
     {
-      const std::set<std::string>& s = resource.GetChildrenIdentifiers(GetChildResourceType(request.GetLevel()));
-      for (std::set<std::string>::const_iterator it = s.begin(); it != s.end(); ++it)
+      const std::set<std::string>& children = resource.GetChildrenIdentifiers();
+      for (std::set<std::string>::const_iterator it = children.begin(); it != children.end(); ++it)
       {
         childrenIds_.push_back(*it);
       }
@@ -3947,36 +3947,36 @@ namespace Orthanc
       parentId_ = resource.GetParentIdentifier();
     }
 
-    if (request.IsRetrieveMetadata())
+    if (request.IsRetrieveMetadata(request.GetLevel()))
     {
-      metadata_ = resource.GetMetadata();
+      metadata_ = resource.GetMetadata(request.GetLevel());
       std::string value;
-      if (resource.LookupMetadata(value, MetadataType_MainDicomTagsSignature))
+      if (resource.LookupMetadata(value, request.GetLevel(), MetadataType_MainDicomTagsSignature))
       {
         mainDicomTagsSignature_ = value;
       }
-      if (resource.LookupMetadata(value, MetadataType_AnonymizedFrom))
+      if (resource.LookupMetadata(value, request.GetLevel(), MetadataType_AnonymizedFrom))
       {
         anonymizedFrom_ = value;
       }
-      if (resource.LookupMetadata(value, MetadataType_ModifiedFrom))
+      if (resource.LookupMetadata(value, request.GetLevel(), MetadataType_ModifiedFrom))
       {
         modifiedFrom_ = value;
       }
-      if (resource.LookupMetadata(value, MetadataType_LastUpdate))
+      if (resource.LookupMetadata(value, request.GetLevel(), MetadataType_LastUpdate))
       {
         lastUpdate_ = value;
       }
       if (request.GetLevel() == ResourceType_Series)
       {
-        if (resource.LookupMetadata(value, MetadataType_Series_ExpectedNumberOfInstances))
+        if (resource.LookupMetadata(value, request.GetLevel(), MetadataType_Series_ExpectedNumberOfInstances))
         {
           expectedNumberOfInstances_ = boost::lexical_cast<int>(value);
         }
       }
       if (request.GetLevel() == ResourceType_Instance)
       {
-        if (resource.LookupMetadata(value, MetadataType_Instance_IndexInSeries))
+        if (resource.LookupMetadata(value, request.GetLevel(), MetadataType_Instance_IndexInSeries))
         {
           indexInSeries_ = boost::lexical_cast<int>(value);
         }

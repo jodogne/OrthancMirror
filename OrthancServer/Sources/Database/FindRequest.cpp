@@ -34,8 +34,14 @@ namespace Orthanc
     hasLimits_(false),
     limitsSince_(0),
     limitsCount_(0),
-    retrieveMainDicomTags_(false),
-    retrieveMetadata_(false),
+    retrieveMainDicomTagsPatients_(false),
+    retrieveMainDicomTagsStudies_(false),
+    retrieveMainDicomTagsSeries_(false),
+    retrieveMainDicomTagsInstances_(false),
+    retrieveMetadataPatients_(false),
+    retrieveMetadataStudies_(false),
+    retrieveMetadataSeries_(false),
+    retrieveMetadataInstances_(false),
     retrieveLabels_(false),
     retrieveAttachments_(false),
     retrieveParentIdentifier_(false),
@@ -128,6 +134,124 @@ namespace Orthanc
   }
 
 
+  void FindRequest::SetRetrieveMainDicomTags(ResourceType level,
+                                             bool retrieve)
+  {
+    if (!IsResourceLevelAboveOrEqual(level, level_))
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+    switch (level)
+    {
+      case ResourceType_Patient:
+        retrieveMainDicomTagsPatients_ = retrieve;
+        break;
+
+      case ResourceType_Study:
+        retrieveMainDicomTagsStudies_ = retrieve;
+        break;
+
+      case ResourceType_Series:
+        retrieveMainDicomTagsSeries_ = retrieve;
+        break;
+
+      case ResourceType_Instance:
+        retrieveMainDicomTagsInstances_ = retrieve;
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_InternalError);
+    }
+  }
+
+
+  bool FindRequest::IsRetrieveMainDicomTags(ResourceType level) const
+  {
+    if (!IsResourceLevelAboveOrEqual(level, level_))
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+    switch (level)
+    {
+      case ResourceType_Patient:
+        return retrieveMainDicomTagsPatients_;
+
+      case ResourceType_Study:
+        return retrieveMainDicomTagsStudies_;
+
+      case ResourceType_Series:
+        return retrieveMainDicomTagsSeries_;
+
+      case ResourceType_Instance:
+        return retrieveMainDicomTagsInstances_;
+
+      default:
+        throw OrthancException(ErrorCode_InternalError);
+    }
+  }
+
+
+  void FindRequest::SetRetrieveMetadata(ResourceType level,
+                                        bool retrieve)
+  {
+    if (!IsResourceLevelAboveOrEqual(level, level_))
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+    switch (level)
+    {
+      case ResourceType_Patient:
+        retrieveMetadataPatients_ = retrieve;
+        break;
+
+      case ResourceType_Study:
+        retrieveMetadataStudies_ = retrieve;
+        break;
+
+      case ResourceType_Series:
+        retrieveMetadataSeries_ = retrieve;
+        break;
+
+      case ResourceType_Instance:
+        retrieveMetadataInstances_ = retrieve;
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_InternalError);
+    }
+  }
+
+
+  bool FindRequest::IsRetrieveMetadata(ResourceType level) const
+  {
+    if (!IsResourceLevelAboveOrEqual(level, level_))
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+    switch (level)
+    {
+      case ResourceType_Patient:
+        return retrieveMetadataPatients_;
+
+      case ResourceType_Study:
+        return retrieveMetadataStudies_;
+
+      case ResourceType_Series:
+        return retrieveMetadataSeries_;
+
+      case ResourceType_Instance:
+        return retrieveMetadataInstances_;
+
+      default:
+        throw OrthancException(ErrorCode_InternalError);
+    }
+  }
+
+
   void FindRequest::SetRetrieveParentIdentifier(bool retrieve)
   {
     if (level_ == ResourceType_Patient)
@@ -158,11 +282,24 @@ namespace Orthanc
   {
     if (IsRetrieveChildrenMetadata(metadata))
     {
-      throw OrthancException(ErrorCode_BadParameterType);
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
     }
     else
     {
       retrieveChildrenMetadata_.insert(metadata);
+    }
+  }
+
+
+  void FindRequest::AddRetrieveAttachmentOfOneInstance(FileContentType type)
+  {
+    if (retrieveAttachmentOfOneInstance_.find(type) == retrieveAttachmentOfOneInstance_.end())
+    {
+      retrieveAttachmentOfOneInstance_.insert(type);
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
     }
   }
 }

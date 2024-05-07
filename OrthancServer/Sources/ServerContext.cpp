@@ -2732,11 +2732,11 @@ namespace Orthanc
     {
       expandFlags = static_cast<ExpandResourceFlags>(expandFlags | ExpandResourceFlags_IncludeChildren);
     }
-    if (request.IsRetrieveMetadata())
+    if (request.IsRetrieveMetadata(request.GetLevel()))
     {
       expandFlags = static_cast<ExpandResourceFlags>(expandFlags | ExpandResourceFlags_IncludeAllMetadata | ExpandResourceFlags_IncludeMetadata );
     }
-    if (request.IsRetrieveMainDicomTags())
+    if (request.IsRetrieveMainDicomTags(request.GetLevel()))
     {
       expandFlags = static_cast<ExpandResourceFlags>(expandFlags | ExpandResourceFlags_IncludeMainDicomTags);
     }

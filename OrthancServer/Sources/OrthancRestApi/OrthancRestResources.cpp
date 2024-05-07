@@ -245,8 +245,8 @@ namespace Orthanc
       if (expand)
       {
         // compatibility with default expand option
-        request.SetRetrieveMainDicomTags(true);
-        request.SetRetrieveMetadata(true);
+        request.SetRetrieveMainDicomTags(resourceType, true);
+        request.SetRetrieveMetadata(resourceType, true);
         request.SetRetrieveLabels(true);
 
         if (resourceType == ResourceType_Series)

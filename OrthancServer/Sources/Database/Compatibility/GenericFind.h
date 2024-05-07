@@ -33,6 +33,10 @@ namespace Orthanc
     private:
       IDatabaseWrapper::ITransaction&  transaction_;
 
+      void RetrieveMainDicomTags(FindResponse::Resource& target,
+                                 ResourceType level,
+                                 int64_t internalId);
+
     public:
       GenericFind(IDatabaseWrapper::ITransaction& transaction) :
         transaction_(transaction)
