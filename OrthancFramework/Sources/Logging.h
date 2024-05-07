@@ -28,6 +28,7 @@
 #include "Compatibility.h"
 
 #include <iostream>
+#include <stdint.h>
 
 #if !defined(ORTHANC_ENABLE_LOGGING)
 #  error The macro ORTHANC_ENABLE_LOGGING must be defined
@@ -223,19 +224,11 @@ namespace Orthanc
     public:
       InternalLogger(LogLevel level,
                      LogCategory category,
+                     const char* pluginName /* ignored */,
                      const char* file  /* ignored */,
                      int line  /* ignored */) :
         level_(level),
         category_(category)
-      {
-      }
-
-      // For backward binary compatibility with Orthanc Framework <= 1.8.0
-      InternalLogger(LogLevel level,
-                     const char* file  /* ignored */,
-                     int line  /* ignored */) :
-        level_(level),
-        category_(LogCategory_GENERIC)
       {
       }
 
