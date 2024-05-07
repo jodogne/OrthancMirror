@@ -39,8 +39,7 @@ namespace Orthanc
     retrieveLabels_(false),
     retrieveAttachments_(false),
     retrieveParentIdentifier_(false),
-    retrieveChildrenIdentifiers_(false),
-    retrieveChildrenMetadata_(false)
+    retrieveChildrenIdentifiers_(false)
   {
   }
 
@@ -155,15 +154,15 @@ namespace Orthanc
   }
 
 
-  void FindRequest::SetRetrieveChildrenMetadata(bool retrieve)
+  void FindRequest::AddRetrieveChildrenMetadata(MetadataType metadata)
   {
-    if (level_ == ResourceType_Instance)
+    if (IsRetrieveChildrenMetadata(metadata))
     {
       throw OrthancException(ErrorCode_BadParameterType);
     }
     else
     {
-      retrieveChildrenMetadata_ = retrieve;
+      retrieveChildrenMetadata_.insert(metadata);
     }
   }
 }

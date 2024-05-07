@@ -24,6 +24,7 @@
 
 #include "../../../OrthancFramework/Sources/DicomFormat/DicomInstanceHasher.h"
 #include "../../../OrthancFramework/Sources/OrthancException.h"
+#include "../../../OrthancFramework/Sources/SerializationToolbox.h"
 
 #include <cassert>
 
@@ -250,6 +251,12 @@ namespace Orthanc
       assert(it->second != NULL);
       delete it->second;
     }
+
+    for (ChildrenMetadata::iterator it = childrenMetadata_.begin(); it != childrenMetadata_.end(); ++it)
+    {
+      assert(it->second != NULL);
+      delete it->second;
+    }
   }
 
 
@@ -324,7 +331,97 @@ namespace Orthanc
   }
 
 
-  void FindResponse::Resource::Format(Json::Value& target,
+  void FindResponse::Resource::AddChildrenMetadata(MetadataType metadata,
+                                                   const std::list<std::string>& values)
+  {
+    if (childrenMetadata_.find(metadata) == childrenMetadata_.end())
+    {
+      childrenMetadata_[metadata] = new std::list<std::string>(values);
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+  }
+
+
+  bool FindResponse::Resource::LookupChildrenMetadata(std::list<std::string>& values,
+                                                      MetadataType metadata) const
+  {
+    ChildrenMetadata::const_iterator found = childrenMetadata_.find(metadata);
+    if (found == childrenMetadata_.end())
+    {
+      return false;
+    }
+    else
+    {
+      assert(found->second != NULL);
+      values = *found->second;
+      return true;
+    }
+  }
+
+
+  SeriesStatus FindResponse::Resource::GetSeriesStatus(uint32_t& expectedNumberOfInstances) const
+  {
+    if (level_ != ResourceType_Series)
+    {
+      throw OrthancException(ErrorCode_BadParameterType);
+    }
+
+    std::string s;
+    if (!LookupMetadata(s, MetadataType_Series_ExpectedNumberOfInstances) ||
+        !SerializationToolbox::ParseUnsignedInteger32(expectedNumberOfInstances, s))
+    {
+      return SeriesStatus_Unknown;
+    }
+
+    std::list<std::string> values;
+    if (!LookupChildrenMetadata(values, MetadataType_Instance_IndexInSeries))
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+
+    std::set<int64_t> instances;
+
+    for (std::list<std::string>::const_iterator
+           it = values.begin(); it != values.end(); ++it)
+    {
+      int64_t index;
+
+      if (!SerializationToolbox::ParseInteger64(index, *it))
+      {
+        return SeriesStatus_Unknown;
+      }
+
+      if (index <= 0 ||
+          index > static_cast<int64_t>(expectedNumberOfInstances))
+      {
+        // Out-of-range instance index
+        return SeriesStatus_Inconsistent;
+      }
+
+      if (instances.find(index) != instances.end())
+      {
+        // Twice the same instance index
+        return SeriesStatus_Inconsistent;
+      }
+
+      instances.insert(index);
+    }
+
+    if (instances.size() == static_cast<size_t>(expectedNumberOfInstances))
+    {
+      return SeriesStatus_Complete;
+    }
+    else
+    {
+      return SeriesStatus_Missing;
+    }
+  }
+
+
+  void FindResponse::Resource::Expand(Json::Value& target,
                                       const FindRequest& request) const
   {
     /**

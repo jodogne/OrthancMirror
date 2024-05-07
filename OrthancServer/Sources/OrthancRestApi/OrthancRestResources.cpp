@@ -251,7 +251,7 @@ namespace Orthanc
 
         if (resourceType == ResourceType_Series)
         {
-          request.SetRetrieveChildrenMetadata(true); // required for the SeriesStatus
+          request.AddRetrieveChildrenMetadata(MetadataType_Instance_IndexInSeries); // required for the SeriesStatus
         }
 
         if (resourceType == ResourceType_Instance)

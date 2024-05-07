@@ -62,7 +62,8 @@ namespace Orthanc
     private:
       class DicomValue;
 
-      typedef std::map<DicomTag, DicomValue*>  MainDicomTags;
+      typedef std::map<DicomTag, DicomValue*>                  MainDicomTags;
+      typedef std::map<MetadataType, std::list<std::string>*>  ChildrenMetadata;
 
       ResourceType                          level_;
       std::string                           identifier_;
@@ -74,6 +75,7 @@ namespace Orthanc
       std::set<std::string>                 labels_;      
       std::map<MetadataType, std::string>   metadata_;
       std::map<FileContentType, FileInfo>   attachments_;
+      ChildrenMetadata                      childrenMetadata_;
 
       ChildrenAtLevel& GetChildrenAtLevel(ResourceType level);
 
@@ -170,7 +172,15 @@ namespace Orthanc
       bool LookupAttachment(FileInfo& target,
                             FileContentType type) const;
 
-      void Format(Json::Value& target,
+      void AddChildrenMetadata(MetadataType metadata,
+                               const std::list<std::string>& values);
+
+      bool LookupChildrenMetadata(std::list<std::string>& values,
+                                  MetadataType metadata) const;
+
+      SeriesStatus GetSeriesStatus(uint32_t& expecterNumberOfInstances) const;
+
+      void Expand(Json::Value& target,
                   const FindRequest& request) const;
     };
 

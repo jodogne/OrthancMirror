@@ -937,7 +937,7 @@ namespace Orthanc
               Toolbox::GetMissingsFromSet(target.missingRequestedTags_, requestedTags, savedMainDicomTags);
 
               while ((target.missingRequestedTags_.size() > 0)
-                    && currentLevel != ResourceType_Patient)
+                     && currentLevel != ResourceType_Patient)
               {
                 currentLevel = GetParentResourceType(currentLevel);
 
@@ -2548,7 +2548,7 @@ namespace Orthanc
             catch (boost::bad_lexical_cast&)
             {
               LOG(ERROR) << "Cannot read the global sequence "
-                        << boost::lexical_cast<std::string>(sequence_) << ", resetting it";
+                         << boost::lexical_cast<std::string>(sequence_) << ", resetting it";
               oldValue = 0;
             }
 
@@ -2847,8 +2847,8 @@ namespace Orthanc
 
     public:
       explicit Operations(const ParsedDicomFile& dicom, bool limitToThisLevelDicomTags, ResourceType limitToLevel)
-      : limitToThisLevelDicomTags_(limitToThisLevelDicomTags),
-        limitToLevel_(limitToLevel)
+        : limitToThisLevelDicomTags_(limitToThisLevelDicomTags),
+          limitToLevel_(limitToLevel)
       {
         OrthancConfiguration::DefaultExtractDicomSummary(summary_, dicom);
         hasher_.reset(new DicomInstanceHasher(summary_));
@@ -2973,7 +2973,7 @@ namespace Orthanc
   }                                                                           
 
   bool StatelessDatabaseOperations::ReadWriteTransaction::HasReachedMaxPatientCount(unsigned int maximumPatientCount,
-                                                                                   const std::string& patientId)
+                                                                                    const std::string& patientId)
   {
     if (maximumPatientCount != 0)
     {
@@ -3075,7 +3075,7 @@ namespace Orthanc
     };
 
     if (maximumStorageMode == MaxStorageMode_Recycle 
-      && (maximumStorageSize != 0 || maximumPatientCount != 0))
+        && (maximumStorageSize != 0 || maximumPatientCount != 0))
     {
       Operations operations(maximumStorageSize, maximumPatientCount);
       Apply(operations);
@@ -3139,9 +3139,9 @@ namespace Orthanc
       }
 
       static void SetMainDicomSequenceMetadata(ResourcesContent& content,
-                                                int64_t resource,
-                                                const DicomMap& dicomSummary,
-                                                ResourceType level)
+                                               int64_t resource,
+                                               const DicomMap& dicomSummary,
+                                               ResourceType level)
       {
         std::string serialized;
         GetMainDicomSequenceMetadataContent(serialized, dicomSummary, level);
@@ -3334,7 +3334,7 @@ namespace Orthanc
         // Ensure there is enough room in the storage for the new instance
         uint64_t instanceSize = 0;
         for (Attachments::const_iterator it = attachments_.begin();
-              it != attachments_.end(); ++it)
+             it != attachments_.end(); ++it)
         {
           instanceSize += it->GetCompressedSize();
         }
@@ -3363,7 +3363,7 @@ namespace Orthanc
     
         // Attach the files to the newly created instance
         for (Attachments::const_iterator it = attachments_.begin();
-              it != attachments_.end(); ++it)
+             it != attachments_.end(); ++it)
         {
           if (isReconstruct_)
           {
@@ -3380,7 +3380,7 @@ namespace Orthanc
 
           // Attach the user-specified metadata (in case of reconstruction, metadata_ contains all past metadata, including the system ones we want to keep)
           for (MetadataMap::const_iterator 
-                  it = metadata_.begin(); it != metadata_.end(); ++it)
+                 it = metadata_.begin(); it != metadata_.end(); ++it)
           {
             switch (it->first.first)
             {
@@ -3998,7 +3998,7 @@ namespace Orthanc
       }
     }
 
-    if (request.IsRetrieveChildrenMetadata())
+    //if (request.IsRetrieveChildrenMetadata())
     {
       // TODO-FIND: the status_ is normally obtained from transaction.GetSeriesStatus(internalId, i)
       // but, that's an heavy operation for something that is rarely used -> we should have dedicated SQL code 
