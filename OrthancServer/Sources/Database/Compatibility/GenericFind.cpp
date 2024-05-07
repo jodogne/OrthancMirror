@@ -25,6 +25,8 @@
 #include "../../../../OrthancFramework/Sources/DicomFormat/DicomArray.h"
 #include "../../../../OrthancFramework/Sources/OrthancException.h"
 
+#include <stack>
+
 
 namespace Orthanc
 {
@@ -55,6 +57,91 @@ namespace Orthanc
       else
       {
         throw OrthancException(ErrorCode_NotImplemented);  // Not supported
+      }
+    }
+
+
+    void GenericFind::RetrieveMainDicomTags(FindResponse::Resource& target,
+                                            ResourceType level,
+                                            int64_t internalId)
+    {
+      DicomMap m;
+      transaction_.GetMainDicomTags(m, internalId);
+
+      DicomArray a(m);
+      for (size_t i = 0; i < a.GetSize(); i++)
+      {
+        const DicomElement& element = a.GetElement(i);
+        if (element.GetValue().IsString())
+        {
+          target.AddStringDicomTag(level, element.GetTag().GetGroup(),
+                                   element.GetTag().GetElement(), element.GetValue().GetContent());
+        }
+        else
+        {
+          throw OrthancException(ErrorCode_BadParameterType);
+        }
+      }
+    }
+
+
+    static ResourceType GetTopLevelOfInterest(const FindRequest& request)
+    {
+      switch (request.GetLevel())
+      {
+        case ResourceType_Patient:
+          return ResourceType_Patient;
+
+        case ResourceType_Study:
+          if (request.IsRetrieveMainDicomTags(ResourceType_Patient) ||
+              request.IsRetrieveMetadata(ResourceType_Patient))
+          {
+            return ResourceType_Patient;
+          }
+          else
+          {
+            return ResourceType_Study;
+          }
+
+        case ResourceType_Series:
+          if (request.IsRetrieveMainDicomTags(ResourceType_Patient) ||
+              request.IsRetrieveMetadata(ResourceType_Patient))
+          {
+            return ResourceType_Patient;
+          }
+          else if (request.IsRetrieveMainDicomTags(ResourceType_Study) ||
+                   request.IsRetrieveMetadata(ResourceType_Study))
+          {
+            return ResourceType_Study;
+          }
+          else
+          {
+            return ResourceType_Series;
+          }
+
+        case ResourceType_Instance:
+          if (request.IsRetrieveMainDicomTags(ResourceType_Patient) ||
+              request.IsRetrieveMetadata(ResourceType_Patient))
+          {
+            return ResourceType_Patient;
+          }
+          else if (request.IsRetrieveMainDicomTags(ResourceType_Study) ||
+                   request.IsRetrieveMetadata(ResourceType_Study))
+          {
+            return ResourceType_Study;
+          }
+          else if (request.IsRetrieveMainDicomTags(ResourceType_Series) ||
+                   request.IsRetrieveMetadata(ResourceType_Series))
+          {
+            return ResourceType_Series;
+          }
+          else
+          {
+            return ResourceType_Instance;
+          }
+
+        default:
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
       }
     }
 
@@ -110,30 +197,41 @@ namespace Orthanc
         resource->SetParentIdentifier(parent);
       }
 
-      if (request.IsRetrieveMainDicomTags())
       {
-        DicomMap m;
-        transaction_.GetMainDicomTags(m, internalId);
+        int64_t currentId = internalId;
+        ResourceType currentLevel = level;
+        const ResourceType topLevel = GetTopLevelOfInterest(request);
 
-        DicomArray a(m);
-        for (size_t i = 0; i < a.GetSize(); i++)
+        for (;;)
         {
-          const DicomElement& element = a.GetElement(i);
-          if (element.GetValue().IsString())
+          if (request.IsRetrieveMainDicomTags(currentLevel))
           {
-            resource->AddStringDicomTag(element.GetTag().GetGroup(), element.GetTag().GetElement(),
-                                        element.GetValue().GetContent());
+            RetrieveMainDicomTags(*resource, currentLevel, currentId);
+          }
+
+          if (request.IsRetrieveMetadata(currentLevel))
+          {
+            transaction_.GetAllMetadata(resource->GetMetadata(currentLevel), currentId);
+          }
+
+          if (currentLevel == topLevel)
+          {
+            break;
           }
           else
           {
-            throw OrthancException(ErrorCode_BadParameterType);
+            int64_t parentId;
+            if (transaction_.LookupParent(parentId, currentId))
+            {
+              currentId = parentId;
+              currentLevel = GetParentResourceType(currentLevel);
+            }
+            else
+            {
+              throw OrthancException(ErrorCode_DatabasePlugin);
+            }
           }
         }
-      }
-
-      if (request.IsRetrieveMetadata())
-      {
-        transaction_.GetAllMetadata(resource->GetMetadata(), internalId);
       }
 
       if (request.IsRetrieveLabels())
@@ -169,7 +267,7 @@ namespace Orthanc
 
         for (std::list<std::string>::const_iterator it = children.begin(); it != children.end(); ++it)
         {
-          resource->AddChildIdentifier(GetChildResourceType(level), *it);
+          resource->AddChildIdentifier(*it);
         }
       }
 
@@ -179,6 +277,50 @@ namespace Orthanc
         std::list<std::string> values;
         transaction_.GetChildrenMetadata(values, internalId, *it);
         resource->AddChildrenMetadata(*it, values);
+      }
+
+      if (!request.GetRetrieveAttachmentOfOneInstance().empty())
+      {
+        std::set<FileContentType> todo = request.GetRetrieveAttachmentOfOneInstance();
+        std::stack< std::pair<ResourceType, int64_t> > candidates;
+        candidates.push(std::make_pair(level, internalId));
+
+        while (!todo.empty() &&
+               !candidates.empty())
+        {
+          std::pair<ResourceType, int64_t> top = candidates.top();
+          candidates.pop();
+
+          if (top.first == ResourceType_Instance)
+          {
+            std::set<FileContentType> nextTodo;
+
+            for (std::set<FileContentType>::const_iterator it = todo.begin(); it != todo.end(); ++it)
+            {
+              FileInfo attachment;
+              int64_t revision;
+              if (transaction_.LookupAttachment(attachment, revision, top.second, *it))
+              {
+                resource->AddAttachmentOfOneInstance(attachment);
+              }
+              else
+              {
+                nextTodo.insert(*it);
+              }
+            }
+
+            todo = nextTodo;
+          }
+          else
+          {
+            std::list<int64_t> children;
+            transaction_.GetChildrenInternalId(children, top.second);
+            for (std::list<int64_t>::const_iterator it = children.begin(); it != children.end(); ++it)
+            {
+              candidates.push(std::make_pair(GetChildResourceType(top.first), *it));
+            }
+          }
+        }
       }
 
       response.Add(resource.release());

@@ -41,18 +41,28 @@ namespace Orthanc
   class FindResponse : public boost::noncopyable
   {
   private:
-    class ChildrenAtLevel : public boost::noncopyable
+    class MainDicomTagsAtLevel : public boost::noncopyable
     {
     private:
-      std::set<std::string>  identifiers_;
+      class DicomValue;
+
+      typedef std::map<DicomTag, DicomValue*>  MainDicomTags;
+
+      MainDicomTags  mainDicomTags_;
 
     public:
-      void AddIdentifier(const std::string& identifier);
+      ~MainDicomTagsAtLevel();
 
-      const std::set<std::string>& GetIdentifiers() const
-      {
-        return identifiers_;
-      }
+      void AddStringDicomTag(uint16_t group,
+                             uint16_t element,
+                             const std::string& value);
+
+      // The "Null" value could be used in the future to indicate a
+      // value that is not available, typically a new "ExtraMainDicomTag"
+      void AddNullDicomTag(uint16_t group,
+                           uint16_t element);
+
+      void Export(DicomMap& target) const;
     };
 
 
@@ -60,28 +70,30 @@ namespace Orthanc
     class Resource : public boost::noncopyable
     {
     private:
-      class DicomValue;
-
-      typedef std::map<DicomTag, DicomValue*>                  MainDicomTags;
       typedef std::map<MetadataType, std::list<std::string>*>  ChildrenMetadata;
 
       ResourceType                          level_;
       std::string                           identifier_;
       std::unique_ptr<std::string>          parentIdentifier_;
-      MainDicomTags                         mainDicomTags_;
-      ChildrenAtLevel                       childrenStudies_;
-      ChildrenAtLevel                       childrenSeries_;
-      ChildrenAtLevel                       childrenInstances_;
+      MainDicomTagsAtLevel                  mainDicomTagsPatient_;
+      MainDicomTagsAtLevel                  mainDicomTagsStudy_;
+      MainDicomTagsAtLevel                  mainDicomTagsSeries_;
+      MainDicomTagsAtLevel                  mainDicomTagsInstance_;
+      std::map<MetadataType, std::string>   metadataPatient_;
+      std::map<MetadataType, std::string>   metadataStudy_;
+      std::map<MetadataType, std::string>   metadataSeries_;
+      std::map<MetadataType, std::string>   metadataInstance_;
+      std::set<std::string>                 childrenIdentifiers_;
       std::set<std::string>                 labels_;      
-      std::map<MetadataType, std::string>   metadata_;
       std::map<FileContentType, FileInfo>   attachments_;
       ChildrenMetadata                      childrenMetadata_;
+      std::map<FileContentType, FileInfo>   attachmentOfOneInstance_;
 
-      ChildrenAtLevel& GetChildrenAtLevel(ResourceType level);
+      MainDicomTagsAtLevel& GetMainDicomTagsAtLevel(ResourceType level);
 
-      const ChildrenAtLevel& GetChildrenAtLevel(ResourceType level) const
+      const MainDicomTagsAtLevel& GetMainDicomTagsAtLevel(ResourceType level) const
       {
-        return const_cast<Resource&>(*this).GetChildrenAtLevel(level);
+        return const_cast<Resource&>(*this).GetMainDicomTagsAtLevel(level);
       }
 
     public:
@@ -110,26 +122,47 @@ namespace Orthanc
 
       bool HasParentIdentifier() const;
 
-      void AddStringDicomTag(uint16_t group,
+      void AddStringDicomTag(ResourceType level,
+                             uint16_t group,
                              uint16_t element,
-                             const std::string& value);
-
-      // The "Null" value could be used in the future to indicate a
-      // value that is not available, typically a new "ExtraMainDicomTag"
-      void AddNullDicomTag(uint16_t group,
-                           uint16_t element);
-
-      void GetMainDicomTags(DicomMap& target) const;
-
-      void AddChildIdentifier(ResourceType level,
-                              const std::string& childId)
+                             const std::string& value)
       {
-        GetChildrenAtLevel(level).AddIdentifier(childId);
+        GetMainDicomTagsAtLevel(level).AddStringDicomTag(group, element, value);
       }
 
-      const std::set<std::string>& GetChildrenIdentifiers(ResourceType level) const
+      void AddNullDicomTag(ResourceType level,
+                           uint16_t group,
+                           uint16_t element)
       {
-        return const_cast<Resource&>(*this).GetChildrenAtLevel(level).GetIdentifiers();
+        GetMainDicomTagsAtLevel(level).AddNullDicomTag(group, element);
+      }
+
+      void GetMainDicomTags(DicomMap& target,
+                            ResourceType level) const
+      {
+        GetMainDicomTagsAtLevel(level).Export(target);
+      }
+
+      void AddMetadata(ResourceType level,
+                       MetadataType metadata,
+                       const std::string& value);
+
+      std::map<MetadataType, std::string>& GetMetadata(ResourceType level);
+
+      const std::map<MetadataType, std::string>& GetMetadata(ResourceType level) const
+      {
+        return const_cast<Resource&>(*this).GetMetadata(level);
+      }
+
+      bool LookupMetadata(std::string& value,
+                          ResourceType level,
+                          MetadataType metadata) const;
+
+      void AddChildIdentifier(const std::string& childId);
+
+      const std::set<std::string>& GetChildrenIdentifiers() const
+      {
+        return childrenIdentifiers_;
       }
 
       void AddLabel(const std::string& label);
@@ -144,33 +177,15 @@ namespace Orthanc
         return labels_;
       }
 
-      void AddMetadata(MetadataType metadata,
-                       const std::string& value);
-
-      std::map<MetadataType, std::string>& GetMetadata()
-      {
-        return metadata_;
-      }
-
-      const std::map<MetadataType, std::string>& GetMetadata() const
-      {
-        return metadata_;
-      }
-
-      bool HasMetadata(MetadataType metadata) const
-      {
-        return metadata_.find(metadata) != metadata_.end();
-      }
-
-      bool LookupMetadata(std::string& value,
-                          MetadataType metadata) const;
-
-      void ListMetadata(std::set<MetadataType>& metadata) const;
-
       void AddAttachment(const FileInfo& attachment);
 
       bool LookupAttachment(FileInfo& target,
                             FileContentType type) const;
+
+      const std::map<FileContentType, FileInfo>& GetAttachments() const
+      {
+        return attachments_;
+      }
 
       void AddChildrenMetadata(MetadataType metadata,
                                const std::list<std::string>& values);
@@ -178,10 +193,19 @@ namespace Orthanc
       bool LookupChildrenMetadata(std::list<std::string>& values,
                                   MetadataType metadata) const;
 
+      void AddAttachmentOfOneInstance(const FileInfo& info);
+
+      bool LookupAttachmentOfOneInstance(FileInfo& target,
+                                         FileContentType type) const;
+
       SeriesStatus GetSeriesStatus(uint32_t& expecterNumberOfInstances) const;
 
       void Expand(Json::Value& target,
-                  const FindRequest& request) const;
+                  const FindRequest& request,
+                  bool includeAllMetadata) const;
+
+      void DebugExport(Json::Value& target,
+                       const FindRequest& request) const;
     };
 
   private:

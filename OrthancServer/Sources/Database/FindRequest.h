@@ -166,13 +166,20 @@ namespace Orthanc
     LabelsConstraint                     labelsContraint_;
     std::deque<Ordering*>                ordering_;             // The ordering criteria (note: the order is important !)
 
-    bool                                 retrieveMainDicomTags_;
-    bool                                 retrieveMetadata_;
+    bool                                 retrieveMainDicomTagsPatients_;
+    bool                                 retrieveMainDicomTagsStudies_;
+    bool                                 retrieveMainDicomTagsSeries_;
+    bool                                 retrieveMainDicomTagsInstances_;
+    bool                                 retrieveMetadataPatients_;
+    bool                                 retrieveMetadataStudies_;
+    bool                                 retrieveMetadataSeries_;
+    bool                                 retrieveMetadataInstances_;
     bool                                 retrieveLabels_;
     bool                                 retrieveAttachments_;
     bool                                 retrieveParentIdentifier_;
     bool                                 retrieveChildrenIdentifiers_;
     std::set<MetadataType>               retrieveChildrenMetadata_;
+    std::set<FileContentType>            retrieveAttachmentOfOneInstance_;
 
   public:
     explicit FindRequest(ResourceType level);
@@ -259,25 +266,15 @@ namespace Orthanc
       return labelsContraint_;
     }
 
-    void SetRetrieveMetadata(bool retrieve)
-    {
-      retrieveMetadata_ = retrieve;
-    }
+    void SetRetrieveMainDicomTags(ResourceType level,
+                                  bool retrieve);
 
-    bool IsRetrieveMainDicomTags() const
-    {
-      return retrieveMainDicomTags_;
-    }
+    bool IsRetrieveMainDicomTags(ResourceType level) const;
 
-    void SetRetrieveMainDicomTags(bool retrieve)
-    {
-      retrieveMainDicomTags_ = retrieve;
-    }
+    void SetRetrieveMetadata(ResourceType level,
+                             bool retrieve);
 
-    bool IsRetrieveMetadata() const
-    {
-      return retrieveMetadata_;
-    }
+    bool IsRetrieveMetadata(ResourceType level) const;
 
     void SetRetrieveLabels(bool retrieve)
     {
@@ -323,6 +320,13 @@ namespace Orthanc
     const std::set<MetadataType>& GetRetrieveChildrenMetadata() const
     {
       return retrieveChildrenMetadata_;
+    }
+
+    void AddRetrieveAttachmentOfOneInstance(FileContentType type);
+
+    const std::set<FileContentType>& GetRetrieveAttachmentOfOneInstance() const
+    {
+      return retrieveAttachmentOfOneInstance_;
     }
   };
 }

@@ -22,16 +22,17 @@
 
 #include "FindResponse.h"
 
-#include "../../../OrthancFramework/Sources/DicomFormat/DicomInstanceHasher.h"
+#include "../../../OrthancFramework/Sources/DicomFormat/DicomArray.h"
 #include "../../../OrthancFramework/Sources/OrthancException.h"
 #include "../../../OrthancFramework/Sources/SerializationToolbox.h"
 
+#include <boost/lexical_cast.hpp>
 #include <cassert>
 
 
 namespace Orthanc
 {
-  class FindResponse::Resource::DicomValue : public boost::noncopyable
+  class FindResponse::MainDicomTagsAtLevel::DicomValue : public boost::noncopyable
   {
   public:
     enum ValueType
@@ -74,8 +75,18 @@ namespace Orthanc
   };
 
 
-  void FindResponse::Resource::AddNullDicomTag(uint16_t group,
-                                               uint16_t element)
+  FindResponse::MainDicomTagsAtLevel::~MainDicomTagsAtLevel()
+  {
+    for (MainDicomTags::iterator it = mainDicomTags_.begin(); it != mainDicomTags_.end(); ++it)
+    {
+      assert(it->second != NULL);
+      delete it->second;
+    }
+  }
+
+
+  void FindResponse::MainDicomTagsAtLevel::AddNullDicomTag(uint16_t group,
+                                                           uint16_t element)
   {
     const DicomTag tag(group, element);
 
@@ -90,9 +101,9 @@ namespace Orthanc
   }
 
 
-  void FindResponse::Resource::AddStringDicomTag(uint16_t group,
-                                                 uint16_t element,
-                                                 const std::string& value)
+  void FindResponse::MainDicomTagsAtLevel::AddStringDicomTag(uint16_t group,
+                                                             uint16_t element,
+                                                             const std::string& value)
   {
     const DicomTag tag(group, element);
 
@@ -107,7 +118,7 @@ namespace Orthanc
   }
 
 
-  void FindResponse::Resource::GetMainDicomTags(DicomMap& target) const
+  void FindResponse::MainDicomTagsAtLevel::Export(DicomMap& target) const
   {
     for (MainDicomTags::const_iterator it = mainDicomTags_.begin(); it != mainDicomTags_.end(); ++it)
     {
@@ -130,11 +141,11 @@ namespace Orthanc
   }
 
 
-  void FindResponse::ChildrenAtLevel::AddIdentifier(const std::string& identifier)
+  void FindResponse::Resource::AddChildIdentifier(const std::string& identifier)
   {
-    if (identifiers_.find(identifier) == identifiers_.end())
+    if (childrenIdentifiers_.find(identifier) == childrenIdentifiers_.end())
     {
-      identifiers_.insert(identifier);
+      childrenIdentifiers_.insert(identifier);
     }
     else
     {
@@ -143,42 +154,26 @@ namespace Orthanc
   }
 
 
-  FindResponse::ChildrenAtLevel& FindResponse::Resource::GetChildrenAtLevel(ResourceType level)
+  FindResponse::MainDicomTagsAtLevel& FindResponse::Resource::GetMainDicomTagsAtLevel(ResourceType level)
   {
+    if (!IsResourceLevelAboveOrEqual(level, level_))
+    {
+      throw OrthancException(ErrorCode_BadParameterType);
+    }
+
     switch (level)
     {
+      case ResourceType_Patient:
+        return mainDicomTagsPatient_;
+
       case ResourceType_Study:
-        if (level_ == ResourceType_Patient)
-        {
-          return childrenStudies_;
-        }
-        else
-        {
-          throw OrthancException(ErrorCode_BadParameterType);
-        }
+        return mainDicomTagsStudy_;
 
       case ResourceType_Series:
-        if (level_ == ResourceType_Patient ||
-            level_ == ResourceType_Study)
-        {
-          return childrenSeries_;
-        }
-        else
-        {
-          throw OrthancException(ErrorCode_BadParameterType);
-        }
+        return mainDicomTagsSeries_;
 
       case ResourceType_Instance:
-        if (level_ == ResourceType_Patient ||
-            level_ == ResourceType_Study ||
-            level_ == ResourceType_Series)
-        {
-          return childrenInstances_;
-        }
-        else
-        {
-          throw OrthancException(ErrorCode_BadParameterType);
-        }
+        return mainDicomTagsInstance_;
 
       default:
         throw OrthancException(ErrorCode_ParameterOutOfRange);
@@ -186,26 +181,59 @@ namespace Orthanc
   }
 
 
-  void FindResponse::Resource::AddMetadata(MetadataType metadata,
+  void FindResponse::Resource::AddMetadata(ResourceType level,
+                                           MetadataType metadata,
                                            const std::string& value)
   {
-    if (metadata_.find(metadata) != metadata_.end())
+    std::map<MetadataType, std::string>& m = GetMetadata(level);
+
+    if (m.find(metadata) != m.end())
     {
       throw OrthancException(ErrorCode_BadSequenceOfCalls);  // Metadata already present
     }
     else
     {
-      metadata_[metadata] = value;
+      m[metadata] = value;
+    }
+  }
+
+
+  std::map<MetadataType, std::string>& FindResponse::Resource::GetMetadata(ResourceType level)
+  {
+    if (!IsResourceLevelAboveOrEqual(level, level_))
+    {
+      throw OrthancException(ErrorCode_BadParameterType);
+    }
+
+    switch (level)
+    {
+      case ResourceType_Patient:
+        return metadataPatient_;
+
+      case ResourceType_Study:
+        return metadataStudy_;
+
+      case ResourceType_Series:
+        return metadataSeries_;
+
+      case ResourceType_Instance:
+        return metadataInstance_;
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
   }
 
 
   bool FindResponse::Resource::LookupMetadata(std::string& value,
+                                              ResourceType level,
                                               MetadataType metadata) const
   {
-    std::map<MetadataType, std::string>::const_iterator found = metadata_.find(metadata);
+    const std::map<MetadataType, std::string>& m = GetMetadata(level);
 
-    if (found == metadata_.end())
+    std::map<MetadataType, std::string>::const_iterator found = m.find(metadata);
+
+    if (found == m.end())
     {
       return false;
     }
@@ -216,16 +244,6 @@ namespace Orthanc
     }
   }
 
-
-  void FindResponse::Resource::ListMetadata(std::set<MetadataType>& target) const
-  {
-    target.clear();
-
-    for (std::map<MetadataType, std::string>::const_iterator it = metadata_.begin(); it != metadata_.end(); ++it)
-    {
-      target.insert(it->first);
-    }
-  }
 
   const std::string& FindResponse::Resource::GetParentIdentifier() const
   {
@@ -246,12 +264,6 @@ namespace Orthanc
 
   FindResponse::Resource::~Resource()
   {
-    for (MainDicomTags::iterator it = mainDicomTags_.begin(); it != mainDicomTags_.end(); ++it)
-    {
-      assert(it->second != NULL);
-      delete it->second;
-    }
-
     for (ChildrenMetadata::iterator it = childrenMetadata_.begin(); it != childrenMetadata_.end(); ++it)
     {
       assert(it->second != NULL);
@@ -362,6 +374,36 @@ namespace Orthanc
   }
 
 
+  void FindResponse::Resource::AddAttachmentOfOneInstance(const FileInfo& info)
+  {
+    if (attachmentOfOneInstance_.find(info.GetContentType()) == attachmentOfOneInstance_.end())
+    {
+      attachmentOfOneInstance_[info.GetContentType()] = info;
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+  }
+
+
+  bool FindResponse::Resource::LookupAttachmentOfOneInstance(FileInfo& target,
+                                                             FileContentType type) const
+  {
+    std::map<FileContentType, FileInfo>::const_iterator found = attachmentOfOneInstance_.find(type);
+
+    if (found == attachmentOfOneInstance_.end())
+    {
+      return false;
+    }
+    else
+    {
+      target = found->second;
+      return true;
+    }
+  }
+
+
   SeriesStatus FindResponse::Resource::GetSeriesStatus(uint32_t& expectedNumberOfInstances) const
   {
     if (level_ != ResourceType_Series)
@@ -370,7 +412,7 @@ namespace Orthanc
     }
 
     std::string s;
-    if (!LookupMetadata(s, MetadataType_Series_ExpectedNumberOfInstances) ||
+    if (!LookupMetadata(s, ResourceType_Series, MetadataType_Series_ExpectedNumberOfInstances) ||
         !SerializationToolbox::ParseUnsignedInteger32(expectedNumberOfInstances, s))
     {
       return SeriesStatus_Unknown;
@@ -422,7 +464,8 @@ namespace Orthanc
 
 
   void FindResponse::Resource::Expand(Json::Value& target,
-                                      const FindRequest& request) const
+                                      const FindRequest& request,
+                                      bool includeAllMetadata) const
   {
     /**
 
@@ -444,34 +487,14 @@ namespace Orthanc
 
      **/
 
+    /**
+     * This method closely follows "SerializeExpandedResource()" in
+     * "ServerContext.cpp" from Orthanc 1.12.3.
+     **/
+
     target = Json::objectValue;
     target["ID"] = identifier_;
     target["Type"] = GetResourceTypeText(level_, false, true);
-
-    if (request.IsRetrieveMetadata())
-    {
-      Json::Value metadata = Json::objectValue;
-
-      for (std::map<MetadataType, std::string>::const_iterator
-             it = metadata_.begin(); it != metadata_.end(); ++it)
-      {
-        metadata[EnumerationToString(it->first)] = it->second;
-      }
-
-      target["Metadata"] = metadata;
-    }
-
-    if (request.IsRetrieveLabels())
-    {
-      Json::Value labels = Json::arrayValue;
-
-      for (std::set<std::string>::const_iterator it = labels_.begin(); it != labels_.end(); ++it)
-      {
-        labels.append(*it);
-      }
-
-      target["Labels"] = labels;
-    }
 
     if (request.IsRetrieveParentIdentifier())
     {
@@ -499,10 +522,9 @@ namespace Orthanc
 
     if (request.IsRetrieveChildrenIdentifiers())
     {
+      const std::set<std::string>& children = GetChildrenIdentifiers();
+
       Json::Value c = Json::arrayValue;
-
-      const std::set<std::string>& children = GetChildrenAtLevel(GetChildResourceType(level_)).GetIdentifiers();
-
       for (std::set<std::string>::const_iterator
              it = children.begin(); it != children.end(); ++it)
       {
@@ -525,6 +547,269 @@ namespace Orthanc
 
         default:
           throw OrthancException(ErrorCode_InternalError);
+      }
+    }
+
+    if (request.IsRetrieveMetadata(level_))
+    {
+      switch (level_)
+      {
+        case ResourceType_Patient:
+        case ResourceType_Study:
+          break;
+
+        case ResourceType_Series:
+        {
+          uint32_t expectedNumberOfInstances;
+          SeriesStatus status = GetSeriesStatus(expectedNumberOfInstances);
+
+          target["Status"] = EnumerationToString(status);
+
+          if (status == SeriesStatus_Unknown)
+          {
+            target["ExpectedNumberOfInstances"] = Json::nullValue;
+          }
+          else
+          {
+            target["ExpectedNumberOfInstances"] = Json::nullValue;
+          }
+
+          break;
+        }
+
+        case ResourceType_Instance:
+        {
+          // TODO-FIND
+          break;
+        }
+
+        default:
+          throw OrthancException(ErrorCode_InternalError);
+      }
+    }
+
+    if (request.IsRetrieveLabels())
+    {
+      Json::Value labels = Json::arrayValue;
+
+      for (std::set<std::string>::const_iterator it = labels_.begin(); it != labels_.end(); ++it)
+      {
+        labels.append(*it);
+      }
+
+      target["Labels"] = labels;
+    }
+
+    if (request.IsRetrieveMetadata(level_) &&
+        includeAllMetadata)
+    {
+      const std::map<MetadataType, std::string>& m = GetMetadata(level_);
+
+      Json::Value metadata = Json::objectValue;
+
+      for (std::map<MetadataType, std::string>::const_iterator it = m.begin(); it != m.end(); ++it)
+      {
+        metadata[EnumerationToString(it->first)] = it->second;
+      }
+
+      target["Metadata"] = metadata;
+    }
+  }
+
+
+  static void DebugDicomMap(Json::Value& target,
+                            const DicomMap& m)
+  {
+    DicomArray a(m);
+    for (size_t i = 0; i < a.GetSize(); i++)
+    {
+      if (a.GetElement(i).GetValue().IsNull())
+      {
+        target[a.GetElement(i).GetTag().Format()] = Json::nullValue;
+      }
+      else if (a.GetElement(i).GetValue().IsString())
+      {
+        target[a.GetElement(i).GetTag().Format()] = a.GetElement(i).GetValue().GetContent();
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+    }
+  }
+
+
+  static void DebugMetadata(Json::Value& target,
+                            const std::map<MetadataType, std::string>& m)
+  {
+    target = Json::objectValue;
+
+    for (std::map<MetadataType, std::string>::const_iterator it = m.begin(); it != m.end(); ++it)
+    {
+      target[EnumerationToString(it->first)] = it->second;
+    }
+  }
+
+
+  static void DebugAddAttachment(Json::Value& target,
+                                 const FileInfo& info)
+  {
+    Json::Value u = Json::arrayValue;
+    u.append(info.GetUuid());
+    u.append(info.GetUncompressedSize());
+    target[EnumerationToString(info.GetContentType())] = u;
+  }
+
+  void FindResponse::Resource::DebugExport(Json::Value& target,
+                                           const FindRequest& request) const
+  {
+    target = Json::objectValue;
+
+    target["Level"] = EnumerationToString(GetLevel());
+    target["ID"] = GetIdentifier();
+
+    if (request.IsRetrieveParentIdentifier())
+    {
+      target["ParentID"] = GetParentIdentifier();
+    }
+
+    if (request.IsRetrieveMainDicomTags(ResourceType_Patient))
+    {
+      DicomMap m;
+      GetMainDicomTags(m, ResourceType_Patient);
+      DebugDicomMap(target["Patient"]["MainDicomTags"], m);
+    }
+
+    if (request.IsRetrieveMetadata(ResourceType_Patient))
+    {
+      DebugMetadata(target["Patient"]["Metadata"], GetMetadata(ResourceType_Patient));
+    }
+
+    if (request.GetLevel() != ResourceType_Patient)
+    {
+      if (request.IsRetrieveMainDicomTags(ResourceType_Study))
+      {
+        DicomMap m;
+        GetMainDicomTags(m, ResourceType_Study);
+        DebugDicomMap(target["Study"]["MainDicomTags"], m);
+      }
+
+      if (request.IsRetrieveMetadata(ResourceType_Study))
+      {
+        DebugMetadata(target["Study"]["Metadata"], GetMetadata(ResourceType_Study));
+      }
+    }
+
+    if (request.GetLevel() != ResourceType_Patient &&
+        request.GetLevel() != ResourceType_Study)
+    {
+      if (request.IsRetrieveMainDicomTags(ResourceType_Series))
+      {
+        DicomMap m;
+        GetMainDicomTags(m, ResourceType_Series);
+        DebugDicomMap(target["Series"]["MainDicomTags"], m);
+      }
+
+      if (request.IsRetrieveMetadata(ResourceType_Series))
+      {
+        DebugMetadata(target["Series"]["Metadata"], GetMetadata(ResourceType_Series));
+      }
+    }
+
+    if (request.GetLevel() != ResourceType_Patient &&
+        request.GetLevel() != ResourceType_Study &&
+        request.GetLevel() != ResourceType_Series)
+    {
+      if (request.IsRetrieveMainDicomTags(ResourceType_Instance))
+      {
+        DicomMap m;
+        GetMainDicomTags(m, ResourceType_Instance);
+        DebugDicomMap(target["Instance"]["MainDicomTags"], m);
+      }
+
+      if (request.IsRetrieveMetadata(ResourceType_Instance))
+      {
+        DebugMetadata(target["Instance"]["Metadata"], GetMetadata(ResourceType_Instance));
+      }
+    }
+
+    if (request.IsRetrieveChildrenIdentifiers())
+    {
+      Json::Value v = Json::arrayValue;
+      for (std::set<std::string>::const_iterator it = childrenIdentifiers_.begin();
+           it != childrenIdentifiers_.end(); ++it)
+      {
+        v.append(*it);
+      }
+      target["Children"] = v;
+    }
+
+    if (request.IsRetrieveLabels())
+    {
+      Json::Value v = Json::arrayValue;
+      for (std::set<std::string>::const_iterator it = labels_.begin();
+           it != labels_.end(); ++it)
+      {
+        v.append(*it);
+      }
+      target["Labels"] = v;
+    }
+
+    if (request.IsRetrieveAttachments())
+    {
+      Json::Value v = Json::objectValue;
+      for (std::map<FileContentType, FileInfo>::const_iterator it = attachments_.begin();
+           it != attachments_.end(); ++it)
+      {
+        if (it->first != it->second.GetContentType())
+        {
+          throw OrthancException(ErrorCode_DatabasePlugin);
+        }
+        else
+        {
+          DebugAddAttachment(v, it->second);
+        }
+      }
+      target["Attachments"] = v;
+    }
+
+    for (std::set<MetadataType>::const_iterator it = request.GetRetrieveChildrenMetadata().begin();
+         it != request.GetRetrieveChildrenMetadata().end(); ++it)
+    {
+      std::list<std::string> l;
+      if (LookupChildrenMetadata(l, *it))
+      {
+        Json::Value v = Json::arrayValue;
+        for (std::list<std::string>::const_iterator it2 = l.begin(); it2 != l.end(); ++it2)
+        {
+          v.append(*it2);
+        }
+        target["ChildrenMetadata"][EnumerationToString(*it)] = v;
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_DatabasePlugin);
+      }
+    }
+
+    for (std::set<FileContentType>::const_iterator it = request.GetRetrieveAttachmentOfOneInstance().begin();
+         it != request.GetRetrieveAttachmentOfOneInstance().end(); ++it)
+    {
+      FileInfo info;
+      if (LookupAttachmentOfOneInstance(info, *it))
+      {
+        if (info.GetContentType() == *it)
+        {
+          DebugAddAttachment(target["AttachmentOfOneInstance"], info);
+        }
+        else
+        {
+          throw OrthancException(ErrorCode_DatabasePlugin);
+        }
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_DatabasePlugin);
       }
     }
   }
