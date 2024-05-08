@@ -245,23 +245,6 @@ namespace Orthanc
   }
 
 
-  const std::string& FindResponse::Resource::GetParentIdentifier() const
-  {
-    if (level_ == ResourceType_Patient)
-    {
-      throw OrthancException(ErrorCode_BadParameterType);
-    }
-    else if (HasParentIdentifier())
-    {
-      return *parentIdentifier_;
-    }
-    else
-    {
-      throw OrthancException(ErrorCode_BadSequenceOfCalls);
-    }
-  }
-
-
   FindResponse::Resource::~Resource()
   {
     for (ChildrenMetadata::iterator it = childrenMetadata_.begin(); it != childrenMetadata_.end(); ++it)
@@ -285,6 +268,23 @@ namespace Orthanc
     else
     {
       parentIdentifier_.reset(new std::string(id));
+    }
+  }
+
+
+  const std::string& FindResponse::Resource::GetParentIdentifier() const
+  {
+    if (level_ == ResourceType_Patient)
+    {
+      throw OrthancException(ErrorCode_BadParameterType);
+    }
+    else if (HasParentIdentifier())
+    {
+      return *parentIdentifier_;
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
     }
   }
 
@@ -374,11 +374,24 @@ namespace Orthanc
   }
 
 
-  void FindResponse::Resource::AddAttachmentOfOneInstance(const FileInfo& info)
+  void FindResponse::Resource::SetOneInstanceIdentifier(const std::string& id)
   {
-    if (attachmentOfOneInstance_.find(info.GetContentType()) == attachmentOfOneInstance_.end())
+    if (HasOneInstanceIdentifier())
     {
-      attachmentOfOneInstance_[info.GetContentType()] = info;
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    else
+    {
+      oneInstanceIdentifier_.reset(new std::string(id));
+    }
+  }
+
+
+  const std::string& FindResponse::Resource::GetOneInstanceIdentifier() const
+  {
+    if (HasOneInstanceIdentifier())
+    {
+      return *oneInstanceIdentifier_;
     }
     else
     {
@@ -387,20 +400,9 @@ namespace Orthanc
   }
 
 
-  bool FindResponse::Resource::LookupAttachmentOfOneInstance(FileInfo& target,
-                                                             FileContentType type) const
+  bool FindResponse::Resource::HasOneInstanceIdentifier() const
   {
-    std::map<FileContentType, FileInfo>::const_iterator found = attachmentOfOneInstance_.find(type);
-
-    if (found == attachmentOfOneInstance_.end())
-    {
-      return false;
-    }
-    else
-    {
-      target = found->second;
-      return true;
-    }
+    return oneInstanceIdentifier_.get() != NULL;
   }
 
 
@@ -579,25 +581,9 @@ namespace Orthanc
       }
     }
 
-    for (std::set<FileContentType>::const_iterator it = request.GetRetrieveAttachmentOfOneInstance().begin();
-         it != request.GetRetrieveAttachmentOfOneInstance().end(); ++it)
+    if (request.IsRetrieveOneInstanceIdentifier())
     {
-      FileInfo info;
-      if (LookupAttachmentOfOneInstance(info, *it))
-      {
-        if (info.GetContentType() == *it)
-        {
-          DebugAddAttachment(target["AttachmentOfOneInstance"], info);
-        }
-        else
-        {
-          throw OrthancException(ErrorCode_DatabasePlugin);
-        }
-      }
-      else
-      {
-        throw OrthancException(ErrorCode_DatabasePlugin);
-      }
+      target["OneInstance"] = GetOneInstanceIdentifier();
     }
   }
 
@@ -642,7 +628,7 @@ namespace Orthanc
   }
 
 
-  const FindResponse::Resource& FindResponse::GetResource(size_t index) const
+  const FindResponse::Resource& FindResponse::GetResourceByIndex(size_t index) const
   {
     if (index >= items_.size())
     {
@@ -656,7 +642,7 @@ namespace Orthanc
   }
 
 
-  FindResponse::Resource& FindResponse::GetResource(const std::string& id)
+  FindResponse::Resource& FindResponse::GetResourceByIdentifier(const std::string& id)
   {
     Index::const_iterator found = index_.find(id);
 

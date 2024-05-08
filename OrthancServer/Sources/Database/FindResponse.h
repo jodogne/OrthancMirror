@@ -88,7 +88,7 @@ namespace Orthanc
       std::set<std::string>                 labels_;      
       std::map<FileContentType, FileInfo>   attachments_;
       ChildrenMetadata                      childrenMetadata_;
-      std::map<FileContentType, FileInfo>   attachmentOfOneInstance_;
+      std::unique_ptr<std::string>          oneInstanceIdentifier_;
 
       MainDicomTagsAtLevel& GetMainDicomTagsAtLevel(ResourceType level);
 
@@ -124,9 +124,9 @@ namespace Orthanc
         return identifier_;
       }
 
-      const std::string& GetParentIdentifier() const;
-
       void SetParentIdentifier(const std::string& id);
+
+      const std::string& GetParentIdentifier() const;
 
       bool HasParentIdentifier() const;
 
@@ -201,10 +201,11 @@ namespace Orthanc
       bool LookupChildrenMetadata(std::list<std::string>& values,
                                   MetadataType metadata) const;
 
-      void AddAttachmentOfOneInstance(const FileInfo& info);
+      const std::string& GetOneInstanceIdentifier() const;
 
-      bool LookupAttachmentOfOneInstance(FileInfo& target,
-                                         FileContentType type) const;
+      void SetOneInstanceIdentifier(const std::string& id);
+
+      bool HasOneInstanceIdentifier() const;
 
       void DebugExport(Json::Value& target,
                        const FindRequest& request) const;
@@ -226,13 +227,13 @@ namespace Orthanc
       return items_.size();
     }
 
-    const Resource& GetResource(size_t index) const;
+    const Resource& GetResourceByIndex(size_t index) const;
 
-    Resource& GetResource(const std::string& id);
+    Resource& GetResourceByIdentifier(const std::string& id);
 
-    const Resource& GetResource(const std::string& id) const
+    const Resource& GetResourceByIdentifier(const std::string& id) const
     {
-      return const_cast<FindResponse&>(*this).GetResource(id);
+      return const_cast<FindResponse&>(*this).GetResourceByIdentifier(id);
     }
 
     bool HasResource(const std::string& id) const

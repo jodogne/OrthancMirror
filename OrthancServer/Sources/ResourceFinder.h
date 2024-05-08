@@ -35,8 +35,13 @@ namespace Orthanc
   private:
     FindRequest        request_;
     bool               expand_;
-    std::set<DicomTag> requestedTags_;
     DicomToJsonFormat  format_;
+    bool               hasRequestedTags_;
+    std::set<DicomTag> requestedPatientTags_;
+    std::set<DicomTag> requestedStudyTags_;
+    std::set<DicomTag> requestedSeriesTags_;
+    std::set<DicomTag> requestedInstanceTags_;
+    std::set<DicomTag> requestedTagsFromFileStorage_;
     bool               includeAllMetadata_;   // Same as: ExpandResourceFlags_IncludeAllMetadata
 
     SeriesStatus GetSeriesStatus(uint32_t& expectedNumberOfInstances,
@@ -49,11 +54,6 @@ namespace Orthanc
   public:
     ResourceFinder(ResourceType level,
                    bool expand);
-
-    void SetRequestedTags(const std::set<DicomTag>& tags)
-    {
-      requestedTags_ = tags;
-    }
 
     void SetFormat(DicomToJsonFormat format)
     {
@@ -70,6 +70,10 @@ namespace Orthanc
     {
       includeAllMetadata_ = include;
     }
+
+    void AddRequestedTags(const DicomTag& tag);
+
+    void AddRequestedTags(const std::set<DicomTag>& tags);
 
     void Execute(Json::Value& target,
                  ServerContext& context);

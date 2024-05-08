@@ -179,7 +179,7 @@ namespace Orthanc
     bool                                 retrieveParentIdentifier_;
     bool                                 retrieveChildrenIdentifiers_;
     std::set<MetadataType>               retrieveChildrenMetadata_;
-    std::set<FileContentType>            retrieveAttachmentOfOneInstance_;
+    bool                                 retrieveOneInstanceIdentifier_;
 
   public:
     explicit FindRequest(ResourceType level);
@@ -191,25 +191,16 @@ namespace Orthanc
       return level_;
     }
 
-    void SetOrthancPatientId(const std::string& id)
-    {
-      orthancIdentifiers_.SetPatientId(id);
-    }
+    void SetOrthancId(ResourceType level,
+                      const std::string& id);
 
-    void SetOrthancStudyId(const std::string& id)
-    {
-      orthancIdentifiers_.SetStudyId(id);
-    }
+    void SetOrthancPatientId(const std::string& id);
 
-    void SetOrthancSeriesId(const std::string& id)
-    {
-      orthancIdentifiers_.SetSeriesId(id);
-    }
+    void SetOrthancStudyId(const std::string& id);
 
-    void SetOrthancInstanceId(const std::string& id)
-    {
-      orthancIdentifiers_.SetInstanceId(id);
-    }
+    void SetOrthancSeriesId(const std::string& id);
+
+    void SetOrthancInstanceId(const std::string& id);
 
     const OrthancIdentifiers& GetOrthancIdentifiers() const
     {
@@ -322,11 +313,14 @@ namespace Orthanc
       return retrieveChildrenMetadata_;
     }
 
-    void AddRetrieveAttachmentOfOneInstance(FileContentType type);
-
-    const std::set<FileContentType>& GetRetrieveAttachmentOfOneInstance() const
+    void SetRetrieveOneInstanceIdentifier(bool retrieve)
     {
-      return retrieveAttachmentOfOneInstance_;
+      retrieveOneInstanceIdentifier_ = retrieve;
+    }
+
+    bool IsRetrieveOneInstanceIdentifier() const
+    {
+      return retrieveOneInstanceIdentifier_;
     }
   };
 }

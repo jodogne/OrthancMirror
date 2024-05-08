@@ -241,7 +241,7 @@ namespace Orthanc
       OrthancRestApi::GetRequestedTags(requestedTags, call);
 
       ResourceFinder finder(resourceType, expand);
-      finder.SetRequestedTags(requestedTags);
+      finder.AddRequestedTags(requestedTags);
       finder.SetFormat(OrthancRestApi::GetDicomFormat(call, DicomToJsonFormat_Human));
 
       if (call.HasArgument("limit") ||
