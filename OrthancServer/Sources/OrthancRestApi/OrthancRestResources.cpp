@@ -355,13 +355,15 @@ namespace Orthanc
 
           target["Status"] = EnumerationToString(status);
 
+          static const char* EXPECTED_NUMBER_OF_INSTANCES = "ExpectedNumberOfInstances";
+
           if (status == SeriesStatus_Unknown)
           {
-            target["ExpectedNumberOfInstances"] = Json::nullValue;
+            target[EXPECTED_NUMBER_OF_INSTANCES] = Json::nullValue;
           }
           else
           {
-            target["ExpectedNumberOfInstances"] = expectedNumberOfInstances;
+            target[EXPECTED_NUMBER_OF_INSTANCES] = expectedNumberOfInstances;
           }
 
           break;
@@ -380,16 +382,18 @@ namespace Orthanc
             throw OrthancException(ErrorCode_InternalError);
           }
 
+          static const char* INDEX_IN_SERIES = "IndexInSeries";
+
           std::string s;
           uint32_t index;
           if (resource.LookupMetadata(s, ResourceType_Instance, MetadataType_Instance_IndexInSeries) &&
               SerializationToolbox::ParseUnsignedInteger32(index, s))
           {
-            target["IndexInSeries"] = index;
+            target[INDEX_IN_SERIES] = index;
           }
           else
           {
-            target["IndexInSeries"] = Json::nullValue;
+            target[INDEX_IN_SERIES] = Json::nullValue;
           }
 
           break;
@@ -423,7 +427,42 @@ namespace Orthanc
       }
 
       {
+        static const char* const MAIN_DICOM_TAGS = "MainDicomTags";
+        static const char* const PATIENT_MAIN_DICOM_TAGS = "PatientMainDicomTags";
+
         // TODO-FIND : (expandFlags & ExpandResourceFlags_IncludeMainDicomTags)
+        DicomMap allMainDicomTags;
+        resource.GetMainDicomTags(allMainDicomTags, resource.GetLevel());
+
+        DicomMap levelMainDicomTags;
+        allMainDicomTags.ExtractResourceInformation(levelMainDicomTags, resource.GetLevel());
+
+        target[MAIN_DICOM_TAGS] = Json::objectValue;
+        FromDcmtkBridge::ToJson(target[MAIN_DICOM_TAGS], levelMainDicomTags, format_);
+
+        if (resource.GetLevel() == ResourceType_Study)
+        {
+          DicomMap patientMainDicomTags;
+          allMainDicomTags.ExtractPatientInformation(patientMainDicomTags);
+
+          target[PATIENT_MAIN_DICOM_TAGS] = Json::objectValue;
+          FromDcmtkBridge::ToJson(target[PATIENT_MAIN_DICOM_TAGS], patientMainDicomTags, format_);
+        }
+
+        /*
+          TODO-FIND
+
+        if (!requestedTags_.empty())
+        {
+          static const char* const REQUESTED_TAGS = "RequestedTags";
+
+          DicomMap tags;
+          resource.GetMainDicomTags().ExtractTags(tags, requestedTags);
+
+          target[REQUESTED_TAGS] = Json::objectValue;
+          FromDcmtkBridge::ToJson(target[REQUESTED_TAGS], tags, format);
+        }
+        */
       }
 
       {
@@ -524,15 +563,7 @@ namespace Orthanc
         {
           Json::Value item;
           Expand(item, response.GetResource(i), context.GetIndex());
-
-#if 0
           target.append(item);
-#else
-          context.AppendFindResponse(target, request_, response.GetResource(i), format_,
-                                     requestedTags_, true /* allowStorageAccess */);
-          std::cout << "+++ Expected: " << target[target.size() - 1].toStyledString();
-          std::cout << "--- Actual: " << item.toStyledString();
-#endif
         }
       }
       else

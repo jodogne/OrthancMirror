@@ -2716,43 +2716,4 @@ namespace Orthanc
 
     return elapsed.total_seconds();
   }
-
-  void ServerContext::AppendFindResponse(Json::Value& target,
-                                         const FindRequest& request,
-                                         const FindResponse::Resource& item,
-                                         DicomToJsonFormat format,
-                                         const std::set<DicomTag>& requestedTags,
-                                         bool allowStorageAccess)
-  {
-    // convert to ExpandedResource to re-use the serialization code TODO-FIND: check if this is the right way to do.  shouldn't we copy the code and finally get rid of ExpandedResource ? 
-    ExpandedResource resource(request, item);
-
-    ExpandResourceFlags expandFlags = ExpandResourceFlags_None;
-    if (request.IsRetrieveChildrenIdentifiers())
-    {
-      expandFlags = static_cast<ExpandResourceFlags>(expandFlags | ExpandResourceFlags_IncludeChildren);
-    }
-    if (request.IsRetrieveMetadata(request.GetLevel()))
-    {
-      expandFlags = static_cast<ExpandResourceFlags>(expandFlags | ExpandResourceFlags_IncludeAllMetadata | ExpandResourceFlags_IncludeMetadata );
-    }
-    if (request.IsRetrieveMainDicomTags(request.GetLevel()))
-    {
-      expandFlags = static_cast<ExpandResourceFlags>(expandFlags | ExpandResourceFlags_IncludeMainDicomTags);
-    }
-    if (true /* request.HasResponseContent(FindRequest::ResponseContent_IsStable) */)  // TODO-FIND: Is this correct?
-    {
-      expandFlags = static_cast<ExpandResourceFlags>(expandFlags | ExpandResourceFlags_IncludeIsStable);
-    }
-    if (request.IsRetrieveLabels())
-    {
-      expandFlags = static_cast<ExpandResourceFlags>(expandFlags | ExpandResourceFlags_IncludeLabels);
-    }
-
-    Json::Value jsonItem;
-    SerializeExpandedResource(jsonItem, resource, format, requestedTags, expandFlags);
-    target.append(jsonItem);
-  }
-
-
 }
