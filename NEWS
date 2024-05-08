@@ -1,28 +1,6 @@
 Pending changes in the mainline
 ===============================
 
-Maintenance
------------
-
-* In C-Find queries including GenericGroupLength tags, Orthanc was still
-  extracting these tags from the storage although they were already ignored
-  and not returned in the response.  
-  They are now removed from the query earlier to avoid this disk access that 
-  could slow down the response time.  Note that this seems to happen mainly 
-  when the query originates from some GE devices (AWS).
-* The 0x0111 DIMSE Status is now considered as a warning instead of an error
-  when received as a response to a C-Store. 
-  See https://discourse.orthanc-server.org/t/ignore-dimse-status-0x0111-when-sending-partial-duplicate-studies/4555/3
-* Removed potential PHI from the logs when Orthanc encounters an error while
-  creating a zip file.
-
-Bug Fixes
----------
-
-* When working with "DicomTlsEnabled": true and "DicomTlsRemoteCertificateRequired": false,
-  Orthanc was refusing to start if no "DicomTlsTrustedCertificates" was provided.
-
-
 REST API
 --------
 
@@ -48,6 +26,25 @@ Plugins
   logs. If they are not using the LOG() facilities provided by the
   OrthancFramework, plugins should now use ORTHANC_PLUGINS_LOG_INFO(),
   ORTHANC_PLUGINS_LOG_WARNING(), and ORTHANC_PLUGINS_LOG_ERROR().
+
+Maintenance
+-----------
+
+* In C-Find queries including GenericGroupLength tags, Orthanc was still
+  extracting these tags from the storage although they were already ignored
+  and not returned in the response.
+  They are now removed from the query earlier to avoid this disk access that
+  could slow down the response time.  Note that this seems to happen mainly
+  when the query originates from some GE devices (AWS).
+* The 0x0111 DIMSE Status is now considered as a warning instead of an error
+  when received as a response to a C-Store.
+  See https://discourse.orthanc-server.org/t/ignore-dimse-status-0x0111-when-sending-partial-duplicate-studies/4555/3
+* Removed potential PHI from the logs when Orthanc encounters an error while
+  creating a zip file.
+* Monitoring of stable resources now also takes into consideration the
+  resource type, not only the resource identifier identifier.
+* When working with "DicomTlsEnabled": true and "DicomTlsRemoteCertificateRequired": false,
+  Orthanc was refusing to start if no "DicomTlsTrustedCertificates" was provided.
 
 
 Version 1.12.3 (2024-01-31)

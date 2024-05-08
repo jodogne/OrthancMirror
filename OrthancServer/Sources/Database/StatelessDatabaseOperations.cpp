@@ -998,7 +998,7 @@ namespace Orthanc
               type == ResourceType_Study ||
               type == ResourceType_Series)
           {
-            target.isStable_ = !transaction.GetTransactionContext().IsUnstableResource(internalId);
+            target.isStable_ = !transaction.GetTransactionContext().IsUnstableResource(type, internalId);
 
             if (LookupStringMetadata(tmp, target.metadata_, MetadataType_LastUpdate))
             {
@@ -3555,9 +3555,9 @@ namespace Orthanc
         transaction.LogChange(status.patientId_, ChangeType_NewChildInstance, ResourceType_Patient, hashPatient_);
         
         // Mark the parent resources of this instance as unstable
-        transaction.GetTransactionContext().MarkAsUnstable(status.seriesId_, ResourceType_Series, hashSeries_);
-        transaction.GetTransactionContext().MarkAsUnstable(status.studyId_, ResourceType_Study, hashStudy_);
-        transaction.GetTransactionContext().MarkAsUnstable(status.patientId_, ResourceType_Patient, hashPatient_);
+        transaction.GetTransactionContext().MarkAsUnstable(ResourceType_Series, status.seriesId_, hashSeries_);
+        transaction.GetTransactionContext().MarkAsUnstable(ResourceType_Study, status.studyId_, hashStudy_);
+        transaction.GetTransactionContext().MarkAsUnstable(ResourceType_Patient, status.patientId_, hashPatient_);
         transaction.GetTransactionContext().SignalAttachmentsAdded(instanceSize);
 
         storeStatus_ = StoreStatus_Success;          
