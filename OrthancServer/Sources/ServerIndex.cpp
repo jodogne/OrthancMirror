@@ -185,16 +185,17 @@ namespace Orthanc
       }        
     };
 
-    virtual void MarkAsUnstable(int64_t id,
-                                Orthanc::ResourceType type,
+    virtual void MarkAsUnstable(ResourceType type,
+                                int64_t id,
                                 const std::string& publicId) ORTHANC_OVERRIDE
     {
-      context_.GetIndex().MarkAsUnstable(id, type, publicId);
+      context_.GetIndex().MarkAsUnstable(type, id, publicId);
     }
 
-    virtual bool IsUnstableResource(int64_t id) ORTHANC_OVERRIDE
+    virtual bool IsUnstableResource(ResourceType type,
+                                    int64_t id) ORTHANC_OVERRIDE
     {
-      return context_.GetIndex().IsUnstableResource(id);
+      return context_.GetIndex().IsUnstableResource(type, id);
     }
 
     virtual void Commit() ORTHANC_OVERRIDE
@@ -239,18 +240,15 @@ namespace Orthanc
   class ServerIndex::UnstableResourcePayload
   {
   private:
-    ResourceType type_;
     std::string publicId_;
     boost::posix_time::ptime time_;
 
   public:
-    UnstableResourcePayload() : type_(ResourceType_Instance)
+    UnstableResourcePayload()
     {
     }
 
-    UnstableResourcePayload(Orthanc::ResourceType type,
-                            const std::string& publicId) : 
-      type_(type),
+    explicit UnstableResourcePayload(const std::string& publicId) : 
       publicId_(publicId),
       time_(boost::posix_time::second_clock::local_time())
     {
@@ -259,11 +257,6 @@ namespace Orthanc
     unsigned int GetAge() const
     {
       return (boost::posix_time::second_clock::local_time() - time_).total_seconds();
-    }
-
-    ResourceType GetResourceType() const
-    {
-      return type_;
     }
     
     const std::string& GetPublicId() const
@@ -309,10 +302,11 @@ namespace Orthanc
   }
 
 
-  bool ServerIndex::IsUnstableResource(int64_t id)
+  bool ServerIndex::IsUnstableResource(ResourceType type,
+                                       int64_t id)
   {
     boost::mutex::scoped_lock lock(monitoringMutex_);
-    return unstableResources_.Contains(id);
+    return unstableResources_.Contains(std::make_pair(type, id));
   }
 
 
@@ -460,7 +454,8 @@ namespace Orthanc
 
       for (;;)
       {
-        UnstableResourcePayload stableResource;
+        UnstableResourcePayload stablePayload;
+        ResourceType stableLevel;
         int64_t stableId;
 
         {      
@@ -471,8 +466,10 @@ namespace Orthanc
           {
             // This DICOM resource has not received any new instance for
             // some time. It can be considered as stable.
-            stableId = that->unstableResources_.RemoveOldest(stableResource);
-            //LOG(TRACE) << "Stable resource: " << EnumerationToString(stableResource.GetResourceType()) << " " << stableId;
+            std::pair<ResourceType, int64_t> stableResource = that->unstableResources_.RemoveOldest(stablePayload);
+            stableLevel = stableResource.first;
+            stableId = stableResource.second;
+            //LOG(TRACE) << "Stable resource: " << EnumerationToString(stablePayload.GetResourceType()) << " " << stableId;
           }
           else
           {
@@ -490,18 +487,18 @@ namespace Orthanc
            * another thread, which leads to calls to "MarkAsUnstable()",
            * which leads to two lockings of "monitoringMutex_").
            **/
-          switch (stableResource.GetResourceType())
+          switch (stableLevel)
           {
             case ResourceType_Patient:
-              that->LogChange(stableId, ChangeType_StablePatient, stableResource.GetPublicId(), ResourceType_Patient);
+              that->LogChange(stableId, ChangeType_StablePatient, stablePayload.GetPublicId(), ResourceType_Patient);
               break;
             
             case ResourceType_Study:
-              that->LogChange(stableId, ChangeType_StableStudy, stableResource.GetPublicId(), ResourceType_Study);
+              that->LogChange(stableId, ChangeType_StableStudy, stablePayload.GetPublicId(), ResourceType_Study);
               break;
             
             case ResourceType_Series:
-              that->LogChange(stableId, ChangeType_StableSeries, stableResource.GetPublicId(), ResourceType_Series);
+              that->LogChange(stableId, ChangeType_StableSeries, stablePayload.GetPublicId(), ResourceType_Series);
               break;
             
             default:
@@ -519,18 +516,18 @@ namespace Orthanc
   }
   
 
-  void ServerIndex::MarkAsUnstable(int64_t id,
-                                   Orthanc::ResourceType type,
+  void ServerIndex::MarkAsUnstable(ResourceType type,
+                                   int64_t id,
                                    const std::string& publicId)
   {
-    assert(type == Orthanc::ResourceType_Patient ||
-           type == Orthanc::ResourceType_Study ||
-           type == Orthanc::ResourceType_Series);
+    assert(type == ResourceType_Patient ||
+           type == ResourceType_Study ||
+           type == ResourceType_Series);
 
     {
       boost::mutex::scoped_lock lock(monitoringMutex_);
-      UnstableResourcePayload payload(type, publicId);
-      unstableResources_.AddOrMakeMostRecent(id, payload);
+      UnstableResourcePayload payload(publicId);
+      unstableResources_.AddOrMakeMostRecent(std::make_pair(type, id), payload);
       //LOG(INFO) << "Unstable resource: " << EnumerationToString(type) << " " << id;
     }
   }

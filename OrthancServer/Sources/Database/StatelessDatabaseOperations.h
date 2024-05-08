@@ -145,13 +145,14 @@ namespace Orthanc
 
       virtual int64_t GetCompressedSizeDelta() = 0;
 
-      virtual bool IsUnstableResource(int64_t id) = 0;
+      virtual bool IsUnstableResource(Orthanc::ResourceType type,
+                                      int64_t id) = 0;
 
       virtual bool LookupRemainingLevel(std::string& remainingPublicId /* out */,
                                         ResourceType& remainingLevel   /* out */) = 0;
 
-      virtual void MarkAsUnstable(int64_t id,
-                                  Orthanc::ResourceType type,
+      virtual void MarkAsUnstable(Orthanc::ResourceType type,
+                                  int64_t id,
                                   const std::string& publicId) = 0;
 
       virtual void SignalAttachmentsAdded(uint64_t compressedSize) = 0;

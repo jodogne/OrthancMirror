@@ -43,7 +43,7 @@ namespace Orthanc
     boost::thread flushThread_;
     boost::thread unstableResourcesMonitorThread_;
 
-    LeastRecentlyUsedIndex<int64_t, UnstableResourcePayload>  unstableResources_;
+    LeastRecentlyUsedIndex<std::pair<ResourceType, int64_t>, UnstableResourcePayload>  unstableResources_;
 
     MaxStorageMode  maximumStorageMode_;
     uint64_t        maximumStorageSize_;
@@ -55,11 +55,12 @@ namespace Orthanc
     static void UnstableResourcesMonitorThread(ServerIndex* that,
                                                unsigned int threadSleep);
 
-    void MarkAsUnstable(int64_t id,
-                        Orthanc::ResourceType type,
+    void MarkAsUnstable(ResourceType type,
+                        int64_t id,
                         const std::string& publicId);
 
-    bool IsUnstableResource(int64_t id);
+    bool IsUnstableResource(ResourceType type,
+                            int64_t id);
 
   public:
     ServerIndex(ServerContext& context,
