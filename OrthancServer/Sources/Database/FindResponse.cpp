@@ -443,7 +443,7 @@ namespace Orthanc
   {
     Json::Value u = Json::arrayValue;
     u.append(info.GetUuid());
-    u.append(info.GetUncompressedSize());
+    u.append(static_cast<Json::UInt64>(info.GetUncompressedSize()));
     target[EnumerationToString(info.GetContentType())] = u;
   }
 
