@@ -279,48 +279,27 @@ namespace Orthanc
         resource->AddChildrenMetadata(*it, values);
       }
 
-      if (!request.GetRetrieveAttachmentOfOneInstance().empty())
+      if (request.IsRetrieveOneInstanceIdentifier())
       {
-        std::set<FileContentType> todo = request.GetRetrieveAttachmentOfOneInstance();
-        std::stack< std::pair<ResourceType, int64_t> > candidates;
-        candidates.push(std::make_pair(level, internalId));
+        int64_t currentId = internalId;
+        ResourceType currentLevel = level;
 
-        while (!todo.empty() &&
-               !candidates.empty())
+        while (currentLevel != ResourceType_Instance)
         {
-          std::pair<ResourceType, int64_t> top = candidates.top();
-          candidates.pop();
-
-          if (top.first == ResourceType_Instance)
+          std::list<int64_t> children;
+          transaction_.GetChildrenInternalId(children, currentId);
+          if (children.empty())
           {
-            std::set<FileContentType> nextTodo;
-
-            for (std::set<FileContentType>::const_iterator it = todo.begin(); it != todo.end(); ++it)
-            {
-              FileInfo attachment;
-              int64_t revision;
-              if (transaction_.LookupAttachment(attachment, revision, top.second, *it))
-              {
-                resource->AddAttachmentOfOneInstance(attachment);
-              }
-              else
-              {
-                nextTodo.insert(*it);
-              }
-            }
-
-            todo = nextTodo;
+            throw OrthancException(ErrorCode_DatabasePlugin);
           }
           else
           {
-            std::list<int64_t> children;
-            transaction_.GetChildrenInternalId(children, top.second);
-            for (std::list<int64_t>::const_iterator it = children.begin(); it != children.end(); ++it)
-            {
-              candidates.push(std::make_pair(GetChildResourceType(top.first), *it));
-            }
+            currentId = children.front();
+            currentLevel = GetChildResourceType(currentLevel);
           }
         }
+
+        resource->SetOneInstanceIdentifier(transaction_.GetPublicId(currentId));
       }
 
       response.Add(resource.release());

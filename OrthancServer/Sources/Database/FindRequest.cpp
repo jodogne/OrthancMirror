@@ -45,7 +45,8 @@ namespace Orthanc
     retrieveLabels_(false),
     retrieveAttachments_(false),
     retrieveParentIdentifier_(false),
-    retrieveChildrenIdentifiers_(false)
+    retrieveChildrenIdentifiers_(false),
+    retrieveOneInstanceIdentifier_(false)
   {
   }
 
@@ -59,6 +60,82 @@ namespace Orthanc
       delete *it;
     }
   }
+
+
+  void FindRequest::SetOrthancId(ResourceType level,
+                                 const std::string& id)
+  {
+    switch (level)
+    {
+      case ResourceType_Patient:
+        SetOrthancPatientId(id);
+        break;
+
+      case ResourceType_Study:
+        SetOrthancStudyId(id);
+        break;
+
+      case ResourceType_Series:
+        SetOrthancSeriesId(id);
+        break;
+
+      case ResourceType_Instance:
+        SetOrthancInstanceId(id);
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+
+  void FindRequest::SetOrthancPatientId(const std::string& id)
+  {
+    orthancIdentifiers_.SetPatientId(id);
+  }
+
+
+  void FindRequest::SetOrthancStudyId(const std::string& id)
+  {
+    if (level_ == ResourceType_Patient)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    else
+    {
+      orthancIdentifiers_.SetStudyId(id);
+    }
+  }
+
+
+  void FindRequest::SetOrthancSeriesId(const std::string& id)
+  {
+    if (level_ == ResourceType_Patient ||
+        level_ == ResourceType_Study)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    else
+    {
+      orthancIdentifiers_.SetSeriesId(id);
+    }
+  }
+
+
+  void FindRequest::SetOrthancInstanceId(const std::string& id)
+  {
+    if (level_ == ResourceType_Patient ||
+        level_ == ResourceType_Study ||
+        level_ == ResourceType_Series)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    else
+    {
+      orthancIdentifiers_.SetInstanceId(id);
+    }
+  }
+
 
   void FindRequest::AddDicomTagConstraint(const DicomTagConstraint& constraint)
   {
@@ -287,19 +364,6 @@ namespace Orthanc
     else
     {
       retrieveChildrenMetadata_.insert(metadata);
-    }
-  }
-
-
-  void FindRequest::AddRetrieveAttachmentOfOneInstance(FileContentType type)
-  {
-    if (retrieveAttachmentOfOneInstance_.find(type) == retrieveAttachmentOfOneInstance_.end())
-    {
-      retrieveAttachmentOfOneInstance_.insert(type);
-    }
-    else
-    {
-      throw OrthancException(ErrorCode_BadSequenceOfCalls);
     }
   }
 }

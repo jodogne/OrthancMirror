@@ -24,8 +24,10 @@
 #include "ResourceFinder.h"
 
 #include "../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.h"
+#include "../../OrthancFramework/Sources/Logging.h"
 #include "../../OrthancFramework/Sources/OrthancException.h"
 #include "../../OrthancFramework/Sources/SerializationToolbox.h"
+#include "OrthancConfiguration.h"
 #include "ServerContext.h"
 #include "ServerIndex.h"
 
@@ -92,6 +94,34 @@ namespace Orthanc
   }
 
 
+  static void InjectRequestedTags(DicomMap& requestedTags,
+                                  std::set<DicomTag>& missingTags /* out */,
+                                  const FindResponse::Resource& resource,
+                                  ResourceType level,
+                                  const std::set<DicomTag>& tags)
+  {
+    if (!tags.empty())
+    {
+      DicomMap m;
+      resource.GetMainDicomTags(m, level);
+
+      for (std::set<DicomTag>::const_iterator it = tags.begin(); it != tags.end(); ++it)
+      {
+        std::string value;
+        if (m.LookupStringValue(value, *it, false /* not binary */))
+        {
+          requestedTags.SetValue(*it, value, false /* not binary */);
+        }
+        else
+        {
+          // This is the case where the Housekeeper should be run
+          missingTags.insert(*it);
+        }
+      }
+    }
+  }
+
+
   void ResourceFinder::Expand(Json::Value& target,
                               const FindResponse::Resource& resource,
                               ServerIndex& index) const
@@ -104,11 +134,6 @@ namespace Orthanc
     if (resource.GetLevel() != request_.GetLevel())
     {
       throw OrthancException(ErrorCode_InternalError);
-    }
-
-    if (!requestedTags_.empty())
-    {
-      throw OrthancException(ErrorCode_NotImplemented);
     }
 
     target = Json::objectValue;
@@ -180,7 +205,7 @@ namespace Orthanc
 
         target["Status"] = EnumerationToString(status);
 
-        static const char* EXPECTED_NUMBER_OF_INSTANCES = "ExpectedNumberOfInstances";
+        static const char* const EXPECTED_NUMBER_OF_INSTANCES = "ExpectedNumberOfInstances";
 
         if (status == SeriesStatus_Unknown)
         {
@@ -207,7 +232,7 @@ namespace Orthanc
           throw OrthancException(ErrorCode_InternalError);
         }
 
-        static const char* INDEX_IN_SERIES = "IndexInSeries";
+        static const char* const INDEX_IN_SERIES = "IndexInSeries";
 
         std::string s;
         uint32_t index;
@@ -252,12 +277,40 @@ namespace Orthanc
     }
 
     {
+      DicomMap allMainDicomTags;
+      resource.GetMainDicomTags(allMainDicomTags, resource.GetLevel());
+
+      /**
+       * This section was part of "StatelessDatabaseOperations::ExpandResource()"
+       * in Orthanc <= 1.12.3
+       **/
+
+      // read all main sequences from DB
+      std::string serializedSequences;
+      if (resource.LookupMetadata(serializedSequences, resource.GetLevel(), MetadataType_MainDicomSequences))
+      {
+        Json::Value jsonMetadata;
+        Toolbox::ReadJson(jsonMetadata, serializedSequences);
+
+        if (jsonMetadata["Version"].asInt() == 1)
+        {
+          allMainDicomTags.FromDicomAsJson(jsonMetadata["Sequences"], true /* append */, true /* parseSequences */);
+        }
+        else
+        {
+          throw OrthancException(ErrorCode_NotImplemented);
+        }
+      }
+
+      /**
+       * End of section from StatelessDatabaseOperations
+       **/
+
+
       static const char* const MAIN_DICOM_TAGS = "MainDicomTags";
       static const char* const PATIENT_MAIN_DICOM_TAGS = "PatientMainDicomTags";
 
-      // TODO-FIND : (expandFlags & ExpandResourceFlags_IncludeMainDicomTags)
-      DicomMap allMainDicomTags;
-      resource.GetMainDicomTags(allMainDicomTags, resource.GetLevel());
+      // TODO-FIND : Ignore "null" values
 
       DicomMap levelMainDicomTags;
       allMainDicomTags.ExtractResourceInformation(levelMainDicomTags, resource.GetLevel());
@@ -273,21 +326,6 @@ namespace Orthanc
         target[PATIENT_MAIN_DICOM_TAGS] = Json::objectValue;
         FromDcmtkBridge::ToJson(target[PATIENT_MAIN_DICOM_TAGS], patientMainDicomTags, format_);
       }
-
-      /*
-        TODO-FIND
-
-        if (!requestedTags_.empty())
-        {
-        static const char* const REQUESTED_TAGS = "RequestedTags";
-
-        DicomMap tags;
-        resource.GetMainDicomTags().ExtractTags(tags, requestedTags);
-
-        target[REQUESTED_TAGS] = Json::objectValue;
-        FromDcmtkBridge::ToJson(target[REQUESTED_TAGS], tags, format);
-        }
-      */
     }
 
     {
@@ -323,6 +361,7 @@ namespace Orthanc
     request_(level),
     expand_(expand),
     format_(DicomToJsonFormat_Human),
+    hasRequestedTags_(false),
     includeAllMetadata_(false)
   {
     if (expand)
@@ -353,6 +392,80 @@ namespace Orthanc
   }
 
 
+  void ResourceFinder::AddRequestedTags(const DicomTag& tag)
+  {
+    if (DicomMap::IsMainDicomTag(tag, ResourceType_Patient))
+    {
+      request_.SetRetrieveMainDicomTags(ResourceType_Patient, true);
+      request_.SetRetrieveMetadata(ResourceType_Patient, true);
+      requestedPatientTags_.insert(tag);
+    }
+    else if (DicomMap::IsMainDicomTag(tag, ResourceType_Study))
+    {
+      if (request_.GetLevel() == ResourceType_Patient)
+      {
+        throw OrthancException(ErrorCode_ParameterOutOfRange, "Requested tag " + tag.Format() +
+                               " is only available at the study/series/instance levels");
+      }
+      else
+      {
+        request_.SetRetrieveMainDicomTags(ResourceType_Study, true);
+        request_.SetRetrieveMetadata(ResourceType_Study, true);
+        requestedStudyTags_.insert(tag);
+      }
+    }
+    else if (DicomMap::IsMainDicomTag(tag, ResourceType_Series))
+    {
+      if (request_.GetLevel() == ResourceType_Patient ||
+          request_.GetLevel() == ResourceType_Study)
+      {
+        throw OrthancException(ErrorCode_ParameterOutOfRange, "Requested tag " + tag.Format() +
+                               " is only available at the series/instance levels");
+      }
+      else
+      {
+        request_.SetRetrieveMainDicomTags(ResourceType_Series, true);
+        request_.SetRetrieveMetadata(ResourceType_Series, true);
+        requestedSeriesTags_.insert(tag);
+      }
+    }
+    else if (DicomMap::IsMainDicomTag(tag, ResourceType_Instance))
+    {
+      if (request_.GetLevel() == ResourceType_Patient ||
+          request_.GetLevel() == ResourceType_Study ||
+          request_.GetLevel() == ResourceType_Series)
+      {
+        throw OrthancException(ErrorCode_ParameterOutOfRange, "Requested tag " + tag.Format() +
+                               " is only available at the instance level");
+      }
+      else
+      {
+        // Main DICOM tags from the instance level will be retrieved anyway
+        assert(request_.IsRetrieveMainDicomTags(ResourceType_Instance));
+        assert(request_.IsRetrieveMetadata(ResourceType_Instance));
+        requestedInstanceTags_.insert(tag);
+      }
+    }
+    else
+    {
+      // This is not a main DICOM tag: We will be forced to access the DICOM file anyway
+      request_.SetRetrieveOneInstanceIdentifier(true);
+      requestedTagsFromFileStorage_.insert(tag);
+    }
+
+    hasRequestedTags_ = true;
+  }
+
+
+  void ResourceFinder::AddRequestedTags(const std::set<DicomTag>& tags)
+  {
+    for (std::set<DicomTag>::const_iterator it = tags.begin(); it != tags.end(); ++it)
+    {
+      AddRequestedTags(*it);
+    }
+  }
+
+
   void ResourceFinder::Execute(Json::Value& target,
                                ServerContext& context)
   {
@@ -361,20 +474,96 @@ namespace Orthanc
 
     target = Json::arrayValue;
 
-    if (expand_)
+    for (size_t i = 0; i < response.GetSize(); i++)
     {
-      for (size_t i = 0; i < response.GetSize(); i++)
+      const FindResponse::Resource& resource = response.GetResourceByIndex(i);
+
+      if (expand_)
       {
         Json::Value item;
-        Expand(item, response.GetResource(i), context.GetIndex());
+        Expand(item, resource, context.GetIndex());
+
+        std::set<DicomTag> missingTags = requestedTagsFromFileStorage_;
+
+        DicomMap requestedTags;
+        InjectRequestedTags(requestedTags, missingTags, resource, ResourceType_Patient, requestedPatientTags_);
+        InjectRequestedTags(requestedTags, missingTags, resource, ResourceType_Study, requestedStudyTags_);
+        InjectRequestedTags(requestedTags, missingTags, resource, ResourceType_Series, requestedSeriesTags_);
+        InjectRequestedTags(requestedTags, missingTags, resource, ResourceType_Instance, requestedInstanceTags_);
+
+        if (!missingTags.empty())
+        {
+          OrthancConfiguration::ReaderLock lock;
+          if (lock.GetConfiguration().IsWarningEnabled(Warnings_001_TagsBeingReadFromStorage))
+          {
+            std::string missings;
+            FromDcmtkBridge::FormatListOfTags(missings, missingTags);
+
+            LOG(WARNING) << "W001: Accessing Dicom tags from storage when accessing "
+                         << Orthanc::GetResourceTypeText(resource.GetLevel(), false, false)
+                         << ": " << missings;
+          }
+
+          std::string instancePublicId;
+
+          if (request_.IsRetrieveOneInstanceIdentifier())
+          {
+            instancePublicId = resource.GetOneInstanceIdentifier();
+          }
+          else
+          {
+            FindRequest requestDicomAttachment(request_.GetLevel());
+            requestDicomAttachment.SetOrthancId(request_.GetLevel(), resource.GetIdentifier());
+            requestDicomAttachment.SetRetrieveOneInstanceIdentifier(true);
+
+            FindResponse responseDicomAttachment;
+            context.GetIndex().ExecuteFind(responseDicomAttachment, requestDicomAttachment);
+
+            if (responseDicomAttachment.GetSize() != 1 ||
+                !responseDicomAttachment.GetResourceByIndex(0).HasOneInstanceIdentifier())
+            {
+              throw OrthancException(ErrorCode_InexistentFile);
+            }
+            else
+            {
+              instancePublicId = responseDicomAttachment.GetResourceByIndex(0).GetOneInstanceIdentifier();
+            }
+          }
+
+          LOG(INFO) << "Will retrieve missing DICOM tags from instance: " << instancePublicId;
+
+          Json::Value tmpDicomAsJson;
+          context.ReadDicomAsJson(tmpDicomAsJson, instancePublicId, missingTags /* ignoreTagLength */);
+
+          DicomMap tmpDicomMap;
+          tmpDicomMap.FromDicomAsJson(tmpDicomAsJson, false /* append */, true /* parseSequences*/);
+
+          for (std::set<DicomTag>::const_iterator it = missingTags.begin(); it != missingTags.end(); ++it)
+          {
+            assert(!requestedTags.HasTag(*it));
+            if (tmpDicomMap.HasTag(*it))
+            {
+              requestedTags.SetValue(*it, tmpDicomMap.GetValue(*it));
+            }
+            else
+            {
+              requestedTags.SetNullValue(*it);  // TODO-FIND: Is this compatible with Orthanc <= 1.12.3?
+            }
+          }
+        }
+
+        if (hasRequestedTags_)
+        {
+          static const char* const REQUESTED_TAGS = "RequestedTags";
+          item[REQUESTED_TAGS] = Json::objectValue;
+          FromDcmtkBridge::ToJson(item[REQUESTED_TAGS], requestedTags, format_);
+        }
+
         target.append(item);
       }
-    }
-    else
-    {
-      for (size_t i = 0; i < response.GetSize(); i++)
+      else
       {
-        target.append(response.GetResource(i).GetIdentifier());
+        target.append(resource.GetIdentifier());
       }
     }
   }
