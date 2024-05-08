@@ -73,6 +73,7 @@ namespace Orthanc
       typedef std::map<MetadataType, std::list<std::string>*>  ChildrenMetadata;
 
       ResourceType                          level_;
+      int64_t                               internalId_;   // Internal ID of the resource in the database
       std::string                           identifier_;
       std::unique_ptr<std::string>          parentIdentifier_;
       MainDicomTagsAtLevel                  mainDicomTagsPatient_;
@@ -98,8 +99,10 @@ namespace Orthanc
 
     public:
       Resource(ResourceType level,
+               int64_t internalId,
                const std::string& identifier) :
         level_(level),
+        internalId_(internalId),
         identifier_(identifier)
       {
       }
@@ -109,6 +112,11 @@ namespace Orthanc
       ResourceType GetLevel() const
       {
         return level_;
+      }
+
+      int64_t GetInternalId() const
+      {
+        return internalId_;
       }
 
       const std::string& GetIdentifier() const
