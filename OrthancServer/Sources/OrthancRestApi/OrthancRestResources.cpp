@@ -268,28 +268,9 @@ namespace Orthanc
 
 
     void Expand(Json::Value& target,
-                const FindResponse::Resource& resource) const
+                const FindResponse::Resource& resource,
+                ServerIndex& index) const
     {
-      /**
-
-         TODO-FIND:
-
-         - Metadata / Series / ExpectedNumberOfInstances
-
-         - Metadata / Series / Status
-
-         - Metadata / Instance / FileSize
-
-         - Metadata / Instance / FileUuid
-
-         - Metadata / Instance / IndexInSeries
-
-         - Metadata / AnonymizedFrom
-
-         - Metadata / ModifiedFrom
-
-      **/
-
       /**
        * This method closely follows "SerializeExpandedResource()" in
        * "ServerContext.cpp" from Orthanc 1.12.3.
@@ -298,6 +279,11 @@ namespace Orthanc
       if (resource.GetLevel() != request_.GetLevel())
       {
         throw OrthancException(ErrorCode_InternalError);
+      }
+
+      if (!requestedTags_.empty())
+      {
+        throw OrthancException(ErrorCode_NotImplemented);
       }
 
       target = Json::objectValue;
@@ -428,19 +414,16 @@ namespace Orthanc
           resource.GetLevel() == ResourceType_Study ||
           resource.GetLevel() == ResourceType_Series)
       {
-        // TODO-FIND: Stable
-
-        /*
-          if (resource.IsStable())
-        {
-          target["IsStable"] = true;
-        }
-        */
+        target["IsStable"] = !index.IsUnstableResource(resource.GetLevel(), resource.GetInternalId());
 
         if (resource.LookupMetadata(s, resource.GetLevel(), MetadataType_LastUpdate))
         {
           target["LastUpdate"] = s;
         }
+      }
+
+      {
+        // TODO-FIND : (expandFlags & ExpandResourceFlags_IncludeMainDicomTags)
       }
 
       {
@@ -455,7 +438,7 @@ namespace Orthanc
         target["Labels"] = labels;
       }
 
-      if (includeAllMetadata_)
+      if (includeAllMetadata_)  // new in Orthanc 1.12.4
       {
         const std::map<MetadataType, std::string>& m = resource.GetMetadata(resource.GetLevel());
 
@@ -540,7 +523,7 @@ namespace Orthanc
         for (size_t i = 0; i < response.GetSize(); i++)
         {
           Json::Value item;
-          Expand(item, response.GetResource(i));
+          Expand(item, response.GetResource(i), context.GetIndex());
 
 #if 0
           target.append(item);

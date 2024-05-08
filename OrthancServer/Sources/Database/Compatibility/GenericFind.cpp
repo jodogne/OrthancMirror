@@ -189,7 +189,7 @@ namespace Orthanc
         throw OrthancException(ErrorCode_DatabasePlugin);
       }
 
-      std::unique_ptr<FindResponse::Resource> resource(new FindResponse::Resource(request.GetLevel(), identifier));
+      std::unique_ptr<FindResponse::Resource> resource(new FindResponse::Resource(request.GetLevel(), internalId, identifier));
 
       if (request.IsRetrieveParentIdentifier())
       {
