@@ -313,10 +313,7 @@ namespace Orthanc
       return retrieveChildrenMetadata_;
     }
 
-    void SetRetrieveOneInstanceIdentifier(bool retrieve)
-    {
-      retrieveOneInstanceIdentifier_ = retrieve;
-    }
+    void SetRetrieveOneInstanceIdentifier(bool retrieve);
 
     bool IsRetrieveOneInstanceIdentifier() const
     {

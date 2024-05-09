@@ -376,7 +376,11 @@ namespace Orthanc
 
   void FindResponse::Resource::SetOneInstanceIdentifier(const std::string& id)
   {
-    if (HasOneInstanceIdentifier())
+    if (level_ == ResourceType_Instance)
+    {
+      throw OrthancException(ErrorCode_BadParameterType);
+    }
+    else if (HasOneInstanceIdentifier())
     {
       throw OrthancException(ErrorCode_BadSequenceOfCalls);
     }
@@ -389,7 +393,11 @@ namespace Orthanc
 
   const std::string& FindResponse::Resource::GetOneInstanceIdentifier() const
   {
-    if (HasOneInstanceIdentifier())
+    if (level_ == ResourceType_Instance)
+    {
+      throw OrthancException(ErrorCode_BadParameterType);
+    }
+    else if (HasOneInstanceIdentifier())
     {
       return *oneInstanceIdentifier_;
     }
@@ -402,7 +410,14 @@ namespace Orthanc
 
   bool FindResponse::Resource::HasOneInstanceIdentifier() const
   {
-    return oneInstanceIdentifier_.get() != NULL;
+    if (level_ == ResourceType_Instance)
+    {
+      throw OrthancException(ErrorCode_BadParameterType);
+    }
+    else
+    {
+      return oneInstanceIdentifier_.get() != NULL;
+    }
   }
 
 

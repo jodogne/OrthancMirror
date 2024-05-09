@@ -366,4 +366,17 @@ namespace Orthanc
       retrieveChildrenMetadata_.insert(metadata);
     }
   }
+
+
+  void FindRequest::SetRetrieveOneInstanceIdentifier(bool retrieve)
+  {
+    if (level_ == ResourceType_Instance)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    else
+    {
+      retrieveOneInstanceIdentifier_ = retrieve;
+    }
+  }
 }
