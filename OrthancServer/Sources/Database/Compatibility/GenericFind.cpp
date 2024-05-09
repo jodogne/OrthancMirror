@@ -40,6 +40,78 @@ namespace Orthanc
               request.GetOrdering().empty());
     }
 
+    static void GetChildren(std::list<int64_t>& target,
+                            IDatabaseWrapper::ITransaction& transaction,
+                            const std::list<int64_t>& resources)
+    {
+      target.clear();
+
+      for (std::list<int64_t>::const_iterator it = resources.begin(); it != resources.end(); ++it)
+      {
+        std::list<int64_t> tmp;
+        transaction.GetChildrenInternalId(tmp, *it);
+        target.splice(target.begin(), tmp);
+      }
+    }
+
+    static void GetChildren(std::list<std::string>& target,
+                            IDatabaseWrapper::ITransaction& transaction,
+                            const std::list<int64_t>& resources)
+    {
+      target.clear();
+
+      for (std::list<int64_t>::const_iterator it = resources.begin(); it != resources.end(); ++it)
+      {
+        std::list<std::string> tmp;
+        transaction.GetChildrenPublicId(tmp, *it);
+        target.splice(target.begin(), tmp);
+      }
+    }
+
+    static void GetChildrenIdentifiers(std::list<std::string>& children,
+                                       IDatabaseWrapper::ITransaction& transaction,
+                                       const OrthancIdentifiers& identifiers,
+                                       ResourceType topLevel,
+                                       ResourceType bottomLevel)
+    {
+      if (!IsResourceLevelAboveOrEqual(topLevel, bottomLevel) ||
+          topLevel == bottomLevel)
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+
+      std::list<int64_t> currentResources;
+      ResourceType currentLevel;
+
+      {
+        int64_t id;
+        if (!transaction.LookupResource(id, currentLevel, identifiers.GetLevel(topLevel)) ||
+            currentLevel != topLevel)
+        {
+          throw OrthancException(ErrorCode_InexistentItem);
+        }
+
+        currentResources.push_back(id);
+      }
+
+      while (currentLevel != bottomLevel)
+      {
+        ResourceType nextLevel = GetChildResourceType(currentLevel);
+        if (nextLevel == bottomLevel)
+        {
+          GetChildren(children, transaction, currentResources);
+        }
+        else
+        {
+          std::list<int64_t> nextResources;
+          GetChildren(nextResources, transaction, currentResources);
+          currentResources.swap(nextResources);
+        }
+
+        currentLevel = nextLevel;
+      }
+    }
+
     void GenericFind::ExecuteFind(std::list<std::string>& identifiers,
                                   const FindRequest& request)
     {
@@ -65,6 +137,7 @@ namespace Orthanc
                !request.GetOrthancIdentifiers().HasSeriesId() &&
                !request.GetOrthancIdentifiers().HasInstanceId())
       {
+        // TODO-FIND: This is a trivial case for which no transaction is needed
         identifiers.push_back(request.GetOrthancIdentifiers().GetPatientId());
       }
       else if (IsRequestWithoutContraint(request) &&
@@ -74,6 +147,7 @@ namespace Orthanc
                !request.GetOrthancIdentifiers().HasSeriesId() &&
                !request.GetOrthancIdentifiers().HasInstanceId())
       {
+        // TODO-FIND: This is a trivial case for which no transaction is needed
         identifiers.push_back(request.GetOrthancIdentifiers().GetStudyId());
       }
       else if (IsRequestWithoutContraint(request) &&
@@ -83,6 +157,7 @@ namespace Orthanc
                request.GetOrthancIdentifiers().HasSeriesId() &&
                !request.GetOrthancIdentifiers().HasInstanceId())
       {
+        // TODO-FIND: This is a trivial case for which no transaction is needed
         identifiers.push_back(request.GetOrthancIdentifiers().GetSeriesId());
       }
       else if (IsRequestWithoutContraint(request) &&
@@ -92,7 +167,38 @@ namespace Orthanc
                !request.GetOrthancIdentifiers().HasSeriesId() &&
                request.GetOrthancIdentifiers().HasInstanceId())
       {
+        // TODO-FIND: This is a trivial case for which no transaction is needed
         identifiers.push_back(request.GetOrthancIdentifiers().GetInstanceId());
+      }
+      else if (IsRequestWithoutContraint(request) &&
+               (request.GetLevel() == ResourceType_Study ||
+                request.GetLevel() == ResourceType_Series ||
+                request.GetLevel() == ResourceType_Instance) &&
+               request.GetOrthancIdentifiers().HasPatientId() &&
+               !request.GetOrthancIdentifiers().HasStudyId() &&
+               !request.GetOrthancIdentifiers().HasSeriesId() &&
+               !request.GetOrthancIdentifiers().HasInstanceId())
+      {
+        GetChildrenIdentifiers(identifiers, transaction_, request.GetOrthancIdentifiers(), ResourceType_Patient, request.GetLevel());
+      }
+      else if (IsRequestWithoutContraint(request) &&
+               (request.GetLevel() == ResourceType_Series ||
+                request.GetLevel() == ResourceType_Instance) &&
+               !request.GetOrthancIdentifiers().HasPatientId() &&
+               request.GetOrthancIdentifiers().HasStudyId() &&
+               !request.GetOrthancIdentifiers().HasSeriesId() &&
+               !request.GetOrthancIdentifiers().HasInstanceId())
+      {
+        GetChildrenIdentifiers(identifiers, transaction_, request.GetOrthancIdentifiers(), ResourceType_Study, request.GetLevel());
+      }
+      else if (IsRequestWithoutContraint(request) &&
+               request.GetLevel() == ResourceType_Instance &&
+               !request.GetOrthancIdentifiers().HasPatientId() &&
+               !request.GetOrthancIdentifiers().HasStudyId() &&
+               request.GetOrthancIdentifiers().HasSeriesId() &&
+               !request.GetOrthancIdentifiers().HasInstanceId())
+      {
+        GetChildrenIdentifiers(identifiers, transaction_, request.GetOrthancIdentifiers(), ResourceType_Series, request.GetLevel());
       }
       else
       {

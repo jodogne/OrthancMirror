@@ -36,6 +36,7 @@ namespace Orthanc
     FindRequest        request_;
     bool               expand_;
     DicomToJsonFormat  format_;
+    bool               allowStorageAccess_;
     bool               hasRequestedTags_;
     std::set<DicomTag> requestedPatientTags_;
     std::set<DicomTag> requestedStudyTags_;
@@ -54,6 +55,16 @@ namespace Orthanc
   public:
     ResourceFinder(ResourceType level,
                    bool expand);
+
+    bool IsAllowStorageAccess() const
+    {
+      return allowStorageAccess_;
+    }
+
+    void SetAllowStorageAccess(bool allow)
+    {
+      allowStorageAccess_ = allow;
+    }
 
     void SetOrthancId(ResourceType level,
                       const std::string& id)
