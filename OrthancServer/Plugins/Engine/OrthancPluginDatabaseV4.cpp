@@ -1279,8 +1279,7 @@ namespace Orthanc
 
 
     virtual void ExecuteFind(FindResponse& response,
-                             const FindRequest& request,
-                             const std::vector<DatabaseConstraint>& normalized) ORTHANC_OVERRIDE
+                             const FindRequest& request) ORTHANC_OVERRIDE
     {
       // TODO-FIND
       throw OrthancException(ErrorCode_NotImplemented);
@@ -1288,12 +1287,11 @@ namespace Orthanc
 
 
     virtual void ExecuteFind(std::list<std::string>& identifiers,
-                             const FindRequest& request,
-                             const std::vector<DatabaseConstraint>& normalized) ORTHANC_OVERRIDE
+                             const FindRequest& request) ORTHANC_OVERRIDE
     {
       // TODO-FIND
       Compatibility::GenericFind find(*this);
-      find.ExecuteFind(identifiers, request, normalized);
+      find.ExecuteFind(identifiers, request);
     }
 
 

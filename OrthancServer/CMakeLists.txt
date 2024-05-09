@@ -97,6 +97,7 @@ set(ORTHANC_SERVER_SOURCES
   ${CMAKE_SOURCE_DIR}/Sources/Database/Compatibility/SetOfResources.cpp
   ${CMAKE_SOURCE_DIR}/Sources/Database/FindRequest.cpp
   ${CMAKE_SOURCE_DIR}/Sources/Database/FindResponse.cpp
+  ${CMAKE_SOURCE_DIR}/Sources/Database/MainDicomTagsRegistry.cpp
   ${CMAKE_SOURCE_DIR}/Sources/Database/OrthancIdentifiers.cpp
   ${CMAKE_SOURCE_DIR}/Sources/Database/ResourcesContent.cpp
   ${CMAKE_SOURCE_DIR}/Sources/Database/SQLiteDatabaseWrapper.cpp

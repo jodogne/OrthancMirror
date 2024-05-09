@@ -33,8 +33,7 @@ namespace Orthanc
   namespace Compatibility
   {
     void GenericFind::ExecuteFind(std::list<std::string>& identifiers,
-                                  const FindRequest& request,
-                                  const std::vector<DatabaseConstraint>& normalized)
+                                  const FindRequest& request)
     {
       if (!request.GetOrthancIdentifiers().HasPatientId() &&
           !request.GetOrthancIdentifiers().HasStudyId() &&

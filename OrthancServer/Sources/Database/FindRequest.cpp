@@ -24,8 +24,10 @@
 
 #include "../../../OrthancFramework/Sources/OrthancException.h"
 
+#include "MainDicomTagsRegistry.h"
 
 #include <cassert>
+
 
 namespace Orthanc
 {
@@ -139,10 +141,35 @@ namespace Orthanc
 
   void FindRequest::AddDicomTagConstraint(const DicomTagConstraint& constraint)
   {
-    dicomTagConstraints_.push_back(constraint);
+    // This behaves like "StatelessDatabaseOperations::NormalizeLookup()" in Orthanc <= 1.12.3
+
+    if (mainDicomTagsRegistry_.get() == NULL)
+    {
+      // Lazy creation of the registry of main DICOM tags
+      mainDicomTagsRegistry_.reset(new MainDicomTagsRegistry());
+    }
+
+    ResourceType level;
+    DicomTagType type;
+
+    mainDicomTagsRegistry_->LookupTag(level, type, constraint.GetTag());
+
+    if (type == DicomTagType_Identifier ||
+        type == DicomTagType_Main)
+    {
+      // Use the fact that patient-level tags are copied at the study level
+      if (level == ResourceType_Patient &&
+          GetLevel() != ResourceType_Patient)
+      {
+        level = ResourceType_Study;
+      }
+
+      dicomTagConstraints_.push_back(constraint.ConvertToDatabaseConstraint(level, type));
+    }
   }
 
-  const DicomTagConstraint& FindRequest::GetDicomTagConstraint(size_t index) const
+
+  const DatabaseConstraint& FindRequest::GetDicomTagConstraint(size_t index) const
   {
     if (index >= dicomTagConstraints_.size())
     {

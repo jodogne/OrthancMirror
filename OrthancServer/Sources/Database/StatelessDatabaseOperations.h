@@ -24,8 +24,9 @@
 
 #include "../../../OrthancFramework/Sources/DicomFormat/DicomMap.h"
 
-#include "IDatabaseWrapper.h"
 #include "../DicomInstanceOrigin.h"
+#include "IDatabaseWrapper.h"
+#include "MainDicomTagsRegistry.h"
 
 #include <boost/shared_ptr.hpp>
 #include <boost/thread/shared_mutex.hpp>
@@ -393,17 +394,15 @@ namespace Orthanc
       }
 
       void ExecuteFind(FindResponse& response,
-                       const FindRequest& request, 
-                       const std::vector<DatabaseConstraint>& normalized)
+                       const FindRequest& request)
       {
-        transaction_.ExecuteFind(response, request, normalized);
+        transaction_.ExecuteFind(response, request);
       }
 
       void ExecuteFind(std::list<std::string>& identifiers,
-                       const FindRequest& request,
-                       const std::vector<DatabaseConstraint>& normalized)
+                       const FindRequest& request)
       {
-        transaction_.ExecuteFind(identifiers, request, normalized);
+        transaction_.ExecuteFind(identifiers, request);
       }
 
       void ExecuteExpand(FindResponse& response,
@@ -579,7 +578,6 @@ namespace Orthanc
     
 
   private:
-    class MainDicomTagsRegistry;
     class Transaction;
 
     IDatabaseWrapper&                            db_;
@@ -593,9 +591,6 @@ namespace Orthanc
     void NormalizeLookup(std::vector<DatabaseConstraint>& target,
                          const DatabaseLookup& source,
                          ResourceType level) const;
-
-    void NormalizeLookup(std::vector<DatabaseConstraint>& target,
-                         const FindRequest& findRequest) const;
 
     void ApplyInternal(IReadOnlyOperations* readOperations,
                        IReadWriteOperations* writeOperations);

@@ -359,13 +359,11 @@ namespace Orthanc
 
       // This is only implemented if "HasIntegratedFind()" is "true"
       virtual void ExecuteFind(FindResponse& response,
-                               const FindRequest& request,
-                               const std::vector<DatabaseConstraint>& normalized) = 0;
+                               const FindRequest& request) = 0;
 
       // This is only implemented if "HasIntegratedFind()" is "false"
       virtual void ExecuteFind(std::list<std::string>& identifiers,
-                               const FindRequest& request,
-                               const std::vector<DatabaseConstraint>& normalized) = 0;
+                               const FindRequest& request) = 0;
 
       /**
        * This is only implemented if "HasIntegratedFind()" is
