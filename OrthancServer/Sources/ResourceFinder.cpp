@@ -361,6 +361,7 @@ namespace Orthanc
     request_(level),
     expand_(expand),
     format_(DicomToJsonFormat_Human),
+    allowStorageAccess_(true),
     hasRequestedTags_(false),
     includeAllMetadata_(false)
   {
@@ -503,6 +504,12 @@ namespace Orthanc
 
         if (!missingTags.empty())
         {
+          if (!allowStorageAccess_)
+          {
+            throw OrthancException(ErrorCode_BadSequenceOfCalls,
+                                   "Cannot add missing requested tags, as access to file storage is disallowed");
+          }
+
           OrthancConfiguration::ReaderLock lock;
           if (lock.GetConfiguration().IsWarningEnabled(Warnings_001_TagsBeingReadFromStorage))
           {

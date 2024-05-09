@@ -3440,34 +3440,57 @@ namespace Orthanc
     ServerIndex& index = OrthancRestApi::GetIndex(call);
     ServerContext& context = OrthancRestApi::GetContext(call);
 
+    const bool expand = (!call.HasArgument("expand") ||
+                         // this "expand" is the only one to have a false default value to keep backward compatibility
+                         call.GetBooleanArgument("expand", false));
+    const DicomToJsonFormat format = OrthancRestApi::GetDicomFormat(call, DicomToJsonFormat_Human);
+
     std::set<DicomTag> requestedTags;
     OrthancRestApi::GetRequestedTags(requestedTags, call);
 
-    std::list<std::string> a, b, c;
-    a.push_back(call.GetUriComponent("id", ""));
-
-    ResourceType type = start;
-    while (type != end)
+    if (false)
     {
-      b.clear();
+      /**
+       * EXPERIMENTAL VERSION
+       **/
 
-      for (std::list<std::string>::const_iterator
-             it = a.begin(); it != a.end(); ++it)
+      ResourceFinder finder(end, expand);
+      finder.SetOrthancId(start, call.GetUriComponent("id", ""));
+      finder.AddRequestedTags(requestedTags);
+      finder.SetFormat(format);
+
+      Json::Value answer;
+      finder.Execute(answer, context);
+      call.GetOutput().AnswerJson(answer);
+    }
+    else
+    {
+      /**
+       * VERSION IN ORTHANC <= 1.12.3
+       **/
+      std::list<std::string> a, b, c;
+      a.push_back(call.GetUriComponent("id", ""));
+
+      ResourceType type = start;
+      while (type != end)
       {
-        index.GetChildren(c, *it);
-        b.splice(b.begin(), c);
+        b.clear();
+
+        for (std::list<std::string>::const_iterator
+               it = a.begin(); it != a.end(); ++it)
+        {
+          index.GetChildren(c, *it);
+          b.splice(b.begin(), c);
+        }
+
+        type = GetChildResourceType(type);
+
+        a.clear();
+        a.splice(a.begin(), b);
       }
 
-      type = GetChildResourceType(type);
-
-      a.clear();
-      a.splice(a.begin(), b);
+      AnswerListOfResources2(call.GetOutput(), context, a, type, expand, format, requestedTags, true /* allowStorageAccess */);
     }
-
-    AnswerListOfResources2(call.GetOutput(), context, a, type, !call.HasArgument("expand") || call.GetBooleanArgument("expand", false),  // this "expand" is the only one to have a false default value to keep backward compatibility
-                          OrthancRestApi::GetDicomFormat(call, DicomToJsonFormat_Human),
-                          requestedTags,
-                          true /* allowStorageAccess */);
   }
 
 
