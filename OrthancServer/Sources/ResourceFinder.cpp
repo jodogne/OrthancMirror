@@ -404,8 +404,10 @@ namespace Orthanc
     {
       if (request_.GetLevel() == ResourceType_Patient)
       {
-        throw OrthancException(ErrorCode_ParameterOutOfRange, "Requested tag " + tag.Format() +
-                               " is only available at the study/series/instance levels");
+        LOG(WARNING) << "Requested tag " << tag.Format()
+                     << " should only be read at the study, series, or instance level";
+        requestedTagsFromFileStorage_.insert(tag);
+        request_.SetRetrieveOneInstanceIdentifier(true);
       }
       else
       {
@@ -419,8 +421,10 @@ namespace Orthanc
       if (request_.GetLevel() == ResourceType_Patient ||
           request_.GetLevel() == ResourceType_Study)
       {
-        throw OrthancException(ErrorCode_ParameterOutOfRange, "Requested tag " + tag.Format() +
-                               " is only available at the series/instance levels");
+        LOG(WARNING) << "Requested tag " << tag.Format()
+                     << " should only be read at the series or instance level";
+        requestedTagsFromFileStorage_.insert(tag);
+        request_.SetRetrieveOneInstanceIdentifier(true);
       }
       else
       {
@@ -435,8 +439,10 @@ namespace Orthanc
           request_.GetLevel() == ResourceType_Study ||
           request_.GetLevel() == ResourceType_Series)
       {
-        throw OrthancException(ErrorCode_ParameterOutOfRange, "Requested tag " + tag.Format() +
-                               " is only available at the instance level");
+        LOG(WARNING) << "Requested tag " << tag.Format()
+                     << " should only be read at the instance level";
+        requestedTagsFromFileStorage_.insert(tag);
+        request_.SetRetrieveOneInstanceIdentifier(true);
       }
       else
       {
