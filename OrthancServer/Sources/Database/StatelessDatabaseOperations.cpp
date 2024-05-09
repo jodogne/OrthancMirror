@@ -299,113 +299,6 @@ namespace Orthanc
   }
 
 
-  class StatelessDatabaseOperations::MainDicomTagsRegistry : public boost::noncopyable
-  {
-  private:
-    class TagInfo
-    {
-    private:
-      ResourceType  level_;
-      DicomTagType  type_;
-
-    public:
-      TagInfo()
-      {
-      }
-
-      TagInfo(ResourceType level,
-              DicomTagType type) :
-        level_(level),
-        type_(type)
-      {
-      }
-
-      ResourceType GetLevel() const
-      {
-        return level_;
-      }
-
-      DicomTagType GetType() const
-      {
-        return type_;
-      }
-    };
-      
-    typedef std::map<DicomTag, TagInfo>   Registry;
-
-
-    Registry  registry_;
-      
-    void LoadTags(ResourceType level)
-    {
-      {
-        const DicomTag* tags = NULL;
-        size_t size;
-  
-        ServerToolbox::LoadIdentifiers(tags, size, level);
-  
-        for (size_t i = 0; i < size; i++)
-        {
-          if (registry_.find(tags[i]) == registry_.end())
-          {
-            registry_[tags[i]] = TagInfo(level, DicomTagType_Identifier);
-          }
-          else
-          {
-            // These patient-level tags are copied in the study level
-            assert(level == ResourceType_Study &&
-                   (tags[i] == DICOM_TAG_PATIENT_ID ||
-                    tags[i] == DICOM_TAG_PATIENT_NAME ||
-                    tags[i] == DICOM_TAG_PATIENT_BIRTH_DATE));
-          }
-        }
-      }
-
-      {
-        std::set<DicomTag> tags;
-        DicomMap::GetMainDicomTags(tags, level);
-
-        for (std::set<DicomTag>::const_iterator
-               tag = tags.begin(); tag != tags.end(); ++tag)
-        {
-          if (registry_.find(*tag) == registry_.end())
-          {
-            registry_[*tag] = TagInfo(level, DicomTagType_Main);
-          }
-        }
-      }
-    }
-
-  public:
-    MainDicomTagsRegistry()
-    {
-      LoadTags(ResourceType_Patient);
-      LoadTags(ResourceType_Study);
-      LoadTags(ResourceType_Series);
-      LoadTags(ResourceType_Instance); 
-    }
-
-    void LookupTag(ResourceType& level,
-                   DicomTagType& type,
-                   const DicomTag& tag) const
-    {
-      Registry::const_iterator it = registry_.find(tag);
-
-      if (it == registry_.end())
-      {
-        // Default values
-        level = ResourceType_Instance;
-        type = DicomTagType_Generic;
-      }
-      else
-      {
-        level = it->second.GetLevel();
-        type = it->second.GetType();
-      }
-    }
-  };
-
-
   void StatelessDatabaseOperations::ReadWriteTransaction::LogChange(int64_t internalId,
                                                                     ChangeType changeType,
                                                                     ResourceType resourceType,
@@ -499,38 +392,6 @@ namespace Orthanc
         target.push_back(source.GetConstraint(i).ConvertToDatabaseConstraint(level, type));
       }
     }
-  }
-
-  void StatelessDatabaseOperations::NormalizeLookup(std::vector<DatabaseConstraint>& target,
-                                                    const FindRequest& findRequest) const
-  {
-    assert(mainDicomTagsRegistry_.get() != NULL);
-
-    target.clear();
-    target.reserve(findRequest.GetDicomTagConstraintsCount());
-
-    for (size_t i = 0; i < findRequest.GetDicomTagConstraintsCount(); i++)
-    {
-      ResourceType level;
-      DicomTagType type;
-      
-      mainDicomTagsRegistry_->LookupTag(level, type, findRequest.GetDicomTagConstraint(i).GetTag());
-
-      if (type == DicomTagType_Identifier ||
-          type == DicomTagType_Main)
-      {
-        // Use the fact that patient-level tags are copied at the study level
-        if (level == ResourceType_Patient &&
-            findRequest.GetLevel() != ResourceType_Patient)
-        {
-          level = ResourceType_Study;
-        }
-        
-        target.push_back(findRequest.GetDicomTagConstraint(i).ConvertToDatabaseConstraint(level, type));
-      }
-    }
-
-    // TODO-FIND: add metadata constraints
   }
 
 
@@ -3844,23 +3705,23 @@ namespace Orthanc
   void StatelessDatabaseOperations::ExecuteFind(FindResponse& response,
                                                 const FindRequest& request)
   {
-    class IntegratedFind : public ReadOnlyOperationsT3<FindResponse&, const FindRequest&, const std::vector<DatabaseConstraint>&>
+    class IntegratedFind : public ReadOnlyOperationsT2<FindResponse&, const FindRequest&>
     {
     public:
       virtual void ApplyTuple(ReadOnlyTransaction& transaction,
                               const Tuple& tuple) ORTHANC_OVERRIDE
       {
-        transaction.ExecuteFind(tuple.get<0>(), tuple.get<1>(), tuple.get<2>());
+        transaction.ExecuteFind(tuple.get<0>(), tuple.get<1>());
       }
     };
 
-    class FindStage : public ReadOnlyOperationsT3<std::list<std::string>&, const FindRequest&, const std::vector<DatabaseConstraint>&>
+    class FindStage : public ReadOnlyOperationsT2<std::list<std::string>&, const FindRequest&>
     {
     public:
       virtual void ApplyTuple(ReadOnlyTransaction& transaction,
                               const Tuple& tuple) ORTHANC_OVERRIDE
       {
-        transaction.ExecuteFind(tuple.get<0>(), tuple.get<1>(), tuple.get<2>());
+        transaction.ExecuteFind(tuple.get<0>(), tuple.get<1>());
       }
     };
 
@@ -3874,9 +3735,6 @@ namespace Orthanc
       }
     };
 
-    std::vector<DatabaseConstraint> normalized;
-    NormalizeLookup(normalized, request);
-
     if (db_.HasIntegratedFind())
     {
       /**
@@ -3884,7 +3742,7 @@ namespace Orthanc
        * executed in one single transaction.
        **/
       IntegratedFind operations;
-      operations.Apply(*this, response, request, normalized);
+      operations.Apply(*this, response, request);
     }
     else
     {
@@ -3896,7 +3754,7 @@ namespace Orthanc
       std::list<std::string> identifiers;
 
       FindStage find;
-      find.Apply(*this, identifiers, request, normalized);
+      find.Apply(*this, identifiers, request);
 
       ExpandStage expand;
 

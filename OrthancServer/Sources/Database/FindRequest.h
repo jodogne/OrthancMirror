@@ -37,6 +37,8 @@
 
 namespace Orthanc
 {
+  class MainDicomTagsRegistry;
+
   class FindRequest : public boost::noncopyable
   {
   public:
@@ -153,11 +155,10 @@ namespace Orthanc
 
 
   private:
-
     // filter & ordering fields
     ResourceType                         level_;                // The level of the response (the filtering on tags, labels and metadata also happens at this level)
     OrthancIdentifiers                   orthancIdentifiers_;   // The response must belong to this Orthanc resources hierarchy
-    std::vector<DicomTagConstraint>      dicomTagConstraints_;  // All tags filters (note: the order is not important)
+    std::deque<DatabaseConstraint>       dicomTagConstraints_;  // All tags filters (note: the order is not important)
     std::deque<void*>   /* TODO-FIND */       metadataConstraints_;  // All metadata filters (note: the order is not important)
     bool                                 hasLimits_;
     uint64_t                             limitsSince_;
@@ -180,6 +181,8 @@ namespace Orthanc
     bool                                 retrieveChildrenIdentifiers_;
     std::set<MetadataType>               retrieveChildrenMetadata_;
     bool                                 retrieveOneInstanceIdentifier_;
+
+    std::unique_ptr<MainDicomTagsRegistry>  mainDicomTagsRegistry_;
 
   public:
     explicit FindRequest(ResourceType level);
@@ -214,12 +217,12 @@ namespace Orthanc
       return dicomTagConstraints_.size();
     }
 
+    const DatabaseConstraint& GetDicomTagConstraint(size_t index) const;
+
     size_t GetMetadataConstraintsCount() const
     {
       return metadataConstraints_.size();
     }
-
-    const DicomTagConstraint& GetDicomTagConstraint(size_t index) const;
 
     void SetLimits(uint64_t since,
                    uint64_t count);

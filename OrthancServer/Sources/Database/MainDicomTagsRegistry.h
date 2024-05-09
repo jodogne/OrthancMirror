@@ -22,33 +22,56 @@
 
 #pragma once
 
-#include "../IDatabaseWrapper.h"
+#include "../Search/DicomTagConstraint.h"
+
+#include <boost/noncopyable.hpp>
+
 
 namespace Orthanc
 {
-  namespace Compatibility
+  class MainDicomTagsRegistry : public boost::noncopyable
   {
-    class GenericFind : public boost::noncopyable
+  private:
+    class TagInfo
     {
     private:
-      IDatabaseWrapper::ITransaction&  transaction_;
-
-      void RetrieveMainDicomTags(FindResponse::Resource& target,
-                                 ResourceType level,
-                                 int64_t internalId);
+      ResourceType  level_;
+      DicomTagType  type_;
 
     public:
-      GenericFind(IDatabaseWrapper::ITransaction& transaction) :
-        transaction_(transaction)
+      TagInfo()
       {
       }
 
-      void ExecuteFind(std::list<std::string>& identifiers,
-                       const FindRequest& request);
+      TagInfo(ResourceType level,
+              DicomTagType type) :
+        level_(level),
+        type_(type)
+      {
+      }
 
-      void ExecuteExpand(FindResponse& response,
-                         const FindRequest& request,
-                         const std::string& identifier);
+      ResourceType GetLevel() const
+      {
+        return level_;
+      }
+
+      DicomTagType GetType() const
+      {
+        return type_;
+      }
     };
-  }
+
+    typedef std::map<DicomTag, TagInfo>   Registry;
+
+    Registry  registry_;
+
+    void LoadTags(ResourceType level);
+
+  public:
+    MainDicomTagsRegistry();
+
+    void LookupTag(ResourceType& level,
+                   DicomTagType& type,
+                   const DicomTag& tag) const;
+  };
 }

@@ -47,19 +47,17 @@ namespace Orthanc
 
 
   void BaseDatabaseWrapper::BaseTransaction::ExecuteFind(FindResponse& response,
-                                                         const FindRequest& request,
-                                                         const std::vector<DatabaseConstraint>& normalized)
+                                                         const FindRequest& request)
   {
     throw OrthancException(ErrorCode_NotImplemented);  // Not supported
   }
 
 
   void BaseDatabaseWrapper::BaseTransaction::ExecuteFind(std::list<std::string>& identifiers,
-                                                         const FindRequest& request,
-                                                         const std::vector<DatabaseConstraint>& normalized)
+                                                         const FindRequest& request)
   {
     Compatibility::GenericFind find(*this);
-    find.ExecuteFind(identifiers, request, normalized);
+    find.ExecuteFind(identifiers, request);
   }
 
 

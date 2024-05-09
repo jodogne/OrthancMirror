@@ -48,12 +48,10 @@ namespace Orthanc
                                           int64_t& uncompressedSize) ORTHANC_OVERRIDE;
 
       virtual void ExecuteFind(FindResponse& response,
-                               const FindRequest& request,
-                               const std::vector<DatabaseConstraint>& normalized) ORTHANC_OVERRIDE;
+                               const FindRequest& request) ORTHANC_OVERRIDE;
 
       virtual void ExecuteFind(std::list<std::string>& identifiers,
-                               const FindRequest& request,
-                               const std::vector<DatabaseConstraint>& normalized) ORTHANC_OVERRIDE;
+                               const FindRequest& request) ORTHANC_OVERRIDE;
 
       virtual void ExecuteExpand(FindResponse& response,
                                  const FindRequest& request,
