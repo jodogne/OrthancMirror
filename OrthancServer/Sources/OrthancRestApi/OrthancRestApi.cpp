@@ -489,7 +489,8 @@ namespace Orthanc
   static const std::string GET_SIMPLIFY = "simplify";
   static const std::string GET_FULL = "full";
   static const std::string GET_SHORT = "short";
-  static const std::string GET_REQUESTED_TAGS = "requestedTags";
+  static const std::string GET_REQUESTED_TAGS_OLD = "requestedTags";  // This was the only option in Orthanc <= 1.12.3
+  static const std::string GET_REQUESTED_TAGS = "requested-tags";
 
   static const std::string POST_SIMPLIFY = "Simplify";
   static const std::string POST_FULL = "Full";
@@ -603,18 +604,29 @@ namespace Orthanc
   {
     requestedTags.clear();
 
+    std::string s;
+
     if (call.HasArgument(GET_REQUESTED_TAGS))
+    {
+      s = call.GetArgument(GET_REQUESTED_TAGS, "");
+    }
+    else if (call.HasArgument(GET_REQUESTED_TAGS_OLD))
+    {
+      // This is for backward compatibility with Orthanc <= 1.12.3
+      s = call.GetArgument(GET_REQUESTED_TAGS_OLD, "");
+    }
+
+    if (!s.empty())
     {
       try
       {
-        FromDcmtkBridge::ParseListOfTags(requestedTags, call.GetArgument("requestedTags", ""));
+        FromDcmtkBridge::ParseListOfTags(requestedTags, s);
       }
       catch (OrthancException& ex)
       {
         throw OrthancException(ErrorCode_BadRequest, std::string("Invalid requestedTags argument: ") + ex.What() + " " + ex.GetDetails());
       }
     }
-
   }
 
   void OrthancRestApi::DocumentRequestedTags(RestApiGetCall& call)
