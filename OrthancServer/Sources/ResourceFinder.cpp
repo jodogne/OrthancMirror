@@ -449,8 +449,12 @@ namespace Orthanc
     else
     {
       // This is not a main DICOM tag: We will be forced to access the DICOM file anyway
-      request_.SetRetrieveOneInstanceIdentifier(true);
       requestedTagsFromFileStorage_.insert(tag);
+
+      if (request_.GetLevel() != ResourceType_Instance)
+      {
+        request_.SetRetrieveOneInstanceIdentifier(true);
+      }
     }
 
     hasRequestedTags_ = true;
@@ -509,6 +513,10 @@ namespace Orthanc
           if (request_.IsRetrieveOneInstanceIdentifier())
           {
             instancePublicId = resource.GetOneInstanceIdentifier();
+          }
+          else if (request_.GetLevel() == ResourceType_Instance)
+          {
+            instancePublicId = resource.GetIdentifier();
           }
           else
           {
