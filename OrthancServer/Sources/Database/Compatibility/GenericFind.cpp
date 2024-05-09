@@ -59,6 +59,7 @@ namespace Orthanc
         }
       }
       else if (IsRequestWithoutContraint(request) &&
+               request.GetLevel() == ResourceType_Patient &&
                request.GetOrthancIdentifiers().HasPatientId() &&
                !request.GetOrthancIdentifiers().HasStudyId() &&
                !request.GetOrthancIdentifiers().HasSeriesId() &&
@@ -67,6 +68,7 @@ namespace Orthanc
         identifiers.push_back(request.GetOrthancIdentifiers().GetPatientId());
       }
       else if (IsRequestWithoutContraint(request) &&
+               request.GetLevel() == ResourceType_Study &&
                !request.GetOrthancIdentifiers().HasPatientId() &&
                request.GetOrthancIdentifiers().HasStudyId() &&
                !request.GetOrthancIdentifiers().HasSeriesId() &&
@@ -75,6 +77,7 @@ namespace Orthanc
         identifiers.push_back(request.GetOrthancIdentifiers().GetStudyId());
       }
       else if (IsRequestWithoutContraint(request) &&
+               request.GetLevel() == ResourceType_Series &&
                !request.GetOrthancIdentifiers().HasPatientId() &&
                !request.GetOrthancIdentifiers().HasStudyId() &&
                request.GetOrthancIdentifiers().HasSeriesId() &&
@@ -83,6 +86,7 @@ namespace Orthanc
         identifiers.push_back(request.GetOrthancIdentifiers().GetSeriesId());
       }
       else if (IsRequestWithoutContraint(request) &&
+               request.GetLevel() == ResourceType_Instance &&
                !request.GetOrthancIdentifiers().HasPatientId() &&
                !request.GetOrthancIdentifiers().HasStudyId() &&
                !request.GetOrthancIdentifiers().HasSeriesId() &&
