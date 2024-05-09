@@ -340,11 +340,35 @@ namespace Orthanc
     std::set<DicomTag> requestedTags;
     OrthancRestApi::GetRequestedTags(requestedTags, call);
 
-    Json::Value json;
-    if (OrthancRestApi::GetContext(call).ExpandResource(
-          json, call.GetUriComponent("id", ""), resourceType, format, requestedTags, true /* allowStorageAccess */))
+    if (true)
     {
-      call.GetOutput().AnswerJson(json);
+      /**
+       * EXPERIMENTAL VERSION
+       **/
+
+      ResourceFinder finder(resourceType, true /* expand */);
+      finder.AddRequestedTags(requestedTags);
+      finder.SetFormat(OrthancRestApi::GetDicomFormat(call, DicomToJsonFormat_Human));
+      finder.SetOrthancId(resourceType, call.GetUriComponent("id", ""));
+
+      Json::Value json;
+      if (finder.ExecuteOneResource(json, OrthancRestApi::GetContext(call)))
+      {
+        call.GetOutput().AnswerJson(json);
+      }
+    }
+    else
+    {
+      /**
+       * VERSION IN ORTHANC <= 1.12.3
+       **/
+
+      Json::Value json;
+      if (OrthancRestApi::GetContext(call).ExpandResource(
+            json, call.GetUriComponent("id", ""), resourceType, format, requestedTags, true /* allowStorageAccess */))
+      {
+        call.GetOutput().AnswerJson(json);
+      }
     }
   }
 
