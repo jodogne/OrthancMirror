@@ -55,6 +55,12 @@ namespace Orthanc
     ResourceFinder(ResourceType level,
                    bool expand);
 
+    void SetOrthancId(ResourceType level,
+                      const std::string& id)
+    {
+      request_.SetOrthancId(level, id);
+    }
+
     void SetFormat(DicomToJsonFormat format)
     {
       format_ = format;
@@ -77,5 +83,8 @@ namespace Orthanc
 
     void Execute(Json::Value& target,
                  ServerContext& context);
+
+    bool ExecuteOneResource(Json::Value& target,
+                            ServerContext& context);
   };
 }

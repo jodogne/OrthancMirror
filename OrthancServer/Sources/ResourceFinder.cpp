@@ -581,4 +581,31 @@ namespace Orthanc
       }
     }
   }
+
+
+  bool ResourceFinder::ExecuteOneResource(Json::Value& target,
+                                          ServerContext& context)
+  {
+    Json::Value answer;
+    Execute(answer, context);
+
+    if (answer.type() != Json::arrayValue)
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+    else if (answer.size() > 1)
+    {
+      throw OrthancException(ErrorCode_DatabasePlugin);
+    }
+    else if (answer.empty())
+    {
+      // Inexistent resource (or was deleted between the first and second phases)
+      return false;
+    }
+    else
+    {
+      target = answer[0];
+      return true;
+    }
+  }
 }

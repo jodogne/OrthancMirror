@@ -32,17 +32,22 @@ namespace Orthanc
 {
   namespace Compatibility
   {
+    static bool IsRequestWithoutContraint(const FindRequest& request)
+    {
+      return (request.GetDicomTagConstraintsCount() == 0 &&
+              request.GetMetadataConstraintsCount() == 0 &&
+              request.GetLabels().empty() &&
+              request.GetOrdering().empty());
+    }
+
     void GenericFind::ExecuteFind(std::list<std::string>& identifiers,
                                   const FindRequest& request)
     {
-      if (!request.GetOrthancIdentifiers().HasPatientId() &&
+      if (IsRequestWithoutContraint(request) &&
+          !request.GetOrthancIdentifiers().HasPatientId() &&
           !request.GetOrthancIdentifiers().HasStudyId() &&
           !request.GetOrthancIdentifiers().HasSeriesId() &&
-          !request.GetOrthancIdentifiers().HasInstanceId() &&
-          request.GetDicomTagConstraintsCount() == 0 &&
-          request.GetMetadataConstraintsCount() == 0 &&
-          request.GetLabels().empty() &&
-          request.GetOrdering().empty())
+          !request.GetOrthancIdentifiers().HasInstanceId())
       {
         if (request.HasLimits())
         {
@@ -52,6 +57,38 @@ namespace Orthanc
         {
           transaction_.GetAllPublicIds(identifiers, request.GetLevel());
         }
+      }
+      else if (IsRequestWithoutContraint(request) &&
+               request.GetOrthancIdentifiers().HasPatientId() &&
+               !request.GetOrthancIdentifiers().HasStudyId() &&
+               !request.GetOrthancIdentifiers().HasSeriesId() &&
+               !request.GetOrthancIdentifiers().HasInstanceId())
+      {
+        identifiers.push_back(request.GetOrthancIdentifiers().GetPatientId());
+      }
+      else if (IsRequestWithoutContraint(request) &&
+               !request.GetOrthancIdentifiers().HasPatientId() &&
+               request.GetOrthancIdentifiers().HasStudyId() &&
+               !request.GetOrthancIdentifiers().HasSeriesId() &&
+               !request.GetOrthancIdentifiers().HasInstanceId())
+      {
+        identifiers.push_back(request.GetOrthancIdentifiers().GetStudyId());
+      }
+      else if (IsRequestWithoutContraint(request) &&
+               !request.GetOrthancIdentifiers().HasPatientId() &&
+               !request.GetOrthancIdentifiers().HasStudyId() &&
+               request.GetOrthancIdentifiers().HasSeriesId() &&
+               !request.GetOrthancIdentifiers().HasInstanceId())
+      {
+        identifiers.push_back(request.GetOrthancIdentifiers().GetSeriesId());
+      }
+      else if (IsRequestWithoutContraint(request) &&
+               !request.GetOrthancIdentifiers().HasPatientId() &&
+               !request.GetOrthancIdentifiers().HasStudyId() &&
+               !request.GetOrthancIdentifiers().HasSeriesId() &&
+               request.GetOrthancIdentifiers().HasInstanceId())
+      {
+        identifiers.push_back(request.GetOrthancIdentifiers().GetInstanceId());
       }
       else
       {
