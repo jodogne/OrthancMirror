@@ -546,6 +546,9 @@ namespace Orthanc
 
           LOG(INFO) << "Will retrieve missing DICOM tags from instance: " << instancePublicId;
 
+          // TODO-FIND: What do we do if the DICOM has been removed since the request?
+          // Do we fail, or do we skip the resource?
+
           Json::Value tmpDicomAsJson;
           context.ReadDicomAsJson(tmpDicomAsJson, instancePublicId, missingTags /* ignoreTagLength */);
 
