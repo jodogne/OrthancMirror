@@ -371,23 +371,30 @@ namespace Orthanc
       request_.SetRetrieveMetadata(true);
       request_.SetRetrieveLabels(true);
 
-      if (level == ResourceType_Series)
+      switch (level)
       {
-        request_.AddRetrieveChildrenMetadata(MetadataType_Instance_IndexInSeries); // required for the SeriesStatus
-      }
+        case ResourceType_Patient:
+          request_.GetChildrenRetrieveSpecification(ResourceType_Study).SetRetrieveIdentifiers(true);
+          break;
 
-      if (level == ResourceType_Instance)
-      {
-        request_.SetRetrieveAttachments(true); // for FileSize & FileUuid
-      }
-      else
-      {
-        request_.SetRetrieveChildrenIdentifiers(true);
-      }
+        case ResourceType_Study:
+          request_.GetChildrenRetrieveSpecification(ResourceType_Series).SetRetrieveIdentifiers(true);
+          request_.SetRetrieveParentIdentifier(true);
+          break;
 
-      if (level != ResourceType_Patient)
-      {
-        request_.SetRetrieveParentIdentifier(true);
+        case ResourceType_Series:
+          request_.AddRetrieveChildrenMetadata(MetadataType_Instance_IndexInSeries); // required for the SeriesStatus
+          request_.GetChildrenRetrieveSpecification(ResourceType_Instance).SetRetrieveIdentifiers(true);
+          request_.SetRetrieveParentIdentifier(true);
+          break;
+
+        case ResourceType_Instance:
+          request_.SetRetrieveAttachments(true); // for FileSize & FileUuid
+          request_.SetRetrieveParentIdentifier(true);
+          break;
+
+        default:
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
       }
     }
   }
@@ -491,7 +498,7 @@ namespace Orthanc
 
 
   void ResourceFinder::Execute(Json::Value& target,
-                               ServerContext& context)
+                               ServerContext& context) const
   {
     FindResponse response;
     context.GetIndex().ExecuteFind(response, request_);
@@ -501,6 +508,12 @@ namespace Orthanc
     for (size_t i = 0; i < response.GetSize(); i++)
     {
       const FindResponse::Resource& resource = response.GetResourceByIndex(i);
+
+      {
+        Json::Value v;
+        resource.DebugExport(v, request_);
+        std::cout << v.toStyledString();
+      }
 
       if (expand_)
       {
@@ -607,7 +620,7 @@ namespace Orthanc
 
 
   bool ResourceFinder::ExecuteOneResource(Json::Value& target,
-                                          ServerContext& context)
+                                          ServerContext& context) const
   {
     Json::Value answer;
     Execute(answer, context);

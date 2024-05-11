@@ -93,9 +93,9 @@ namespace Orthanc
     void AddRequestedTags(const std::set<DicomTag>& tags);
 
     void Execute(Json::Value& target,
-                 ServerContext& context);
+                 ServerContext& context) const;
 
     bool ExecuteOneResource(Json::Value& target,
-                            ServerContext& context);
+                            ServerContext& context) const;
   };
 }

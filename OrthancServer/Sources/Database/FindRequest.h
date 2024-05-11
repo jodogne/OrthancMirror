@@ -189,6 +189,41 @@ namespace Orthanc
     };
 
 
+    class ChildrenRetrieveSpecification : public boost::noncopyable
+    {
+    private:
+      bool  identifiers_;
+      bool  count_;
+
+    public:
+      ChildrenRetrieveSpecification() :
+        identifiers_(false),
+        count_(false)
+      {
+      }
+
+      void SetRetrieveIdentifiers(bool retrieve)
+      {
+        identifiers_ = retrieve;
+      }
+
+      bool IsRetrieveIdentifiers() const
+      {
+        return identifiers_;
+      }
+
+      void SetRetrieveCount(bool retrieve)
+      {
+        count_ = retrieve;
+      }
+
+      bool IsRetrieveCount() const
+      {
+        return count_;
+      }
+    };
+
+
   private:
     // filter & ordering fields
     ResourceType                         level_;                // The level of the response (the filtering on tags, labels and metadata also happens at this level)
@@ -210,7 +245,9 @@ namespace Orthanc
     ParentRetrieveSpecification          retrieveParentPatient_;
     ParentRetrieveSpecification          retrieveParentStudy_;
     ParentRetrieveSpecification          retrieveParentSeries_;
-    bool                                 retrieveChildrenIdentifiers_;
+    ChildrenRetrieveSpecification        retrieveChildrenStudies_;
+    ChildrenRetrieveSpecification        retrieveChildrenSeries_;
+    ChildrenRetrieveSpecification        retrieveChildrenInstances_;
     std::set<MetadataType>               retrieveChildrenMetadata_;
     bool                                 retrieveOneInstanceIdentifier_;
 
@@ -346,11 +383,11 @@ namespace Orthanc
       return const_cast<FindRequest&>(*this).GetParentRetrieveSpecification(level);
     }
 
-    void SetRetrieveChildrenIdentifiers(bool retrieve);
+    ChildrenRetrieveSpecification& GetChildrenRetrieveSpecification(ResourceType level);
 
-    bool IsRetrieveChildrenIdentifiers() const
+    const ChildrenRetrieveSpecification& GetChildrenRetrieveSpecification(ResourceType level) const
     {
-      return retrieveChildrenIdentifiers_;
+      return const_cast<FindRequest&>(*this).GetChildrenRetrieveSpecification(level);
     }
 
     void AddRetrieveChildrenMetadata(MetadataType metadata);

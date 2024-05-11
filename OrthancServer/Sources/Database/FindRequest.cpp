@@ -55,6 +55,30 @@ namespace Orthanc
   }
 
 
+  FindRequest::ChildrenRetrieveSpecification& FindRequest::GetChildrenRetrieveSpecification(ResourceType level)
+  {
+    if (!IsResourceLevelAboveOrEqual(level_, level))
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+    switch (level)
+    {
+      case ResourceType_Study:
+        return retrieveChildrenStudies_;
+
+      case ResourceType_Series:
+        return retrieveChildrenSeries_;
+
+      case ResourceType_Instance:
+        return retrieveChildrenInstances_;
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+
   FindRequest::FindRequest(ResourceType level) :
     level_(level),
     hasLimits_(false),
@@ -65,7 +89,6 @@ namespace Orthanc
     retrieveLabels_(false),
     retrieveAttachments_(false),
     retrieveParentIdentifier_(false),
-    retrieveChildrenIdentifiers_(false),
     retrieveOneInstanceIdentifier_(false)
   {
   }
@@ -265,19 +288,6 @@ namespace Orthanc
     else
     {
       retrieveParentIdentifier_ = retrieve;
-    }
-  }
-
-
-  void FindRequest::SetRetrieveChildrenIdentifiers(bool retrieve)
-  {
-    if (level_ == ResourceType_Instance)
-    {
-      throw OrthancException(ErrorCode_BadParameterType);
-    }
-    else
-    {
-      retrieveChildrenIdentifiers_ = retrieve;
     }
   }
 
