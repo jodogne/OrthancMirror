@@ -493,11 +493,11 @@ namespace Orthanc
 
     for (size_t i = 0; i < 4; i++)
     {
+      const char* level = EnumerationToString(levels[i]);
+
       if (levels[i] != request.GetLevel() &&
           IsResourceLevelAboveOrEqual(levels[i], request.GetLevel()))
       {
-        const char* level = EnumerationToString(levels[i]);
-
         if (request.GetParentRetrieveSpecification(levels[i]).IsRetrieveMainDicomTags())
         {
           DicomMap m;
@@ -510,17 +510,28 @@ namespace Orthanc
           DebugMetadata(target[level]["Metadata"], GetMetadata(levels[i]));
         }
       }
-    }
 
-    if (request.IsRetrieveChildrenIdentifiers())
-    {
-      Json::Value v = Json::arrayValue;
-      for (std::set<std::string>::const_iterator it = childrenIdentifiers_.begin();
-           it != childrenIdentifiers_.end(); ++it)
+      if (levels[i] != request.GetLevel() &&
+          IsResourceLevelAboveOrEqual(request.GetLevel(), levels[i]))
       {
-        v.append(*it);
+        if (request.GetChildrenRetrieveSpecification(levels[i]).IsRetrieveIdentifiers())
+        {
+          if (levels[i] != GetChildResourceType(request.GetLevel()))
+          {
+            throw OrthancException(ErrorCode_NotImplemented);  // TODO-FIND
+          }
+          else
+          {
+            Json::Value v = Json::arrayValue;
+            for (std::set<std::string>::const_iterator it = childrenIdentifiers_.begin();
+                 it != childrenIdentifiers_.end(); ++it)
+            {
+              v.append(*it);
+            }
+            target[level]["Identifiers"] = v;
+          }
+        }
       }
-      target["Children"] = v;
     }
 
     if (request.IsRetrieveLabels())

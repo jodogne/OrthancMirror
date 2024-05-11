@@ -410,8 +410,10 @@ namespace Orthanc
         }
       }
 
-      if (request.IsRetrieveChildrenIdentifiers())
+      if (request.GetLevel() != ResourceType_Instance &&
+          request.GetChildrenRetrieveSpecification(GetChildResourceType(request.GetLevel())).IsRetrieveIdentifiers())
       {
+        // TODO-FIND: Retrieve other levels than immediate children
         std::list<std::string> children;
         transaction_.GetChildrenPublicId(children, internalId);
 
