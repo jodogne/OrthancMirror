@@ -80,9 +80,6 @@ namespace Orthanc
       indexInSeries_(0)
     {
     }
-    
-    ExpandedResource(const FindRequest& request,
-                     const FindResponse::Resource& resource);
 
     void SetResource(ResourceType level,
                      const std::string& id)
