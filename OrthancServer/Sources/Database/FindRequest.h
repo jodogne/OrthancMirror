@@ -154,6 +154,41 @@ namespace Orthanc
     };
 
 
+    class ParentRetrieveSpecification : public boost::noncopyable
+    {
+    private:
+      bool  mainDicomTags_;
+      bool  metadata_;
+
+    public:
+      ParentRetrieveSpecification() :
+        mainDicomTags_(false),
+        metadata_(false)
+      {
+      }
+
+      void SetRetrieveMainDicomTags(bool retrieve)
+      {
+        mainDicomTags_ = retrieve;
+      }
+
+      bool IsRetrieveMainDicomTags() const
+      {
+        return mainDicomTags_;
+      }
+
+      void SetRetrieveMetadata(bool retrieve)
+      {
+        metadata_ = retrieve;
+      }
+
+      bool IsRetrieveMetadata() const
+      {
+        return metadata_;
+      }
+    };
+
+
   private:
     // filter & ordering fields
     ResourceType                         level_;                // The level of the response (the filtering on tags, labels and metadata also happens at this level)
@@ -167,17 +202,14 @@ namespace Orthanc
     LabelsConstraint                     labelsContraint_;
     std::deque<Ordering*>                ordering_;             // The ordering criteria (note: the order is important !)
 
-    bool                                 retrieveMainDicomTagsPatients_;
-    bool                                 retrieveMainDicomTagsStudies_;
-    bool                                 retrieveMainDicomTagsSeries_;
-    bool                                 retrieveMainDicomTagsInstances_;
-    bool                                 retrieveMetadataPatients_;
-    bool                                 retrieveMetadataStudies_;
-    bool                                 retrieveMetadataSeries_;
-    bool                                 retrieveMetadataInstances_;
+    bool                                 retrieveMainDicomTags_;
+    bool                                 retrieveMetadata_;
     bool                                 retrieveLabels_;
     bool                                 retrieveAttachments_;
     bool                                 retrieveParentIdentifier_;
+    ParentRetrieveSpecification          retrieveParentPatient_;
+    ParentRetrieveSpecification          retrieveParentStudy_;
+    ParentRetrieveSpecification          retrieveParentSeries_;
     bool                                 retrieveChildrenIdentifiers_;
     std::set<MetadataType>               retrieveChildrenMetadata_;
     bool                                 retrieveOneInstanceIdentifier_;
@@ -260,15 +292,25 @@ namespace Orthanc
       return labelsContraint_;
     }
 
-    void SetRetrieveMainDicomTags(ResourceType level,
-                                  bool retrieve);
+    void SetRetrieveMainDicomTags(bool retrieve)
+    {
+      retrieveMainDicomTags_ = retrieve;
+    }
 
-    bool IsRetrieveMainDicomTags(ResourceType level) const;
+    bool IsRetrieveMainDicomTags() const
+    {
+      return retrieveMainDicomTags_;
+    }
 
-    void SetRetrieveMetadata(ResourceType level,
-                             bool retrieve);
+    void SetRetrieveMetadata(bool retrieve)
+    {
+      retrieveMetadata_ = retrieve;
+    }
 
-    bool IsRetrieveMetadata(ResourceType level) const;
+    bool IsRetrieveMetadata() const
+    {
+      return retrieveMetadata_;
+    }
 
     void SetRetrieveLabels(bool retrieve)
     {
@@ -295,6 +337,13 @@ namespace Orthanc
     bool IsRetrieveParentIdentifier() const
     {
       return retrieveParentIdentifier_;
+    }
+
+    ParentRetrieveSpecification& GetParentRetrieveSpecification(ResourceType level);
+
+    const ParentRetrieveSpecification& GetParentRetrieveSpecification(ResourceType level) const
+    {
+      return const_cast<FindRequest&>(*this).GetParentRetrieveSpecification(level);
     }
 
     void SetRetrieveChildrenIdentifiers(bool retrieve);
