@@ -397,9 +397,22 @@ namespace Orthanc
   {
     if (DicomMap::IsMainDicomTag(tag, ResourceType_Patient))
     {
-      request_.GetParentRetrieveSpecification(ResourceType_Patient).SetRetrieveMainDicomTags(true);
-      request_.GetParentRetrieveSpecification(ResourceType_Patient).SetRetrieveMetadata(true);
-      requestedPatientTags_.insert(tag);
+      if (request_.GetLevel() == ResourceType_Patient)
+      {
+        request_.GetParentRetrieveSpecification(ResourceType_Patient).SetRetrieveMainDicomTags(true);
+        request_.GetParentRetrieveSpecification(ResourceType_Patient).SetRetrieveMetadata(true);
+        requestedPatientTags_.insert(tag);
+      }
+      else
+      {
+        /**
+         * This comes from the fact that patient-level tags are copied
+         * at the study level, as implemented by "ResourcesContent::AddResource()".
+         **/
+        request_.GetParentRetrieveSpecification(ResourceType_Study).SetRetrieveMainDicomTags(true);
+        request_.GetParentRetrieveSpecification(ResourceType_Study).SetRetrieveMetadata(true);
+        requestedStudyTags_.insert(tag);
+      }
     }
     else if (DicomMap::IsMainDicomTag(tag, ResourceType_Study))
     {
