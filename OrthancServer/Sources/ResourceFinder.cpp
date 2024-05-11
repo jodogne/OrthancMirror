@@ -367,8 +367,8 @@ namespace Orthanc
   {
     if (expand)
     {
-      request_.SetRetrieveMainDicomTags(level, true);
-      request_.SetRetrieveMetadata(level, true);
+      request_.SetRetrieveMainDicomTags(true);
+      request_.SetRetrieveMetadata(true);
       request_.SetRetrieveLabels(true);
 
       if (level == ResourceType_Series)
@@ -397,8 +397,8 @@ namespace Orthanc
   {
     if (DicomMap::IsMainDicomTag(tag, ResourceType_Patient))
     {
-      request_.SetRetrieveMainDicomTags(ResourceType_Patient, true);
-      request_.SetRetrieveMetadata(ResourceType_Patient, true);
+      request_.GetParentRetrieveSpecification(ResourceType_Patient).SetRetrieveMainDicomTags(true);
+      request_.GetParentRetrieveSpecification(ResourceType_Patient).SetRetrieveMetadata(true);
       requestedPatientTags_.insert(tag);
     }
     else if (DicomMap::IsMainDicomTag(tag, ResourceType_Study))
@@ -412,8 +412,8 @@ namespace Orthanc
       }
       else
       {
-        request_.SetRetrieveMainDicomTags(ResourceType_Study, true);
-        request_.SetRetrieveMetadata(ResourceType_Study, true);
+        request_.GetParentRetrieveSpecification(ResourceType_Study).SetRetrieveMainDicomTags(true);
+        request_.GetParentRetrieveSpecification(ResourceType_Study).SetRetrieveMetadata(true);
         requestedStudyTags_.insert(tag);
       }
     }
@@ -429,8 +429,8 @@ namespace Orthanc
       }
       else
       {
-        request_.SetRetrieveMainDicomTags(ResourceType_Series, true);
-        request_.SetRetrieveMetadata(ResourceType_Series, true);
+        request_.GetParentRetrieveSpecification(ResourceType_Series).SetRetrieveMainDicomTags(true);
+        request_.GetParentRetrieveSpecification(ResourceType_Series).SetRetrieveMetadata(true);
         requestedSeriesTags_.insert(tag);
       }
     }
@@ -448,8 +448,8 @@ namespace Orthanc
       else
       {
         // Main DICOM tags from the instance level will be retrieved anyway
-        assert(request_.IsRetrieveMainDicomTags(ResourceType_Instance));
-        assert(request_.IsRetrieveMetadata(ResourceType_Instance));
+        assert(request_.IsRetrieveMainDicomTags());
+        assert(request_.IsRetrieveMetadata());
         requestedInstanceTags_.insert(tag);
       }
     }

@@ -239,8 +239,8 @@ namespace Orthanc
           return ResourceType_Patient;
 
         case ResourceType_Study:
-          if (request.IsRetrieveMainDicomTags(ResourceType_Patient) ||
-              request.IsRetrieveMetadata(ResourceType_Patient))
+          if (request.GetParentRetrieveSpecification(ResourceType_Patient).IsRetrieveMainDicomTags() ||
+              request.GetParentRetrieveSpecification(ResourceType_Patient).IsRetrieveMetadata())
           {
             return ResourceType_Patient;
           }
@@ -250,13 +250,13 @@ namespace Orthanc
           }
 
         case ResourceType_Series:
-          if (request.IsRetrieveMainDicomTags(ResourceType_Patient) ||
-              request.IsRetrieveMetadata(ResourceType_Patient))
+          if (request.GetParentRetrieveSpecification(ResourceType_Patient).IsRetrieveMainDicomTags() ||
+              request.GetParentRetrieveSpecification(ResourceType_Patient).IsRetrieveMetadata())
           {
             return ResourceType_Patient;
           }
-          else if (request.IsRetrieveMainDicomTags(ResourceType_Study) ||
-                   request.IsRetrieveMetadata(ResourceType_Study))
+          else if (request.GetParentRetrieveSpecification(ResourceType_Study).IsRetrieveMainDicomTags() ||
+                   request.GetParentRetrieveSpecification(ResourceType_Study).IsRetrieveMetadata())
           {
             return ResourceType_Study;
           }
@@ -266,18 +266,18 @@ namespace Orthanc
           }
 
         case ResourceType_Instance:
-          if (request.IsRetrieveMainDicomTags(ResourceType_Patient) ||
-              request.IsRetrieveMetadata(ResourceType_Patient))
+          if (request.GetParentRetrieveSpecification(ResourceType_Patient).IsRetrieveMainDicomTags() ||
+              request.GetParentRetrieveSpecification(ResourceType_Patient).IsRetrieveMetadata())
           {
             return ResourceType_Patient;
           }
-          else if (request.IsRetrieveMainDicomTags(ResourceType_Study) ||
-                   request.IsRetrieveMetadata(ResourceType_Study))
+          else if (request.GetParentRetrieveSpecification(ResourceType_Study).IsRetrieveMainDicomTags() ||
+                   request.GetParentRetrieveSpecification(ResourceType_Study).IsRetrieveMetadata())
           {
             return ResourceType_Study;
           }
-          else if (request.IsRetrieveMainDicomTags(ResourceType_Series) ||
-                   request.IsRetrieveMetadata(ResourceType_Series))
+          else if (request.GetParentRetrieveSpecification(ResourceType_Series).IsRetrieveMainDicomTags() ||
+                   request.GetParentRetrieveSpecification(ResourceType_Series).IsRetrieveMetadata())
           {
             return ResourceType_Series;
           }
@@ -343,39 +343,43 @@ namespace Orthanc
         resource->SetParentIdentifier(parent);
       }
 
+      if (request.IsRetrieveMainDicomTags())
       {
-        int64_t currentId = internalId;
-        ResourceType currentLevel = level;
+        RetrieveMainDicomTags(*resource, level, internalId);
+      }
+
+      if (request.IsRetrieveMetadata())
+      {
+        transaction_.GetAllMetadata(resource->GetMetadata(level), internalId);
+      }
+
+      {
         const ResourceType topLevel = GetTopLevelOfInterest(request);
 
-        for (;;)
+        int64_t currentId = internalId;
+        ResourceType currentLevel = level;
+
+        while (currentLevel != topLevel)
         {
-          if (request.IsRetrieveMainDicomTags(currentLevel))
+          int64_t parentId;
+          if (transaction_.LookupParent(parentId, currentId))
+          {
+            currentId = parentId;
+            currentLevel = GetParentResourceType(currentLevel);
+          }
+          else
+          {
+            throw OrthancException(ErrorCode_DatabasePlugin);
+          }
+
+          if (request.GetParentRetrieveSpecification(currentLevel).IsRetrieveMainDicomTags())
           {
             RetrieveMainDicomTags(*resource, currentLevel, currentId);
           }
 
-          if (request.IsRetrieveMetadata(currentLevel))
+          if (request.GetParentRetrieveSpecification(currentLevel).IsRetrieveMetadata())
           {
             transaction_.GetAllMetadata(resource->GetMetadata(currentLevel), currentId);
-          }
-
-          if (currentLevel == topLevel)
-          {
-            break;
-          }
-          else
-          {
-            int64_t parentId;
-            if (transaction_.LookupParent(parentId, currentId))
-            {
-              currentId = parentId;
-              currentLevel = GetParentResourceType(currentLevel);
-            }
-            else
-            {
-              throw OrthancException(ErrorCode_DatabasePlugin);
-            }
           }
         }
       }

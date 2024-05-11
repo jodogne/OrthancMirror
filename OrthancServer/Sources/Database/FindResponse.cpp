@@ -477,63 +477,38 @@ namespace Orthanc
       target["ParentID"] = GetParentIdentifier();
     }
 
-    if (request.IsRetrieveMainDicomTags(ResourceType_Patient))
+    if (request.IsRetrieveMainDicomTags())
     {
       DicomMap m;
-      GetMainDicomTags(m, ResourceType_Patient);
-      DebugDicomMap(target["Patient"]["MainDicomTags"], m);
+      GetMainDicomTags(m, request.GetLevel());
+      DebugDicomMap(target[EnumerationToString(GetLevel())]["MainDicomTags"], m);
     }
 
-    if (request.IsRetrieveMetadata(ResourceType_Patient))
+    if (request.IsRetrieveMetadata())
     {
-      DebugMetadata(target["Patient"]["Metadata"], GetMetadata(ResourceType_Patient));
+      DebugMetadata(target[EnumerationToString(GetLevel())]["Metadata"], GetMetadata(request.GetLevel()));
     }
 
-    if (request.GetLevel() != ResourceType_Patient)
+    static const ResourceType levels[4] = { ResourceType_Patient, ResourceType_Study, ResourceType_Series, ResourceType_Instance };
+
+    for (size_t i = 0; i < 4; i++)
     {
-      if (request.IsRetrieveMainDicomTags(ResourceType_Study))
+      if (levels[i] != request.GetLevel() &&
+          IsResourceLevelAboveOrEqual(levels[i], request.GetLevel()))
       {
-        DicomMap m;
-        GetMainDicomTags(m, ResourceType_Study);
-        DebugDicomMap(target["Study"]["MainDicomTags"], m);
-      }
+        const char* level = EnumerationToString(levels[i]);
 
-      if (request.IsRetrieveMetadata(ResourceType_Study))
-      {
-        DebugMetadata(target["Study"]["Metadata"], GetMetadata(ResourceType_Study));
-      }
-    }
+        if (request.GetParentRetrieveSpecification(levels[i]).IsRetrieveMainDicomTags())
+        {
+          DicomMap m;
+          GetMainDicomTags(m, levels[i]);
+          DebugDicomMap(target[level]["MainDicomTags"], m);
+        }
 
-    if (request.GetLevel() != ResourceType_Patient &&
-        request.GetLevel() != ResourceType_Study)
-    {
-      if (request.IsRetrieveMainDicomTags(ResourceType_Series))
-      {
-        DicomMap m;
-        GetMainDicomTags(m, ResourceType_Series);
-        DebugDicomMap(target["Series"]["MainDicomTags"], m);
-      }
-
-      if (request.IsRetrieveMetadata(ResourceType_Series))
-      {
-        DebugMetadata(target["Series"]["Metadata"], GetMetadata(ResourceType_Series));
-      }
-    }
-
-    if (request.GetLevel() != ResourceType_Patient &&
-        request.GetLevel() != ResourceType_Study &&
-        request.GetLevel() != ResourceType_Series)
-    {
-      if (request.IsRetrieveMainDicomTags(ResourceType_Instance))
-      {
-        DicomMap m;
-        GetMainDicomTags(m, ResourceType_Instance);
-        DebugDicomMap(target["Instance"]["MainDicomTags"], m);
-      }
-
-      if (request.IsRetrieveMetadata(ResourceType_Instance))
-      {
-        DebugMetadata(target["Instance"]["Metadata"], GetMetadata(ResourceType_Instance));
+        if (request.GetParentRetrieveSpecification(levels[i]).IsRetrieveMainDicomTags())
+        {
+          DebugMetadata(target[level]["Metadata"], GetMetadata(levels[i]));
+        }
       }
     }
 
