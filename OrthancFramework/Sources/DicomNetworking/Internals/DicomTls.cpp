@@ -27,7 +27,7 @@
 #include "../../Logging.h"
 #include "../../OrthancException.h"
 #include "../../SystemToolbox.h"
-
+#include <openssl/ssl.h>
 
 #if DCMTK_VERSION_NUMBER < 364
 #  define DCF_Filetype_PEM  SSL_FILETYPE_PEM
@@ -165,6 +165,9 @@ namespace Orthanc
       {
         throw OrthancException(ErrorCode_InternalError, "Cannot activate the cipher suites for DICOM TLS");
       }
+
+      DcmTLSTransportLayer::native_handle_type sslNativeHandle = tls->getNativeHandle();
+      SSL_CTX_set_options(sslNativeHandle, SSL_OP_IGNORE_UNEXPECTED_EOF);
 #else
       CLOG(INFO, DICOM) << "Using the following cipher suites for DICOM TLS: " << opt_ciphersuites;
       if (IsFailure(tls->setCipherSuites(opt_ciphersuites.c_str())))
