@@ -156,7 +156,9 @@ namespace Orthanc
       }
 
 #if DCMTK_VERSION_NUMBER >= 364
-      if (IsFailure(tls->setTLSProfile(TSP_Profile_BCP195 /*opt_tlsProfile*/)))
+      // TODO: add parameters to select TSP_Profile ?
+      if (IsFailure(tls->setTLSProfile(TSP_Profile_AES /*opt_tlsProfile*/)))
+      //if (IsFailure(tls->setTLSProfile(TSP_Profile_BCP195 /*opt_tlsProfile*/)))
       {
         throw OrthancException(ErrorCode_InternalError, "Cannot set the DICOM TLS profile");
       }
@@ -166,8 +168,10 @@ namespace Orthanc
         throw OrthancException(ErrorCode_InternalError, "Cannot activate the cipher suites for DICOM TLS");
       }
 
+      // TODO: add parameters to enable/disable IGNORE_UNEXPECTED_EOF ?
       DcmTLSTransportLayer::native_handle_type sslNativeHandle = tls->getNativeHandle();
       SSL_CTX_set_options(sslNativeHandle, SSL_OP_IGNORE_UNEXPECTED_EOF);
+
 #else
       CLOG(INFO, DICOM) << "Using the following cipher suites for DICOM TLS: " << opt_ciphersuites;
       if (IsFailure(tls->setCipherSuites(opt_ciphersuites.c_str())))
