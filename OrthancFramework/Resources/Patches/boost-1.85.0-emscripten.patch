@@ -1,6 +1,6 @@
-diff -urEb boost_1_84_0.orig/libs/locale/src/boost/locale/shared/date_time.cpp boost_1_84_0/libs/locale/src/boost/locale/shared/date_time.cpp
---- boost_1_84_0.orig/libs/locale/src/boost/locale/shared/date_time.cpp	2024-01-24 16:33:34.349801130 +0100
-+++ boost_1_84_0/libs/locale/src/boost/locale/shared/date_time.cpp	2024-01-24 16:35:29.516750122 +0100
+diff -urEb boost_1_85_0.orig/libs/locale/src/boost/locale/shared/date_time.cpp boost_1_85_0/libs/locale/src/boost/locale/shared/date_time.cpp
+--- boost_1_85_0.orig/libs/locale/src/boost/locale/shared/date_time.cpp	2024-05-16 20:54:25.516816710 +0200
++++ boost_1_85_0/libs/locale/src/boost/locale/shared/date_time.cpp	2024-05-16 20:55:09.144319528 +0200
 @@ -12,8 +12,10 @@
  #include <boost/locale/date_time.hpp>
  #include <boost/locale/formatting.hpp>
@@ -30,9 +30,9 @@ diff -urEb boost_1_84_0.orig/libs/locale/src/boost/locale/shared/date_time.cpp b
  
  }} // namespace boost::locale
  
-diff -urEb boost_1_84_0.orig/libs/locale/src/boost/locale/shared/generator.cpp boost_1_84_0/libs/locale/src/boost/locale/shared/generator.cpp
---- boost_1_84_0.orig/libs/locale/src/boost/locale/shared/generator.cpp	2024-01-24 16:33:34.349801130 +0100
-+++ boost_1_84_0/libs/locale/src/boost/locale/shared/generator.cpp	2024-01-24 16:36:33.212167880 +0100
+diff -urEb boost_1_85_0.orig/libs/locale/src/boost/locale/shared/generator.cpp boost_1_85_0/libs/locale/src/boost/locale/shared/generator.cpp
+--- boost_1_85_0.orig/libs/locale/src/boost/locale/shared/generator.cpp	2024-05-16 20:54:25.516816710 +0200
++++ boost_1_85_0/libs/locale/src/boost/locale/shared/generator.cpp	2024-05-16 20:56:20.231509636 +0200
 @@ -7,8 +7,10 @@
  #include <boost/locale/encoding.hpp>
  #include <boost/locale/generator.hpp>
@@ -76,9 +76,9 @@ diff -urEb boost_1_84_0.orig/libs/locale/src/boost/locale/shared/generator.cpp b
              const auto p = d->cached.find(id);
              if(p == d->cached.end())
                  d->cached[id] = result;
-diff -urEb boost_1_84_0.orig/libs/locale/src/boost/locale/shared/localization_backend.cpp boost_1_84_0/libs/locale/src/boost/locale/shared/localization_backend.cpp
---- boost_1_84_0.orig/libs/locale/src/boost/locale/shared/localization_backend.cpp	2024-01-24 16:33:34.349801130 +0100
-+++ boost_1_84_0/libs/locale/src/boost/locale/shared/localization_backend.cpp	2024-01-24 16:40:12.134162584 +0100
+diff -urEb boost_1_85_0.orig/libs/locale/src/boost/locale/shared/localization_backend.cpp boost_1_85_0/libs/locale/src/boost/locale/shared/localization_backend.cpp
+--- boost_1_85_0.orig/libs/locale/src/boost/locale/shared/localization_backend.cpp	2024-05-16 20:54:25.516816710 +0200
++++ boost_1_85_0/libs/locale/src/boost/locale/shared/localization_backend.cpp	2024-05-16 20:56:58.823070064 +0200
 @@ -5,8 +5,10 @@
  // https://www.boost.org/LICENSE_1_0.txt
  
