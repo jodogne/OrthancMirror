@@ -195,6 +195,11 @@ Long-term
   https://groups.google.com/d/msg/orthanc-users/xD4d3mpc6ms/srF7E2goAAAJ
 * Support C-MOVE-CANCEL:
   https://groups.google.com/d/msg/orthanc-users/KnduYBFd06A/o86cl5SeCAAJ
+* Combine StudyDate + StudyTime in C-Find matching (also for the worklist plugin with 
+  ScheduledProcedureStartTime & Date).
+  We should first filter in SQL by StudyDate only, combine it with StudyTime into a single 
+  DateTime string and filter again in C++.
+  https://discourse.orthanc-server.org/t/performin-find-within-orthanc-for-time-frames/4704
 
 --------------------
 Internationalization
