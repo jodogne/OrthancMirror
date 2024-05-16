@@ -41,11 +41,13 @@ Maintenance
   when received as a response to a C-Store.
   See https://discourse.orthanc-server.org/t/ignore-dimse-status-0x0111-when-sending-partial-duplicate-studies/4555/3
 * Removed potential PHI from the logs when Orthanc encounters an error while
-  creating a zip file.
+  creating a ZIP archive.
 * Monitoring of stable resources now also takes into consideration the
   resource type, not only the resource identifier identifier.
 * When working with "DicomTlsEnabled": true and "DicomTlsRemoteCertificateRequired": false,
   Orthanc was refusing to start if no "DicomTlsTrustedCertificates" was provided.
+* Upgraded dependencies for static builds:
+  - boost 1.85.0
 
 
 Version 1.12.3 (2024-01-31)

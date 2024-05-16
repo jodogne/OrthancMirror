@@ -132,9 +132,10 @@ namespace Orthanc
       {
         buffer_.reset(new std::string);
         
-        if (!FromDcmtkBridge::SaveToMemoryBuffer(*buffer_, dataset_))
+        std::string errorMessage;
+        if (!FromDcmtkBridge::SaveToMemoryBuffer(*buffer_, dataset_, errorMessage))
         {
-          throw OrthancException(ErrorCode_InternalError, "Cannot write DICOM file to memory");
+          throw OrthancException(ErrorCode_InternalError, "Cannot write DICOM file to memory: " + errorMessage);
         }
       }
     }
