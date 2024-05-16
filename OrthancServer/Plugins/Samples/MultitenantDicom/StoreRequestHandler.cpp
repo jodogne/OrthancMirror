@@ -38,10 +38,11 @@ uint16_t StoreRequestHandler::Handle(DcmDataset& dicom,
                                      const std::string& calledAet)
 {
   std::string buffer;
+  std::string errorMessage;
 
-  if (!Orthanc::FromDcmtkBridge::SaveToMemoryBuffer(buffer, dicom))
+  if (!Orthanc::FromDcmtkBridge::SaveToMemoryBuffer(buffer, dicom, errorMessage))
   {
-    LOG(ERROR) << "Cannot write DICOM file to memory";
+    LOG(ERROR) << "Cannot write DICOM file to memory: " << errorMessage;
     return STATUS_STORE_Error_CannotUnderstand;
   }
 
