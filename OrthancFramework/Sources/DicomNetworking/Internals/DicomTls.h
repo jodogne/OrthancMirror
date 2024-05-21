@@ -50,6 +50,7 @@ namespace Orthanc
       const std::string& ownPrivateKeyPath,        // This is the first argument of "+tls" option from DCMTK command-line tools
       const std::string& ownCertificatePath,       // This is the second argument of "+tls" option
       const std::string& trustedCertificatesPath,  // This is the "--add-cert-file" ("+cf") option
-      bool requireRemoteCertificate);              // "true" means "--require-peer-cert", "false" means "--verify-peer-cert"
+      bool requireRemoteCertificate);              // "true" means "--require-peer-cert", "false" means "--ignore-peer-cert": don't request remote certificate
+      
   }
 }

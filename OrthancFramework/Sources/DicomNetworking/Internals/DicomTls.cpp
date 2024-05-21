@@ -166,9 +166,10 @@ namespace Orthanc
         throw OrthancException(ErrorCode_InternalError, "Cannot activate the cipher suites for DICOM TLS");
       }
 
-      // TODO: add parameters to enable/disable IGNORE_UNEXPECTED_EOF ?
-      DcmTLSTransportLayer::native_handle_type sslNativeHandle = tls->getNativeHandle();
-      SSL_CTX_set_options(sslNativeHandle, SSL_OP_IGNORE_UNEXPECTED_EOF);
+      // Note: It is possible to fine tune the SSL context configuration by calling these 2 methods.
+      //       However, it has not been required so far.  Keeping this code as "documentation"
+      // DcmTLSTransportLayer::native_handle_type sslNativeHandle = tls->getNativeHandle();
+      // SSL_CTX_set_options(sslNativeHandle, SSL_OP_IGNORE_UNEXPECTED_EOF);
 
 #else
       CLOG(INFO, DICOM) << "Using the following cipher suites for DICOM TLS: " << opt_ciphersuites;
