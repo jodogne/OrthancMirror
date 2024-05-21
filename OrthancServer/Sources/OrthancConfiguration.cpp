@@ -114,7 +114,7 @@ namespace Orthanc
     {
       if (!is_directory(it->status()))
       {
-        std::string extension = boost::filesystem::extension(it->path());
+        std::string extension = it->path().extension().string();
         Toolbox::ToLowerCase(extension);
 
         if (extension == ".json")
