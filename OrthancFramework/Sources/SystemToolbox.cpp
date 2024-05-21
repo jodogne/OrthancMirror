@@ -774,7 +774,7 @@ namespace Orthanc
 
   MimeType SystemToolbox::AutodetectMimeType(const std::string& path)
   {
-    std::string extension = boost::filesystem::extension(path);
+    std::string extension = boost::filesystem::path(path).extension().string();
     Toolbox::ToLowerCase(extension);
 
     // http://en.wikipedia.org/wiki/Mime_types

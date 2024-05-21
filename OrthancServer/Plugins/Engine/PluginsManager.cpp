@@ -307,7 +307,7 @@ namespace Orthanc
       }
       else
       {
-        std::string extension = boost::filesystem::extension(it->path());
+        std::string extension = it->path().extension().string();
         Toolbox::ToLowerCase(extension);
 
         if (extension == PLUGIN_EXTENSION)
