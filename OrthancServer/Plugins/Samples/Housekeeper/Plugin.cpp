@@ -565,7 +565,7 @@ static bool ProcessChanges(bool needsReconstruct, bool needsReingest, bool needs
         {
           Json::Value result;
 
-          if (needsReconstruct)
+          if (needsReconstruct || needsReingest)
           {
             Json::Value request;
             if (needsReingest)
@@ -657,7 +657,7 @@ static void WorkerThread()
     }
   }
 
-  if (!needsProcessing)
+  if (!needsProcessing && !force_)
   {
     ORTHANC_PLUGINS_LOG_WARNING("Housekeeper: everything has been processed already !");
     return;
