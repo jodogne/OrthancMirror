@@ -28,7 +28,6 @@
 #include "../../OrthancException.h"
 #include "../../SystemToolbox.h"
 
-
 #if DCMTK_VERSION_NUMBER < 364
 #  define DCF_Filetype_PEM  SSL_FILETYPE_PEM
 #  if OPENSSL_VERSION_NUMBER >= 0x0090700fL
@@ -180,8 +179,8 @@ namespace Orthanc
       }
       else
       {
-        // Check remote certificate if present, succeed if no certificate is present
-        tls->setCertificateVerification(DCV_checkCertificate /*opt_certVerification*/);
+        // From 1.12.4, do not even request remote certificate (prior to 1.12.4, we were requesting a certificates, checking it if present and succeeding if not present)
+        tls->setCertificateVerification(DCV_ignoreCertificate /*opt_certVerification*/);
       }
       
       if (ASC_setTransportLayer(network, tls.get(), 0).bad())
