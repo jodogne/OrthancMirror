@@ -1106,10 +1106,10 @@ static bool StartHttpServer(ServerContext& context,
         httpServer.SetSslEnabled(true);
         httpServer.SetSslCertificate(certificate.c_str());
         
-        // Default to TLS 1.2 as SSL minimum
+        // Default to TLS 1.2+1.3 as SSL minimum
         // See https://github.com/civetweb/civetweb/blob/master/docs/UserManual.md "ssl_protocol_version" for mapping
-        static const unsigned int TLS_1_2 = 4;
-        unsigned int minimumVersion = lock.GetConfiguration().GetUnsignedIntegerParameter("SslMinimumProtocolVersion", TLS_1_2);
+        static const unsigned int TLS_1_2_AND_1_3 = 4;
+        unsigned int minimumVersion = lock.GetConfiguration().GetUnsignedIntegerParameter("SslMinimumProtocolVersion", TLS_1_2_AND_1_3);
         httpServer.SetSslMinimumVersion(minimumVersion);
 
         static const char* SSL_CIPHERS_ACCEPTED = "SslCiphersAccepted";
