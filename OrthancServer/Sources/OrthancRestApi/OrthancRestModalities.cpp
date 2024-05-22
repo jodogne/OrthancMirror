@@ -116,9 +116,9 @@ namespace Orthanc
                        "modality (check configuration option `DicomModalities` for possible values", false)
       .SetRequestField("UseDicomTls", RestApiCallDocumentation::Type_Boolean, "Whether to use DICOM TLS "
                        "in the SCU connection initiated by Orthanc (new in Orthanc 1.9.0)", false)
-      .SetRequestField("LocalAet", RestApiCallDocumentation::Type_String, "Whether to override the default DicomAet "
+      .SetRequestField(KEY_LOCAL_AET, RestApiCallDocumentation::Type_String, "Whether to override the default DicomAet "
                        "in the SCU connection initiated by Orthanc to this modality", false)
-      .SetRequestField("Timeout", RestApiCallDocumentation::Type_Number, "Whether to override the default DicomScuTimeout "
+      .SetRequestField(KEY_TIMEOUT, RestApiCallDocumentation::Type_Number, "Whether to override the default DicomScuTimeout "
                        "in the SCU connection initiated by Orthanc to this modality", false);
 
     if (includePermissions)
