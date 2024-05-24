@@ -439,9 +439,11 @@ namespace Orthanc
       const DicomElement& element = query.GetElement(i);
       const DicomTag tag = element.GetTag();
 
+      // remove tags that are not used for matching
       if (element.GetValue().IsNull() ||
           tag == DICOM_TAG_QUERY_RETRIEVE_LEVEL ||
-          tag == DICOM_TAG_SPECIFIC_CHARACTER_SET)
+          tag == DICOM_TAG_SPECIFIC_CHARACTER_SET ||
+          tag == DICOM_TAG_TIMEZONE_OFFSET_FROM_UTC)  // time zone is not directly used for matching.  Once we support "Timezone query adjustment", we may use it to adjust date-time filters but for now, just ignore it 
       {
         continue;
       }
