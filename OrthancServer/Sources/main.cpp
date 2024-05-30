@@ -2,7 +2,8 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2024 Osimis S.A., Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
  * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -742,7 +743,8 @@ static void PrintVersion(const char* path)
   std::cout
     << path << " " << ORTHANC_VERSION << std::endl
     << "Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics Department, University Hospital of Liege (Belgium)" << std::endl
-    << "Copyright (C) 2017-2024 Osimis S.A. (Belgium)" << std::endl
+    << "Copyright (C) 2017-2023 Osimis S.A. (Belgium)" << std::endl
+    << "Copyright (C) 2024-2024 Orthanc Team SRL (Belgium)" << std::endl
     << "Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain (Belgium)" << std::endl
     << "Licensing GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>." << std::endl
     << "This is free software: you are free to change and redistribute it." << std::endl
@@ -1106,10 +1108,10 @@ static bool StartHttpServer(ServerContext& context,
         httpServer.SetSslEnabled(true);
         httpServer.SetSslCertificate(certificate.c_str());
         
-        // Default to TLS 1.2 as SSL minimum
+        // Default to TLS 1.2+1.3 as SSL minimum
         // See https://github.com/civetweb/civetweb/blob/master/docs/UserManual.md "ssl_protocol_version" for mapping
-        static const unsigned int TLS_1_2 = 4;
-        unsigned int minimumVersion = lock.GetConfiguration().GetUnsignedIntegerParameter("SslMinimumProtocolVersion", TLS_1_2);
+        static const unsigned int TLS_1_2_AND_1_3 = 4;
+        unsigned int minimumVersion = lock.GetConfiguration().GetUnsignedIntegerParameter("SslMinimumProtocolVersion", TLS_1_2_AND_1_3);
         httpServer.SetSslMinimumVersion(minimumVersion);
 
         static const char* SSL_CIPHERS_ACCEPTED = "SslCiphersAccepted";

@@ -225,23 +225,24 @@
   // if "SslEnabled" is true.
   "SslCertificate" : "certificate.pem",
 
-  // Sets the minimum accepted SSL protocol version
+  // Sets the minimum accepted SSL protocol version for the HTTP server
   // (cf. "ssl_protocol_version" option of civetweb). By default,
-  // require SSL 1.2. This option is only meaningful if "SslEnabled"
+  // require TLS 1.2 or 1.3. This option is only meaningful if "SslEnabled"
   // is true. (new in Orthanc 1.8.2)
   //
   // Value => Protocols
-  //   0      SSL2+SSL3+TLS1.0+TLS1.1+TLS1.2
-  //   1      SSL3+TLS1.0+TLS1.1+TLS1.2
-  //   2      TLS1.0+TLS1.1+TLS1.2
-  //   3      TLS1.1+TLS1.2
-  //   4      TLS1.2
+  //   0      SSL2+SSL3+TLS1.0+TLS1.1+TLS1.2+TLS1.3
+  //   1      SSL3+TLS1.0+TLS1.1+TLS1.2+TLS1.3
+  //   2      TLS1.0+TLS1.1+TLS1.2+TLS1.3
+  //   3      TLS1.1+TLS1.2+TLS1.3
+  //   4      TLS1.2+TLS1.3
+  //   5      TLS1.3
   "SslMinimumProtocolVersion" : 4,
 
-  // Set the accepted ciphers for SSL connections. The ciphers must be
-  // provided as a list of strings. If not set, this will default to
-  // FIPS 140-2 ciphers. This option is only meaningful if
-  // "SslEnabled" is true. (new in Orthanc 1.8.2)
+  // Set the accepted ciphers for SSL connections for the HTTP server. 
+  // The ciphers must be provided as a list of strings. If not set, 
+  // this will default to FIPS 140-2 ciphers. This option is only 
+  // meaningful if "SslEnabled" is true. (new in Orthanc 1.8.2)
   /**
     "SslCiphersAccepted" : [ "AES128-GCM-SHA256" ],
   **/
