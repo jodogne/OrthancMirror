@@ -11,6 +11,8 @@ REST API
   in case you just want to update the MainDicomTags of that resource level only 
   e.g. after you have updated the 'ExtraMainDicomTags' for this level.
 * The "requestedTags" GET argument was deprecated in favor of "requested-tags".
+* Fixed broken /instances/../tags route after the calling
+  /studies/../reconstruct when changing the "IngestTranscoding". 
 * TODO-FIND: complete the list of updated routes:
   /studies?expand and sibbling routes now also return "Metadata" (if the DB implements 'extended-api-v1')
 
@@ -18,9 +20,12 @@ Plugins
 -------
 
 * Multitenant DICOM plugin: added support for locales
-* Housekeeper plugin: Added an option "LimitMainDicomTagsReconstructLevel"
-  (allowed values: "Patient", "Study", "Series", "Instance").  This can greatly speed
-  up the housekeeper process e.g. if you have only update the Study level ExtraMainDicomTags.
+* Housekeeper plugin: 
+  - Added an option "LimitMainDicomTagsReconstructLevel"
+    (allowed values: "Patient", "Study", "Series", "Instance").  This can greatly speed
+    up the housekeeper process e.g. if you have only update the Study level ExtraMainDicomTags.
+  - Fixed broken /instances/../tags route after running the Housekeeper
+    after having changed the "IngestTranscoding". 
 * SDK: added OrthancPluginLogMessage() that is a new primitive for
   plugins to log messages.  This new primitive will display the plugin
   name, the plugin file name, and the plugin line number in the
@@ -31,12 +36,14 @@ Plugins
 Maintenance
 -----------
 
-* In C-Find queries including GenericGroupLength tags, Orthanc was still
-  extracting these tags from the storage although they were already ignored
-  and not returned in the response.
-  They are now removed from the query earlier to avoid this disk access that
-  could slow down the response time.  Note that this seems to happen mainly
-  when the query originates from some GE devices (AWS).
+* C-Find queries:
+  - In C-Find queries including GenericGroupLength tags, Orthanc was still
+    extracting these tags from the storage although they were already ignored
+    and not returned in the response.
+    They are now removed from the query earlier to avoid this disk access that
+    could slow down the response time.  Note that this seems to happen mainly
+    when the query originates from some GE devices (AWS).
+  - TimezoneOffsetFromUTC is now ignored for matching.
 * The 0x0111 DIMSE Status is now considered as a warning instead of an error
   when received as a response to a C-Store.
   See https://discourse.orthanc-server.org/t/ignore-dimse-status-0x0111-when-sending-partial-duplicate-studies/4555/3
@@ -44,8 +51,15 @@ Maintenance
   creating a ZIP archive.
 * Monitoring of stable resources now also takes into consideration the
   resource type, not only the resource identifier identifier.
-* When working with "DicomTlsEnabled": true and "DicomTlsRemoteCertificateRequired": false,
-  Orthanc was refusing to start if no "DicomTlsTrustedCertificates" was provided.
+* DICOM TLS:
+  - In prior versions, when "DicomTlsRemoteCertificateRequired" was set to false, Orthanc
+    was still sending a client certificate request during the TLS handshake but was not triggering
+    and error if the client certificate was not trusted (equivalent to the --verify-peer-cert DCMTK option)
+    From this version, if this option is set to false, Orthanc will not send a 
+    client certificate request during the TLS handshake anymore (equivalent to the --ignore-peer-cert 
+    DCMTK option).
+  - When working with "DicomTlsEnabled": true and "DicomTlsRemoteCertificateRequired": false,
+    Orthanc was refusing to start if no "DicomTlsTrustedCertificates" was provided.
 * Upgraded dependencies for static builds:
   - boost 1.85.0
 
