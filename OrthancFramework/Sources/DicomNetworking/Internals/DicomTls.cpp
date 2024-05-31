@@ -61,6 +61,39 @@ namespace Orthanc
 #endif
 
 
+#if DCMTK_VERSION_NUMBER >= 367
+    static OFCondition MyConvertOpenSSLError(unsigned long errorCode, OFBool logAsError)
+    {
+      return DcmTLSTransportLayer::convertOpenSSLError(errorCode, logAsError);
+    }
+#else
+    static OFCondition MyConvertOpenSSLError(unsigned long errorCode, OFBool logAsError)
+    {
+      if (errorCode == 0)
+      {
+        return EC_Normal;
+      }
+      else
+      {
+        const char *err = ERR_reason_error_string(errorCode);
+        if (err == NULL)
+        {
+          err = "OpenSSL error";
+        }
+
+        if (logAsError)
+        {
+          DCMTLS_ERROR("OpenSSL error " << STD_NAMESPACE hex << STD_NAMESPACE setfill('0')
+                       << STD_NAMESPACE setw(8) << errorCode << ": " << err);
+        }
+
+        // The "2" below corresponds to the same error code as "DCMTLS_EC_FailedToSetCiphersuites"
+        return OFCondition(OFM_dcmtls, 2, OF_error, err);
+      }
+    }
+#endif
+
+
     DcmTLSTransportLayer* InitializeDicomTls(T_ASC_Network *network,
                                              T_ASC_NetworkRole role,
                                              const std::string& ownPrivateKeyPath,
@@ -239,13 +272,13 @@ namespace Orthanc
 
         if (joinedCiphersTls.size() > 0 && SSL_CTX_set_cipher_list(sslNativeHandle, joinedCiphersTls.c_str()) != 1)
         {
-          OFCondition cond = DcmTLSTransportLayer::convertOpenSSLError(ERR_get_error(), OFTrue);
+          OFCondition cond = MyConvertOpenSSLError(ERR_get_error(), OFTrue);
           throw OrthancException(ErrorCode_InternalError, "Unable to configure cipher suite.  OpenSSL error: " + boost::lexical_cast<std::string>(cond.code()) + " - " + cond.text());
         }
 
         if (joinedCiphersTls13.size() > 0 && SSL_CTX_set_ciphersuites(sslNativeHandle, joinedCiphersTls13.c_str()) != 1)
         {
-          OFCondition cond = DcmTLSTransportLayer::convertOpenSSLError(ERR_get_error(), OFTrue);
+          OFCondition cond = MyConvertOpenSSLError(ERR_get_error(), OFTrue);
           throw OrthancException(ErrorCode_InternalError, "Unable to configure cipher suite for TLS 1.3.  OpenSSL error: " + boost::lexical_cast<std::string>(cond.code()) + " - " + cond.text());
         }
 
