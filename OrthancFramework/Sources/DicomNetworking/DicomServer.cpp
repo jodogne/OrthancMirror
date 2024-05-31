@@ -107,7 +107,8 @@ namespace Orthanc
     applicationEntityFilter_(NULL),
     useDicomTls_(false),
     maximumPduLength_(ASC_DEFAULTMAXPDU),
-    remoteCertificateRequired_(true)
+    remoteCertificateRequired_(true),
+    minimumTlsVersion_(0)
   {
   }
 
