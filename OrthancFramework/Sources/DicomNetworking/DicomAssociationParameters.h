@@ -128,5 +128,13 @@ namespace Orthanc
     static void SetDefaultRemoteCertificateRequired(bool required);
 
     static bool GetDefaultRemoteCertificateRequired();
+
+    static void SetMinimumTlsVersion(unsigned int version);
+
+    static unsigned int GetMinimumTlsVersion();
+
+    static void SetAcceptedCiphers(const std::set<std::string>& acceptedCiphers);
+
+    static const std::set<std::string>& GetAcceptedCiphers();
   };
 }

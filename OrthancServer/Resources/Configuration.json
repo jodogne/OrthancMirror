@@ -309,10 +309,39 @@
   // Whether Orthanc rejects DICOM TLS connections to/from remote
   // modalities that do not provide a certificate. Setting this option
   // to "true" (resp. "false") corresponds to "--require-peer-cert"
-  // (resp. "--verify-peer-cert") in the DCMTK command-line
+  // (resp. "--ignore-peer-cert") in the DCMTK command-line
   // tools. (new in Orthanc 1.9.3)
   "DicomTlsRemoteCertificateRequired" : true,
 
+  // Sets the minimum accepted TLS protocol version for the DICOM server
+  // By default, require TLS 1.2 or 1.3. This option is only meaningful 
+  // if "DicomTlsEnabled" is true (new in Orthanc 1.12.4).
+  // Note that, internally, Orthanc is configured to use the BCP195 profile
+  // by default.  As soon as you switch to another protocol version, you
+  // must also provide the list of supported cipher suites.
+  // This configuration applies to Orthanc acting both as SCU and SCP.
+  // Value => Protocols
+  //   0      use default BCP 195 profile and default cipher suites
+  //   1      SSL3+TLS1.0+TLS1.1+TLS1.2+TLS1.3
+  //   2      TLS1.0+TLS1.1+TLS1.2+TLS1.3
+  //   3      TLS1.1+TLS1.2+TLS1.3
+  //   4      TLS1.2+TLS1.3
+  //   5      TLS1.3
+  "DicomTlsMinimumProtocolVersion" : 0,
+
+  // Set the accepted ciphers for TLS connections for the DICOM server. 
+  // The ciphers must be provided as a list of strings. If not set, 
+  // this will default to BCP195 ciphers if DicomTlsMinimumProtocolVersion is 0
+  // or to an empty list for other values. This option is only 
+  // meaningful if "DicomTlsEnabled" is true. (new in Orthanc 1.12.4).
+  // This configuration must be provided if DicomTlsMinimumProtocolVersion != 0.
+  // The list of valid cipher names are available in 
+  // https://www.openssl.org/docs/man3.3/man1/openssl-ciphers.html
+  // The OpenSSL names are used.
+  /**
+     "DicomTlsCiphersAccepted" : []
+  **/
+  
   // Whether the Orthanc SCP allows incoming C-ECHO requests, even
   // from SCU modalities it does not know about (i.e. that are not
   // listed in the "DicomModalities" option above). Orthanc 1.3.0
