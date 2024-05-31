@@ -28,6 +28,9 @@
 #include "../../Logging.h"
 #include "../../OrthancException.h"
 #include "../../SystemToolbox.h"
+#include "../../Toolbox.h"
+#include <openssl/ssl.h>
+#include <openssl/err.h>
 
 #if DCMTK_VERSION_NUMBER < 364
 #  define DCF_Filetype_PEM  SSL_FILETYPE_PEM
@@ -63,7 +66,9 @@ namespace Orthanc
                                              const std::string& ownPrivateKeyPath,
                                              const std::string& ownCertificatePath,
                                              const std::string& trustedCertificatesPath,
-                                             bool requireRemoteCertificate)
+                                             bool requireRemoteCertificate,
+                                             unsigned int minimalTlsVersion,
+                                             const std::set<std::string>& ciphers)
     {
       if (network == NULL)
       {
@@ -156,14 +161,94 @@ namespace Orthanc
       }
 
 #if DCMTK_VERSION_NUMBER >= 364
-      if (IsFailure(tls->setTLSProfile(TSP_Profile_BCP195 /*opt_tlsProfile*/)))
+      if (minimalTlsVersion == 0) // use the default values (same behavior as before 1.12.4)
       {
-        throw OrthancException(ErrorCode_InternalError, "Cannot set the DICOM TLS profile");
+        if (ciphers.size() > 0)
+        {
+          throw OrthancException(ErrorCode_BadFileFormat, "The cipher suites can not be specified when using the default BCP profile");
+        }
+
+        if (IsFailure(tls->setTLSProfile(TSP_Profile_BCP195 /*opt_tlsProfile*/)))
+        {
+          throw OrthancException(ErrorCode_InternalError, "Cannot set the DICOM TLS profile");
+        }
+      
+        if (IsFailure(tls->activateCipherSuites()))
+        {
+          throw OrthancException(ErrorCode_InternalError, "Cannot activate the cipher suites for DICOM TLS");
+        }
       }
-    
-      if (IsFailure(tls->activateCipherSuites()))
+      else
       {
-        throw OrthancException(ErrorCode_InternalError, "Cannot activate the cipher suites for DICOM TLS");
+        // Fine tune the SSL context
+        if (IsFailure(tls->setTLSProfile(TSP_Profile_None)))
+        {
+          throw OrthancException(ErrorCode_InternalError, "Cannot set the DICOM TLS profile");
+        }
+
+        DcmTLSTransportLayer::native_handle_type sslNativeHandle = tls->getNativeHandle();
+        SSL_CTX_clear_options(sslNativeHandle, SSL_OP_NO_SSL_MASK);
+        if (minimalTlsVersion > 1) 
+        {
+          SSL_CTX_set_options(sslNativeHandle, SSL_OP_NO_SSLv3);
+        }
+        if (minimalTlsVersion > 2) 
+        {
+          SSL_CTX_set_options(sslNativeHandle, SSL_OP_NO_TLSv1);
+        }
+        if (minimalTlsVersion > 3) 
+        {
+          SSL_CTX_set_options(sslNativeHandle, SSL_OP_NO_TLSv1_1);
+        }
+        if (minimalTlsVersion > 4) 
+        {
+          SSL_CTX_set_options(sslNativeHandle, SSL_OP_NO_TLSv1_2);
+        }
+
+        std::set<std::string> ciphersTls;
+        std::set<std::string> ciphersTls13;
+
+        // DCMTK 3.8 is missing a method to add TLS13 cipher suite in the DcmTLSTransportLayer interface.
+        // And, anyway, since we do not run dcmtkPrepare.cmake, DCMTK is not aware of TLS v1.3 cipher suite names.
+        for (std::set<std::string>::const_iterator it = ciphers.begin(); it != ciphers.end(); ++it)
+        {
+          bool isValid = false;
+          if (DcmTLSCiphersuiteHandler::lookupCiphersuiteByOpenSSLName(it->c_str()) != DcmTLSCiphersuiteHandler::unknownCipherSuiteIndex)
+          {
+            ciphersTls.insert(it->c_str());
+            isValid = true;
+          }
+          
+          // list of TLS v1.3 ciphers according to https://www.openssl.org/docs/man3.3/man1/openssl-ciphers.html
+          if (strstr("TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_CCM_SHA256:TLS_AES_128_CCM_8_SHA256", it->c_str()) != NULL)
+          {
+            ciphersTls13.insert(it->c_str());
+            isValid = true;
+          }
+
+          if (!isValid)
+          {
+            throw OrthancException(ErrorCode_BadFileFormat, "The cipher suite " + *it + " is not recognized as valid cipher suite by OpenSSL ");
+          }
+        }
+
+        std::string joinedCiphersTls;
+        std::string joinedCiphersTls13;
+        Toolbox::JoinStrings(joinedCiphersTls, ciphersTls, ":");
+        Toolbox::JoinStrings(joinedCiphersTls13, ciphersTls13, ":");
+
+        if (joinedCiphersTls.size() > 0 && SSL_CTX_set_cipher_list(sslNativeHandle, joinedCiphersTls.c_str()) != 1)
+        {
+          OFCondition cond = DcmTLSTransportLayer::convertOpenSSLError(ERR_get_error(), OFTrue);
+          throw OrthancException(ErrorCode_InternalError, "Unable to configure cipher suite.  OpenSSL error: " + boost::lexical_cast<std::string>(cond.code()) + " - " + cond.text());
+        }
+
+        if (joinedCiphersTls13.size() > 0 && SSL_CTX_set_ciphersuites(sslNativeHandle, joinedCiphersTls13.c_str()) != 1)
+        {
+          OFCondition cond = DcmTLSTransportLayer::convertOpenSSLError(ERR_get_error(), OFTrue);
+          throw OrthancException(ErrorCode_InternalError, "Unable to configure cipher suite for TLS 1.3.  OpenSSL error: " + boost::lexical_cast<std::string>(cond.code()) + " - " + cond.text());
+        }
+
       }
 #else
       CLOG(INFO, DICOM) << "Using the following cipher suites for DICOM TLS: " << opt_ciphersuites;

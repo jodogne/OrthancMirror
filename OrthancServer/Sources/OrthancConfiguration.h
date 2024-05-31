@@ -204,7 +204,10 @@ namespace Orthanc
     
     void GetListOfStringsParameter(std::list<std::string>& target,
                                    const std::string& key) const;
-    
+
+    void GetSetOfStringsParameter(std::set<std::string>& target,
+                                  const std::string& key) const;
+
     bool IsSameAETitle(const std::string& aet1,
                        const std::string& aet2) const;
 

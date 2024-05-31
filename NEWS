@@ -58,6 +58,9 @@ Maintenance
     DCMTK option).
   - When working with "DicomTlsEnabled": true and "DicomTlsRemoteCertificateRequired": false,
     Orthanc was refusing to start if no "DicomTlsTrustedCertificates" was provided.
+  - New configurations:
+    - "DicomTlsMinimumProtocolVersion" to select the minimum TLS protocol version
+    - "DicomTlsCiphersAccepted" to fine tune the list of accepted ciphers
 * Upgraded dependencies for static builds:
   - boost 1.85.0
 

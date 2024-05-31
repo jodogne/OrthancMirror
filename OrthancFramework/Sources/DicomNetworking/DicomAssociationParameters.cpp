@@ -44,7 +44,8 @@ static std::string   defaultOwnCertificatePath_;
 static std::string   defaultTrustedCertificatesPath_;
 static unsigned int  defaultMaximumPduLength_ = ASC_DEFAULTMAXPDU;
 static bool          defaultRemoteCertificateRequired_ = true;
-
+static unsigned int  minimumTlsVersion_ = 0;
+static std::set<std::string> acceptedCiphers_;
 
 namespace Orthanc
 {
@@ -252,7 +253,26 @@ namespace Orthanc
     return remoteCertificateRequired_;
   }
 
+  unsigned int DicomAssociationParameters::GetMinimumTlsVersion()
+  {
+    return minimumTlsVersion_;
+  }
   
+  void DicomAssociationParameters::SetMinimumTlsVersion(unsigned int version)
+  {
+    minimumTlsVersion_ = version;
+  }
+
+  void DicomAssociationParameters::SetAcceptedCiphers(const std::set<std::string>& acceptedCiphers)
+  {
+    acceptedCiphers_ = acceptedCiphers;
+  }
+
+  const std::set<std::string>& DicomAssociationParameters::GetAcceptedCiphers()
+  {
+    return acceptedCiphers_;
+  }
+
 
   static const char* const LOCAL_AET = "LocalAet";
   static const char* const REMOTE = "Remote";
