@@ -126,7 +126,12 @@ Mid-term
   https://groups.google.com/g/orthanc-users/c/o15Dekecgds/m/xmPE2y3bAwAJ
 * Support Palette PNG in /tools/create-dicom:
   https://discourse.orthanc-server.org/t/404-on-tools-create-dicom-endpoint-with-specific-png/3562
-* Support creation of DICOM files from MP4 in /tools/create-dicom
+* Support creation of DICOM files from MP4 in /tools/create-dicom.
+  Sample python code: https://github.com/salimkanoun/OrthancGif/blob/new-organisation/python/create_dicom_video.py.
+  We would need to extract frame rate + dimension from the MP4 which would
+  require ffmpeg or a similar library -> can not be done in the Orthanc core.
+  -> keep it for a python plugin
+  -> or require the payload to include rows/columns/cinerate/...
 * (1) In the /studies/{id}/anonymize route, add an option to remove
   secondary captures.  They usually contains Patient info in the
   image. The SOPClassUID might be used to identify such secondary
