@@ -12,7 +12,8 @@ REST API
   e.g. after you have updated the 'ExtraMainDicomTags' for this level.
 * The "requestedTags" GET argument was deprecated in favor of "requested-tags".
 * Fixed broken /instances/../tags route after the calling
-  /studies/../reconstruct when changing the "IngestTranscoding". 
+  /studies/../reconstruct when changing the "IngestTranscoding".
+* Added "?whole" option to "/instances/{id}/tags" to access tags stored after pixel data.
 
 Plugins
 -------

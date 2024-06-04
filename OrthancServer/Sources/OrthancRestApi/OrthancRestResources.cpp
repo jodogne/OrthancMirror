@@ -60,6 +60,7 @@ static const std::string CHECK_REVISIONS = "CheckRevisions";
 static const char* const IGNORE_LENGTH = "ignore-length";
 static const char* const RECONSTRUCT_FILES = "ReconstructFiles";
 static const char* const LIMIT_TO_THIS_LEVEL_MAIN_DICOM_TAGS = "LimitToThisLevelMainDicomTags";
+static const char* const ARG_WHOLE = "whole";
 
 
 namespace Orthanc
@@ -486,7 +487,8 @@ namespace Orthanc
 
 
   template <DicomToJsonFormat format>
-  static void GetInstanceTagsInternal(RestApiGetCall& call)
+  static void GetInstanceTagsInternal(RestApiGetCall& call,
+                                      bool whole)
   {
     ServerContext& context = OrthancRestApi::GetContext(call);
 
@@ -494,23 +496,59 @@ namespace Orthanc
 
     std::set<DicomTag> ignoreTagLength;
     ParseSetOfTags(ignoreTagLength, call, IGNORE_LENGTH);
-    
-    if (format != DicomToJsonFormat_Full ||
-        !ignoreTagLength.empty())
+
+    if (whole)
     {
-      Json::Value full;
-      context.ReadDicomAsJson(full, publicId, ignoreTagLength);
-      AnswerDicomAsJson(call, full, format);
+      // This is new in Orthanc 1.12.4. Reference:
+      // https://discourse.orthanc-server.org/t/private-tags-with-group-7fe0-are-not-provided-via-rest-api/4744
+      const DicomToJsonFlags flags = static_cast<DicomToJsonFlags>(DicomToJsonFlags_Default & ~DicomToJsonFlags_StopAfterPixelData);
+
+      Json::Value answer;
+
+      {
+        ServerContext::DicomCacheLocker locker(OrthancRestApi::GetContext(call), publicId);
+        locker.GetDicom().DatasetToJson(answer, format, flags,
+                                        ORTHANC_MAXIMUM_TAG_LENGTH, ignoreTagLength);
+      }
+
+      call.GetOutput().AnswerJson(answer);
     }
     else
     {
-      // This path allows one to avoid the JSON decoding if no
-      // simplification is asked, and if no "ignore-length" argument
-      // is present
-      Json::Value full;
-      context.ReadDicomAsJson(full, publicId);
-      call.GetOutput().AnswerJson(full);
+      if (format != DicomToJsonFormat_Full ||
+          !ignoreTagLength.empty())
+      {
+        Json::Value full;
+        context.ReadDicomAsJson(full, publicId, ignoreTagLength);
+        AnswerDicomAsJson(call, full, format);
+      }
+      else
+      {
+        // This path allows one to avoid the JSON decoding if no
+        // simplification is asked, and if no "ignore-length" argument
+        // is present
+        Json::Value full;
+        context.ReadDicomAsJson(full, publicId);
+        call.GetOutput().AnswerJson(full);
+      }
     }
+  }
+
+
+  static void DocumentGetInstanceTags(RestApiGetCall& call)
+  {
+    call.GetDocumentation()
+      .SetTag("Instances")
+      .SetUriArgument("id", "Orthanc identifier of the DICOM instance of interest")
+      .SetHttpGetArgument(
+        IGNORE_LENGTH, RestApiCallDocumentation::Type_JsonListOfStrings,
+        "Also include the DICOM tags that are provided in this list, even if their associated value is long", false)
+      .SetHttpGetArgument(
+        ARG_WHOLE, RestApiCallDocumentation::Type_Boolean, "Whether to read the whole DICOM file from the "
+        "storage area (new in Orthanc 1.12.4). If set to \"false\" (default value), the DICOM file is read "
+        "until the pixel data tag (7fe0,0010) to optimize access to storage. Setting the option "
+        "to \"true\" provides access to the DICOM tags stored after the pixel data tag.", false)
+      .AddAnswerType(MimeType_Json, "JSON object containing the DICOM tags and their associated value");
   }
 
 
@@ -519,31 +557,29 @@ namespace Orthanc
     if (call.IsDocumentation())
     {
       OrthancRestApi::DocumentDicomFormat(call, DicomToJsonFormat_Full);
+      DocumentGetInstanceTags(call);
       call.GetDocumentation()
-        .SetTag("Instances")
         .SetSummary("Get DICOM tags")
         .SetDescription("Get the DICOM tags in the specified format. By default, the `full` format is used, which "
                         "combines hexadecimal tags with human-readable description.")
-        .SetUriArgument("id", "Orthanc identifier of the DICOM instance of interest")
-        .SetHttpGetArgument(IGNORE_LENGTH, RestApiCallDocumentation::Type_JsonListOfStrings,
-                            "Also include the DICOM tags that are provided in this list, even if their associated value is long", false)
-        .AddAnswerType(MimeType_Json, "JSON object containing the DICOM tags and their associated value")
         .SetTruncatedJsonHttpGetSample("https://orthanc.uclouvain.be/demo/instances/7c92ce8e-bbf67ed2-ffa3b8c1-a3b35d94-7ff3ae26/tags", 10);
       return;
     }
 
+    const bool whole = call.GetBooleanArgument(ARG_WHOLE, false);
+
     switch (OrthancRestApi::GetDicomFormat(call, DicomToJsonFormat_Full))
     {
       case DicomToJsonFormat_Human:
-        GetInstanceTagsInternal<DicomToJsonFormat_Human>(call);
+        GetInstanceTagsInternal<DicomToJsonFormat_Human>(call, whole);
         break;
 
       case DicomToJsonFormat_Short:
-        GetInstanceTagsInternal<DicomToJsonFormat_Short>(call);
+        GetInstanceTagsInternal<DicomToJsonFormat_Short>(call, whole);
         break;
 
       case DicomToJsonFormat_Full:
-        GetInstanceTagsInternal<DicomToJsonFormat_Full>(call);
+        GetInstanceTagsInternal<DicomToJsonFormat_Full>(call, whole);
         break;
 
       default:
@@ -556,20 +592,16 @@ namespace Orthanc
   {
     if (call.IsDocumentation())
     {
+      DocumentGetInstanceTags(call);
       call.GetDocumentation()
-        .SetTag("Instances")
         .SetSummary("Get human-readable tags")
         .SetDescription("Get the DICOM tags in human-readable format (same as the `/instances/{id}/tags?simplify` route)")
-        .SetUriArgument("id", "Orthanc identifier of the DICOM instance of interest")
-        .SetHttpGetArgument(IGNORE_LENGTH, RestApiCallDocumentation::Type_JsonListOfStrings,
-                            "Also include the DICOM tags that are provided in this list, even if their associated value is long", false)
-        .AddAnswerType(MimeType_Json, "JSON object containing the DICOM tags and their associated value")
         .SetTruncatedJsonHttpGetSample("https://orthanc.uclouvain.be/demo/instances/7c92ce8e-bbf67ed2-ffa3b8c1-a3b35d94-7ff3ae26/simplified-tags", 10);
       return;
     }
     else
     {
-      GetInstanceTagsInternal<DicomToJsonFormat_Human>(call);
+      GetInstanceTagsInternal<DicomToJsonFormat_Human>(call, call.GetBooleanArgument(ARG_WHOLE, false));
     }
   }
 
