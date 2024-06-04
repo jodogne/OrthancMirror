@@ -200,8 +200,6 @@ namespace Orthanc
   static void DocumentEchoShared(RestApiPostCall& call)
   {
     call.GetDocumentation()
-      .SetRequestField(KEY_TIMEOUT, RestApiCallDocumentation::Type_Number,
-                       "Timeout for the C-ECHO command, in seconds", false)
       .SetRequestField(KEY_CHECK_FIND, RestApiCallDocumentation::Type_Boolean,
                        "Issue a dummy C-FIND command after the C-GET SCU, in order to check whether the remote "
                        "modality knows about Orthanc. This field defaults to the value of the `DicomEchoChecksFind` "
@@ -219,6 +217,8 @@ namespace Orthanc
         .SetSummary("Trigger C-ECHO SCU")
         .SetDescription("Trigger C-ECHO SCU command against the DICOM modality whose identifier is provided in URL: "
                         "https://orthanc.uclouvain.be/book/users/rest.html#performing-c-echo")
+        .SetRequestField(KEY_TIMEOUT, RestApiCallDocumentation::Type_Number,
+                         "Timeout for the C-ECHO command, in seconds", false)
         .SetUriArgument("id", "Identifier of the modality of interest");
       return;
     }
