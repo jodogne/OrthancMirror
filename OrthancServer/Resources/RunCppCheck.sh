@@ -24,7 +24,7 @@ stlFindInsert:../../OrthancServer/Sources/ServerJobs/ResourceModificationJob.cpp
 syntaxError:../../OrthancFramework/Sources/SQLite/FunctionContext.h:53
 syntaxError:../../OrthancFramework/UnitTestsSources/DicomMapTests.cpp:74
 syntaxError:../../OrthancFramework/UnitTestsSources/ZipTests.cpp:133
-syntaxError:../../OrthancServer/UnitTestsSources/UnitTestsMain.cpp:311
+syntaxError:../../OrthancServer/UnitTestsSources/UnitTestsMain.cpp:322
 uninitMemberVar:../../OrthancServer/Sources/ServerJobs/StorageCommitmentScpJob.cpp:417
 unreadVariable:../../OrthancFramework/Sources/FileStorage/StorageAccessor.cpp
 unreadVariable:../../OrthancServer/Sources/OrthancRestApi/OrthancRestModalities.cpp:1123
