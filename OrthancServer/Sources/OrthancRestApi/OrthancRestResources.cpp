@@ -3689,7 +3689,7 @@ namespace Orthanc
       call.GetDocumentation()
         .SetRequestField(LIMIT_TO_THIS_LEVEL_MAIN_DICOM_TAGS, RestApiCallDocumentation::Type_Boolean,
                         "Only reconstruct this level MainDicomTags by re-reading them from a random child instance of the resource. "
-                        "This option is much faster than a full reconstruct and is usefull e.g. if you have modified the "
+                        "This option is much faster than a full reconstruct and is useful e.g. if you have modified the "
                         "'ExtraMainDicomTags' at the Study level to optimize the speed of some C-Find. "
                         "'false' by default. (New in Orthanc 1.12.4)", false);
     }
