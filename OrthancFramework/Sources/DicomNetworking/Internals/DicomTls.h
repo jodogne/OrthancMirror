@@ -39,7 +39,7 @@
 
 #include <dcmtk/dcmnet/dimse.h>
 #include <dcmtk/dcmtls/tlslayer.h>
-
+#include <set>
 
 namespace Orthanc
 {
@@ -51,6 +51,9 @@ namespace Orthanc
       const std::string& ownPrivateKeyPath,        // This is the first argument of "+tls" option from DCMTK command-line tools
       const std::string& ownCertificatePath,       // This is the second argument of "+tls" option
       const std::string& trustedCertificatesPath,  // This is the "--add-cert-file" ("+cf") option
-      bool requireRemoteCertificate);              // "true" means "--require-peer-cert", "false" means "--verify-peer-cert"
+      bool requireRemoteCertificate,               // "true" means "--require-peer-cert", "false" means "--ignore-peer-cert"
+      unsigned int minimalTlsVersion,              // 0 = default BCP195, 5 = TLS1.3 only
+      const std::set<std::string>& acceptedCiphers
+    );
   }
 }

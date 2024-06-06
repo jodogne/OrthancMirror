@@ -300,11 +300,12 @@ namespace Orthanc
       {
         assert(net_ != NULL &&
                params_ != NULL);
-        
         tls_.reset(Internals::InitializeDicomTls(net_, NET_REQUESTOR, parameters.GetOwnPrivateKeyPath(),
                                                  parameters.GetOwnCertificatePath(),
                                                  parameters.GetTrustedCertificatesPath(),
-                                                 parameters.IsRemoteCertificateRequired()));
+                                                 parameters.IsRemoteCertificateRequired(),
+                                                 parameters.GetMinimumTlsVersion(),
+                                                 parameters.GetAcceptedCiphers()));
       }
       catch (OrthancException&)
       {

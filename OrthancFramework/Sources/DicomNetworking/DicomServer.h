@@ -91,6 +91,8 @@ namespace Orthanc
     std::string  trustedCertificatesPath_;
     unsigned int maximumPduLength_;
     bool         remoteCertificateRequired_;  // New in 1.9.3
+    unsigned int minimumTlsVersion_;          // New in 1.12.4
+    std::set<std::string> acceptedCiphers_;   // New in 1.12.4
 
 
     static void ServerThread(DicomServer* server,
@@ -153,6 +155,9 @@ namespace Orthanc
 
     void SetDicomTlsEnabled(bool enabled);
     bool IsDicomTlsEnabled() const;
+
+    void SetMinimumTlsVersion(unsigned int version);
+    void SetAcceptedCiphers(const std::set<std::string>& ciphers);
 
     void SetOwnCertificatePath(const std::string& privateKeyPath,
                                const std::string& certificatePath);
