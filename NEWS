@@ -1,6 +1,12 @@
 Pending changes in the mainline
 ===============================
 
+REST API
+-----------
+
+* Improved parsing of multiple numerical values in DICOM tags.
+  https://discourse.orthanc-server.org/t/qido-includefield-with-sequences/4746/6
+
 
 Version 1.12.4 (2024-06-05)
 ===========================

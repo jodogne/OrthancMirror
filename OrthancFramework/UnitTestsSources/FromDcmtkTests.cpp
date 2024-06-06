@@ -3092,6 +3092,21 @@ TEST(FromDcmtkBridge, VisitorRemoveTag)
 }
 
 
+TEST(ParsedDicomFile, MultipleFloatValue)
+{
+  // from https://discourse.orthanc-server.org/t/qido-includefield-with-sequences/4746/6
+  Json::Value v = Json::objectValue;
+  v["4010,1001"][0]["4010,1004"] = "30\\20\\10";
+  std::unique_ptr<ParsedDicomFile> dicom(ParsedDicomFile::CreateFromJson(v, DicomFromJsonFlags_None, ""));
+  ASSERT_TRUE(dicom->HasTag(Orthanc::DicomTag(0x4010, 0x1001)));
+
+  DicomMap m;
+  ASSERT_TRUE(dicom->LookupSequenceItem(m, DicomPath(DicomTag(0x4010, 0x1001)), 0));
+  ASSERT_EQ(1u, m.GetSize());
+  std::string value = m.GetStringValue(DicomTag(0x4010, 0x1004), "", false);
+  ASSERT_EQ("30\\20\\10", value);
+}
+
 
 TEST(ParsedDicomFile, ImageInformation)
 {
