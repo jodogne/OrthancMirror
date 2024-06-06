@@ -751,7 +751,7 @@ namespace Orthanc
 
     if (lst.type() != Json::arrayValue)
     {
-      throw OrthancException(ErrorCode_BadFileFormat, "Badly formatted list of strings");
+      throw OrthancException(ErrorCode_BadFileFormat, "Badly formatted list of strings: " + key);
     }
 
     for (Json::Value::ArrayIndex i = 0; i < lst.size(); i++)
@@ -760,7 +760,31 @@ namespace Orthanc
     }    
   }
 
-    
+
+  void OrthancConfiguration::GetSetOfStringsParameter(std::set<std::string>& target,
+                                                      const std::string& key) const
+  {
+    target.clear();
+  
+    if (!json_.isMember(key))
+    {
+      return;
+    }
+
+    const Json::Value& lst = json_[key];
+
+    if (lst.type() != Json::arrayValue)
+    {
+      throw OrthancException(ErrorCode_BadFileFormat, "Badly formatted set of strings: " + key);
+    }
+
+    for (Json::Value::ArrayIndex i = 0; i < lst.size(); i++)
+    {
+      target.insert(lst[i].asString());
+    }    
+  }
+
+
   bool OrthancConfiguration::IsSameAETitle(const std::string& aet1,
                                            const std::string& aet2) const
   {

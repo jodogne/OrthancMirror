@@ -107,7 +107,8 @@ namespace Orthanc
     applicationEntityFilter_(NULL),
     useDicomTls_(false),
     maximumPduLength_(ASC_DEFAULTMAXPDU),
-    remoteCertificateRequired_(true)
+    remoteCertificateRequired_(true),
+    minimumTlsVersion_(0)
   {
   }
 
@@ -411,7 +412,7 @@ namespace Orthanc
       {
         pimpl_->tls_.reset(Internals::InitializeDicomTls(
                              pimpl_->network_, NET_ACCEPTOR, ownPrivateKeyPath_, ownCertificatePath_,
-                             trustedCertificatesPath_, remoteCertificateRequired_));
+                             trustedCertificatesPath_, remoteCertificateRequired_, minimumTlsVersion_, acceptedCiphers_));
       }
       catch (OrthancException&)
       {
@@ -492,6 +493,18 @@ namespace Orthanc
   bool DicomServer::IsDicomTlsEnabled() const
   {
     return useDicomTls_;
+  }
+
+  void DicomServer::SetMinimumTlsVersion(unsigned int version)
+  {
+    minimumTlsVersion_ = version;
+    DicomAssociationParameters::SetMinimumTlsVersion(version);
+  }
+
+  void DicomServer::SetAcceptedCiphers(const std::set<std::string>& ciphers)
+  {
+    acceptedCiphers_ = ciphers;
+    DicomAssociationParameters::SetAcceptedCiphers(ciphers);
   }
 
   void DicomServer::SetOwnCertificatePath(const std::string& privateKeyPath,

@@ -59,8 +59,10 @@ static const char* const KEY_DICOM_TLS_PRIVATE_KEY = "DicomTlsPrivateKey";
 static const char* const KEY_DICOM_TLS_ENABLED = "DicomTlsEnabled";
 static const char* const KEY_DICOM_TLS_CERTIFICATE = "DicomTlsCertificate";
 static const char* const KEY_DICOM_TLS_TRUSTED_CERTIFICATES = "DicomTlsTrustedCertificates";
-static const char* const KEY_MAXIMUM_PDU_LENGTH = "MaximumPduLength";
 static const char* const KEY_DICOM_TLS_REMOTE_CERTIFICATE_REQUIRED = "DicomTlsRemoteCertificateRequired";
+static const char* const KEY_DICOM_TLS_MINIMUM_PROTOCOL_VERSION = "DicomTlsMinimumProtocolVersion";
+static const char* const KEY_DICOM_TLS_ACCEPTED_CIPHERS = "DicomTlsCiphersAccepted";
+static const char* const KEY_MAXIMUM_PDU_LENGTH = "MaximumPduLength";
 
 
 class OrthancStoreRequestHandler : public IStoreRequestHandler
@@ -1279,6 +1281,12 @@ static bool StartDicomServer(ServerContext& context,
           lock.GetConfiguration().GetStringParameter(KEY_DICOM_TLS_CERTIFICATE, ""));
         dicomServer.SetTrustedCertificatesPath(
           lock.GetConfiguration().GetStringParameter(KEY_DICOM_TLS_TRUSTED_CERTIFICATES, ""));
+        dicomServer.SetMinimumTlsVersion(
+          lock.GetConfiguration().GetUnsignedIntegerParameter(KEY_DICOM_TLS_MINIMUM_PROTOCOL_VERSION, 0));
+        
+        std::set<std::string> acceptedCiphers;
+        lock.GetConfiguration().GetSetOfStringsParameter(acceptedCiphers, KEY_DICOM_TLS_ACCEPTED_CIPHERS);
+        dicomServer.SetAcceptedCiphers(acceptedCiphers);
       }
 
       dicomServer.SetMaximumPduLength(lock.GetConfiguration().GetUnsignedIntegerParameter(KEY_MAXIMUM_PDU_LENGTH, 16384));
