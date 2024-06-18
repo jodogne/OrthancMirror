@@ -8,6 +8,13 @@ REST API
   https://discourse.orthanc-server.org/t/qido-includefield-with-sequences/4746/6
 
 
+Maintenance
+-----------
+
+* DICOM TLS: "DicomTlsTrustedCertificates" is not required anymore when issuing
+  an outgoing SCU connexion when "DicomTlsRemoteCertificateRequired" is set to false.
+
+
 Version 1.12.4 (2024-06-05)
 ===========================
 
