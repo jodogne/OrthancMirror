@@ -195,7 +195,7 @@ namespace Orthanc
       throw OrthancException(ErrorCode_BadSequenceOfCalls,
                              "DICOM TLS - No path to the local certificate was provided");
     }
-    else if (trustedCertificatesPath_.empty())
+    else if (remoteCertificateRequired_ && trustedCertificatesPath_.empty())
     {
       throw OrthancException(ErrorCode_BadSequenceOfCalls,
                              "DICOM TLS - No path to the trusted remote certificates was provided");

@@ -311,6 +311,8 @@
   // to "true" (resp. "false") corresponds to "--require-peer-cert"
   // (resp. "--ignore-peer-cert") in the DCMTK command-line
   // tools. (new in Orthanc 1.9.3)
+  // Once you set this configuration to true, you must provide a list of
+  // trusted certificates in DicomTlsTrustedCertificates.
   "DicomTlsRemoteCertificateRequired" : true,
 
   // Sets the minimum accepted TLS protocol version for the DICOM server
