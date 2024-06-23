@@ -111,7 +111,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#ifdef WIN32
+#ifdef _WIN32
 #  define ORTHANC_PLUGINS_API __declspec(dllexport)
 #elif __GNUC__ >= 4
 #  define ORTHANC_PLUGINS_API __attribute__ ((visibility ("default")))
