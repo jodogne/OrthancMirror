@@ -1885,7 +1885,7 @@ namespace Orthanc
 
   std::string Toolbox::GenerateUuid()
   {
-#ifdef WIN32
+#ifdef _WIN32
     UUID uuid;
     UuidCreate ( &uuid );
 

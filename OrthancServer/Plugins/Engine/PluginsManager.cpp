@@ -37,7 +37,7 @@
 #include <memory>
 #include <boost/filesystem.hpp>
 
-#ifdef WIN32
+#ifdef _WIN32
 #define PLUGIN_EXTENSION ".dll"
 #elif defined(__linux__) || defined(__FreeBSD_kernel__) || defined(__FreeBSD__) || defined(__OpenBSD__)
 #define PLUGIN_EXTENSION ".so"
