@@ -42,6 +42,7 @@ namespace Orthanc
     bool done_;
     boost::mutex monitoringMutex_;
     boost::thread flushThread_;
+    boost::thread updateStatisticsThread_;
     boost::thread unstableResourcesMonitorThread_;
 
     LeastRecentlyUsedIndex<std::pair<ResourceType, int64_t>, UnstableResourcePayload>  unstableResources_;
@@ -52,6 +53,9 @@ namespace Orthanc
 
     static void FlushThread(ServerIndex* that,
                             unsigned int threadSleep);
+
+    static void UpdateStatisticsThread(ServerIndex* that,
+                                       unsigned int threadSleep);
 
     static void UnstableResourcesMonitorThread(ServerIndex* that,
                                                unsigned int threadSleep);
