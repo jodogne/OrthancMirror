@@ -4,6 +4,22 @@ Pending changes in the mainline
 * TODO-FIND: complete the list of updated routes:
   /studies?expand and sibbling routes now also return "Metadata" (if the DB implements 'extended-api-v1')
 
+REST API
+--------
+
+* Improved parsing of multiple numerical values in DICOM tags.
+  https://discourse.orthanc-server.org/t/qido-includefield-with-sequences/4746/6
+
+Maintenance
+-----------
+
+* DICOM TLS: "DicomTlsTrustedCertificates" is not required anymore when issuing
+  an outgoing SCU connexion when "DicomTlsRemoteCertificateRequired" is set to false.
+* Introduced a new thread to update the statistics at regular interval for the
+  DB plugins that are implementing the UpdateAndGetStatistics function (currently only
+  PostgreSQL).  This avoids very long update times in case you don't call /statistics
+  for a long period.
+
 
 Version 1.12.4 (2024-06-05)
 ===========================
