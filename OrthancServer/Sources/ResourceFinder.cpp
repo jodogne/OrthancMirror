@@ -43,7 +43,7 @@ namespace Orthanc
     {
       requestedComputedTags_.insert(tag);
       hasRequestedTags_ = true;
-      request_.GetChildrenRetrieveSpecification(childLevel).SetRetrieveCount(true);
+      request_.GetChildrenRetrieveSpecification(childLevel).SetRetrieveIdentifiers(true);
     }
   }
 

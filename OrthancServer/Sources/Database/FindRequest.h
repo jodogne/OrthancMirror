@@ -187,6 +187,11 @@ namespace Orthanc
       {
         return metadata_;
       }
+
+      bool IsOfInterest() const
+      {
+        return (mainDicomTags_ || metadata_);
+      }
     };
 
 
@@ -194,12 +199,10 @@ namespace Orthanc
     {
     private:
       bool  identifiers_;
-      bool  count_;
 
     public:
       ChildrenRetrieveSpecification() :
-        identifiers_(false),
-        count_(false)
+        identifiers_(false)
       {
       }
 
@@ -213,14 +216,9 @@ namespace Orthanc
         return identifiers_;
       }
 
-      void SetRetrieveCount(bool retrieve)
+      bool IsOfInterest() const
       {
-        count_ = retrieve;
-      }
-
-      bool IsRetrieveCount() const
-      {
-        return count_;
+        return identifiers_;
       }
     };
 
