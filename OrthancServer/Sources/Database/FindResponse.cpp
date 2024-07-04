@@ -531,21 +531,14 @@ namespace Orthanc
       {
         if (request.GetChildrenRetrieveSpecification(levels[i]).IsRetrieveIdentifiers())
         {
-          if (levels[i] != GetChildResourceType(request.GetLevel()))
-          {
-            throw OrthancException(ErrorCode_NotImplemented);  // TODO-FIND
-          }
-          else
-          {
-            const std::set<std::string>& ids = GetChildrenIdentifiers(levels[i]);
+          const std::set<std::string>& ids = GetChildrenIdentifiers(levels[i]);
 
-            Json::Value v = Json::arrayValue;
-            for (std::set<std::string>::const_iterator it = ids.begin(); it != ids.end(); ++it)
-            {
-              v.append(*it);
-            }
-            target[level]["Identifiers"] = v;
+          Json::Value v = Json::arrayValue;
+          for (std::set<std::string>::const_iterator it = ids.begin(); it != ids.end(); ++it)
+          {
+            v.append(*it);
           }
+          target[level]["Identifiers"] = v;
         }
       }
     }

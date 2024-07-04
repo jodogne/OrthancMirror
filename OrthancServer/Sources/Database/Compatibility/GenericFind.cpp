@@ -240,8 +240,7 @@ namespace Orthanc
           return ResourceType_Patient;
 
         case ResourceType_Study:
-          if (request.GetParentRetrieveSpecification(ResourceType_Patient).IsRetrieveMainDicomTags() ||
-              request.GetParentRetrieveSpecification(ResourceType_Patient).IsRetrieveMetadata())
+          if (request.GetParentRetrieveSpecification(ResourceType_Patient).IsOfInterest())
           {
             return ResourceType_Patient;
           }
@@ -251,13 +250,11 @@ namespace Orthanc
           }
 
         case ResourceType_Series:
-          if (request.GetParentRetrieveSpecification(ResourceType_Patient).IsRetrieveMainDicomTags() ||
-              request.GetParentRetrieveSpecification(ResourceType_Patient).IsRetrieveMetadata())
+          if (request.GetParentRetrieveSpecification(ResourceType_Patient).IsOfInterest())
           {
             return ResourceType_Patient;
           }
-          else if (request.GetParentRetrieveSpecification(ResourceType_Study).IsRetrieveMainDicomTags() ||
-                   request.GetParentRetrieveSpecification(ResourceType_Study).IsRetrieveMetadata())
+          else if (request.GetParentRetrieveSpecification(ResourceType_Study).IsOfInterest())
           {
             return ResourceType_Study;
           }
@@ -267,18 +264,15 @@ namespace Orthanc
           }
 
         case ResourceType_Instance:
-          if (request.GetParentRetrieveSpecification(ResourceType_Patient).IsRetrieveMainDicomTags() ||
-              request.GetParentRetrieveSpecification(ResourceType_Patient).IsRetrieveMetadata())
+          if (request.GetParentRetrieveSpecification(ResourceType_Patient).IsOfInterest())
           {
             return ResourceType_Patient;
           }
-          else if (request.GetParentRetrieveSpecification(ResourceType_Study).IsRetrieveMainDicomTags() ||
-                   request.GetParentRetrieveSpecification(ResourceType_Study).IsRetrieveMetadata())
+          else if (request.GetParentRetrieveSpecification(ResourceType_Study).IsOfInterest())
           {
             return ResourceType_Study;
           }
-          else if (request.GetParentRetrieveSpecification(ResourceType_Series).IsRetrieveMainDicomTags() ||
-                   request.GetParentRetrieveSpecification(ResourceType_Series).IsRetrieveMetadata())
+          else if (request.GetParentRetrieveSpecification(ResourceType_Series).IsOfInterest())
           {
             return ResourceType_Series;
           }
@@ -286,6 +280,61 @@ namespace Orthanc
           {
             return ResourceType_Instance;
           }
+
+        default:
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+    }
+
+
+    static ResourceType GetBottomLevelOfInterest(const FindRequest& request)
+    {
+      switch (request.GetLevel())
+      {
+        case ResourceType_Patient:
+          if (request.GetChildrenRetrieveSpecification(ResourceType_Instance).IsOfInterest())
+          {
+            return ResourceType_Instance;
+          }
+          else if (request.GetChildrenRetrieveSpecification(ResourceType_Series).IsOfInterest())
+          {
+            return ResourceType_Series;
+          }
+          else if (request.GetChildrenRetrieveSpecification(ResourceType_Study).IsOfInterest())
+          {
+            return ResourceType_Study;
+          }
+          else
+          {
+            return ResourceType_Patient;
+          }
+
+        case ResourceType_Study:
+          if (request.GetChildrenRetrieveSpecification(ResourceType_Instance).IsOfInterest())
+          {
+            return ResourceType_Instance;
+          }
+          else if (request.GetChildrenRetrieveSpecification(ResourceType_Series).IsOfInterest())
+          {
+            return ResourceType_Series;
+          }
+          else
+          {
+            return ResourceType_Study;
+          }
+
+        case ResourceType_Series:
+          if (request.GetChildrenRetrieveSpecification(ResourceType_Instance).IsOfInterest())
+          {
+            return ResourceType_Instance;
+          }
+          else
+          {
+            return ResourceType_Series;
+          }
+
+        case ResourceType_Instance:
+          return ResourceType_Instance;
 
         default:
           throw OrthancException(ErrorCode_ParameterOutOfRange);
@@ -411,20 +460,53 @@ namespace Orthanc
         }
       }
 
-      if (request.GetLevel() != ResourceType_Instance)
       {
-        // TODO-FIND: Retrieve other levels than immediate children
-        const ResourceType childLevel = GetChildResourceType(request.GetLevel());
+        const ResourceType bottomLevel = GetBottomLevelOfInterest(request);
 
-        if (request.GetChildrenRetrieveSpecification(childLevel).IsRetrieveIdentifiers())
+        std::list<int64_t> currentIds;
+        currentIds.push_back(internalId);
+
+        ResourceType currentLevel = level;
+
+        while (currentLevel != bottomLevel)
         {
-          std::list<std::string> children;
-          transaction_.GetChildrenPublicId(children, internalId);
+          ResourceType childrenLevel = GetChildResourceType(currentLevel);
 
-          for (std::list<std::string>::const_iterator it = children.begin(); it != children.end(); ++it)
+          if (request.GetChildrenRetrieveSpecification(childrenLevel).IsRetrieveIdentifiers())
           {
-            resource->AddChildIdentifier(childLevel, *it);
+            for (std::list<int64_t>::const_iterator it = currentIds.begin();
+                 it != currentIds.end(); ++it)
+            {
+              std::list<std::string> ids;
+              transaction_.GetChildrenPublicId(ids, *it);
+
+              for (std::list<std::string>::const_iterator it2 = ids.begin(); it2 != ids.end(); ++it2)
+              {
+                resource->AddChildIdentifier(childrenLevel, *it2);
+              }
+            }
           }
+
+          if (childrenLevel != bottomLevel)
+          {
+            std::list<int64_t> childrenIds;
+
+            for (std::list<int64_t>::const_iterator it = currentIds.begin(); it != currentIds.end(); ++it)
+            {
+              std::list<int64_t> tmp;
+              transaction_.GetChildrenInternalId(tmp, *it);
+
+              childrenIds.splice(childrenIds.end(), tmp);
+            }
+
+            currentIds = childrenIds;
+          }
+          else
+          {
+            currentIds.clear();
+          }
+
+          currentLevel = childrenLevel;
         }
       }
 
