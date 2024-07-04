@@ -411,16 +411,20 @@ namespace Orthanc
         }
       }
 
-      if (request.GetLevel() != ResourceType_Instance &&
-          request.GetChildrenRetrieveSpecification(GetChildResourceType(request.GetLevel())).IsRetrieveIdentifiers())
+      if (request.GetLevel() != ResourceType_Instance)
       {
         // TODO-FIND: Retrieve other levels than immediate children
-        std::list<std::string> children;
-        transaction_.GetChildrenPublicId(children, internalId);
+        const ResourceType childLevel = GetChildResourceType(request.GetLevel());
 
-        for (std::list<std::string>::const_iterator it = children.begin(); it != children.end(); ++it)
+        if (request.GetChildrenRetrieveSpecification(childLevel).IsRetrieveIdentifiers())
         {
-          resource->AddChildIdentifier(*it);
+          std::list<std::string> children;
+          transaction_.GetChildrenPublicId(children, internalId);
+
+          for (std::list<std::string>::const_iterator it = children.begin(); it != children.end(); ++it)
+          {
+            resource->AddChildIdentifier(childLevel, *it);
+          }
         }
       }
 
@@ -432,7 +436,8 @@ namespace Orthanc
         resource->AddChildrenMetadata(*it, values);
       }
 
-      if (request.IsRetrieveOneInstanceIdentifier())
+      if (request.IsRetrieveOneInstanceIdentifier() &&
+          !request.GetChildrenRetrieveSpecification(ResourceType_Instance).IsRetrieveIdentifiers())
       {
         int64_t currentId = internalId;
         ResourceType currentLevel = level;
@@ -452,7 +457,7 @@ namespace Orthanc
           }
         }
 
-        resource->SetOneInstanceIdentifier(transaction_.GetPublicId(currentId));
+        resource->AddChildIdentifier(ResourceType_Instance, transaction_.GetPublicId(currentId));
       }
 
       response.Add(resource.release());

@@ -35,6 +35,65 @@
 
 namespace Orthanc
 {
+  void ResourceFinder::ConfigureChildrenCountComputedTag(DicomTag tag,
+                                                         ResourceType parentLevel,
+                                                         ResourceType childLevel)
+  {
+    if (request_.GetLevel() == parentLevel)
+    {
+      requestedComputedTags_.insert(tag);
+      hasRequestedTags_ = true;
+      request_.GetChildrenRetrieveSpecification(childLevel).SetRetrieveCount(true);
+    }
+  }
+
+
+  void ResourceFinder::InjectChildrenCountComputedTag(DicomMap& requestedTags,
+                                                      DicomTag tag,
+                                                      const FindResponse::Resource& resource,
+                                                      ResourceType level) const
+  {
+    if (IsRequestedComputedTag(tag))
+    {
+      const std::set<std::string>& children = resource.GetChildrenIdentifiers(level);
+      requestedTags.SetValue(tag, boost::lexical_cast<std::string>(children.size()), false);
+    }
+  }
+
+
+  void ResourceFinder::InjectComputedTags(DicomMap& requestedTags,
+                                          const FindResponse::Resource& resource) const
+  {
+    switch (resource.GetLevel())
+    {
+      case ResourceType_Patient:
+        InjectChildrenCountComputedTag(requestedTags, DICOM_TAG_NUMBER_OF_PATIENT_RELATED_STUDIES, resource, ResourceType_Study);
+        InjectChildrenCountComputedTag(requestedTags, DICOM_TAG_NUMBER_OF_PATIENT_RELATED_SERIES, resource, ResourceType_Series);
+        InjectChildrenCountComputedTag(requestedTags, DICOM_TAG_NUMBER_OF_PATIENT_RELATED_INSTANCES, resource, ResourceType_Instance);
+        break;
+
+      case ResourceType_Study:
+        InjectChildrenCountComputedTag(requestedTags, DICOM_TAG_NUMBER_OF_STUDY_RELATED_SERIES, resource, ResourceType_Series);
+        InjectChildrenCountComputedTag(requestedTags, DICOM_TAG_NUMBER_OF_STUDY_RELATED_INSTANCES, resource, ResourceType_Instance);
+        break;
+
+      case ResourceType_Series:
+        InjectChildrenCountComputedTag(requestedTags, DICOM_TAG_NUMBER_OF_SERIES_RELATED_INSTANCES, resource, ResourceType_Instance);
+        break;
+
+      case ResourceType_Instance:
+        if (IsRequestedComputedTag(DICOM_TAG_INSTANCE_AVAILABILITY))
+        {
+          requestedTags.SetValue(DICOM_TAG_INSTANCE_AVAILABILITY, "ONLINE", false);
+        }
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_InternalError);
+    }
+  }
+
+
   SeriesStatus ResourceFinder::GetSeriesStatus(uint32_t& expectedNumberOfInstances,
                                                const FindResponse::Resource& resource) const
   {
@@ -95,34 +154,6 @@ namespace Orthanc
   }
 
 
-  static void InjectRequestedTags(DicomMap& requestedTags,
-                                  std::set<DicomTag>& missingTags /* out */,
-                                  const FindResponse::Resource& resource,
-                                  ResourceType level,
-                                  const std::set<DicomTag>& tags)
-  {
-    if (!tags.empty())
-    {
-      DicomMap m;
-      resource.GetMainDicomTags(m, level);
-
-      for (std::set<DicomTag>::const_iterator it = tags.begin(); it != tags.end(); ++it)
-      {
-        std::string value;
-        if (m.LookupStringValue(value, *it, false /* not binary */))
-        {
-          requestedTags.SetValue(*it, value, false /* not binary */);
-        }
-        else
-        {
-          // This is the case where the Housekeeper should be run
-          missingTags.insert(*it);
-        }
-      }
-    }
-  }
-
-
   void ResourceFinder::Expand(Json::Value& target,
                               const FindResponse::Resource& resource,
                               ServerIndex& index) const
@@ -165,7 +196,7 @@ namespace Orthanc
 
     if (resource.GetLevel() != ResourceType_Instance)
     {
-      const std::set<std::string>& children = resource.GetChildrenIdentifiers();
+      const std::set<std::string>& children = resource.GetChildrenIdentifiers(GetChildResourceType(resource.GetLevel()));
 
       Json::Value c = Json::arrayValue;
       for (std::set<std::string>::const_iterator
@@ -482,19 +513,34 @@ namespace Orthanc
 
       hasRequestedTags_ = true;
     }
+    else if (tag == DICOM_TAG_NUMBER_OF_PATIENT_RELATED_STUDIES)
+    {
+      ConfigureChildrenCountComputedTag(tag, ResourceType_Patient, ResourceType_Study);
+    }
+    else if (tag == DICOM_TAG_NUMBER_OF_PATIENT_RELATED_SERIES)
+    {
+      ConfigureChildrenCountComputedTag(tag, ResourceType_Patient, ResourceType_Series);
+    }
+    else if (tag == DICOM_TAG_NUMBER_OF_PATIENT_RELATED_INSTANCES)
+    {
+      ConfigureChildrenCountComputedTag(tag, ResourceType_Patient, ResourceType_Instance);
+    }
+    else if (tag == DICOM_TAG_NUMBER_OF_STUDY_RELATED_SERIES)
+    {
+      ConfigureChildrenCountComputedTag(tag, ResourceType_Study, ResourceType_Series);
+    }
+    else if (tag == DICOM_TAG_NUMBER_OF_STUDY_RELATED_INSTANCES)
+    {
+      ConfigureChildrenCountComputedTag(tag, ResourceType_Study, ResourceType_Instance);
+    }
+    else if (tag == DICOM_TAG_NUMBER_OF_SERIES_RELATED_INSTANCES)
+    {
+      ConfigureChildrenCountComputedTag(tag, ResourceType_Series, ResourceType_Instance);
+    }
     else if (tag == DICOM_TAG_INSTANCE_AVAILABILITY)
     {
       requestedComputedTags_.insert(tag);
       hasRequestedTags_ = true;
-    }
-    else if (tag == DICOM_TAG_NUMBER_OF_SERIES_RELATED_INSTANCES)
-    {
-      if (request_.GetLevel() == ResourceType_Series)
-      {
-        requestedComputedTags_.insert(tag);
-        hasRequestedTags_ = true;
-        request_.GetChildrenRetrieveSpecification(ResourceType_Instance).SetRetrieveCount(true);
-      }
     }
     else
     {
@@ -521,34 +567,30 @@ namespace Orthanc
   }
 
 
-  void ResourceFinder::InjectComputedTags(DicomMap& requestedTags,
-                                          const FindResponse::Resource& resource) const
+  static void InjectRequestedTags(DicomMap& requestedTags,
+                                  std::set<DicomTag>& missingTags /* out */,
+                                  const FindResponse::Resource& resource,
+                                  ResourceType level,
+                                  const std::set<DicomTag>& tags)
   {
-    switch (resource.GetLevel())
+    if (!tags.empty())
     {
-      case ResourceType_Patient:
-        break;
+      DicomMap m;
+      resource.GetMainDicomTags(m, level);
 
-      case ResourceType_Study:
-        break;
-
-      case ResourceType_Series:
-        if (IsRequestedComputedTag(DICOM_TAG_NUMBER_OF_SERIES_RELATED_INSTANCES))
+      for (std::set<DicomTag>::const_iterator it = tags.begin(); it != tags.end(); ++it)
+      {
+        std::string value;
+        if (m.LookupStringValue(value, *it, false /* not binary */))
         {
-          requestedTags.SetValue(DICOM_TAG_NUMBER_OF_SERIES_RELATED_INSTANCES,
-                                 boost::lexical_cast<std::string>(resource.GetChildrenIdentifiers().size()), false);
+          requestedTags.SetValue(*it, value, false /* not binary */);
         }
-        break;
-
-      case ResourceType_Instance:
-        if (IsRequestedComputedTag(DICOM_TAG_INSTANCE_AVAILABILITY))
+        else
         {
-          requestedTags.SetValue(DICOM_TAG_INSTANCE_AVAILABILITY, "ONLINE", false);
+          // This is the case where the Housekeeper should be run
+          missingTags.insert(*it);
         }
-        break;
-
-      default:
-        throw OrthancException(ErrorCode_InternalError);
+      }
     }
   }
 
