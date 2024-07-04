@@ -3481,7 +3481,7 @@ namespace Orthanc
     std::set<DicomTag> requestedTags;
     OrthancRestApi::GetRequestedTags(requestedTags, call);
 
-    if (false)
+    if (true)
     {
       /**
        * EXPERIMENTAL VERSION
