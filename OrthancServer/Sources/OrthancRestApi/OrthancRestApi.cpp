@@ -2,7 +2,8 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2024 Osimis S.A., Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
  * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -489,7 +490,8 @@ namespace Orthanc
   static const std::string GET_SIMPLIFY = "simplify";
   static const std::string GET_FULL = "full";
   static const std::string GET_SHORT = "short";
-  static const std::string GET_REQUESTED_TAGS = "requestedTags";
+  static const std::string GET_REQUESTED_TAGS_OLD = "requestedTags";  // This was the only option in Orthanc <= 1.12.3
+  static const std::string GET_REQUESTED_TAGS = "requested-tags";
 
   static const std::string POST_SIMPLIFY = "Simplify";
   static const std::string POST_FULL = "Full";
@@ -603,25 +605,36 @@ namespace Orthanc
   {
     requestedTags.clear();
 
+    std::string s;
+
     if (call.HasArgument(GET_REQUESTED_TAGS))
+    {
+      s = call.GetArgument(GET_REQUESTED_TAGS, "");
+    }
+    else if (call.HasArgument(GET_REQUESTED_TAGS_OLD))
+    {
+      // This is for backward compatibility with Orthanc <= 1.12.3
+      s = call.GetArgument(GET_REQUESTED_TAGS_OLD, "");
+    }
+
+    if (!s.empty())
     {
       try
       {
-        FromDcmtkBridge::ParseListOfTags(requestedTags, call.GetArgument("requestedTags", ""));
+        FromDcmtkBridge::ParseListOfTags(requestedTags, s);
       }
       catch (OrthancException& ex)
       {
         throw OrthancException(ErrorCode_BadRequest, std::string("Invalid requestedTags argument: ") + ex.What() + " " + ex.GetDetails());
       }
     }
-
   }
 
   void OrthancRestApi::DocumentRequestedTags(RestApiGetCall& call)
   {
       call.GetDocumentation().SetHttpGetArgument(GET_REQUESTED_TAGS, RestApiCallDocumentation::Type_String,
                           "If present, list the DICOM Tags you want to list in the response.  This argument is a semi-column separated list "
-                          "of DICOM Tags identifiers; e.g: 'requestedTags=0010,0010;PatientBirthDate'.  "
+                          "of DICOM Tags identifiers; e.g: '" + GET_REQUESTED_TAGS + "=0010,0010;PatientBirthDate'.  "
                           "The tags requested tags are returned in the 'RequestedTags' field in the response.  "
                           "Note that, if you are requesting tags that are not listed in the Main Dicom Tags stored in DB, building the response "
                           "might be slow since Orthanc will need to access the DICOM files.  If not specified, Orthanc will return ", false);

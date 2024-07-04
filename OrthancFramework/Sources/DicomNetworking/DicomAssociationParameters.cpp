@@ -2,7 +2,8 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2024 Osimis S.A., Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
  * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -43,7 +44,8 @@ static std::string   defaultOwnCertificatePath_;
 static std::string   defaultTrustedCertificatesPath_;
 static unsigned int  defaultMaximumPduLength_ = ASC_DEFAULTMAXPDU;
 static bool          defaultRemoteCertificateRequired_ = true;
-
+static unsigned int  minimumTlsVersion_ = 0;
+static std::set<std::string> acceptedCiphers_;
 
 namespace Orthanc
 {
@@ -193,7 +195,7 @@ namespace Orthanc
       throw OrthancException(ErrorCode_BadSequenceOfCalls,
                              "DICOM TLS - No path to the local certificate was provided");
     }
-    else if (trustedCertificatesPath_.empty())
+    else if (remoteCertificateRequired_ && trustedCertificatesPath_.empty())
     {
       throw OrthancException(ErrorCode_BadSequenceOfCalls,
                              "DICOM TLS - No path to the trusted remote certificates was provided");
@@ -251,7 +253,26 @@ namespace Orthanc
     return remoteCertificateRequired_;
   }
 
+  unsigned int DicomAssociationParameters::GetMinimumTlsVersion()
+  {
+    return minimumTlsVersion_;
+  }
   
+  void DicomAssociationParameters::SetMinimumTlsVersion(unsigned int version)
+  {
+    minimumTlsVersion_ = version;
+  }
+
+  void DicomAssociationParameters::SetAcceptedCiphers(const std::set<std::string>& acceptedCiphers)
+  {
+    acceptedCiphers_ = acceptedCiphers;
+  }
+
+  const std::set<std::string>& DicomAssociationParameters::GetAcceptedCiphers()
+  {
+    return acceptedCiphers_;
+  }
+
 
   static const char* const LOCAL_AET = "LocalAet";
   static const char* const REMOTE = "Remote";

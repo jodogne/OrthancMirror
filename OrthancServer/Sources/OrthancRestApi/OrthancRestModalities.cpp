@@ -2,7 +2,8 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2024 Osimis S.A., Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
  * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -115,7 +116,11 @@ namespace Orthanc
       .SetRequestField("Manufacturer", RestApiCallDocumentation::Type_String, "Manufacturer of the remote DICOM "
                        "modality (check configuration option `DicomModalities` for possible values", false)
       .SetRequestField("UseDicomTls", RestApiCallDocumentation::Type_Boolean, "Whether to use DICOM TLS "
-                       "in the SCU connection initiated by Orthanc (new in Orthanc 1.9.0)", false);
+                       "in the SCU connection initiated by Orthanc (new in Orthanc 1.9.0)", false)
+      .SetRequestField(KEY_LOCAL_AET, RestApiCallDocumentation::Type_String, "Whether to override the default DicomAet "
+                       "in the SCU connection initiated by Orthanc to this modality", false)
+      .SetRequestField(KEY_TIMEOUT, RestApiCallDocumentation::Type_Number, "Whether to override the default DicomScuTimeout "
+                       "in the SCU connection initiated by Orthanc to this modality", false);
 
     if (includePermissions)
     {
@@ -195,8 +200,6 @@ namespace Orthanc
   static void DocumentEchoShared(RestApiPostCall& call)
   {
     call.GetDocumentation()
-      .SetRequestField(KEY_TIMEOUT, RestApiCallDocumentation::Type_Number,
-                       "Timeout for the C-ECHO command, in seconds", false)
       .SetRequestField(KEY_CHECK_FIND, RestApiCallDocumentation::Type_Boolean,
                        "Issue a dummy C-FIND command after the C-GET SCU, in order to check whether the remote "
                        "modality knows about Orthanc. This field defaults to the value of the `DicomEchoChecksFind` "
@@ -214,6 +217,8 @@ namespace Orthanc
         .SetSummary("Trigger C-ECHO SCU")
         .SetDescription("Trigger C-ECHO SCU command against the DICOM modality whose identifier is provided in URL: "
                         "https://orthanc.uclouvain.be/book/users/rest.html#performing-c-echo")
+        .SetRequestField(KEY_TIMEOUT, RestApiCallDocumentation::Type_Number,
+                         "Timeout for the C-ECHO command, in seconds", false)
         .SetUriArgument("id", "Identifier of the modality of interest");
       return;
     }

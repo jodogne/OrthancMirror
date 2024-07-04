@@ -2,7 +2,8 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2024 Osimis S.A., Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
  * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -145,13 +146,14 @@ namespace Orthanc
 
       virtual int64_t GetCompressedSizeDelta() = 0;
 
-      virtual bool IsUnstableResource(int64_t id) = 0;
+      virtual bool IsUnstableResource(Orthanc::ResourceType type,
+                                      int64_t id) = 0;
 
       virtual bool LookupRemainingLevel(std::string& remainingPublicId /* out */,
                                         ResourceType& remainingLevel   /* out */) = 0;
 
-      virtual void MarkAsUnstable(int64_t id,
-                                  Orthanc::ResourceType type,
+      virtual void MarkAsUnstable(Orthanc::ResourceType type,
+                                  int64_t id,
                                   const std::string& publicId) = 0;
 
       virtual void SignalAttachmentsAdded(uint64_t compressedSize) = 0;
@@ -773,7 +775,9 @@ namespace Orthanc
                    const std::string& publicId,
                    ResourceType level);
 
-    void ReconstructInstance(const ParsedDicomFile& dicom);
+    void ReconstructInstance(const ParsedDicomFile& dicom, 
+                             bool limitToThisLevelDicomTags, 
+                             ResourceType limitToLevel_);
 
     StoreStatus Store(std::map<MetadataType, std::string>& instanceMetadata,
                       const DicomMap& dicomSummary,

@@ -2,7 +2,8 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2024 Osimis S.A., Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
  * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -70,7 +71,7 @@ extern "C"
       return -1;
     }
     
-    OrthancPlugins::LogWarning("Sanitizer plugin is initializing");
+    ORTHANC_PLUGINS_LOG_WARNING("Sanitizer plugin is initializing");
     OrthancPlugins::SetDescription(ORTHANC_PLUGIN_NAME, "Sample plugin to sanitize incoming DICOM instances.");
 
     OrthancPluginRegisterReceivedInstanceCallback(c, ReceivedInstanceCallback);
@@ -81,7 +82,7 @@ extern "C"
 
   ORTHANC_PLUGINS_API void OrthancPluginFinalize()
   {
-    OrthancPlugins::LogWarning("Sanitizer plugin is finalizing");
+    ORTHANC_PLUGINS_LOG_WARNING("Sanitizer plugin is finalizing");
     Orthanc::FinalizeFramework();
   }
 

@@ -2,7 +2,8 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2024 Osimis S.A., Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
  * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -28,6 +29,7 @@
 #include "Compatibility.h"
 
 #include <iostream>
+#include <stdint.h>
 
 #if !defined(ORTHANC_ENABLE_LOGGING)
 #  error The macro ORTHANC_ENABLE_LOGGING must be defined
@@ -46,12 +48,13 @@ namespace Orthanc
 {
   namespace Logging
   {
+    // Note: these values must match the ones in OrthancCPlugin.h
     enum LogLevel
     {
-      LogLevel_ERROR,
-      LogLevel_WARNING,
-      LogLevel_INFO,
-      LogLevel_TRACE
+      LogLevel_ERROR     = 0,
+      LogLevel_WARNING   = 1,
+      LogLevel_INFO      = 2,
+      LogLevel_TRACE     = 3
     };
 
     /**
@@ -59,6 +62,7 @@ namespace Orthanc
      * mask. As a consequence, there can be up to 31 log categories
      * (not 32, as the value GENERIC is reserved for the log commands
      * that don't fall in a specific category).
+     * Note: these values must match the ones in OrthancCPlugin.h
      **/
     enum LogCategory
     {
@@ -77,6 +81,9 @@ namespace Orthanc
 
     // "pluginContext" must be of type "OrthancPluginContext"
     ORTHANC_PUBLIC void InitializePluginContext(void* pluginContext);
+
+    ORTHANC_PUBLIC void InitializePluginContext(void* pluginContext,
+                                                const std::string& pluginName);
 
     ORTHANC_PUBLIC void Initialize();
 
@@ -162,6 +169,7 @@ namespace Orthanc
 #  define LOG(level)            ::Orthanc::Logging::NullStream()
 #  define VLOG(unused)          ::Orthanc::Logging::NullStream()
 #  define CLOG(level, category) ::Orthanc::Logging::NullStream()
+#  define LOG_FROM_PLUGIN(level, category, pluginName, file, line)  ::Orthanc::Logging::NullStream()
 #else /* ORTHANC_ENABLE_LOGGING == 1 */
 
 #if !defined(__ORTHANC_FILE__)
@@ -175,13 +183,22 @@ namespace Orthanc
 
 #  define LOG(level)     ::Orthanc::Logging::InternalLogger             \
   (::Orthanc::Logging::LogLevel_ ## level,                              \
-   ::Orthanc::Logging::LogCategory_GENERIC, __ORTHANC_FILE__, __LINE__)
+   ::Orthanc::Logging::LogCategory_GENERIC, NULL /* no plugin */,       \
+   __ORTHANC_FILE__, __LINE__)
+
 #  define VLOG(unused)   ::Orthanc::Logging::InternalLogger             \
   (::Orthanc::Logging::LogLevel_TRACE,                                  \
-   ::Orthanc::Logging::LogCategory_GENERIC, __ORTHANC_FILE__, __LINE__)
+   ::Orthanc::Logging::LogCategory_GENERIC, NULL /* no plugin */,       \
+   __ORTHANC_FILE__, __LINE__)
+
 #  define CLOG(level, category) ::Orthanc::Logging::InternalLogger      \
   (::Orthanc::Logging::LogLevel_ ## level,                              \
-   ::Orthanc::Logging::LogCategory_ ## category, __ORTHANC_FILE__, __LINE__)
+   ::Orthanc::Logging::LogCategory_ ## category, NULL /* no plugin */,  \
+   __ORTHANC_FILE__, __LINE__)
+
+#  define LOG_FROM_PLUGIN(level, category, pluginName, file, line)      \
+  ::Orthanc::Logging::InternalLogger(level, category, pluginName, file, line)
+
 #endif
 
 
@@ -208,19 +225,11 @@ namespace Orthanc
     public:
       InternalLogger(LogLevel level,
                      LogCategory category,
+                     const char* pluginName /* ignored */,
                      const char* file  /* ignored */,
                      int line  /* ignored */) :
         level_(level),
         category_(category)
-      {
-      }
-
-      // For backward binary compatibility with Orthanc Framework <= 1.8.0
-      InternalLogger(LogLevel level,
-                     const char* file  /* ignored */,
-                     int line  /* ignored */) :
-        level_(level),
-        category_(LogCategory_GENERIC)
       {
       }
 
@@ -258,19 +267,14 @@ namespace Orthanc
       LogLevel                            level_;
       std::unique_ptr<std::stringstream>  pluginStream_;
       std::ostream*                       stream_;
-
-      void Setup(LogCategory category,
-                 const char* file,
-                 int line);
+      LogCategory                         category_;
+      const char*                         file_;
+      uint32_t                            line_;
 
     public:
       InternalLogger(LogLevel level,
                      LogCategory category,
-                     const char* file,
-                     int line);
-
-      // For backward binary compatibility with Orthanc Framework <= 1.8.0
-      InternalLogger(LogLevel level,
+                     const char* pluginName,
                      const char* file,
                      int line);
 

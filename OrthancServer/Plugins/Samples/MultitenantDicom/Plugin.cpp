@@ -2,7 +2,8 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2024 Osimis S.A., Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
  * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -120,7 +121,8 @@ extern "C"
 {
   ORTHANC_PLUGINS_API int32_t OrthancPluginInitialize(OrthancPluginContext* context)
   {
-    OrthancPlugins::SetGlobalContext(context);
+    OrthancPlugins::SetGlobalContext(context, ORTHANC_PLUGIN_NAME);
+    Orthanc::Logging::InitializePluginContext(context, ORTHANC_PLUGIN_NAME);
 
     /* Check the version of the Orthanc core */
     if (OrthancPluginCheckVersion(OrthancPlugins::GetGlobalContext()) == 0)
@@ -132,18 +134,6 @@ extern "C"
               ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER,
               ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER);
       OrthancPluginLogError(OrthancPlugins::GetGlobalContext(), info);
-      return -1;
-    }
-
-#if ORTHANC_FRAMEWORK_VERSION_IS_ABOVE(1, 7, 2)
-    Orthanc::Logging::InitializePluginContext(context);
-#else
-    Orthanc::Logging::Initialize(context);
-#endif
-
-    if (!OrthancPlugins::CheckMinimalOrthancVersion(1, 12, 0))
-    {
-      OrthancPlugins::ReportMinimalOrthancVersion(1, 12, 0);
       return -1;
     }
 

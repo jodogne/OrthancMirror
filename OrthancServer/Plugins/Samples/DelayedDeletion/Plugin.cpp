@@ -2,7 +2,8 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2024 Osimis S.A., Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
  * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -117,7 +118,7 @@ static OrthancPluginErrorCode StorageReadWhole(OrthancPluginMemoryBuffer64* targ
     // copy from a buffer allocated on plugin's heap into a buffer allocated on core's heap
     if (OrthancPluginCreateMemoryBuffer64(OrthancPlugins::GetGlobalContext(), target, buffer->GetSize()) != OrthancPluginErrorCode_Success)
     {
-      OrthancPlugins::LogError("Delayed deletion plugin: error while reading object " + std::string(uuid) + ", cannot allocate memory of size " + boost::lexical_cast<std::string>(buffer->GetSize()) + " bytes");
+      LOG(ERROR) << "Delayed deletion plugin: error while reading object " << uuid << ", cannot allocate memory of size " << buffer->GetSize() << " bytes";
       return OrthancPluginErrorCode_StorageAreaPlugin;
     }
 
@@ -289,8 +290,8 @@ extern "C"
 {
   ORTHANC_PLUGINS_API int32_t OrthancPluginInitialize(OrthancPluginContext* context)
   {
-    OrthancPlugins::SetGlobalContext(context);
-    Orthanc::Logging::InitializePluginContext(context);
+    OrthancPlugins::SetGlobalContext(context, ORTHANC_PLUGIN_NAME);
+    Orthanc::Logging::InitializePluginContext(context, ORTHANC_PLUGIN_NAME);
     
 
     /* Check the version of the Orthanc core */

@@ -85,7 +85,8 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2024 Osimis S.A., Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
  * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -110,7 +111,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#ifdef WIN32
+#ifdef _WIN32
 #  define ORTHANC_PLUGINS_API __declspec(dllexport)
 #elif __GNUC__ >= 4
 #  define ORTHANC_PLUGINS_API __attribute__ ((visibility ("default")))
@@ -465,6 +466,7 @@ extern "C"
     _OrthancPluginService_GetDatabaseServerIdentifier = 42,         /* New in Orthanc 1.11.1 */
     _OrthancPluginService_SetMetricsIntegerValue = 43,              /* New in Orthanc 1.12.1 */
     _OrthancPluginService_SetCurrentThreadName = 44,                /* New in Orthanc 1.12.2 */
+    _OrthancPluginService_LogMessage = 45,                          /* New in Orthanc 1.12.4 */
 
 
     /* Registration of callbacks */
@@ -1085,6 +1087,43 @@ extern "C"
 
     _OrthancPluginLoadDicomInstanceMode_INTERNAL = 0x7fffffff
   } OrthancPluginLoadDicomInstanceMode;
+
+
+  /**
+   * The log levels supported by Orthanc.
+   *
+   * These values must match those of enumeration "LogLevel" in the
+   * Orthanc Core.
+   **/
+  typedef enum
+  {
+    OrthancPluginLogLevel_Error = 0,    /*!< Error log level */
+    OrthancPluginLogLevel_Warning = 1,  /*!< Warning log level */
+    OrthancPluginLogLevel_Info = 2,     /*!< Info log level */
+    OrthancPluginLogLevel_Trace = 3,    /*!< Trace log level */
+
+    _OrthancPluginLogLevel_INTERNAL = 0x7fffffff
+  } OrthancPluginLogLevel;
+
+
+  /**
+   * The log categories supported by Orthanc.
+   *
+   * These values must match those of enumeration "LogCategory" in the
+   * Orthanc Core.
+   **/
+  typedef enum
+  {
+    OrthancPluginLogCategory_Generic = (1 << 0),  /*!< Generic (default) category */
+    OrthancPluginLogCategory_Plugins = (1 << 1),  /*!< Plugin engine related logs (shall not be used by plugins) */
+    OrthancPluginLogCategory_Http    = (1 << 2),  /*!< HTTP related logs */
+    OrthancPluginLogCategory_Sqlite  = (1 << 3),  /*!< SQLite related logs (shall not be used by plugins) */
+    OrthancPluginLogCategory_Dicom   = (1 << 4),  /*!< DICOM related logs */
+    OrthancPluginLogCategory_Jobs    = (1 << 5),  /*!< jobs related logs */
+    OrthancPluginLogCategory_Lua     = (1 << 6),  /*!< Lua related logs (shall not be used by plugins) */
+
+    _OrthancPluginLogCategory_INTERNAL = 0x7fffffff
+  } OrthancPluginLogCategory;
 
 
   /**
@@ -1972,7 +2011,9 @@ extern "C"
         sizeof(int32_t) != sizeof(OrthancPluginMetricsType) ||
         sizeof(int32_t) != sizeof(OrthancPluginDicomWebBinaryMode) ||
         sizeof(int32_t) != sizeof(OrthancPluginStorageCommitmentFailureReason) ||
-        sizeof(int32_t) != sizeof(OrthancPluginLoadDicomInstanceMode))
+        sizeof(int32_t) != sizeof(OrthancPluginLoadDicomInstanceMode) ||
+        sizeof(int32_t) != sizeof(OrthancPluginLogLevel) ||
+        sizeof(int32_t) != sizeof(OrthancPluginLogCategory))
     {
       /* Mismatch in the size of the enumerations */
       return 0;
@@ -9480,6 +9521,52 @@ extern "C"
   {
     return context->InvokeService(context, _OrthancPluginService_SetCurrentThreadName, threadName);
   }
+
+
+  typedef struct
+  {
+    /* Note: This structure is also defined in Logging.h and it must be binary compatible */
+    const char*               message;
+    const char*               plugin;
+    const char*               file;
+    uint32_t                  line;
+    OrthancPluginLogCategory  category;
+    OrthancPluginLogLevel     level;
+  } _OrthancPluginLogMessage;
+
+
+  /**
+   * @brief Log a message.
+   *
+   * Log a message using the Orthanc logging system.
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param message The message to be logged.
+   * @param plugin The plugin name.
+   * @param file The filename in the plugin code.
+   * @param line The file line in the plugin code.
+   * @param category The category.
+   * @param level The level of the message.
+   **/
+  ORTHANC_PLUGIN_INLINE void OrthancPluginLogMessage(
+    OrthancPluginContext* context,
+    const char* message,
+    const char* plugin,
+    const char* file,
+    uint32_t line,
+    OrthancPluginLogCategory category,
+    OrthancPluginLogLevel level)
+  {
+    _OrthancPluginLogMessage m;
+    m.message = message;
+    m.plugin = plugin;
+    m.file = file;
+    m.line = line;
+    m.category = category;
+    m.level = level;
+    context->InvokeService(context, _OrthancPluginService_LogMessage, &m);
+  }
+
 
 #ifdef  __cplusplus
 }

@@ -2,7 +2,8 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2024 Osimis S.A., Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
  * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -114,7 +115,7 @@ namespace Orthanc
     {
       if (!is_directory(it->status()))
       {
-        std::string extension = boost::filesystem::extension(it->path());
+        std::string extension = it->path().extension().string();
         Toolbox::ToLowerCase(extension);
 
         if (extension == ".json")
@@ -750,7 +751,7 @@ namespace Orthanc
 
     if (lst.type() != Json::arrayValue)
     {
-      throw OrthancException(ErrorCode_BadFileFormat, "Badly formatted list of strings");
+      throw OrthancException(ErrorCode_BadFileFormat, "Badly formatted list of strings: " + key);
     }
 
     for (Json::Value::ArrayIndex i = 0; i < lst.size(); i++)
@@ -759,7 +760,31 @@ namespace Orthanc
     }    
   }
 
-    
+
+  void OrthancConfiguration::GetSetOfStringsParameter(std::set<std::string>& target,
+                                                      const std::string& key) const
+  {
+    target.clear();
+  
+    if (!json_.isMember(key))
+    {
+      return;
+    }
+
+    const Json::Value& lst = json_[key];
+
+    if (lst.type() != Json::arrayValue)
+    {
+      throw OrthancException(ErrorCode_BadFileFormat, "Badly formatted set of strings: " + key);
+    }
+
+    for (Json::Value::ArrayIndex i = 0; i < lst.size(); i++)
+    {
+      target.insert(lst[i].asString());
+    }    
+  }
+
+
   bool OrthancConfiguration::IsSameAETitle(const std::string& aet1,
                                            const std::string& aet2) const
   {

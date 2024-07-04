@@ -2,7 +2,8 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2024 Osimis S.A., Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
  * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -38,10 +39,11 @@ uint16_t StoreRequestHandler::Handle(DcmDataset& dicom,
                                      const std::string& calledAet)
 {
   std::string buffer;
+  std::string errorMessage;
 
-  if (!Orthanc::FromDcmtkBridge::SaveToMemoryBuffer(buffer, dicom))
+  if (!Orthanc::FromDcmtkBridge::SaveToMemoryBuffer(buffer, dicom, errorMessage))
   {
-    LOG(ERROR) << "Cannot write DICOM file to memory";
+    LOG(ERROR) << "Cannot write DICOM file to memory: " << errorMessage;
     return STATUS_STORE_Error_CannotUnderstand;
   }
 

@@ -2,7 +2,8 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2024 Osimis S.A., Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
  * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -36,7 +37,7 @@
 #include <memory>
 #include <boost/filesystem.hpp>
 
-#ifdef WIN32
+#ifdef _WIN32
 #define PLUGIN_EXTENSION ".dll"
 #elif defined(__linux__) || defined(__FreeBSD_kernel__) || defined(__FreeBSD__) || defined(__OpenBSD__)
 #define PLUGIN_EXTENSION ".so"
@@ -160,6 +161,18 @@ namespace Orthanc
       case _OrthancPluginService_LogInfo:
         CLOG(INFO, PLUGINS) << reinterpret_cast<const char*>(params);
         return OrthancPluginErrorCode_Success;
+
+      case _OrthancPluginService_LogMessage:
+      {
+        const _OrthancPluginLogMessage& m = *reinterpret_cast<const _OrthancPluginLogMessage*>(params);
+        // We can convert directly from OrthancPluginLogLevel to LogLevel (and category) because the enum values must be identical 
+        // for Orthanc::Logging to work both in the core and in the plugins
+        Orthanc::Logging::LogLevel level = static_cast<Orthanc::Logging::LogLevel>(m.level);
+        Orthanc::Logging::LogCategory category = static_cast<Orthanc::Logging::LogCategory>(m.category);
+          
+        LOG_FROM_PLUGIN(level, category, m.plugin, m.file, m.line) << m.message;
+        return OrthancPluginErrorCode_Success;
+      }
 
       default:
         break;
@@ -295,7 +308,7 @@ namespace Orthanc
       }
       else
       {
-        std::string extension = boost::filesystem::extension(it->path());
+        std::string extension = it->path().extension().string();
         Toolbox::ToLowerCase(extension);
 
         if (extension == PLUGIN_EXTENSION)
