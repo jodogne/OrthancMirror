@@ -474,8 +474,7 @@ namespace Orthanc
 
           if (request.GetChildrenRetrieveSpecification(childrenLevel).IsRetrieveIdentifiers())
           {
-            for (std::list<int64_t>::const_iterator it = currentIds.begin();
-                 it != currentIds.end(); ++it)
+            for (std::list<int64_t>::const_iterator it = currentIds.begin(); it != currentIds.end(); ++it)
             {
               std::list<std::string> ids;
               transaction_.GetChildrenPublicId(ids, *it);
@@ -487,7 +486,27 @@ namespace Orthanc
             }
           }
 
-          if (childrenLevel != bottomLevel)
+          const std::set<MetadataType>& metadata = request.GetChildrenRetrieveSpecification(childrenLevel).GetMetadata();
+
+          for (std::set<MetadataType>::const_iterator it = metadata.begin(); it != metadata.end(); ++it)
+          {
+            for (std::list<int64_t>::const_iterator it2 = currentIds.begin(); it2 != currentIds.end(); ++it2)
+            {
+              std::list<std::string> values;
+              transaction_.GetChildrenMetadata(values, *it2, *it);
+
+              for (std::list<std::string>::const_iterator it3 = values.begin(); it3 != values.end(); ++it3)
+              {
+                // TODO-FIND - Inject this value in the response
+                printf("[%s]\n", it3->c_str());
+              }
+            }
+          }
+
+          const std::set<DicomTag>& mainDicomTags = request.GetChildrenRetrieveSpecification(childrenLevel).GetMainDicomTags();
+
+          if (childrenLevel != bottomLevel ||
+              !mainDicomTags.empty())
           {
             std::list<int64_t> childrenIds;
 
@@ -497,6 +516,25 @@ namespace Orthanc
               transaction_.GetChildrenInternalId(tmp, *it);
 
               childrenIds.splice(childrenIds.end(), tmp);
+            }
+
+            if (!mainDicomTags.empty())
+            {
+              for (std::list<int64_t>::const_iterator it = childrenIds.begin(); it != childrenIds.end(); ++it)
+              {
+                DicomMap m;
+                transaction_.GetMainDicomTags(m, *it);
+
+                for (std::set<DicomTag>::const_iterator it2 = mainDicomTags.begin(); it2 != mainDicomTags.end(); ++it2)
+                {
+                  std::string value;
+                  if (m.LookupStringValue(value, *it2, false /* no binary allowed */))
+                  {
+                    // TODO-FIND - Inject this value in the response
+                    printf("<%s>\n", value.c_str());
+                  }
+                }
+              }
             }
 
             currentIds = childrenIds;

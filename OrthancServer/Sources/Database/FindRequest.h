@@ -198,7 +198,9 @@ namespace Orthanc
     class ChildrenRetrieveSpecification : public boost::noncopyable
     {
     private:
-      bool  identifiers_;
+      bool                    identifiers_;
+      std::set<MetadataType>  metadata_;
+      std::set<DicomTag>      mainDicomTags_;
 
     public:
       ChildrenRetrieveSpecification() :
@@ -216,9 +218,29 @@ namespace Orthanc
         return identifiers_;
       }
 
+      void AddMetadata(MetadataType metadata)
+      {
+        metadata_.insert(metadata);
+      }
+
+      const std::set<MetadataType>& GetMetadata() const
+      {
+        return metadata_;
+      }
+
+      void AddMainDicomTag(const DicomTag& tag)
+      {
+        mainDicomTags_.insert(tag);
+      }
+
+      const std::set<DicomTag>& GetMainDicomTags() const
+      {
+        return mainDicomTags_;
+      }
+
       bool IsOfInterest() const
       {
-        return identifiers_;
+        return (identifiers_ || !metadata_.empty() || !mainDicomTags_.empty());
       }
     };
 

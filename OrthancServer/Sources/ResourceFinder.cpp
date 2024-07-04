@@ -537,6 +537,18 @@ namespace Orthanc
     {
       ConfigureChildrenCountComputedTag(tag, ResourceType_Series, ResourceType_Instance);
     }
+    else if (tag == DICOM_TAG_SOP_CLASSES_IN_STUDY)
+    {
+      requestedComputedTags_.insert(tag);
+      hasRequestedTags_ = true;
+      request_.GetChildrenRetrieveSpecification(ResourceType_Instance).AddMetadata(MetadataType_Instance_SopClassUid);
+    }
+    else if (tag == DICOM_TAG_MODALITIES_IN_STUDY)
+    {
+      requestedComputedTags_.insert(tag);
+      hasRequestedTags_ = true;
+      request_.GetChildrenRetrieveSpecification(ResourceType_Series).AddMainDicomTag(DICOM_TAG_MODALITY);
+    }
     else if (tag == DICOM_TAG_INSTANCE_AVAILABILITY)
     {
       requestedComputedTags_.insert(tag);
