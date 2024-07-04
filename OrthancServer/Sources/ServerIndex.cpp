@@ -266,6 +266,39 @@ namespace Orthanc
     }
   };
 
+  void ServerIndex::UpdateStatisticsThread(ServerIndex* that,
+                                           unsigned int threadSleepGranularityMilliseconds)
+  {
+    Logging::SetCurrentThreadName("DB-STATS");
+
+    static const unsigned int SLEEP_SECONDS = 60;
+
+    if (threadSleepGranularityMilliseconds > 1000)
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+    LOG(INFO) << "Starting the update statistics thread (sleep = " << SLEEP_SECONDS << " seconds)";
+
+    unsigned int count = 0;
+    unsigned int countThreshold = (1000 * SLEEP_SECONDS) / threadSleepGranularityMilliseconds;
+
+    while (!that->done_)
+    {
+      boost::this_thread::sleep(boost::posix_time::milliseconds(threadSleepGranularityMilliseconds));
+      count++;
+      
+      if (count >= countThreshold)
+      {
+        uint64_t diskSize, uncompressedSize, countPatients, countStudies, countSeries, countInstances;
+        that->GetGlobalStatistics(diskSize, uncompressedSize, countPatients, countStudies, countSeries, countInstances);
+        
+        count = 0;
+      }
+    }
+
+    LOG(INFO) << "Stopping the update statistics thread";
+  }
 
   void ServerIndex::FlushThread(ServerIndex* that,
                                 unsigned int threadSleepGranularityMilliseconds)
@@ -326,9 +359,18 @@ namespace Orthanc
     // execution of Orthanc
     StandaloneRecycling(maximumStorageMode_, maximumStorageSize_, maximumPatients_);
 
+    // For some DB engines (like SQLite), make sure we flush the DB to disk at regular interval
     if (GetDatabaseCapabilities().HasFlushToDisk())
     {
       flushThread_ = boost::thread(FlushThread, this, threadSleepGranularityMilliseconds);
+    }
+
+    // For some DB plugins that implements the UpdateAndGetStatistics function, updating 
+    // the statistics can take quite some time if you have not done it for a long time 
+    // -> make sure they are updated at regular interval
+    if (GetDatabaseCapabilities().HasUpdateAndGetStatistics())
+    {
+      updateStatisticsThread_ = boost::thread(UpdateStatisticsThread, this, threadSleepGranularityMilliseconds);
     }
 
     unstableResourcesMonitorThread_ = boost::thread
@@ -355,6 +397,11 @@ namespace Orthanc
       if (flushThread_.joinable())
       {
         flushThread_.join();
+      }
+
+      if (updateStatisticsThread_.joinable())
+      {
+        updateStatisticsThread_.join();
       }
 
       if (unstableResourcesMonitorThread_.joinable())
