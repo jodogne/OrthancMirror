@@ -44,10 +44,19 @@ namespace Orthanc
     std::set<DicomTag> requestedSeriesTags_;
     std::set<DicomTag> requestedInstanceTags_;
     std::set<DicomTag> requestedTagsFromFileStorage_;
+    std::set<DicomTag> requestedComputedTags_;
     bool               includeAllMetadata_;   // Same as: ExpandResourceFlags_IncludeAllMetadata
+
+    bool IsRequestedComputedTag(const DicomTag& tag) const
+    {
+      return requestedComputedTags_.find(tag) != requestedComputedTags_.end();
+    }
 
     SeriesStatus GetSeriesStatus(uint32_t& expectedNumberOfInstances,
                                  const FindResponse::Resource& resource) const;
+
+    void InjectComputedTags(DicomMap& requestedTags,
+                            const FindResponse::Resource& resource) const;
 
     void Expand(Json::Value& target,
                 const FindResponse::Resource& resource,

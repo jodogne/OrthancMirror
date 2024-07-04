@@ -421,6 +421,8 @@ namespace Orthanc
         request_.GetParentRetrieveSpecification(ResourceType_Study).SetRetrieveMetadata(true);
         requestedStudyTags_.insert(tag);
       }
+
+      hasRequestedTags_ = true;
     }
     else if (DicomMap::IsMainDicomTag(tag, ResourceType_Study))
     {
@@ -437,6 +439,8 @@ namespace Orthanc
         request_.GetParentRetrieveSpecification(ResourceType_Study).SetRetrieveMetadata(true);
         requestedStudyTags_.insert(tag);
       }
+
+      hasRequestedTags_ = true;
     }
     else if (DicomMap::IsMainDicomTag(tag, ResourceType_Series))
     {
@@ -454,6 +458,8 @@ namespace Orthanc
         request_.GetParentRetrieveSpecification(ResourceType_Series).SetRetrieveMetadata(true);
         requestedSeriesTags_.insert(tag);
       }
+
+      hasRequestedTags_ = true;
     }
     else if (DicomMap::IsMainDicomTag(tag, ResourceType_Instance))
     {
@@ -473,19 +479,36 @@ namespace Orthanc
         assert(request_.IsRetrieveMetadata());
         requestedInstanceTags_.insert(tag);
       }
+
+      hasRequestedTags_ = true;
+    }
+    else if (tag == DICOM_TAG_INSTANCE_AVAILABILITY)
+    {
+      requestedComputedTags_.insert(tag);
+      hasRequestedTags_ = true;
+    }
+    else if (tag == DICOM_TAG_NUMBER_OF_SERIES_RELATED_INSTANCES)
+    {
+      if (request_.GetLevel() == ResourceType_Series)
+      {
+        requestedComputedTags_.insert(tag);
+        hasRequestedTags_ = true;
+        request_.GetChildrenRetrieveSpecification(ResourceType_Instance).SetRetrieveCount(true);
+      }
     }
     else
     {
-      // This is not a main DICOM tag: We will be forced to access the DICOM file anyway
+      // This is neither a main DICOM tag, nor a computed DICOM tag:
+      // We will be forced to access the DICOM file anyway
       requestedTagsFromFileStorage_.insert(tag);
 
       if (request_.GetLevel() != ResourceType_Instance)
       {
         request_.SetRetrieveOneInstanceIdentifier(true);
       }
-    }
 
-    hasRequestedTags_ = true;
+      hasRequestedTags_ = true;
+    }
   }
 
 
@@ -494,6 +517,111 @@ namespace Orthanc
     for (std::set<DicomTag>::const_iterator it = tags.begin(); it != tags.end(); ++it)
     {
       AddRequestedTags(*it);
+    }
+  }
+
+
+  void ResourceFinder::InjectComputedTags(DicomMap& requestedTags,
+                                          const FindResponse::Resource& resource) const
+  {
+    switch (resource.GetLevel())
+    {
+      case ResourceType_Patient:
+        break;
+
+      case ResourceType_Study:
+        break;
+
+      case ResourceType_Series:
+        if (IsRequestedComputedTag(DICOM_TAG_NUMBER_OF_SERIES_RELATED_INSTANCES))
+        {
+          requestedTags.SetValue(DICOM_TAG_NUMBER_OF_SERIES_RELATED_INSTANCES,
+                                 boost::lexical_cast<std::string>(resource.GetChildrenIdentifiers().size()), false);
+        }
+        break;
+
+      case ResourceType_Instance:
+        if (IsRequestedComputedTag(DICOM_TAG_INSTANCE_AVAILABILITY))
+        {
+          requestedTags.SetValue(DICOM_TAG_INSTANCE_AVAILABILITY, "ONLINE", false);
+        }
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_InternalError);
+    }
+  }
+
+
+  static void ReadMissingTagsFromStorageArea(DicomMap& requestedTags,
+                                             ServerContext& context,
+                                             const FindRequest& request,
+                                             const FindResponse::Resource& resource,
+                                             const std::set<DicomTag>& missingTags)
+  {
+    OrthancConfiguration::ReaderLock lock;
+    if (lock.GetConfiguration().IsWarningEnabled(Warnings_001_TagsBeingReadFromStorage))
+    {
+      std::string missings;
+      FromDcmtkBridge::FormatListOfTags(missings, missingTags);
+
+      LOG(WARNING) << "W001: Accessing Dicom tags from storage when accessing "
+                   << Orthanc::GetResourceTypeText(resource.GetLevel(), false, false)
+                   << ": " << missings;
+    }
+
+    std::string instancePublicId;
+
+    if (request.IsRetrieveOneInstanceIdentifier())
+    {
+      instancePublicId = resource.GetOneInstanceIdentifier();
+    }
+    else if (request.GetLevel() == ResourceType_Instance)
+    {
+      instancePublicId = resource.GetIdentifier();
+    }
+    else
+    {
+      FindRequest requestDicomAttachment(request.GetLevel());
+      requestDicomAttachment.SetOrthancId(request.GetLevel(), resource.GetIdentifier());
+      requestDicomAttachment.SetRetrieveOneInstanceIdentifier(true);
+
+      FindResponse responseDicomAttachment;
+      context.GetIndex().ExecuteFind(responseDicomAttachment, requestDicomAttachment);
+
+      if (responseDicomAttachment.GetSize() != 1 ||
+          !responseDicomAttachment.GetResourceByIndex(0).HasOneInstanceIdentifier())
+      {
+        throw OrthancException(ErrorCode_InexistentFile);
+      }
+      else
+      {
+        instancePublicId = responseDicomAttachment.GetResourceByIndex(0).GetOneInstanceIdentifier();
+      }
+    }
+
+    LOG(INFO) << "Will retrieve missing DICOM tags from instance: " << instancePublicId;
+
+    // TODO-FIND: What do we do if the DICOM has been removed since the request?
+    // Do we fail, or do we skip the resource?
+
+    Json::Value tmpDicomAsJson;
+    context.ReadDicomAsJson(tmpDicomAsJson, instancePublicId, missingTags /* ignoreTagLength */);
+
+    DicomMap tmpDicomMap;
+    tmpDicomMap.FromDicomAsJson(tmpDicomAsJson, false /* append */, true /* parseSequences*/);
+
+    for (std::set<DicomTag>::const_iterator it = missingTags.begin(); it != missingTags.end(); ++it)
+    {
+      assert(!requestedTags.HasTag(*it));
+      if (tmpDicomMap.HasTag(*it))
+      {
+        requestedTags.SetValue(*it, tmpDicomMap.GetValue(*it));
+      }
+      else
+      {
+        requestedTags.SetNullValue(*it);  // TODO-FIND: Is this compatible with Orthanc <= 1.12.3?
+      }
     }
   }
 
@@ -521,90 +649,30 @@ namespace Orthanc
         Json::Value item;
         Expand(item, resource, context.GetIndex());
 
-        std::set<DicomTag> missingTags = requestedTagsFromFileStorage_;
-
-        DicomMap requestedTags;
-        InjectRequestedTags(requestedTags, missingTags, resource, ResourceType_Patient, requestedPatientTags_);
-        InjectRequestedTags(requestedTags, missingTags, resource, ResourceType_Study, requestedStudyTags_);
-        InjectRequestedTags(requestedTags, missingTags, resource, ResourceType_Series, requestedSeriesTags_);
-        InjectRequestedTags(requestedTags, missingTags, resource, ResourceType_Instance, requestedInstanceTags_);
-
-        if (!missingTags.empty())
-        {
-          if (!allowStorageAccess_)
-          {
-            throw OrthancException(ErrorCode_BadSequenceOfCalls,
-                                   "Cannot add missing requested tags, as access to file storage is disallowed");
-          }
-
-          OrthancConfiguration::ReaderLock lock;
-          if (lock.GetConfiguration().IsWarningEnabled(Warnings_001_TagsBeingReadFromStorage))
-          {
-            std::string missings;
-            FromDcmtkBridge::FormatListOfTags(missings, missingTags);
-
-            LOG(WARNING) << "W001: Accessing Dicom tags from storage when accessing "
-                         << Orthanc::GetResourceTypeText(resource.GetLevel(), false, false)
-                         << ": " << missings;
-          }
-
-          std::string instancePublicId;
-
-          if (request_.IsRetrieveOneInstanceIdentifier())
-          {
-            instancePublicId = resource.GetOneInstanceIdentifier();
-          }
-          else if (request_.GetLevel() == ResourceType_Instance)
-          {
-            instancePublicId = resource.GetIdentifier();
-          }
-          else
-          {
-            FindRequest requestDicomAttachment(request_.GetLevel());
-            requestDicomAttachment.SetOrthancId(request_.GetLevel(), resource.GetIdentifier());
-            requestDicomAttachment.SetRetrieveOneInstanceIdentifier(true);
-
-            FindResponse responseDicomAttachment;
-            context.GetIndex().ExecuteFind(responseDicomAttachment, requestDicomAttachment);
-
-            if (responseDicomAttachment.GetSize() != 1 ||
-                !responseDicomAttachment.GetResourceByIndex(0).HasOneInstanceIdentifier())
-            {
-              throw OrthancException(ErrorCode_InexistentFile);
-            }
-            else
-            {
-              instancePublicId = responseDicomAttachment.GetResourceByIndex(0).GetOneInstanceIdentifier();
-            }
-          }
-
-          LOG(INFO) << "Will retrieve missing DICOM tags from instance: " << instancePublicId;
-
-          // TODO-FIND: What do we do if the DICOM has been removed since the request?
-          // Do we fail, or do we skip the resource?
-
-          Json::Value tmpDicomAsJson;
-          context.ReadDicomAsJson(tmpDicomAsJson, instancePublicId, missingTags /* ignoreTagLength */);
-
-          DicomMap tmpDicomMap;
-          tmpDicomMap.FromDicomAsJson(tmpDicomAsJson, false /* append */, true /* parseSequences*/);
-
-          for (std::set<DicomTag>::const_iterator it = missingTags.begin(); it != missingTags.end(); ++it)
-          {
-            assert(!requestedTags.HasTag(*it));
-            if (tmpDicomMap.HasTag(*it))
-            {
-              requestedTags.SetValue(*it, tmpDicomMap.GetValue(*it));
-            }
-            else
-            {
-              requestedTags.SetNullValue(*it);  // TODO-FIND: Is this compatible with Orthanc <= 1.12.3?
-            }
-          }
-        }
-
         if (hasRequestedTags_)
         {
+          DicomMap requestedTags;
+          InjectComputedTags(requestedTags, resource);
+
+          std::set<DicomTag> missingTags = requestedTagsFromFileStorage_;
+          InjectRequestedTags(requestedTags, missingTags, resource, ResourceType_Patient, requestedPatientTags_);
+          InjectRequestedTags(requestedTags, missingTags, resource, ResourceType_Study, requestedStudyTags_);
+          InjectRequestedTags(requestedTags, missingTags, resource, ResourceType_Series, requestedSeriesTags_);
+          InjectRequestedTags(requestedTags, missingTags, resource, ResourceType_Instance, requestedInstanceTags_);
+
+          if (!missingTags.empty())
+          {
+            if (!allowStorageAccess_)
+            {
+              throw OrthancException(ErrorCode_BadSequenceOfCalls,
+                                     "Cannot add missing requested tags, as access to file storage is disallowed");
+            }
+            else
+            {
+              ReadMissingTagsFromStorageArea(requestedTags, context, request_, resource, missingTags);
+            }
+          }
+
           static const char* const REQUESTED_TAGS = "RequestedTags";
           item[REQUESTED_TAGS] = Json::objectValue;
           FromDcmtkBridge::ToJson(item[REQUESTED_TAGS], requestedTags, format_);
