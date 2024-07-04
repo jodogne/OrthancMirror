@@ -52,6 +52,15 @@ namespace Orthanc
       return requestedComputedTags_.find(tag) != requestedComputedTags_.end();
     }
 
+    void ConfigureChildrenCountComputedTag(DicomTag tag,
+                                           ResourceType parentLevel,
+                                           ResourceType childLevel);
+
+    void InjectChildrenCountComputedTag(DicomMap& requestedTags,
+                                        DicomTag tag,
+                                        const FindResponse::Resource& resource,
+                                        ResourceType level) const;
+
     SeriesStatus GetSeriesStatus(uint32_t& expectedNumberOfInstances,
                                  const FindResponse::Resource& resource) const;
 

@@ -407,7 +407,8 @@ namespace Orthanc
 
     bool IsRetrieveOneInstanceIdentifier() const
     {
-      return retrieveOneInstanceIdentifier_;
+      return (retrieveOneInstanceIdentifier_ ||
+              GetChildrenRetrieveSpecification(ResourceType_Instance).IsRetrieveIdentifiers());
     }
   };
 }

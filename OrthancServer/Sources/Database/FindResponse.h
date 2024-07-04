@@ -85,11 +85,12 @@ namespace Orthanc
       std::map<MetadataType, std::string>   metadataStudy_;
       std::map<MetadataType, std::string>   metadataSeries_;
       std::map<MetadataType, std::string>   metadataInstance_;
-      std::set<std::string>                 childrenIdentifiers_;
-      std::set<std::string>                 labels_;      
+      std::set<std::string>                 childrenStudiesIdentifiers_;
+      std::set<std::string>                 childrenSeriesIdentifiers_;
+      std::set<std::string>                 childrenInstancesIdentifiers_;
+      std::set<std::string>                 labels_;
       std::map<FileContentType, FileInfo>   attachments_;
       ChildrenMetadata                      childrenMetadata_;
-      std::unique_ptr<std::string>          oneInstanceIdentifier_;
 
       MainDicomTagsAtLevel& GetMainDicomTagsAtLevel(ResourceType level);
 
@@ -97,6 +98,8 @@ namespace Orthanc
       {
         return const_cast<Resource&>(*this).GetMainDicomTagsAtLevel(level);
       }
+
+      std::set<std::string>& GetChildrenIdentifiers(ResourceType level);
 
     public:
       Resource(ResourceType level,
@@ -167,11 +170,12 @@ namespace Orthanc
                           ResourceType level,
                           MetadataType metadata) const;
 
-      void AddChildIdentifier(const std::string& childId);
+      void AddChildIdentifier(ResourceType level,
+                              const std::string& childId);
 
-      const std::set<std::string>& GetChildrenIdentifiers() const
+      const std::set<std::string>& GetChildrenIdentifiers(ResourceType level) const
       {
-        return childrenIdentifiers_;
+        return const_cast<Resource&>(*this).GetChildrenIdentifiers(level);
       }
 
       void AddLabel(const std::string& label);
@@ -204,9 +208,10 @@ namespace Orthanc
 
       const std::string& GetOneInstanceIdentifier() const;
 
-      void SetOneInstanceIdentifier(const std::string& id);
-
-      bool HasOneInstanceIdentifier() const;
+      bool HasOneInstanceIdentifier() const
+      {
+        return !GetChildrenIdentifiers(ResourceType_Instance).empty();
+      }
 
       void DebugExport(Json::Value& target,
                        const FindRequest& request) const;

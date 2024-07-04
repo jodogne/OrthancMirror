@@ -142,11 +142,57 @@ namespace Orthanc
   }
 
 
-  void FindResponse::Resource::AddChildIdentifier(const std::string& identifier)
+  std::set<std::string>& FindResponse::Resource::GetChildrenIdentifiers(ResourceType level)
   {
-    if (childrenIdentifiers_.find(identifier) == childrenIdentifiers_.end())
+    switch (level)
     {
-      childrenIdentifiers_.insert(identifier);
+      case ResourceType_Study:
+        if (level_ == ResourceType_Patient)
+        {
+          return childrenStudiesIdentifiers_;
+        }
+        else
+        {
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+        }
+
+      case ResourceType_Series:
+        if (level_ == ResourceType_Patient ||
+            level_ == ResourceType_Study)
+        {
+          return childrenSeriesIdentifiers_;
+        }
+        else
+        {
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+        }
+
+      case ResourceType_Instance:
+        if (level_ == ResourceType_Patient ||
+            level_ == ResourceType_Study ||
+            level_ == ResourceType_Series)
+        {
+          return childrenInstancesIdentifiers_;
+        }
+        else
+        {
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+        }
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+
+  void FindResponse::Resource::AddChildIdentifier(ResourceType level,
+                                                  const std::string& identifier)
+  {
+    std::set<std::string>& target = GetChildrenIdentifiers(level);
+
+    if (target.find(identifier) == target.end())
+    {
+      target.insert(identifier);
     }
     else
     {
@@ -375,49 +421,17 @@ namespace Orthanc
   }
 
 
-  void FindResponse::Resource::SetOneInstanceIdentifier(const std::string& id)
-  {
-    if (level_ == ResourceType_Instance)
-    {
-      throw OrthancException(ErrorCode_BadParameterType);
-    }
-    else if (HasOneInstanceIdentifier())
-    {
-      throw OrthancException(ErrorCode_BadSequenceOfCalls);
-    }
-    else
-    {
-      oneInstanceIdentifier_.reset(new std::string(id));
-    }
-  }
-
-
   const std::string& FindResponse::Resource::GetOneInstanceIdentifier() const
   {
-    if (level_ == ResourceType_Instance)
+    const std::set<std::string>& instances = GetChildrenIdentifiers(ResourceType_Instance);
+
+    if (instances.size() == 0)
     {
-      throw OrthancException(ErrorCode_BadParameterType);
-    }
-    else if (HasOneInstanceIdentifier())
-    {
-      return *oneInstanceIdentifier_;
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);  // HasOneInstanceIdentifier() should have been called
     }
     else
     {
-      throw OrthancException(ErrorCode_BadSequenceOfCalls);
-    }
-  }
-
-
-  bool FindResponse::Resource::HasOneInstanceIdentifier() const
-  {
-    if (level_ == ResourceType_Instance)
-    {
-      throw OrthancException(ErrorCode_BadParameterType);
-    }
-    else
-    {
-      return oneInstanceIdentifier_.get() != NULL;
+      return *instances.begin();
     }
   }
 
@@ -523,9 +537,10 @@ namespace Orthanc
           }
           else
           {
+            const std::set<std::string>& ids = GetChildrenIdentifiers(levels[i]);
+
             Json::Value v = Json::arrayValue;
-            for (std::set<std::string>::const_iterator it = childrenIdentifiers_.begin();
-                 it != childrenIdentifiers_.end(); ++it)
+            for (std::set<std::string>::const_iterator it = ids.begin(); it != ids.end(); ++it)
             {
               v.append(*it);
             }
