@@ -2,7 +2,8 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2024 Osimis S.A., Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
  * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -553,7 +554,7 @@ namespace Orthanc
       if (!pimpl_->file_)
       {
         throw OrthancException(ErrorCode_CannotWriteFile,
-                               "Cannot create new ZIP archive: " + path_);
+                               "Cannot create new ZIP archive");  // we do not log the path anymore since it can contain PHI
       }
     }
   }
@@ -632,10 +633,10 @@ namespace Orthanc
                                    compressionLevel_);
     }
 
-    if (result != 0)
+    if (result != ZIP_OK)
     {
       throw OrthancException(ErrorCode_CannotWriteFile,
-                             "Cannot add new file inside ZIP archive: " + std::string(path));
+                             "Cannot add new file inside ZIP archive - error code = " + boost::lexical_cast<std::string>(result)); // we do not log the path anymore since it can contain PHI
     }
 
     hasFileInZip_ = true;
@@ -666,10 +667,11 @@ namespace Orthanc
     {
       int bytes = static_cast<int32_t>(length <= maxBytesInAStep ? length : maxBytesInAStep);
 
-      if (zipWriteInFileInZip(pimpl_->file_, p, bytes))
+      int result = zipWriteInFileInZip(pimpl_->file_, p, bytes);
+      if (result != ZIP_OK)
       {
         throw OrthancException(ErrorCode_CannotWriteFile,
-                               "Cannot write data to ZIP archive: " + path_);
+                               "Cannot write data to ZIP archive - error code =" + boost::lexical_cast<std::string>(result));  // we do not log the path anymore since it can contain PHI
       }
       
       p += bytes;

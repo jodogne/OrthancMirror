@@ -10,5 +10,5 @@ authors:
 doi: "10.1007/s10278-018-0082-y"
 license: "GPL-3.0-or-later"
 repository-code: "https://orthanc.uclouvain.be/hg/orthanc/"
-version: 1.12.3
-date-released: 2024-01-31
+version: 1.12.4
+date-released: 2024-06-05

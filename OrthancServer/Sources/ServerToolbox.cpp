@@ -2,7 +2,8 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2024 Osimis S.A., Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
  * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -280,32 +281,43 @@ namespace Orthanc
     
     void ReconstructResource(ServerContext& context,
                              const std::string& resource,
-                             bool reconstructFiles)
+                             bool reconstructFiles,
+                             bool limitToThisLevelDicomTags,
+                             ResourceType limitToLevel)
     {
       LOG(WARNING) << "Reconstructing resource " << resource;
       
       std::list<std::string> instances;
       context.GetIndex().GetChildInstances(instances, resource);
 
-      for (std::list<std::string>::const_iterator 
-             it = instances.begin(); it != instances.end(); ++it)
+
+      if (limitToThisLevelDicomTags && instances.size() > 0) // in this case, we only need to rebuild one instance !
       {
-        ServerContext::DicomCacheLocker locker(context, *it);
-
-        // Delay the reconstruction of DICOM-as-JSON to its next access through "ServerContext"
-        context.GetIndex().DeleteAttachment(*it, FileContentType_DicomAsJson, false /* no revision */,
-                                            -1 /* dummy revision */, "" /* dummy MD5 */);
-        
-        context.GetIndex().ReconstructInstance(locker.GetDicom());
-
-        if (reconstructFiles)
+        ServerContext::DicomCacheLocker locker(context, instances.front());
+        context.GetIndex().ReconstructInstance(locker.GetDicom(), true, limitToLevel);
+      }
+      else
+      {
+        for (std::list<std::string>::const_iterator 
+              it = instances.begin(); it != instances.end(); ++it)
         {
-          std::string resultPublicId;  // ignored
-          std::unique_ptr<DicomInstanceToStore> dicomInstancetoStore(DicomInstanceToStore::CreateFromParsedDicomFile(locker.GetDicom()));
+          ServerContext::DicomCacheLocker locker(context, *it);
 
-          // TODO: TranscodeAndStore and specifically ServerIndex::Store have been "poluted" by the isReconstruct parameter
-          // we should very likely refactor it
-          context.TranscodeAndStore(resultPublicId, dicomInstancetoStore.get(), StoreInstanceMode_OverwriteDuplicate, true);
+          // Delay the reconstruction of DICOM-as-JSON to its next access through "ServerContext"
+          context.GetIndex().DeleteAttachment(*it, FileContentType_DicomAsJson, false /* no revision */,
+                                              -1 /* dummy revision */, "" /* dummy MD5 */);
+          
+          context.GetIndex().ReconstructInstance(locker.GetDicom(), false, ResourceType_Instance /* dummy */);
+
+          if (reconstructFiles)
+          {
+            std::string resultPublicId;  // ignored
+            std::unique_ptr<DicomInstanceToStore> dicomInstancetoStore(DicomInstanceToStore::CreateFromParsedDicomFile(locker.GetDicom()));
+
+            // TODO: TranscodeAndStore and specifically ServerIndex::Store have been "poluted" by the isReconstruct parameter
+            // we should very likely refactor it
+            context.TranscodeAndStore(resultPublicId, dicomInstancetoStore.get(), StoreInstanceMode_OverwriteDuplicate, true);
+          }
         }
       }
     }

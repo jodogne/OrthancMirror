@@ -56,6 +56,13 @@ General
   - ...
 * Investigate if one could fix KeepAlive race conditions:
   https://discourse.orthanc-server.org/t/socket-hangup-with-rest-api/4023/3
+* The DICOM file cache shall keep a MD5 of the cached file and compare it with MD5
+  from the DB.  That would allow 2 orthancs in a swarm to realize when the other
+  Orthanc has updated the file:
+  https://discourse.orthanc-server.org/t/instances-id-content-api-results-are-different-in-docker-swarm-replicas-of-orthanc/4582
+* Allow saving PrivateTags in ExtraMainDicomTags.
+  Note: they can actually be stored but they then appear as "Unknown Tag & Data" in the responses.
+  If we try to add the PrivateCreator in the ExtraMainDicomTags, then, the DICOMWeb plugin fails to initialize because the private tags are not known.
 
 ============================
 Documentation (Orthanc Book)
@@ -119,6 +126,12 @@ Mid-term
   https://groups.google.com/g/orthanc-users/c/o15Dekecgds/m/xmPE2y3bAwAJ
 * Support Palette PNG in /tools/create-dicom:
   https://discourse.orthanc-server.org/t/404-on-tools-create-dicom-endpoint-with-specific-png/3562
+* Support creation of DICOM files from MP4 in /tools/create-dicom.
+  Sample python code: https://github.com/salimkanoun/OrthancGif/blob/new-organisation/python/create_dicom_video.py.
+  We would need to extract frame rate + dimension from the MP4 which would
+  require ffmpeg or a similar library -> can not be done in the Orthanc core.
+  -> keep it for a python plugin
+  -> or require the payload to include rows/columns/cinerate/...
 * (1) In the /studies/{id}/anonymize route, add an option to remove
   secondary captures.  They usually contains Patient info in the
   image. The SOPClassUID might be used to identify such secondary
@@ -187,6 +200,11 @@ Long-term
   https://groups.google.com/d/msg/orthanc-users/xD4d3mpc6ms/srF7E2goAAAJ
 * Support C-MOVE-CANCEL:
   https://groups.google.com/d/msg/orthanc-users/KnduYBFd06A/o86cl5SeCAAJ
+* Combine StudyDate + StudyTime in C-Find matching (also for the worklist plugin with 
+  ScheduledProcedureStartTime & Date).
+  We should first filter in SQL by StudyDate only, combine it with StudyTime into a single 
+  DateTime string and filter again in C++.
+  https://discourse.orthanc-server.org/t/performin-find-within-orthanc-for-time-frames/4704
 
 --------------------
 Internationalization
@@ -258,8 +276,6 @@ SDK
 * Provide a C++ callback similar to "ReceivedInstanceFilter()" in Lua
   https://orthanc.uclouvain.be/book/users/lua.html#filtering-incoming-dicom-instances
   https://groups.google.com/d/msg/orthanc-users/BtvLTE5Ni8A/vIMhmMgfBAAJ
-* In "OrthancPluginLog[Error|Warning|Info]()", prefix the log line with
-  the name of the plugin, as retrieved by "OrthancPluginGetName()"
 * Update the SDK to handle buffer sizes > 4GB (all sizes are currently coded in uint32_t)
 * Add a C-Get SCP handler: OrthancPluginRegisterGetCallback
   https://groups.google.com/g/orthanc-users/c/NRhPkYX9IXQ/m/mWS11g0jBwAJ

@@ -2,7 +2,8 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2024 Osimis S.A., Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
  * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -428,8 +429,13 @@ namespace Orthanc
 
   void HttpOutput::Redirect(const std::string& path)
   {
+    /**
+     * "HttpStatus_301_MovedPermanently" was used in Orthanc <=
+     * 1.12.3. This caused issues on changes in the configuration of
+     * Orthanc.
+     **/
     stateMachine_.ClearHeaders();
-    stateMachine_.SetHttpStatus(HttpStatus_301_MovedPermanently);
+    stateMachine_.SetHttpStatus(HttpStatus_307_TemporaryRedirect);
     stateMachine_.AddHeader("Location", path);
     stateMachine_.SendBody(NULL, 0);
   }

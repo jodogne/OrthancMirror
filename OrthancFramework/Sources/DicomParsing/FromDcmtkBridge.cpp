@@ -2,7 +2,8 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2024 Osimis S.A., Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
  * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
@@ -1977,13 +1978,27 @@ namespace Orthanc
       
         case EVR_SL:  // signed long
         {
-          ok = element.putSint32(boost::lexical_cast<Sint32>(*decoded)).good();
+          if (decoded->find('\\') != std::string::npos)
+          {
+            ok = element.putString(decoded->c_str()).good();
+          }
+          else
+          {
+            ok = element.putSint32(boost::lexical_cast<Sint32>(*decoded)).good();
+          }
           break;
         }
 
         case EVR_SS:  // signed short
         {
-          ok = element.putSint16(boost::lexical_cast<Sint16>(*decoded)).good();
+          if (decoded->find('\\') != std::string::npos)
+          {
+            ok = element.putString(decoded->c_str()).good();
+          }
+          else
+          {
+            ok = element.putSint16(boost::lexical_cast<Sint16>(*decoded)).good();
+          }
           break;
         }
 
@@ -2022,14 +2037,28 @@ namespace Orthanc
 
         case EVR_US:  // unsigned short
         {
-          ok = element.putUint16(boost::lexical_cast<Uint16>(*decoded)).good();
+          if (decoded->find('\\') != std::string::npos)
+          {
+            ok = element.putString(decoded->c_str()).good();
+          }
+          else
+          {
+            ok = element.putUint16(boost::lexical_cast<Uint16>(*decoded)).good();
+          }
           break;
         }
 
         case EVR_FL:  // float single-precision
         case EVR_OF:  // other float (requires byte swapping)
         {
-          ok = element.putFloat32(boost::lexical_cast<float>(*decoded)).good();
+          if (decoded->find('\\') != std::string::npos)
+          {
+            ok = element.putString(decoded->c_str()).good();
+          }
+          else
+          {
+            ok = element.putFloat32(boost::lexical_cast<float>(*decoded)).good();
+          }
           break;
         }
 
@@ -2038,7 +2067,14 @@ namespace Orthanc
         case EVR_OD:  // other double (requires byte-swapping)
 #endif
         {
-          ok = element.putFloat64(boost::lexical_cast<double>(*decoded)).good();
+          if (decoded->find('\\') != std::string::npos)
+          {
+            ok = element.putString(decoded->c_str()).good();
+          }
+          else
+          {
+            ok = element.putFloat64(boost::lexical_cast<double>(*decoded)).good();
+          }
           break;
         }
 
