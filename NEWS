@@ -17,6 +17,9 @@ Maintenance
   DB plugins that are implementing the UpdateAndGetStatistics function (currently only
   PostgreSQL).  This avoids very long update times in case you don't call /statistics
   for a long period.
+* Fix C-Find queries not returning computed tags like ModalitiesInStudy, NumberOfStudyRelatedSeries, ...
+  in very specific use-cases.
+
 
 
 Version 1.12.4 (2024-06-05)
