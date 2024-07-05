@@ -2578,7 +2578,13 @@ namespace Orthanc
       Toolbox::GetMissingsFromSet(missingTags, requestedTags, retrievedTags);
 
       // if all possible tags have been read, no need to get them from DB anymore
-      if (missingTags.size() == 0 || DicomMap::HasOnlyComputedTags(missingTags))
+      if (missingTags.size() > 0 && DicomMap::HasOnlyComputedTags(missingTags))
+      {
+        resource.missingRequestedTags_ = missingTags;
+        ComputeTags(resource, *this, publicId, level, requestedTags);
+        return true;
+      }
+      else if (missingTags.size() == 0)
       {
         expandFlags = static_cast<ExpandResourceFlags>(expandFlags & ~ExpandResourceFlags_IncludeMainDicomTags);
       }
