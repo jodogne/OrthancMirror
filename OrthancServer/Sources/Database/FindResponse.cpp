@@ -142,6 +142,22 @@ namespace Orthanc
   }
 
 
+  FindResponse::ChildrenInformation::~ChildrenInformation()
+  {
+    for (MetadataValues::iterator it = metadataValues_.begin(); it != metadataValues_.end(); ++it)
+    {
+      assert(it->second != NULL);
+      delete it->second;
+    }
+
+    for (MainDicomTagValues::iterator it = mainDicomTagValues_.begin(); it != mainDicomTagValues_.end(); ++it)
+    {
+      assert(it->second != NULL);
+      delete it->second;
+    }
+  }
+
+
   void FindResponse::ChildrenInformation::AddIdentifier(const std::string& identifier)
   {
     if (identifiers_.find(identifier) == identifiers_.end())
@@ -164,11 +180,12 @@ namespace Orthanc
     {
       std::set<std::string> s;
       s.insert(value);
-      metadataValues_[metadata] = s;
+      metadataValues_[metadata] = new std::set(s);
     }
     else
     {
-      found->second.insert(value);
+      assert(found->second != NULL);
+      found->second->insert(value);
     }
   }
 
@@ -184,7 +201,8 @@ namespace Orthanc
     }
     else
     {
-      values = found->second;
+      assert(found->second != NULL);
+      values = *found->second;
     }
   }
 
@@ -198,11 +216,12 @@ namespace Orthanc
     {
       std::set<std::string> s;
       s.insert(value);
-      mainDicomTagValues_[tag] = s;
+      mainDicomTagValues_[tag] = new std::set(s);
     }
     else
     {
-      found->second.insert(value);
+      assert(found->second != NULL);
+      found->second->insert(value);
     }
   }
 
@@ -218,7 +237,8 @@ namespace Orthanc
     }
     else
     {
-      values = found->second;
+      assert(found->second != NULL);
+      values = *found->second;
     }
   }
 
