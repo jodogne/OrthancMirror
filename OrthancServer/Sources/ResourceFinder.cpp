@@ -43,7 +43,7 @@ namespace Orthanc
     {
       requestedComputedTags_.insert(tag);
       hasRequestedTags_ = true;
-      request_.GetChildrenRetrieveSpecification(childLevel).SetRetrieveIdentifiers(true);
+      request_.GetChildrenSpecification(childLevel).SetRetrieveIdentifiers(true);
     }
   }
 
@@ -426,17 +426,17 @@ namespace Orthanc
       switch (level)
       {
         case ResourceType_Patient:
-          request_.GetChildrenRetrieveSpecification(ResourceType_Study).SetRetrieveIdentifiers(true);
+          request_.GetChildrenSpecification(ResourceType_Study).SetRetrieveIdentifiers(true);
           break;
 
         case ResourceType_Study:
-          request_.GetChildrenRetrieveSpecification(ResourceType_Series).SetRetrieveIdentifiers(true);
+          request_.GetChildrenSpecification(ResourceType_Series).SetRetrieveIdentifiers(true);
           request_.SetRetrieveParentIdentifier(true);
           break;
 
         case ResourceType_Series:
-          request_.GetChildrenRetrieveSpecification(ResourceType_Instance).AddMetadata(MetadataType_Instance_IndexInSeries); // required for the SeriesStatus
-          request_.GetChildrenRetrieveSpecification(ResourceType_Instance).SetRetrieveIdentifiers(true);
+          request_.GetChildrenSpecification(ResourceType_Instance).AddMetadata(MetadataType_Instance_IndexInSeries); // required for the SeriesStatus
+          request_.GetChildrenSpecification(ResourceType_Instance).SetRetrieveIdentifiers(true);
           request_.SetRetrieveParentIdentifier(true);
           break;
 
@@ -458,8 +458,8 @@ namespace Orthanc
     {
       if (request_.GetLevel() == ResourceType_Patient)
       {
-        request_.GetParentRetrieveSpecification(ResourceType_Patient).SetRetrieveMainDicomTags(true);
-        request_.GetParentRetrieveSpecification(ResourceType_Patient).SetRetrieveMetadata(true);
+        request_.GetParentSpecification(ResourceType_Patient).SetRetrieveMainDicomTags(true);
+        request_.GetParentSpecification(ResourceType_Patient).SetRetrieveMetadata(true);
         requestedPatientTags_.insert(tag);
       }
       else
@@ -468,8 +468,8 @@ namespace Orthanc
          * This comes from the fact that patient-level tags are copied
          * at the study level, as implemented by "ResourcesContent::AddResource()".
          **/
-        request_.GetParentRetrieveSpecification(ResourceType_Study).SetRetrieveMainDicomTags(true);
-        request_.GetParentRetrieveSpecification(ResourceType_Study).SetRetrieveMetadata(true);
+        request_.GetParentSpecification(ResourceType_Study).SetRetrieveMainDicomTags(true);
+        request_.GetParentSpecification(ResourceType_Study).SetRetrieveMetadata(true);
         requestedStudyTags_.insert(tag);
       }
 
@@ -486,8 +486,8 @@ namespace Orthanc
       }
       else
       {
-        request_.GetParentRetrieveSpecification(ResourceType_Study).SetRetrieveMainDicomTags(true);
-        request_.GetParentRetrieveSpecification(ResourceType_Study).SetRetrieveMetadata(true);
+        request_.GetParentSpecification(ResourceType_Study).SetRetrieveMainDicomTags(true);
+        request_.GetParentSpecification(ResourceType_Study).SetRetrieveMetadata(true);
         requestedStudyTags_.insert(tag);
       }
 
@@ -505,8 +505,8 @@ namespace Orthanc
       }
       else
       {
-        request_.GetParentRetrieveSpecification(ResourceType_Series).SetRetrieveMainDicomTags(true);
-        request_.GetParentRetrieveSpecification(ResourceType_Series).SetRetrieveMetadata(true);
+        request_.GetParentSpecification(ResourceType_Series).SetRetrieveMainDicomTags(true);
+        request_.GetParentSpecification(ResourceType_Series).SetRetrieveMetadata(true);
         requestedSeriesTags_.insert(tag);
       }
 
@@ -561,13 +561,13 @@ namespace Orthanc
     {
       requestedComputedTags_.insert(tag);
       hasRequestedTags_ = true;
-      request_.GetChildrenRetrieveSpecification(ResourceType_Instance).AddMetadata(MetadataType_Instance_SopClassUid);
+      request_.GetChildrenSpecification(ResourceType_Instance).AddMetadata(MetadataType_Instance_SopClassUid);
     }
     else if (tag == DICOM_TAG_MODALITIES_IN_STUDY)
     {
       requestedComputedTags_.insert(tag);
       hasRequestedTags_ = true;
-      request_.GetChildrenRetrieveSpecification(ResourceType_Series).AddMainDicomTag(DICOM_TAG_MODALITY);
+      request_.GetChildrenSpecification(ResourceType_Series).AddMainDicomTag(DICOM_TAG_MODALITY);
     }
     else if (tag == DICOM_TAG_INSTANCE_AVAILABILITY)
     {

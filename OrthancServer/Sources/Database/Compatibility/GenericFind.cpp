@@ -240,7 +240,7 @@ namespace Orthanc
           return ResourceType_Patient;
 
         case ResourceType_Study:
-          if (request.GetParentRetrieveSpecification(ResourceType_Patient).IsOfInterest())
+          if (request.GetParentSpecification(ResourceType_Patient).IsOfInterest())
           {
             return ResourceType_Patient;
           }
@@ -250,11 +250,11 @@ namespace Orthanc
           }
 
         case ResourceType_Series:
-          if (request.GetParentRetrieveSpecification(ResourceType_Patient).IsOfInterest())
+          if (request.GetParentSpecification(ResourceType_Patient).IsOfInterest())
           {
             return ResourceType_Patient;
           }
-          else if (request.GetParentRetrieveSpecification(ResourceType_Study).IsOfInterest())
+          else if (request.GetParentSpecification(ResourceType_Study).IsOfInterest())
           {
             return ResourceType_Study;
           }
@@ -264,15 +264,15 @@ namespace Orthanc
           }
 
         case ResourceType_Instance:
-          if (request.GetParentRetrieveSpecification(ResourceType_Patient).IsOfInterest())
+          if (request.GetParentSpecification(ResourceType_Patient).IsOfInterest())
           {
             return ResourceType_Patient;
           }
-          else if (request.GetParentRetrieveSpecification(ResourceType_Study).IsOfInterest())
+          else if (request.GetParentSpecification(ResourceType_Study).IsOfInterest())
           {
             return ResourceType_Study;
           }
-          else if (request.GetParentRetrieveSpecification(ResourceType_Series).IsOfInterest())
+          else if (request.GetParentSpecification(ResourceType_Series).IsOfInterest())
           {
             return ResourceType_Series;
           }
@@ -292,15 +292,15 @@ namespace Orthanc
       switch (request.GetLevel())
       {
         case ResourceType_Patient:
-          if (request.GetChildrenRetrieveSpecification(ResourceType_Instance).IsOfInterest())
+          if (request.GetChildrenSpecification(ResourceType_Instance).IsOfInterest())
           {
             return ResourceType_Instance;
           }
-          else if (request.GetChildrenRetrieveSpecification(ResourceType_Series).IsOfInterest())
+          else if (request.GetChildrenSpecification(ResourceType_Series).IsOfInterest())
           {
             return ResourceType_Series;
           }
-          else if (request.GetChildrenRetrieveSpecification(ResourceType_Study).IsOfInterest())
+          else if (request.GetChildrenSpecification(ResourceType_Study).IsOfInterest())
           {
             return ResourceType_Study;
           }
@@ -310,11 +310,11 @@ namespace Orthanc
           }
 
         case ResourceType_Study:
-          if (request.GetChildrenRetrieveSpecification(ResourceType_Instance).IsOfInterest())
+          if (request.GetChildrenSpecification(ResourceType_Instance).IsOfInterest())
           {
             return ResourceType_Instance;
           }
-          else if (request.GetChildrenRetrieveSpecification(ResourceType_Series).IsOfInterest())
+          else if (request.GetChildrenSpecification(ResourceType_Series).IsOfInterest())
           {
             return ResourceType_Series;
           }
@@ -324,7 +324,7 @@ namespace Orthanc
           }
 
         case ResourceType_Series:
-          if (request.GetChildrenRetrieveSpecification(ResourceType_Instance).IsOfInterest())
+          if (request.GetChildrenSpecification(ResourceType_Instance).IsOfInterest())
           {
             return ResourceType_Instance;
           }
@@ -422,12 +422,12 @@ namespace Orthanc
             throw OrthancException(ErrorCode_DatabasePlugin);
           }
 
-          if (request.GetParentRetrieveSpecification(currentLevel).IsRetrieveMainDicomTags())
+          if (request.GetParentSpecification(currentLevel).IsRetrieveMainDicomTags())
           {
             RetrieveMainDicomTags(*resource, currentLevel, currentId);
           }
 
-          if (request.GetParentRetrieveSpecification(currentLevel).IsRetrieveMetadata())
+          if (request.GetParentSpecification(currentLevel).IsRetrieveMetadata())
           {
             transaction_.GetAllMetadata(resource->GetMetadata(currentLevel), currentId);
           }
@@ -472,7 +472,7 @@ namespace Orthanc
         {
           ResourceType childrenLevel = GetChildResourceType(currentLevel);
 
-          if (request.GetChildrenRetrieveSpecification(childrenLevel).IsRetrieveIdentifiers())
+          if (request.GetChildrenSpecification(childrenLevel).IsRetrieveIdentifiers())
           {
             for (std::list<int64_t>::const_iterator it = currentIds.begin(); it != currentIds.end(); ++it)
             {
@@ -486,7 +486,7 @@ namespace Orthanc
             }
           }
 
-          const std::set<MetadataType>& metadata = request.GetChildrenRetrieveSpecification(childrenLevel).GetMetadata();
+          const std::set<MetadataType>& metadata = request.GetChildrenSpecification(childrenLevel).GetMetadata();
 
           for (std::set<MetadataType>::const_iterator it = metadata.begin(); it != metadata.end(); ++it)
           {
@@ -502,7 +502,7 @@ namespace Orthanc
             }
           }
 
-          const std::set<DicomTag>& mainDicomTags = request.GetChildrenRetrieveSpecification(childrenLevel).GetMainDicomTags();
+          const std::set<DicomTag>& mainDicomTags = request.GetChildrenSpecification(childrenLevel).GetMainDicomTags();
 
           if (childrenLevel != bottomLevel ||
               !mainDicomTags.empty())
@@ -547,7 +547,7 @@ namespace Orthanc
       }
 
       if (request.IsRetrieveOneInstanceIdentifier() &&
-          !request.GetChildrenRetrieveSpecification(ResourceType_Instance).IsRetrieveIdentifiers())
+          !request.GetChildrenSpecification(ResourceType_Instance).IsRetrieveIdentifiers())
       {
         int64_t currentId = internalId;
         ResourceType currentLevel = level;

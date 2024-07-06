@@ -569,14 +569,14 @@ namespace Orthanc
       if (levels[i] != request.GetLevel() &&
           IsResourceLevelAboveOrEqual(levels[i], request.GetLevel()))
       {
-        if (request.GetParentRetrieveSpecification(levels[i]).IsRetrieveMainDicomTags())
+        if (request.GetParentSpecification(levels[i]).IsRetrieveMainDicomTags())
         {
           DicomMap m;
           GetMainDicomTags(m, levels[i]);
           DebugDicomMap(target[level]["MainDicomTags"], m);
         }
 
-        if (request.GetParentRetrieveSpecification(levels[i]).IsRetrieveMainDicomTags())
+        if (request.GetParentSpecification(levels[i]).IsRetrieveMainDicomTags())
         {
           DebugMetadata(target[level]["Metadata"], GetMetadata(levels[i]));
         }
@@ -585,12 +585,12 @@ namespace Orthanc
       if (levels[i] != request.GetLevel() &&
           IsResourceLevelAboveOrEqual(request.GetLevel(), levels[i]))
       {
-        if (request.GetChildrenRetrieveSpecification(levels[i]).IsRetrieveIdentifiers())
+        if (request.GetChildrenSpecification(levels[i]).IsRetrieveIdentifiers())
         {
           DebugSetOfStrings(target[level]["Identifiers"], GetChildrenInformation(levels[i]).GetIdentifiers());
         }
 
-        const std::set<MetadataType>& metadata = request.GetChildrenRetrieveSpecification(levels[i]).GetMetadata();
+        const std::set<MetadataType>& metadata = request.GetChildrenSpecification(levels[i]).GetMetadata();
         for (std::set<MetadataType>::const_iterator it = metadata.begin(); it != metadata.end(); ++it)
         {
           std::set<std::string> values;
@@ -598,7 +598,7 @@ namespace Orthanc
           DebugSetOfStrings(target[level]["Metadata"][EnumerationToString(*it)], values);
         }
 
-        const std::set<DicomTag>& tags = request.GetChildrenRetrieveSpecification(levels[i]).GetMainDicomTags();
+        const std::set<DicomTag>& tags = request.GetChildrenSpecification(levels[i]).GetMainDicomTags();
         for (std::set<DicomTag>::const_iterator it = tags.begin(); it != tags.end(); ++it)
         {
           std::set<std::string> values;
