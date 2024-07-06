@@ -75,6 +75,29 @@ namespace Orthanc
       case ResourceType_Study:
         InjectChildrenCountComputedTag(requestedTags, DICOM_TAG_NUMBER_OF_STUDY_RELATED_SERIES, resource, ResourceType_Series);
         InjectChildrenCountComputedTag(requestedTags, DICOM_TAG_NUMBER_OF_STUDY_RELATED_INSTANCES, resource, ResourceType_Instance);
+
+        if (IsRequestedComputedTag(DICOM_TAG_MODALITIES_IN_STUDY))
+        {
+          std::set<std::string> modalities;
+          resource.GetChildrenMainDicomTagValues(modalities, ResourceType_Series, DICOM_TAG_MODALITY);
+
+          std::string s;
+          Toolbox::JoinStrings(s, modalities, "\\");
+
+          requestedTags.SetValue(DICOM_TAG_MODALITIES_IN_STUDY, s, false);
+        }
+
+        if (IsRequestedComputedTag(DICOM_TAG_SOP_CLASSES_IN_STUDY))
+        {
+          std::set<std::string> classes;
+          resource.GetChildrenMetadataValues(classes, ResourceType_Instance, MetadataType_Instance_SopClassUid);
+
+          std::string s;
+          Toolbox::JoinStrings(s, classes, "\\");
+
+          requestedTags.SetValue(DICOM_TAG_SOP_CLASSES_IN_STUDY, s, false);
+        }
+
         break;
 
       case ResourceType_Series:
