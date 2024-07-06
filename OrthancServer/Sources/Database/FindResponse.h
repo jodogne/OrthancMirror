@@ -69,14 +69,16 @@ namespace Orthanc
     class ChildrenInformation : public boost::noncopyable
     {
     private:
-      typedef std::map<MetadataType, std::set<std::string> >  MetadataValues;
-      typedef std::map<DicomTag, std::set<std::string> >      MainDicomTagValues;
+      typedef std::map<MetadataType, std::set<std::string>* >  MetadataValues;
+      typedef std::map<DicomTag, std::set<std::string>* >      MainDicomTagValues;
 
       std::set<std::string>  identifiers_;
       MetadataValues         metadataValues_;
       MainDicomTagValues     mainDicomTagValues_;
 
     public:
+      ~ChildrenInformation();
+
       void AddIdentifier(const std::string& identifier);
 
       const std::set<std::string>& GetIdentifiers() const
