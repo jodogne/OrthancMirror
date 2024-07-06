@@ -523,6 +523,18 @@ namespace Orthanc
     target[EnumerationToString(info.GetContentType())] = u;
   }
 
+
+  static void DebugSetOfStrings(Json::Value& target,
+                                const std::set<std::string>& values)
+  {
+    target = Json::arrayValue;
+    for (std::set<std::string>::const_iterator it = values.begin(); it != values.end(); ++it)
+    {
+      target.append(*it);
+    }
+  }
+
+
   void FindResponse::Resource::DebugExport(Json::Value& target,
                                            const FindRequest& request) const
   {
@@ -575,27 +587,30 @@ namespace Orthanc
       {
         if (request.GetChildrenRetrieveSpecification(levels[i]).IsRetrieveIdentifiers())
         {
-          const std::set<std::string>& ids = GetChildrenInformation(levels[i]).GetIdentifiers();
+          DebugSetOfStrings(target[level]["Identifiers"], GetChildrenInformation(levels[i]).GetIdentifiers());
+        }
 
-          Json::Value v = Json::arrayValue;
-          for (std::set<std::string>::const_iterator it = ids.begin(); it != ids.end(); ++it)
-          {
-            v.append(*it);
-          }
-          target[level]["Identifiers"] = v;
+        const std::set<MetadataType>& metadata = request.GetChildrenRetrieveSpecification(levels[i]).GetMetadata();
+        for (std::set<MetadataType>::const_iterator it = metadata.begin(); it != metadata.end(); ++it)
+        {
+          std::set<std::string> values;
+          GetChildrenInformation(levels[i]).GetMetadataValues(values, *it);
+          DebugSetOfStrings(target[level]["Metadata"][EnumerationToString(*it)], values);
+        }
+
+        const std::set<DicomTag>& tags = request.GetChildrenRetrieveSpecification(levels[i]).GetMainDicomTags();
+        for (std::set<DicomTag>::const_iterator it = tags.begin(); it != tags.end(); ++it)
+        {
+          std::set<std::string> values;
+          GetChildrenInformation(levels[i]).GetMainDicomTagValues(values, *it);
+          DebugSetOfStrings(target[level]["MainDicomTags"][it->Format()], values);
         }
       }
     }
 
     if (request.IsRetrieveLabels())
     {
-      Json::Value v = Json::arrayValue;
-      for (std::set<std::string>::const_iterator it = labels_.begin();
-           it != labels_.end(); ++it)
-      {
-        v.append(*it);
-      }
-      target["Labels"] = v;
+      DebugSetOfStrings(target["Labels"], labels_);
     }
 
     if (request.IsRetrieveAttachments())
