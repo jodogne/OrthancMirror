@@ -142,14 +142,27 @@ namespace Orthanc
   }
 
 
-  std::set<std::string>& FindResponse::Resource::GetChildrenIdentifiers(ResourceType level)
+  void FindResponse::ChildrenInformation::AddIdentifier(const std::string& identifier)
+  {
+    if (identifiers_.find(identifier) == identifiers_.end())
+    {
+      identifiers_.insert(identifier);
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+  }
+
+
+  FindResponse::ChildrenInformation& FindResponse::Resource::GetChildrenInformation(ResourceType level)
   {
     switch (level)
     {
       case ResourceType_Study:
         if (level_ == ResourceType_Patient)
         {
-          return childrenStudiesIdentifiers_;
+          return childrenStudiesInformation_;
         }
         else
         {
@@ -160,7 +173,7 @@ namespace Orthanc
         if (level_ == ResourceType_Patient ||
             level_ == ResourceType_Study)
         {
-          return childrenSeriesIdentifiers_;
+          return childrenSeriesInformation_;
         }
         else
         {
@@ -172,7 +185,7 @@ namespace Orthanc
             level_ == ResourceType_Study ||
             level_ == ResourceType_Series)
         {
-          return childrenInstancesIdentifiers_;
+          return childrenInstancesInformation_;
         }
         else
         {
@@ -181,22 +194,6 @@ namespace Orthanc
 
       default:
         throw OrthancException(ErrorCode_ParameterOutOfRange);
-    }
-  }
-
-
-  void FindResponse::Resource::AddChildIdentifier(ResourceType level,
-                                                  const std::string& identifier)
-  {
-    std::set<std::string>& target = GetChildrenIdentifiers(level);
-
-    if (target.find(identifier) == target.end())
-    {
-      target.insert(identifier);
-    }
-    else
-    {
-      throw OrthancException(ErrorCode_BadSequenceOfCalls);
     }
   }
 
@@ -423,7 +420,7 @@ namespace Orthanc
 
   const std::string& FindResponse::Resource::GetOneInstanceIdentifier() const
   {
-    const std::set<std::string>& instances = GetChildrenIdentifiers(ResourceType_Instance);
+    const std::set<std::string>& instances = GetChildrenInformation(ResourceType_Instance).GetIdentifiers();
 
     if (instances.size() == 0)
     {
@@ -531,7 +528,7 @@ namespace Orthanc
       {
         if (request.GetChildrenRetrieveSpecification(levels[i]).IsRetrieveIdentifiers())
         {
-          const std::set<std::string>& ids = GetChildrenIdentifiers(levels[i]);
+          const std::set<std::string>& ids = GetChildrenInformation(levels[i]).GetIdentifiers();
 
           Json::Value v = Json::arrayValue;
           for (std::set<std::string>::const_iterator it = ids.begin(); it != ids.end(); ++it)
