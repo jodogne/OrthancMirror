@@ -123,7 +123,6 @@ namespace Orthanc
       ChildrenInformation                   childrenInstancesInformation_;
       std::set<std::string>                 labels_;
       std::map<FileContentType, FileInfo>   attachments_;
-      ChildrenMetadata                      childrenMetadata_;  // TODO-FIND: REMOVE
 
       MainDicomTagsAtLevel& GetMainDicomTagsAtLevel(ResourceType level);
 
@@ -148,8 +147,6 @@ namespace Orthanc
         identifier_(identifier)
       {
       }
-
-      ~Resource();
 
       ResourceType GetLevel() const
       {
@@ -268,14 +265,6 @@ namespace Orthanc
       {
         return attachments_;
       }
-
-      // TODO-FIND: REMOVE
-      void AddChildrenMetadata(MetadataType metadata,
-                               const std::list<std::string>& values);
-
-      // TODO-FIND: REMOVE
-      bool LookupChildrenMetadata(std::list<std::string>& values,
-                                  MetadataType metadata) const;
 
       const std::string& GetOneInstanceIdentifier() const;
 

@@ -377,16 +377,6 @@ namespace Orthanc
   }
 
 
-  FindResponse::Resource::~Resource()
-  {
-    for (ChildrenMetadata::iterator it = childrenMetadata_.begin(); it != childrenMetadata_.end(); ++it)
-    {
-      assert(it->second != NULL);
-      delete it->second;
-    }
-  }
-
-
   void FindResponse::Resource::SetParentIdentifier(const std::string& id)
   {
     if (level_ == ResourceType_Patient)
@@ -471,37 +461,6 @@ namespace Orthanc
     else
     {
       return false;
-    }
-  }
-
-
-  void FindResponse::Resource::AddChildrenMetadata(MetadataType metadata,
-                                                   const std::list<std::string>& values)
-  {
-    if (childrenMetadata_.find(metadata) == childrenMetadata_.end())
-    {
-      childrenMetadata_[metadata] = new std::list<std::string>(values);
-    }
-    else
-    {
-      throw OrthancException(ErrorCode_BadSequenceOfCalls);
-    }
-  }
-
-
-  bool FindResponse::Resource::LookupChildrenMetadata(std::list<std::string>& values,
-                                                      MetadataType metadata) const
-  {
-    ChildrenMetadata::const_iterator found = childrenMetadata_.find(metadata);
-    if (found == childrenMetadata_.end())
-    {
-      return false;
-    }
-    else
-    {
-      assert(found->second != NULL);
-      values = *found->second;
-      return true;
     }
   }
 
@@ -655,25 +614,6 @@ namespace Orthanc
         }
       }
       target["Attachments"] = v;
-    }
-
-    for (std::set<MetadataType>::const_iterator it = request.GetRetrieveChildrenMetadata().begin();
-         it != request.GetRetrieveChildrenMetadata().end(); ++it)
-    {
-      std::list<std::string> l;
-      if (LookupChildrenMetadata(l, *it))
-      {
-        Json::Value v = Json::arrayValue;
-        for (std::list<std::string>::const_iterator it2 = l.begin(); it2 != l.end(); ++it2)
-        {
-          v.append(*it2);
-        }
-        target["ChildrenMetadata"][EnumerationToString(*it)] = v;
-      }
-      else
-      {
-        throw OrthancException(ErrorCode_DatabasePlugin);
-      }
     }
 
     if (request.IsRetrieveOneInstanceIdentifier())
