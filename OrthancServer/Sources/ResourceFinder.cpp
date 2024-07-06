@@ -132,15 +132,12 @@ namespace Orthanc
       return SeriesStatus_Unknown;
     }
 
-    std::list<std::string> values;
-    if (!resource.LookupChildrenMetadata(values, MetadataType_Instance_IndexInSeries))
-    {
-      throw OrthancException(ErrorCode_BadSequenceOfCalls);
-    }
+    std::set<std::string> values;
+    resource.GetChildrenMetadataValues(values, ResourceType_Instance, MetadataType_Instance_IndexInSeries);
 
     std::set<int64_t> instances;
 
-    for (std::list<std::string>::const_iterator
+    for (std::set<std::string>::const_iterator
            it = values.begin(); it != values.end(); ++it)
     {
       int64_t index;
@@ -438,7 +435,7 @@ namespace Orthanc
           break;
 
         case ResourceType_Series:
-          request_.AddRetrieveChildrenMetadata(MetadataType_Instance_IndexInSeries); // required for the SeriesStatus
+          request_.GetChildrenRetrieveSpecification(ResourceType_Instance).AddMetadata(MetadataType_Instance_IndexInSeries); // required for the SeriesStatus
           request_.GetChildrenRetrieveSpecification(ResourceType_Instance).SetRetrieveIdentifiers(true);
           request_.SetRetrieveParentIdentifier(true);
           break;

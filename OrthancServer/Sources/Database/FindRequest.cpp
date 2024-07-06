@@ -293,19 +293,6 @@ namespace Orthanc
   }
 
 
-  void FindRequest::AddRetrieveChildrenMetadata(MetadataType metadata)
-  {
-    if (IsRetrieveChildrenMetadata(metadata))
-    {
-      throw OrthancException(ErrorCode_BadSequenceOfCalls);
-    }
-    else
-    {
-      retrieveChildrenMetadata_.insert(metadata);
-    }
-  }
-
-
   void FindRequest::SetRetrieveOneInstanceIdentifier(bool retrieve)
   {
     if (level_ == ResourceType_Instance)

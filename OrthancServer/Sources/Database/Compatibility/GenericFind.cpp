@@ -546,14 +546,6 @@ namespace Orthanc
         }
       }
 
-      for (std::set<MetadataType>::const_iterator it = request.GetRetrieveChildrenMetadata().begin();
-           it != request.GetRetrieveChildrenMetadata().end(); ++it)
-      {
-        std::list<std::string> values;
-        transaction_.GetChildrenMetadata(values, internalId, *it);
-        resource->AddChildrenMetadata(*it, values);
-      }
-
       if (request.IsRetrieveOneInstanceIdentifier() &&
           !request.GetChildrenRetrieveSpecification(ResourceType_Instance).IsRetrieveIdentifiers())
       {
