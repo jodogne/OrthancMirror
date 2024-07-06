@@ -66,6 +66,20 @@ namespace Orthanc
       void Export(DicomMap& target) const;
     };
 
+    class ChildrenInformation : public boost::noncopyable
+    {
+    private:
+      std::set<std::string>  identifiers_;
+
+    public:
+      void AddIdentifier(const std::string& identifier);
+
+      const std::set<std::string>& GetIdentifiers() const
+      {
+        return identifiers_;
+      }
+    };
+
 
   public:
     class Resource : public boost::noncopyable
@@ -85,9 +99,9 @@ namespace Orthanc
       std::map<MetadataType, std::string>   metadataStudy_;
       std::map<MetadataType, std::string>   metadataSeries_;
       std::map<MetadataType, std::string>   metadataInstance_;
-      std::set<std::string>                 childrenStudiesIdentifiers_;
-      std::set<std::string>                 childrenSeriesIdentifiers_;
-      std::set<std::string>                 childrenInstancesIdentifiers_;
+      ChildrenInformation                   childrenStudiesInformation_;
+      ChildrenInformation                   childrenSeriesInformation_;
+      ChildrenInformation                   childrenInstancesInformation_;
       std::set<std::string>                 labels_;
       std::map<FileContentType, FileInfo>   attachments_;
       ChildrenMetadata                      childrenMetadata_;
@@ -99,7 +113,12 @@ namespace Orthanc
         return const_cast<Resource&>(*this).GetMainDicomTagsAtLevel(level);
       }
 
-      std::set<std::string>& GetChildrenIdentifiers(ResourceType level);
+      ChildrenInformation& GetChildrenInformation(ResourceType level);
+
+      const ChildrenInformation& GetChildrenInformation(ResourceType level) const
+      {
+        return const_cast<Resource&>(*this).GetChildrenInformation(level);
+      }
 
     public:
       Resource(ResourceType level,
@@ -171,11 +190,14 @@ namespace Orthanc
                           MetadataType metadata) const;
 
       void AddChildIdentifier(ResourceType level,
-                              const std::string& childId);
+                              const std::string& childId)
+      {
+        GetChildrenInformation(level).AddIdentifier(childId);;
+      }
 
       const std::set<std::string>& GetChildrenIdentifiers(ResourceType level) const
       {
-        return const_cast<Resource&>(*this).GetChildrenIdentifiers(level);
+        return GetChildrenInformation(level).GetIdentifiers();
       }
 
       void AddLabel(const std::string& label);
