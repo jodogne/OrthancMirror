@@ -69,7 +69,12 @@ namespace Orthanc
     class ChildrenInformation : public boost::noncopyable
     {
     private:
+      typedef std::map<MetadataType, std::set<std::string> >  MetadataValues;
+      typedef std::map<DicomTag, std::set<std::string> >      MainDicomTagValues;
+
       std::set<std::string>  identifiers_;
+      MetadataValues         metadataValues_;
+      MainDicomTagValues     mainDicomTagValues_;
 
     public:
       void AddIdentifier(const std::string& identifier);
@@ -78,6 +83,18 @@ namespace Orthanc
       {
         return identifiers_;
       }
+
+      void AddMetadataValue(MetadataType metadata,
+                            const std::string& value);
+
+      void GetMetadataValues(std::set<std::string>& values,
+                             MetadataType metadata) const;
+
+      void AddMainDicomTagValue(const DicomTag& tag,
+                                const std::string& value);
+
+      void GetMainDicomTagValues(std::set<std::string>& values,
+                                 const DicomTag& tag) const;
     };
 
 
@@ -104,7 +121,7 @@ namespace Orthanc
       ChildrenInformation                   childrenInstancesInformation_;
       std::set<std::string>                 labels_;
       std::map<FileContentType, FileInfo>   attachments_;
-      ChildrenMetadata                      childrenMetadata_;
+      ChildrenMetadata                      childrenMetadata_;  // TODO-FIND: REMOVE
 
       MainDicomTagsAtLevel& GetMainDicomTagsAtLevel(ResourceType level);
 
@@ -200,6 +217,34 @@ namespace Orthanc
         return GetChildrenInformation(level).GetIdentifiers();
       }
 
+      void AddChildrenMetadataValue(ResourceType level,
+                                    MetadataType metadata,
+                                    const std::string& value)
+      {
+        GetChildrenInformation(level).AddMetadataValue(metadata, value);
+      }
+
+      void GetChildrenMetadataValues(std::set<std::string>& values,
+                                     ResourceType level,
+                                     MetadataType metadata) const
+      {
+        GetChildrenInformation(level).GetMetadataValues(values, metadata);
+      }
+
+      void AddChildrenMainDicomTagValue(ResourceType level,
+                                        const DicomTag& tag,
+                                        const std::string& value)
+      {
+        GetChildrenInformation(level).AddMainDicomTagValue(tag, value);
+      }
+
+      void GetChildrenMainDicomTagValues(std::set<std::string>& values,
+                                         ResourceType level,
+                                         const DicomTag& tag) const
+      {
+        GetChildrenInformation(level).GetMainDicomTagValues(values, tag);
+      }
+
       void AddLabel(const std::string& label);
 
       std::set<std::string>& GetLabels()
@@ -222,9 +267,11 @@ namespace Orthanc
         return attachments_;
       }
 
+      // TODO-FIND: REMOVE
       void AddChildrenMetadata(MetadataType metadata,
                                const std::list<std::string>& values);
 
+      // TODO-FIND: REMOVE
       bool LookupChildrenMetadata(std::list<std::string>& values,
                                   MetadataType metadata) const;
 

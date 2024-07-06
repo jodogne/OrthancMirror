@@ -497,8 +497,7 @@ namespace Orthanc
 
               for (std::list<std::string>::const_iterator it3 = values.begin(); it3 != values.end(); ++it3)
               {
-                // TODO-FIND - Inject this value in the response
-                printf("[%s]\n", it3->c_str());
+                resource->AddChildrenMetadataValue(childrenLevel, *it, *it3);
               }
             }
           }
@@ -530,8 +529,7 @@ namespace Orthanc
                   std::string value;
                   if (m.LookupStringValue(value, *it2, false /* no binary allowed */))
                   {
-                    // TODO-FIND - Inject this value in the response
-                    printf("<%s>\n", value.c_str());
+                    resource->AddChildrenMainDicomTagValue(childrenLevel, *it2, value);
                   }
                 }
               }

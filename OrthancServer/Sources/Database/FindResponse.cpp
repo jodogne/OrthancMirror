@@ -155,6 +155,74 @@ namespace Orthanc
   }
 
 
+  void FindResponse::ChildrenInformation::AddMetadataValue(MetadataType metadata,
+                                                           const std::string& value)
+  {
+    MetadataValues::iterator found = metadataValues_.find(metadata);
+
+    if (found == metadataValues_.end())
+    {
+      std::set<std::string> s;
+      s.insert(value);
+      metadataValues_[metadata] = s;
+    }
+    else
+    {
+      found->second.insert(value);
+    }
+  }
+
+
+  void FindResponse::ChildrenInformation::GetMetadataValues(std::set<std::string>& values,
+                                                            MetadataType metadata) const
+  {
+    MetadataValues::const_iterator found = metadataValues_.find(metadata);
+
+    if (found == metadataValues_.end())
+    {
+      values.clear();
+    }
+    else
+    {
+      values = found->second;
+    }
+  }
+
+
+  void FindResponse::ChildrenInformation::AddMainDicomTagValue(const DicomTag& tag,
+                                                               const std::string& value)
+  {
+    MainDicomTagValues::iterator found = mainDicomTagValues_.find(tag);
+
+    if (found == mainDicomTagValues_.end())
+    {
+      std::set<std::string> s;
+      s.insert(value);
+      mainDicomTagValues_[tag] = s;
+    }
+    else
+    {
+      found->second.insert(value);
+    }
+  }
+
+
+  void FindResponse::ChildrenInformation::GetMainDicomTagValues(std::set<std::string>& values,
+                                                                const DicomTag& tag) const
+  {
+    MainDicomTagValues::const_iterator found = mainDicomTagValues_.find(tag);
+
+    if (found == mainDicomTagValues_.end())
+    {
+      values.clear();
+    }
+    else
+    {
+      values = found->second;
+    }
+  }
+
+
   FindResponse::ChildrenInformation& FindResponse::Resource::GetChildrenInformation(ResourceType level)
   {
     switch (level)
