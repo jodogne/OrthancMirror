@@ -32,7 +32,7 @@
 
 namespace Orthanc
 {
-  FindRequest::ParentRetrieveSpecification& FindRequest::GetParentRetrieveSpecification(ResourceType level)
+  FindRequest::ParentSpecification& FindRequest::GetParentSpecification(ResourceType level)
   {
     if (!IsResourceLevelAboveOrEqual(level, level_))
     {
@@ -56,7 +56,7 @@ namespace Orthanc
   }
 
 
-  FindRequest::ChildrenRetrieveSpecification& FindRequest::GetChildrenRetrieveSpecification(ResourceType level)
+  FindRequest::ChildrenSpecification& FindRequest::GetChildrenSpecification(ResourceType level)
   {
     if (!IsResourceLevelAboveOrEqual(level_, level))
     {

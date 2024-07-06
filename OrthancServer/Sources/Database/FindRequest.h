@@ -155,14 +155,14 @@ namespace Orthanc
     };
 
 
-    class ParentRetrieveSpecification : public boost::noncopyable
+    class ParentSpecification : public boost::noncopyable
     {
     private:
       bool  mainDicomTags_;
       bool  metadata_;
 
     public:
-      ParentRetrieveSpecification() :
+      ParentSpecification() :
         mainDicomTags_(false),
         metadata_(false)
       {
@@ -195,7 +195,7 @@ namespace Orthanc
     };
 
 
-    class ChildrenRetrieveSpecification : public boost::noncopyable
+    class ChildrenSpecification : public boost::noncopyable
     {
     private:
       bool                    identifiers_;
@@ -203,7 +203,7 @@ namespace Orthanc
       std::set<DicomTag>      mainDicomTags_;
 
     public:
-      ChildrenRetrieveSpecification() :
+      ChildrenSpecification() :
         identifiers_(false)
       {
       }
@@ -263,12 +263,12 @@ namespace Orthanc
     bool                                 retrieveLabels_;
     bool                                 retrieveAttachments_;
     bool                                 retrieveParentIdentifier_;
-    ParentRetrieveSpecification          retrieveParentPatient_;
-    ParentRetrieveSpecification          retrieveParentStudy_;
-    ParentRetrieveSpecification          retrieveParentSeries_;
-    ChildrenRetrieveSpecification        retrieveChildrenStudies_;
-    ChildrenRetrieveSpecification        retrieveChildrenSeries_;
-    ChildrenRetrieveSpecification        retrieveChildrenInstances_;
+    ParentSpecification                  retrieveParentPatient_;
+    ParentSpecification                  retrieveParentStudy_;
+    ParentSpecification                  retrieveParentSeries_;
+    ChildrenSpecification                retrieveChildrenStudies_;
+    ChildrenSpecification                retrieveChildrenSeries_;
+    ChildrenSpecification                retrieveChildrenInstances_;
     bool                                 retrieveOneInstanceIdentifier_;
 
     std::unique_ptr<MainDicomTagsRegistry>  mainDicomTagsRegistry_;
@@ -396,18 +396,18 @@ namespace Orthanc
       return retrieveParentIdentifier_;
     }
 
-    ParentRetrieveSpecification& GetParentRetrieveSpecification(ResourceType level);
+    ParentSpecification& GetParentSpecification(ResourceType level);
 
-    const ParentRetrieveSpecification& GetParentRetrieveSpecification(ResourceType level) const
+    const ParentSpecification& GetParentSpecification(ResourceType level) const
     {
-      return const_cast<FindRequest&>(*this).GetParentRetrieveSpecification(level);
+      return const_cast<FindRequest&>(*this).GetParentSpecification(level);
     }
 
-    ChildrenRetrieveSpecification& GetChildrenRetrieveSpecification(ResourceType level);
+    ChildrenSpecification& GetChildrenSpecification(ResourceType level);
 
-    const ChildrenRetrieveSpecification& GetChildrenRetrieveSpecification(ResourceType level) const
+    const ChildrenSpecification& GetChildrenSpecification(ResourceType level) const
     {
-      return const_cast<FindRequest&>(*this).GetChildrenRetrieveSpecification(level);
+      return const_cast<FindRequest&>(*this).GetChildrenSpecification(level);
     }
 
     void SetRetrieveOneInstanceIdentifier(bool retrieve);
@@ -415,7 +415,7 @@ namespace Orthanc
     bool IsRetrieveOneInstanceIdentifier() const
     {
       return (retrieveOneInstanceIdentifier_ ||
-              GetChildrenRetrieveSpecification(ResourceType_Instance).IsRetrieveIdentifiers());
+              GetChildrenSpecification(ResourceType_Instance).IsRetrieveIdentifiers());
     }
   };
 }
