@@ -3706,23 +3706,25 @@ namespace Orthanc
   void StatelessDatabaseOperations::ExecuteFind(FindResponse& response,
                                                 const FindRequest& request)
   {
-    class IntegratedFind : public ReadOnlyOperationsT2<FindResponse&, const FindRequest&>
+    class IntegratedFind : public ReadOnlyOperationsT3<FindResponse&, const FindRequest&,
+                                                       const IDatabaseWrapper::Capabilities&>
     {
     public:
       virtual void ApplyTuple(ReadOnlyTransaction& transaction,
                               const Tuple& tuple) ORTHANC_OVERRIDE
       {
-        transaction.ExecuteFind(tuple.get<0>(), tuple.get<1>());
+        transaction.ExecuteFind(tuple.get<0>(), tuple.get<1>(), tuple.get<2>());
       }
     };
 
-    class FindStage : public ReadOnlyOperationsT2<std::list<std::string>&, const FindRequest&>
+    class FindStage : public ReadOnlyOperationsT3<std::list<std::string>&, const FindRequest&,
+                                                  const IDatabaseWrapper::Capabilities&>
     {
     public:
       virtual void ApplyTuple(ReadOnlyTransaction& transaction,
                               const Tuple& tuple) ORTHANC_OVERRIDE
       {
-        transaction.ExecuteFind(tuple.get<0>(), tuple.get<1>());
+        transaction.ExecuteFind(tuple.get<0>(), tuple.get<1>(), tuple.get<2>());
       }
     };
 
@@ -3736,6 +3738,8 @@ namespace Orthanc
       }
     };
 
+    IDatabaseWrapper::Capabilities capabilities = db_.GetDatabaseCapabilities();
+
     if (db_.HasIntegratedFind())
     {
       /**
@@ -3743,7 +3747,7 @@ namespace Orthanc
        * executed in one single transaction.
        **/
       IntegratedFind operations;
-      operations.Apply(*this, response, request);
+      operations.Apply(*this, response, request, capabilities);
     }
     else
     {
@@ -3755,7 +3759,7 @@ namespace Orthanc
       std::list<std::string> identifiers;
 
       FindStage find;
-      find.Apply(*this, identifiers, request);
+      find.Apply(*this, identifiers, request, capabilities);
 
       ExpandStage expand;
 

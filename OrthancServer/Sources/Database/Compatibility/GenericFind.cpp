@@ -114,8 +114,15 @@ namespace Orthanc
     }
 
     void GenericFind::ExecuteFind(std::list<std::string>& identifiers,
-                                  const FindRequest& request)
+                                  const FindRequest& request,
+                                  const IDatabaseWrapper::Capabilities& capabilities)
     {
+      if (!request.GetLabels().empty() &&
+          !capabilities.HasLabelsSupport())
+      {
+        throw OrthancException(ErrorCode_NotImplemented, "The database backend doesn't support labels");
+      }
+
       if (IsRequestWithoutContraint(request) &&
           !request.GetOrthancIdentifiers().HasPatientId() &&
           !request.GetOrthancIdentifiers().HasStudyId() &&
@@ -203,7 +210,8 @@ namespace Orthanc
       }
       else
       {
-        throw OrthancException(ErrorCode_NotImplemented);  // Not supported
+        printf("?????????????????????????\n");
+        throw OrthancException(ErrorCode_NotImplemented);
       }
     }
 

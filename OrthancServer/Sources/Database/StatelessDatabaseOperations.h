@@ -392,15 +392,17 @@ namespace Orthanc
       }
 
       void ExecuteFind(FindResponse& response,
-                       const FindRequest& request)
+                       const FindRequest& request,
+                       const IDatabaseWrapper::Capabilities& capabilities)
       {
-        transaction_.ExecuteFind(response, request);
+        transaction_.ExecuteFind(response, request, capabilities);
       }
 
       void ExecuteFind(std::list<std::string>& identifiers,
-                       const FindRequest& request)
+                       const FindRequest& request,
+                       const IDatabaseWrapper::Capabilities& capabilities)
       {
-        transaction_.ExecuteFind(identifiers, request);
+        transaction_.ExecuteFind(identifiers, request, capabilities);
       }
 
       void ExecuteExpand(FindResponse& response,

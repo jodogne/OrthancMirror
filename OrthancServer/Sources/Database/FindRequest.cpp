@@ -85,6 +85,7 @@ namespace Orthanc
     hasLimits_(false),
     limitsSince_(0),
     limitsCount_(0),
+    labelsConstraint_(LabelsConstraint_All),
     retrieveMainDicomTags_(false),
     retrieveMetadata_(false),
     retrieveLabels_(false),
