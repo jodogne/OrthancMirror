@@ -39,13 +39,14 @@ namespace Orthanc
                                  int64_t internalId);
 
     public:
-      GenericFind(IDatabaseWrapper::ITransaction& transaction) :
+      explicit GenericFind(IDatabaseWrapper::ITransaction& transaction) :
         transaction_(transaction)
       {
       }
 
       void ExecuteFind(std::list<std::string>& identifiers,
-                       const FindRequest& request);
+                       const FindRequest& request,
+                       const IDatabaseWrapper::Capabilities& capabilities);
 
       void ExecuteExpand(FindResponse& response,
                          const FindRequest& request,

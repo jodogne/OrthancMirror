@@ -49,10 +49,12 @@ namespace Orthanc
                                           int64_t& uncompressedSize) ORTHANC_OVERRIDE;
 
       virtual void ExecuteFind(FindResponse& response,
-                               const FindRequest& request) ORTHANC_OVERRIDE;
+                               const FindRequest& request,
+                               const Capabilities& capabilities) ORTHANC_OVERRIDE;
 
       virtual void ExecuteFind(std::list<std::string>& identifiers,
-                               const FindRequest& request) ORTHANC_OVERRIDE;
+                               const FindRequest& request,
+                               const Capabilities& capabilities) ORTHANC_OVERRIDE;
 
       virtual void ExecuteExpand(FindResponse& response,
                                  const FindRequest& request,

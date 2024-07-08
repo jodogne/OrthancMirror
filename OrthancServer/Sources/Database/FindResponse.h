@@ -208,7 +208,7 @@ namespace Orthanc
       void AddChildIdentifier(ResourceType level,
                               const std::string& childId)
       {
-        GetChildrenInformation(level).AddIdentifier(childId);;
+        GetChildrenInformation(level).AddIdentifier(childId);
       }
 
       const std::set<std::string>& GetChildrenIdentifiers(ResourceType level) const

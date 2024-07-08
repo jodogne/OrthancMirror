@@ -111,6 +111,16 @@ namespace Orthanc
 
     void AddRequestedTags(const std::set<DicomTag>& tags);
 
+    void AddLabel(const std::string& label)
+    {
+      request_.AddLabel(label);
+    }
+
+    void SetLabelsConstraint(LabelsConstraint constraint)
+    {
+      request_.SetLabelsConstraint(constraint);
+    }
+
     void Execute(Json::Value& target,
                  ServerContext& context) const;
 

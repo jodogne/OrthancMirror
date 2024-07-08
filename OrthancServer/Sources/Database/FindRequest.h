@@ -255,7 +255,7 @@ namespace Orthanc
     uint64_t                             limitsSince_;
     uint64_t                             limitsCount_;
     std::set<std::string>                labels_;
-    LabelsConstraint                     labelsContraint_;
+    LabelsConstraint                     labelsConstraint_;
     std::deque<Ordering*>                ordering_;             // The ordering criteria (note: the order is important !)
 
     bool                                 retrieveMainDicomTags_;
@@ -346,7 +346,12 @@ namespace Orthanc
 
     LabelsConstraint GetLabelsConstraint() const
     {
-      return labelsContraint_;
+      return labelsConstraint_;
+    }
+
+    void SetLabelsConstraint(LabelsConstraint constraint)
+    {
+      labelsConstraint_ = constraint;
     }
 
     void SetRetrieveMainDicomTags(bool retrieve)

@@ -275,7 +275,7 @@ namespace Orthanc
     else
     {
       /**
-       * VERSION IN ORTHANC <= 1.12.3
+       * VERSION IN ORTHANC <= 1.12.4
        **/
 
       std::list<std::string> result;
@@ -362,7 +362,7 @@ namespace Orthanc
     else
     {
       /**
-       * VERSION IN ORTHANC <= 1.12.3
+       * VERSION IN ORTHANC <= 1.12.4
        **/
 
       Json::Value json;
@@ -3329,8 +3329,109 @@ namespace Orthanc
       throw OrthancException(ErrorCode_BadRequest, 
                              "Field \"" + std::string(KEY_LABELS_CONSTRAINT) + "\" must be an array of strings");
     }
+    else if (false)
+    {
+      /**
+       * EXPERIMENTAL VERSION
+       **/
+
+      bool expand = false;
+      if (request.isMember(KEY_EXPAND))
+      {
+        expand = request[KEY_EXPAND].asBool();
+      }
+
+      const ResourceType level = StringToResourceType(request[KEY_LEVEL].asCString());
+
+      ResourceFinder finder(level, expand);
+      finder.SetFormat(OrthancRestApi::GetDicomFormat(request, DicomToJsonFormat_Human));
+
+      size_t limit = 0;
+      if (request.isMember(KEY_LIMIT))
+      {
+        int tmp = request[KEY_LIMIT].asInt();
+        if (tmp < 0)
+        {
+          throw OrthancException(ErrorCode_ParameterOutOfRange,
+                                 "Field \"" + std::string(KEY_LIMIT) + "\" must be a positive integer");
+        }
+
+        limit = static_cast<size_t>(tmp);
+      }
+
+      size_t since = 0;
+      if (request.isMember(KEY_SINCE))
+      {
+        int tmp = request[KEY_SINCE].asInt();
+        if (tmp < 0)
+        {
+          throw OrthancException(ErrorCode_ParameterOutOfRange,
+                                 "Field \"" + std::string(KEY_SINCE) + "\" must be a positive integer");
+        }
+
+        since = static_cast<size_t>(tmp);
+      }
+
+      if (request.isMember(KEY_LIMIT) ||
+          request.isMember(KEY_SINCE))
+      {
+        finder.SetLimits(since, limit);
+      }
+
+      if (request.isMember(KEY_REQUESTED_TAGS))
+      {
+        std::set<DicomTag> requestedTags;
+        FromDcmtkBridge::ParseListOfTags(requestedTags, request[KEY_REQUESTED_TAGS]);
+        finder.AddRequestedTags(requestedTags);
+      }
+
+      if (request.isMember(KEY_LABELS))  // New in Orthanc 1.12.0
+      {
+        for (Json::Value::ArrayIndex i = 0; i < request[KEY_LABELS].size(); i++)
+        {
+          if (request[KEY_LABELS][i].type() != Json::stringValue)
+          {
+            throw OrthancException(ErrorCode_BadRequest, "Field \"" + std::string(KEY_LABELS) + "\" must contain strings");
+          }
+          else
+          {
+            finder.AddLabel(request[KEY_LABELS][i].asString());
+          }
+        }
+      }
+
+      finder.SetLabelsConstraint(LabelsConstraint_All);
+
+      if (request.isMember(KEY_LABELS_CONSTRAINT))
+      {
+        const std::string& s = request[KEY_LABELS_CONSTRAINT].asString();
+        if (s == "All")
+        {
+          finder.SetLabelsConstraint(LabelsConstraint_All);
+        }
+        else if (s == "Any")
+        {
+          finder.SetLabelsConstraint(LabelsConstraint_Any);
+        }
+        else if (s == "None")
+        {
+          finder.SetLabelsConstraint(LabelsConstraint_None);
+        }
+        else
+        {
+          throw OrthancException(ErrorCode_BadRequest, "Field \"" + std::string(KEY_LABELS_CONSTRAINT) + "\" must be \"All\", \"Any\", or \"None\"");
+        }
+      }
+
+      Json::Value answer;
+      finder.Execute(answer, context);
+      call.GetOutput().AnswerJson(answer);
+    }
     else
     {
+      /**
+       * VERSION IN ORTHANC <= 1.12.4
+       **/
       bool expand = false;
       if (request.isMember(KEY_EXPAND))
       {
@@ -3499,7 +3600,7 @@ namespace Orthanc
     else
     {
       /**
-       * VERSION IN ORTHANC <= 1.12.3
+       * VERSION IN ORTHANC <= 1.12.4
        **/
       std::list<std::string> a, b, c;
       a.push_back(call.GetUriComponent("id", ""));
