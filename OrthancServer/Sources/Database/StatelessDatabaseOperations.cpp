@@ -377,15 +377,6 @@ namespace Orthanc
       }
     }
 
-  public:
-    MainDicomTagsRegistry()
-    {
-      LoadTags(ResourceType_Patient);
-      LoadTags(ResourceType_Study);
-      LoadTags(ResourceType_Series);
-      LoadTags(ResourceType_Instance); 
-    }
-
     void LookupTag(ResourceType& level,
                    DicomTagType& type,
                    const DicomTag& tag) const
@@ -402,6 +393,44 @@ namespace Orthanc
       {
         level = it->second.GetLevel();
         type = it->second.GetType();
+      }
+    }
+
+  public:
+    MainDicomTagsRegistry()
+    {
+      LoadTags(ResourceType_Patient);
+      LoadTags(ResourceType_Study);
+      LoadTags(ResourceType_Series);
+      LoadTags(ResourceType_Instance);
+    }
+
+    void NormalizeLookup(std::vector<DatabaseConstraint>& target,
+                         const DatabaseLookup& source,
+                         ResourceType queryLevel) const
+    {
+      target.clear();
+      target.reserve(source.GetConstraintsCount());
+
+      for (size_t i = 0; i < source.GetConstraintsCount(); i++)
+      {
+        ResourceType level;
+        DicomTagType type;
+
+        LookupTag(level, type, source.GetConstraint(i).GetTag());
+
+        if (type == DicomTagType_Identifier ||
+            type == DicomTagType_Main)
+        {
+          // Use the fact that patient-level tags are copied at the study level
+          if (level == ResourceType_Patient &&
+              queryLevel != ResourceType_Patient)
+          {
+            level = ResourceType_Study;
+          }
+
+          target.push_back(source.GetConstraint(i).ConvertToDatabaseConstraint(level, type));
+        }
       }
     }
   };
@@ -467,38 +496,6 @@ namespace Orthanc
     else
     {
       return SeriesStatus_Missing;
-    }
-  }
-
-
-  void StatelessDatabaseOperations::NormalizeLookup(std::vector<DatabaseConstraint>& target,
-                                                    const DatabaseLookup& source,
-                                                    ResourceType queryLevel) const
-  {
-    assert(mainDicomTagsRegistry_.get() != NULL);
-
-    target.clear();
-    target.reserve(source.GetConstraintsCount());
-
-    for (size_t i = 0; i < source.GetConstraintsCount(); i++)
-    {
-      ResourceType level;
-      DicomTagType type;
-      
-      mainDicomTagsRegistry_->LookupTag(level, type, source.GetConstraint(i).GetTag());
-
-      if (type == DicomTagType_Identifier ||
-          type == DicomTagType_Main)
-      {
-        // Use the fact that patient-level tags are copied at the study level
-        if (level == ResourceType_Patient &&
-            queryLevel != ResourceType_Patient)
-        {
-          level = ResourceType_Study;
-        }
-        
-        target.push_back(source.GetConstraint(i).ConvertToDatabaseConstraint(level, type));
-      }
     }
   }
 
@@ -2036,7 +2033,9 @@ namespace Orthanc
     }
 
     std::vector<DatabaseConstraint> normalized;
-    NormalizeLookup(normalized, lookup, queryLevel);
+
+    assert(mainDicomTagsRegistry_.get() != NULL);
+    mainDicomTagsRegistry_->NormalizeLookup(normalized, lookup, queryLevel);
 
     Operations operations;
     operations.Apply(*this, (instancesId != NULL), normalized, queryLevel, labels, labelsConstraint, limit);
