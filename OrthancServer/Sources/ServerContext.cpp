@@ -1570,7 +1570,7 @@ namespace Orthanc
         finder.SetLimits(0, databaseLimit + 1);
       }
 
-      finder.SetDatabaseLookup(*fastLookup);
+      finder.SetDatabaseLookup(lookup);
       finder.SetLabels(labels);
       finder.SetLabelsConstraint(labelsConstraint);
 

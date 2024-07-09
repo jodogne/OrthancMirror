@@ -36,6 +36,19 @@
 
 namespace Orthanc
 {
+  static bool IsComputedTag(const DicomTag& tag)
+  {
+    return (tag == DICOM_TAG_NUMBER_OF_PATIENT_RELATED_STUDIES ||
+            tag == DICOM_TAG_NUMBER_OF_PATIENT_RELATED_SERIES ||
+            tag == DICOM_TAG_NUMBER_OF_PATIENT_RELATED_INSTANCES ||
+            tag == DICOM_TAG_NUMBER_OF_STUDY_RELATED_SERIES ||
+            tag == DICOM_TAG_NUMBER_OF_STUDY_RELATED_INSTANCES ||
+            tag == DICOM_TAG_NUMBER_OF_SERIES_RELATED_INSTANCES ||
+            tag == DICOM_TAG_SOP_CLASSES_IN_STUDY ||
+            tag == DICOM_TAG_MODALITIES_IN_STUDY ||
+            tag == DICOM_TAG_INSTANCE_AVAILABILITY);
+  }
+
   void ResourceFinder::ConfigureChildrenCountComputedTag(DicomTag tag,
                                                          ResourceType parentLevel,
                                                          ResourceType childLevel)
@@ -455,12 +468,32 @@ namespace Orthanc
 
   void ResourceFinder::SetDatabaseLookup(const DatabaseLookup& lookup)
   {
+    lookup_.reset(lookup.Clone());
+
+    for (size_t i = 0; i < lookup.GetConstraintsCount(); i++)
+    {
+      DicomTag tag = lookup.GetConstraint(i).GetTag();
+      if (IsComputedTag(tag))
+      {
+        AddRequestedTag(tag);
+      }
+    }
+
     MainDicomTagsRegistry registry;
     registry.NormalizeLookup(request_.GetDicomTagConstraints(), lookup, request_.GetLevel());
+
+    // Sanity check
+    for (size_t i = 0; i < request_.GetDicomTagConstraints().GetSize(); i++)
+    {
+      if (IsComputedTag(request_.GetDicomTagConstraints().GetConstraint(i).GetTag()))
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+    }
   }
 
 
-  void ResourceFinder::AddRequestedTags(const DicomTag& tag)
+  void ResourceFinder::AddRequestedTag(const DicomTag& tag)
   {
     if (DicomMap::IsMainDicomTag(tag, ResourceType_Patient))
     {
@@ -602,7 +635,7 @@ namespace Orthanc
   {
     for (std::set<DicomTag>::const_iterator it = tags.begin(); it != tags.end(); ++it)
     {
-      AddRequestedTags(*it);
+      AddRequestedTag(*it);
     }
   }
 
@@ -711,14 +744,7 @@ namespace Orthanc
   void ResourceFinder::Execute(FindResponse& response,
                                ServerIndex& index) const
   {
-    if (hasRequestedTags_)
-    {
-      throw OrthancException(ErrorCode_BadSequenceOfCalls);
-    }
-    else
-    {
-      index.ExecuteFind(response, request_);
-    }
+    index.ExecuteFind(response, request_);
   }
 
   
@@ -734,45 +760,62 @@ namespace Orthanc
     {
       const FindResponse::Resource& resource = response.GetResourceByIndex(i);
 
-      if (expand_)
+      DicomMap requestedTags;
+
+      if (hasRequestedTags_)
       {
-        Json::Value item;
-        Expand(item, resource, context.GetIndex());
+        InjectComputedTags(requestedTags, resource);
 
-        if (hasRequestedTags_)
+        std::set<DicomTag> missingTags = requestedTagsFromFileStorage_;
+        InjectRequestedTags(requestedTags, missingTags, resource, ResourceType_Patient, requestedPatientTags_);
+        InjectRequestedTags(requestedTags, missingTags, resource, ResourceType_Study, requestedStudyTags_);
+        InjectRequestedTags(requestedTags, missingTags, resource, ResourceType_Series, requestedSeriesTags_);
+        InjectRequestedTags(requestedTags, missingTags, resource, ResourceType_Instance, requestedInstanceTags_);
+
+        if (!missingTags.empty())
         {
-          DicomMap requestedTags;
-          InjectComputedTags(requestedTags, resource);
-
-          std::set<DicomTag> missingTags = requestedTagsFromFileStorage_;
-          InjectRequestedTags(requestedTags, missingTags, resource, ResourceType_Patient, requestedPatientTags_);
-          InjectRequestedTags(requestedTags, missingTags, resource, ResourceType_Study, requestedStudyTags_);
-          InjectRequestedTags(requestedTags, missingTags, resource, ResourceType_Series, requestedSeriesTags_);
-          InjectRequestedTags(requestedTags, missingTags, resource, ResourceType_Instance, requestedInstanceTags_);
-
-          if (!missingTags.empty())
+          if (!allowStorageAccess_)
           {
-            if (!allowStorageAccess_)
-            {
-              throw OrthancException(ErrorCode_BadSequenceOfCalls,
-                                     "Cannot add missing requested tags, as access to file storage is disallowed");
-            }
-            else
-            {
-              ReadMissingTagsFromStorageArea(requestedTags, context, request_, resource, missingTags);
-            }
+            throw OrthancException(ErrorCode_BadSequenceOfCalls,
+                                   "Cannot add missing requested tags, as access to file storage is disallowed");
+          }
+          else
+          {
+            ReadMissingTagsFromStorageArea(requestedTags, context, request_, resource, missingTags);
+          }
+        }
+      }
+
+      bool match = true;
+
+      if (lookup_.get() != NULL)
+      {
+        DicomMap tags;
+        resource.GetMainDicomTags(tags, request_.GetLevel());
+        tags.Merge(requestedTags);
+        match = lookup_->IsMatch(tags);
+      }
+
+      if (match)
+      {
+        if (expand_)
+        {
+          Json::Value item;
+          Expand(item, resource, context.GetIndex());
+
+          if (hasRequestedTags_)
+          {
+            static const char* const REQUESTED_TAGS = "RequestedTags";
+            item[REQUESTED_TAGS] = Json::objectValue;
+            FromDcmtkBridge::ToJson(item[REQUESTED_TAGS], requestedTags, format_);
           }
 
-          static const char* const REQUESTED_TAGS = "RequestedTags";
-          item[REQUESTED_TAGS] = Json::objectValue;
-          FromDcmtkBridge::ToJson(item[REQUESTED_TAGS], requestedTags, format_);
+          target.append(item);
         }
-
-        target.append(item);
-      }
-      else
-      {
-        target.append(resource.GetIdentifier());
+        else
+        {
+          target.append(resource.GetIdentifier());
+        }
       }
     }
   }
