@@ -35,18 +35,19 @@ namespace Orthanc
   class ResourceFinder : public boost::noncopyable
   {
   private:
-    FindRequest        request_;
-    bool               expand_;
-    DicomToJsonFormat  format_;
-    bool               allowStorageAccess_;
-    bool               hasRequestedTags_;
-    std::set<DicomTag> requestedPatientTags_;
-    std::set<DicomTag> requestedStudyTags_;
-    std::set<DicomTag> requestedSeriesTags_;
-    std::set<DicomTag> requestedInstanceTags_;
-    std::set<DicomTag> requestedTagsFromFileStorage_;
-    std::set<DicomTag> requestedComputedTags_;
-    bool               includeAllMetadata_;   // Same as: ExpandResourceFlags_IncludeAllMetadata
+    FindRequest                      request_;
+    std::unique_ptr<DatabaseLookup>  lookup_;
+    bool                             expand_;
+    DicomToJsonFormat                format_;
+    bool                             allowStorageAccess_;
+    bool                             hasRequestedTags_;
+    std::set<DicomTag>               requestedPatientTags_;
+    std::set<DicomTag>               requestedStudyTags_;
+    std::set<DicomTag>               requestedSeriesTags_;
+    std::set<DicomTag>               requestedInstanceTags_;
+    std::set<DicomTag>               requestedTagsFromFileStorage_;
+    std::set<DicomTag>               requestedComputedTags_;
+    bool                             includeAllMetadata_;   // Same as: ExpandResourceFlags_IncludeAllMetadata
 
     bool IsRequestedComputedTag(const DicomTag& tag) const
     {
@@ -110,7 +111,7 @@ namespace Orthanc
       includeAllMetadata_ = include;
     }
 
-    void AddRequestedTags(const DicomTag& tag);
+    void AddRequestedTag(const DicomTag& tag);
 
     void AddRequestedTags(const std::set<DicomTag>& tags);
 
