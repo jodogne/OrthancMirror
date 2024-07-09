@@ -132,9 +132,9 @@ namespace Orthanc
 
 
   SeriesStatus ResourceFinder::GetSeriesStatus(uint32_t& expectedNumberOfInstances,
-                                               const FindResponse::Resource& resource) const
+                                               const FindResponse::Resource& resource)
   {
-    if (request_.GetLevel() != ResourceType_Series)
+    if (resource.GetLevel() != ResourceType_Series)
     {
       throw OrthancException(ErrorCode_BadParameterType);
     }
@@ -194,7 +194,7 @@ namespace Orthanc
   {
     /**
      * This method closely follows "SerializeExpandedResource()" in
-     * "ServerContext.cpp" from Orthanc 1.12.3.
+     * "ServerContext.cpp" from Orthanc 1.12.4.
      **/
 
     if (resource.GetLevel() != request_.GetLevel())

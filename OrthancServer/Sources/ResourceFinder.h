@@ -83,8 +83,8 @@ namespace Orthanc
                                         const FindResponse::Resource& resource,
                                         ResourceType level) const;
 
-    SeriesStatus GetSeriesStatus(uint32_t& expectedNumberOfInstances,
-                                 const FindResponse::Resource& resource) const;
+    static SeriesStatus GetSeriesStatus(uint32_t& expectedNumberOfInstances,
+                                        const FindResponse::Resource& resource);
 
     void InjectComputedTags(DicomMap& requestedTags,
                             const FindResponse::Resource& resource) const;
