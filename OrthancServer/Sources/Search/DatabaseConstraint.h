@@ -178,5 +178,7 @@ namespace Orthanc
     }
 
     const DatabaseConstraint& GetConstraint(size_t index) const;
+
+    std::string Format() const;
   };
 }

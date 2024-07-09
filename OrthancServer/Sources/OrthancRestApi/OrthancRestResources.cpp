@@ -3329,7 +3329,7 @@ namespace Orthanc
       throw OrthancException(ErrorCode_BadRequest, 
                              "Field \"" + std::string(KEY_LABELS_CONSTRAINT) + "\" must be an array of strings");
     }
-    else if (false)
+    else if (true)
     {
       /**
        * EXPERIMENTAL VERSION
@@ -3377,6 +3377,39 @@ namespace Orthanc
           request.isMember(KEY_SINCE))
       {
         finder.SetLimits(since, limit);
+      }
+
+      {
+        bool caseSensitive = false;
+        if (request.isMember(KEY_CASE_SENSITIVE))
+        {
+          caseSensitive = request[KEY_CASE_SENSITIVE].asBool();
+        }
+
+        DatabaseLookup query;
+
+        Json::Value::Members members = request[KEY_QUERY].getMemberNames();
+        for (size_t i = 0; i < members.size(); i++)
+        {
+          if (request[KEY_QUERY][members[i]].type() != Json::stringValue)
+          {
+            throw OrthancException(ErrorCode_BadRequest,
+                                   "Tag \"" + members[i] + "\" must be associated with a string");
+          }
+
+          const std::string value = request[KEY_QUERY][members[i]].asString();
+
+          if (!value.empty())
+          {
+            // An empty string corresponds to an universal constraint,
+            // so we ignore it. This mimics the behavior of class
+            // "OrthancFindRequestHandler"
+            query.AddRestConstraint(FromDcmtkBridge::ParseTag(members[i]),
+                                    value, caseSensitive, true);
+          }
+        }
+
+        finder.SetDatabaseLookup(query);
       }
 
       if (request.isMember(KEY_REQUESTED_TAGS))

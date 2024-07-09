@@ -190,6 +190,8 @@ namespace Orthanc
         GetMainDicomTagsAtLevel(level).Export(target);
       }
 
+      void GetAllMainDicomTags(DicomMap& target) const;
+
       void AddMetadata(ResourceType level,
                        MetadataType metadata,
                        const std::string& value);

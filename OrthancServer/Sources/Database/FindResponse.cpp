@@ -313,6 +313,30 @@ namespace Orthanc
   }
 
 
+  void FindResponse::Resource::GetAllMainDicomTags(DicomMap& target) const
+  {
+    switch (level_)
+    {
+      // Don't reorder or add "break" below
+      case ResourceType_Instance:
+        mainDicomTagsInstance_.Export(target);
+
+      case ResourceType_Series:
+        mainDicomTagsSeries_.Export(target);
+
+      case ResourceType_Study:
+        mainDicomTagsStudy_.Export(target);
+
+      case ResourceType_Patient:
+        mainDicomTagsPatient_.Export(target);
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+
   void FindResponse::Resource::AddMetadata(ResourceType level,
                                            MetadataType metadata,
                                            const std::string& value)
