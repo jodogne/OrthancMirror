@@ -475,7 +475,10 @@ namespace Orthanc
   }
 
 
-  void ISqlLookupFormatter::GetLookupLevels(ResourceType& lowerLevel, ResourceType& upperLevel, const ResourceType& queryLevel, const std::vector<DatabaseConstraint>& lookup)
+  void ISqlLookupFormatter::GetLookupLevels(ResourceType& lowerLevel,
+                                            ResourceType& upperLevel,
+                                            const ResourceType& queryLevel,
+                                            const DatabaseConstraints& lookup)
   {
     assert(ResourceType_Patient < ResourceType_Study &&
            ResourceType_Study < ResourceType_Series &&
@@ -484,9 +487,9 @@ namespace Orthanc
     lowerLevel = queryLevel;
     upperLevel = queryLevel;
 
-    for (size_t i = 0; i < lookup.size(); i++)
+    for (size_t i = 0; i < lookup.GetSize(); i++)
     {
-      ResourceType level = lookup[i].GetLevel();
+      ResourceType level = lookup.GetConstraint(i).GetLevel();
 
       if (level < upperLevel)
       {
@@ -503,7 +506,7 @@ namespace Orthanc
 
   void ISqlLookupFormatter::Apply(std::string& sql,
                                   ISqlLookupFormatter& formatter,
-                                  const std::vector<DatabaseConstraint>& lookup,
+                                  const DatabaseConstraints& lookup,
                                   ResourceType queryLevel,
                                   const std::set<std::string>& labels,
                                   LabelsConstraint labelsConstraint,
@@ -521,14 +524,16 @@ namespace Orthanc
 
     size_t count = 0;
     
-    for (size_t i = 0; i < lookup.size(); i++)
+    for (size_t i = 0; i < lookup.GetSize(); i++)
     {
+      const DatabaseConstraint& constraint = lookup.GetConstraint(i);
+
       std::string comparison;
       
-      if (FormatComparison(comparison, formatter, lookup[i], count, escapeBrackets))
+      if (FormatComparison(comparison, formatter, constraint, count, escapeBrackets))
       {
         std::string join;
-        FormatJoin(join, lookup[i], count);
+        FormatJoin(join, constraint, count);
         joins += join;
 
         if (!comparison.empty())
@@ -614,7 +619,7 @@ namespace Orthanc
 
   void ISqlLookupFormatter::ApplySingleLevel(std::string& sql,
                                              ISqlLookupFormatter& formatter,
-                                             const std::vector<DatabaseConstraint>& lookup,
+                                             const DatabaseConstraints& lookup,
                                              ResourceType queryLevel,
                                              const std::set<std::string>& labels,
                                              LabelsConstraint labelsConstraint,
@@ -631,15 +636,17 @@ namespace Orthanc
     
     std::vector<std::string> mainDicomTagsComparisons, dicomIdentifiersComparisons;
 
-    for (size_t i = 0; i < lookup.size(); i++)
+    for (size_t i = 0; i < lookup.GetSize(); i++)
     {
+      const DatabaseConstraint& constraint = lookup.GetConstraint(i);
+
       std::string comparison;
       
-      if (FormatComparison2(comparison, formatter, lookup[i], escapeBrackets))
+      if (FormatComparison2(comparison, formatter, constraint, escapeBrackets))
       {
         if (!comparison.empty())
         {
-          if (lookup[i].IsIdentifier())
+          if (constraint.IsIdentifier())
           {
             dicomIdentifiersComparisons.push_back(comparison);
           }
