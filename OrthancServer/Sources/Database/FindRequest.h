@@ -335,6 +335,11 @@ namespace Orthanc
       return ordering_;
     }
 
+    void SetLabels(const std::set<std::string>& labels)
+    {
+      labels_ = labels;
+    }
+
     void AddLabel(const std::string& label)
     {
       labels_.insert(label);

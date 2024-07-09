@@ -208,9 +208,15 @@ namespace Orthanc
       {
         GetChildrenIdentifiers(identifiers, transaction_, request.GetOrthancIdentifiers(), ResourceType_Series, request.GetLevel());
       }
+      else if (request.GetMetadataConstraintsCount() == 0 &&
+               request.GetOrdering().empty())
+      {
+        transaction_.ApplyLookupResources(identifiers, NULL /* TODO-FIND: Could the "instancesId" information be exploited? */,
+                                          request.GetDicomTagConstraints(), request.GetLevel(), request.GetLabels(),
+                                          request.GetLabelsConstraint(), request.HasLimits() ? request.GetLimitsCount() : 0);
+      }
       else
       {
-        printf("?????????????????????????\n");
         throw OrthancException(ErrorCode_NotImplemented);
       }
     }

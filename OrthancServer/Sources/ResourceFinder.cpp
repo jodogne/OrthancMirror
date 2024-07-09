@@ -29,6 +29,7 @@
 #include "../../OrthancFramework/Sources/OrthancException.h"
 #include "../../OrthancFramework/Sources/SerializationToolbox.h"
 #include "OrthancConfiguration.h"
+#include "Search/DatabaseLookup.h"
 #include "ServerContext.h"
 #include "ServerIndex.h"
 
@@ -452,6 +453,13 @@ namespace Orthanc
   }
 
 
+  void ResourceFinder::SetDatabaseLookup(const DatabaseLookup& lookup)
+  {
+    MainDicomTagsRegistry registry;
+    registry.NormalizeLookup(request_.GetDicomTagConstraints(), lookup, request_.GetLevel());
+  }
+
+
   void ResourceFinder::AddRequestedTags(const DicomTag& tag)
   {
     if (DicomMap::IsMainDicomTag(tag, ResourceType_Patient))
@@ -700,6 +708,20 @@ namespace Orthanc
   }
 
 
+  void ResourceFinder::Execute(FindResponse& response,
+                               ServerIndex& index) const
+  {
+    if (hasRequestedTags_)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    else
+    {
+      index.ExecuteFind(response, request_);
+    }
+  }
+
+  
   void ResourceFinder::Execute(Json::Value& target,
                                ServerContext& context) const
   {
@@ -711,12 +733,6 @@ namespace Orthanc
     for (size_t i = 0; i < response.GetSize(); i++)
     {
       const FindResponse::Resource& resource = response.GetResourceByIndex(i);
-
-      {
-        Json::Value v;
-        resource.DebugExport(v, request_);
-        std::cout << v.toStyledString();
-      }
 
       if (expand_)
       {

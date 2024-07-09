@@ -28,6 +28,7 @@
 
 namespace Orthanc
 {
+  class DatabaseLookup;
   class ServerContext;
   class ServerIndex;
 
@@ -102,6 +103,8 @@ namespace Orthanc
       request_.SetLimits(since, count);
     }
 
+    void SetDatabaseLookup(const DatabaseLookup& lookup);
+
     void SetIncludeAllMetadata(bool include)
     {
       includeAllMetadata_ = include;
@@ -110,6 +113,11 @@ namespace Orthanc
     void AddRequestedTags(const DicomTag& tag);
 
     void AddRequestedTags(const std::set<DicomTag>& tags);
+
+    void SetLabels(const std::set<std::string>& labels)
+    {
+      request_.SetLabels(labels);
+    }
 
     void AddLabel(const std::string& label)
     {
@@ -120,6 +128,14 @@ namespace Orthanc
     {
       request_.SetLabelsConstraint(constraint);
     }
+
+    void SetRetrieveOneInstanceIdentifier(bool retrieve)
+    {
+      request_.SetRetrieveOneInstanceIdentifier(retrieve);
+    }
+
+    void Execute(FindResponse& target,
+                 ServerIndex& index) const;
 
     void Execute(Json::Value& target,
                  ServerContext& context) const;

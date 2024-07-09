@@ -42,6 +42,7 @@
 
 #include "OrthancConfiguration.h"
 #include "OrthancRestApi/OrthancRestApi.h"
+#include "ResourceFinder.h"
 #include "Search/DatabaseLookup.h"
 #include "ServerJobs/OrthancJobUnserializer.h"
 #include "ServerToolbox.h"
@@ -1554,8 +1555,52 @@ namespace Orthanc
       fastLookup->RemoveConstraint(DICOM_TAG_MODALITIES_IN_STUDY);
     }
 
+    const size_t lookupLimit = (databaseLimit == 0 ? 0 : databaseLimit + 1);
+
+    if (false)
     {
-      const size_t lookupLimit = (databaseLimit == 0 ? 0 : databaseLimit + 1);
+      /**
+       * EXPERIMENTAL VERSION
+       **/
+
+      ResourceFinder finder(queryLevel, false /* TODO-FIND: don't expand for now */);
+      finder.SetLimits(0, lookupLimit);
+      finder.SetDatabaseLookup(*fastLookup);
+      finder.SetLabels(lookup.GetLabels());
+      finder.SetLabelsConstraint(lookup.GetLabelsConstraint());
+
+      if (queryLevel != ResourceType_Instance)
+      {
+        finder.SetRetrieveOneInstanceIdentifier(true);
+      }
+
+      FindResponse response;
+      finder.Execute(response, GetIndex());
+
+      resources.resize(response.GetSize());
+      instances.resize(response.GetSize());
+
+      for (size_t i = 0; i < response.GetSize(); i++)
+      {
+        const FindResponse::Resource& resource = response.GetResourceByIndex(i);
+        resources[i] = resource.GetIdentifier();
+
+        if (queryLevel == ResourceType_Instance)
+        {
+          instances[i] = resource.GetIdentifier();
+        }
+        else
+        {
+          instances[i] = resource.GetOneInstanceIdentifier();
+        }
+      }
+    }
+    else
+    {
+      /**
+       * VERSION IN ORTHANC <= 1.12.4
+       **/
+
       GetIndex().ApplyLookupResources(resources, &instances, *fastLookup, queryLevel,
                                       lookup.GetLabels(), lookup.GetLabelsConstraint(), lookupLimit);
     }
