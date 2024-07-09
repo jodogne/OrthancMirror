@@ -185,16 +185,9 @@ namespace Orthanc
   void FindRequest::SetLimits(uint64_t since,
                               uint64_t count)
   {
-    if (hasLimits_)
-    {
-      throw OrthancException(ErrorCode_BadSequenceOfCalls);
-    }
-    else
-    {
-      hasLimits_ = true;
-      limitsSince_ = since;
-      limitsCount_ = count;
-    }
+    hasLimits_ = true;
+    limitsSince_ = since;
+    limitsCount_ = count;
   }
 
 

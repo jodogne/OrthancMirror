@@ -1539,8 +1539,7 @@ namespace Orthanc
                             size_t since,
                             size_t limit)
   {    
-    unsigned int databaseLimit = (queryLevel == ResourceType_Instance ?
-                                  limitFindInstances_ : limitFindResults_);
+    const uint64_t databaseLimit = GetDatabaseLimits(queryLevel);
       
     std::vector<std::string> resources, instances;
     const DicomTagConstraint* dicomModalitiesConstraint = NULL;
@@ -1564,6 +1563,7 @@ namespace Orthanc
        **/
 
       ResourceFinder finder(queryLevel, false /* TODO-FIND: don't expand for now */);
+      finder.SetDatabaseLimits(databaseLimit);
 
       if (databaseLimit != 0)
       {

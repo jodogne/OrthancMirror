@@ -3344,6 +3344,7 @@ namespace Orthanc
       const ResourceType level = StringToResourceType(request[KEY_LEVEL].asCString());
 
       ResourceFinder finder(level, expand);
+      finder.SetDatabaseLimits(context.GetDatabaseLimits(level));
       finder.SetFormat(OrthancRestApi::GetDicomFormat(request, DicomToJsonFormat_Human));
 
       size_t limit = 0;
