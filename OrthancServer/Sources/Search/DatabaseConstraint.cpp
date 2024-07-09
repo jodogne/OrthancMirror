@@ -37,6 +37,7 @@
 #  include <OrthancException.h>
 #endif
 
+#include <boost/lexical_cast.hpp>
 #include <cassert>
 
 
@@ -283,5 +284,65 @@ namespace Orthanc
       assert(constraints_[index] != NULL);
       return *constraints_[index];
     }
+  }
+
+
+  std::string DatabaseConstraints::Format() const
+  {
+    std::string s;
+
+    for (size_t i = 0; i < constraints_.size(); i++)
+    {
+      assert(constraints_[i] != NULL);
+      const DatabaseConstraint& constraint = *constraints_[i];
+      s += "Constraint " + boost::lexical_cast<std::string>(i) + " at " + EnumerationToString(constraint.GetLevel()) +
+        ": " + constraint.GetTag().Format();
+
+      switch (constraint.GetConstraintType())
+      {
+        case ConstraintType_Equal:
+          s += " == " + constraint.GetSingleValue();
+          break;
+
+        case ConstraintType_SmallerOrEqual:
+          s += " <= " + constraint.GetSingleValue();
+          break;
+
+        case ConstraintType_GreaterOrEqual:
+          s += " >= " + constraint.GetSingleValue();
+          break;
+
+        case ConstraintType_Wildcard:
+          s += " ~~ " + constraint.GetSingleValue();
+          break;
+
+        case ConstraintType_List:
+        {
+          s += " in [ ";
+          bool first = true;
+          for (size_t i = 0; i < constraint.GetValuesCount(); i++)
+          {
+            if (first)
+            {
+              first = false;
+            }
+            else
+            {
+              s += ", ";
+            }
+            s += constraint.GetValue(i);
+          }
+          s += "]";
+          break;
+        }
+
+        default:
+          throw OrthancException(ErrorCode_InternalError);
+      }
+
+      s += "\n";
+    }
+
+    return s;
   }
 }

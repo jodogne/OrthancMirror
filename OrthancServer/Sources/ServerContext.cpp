@@ -1564,12 +1564,6 @@ namespace Orthanc
 
       ResourceFinder finder(queryLevel, false /* TODO-FIND: don't expand for now */);
       finder.SetDatabaseLimits(databaseLimit);
-
-      if (databaseLimit != 0)
-      {
-        finder.SetLimits(0, databaseLimit + 1);
-      }
-
       finder.SetDatabaseLookup(lookup);
       finder.SetLabels(labels);
       finder.SetLabelsConstraint(labelsConstraint);

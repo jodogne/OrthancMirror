@@ -424,28 +424,28 @@ namespace Orthanc
 
   void ResourceFinder::UpdateRequestLimits()
   {
-    // TODO-FIND: Check this
+    // By default, use manual paging
+    isDatabasePaging_ = false;
+
+    if (databaseLimits_ != 0)
+    {
+      request_.SetLimits(0, databaseLimits_ + 1);
+    }
 
     if (lookup_.get() == NULL ||
         lookup_->HasOnlyMainDicomTags())
     {
-      isDatabasePaging_ = true;
+      // TODO-FIND: Understand why this doesn't work:
+      // $ ./Start.sh --force Orthanc.test_rest_find_limit Orthanc.test_resources_since_limit Orthanc.test_rest_find_limit
 
-      if (hasLimits_)
+      /*if (hasLimits_)
       {
+        isDatabasePaging_ = true;
         request_.SetLimits(limitsSince_, limitsCount_);
-      }
+        }*/
     }
-    else if (databaseLimits_ != 0)
-    {
-      // The "+ 1" below is used to test the completeness of the response
-      request_.SetLimits(0, databaseLimits_ + 1);
-      isDatabasePaging_ = false;
-    }
-    else
-    {
-      isDatabasePaging_ = false;
-    }
+
+    // TODO-FIND: More cases could be added, depending on "GetDatabaseCapabilities()"
   }
 
 
@@ -541,11 +541,29 @@ namespace Orthanc
     MainDicomTagsRegistry registry;
     registry.NormalizeLookup(request_.GetDicomTagConstraints(), lookup, request_.GetLevel());
 
-    // Sanity check
+    // "request_.GetDicomTagConstraints()" only contains constraints on main DICOM tags
+
     for (size_t i = 0; i < request_.GetDicomTagConstraints().GetSize(); i++)
     {
-      if (IsComputedTag(request_.GetDicomTagConstraints().GetConstraint(i).GetTag()))
+      const DatabaseConstraint& constraint = request_.GetDicomTagConstraints().GetConstraint(i);
+      if (constraint.GetLevel() == request_.GetLevel())
       {
+        request_.SetRetrieveMainDicomTags(true);
+      }
+      else if (IsResourceLevelAboveOrEqual(constraint.GetLevel(), request_.GetLevel()))
+      {
+        request_.GetParentSpecification(constraint.GetLevel()).SetRetrieveMainDicomTags(true);
+      }
+      else
+      {
+        LOG(WARNING) << "Executing a database lookup at level " << EnumerationToString(request_.GetLevel())
+                     << " on main DICOM tag " << constraint.GetTag().Format() << " from an inferior level ("
+                     << EnumerationToString(constraint.GetLevel()) << "), this will return no result";
+      }
+
+      if (IsComputedTag(constraint.GetTag()))
+      {
+        // Sanity check
         throw OrthancException(ErrorCode_InternalError);
       }
     }
@@ -824,8 +842,7 @@ namespace Orthanc
                   response.GetSize() <= databaseLimits_);
     }
 
-    if (lookup_.get() != NULL &&
-        !lookup_->HasOnlyMainDicomTags())
+    if (lookup_.get() != NULL)
     {
       LOG(INFO) << "Number of candidate resources after fast DB filtering on main DICOM tags: " << response.GetSize();
     }
@@ -868,7 +885,7 @@ namespace Orthanc
       if (lookup_.get() != NULL)
       {
         DicomMap tags;
-        resource.GetMainDicomTags(tags, request_.GetLevel());
+        resource.GetAllMainDicomTags(tags);
         tags.Merge(requestedTags);
         match = lookup_->IsMatch(tags);
       }
