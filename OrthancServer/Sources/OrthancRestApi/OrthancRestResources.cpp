@@ -3324,6 +3324,8 @@ namespace Orthanc
         }
       }
 
+      std::set<std::string> labels;
+
       if (request.isMember(KEY_LABELS))  // New in Orthanc 1.12.0
       {
         for (Json::Value::ArrayIndex i = 0; i < request[KEY_LABELS].size(); i++)
@@ -3334,27 +3336,27 @@ namespace Orthanc
           }
           else
           {
-            query.AddLabel(request[KEY_LABELS][i].asString());
+            labels.insert(request[KEY_LABELS][i].asString());
           }
         }
       }
 
-      query.SetLabelsConstraint(LabelsConstraint_All);
+      LabelsConstraint labelsConstraint = LabelsConstraint_All;
       
       if (request.isMember(KEY_LABELS_CONSTRAINT))
       {
         const std::string& s = request[KEY_LABELS_CONSTRAINT].asString();
         if (s == "All")
         {
-          query.SetLabelsConstraint(LabelsConstraint_All);
+          labelsConstraint = LabelsConstraint_All;
         }
         else if (s == "Any")
         {
-          query.SetLabelsConstraint(LabelsConstraint_Any);
+          labelsConstraint = LabelsConstraint_Any;
         }
         else if (s == "None")
         {
-          query.SetLabelsConstraint(LabelsConstraint_None);
+          labelsConstraint = LabelsConstraint_None;
         }
         else
         {
@@ -3363,7 +3365,7 @@ namespace Orthanc
       }
       
       FindVisitor visitor(OrthancRestApi::GetDicomFormat(request, DicomToJsonFormat_Human), context.GetFindStorageAccessMode());
-      context.Apply(visitor, query, level, since, limit);
+      context.Apply(visitor, query, level, labels, labelsConstraint, since, limit);
       visitor.Answer(call.GetOutput(), context, level, expand, requestedTags);
     }
   }

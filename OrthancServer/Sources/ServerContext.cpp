@@ -1533,6 +1533,8 @@ namespace Orthanc
   void ServerContext::Apply(ILookupVisitor& visitor,
                             const DatabaseLookup& lookup,
                             ResourceType queryLevel,
+                            const std::set<std::string>& labels,
+                            LabelsConstraint labelsConstraint,
                             size_t since,
                             size_t limit)
   {    
@@ -1556,8 +1558,7 @@ namespace Orthanc
 
     {
       const size_t lookupLimit = (databaseLimit == 0 ? 0 : databaseLimit + 1);
-      GetIndex().ApplyLookupResources(resources, &instances, *fastLookup, queryLevel,
-                                      lookup.GetLabels(), lookup.GetLabelsConstraint(), lookupLimit);
+      GetIndex().ApplyLookupResources(resources, &instances, *fastLookup, queryLevel, labels, labelsConstraint, lookupLimit);
     }
 
     bool complete = (databaseLimit == 0 ||
