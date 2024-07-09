@@ -191,6 +191,8 @@ Mid-term
   progress callbacks available in DIMSE_moveUser
   https://groups.google.com/g/orthanc-users/c/c8cGnA7FzsE/m/BSs66D8wBwAJ
 * Log outgoing C-Find queries
+* Support other Transfer Syntaxes in the Worklist plugin:
+  https://discourse.orthanc-server.org/t/could-you-please-create-an-option-to-set-the-transfer-syntax-in-the-worklist-plugin-currently-little-endian-explicit-is-fixed/4871
 
 ---------
 Long-term
