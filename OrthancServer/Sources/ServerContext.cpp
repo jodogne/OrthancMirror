@@ -1557,16 +1557,19 @@ namespace Orthanc
       fastLookup->RemoveConstraint(DICOM_TAG_MODALITIES_IN_STUDY);
     }
 
-    const size_t lookupLimit = (databaseLimit == 0 ? 0 : databaseLimit + 1);
-
-    if (false)
+    if (true)
     {
       /**
        * EXPERIMENTAL VERSION
        **/
 
       ResourceFinder finder(queryLevel, false /* TODO-FIND: don't expand for now */);
-      finder.SetLimits(0, lookupLimit);
+
+      if (databaseLimit != 0)
+      {
+        finder.SetLimits(0, databaseLimit + 1);
+      }
+
       finder.SetDatabaseLookup(*fastLookup);
       finder.SetLabels(labels);
       finder.SetLabelsConstraint(labelsConstraint);
@@ -1603,6 +1606,7 @@ namespace Orthanc
        * VERSION IN ORTHANC <= 1.12.4
        **/
 
+      const size_t lookupLimit = (databaseLimit == 0 ? 0 : databaseLimit + 1);
       GetIndex().ApplyLookupResources(resources, &instances, *fastLookup, queryLevel, labels, labelsConstraint, lookupLimit);
     }
 
