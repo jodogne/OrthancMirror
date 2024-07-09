@@ -34,9 +34,29 @@ namespace Orthanc
 
   class ResourceFinder : public boost::noncopyable
   {
+  public:
+    class IVisitor : public boost::noncopyable
+    {
+    public:
+      virtual ~IVisitor()
+      {
+      }
+
+      virtual void Apply(const FindResponse::Resource& resource,
+                         bool hasRequestedTags,
+                         const DicomMap& requestedTags) = 0;
+
+      virtual void MarkAsComplete() = 0;
+    };
+
   private:
     FindRequest                      request_;
+    uint64_t                         databaseLimits_;
     std::unique_ptr<DatabaseLookup>  lookup_;
+    bool                             isDatabasePaging_;
+    bool                             hasLimits_;
+    uint64_t                         limitsSince_;
+    uint64_t                         limitsCount_;
     bool                             expand_;
     DicomToJsonFormat                format_;
     bool                             allowStorageAccess_;
@@ -73,9 +93,13 @@ namespace Orthanc
                 const FindResponse::Resource& resource,
                 ServerIndex& index) const;
 
+    void UpdateRequestLimits();
+
   public:
     ResourceFinder(ResourceType level,
                    bool expand);
+
+    void SetDatabaseLimits(uint64_t limits);
 
     bool IsAllowStorageAccess() const
     {
@@ -99,10 +123,7 @@ namespace Orthanc
     }
 
     void SetLimits(uint64_t since,
-                   uint64_t count)
-    {
-      request_.SetLimits(since, count);
-    }
+                   uint64_t count);
 
     void SetDatabaseLookup(const DatabaseLookup& lookup);
 
@@ -137,6 +158,9 @@ namespace Orthanc
 
     void Execute(FindResponse& target,
                  ServerIndex& index) const;
+
+    void Execute(IVisitor& visitor,
+                 ServerContext& context) const;
 
     void Execute(Json::Value& target,
                  ServerContext& context) const;

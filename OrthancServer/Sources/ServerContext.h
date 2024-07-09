@@ -442,6 +442,11 @@ namespace Orthanc
 
     void Stop();
 
+    uint64_t GetDatabaseLimits(ResourceType level) const
+    {
+      return (level == ResourceType_Instance ? limitFindInstances_ : limitFindResults_);
+    }
+
     void Apply(ILookupVisitor& visitor,
                const DatabaseLookup& lookup,
                ResourceType queryLevel,

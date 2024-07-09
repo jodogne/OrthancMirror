@@ -422,15 +422,49 @@ namespace Orthanc
   }
 
 
+  void ResourceFinder::UpdateRequestLimits()
+  {
+    // TODO-FIND: Check this
+
+    if (lookup_.get() == NULL ||
+        lookup_->HasOnlyMainDicomTags())
+    {
+      isDatabasePaging_ = true;
+
+      if (hasLimits_)
+      {
+        request_.SetLimits(limitsSince_, limitsCount_);
+      }
+    }
+    else if (databaseLimits_ != 0)
+    {
+      // The "+ 1" below is used to test the completeness of the response
+      request_.SetLimits(0, databaseLimits_ + 1);
+      isDatabasePaging_ = false;
+    }
+    else
+    {
+      isDatabasePaging_ = false;
+    }
+  }
+
+
   ResourceFinder::ResourceFinder(ResourceType level,
                                  bool expand) :
     request_(level),
+    databaseLimits_(0),
+    isDatabasePaging_(true),
+    hasLimits_(false),
+    limitsSince_(0),
+    limitsCount_(0),
     expand_(expand),
     format_(DicomToJsonFormat_Human),
     allowStorageAccess_(true),
     hasRequestedTags_(false),
     includeAllMetadata_(false)
   {
+    UpdateRequestLimits();
+
     if (expand)
     {
       request_.SetRetrieveMainDicomTags(true);
@@ -466,9 +500,34 @@ namespace Orthanc
   }
 
 
+  void ResourceFinder::SetDatabaseLimits(uint64_t limits)
+  {
+    databaseLimits_ = limits;
+    UpdateRequestLimits();
+  }
+
+
+  void ResourceFinder::SetLimits(uint64_t since,
+                                 uint64_t count)
+  {
+    if (hasLimits_)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    else
+    {
+      hasLimits_ = true;
+      limitsSince_ = since;
+      limitsCount_ = count;
+      UpdateRequestLimits();
+    }
+  }
+
+
   void ResourceFinder::SetDatabaseLookup(const DatabaseLookup& lookup)
   {
     lookup_.reset(lookup.Clone());
+    UpdateRequestLimits();
 
     for (size_t i = 0; i < lookup.GetConstraintsCount(); i++)
     {
@@ -748,13 +807,31 @@ namespace Orthanc
   }
 
   
-  void ResourceFinder::Execute(Json::Value& target,
+  void ResourceFinder::Execute(IVisitor& visitor,
                                ServerContext& context) const
   {
     FindResponse response;
     context.GetIndex().ExecuteFind(response, request_);
 
-    target = Json::arrayValue;
+    bool complete;
+    if (isDatabasePaging_)
+    {
+      complete = true;
+    }
+    else
+    {
+      complete = (databaseLimits_ == 0 ||
+                  response.GetSize() <= databaseLimits_);
+    }
+
+    if (lookup_.get() != NULL &&
+        !lookup_->HasOnlyMainDicomTags())
+    {
+      LOG(INFO) << "Number of candidate resources after fast DB filtering on main DICOM tags: " << response.GetSize();
+    }
+
+    size_t countResults = 0;
+    size_t skipped = 0;
 
     for (size_t i = 0; i < response.GetSize(); i++)
     {
@@ -798,26 +875,93 @@ namespace Orthanc
 
       if (match)
       {
-        if (expand_)
+        if (isDatabasePaging_)
         {
-          Json::Value item;
-          Expand(item, resource, context.GetIndex());
-
-          if (hasRequestedTags_)
-          {
-            static const char* const REQUESTED_TAGS = "RequestedTags";
-            item[REQUESTED_TAGS] = Json::objectValue;
-            FromDcmtkBridge::ToJson(item[REQUESTED_TAGS], requestedTags, format_);
-          }
-
-          target.append(item);
+          visitor.Apply(resource, hasRequestedTags_, requestedTags);
         }
         else
         {
-          target.append(resource.GetIdentifier());
+          if (hasLimits_ &&
+              skipped < limitsSince_)
+          {
+            skipped++;
+          }
+          else if (hasLimits_ &&
+                   countResults >= limitsCount_)
+          {
+            // Too many results, don't mark as complete
+            complete = false;
+            break;
+          }
+          else
+          {
+            visitor.Apply(resource, hasRequestedTags_, requestedTags);
+            countResults++;
+          }
         }
       }
     }
+
+    if (complete)
+    {
+      visitor.MarkAsComplete();
+    }
+  }
+
+
+  void ResourceFinder::Execute(Json::Value& target,
+                               ServerContext& context) const
+  {
+    class Visitor : public IVisitor
+    {
+    private:
+      const ResourceFinder&  that_;
+      ServerIndex& index_;
+      Json::Value& target_;
+
+    public:
+      Visitor(const ResourceFinder& that,
+              ServerIndex& index,
+              Json::Value& target) :
+        that_(that),
+        index_(index),
+        target_(target)
+      {
+      }
+
+      virtual void Apply(const FindResponse::Resource& resource,
+                         bool hasRequestedTags,
+                         const DicomMap& requestedTags) ORTHANC_OVERRIDE
+      {
+        if (that_.expand_)
+        {
+          Json::Value item;
+          that_.Expand(item, resource, index_);
+
+          if (hasRequestedTags)
+          {
+            static const char* const REQUESTED_TAGS = "RequestedTags";
+            item[REQUESTED_TAGS] = Json::objectValue;
+            FromDcmtkBridge::ToJson(item[REQUESTED_TAGS], requestedTags, that_.format_);
+          }
+
+          target_.append(item);
+        }
+        else
+        {
+          target_.append(resource.GetIdentifier());
+        }
+      }
+
+      virtual void MarkAsComplete() ORTHANC_OVERRIDE
+      {
+      }
+    };
+
+    target = Json::arrayValue;
+
+    Visitor visitor(*this, context.GetIndex(), target);
+    Execute(visitor, context);
   }
 
 
