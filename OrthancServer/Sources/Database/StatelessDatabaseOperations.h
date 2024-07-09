@@ -556,10 +556,6 @@ namespace Orthanc
     std::unique_ptr<ITransactionContextFactory>  factory_;
     unsigned int                                 maxRetries_;
 
-    void NormalizeLookup(std::vector<DatabaseConstraint>& target,
-                         const DatabaseLookup& source,
-                         ResourceType level) const;
-
     void ApplyInternal(IReadOnlyOperations* readOperations,
                        IReadWriteOperations* writeOperations);
 
