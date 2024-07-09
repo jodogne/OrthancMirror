@@ -976,7 +976,7 @@ namespace Orthanc
     
     virtual void ApplyLookupResources(std::list<std::string>& resourcesId,
                                       std::list<std::string>* instancesId, // Can be NULL if not needed
-                                      const std::vector<DatabaseConstraint>& lookup,
+                                      const DatabaseConstraints& lookup,
                                       ResourceType queryLevel,
                                       const std::set<std::string>& labels,
                                       LabelsConstraint labelsConstraint,
@@ -993,44 +993,46 @@ namespace Orthanc
       request.mutable_lookup_resources()->set_limit(limit);
       request.mutable_lookup_resources()->set_retrieve_instances_ids(instancesId != NULL);
 
-      request.mutable_lookup_resources()->mutable_lookup()->Reserve(lookup.size());
+      request.mutable_lookup_resources()->mutable_lookup()->Reserve(lookup.GetSize());
       
-      for (size_t i = 0; i < lookup.size(); i++)
+      for (size_t i = 0; i < lookup.GetSize(); i++)
       {
-        DatabasePluginMessages::DatabaseConstraint* constraint = request.mutable_lookup_resources()->add_lookup();
-        constraint->set_level(Convert(lookup[i].GetLevel()));
-        constraint->set_tag_group(lookup[i].GetTag().GetGroup());
-        constraint->set_tag_element(lookup[i].GetTag().GetElement());
-        constraint->set_is_identifier_tag(lookup[i].IsIdentifier());
-        constraint->set_is_case_sensitive(lookup[i].IsCaseSensitive());
-        constraint->set_is_mandatory(lookup[i].IsMandatory());
+        const DatabaseConstraint& source = lookup.GetConstraint(i);
 
-        constraint->mutable_values()->Reserve(lookup[i].GetValuesCount());
-        for (size_t j = 0; j < lookup[i].GetValuesCount(); j++)
+        DatabasePluginMessages::DatabaseConstraint* target = request.mutable_lookup_resources()->add_lookup();
+        target->set_level(Convert(source.GetLevel()));
+        target->set_tag_group(source.GetTag().GetGroup());
+        target->set_tag_element(source.GetTag().GetElement());
+        target->set_is_identifier_tag(source.IsIdentifier());
+        target->set_is_case_sensitive(source.IsCaseSensitive());
+        target->set_is_mandatory(source.IsMandatory());
+
+        target->mutable_values()->Reserve(source.GetValuesCount());
+        for (size_t j = 0; j < source.GetValuesCount(); j++)
         {
-          constraint->add_values(lookup[i].GetValue(j));
+          target->add_values(source.GetValue(j));
         }
 
-        switch (lookup[i].GetConstraintType())
+        switch (source.GetConstraintType())
         {
           case ConstraintType_Equal:
-            constraint->set_type(DatabasePluginMessages::CONSTRAINT_EQUAL);
+            target->set_type(DatabasePluginMessages::CONSTRAINT_EQUAL);
             break;
             
           case ConstraintType_SmallerOrEqual:
-            constraint->set_type(DatabasePluginMessages::CONSTRAINT_SMALLER_OR_EQUAL);
+            target->set_type(DatabasePluginMessages::CONSTRAINT_SMALLER_OR_EQUAL);
             break;
             
           case ConstraintType_GreaterOrEqual:
-            constraint->set_type(DatabasePluginMessages::CONSTRAINT_GREATER_OR_EQUAL);
+            target->set_type(DatabasePluginMessages::CONSTRAINT_GREATER_OR_EQUAL);
             break;
             
           case ConstraintType_Wildcard:
-            constraint->set_type(DatabasePluginMessages::CONSTRAINT_WILDCARD);
+            target->set_type(DatabasePluginMessages::CONSTRAINT_WILDCARD);
             break;
             
           case ConstraintType_List:
-            constraint->set_type(DatabasePluginMessages::CONSTRAINT_LIST);
+            target->set_type(DatabasePluginMessages::CONSTRAINT_LIST);
             break;
 
           default:

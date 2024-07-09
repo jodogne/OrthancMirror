@@ -75,7 +75,7 @@ namespace Orthanc
                    DicomTagType& type,
                    const DicomTag& tag) const;
 
-    void NormalizeLookup(std::vector<DatabaseConstraint>& target,
+    void NormalizeLookup(DatabaseConstraints& target,
                          const DatabaseLookup& source,
                          ResourceType queryLevel) const;
   };

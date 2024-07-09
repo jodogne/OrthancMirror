@@ -46,7 +46,7 @@ namespace Orthanc
 
       void ApplyLookupResources(std::list<std::string>& resourcesId,
                                 std::list<std::string>* instancesId,
-                                const std::vector<DatabaseConstraint>& lookup,
+                                const DatabaseConstraints& lookup,
                                 ResourceType queryLevel,
                                 size_t limit);
     };

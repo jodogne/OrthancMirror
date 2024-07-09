@@ -98,12 +98,11 @@ namespace Orthanc
   }
 
 
-  void MainDicomTagsRegistry::NormalizeLookup(std::vector<DatabaseConstraint>& target,
+  void MainDicomTagsRegistry::NormalizeLookup(DatabaseConstraints& target,
                                               const DatabaseLookup& source,
                                               ResourceType queryLevel) const
   {
-    target.clear();
-    target.reserve(source.GetConstraintsCount());
+    target.Clear();
 
     for (size_t i = 0; i < source.GetConstraintsCount(); i++)
     {
@@ -122,7 +121,7 @@ namespace Orthanc
           level = ResourceType_Study;
         }
 
-        target.push_back(source.GetConstraint(i).ConvertToDatabaseConstraint(level, type));
+        target.AddConstraint(source.GetConstraint(i).ConvertToDatabaseConstraint(level, type));
       }
     }
   }

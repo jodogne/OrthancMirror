@@ -182,49 +182,6 @@ namespace Orthanc
   }
 
 
-  void FindRequest::AddDicomTagConstraint(const DicomTagConstraint& constraint)
-  {
-    // This behaves like "StatelessDatabaseOperations::NormalizeLookup()" in Orthanc <= 1.12.3
-
-    if (mainDicomTagsRegistry_.get() == NULL)
-    {
-      // Lazy creation of the registry of main DICOM tags
-      mainDicomTagsRegistry_.reset(new MainDicomTagsRegistry());
-    }
-
-    ResourceType level;
-    DicomTagType type;
-
-    mainDicomTagsRegistry_->LookupTag(level, type, constraint.GetTag());
-
-    if (type == DicomTagType_Identifier ||
-        type == DicomTagType_Main)
-    {
-      // Use the fact that patient-level tags are copied at the study level
-      if (level == ResourceType_Patient &&
-          GetLevel() != ResourceType_Patient)
-      {
-        level = ResourceType_Study;
-      }
-
-      dicomTagConstraints_.push_back(constraint.ConvertToDatabaseConstraint(level, type));
-    }
-  }
-
-
-  const DatabaseConstraint& FindRequest::GetDicomTagConstraint(size_t index) const
-  {
-    if (index >= dicomTagConstraints_.size())
-    {
-      throw OrthancException(ErrorCode_ParameterOutOfRange);
-    }
-    else
-    {
-      return dicomTagConstraints_[index];
-    }
-  }
-
-
   void FindRequest::SetLimits(uint64_t since,
                               uint64_t count)
   {

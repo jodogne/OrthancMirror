@@ -166,8 +166,8 @@ namespace
       
       DicomTagConstraint c(tag, type, value, true, true);
       
-      std::vector<DatabaseConstraint> lookup;
-      lookup.push_back(c.ConvertToDatabaseConstraint(level, DicomTagType_Identifier));
+      DatabaseConstraints lookup;
+      lookup.AddConstraint(c.ConvertToDatabaseConstraint(level, DicomTagType_Identifier));
 
       std::set<std::string> noLabel;
       transaction_->ApplyLookupResources(result, NULL, lookup, level, noLabel, LabelsConstraint_All, 0 /* no limit */);
@@ -185,10 +185,10 @@ namespace
       
       DicomTagConstraint c1(tag, type1, value1, true, true);
       DicomTagConstraint c2(tag, type2, value2, true, true);
-      
-      std::vector<DatabaseConstraint> lookup;
-      lookup.push_back(c1.ConvertToDatabaseConstraint(level, DicomTagType_Identifier));
-      lookup.push_back(c2.ConvertToDatabaseConstraint(level, DicomTagType_Identifier));
+
+      DatabaseConstraints lookup;
+      lookup.AddConstraint(c1.ConvertToDatabaseConstraint(level, DicomTagType_Identifier));
+      lookup.AddConstraint(c2.ConvertToDatabaseConstraint(level, DicomTagType_Identifier));
       
       std::set<std::string> noLabel;
       transaction_->ApplyLookupResources(result, NULL, lookup, level, noLabel, LabelsConstraint_All, 0 /* no limit */);

@@ -109,7 +109,7 @@ namespace Orthanc
 
     std::string Format() const;
 
-    DatabaseConstraint ConvertToDatabaseConstraint(ResourceType level,
-                                                   DicomTagType tagType) const;
+    DatabaseConstraint* ConvertToDatabaseConstraint(ResourceType level,
+                                                    DicomTagType tagType) const;
   };
 }

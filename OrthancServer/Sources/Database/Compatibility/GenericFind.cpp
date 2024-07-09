@@ -35,7 +35,7 @@ namespace Orthanc
   {
     static bool IsRequestWithoutContraint(const FindRequest& request)
     {
-      return (request.GetDicomTagConstraintsCount() == 0 &&
+      return (request.GetDicomTagConstraints().IsEmpty() &&
               request.GetMetadataConstraintsCount() == 0 &&
               request.GetLabels().empty() &&
               request.GetOrdering().empty());
