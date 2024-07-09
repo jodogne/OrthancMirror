@@ -445,8 +445,19 @@ namespace Orthanc
     void Apply(ILookupVisitor& visitor,
                const DatabaseLookup& lookup,
                ResourceType queryLevel,
+               const std::set<std::string>& labels,
+               LabelsConstraint labelsConstraint,
                size_t since,
                size_t limit);
+
+    void Apply(ILookupVisitor& visitor,
+               const DatabaseLookup& lookup,
+               ResourceType queryLevel,
+               size_t since,
+               size_t limit)
+    {
+      Apply(visitor, lookup, queryLevel, std::set<std::string>(), LabelsConstraint_All, since, limit);
+    }
 
     bool LookupOrReconstructMetadata(std::string& target,
                                      const std::string& publicId,

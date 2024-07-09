@@ -1534,6 +1534,8 @@ namespace Orthanc
   void ServerContext::Apply(ILookupVisitor& visitor,
                             const DatabaseLookup& lookup,
                             ResourceType queryLevel,
+                            const std::set<std::string>& labels,
+                            LabelsConstraint labelsConstraint,
                             size_t since,
                             size_t limit)
   {    
@@ -1566,8 +1568,8 @@ namespace Orthanc
       ResourceFinder finder(queryLevel, false /* TODO-FIND: don't expand for now */);
       finder.SetLimits(0, lookupLimit);
       finder.SetDatabaseLookup(*fastLookup);
-      finder.SetLabels(lookup.GetLabels());
-      finder.SetLabelsConstraint(lookup.GetLabelsConstraint());
+      finder.SetLabels(labels);
+      finder.SetLabelsConstraint(labelsConstraint);
 
       if (queryLevel != ResourceType_Instance)
       {
@@ -1601,8 +1603,7 @@ namespace Orthanc
        * VERSION IN ORTHANC <= 1.12.4
        **/
 
-      GetIndex().ApplyLookupResources(resources, &instances, *fastLookup, queryLevel,
-                                      lookup.GetLabels(), lookup.GetLabelsConstraint(), lookupLimit);
+      GetIndex().ApplyLookupResources(resources, &instances, *fastLookup, queryLevel, labels, labelsConstraint, lookupLimit);
     }
 
     bool complete = (databaseLimit == 0 ||
