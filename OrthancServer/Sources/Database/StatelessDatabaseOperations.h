@@ -209,7 +209,7 @@ namespace Orthanc
 
       void ApplyLookupResources(std::list<std::string>& resourcesId,
                                 std::list<std::string>* instancesId, // Can be NULL if not needed
-                                const std::vector<DatabaseConstraint>& lookup,
+                                const DatabaseConstraints& lookup,
                                 ResourceType queryLevel,
                                 const std::set<std::string>& labels,  // New in Orthanc 1.12.0
                                 LabelsConstraint labelsConstraint,    // New in Orthanc 1.12.0

@@ -340,7 +340,7 @@ namespace Orthanc
 
     virtual void ApplyLookupResources(std::list<std::string>& resourcesId,
                                       std::list<std::string>* instancesId,
-                                      const std::vector<DatabaseConstraint>& lookup,
+                                      const DatabaseConstraints& lookup,
                                       ResourceType queryLevel,
                                       const std::set<std::string>& labels,
                                       LabelsConstraint labelsConstraint,

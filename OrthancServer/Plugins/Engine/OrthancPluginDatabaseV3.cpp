@@ -798,7 +798,7 @@ namespace Orthanc
     
     virtual void ApplyLookupResources(std::list<std::string>& resourcesId,
                                       std::list<std::string>* instancesId, // Can be NULL if not needed
-                                      const std::vector<DatabaseConstraint>& lookup,
+                                      const DatabaseConstraints& lookup,
                                       ResourceType queryLevel,
                                       const std::set<std::string>& labels,
                                       LabelsConstraint labelsConstraint,
@@ -812,16 +812,16 @@ namespace Orthanc
       std::vector<OrthancPluginDatabaseConstraint> constraints;
       std::vector< std::vector<const char*> > constraintsValues;
 
-      constraints.resize(lookup.size());
-      constraintsValues.resize(lookup.size());
+      constraints.resize(lookup.GetSize());
+      constraintsValues.resize(lookup.GetSize());
 
-      for (size_t i = 0; i < lookup.size(); i++)
+      for (size_t i = 0; i < lookup.GetSize(); i++)
       {
-        lookup[i].EncodeForPlugins(constraints[i], constraintsValues[i]);
+        lookup.GetConstraint(i).EncodeForPlugins(constraints[i], constraintsValues[i]);
       }
 
-      CheckSuccess(that_.backend_.lookupResources(transaction_, lookup.size(),
-                                                  (lookup.empty() ? NULL : &constraints[0]),
+      CheckSuccess(that_.backend_.lookupResources(transaction_, lookup.GetSize(),
+                                                  (lookup.IsEmpty() ? NULL : &constraints[0]),
                                                   Plugins::Convert(queryLevel),
                                                   limit, (instancesId == NULL ? 0 : 1)));
       CheckNoEvent();

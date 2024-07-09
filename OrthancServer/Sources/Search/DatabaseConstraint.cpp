@@ -245,4 +245,43 @@ namespace Orthanc
     constraint.values = (tmpValues.empty() ? NULL : &tmpValues[0]);
   }
 #endif    
+
+
+  void DatabaseConstraints::Clear()
+  {
+    for (size_t i = 0; i < constraints_.size(); i++)
+    {
+      assert(constraints_[i] != NULL);
+      delete constraints_[i];
+    }
+
+    constraints_.clear();
+  }
+
+
+  void DatabaseConstraints::AddConstraint(DatabaseConstraint* constraint)
+  {
+    if (constraint == NULL)
+    {
+      throw OrthancException(ErrorCode_NullPointer);
+    }
+    else
+    {
+      constraints_.push_back(constraint);
+    }
+  }
+
+
+  const DatabaseConstraint& DatabaseConstraints::GetConstraint(size_t index) const
+  {
+    if (index >= constraints_.size())
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+    else
+    {
+      assert(constraints_[index] != NULL);
+      return *constraints_[index];
+    }
+  }
 }
