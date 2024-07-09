@@ -96,4 +96,34 @@ namespace Orthanc
       type = it->second.GetType();
     }
   }
+
+
+  void MainDicomTagsRegistry::NormalizeLookup(std::vector<DatabaseConstraint>& target,
+                                              const DatabaseLookup& source,
+                                              ResourceType queryLevel) const
+  {
+    target.clear();
+    target.reserve(source.GetConstraintsCount());
+
+    for (size_t i = 0; i < source.GetConstraintsCount(); i++)
+    {
+      ResourceType level;
+      DicomTagType type;
+
+      LookupTag(level, type, source.GetConstraint(i).GetTag());
+
+      if (type == DicomTagType_Identifier ||
+          type == DicomTagType_Main)
+      {
+        // Use the fact that patient-level tags are copied at the study level
+        if (level == ResourceType_Patient &&
+            queryLevel != ResourceType_Patient)
+        {
+          level = ResourceType_Study;
+        }
+
+        target.push_back(source.GetConstraint(i).ConvertToDatabaseConstraint(level, type));
+      }
+    }
+  }
 }

@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../Search/DicomTagConstraint.h"
+#include "../Search/DatabaseLookup.h"
 
 #include <boost/noncopyable.hpp>
 
@@ -74,5 +74,9 @@ namespace Orthanc
     void LookupTag(ResourceType& level,
                    DicomTagType& type,
                    const DicomTag& tag) const;
+
+    void NormalizeLookup(std::vector<DatabaseConstraint>& target,
+                         const DatabaseLookup& source,
+                         ResourceType queryLevel) const;
   };
 }
