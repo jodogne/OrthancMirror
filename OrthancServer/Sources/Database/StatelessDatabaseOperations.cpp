@@ -405,12 +405,11 @@ namespace Orthanc
       LoadTags(ResourceType_Instance);
     }
 
-    void NormalizeLookup(std::vector<DatabaseConstraint>& target,
+    void NormalizeLookup(DatabaseConstraints& target,
                          const DatabaseLookup& source,
                          ResourceType queryLevel) const
     {
-      target.clear();
-      target.reserve(source.GetConstraintsCount());
+      target.Clear();
 
       for (size_t i = 0; i < source.GetConstraintsCount(); i++)
       {
@@ -429,7 +428,7 @@ namespace Orthanc
             level = ResourceType_Study;
           }
 
-          target.push_back(source.GetConstraint(i).ConvertToDatabaseConstraint(level, type));
+          target.AddConstraint(source.GetConstraint(i).ConvertToDatabaseConstraint(level, type));
         }
       }
     }
@@ -1687,20 +1686,20 @@ namespace Orthanc
 
     DicomTagConstraint c(tag, ConstraintType_Equal, value, true, true);
 
-    std::vector<DatabaseConstraint> query;
-    query.push_back(c.ConvertToDatabaseConstraint(level, DicomTagType_Identifier));
+    DatabaseConstraints query;
+    query.AddConstraint(c.ConvertToDatabaseConstraint(level, DicomTagType_Identifier));
 
 
     class Operations : public IReadOnlyOperations
     {
     private:
-      std::vector<std::string>&               result_;
-      const std::vector<DatabaseConstraint>&  query_;
-      ResourceType                            level_;
+      std::vector<std::string>&   result_;
+      const DatabaseConstraints&  query_;
+      ResourceType                level_;
       
     public:
       Operations(std::vector<std::string>& result,
-                 const std::vector<DatabaseConstraint>& query,
+                 const DatabaseConstraints& query,
                  ResourceType level) :
         result_(result),
         query_(query),
@@ -1986,7 +1985,7 @@ namespace Orthanc
                                                          LabelsConstraint labelsConstraint,
                                                          uint32_t limit)
   {
-    class Operations : public ReadOnlyOperationsT6<bool, const std::vector<DatabaseConstraint>&, ResourceType,
+    class Operations : public ReadOnlyOperationsT6<bool, const DatabaseConstraints&, ResourceType,
                                                    const std::set<std::string>&, LabelsConstraint, size_t>
     {
     private:
@@ -2032,7 +2031,7 @@ namespace Orthanc
       ServerToolbox::CheckValidLabel(*it);
     }
 
-    std::vector<DatabaseConstraint> normalized;
+    DatabaseConstraints normalized;
 
     assert(mainDicomTagsRegistry_.get() != NULL);
     mainDicomTagsRegistry_->NormalizeLookup(normalized, lookup, queryLevel);

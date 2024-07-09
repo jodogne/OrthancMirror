@@ -342,8 +342,8 @@ namespace Orthanc
   }
 
 
-  DatabaseConstraint DicomTagConstraint::ConvertToDatabaseConstraint(ResourceType level,
-                                                                     DicomTagType tagType) const
+  DatabaseConstraint* DicomTagConstraint::ConvertToDatabaseConstraint(ResourceType level,
+                                                                      DicomTagType tagType) const
   {
     bool isIdentifier, caseSensitive;
     
@@ -379,7 +379,7 @@ namespace Orthanc
       }
     }
 
-    return DatabaseConstraint(level, tag_, isIdentifier, constraintType_,
-                              values, caseSensitive, mandatory_);
+    return new DatabaseConstraint(level, tag_, isIdentifier, constraintType_,
+                                  values, caseSensitive, mandatory_);
   }  
 }
