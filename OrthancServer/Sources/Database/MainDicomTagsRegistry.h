@@ -75,7 +75,13 @@ namespace Orthanc
                    DicomTagType& type,
                    const DicomTag& tag) const;
 
-    void NormalizeLookup(DatabaseConstraints& target,
+    /**
+     * Returns "true" iff. the normalized lookup is the same as the
+     * original DatabaseLookup. If "false" is returned, the target
+     * constraints are less strict than the original DatabaseLookup,
+     * so more resources will match them.
+     **/
+    bool NormalizeLookup(DatabaseConstraints& target,
                          const DatabaseLookup& source,
                          ResourceType queryLevel) const;
   };

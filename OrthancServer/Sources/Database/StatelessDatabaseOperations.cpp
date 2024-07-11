@@ -1552,7 +1552,8 @@ namespace Orthanc
     DicomTagConstraint c(tag, ConstraintType_Equal, value, true, true);
 
     DatabaseConstraints query;
-    query.AddConstraint(c.ConvertToDatabaseConstraint(level, DicomTagType_Identifier));
+    bool isIdentical;  // unused
+    query.AddConstraint(c.ConvertToDatabaseConstraint(isIdentical, level, DicomTagType_Identifier));
 
 
     class Operations : public IReadOnlyOperations

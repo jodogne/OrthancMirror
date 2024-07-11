@@ -265,7 +265,8 @@ namespace Orthanc
 
         uint64_t since = boost::lexical_cast<uint64_t>(call.GetArgument("since", ""));
         uint64_t limit = boost::lexical_cast<uint64_t>(call.GetArgument("limit", ""));
-        finder.SetLimits(since, limit);
+        finder.SetLimitsSince(since);
+        finder.SetLimitsCount(limit);
       }
 
       Json::Value answer;
@@ -3347,36 +3348,32 @@ namespace Orthanc
       finder.SetDatabaseLimits(context.GetDatabaseLimits(level));
       finder.SetFormat(OrthancRestApi::GetDicomFormat(request, DicomToJsonFormat_Human));
 
-      size_t limit = 0;
       if (request.isMember(KEY_LIMIT))
       {
-        int tmp = request[KEY_LIMIT].asInt();
+        int64_t tmp = request[KEY_LIMIT].asInt64();
         if (tmp < 0)
         {
           throw OrthancException(ErrorCode_ParameterOutOfRange,
                                  "Field \"" + std::string(KEY_LIMIT) + "\" must be a positive integer");
         }
-
-        limit = static_cast<size_t>(tmp);
+        else
+        {
+          finder.SetLimitsCount(static_cast<uint64_t>(tmp));
+        }
       }
 
-      size_t since = 0;
       if (request.isMember(KEY_SINCE))
       {
-        int tmp = request[KEY_SINCE].asInt();
+        int64_t tmp = request[KEY_SINCE].asInt64();
         if (tmp < 0)
         {
           throw OrthancException(ErrorCode_ParameterOutOfRange,
                                  "Field \"" + std::string(KEY_SINCE) + "\" must be a positive integer");
         }
-
-        since = static_cast<size_t>(tmp);
-      }
-
-      if (request.isMember(KEY_LIMIT) ||
-          request.isMember(KEY_SINCE))
-      {
-        finder.SetLimits(since, limit);
+        else
+        {
+          finder.SetLimitsSince(static_cast<uint64_t>(tmp));
+        }
       }
 
       {
