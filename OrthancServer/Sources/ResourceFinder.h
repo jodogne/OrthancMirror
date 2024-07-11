@@ -50,11 +50,20 @@ namespace Orthanc
     };
 
   private:
+    enum PagingMode
+    {
+      PagingMode_FullDatabase,
+      PagingMode_FullManual,
+      PagingMode_ManualSkip
+    };
+
     FindRequest                      request_;
     uint64_t                         databaseLimits_;
     std::unique_ptr<DatabaseLookup>  lookup_;
-    bool                             isDatabasePaging_;
-    bool                             hasLimits_;
+    bool                             isSimpleLookup_;
+    PagingMode                       pagingMode_;
+    bool                             hasLimitsSince_;
+    bool                             hasLimitsCount_;
     uint64_t                         limitsSince_;
     uint64_t                         limitsCount_;
     bool                             expand_;
@@ -122,8 +131,9 @@ namespace Orthanc
       format_ = format;
     }
 
-    void SetLimits(uint64_t since,
-                   uint64_t count);
+    void SetLimitsSince(uint64_t since);
+
+    void SetLimitsCount(uint64_t count);
 
     void SetDatabaseLookup(const DatabaseLookup& lookup);
 

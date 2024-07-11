@@ -369,7 +369,8 @@ namespace Orthanc
   }
 
 
-  DatabaseConstraint* DicomTagConstraint::ConvertToDatabaseConstraint(ResourceType level,
+  DatabaseConstraint* DicomTagConstraint::ConvertToDatabaseConstraint(bool& isIdentical,
+                                                                      ResourceType level,
                                                                       DicomTagType tagType) const
   {
     bool isIdentifier, caseSensitive;
@@ -392,13 +393,21 @@ namespace Orthanc
 
     std::vector<std::string> values;
     values.reserve(values_.size());
-      
+
+    isIdentical = true;
+
     for (std::set<std::string>::const_iterator
            it = values_.begin(); it != values_.end(); ++it)
     {
       if (isIdentifier)
       {
-        values.push_back(ServerToolbox::NormalizeIdentifier(*it));
+        std::string normalized = ServerToolbox::NormalizeIdentifier(*it);
+        values.push_back(normalized);
+
+        if (normalized != *it)
+        {
+          isIdentical = false;
+        }
       }
       else
       {

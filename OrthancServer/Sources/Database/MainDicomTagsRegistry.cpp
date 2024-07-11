@@ -98,10 +98,12 @@ namespace Orthanc
   }
 
 
-  void MainDicomTagsRegistry::NormalizeLookup(DatabaseConstraints& target,
+  bool MainDicomTagsRegistry::NormalizeLookup(DatabaseConstraints& target,
                                               const DatabaseLookup& source,
                                               ResourceType queryLevel) const
   {
+    bool isEquivalentLookup = true;
+
     target.Clear();
 
     for (size_t i = 0; i < source.GetConstraintsCount(); i++)
@@ -121,8 +123,20 @@ namespace Orthanc
           level = ResourceType_Study;
         }
 
-        target.AddConstraint(source.GetConstraint(i).ConvertToDatabaseConstraint(level, type));
+        bool isEquivalentConstraint;
+        target.AddConstraint(source.GetConstraint(i).ConvertToDatabaseConstraint(isEquivalentConstraint, level, type));
+
+        if (!isEquivalentConstraint)
+        {
+          isEquivalentLookup = false;
+        }
+      }
+      else
+      {
+        isEquivalentLookup = false;
       }
     }
+
+    return isEquivalentLookup;
   }
 }

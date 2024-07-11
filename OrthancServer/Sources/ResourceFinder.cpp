@@ -425,7 +425,7 @@ namespace Orthanc
   void ResourceFinder::UpdateRequestLimits()
   {
     // By default, use manual paging
-    isDatabasePaging_ = false;
+    pagingMode_ = PagingMode_FullManual;
 
     if (databaseLimits_ != 0)
     {
@@ -436,15 +436,34 @@ namespace Orthanc
       request_.ClearLimits();
     }
 
-    if (hasLimits_)
+    if (lookup_.get() == NULL &&
+        (hasLimitsSince_ || hasLimitsCount_))
     {
-      if (lookup_.get() == NULL)
-      {
-        isDatabasePaging_ = true;
-        request_.SetLimits(limitsSince_, limitsCount_);
-      }
+      pagingMode_ = PagingMode_FullDatabase;
+      request_.SetLimits(limitsSince_, limitsCount_);
+    }
 
-      // TODO-FIND: enable database paging on "simple" lookups that involve no normalization
+    if (lookup_.get() != NULL &&
+        isSimpleLookup_ &&
+        (hasLimitsSince_ || hasLimitsCount_))
+    {
+      /**
+       * TODO-FIND: "IDatabaseWrapper::ApplyLookupResources()" only
+       * accept the "limit" argument.  The "since" must be implemented
+       * manually.
+       **/
+
+      if (hasLimitsSince_ &&
+          limitsSince_ != 0)
+      {
+        pagingMode_ = PagingMode_ManualSkip;
+        request_.SetLimits(0, limitsCount_ + limitsSince_);
+      }
+      else
+      {
+        pagingMode_ = PagingMode_FullDatabase;
+        request_.SetLimits(0, limitsCount_);
+      }
     }
 
     // TODO-FIND: More cases could be added, depending on "GetDatabaseCapabilities()"
@@ -455,8 +474,10 @@ namespace Orthanc
                                  bool expand) :
     request_(level),
     databaseLimits_(0),
-    isDatabasePaging_(true),
-    hasLimits_(false),
+    isSimpleLookup_(true),
+    pagingMode_(PagingMode_FullManual),
+    hasLimitsSince_(false),
+    hasLimitsCount_(false),
     limitsSince_(0),
     limitsCount_(0),
     expand_(expand),
@@ -509,17 +530,30 @@ namespace Orthanc
   }
 
 
-  void ResourceFinder::SetLimits(uint64_t since,
-                                 uint64_t count)
+  void ResourceFinder::SetLimitsSince(uint64_t since)
   {
-    if (hasLimits_)
+    if (hasLimitsSince_)
     {
       throw OrthancException(ErrorCode_BadSequenceOfCalls);
     }
     else
     {
-      hasLimits_ = true;
+      hasLimitsSince_ = true;
       limitsSince_ = since;
+      UpdateRequestLimits();
+    }
+  }
+
+
+  void ResourceFinder::SetLimitsCount(uint64_t count)
+  {
+    if (hasLimitsCount_)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    else
+    {
+      hasLimitsCount_ = true;
       limitsCount_ = count;
       UpdateRequestLimits();
     }
@@ -540,7 +574,7 @@ namespace Orthanc
     }
 
     MainDicomTagsRegistry registry;
-    registry.NormalizeLookup(request_.GetDicomTagConstraints(), lookup, request_.GetLevel());
+    isSimpleLookup_ = registry.NormalizeLookup(request_.GetDicomTagConstraints(), lookup, request_.GetLevel());
 
     // "request_.GetDicomTagConstraints()" only contains constraints on main DICOM tags
 
@@ -835,14 +869,21 @@ namespace Orthanc
     context.GetIndex().ExecuteFind(response, request_);
 
     bool complete;
-    if (isDatabasePaging_)
+
+    switch (pagingMode_)
     {
-      complete = true;
-    }
-    else
-    {
-      complete = (databaseLimits_ == 0 ||
-                  response.GetSize() <= databaseLimits_);
+      case PagingMode_FullDatabase:
+      case PagingMode_ManualSkip:
+        complete = true;
+        break;
+
+      case PagingMode_FullManual:
+        complete = (databaseLimits_ == 0 ||
+                    response.GetSize() <= databaseLimits_);
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_InternalError);
     }
 
     if (lookup_.get() != NULL)
@@ -895,18 +936,18 @@ namespace Orthanc
 
       if (match)
       {
-        if (isDatabasePaging_)
+        if (pagingMode_ == PagingMode_FullDatabase)
         {
           visitor.Apply(resource, hasRequestedTags_, requestedTags);
         }
         else
         {
-          if (hasLimits_ &&
+          if (hasLimitsSince_ &&
               skipped < limitsSince_)
           {
             skipped++;
           }
-          else if (hasLimits_ &&
+          else if (hasLimitsCount_ &&
                    countResults >= limitsCount_)
           {
             // Too many results, don't mark as complete
