@@ -314,6 +314,11 @@ namespace Orthanc
       return metadataConstraints_.size();
     }
 
+    void ClearLimits()
+    {
+      hasLimits_ = false;
+    }
+
     void SetLimits(uint64_t since,
                    uint64_t count);
 

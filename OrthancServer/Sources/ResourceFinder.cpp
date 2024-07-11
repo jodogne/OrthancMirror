@@ -431,18 +431,20 @@ namespace Orthanc
     {
       request_.SetLimits(0, databaseLimits_ + 1);
     }
-
-    if (lookup_.get() == NULL ||
-        lookup_->HasOnlyMainDicomTags())
+    else
     {
-      // TODO-FIND: Understand why this doesn't work:
-      // $ ./Start.sh --force Orthanc.test_rest_find_limit Orthanc.test_resources_since_limit Orthanc.test_rest_find_limit
+      request_.ClearLimits();
+    }
 
-      /*if (hasLimits_)
+    if (hasLimits_)
+    {
+      if (lookup_.get() == NULL)
       {
         isDatabasePaging_ = true;
         request_.SetLimits(limitsSince_, limitsCount_);
-        }*/
+      }
+
+      // TODO-FIND: enable database paging on "simple" lookups that involve no normalization
     }
 
     // TODO-FIND: More cases could be added, depending on "GetDatabaseCapabilities()"
@@ -527,7 +529,6 @@ namespace Orthanc
   void ResourceFinder::SetDatabaseLookup(const DatabaseLookup& lookup)
   {
     lookup_.reset(lookup.Clone());
-    UpdateRequestLimits();
 
     for (size_t i = 0; i < lookup.GetConstraintsCount(); i++)
     {
@@ -567,6 +568,8 @@ namespace Orthanc
         throw OrthancException(ErrorCode_InternalError);
       }
     }
+
+    UpdateRequestLimits();
   }
 
 
