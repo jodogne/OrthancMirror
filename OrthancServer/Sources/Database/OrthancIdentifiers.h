@@ -86,7 +86,7 @@ namespace Orthanc
     ResourceType DetectLevel() const;
 
     void SetLevel(ResourceType level,
-                  const std::string id);
+                  const std::string& id);
 
     std::string GetLevel(ResourceType level) const;
   };

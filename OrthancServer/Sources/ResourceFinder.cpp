@@ -301,11 +301,11 @@ namespace Orthanc
         static const char* const INDEX_IN_SERIES = "IndexInSeries";
 
         std::string s;
-        uint32_t index;
+        uint32_t indexInSeries;
         if (resource.LookupMetadata(s, ResourceType_Instance, MetadataType_Instance_IndexInSeries) &&
-            SerializationToolbox::ParseUnsignedInteger32(index, s))
+            SerializationToolbox::ParseUnsignedInteger32(indexInSeries, s))
         {
-          target[INDEX_IN_SERIES] = index;
+          target[INDEX_IN_SERIES] = indexInSeries;
         }
         else
         {

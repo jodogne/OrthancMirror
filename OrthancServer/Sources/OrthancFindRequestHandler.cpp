@@ -392,7 +392,6 @@ namespace Orthanc
           }
           else
           {
-            const DicomTag& tag = queryAsArray_.GetElement(i).GetTag();
             const DicomValue* value = resourceTags.TestAndGetValue(tag);
 
             if (value == NULL ||

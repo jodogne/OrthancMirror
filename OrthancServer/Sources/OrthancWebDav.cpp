@@ -186,7 +186,7 @@ namespace Orthanc
     Collection&  target_;
 
   public:
-    DicomIdentifiersVisitorV2(Collection& target) :
+    explicit DicomIdentifiersVisitorV2(Collection& target) :
       isComplete_(false),
       target_(target)
     {

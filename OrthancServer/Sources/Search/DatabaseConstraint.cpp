@@ -320,7 +320,7 @@ namespace Orthanc
         {
           s += " in [ ";
           bool first = true;
-          for (size_t i = 0; i < constraint.GetValuesCount(); i++)
+          for (size_t j = 0; j < constraint.GetValuesCount(); j++)
           {
             if (first)
             {
@@ -330,7 +330,7 @@ namespace Orthanc
             {
               s += ", ";
             }
-            s += constraint.GetValue(i);
+            s += constraint.GetValue(j);
           }
           s += "]";
           break;
