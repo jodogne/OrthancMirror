@@ -34,7 +34,8 @@ namespace Orthanc
 {
   FindRequest::ParentSpecification& FindRequest::GetParentSpecification(ResourceType level)
   {
-    if (!IsResourceLevelAboveOrEqual(level, level_))
+    if (!IsResourceLevelAboveOrEqual(level, level_) ||
+        level == level_)
     {
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
@@ -58,7 +59,8 @@ namespace Orthanc
 
   FindRequest::ChildrenSpecification& FindRequest::GetChildrenSpecification(ResourceType level)
   {
-    if (!IsResourceLevelAboveOrEqual(level_, level))
+    if (!IsResourceLevelAboveOrEqual(level_, level) ||
+        level == level_)
     {
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
