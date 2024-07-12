@@ -66,7 +66,6 @@ namespace Orthanc
     uint64_t                         limitsSince_;
     uint64_t                         limitsCount_;
     bool                             expand_;
-    DicomToJsonFormat                format_;
     bool                             allowStorageAccess_;
     bool                             hasRequestedTags_;
     std::set<DicomTag>               requestedPatientTags_;
@@ -97,10 +96,6 @@ namespace Orthanc
     void InjectComputedTags(DicomMap& requestedTags,
                             const FindResponse::Resource& resource) const;
 
-    void Expand(Json::Value& target,
-                const FindResponse::Resource& resource,
-                ServerIndex& index) const;
-
     void UpdateRequestLimits();
 
   public:
@@ -123,11 +118,6 @@ namespace Orthanc
                       const std::string& id)
     {
       request_.SetOrthancId(level, id);
-    }
-
-    void SetFormat(DicomToJsonFormat format)
-    {
-      format_ = format;
     }
 
     void SetLimitsSince(uint64_t since);
@@ -175,6 +165,11 @@ namespace Orthanc
       request_.SetRetrieveAttachments(retrieve);
     }
 
+    void Expand(Json::Value& target,
+                const FindResponse::Resource& resource,
+                ServerIndex& index,
+                DicomToJsonFormat format) const;
+
     void Execute(FindResponse& target,
                  ServerIndex& index) const;
 
@@ -182,9 +177,11 @@ namespace Orthanc
                  ServerContext& context) const;
 
     void Execute(Json::Value& target,
-                 ServerContext& context) const;
+                 ServerContext& context,
+                 DicomToJsonFormat format) const;
 
     bool ExecuteOneResource(Json::Value& target,
-                            ServerContext& context) const;
+                            ServerContext& context,
+                            DicomToJsonFormat format) const;
   };
 }
