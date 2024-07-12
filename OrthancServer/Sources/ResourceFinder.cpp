@@ -624,8 +624,8 @@ namespace Orthanc
     {
       if (request_.GetLevel() == ResourceType_Patient)
       {
-        request_.GetParentSpecification(ResourceType_Patient).SetRetrieveMainDicomTags(true);
-        request_.GetParentSpecification(ResourceType_Patient).SetRetrieveMetadata(true);
+        request_.SetRetrieveMainDicomTags(true);
+        request_.SetRetrieveMetadata(true);
         requestedPatientTags_.insert(tag);
       }
       else
@@ -634,8 +634,19 @@ namespace Orthanc
          * This comes from the fact that patient-level tags are copied
          * at the study level, as implemented by "ResourcesContent::AddResource()".
          **/
-        request_.GetParentSpecification(ResourceType_Study).SetRetrieveMainDicomTags(true);
-        request_.GetParentSpecification(ResourceType_Study).SetRetrieveMetadata(true);
+        requestedStudyTags_.insert(tag);
+
+        if (request_.GetLevel() == ResourceType_Study)
+        {
+          request_.SetRetrieveMainDicomTags(true);
+          request_.SetRetrieveMetadata(true);
+        }
+        else
+        {
+          request_.GetParentSpecification(ResourceType_Study).SetRetrieveMainDicomTags(true);
+          request_.GetParentSpecification(ResourceType_Study).SetRetrieveMetadata(true);
+        }
+
         requestedStudyTags_.insert(tag);
       }
 
@@ -652,8 +663,17 @@ namespace Orthanc
       }
       else
       {
-        request_.GetParentSpecification(ResourceType_Study).SetRetrieveMainDicomTags(true);
-        request_.GetParentSpecification(ResourceType_Study).SetRetrieveMetadata(true);
+        if (request_.GetLevel() == ResourceType_Study)
+        {
+          request_.SetRetrieveMainDicomTags(true);
+          request_.SetRetrieveMetadata(true);
+        }
+        else
+        {
+          request_.GetParentSpecification(ResourceType_Study).SetRetrieveMainDicomTags(true);
+          request_.GetParentSpecification(ResourceType_Study).SetRetrieveMetadata(true);
+        }
+
         requestedStudyTags_.insert(tag);
       }
 
@@ -671,8 +691,17 @@ namespace Orthanc
       }
       else
       {
-        request_.GetParentSpecification(ResourceType_Series).SetRetrieveMainDicomTags(true);
-        request_.GetParentSpecification(ResourceType_Series).SetRetrieveMetadata(true);
+        if (request_.GetLevel() == ResourceType_Series)
+        {
+          request_.SetRetrieveMainDicomTags(true);
+          request_.SetRetrieveMetadata(true);
+        }
+        else
+        {
+          request_.GetParentSpecification(ResourceType_Series).SetRetrieveMainDicomTags(true);
+          request_.GetParentSpecification(ResourceType_Series).SetRetrieveMetadata(true);
+        }
+
         requestedSeriesTags_.insert(tag);
       }
 
