@@ -166,9 +166,6 @@ namespace Orthanc
                 DicomToJsonFormat format,
                 bool includeAllMetadata /* Same as: ExpandResourceFlags_IncludeAllMetadata */) const;
 
-    void Execute(FindResponse& target,
-                 ServerIndex& index) const;
-
     void Execute(IVisitor& visitor,
                  ServerContext& context) const;
 

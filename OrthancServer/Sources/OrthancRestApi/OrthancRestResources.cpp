@@ -130,7 +130,7 @@ namespace Orthanc
 
 
   static bool ExpandResource(Json::Value& target,
-                             ServerIndex& index,
+                             ServerContext& context,
                              ResourceType level,
                              const std::string& identifier,
                              DicomToJsonFormat format,
@@ -140,19 +140,7 @@ namespace Orthanc
     finder.SetOrthancId(level, identifier);
     finder.SetRetrieveMetadata(retrieveMetadata);
 
-    FindResponse response;
-    finder.Execute(response, index);
-
-    if (response.GetSize() != 1)
-    {
-      return false;
-    }
-    else
-    {
-      const FindResponse::Resource& resource = response.GetResourceByIndex(0);
-      finder.Expand(target, resource, index, format, retrieveMetadata);
-      return true;
-    }
+    return finder.ExecuteOneResource(target, context, format, retrieveMetadata);
   }
 
 
@@ -3801,7 +3789,7 @@ namespace Orthanc
       /**
        * EXPERIMENTAL VERSION
        **/
-      if (ExpandResource(resource, OrthancRestApi::GetIndex(call), currentType, current, format, false))
+      if (ExpandResource(resource, OrthancRestApi::GetContext(call), currentType, current, format, false))
       {
         call.GetOutput().AnswerJson(resource);
       }
@@ -4251,7 +4239,7 @@ namespace Orthanc
              * EXPERIMENTAL VERSION
              **/
             Json::Value item;
-            if (ExpandResource(item, OrthancRestApi::GetIndex(call), level, *it, format, metadata))
+            if (ExpandResource(item, OrthancRestApi::GetContext(call), level, *it, format, metadata))
             {
               answer.append(item);
             }
@@ -4295,7 +4283,7 @@ namespace Orthanc
              * EXPERIMENTAL VERSION
              **/
             if (index.LookupResourceType(level, *it) &&
-                ExpandResource(item, OrthancRestApi::GetIndex(call), level, *it, format, metadata))
+                ExpandResource(item, OrthancRestApi::GetContext(call), level, *it, format, metadata))
             {
               answer.append(item);
             }
