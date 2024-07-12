@@ -891,13 +891,6 @@ namespace Orthanc
   }
 
 
-  void ResourceFinder::Execute(FindResponse& response,
-                               ServerIndex& index) const
-  {
-    index.ExecuteFind(response, request_);
-  }
-
-  
   void ResourceFinder::Execute(IVisitor& visitor,
                                ServerContext& context) const
   {

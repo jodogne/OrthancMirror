@@ -1556,53 +1556,8 @@ namespace Orthanc
       fastLookup->RemoveConstraint(DICOM_TAG_MODALITIES_IN_STUDY);
     }
 
-    if (true)
-    {
-      /**
-       * EXPERIMENTAL VERSION
-       **/
-
-      ResourceFinder finder(queryLevel, false /* TODO-FIND: don't expand for now */);
-      finder.SetDatabaseLimits(databaseLimit);
-      finder.SetDatabaseLookup(lookup);
-      finder.SetLabels(labels);
-      finder.SetLabelsConstraint(labelsConstraint);
-
-      if (queryLevel != ResourceType_Instance)
-      {
-        finder.SetRetrieveOneInstanceIdentifier(true);
-      }
-
-      FindResponse response;
-      finder.Execute(response, GetIndex());
-
-      resources.resize(response.GetSize());
-      instances.resize(response.GetSize());
-
-      for (size_t i = 0; i < response.GetSize(); i++)
-      {
-        const FindResponse::Resource& resource = response.GetResourceByIndex(i);
-        resources[i] = resource.GetIdentifier();
-
-        if (queryLevel == ResourceType_Instance)
-        {
-          instances[i] = resource.GetIdentifier();
-        }
-        else
-        {
-          instances[i] = resource.GetOneInstanceIdentifier();
-        }
-      }
-    }
-    else
-    {
-      /**
-       * VERSION IN ORTHANC <= 1.12.4
-       **/
-
-      const size_t lookupLimit = (databaseLimit == 0 ? 0 : databaseLimit + 1);
-      GetIndex().ApplyLookupResources(resources, &instances, *fastLookup, queryLevel, labels, labelsConstraint, lookupLimit);
-    }
+    const size_t lookupLimit = (databaseLimit == 0 ? 0 : databaseLimit + 1);
+    GetIndex().ApplyLookupResources(resources, &instances, *fastLookup, queryLevel, labels, labelsConstraint, lookupLimit);
 
     bool complete = (databaseLimit == 0 ||
                      resources.size() <= databaseLimit);
