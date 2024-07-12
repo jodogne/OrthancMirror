@@ -191,12 +191,18 @@ namespace Orthanc
   void ResourceFinder::Expand(Json::Value& target,
                               const FindResponse::Resource& resource,
                               ServerIndex& index,
-                              DicomToJsonFormat format) const
+                              DicomToJsonFormat format,
+                              bool includeAllMetadata) const
   {
     /**
      * This method closely follows "SerializeExpandedResource()" in
      * "ServerContext.cpp" from Orthanc 1.12.4.
      **/
+
+    if (!expand_)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
 
     if (resource.GetLevel() != request_.GetLevel())
     {
@@ -407,7 +413,7 @@ namespace Orthanc
       target["Labels"] = labels;
     }
 
-    if (includeAllMetadata_)  // new in Orthanc 1.12.4
+    if (includeAllMetadata)  // new in Orthanc 1.12.4
     {
       const std::map<MetadataType, std::string>& m = resource.GetMetadata(resource.GetLevel());
 
@@ -483,8 +489,7 @@ namespace Orthanc
     limitsCount_(0),
     expand_(expand),
     allowStorageAccess_(true),
-    hasRequestedTags_(false),
-    includeAllMetadata_(false)
+    hasRequestedTags_(false)
   {
     UpdateRequestLimits();
 
@@ -1003,7 +1008,8 @@ namespace Orthanc
 
   void ResourceFinder::Execute(Json::Value& target,
                                ServerContext& context,
-                               DicomToJsonFormat format) const
+                               DicomToJsonFormat format,
+                               bool includeAllMetadata) const
   {
     class Visitor : public IVisitor
     {
@@ -1013,18 +1019,21 @@ namespace Orthanc
       Json::Value&           target_;
       DicomToJsonFormat      format_;
       bool                   hasRequestedTags_;
+      bool                   includeAllMetadata_;
 
     public:
       Visitor(const ResourceFinder& that,
               ServerIndex& index,
               Json::Value& target,
               DicomToJsonFormat format,
-              bool hasRequestedTags) :
+              bool hasRequestedTags,
+              bool includeAllMetadata) :
         that_(that),
         index_(index),
         target_(target),
         format_(format),
-        hasRequestedTags_(hasRequestedTags)
+        hasRequestedTags_(hasRequestedTags),
+        includeAllMetadata_(includeAllMetadata)
       {
       }
 
@@ -1034,7 +1043,7 @@ namespace Orthanc
         if (that_.expand_)
         {
           Json::Value item;
-          that_.Expand(item, resource, index_, format_);
+          that_.Expand(item, resource, index_, format_, includeAllMetadata_);
 
           if (hasRequestedTags_)
           {
@@ -1058,17 +1067,18 @@ namespace Orthanc
 
     target = Json::arrayValue;
 
-    Visitor visitor(*this, context.GetIndex(), target, format, hasRequestedTags_);
+    Visitor visitor(*this, context.GetIndex(), target, format, hasRequestedTags_, includeAllMetadata);
     Execute(visitor, context);
   }
 
 
   bool ResourceFinder::ExecuteOneResource(Json::Value& target,
                                           ServerContext& context,
-                                          DicomToJsonFormat format) const
+                                          DicomToJsonFormat format,
+                                          bool includeAllMetadata) const
   {
     Json::Value answer;
-    Execute(answer, context, format);
+    Execute(answer, context, format, includeAllMetadata);
 
     if (answer.type() != Json::arrayValue)
     {

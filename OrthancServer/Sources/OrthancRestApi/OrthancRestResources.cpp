@@ -150,23 +150,7 @@ namespace Orthanc
     else
     {
       const FindResponse::Resource& resource = response.GetResourceByIndex(0);
-      finder.Expand(target, resource, index, format);
-
-      if (retrieveMetadata)
-      {
-        const std::map<MetadataType, std::string>& metadata = resource.GetMetadata(level);
-
-        Json::Value tmp;
-
-        for (std::map<MetadataType, std::string>::const_iterator
-               it = metadata.begin(); it != metadata.end(); ++it)
-        {
-          tmp[EnumerationToString(it->first)] = it->second;
-        }
-
-        target["Metadata"] = tmp;
-      }
-
+      finder.Expand(target, resource, index, format, retrieveMetadata);
       return true;
     }
   }
@@ -312,7 +296,7 @@ namespace Orthanc
       }
 
       Json::Value answer;
-      finder.Execute(answer, context, OrthancRestApi::GetDicomFormat(call, DicomToJsonFormat_Human));
+      finder.Execute(answer, context, OrthancRestApi::GetDicomFormat(call, DicomToJsonFormat_Human), false /* no "Metadata" field */);
       call.GetOutput().AnswerJson(answer);
     }
     else
@@ -396,7 +380,7 @@ namespace Orthanc
       finder.SetOrthancId(resourceType, call.GetUriComponent("id", ""));
 
       Json::Value json;
-      if (finder.ExecuteOneResource(json, OrthancRestApi::GetContext(call), format))
+      if (finder.ExecuteOneResource(json, OrthancRestApi::GetContext(call), format, false /* no "Metadata" field */))
       {
         call.GetOutput().AnswerJson(json);
       }
@@ -3497,7 +3481,7 @@ namespace Orthanc
       }
 
       Json::Value answer;
-      finder.Execute(answer, context, format);
+      finder.Execute(answer, context, format, false /* no "Metadata" field */);
       call.GetOutput().AnswerJson(answer);
     }
     else
@@ -3668,7 +3652,7 @@ namespace Orthanc
       finder.AddRequestedTags(requestedTags);
 
       Json::Value answer;
-      finder.Execute(answer, context, format);
+      finder.Execute(answer, context, format, false /* no "Metadata" field */);
       call.GetOutput().AnswerJson(answer);
     }
     else
