@@ -537,7 +537,6 @@ namespace Orthanc
       throw OrthancException(ErrorCode_NotImplemented);
     }
 
-
     DicomArray query(*filteredInput);
     CLOG(INFO, DICOM) << "DICOM C-Find request at level: " << EnumerationToString(level);
 
@@ -585,11 +584,18 @@ namespace Orthanc
       const DicomTag tag = element.GetTag();
 
       // remove tags that are not used for matching
-      if (element.GetValue().IsNull() ||
-          tag == DICOM_TAG_QUERY_RETRIEVE_LEVEL ||
+      if (tag == DICOM_TAG_QUERY_RETRIEVE_LEVEL ||
           tag == DICOM_TAG_SPECIFIC_CHARACTER_SET ||
           tag == DICOM_TAG_TIMEZONE_OFFSET_FROM_UTC)  // time zone is not directly used for matching.  Once we support "Timezone query adjustment", we may use it to adjust date-time filters but for now, just ignore it 
       {
+        continue;
+      }
+
+      requestedTags.insert(tag);
+
+      if (element.GetValue().IsNull())
+      {
+        // There is no constraint on this tag
         continue;
       }
 
@@ -617,7 +623,6 @@ namespace Orthanc
       }
       else
       {
-        requestedTags.insert(tag);
         CLOG(INFO, DICOM) << "Because of a patch for the manufacturer of the remote modality, " 
                           << "ignoring constraint on tag (" << tag.Format() << ") "
                           << FromDcmtkBridge::GetTagName(element);
@@ -632,7 +637,7 @@ namespace Orthanc
     size_t limit = (level == ResourceType_Instance) ? maxInstances_ : maxResults_;
 
 
-    if (false)
+    if (true)
     {
       /**
        * EXPERIMENTAL VERSION
