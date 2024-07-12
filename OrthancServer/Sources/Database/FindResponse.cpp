@@ -600,7 +600,7 @@ namespace Orthanc
           DebugDicomMap(target[level]["MainDicomTags"], m);
         }
 
-        if (request.GetParentSpecification(levels[i]).IsRetrieveMainDicomTags())
+        if (request.GetParentSpecification(levels[i]).IsRetrieveMetadata())
         {
           DebugMetadata(target[level]["Metadata"], GetMetadata(levels[i]));
         }

@@ -194,7 +194,7 @@ namespace Orthanc
 
 
   void OrthancIdentifiers::SetLevel(ResourceType level,
-                                    const std::string id)
+                                    const std::string& id)
   {
     switch (level)
     {
