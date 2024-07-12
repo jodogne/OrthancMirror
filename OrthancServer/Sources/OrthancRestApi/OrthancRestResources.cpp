@@ -129,6 +129,49 @@ namespace Orthanc
   }
 
 
+  static bool ExpandResource(Json::Value& target,
+                             ServerIndex& index,
+                             ResourceType level,
+                             const std::string& identifier,
+                             DicomToJsonFormat format,
+                             bool retrieveMetadata)
+  {
+    ResourceFinder finder(level, true /* expand */);
+    finder.SetOrthancId(level, identifier);
+    finder.SetRetrieveMetadata(retrieveMetadata);
+
+    FindResponse response;
+    finder.Execute(response, index);
+
+    if (response.GetSize() != 1)
+    {
+      return false;
+    }
+    else
+    {
+      const FindResponse::Resource& resource = response.GetResourceByIndex(0);
+      finder.Expand(target, resource, index, format);
+
+      if (retrieveMetadata)
+      {
+        const std::map<MetadataType, std::string>& metadata = resource.GetMetadata(level);
+
+        Json::Value tmp;
+
+        for (std::map<MetadataType, std::string>::const_iterator
+               it = metadata.begin(); it != metadata.end(); ++it)
+        {
+          tmp[EnumerationToString(it->first)] = it->second;
+        }
+
+        target["Metadata"] = tmp;
+      }
+
+      return true;
+    }
+  }
+
+
   // List all the patients, studies, series or instances ----------------------
  
   template <enum ResourceType resourceType>
@@ -164,7 +207,6 @@ namespace Orthanc
 
     ResourceFinder finder(resourceType, expand);
     finder.AddRequestedTags(requestedTags);
-    finder.SetFormat(OrthancRestApi::GetDicomFormat(call, DicomToJsonFormat_Human));
 
     if (call.HasArgument("limit") ||
         call.HasArgument("since"))
@@ -190,7 +232,7 @@ namespace Orthanc
     }
 
     Json::Value answer;
-    finder.Execute(answer, OrthancRestApi::GetContext(call));
+    finder.Execute(answer, OrthancRestApi::GetContext(call), OrthancRestApi::GetDicomFormat(call, DicomToJsonFormat_Human));
     call.GetOutput().AnswerJson(answer);
   }
 
@@ -218,13 +260,14 @@ namespace Orthanc
     std::set<DicomTag> requestedTags;
     OrthancRestApi::GetRequestedTags(requestedTags, call);
 
+    const DicomToJsonFormat format = OrthancRestApi::GetDicomFormat(call, DicomToJsonFormat_Human);
+
     ResourceFinder finder(resourceType, true /* expand */);
     finder.AddRequestedTags(requestedTags);
-    finder.SetFormat(OrthancRestApi::GetDicomFormat(call, DicomToJsonFormat_Human));
     finder.SetOrthancId(resourceType, call.GetUriComponent("id", ""));
 
     Json::Value json;
-    if (finder.ExecuteOneResource(json, OrthancRestApi::GetContext(call)))
+    if (finder.ExecuteOneResource(json, OrthancRestApi::GetContext(call), format))
     {
       call.GetOutput().AnswerJson(json);
     }
@@ -3133,7 +3176,8 @@ namespace Orthanc
 
       ResourceFinder finder(level, expand);
       finder.SetDatabaseLimits(context.GetDatabaseLimits(level));
-      finder.SetFormat(OrthancRestApi::GetDicomFormat(request, DicomToJsonFormat_Human));
+
+      const DicomToJsonFormat format = OrthancRestApi::GetDicomFormat(request, DicomToJsonFormat_Human);
 
       if (request.isMember(KEY_LIMIT))
       {
@@ -3242,7 +3286,7 @@ namespace Orthanc
       }
 
       Json::Value answer;
-      finder.Execute(answer, context);
+      finder.Execute(answer, context, format);
       call.GetOutput().AnswerJson(answer);
     }
   }
@@ -3283,10 +3327,9 @@ namespace Orthanc
     ResourceFinder finder(end, expand);
     finder.SetOrthancId(start, call.GetUriComponent("id", ""));
     finder.AddRequestedTags(requestedTags);
-    finder.SetFormat(format);
 
     Json::Value answer;
-    finder.Execute(answer, OrthancRestApi::GetContext(call));
+    finder.Execute(answer, OrthancRestApi::GetContext(call), format);
     call.GetOutput().AnswerJson(answer);
   }
 
