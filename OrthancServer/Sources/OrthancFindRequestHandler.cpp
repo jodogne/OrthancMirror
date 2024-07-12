@@ -40,6 +40,48 @@
 
 namespace Orthanc
 {
+  static void CopySequence(ParsedDicomFile& dicom,
+                           const DicomTag& tag,
+                           const Json::Value& source,
+                           const std::string& defaultPrivateCreator,
+                           const std::map<uint16_t, std::string>& privateCreators)
+  {
+    if (source.type() == Json::objectValue &&
+        source.isMember("Type") &&
+        source.isMember("Value") &&
+        source["Type"].asString() == "Sequence" &&
+        source["Value"].type() == Json::arrayValue)
+    {
+      Json::Value content = Json::arrayValue;
+
+      for (Json::Value::ArrayIndex i = 0; i < source["Value"].size(); i++)
+      {
+        Json::Value item;
+        Toolbox::SimplifyDicomAsJson(item, source["Value"][i], DicomToJsonFormat_Short);
+        content.append(item);
+      }
+
+      if (tag.IsPrivate())
+      {
+        std::map<uint16_t, std::string>::const_iterator found = privateCreators.find(tag.GetGroup());
+
+        if (found != privateCreators.end())
+        {
+          dicom.Replace(tag, content, false, DicomReplaceMode_InsertIfAbsent, found->second.c_str());
+        }
+        else
+        {
+          dicom.Replace(tag, content, false, DicomReplaceMode_InsertIfAbsent, defaultPrivateCreator);
+        }
+      }
+      else
+      {
+        dicom.Replace(tag, content, false, DicomReplaceMode_InsertIfAbsent, "" /* no private creator */);
+      }
+    }
+  }
+
+
   static void AddAnswer(DicomFindAnswers& answers,
                         ServerContext& context,
                         const std::string& publicId,
@@ -127,39 +169,7 @@ namespace Orthanc
         assert(dicomAsJson != NULL);
         const Json::Value& source = (*dicomAsJson) [tag->Format()];
 
-        if (source.type() == Json::objectValue &&
-            source.isMember("Type") &&
-            source.isMember("Value") &&
-            source["Type"].asString() == "Sequence" &&
-            source["Value"].type() == Json::arrayValue)
-        {
-          Json::Value content = Json::arrayValue;
-
-          for (Json::Value::ArrayIndex i = 0; i < source["Value"].size(); i++)
-          {
-            Json::Value item;
-            Toolbox::SimplifyDicomAsJson(item, source["Value"][i], DicomToJsonFormat_Short);
-            content.append(item);
-          }
-
-          if (tag->IsPrivate())
-          {
-            std::map<uint16_t, std::string>::const_iterator found = privateCreators.find(tag->GetGroup());
-            
-            if (found != privateCreators.end())
-            {
-              dicom.Replace(*tag, content, false, DicomReplaceMode_InsertIfAbsent, found->second.c_str());
-            }
-            else
-            {
-              dicom.Replace(*tag, content, false, DicomReplaceMode_InsertIfAbsent, defaultPrivateCreator);
-            }
-          }
-          else
-          {
-            dicom.Replace(*tag, content, false, DicomReplaceMode_InsertIfAbsent, "" /* no private creator */);
-          }
-        }
+        CopySequence(dicom, *tag, source, defaultPrivateCreator, privateCreators);
       }
 
       answers.Add(dicom);
@@ -365,16 +375,18 @@ namespace Orthanc
       virtual void Apply(const FindResponse::Resource& resource,
                          const DicomMap& requestedTags) ORTHANC_OVERRIDE
       {
-        DicomMap answer;
-        resource.GetAllMainDicomTags(answer);
-        answer.Merge(requestedTags);
+        DicomMap resourceTags;
+        resource.GetAllMainDicomTags(resourceTags);
+        resourceTags.Merge(requestedTags);
+
+        DicomMap result;
 
         /**
          * Add the mandatory "Retrieve AE Title (0008,0054)" tag, which was missing in Orthanc <= 1.7.2.
          * http://dicom.nema.org/medical/dicom/current/output/html/part04.html#sect_C.4.1.1.3.2
          * https://groups.google.com/g/orthanc-users/c/-7zNTKR_PMU/m/kfjwzEVNAgAJ
          **/
-        answer.SetValue(DICOM_TAG_RETRIEVE_AE_TITLE, retrieveAet_, false /* not binary */);
+        result.SetValue(DICOM_TAG_RETRIEVE_AE_TITLE, retrieveAet_, false /* not binary */);
 
         for (size_t i = 0; i < queryAsArray_.GetSize(); i++)
         {
@@ -383,19 +395,61 @@ namespace Orthanc
           if (tag == DICOM_TAG_QUERY_RETRIEVE_LEVEL)
           {
             // Fix issue 30 on Google Code (QR response missing "Query/Retrieve Level" (008,0052))
-            answer.SetValue(tag, queryAsArray_.GetElement(i).GetValue());
+            result.SetValue(tag, queryAsArray_.GetElement(i).GetValue());
           }
           else if (tag == DICOM_TAG_SPECIFIC_CHARACTER_SET)
           {
             // Do not include the encoding, this is handled by class ParsedDicomFile
           }
-          else if (!answer.HasTag(tag))
+          else
           {
-            answer.SetValue(tag, "", false);
+            const DicomTag& tag = queryAsArray_.GetElement(i).GetTag();
+            const DicomValue* value = resourceTags.TestAndGetValue(tag);
+
+            if (value == NULL ||
+                value->IsNull() ||
+                value->IsBinary())
+            {
+              result.SetValue(tag, "", false);
+            }
+            else
+            {
+              result.SetValue(tag, value->GetContent(), false);
+            }
           }
         }
 
-        answers_.Add(answer);
+        if (result.GetSize() == 0 &&
+            sequencesToReturn_.empty())
+        {
+          CLOG(WARNING, DICOM) << "The C-FIND request does not return any DICOM tag";
+        }
+        else if (sequencesToReturn_.empty())
+        {
+          answers_.Add(result);
+        }
+        else
+        {
+          ParsedDicomFile dicom(result, GetDefaultDicomEncoding(),
+                                true /* be permissive, cf. issue #136 */, defaultPrivateCreator_, privateCreators_);
+
+          for (std::list<DicomTag>::const_iterator tag = sequencesToReturn_.begin();
+               tag != sequencesToReturn_.end(); ++tag)
+          {
+            const DicomValue* value = resourceTags.TestAndGetValue(*tag);
+            if (value != NULL &&
+                value->IsSequence())
+            {
+              CopySequence(dicom, *tag, value->GetSequenceContent(), defaultPrivateCreator_, privateCreators_);
+            }
+            else
+            {
+              dicom.Replace(*tag, std::string(""), false, DicomReplaceMode_InsertIfAbsent, defaultPrivateCreator_);
+            }
+          }
+
+          answers_.Add(dicom);
+        }
       }
 
       virtual void MarkAsComplete() ORTHANC_OVERRIDE
