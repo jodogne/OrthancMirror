@@ -165,6 +165,16 @@ namespace Orthanc
       request_.SetRetrieveOneInstanceIdentifier(retrieve);
     }
 
+    void SetRetrieveMetadata(bool retrieve)
+    {
+      request_.SetRetrieveMetadata(retrieve);
+    }
+
+    void SetRetrieveAttachments(bool retrieve)
+    {
+      request_.SetRetrieveAttachments(retrieve);
+    }
+
     void Execute(FindResponse& target,
                  ServerIndex& index) const;
 
