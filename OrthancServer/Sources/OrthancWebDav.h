@@ -38,7 +38,7 @@ namespace Orthanc
     typedef std::map<ResourceType, std::string>  Templates;
 
     class DicomDeleteVisitor;
-    class DicomFileVisitor;
+    class DicomFileVisitorV2;
     class DicomIdentifiersVisitorV2;
     class InstancesOfSeries;
     class InternalNode;
@@ -47,6 +47,7 @@ namespace Orthanc
     class ListOfStudiesByMonth;
     class ListOfStudiesByYear;
     class OrthancJsonVisitor;
+    class OrthancJsonVisitorV2;
     class ResourcesIndex;
     class RootNode;
     class SingleDicomResource;

@@ -178,7 +178,7 @@ namespace Orthanc
   };
 
 
-  class OrthancWebDav::DicomFileVisitor : public ServerContext::ILookupVisitor
+  class OrthancWebDav::DicomFileVisitorV2 : public ResourceFinder::IVisitor
   {
   private:
     ServerContext&  context_;
@@ -187,9 +187,9 @@ namespace Orthanc
     boost::posix_time::ptime&  time_;
 
   public:
-    DicomFileVisitor(ServerContext& context,
-                     std::string& target,
-                     boost::posix_time::ptime& time) :
+    DicomFileVisitorV2(ServerContext& context,
+                       std::string& target,
+                       boost::posix_time::ptime& time) :
       context_(context),
       success_(false),
       target_(target),
@@ -202,19 +202,12 @@ namespace Orthanc
       return success_;
     }
 
-    virtual bool IsDicomAsJsonNeeded() const ORTHANC_OVERRIDE
-    {
-      return false;   // (*)
-    }
-      
     virtual void MarkAsComplete() ORTHANC_OVERRIDE
     {
     }
 
-    virtual void Visit(const std::string& publicId,
-                       const std::string& instanceId   /* unused     */,
-                       const DicomMap& mainDicomTags,
-                       const Json::Value* dicomAsJson  /* unused (*) */)  ORTHANC_OVERRIDE
+    virtual void Apply(const FindResponse::Resource& resource,
+                       const DicomMap& requestedTags) ORTHANC_OVERRIDE
     {
       if (success_)
       {
@@ -222,13 +215,22 @@ namespace Orthanc
       }
       else
       {
-        LookupTime(time_, context_, publicId, ResourceType_Instance, MetadataType_Instance_ReceptionDate);
-        context_.ReadDicom(target_, publicId);
+        std::string s;
+        if (resource.LookupMetadata(s, ResourceType_Instance, MetadataType_Instance_ReceptionDate))
+        {
+          ParseTime(time_, s);
+        }
+        else
+        {
+          time_ = GetNow();
+        }
+
+        context_.ReadDicom(target_, resource.GetIdentifier());
         success_ = true;
       }
     }
   };
-  
+
 
   class OrthancWebDav::OrthancJsonVisitor : public ServerContext::ILookupVisitor
   {
@@ -964,7 +966,7 @@ namespace Orthanc
     std::string  year_;
     std::string  month_;
 
-    class Visitor : public ServerContext::ILookupVisitor
+    class Visitor : public ResourceFinder::IVisitor
     {
     private:
       std::list<std::string>&  resources_;
@@ -975,21 +977,14 @@ namespace Orthanc
       {
       }
 
-      virtual bool IsDicomAsJsonNeeded() const ORTHANC_OVERRIDE
-      {
-        return false;   // (*)
-      }
-      
       virtual void MarkAsComplete() ORTHANC_OVERRIDE
       {
       }
 
-      virtual void Visit(const std::string& publicId,
-                         const std::string& instanceId   /* unused     */,
-                         const DicomMap& mainDicomTags,
-                         const Json::Value* dicomAsJson  /* unused (*) */)  ORTHANC_OVERRIDE
+      virtual void Apply(const FindResponse::Resource& resource,
+                         const DicomMap& requestedTags) ORTHANC_OVERRIDE
       {
-        resources_.push_back(publicId);
+        resources_.push_back(resource.GetIdentifier());
       }
     };
     
@@ -1001,7 +996,10 @@ namespace Orthanc
                               true /* case sensitive */, true /* mandatory tag */);
 
       Visitor visitor(resources);
-      GetContext().Apply(visitor, query, ResourceType_Study, 0 /* since */, 0 /* no limit */);
+
+      ResourceFinder finder(ResourceType_Study, false /* no expand */);
+      finder.SetDatabaseLookup(query);
+      finder.Execute(visitor, GetContext());
     }
 
     virtual INode* CreateResourceNode(const std::string& resource) ORTHANC_OVERRIDE
@@ -1034,7 +1032,7 @@ namespace Orthanc
     std::string       year_;
     const Templates&  templates_;
 
-    class Visitor : public ServerContext::ILookupVisitor
+    class Visitor : public ResourceFinder::IVisitor
     {
     private:
       std::set<std::string> months_;
@@ -1045,20 +1043,16 @@ namespace Orthanc
         return months_;
       }
       
-      virtual bool IsDicomAsJsonNeeded() const ORTHANC_OVERRIDE
-      {
-        return false;   // (*)
-      }
-      
       virtual void MarkAsComplete() ORTHANC_OVERRIDE
       {
       }
 
-      virtual void Visit(const std::string& publicId,
-                         const std::string& instanceId   /* unused     */,
-                         const DicomMap& mainDicomTags,
-                         const Json::Value* dicomAsJson  /* unused (*) */)  ORTHANC_OVERRIDE
+      virtual void Apply(const FindResponse::Resource& resource,
+                         const DicomMap& requestedTags) ORTHANC_OVERRIDE
       {
+        DicomMap mainDicomTags;
+        resource.GetMainDicomTags(mainDicomTags, ResourceType_Study);
+
         std::string s;
         if (mainDicomTags.LookupStringValue(s, DICOM_TAG_STUDY_DATE, false) &&
             s.size() == 8)
@@ -1080,7 +1074,10 @@ namespace Orthanc
                               true /* case sensitive */, true /* mandatory tag */);
 
       Visitor visitor;
-      context_.Apply(visitor, query, ResourceType_Study, 0 /* since */, 0 /* no limit */);
+
+      ResourceFinder finder(ResourceType_Study, false /* no expand */);
+      finder.SetDatabaseLookup(query);
+      finder.Execute(visitor, context_);
 
       for (std::set<std::string>::const_iterator it = visitor.GetMonths().begin();
            it != visitor.GetMonths().end(); ++it)
@@ -1174,7 +1171,7 @@ namespace Orthanc
   };
 
 
-  class OrthancWebDav::DicomDeleteVisitor : public ServerContext::ILookupVisitor
+  class OrthancWebDav::DicomDeleteVisitor : public ResourceFinder::IVisitor
   {
   private:
     ServerContext&  context_;
@@ -1188,22 +1185,15 @@ namespace Orthanc
     {
     }
 
-    virtual bool IsDicomAsJsonNeeded() const ORTHANC_OVERRIDE
-    {
-      return false;   // (*)
-    }
-      
     virtual void MarkAsComplete() ORTHANC_OVERRIDE
     {
     }
 
-    virtual void Visit(const std::string& publicId,
-                       const std::string& instanceId   /* unused     */,
-                       const DicomMap& mainDicomTags   /* unused     */,
-                       const Json::Value* dicomAsJson  /* unused (*) */)  ORTHANC_OVERRIDE
+    virtual void Apply(const FindResponse::Resource& resource,
+                       const DicomMap& requestedTags) ORTHANC_OVERRIDE
     {
       Json::Value info;
-      context_.DeleteResource(info, publicId, level_);
+      context_.DeleteResource(info, resource.GetIdentifier(), level_);
     }
   };
   
@@ -1509,6 +1499,33 @@ namespace Orthanc
   }
 
   
+  static bool GetOrthancJson(std::string& target,
+                             ServerContext& context,
+                             ResourceType level,
+                             const DatabaseLookup& query)
+  {
+    ResourceFinder finder(level, true /* expand */);
+    finder.SetDatabaseLookup(query);
+
+    Json::Value expanded;
+    finder.Execute(expanded, context);
+
+    if (expanded.size() != 1)
+    {
+      return false;
+    }
+    else
+    {
+      target = expanded[0].toStyledString();
+
+      // Replace UNIX newlines with DOS newlines
+      boost::replace_all(target, "\n", "\r\n");
+
+      return true;
+    }
+  }
+
+
   bool OrthancWebDav::GetFileContent(MimeType& mime,
                                      std::string& content,
                                      boost::posix_time::ptime& modificationTime, 
@@ -1526,12 +1543,9 @@ namespace Orthanc
         DatabaseLookup query;
         query.AddRestConstraint(DICOM_TAG_STUDY_INSTANCE_UID, path[1],
                                 true /* case sensitive */, true /* mandatory tag */);
-      
-        OrthancJsonVisitor visitor(context_, content, ResourceType_Study);
-        context_.Apply(visitor, query, ResourceType_Study, 0 /* since */, 0 /* no limit */);
 
         mime = MimeType_Json;
-        return visitor.IsSuccess();
+        return GetOrthancJson(content, context_, ResourceType_Study, query);
       }
       else if (path.size() == 4 &&
                path[3] == SERIES_INFO)
@@ -1542,11 +1556,8 @@ namespace Orthanc
         query.AddRestConstraint(DICOM_TAG_SERIES_INSTANCE_UID, path[2],
                                 true /* case sensitive */, true /* mandatory tag */);
       
-        OrthancJsonVisitor visitor(context_, content, ResourceType_Series);
-        context_.Apply(visitor, query, ResourceType_Series, 0 /* since */, 0 /* no limit */);
-
         mime = MimeType_Json;
-        return visitor.IsSuccess();
+        return GetOrthancJson(content, context_, ResourceType_Series, query);
       }
       else if (path.size() == 4 &&
                boost::ends_with(path[3], ".dcm"))
@@ -1561,10 +1572,16 @@ namespace Orthanc
         query.AddRestConstraint(DICOM_TAG_SOP_INSTANCE_UID, sopInstanceUid,
                                 true /* case sensitive */, true /* mandatory tag */);
       
-        DicomFileVisitor visitor(context_, content, modificationTime);
-        context_.Apply(visitor, query, ResourceType_Instance, 0 /* since */, 0 /* no limit */);
-        
         mime = MimeType_Dicom;
+
+        ResourceFinder finder(ResourceType_Instance, false /* no expand */);
+        finder.SetDatabaseLookup(query);
+        finder.SetRetrieveMetadata(true);
+        finder.SetRetrieveAttachments(true);
+
+        DicomFileVisitorV2 visitor(context_, content, modificationTime);
+        finder.Execute(visitor, context_);
+
         return visitor.IsSuccess();
       }
       else
@@ -1686,7 +1703,10 @@ namespace Orthanc
         }
 
         DicomDeleteVisitor visitor(context_, level);
-        context_.Apply(visitor, query, level, 0 /* since */, 0 /* no limit */);
+
+        ResourceFinder finder(level, false /* no expand */);
+        finder.SetDatabaseLookup(query);
+        finder.Execute(visitor, context_);
         return true;
       }
       else
