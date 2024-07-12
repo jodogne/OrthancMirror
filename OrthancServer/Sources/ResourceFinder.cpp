@@ -625,7 +625,6 @@ namespace Orthanc
       if (request_.GetLevel() == ResourceType_Patient)
       {
         request_.SetRetrieveMainDicomTags(true);
-        request_.SetRetrieveMetadata(true);
         requestedPatientTags_.insert(tag);
       }
       else
@@ -639,12 +638,10 @@ namespace Orthanc
         if (request_.GetLevel() == ResourceType_Study)
         {
           request_.SetRetrieveMainDicomTags(true);
-          request_.SetRetrieveMetadata(true);
         }
         else
         {
           request_.GetParentSpecification(ResourceType_Study).SetRetrieveMainDicomTags(true);
-          request_.GetParentSpecification(ResourceType_Study).SetRetrieveMetadata(true);
         }
 
         requestedStudyTags_.insert(tag);
@@ -666,12 +663,10 @@ namespace Orthanc
         if (request_.GetLevel() == ResourceType_Study)
         {
           request_.SetRetrieveMainDicomTags(true);
-          request_.SetRetrieveMetadata(true);
         }
         else
         {
           request_.GetParentSpecification(ResourceType_Study).SetRetrieveMainDicomTags(true);
-          request_.GetParentSpecification(ResourceType_Study).SetRetrieveMetadata(true);
         }
 
         requestedStudyTags_.insert(tag);
@@ -694,12 +689,10 @@ namespace Orthanc
         if (request_.GetLevel() == ResourceType_Series)
         {
           request_.SetRetrieveMainDicomTags(true);
-          request_.SetRetrieveMetadata(true);
         }
         else
         {
           request_.GetParentSpecification(ResourceType_Series).SetRetrieveMainDicomTags(true);
-          request_.GetParentSpecification(ResourceType_Series).SetRetrieveMetadata(true);
         }
 
         requestedSeriesTags_.insert(tag);
@@ -721,7 +714,6 @@ namespace Orthanc
       else
       {
         request_.SetRetrieveMainDicomTags(true);
-        request_.SetRetrieveMetadata(true);
         requestedInstanceTags_.insert(tag);
       }
 
