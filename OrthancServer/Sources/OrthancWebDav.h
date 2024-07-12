@@ -39,7 +39,6 @@ namespace Orthanc
 
     class DicomDeleteVisitor;
     class DicomFileVisitor;
-    class DicomIdentifiersVisitor;  
     class DicomIdentifiersVisitorV2;
     class InstancesOfSeries;
     class InternalNode;
