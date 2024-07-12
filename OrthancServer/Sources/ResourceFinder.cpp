@@ -562,6 +562,8 @@ namespace Orthanc
 
   void ResourceFinder::SetDatabaseLookup(const DatabaseLookup& lookup)
   {
+    MainDicomTagsRegistry registry;
+
     lookup_.reset(lookup.Clone());
 
     for (size_t i = 0; i < lookup.GetConstraintsCount(); i++)
@@ -571,9 +573,18 @@ namespace Orthanc
       {
         AddRequestedTag(tag);
       }
+      else
+      {
+        ResourceType level;
+        DicomTagType tagType;
+        registry.LookupTag(level, tagType, tag);
+        if (tagType == DicomTagType_Generic)
+        {
+          AddRequestedTag(tag);
+        }
+      }
     }
 
-    MainDicomTagsRegistry registry;
     isSimpleLookup_ = registry.NormalizeLookup(request_.GetDicomTagConstraints(), lookup, request_.GetLevel());
 
     // "request_.GetDicomTagConstraints()" only contains constraints on main DICOM tags
