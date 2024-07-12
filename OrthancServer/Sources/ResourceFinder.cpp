@@ -720,9 +720,8 @@ namespace Orthanc
       }
       else
       {
-        // Main DICOM tags from the instance level will be retrieved anyway
-        assert(request_.IsRetrieveMainDicomTags());
-        assert(request_.IsRetrieveMetadata());
+        request_.SetRetrieveMainDicomTags(true);
+        request_.SetRetrieveMetadata(true);
         requestedInstanceTags_.insert(tag);
       }
 
@@ -834,7 +833,7 @@ namespace Orthanc
       std::string missings;
       FromDcmtkBridge::FormatListOfTags(missings, missingTags);
 
-      LOG(WARNING) << "W001: Accessing Dicom tags from storage when accessing "
+      LOG(WARNING) << "W001: Accessing DICOM tags from storage when accessing "
                    << Orthanc::GetResourceTypeText(resource.GetLevel(), false, false)
                    << ": " << missings;
     }
