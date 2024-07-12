@@ -43,7 +43,6 @@ namespace Orthanc
       }
 
       virtual void Apply(const FindResponse::Resource& resource,
-                         bool hasRequestedTags,
                          const DicomMap& requestedTags) = 0;
 
       virtual void MarkAsComplete() = 0;
