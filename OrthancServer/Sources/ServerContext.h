@@ -66,25 +66,6 @@ namespace Orthanc
     friend class ServerIndex;  // To access "RemoveFile()"
     
   public:
-    class ILookupVisitor : public boost::noncopyable
-    {
-    public:
-      virtual ~ILookupVisitor()
-      {
-      }
-
-      virtual bool IsDicomAsJsonNeeded() const = 0;
-      
-      virtual void MarkAsComplete() = 0;
-
-      // NB: "dicomAsJson" must *not* be deleted, and can be NULL if
-      // "!IsDicomAsJsonNeeded()"
-      virtual void Visit(const std::string& publicId,
-                         const std::string& instanceId,
-                         const DicomMap& mainDicomTags,
-                         const Json::Value* dicomAsJson) = 0;
-    };
-    
     struct StoreResult
     {
     private:
@@ -445,23 +426,6 @@ namespace Orthanc
     uint64_t GetDatabaseLimits(ResourceType level) const
     {
       return (level == ResourceType_Instance ? limitFindInstances_ : limitFindResults_);
-    }
-
-    void Apply(ILookupVisitor& visitor,
-               const DatabaseLookup& lookup,
-               ResourceType queryLevel,
-               const std::set<std::string>& labels,
-               LabelsConstraint labelsConstraint,
-               size_t since,
-               size_t limit);
-
-    void Apply(ILookupVisitor& visitor,
-               const DatabaseLookup& lookup,
-               ResourceType queryLevel,
-               size_t since,
-               size_t limit)
-    {
-      Apply(visitor, lookup, queryLevel, std::set<std::string>(), LabelsConstraint_All, since, limit);
     }
 
     bool LookupOrReconstructMetadata(std::string& target,
