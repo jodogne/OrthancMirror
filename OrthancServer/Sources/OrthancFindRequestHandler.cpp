@@ -336,32 +336,21 @@ namespace Orthanc
     {
     private:
       DicomFindAnswers&           answers_;
-      ServerContext&              context_;
-      ResourceType                level_;
-      const DicomMap&             query_;
       DicomArray                  queryAsArray_;
       const std::list<DicomTag>&  sequencesToReturn_;
       std::string                 defaultPrivateCreator_;       // the private creator to use if the group is not defined in the query itself
       const std::map<uint16_t, std::string>& privateCreators_;  // the private creators defined in the query itself
       std::string                 retrieveAet_;
-      FindStorageAccessMode       findStorageAccessMode_;
 
     public:
-      LookupVisitorV2(DicomFindAnswers&  answers,
-                      ServerContext& context,
-                      ResourceType level,
+      LookupVisitorV2(DicomFindAnswers& answers,
                       const DicomMap& query,
                       const std::list<DicomTag>& sequencesToReturn,
-                      const std::map<uint16_t, std::string>& privateCreators,
-                      FindStorageAccessMode findStorageAccessMode) :
+                      const std::map<uint16_t, std::string>& privateCreators) :
         answers_(answers),
-        context_(context),
-        level_(level),
-        query_(query),
         queryAsArray_(query),
         sequencesToReturn_(sequencesToReturn),
-        privateCreators_(privateCreators),
-        findStorageAccessMode_(findStorageAccessMode)
+        privateCreators_(privateCreators)
       {
         answers_.SetComplete(false);
 
@@ -647,7 +636,7 @@ namespace Orthanc
       finder.SetDatabaseLookup(lookup);
       finder.AddRequestedTags(requestedTags);
 
-      LookupVisitorV2 visitor(answers, context_, level, *filteredInput, sequencesToReturn, privateCreators, context_.GetFindStorageAccessMode());
+      LookupVisitorV2 visitor(answers, *filteredInput, sequencesToReturn, privateCreators);
       finder.Execute(visitor, context_);
     }
     else
