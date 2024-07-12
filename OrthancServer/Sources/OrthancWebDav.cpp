@@ -232,67 +232,6 @@ namespace Orthanc
   };
 
 
-  class OrthancWebDav::OrthancJsonVisitor : public ServerContext::ILookupVisitor
-  {
-  private:
-    ServerContext&  context_;
-    bool            success_;
-    std::string&    target_;
-    ResourceType    level_;
-
-  public:
-    OrthancJsonVisitor(ServerContext& context,
-                       std::string& target,
-                       ResourceType level) :
-      context_(context),
-      success_(false),
-      target_(target),
-      level_(level)
-    {
-    }
-
-    bool IsSuccess() const
-    {
-      return success_;
-    }
-
-    virtual bool IsDicomAsJsonNeeded() const ORTHANC_OVERRIDE
-    {
-      return false;   // (*)
-    }
-      
-    virtual void MarkAsComplete() ORTHANC_OVERRIDE
-    {
-    }
-
-    virtual void Visit(const std::string& publicId,
-                       const std::string& instanceId   /* unused     */,
-                       const DicomMap& mainDicomTags,
-                       const Json::Value* dicomAsJson  /* unused (*) */)  ORTHANC_OVERRIDE
-    {
-      Json::Value resource;
-      std::set<DicomTag> emptyRequestedTags;  // not supported for webdav
-
-      if (context_.ExpandResource(resource, publicId, level_, DicomToJsonFormat_Human, emptyRequestedTags, true /* allowStorageAccess */))
-      {
-        if (success_)
-        {
-          success_ = false;  // Two matches => Error
-        }
-        else
-        {
-          target_ = resource.toStyledString();
-
-          // Replace UNIX newlines with DOS newlines 
-          boost::replace_all(target_, "\n", "\r\n");
-
-          success_ = true;
-        }
-      }
-    }
-  };
-
-
   class OrthancWebDav::ResourcesIndex : public boost::noncopyable
   {
   public:
