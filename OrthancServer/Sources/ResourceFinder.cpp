@@ -190,7 +190,8 @@ namespace Orthanc
 
   void ResourceFinder::Expand(Json::Value& target,
                               const FindResponse::Resource& resource,
-                              ServerIndex& index) const
+                              ServerIndex& index,
+                              DicomToJsonFormat format) const
   {
     /**
      * This method closely follows "SerializeExpandedResource()" in
@@ -382,7 +383,7 @@ namespace Orthanc
       allMainDicomTags.ExtractResourceInformation(levelMainDicomTags, resource.GetLevel());
 
       target[MAIN_DICOM_TAGS] = Json::objectValue;
-      FromDcmtkBridge::ToJson(target[MAIN_DICOM_TAGS], levelMainDicomTags, format_);
+      FromDcmtkBridge::ToJson(target[MAIN_DICOM_TAGS], levelMainDicomTags, format);
 
       if (resource.GetLevel() == ResourceType_Study)
       {
@@ -390,7 +391,7 @@ namespace Orthanc
         allMainDicomTags.ExtractPatientInformation(patientMainDicomTags);
 
         target[PATIENT_MAIN_DICOM_TAGS] = Json::objectValue;
-        FromDcmtkBridge::ToJson(target[PATIENT_MAIN_DICOM_TAGS], patientMainDicomTags, format_);
+        FromDcmtkBridge::ToJson(target[PATIENT_MAIN_DICOM_TAGS], patientMainDicomTags, format);
       }
     }
 
@@ -481,7 +482,6 @@ namespace Orthanc
     limitsSince_(0),
     limitsCount_(0),
     expand_(expand),
-    format_(DicomToJsonFormat_Human),
     allowStorageAccess_(true),
     hasRequestedTags_(false),
     includeAllMetadata_(false)
@@ -1002,24 +1002,28 @@ namespace Orthanc
 
 
   void ResourceFinder::Execute(Json::Value& target,
-                               ServerContext& context) const
+                               ServerContext& context,
+                               DicomToJsonFormat format) const
   {
     class Visitor : public IVisitor
     {
     private:
       const ResourceFinder&  that_;
-      ServerIndex& index_;
-      Json::Value& target_;
-      bool         hasRequestedTags_;
+      ServerIndex&           index_;
+      Json::Value&           target_;
+      DicomToJsonFormat      format_;
+      bool                   hasRequestedTags_;
 
     public:
       Visitor(const ResourceFinder& that,
               ServerIndex& index,
               Json::Value& target,
+              DicomToJsonFormat format,
               bool hasRequestedTags) :
         that_(that),
         index_(index),
         target_(target),
+        format_(format),
         hasRequestedTags_(hasRequestedTags)
       {
       }
@@ -1030,13 +1034,13 @@ namespace Orthanc
         if (that_.expand_)
         {
           Json::Value item;
-          that_.Expand(item, resource, index_);
+          that_.Expand(item, resource, index_, format_);
 
           if (hasRequestedTags_)
           {
             static const char* const REQUESTED_TAGS = "RequestedTags";
             item[REQUESTED_TAGS] = Json::objectValue;
-            FromDcmtkBridge::ToJson(item[REQUESTED_TAGS], requestedTags, that_.format_);
+            FromDcmtkBridge::ToJson(item[REQUESTED_TAGS], requestedTags, format_);
           }
 
           target_.append(item);
@@ -1054,16 +1058,17 @@ namespace Orthanc
 
     target = Json::arrayValue;
 
-    Visitor visitor(*this, context.GetIndex(), target, hasRequestedTags_);
+    Visitor visitor(*this, context.GetIndex(), target, format, hasRequestedTags_);
     Execute(visitor, context);
   }
 
 
   bool ResourceFinder::ExecuteOneResource(Json::Value& target,
-                                          ServerContext& context) const
+                                          ServerContext& context,
+                                          DicomToJsonFormat format) const
   {
     Json::Value answer;
-    Execute(answer, context);
+    Execute(answer, context, format);
 
     if (answer.type() != Json::arrayValue)
     {
