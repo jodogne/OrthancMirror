@@ -3356,7 +3356,7 @@ namespace Orthanc
           throw OrthancException(ErrorCode_ParameterOutOfRange,
                                  "Field \"" + std::string(KEY_LIMIT) + "\" must be a positive integer");
         }
-        else
+        else if (tmp != 0)  // This is for compatibility with Orthanc 1.12.4
         {
           finder.SetLimitsCount(static_cast<uint64_t>(tmp));
         }
