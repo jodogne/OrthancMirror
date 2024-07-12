@@ -129,6 +129,50 @@ namespace Orthanc
   }
 
 
+  static bool ExpandResource(Json::Value& target,
+                             ServerIndex& index,
+                             ResourceType level,
+                             const std::string& identifier,
+                             DicomToJsonFormat format,
+                             bool retrieveMetadata)
+  {
+    ResourceFinder finder(level, true /* expand */);
+    finder.SetOrthancId(level, identifier);
+    finder.SetFormat(format);
+    finder.SetRetrieveMetadata(retrieveMetadata);
+
+    FindResponse response;
+    finder.Execute(response, index);
+
+    if (response.GetSize() != 1)
+    {
+      return false;
+    }
+    else
+    {
+      const FindResponse::Resource& resource = response.GetResourceByIndex(0);
+      finder.Expand(target, resource, index);
+
+      if (retrieveMetadata)
+      {
+        const std::map<MetadataType, std::string>& metadata = resource.GetMetadata(level);
+
+        Json::Value tmp;
+
+        for (std::map<MetadataType, std::string>::const_iterator
+               it = metadata.begin(); it != metadata.end(); ++it)
+        {
+          tmp[EnumerationToString(it->first)] = it->second;
+        }
+
+        target["Metadata"] = tmp;
+      }
+
+      return true;
+    }
+  }
+
+
   // List all the patients, studies, series or instances ----------------------
  
   static void AnswerListOfResources1(RestApiOutput& output,
@@ -3770,9 +3814,26 @@ namespace Orthanc
     const DicomToJsonFormat format = OrthancRestApi::GetDicomFormat(call, DicomToJsonFormat_Human);
 
     Json::Value resource;
-    if (OrthancRestApi::GetContext(call).ExpandResource(resource, current, end, format, requestedTags, true /* allowStorageAccess */))
+
+    if (true)
     {
-      call.GetOutput().AnswerJson(resource);
+      /**
+       * EXPERIMENTAL VERSION
+       **/
+      if (ExpandResource(resource, OrthancRestApi::GetIndex(call), currentType, current, format, false))
+      {
+        call.GetOutput().AnswerJson(resource);
+      }
+    }
+    else
+    {
+      /**
+       * VERSION IN ORTHANC <= 1.12.4
+       **/
+      if (OrthancRestApi::GetContext(call).ExpandResource(resource, current, end, format, requestedTags, true /* allowStorageAccess */))
+      {
+        call.GetOutput().AnswerJson(resource);
+      }
     }
   }
 
@@ -4203,17 +4264,34 @@ namespace Orthanc
         for (std::set<std::string>::const_iterator
                it = interest.begin(); it != interest.end(); ++it)
         {
-          Json::Value item;
-          std::set<DicomTag> emptyRequestedTags;  // not supported for bulk content
-
-          if (OrthancRestApi::GetContext(call).ExpandResource(item, *it, level, format, emptyRequestedTags, true /* allowStorageAccess */))
+          if (true)
           {
-            if (metadata)
+            /**
+             * EXPERIMENTAL VERSION
+             **/
+            Json::Value item;
+            if (ExpandResource(item, OrthancRestApi::GetIndex(call), level, *it, format, metadata))
             {
-              AddMetadata(item[METADATA], index, *it, level);
+              answer.append(item);
             }
+          }
+          else
+          {
+            /**
+             * VERSION IN ORTHANC <= 1.12.4
+             **/
+            Json::Value item;
+            std::set<DicomTag> emptyRequestedTags;  // not supported for bulk content
 
-            answer.append(item);
+            if (OrthancRestApi::GetContext(call).ExpandResource(item, *it, level, format, emptyRequestedTags, true /* allowStorageAccess */))
+            {
+              if (metadata)
+              {
+                AddMetadata(item[METADATA], index, *it, level);
+              }
+
+              answer.append(item);
+            }
           }
         }
       }
@@ -4230,19 +4308,36 @@ namespace Orthanc
           Json::Value item;
           std::set<DicomTag> emptyRequestedTags;  // not supported for bulk content
 
-          if (index.LookupResourceType(level, *it) &&
-              OrthancRestApi::GetContext(call).ExpandResource(item, *it, level, format, emptyRequestedTags, true /* allowStorageAccess */))
+          if (true)
           {
-            if (metadata)
+            /**
+             * EXPERIMENTAL VERSION
+             **/
+            if (index.LookupResourceType(level, *it) &&
+                ExpandResource(item, OrthancRestApi::GetIndex(call), level, *it, format, metadata))
             {
-              AddMetadata(item[METADATA], index, *it, level);
+              answer.append(item);
             }
-
-            answer.append(item);
           }
           else
           {
-            CLOG(INFO, HTTP) << "Unknown resource during a bulk content retrieval: " << *it;
+            /**
+             * VERSION IN ORTHANC <= 1.12.4
+             **/
+            if (index.LookupResourceType(level, *it) &&
+                OrthancRestApi::GetContext(call).ExpandResource(item, *it, level, format, emptyRequestedTags, true /* allowStorageAccess */))
+            {
+              if (metadata)
+              {
+                AddMetadata(item[METADATA], index, *it, level);
+              }
+
+              answer.append(item);
+            }
+            else
+            {
+              CLOG(INFO, HTTP) << "Unknown resource during a bulk content retrieval: " << *it;
+            }
           }
         }
       }

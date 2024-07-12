@@ -97,10 +97,6 @@ namespace Orthanc
     void InjectComputedTags(DicomMap& requestedTags,
                             const FindResponse::Resource& resource) const;
 
-    void Expand(Json::Value& target,
-                const FindResponse::Resource& resource,
-                ServerIndex& index) const;
-
     void UpdateRequestLimits();
 
   public:
@@ -174,6 +170,10 @@ namespace Orthanc
     {
       request_.SetRetrieveAttachments(retrieve);
     }
+
+    void Expand(Json::Value& target,
+                const FindResponse::Resource& resource,
+                ServerIndex& index) const;
 
     void Execute(FindResponse& target,
                  ServerIndex& index) const;
