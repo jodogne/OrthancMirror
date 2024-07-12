@@ -3443,7 +3443,7 @@ namespace Orthanc
     const DicomToJsonFormat format = OrthancRestApi::GetDicomFormat(call, DicomToJsonFormat_Human);
 
     Json::Value resource;
-    if (OrthancRestApi::GetContext(call).ExpandResource(resource, current, end, format, requestedTags, true /* allowStorageAccess */))
+    if (ExpandResource(resource, OrthancRestApi::GetIndex(call), currentType, current, format, false))
     {
       call.GetOutput().AnswerJson(resource);
     }
@@ -3722,24 +3722,6 @@ namespace Orthanc
   }
 
 
-  static void AddMetadata(Json::Value& target,
-                          ServerIndex& index,
-                          const std::string& resource,
-                          ResourceType level)
-  {
-    target = Json::objectValue;
-    
-    std::map<MetadataType, std::string> content;
-    index.GetAllMetadata(content, resource, level);
-    
-    for (std::map<MetadataType, std::string>::const_iterator
-           it = content.begin(); it != content.end(); ++it)
-    {
-      target[EnumerationToString(it->first)] = it->second;
-    }
-  }
-
-
   static void BulkContent(RestApiPostCall& call)
   {
     static const char* const LEVEL = "Level";
@@ -3877,15 +3859,8 @@ namespace Orthanc
                it = interest.begin(); it != interest.end(); ++it)
         {
           Json::Value item;
-          std::set<DicomTag> emptyRequestedTags;  // not supported for bulk content
-
-          if (OrthancRestApi::GetContext(call).ExpandResource(item, *it, level, format, emptyRequestedTags, true /* allowStorageAccess */))
+          if (ExpandResource(item, OrthancRestApi::GetIndex(call), level, *it, format, metadata))
           {
-            if (metadata)
-            {
-              AddMetadata(item[METADATA], index, *it, level);
-            }
-
             answer.append(item);
           }
         }
@@ -3901,16 +3876,10 @@ namespace Orthanc
         {
           ResourceType level;
           Json::Value item;
-          std::set<DicomTag> emptyRequestedTags;  // not supported for bulk content
 
           if (index.LookupResourceType(level, *it) &&
-              OrthancRestApi::GetContext(call).ExpandResource(item, *it, level, format, emptyRequestedTags, true /* allowStorageAccess */))
+              ExpandResource(item, OrthancRestApi::GetIndex(call), level, *it, format, metadata))
           {
-            if (metadata)
-            {
-              AddMetadata(item[METADATA], index, *it, level);
-            }
-
             answer.append(item);
           }
           else
