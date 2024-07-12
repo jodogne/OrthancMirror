@@ -744,10 +744,18 @@ namespace Orthanc
         }
         else
         {
-          ExpandedResource originalStudy;
-          if (GetContext().GetIndex().ExpandResource(originalStudy, *studyId, ResourceType_Study, emptyRequestedTags, ExpandResourceFlags_IncludeMainDicomTags))
+          FindRequest request(ResourceType_Study);
+          request.SetOrthancStudyId(*studyId);
+          request.SetRetrieveMainDicomTags(true);
+
+          FindResponse response;
+          GetContext().GetIndex().ExecuteFind(response, request);
+
+          if (response.GetSize() == 1)
           {
-            targetPatientId = originalStudy.GetMainDicomTags().GetStringValue(DICOM_TAG_PATIENT_ID, "", false);
+            DicomMap tags;
+            response.GetResourceByIndex(0).GetMainDicomTags(tags, ResourceType_Study);
+            targetPatientId = tags.GetStringValue(DICOM_TAG_PATIENT_ID, "", false);
           }
           else
           {
