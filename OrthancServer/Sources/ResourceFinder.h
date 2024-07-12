@@ -74,7 +74,6 @@ namespace Orthanc
     std::set<DicomTag>               requestedInstanceTags_;
     std::set<DicomTag>               requestedTagsFromFileStorage_;
     std::set<DicomTag>               requestedComputedTags_;
-    bool                             includeAllMetadata_;   // Same as: ExpandResourceFlags_IncludeAllMetadata
 
     bool IsRequestedComputedTag(const DicomTag& tag) const
     {
@@ -126,11 +125,6 @@ namespace Orthanc
 
     void SetDatabaseLookup(const DatabaseLookup& lookup);
 
-    void SetIncludeAllMetadata(bool include)
-    {
-      includeAllMetadata_ = include;
-    }
-
     void AddRequestedTag(const DicomTag& tag);
 
     void AddRequestedTags(const std::set<DicomTag>& tags);
@@ -165,23 +159,24 @@ namespace Orthanc
       request_.SetRetrieveAttachments(retrieve);
     }
 
+    // NB: "index" is only used in this method to fill the "IsStable" information
     void Expand(Json::Value& target,
                 const FindResponse::Resource& resource,
                 ServerIndex& index,
-                DicomToJsonFormat format) const;
-
-    void Execute(FindResponse& target,
-                 ServerIndex& index) const;
+                DicomToJsonFormat format,
+                bool includeAllMetadata /* Same as: ExpandResourceFlags_IncludeAllMetadata */) const;
 
     void Execute(IVisitor& visitor,
                  ServerContext& context) const;
 
     void Execute(Json::Value& target,
                  ServerContext& context,
-                 DicomToJsonFormat format) const;
+                 DicomToJsonFormat format,
+                 bool includeAllMetadata) const;
 
     bool ExecuteOneResource(Json::Value& target,
                             ServerContext& context,
-                            DicomToJsonFormat format) const;
+                            DicomToJsonFormat format,
+                            bool includeAllMetadata) const;
   };
 }

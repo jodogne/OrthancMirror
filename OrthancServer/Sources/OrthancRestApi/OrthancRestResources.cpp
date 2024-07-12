@@ -130,7 +130,7 @@ namespace Orthanc
 
 
   static bool ExpandResource(Json::Value& target,
-                             ServerIndex& index,
+                             ServerContext& context,
                              ResourceType level,
                              const std::string& identifier,
                              DicomToJsonFormat format,
@@ -140,35 +140,7 @@ namespace Orthanc
     finder.SetOrthancId(level, identifier);
     finder.SetRetrieveMetadata(retrieveMetadata);
 
-    FindResponse response;
-    finder.Execute(response, index);
-
-    if (response.GetSize() != 1)
-    {
-      return false;
-    }
-    else
-    {
-      const FindResponse::Resource& resource = response.GetResourceByIndex(0);
-      finder.Expand(target, resource, index, format);
-
-      if (retrieveMetadata)
-      {
-        const std::map<MetadataType, std::string>& metadata = resource.GetMetadata(level);
-
-        Json::Value tmp;
-
-        for (std::map<MetadataType, std::string>::const_iterator
-               it = metadata.begin(); it != metadata.end(); ++it)
-        {
-          tmp[EnumerationToString(it->first)] = it->second;
-        }
-
-        target["Metadata"] = tmp;
-      }
-
-      return true;
-    }
+    return finder.ExecuteOneResource(target, context, format, retrieveMetadata);
   }
 
 
@@ -232,7 +204,8 @@ namespace Orthanc
     }
 
     Json::Value answer;
-    finder.Execute(answer, OrthancRestApi::GetContext(call), OrthancRestApi::GetDicomFormat(call, DicomToJsonFormat_Human));
+    finder.Execute(answer, OrthancRestApi::GetContext(call),
+                   OrthancRestApi::GetDicomFormat(call, DicomToJsonFormat_Human), false /* no "Metadata" field */);
     call.GetOutput().AnswerJson(answer);
   }
 
@@ -267,7 +240,7 @@ namespace Orthanc
     finder.SetOrthancId(resourceType, call.GetUriComponent("id", ""));
 
     Json::Value json;
-    if (finder.ExecuteOneResource(json, OrthancRestApi::GetContext(call), format))
+    if (finder.ExecuteOneResource(json, OrthancRestApi::GetContext(call), format, false /* no "Metadata" field */))
     {
       call.GetOutput().AnswerJson(json);
     }
@@ -3286,7 +3259,7 @@ namespace Orthanc
       }
 
       Json::Value answer;
-      finder.Execute(answer, context, format);
+      finder.Execute(answer, context, format, false /* no "Metadata" field */);
       call.GetOutput().AnswerJson(answer);
     }
   }
@@ -3329,7 +3302,7 @@ namespace Orthanc
     finder.AddRequestedTags(requestedTags);
 
     Json::Value answer;
-    finder.Execute(answer, OrthancRestApi::GetContext(call), format);
+    finder.Execute(answer, OrthancRestApi::GetContext(call), format, false /* no "Metadata" field */);
     call.GetOutput().AnswerJson(answer);
   }
 
@@ -3443,7 +3416,7 @@ namespace Orthanc
     const DicomToJsonFormat format = OrthancRestApi::GetDicomFormat(call, DicomToJsonFormat_Human);
 
     Json::Value resource;
-    if (ExpandResource(resource, OrthancRestApi::GetIndex(call), currentType, current, format, false))
+    if (ExpandResource(resource, OrthancRestApi::GetContext(call), currentType, current, format, false))
     {
       call.GetOutput().AnswerJson(resource);
     }
@@ -3859,7 +3832,7 @@ namespace Orthanc
                it = interest.begin(); it != interest.end(); ++it)
         {
           Json::Value item;
-          if (ExpandResource(item, OrthancRestApi::GetIndex(call), level, *it, format, metadata))
+          if (ExpandResource(item, OrthancRestApi::GetContext(call), level, *it, format, metadata))
           {
             answer.append(item);
           }
@@ -3878,7 +3851,7 @@ namespace Orthanc
           Json::Value item;
 
           if (index.LookupResourceType(level, *it) &&
-              ExpandResource(item, OrthancRestApi::GetIndex(call), level, *it, format, metadata))
+              ExpandResource(item, OrthancRestApi::GetContext(call), level, *it, format, metadata))
           {
             answer.append(item);
           }

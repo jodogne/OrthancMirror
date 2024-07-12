@@ -1447,7 +1447,7 @@ namespace Orthanc
     finder.SetDatabaseLookup(query);
 
     Json::Value expanded;
-    finder.Execute(expanded, context, DicomToJsonFormat_Human);
+    finder.Execute(expanded, context, DicomToJsonFormat_Human, false /* don't add "Metadata" */);
 
     if (expanded.size() != 1)
     {
