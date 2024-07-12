@@ -949,7 +949,7 @@ namespace Orthanc
       {
         if (pagingMode_ == PagingMode_FullDatabase)
         {
-          visitor.Apply(resource, hasRequestedTags_, requestedTags);
+          visitor.Apply(resource, requestedTags);
         }
         else
         {
@@ -967,7 +967,7 @@ namespace Orthanc
           }
           else
           {
-            visitor.Apply(resource, hasRequestedTags_, requestedTags);
+            visitor.Apply(resource, requestedTags);
             countResults++;
           }
         }
@@ -990,19 +990,21 @@ namespace Orthanc
       const ResourceFinder&  that_;
       ServerIndex& index_;
       Json::Value& target_;
+      bool         hasRequestedTags_;
 
     public:
       Visitor(const ResourceFinder& that,
               ServerIndex& index,
-              Json::Value& target) :
+              Json::Value& target,
+              bool hasRequestedTags) :
         that_(that),
         index_(index),
-        target_(target)
+        target_(target),
+        hasRequestedTags_(hasRequestedTags)
       {
       }
 
       virtual void Apply(const FindResponse::Resource& resource,
-                         bool hasRequestedTags,
                          const DicomMap& requestedTags) ORTHANC_OVERRIDE
       {
         if (that_.expand_)
@@ -1010,7 +1012,7 @@ namespace Orthanc
           Json::Value item;
           that_.Expand(item, resource, index_);
 
-          if (hasRequestedTags)
+          if (hasRequestedTags_)
           {
             static const char* const REQUESTED_TAGS = "RequestedTags";
             item[REQUESTED_TAGS] = Json::objectValue;
@@ -1032,7 +1034,7 @@ namespace Orthanc
 
     target = Json::arrayValue;
 
-    Visitor visitor(*this, context.GetIndex(), target);
+    Visitor visitor(*this, context.GetIndex(), target, hasRequestedTags_);
     Execute(visitor, context);
   }
 

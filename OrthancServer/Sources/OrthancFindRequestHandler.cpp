@@ -30,6 +30,7 @@
 #include "../../OrthancFramework/Sources/Lua/LuaFunctionCall.h"
 #include "../../OrthancFramework/Sources/MetricsRegistry.h"
 #include "OrthancConfiguration.h"
+#include "ResourceFinder.cpp"
 #include "Search/DatabaseLookup.h"
 #include "ServerContext.h"
 #include "ServerToolbox.h"
@@ -319,6 +320,92 @@ namespace Orthanc
   };
 
 
+  namespace
+  {
+    class LookupVisitorV2 : public ResourceFinder::IVisitor
+    {
+    private:
+      DicomFindAnswers&           answers_;
+      ServerContext&              context_;
+      ResourceType                level_;
+      const DicomMap&             query_;
+      DicomArray                  queryAsArray_;
+      const std::list<DicomTag>&  sequencesToReturn_;
+      std::string                 defaultPrivateCreator_;       // the private creator to use if the group is not defined in the query itself
+      const std::map<uint16_t, std::string>& privateCreators_;  // the private creators defined in the query itself
+      std::string                 retrieveAet_;
+      FindStorageAccessMode       findStorageAccessMode_;
+
+    public:
+      LookupVisitorV2(DicomFindAnswers&  answers,
+                      ServerContext& context,
+                      ResourceType level,
+                      const DicomMap& query,
+                      const std::list<DicomTag>& sequencesToReturn,
+                      const std::map<uint16_t, std::string>& privateCreators,
+                      FindStorageAccessMode findStorageAccessMode) :
+        answers_(answers),
+        context_(context),
+        level_(level),
+        query_(query),
+        queryAsArray_(query),
+        sequencesToReturn_(sequencesToReturn),
+        privateCreators_(privateCreators),
+        findStorageAccessMode_(findStorageAccessMode)
+      {
+        answers_.SetComplete(false);
+
+        {
+          OrthancConfiguration::ReaderLock lock;
+          defaultPrivateCreator_ = lock.GetConfiguration().GetDefaultPrivateCreator();
+          retrieveAet_ = lock.GetConfiguration().GetOrthancAET();
+        }
+      }
+
+      virtual void Apply(const FindResponse::Resource& resource,
+                         const DicomMap& requestedTags) ORTHANC_OVERRIDE
+      {
+        DicomMap answer;
+        resource.GetAllMainDicomTags(answer);
+        answer.Merge(requestedTags);
+
+        /**
+         * Add the mandatory "Retrieve AE Title (0008,0054)" tag, which was missing in Orthanc <= 1.7.2.
+         * http://dicom.nema.org/medical/dicom/current/output/html/part04.html#sect_C.4.1.1.3.2
+         * https://groups.google.com/g/orthanc-users/c/-7zNTKR_PMU/m/kfjwzEVNAgAJ
+         **/
+        answer.SetValue(DICOM_TAG_RETRIEVE_AE_TITLE, retrieveAet_, false /* not binary */);
+
+        for (size_t i = 0; i < queryAsArray_.GetSize(); i++)
+        {
+          const DicomTag tag = queryAsArray_.GetElement(i).GetTag();
+
+          if (tag == DICOM_TAG_QUERY_RETRIEVE_LEVEL)
+          {
+            // Fix issue 30 on Google Code (QR response missing "Query/Retrieve Level" (008,0052))
+            answer.SetValue(tag, queryAsArray_.GetElement(i).GetValue());
+          }
+          else if (tag == DICOM_TAG_SPECIFIC_CHARACTER_SET)
+          {
+            // Do not include the encoding, this is handled by class ParsedDicomFile
+          }
+          else if (!answer.HasTag(tag))
+          {
+            answer.SetValue(tag, "", false);
+          }
+        }
+
+        answers_.Add(answer);
+      }
+
+      virtual void MarkAsComplete() ORTHANC_OVERRIDE
+      {
+        answers_.SetComplete(true);
+      }
+    };
+  }
+
+
   void OrthancFindRequestHandler::Handle(DicomFindAnswers& answers,
                                          const DicomMap& input,
                                          const std::list<DicomTag>& sequencesToReturn,
@@ -410,9 +497,12 @@ namespace Orthanc
       }
     }
 
+    std::set<DicomTag> requestedTags;
+
     for (std::list<DicomTag>::const_iterator it = sequencesToReturn.begin();
          it != sequencesToReturn.end(); ++it)
     {
+      requestedTags.insert(*it);
       CLOG(INFO, DICOM) << "  (" << it->Format()
                         << ")  " << FromDcmtkBridge::GetTagName(*it, "")
                         << " : sequence tag whose content will be copied";
@@ -453,6 +543,7 @@ namespace Orthanc
       if (value.size() == 0)
       {
         // An empty string corresponds to an universal constraint, so we ignore it
+        requestedTags.insert(tag);
         continue;
       }
 
@@ -472,6 +563,7 @@ namespace Orthanc
       }
       else
       {
+        requestedTags.insert(tag);
         CLOG(INFO, DICOM) << "Because of a patch for the manufacturer of the remote modality, " 
                           << "ignoring constraint on tag (" << tag.Format() << ") "
                           << FromDcmtkBridge::GetTagName(element);
@@ -486,8 +578,28 @@ namespace Orthanc
     size_t limit = (level == ResourceType_Instance) ? maxInstances_ : maxResults_;
 
 
-    LookupVisitor visitor(answers, context_, level, *filteredInput, sequencesToReturn, privateCreators, context_.GetFindStorageAccessMode());
-    context_.Apply(visitor, lookup, level, 0 /* "since" is not relevant to C-FIND */, limit);
+    if (false)
+    {
+      /**
+       * EXPERIMENTAL VERSION
+       **/
+
+      ResourceFinder finder(level, false /* don't expand */);
+      finder.SetDatabaseLookup(lookup);
+      finder.AddRequestedTags(requestedTags);
+
+      LookupVisitorV2 visitor(answers, context_, level, *filteredInput, sequencesToReturn, privateCreators, context_.GetFindStorageAccessMode());
+      finder.Execute(visitor, context_);
+    }
+    else
+    {
+      /**
+       * VERSION IN ORTHANC <= 1.12.4
+       **/
+
+      LookupVisitor visitor(answers, context_, level, *filteredInput, sequencesToReturn, privateCreators, context_.GetFindStorageAccessMode());
+      context_.Apply(visitor, lookup, level, 0 /* "since" is not relevant to C-FIND */, limit);
+    }
   }
 
 
