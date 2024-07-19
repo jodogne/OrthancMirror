@@ -209,7 +209,11 @@ namespace Orthanc
         GetChildrenIdentifiers(identifiers, transaction_, request.GetOrthancIdentifiers(), ResourceType_Series, request.GetLevel());
       }
       else if (request.GetMetadataConstraintsCount() == 0 &&
-               request.GetOrdering().empty())
+               request.GetOrdering().empty() &&
+               !request.GetOrthancIdentifiers().HasPatientId() &&
+               !request.GetOrthancIdentifiers().HasStudyId() &&
+               !request.GetOrthancIdentifiers().HasSeriesId() &&
+               !request.GetOrthancIdentifiers().HasInstanceId())
       {
         transaction_.ApplyLookupResources(identifiers, NULL /* TODO-FIND: Could the "instancesId" information be exploited? */,
                                           request.GetDicomTagConstraints(), request.GetLevel(), request.GetLabels(),
