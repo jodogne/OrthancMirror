@@ -45,10 +45,11 @@ namespace Orthanc
       }
 
       void ExecuteFind(std::list<std::string>& identifiers,
-                       const FindRequest& request,
-                       const IDatabaseWrapper::Capabilities& capabilities);
+                       const IDatabaseWrapper::Capabilities& capabilities,
+                       const FindRequest& request);
 
       void ExecuteExpand(FindResponse& response,
+                         const IDatabaseWrapper::Capabilities& capabilities,
                          const FindRequest& request,
                          const std::string& identifier);
     };

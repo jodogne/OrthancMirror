@@ -56,20 +56,21 @@ namespace Orthanc
 
 
   void BaseDatabaseWrapper::BaseTransaction::ExecuteFind(std::list<std::string>& identifiers,
-                                                         const FindRequest& request,
-                                                         const Capabilities& capabilities)
+                                                         const Capabilities& capabilities,
+                                                         const FindRequest& request)
   {
     Compatibility::GenericFind find(*this);
-    find.ExecuteFind(identifiers, request, capabilities);
+    find.ExecuteFind(identifiers, capabilities, request);
   }
 
 
   void BaseDatabaseWrapper::BaseTransaction::ExecuteExpand(FindResponse& response,
+                                                           const Capabilities& capabilities,
                                                            const FindRequest& request,
                                                            const std::string& identifier)
   {
     Compatibility::GenericFind find(*this);
-    find.ExecuteExpand(response, request, identifier);
+    find.ExecuteExpand(response, capabilities, request, identifier);
   }
 
 
