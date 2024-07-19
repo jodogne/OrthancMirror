@@ -43,23 +43,6 @@ namespace Orthanc
   class FindRequest : public boost::noncopyable
   {
   public:
-    /**
-
-       TO DISCUSS:
-
-       (1) ResponseContent_ChildInstanceId       = (1 << 6),     // When you need to access all tags from a patient/study/series, you might need to open the DICOM file of a child instance
-
-       if (requestedTags.size() > 0 && resourceType != ResourceType_Instance) // if we are requesting specific tags that might be outside of the MainDicomTags, we must get a childInstanceId too
-       {
-       responseContent = static_cast<FindRequest::ResponseContent>(responseContent | FindRequest::ResponseContent_ChildInstanceId);
-       }
-
-
-       (2) ResponseContent_IsStable              = (1 << 8),     // This is currently not saved in DB but it could be in the future.
-
-     **/
-
-
     enum KeyType  // used for ordering and filters
     {
       KeyType_DicomTag,
