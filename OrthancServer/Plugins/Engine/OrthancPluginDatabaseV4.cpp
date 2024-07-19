@@ -1291,22 +1291,23 @@ namespace Orthanc
 
 
     virtual void ExecuteFind(std::list<std::string>& identifiers,
-                             const FindRequest& request,
-                             const Capabilities& capabilities) ORTHANC_OVERRIDE
+                             const Capabilities& capabilities,
+                             const FindRequest& request) ORTHANC_OVERRIDE
     {
       // TODO-FIND
       Compatibility::GenericFind find(*this);
-      find.ExecuteFind(identifiers, request, capabilities);
+      find.ExecuteFind(identifiers, capabilities, request);
     }
 
 
     virtual void ExecuteExpand(FindResponse& response,
+                               const Capabilities& capabilities,
                                const FindRequest& request,
                                const std::string& identifier) ORTHANC_OVERRIDE
     {
       // TODO-FIND
       Compatibility::GenericFind find(*this);
-      find.ExecuteExpand(response, request, identifier);
+      find.ExecuteExpand(response, capabilities, request, identifier);
     }
   };
 
