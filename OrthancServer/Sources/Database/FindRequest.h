@@ -43,23 +43,6 @@ namespace Orthanc
   class FindRequest : public boost::noncopyable
   {
   public:
-    /**
-
-       TO DISCUSS:
-
-       (1) ResponseContent_ChildInstanceId       = (1 << 6),     // When you need to access all tags from a patient/study/series, you might need to open the DICOM file of a child instance
-
-       if (requestedTags.size() > 0 && resourceType != ResourceType_Instance) // if we are requesting specific tags that might be outside of the MainDicomTags, we must get a childInstanceId too
-       {
-       responseContent = static_cast<FindRequest::ResponseContent>(responseContent | FindRequest::ResponseContent_ChildInstanceId);
-       }
-
-
-       (2) ResponseContent_IsStable              = (1 << 8),     // This is currently not saved in DB but it could be in the future.
-
-     **/
-
-
     enum KeyType  // used for ordering and filters
     {
       KeyType_DicomTag,
@@ -250,13 +233,15 @@ namespace Orthanc
     ResourceType                         level_;                // The level of the response (the filtering on tags, labels and metadata also happens at this level)
     OrthancIdentifiers                   orthancIdentifiers_;   // The response must belong to this Orthanc resources hierarchy
     DatabaseConstraints                  dicomTagConstraints_;  // All tags filters (note: the order is not important)
-    std::deque<void*>   /* TODO-FIND */       metadataConstraints_;  // All metadata filters (note: the order is not important)
     bool                                 hasLimits_;
     uint64_t                             limitsSince_;
     uint64_t                             limitsCount_;
     std::set<std::string>                labels_;
     LabelsConstraint                     labelsConstraint_;
+
+    // TODO-FIND
     std::deque<Ordering*>                ordering_;             // The ordering criteria (note: the order is important !)
+    std::deque<void*>   /* TODO-FIND */       metadataConstraints_;  // All metadata filters (note: the order is not important)
 
     bool                                 retrieveMainDicomTags_;
     bool                                 retrieveMetadata_;
@@ -331,9 +316,11 @@ namespace Orthanc
 
     uint64_t GetLimitsCount() const;
 
-    void AddOrdering(const DicomTag& tag, OrderingDirection direction);
+    void AddOrdering(const DicomTag& tag,
+                     OrderingDirection direction);
 
-    void AddOrdering(MetadataType metadataType, OrderingDirection direction);
+    void AddOrdering(MetadataType metadataType,
+                     OrderingDirection direction);
 
     const std::deque<Ordering*>& GetOrdering() const
     {
