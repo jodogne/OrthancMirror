@@ -625,14 +625,6 @@ namespace Orthanc
                       const std::string& publicId,
                       ResourceType parentType);
 
-    void ApplyLookupResources(std::vector<std::string>& resourcesId,
-                              std::vector<std::string>* instancesId,  // Can be NULL if not needed
-                              const DatabaseLookup& lookup,
-                              ResourceType queryLevel,
-                              const std::set<std::string>& labels,
-                              LabelsConstraint labelsConstraint,
-                              uint32_t limit);
-
     bool DeleteResource(Json::Value& remainingAncestor /* out */,
                         const std::string& uuid,
                         ResourceType expectedType);
