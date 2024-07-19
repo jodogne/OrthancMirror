@@ -233,13 +233,15 @@ namespace Orthanc
     ResourceType                         level_;                // The level of the response (the filtering on tags, labels and metadata also happens at this level)
     OrthancIdentifiers                   orthancIdentifiers_;   // The response must belong to this Orthanc resources hierarchy
     DatabaseConstraints                  dicomTagConstraints_;  // All tags filters (note: the order is not important)
-    std::deque<void*>   /* TODO-FIND */       metadataConstraints_;  // All metadata filters (note: the order is not important)
     bool                                 hasLimits_;
     uint64_t                             limitsSince_;
     uint64_t                             limitsCount_;
     std::set<std::string>                labels_;
     LabelsConstraint                     labelsConstraint_;
+
+    // TODO-FIND
     std::deque<Ordering*>                ordering_;             // The ordering criteria (note: the order is important !)
+    std::deque<void*>   /* TODO-FIND */       metadataConstraints_;  // All metadata filters (note: the order is not important)
 
     bool                                 retrieveMainDicomTags_;
     bool                                 retrieveMetadata_;
@@ -314,9 +316,11 @@ namespace Orthanc
 
     uint64_t GetLimitsCount() const;
 
-    void AddOrdering(const DicomTag& tag, OrderingDirection direction);
+    void AddOrdering(const DicomTag& tag,
+                     OrderingDirection direction);
 
-    void AddOrdering(MetadataType metadataType, OrderingDirection direction);
+    void AddOrdering(MetadataType metadataType,
+                     OrderingDirection direction);
 
     const std::deque<Ordering*>& GetOrdering() const
     {
