@@ -114,8 +114,8 @@ namespace Orthanc
     }
 
     void GenericFind::ExecuteFind(std::list<std::string>& identifiers,
-                                  const FindRequest& request,
-                                  const IDatabaseWrapper::Capabilities& capabilities)
+                                  const IDatabaseWrapper::Capabilities& capabilities,
+                                  const FindRequest& request)
     {
       if (!request.GetLabels().empty() &&
           !capabilities.HasLabelsSupport())
@@ -357,6 +357,7 @@ namespace Orthanc
 
 
     void GenericFind::ExecuteExpand(FindResponse& response,
+                                    const IDatabaseWrapper::Capabilities& capabilities,
                                     const FindRequest& request,
                                     const std::string& identifier)
     {
@@ -448,7 +449,8 @@ namespace Orthanc
         }
       }
 
-      if (request.IsRetrieveLabels())
+      if (capabilities.HasLabelsSupport() &&
+          request.IsRetrieveLabels())
       {
         transaction_.ListLabels(resource->GetLabels(), internalId);
       }

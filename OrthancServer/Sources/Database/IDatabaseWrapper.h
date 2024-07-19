@@ -365,8 +365,8 @@ namespace Orthanc
 
       // This is only implemented if "HasIntegratedFind()" is "false"
       virtual void ExecuteFind(std::list<std::string>& identifiers,
-                               const FindRequest& request,
-                               const Capabilities& capabilities) = 0;
+                               const Capabilities& capabilities,
+                               const FindRequest& request) = 0;
 
       /**
        * This is only implemented if "HasIntegratedFind()" is
@@ -378,6 +378,7 @@ namespace Orthanc
        * modified).
        **/
       virtual void ExecuteExpand(FindResponse& response,
+                                 const Capabilities& capabilities,
                                  const FindRequest& request,
                                  const std::string& identifier) = 0;
     };
