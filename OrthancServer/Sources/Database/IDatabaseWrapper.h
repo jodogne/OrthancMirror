@@ -54,6 +54,7 @@ namespace Orthanc
       bool hasAtomicIncrementGlobalProperty_;
       bool hasUpdateAndGetStatistics_;
       bool hasMeasureLatency_;
+      bool hasFindSupport_;
 
     public:
       Capabilities() :
@@ -62,7 +63,8 @@ namespace Orthanc
         hasLabelsSupport_(false),
         hasAtomicIncrementGlobalProperty_(false),
         hasUpdateAndGetStatistics_(false),
-        hasMeasureLatency_(false)
+        hasMeasureLatency_(false),
+        hasFindSupport_(false)
       {
       }
 
@@ -124,6 +126,16 @@ namespace Orthanc
       bool HasMeasureLatency() const
       {
         return hasMeasureLatency_;
+      }
+
+      void SetHasFindSupport(bool value)
+      {
+        hasFindSupport_ = value;
+      }
+
+      bool HasFindSupport() const
+      {
+        return hasFindSupport_;
       }
     };
 
