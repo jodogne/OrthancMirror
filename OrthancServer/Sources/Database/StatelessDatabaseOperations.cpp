@@ -3409,8 +3409,7 @@ namespace Orthanc
       }
     };
 
-    class FindStage : public ReadOnlyOperationsT3<std::list<std::string>&, const FindRequest&,
-                                                  const IDatabaseWrapper::Capabilities&>
+    class FindStage : public ReadOnlyOperationsT3<std::list<std::string>&, const IDatabaseWrapper::Capabilities&, const FindRequest& >
     {
     public:
       virtual void ApplyTuple(ReadOnlyTransaction& transaction,
@@ -3420,13 +3419,13 @@ namespace Orthanc
       }
     };
 
-    class ExpandStage : public ReadOnlyOperationsT3<FindResponse&, const FindRequest&, const std::string&>
+    class ExpandStage : public ReadOnlyOperationsT4<FindResponse&, const IDatabaseWrapper::Capabilities&, const FindRequest&, const std::string&>
     {
     public:
       virtual void ApplyTuple(ReadOnlyTransaction& transaction,
                               const Tuple& tuple) ORTHANC_OVERRIDE
       {
-        transaction.ExecuteExpand(tuple.get<0>(), tuple.get<1>(), tuple.get<2>());
+        transaction.ExecuteExpand(tuple.get<0>(), tuple.get<1>(), tuple.get<2>(), tuple.get<3>());
       }
     };
 
@@ -3451,7 +3450,7 @@ namespace Orthanc
       std::list<std::string> identifiers;
 
       FindStage find;
-      find.Apply(*this, identifiers, request, capabilities);
+      find.Apply(*this, identifiers, capabilities, request);
 
       ExpandStage expand;
 
@@ -3462,7 +3461,7 @@ namespace Orthanc
          * another transaction). The database engine must ignore such
          * error cases.
          **/
-        expand.Apply(*this, response, request, *it);
+        expand.Apply(*this, response, capabilities, request, *it);
       }
     }
   }

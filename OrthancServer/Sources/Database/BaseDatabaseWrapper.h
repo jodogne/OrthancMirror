@@ -53,10 +53,11 @@ namespace Orthanc
                                const Capabilities& capabilities) ORTHANC_OVERRIDE;
 
       virtual void ExecuteFind(std::list<std::string>& identifiers,
-                               const FindRequest& request,
-                               const Capabilities& capabilities) ORTHANC_OVERRIDE;
+                               const Capabilities& capabilities,
+                               const FindRequest& request) ORTHANC_OVERRIDE;
 
       virtual void ExecuteExpand(FindResponse& response,
+                                 const Capabilities& capabilities,
                                  const FindRequest& request,
                                  const std::string& identifier) ORTHANC_OVERRIDE;
     };
