@@ -41,6 +41,7 @@ General
   https://discourse.orthanc-server.org/t/performance-issue-when-adding-a-lot-of-jobs-in-the-queue/3915/2
   Note: that might also be the right time to have a central jobs registry when working
   with multiple Orthanc instances on the same DB.
+  Note: the json serialization of a job "content" can be very large -> compress it before saving it to DB ?
 * Right now, some Stable events never occurs (e.g. when Orthanc is restarted before the event is triggered).
   Since these events are used to e.g. generate dicom-web cache (or update it !), we should try
   to make sure these events always happen.
