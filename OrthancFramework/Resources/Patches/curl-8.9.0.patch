@@ -1,6 +1,6 @@
-diff -urEb curl-8.5.0.orig/CMake/Macros.cmake curl-8.5.0/CMake/Macros.cmake
---- curl-8.5.0.orig/CMake/Macros.cmake	2024-07-26 18:47:52.920588300 +0200
-+++ curl-8.5.0/CMake/Macros.cmake	2024-07-26 18:48:08.345522100 +0200
+diff -urEb curl-8.9.0.orig/CMake/Macros.cmake curl-8.9.0/CMake/Macros.cmake
+--- curl-8.9.0.orig/CMake/Macros.cmake	2024-07-26 18:47:52.920588300 +0200
++++ curl-8.9.0/CMake/Macros.cmake	2024-07-26 18:48:08.345522100 +0200
 @@ -48,7 +48,7 @@
      message(STATUS "Performing Test ${CURL_TEST}")
      try_compile(${CURL_TEST}
