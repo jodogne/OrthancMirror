@@ -21,7 +21,8 @@ Maintenance
   in very specific use-cases.
 * Fix extremely rare error when 2 threads are trying to create the same folder in the File Storage 
   at the same time.
-
+* Upgraded dependencies for static builds:
+  - curl 8.9.0
 
 
 Version 1.12.4 (2024-06-05)
