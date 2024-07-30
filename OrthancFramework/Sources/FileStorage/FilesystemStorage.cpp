@@ -178,6 +178,9 @@ namespace Orthanc
       try 
       {
         SystemToolbox::WriteFile(content, size, path.string(), fsyncOnWrite_);
+        
+        LOG(INFO) << "Created attachment \"" << uuid << "\" (" << timer.GetHumanTransferSpeed(true, size) << ")";
+        return;
       }
       catch (OrthancException& ex)
       {
@@ -187,8 +190,6 @@ namespace Orthanc
         }
       }
     }
-
-    LOG(INFO) << "Created attachment \"" << uuid << "\" (" << timer.GetHumanTransferSpeed(true, size) << ")";
   }
 
 
