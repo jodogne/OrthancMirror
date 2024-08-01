@@ -139,8 +139,7 @@ namespace Orthanc
       throw OrthancException(ErrorCode_InternalError, "This file UUID already exists");
     }
 
-    // In very unlikely case (but we've seen it !), 2 threads might enter this same piece
-    // of code and both try to create the same directory or a thread could be deleting a
+    // In very unlikely cases, a thread could be deleting a
     // directory while another thread needs it -> introduce 3 retries at 1 ms interval
     int retryCount = 0;
     const int maxRetryCount = 3;
@@ -155,24 +154,19 @@ namespace Orthanc
                   << "\" type";
       }
 
-      if (boost::filesystem::exists(path.parent_path()))
+      try 
       {
-        if (!boost::filesystem::is_directory(path.parent_path()))
-        {
-          throw OrthancException(ErrorCode_DirectoryOverFile);  // no need to retry this error
-        }
+        boost::filesystem::create_directories(path.parent_path());  // the function ensures that the directory exists or throws
       }
-      else
+      catch (boost::filesystem::filesystem_error& er)
       {
-        if (!boost::filesystem::create_directories(path.parent_path()))
+        if (er.code() == boost::system::errc::file_exists  // the last element of the parent_path is a file
+          || er.code() == boost::system::errc::not_a_directory) // one of the element of the parent_path is not a directory 
         {
-          if (retryCount >= maxRetryCount)
-          {
-            throw OrthancException(ErrorCode_FileStorageCannotWrite);
-          }
-          
-          continue;  // retry
+          throw OrthancException(ErrorCode_DirectoryOverFile, "One of the element of the path is a file");  // no need to retry this error
         }
+
+        // ignore other errors and retry
       }
 
       try 
