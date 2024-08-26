@@ -509,7 +509,7 @@ namespace Orthanc
                        "If present, the DICOM files in the archive will be transcoded to the provided "
                        "transfer syntax: https://orthanc.uclouvain.be/book/faq/transcoding.html", false)
       .SetRequestField("Priority", RestApiCallDocumentation::Type_Number,
-                       "In asynchronous mode, the priority of the job. The lower the value, the higher the priority.", false)
+                       "In asynchronous mode, the priority of the job. The higher the value, the higher the priority.", false)
       .AddAnswerType(MimeType_Zip, "In synchronous mode, the ZIP file containing the archive")
       .AddAnswerType(MimeType_Json, "In asynchronous mode, information about the job that has been submitted to "
                      "generate the archive: https://orthanc.uclouvain.be/book/users/advanced-rest.html#jobs")

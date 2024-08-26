@@ -472,7 +472,7 @@ namespace Orthanc
                        "If `true`, run the job in asynchronous mode, which means that the REST API call will immediately "
                        "return, reporting the identifier of a job. Prefer this flavor wherever possible.", false)
       .SetRequestField(KEY_PRIORITY, RestApiCallDocumentation::Type_Number,
-                       "In asynchronous mode, the priority of the job. The lower the value, the higher the priority.", false)
+                       "In asynchronous mode, the priority of the job. The higher the value, the higher the priority.", false)
       .SetAnswerField("ID", RestApiCallDocumentation::Type_String, "In asynchronous mode, identifier of the job")
       .SetAnswerField("Path", RestApiCallDocumentation::Type_String, "In asynchronous mode, path to access the job in the REST API");
   }
