@@ -29,11 +29,6 @@ General
 * (1) Accept extra DICOM tags dictionaries in the DCMTK format '.dic' (easier to use than declare
   them in the Orthanc configuration file).  Even the standard dictionaries could be 
   overriden by these custom dictionaries.
-* Provide more flexibility wrt Dicom TLS ciphers and TLS version:
-  https://groups.google.com/g/orthanc-users/c/X4IhmXCSr7I/m/EirawAFcBwAJ
-  Can maybe be achieved by adding a configuration to select the TLS Security Profile:
-  https://github.com/DCMTK/dcmtk/blob/master/dcmtls/include/dcmtk/dcmtls/tlsciphr.h#L83 
-  (e.g: TSP_Profile_BCP195_ND instead of TSP_Profile_BCP195)
 * Add configurations to enable/disable warnings:
   - Modifying an instance while keeping its original SOPInstanceUID: This should be avoided!
   - Modifying a study while keeping its original StudyInstanceUID: This should be avoided!
