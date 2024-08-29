@@ -1346,18 +1346,17 @@ namespace Orthanc
       // Throttle to avoid loading several large DICOM files simultaneously
       largeDicomLocker_.reset(new Semaphore::Locker(context.largeDicomThrottler_));
       
-      std::string content;
-      context_.ReadDicom(content, instancePublicId);
+      context_.ReadDicom(buffer_, instancePublicId_);
 
       // Release the throttle if loading "small" DICOM files (under
       // 50MB, which is an arbitrary value)
-      if (content.size() < 50 * 1024 * 1024)
+      if (buffer_.size() < 50 * 1024 * 1024)
       {
         largeDicomLocker_.reset(NULL);
       }
       
-      dicom_.reset(new ParsedDicomFile(content));
-      dicomSize_ = content.size();
+      dicom_.reset(new ParsedDicomFile(buffer_));
+      dicomSize_ = buffer_.size();
     }
 
     assert(accessor_.get() != NULL ||
@@ -1393,6 +1392,18 @@ namespace Orthanc
     }
   }
 
+  const std::string& ServerContext::DicomCacheLocker::GetBuffer()
+  {
+    if (buffer_.size() > 0)
+    {
+      return buffer_;
+    }
+    else
+    {
+      context_.ReadDicom(buffer_, instancePublicId_);
+      return buffer_;
+    }
+  }
   
   void ServerContext::SetStoreMD5ForAttachments(bool storeMD5)
   {
@@ -1847,27 +1858,50 @@ namespace Orthanc
   }
 
 
+
+
+
   ImageAccessor* ServerContext::DecodeDicomFrame(const std::string& publicId,
                                                  unsigned int frameIndex)
   {
+    ServerContext::DicomCacheLocker locker(*this, publicId);
+    std::unique_ptr<ImageAccessor> decoded(DecodeDicomFrame(locker.GetDicom(), locker.GetBuffer().c_str(), locker.GetBuffer().size(), frameIndex));
+
+    if (decoded.get() == NULL)
+    {
+      OrthancConfiguration::ReaderLock configLock;
+      if (configLock.GetConfiguration().IsWarningEnabled(Warnings_003_DecoderFailure))
+      {
+        LOG(WARNING) << "W003: Unable to decode frame " << frameIndex << " from instance " << publicId;
+      }
+      return NULL;
+    }
+
+    return decoded.release();
+  }
+
+
+  ImageAccessor* ServerContext::DecodeDicomFrame(const ParsedDicomFile& parsedDicom,
+                                                 const void* buffer,  // actually the buffer that is the source of the ParsedDicomFile
+                                                 size_t size,
+                                                 unsigned int frameIndex)
+  {
+    std::unique_ptr<ImageAccessor> decoded;
+
     if (builtinDecoderTranscoderOrder_ == BuiltinDecoderTranscoderOrder_Before)
     {
-      // Use Orthanc's built-in decoder, using the cache to speed-up
-      // things on multi-frame images
+      // Use Orthanc's built-in decoder
 
-      std::unique_ptr<ImageAccessor> decoded;
       try
       {
-        ServerContext::DicomCacheLocker locker(*this, publicId);
-        decoded.reset(locker.GetDicom().DecodeFrame(frameIndex));
+        decoded.reset(parsedDicom.DecodeFrame(frameIndex));
+        if (decoded.get() != NULL)
+        {
+          return decoded.release();
+        }
       }
       catch (OrthancException& e)
-      {
-      }
-      
-      if (decoded.get() != NULL)
-      {
-        return decoded.release();
+      { // ignore, we'll try other alternatives
       }
     }
 
@@ -1875,14 +1909,9 @@ namespace Orthanc
     if (HasPlugins() &&
         GetPlugins().HasCustomImageDecoder())
     {
-      // TODO: Store the raw buffer in the DicomCacheLocker
-      std::string dicomContent;
-      ReadDicom(dicomContent, publicId);
-      
-      std::unique_ptr<ImageAccessor> decoded;
       try
       {
-        decoded.reset(GetPlugins().Decode(dicomContent.c_str(), dicomContent.size(), frameIndex));
+        decoded.reset(GetPlugins().Decode(buffer, size, frameIndex));
       }
       catch (OrthancException& e)
       {
@@ -1902,11 +1931,9 @@ namespace Orthanc
 
     if (builtinDecoderTranscoderOrder_ == BuiltinDecoderTranscoderOrder_After)
     {
-      ServerContext::DicomCacheLocker locker(*this, publicId);   
       try
       { 
-        std::unique_ptr<ImageAccessor> decoded(locker.GetDicom().DecodeFrame(frameIndex));
-
+        decoded.reset(parsedDicom.DecodeFrame(frameIndex));
         if (decoded.get() != NULL)
         {
           return decoded.release();
@@ -1920,17 +1947,13 @@ namespace Orthanc
 
     if (HasPlugins() && GetPlugins().HasCustomTranscoder())
     {
-      // TODO: Store the raw buffer in the DicomCacheLocker
-      std::string dicomContent;
-      ReadDicom(dicomContent, publicId);
-
       LOG(INFO) << "The plugins and built-in image decoders failed to decode a frame, "
                 << "trying to transcode the file to LittleEndianExplicit using the plugins.";
       DicomImage explicitTemporaryImage;
       DicomImage source;
       std::set<DicomTransferSyntax> allowedSyntaxes;
 
-      source.AcquireBuffer(dicomContent);
+      source.SetExternalBuffer(buffer, size);
       allowedSyntaxes.insert(DicomTransferSyntax_LittleEndianExplicit);
 
       if (Transcode(explicitTemporaryImage, source, allowedSyntaxes, true))
@@ -1938,13 +1961,6 @@ namespace Orthanc
         std::unique_ptr<ParsedDicomFile> file(explicitTemporaryImage.ReleaseAsParsedDicomFile());
         return file->DecodeFrame(frameIndex);
       }
-
-    }
-
-    OrthancConfiguration::ReaderLock lock;
-    if (lock.GetConfiguration().IsWarningEnabled(Warnings_003_DecoderFailure))
-    {
-      LOG(WARNING) << "W003: Unable to decode frame " << frameIndex << " from instance " << publicId;
     }
 
     return NULL;
@@ -1954,56 +1970,11 @@ namespace Orthanc
   ImageAccessor* ServerContext::DecodeDicomFrame(const DicomInstanceToStore& dicom,
                                                  unsigned int frameIndex)
   {
-    if (builtinDecoderTranscoderOrder_ == BuiltinDecoderTranscoderOrder_Before)
-    {
-      std::unique_ptr<ImageAccessor> decoded;
-      try
-      {
-        decoded.reset(dicom.DecodeFrame(frameIndex));
-      }
-      catch (OrthancException& e)
-      {
-      }
-        
-      if (decoded.get() != NULL)
-      {
-        return decoded.release();
-      }
-    }
+    return DecodeDicomFrame(dicom.GetParsedDicomFile(),
+                            dicom.GetBufferData(),
+                            dicom.GetBufferSize(),
+                            frameIndex);
 
-#if ORTHANC_ENABLE_PLUGINS == 1
-    if (HasPlugins() &&
-        GetPlugins().HasCustomImageDecoder())
-    {
-      std::unique_ptr<ImageAccessor> decoded;
-      try
-      {
-        decoded.reset(GetPlugins().Decode(dicom.GetBufferData(), dicom.GetBufferSize(), frameIndex));
-      }
-      catch (OrthancException& e)
-      {
-      }
-    
-      if (decoded.get() != NULL)
-      {
-        return decoded.release();
-      }
-      else if (builtinDecoderTranscoderOrder_ == BuiltinDecoderTranscoderOrder_After)
-      {
-        LOG(INFO) << "The installed image decoding plugins cannot handle an image, "
-                  << "fallback to the built-in DCMTK decoder";
-      }
-    }
-#endif
-
-    if (builtinDecoderTranscoderOrder_ == BuiltinDecoderTranscoderOrder_After)
-    {
-      return dicom.DecodeFrame(frameIndex);
-    }
-    else
-    {
-      return NULL;
-    }
   }
 
 
@@ -2011,8 +1982,8 @@ namespace Orthanc
                                                  size_t size,
                                                  unsigned int frameIndex)
   {
-    std::unique_ptr<DicomInstanceToStore> instance(DicomInstanceToStore::CreateFromBuffer(dicom, size));
-    return DecodeDicomFrame(*instance, frameIndex);
+    std::unique_ptr<ParsedDicomFile> instance(new ParsedDicomFile(dicom, size));
+    return DecodeDicomFrame(*instance, dicom, size, frameIndex);
   }
   
 
