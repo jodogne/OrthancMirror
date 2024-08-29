@@ -29,11 +29,6 @@ General
 * (1) Accept extra DICOM tags dictionaries in the DCMTK format '.dic' (easier to use than declare
   them in the Orthanc configuration file).  Even the standard dictionaries could be 
   overriden by these custom dictionaries.
-* Provide more flexibility wrt Dicom TLS ciphers and TLS version:
-  https://groups.google.com/g/orthanc-users/c/X4IhmXCSr7I/m/EirawAFcBwAJ
-  Can maybe be achieved by adding a configuration to select the TLS Security Profile:
-  https://github.com/DCMTK/dcmtk/blob/master/dcmtls/include/dcmtk/dcmtls/tlsciphr.h#L83 
-  (e.g: TSP_Profile_BCP195_ND instead of TSP_Profile_BCP195)
 * Add configurations to enable/disable warnings:
   - Modifying an instance while keeping its original SOPInstanceUID: This should be avoided!
   - Modifying a study while keeping its original StudyInstanceUID: This should be avoided!
@@ -41,6 +36,7 @@ General
   https://discourse.orthanc-server.org/t/performance-issue-when-adding-a-lot-of-jobs-in-the-queue/3915/2
   Note: that might also be the right time to have a central jobs registry when working
   with multiple Orthanc instances on the same DB.
+  Note: the json serialization of a job "content" can be very large -> compress it before saving it to DB ?
 * Right now, some Stable events never occurs (e.g. when Orthanc is restarted before the event is triggered).
   Since these events are used to e.g. generate dicom-web cache (or update it !), we should try
   to make sure these events always happen.
@@ -71,7 +67,7 @@ Documentation (Orthanc Book)
 * Write a getting started guide (step by step) for each platform to replace
   https://orthanc.uclouvain.be/book/users/cookbook.html :
   - Ubuntu/Debian
-  - Windows
+  - Windows (done)
   - OSX
   - Docker on Linux
   Each step by step guide should contain:
@@ -153,7 +149,7 @@ Mid-term
   https://groups.google.com/g/orthanc-users/c/hsZ1jng5rIg/m/8xZL2C1VBgAJ
 * add an "AutoDeleteIfSuccessful": false option when creating jobs 
   https://discourse.orthanc-server.org/t/job-history-combined-with-auto-forwarding/3729/10
-* Allow skiping automatic conversion of color-space in transcoding/decoding.
+* Allow skipping automatic conversion of color-space in transcoding/decoding.
   The patch that was initialy provided was breaking the IngestTranscoding.
   This might require a DCMTK decoding plugin ?
   https://discourse.orthanc-server.org/t/orthanc-convert-ybr-to-rgb-but-does-not-change-metadata/3533/9

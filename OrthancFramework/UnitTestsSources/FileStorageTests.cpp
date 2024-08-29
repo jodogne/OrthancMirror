@@ -37,6 +37,7 @@
 #include "../Sources/Logging.h"
 #include "../Sources/OrthancException.h"
 #include "../Sources/Toolbox.h"
+#include "../Sources/SystemToolbox.h"
 
 #include <ctype.h>
 
@@ -87,6 +88,48 @@ TEST(FilesystemStorage, Basic2)
   ASSERT_FALSE(memcmp(&d[0], &data[0], data.size()));
   ASSERT_EQ(s.GetSize(uid), data.size());
 }
+
+TEST(FilesystemStorage, FileWithSameNameAsTopDirectory)
+{
+  FilesystemStorage s("UnitTestsStorageTop");
+  s.Clear();
+
+  std::vector<uint8_t> data;
+  StringToVector(data, Toolbox::GenerateUuid());
+
+  SystemToolbox::WriteFile("toto", "UnitTestsStorageTop/12");
+  ASSERT_THROW(s.Create("12345678-1234-1234-1234-1234567890ab", &data[0], data.size(), FileContentType_Unknown), OrthancException);
+  s.Clear();
+}
+
+TEST(FilesystemStorage, FileWithSameNameAsChildDirectory)
+{
+  FilesystemStorage s("UnitTestsStorageChild");
+  s.Clear();
+
+  std::vector<uint8_t> data;
+  StringToVector(data, Toolbox::GenerateUuid());
+
+  SystemToolbox::MakeDirectory("UnitTestsStorageChild/12");
+  SystemToolbox::WriteFile("toto", "UnitTestsStorageChild/12/34");
+  ASSERT_THROW(s.Create("12345678-1234-1234-1234-1234567890ab", &data[0], data.size(), FileContentType_Unknown), OrthancException);
+  s.Clear();
+}
+
+TEST(FilesystemStorage, FileAlreadyExists)
+{
+  FilesystemStorage s("UnitTestsStorageFileAlreadyExists");
+  s.Clear();
+
+  std::vector<uint8_t> data;
+  StringToVector(data, Toolbox::GenerateUuid());
+
+  SystemToolbox::MakeDirectory("UnitTestsStorageFileAlreadyExists/12/34");
+  SystemToolbox::WriteFile("toto", "UnitTestsStorageFileAlreadyExists/12/34/12345678-1234-1234-1234-1234567890ab");
+  ASSERT_THROW(s.Create("12345678-1234-1234-1234-1234567890ab", &data[0], data.size(), FileContentType_Unknown), OrthancException);
+  s.Clear();
+}
+
 
 TEST(FilesystemStorage, EndToEnd)
 {
