@@ -206,6 +206,7 @@ namespace Orthanc
     Warnings_None,
     Warnings_001_TagsBeingReadFromStorage,
     Warnings_002_InconsistentDicomTagsInDb,
+    Warnings_003_DecoderFailure,              // new in Orthanc 1.12.5
   };
 
 
