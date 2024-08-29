@@ -21,9 +21,9 @@
 
 
 if (STATIC_BUILD OR NOT USE_SYSTEM_CURL)
-  SET(CURL_SOURCES_DIR ${CMAKE_BINARY_DIR}/curl-8.5.0)
-  SET(CURL_URL "https://orthanc.uclouvain.be/downloads/third-party-downloads/curl-8.5.0.tar.gz")
-  SET(CURL_MD5 "0bc69288b20ae165ff4b7d6d7bbe70d2")
+  SET(CURL_SOURCES_DIR ${CMAKE_BINARY_DIR}/curl-8.9.0)
+  SET(CURL_URL "https://orthanc.uclouvain.be/downloads/third-party-downloads/curl-8.9.0.tar.gz")
+  SET(CURL_MD5 "f9bca5d4d5bac1f04e6c5eb4d0418618")
 
   if (IS_DIRECTORY "${CURL_SOURCES_DIR}")
     set(FirstRun OFF)
@@ -36,7 +36,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_CURL)
   if (FirstRun)
     execute_process(
       COMMAND ${PATCH_EXECUTABLE} -p0 -N -i
-      ${CMAKE_CURRENT_LIST_DIR}/../Patches/curl-8.5.0.patch
+      ${CMAKE_CURRENT_LIST_DIR}/../Patches/curl-8.9.0.patch
       WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
       RESULT_VARIABLE Failure
       )

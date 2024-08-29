@@ -1157,6 +1157,10 @@ namespace Orthanc
         {
           warning = Warnings_002_InconsistentDicomTagsInDb;
         }
+        else if (name == "W003_DecoderFailure")
+        {
+          warning = Warnings_003_DecoderFailure;
+        }
         else
         {
           throw OrthancException(ErrorCode_BadFileFormat, name + " is not recognized as a valid warning name");

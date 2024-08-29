@@ -180,7 +180,7 @@ namespace Orthanc
     {
       std::set<std::string> s;
       s.insert(value);
-      metadataValues_[metadata] = new std::set(s);
+      metadataValues_[metadata] = new std::set<std::string>(s);
     }
     else
     {
@@ -216,7 +216,7 @@ namespace Orthanc
     {
       std::set<std::string> s;
       s.insert(value);
-      mainDicomTagValues_[tag] = new std::set(s);
+      mainDicomTagValues_[tag] = new std::set<std::string>(s);
     }
     else
     {

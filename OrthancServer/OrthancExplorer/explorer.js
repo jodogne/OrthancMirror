@@ -715,7 +715,7 @@ function SetupAttachments(accessSelector, liClass, resourceId, resourceType) {
     $('.' + liClass).remove();
     for (var key in attachments) {
       if (attachments[key] >= 1024) {
-        target.append('<li data-icon="gear" class="' + liClass + '"><a href="#" id="' + attachments[key] + '">Download ' + key + '</a></li>')
+        target.append('<li data-icon="gear" class="' + liClass + '"><a href="#" id="' + attachments[key] + '">Download attachment "' + key + '"</a></li>')
       }
     }
     target.listview('refresh');
