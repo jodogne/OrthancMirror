@@ -986,7 +986,11 @@
     // your response might be incomplete/inconsistent.
     // You should call patients|studies|series|instances/../reconstruct to rebuild
     // the DB.  You may also check for the "Housekeeper" plugin
-    "W002_InconsistentDicomTagsInDb": true
+    "W002_InconsistentDicomTagsInDb": true,
+
+    // Display a warning message when Orthanc and its plugins are unable
+    // to decode a frame (new in Orthanc 1.12.5).
+    "W003_DecoderFailure": true
   }
 
 }

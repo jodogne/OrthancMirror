@@ -1902,13 +1902,52 @@ namespace Orthanc
 
     if (builtinDecoderTranscoderOrder_ == BuiltinDecoderTranscoderOrder_After)
     {
-      ServerContext::DicomCacheLocker locker(*this, publicId);        
-      return locker.GetDicom().DecodeFrame(frameIndex);
+      ServerContext::DicomCacheLocker locker(*this, publicId);   
+      try
+      { 
+        std::unique_ptr<ImageAccessor> decoded(locker.GetDicom().DecodeFrame(frameIndex));
+
+        if (decoded.get() != NULL)
+        {
+          return decoded.release();
+        }
+      }
+      catch (OrthancException& e)
+      {
+        LOG(INFO) << e.GetDetails();
+      }
     }
-    else
+
+    if (HasPlugins() && GetPlugins().HasCustomTranscoder())
     {
-      return NULL;  // Built-in decoder is disabled
+      // TODO: Store the raw buffer in the DicomCacheLocker
+      std::string dicomContent;
+      ReadDicom(dicomContent, publicId);
+
+      LOG(INFO) << "The plugins and built-in image decoders failed to decode a frame, "
+                << "trying to transcode the file to LittleEndianExplicit using the plugins.";
+      DicomImage explicitTemporaryImage;
+      DicomImage source;
+      std::set<DicomTransferSyntax> allowedSyntaxes;
+
+      source.AcquireBuffer(dicomContent);
+      allowedSyntaxes.insert(DicomTransferSyntax_LittleEndianExplicit);
+
+      if (Transcode(explicitTemporaryImage, source, allowedSyntaxes, true))
+      {
+        std::unique_ptr<ParsedDicomFile> file(explicitTemporaryImage.ReleaseAsParsedDicomFile());
+        return file->DecodeFrame(frameIndex);
+      }
+
     }
+
+    OrthancConfiguration::ReaderLock lock;
+    if (lock.GetConfiguration().IsWarningEnabled(Warnings_003_DecoderFailure))
+    {
+      LOG(WARNING) << "W003: Unable to decode frame " << frameIndex << " from instance " << publicId;
+    }
+
+    return NULL;
   }
 
 

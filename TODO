@@ -67,7 +67,7 @@ Documentation (Orthanc Book)
 * Write a getting started guide (step by step) for each platform to replace
   https://orthanc.uclouvain.be/book/users/cookbook.html :
   - Ubuntu/Debian
-  - Windows
+  - Windows (done)
   - OSX
   - Docker on Linux
   Each step by step guide should contain:
@@ -149,7 +149,7 @@ Mid-term
   https://groups.google.com/g/orthanc-users/c/hsZ1jng5rIg/m/8xZL2C1VBgAJ
 * add an "AutoDeleteIfSuccessful": false option when creating jobs 
   https://discourse.orthanc-server.org/t/job-history-combined-with-auto-forwarding/3729/10
-* Allow skiping automatic conversion of color-space in transcoding/decoding.
+* Allow skipping automatic conversion of color-space in transcoding/decoding.
   The patch that was initialy provided was breaking the IngestTranscoding.
   This might require a DCMTK decoding plugin ?
   https://discourse.orthanc-server.org/t/orthanc-convert-ybr-to-rgb-but-does-not-change-metadata/3533/9
