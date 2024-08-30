@@ -99,6 +99,11 @@ namespace Orthanc
       throw OrthancException(ErrorCode_NotImplemented);
     }
 
+    virtual bool HasIntegratedFind() const ORTHANC_OVERRIDE
+    {
+      return true;
+    }
+
     /**
      * The "StartTransaction()" method is guaranteed to return a class
      * derived from "UnitTestsTransaction". The methods of

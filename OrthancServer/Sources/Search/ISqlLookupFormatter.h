@@ -35,7 +35,8 @@
 namespace Orthanc
 {
   class DatabaseConstraints;
-  
+  class FindRequest;
+
   enum LabelsConstraint
   {
     LabelsConstraint_All,
@@ -84,5 +85,11 @@ namespace Orthanc
                                  const std::set<std::string>& labels,  // New in Orthanc 1.12.0
                                  LabelsConstraint labelsConstraint,    // New in Orthanc 1.12.0
                                  size_t limit);
+
+#if ORTHANC_BUILDING_SERVER_LIBRARY == 1
+    static void Apply(std::string& sql,
+                      ISqlLookupFormatter& formatter,
+                      const FindRequest& request);
+#endif
   };
 }

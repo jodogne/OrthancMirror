@@ -280,10 +280,12 @@ namespace Orthanc
     };
 
   private:
-    typedef std::map<std::string, Resource*>  Index;
+    typedef std::map<std::string, Resource*>  IdentifierIndex;
+    typedef std::map<int64_t, Resource*>      InternalIdIndex;
 
     std::deque<Resource*>  items_;
-    Index                  index_;
+    IdentifierIndex        identifierIndex_;
+    InternalIdIndex        internalIdIndex_;
 
   public:
     ~FindResponse();
@@ -299,14 +301,26 @@ namespace Orthanc
 
     Resource& GetResourceByIdentifier(const std::string& id);
 
+    Resource& GetResourceByInternalId(int64_t internalId);
+
     const Resource& GetResourceByIdentifier(const std::string& id) const
     {
       return const_cast<FindResponse&>(*this).GetResourceByIdentifier(id);
     }
 
+    const Resource& GetResourceByInternalId(int64_t internalId) const
+    {
+      return const_cast<FindResponse&>(*this).GetResourceByInternalId(internalId);
+    }
+
     bool HasResource(const std::string& id) const
     {
-      return (index_.find(id) != index_.end());
+      return (identifierIndex_.find(id) != identifierIndex_.end());
+    }
+
+    bool HasResource(int64_t& internalId) const
+    {
+      return (internalIdIndex_.find(internalId) != internalIdIndex_.end());
     }
   };
 }

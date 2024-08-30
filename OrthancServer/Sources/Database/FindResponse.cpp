@@ -688,15 +688,17 @@ namespace Orthanc
     else
     {
       const std::string& id = item->GetIdentifier();
+      int64_t internalId = item->GetInternalId();
 
-      if (index_.find(id) == index_.end())
+      if (identifierIndex_.find(id) == identifierIndex_.end() && internalIdIndex_.find(internalId) == internalIdIndex_.end())
       {
         items_.push_back(protection.release());
-        index_[id] = item;
+        identifierIndex_[id] = item;
+        internalIdIndex_[internalId] = item;
       }
       else
       {
-        throw OrthancException(ErrorCode_BadSequenceOfCalls, "This resource has already been added: " + id);
+        throw OrthancException(ErrorCode_BadSequenceOfCalls, "This resource has already been added: " + id + "/" + boost::lexical_cast<std::string>(internalId));
       }
     }
   }
@@ -718,9 +720,25 @@ namespace Orthanc
 
   FindResponse::Resource& FindResponse::GetResourceByIdentifier(const std::string& id)
   {
-    Index::const_iterator found = index_.find(id);
+    IdentifierIndex::const_iterator found = identifierIndex_.find(id);
 
-    if (found == index_.end())
+    if (found == identifierIndex_.end())
+    {
+      throw OrthancException(ErrorCode_InexistentItem);
+    }
+    else
+    {
+      assert(found->second != NULL);
+      return *found->second;
+    }
+  }
+
+
+  FindResponse::Resource& FindResponse::GetResourceByInternalId(int64_t internalId)
+  {
+    InternalIdIndex::const_iterator found = internalIdIndex_.find(internalId);
+
+    if (found == internalIdIndex_.end())
     {
       throw OrthancException(ErrorCode_InexistentItem);
     }
