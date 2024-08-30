@@ -89,5 +89,7 @@ namespace Orthanc
                   const std::string& id);
 
     std::string GetLevel(ResourceType level) const;
+
+    bool IsDefined() const;
   };
 }
