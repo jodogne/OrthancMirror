@@ -165,23 +165,23 @@ namespace Orthanc
     {
       return ResourceType_Patient;
     }
-    else if (HasPatientId() &&
+    else if (// HasPatientId() &&
              HasStudyId() &&
              !HasSeriesId() &&
              !HasInstanceId())
     {
       return ResourceType_Study;
     }
-    else if (HasPatientId() &&
-             HasStudyId() &&
+    else if (// HasPatientId() &&
+             // HasStudyId() &&
              HasSeriesId() &&
              !HasInstanceId())
     {
       return ResourceType_Series;
     }
-    else if (HasPatientId() &&
-             HasStudyId() &&
-             HasSeriesId() &&
+    else if (// HasPatientId() &&
+             // HasStudyId() &&
+             // HasSeriesId() &&
              HasInstanceId())
     {
       return ResourceType_Instance;
@@ -239,5 +239,10 @@ namespace Orthanc
       default:
         throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
+  }
+
+  bool OrthancIdentifiers::IsDefined() const
+  {
+    return HasPatientId() || HasStudyId() || HasSeriesId() || HasInstanceId();
   }
 }
