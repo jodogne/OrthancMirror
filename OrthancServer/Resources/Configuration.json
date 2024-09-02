@@ -205,6 +205,7 @@
   // Set the timeout (in seconds) after which the DICOM associations
   // are closed by the Orthanc SCP (server) if no further DIMSE
   // command is received from the SCU (client).
+  // A value of 0 means "no timeout".
   "DicomScpTimeout" : 30,
 
 
@@ -491,6 +492,7 @@
   // The timeout (in seconds) after which the DICOM associations are
   // considered as closed by the Orthanc SCU (client) if the remote
   // DICOM SCP (server) does not answer.
+  // A value of 0 means "no timeout".
   "DicomScuTimeout" : 10,
 
   // During a C-STORE SCU request initiated by Orthanc, if the remote
@@ -984,7 +986,11 @@
     // your response might be incomplete/inconsistent.
     // You should call patients|studies|series|instances/../reconstruct to rebuild
     // the DB.  You may also check for the "Housekeeper" plugin
-    "W002_InconsistentDicomTagsInDb": true
+    "W002_InconsistentDicomTagsInDb": true,
+
+    // Display a warning message when Orthanc and its plugins are unable
+    // to decode a frame (new in Orthanc 1.12.5).
+    "W003_DecoderFailure": true
   }
 
 }

@@ -305,6 +305,7 @@ namespace Orthanc
       std::unique_ptr<ParsedDicomFile>             dicom_;
       size_t                                       dicomSize_;
       std::unique_ptr<Semaphore::Locker>           largeDicomLocker_;
+      std::string                                  buffer_;
 
     public:
       DicomCacheLocker(ServerContext& context,
@@ -313,6 +314,8 @@ namespace Orthanc
       ~DicomCacheLocker();
 
       ParsedDicomFile& GetDicom() const;
+
+      const std::string& GetBuffer();
     };
 
     ServerContext(IDatabaseWrapper& database,
@@ -560,7 +563,12 @@ namespace Orthanc
     ImageAccessor* DecodeDicomFrame(const void* dicom,
                                     size_t size,
                                     unsigned int frameIndex);
-    
+
+    ImageAccessor* DecodeDicomFrame(const ParsedDicomFile& parsedDicom,
+                                    const void* buffer,  // actually the buffer that is the source of the ParsedDicomFile
+                                    size_t size,
+                                    unsigned int frameIndex);
+
     void StoreWithTranscoding(std::string& sopClassUid,
                               std::string& sopInstanceUid,
                               DicomStoreUserConnection& connection,
