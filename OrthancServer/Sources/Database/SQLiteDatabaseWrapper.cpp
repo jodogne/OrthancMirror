@@ -545,7 +545,7 @@ namespace Orthanc
       // need resource labels ?
       if (request.IsRetrieveLabels())
       {
-        sql = "SELECT id, label "
+        sql = "SELECT Lookup.internalId, label "
               "FROM Labels "
               "INNER JOIN Lookup ON Labels.id = Lookup.internalId";
 
@@ -648,7 +648,7 @@ namespace Orthanc
       // need children identifiers ?
       if (requestLevel <= ResourceType_Series && request.GetChildrenSpecification(static_cast<ResourceType>(requestLevel + 1)).IsRetrieveIdentifiers())
       {
-        sql = "SELECT currentLevel.internalId, childLevel.publicId "
+        sql = "SELECT Lookup.internalId, childLevel.publicId "
               "FROM Resources AS currentLevel "
               "INNER JOIN Lookup ON currentLevel.internalId = Lookup.internalId "
               "INNER JOIN Resources childLevel ON currentLevel.internalId = childLevel.parentId ";
@@ -664,7 +664,7 @@ namespace Orthanc
       // need grandchildren identifiers ?
       if (requestLevel <= ResourceType_Study && request.GetChildrenSpecification(static_cast<ResourceType>(requestLevel + 2)).IsRetrieveIdentifiers())
       {
-        sql = "SELECT currentLevel.internalId, grandChildLevel.publicId "
+        sql = "SELECT Lookup.internalId, grandChildLevel.publicId "
               "FROM Resources AS currentLevel "
               "INNER JOIN Lookup ON currentLevel.internalId = Lookup.internalId "
               "INNER JOIN Resources childLevel ON currentLevel.internalId = childLevel.parentId "
@@ -681,7 +681,7 @@ namespace Orthanc
       // need resource attachments ?
       if (request.IsRetrieveAttachments())
       {
-        sql = "SELECT id, fileType, uuid, uncompressedSize, compressedSize, compressionType, uncompressedMD5, compressedMD5 "
+        sql = "SELECT Lookup.internalId, fileType, uuid, uncompressedSize, compressedSize, compressionType, uncompressedMD5, compressedMD5 "
               "FROM AttachedFiles "
               "INNER JOIN Lookup ON AttachedFiles.id = Lookup.internalId";
 
