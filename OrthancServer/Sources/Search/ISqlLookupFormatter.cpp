@@ -625,40 +625,42 @@ namespace Orthanc
     const bool escapeBrackets = formatter.IsEscapeBrackets();
     ResourceType queryLevel = request.GetLevel();
     const std::string& strQueryLevel = FormatLevel(queryLevel);
-    
+
+    ResourceType lowerLevel, upperLevel;
+    GetLookupLevels(lowerLevel, upperLevel, queryLevel, request.GetDicomTagConstraints());
+
+    assert(upperLevel <= queryLevel &&
+           queryLevel <= lowerLevel);
+
+
+    sql = ("SELECT " +
+           strQueryLevel + ".publicId, " +
+           strQueryLevel + ".internalId" +
+           " FROM Resources AS " + strQueryLevel);
+
+
     std::string joins, comparisons;
 
-    if (request.GetOrthancIdentifiers().IsDefined() && request.GetOrthancIdentifiers().DetectLevel() == queryLevel)
-    {
-      // single resource matching, there should not be other constraints
-      assert(request.GetDicomTagConstraints().GetSize() == 0);
-      assert(request.GetLabels().size() == 0);
-      assert(request.HasLimits() == false);
-
-      comparisons = " AND " + strQueryLevel + ".publicId = " + formatter.GenerateParameter(request.GetOrthancIdentifiers().GetLevel(queryLevel));
-    }
-    else if (request.GetOrthancIdentifiers().IsDefined() && request.GetOrthancIdentifiers().DetectLevel() == queryLevel - 1)
+    if (request.GetOrthancIdentifiers().IsDefined() && request.GetOrthancIdentifiers().DetectLevel() <= queryLevel)
     {
       // single child resource matching, there should not be other constraints (at least for now)
       assert(request.GetDicomTagConstraints().GetSize() == 0);
       assert(request.GetLabels().size() == 0);
       assert(request.HasLimits() == false);
 
-      ResourceType parentLevel = static_cast<ResourceType>(queryLevel - 1);
-      const std::string& strParentLevel = FormatLevel(parentLevel);
+      ResourceType topParentLevel = request.GetOrthancIdentifiers().DetectLevel();
+      const std::string& strTopParentLevel = FormatLevel(topParentLevel);
 
-      comparisons = " AND " + strParentLevel + ".publicId = " + formatter.GenerateParameter(request.GetOrthancIdentifiers().GetLevel(parentLevel));
-      joins += (" INNER JOIN Resources " +
-              strParentLevel + " ON " +
-              strQueryLevel + ".parentId=" +
-              strParentLevel + ".internalId");
+      comparisons = " AND " + strTopParentLevel + ".publicId = " + formatter.GenerateParameter(request.GetOrthancIdentifiers().GetLevel(topParentLevel));
+
+      for (int level = queryLevel; level > topParentLevel; level--)
+      {
+        sql += (" INNER JOIN Resources " +
+                FormatLevel(static_cast<ResourceType>(level - 1)) + " ON " +
+                FormatLevel(static_cast<ResourceType>(level - 1)) + ".internalId=" +
+                FormatLevel(static_cast<ResourceType>(level)) + ".parentId");
+      }
     }
-    // TODO-FIND other levels (there's probably a way to make it generic as it was done before !!!): 
-    //    /studies/../instances
-    //    /patients/../instances
-    //    /series/../study
-    //    /instances/../study
-    // ...
     else
     {
       size_t count = 0;
@@ -686,26 +688,21 @@ namespace Orthanc
       }
     }
 
-    sql = ("SELECT " +
-           strQueryLevel + ".publicId, " +
-           strQueryLevel + ".internalId" +
-           " FROM Resources AS " + strQueryLevel);
-
-    // for (int level = queryLevel - 1; level >= upperLevel; level--)
-    // {
-    //   sql += (" INNER JOIN Resources " +
-    //           FormatLevel(static_cast<ResourceType>(level)) + " ON " +
-    //           FormatLevel(static_cast<ResourceType>(level)) + ".internalId=" +
-    //           FormatLevel(static_cast<ResourceType>(level + 1)) + ".parentId");
-    // }
+    for (int level = queryLevel - 1; level >= upperLevel; level--)
+    {
+      sql += (" INNER JOIN Resources " +
+              FormatLevel(static_cast<ResourceType>(level)) + " ON " +
+              FormatLevel(static_cast<ResourceType>(level)) + ".internalId=" +
+              FormatLevel(static_cast<ResourceType>(level + 1)) + ".parentId");
+    }
       
-    // for (int level = queryLevel + 1; level <= lowerLevel; level++)
-    // {
-    //   sql += (" INNER JOIN Resources " +
-    //           FormatLevel(static_cast<ResourceType>(level)) + " ON " +
-    //           FormatLevel(static_cast<ResourceType>(level - 1)) + ".internalId=" +
-    //           FormatLevel(static_cast<ResourceType>(level)) + ".parentId");
-    // }
+    for (int level = queryLevel + 1; level <= lowerLevel; level++)
+    {
+      sql += (" INNER JOIN Resources " +
+              FormatLevel(static_cast<ResourceType>(level)) + " ON " +
+              FormatLevel(static_cast<ResourceType>(level - 1)) + ".internalId=" +
+              FormatLevel(static_cast<ResourceType>(level)) + ".parentId");
+    }
 
     std::list<std::string> where;
     where.push_back(strQueryLevel + ".resourceType = " +
