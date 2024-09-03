@@ -386,32 +386,34 @@ namespace Orthanc
                              const FindRequest& request,
                              const Capabilities& capabilities) ORTHANC_OVERRIDE
     {
-      LookupFormatter formatter;
-
+      const ResourceType requestLevel = request.GetLevel();
       std::string sql;
-      LookupFormatter::Apply(sql, formatter, request);
 
-      sql = "CREATE TEMPORARY TABLE Lookup AS " + sql;
-    
       {
+        // clean previous lookup table
         SQLite::Statement s(db_, SQLITE_FROM_HERE, "DROP TABLE IF EXISTS Lookup");
         s.Run();
       }
 
       {
+        // extract the resource id of interest by executing the lookup
+        LookupFormatter formatter;
+        LookupFormatter::Apply(sql, formatter, request);
+
+        sql = "CREATE TEMPORARY TABLE Lookup AS " + sql;
+
         SQLite::Statement statement(db_, sql);
         formatter.Bind(statement);
         statement.Run();
-      }
 
-      {
         SQLite::Statement s(db_, SQLITE_FROM_HERE, "SELECT publicId, internalId FROM Lookup");
         while (s.Step())
         {
-          response.Add(new FindResponse::Resource(request.GetLevel(), s.ColumnInt64(1), s.ColumnString(0)));
+          response.Add(new FindResponse::Resource(requestLevel, s.ColumnInt64(1), s.ColumnString(0)));
         }
       }
 
+      // need MainDicomTags from resource ?
       if (request.IsRetrieveMainDicomTags())
       {
         sql = "SELECT id, tagGroup, tagElement, value "
@@ -422,15 +424,15 @@ namespace Orthanc
         while (s.Step())
         {
           FindResponse::Resource& res = response.GetResourceByInternalId(s.ColumnInt64(0));
-          res.AddStringDicomTag(request.GetLevel(), 
+          res.AddStringDicomTag(requestLevel, 
                                 static_cast<uint16_t>(s.ColumnInt(1)),
                                 static_cast<uint16_t>(s.ColumnInt(2)),
                                 s.ColumnString(3));
         }
       }
 
-      // need MainDicomTags from parent
-      if (request.GetLevel() > ResourceType_Patient && request.GetParentSpecification(static_cast<ResourceType>(request.GetLevel() - 1)).IsRetrieveMainDicomTags())
+      // need MainDicomTags from parent ?
+      if (requestLevel > ResourceType_Patient && request.GetParentSpecification(static_cast<ResourceType>(requestLevel - 1)).IsRetrieveMainDicomTags())
       {
         sql = "SELECT currentLevel.internalId, tagGroup, tagElement, value "
               "FROM MainDicomTags "
@@ -441,15 +443,15 @@ namespace Orthanc
         while (s.Step())
         {
           FindResponse::Resource& res = response.GetResourceByInternalId(s.ColumnInt64(0));
-          res.AddStringDicomTag(static_cast<ResourceType>(request.GetLevel() - 1), 
+          res.AddStringDicomTag(static_cast<ResourceType>(requestLevel - 1), 
                                 static_cast<uint16_t>(s.ColumnInt(1)),
                                 static_cast<uint16_t>(s.ColumnInt(2)),
                                 s.ColumnString(3));
         }
       }
 
-      // need MainDicomTags from grandparent
-      if (request.GetLevel() > ResourceType_Study && request.GetParentSpecification(static_cast<ResourceType>(request.GetLevel() - 2)).IsRetrieveMainDicomTags())
+      // need MainDicomTags from grandparent ?
+      if (requestLevel > ResourceType_Study && request.GetParentSpecification(static_cast<ResourceType>(requestLevel - 2)).IsRetrieveMainDicomTags())
       {
         sql = "SELECT currentLevel.internalId, tagGroup, tagElement, value "
               "FROM MainDicomTags "
@@ -461,15 +463,15 @@ namespace Orthanc
         while (s.Step())
         {
           FindResponse::Resource& res = response.GetResourceByInternalId(s.ColumnInt64(0));
-          res.AddStringDicomTag(static_cast<ResourceType>(request.GetLevel() - 2), 
+          res.AddStringDicomTag(static_cast<ResourceType>(requestLevel - 2), 
                                 static_cast<uint16_t>(s.ColumnInt(1)),
                                 static_cast<uint16_t>(s.ColumnInt(2)),
                                 s.ColumnString(3));
         }
       }
 
-      // need MainDicomTags from children
-      if (request.GetLevel() <= ResourceType_Series && request.GetChildrenSpecification(static_cast<ResourceType>(request.GetLevel() + 1)).GetMainDicomTags().size() > 0)
+      // need MainDicomTags from children ?
+      if (requestLevel <= ResourceType_Series && request.GetChildrenSpecification(static_cast<ResourceType>(requestLevel + 1)).GetMainDicomTags().size() > 0)
       {
         sql = "SELECT Lookup.internalId, tagGroup, tagElement, value "
               "FROM MainDicomTags "
@@ -480,15 +482,15 @@ namespace Orthanc
         while (s.Step())
         {
           FindResponse::Resource& res = response.GetResourceByInternalId(s.ColumnInt64(0));
-          res.AddChildrenMainDicomTagValue(static_cast<ResourceType>(request.GetLevel() + 1), 
+          res.AddChildrenMainDicomTagValue(static_cast<ResourceType>(requestLevel + 1), 
                                 DicomTag(static_cast<uint16_t>(s.ColumnInt(1)),
                                          static_cast<uint16_t>(s.ColumnInt(2))),
                                 s.ColumnString(3));
         }
       }
 
-      // need MainDicomTags from grandchildren
-      if (request.GetLevel() <= ResourceType_Study && request.GetChildrenSpecification(static_cast<ResourceType>(request.GetLevel() + 2)).GetMainDicomTags().size() > 0)
+      // need MainDicomTags from grandchildren ?
+      if (requestLevel <= ResourceType_Study && request.GetChildrenSpecification(static_cast<ResourceType>(requestLevel + 2)).GetMainDicomTags().size() > 0)
       {
         sql = "SELECT Lookup.internalId, tagGroup, tagElement, value "
               "FROM MainDicomTags "
@@ -500,13 +502,14 @@ namespace Orthanc
         while (s.Step())
         {
           FindResponse::Resource& res = response.GetResourceByInternalId(s.ColumnInt64(0));
-          res.AddChildrenMainDicomTagValue(static_cast<ResourceType>(request.GetLevel() + 2), 
+          res.AddChildrenMainDicomTagValue(static_cast<ResourceType>(requestLevel + 2), 
                                 DicomTag(static_cast<uint16_t>(s.ColumnInt(1)),
                                          static_cast<uint16_t>(s.ColumnInt(2))),
                                 s.ColumnString(3));
         }
       }
 
+      // need parent identifier ?
       if (request.IsRetrieveParentIdentifier())
       {
         sql = "SELECT currentLevel.internalId, parentLevel.publicId "
@@ -522,6 +525,7 @@ namespace Orthanc
         }
       }
 
+      // need resource metadata ?
       if (request.IsRetrieveMetadata())
       {
         sql = "SELECT id, type, value "
@@ -532,12 +536,13 @@ namespace Orthanc
         while (s.Step())
         {
           FindResponse::Resource& res = response.GetResourceByInternalId(s.ColumnInt64(0));
-          res.AddMetadata(request.GetLevel(),
+          res.AddMetadata(requestLevel,
                           static_cast<MetadataType>(s.ColumnInt(1)),
                           s.ColumnString(2));
         }
       }
 
+      // need resource labels ?
       if (request.IsRetrieveLabels())
       {
         sql = "SELECT id, label "
@@ -552,9 +557,10 @@ namespace Orthanc
         }
       }
 
+      // need one instance identifier ?  TODO: it might be actually more interesting to retrieve directly the attachment ids ....
       if (request.IsRetrieveOneInstanceIdentifier())
       {
-        if (request.GetLevel() == ResourceType_Series)
+        if (requestLevel == ResourceType_Series)
         {
           sql = "SELECT Lookup.internalId, childLevel.publicId "
                 "FROM Resources AS childLevel "
@@ -567,7 +573,7 @@ namespace Orthanc
             res.AddChildIdentifier(ResourceType_Instance, s.ColumnString(1));
           }
         }
-        else if (request.GetLevel() == ResourceType_Study)
+        else if (requestLevel == ResourceType_Study)
         {
           sql = "SELECT Lookup.internalId, grandChildLevel.publicId "
                 "FROM Resources AS grandChildLevel "
@@ -581,7 +587,7 @@ namespace Orthanc
             res.AddChildIdentifier(ResourceType_Instance, s.ColumnString(1));
           }
         }
-        else if (request.GetLevel() == ResourceType_Patient)
+        else if (requestLevel == ResourceType_Patient)
         {
           sql = "SELECT Lookup.internalId, grandGrandChildLevel.publicId "
                 "FROM Resources AS grandGrandChildLevel "
@@ -602,7 +608,45 @@ namespace Orthanc
         }
       }
 
-      if (request.GetLevel() <= ResourceType_Series && request.GetChildrenSpecification(static_cast<ResourceType>(request.GetLevel() + 1)).IsRetrieveIdentifiers())
+      // need children metadata ?
+      if (requestLevel <= ResourceType_Series && request.GetChildrenSpecification(static_cast<ResourceType>(requestLevel + 1)).GetMetadata().size() > 0)
+      {
+        sql = "SELECT Lookup.internalId, type, value "
+              "FROM Metadata "
+              "INNER JOIN Lookup ON Lookup.internalId = childLevel.parentId "
+              "INNER JOIN Resources childLevel ON childLevel.internalId = Metadata.id";
+
+        SQLite::Statement s(db_, SQLITE_FROM_HERE, sql);
+        while (s.Step())
+        {
+          FindResponse::Resource& res = response.GetResourceByInternalId(s.ColumnInt64(0));
+          res.AddChildrenMetadataValue(static_cast<ResourceType>(requestLevel + 1), 
+                                       static_cast<MetadataType>(s.ColumnInt(1)),
+                                       s.ColumnString(2));
+        }
+      }
+
+      // need grandchildren metadata ?
+      if (requestLevel <= ResourceType_Study && request.GetChildrenSpecification(static_cast<ResourceType>(requestLevel + 2)).GetMetadata().size() > 0)
+      {
+        sql = "SELECT Lookup.internalId, type, value "
+              "FROM Metadata "
+              "INNER JOIN Lookup ON Lookup.internalId = childLevel.parentId "
+              "INNER JOIN Resources childLevel ON childLevel.internalId = grandChildLevel.parentId "
+              "INNER JOIN Resources grandChildLevel ON grandChildLevel.internalId = Metadata.id";
+
+        SQLite::Statement s(db_, SQLITE_FROM_HERE, sql);
+        while (s.Step())
+        {
+          FindResponse::Resource& res = response.GetResourceByInternalId(s.ColumnInt64(0));
+          res.AddChildrenMetadataValue(static_cast<ResourceType>(requestLevel + 2), 
+                                       static_cast<MetadataType>(s.ColumnInt(1)),
+                                       s.ColumnString(2));
+        }
+      }
+
+      // need children identifiers ?
+      if (requestLevel <= ResourceType_Series && request.GetChildrenSpecification(static_cast<ResourceType>(requestLevel + 1)).IsRetrieveIdentifiers())
       {
         sql = "SELECT currentLevel.internalId, childLevel.publicId "
               "FROM Resources AS currentLevel "
@@ -613,11 +657,12 @@ namespace Orthanc
         while (s.Step())
         {
           FindResponse::Resource& res = response.GetResourceByInternalId(s.ColumnInt64(0));
-          res.AddChildIdentifier(static_cast<ResourceType>(request.GetLevel() + 1), s.ColumnString(1));
+          res.AddChildIdentifier(static_cast<ResourceType>(requestLevel + 1), s.ColumnString(1));
         }
       }
 
-      if (request.GetLevel() <= ResourceType_Study && request.GetChildrenSpecification(static_cast<ResourceType>(request.GetLevel() + 2)).IsRetrieveIdentifiers())
+      // need grandchildren identifiers ?
+      if (requestLevel <= ResourceType_Study && request.GetChildrenSpecification(static_cast<ResourceType>(requestLevel + 2)).IsRetrieveIdentifiers())
       {
         sql = "SELECT currentLevel.internalId, grandChildLevel.publicId "
               "FROM Resources AS currentLevel "
@@ -629,10 +674,11 @@ namespace Orthanc
         while (s.Step())
         {
           FindResponse::Resource& res = response.GetResourceByInternalId(s.ColumnInt64(0));
-          res.AddChildIdentifier(static_cast<ResourceType>(request.GetLevel() + 2), s.ColumnString(1));
+          res.AddChildIdentifier(static_cast<ResourceType>(requestLevel + 2), s.ColumnString(1));
         }
       }
 
+      // need resource attachments ?
       if (request.IsRetrieveAttachments())
       {
         sql = "SELECT id, fileType, uuid, uncompressedSize, compressedSize, compressionType, uncompressedMD5, compressedMD5 "
