@@ -758,7 +758,14 @@ namespace Orthanc
     {
       requestedComputedTags_.insert(tag);
       hasRequestedTags_ = true;
-      request_.GetChildrenSpecification(ResourceType_Series).AddMainDicomTag(DICOM_TAG_MODALITY);
+      if (request_.GetLevel() < ResourceType_Series)
+      {
+        request_.GetChildrenSpecification(ResourceType_Series).AddMainDicomTag(DICOM_TAG_MODALITY);
+      }
+      else if (request_.GetLevel() == ResourceType_Instance)  // this happens in QIDO-RS when searching for instances without specifying a StudyInstanceUID -> all Study level tags must be included in the response
+      {
+        request_.GetParentSpecification(ResourceType_Series).SetRetrieveMainDicomTags(true);
+      }
     }
     else if (tag == DICOM_TAG_INSTANCE_AVAILABILITY)
     {
