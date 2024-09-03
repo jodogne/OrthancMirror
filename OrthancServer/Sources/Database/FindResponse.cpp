@@ -160,14 +160,8 @@ namespace Orthanc
 
   void FindResponse::ChildrenInformation::AddIdentifier(const std::string& identifier)
   {
-    if (identifiers_.find(identifier) == identifiers_.end())
-    {
-      identifiers_.insert(identifier);
-    }
-    else
-    {
-      throw OrthancException(ErrorCode_BadSequenceOfCalls);
-    }
+    // The same identifier can be added through AddChildIdentifier and through AddOneInstanceIdentifier
+    identifiers_.insert(identifier);
   }
 
 
