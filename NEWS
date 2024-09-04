@@ -3,7 +3,7 @@ Pending changes in the mainline
 
 * TODO-FIND: complete the list of updated routes:
   - /studies?expand and sibbling routes now also return "Metadata" (if the DB implements 'extended-api-v1')
-  - /studies?since=x&limit=0 and sibbling routes: limit=0 now means "no-limit" instead of "no-results"
+  - /studies?since=x&limit=0 and sibbling routes: limit=0 now means "no limit" instead of "no results"
 
 REST API
 --------
