@@ -29,6 +29,8 @@
 namespace Orthanc
 {
   // Changes API --------------------------------------------------------------
+  static const unsigned int DEFAULT_LIMIT = 100;
+  static const int64_t DEFAULT_TO = -1;
  
   static void GetSinceToAndLimit(int64_t& since,
                                  int64_t& to,
@@ -36,9 +38,6 @@ namespace Orthanc
                                  bool& last,
                                  const RestApiGetCall& call)
   {
-    static const unsigned int DEFAULT_LIMIT = 100;
-    static const int64_t DEFAULT_TO = -1;
-    
     if (call.HasArgument("last"))
     {
       last = true;
@@ -70,57 +69,19 @@ namespace Orthanc
         .SetTag("Tracking changes")
         .SetSummary("List changes")
         .SetDescription("Whenever Orthanc receives a new DICOM instance, this event is recorded in the so-called _Changes Log_. This enables remote scripts to react to the arrival of new DICOM resources. A typical application is auto-routing, where an external script waits for a new DICOM instance to arrive into Orthanc, then forward this instance to another modality.")
+        .SetHttpGetArgument("last", RestApiCallDocumentation::Type_Number, "Request only the last change id (this argument must be used alone)", false)
         .SetHttpGetArgument("limit", RestApiCallDocumentation::Type_Number, "Limit the number of results", false)
-        .SetHttpGetArgument("since", RestApiCallDocumentation::Type_Number, "Show only the resources since the provided index", false)
+        .SetHttpGetArgument("since", RestApiCallDocumentation::Type_Number, "Show only the resources since the provided index excluded", false)
+        .SetHttpGetArgument("to", RestApiCallDocumentation::Type_Number, "Show only the resources till the provided index included (only available if your DB backend supports ExtendedChanges)", false)
+        .SetHttpGetArgument("type", RestApiCallDocumentation::Type_String, "Show only the changes of the provided type (only available if your DB backend supports ExtendedChanges)", false)
         .AddAnswerType(MimeType_Json, "The list of changes")
         .SetAnswerField("Changes", RestApiCallDocumentation::Type_JsonListOfObjects, "The individual changes")
         .SetAnswerField("Done", RestApiCallDocumentation::Type_Boolean,
-                        "Whether the last reported change is the last of the full history")
+                        "Whether the last reported change is the last of the full history.")
         .SetAnswerField("Last", RestApiCallDocumentation::Type_Number,
                         "The index of the last reported change, can be used for the `since` argument in subsequent calls to this route")
-        .SetHttpGetSample("https://orthanc.uclouvain.be/demo/changes?since=0&limit=2", true);
-      return;
-    }
-    
-    ServerContext& context = OrthancRestApi::GetContext(call);
-
-    int64_t since;
-    int64_t toNotUsed;
-    unsigned int limit;
-    bool last;
-    GetSinceToAndLimit(since, toNotUsed, limit, last, call);
-
-    Json::Value result;
-    if (last)
-    {
-      context.GetIndex().GetLastChange(result);
-    }
-    else
-    {
-      context.GetIndex().GetChanges(result, since, limit);
-    }
-
-    call.GetOutput().AnswerJson(result);
-  }
-
-  static void GetChanges2(RestApiGetCall& call)
-  {
-    if (call.IsDocumentation())
-    {
-      call.GetDocumentation()
-        .SetTag("Tracking changes")
-        .SetSummary("List changes")
-        .SetDescription("Whenever Orthanc receives a new DICOM instance, this event is recorded in the so-called _Changes Log_. This enables remote scripts to react to the arrival of new DICOM resources. A typical application is auto-routing, where an external script waits for a new DICOM instance to arrive into Orthanc, then forward this instance to another modality.")
-        .SetHttpGetArgument("limit", RestApiCallDocumentation::Type_Number, "Limit the number of results", false)
-        .SetHttpGetArgument("since", RestApiCallDocumentation::Type_Number, "Show only the resources since the provided index", false)
-        .SetHttpGetArgument("to", RestApiCallDocumentation::Type_Number, "Show only the resources till the provided index", false)
-        .SetHttpGetArgument("type", RestApiCallDocumentation::Type_String, "Show only the changes of the provided type", false)
-        .AddAnswerType(MimeType_Json, "The list of changes")
-        .SetAnswerField("Changes", RestApiCallDocumentation::Type_JsonListOfObjects, "The individual changes")
-        .SetAnswerField("Done", RestApiCallDocumentation::Type_Boolean,
-                        "Whether the last reported change is the last of the full history")
-        .SetAnswerField("Last", RestApiCallDocumentation::Type_Number,
-                        "The index of the last reported change, can be used for the `since` argument in subsequent calls to this route")
+        .SetAnswerField("First", RestApiCallDocumentation::Type_Number,
+                        "The index of the first reported change, its value-1 can be used for the `to` argument in subsequent calls to this route when browsing the changes in reverse order")
         .SetHttpGetSample("https://orthanc.uclouvain.be/demo/changes?since=0&limit=2", true);
       return;
     }
@@ -145,14 +106,23 @@ namespace Orthanc
     {
       context.GetIndex().GetLastChange(result);
     }
+    else if (context.GetIndex().HasExtendedChanges())
+    {
+      context.GetIndex().GetChangesExtended(result, since, to, limit, filterType);
+    }
     else
     {
-      if (filterType != ChangeType_INTERNAL_All && !context.GetIndex().HasExtendedApiV1())
+      if (filterType != ChangeType_INTERNAL_All)
       {
-        throw OrthancException(ErrorCode_ParameterOutOfRange, "Trying to filter changes while the Database backend does not support it (requires ExtendedApiV1)");
+        throw OrthancException(ErrorCode_ParameterOutOfRange, "CAPABILITIES: Trying to filter changes while the Database backend does not support it (requires a DB backend with support for ExtendedChanges)");
       }
 
-      context.GetIndex().GetChanges2(result, since, to, limit, filterType);
+      if (to != DEFAULT_TO)
+      {
+        throw OrthancException(ErrorCode_ParameterOutOfRange, "CAPABILITIES: Trying to use the 'to' parameter in /changes while the Database backend does not support it (requires a DB backend with support for ExtendedChanges)");
+      }
+
+      context.GetIndex().GetChanges(result, since, limit);
     }
 
     call.GetOutput().AnswerJson(result);
@@ -239,9 +209,5 @@ namespace Orthanc
     Register("/changes", DeleteChanges);
     Register("/exports", GetExports);
     Register("/exports", DeleteExports);
-    if (context_.GetIndex().HasExtendedApiV1())
-    {
-      Register("/extended-api-v1/changes", GetChanges2);
-    }
   }
 }

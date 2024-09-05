@@ -48,12 +48,12 @@ namespace Orthanc
                                           int64_t& compressedSize,
                                           int64_t& uncompressedSize) ORTHANC_OVERRIDE;
 
-      virtual void GetChanges2(std::list<ServerIndexChange>& target /*out*/,
-                               bool& done /*out*/,
-                               int64_t since,
-                               int64_t to,
-                               uint32_t limit,
-                               ChangeType filterType) ORTHANC_OVERRIDE;
+      virtual void GetChangesExtended(std::list<ServerIndexChange>& target /*out*/,
+                                      bool& done /*out*/,
+                                      int64_t since,
+                                      int64_t to,
+                                      uint32_t limit,
+                                      ChangeType filterType) ORTHANC_OVERRIDE;
 
     };
 

@@ -52,7 +52,7 @@ namespace Orthanc
       bool hasAtomicIncrementGlobalProperty_;
       bool hasUpdateAndGetStatistics_;
       bool hasMeasureLatency_;
-      bool hasExtendedApiV1_;
+      bool hasExtendedChanges_;
 
     public:
       Capabilities() :
@@ -62,7 +62,7 @@ namespace Orthanc
         hasAtomicIncrementGlobalProperty_(false),
         hasUpdateAndGetStatistics_(false),
         hasMeasureLatency_(false),
-        hasExtendedApiV1_(false)
+        hasExtendedChanges_(false)
       {
       }
 
@@ -96,14 +96,14 @@ namespace Orthanc
         return hasLabelsSupport_;
       }
 
-      void SetHasExtendedApiV1(bool value)
+      void SetHasExtendedChanges(bool value)
       {
-        hasExtendedApiV1_ = value;
+        hasExtendedChanges_ = value;
       }
 
-      bool HasExtendedApiV1() const
+      bool HasExtendedChanges() const
       {
-        return hasExtendedApiV1_;
+        return hasExtendedChanges_;
       }
 
       void SetAtomicIncrementGlobalProperty(bool value)
@@ -366,12 +366,12 @@ namespace Orthanc
                                           int64_t& uncompressedSize) = 0;
 
       // New in Orthanc 1.13.0
-      virtual void GetChanges2(std::list<ServerIndexChange>& target /*out*/,
-                               bool& done /*out*/,
-                               int64_t since,
-                               int64_t to,
-                               uint32_t limit,
-                               ChangeType filterType) = 0;
+      virtual void GetChangesExtended(std::list<ServerIndexChange>& target /*out*/,
+                                      bool& done /*out*/,
+                                      int64_t since,
+                                      int64_t to,
+                                      uint32_t limit,
+                                      ChangeType filterType) = 0;
 
     };
 
