@@ -10,6 +10,13 @@ REST API
 
 * Improved parsing of multiple numerical values in DICOM tags.
   https://discourse.orthanc-server.org/t/qido-includefield-with-sequences/4746/6
+* in /system, added a new field "Capabilities" with new values:
+  - "HasExtendedChanges" for DB backend that provides this feature (the default SQLite DB
+    or PostgreSQL vX.X, MySQL vX.X, ODBC vX.X).
+* With DB backend with "HasExtendedChanges" support, /changes now supports 2 more options: 
+  - 'type' to filter the changes returned by the query 
+  - 'to' to potentially cycle through changes in reverse order.
+  example: /changes?type=StableStudy&to=7584&limit=100
 
 Maintenance
 -----------

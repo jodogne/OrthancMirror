@@ -281,6 +281,10 @@ namespace Orthanc
     }
     
     target["Last"] = static_cast<int>(last);
+    if (!log.empty())
+    {
+      target["First"] = static_cast<int>(log.front().GetSeq());
+    }
   }
 
 
@@ -1080,6 +1084,39 @@ namespace Orthanc
     
     Operations operations;
     operations.Apply(*this, target, since, maxResults);
+  }
+
+
+  void StatelessDatabaseOperations::GetChangesExtended(Json::Value& target,
+                                                       int64_t since,
+                                                       int64_t to,                               
+                                                       unsigned int maxResults,
+                                                       ChangeType changeType)
+  {
+    class Operations : public ReadOnlyOperationsT5<Json::Value&, int64_t, int64_t, unsigned int, unsigned int>
+    {
+    public:
+      virtual void ApplyTuple(ReadOnlyTransaction& transaction,
+                              const Tuple& tuple) ORTHANC_OVERRIDE
+      {
+        std::list<ServerIndexChange> changes;
+        bool done;
+        bool hasLast = false;
+        int64_t last = 0;
+
+        transaction.GetChangesExtended(changes, done, tuple.get<1>(), tuple.get<2>(), tuple.get<3>(), static_cast<ChangeType>(tuple.get<4>()));
+        if (changes.empty())
+        {
+          last = transaction.GetLastChangeIndex();
+          hasLast = true;
+        }
+
+        FormatLog(tuple.get<0>(), changes, "Changes", done, tuple.get<1>(), hasLast, last);
+      }
+    };
+    
+    Operations operations;
+    operations.Apply(*this, target, since, to, maxResults, changeType);
   }
 
 
@@ -3673,6 +3710,11 @@ namespace Orthanc
     return db_.GetDatabaseCapabilities().HasLabelsSupport();
   }
 
+  bool StatelessDatabaseOperations::HasExtendedChanges()
+  {
+    boost::shared_lock<boost::shared_mutex> lock(mutex_);
+    return db_.GetDatabaseCapabilities().HasExtendedChanges();
+  }
 
   void StatelessDatabaseOperations::ExecuteFind(FindResponse& response,
                                                 const FindRequest& request)

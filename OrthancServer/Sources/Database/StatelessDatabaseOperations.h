@@ -259,6 +259,16 @@ namespace Orthanc
         transaction_.GetChanges(target, done, since, limit);
       }
 
+      void GetChangesExtended(std::list<ServerIndexChange>& target /*out*/,
+                              bool& done /*out*/,
+                              int64_t since,
+                              int64_t to,
+                              uint32_t limit,
+                              ChangeType filterType)
+      {
+        transaction_.GetChangesExtended(target, done, since, to, limit, filterType);
+      }
+
       void GetChildrenInternalId(std::list<int64_t>& target,
                                  int64_t id)
       {
@@ -659,7 +669,15 @@ namespace Orthanc
                     int64_t since,
                     uint32_t limit);
 
+    void GetChangesExtended(Json::Value& target,
+                            int64_t since,
+                            int64_t to,
+                            uint32_t limit,
+                            ChangeType filterType);
+
     void GetLastChange(Json::Value& target);
+
+    bool HasExtendedChanges();
 
     void GetExportedResources(Json::Value& target,
                               int64_t since,

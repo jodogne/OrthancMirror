@@ -92,6 +92,8 @@ namespace Orthanc
     static const char* const MAXIMUM_STORAGE_MODE = "MaximumStorageMode";
     static const char* const USER_METADATA = "UserMetadata";
     static const char* const HAS_LABELS = "HasLabels";
+    static const char* const CAPABILITIES = "Capabilities";
+    static const char* const HAS_EXTENDED_CHANGES = "HasExtendedChanges";
 
     if (call.IsDocumentation())
     {
@@ -138,6 +140,8 @@ namespace Orthanc
                         "The configured UserMetadata (new in Orthanc 1.12.0)")
         .SetAnswerField(HAS_LABELS, RestApiCallDocumentation::Type_Boolean,
                         "Whether the database back-end supports labels (new in Orthanc 1.12.0)")
+        .SetAnswerField(CAPABILITIES, RestApiCallDocumentation::Type_JsonObject,
+                        "Whether the back-end supports optional features like 'HasExtendedChanges' (new in Orthanc 1.12.5) ")
         .SetHttpGetSample("https://orthanc.uclouvain.be/demo/system", true);
       return;
     }
@@ -196,6 +200,8 @@ namespace Orthanc
     GetUserMetadataConfiguration(result[USER_METADATA]);
 
     result[HAS_LABELS] = OrthancRestApi::GetIndex(call).HasLabelsSupport();
+    result[CAPABILITIES] = Json::objectValue;
+    result[CAPABILITIES][HAS_EXTENDED_CHANGES] = OrthancRestApi::GetIndex(call).HasExtendedChanges();
     
     call.GetOutput().AnswerJson(result);
   }
