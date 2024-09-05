@@ -626,6 +626,33 @@ namespace Orthanc
       }
     }
 
+    virtual void GetChangesExtended(std::list<ServerIndexChange>& target /*out*/,
+                                    bool& done /*out*/,
+                                    int64_t since,
+                                    int64_t to,
+                                    uint32_t limit,
+                                    ChangeType changeType) ORTHANC_OVERRIDE
+    {
+      assert(database_.GetDatabaseCapabilities().HasExtendedChanges());
+
+      DatabasePluginMessages::TransactionRequest request;
+      DatabasePluginMessages::TransactionResponse response;
+
+      request.mutable_get_changes_extended()->set_since(since);
+      request.mutable_get_changes_extended()->set_limit(limit);
+      request.mutable_get_changes_extended()->set_to(to);
+      request.mutable_get_changes_extended()->set_change_type(changeType);
+      ExecuteTransaction(response, DatabasePluginMessages::OPERATION_GET_CHANGES_2, request);
+
+      done = response.get_changes().done();
+
+      target.clear();
+      for (int i = 0; i < response.get_changes().changes().size(); i++)
+      {
+        target.push_back(Convert(response.get_changes().changes(i)));
+      }
+    }
+
     
     virtual void GetChildrenInternalId(std::list<int64_t>& target,
                                        int64_t id) ORTHANC_OVERRIDE
@@ -1647,9 +1674,8 @@ namespace Orthanc
       dbCapabilities_.SetAtomicIncrementGlobalProperty(systemInfo.supports_increment_global_property());
       dbCapabilities_.SetUpdateAndGetStatistics(systemInfo.has_update_and_get_statistics());
       dbCapabilities_.SetMeasureLatency(systemInfo.has_measure_latency());
+      dbCapabilities_.SetHasExtendedChanges(systemInfo.has_extended_changes());
       dbCapabilities_.SetHasFindSupport(systemInfo.supports_find());
-
-      printf(">>> %d\n", dbCapabilities_.HasFindSupport());
     }
 
     open_ = true;

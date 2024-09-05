@@ -57,7 +57,8 @@ namespace Orthanc
     void GetChangesInternal(std::list<ServerIndexChange>& target,
                             bool& done,
                             SQLite::Statement& s,
-                            uint32_t maxResults);
+                            uint32_t maxResults,
+                            bool returnFirstResults);
 
     void GetExportedResourcesInternal(std::list<ExportedResource>& target,
                                       bool& done,
