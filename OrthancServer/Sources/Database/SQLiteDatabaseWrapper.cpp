@@ -557,15 +557,15 @@ namespace Orthanc
                             int64_t since,
                             uint32_t limit) ORTHANC_OVERRIDE
     {
-      GetChanges2(target, done, since, -1, limit, ChangeType_INTERNAL_All);
+      GetChangesExtended(target, done, since, -1, limit, ChangeType_INTERNAL_All);
     }
 
-    virtual void GetChanges2(std::list<ServerIndexChange>& target /*out*/,
-                             bool& done /*out*/,
-                             int64_t since,
-                             int64_t to,
-                             uint32_t limit,
-                             ChangeType filterType) ORTHANC_OVERRIDE
+    virtual void GetChangesExtended(std::list<ServerIndexChange>& target /*out*/,
+                                    bool& done /*out*/,
+                                    int64_t since,
+                                    int64_t to,
+                                    uint32_t limit,
+                                    ChangeType filterType) ORTHANC_OVERRIDE
     {
       std::vector<std::string> filters;
       bool hasSince = false;
@@ -1410,7 +1410,7 @@ namespace Orthanc
     // TODO: implement revisions in SQLite
     dbCapabilities_.SetFlushToDisk(true);
     dbCapabilities_.SetLabelsSupport(true);
-    dbCapabilities_.SetHasExtendedApiV1(true);
+    dbCapabilities_.SetHasExtendedChanges(true);
     db_.Open(path);
   }
 
@@ -1423,7 +1423,7 @@ namespace Orthanc
     // TODO: implement revisions in SQLite
     dbCapabilities_.SetFlushToDisk(true);
     dbCapabilities_.SetLabelsSupport(true);
-    dbCapabilities_.SetHasExtendedApiV1(true);
+    dbCapabilities_.SetHasExtendedChanges(true);
     db_.OpenInMemory();
   }
 

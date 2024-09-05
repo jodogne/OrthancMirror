@@ -141,7 +141,7 @@ message GetSystemInformation {
     bool supports_increment_global_property = 5;
     bool has_update_and_get_statistics = 6;
     bool has_measure_latency = 7;
-    bool has_extended_api_v1 = 8;
+    bool has_extended_changes = 8;
   }
 }
 
@@ -415,7 +415,7 @@ message GetChanges {
   }
 }
 
-message GetChanges2 {
+message GetChangesExtended {
   message Request {
     int64 since = 1;
     int64 to = 2;
@@ -893,7 +893,7 @@ message TransactionRequest {
   ListLabels.Request                      list_labels = 147;
   IncrementGlobalProperty.Request         increment_global_property = 148;
   UpdateAndGetStatistics.Request          update_and_get_statistics = 149;
-  GetChanges2.Request                     get_changes2 = 150;
+  GetChangesExtended.Request              get_changes_extended = 150;
 }
 
 message TransactionResponse {
@@ -947,7 +947,7 @@ message TransactionResponse {
   ListLabels.Response                      list_labels = 147;
   IncrementGlobalProperty.Response         increment_global_property = 148;
   UpdateAndGetStatistics.Response          update_and_get_statistics = 149;
-  GetChanges2.Response                     get_changes2 = 150;
+  GetChangesExtended.Response              get_changes_extended = 150;
 }
 
 enum RequestType {

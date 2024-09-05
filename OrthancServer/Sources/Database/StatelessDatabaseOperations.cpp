@@ -281,6 +281,10 @@ namespace Orthanc
     }
     
     target["Last"] = static_cast<int>(last);
+    if (!log.empty())
+    {
+      target["First"] = static_cast<int>(log.front().GetSeq());
+    }
   }
 
 
@@ -1222,11 +1226,11 @@ namespace Orthanc
   }
 
 
-  void StatelessDatabaseOperations::GetChanges2(Json::Value& target,
-                                                int64_t since,
-                                                int64_t to,                               
-                                                unsigned int maxResults,
-                                                ChangeType changeType)
+  void StatelessDatabaseOperations::GetChangesExtended(Json::Value& target,
+                                                       int64_t since,
+                                                       int64_t to,                               
+                                                       unsigned int maxResults,
+                                                       ChangeType changeType)
   {
     class Operations : public ReadOnlyOperationsT5<Json::Value&, int64_t, int64_t, unsigned int, unsigned int>
     {
@@ -1239,7 +1243,7 @@ namespace Orthanc
         bool hasLast = false;
         int64_t last = 0;
 
-        transaction.GetChanges2(changes, done, tuple.get<1>(), tuple.get<2>(), tuple.get<3>(), static_cast<ChangeType>(tuple.get<4>()));
+        transaction.GetChangesExtended(changes, done, tuple.get<1>(), tuple.get<2>(), tuple.get<3>(), static_cast<ChangeType>(tuple.get<4>()));
         if (changes.empty())
         {
           last = transaction.GetLastChangeIndex();
@@ -3842,9 +3846,9 @@ namespace Orthanc
     return db_.GetDatabaseCapabilities().HasLabelsSupport();
   }
 
-  bool StatelessDatabaseOperations::HasExtendedApiV1()
+  bool StatelessDatabaseOperations::HasExtendedChanges()
   {
     boost::shared_lock<boost::shared_mutex> lock(mutex_);
-    return db_.GetDatabaseCapabilities().HasExtendedApiV1();
+    return db_.GetDatabaseCapabilities().HasExtendedChanges();
   }
 }

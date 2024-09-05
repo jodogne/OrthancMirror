@@ -495,22 +495,22 @@ namespace Orthanc
       }
     }
 
-    virtual void GetChanges2(std::list<ServerIndexChange>& target /*out*/,
-                             bool& done /*out*/,
-                             int64_t since,
-                             int64_t to,
-                             uint32_t limit,
-                             ChangeType changeType) ORTHANC_OVERRIDE
+    virtual void GetChangesExtended(std::list<ServerIndexChange>& target /*out*/,
+                                    bool& done /*out*/,
+                                    int64_t since,
+                                    int64_t to,
+                                    uint32_t limit,
+                                    ChangeType changeType) ORTHANC_OVERRIDE
     {
-      assert(database_.GetDatabaseCapabilities().HasExtendedApiV1());
+      assert(database_.GetDatabaseCapabilities().HasExtendedChanges());
 
       DatabasePluginMessages::TransactionRequest request;
       DatabasePluginMessages::TransactionResponse response;
 
-      request.mutable_get_changes2()->set_since(since);
-      request.mutable_get_changes2()->set_limit(limit);
-      request.mutable_get_changes2()->set_to(to);
-      request.mutable_get_changes2()->set_change_type(changeType);
+      request.mutable_get_changes_extended()->set_since(since);
+      request.mutable_get_changes_extended()->set_limit(limit);
+      request.mutable_get_changes_extended()->set_to(to);
+      request.mutable_get_changes_extended()->set_change_type(changeType);
       ExecuteTransaction(response, DatabasePluginMessages::OPERATION_GET_CHANGES_2, request);
 
       done = response.get_changes().done();
@@ -1391,7 +1391,7 @@ namespace Orthanc
       dbCapabilities_.SetAtomicIncrementGlobalProperty(systemInfo.supports_increment_global_property());
       dbCapabilities_.SetUpdateAndGetStatistics(systemInfo.has_update_and_get_statistics());
       dbCapabilities_.SetMeasureLatency(systemInfo.has_measure_latency());
-      dbCapabilities_.SetHasExtendedApiV1(systemInfo.has_extended_api_v1());
+      dbCapabilities_.SetHasExtendedChanges(systemInfo.has_extended_changes());
     }
 
     open_ = true;
