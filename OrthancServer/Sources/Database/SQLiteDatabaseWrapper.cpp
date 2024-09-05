@@ -29,6 +29,7 @@
 #include "../../../OrthancFramework/Sources/SQLite/Transaction.h"
 #include "../Search/ISqlLookupFormatter.h"
 #include "../ServerToolbox.h"
+#include "Compatibility/GenericFind.h"
 #include "Compatibility/ICreateInstance.h"
 #include "Compatibility/IGetChildrenMetadata.h"
 #include "Compatibility/ILookupResourceAndParent.h"
@@ -356,7 +357,7 @@ namespace Orthanc
 
     virtual void ApplyLookupResources(std::list<std::string>& resourcesId,
                                       std::list<std::string>* instancesId,
-                                      const std::vector<DatabaseConstraint>& lookup,
+                                      const DatabaseConstraints& lookup,
                                       ResourceType queryLevel,
                                       const std::set<std::string>& labels,
                                       LabelsConstraint labelsConstraint,
@@ -396,6 +397,324 @@ namespace Orthanc
         }
       }
     }
+
+    virtual void ExecuteFind(FindResponse& response,
+                             const FindRequest& request,
+                             const Capabilities& capabilities) ORTHANC_OVERRIDE
+    {
+      const ResourceType requestLevel = request.GetLevel();
+      std::string sql;
+
+      {
+        // clean previous lookup table
+        SQLite::Statement s(db_, SQLITE_FROM_HERE, "DROP TABLE IF EXISTS Lookup");
+        s.Run();
+      }
+
+      {
+        // extract the resource id of interest by executing the lookup
+        LookupFormatter formatter;
+        LookupFormatter::Apply(sql, formatter, request);
+
+        sql = "CREATE TEMPORARY TABLE Lookup AS " + sql;
+
+        SQLite::Statement statement(db_, sql);
+        formatter.Bind(statement);
+        statement.Run();
+
+        SQLite::Statement s(db_, SQLITE_FROM_HERE, "SELECT publicId, internalId FROM Lookup");
+        while (s.Step())
+        {
+          response.Add(new FindResponse::Resource(requestLevel, s.ColumnInt64(1), s.ColumnString(0)));
+        }
+      }
+
+      // need MainDicomTags from resource ?
+      if (request.IsRetrieveMainDicomTags())
+      {
+        sql = "SELECT id, tagGroup, tagElement, value "
+              "FROM MainDicomTags "
+              "INNER JOIN Lookup ON MainDicomTags.id = Lookup.internalId";
+
+        SQLite::Statement s(db_, SQLITE_FROM_HERE, sql);
+        while (s.Step())
+        {
+          FindResponse::Resource& res = response.GetResourceByInternalId(s.ColumnInt64(0));
+          res.AddStringDicomTag(requestLevel, 
+                                static_cast<uint16_t>(s.ColumnInt(1)),
+                                static_cast<uint16_t>(s.ColumnInt(2)),
+                                s.ColumnString(3));
+        }
+      }
+
+      // need MainDicomTags from parent ?
+      if (requestLevel > ResourceType_Patient && request.GetParentSpecification(static_cast<ResourceType>(requestLevel - 1)).IsRetrieveMainDicomTags())
+      {
+        sql = "SELECT currentLevel.internalId, tagGroup, tagElement, value "
+              "FROM MainDicomTags "
+              "INNER JOIN Resources currentLevel ON Lookup.internalId = currentLevel.internalId "
+              "INNER JOIN Lookup ON MainDicomTags.id = currentLevel.parentId";
+
+        SQLite::Statement s(db_, SQLITE_FROM_HERE, sql);
+        while (s.Step())
+        {
+          FindResponse::Resource& res = response.GetResourceByInternalId(s.ColumnInt64(0));
+          res.AddStringDicomTag(static_cast<ResourceType>(requestLevel - 1), 
+                                static_cast<uint16_t>(s.ColumnInt(1)),
+                                static_cast<uint16_t>(s.ColumnInt(2)),
+                                s.ColumnString(3));
+        }
+      }
+
+      // need MainDicomTags from grandparent ?
+      if (requestLevel > ResourceType_Study && request.GetParentSpecification(static_cast<ResourceType>(requestLevel - 2)).IsRetrieveMainDicomTags())
+      {
+        sql = "SELECT currentLevel.internalId, tagGroup, tagElement, value "
+              "FROM MainDicomTags "
+              "INNER JOIN Resources currentLevel ON Lookup.internalId = currentLevel.internalId "
+              "INNER JOIN Resources parentLevel ON currentLevel.parentId = parentLevel.internalId "
+              "INNER JOIN Lookup ON MainDicomTags.id = parentLevel.parentId";
+
+        SQLite::Statement s(db_, SQLITE_FROM_HERE, sql);
+        while (s.Step())
+        {
+          FindResponse::Resource& res = response.GetResourceByInternalId(s.ColumnInt64(0));
+          res.AddStringDicomTag(static_cast<ResourceType>(requestLevel - 2), 
+                                static_cast<uint16_t>(s.ColumnInt(1)),
+                                static_cast<uint16_t>(s.ColumnInt(2)),
+                                s.ColumnString(3));
+        }
+      }
+
+      // need MainDicomTags from children ?
+      if (requestLevel <= ResourceType_Series && request.GetChildrenSpecification(static_cast<ResourceType>(requestLevel + 1)).GetMainDicomTags().size() > 0)
+      {
+        sql = "SELECT Lookup.internalId, tagGroup, tagElement, value "
+              "FROM MainDicomTags "
+              "INNER JOIN Resources childLevel ON childLevel.parentId = Lookup.internalId "
+              "INNER JOIN Lookup ON MainDicomTags.id = childLevel.internalId ";
+
+        SQLite::Statement s(db_, SQLITE_FROM_HERE, sql);
+        while (s.Step())
+        {
+          FindResponse::Resource& res = response.GetResourceByInternalId(s.ColumnInt64(0));
+          res.AddChildrenMainDicomTagValue(static_cast<ResourceType>(requestLevel + 1), 
+                                DicomTag(static_cast<uint16_t>(s.ColumnInt(1)),
+                                         static_cast<uint16_t>(s.ColumnInt(2))),
+                                s.ColumnString(3));
+        }
+      }
+
+      // need MainDicomTags from grandchildren ?
+      if (requestLevel <= ResourceType_Study && request.GetChildrenSpecification(static_cast<ResourceType>(requestLevel + 2)).GetMainDicomTags().size() > 0)
+      {
+        sql = "SELECT Lookup.internalId, tagGroup, tagElement, value "
+              "FROM MainDicomTags "
+              "INNER JOIN Resources childLevel ON childLevel.parentId = Lookup.internalId "
+              "INNER JOIN Resources grandChildLevel ON childLevel.parentId = Lookup.internalId "
+              "INNER JOIN Lookup ON MainDicomTags.id = grandChildLevel.internalId ";
+
+        SQLite::Statement s(db_, SQLITE_FROM_HERE, sql);
+        while (s.Step())
+        {
+          FindResponse::Resource& res = response.GetResourceByInternalId(s.ColumnInt64(0));
+          res.AddChildrenMainDicomTagValue(static_cast<ResourceType>(requestLevel + 2), 
+                                DicomTag(static_cast<uint16_t>(s.ColumnInt(1)),
+                                         static_cast<uint16_t>(s.ColumnInt(2))),
+                                s.ColumnString(3));
+        }
+      }
+
+      // need parent identifier ?
+      if (request.IsRetrieveParentIdentifier())
+      {
+        sql = "SELECT currentLevel.internalId, parentLevel.publicId "
+              "FROM Resources AS currentLevel "
+              "INNER JOIN Lookup ON currentLevel.internalId = Lookup.internalId "
+              "INNER JOIN Resources parentLevel ON currentLevel.parentId = parentLevel.internalId ";
+
+        SQLite::Statement s(db_, SQLITE_FROM_HERE, sql);
+        while (s.Step())
+        {
+          FindResponse::Resource& res = response.GetResourceByInternalId(s.ColumnInt64(0));
+          res.SetParentIdentifier(s.ColumnString(1));
+        }
+      }
+
+      // need resource metadata ?
+      if (request.IsRetrieveMetadata())
+      {
+        sql = "SELECT id, type, value "
+              "FROM Metadata "
+              "INNER JOIN Lookup ON Metadata.id = Lookup.internalId";
+
+        SQLite::Statement s(db_, SQLITE_FROM_HERE, sql);
+        while (s.Step())
+        {
+          FindResponse::Resource& res = response.GetResourceByInternalId(s.ColumnInt64(0));
+          res.AddMetadata(requestLevel,
+                          static_cast<MetadataType>(s.ColumnInt(1)),
+                          s.ColumnString(2));
+        }
+      }
+
+      // need resource labels ?
+      if (request.IsRetrieveLabels())
+      {
+        sql = "SELECT Lookup.internalId, label "
+              "FROM Labels "
+              "INNER JOIN Lookup ON Labels.id = Lookup.internalId";
+
+        SQLite::Statement s(db_, SQLITE_FROM_HERE, sql);
+        while (s.Step())
+        {
+          FindResponse::Resource& res = response.GetResourceByInternalId(s.ColumnInt64(0));
+          res.AddLabel(s.ColumnString(1));
+        }
+      }
+
+      // need one instance identifier ?  TODO: it might be actually more interesting to retrieve directly the attachment ids ....
+      if (request.IsRetrieveOneInstanceIdentifier())
+      {
+        if (requestLevel == ResourceType_Series)
+        {
+          sql = "SELECT Lookup.internalId, childLevel.publicId "
+                "FROM Resources AS childLevel "
+                "INNER JOIN Lookup ON childLevel.parentId = Lookup.internalId ";
+
+          SQLite::Statement s(db_, SQLITE_FROM_HERE, sql);
+          while (s.Step())
+          {
+            FindResponse::Resource& res = response.GetResourceByInternalId(s.ColumnInt64(0));
+            res.AddChildIdentifier(ResourceType_Instance, s.ColumnString(1));
+          }
+        }
+        else if (requestLevel == ResourceType_Study)
+        {
+          sql = "SELECT Lookup.internalId, grandChildLevel.publicId "
+                "FROM Resources AS grandChildLevel "
+                "INNER JOIN Resources childLevel ON grandChildLevel.parentId = childLevel.internalId "
+                "INNER JOIN Lookup ON childLevel.parentId = Lookup.internalId ";
+
+          SQLite::Statement s(db_, SQLITE_FROM_HERE, sql);
+          while (s.Step())
+          {
+            FindResponse::Resource& res = response.GetResourceByInternalId(s.ColumnInt64(0));
+            res.AddChildIdentifier(ResourceType_Instance, s.ColumnString(1));
+          }
+        }
+        else if (requestLevel == ResourceType_Patient)
+        {
+          sql = "SELECT Lookup.internalId, grandGrandChildLevel.publicId "
+                "FROM Resources AS grandGrandChildLevel "
+                "INNER JOIN Resources grandChildLevel ON grandGrandChildLevel.parentId = grandChildLevel.internalId "
+                "INNER JOIN Resources childLevel ON grandChildLevel.parentId = childLevel.internalId "
+                "INNER JOIN Lookup ON childLevel.parentId = Lookup.internalId ";
+
+          SQLite::Statement s(db_, SQLITE_FROM_HERE, sql);
+          while (s.Step())
+          {
+            FindResponse::Resource& res = response.GetResourceByInternalId(s.ColumnInt64(0));
+            res.AddChildIdentifier(ResourceType_Instance, s.ColumnString(1));
+          }
+        }
+        else
+        {
+          throw OrthancException(ErrorCode_InternalError);
+        }
+      }
+
+      // need children metadata ?
+      if (requestLevel <= ResourceType_Series && request.GetChildrenSpecification(static_cast<ResourceType>(requestLevel + 1)).GetMetadata().size() > 0)
+      {
+        sql = "SELECT Lookup.internalId, type, value "
+              "FROM Metadata "
+              "INNER JOIN Lookup ON Lookup.internalId = childLevel.parentId "
+              "INNER JOIN Resources childLevel ON childLevel.internalId = Metadata.id";
+
+        SQLite::Statement s(db_, SQLITE_FROM_HERE, sql);
+        while (s.Step())
+        {
+          FindResponse::Resource& res = response.GetResourceByInternalId(s.ColumnInt64(0));
+          res.AddChildrenMetadataValue(static_cast<ResourceType>(requestLevel + 1), 
+                                       static_cast<MetadataType>(s.ColumnInt(1)),
+                                       s.ColumnString(2));
+        }
+      }
+
+      // need grandchildren metadata ?
+      if (requestLevel <= ResourceType_Study && request.GetChildrenSpecification(static_cast<ResourceType>(requestLevel + 2)).GetMetadata().size() > 0)
+      {
+        sql = "SELECT Lookup.internalId, type, value "
+              "FROM Metadata "
+              "INNER JOIN Lookup ON Lookup.internalId = childLevel.parentId "
+              "INNER JOIN Resources childLevel ON childLevel.internalId = grandChildLevel.parentId "
+              "INNER JOIN Resources grandChildLevel ON grandChildLevel.internalId = Metadata.id";
+
+        SQLite::Statement s(db_, SQLITE_FROM_HERE, sql);
+        while (s.Step())
+        {
+          FindResponse::Resource& res = response.GetResourceByInternalId(s.ColumnInt64(0));
+          res.AddChildrenMetadataValue(static_cast<ResourceType>(requestLevel + 2), 
+                                       static_cast<MetadataType>(s.ColumnInt(1)),
+                                       s.ColumnString(2));
+        }
+      }
+
+      // need children identifiers ?
+      if (requestLevel <= ResourceType_Series && request.GetChildrenSpecification(static_cast<ResourceType>(requestLevel + 1)).IsRetrieveIdentifiers())
+      {
+        sql = "SELECT Lookup.internalId, childLevel.publicId "
+              "FROM Resources AS currentLevel "
+              "INNER JOIN Lookup ON currentLevel.internalId = Lookup.internalId "
+              "INNER JOIN Resources childLevel ON currentLevel.internalId = childLevel.parentId ";
+
+        SQLite::Statement s(db_, SQLITE_FROM_HERE, sql);
+        while (s.Step())
+        {
+          FindResponse::Resource& res = response.GetResourceByInternalId(s.ColumnInt64(0));
+          res.AddChildIdentifier(static_cast<ResourceType>(requestLevel + 1), s.ColumnString(1));
+        }
+      }
+
+      // need grandchildren identifiers ?
+      if (requestLevel <= ResourceType_Study && request.GetChildrenSpecification(static_cast<ResourceType>(requestLevel + 2)).IsRetrieveIdentifiers())
+      {
+        sql = "SELECT Lookup.internalId, grandChildLevel.publicId "
+              "FROM Resources AS currentLevel "
+              "INNER JOIN Lookup ON currentLevel.internalId = Lookup.internalId "
+              "INNER JOIN Resources childLevel ON currentLevel.internalId = childLevel.parentId "
+              "INNER JOIN Resources grandChildLevel ON childLevel.internalId = grandChildLevel.parentId ";
+
+        SQLite::Statement s(db_, SQLITE_FROM_HERE, sql);
+        while (s.Step())
+        {
+          FindResponse::Resource& res = response.GetResourceByInternalId(s.ColumnInt64(0));
+          res.AddChildIdentifier(static_cast<ResourceType>(requestLevel + 2), s.ColumnString(1));
+        }
+      }
+
+      // need resource attachments ?
+      if (request.IsRetrieveAttachments())
+      {
+        sql = "SELECT Lookup.internalId, fileType, uuid, uncompressedSize, compressedSize, compressionType, uncompressedMD5, compressedMD5 "
+              "FROM AttachedFiles "
+              "INNER JOIN Lookup ON AttachedFiles.id = Lookup.internalId";
+
+        SQLite::Statement s(db_, SQLITE_FROM_HERE, sql);
+        while (s.Step())
+        {
+          FindResponse::Resource& res = response.GetResourceByInternalId(s.ColumnInt64(0));
+          FileInfo file(s.ColumnString(2), static_cast<FileContentType>(s.ColumnInt(1)), 
+                        s.ColumnInt64(3), s.ColumnString(6),
+                        static_cast<CompressionType>(s.ColumnInt(5)),
+                        s.ColumnInt64(4), s.ColumnString(7));
+          res.AddAttachment(file);
+        }
+
+      }
+    }
+
 
 
     // From the "ICreateInstance" interface

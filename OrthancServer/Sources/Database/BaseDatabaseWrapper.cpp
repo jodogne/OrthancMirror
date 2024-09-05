@@ -24,6 +24,7 @@
 #include "BaseDatabaseWrapper.h"
 
 #include "../../../OrthancFramework/Sources/OrthancException.h"
+#include "Compatibility/GenericFind.h"
 
 namespace Orthanc
 {
@@ -55,6 +56,33 @@ namespace Orthanc
     throw OrthancException(ErrorCode_NotImplemented);  // Not supported
   }
 
+
+
+  void BaseDatabaseWrapper::BaseTransaction::ExecuteFind(FindResponse& response,
+                                                         const FindRequest& request,
+                                                         const Capabilities& capabilities)
+  {
+    throw OrthancException(ErrorCode_NotImplemented);  // Not supported
+  }
+
+
+  void BaseDatabaseWrapper::BaseTransaction::ExecuteFind(std::list<std::string>& identifiers,
+                                                         const Capabilities& capabilities,
+                                                         const FindRequest& request)
+  {
+    Compatibility::GenericFind find(*this);
+    find.ExecuteFind(identifiers, capabilities, request);
+  }
+
+
+  void BaseDatabaseWrapper::BaseTransaction::ExecuteExpand(FindResponse& response,
+                                                           const Capabilities& capabilities,
+                                                           const FindRequest& request,
+                                                           const std::string& identifier)
+  {
+    Compatibility::GenericFind find(*this);
+    find.ExecuteExpand(response, capabilities, request, identifier);
+  }
 
 
   uint64_t BaseDatabaseWrapper::MeasureLatency()

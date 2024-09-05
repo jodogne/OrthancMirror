@@ -22,6 +22,8 @@
 
 
 #include "../PrecompiledHeadersServer.h"
+#include "../ResourceFinder.h"
+
 #include "OrthancRestApi.h"
 
 #include "../../../OrthancFramework/Sources/Compression/GzipCompressor.h"
@@ -127,9 +129,24 @@ namespace Orthanc
   }
 
 
+  static bool ExpandResource(Json::Value& target,
+                             ServerContext& context,
+                             ResourceType level,
+                             const std::string& identifier,
+                             DicomToJsonFormat format,
+                             bool retrieveMetadata)
+  {
+    ResourceFinder finder(level, true /* expand */);
+    finder.SetOrthancId(level, identifier);
+    finder.SetRetrieveMetadata(retrieveMetadata);
+
+    return finder.ExecuteOneResource(target, context, format, retrieveMetadata);
+  }
+
+
   // List all the patients, studies, series or instances ----------------------
  
-  static void AnswerListOfResources(RestApiOutput& output,
+  static void AnswerListOfResources1(RestApiOutput& output,
                                     ServerContext& context,
                                     const std::list<std::string>& resources,
                                     const std::map<std::string, std::string>& instancesIds, // optional: the id of an instance for each found resource.
@@ -183,7 +200,7 @@ namespace Orthanc
   }
 
 
-  static void AnswerListOfResources(RestApiOutput& output,
+  static void AnswerListOfResources2(RestApiOutput& output,
                                     ServerContext& context,
                                     const std::list<std::string>& resources,
                                     ResourceType level,
@@ -196,7 +213,7 @@ namespace Orthanc
     std::map<std::string, boost::shared_ptr<DicomMap> > unusedResourcesMainDicomTags;
     std::map<std::string, boost::shared_ptr<Json::Value> > unusedResourcesDicomAsJson;
 
-    AnswerListOfResources(output, context, resources, unusedInstancesIds, unusedResourcesMainDicomTags, unusedResourcesDicomAsJson, level, expand, format, requestedTags, allowStorageAccess);
+    AnswerListOfResources1(output, context, resources, unusedInstancesIds, unusedResourcesMainDicomTags, unusedResourcesDicomAsJson, level, expand, format, requestedTags, allowStorageAccess);
   }
 
 
@@ -226,41 +243,92 @@ namespace Orthanc
     ServerIndex& index = OrthancRestApi::GetIndex(call);
     ServerContext& context = OrthancRestApi::GetContext(call);
 
-    std::list<std::string> result;
-
-    std::set<DicomTag> requestedTags;
-    OrthancRestApi::GetRequestedTags(requestedTags, call);
-
-    if (call.HasArgument("limit") ||
-        call.HasArgument("since"))
+    if (true)
     {
-      if (!call.HasArgument("limit"))
+      /**
+       * EXPERIMENTAL VERSION
+       **/
+
+      // TODO-FIND: include the FindRequest options parsing in a method (parse from get-arguments and from post payload)
+      // TODO-FIND: support other values for expand like expand=MainDicomTags,Labels,Parent,SeriesStatus
+      const bool expand = (call.HasArgument("expand") &&
+                           call.GetBooleanArgument("expand", true));
+
+      std::set<DicomTag> requestedTags;
+      OrthancRestApi::GetRequestedTags(requestedTags, call);
+
+      ResourceFinder finder(resourceType, expand);
+      finder.AddRequestedTags(requestedTags);
+
+      if (call.HasArgument("limit") ||
+          call.HasArgument("since"))
       {
-        throw OrthancException(ErrorCode_BadRequest,
-                               "Missing \"limit\" argument for GET request against: " +
-                               call.FlattenUri());
+        if (!call.HasArgument("limit"))
+        {
+          throw OrthancException(ErrorCode_BadRequest,
+                                 "Missing \"limit\" argument for GET request against: " +
+                                 call.FlattenUri());
+        }
+
+        if (!call.HasArgument("since"))
+        {
+          throw OrthancException(ErrorCode_BadRequest,
+                                 "Missing \"since\" argument for GET request against: " +
+                                 call.FlattenUri());
+        }
+
+        uint64_t since = boost::lexical_cast<uint64_t>(call.GetArgument("since", ""));
+        uint64_t limit = boost::lexical_cast<uint64_t>(call.GetArgument("limit", ""));
+        finder.SetLimitsSince(since);
+        finder.SetLimitsCount(limit);
       }
 
-      if (!call.HasArgument("since"))
-      {
-        throw OrthancException(ErrorCode_BadRequest,
-                               "Missing \"since\" argument for GET request against: " +
-                               call.FlattenUri());
-      }
-
-      size_t since = boost::lexical_cast<size_t>(call.GetArgument("since", ""));
-      size_t limit = boost::lexical_cast<size_t>(call.GetArgument("limit", ""));
-      index.GetAllUuids(result, resourceType, since, limit);
+      Json::Value answer;
+      finder.Execute(answer, context, OrthancRestApi::GetDicomFormat(call, DicomToJsonFormat_Human), false /* no "Metadata" field */);
+      call.GetOutput().AnswerJson(answer);
     }
     else
     {
-      index.GetAllUuids(result, resourceType);
-    }
+      /**
+       * VERSION IN ORTHANC <= 1.12.4
+       **/
 
-    AnswerListOfResources(call.GetOutput(), context, result, resourceType, call.HasArgument("expand") && call.GetBooleanArgument("expand", true),
-                          OrthancRestApi::GetDicomFormat(call, DicomToJsonFormat_Human),
-                          requestedTags,
-                          true /* allowStorageAccess */);
+      std::list<std::string> result;
+
+      std::set<DicomTag> requestedTags;
+      OrthancRestApi::GetRequestedTags(requestedTags, call);
+
+      if (call.HasArgument("limit") ||
+          call.HasArgument("since"))
+      {
+        if (!call.HasArgument("limit"))
+        {
+          throw OrthancException(ErrorCode_BadRequest,
+                                 "Missing \"limit\" argument for GET request against: " +
+                                 call.FlattenUri());
+        }
+
+        if (!call.HasArgument("since"))
+        {
+          throw OrthancException(ErrorCode_BadRequest,
+                                 "Missing \"since\" argument for GET request against: " +
+                                 call.FlattenUri());
+        }
+
+        size_t since = boost::lexical_cast<size_t>(call.GetArgument("since", ""));
+        size_t limit = boost::lexical_cast<size_t>(call.GetArgument("limit", ""));
+        index.GetAllUuids(result, resourceType, since, limit);
+      }
+      else
+      {
+        index.GetAllUuids(result, resourceType);
+      }
+
+      AnswerListOfResources2(call.GetOutput(), context, result, resourceType, call.HasArgument("expand") && call.GetBooleanArgument("expand", true),
+                            OrthancRestApi::GetDicomFormat(call, DicomToJsonFormat_Human),
+                            requestedTags,
+                            true /* allowStorageAccess */);
+    }
   }
 
 
@@ -289,11 +357,34 @@ namespace Orthanc
     std::set<DicomTag> requestedTags;
     OrthancRestApi::GetRequestedTags(requestedTags, call);
 
-    Json::Value json;
-    if (OrthancRestApi::GetContext(call).ExpandResource(
-          json, call.GetUriComponent("id", ""), resourceType, format, requestedTags, true /* allowStorageAccess */))
+    if (true)
     {
-      call.GetOutput().AnswerJson(json);
+      /**
+       * EXPERIMENTAL VERSION
+       **/
+
+      ResourceFinder finder(resourceType, true /* expand */);
+      finder.AddRequestedTags(requestedTags);
+      finder.SetOrthancId(resourceType, call.GetUriComponent("id", ""));
+
+      Json::Value json;
+      if (finder.ExecuteOneResource(json, OrthancRestApi::GetContext(call), format, false /* no "Metadata" field */))
+      {
+        call.GetOutput().AnswerJson(json);
+      }
+    }
+    else
+    {
+      /**
+       * VERSION IN ORTHANC <= 1.12.4
+       **/
+
+      Json::Value json;
+      if (OrthancRestApi::GetContext(call).ExpandResource(
+            json, call.GetUriComponent("id", ""), resourceType, format, requestedTags, true /* allowStorageAccess */))
+      {
+        call.GetOutput().AnswerJson(json);
+      }
     }
   }
 
@@ -3140,7 +3231,7 @@ namespace Orthanc
                   bool expand,
                   const std::set<DicomTag>& requestedTags) const
       {
-        AnswerListOfResources(output, context, resources_, instancesIds_, resourcesMainDicomTags_, resourcesDicomAsJson_, level, expand, format_, requestedTags, IsStorageAccessAllowedForAnswers(findStorageAccessMode_));
+        AnswerListOfResources1(output, context, resources_, instancesIds_, resourcesMainDicomTags_, resourcesDicomAsJson_, level, expand, format_, requestedTags, IsStorageAccessAllowedForAnswers(findStorageAccessMode_));
       }
     };
   }
@@ -3252,8 +3343,140 @@ namespace Orthanc
       throw OrthancException(ErrorCode_BadRequest, 
                              "Field \"" + std::string(KEY_LABELS_CONSTRAINT) + "\" must be an array of strings");
     }
+    else if (true)
+    {
+      /**
+       * EXPERIMENTAL VERSION
+       **/
+
+      bool expand = false;
+      if (request.isMember(KEY_EXPAND))
+      {
+        expand = request[KEY_EXPAND].asBool();
+      }
+
+      const ResourceType level = StringToResourceType(request[KEY_LEVEL].asCString());
+
+      ResourceFinder finder(level, expand);
+      finder.SetDatabaseLimits(context.GetDatabaseLimits(level));
+
+      const DicomToJsonFormat format = OrthancRestApi::GetDicomFormat(request, DicomToJsonFormat_Human);
+
+      if (request.isMember(KEY_LIMIT))
+      {
+        int64_t tmp = request[KEY_LIMIT].asInt64();
+        if (tmp < 0)
+        {
+          throw OrthancException(ErrorCode_ParameterOutOfRange,
+                                 "Field \"" + std::string(KEY_LIMIT) + "\" must be a positive integer");
+        }
+        else if (tmp != 0)  // This is for compatibility with Orthanc 1.12.4
+        {
+          finder.SetLimitsCount(static_cast<uint64_t>(tmp));
+        }
+      }
+
+      if (request.isMember(KEY_SINCE))
+      {
+        int64_t tmp = request[KEY_SINCE].asInt64();
+        if (tmp < 0)
+        {
+          throw OrthancException(ErrorCode_ParameterOutOfRange,
+                                 "Field \"" + std::string(KEY_SINCE) + "\" must be a positive integer");
+        }
+        else
+        {
+          finder.SetLimitsSince(static_cast<uint64_t>(tmp));
+        }
+      }
+
+      {
+        bool caseSensitive = false;
+        if (request.isMember(KEY_CASE_SENSITIVE))
+        {
+          caseSensitive = request[KEY_CASE_SENSITIVE].asBool();
+        }
+
+        DatabaseLookup query;
+
+        Json::Value::Members members = request[KEY_QUERY].getMemberNames();
+        for (size_t i = 0; i < members.size(); i++)
+        {
+          if (request[KEY_QUERY][members[i]].type() != Json::stringValue)
+          {
+            throw OrthancException(ErrorCode_BadRequest,
+                                   "Tag \"" + members[i] + "\" must be associated with a string");
+          }
+
+          const std::string value = request[KEY_QUERY][members[i]].asString();
+
+          if (!value.empty())
+          {
+            // An empty string corresponds to an universal constraint,
+            // so we ignore it. This mimics the behavior of class
+            // "OrthancFindRequestHandler"
+            query.AddRestConstraint(FromDcmtkBridge::ParseTag(members[i]),
+                                    value, caseSensitive, true);
+          }
+        }
+
+        finder.SetDatabaseLookup(query);
+      }
+
+      if (request.isMember(KEY_REQUESTED_TAGS))
+      {
+        std::set<DicomTag> requestedTags;
+        FromDcmtkBridge::ParseListOfTags(requestedTags, request[KEY_REQUESTED_TAGS]);
+        finder.AddRequestedTags(requestedTags);
+      }
+
+      if (request.isMember(KEY_LABELS))  // New in Orthanc 1.12.0
+      {
+        for (Json::Value::ArrayIndex i = 0; i < request[KEY_LABELS].size(); i++)
+        {
+          if (request[KEY_LABELS][i].type() != Json::stringValue)
+          {
+            throw OrthancException(ErrorCode_BadRequest, "Field \"" + std::string(KEY_LABELS) + "\" must contain strings");
+          }
+          else
+          {
+            finder.AddLabel(request[KEY_LABELS][i].asString());
+          }
+        }
+      }
+
+      finder.SetLabelsConstraint(LabelsConstraint_All);
+
+      if (request.isMember(KEY_LABELS_CONSTRAINT))
+      {
+        const std::string& s = request[KEY_LABELS_CONSTRAINT].asString();
+        if (s == "All")
+        {
+          finder.SetLabelsConstraint(LabelsConstraint_All);
+        }
+        else if (s == "Any")
+        {
+          finder.SetLabelsConstraint(LabelsConstraint_Any);
+        }
+        else if (s == "None")
+        {
+          finder.SetLabelsConstraint(LabelsConstraint_None);
+        }
+        else
+        {
+          throw OrthancException(ErrorCode_BadRequest, "Field \"" + std::string(KEY_LABELS_CONSTRAINT) + "\" must be \"All\", \"Any\", or \"None\"");
+        }
+      }
+
+      Json::Value answer;
+      finder.Execute(answer, context, format, false /* no "Metadata" field */);
+      call.GetOutput().AnswerJson(answer);
+    }
     else
     {
+      /**
+       * VERSION IN ORTHANC <= 1.12.4
+       **/
       bool expand = false;
       if (request.isMember(KEY_EXPAND))
       {
@@ -3324,6 +3547,8 @@ namespace Orthanc
         }
       }
 
+      std::set<std::string> labels;
+
       if (request.isMember(KEY_LABELS))  // New in Orthanc 1.12.0
       {
         for (Json::Value::ArrayIndex i = 0; i < request[KEY_LABELS].size(); i++)
@@ -3334,27 +3559,27 @@ namespace Orthanc
           }
           else
           {
-            query.AddLabel(request[KEY_LABELS][i].asString());
+            labels.insert(request[KEY_LABELS][i].asString());
           }
         }
       }
 
-      query.SetLabelsConstraint(LabelsConstraint_All);
+      LabelsConstraint labelsConstraint = LabelsConstraint_All;
       
       if (request.isMember(KEY_LABELS_CONSTRAINT))
       {
         const std::string& s = request[KEY_LABELS_CONSTRAINT].asString();
         if (s == "All")
         {
-          query.SetLabelsConstraint(LabelsConstraint_All);
+          labelsConstraint = LabelsConstraint_All;
         }
         else if (s == "Any")
         {
-          query.SetLabelsConstraint(LabelsConstraint_Any);
+          labelsConstraint = LabelsConstraint_Any;
         }
         else if (s == "None")
         {
-          query.SetLabelsConstraint(LabelsConstraint_None);
+          labelsConstraint = LabelsConstraint_None;
         }
         else
         {
@@ -3363,7 +3588,7 @@ namespace Orthanc
       }
       
       FindVisitor visitor(OrthancRestApi::GetDicomFormat(request, DicomToJsonFormat_Human), context.GetFindStorageAccessMode());
-      context.Apply(visitor, query, level, since, limit);
+      context.Apply(visitor, query, level, labels, labelsConstraint, since, limit);
       visitor.Answer(call.GetOutput(), context, level, expand, requestedTags);
     }
   }
@@ -3396,34 +3621,56 @@ namespace Orthanc
     ServerIndex& index = OrthancRestApi::GetIndex(call);
     ServerContext& context = OrthancRestApi::GetContext(call);
 
+    const bool expand = (!call.HasArgument("expand") ||
+                         // this "expand" is the only one to have a false default value to keep backward compatibility
+                         call.GetBooleanArgument("expand", false));
+    const DicomToJsonFormat format = OrthancRestApi::GetDicomFormat(call, DicomToJsonFormat_Human);
+
     std::set<DicomTag> requestedTags;
     OrthancRestApi::GetRequestedTags(requestedTags, call);
 
-    std::list<std::string> a, b, c;
-    a.push_back(call.GetUriComponent("id", ""));
-
-    ResourceType type = start;
-    while (type != end)
+    if (true)
     {
-      b.clear();
+      /**
+       * EXPERIMENTAL VERSION
+       **/
 
-      for (std::list<std::string>::const_iterator
-             it = a.begin(); it != a.end(); ++it)
+      ResourceFinder finder(end, expand);
+      finder.SetOrthancId(start, call.GetUriComponent("id", ""));
+      finder.AddRequestedTags(requestedTags);
+
+      Json::Value answer;
+      finder.Execute(answer, context, format, false /* no "Metadata" field */);
+      call.GetOutput().AnswerJson(answer);
+    }
+    else
+    {
+      /**
+       * VERSION IN ORTHANC <= 1.12.4
+       **/
+      std::list<std::string> a, b, c;
+      a.push_back(call.GetUriComponent("id", ""));
+
+      ResourceType type = start;
+      while (type != end)
       {
-        index.GetChildren(c, *it);
-        b.splice(b.begin(), c);
+        b.clear();
+
+        for (std::list<std::string>::const_iterator
+               it = a.begin(); it != a.end(); ++it)
+        {
+          index.GetChildren(c, *it);
+          b.splice(b.begin(), c);
+        }
+
+        type = GetChildResourceType(type);
+
+        a.clear();
+        a.splice(a.begin(), b);
       }
 
-      type = GetChildResourceType(type);
-
-      a.clear();
-      a.splice(a.begin(), b);
+      AnswerListOfResources2(call.GetOutput(), context, a, type, expand, format, requestedTags, true /* allowStorageAccess */);
     }
-
-    AnswerListOfResources(call.GetOutput(), context, a, type, !call.HasArgument("expand") || call.GetBooleanArgument("expand", false),  // this "expand" is the only one to have a false default value to keep backward compatibility
-                          OrthancRestApi::GetDicomFormat(call, DicomToJsonFormat_Human),
-                          requestedTags,
-                          true /* allowStorageAccess */);
   }
 
 
@@ -3536,9 +3783,26 @@ namespace Orthanc
     const DicomToJsonFormat format = OrthancRestApi::GetDicomFormat(call, DicomToJsonFormat_Human);
 
     Json::Value resource;
-    if (OrthancRestApi::GetContext(call).ExpandResource(resource, current, end, format, requestedTags, true /* allowStorageAccess */))
+
+    if (true)
     {
-      call.GetOutput().AnswerJson(resource);
+      /**
+       * EXPERIMENTAL VERSION
+       **/
+      if (ExpandResource(resource, OrthancRestApi::GetContext(call), currentType, current, format, false))
+      {
+        call.GetOutput().AnswerJson(resource);
+      }
+    }
+    else
+    {
+      /**
+       * VERSION IN ORTHANC <= 1.12.4
+       **/
+      if (OrthancRestApi::GetContext(call).ExpandResource(resource, current, end, format, requestedTags, true /* allowStorageAccess */))
+      {
+        call.GetOutput().AnswerJson(resource);
+      }
     }
   }
 
@@ -3969,17 +4233,34 @@ namespace Orthanc
         for (std::set<std::string>::const_iterator
                it = interest.begin(); it != interest.end(); ++it)
         {
-          Json::Value item;
-          std::set<DicomTag> emptyRequestedTags;  // not supported for bulk content
-
-          if (OrthancRestApi::GetContext(call).ExpandResource(item, *it, level, format, emptyRequestedTags, true /* allowStorageAccess */))
+          if (true)
           {
-            if (metadata)
+            /**
+             * EXPERIMENTAL VERSION
+             **/
+            Json::Value item;
+            if (ExpandResource(item, OrthancRestApi::GetContext(call), level, *it, format, metadata))
             {
-              AddMetadata(item[METADATA], index, *it, level);
+              answer.append(item);
             }
+          }
+          else
+          {
+            /**
+             * VERSION IN ORTHANC <= 1.12.4
+             **/
+            Json::Value item;
+            std::set<DicomTag> emptyRequestedTags;  // not supported for bulk content
 
-            answer.append(item);
+            if (OrthancRestApi::GetContext(call).ExpandResource(item, *it, level, format, emptyRequestedTags, true /* allowStorageAccess */))
+            {
+              if (metadata)
+              {
+                AddMetadata(item[METADATA], index, *it, level);
+              }
+
+              answer.append(item);
+            }
           }
         }
       }
@@ -3996,19 +4277,36 @@ namespace Orthanc
           Json::Value item;
           std::set<DicomTag> emptyRequestedTags;  // not supported for bulk content
 
-          if (index.LookupResourceType(level, *it) &&
-              OrthancRestApi::GetContext(call).ExpandResource(item, *it, level, format, emptyRequestedTags, true /* allowStorageAccess */))
+          if (true)
           {
-            if (metadata)
+            /**
+             * EXPERIMENTAL VERSION
+             **/
+            if (index.LookupResourceType(level, *it) &&
+                ExpandResource(item, OrthancRestApi::GetContext(call), level, *it, format, metadata))
             {
-              AddMetadata(item[METADATA], index, *it, level);
+              answer.append(item);
             }
-
-            answer.append(item);
           }
           else
           {
-            CLOG(INFO, HTTP) << "Unknown resource during a bulk content retrieval: " << *it;
+            /**
+             * VERSION IN ORTHANC <= 1.12.4
+             **/
+            if (index.LookupResourceType(level, *it) &&
+                OrthancRestApi::GetContext(call).ExpandResource(item, *it, level, format, emptyRequestedTags, true /* allowStorageAccess */))
+            {
+              if (metadata)
+              {
+                AddMetadata(item[METADATA], index, *it, level);
+              }
+
+              answer.append(item);
+            }
+            else
+            {
+              CLOG(INFO, HTTP) << "Unknown resource during a bulk content retrieval: " << *it;
+            }
           }
         }
       }

@@ -25,8 +25,9 @@
 
 #include "../../../OrthancFramework/Sources/DicomFormat/DicomMap.h"
 
-#include "IDatabaseWrapper.h"
 #include "../DicomInstanceOrigin.h"
+#include "IDatabaseWrapper.h"
+#include "MainDicomTagsRegistry.h"
 
 #include <boost/shared_ptr.hpp>
 #include <boost/thread/shared_mutex.hpp>
@@ -80,7 +81,7 @@ namespace Orthanc
       indexInSeries_(0)
     {
     }
-    
+
     void SetResource(ResourceType level,
                      const std::string& id)
     {
@@ -112,15 +113,26 @@ namespace Orthanc
   enum ExpandResourceFlags
   {
     ExpandResourceFlags_None                    = 0,
+    // used to fetch from DB and for output
     ExpandResourceFlags_IncludeMetadata         = (1 << 0),
     ExpandResourceFlags_IncludeChildren         = (1 << 1),
     ExpandResourceFlags_IncludeMainDicomTags    = (1 << 2),
     ExpandResourceFlags_IncludeLabels           = (1 << 3),
 
-    ExpandResourceFlags_Default = (ExpandResourceFlags_IncludeMetadata |
-                                     ExpandResourceFlags_IncludeChildren |
-                                     ExpandResourceFlags_IncludeMainDicomTags |
-                                     ExpandResourceFlags_IncludeLabels)
+    // only used for output
+    ExpandResourceFlags_IncludeAllMetadata      = (1 << 4),  // new in Orthanc 1.12.4
+    ExpandResourceFlags_IncludeIsStable         = (1 << 5),  // new in Orthanc 1.12.4
+
+    ExpandResourceFlags_DefaultExtract = (ExpandResourceFlags_IncludeMetadata |
+                                          ExpandResourceFlags_IncludeChildren |
+                                          ExpandResourceFlags_IncludeMainDicomTags |
+                                          ExpandResourceFlags_IncludeLabels),
+
+    ExpandResourceFlags_DefaultOutput = (ExpandResourceFlags_IncludeMetadata |
+                                         ExpandResourceFlags_IncludeChildren |
+                                         ExpandResourceFlags_IncludeMainDicomTags |
+                                         ExpandResourceFlags_IncludeLabels |
+                                         ExpandResourceFlags_IncludeIsStable)
   };
 
   class StatelessDatabaseOperations : public boost::noncopyable
@@ -209,7 +221,7 @@ namespace Orthanc
 
       void ApplyLookupResources(std::list<std::string>& resourcesId,
                                 std::list<std::string>* instancesId, // Can be NULL if not needed
-                                const std::vector<DatabaseConstraint>& lookup,
+                                const DatabaseConstraints& lookup,
                                 ResourceType queryLevel,
                                 const std::set<std::string>& labels,  // New in Orthanc 1.12.0
                                 LabelsConstraint labelsConstraint,    // New in Orthanc 1.12.0
@@ -388,6 +400,28 @@ namespace Orthanc
       {
         transaction_.ListAllLabels(target);
       }
+
+      void ExecuteFind(FindResponse& response,
+                       const FindRequest& request,
+                       const IDatabaseWrapper::Capabilities& capabilities)
+      {
+        transaction_.ExecuteFind(response, request, capabilities);
+      }
+
+      void ExecuteFind(std::list<std::string>& identifiers,
+                       const IDatabaseWrapper::Capabilities& capabilities,
+                       const FindRequest& request)
+      {
+        transaction_.ExecuteFind(identifiers, capabilities, request);
+      }
+
+      void ExecuteExpand(FindResponse& response,
+                         const IDatabaseWrapper::Capabilities& capabilities,
+                         const FindRequest& request,
+                         const std::string& identifier)
+      {
+        transaction_.ExecuteExpand(response, capabilities, request, identifier);
+      }
     };
 
 
@@ -555,7 +589,6 @@ namespace Orthanc
     
 
   private:
-    class MainDicomTagsRegistry;
     class Transaction;
 
     IDatabaseWrapper&                            db_;
@@ -565,10 +598,6 @@ namespace Orthanc
     boost::shared_mutex                          mutex_;
     std::unique_ptr<ITransactionContextFactory>  factory_;
     unsigned int                                 maxRetries_;
-
-    void NormalizeLookup(std::vector<DatabaseConstraint>& target,
-                         const DatabaseLookup& source,
-                         ResourceType level) const;
 
     void ApplyInternal(IReadOnlyOperations* readOperations,
                        IReadWriteOperations* writeOperations);
@@ -820,5 +849,8 @@ namespace Orthanc
                    const std::set<std::string>& labels);
 
     bool HasLabelsSupport();
+
+    void ExecuteFind(FindResponse& response,
+                     const FindRequest& request);
   };
 }

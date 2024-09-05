@@ -34,8 +34,9 @@
 
 namespace Orthanc
 {
-  class DatabaseConstraint;
-  
+  class DatabaseConstraints;
+  class FindRequest;
+
   enum LabelsConstraint
   {
     LabelsConstraint_All,
@@ -64,11 +65,14 @@ namespace Orthanc
      **/
     virtual bool IsEscapeBrackets() const = 0;
 
-    static void GetLookupLevels(ResourceType& lowerLevel, ResourceType& upperLevel, const ResourceType& queryLevel, const std::vector<DatabaseConstraint>& lookup);
+    static void GetLookupLevels(ResourceType& lowerLevel,
+                                ResourceType& upperLevel,
+                                const ResourceType& queryLevel,
+                                const DatabaseConstraints& lookup);
 
     static void Apply(std::string& sql,
                       ISqlLookupFormatter& formatter,
-                      const std::vector<DatabaseConstraint>& lookup,
+                      const DatabaseConstraints& lookup,
                       ResourceType queryLevel,
                       const std::set<std::string>& labels,  // New in Orthanc 1.12.0
                       LabelsConstraint labelsConstraint,    // New in Orthanc 1.12.0
@@ -76,10 +80,16 @@ namespace Orthanc
 
     static void ApplySingleLevel(std::string& sql,
                                  ISqlLookupFormatter& formatter,
-                                 const std::vector<DatabaseConstraint>& lookup,
+                                 const DatabaseConstraints& lookup,
                                  ResourceType queryLevel,
                                  const std::set<std::string>& labels,  // New in Orthanc 1.12.0
                                  LabelsConstraint labelsConstraint,    // New in Orthanc 1.12.0
                                  size_t limit);
+
+#if ORTHANC_BUILDING_SERVER_LIBRARY == 1
+    static void Apply(std::string& sql,
+                      ISqlLookupFormatter& formatter,
+                      const FindRequest& request);
+#endif
   };
 }

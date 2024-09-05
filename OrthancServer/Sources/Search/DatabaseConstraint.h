@@ -46,6 +46,8 @@
 #  endif
 #endif
 
+#include <deque>
+
 namespace Orthanc
 {
   enum ConstraintType
@@ -78,7 +80,7 @@ namespace Orthanc
 
 
   // This class is also used by the "orthanc-databases" project
-  class DatabaseConstraint
+  class DatabaseConstraint : public boost::noncopyable
   {
   private:
     ResourceType              level_;
@@ -147,5 +149,36 @@ namespace Orthanc
     void EncodeForPlugins(OrthancPluginDatabaseConstraint& constraint,
                           std::vector<const char*>& tmpValues) const;
 #endif    
+  };
+
+
+  class DatabaseConstraints : public boost::noncopyable
+  {
+  private:
+    std::deque<DatabaseConstraint*>  constraints_;
+
+  public:
+    ~DatabaseConstraints()
+    {
+      Clear();
+    }
+
+    void Clear();
+
+    void AddConstraint(DatabaseConstraint* constraint);  // Takes ownership
+
+    bool IsEmpty() const
+    {
+      return constraints_.empty();
+    }
+
+    size_t GetSize() const
+    {
+      return constraints_.size();
+    }
+
+    const DatabaseConstraint& GetConstraint(size_t index) const;
+
+    std::string Format() const;
   };
 }

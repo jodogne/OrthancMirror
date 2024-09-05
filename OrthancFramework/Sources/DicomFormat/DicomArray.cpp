@@ -95,7 +95,8 @@ namespace Orthanc
       }
       else if (v.IsSequence())
       {
-        s = "(sequence)";
+        //s = "(sequence)";
+        s = "(sequence) " + v.GetSequenceContent().toStyledString();
       }
       else
       {
