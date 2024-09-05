@@ -222,8 +222,6 @@ Internationalization
 Performance
 ===========
 
-* (3) ServerContext::DicomCacheLocker => give access to the raw buffer,
-  useful in ServerContext::DecodeDicomInstance()
 * (2) DicomMap: create a cache to the main DICOM tags index
 * (3) Check out rapidjson: https://github.com/miloyip/nativejson-benchmark
 * For C-Find results: we could store the computed tags
