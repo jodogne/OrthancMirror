@@ -29,6 +29,8 @@
 #include "../ExportedResource.h"
 #include "../Search/ISqlLookupFormatter.h"
 #include "../ServerIndexChange.h"
+#include "FindRequest.h"
+#include "FindResponse.h"
 #include "IDatabaseListener.h"
 
 #include <list>
@@ -37,7 +39,7 @@
 
 namespace Orthanc
 {
-  class DatabaseConstraint;
+  class DatabaseConstraints;
   class ResourcesContent;
 
   class IDatabaseWrapper : public boost::noncopyable
@@ -52,6 +54,7 @@ namespace Orthanc
       bool hasAtomicIncrementGlobalProperty_;
       bool hasUpdateAndGetStatistics_;
       bool hasMeasureLatency_;
+      bool hasFindSupport_;
       bool hasExtendedChanges_;
 
     public:
@@ -62,6 +65,7 @@ namespace Orthanc
         hasAtomicIncrementGlobalProperty_(false),
         hasUpdateAndGetStatistics_(false),
         hasMeasureLatency_(false),
+        hasFindSupport_(false),
         hasExtendedChanges_(false)
       {
       }
@@ -134,6 +138,16 @@ namespace Orthanc
       bool HasMeasureLatency() const
       {
         return hasMeasureLatency_;
+      }
+
+      void SetHasFindSupport(bool value)
+      {
+        hasFindSupport_ = value;
+      }
+
+      bool HasFindSupport() const
+      {
+        return hasFindSupport_;
       }
     };
 
@@ -294,7 +308,7 @@ namespace Orthanc
     
       virtual void ApplyLookupResources(std::list<std::string>& resourcesId,
                                         std::list<std::string>* instancesId, // Can be NULL if not needed
-                                        const std::vector<DatabaseConstraint>& lookup,
+                                        const DatabaseConstraints& lookup,
                                         ResourceType queryLevel,
                                         const std::set<std::string>& labels,
                                         LabelsConstraint labelsConstraint,
@@ -365,14 +379,41 @@ namespace Orthanc
                                           int64_t& compressedSize,
                                           int64_t& uncompressedSize) = 0;
 
-      // New in Orthanc 1.13.0
+      /**
+       * Primitives introduced in Orthanc 1.12.4
+       **/
+
+      // This is only implemented if "HasIntegratedFind()" is "true"
+      virtual void ExecuteFind(FindResponse& response,
+                               const FindRequest& request,
+                               const Capabilities& capabilities) = 0;
+
+      // This is only implemented if "HasIntegratedFind()" is "false"
+      virtual void ExecuteFind(std::list<std::string>& identifiers,
+                               const Capabilities& capabilities,
+                               const FindRequest& request) = 0;
+
+      /**
+       * This is only implemented if "HasIntegratedFind()" is
+       * "false". In this flavor, the resource of interest might have
+       * been deleted, as the expansion is not done in the same
+       * transaction as the "ExecuteFind()". In such cases, the
+       * wrapper should not throw an exception, but simply ignore the
+       * request to expand the resource (i.e., "response" must not be
+       * modified).
+       **/
+      virtual void ExecuteExpand(FindResponse& response,
+                                 const Capabilities& capabilities,
+                                 const FindRequest& request,
+                                 const std::string& identifier) = 0;
+
+      // New in Orthanc 1.12.5
       virtual void GetChangesExtended(std::list<ServerIndexChange>& target /*out*/,
                                       bool& done /*out*/,
                                       int64_t since,
                                       int64_t to,
                                       uint32_t limit,
                                       ChangeType filterType) = 0;
-
     };
 
 
@@ -397,5 +438,9 @@ namespace Orthanc
     virtual const Capabilities GetDatabaseCapabilities() const = 0;
 
     virtual uint64_t MeasureLatency() = 0;
+
+    // Returns "true" iff. the database engine supports the
+    // simultaneous find and expansion of resources.
+    virtual bool HasIntegratedFind() const = 0;
   };
 }

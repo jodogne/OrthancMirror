@@ -31,6 +31,7 @@
 #include "../../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.h"
 #include "../../../OrthancFramework/Sources/Logging.h"
 #include "../../../OrthancFramework/Sources/OrthancException.h"
+#include "../../Sources/Database/Compatibility/GenericFind.h"
 #include "../../Sources/Database/ResourcesContent.h"
 #include "../../Sources/Database/VoidDatabaseListener.h"
 #include "../../Sources/ServerToolbox.h"
@@ -131,6 +132,136 @@ namespace Orthanc
                             source.study_instance_uid(),
                             source.series_instance_uid(),
                             source.sop_instance_uid());
+  }
+
+
+  static void Convert(DatabasePluginMessages::DatabaseConstraint& target,
+                      const DatabaseConstraint& source)
+  {
+    target.set_level(Convert(source.GetLevel()));
+    target.set_tag_group(source.GetTag().GetGroup());
+    target.set_tag_element(source.GetTag().GetElement());
+    target.set_is_identifier_tag(source.IsIdentifier());
+    target.set_is_case_sensitive(source.IsCaseSensitive());
+    target.set_is_mandatory(source.IsMandatory());
+
+    target.mutable_values()->Reserve(source.GetValuesCount());
+    for (size_t j = 0; j < source.GetValuesCount(); j++)
+    {
+      target.add_values(source.GetValue(j));
+    }
+
+    switch (source.GetConstraintType())
+    {
+      case ConstraintType_Equal:
+        target.set_type(DatabasePluginMessages::CONSTRAINT_EQUAL);
+        break;
+
+      case ConstraintType_SmallerOrEqual:
+        target.set_type(DatabasePluginMessages::CONSTRAINT_SMALLER_OR_EQUAL);
+        break;
+
+      case ConstraintType_GreaterOrEqual:
+        target.set_type(DatabasePluginMessages::CONSTRAINT_GREATER_OR_EQUAL);
+        break;
+
+      case ConstraintType_Wildcard:
+        target.set_type(DatabasePluginMessages::CONSTRAINT_WILDCARD);
+        break;
+
+      case ConstraintType_List:
+        target.set_type(DatabasePluginMessages::CONSTRAINT_LIST);
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+
+  static DatabasePluginMessages::LabelsConstraintType Convert(LabelsConstraint constraint)
+  {
+    switch (constraint)
+    {
+      case LabelsConstraint_All:
+        return DatabasePluginMessages::LABELS_CONSTRAINT_ALL;
+
+      case LabelsConstraint_Any:
+        return DatabasePluginMessages::LABELS_CONSTRAINT_ANY;
+
+      case LabelsConstraint_None:
+        return DatabasePluginMessages::LABELS_CONSTRAINT_NONE;
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+
+  static void Convert(DatabasePluginMessages::Find_Request_ChildrenSpecification& target,
+                      const FindRequest::ChildrenSpecification& source)
+  {
+    target.set_retrieve_identifiers(source.IsRetrieveIdentifiers());
+
+    for (std::set<MetadataType>::const_iterator it = source.GetMetadata().begin(); it != source.GetMetadata().end(); ++it)
+    {
+      target.add_retrieve_metadata(*it);
+    }
+
+    for (std::set<DicomTag>::const_iterator it = source.GetMainDicomTags().begin(); it != source.GetMainDicomTags().end(); ++it)
+    {
+      DatabasePluginMessages::Find_Request_Tag* tag = target.add_retrieve_main_dicom_tags();
+      tag->set_group(it->GetGroup());
+      tag->set_element(it->GetElement());
+    }
+  }
+
+
+  static void Convert(FindResponse::Resource& target,
+                      ResourceType level,
+                      const DatabasePluginMessages::Find_Response_ResourceContent& source)
+  {
+    for (int i = 0; i < source.main_dicom_tags().size(); i++)
+    {
+      target.AddStringDicomTag(level, source.main_dicom_tags(i).group(),
+                               source.main_dicom_tags(i).element(), source.main_dicom_tags(i).value());
+    }
+
+    for (int i = 0; i < source.metadata().size(); i++)
+    {
+      target.AddMetadata(level, static_cast<MetadataType>(source.metadata(i).key()), source.metadata(i).value());
+    }
+  }
+
+
+  static void Convert(FindResponse::Resource& target,
+                      ResourceType level,
+                      const DatabasePluginMessages::Find_Response_ChildrenContent& source)
+  {
+    for (int i = 0; i < source.identifiers().size(); i++)
+    {
+      target.AddChildIdentifier(level, source.identifiers(i));
+    }
+
+    for (int i = 0; i < source.main_dicom_tags().size(); i++)
+    {
+      const DicomTag tag(source.main_dicom_tags(i).group(), source.main_dicom_tags(i).element());
+
+      for (int j = 0; j < source.main_dicom_tags(i).values().size(); j++)
+      {
+        target.AddChildrenMainDicomTagValue(level, tag, source.main_dicom_tags(i).values(j));
+      }
+    }
+
+    for (int i = 0; i < source.metadata().size(); i++)
+    {
+      MetadataType key = static_cast<MetadataType>(source.metadata(i).key());
+
+      for (int j = 0; j < source.metadata(i).values().size(); j++)
+      {
+        target.AddChildrenMetadataValue(level, key, source.metadata(i).values(j));
+      }
+    }
   }
 
 
@@ -999,10 +1130,10 @@ namespace Orthanc
       return response.is_disk_size_above().result();
     }
 
-    
+
     virtual void ApplyLookupResources(std::list<std::string>& resourcesId,
                                       std::list<std::string>* instancesId, // Can be NULL if not needed
-                                      const std::vector<DatabaseConstraint>& lookup,
+                                      const DatabaseConstraints& lookup,
                                       ResourceType queryLevel,
                                       const std::set<std::string>& labels,
                                       LabelsConstraint labelsConstraint,
@@ -1019,49 +1150,11 @@ namespace Orthanc
       request.mutable_lookup_resources()->set_limit(limit);
       request.mutable_lookup_resources()->set_retrieve_instances_ids(instancesId != NULL);
 
-      request.mutable_lookup_resources()->mutable_lookup()->Reserve(lookup.size());
+      request.mutable_lookup_resources()->mutable_lookup()->Reserve(lookup.GetSize());
       
-      for (size_t i = 0; i < lookup.size(); i++)
+      for (size_t i = 0; i < lookup.GetSize(); i++)
       {
-        DatabasePluginMessages::DatabaseConstraint* constraint = request.mutable_lookup_resources()->add_lookup();
-        constraint->set_level(Convert(lookup[i].GetLevel()));
-        constraint->set_tag_group(lookup[i].GetTag().GetGroup());
-        constraint->set_tag_element(lookup[i].GetTag().GetElement());
-        constraint->set_is_identifier_tag(lookup[i].IsIdentifier());
-        constraint->set_is_case_sensitive(lookup[i].IsCaseSensitive());
-        constraint->set_is_mandatory(lookup[i].IsMandatory());
-
-        constraint->mutable_values()->Reserve(lookup[i].GetValuesCount());
-        for (size_t j = 0; j < lookup[i].GetValuesCount(); j++)
-        {
-          constraint->add_values(lookup[i].GetValue(j));
-        }
-
-        switch (lookup[i].GetConstraintType())
-        {
-          case ConstraintType_Equal:
-            constraint->set_type(DatabasePluginMessages::CONSTRAINT_EQUAL);
-            break;
-            
-          case ConstraintType_SmallerOrEqual:
-            constraint->set_type(DatabasePluginMessages::CONSTRAINT_SMALLER_OR_EQUAL);
-            break;
-            
-          case ConstraintType_GreaterOrEqual:
-            constraint->set_type(DatabasePluginMessages::CONSTRAINT_GREATER_OR_EQUAL);
-            break;
-            
-          case ConstraintType_Wildcard:
-            constraint->set_type(DatabasePluginMessages::CONSTRAINT_WILDCARD);
-            break;
-            
-          case ConstraintType_List:
-            constraint->set_type(DatabasePluginMessages::CONSTRAINT_LIST);
-            break;
-
-          default:
-            throw OrthancException(ErrorCode_ParameterOutOfRange);
-        }
+        Convert(*request.mutable_lookup_resources()->add_lookup(), lookup.GetConstraint(i));
       }
 
       for (std::set<std::string>::const_iterator it = labels.begin(); it != labels.end(); ++it)
@@ -1069,23 +1162,7 @@ namespace Orthanc
         request.mutable_lookup_resources()->add_labels(*it);
       }
 
-      switch (labelsConstraint)
-      {
-        case LabelsConstraint_All:
-          request.mutable_lookup_resources()->set_labels_constraint(DatabasePluginMessages::LABELS_CONSTRAINT_ALL);
-          break;
-            
-        case LabelsConstraint_Any:
-          request.mutable_lookup_resources()->set_labels_constraint(DatabasePluginMessages::LABELS_CONSTRAINT_ANY);
-          break;
-            
-        case LabelsConstraint_None:
-          request.mutable_lookup_resources()->set_labels_constraint(DatabasePluginMessages::LABELS_CONSTRAINT_NONE);
-          break;
-            
-        default:
-          throw OrthancException(ErrorCode_ParameterOutOfRange);
-      }
+      request.mutable_lookup_resources()->set_labels_constraint(Convert(labelsConstraint));
       
       DatabasePluginMessages::TransactionResponse response;
       ExecuteTransaction(response, DatabasePluginMessages::OPERATION_LOOKUP_RESOURCES, request);
@@ -1303,6 +1380,212 @@ namespace Orthanc
     {
       ListLabelsInternal(target, false, -1);
     }
+
+
+    virtual void ExecuteFind(FindResponse& response,
+                             const FindRequest& request,
+                             const Capabilities& capabilities) ORTHANC_OVERRIDE
+    {
+      if (capabilities.HasFindSupport())
+      {
+        DatabasePluginMessages::TransactionRequest dbRequest;
+        dbRequest.mutable_find()->set_level(Convert(request.GetLevel()));
+
+        if (request.GetOrthancIdentifiers().HasPatientId())
+        {
+          dbRequest.mutable_find()->set_orthanc_id_patient(request.GetOrthancIdentifiers().GetPatientId());
+        }
+
+        if (request.GetOrthancIdentifiers().HasStudyId())
+        {
+          dbRequest.mutable_find()->set_orthanc_id_study(request.GetOrthancIdentifiers().GetStudyId());
+        }
+
+        if (request.GetOrthancIdentifiers().HasSeriesId())
+        {
+          dbRequest.mutable_find()->set_orthanc_id_series(request.GetOrthancIdentifiers().GetSeriesId());
+        }
+
+        if (request.GetOrthancIdentifiers().HasInstanceId())
+        {
+          dbRequest.mutable_find()->set_orthanc_id_instance(request.GetOrthancIdentifiers().GetInstanceId());
+        }
+
+        for (size_t i = 0; i < request.GetDicomTagConstraints().GetSize(); i++)
+        {
+          Convert(*dbRequest.mutable_find()->add_dicom_tag_constraints(), request.GetDicomTagConstraints().GetConstraint(i));
+        }
+
+        if (request.HasLimits())
+        {
+          dbRequest.mutable_find()->mutable_limits()->set_since(request.GetLimitsSince());
+          dbRequest.mutable_find()->mutable_limits()->set_count(request.GetLimitsCount());
+        }
+
+        for (std::set<std::string>::const_iterator it = request.GetLabels().begin(); it != request.GetLabels().end(); ++it)
+        {
+          dbRequest.mutable_find()->add_labels(*it);
+        }
+
+        dbRequest.mutable_find()->set_labels_constraint(Convert(request.GetLabelsConstraint()));
+
+        // TODO-FIND: ordering_
+        // TODO-FIND: metadataConstraints__
+
+        dbRequest.mutable_find()->set_retrieve_main_dicom_tags(request.IsRetrieveMainDicomTags());
+        dbRequest.mutable_find()->set_retrieve_metadata(request.IsRetrieveMetadata());
+        dbRequest.mutable_find()->set_retrieve_labels(request.IsRetrieveLabels());
+        dbRequest.mutable_find()->set_retrieve_attachments(request.IsRetrieveAttachments());
+        dbRequest.mutable_find()->set_retrieve_parent_identifier(request.IsRetrieveParentIdentifier());
+        dbRequest.mutable_find()->set_retrieve_at_least_one_instance(request.IsRetrieveOneInstanceIdentifier());
+
+        if (request.GetLevel() == ResourceType_Study ||
+            request.GetLevel() == ResourceType_Series ||
+            request.GetLevel() == ResourceType_Instance)
+        {
+          dbRequest.mutable_find()->mutable_parent_patient()->set_retrieve_main_dicom_tags(request.GetParentSpecification(ResourceType_Patient).IsRetrieveMainDicomTags());
+          dbRequest.mutable_find()->mutable_parent_patient()->set_retrieve_metadata(request.GetParentSpecification(ResourceType_Patient).IsRetrieveMetadata());
+        }
+
+        if (request.GetLevel() == ResourceType_Series ||
+            request.GetLevel() == ResourceType_Instance)
+        {
+          dbRequest.mutable_find()->mutable_parent_study()->set_retrieve_main_dicom_tags(request.GetParentSpecification(ResourceType_Study).IsRetrieveMainDicomTags());
+          dbRequest.mutable_find()->mutable_parent_study()->set_retrieve_metadata(request.GetParentSpecification(ResourceType_Study).IsRetrieveMetadata());
+        }
+
+        if (request.GetLevel() == ResourceType_Instance)
+        {
+          dbRequest.mutable_find()->mutable_parent_series()->set_retrieve_main_dicom_tags(request.GetParentSpecification(ResourceType_Series).IsRetrieveMainDicomTags());
+          dbRequest.mutable_find()->mutable_parent_series()->set_retrieve_metadata(request.GetParentSpecification(ResourceType_Series).IsRetrieveMetadata());
+        }
+
+        if (request.GetLevel() == ResourceType_Patient)
+        {
+          Convert(*dbRequest.mutable_find()->mutable_children_studies(), request.GetChildrenSpecification(ResourceType_Study));
+        }
+
+        if (request.GetLevel() == ResourceType_Patient ||
+            request.GetLevel() == ResourceType_Study)
+        {
+          Convert(*dbRequest.mutable_find()->mutable_children_series(), request.GetChildrenSpecification(ResourceType_Series));
+        }
+
+        if (request.GetLevel() == ResourceType_Patient ||
+            request.GetLevel() == ResourceType_Study ||
+            request.GetLevel() == ResourceType_Series)
+        {
+          Convert(*dbRequest.mutable_find()->mutable_children_instances(), request.GetChildrenSpecification(ResourceType_Instance));
+        }
+
+        DatabasePluginMessages::TransactionResponse dbResponse;
+        ExecuteTransaction(dbResponse, DatabasePluginMessages::OPERATION_FIND, dbRequest);
+
+        for (int i = 0; i < dbResponse.find().size(); i++)
+        {
+          const DatabasePluginMessages::Find_Response& source = dbResponse.find(i);
+
+          std::unique_ptr<FindResponse::Resource> target(
+            new FindResponse::Resource(request.GetLevel(), source.internal_id(), source.public_id()));
+
+          if (request.IsRetrieveParentIdentifier())
+          {
+            target->SetParentIdentifier(source.parent_public_id());
+          }
+
+          for (int i = 0; i < source.labels().size(); i++)
+          {
+            target->AddLabel(source.labels(i));
+          }
+
+          for (int i = 0; i < source.attachments().size(); i++)
+          {
+            target->AddAttachment(Convert(source.attachments(i)));
+          }
+
+          Convert(*target, ResourceType_Patient, source.patient_content());
+
+          if (request.GetLevel() == ResourceType_Study ||
+              request.GetLevel() == ResourceType_Series ||
+              request.GetLevel() == ResourceType_Instance)
+          {
+            Convert(*target, ResourceType_Study, source.study_content());
+          }
+
+          if (request.GetLevel() == ResourceType_Series ||
+              request.GetLevel() == ResourceType_Instance)
+          {
+            Convert(*target, ResourceType_Series, source.series_content());
+          }
+
+          if (request.GetLevel() == ResourceType_Instance)
+          {
+            Convert(*target, ResourceType_Instance, source.instance_content());
+          }
+
+          if (request.GetLevel() == ResourceType_Patient)
+          {
+            Convert(*target, ResourceType_Patient, source.children_studies_content());
+          }
+
+          if (request.GetLevel() == ResourceType_Patient ||
+              request.GetLevel() == ResourceType_Study)
+          {
+            Convert(*target, ResourceType_Study, source.children_series_content());
+          }
+
+          if (request.GetLevel() == ResourceType_Patient ||
+              request.GetLevel() == ResourceType_Study ||
+              request.GetLevel() == ResourceType_Series)
+          {
+            Convert(*target, ResourceType_Series, source.children_instances_content());
+          }
+
+          response.Add(target.release());
+        }
+
+        throw OrthancException(ErrorCode_NotImplemented);
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_NotImplemented);
+      }
+    }
+
+
+    virtual void ExecuteFind(std::list<std::string>& identifiers,
+                             const Capabilities& capabilities,
+                             const FindRequest& request) ORTHANC_OVERRIDE
+    {
+      if (capabilities.HasFindSupport())
+      {
+        // The integrated version of "ExecuteFind()" should have been called
+        throw OrthancException(ErrorCode_BadSequenceOfCalls);
+      }
+      else
+      {
+        Compatibility::GenericFind find(*this);
+        find.ExecuteFind(identifiers, capabilities, request);
+      }
+    }
+
+
+    virtual void ExecuteExpand(FindResponse& response,
+                               const Capabilities& capabilities,
+                               const FindRequest& request,
+                               const std::string& identifier) ORTHANC_OVERRIDE
+    {
+      if (capabilities.HasFindSupport())
+      {
+        // The integrated version of "ExecuteFind()" should have been called
+        throw OrthancException(ErrorCode_BadSequenceOfCalls);
+      }
+      else
+      {
+        Compatibility::GenericFind find(*this);
+        find.ExecuteExpand(response, capabilities, request, identifier);
+      }
+    }
   };
 
 
@@ -1392,6 +1675,7 @@ namespace Orthanc
       dbCapabilities_.SetUpdateAndGetStatistics(systemInfo.has_update_and_get_statistics());
       dbCapabilities_.SetMeasureLatency(systemInfo.has_measure_latency());
       dbCapabilities_.SetHasExtendedChanges(systemInfo.has_extended_changes());
+      dbCapabilities_.SetHasFindSupport(systemInfo.supports_find());
     }
 
     open_ = true;
@@ -1517,5 +1801,11 @@ namespace Orthanc
     {
       return dbCapabilities_;
     }
+  }
+
+
+  bool OrthancPluginDatabaseV4::HasIntegratedFind() const
+  {
+    return dbCapabilities_.HasFindSupport();
   }
 }

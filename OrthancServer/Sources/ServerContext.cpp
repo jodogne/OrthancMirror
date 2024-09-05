@@ -42,6 +42,7 @@
 
 #include "OrthancConfiguration.h"
 #include "OrthancRestApi/OrthancRestApi.h"
+#include "ResourceFinder.h"
 #include "Search/DatabaseLookup.h"
 #include "ServerJobs/OrthancJobUnserializer.h"
 #include "ServerToolbox.h"
@@ -1346,18 +1347,17 @@ namespace Orthanc
       // Throttle to avoid loading several large DICOM files simultaneously
       largeDicomLocker_.reset(new Semaphore::Locker(context.largeDicomThrottler_));
       
-      std::string content;
-      context_.ReadDicom(content, instancePublicId);
+      context_.ReadDicom(buffer_, instancePublicId_);
 
       // Release the throttle if loading "small" DICOM files (under
       // 50MB, which is an arbitrary value)
-      if (content.size() < 50 * 1024 * 1024)
+      if (buffer_.size() < 50 * 1024 * 1024)
       {
         largeDicomLocker_.reset(NULL);
       }
       
-      dicom_.reset(new ParsedDicomFile(content));
-      dicomSize_ = content.size();
+      dicom_.reset(new ParsedDicomFile(buffer_));
+      dicomSize_ = buffer_.size();
     }
 
     assert(accessor_.get() != NULL ||
@@ -1393,6 +1393,18 @@ namespace Orthanc
     }
   }
 
+  const std::string& ServerContext::DicomCacheLocker::GetBuffer()
+  {
+    if (buffer_.size() > 0)
+    {
+      return buffer_;
+    }
+    else
+    {
+      context_.ReadDicom(buffer_, instancePublicId_);
+      return buffer_;
+    }
+  }
   
   void ServerContext::SetStoreMD5ForAttachments(bool storeMD5)
   {
@@ -1533,11 +1545,12 @@ namespace Orthanc
   void ServerContext::Apply(ILookupVisitor& visitor,
                             const DatabaseLookup& lookup,
                             ResourceType queryLevel,
+                            const std::set<std::string>& labels,
+                            LabelsConstraint labelsConstraint,
                             size_t since,
                             size_t limit)
   {    
-    unsigned int databaseLimit = (queryLevel == ResourceType_Instance ?
-                                  limitFindInstances_ : limitFindResults_);
+    const uint64_t databaseLimit = GetDatabaseLimits(queryLevel);
       
     std::vector<std::string> resources, instances;
     const DicomTagConstraint* dicomModalitiesConstraint = NULL;
@@ -1554,11 +1567,8 @@ namespace Orthanc
       fastLookup->RemoveConstraint(DICOM_TAG_MODALITIES_IN_STUDY);
     }
 
-    {
-      const size_t lookupLimit = (databaseLimit == 0 ? 0 : databaseLimit + 1);
-      GetIndex().ApplyLookupResources(resources, &instances, *fastLookup, queryLevel,
-                                      lookup.GetLabels(), lookup.GetLabelsConstraint(), lookupLimit);
-    }
+    const size_t lookupLimit = (databaseLimit == 0 ? 0 : databaseLimit + 1);
+    GetIndex().ApplyLookupResources(resources, &instances, *fastLookup, queryLevel, labels, labelsConstraint, lookupLimit);
 
     bool complete = (databaseLimit == 0 ||
                      resources.size() <= databaseLimit);
@@ -1846,27 +1856,50 @@ namespace Orthanc
   }
 
 
+
+
+
   ImageAccessor* ServerContext::DecodeDicomFrame(const std::string& publicId,
                                                  unsigned int frameIndex)
   {
+    ServerContext::DicomCacheLocker locker(*this, publicId);
+    std::unique_ptr<ImageAccessor> decoded(DecodeDicomFrame(locker.GetDicom(), locker.GetBuffer().c_str(), locker.GetBuffer().size(), frameIndex));
+
+    if (decoded.get() == NULL)
+    {
+      OrthancConfiguration::ReaderLock configLock;
+      if (configLock.GetConfiguration().IsWarningEnabled(Warnings_003_DecoderFailure))
+      {
+        LOG(WARNING) << "W003: Unable to decode frame " << frameIndex << " from instance " << publicId;
+      }
+      return NULL;
+    }
+
+    return decoded.release();
+  }
+
+
+  ImageAccessor* ServerContext::DecodeDicomFrame(const ParsedDicomFile& parsedDicom,
+                                                 const void* buffer,  // actually the buffer that is the source of the ParsedDicomFile
+                                                 size_t size,
+                                                 unsigned int frameIndex)
+  {
+    std::unique_ptr<ImageAccessor> decoded;
+
     if (builtinDecoderTranscoderOrder_ == BuiltinDecoderTranscoderOrder_Before)
     {
-      // Use Orthanc's built-in decoder, using the cache to speed-up
-      // things on multi-frame images
+      // Use Orthanc's built-in decoder
 
-      std::unique_ptr<ImageAccessor> decoded;
       try
       {
-        ServerContext::DicomCacheLocker locker(*this, publicId);
-        decoded.reset(locker.GetDicom().DecodeFrame(frameIndex));
+        decoded.reset(parsedDicom.DecodeFrame(frameIndex));
+        if (decoded.get() != NULL)
+        {
+          return decoded.release();
+        }
       }
       catch (OrthancException& e)
-      {
-      }
-      
-      if (decoded.get() != NULL)
-      {
-        return decoded.release();
+      { // ignore, we'll try other alternatives
       }
     }
 
@@ -1874,14 +1907,9 @@ namespace Orthanc
     if (HasPlugins() &&
         GetPlugins().HasCustomImageDecoder())
     {
-      // TODO: Store the raw buffer in the DicomCacheLocker
-      std::string dicomContent;
-      ReadDicom(dicomContent, publicId);
-      
-      std::unique_ptr<ImageAccessor> decoded;
       try
       {
-        decoded.reset(GetPlugins().Decode(dicomContent.c_str(), dicomContent.size(), frameIndex));
+        decoded.reset(GetPlugins().Decode(buffer, size, frameIndex));
       }
       catch (OrthancException& e)
       {
@@ -1901,69 +1929,50 @@ namespace Orthanc
 
     if (builtinDecoderTranscoderOrder_ == BuiltinDecoderTranscoderOrder_After)
     {
-      ServerContext::DicomCacheLocker locker(*this, publicId);        
-      return locker.GetDicom().DecodeFrame(frameIndex);
+      try
+      { 
+        decoded.reset(parsedDicom.DecodeFrame(frameIndex));
+        if (decoded.get() != NULL)
+        {
+          return decoded.release();
+        }
+      }
+      catch (OrthancException& e)
+      {
+        LOG(INFO) << e.GetDetails();
+      }
     }
-    else
+
+    if (HasPlugins() && GetPlugins().HasCustomTranscoder())
     {
-      return NULL;  // Built-in decoder is disabled
+      LOG(INFO) << "The plugins and built-in image decoders failed to decode a frame, "
+                << "trying to transcode the file to LittleEndianExplicit using the plugins.";
+      DicomImage explicitTemporaryImage;
+      DicomImage source;
+      std::set<DicomTransferSyntax> allowedSyntaxes;
+
+      source.SetExternalBuffer(buffer, size);
+      allowedSyntaxes.insert(DicomTransferSyntax_LittleEndianExplicit);
+
+      if (Transcode(explicitTemporaryImage, source, allowedSyntaxes, true))
+      {
+        std::unique_ptr<ParsedDicomFile> file(explicitTemporaryImage.ReleaseAsParsedDicomFile());
+        return file->DecodeFrame(frameIndex);
+      }
     }
+
+    return NULL;
   }
 
 
   ImageAccessor* ServerContext::DecodeDicomFrame(const DicomInstanceToStore& dicom,
                                                  unsigned int frameIndex)
   {
-    if (builtinDecoderTranscoderOrder_ == BuiltinDecoderTranscoderOrder_Before)
-    {
-      std::unique_ptr<ImageAccessor> decoded;
-      try
-      {
-        decoded.reset(dicom.DecodeFrame(frameIndex));
-      }
-      catch (OrthancException& e)
-      {
-      }
-        
-      if (decoded.get() != NULL)
-      {
-        return decoded.release();
-      }
-    }
+    return DecodeDicomFrame(dicom.GetParsedDicomFile(),
+                            dicom.GetBufferData(),
+                            dicom.GetBufferSize(),
+                            frameIndex);
 
-#if ORTHANC_ENABLE_PLUGINS == 1
-    if (HasPlugins() &&
-        GetPlugins().HasCustomImageDecoder())
-    {
-      std::unique_ptr<ImageAccessor> decoded;
-      try
-      {
-        decoded.reset(GetPlugins().Decode(dicom.GetBufferData(), dicom.GetBufferSize(), frameIndex));
-      }
-      catch (OrthancException& e)
-      {
-      }
-    
-      if (decoded.get() != NULL)
-      {
-        return decoded.release();
-      }
-      else if (builtinDecoderTranscoderOrder_ == BuiltinDecoderTranscoderOrder_After)
-      {
-        LOG(INFO) << "The installed image decoding plugins cannot handle an image, "
-                  << "fallback to the built-in DCMTK decoder";
-      }
-    }
-#endif
-
-    if (builtinDecoderTranscoderOrder_ == BuiltinDecoderTranscoderOrder_After)
-    {
-      return dicom.DecodeFrame(frameIndex);
-    }
-    else
-    {
-      return NULL;
-    }
   }
 
 
@@ -1971,8 +1980,8 @@ namespace Orthanc
                                                  size_t size,
                                                  unsigned int frameIndex)
   {
-    std::unique_ptr<DicomInstanceToStore> instance(DicomInstanceToStore::CreateFromBuffer(dicom, size));
-    return DecodeDicomFrame(*instance, frameIndex);
+    std::unique_ptr<ParsedDicomFile> instance(new ParsedDicomFile(dicom, size));
+    return DecodeDicomFrame(*instance, dicom, size, frameIndex);
   }
   
 
@@ -2126,124 +2135,137 @@ namespace Orthanc
   static void SerializeExpandedResource(Json::Value& target,
                                         const ExpandedResource& resource,
                                         DicomToJsonFormat format,
-                                        const std::set<DicomTag>& requestedTags)
+                                        const std::set<DicomTag>& requestedTags,
+                                        ExpandResourceFlags expandFlags)
   {
     target = Json::objectValue;
 
     target["Type"] = GetResourceTypeText(resource.GetLevel(), false, true);
     target["ID"] = resource.GetPublicId();
 
-    switch (resource.GetLevel())
+    if (!resource.parentId_.empty())
     {
-      case ResourceType_Patient:
-        break;
-
-      case ResourceType_Study:
-        target["ParentPatient"] = resource.parentId_;
-        break;
-
-      case ResourceType_Series:
-        target["ParentStudy"] = resource.parentId_;
-        break;
-
-      case ResourceType_Instance:
-        target["ParentSeries"] = resource.parentId_;
-        break;
-
-      default:
-        throw OrthancException(ErrorCode_InternalError);
-    }
-
-    switch (resource.GetLevel())
-    {
-      case ResourceType_Patient:
-      case ResourceType_Study:
-      case ResourceType_Series:
+      switch (resource.GetLevel())
       {
-        Json::Value c = Json::arrayValue;
+        case ResourceType_Patient:
+          break;
 
-        for (std::list<std::string>::const_iterator
-                it = resource.childrenIds_.begin(); it != resource.childrenIds_.end(); ++it)
-        {
-          c.append(*it);
-        }
+        case ResourceType_Study:
+          target["ParentPatient"] = resource.parentId_;
+          break;
 
-        if (resource.GetLevel() == ResourceType_Patient)
-        {
-          target["Studies"] = c;
-        }
-        else if (resource.GetLevel() == ResourceType_Study)
-        {
-          target["Series"] = c;
-        }
-        else
-        {
-          target["Instances"] = c;
-        }
-        break;
+        case ResourceType_Series:
+          target["ParentStudy"] = resource.parentId_;
+          break;
+
+        case ResourceType_Instance:
+          target["ParentSeries"] = resource.parentId_;
+          break;
+
+        default:
+          throw OrthancException(ErrorCode_InternalError);
       }
-
-      case ResourceType_Instance:
-        break;
-
-      default:
-        throw OrthancException(ErrorCode_InternalError);
     }
 
-    switch (resource.GetLevel())
+    if ((expandFlags & ExpandResourceFlags_IncludeChildren) != 0)
     {
-      case ResourceType_Patient:
-      case ResourceType_Study:
-        break;
-
-      case ResourceType_Series:
-        if (resource.expectedNumberOfInstances_ < 0)
-        {
-          target["ExpectedNumberOfInstances"] = Json::nullValue;
-        }
-        else
-        {
-          target["ExpectedNumberOfInstances"] = resource.expectedNumberOfInstances_;
-        }
-        target["Status"] = resource.status_;
-        break;
-
-      case ResourceType_Instance:
+      switch (resource.GetLevel())
       {
-        target["FileSize"] = static_cast<unsigned int>(resource.fileSize_);
-        target["FileUuid"] = resource.fileUuid_;
-
-        if (resource.indexInSeries_ < 0)
+        case ResourceType_Patient:
+        case ResourceType_Study:
+        case ResourceType_Series:
         {
-          target["IndexInSeries"] = Json::nullValue;
-        }
-        else
-        {
-          target["IndexInSeries"] = resource.indexInSeries_;
+          Json::Value c = Json::arrayValue;
+
+          for (std::list<std::string>::const_iterator
+                  it = resource.childrenIds_.begin(); it != resource.childrenIds_.end(); ++it)
+          {
+            c.append(*it);
+          }
+
+          if (resource.GetLevel() == ResourceType_Patient)
+          {
+            target["Studies"] = c;
+          }
+          else if (resource.GetLevel() == ResourceType_Study)
+          {
+            target["Series"] = c;
+          }
+          else
+          {
+            target["Instances"] = c;
+          }
+          break;
         }
 
-        break;
+        case ResourceType_Instance:
+          break;
+
+        default:
+          throw OrthancException(ErrorCode_InternalError);
       }
-
-      default:
-        throw OrthancException(ErrorCode_InternalError);
     }
 
-    if (!resource.anonymizedFrom_.empty())
+    if ((expandFlags & ExpandResourceFlags_IncludeMetadata) != 0)
     {
-      target["AnonymizedFrom"] = resource.anonymizedFrom_;
-    }
+      switch (resource.GetLevel())
+      {
+        case ResourceType_Patient:
+        case ResourceType_Study:
+          break;
+
+        case ResourceType_Series:
+          if (resource.expectedNumberOfInstances_ < 0)
+          {
+            target["ExpectedNumberOfInstances"] = Json::nullValue;
+          }
+          else
+          {
+            target["ExpectedNumberOfInstances"] = resource.expectedNumberOfInstances_;
+          }
+          target["Status"] = resource.status_;
+          break;
+
+        case ResourceType_Instance:
+        {
+          target["FileSize"] = static_cast<unsigned int>(resource.fileSize_);
+          target["FileUuid"] = resource.fileUuid_;
+
+          if (resource.indexInSeries_ < 0)
+          {
+            target["IndexInSeries"] = Json::nullValue;
+          }
+          else
+          {
+            target["IndexInSeries"] = resource.indexInSeries_;
+          }
+
+          break;
+        }
+
+        default:
+          throw OrthancException(ErrorCode_InternalError);
+      }
     
-    if (!resource.modifiedFrom_.empty())
-    {
-      target["ModifiedFrom"] = resource.modifiedFrom_;
+      if (!resource.anonymizedFrom_.empty())
+      {
+        target["AnonymizedFrom"] = resource.anonymizedFrom_;
+      }
+      
+      if (!resource.modifiedFrom_.empty())
+      {
+        target["ModifiedFrom"] = resource.modifiedFrom_;
+      }
     }
 
     if (resource.GetLevel() == ResourceType_Patient ||
         resource.GetLevel() == ResourceType_Study ||
         resource.GetLevel() == ResourceType_Series)
     {
-      target["IsStable"] = resource.isStable_;
+      if ((expandFlags & ExpandResourceFlags_IncludeIsStable) != 0)
+      {
+        target["IsStable"] = resource.isStable_;
+      }
 
       if (!resource.lastUpdate_.empty())
       {
@@ -2251,38 +2273,42 @@ namespace Orthanc
       }
     }
 
-    // serialize tags
-
-    static const char* const MAIN_DICOM_TAGS = "MainDicomTags";
-    static const char* const PATIENT_MAIN_DICOM_TAGS = "PatientMainDicomTags";
-
-    DicomMap mainDicomTags;
-    resource.GetMainDicomTags().ExtractResourceInformation(mainDicomTags, resource.GetLevel());
-
-    target[MAIN_DICOM_TAGS] = Json::objectValue;
-    FromDcmtkBridge::ToJson(target[MAIN_DICOM_TAGS], mainDicomTags, format);
-    
-    if (resource.GetLevel() == ResourceType_Study)
+    if ((expandFlags & ExpandResourceFlags_IncludeMainDicomTags) != 0)
     {
-      DicomMap patientMainDicomTags;
-      resource.GetMainDicomTags().ExtractPatientInformation(patientMainDicomTags);
+      // serialize tags
 
-      target[PATIENT_MAIN_DICOM_TAGS] = Json::objectValue;
-      FromDcmtkBridge::ToJson(target[PATIENT_MAIN_DICOM_TAGS], patientMainDicomTags, format);
+      static const char* const MAIN_DICOM_TAGS = "MainDicomTags";
+      static const char* const PATIENT_MAIN_DICOM_TAGS = "PatientMainDicomTags";
+
+      DicomMap mainDicomTags;
+      resource.GetMainDicomTags().ExtractResourceInformation(mainDicomTags, resource.GetLevel());
+
+      target[MAIN_DICOM_TAGS] = Json::objectValue;
+      FromDcmtkBridge::ToJson(target[MAIN_DICOM_TAGS], mainDicomTags, format);
+      
+      if (resource.GetLevel() == ResourceType_Study)
+      {
+        DicomMap patientMainDicomTags;
+        resource.GetMainDicomTags().ExtractPatientInformation(patientMainDicomTags);
+
+        target[PATIENT_MAIN_DICOM_TAGS] = Json::objectValue;
+        FromDcmtkBridge::ToJson(target[PATIENT_MAIN_DICOM_TAGS], patientMainDicomTags, format);
+      }
+
+      if (requestedTags.size() > 0)
+      {
+        static const char* const REQUESTED_TAGS = "RequestedTags";
+
+        DicomMap tags;
+        resource.GetMainDicomTags().ExtractTags(tags, requestedTags);
+
+        target[REQUESTED_TAGS] = Json::objectValue;
+        FromDcmtkBridge::ToJson(target[REQUESTED_TAGS], tags, format);
+
+      }
     }
 
-    if (requestedTags.size() > 0)
-    {
-      static const char* const REQUESTED_TAGS = "RequestedTags";
-
-      DicomMap tags;
-      resource.GetMainDicomTags().ExtractTags(tags, requestedTags);
-
-      target[REQUESTED_TAGS] = Json::objectValue;
-      FromDcmtkBridge::ToJson(target[REQUESTED_TAGS], tags, format);
-
-    }
-
+    if ((expandFlags & ExpandResourceFlags_IncludeLabels) != 0)
     {
       Json::Value labels = Json::arrayValue;
 
@@ -2292,6 +2318,19 @@ namespace Orthanc
       }
 
       target["Labels"] = labels;
+    }
+
+    // new in Orthanc 1.12.4
+    if ((expandFlags & ExpandResourceFlags_IncludeAllMetadata) != 0)
+    {
+      Json::Value metadata = Json::objectValue;
+
+      for (std::map<MetadataType, std::string>::const_iterator it = resource.metadata_.begin(); it != resource.metadata_.end(); ++it)
+      {
+        metadata[EnumerationToString(it->first)] = it->second;
+      }
+
+      target["Metadata"] = metadata;
     }
   }
 
@@ -2538,9 +2577,9 @@ namespace Orthanc
   {
     ExpandedResource resource;
 
-    if (ExpandResource(resource, publicId, mainDicomTags, instanceId, dicomAsJson, level, requestedTags, ExpandResourceFlags_Default, allowStorageAccess))
+    if (ExpandResource(resource, publicId, mainDicomTags, instanceId, dicomAsJson, level, requestedTags, ExpandResourceFlags_DefaultExtract, allowStorageAccess))
     {
-      SerializeExpandedResource(target, resource, format, requestedTags);
+      SerializeExpandedResource(target, resource, format, requestedTags, ExpandResourceFlags_DefaultOutput);
       return true;
     }
 
@@ -2578,7 +2617,13 @@ namespace Orthanc
       Toolbox::GetMissingsFromSet(missingTags, requestedTags, retrievedTags);
 
       // if all possible tags have been read, no need to get them from DB anymore
-      if (missingTags.size() == 0 || DicomMap::HasOnlyComputedTags(missingTags))
+      if (missingTags.size() > 0 && DicomMap::HasOnlyComputedTags(missingTags))
+      {
+        resource.missingRequestedTags_ = missingTags;
+        ComputeTags(resource, *this, publicId, level, requestedTags);
+        return true;
+      }
+      else if (missingTags.size() == 0)
       {
         expandFlags = static_cast<ExpandResourceFlags>(expandFlags & ~ExpandResourceFlags_IncludeMainDicomTags);
       }
@@ -2687,5 +2732,4 @@ namespace Orthanc
 
     return elapsed.total_seconds();
   }
-
 }

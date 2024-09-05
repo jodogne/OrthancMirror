@@ -10,7 +10,7 @@
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
@@ -24,31 +24,34 @@
 #pragma once
 
 #include "../IDatabaseWrapper.h"
-#include "ILookupResources.h"
 
 namespace Orthanc
 {
   namespace Compatibility
   {
-    class DatabaseLookup : public boost::noncopyable
+    class GenericFind : public boost::noncopyable
     {
     private:
       IDatabaseWrapper::ITransaction&  transaction_;
-      ILookupResources&  compatibility_;
+
+      void RetrieveMainDicomTags(FindResponse::Resource& target,
+                                 ResourceType level,
+                                 int64_t internalId);
 
     public:
-      DatabaseLookup(IDatabaseWrapper::ITransaction& transaction,
-                     ILookupResources& compatibility) :
-        transaction_(transaction),
-        compatibility_(compatibility)
+      explicit GenericFind(IDatabaseWrapper::ITransaction& transaction) :
+        transaction_(transaction)
       {
       }
 
-      void ApplyLookupResources(std::list<std::string>& resourcesId,
-                                std::list<std::string>* instancesId,
-                                const DatabaseConstraints& lookup,
-                                ResourceType queryLevel,
-                                size_t limit);
+      void ExecuteFind(std::list<std::string>& identifiers,
+                       const IDatabaseWrapper::Capabilities& capabilities,
+                       const FindRequest& request);
+
+      void ExecuteExpand(FindResponse& response,
+                         const IDatabaseWrapper::Capabilities& capabilities,
+                         const FindRequest& request,
+                         const std::string& identifier);
     };
   }
 }

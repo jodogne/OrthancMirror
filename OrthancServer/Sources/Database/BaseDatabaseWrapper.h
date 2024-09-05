@@ -48,15 +48,32 @@ namespace Orthanc
                                           int64_t& compressedSize,
                                           int64_t& uncompressedSize) ORTHANC_OVERRIDE;
 
+      virtual void ExecuteFind(FindResponse& response,
+                               const FindRequest& request,
+                               const Capabilities& capabilities) ORTHANC_OVERRIDE;
+
+      virtual void ExecuteFind(std::list<std::string>& identifiers,
+                               const Capabilities& capabilities,
+                               const FindRequest& request) ORTHANC_OVERRIDE;
+
+      virtual void ExecuteExpand(FindResponse& response,
+                                 const Capabilities& capabilities,
+                                 const FindRequest& request,
+                                 const std::string& identifier) ORTHANC_OVERRIDE;
+
       virtual void GetChangesExtended(std::list<ServerIndexChange>& target /*out*/,
                                       bool& done /*out*/,
                                       int64_t since,
                                       int64_t to,
                                       uint32_t limit,
                                       ChangeType filterType) ORTHANC_OVERRIDE;
-
     };
 
     virtual uint64_t MeasureLatency() ORTHANC_OVERRIDE;
+
+    virtual bool HasIntegratedFind() const ORTHANC_OVERRIDE
+    {
+      return false;
+    }
   };
 }
