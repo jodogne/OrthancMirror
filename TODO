@@ -203,6 +203,8 @@ Long-term
   We should first filter in SQL by StudyDate only, combine it with StudyTime into a single 
   DateTime string and filter again in C++.
   https://discourse.orthanc-server.org/t/performin-find-within-orthanc-for-time-frames/4704
+* Worklist plugin: support MPPS
+  https://github.com/orthanc-server/orthanc-setup-samples/blob/master/python-samples/worklist-with-mpps.py
 
 --------------------
 Internationalization
