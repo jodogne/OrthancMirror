@@ -642,7 +642,7 @@ namespace Orthanc
       request.mutable_get_changes_extended()->set_limit(limit);
       request.mutable_get_changes_extended()->set_to(to);
       request.mutable_get_changes_extended()->set_change_type(changeType);
-      ExecuteTransaction(response, DatabasePluginMessages::OPERATION_GET_CHANGES_2, request);
+      ExecuteTransaction(response, DatabasePluginMessages::OPERATION_GET_CHANGES_EXTENDED, request);
 
       done = response.get_changes().done();
 
