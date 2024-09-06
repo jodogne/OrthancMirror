@@ -65,6 +65,21 @@ namespace Orthanc
       return "ESCAPE '\\'";
     }
 
+    virtual std::string FormatLimits(uint64_t since, uint64_t count) ORTHANC_OVERRIDE
+    {
+      std::string sql;
+      if (count > 0)
+      {
+        sql += " LIMIT " + boost::lexical_cast<std::string>(count);
+      }
+      if (since > 0)
+      {
+        sql += " OFFSET " + boost::lexical_cast<std::string>(since);
+      }
+      
+      return sql;
+    }
+
     virtual bool IsEscapeBrackets() const ORTHANC_OVERRIDE
     {
       return false;

@@ -752,14 +752,7 @@ namespace Orthanc
 
     if (request.HasLimits())
     {
-      if (request.GetLimitsCount() > 0)
-      {
-        sql += " LIMIT " + boost::lexical_cast<std::string>(request.GetLimitsCount());
-      }
-      if (request.GetLimitsSince() > 0)
-      {
-        sql += " OFFSET " + boost::lexical_cast<std::string>(request.GetLimitsSince());
-      }
+      sql += formatter.FormatLimits(request.GetLimitsSince(), request.GetLimitsCount());
     }
 
   }
