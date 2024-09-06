@@ -296,7 +296,7 @@ enum TransactionOperation {
   OPERATION_INCREMENT_GLOBAL_PROPERTY = 48;   // New in Orthanc 1.12.3
   OPERATION_UPDATE_AND_GET_STATISTICS = 49;   // New in Orthanc 1.12.3
   OPERATION_FIND = 50;                        // New in Orthanc 1.12.5
-  OPERATION_GET_CHANGES_2 = 51;               // New in Orthanc 1.12.5
+  OPERATION_GET_CHANGES_EXTENDED = 51;        // New in Orthanc 1.12.5
 }
 
 message Rollback {
