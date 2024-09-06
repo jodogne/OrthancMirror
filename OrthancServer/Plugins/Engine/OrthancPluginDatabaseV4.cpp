@@ -644,12 +644,12 @@ namespace Orthanc
       request.mutable_get_changes_extended()->set_change_type(changeType);
       ExecuteTransaction(response, DatabasePluginMessages::OPERATION_GET_CHANGES_EXTENDED, request);
 
-      done = response.get_changes().done();
+      done = response.get_changes_extended().done();
 
       target.clear();
-      for (int i = 0; i < response.get_changes().changes().size(); i++)
+      for (int i = 0; i < response.get_changes_extended().changes().size(); i++)
       {
-        target.push_back(Convert(response.get_changes().changes(i)));
+        target.push_back(Convert(response.get_changes_extended().changes(i)));
       }
     }
 
