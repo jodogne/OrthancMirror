@@ -24,6 +24,7 @@
 #pragma once
 
 #include "../Search/DatabaseLookup.h"
+#include "../Search/DatabaseConstraints.h"
 
 #include <boost/noncopyable.hpp>
 
