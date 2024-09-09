@@ -839,6 +839,7 @@ namespace Orthanc
 
       LOG(WARNING) << "W001: Accessing DICOM tags from storage when accessing "
                    << Orthanc::GetResourceTypeText(resource.GetLevel(), false, false)
+                   << " " << resource.GetIdentifier()
                    << ": " << missings;
     }
 
@@ -901,6 +902,13 @@ namespace Orthanc
   void ResourceFinder::Execute(IVisitor& visitor,
                                ServerContext& context) const
   {
+    bool isWarning002Enabled = false;
+
+    {
+      OrthancConfiguration::ReaderLock lock;
+      isWarning002Enabled = lock.GetConfiguration().IsWarningEnabled(Warnings_002_InconsistentDicomTagsInDb);
+    }
+
     FindResponse response;
     context.GetIndex().ExecuteFind(response, request_);
 
@@ -958,6 +966,19 @@ namespace Orthanc
             ReadMissingTagsFromStorageArea(requestedTags, context, request_, resource, missingTags);
           }
         }
+
+        std::string mainDicomTagsSignature;
+        if (isWarning002Enabled &&
+            resource.LookupMetadata(mainDicomTagsSignature, resource.GetLevel(), MetadataType_MainDicomTagsSignature) &&
+            mainDicomTagsSignature != DicomMap::GetMainDicomTagsSignature(resource.GetLevel()))
+        {
+          LOG(WARNING) << "W002: " << Orthanc::GetResourceTypeText(resource.GetLevel(), false , false)
+                      << " has been stored with another version of Main Dicom Tags list, you should POST to /"
+                      << Orthanc::GetResourceTypeText(resource.GetLevel(), true, false)
+                      << "/" << resource.GetIdentifier()
+                      << "/reconstruct to update the list of tags saved in DB or run the Housekeeper plugin.  Some MainDicomTags might be missing from this answer.";
+        }
+
       }
 
       bool match = true;
