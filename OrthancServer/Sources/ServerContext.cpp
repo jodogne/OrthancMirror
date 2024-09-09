@@ -1943,6 +1943,7 @@ namespace Orthanc
       }
     }
 
+#if ORTHANC_ENABLE_PLUGINS == 1
     if (HasPlugins() && GetPlugins().HasCustomTranscoder())
     {
       LOG(INFO) << "The plugins and built-in image decoders failed to decode a frame, "
@@ -1960,6 +1961,7 @@ namespace Orthanc
         return file->DecodeFrame(frameIndex);
       }
     }
+#endif
 
     return NULL;
   }
