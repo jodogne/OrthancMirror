@@ -25,15 +25,7 @@
 
 #if ORTHANC_ENABLE_PLUGINS == 1
 
-/**
- * NB: Conversions to/from "OrthancPluginConstraintType" and
- * "OrthancPluginResourceType" are located in file
- * "../../Sources/Search/DatabaseConstraint.h" to be shared with the
- * "orthanc-databases" project.
- **/
-
 #include "../../../OrthancFramework/Sources/MetricsRegistry.h"
-#include "../../Sources/Search/DatabaseConstraint.h"
 #include "../../Sources/ServerEnumerations.h"
 #include "../Include/orthanc/OrthancCPlugin.h"
 
@@ -75,6 +67,12 @@ namespace Orthanc
     StorageCommitmentFailureReason Convert(OrthancPluginStorageCommitmentFailureReason reason);
 
     MetricsUpdatePolicy Convert(OrthancPluginMetricsType type);
+
+    OrthancPluginResourceType Convert(ResourceType type);
+
+    ResourceType Convert(OrthancPluginResourceType type);
+
+    OrthancPluginConstraintType Convert(ConstraintType constraint);
   }
 }
 

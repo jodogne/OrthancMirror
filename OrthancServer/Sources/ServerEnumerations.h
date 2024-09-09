@@ -112,6 +112,15 @@ namespace Orthanc
     TransactionType_ReadWrite
   };
 
+  enum ConstraintType
+  {
+    ConstraintType_Equal,
+    ConstraintType_SmallerOrEqual,
+    ConstraintType_GreaterOrEqual,
+    ConstraintType_Wildcard,
+    ConstraintType_List
+  };
+
 
   /**
    * WARNING: Do not change the explicit values in the enumerations
