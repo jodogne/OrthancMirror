@@ -24,7 +24,7 @@
 #pragma once
 
 #include "../../../OrthancFramework/Sources/DicomFormat/DicomTag.h"
-#include "../Search/DatabaseConstraint.h"
+#include "../Search/DatabaseConstraints.h"
 #include "../Search/DicomTagConstraint.h"
 #include "../Search/ISqlLookupFormatter.h"
 #include "../ServerEnumerations.h"

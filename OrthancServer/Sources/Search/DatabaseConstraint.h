@@ -30,8 +30,6 @@
 #  include "../../Plugins/Include/orthanc/OrthancCDatabasePlugin.h"
 #endif
 
-#include <deque>
-
 namespace Orthanc
 {
   class DatabaseConstraint : public boost::noncopyable
@@ -99,36 +97,5 @@ namespace Orthanc
     void EncodeForPlugins(OrthancPluginDatabaseConstraint& constraint,
                           std::vector<const char*>& tmpValues) const;
 #endif    
-  };
-
-
-  class DatabaseConstraints : public boost::noncopyable
-  {
-  private:
-    std::deque<DatabaseConstraint*>  constraints_;
-
-  public:
-    ~DatabaseConstraints()
-    {
-      Clear();
-    }
-
-    void Clear();
-
-    void AddConstraint(DatabaseConstraint* constraint);  // Takes ownership
-
-    bool IsEmpty() const
-    {
-      return constraints_.empty();
-    }
-
-    size_t GetSize() const
-    {
-      return constraints_.size();
-    }
-
-    const DatabaseConstraint& GetConstraint(size_t index) const;
-
-    std::string Format() const;
   };
 }
