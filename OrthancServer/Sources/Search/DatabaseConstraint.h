@@ -23,40 +23,17 @@
 
 #pragma once
 
+#include "../../../OrthancFramework/Sources/DicomFormat/DicomMap.h"
+#include "../ServerEnumerations.h"
+
 #if ORTHANC_ENABLE_PLUGINS == 1
 #  include "../../Plugins/Include/orthanc/OrthancCDatabasePlugin.h"
 #endif
-
-#include "../../../OrthancFramework/Sources/DicomFormat/DicomMap.h"
 
 #include <deque>
 
 namespace Orthanc
 {
-  enum ConstraintType
-  {
-    ConstraintType_Equal,
-    ConstraintType_SmallerOrEqual,
-    ConstraintType_GreaterOrEqual,
-    ConstraintType_Wildcard,
-    ConstraintType_List
-  };
-
-
-#if ORTHANC_ENABLE_PLUGINS == 1
-  namespace Plugins
-  {
-    OrthancPluginResourceType Convert(ResourceType type);
-
-    ResourceType Convert(OrthancPluginResourceType type);
-
-    OrthancPluginConstraintType Convert(ConstraintType constraint);
-
-    ConstraintType Convert(OrthancPluginConstraintType constraint);
-  }
-#endif
-
-
   class DatabaseConstraint : public boost::noncopyable
   {
   private:
@@ -76,10 +53,6 @@ namespace Orthanc
                        const std::vector<std::string>& values,
                        bool caseSensitive,
                        bool mandatory);
-
-#if ORTHANC_ENABLE_PLUGINS == 1
-    explicit DatabaseConstraint(const OrthancPluginDatabaseConstraint& constraint);
-#endif
     
     ResourceType GetLevel() const
     {
