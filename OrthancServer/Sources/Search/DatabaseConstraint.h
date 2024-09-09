@@ -23,28 +23,11 @@
 
 #pragma once
 
-#if !defined(ORTHANC_BUILDING_SERVER_LIBRARY)
-#  error Macro ORTHANC_BUILDING_SERVER_LIBRARY must be defined
-#endif
-
-#if ORTHANC_BUILDING_SERVER_LIBRARY == 1
-#  include "../../../OrthancFramework/Sources/DicomFormat/DicomMap.h"
-#else
-// This is for the "orthanc-databases" project to reuse this file
-#  include <DicomFormat/DicomMap.h>
-#endif
-
-#define ORTHANC_PLUGINS_HAS_DATABASE_CONSTRAINT 0
-
 #if ORTHANC_ENABLE_PLUGINS == 1
-#  include <orthanc/OrthancCDatabasePlugin.h>
-#  if defined(ORTHANC_PLUGINS_VERSION_IS_ABOVE)      // Macro introduced in 1.3.1
-#    if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 5, 2)
-#      undef  ORTHANC_PLUGINS_HAS_DATABASE_CONSTRAINT
-#      define ORTHANC_PLUGINS_HAS_DATABASE_CONSTRAINT 1
-#    endif
-#  endif
+#  include "../../Plugins/Include/orthanc/OrthancCDatabasePlugin.h"
 #endif
+
+#include "../../../OrthancFramework/Sources/DicomFormat/DicomMap.h"
 
 #include <deque>
 
@@ -59,27 +42,21 @@ namespace Orthanc
     ConstraintType_List
   };
 
+
+#if ORTHANC_ENABLE_PLUGINS == 1
   namespace Plugins
   {
-#if ORTHANC_ENABLE_PLUGINS == 1
     OrthancPluginResourceType Convert(ResourceType type);
-#endif
 
-#if ORTHANC_ENABLE_PLUGINS == 1
     ResourceType Convert(OrthancPluginResourceType type);
-#endif
 
-#if ORTHANC_PLUGINS_HAS_DATABASE_CONSTRAINT == 1
     OrthancPluginConstraintType Convert(ConstraintType constraint);
-#endif
 
-#if ORTHANC_PLUGINS_HAS_DATABASE_CONSTRAINT == 1
     ConstraintType Convert(OrthancPluginConstraintType constraint);
-#endif
   }
+#endif
 
 
-  // This class is also used by the "orthanc-databases" project
   class DatabaseConstraint : public boost::noncopyable
   {
   private:
@@ -100,7 +77,7 @@ namespace Orthanc
                        bool caseSensitive,
                        bool mandatory);
 
-#if ORTHANC_PLUGINS_HAS_DATABASE_CONSTRAINT == 1
+#if ORTHANC_ENABLE_PLUGINS == 1
     explicit DatabaseConstraint(const OrthancPluginDatabaseConstraint& constraint);
 #endif
     
@@ -145,7 +122,7 @@ namespace Orthanc
 
     bool IsMatch(const DicomMap& dicom) const;
 
-#if ORTHANC_PLUGINS_HAS_DATABASE_CONSTRAINT == 1
+#if ORTHANC_ENABLE_PLUGINS == 1
     void EncodeForPlugins(OrthancPluginDatabaseConstraint& constraint,
                           std::vector<const char*>& tmpValues) const;
 #endif    

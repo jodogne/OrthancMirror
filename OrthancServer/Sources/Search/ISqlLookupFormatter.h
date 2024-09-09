@@ -23,11 +23,7 @@
 
 #pragma once
 
-#if ORTHANC_BUILDING_SERVER_LIBRARY == 1
-#  include "../../../OrthancFramework/Sources/Enumerations.h"
-#else
-#  include <Enumerations.h>
-#endif
+#include "../../../OrthancFramework/Sources/Enumerations.h"
 
 #include <boost/noncopyable.hpp>
 #include <vector>
@@ -44,7 +40,6 @@ namespace Orthanc
     LabelsConstraint_None
   };
 
-  // This class is also used by the "orthanc-databases" project
   class ISqlLookupFormatter : public boost::noncopyable
   {
   public:
@@ -88,10 +83,8 @@ namespace Orthanc
                                  LabelsConstraint labelsConstraint,    // New in Orthanc 1.12.0
                                  size_t limit);
 
-#if ORTHANC_BUILDING_SERVER_LIBRARY == 1
     static void Apply(std::string& sql,
                       ISqlLookupFormatter& formatter,
                       const FindRequest& request);
-#endif
   };
 }

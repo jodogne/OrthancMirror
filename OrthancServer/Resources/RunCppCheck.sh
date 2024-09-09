@@ -55,7 +55,6 @@ ${CPPCHECK} --enable=all --quiet --std=c++11 \
             -DJSONCPP_VERSION_MAJOR=1 \
             -DJSONCPP_VERSION_MINOR=0 \
             -DORTHANC_BUILDING_FRAMEWORK_LIBRARY=0 \
-            -DORTHANC_BUILDING_SERVER_LIBRARY=1 \
             -DORTHANC_BUILD_UNIT_TESTS=1 \
             -DORTHANC_ENABLE_BASE64=1 \
             -DORTHANC_ENABLE_CIVETWEB=1 \

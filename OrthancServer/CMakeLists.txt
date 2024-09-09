@@ -332,7 +332,6 @@ endif()
 
 add_definitions(
   -DORTHANC_BUILD_UNIT_TESTS=1
-  -DORTHANC_BUILDING_SERVER_LIBRARY=1
 
   # Macros for the plugins
   -DHAS_ORTHANC_EXCEPTION=0

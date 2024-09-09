@@ -21,25 +21,12 @@
  **/
 
 
-#if !defined(ORTHANC_BUILDING_SERVER_LIBRARY)
-#  error Macro ORTHANC_BUILDING_SERVER_LIBRARY must be defined
-#endif
-
-#if ORTHANC_BUILDING_SERVER_LIBRARY == 1
-#  include "../PrecompiledHeadersServer.h"
-#endif
-
+#include "../PrecompiledHeadersServer.h"
 #include "ISqlLookupFormatter.h"
 
-#if ORTHANC_BUILDING_SERVER_LIBRARY == 1
-#  include "../../../OrthancFramework/Sources/OrthancException.h"
-#  include "../../../OrthancFramework/Sources/Toolbox.h"
-#  include "../Database/FindRequest.h"
-#else
-#  include <OrthancException.h>
-#  include <Toolbox.h>
-#endif
-
+#include "../../../OrthancFramework/Sources/OrthancException.h"
+#include "../../../OrthancFramework/Sources/Toolbox.h"
+#include "../Database/FindRequest.h"
 #include "DatabaseConstraint.h"
 
 #include <cassert>
@@ -617,7 +604,7 @@ namespace Orthanc
     }
   }
 
-#if ORTHANC_BUILDING_SERVER_LIBRARY == 1
+
   void ISqlLookupFormatter::Apply(std::string& sql,
                                   ISqlLookupFormatter& formatter,
                                   const FindRequest& request)
@@ -754,9 +741,7 @@ namespace Orthanc
     {
       sql += formatter.FormatLimits(request.GetLimitsSince(), request.GetLimitsCount());
     }
-
   }
-#endif
 
 
   void ISqlLookupFormatter::ApplySingleLevel(std::string& sql,
@@ -872,5 +857,4 @@ namespace Orthanc
       sql += " LIMIT " + boost::lexical_cast<std::string>(limit);
     }
   }
-
 }

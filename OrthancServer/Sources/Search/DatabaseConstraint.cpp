@@ -21,21 +21,10 @@
  **/
 
 
-#if !defined(ORTHANC_BUILDING_SERVER_LIBRARY)
-#  error Macro ORTHANC_BUILDING_SERVER_LIBRARY must be defined
-#endif
-
-#if ORTHANC_BUILDING_SERVER_LIBRARY == 1
-#  include "../PrecompiledHeadersServer.h"
-#endif
-
+#include "../PrecompiledHeadersServer.h"
 #include "DatabaseConstraint.h"
 
-#if ORTHANC_BUILDING_SERVER_LIBRARY == 1
-#  include "../../../OrthancFramework/Sources/OrthancException.h"
-#else
-#  include <OrthancException.h>
-#endif
+#include "../../../OrthancFramework/Sources/OrthancException.h"
 
 #include <boost/lexical_cast.hpp>
 #include <cassert>
@@ -93,7 +82,7 @@ namespace Orthanc
 #endif
 
 
-#if ORTHANC_PLUGINS_HAS_DATABASE_CONSTRAINT == 1
+#if ORTHANC_ENABLE_PLUGINS == 1
     OrthancPluginConstraintType Convert(ConstraintType constraint)
     {
       switch (constraint)
@@ -120,7 +109,7 @@ namespace Orthanc
 #endif    
 
     
-#if ORTHANC_PLUGINS_HAS_DATABASE_CONSTRAINT == 1
+#if ORTHANC_ENABLE_PLUGINS == 1
     ConstraintType Convert(OrthancPluginConstraintType constraint)
     {
       switch (constraint)
@@ -170,7 +159,7 @@ namespace Orthanc
   }      
 
     
-#if ORTHANC_PLUGINS_HAS_DATABASE_CONSTRAINT == 1
+#if ORTHANC_ENABLE_PLUGINS == 1
   DatabaseConstraint::DatabaseConstraint(const OrthancPluginDatabaseConstraint& constraint) :
     level_(Plugins::Convert(constraint.level)),
     tag_(constraint.tagGroup, constraint.tagElement),
@@ -222,7 +211,7 @@ namespace Orthanc
   }
 
 
-#if ORTHANC_PLUGINS_HAS_DATABASE_CONSTRAINT == 1
+#if ORTHANC_ENABLE_PLUGINS == 1
   void DatabaseConstraint::EncodeForPlugins(OrthancPluginDatabaseConstraint& constraint,
                                             std::vector<const char*>& tmpValues) const
   {
