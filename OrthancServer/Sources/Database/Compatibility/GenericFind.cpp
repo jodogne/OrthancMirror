@@ -129,13 +129,30 @@ namespace Orthanc
           !request.GetOrthancIdentifiers().HasSeriesId() &&
           !request.GetOrthancIdentifiers().HasInstanceId())
       {
-        if (request.HasLimits())
+        if (!request.HasLimits())
+        {
+          transaction_.GetAllPublicIds(identifiers, request.GetLevel());
+        }
+        else if (request.GetLimitsCount() != 0)
         {
           transaction_.GetAllPublicIds(identifiers, request.GetLevel(), request.GetLimitsSince(), request.GetLimitsCount());
         }
         else
         {
-          transaction_.GetAllPublicIds(identifiers, request.GetLevel());
+          // Starting with Orthanc 1.12.5, "limit=0" means "no limit"
+          std::list<std::string> tmp;
+          transaction_.GetAllPublicIds(tmp, request.GetLevel());
+
+          size_t count = 0;
+          for (std::list<std::string>::const_iterator it = tmp.begin(); it != tmp.end(); ++it)
+          {
+            if (count >= request.GetLimitsSince())
+            {
+              identifiers.push_back(*it);
+            }
+
+            count++;
+          }
         }
       }
       else if (IsRequestWithoutContraint(request) &&
