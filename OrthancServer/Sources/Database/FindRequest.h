@@ -254,7 +254,7 @@ namespace Orthanc
     ChildrenSpecification                retrieveChildrenStudies_;
     ChildrenSpecification                retrieveChildrenSeries_;
     ChildrenSpecification                retrieveChildrenInstances_;
-    bool                                 retrieveOneInstanceIdentifier_;
+    bool                                 retrieveOneInstanceMetadataAndAttachments_;
 
     std::unique_ptr<MainDicomTagsRegistry>  mainDicomTagsRegistry_;
 
@@ -413,13 +413,8 @@ namespace Orthanc
       return const_cast<FindRequest&>(*this).GetChildrenSpecification(level);
     }
 
-    void SetRetrieveOneInstanceIdentifier(bool retrieve);
+    void SetRetrieveOneInstanceMetadataAndAttachments(bool retrieve);
 
-    bool IsRetrieveOneInstanceIdentifier() const
-    {
-      return (retrieveOneInstanceIdentifier_ ||
-              (level_ != ResourceType_Instance &&
-               GetChildrenSpecification(ResourceType_Instance).IsRetrieveIdentifiers()));
-    }
+    bool IsRetrieveOneInstanceMetadataAndAttachments() const;
   };
 }

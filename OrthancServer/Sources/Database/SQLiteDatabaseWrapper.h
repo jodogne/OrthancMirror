@@ -102,7 +102,8 @@ namespace Orthanc
 
     virtual bool HasIntegratedFind() const ORTHANC_OVERRIDE
     {
-      return true;
+      //return true;   // => This uses optimized SQL commands
+      return false;   // => This uses Compatibility/GenericFind
     }
 
     /**

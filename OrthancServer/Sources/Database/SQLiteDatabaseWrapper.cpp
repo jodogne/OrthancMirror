@@ -588,9 +588,12 @@ namespace Orthanc
         }
       }
 
-      // need one instance identifier ?  TODO: it might be actually more interesting to retrieve directly the attachment ids ....
-      if (request.IsRetrieveOneInstanceIdentifier())
+      if (request.IsRetrieveOneInstanceMetadataAndAttachments())
       {
+        throw OrthancException(ErrorCode_NotImplemented);
+
+#if 0
+        // need one instance identifier ?  TODO: it might be actually more interesting to retrieve directly the attachment ids ....
         if (requestLevel == ResourceType_Series)
         {
           sql = "SELECT Lookup.internalId, childLevel.publicId "
@@ -637,6 +640,7 @@ namespace Orthanc
         {
           throw OrthancException(ErrorCode_InternalError);
         }
+#endif
       }
 
       // need children metadata ?

@@ -661,7 +661,7 @@ namespace Orthanc
         LOG(WARNING) << "Requested tag " << tag.Format()
                      << " should only be read at the study, series, or instance level";
         requestedTagsFromFileStorage_.insert(tag);
-        request_.SetRetrieveOneInstanceIdentifier(true);
+        request_.SetRetrieveOneInstanceMetadataAndAttachments(true);
       }
       else
       {
@@ -687,7 +687,7 @@ namespace Orthanc
         LOG(WARNING) << "Requested tag " << tag.Format()
                      << " should only be read at the series or instance level";
         requestedTagsFromFileStorage_.insert(tag);
-        request_.SetRetrieveOneInstanceIdentifier(true);
+        request_.SetRetrieveOneInstanceMetadataAndAttachments(true);
       }
       else
       {
@@ -714,7 +714,7 @@ namespace Orthanc
         LOG(WARNING) << "Requested tag " << tag.Format()
                      << " should only be read at the instance level";
         requestedTagsFromFileStorage_.insert(tag);
-        request_.SetRetrieveOneInstanceIdentifier(true);
+        request_.SetRetrieveOneInstanceMetadataAndAttachments(true);
       }
       else
       {
@@ -780,7 +780,7 @@ namespace Orthanc
 
       if (request_.GetLevel() != ResourceType_Instance)
       {
-        request_.SetRetrieveOneInstanceIdentifier(true);
+        request_.SetRetrieveOneInstanceMetadataAndAttachments(true);
       }
 
       hasRequestedTags_ = true;
@@ -843,43 +843,70 @@ namespace Orthanc
                    << ": " << missings;
     }
 
-    std::string instancePublicId;
+    // TODO-FIND: What do we do if the DICOM has been removed since the request?
+    // Do we fail, or do we skip the resource?
 
-    if (request.IsRetrieveOneInstanceIdentifier())
+    Json::Value tmpDicomAsJson;
+
+    if (request.GetLevel() == ResourceType_Instance &&
+        request.IsRetrieveMetadata() &&
+        request.IsRetrieveAttachments())
     {
-      instancePublicId = resource.GetOneInstanceIdentifier();
+      LOG(INFO) << "Will retrieve missing DICOM tags from instance: " << resource.GetIdentifier();
+
+      context.ReadDicomAsJson(tmpDicomAsJson, resource.GetIdentifier(), resource.GetMetadata(ResourceType_Instance),
+                              resource.GetAttachments(), missingTags /* ignoreTagLength */);
     }
-    else if (request.GetLevel() == ResourceType_Instance)
+    else if (request.GetLevel() != ResourceType_Instance &&
+             request.IsRetrieveOneInstanceMetadataAndAttachments())
     {
-      instancePublicId = resource.GetIdentifier();
+      LOG(INFO) << "Will retrieve missing DICOM tags from instance: " << resource.GetOneInstancePublicId();
+
+      context.ReadDicomAsJson(tmpDicomAsJson, resource.GetOneInstancePublicId(), resource.GetOneInstanceMetadata(),
+                              resource.GetOneInstanceAttachments(), missingTags /* ignoreTagLength */);
     }
     else
     {
+      // TODO-FIND: This fallback shouldn't be necessary
+
       FindRequest requestDicomAttachment(request.GetLevel());
       requestDicomAttachment.SetOrthancId(request.GetLevel(), resource.GetIdentifier());
-      requestDicomAttachment.SetRetrieveOneInstanceIdentifier(true);
+
+      if (request.GetLevel() == ResourceType_Instance)
+      {
+        requestDicomAttachment.SetRetrieveMetadata(true);
+        requestDicomAttachment.SetRetrieveAttachments(true);
+      }
+      else
+      {
+        requestDicomAttachment.SetRetrieveOneInstanceMetadataAndAttachments(true);
+      }
 
       FindResponse responseDicomAttachment;
       context.GetIndex().ExecuteFind(responseDicomAttachment, requestDicomAttachment);
 
-      if (responseDicomAttachment.GetSize() != 1 ||
-          !responseDicomAttachment.GetResourceByIndex(0).HasOneInstanceIdentifier())
+      if (responseDicomAttachment.GetSize() != 1)
       {
         throw OrthancException(ErrorCode_InexistentFile);
       }
       else
       {
-        instancePublicId = responseDicomAttachment.GetResourceByIndex(0).GetOneInstanceIdentifier();
+        const FindResponse::Resource& response = responseDicomAttachment.GetResourceByIndex(0);
+        const std::string instancePublicId = response.GetIdentifier();
+        LOG(INFO) << "Will retrieve missing DICOM tags from instance: " << instancePublicId;
+
+        if (request.GetLevel() == ResourceType_Instance)
+        {
+          context.ReadDicomAsJson(tmpDicomAsJson, response.GetIdentifier(), response.GetMetadata(ResourceType_Instance),
+                                  response.GetAttachments(), missingTags /* ignoreTagLength */);
+        }
+        else
+        {
+          context.ReadDicomAsJson(tmpDicomAsJson, response.GetOneInstancePublicId(), response.GetOneInstanceMetadata(),
+                                  response.GetOneInstanceAttachments(), missingTags /* ignoreTagLength */);
+        }
       }
     }
-
-    LOG(INFO) << "Will retrieve missing DICOM tags from instance: " << instancePublicId;
-
-    // TODO-FIND: What do we do if the DICOM has been removed since the request?
-    // Do we fail, or do we skip the resource?
-
-    Json::Value tmpDicomAsJson;
-    context.ReadDicomAsJson(tmpDicomAsJson, instancePublicId, missingTags /* ignoreTagLength */);
 
     DicomMap tmpDicomMap;
     tmpDicomMap.FromDicomAsJson(tmpDicomAsJson, false /* append */, true /* parseSequences*/);

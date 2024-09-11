@@ -123,6 +123,10 @@ namespace Orthanc
       ChildrenInformation                   childrenInstancesInformation_;
       std::set<std::string>                 labels_;
       std::map<FileContentType, FileInfo>   attachments_;
+      bool                                  hasOneInstanceMetadataAndAttachments_;
+      std::string                           oneInstancePublicId_;
+      std::map<MetadataType, std::string>   oneInstanceMetadata_;
+      std::map<FileContentType, FileInfo>   oneInstanceAttachments_;
 
       MainDicomTagsAtLevel& GetMainDicomTagsAtLevel(ResourceType level);
 
@@ -144,7 +148,8 @@ namespace Orthanc
                const std::string& identifier) :
         level_(level),
         internalId_(internalId),
-        identifier_(identifier)
+        identifier_(identifier),
+        hasOneInstanceMetadataAndAttachments_(false)
       {
       }
 
@@ -268,12 +273,20 @@ namespace Orthanc
         return attachments_;
       }
 
-      const std::string& GetOneInstanceIdentifier() const;
+      void SetOneInstanceMetadataAndAttachments(const std::string& instancePublicId,
+                                                const std::map<MetadataType, std::string>& metadata,
+                                                const std::map<FileContentType, FileInfo>& attachments);
 
-      bool HasOneInstanceIdentifier() const
+      bool HasOneInstanceMetadataAndAttachments() const
       {
-        return !GetChildrenIdentifiers(ResourceType_Instance).empty();
+        return hasOneInstanceMetadataAndAttachments_;
       }
+
+      const std::string& GetOneInstancePublicId() const;
+
+      const std::map<MetadataType, std::string>& GetOneInstanceMetadata() const;
+
+      const std::map<FileContentType, FileInfo>& GetOneInstanceAttachments() const;
 
       void DebugExport(Json::Value& target,
                        const FindRequest& request) const;

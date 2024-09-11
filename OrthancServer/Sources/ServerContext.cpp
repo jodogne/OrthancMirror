@@ -1036,9 +1036,89 @@ namespace Orthanc
     dicomAsJson["7fe0,0010"] = pixelData;
   }
 
+
+  static bool LookupMetadata(std::string& value,
+                             MetadataType key,
+                             const std::map<MetadataType, std::string>& instanceMetadata)
+  {
+    std::map<MetadataType, std::string>::const_iterator found = instanceMetadata.find(key);
+
+    if (found == instanceMetadata.end())
+    {
+      return false;
+    }
+    else
+    {
+      value = found->second;
+      return true;
+    }
+  }
+
+
+  static bool LookupAttachment(FileInfo& target,
+                               FileContentType type,
+                               const std::map<FileContentType, FileInfo>& attachments)
+  {
+    std::map<FileContentType, FileInfo>::const_iterator found = attachments.find(type);
+
+    if (found == attachments.end())
+    {
+      return false;
+    }
+    else if (found->second.GetContentType() == type)
+    {
+      target = found->second;
+      return true;
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_DatabasePlugin);
+    }
+  }
+
   
   void ServerContext::ReadDicomAsJson(Json::Value& result,
                                       const std::string& instancePublicId,
+                                      const std::set<DicomTag>& ignoreTagLength)
+  {
+    // TODO-FIND: This is a compatibility method, should be removed
+
+    std::map<MetadataType, std::string> metadata;
+    std::map<FileContentType, FileInfo> attachments;
+
+    FileInfo attachment;
+    int64_t revision;  // Ignored
+
+    if (index_.LookupAttachment(attachment, revision, instancePublicId, FileContentType_Dicom))
+    {
+      attachments[FileContentType_Dicom] = attachment;
+    }
+
+    if (index_.LookupAttachment(attachment, revision, instancePublicId, FileContentType_DicomUntilPixelData))
+    {
+      attachments[FileContentType_DicomUntilPixelData] = attachment;
+    }
+
+    if (index_.LookupAttachment(attachment, revision, instancePublicId, FileContentType_DicomAsJson))
+    {
+      attachments[FileContentType_DicomAsJson] = attachment;
+    }
+
+    std::string s;
+    if (index_.LookupMetadata(s, revision, instancePublicId, ResourceType_Instance,
+                              MetadataType_Instance_PixelDataOffset))
+    {
+      metadata[MetadataType_Instance_PixelDataOffset] = s;
+    }
+
+    ReadDicomAsJson(result, instancePublicId, metadata, attachments, ignoreTagLength);
+  }
+
+
+  void ServerContext::ReadDicomAsJson(Json::Value& result,
+                                      const std::string& instancePublicId,
+                                      const std::map<MetadataType, std::string>& instanceMetadata,
+                                      const std::map<FileContentType, FileInfo>& instanceAttachments,
                                       const std::set<DicomTag>& ignoreTagLength)
   {
     /**
@@ -1049,9 +1129,8 @@ namespace Orthanc
      **/
     
     FileInfo attachment;
-    int64_t revision;  // Ignored
 
-    if (index_.LookupAttachment(attachment, revision, instancePublicId, FileContentType_DicomUntilPixelData))
+    if (LookupAttachment(attachment, FileContentType_DicomUntilPixelData, instanceAttachments))
     {
       std::string dicom;
 
@@ -1077,8 +1156,7 @@ namespace Orthanc
 
       {
         std::string s;
-        if (index_.LookupMetadata(s, revision, instancePublicId, ResourceType_Instance,
-                                  MetadataType_Instance_PixelDataOffset))
+        if (LookupMetadata(s, MetadataType_Instance_PixelDataOffset, instanceMetadata))
         {
           hasPixelDataOffset = false;
 
@@ -1109,7 +1187,7 @@ namespace Orthanc
 
       if (hasPixelDataOffset &&
           area_.HasReadRange() &&
-          index_.LookupAttachment(attachment, revision, instancePublicId, FileContentType_Dicom) &&
+          LookupAttachment(attachment, FileContentType_Dicom, instanceAttachments) &&
           attachment.GetCompressionType() == CompressionType_None)
       {
         /**
@@ -1132,7 +1210,7 @@ namespace Orthanc
         InjectEmptyPixelData(result);
       }
       else if (ignoreTagLength.empty() &&
-               index_.LookupAttachment(attachment, revision, instancePublicId, FileContentType_DicomAsJson))
+               LookupAttachment(attachment, FileContentType_DicomAsJson, instanceAttachments))
       {
         /**
          * CASE 3: This instance was created using Orthanc <=

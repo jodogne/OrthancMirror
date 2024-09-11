@@ -144,9 +144,9 @@ namespace Orthanc
       request_.SetLabelsConstraint(constraint);
     }
 
-    void SetRetrieveOneInstanceIdentifier(bool retrieve)
+    void SetRetrieveOneInstanceMetadataAndAttachments(bool retrieve)
     {
-      request_.SetRetrieveOneInstanceIdentifier(retrieve);
+      request_.SetRetrieveOneInstanceMetadataAndAttachments(retrieve);
     }
 
     void SetRetrieveMetadata(bool retrieve)

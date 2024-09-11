@@ -93,7 +93,7 @@ namespace Orthanc
     retrieveLabels_(false),
     retrieveAttachments_(false),
     retrieveParentIdentifier_(false),
-    retrieveOneInstanceIdentifier_(false)
+    retrieveOneInstanceMetadataAndAttachments_(false)
   {
   }
 
@@ -246,7 +246,7 @@ namespace Orthanc
   }
 
 
-  void FindRequest::SetRetrieveOneInstanceIdentifier(bool retrieve)
+  void FindRequest::SetRetrieveOneInstanceMetadataAndAttachments(bool retrieve)
   {
     if (level_ == ResourceType_Instance)
     {
@@ -254,7 +254,20 @@ namespace Orthanc
     }
     else
     {
-      retrieveOneInstanceIdentifier_ = retrieve;
+      retrieveOneInstanceMetadataAndAttachments_ = retrieve;
+    }
+  }
+
+
+  bool FindRequest::IsRetrieveOneInstanceMetadataAndAttachments() const
+  {
+    if (level_ == ResourceType_Instance)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    else
+    {
+      return retrieveOneInstanceMetadataAndAttachments_;
     }
   }
 }
