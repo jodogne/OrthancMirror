@@ -881,7 +881,7 @@ message Find {        // New in Orthanc 1.12.5
     bool retrieve_labels = 102;
     bool retrieve_attachments = 103;
     bool retrieve_parent_identifier = 104;
-    bool retrieve_at_least_one_instance = 105;
+    bool retrieve_one_instance_metadata_and_attachments = 105;
     ParentSpecification parent_patient = 106;
     ParentSpecification parent_study = 107;
     ParentSpecification parent_series = 108;
@@ -931,6 +931,9 @@ message Find {        // New in Orthanc 1.12.5
     ChildrenContent children_studies_content = 10;
     ChildrenContent children_series_content = 11;
     ChildrenContent children_instances_content = 12;
+    string one_instance_public_id = 13;
+    repeated Metadata one_instance_metadata = 14;
+    repeated FileInfo one_instance_attachments = 15;
   }
 }
 

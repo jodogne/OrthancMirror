@@ -373,10 +373,16 @@ namespace Orthanc
 
     void ReadDicomAsJson(Json::Value& result,
                          const std::string& instancePublicId,
+                         const std::map<MetadataType, std::string>& instanceMetadata,
+                         const std::map<FileContentType, FileInfo>& instanceAttachments,
                          const std::set<DicomTag>& ignoreTagLength);
 
     void ReadDicomAsJson(Json::Value& result,
-                         const std::string& instancePublicId);
+                         const std::string& instancePublicId,
+                         const std::set<DicomTag>& ignoreTagLength);  // TODO-FIND: Can this be removed?
+
+    void ReadDicomAsJson(Json::Value& result,
+                         const std::string& instancePublicId);  // TODO-FIND: Can this be removed?
 
     void ReadDicom(std::string& dicom,
                    const std::string& instancePublicId);
