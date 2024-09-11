@@ -401,7 +401,7 @@ namespace Orthanc
 
       if (level != request.GetLevel())
       {
-        throw OrthancException(ErrorCode_DatabasePlugin);
+        throw OrthancException(ErrorCode_UnknownResource, "Wrong resource level for this ID");  // this might happen e.g if you call /instances/... with a series instance id
       }
 
       std::unique_ptr<FindResponse::Resource> resource(new FindResponse::Resource(request.GetLevel(), internalId, identifier));
