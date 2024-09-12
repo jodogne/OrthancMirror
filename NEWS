@@ -8,6 +8,7 @@ Pending changes in the mainline
 REST API
 --------
 
+* API version upgraded to 25
 * Improved parsing of multiple numerical values in DICOM tags.
   https://discourse.orthanc-server.org/t/qido-includefield-with-sequences/4746/6
 * in /system, added a new field "Capabilities" with new values:
