@@ -505,6 +505,54 @@ namespace Orthanc
   }
 
 
+  void FindResponse::Resource::SetOneInstancePublicId(const std::string& instancePublicId)
+  {
+    SetOneInstanceMetadataAndAttachments(instancePublicId, std::map<MetadataType, std::string>(),
+                                         std::map<FileContentType, FileInfo>());
+  }
+
+
+  void FindResponse::Resource::AddOneInstanceMetadata(MetadataType metadata,
+                                                      const std::string& value)
+  {
+    if (hasOneInstanceMetadataAndAttachments_)
+    {
+      if (oneInstanceMetadata_.find(metadata) == oneInstanceMetadata_.end())
+      {
+        oneInstanceMetadata_[metadata] = value;
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_BadSequenceOfCalls, "Metadata already exists");
+      }
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+  }
+
+
+  void FindResponse::Resource::AddOneInstanceAttachment(const FileInfo& attachment)
+  {
+    if (hasOneInstanceMetadataAndAttachments_)
+    {
+      if (oneInstanceAttachments_.find(attachment.GetContentType()) == oneInstanceAttachments_.end())
+      {
+        oneInstanceAttachments_[attachment.GetContentType()] = attachment;
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_BadSequenceOfCalls, "Attachment already exists");
+      }
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+  }
+
+
   const std::string& FindResponse::Resource::GetOneInstancePublicId() const
   {
     if (hasOneInstanceMetadataAndAttachments_)
@@ -591,7 +639,7 @@ namespace Orthanc
   static void DebugAttachments(Json::Value& target,
                                const std::map<FileContentType, FileInfo>& attachments)
   {
-    Json::Value v = Json::objectValue;
+    target = Json::objectValue;
     for (std::map<FileContentType, FileInfo>::const_iterator it = attachments.begin();
          it != attachments.end(); ++it)
     {
@@ -601,7 +649,7 @@ namespace Orthanc
       }
       else
       {
-        DebugAddAttachment(v, it->second);
+        DebugAddAttachment(target, it->second);
       }
     }
   }
@@ -701,7 +749,8 @@ namespace Orthanc
       DebugAttachments(target["Attachments"], attachments_);
     }
 
-    if (request.IsRetrieveOneInstanceMetadataAndAttachments())
+    if (request.GetLevel() != ResourceType_Instance &&
+        request.IsRetrieveOneInstanceMetadataAndAttachments())
     {
       DebugMetadata(target["OneInstance"]["Metadata"], GetOneInstanceMetadata());
       DebugAttachments(target["OneInstance"]["Attachments"], GetOneInstanceAttachments());

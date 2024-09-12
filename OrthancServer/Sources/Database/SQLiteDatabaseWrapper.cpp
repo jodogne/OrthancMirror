@@ -68,12 +68,19 @@ namespace Orthanc
     virtual std::string FormatLimits(uint64_t since, uint64_t count) ORTHANC_OVERRIDE
     {
       std::string sql;
+
       if (count > 0)
       {
         sql += " LIMIT " + boost::lexical_cast<std::string>(count);
       }
+
       if (since > 0)
       {
+        if (count == 0)
+        {
+          sql += " LIMIT -1";  // In SQLite, "OFFSET" cannot appear without "LIMIT"
+        }
+
         sql += " OFFSET " + boost::lexical_cast<std::string>(since);
       }
       
@@ -588,59 +595,94 @@ namespace Orthanc
         }
       }
 
-      if (request.IsRetrieveOneInstanceMetadataAndAttachments())
+      if (request.GetLevel() != ResourceType_Instance &&
+          request.IsRetrieveOneInstanceMetadataAndAttachments())
       {
-        throw OrthancException(ErrorCode_NotImplemented);
-
-#if 0
-        // need one instance identifier ?  TODO: it might be actually more interesting to retrieve directly the attachment ids ....
-        if (requestLevel == ResourceType_Series)
         {
-          sql = "SELECT Lookup.internalId, childLevel.publicId "
-                "FROM Resources AS childLevel "
-                "INNER JOIN Lookup ON childLevel.parentId = Lookup.internalId ";
+          SQLite::Statement s(db_, SQLITE_FROM_HERE, "DROP TABLE IF EXISTS OneInstance");
+          s.Run();
+        }
 
-          SQLite::Statement s(db_, SQLITE_FROM_HERE, sql);
+        switch (requestLevel)
+        {
+          case ResourceType_Patient:
+          {
+            SQLite::Statement s(
+              db_, SQLITE_FROM_HERE,
+              "CREATE TEMPORARY TABLE OneInstance AS "
+              "SELECT Lookup.internalId AS parentInternalId, grandGrandChildLevel.publicId AS instancePublicId, grandGrandChildLevel.internalId AS instanceInternalId "
+              "FROM Resources AS grandGrandChildLevel "
+              "INNER JOIN Resources grandChildLevel ON grandGrandChildLevel.parentId = grandChildLevel.internalId "
+              "INNER JOIN Resources childLevel ON grandChildLevel.parentId = childLevel.internalId "
+              "INNER JOIN Lookup ON childLevel.parentId = Lookup.internalId GROUP BY Lookup.internalId");
+            s.Run();
+            break;
+          }
+
+          case ResourceType_Study:
+          {
+            SQLite::Statement s(
+              db_, SQLITE_FROM_HERE,
+              "CREATE TEMPORARY TABLE OneInstance AS "
+              "SELECT Lookup.internalId AS parentInternalId, grandChildLevel.publicId AS instancePublicId, grandChildLevel.internalId AS instanceInternalId "
+              "FROM Resources AS grandChildLevel "
+              "INNER JOIN Resources childLevel ON grandChildLevel.parentId = childLevel.internalId "
+              "INNER JOIN Lookup ON childLevel.parentId = Lookup.internalId GROUP BY Lookup.internalId");
+            s.Run();
+            break;
+          }
+
+          case ResourceType_Series:
+          {
+            SQLite::Statement s(
+              db_, SQLITE_FROM_HERE,
+              "CREATE TEMPORARY TABLE OneInstance AS "
+              "SELECT Lookup.internalId AS parentInternalId, childLevel.publicId AS instancePublicId, childLevel.internalId AS instanceInternalId "
+              "FROM Resources AS childLevel "
+              "INNER JOIN Lookup ON childLevel.parentId = Lookup.internalId GROUP BY Lookup.internalId");
+            s.Run();
+            break;
+          }
+
+          default:
+            throw OrthancException(ErrorCode_InternalError);
+        }
+
+        {
+          SQLite::Statement s(db_, SQLITE_FROM_HERE, "SELECT parentInternalId, instancePublicId FROM OneInstance");
           while (s.Step())
           {
             FindResponse::Resource& res = response.GetResourceByInternalId(s.ColumnInt64(0));
-            res.AddChildIdentifier(ResourceType_Instance, s.ColumnString(1));
+            res.SetOneInstancePublicId(s.ColumnString(1));
           }
         }
-        else if (requestLevel == ResourceType_Study)
-        {
-          sql = "SELECT Lookup.internalId, grandChildLevel.publicId "
-                "FROM Resources AS grandChildLevel "
-                "INNER JOIN Resources childLevel ON grandChildLevel.parentId = childLevel.internalId "
-                "INNER JOIN Lookup ON childLevel.parentId = Lookup.internalId ";
 
-          SQLite::Statement s(db_, SQLITE_FROM_HERE, sql);
+        {
+          SQLite::Statement s(db_, SQLITE_FROM_HERE, "SELECT OneInstance.parentInternalId, Metadata.type, Metadata.value "
+                              "FROM Metadata INNER JOIN OneInstance ON Metadata.id = OneInstance.instanceInternalId");
           while (s.Step())
           {
             FindResponse::Resource& res = response.GetResourceByInternalId(s.ColumnInt64(0));
-            res.AddChildIdentifier(ResourceType_Instance, s.ColumnString(1));
+            res.AddOneInstanceMetadata(static_cast<MetadataType>(s.ColumnInt(1)), s.ColumnString(2));
           }
         }
-        else if (requestLevel == ResourceType_Patient)
-        {
-          sql = "SELECT Lookup.internalId, grandGrandChildLevel.publicId "
-                "FROM Resources AS grandGrandChildLevel "
-                "INNER JOIN Resources grandChildLevel ON grandGrandChildLevel.parentId = grandChildLevel.internalId "
-                "INNER JOIN Resources childLevel ON grandChildLevel.parentId = childLevel.internalId "
-                "INNER JOIN Lookup ON childLevel.parentId = Lookup.internalId ";
 
-          SQLite::Statement s(db_, SQLITE_FROM_HERE, sql);
+        {
+          SQLite::Statement s(db_, SQLITE_FROM_HERE,
+                              "SELECT OneInstance.parentInternalId, AttachedFiles.fileType, AttachedFiles.uuid, "
+                              "AttachedFiles.uncompressedSize, AttachedFiles.compressedSize, "
+                              "AttachedFiles.compressionType, AttachedFiles.uncompressedMD5, AttachedFiles.compressedMD5 "
+                              "FROM AttachedFiles INNER JOIN OneInstance ON AttachedFiles.id = OneInstance.instanceInternalId");
           while (s.Step())
           {
             FindResponse::Resource& res = response.GetResourceByInternalId(s.ColumnInt64(0));
-            res.AddChildIdentifier(ResourceType_Instance, s.ColumnString(1));
+            res.AddOneInstanceAttachment(
+              FileInfo(s.ColumnString(2), static_cast<FileContentType>(s.ColumnInt(1)),
+                       s.ColumnInt64(3), s.ColumnString(6),
+                       static_cast<CompressionType>(s.ColumnInt(5)),
+                       s.ColumnInt64(4), s.ColumnString(7)));
           }
         }
-        else
-        {
-          throw OrthancException(ErrorCode_InternalError);
-        }
-#endif
       }
 
       // need children metadata ?
@@ -681,7 +723,9 @@ namespace Orthanc
       }
 
       // need children identifiers ?
-      if (requestLevel <= ResourceType_Series && request.GetChildrenSpecification(static_cast<ResourceType>(requestLevel + 1)).IsRetrieveIdentifiers())
+      if ((requestLevel == ResourceType_Patient && request.GetChildrenSpecification(ResourceType_Study).IsRetrieveIdentifiers()) ||
+          (requestLevel == ResourceType_Study && request.GetChildrenSpecification(ResourceType_Series).IsRetrieveIdentifiers()) ||
+          (requestLevel == ResourceType_Series && request.GetChildrenSpecification(ResourceType_Instance).IsRetrieveIdentifiers()))
       {
         sql = "SELECT Lookup.internalId, childLevel.publicId "
               "FROM Resources AS currentLevel "
@@ -697,7 +741,8 @@ namespace Orthanc
       }
 
       // need grandchildren identifiers ?
-      if (requestLevel <= ResourceType_Study && request.GetChildrenSpecification(static_cast<ResourceType>(requestLevel + 2)).IsRetrieveIdentifiers())
+      if ((requestLevel == ResourceType_Patient && request.GetChildrenSpecification(ResourceType_Series).IsRetrieveIdentifiers()) ||
+          (requestLevel == ResourceType_Study && request.GetChildrenSpecification(ResourceType_Instance).IsRetrieveIdentifiers()))
       {
         sql = "SELECT Lookup.internalId, grandChildLevel.publicId "
               "FROM Resources AS currentLevel "
@@ -710,6 +755,24 @@ namespace Orthanc
         {
           FindResponse::Resource& res = response.GetResourceByInternalId(s.ColumnInt64(0));
           res.AddChildIdentifier(static_cast<ResourceType>(requestLevel + 2), s.ColumnString(1));
+        }
+      }
+
+      // need grandgrandchildren identifiers ?
+      if (requestLevel == ResourceType_Patient && request.GetChildrenSpecification(ResourceType_Instance).IsRetrieveIdentifiers())
+      {
+        sql = "SELECT Lookup.internalId, grandGrandChildLevel.publicId "
+              "FROM Resources AS currentLevel "
+              "INNER JOIN Lookup ON currentLevel.internalId = Lookup.internalId "
+              "INNER JOIN Resources childLevel ON currentLevel.internalId = childLevel.parentId "
+              "INNER JOIN Resources grandChildLevel ON childLevel.internalId = grandChildLevel.parentId "
+              "INNER JOIN Resources grandGrandChildLevel ON grandChildLevel.internalId = grandGrandChildLevel.parentId ";
+
+        SQLite::Statement s(db_, SQLITE_FROM_HERE, sql);
+        while (s.Step())
+        {
+          FindResponse::Resource& res = response.GetResourceByInternalId(s.ColumnInt64(0));
+          res.AddChildIdentifier(ResourceType_Instance, s.ColumnString(1));
         }
       }
 
@@ -869,17 +932,11 @@ namespace Orthanc
                                  int64_t since,
                                  uint32_t limit) ORTHANC_OVERRIDE
     {
-      if (limit == 0)
-      {
-        target.clear();
-        return;
-      }
-
       SQLite::Statement s(db_, SQLITE_FROM_HERE,
                           "SELECT publicId FROM Resources WHERE "
                           "resourceType=? LIMIT ? OFFSET ?");
       s.BindInt(0, resourceType);
-      s.BindInt64(1, limit);
+      s.BindInt64(1, limit == 0 ? -1 : limit);  // In SQLite, setting "LIMIT" to "-1" means "no limit"
       s.BindInt64(2, since);
 
       target.clear();
