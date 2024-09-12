@@ -969,6 +969,14 @@ namespace Orthanc
     {
       const FindResponse::Resource& resource = response.GetResourceByIndex(i);
 
+#if 0
+      {
+        Json::Value v;
+        resource.DebugExport(v, request_);
+        std::cout << v.toStyledString();
+      }
+#endif
+
       DicomMap requestedTags;
 
       if (hasRequestedTags_)

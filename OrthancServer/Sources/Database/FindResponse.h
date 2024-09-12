@@ -277,6 +277,13 @@ namespace Orthanc
                                                 const std::map<MetadataType, std::string>& metadata,
                                                 const std::map<FileContentType, FileInfo>& attachments);
 
+      void SetOneInstancePublicId(const std::string& instancePublicId);
+
+      void AddOneInstanceMetadata(MetadataType metadata,
+                                  const std::string& value);
+
+      void AddOneInstanceAttachment(const FileInfo& attachment);
+
       bool HasOneInstanceMetadataAndAttachments() const
       {
         return hasOneInstanceMetadataAndAttachments_;
