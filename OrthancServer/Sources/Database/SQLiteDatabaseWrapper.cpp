@@ -1806,6 +1806,7 @@ namespace Orthanc
     dbCapabilities_.SetFlushToDisk(true);
     dbCapabilities_.SetLabelsSupport(true);
     dbCapabilities_.SetHasExtendedChanges(true);
+    dbCapabilities_.SetHasFindSupport(true);
     db_.Open(path);
   }
 
@@ -1819,6 +1820,7 @@ namespace Orthanc
     dbCapabilities_.SetFlushToDisk(true);
     dbCapabilities_.SetLabelsSupport(true);
     dbCapabilities_.SetHasExtendedChanges(true);
+    dbCapabilities_.SetHasFindSupport(true);
     db_.OpenInMemory();
   }
 

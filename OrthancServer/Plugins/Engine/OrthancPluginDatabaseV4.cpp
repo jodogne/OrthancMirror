@@ -1577,8 +1577,6 @@ namespace Orthanc
 
           response.Add(target.release());
         }
-
-        throw OrthancException(ErrorCode_NotImplemented);
       }
       else
       {

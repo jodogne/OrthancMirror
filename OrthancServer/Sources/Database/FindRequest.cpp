@@ -261,13 +261,6 @@ namespace Orthanc
 
   bool FindRequest::IsRetrieveOneInstanceMetadataAndAttachments() const
   {
-    if (level_ == ResourceType_Instance)
-    {
-      throw OrthancException(ErrorCode_BadSequenceOfCalls);
-    }
-    else
-    {
-      return retrieveOneInstanceMetadataAndAttachments_;
-    }
+    return retrieveOneInstanceMetadataAndAttachments_;
   }
 }

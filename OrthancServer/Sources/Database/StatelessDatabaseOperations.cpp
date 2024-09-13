@@ -3716,6 +3716,12 @@ namespace Orthanc
     return db_.GetDatabaseCapabilities().HasExtendedChanges();
   }
 
+  bool StatelessDatabaseOperations::HasFindSupport()
+  {
+    boost::shared_lock<boost::shared_mutex> lock(mutex_);
+    return db_.GetDatabaseCapabilities().HasFindSupport();
+  }
+
   void StatelessDatabaseOperations::ExecuteFind(FindResponse& response,
                                                 const FindRequest& request)
   {
