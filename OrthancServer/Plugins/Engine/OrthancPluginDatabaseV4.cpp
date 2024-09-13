@@ -1437,7 +1437,15 @@ namespace Orthanc
         dbRequest.mutable_find()->set_retrieve_labels(request.IsRetrieveLabels());
         dbRequest.mutable_find()->set_retrieve_attachments(request.IsRetrieveAttachments());
         dbRequest.mutable_find()->set_retrieve_parent_identifier(request.IsRetrieveParentIdentifier());
-        dbRequest.mutable_find()->set_retrieve_one_instance_metadata_and_attachments(request.IsRetrieveOneInstanceMetadataAndAttachments());
+
+        if (request.GetLevel() == ResourceType_Instance)
+        {
+          dbRequest.mutable_find()->set_retrieve_one_instance_metadata_and_attachments(false);
+        }
+        else
+        {
+          dbRequest.mutable_find()->set_retrieve_one_instance_metadata_and_attachments(request.IsRetrieveOneInstanceMetadataAndAttachments());
+        }
 
         if (request.GetLevel() == ResourceType_Study ||
             request.GetLevel() == ResourceType_Series ||
@@ -1541,7 +1549,8 @@ namespace Orthanc
             Convert(*target, ResourceType_Instance, source.children_instances_content());
           }
 
-          if (request.IsRetrieveOneInstanceMetadataAndAttachments())
+          if (request.GetLevel() != ResourceType_Instance &&
+              request.IsRetrieveOneInstanceMetadataAndAttachments())
           {
             std::map<MetadataType, std::string> metadata;
             for (int i = 0; i < source.one_instance_metadata().size(); i++)
