@@ -679,6 +679,8 @@ namespace Orthanc
 
     bool HasExtendedChanges();
 
+    bool HasFindSupport();
+    
     void GetExportedResources(Json::Value& target,
                               int64_t since,
                               uint32_t limit);
