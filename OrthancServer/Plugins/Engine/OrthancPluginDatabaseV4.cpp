@@ -1525,20 +1525,20 @@ namespace Orthanc
 
           if (request.GetLevel() == ResourceType_Patient)
           {
-            Convert(*target, ResourceType_Patient, source.children_studies_content());
+            Convert(*target, ResourceType_Study, source.children_studies_content());
           }
 
           if (request.GetLevel() == ResourceType_Patient ||
               request.GetLevel() == ResourceType_Study)
           {
-            Convert(*target, ResourceType_Study, source.children_series_content());
+            Convert(*target, ResourceType_Series, source.children_series_content());
           }
 
           if (request.GetLevel() == ResourceType_Patient ||
               request.GetLevel() == ResourceType_Study ||
               request.GetLevel() == ResourceType_Series)
           {
-            Convert(*target, ResourceType_Series, source.children_instances_content());
+            Convert(*target, ResourceType_Instance, source.children_instances_content());
           }
 
           if (request.IsRetrieveOneInstanceMetadataAndAttachments())
