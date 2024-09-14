@@ -438,7 +438,7 @@ namespace Orthanc
         LookupFormatter formatter;
         LookupFormatter::Apply(sql, formatter, request);
 
-        sql = "CREATE TEMPORARY TABLE Lookup AS " + sql;
+        sql = "CREATE TEMPORARY TABLE Lookup AS " + sql;   // TODO-FIND: use a CTE
 
         SQLite::Statement statement(db_, sql);
         formatter.Bind(statement);
@@ -595,11 +595,12 @@ namespace Orthanc
         }
       }
 
+      // need one instance info ?
       if (request.GetLevel() != ResourceType_Instance &&
           request.IsRetrieveOneInstanceMetadataAndAttachments())
       {
         {
-          SQLite::Statement s(db_, SQLITE_FROM_HERE, "DROP TABLE IF EXISTS OneInstance");
+          SQLite::Statement s(db_, SQLITE_FROM_HERE, "DROP TABLE IF EXISTS OneInstance");  // TODO-FIND: use a CTE
           s.Run();
         }
 

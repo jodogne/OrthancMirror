@@ -1570,7 +1570,7 @@ namespace Orthanc
 
             for (int i = 0; i < source.one_instance_attachments().size(); i++)
             {
-              FileInfo info(Convert(source.attachments(i)));
+              FileInfo info(Convert(source.one_instance_attachments(i)));
               if (attachments.find(info.GetContentType()) == attachments.end())
               {
                 attachments[info.GetContentType()] = info;
