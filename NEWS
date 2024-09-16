@@ -5,6 +5,18 @@ Pending changes in the mainline
   - /studies?expand and sibbling routes now also return "Metadata" (if the DB implements 'extended-api-v1')
   - /studies?since=x&limit=0 and sibbling routes: limit=0 now means "no limit" instead of "no results"
 
+General
+-------
+
+* Database:
+  - Introduced database optimizations "ExtendedFind" to replace many small SQL queries
+    by a small number of large SQL queries to greatly reduce the cost of DB latency.
+    Furthermore, this "ExtendedFind" brings new sorting and filtering features to the 
+    Rest API (TODO).
+  - Introduced database optimizations "ExtendedChanges" to allow filtering of /changes.
+  - Reduced the number of SQL queries when ingesting DICOM files.
+
+
 REST API
 --------
 

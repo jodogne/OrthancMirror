@@ -262,6 +262,11 @@
     "Name": "DuplicateResource", 
     "Description": "Duplicate resource"
   }, 
+  {
+    "Code": 47,
+    "Name": "IncompatibleConfigurations", 
+    "Description": "Your configuration file contains configuration that are mutually incompatible"
+  },
 
 
 

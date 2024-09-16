@@ -4369,13 +4369,23 @@ namespace Orthanc
     Register("/series", ListResources<ResourceType_Series>);
     Register("/studies", ListResources<ResourceType_Study>);
 
-    Register("/instances/{id}", DeleteSingleResource<ResourceType_Instance>);
+    if (!context_.IsReadOnly())
+    {
+      Register("/instances/{id}", DeleteSingleResource<ResourceType_Instance>);
+      Register("/patients/{id}", DeleteSingleResource<ResourceType_Patient>);
+      Register("/series/{id}", DeleteSingleResource<ResourceType_Series>);
+      Register("/studies/{id}", DeleteSingleResource<ResourceType_Study>);
+
+      Register("/tools/bulk-delete", BulkDelete);
+    }
+    else
+    {
+      LOG(WARNING) << "READ-ONLY SYSTEM: DELETE routes are not available";
+    }
+
     Register("/instances/{id}", GetSingleResource<ResourceType_Instance>);
-    Register("/patients/{id}", DeleteSingleResource<ResourceType_Patient>);
     Register("/patients/{id}", GetSingleResource<ResourceType_Patient>);
-    Register("/series/{id}", DeleteSingleResource<ResourceType_Series>);
     Register("/series/{id}", GetSingleResource<ResourceType_Series>);
-    Register("/studies/{id}", DeleteSingleResource<ResourceType_Study>);
     Register("/studies/{id}", GetSingleResource<ResourceType_Study>);
 
     Register("/instances/{id}/statistics", GetResourceStatistics);
@@ -4420,7 +4430,16 @@ namespace Orthanc
     Register("/instances/{id}/numpy", GetNumpyInstance);  // New in Orthanc 1.10.0
 
     Register("/patients/{id}/protected", IsProtectedPatient);
-    Register("/patients/{id}/protected", SetPatientProtection);
+  
+    if (!context_.IsReadOnly())
+    {
+      Register("/patients/{id}/protected", SetPatientProtection);
+    }
+    else
+    {
+      LOG(WARNING) << "READ-ONLY SYSTEM: PUT /patients/{id}/protected route is not available";
+    }
+
 
     std::vector<std::string> resourceTypes;
     resourceTypes.push_back("patients");
@@ -4438,14 +4457,15 @@ namespace Orthanc
       // New in Orthanc 1.12.0
       Register("/" + resourceTypes[i] + "/{id}/labels", ListLabels);
       Register("/" + resourceTypes[i] + "/{id}/labels/{label}", GetLabel);
-      Register("/" + resourceTypes[i] + "/{id}/labels/{label}", RemoveLabel);
-      Register("/" + resourceTypes[i] + "/{id}/labels/{label}", AddLabel);
+
+      if (!context_.IsReadOnly())
+      {
+        Register("/" + resourceTypes[i] + "/{id}/labels/{label}", RemoveLabel);
+        Register("/" + resourceTypes[i] + "/{id}/labels/{label}", AddLabel);
+      }
 
       Register("/" + resourceTypes[i] + "/{id}/attachments", ListAttachments);
-      Register("/" + resourceTypes[i] + "/{id}/attachments/{name}", DeleteAttachment);
       Register("/" + resourceTypes[i] + "/{id}/attachments/{name}", GetAttachmentOperations);
-      Register("/" + resourceTypes[i] + "/{id}/attachments/{name}", UploadAttachment);
-      Register("/" + resourceTypes[i] + "/{id}/attachments/{name}/compress", ChangeAttachmentCompression<CompressionType_ZlibWithSize>);
       Register("/" + resourceTypes[i] + "/{id}/attachments/{name}/compressed-data", GetAttachmentData<0>);
       Register("/" + resourceTypes[i] + "/{id}/attachments/{name}/compressed-md5", GetAttachmentCompressedMD5);
       Register("/" + resourceTypes[i] + "/{id}/attachments/{name}/compressed-size", GetAttachmentCompressedSize);
@@ -4453,12 +4473,29 @@ namespace Orthanc
       Register("/" + resourceTypes[i] + "/{id}/attachments/{name}/is-compressed", IsAttachmentCompressed);
       Register("/" + resourceTypes[i] + "/{id}/attachments/{name}/md5", GetAttachmentMD5);
       Register("/" + resourceTypes[i] + "/{id}/attachments/{name}/size", GetAttachmentSize);
-      Register("/" + resourceTypes[i] + "/{id}/attachments/{name}/uncompress", ChangeAttachmentCompression<CompressionType_None>);
       Register("/" + resourceTypes[i] + "/{id}/attachments/{name}/info", GetAttachmentInfo);
       Register("/" + resourceTypes[i] + "/{id}/attachments/{name}/verify-md5", VerifyAttachment);
+
+      if (!context_.IsReadOnly())
+      {
+        Register("/" + resourceTypes[i] + "/{id}/attachments/{name}", DeleteAttachment);
+        Register("/" + resourceTypes[i] + "/{id}/attachments/{name}", UploadAttachment);
+        Register("/" + resourceTypes[i] + "/{id}/attachments/{name}/compress", ChangeAttachmentCompression<CompressionType_ZlibWithSize>);
+        Register("/" + resourceTypes[i] + "/{id}/attachments/{name}/uncompress", ChangeAttachmentCompression<CompressionType_None>);
+      }
     }
 
-    Register("/tools/invalidate-tags", InvalidateTags);
+    if (context_.IsReadOnly())
+    {
+      LOG(WARNING) << "READ-ONLY SYSTEM: deactivating PUT, POST and DELETE attachments routes";
+      LOG(WARNING) << "READ-ONLY SYSTEM: deactivating PUT and DELETE labels routes";
+    }
+
+    if (!context_.IsReadOnly())
+    {
+      Register("/tools/invalidate-tags", InvalidateTags);
+    }
+
     Register("/tools/lookup", Lookup);
     Register("/tools/find", Find);
 
@@ -4485,13 +4522,19 @@ namespace Orthanc
     Register("/series/{id}/ordered-slices", OrderSlices);
     Register("/series/{id}/numpy", GetNumpySeries);  // New in Orthanc 1.10.0
 
-    Register("/patients/{id}/reconstruct", ReconstructResource<ResourceType_Patient>);
-    Register("/studies/{id}/reconstruct", ReconstructResource<ResourceType_Study>);
-    Register("/series/{id}/reconstruct", ReconstructResource<ResourceType_Series>);
-    Register("/instances/{id}/reconstruct", ReconstructResource<ResourceType_Instance>);
-    Register("/tools/reconstruct", ReconstructAllResources);
+    if (!context_.IsReadOnly())
+    {
+      Register("/patients/{id}/reconstruct", ReconstructResource<ResourceType_Patient>);
+      Register("/studies/{id}/reconstruct", ReconstructResource<ResourceType_Study>);
+      Register("/series/{id}/reconstruct", ReconstructResource<ResourceType_Series>);
+      Register("/instances/{id}/reconstruct", ReconstructResource<ResourceType_Instance>);
+      Register("/tools/reconstruct", ReconstructAllResources);
+    }
+    else
+    {
+      LOG(WARNING) << "READ-ONLY SYSTEM: deactivating /reconstruct routes";
+    }
 
     Register("/tools/bulk-content", BulkContent);
-    Register("/tools/bulk-delete", BulkDelete);
   }
 }

@@ -95,6 +95,7 @@ namespace Orthanc
     static const char* const CAPABILITIES = "Capabilities";
     static const char* const HAS_EXTENDED_CHANGES = "HasExtendedChanges";
     static const char* const HAS_EXTENDED_FIND = "HasExtendedFind";
+    static const char* const READ_ONLY = "ReadOnly";
 
     if (call.IsDocumentation())
     {
@@ -143,6 +144,8 @@ namespace Orthanc
                         "Whether the database back-end supports labels (new in Orthanc 1.12.0)")
         .SetAnswerField(CAPABILITIES, RestApiCallDocumentation::Type_JsonObject,
                         "Whether the back-end supports optional features like 'HasExtendedChanges', 'HasExtendedFind' (new in Orthanc 1.12.5) ")
+        .SetAnswerField(READ_ONLY, RestApiCallDocumentation::Type_Boolean,
+                        "Whether Orthanc is running in read only mode (new in Orthanc 1.12.5)")
         .SetHttpGetSample("https://orthanc.uclouvain.be/demo/system", true);
       return;
     }
@@ -174,6 +177,7 @@ namespace Orthanc
 
     result[STORAGE_AREA_PLUGIN] = Json::nullValue;
     result[DATABASE_BACKEND_PLUGIN] = Json::nullValue;
+    result[READ_ONLY] = context.IsReadOnly();
 
 #if ORTHANC_ENABLE_PLUGINS == 1
     result[PLUGINS_ENABLED] = true;
