@@ -825,6 +825,7 @@ static void PrintErrors(const char* path)
     PrintErrorCode(ErrorCode_MainDicomTagsMultiplyDefined, "A main DICOM Tag has been defined multiple times for the same resource level");
     PrintErrorCode(ErrorCode_ForbiddenAccess, "Access to a resource is forbidden");
     PrintErrorCode(ErrorCode_DuplicateResource, "Duplicate resource");
+    PrintErrorCode(ErrorCode_IncompatibleConfigurations, "Your configuration file contains configuration that are mutually incompatible");
     PrintErrorCode(ErrorCode_SQLiteNotOpened, "SQLite: The database is not opened");
     PrintErrorCode(ErrorCode_SQLiteAlreadyOpened, "SQLite: Connection is already open");
     PrintErrorCode(ErrorCode_SQLiteCannotOpen, "SQLite: Unable to open the database");
@@ -836,7 +837,7 @@ static void PrintErrors(const char* path)
     PrintErrorCode(ErrorCode_SQLiteFlush, "SQLite: Unable to flush the database");
     PrintErrorCode(ErrorCode_SQLiteCannotRun, "SQLite: Cannot run a cached statement");
     PrintErrorCode(ErrorCode_SQLiteCannotStep, "SQLite: Cannot step over a cached statement");
-    PrintErrorCode(ErrorCode_SQLiteBindOutOfRange, "SQLite: Bing a value while out of range (serious error)");
+    PrintErrorCode(ErrorCode_SQLiteBindOutOfRange, "SQLite: Bind a value while out of range (serious error)");
     PrintErrorCode(ErrorCode_SQLitePrepareStatement, "SQLite: Cannot prepare a cached statement");
     PrintErrorCode(ErrorCode_SQLiteTransactionAlreadyStarted, "SQLite: Beginning the same transaction twice");
     PrintErrorCode(ErrorCode_SQLiteTransactionCommit, "SQLite: Failure when committing the transaction");
@@ -1563,41 +1564,57 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
   {
     OrthancConfiguration::ReaderLock lock;
 
-    context.SetCompressionEnabled(lock.GetConfiguration().GetBooleanParameter("StorageCompression", false));
-    context.SetStoreMD5ForAttachments(lock.GetConfiguration().GetBooleanParameter("StoreMD5ForAttachments", true));
+    // New option in Orthanc 1.12.5
+    context.SetReadOnly(lock.GetConfiguration().GetBooleanParameter("ReadOnly", false));
 
-    // New option in Orthanc 1.4.2
-    context.SetOverwriteInstances(lock.GetConfiguration().GetBooleanParameter("OverwriteInstances", false));
+    if (context.IsReadOnly())
+    {
+      LOG(WARNING) << "READ-ONLY SYSTEM: ignoring these configurations: StorageCompression, StoreMD5ForAttachments, OverwriteInstances, MaximumPatientCount, MaximumStorageSize, MaximumStorageMode"; 
 
-    try
-    {
-      context.GetIndex().SetMaximumPatientCount(lock.GetConfiguration().GetUnsignedIntegerParameter("MaximumPatientCount", 0));
+      if (context.IsSaveJobs())
+      {
+        throw OrthancException(ErrorCode_IncompatibleConfigurations, "\"SaveJobs\" can not be true when \"ReadOnly\" is true");
+      }
     }
-    catch (...)
+    else
     {
-      context.GetIndex().SetMaximumPatientCount(0);
+      context.SetCompressionEnabled(lock.GetConfiguration().GetBooleanParameter("StorageCompression", false));
+      context.SetStoreMD5ForAttachments(lock.GetConfiguration().GetBooleanParameter("StoreMD5ForAttachments", true));
+
+      // New option in Orthanc 1.4.2
+      context.SetOverwriteInstances(lock.GetConfiguration().GetBooleanParameter("OverwriteInstances", false));
+
+      try
+      {
+        context.GetIndex().SetMaximumPatientCount(lock.GetConfiguration().GetUnsignedIntegerParameter("MaximumPatientCount", 0));
+      }
+      catch (...)
+      {
+        context.GetIndex().SetMaximumPatientCount(0);
+      }
+
+      try
+      {
+        uint64_t size = lock.GetConfiguration().GetUnsignedIntegerParameter("MaximumStorageSize", 0);
+        context.GetIndex().SetMaximumStorageSize(size * 1024 * 1024);
+      }
+      catch (...)
+      {
+        context.GetIndex().SetMaximumStorageSize(0);
+      }
+
+      try
+      {
+        std::string mode = lock.GetConfiguration().GetStringParameter("MaximumStorageMode", "Recycle");
+        context.GetIndex().SetMaximumStorageMode(StringToMaxStorageMode(mode));
+      }
+      catch (...)
+      {
+        context.GetIndex().SetMaximumStorageMode(MaxStorageMode_Recycle);
+      }
     }
 
-    try
-    {
-      uint64_t size = lock.GetConfiguration().GetUnsignedIntegerParameter("MaximumStorageSize", 0);
-      context.GetIndex().SetMaximumStorageSize(size * 1024 * 1024);
-    }
-    catch (...)
-    {
-      context.GetIndex().SetMaximumStorageSize(0);
-    }
-
-    try
-    {
-      std::string mode = lock.GetConfiguration().GetStringParameter("MaximumStorageMode", "Recycle");
-      context.GetIndex().SetMaximumStorageMode(StringToMaxStorageMode(mode));
-    }
-    catch (...)
-    {
-      context.GetIndex().SetMaximumStorageMode(MaxStorageMode_Recycle);
-    }
-
+    // note: this config is valid in ReadOnlyMode
     try
     {
       uint64_t size = lock.GetConfiguration().GetUnsignedIntegerParameter("MaximumStorageCacheSize", 128);

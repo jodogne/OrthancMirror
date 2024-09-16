@@ -277,6 +277,7 @@ namespace Orthanc
     boost::mutex dynamicOptionsMutex_;
     bool isUnknownSopClassAccepted_;
     std::set<DicomTransferSyntax>  acceptedTransferSyntaxes_;
+    bool readOnly_;
 
     StoreResult StoreAfterTranscoding(std::string& resultPublicId,
                                       DicomInstanceToStore& dicom,
@@ -343,6 +344,21 @@ namespace Orthanc
     bool IsCompressionEnabled() const
     {
       return compressionEnabled_;
+    }
+
+    void SetReadOnly(bool readOnly)
+    {
+      readOnly_ = true;
+    }
+    
+    bool IsReadOnly() const
+    {
+      return readOnly_;
+    }
+
+    bool IsSaveJobs() const
+    {
+      return saveJobs_;
     }
 
     bool AddAttachment(int64_t& newRevision,

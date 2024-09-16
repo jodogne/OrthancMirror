@@ -991,6 +991,13 @@
     // Display a warning message when Orthanc and its plugins are unable
     // to decode a frame (new in Orthanc 1.12.5).
     "W003_DecoderFailure": true
-  }
+  },
+
+  // Configure Orthanc in read only mode.
+  // In this mode, many Orthanc features that requires a write access to the 
+  // Index DB or the disk storage won't be available at all.
+  // (new in Orthanc 1.12.5)
+  "ReadOnly" : false
+
 
 }

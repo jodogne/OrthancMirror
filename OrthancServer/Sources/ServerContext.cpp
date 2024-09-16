@@ -389,7 +389,8 @@ namespace Orthanc
     ingestTranscodingOfCompressed_(true),
     preferredTransferSyntax_(DicomTransferSyntax_LittleEndianExplicit),
     deidentifyLogs_(false),
-    serverStartTimeUtc_(boost::posix_time::second_clock::universal_time())
+    serverStartTimeUtc_(boost::posix_time::second_clock::universal_time()),
+    readOnly_(false)
   {
     try
     {

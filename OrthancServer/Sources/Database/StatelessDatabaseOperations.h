@@ -598,6 +598,7 @@ namespace Orthanc
     boost::shared_mutex                          mutex_;
     std::unique_ptr<ITransactionContextFactory>  factory_;
     unsigned int                                 maxRetries_;
+    bool                                         readOnly_;
 
     void ApplyInternal(IReadOnlyOperations* readOperations,
                        IReadWriteOperations* writeOperations);
@@ -608,7 +609,7 @@ namespace Orthanc
                              unsigned int maximumPatientCount);
 
   public:
-    explicit StatelessDatabaseOperations(IDatabaseWrapper& database);
+    explicit StatelessDatabaseOperations(IDatabaseWrapper& database, bool readOnly);
 
     void SetTransactionContextFactory(ITransactionContextFactory* factory /* takes ownership */);
 

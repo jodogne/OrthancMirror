@@ -481,6 +481,10 @@ namespace Orthanc
         else
         {
           assert(writeOperations != NULL);
+          if (readOnly_)
+          {
+            throw OrthancException(ErrorCode_ReadOnly, "The DB is trying to execute a ReadWrite transaction while Orthanc has been started in ReadOnly mode.");
+          }
           
           Transaction transaction(db_, *factory_, TransactionType_ReadWrite);
           {
@@ -518,10 +522,11 @@ namespace Orthanc
   }
 
   
-  StatelessDatabaseOperations::StatelessDatabaseOperations(IDatabaseWrapper& db) : 
+  StatelessDatabaseOperations::StatelessDatabaseOperations(IDatabaseWrapper& db, bool readOnly) : 
     db_(db),
     mainDicomTagsRegistry_(new MainDicomTagsRegistry),
-    maxRetries_(0)
+    maxRetries_(0),
+    readOnly_(readOnly)
   {
   }
 

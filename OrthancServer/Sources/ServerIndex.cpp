@@ -347,7 +347,7 @@ namespace Orthanc
   ServerIndex::ServerIndex(ServerContext& context,
                            IDatabaseWrapper& db,
                            unsigned int threadSleepGranularityMilliseconds) :
-    StatelessDatabaseOperations(db),
+    StatelessDatabaseOperations(db, context.IsReadOnly()),
     done_(false),
     maximumStorageMode_(MaxStorageMode_Recycle),
     maximumStorageSize_(0),
@@ -357,12 +357,22 @@ namespace Orthanc
 
     // Initial recycling if the parameters have changed since the last
     // execution of Orthanc
-    StandaloneRecycling(maximumStorageMode_, maximumStorageSize_, maximumPatients_);
+    if (!context.IsReadOnly())
+    {
+      StandaloneRecycling(maximumStorageMode_, maximumStorageSize_, maximumPatients_);
+    }
 
     // For some DB engines (like SQLite), make sure we flush the DB to disk at regular interval
     if (GetDatabaseCapabilities().HasFlushToDisk())
     {
-      flushThread_ = boost::thread(FlushThread, this, threadSleepGranularityMilliseconds);
+      if (context.IsReadOnly())
+      {
+        LOG(WARNING) << "READ-ONLY SYSTEM: not starting the flush disk thread";
+      }
+      else
+      {
+        flushThread_ = boost::thread(FlushThread, this, threadSleepGranularityMilliseconds);
+      }
     }
 
     // For some DB plugins that implements the UpdateAndGetStatistics function, updating 
@@ -370,11 +380,25 @@ namespace Orthanc
     // -> make sure they are updated at regular interval
     if (GetDatabaseCapabilities().HasUpdateAndGetStatistics())
     {
-      updateStatisticsThread_ = boost::thread(UpdateStatisticsThread, this, threadSleepGranularityMilliseconds);
+      if (context.IsReadOnly())
+      {
+        LOG(WARNING) << "READ-ONLY SYSTEM: not starting the UpdateStatisticsThread";
+      }
+      else
+      {
+        updateStatisticsThread_ = boost::thread(UpdateStatisticsThread, this, threadSleepGranularityMilliseconds);
+      }
     }
 
-    unstableResourcesMonitorThread_ = boost::thread
-      (UnstableResourcesMonitorThread, this, threadSleepGranularityMilliseconds);
+    if (context.IsReadOnly())
+    {
+      LOG(WARNING) << "READ-ONLY SYSTEM: not starting the unstable resources monitor thread";
+    }
+    else
+    {
+      unstableResourcesMonitorThread_ = boost::thread
+        (UnstableResourcesMonitorThread, this, threadSleepGranularityMilliseconds);
+    }
   }
 
 
