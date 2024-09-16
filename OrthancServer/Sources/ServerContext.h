@@ -348,7 +348,7 @@ namespace Orthanc
 
     void SetReadOnly(bool readOnly)
     {
-      readOnly_ = true;
+      readOnly_ = readOnly;
     }
     
     bool IsReadOnly() const
