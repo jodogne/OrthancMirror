@@ -15,7 +15,9 @@ General
     Rest API (TODO).
   - Introduced database optimizations "ExtendedChanges" to allow filtering of /changes.
   - Reduced the number of SQL queries when ingesting DICOM files.
-
+* Introduced a new configuration "ReadOnly" to forbid an Orthanc instance to perform 
+  any modifications in the Index DB or in the storage.
+  
 
 REST API
 --------
