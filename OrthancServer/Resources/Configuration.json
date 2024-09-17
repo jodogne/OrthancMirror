@@ -985,12 +985,21 @@
     // saved with another "ExtraMainDicomTags" configuration which means that
     // your response might be incomplete/inconsistent.
     // You should call patients|studies|series|instances/../reconstruct to rebuild
-    // the DB.  You may also check for the "Housekeeper" plugin
+    // the DB.  You may also check for the "Housekeeper" plugin.
     "W002_InconsistentDicomTagsInDb": true,
 
     // Display a warning message when Orthanc and its plugins are unable
     // to decode a frame (new in Orthanc 1.12.5).
-    "W003_DecoderFailure": true
+    "W003_DecoderFailure": true,
+
+    // Display a warning when the MainDicomTagsSignature metadata has not been
+    // found which means that the resource has been saved with a version prior
+    // to 1.11.0.
+    // You should call patients|studies|series|instances/../reconstruct to rebuild
+    // the DB.  You may also check for the "Housekeeper" plugin.
+    // (new in Orthanc 1.12.5)
+    "W004_NoMainDicomTagsSignature": true
+
   },
 
   // Configure Orthanc in read only mode.

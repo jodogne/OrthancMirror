@@ -1161,6 +1161,10 @@ namespace Orthanc
         {
           warning = Warnings_003_DecoderFailure;
         }
+        else if (name == "W004_NoMainDicomTagsSignature")
+        {
+          warning = Warnings_004_NoMainDicomTagsSignature;
+        }
         else
         {
           throw OrthancException(ErrorCode_BadFileFormat, name + " is not recognized as a valid warning name");
