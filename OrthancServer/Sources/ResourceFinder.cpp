@@ -807,6 +807,19 @@ namespace Orthanc
     {
       DicomMap m;
       resource.GetMainDicomTags(m, level);
+      
+      // check which tags have been saved in DB
+      std::set<DicomTag> savedMainDicomTags;
+      std::string signature = DicomMap::GetDefaultMainDicomTagsSignature(ResourceType_Study); // default signature in case it's not in the metadata (= the signature for 1.11.0)
+      if (resource.LookupMetadata(signature, level, MetadataType_MainDicomTagsSignature))
+      {
+        if (level == ResourceType_Study) // when we retrieve the study tags, we actually also get the patient tags that are also saved at study level but not included in the signature
+        {
+          signature += ";" + DicomMap::GetDefaultMainDicomTagsSignature(ResourceType_Patient); // append the default signature (from before 1.11.0)
+        }
+
+        FromDcmtkBridge::ParseListOfTags(savedMainDicomTags, signature);
+      }
 
       for (std::set<DicomTag>::const_iterator it = tags.begin(); it != tags.end(); ++it)
       {
@@ -815,9 +828,9 @@ namespace Orthanc
         {
           requestedTags.SetValue(*it, value, false /* not binary */);
         }
-        else
+        else if (savedMainDicomTags.find(*it) == savedMainDicomTags.end())
         {
-          // This is the case where the Housekeeper should be run
+          // This is the case where the Housekeeper should be run because the tag has not been saved in DB
           missingTags.insert(*it);
         }
       }
@@ -930,10 +943,12 @@ namespace Orthanc
                                ServerContext& context) const
   {
     bool isWarning002Enabled = false;
+    bool isWarning004Enabled = false;
 
     {
       OrthancConfiguration::ReaderLock lock;
       isWarning002Enabled = lock.GetConfiguration().IsWarningEnabled(Warnings_002_InconsistentDicomTagsInDb);
+      isWarning004Enabled = lock.GetConfiguration().IsWarningEnabled(Warnings_004_NoMainDicomTagsSignature);
     }
 
     FindResponse response;
@@ -983,7 +998,7 @@ namespace Orthanc
       {
         InjectComputedTags(requestedTags, resource);
 
-        std::set<DicomTag> missingTags = requestedTagsFromFileStorage_;
+        std::set<DicomTag> missingTags = requestedTagsFromFileStorage_;  // this is actually the full list of requestedTags
         InjectRequestedTags(requestedTags, missingTags, resource, ResourceType_Patient, requestedPatientTags_);
         InjectRequestedTags(requestedTags, missingTags, resource, ResourceType_Study, requestedStudyTags_);
         InjectRequestedTags(requestedTags, missingTags, resource, ResourceType_Series, requestedSeriesTags_);
@@ -1009,6 +1024,15 @@ namespace Orthanc
         {
           LOG(WARNING) << "W002: " << Orthanc::GetResourceTypeText(resource.GetLevel(), false , false)
                       << " has been stored with another version of Main Dicom Tags list, you should POST to /"
+                      << Orthanc::GetResourceTypeText(resource.GetLevel(), true, false)
+                      << "/" << resource.GetIdentifier()
+                      << "/reconstruct to update the list of tags saved in DB or run the Housekeeper plugin.  Some MainDicomTags might be missing from this answer.";
+        }
+        else if (isWarning004Enabled &&
+                 !resource.LookupMetadata(mainDicomTagsSignature, resource.GetLevel(), MetadataType_MainDicomTagsSignature))
+        {
+          LOG(WARNING) << "W004: " << Orthanc::GetResourceTypeText(resource.GetLevel(), false , false)
+                      << " has been stored a while ago and does not have a MainDicomTagsSignature, you should POST to /"
                       << Orthanc::GetResourceTypeText(resource.GetLevel(), true, false)
                       << "/" << resource.GetIdentifier()
                       << "/reconstruct to update the list of tags saved in DB or run the Housekeeper plugin.  Some MainDicomTags might be missing from this answer.";
