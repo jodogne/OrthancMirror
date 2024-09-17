@@ -129,7 +129,7 @@ namespace Orthanc
 
     static void SetupFindInstanceTemplate(DicomMap& result);
 
-    void CopyTagIfExists(const DicomMap& source,
+    bool CopyTagIfExists(const DicomMap& source,
                          const DicomTag& tag);
 
     static bool IsMainDicomTag(const DicomTag& tag, ResourceType level);
@@ -141,6 +141,8 @@ namespace Orthanc
     static bool IsComputedTag(const DicomTag& tag);
 
     static bool HasOnlyComputedTags(const std::set<DicomTag>& tags);
+
+    static void RemoveComputedTags(std::set<DicomTag>& tags);
 
     static bool HasComputedTags(const std::set<DicomTag>& tags, ResourceType level);
 
