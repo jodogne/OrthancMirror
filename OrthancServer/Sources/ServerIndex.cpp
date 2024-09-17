@@ -366,7 +366,7 @@ namespace Orthanc
     // For some DB engines (like SQLite), make sure we flush the DB to disk at regular interval
     if (GetDatabaseCapabilities().HasFlushToDisk())
     {
-      if (!readOnly)
+      if (readOnly)
       {
         LOG(WARNING) << "READ-ONLY SYSTEM: not starting the flush disk thread";
       }
@@ -381,7 +381,7 @@ namespace Orthanc
     // -> make sure they are updated at regular interval
     if (GetDatabaseCapabilities().HasUpdateAndGetStatistics())
     {
-      if (!readOnly)
+      if (readOnly)
       {
         LOG(WARNING) << "READ-ONLY SYSTEM: not starting the UpdateStatisticsThread";
       }
@@ -391,7 +391,7 @@ namespace Orthanc
       }
     }
 
-    if (!readOnly)
+    if (readOnly)
     {
       LOG(WARNING) << "READ-ONLY SYSTEM: not starting the unstable resources monitor thread";
     }
