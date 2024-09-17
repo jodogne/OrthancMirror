@@ -72,7 +72,7 @@ namespace Orthanc
     std::set<DicomTag>               requestedStudyTags_;
     std::set<DicomTag>               requestedSeriesTags_;
     std::set<DicomTag>               requestedInstanceTags_;
-    std::set<DicomTag>               requestedTagsFromFileStorage_;
+    std::set<DicomTag>               requestedTags_;
     std::set<DicomTag>               requestedComputedTags_;
 
     bool IsRequestedComputedTag(const DicomTag& tag) const
