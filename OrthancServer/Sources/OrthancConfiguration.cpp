@@ -1165,6 +1165,10 @@ namespace Orthanc
         {
           warning = Warnings_004_NoMainDicomTagsSignature;
         }
+        else if (name == "W005_RequestingTagFromLowerResourceLevel")
+        {
+          warning = Warnings_005_RequestingTagFromLowerResourceLevel;
+        }
         else
         {
           throw OrthancException(ErrorCode_BadFileFormat, name + " is not recognized as a valid warning name");

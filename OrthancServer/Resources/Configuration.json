@@ -998,8 +998,13 @@
     // You should call patients|studies|series|instances/../reconstruct to rebuild
     // the DB.  You may also check for the "Housekeeper" plugin.
     // (new in Orthanc 1.12.5)
-    "W004_NoMainDicomTagsSignature": true
+    "W004_NoMainDicomTagsSignature": true,
 
+    // Display a warning when a user performs a find request and requests a tag
+    // from a lower resource level; e.g. when requesting "StudyDescription" at
+    // Patient level.
+    // (new in Orthanc 1.12.5)
+    "W005_RequestingTagFromLowerResourceLevel": true
   },
 
   // Configure Orthanc in read only mode.

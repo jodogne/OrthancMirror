@@ -484,8 +484,18 @@ namespace Orthanc
     limitsCount_(0),
     expand_(expand),
     allowStorageAccess_(true),
-    hasRequestedTags_(false)
+    isWarning002Enabled_(false),
+    isWarning004Enabled_(false),
+    isWarning005Enabled_(false)
   {
+    {
+      OrthancConfiguration::ReaderLock lock;
+      isWarning002Enabled_ = lock.GetConfiguration().IsWarningEnabled(Warnings_002_InconsistentDicomTagsInDb);
+      isWarning004Enabled_ = lock.GetConfiguration().IsWarningEnabled(Warnings_004_NoMainDicomTagsSignature);
+      isWarning005Enabled_ = lock.GetConfiguration().IsWarningEnabled(Warnings_005_RequestingTagFromLowerResourceLevel);
+    }
+
+
     UpdateRequestLimits();
 
     if (expand)
@@ -621,14 +631,12 @@ namespace Orthanc
   void ResourceFinder::AddRequestedTag(const DicomTag& tag)
   {
     requestedTags_.insert(tag);
-    hasRequestedTags_ = true;
 
     if (DicomMap::IsMainDicomTag(tag, ResourceType_Patient))
     {
       if (request_.GetLevel() == ResourceType_Patient)
       {
         request_.SetRetrieveMainDicomTags(true);
-        requestedPatientTags_.insert(tag);
       }
       else
       {
@@ -636,8 +644,6 @@ namespace Orthanc
          * This comes from the fact that patient-level tags are copied
          * at the study level, as implemented by "ResourcesContent::AddResource()".
          **/
-        requestedStudyTags_.insert(tag);
-
         if (request_.GetLevel() == ResourceType_Study)
         {
           request_.SetRetrieveMainDicomTags(true);
@@ -652,8 +658,11 @@ namespace Orthanc
     {
       if (request_.GetLevel() == ResourceType_Patient)
       {
-        LOG(WARNING) << "Requested tag " << tag.Format()
-                     << " should only be read at the study, series, or instance level";
+        if (isWarning005Enabled_)
+        {
+          LOG(WARNING) << "W005: Requested tag " << tag.Format()
+                       << " should only be read at the study, series, or instance level";
+        }
         request_.SetRetrieveOneInstanceMetadataAndAttachments(true); // we might need to get it from one instance
       }
       else
@@ -666,8 +675,6 @@ namespace Orthanc
         {
           request_.GetParentSpecification(ResourceType_Study).SetRetrieveMainDicomTags(true);
         }
-
-        requestedStudyTags_.insert(tag);
       }
     }
     else if (DicomMap::IsMainDicomTag(tag, ResourceType_Series))
@@ -675,8 +682,11 @@ namespace Orthanc
       if (request_.GetLevel() == ResourceType_Patient ||
           request_.GetLevel() == ResourceType_Study)
       {
-        LOG(WARNING) << "Requested tag " << tag.Format()
-                     << " should only be read at the series or instance level";
+        if (isWarning005Enabled_)
+        {
+          LOG(WARNING) << "W005: Requested tag " << tag.Format()
+                      << " should only be read at the series or instance level";
+        }
         request_.SetRetrieveOneInstanceMetadataAndAttachments(true); // we might need to get it from one instance
       }
       else
@@ -689,8 +699,6 @@ namespace Orthanc
         {
           request_.GetParentSpecification(ResourceType_Series).SetRetrieveMainDicomTags(true);
         }
-
-        requestedSeriesTags_.insert(tag);
       }
     }
     else if (DicomMap::IsMainDicomTag(tag, ResourceType_Instance))
@@ -699,14 +707,16 @@ namespace Orthanc
           request_.GetLevel() == ResourceType_Study ||
           request_.GetLevel() == ResourceType_Series)
       {
-        LOG(WARNING) << "Requested tag " << tag.Format()
-                     << " should only be read at the instance level";
+        if (isWarning005Enabled_)
+        {
+          LOG(WARNING) << "W005: Requested tag " << tag.Format()
+                       << " should only be read at the instance level";
+        }
         request_.SetRetrieveOneInstanceMetadataAndAttachments(true); // we might need to get it from one instance
       }
       else
       {
         request_.SetRetrieveMainDicomTags(true);
-        requestedInstanceTags_.insert(tag);
       }
     }
     else if (tag == DICOM_TAG_NUMBER_OF_PATIENT_RELATED_STUDIES)
@@ -757,7 +767,10 @@ namespace Orthanc
     else
     {
       // This is neither a main DICOM tag, nor a computed DICOM tag:
-      // We might need to access the DICOM file
+      // We might need to access a DICOM file or the MainDicomSequences metadata
+      
+      request_.SetRetrieveMetadata(true);
+
       if (request_.GetLevel() != ResourceType_Instance)
       {
         request_.SetRetrieveOneInstanceMetadataAndAttachments(true);
@@ -974,17 +987,17 @@ namespace Orthanc
 
       DicomMap outRequestedTags;
 
-      if (hasRequestedTags_)
+      if (HasRequestedTags())
       {
         std::set<DicomTag> remainingRequestedTags = requestedTags_; // at this point, all requested tags are "missing"
 
         InjectComputedTags(outRequestedTags, resource);
         Toolbox::RemoveSets(remainingRequestedTags, requestedComputedTags_);
 
-        InjectRequestedTags(outRequestedTags, remainingRequestedTags, resource, ResourceType_Patient /*, requestedPatientTags_*/);
-        InjectRequestedTags(outRequestedTags, remainingRequestedTags, resource, ResourceType_Study /*, requestedStudyTags_*/);
-        InjectRequestedTags(outRequestedTags, remainingRequestedTags, resource, ResourceType_Series /*, requestedSeriesTags_*/);
-        InjectRequestedTags(outRequestedTags, remainingRequestedTags, resource, ResourceType_Instance /*, requestedInstanceTags_*/);
+        InjectRequestedTags(outRequestedTags, remainingRequestedTags, resource, ResourceType_Patient);
+        InjectRequestedTags(outRequestedTags, remainingRequestedTags, resource, ResourceType_Study);
+        InjectRequestedTags(outRequestedTags, remainingRequestedTags, resource, ResourceType_Series);
+        InjectRequestedTags(outRequestedTags, remainingRequestedTags, resource, ResourceType_Instance);
 
         if (!remainingRequestedTags.empty())
         {
@@ -1005,20 +1018,20 @@ namespace Orthanc
             mainDicomTagsSignature != DicomMap::GetMainDicomTagsSignature(resource.GetLevel()))
         {
           LOG(WARNING) << "W002: " << Orthanc::GetResourceTypeText(resource.GetLevel(), false , false)
-                      << " has been stored with another version of Main Dicom Tags list, you should POST to /"
-                      << Orthanc::GetResourceTypeText(resource.GetLevel(), true, false)
-                      << "/" << resource.GetIdentifier()
-                      << "/reconstruct to update the list of tags saved in DB or run the Housekeeper plugin.  Some MainDicomTags might be missing from this answer.";
+                       << " has been stored with another version of Main Dicom Tags list, you should POST to /"
+                       << Orthanc::GetResourceTypeText(resource.GetLevel(), true, false)
+                       << "/" << resource.GetIdentifier()
+                       << "/reconstruct to update the list of tags saved in DB or run the Housekeeper plugin.  Some MainDicomTags might be missing from this answer.";
         }
-        else if (isWarning004Enabled &&
+        else if (isWarning004Enabled && 
+                 request_.IsRetrieveMetadata() &&
                  !resource.LookupMetadata(mainDicomTagsSignature, resource.GetLevel(), MetadataType_MainDicomTagsSignature))
         {
-          // LOG(WARNING) << "W004: " << Orthanc::GetResourceTypeText(resource.GetLevel(), false , false)
-          //             << " has been stored a while ago and does not have a MainDicomTagsSignature, you should POST to /"
-          //             << Orthanc::GetResourceTypeText(resource.GetLevel(), true, false)
-          //             << "/" << resource.GetIdentifier()
-          //             << "/reconstruct to update the list of tags saved in DB or run the Housekeeper plugin.  Some MainDicomTags might be missing from this answer.";
-          // TODO: sometimes, we do not read the metadata at all !
+          LOG(WARNING) << "W004: " << Orthanc::GetResourceTypeText(resource.GetLevel(), false , false)
+                       << " has been stored with an old Orthanc version and does not have a MainDicomTagsSignature, you should POST to /"
+                       << Orthanc::GetResourceTypeText(resource.GetLevel(), true, false)
+                       << "/" << resource.GetIdentifier()
+                       << "/reconstruct to update the list of tags saved in DB or run the Housekeeper plugin.  Some MainDicomTags might be missing from this answer.";
         }
 
       }
@@ -1130,7 +1143,7 @@ namespace Orthanc
 
     target = Json::arrayValue;
 
-    Visitor visitor(*this, context.GetIndex(), target, format, hasRequestedTags_, includeAllMetadata);
+    Visitor visitor(*this, context.GetIndex(), target, format, HasRequestedTags(), includeAllMetadata);
     Execute(visitor, context);
   }
 

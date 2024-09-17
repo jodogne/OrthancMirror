@@ -28,6 +28,8 @@ REST API
 * in /system, added a new field "Capabilities" with new values:
   - "HasExtendedChanges" for DB backend that provides this feature (the default SQLite DB
     or PostgreSQL vX.X, MySQL vX.X, ODBC vX.X).
+  - "HasExendedFind" for DB backend that provides this feature (the default SQLite DB
+    or PostgreSQL vX.X, MySQL vX.X, ODBC vX.X).
 * With DB backend with "HasExtendedChanges" support, /changes now supports 2 more options: 
   - 'type' to filter the changes returned by the query 
   - 'to' to potentially cycle through changes in reverse order.
@@ -51,7 +53,10 @@ Maintenance
 * Added a new fallback when trying to decode a frame: transcode the file using the plugin
   before decoding the frame.  This solves some issues with JP2K Lossy compression:
   https://discourse.orthanc-server.org/t/decoding-displaying-jpeg2000-lossy-images/5117
-* Added a new warning that can be disabled in the configuration: W003_DecoderFailure
+* Added new warnings that can be disabled in the configuration: 
+  - W003_DecoderFailure
+  - W004_NoMainDicomTagsSignature
+  - W005_RequestingTagFromLowerResourceLevel
 
 
 

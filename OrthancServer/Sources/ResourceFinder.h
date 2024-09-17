@@ -67,13 +67,12 @@ namespace Orthanc
     uint64_t                         limitsCount_;
     bool                             expand_;
     bool                             allowStorageAccess_;
-    bool                             hasRequestedTags_;
-    std::set<DicomTag>               requestedPatientTags_;
-    std::set<DicomTag>               requestedStudyTags_;
-    std::set<DicomTag>               requestedSeriesTags_;
-    std::set<DicomTag>               requestedInstanceTags_;
     std::set<DicomTag>               requestedTags_;
     std::set<DicomTag>               requestedComputedTags_;
+
+    bool                             isWarning002Enabled_;
+    bool                             isWarning004Enabled_;
+    bool                             isWarning005Enabled_;
 
     bool IsRequestedComputedTag(const DicomTag& tag) const
     {
@@ -96,6 +95,11 @@ namespace Orthanc
                             const FindResponse::Resource& resource) const;
 
     void UpdateRequestLimits();
+
+    bool HasRequestedTags() const
+    {
+      return requestedTags_.size() > 0;
+    }
 
   public:
     ResourceFinder(ResourceType level,
