@@ -322,7 +322,8 @@ namespace Orthanc
     ServerContext(IDatabaseWrapper& database,
                   IStorageArea& area,
                   bool unitTesting,
-                  size_t maxCompletedJobs);
+                  size_t maxCompletedJobs,
+                  bool readOnly);
 
     ~ServerContext();
 
@@ -345,12 +346,6 @@ namespace Orthanc
     {
       return compressionEnabled_;
     }
-
-    void SetReadOnly(bool readOnly)
-    {
-      readOnly_ = readOnly;
-    }
-    
     bool IsReadOnly() const
     {
       return readOnly_;

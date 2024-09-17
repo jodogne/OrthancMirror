@@ -621,7 +621,7 @@ TEST(ServerIndex, Sequence)
   FilesystemStorage storage(path);
   SQLiteDatabaseWrapper db;   // The SQLite DB is in memory
   db.Open();
-  ServerContext context(db, storage, true /* running unit tests */, 10);
+  ServerContext context(db, storage, true /* running unit tests */, 10, false /* readonly */);
   context.SetupJobsEngine(true, false);
 
   ServerIndex& index = context.GetIndex();
@@ -703,7 +703,7 @@ TEST(ServerIndex, AttachmentRecycling)
   FilesystemStorage storage(path);
   SQLiteDatabaseWrapper db;   // The SQLite DB is in memory
   db.Open();
-  ServerContext context(db, storage, true /* running unit tests */, 10);
+  ServerContext context(db, storage, true /* running unit tests */, 10, false /* readonly */);
   context.SetupJobsEngine(true, false);
   ServerIndex& index = context.GetIndex();
 
@@ -820,7 +820,7 @@ TEST(ServerIndex, Overwrite)
     MemoryStorageArea storage;
     SQLiteDatabaseWrapper db;   // The SQLite DB is in memory
     db.Open();
-    ServerContext context(db, storage, true /* running unit tests */, 10);
+    ServerContext context(db, storage, true /* running unit tests */, 10, false /* readonly */);
     context.SetupJobsEngine(true, false);
     context.SetCompressionEnabled(true);
 
@@ -985,7 +985,7 @@ TEST(ServerIndex, DicomUntilPixelData)
     MemoryStorageArea storage;
     SQLiteDatabaseWrapper db;   // The SQLite DB is in memory
     db.Open();
-    ServerContext context(db, storage, true /* running unit tests */, 10);
+    ServerContext context(db, storage, true /* running unit tests */, 10, false /* readonly */);
     context.SetupJobsEngine(true, false);
     context.SetCompressionEnabled(compression);
 

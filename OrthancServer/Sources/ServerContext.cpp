@@ -361,8 +361,9 @@ namespace Orthanc
   ServerContext::ServerContext(IDatabaseWrapper& database,
                                IStorageArea& area,
                                bool unitTesting,
-                               size_t maxCompletedJobs) :
-    index_(*this, database, (unitTesting ? 20 : 500)),
+                               size_t maxCompletedJobs,
+                               bool readOnly) :
+    index_(*this, database, (unitTesting ? 20 : 500), readOnly),
     area_(area),
     compressionEnabled_(false),
     storeMD5_(true),
@@ -388,9 +389,9 @@ namespace Orthanc
     ingestTranscodingOfUncompressed_(true),
     ingestTranscodingOfCompressed_(true),
     preferredTransferSyntax_(DicomTransferSyntax_LittleEndianExplicit),
+    readOnly_(readOnly),
     deidentifyLogs_(false),
-    serverStartTimeUtc_(boost::posix_time::second_clock::universal_time()),
-    readOnly_(false)
+    serverStartTimeUtc_(boost::posix_time::second_clock::universal_time())
   {
     try
     {

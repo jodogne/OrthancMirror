@@ -1518,6 +1518,7 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
                                    bool loadJobsFromDatabase)
 {
   size_t maxCompletedJobs;
+  bool readOnly;
   
   {
     OrthancConfiguration::ReaderLock lock;
@@ -1545,6 +1546,9 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
       LOG(WARNING) << "Setting option \"JobsHistorySize\" to zero is not recommended";
     }
 
+    // New option in Orthanc 1.12.5
+    readOnly = lock.GetConfiguration().GetBooleanParameter("ReadOnly", false);
+    
     // Configuration of DICOM TLS for Orthanc SCU (since Orthanc 1.9.0)
     DicomAssociationParameters::SetDefaultOwnCertificatePath(
       lock.GetConfiguration().GetStringParameter(KEY_DICOM_TLS_PRIVATE_KEY, ""),
@@ -1559,13 +1563,10 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
       lock.GetConfiguration().GetBooleanParameter(KEY_DICOM_TLS_REMOTE_CERTIFICATE_REQUIRED, true));
   }
   
-  ServerContext context(database, storageArea, false /* not running unit tests */, maxCompletedJobs);
+  ServerContext context(database, storageArea, false /* not running unit tests */, maxCompletedJobs, readOnly);
 
   {
     OrthancConfiguration::ReaderLock lock;
-
-    // New option in Orthanc 1.12.5
-    context.SetReadOnly(lock.GetConfiguration().GetBooleanParameter("ReadOnly", false));
 
     if (context.IsReadOnly())
     {
@@ -1972,7 +1973,7 @@ int main(int argc, char* argv[])
           SQLiteDatabaseWrapper inMemoryDatabase;
           inMemoryDatabase.Open();
           MemoryStorageArea inMemoryStorage;
-          ServerContext context(inMemoryDatabase, inMemoryStorage, true /* unit testing */, 0 /* max completed jobs */);
+          ServerContext context(inMemoryDatabase, inMemoryStorage, true /* unit testing */, 0 /* max completed jobs */, false /* readonly */);
           OrthancRestApi restApi(context, false /* no Orthanc Explorer */);
           restApi.GenerateOpenApiDocumentation(openapi);
           context.Stop();
@@ -2023,7 +2024,7 @@ int main(int argc, char* argv[])
           SQLiteDatabaseWrapper inMemoryDatabase;
           inMemoryDatabase.Open();
           MemoryStorageArea inMemoryStorage;
-          ServerContext context(inMemoryDatabase, inMemoryStorage, true /* unit testing */, 0 /* max completed jobs */);
+          ServerContext context(inMemoryDatabase, inMemoryStorage, true /* unit testing */, 0 /* max completed jobs */, false /* readonly */);
           OrthancRestApi restApi(context, false /* no Orthanc Explorer */);
           restApi.GenerateReStructuredTextCheatSheet(cheatsheet, "https://orthanc.uclouvain.be/api/index.html");
           context.Stop();

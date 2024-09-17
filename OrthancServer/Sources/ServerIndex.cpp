@@ -346,8 +346,9 @@ namespace Orthanc
 
   ServerIndex::ServerIndex(ServerContext& context,
                            IDatabaseWrapper& db,
-                           unsigned int threadSleepGranularityMilliseconds) :
-    StatelessDatabaseOperations(db, context.IsReadOnly()),
+                           unsigned int threadSleepGranularityMilliseconds,
+                           bool readOnly) :
+    StatelessDatabaseOperations(db, readOnly),
     done_(false),
     maximumStorageMode_(MaxStorageMode_Recycle),
     maximumStorageSize_(0),
@@ -357,7 +358,7 @@ namespace Orthanc
 
     // Initial recycling if the parameters have changed since the last
     // execution of Orthanc
-    if (!context.IsReadOnly())
+    if (!readOnly)
     {
       StandaloneRecycling(maximumStorageMode_, maximumStorageSize_, maximumPatients_);
     }
@@ -365,7 +366,7 @@ namespace Orthanc
     // For some DB engines (like SQLite), make sure we flush the DB to disk at regular interval
     if (GetDatabaseCapabilities().HasFlushToDisk())
     {
-      if (context.IsReadOnly())
+      if (!readOnly)
       {
         LOG(WARNING) << "READ-ONLY SYSTEM: not starting the flush disk thread";
       }
@@ -380,7 +381,7 @@ namespace Orthanc
     // -> make sure they are updated at regular interval
     if (GetDatabaseCapabilities().HasUpdateAndGetStatistics())
     {
-      if (context.IsReadOnly())
+      if (!readOnly)
       {
         LOG(WARNING) << "READ-ONLY SYSTEM: not starting the UpdateStatisticsThread";
       }
@@ -390,7 +391,7 @@ namespace Orthanc
       }
     }
 
-    if (context.IsReadOnly())
+    if (!readOnly)
     {
       LOG(WARNING) << "READ-ONLY SYSTEM: not starting the unstable resources monitor thread";
     }

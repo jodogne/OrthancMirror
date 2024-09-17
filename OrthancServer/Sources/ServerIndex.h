@@ -67,7 +67,8 @@ namespace Orthanc
   public:
     ServerIndex(ServerContext& context,
                 IDatabaseWrapper& database,
-                unsigned int threadSleepGranularityMilliseconds);
+                unsigned int threadSleepGranularityMilliseconds,
+                bool readOnly);
 
     ~ServerIndex();
 
