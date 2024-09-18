@@ -810,12 +810,12 @@ namespace Orthanc
       
         // check which tags have been saved in DB; that's the way to know if they are missing because they were not saved or because they have no value
         
-        std::string signature = DicomMap::GetDefaultMainDicomTagsSignature(level); // default signature in case it's not in the metadata (= the signature for 1.11.0)
+        std::string signature = DicomMap::GetDefaultMainDicomTagsSignatureFrom1_11(level); // default signature in case it's not in the metadata (= the signature for 1.11.0)
         if (resource.LookupMetadata(signature, level, MetadataType_MainDicomTagsSignature))
         {
           if (level == ResourceType_Study) // when we retrieve the study tags, we actually also get the patient tags that are also saved at study level but not included in the signature
           {
-            signature += ";" + DicomMap::GetDefaultMainDicomTagsSignature(ResourceType_Patient); // append the default signature (from before 1.11.0)
+            signature += ";" + DicomMap::GetDefaultMainDicomTagsSignatureFrom1_11(ResourceType_Patient); // append the default signature (from before 1.11.0)
           }
 
           FromDcmtkBridge::ParseListOfTags(savedMainDicomTags, signature);
