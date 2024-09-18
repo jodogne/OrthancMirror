@@ -1085,7 +1085,7 @@ TEST(DicomMap, SetupFindTemplates)
     std::set<DicomTag> tags;
     m.GetTags(tags);
 
-    // This corresponds to the values of DEFAULT_PATIENT_MAIN_DICOM_TAGS
+    // This corresponds to the values of DEFAULT_1_11_PATIENT_MAIN_DICOM_TAGS
     ASSERT_EQ(5u, tags.size());
     ASSERT_EQ("", m.GetStringValue(DICOM_TAG_PATIENT_ID, "nope", false));
 

@@ -1008,7 +1008,8 @@ namespace Orthanc
         InjectRequestedTags(outRequestedTags, remainingRequestedTags, resource, ResourceType_Series);
         InjectRequestedTags(outRequestedTags, remainingRequestedTags, resource, ResourceType_Instance);
 
-        if (!remainingRequestedTags.empty())
+        if (!remainingRequestedTags.empty() && 
+            !DicomMap::HasOnlyComputedTags(remainingRequestedTags)) // if the only remaining tags are computed tags, it is worthless to read them from disk
         {
           if (!allowStorageAccess_)
           {

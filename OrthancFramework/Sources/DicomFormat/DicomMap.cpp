@@ -55,9 +55,9 @@ namespace Orthanc
   // These lists have a specific signature.  When a resource does not have
   // the metadata "MainDicomTagsSignature", we'll assume that they were stored
   // with an Orthanc prior to 1.11.  It is therefore very important that you never
-  // change these lists !
+  // change these lists !  Update ResetDefaultMainDicomTags instead.
 
-  static const DicomTag DEFAULT_PATIENT_MAIN_DICOM_TAGS[] =
+  static const DicomTag DEFAULT_1_11_PATIENT_MAIN_DICOM_TAGS[] =
   {
     // { DicomTag(0x0010, 0x1010), "PatientAge" },
     // { DicomTag(0x0010, 0x1040), "PatientAddress" },
@@ -66,9 +66,11 @@ namespace Orthanc
     DICOM_TAG_PATIENT_SEX,
     DICOM_TAG_OTHER_PATIENT_IDS,
     DICOM_TAG_PATIENT_ID
+
+    // don't add tags here, check ResetDefaultMainDicomTags instead
   };
   
-  static const DicomTag DEFAULT_STUDY_MAIN_DICOM_TAGS[] =
+  static const DicomTag DEFAULT_1_11_STUDY_MAIN_DICOM_TAGS[] =
   {
     // { DicomTag(0x0010, 0x1020), "PatientSize" },
     // { DicomTag(0x0010, 0x1030), "PatientWeight" },
@@ -84,9 +86,11 @@ namespace Orthanc
     DICOM_TAG_INSTITUTION_NAME,
     DICOM_TAG_REQUESTING_PHYSICIAN,
     DICOM_TAG_REFERRING_PHYSICIAN_NAME
+
+    // don't add tags here, check ResetDefaultMainDicomTags instead
   };
 
-  static const DicomTag DEFAULT_SERIES_MAIN_DICOM_TAGS[] =
+  static const DicomTag DEFAULT_1_11_SERIES_MAIN_DICOM_TAGS[] =
   {
     // { DicomTag(0x0010, 0x1080), "MilitaryRank" },
     DICOM_TAG_SERIES_DATE,
@@ -113,9 +117,11 @@ namespace Orthanc
     DICOM_TAG_PERFORMED_PROCEDURE_STEP_DESCRIPTION,
     DICOM_TAG_ACQUISITION_DEVICE_PROCESSING_DESCRIPTION,
     DICOM_TAG_CONTRAST_BOLUS_AGENT
+
+    // don't add tags here, check ResetDefaultMainDicomTags instead
   };
 
-  static const DicomTag DEFAULT_INSTANCE_MAIN_DICOM_TAGS[] =
+  static const DicomTag DEFAULT_1_11_INSTANCE_MAIN_DICOM_TAGS[] =
   {
     DICOM_TAG_INSTANCE_CREATION_DATE,
     DICOM_TAG_INSTANCE_CREATION_TIME,
@@ -138,6 +144,8 @@ namespace Orthanc
      * indexed in the database by an older version of Orthanc.
      **/
     DICOM_TAG_IMAGE_ORIENTATION_PATIENT  // New in Orthanc 1.4.2
+
+    // don't add tags here, check ResetDefaultMainDicomTags instead
   };
 
   class DicomMap::MainDicomTagsConfiguration : public boost::noncopyable
@@ -187,23 +195,23 @@ namespace Orthanc
       switch (level)
       {
         case ResourceType_Patient:
-          tags = DEFAULT_PATIENT_MAIN_DICOM_TAGS;
-          size = sizeof(DEFAULT_PATIENT_MAIN_DICOM_TAGS) / sizeof(DicomTag);
+          tags = DEFAULT_1_11_PATIENT_MAIN_DICOM_TAGS;
+          size = sizeof(DEFAULT_1_11_PATIENT_MAIN_DICOM_TAGS) / sizeof(DicomTag);
           break;
 
         case ResourceType_Study:
-          tags = DEFAULT_STUDY_MAIN_DICOM_TAGS;
-          size = sizeof(DEFAULT_STUDY_MAIN_DICOM_TAGS) / sizeof(DicomTag);
+          tags = DEFAULT_1_11_STUDY_MAIN_DICOM_TAGS;
+          size = sizeof(DEFAULT_1_11_STUDY_MAIN_DICOM_TAGS) / sizeof(DicomTag);
           break;
 
         case ResourceType_Series:
-          tags = DEFAULT_SERIES_MAIN_DICOM_TAGS;
-          size = sizeof(DEFAULT_SERIES_MAIN_DICOM_TAGS) / sizeof(DicomTag);
+          tags = DEFAULT_1_11_SERIES_MAIN_DICOM_TAGS;
+          size = sizeof(DEFAULT_1_11_SERIES_MAIN_DICOM_TAGS) / sizeof(DicomTag);
           break;
 
         case ResourceType_Instance:
-          tags = DEFAULT_INSTANCE_MAIN_DICOM_TAGS;
-          size = sizeof(DEFAULT_INSTANCE_MAIN_DICOM_TAGS) / sizeof(DicomTag);
+          tags = DEFAULT_1_11_INSTANCE_MAIN_DICOM_TAGS;
+          size = sizeof(DEFAULT_1_11_INSTANCE_MAIN_DICOM_TAGS) / sizeof(DicomTag);
           break;
 
         default:
@@ -247,7 +255,7 @@ namespace Orthanc
       
       if (existingLevelTags.find(tag) != existingLevelTags.end())
       {
-        throw OrthancException(ErrorCode_MainDicomTagsMultiplyDefined, tag.Format() + " is already defined");
+        throw OrthancException(ErrorCode_MainDicomTagsMultiplyDefined, tag.Format() + " is already defined", false);
       }
 
       existingLevelTags.insert(tag);
@@ -287,6 +295,17 @@ namespace Orthanc
       defaultSignatures_[ResourceType_Study] = signatures_[ResourceType_Study];
       defaultSignatures_[ResourceType_Series] = signatures_[ResourceType_Series];
       defaultSignatures_[ResourceType_Instance] = signatures_[ResourceType_Instance];
+
+      // only add new tags here !
+      // introduced in v 1.12.5
+      AddMainDicomTagInternal(DICOM_TAG_TIMEZONE_OFFSET_FROM_UTC, ResourceType_Study);  // used in default QIDO-RS queries
+      
+      AddMainDicomTagInternal(DICOM_TAG_TIMEZONE_OFFSET_FROM_UTC, ResourceType_Series);  // used in default QIDO-RS queries
+      AddMainDicomTagInternal(DICOM_TAG_PERFORMED_PROCEDURE_STEP_START_DATE, ResourceType_Series);  // used in default QIDO-RS queries
+      AddMainDicomTagInternal(DICOM_TAG_PERFORMED_PROCEDURE_STEP_START_TIME, ResourceType_Series);  // used in default QIDO-RS queries
+      AddMainDicomTagInternal(DICOM_TAG_REQUEST_ATTRIBUTES_SEQUENCE, ResourceType_Series);  // used in default QIDO-RS queries
+
+      // TODO-FIND: remove it from metadata when adding it ! AddMainDicomTagInternal(DICOM_TAG_SOP_CLASS_UID, ResourceType_Instance);  // previously saved in a metadata; makes more sense to store it in a DICOM tag
     }
 
     void AddMainDicomTag(const DicomTag& tag,
