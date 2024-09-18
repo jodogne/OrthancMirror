@@ -347,7 +347,7 @@ namespace Orthanc
       return signatures_[level];
     }
 
-    std::string GetDefaultMainDicomTagsSignature(ResourceType level)
+    std::string GetDefaultMainDicomTagsSignatureFrom1_11(ResourceType level)
     {
 #if !defined(__EMSCRIPTEN__)
       ReaderLock lock(mutex_);
@@ -827,9 +827,9 @@ namespace Orthanc
     return DicomMap::MainDicomTagsConfiguration::GetInstance().GetMainDicomTagsSignature(level);
   }
 
-  std::string DicomMap::GetDefaultMainDicomTagsSignature(ResourceType level)
+  std::string DicomMap::GetDefaultMainDicomTagsSignatureFrom1_11(ResourceType level)
   {
-    return DicomMap::MainDicomTagsConfiguration::GetInstance().GetDefaultMainDicomTagsSignature(level);
+    return DicomMap::MainDicomTagsConfiguration::GetInstance().GetDefaultMainDicomTagsSignatureFrom1_11(level);
   }
 
   void DicomMap::GetTags(std::set<DicomTag>& tags) const

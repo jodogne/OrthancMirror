@@ -741,7 +741,7 @@ namespace Orthanc
             }
 
             // check the main dicom tags list has not changed since the resource was stored
-            target.mainDicomTagsSignature_ = DicomMap::GetDefaultMainDicomTagsSignature(type);
+            target.mainDicomTagsSignature_ = DicomMap::GetDefaultMainDicomTagsSignatureFrom1_11(type);
             LookupStringMetadata(target.mainDicomTagsSignature_, target.metadata_, MetadataType_MainDicomTagsSignature);
           }
 
@@ -789,7 +789,7 @@ namespace Orthanc
                 std::map<MetadataType, std::string> parentMetadata;
                 transaction.GetAllMetadata(parentMetadata, currentParentId);
 
-                std::string parentMainDicomTagsSignature = DicomMap::GetDefaultMainDicomTagsSignature(currentLevel);
+                std::string parentMainDicomTagsSignature = DicomMap::GetDefaultMainDicomTagsSignatureFrom1_11(currentLevel);
                 LookupStringMetadata(parentMainDicomTagsSignature, parentMetadata, MetadataType_MainDicomTagsSignature);
 
                 std::set<DicomTag> parentSavedMainDicomTags;

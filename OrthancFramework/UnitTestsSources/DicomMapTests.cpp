@@ -148,10 +148,10 @@ namespace Orthanc
 
   TEST_F(DicomMapMainTagsTests, Signatures)
   {
-    std::string defaultPatientSignature = DicomMap::GetDefaultMainDicomTagsSignature(ResourceType_Patient);
-    std::string defaultStudySignature = DicomMap::GetDefaultMainDicomTagsSignature(ResourceType_Study);
-    std::string defaultSeriesSignature = DicomMap::GetDefaultMainDicomTagsSignature(ResourceType_Series);
-    std::string defaultInstanceSignature = DicomMap::GetDefaultMainDicomTagsSignature(ResourceType_Instance);
+    std::string defaultPatientSignature = DicomMap::GetDefaultMainDicomTagsSignatureFrom1_11(ResourceType_Patient);
+    std::string defaultStudySignature = DicomMap::GetDefaultMainDicomTagsSignatureFrom1_11(ResourceType_Study);
+    std::string defaultSeriesSignature = DicomMap::GetDefaultMainDicomTagsSignatureFrom1_11(ResourceType_Series);
+    std::string defaultInstanceSignature = DicomMap::GetDefaultMainDicomTagsSignatureFrom1_11(ResourceType_Instance);
 
     ASSERT_NE(defaultInstanceSignature, defaultPatientSignature);
     ASSERT_NE(defaultSeriesSignature, defaultStudySignature);
@@ -162,11 +162,11 @@ namespace Orthanc
     std::string seriesSignature = DicomMap::GetMainDicomTagsSignature(ResourceType_Series);
     std::string instanceSignature = DicomMap::GetMainDicomTagsSignature(ResourceType_Instance);
 
-    // at start, default and current signature should be equal
-    ASSERT_EQ(defaultPatientSignature, patientSignature);
-    ASSERT_EQ(defaultStudySignature, studySignature);
-    ASSERT_EQ(defaultSeriesSignature, seriesSignature);
-    ASSERT_EQ(defaultInstanceSignature, instanceSignature);
+    // // at start, default and current signature should be equal  !! This is not true anymore since we have added new MainDicomTags in 1.12.5
+    // ASSERT_EQ(defaultPatientSignature, patientSignature);
+    // ASSERT_EQ(defaultStudySignature, studySignature);
+    // ASSERT_EQ(defaultSeriesSignature, seriesSignature);
+    // ASSERT_EQ(defaultInstanceSignature, instanceSignature);
 
     DicomMap::AddMainDicomTag(DICOM_TAG_BITS_ALLOCATED, ResourceType_Instance);
     instanceSignature = DicomMap::GetMainDicomTagsSignature(ResourceType_Instance);
@@ -266,6 +266,7 @@ static void TestModule(ResourceType level,
     if (level == ResourceType_Study &&
         (*it == DicomTag(0x0008, 0x0080) ||  /* InstitutionName, from Visit identification module, related to Visit */
          *it == DicomTag(0x0032, 0x1032) ||  /* RequestingPhysician, from Imaging Service Request module, related to Study */
+         *it == DicomTag(0x0008, 0x0201) ||  /* TimezoneOffsetFromUTC */
          *it == DicomTag(0x0032, 0x1060)))   /* RequestedProcedureDescription, from Requested Procedure module, related to Study */
     {
       ok = true;
@@ -284,6 +285,7 @@ static void TestModule(ResourceType level,
          *it == DicomTag(0x0054, 0x0101) ||  /* NumberOfTimeSlices, from PET Series module */
          *it == DicomTag(0x0054, 0x1000) ||  /* SeriesType, from PET Series module */
          *it == DicomTag(0x0018, 0x1400) ||  /* AcquisitionDeviceProcessingDescription, from CR/X-Ray/DX/WholeSlideMicro Image (SIMPLIFICATION => Series) */
+         *it == DicomTag(0x0008, 0x0201) ||  /* TimezoneOffsetFromUTC */
          *it == DicomTag(0x0018, 0x0010)))   /* ContrastBolusAgent, from Contrast/Bolus module (SIMPLIFICATION => Series) */
     {
       ok = true;
