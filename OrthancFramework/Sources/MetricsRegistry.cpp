@@ -139,6 +139,8 @@ namespace Orthanc
 
       void Increment(const T& delta)
       {
+        time_ = GetNow();
+
         if (hasValue_)
         {
           value_ += delta;
@@ -146,6 +148,7 @@ namespace Orthanc
         else
         {
           value_ = delta;
+          hasValue_ = true;
         }
       }
 

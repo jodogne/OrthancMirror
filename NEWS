@@ -21,6 +21,9 @@ Maintenance
   in very specific use-cases.
 * Fix extremely rare error when 2 threads are trying to create the same folder in the File Storage 
   at the same time.
+* Metrics:
+  - fix a few metrics that were not published
+  - added 2 metrics: orthanc_storage_cache_miss_count & orthanc_storage_cache_hit_count 
 * Upgraded dependencies for static builds:
   - curl 8.9.0
 * Added a new fallback when trying to decode a frame: transcode the file using the plugin
