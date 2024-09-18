@@ -739,21 +739,6 @@ namespace Orthanc
     }
   }
 
-  void DicomMap::RemoveComputedTags(std::set<DicomTag>& tags)
-  {
-    std::set<DicomTag> tagsToRemove;
-
-    for (std::set<DicomTag>::const_iterator it = tags.begin(); it != tags.end(); ++it)
-    {
-      if (IsComputedTag(*it))
-      {
-        tagsToRemove.insert(*it);
-      }
-    }
-
-    Toolbox::RemoveSets(tags, tagsToRemove);
-  }
-
   bool DicomMap::HasOnlyComputedTags(const std::set<DicomTag>& tags)
   {
     if (tags.size() == 0)
