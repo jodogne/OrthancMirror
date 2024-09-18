@@ -190,7 +190,7 @@ namespace Orthanc
   {
     // read all main sequences from DB
     std::string serializedSequences;
-    if (resource.LookupMetadata(serializedSequences, resource.GetLevel(), MetadataType_MainDicomSequences))
+    if (resource.LookupMetadata(serializedSequences, level, MetadataType_MainDicomSequences))
     {
       Json::Value jsonMetadata;
       Toolbox::ReadJson(jsonMetadata, serializedSequences);
@@ -651,6 +651,7 @@ namespace Orthanc
         else
         {
           request_.GetParentSpecification(ResourceType_Study).SetRetrieveMainDicomTags(true);
+          request_.GetParentSpecification(ResourceType_Study).SetRetrieveMetadata(true);  // to get the MainDicomSequences
         }
       }
     }
@@ -674,6 +675,7 @@ namespace Orthanc
         else
         {
           request_.GetParentSpecification(ResourceType_Study).SetRetrieveMainDicomTags(true);
+          request_.GetParentSpecification(ResourceType_Study).SetRetrieveMetadata(true);  // to get the MainDicomSequences
         }
       }
     }
@@ -698,6 +700,7 @@ namespace Orthanc
         else
         {
           request_.GetParentSpecification(ResourceType_Series).SetRetrieveMainDicomTags(true);
+          request_.GetParentSpecification(ResourceType_Series).SetRetrieveMetadata(true);  // to get the MainDicomSequences
         }
       }
     }
@@ -794,23 +797,29 @@ namespace Orthanc
                                   ResourceType level/*,
                                   const std::set<DicomTag>& tags*/)
   {
-    if (!remainingRequestedTags.empty())
+    if (!remainingRequestedTags.empty() && level <= resource.GetLevel())
     {
-      DicomMap m;
-      resource.GetAllMainDicomTags(m);                          // DicomTags from DB
-      GetMainDicomSequencesFromMetadata(m, resource, resource.GetLevel());    // DicomSequences from metadata
-      
-      // check which tags have been saved in DB; that's the way to know if they are missing because they were not saved or because they have no value
       std::set<DicomTag> savedMainDicomTags;
-      std::string signature = DicomMap::GetDefaultMainDicomTagsSignature(ResourceType_Study); // default signature in case it's not in the metadata (= the signature for 1.11.0)
-      if (resource.LookupMetadata(signature, resource.GetLevel(), MetadataType_MainDicomTagsSignature))
-      {
-        if (level == ResourceType_Study) // when we retrieve the study tags, we actually also get the patient tags that are also saved at study level but not included in the signature
-        {
-          signature += ";" + DicomMap::GetDefaultMainDicomTagsSignature(ResourceType_Patient); // append the default signature (from before 1.11.0)
-        }
 
-        FromDcmtkBridge::ParseListOfTags(savedMainDicomTags, signature);
+      DicomMap m;
+      resource.GetMainDicomTags(m, level);                          // read DicomTags from DB
+
+      if (resource.GetMetadata(level).size() > 0)
+      {
+        GetMainDicomSequencesFromMetadata(m, resource, level);        // read DicomSequences from metadata
+      
+        // check which tags have been saved in DB; that's the way to know if they are missing because they were not saved or because they have no value
+        
+        std::string signature = DicomMap::GetDefaultMainDicomTagsSignature(ResourceType_Study); // default signature in case it's not in the metadata (= the signature for 1.11.0)
+        if (resource.LookupMetadata(signature, level, MetadataType_MainDicomTagsSignature))
+        {
+          if (level == ResourceType_Study) // when we retrieve the study tags, we actually also get the patient tags that are also saved at study level but not included in the signature
+          {
+            signature += ";" + DicomMap::GetDefaultMainDicomTagsSignature(ResourceType_Patient); // append the default signature (from before 1.11.0)
+          }
+
+          FromDcmtkBridge::ParseListOfTags(savedMainDicomTags, signature);
+        }
       }
 
       std::set<DicomTag> copiedTags;

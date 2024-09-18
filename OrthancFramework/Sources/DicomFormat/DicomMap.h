@@ -142,8 +142,6 @@ namespace Orthanc
 
     static bool HasOnlyComputedTags(const std::set<DicomTag>& tags);
 
-    static void RemoveComputedTags(std::set<DicomTag>& tags);
-
     static bool HasComputedTags(const std::set<DicomTag>& tags, ResourceType level);
 
     static bool HasComputedTags(const std::set<DicomTag>& tags);
