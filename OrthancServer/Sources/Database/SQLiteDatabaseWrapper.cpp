@@ -586,8 +586,8 @@ namespace Orthanc
                "    NULL AS c7_int2, "
                "    NULL AS c8_big_int1, "
                "    NULL AS c9_big_int2 "
-               "   FROM Metadata "
-               "   INNER JOIN OneInstance ON Metadata.id = OneInstance.instanceInternalId ";
+               "   FROM OneInstance "
+               "   INNER JOIN Metadata ON Metadata.id = OneInstance.instanceInternalId ";
               
         sql += "   UNION SELECT"
                "    " TOSTRING(QUERY_ONE_INSTANCE_ATTACHMENTS) " AS c0_queryId, "
@@ -600,8 +600,8 @@ namespace Orthanc
                "    compressionType AS c7_int2, "
                "    compressedSize AS c8_big_int1, "
                "    uncompressedSize AS c9_big_int2 "
-               "   FROM AttachedFiles "
-               "   INNER JOIN OneInstance ON AttachedFiles.id = OneInstance.instanceInternalId ";
+               "   FROM OneInstance "
+               "   INNER JOIN AttachedFiles ON AttachedFiles.id = OneInstance.instanceInternalId ";
 
       }
 
@@ -619,8 +619,8 @@ namespace Orthanc
                "  tagElement AS c7_int2, "
                "  NULL AS c8_big_int1, "
                "  NULL AS c9_big_int2 "
-               "FROM MainDicomTags "
-               "INNER JOIN Lookup ON MainDicomTags.id = Lookup.internalId ";
+               "FROM Lookup "
+               "INNER JOIN MainDicomTags ON MainDicomTags.id = Lookup.internalId ";
       }
 
       // need resource metadata ?
@@ -637,8 +637,8 @@ namespace Orthanc
                "  NULL AS c7_int2, "
                "  NULL AS c8_big_int1, "
                "  NULL AS c9_big_int2 "
-               "FROM Metadata "
-               "INNER JOIN Lookup ON Metadata.id = Lookup.internalId ";
+               "FROM Lookup "
+               "INNER JOIN Metadata ON Metadata.id = Lookup.internalId ";
       }
 
       // need resource attachments ?
@@ -655,8 +655,8 @@ namespace Orthanc
                "  compressionType AS c7_int2, "
                "  compressedSize AS c8_big_int1, "
                "  uncompressedSize AS c9_big_int2 "
-               "FROM AttachedFiles "
-               "INNER JOIN Lookup ON AttachedFiles.id = Lookup.internalId ";
+               "FROM Lookup "
+               "INNER JOIN AttachedFiles ON AttachedFiles.id = Lookup.internalId ";
       }
 
 
@@ -674,8 +674,8 @@ namespace Orthanc
                "  NULL AS c7_int2, "
                "  NULL AS c8_big_int1, "
                "  NULL AS c9_big_int2 "
-               "FROM Labels "
-               "INNER JOIN Lookup ON Labels.id = Lookup.internalId ";
+               "FROM Lookup "
+               "INNER JOIN Labels ON Labels.id = Lookup.internalId ";
       }
 
       if (requestLevel > ResourceType_Patient)
@@ -797,7 +797,7 @@ namespace Orthanc
                 "  NULL AS c9_big_int2 "
                 "FROM Lookup "
                 "  INNER JOIN Resources childLevel ON childLevel.parentId = Lookup.internalId "
-                "  INNER JOIN Resources grandChildLevel ON childLevel.parentId = Lookup.internalId "
+                "  INNER JOIN Resources grandChildLevel ON grandChildLevel.parentId = childLevel.internalId "
                 "  INNER JOIN MainDicomTags ON MainDicomTags.id = grandChildLevel.internalId AND " + JoinRequestedTags(request.GetChildrenSpecification(static_cast<ResourceType>(requestLevel + 2))); 
       }
 
@@ -815,8 +815,8 @@ namespace Orthanc
                "  NULL AS c7_int2, "
                "  NULL AS c8_big_int1, "
                "  NULL AS c9_big_int2 "
-               "FROM Resources AS currentLevel "
-               "  INNER JOIN Lookup ON currentLevel.internalId = Lookup.internalId "
+               "FROM Lookup "
+               "  INNER JOIN Resources currentLevel ON currentLevel.internalId = Lookup.internalId "
                "  INNER JOIN Resources parentLevel ON currentLevel.parentId = parentLevel.internalId ";
       }
 
@@ -855,7 +855,7 @@ namespace Orthanc
                 "  NULL AS c9_big_int2 "
                 "FROM Lookup "
                 "  INNER JOIN Resources childLevel ON childLevel.parentId = Lookup.internalId "
-                "  INNER JOIN Resources grandChildLevel ON childLevel.parentId = Lookup.internalId "
+                "  INNER JOIN Resources grandChildLevel ON grandChildLevel.parentId = childLevel.internalId "
                 "  INNER JOIN Metadata ON Metadata.id = grandChildLevel.internalId AND Metadata.type IN (" + JoinRequestedMetadata(request.GetChildrenSpecification(static_cast<ResourceType>(requestLevel + 2))) + ") ";
       }
 
@@ -875,9 +875,8 @@ namespace Orthanc
                "  NULL AS c7_int2, "
                "  NULL AS c8_big_int1, "
                "  NULL AS c9_big_int2 "
-               "FROM Resources AS currentLevel "
-               "  INNER JOIN Lookup ON currentLevel.internalId = Lookup.internalId "
-               "  INNER JOIN Resources childLevel ON currentLevel.internalId = childLevel.parentId ";
+               "FROM Lookup "
+               "  INNER JOIN Resources childLevel ON Lookup.internalId = childLevel.parentId ";
       }
 
       // need grandchildren identifiers ?
@@ -895,9 +894,8 @@ namespace Orthanc
               "  NULL AS c7_int2, "
               "  NULL AS c8_big_int1, "
               "  NULL AS c9_big_int2 "
-              "FROM Resources AS currentLevel "
-              "INNER JOIN Lookup ON currentLevel.internalId = Lookup.internalId "
-              "INNER JOIN Resources childLevel ON currentLevel.internalId = childLevel.parentId "
+              "FROM Lookup "
+              "INNER JOIN Resources childLevel ON Lookup.internalId = childLevel.parentId "
               "INNER JOIN Resources grandChildLevel ON childLevel.internalId = grandChildLevel.parentId ";
       }
 
@@ -915,9 +913,8 @@ namespace Orthanc
               "  NULL AS c7_int2, "
               "  NULL AS c8_big_int1, "
               "  NULL AS c9_big_int2 "
-              "FROM Resources AS currentLevel "
-              "INNER JOIN Lookup ON currentLevel.internalId = Lookup.internalId "
-              "INNER JOIN Resources childLevel ON currentLevel.internalId = childLevel.parentId "
+              "FROM Lookup "
+              "INNER JOIN Resources childLevel ON Lookup.internalId = childLevel.parentId "
               "INNER JOIN Resources grandChildLevel ON childLevel.internalId = grandChildLevel.parentId "
               "INNER JOIN Resources grandGrandChildLevel ON grandChildLevel.internalId = grandGrandChildLevel.parentId ";
       }
