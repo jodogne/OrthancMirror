@@ -127,7 +127,7 @@ TEST(HttpClient, Ssl)
   // Test file modified on 2020-04-20, in order to use a git
   // repository on BitBucket instead of a Mercurial repository
   // (because Mercurial support disappears on 2020-05-31)
-  c.SetUrl("https://bitbucket.org/osimis/orthanc-setup-samples/raw/master/docker/serve-folders/orthanc/serve-folders.json");
+  c.SetUrl("https://github.com/orthanc-server/orthanc-setup-samples/tree/master/docker/serve-folders/orthanc/serve-folders.json");
 
   Json::Value v;
   c.Apply(v);
@@ -138,7 +138,7 @@ TEST(HttpClient, SslNoVerification)
 {
   HttpClient c;
   c.SetHttpsVerifyPeers(false);
-  c.SetUrl("https://bitbucket.org/osimis/orthanc-setup-samples/raw/master/docker/serve-folders/orthanc/serve-folders.json");
+  c.SetUrl("https://github.com/orthanc-server/orthanc-setup-samples/tree/master/docker/serve-folders/orthanc/serve-folders.json");
 
   Json::Value v;
   c.Apply(v);
