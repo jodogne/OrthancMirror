@@ -774,7 +774,6 @@ extern "C"
     OrthancPluginChangeType_JobSuccess = 17,        /*!< A Job has completed successfully */
     OrthancPluginChangeType_JobFailure = 18,        /*!< A Job has failed */
 
-    _OrthancPluginChangeType_All = 65535,           /*!< All jobs (when used as a filter in GetChanges) */
     _OrthancPluginChangeType_INTERNAL = 0x7fffffff
   } OrthancPluginChangeType;
 

@@ -200,9 +200,7 @@ namespace Orthanc
 
     // The changes below this point are not logged into the database
     ChangeType_Deleted = 4096,
-    ChangeType_NewChildInstance = 4097,
-
-    ChangeType_INTERNAL_All = 65535 // used to filter changes
+    ChangeType_NewChildInstance = 4097
   };
 
   enum BuiltinDecoderTranscoderOrder

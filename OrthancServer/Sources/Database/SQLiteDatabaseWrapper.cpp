@@ -1276,7 +1276,6 @@ namespace Orthanc
       std::vector<std::string> filters;
       bool hasSince = false;
       bool hasTo = false;
-      // bool hasFilterType = false;
 
       if (since > 0)
       {
@@ -1290,7 +1289,6 @@ namespace Orthanc
       }
       if (filterType.size() != 0)
       {
-        // hasFilterType = true;
         filters.push_back("changeType IN ( " + JoinChanges(filterType) +  " )");
       }
 
@@ -1327,10 +1325,7 @@ namespace Orthanc
       {
         s.BindInt64(paramCounter++, to);
       }
-      // if (hasFilterType)
-      // {
-      //   s.BindInt(paramCounter++, filterType);
-      // }
+
       s.BindInt(paramCounter++, limit + 1); // we take limit+1 because we use the +1 to know if "Done" must be set to true
       GetChangesInternal(target, done, s, limit, returnFirstResults);
     }
