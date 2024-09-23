@@ -122,9 +122,6 @@ namespace Orthanc
         case ChangeType_UpdatedMetadata:
           return OrthancPluginChangeType_UpdatedMetadata;
 
-        case ChangeType_INTERNAL_All:
-          return _OrthancPluginChangeType_All;
-
         default:
           throw OrthancException(ErrorCode_ParameterOutOfRange);
       }

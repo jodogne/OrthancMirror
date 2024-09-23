@@ -89,7 +89,7 @@ namespace Orthanc
     ServerContext& context = OrthancRestApi::GetContext(call);
 
     int64_t since, to;
-    std::set<ChangeType> filterType; // = ChangeType_INTERNAL_All;
+    std::set<ChangeType> filterType;
 
     unsigned int limit;
     bool last;
