@@ -89,7 +89,7 @@ namespace Orthanc
     ServerContext& context = OrthancRestApi::GetContext(call);
 
     int64_t since, to;
-    ChangeType filterType = ChangeType_INTERNAL_All;
+    std::set<ChangeType> filterType; // = ChangeType_INTERNAL_All;
 
     unsigned int limit;
     bool last;
@@ -98,7 +98,13 @@ namespace Orthanc
     std::string filterArgument = call.GetArgument("type", "all");
     if (filterArgument != "all" && filterArgument != "All")
     {
-      filterType = StringToChangeType(filterArgument);
+      std::set<std::string> filterTypeStrings;
+      Toolbox::SplitString(filterTypeStrings, filterArgument, ';');
+
+      for (std::set<std::string>::const_iterator it = filterTypeStrings.begin(); it != filterTypeStrings.end(); ++it)
+      {
+        filterType.insert(StringToChangeType(*it));
+      }
     }
 
     Json::Value result;
@@ -112,7 +118,7 @@ namespace Orthanc
     }
     else
     {
-      if (filterType != ChangeType_INTERNAL_All)
+      if (filterType.size() > 0)
       {
         throw OrthancException(ErrorCode_ParameterOutOfRange, "CAPABILITIES: Trying to filter changes while the Database backend does not support it (requires a DB backend with support for ExtendedChanges)");
       }

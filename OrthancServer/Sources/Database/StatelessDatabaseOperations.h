@@ -264,7 +264,7 @@ namespace Orthanc
                               int64_t since,
                               int64_t to,
                               uint32_t limit,
-                              ChangeType filterType)
+                              const std::set<ChangeType>& filterType)
       {
         transaction_.GetChangesExtended(target, done, since, to, limit, filterType);
       }
@@ -674,7 +674,7 @@ namespace Orthanc
                             int64_t since,
                             int64_t to,
                             uint32_t limit,
-                            ChangeType filterType);
+                            const std::set<ChangeType>& filterType);
 
     void GetLastChange(Json::Value& target);
 

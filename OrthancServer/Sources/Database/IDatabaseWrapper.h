@@ -413,7 +413,7 @@ namespace Orthanc
                                       int64_t since,
                                       int64_t to,
                                       uint32_t limit,
-                                      ChangeType filterType) = 0;
+                                      const std::set<ChangeType>& filterType) = 0;
     };
 
 

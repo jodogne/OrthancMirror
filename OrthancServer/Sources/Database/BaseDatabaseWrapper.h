@@ -66,7 +66,7 @@ namespace Orthanc
                                       int64_t since,
                                       int64_t to,
                                       uint32_t limit,
-                                      ChangeType filterType) ORTHANC_OVERRIDE;
+                                      const std::set<ChangeType>& filterType) ORTHANC_OVERRIDE;
     };
 
     virtual uint64_t MeasureLatency() ORTHANC_OVERRIDE;

@@ -1096,9 +1096,9 @@ namespace Orthanc
                                                        int64_t since,
                                                        int64_t to,                               
                                                        unsigned int maxResults,
-                                                       ChangeType changeType)
+                                                       const std::set<ChangeType>& changeType)
   {
-    class Operations : public ReadOnlyOperationsT5<Json::Value&, int64_t, int64_t, unsigned int, unsigned int>
+    class Operations : public ReadOnlyOperationsT5<Json::Value&, int64_t, int64_t, unsigned int, const std::set<ChangeType>&>
     {
     public:
       virtual void ApplyTuple(ReadOnlyTransaction& transaction,
@@ -1109,7 +1109,7 @@ namespace Orthanc
         bool hasLast = false;
         int64_t last = 0;
 
-        transaction.GetChangesExtended(changes, done, tuple.get<1>(), tuple.get<2>(), tuple.get<3>(), static_cast<ChangeType>(tuple.get<4>()));
+        transaction.GetChangesExtended(changes, done, tuple.get<1>(), tuple.get<2>(), tuple.get<3>(), tuple.get<4>());
         if (changes.empty())
         {
           last = transaction.GetLastChangeIndex();

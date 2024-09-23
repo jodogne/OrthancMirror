@@ -4536,5 +4536,5 @@ namespace Orthanc
     }
 
     Register("/tools/bulk-content", BulkContent);
-  }
+   }
 }

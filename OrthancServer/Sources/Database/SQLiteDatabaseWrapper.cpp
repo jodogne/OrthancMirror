@@ -76,6 +76,20 @@ namespace Orthanc
     return sql;
   }
 
+  static std::string JoinChanges(const std::set<ChangeType>& changeTypes)
+  {
+    std::set<std::string> changeTypesString;
+    for (std::set<ChangeType>::const_iterator it = changeTypes.begin(); it != changeTypes.end(); ++it)
+    {
+      changeTypesString.insert(boost::lexical_cast<std::string>(static_cast<uint32_t>(*it)));
+    }
+
+    std::string joinedChangesTypes;
+    Orthanc::Toolbox::JoinStrings(joinedChangesTypes, changeTypesString, ", ");
+
+    return joinedChangesTypes;
+  }
+
   class SQLiteDatabaseWrapper::LookupFormatter : public ISqlLookupFormatter
   {
   private:
@@ -1248,7 +1262,8 @@ namespace Orthanc
                             int64_t since,
                             uint32_t limit) ORTHANC_OVERRIDE
     {
-      GetChangesExtended(target, done, since, -1, limit, ChangeType_INTERNAL_All);
+      std::set<ChangeType> filter;
+      GetChangesExtended(target, done, since, -1, limit, filter);
     }
 
     virtual void GetChangesExtended(std::list<ServerIndexChange>& target /*out*/,
@@ -1256,12 +1271,12 @@ namespace Orthanc
                                     int64_t since,
                                     int64_t to,
                                     uint32_t limit,
-                                    ChangeType filterType) ORTHANC_OVERRIDE
+                                    const std::set<ChangeType>& filterType) ORTHANC_OVERRIDE
     {
       std::vector<std::string> filters;
       bool hasSince = false;
       bool hasTo = false;
-      bool hasFilterType = false;
+      // bool hasFilterType = false;
 
       if (since > 0)
       {
@@ -1273,10 +1288,10 @@ namespace Orthanc
         hasTo = true;
         filters.push_back("seq<=?");
       }
-      if (filterType != ChangeType_INTERNAL_All)
+      if (filterType.size() != 0)
       {
-        hasFilterType = true;
-        filters.push_back("changeType=?");
+        // hasFilterType = true;
+        filters.push_back("changeType IN ( " + JoinChanges(filterType) +  " )");
       }
 
       std::string filtersString;
@@ -1312,10 +1327,10 @@ namespace Orthanc
       {
         s.BindInt64(paramCounter++, to);
       }
-      if (hasFilterType)
-      {
-        s.BindInt(paramCounter++, filterType);
-      }
+      // if (hasFilterType)
+      // {
+      //   s.BindInt(paramCounter++, filterType);
+      // }
       s.BindInt(paramCounter++, limit + 1); // we take limit+1 because we use the +1 to know if "Done" must be set to true
       GetChangesInternal(target, done, s, limit, returnFirstResults);
     }

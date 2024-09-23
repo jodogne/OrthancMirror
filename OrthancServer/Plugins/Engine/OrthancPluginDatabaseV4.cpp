@@ -631,7 +631,7 @@ namespace Orthanc
                                     int64_t since,
                                     int64_t to,
                                     uint32_t limit,
-                                    ChangeType changeType) ORTHANC_OVERRIDE
+                                    const std::set<ChangeType>& changeTypes) ORTHANC_OVERRIDE
     {
       assert(database_.GetDatabaseCapabilities().HasExtendedChanges());
 
@@ -641,7 +641,11 @@ namespace Orthanc
       request.mutable_get_changes_extended()->set_since(since);
       request.mutable_get_changes_extended()->set_limit(limit);
       request.mutable_get_changes_extended()->set_to(to);
-      request.mutable_get_changes_extended()->set_change_type(changeType);
+      for (std::set<ChangeType>::const_iterator it = changeTypes.begin(); it != changeTypes.end(); ++it)
+      {
+        request.mutable_get_changes_extended()->add_change_type(*it);
+      }
+      
       ExecuteTransaction(response, DatabasePluginMessages::OPERATION_GET_CHANGES_EXTENDED, request);
 
       done = response.get_changes_extended().done();
