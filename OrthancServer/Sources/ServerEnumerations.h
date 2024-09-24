@@ -112,6 +112,15 @@ namespace Orthanc
     TransactionType_ReadWrite
   };
 
+  enum ConstraintType
+  {
+    ConstraintType_Equal,
+    ConstraintType_SmallerOrEqual,
+    ConstraintType_GreaterOrEqual,
+    ConstraintType_Wildcard,
+    ConstraintType_List
+  };
+
 
   /**
    * WARNING: Do not change the explicit values in the enumerations
@@ -208,6 +217,8 @@ namespace Orthanc
     Warnings_001_TagsBeingReadFromStorage,
     Warnings_002_InconsistentDicomTagsInDb,
     Warnings_003_DecoderFailure,              // new in Orthanc 1.12.5
+    Warnings_004_NoMainDicomTagsSignature,    // new in Orthanc 1.12.5
+    Warnings_005_RequestingTagFromLowerResourceLevel    // new in Orthanc 1.12.5
   };
 
 
@@ -252,6 +263,8 @@ namespace Orthanc
   const char* EnumerationToString(StoreStatus status);
 
   const char* EnumerationToString(ChangeType type);
+  
+  ChangeType StringToChangeType(const std::string& value);
 
   const char* EnumerationToString(Verbosity verbosity);
 

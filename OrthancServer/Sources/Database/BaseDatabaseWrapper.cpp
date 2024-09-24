@@ -24,6 +24,7 @@
 #include "BaseDatabaseWrapper.h"
 
 #include "../../../OrthancFramework/Sources/OrthancException.h"
+#include "Compatibility/GenericFind.h"
 
 namespace Orthanc
 {
@@ -43,6 +44,44 @@ namespace Orthanc
                                                                     int64_t& uncompressedSize)
   {
     throw OrthancException(ErrorCode_NotImplemented);  // Not supported
+  }
+
+  void BaseDatabaseWrapper::BaseTransaction::GetChangesExtended(std::list<ServerIndexChange>& target /*out*/,
+                                                                bool& done /*out*/,
+                                                                int64_t since,
+                                                                int64_t to,
+                                                                uint32_t limit,
+                                                                const std::set<ChangeType>& filterType)
+  {
+    throw OrthancException(ErrorCode_NotImplemented);  // Not supported
+  }
+
+
+
+  void BaseDatabaseWrapper::BaseTransaction::ExecuteFind(FindResponse& response,
+                                                         const FindRequest& request,
+                                                         const Capabilities& capabilities)
+  {
+    throw OrthancException(ErrorCode_NotImplemented);  // Not supported
+  }
+
+
+  void BaseDatabaseWrapper::BaseTransaction::ExecuteFind(std::list<std::string>& identifiers,
+                                                         const Capabilities& capabilities,
+                                                         const FindRequest& request)
+  {
+    Compatibility::GenericFind find(*this);
+    find.ExecuteFind(identifiers, capabilities, request);
+  }
+
+
+  void BaseDatabaseWrapper::BaseTransaction::ExecuteExpand(FindResponse& response,
+                                                           const Capabilities& capabilities,
+                                                           const FindRequest& request,
+                                                           const std::string& identifier)
+  {
+    Compatibility::GenericFind find(*this);
+    find.ExecuteExpand(response, capabilities, request, identifier);
   }
 
 

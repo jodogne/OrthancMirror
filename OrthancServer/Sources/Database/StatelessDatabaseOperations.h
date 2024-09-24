@@ -25,8 +25,9 @@
 
 #include "../../../OrthancFramework/Sources/DicomFormat/DicomMap.h"
 
-#include "IDatabaseWrapper.h"
 #include "../DicomInstanceOrigin.h"
+#include "IDatabaseWrapper.h"
+#include "MainDicomTagsRegistry.h"
 
 #include <boost/shared_ptr.hpp>
 #include <boost/thread/shared_mutex.hpp>
@@ -80,7 +81,7 @@ namespace Orthanc
       indexInSeries_(0)
     {
     }
-    
+
     void SetResource(ResourceType level,
                      const std::string& id)
     {
@@ -112,15 +113,26 @@ namespace Orthanc
   enum ExpandResourceFlags
   {
     ExpandResourceFlags_None                    = 0,
+    // used to fetch from DB and for output
     ExpandResourceFlags_IncludeMetadata         = (1 << 0),
     ExpandResourceFlags_IncludeChildren         = (1 << 1),
     ExpandResourceFlags_IncludeMainDicomTags    = (1 << 2),
     ExpandResourceFlags_IncludeLabels           = (1 << 3),
 
-    ExpandResourceFlags_Default = (ExpandResourceFlags_IncludeMetadata |
-                                     ExpandResourceFlags_IncludeChildren |
-                                     ExpandResourceFlags_IncludeMainDicomTags |
-                                     ExpandResourceFlags_IncludeLabels)
+    // only used for output
+    ExpandResourceFlags_IncludeAllMetadata      = (1 << 4),  // new in Orthanc 1.12.4
+    ExpandResourceFlags_IncludeIsStable         = (1 << 5),  // new in Orthanc 1.12.4
+
+    ExpandResourceFlags_DefaultExtract = (ExpandResourceFlags_IncludeMetadata |
+                                          ExpandResourceFlags_IncludeChildren |
+                                          ExpandResourceFlags_IncludeMainDicomTags |
+                                          ExpandResourceFlags_IncludeLabels),
+
+    ExpandResourceFlags_DefaultOutput = (ExpandResourceFlags_IncludeMetadata |
+                                         ExpandResourceFlags_IncludeChildren |
+                                         ExpandResourceFlags_IncludeMainDicomTags |
+                                         ExpandResourceFlags_IncludeLabels |
+                                         ExpandResourceFlags_IncludeIsStable)
   };
 
   class StatelessDatabaseOperations : public boost::noncopyable
@@ -245,6 +257,16 @@ namespace Orthanc
                       uint32_t limit)
       {
         transaction_.GetChanges(target, done, since, limit);
+      }
+
+      void GetChangesExtended(std::list<ServerIndexChange>& target /*out*/,
+                              bool& done /*out*/,
+                              int64_t since,
+                              int64_t to,
+                              uint32_t limit,
+                              const std::set<ChangeType>& filterType)
+      {
+        transaction_.GetChangesExtended(target, done, since, to, limit, filterType);
       }
 
       void GetChildrenInternalId(std::list<int64_t>& target,
@@ -377,6 +399,28 @@ namespace Orthanc
       void ListAllLabels(std::set<std::string>& target)
       {
         transaction_.ListAllLabels(target);
+      }
+
+      void ExecuteFind(FindResponse& response,
+                       const FindRequest& request,
+                       const IDatabaseWrapper::Capabilities& capabilities)
+      {
+        transaction_.ExecuteFind(response, request, capabilities);
+      }
+
+      void ExecuteFind(std::list<std::string>& identifiers,
+                       const IDatabaseWrapper::Capabilities& capabilities,
+                       const FindRequest& request)
+      {
+        transaction_.ExecuteFind(identifiers, capabilities, request);
+      }
+
+      void ExecuteExpand(FindResponse& response,
+                         const IDatabaseWrapper::Capabilities& capabilities,
+                         const FindRequest& request,
+                         const std::string& identifier)
+      {
+        transaction_.ExecuteExpand(response, capabilities, request, identifier);
       }
     };
 
@@ -545,7 +589,6 @@ namespace Orthanc
     
 
   private:
-    class MainDicomTagsRegistry;
     class Transaction;
 
     IDatabaseWrapper&                            db_;
@@ -555,6 +598,7 @@ namespace Orthanc
     boost::shared_mutex                          mutex_;
     std::unique_ptr<ITransactionContextFactory>  factory_;
     unsigned int                                 maxRetries_;
+    bool                                         readOnly_;
 
     void ApplyInternal(IReadOnlyOperations* readOperations,
                        IReadWriteOperations* writeOperations);
@@ -565,7 +609,7 @@ namespace Orthanc
                              unsigned int maximumPatientCount);
 
   public:
-    explicit StatelessDatabaseOperations(IDatabaseWrapper& database);
+    explicit StatelessDatabaseOperations(IDatabaseWrapper& database, bool readOnly);
 
     void SetTransactionContextFactory(ITransactionContextFactory* factory /* takes ownership */);
 
@@ -626,8 +670,18 @@ namespace Orthanc
                     int64_t since,
                     uint32_t limit);
 
+    void GetChangesExtended(Json::Value& target,
+                            int64_t since,
+                            int64_t to,
+                            uint32_t limit,
+                            const std::set<ChangeType>& filterType);
+
     void GetLastChange(Json::Value& target);
 
+    bool HasExtendedChanges();
+
+    bool HasFindSupport();
+    
     void GetExportedResources(Json::Value& target,
                               int64_t since,
                               uint32_t limit);
@@ -798,5 +852,8 @@ namespace Orthanc
                    const std::set<std::string>& labels);
 
     bool HasLabelsSupport();
+
+    void ExecuteFind(FindResponse& response,
+                     const FindRequest& request);
   };
 }

@@ -57,7 +57,8 @@ namespace Orthanc
     void GetChangesInternal(std::list<ServerIndexChange>& target,
                             bool& done,
                             SQLite::Statement& s,
-                            uint32_t maxResults);
+                            uint32_t maxResults,
+                            bool returnFirstResults);
 
     void GetExportedResourcesInternal(std::list<ExportedResource>& target,
                                       bool& done,
@@ -97,6 +98,12 @@ namespace Orthanc
     virtual uint64_t MeasureLatency() ORTHANC_OVERRIDE
     {
       throw OrthancException(ErrorCode_NotImplemented);
+    }
+
+    virtual bool HasIntegratedFind() const ORTHANC_OVERRIDE
+    {
+      return true;   // => This uses specialized SQL commands
+      //return false;   // => This uses Compatibility/GenericFind
     }
 
     /**
