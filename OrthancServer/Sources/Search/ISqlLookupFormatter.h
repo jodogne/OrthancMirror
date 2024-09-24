@@ -2,8 +2,9 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -33,8 +34,15 @@
 
 namespace Orthanc
 {
-  class DatabaseConstraint;
+  class DatabaseConstraints;
   
+  enum LabelsConstraint
+  {
+    LabelsConstraint_All,
+    LabelsConstraint_Any,
+    LabelsConstraint_None
+  };
+
   // This class is also used by the "orthanc-databases" project
   class ISqlLookupFormatter : public boost::noncopyable
   {
@@ -52,14 +60,29 @@ namespace Orthanc
     /**
      * Whether to escape '[' and ']', which is only needed for
      * MSSQL. New in Orthanc 1.10.0, from the following changeset:
-     * https://hg.orthanc-server.com/orthanc-databases/rev/389c037387ea
+     * https://orthanc.uclouvain.be/hg/orthanc-databases/rev/389c037387ea
      **/
     virtual bool IsEscapeBrackets() const = 0;
 
+    static void GetLookupLevels(ResourceType& lowerLevel,
+                                ResourceType& upperLevel,
+                                const ResourceType& queryLevel,
+                                const DatabaseConstraints& lookup);
+
     static void Apply(std::string& sql,
                       ISqlLookupFormatter& formatter,
-                      const std::vector<DatabaseConstraint>& lookup,
+                      const DatabaseConstraints& lookup,
                       ResourceType queryLevel,
+                      const std::set<std::string>& labels,  // New in Orthanc 1.12.0
+                      LabelsConstraint labelsConstraint,    // New in Orthanc 1.12.0
                       size_t limit);
+
+    static void ApplySingleLevel(std::string& sql,
+                                 ISqlLookupFormatter& formatter,
+                                 const DatabaseConstraints& lookup,
+                                 ResourceType queryLevel,
+                                 const std::set<std::string>& labels,  // New in Orthanc 1.12.0
+                                 LabelsConstraint labelsConstraint,    // New in Orthanc 1.12.0
+                                 size_t limit);
   };
 }

@@ -2,8 +2,9 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -45,7 +46,7 @@
 
 namespace Orthanc
 {
-  class OrthancPluginDatabaseV3::Transaction : public IDatabaseWrapper::ITransaction
+  class OrthancPluginDatabaseV3::Transaction : public BaseDatabaseWrapper::BaseTransaction
   {
   private:
     OrthancPluginDatabaseV3&           that_;
@@ -280,7 +281,6 @@ namespace Orthanc
       }
     }
     
-
     virtual void Rollback() ORTHANC_OVERRIDE
     {
       CheckSuccess(that_.backend_.rollback(transaction_));
@@ -390,8 +390,8 @@ namespace Orthanc
     
     virtual void GetAllPublicIds(std::list<std::string>& target,
                                  ResourceType resourceType,
-                                 size_t since,
-                                 size_t limit) ORTHANC_OVERRIDE
+                                 int64_t since,
+                                 uint32_t limit) ORTHANC_OVERRIDE
     {
       CheckSuccess(that_.backend_.getAllPublicIdsWithLimit(
                      transaction_, Plugins::Convert(resourceType),
@@ -405,10 +405,10 @@ namespace Orthanc
     virtual void GetChanges(std::list<ServerIndexChange>& target /*out*/,
                             bool& done /*out*/,
                             int64_t since,
-                            uint32_t maxResults) ORTHANC_OVERRIDE
+                            uint32_t limit) ORTHANC_OVERRIDE
     {
       uint8_t tmpDone = true;
-      CheckSuccess(that_.backend_.getChanges(transaction_, &tmpDone, since, maxResults));
+      CheckSuccess(that_.backend_.getChanges(transaction_, &tmpDone, since, limit));
       CheckNoEvent();
 
       done = (tmpDone != 0);
@@ -456,10 +456,10 @@ namespace Orthanc
     virtual void GetExportedResources(std::list<ExportedResource>& target /*out*/,
                                       bool& done /*out*/,
                                       int64_t since,
-                                      uint32_t maxResults) ORTHANC_OVERRIDE
+                                      uint32_t limit) ORTHANC_OVERRIDE
     {
       uint8_t tmpDone = true;
-      CheckSuccess(that_.backend_.getExportedResources(transaction_, &tmpDone, since, maxResults));
+      CheckSuccess(that_.backend_.getExportedResources(transaction_, &tmpDone, since, limit));
       CheckNoEvent();
 
       done = (tmpDone != 0);
@@ -596,15 +596,6 @@ namespace Orthanc
     }
 
     
-    virtual bool IsExistingResource(int64_t internalId) ORTHANC_OVERRIDE
-    {
-      uint8_t b;
-      CheckSuccess(that_.backend_.isExistingResource(transaction_, &b, internalId));
-      CheckNoEvent();
-      return (b != 0);
-    }
-
-    
     virtual bool IsProtectedPatient(int64_t internalId) ORTHANC_OVERRIDE
     {
       uint8_t b;
@@ -633,12 +624,15 @@ namespace Orthanc
     }
 
     
-    virtual void LogChange(int64_t internalId,
-                           const ServerIndexChange& change) ORTHANC_OVERRIDE
+    virtual void LogChange(ChangeType changeType,
+                           ResourceType resourceType,
+                           int64_t internalId,
+                           const std::string& /* publicId - unused */,
+                           const std::string& date) ORTHANC_OVERRIDE
     {
-      CheckSuccess(that_.backend_.logChange(transaction_, static_cast<int32_t>(change.GetChangeType()),
-                                            internalId, Plugins::Convert(change.GetResourceType()),
-                                            change.GetDate().c_str()));
+      CheckSuccess(that_.backend_.logChange(transaction_, static_cast<int32_t>(changeType),
+                                            internalId, Plugins::Convert(resourceType),
+                                            date.c_str()));
       CheckNoEvent();
     }
 
@@ -806,23 +800,30 @@ namespace Orthanc
     
     virtual void ApplyLookupResources(std::list<std::string>& resourcesId,
                                       std::list<std::string>* instancesId, // Can be NULL if not needed
-                                      const std::vector<DatabaseConstraint>& lookup,
+                                      const DatabaseConstraints& lookup,
                                       ResourceType queryLevel,
-                                      size_t limit) ORTHANC_OVERRIDE
+                                      const std::set<std::string>& labels,
+                                      LabelsConstraint labelsConstraint,
+                                      uint32_t limit) ORTHANC_OVERRIDE
     {
+      if (!labels.empty())
+      {
+        throw OrthancException(ErrorCode_InternalError);  // "HasLabelsSupport()" has returned "false"
+      }
+      
       std::vector<OrthancPluginDatabaseConstraint> constraints;
       std::vector< std::vector<const char*> > constraintsValues;
 
-      constraints.resize(lookup.size());
-      constraintsValues.resize(lookup.size());
+      constraints.resize(lookup.GetSize());
+      constraintsValues.resize(lookup.GetSize());
 
-      for (size_t i = 0; i < lookup.size(); i++)
+      for (size_t i = 0; i < lookup.GetSize(); i++)
       {
-        lookup[i].EncodeForPlugins(constraints[i], constraintsValues[i]);
+        lookup.GetConstraint(i).EncodeForPlugins(constraints[i], constraintsValues[i]);
       }
 
-      CheckSuccess(that_.backend_.lookupResources(transaction_, lookup.size(),
-                                                  (lookup.empty() ? NULL : &constraints[0]),
+      CheckSuccess(that_.backend_.lookupResources(transaction_, lookup.GetSize(),
+                                                  (lookup.IsEmpty() ? NULL : &constraints[0]),
                                                   Plugins::Convert(queryLevel),
                                                   limit, (instancesId == NULL ? 0 : 1)));
       CheckNoEvent();
@@ -912,12 +913,12 @@ namespace Orthanc
              it = content.GetListTags().begin(); it != content.GetListTags().end(); ++it)
       {
         OrthancPluginResourcesContentTags tmp;
-        tmp.resource = it->resourceId_;
-        tmp.group = it->tag_.GetGroup();
-        tmp.element = it->tag_.GetElement();
-        tmp.value = it->value_.c_str();
+        tmp.resource = it->GetResourceId();
+        tmp.group = it->GetTag().GetGroup();
+        tmp.element = it->GetTag().GetElement();
+        tmp.value = it->GetValue().c_str();
 
-        if (it->isIdentifier_)
+        if (it->IsIdentifier())
         {
           identifierTags.push_back(tmp);
         }
@@ -931,9 +932,9 @@ namespace Orthanc
              it = content.GetListMetadata().begin(); it != content.GetListMetadata().end(); ++it)
       {
         OrthancPluginResourcesContentMetadata tmp;
-        tmp.resource = it->resourceId_;
-        tmp.metadata = it->metadata_;
-        tmp.value = it->value_.c_str();
+        tmp.resource = it->GetResourceId();
+        tmp.metadata = it->GetType();
+        tmp.value = it->GetValue().c_str();
         metadata.push_back(tmp);
       }
 
@@ -1035,6 +1036,33 @@ namespace Orthanc
         return false;
       }
     }
+
+
+    virtual void AddLabel(int64_t resource,
+                          const std::string& label) ORTHANC_OVERRIDE
+    {
+      throw OrthancException(ErrorCode_InternalError);  // Not supported
+    }
+
+
+    virtual void RemoveLabel(int64_t resource,
+                             const std::string& label) ORTHANC_OVERRIDE
+    {
+      throw OrthancException(ErrorCode_InternalError);  // Not supported
+    }
+
+
+    virtual void ListLabels(std::set<std::string>& target,
+                            int64_t resource) ORTHANC_OVERRIDE
+    {
+      throw OrthancException(ErrorCode_InternalError);  // Not supported
+    }
+    
+
+    virtual void ListAllLabels(std::set<std::string>& target) ORTHANC_OVERRIDE
+    {
+      throw OrthancException(ErrorCode_InternalError);  // Not supported
+    }
   };
 
   
@@ -1058,6 +1086,7 @@ namespace Orthanc
     errorDictionary_(errorDictionary),
     database_(database),
     serverIdentifier_(serverIdentifier)
+
   {
     CLOG(INFO, PLUGINS) << "Identifier of this Orthanc server for the global properties "
                         << "of the custom database: \"" << serverIdentifier << "\"";
@@ -1164,6 +1193,11 @@ namespace Orthanc
   void OrthancPluginDatabaseV3::Open()
   {
     CheckSuccess(backend_.open(database_));
+
+    // update the db capabilities
+    uint8_t hasRevisions;
+    CheckSuccess(backend_.hasRevisionsSupport(database_, &hasRevisions));
+    dbCapabilities_.SetRevisionsSupport(hasRevisions != 0);
   }
 
 
@@ -1224,12 +1258,4 @@ namespace Orthanc
     }
   }
 
-  
-  bool OrthancPluginDatabaseV3::HasRevisionsSupport() const
-  {
-    // WARNING: This method requires "Open()" to have been called
-    uint8_t hasRevisions;
-    CheckSuccess(backend_.hasRevisionsSupport(database_, &hasRevisions));
-    return (hasRevisions != 0);
-  }
 }

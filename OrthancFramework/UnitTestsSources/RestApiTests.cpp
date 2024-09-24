@@ -2,8 +2,9 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -95,29 +96,22 @@ TEST(HttpClient, Basic)
 /**
    The HTTPS CA certificates for BitBucket were extracted as follows:
    
-   (1) We retrieve the certification chain of BitBucket:
+   (1) We retrieve the URI of the root CA of BitBucket:
 
-   # echo | openssl s_client -showcerts -connect www.bitbucket.org:443
+   # echo | openssl s_client -servername raw.githubusercontent.com -connect raw.githubusercontent.com:443 2>/dev/null | openssl x509 -text | grep "CA Issuers"
 
-   (2) We see that the certification authority (CA) is
-   "www.digicert.com", and the root certificate is "DigiCert High
-   Assurance EV Root CA". As a consequence, we navigate to DigiCert to
-   find the URL to this CA certificate:
-
-   firefox https://www.digicert.com/digicert-root-certificates.htm
-
-   (3) Once we get the URL to the CA certificate, we convert it to a C
+   (2) Once we get the URL to the CA certificate, we convert it to a C
    macro that can be used by libcurl:
 
    # cd UnitTestsSources
-   # ../Resources/RetrieveCACertificates.py BITBUCKET_CERTIFICATES https://cacerts.digicert.com/DigiCertTLSHybridECCSHA3842020CA1-1.crt > BitbucketCACertificates.h
+   # python2 ../Resources/RetrieveCACertificates.py GITHUB_CERTIFICATES http://cacerts.digicert.com/DigiCertGlobalG2TLSRSASHA2562020CA1-1.crt > GithubCACertificates.h
 **/
 
-#include "BitbucketCACertificates.h"
+#include "GithubCACertificates.h"
 
 TEST(HttpClient, Ssl)
 {
-  SystemToolbox::WriteFile(BITBUCKET_CERTIFICATES, "UnitTestsResults/bitbucket.cert");
+  SystemToolbox::WriteFile(GITHUB_CERTIFICATES, "UnitTestsResults/github.cert");
 
   /*{
     std::string s;
@@ -128,12 +122,12 @@ TEST(HttpClient, Ssl)
   HttpClient c;
   //c.SetVerbose(true);
   c.SetHttpsVerifyPeers(true);
-  c.SetHttpsCACertificates("UnitTestsResults/bitbucket.cert");
+  c.SetHttpsCACertificates("UnitTestsResults/github.cert");
 
   // Test file modified on 2020-04-20, in order to use a git
   // repository on BitBucket instead of a Mercurial repository
   // (because Mercurial support disappears on 2020-05-31)
-  c.SetUrl("https://bitbucket.org/osimis/orthanc-setup-samples/raw/master/docker/serve-folders/orthanc/serve-folders.json");
+  c.SetUrl("https://raw.githubusercontent.com/orthanc-server/orthanc-setup-samples/refs/heads/master/docker/serve-folders/orthanc/serve-folders.json");
 
   Json::Value v;
   c.Apply(v);
@@ -144,7 +138,7 @@ TEST(HttpClient, SslNoVerification)
 {
   HttpClient c;
   c.SetHttpsVerifyPeers(false);
-  c.SetUrl("https://bitbucket.org/osimis/orthanc-setup-samples/raw/master/docker/serve-folders/orthanc/serve-folders.json");
+  c.SetUrl("https://raw.githubusercontent.com/orthanc-server/orthanc-setup-samples/refs/heads/master/docker/serve-folders/orthanc/serve-folders.json");
 
   Json::Value v;
   c.Apply(v);
@@ -391,6 +385,7 @@ namespace
   private:
     std::string type_;
     std::string subtype_;
+    HttpContentNegociation::Dictionary parameters_;
 
   public:
     AcceptHandler()
@@ -400,7 +395,8 @@ namespace
 
     void Reset()
     {
-      Handle("nope", "nope");
+      HttpContentNegociation::Dictionary parameters;
+      Handle("nope", "nope", parameters);
     }
 
     const std::string& GetType() const
@@ -413,11 +409,18 @@ namespace
       return subtype_;
     }
 
+    HttpContentNegociation::Dictionary& GetParameters()
+    {
+      return parameters_;
+    }
+
     virtual void Handle(const std::string& type,
-                        const std::string& subtype) ORTHANC_OVERRIDE
+                        const std::string& subtype,
+                        const HttpContentNegociation::Dictionary& parameters) ORTHANC_OVERRIDE
     {
       type_ = type;
       subtype_ = subtype;
+      parameters_ = parameters;
     }
   };
 }
@@ -437,22 +440,29 @@ TEST(RestApi, HttpContentNegociation)
     ASSERT_TRUE(d.Apply("audio/*; q=0.2, audio/basic"));
     ASSERT_EQ("audio", h.GetType());
     ASSERT_EQ("basic", h.GetSubType());
+    ASSERT_EQ(0u, h.GetParameters().size());
 
-    ASSERT_TRUE(d.Apply("audio/*; q=0.2, audio/nope"));
+    ASSERT_TRUE(d.Apply("audio/*; q=0.2 ;  type =   test   ;  hello  , audio/nope"));
     ASSERT_EQ("audio", h.GetType());
     ASSERT_EQ("mp3", h.GetSubType());
+    ASSERT_EQ(3u, h.GetParameters().size());
+    ASSERT_EQ("0.2", h.GetParameters() ["q"]);
+    ASSERT_EQ("test", h.GetParameters() ["type"]);
+    ASSERT_EQ("", h.GetParameters() ["hello"]);
     
     ASSERT_FALSE(d.Apply("application/*; q=0.2, application/pdf"));
     
-    ASSERT_TRUE(d.Apply("*/*; application/*; q=0.2, application/pdf"));
+    ASSERT_TRUE(d.Apply("*/*; hello=world, application/*; q=0.2, application/pdf"));
     ASSERT_EQ("audio", h.GetType());
+    ASSERT_EQ(1u, h.GetParameters().size());
+    ASSERT_EQ("world", h.GetParameters() ["hello"]);
   }
 
   // "This would be interpreted as "text/html and text/x-c are the
   // preferred media types, but if they do not exist, then send the
   // text/x-dvi entity, and if that does not exist, send the
   // text/plain entity.""
-  const std::string T1 = "text/plain; q=0.5, text/html, text/x-dvi; q=0.8, text/x-c";
+  const std::string T1 = "text/plain; q=0.5, text/html ;  hello  = \"world\"   , text/x-dvi; q=0.8, text/x-c";
   
   {
     HttpContentNegociation d;
@@ -462,6 +472,8 @@ TEST(RestApi, HttpContentNegociation)
     ASSERT_TRUE(d.Apply(T1));
     ASSERT_EQ("text", h.GetType());
     ASSERT_EQ("html", h.GetSubType());
+    ASSERT_EQ(1u, h.GetParameters().size());
+    ASSERT_EQ("world", h.GetParameters() ["hello"]);
   }
   
   {
@@ -472,6 +484,7 @@ TEST(RestApi, HttpContentNegociation)
     ASSERT_TRUE(d.Apply(T1));
     ASSERT_EQ("text", h.GetType());
     ASSERT_EQ("x-c", h.GetSubType());
+    ASSERT_EQ(0u, h.GetParameters().size());
   }
   
   {
@@ -483,6 +496,15 @@ TEST(RestApi, HttpContentNegociation)
     ASSERT_TRUE(d.Apply(T1));
     ASSERT_EQ("text", h.GetType());
     ASSERT_TRUE(h.GetSubType() == "x-c" || h.GetSubType() == "html");
+    if (h.GetSubType() == "x-c")
+    {
+      ASSERT_EQ(0u, h.GetParameters().size());
+    }
+    else
+    {
+      ASSERT_EQ(1u, h.GetParameters().size());
+      ASSERT_EQ("world", h.GetParameters() ["hello"]);
+    }
   }
   
   {
@@ -492,6 +514,8 @@ TEST(RestApi, HttpContentNegociation)
     ASSERT_TRUE(d.Apply(T1));
     ASSERT_EQ("text", h.GetType());
     ASSERT_EQ("x-dvi", h.GetSubType());
+    ASSERT_EQ(1u, h.GetParameters().size());
+    ASSERT_EQ("0.8", h.GetParameters() ["q"]);
   }
   
   {
@@ -500,6 +524,51 @@ TEST(RestApi, HttpContentNegociation)
     ASSERT_TRUE(d.Apply(T1));
     ASSERT_EQ("text", h.GetType());
     ASSERT_EQ("plain", h.GetSubType());
+    ASSERT_EQ(1u, h.GetParameters().size());
+    ASSERT_EQ("0.5", h.GetParameters() ["q"]);
+  }
+
+  // Below are the tests from issue 216:
+  // https://orthanc.uclouvain.be/bugs/show_bug.cgi?id=216
+
+  {
+    HttpContentNegociation d;
+    d.Register("application/dicom+json", h);
+    ASSERT_TRUE(d.Apply("image/webp, */*;q=0.8, text/html, application/xhtml+xml, application/xml;q=0.9"));
+    ASSERT_EQ("application", h.GetType());
+    ASSERT_EQ("dicom+json", h.GetSubType());
+    ASSERT_EQ(1u, h.GetParameters().size());
+    ASSERT_EQ("0.8", h.GetParameters() ["q"]);
+  }
+
+  {
+    HttpContentNegociation d;
+    d.Register("application/dicom+json", h);
+    ASSERT_TRUE(d.Apply("image/webp, */*; q  = \"0.8\"  , text/html, application/xhtml+xml, application/xml;q=0.9"));
+    ASSERT_EQ("application", h.GetType());
+    ASSERT_EQ("dicom+json", h.GetSubType());
+    ASSERT_EQ(1u, h.GetParameters().size());
+    ASSERT_EQ("0.8", h.GetParameters() ["q"]);
+  }
+
+  {
+    HttpContentNegociation d;
+    d.Register("application/dicom+json", h);
+    ASSERT_TRUE(d.Apply("text/html, application/xhtml+xml, application/xml, image/webp, */*;q=0.8"));
+    ASSERT_EQ("application", h.GetType());
+    ASSERT_EQ("dicom+json", h.GetSubType());
+    ASSERT_EQ(1u, h.GetParameters().size());
+    ASSERT_EQ("0.8", h.GetParameters() ["q"]);
+  }
+
+  {
+    HttpContentNegociation d;
+    d.Register("application/dicom+json", h);
+    ASSERT_TRUE(d.Apply("text/html, image/gif, image/jpeg, *; q=.2, */*; q=.2"));
+    ASSERT_EQ("application", h.GetType());
+    ASSERT_EQ("dicom+json", h.GetSubType());
+    ASSERT_EQ(1u, h.GetParameters().size());
+    ASSERT_EQ(".2", h.GetParameters() ["q"]);
   }
 }
 
@@ -1045,8 +1114,8 @@ TEST(MultipartStreamReader, BytePerByte)
 
 TEST(MultipartStreamReader, Issue190)
 {
-  // https://bugs.orthanc-server.com/show_bug.cgi?id=190
-  // https://hg.orthanc-server.com/orthanc-dicomweb/rev/6dc2f79b5579
+  // https://orthanc.uclouvain.be/bugs/show_bug.cgi?id=190
+  // https://orthanc.uclouvain.be/hg/orthanc-dicomweb/rev/6dc2f79b5579
 
   std::map<std::string, std::string> headers;
   headers["content-type"] = "multipart/related; type=application/dicom; boundary=0f3cf5c0-70e0-41ef-baef-c6f9f65ec3e1";
@@ -1255,7 +1324,7 @@ namespace
 
 TEST(HttpClient, DISABLED_Issue156_Slow)
 {
-  // https://bugs.orthanc-server.com/show_bug.cgi?id=156
+  // https://orthanc.uclouvain.be/bugs/show_bug.cgi?id=156
   
   TotoServer handler;
   HttpServer server;

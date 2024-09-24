@@ -2,8 +2,9 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -56,12 +57,15 @@ namespace Orthanc
       IHttpOutputStream& stream_;
       State state_;
 
+      bool isContentCompressible_;
       HttpStatus status_;
       bool hasContentLength_;
       uint64_t contentLength_;
       uint64_t contentPosition_;
       bool keepAlive_;
+      unsigned int keepAliveTimeout_;
       std::list<std::string> headers_;
+      bool hasXContentTypeOptions_;
 
       std::string multipartBoundary_;
       std::string multipartContentType_;
@@ -70,7 +74,8 @@ namespace Orthanc
 
     public:
       StateMachine(IHttpOutputStream& stream,
-                   bool isKeepAlive);
+                   bool isKeepAlive,
+                   unsigned int keepAliveTimeout);
 
       ~StateMachine();
 
@@ -79,6 +84,8 @@ namespace Orthanc
       void SetContentLength(uint64_t length);
 
       void SetContentType(const char* contentType);
+
+      void SetContentCompressible(bool isCompressible);
 
       void SetContentFilename(const char* filename);
 
@@ -108,6 +115,8 @@ namespace Orthanc
         return state_;
       }
 
+      bool IsContentCompressible() const;
+
       void CheckHeadersCompatibilityWithMultipart() const;
 
       void StartStream(const std::string& contentType);
@@ -126,7 +135,8 @@ namespace Orthanc
 
   public:
     HttpOutput(IHttpOutputStream& stream,
-               bool isKeepAlive);
+               bool isKeepAlive,
+               unsigned int keepAliveTimeout);
 
     void SetDeflateAllowed(bool allowed);
 
@@ -135,6 +145,11 @@ namespace Orthanc
     void SetGzipAllowed(bool allowed);
 
     bool IsGzipAllowed() const;
+
+    bool IsContentCompressible() const
+    {
+      return stateMachine_.IsContentCompressible();
+    }
 
     void SendStatus(HttpStatus status,
 		    const char* message,

@@ -1,6 +1,7 @@
 Pending changes in the mainline
 ===============================
 
+<<<<<<< working copy
 General
 -------
 
@@ -18,6 +19,387 @@ Plugins
 
 
 version 1.11.2 (2022-08-30)
+=======
+REST API
+-----------
+
+* Improved parsing of multiple numerical values in DICOM tags.
+  https://discourse.orthanc-server.org/t/qido-includefield-with-sequences/4746/6
+
+
+Maintenance
+-----------
+
+* DICOM TLS: "DicomTlsTrustedCertificates" is not required anymore when issuing
+  an outgoing SCU connexion when "DicomTlsRemoteCertificateRequired" is set to false.
+* Introduced a new thread to update the statistics at regular interval for the
+  DB plugins that are implementing the UpdateAndGetStatistics function (currently only
+  PostgreSQL).  This avoids very long update times in case you don't call /statistics
+  for a long period.
+* Fix C-Find queries not returning computed tags like ModalitiesInStudy, NumberOfStudyRelatedSeries, ...
+  in very specific use-cases.
+* Fix extremely rare error when 2 threads are trying to create the same folder in the File Storage 
+  at the same time.
+* Metrics:
+  - fix a few metrics that were not published
+  - added 2 metrics: orthanc_storage_cache_miss_count & orthanc_storage_cache_hit_count 
+* Upgraded dependencies for static builds:
+  - curl 8.9.0
+* Added a new fallback when trying to decode a frame: transcode the file using the plugin
+  before decoding the frame.  This solves some issues with JP2K Lossy compression:
+  https://discourse.orthanc-server.org/t/decoding-displaying-jpeg2000-lossy-images/5117
+* Added a new warning that can be disabled in the configuration: W003_DecoderFailure
+
+
+
+Version 1.12.4 (2024-06-05)
+===========================
+
+REST API
+--------
+
+* API version upgraded to 24
+* Added "MaximumPatientCount" in /system
+* Added a new "LimitToThisLevelMainDicomTags" field in the payload of 
+  /patients|studies|series/instances/../reconstruct to speed up the reconstruction
+  in case you just want to update the MainDicomTags of that resource level only 
+  (e.g., after you have updated the "ExtraMainDicomTags" for this level)
+* The "requestedTags" GET argument is deprecated in favor of "requested-tags"
+* Added "?whole" option to "/instances/{id}/tags" to access tags stored after pixel data
+
+Plugins
+-------
+
+* Multitenant DICOM plugin: added support for locales.
+* Housekeeper plugin: 
+  - Added an option "LimitMainDicomTagsReconstructLevel"
+    (allowed values: "Patient", "Study", "Series", "Instance"). This can greatly speed
+    up the housekeeper process, e.g. if you have only update the Study level ExtraMainDicomTags.
+  - Fixed broken /instances/../tags route after running the Housekeeper
+    after having changed the "IngestTranscoding".
+* SDK: added OrthancPluginLogMessage() as a new primitive for plugins
+  to log messages. This new primitive will display the plugin name,
+  the plugin file name, and the plugin line number in the logs. If
+  they are not using the LOG() facilities provided by the
+  OrthancFramework, plugins should now use ORTHANC_PLUGINS_LOG_INFO(),
+  ORTHANC_PLUGINS_LOG_WARNING(), and ORTHANC_PLUGINS_LOG_ERROR().
+
+Maintenance
+-----------
+
+* C-Find queries:
+  - In C-Find queries including "GenericGroupLength" tags, Orthanc was still
+    extracting these tags from the storage although they were already ignored
+    and not returned in the response.
+    They are now removed from the query earlier to avoid this disk access that
+    could slow down the response time. Note that this seems to happen mainly
+    when the query originates from some GE devices (AWS).
+  - "TimezoneOffsetFromUTC" is now ignored for matching.
+* The 0x0111 DIMSE Status is now considered as a warning instead of an error
+  when received as a response to a C-Store.
+  See https://discourse.orthanc-server.org/t/ignore-dimse-status-0x0111-when-sending-partial-duplicate-studies/4555/3
+* Removed potential PHI from the logs when Orthanc encounters an error while
+  creating a ZIP archive.
+* Monitoring of stable resources now also takes into consideration the
+  resource type, not only the resource identifier identifier.
+* DICOM TLS:
+  - In prior versions, when "DicomTlsRemoteCertificateRequired" was set to false, Orthanc
+    was still sending a client certificate request during the TLS handshake but was not
+    triggering and error if the client certificate was not trusted (equivalent to the
+    "--verify-peer-cert" DCMTK option). Starting with Orthanc 1.12.4, if this option is
+    set to "false", Orthanc will not send a client certificate request during the TLS
+    handshake anymore (equivalent to the "--ignore-peer-cert" DCMTK option).
+  - When working with "DicomTlsEnabled": true and "DicomTlsRemoteCertificateRequired": false,
+    Orthanc was refusing to start if no "DicomTlsTrustedCertificates" was provided.
+  - New configuration options:
+    - "DicomTlsMinimumProtocolVersion" to select the minimum TLS protocol version
+    - "DicomTlsCiphersAccepted" to fine tune the list of accepted ciphers
+* Fixed broken /instances/../tags route after calling of
+  /studies/../reconstruct after having changed the "IngestTranscoding".
+* Upgraded dependencies for static builds:
+  - boost 1.85.0
+
+
+Version 1.12.3 (2024-01-31)
+===========================
+
+General
+-------
+
+* Performance of databases:
+  - At startup, if using a database plugin, displays the latency to access the DB.
+  - Added support for new DB primitives to enable the "READ COMMITTED"
+    transaction mode in the PostgreSQL plugin.
+
+REST API
+--------
+
+* API version upgraded to 23
+* Added a 'KeepLabels' option in /modify routes (default = false)
+
+Maintenance
+-----------
+
+* Upgraded dependencies for static builds:
+  - boost 1.84.0
+  - curl 8.5.0
+  - dcmtk 3.6.8
+  - jsoncpp 1.9.5
+  - libjpeg 9f
+  - libpng 1.6.40
+  - openssl 3.1.4
+  - pugixml 1.14
+  - zlib 1.3.1
+
+
+Version 1.12.2 (2023-12-19)
+===========================
+
+General
+-------
+
+* Performance:
+  - Allow multiple plugins to use the plugin SDK at the same time.  In previous versions,
+    functions like instance transcoding or instance reading where mutually exclusive.
+    This can bring some significant improvements, especially in viewers.
+  - Optimized the StorageCache to prevent loading the same file multiple times if
+    multiple users request the same file at the same time.
+  - The StorageCache is now also storing transcoded instances that have been requested by /file?transcode=...
+    that is now used by the DICOMweb plugin.  This speeds up retrieval of transcoded frames through WADO-RS.
+  - Now displaying timings when reading from/writing to disk in the verbose logs.
+* HTTP compression:
+  - The default value of the "HttpCompressionEnabled" is now false by default.  This reduces
+    the Orthanc overall CPU usage and latency.  This is suitable for setups with large  
+    bandwidth network like LAN.
+  - When "HttpCompressionEnabled" is true, only the content that is clearly identified as
+    compressible is compressed (JSON, XML, HTML, text, ...).  DICOM files are never
+    compressed over HTTP.  In prior versions, all content types were compressed.
+    This notably greatly improves loading time of large DICOM 
+    files through WADO-RS e.g in StoneViewer when working on large bandwidth networks.
+  - When "HttpCompressionEnabled" is true, content < 2KB are never compressed.
+* Logs:
+  - Each line of log now contains the name of the thread that is logging the message.
+    A new "--logs-no-thread" command line option can be used to get back to the previous behavior to
+    keep backward compatibility.
+
+REST API
+--------
+
+* API version upgraded to 22
+* Added a route to delete completed jobs from history: DELETE /jobs/{id}
+* Added a "transcode" option to the /file route:
+  e.g: /instances/../file?transcode=1.2.840.10008.1.2.4.80
+* now accepting GET requests on these 3 routes to create archive/media:
+  /tools/create-archive?resources=..,..2&transcode=1.2.840.10008.1.2.4.80
+  /tools/create-media?resources=..,..2&transcode=1.2.840.10008.1.2.4.80
+  /tools/create-media-extended?resources=..,..2&transcode=1.2.840.10008.1.2.4.80
+* All "expand" GET arguments now accepts "expand=true" and "expand=false" values.
+  The /studies/../instances and sibling routes are the only whose expand is true if not specified.
+  These routes now accepts "expand=false" to simply list the child resources ids.
+* In /tools/metrics-prometheus:
+  - "orthanc_dicom_cache_size" renamed as "orthanc_dicom_cache_size_mb"
+  - added "orthanc_storage_cache_count" and "orthanc_storage_cache_size_mb"
+
+Plugins
+-------
+
+* Housekeeper plugin:
+  - Update to rebuild the cache of the DICOMweb plugin when updating to DICOMweb 1.15.
+  - New trigger configuration: "DicomWebCacheChange"
+  - Fixed reading the triggers configuration.
+  - Introduced a "sleep" to lower CPU usage when idle.
+* Plugins are now allowed to modify/delete private metadata/attachments
+  (i.e. whose identifiers are < 1024)
+* Added "OrthancPluginSetCurrentThreadName()" in the plugin SDK.
+
+Maintenance
+-----------
+
+* Fix unit test PngWriter.Color16Pattern on big-endian architectures,
+  as suggested by Etienne Mollier: https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=1041813
+* Prevent the leak of the full path of the source files in the binaries
+* Fix loading of DCMTK dictionary in the MultitenantDicom plugin when built dynamically:
+  https://discourse.orthanc-server.org/t/dimse-failure-using-multitenant-plugin/3665
+* Support multiple values in SpecificCharacterSet in C-Find answers:
+  https://discourse.orthanc-server.org/t/c-find-fails-on-unknown-specific-character-set-iso-2022-ir-6-iso-2022-ir-100/3947
+* When exporting a study archive, make sure to use the PatientName from the study and not from the patient
+  in case of PatientID collision.
+* DICOM C-Store:
+  - Avoid some unnecessary renegotiation of DICOM association.
+  - Force renegotiation in case no presentation context were accepted in previous association (we have
+    observed PACS that were not consistent in the accepted presentation contexts)
+  - Improved logging
+* Solved a deadlock related to the Job Engine events and plugins.  Job events are now pushed
+  into a queue to be handled asynchronously by plugins.
+* ZIP of studies whose PatientName and PatientID did not contain any ASCII character are now valid.
+* Upgraded minizip library to stay away from CVE-2023-45853 although Orthanc is likely not affected since ZIP
+  filenames are based on DICOM Tag values whose length is limited in size.
+  Great thanks to James Addison for notifying us about the vulnerability and patch to apply !
+* Fix XSS in Orthanc error reporting (as reported by Sébastien Doria, Vumetric Cybersecurity) by:
+  - always including a "Content-Type" header in HTTP responses with a body.
+  - always including "X-Content-Type-Options: nosniff"
+* Upgraded dependencies for static builds:
+  - boost 1.83.0
+
+
+Version 1.12.1 (2023-07-04)
+===========================
+
+General
+-------
+
+* Orthanc now anonymizes according to Basic Profile of PS 3.15-2023b Table E.1-1
+* Added metrics:
+  - "orthanc_storage_read_bytes" 
+  - "orthanc_storage_written_bytes"
+  - "orthanc_memory_trimming_duration_ms"
+
+REST API
+--------
+
+* API version upgraded to 21
+* "/tools/create-dicom" can now be used to create Encapsulated 3D
+  Manufacturing Model IODs (MTL, OBJ, or STL)
+* Added a route to delete the output of an asynchronous job (right now
+  only for archive jobs): e.g. DELETE /jobs/../archive
+
+Plugins
+-------
+
+* Added "OrthancPluginLoadDicomInstance()" to load DICOM instances from the database
+* Added "OrthancPluginSetMetricsIntegerValue()" to track metrics with integer values
+
+Maintenance
+-----------
+
+* Fix decoding of YBR_FULL RLE images for which the "Planar Configuration" 
+  tag (0028,0006) equals 1
+* Made Orthanc more resilient to common spelling errors in SpecificCharacterSet
+* Modality worklists plugin: Allow searching on private tags (exact match only)
+* Fix orphan files remaining in storage when working with MaximumStorageSize
+  (https://discourse.orthanc-server.org/t/issue-with-deleting-incoming-dicoms-when-maximumstoragesize-is-reached/3510)
+* When deleting a resource, the "LastUpdate" metadata of its parents are now updated
+* Reduced the memory usage when downloading archives when "ZipLoaderThreads" > 0
+* Metrics can be stored either as floating-point numbers, or as integers
+* Reduce the frequency of memory trimming from 100ms to 30s to avoid high idle
+  CPU load (https://discourse.orthanc-server.org/t/onchange-callbacks-and-cpu-loads/3534).
+* Upgraded dependencies for static builds:
+  - boost 1.82.0
+
+
+Version 1.12.0 (2023-04-14)
+===========================
+
+General
+-------
+
+* Support for labels associated with patients, studies, series, and instances
+* Added a sample plugin bringing multitenant DICOM support through labels
+
+REST API
+--------
+
+* API version upgraded to 20
+* New URIs "/.../{id}/labels/{label}" to test/set/remove labels
+* "/patients/{id}", "/studies/{id}", "/series/{id}" and "/instances/{id}"
+  contain the "Labels" field
+* "/tools/find" now accepts the "Labels" and "LabelsConstraint" arguments
+* "/tools/labels" lists all the labels that are associated with any resource
+* "/system": added "UserMetadata" and "HasLabels"
+* Added option "?numeric" if listing metadata
+
+Plugins
+-------
+
+* Added "OrthancPluginRegisterDatabaseBackendV4()" to communicate using Google
+  Protocol Buffers between the Orthanc core and database plugins
+
+Orthanc Explorer
+----------------
+
+* Added support for labels
+* Added buttons to copy the URL of ZIP archives and DICOM files to the clipboard
+
+Maintenance
+-----------
+
+* Enforce the existence of the patient/study/instance while creating its archive
+* Security: New configuration option "RestApiWriteToFileSystemEnabled"
+  to allow "/instances/../export" (the latter is now disabled by default)
+* Fix issue 214: VOILUTSequence is not returned in Wado-RS
+* Fix /tools/reset crashing when ExtraMainDicomTags were defined
+* Fix Housekeeper plugin infinite loop if Orthanc is empty.
+* Fix a crash in /tools/reconstruct triggered by the Housekeeper plugin 
+  when only changing the StorageCompression.
+* Avoid the use of "externalproject_add()" to build the sample plugins
+* Upgraded dependencies for static builds:
+  - openssl 3.1.0
+
+
+Version 1.11.3 (2023-02-03)
+===========================
+
+General
+-------
+
+* C-Store SCU now gives priority to the preferred TransferSyntax
+  proposed by the receiving SCP instead of Orthanc own
+  AcceptedTransferSyntaxes.
+* Made the default SQLite DB more robust wrt future updates like
+  adding new columns in DB.
+* Made the HTTP Client errors more verbose by including the URL in the logs.
+* Optimization: now using multiple threads to transcode files for
+  asynchronous download of studies archive.
+* New configuration "KeepAliveTimeout" with a default value of 1 second.
+* ResourceModification jobs (/modify + /anonymize) can now use multiple threads to speed up processing
+  - New configuration "JobsEngineThreadsCount.ResourceModification" to configure the number of threads.
+* For systems using glibc > 2.8 (most of Linux systems except LSB
+  binaries): Introduced a new thread for to trim memory in Orthanc (different
+  from the Housekeeper sample plugin). This thread regularly try to
+  give back memory that Orthanc no longer uses to the system. This
+  reduces the overall memory consumption. More information in
+  OrthancServer/Resources/ImplementationNotes/memory_consumption.txt.
+
+REST API
+--------
+
+* API version upgraded to 19
+* Loosen the sanity checks for DICOM modifications, if "Force" option is given:
+  - allow modification of PatientID at study level
+  - allow modification of PatientID, StudyInstanceUID at series level
+  - allow modification of PatientID, StudyInstanceUID, SeriesInstanceUID at instance level
+  - allow modification of a patient without changing her PatientID
+  Added sanity checks for modifications to make sure the user preserves the DICOM model when modifying high level tags.
+    E.g. if you modify the PatientID at study level, also make sure to modify all other Patient related
+    tags (PatientName, PatientBirthDate, ...)
+* Automatically reconstruct the modified resources at the end of the DICOM modifications job to ensure
+  improved consistency of the DICOM model.
+* If specifying 'Transcode' option to /modify or /anonymize, this value will take over the 'IngestTranscoding'
+  global configuration
+* Allow the HTTP server to return responses > 2GB (fixes asynchronous download of zip studies > 2GB)
+* /modalities/.../store now accepts "CalledAet", "Host", "Port" to override the modality configuration 
+  from the configuration file for a specific operation.
+* /tools/metrics-prometheus: added orthanc_last_change and orthanc_up_time_s
+* Tolerance for "image/jpg" MIME type instead of "image/jpeg" in /tools/create-dicom
+* /system: added MaximumStorageMode and MaximumStorageSize
+
+Plugins
+-------
+
+* Added a "header" argument to all OrthancPeers::DoPost, DoPut, ... in the "OrthancPluginCppWrapper"
+* Added "OrthancPluginCreateJob2()" in the plugin SDK to avoid
+  possible crashes when "OrthancPluginJobGetContent()" or
+  "OrthancPluginJobGetSerialized()" get called
+
+Maintenance
+-----------
+
+* Fix decoding of RLE images for which the "Planar Configuration" tag (0028,0006) equals 1
+* Fix issue #212 (Anonymization process transcodes data and loses resource link).
+
+
+Version 1.11.2 (2022-08-30)
+>>>>>>> merge rev
 ===========================
 
 General
@@ -77,7 +459,7 @@ Maintenance
 * Housekeeper plugin: Fix resume of previous processing
 * Added missing MOVEPatientRootQueryRetrieveInformationModel in 
   DicomControlUserConnection::SetupPresentationContexts()
-* Improved HttpClient error logging (add method + url)
+* Improved HttpClient error logging (add method + URL)
 
 REST API
 --------

@@ -3,8 +3,9 @@
  *
  * Copyright (C) 2012-2016 Sebastien Jodogne <s.jodogne@orthanc-labs.com>,
  * Medical Physics Department, CHU of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * Copyright (c) 2012 The Chromium Authors. All rights reserved.
  *
@@ -46,7 +47,16 @@
 #include <string>
 #include <map>
 
-#define SQLITE_FROM_HERE ::Orthanc::SQLite::StatementId(__FILE__, __LINE__)
+#if !defined(__ORTHANC_FILE__)
+#  if defined(_MSC_VER)
+#    pragma message("Warning: Macro __ORTHANC_FILE__ is not defined, this will leak the full path of the source files in the binaries")
+#  else
+#    warning Warning: Macro __ORTHANC_FILE__ is not defined, this will leak the full path of the source files in the binaries
+#  endif
+#  define __ORTHANC_FILE__ __FILE__
+#endif
+
+#define SQLITE_FROM_HERE ::Orthanc::SQLite::StatementId(__ORTHANC_FILE__, __LINE__)
 
 namespace Orthanc
 {

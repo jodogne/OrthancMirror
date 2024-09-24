@@ -2,8 +2,9 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -46,6 +47,7 @@ static const char* const INSTANCES = "Instances";
 static const char* const INTERPRET_BINARY_TAGS = "InterpretBinaryTags";
 static const char* const KEEP = "Keep";
 static const char* const KEEP_PRIVATE_TAGS = "KeepPrivateTags";
+static const char* const KEEP_LABELS = "KeepLabels";
 static const char* const KEEP_SOURCE = "KeepSource";
 static const char* const LEVEL = "Level";
 static const char* const PARENT = "Parent";
@@ -85,7 +87,7 @@ namespace Orthanc
     call.GetDocumentation()
       .SetRequestField(TRANSCODE, RestApiCallDocumentation::Type_String,
                        "Transcode the DICOM instances to the provided DICOM transfer syntax: "
-                       "https://book.orthanc-server.com/faq/transcoding.html", false)
+                       "https://orthanc.uclouvain.be/book/faq/transcoding.html", false)
       .SetRequestField(FORCE, RestApiCallDocumentation::Type_Boolean,
                        "Allow the modification of tags related to DICOM identifiers, at the risk of "
                        "breaking the DICOM model of the real world", false)
@@ -111,6 +113,9 @@ namespace Orthanc
   {
     // Check out "DicomModification::ParseAnonymizationRequest()"
     call.GetDocumentation()
+      .SetRequestField(TRANSCODE, RestApiCallDocumentation::Type_String,
+                       "Transcode the DICOM instances to the provided DICOM transfer syntax: "
+                       "https://orthanc.uclouvain.be/book/faq/transcoding.html", false)
       .SetRequestField(FORCE, RestApiCallDocumentation::Type_Boolean,
                        "Allow the modification of tags related to DICOM identifiers, at the risk of "
                        "breaking the DICOM model of the real world", false)
@@ -119,6 +124,8 @@ namespace Orthanc
                        "configuration option `DeidentifyLogsDicomVersion` for possible values.", false)
       .SetRequestField(KEEP_PRIVATE_TAGS, RestApiCallDocumentation::Type_Boolean,
                        "Keep the private tags from the DICOM instances (defaults to `false`)", false)
+      .SetRequestField(KEEP_LABELS, RestApiCallDocumentation::Type_Boolean,
+                       "Keep the labels of all resources level (defaults to `false`)", false)
       .SetRequestField(REPLACE, RestApiCallDocumentation::Type_JsonObject,
                        "Associative array to change the value of some DICOM tags in the DICOM instances. " INFO_SUBSEQUENCES, false)
       .SetRequestField(REMOVE, RestApiCallDocumentation::Type_JsonListOfStrings,
@@ -262,7 +269,7 @@ namespace Orthanc
         .SetTag("Instances")
         .SetSummary("Modify instance")
         .SetDescription("Download a modified version of the DICOM instance whose Orthanc identifier is provided in the URL: "
-                        "https://book.orthanc-server.com/users/anonymization.html#modification-of-a-single-instance")
+                        "https://orthanc.uclouvain.be/book/users/anonymization.html#modification-of-a-single-instance")
         .SetUriArgument("id", "Orthanc identifier of the instance of interest")
         .AddAnswerType(MimeType_Dicom, "The modified DICOM instance");
       return;
@@ -307,7 +314,7 @@ namespace Orthanc
         .SetTag("Instances")
         .SetSummary("Anonymize instance")
         .SetDescription("Download an anonymized version of the DICOM instance whose Orthanc identifier is provided in the URL: "
-                        "https://book.orthanc-server.com/users/anonymization.html#anonymization-of-a-single-instance")
+                        "https://orthanc.uclouvain.be/book/users/anonymization.html#anonymization-of-a-single-instance")
         .SetUriArgument("id", "Orthanc identifier of the instance of interest")
         .AddAnswerType(MimeType_Dicom, "The anonymized DICOM instance");
       return;
@@ -333,6 +340,15 @@ namespace Orthanc
     }
   }
 
+  static void SetKeepSource(ThreadedSetOfInstancesJob& job,
+                            const Json::Value& body)
+  {
+    if (body.isMember(KEEP_SOURCE))
+    {
+      job.SetKeepSource(SerializationToolbox::ReadBoolean(body, KEEP_SOURCE));
+    }
+  }
+
 
   static void SubmitModificationJob(std::unique_ptr<DicomModification>& modification,
                                     bool isAnonymization,
@@ -343,8 +359,14 @@ namespace Orthanc
                                     const std::set<std::string>& resources)
   {
     ServerContext& context = OrthancRestApi::GetContext(call);
+    unsigned int workersCount = 0;
 
-    std::unique_ptr<ResourceModificationJob> job(new ResourceModificationJob(context));
+    {
+      OrthancConfiguration::ReaderLock lock;
+      workersCount = lock.GetConfiguration().GetJobsEngineWorkersThread("ResourceModification");
+    }
+
+    std::unique_ptr<ResourceModificationJob> job(new ResourceModificationJob(context, workersCount));
 
     if (isSingleResource)  // This notably configures the output format
     {
@@ -366,12 +388,16 @@ namespace Orthanc
     for (std::set<std::string>::const_iterator
            it = resources.begin(); it != resources.end(); ++it)
     {
-      context.AddChildInstances(*job, *it);
-    }
-    
-    job->AddTrailingStep();
+      std::list<std::string> instances;
+      context.GetIndex().GetChildInstances(instances, *it);
+      job->AddInstances(instances);
 
-    OrthancRestApi::GetApi(call).SubmitCommandsJob
+      job->AddParentResource(*it);
+    }
+
+    job->PerformSanityChecks();
+
+    OrthancRestApi::GetApi(call).SubmitThreadedInstancesJob
       (call, job.release(), true /* synchronous by default */, body);
   }
 
@@ -419,7 +445,7 @@ namespace Orthanc
         .SetDescription("Start a job that will modify all the DICOM instances within the " + r +
                         " whose identifier is provided in the URL. The modified DICOM instances will be "
                         "stored into a brand new " + r + ", whose Orthanc identifiers will be returned by the job. "
-                        "https://book.orthanc-server.com/users/anonymization.html#modification-of-studies-or-series")
+                        "https://orthanc.uclouvain.be/book/users/anonymization.html#modification-of-studies-or-series")
         .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest");
       return;
     }
@@ -492,7 +518,7 @@ namespace Orthanc
         .SetDescription("Start a job that will anonymize all the DICOM instances within the " + r +
                         " whose identifier is provided in the URL. The modified DICOM instances will be "
                         "stored into a brand new " + r + ", whose Orthanc identifiers will be returned by the job. "
-                        "https://book.orthanc-server.com/users/anonymization.html#anonymization-of-patients-studies-or-series")
+                        "https://orthanc.uclouvain.be/book/users/anonymization.html#anonymization-of-patients-studies-or-series")
         .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest");
       return;
     }
@@ -937,7 +963,7 @@ namespace Orthanc
     InjectTags(dicom, request[TAGS], decodeBinaryTags, privateCreator, force);
 
 
-    // Inject the content (either an image, or a PDF file)
+    // Inject the content (either an image, a PDF file, or a STL/OBJ/MTL file)
     if (request.isMember(CONTENT))
     {
       const Json::Value& content = request[CONTENT];
@@ -978,8 +1004,9 @@ namespace Orthanc
         .SetRequestField(TAGS, RestApiCallDocumentation::Type_JsonObject,
                          "Associative array containing the tags of the new instance to be created", true)
         .SetRequestField(CONTENT, RestApiCallDocumentation::Type_String,
-                         "This field can be used to embed an image (pixel data) or a PDF inside the created DICOM instance. "
-                         "The PNG image, the JPEG image or the PDF file must be provided using their "
+                         "This field can be used to embed an image (pixel data encoded as PNG or JPEG), a PDF, or a "
+                         "3D manufactoring model (MTL/OBJ/STL) inside the created DICOM instance. "
+                         "The file to be encapsulated must be provided using its "
                          "[data URI scheme encoding](https://en.wikipedia.org/wiki/Data_URI_scheme). "
                          "This field can possibly contain a JSON array, in which case a DICOM series is created "
                          "containing one DICOM instance for each item in the `Content` field.", false)
@@ -1036,7 +1063,7 @@ namespace Orthanc
         .SetDescription("Start a new job so as to split the DICOM study whose Orthanc identifier is provided in the URL, "
                         "by taking some of its children series or instances out of it and putting them into a brand new study "
                         "(this new study is created by setting the `StudyInstanceUID` tag to a random identifier): "
-                        "https://book.orthanc-server.com/users/anonymization.html#splitting")
+                        "https://orthanc.uclouvain.be/book/users/anonymization.html#splitting")
         .SetUriArgument("id", "Orthanc identifier of the study of interest")
         .SetRequestField(SERIES, RestApiCallDocumentation::Type_JsonListOfStrings,
                          "The list of series to be separated from the parent study. "
@@ -1045,6 +1072,8 @@ namespace Orthanc
                          "Associative array to change the value of some DICOM tags in the new study. "
                          "These tags must be part of the \"Patient Module Attributes\" or the \"General Study "
                          "Module Attributes\", as specified by the DICOM 2011 standard in Tables C.7-1 and C.7-3.", false)
+        .SetRequestField(KEEP_LABELS, RestApiCallDocumentation::Type_Boolean,
+                         "Keep the labels of all resources level (defaults to `false`)", false)
         .SetRequestField(REMOVE, RestApiCallDocumentation::Type_JsonListOfStrings,
                          "List of tags that must be removed in the new study (from the same modules as in the `Replace` option)", false)
         .SetRequestField(KEEP_SOURCE, RestApiCallDocumentation::Type_Boolean,
@@ -1162,7 +1191,7 @@ namespace Orthanc
         .SetTag("Studies")
         .SetSummary("Merge study")
         .SetDescription("Start a new job so as to move some DICOM resources into the DICOM study whose Orthanc identifier "
-                        "is provided in the URL: https://book.orthanc-server.com/users/anonymization.html#merging")
+                        "is provided in the URL: https://orthanc.uclouvain.be/book/users/anonymization.html#merging")
         .SetUriArgument("id", "Orthanc identifier of the study of interest")
         .SetRequestField(RESOURCES, RestApiCallDocumentation::Type_JsonListOfStrings,
                          "The list of DICOM resources (studies, series, and/or instances) to be merged "

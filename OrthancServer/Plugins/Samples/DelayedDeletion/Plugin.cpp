@@ -1,10 +1,32 @@
+/**
+ * Orthanc - A Lightweight, RESTful DICOM Store
+ * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
+ * Department, University Hospital of Liege, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ *
+ * This program is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ **/
+
+
 #include "PendingDeletionsDatabase.h"
 
 #include "../../../../OrthancFramework/Sources/FileStorage/FilesystemStorage.h"
 #include "../../../../OrthancFramework/Sources/Logging.h"
 #include "../../../../OrthancFramework/Sources/MultiThreading/SharedMessageQueue.h"
-#include "../../../../OrthancServer/Plugins/Engine/PluginsEnumerations.h"
-#include "../../../../OrthancServer/Plugins/Samples/Common/OrthancPluginCppWrapper.h"
+#include "../Common/OrthancPluginCppWrapper.h"
 
 #include <boost/thread.hpp>
 
@@ -45,6 +67,25 @@ static const char*                                  databaseServerIdentifier_ = 
 static unsigned int                                 throttleDelayMs_ = 0;
 
 
+static Orthanc::FileContentType Convert(OrthancPluginContentType type)
+{
+  switch (type)
+  {
+    case OrthancPluginContentType_Dicom:
+      return Orthanc::FileContentType_Dicom;
+
+    case OrthancPluginContentType_DicomAsJson:
+      return Orthanc::FileContentType_DicomAsJson;
+
+    case OrthancPluginContentType_DicomUntilPixelData:
+      return Orthanc::FileContentType_DicomUntilPixelData;
+
+    default:
+      return Orthanc::FileContentType_Unknown;
+  }
+}
+
+
 static OrthancPluginErrorCode StorageCreate(const char* uuid,
                                             const void* content,
                                             int64_t size,
@@ -52,7 +93,7 @@ static OrthancPluginErrorCode StorageCreate(const char* uuid,
 {
   try
   {
-    storage_->Create(uuid, content, size, Orthanc::Plugins::Convert(type));
+    storage_->Create(uuid, content, size, Convert(type));
     return OrthancPluginErrorCode_Success;
   }
   catch (Orthanc::OrthancException& e)
@@ -72,12 +113,12 @@ static OrthancPluginErrorCode StorageReadWhole(OrthancPluginMemoryBuffer64* targ
 {
   try
   {
-    std::unique_ptr<Orthanc::IMemoryBuffer> buffer(storage_->Read(uuid, Orthanc::Plugins::Convert(type)));
+    std::unique_ptr<Orthanc::IMemoryBuffer> buffer(storage_->Read(uuid, Convert(type)));
 
     // copy from a buffer allocated on plugin's heap into a buffer allocated on core's heap
     if (OrthancPluginCreateMemoryBuffer64(OrthancPlugins::GetGlobalContext(), target, buffer->GetSize()) != OrthancPluginErrorCode_Success)
     {
-      OrthancPlugins::LogError("Delayed deletion plugin: error while reading object " + std::string(uuid) + ", cannot allocate memory of size " + boost::lexical_cast<std::string>(buffer->GetSize()) + " bytes");
+      LOG(ERROR) << "Delayed deletion plugin: error while reading object " << uuid << ", cannot allocate memory of size " << buffer->GetSize() << " bytes";
       return OrthancPluginErrorCode_StorageAreaPlugin;
     }
 
@@ -103,7 +144,7 @@ static OrthancPluginErrorCode StorageReadRange(OrthancPluginMemoryBuffer64* targ
 {
   try
   {
-    std::unique_ptr<Orthanc::IMemoryBuffer> buffer(storage_->ReadRange(uuid, Orthanc::Plugins::Convert(type), rangeStart, rangeStart + target->size));
+    std::unique_ptr<Orthanc::IMemoryBuffer> buffer(storage_->ReadRange(uuid, Convert(type), rangeStart, rangeStart + target->size));
 
     assert(buffer->GetSize() == target->size);
 
@@ -130,7 +171,7 @@ static OrthancPluginErrorCode StorageRemove(const char* uuid,
   try
   {
     LOG(INFO) << "DelayedDeletion - Scheduling delayed deletion of " << uuid;
-    db_->Enqueue(uuid, Orthanc::Plugins::Convert(type));
+    db_->Enqueue(uuid, Convert(type));
     
     return OrthancPluginErrorCode_Success;
   }
@@ -146,6 +187,8 @@ static OrthancPluginErrorCode StorageRemove(const char* uuid,
 
 static void DeletionWorker()
 {
+  OrthancPluginSetCurrentThreadName(OrthancPlugins::GetGlobalContext(), "DELETION");
+
   static const unsigned int GRANULARITY = 100;  // In milliseconds
 
   while (continue_)
@@ -247,8 +290,8 @@ extern "C"
 {
   ORTHANC_PLUGINS_API int32_t OrthancPluginInitialize(OrthancPluginContext* context)
   {
-    OrthancPlugins::SetGlobalContext(context);
-    Orthanc::Logging::InitializePluginContext(context);
+    OrthancPlugins::SetGlobalContext(context, ORTHANC_PLUGIN_NAME);
+    Orthanc::Logging::InitializePluginContext(context, ORTHANC_PLUGIN_NAME);
     
 
     /* Check the version of the Orthanc core */
@@ -264,7 +307,7 @@ extern "C"
       return -1;
     }
 
-    OrthancPluginSetDescription(context, "Plugin removing files from storage asynchronously.");
+    OrthancPluginSetDescription2(context, ORTHANC_PLUGIN_NAME, "Plugin removing files from storage asynchronously.");
 
     OrthancPlugins::OrthancConfiguration orthancConfig;
 

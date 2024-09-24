@@ -2,8 +2,9 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -45,7 +46,7 @@ namespace Orthanc
     HttpToolbox::ParseGetQuery(curi, getArguments, uri.c_str());
 
     StringHttpOutput stream;
-    HttpOutput http(stream, false /* no keep alive */);
+    HttpOutput http(stream, false /* assume no keep-alive */, 0);
 
     if (handler.Handle(http, origin, LOCALHOST, "", HttpMethod_Get, curi, 
                        httpHeaders, getArguments, NULL /* no body for GET */, 0))
@@ -82,7 +83,7 @@ namespace Orthanc
     Toolbox::SplitUriComponents(curi, uri);
 
     StringHttpOutput stream;
-    HttpOutput http(stream, false /* no keep alive */);
+    HttpOutput http(stream, false /* assume no keep-alive */, 0);
 
     if (handler.Handle(http, origin, LOCALHOST, "", method, curi, 
                        httpHeaders, getArguments, bodyData, bodySize))
@@ -141,7 +142,7 @@ namespace Orthanc
     HttpToolbox::GetArguments getArguments;  // No GET argument for DELETE
 
     StringHttpOutput stream;
-    HttpOutput http(stream, false /* no keep alive */);
+    HttpOutput http(stream, false /* assume no keep-alive */, 0);
 
     if (handler.Handle(http, origin, LOCALHOST, "", HttpMethod_Delete, curi, 
                        httpHeaders, getArguments, NULL /* no body for DELETE */, 0))

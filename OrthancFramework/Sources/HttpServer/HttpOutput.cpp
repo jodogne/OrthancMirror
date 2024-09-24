@@ -2,8 +2,9 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -30,6 +31,7 @@
 #include "../Logging.h"
 #include "../OrthancException.h"
 #include "../Toolbox.h"
+#include "../SystemToolbox.h"
 
 #include <iostream>
 #include <vector>
@@ -43,18 +45,24 @@
 #  endif
 #endif
 
+static const std::string X_CONTENT_TYPE_OPTIONS = "X-Content-Type-Options";
+
 
 namespace Orthanc
 {
   HttpOutput::StateMachine::StateMachine(IHttpOutputStream& stream,
-                                         bool isKeepAlive) : 
+                                         bool isKeepAlive,
+                                         unsigned int keepAliveTimeout) : 
     stream_(stream),
     state_(State_WritingHeader),
+    isContentCompressible_(false),
     status_(HttpStatus_200_Ok),
     hasContentLength_(false),
     contentLength_(0),
     contentPosition_(0),
-    keepAlive_(isKeepAlive)
+    keepAlive_(isKeepAlive),
+    keepAliveTimeout_(keepAliveTimeout),
+    hasXContentTypeOptions_(false)
   {
   }
 
@@ -68,7 +76,7 @@ namespace Orthanc
 
     if (hasContentLength_ && contentPosition_ != contentLength_)
     {
-      LOG(ERROR) << "This HTTP answer has not sent the proper number of bytes in its body";
+      LOG(ERROR) << "This HTTP answer has not sent the proper number of bytes in its body.  The remote client has likely closed the connection.";
     }
   }
 
@@ -100,6 +108,17 @@ namespace Orthanc
     AddHeader("Content-Type", contentType);
   }
 
+  void HttpOutput::StateMachine::SetContentCompressible(bool isContentCompressible)
+  {
+    isContentCompressible_ = isContentCompressible;
+  }
+
+  bool HttpOutput::StateMachine::IsContentCompressible() const
+  {
+    // We assume that all files that compress correctly (mainly JSON, XML) are clearly identified.
+    return isContentCompressible_;
+  }
+
   void HttpOutput::StateMachine::SetContentFilename(const char* filename)
   {
     // TODO Escape double quotes
@@ -125,6 +144,11 @@ namespace Orthanc
     if (state_ != State_WritingHeader)
     {
       throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+
+    if (header == X_CONTENT_TYPE_OPTIONS)
+    {
+      hasXContentTypeOptions_ = true;
     }
 
     headers_.push_back(header + ": " + value + "\r\n");
@@ -189,7 +213,7 @@ namespace Orthanc
          * HTTP header, so we can't use the milliseconds granularity.
          **/
         s += ("Keep-Alive: timeout=" +
-              boost::lexical_cast<std::string>(CIVETWEB_KEEP_ALIVE_TIMEOUT_SECONDS) + "\r\n");
+              boost::lexical_cast<std::string>(keepAliveTimeout_) + "\r\n");
       }
       else
       {
@@ -200,6 +224,13 @@ namespace Orthanc
              it = headers_.begin(); it != headers_.end(); ++it)
       {
         s += *it;
+      }
+
+      if (!hasXContentTypeOptions_)
+      {
+        // Always include this header to prevent MIME Confusion attacks:
+        // https://cheatsheetseries.owasp.org/cheatsheets/HTTP_Headers_Cheat_Sheet.html#x-content-type-options
+        s += X_CONTENT_TYPE_OPTIONS + ": nosniff\r\n";
       }
 
       if (status_ != HttpStatus_200_Ok)
@@ -273,13 +304,11 @@ namespace Orthanc
 
   HttpCompression HttpOutput::GetPreferredCompression(size_t bodySize) const
   {
-#if 0
-    // TODO Do not compress small files?
-    if (bodySize < 512)
+    // Do not compress small files since there is no real size benefit.
+    if (bodySize < 2048)
     {
       return HttpCompression_None;
     }
-#endif
 
     // Prefer "gzip" over "deflate" if the choice is offered
 
@@ -299,8 +328,9 @@ namespace Orthanc
 
 
   HttpOutput::HttpOutput(IHttpOutputStream &stream,
-                         bool isKeepAlive) :
-    stateMachine_(stream, isKeepAlive),
+                         bool isKeepAlive,
+                         unsigned int keepAliveTimeout) :
+    stateMachine_(stream, isKeepAlive, keepAliveTimeout),
     isDeflateAllowed_(false),
     isGzipAllowed_(false)
   {
@@ -337,8 +367,8 @@ namespace Orthanc
 
 
   void HttpOutput::SendStatus(HttpStatus status,
-			      const char* message,
-			      size_t messageSize)
+                              const char* message,
+                              size_t messageSize)
   {
     if (status == HttpStatus_301_MovedPermanently ||
         //status == HttpStatus_401_Unauthorized ||
@@ -349,6 +379,13 @@ namespace Orthanc
     }
     
     stateMachine_.SetHttpStatus(status);
+
+    if (messageSize > 0)
+    {
+      // Assume that the body always contains a textual description of the error
+      stateMachine_.SetContentType("text/plain");
+    }
+
     stateMachine_.SendBody(message, messageSize);
   }
 
@@ -365,11 +402,13 @@ namespace Orthanc
   void HttpOutput::SetContentType(MimeType contentType)
   {
     stateMachine_.SetContentType(EnumerationToString(contentType));
+    stateMachine_.SetContentCompressible(SystemToolbox::IsContentCompressible(contentType));
   }
 
   void HttpOutput::SetContentType(const std::string &contentType)
   {
     stateMachine_.SetContentType(contentType.c_str());
+    stateMachine_.SetContentCompressible(SystemToolbox::IsContentCompressible(contentType));
   }
 
   void HttpOutput::SetContentFilename(const char *filename)
@@ -390,8 +429,13 @@ namespace Orthanc
 
   void HttpOutput::Redirect(const std::string& path)
   {
+    /**
+     * "HttpStatus_301_MovedPermanently" was used in Orthanc <=
+     * 1.12.3. This caused issues on changes in the configuration of
+     * Orthanc.
+     **/
     stateMachine_.ClearHeaders();
-    stateMachine_.SetHttpStatus(HttpStatus_301_MovedPermanently);
+    stateMachine_.SetHttpStatus(HttpStatus_307_TemporaryRedirect);
     stateMachine_.AddHeader("Location", path);
     stateMachine_.SendBody(NULL, 0);
   }
@@ -439,7 +483,7 @@ namespace Orthanc
 
     HttpCompression compression = GetPreferredCompression(length);
 
-    if (compression == HttpCompression_None)
+    if (compression == HttpCompression_None || !IsContentCompressible())
     {
       stateMachine_.SetContentLength(length);
       stateMachine_.SendBody(buffer, length);
@@ -539,7 +583,7 @@ namespace Orthanc
      * Full history is available at the following locations:
      * - In changeset 2248:69b0f4e8a49b:
      *   # hg history -v -r 2248
-     * - https://bugs.orthanc-server.com/show_bug.cgi?id=54
+     * - https://orthanc.uclouvain.be/bugs/show_bug.cgi?id=54
      * - https://groups.google.com/d/msg/orthanc-users/65zhIM5xbKI/TU5Q1_LhAwAJ
      **/
     std::string tmp;
@@ -561,7 +605,7 @@ namespace Orthanc
      * within the encapsulations, and must be no longer than 70
      * characters, not counting the two leading hyphens."
      * https://tools.ietf.org/html/rfc1521
-     * https://bugs.orthanc-server.com/show_bug.cgi?id=165
+     * https://orthanc.uclouvain.be/bugs/show_bug.cgi?id=165
      **/
     if (boundary.size() != 36 + 1 + 36)  // one UUID contains 36 characters
     {

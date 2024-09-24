@@ -8,4 +8,4 @@ The shared library containing the plugin is created as part of the
 build process of Orthanc.
 
 Documentation is available in the Orthanc Book:
-http://book.orthanc-server.com/plugins/serve-folders.html
+https://orthanc.uclouvain.be/book/plugins/serve-folders.html

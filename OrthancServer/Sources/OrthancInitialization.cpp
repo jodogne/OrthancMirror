@@ -2,8 +2,9 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -50,6 +51,16 @@
 #include <OrthancServerResources.h>
 
 #include <dcmtk/dcmnet/diutil.h>  // For DCM_dcmnetLogger
+
+#if ORTHANC_ENABLE_PLUGINS == 1
+#  if defined(__ORTHANC_FILE__)
+//   Prevents the system-wide Google Protobuf library from leaking the
+//   full path of this source file
+#    undef __FILE__
+#    define __FILE__ __ORTHANC_FILE__
+#  endif
+#  include <google/protobuf/any.h>
+#endif
 
 
 static const char* const STORAGE_DIRECTORY = "StorageDirectory";
@@ -204,6 +215,8 @@ namespace Orthanc
   {
     static const char* const EXTRA_MAIN_DICOM_TAGS = "ExtraMainDicomTags";
     
+    DicomMap::ResetDefaultMainDicomTags();
+
     if (configuration.type() != Json::objectValue ||
         !configuration.isMember(EXTRA_MAIN_DICOM_TAGS) ||
         configuration[EXTRA_MAIN_DICOM_TAGS].type() != Json::objectValue)
@@ -235,7 +248,7 @@ namespace Orthanc
 
           if (DicomMap::IsComputedTag(tag))
           {
-            LOG(WARNING) << "  - " << tagName << " can not be added in the Extra Main Dicom Tags since the value of this tag is computed when requested";
+            LOG(WARNING) << "  - " << tagName << " cannot be added in the Extra Main Dicom Tags since the value of this tag is computed when requested";
           }
           else
           {
@@ -313,6 +326,10 @@ namespace Orthanc
     
     OrthancConfiguration::WriterLock lock;
 
+#if ORTHANC_ENABLE_PLUGINS == 1
+    GOOGLE_PROTOBUF_VERIFY_VERSION;
+#endif
+    
     InitializeServerEnumerations();
 
     // Read the user-provided configuration
@@ -354,6 +371,7 @@ namespace Orthanc
     LoadCustomDictionary(lock.GetJson());
 
     lock.GetConfiguration().LoadWarnings();
+    lock.GetConfiguration().LoadJobsEngineThreadsCount();
 
     LoadMainDicomTags(lock.GetJson());  // New in Orthanc 1.11.0
 
@@ -361,7 +379,7 @@ namespace Orthanc
 
 #if HAVE_MALLOPT == 1
     // New in Orthanc 1.8.2
-    // https://book.orthanc-server.com/faq/scalability.html#controlling-memory-usage
+    // https://orthanc.uclouvain.be/book/faq/scalability.html#controlling-memory-usage
     unsigned int maxArena = lock.GetConfiguration().GetUnsignedIntegerParameter(MALLOC_ARENA_MAX, 5);
     if (maxArena != 0)
     {
@@ -388,6 +406,10 @@ namespace Orthanc
   {
     OrthancConfiguration::WriterLock lock;
     Orthanc::FinalizeFramework();
+
+#if ORTHANC_ENABLE_PLUGINS == 1
+    google::protobuf::ShutdownProtobufLibrary();
+#endif
   }
 
 

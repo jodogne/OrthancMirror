@@ -6,8 +6,9 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -1402,371 +1403,340 @@ extern "C"
   }
 
 
-  typedef struct
-  {
-    OrthancPluginDatabaseEventType type;
+  // typedef struct
+  // {
+  //   OrthancPluginDatabaseEventType type;
 
-    union
-    {
-      struct
-      {
-        /* For ""DeletedResource" and "RemainingAncestor" */
-        OrthancPluginResourceType  level;
-        const char*                publicId;
-      } resource;
+  //   union
+  //   {
+  //     struct
+  //     {
+  //       /* For ""DeletedResource" and "RemainingAncestor" */
+  //       OrthancPluginResourceType  level;
+  //       const char*                publicId;
+  //     } resource;
 
-      /* For "DeletedAttachment" */
-      OrthancPluginAttachment2  attachment;
+  //     /* For "DeletedAttachment" */
+  //     OrthancPluginAttachment2  attachment;
       
-    } content;
+  //   } content;
     
-  } OrthancPluginDatabaseEvent2;
+  // } OrthancPluginDatabaseEvent2;
 
 
-  typedef struct
-  {
-    /**
-     * Functions to read the answers inside a transaction
-     **/
+  // typedef struct
+  // {
+  //   /**
+  //    * Functions to read the answers inside a transaction
+  //    **/
     
-    OrthancPluginErrorCode (*readAnswersCount) (OrthancPluginDatabaseTransaction* transaction,
-                                                uint32_t* target /* out */);
+  //   OrthancPluginErrorCode (*readAnswersCount) (OrthancPluginDatabaseTransaction* transaction,
+  //                                               uint32_t* target /* out */);
 
-    OrthancPluginErrorCode (*readAnswerAttachment2) (OrthancPluginDatabaseTransaction* transaction,
-                                                     OrthancPluginAttachment2* target /* out */,          // new in v4
-                                                     uint32_t index);
+  //   OrthancPluginErrorCode (*readAnswerAttachment2) (OrthancPluginDatabaseTransaction* transaction,
+  //                                                    OrthancPluginAttachment2* target /* out */,          // new in v4
+  //                                                    uint32_t index);
 
-    OrthancPluginErrorCode (*readAnswerChange) (OrthancPluginDatabaseTransaction* transaction,
-                                                OrthancPluginChange* target /* out */,
-                                                uint32_t index);
+  //   OrthancPluginErrorCode (*readAnswerChange) (OrthancPluginDatabaseTransaction* transaction,
+  //                                               OrthancPluginChange* target /* out */,
+  //                                               uint32_t index);
 
-    OrthancPluginErrorCode (*readAnswerDicomTag) (OrthancPluginDatabaseTransaction* transaction,
-                                                  uint16_t* group,
-                                                  uint16_t* element,
-                                                  const char** value,
-                                                  uint32_t index);
+  //   OrthancPluginErrorCode (*readAnswerDicomTag) (OrthancPluginDatabaseTransaction* transaction,
+  //                                                 uint16_t* group,
+  //                                                 uint16_t* element,
+  //                                                 const char** value,
+  //                                                 uint32_t index);
 
-    OrthancPluginErrorCode (*readAnswerExportedResource) (OrthancPluginDatabaseTransaction* transaction,
-                                                          OrthancPluginExportedResource* target /* out */,
-                                                          uint32_t index);
+  //   OrthancPluginErrorCode (*readAnswerExportedResource) (OrthancPluginDatabaseTransaction* transaction,
+  //                                                         OrthancPluginExportedResource* target /* out */,
+  //                                                         uint32_t index);
 
-    OrthancPluginErrorCode (*readAnswerInt32) (OrthancPluginDatabaseTransaction* transaction,
-                                               int32_t* target /* out */,
-                                               uint32_t index);
+  //   OrthancPluginErrorCode (*readAnswerInt32) (OrthancPluginDatabaseTransaction* transaction,
+  //                                              int32_t* target /* out */,
+  //                                              uint32_t index);
 
-    OrthancPluginErrorCode (*readAnswerInt64) (OrthancPluginDatabaseTransaction* transaction,
-                                               int64_t* target /* out */,
-                                               uint32_t index);
+  //   OrthancPluginErrorCode (*readAnswerInt64) (OrthancPluginDatabaseTransaction* transaction,
+  //                                              int64_t* target /* out */,
+  //                                              uint32_t index);
 
-    OrthancPluginErrorCode (*readAnswerMatchingResource) (OrthancPluginDatabaseTransaction* transaction,
-                                                          OrthancPluginMatchingResource* target /* out */,
-                                                          uint32_t index);
+  //   OrthancPluginErrorCode (*readAnswerMatchingResource) (OrthancPluginDatabaseTransaction* transaction,
+  //                                                         OrthancPluginMatchingResource* target /* out */,
+  //                                                         uint32_t index);
     
-    OrthancPluginErrorCode (*readAnswerMetadata) (OrthancPluginDatabaseTransaction* transaction,
-                                                  int32_t* metadata /* out */,
-                                                  const char** value /* out */,
-                                                  uint32_t index);
+  //   OrthancPluginErrorCode (*readAnswerMetadata) (OrthancPluginDatabaseTransaction* transaction,
+  //                                                 int32_t* metadata /* out */,
+  //                                                 const char** value /* out */,
+  //                                                 uint32_t index);
 
-    OrthancPluginErrorCode (*readAnswerString) (OrthancPluginDatabaseTransaction* transaction,
-                                                const char** target /* out */,
-                                                uint32_t index);
+  //   OrthancPluginErrorCode (*readAnswerString) (OrthancPluginDatabaseTransaction* transaction,
+  //                                               const char** target /* out */,
+  //                                               uint32_t index);
     
-    OrthancPluginErrorCode (*readEventsCount) (OrthancPluginDatabaseTransaction* transaction,
-                                               uint32_t* target /* out */);
+  //   OrthancPluginErrorCode (*readEventsCount) (OrthancPluginDatabaseTransaction* transaction,
+  //                                              uint32_t* target /* out */);
 
-    OrthancPluginErrorCode (*readEvent2) (OrthancPluginDatabaseTransaction* transaction,
-                                          OrthancPluginDatabaseEvent2* event /* out */,                // new in v4
-                                          uint32_t index);
+  //   OrthancPluginErrorCode (*readEvent2) (OrthancPluginDatabaseTransaction* transaction,
+  //                                         OrthancPluginDatabaseEvent2* event /* out */,                // new in v4
+  //                                         uint32_t index);
 
     
     
-    /**
-     * Functions to access the global database object
-     * (cf. "IDatabaseWrapper" class in Orthanc)
-     **/
+  //   /**
+  //    * Functions to access the global database object
+  //    * (cf. "IDatabaseWrapper" class in Orthanc)
+  //    **/
 
-    OrthancPluginErrorCode (*open) (void* database);
+  //   OrthancPluginErrorCode (*open) (void* database);
 
-    OrthancPluginErrorCode (*close) (void* database);
+  //   OrthancPluginErrorCode (*close) (void* database);
 
-    OrthancPluginErrorCode (*destructDatabase) (void* database);
+  //   OrthancPluginErrorCode (*destructDatabase) (void* database);
 
-    OrthancPluginErrorCode (*getDatabaseVersion) (void* database,
-                                                  uint32_t* target /* out */);
+  //   OrthancPluginErrorCode (*getDatabaseVersion) (void* database,
+  //                                                 uint32_t* target /* out */);
 
-    OrthancPluginErrorCode (*hasRevisionsSupport) (void* database,
-                                                   uint8_t* target /* out */);
+  //   OrthancPluginErrorCode (*hasRevisionsSupport) (void* database,
+  //                                                  uint8_t* target /* out */);
 
-    OrthancPluginErrorCode (*hasAttachmentCustomDataSupport) (void* database,                           // new in v4
-                                                              uint8_t* target /* out */);
+  //   OrthancPluginErrorCode (*hasAttachmentCustomDataSupport) (void* database,                           // new in v4
+  //                                                             uint8_t* target /* out */);
 
-    OrthancPluginErrorCode (*upgradeDatabase) (void* database,
-                                               OrthancPluginStorageArea* storageArea,
-                                               uint32_t targetVersion);
+  //   OrthancPluginErrorCode (*upgradeDatabase) (void* database,
+  //                                              OrthancPluginStorageArea* storageArea,
+  //                                              uint32_t targetVersion);
 
-    OrthancPluginErrorCode (*startTransaction) (void* database,
-                                                OrthancPluginDatabaseTransaction** target /* out */,
-                                                OrthancPluginDatabaseTransactionType type);
+  //   OrthancPluginErrorCode (*startTransaction) (void* database,
+  //                                               OrthancPluginDatabaseTransaction** target /* out */,
+  //                                               OrthancPluginDatabaseTransactionType type);
 
-    OrthancPluginErrorCode (*destructTransaction) (OrthancPluginDatabaseTransaction* transaction);
+  //   OrthancPluginErrorCode (*destructTransaction) (OrthancPluginDatabaseTransaction* transaction);
 
 
-    /**
-     * Functions to run operations within a database transaction
-     * (cf. "IDatabaseWrapper::ITransaction" class in Orthanc)
-     **/
+  //   /**
+  //    * Functions to run operations within a database transaction
+  //    * (cf. "IDatabaseWrapper::ITransaction" class in Orthanc)
+  //    **/
 
-    OrthancPluginErrorCode (*rollback) (OrthancPluginDatabaseTransaction* transaction);
+  //   OrthancPluginErrorCode (*rollback) (OrthancPluginDatabaseTransaction* transaction);
     
-    OrthancPluginErrorCode (*commit) (OrthancPluginDatabaseTransaction* transaction,
-                                      int64_t fileSizeDelta);
+  //   OrthancPluginErrorCode (*commit) (OrthancPluginDatabaseTransaction* transaction,
+  //                                     int64_t fileSizeDelta);
 
-    /* A call to "addAttachment()" guarantees that this attachment is not already existing ("INSERT") */
-    OrthancPluginErrorCode (*addAttachment2) (OrthancPluginDatabaseTransaction* transaction,
-                                             int64_t id,
-                                             const OrthancPluginAttachment2* attachment,                      // new in v4
-                                             int64_t revision);
+  //   /* A call to "addAttachment()" guarantees that this attachment is not already existing ("INSERT") */
+  //   OrthancPluginErrorCode (*addAttachment2) (OrthancPluginDatabaseTransaction* transaction,
+  //                                            int64_t id,
+  //                                            const OrthancPluginAttachment2* attachment,                      // new in v4
+  //                                            int64_t revision);
 
-    OrthancPluginErrorCode (*clearChanges) (OrthancPluginDatabaseTransaction* transaction);
+  //   OrthancPluginErrorCode (*clearChanges) (OrthancPluginDatabaseTransaction* transaction);
     
-    OrthancPluginErrorCode (*clearExportedResources) (OrthancPluginDatabaseTransaction* transaction);
+  //   OrthancPluginErrorCode (*clearExportedResources) (OrthancPluginDatabaseTransaction* transaction);
     
-    OrthancPluginErrorCode (*clearMainDicomTags) (OrthancPluginDatabaseTransaction* transaction,
-                                                  int64_t resourceId);
+  //   OrthancPluginErrorCode (*clearMainDicomTags) (OrthancPluginDatabaseTransaction* transaction,
+  //                                                 int64_t resourceId);
 
-    OrthancPluginErrorCode (*createInstance) (OrthancPluginDatabaseTransaction* transaction,
-                                              OrthancPluginCreateInstanceResult* target /* out */,
-                                              const char* hashPatient,
-                                              const char* hashStudy,
-                                              const char* hashSeries,
-                                              const char* hashInstance);
+  //   OrthancPluginErrorCode (*createInstance) (OrthancPluginDatabaseTransaction* transaction,
+  //                                             OrthancPluginCreateInstanceResult* target /* out */,
+  //                                             const char* hashPatient,
+  //                                             const char* hashStudy,
+  //                                             const char* hashSeries,
+  //                                             const char* hashInstance);
 
-    OrthancPluginErrorCode (*deleteAttachment) (OrthancPluginDatabaseTransaction* transaction,
-                                                int64_t id,
-                                                int32_t contentType);
+  //   OrthancPluginErrorCode (*deleteAttachment) (OrthancPluginDatabaseTransaction* transaction,
+  //                                               int64_t id,
+  //                                               int32_t contentType);
     
-    OrthancPluginErrorCode (*deleteMetadata) (OrthancPluginDatabaseTransaction* transaction,
-                                              int64_t id,
-                                              int32_t metadataType);
+  //   OrthancPluginErrorCode (*deleteMetadata) (OrthancPluginDatabaseTransaction* transaction,
+  //                                             int64_t id,
+  //                                             int32_t metadataType);
 
-    OrthancPluginErrorCode (*deleteResource) (OrthancPluginDatabaseTransaction* transaction,
-                                              int64_t id);
+  //   OrthancPluginErrorCode (*deleteResource) (OrthancPluginDatabaseTransaction* transaction,
+  //                                             int64_t id);
 
-    /* Answers are read using "readAnswerMetadata()" */
-    OrthancPluginErrorCode (*getAllMetadata) (OrthancPluginDatabaseTransaction* transaction,
-                                              int64_t id);
+  //   /* Answers are read using "readAnswerMetadata()" */
+  //   OrthancPluginErrorCode (*getAllMetadata) (OrthancPluginDatabaseTransaction* transaction,
+  //                                             int64_t id);
     
-    /* Answers are read using "readAnswerString()" */
-    OrthancPluginErrorCode (*getAllPublicIds) (OrthancPluginDatabaseTransaction* transaction,
-                                               OrthancPluginResourceType resourceType);
+  //   /* Answers are read using "readAnswerString()" */
+  //   OrthancPluginErrorCode (*getAllPublicIds) (OrthancPluginDatabaseTransaction* transaction,
+  //                                              OrthancPluginResourceType resourceType);
     
-    /* Answers are read using "readAnswerString()" */
-    OrthancPluginErrorCode (*getAllPublicIdsWithLimit) (OrthancPluginDatabaseTransaction* transaction,
-                                                        OrthancPluginResourceType resourceType,
-                                                        uint64_t since,
-                                                        uint64_t limit);
+  //   /* Answers are read using "readAnswerString()" */
+  //   OrthancPluginErrorCode (*getAllPublicIdsWithLimit) (OrthancPluginDatabaseTransaction* transaction,
+  //                                                       OrthancPluginResourceType resourceType,
+  //                                                       uint64_t since,
+  //                                                       uint64_t limit);
 
-    /* Answers are read using "readAnswerChange()" */
-    OrthancPluginErrorCode (*getChanges) (OrthancPluginDatabaseTransaction* transaction,
-                                          uint8_t* targetDone /* out */,
-                                          int64_t since,
-                                          uint32_t maxResults);
+  //   /* Answers are read using "readAnswerChange()" */
+  //   OrthancPluginErrorCode (*getChanges) (OrthancPluginDatabaseTransaction* transaction,
+  //                                         uint8_t* targetDone /* out */,
+  //                                         int64_t since,
+  //                                         uint32_t maxResults);
     
-    /* Answers are read using "readAnswerInt64()" */
-    OrthancPluginErrorCode (*getChildrenInternalId) (OrthancPluginDatabaseTransaction* transaction,
-                                                     int64_t id);
+  //   /* Answers are read using "readAnswerInt64()" */
+  //   OrthancPluginErrorCode (*getChildrenInternalId) (OrthancPluginDatabaseTransaction* transaction,
+  //                                                    int64_t id);
     
-    /* Answers are read using "readAnswerString()" */
-    OrthancPluginErrorCode  (*getChildrenMetadata) (OrthancPluginDatabaseTransaction* transaction,
-                                                    int64_t resourceId,
-                                                    int32_t metadata);
+  //   /* Answers are read using "readAnswerString()" */
+  //   OrthancPluginErrorCode  (*getChildrenMetadata) (OrthancPluginDatabaseTransaction* transaction,
+  //                                                   int64_t resourceId,
+  //                                                   int32_t metadata);
 
-    /* Answers are read using "readAnswerString()" */
-    OrthancPluginErrorCode (*getChildrenPublicId) (OrthancPluginDatabaseTransaction* transaction,
-                                                   int64_t id);
+  //   /* Answers are read using "readAnswerString()" */
+  //   OrthancPluginErrorCode (*getChildrenPublicId) (OrthancPluginDatabaseTransaction* transaction,
+  //                                                  int64_t id);
 
-    /* Answers are read using "readAnswerExportedResource()" */
-    OrthancPluginErrorCode (*getExportedResources) (OrthancPluginDatabaseTransaction* transaction,
-                                                    uint8_t* targetDone /* out */,
-                                                    int64_t since,
-                                                    uint32_t maxResults);
+  //   /* Answers are read using "readAnswerExportedResource()" */
+  //   OrthancPluginErrorCode (*getExportedResources) (OrthancPluginDatabaseTransaction* transaction,
+  //                                                   uint8_t* targetDone /* out */,
+  //                                                   int64_t since,
+  //                                                   uint32_t maxResults);
     
-    /* Answer is read using "readAnswerChange()" */
-    OrthancPluginErrorCode (*getLastChange) (OrthancPluginDatabaseTransaction* transaction);
+  //   /* Answer is read using "readAnswerChange()" */
+  //   OrthancPluginErrorCode (*getLastChange) (OrthancPluginDatabaseTransaction* transaction);
     
-    OrthancPluginErrorCode (*getLastChangeIndex) (OrthancPluginDatabaseTransaction* transaction,
-                                                  int64_t* target /* out */);
+  //   OrthancPluginErrorCode (*getLastChangeIndex) (OrthancPluginDatabaseTransaction* transaction,
+  //                                                 int64_t* target /* out */);
     
-    /* Answer is read using "readAnswerExportedResource()" */
-    OrthancPluginErrorCode (*getLastExportedResource) (OrthancPluginDatabaseTransaction* transaction);
+  //   /* Answer is read using "readAnswerExportedResource()" */
+  //   OrthancPluginErrorCode (*getLastExportedResource) (OrthancPluginDatabaseTransaction* transaction);
     
-    /* Answers are read using "readAnswerDicomTag()" */
-    OrthancPluginErrorCode (*getMainDicomTags) (OrthancPluginDatabaseTransaction* transaction,
-                                                int64_t id);
+  //   /* Answers are read using "readAnswerDicomTag()" */
+  //   OrthancPluginErrorCode (*getMainDicomTags) (OrthancPluginDatabaseTransaction* transaction,
+  //                                               int64_t id);
     
-    /* Answer is read using "readAnswerString()" */
-    OrthancPluginErrorCode (*getPublicId) (OrthancPluginDatabaseTransaction* transaction,
-                                           int64_t internalId);
+  //   /* Answer is read using "readAnswerString()" */
+  //   OrthancPluginErrorCode (*getPublicId) (OrthancPluginDatabaseTransaction* transaction,
+  //                                          int64_t internalId);
     
-    OrthancPluginErrorCode (*getResourcesCount) (OrthancPluginDatabaseTransaction* transaction,
-                                                 uint64_t* target /* out */,
-                                                 OrthancPluginResourceType resourceType);
+  //   OrthancPluginErrorCode (*getResourcesCount) (OrthancPluginDatabaseTransaction* transaction,
+  //                                                uint64_t* target /* out */,
+  //                                                OrthancPluginResourceType resourceType);
     
-    OrthancPluginErrorCode (*getResourceType) (OrthancPluginDatabaseTransaction* transaction,
-                                               OrthancPluginResourceType* target /* out */,
-                                               uint64_t resourceId);
+  //   OrthancPluginErrorCode (*getResourceType) (OrthancPluginDatabaseTransaction* transaction,
+  //                                              OrthancPluginResourceType* target /* out */,
+  //                                              uint64_t resourceId);
     
-    OrthancPluginErrorCode (*getTotalCompressedSize) (OrthancPluginDatabaseTransaction* transaction,
-                                                      uint64_t* target /* out */);
+  //   OrthancPluginErrorCode (*getTotalCompressedSize) (OrthancPluginDatabaseTransaction* transaction,
+  //                                                     uint64_t* target /* out */);
     
-    OrthancPluginErrorCode (*getTotalUncompressedSize) (OrthancPluginDatabaseTransaction* transaction,
-                                                        uint64_t* target /* out */);
+  //   OrthancPluginErrorCode (*getTotalUncompressedSize) (OrthancPluginDatabaseTransaction* transaction,
+  //                                                       uint64_t* target /* out */);
     
-    OrthancPluginErrorCode (*isDiskSizeAbove) (OrthancPluginDatabaseTransaction* transaction,
-                                               uint8_t* target /* out */,
-                                               uint64_t threshold);
+  //   OrthancPluginErrorCode (*isDiskSizeAbove) (OrthancPluginDatabaseTransaction* transaction,
+  //                                              uint8_t* target /* out */,
+  //                                              uint64_t threshold);
     
-    OrthancPluginErrorCode (*isExistingResource) (OrthancPluginDatabaseTransaction* transaction,
-                                                  uint8_t* target /* out */,
-                                                  int64_t resourceId);
+  //   OrthancPluginErrorCode (*isExistingResource) (OrthancPluginDatabaseTransaction* transaction,
+  //                                                 uint8_t* target /* out */,
+  //                                                 int64_t resourceId);
     
-    OrthancPluginErrorCode (*isProtectedPatient) (OrthancPluginDatabaseTransaction* transaction,
-                                                  uint8_t* target /* out */,
-                                                  int64_t resourceId);
+  //   OrthancPluginErrorCode (*isProtectedPatient) (OrthancPluginDatabaseTransaction* transaction,
+  //                                                 uint8_t* target /* out */,
+  //                                                 int64_t resourceId);
     
-    /* Answers are read using "readAnswerInt32()" */
-    OrthancPluginErrorCode (*listAvailableAttachments) (OrthancPluginDatabaseTransaction* transaction,
-                                                        int64_t internalId);
+  //   /* Answers are read using "readAnswerInt32()" */
+  //   OrthancPluginErrorCode (*listAvailableAttachments) (OrthancPluginDatabaseTransaction* transaction,
+  //                                                       int64_t internalId);
 
-    OrthancPluginErrorCode (*logChange) (OrthancPluginDatabaseTransaction* transaction,
-                                         int32_t changeType,
-                                         int64_t resourceId,
-                                         OrthancPluginResourceType resourceType,
-                                         const char* date);
+  //   OrthancPluginErrorCode (*logChange) (OrthancPluginDatabaseTransaction* transaction,
+  //                                        int32_t changeType,
+  //                                        int64_t resourceId,
+  //                                        OrthancPluginResourceType resourceType,
+  //                                        const char* date);
 
-    OrthancPluginErrorCode (*logExportedResource) (OrthancPluginDatabaseTransaction* transaction,
-                                                   OrthancPluginResourceType resourceType,
-                                                   const char* publicId,
-                                                   const char* modality,
-                                                   const char* date,
-                                                   const char* patientId,
-                                                   const char* studyInstanceUid,
-                                                   const char* seriesInstanceUid,
-                                                   const char* sopInstanceUid);
+  //   OrthancPluginErrorCode (*logExportedResource) (OrthancPluginDatabaseTransaction* transaction,
+  //                                                  OrthancPluginResourceType resourceType,
+  //                                                  const char* publicId,
+  //                                                  const char* modality,
+  //                                                  const char* date,
+  //                                                  const char* patientId,
+  //                                                  const char* studyInstanceUid,
+  //                                                  const char* seriesInstanceUid,
+  //                                                  const char* sopInstanceUid);
 
-    /* Answer is read using "readAnswerAttachment()" */
-    OrthancPluginErrorCode (*lookupAttachment) (OrthancPluginDatabaseTransaction* transaction,
-                                                int64_t* revision /* out */,
-                                                int64_t resourceId,
-                                                int32_t contentType);
+  //   /* Answer is read using "readAnswerAttachment()" */
+  //   OrthancPluginErrorCode (*lookupAttachment) (OrthancPluginDatabaseTransaction* transaction,
+  //                                               int64_t* revision /* out */,
+  //                                               int64_t resourceId,
+  //                                               int32_t contentType);
 
-    /* Answer is read using "readAnswerString()" */
-    OrthancPluginErrorCode (*lookupGlobalProperty) (OrthancPluginDatabaseTransaction* transaction,
-                                                    const char* serverIdentifier,
-                                                    int32_t property);
+  //   /* Answer is read using "readAnswerString()" */
+  //   OrthancPluginErrorCode (*lookupGlobalProperty) (OrthancPluginDatabaseTransaction* transaction,
+  //                                                   const char* serverIdentifier,
+  //                                                   int32_t property);
     
-    /* Answer is read using "readAnswerString()" */
-    OrthancPluginErrorCode (*lookupMetadata) (OrthancPluginDatabaseTransaction* transaction,
-                                              int64_t* revision /* out */,
-                                              int64_t id,
-                                              int32_t metadata);
+  //   /* Answer is read using "readAnswerString()" */
+  //   OrthancPluginErrorCode (*lookupMetadata) (OrthancPluginDatabaseTransaction* transaction,
+  //                                             int64_t* revision /* out */,
+  //                                             int64_t id,
+  //                                             int32_t metadata);
     
-    OrthancPluginErrorCode (*lookupParent) (OrthancPluginDatabaseTransaction* transaction,
-                                            uint8_t* isExisting /* out */,
-                                            int64_t* parentId /* out */,
-                                            int64_t id);
+  //   OrthancPluginErrorCode (*lookupParent) (OrthancPluginDatabaseTransaction* transaction,
+  //                                           uint8_t* isExisting /* out */,
+  //                                           int64_t* parentId /* out */,
+  //                                           int64_t id);
     
-    OrthancPluginErrorCode (*lookupResource) (OrthancPluginDatabaseTransaction* transaction,
-                                              uint8_t* isExisting /* out */,
-                                              int64_t* id /* out */,
-                                              OrthancPluginResourceType* type /* out */,
-                                              const char* publicId);
+  //   OrthancPluginErrorCode (*lookupResource) (OrthancPluginDatabaseTransaction* transaction,
+  //                                             uint8_t* isExisting /* out */,
+  //                                             int64_t* id /* out */,
+  //                                             OrthancPluginResourceType* type /* out */,
+  //                                             const char* publicId);
     
-    /* Answers are read using "readAnswerMatchingResource()" */
-    OrthancPluginErrorCode  (*lookupResources) (OrthancPluginDatabaseTransaction* transaction,
-                                                uint32_t constraintsCount,
-                                                const OrthancPluginDatabaseConstraint* constraints,
-                                                OrthancPluginResourceType queryLevel,
-                                                uint32_t limit,
-                                                uint8_t requestSomeInstanceId);
+  //   /* Answers are read using "readAnswerMatchingResource()" */
+  //   OrthancPluginErrorCode  (*lookupResources) (OrthancPluginDatabaseTransaction* transaction,
+  //                                               uint32_t constraintsCount,
+  //                                               const OrthancPluginDatabaseConstraint* constraints,
+  //                                               OrthancPluginResourceType queryLevel,
+  //                                               uint32_t limit,
+  //                                               uint8_t requestSomeInstanceId);
 
-    /* The public ID of the parent resource is read using "readAnswerString()" */
-    OrthancPluginErrorCode (*lookupResourceAndParent) (OrthancPluginDatabaseTransaction* transaction,
-                                                       uint8_t* isExisting /* out */,
-                                                       int64_t* id /* out */,
-                                                       OrthancPluginResourceType* type /* out */,
-                                                       const char* publicId);
+  //   /* The public ID of the parent resource is read using "readAnswerString()" */
+  //   OrthancPluginErrorCode (*lookupResourceAndParent) (OrthancPluginDatabaseTransaction* transaction,
+  //                                                      uint8_t* isExisting /* out */,
+  //                                                      int64_t* id /* out */,
+  //                                                      OrthancPluginResourceType* type /* out */,
+  //                                                      const char* publicId);
 
-    OrthancPluginErrorCode (*selectPatientToRecycle) (OrthancPluginDatabaseTransaction* transaction,
-                                                      uint8_t* patientAvailable /* out */,
-                                                      int64_t* patientId /* out */);
+  //   OrthancPluginErrorCode (*selectPatientToRecycle) (OrthancPluginDatabaseTransaction* transaction,
+  //                                                     uint8_t* patientAvailable /* out */,
+  //                                                     int64_t* patientId /* out */);
     
-    OrthancPluginErrorCode (*selectPatientToRecycle2) (OrthancPluginDatabaseTransaction* transaction,
-                                                       uint8_t* patientAvailable /* out */,
-                                                       int64_t* patientId /* out */,
-                                                       int64_t patientIdToAvoid);
+  //   OrthancPluginErrorCode (*selectPatientToRecycle2) (OrthancPluginDatabaseTransaction* transaction,
+  //                                                      uint8_t* patientAvailable /* out */,
+  //                                                      int64_t* patientId /* out */,
+  //                                                      int64_t patientIdToAvoid);
 
-    OrthancPluginErrorCode (*setGlobalProperty) (OrthancPluginDatabaseTransaction* transaction,
-                                                 const char* serverIdentifier,
-                                                 int32_t property,
-                                                 const char* value);
+  //   OrthancPluginErrorCode (*setGlobalProperty) (OrthancPluginDatabaseTransaction* transaction,
+  //                                                const char* serverIdentifier,
+  //                                                int32_t property,
+  //                                                const char* value);
 
-    /* In "setMetadata()", the metadata might already be existing ("INSERT OR REPLACE")  */
-    OrthancPluginErrorCode (*setMetadata) (OrthancPluginDatabaseTransaction* transaction,
-                                           int64_t id,
-                                           int32_t metadata,
-                                           const char* value,
-                                           int64_t revision);
+  //   /* In "setMetadata()", the metadata might already be existing ("INSERT OR REPLACE")  */
+  //   OrthancPluginErrorCode (*setMetadata) (OrthancPluginDatabaseTransaction* transaction,
+  //                                          int64_t id,
+  //                                          int32_t metadata,
+  //                                          const char* value,
+  //                                          int64_t revision);
     
-    OrthancPluginErrorCode (*setProtectedPatient) (OrthancPluginDatabaseTransaction* transaction,
-                                                   int64_t id,
-                                                   uint8_t isProtected);
+  //   OrthancPluginErrorCode (*setProtectedPatient) (OrthancPluginDatabaseTransaction* transaction,
+  //                                                  int64_t id,
+  //                                                  uint8_t isProtected);
 
-    OrthancPluginErrorCode  (*setResourcesContent) (OrthancPluginDatabaseTransaction* transaction,
-                                                    uint32_t countIdentifierTags,
-                                                    const OrthancPluginResourcesContentTags* identifierTags,
-                                                    uint32_t countMainDicomTags,
-                                                    const OrthancPluginResourcesContentTags* mainDicomTags,
-                                                    uint32_t countMetadata,
-                                                    const OrthancPluginResourcesContentMetadata* metadata);
+  //   OrthancPluginErrorCode  (*setResourcesContent) (OrthancPluginDatabaseTransaction* transaction,
+  //                                                   uint32_t countIdentifierTags,
+  //                                                   const OrthancPluginResourcesContentTags* identifierTags,
+  //                                                   uint32_t countMainDicomTags,
+  //                                                   const OrthancPluginResourcesContentTags* mainDicomTags,
+  //                                                   uint32_t countMetadata,
+  //                                                   const OrthancPluginResourcesContentMetadata* metadata);
     
 
-  } OrthancPluginDatabaseBackendV4;
+  // } OrthancPluginDatabaseBackendV4;
 
 /*<! @endcond */
   
 
-  typedef struct
-  {
-    const OrthancPluginDatabaseBackendV4*  backend;
-    uint32_t                               backendSize;
-    uint32_t                               maxDatabaseRetries;
-    void*                                  database;
-  } _OrthancPluginRegisterDatabaseBackendV4;
-
-
-  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginRegisterDatabaseBackendV4(
-    OrthancPluginContext*                  context,
-    const OrthancPluginDatabaseBackendV4*  backend,
-    uint32_t                               backendSize,
-    uint32_t                               maxDatabaseRetries,  /* To handle "OrthancPluginErrorCode_DatabaseCannotSerialize" */
-    void*                                  database)
-  {
-    _OrthancPluginRegisterDatabaseBackendV4 params;
-
-    if (sizeof(int32_t) != sizeof(_OrthancPluginDatabaseAnswerType))
-    {
-      return OrthancPluginErrorCode_Plugin;
-    }
-
-    memset(&params, 0, sizeof(params));
-    params.backend = backend;
-    params.backendSize = sizeof(OrthancPluginDatabaseBackendV4);
-    params.maxDatabaseRetries = maxDatabaseRetries;
-    params.database = database;
-
-    return context->InvokeService(context, _OrthancPluginService_RegisterDatabaseBackendV4, &params);
-  }
 
 #ifdef  __cplusplus
 }

@@ -1,8 +1,9 @@
 # Orthanc - A Lightweight, RESTful DICOM Store
 # Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
 # Department, University Hospital of Liege, Belgium
-# Copyright (C) 2017-2022 Osimis S.A., Belgium
-# Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+# Copyright (C) 2017-2023 Osimis S.A., Belgium
+# Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+# Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
 #
 # This program is free software: you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public License
@@ -32,7 +33,7 @@ else()
   set(LIBICU_SUFFIX "l")
 endif()
 
-set(LIBICU_BASE_URL "http://orthanc.osimis.io/ThirdPartyDownloads")
+set(LIBICU_BASE_URL "https://orthanc.uclouvain.be/downloads/third-party-downloads")
 
 if (USE_LEGACY_LIBICU)
   # This is the latest version of icu that compiles without C++11

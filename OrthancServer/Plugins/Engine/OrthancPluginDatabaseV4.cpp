@@ -2,8 +2,9 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -27,282 +28,303 @@
 #  error The plugin support is disabled
 #endif
 
+#include "../../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.h"
 #include "../../../OrthancFramework/Sources/Logging.h"
 #include "../../../OrthancFramework/Sources/OrthancException.h"
 #include "../../Sources/Database/ResourcesContent.h"
 #include "../../Sources/Database/VoidDatabaseListener.h"
+#include "../../Sources/ServerToolbox.h"
 #include "PluginsEnumerations.h"
+
+#include "OrthancDatabasePlugin.pb.h"  // Auto-generated file
 
 #include <cassert>
 
 
-#define CHECK_FUNCTION_EXISTS(backend, func)                            \
-  if (backend.func == NULL)                                             \
-  {                                                                     \
-    throw OrthancException(                                             \
-      ErrorCode_DatabasePlugin, "Missing primitive: " #func "()");      \
-  }
-
 namespace Orthanc
 {
+  static void CheckSuccess(PluginsErrorDictionary& errorDictionary,
+                           OrthancPluginErrorCode code)
+  {
+    if (code != OrthancPluginErrorCode_Success)
+    {
+      errorDictionary.LogError(code, true);
+      throw OrthancException(static_cast<ErrorCode>(code));
+    }
+  }
+
+
+  static ResourceType Convert(DatabasePluginMessages::ResourceType type)
+  {
+    switch (type)
+    {
+      case DatabasePluginMessages::RESOURCE_PATIENT:
+        return ResourceType_Patient;
+
+      case DatabasePluginMessages::RESOURCE_STUDY:
+        return ResourceType_Study;
+
+      case DatabasePluginMessages::RESOURCE_SERIES:
+        return ResourceType_Series;
+
+      case DatabasePluginMessages::RESOURCE_INSTANCE:
+        return ResourceType_Instance;
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+    
+  static DatabasePluginMessages::ResourceType Convert(ResourceType type)
+  {
+    switch (type)
+    {
+      case ResourceType_Patient:
+        return DatabasePluginMessages::RESOURCE_PATIENT;
+
+      case ResourceType_Study:
+        return DatabasePluginMessages::RESOURCE_STUDY;
+
+      case ResourceType_Series:
+        return DatabasePluginMessages::RESOURCE_SERIES;
+
+      case ResourceType_Instance:
+        return DatabasePluginMessages::RESOURCE_INSTANCE;
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+    
+  static FileInfo Convert(const DatabasePluginMessages::FileInfo& source)
+  {
+    return FileInfo(source.uuid(),
+                    static_cast<FileContentType>(source.content_type()),
+                    source.uncompressed_size(),
+                    source.uncompressed_hash(),
+                    static_cast<CompressionType>(source.compression_type()),
+                    source.compressed_size(),
+                    source.compressed_hash(),
+                    source.custom_data());
+  }
+
+
+  static ServerIndexChange Convert(const DatabasePluginMessages::ServerIndexChange& source)
+  {
+    return ServerIndexChange(source.seq(),
+                             static_cast<ChangeType>(source.change_type()),
+                             Convert(source.resource_type()),
+                             source.public_id(),
+                             source.date());
+  }
+
+
+  static ExportedResource Convert(const DatabasePluginMessages::ExportedResource& source)
+  {
+    return ExportedResource(source.seq(),
+                            Convert(source.resource_type()),
+                            source.public_id(),
+                            source.modality(),
+                            source.date(),
+                            source.patient_id(),
+                            source.study_instance_uid(),
+                            source.series_instance_uid(),
+                            source.sop_instance_uid());
+  }
+
+
+  static void Execute(DatabasePluginMessages::Response& response,
+                      const OrthancPluginDatabaseV4& database,
+                      const DatabasePluginMessages::Request& request)
+  {
+    std::string requestSerialized;
+    request.SerializeToString(&requestSerialized);
+
+    OrthancPluginMemoryBuffer64 responseSerialized;
+    CheckSuccess(database.GetErrorDictionary(), database.GetDefinition().operations(
+                   &responseSerialized, database.GetDefinition().backend,
+                   requestSerialized.empty() ? NULL : requestSerialized.c_str(),
+                   requestSerialized.size()));
+
+    bool success = response.ParseFromArray(responseSerialized.data, responseSerialized.size);
+
+    if (responseSerialized.size > 0)
+    {
+      free(responseSerialized.data);
+    }
+
+    if (!success)
+    {
+      throw OrthancException(ErrorCode_DatabasePlugin, "Cannot unserialize protobuf originating from the database plugin");
+    }
+  }
+  
+
+  static void ExecuteDatabase(DatabasePluginMessages::DatabaseResponse& response,
+                              const OrthancPluginDatabaseV4& database,
+                              DatabasePluginMessages::DatabaseOperation operation,
+                              const DatabasePluginMessages::DatabaseRequest& request)
+  {
+    DatabasePluginMessages::Request fullRequest;
+    fullRequest.set_type(DatabasePluginMessages::REQUEST_DATABASE);
+    fullRequest.mutable_database_request()->CopyFrom(request);
+    fullRequest.mutable_database_request()->set_operation(operation);
+
+    DatabasePluginMessages::Response fullResponse;
+    Execute(fullResponse, database, fullRequest);
+    
+    response.CopyFrom(fullResponse.database_response());
+  }
+
+  
   class OrthancPluginDatabaseV4::Transaction : public IDatabaseWrapper::ITransaction
   {
   private:
-    OrthancPluginDatabaseV4&           that_;
-    IDatabaseListener&                 listener_;
-    OrthancPluginDatabaseTransaction*  transaction_;
-
+    OrthancPluginDatabaseV4&  database_;
+    IDatabaseListener&        listener_;
+    void*                     transaction_;
     
-    void CheckSuccess(OrthancPluginErrorCode code) const
+    void ExecuteTransaction(DatabasePluginMessages::TransactionResponse& response,
+                            DatabasePluginMessages::TransactionOperation operation,
+                            const DatabasePluginMessages::TransactionRequest& request)
     {
-      that_.CheckSuccess(code);
+      DatabasePluginMessages::Request fullRequest;
+      fullRequest.set_type(DatabasePluginMessages::REQUEST_TRANSACTION);
+      fullRequest.mutable_transaction_request()->CopyFrom(request);
+      fullRequest.mutable_transaction_request()->set_transaction(reinterpret_cast<intptr_t>(transaction_));
+      fullRequest.mutable_transaction_request()->set_operation(operation);
+
+      DatabasePluginMessages::Response fullResponse;
+      Execute(fullResponse, database_, fullRequest);
+    
+      response.CopyFrom(fullResponse.transaction_response());
     }
     
-
-    static FileInfo Convert(const OrthancPluginAttachment& attachment)
+    
+    void ExecuteTransaction(DatabasePluginMessages::TransactionResponse& response,
+                            DatabasePluginMessages::TransactionOperation operation)
     {
-      std::string customData;
-      return FileInfo(attachment.uuid,
-                      static_cast<FileContentType>(attachment.contentType),
-                      attachment.uncompressedSize,
-                      attachment.uncompressedHash,
-                      static_cast<CompressionType>(attachment.compressionType),
-                      attachment.compressedSize,
-                      attachment.compressedHash,
-                      customData);
+      DatabasePluginMessages::TransactionRequest request;    // Ignored
+      ExecuteTransaction(response, operation, request);
     }
-
-    static FileInfo Convert(const OrthancPluginAttachment2& attachment)
+    
+    
+    void ExecuteTransaction(DatabasePluginMessages::TransactionOperation operation,
+                            const DatabasePluginMessages::TransactionRequest& request)
     {
-      return FileInfo(attachment.uuid,
-                      static_cast<FileContentType>(attachment.contentType),
-                      attachment.uncompressedSize,
-                      attachment.uncompressedHash,
-                      static_cast<CompressionType>(attachment.compressionType),
-                      attachment.compressedSize,
-                      attachment.compressedHash,
-                      attachment.customData);
+      DatabasePluginMessages::TransactionResponse response;  // Ignored
+      ExecuteTransaction(response, operation, request);
     }
-
-    void ReadStringAnswers(std::list<std::string>& target)
+    
+    
+    void ExecuteTransaction(DatabasePluginMessages::TransactionOperation operation)
     {
-      uint32_t count;
-      CheckSuccess(that_.backend_.readAnswersCount(transaction_, &count));
-
-      target.clear();
-      for (uint32_t i = 0; i < count; i++)
-      {
-        const char* value = NULL;
-        CheckSuccess(that_.backend_.readAnswerString(transaction_, &value, i));
-        if (value == NULL)
-        {
-          throw OrthancException(ErrorCode_DatabasePlugin);
-        }
-        else
-        {
-          target.push_back(value);
-        }
-      }
+      DatabasePluginMessages::TransactionResponse response;  // Ignored
+      DatabasePluginMessages::TransactionRequest request;    // Ignored
+      ExecuteTransaction(response, operation, request);
     }
 
 
-    bool ReadSingleStringAnswer(std::string& target)
+    void ListLabelsInternal(std::set<std::string>& target,
+                            bool isSingleResource,
+                            int64_t resource)
     {
-      uint32_t count;
-      CheckSuccess(that_.backend_.readAnswersCount(transaction_, &count));
+      if (database_.GetDatabaseCapabilities().HasLabelsSupport())
+      {
+        DatabasePluginMessages::TransactionRequest request;
+        request.mutable_list_labels()->set_single_resource(isSingleResource);
+        request.mutable_list_labels()->set_id(resource);
 
-      if (count == 0)
-      {
-        return false;
-      }
-      else if (count == 1)
-      {
-        const char* value = NULL;
-        CheckSuccess(that_.backend_.readAnswerString(transaction_, &value, 0));
-        if (value == NULL)
+        DatabasePluginMessages::TransactionResponse response;
+        ExecuteTransaction(response, DatabasePluginMessages::OPERATION_LIST_LABELS, request);
+
+        target.clear();
+        for (int i = 0; i < response.list_labels().labels().size(); i++)
         {
-          throw OrthancException(ErrorCode_DatabasePlugin);
-        }
-        else
-        {
-          target.assign(value);
-          return true;
+          target.insert(response.list_labels().labels(i));
         }
       }
       else
       {
-        throw OrthancException(ErrorCode_DatabasePlugin);
-      }
-    }
-
-
-    bool ReadSingleInt64Answer(int64_t& target)
-    {
-      uint32_t count;
-      CheckSuccess(that_.backend_.readAnswersCount(transaction_, &count));
-
-      if (count == 0)
-      {
-        return false;
-      }
-      else if (count == 1)
-      {
-        CheckSuccess(that_.backend_.readAnswerInt64(transaction_, &target, 0));
-        return true;
-      }
-      else
-      {
-        throw OrthancException(ErrorCode_DatabasePlugin);
-      }
-    }
-
-    
-    ExportedResource ReadAnswerExportedResource(uint32_t answerIndex)
-    {
-      OrthancPluginExportedResource exported;
-      CheckSuccess(that_.backend_.readAnswerExportedResource(transaction_, &exported, answerIndex));
-
-      if (exported.publicId == NULL ||
-          exported.modality == NULL ||
-          exported.date == NULL ||
-          exported.patientId == NULL ||
-          exported.studyInstanceUid == NULL ||
-          exported.seriesInstanceUid == NULL ||
-          exported.sopInstanceUid == NULL)
-      {
-        throw OrthancException(ErrorCode_DatabasePlugin);
-      }
-      else
-      {
-        return ExportedResource(exported.seq,
-                                Plugins::Convert(exported.resourceType),
-                                exported.publicId,
-                                exported.modality,
-                                exported.date,
-                                exported.patientId,
-                                exported.studyInstanceUid,
-                                exported.seriesInstanceUid,
-                                exported.sopInstanceUid);
+        // This method shouldn't have been called
+        throw OrthancException(ErrorCode_InternalError);
       }
     }
     
-
-    ServerIndexChange ReadAnswerChange(uint32_t answerIndex)
-    {
-      OrthancPluginChange change;
-      CheckSuccess(that_.backend_.readAnswerChange(transaction_, &change, answerIndex));
-
-      if (change.publicId == NULL ||
-          change.date == NULL)
-      {
-        throw OrthancException(ErrorCode_DatabasePlugin);
-      }
-      else
-      {
-        return ServerIndexChange(change.seq,
-                                 static_cast<ChangeType>(change.changeType),
-                                 Plugins::Convert(change.resourceType),
-                                 change.publicId,
-                                 change.date);
-      }
-    }
-
-
-    void CheckNoEvent()
-    {
-      uint32_t count;
-      CheckSuccess(that_.backend_.readEventsCount(transaction_, &count));
-      if (count != 0)
-      {
-        throw OrthancException(ErrorCode_DatabasePlugin);
-      }
-    }
-
-
-    void ProcessEvents(bool isDeletingAttachment)
-    {
-      uint32_t count;
-      CheckSuccess(that_.backend_.readEventsCount(transaction_, &count));
-
-      for (uint32_t i = 0; i < count; i++)
-      {
-        OrthancPluginDatabaseEvent2 event;
-        CheckSuccess(that_.backend_.readEvent2(transaction_, &event, i));
-
-        switch (event.type)
-        {
-          case OrthancPluginDatabaseEventType_DeletedAttachment:
-            listener_.SignalAttachmentDeleted(Convert(event.content.attachment));
-            break;
-            
-          case OrthancPluginDatabaseEventType_DeletedResource:
-            if (isDeletingAttachment)
-            {
-              // This event should only be triggered by "DeleteResource()"
-              throw OrthancException(ErrorCode_DatabasePlugin);
-            }
-            else
-            {
-              listener_.SignalResourceDeleted(Plugins::Convert(event.content.resource.level), event.content.resource.publicId);
-            }            
-            break;
-            
-          case OrthancPluginDatabaseEventType_RemainingAncestor:
-            if (isDeletingAttachment)
-            {
-              // This event should only triggered by "DeleteResource()"
-              throw OrthancException(ErrorCode_DatabasePlugin);
-            }
-            else
-            {
-              listener_.SignalRemainingAncestor(Plugins::Convert(event.content.resource.level), event.content.resource.publicId);
-            }
-            break;
-
-          default:
-            break;  // Unhandled event
-        }
-      }
-    }
-
 
   public:
-    Transaction(OrthancPluginDatabaseV4& that,
+    Transaction(OrthancPluginDatabaseV4& database,
                 IDatabaseListener& listener,
-                OrthancPluginDatabaseTransactionType type) :
-      that_(that),
-      listener_(listener)
+                TransactionType type) :
+      database_(database),
+      listener_(listener),
+      transaction_(NULL)
     {
-      CheckSuccess(that.backend_.startTransaction(that.database_, &transaction_, type));
+      DatabasePluginMessages::DatabaseRequest request;
+
+      switch (type)
+      {
+        case TransactionType_ReadOnly:
+          request.mutable_start_transaction()->set_type(DatabasePluginMessages::TRANSACTION_READ_ONLY);
+          break;
+
+        case TransactionType_ReadWrite:
+          request.mutable_start_transaction()->set_type(DatabasePluginMessages::TRANSACTION_READ_WRITE);
+          break;
+
+        default:
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+
+      DatabasePluginMessages::DatabaseResponse response;
+      ExecuteDatabase(response, database, DatabasePluginMessages::OPERATION_START_TRANSACTION, request);
+
+      transaction_ = reinterpret_cast<void*>(response.start_transaction().transaction());
+
       if (transaction_ == NULL)
       {
-        throw OrthancException(ErrorCode_DatabasePlugin);
+        throw OrthancException(ErrorCode_NullPointer);
       }
     }
 
     
     virtual ~Transaction()
     {
-      OrthancPluginErrorCode code = that_.backend_.destructTransaction(transaction_);
-      if (code != OrthancPluginErrorCode_Success)
+      try
       {
-        // Don't throw exception in destructors
-        that_.errorDictionary_.LogError(code, true);
+        DatabasePluginMessages::DatabaseRequest request;
+        request.mutable_finalize_transaction()->set_transaction(reinterpret_cast<intptr_t>(transaction_));
+
+        DatabasePluginMessages::DatabaseResponse response;
+        ExecuteDatabase(response, database_, DatabasePluginMessages::OPERATION_FINALIZE_TRANSACTION, request);
       }
+      catch (OrthancException& e)
+      {
+        // Destructors must not throw exceptions
+        LOG(ERROR) << "Cannot finalize the database engine: " << e.What();
+      }
+    }
+
+    void* GetTransactionObject()
+    {
+      return transaction_;
     }
     
 
     virtual void Rollback() ORTHANC_OVERRIDE
     {
-      CheckSuccess(that_.backend_.rollback(transaction_));
-      CheckNoEvent();
+      ExecuteTransaction(DatabasePluginMessages::OPERATION_ROLLBACK);
     }
     
 
     virtual void Commit(int64_t fileSizeDelta) ORTHANC_OVERRIDE
     {
-      CheckSuccess(that_.backend_.commit(transaction_, fileSizeDelta));
-      CheckNoEvent();
+      DatabasePluginMessages::TransactionRequest request;
+      request.mutable_commit()->set_file_size_delta(fileSizeDelta);
+
+      ExecuteTransaction(DatabasePluginMessages::OPERATION_COMMIT, request);
     }
 
     
@@ -310,81 +332,106 @@ namespace Orthanc
                                const FileInfo& attachment,
                                int64_t revision) ORTHANC_OVERRIDE
     {
-      OrthancPluginAttachment2 tmp;
-      tmp.uuid = attachment.GetUuid().c_str();
-      tmp.contentType = static_cast<int32_t>(attachment.GetContentType());
-      tmp.uncompressedSize = attachment.GetUncompressedSize();
-      tmp.uncompressedHash = attachment.GetUncompressedMD5().c_str();
-      tmp.compressionType = static_cast<int32_t>(attachment.GetCompressionType());
-      tmp.compressedSize = attachment.GetCompressedSize();
-      tmp.compressedHash = attachment.GetCompressedMD5().c_str();
-      tmp.customData = attachment.GetCustomData().c_str();
+      DatabasePluginMessages::TransactionRequest request;
+      request.mutable_add_attachment()->set_id(id);
+      request.mutable_add_attachment()->mutable_attachment()->set_uuid(attachment.GetUuid());
+      request.mutable_add_attachment()->mutable_attachment()->set_content_type(attachment.GetContentType());
+      request.mutable_add_attachment()->mutable_attachment()->set_uncompressed_size(attachment.GetUncompressedSize());
+      request.mutable_add_attachment()->mutable_attachment()->set_uncompressed_hash(attachment.GetUncompressedMD5());
+      request.mutable_add_attachment()->mutable_attachment()->set_compression_type(attachment.GetCompressionType());
+      request.mutable_add_attachment()->mutable_attachment()->set_compressed_size(attachment.GetCompressedSize());
+      request.mutable_add_attachment()->mutable_attachment()->set_compressed_hash(attachment.GetCompressedMD5());        
+      request.mutable_add_attachment()->set_revision(revision);
 
-      CheckSuccess(that_.backend_.addAttachment2(transaction_, id, &tmp, revision));
-      CheckNoEvent();
+      ExecuteTransaction(DatabasePluginMessages::OPERATION_ADD_ATTACHMENT, request);
     }
 
 
     virtual void ClearChanges() ORTHANC_OVERRIDE
     {
-      CheckSuccess(that_.backend_.clearChanges(transaction_));
-      CheckNoEvent();
+      ExecuteTransaction(DatabasePluginMessages::OPERATION_CLEAR_CHANGES);
     }
 
     
     virtual void ClearExportedResources() ORTHANC_OVERRIDE
     {
-      CheckSuccess(that_.backend_.clearExportedResources(transaction_));
-      CheckNoEvent();
+      ExecuteTransaction(DatabasePluginMessages::OPERATION_CLEAR_EXPORTED_RESOURCES);
     }
 
-    
+
     virtual void DeleteAttachment(int64_t id,
                                   FileContentType attachment) ORTHANC_OVERRIDE
     {
-      CheckSuccess(that_.backend_.deleteAttachment(transaction_, id, static_cast<int32_t>(attachment)));
-      ProcessEvents(true);
+      DatabasePluginMessages::TransactionRequest request;
+      request.mutable_delete_attachment()->set_id(id);
+      request.mutable_delete_attachment()->set_type(attachment);
+
+      DatabasePluginMessages::TransactionResponse response;
+      ExecuteTransaction(response, DatabasePluginMessages::OPERATION_DELETE_ATTACHMENT, request);
+
+      listener_.SignalAttachmentDeleted(Convert(response.delete_attachment().deleted_attachment()));
     }
 
     
     virtual void DeleteMetadata(int64_t id,
                                 MetadataType type) ORTHANC_OVERRIDE
     {
-      CheckSuccess(that_.backend_.deleteMetadata(transaction_, id, static_cast<int32_t>(type)));
-      CheckNoEvent();
+      DatabasePluginMessages::TransactionRequest request;
+      request.mutable_delete_metadata()->set_id(id);
+      request.mutable_delete_metadata()->set_type(type);
+
+      ExecuteTransaction(DatabasePluginMessages::OPERATION_DELETE_METADATA, request);
     }
 
     
     virtual void DeleteResource(int64_t id) ORTHANC_OVERRIDE
     {
-      CheckSuccess(that_.backend_.deleteResource(transaction_, id));
-      ProcessEvents(false);
+      DatabasePluginMessages::TransactionRequest request;
+      request.mutable_delete_resource()->set_id(id);
+
+      DatabasePluginMessages::TransactionResponse response;
+      ExecuteTransaction(response, DatabasePluginMessages::OPERATION_DELETE_RESOURCE, request);
+
+      for (int i = 0; i < response.delete_resource().deleted_attachments().size(); i++)
+      {
+        listener_.SignalAttachmentDeleted(Convert(response.delete_resource().deleted_attachments(i)));
+      }
+
+      for (int i = 0; i < response.delete_resource().deleted_resources().size(); i++)
+      {
+        listener_.SignalResourceDeleted(Convert(response.delete_resource().deleted_resources(i).level()),
+                                        response.delete_resource().deleted_resources(i).public_id());
+      }
+
+      if (response.delete_resource().is_remaining_ancestor())
+      {
+        listener_.SignalRemainingAncestor(Convert(response.delete_resource().remaining_ancestor().level()),
+                                          response.delete_resource().remaining_ancestor().public_id());
+      }
     }
 
     
     virtual void GetAllMetadata(std::map<MetadataType, std::string>& target,
                                 int64_t id) ORTHANC_OVERRIDE
     {
-      CheckSuccess(that_.backend_.getAllMetadata(transaction_, id));
-      CheckNoEvent();
+      DatabasePluginMessages::TransactionRequest request;
+      request.mutable_get_all_metadata()->set_id(id);
 
-      uint32_t count;
-      CheckSuccess(that_.backend_.readAnswersCount(transaction_, &count));
-      
+      DatabasePluginMessages::TransactionResponse response;
+      ExecuteTransaction(response, DatabasePluginMessages::OPERATION_GET_ALL_METADATA, request);
+
       target.clear();
-      for (uint32_t i = 0; i < count; i++)
+      for (int i = 0; i < response.get_all_metadata().metadata().size(); i++)
       {
-        int32_t metadata;
-        const char* value = NULL;
-        CheckSuccess(that_.backend_.readAnswerMetadata(transaction_, &metadata, &value, i));
-
-        if (value == NULL)
+        MetadataType key = static_cast<MetadataType>(response.get_all_metadata().metadata(i).type());
+          
+        if (target.find(key) == target.end())
         {
-          throw OrthancException(ErrorCode_DatabasePlugin);
+          target[key] = response.get_all_metadata().metadata(i).value();
         }
         else
         {
-          target[static_cast<MetadataType>(metadata)] = value;
+          throw OrthancException(ErrorCode_DatabasePlugin);
         }
       }
     }
@@ -393,45 +440,59 @@ namespace Orthanc
     virtual void GetAllPublicIds(std::list<std::string>& target,
                                  ResourceType resourceType) ORTHANC_OVERRIDE
     {
-      CheckSuccess(that_.backend_.getAllPublicIds(transaction_, Plugins::Convert(resourceType)));
-      CheckNoEvent();
+      DatabasePluginMessages::TransactionRequest request;
+      request.mutable_get_all_public_ids()->set_resource_type(Convert(resourceType));
 
-      ReadStringAnswers(target);
+      DatabasePluginMessages::TransactionResponse response;
+      ExecuteTransaction(response, DatabasePluginMessages::OPERATION_GET_ALL_PUBLIC_IDS, request);
+
+      target.clear();
+      for (int i = 0; i < response.get_all_public_ids().ids().size(); i++)
+      {
+        target.push_back(response.get_all_public_ids().ids(i));
+      }
     }
 
     
     virtual void GetAllPublicIds(std::list<std::string>& target,
                                  ResourceType resourceType,
-                                 size_t since,
-                                 size_t limit) ORTHANC_OVERRIDE
+                                 int64_t since,
+                                 uint32_t limit) ORTHANC_OVERRIDE
     {
-      CheckSuccess(that_.backend_.getAllPublicIdsWithLimit(
-                     transaction_, Plugins::Convert(resourceType),
-                     static_cast<uint64_t>(since), static_cast<uint64_t>(limit)));
-      CheckNoEvent();
+      DatabasePluginMessages::TransactionRequest request;
+      request.mutable_get_all_public_ids_with_limits()->set_resource_type(Convert(resourceType));
+      request.mutable_get_all_public_ids_with_limits()->set_since(since);
+      request.mutable_get_all_public_ids_with_limits()->set_limit(limit);
 
-      ReadStringAnswers(target);
+      DatabasePluginMessages::TransactionResponse response;
+      ExecuteTransaction(response, DatabasePluginMessages::OPERATION_GET_ALL_PUBLIC_IDS_WITH_LIMITS, request);
+
+      target.clear();
+      for (int i = 0; i < response.get_all_public_ids_with_limits().ids().size(); i++)
+      {
+        target.push_back(response.get_all_public_ids_with_limits().ids(i));
+      }
     }
 
     
     virtual void GetChanges(std::list<ServerIndexChange>& target /*out*/,
                             bool& done /*out*/,
                             int64_t since,
-                            uint32_t maxResults) ORTHANC_OVERRIDE
+                            uint32_t limit) ORTHANC_OVERRIDE
     {
-      uint8_t tmpDone = true;
-      CheckSuccess(that_.backend_.getChanges(transaction_, &tmpDone, since, maxResults));
-      CheckNoEvent();
+      DatabasePluginMessages::TransactionRequest request;
+      request.mutable_get_changes()->set_since(since);
+      request.mutable_get_changes()->set_limit(limit);
 
-      done = (tmpDone != 0);
-      
-      uint32_t count;
-      CheckSuccess(that_.backend_.readAnswersCount(transaction_, &count));
-      
+      DatabasePluginMessages::TransactionResponse response;
+      ExecuteTransaction(response, DatabasePluginMessages::OPERATION_GET_CHANGES, request);
+
+      done = response.get_changes().done();
+        
       target.clear();
-      for (uint32_t i = 0; i < count; i++)
+      for (int i = 0; i < response.get_changes().changes().size(); i++)
       {
-        target.push_back(ReadAnswerChange(i));
+        target.push_back(Convert(response.get_changes().changes(i)));
       }
     }
 
@@ -439,18 +500,16 @@ namespace Orthanc
     virtual void GetChildrenInternalId(std::list<int64_t>& target,
                                        int64_t id) ORTHANC_OVERRIDE
     {
-      CheckSuccess(that_.backend_.getChildrenInternalId(transaction_, id));
-      CheckNoEvent();
+      DatabasePluginMessages::TransactionRequest request;
+      request.mutable_get_children_internal_id()->set_id(id);
 
-      uint32_t count;
-      CheckSuccess(that_.backend_.readAnswersCount(transaction_, &count));
-      
+      DatabasePluginMessages::TransactionResponse response;
+      ExecuteTransaction(response, DatabasePluginMessages::OPERATION_GET_CHILDREN_INTERNAL_ID, request);
+
       target.clear();
-      for (uint32_t i = 0; i < count; i++)
+      for (int i = 0; i < response.get_children_internal_id().ids().size(); i++)
       {
-        int64_t value;
-        CheckSuccess(that_.backend_.readAnswerInt64(transaction_, &value, i));
-        target.push_back(value);
+        target.push_back(response.get_children_internal_id().ids(i));
       }
     }
 
@@ -458,71 +517,64 @@ namespace Orthanc
     virtual void GetChildrenPublicId(std::list<std::string>& target,
                                      int64_t id) ORTHANC_OVERRIDE
     {
-      CheckSuccess(that_.backend_.getChildrenPublicId(transaction_, id));
-      CheckNoEvent();
+      DatabasePluginMessages::TransactionRequest request;
+      request.mutable_get_children_public_id()->set_id(id);
 
-      ReadStringAnswers(target);
+      DatabasePluginMessages::TransactionResponse response;
+      ExecuteTransaction(response, DatabasePluginMessages::OPERATION_GET_CHILDREN_PUBLIC_ID, request);
+
+      target.clear();
+      for (int i = 0; i < response.get_children_public_id().ids().size(); i++)
+      {
+        target.push_back(response.get_children_public_id().ids(i));
+      }
     }
 
     
     virtual void GetExportedResources(std::list<ExportedResource>& target /*out*/,
                                       bool& done /*out*/,
                                       int64_t since,
-                                      uint32_t maxResults) ORTHANC_OVERRIDE
+                                      uint32_t limit) ORTHANC_OVERRIDE
     {
-      uint8_t tmpDone = true;
-      CheckSuccess(that_.backend_.getExportedResources(transaction_, &tmpDone, since, maxResults));
-      CheckNoEvent();
+      DatabasePluginMessages::TransactionRequest request;
+      request.mutable_get_exported_resources()->set_since(since);
+      request.mutable_get_exported_resources()->set_limit(limit);
 
-      done = (tmpDone != 0);
-      
-      uint32_t count;
-      CheckSuccess(that_.backend_.readAnswersCount(transaction_, &count));
-      
+      DatabasePluginMessages::TransactionResponse response;
+      ExecuteTransaction(response, DatabasePluginMessages::OPERATION_GET_EXPORTED_RESOURCES, request);
+
+      done = response.get_exported_resources().done();
+        
       target.clear();
-      for (uint32_t i = 0; i < count; i++)
+      for (int i = 0; i < response.get_exported_resources().resources().size(); i++)
       {
-        target.push_back(ReadAnswerExportedResource(i));
+        target.push_back(Convert(response.get_exported_resources().resources(i)));
       }
     }
 
-
+    
     virtual void GetLastChange(std::list<ServerIndexChange>& target /*out*/) ORTHANC_OVERRIDE
     {
-      CheckSuccess(that_.backend_.getLastChange(transaction_));
-      CheckNoEvent();
-
-      uint32_t count;
-      CheckSuccess(that_.backend_.readAnswersCount(transaction_, &count));
+      DatabasePluginMessages::TransactionResponse response;
+      ExecuteTransaction(response, DatabasePluginMessages::OPERATION_GET_LAST_CHANGE);
 
       target.clear();
-      if (count == 1)
+      if (response.get_last_change().found())
       {
-        target.push_back(ReadAnswerChange(0));
-      }
-      else if (count > 1)
-      {
-        throw OrthancException(ErrorCode_DatabasePlugin);
+        target.push_back(Convert(response.get_last_change().change()));
       }
     }
 
-
+    
     virtual void GetLastExportedResource(std::list<ExportedResource>& target /*out*/) ORTHANC_OVERRIDE
     {
-      CheckSuccess(that_.backend_.getLastExportedResource(transaction_));
-      CheckNoEvent();
-
-      uint32_t count;
-      CheckSuccess(that_.backend_.readAnswersCount(transaction_, &count));
+      DatabasePluginMessages::TransactionResponse response;
+      ExecuteTransaction(response, DatabasePluginMessages::OPERATION_GET_LAST_EXPORTED_RESOURCE);
 
       target.clear();
-      if (count == 1)
+      if (response.get_last_exported_resource().found())
       {
-        target.push_back(ReadAnswerExportedResource(0));
-      }
-      else if (count > 1)
-      {
-        throw OrthancException(ErrorCode_DatabasePlugin);
+        target.push_back(Convert(response.get_last_exported_resource().resource()));
       }
     }
 
@@ -530,26 +582,25 @@ namespace Orthanc
     virtual void GetMainDicomTags(DicomMap& target,
                                   int64_t id) ORTHANC_OVERRIDE
     {
-      CheckSuccess(that_.backend_.getMainDicomTags(transaction_, id));
-      CheckNoEvent();
+      DatabasePluginMessages::TransactionRequest request;
+      request.mutable_get_main_dicom_tags()->set_id(id);
 
-      uint32_t count;
-      CheckSuccess(that_.backend_.readAnswersCount(transaction_, &count));
+      DatabasePluginMessages::TransactionResponse response;
+      ExecuteTransaction(response, DatabasePluginMessages::OPERATION_GET_MAIN_DICOM_TAGS, request);
 
       target.Clear();
-      for (uint32_t i = 0; i < count; i++)
-      {
-        uint16_t group, element;
-        const char* value = NULL;
-        CheckSuccess(that_.backend_.readAnswerDicomTag(transaction_, &group, &element, &value, i));
 
-        if (value == NULL)
+      for (int i = 0; i < response.get_main_dicom_tags().tags().size(); i++)
+      {
+        const DatabasePluginMessages::GetMainDicomTags_Response_Tag& tag = response.get_main_dicom_tags().tags(i);
+        if (tag.group() > 0xffffu ||
+            tag.element() > 0xffffu)
         {
-          throw OrthancException(ErrorCode_DatabasePlugin);
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
         }
         else
         {
-          target.SetValue(group, element, std::string(value), false);
+          target.SetValue(tag.group(), tag.element(), tag.value(), false);
         }
       }
     }
@@ -557,115 +608,121 @@ namespace Orthanc
     
     virtual std::string GetPublicId(int64_t resourceId) ORTHANC_OVERRIDE
     {
-      CheckSuccess(that_.backend_.getPublicId(transaction_, resourceId));
-      CheckNoEvent();
+      DatabasePluginMessages::TransactionRequest request;
+      request.mutable_get_public_id()->set_id(resourceId);
 
-      std::string s;
-      if (ReadSingleStringAnswer(s))
-      {
-        return s;
-      }
-      else
-      {
-        throw OrthancException(ErrorCode_InexistentItem);
-      }
+      DatabasePluginMessages::TransactionResponse response;
+      ExecuteTransaction(response, DatabasePluginMessages::OPERATION_GET_PUBLIC_ID, request);
+      return response.get_public_id().id();
     }
 
     
     virtual uint64_t GetResourcesCount(ResourceType resourceType) ORTHANC_OVERRIDE
     {
-      uint64_t value;
-      CheckSuccess(that_.backend_.getResourcesCount(transaction_, &value, Plugins::Convert(resourceType)));
-      CheckNoEvent();
-      return value;
+      DatabasePluginMessages::TransactionRequest request;
+      request.mutable_get_resources_count()->set_type(Convert(resourceType));
+
+      DatabasePluginMessages::TransactionResponse response;
+      ExecuteTransaction(response, DatabasePluginMessages::OPERATION_GET_RESOURCES_COUNT, request);
+      return response.get_resources_count().count();
     }
 
     
     virtual ResourceType GetResourceType(int64_t resourceId) ORTHANC_OVERRIDE
     {
-      OrthancPluginResourceType type;
-      CheckSuccess(that_.backend_.getResourceType(transaction_, &type, resourceId));
-      CheckNoEvent();
-      return Plugins::Convert(type);
+      DatabasePluginMessages::TransactionRequest request;
+      request.mutable_get_resource_type()->set_id(resourceId);
+
+      DatabasePluginMessages::TransactionResponse response;
+      ExecuteTransaction(response, DatabasePluginMessages::OPERATION_GET_RESOURCE_TYPE, request);
+      return Convert(response.get_resource_type().type());
     }
 
     
     virtual uint64_t GetTotalCompressedSize() ORTHANC_OVERRIDE
     {
-      uint64_t s;
-      CheckSuccess(that_.backend_.getTotalCompressedSize(transaction_, &s));
-      CheckNoEvent();
-      return s;
+      DatabasePluginMessages::TransactionResponse response;
+      ExecuteTransaction(response, DatabasePluginMessages::OPERATION_GET_TOTAL_COMPRESSED_SIZE);
+      return response.get_total_compressed_size().size();
     }
 
     
     virtual uint64_t GetTotalUncompressedSize() ORTHANC_OVERRIDE
     {
-      uint64_t s;
-      CheckSuccess(that_.backend_.getTotalUncompressedSize(transaction_, &s));
-      CheckNoEvent();
-      return s;
-    }
-
-    
-    virtual bool IsExistingResource(int64_t internalId) ORTHANC_OVERRIDE
-    {
-      uint8_t b;
-      CheckSuccess(that_.backend_.isExistingResource(transaction_, &b, internalId));
-      CheckNoEvent();
-      return (b != 0);
+      DatabasePluginMessages::TransactionResponse response;
+      ExecuteTransaction(response, DatabasePluginMessages::OPERATION_GET_TOTAL_UNCOMPRESSED_SIZE);
+      return response.get_total_uncompressed_size().size();
     }
 
     
     virtual bool IsProtectedPatient(int64_t internalId) ORTHANC_OVERRIDE
     {
-      uint8_t b;
-      CheckSuccess(that_.backend_.isProtectedPatient(transaction_, &b, internalId));
-      CheckNoEvent();
-      return (b != 0);
+      DatabasePluginMessages::TransactionRequest request;
+      request.mutable_is_protected_patient()->set_patient_id(internalId);
+
+      DatabasePluginMessages::TransactionResponse response;
+      ExecuteTransaction(response, DatabasePluginMessages::OPERATION_IS_PROTECTED_PATIENT, request);
+      return response.is_protected_patient().protected_patient();
     }
 
     
     virtual void ListAvailableAttachments(std::set<FileContentType>& target,
                                           int64_t id) ORTHANC_OVERRIDE
     {
-      CheckSuccess(that_.backend_.listAvailableAttachments(transaction_, id));
-      CheckNoEvent();
+      DatabasePluginMessages::TransactionRequest request;
+      request.mutable_list_available_attachments()->set_id(id);
 
-      uint32_t count;
-      CheckSuccess(that_.backend_.readAnswersCount(transaction_, &count));
-      
+      DatabasePluginMessages::TransactionResponse response;
+      ExecuteTransaction(response, DatabasePluginMessages::OPERATION_LIST_AVAILABLE_ATTACHMENTS, request);
+
       target.clear();
-      for (uint32_t i = 0; i < count; i++)
+      for (int i = 0; i < response.list_available_attachments().attachments().size(); i++)
       {
-        int32_t value;
-        CheckSuccess(that_.backend_.readAnswerInt32(transaction_, &value, i));
-        target.insert(static_cast<FileContentType>(value));
+        FileContentType attachment = static_cast<FileContentType>(response.list_available_attachments().attachments(i));
+
+        if (target.find(attachment) == target.end())
+        {
+          target.insert(attachment);
+        }
+        else
+        {
+          throw OrthancException(ErrorCode_DatabasePlugin);
+        }
       }
     }
 
     
-    virtual void LogChange(int64_t internalId,
-                           const ServerIndexChange& change) ORTHANC_OVERRIDE
+    virtual void LogChange(ChangeType changeType,
+                           ResourceType resourceType,
+                           int64_t internalId,
+                           const std::string& /* publicId - unused */,
+                           const std::string& date) ORTHANC_OVERRIDE
     {
-      CheckSuccess(that_.backend_.logChange(transaction_, static_cast<int32_t>(change.GetChangeType()),
-                                            internalId, Plugins::Convert(change.GetResourceType()),
-                                            change.GetDate().c_str()));
-      CheckNoEvent();
+      DatabasePluginMessages::TransactionRequest request;
+      request.mutable_log_change()->set_change_type(changeType);
+      request.mutable_log_change()->set_resource_type(Convert(resourceType));
+      request.mutable_log_change()->set_resource_id(internalId);
+      request.mutable_log_change()->set_date(date);
+
+      ExecuteTransaction(DatabasePluginMessages::OPERATION_LOG_CHANGE, request);
     }
 
     
     virtual void LogExportedResource(const ExportedResource& resource) ORTHANC_OVERRIDE
     {
-      CheckSuccess(that_.backend_.logExportedResource(transaction_, Plugins::Convert(resource.GetResourceType()),
-                                                      resource.GetPublicId().c_str(),
-                                                      resource.GetModality().c_str(),
-                                                      resource.GetDate().c_str(),
-                                                      resource.GetPatientId().c_str(),
-                                                      resource.GetStudyInstanceUid().c_str(),
-                                                      resource.GetSeriesInstanceUid().c_str(),
-                                                      resource.GetSopInstanceUid().c_str()));
-      CheckNoEvent();
+      // TODO: "seq" is ignored, could be simplified in "ExportedResource"
+      
+      DatabasePluginMessages::TransactionRequest request;
+      request.mutable_log_exported_resource()->set_resource_type(Convert(resource.GetResourceType()));
+      request.mutable_log_exported_resource()->set_public_id(resource.GetPublicId());
+      request.mutable_log_exported_resource()->set_modality(resource.GetModality());
+      request.mutable_log_exported_resource()->set_date(resource.GetDate());
+      request.mutable_log_exported_resource()->set_patient_id(resource.GetPatientId());
+      request.mutable_log_exported_resource()->set_study_instance_uid(resource.GetStudyInstanceUid());
+      request.mutable_log_exported_resource()->set_series_instance_uid(resource.GetSeriesInstanceUid());
+      request.mutable_log_exported_resource()->set_sop_instance_uid(resource.GetSopInstanceUid());
+
+      ExecuteTransaction(DatabasePluginMessages::OPERATION_LOG_EXPORTED_RESOURCE, request);
     }
 
     
@@ -674,26 +731,22 @@ namespace Orthanc
                                   int64_t id,
                                   FileContentType contentType) ORTHANC_OVERRIDE
     {
-      CheckSuccess(that_.backend_.lookupAttachment(transaction_, &revision, id, static_cast<int32_t>(contentType)));
-      CheckNoEvent();
+      DatabasePluginMessages::TransactionRequest request;
+      request.mutable_lookup_attachment()->set_id(id);
+      request.mutable_lookup_attachment()->set_content_type(contentType);
 
-      uint32_t count;
-      CheckSuccess(that_.backend_.readAnswersCount(transaction_, &count));
+      DatabasePluginMessages::TransactionResponse response;
+      ExecuteTransaction(response, DatabasePluginMessages::OPERATION_LOOKUP_ATTACHMENT, request);
 
-      if (count == 0)
+      if (response.lookup_attachment().found())
       {
-        return false;
-      }
-      else if (count == 1)
-      {
-        OrthancPluginAttachment2 tmp;
-        CheckSuccess(that_.backend_.readAnswerAttachment2(transaction_, &tmp, 0));
-        attachment = Convert(tmp);
+        attachment = Convert(response.lookup_attachment().attachment());
+        revision = response.lookup_attachment().revision();
         return true;
       }
       else
       {
-        throw OrthancException(ErrorCode_DatabasePlugin);
+        return false;
       }
     }
 
@@ -702,32 +755,101 @@ namespace Orthanc
                                       GlobalProperty property,
                                       bool shared) ORTHANC_OVERRIDE
     {
-      const char* id = (shared ? "" : that_.serverIdentifier_.c_str());
-      
-      CheckSuccess(that_.backend_.lookupGlobalProperty(transaction_, id, static_cast<int32_t>(property)));
-      CheckNoEvent();
-      return ReadSingleStringAnswer(target);      
+      DatabasePluginMessages::TransactionRequest request;
+      request.mutable_lookup_global_property()->set_server_id(shared ? "" : database_.GetServerIdentifier());
+      request.mutable_lookup_global_property()->set_property(property);
+
+      DatabasePluginMessages::TransactionResponse response;
+      ExecuteTransaction(response, DatabasePluginMessages::OPERATION_LOOKUP_GLOBAL_PROPERTY, request);
+
+      if (response.lookup_global_property().found())
+      {
+        target = response.lookup_global_property().value();
+        return true;
+      }
+      else
+      {
+        return false;
+      }
     }
 
-    
+
+    virtual int64_t IncrementGlobalProperty(GlobalProperty property,
+                                            int64_t increment,
+                                            bool shared) ORTHANC_OVERRIDE
+    {
+      DatabasePluginMessages::TransactionRequest request;
+      request.mutable_increment_global_property()->set_server_id(shared ? "" : database_.GetServerIdentifier());
+      request.mutable_increment_global_property()->set_property(property);
+      request.mutable_increment_global_property()->set_increment(increment);
+
+      DatabasePluginMessages::TransactionResponse response;
+      ExecuteTransaction(response, DatabasePluginMessages::OPERATION_INCREMENT_GLOBAL_PROPERTY, request);
+
+      return response.increment_global_property().new_value();
+    }
+
+    virtual void UpdateAndGetStatistics(int64_t& patientsCount,
+                                        int64_t& studiesCount,
+                                        int64_t& seriesCount,
+                                        int64_t& instancesCount,
+                                        int64_t& compressedSize,
+                                        int64_t& uncompressedSize) ORTHANC_OVERRIDE
+    {
+      DatabasePluginMessages::TransactionResponse response;
+      ExecuteTransaction(response, DatabasePluginMessages::OPERATION_UPDATE_AND_GET_STATISTICS);
+
+      patientsCount = response.update_and_get_statistics().patients_count();
+      studiesCount = response.update_and_get_statistics().studies_count();
+      seriesCount = response.update_and_get_statistics().series_count();
+      instancesCount = response.update_and_get_statistics().instances_count();
+      compressedSize = response.update_and_get_statistics().total_compressed_size();
+      uncompressedSize = response.update_and_get_statistics().total_uncompressed_size();
+    }
+
     virtual bool LookupMetadata(std::string& target,
                                 int64_t& revision,
                                 int64_t id,
                                 MetadataType type) ORTHANC_OVERRIDE
     {
-      CheckSuccess(that_.backend_.lookupMetadata(transaction_, &revision, id, static_cast<int32_t>(type)));
-      CheckNoEvent();
-      return ReadSingleStringAnswer(target);      
+      DatabasePluginMessages::TransactionRequest request;
+      request.mutable_lookup_metadata()->set_id(id);
+      request.mutable_lookup_metadata()->set_metadata_type(type);
+
+      DatabasePluginMessages::TransactionResponse response;
+      ExecuteTransaction(response, DatabasePluginMessages::OPERATION_LOOKUP_METADATA, request);
+
+      if (response.lookup_metadata().found())
+      {
+        target = response.lookup_metadata().value();
+        revision = response.lookup_metadata().revision();
+        return true;
+      }
+      else
+      {
+        return false;
+      }
     }
 
     
     virtual bool LookupParent(int64_t& parentId,
                               int64_t resourceId) ORTHANC_OVERRIDE
     {
-      uint8_t existing;
-      CheckSuccess(that_.backend_.lookupParent(transaction_, &existing, &parentId, resourceId));
-      CheckNoEvent();
-      return (existing != 0);
+      DatabasePluginMessages::TransactionRequest request;
+      request.mutable_lookup_parent()->set_id(resourceId);
+
+      DatabasePluginMessages::TransactionResponse response;
+      ExecuteTransaction(response, DatabasePluginMessages::OPERATION_LOOKUP_PARENT, request);
+
+      if (response.lookup_parent().found())
+      {
+        parentId = response.lookup_parent().parent();
+        return true;
+      }
+      else
+      {
+        return false;
+      }
     }
 
     
@@ -735,39 +857,60 @@ namespace Orthanc
                                 ResourceType& type,
                                 const std::string& publicId) ORTHANC_OVERRIDE
     {
-      uint8_t existing;
-      OrthancPluginResourceType t;
-      CheckSuccess(that_.backend_.lookupResource(transaction_, &existing, &id, &t, publicId.c_str()));
-      CheckNoEvent();
+      DatabasePluginMessages::TransactionRequest request;
+      request.mutable_lookup_resource()->set_public_id(publicId);
 
-      if (existing == 0)
+      DatabasePluginMessages::TransactionResponse response;
+      ExecuteTransaction(response, DatabasePluginMessages::OPERATION_LOOKUP_RESOURCE, request);
+
+      if (response.lookup_resource().found())
       {
-        return false;
+        id = response.lookup_resource().internal_id();
+        type = Convert(response.lookup_resource().type());
+        return true;
       }
       else
       {
-        type = Plugins::Convert(t);
-        return true;
+        return false;
       }
     }
 
     
     virtual bool SelectPatientToRecycle(int64_t& internalId) ORTHANC_OVERRIDE
     {
-      uint8_t available;      
-      CheckSuccess(that_.backend_.selectPatientToRecycle(transaction_, &available, &internalId));
-      CheckNoEvent();
-      return (available != 0);
+      DatabasePluginMessages::TransactionResponse response;
+      ExecuteTransaction(response, DatabasePluginMessages::OPERATION_SELECT_PATIENT_TO_RECYCLE);
+
+      if (response.select_patient_to_recycle().found())
+      {
+        internalId = response.select_patient_to_recycle().patient_id();
+        return true;
+      }
+      else
+      {
+        return false;
+      }
     }
 
     
     virtual bool SelectPatientToRecycle(int64_t& internalId,
                                         int64_t patientIdToAvoid) ORTHANC_OVERRIDE
     {
-      uint8_t available;      
-      CheckSuccess(that_.backend_.selectPatientToRecycle2(transaction_, &available, &internalId, patientIdToAvoid));
-      CheckNoEvent();
-      return (available != 0);
+      DatabasePluginMessages::TransactionRequest request;
+      request.mutable_select_patient_to_recycle_with_avoid()->set_patient_id_to_avoid(patientIdToAvoid);
+
+      DatabasePluginMessages::TransactionResponse response;
+      ExecuteTransaction(response, DatabasePluginMessages::OPERATION_SELECT_PATIENT_TO_RECYCLE_WITH_AVOID, request);
+
+      if (response.select_patient_to_recycle_with_avoid().found())
+      {
+        internalId = response.select_patient_to_recycle_with_avoid().patient_id();
+        return true;
+      }
+      else
+      {
+        return false;
+      }
     }
 
     
@@ -775,17 +918,21 @@ namespace Orthanc
                                    bool shared,
                                    const std::string& value) ORTHANC_OVERRIDE
     {
-      const char* id = (shared ? "" : that_.serverIdentifier_.c_str());
-      
-      CheckSuccess(that_.backend_.setGlobalProperty(transaction_, id, static_cast<int32_t>(property), value.c_str()));
-      CheckNoEvent();
+      DatabasePluginMessages::TransactionRequest request;
+      request.mutable_set_global_property()->set_server_id(shared ? "" : database_.GetServerIdentifier());
+      request.mutable_set_global_property()->set_property(property);
+      request.mutable_set_global_property()->set_value(value);
+
+      ExecuteTransaction(DatabasePluginMessages::OPERATION_SET_GLOBAL_PROPERTY, request);
     }
 
     
     virtual void ClearMainDicomTags(int64_t id) ORTHANC_OVERRIDE
     {
-      CheckSuccess(that_.backend_.clearMainDicomTags(transaction_, id));
-      CheckNoEvent();
+      DatabasePluginMessages::TransactionRequest request;
+      request.mutable_clear_main_dicom_tags()->set_id(id);
+
+      ExecuteTransaction(DatabasePluginMessages::OPERATION_CLEAR_MAIN_DICOM_TAGS, request);
     }
 
     
@@ -794,82 +941,147 @@ namespace Orthanc
                              const std::string& value,
                              int64_t revision) ORTHANC_OVERRIDE
     {
-      CheckSuccess(that_.backend_.setMetadata(transaction_, id, static_cast<int32_t>(type), value.c_str(), revision));
-      CheckNoEvent();
+      DatabasePluginMessages::TransactionRequest request;
+      request.mutable_set_metadata()->set_id(id);
+      request.mutable_set_metadata()->set_metadata_type(type);
+      request.mutable_set_metadata()->set_value(value);
+      request.mutable_set_metadata()->set_revision(revision);
+
+      ExecuteTransaction(DatabasePluginMessages::OPERATION_SET_METADATA, request);
     }
 
     
     virtual void SetProtectedPatient(int64_t internalId, 
                                      bool isProtected) ORTHANC_OVERRIDE
     {
-      CheckSuccess(that_.backend_.setProtectedPatient(transaction_, internalId, (isProtected ? 1 : 0)));
-      CheckNoEvent();
+      DatabasePluginMessages::TransactionRequest request;
+      request.mutable_set_protected_patient()->set_patient_id(internalId);
+      request.mutable_set_protected_patient()->set_protected_patient(isProtected);
+
+      ExecuteTransaction(DatabasePluginMessages::OPERATION_SET_PROTECTED_PATIENT, request);
     }
 
 
     virtual bool IsDiskSizeAbove(uint64_t threshold) ORTHANC_OVERRIDE
     {
-      uint8_t tmp;
-      CheckSuccess(that_.backend_.isDiskSizeAbove(transaction_, &tmp, threshold));
-      CheckNoEvent();
-      return (tmp != 0);
+      DatabasePluginMessages::TransactionRequest request;
+      request.mutable_is_disk_size_above()->set_threshold(threshold);
+
+      DatabasePluginMessages::TransactionResponse response;
+      ExecuteTransaction(response, DatabasePluginMessages::OPERATION_IS_DISK_SIZE_ABOVE, request);
+
+      return response.is_disk_size_above().result();
     }
 
     
     virtual void ApplyLookupResources(std::list<std::string>& resourcesId,
                                       std::list<std::string>* instancesId, // Can be NULL if not needed
-                                      const std::vector<DatabaseConstraint>& lookup,
+                                      const DatabaseConstraints& lookup,
                                       ResourceType queryLevel,
-                                      size_t limit) ORTHANC_OVERRIDE
+                                      const std::set<std::string>& labels,
+                                      LabelsConstraint labelsConstraint,
+                                      uint32_t limit) ORTHANC_OVERRIDE
     {
-      std::vector<OrthancPluginDatabaseConstraint> constraints;
-      std::vector< std::vector<const char*> > constraintsValues;
-
-      constraints.resize(lookup.size());
-      constraintsValues.resize(lookup.size());
-
-      for (size_t i = 0; i < lookup.size(); i++)
+      if (!database_.GetDatabaseCapabilities().HasLabelsSupport() &&
+          !labels.empty())
       {
-        lookup[i].EncodeForPlugins(constraints[i], constraintsValues[i]);
+        throw OrthancException(ErrorCode_InternalError);
       }
 
-      CheckSuccess(that_.backend_.lookupResources(transaction_, lookup.size(),
-                                                  (lookup.empty() ? NULL : &constraints[0]),
-                                                  Plugins::Convert(queryLevel),
-                                                  limit, (instancesId == NULL ? 0 : 1)));
-      CheckNoEvent();
+      DatabasePluginMessages::TransactionRequest request;
+      request.mutable_lookup_resources()->set_query_level(Convert(queryLevel));
+      request.mutable_lookup_resources()->set_limit(limit);
+      request.mutable_lookup_resources()->set_retrieve_instances_ids(instancesId != NULL);
 
-      uint32_t count;
-      CheckSuccess(that_.backend_.readAnswersCount(transaction_, &count));
+      request.mutable_lookup_resources()->mutable_lookup()->Reserve(lookup.GetSize());
       
-      resourcesId.clear();
+      for (size_t i = 0; i < lookup.GetSize(); i++)
+      {
+        const DatabaseConstraint& source = lookup.GetConstraint(i);
 
+        DatabasePluginMessages::DatabaseConstraint* target = request.mutable_lookup_resources()->add_lookup();
+        target->set_level(Convert(source.GetLevel()));
+        target->set_tag_group(source.GetTag().GetGroup());
+        target->set_tag_element(source.GetTag().GetElement());
+        target->set_is_identifier_tag(source.IsIdentifier());
+        target->set_is_case_sensitive(source.IsCaseSensitive());
+        target->set_is_mandatory(source.IsMandatory());
+
+        target->mutable_values()->Reserve(source.GetValuesCount());
+        for (size_t j = 0; j < source.GetValuesCount(); j++)
+        {
+          target->add_values(source.GetValue(j));
+        }
+
+        switch (source.GetConstraintType())
+        {
+          case ConstraintType_Equal:
+            target->set_type(DatabasePluginMessages::CONSTRAINT_EQUAL);
+            break;
+            
+          case ConstraintType_SmallerOrEqual:
+            target->set_type(DatabasePluginMessages::CONSTRAINT_SMALLER_OR_EQUAL);
+            break;
+            
+          case ConstraintType_GreaterOrEqual:
+            target->set_type(DatabasePluginMessages::CONSTRAINT_GREATER_OR_EQUAL);
+            break;
+            
+          case ConstraintType_Wildcard:
+            target->set_type(DatabasePluginMessages::CONSTRAINT_WILDCARD);
+            break;
+            
+          case ConstraintType_List:
+            target->set_type(DatabasePluginMessages::CONSTRAINT_LIST);
+            break;
+
+          default:
+            throw OrthancException(ErrorCode_ParameterOutOfRange);
+        }
+      }
+
+      for (std::set<std::string>::const_iterator it = labels.begin(); it != labels.end(); ++it)
+      {
+        request.mutable_lookup_resources()->add_labels(*it);
+      }
+
+      switch (labelsConstraint)
+      {
+        case LabelsConstraint_All:
+          request.mutable_lookup_resources()->set_labels_constraint(DatabasePluginMessages::LABELS_CONSTRAINT_ALL);
+          break;
+            
+        case LabelsConstraint_Any:
+          request.mutable_lookup_resources()->set_labels_constraint(DatabasePluginMessages::LABELS_CONSTRAINT_ANY);
+          break;
+            
+        case LabelsConstraint_None:
+          request.mutable_lookup_resources()->set_labels_constraint(DatabasePluginMessages::LABELS_CONSTRAINT_NONE);
+          break;
+            
+        default:
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+      
+      DatabasePluginMessages::TransactionResponse response;
+      ExecuteTransaction(response, DatabasePluginMessages::OPERATION_LOOKUP_RESOURCES, request);
+
+      for (int i = 0; i < response.lookup_resources().resources_ids().size(); i++)
+      {
+        resourcesId.push_back(response.lookup_resources().resources_ids(i));
+      }
+      
       if (instancesId != NULL)
       {
-        instancesId->clear();
-      }
-      
-      for (uint32_t i = 0; i < count; i++)
-      {
-        OrthancPluginMatchingResource resource;
-        CheckSuccess(that_.backend_.readAnswerMatchingResource(transaction_, &resource, i));
-
-        if (resource.resourceId == NULL)
+        if (response.lookup_resources().resources_ids().size() != response.lookup_resources().instances_ids().size())
         {
           throw OrthancException(ErrorCode_DatabasePlugin);
         }
-        
-        resourcesId.push_back(resource.resourceId);
-
-        if (instancesId != NULL)
+        else
         {
-          if (resource.someInstanceId == NULL)
+          for (int i = 0; i < response.lookup_resources().instances_ids().size(); i++)
           {
-            throw OrthancException(ErrorCode_DatabasePlugin);
-          }
-          else
-          {
-            instancesId->push_back(resource.someInstanceId);
+            instancesId->push_back(response.lookup_resources().instances_ids(i));
           }
         }
       }
@@ -883,83 +1095,61 @@ namespace Orthanc
                                 const std::string& series,
                                 const std::string& instance) ORTHANC_OVERRIDE
     {
-      OrthancPluginCreateInstanceResult output;
-      memset(&output, 0, sizeof(output));
-
-      CheckSuccess(that_.backend_.createInstance(transaction_, &output, patient.c_str(),
-                                                 study.c_str(), series.c_str(), instance.c_str()));
-      CheckNoEvent();
-
-      instanceId = output.instanceId;
+      // TODO: "CreateInstanceResult" => constructor and getters
       
-      if (output.isNewInstance)
+      DatabasePluginMessages::TransactionRequest request;
+      request.mutable_create_instance()->set_patient(patient);
+      request.mutable_create_instance()->set_study(study);
+      request.mutable_create_instance()->set_series(series);
+      request.mutable_create_instance()->set_instance(instance);
+
+      DatabasePluginMessages::TransactionResponse response;
+      ExecuteTransaction(response, DatabasePluginMessages::OPERATION_CREATE_INSTANCE, request);
+
+      instanceId = response.create_instance().instance_id();
+
+      if (response.create_instance().is_new_instance())
       {
-        result.isNewPatient_ = output.isNewPatient;
-        result.isNewStudy_ = output.isNewStudy;
-        result.isNewSeries_ = output.isNewSeries;
-        result.patientId_ = output.patientId;
-        result.studyId_ = output.studyId;
-        result.seriesId_ = output.seriesId;
+        result.isNewPatient_ = response.create_instance().is_new_patient();
+        result.isNewStudy_ = response.create_instance().is_new_study();
+        result.isNewSeries_ = response.create_instance().is_new_series();
+        result.patientId_ = response.create_instance().patient_id();
+        result.studyId_ = response.create_instance().study_id();
+        result.seriesId_ = response.create_instance().series_id();
         return true;
       }
       else
       {
         return false;
       }
-
     }
 
     
     virtual void SetResourcesContent(const ResourcesContent& content) ORTHANC_OVERRIDE
     {
-      std::vector<OrthancPluginResourcesContentTags> identifierTags;
-      std::vector<OrthancPluginResourcesContentTags> mainDicomTags;
-      std::vector<OrthancPluginResourcesContentMetadata> metadata;
+      DatabasePluginMessages::TransactionRequest request;
 
-      identifierTags.reserve(content.GetListTags().size());
-      mainDicomTags.reserve(content.GetListTags().size());
-      metadata.reserve(content.GetListMetadata().size());
-
-      for (ResourcesContent::ListTags::const_iterator
-             it = content.GetListTags().begin(); it != content.GetListTags().end(); ++it)
+      request.mutable_set_resources_content()->mutable_tags()->Reserve(content.GetListTags().size());
+      for (ResourcesContent::ListTags::const_iterator it = content.GetListTags().begin(); it != content.GetListTags().end(); ++it)
       {
-        OrthancPluginResourcesContentTags tmp;
-        tmp.resource = it->resourceId_;
-        tmp.group = it->tag_.GetGroup();
-        tmp.element = it->tag_.GetElement();
-        tmp.value = it->value_.c_str();
-
-        if (it->isIdentifier_)
-        {
-          identifierTags.push_back(tmp);
-        }
-        else
-        {
-          mainDicomTags.push_back(tmp);
-        }
+        DatabasePluginMessages::SetResourcesContent_Request_Tag* tag = request.mutable_set_resources_content()->add_tags();
+        tag->set_resource_id(it->GetResourceId());
+        tag->set_is_identifier(it->IsIdentifier());
+        tag->set_group(it->GetTag().GetGroup());
+        tag->set_element(it->GetTag().GetElement());
+        tag->set_value(it->GetValue());
+      }
+      
+      request.mutable_set_resources_content()->mutable_metadata()->Reserve(content.GetListMetadata().size());
+      for (ResourcesContent::ListMetadata::const_iterator it = content.GetListMetadata().begin(); it != content.GetListMetadata().end(); ++it)
+      {
+        DatabasePluginMessages::SetResourcesContent_Request_Metadata* metadata = request.mutable_set_resources_content()->add_metadata();
+        metadata->set_resource_id(it->GetResourceId());
+        metadata->set_metadata(it->GetType());
+        metadata->set_value(it->GetValue());
       }
 
-      for (ResourcesContent::ListMetadata::const_iterator
-             it = content.GetListMetadata().begin(); it != content.GetListMetadata().end(); ++it)
-      {
-        OrthancPluginResourcesContentMetadata tmp;
-        tmp.resource = it->resourceId_;
-        tmp.metadata = it->metadata_;
-        tmp.value = it->value_.c_str();
-        metadata.push_back(tmp);
-      }
-
-      assert(identifierTags.size() + mainDicomTags.size() == content.GetListTags().size() &&
-             metadata.size() == content.GetListMetadata().size());
-       
-      CheckSuccess(that_.backend_.setResourcesContent(transaction_,
-                                                      identifierTags.size(),
-                                                      (identifierTags.empty() ? NULL : &identifierTags[0]),
-                                                      mainDicomTags.size(),
-                                                      (mainDicomTags.empty() ? NULL : &mainDicomTags[0]),
-                                                      metadata.size(),
-                                                      (metadata.empty() ? NULL : &metadata[0])));
-      CheckNoEvent();
+      ExecuteTransaction(DatabasePluginMessages::OPERATION_SET_RESOURCES_CONTENT, request);
     }
 
     
@@ -967,18 +1157,25 @@ namespace Orthanc
                                      int64_t resourceId,
                                      MetadataType metadata) ORTHANC_OVERRIDE
     {
-      CheckSuccess(that_.backend_.getChildrenMetadata(transaction_, resourceId, static_cast<int32_t>(metadata)));
-      CheckNoEvent();
-      ReadStringAnswers(target);
+      DatabasePluginMessages::TransactionRequest request;
+      request.mutable_get_children_metadata()->set_id(resourceId);
+      request.mutable_get_children_metadata()->set_metadata(metadata);
+
+      DatabasePluginMessages::TransactionResponse response;
+      ExecuteTransaction(response, DatabasePluginMessages::OPERATION_GET_CHILDREN_METADATA, request);
+
+      for (int i = 0; i < response.get_children_metadata().values().size(); i++)
+      {
+        target.push_back(response.get_children_metadata().values(i));
+      }
     }
 
     
     virtual int64_t GetLastChangeIndex() ORTHANC_OVERRIDE
     {
-      int64_t tmp;
-      CheckSuccess(that_.backend_.getLastChangeIndex(transaction_, &tmp));
-      CheckNoEvent();
-      return tmp;
+      DatabasePluginMessages::TransactionResponse response;
+      ExecuteTransaction(response, DatabasePluginMessages::OPERATION_GET_LAST_CHANGE_INDEX);
+      return response.get_last_change_index().result();
     }
 
     
@@ -987,57 +1184,41 @@ namespace Orthanc
                                          std::string& parentPublicId,
                                          const std::string& publicId) ORTHANC_OVERRIDE
     {
-      uint8_t isExisting;
-      OrthancPluginResourceType tmpType;
-      CheckSuccess(that_.backend_.lookupResourceAndParent(transaction_, &isExisting, &id, &tmpType, publicId.c_str()));
-      CheckNoEvent();
+      DatabasePluginMessages::TransactionRequest request;
+      request.mutable_lookup_resource_and_parent()->set_public_id(publicId);
 
-      if (isExisting)
+      DatabasePluginMessages::TransactionResponse response;
+      ExecuteTransaction(response, DatabasePluginMessages::OPERATION_LOOKUP_RESOURCE_AND_PARENT, request);
+
+      if (response.lookup_resource_and_parent().found())
       {
-        type = Plugins::Convert(tmpType);
-        
-        uint32_t count;
-        CheckSuccess(that_.backend_.readAnswersCount(transaction_, &count));
-
-        if (count > 1)
-        {
-          throw OrthancException(ErrorCode_DatabasePlugin);
-        }
+        id = response.lookup_resource_and_parent().id();
+        type = Convert(response.lookup_resource_and_parent().type());
 
         switch (type)
         {
           case ResourceType_Patient:
-            // A patient has no parent
-            if (count == 1)
+            if (!response.lookup_resource_and_parent().parent_public_id().empty())
             {
               throw OrthancException(ErrorCode_DatabasePlugin);
             }
             break;
-
+            
           case ResourceType_Study:
           case ResourceType_Series:
           case ResourceType_Instance:
-            if (count == 0)
+            if (response.lookup_resource_and_parent().parent_public_id().empty())
             {
               throw OrthancException(ErrorCode_DatabasePlugin);
             }
             else
             {
-              const char* value = NULL;
-              CheckSuccess(that_.backend_.readAnswerString(transaction_, &value, 0));
-              if (value == NULL)
-              {
-                throw OrthancException(ErrorCode_DatabasePlugin);
-              }
-              else
-              {
-                parentPublicId.assign(value);
-              }              
+              parentPublicId = response.lookup_resource_and_parent().parent_public_id();
             }
             break;
-
+            
           default:
-            throw OrthancException(ErrorCode_DatabasePlugin);
+            throw OrthancException(ErrorCode_ParameterOutOfRange);
         }
         
         return true;
@@ -1047,210 +1228,269 @@ namespace Orthanc
         return false;
       }
     }
-  };
 
-  
-  void OrthancPluginDatabaseV4::CheckSuccess(OrthancPluginErrorCode code) const
-  {
-    if (code != OrthancPluginErrorCode_Success)
+    
+    virtual void AddLabel(int64_t resource,
+                          const std::string& label) ORTHANC_OVERRIDE
     {
-      errorDictionary_.LogError(code, true);
-      throw OrthancException(static_cast<ErrorCode>(code));
+      if (database_.GetDatabaseCapabilities().HasLabelsSupport())
+      {
+        DatabasePluginMessages::TransactionRequest request;
+        request.mutable_add_label()->set_id(resource);
+        request.mutable_add_label()->set_label(label);
+
+        ExecuteTransaction(DatabasePluginMessages::OPERATION_ADD_LABEL, request);
+      }
+      else
+      {
+        // This method shouldn't have been called
+        throw OrthancException(ErrorCode_InternalError);
+      }
     }
-  }
+
+
+    virtual void RemoveLabel(int64_t resource,
+                             const std::string& label) ORTHANC_OVERRIDE
+    {
+      if (database_.GetDatabaseCapabilities().HasLabelsSupport())
+      {
+        DatabasePluginMessages::TransactionRequest request;
+        request.mutable_remove_label()->set_id(resource);
+        request.mutable_remove_label()->set_label(label);
+
+        ExecuteTransaction(DatabasePluginMessages::OPERATION_REMOVE_LABEL, request);
+      }
+      else
+      {
+        // This method shouldn't have been called
+        throw OrthancException(ErrorCode_InternalError);
+      }
+    }
+
+
+    virtual void ListLabels(std::set<std::string>& target,
+                            int64_t resource) ORTHANC_OVERRIDE
+    {
+      ListLabelsInternal(target, true, resource);
+    }
+
+    
+    virtual void ListAllLabels(std::set<std::string>& target) ORTHANC_OVERRIDE
+    {
+      ListLabelsInternal(target, false, -1);
+    }
+  };
 
 
   OrthancPluginDatabaseV4::OrthancPluginDatabaseV4(SharedLibrary& library,
                                                    PluginsErrorDictionary&  errorDictionary,
-                                                   const OrthancPluginDatabaseBackendV4* backend,
-                                                   size_t backendSize,
-                                                   void* database,
+                                                   const _OrthancPluginRegisterDatabaseBackendV4& database,
                                                    const std::string& serverIdentifier) :
     library_(library),
     errorDictionary_(errorDictionary),
-    database_(database),
-    serverIdentifier_(serverIdentifier)
+    definition_(database),
+    serverIdentifier_(serverIdentifier),
+    open_(false),
+    databaseVersion_(0)
   {
     CLOG(INFO, PLUGINS) << "Identifier of this Orthanc server for the global properties "
                         << "of the custom database: \"" << serverIdentifier << "\"";
-    
-    if (backendSize >= sizeof(backend_))
+
+    if (definition_.backend == NULL ||
+        definition_.operations == NULL ||
+        definition_.finalize == NULL)
     {
-      memcpy(&backend_, backend, sizeof(backend_));
+      throw OrthancException(ErrorCode_NullPointer);
     }
-    else
-    {
-      // Not all the primitives are implemented by the plugin
-      memset(&backend_, 0, sizeof(backend_));
-      memcpy(&backend_, backend, backendSize);
-    }
-
-    // Sanity checks
-    CHECK_FUNCTION_EXISTS(backend_, readAnswersCount);
-    CHECK_FUNCTION_EXISTS(backend_, readAnswerAttachment2);
-    CHECK_FUNCTION_EXISTS(backend_, readAnswerChange);
-    CHECK_FUNCTION_EXISTS(backend_, readAnswerDicomTag);
-    CHECK_FUNCTION_EXISTS(backend_, readAnswerExportedResource);
-    CHECK_FUNCTION_EXISTS(backend_, readAnswerInt32);
-    CHECK_FUNCTION_EXISTS(backend_, readAnswerInt64);
-    CHECK_FUNCTION_EXISTS(backend_, readAnswerMatchingResource);
-    CHECK_FUNCTION_EXISTS(backend_, readAnswerMetadata);
-    CHECK_FUNCTION_EXISTS(backend_, readAnswerString);
-    
-    CHECK_FUNCTION_EXISTS(backend_, readEventsCount);
-    CHECK_FUNCTION_EXISTS(backend_, readEvent2);
-
-    CHECK_FUNCTION_EXISTS(backend_, open);
-    CHECK_FUNCTION_EXISTS(backend_, close);
-    CHECK_FUNCTION_EXISTS(backend_, destructDatabase);
-    CHECK_FUNCTION_EXISTS(backend_, getDatabaseVersion);
-    CHECK_FUNCTION_EXISTS(backend_, upgradeDatabase);
-    CHECK_FUNCTION_EXISTS(backend_, startTransaction);
-    CHECK_FUNCTION_EXISTS(backend_, destructTransaction);
-    CHECK_FUNCTION_EXISTS(backend_, hasRevisionsSupport);
-    CHECK_FUNCTION_EXISTS(backend_, hasAttachmentCustomDataSupport);   // new in v4
-
-    CHECK_FUNCTION_EXISTS(backend_, rollback);
-    CHECK_FUNCTION_EXISTS(backend_, commit);
-    
-    CHECK_FUNCTION_EXISTS(backend_, addAttachment2);
-    CHECK_FUNCTION_EXISTS(backend_, clearChanges);
-    CHECK_FUNCTION_EXISTS(backend_, clearExportedResources);
-    CHECK_FUNCTION_EXISTS(backend_, clearMainDicomTags);
-    CHECK_FUNCTION_EXISTS(backend_, createInstance);
-    CHECK_FUNCTION_EXISTS(backend_, deleteAttachment);
-    CHECK_FUNCTION_EXISTS(backend_, deleteMetadata);
-    CHECK_FUNCTION_EXISTS(backend_, deleteResource);
-    CHECK_FUNCTION_EXISTS(backend_, getAllMetadata);
-    CHECK_FUNCTION_EXISTS(backend_, getAllPublicIds);
-    CHECK_FUNCTION_EXISTS(backend_, getAllPublicIdsWithLimit);
-    CHECK_FUNCTION_EXISTS(backend_, getChanges);
-    CHECK_FUNCTION_EXISTS(backend_, getChildrenInternalId);
-    CHECK_FUNCTION_EXISTS(backend_, getChildrenMetadata);
-    CHECK_FUNCTION_EXISTS(backend_, getChildrenPublicId);
-    CHECK_FUNCTION_EXISTS(backend_, getExportedResources);
-    CHECK_FUNCTION_EXISTS(backend_, getLastChange);
-    CHECK_FUNCTION_EXISTS(backend_, getLastChangeIndex);
-    CHECK_FUNCTION_EXISTS(backend_, getLastExportedResource);
-    CHECK_FUNCTION_EXISTS(backend_, getMainDicomTags);
-    CHECK_FUNCTION_EXISTS(backend_, getPublicId);
-    CHECK_FUNCTION_EXISTS(backend_, getResourceType);
-    CHECK_FUNCTION_EXISTS(backend_, getResourcesCount);
-    CHECK_FUNCTION_EXISTS(backend_, getTotalCompressedSize);
-    CHECK_FUNCTION_EXISTS(backend_, getTotalUncompressedSize);
-    CHECK_FUNCTION_EXISTS(backend_, isDiskSizeAbove);
-    CHECK_FUNCTION_EXISTS(backend_, isExistingResource);
-    CHECK_FUNCTION_EXISTS(backend_, isProtectedPatient);
-    CHECK_FUNCTION_EXISTS(backend_, listAvailableAttachments);
-    CHECK_FUNCTION_EXISTS(backend_, logChange);
-    CHECK_FUNCTION_EXISTS(backend_, logExportedResource);
-    CHECK_FUNCTION_EXISTS(backend_, lookupAttachment);
-    CHECK_FUNCTION_EXISTS(backend_, lookupGlobalProperty);
-    CHECK_FUNCTION_EXISTS(backend_, lookupMetadata);
-    CHECK_FUNCTION_EXISTS(backend_, lookupParent);
-    CHECK_FUNCTION_EXISTS(backend_, lookupResource);
-    CHECK_FUNCTION_EXISTS(backend_, lookupResourceAndParent);
-    CHECK_FUNCTION_EXISTS(backend_, lookupResources);
-    CHECK_FUNCTION_EXISTS(backend_, selectPatientToRecycle);
-    CHECK_FUNCTION_EXISTS(backend_, selectPatientToRecycle2);
-    CHECK_FUNCTION_EXISTS(backend_, setGlobalProperty);
-    CHECK_FUNCTION_EXISTS(backend_, setMetadata);
-    CHECK_FUNCTION_EXISTS(backend_, setProtectedPatient);
-    CHECK_FUNCTION_EXISTS(backend_, setResourcesContent);
   }
 
   
   OrthancPluginDatabaseV4::~OrthancPluginDatabaseV4()
   {
-    if (database_ != NULL)
+    definition_.finalize(definition_.backend);
+  }
+
+
+  static void AddIdentifierTags(DatabasePluginMessages::Open::Request& request,
+                                ResourceType level)
+  {
+    const DicomTag* tags = NULL;
+    size_t size;
+
+    ServerToolbox::LoadIdentifiers(tags, size, level);
+
+    if (tags == NULL ||
+        size == 0)
     {
-      OrthancPluginErrorCode code = backend_.destructDatabase(database_);
-      if (code != OrthancPluginErrorCode_Success)
-      {
-        // Don't throw exception in destructors
-        errorDictionary_.LogError(code, true);
-      }
+      throw Orthanc::OrthancException(Orthanc::ErrorCode_InternalError);
+    }
+
+    for (size_t i = 0; i < size; i++)
+    {
+      DatabasePluginMessages::Open_Request_IdentifierTag* tag = request.add_identifier_tags();
+      tag->set_level(Convert(level));
+      tag->set_group(tags[i].GetGroup());
+      tag->set_element(tags[i].GetElement());
+      tag->set_name(FromDcmtkBridge::GetTagName(tags[i], ""));
     }
   }
 
   
   void OrthancPluginDatabaseV4::Open()
   {
-    CheckSuccess(backend_.open(database_));
+    if (open_)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    
+    {
+      DatabasePluginMessages::DatabaseRequest request;
+      AddIdentifierTags(*request.mutable_open(), ResourceType_Patient);
+      AddIdentifierTags(*request.mutable_open(), ResourceType_Study);
+      AddIdentifierTags(*request.mutable_open(), ResourceType_Series);
+      AddIdentifierTags(*request.mutable_open(), ResourceType_Instance);
+
+      DatabasePluginMessages::DatabaseResponse response;
+      ExecuteDatabase(response, *this, DatabasePluginMessages::OPERATION_OPEN, request);
+    }
+
+    {
+      DatabasePluginMessages::DatabaseRequest request;
+      DatabasePluginMessages::DatabaseResponse response;
+      ExecuteDatabase(response, *this, DatabasePluginMessages::OPERATION_GET_SYSTEM_INFORMATION, request);
+      
+      const ::Orthanc::DatabasePluginMessages::GetSystemInformation_Response& systemInfo = response.get_system_information();
+      databaseVersion_ = systemInfo.database_version();
+      dbCapabilities_.SetFlushToDisk(systemInfo.supports_flush_to_disk());
+      dbCapabilities_.SetRevisionsSupport(systemInfo.supports_revisions());
+      dbCapabilities_.SetLabelsSupport(systemInfo.supports_labels());
+      dbCapabilities_.SetAtomicIncrementGlobalProperty(systemInfo.supports_increment_global_property());
+      dbCapabilities_.SetUpdateAndGetStatistics(systemInfo.has_update_and_get_statistics());
+      dbCapabilities_.SetMeasureLatency(systemInfo.has_measure_latency());
+    }
+
+    open_ = true;
   }
 
 
   void OrthancPluginDatabaseV4::Close()
   {
-    CheckSuccess(backend_.close(database_));
+    if (!open_)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    else
+    {
+      DatabasePluginMessages::DatabaseRequest request;
+      DatabasePluginMessages::DatabaseResponse response;
+      ExecuteDatabase(response, *this, DatabasePluginMessages::OPERATION_CLOSE, request);
+    }
+  }
+  
+
+
+  void OrthancPluginDatabaseV4::FlushToDisk()
+  {
+    if (!open_ ||
+        !GetDatabaseCapabilities().HasFlushToDisk())
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    else
+    {
+      DatabasePluginMessages::DatabaseRequest request;
+      DatabasePluginMessages::DatabaseResponse response;
+      ExecuteDatabase(response, *this, DatabasePluginMessages::OPERATION_FLUSH_TO_DISK, request);
+    }
   }
   
 
   IDatabaseWrapper::ITransaction* OrthancPluginDatabaseV4::StartTransaction(TransactionType type,
                                                                             IDatabaseListener& listener)
   {
-    switch (type)
+    if (!open_)
     {
-      case TransactionType_ReadOnly:
-        return new Transaction(*this, listener, OrthancPluginDatabaseTransactionType_ReadOnly);
-
-      case TransactionType_ReadWrite:
-        return new Transaction(*this, listener, OrthancPluginDatabaseTransactionType_ReadWrite);
-
-      default:
-        throw OrthancException(ErrorCode_InternalError);
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    else
+    {
+      return new Transaction(*this, listener, type);
     }
   }
 
   
   unsigned int OrthancPluginDatabaseV4::GetDatabaseVersion()
   {
-    uint32_t version = 0;
-    CheckSuccess(backend_.getDatabaseVersion(database_, &version));
-    return version;
+    if (!open_)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    else
+    {
+      return databaseVersion_;
+    }
   }
 
   
   void OrthancPluginDatabaseV4::Upgrade(unsigned int targetVersion,
                                         IStorageArea& storageArea)
   {
-    VoidDatabaseListener listener;
-    
-    if (backend_.upgradeDatabase != NULL)
+    if (!open_)
     {
-      Transaction transaction(*this, listener, OrthancPluginDatabaseTransactionType_ReadWrite);
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    else
+    {
+      VoidDatabaseListener listener;
+      Transaction transaction(*this, listener, TransactionType_ReadWrite);
 
-      OrthancPluginErrorCode code = backend_.upgradeDatabase(
-        database_, reinterpret_cast<OrthancPluginStorageArea*>(&storageArea),
-        static_cast<uint32_t>(targetVersion));
-
-      if (code == OrthancPluginErrorCode_Success)
+      try
       {
+        DatabasePluginMessages::DatabaseRequest request;
+        request.mutable_upgrade()->set_target_version(targetVersion);
+        request.mutable_upgrade()->set_storage_area(reinterpret_cast<intptr_t>(&storageArea));
+        request.mutable_upgrade()->set_transaction(reinterpret_cast<intptr_t>(transaction.GetTransactionObject()));
+        
+        DatabasePluginMessages::DatabaseResponse response;
+
+        ExecuteDatabase(response, *this, DatabasePluginMessages::OPERATION_UPGRADE, request);
         transaction.Commit(0);
       }
-      else
+      catch (OrthancException& e)
       {
         transaction.Rollback();
-        errorDictionary_.LogError(code, true);
-        throw OrthancException(static_cast<ErrorCode>(code));
+        throw;
       }
     }
   }
 
-  
-  bool OrthancPluginDatabaseV4::HasRevisionsSupport() const
+
+  uint64_t OrthancPluginDatabaseV4::MeasureLatency()
   {
-    // WARNING: This method requires "Open()" to have been called
-    uint8_t hasRevisions;
-    CheckSuccess(backend_.hasRevisionsSupport(database_, &hasRevisions));
-    return (hasRevisions != 0);
+    if (!open_)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    else
+    {
+      DatabasePluginMessages::DatabaseRequest request;
+      DatabasePluginMessages::DatabaseResponse response;
+
+      ExecuteDatabase(response, *this, DatabasePluginMessages::OPERATION_MEASURE_LATENCY, request);
+      return response.measure_latency().latency_us();
+    }
   }
 
-  bool OrthancPluginDatabaseV4::HasAttachmentCustomDataSupport() const
+
+  const IDatabaseWrapper::Capabilities OrthancPluginDatabaseV4::GetDatabaseCapabilities() const
   {
-    // WARNING: This method requires "Open()" to have been called
-    uint8_t hasAttachmentCustomDataSupport;
-    CheckSuccess(backend_.hasAttachmentCustomDataSupport(database_, &hasAttachmentCustomDataSupport));
-    return (hasAttachmentCustomDataSupport != 0);
+    if (!open_)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    else
+    {
+      return dbCapabilities_;
+    }
   }
 }

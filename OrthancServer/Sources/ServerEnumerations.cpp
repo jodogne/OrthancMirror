@@ -2,8 +2,9 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -62,6 +63,7 @@ namespace Orthanc
     dictMetadataType_.Add(MetadataType_Instance_PixelDataOffset, "PixelDataOffset");
     dictMetadataType_.Add(MetadataType_MainDicomTagsSignature, "MainDicomTagsSignature");
     dictMetadataType_.Add(MetadataType_MainDicomSequences, "MainDicomSequences");
+    dictMetadataType_.Add(MetadataType_Instance_PixelDataVR, "PixelDataVR");
 
     dictContentType_.Add(FileContentType_Dicom, "dicom");
     dictContentType_.Add(FileContentType_DicomAsJson, "dicom-as-json");
@@ -110,6 +112,23 @@ namespace Orthanc
   {
     boost::mutex::scoped_lock lock(enumerationsMutex_);
     return dictMetadataType_.Translate(str);
+  }
+
+  void GetRegisteredUserMetadata(std::map<std::string, int>& allEntries)
+  {
+    boost::mutex::scoped_lock lock(enumerationsMutex_);
+
+    allEntries.clear();
+
+    std::map<std::string, MetadataType> allEntriesTyped = dictMetadataType_.GetAllEntries();
+
+    for (std::map<std::string, MetadataType>::const_iterator it = allEntriesTyped.begin(); it != allEntriesTyped.end(); ++it)
+    {
+      if (it->second >= MetadataType_StartUser)
+      {
+        allEntries[it->first] = it->second;
+      }
+    }
   }
 
   void RegisterUserContentType(int contentType,
@@ -339,6 +358,9 @@ namespace Orthanc
 
       case StoreStatus_FilteredOut:
         return "FilteredOut";
+
+      case StoreStatus_StorageFull:
+        return "StorageFull";
 
       default:
         throw OrthancException(ErrorCode_ParameterOutOfRange);

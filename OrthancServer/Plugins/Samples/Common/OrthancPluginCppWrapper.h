@@ -2,8 +2,9 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -127,6 +128,44 @@
 #  define HAS_ORTHANC_PLUGIN_WEBDAV  0
 #endif
 
+#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 12, 4)
+#  define HAS_ORTHANC_PLUGIN_LOG_MESSAGE  1
+#else
+#  define HAS_ORTHANC_PLUGIN_LOG_MESSAGE  0
+#endif
+
+
+// Macro to tag a function as having been deprecated
+#if (__cplusplus >= 201402L)  // C++14
+#  define ORTHANC_PLUGIN_CPP_WRAPPER_DEPRECATED(f) [[deprecated]] f
+#elif defined(__GNUC__) || defined(__clang__)
+#  define ORTHANC_PLUGIN_CPP_WRAPPER_DEPRECATED(f) f __attribute__((deprecated))
+#elif defined(_MSC_VER)
+#  define ORTHANC_PLUGIN_CPP_WRAPPER_DEPRECATED(f) __declspec(deprecated) f
+#else
+#  define ORTHANC_PLUGIN_CPP_WRAPPER_DEPRECATED
+#endif
+
+
+#if !defined(__ORTHANC_FILE__)
+#  if defined(_MSC_VER)
+#    pragma message("Warning: Macro __ORTHANC_FILE__ is not defined, this will leak the full path of the source files in the binaries")
+#  else
+#    warning Warning: Macro __ORTHANC_FILE__ is not defined, this will leak the full path of the source files in the binaries
+#  endif
+#  define __ORTHANC_FILE__ __FILE__
+#endif
+
+
+#if HAS_ORTHANC_PLUGIN_LOG_MESSAGE == 1
+#  define ORTHANC_PLUGINS_LOG_ERROR(msg)   ::OrthancPlugins::LogMessage(OrthancPluginLogLevel_Error, __ORTHANC_FILE__, __LINE__, msg)
+#  define ORTHANC_PLUGINS_LOG_WARNING(msg) ::OrthancPlugins::LogMessage(OrthancPluginLogLevel_Warning, __ORTHANC_FILE__, __LINE__, msg)
+#  define ORTHANC_PLUGINS_LOG_INFO(msg)    ::OrthancPlugins::LogMessage(OrthancPluginLogLevel_Info, __ORTHANC_FILE__, __LINE__, msg)
+#else
+#  define ORTHANC_PLUGINS_LOG_ERROR(msg)   ::OrthancPlugins::LogError(msg)
+#  define ORTHANC_PLUGINS_LOG_WARNING(msg) ::OrthancPlugins::LogWarning(msg)
+#  define ORTHANC_PLUGINS_LOG_INFO(msg)    ::OrthancPlugins::LogInfo(msg)
+#endif
 
 
 namespace OrthancPlugins
@@ -136,6 +175,11 @@ namespace OrthancPlugins
                                 const OrthancPluginHttpRequest* request);
 
   void SetGlobalContext(OrthancPluginContext* context);
+
+  void SetGlobalContext(OrthancPluginContext* context,
+                        const char* pluginName);
+
+  void ResetGlobalContext();
 
   bool HasGlobalContext();
 
@@ -346,9 +390,11 @@ namespace OrthancPlugins
     void LoadConfiguration();
     
   public:
-    OrthancConfiguration();
+    OrthancConfiguration(); // loads the full Orthanc configuration
 
     explicit OrthancConfiguration(bool load);
+
+    explicit OrthancConfiguration(const Json::Value& configuration, const std::string& path);  // e.g. to load a section from a default json content
 
     const Json::Value& GetJson() const
     {
@@ -533,6 +579,11 @@ namespace OrthancPlugins
                   const std::string& uri,
                   bool applyPlugins);
 
+  bool RestApiGet(Json::Value& result,
+                  const std::string& uri,
+                  const std::map<std::string, std::string>& httpHeaders,
+                  bool applyPlugins);
+
   bool RestApiGetString(std::string& result,
                         const std::string& uri,
                         bool applyPlugins);
@@ -628,11 +679,33 @@ namespace OrthancPlugins
   const char* AutodetectMimeType(const std::string& path);
 #endif
 
+#if HAS_ORTHANC_PLUGIN_LOG_MESSAGE == 1
+  void LogMessage(OrthancPluginLogLevel level,
+                  const char* file,
+                  uint32_t line,
+                  const std::string& message);
+#endif
+
+#if HAS_ORTHANC_PLUGIN_LOG_MESSAGE == 1
+  // Use macro ORTHANC_PLUGINS_LOG_ERROR() instead
+  ORTHANC_PLUGIN_CPP_WRAPPER_DEPRECATED(void LogError(const std::string& message));
+#else
   void LogError(const std::string& message);
+#endif
 
+#if HAS_ORTHANC_PLUGIN_LOG_MESSAGE == 1
+  // Use macro ORTHANC_PLUGINS_LOG_WARNING() instead
+  ORTHANC_PLUGIN_CPP_WRAPPER_DEPRECATED(void LogWarning(const std::string& message));
+#else
   void LogWarning(const std::string& message);
+#endif
 
+#if HAS_ORTHANC_PLUGIN_LOG_MESSAGE == 1
+  // Use macro ORTHANC_PLUGINS_LOG_INFO() instead
+  ORTHANC_PLUGIN_CPP_WRAPPER_DEPRECATED(void LogInfo(const std::string& message));
+#else
   void LogInfo(const std::string& message);
+#endif
 
   void ReportMinimalOrthancVersion(unsigned int major,
                                    unsigned int minor,
@@ -755,53 +828,65 @@ namespace OrthancPlugins
 
     bool DoGet(MemoryBuffer& target,
                size_t index,
-               const std::string& uri) const;
+               const std::string& uri,
+               const std::map<std::string, std::string>& headers) const;
 
     bool DoGet(MemoryBuffer& target,
                const std::string& name,
-               const std::string& uri) const;
+               const std::string& uri,
+               const std::map<std::string, std::string>& headers) const;
 
     bool DoGet(Json::Value& target,
                size_t index,
-               const std::string& uri) const;
+               const std::string& uri,
+               const std::map<std::string, std::string>& headers) const;
 
     bool DoGet(Json::Value& target,
                const std::string& name,
-               const std::string& uri) const;
+               const std::string& uri,
+               const std::map<std::string, std::string>& headers) const;
 
     bool DoPost(MemoryBuffer& target,
                 size_t index,
                 const std::string& uri,
-                const std::string& body) const;
+                const std::string& body,
+                const std::map<std::string, std::string>& headers) const;
 
     bool DoPost(MemoryBuffer& target,
                 const std::string& name,
                 const std::string& uri,
-                const std::string& body) const;
+                const std::string& body,
+                const std::map<std::string, std::string>& headers) const;
 
     bool DoPost(Json::Value& target,
                 size_t index,
                 const std::string& uri,
-                const std::string& body) const;
+                const std::string& body,
+                const std::map<std::string, std::string>& headers) const;
 
     bool DoPost(Json::Value& target,
                 const std::string& name,
                 const std::string& uri,
-                const std::string& body) const;
+                const std::string& body,
+                const std::map<std::string, std::string>& headers) const;
 
     bool DoPut(size_t index,
                const std::string& uri,
-               const std::string& body) const;
+               const std::string& body,
+               const std::map<std::string, std::string>& headers) const;
 
     bool DoPut(const std::string& name,
                const std::string& uri,
-               const std::string& body) const;
+               const std::string& body,
+               const std::map<std::string, std::string>& headers) const;
 
     bool DoDelete(size_t index,
-                  const std::string& uri) const;
+                  const std::string& uri,
+                  const std::map<std::string, std::string>& headers) const;
 
     bool DoDelete(const std::string& name,
-                  const std::string& uri) const;
+                  const std::string& uri,
+                  const std::map<std::string, std::string>& headers) const;
   };
 #endif
 
@@ -821,9 +906,19 @@ namespace OrthancPlugins
 
     static float CallbackGetProgress(void* job);
 
+#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 11, 3)
+    static OrthancPluginErrorCode CallbackGetContent(OrthancPluginMemoryBuffer* target,
+                                                     void* job);
+#else
     static const char* CallbackGetContent(void* job);
+#endif
 
+#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 11, 3)
+    static int32_t CallbackGetSerialized(OrthancPluginMemoryBuffer* target,
+                                         void* job);
+#else
     static const char* CallbackGetSerialized(void* job);
+#endif
 
     static OrthancPluginJobStepStatus CallbackStep(void* job);
 
@@ -1235,6 +1330,11 @@ namespace OrthancPlugins
 
     ~DicomInstance();
 
+    const OrthancPluginDicomInstance* GetObject() const
+    {
+      return instance_;
+    }
+
     std::string GetRemoteAet() const;
 
     const void* GetBuffer() const
@@ -1288,6 +1388,11 @@ namespace OrthancPlugins
     static DicomInstance* Transcode(const void* buffer,
                                     size_t size,
                                     const std::string& transferSyntax);
+#endif
+
+#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 12, 1)
+    static DicomInstance* Load(const std::string& instanceId,
+                               OrthancPluginLoadDicomInstanceMode mode);
 #endif
   };
 
@@ -1394,4 +1499,13 @@ void GetHttpHeaders(std::map<std::string, std::string>& result, const OrthancPlu
                          IWebDavCollection& collection);
   };
 #endif
+
+  void SetRootUri(const std::string& pluginIdentifier,
+                  const std::string& uri);
+
+  void SetDescription(const std::string& pluginIdentifier,
+                      const std::string& description);
+
+  void ExtendOrthancExplorer(const std::string& pluginIdentifier,
+                             const std::string& javascript);
 }

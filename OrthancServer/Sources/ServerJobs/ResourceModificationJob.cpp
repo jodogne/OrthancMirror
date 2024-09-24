@@ -2,8 +2,9 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -161,8 +162,36 @@ namespace Orthanc
       return false;
     }
   };
-    
 
+  // Reset is called when resubmitting a failed job
+  void ResourceModificationJob::Reset()
+  {
+    boost::recursive_mutex::scoped_lock lock(mutex_);
+
+    // TODO: cleanup the instances that have been generated during the previous run
+    modifiedSeries_.clear();
+    instancesToReconstruct_.clear();
+
+    ThreadedSetOfInstancesJob::Reset();
+  }
+
+  void ResourceModificationJob::PostProcessInstances()
+  {
+    boost::recursive_mutex::scoped_lock lock(mutex_);
+
+    // reconstruct the parents MainDicomTags in case one of them has changed
+    if (instancesToReconstruct_.size() > 0)
+    {
+      for (std::set<std::string>::const_iterator it = instancesToReconstruct_.begin(); it != instancesToReconstruct_.end(); ++it)
+      {
+        ServerContext::DicomCacheLocker locker(GetContext(), *it);
+        ParsedDicomFile& modifiedDicom = locker.GetDicom();
+
+        GetContext().GetIndex().ReconstructInstance(modifiedDicom, false, ResourceType_Instance /* dummy */);
+      }
+    }
+    
+  }
 
   bool ResourceModificationJob::HandleInstance(const std::string& instance)
   {
@@ -176,14 +205,17 @@ namespace Orthanc
       
     LOG(INFO) << "Modifying instance in a job: " << instance;
 
-
     /**
      * Retrieve the original instance from the DICOM cache.
      **/
     
     std::unique_ptr<DicomInstanceHasher> originalHasher;
     std::unique_ptr<ParsedDicomFile> modified;
-
+    std::set<std::string> instanceLabels;
+    std::set<std::string> seriesLabels;
+    std::set<std::string> studyLabels;
+    std::set<std::string> patientLabels;
+ 
     try
     {
       ServerContext::DicomCacheLocker locker(GetContext(), instance);
@@ -195,7 +227,7 @@ namespace Orthanc
     catch (OrthancException& e)
     {
       LOG(WARNING) << "An error occurred while executing a Modification job on instance " << instance << ": " << e.GetDetails();
-      return false;
+      throw;
     }
 
 
@@ -203,7 +235,20 @@ namespace Orthanc
      * Compute the resulting DICOM instance.
      **/
 
-    modification_->Apply(*modified);
+    {
+      boost::recursive_mutex::scoped_lock lock(mutex_);  // DicomModification object is not thread safe, we must protect it from here
+
+      modification_->Apply(*modified);
+
+      if (modification_->AreLabelsKept())
+      {
+        GetContext().GetIndex().ListLabels(instanceLabels, instance, ResourceType_Instance);
+        // we must also save the parent labels.  This instance might currently be the only one in the hierarchy and therefore it might be in charge of restoring all labels of the hierarchy
+        GetContext().GetIndex().ListLabels(seriesLabels, originalHasher->HashSeries(), ResourceType_Series);
+        GetContext().GetIndex().ListLabels(studyLabels, originalHasher->HashStudy(), ResourceType_Study);
+        GetContext().GetIndex().ListLabels(patientLabels, originalHasher->HashPatient(), ResourceType_Patient);
+      }
+    }
 
     const std::string modifiedUid = IDicomTranscoder::GetSopInstanceUid(modified->GetDcmtkObject());
     
@@ -242,6 +287,7 @@ namespace Orthanc
 
     std::unique_ptr<DicomInstanceToStore> toStore(DicomInstanceToStore::CreateFromParsedDicomFile(*modified));
     toStore->SetOrigin(origin_);
+    toStore->SetSkipIngestTranscoding(transcode_); // do not apply IngestTranscoding if you have forced the transfer syntax during the modification/anonymization
 
 
     /**
@@ -280,11 +326,24 @@ namespace Orthanc
 
     std::string modifiedInstance;
     ServerContext::StoreResult result = GetContext().Store(modifiedInstance, *toStore, StoreInstanceMode_Default);
-    if (result.GetStatus() != StoreStatus_Success)
+    if (result.GetStatus() != StoreStatus_Success && result.GetStatus() != StoreStatus_AlreadyStored) // when retrying a job, we might save the same data again
     {
       throw OrthancException(ErrorCode_CannotStoreInstance,
                              "Error while storing a modified instance " + instance);
     }
+
+    {
+      boost::recursive_mutex::scoped_lock lock(mutex_);  // DicomModification object is not thread safe, we must protect it from here
+
+      if (modification_->AreLabelsKept())
+      {
+        GetContext().GetIndex().AddLabels(instance, ResourceType_Instance, instanceLabels);
+        GetContext().GetIndex().AddLabels(modifiedHasher.HashSeries(), ResourceType_Series, seriesLabels);
+        GetContext().GetIndex().AddLabels(modifiedHasher.HashStudy(), ResourceType_Study, studyLabels);
+        GetContext().GetIndex().AddLabels(modifiedHasher.HashPatient(), ResourceType_Patient, patientLabels);
+      }
+    }
+
 
     /**
      * The assertion below will fail if automated transcoding to a
@@ -293,14 +352,25 @@ namespace Orthanc
      **/
     // assert(modifiedInstance == modifiedHasher.HashInstance());
 
-    output_->Update(modifiedHasher);
+    {
+      boost::recursive_mutex::scoped_lock lock(outputMutex_);
+
+      output_->Update(modifiedHasher);
+      if (modifiedSeries_.find(modifiedHasher.HashSeries()) == modifiedSeries_.end())
+      {
+        modifiedSeries_.insert(modifiedHasher.HashSeries());
+        // add an instance to reconstruct for each series
+        instancesToReconstruct_.insert(modifiedHasher.HashInstance());
+      }
+      
+    }
 
     return true;
   }
 
 
-  ResourceModificationJob::ResourceModificationJob(ServerContext& context) :
-    CleaningInstancesJob(context, true /* by default, keep source */),
+  ResourceModificationJob::ResourceModificationJob(ServerContext& context, unsigned int workersCount) :
+    ThreadedSetOfInstancesJob(context, true /* post processing step */, true /* by default, keep source */, workersCount),
     isAnonymization_(false),
     transcode_(false),
     transferSyntax_(DicomTransferSyntax_LittleEndianExplicit)  // dummy initialization
@@ -368,6 +438,7 @@ namespace Orthanc
   }
 
 
+#if ORTHANC_BUILD_UNIT_TESTS == 1
   const DicomModification& ResourceModificationJob::GetModification() const
   {
     if (modification_.get() == NULL)
@@ -379,7 +450,7 @@ namespace Orthanc
       return *modification_;
     }
   }
-
+#endif
 
   DicomTransferSyntax ResourceModificationJob::GetTransferSyntax() const
   {
@@ -445,6 +516,8 @@ namespace Orthanc
     }
     else
     {
+      boost::recursive_mutex::scoped_lock lock(outputMutex_);
+
       assert(output_.get() != NULL);
       return output_->IsSingleResource();
     }
@@ -453,6 +526,8 @@ namespace Orthanc
 
   ResourceType ResourceModificationJob::GetOutputLevel() const
   {
+    boost::recursive_mutex::scoped_lock lock(outputMutex_);
+
     if (IsSingleResourceModification())
     {
       assert(modification_.get() != NULL &&
@@ -469,7 +544,9 @@ namespace Orthanc
 
   void ResourceModificationJob::GetPublicContent(Json::Value& value)
   {
-    CleaningInstancesJob::GetPublicContent(value);
+    boost::recursive_mutex::scoped_lock lock(outputMutex_);
+
+    ThreadedSetOfInstancesJob::GetPublicContent(value);
 
     value["IsAnonymization"] = isAnonymization_;
 
@@ -495,7 +572,7 @@ namespace Orthanc
 
   ResourceModificationJob::ResourceModificationJob(ServerContext& context,
                                                    const Json::Value& serialized) :
-    CleaningInstancesJob(context, serialized, true /* by default, keep source */),
+    ThreadedSetOfInstancesJob(context, serialized, false /* no post processing step */, true /* by default, keep source */),
     transferSyntax_(DicomTransferSyntax_LittleEndianExplicit)  // dummy initialization
   {
     assert(serialized.type() == Json::objectValue);
@@ -565,7 +642,7 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_BadSequenceOfCalls);
     }
-    else if (!CleaningInstancesJob::Serialize(value))
+    else if (!ThreadedSetOfInstancesJob::Serialize(value))
     {
       return false;
     }
@@ -579,11 +656,17 @@ namespace Orthanc
       {
         value[TRANSCODE] = GetTransferSyntaxUid(transferSyntax_);
       }
-      
+
       origin_.Serialize(value[ORIGIN]);
       
       Json::Value tmp;
-      modification_->Serialize(tmp);
+
+      {
+        boost::recursive_mutex::scoped_lock lock(mutex_);  // DicomModification object is not thread safe, we must protect it from here
+  
+        modification_->Serialize(tmp);
+      }
+
       value[MODIFICATION] = tmp;
 
       // New in Orthanc 1.9.4
@@ -594,6 +677,133 @@ namespace Orthanc
       }
       
       return true;
+    }
+  }
+
+  void ResourceModificationJob::PerformSanityChecks()
+  {
+    boost::recursive_mutex::scoped_lock lock(mutex_);  // because we access the parentResources_
+
+    std::set<DicomTag> emptyRequestedTags;
+
+    if (modification_.get() == NULL)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+
+    bool replacePatientMainDicomTags = false;
+
+    ResourceType modificationLevel = modification_->GetLevel();
+    std::set<DicomTag> replacedTags;
+    modification_->GetReplacedTags(replacedTags);
+
+    for (std::set<DicomTag>::const_iterator it = replacedTags.begin(); it != replacedTags.end(); ++it)
+    {
+      replacePatientMainDicomTags |= DicomMap::IsMainDicomTag(*it, ResourceType_Patient);
+    }
+
+    if ((modificationLevel == ResourceType_Study ||
+         modificationLevel == ResourceType_Patient) &&
+        !modification_->IsReplaced(DICOM_TAG_PATIENT_ID) &&
+        modification_->IsKept(DICOM_TAG_STUDY_INSTANCE_UID) &&
+        modification_->IsKept(DICOM_TAG_SERIES_INSTANCE_UID) &&
+        modification_->IsKept(DICOM_TAG_SOP_INSTANCE_UID))
+    {
+      // if we keep the SOPInstanceUID, it very likely means that we are modifying existing resources 'in place'
+
+      // we must make sure we do not delete them at the end of the job
+      if (!IsKeepSource()) // note: we can refine this criteria -> this is valid only if all DicomUIDs are kept identical (but this can happen through Keep or Replace options)
+      {
+        throw OrthancException(ErrorCode_BadRequest,
+                              "When keeping StudyInstanceUID, SeriesInstanceUID and SOPInstanceUID tag, you must set KeepSource to true to avoid deleting the modified files at the end of the process");
+      }
+
+      // and we must make sure that we overwite them with the modified resources
+      if (IsKeepSource() && !GetContext().IsOverwriteInstances())
+      {
+        throw OrthancException(ErrorCode_BadRequest,
+                              "When keeping StudyInstanceUID, SeriesInstanceUID and SOPInstanceUID tag, you must have the 'OverwriteInstances' Orthanc configuration set to true in order to replace the modified resources");
+      }
+    }
+
+    if (modificationLevel == ResourceType_Study && replacePatientMainDicomTags)
+    {
+      for (std::set<std::string>::const_iterator studyId = parentResources_.begin(); studyId != parentResources_.end(); ++studyId)
+      {
+        // When modifying a study, you may not modify patient tags as you wish.
+        // - If this is the patient's only study, you may modify all patient tags. This could be performed in 2 steps (modify the patient and then, the study) but, 
+        //   for many use cases, it's helpful to be able to do it one step (e.g, to modify a name in a study that has just been acquired)
+        // - If the patient already has other studies, you may only 'attach' the study to an existing patient by modifying 
+        //   all patient tags from the study to match those of the target patient.
+        // - Otherwise, you can't modify the patient tags
+        
+        std::string targetPatientId;
+        if (modification_->IsReplaced(DICOM_TAG_PATIENT_ID))
+        {
+          targetPatientId = modification_->GetReplacementAsString(DICOM_TAG_PATIENT_ID);
+        }
+        else
+        {
+          ExpandedResource originalStudy;
+          if (GetContext().GetIndex().ExpandResource(originalStudy, *studyId, ResourceType_Study, emptyRequestedTags, ExpandResourceFlags_IncludeMainDicomTags))
+          {
+            targetPatientId = originalStudy.GetMainDicomTags().GetStringValue(DICOM_TAG_PATIENT_ID, "", false);
+          }
+          else
+          {
+            throw OrthancException(ErrorCode_UnknownResource, "Study not found");
+          }
+        }
+
+        // try to find the targetPatient
+        std::vector<std::string> lookupPatientResult;
+        GetContext().GetIndex().LookupIdentifierExact(lookupPatientResult, ResourceType_Patient, DICOM_TAG_PATIENT_ID, targetPatientId);
+
+        // if the patient exists, check how many child studies it has.
+        if (lookupPatientResult.size() >= 1)
+        {
+          ExpandedResource targetPatient;
+          
+          if (GetContext().GetIndex().ExpandResource(targetPatient, lookupPatientResult[0], ResourceType_Patient, emptyRequestedTags, static_cast<ExpandResourceFlags>(ExpandResourceFlags_IncludeMainDicomTags | ExpandResourceFlags_IncludeChildren)))
+          {
+            const std::list<std::string> childrenIds = targetPatient.childrenIds_;
+            bool targetPatientHasOtherStudies = childrenIds.size() > 1;
+            if (childrenIds.size() == 1)
+            {
+              targetPatientHasOtherStudies = std::find(childrenIds.begin(), childrenIds.end(), *studyId) == childrenIds.end();  // if the patient has one study that is not the one being modified
+            }
+
+            if (targetPatientHasOtherStudies)
+            {
+              // this is allowed if all patient replacedTags do match the target patient tags
+              DicomMap targetPatientTags;
+              targetPatient.GetMainDicomTags().ExtractPatientInformation(targetPatientTags);
+
+              std::set<DicomTag> mainPatientTags;
+              DicomMap::GetMainDicomTags(mainPatientTags, ResourceType_Patient);
+              
+              for (std::set<DicomTag>::const_iterator mainPatientTag = mainPatientTags.begin();
+                   mainPatientTag != mainPatientTags.end(); ++mainPatientTag)
+              {
+                if (targetPatientTags.HasTag(*mainPatientTag) &&
+                    (!modification_->IsReplaced(*mainPatientTag) ||
+                     modification_->GetReplacementAsString(*mainPatientTag) != targetPatientTags.GetStringValue(*mainPatientTag, "", false)))
+                {
+                  throw OrthancException(ErrorCode_BadRequest, std::string("Trying to change patient tags in a study.  " 
+                    "The Patient already exists and has other studies.  All the 'Replace' tags should match the existing patient main dicom tags "
+                    "and you should specify all Patient MainDicomTags in your query.  Try using /patients/../modify instead to modify the patient. Failing tag: ") + mainPatientTag->Format());
+                }
+                else if (!targetPatientTags.HasTag(*mainPatientTag) && modification_->IsReplaced(*mainPatientTag) )
+                {
+                  throw OrthancException(ErrorCode_BadRequest, std::string("Trying to change patient tags in a study.  "
+                    "The Patient already exists and has other studies.  You are trying to replace a tag that is not defined yet in this patient. " 
+                    "Try using /patients/../modify instead to modify the patient. Failing tag: ") + mainPatientTag->Format());
+                }
+              }
+            }
+          }
+        }
+      }      
     }
   }
 }

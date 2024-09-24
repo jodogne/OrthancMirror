@@ -2,8 +2,9 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -37,15 +38,18 @@ namespace Orthanc
   class ParsedDicomFile;
   struct ServerIndexChange;
 
-  struct ExpandedResource : public boost::noncopyable
+  class ExpandedResource : public boost::noncopyable
   {
+  private:
     std::string                         id_;
-    DicomMap                            tags_;          // all main tags and main sequences from DB
+    ResourceType                        level_;
+    DicomMap                            tags_;  // all main tags and main sequences from DB
+
+  public:
     std::string                         mainDicomTagsSignature_;
     std::string                         parentId_;
     std::list<std::string>              childrenIds_;
     std::map<MetadataType, std::string> metadata_;
-    ResourceType                        type_;
     std::string                         anonymizedFrom_;
     std::string                         modifiedFrom_;
     std::string                         lastUpdate_;
@@ -62,18 +66,61 @@ namespace Orthanc
     size_t                              fileSize_;
     std::string                         fileUuid_;
     int                                 indexInSeries_;
+
+    // New in Orthanc 1.12.0
+    std::set<std::string>               labels_;
+
+  public:
+    // TODO - Cleanup
+    ExpandedResource() :
+      level_(ResourceType_Instance),
+      isStable_(false),
+      expectedNumberOfInstances_(0),
+      fileSize_(0),
+      indexInSeries_(0)
+    {
+    }
+    
+    void SetResource(ResourceType level,
+                     const std::string& id)
+    {
+      level_ = level;
+      id_ = id;
+    }
+
+    const std::string& GetPublicId() const
+    {
+      return id_;
+    }
+
+    ResourceType GetLevel() const
+    {
+      return level_;
+    }
+
+    DicomMap& GetMainDicomTags()
+    {
+      return tags_;
+    }
+
+    const DicomMap& GetMainDicomTags() const
+    {
+      return tags_;
+    }
   };
 
-  enum ExpandResourceDbFlags
+  enum ExpandResourceFlags
   {
-    ExpandResourceDbFlags_None                    = 0,
-    ExpandResourceDbFlags_IncludeMetadata         = (1 << 0),
-    ExpandResourceDbFlags_IncludeChildren         = (1 << 1),
-    ExpandResourceDbFlags_IncludeMainDicomTags    = (1 << 2),
+    ExpandResourceFlags_None                    = 0,
+    ExpandResourceFlags_IncludeMetadata         = (1 << 0),
+    ExpandResourceFlags_IncludeChildren         = (1 << 1),
+    ExpandResourceFlags_IncludeMainDicomTags    = (1 << 2),
+    ExpandResourceFlags_IncludeLabels           = (1 << 3),
 
-    ExpandResourceDbFlags_Default = (ExpandResourceDbFlags_IncludeMetadata |
-                                     ExpandResourceDbFlags_IncludeChildren |
-                                     ExpandResourceDbFlags_IncludeMainDicomTags)
+    ExpandResourceFlags_Default = (ExpandResourceFlags_IncludeMetadata |
+                                     ExpandResourceFlags_IncludeChildren |
+                                     ExpandResourceFlags_IncludeMainDicomTags |
+                                     ExpandResourceFlags_IncludeLabels)
   };
 
   class StatelessDatabaseOperations : public boost::noncopyable
@@ -81,6 +128,12 @@ namespace Orthanc
   public:
     typedef std::list<FileInfo> Attachments;
     typedef std::map<std::pair<ResourceType, MetadataType>, std::string>  MetadataMap;
+
+    enum LabelOperation
+    {
+      LabelOperation_Add,
+      LabelOperation_Remove
+    };
 
     class ITransactionContext : public IDatabaseListener
     {
@@ -93,13 +146,14 @@ namespace Orthanc
 
       virtual int64_t GetCompressedSizeDelta() = 0;
 
-      virtual bool IsUnstableResource(int64_t id) = 0;
+      virtual bool IsUnstableResource(Orthanc::ResourceType type,
+                                      int64_t id) = 0;
 
       virtual bool LookupRemainingLevel(std::string& remainingPublicId /* out */,
                                         ResourceType& remainingLevel   /* out */) = 0;
 
-      virtual void MarkAsUnstable(int64_t id,
-                                  Orthanc::ResourceType type,
+      virtual void MarkAsUnstable(Orthanc::ResourceType type,
+                                  int64_t id,
                                   const std::string& publicId) = 0;
 
       virtual void SignalAttachmentsAdded(uint64_t compressedSize) = 0;
@@ -124,7 +178,7 @@ namespace Orthanc
     {
     private:
       ITransactionContext&  context_;
-      
+
     protected:
       IDatabaseWrapper::ITransaction&  transaction_;
       
@@ -155,11 +209,14 @@ namespace Orthanc
 
       void ApplyLookupResources(std::list<std::string>& resourcesId,
                                 std::list<std::string>* instancesId, // Can be NULL if not needed
-                                const std::vector<DatabaseConstraint>& lookup,
+                                const DatabaseConstraints& lookup,
                                 ResourceType queryLevel,
-                                size_t limit)
+                                const std::set<std::string>& labels,  // New in Orthanc 1.12.0
+                                LabelsConstraint labelsConstraint,    // New in Orthanc 1.12.0
+                                uint32_t limit)
       {
-        return transaction_.ApplyLookupResources(resourcesId, instancesId, lookup, queryLevel, limit);
+        return transaction_.ApplyLookupResources(resourcesId, instancesId, lookup, queryLevel,
+                                                 labels, labelsConstraint, limit);
       }
 
       void GetAllMetadata(std::map<MetadataType, std::string>& target,
@@ -177,7 +234,7 @@ namespace Orthanc
       void GetAllPublicIds(std::list<std::string>& target,
                            ResourceType resourceType,
                            size_t since,
-                           size_t limit)
+                           uint32_t limit)
       {
         return transaction_.GetAllPublicIds(target, resourceType, since, limit);
       }  
@@ -185,9 +242,9 @@ namespace Orthanc
       void GetChanges(std::list<ServerIndexChange>& target /*out*/,
                       bool& done /*out*/,
                       int64_t since,
-                      uint32_t maxResults)
+                      uint32_t limit)
       {
-        transaction_.GetChanges(target, done, since, maxResults);
+        transaction_.GetChanges(target, done, since, limit);
       }
 
       void GetChildrenInternalId(std::list<int64_t>& target,
@@ -205,9 +262,9 @@ namespace Orthanc
       void GetExportedResources(std::list<ExportedResource>& target /*out*/,
                                 bool& done /*out*/,
                                 int64_t since,
-                                uint32_t maxResults)
+                                uint32_t limit)
       {
-        return transaction_.GetExportedResources(target, done, since, maxResults);
+        return transaction_.GetExportedResources(target, done, since, limit);
       }
 
       void GetLastChange(std::list<ServerIndexChange>& target /*out*/)
@@ -310,6 +367,17 @@ namespace Orthanc
       {
         return transaction_.LookupResourceAndParent(id, type, parentPublicId, publicId);
       }
+
+      void ListLabels(std::set<std::string>& target,
+                      int64_t id)
+      {
+        transaction_.ListLabels(target, id);
+      }
+
+      void ListAllLabels(std::set<std::string>& target)
+      {
+        transaction_.ListAllLabels(target);
+      }
     };
 
 
@@ -388,6 +456,23 @@ namespace Orthanc
         transaction_.SetGlobalProperty(property, shared, value);
       }
 
+      int64_t IncrementGlobalProperty(GlobalProperty sequence,
+                                      bool shared,
+                                      int64_t increment)
+      {
+        return transaction_.IncrementGlobalProperty(sequence, shared, increment);
+      }
+
+      void UpdateAndGetStatistics(int64_t& patientsCount,
+                                  int64_t& studiesCount,
+                                  int64_t& seriesCount,
+                                  int64_t& instancesCount,
+                                  int64_t& compressedSize,
+                                  int64_t& uncompressedSize)
+      {
+        return transaction_.UpdateAndGetStatistics(patientsCount, studiesCount, seriesCount, instancesCount, compressedSize, uncompressedSize);
+      }
+
       void SetMetadata(int64_t id,
                        MetadataType type,
                        const std::string& value,
@@ -422,6 +507,18 @@ namespace Orthanc
                              unsigned int maximumPatients,
                              uint64_t addedInstanceSize,
                              const std::string& newPatientId);
+
+      void AddLabel(int64_t id,
+                    const std::string& label)
+      {
+        transaction_.AddLabel(id, label);
+      }
+
+      void RemoveLabel(int64_t id,
+                    const std::string& label)
+      {
+        transaction_.RemoveLabel(id, label);
+      }
     };
 
 
@@ -453,16 +550,11 @@ namespace Orthanc
 
     IDatabaseWrapper&                            db_;
     boost::shared_ptr<MainDicomTagsRegistry>     mainDicomTagsRegistry_;  // "shared_ptr" because of PImpl
-    bool                                         hasFlushToDisk_;
 
     // Mutex to protect the configuration options
     boost::shared_mutex                          mutex_;
     std::unique_ptr<ITransactionContextFactory>  factory_;
     unsigned int                                 maxRetries_;
-
-    void NormalizeLookup(std::vector<DatabaseConstraint>& target,
-                         const DatabaseLookup& source,
-                         ResourceType level) const;
 
     void ApplyInternal(IReadOnlyOperations* readOperations,
                        IReadWriteOperations* writeOperations);
@@ -488,12 +580,13 @@ namespace Orthanc
       return db_.GetDatabaseVersion();
     }
 
+    const IDatabaseWrapper::Capabilities GetDatabaseCapabilities() const
+    {
+      return db_.GetDatabaseCapabilities();
+    }
+
     void FlushToDisk();
 
-    bool HasFlushToDisk() const
-    {
-      return hasFlushToDisk_;
-    }
 
     void Apply(IReadOnlyOperations& operations);
   
@@ -503,7 +596,7 @@ namespace Orthanc
                         const std::string& publicId,
                         ResourceType level,
                         const std::set<DicomTag>& requestedTags,
-                        ExpandResourceDbFlags expandFlags);
+                        ExpandResourceFlags expandFlags);
 
     void GetAllMetadata(std::map<MetadataType, std::string>& target,
                         const std::string& publicId,
@@ -515,7 +608,7 @@ namespace Orthanc
     void GetAllUuids(std::list<std::string>& target,
                      ResourceType resourceType,
                      size_t since,
-                     size_t limit);
+                     uint32_t limit);
 
     void GetGlobalStatistics(/* out */ uint64_t& diskSize,
                              /* out */ uint64_t& uncompressedSize,
@@ -531,13 +624,13 @@ namespace Orthanc
 
     void GetChanges(Json::Value& target,
                     int64_t since,
-                    unsigned int maxResults);
+                    uint32_t limit);
 
     void GetLastChange(Json::Value& target);
 
     void GetExportedResources(Json::Value& target,
                               int64_t since,
-                              unsigned int maxResults);
+                              uint32_t limit);
 
     void GetLastExportedResource(Json::Value& target);
 
@@ -605,7 +698,9 @@ namespace Orthanc
                               std::vector<std::string>* instancesId,  // Can be NULL if not needed
                               const DatabaseLookup& lookup,
                               ResourceType queryLevel,
-                              size_t limit);
+                              const std::set<std::string>& labels,
+                              LabelsConstraint labelsConstraint,
+                              uint32_t limit);
 
     bool DeleteResource(Json::Value& remainingAncestor /* out */,
                         const std::string& uuid,
@@ -658,7 +753,9 @@ namespace Orthanc
                    const std::string& publicId,
                    ResourceType level);
 
-    void ReconstructInstance(const ParsedDicomFile& dicom);
+    void ReconstructInstance(const ParsedDicomFile& dicom, 
+                             bool limitToThisLevelDicomTags, 
+                             ResourceType limitToLevel_);
 
     StoreStatus Store(std::map<MetadataType, std::string>& instanceMetadata,
                       const DicomMap& dicomSummary,
@@ -670,6 +767,7 @@ namespace Orthanc
                       DicomTransferSyntax transferSyntax,
                       bool hasPixelDataOffset,
                       uint64_t pixelDataOffset,
+                      ValueRepresentation pixelDataVR,
                       MaxStorageMode maximumStorageMode,
                       uint64_t maximumStorageSize,
                       unsigned int maximumPatients,
@@ -683,5 +781,22 @@ namespace Orthanc
                               bool hasOldRevision,
                               int64_t oldRevision,
                               const std::string& oldMd5);
+
+    void ListLabels(std::set<std::string>& target,
+                    const std::string& publicId,
+                    ResourceType level);
+
+    void ListAllLabels(std::set<std::string>& target);
+
+    void ModifyLabel(const std::string& publicId,
+                     ResourceType level,
+                     const std::string& label,
+                     LabelOperation operation);
+
+    void AddLabels(const std::string& publicId,
+                   ResourceType level,
+                   const std::set<std::string>& labels);
+
+    bool HasLabelsSupport();
   };
 }

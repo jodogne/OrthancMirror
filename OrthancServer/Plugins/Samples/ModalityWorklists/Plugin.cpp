@@ -2,8 +2,9 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -19,6 +20,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  **/
 
+
+#define MODALITY_WORKLISTS_NAME "worklists"
 
 #include "../../../../OrthancFramework/Sources/Compatibility.h"
 #include "../Common/OrthancPluginCppWrapper.h"
@@ -52,7 +55,7 @@ static bool MatchWorklist(OrthancPluginWorklistAnswers*      answers,
 
     if (code != OrthancPluginErrorCode_Success)
     {
-      OrthancPlugins::LogError("Error while adding an answer to a worklist request");
+      ORTHANC_PLUGINS_LOG_ERROR("Error while adding an answer to a worklist request");
       ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(code);
     }
 
@@ -75,8 +78,8 @@ static OrthancPlugins::FindMatcher* CreateMatcher(const OrthancPluginWorklistQue
   dicom.DicomToJson(json, OrthancPluginDicomToJsonFormat_Short,
                     static_cast<OrthancPluginDicomToJsonFlags>(0), 0);
 
-  OrthancPlugins::LogInfo("Received worklist query from remote modality " +
-                          std::string(issuerAet) + ":\n" + json.toStyledString());
+  ORTHANC_PLUGINS_LOG_INFO("Received worklist query from remote modality " +
+                           std::string(issuerAet) + ":\n" + json.toStyledString());
 
   if (!filterIssuerAet_)
   {
@@ -151,11 +154,12 @@ OrthancPluginErrorCode Callback(OrthancPluginWorklistAnswers*     answers,
 
     fs::path source(folder_);
     fs::directory_iterator end;
-    unsigned int parsedFilesCount = 0;
-    unsigned int matchedWorklistCount = 0;
 
     try
     {
+      unsigned int parsedFilesCount = 0;
+      unsigned int matchedWorklistCount = 0;
+      
       for (fs::directory_iterator it(source); it != end; ++it)
       {
         fs::file_type type(it->status().type());
@@ -163,7 +167,7 @@ OrthancPluginErrorCode Callback(OrthancPluginWorklistAnswers*     answers,
         if (type == fs::regular_file ||
             type == fs::reparse_file)   // cf. BitBucket issue #11
         {
-          std::string extension = fs::extension(it->path());
+          std::string extension = it->path().extension().string();
           std::transform(extension.begin(), extension.end(), extension.begin(), tolower);  // Convert to lowercase
 
           if (extension == ".wl")
@@ -182,21 +186,19 @@ OrthancPluginErrorCode Callback(OrthancPluginWorklistAnswers*     answers,
                 return OrthancPluginErrorCode_Success;
               }
               
-              OrthancPlugins::LogInfo("Worklist matched: " + it->path().string());
+              ORTHANC_PLUGINS_LOG_INFO("Worklist matched: " + it->path().string());
               matchedWorklistCount++;
             }
           }
         }
       }
 
-      std::ostringstream message;
-      message << "Worklist C-Find: parsed " << parsedFilesCount
-              << " files, found " << matchedWorklistCount << " match(es)";
-      OrthancPlugins::LogInfo(message.str());
+      ORTHANC_PLUGINS_LOG_INFO("Worklist C-Find: parsed " + boost::lexical_cast<std::string>(parsedFilesCount) +
+                               " files, found " + boost::lexical_cast<std::string>(matchedWorklistCount) + " match(es)");
     }
     catch (fs::filesystem_error&)
     {
-      OrthancPlugins::LogError("Inexistent folder while scanning for worklists: " + source.string());
+      ORTHANC_PLUGINS_LOG_ERROR("Inexistent folder while scanning for worklists: " + source.string());
       return OrthancPluginErrorCode_DirectoryExpected;
     }
 
@@ -213,7 +215,7 @@ extern "C"
 {
   ORTHANC_PLUGINS_API int32_t OrthancPluginInitialize(OrthancPluginContext* c)
   {
-    OrthancPlugins::SetGlobalContext(c);
+    OrthancPlugins::SetGlobalContext(c, MODALITY_WORKLISTS_NAME);
 
     /* Check the version of the Orthanc core */
     if (OrthancPluginCheckVersion(c) == 0)
@@ -224,8 +226,8 @@ extern "C"
       return -1;
     }
 
-    OrthancPlugins::LogWarning("Sample worklist plugin is initializing");
-    OrthancPluginSetDescription(c, "Serve DICOM modality worklists from a folder with Orthanc.");
+    ORTHANC_PLUGINS_LOG_WARNING("Sample worklist plugin is initializing");
+    OrthancPluginSetDescription2(c, MODALITY_WORKLISTS_NAME, "Serve DICOM modality worklists from a folder with Orthanc.");
 
     OrthancPlugins::OrthancConfiguration configuration;
 
@@ -237,12 +239,12 @@ extern "C"
     {
       if (worklists.LookupStringValue(folder_, "Database"))
       {
-        OrthancPlugins::LogWarning("The database of worklists will be read from folder: " + folder_);
+        ORTHANC_PLUGINS_LOG_WARNING("The database of worklists will be read from folder: " + folder_);
         OrthancPluginRegisterWorklistCallback(OrthancPlugins::GetGlobalContext(), Callback);
       }
       else
       {
-        OrthancPlugins::LogError("The configuration option \"Worklists.Database\" must contain a path");
+        ORTHANC_PLUGINS_LOG_ERROR("The configuration option \"Worklists.Database\" must contain a path");
         return -1;
       }
 
@@ -251,7 +253,7 @@ extern "C"
     }
     else
     {
-      OrthancPlugins::LogWarning("Worklist server is disabled by the configuration file");
+      ORTHANC_PLUGINS_LOG_WARNING("Worklist server is disabled by the configuration file");
     }
 
     return 0;
@@ -260,13 +262,13 @@ extern "C"
 
   ORTHANC_PLUGINS_API void OrthancPluginFinalize()
   {
-    OrthancPlugins::LogWarning("Sample worklist plugin is finalizing");
+    ORTHANC_PLUGINS_LOG_WARNING("Sample worklist plugin is finalizing");
   }
 
 
   ORTHANC_PLUGINS_API const char* OrthancPluginGetName()
   {
-    return "worklists";
+    return MODALITY_WORKLISTS_NAME;
   }
 
 

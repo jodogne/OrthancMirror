@@ -2,8 +2,9 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -44,9 +45,9 @@ namespace Orthanc
   private:
     typedef std::map<std::string, IDynamicObject*>  Archive;
 
-    size_t         maxSize_;
-    boost::mutex   mutex_;
-    Archive        archive_;
+    size_t                  maxSize_;
+    boost::recursive_mutex  mutex_;
+    Archive                 archive_;
     LeastRecentlyUsedIndex<std::string> lru_;
 
     void RemoveInternal(const std::string& id);
@@ -55,8 +56,8 @@ namespace Orthanc
     class ORTHANC_PUBLIC Accessor : public boost::noncopyable
     {
     private:
-      boost::mutex::scoped_lock  lock_;
-      IDynamicObject*            item_;
+      boost::recursive_mutex::scoped_lock lock_;
+      IDynamicObject*                     item_;
 
     public:
       Accessor(SharedArchive& that,

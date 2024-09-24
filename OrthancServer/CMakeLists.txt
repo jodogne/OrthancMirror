@@ -1,8 +1,9 @@
 # Orthanc - A Lightweight, RESTful DICOM Store
 # Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
 # Department, University Hospital of Liege, Belgium
-# Copyright (C) 2017-2022 Osimis S.A., Belgium
-# Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+# Copyright (C) 2017-2023 Osimis S.A., Belgium
+# Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+# Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
 #
 # This program is free software: you can redistribute it and/or
 # modify it under the terms of the GNU General Public License as
@@ -62,6 +63,7 @@ SET(BUILD_CONNECTIVITY_CHECKS ON CACHE BOOL "Whether to build the ConnectivityCh
 SET(BUILD_HOUSEKEEPER ON CACHE BOOL "Whether to build the Housekeeper plugin")
 SET(BUILD_DELAYED_DELETION ON CACHE BOOL "Whether to build the DelayedDeletion plugin")
 SET(BUILD_ADVANCED_STORAGE ON CACHE BOOL "Whether to build the AdvancedStorage plugin")
+SET(BUILD_MULTITENANT_DICOM ON CACHE BOOL "Whether to build the MultitenantDicom plugin")
 SET(ENABLE_PLUGINS ON CACHE BOOL "Enable plugins")
 SET(UNIT_TESTS_WITH_HTTP_CONNEXIONS ON CACHE BOOL "Allow unit tests to make HTTP requests")
 
@@ -69,6 +71,11 @@ SET(UNIT_TESTS_WITH_HTTP_CONNEXIONS ON CACHE BOOL "Allow unit tests to make HTTP
 #####################################################################
 ## Configuration of the Orthanc framework
 #####################################################################
+
+if (ENABLE_PLUGINS)
+  set(ENABLE_PROTOBUF ON)
+  set(ENABLE_PROTOBUF_COMPILER ON)
+endif()
 
 include(${CMAKE_SOURCE_DIR}/../OrthancFramework/Resources/CMake/VisualStudioPrecompiledHeaders.cmake)
 include(${CMAKE_SOURCE_DIR}/../OrthancFramework/Resources/CMake/OrthancFrameworkConfiguration.cmake)
@@ -82,6 +89,7 @@ include(${CMAKE_SOURCE_DIR}/Plugins/Samples/Common/OrthancPluginsExports.cmake)
 #####################################################################
 
 set(ORTHANC_SERVER_SOURCES
+  ${CMAKE_SOURCE_DIR}/Sources/Database/BaseDatabaseWrapper.cpp
   ${CMAKE_SOURCE_DIR}/Sources/Database/Compatibility/DatabaseLookup.cpp
   ${CMAKE_SOURCE_DIR}/Sources/Database/Compatibility/ICreateInstance.cpp
   ${CMAKE_SOURCE_DIR}/Sources/Database/Compatibility/IGetChildrenMetadata.cpp
@@ -137,6 +145,7 @@ set(ORTHANC_SERVER_SOURCES
   ${CMAKE_SOURCE_DIR}/Sources/ServerJobs/ResourceModificationJob.cpp
   ${CMAKE_SOURCE_DIR}/Sources/ServerJobs/SplitStudyJob.cpp
   ${CMAKE_SOURCE_DIR}/Sources/ServerJobs/StorageCommitmentScpJob.cpp
+  ${CMAKE_SOURCE_DIR}/Sources/ServerJobs/ThreadedSetOfInstancesJob.cpp  
   ${CMAKE_SOURCE_DIR}/Sources/ServerToolbox.cpp
   ${CMAKE_SOURCE_DIR}/Sources/SliceOrdering.cpp
   ${CMAKE_SOURCE_DIR}/Sources/StorageCommitmentReports.cpp
@@ -223,18 +232,16 @@ endif()
 #####################################################################
 
 set(ORTHANC_EMBEDDED_FILES
-  CONFIGURATION_SAMPLE         ${CMAKE_SOURCE_DIR}/Resources/Configuration.json
-  DICOM_CONFORMANCE_STATEMENT  ${CMAKE_SOURCE_DIR}/Resources/DicomConformanceStatement.txt
-  FONT_UBUNTU_MONO_BOLD_16     ${CMAKE_SOURCE_DIR}/Resources/Fonts/UbuntuMonoBold-16.json
-  LUA_TOOLBOX                  ${CMAKE_SOURCE_DIR}/Resources/Toolbox.lua
-  PREPARE_DATABASE             ${CMAKE_SOURCE_DIR}/Sources/Database/PrepareDatabase.sql
-  UPGRADE_DATABASE_3_TO_4      ${CMAKE_SOURCE_DIR}/Sources/Database/Upgrade3To4.sql
-  UPGRADE_DATABASE_4_TO_5      ${CMAKE_SOURCE_DIR}/Sources/Database/Upgrade4To5.sql
-  INSTALL_REVISION_AND_CUSTOM_DATA
-  ${CMAKE_SOURCE_DIR}/Sources/Database/InstallRevisionAndCustomData.sql
-
-  INSTALL_TRACK_ATTACHMENTS_SIZE
-  ${CMAKE_SOURCE_DIR}/Sources/Database/InstallTrackAttachmentsSize.sql
+  CONFIGURATION_SAMPLE              ${CMAKE_SOURCE_DIR}/Resources/Configuration.json
+  DICOM_CONFORMANCE_STATEMENT       ${CMAKE_SOURCE_DIR}/Resources/DicomConformanceStatement.txt
+  FONT_UBUNTU_MONO_BOLD_16          ${CMAKE_SOURCE_DIR}/Resources/Fonts/UbuntuMonoBold-16.json
+  LUA_TOOLBOX                       ${CMAKE_SOURCE_DIR}/Resources/Toolbox.lua
+  PREPARE_DATABASE                  ${CMAKE_SOURCE_DIR}/Sources/Database/PrepareDatabase.sql
+  UPGRADE_DATABASE_3_TO_4           ${CMAKE_SOURCE_DIR}/Sources/Database/Upgrade3To4.sql
+  UPGRADE_DATABASE_4_TO_5           ${CMAKE_SOURCE_DIR}/Sources/Database/Upgrade4To5.sql
+  INSTALL_TRACK_ATTACHMENTS_SIZE    ${CMAKE_SOURCE_DIR}/Sources/Database/InstallTrackAttachmentsSize.sql
+  INSTALL_LABELS_TABLE              ${CMAKE_SOURCE_DIR}/Sources/Database/InstallLabelsTable.sql
+  INSTALL_REVISION_AND_CUSTOM_DATA  ${CMAKE_SOURCE_DIR}/Sources/Database/InstallRevisionAndCustomData.sql  
   )
 
 if (STANDALONE_BUILD)
@@ -284,6 +291,7 @@ endif()
 #####################################################################
 
 check_symbol_exists(mallopt "malloc.h" HAVE_MALLOPT)
+check_symbol_exists(malloc_trim "malloc.h" HAVE_MALLOC_TRIM)
 
 if (HAVE_MALLOPT)
   add_definitions(-DHAVE_MALLOPT=1)
@@ -291,6 +299,11 @@ else()
   add_definitions(-DHAVE_MALLOPT=0)
 endif()
 
+if (HAVE_MALLOC_TRIM)
+  add_definitions(-DHAVE_MALLOC_TRIM=1)
+else()
+  add_definitions(-DHAVE_MALLOC_TRIM=0)
+endif()
 
 if (STATIC_BUILD)
   add_definitions(-DORTHANC_STATIC=1)
@@ -316,13 +329,9 @@ endif()
 add_definitions(
   -DORTHANC_BUILD_UNIT_TESTS=1
   -DORTHANC_BUILDING_SERVER_LIBRARY=1
-  
+
   # Macros for the plugins
   -DHAS_ORTHANC_EXCEPTION=0
-  -DMODALITY_WORKLISTS_VERSION="${ORTHANC_VERSION}"
-  -DSERVE_FOLDERS_VERSION="${ORTHANC_VERSION}"
-  -DHOUSEKEEPER_VERSION="${ORTHANC_VERSION}"
-  -DADVANCED_STORAGE_VERSION="${ORTHANC_VERSION}"
   )
 
 
@@ -334,7 +343,7 @@ add_definitions(
 
 if (MSVC)
   add_definitions(-DORTHANC_USE_PRECOMPILED_HEADERS=1)
-
+  
   set(TMP
     ${ORTHANC_CORE_SOURCES_INTERNAL}
     ${ORTHANC_DICOM_SOURCES_INTERNAL}
@@ -359,8 +368,13 @@ endif()
 ## Build the core of Orthanc
 #####################################################################
 
+add_custom_target(AutogeneratedTarget
+  DEPENDS
+  ${AUTOGENERATED_SOURCES}
+  )
+
 # "CoreLibrary" contains all the third-party dependencies and the
-# content of the "Core" folder
+# content of the "OrthancFramework" folder
 add_library(CoreLibrary
   STATIC
   ${ORTHANC_CORE_PCH}
@@ -368,6 +382,10 @@ add_library(CoreLibrary
   ${ORTHANC_DICOM_SOURCES}
   ${AUTOGENERATED_SOURCES}
   )
+
+DefineSourceBasenameForTarget(CoreLibrary)
+
+add_dependencies(CoreLibrary AutogeneratedTarget)
 
 if (LIBICU_LIBRARIES)
   target_link_libraries(CoreLibrary ${LIBICU_LIBRARIES})
@@ -378,19 +396,50 @@ endif()
 ## Build the Orthanc server
 #####################################################################
 
+if (ENABLE_PLUGINS)
+  add_custom_command(
+    COMMAND
+    ${PROTOC_EXECUTABLE} ${CMAKE_SOURCE_DIR}/Plugins/Include/orthanc/OrthancDatabasePlugin.proto --cpp_out=${AUTOGENERATED_DIR} -I${CMAKE_SOURCE_DIR}/Plugins/Include/orthanc
+    COMMAND
+    ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/Resources/PreventProtobufDirectoryLeaks.py ${AUTOGENERATED_DIR}/OrthancDatabasePlugin.pb.cc
+    DEPENDS
+    ProtobufCompiler
+    ${CMAKE_SOURCE_DIR}/Resources/PreventProtobufDirectoryLeaks.py
+    ${CMAKE_SOURCE_DIR}/Plugins/Include/orthanc/OrthancDatabasePlugin.proto
+    OUTPUT
+    ${AUTOGENERATED_DIR}/OrthancDatabasePlugin.pb.cc
+    ${AUTOGENERATED_DIR}/OrthancDatabasePlugin.pb.h
+    )
+  
+  add_custom_target(OrthancDatabaseProtobuf
+    DEPENDS
+    ${AUTOGENERATED_DIR}/OrthancDatabasePlugin.pb.h
+    )
+
+  list(APPEND ORTHANC_SERVER_SOURCES
+    ${AUTOGENERATED_DIR}/OrthancDatabasePlugin.pb.cc
+    )
+else()
+  add_custom_target(OrthancDatabaseProtobuf)
+endif()
+
 add_library(ServerLibrary
   STATIC
   ${ORTHANC_SERVER_PCH}
   ${ORTHANC_SERVER_SOURCES}
   )
 
+DefineSourceBasenameForTarget(ServerLibrary)
+
 # Ensure autogenerated code is built before building ServerLibrary
-add_dependencies(ServerLibrary CoreLibrary)
+add_dependencies(ServerLibrary CoreLibrary OrthancDatabaseProtobuf)
 
 add_executable(Orthanc
   ${CMAKE_SOURCE_DIR}/Sources/main.cpp
   ${ORTHANC_RESOURCES}
   )
+
+DefineSourceBasenameForTarget(Orthanc)
 
 target_link_libraries(Orthanc ServerLibrary CoreLibrary ${DCMTK_LIBRARIES})
 
@@ -422,6 +471,8 @@ add_executable(UnitTests
   ${BOOST_EXTENDED_SOURCES}
   )
 
+DefineSourceBasenameForTarget(UnitTests)
+
 target_link_libraries(UnitTests
   ServerLibrary
   CoreLibrary
@@ -431,28 +482,52 @@ target_link_libraries(UnitTests
 
 
 #####################################################################
-## Build a static library to share code between the plugins
+## Static library to share third-party libraries between the plugins
 #####################################################################
 
 if (ENABLE_PLUGINS AND
-    (BUILD_SERVE_FOLDERS OR BUILD_MODALITY_WORKLISTS OR BUILD_HOUSEKEEPER OR BUILD_ADVANCED_STORAGE))
-  add_library(ThirdPartyPlugins STATIC
+    (BUILD_SERVE_FOLDERS OR BUILD_MODALITY_WORKLISTS OR BUILD_HOUSEKEEPER OR
+      BUILD_DELAYED_DELETION OR BUILD_MULTITENANT_DICOM OR BUILD_ADVANCED_STORAGE))
+  set(PLUGINS_DEPENDENCIES_SOURCES
     ${BOOST_SOURCES}
     ${JSONCPP_SOURCES}
     ${LIBICONV_SOURCES}
     ${LIBICU_SOURCES}
+    ${PUGIXML_SOURCES}
+    ${UUID_SOURCES}
+    ${ZLIB_SOURCES}
+    
+    ${CMAKE_SOURCE_DIR}/../OrthancFramework/Resources/ThirdParty/base64/base64.cpp
+    ${CMAKE_SOURCE_DIR}/../OrthancFramework/Resources/ThirdParty/md5/md5.c
     Plugins/Samples/Common/OrthancPluginCppWrapper.cpp
     )
 
-  if (LIBICU_LIBRARIES)
-    target_link_libraries(ThirdPartyPlugins ${LIBICU_LIBRARIES})
+  if (BUILD_DELAYED_DELETION)
+    list(APPEND PLUGINS_DEPENDENCIES_SOURCES
+      ${SQLITE_SOURCES}
+      )
   endif()
+  
+  if (BUILD_MULTITENANT_DICOM)
+    list(APPEND PLUGINS_DEPENDENCIES_SOURCES
+      ${DCMTK_SOURCES}
+      ${OPENSSL_SOURCES}
+      ${LIBJPEG_SOURCES}
+      ${LIBPNG_SOURCES}
+      )
+  endif()
+  
+  add_library(PluginsDependencies STATIC
+    ${PLUGINS_DEPENDENCIES_SOURCES}
+    )
+
+  DefineSourceBasenameForTarget(PluginsDependencies)
 
   # Add the "-fPIC" option as this static library must be embedded
   # inside shared libraries (important on UNIX)
-  set_property(
-    TARGET ThirdPartyPlugins
-    PROPERTY POSITION_INDEPENDENT_CODE ON
+  set_target_properties(
+    PluginsDependencies
+    PROPERTIES POSITION_INDEPENDENT_CODE ON
     )
 endif()
 
@@ -478,12 +553,19 @@ if (ENABLE_PLUGINS AND BUILD_SERVE_FOLDERS)
     list(APPEND SERVE_FOLDERS_RESOURCES ${AUTOGENERATED_DIR}/ServeFolders.rc)
   endif()  
 
+  set_source_files_properties(
+    ${CMAKE_SOURCE_DIR}/Plugins/Samples/ServeFolders/Plugin.cpp
+    PROPERTIES COMPILE_DEFINITIONS "SERVE_FOLDERS_VERSION=\"${ORTHANC_VERSION}\""
+    )
+
   add_library(ServeFolders SHARED 
     ${CMAKE_SOURCE_DIR}/Plugins/Samples/ServeFolders/Plugin.cpp
     ${SERVE_FOLDERS_RESOURCES}
     )
 
-  target_link_libraries(ServeFolders ThirdPartyPlugins)
+  DefineSourceBasenameForTarget(ServeFolders)
+
+  target_link_libraries(ServeFolders PluginsDependencies)
 
   set_target_properties(
     ServeFolders PROPERTIES 
@@ -521,12 +603,19 @@ if (ENABLE_PLUGINS AND BUILD_MODALITY_WORKLISTS)
     list(APPEND MODALITY_WORKLISTS_RESOURCES ${AUTOGENERATED_DIR}/ModalityWorklists.rc)
   endif()
 
+  set_source_files_properties(
+    ${CMAKE_SOURCE_DIR}/Plugins/Samples/ModalityWorklists/Plugin.cpp
+    PROPERTIES COMPILE_DEFINITIONS "MODALITY_WORKLISTS_VERSION=\"${ORTHANC_VERSION}\""
+    )
+
   add_library(ModalityWorklists SHARED 
     ${CMAKE_SOURCE_DIR}/Plugins/Samples/ModalityWorklists/Plugin.cpp
     ${MODALITY_WORKLISTS_RESOURCES}
     )
 
-  target_link_libraries(ModalityWorklists ThirdPartyPlugins)
+  DefineSourceBasenameForTarget(ModalityWorklists)
+
+  target_link_libraries(ModalityWorklists PluginsDependencies)
 
   set_target_properties(
     ModalityWorklists PROPERTIES 
@@ -542,80 +631,67 @@ if (ENABLE_PLUGINS AND BUILD_MODALITY_WORKLISTS)
 endif()
 
 
-if (ENABLE_PLUGINS AND (BUILD_DELAYED_DELETION OR BUILD_CONNECTIVITY_CHECKS))
-  include(ExternalProject)
-
-endif()
-
 
 #####################################################################
 ## Build the "ConnectivityChecks" plugin
 #####################################################################
 
 if (ENABLE_PLUGINS AND BUILD_CONNECTIVITY_CHECKS)
-
-  set(ConnectivityChecksFlags)
-
-  if (CMAKE_TOOLCHAIN_FILE)
-    # Take absolute path to the toolchain
-    get_filename_component(TMP ${CMAKE_TOOLCHAIN_FILE} REALPATH BASE ${CMAKE_SOURCE_DIR})
-    list(APPEND ConnectivityChecksFlags -DCMAKE_TOOLCHAIN_FILE=${TMP})
-  endif()
-
-  if ("${CMAKE_SYSTEM_VERSION}" STREQUAL "LinuxStandardBase")
-    list(APPEND ConnectivityChecksFlags
-      -DLSB_CC=${CMAKE_LSB_CC}
-      -DLSB_CXX=${CMAKE_LSB_CXX}
+  if (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
+    execute_process(
+      COMMAND 
+      ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/../OrthancFramework/Resources/WindowsResources.py
+      ${ORTHANC_VERSION} ConnectivityChecks ConnectivityChecks.dll "Orthanc plugin to show connectivity status"
+      ERROR_VARIABLE Failure
+      OUTPUT_FILE ${AUTOGENERATED_DIR}/ConnectivityChecks.rc
       )
+    
+    if (Failure)
+      message(FATAL_ERROR "Error while computing the version information: ${Failure}")
+    endif()
+    
+    list(APPEND CONNECTIVITY_CHECKS_RESOURCES ${AUTOGENERATED_DIR}/ConnectivityChecks.rc)
   endif()
 
-  externalproject_add(ConnectivityChecks
-    SOURCE_DIR "${CMAKE_SOURCE_DIR}/Plugins/Samples/ConnectivityChecks"
-
-    # We explicitly provide a build directory, in order to avoid paths
-    # that are too long on our Visual Studio 2008 CIS
-    BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}/ConnectivityChecks-build"
-
-    # this helps triggering build when changing the external project
-    BUILD_ALWAYS 1
-
-    CMAKE_ARGS
-    -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
-    -DCMAKE_INSTALL_PREFIX=${CMAKE_CURRENT_BINARY_DIR}
-    -DPLUGIN_VERSION=${ORTHANC_VERSION}
-    -DSTATIC_BUILD=${STATIC_BUILD}
-    -DALLOW_DOWNLOADS=${ALLOW_DOWNLOADS}
-    -DUSE_SYSTEM_BOOST=${USE_SYSTEM_BOOST}
-    -DUSE_LEGACY_JSONCPP=${USE_LEGACY_JSONCPP}
-    -DUSE_LEGACY_BOOST=${USE_LEGACY_BOOST}
-    ${ConnectivityChecksFlags}
-
-    -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
-    -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
-    -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
-    -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS}
-    -DCMAKE_OSX_DEPLOYMENT_TARGET=${CMAKE_OSX_DEPLOYMENT_TARGET}
-    -DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES}
+  include(${CMAKE_SOURCE_DIR}/Plugins/Samples/ConnectivityChecks/JavaScriptLibraries.cmake)
+  
+  EmbedResources(
+    --target=ConnectivityChecksResources
+    --framework-path=${CMAKE_SOURCE_DIR}/../OrthancFramework/Sources
+    WEB_RESOURCES  ${CMAKE_SOURCE_DIR}/Plugins/Samples/ConnectivityChecks/WebResources
+    LIBRARIES      ${CONNECTIVITY_CHECKS_JAVASCRIPT_DIR}
     )
 
-  if (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
-    if (MSVC)
-      set(Prefix "")
-    else()
-      set(Prefix "lib")  # MinGW
-    endif()
+  set_source_files_properties(
+    ${CMAKE_SOURCE_DIR}/Plugins/Samples/ConnectivityChecks/Plugin.cpp
+    PROPERTIES COMPILE_DEFINITIONS "ORTHANC_PLUGIN_NAME=\"connectivity-checks\";ORTHANC_PLUGIN_VERSION=\"${ORTHANC_VERSION}\""
+    )
+  
+  # The "OrthancFrameworkDependencies.cpp" file is used to bypass the
+  # precompiled headers if compiling with Visual Studio
+  add_library(ConnectivityChecks SHARED 
+    ${AUTOGENERATED_DIR}/ConnectivityChecksResources.cpp
+    ${CMAKE_SOURCE_DIR}/Plugins/Samples/ConnectivityChecks/Plugin.cpp
+    
+    ${CMAKE_SOURCE_DIR}/Plugins/Samples/ConnectivityChecks/OrthancFrameworkDependencies.cpp
+    ${CONNECTIVITY_CHECKS_RESOURCES}
+    )
 
-    install(FILES
-      ${CMAKE_CURRENT_BINARY_DIR}/${Prefix}ConnectivityChecks.dll
-      DESTINATION "lib")
-  else()
-    list(GET CMAKE_FIND_LIBRARY_PREFIXES 0 Prefix)
-    list(GET CMAKE_FIND_LIBRARY_SUFFIXES 0 Suffix)
-    install(FILES
-      ${CMAKE_CURRENT_BINARY_DIR}/${Prefix}ConnectivityChecks${Suffix}
-      ${CMAKE_CURRENT_BINARY_DIR}/${Prefix}ConnectivityChecks${Suffix}.${ORTHANC_VERSION}
-      DESTINATION "share/orthanc/plugins")
-  endif()
+  DefineSourceBasenameForTarget(ConnectivityChecks)
+
+  target_link_libraries(ConnectivityChecks PluginsDependencies)
+  
+  set_target_properties(
+    ConnectivityChecks PROPERTIES
+    VERSION ${ORTHANC_VERSION}
+    SOVERSION ${ORTHANC_VERSION}
+    )
+  
+  install(
+    TARGETS ConnectivityChecks
+    RUNTIME DESTINATION lib    # Destination for Windows
+    LIBRARY DESTINATION share/orthanc/plugins    # Destination for Linux
+    )
 endif()
 
 
@@ -624,69 +700,52 @@ endif()
 #####################################################################
 
 if (ENABLE_PLUGINS AND BUILD_DELAYED_DELETION)
-
-  set(DelayedDeletionFlags)
-
-  if (CMAKE_TOOLCHAIN_FILE)
-    # Take absolute path to the toolchain
-    get_filename_component(TMP ${CMAKE_TOOLCHAIN_FILE} REALPATH BASE ${CMAKE_SOURCE_DIR})
-    list(APPEND DelayedDeletionFlags -DCMAKE_TOOLCHAIN_FILE=${TMP})
-  endif()
-
-  if ("${CMAKE_SYSTEM_VERSION}" STREQUAL "LinuxStandardBase")
-    list(APPEND DelayedDeletionFlags
-      -DLSB_CC=${CMAKE_LSB_CC}
-      -DLSB_CXX=${CMAKE_LSB_CXX}
+  if (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
+    execute_process(
+      COMMAND 
+      ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/../OrthancFramework/Resources/WindowsResources.py
+      ${ORTHANC_VERSION} DelayedDeletion DelayedDeletion.dll "Orthanc plugin to delay deletion of files"
+      ERROR_VARIABLE Failure
+      OUTPUT_FILE ${AUTOGENERATED_DIR}/DelayedDeletion.rc
       )
+    
+    if (Failure)
+      message(FATAL_ERROR "Error while computing the version information: ${Failure}")
+    endif()
+    
+    list(APPEND DELAYED_DELETION_RESOURCES ${AUTOGENERATED_DIR}/DelayedDeletion.rc)
   endif()
 
-  externalproject_add(DelayedDeletion
-    SOURCE_DIR "${CMAKE_SOURCE_DIR}/Plugins/Samples/DelayedDeletion"
-
-    # We explicitly provide a build directory, in order to avoid paths
-    # that are too long on our Visual Studio 2008 CIS
-    BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}/DelayedDeletion-build"
-
-    # this helps triggering build when changing the external project
-    BUILD_ALWAYS 1
-
-    CMAKE_ARGS
-    -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
-    -DCMAKE_INSTALL_PREFIX=${CMAKE_CURRENT_BINARY_DIR}
-    -DPLUGIN_VERSION=${ORTHANC_VERSION}
-    -DSTATIC_BUILD=${STATIC_BUILD}
-    -DALLOW_DOWNLOADS=${ALLOW_DOWNLOADS}
-    -DUSE_SYSTEM_BOOST=${USE_SYSTEM_BOOST}
-    -DUSE_LEGACY_JSONCPP=${USE_LEGACY_JSONCPP}
-    -DUSE_LEGACY_BOOST=${USE_LEGACY_BOOST}
-    ${DelayedDeletionFlags}
-
-    -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
-    -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
-    -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
-    -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS}
-    -DCMAKE_OSX_DEPLOYMENT_TARGET=${CMAKE_OSX_DEPLOYMENT_TARGET}
-    -DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES}
+  set_source_files_properties(
+    ${CMAKE_SOURCE_DIR}/Plugins/Samples/DelayedDeletion/Plugin.cpp
+    PROPERTIES COMPILE_DEFINITIONS "ORTHANC_PLUGIN_NAME=\"delayed-deletion\";ORTHANC_PLUGIN_VERSION=\"${ORTHANC_VERSION}\""
     )
 
-  if (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
-    if (MSVC)
-      set(Prefix "")
-    else()
-      set(Prefix "lib")  # MinGW
-    endif()
+  # The "OrthancFrameworkDependencies.cpp" file is used to bypass the
+  # precompiled headers if compiling with Visual Studio
+  add_library(DelayedDeletion SHARED 
+    ${CMAKE_SOURCE_DIR}/Plugins/Samples/DelayedDeletion/PendingDeletionsDatabase.cpp
+    ${CMAKE_SOURCE_DIR}/Plugins/Samples/DelayedDeletion/Plugin.cpp
+    
+    ${CMAKE_SOURCE_DIR}/Plugins/Samples/DelayedDeletion/OrthancFrameworkDependencies.cpp
+    ${DELAYED_DELETION_RESOURCES}
+    )
+  
+  DefineSourceBasenameForTarget(DelayedDeletion)
 
-    install(FILES
-      ${CMAKE_CURRENT_BINARY_DIR}/${Prefix}DelayedDeletion.dll
-      DESTINATION "lib")
-  else()
-    list(GET CMAKE_FIND_LIBRARY_PREFIXES 0 Prefix)
-    list(GET CMAKE_FIND_LIBRARY_SUFFIXES 0 Suffix)
-    install(FILES
-      ${CMAKE_CURRENT_BINARY_DIR}/${Prefix}DelayedDeletion${Suffix}
-      ${CMAKE_CURRENT_BINARY_DIR}/${Prefix}DelayedDeletion${Suffix}.${ORTHANC_VERSION}
-      DESTINATION "share/orthanc/plugins")
-  endif()
+  target_link_libraries(DelayedDeletion PluginsDependencies)
+  
+  set_target_properties(
+    DelayedDeletion PROPERTIES
+    VERSION ${ORTHANC_VERSION}
+    SOVERSION ${ORTHANC_VERSION}
+    )
+  
+  install(
+    TARGETS DelayedDeletion
+    RUNTIME DESTINATION lib    # Destination for Windows
+    LIBRARY DESTINATION share/orthanc/plugins    # Destination for Linux
+    )
 endif()
 
 
@@ -711,14 +770,19 @@ if (ENABLE_PLUGINS AND BUILD_HOUSEKEEPER)
     list(APPEND HOUSEKEEPER_RESOURCES ${AUTOGENERATED_DIR}/Housekeeper.rc)
   endif()
   
+  set_source_files_properties(
+    ${CMAKE_SOURCE_DIR}/Plugins/Samples/Housekeeper/Plugin.cpp
+    PROPERTIES COMPILE_DEFINITIONS "HOUSEKEEPER_VERSION=\"${ORTHANC_VERSION}\""
+    )
+
   add_library(Housekeeper SHARED 
     ${CMAKE_SOURCE_DIR}/Plugins/Samples/Housekeeper/Plugin.cpp
     ${HOUSEKEEPER_RESOURCES}
     )
   
-  target_link_libraries(Housekeeper 
-    ThirdPartyPlugins
-    )
+  DefineSourceBasenameForTarget(Housekeeper)
+
+  target_link_libraries(Housekeeper PluginsDependencies)
   
   set_target_properties(
     Housekeeper PROPERTIES 
@@ -739,69 +803,120 @@ endif()
 #####################################################################
 
 if (ENABLE_PLUGINS AND BUILD_ADVANCED_STORAGE)
-
-  set(AdvancedStorageFlags)
-
-  if (CMAKE_TOOLCHAIN_FILE)
-    # Take absolute path to the toolchain
-    get_filename_component(TMP ${CMAKE_TOOLCHAIN_FILE} REALPATH BASE ${CMAKE_SOURCE_DIR})
-    list(APPEND AdvancedStorageFlags -DCMAKE_TOOLCHAIN_FILE=${TMP})
-  endif()
-
-  if ("${CMAKE_SYSTEM_VERSION}" STREQUAL "LinuxStandardBase")
-    list(APPEND AdvancedStorageFlags
-      -DLSB_CC=${CMAKE_LSB_CC}
-      -DLSB_CXX=${CMAKE_LSB_CXX}
-      )
-  endif()
-
-  externalproject_add(AdvancedStorage
-    SOURCE_DIR "${CMAKE_SOURCE_DIR}/Plugins/Samples/AdvancedStorage"
-
-    # We explicitly provide a build directory, in order to avoid paths
-    # that are too long on our Visual Studio 2008 CIS
-    BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}/AdvancedStorage-build"
-
-    # this helps triggering build when changing the external project
-    BUILD_ALWAYS 1
-
-    CMAKE_ARGS
-    -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
-    -DCMAKE_INSTALL_PREFIX=${CMAKE_CURRENT_BINARY_DIR}
-    -DPLUGIN_VERSION=${ORTHANC_VERSION}
-    -DSTATIC_BUILD=${STATIC_BUILD}
-    -DALLOW_DOWNLOADS=${ALLOW_DOWNLOADS}
-    -DUSE_SYSTEM_BOOST=${USE_SYSTEM_BOOST}
-    -DUSE_LEGACY_JSONCPP=${USE_LEGACY_JSONCPP}
-    -DUSE_LEGACY_BOOST=${USE_LEGACY_BOOST}
-    ${AdvancedStorageFlags}
-
-    -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
-    -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
-    -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
-    -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS}
-    -DCMAKE_OSX_DEPLOYMENT_TARGET=${CMAKE_OSX_DEPLOYMENT_TARGET}
-    -DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES}
-    )
-
   if (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
-    if (MSVC)
-      set(Prefix "")
-    else()
-      set(Prefix "lib")  # MinGW
+    execute_process(
+      COMMAND 
+      ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/../OrthancFramework/Resources/WindowsResources.py
+      ${ORTHANC_VERSION} AdvancedStorage AdvancedStorage.dll "Orthanc plugin to provide advanced file storage"
+      ERROR_VARIABLE Failure
+      OUTPUT_FILE ${AUTOGENERATED_DIR}/AdvancedStorage.rc
+      )
+
+    if (Failure)
+      message(FATAL_ERROR "Error while computing the version information: ${Failure}")
     endif()
 
-    install(FILES
-      ${CMAKE_CURRENT_BINARY_DIR}/${Prefix}AdvancedStorage.dll
-      DESTINATION "lib")
-  else()
-    list(GET CMAKE_FIND_LIBRARY_PREFIXES 0 Prefix)
-    list(GET CMAKE_FIND_LIBRARY_SUFFIXES 0 Suffix)
-    install(FILES
-      ${CMAKE_CURRENT_BINARY_DIR}/${Prefix}AdvancedStorage${Suffix}
-      ${CMAKE_CURRENT_BINARY_DIR}/${Prefix}AdvancedStorage${Suffix}.${ORTHANC_VERSION}
-      DESTINATION "share/orthanc/plugins")
+    list(APPEND ADVANCED_STORAGE_RESOURCES ${AUTOGENERATED_DIR}/AdvancedStorage.rc)
   endif()
+
+  set_source_files_properties(
+    ${CMAKE_SOURCE_DIR}/Plugins/Samples/AdvancedStorage/Plugin.cpp
+    PROPERTIES COMPILE_DEFINITIONS "ADVANCED_STORAGE_VERSION=\"${ORTHANC_VERSION}\""
+    )
+
+  add_library(AdvancedStorage SHARED 
+    ${CMAKE_SOURCE_DIR}/Plugins/Samples/AdvancedStorage/Plugin.cpp
+    ${ORTHANC}
+    ${CMAKE_SOURCE_DIR}/../OrthancFramework/Sources/OrthancException.cpp
+    ${CMAKE_SOURCE_DIR}/../OrthancFramework/Sources/SystemToolbox.cpp
+    ${CMAKE_SOURCE_DIR}/../OrthancFramework/Sources/Toolbox.cpp
+    ${CMAKE_SOURCE_DIR}/../OrthancFramework/Sources/Logging.cpp
+    ${CMAKE_SOURCE_DIR}/../OrthancFramework/Sources/ChunkedBuffer.cpp
+    ${CMAKE_SOURCE_DIR}/../OrthancFramework/Sources/Enumerations.cpp
+    )
+
+  DefineSourceBasenameForTarget(AdvancedStorage)
+
+  target_link_libraries(AdvancedStorage PluginsDependencies)
+  
+  set_target_properties(
+    AdvancedStorage PROPERTIES 
+    VERSION ${ORTHANC_VERSION} 
+    SOVERSION ${ORTHANC_VERSION}
+    )
+  
+  install(
+    TARGETS AdvancedStorage
+    RUNTIME DESTINATION lib    # Destination for Windows
+    LIBRARY DESTINATION share/orthanc/plugins    # Destination for Linux
+    )
+endif()
+
+#####################################################################
+## Build the "MultitenantDicom" plugin
+#####################################################################
+
+if (ENABLE_PLUGINS AND BUILD_MULTITENANT_DICOM)
+  if (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
+    execute_process(
+      COMMAND 
+      ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/../OrthancFramework/Resources/WindowsResources.py
+      ${ORTHANC_VERSION} MultitenantDicom MultitenantDicom.dll "Orthanc plugin to provide a multitenant DICOM server"
+      ERROR_VARIABLE Failure
+      OUTPUT_FILE ${AUTOGENERATED_DIR}/MultitenantDicom.rc
+      )
+    
+    if (Failure)
+      message(FATAL_ERROR "Error while computing the version information: ${Failure}")
+    endif()
+    
+    list(APPEND MULTITENANT_DICOM_RESOURCES ${AUTOGENERATED_DIR}/MultitenantDicom.rc)
+  endif()
+
+  EmbedResources(
+    --target=MultitenantDicomResources
+    --namespace=Orthanc.FrameworkResources
+    --framework-path=${CMAKE_SOURCE_DIR}/../OrthancFramework/Sources
+    ${LIBICU_RESOURCES}
+    ${DCMTK_DICTIONARIES}
+    )
+
+  set_source_files_properties(
+    ${CMAKE_SOURCE_DIR}/Plugins/Samples/MultitenantDicom/Plugin.cpp
+    PROPERTIES COMPILE_DEFINITIONS "ORTHANC_PLUGIN_VERSION=\"${ORTHANC_VERSION}\""
+    )
+
+  # The "OrthancFrameworkDependencies.cpp" file is used to bypass the
+  # precompiled headers if compiling with Visual Studio
+  add_library(MultitenantDicom SHARED 
+    ${CMAKE_SOURCE_DIR}/Plugins/Samples/MultitenantDicom/DicomFilter.cpp
+    ${CMAKE_SOURCE_DIR}/Plugins/Samples/MultitenantDicom/FindRequestHandler.cpp
+    ${CMAKE_SOURCE_DIR}/Plugins/Samples/MultitenantDicom/MoveRequestHandler.cpp
+    ${CMAKE_SOURCE_DIR}/Plugins/Samples/MultitenantDicom/MultitenantDicomServer.cpp
+    ${CMAKE_SOURCE_DIR}/Plugins/Samples/MultitenantDicom/Plugin.cpp
+    ${CMAKE_SOURCE_DIR}/Plugins/Samples/MultitenantDicom/PluginToolbox.cpp
+    ${CMAKE_SOURCE_DIR}/Plugins/Samples/MultitenantDicom/StoreRequestHandler.cpp    
+
+    ${CMAKE_SOURCE_DIR}/Plugins/Samples/MultitenantDicom/OrthancFrameworkDependencies.cpp
+    ${AUTOGENERATED_DIR}/MultitenantDicomResources.cpp
+    ${MULTITENANT_DICOM_RESOURCES}
+    )
+  
+  DefineSourceBasenameForTarget(MultitenantDicom)
+
+  target_link_libraries(MultitenantDicom PluginsDependencies ${DCMTK_LIBRARIES})
+  
+  set_target_properties(
+    MultitenantDicom PROPERTIES
+    VERSION ${ORTHANC_VERSION}
+    SOVERSION ${ORTHANC_VERSION}
+    )
+  
+  install(
+    TARGETS MultitenantDicom
+    RUNTIME DESTINATION lib    # Destination for Windows
+    LIBRARY DESTINATION share/orthanc/plugins    # Destination for Linux
+    )
 endif()
 
 
@@ -834,6 +949,7 @@ if (BUILD_RECOVER_COMPRESSED_FILE)
   endif()
 
   add_executable(OrthancRecoverCompressedFile ${RECOVER_COMPRESSED_SOURCES})
+  DefineSourceBasenameForTarget(OrthancRecoverCompressedFile)
 
   target_link_libraries(OrthancRecoverCompressedFile CoreLibrary)
 
@@ -890,8 +1006,9 @@ endif()
 if (ENABLE_PLUGINS)
   install(
     FILES
-    ${CMAKE_SOURCE_DIR}/Plugins/Include/orthanc/OrthancCPlugin.h 
-    ${CMAKE_SOURCE_DIR}/Plugins/Include/orthanc/OrthancCDatabasePlugin.h 
+    ${CMAKE_SOURCE_DIR}/Plugins/Include/orthanc/OrthancCPlugin.h
+    ${CMAKE_SOURCE_DIR}/Plugins/Include/orthanc/OrthancCDatabasePlugin.h
+    ${CMAKE_SOURCE_DIR}/Plugins/Include/orthanc/OrthancDatabasePlugin.proto
     DESTINATION include/orthanc
     )
 endif()

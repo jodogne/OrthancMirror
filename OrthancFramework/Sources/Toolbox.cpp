@@ -2,8 +2,9 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -34,6 +35,10 @@
 
 #if !defined(JSONCPP_VERSION_MAJOR) || !defined(JSONCPP_VERSION_MINOR)
 #  error Cannot access the version of JsonCpp
+#endif
+
+#if !defined(ORTHANC_ENABLE_ICU)
+#  define ORTHANC_ENABLE_ICU 1
 #endif
 
 
@@ -143,8 +148,14 @@ extern "C"
 
 
 #if defined(ORTHANC_STATIC_ICU)
+
+#  if (ORTHANC_STATIC_ICU == 1) && (ORTHANC_ENABLE_ICU == 1)
+#    if !defined(ORTHANC_FRAMEWORK_INCLUDE_RESOURCES) || (ORTHANC_FRAMEWORK_INCLUDE_RESOURCES == 1)
+#      include <OrthancFrameworkResources.h>
+#    endif
+#  endif
+
 #  if (ORTHANC_STATIC_ICU == 1 && ORTHANC_ENABLE_LOCALE == 1)
-#    include <OrthancFrameworkResources.h>
 #    include <unicode/udata.h>
 #    include <unicode/uloc.h>
 #    include "Compression/GzipCompressor.h"
@@ -414,6 +425,23 @@ namespace Orthanc
     }
   }
 
+  std::string Toolbox::JoinUri(const std::string& base, const std::string& uri)
+  {
+    if (uri.size() > 0 && base.size() > 0)
+    {
+      if (base[base.size() - 1] == '/' && uri[0] == '/')
+      {
+        return base + uri.substr(1, uri.size() - 1);
+      }
+      else if (base[base.size() - 1] != '/' && uri[0] != '/')
+      {
+        return base + "/" + uri;
+      }
+    }
+
+    return base + uri;
+  }
+
 
 #if ORTHANC_ENABLE_MD5 == 1
   static char GetHexadecimalCharacter(uint8_t value)
@@ -469,6 +497,20 @@ namespace Orthanc
       result[2 * i + 1] = GetHexadecimalCharacter(static_cast<uint8_t>(actualHash[i] % 16));
     }
   }
+
+  void Toolbox::ComputeMD5(std::string& result,
+                           const std::set<std::string>& data)
+  {
+    std::string s;
+
+    for (std::set<std::string>::const_iterator it = data.begin(); it != data.end(); ++it)
+    {
+      s += *it;
+    }
+
+    ComputeMD5(result, s);
+  }
+
 #endif
 
 
@@ -609,11 +651,15 @@ namespace Orthanc
                                      bool hasCodeExtensions)
   {
 #if ORTHANC_STATIC_ICU == 1
+#  if ORTHANC_ENABLE_ICU == 0
+    throw OrthancException(ErrorCode_NotImplemented, "ICU is disabled for this target");
+#  else
     if (globalIcuData_.empty())
     {
       throw OrthancException(ErrorCode_BadSequenceOfCalls,
                              "Call Toolbox::InitializeGlobalLocale()");
     }
+#  endif
 #endif
 
     // The "::skip" flag makes boost skip invalid UTF-8
@@ -668,11 +714,15 @@ namespace Orthanc
                                        Encoding targetEncoding)
   {
 #if ORTHANC_STATIC_ICU == 1
+#  if ORTHANC_ENABLE_ICU == 0
+    throw OrthancException(ErrorCode_NotImplemented, "ICU is disabled for this target");
+#  else
     if (globalIcuData_.empty())
     {
       throw OrthancException(ErrorCode_BadSequenceOfCalls,
                              "Call Toolbox::InitializeGlobalLocale()");
     }
+#  endif
 #endif
 
     // The "::skip" flag makes boost skip invalid UTF-8
@@ -751,7 +801,6 @@ namespace Orthanc
     return result;
   }
 
-
   void Toolbox::ComputeSHA1(std::string& result,
                             const void* data,
                             size_t size)
@@ -764,11 +813,13 @@ namespace Orthanc
     }
 
     unsigned int digest[5];
-
     // Sanity check for the memory layout: A SHA-1 digest is 160 bits wide
-    assert(sizeof(unsigned int) == 4 && sizeof(digest) == (160 / 8)); 
+    assert(sizeof(unsigned int) == 4 && sizeof(digest) == (160 / 8));
+    assert(sizeof(boost::uuids::detail::sha1::digest_type) == 20);
     
-    sha1.get_digest(digest);
+    // From Boost 1.86, digest_type is "unsigned char[20]" while it was "unsigned int[5]"" in previous versions.
+    // Always perform the cast even if it is useless for Boost < 1.86
+    sha1.get_digest(*(reinterpret_cast<boost::uuids::detail::sha1::digest_type*>(digest)));
 
     result.resize(8 * 5 + 4);
     sprintf(&result[0], "%08x-%08x-%08x-%08x-%08x",
@@ -1000,10 +1051,10 @@ namespace Orthanc
     return result;
   }
 
-
-  void Toolbox::TokenizeString(std::vector<std::string>& result,
+  static void TokenizeStringInternal(std::vector<std::string>& result,
                                const std::string& value,
-                               char separator)
+                               char separator,
+                               bool includeEmptyStrings)
   {
     size_t countSeparators = 0;
     
@@ -1033,20 +1084,54 @@ namespace Orthanc
       }
     }
 
-    result.push_back(currentItem);
+    if (includeEmptyStrings || !currentItem.empty())
+    {
+      result.push_back(currentItem);
+    }
+  }
+
+
+  void Toolbox::TokenizeString(std::vector<std::string>& result,
+                               const std::string& value,
+                               char separator)
+  {
+    TokenizeStringInternal(result, value, separator, true);
+  }
+
+
+  void Toolbox::SplitString(std::set<std::string>& result,
+                            const std::string& value,
+                            char separator)
+  {
+    result.clear();
+
+    std::vector<std::string> temp;
+    TokenizeStringInternal(temp, value, separator, false);
+    for (size_t i = 0; i < temp.size(); ++i)
+    {
+      result.insert(temp[i]);
+    }
+  }
+
+
+  void Toolbox::SplitString(std::vector<std::string>& result,
+                            const std::string& value,
+                            char separator)
+  {
+    TokenizeStringInternal(result, value, separator, false);
   }
 
 
   void Toolbox::JoinStrings(std::string& result,
-                            std::set<std::string>& source,
+                            const std::set<std::string>& source,
                             const char* separator)
   {
     result = boost::algorithm::join(source, separator);
   }
 
-  void JoinStrings(std::string& result,
-                   std::vector<std::string>& source,
-                   const char* separator)
+  void Toolbox::JoinStrings(std::string& result,
+                            const std::vector<std::string>& source,
+                            const char* separator)
   {
     result = boost::algorithm::join(source, separator);
   }
@@ -1508,7 +1593,7 @@ namespace Orthanc
   
   static void InitializeIcu()
   {
-#if ORTHANC_STATIC_ICU == 1
+#if (ORTHANC_STATIC_ICU == 1) && (ORTHANC_ENABLE_ICU == 1)
     if (globalIcuData_.empty())
     {
       LOG(INFO) << "Setting up the ICU common data";
@@ -1676,10 +1761,14 @@ namespace Orthanc
     bool error = (globalLocale_.get() == NULL);
 
 #if ORTHANC_STATIC_ICU == 1
+#  if ORTHANC_ENABLE_ICU == 0
+    throw OrthancException(ErrorCode_NotImplemented, "ICU is disabled for this target");
+#  else
     if (globalIcuData_.empty())
     {
       error = true;
     }
+#  endif
 #endif
     
     if (error)
@@ -1797,7 +1886,7 @@ namespace Orthanc
 
   std::string Toolbox::GenerateUuid()
   {
-#ifdef WIN32
+#ifdef _WIN32
     UUID uuid;
     UuidCreate ( &uuid );
 
@@ -2424,6 +2513,302 @@ namespace Orthanc
         value[value.size() - 1] == '\"')
     {
       value = value.substr(1, value.size() - 2);
+    }
+  }
+
+  Toolbox::ElapsedTimer::ElapsedTimer()
+  {
+    Restart();
+  }
+
+  void Toolbox::ElapsedTimer::Restart()
+  {
+    start_ = boost::posix_time::microsec_clock::universal_time();
+  }
+
+  uint64_t Toolbox::ElapsedTimer::GetElapsedMilliseconds()
+  {
+    return GetElapsedNanoseconds() / 1000000;
+  }
+  
+  uint64_t Toolbox::ElapsedTimer::GetElapsedMicroseconds()
+  {
+    return GetElapsedNanoseconds() / 1000;
+  }
+
+  uint64_t Toolbox::ElapsedTimer::GetElapsedNanoseconds()
+  {
+    boost::posix_time::ptime now = boost::posix_time::microsec_clock::universal_time();
+    boost::posix_time::time_duration diff = now - start_;
+    return static_cast<uint64_t>(diff.total_nanoseconds());
+  }
+
+  std::string Toolbox::ElapsedTimer::GetHumanElapsedDuration()
+  {
+    return Toolbox::GetHumanDuration(GetElapsedNanoseconds());
+  }
+
+  // in "full" mode, returns " 26.45MB in 2.25s = 94.04Mbps"
+  // else, returns "94.04Mbps"
+  std::string Toolbox::ElapsedTimer::GetHumanTransferSpeed(bool full, uint64_t sizeInBytes)
+  {
+    return Toolbox::GetHumanTransferSpeed(full, sizeInBytes, GetElapsedNanoseconds());
+  }
+
+  Toolbox::ElapsedTimeLogger::ElapsedTimeLogger(const std::string& message)
+  : message_(message),
+    logged_(false)
+  {
+    Restart();
+  }
+
+  Toolbox::ElapsedTimeLogger::~ElapsedTimeLogger()
+  {
+    if (!logged_)
+    {
+      StopAndLog();
+    }
+  }
+
+  void Toolbox::ElapsedTimeLogger::Restart()
+  {
+    timer_.Restart();
+  }
+
+  void Toolbox::ElapsedTimeLogger::StopAndLog()
+  {
+    LOG(WARNING) << "ELAPSED TIMER: " << message_ << " (" << timer_.GetElapsedMicroseconds() << " us)";
+    logged_ = true;
+  }
+
+  std::string Toolbox::GetHumanFileSize(uint64_t sizeInBytes)
+  {
+    if (sizeInBytes < 1024)
+    {
+      std::ostringstream oss;
+      oss << sizeInBytes << "bytes";
+      return oss.str();
+    }
+    else
+    {
+      static const char* suffixes[] = {"KB", "MB", "GB", "TB"};
+      static const int suffixesCount = sizeof(suffixes) / sizeof(suffixes[0]);
+
+      int i = 0;
+      double size = static_cast<double>(sizeInBytes)/1024.0;
+
+      while (size >= 1024.0 && i < suffixesCount - 1) 
+      {
+        size /= 1024.0;
+        i++;
+      }
+
+      std::ostringstream oss;
+      oss << std::fixed << std::setprecision(2) << size << suffixes[i];
+      return oss.str();
+    }
+  }
+
+  std::string Toolbox::GetHumanDuration(uint64_t durationInNanoseconds)
+  {
+    if (durationInNanoseconds < 1024)
+    {
+      std::ostringstream oss;
+      oss << durationInNanoseconds << "ns";
+      return oss.str();
+    }
+    else
+    {
+      static const char* suffixes[] = {"ns", "us", "ms", "s"};
+      static const int suffixesCount = sizeof(suffixes) / sizeof(suffixes[0]);
+
+      int i = 0;
+      double duration = static_cast<double>(durationInNanoseconds);
+
+      while (duration >= 1000.0 && i < suffixesCount - 1) 
+      {
+        duration /= 1000.0;
+        i++;
+      }
+
+      std::ostringstream oss;
+      oss << std::fixed << std::setprecision(2) << duration <<  suffixes[i];
+      return oss.str();
+    }
+  }
+
+  std::string Toolbox::GetHumanTransferSpeed(bool full, uint64_t sizeInBytes, uint64_t durationInNanoseconds)
+  {
+    // in "full" mode, returns " 26.45MB in 2.25s = 94.04Mbps"    
+    // else, return "94.04Mbps"
+
+    if (full)
+    {
+      std::ostringstream oss;
+      oss << Toolbox::GetHumanFileSize(sizeInBytes) << " in " << Toolbox::GetHumanDuration(durationInNanoseconds) << " = " << GetHumanTransferSpeed(false, sizeInBytes, durationInNanoseconds);
+      return oss.str();
+    }
+
+    double throughputInBps = 8.0 * 1000000000.0 * static_cast<double>(sizeInBytes) / static_cast<double>(durationInNanoseconds);
+
+    if (throughputInBps < 1000.0)
+    {
+      std::ostringstream oss;
+      oss << throughputInBps << "bps";
+      return oss.str();
+    }
+    else
+    {
+      throughputInBps /= 1000.0;
+      static const char* suffixes[] = {"kbps", "Mbps", "Gbps"};
+      static const int suffixesCount = sizeof(suffixes) / sizeof(suffixes[0]);
+
+      int i = 0;
+
+      while (throughputInBps >= 1000.0 && i < suffixesCount - 1) 
+      {
+        throughputInBps /= 1000.0;
+        i++;
+      }
+
+      std::ostringstream oss;
+      oss << std::fixed << std::setprecision(2) << throughputInBps <<  suffixes[i];
+      return oss.str();
+    }
+  }
+
+
+  bool Toolbox::ParseVersion(unsigned int& major,
+                             unsigned int& minor,
+                             unsigned int& revision,
+                             const char* version)
+  {
+    if (version == NULL)
+    {
+      throw OrthancException(ErrorCode_NullPointer);
+    }
+
+#ifdef _MSC_VER
+#define ORTHANC_SCANF sscanf_s
+#else
+#define ORTHANC_SCANF sscanf
+#endif
+
+    int a, b, c;
+    if (ORTHANC_SCANF(version, "%4d.%4d.%4d", &a, &b, &c) == 3)
+    {
+      if (a >= 0 &&
+          b >= 0 &&
+          c >= 0)
+      {
+        major = static_cast<unsigned int>(a);
+        minor = static_cast<unsigned int>(b);
+        revision = static_cast<unsigned int>(c);
+        return true;
+      }
+      else
+      {
+        return false;
+      }
+    }
+    else if (ORTHANC_SCANF(version, "%4d.%4d", &a, &b) == 2)
+    {
+      if (a >= 0 &&
+          b >= 0)
+      {
+        major = static_cast<unsigned int>(a);
+        minor = static_cast<unsigned int>(b);
+        revision = 0;
+        return true;
+      }
+      else
+      {
+        return false;
+      }
+    }
+    else if (ORTHANC_SCANF(version, "%4d", &a) == 1 &&
+             a >= 0)
+    {
+      if (a >= 0)
+      {
+        major = static_cast<unsigned int>(a);
+        minor = 0;
+        revision = 0;
+        return true;
+      }
+      else
+      {
+        return false;
+      }
+    }
+    else
+    {
+      return false;
+    }
+  }
+
+
+  bool Toolbox::IsVersionAbove(const char* version,
+                               unsigned int major,
+                               unsigned int minor,
+                               unsigned int revision)
+  {
+    /**
+     * Note: Similar standalone functions are implemented in
+     * "OrthancCPlugin.h" and "OrthancPluginCppWrapper.cpp".
+     **/
+
+    unsigned int actualMajor, actualMinor, actualRevision;
+
+    if (version == NULL)
+    {
+      throw OrthancException(ErrorCode_NullPointer);
+    }
+    else if (!strcmp(version, "mainline"))
+    {
+      // Assume compatibility with the mainline
+      return true;
+    }
+    else if (ParseVersion(actualMajor, actualMinor, actualRevision, version))
+    {
+      if (actualMajor > major)
+      {
+        return true;
+      }
+
+      if (actualMajor < major)
+      {
+        return false;
+      }
+
+      // Check the minor version number
+      assert(actualMajor == major);
+
+      if (actualMinor > minor)
+      {
+        return true;
+      }
+
+      if (actualMinor < minor)
+      {
+        return false;
+      }
+
+      // Check the patch level version number
+      assert(actualMajor == major);
+
+      if (actualRevision >= revision)
+      {
+        return true;
+      }
+      else
+      {
+        return false;
+      }
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange, "Not a valid version: " + std::string(version));
     }
   }
 }

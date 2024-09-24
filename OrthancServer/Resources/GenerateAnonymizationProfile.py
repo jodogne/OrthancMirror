@@ -3,8 +3,9 @@
 # Orthanc - A Lightweight, RESTful DICOM Store
 # Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
 # Department, University Hospital of Liege, Belgium
-# Copyright (C) 2017-2022 Osimis S.A., Belgium
-# Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+# Copyright (C) 2017-2023 Osimis S.A., Belgium
+# Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+# Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
 #
 # This program is free software: you can redistribute it and/or
 # modify it under the terms of the GNU General Public License as
@@ -26,7 +27,7 @@ import sys
 import xml.etree.ElementTree as ET
 
 # Usage:
-# ./GenerateAnonymizationProfile.py https://raw.githubusercontent.com/jodogne/dicom-specification/master/2021b/part15.xml
+# ./GenerateAnonymizationProfile.py https://raw.githubusercontent.com/jodogne/dicom-specification/master/2023b/part15.xml > ../../OrthancFramework/Sources/DicomParsing/DicomModification_Anonymization2023b.impl.h
 
 if len(sys.argv) != 2:
     raise Exception('Please provide the path or the URL to the part15.xml file from the DICOM standard')

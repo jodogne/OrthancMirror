@@ -2,8 +2,9 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -42,6 +43,7 @@
 #include "../Sources/DicomParsing/DicomWebJsonVisitor.h"
 
 #include <boost/lexical_cast.hpp>
+#include <boost/tuple/tuple.hpp>
 
 using namespace Orthanc;
 
@@ -81,7 +83,8 @@ namespace Orthanc
     ASSERT_TRUE(DicomMap::IsMainDicomTag(DICOM_TAG_SOP_INSTANCE_UID));
 
     {
-      const std::set<DicomTag>& s = DicomMap::GetAllMainDicomTags();
+      std::set<DicomTag> s;
+      DicomMap::GetAllMainDicomTags(s);
       ASSERT_TRUE(s.end() != s.find(DICOM_TAG_PATIENT_ID));
       ASSERT_TRUE(s.end() != s.find(DICOM_TAG_STUDY_INSTANCE_UID));
       ASSERT_TRUE(s.end() != s.find(DICOM_TAG_ACCESSION_NUMBER));
@@ -90,26 +93,30 @@ namespace Orthanc
     }
 
     {
-      const std::set<DicomTag>& s = DicomMap::GetMainDicomTags(ResourceType_Patient);
+      std::set<DicomTag> s;
+      DicomMap::GetMainDicomTags(s, ResourceType_Patient);
       ASSERT_TRUE(s.end() != s.find(DICOM_TAG_PATIENT_ID));
       ASSERT_TRUE(s.end() == s.find(DICOM_TAG_STUDY_INSTANCE_UID));
     }
 
     {
-      const std::set<DicomTag>& s = DicomMap::GetMainDicomTags(ResourceType_Study);
+      std::set<DicomTag> s;
+      DicomMap::GetMainDicomTags(s, ResourceType_Study);
       ASSERT_TRUE(s.end() != s.find(DICOM_TAG_STUDY_INSTANCE_UID));
       ASSERT_TRUE(s.end() != s.find(DICOM_TAG_ACCESSION_NUMBER));
       ASSERT_TRUE(s.end() == s.find(DICOM_TAG_PATIENT_ID));
     }
 
     {
-      const std::set<DicomTag>& s = DicomMap::GetMainDicomTags(ResourceType_Series);
+      std::set<DicomTag> s;
+      DicomMap::GetMainDicomTags(s, ResourceType_Series);
       ASSERT_TRUE(s.end() != s.find(DICOM_TAG_SERIES_INSTANCE_UID));
       ASSERT_TRUE(s.end() == s.find(DICOM_TAG_PATIENT_ID));
     }
 
     {
-      const std::set<DicomTag>& s = DicomMap::GetMainDicomTags(ResourceType_Instance);
+      std::set<DicomTag> s;
+      DicomMap::GetMainDicomTags(s, ResourceType_Instance);
       ASSERT_TRUE(s.end() != s.find(DICOM_TAG_SOP_INSTANCE_UID));
       ASSERT_TRUE(s.end() == s.find(DICOM_TAG_PATIENT_ID));
     }
@@ -120,12 +127,14 @@ namespace Orthanc
     DicomMap::AddMainDicomTag(DICOM_TAG_BITS_ALLOCATED, ResourceType_Instance);
 
     {
-      const std::set<DicomTag>& s = DicomMap::GetMainDicomTags(ResourceType_Instance);
+      std::set<DicomTag> s;
+      DicomMap::GetMainDicomTags(s, ResourceType_Instance);
       ASSERT_TRUE(s.end() != s.find(DICOM_TAG_BITS_ALLOCATED));
       ASSERT_TRUE(s.end() != s.find(DICOM_TAG_SOP_INSTANCE_UID));
     }
     {
-      const std::set<DicomTag>& s = DicomMap::GetMainDicomTags(ResourceType_Series);
+      std::set<DicomTag> s;
+      DicomMap::GetMainDicomTags(s, ResourceType_Series);
       ASSERT_TRUE(s.end() == s.find(DICOM_TAG_BITS_ALLOCATED));
     }
 
@@ -242,8 +251,10 @@ static void TestModule(ResourceType level,
   // REFERENCE: DICOM PS3.3 2015c - Information Object Definitions
   // http://dicom.nema.org/medical/dicom/current/output/html/part03.html
 
+  std::set<DicomTag> main;
+  DicomMap::GetMainDicomTags(main, level);
+
   std::set<DicomTag> moduleTags;
-  const std::set<DicomTag>& main = DicomMap::GetMainDicomTags(level);
   DicomTag::AddTagsForModule(moduleTags, module);
   
   // The main dicom tags are a subset of the module
@@ -707,7 +718,7 @@ TEST(DicomMap, FromDicomAsJsonAndSequences)
     DicomMap sequencesOnly;
     m.ExtractSequences(sequencesOnly);
 
-    ASSERT_EQ(1, sequencesOnly.GetSize());
+    ASSERT_EQ(1u, sequencesOnly.GetSize());
     ASSERT_TRUE(sequencesOnly.HasTag(0x0008, 0x1111));
     ASSERT_TRUE(sequencesOnly.GetValue(0x0008, 0x1111).GetSequenceContent()[0].isMember("0008,1150"));
 
@@ -715,7 +726,7 @@ TEST(DicomMap, FromDicomAsJsonAndSequences)
     DicomMap sequencesCopy;
     sequencesCopy.SetValue(0x0008, 0x1111, sequencesOnly.GetValue(0x0008, 0x1111));
 
-    ASSERT_EQ(1, sequencesCopy.GetSize());
+    ASSERT_EQ(1u, sequencesCopy.GetSize());
     ASSERT_TRUE(sequencesCopy.HasTag(0x0008, 0x1111));
     ASSERT_TRUE(sequencesCopy.GetValue(0x0008, 0x1111).GetSequenceContent()[0].isMember("0008,1150"));
   }
@@ -918,7 +929,8 @@ TEST(DicomMap, MainTagNames)
   {
     ResourceType level = static_cast<ResourceType>(i);
 
-    const std::set<DicomTag>& tags = DicomMap::GetMainDicomTags(level);
+    std::set<DicomTag> tags;
+    DicomMap::GetMainDicomTags(tags, level);
 
     for (std::set<DicomTag>::const_iterator it = tags.begin(); it != tags.end(); ++it)
     {
@@ -1056,6 +1068,113 @@ TEST(ParsedDicomFile, canIncludeXsVrTags)
 }
 
 
+TEST(DicomMap, SetupFindTemplates)
+{
+  /**
+   * The templates for C-FIND must be common to all the Orthanc
+   * servers, and must not be altered by the "ExtraMainDicomTags"
+   * configuration option that was introduced in Orthanc 1.11.0.
+   **/
+  
+  {
+    DicomMap m;
+    m.SetValue(DICOM_TAG_ENCAPSULATED_DOCUMENT, "nope", false);
+    m.SetValue(DICOM_TAG_PATIENT_ID, "patient_id", false);
+    
+    DicomMap::SetupFindPatientTemplate(m);
+    std::set<DicomTag> tags;
+    m.GetTags(tags);
+
+    // This corresponds to the values of DEFAULT_PATIENT_MAIN_DICOM_TAGS
+    ASSERT_EQ(5u, tags.size());
+    ASSERT_EQ("", m.GetStringValue(DICOM_TAG_PATIENT_ID, "nope", false));
+
+    ASSERT_EQ("", m.GetStringValue(DICOM_TAG_OTHER_PATIENT_IDS, "nope", false));
+    ASSERT_EQ("", m.GetStringValue(DICOM_TAG_PATIENT_BIRTH_DATE, "nope", false));
+    ASSERT_EQ("", m.GetStringValue(DICOM_TAG_PATIENT_NAME, "nope", false));
+    ASSERT_EQ("", m.GetStringValue(DICOM_TAG_PATIENT_SEX, "nope", false));
+  }
+  
+  {
+    DicomMap m;
+    m.SetValue(DICOM_TAG_ENCAPSULATED_DOCUMENT, "nope", false);
+    m.SetValue(DICOM_TAG_PATIENT_ID, "patient_id", false);
+    
+    DicomMap::SetupFindStudyTemplate(m);
+    std::set<DicomTag> tags;
+    m.GetTags(tags);
+
+    // This corresponds to the values of DEFAULT_STUDY_MAIN_DICOM_TAGS
+    ASSERT_EQ(8u, tags.size());
+    ASSERT_EQ("", m.GetStringValue(DICOM_TAG_PATIENT_ID, "nope", false));
+    ASSERT_EQ("", m.GetStringValue(DICOM_TAG_ACCESSION_NUMBER, "nope", false));
+    ASSERT_EQ("", m.GetStringValue(DICOM_TAG_STUDY_INSTANCE_UID, "nope", false));
+
+    ASSERT_EQ("", m.GetStringValue(DICOM_TAG_REFERRING_PHYSICIAN_NAME, "nope", false));
+    ASSERT_EQ("", m.GetStringValue(DICOM_TAG_STUDY_DATE, "nope", false));
+    ASSERT_EQ("", m.GetStringValue(DICOM_TAG_STUDY_DESCRIPTION, "nope", false));
+    ASSERT_EQ("", m.GetStringValue(DICOM_TAG_STUDY_ID, "nope", false));
+    ASSERT_EQ("", m.GetStringValue(DICOM_TAG_STUDY_TIME, "nope", false));
+  }
+  
+  {
+    DicomMap m;
+    m.SetValue(DICOM_TAG_ENCAPSULATED_DOCUMENT, "nope", false);
+    m.SetValue(DICOM_TAG_PATIENT_ID, "patient_id", false);
+    
+    DicomMap::SetupFindSeriesTemplate(m);
+    std::set<DicomTag> tags;
+    m.GetTags(tags);
+
+    // This corresponds to the values of DEFAULT_SERIES_MAIN_DICOM_TAGS
+    ASSERT_EQ(13u, tags.size());
+    ASSERT_EQ("", m.GetStringValue(DICOM_TAG_PATIENT_ID, "nope", false));
+    ASSERT_EQ("", m.GetStringValue(DICOM_TAG_ACCESSION_NUMBER, "nope", false));
+    ASSERT_EQ("", m.GetStringValue(DICOM_TAG_STUDY_INSTANCE_UID, "nope", false));
+    ASSERT_EQ("", m.GetStringValue(DICOM_TAG_SERIES_INSTANCE_UID, "nope", false));
+
+    ASSERT_EQ("", m.GetStringValue(DICOM_TAG_BODY_PART_EXAMINED, "nope", false));
+    ASSERT_EQ("", m.GetStringValue(DICOM_TAG_MODALITY, "nope", false));
+    ASSERT_EQ("", m.GetStringValue(DICOM_TAG_OPERATOR_NAME, "nope", false));
+    ASSERT_EQ("", m.GetStringValue(DICOM_TAG_PERFORMED_PROCEDURE_STEP_DESCRIPTION, "nope", false));
+    ASSERT_EQ("", m.GetStringValue(DICOM_TAG_PROTOCOL_NAME, "nope", false));
+    ASSERT_EQ("", m.GetStringValue(DICOM_TAG_SERIES_DATE, "nope", false));
+    ASSERT_EQ("", m.GetStringValue(DICOM_TAG_SERIES_DESCRIPTION, "nope", false));
+    ASSERT_EQ("", m.GetStringValue(DICOM_TAG_SERIES_NUMBER, "nope", false));
+    ASSERT_EQ("", m.GetStringValue(DICOM_TAG_SERIES_TIME, "nope", false));
+  }
+  
+  {
+    DicomMap m;
+    m.SetValue(DICOM_TAG_ENCAPSULATED_DOCUMENT, "nope", false);
+    m.SetValue(DICOM_TAG_PATIENT_ID, "patient_id", false);
+    
+    DicomMap::SetupFindInstanceTemplate(m);
+    std::set<DicomTag> tags;
+    m.GetTags(tags);
+
+    // This corresponds to the values of DEFAULT_INSTANCE_MAIN_DICOM_TAGS
+    ASSERT_EQ(15u, tags.size());
+    ASSERT_EQ("", m.GetStringValue(DICOM_TAG_PATIENT_ID, "nope", false));
+    ASSERT_EQ("", m.GetStringValue(DICOM_TAG_ACCESSION_NUMBER, "nope", false));
+    ASSERT_EQ("", m.GetStringValue(DICOM_TAG_STUDY_INSTANCE_UID, "nope", false));
+    ASSERT_EQ("", m.GetStringValue(DICOM_TAG_SERIES_INSTANCE_UID, "nope", false));
+    ASSERT_EQ("", m.GetStringValue(DICOM_TAG_SOP_INSTANCE_UID, "nope", false));
+
+    ASSERT_EQ("", m.GetStringValue(DICOM_TAG_ACQUISITION_NUMBER, "nope", false));
+    ASSERT_EQ("", m.GetStringValue(DICOM_TAG_IMAGE_COMMENTS, "nope", false));
+    ASSERT_EQ("", m.GetStringValue(DICOM_TAG_IMAGE_INDEX, "nope", false));
+    ASSERT_EQ("", m.GetStringValue(DICOM_TAG_IMAGE_ORIENTATION_PATIENT, "nope", false));
+    ASSERT_EQ("", m.GetStringValue(DICOM_TAG_IMAGE_POSITION_PATIENT, "nope", false));
+    ASSERT_EQ("", m.GetStringValue(DICOM_TAG_INSTANCE_CREATION_DATE, "nope", false));
+    ASSERT_EQ("", m.GetStringValue(DICOM_TAG_INSTANCE_CREATION_TIME, "nope", false));
+    ASSERT_EQ("", m.GetStringValue(DICOM_TAG_INSTANCE_NUMBER, "nope", false));
+    ASSERT_EQ("", m.GetStringValue(DICOM_TAG_NUMBER_OF_FRAMES, "nope", false));
+    ASSERT_EQ("", m.GetStringValue(DICOM_TAG_TEMPORAL_POSITION_IDENTIFIER, "nope", false));
+  }
+}
+
+
 #if ORTHANC_SANDBOXED != 1
 
 #include "../Sources/SystemToolbox.h"
@@ -1171,50 +1290,61 @@ TEST(DicomStreamReader, DISABLED_Tutu)
 {
   static const std::string PATH = "/home/jodogne/Subversion/orthanc-tests/Database/TransferSyntaxes/";
 
-  typedef std::list< std::pair<std::string, uint64_t> >  Sources;
+  typedef boost::tuple<std::string, uint64_t, ValueRepresentation> Source;
+  typedef std::list<Source>  Sources;
+
+  // $ ~/Subversion/orthanc-tests/Tests/GetPixelDataVR.py ~/Subversion/orthanc-tests/Database/ColorTestMalaterre.dcm ~/Subversion/orthanc-tests/Database/ColorTestImageJ.dcm ~/Subversion/orthanc-tests/Database/Knee/T1/IM-0001-0001.dcm ~/Subversion/orthanc-tests/Database/TransferSyntaxes/*.dcm
 
   Sources sources;
-  sources.push_back(std::make_pair(PATH + "../ColorTestMalaterre.dcm", 0x03a0u));
-  sources.push_back(std::make_pair(PATH + "1.2.840.10008.1.2.1.dcm", 0x037cu));
-  sources.push_back(std::make_pair(PATH + "1.2.840.10008.1.2.2.dcm", 0x03e8u));  // Big Endian
-  sources.push_back(std::make_pair(PATH + "1.2.840.10008.1.2.4.50.dcm", 0x04acu));
-  sources.push_back(std::make_pair(PATH + "1.2.840.10008.1.2.4.51.dcm", 0x072cu));
-  sources.push_back(std::make_pair(PATH + "1.2.840.10008.1.2.4.57.dcm", 0x0620u));
-  sources.push_back(std::make_pair(PATH + "1.2.840.10008.1.2.4.70.dcm", 0x065au));
-  sources.push_back(std::make_pair(PATH + "1.2.840.10008.1.2.4.80.dcm", 0x0b46u));
-  sources.push_back(std::make_pair(PATH + "1.2.840.10008.1.2.4.81.dcm", 0x073eu));
-  sources.push_back(std::make_pair(PATH + "1.2.840.10008.1.2.4.90.dcm", 0x0b66u));
-  sources.push_back(std::make_pair(PATH + "1.2.840.10008.1.2.4.91.dcm", 0x19b8u));
-  sources.push_back(std::make_pair(PATH + "1.2.840.10008.1.2.5.dcm", 0x0b0au));
+  sources.push_back(Source(PATH + "../ColorTestMalaterre.dcm",   0x03a0u, ValueRepresentation_Unknown));  // This file has strange VR
+  sources.push_back(Source(PATH + "../ColorTestImageJ.dcm",      0x00924, ValueRepresentation_OtherByte));
+  sources.push_back(Source(PATH + "../Knee/T1/IM-0001-0001.dcm", 0x00c78, ValueRepresentation_OtherWord));
+  sources.push_back(Source(PATH + "1.2.840.10008.1.2.1.dcm",     0x037cu, ValueRepresentation_OtherByte));
+  sources.push_back(Source(PATH + "1.2.840.10008.1.2.2.dcm",     0x03e8u, ValueRepresentation_OtherByte));  // Big Endian
+  sources.push_back(Source(PATH + "1.2.840.10008.1.2.4.50.dcm",  0x04acu, ValueRepresentation_OtherByte));
+  sources.push_back(Source(PATH + "1.2.840.10008.1.2.4.51.dcm",  0x072cu, ValueRepresentation_OtherByte));
+  sources.push_back(Source(PATH + "1.2.840.10008.1.2.4.57.dcm",  0x0620u, ValueRepresentation_OtherByte));
+  sources.push_back(Source(PATH + "1.2.840.10008.1.2.4.70.dcm",  0x065au, ValueRepresentation_OtherByte));
+  sources.push_back(Source(PATH + "1.2.840.10008.1.2.4.80.dcm",  0x0b46u, ValueRepresentation_OtherByte));
+  sources.push_back(Source(PATH + "1.2.840.10008.1.2.4.81.dcm",  0x073eu, ValueRepresentation_OtherByte));
+  sources.push_back(Source(PATH + "1.2.840.10008.1.2.4.90.dcm",  0x0b66u, ValueRepresentation_OtherByte));
+  sources.push_back(Source(PATH + "1.2.840.10008.1.2.4.91.dcm",  0x19b8u, ValueRepresentation_OtherByte));
+  sources.push_back(Source(PATH + "1.2.840.10008.1.2.5.dcm",     0x0b0au, ValueRepresentation_OtherByte));
 
   {
     std::string dicom;
 
     uint64_t offset;
+    ValueRepresentation vr;
+
     // Not a DICOM image
     SystemToolbox::ReadFile(dicom, PATH + "1.2.840.10008.1.2.4.50.png", false);
-    ASSERT_FALSE(DicomStreamReader::LookupPixelDataOffset(offset, dicom));
+    ASSERT_FALSE(DicomStreamReader::LookupPixelDataOffset(offset, vr, dicom));
 
     // Image without valid DICOM preamble
     SystemToolbox::ReadFile(dicom, PATH + "1.2.840.10008.1.2.dcm", false);
-    ASSERT_FALSE(DicomStreamReader::LookupPixelDataOffset(offset, dicom));
+    ASSERT_FALSE(DicomStreamReader::LookupPixelDataOffset(offset, vr, dicom));
   }
   
   for (Sources::const_iterator it = sources.begin(); it != sources.end(); ++it)
   {
     std::string dicom;
-    SystemToolbox::ReadFile(dicom, it->first, false);
+    SystemToolbox::ReadFile(dicom, it->get<0>(), false);
 
     {
       uint64_t offset;
-      ASSERT_TRUE(DicomStreamReader::LookupPixelDataOffset(offset, dicom));
-      ASSERT_EQ(it->second, offset);
+      ValueRepresentation vr;
+      ASSERT_TRUE(DicomStreamReader::LookupPixelDataOffset(offset, vr, dicom));
+      ASSERT_EQ(it->get<1>(), offset);
+      ASSERT_EQ(it->get<2>(), vr);
     }
     
     {
       uint64_t offset;
-      ASSERT_TRUE(DicomStreamReader::LookupPixelDataOffset(offset, dicom.c_str(), dicom.size()));
-      ASSERT_EQ(it->second, offset);
+      ValueRepresentation vr;
+      ASSERT_TRUE(DicomStreamReader::LookupPixelDataOffset(offset, vr, dicom.c_str(), dicom.size()));
+      ASSERT_EQ(it->get<1>(), offset);
+      ASSERT_EQ(it->get<2>(), vr);
     }
     
     ParsedDicomFile a(dicom);
@@ -1238,7 +1368,7 @@ TEST(DicomStreamReader, DISABLED_Tutu)
 
     r.Consume(visitor);
 
-    ASSERT_EQ(it->second, visitor.GetPixelDataOffset());
+    ASSERT_EQ(it->get<1>(), visitor.GetPixelDataOffset());
 
     // Truncate the original DICOM up to pixel data
     dicom.resize(visitor.GetPixelDataOffset());

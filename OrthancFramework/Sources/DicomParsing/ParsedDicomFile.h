@@ -2,8 +2,9 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -96,6 +97,9 @@ namespace Orthanc
     void InvalidateCache();
 
     bool EmbedContentInternal(const std::string& dataUriScheme);
+
+    void EncapsulateDocument(MimeType mime,
+                             const std::string& document);
 
     // For internal use only, in order to provide const-correctness on
     // the top of DCMTK API
@@ -205,6 +209,7 @@ namespace Orthanc
     void SaveToFile(const std::string& path);
 #endif
 
+    // This method must only be used on the PixelData and EncapsulatedDocument tags
     void EmbedContent(const std::string& dataUriScheme);
 
     void EmbedImage(const ImageAccessor& accessor);
@@ -235,8 +240,6 @@ namespace Orthanc
                       DicomToJsonFormat format) const;
 
     bool HasTag(const DicomTag& tag) const;
-
-    void EmbedPdf(const std::string& pdf);
 
     bool ExtractPdf(std::string& pdf) const;
 
@@ -309,5 +312,12 @@ namespace Orthanc
 
     ImageAccessor* DecodeAllOverlays(int& originX,
                                      int& originY) const;
+
+    void InjectEmptyPixelData(ValueRepresentation vr);
+
+    // Remove all the tags after pixel data
+    void RemoveFromPixelData();
+
+    ValueRepresentation GuessPixelDataValueRepresentation() const;
   };
 }

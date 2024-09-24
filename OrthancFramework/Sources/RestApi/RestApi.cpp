@@ -2,8 +2,9 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -138,6 +139,7 @@ namespace Orthanc
 
     protected:
       virtual bool HandleCall(RestApiCall& call,
+                              const std::string& path,
                               const std::set<std::string>& uriArgumentsNames) = 0;
   
     public:
@@ -157,7 +159,7 @@ namespace Orthanc
         std::string path = Toolbox::FlattenUri(uri);
         if (hasTrailing)
         {
-          path += "/{...}";
+          path += "/{path}";
         }
 
         std::set<std::string> uriArgumentsNames;
@@ -173,8 +175,8 @@ namespace Orthanc
 
         if (hasTrailing)
         {
-          uriArgumentsNames.insert("...");
-          uriArguments["..."] = "";
+          uriArgumentsNames.insert("path");
+          uriArguments["path"] = "";
         }
 
         if (resource.HasHandler(HttpMethod_Get))
@@ -182,7 +184,7 @@ namespace Orthanc
           totalPathsCount_ ++;
           
           StringHttpOutput o1;
-          HttpOutput o2(o1, false);
+          HttpOutput o2(o1, false /* assume no keep-alive */, 0);
           RestApiOutput o3(o2, HttpMethod_Get);
           RestApiGetCall call(o3, restApi_, RequestOrigin_Documentation, "" /* remote IP */,
                               "" /* username */, HttpToolbox::Arguments() /* HTTP headers */,
@@ -194,7 +196,7 @@ namespace Orthanc
           try
           {
             ok = (resource.Handle(call) &&
-                  HandleCall(call, uriArgumentsNames));
+                  HandleCall(call, path, uriArgumentsNames));
           }
           catch (OrthancException& e)
           {
@@ -220,7 +222,7 @@ namespace Orthanc
           totalPathsCount_ ++;
           
           StringHttpOutput o1;
-          HttpOutput o2(o1, false);
+          HttpOutput o2(o1, false /* assume no keep-alive */, 0);
           RestApiOutput o3(o2, HttpMethod_Post);
           RestApiPostCall call(o3, restApi_, RequestOrigin_Documentation, "" /* remote IP */,
                                "" /* username */, HttpToolbox::Arguments() /* HTTP headers */,
@@ -232,7 +234,7 @@ namespace Orthanc
           try
           {
             ok = (resource.Handle(call) &&
-                  HandleCall(call, uriArgumentsNames));
+                  HandleCall(call, path, uriArgumentsNames));
           }
           catch (OrthancException& e)
           {
@@ -258,7 +260,7 @@ namespace Orthanc
           totalPathsCount_ ++;
           
           StringHttpOutput o1;
-          HttpOutput o2(o1, false);
+          HttpOutput o2(o1, false /* assume no keep-alive */, 0);
           RestApiOutput o3(o2, HttpMethod_Delete);
           RestApiDeleteCall call(o3, restApi_, RequestOrigin_Documentation, "" /* remote IP */,
                                  "" /* username */, HttpToolbox::Arguments() /* HTTP headers */,
@@ -269,7 +271,7 @@ namespace Orthanc
           try
           {
             ok = (resource.Handle(call) &&
-                  HandleCall(call, uriArgumentsNames));
+                  HandleCall(call, path, uriArgumentsNames));
           }
           catch (OrthancException& e)
           {
@@ -295,7 +297,7 @@ namespace Orthanc
           totalPathsCount_ ++;
           
           StringHttpOutput o1;
-          HttpOutput o2(o1, false);
+          HttpOutput o2(o1, false /* assume no keep-alive */, 0);
           RestApiOutput o3(o2, HttpMethod_Put);
           RestApiPutCall call(o3, restApi_, RequestOrigin_Documentation, "" /* remote IP */,
                               "" /* username */, HttpToolbox::Arguments() /* HTTP headers */,
@@ -307,7 +309,7 @@ namespace Orthanc
           try
           {
             ok = (resource.Handle(call) &&
-                  HandleCall(call, uriArgumentsNames));
+                  HandleCall(call, path, uriArgumentsNames));
           }
           catch (OrthancException& e)
           {
@@ -366,10 +368,9 @@ namespace Orthanc
 
     protected:
       virtual bool HandleCall(RestApiCall& call,
+                              const std::string& path,
                               const std::set<std::string>& uriArgumentsNames) ORTHANC_OVERRIDE
       {
-        const std::string path = Toolbox::FlattenUri(call.GetFullUri());
-
         Json::Value v;
         if (call.GetDocumentation().FormatOpenApi(v, uriArgumentsNames, path))
         {
@@ -684,9 +685,10 @@ namespace Orthanc
 
     protected:
       virtual bool HandleCall(RestApiCall& call,
+                              const std::string& _path,
                               const std::set<std::string>& uriArgumentsNames) ORTHANC_OVERRIDE
       {
-        Path& path = paths_[ Toolbox::FlattenUri(call.GetFullUri()) ];
+        Path& path = paths_[ _path ];
 
         path.AddMethod(call.GetMethod(), call.GetDocumentation().GetTag(), call.GetDocumentation().IsDeprecated());
 

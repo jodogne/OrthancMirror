@@ -1,8 +1,9 @@
 # Orthanc - A Lightweight, RESTful DICOM Store
 # Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
 # Department, University Hospital of Liege, Belgium
-# Copyright (C) 2017-2022 Osimis S.A., Belgium
-# Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+# Copyright (C) 2017-2023 Osimis S.A., Belgium
+# Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+# Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
 #
 # This program is free software: you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public License
@@ -23,7 +24,7 @@ message("Using libiconv")
 
 if (STATIC_BUILD OR NOT USE_SYSTEM_LIBICONV)
   set(LIBICONV_SOURCES_DIR ${CMAKE_BINARY_DIR}/libiconv-1.15)
-  set(LIBICONV_URL "http://orthanc.osimis.io/ThirdPartyDownloads/libiconv-1.15.tar.gz")
+  set(LIBICONV_URL "https://orthanc.uclouvain.be/downloads/third-party-downloads/libiconv-1.15.tar.gz")
   set(LIBICONV_MD5 "ace8b5f2db42f7b3b3057585e80d9808")
 
   DownloadPackage(${LIBICONV_MD5} ${LIBICONV_URL} "${LIBICONV_SOURCES_DIR}")

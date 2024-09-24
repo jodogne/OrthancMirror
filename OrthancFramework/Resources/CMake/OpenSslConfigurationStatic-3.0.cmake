@@ -1,8 +1,9 @@
 # Orthanc - A Lightweight, RESTful DICOM Store
 # Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
 # Department, University Hospital of Liege, Belgium
-# Copyright (C) 2017-2021 Osimis S.A., Belgium
-# Copyright (C) 2021-2021 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+# Copyright (C) 2017-2023 Osimis S.A., Belgium
+# Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+# Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
 #
 # This program is free software: you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public License
@@ -20,13 +21,13 @@
 
 
 set(OPENSSL_VERSION_MAJOR 3)
-set(OPENSSL_VERSION_MINOR 0)
-set(OPENSSL_VERSION_PATCH 5)
+set(OPENSSL_VERSION_MINOR 1)
+set(OPENSSL_VERSION_PATCH 4)
 set(OPENSSL_VERSION_PRE_RELEASE "")
 set(OPENSSL_VERSION_FULL "${OPENSSL_VERSION_MAJOR}.${OPENSSL_VERSION_MINOR}.${OPENSSL_VERSION_PATCH}${OPENSSL_VERSION_PRE_RELEASE}")
 SET(OPENSSL_SOURCES_DIR ${CMAKE_BINARY_DIR}/openssl-${OPENSSL_VERSION_FULL})
-SET(OPENSSL_URL "http://orthanc.osimis.io/ThirdPartyDownloads/openssl-${OPENSSL_VERSION_FULL}.tar.gz")
-SET(OPENSSL_MD5 "163bb3e58c143793d1dc6a6ec7d185d5")
+SET(OPENSSL_URL "https://orthanc.uclouvain.be/downloads/third-party-downloads/openssl-${OPENSSL_VERSION_FULL}.tar.gz")
+SET(OPENSSL_MD5 "653ad58812c751b887e8ec37e02bba70")
 
 if (IS_DIRECTORY "${OPENSSL_SOURCES_DIR}")
   set(FirstRun OFF)
@@ -293,7 +294,6 @@ list(REMOVE_ITEM OPENSSL_SOURCES
   ${OPENSSL_SOURCES_DIR}/crypto/LPdir_win32.c
   ${OPENSSL_SOURCES_DIR}/crypto/LPdir_wince.c
   ${OPENSSL_SOURCES_DIR}/crypto/aes/aes_x86core.c
-  ${OPENSSL_SOURCES_DIR}/crypto/armcap.c
   ${OPENSSL_SOURCES_DIR}/crypto/des/ncbc_enc.c
   ${OPENSSL_SOURCES_DIR}/crypto/ec/ecp_nistp224.c
   ${OPENSSL_SOURCES_DIR}/crypto/ec/ecp_nistp256.c
@@ -304,7 +304,6 @@ list(REMOVE_ITEM OPENSSL_SOURCES
   ${OPENSSL_SOURCES_DIR}/crypto/ec/ecx_s390x.c
   ${OPENSSL_SOURCES_DIR}/crypto/poly1305/poly1305_base2_44.c
   ${OPENSSL_SOURCES_DIR}/crypto/rsa/rsa_acvp_test_params.c
-  ${OPENSSL_SOURCES_DIR}/crypto/s390xcap.c
   ${OPENSSL_SOURCES_DIR}/engines/e_devcrypto.c
   ${OPENSSL_SOURCES_DIR}/engines/e_loader_attic.c
   ${OPENSSL_SOURCES_DIR}/providers/common/securitycheck_fips.c
@@ -320,11 +319,17 @@ list(REMOVE_ITEM OPENSSL_SOURCES
   ${OPENSSL_SOURCES_DIR}/crypto/chacha/chacha_ppc.c
   ${OPENSSL_SOURCES_DIR}/crypto/ec/ecp_ppc.c
   ${OPENSSL_SOURCES_DIR}/crypto/poly1305/poly1305_ppc.c
-  ${OPENSSL_SOURCES_DIR}/crypto/ppccap.c
   ${OPENSSL_SOURCES_DIR}/crypto/sha/sha_ppc.c
 
   # Disable SPARC sources
   ${OPENSSL_SOURCES_DIR}/crypto/bn/bn_sparc.c
+
+  # Disable CPUID for non-x86 platforms
+  ${OPENSSL_SOURCES_DIR}/crypto/armcap.c
+  ${OPENSSL_SOURCES_DIR}/crypto/loongarchcap.c
+  ${OPENSSL_SOURCES_DIR}/crypto/ppccap.c
+  ${OPENSSL_SOURCES_DIR}/crypto/riscvcap.c
+  ${OPENSSL_SOURCES_DIR}/crypto/s390xcap.c
   ${OPENSSL_SOURCES_DIR}/crypto/sparcv9cap.c
   )
 
@@ -389,7 +394,7 @@ elseif ("${CMAKE_SYSTEM_VERSION}" STREQUAL "LinuxStandardBase")
     # crashes with segmentation fault in function
     # "build_SYS_str_reasons()", that is called from
     # "OPENSSL_init_ssl()"
-    # https://bugs.orthanc-server.com/show_bug.cgi?id=193
+    # https://orthanc.uclouvain.be/bugs/show_bug.cgi?id=193
     -DOPENSSL_NO_ERR
     )
 

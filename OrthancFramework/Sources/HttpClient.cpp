@@ -2,8 +2,9 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -46,7 +47,7 @@ static const unsigned int DEFAULT_HTTP_TIMEOUT = 60;
 
 extern "C"
 {
-  static CURLcode GetHttpStatus(CURLcode code, CURL* curl, long* status)
+  static CURLcode GetHttpStatus(CURLcode code, CURL* curl, long* status, const std::string& url)
   {
     if (code == CURLE_OK)
     {
@@ -55,8 +56,6 @@ extern "C"
     }
     else
     {
-      LOG(ERROR) << "Error code " << static_cast<int>(code)
-                 << " in libcurl: " << curl_easy_strerror(code);
       *status = 0;
       return code;
     }
@@ -68,10 +67,10 @@ extern "C"
 #if defined(__GNUC__) || defined(__clang__)
 __attribute__((noinline)) 
 #endif
-static CURLcode OrthancHttpClientPerformSSL(CURL* curl, long* status)
+static CURLcode OrthancHttpClientPerformSSL(CURL* curl, long* status, const std::string& url)
 {
 #if ORTHANC_ENABLE_SSL == 1
-  return GetHttpStatus(curl_easy_perform(curl), curl, status);
+  return GetHttpStatus(curl_easy_perform(curl), curl, status, url);
 #else
   throw Orthanc::OrthancException(Orthanc::ErrorCode_InternalError,
                                   "Orthanc was compiled without SSL support, "
@@ -96,6 +95,24 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_NetworkProtocol,
                              "libCURL error: " + std::string(curl_easy_strerror(code)));
+    }
+
+    return code;
+  }
+
+  static CURLcode CheckCode(CURLcode code, const std::string& url)
+  {
+    if (code == CURLE_NOT_BUILT_IN)
+    {
+      throw OrthancException(ErrorCode_InternalError,
+                             "Your libcurl does not contain a required feature, "
+                             "please recompile Orthanc with -DUSE_SYSTEM_CURL=OFF");
+    }
+
+    if (code != CURLE_OK)
+    {
+      throw OrthancException(ErrorCode_NetworkProtocol,
+                             "libCURL error: " + std::string(curl_easy_strerror(code)) + " while accessing " + url);
     }
 
     return code;
@@ -666,7 +683,7 @@ namespace Orthanc
 
     SetPkcs11Enabled(service.IsPkcs11Enabled());
 
-    SetUrl(service.GetUrl() + uri);
+    SetUrl(Toolbox::JoinUri(service.GetUrl(), uri));
 
     for (WebServiceParameters::Dictionary::const_iterator 
            it = service.GetHttpHeaders().begin();
@@ -1045,11 +1062,11 @@ namespace Orthanc
     
     if (boost::starts_with(url_, "https://"))
     {
-      code = OrthancHttpClientPerformSSL(pimpl_->curl_, &status);
+      code = OrthancHttpClientPerformSSL(pimpl_->curl_, &status, url_);
     }
     else
     {
-      code = GetHttpStatus(curl_easy_perform(pimpl_->curl_), pimpl_->curl_, &status);
+      code = GetHttpStatus(curl_easy_perform(pimpl_->curl_), pimpl_->curl_, &status, url_);
     }
 
     const boost::posix_time::ptime end = boost::posix_time::microsec_clock::universal_time();
@@ -1063,7 +1080,7 @@ namespace Orthanc
       CLOG(INFO, HTTP) << "cURL status code: " << code;
     }
 
-    CheckCode(code);
+    CheckCode(code, url_);  // throws on HTTP error
 
     if (status == 0)
     {

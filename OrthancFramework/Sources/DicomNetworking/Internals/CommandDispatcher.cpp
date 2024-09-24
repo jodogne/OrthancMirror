@@ -2,8 +2,9 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -481,7 +482,7 @@ namespace Orthanc
 #if DCMTK_VERSION_NUMBER >= 362
           // The global variable "numberOfDcmAllStorageSOPClassUIDs" is
           // only published if DCMTK >= 3.6.2:
-          // https://bugs.orthanc-server.com/show_bug.cgi?id=137
+          // https://orthanc.uclouvain.be/bugs/show_bug.cgi?id=137
           assert(static_cast<int>(count) == numberOfDcmAllStorageSOPClassUIDs);
 #endif
       
@@ -521,10 +522,12 @@ namespace Orthanc
                  * Accept in the order "least wanted" to "most wanted"
                  * transfer syntax.  Accepting a transfer syntax will
                  * override previously accepted transfer syntaxes.
+                 * Since Orthanc 1.11.2+, we give priority to the transfer
+                 * syntaxes proposed in the presentation context.
                  **/
-                for (int k = static_cast<int>(storageTransferSyntaxesC.size()) - 1; k >= 0; k--)
+                for (int j = static_cast<int>(pc.transferSyntaxCount)-1; j >=0; j--)
                 {
-                  for (int j = 0; j < static_cast<int>(pc.transferSyntaxCount); j++)
+                  for (int k = static_cast<int>(storageTransferSyntaxesC.size()) - 1; k >= 0; k--)
                   {
                     /**
                      * If the transfer syntax was proposed then we can accept it

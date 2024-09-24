@@ -2,8 +2,9 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -25,7 +26,7 @@
 #if ORTHANC_ENABLE_PLUGINS == 1
 
 #include "../../../OrthancFramework/Sources/SharedLibrary.h"
-#include "../../Sources/Database/IDatabaseWrapper.h"
+#include "../../Sources/Database/BaseDatabaseWrapper.h"
 #include "../Include/orthanc/OrthancCDatabasePlugin.h"
 #include "PluginsErrorDictionary.h"
 
@@ -45,7 +46,7 @@ namespace Orthanc
    * able to rollback the modifications. Read-only accesses didn't
    * start a transaction, as they were protected by the global mutex.
    **/
-  class OrthancPluginDatabase : public IDatabaseWrapper
+  class OrthancPluginDatabase : public BaseDatabaseWrapper
   {
   private:
     class Transaction;
@@ -65,6 +66,7 @@ namespace Orthanc
     Transaction*                    activeTransaction_;
     bool                            fastGetTotalSize_;
     uint64_t                        currentDiskSize_;
+    IDatabaseWrapper::Capabilities  dbCapabilities_;
 
     OrthancPluginDatabaseContext* GetContext()
     {
@@ -94,11 +96,6 @@ namespace Orthanc
     {
     }
 
-    virtual bool HasFlushToDisk() const ORTHANC_OVERRIDE
-    {
-      return false;
-    }
-
     virtual IDatabaseWrapper::ITransaction* StartTransaction(TransactionType type,
                                                              IDatabaseListener& listener)
       ORTHANC_OVERRIDE;
@@ -108,14 +105,9 @@ namespace Orthanc
     virtual void Upgrade(unsigned int targetVersion,
                          IStorageArea& storageArea) ORTHANC_OVERRIDE;    
 
-    virtual bool HasRevisionsSupport() const ORTHANC_OVERRIDE
+    virtual const Capabilities GetDatabaseCapabilities() const ORTHANC_OVERRIDE
     {
-      return false;  // No support for revisions in old API
-    }
-
-    virtual bool HasAttachmentCustomDataSupport() const ORTHANC_OVERRIDE
-    {
-      return false;  // No support for custom data in old API
+      return dbCapabilities_;
     }
 
     void AnswerReceived(const _OrthancPluginDatabaseAnswer& answer);

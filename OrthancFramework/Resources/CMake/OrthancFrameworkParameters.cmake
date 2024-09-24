@@ -1,8 +1,9 @@
 # Orthanc - A Lightweight, RESTful DICOM Store
 # Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
 # Department, University Hospital of Liege, Belgium
-# Copyright (C) 2017-2022 Osimis S.A., Belgium
-# Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+# Copyright (C) 2017-2023 Osimis S.A., Belgium
+# Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+# Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
 #
 # This program is free software: you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public License
@@ -38,7 +39,7 @@ set(ORTHANC_DATABASE_VERSION 6)
 # Version of the Orthanc API, can be retrieved from "/system" URI in
 # order to check whether new URI endpoints are available even if using
 # the mainline version of Orthanc
-set(ORTHANC_API_VERSION "18")
+set(ORTHANC_API_VERSION "24")
 
 
 #####################################################################
@@ -70,6 +71,7 @@ set(USE_SYSTEM_LIBPNG ON CACHE BOOL "Use the system version of libpng")
 set(USE_SYSTEM_LUA ON CACHE BOOL "Use the system version of Lua")
 set(USE_SYSTEM_MONGOOSE ON CACHE BOOL "Use the system version of Mongoose")
 set(USE_SYSTEM_OPENSSL ON CACHE BOOL "Use the system version of OpenSSL")
+set(USE_SYSTEM_PROTOBUF ON CACHE BOOL "Use the system version of Google Protocol Buffers")
 set(USE_SYSTEM_PUGIXML ON CACHE BOOL "Use the system version of Pugixml")
 set(USE_SYSTEM_SQLITE ON CACHE BOOL "Use the system version of SQLite")
 set(USE_SYSTEM_UUID ON CACHE BOOL "Use the system version of the uuid library from e2fsprogs")
@@ -77,7 +79,7 @@ set(USE_SYSTEM_ZLIB ON CACHE BOOL "Use the system version of ZLib")
 
 # Parameters specific to DCMTK
 set(DCMTK_DICTIONARY_DIR "" CACHE PATH "Directory containing the DCMTK dictionaries \"dicom.dic\" and \"private.dic\" (only when using system version of DCMTK)")
-set(DCMTK_STATIC_VERSION "3.6.7" CACHE STRING "Version of DCMTK to be used in static builds (can be \"3.6.0\", \"3.6.2\", \"3.6.4\", \"3.6.5\", \"3.6.6\", or \"3.6.7\")")
+set(DCMTK_STATIC_VERSION "3.6.8" CACHE STRING "Version of DCMTK to be used in static builds (can be \"3.6.0\", \"3.6.2\", \"3.6.4\", \"3.6.5\", \"3.6.6\", \"3.6.7\", or \"3.6.8\")")
 set(USE_DCMTK_362_PRIVATE_DIC ON CACHE BOOL "Use the dictionary of private tags from DCMTK 3.6.2 if using DCMTK 3.6.0")
 set(USE_SYSTEM_DCMTK ON CACHE BOOL "Use the system version of DCMTK")
 set(ENABLE_DCMTK_LOG ON CACHE BOOL "Enable logging internal to DCMTK")
@@ -123,6 +125,8 @@ set(ENABLE_GOOGLE_TEST OFF CACHE INTERNAL "Enable support of Google Test")
 set(ENABLE_LOCALE OFF CACHE INTERNAL "Enable support for locales (notably in Boost)")
 set(ENABLE_LUA OFF CACHE INTERNAL "Enable support of Lua scripting")
 set(ENABLE_PNG OFF CACHE INTERNAL "Enable support of PNG")
+set(ENABLE_PROTOBUF OFF CACHE INTERNAL "Enable support for Google Protocol Buffers' library")
+set(ENABLE_PROTOBUF_COMPILER OFF CACHE INTERNAL "Enable support for Google Protocol Buffers' compiler")
 set(ENABLE_PUGIXML OFF CACHE INTERNAL "Enable support of XML through Pugixml")
 set(ENABLE_SQLITE OFF CACHE INTERNAL "Enable support of SQLite databases")
 set(ENABLE_ZLIB OFF CACHE INTERNAL "Enable support of zlib")

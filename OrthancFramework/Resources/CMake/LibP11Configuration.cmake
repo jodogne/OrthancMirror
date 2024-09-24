@@ -1,8 +1,9 @@
 # Orthanc - A Lightweight, RESTful DICOM Store
 # Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
 # Department, University Hospital of Liege, Belgium
-# Copyright (C) 2017-2022 Osimis S.A., Belgium
-# Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+# Copyright (C) 2017-2023 Osimis S.A., Belgium
+# Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+# Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
 #
 # This program is free software: you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public License
@@ -25,7 +26,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_LIBP11)
   endif()
   
   SET(LIBP11_SOURCES_DIR ${CMAKE_BINARY_DIR}/libp11-0.4.0)
-  SET(LIBP11_URL "http://orthanc.osimis.io/ThirdPartyDownloads/libp11-0.4.0.tar.gz")
+  SET(LIBP11_URL "https://orthanc.uclouvain.be/downloads/third-party-downloads/libp11-0.4.0.tar.gz")
   SET(LIBP11_MD5 "00b3e41db5be840d822bda12f3ab2ca7")
  
   if (IS_DIRECTORY "${LIBP11_SOURCES_DIR}")

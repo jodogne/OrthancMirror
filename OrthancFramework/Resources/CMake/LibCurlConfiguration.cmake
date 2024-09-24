@@ -1,8 +1,9 @@
 # Orthanc - A Lightweight, RESTful DICOM Store
 # Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
 # Department, University Hospital of Liege, Belgium
-# Copyright (C) 2017-2022 Osimis S.A., Belgium
-# Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+# Copyright (C) 2017-2023 Osimis S.A., Belgium
+# Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+# Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
 #
 # This program is free software: you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public License
@@ -20,9 +21,9 @@
 
 
 if (STATIC_BUILD OR NOT USE_SYSTEM_CURL)
-  SET(CURL_SOURCES_DIR ${CMAKE_BINARY_DIR}/curl-7.77.0)
-  SET(CURL_URL "http://orthanc.osimis.io/ThirdPartyDownloads/curl-7.77.0.tar.gz")
-  SET(CURL_MD5 "478e8b06801d9d030609c9e6cf859229")
+  SET(CURL_SOURCES_DIR ${CMAKE_BINARY_DIR}/curl-8.9.0)
+  SET(CURL_URL "https://orthanc.uclouvain.be/downloads/third-party-downloads/curl-8.9.0.tar.gz")
+  SET(CURL_MD5 "f9bca5d4d5bac1f04e6c5eb4d0418618")
 
   if (IS_DIRECTORY "${CURL_SOURCES_DIR}")
     set(FirstRun OFF)
@@ -35,7 +36,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_CURL)
   if (FirstRun)
     execute_process(
       COMMAND ${PATCH_EXECUTABLE} -p0 -N -i
-      ${CMAKE_CURRENT_LIST_DIR}/../Patches/curl-7.77.0.patch
+      ${CMAKE_CURRENT_LIST_DIR}/../Patches/curl-8.9.0.patch
       WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
       RESULT_VARIABLE Failure
       )
@@ -51,7 +52,9 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_CURL)
 
   AUX_SOURCE_DIRECTORY(${CURL_SOURCES_DIR}/lib CURL_SOURCES)
   AUX_SOURCE_DIRECTORY(${CURL_SOURCES_DIR}/lib/vauth CURL_SOURCES)
+  AUX_SOURCE_DIRECTORY(${CURL_SOURCES_DIR}/lib/vssh CURL_SOURCES)
   AUX_SOURCE_DIRECTORY(${CURL_SOURCES_DIR}/lib/vtls CURL_SOURCES)
+  AUX_SOURCE_DIRECTORY(${CURL_SOURCES_DIR}/lib/vquic CURL_SOURCES)
   source_group(ThirdParty\\LibCurl REGULAR_EXPRESSION ${CURL_SOURCES_DIR}/.*)
 
   add_definitions(
@@ -82,17 +85,18 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_CURL)
   endif()
 
   if (NOT EXISTS "${CURL_SOURCES_DIR}/lib/vauth/vauth/vauth.h")
-    #file(WRITE ${CURL_SOURCES_DIR}/lib/curl_config.h "")
-
-    file(WRITE ${CURL_SOURCES_DIR}/lib/vauth/vauth/vauth.h "#include \"../vauth.h\"\n")
     file(WRITE ${CURL_SOURCES_DIR}/lib/vauth/vauth/digest.h "#include \"../digest.h\"\n")
     file(WRITE ${CURL_SOURCES_DIR}/lib/vauth/vauth/ntlm.h "#include \"../ntlm.h\"\n")
+    file(WRITE ${CURL_SOURCES_DIR}/lib/vauth/vauth/vauth.h "#include \"../vauth.h\"\n")
     file(WRITE ${CURL_SOURCES_DIR}/lib/vauth/vtls/vtls.h "#include \"../../vtls/vtls.h\"\n")
+    file(WRITE ${CURL_SOURCES_DIR}/lib/vssh/curl_setup.h "#include \"../curl_setup.h\"\n")
+    file(WRITE ${CURL_SOURCES_DIR}/lib/vtls/vauth/vauth.h "#include \"../../vauth/vauth.h\"\n")
 
     file(GLOB CURL_LIBS_HEADERS ${CURL_SOURCES_DIR}/lib/*.h)
     foreach (header IN LISTS CURL_LIBS_HEADERS)
       get_filename_component(filename ${header} NAME)
       file(WRITE ${CURL_SOURCES_DIR}/lib/vauth/${filename} "#include \"../${filename}\"\n")
+      file(WRITE ${CURL_SOURCES_DIR}/lib/vquic/${filename} "#include \"../${filename}\"\n")
       file(WRITE ${CURL_SOURCES_DIR}/lib/vtls/${filename} "#include \"../${filename}\"\n")
     endforeach()
   endif()
@@ -109,7 +113,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_CURL)
     endif()
 
     set_property(
-      SOURCE ${CURL_SOURCES}
+      SOURCE ${CURL_SOURCES} APPEND
       PROPERTY COMPILE_DEFINITIONS "HAVE_CONFIG_H=1;OS=\"${TMP_OS}\""
       )
    

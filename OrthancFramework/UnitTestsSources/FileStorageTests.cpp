@@ -2,8 +2,9 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -36,6 +37,7 @@
 #include "../Sources/Logging.h"
 #include "../Sources/OrthancException.h"
 #include "../Sources/Toolbox.h"
+#include "../Sources/SystemToolbox.h"
 
 #include <ctype.h>
 
@@ -87,6 +89,48 @@ TEST(FilesystemStorage, Basic2)
   ASSERT_EQ(s.GetSize(uid), data.size());
 }
 
+TEST(FilesystemStorage, FileWithSameNameAsTopDirectory)
+{
+  FilesystemStorage s("UnitTestsStorageTop");
+  s.Clear();
+
+  std::vector<uint8_t> data;
+  StringToVector(data, Toolbox::GenerateUuid());
+
+  SystemToolbox::WriteFile("toto", "UnitTestsStorageTop/12");
+  ASSERT_THROW(s.Create("12345678-1234-1234-1234-1234567890ab", &data[0], data.size(), FileContentType_Unknown), OrthancException);
+  s.Clear();
+}
+
+TEST(FilesystemStorage, FileWithSameNameAsChildDirectory)
+{
+  FilesystemStorage s("UnitTestsStorageChild");
+  s.Clear();
+
+  std::vector<uint8_t> data;
+  StringToVector(data, Toolbox::GenerateUuid());
+
+  SystemToolbox::MakeDirectory("UnitTestsStorageChild/12");
+  SystemToolbox::WriteFile("toto", "UnitTestsStorageChild/12/34");
+  ASSERT_THROW(s.Create("12345678-1234-1234-1234-1234567890ab", &data[0], data.size(), FileContentType_Unknown), OrthancException);
+  s.Clear();
+}
+
+TEST(FilesystemStorage, FileAlreadyExists)
+{
+  FilesystemStorage s("UnitTestsStorageFileAlreadyExists");
+  s.Clear();
+
+  std::vector<uint8_t> data;
+  StringToVector(data, Toolbox::GenerateUuid());
+
+  SystemToolbox::MakeDirectory("UnitTestsStorageFileAlreadyExists/12/34");
+  SystemToolbox::WriteFile("toto", "UnitTestsStorageFileAlreadyExists/12/34/12345678-1234-1234-1234-1234567890ab");
+  ASSERT_THROW(s.Create("12345678-1234-1234-1234-1234567890ab", &data[0], data.size(), FileContentType_Unknown), OrthancException);
+  s.Clear();
+}
+
+
 TEST(FilesystemStorage, EndToEnd)
 {
   FilesystemStorage s("UnitTestsStorage");
@@ -127,7 +171,7 @@ TEST(StorageAccessor, NoCompression)
 {
   FilesystemStorage s("UnitTestsStorage");
   StorageCache cache;
-  StorageAccessor accessor(s, &cache);
+  StorageAccessor accessor(s, cache);
 
   std::string data = "Hello world";
   std::string uuid = Toolbox::GenerateUuid();
@@ -150,7 +194,7 @@ TEST(StorageAccessor, Compression)
 {
   FilesystemStorage s("UnitTestsStorage");
   StorageCache cache;
-  StorageAccessor accessor(s, &cache);
+  StorageAccessor accessor(s, cache);
 
   std::string data = "Hello world";
   std::string uuid = Toolbox::GenerateUuid();
@@ -173,7 +217,7 @@ TEST(StorageAccessor, Mix)
 {
   FilesystemStorage s("UnitTestsStorage");
   StorageCache cache;
-  StorageAccessor accessor(s, &cache);
+  StorageAccessor accessor(s, cache);
 
   std::string r;
   std::string compressedData = "Hello";

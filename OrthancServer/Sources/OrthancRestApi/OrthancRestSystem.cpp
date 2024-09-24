@@ -2,8 +2,9 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -50,12 +51,21 @@ namespace Orthanc
 
   static void GetMainDicomTagsConfiguration(Json::Value& result)
   {
-      Json::Value v;
-      
       result["Patient"] = DicomMap::GetMainDicomTagsSignature(ResourceType_Patient);
       result["Study"] = DicomMap::GetMainDicomTagsSignature(ResourceType_Study);
       result["Series"] = DicomMap::GetMainDicomTagsSignature(ResourceType_Series);
       result["Instance"] = DicomMap::GetMainDicomTagsSignature(ResourceType_Instance);
+  }
+
+  static void GetUserMetadataConfiguration(Json::Value& result)
+  {
+    std::map<std::string, int> userMetadata;
+    Orthanc::GetRegisteredUserMetadata(userMetadata);
+
+    for (std::map<std::string, int>::const_iterator it = userMetadata.begin(); it != userMetadata.end(); ++it)
+    {
+      result[it->first] = it->second;
+    }
   }
 
   static void GetSystemInformation(RestApiGetCall& call)
@@ -77,7 +87,12 @@ namespace Orthanc
     static const char* const STORAGE_COMPRESSION = "StorageCompression";
     static const char* const OVERWRITE_INSTANCES = "OverwriteInstances";
     static const char* const INGEST_TRANSCODING = "IngestTranscoding";
-    
+    static const char* const MAXIMUM_STORAGE_SIZE = "MaximumStorageSize";
+    static const char* const MAXIMUM_PATIENT_COUNT = "MaximumPatientCount";
+    static const char* const MAXIMUM_STORAGE_MODE = "MaximumStorageMode";
+    static const char* const USER_METADATA = "UserMetadata";
+    static const char* const HAS_LABELS = "HasLabels";
+
     if (call.IsDocumentation())
     {
       call.GetDocumentation()
@@ -87,11 +102,11 @@ namespace Orthanc
         .SetAnswerField(API_VERSION, RestApiCallDocumentation::Type_Number, "Version of the REST API")
         .SetAnswerField(VERSION, RestApiCallDocumentation::Type_String, "Version of Orthanc")
         .SetAnswerField(DATABASE_VERSION, RestApiCallDocumentation::Type_Number,
-                        "Version of the database: https://book.orthanc-server.com/developers/db-versioning.html")
+                        "Version of the database: https://orthanc.uclouvain.be/book/developers/db-versioning.html")
         .SetAnswerField(DATABASE_SERVER_IDENTIFIER, RestApiCallDocumentation::Type_String,
                         "ID of the server in the database (when running multiple Orthanc on the same DB)")
         .SetAnswerField(IS_HTTP_SERVER_SECURE, RestApiCallDocumentation::Type_Boolean,
-                        "Whether the REST API is properly secured (assuming no reverse proxy is in use): https://book.orthanc-server.com/faq/security.html#securing-the-http-server")
+                        "Whether the REST API is properly secured (assuming no reverse proxy is in use): https://orthanc.uclouvain.be/book/faq/security.html#securing-the-http-server")
         .SetAnswerField(STORAGE_AREA_PLUGIN, RestApiCallDocumentation::Type_String,
                         "Information about the installed storage area plugin (`null` if no such plugin is installed)")
         .SetAnswerField(DATABASE_BACKEND_PLUGIN, RestApiCallDocumentation::Type_String,
@@ -113,7 +128,17 @@ namespace Orthanc
                         "Whether instances are overwritten when re-ingested (new in Orthanc 1.11.0)")
         .SetAnswerField(INGEST_TRANSCODING, RestApiCallDocumentation::Type_String,
                         "Whether instances are transcoded when ingested into Orthanc (`""` if no transcoding is performed) (new in Orthanc 1.11.0)")
-        .SetHttpGetSample("https://demo.orthanc-server.com/system", true);
+        .SetAnswerField(MAXIMUM_STORAGE_SIZE, RestApiCallDocumentation::Type_Number,
+                        "The configured MaximumStorageSize in MB (new in Orthanc 1.11.3)")
+        .SetAnswerField(MAXIMUM_PATIENT_COUNT, RestApiCallDocumentation::Type_Number,
+                        "The configured MaximumPatientCount (new in Orthanc 1.12.4)")
+        .SetAnswerField(MAXIMUM_STORAGE_MODE, RestApiCallDocumentation::Type_String,
+                        "The configured MaximumStorageMode (new in Orthanc 1.11.3)")
+        .SetAnswerField(USER_METADATA, RestApiCallDocumentation::Type_JsonObject,
+                        "The configured UserMetadata (new in Orthanc 1.12.0)")
+        .SetAnswerField(HAS_LABELS, RestApiCallDocumentation::Type_Boolean,
+                        "Whether the database back-end supports labels (new in Orthanc 1.12.0)")
+        .SetHttpGetSample("https://orthanc.uclouvain.be/demo/system", true);
       return;
     }
 
@@ -137,6 +162,9 @@ namespace Orthanc
       result[OVERWRITE_INSTANCES] = lock.GetConfiguration().GetBooleanParameter(OVERWRITE_INSTANCES, false); // New in Orthanc 1.11.0
       result[INGEST_TRANSCODING] = lock.GetConfiguration().GetStringParameter(INGEST_TRANSCODING, ""); // New in Orthanc 1.11.0
       result[DATABASE_SERVER_IDENTIFIER] = lock.GetConfiguration().GetDatabaseServerIdentifier();
+      result[MAXIMUM_STORAGE_SIZE] = lock.GetConfiguration().GetUnsignedIntegerParameter(MAXIMUM_STORAGE_SIZE, 0); // New in Orthanc 1.11.3
+      result[MAXIMUM_PATIENT_COUNT] = lock.GetConfiguration().GetUnsignedIntegerParameter(MAXIMUM_PATIENT_COUNT, 0); // New in Orthanc 1.12.4
+      result[MAXIMUM_STORAGE_MODE] = lock.GetConfiguration().GetStringParameter(MAXIMUM_STORAGE_MODE, "Recycle"); // New in Orthanc 1.11.3
     }
 
     result[STORAGE_AREA_PLUGIN] = Json::nullValue;
@@ -164,6 +192,11 @@ namespace Orthanc
     result[MAIN_DICOM_TAGS] = Json::objectValue;
     GetMainDicomTagsConfiguration(result[MAIN_DICOM_TAGS]);
 
+    result[USER_METADATA] = Json::objectValue;
+    GetUserMetadataConfiguration(result[USER_METADATA]);
+
+    result[HAS_LABELS] = OrthancRestApi::GetIndex(call).HasLabelsSupport();
+    
     call.GetOutput().AnswerJson(result);
   }
 
@@ -183,7 +216,7 @@ namespace Orthanc
         .SetAnswerField("TotalDiskSizeMB", RestApiCallDocumentation::Type_Number, "Size of the storage area (in megabytes)")
         .SetAnswerField("TotalUncompressedSize", RestApiCallDocumentation::Type_String, "Total size of all the files once uncompressed (in bytes). This corresponds to `TotalDiskSize` if no compression is enabled, cf. `StorageCompression` configuration option")
         .SetAnswerField("TotalUncompressedSizeMB", RestApiCallDocumentation::Type_Number, "Total size of all the files once uncompressed (in megabytes)")
-        .SetHttpGetSample("https://demo.orthanc-server.com/statistics", true);
+        .SetHttpGetSample("https://orthanc.uclouvain.be/demo/statistics", true);
       return;
     }
 
@@ -237,6 +270,10 @@ namespace Orthanc
     {
       call.GetOutput().AnswerBuffer(FromDcmtkBridge::GenerateUniqueIdentifier(ResourceType_Instance), MimeType_PlainText);
     }
+    else
+    {
+      LOG(ERROR) << "No 'level' or invalid GET argument specified in /tools/generate-uid";
+    }
   }
 
   static void ExecuteScript(RestApiPostCall& call)
@@ -247,7 +284,8 @@ namespace Orthanc
         .SetTag("System")
         .SetSummary("Execute Lua script")
         .SetDescription("Execute the provided Lua script by the Orthanc server. This is very insecure for "
-                        "Orthanc servers that are remotely accessible, cf. configuration option `ExecuteLuaEnabled`")
+                        "Orthanc servers that are remotely accessible.  Since Orthanc 1.5.8, this route "
+                        "is disabled by default and can be enabled thanks to the `ExecuteLuaEnabled` configuration.")
         .AddRequestType(MimeType_PlainText, "The Lua script to be executed")
         .AddAnswerType(MimeType_PlainText, "Output of the Lua script");
       return;
@@ -258,7 +296,7 @@ namespace Orthanc
     if (!context.IsExecuteLuaEnabled())
     {
       LOG(ERROR) << "The URI /tools/execute-script is disallowed for security, "
-                 << "check your configuration file";
+                 << "check your configuration option `ExecuteLuaEnabled`";
       call.GetOutput().SignalError(HttpStatus_403_Forbidden);
       return;
     }
@@ -285,7 +323,7 @@ namespace Orthanc
         .SetTag("System")
         .SetSummary("Get " + type + " time")
         .AddAnswerType(MimeType_PlainText, "The " + type + " time")
-        .SetHttpGetSample("https://demo.orthanc-server.com" + call.FlattenUri(), false);
+        .SetHttpGetSample("https://orthanc.uclouvain.be/demo" + call.FlattenUri(), false);
       return;
     }
 
@@ -475,7 +513,7 @@ namespace Orthanc
         .SetSummary("List plugins")
         .SetDescription("List all the installed plugins")
         .AddAnswerType(MimeType_Json, "JSON array containing the identifiers of the installed plugins")
-        .SetHttpGetSample("https://demo.orthanc-server.com/plugins", true);
+        .SetHttpGetSample("https://orthanc.uclouvain.be/demo/plugins", true);
       return;
     }
 
@@ -511,7 +549,7 @@ namespace Orthanc
         .SetDescription("Get system information about the plugin whose identifier is provided in the URL")
         .SetUriArgument("id", "Identifier of the job of interest")
         .AddAnswerType(MimeType_Json, "JSON object containing information about the plugin")
-        .SetHttpGetSample("https://demo.orthanc-server.com/plugins/dicom-web", true);
+        .SetHttpGetSample("https://orthanc.uclouvain.be/demo/plugins/dicom-web", true);
       return;
     }
 
@@ -620,11 +658,11 @@ namespace Orthanc
                             "If present, retrieve detailed information about the individual jobs", false)
         .AddAnswerType(MimeType_Json, "JSON array containing either the jobs identifiers, or detailed information "
                        "about the reported jobs (if `expand` argument is provided)")
-        .SetTruncatedJsonHttpGetSample("https://demo.orthanc-server.com/jobs", 3);
+        .SetTruncatedJsonHttpGetSample("https://orthanc.uclouvain.be/demo/jobs", 3);
       return;
     }
 
-    bool expand = call.HasArgument("expand");
+    bool expand = call.HasArgument("expand") && call.GetBooleanArgument("expand", true);
 
     Json::Value v = Json::arrayValue;
 
@@ -678,7 +716,7 @@ namespace Orthanc
         .SetTag("Jobs")
         .SetSummary("Get job")
         .SetDescription("Retrieve detailed information about the job whose identifier is provided in the URL: "
-                        "https://book.orthanc-server.com/users/advanced-rest.html#jobs")
+                        "https://orthanc.uclouvain.be/book/users/advanced-rest.html#jobs")
         .SetUriArgument("id", "Identifier of the job of interest")
         .AddAnswerType(MimeType_Json, "JSON object detailing the job")
         .SetSample(sample);
@@ -693,6 +731,34 @@ namespace Orthanc
       Json::Value json;
       info.Format(json);
       call.GetOutput().AnswerJson(json);
+    }
+  }
+
+  static void DeleteJobInfo(RestApiDeleteCall& call)
+  {
+    if (call.IsDocumentation())
+    {
+      call.GetDocumentation()
+        .SetTag("Jobs")
+        .SetSummary("Delete a job from history")
+        .SetDescription("Delete the job from the jobs history.  Only a completed job can be deleted. "
+                        "If the job has not run or not completed yet, you must cancel it first. "
+                        "If the job has outputs, all outputs will be deleted as well. ")
+        .SetUriArgument("id", "Identifier of the job of interest");
+      return;
+    }
+
+    std::string job = call.GetUriComponent("id", "");
+
+    if (OrthancRestApi::GetContext(call).GetJobsEngine().
+        GetRegistry().DeleteJobInfo(job))
+    {
+      call.GetOutput().AnswerBuffer("", MimeType_PlainText);
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_InexistentItem,
+                             "No job found with this id: " + job);
     }
   }
 
@@ -728,6 +794,36 @@ namespace Orthanc
       }
 
       call.GetOutput().AnswerBuffer(value, mime);
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_InexistentItem,
+                             "Job has no such output: " + key);
+    }
+  }
+
+
+  static void DeleteJobOutput(RestApiDeleteCall& call)
+  {
+    if (call.IsDocumentation())
+    {
+      call.GetDocumentation()
+        .SetTag("Jobs")
+        .SetSummary("Delete a job output")
+        .SetDescription("Delete the output produced by a job. As of Orthanc 1.12.1, only the jobs that generate a "
+                        "DICOMDIR media or a ZIP archive provide such an output (with `key` equals to `archive`).")
+        .SetUriArgument("id", "Identifier of the job of interest")
+        .SetUriArgument("key", "Name of the output of interest");
+      return;
+    }
+
+    std::string job = call.GetUriComponent("id", "");
+    std::string key = call.GetUriComponent("key", "");
+
+    if (OrthancRestApi::GetContext(call).GetJobsEngine().
+        GetRegistry().DeleteJobOutput(job, key))
+    {
+      call.GetOutput().AnswerBuffer("", MimeType_PlainText);
     }
     else
     {
@@ -778,7 +874,7 @@ namespace Orthanc
         .SetSummary(verb + " job")
         .SetDescription(verb + " the job whose identifier is provided in the URL. Check out the "
                         "Orthanc Book for more information about the state machine applicable to jobs: "
-                        "https://book.orthanc-server.com/users/advanced-rest.html#jobs")
+                        "https://orthanc.uclouvain.be/book/users/advanced-rest.html#jobs")
         .SetUriArgument("id", "Identifier of the job of interest")
         .AddAnswerType(MimeType_Json, "Empty JSON object in the case of a success");
       return;
@@ -825,8 +921,8 @@ namespace Orthanc
         .SetTag("System")
         .SetSummary("Get usage metrics")
         .SetDescription("Get usage metrics of Orthanc in the Prometheus file format (OpenMetrics): "
-                        "https://book.orthanc-server.com/users/advanced-rest.html#instrumentation-with-prometheus")
-        .SetHttpGetSample("https://demo.orthanc-server.com/tools/metrics-prometheus", false);
+                        "https://orthanc.uclouvain.be/book/users/advanced-rest.html#instrumentation-with-prometheus")
+        .SetHttpGetSample("https://orthanc.uclouvain.be/demo/tools/metrics-prometheus", false);
       return;
     }
 
@@ -845,19 +941,27 @@ namespace Orthanc
     unsigned int jobsPending, jobsRunning, jobsSuccess, jobsFailed;
     context.GetJobsEngine().GetRegistry().GetStatistics(jobsPending, jobsRunning, jobsSuccess, jobsFailed);
 
+    int64_t serverUpTime = context.GetServerUpTime();
+    Json::Value lastChange;
+    context.GetIndex().GetLastChange(lastChange);
+
     MetricsRegistry& registry = context.GetMetricsRegistry();
-    registry.SetValue("orthanc_disk_size_mb", static_cast<float>(diskSize) / MEGA_BYTES);
-    registry.SetValue("orthanc_uncompressed_size_mb", static_cast<float>(diskSize) / MEGA_BYTES);
-    registry.SetValue("orthanc_count_patients", static_cast<unsigned int>(countPatients));
-    registry.SetValue("orthanc_count_studies", static_cast<unsigned int>(countStudies));
-    registry.SetValue("orthanc_count_series", static_cast<unsigned int>(countSeries));
-    registry.SetValue("orthanc_count_instances", static_cast<unsigned int>(countInstances));
-    registry.SetValue("orthanc_jobs_pending", jobsPending);
-    registry.SetValue("orthanc_jobs_running", jobsRunning);
-    registry.SetValue("orthanc_jobs_completed", jobsSuccess + jobsFailed);
-    registry.SetValue("orthanc_jobs_success", jobsSuccess);
-    registry.SetValue("orthanc_jobs_failed", jobsFailed);
-    
+    registry.SetFloatValue("orthanc_disk_size_mb", static_cast<float>(diskSize) / MEGA_BYTES);
+    registry.SetFloatValue("orthanc_uncompressed_size_mb", static_cast<float>(diskSize) / MEGA_BYTES);
+    registry.SetIntegerValue("orthanc_count_patients", static_cast<int64_t>(countPatients));
+    registry.SetIntegerValue("orthanc_count_studies", static_cast<int64_t>(countStudies));
+    registry.SetIntegerValue("orthanc_count_series", static_cast<int64_t>(countSeries));
+    registry.SetIntegerValue("orthanc_count_instances", static_cast<int64_t>(countInstances));
+    registry.SetIntegerValue("orthanc_jobs_pending", jobsPending);
+    registry.SetIntegerValue("orthanc_jobs_running", jobsRunning);
+    registry.SetIntegerValue("orthanc_jobs_completed", jobsSuccess + jobsFailed);
+    registry.SetIntegerValue("orthanc_jobs_success", jobsSuccess);
+    registry.SetIntegerValue("orthanc_jobs_failed", jobsFailed);
+    registry.SetIntegerValue("orthanc_up_time_s", serverUpTime);
+    registry.SetIntegerValue("orthanc_last_change", lastChange["Last"].asInt64());
+
+    context.PublishCacheMetrics();
+
     std::string s;
     registry.ExportPrometheusText(s);
 
@@ -1008,6 +1112,31 @@ namespace Orthanc
   }
 
 
+  static void ListAllLabels(RestApiGetCall& call)
+  {
+    if (call.IsDocumentation())
+    {
+      call.GetDocumentation()
+        .SetTag("System")
+        .SetSummary("Get all the used labels")
+        .SetDescription("List all the labels that are associated with any resource of the Orthanc database")
+        .AddAnswerType(MimeType_Json, "JSON array containing the labels");
+      return;
+    }
+
+    std::set<std::string> labels;
+    OrthancRestApi::GetIndex(call).ListAllLabels(labels);
+
+    Json::Value json = Json::arrayValue;
+    for (std::set<std::string>::const_iterator it = labels.begin(); it != labels.end(); ++it)
+    {
+      json.append(*it);
+    }
+    
+    call.GetOutput().AnswerJson(json);
+   }
+
+
   void OrthancRestApi::RegisterSystem(bool orthancExplorerEnabled)
   {
     if (orthancExplorerEnabled)
@@ -1044,16 +1173,20 @@ namespace Orthanc
 
     Register("/jobs", ListJobs);
     Register("/jobs/{id}", GetJobInfo);
+    Register("/jobs/{id}", DeleteJobInfo);
     Register("/jobs/{id}/cancel", ApplyJobAction<JobAction_Cancel>);
     Register("/jobs/{id}/pause", ApplyJobAction<JobAction_Pause>);
     Register("/jobs/{id}/resubmit", ApplyJobAction<JobAction_Resubmit>);
     Register("/jobs/{id}/resume", ApplyJobAction<JobAction_Resume>);
     Register("/jobs/{id}/{key}", GetJobOutput);
+    Register("/jobs/{id}/{key}", DeleteJobOutput);
 
     // New in Orthanc 1.9.0
     Register("/tools/accepted-transfer-syntaxes", GetAcceptedTransferSyntaxes);
     Register("/tools/accepted-transfer-syntaxes", SetAcceptedTransferSyntaxes);
     Register("/tools/unknown-sop-class-accepted", GetUnknownSopClassAccepted);
     Register("/tools/unknown-sop-class-accepted", SetUnknownSopClassAccepted);
+
+    Register("/tools/labels", ListAllLabels);  // New in Orthanc 1.12.0
   }
 }

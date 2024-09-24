@@ -1,8 +1,9 @@
 # Orthanc - A Lightweight, RESTful DICOM Store
 # Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
 # Department, University Hospital of Liege, Belgium
-# Copyright (C) 2017-2022 Osimis S.A., Belgium
-# Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+# Copyright (C) 2017-2023 Osimis S.A., Belgium
+# Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+# Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
 #
 # This program is free software: you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public License
@@ -141,6 +142,11 @@ if (NOT ENABLE_DCMTK)
   unset(ENABLE_DCMTK_LOG CACHE)
 endif()
 
+if (NOT ENABLE_PROTOBUF)
+  unset(USE_SYSTEM_PROTOBUF CACHE)
+  add_definitions(-DORTHANC_ENABLE_PROTOBUF=0)
+endif()
+
 
 #####################################################################
 ## List of source files
@@ -149,7 +155,6 @@ endif()
 set(ORTHANC_CORE_SOURCES_INTERNAL
   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Cache/MemoryCache.cpp
   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Cache/MemoryObjectCache.cpp
-  ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Cache/MemoryStringCache.cpp
   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/ChunkedBuffer.cpp
   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomFormat/DicomTag.cpp
   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomFormat/DicomPath.cpp
@@ -476,6 +481,16 @@ if (ENABLE_GOOGLE_TEST)
 endif()
 
 
+##
+## Google Protocol Buffers
+##
+
+if (ENABLE_PROTOBUF)
+  include(${CMAKE_CURRENT_LIST_DIR}/ProtobufConfiguration.cmake)
+  add_definitions(-DORTHANC_ENABLE_PROTOBUF=1)
+endif()
+
+
 
 #####################################################################
 ## Inclusion of mandatory third-party dependencies
@@ -624,6 +639,7 @@ else()
     )
 
   list(APPEND ORTHANC_CORE_SOURCES_INTERNAL
+    ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Cache/MemoryStringCache.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Cache/SharedArchive.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/FileBuffer.cpp
     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/FileStorage/FilesystemStorage.cpp
@@ -712,6 +728,7 @@ set(ORTHANC_CORE_SOURCES_DEPENDENCIES
   ${LUA_SOURCES}
   ${MONGOOSE_SOURCES}
   ${OPENSSL_SOURCES}
+  ${PROTOBUF_LIBRARY_SOURCES}
   ${PUGIXML_SOURCES}
   ${SQLITE_SOURCES}
   ${UUID_SOURCES}

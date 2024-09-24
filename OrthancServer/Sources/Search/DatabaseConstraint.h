@@ -2,8 +2,9 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -45,6 +46,8 @@
 #  endif
 #endif
 
+#include <deque>
+
 namespace Orthanc
 {
   enum ConstraintType
@@ -77,7 +80,7 @@ namespace Orthanc
 
 
   // This class is also used by the "orthanc-databases" project
-  class DatabaseConstraint
+  class DatabaseConstraint : public boost::noncopyable
   {
   private:
     ResourceType              level_;
@@ -146,5 +149,34 @@ namespace Orthanc
     void EncodeForPlugins(OrthancPluginDatabaseConstraint& constraint,
                           std::vector<const char*>& tmpValues) const;
 #endif    
+  };
+
+
+  class DatabaseConstraints : public boost::noncopyable
+  {
+  private:
+    std::deque<DatabaseConstraint*>  constraints_;
+
+  public:
+    ~DatabaseConstraints()
+    {
+      Clear();
+    }
+
+    void Clear();
+
+    void AddConstraint(DatabaseConstraint* constraint);  // Takes ownership
+
+    bool IsEmpty() const
+    {
+      return constraints_.empty();
+    }
+
+    size_t GetSize() const
+    {
+      return constraints_.size();
+    }
+
+    const DatabaseConstraint& GetConstraint(size_t index) const;
   };
 }

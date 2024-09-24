@@ -2,8 +2,9 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -30,7 +31,7 @@
 #include <string.h>
 #include <iostream>
 
-
+#define ORTHANC_PLUGIN_NAME  "sanitizer"
 
 
 OrthancPluginReceivedInstanceAction ReceivedInstanceCallback(OrthancPluginMemoryBuffer64* modifiedDicomBuffer,
@@ -70,8 +71,8 @@ extern "C"
       return -1;
     }
     
-    OrthancPlugins::LogWarning("Sanitizer plugin is initializing");
-    OrthancPluginSetDescription(c, "Sample plugin to sanitize incoming DICOM instances.");
+    ORTHANC_PLUGINS_LOG_WARNING("Sanitizer plugin is initializing");
+    OrthancPlugins::SetDescription(ORTHANC_PLUGIN_NAME, "Sample plugin to sanitize incoming DICOM instances.");
 
     OrthancPluginRegisterReceivedInstanceCallback(c, ReceivedInstanceCallback);
 
@@ -81,14 +82,14 @@ extern "C"
 
   ORTHANC_PLUGINS_API void OrthancPluginFinalize()
   {
-    OrthancPlugins::LogWarning("Sanitizer plugin is finalizing");
+    ORTHANC_PLUGINS_LOG_WARNING("Sanitizer plugin is finalizing");
     Orthanc::FinalizeFramework();
   }
 
 
   ORTHANC_PLUGINS_API const char* OrthancPluginGetName()
   {
-    return "sanitizer";
+    return ORTHANC_PLUGIN_NAME;
   }
 
 

@@ -2,8 +2,9 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -579,13 +580,17 @@ namespace Orthanc
   class DicomStreamReader::PixelDataVisitor : public DicomStreamReader::IVisitor
   {
   private:
-    bool      hasPixelData_;
-    uint64_t  pixelDataOffset_;
+    bool                 hasPixelData_;
+    uint64_t             pixelDataOffset_;
+    ValueRepresentation  pixelDataVR_;
+    DicomTransferSyntax  transferSyntax_;
     
   public:
     PixelDataVisitor() :
       hasPixelData_(false),
-      pixelDataOffset_(0)
+      pixelDataOffset_(0),
+      pixelDataVR_(ValueRepresentation_Unknown),
+      transferSyntax_(DicomTransferSyntax_LittleEndianImplicit) // Default DICOM transfer syntax
     {
     }
     
@@ -597,6 +602,7 @@ namespace Orthanc
 
     virtual void VisitTransferSyntax(DicomTransferSyntax transferSyntax) ORTHANC_OVERRIDE
     {
+      transferSyntax_ = transferSyntax;
     }
     
     virtual bool VisitDatasetTag(const DicomTag& tag,
@@ -609,6 +615,23 @@ namespace Orthanc
       {
         hasPixelData_ = true;
         pixelDataOffset_ = fileOffset;
+
+        if (transferSyntax_ == DicomTransferSyntax_LittleEndianImplicit)
+        {
+          // Implicit Little Endian has always "OW" VR for pixel data
+          // https://dicom.nema.org/medical/dicom/current/output/chtml/part05/chapter_A.html
+          pixelDataVR_ = ValueRepresentation_OtherWord;
+        }
+        else if (transferSyntax_ == DicomTransferSyntax_LittleEndianExplicit ||
+                 transferSyntax_ == DicomTransferSyntax_BigEndianExplicit)
+        {
+          pixelDataVR_ = vr;
+        }
+        else
+        {
+          // Compressed transfer syntaxes must always be OB
+          pixelDataVR_ = ValueRepresentation_OtherByte;
+        }
       }
 
       // Stop processing once pixel data has been passed
@@ -625,7 +648,13 @@ namespace Orthanc
       return pixelDataOffset_;
     }
 
+    ValueRepresentation GetPixelDataVR() const
+    {
+      return pixelDataVR_;
+    }
+
     static bool LookupPixelDataOffset(uint64_t& offset,
+                                      ValueRepresentation& vr,
                                       std::istream& stream)
     {
       PixelDataVisitor visitor;
@@ -672,6 +701,7 @@ namespace Orthanc
             s[3] == char(0x00))
         {
           offset = visitor.GetPixelDataOffset();
+          vr = visitor.GetPixelDataVR();
           return true;
         }
         else
@@ -688,20 +718,22 @@ namespace Orthanc
 
   
   bool DicomStreamReader::LookupPixelDataOffset(uint64_t& offset,
+                                                ValueRepresentation& vr,
                                                 const std::string& dicom)
   {
     std::stringstream stream(dicom);
-    return PixelDataVisitor::LookupPixelDataOffset(offset, stream);
+    return PixelDataVisitor::LookupPixelDataOffset(offset, vr, stream);
   }
   
 
   bool DicomStreamReader::LookupPixelDataOffset(uint64_t& offset,
+                                                ValueRepresentation& vr,
                                                 const void* buffer,
                                                 size_t size)
   {
     boost::iostreams::array_source source(reinterpret_cast<const char*>(buffer), size);
     boost::iostreams::stream<boost::iostreams::array_source> stream(source);
-    return PixelDataVisitor::LookupPixelDataOffset(offset, stream);
+    return PixelDataVisitor::LookupPixelDataOffset(offset, vr, stream);
   }
 }
 

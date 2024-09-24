@@ -2,8 +2,9 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -42,6 +43,32 @@ namespace Orthanc
   static const char* const MIME_XML = "application/xml";
   static const char* const MIME_XML_UTF8 = "application/xml; charset=utf-8";
 
+  // Added in Orthanc 1.12.1
+  static const char* const MIME_OBJ = "model/obj";
+  static const char* const MIME_MTL = "model/mtl";
+  static const char* const MIME_STL = "model/stl";
+
+  static const char* const MIME_CSS = "text/css";
+  static const char* const MIME_DICOM = "application/dicom";
+  static const char* const MIME_GIF = "image/gif";
+  static const char* const MIME_GZIP = "application/gzip";
+  static const char* const MIME_HTML = "text/html";
+  static const char* const MIME_JAVASCRIPT = "application/javascript";
+  static const char* const MIME_JPEG2000 = "image/jp2";
+  static const char* const MIME_NACL = "application/x-nacl";
+  static const char* const MIME_PLAIN_TEXT = "text/plain";
+  static const char* const MIME_PNACL = "application/x-pnacl";
+  static const char* const MIME_SVG = "image/svg+xml";
+  static const char* const MIME_WEB_ASSEMBLY = "application/wasm";
+  static const char* const MIME_WOFF = "application/x-font-woff";
+  static const char* const MIME_WOFF2 = "font/woff2";
+  static const char* const MIME_XML_2 = "text/xml";
+  static const char* const MIME_ZIP = "application/zip";
+  static const char* const MIME_DICOM_WEB_JSON = "application/dicom+json";
+  static const char* const MIME_DICOM_WEB_XML = "application/dicom+xml";
+  static const char* const MIME_ICO = "image/x-icon";
+
+
   /**
    * "No Internet Media Type (aka MIME type, content type) for PBM has
    * been registered with IANA, but the unofficial value
@@ -79,7 +106,10 @@ namespace Orthanc
     MimeType_PrometheusText,  // Prometheus text-based exposition format (for metrics)
     MimeType_DicomWebJson,
     MimeType_DicomWebXml,
-    MimeType_Ico
+    MimeType_Ico,
+    MimeType_Mtl,             // MTL - New in Orthanc 1.12.1
+    MimeType_Obj,             // OBJ - New in Orthanc 1.12.1
+    MimeType_Stl              // STL - New in Orthanc 1.12.1
   };
 
   
@@ -140,6 +170,8 @@ namespace Orthanc
     ErrorCode_DatabaseCannotSerialize = 42    /*!< Database could not serialize access due to concurrent update, the transaction should be retried */,
     ErrorCode_Revision = 43    /*!< A bad revision number was provided, which might indicate conflict between multiple writers */,
     ErrorCode_MainDicomTagsMultiplyDefined = 44    /*!< A main DICOM Tag has been defined multiple times for the same resource level */,
+    ErrorCode_ForbiddenAccess = 45    /*!< Access to a resource is forbidden */,
+    ErrorCode_DuplicateResource = 46    /*!< Duplicate resource */,
     ErrorCode_SQLiteNotOpened = 1000    /*!< SQLite: The database is not opened */,
     ErrorCode_SQLiteAlreadyOpened = 1001    /*!< SQLite: Connection is already open */,
     ErrorCode_SQLiteCannotOpen = 1002    /*!< SQLite: Unable to open the database */,
@@ -620,7 +652,8 @@ namespace Orthanc
   {
     DicomVersion_2008,
     DicomVersion_2017c,
-    DicomVersion_2021b
+    DicomVersion_2021b,
+    DicomVersion_2023b
   };
 
   enum ModalityManufacturer
@@ -904,9 +937,12 @@ ORTHANC_PUBLIC
                             const std::string& uid);
 
   ORTHANC_PUBLIC
+  DicomTransferSyntax GetTransferSyntax(const std::string& uid);
+
+  ORTHANC_PUBLIC
   const char* GetResourceTypeText(ResourceType type,
                                   bool isPlural,
-                                  bool isLowerCase);
+                                  bool isUpperCase);
 
   ORTHANC_PUBLIC
   void GetAllDicomTransferSyntaxes(std::set<DicomTransferSyntax>& target);

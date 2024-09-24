@@ -2,8 +2,9 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -235,11 +236,11 @@ namespace Orthanc
     void GetChangesInternal(std::list<ServerIndexChange>& target,
                             bool& done,
                             SQLite::Statement& s,
-                            uint32_t maxResults)
+                            uint32_t limit)
     {
       target.clear();
 
-      while (target.size() < maxResults && s.Step())
+      while (target.size() < limit && s.Step())
       {
         int64_t seq = s.ColumnInt64(0);
         ChangeType changeType = static_cast<ChangeType>(s.ColumnInt(1));
@@ -252,18 +253,18 @@ namespace Orthanc
         target.push_back(ServerIndexChange(seq, changeType, resourceType, publicId, date));
       }
 
-      done = !(target.size() == maxResults && s.Step());
+      done = !(target.size() == limit && s.Step());
     }
 
 
     void GetExportedResourcesInternal(std::list<ExportedResource>& target,
                                       bool& done,
                                       SQLite::Statement& s,
-                                      uint32_t maxResults)
+                                      uint32_t limit)
     {
       target.clear();
 
-      while (target.size() < maxResults && s.Step())
+      while (target.size() < limit && s.Step())
       {
         int64_t seq = s.ColumnInt64(0);
         ResourceType resourceType = static_cast<ResourceType>(s.ColumnInt(1));
@@ -282,7 +283,7 @@ namespace Orthanc
         target.push_back(resource);
       }
 
-      done = !(target.size() == maxResults && s.Step());
+      done = !(target.size() == limit && s.Step());
     }
 
 
@@ -343,14 +344,16 @@ namespace Orthanc
 
     virtual void ApplyLookupResources(std::list<std::string>& resourcesId,
                                       std::list<std::string>* instancesId,
-                                      const std::vector<DatabaseConstraint>& lookup,
+                                      const DatabaseConstraints& lookup,
                                       ResourceType queryLevel,
-                                      size_t limit) ORTHANC_OVERRIDE
+                                      const std::set<std::string>& labels,
+                                      LabelsConstraint labelsConstraint,
+                                      uint32_t limit) ORTHANC_OVERRIDE
     {
       LookupFormatter formatter;
 
       std::string sql;
-      LookupFormatter::Apply(sql, formatter, lookup, queryLevel, limit);
+      LookupFormatter::Apply(sql, formatter, lookup, queryLevel, labels, labelsConstraint, limit);
 
       sql = "CREATE TEMPORARY TABLE Lookup AS " + sql;
     
@@ -437,7 +440,7 @@ namespace Orthanc
     virtual int64_t CreateResource(const std::string& publicId,
                                    ResourceType type) ORTHANC_OVERRIDE
     {
-      SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO Resources VALUES(NULL, ?, ?, NULL)");
+      SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO Resources (internalId, resourceType, publicId, parentId) VALUES(NULL, ?, ?, NULL)");
       s.BindInt(0, type);
       s.BindString(1, publicId);
       s.Run();
@@ -535,8 +538,8 @@ namespace Orthanc
 
     virtual void GetAllPublicIds(std::list<std::string>& target,
                                  ResourceType resourceType,
-                                 size_t since,
-                                 size_t limit) ORTHANC_OVERRIDE
+                                 int64_t since,
+                                 uint32_t limit) ORTHANC_OVERRIDE
     {
       if (limit == 0)
       {
@@ -562,12 +565,12 @@ namespace Orthanc
     virtual void GetChanges(std::list<ServerIndexChange>& target /*out*/,
                             bool& done /*out*/,
                             int64_t since,
-                            uint32_t maxResults) ORTHANC_OVERRIDE
+                            uint32_t limit) ORTHANC_OVERRIDE
     {
       SQLite::Statement s(db_, SQLITE_FROM_HERE, "SELECT * FROM Changes WHERE seq>? ORDER BY seq LIMIT ?");
       s.BindInt64(0, since);
-      s.BindInt(1, maxResults + 1);
-      GetChangesInternal(target, done, s, maxResults);
+      s.BindInt(1, limit + 1);
+      GetChangesInternal(target, done, s, limit);
     }
 
 
@@ -614,13 +617,13 @@ namespace Orthanc
     virtual void GetExportedResources(std::list<ExportedResource>& target,
                                       bool& done,
                                       int64_t since,
-                                      uint32_t maxResults) ORTHANC_OVERRIDE
+                                      uint32_t limit) ORTHANC_OVERRIDE
     {
       SQLite::Statement s(db_, SQLITE_FROM_HERE, 
                           "SELECT * FROM ExportedResources WHERE seq>? ORDER BY seq LIMIT ?");
       s.BindInt64(0, since);
-      s.BindInt(1, maxResults + 1);
-      GetExportedResourcesInternal(target, done, s, maxResults);
+      s.BindInt(1, limit + 1);
+      GetExportedResourcesInternal(target, done, s, limit);
     }
 
 
@@ -757,15 +760,6 @@ namespace Orthanc
     }
 
 
-    virtual bool IsExistingResource(int64_t internalId) ORTHANC_OVERRIDE
-    {
-      SQLite::Statement s(db_, SQLITE_FROM_HERE, 
-                          "SELECT * FROM Resources WHERE internalId=?");
-      s.BindInt64(0, internalId);
-      return s.Step();
-    }
-
-
     virtual bool IsProtectedPatient(int64_t internalId) ORTHANC_OVERRIDE
     {
       SQLite::Statement s(db_, SQLITE_FROM_HERE,
@@ -791,14 +785,17 @@ namespace Orthanc
     }
 
 
-    virtual void LogChange(int64_t internalId,
-                           const ServerIndexChange& change) ORTHANC_OVERRIDE
+    virtual void LogChange(ChangeType changeType,
+                           ResourceType resourceType,
+                           int64_t internalId,
+                           const std::string& /* publicId - unused */,
+                           const std::string& date) ORTHANC_OVERRIDE
     {
-      SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO Changes VALUES(NULL, ?, ?, ?, ?)");
-      s.BindInt(0, change.GetChangeType());
+      SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO Changes (seq, changeType, internalId, resourceType, date) VALUES(NULL, ?, ?, ?, ?)");
+      s.BindInt(0, changeType);
       s.BindInt64(1, internalId);
-      s.BindInt(2, change.GetResourceType());
-      s.BindString(3, change.GetDate());
+      s.BindInt(2, resourceType);
+      s.BindString(3, date);
       s.Run();
     }
 
@@ -806,7 +803,7 @@ namespace Orthanc
     virtual void LogExportedResource(const ExportedResource& resource) ORTHANC_OVERRIDE
     {
       SQLite::Statement s(db_, SQLITE_FROM_HERE, 
-                          "INSERT INTO ExportedResources VALUES(NULL, ?, ?, ?, ?, ?, ?, ?, ?)");
+                          "INSERT INTO ExportedResources (seq, resourceType, publicId, remoteModality, patientId, studyInstanceUid, seriesInstanceUid, sopInstanceUid, date) VALUES(NULL, ?, ?, ?, ?, ?, ?, ?, ?)");
 
       s.BindInt(0, resource.GetResourceType());
       s.BindString(1, resource.GetPublicId());
@@ -1001,7 +998,7 @@ namespace Orthanc
       // The "shared" info is not used by the SQLite database, as it
       // can only be used by one Orthanc server.
       
-      SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT OR REPLACE INTO GlobalProperties VALUES(?, ?)");
+      SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT OR REPLACE INTO GlobalProperties (property, value) VALUES(?, ?)");
       s.BindInt(0, property);
       s.BindString(1, value);
       s.Run();
@@ -1013,7 +1010,7 @@ namespace Orthanc
                                   const DicomTag& tag,
                                   const std::string& value) ORTHANC_OVERRIDE
     {
-      SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO DicomIdentifiers VALUES(?, ?, ?, ?)");
+      SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO DicomIdentifiers (id, tagGroup, tagElement, value) VALUES(?, ?, ?, ?)");
       s.BindInt64(0, id);
       s.BindInt(1, tag.GetGroup());
       s.BindInt(2, tag.GetElement());
@@ -1033,7 +1030,7 @@ namespace Orthanc
       }
       else if (IsProtectedPatient(internalId))
       {
-        SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO PatientRecyclingOrder VALUES(NULL, ?)");
+        SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO PatientRecyclingOrder (seq, patientId) VALUES(NULL, ?)");
         s.BindInt64(0, internalId);
         s.Run();
       }
@@ -1049,7 +1046,7 @@ namespace Orthanc
                                  const DicomTag& tag,
                                  const std::string& value) ORTHANC_OVERRIDE
     {
-      SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO MainDicomTags VALUES(?, ?, ?, ?)");
+      SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO MainDicomTags (id, tagGroup, tagElement, value) VALUES(?, ?, ?, ?)");
       s.BindInt64(0, id);
       s.BindInt(1, tag.GetGroup());
       s.BindInt(2, tag.GetElement());
@@ -1099,9 +1096,73 @@ namespace Orthanc
 
       {
         SQLite::Statement s(db_, SQLITE_FROM_HERE,
-                            "INSERT INTO PatientRecyclingOrder VALUES(NULL, ?)");
+                            "INSERT INTO PatientRecyclingOrder (seq, patientId) VALUES(NULL, ?)");
         s.BindInt64(0, patient);
         s.Run();
+      }
+    }
+
+
+    virtual void AddLabel(int64_t resource,
+                          const std::string& label) ORTHANC_OVERRIDE
+    {
+      if (label.empty())
+      {
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+      else
+      {
+        SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT OR IGNORE INTO Labels (id, label) VALUES(?, ?)");
+        s.BindInt64(0, resource);
+        s.BindString(1, label);
+        s.Run();
+      }
+    }
+
+
+    virtual void RemoveLabel(int64_t resource,
+                             const std::string& label) ORTHANC_OVERRIDE
+    {
+      if (label.empty())
+      {
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+      else
+      {
+        SQLite::Statement s(db_, SQLITE_FROM_HERE, "DELETE FROM Labels WHERE id=? AND label=?");
+        s.BindInt64(0, resource);
+        s.BindString(1, label);
+        s.Run();
+      }
+    }
+
+
+    virtual void ListLabels(std::set<std::string>& target,
+                            int64_t resource) ORTHANC_OVERRIDE
+    {
+      target.clear();
+
+      SQLite::Statement s(db_, SQLITE_FROM_HERE, 
+                          "SELECT label FROM Labels WHERE id=?");
+      s.BindInt64(0, resource);
+
+      while (s.Step())
+      {
+        target.insert(s.ColumnString(0));
+      }
+    }
+
+
+    virtual void ListAllLabels(std::set<std::string>& target) ORTHANC_OVERRIDE
+    {
+      target.clear();
+
+      SQLite::Statement s(db_, SQLITE_FROM_HERE, 
+                          "SELECT DISTINCT label FROM Labels");
+
+      while (s.Step())
+      {
+        target.insert(s.ColumnString(0));
       }
     }
   };
@@ -1298,6 +1359,9 @@ namespace Orthanc
     signalRemainingAncestor_(NULL),
     version_(0)
   {
+    // TODO: implement revisions in SQLite
+    dbCapabilities_.SetFlushToDisk(true);
+    dbCapabilities_.SetLabelsSupport(true);
     db_.Open(path);
   }
 
@@ -1307,6 +1371,9 @@ namespace Orthanc
     signalRemainingAncestor_(NULL),
     version_(0)
   {
+    // TODO: implement revisions in SQLite
+    dbCapabilities_.SetFlushToDisk(true);
+    dbCapabilities_.SetLabelsSupport(true);
     db_.OpenInMemory();
   }
 
@@ -1384,20 +1451,29 @@ namespace Orthanc
                                "Incompatible version of the Orthanc database: " + tmp);
       }
 
-      // New in Orthanc 1.5.1
-      if (version_ >= 6)
+      if (version_ == 6)
       {
-        if (!transaction->LookupGlobalProperty(tmp, GlobalProperty_GetTotalSizeIsFast, true /* unused in SQLite */) 
-            || tmp != "1")
+        // New in Orthanc 1.5.1
+        if (!transaction->LookupGlobalProperty(tmp, GlobalProperty_GetTotalSizeIsFast, true /* unused in SQLite */) ||
+            tmp != "1")
         {
           LOG(INFO) << "Installing the SQLite triggers to track the size of the attachments";
           std::string query;
           ServerResources::GetFileResource(query, ServerResources::INSTALL_TRACK_ATTACHMENTS_SIZE);
           db_.Execute(query);
         }
+
+        // New in Orthanc 1.12.0
+        if (!db_.DoesTableExist("Labels"))
+        {
+          LOG(INFO) << "Installing the \"Labels\" table";
+          std::string query;
+          ServerResources::GetFileResource(query, ServerResources::INSTALL_LABELS_TABLE);
+          db_.Execute(query);
+        }
       }
 
-      // New in Orthanc 1.12.0
+      // New in Orthanc 1.12.5
       if (version_ >= 6)
       {
         if (!transaction->LookupGlobalProperty(tmp, GlobalProperty_SQLiteHasCustomDataAndRevision, true /* unused in SQLite */) 
@@ -1528,7 +1604,7 @@ namespace Orthanc
   int64_t SQLiteDatabaseWrapper::UnitTestsTransaction::CreateResource(const std::string& publicId,
                                                                       ResourceType type)
   {
-    SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO Resources VALUES(NULL, ?, ?, NULL)");
+    SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO Resources (internalId, resourceType, publicId, parentId) VALUES(NULL, ?, ?, NULL)");
     s.BindInt(0, type);
     s.BindString(1, publicId);
     s.Run();
@@ -1550,7 +1626,7 @@ namespace Orthanc
                                                                      const DicomTag& tag,
                                                                      const std::string& value)
   {
-    SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO DicomIdentifiers VALUES(?, ?, ?, ?)");
+    SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO DicomIdentifiers (id, tagGroup, tagElement, value) VALUES(?, ?, ?, ?)");
     s.BindInt64(0, id);
     s.BindInt(1, tag.GetGroup());
     s.BindInt(2, tag.GetElement());
@@ -1563,7 +1639,7 @@ namespace Orthanc
                                                                     const DicomTag& tag,
                                                                     const std::string& value)
   {
-    SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO MainDicomTags VALUES(?, ?, ?, ?)");
+    SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT INTO MainDicomTags (id, tagGroup, tagElement, value) VALUES(?, ?, ?, ?)");
     s.BindInt64(0, id);
     s.BindInt(1, tag.GetGroup());
     s.BindInt(2, tag.GetElement());

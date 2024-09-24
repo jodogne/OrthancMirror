@@ -2,8 +2,9 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -644,6 +645,51 @@ namespace Orthanc
   }
 
 
+  static ImageAccessor* DecodePlanarConfiguration(const ImageAccessor& source)
+  {
+    /**
+     * This function will interleave the RGB channels, if the source
+     * DICOM image has the "Planar Configuration" (0028,0006) tag that
+     * equals 1. This process was not applied to images using the RLE
+     * codec, which led to the following issue:
+     * https://groups.google.com/g/orthanc-users/c/CSVWfRasSR0/m/y1XDRXVnAgAJ
+     **/
+
+    const unsigned int height = source.GetHeight();
+    const unsigned int width = source.GetWidth();
+    const size_t size = static_cast<size_t>(height) * static_cast<size_t>(width);
+
+    if (source.GetFormat() != PixelFormat_RGB24 ||
+        3 * width != source.GetPitch())
+    {
+      throw OrthancException(ErrorCode_NotImplemented);
+    }
+
+    std::unique_ptr<ImageAccessor> target(new Image(PixelFormat_RGB24, width, height, false));
+
+    const uint8_t* red = reinterpret_cast<const uint8_t*>(source.GetConstBuffer());
+    const uint8_t* green = red + size;
+    const uint8_t* blue = red + 2 * size;
+
+    for (unsigned int y = 0; y < height; y++)
+    {
+      uint8_t* interleaved = reinterpret_cast<uint8_t*>(target->GetRow(y));
+      for (unsigned int x = 0; x < width; x++)
+      {
+        interleaved[0] = *red;
+        interleaved[1] = *green;
+        interleaved[2] = *blue;
+        interleaved += 3;
+        red++;
+        green++;
+        blue++;
+      }
+    }
+
+    return target.release();
+  }
+
+
   ImageAccessor* DicomImageDecoder::ApplyCodec
   (const DcmCodec& codec,
    const DcmCodecParameter& parameters,
@@ -700,7 +746,25 @@ namespace Orthanc
                                "Cannot decode a non-palette image");
       }
 
-      return target.release();
+      std::string colorModel = Orthanc::Toolbox::StripSpaces(decompressedColorModel.c_str());
+
+      if (target->GetFormat() == PixelFormat_RGB24 &&
+          (colorModel == "RGB" || colorModel == "YBR_FULL") &&
+          info.IsPlanar())
+      {
+        std::unique_ptr<ImageAccessor> output(DecodePlanarConfiguration(*target));
+
+        if (colorModel == "YBR_FULL")
+        {
+          ImageProcessing::ConvertJpegYCbCrToRgb(*output);
+        }
+
+        return output.release();
+      }
+      else
+      {
+        return target.release();
+      }
     }
   }
 
@@ -885,12 +949,12 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_NotImplemented,
                              "The built-in DCMTK decoder cannot decode some DICOM instance "
-                             "whose transfer syntax is: " + std::string(GetTransferSyntaxUid(s)));
+                             "whose transfer syntax is: " + std::string(GetTransferSyntaxUid(s)), false /* don't log here*/);
     }
     else
     {
       throw OrthancException(ErrorCode_NotImplemented,
-                             "The built-in DCMTK decoder cannot decode some DICOM instance");
+                             "The built-in DCMTK decoder cannot decode some DICOM instance", false /* don't log here*/);
     }
   }
 

@@ -2,8 +2,9 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -23,14 +24,16 @@
 #pragma once
 
 #include "../../../OrthancFramework/Sources/DicomParsing/DicomModification.h"
+#include "../../../OrthancFramework/Sources/MultiThreading/RunnableWorkersPool.h"
 #include "../DicomInstanceOrigin.h"
-#include "CleaningInstancesJob.h"
+#include "ThreadedSetOfInstancesJob.h"
+#include <boost/thread/recursive_mutex.hpp>
 
 namespace Orthanc
 {
   class ServerContext;
   
-  class ResourceModificationJob : public CleaningInstancesJob
+  class ResourceModificationJob : public ThreadedSetOfInstancesJob
   {
   private:
     class IOutput : public boost::noncopyable
@@ -49,6 +52,8 @@ namespace Orthanc
     
     class SingleOutput;
     class MultipleOutputs;
+
+    mutable boost::recursive_mutex      outputMutex_;
     
     std::unique_ptr<DicomModification>  modification_;
     boost::shared_ptr<IOutput>          output_;
@@ -56,12 +61,16 @@ namespace Orthanc
     DicomInstanceOrigin                 origin_;
     bool                                transcode_;
     DicomTransferSyntax                 transferSyntax_;
+    std::set<std::string>               modifiedSeries_;          // the list of new series ids of the newly generated series
+    std::set<std::string>               instancesToReconstruct_;  // for each new series generated, an instance id that we can use to reconstruct the hierarchy DB model
 
   protected:
     virtual bool HandleInstance(const std::string& instance) ORTHANC_OVERRIDE;
     
+    virtual void PostProcessInstances() ORTHANC_OVERRIDE;
+
   public:
-    explicit ResourceModificationJob(ServerContext& context);
+    explicit ResourceModificationJob(ServerContext& context, unsigned int workersCount);
 
     ResourceModificationJob(ServerContext& context,
                             const Json::Value& serialized);
@@ -78,8 +87,6 @@ namespace Orthanc
     void SetOrigin(const DicomInstanceOrigin& origin);
 
     void SetOrigin(const RestApiCall& call);
-
-    const DicomModification& GetModification() const;
 
     bool IsAnonymization() const
     {
@@ -109,10 +116,6 @@ namespace Orthanc
     // Only possible if "IsSingleResourceModification()"
     ResourceType GetOutputLevel() const;
 
-    virtual void Stop(JobStopReason reason) ORTHANC_OVERRIDE
-    {
-    }
-
     virtual void GetJobType(std::string& target) ORTHANC_OVERRIDE
     {
       target = "ResourceModification";
@@ -121,5 +124,13 @@ namespace Orthanc
     virtual void GetPublicContent(Json::Value& value) ORTHANC_OVERRIDE;
     
     virtual bool Serialize(Json::Value& value) ORTHANC_OVERRIDE;
+
+    virtual void Reset() ORTHANC_OVERRIDE;
+
+    void PerformSanityChecks();
+
+#if ORTHANC_BUILD_UNIT_TESTS == 1
+    const DicomModification& GetModification() const;
+#endif
   };
 }

@@ -1,8 +1,9 @@
 # Orthanc - A Lightweight, RESTful DICOM Store
 # Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
 # Department, University Hospital of Liege, Belgium
-# Copyright (C) 2017-2022 Osimis S.A., Belgium
-# Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+# Copyright (C) 2017-2023 Osimis S.A., Belgium
+# Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+# Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
 #
 # This program is free software: you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public License
@@ -20,10 +21,10 @@
 
 
 if (STATIC_BUILD OR NOT USE_SYSTEM_LIBJPEG)
-  set(LIBJPEG_SOURCES_DIR ${CMAKE_BINARY_DIR}/jpeg-9c)
+  set(LIBJPEG_SOURCES_DIR ${CMAKE_BINARY_DIR}/jpeg-9f)
   DownloadPackage(
-    "93c62597eeef81a84d988bccbda1e990"
-    "http://orthanc.osimis.io/ThirdPartyDownloads/jpegsrc.v9c.tar.gz"
+    "9ca58d68febb0fa9c1c087045b9a5483"
+    "https://orthanc.uclouvain.be/downloads/third-party-downloads/jpegsrc.v9f.tar.gz"
     "${LIBJPEG_SOURCES_DIR}")
 
   include_directories(
@@ -107,7 +108,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_LIBJPEG)
 else()
   include(FindJPEG)
 
-  if (NOT ${JPEG_FOUND})
+  if (NOT JPEG_FOUND)
     message(FATAL_ERROR "Unable to find libjpeg")
   endif()
 

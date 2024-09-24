@@ -2,8 +2,9 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -174,11 +175,15 @@ namespace Orthanc
       // http://dicom.nema.org/medical/dicom/current/output/chtml/part04/sect_C.4.html#sect_C.4.1.1.3
       // https://groups.google.com/d/msg/orthanc-users/D3kpPuX8yV0/_zgHOzkMEQAJ
 
+      // GroupLength are removed as well since they make no sense in the filtering as well as in the response.  
+      // Note that it seems that only some GE devices include them.
+
       DicomArray a(source);
 
       for (size_t i = 0; i < a.GetSize(); i++)
       {
-        if (a.GetElement(i).GetTag().GetGroup() >= 0x0008)
+        if (a.GetElement(i).GetTag().GetGroup() >= 0x0008 
+          && a.GetElement(i).GetTag().GetElement() != 0x0000)
         {
           target.SetValue(a.GetElement(i).GetTag(), a.GetElement(i).GetValue());
         }

@@ -1,8 +1,9 @@
 # Orthanc - A Lightweight, RESTful DICOM Store
 # Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
 # Department, University Hospital of Liege, Belgium
-# Copyright (C) 2017-2022 Osimis S.A., Belgium
-# Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+# Copyright (C) 2017-2023 Osimis S.A., Belgium
+# Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+# Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
 #
 # This program is free software: you can redistribute it and/or
 # modify it under the terms of the GNU General Public License as
@@ -18,7 +19,7 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 
-set(BASE_URL "http://orthanc.osimis.io/ThirdPartyDownloads")
+set(BASE_URL "https://orthanc.uclouvain.be/downloads/third-party-downloads")
 
 DownloadPackage(
   "da0189f7c33bf9f652ea65401e0a3dc9"
@@ -40,8 +41,8 @@ DownloadFile(
   "${BASE_URL}/jquery-3.4.1.min.js")
 
 
-set(JAVASCRIPT_LIBS_DIR  ${CMAKE_CURRENT_BINARY_DIR}/javascript-libs)
-file(MAKE_DIRECTORY ${JAVASCRIPT_LIBS_DIR})
+set(CONNECTIVITY_CHECKS_JAVASCRIPT_DIR  ${CMAKE_CURRENT_BINARY_DIR}/connectivity-checks-javascript)
+file(MAKE_DIRECTORY ${CONNECTIVITY_CHECKS_JAVASCRIPT_DIR})
 
 file(COPY
   ${CMAKE_CURRENT_BINARY_DIR}/axios-0.19.0/dist/axios.min.js
@@ -51,12 +52,12 @@ file(COPY
   ${CMAKE_CURRENT_BINARY_DIR}/vue-2.6.10/dist/vue.min.js
   ${CMAKE_SOURCE_DIR}/ThirdPartyDownloads/jquery-3.4.1.min.js
   DESTINATION
-  ${JAVASCRIPT_LIBS_DIR}/js
+  ${CONNECTIVITY_CHECKS_JAVASCRIPT_DIR}/js
   )
 
 file(COPY
   ${CMAKE_CURRENT_BINARY_DIR}/bootstrap-4.3.1/dist/css/bootstrap.min.css
   ${CMAKE_CURRENT_BINARY_DIR}/bootstrap-4.3.1/dist/css/bootstrap.min.css.map
   DESTINATION
-  ${JAVASCRIPT_LIBS_DIR}/css
+  ${CONNECTIVITY_CHECKS_JAVASCRIPT_DIR}/css
   )

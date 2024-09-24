@@ -2,8 +2,9 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -49,6 +50,9 @@
 #include <dcmtk/dcmdata/dcfilefo.h>
 #include <dcmtk/dcmnet/dimse.h>
 
+#if HAVE_MALLOC_TRIM == 1
+#  include <malloc.h>
+#endif
 
 static size_t DICOM_CACHE_SIZE = 128 * 1024 * 1024;  // 128 MB
 
@@ -104,10 +108,43 @@ namespace Orthanc
   {
   }
 
+
+#if HAVE_MALLOC_TRIM == 1
+  void ServerContext::MemoryTrimmingThread(ServerContext* that,
+                                           unsigned int intervalInSeconds)
+  {
+    Logging::SetCurrentThreadName("MEMORY-TRIM");
+
+    boost::posix_time::ptime lastExecution = boost::posix_time::second_clock::universal_time();
+
+    // This thread is started only if malloc_trim is defined
+    while (!that->done_)
+    {
+      boost::posix_time::ptime now = boost::posix_time::second_clock::universal_time();
+      boost::posix_time::time_duration elapsed = now - lastExecution;
+
+      if (elapsed.total_seconds() > intervalInSeconds)
+      {
+        // If possible, gives memory back to the system 
+        // (see OrthancServer/Resources/ImplementationNotes/memory_consumption.txt)
+        {
+          MetricsRegistry::Timer timer(that->GetMetricsRegistry(), "orthanc_memory_trimming_duration_ms");
+          malloc_trim(128*1024);
+        }
+        lastExecution = boost::posix_time::second_clock::universal_time();
+      }
+
+      boost::this_thread::sleep(boost::posix_time::milliseconds(100));
+    }
+  }
+#endif
+
   
   void ServerContext::ChangeThread(ServerContext* that,
                                    unsigned int sleepDelay)
   {
+    Logging::SetCurrentThreadName("CHANGES");
+
     while (!that->done_)
     {
       std::unique_ptr<IDynamicObject> obj(that->pendingChanges_.Dequeue(sleepDelay));
@@ -132,7 +169,7 @@ namespace Orthanc
             }
             catch (...)
             {
-              throw OrthancException(ErrorCode_InternalError);
+              throw OrthancException(ErrorCode_InternalError, "Error while signaling a change");
             }
           }
           catch (OrthancException& e)
@@ -147,9 +184,55 @@ namespace Orthanc
   }
 
 
+  void ServerContext::JobEventsThread(ServerContext* that,
+                                      unsigned int sleepDelay)
+  {
+    Logging::SetCurrentThreadName("JOB-EVENTS");
+
+    while (!that->done_)
+    {
+      std::unique_ptr<IDynamicObject> obj(that->pendingJobEvents_.Dequeue(sleepDelay));
+        
+      if (obj.get() != NULL)
+      {
+        const JobEvent& event = dynamic_cast<const JobEvent&>(*obj.get());
+
+        boost::shared_lock<boost::shared_mutex> lock(that->listenersMutex_);
+        for (ServerListeners::iterator it = that->listeners_.begin(); 
+             it != that->listeners_.end(); ++it)
+        {
+          try
+          {
+            try
+            {
+              it->GetListener().SignalJobEvent(event);
+            }
+            catch (std::bad_alloc&)
+            {
+              LOG(ERROR) << "Not enough memory while signaling a job event";
+            }
+            catch (...)
+            {
+              throw OrthancException(ErrorCode_InternalError, "Error while signaling a job event");
+            }
+          }
+          catch (OrthancException& e)
+          {
+            LOG(ERROR) << "Error in the " << it->GetDescription() 
+                       << " callback while signaling a job event: " << e.What()
+                       << " (code " << e.GetErrorCode() << ")";
+          }
+        }
+      }
+    }
+  }
+
+
   void ServerContext::SaveJobsThread(ServerContext* that,
                                      unsigned int sleepDelay)
   {
+    Logging::SetCurrentThreadName("SAVE-JOBS");
+
     static const boost::posix_time::time_duration PERIODICITY =
       boost::posix_time::seconds(10);
     
@@ -174,42 +257,21 @@ namespace Orthanc
   void ServerContext::SignalJobSubmitted(const std::string& jobId)
   {
     haveJobsChanged_ = true;
-    mainLua_.SignalJobSubmitted(jobId);
-
-#if ORTHANC_ENABLE_PLUGINS == 1
-    if (HasPlugins())
-    {
-      GetPlugins().SignalJobSubmitted(jobId);
-    }
-#endif
+    pendingJobEvents_.Enqueue(new JobEvent(JobEventType_Submitted, jobId));
   }
   
 
   void ServerContext::SignalJobSuccess(const std::string& jobId)
   {
     haveJobsChanged_ = true;
-    mainLua_.SignalJobSuccess(jobId);
-
-#if ORTHANC_ENABLE_PLUGINS == 1
-    if (HasPlugins())
-    {
-      GetPlugins().SignalJobSuccess(jobId);
-    }
-#endif
+    pendingJobEvents_.Enqueue(new JobEvent(JobEventType_Success, jobId));
   }
 
   
   void ServerContext::SignalJobFailure(const std::string& jobId)
   {
     haveJobsChanged_ = true;
-    mainLua_.SignalJobFailure(jobId);
-
-#if ORTHANC_ENABLE_PLUGINS == 1
-    if (HasPlugins())
-    {
-      GetPlugins().SignalJobFailure(jobId);
-    }
-#endif
+    pendingJobEvents_.Enqueue(new JobEvent(JobEventType_Failure, jobId));
   }
 
 
@@ -231,6 +293,14 @@ namespace Orthanc
         catch (OrthancException& e)
         {
           LOG(WARNING) << "Cannot unserialize the jobs engine, starting anyway: " << e.What();
+        }
+        catch (const std::string& s) 
+        {
+          LOG(WARNING) << "Cannot unserialize the jobs engine, starting anyway: \"" << s << "\"";
+        }
+        catch (...)
+        {
+          LOG(WARNING) << "Cannot unserialize the jobs engine, starting anyway";
         }
       }
       else
@@ -275,12 +345,15 @@ namespace Orthanc
   }
 
 
-  void ServerContext::PublishDicomCacheMetrics()
+  void ServerContext::PublishCacheMetrics()
   {
-    metricsRegistry_->SetValue("orthanc_dicom_cache_size",
-                               static_cast<float>(dicomCache_.GetCurrentSize()) / static_cast<float>(1024 * 1024));
-    metricsRegistry_->SetValue("orthanc_dicom_cache_count",
-                               static_cast<float>(dicomCache_.GetNumberOfItems()));
+    metricsRegistry_->SetFloatValue("orthanc_dicom_cache_size_mb",
+                                    static_cast<float>(dicomCache_.GetCurrentSize()) / static_cast<float>(1024 * 1024));
+    metricsRegistry_->SetIntegerValue("orthanc_dicom_cache_count", dicomCache_.GetNumberOfItems());
+
+    metricsRegistry_->SetFloatValue("orthanc_storage_cache_size_mb",
+                                    static_cast<float>(storageCache_.GetCurrentSize()) / static_cast<float>(1024 * 1024));
+    metricsRegistry_->SetIntegerValue("orthanc_storage_cache_count", storageCache_.GetNumberOfItems());
   }
 
 
@@ -307,13 +380,15 @@ namespace Orthanc
     metricsRegistry_(new MetricsRegistry),
     isHttpServerSecure_(true),
     isExecuteLuaEnabled_(false),
+    isRestApiWriteToFileSystemEnabled_(false),
     overwriteInstances_(false),
     dcmtkTranscoder_(new DcmtkTranscoder),
     isIngestTranscoding_(false),
     ingestTranscodingOfUncompressed_(true),
     ingestTranscodingOfCompressed_(true),
     preferredTransferSyntax_(DicomTransferSyntax_LittleEndianExplicit),
-    deidentifyLogs_(false)
+    deidentifyLogs_(false),
+    serverStartTimeUtc_(boost::posix_time::second_clock::universal_time())
   {
     try
     {
@@ -384,7 +459,7 @@ namespace Orthanc
           CLOG(INFO, DICOM) << "Deidentification of log contents (notably for DIMSE queries) is enabled";
 
           DicomVersion version = StringToDicomVersion(
-              lock.GetConfiguration().GetStringParameter("DeidentifyLogsDicomVersion", "2021b"));
+              lock.GetConfiguration().GetStringParameter("DeidentifyLogsDicomVersion", "2023b"));
           CLOG(INFO, DICOM) << "Version of DICOM standard used for deidentification is "
                             << EnumerationToString(version);
 
@@ -416,7 +491,15 @@ namespace Orthanc
 
       listeners_.push_back(ServerListener(luaListener_, "Lua"));
       changeThread_ = boost::thread(ChangeThread, this, (unitTesting ? 20 : 100));
-    
+      jobEventsThread_ = boost::thread(JobEventsThread, this, (unitTesting ? 20 : 100));
+      
+#if HAVE_MALLOC_TRIM == 1
+      LOG(INFO) << "Starting memory trimming thread at 30 seconds interval";
+      memoryTrimmingThread_ = boost::thread(MemoryTrimmingThread, this, 30);
+#else
+      LOG(INFO) << "Your platform does not support malloc_trim(), not starting the memory trimming thread";
+#endif
+      
       dynamic_cast<DcmtkTranscoder&>(*dcmtkTranscoder_).SetLossyQuality(lossyQuality);
     }
     catch (OrthancException&)
@@ -454,9 +537,19 @@ namespace Orthanc
         changeThread_.join();
       }
 
+      if (jobEventsThread_.joinable())
+      {
+        jobEventsThread_.join();
+      }
+
       if (saveJobsThread_.joinable())
       {
         saveJobsThread_.join();
+      }
+
+      if (memoryTrimmingThread_.joinable())
+      {
+        memoryTrimmingThread_.join();
       }
 
       jobsEngine_.GetRegistry().ResetObserver();
@@ -489,7 +582,7 @@ namespace Orthanc
                                  FileContentType type,
                                  const std::string& customData)
   {
-    StorageAccessor accessor(area_, &storageCache_, GetMetricsRegistry());
+    StorageAccessor accessor(area_, storageCache_, GetMetricsRegistry());
     accessor.Remove(fileUuid, type, customData);
   }
 
@@ -520,8 +613,9 @@ namespace Orthanc
 
     bool hasPixelDataOffset;
     uint64_t pixelDataOffset;
+    ValueRepresentation pixelDataVR;
     hasPixelDataOffset = DicomStreamReader::LookupPixelDataOffset(
-      pixelDataOffset, dicom.GetBufferData(), dicom.GetBufferSize());
+      pixelDataOffset, pixelDataVR, dicom.GetBufferData(), dicom.GetBufferSize());
 
     DicomTransferSyntax transferSyntax;
     bool hasTransferSyntax = dicom.LookupTransferSyntax(transferSyntax);
@@ -529,12 +623,13 @@ namespace Orthanc
     DicomMap summary;
     dicom.GetSummary(summary);   // -> from Orthanc 1.11.1, this includes the leaf nodes and sequences
 
-    std::set<DicomTag> allMainDicomTags = DicomMap::GetAllMainDicomTags();
+    std::set<DicomTag> allMainDicomTags;
+    DicomMap::GetAllMainDicomTags(allMainDicomTags);
 
     try
     {
       MetricsRegistry::Timer timer(GetMetricsRegistry(), "orthanc_store_dicom_duration_ms");
-      StorageAccessor accessor(area_, &storageCache_, GetMetricsRegistry());
+      StorageAccessor accessor(area_, storageCache_, GetMetricsRegistry());
 
       DicomInstanceHasher hasher(summary);
       resultPublicId = hasher.HashInstance();
@@ -595,7 +690,6 @@ namespace Orthanc
       // Remove the file from the DicomCache (useful if
       // "OverwriteInstances" is set to "true")
       dicomCache_.Invalidate(resultPublicId);
-      PublishDicomCacheMetrics();
 
       // TODO Should we use "gzip" instead?
       CompressionType compression = (compressionEnabled_ ? CompressionType_ZlibWithSize : CompressionType_None);
@@ -624,9 +718,33 @@ namespace Orthanc
 
       typedef std::map<MetadataType, std::string>  InstanceMetadata;
       InstanceMetadata  instanceMetadata;
-      result.SetStatus(index_.Store(
-        instanceMetadata, summary, attachments, dicom.GetMetadata(), dicom.GetOrigin(), overwrite,
-        hasTransferSyntax, transferSyntax, hasPixelDataOffset, pixelDataOffset, isReconstruct));
+
+      try 
+      {
+        result.SetStatus(index_.Store(
+          instanceMetadata, summary, attachments, dicom.GetMetadata(), dicom.GetOrigin(), overwrite,
+          hasTransferSyntax, transferSyntax, hasPixelDataOffset, pixelDataOffset, pixelDataVR, isReconstruct));
+      }
+      catch (OrthancException& ex)
+      {
+        if (ex.GetErrorCode() == ErrorCode_DuplicateResource)
+        {
+          LOG(WARNING) << "Duplicate instance, deleting the attachments";
+        }
+        else
+        {
+          LOG(ERROR) << "Unexpected error while storing an instance in DB, cancelling and deleting the attachments: " << ex.GetDetails();
+        }
+
+        accessor.Remove(dicomInfo);
+
+        if (dicomUntilPixelData.IsValid())
+        {
+          accessor.Remove(dicomUntilPixelData);
+        }
+        
+        throw;
+      }
 
       // Only keep the metadata for the "instance" level
       dicom.ClearMetadata();
@@ -653,16 +771,20 @@ namespace Orthanc
         switch (result.GetStatus())
         {
           case StoreStatus_Success:
-            LOG(INFO) << "New instance stored";
+            LOG(INFO) << "New instance stored (" << resultPublicId << ")";
             break;
 
           case StoreStatus_AlreadyStored:
-            LOG(INFO) << "Already stored";
+            LOG(INFO) << "Instance already stored (" << resultPublicId << ")";
             break;
 
           case StoreStatus_Failure:
-            LOG(ERROR) << "Store failure";
-            break;
+            LOG(ERROR) << "Unknown store failure while storing instance " << resultPublicId;
+            throw OrthancException(ErrorCode_InternalError, HttpStatus_500_InternalServerError);
+
+          case StoreStatus_StorageFull:
+            LOG(ERROR) << "Storage full while storing instance " << resultPublicId;
+            throw OrthancException(ErrorCode_FullStorage, HttpStatus_507_InsufficientStorage);
 
           default:
             // This should never happen
@@ -768,7 +890,7 @@ namespace Orthanc
                                                               bool isReconstruct)
   {
 
-    if (!isIngestTranscoding_)
+    if (!isIngestTranscoding_ || dicom->SkipIngestTranscoding())
     {
       // No automated transcoding. This was the only path in Orthanc <= 1.6.1.
       return StoreAfterTranscoding(resultPublicId, *dicom, mode, isReconstruct);
@@ -825,11 +947,7 @@ namespace Orthanc
 
           std::unique_ptr<DicomInstanceToStore> toStore(DicomInstanceToStore::CreateFromParsedDicomFile(*tmp));
           toStore->SetOrigin(dicom->GetOrigin());
-
-          if (isReconstruct) // the initial instance to store already has its own metadata
-          {
-            toStore->CopyMetadata(dicom->GetMetadata());
-          }
+          toStore->CopyMetadata(dicom->GetMetadata());
 
           StoreResult result = StoreAfterTranscoding(resultPublicId, *toStore, mode, isReconstruct);
           assert(resultPublicId == tmp->GetHasher().HashInstance());
@@ -858,7 +976,7 @@ namespace Orthanc
     }
     else
     {
-      StorageAccessor accessor(area_, &storageCache_, GetMetricsRegistry());
+      StorageAccessor accessor(area_, storageCache_, GetMetricsRegistry());
       accessor.AnswerFile(output, attachment, GetFileContentMime(content));
     }
   }
@@ -889,7 +1007,7 @@ namespace Orthanc
 
     std::string content;
 
-    StorageAccessor accessor(area_, &storageCache_, GetMetricsRegistry());
+    StorageAccessor accessor(area_, storageCache_, GetMetricsRegistry());
     accessor.Read(content, attachment);
 
     std::string newUuid = Toolbox::GenerateUuid();
@@ -962,7 +1080,7 @@ namespace Orthanc
       std::string dicom;
 
       {
-        StorageAccessor accessor(area_, &storageCache_, GetMetricsRegistry());
+        StorageAccessor accessor(area_, storageCache_, GetMetricsRegistry());
         accessor.Read(dicom, attachment);
       }
 
@@ -1028,8 +1146,8 @@ namespace Orthanc
         std::string dicom;
         
         {
-          StorageAccessor accessor(area_, &storageCache_, GetMetricsRegistry());
-          accessor.ReadStartRange(dicom, attachment.GetUuid(), FileContentType_Dicom, pixelDataOffset, attachment.GetCustomData());
+          StorageAccessor accessor(area_, storageCache_, GetMetricsRegistry());
+          accessor.ReadStartRange(dicom, attachment, pixelDataOffset);
         }
         
         assert(dicom.size() == pixelDataOffset);
@@ -1051,7 +1169,7 @@ namespace Orthanc
         std::string dicomAsJson;
 
         {
-          StorageAccessor accessor(area_, &storageCache_, GetMetricsRegistry());
+          StorageAccessor accessor(area_, storageCache_, GetMetricsRegistry());
           accessor.Read(dicomAsJson, attachment);
         }
 
@@ -1085,7 +1203,8 @@ namespace Orthanc
            * Orthanc have failed. Try again this precomputation now
            * for future calls.
            **/
-          if (DicomStreamReader::LookupPixelDataOffset(pixelDataOffset, dicom) &&
+          ValueRepresentation pixelDataVR;
+          if (DicomStreamReader::LookupPixelDataOffset(pixelDataOffset, pixelDataVR, dicom) &&
               pixelDataOffset < dicom.size())
           {
             index_.OverwriteMetadata(instancePublicId, MetadataType_Instance_PixelDataOffset,
@@ -1115,10 +1234,19 @@ namespace Orthanc
 
 
   void ServerContext::ReadDicom(std::string& dicom,
+                                std::string& attachmentId,
                                 const std::string& instancePublicId)
   {
     int64_t revision;
-    ReadAttachment(dicom, revision, instancePublicId, FileContentType_Dicom, true /* uncompress */);
+    ReadAttachment(dicom, revision, attachmentId, instancePublicId, FileContentType_Dicom, true /* uncompress */);
+  }
+
+
+  void ServerContext::ReadDicom(std::string& dicom,
+                                const std::string& instancePublicId)
+  {
+    std::string attachmentId;
+    ReadDicom(dicom, attachmentId, instancePublicId);    
   }
 
   void ServerContext::ReadDicomForHeader(std::string& dicom,
@@ -1133,13 +1261,23 @@ namespace Orthanc
   bool ServerContext::ReadDicomUntilPixelData(std::string& dicom,
                                               const std::string& instancePublicId)
   {
+    FileInfo attachment;
+    int64_t revision;  // Ignored
+    if (index_.LookupAttachment(attachment, revision, instancePublicId, FileContentType_DicomUntilPixelData))
+    {
+      StorageAccessor accessor(area_, storageCache_, GetMetricsRegistry());
+
+      accessor.Read(dicom, attachment);
+      assert(dicom.size() == attachment.GetUncompressedSize());
+
+      return true;
+    }
+
     if (!area_.HasReadRange())
     {
       return false;
     }
     
-    FileInfo attachment;
-    int64_t revision;  // Ignored
     if (!index_.LookupAttachment(attachment, revision, instancePublicId, FileContentType_Dicom))
     {
       throw OrthancException(ErrorCode_InternalError,
@@ -1157,9 +1295,9 @@ namespace Orthanc
       {
         uint64_t pixelDataOffset = boost::lexical_cast<uint64_t>(s);
 
-        StorageAccessor accessor(area_, &storageCache_, GetMetricsRegistry());
+        StorageAccessor accessor(area_, storageCache_, GetMetricsRegistry());
 
-        accessor.ReadStartRange(dicom, attachment.GetUuid(), attachment.GetContentType(), pixelDataOffset, attachment.GetCustomData());
+        accessor.ReadStartRange(dicom, attachment, pixelDataOffset);
         assert(dicom.size() == pixelDataOffset);
         
         return true;   // Success
@@ -1176,6 +1314,7 @@ namespace Orthanc
 
   void ServerContext::ReadAttachment(std::string& result,
                                      int64_t& revision,
+                                     std::string& attachmentId,
                                      const std::string& instancePublicId,
                                      FileContentType content,
                                      bool uncompressIfNeeded,
@@ -1190,26 +1329,29 @@ namespace Orthanc
     }
 
     assert(attachment.GetContentType() == content);
-
+    attachmentId = attachment.GetUuid();
+    
     {
-      StorageCache* cache = NULL;
-
-      if (!skipCache)
+      std::unique_ptr<StorageAccessor> accessor;
+      
+      if (skipCache)
       {
-        cache = &storageCache_;
+        accessor.reset(new StorageAccessor(area_, GetMetricsRegistry()));
       }
-
-      StorageAccessor accessor(area_, cache, GetMetricsRegistry());
+      else
+      {
+        accessor.reset(new StorageAccessor(area_, storageCache_, GetMetricsRegistry()));
+      }
 
       if (uncompressIfNeeded)
       {
-        accessor.Read(result, attachment);
+        accessor->Read(result, attachment);
       }
       else
       {
         // Do not uncompress the content of the storage area, return the
         // raw data
-        accessor.ReadRaw(result, attachment);
+        accessor->ReadRaw(result, attachment);
       }
     }
   }
@@ -1229,18 +1371,17 @@ namespace Orthanc
       // Throttle to avoid loading several large DICOM files simultaneously
       largeDicomLocker_.reset(new Semaphore::Locker(context.largeDicomThrottler_));
       
-      std::string content;
-      context_.ReadDicom(content, instancePublicId);
+      context_.ReadDicom(buffer_, instancePublicId_);
 
       // Release the throttle if loading "small" DICOM files (under
       // 50MB, which is an arbitrary value)
-      if (content.size() < 50 * 1024 * 1024)
+      if (buffer_.size() < 50 * 1024 * 1024)
       {
         largeDicomLocker_.reset(NULL);
       }
       
-      dicom_.reset(new ParsedDicomFile(content));
-      dicomSize_ = content.size();
+      dicom_.reset(new ParsedDicomFile(buffer_));
+      dicomSize_ = buffer_.size();
     }
 
     assert(accessor_.get() != NULL ||
@@ -1255,7 +1396,6 @@ namespace Orthanc
       try
       {
         context_.dicomCache_.Acquire(instancePublicId_, dicom_.release(), dicomSize_);
-        context_.PublishDicomCacheMetrics();
       }
       catch (OrthancException&)
       {
@@ -1277,6 +1417,18 @@ namespace Orthanc
     }
   }
 
+  const std::string& ServerContext::DicomCacheLocker::GetBuffer()
+  {
+    if (buffer_.size() > 0)
+    {
+      return buffer_;
+    }
+    else
+    {
+      context_.ReadDicom(buffer_, instancePublicId_);
+      return buffer_;
+    }
+  }
   
   void ServerContext::SetStoreMD5ForAttachments(bool storeMD5)
   {
@@ -1300,8 +1452,8 @@ namespace Orthanc
     // TODO Should we use "gzip" instead?
     CompressionType compression = (compressionEnabled_ ? CompressionType_ZlibWithSize : CompressionType_None);
 
-    StorageAccessor accessor(area_, &storageCache_, GetMetricsRegistry());
-    
+    StorageAccessor accessor(area_, storageCache_, GetMetricsRegistry());
+
     std::string uuid = Toolbox::GenerateUuid();
     std::string customData;
 
@@ -1340,7 +1492,6 @@ namespace Orthanc
     {
       // remove the file from the DicomCache
       dicomCache_.Invalidate(uuid);
-      PublishDicomCacheMetrics();
     }
 
     return index_.DeleteResource(remainingAncestor, uuid, expectedType);
@@ -1353,7 +1504,6 @@ namespace Orthanc
         change.GetChangeType() == ChangeType_Deleted)
     {
       dicomCache_.Invalidate(change.GetPublicId());
-      PublishDicomCacheMetrics();
     }
     
     pendingChanges_.Enqueue(change.Clone());
@@ -1426,6 +1576,8 @@ namespace Orthanc
   void ServerContext::Apply(ILookupVisitor& visitor,
                             const DatabaseLookup& lookup,
                             ResourceType queryLevel,
+                            const std::set<std::string>& labels,
+                            LabelsConstraint labelsConstraint,
                             size_t since,
                             size_t limit)
   {    
@@ -1448,8 +1600,8 @@ namespace Orthanc
     }
 
     {
-      const size_t lookupLimit = (databaseLimit == 0 ? 0 : databaseLimit + 1);      
-      GetIndex().ApplyLookupResources(resources, &instances, *fastLookup, queryLevel, lookupLimit);
+      const size_t lookupLimit = (databaseLimit == 0 ? 0 : databaseLimit + 1);
+      GetIndex().ApplyLookupResources(resources, &instances, *fastLookup, queryLevel, labels, labelsConstraint, lookupLimit);
     }
 
     bool complete = (databaseLimit == 0 ||
@@ -1542,7 +1694,7 @@ namespace Orthanc
           ComputeStudyTags(resource, *this, resources[i], requestedTags);
 
           std::vector<std::string> modalities;
-          Toolbox::TokenizeString(modalities, resource.tags_.GetValue(DICOM_TAG_MODALITIES_IN_STUDY).GetContent(), '\\');
+          Toolbox::TokenizeString(modalities, resource.GetMainDicomTags().GetValue(DICOM_TAG_MODALITIES_IN_STUDY).GetContent(), '\\');
           bool hasAtLeastOneModalityMatching = false;
           for (size_t m = 0; m < modalities.size(); m++)
           {
@@ -1551,7 +1703,7 @@ namespace Orthanc
 
           isMatch = isMatch && hasAtLeastOneModalityMatching;
           // copy the value of ModalitiesInStudy such that it can be reused to build the answer
-          allMainDicomTagsFromDB.SetValue(DICOM_TAG_MODALITIES_IN_STUDY, resource.tags_.GetValue(DICOM_TAG_MODALITIES_IN_STUDY));
+          allMainDicomTagsFromDB.SetValue(DICOM_TAG_MODALITIES_IN_STUDY, resource.GetMainDicomTags().GetValue(DICOM_TAG_MODALITIES_IN_STUDY));
         }
 
         if (isMatch)
@@ -1738,27 +1890,50 @@ namespace Orthanc
   }
 
 
+
+
+
   ImageAccessor* ServerContext::DecodeDicomFrame(const std::string& publicId,
                                                  unsigned int frameIndex)
   {
+    ServerContext::DicomCacheLocker locker(*this, publicId);
+    std::unique_ptr<ImageAccessor> decoded(DecodeDicomFrame(locker.GetDicom(), locker.GetBuffer().c_str(), locker.GetBuffer().size(), frameIndex));
+
+    if (decoded.get() == NULL)
+    {
+      OrthancConfiguration::ReaderLock configLock;
+      if (configLock.GetConfiguration().IsWarningEnabled(Warnings_003_DecoderFailure))
+      {
+        LOG(WARNING) << "W003: Unable to decode frame " << frameIndex << " from instance " << publicId;
+      }
+      return NULL;
+    }
+
+    return decoded.release();
+  }
+
+
+  ImageAccessor* ServerContext::DecodeDicomFrame(const ParsedDicomFile& parsedDicom,
+                                                 const void* buffer,  // actually the buffer that is the source of the ParsedDicomFile
+                                                 size_t size,
+                                                 unsigned int frameIndex)
+  {
+    std::unique_ptr<ImageAccessor> decoded;
+
     if (builtinDecoderTranscoderOrder_ == BuiltinDecoderTranscoderOrder_Before)
     {
-      // Use Orthanc's built-in decoder, using the cache to speed-up
-      // things on multi-frame images
+      // Use Orthanc's built-in decoder
 
-      std::unique_ptr<ImageAccessor> decoded;
       try
       {
-        ServerContext::DicomCacheLocker locker(*this, publicId);
-        decoded.reset(locker.GetDicom().DecodeFrame(frameIndex));
+        decoded.reset(parsedDicom.DecodeFrame(frameIndex));
+        if (decoded.get() != NULL)
+        {
+          return decoded.release();
+        }
       }
       catch (OrthancException& e)
-      {
-      }
-      
-      if (decoded.get() != NULL)
-      {
-        return decoded.release();
+      { // ignore, we'll try other alternatives
       }
     }
 
@@ -1766,14 +1941,9 @@ namespace Orthanc
     if (HasPlugins() &&
         GetPlugins().HasCustomImageDecoder())
     {
-      // TODO: Store the raw buffer in the DicomCacheLocker
-      std::string dicomContent;
-      ReadDicom(dicomContent, publicId);
-      
-      std::unique_ptr<ImageAccessor> decoded;
       try
       {
-        decoded.reset(GetPlugins().Decode(dicomContent.c_str(), dicomContent.size(), frameIndex));
+        decoded.reset(GetPlugins().Decode(buffer, size, frameIndex));
       }
       catch (OrthancException& e)
       {
@@ -1793,69 +1963,52 @@ namespace Orthanc
 
     if (builtinDecoderTranscoderOrder_ == BuiltinDecoderTranscoderOrder_After)
     {
-      ServerContext::DicomCacheLocker locker(*this, publicId);        
-      return locker.GetDicom().DecodeFrame(frameIndex);
+      try
+      { 
+        decoded.reset(parsedDicom.DecodeFrame(frameIndex));
+        if (decoded.get() != NULL)
+        {
+          return decoded.release();
+        }
+      }
+      catch (OrthancException& e)
+      {
+        LOG(INFO) << e.GetDetails();
+      }
     }
-    else
+
+#if ORTHANC_ENABLE_PLUGINS == 1
+    if (HasPlugins() && GetPlugins().HasCustomTranscoder())
     {
-      return NULL;  // Built-in decoder is disabled
+      LOG(INFO) << "The plugins and built-in image decoders failed to decode a frame, "
+                << "trying to transcode the file to LittleEndianExplicit using the plugins.";
+      DicomImage explicitTemporaryImage;
+      DicomImage source;
+      std::set<DicomTransferSyntax> allowedSyntaxes;
+
+      source.SetExternalBuffer(buffer, size);
+      allowedSyntaxes.insert(DicomTransferSyntax_LittleEndianExplicit);
+
+      if (Transcode(explicitTemporaryImage, source, allowedSyntaxes, true))
+      {
+        std::unique_ptr<ParsedDicomFile> file(explicitTemporaryImage.ReleaseAsParsedDicomFile());
+        return file->DecodeFrame(frameIndex);
+      }
     }
+#endif
+
+    return NULL;
   }
 
 
   ImageAccessor* ServerContext::DecodeDicomFrame(const DicomInstanceToStore& dicom,
                                                  unsigned int frameIndex)
   {
-    if (builtinDecoderTranscoderOrder_ == BuiltinDecoderTranscoderOrder_Before)
-    {
-      std::unique_ptr<ImageAccessor> decoded;
-      try
-      {
-        decoded.reset(dicom.DecodeFrame(frameIndex));
-      }
-      catch (OrthancException& e)
-      {
-      }
-        
-      if (decoded.get() != NULL)
-      {
-        return decoded.release();
-      }
-    }
+    return DecodeDicomFrame(dicom.GetParsedDicomFile(),
+                            dicom.GetBufferData(),
+                            dicom.GetBufferSize(),
+                            frameIndex);
 
-#if ORTHANC_ENABLE_PLUGINS == 1
-    if (HasPlugins() &&
-        GetPlugins().HasCustomImageDecoder())
-    {
-      std::unique_ptr<ImageAccessor> decoded;
-      try
-      {
-        decoded.reset(GetPlugins().Decode(dicom.GetBufferData(), dicom.GetBufferSize(), frameIndex));
-      }
-      catch (OrthancException& e)
-      {
-      }
-    
-      if (decoded.get() != NULL)
-      {
-        return decoded.release();
-      }
-      else if (builtinDecoderTranscoderOrder_ == BuiltinDecoderTranscoderOrder_After)
-      {
-        LOG(INFO) << "The installed image decoding plugins cannot handle an image, "
-                  << "fallback to the built-in DCMTK decoder";
-      }
-    }
-#endif
-
-    if (builtinDecoderTranscoderOrder_ == BuiltinDecoderTranscoderOrder_After)
-    {
-      return dicom.DecodeFrame(frameIndex);
-    }
-    else
-    {
-      return NULL;
-    }
   }
 
 
@@ -1863,8 +2016,8 @@ namespace Orthanc
                                                  size_t size,
                                                  unsigned int frameIndex)
   {
-    std::unique_ptr<DicomInstanceToStore> instance(DicomInstanceToStore::CreateFromBuffer(dicom, size));
-    return DecodeDicomFrame(*instance, frameIndex);
+    std::unique_ptr<ParsedDicomFile> instance(new ParsedDicomFile(dicom, size));
+    return DecodeDicomFrame(*instance, dicom, size, frameIndex);
   }
   
 
@@ -1877,9 +2030,10 @@ namespace Orthanc
                                            uint16_t moveOriginatorId)
   {
     const void* data = dicom.empty() ? NULL : dicom.c_str();
-    
+    const RemoteModalityParameters& modality = connection.GetParameters().GetRemoteModality();
+
     if (!transcodeDicomProtocol_ ||
-        !connection.GetParameters().GetRemoteModality().IsTranscodingAllowed())
+        !modality.IsTranscodingAllowed())
     {
       connection.Store(sopClassUid, sopInstanceUid, data, dicom.size(),
                        hasMoveOriginator, moveOriginatorAet, moveOriginatorId);
@@ -1889,6 +2043,37 @@ namespace Orthanc
       connection.Transcode(sopClassUid, sopInstanceUid, *this, data, dicom.size(), preferredTransferSyntax_,
                            hasMoveOriginator, moveOriginatorAet, moveOriginatorId);
     }
+  }
+
+
+  bool ServerContext::TranscodeWithCache(std::string& target,
+                                         const std::string& source,
+                                         const std::string& sourceInstanceId,
+                                         const std::string& attachmentId,
+                                         DicomTransferSyntax targetSyntax)
+  {
+    StorageCache::Accessor cacheAccessor(storageCache_);
+
+    if (!cacheAccessor.FetchTranscodedInstance(target, attachmentId, targetSyntax))
+    {
+      IDicomTranscoder::DicomImage sourceDicom;
+      sourceDicom.SetExternalBuffer(source);
+
+      IDicomTranscoder::DicomImage targetDicom;
+      std::set<DicomTransferSyntax> syntaxes;
+      syntaxes.insert(targetSyntax);
+
+      if (Transcode(targetDicom, sourceDicom, syntaxes, true))
+      {
+        cacheAccessor.AddTranscodedInstance(attachmentId, targetSyntax, reinterpret_cast<const char*>(targetDicom.GetBufferData()), targetDicom.GetBufferSize());
+        target = std::string(reinterpret_cast<const char*>(targetDicom.GetBufferData()), targetDicom.GetBufferSize());
+        return true;
+      }
+
+      return false;
+    }
+
+    return true;
   }
 
 
@@ -1990,10 +2175,10 @@ namespace Orthanc
   {
     target = Json::objectValue;
 
-    target["Type"] = GetResourceTypeText(resource.type_, false, true);
-    target["ID"] = resource.id_;
+    target["Type"] = GetResourceTypeText(resource.GetLevel(), false, true);
+    target["ID"] = resource.GetPublicId();
 
-    switch (resource.type_)
+    switch (resource.GetLevel())
     {
       case ResourceType_Patient:
         break;
@@ -2014,7 +2199,7 @@ namespace Orthanc
         throw OrthancException(ErrorCode_InternalError);
     }
 
-    switch (resource.type_)
+    switch (resource.GetLevel())
     {
       case ResourceType_Patient:
       case ResourceType_Study:
@@ -2028,11 +2213,11 @@ namespace Orthanc
           c.append(*it);
         }
 
-        if (resource.type_ == ResourceType_Patient)
+        if (resource.GetLevel() == ResourceType_Patient)
         {
           target["Studies"] = c;
         }
-        else if (resource.type_ == ResourceType_Study)
+        else if (resource.GetLevel() == ResourceType_Study)
         {
           target["Series"] = c;
         }
@@ -2050,7 +2235,7 @@ namespace Orthanc
         throw OrthancException(ErrorCode_InternalError);
     }
 
-    switch (resource.type_)
+    switch (resource.GetLevel())
     {
       case ResourceType_Patient:
       case ResourceType_Study:
@@ -2099,9 +2284,9 @@ namespace Orthanc
       target["ModifiedFrom"] = resource.modifiedFrom_;
     }
 
-    if (resource.type_ == ResourceType_Patient ||
-        resource.type_ == ResourceType_Study ||
-        resource.type_ == ResourceType_Series)
+    if (resource.GetLevel() == ResourceType_Patient ||
+        resource.GetLevel() == ResourceType_Study ||
+        resource.GetLevel() == ResourceType_Series)
     {
       target["IsStable"] = resource.isStable_;
 
@@ -2117,15 +2302,15 @@ namespace Orthanc
     static const char* const PATIENT_MAIN_DICOM_TAGS = "PatientMainDicomTags";
 
     DicomMap mainDicomTags;
-    resource.tags_.ExtractResourceInformation(mainDicomTags, resource.type_);
+    resource.GetMainDicomTags().ExtractResourceInformation(mainDicomTags, resource.GetLevel());
 
     target[MAIN_DICOM_TAGS] = Json::objectValue;
     FromDcmtkBridge::ToJson(target[MAIN_DICOM_TAGS], mainDicomTags, format);
     
-    if (resource.type_ == ResourceType_Study)
+    if (resource.GetLevel() == ResourceType_Study)
     {
       DicomMap patientMainDicomTags;
-      resource.tags_.ExtractPatientInformation(patientMainDicomTags);
+      resource.GetMainDicomTags().ExtractPatientInformation(patientMainDicomTags);
 
       target[PATIENT_MAIN_DICOM_TAGS] = Json::objectValue;
       FromDcmtkBridge::ToJson(target[PATIENT_MAIN_DICOM_TAGS], patientMainDicomTags, format);
@@ -2136,13 +2321,23 @@ namespace Orthanc
       static const char* const REQUESTED_TAGS = "RequestedTags";
 
       DicomMap tags;
-      resource.tags_.ExtractTags(tags, requestedTags);
+      resource.GetMainDicomTags().ExtractTags(tags, requestedTags);
 
       target[REQUESTED_TAGS] = Json::objectValue;
       FromDcmtkBridge::ToJson(target[REQUESTED_TAGS], tags, format);
 
     }
 
+    {
+      Json::Value labels = Json::arrayValue;
+
+      for (std::set<std::string>::const_iterator it = resource.labels_.begin(); it != resource.labels_.end(); ++it)
+      {
+        labels.append(*it);
+      }
+
+      target["Labels"] = labels;
+    }
   }
 
 
@@ -2153,7 +2348,7 @@ namespace Orthanc
   {
     if (requestedTags.count(DICOM_TAG_INSTANCE_AVAILABILITY) > 0)
     {
-      resource.tags_.SetValue(DICOM_TAG_INSTANCE_AVAILABILITY, "ONLINE", false);
+      resource.GetMainDicomTags().SetValue(DICOM_TAG_INSTANCE_AVAILABILITY, "ONLINE", false);
       resource.missingRequestedTags_.erase(DICOM_TAG_INSTANCE_AVAILABILITY);
     }
   }
@@ -2171,7 +2366,7 @@ namespace Orthanc
 
       index.GetChildren(instances, seriesPublicId);
 
-      resource.tags_.SetValue(DICOM_TAG_NUMBER_OF_SERIES_RELATED_INSTANCES,
+      resource.GetMainDicomTags().SetValue(DICOM_TAG_NUMBER_OF_SERIES_RELATED_INSTANCES,
                               boost::lexical_cast<std::string>(instances.size()), false);
       resource.missingRequestedTags_.erase(DICOM_TAG_NUMBER_OF_SERIES_RELATED_INSTANCES);
     }
@@ -2216,13 +2411,13 @@ namespace Orthanc
       std::string modalities;
       Toolbox::JoinStrings(modalities, values, "\\");
 
-      resource.tags_.SetValue(DICOM_TAG_MODALITIES_IN_STUDY, modalities, false);
+      resource.GetMainDicomTags().SetValue(DICOM_TAG_MODALITIES_IN_STUDY, modalities, false);
       resource.missingRequestedTags_.erase(DICOM_TAG_MODALITIES_IN_STUDY);
     }
 
     if (hasNbRelatedSeries)
     {
-      resource.tags_.SetValue(DICOM_TAG_NUMBER_OF_STUDY_RELATED_SERIES,
+      resource.GetMainDicomTags().SetValue(DICOM_TAG_NUMBER_OF_STUDY_RELATED_SERIES,
                               boost::lexical_cast<std::string>(series.size()), false);
       resource.missingRequestedTags_.erase(DICOM_TAG_NUMBER_OF_STUDY_RELATED_SERIES);
     }
@@ -2240,7 +2435,7 @@ namespace Orthanc
 
       if (hasNbRelatedInstances)
       {
-        resource.tags_.SetValue(DICOM_TAG_NUMBER_OF_STUDY_RELATED_INSTANCES,
+        resource.GetMainDicomTags().SetValue(DICOM_TAG_NUMBER_OF_STUDY_RELATED_INSTANCES,
                                 boost::lexical_cast<std::string>(instances.size()), false);      
         resource.missingRequestedTags_.erase(DICOM_TAG_NUMBER_OF_STUDY_RELATED_INSTANCES);
       }
@@ -2264,7 +2459,7 @@ namespace Orthanc
         {
           std::string sopClassUids;
           Toolbox::JoinStrings(sopClassUids, values, "\\");
-          resource.tags_.SetValue(DICOM_TAG_SOP_CLASSES_IN_STUDY, sopClassUids, false);
+          resource.GetMainDicomTags().SetValue(DICOM_TAG_SOP_CLASSES_IN_STUDY, sopClassUids, false);
         }
 
         resource.missingRequestedTags_.erase(DICOM_TAG_SOP_CLASSES_IN_STUDY);
@@ -2291,7 +2486,7 @@ namespace Orthanc
 
     if (hasNbRelatedStudies)
     {
-      resource.tags_.SetValue(DICOM_TAG_NUMBER_OF_PATIENT_RELATED_STUDIES,
+      resource.GetMainDicomTags().SetValue(DICOM_TAG_NUMBER_OF_PATIENT_RELATED_STUDIES,
                               boost::lexical_cast<std::string>(studies.size()), false);
       resource.missingRequestedTags_.erase(DICOM_TAG_NUMBER_OF_PATIENT_RELATED_STUDIES);
     }
@@ -2308,7 +2503,7 @@ namespace Orthanc
 
       if (hasNbRelatedSeries)
       {
-        resource.tags_.SetValue(DICOM_TAG_NUMBER_OF_PATIENT_RELATED_SERIES,
+        resource.GetMainDicomTags().SetValue(DICOM_TAG_NUMBER_OF_PATIENT_RELATED_SERIES,
                                 boost::lexical_cast<std::string>(series.size()), false);
         resource.missingRequestedTags_.erase(DICOM_TAG_NUMBER_OF_PATIENT_RELATED_SERIES);
       }
@@ -2324,7 +2519,7 @@ namespace Orthanc
         instances.splice(instances.end(), thisInstancesIds);
       }
 
-      resource.tags_.SetValue(DICOM_TAG_NUMBER_OF_PATIENT_RELATED_INSTANCES,
+      resource.GetMainDicomTags().SetValue(DICOM_TAG_NUMBER_OF_PATIENT_RELATED_INSTANCES,
                               boost::lexical_cast<std::string>(instances.size()), false);
       resource.missingRequestedTags_.erase(DICOM_TAG_NUMBER_OF_PATIENT_RELATED_INSTANCES);
     }
@@ -2388,7 +2583,7 @@ namespace Orthanc
   {
     ExpandedResource resource;
 
-    if (ExpandResource(resource, publicId, mainDicomTags, instanceId, dicomAsJson, level, requestedTags, ExpandResourceDbFlags_Default, allowStorageAccess))
+    if (ExpandResource(resource, publicId, mainDicomTags, instanceId, dicomAsJson, level, requestedTags, ExpandResourceFlags_Default, allowStorageAccess))
     {
       SerializeExpandedResource(target, resource, format, requestedTags);
       return true;
@@ -2404,57 +2599,69 @@ namespace Orthanc
                                      const Json::Value* dicomAsJson,   // optional: the dicom-as-json for the resource (if already available)
                                      ResourceType level,
                                      const std::set<DicomTag>& requestedTags,
-                                     ExpandResourceDbFlags expandFlags,
+                                     ExpandResourceFlags expandFlags,
                                      bool allowStorageAccess)
   {
     // first try to get the tags from what is already available
     
-    if ((expandFlags & ExpandResourceDbFlags_IncludeMainDicomTags)
-      && (mainDicomTags.GetSize() > 0)
-      && (dicomAsJson != NULL))
+    if ((expandFlags & ExpandResourceFlags_IncludeMainDicomTags) &&
+        mainDicomTags.GetSize() > 0 &&
+        dicomAsJson != NULL)
     {
       
-      resource.tags_.Merge(mainDicomTags);
+      resource.GetMainDicomTags().Merge(mainDicomTags);
 
       if (dicomAsJson->isObject())
       {
-        resource.tags_.FromDicomAsJson(*dicomAsJson);
+        resource.GetMainDicomTags().FromDicomAsJson(*dicomAsJson);
       }
 
       std::set<DicomTag> retrievedTags;
       std::set<DicomTag> missingTags;
-      resource.tags_.GetTags(retrievedTags);
+      resource.GetMainDicomTags().GetTags(retrievedTags);
 
       Toolbox::GetMissingsFromSet(missingTags, requestedTags, retrievedTags);
 
       // if all possible tags have been read, no need to get them from DB anymore
-      if (missingTags.size() == 0 || DicomMap::HasOnlyComputedTags(missingTags))
+      if (missingTags.size() > 0 && DicomMap::HasOnlyComputedTags(missingTags))
       {
-        expandFlags = static_cast<ExpandResourceDbFlags>(expandFlags & ~ExpandResourceDbFlags_IncludeMainDicomTags);
+        resource.missingRequestedTags_ = missingTags;
+        ComputeTags(resource, *this, publicId, level, requestedTags);
+        return true;
+      }
+      else if (missingTags.size() == 0)
+      {
+        expandFlags = static_cast<ExpandResourceFlags>(expandFlags & ~ExpandResourceFlags_IncludeMainDicomTags);
       }
 
-      if (missingTags.size() == 0 && expandFlags == ExpandResourceDbFlags_None)  // we have already retrieved anything we need
+      if (missingTags.size() == 0 && expandFlags == ExpandResourceFlags_None)  // we have already retrieved anything we need
       {
         return true;
       }
     }
 
-    if (expandFlags != ExpandResourceDbFlags_None
-        && GetIndex().ExpandResource(resource, publicId, level, requestedTags, static_cast<ExpandResourceDbFlags>(expandFlags | ExpandResourceDbFlags_IncludeMetadata)))  // we always need the metadata to get the mainDicomTagsSignature
+    if (expandFlags != ExpandResourceFlags_None &&
+        GetIndex().ExpandResource(resource, publicId, level, requestedTags,
+                                  static_cast<ExpandResourceFlags>(expandFlags | ExpandResourceFlags_IncludeMetadata)))  // we always need the metadata to get the mainDicomTagsSignature
     {
       // check the main dicom tags list has not changed since the resource was stored
-      if (resource.mainDicomTagsSignature_ != DicomMap::GetMainDicomTagsSignature(resource.type_))
+      if (resource.mainDicomTagsSignature_ != DicomMap::GetMainDicomTagsSignature(resource.GetLevel()))
       {
         OrthancConfiguration::ReaderLock lock;
         if (lock.GetConfiguration().IsWarningEnabled(Warnings_002_InconsistentDicomTagsInDb))
         {
-          LOG(WARNING) << "W002: " << Orthanc::GetResourceTypeText(resource.type_, false , false) << " has been stored with another version of Main Dicom Tags list, you should POST to /" << Orthanc::GetResourceTypeText(resource.type_, true, false) << "/" << resource.id_ << "/reconstruct to update the list of tags saved in DB.  Some MainDicomTags might be missing from this answer.";
+          LOG(WARNING) << "W002: " << Orthanc::GetResourceTypeText(resource.GetLevel(), false , false)
+                       << " has been stored with another version of Main Dicom Tags list, you should POST to /"
+                       << Orthanc::GetResourceTypeText(resource.GetLevel(), true, false)
+                       << "/" << resource.GetPublicId()
+                       << "/reconstruct to update the list of tags saved in DB.  Some MainDicomTags might be missing from this answer.";
         }
       }
 
       // possibly merge missing requested tags from dicom-as-json
-      if (allowStorageAccess
-          && !resource.missingRequestedTags_.empty() && !DicomMap::HasOnlyComputedTags(resource.missingRequestedTags_))
+      if (allowStorageAccess &&
+          !resource.missingRequestedTags_.empty() &&
+          !DicomMap::HasOnlyComputedTags(resource.missingRequestedTags_))
       {
         OrthancConfiguration::ReaderLock lock;
         if (lock.GetConfiguration().IsWarningEnabled(Warnings_001_TagsBeingReadFromStorage))
@@ -2472,7 +2679,9 @@ namespace Orthanc
           std::string missings;
           FromDcmtkBridge::FormatListOfTags(missings, missingTags);
 
-          LOG(WARNING) << "W001: Accessing Dicom tags from storage when accessing " << Orthanc::GetResourceTypeText(resource.type_, false , false) << " : " << missings;
+          LOG(WARNING) << "W001: Accessing Dicom tags from storage when accessing "
+                       << Orthanc::GetResourceTypeText(resource.GetLevel(), false, false)
+                       << " : " << missings;
         }
 
 
@@ -2508,7 +2717,7 @@ namespace Orthanc
           tagsFromJson.FromDicomAsJson(*dicomAsJson, false /* append */, true /* parseSequences*/);
         }
 
-        resource.tags_.Merge(tagsFromJson);
+        resource.GetMainDicomTags().Merge(tagsFromJson);
       }
 
       // compute the requested tags
@@ -2520,6 +2729,14 @@ namespace Orthanc
     }
 
     return true;
+  }
+
+  int64_t ServerContext::GetServerUpTime() const
+  {
+    boost::posix_time::ptime nowUtc = boost::posix_time::second_clock::universal_time();
+    boost::posix_time::time_duration elapsed = nowUtc - serverStartTimeUtc_;
+
+    return elapsed.total_seconds();
   }
 
 }

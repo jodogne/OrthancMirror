@@ -3,8 +3,9 @@
 # Orthanc - A Lightweight, RESTful DICOM Store
 # Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
 # Department, University Hospital of Liege, Belgium
-# Copyright (C) 2017-2022 Osimis S.A., Belgium
-# Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+# Copyright (C) 2017-2023 Osimis S.A., Belgium
+# Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+# Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
 #
 # This program is free software: you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public License
@@ -122,7 +123,7 @@ path = os.path.join(BASE, 'OrthancFramework', 'Sources', 'SQLite', 'OrthancSQLit
 with open(path, 'r') as f:
     a = f.read()
 
-e = filter(lambda x: 'SQLite' in x and x['SQLite'], ERRORS)
+e = list(filter(lambda x: 'SQLite' in x and x['SQLite'], ERRORS))
 s = ',\n'.join(map(lambda x: '      ErrorCode_%s' % x['Name'], e))
 a = re.sub('(enum ErrorCode\s*{)[^}]*?(\s*};)', r'\1\n%s\2' % s, a, re.DOTALL)
 

@@ -2,8 +2,9 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -22,7 +23,7 @@
 
 #pragma once
 
-#include "IDatabaseWrapper.h"
+#include "BaseDatabaseWrapper.h"
 
 #include "../../../OrthancFramework/Sources/SQLite/Connection.h"
 
@@ -35,7 +36,7 @@ namespace Orthanc
    * translates low-level requests into SQL statements. Mutual
    * exclusion MUST be implemented at a higher level.
    **/
-  class SQLiteDatabaseWrapper : public IDatabaseWrapper
+  class SQLiteDatabaseWrapper : public BaseDatabaseWrapper
   {
   private:
     class TransactionBase;
@@ -51,6 +52,7 @@ namespace Orthanc
     TransactionBase*          activeTransaction_;
     SignalRemainingAncestor*  signalRemainingAncestor_;
     unsigned int              version_;
+    IDatabaseWrapper::Capabilities  dbCapabilities_;
 
     void GetChangesInternal(std::list<ServerIndexChange>& target,
                             bool& done,
@@ -79,11 +81,6 @@ namespace Orthanc
 
     virtual void FlushToDisk() ORTHANC_OVERRIDE;
 
-    virtual bool HasFlushToDisk() const ORTHANC_OVERRIDE
-    {
-      return true;
-    }
-
     virtual unsigned int GetDatabaseVersion() ORTHANC_OVERRIDE
     {
       return version_;
@@ -92,14 +89,14 @@ namespace Orthanc
     virtual void Upgrade(unsigned int targetVersion,
                          IStorageArea& storageArea) ORTHANC_OVERRIDE;
 
-    virtual bool HasRevisionsSupport() const ORTHANC_OVERRIDE
+    virtual const Capabilities GetDatabaseCapabilities() const ORTHANC_OVERRIDE
     {
-      return true;
+      return dbCapabilities_;
     }
 
-    virtual bool HasAttachmentCustomDataSupport() const ORTHANC_OVERRIDE
+    virtual uint64_t MeasureLatency() ORTHANC_OVERRIDE
     {
-      return true;
+      throw OrthancException(ErrorCode_NotImplemented);
     }
 
     /**
@@ -108,7 +105,7 @@ namespace Orthanc
      * "UnitTestsTransaction" give access to additional information
      * about the underlying SQLite database to be used in unit tests.
      **/
-    class UnitTestsTransaction : public ITransaction
+    class UnitTestsTransaction : public BaseDatabaseWrapper::BaseTransaction
     {
     protected:
       SQLite::Connection& db_;

@@ -2,8 +2,9 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -35,6 +36,7 @@
 #include "../../OrthancFramework/Sources/FileStorage/StorageCache.h"
 #include "../../OrthancFramework/Sources/MultiThreading/Semaphore.h"
 
+#include <boost/date_time/posix_time/posix_time.hpp>
 
 namespace Orthanc
 {
@@ -138,6 +140,11 @@ namespace Orthanc
         context_.mainLua_.SignalChange(change);
       }
 
+      virtual void SignalJobEvent(const JobEvent& event) ORTHANC_OVERRIDE
+      {
+        context_.mainLua_.SignalJobEvent(event);
+      }
+
       virtual bool FilterIncomingInstance(const DicomInstanceToStore& instance,
                                           const Json::Value& simplified) ORTHANC_OVERRIDE
       {
@@ -183,8 +190,16 @@ namespace Orthanc
     static void ChangeThread(ServerContext* that,
                              unsigned int sleepDelay);
 
+    static void JobEventsThread(ServerContext* that,
+                                unsigned int sleepDelay);
+
     static void SaveJobsThread(ServerContext* that,
                                unsigned int sleepDelay);
+
+#if HAVE_MALLOC_TRIM == 1
+    static void MemoryTrimmingThread(ServerContext* that,
+                                     unsigned int intervalInSeconds);
+#endif
 
     void SaveJobsEngine();
 
@@ -227,8 +242,11 @@ namespace Orthanc
     bool haveJobsChanged_;
     bool isJobsEngineUnserialized_;
     SharedMessageQueue  pendingChanges_;
+    SharedMessageQueue  pendingJobEvents_;
     boost::thread  changeThread_;
+    boost::thread  jobEventsThread_;
     boost::thread  saveJobsThread_;
+    boost::thread  memoryTrimmingThread_;
         
     std::unique_ptr<SharedArchive>  queryRetrieveArchive_;
     std::string defaultLocalAet_;
@@ -241,6 +259,7 @@ namespace Orthanc
     std::unique_ptr<MetricsRegistry>  metricsRegistry_;
     bool isHttpServerSecure_;
     bool isExecuteLuaEnabled_;
+    bool isRestApiWriteToFileSystemEnabled_;
     bool overwriteInstances_;
 
     std::unique_ptr<StorageCommitmentReports>  storageCommitmentReports_;
@@ -264,8 +283,6 @@ namespace Orthanc
                                       StoreInstanceMode mode,
                                       bool isReconstruct);
 
-    void PublishDicomCacheMetrics();
-
     // This method must only be called from "ServerIndex"!
     void RemoveFile(const std::string& fileUuid,
                     FileContentType type,
@@ -277,6 +294,8 @@ namespace Orthanc
     DicomModification logsDeidentifierRules_;
     bool              deidentifyLogs_;
 
+    boost::posix_time::ptime serverStartTimeUtc_;
+
   public:
     class DicomCacheLocker : public boost::noncopyable
     {
@@ -287,6 +306,7 @@ namespace Orthanc
       std::unique_ptr<ParsedDicomFile>             dicom_;
       size_t                                       dicomSize_;
       std::unique_ptr<Semaphore::Locker>           largeDicomLocker_;
+      std::string                                  buffer_;
 
     public:
       DicomCacheLocker(ServerContext& context,
@@ -295,6 +315,8 @@ namespace Orthanc
       ~DicomCacheLocker();
 
       ParsedDicomFile& GetDicom() const;
+
+      const std::string& GetBuffer();
     };
 
     ServerContext(IDatabaseWrapper& database,
@@ -362,6 +384,10 @@ namespace Orthanc
     void ReadDicom(std::string& dicom,
                    const std::string& instancePublicId);
 
+    void ReadDicom(std::string& dicom,
+                   std::string& attachmentId,
+                   const std::string& instancePublicId);
+
     void ReadDicomForHeader(std::string& dicom,
                             const std::string& instancePublicId);
 
@@ -371,6 +397,7 @@ namespace Orthanc
     // This method is for low-level operations on "/instances/.../attachments/..."
     void ReadAttachment(std::string& result,
                         int64_t& revision,
+                        std::string& attachmentId,
                         const std::string& instancePublicId,
                         FileContentType content,
                         bool uncompressIfNeeded,
@@ -424,8 +451,19 @@ namespace Orthanc
     void Apply(ILookupVisitor& visitor,
                const DatabaseLookup& lookup,
                ResourceType queryLevel,
+               const std::set<std::string>& labels,
+               LabelsConstraint labelsConstraint,
                size_t since,
                size_t limit);
+
+    void Apply(ILookupVisitor& visitor,
+               const DatabaseLookup& lookup,
+               ResourceType queryLevel,
+               size_t since,
+               size_t limit)
+    {
+      Apply(visitor, lookup, queryLevel, std::set<std::string>(), LabelsConstraint_All, since, limit);
+    }
 
     bool LookupOrReconstructMetadata(std::string& target,
                                      const std::string& publicId,
@@ -481,6 +519,16 @@ namespace Orthanc
       return isExecuteLuaEnabled_;
     }
 
+    void SetRestApiWriteToFileSystemEnabled(bool enabled)
+    {
+      isRestApiWriteToFileSystemEnabled_ = enabled;
+    }
+
+    bool IsRestApiWriteToFileSystemEnabled() const
+    {
+      return isRestApiWriteToFileSystemEnabled_;
+    }
+
     void SetOverwriteInstances(bool overwrite)
     {
       overwriteInstances_ = overwrite;
@@ -513,7 +561,12 @@ namespace Orthanc
     ImageAccessor* DecodeDicomFrame(const void* dicom,
                                     size_t size,
                                     unsigned int frameIndex);
-    
+
+    ImageAccessor* DecodeDicomFrame(const ParsedDicomFile& parsedDicom,
+                                    const void* buffer,  // actually the buffer that is the source of the ParsedDicomFile
+                                    size_t size,
+                                    unsigned int frameIndex);
+
     void StoreWithTranscoding(std::string& sopClassUid,
                               std::string& sopInstanceUid,
                               DicomStoreUserConnection& connection,
@@ -528,6 +581,12 @@ namespace Orthanc
                            DicomImage& source /* in, "GetParsed()" possibly modified */,
                            const std::set<DicomTransferSyntax>& allowedSyntaxes,
                            bool allowNewSopInstanceUid) ORTHANC_OVERRIDE;
+
+    virtual bool TranscodeWithCache(std::string& target,
+                                    const std::string& source,
+                                    const std::string& sourceInstanceId,
+                                    const std::string& attachmentId, // for the storage cache
+                                    DicomTransferSyntax targetSyntax);
 
     bool IsTranscodeDicomProtocol() const
     {
@@ -568,12 +627,16 @@ namespace Orthanc
                         const Json::Value* dicomAsJson,   // optional: the dicom-as-json for the resource
                         ResourceType level,
                         const std::set<DicomTag>& requestedTags,
-                        ExpandResourceDbFlags expandFlags,
+                        ExpandResourceFlags expandFlags,
                         bool allowStorageAccess);
 
     FindStorageAccessMode GetFindStorageAccessMode() const
     {
       return findStorageAccessMode_;
     }
+
+    int64_t GetServerUpTime() const;
+
+    void PublishCacheMetrics();
   };
 }

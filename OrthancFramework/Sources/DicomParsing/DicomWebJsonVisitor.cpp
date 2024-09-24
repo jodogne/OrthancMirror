@@ -2,8 +2,9 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -436,7 +437,7 @@ namespace Orthanc
         /**
          * The test on "size > 0" is new in Orthanc 1.9.3, and fixes
          * issue #195 (No need for BulkDataURI when Data Element is
-         * empty): https://bugs.orthanc-server.com/show_bug.cgi?id=195
+         * empty): https://orthanc.uclouvain.be/bugs/show_bug.cgi?id=195
          **/
         if (size > 0 ||
             tag == DICOM_TAG_PIXEL_DATA ||

@@ -2,8 +2,9 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -67,6 +68,8 @@
 #  include <pugixml.hpp>
 #endif
 
+#include <boost/date_time/posix_time/posix_time.hpp>
+
 
 namespace Orthanc
 {
@@ -119,6 +122,8 @@ namespace Orthanc
     static std::string FlattenUri(const UriComponents& components,
                                   size_t fromLevel = 0);
 
+    static std::string JoinUri(const std::string& base, const std::string& uri);
+    
 #if ORTHANC_ENABLE_MD5 == 1
     static void ComputeMD5(std::string& result,
                            const std::string& data);
@@ -126,6 +131,9 @@ namespace Orthanc
     static void ComputeMD5(std::string& result,
                            const void* data,
                            size_t size);
+
+    static void ComputeMD5(std::string& result,
+                           const std::set<std::string>& data);
 #endif
 
     static void ComputeSHA1(std::string& result,
@@ -181,16 +189,27 @@ namespace Orthanc
 
     static std::string WildcardToRegularExpression(const std::string& s);
 
+    // TokenizeString result might contain empty strings (not SplitString)
     static void TokenizeString(std::vector<std::string>& result,
                                const std::string& source,
                                char separator);
 
+    // SplitString result won't contain empty strings (compared to TokenizeString)
+    static void SplitString(std::vector<std::string>& result,
+                            const std::string& source,
+                            char separator);
+
+    // SplitString result won't contain empty strings (compared to TokenizeString)
+    static void SplitString(std::set<std::string>& result,
+                            const std::string& source,
+                            char separator);
+
     static void JoinStrings(std::string& result,
-                            std::set<std::string>& source,
+                            const std::set<std::string>& source,
                             const char* separator);
 
     static void JoinStrings(std::string& result,
-                            std::vector<std::string>& source,
+                            const std::vector<std::string>& source,
                             const char* separator);
 
     // returns true if all element of 'needles' are found in 'haystack'
@@ -242,6 +261,22 @@ namespace Orthanc
         target.erase(*it);
       }
     }
+
+    // returns true if all element of 'needles' are found in 'haystack'
+    template <typename T> static void GetIntersection(std::set<T>& target, const std::set<T>& a, const std::set<T>& b)
+    {
+      target.clear();
+
+      for (typename std::set<T>::const_iterator it = a.begin();
+            it != a.end(); ++it)
+      {
+        if (b.count(*it) > 0)
+        {
+          target.insert(*it);
+        }
+      }
+    }
+
 
 #if ORTHANC_ENABLE_PUGIXML == 1
     static void JsonToXml(std::string& target,
@@ -341,6 +376,56 @@ namespace Orthanc
                                 const Json::Value& source);
 
     static void RemoveSurroundingQuotes(std::string& value);
+
+    class ORTHANC_PUBLIC ElapsedTimer
+    {
+      boost::posix_time::ptime  start_;
+    public:
+      explicit ElapsedTimer();
+
+      uint64_t GetElapsedMilliseconds();
+      uint64_t GetElapsedMicroseconds();
+      uint64_t GetElapsedNanoseconds();
+      
+      std::string GetHumanElapsedDuration();
+      std::string GetHumanTransferSpeed(bool full, uint64_t sizeInBytes);
+      
+      void Restart();
+    };
+
+    // This is a helper class to measure and log time spend e.g in a method.
+    // This should be used only during debugging and should likely not ever used in a release.
+    // By default, you should use it as a RAII but you may force Restart/StopAndLog manually if needed.
+    class ORTHANC_PUBLIC ElapsedTimeLogger
+    {
+    private:
+      ElapsedTimer      timer_;
+      const std::string message_;
+      bool logged_;
+
+    public:
+      explicit ElapsedTimeLogger(const std::string& message);
+      ~ElapsedTimeLogger();  
+
+      void Restart();
+      void StopAndLog();
+    };
+
+    static std::string GetHumanFileSize(uint64_t sizeInBytes);
+
+    static std::string GetHumanDuration(uint64_t durationInNanoseconds);
+
+    static std::string GetHumanTransferSpeed(bool full, uint64_t sizeInBytes, uint64_t durationInNanoseconds);
+
+    static bool ParseVersion(unsigned int& major,
+                             unsigned int& minor,
+                             unsigned int& revision,
+                             const char* version);
+
+    static bool IsVersionAbove(const char* version,
+                               unsigned int major,
+                               unsigned int minor,
+                               unsigned int revision);
   };
 }
 

@@ -2,8 +2,9 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -248,6 +249,8 @@ namespace Orthanc
   {
     std::unique_ptr<DcmDataset> target(new DcmDataset);
 
+    std::string currentPrivateCreator = "";
+
     for (std::set<DicomTag>::const_iterator it = flatTags_.begin();
          it != flatTags_.end(); ++it)
     {
@@ -257,13 +260,19 @@ namespace Orthanc
       if (source.findAndGetElement(tag, element).good() &&
           element != NULL)
       {
-        if (it->IsPrivate())
+        if (tag.isPrivateReservation())
         {
-          throw OrthancException(ErrorCode_NotImplemented,
-                                 "Not applicable to private tags: " + it->Format());
+          OFString privateCreator;
+          element->getOFString(privateCreator, 0, false);
+          currentPrivateCreator = privateCreator.c_str();
         }
-        
-        std::unique_ptr<DcmElement> cloned(FromDcmtkBridge::CreateElementForTag(*it, "" /* no private creator */));
+        else if (!it->IsPrivate())
+        {
+          // reset the private creator as soon as we reach the end of the current private block
+          currentPrivateCreator = "";
+        }
+
+        std::unique_ptr<DcmElement> cloned(FromDcmtkBridge::CreateElementForTag(*it, currentPrivateCreator.c_str()));
         cloned->copyFrom(*element);
         target->insert(cloned.release());
       }

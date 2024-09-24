@@ -2,8 +2,9 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -42,6 +43,9 @@ static const std::string ORTHANC_DEIDENTIFICATION_METHOD_2017c =
 
 static const std::string ORTHANC_DEIDENTIFICATION_METHOD_2021b =
   "Orthanc " ORTHANC_VERSION " - PS 3.15-2021b Table E.1-1 Basic Profile";
+
+static const std::string ORTHANC_DEIDENTIFICATION_METHOD_2023b =
+  "Orthanc " ORTHANC_VERSION " - PS 3.15-2023b Table E.1-1 Basic Profile";
 
 namespace Orthanc
 {
@@ -314,7 +318,7 @@ namespace Orthanc
                * data sets including:
                * https://wiki.cancerimagingarchive.net/display/Public/Lung+CT+Segmentation+Challenge+2017)
                * Tested in "test_anonymize_relationships_5". Introduced
-               * in: https://hg.orthanc-server.com/orthanc/rev/3513
+               * in: https://orthanc.uclouvain.be/hg/orthanc/rev/3513
                **/
               newValue = that_.MapDicomIdentifier(value, ResourceType_Study);
             }
@@ -427,7 +431,8 @@ namespace Orthanc
 
       if (it->second->asString() == ORTHANC_DEIDENTIFICATION_METHOD_2008 ||
           it->second->asString() == ORTHANC_DEIDENTIFICATION_METHOD_2017c ||
-          it->second->asString() == ORTHANC_DEIDENTIFICATION_METHOD_2021b)
+          it->second->asString() == ORTHANC_DEIDENTIFICATION_METHOD_2021b ||
+          it->second->asString() == ORTHANC_DEIDENTIFICATION_METHOD_2023b)
       {
         delete it->second;
         replacements_.erase(it);
@@ -521,6 +526,7 @@ namespace Orthanc
   
   DicomModification::DicomModification() :
     removePrivateTags_(false),
+    keepLabels_(false),
     level_(ResourceType_Instance),
     allowManualIdentifiers_(true),
     keepStudyInstanceUid_(false),
@@ -540,6 +546,7 @@ namespace Orthanc
 
   void DicomModification::Keep(const DicomTag& tag)
   {
+    keep_.insert(tag);
     removals_.erase(tag);
     clearings_.erase(tag);
     uids_.erase(tag);
@@ -636,6 +643,11 @@ namespace Orthanc
     return replacements_.find(tag) != replacements_.end();
   }
 
+  bool DicomModification::IsKept(const DicomTag& tag) const
+  {
+    return keep_.find(tag) != keep_.end();
+  }
+
   const Json::Value& DicomModification::GetReplacement(const DicomTag& tag) const
   {
     Replacements::const_iterator it = replacements_.find(tag);
@@ -682,6 +694,16 @@ namespace Orthanc
     return removePrivateTags_;
   }
 
+  void DicomModification::SetKeepLabels(bool keep)
+  {
+    keepLabels_ = keep;
+  }
+
+  bool DicomModification::AreLabelsKept() const
+  {
+    return keepLabels_;
+  }
+
   void DicomModification::SetLevel(ResourceType level)
   {
     uidMap_.clear();
@@ -714,7 +736,7 @@ namespace Orthanc
      * Values below come from the hardcoded UID of Orthanc 1.9.3
      * in DicomModification::RelationshipsVisitor::VisitString() and
      * DicomModification::RelationshipsVisitor::RemoveRelationships()
-     * https://hg.orthanc-server.com/orthanc/file/Orthanc-1.9.3/OrthancFramework/Sources/DicomParsing/DicomModification.cpp#l117
+     * https://orthanc.uclouvain.be/hg/orthanc/file/Orthanc-1.9.3/OrthancFramework/Sources/DicomParsing/DicomModification.cpp#l117
      **/
     uids_.clear();
 
@@ -825,9 +847,6 @@ namespace Orthanc
      * generated automatically by calling:
      * "../../../OrthancServer/Resources/GenerateAnonymizationProfile.py
      * https://raw.githubusercontent.com/jodogne/dicom-specification/master/2021b/part15.xml"
-     *
-     * http://dicom.nema.org/medical/dicom/2021b/output/chtml/part15/chapter_E.html#table_E.1-1a
-     * http://dicom.nema.org/medical/dicom/2021b/output/chtml/part15/chapter_E.html#table_E.1-1
      **/
     
 #include "DicomModification_Anonymization2021b.impl.h"
@@ -837,10 +856,31 @@ namespace Orthanc
   }
   
 
+  void DicomModification::SetupAnonymization2023b()
+  {
+    /**
+     * This is Table E.1-1 from PS 3.15-2023b (DICOM Part 15: Security
+     * and System Management Profiles), "basic profile" column. It was
+     * generated automatically by calling:
+     * "../../../OrthancServer/Resources/GenerateAnonymizationProfile.py
+     * https://raw.githubusercontent.com/jodogne/dicom-specification/master/2023b/part15.xml"
+     *
+     * http://dicom.nema.org/medical/dicom/current/output/chtml/part15/chapter_E.html#table_E.1-1a
+     * http://dicom.nema.org/medical/dicom/current/output/chtml/part15/chapter_E.html#table_E.1-1
+     **/
+    
+#include "DicomModification_Anonymization2023b.impl.h"
+    
+    // Set the DeidentificationMethod tag
+    ReplaceInternal(DICOM_TAG_DEIDENTIFICATION_METHOD, ORTHANC_DEIDENTIFICATION_METHOD_2023b);
+  }
+  
+
   void DicomModification::SetupAnonymization(DicomVersion version)
   {
     isAnonymization_ = true;
     
+    keep_.clear();
     removals_.clear();
     clearings_.clear();
     removedRanges_.clear();
@@ -865,6 +905,10 @@ namespace Orthanc
 
       case DicomVersion_2021b:
         SetupAnonymization2021b();
+        break;
+
+      case DicomVersion_2023b:
+        SetupAnonymization2023b();
         break;
 
       default:
@@ -918,22 +962,12 @@ namespace Orthanc
         IsRemoved(DICOM_TAG_SERIES_INSTANCE_UID) ||
         IsRemoved(DICOM_TAG_SOP_INSTANCE_UID))
     {
-      throw OrthancException(ErrorCode_BadRequest);
+      throw OrthancException(ErrorCode_BadRequest, "It is forbidden to remove one of the main Dicom identifiers");
     }
     
-
-    // Sanity checks at the patient level
-    bool isReplacedPatientId = (IsReplaced(DICOM_TAG_PATIENT_ID) ||
-                                uids_.find(DICOM_TAG_PATIENT_ID) != uids_.end());
-    
-    if (level_ == ResourceType_Patient && !isReplacedPatientId)
-    {
-      throw OrthancException(ErrorCode_BadRequest,
-                             "When modifying a patient, her PatientID is required to be modified");
-    }
-
     if (!allowManualIdentifiers_)
     {
+       // Sanity checks at the patient level
       if (level_ == ResourceType_Patient && IsReplaced(DICOM_TAG_STUDY_INSTANCE_UID))
       {
         throw OrthancException(ErrorCode_BadRequest,
@@ -951,18 +985,8 @@ namespace Orthanc
         throw OrthancException(ErrorCode_BadRequest,
                                "When modifying a patient, the SopInstanceUID cannot be manually modified");
       }
-    }
 
-
-    // Sanity checks at the study level
-    if (level_ == ResourceType_Study && isReplacedPatientId)
-    {
-      throw OrthancException(ErrorCode_BadRequest,
-                             "When modifying a study, the parent PatientID cannot be manually modified");
-    }
-
-    if (!allowManualIdentifiers_)
-    {
+      // Sanity checks at the study level
       if (level_ == ResourceType_Study && IsReplaced(DICOM_TAG_SERIES_INSTANCE_UID))
       {
         throw OrthancException(ErrorCode_BadRequest,
@@ -974,24 +998,8 @@ namespace Orthanc
         throw OrthancException(ErrorCode_BadRequest,
                                "When modifying a study, the SopInstanceUID cannot be manually modified");
       }
-    }
 
-
-    // Sanity checks at the series level
-    if (level_ == ResourceType_Series && isReplacedPatientId)
-    {
-      throw OrthancException(ErrorCode_BadRequest,
-                             "When modifying a series, the parent PatientID cannot be manually modified");
-    }
-
-    if (level_ == ResourceType_Series && IsReplaced(DICOM_TAG_STUDY_INSTANCE_UID))
-    {
-      throw OrthancException(ErrorCode_BadRequest,
-                             "When modifying a series, the parent StudyInstanceUID cannot be manually modified");
-    }
-
-    if (!allowManualIdentifiers_)
-    {
+      // Sanity checks at the series level
       if (level_ == ResourceType_Series && IsReplaced(DICOM_TAG_SOP_INSTANCE_UID))
       {
         throw OrthancException(ErrorCode_BadRequest,
@@ -999,25 +1007,6 @@ namespace Orthanc
       }
     }
 
-
-    // Sanity checks at the instance level
-    if (level_ == ResourceType_Instance && isReplacedPatientId)
-    {
-      throw OrthancException(ErrorCode_BadRequest,
-                             "When modifying an instance, the parent PatientID cannot be manually modified");
-    }
-
-    if (level_ == ResourceType_Instance && IsReplaced(DICOM_TAG_STUDY_INSTANCE_UID))
-    {
-      throw OrthancException(ErrorCode_BadRequest,
-                             "When modifying an instance, the parent StudyInstanceUID cannot be manually modified");
-    }
-
-    if (level_ == ResourceType_Instance && IsReplaced(DICOM_TAG_SERIES_INSTANCE_UID))
-    {
-      throw OrthancException(ErrorCode_BadRequest,
-                             "When modifying an instance, the parent SeriesInstanceUID cannot be manually modified");
-    }
 
     // (0) Create a summary of the source file, if a custom generator
     // is provided
@@ -1296,6 +1285,11 @@ namespace Orthanc
       SetRemovePrivateTags(true);
     }
 
+    if (GetBooleanValue("KeepLabels", request, false))
+    {
+      SetKeepLabels(true);
+    }
+
     if (request.isMember("Remove"))
     {
       ParseListOfTags(*this, request["Remove"], TagOperation_Remove, force);
@@ -1321,6 +1315,62 @@ namespace Orthanc
     {
       privateCreator_ = SerializationToolbox::ReadString(request, "PrivateCreator");
     }
+
+    if (!force)
+    {
+      /**
+       * Sanity checks about the manual replacement of DICOM
+       * identifiers. Those checks were part of
+       * "DicomModification::Apply()" in Orthanc <= 1.11.2, and
+       * couldn't be disabled even if using the "Force" flag. Check
+       * out:
+       * https://groups.google.com/g/orthanc-users/c/xMUUZAnBa5g/m/WCEu-U2NBQAJ
+       **/
+      bool isReplacedPatientId = (IsReplaced(DICOM_TAG_PATIENT_ID) ||
+                                  uids_.find(DICOM_TAG_PATIENT_ID) != uids_.end());
+    
+      if (level_ == ResourceType_Patient && !isReplacedPatientId)
+      {
+        throw OrthancException(ErrorCode_BadRequest,
+                               "When modifying a patient, her PatientID is required to be modified.");
+      }
+
+      if (level_ == ResourceType_Study && isReplacedPatientId)
+      {
+        throw OrthancException(ErrorCode_BadRequest,
+                               "When modifying a study, the parent PatientID cannot be manually modified");
+      }
+
+      if (level_ == ResourceType_Series && isReplacedPatientId)
+      {
+        throw OrthancException(ErrorCode_BadRequest,
+                               "When modifying a series, the parent PatientID cannot be manually modified");
+      }
+
+      if (level_ == ResourceType_Series && IsReplaced(DICOM_TAG_STUDY_INSTANCE_UID))
+      {
+        throw OrthancException(ErrorCode_BadRequest,
+                               "When modifying a series, the parent StudyInstanceUID cannot be manually modified");
+      }
+
+      if (level_ == ResourceType_Instance && isReplacedPatientId)
+      {
+        throw OrthancException(ErrorCode_BadRequest,
+                               "When modifying an instance, the parent PatientID cannot be manually modified");
+      }
+      
+      if (level_ == ResourceType_Instance && IsReplaced(DICOM_TAG_STUDY_INSTANCE_UID))
+      {
+        throw OrthancException(ErrorCode_BadRequest,
+                               "When modifying an instance, the parent StudyInstanceUID cannot be manually modified");
+      }
+
+      if (level_ == ResourceType_Instance && IsReplaced(DICOM_TAG_SERIES_INSTANCE_UID))
+      {
+        throw OrthancException(ErrorCode_BadRequest,
+                               "When modifying an instance, the parent SeriesInstanceUID cannot be manually modified");
+      }
+    }
   }
 
 
@@ -1336,7 +1386,9 @@ namespace Orthanc
       
     // DicomVersion version = DicomVersion_2008;   // For Orthanc <= 1.2.0
     // DicomVersion version = DicomVersion_2017c;  // For Orthanc between 1.3.0 and 1.9.3
-    DicomVersion version = DicomVersion_2021b;     // For Orthanc >= 1.9.4
+    // DicomVersion version = DicomVersion_2021b;  // For Orthanc >= 1.9.4
+    DicomVersion version = DicomVersion_2023b;     // For Orthanc >= 1.12.1
+    
     if (request.isMember("DicomVersion"))
     {
       if (request["DicomVersion"].type() != Json::stringValue)
@@ -1354,6 +1406,11 @@ namespace Orthanc
     if (GetBooleanValue("KeepPrivateTags", request, false))
     {
       SetRemovePrivateTags(false);
+    }
+
+    if (GetBooleanValue("KeepLabels", request, false))
+    {
+      SetKeepLabels(true);
     }
 
     if (request.isMember("Remove"))
@@ -1585,7 +1642,7 @@ namespace Orthanc
        * 1.5.0 and 1.6.1. This compatibility was broken between 1.7.0
        * and 1.9.3: Indeed, an exception was thrown in "ReadBoolean()"
        * if "KEEP_SOP_INSTANCE_UID" was absent, because of changeset:
-       * https://hg.orthanc-server.com/orthanc/rev/3860
+       * https://orthanc.uclouvain.be/hg/orthanc/rev/3860
        **/
       keepSopInstanceUid_ = false;
     }
@@ -1829,5 +1886,14 @@ namespace Orthanc
              !keepSeriesInstanceUid_) ||
             (tag == DICOM_TAG_SOP_INSTANCE_UID &&
              !keepSopInstanceUid_));
+  }
+
+  void DicomModification::GetReplacedTags(std::set<DicomTag>& target) const
+  {
+    target.clear();
+    for (Replacements::const_iterator it = replacements_.begin(); it != replacements_.end(); ++it)
+    {
+      target.insert(it->first);
+    }
   }
 }

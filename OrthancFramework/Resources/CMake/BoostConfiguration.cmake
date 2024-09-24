@@ -1,8 +1,9 @@
 # Orthanc - A Lightweight, RESTful DICOM Store
 # Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
 # Department, University Hospital of Liege, Belgium
-# Copyright (C) 2017-2022 Osimis S.A., Belgium
-# Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+# Copyright (C) 2017-2023 Osimis S.A., Belgium
+# Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+# Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
 #
 # This program is free software: you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public License
@@ -54,7 +55,7 @@ else()
   
   # Patch by xnox to fix issue #166 (CMake find_boost version is now
   # broken with newer boost/cmake)
-  # https://bugs.orthanc-server.com/show_bug.cgi?id=166
+  # https://orthanc.uclouvain.be/bugs/show_bug.cgi?id=166
   if (POLICY CMP0093)
     set(BOOST144 1.44)
   else()
@@ -90,11 +91,11 @@ if (BOOST_STATIC AND NOT USE_LEGACY_BOOST)
   ## Parameters for static compilation of Boost 
   ##
   
-  set(BOOST_NAME boost_1_80_0)
-  set(BOOST_VERSION 1.80.0)
-  set(BOOST_BCP_SUFFIX bcpdigest-1.11.2)
-  set(BOOST_MD5 "7734e19f9a39a4411b807a9913e4a5ff")
-  set(BOOST_URL "http://orthanc.osimis.io/ThirdPartyDownloads/${BOOST_NAME}_${BOOST_BCP_SUFFIX}.tar.gz")
+  set(BOOST_NAME boost_1_85_0)
+  set(BOOST_VERSION 1.85.0)
+  set(BOOST_BCP_SUFFIX bcpdigest-1.12.4)
+  set(BOOST_MD5 "1017e9c8383efdea01c059a8d3cc4dda")
+  set(BOOST_URL "https://orthanc.uclouvain.be/downloads/third-party-downloads/${BOOST_NAME}_${BOOST_BCP_SUFFIX}.tar.gz")
   set(BOOST_SOURCES_DIR ${CMAKE_BINARY_DIR}/${BOOST_NAME})
 
   if (IS_DIRECTORY "${BOOST_SOURCES_DIR}")
@@ -104,6 +105,25 @@ if (BOOST_STATIC AND NOT USE_LEGACY_BOOST)
   endif()
 
   DownloadPackage(${BOOST_MD5} ${BOOST_URL} "${BOOST_SOURCES_DIR}")
+
+
+  ##
+  ## Apply the patches to remove threads from boost::locale (required
+  ## since around Emscripten 3.x)
+  ##
+
+  if (FirstRun)
+    execute_process(
+      COMMAND ${PATCH_EXECUTABLE} -p0 -N -i
+      ${CMAKE_CURRENT_LIST_DIR}/../Patches/boost-1.85.0-emscripten.patch
+      WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+      RESULT_VARIABLE Failure
+      )
+
+    if (Failure)
+      message(FATAL_ERROR "Error while patching a file")
+    endif()
+  endif()
 
 
   ##
@@ -300,6 +320,7 @@ if (BOOST_STATIC AND NOT USE_LEGACY_BOOST)
       ${BOOST_SOURCES_DIR}/libs/locale/src/boost/locale/icu/conversion.cpp
       ${BOOST_SOURCES_DIR}/libs/locale/src/boost/locale/icu/date_time.cpp
       ${BOOST_SOURCES_DIR}/libs/locale/src/boost/locale/icu/formatter.cpp
+      ${BOOST_SOURCES_DIR}/libs/locale/src/boost/locale/icu/formatters_cache.cpp
       ${BOOST_SOURCES_DIR}/libs/locale/src/boost/locale/icu/icu_backend.cpp
       ${BOOST_SOURCES_DIR}/libs/locale/src/boost/locale/icu/numeric.cpp
       ${BOOST_SOURCES_DIR}/libs/locale/src/boost/locale/icu/time_zone.cpp
@@ -310,12 +331,14 @@ if (BOOST_STATIC AND NOT USE_LEGACY_BOOST)
       ${BOOST_SOURCES_DIR}/libs/locale/src/boost/locale/shared/date_time.cpp
       ${BOOST_SOURCES_DIR}/libs/locale/src/boost/locale/shared/formatting.cpp
       ${BOOST_SOURCES_DIR}/libs/locale/src/boost/locale/shared/generator.cpp
+      ${BOOST_SOURCES_DIR}/libs/locale/src/boost/locale/shared/iconv_codecvt.cpp
       ${BOOST_SOURCES_DIR}/libs/locale/src/boost/locale/shared/ids.cpp
       ${BOOST_SOURCES_DIR}/libs/locale/src/boost/locale/shared/localization_backend.cpp
       ${BOOST_SOURCES_DIR}/libs/locale/src/boost/locale/shared/message.cpp
       ${BOOST_SOURCES_DIR}/libs/locale/src/boost/locale/shared/mo_lambda.cpp
       ${BOOST_SOURCES_DIR}/libs/locale/src/boost/locale/util/codecvt_converter.cpp
       ${BOOST_SOURCES_DIR}/libs/locale/src/boost/locale/util/default_locale.cpp
+      ${BOOST_SOURCES_DIR}/libs/locale/src/boost/locale/util/encoding.cpp
       ${BOOST_SOURCES_DIR}/libs/locale/src/boost/locale/util/gregorian.cpp
       ${BOOST_SOURCES_DIR}/libs/locale/src/boost/locale/util/info.cpp
       ${BOOST_SOURCES_DIR}/libs/locale/src/boost/locale/util/locale_data.cpp

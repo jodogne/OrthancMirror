@@ -2,8 +2,9 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -280,6 +281,48 @@ TEST(Toolbox, IsSetInSet)
   }
 }
 
+TEST(Toolbox, GetSetIntersection)
+{
+  {
+    std::set<int> target;
+    std::set<int> a;
+    std::set<int> b;
+
+    Toolbox::GetIntersection(target, a, b);
+    ASSERT_EQ(0u, target.size());
+  }
+
+  {
+    std::set<int> target;
+    std::set<int> a;
+    std::set<int> b;
+
+    a.insert(1);
+    b.insert(1);
+
+    Toolbox::GetIntersection(target, a, b);
+    ASSERT_EQ(1u, target.size());
+    ASSERT_EQ(1u, target.count(1));
+  }
+
+  {
+    std::set<int> target;
+    std::set<int> a;
+    std::set<int> b;
+
+    a.insert(1);
+    a.insert(2);
+    b.insert(2);
+
+    Toolbox::GetIntersection(target, a, b);
+    ASSERT_EQ(1u, target.size());
+    ASSERT_EQ(0u, target.count(1));
+    ASSERT_EQ(1u, target.count(2));
+  }
+
+}
+
+
 TEST(Toolbox, JoinStrings)
 {
   {
@@ -321,4 +364,47 @@ TEST(Toolbox, JoinStrings)
     Toolbox::JoinStrings(result, source, "\\");
     ASSERT_EQ("1\\2", result);
   }
+}
+
+TEST(Toolbox, JoinUri)
+{
+  ASSERT_EQ("https://test.org/path", Toolbox::JoinUri("https://test.org", "path"));
+  ASSERT_EQ("https://test.org/path", Toolbox::JoinUri("https://test.org/", "path"));
+  ASSERT_EQ("https://test.org/path", Toolbox::JoinUri("https://test.org", "/path"));
+  ASSERT_EQ("https://test.org/path", Toolbox::JoinUri("https://test.org/", "/path"));
+
+  ASSERT_EQ("http://test.org:8042", Toolbox::JoinUri("http://test.org:8042", ""));
+  ASSERT_EQ("http://test.org:8042/", Toolbox::JoinUri("http://test.org:8042/", ""));
+}
+
+TEST(Toolbox, GetHumanFileSize)
+{
+  ASSERT_EQ("234bytes", Toolbox::GetHumanFileSize(234));
+  ASSERT_EQ("2.29KB", Toolbox::GetHumanFileSize(2345));
+  ASSERT_EQ("22.91KB", Toolbox::GetHumanFileSize(23456));
+  ASSERT_EQ("229.07KB", Toolbox::GetHumanFileSize(234567));
+  ASSERT_EQ("2.24MB", Toolbox::GetHumanFileSize(2345678));
+  ASSERT_EQ("22.37MB", Toolbox::GetHumanFileSize(23456789));
+  ASSERT_EQ("223.70MB", Toolbox::GetHumanFileSize(234567890));
+  ASSERT_EQ("2.18GB", Toolbox::GetHumanFileSize(2345678901));
+  ASSERT_EQ("21.33TB", Toolbox::GetHumanFileSize(23456789012345));
+}
+
+TEST(Toolbox, GetHumanDuration)
+{
+  ASSERT_EQ("234ns", Toolbox::GetHumanDuration(234));
+  ASSERT_EQ("2.35us", Toolbox::GetHumanDuration(2345));
+  ASSERT_EQ("23.46us", Toolbox::GetHumanDuration(23456));
+  ASSERT_EQ("234.57us", Toolbox::GetHumanDuration(234567));
+  ASSERT_EQ("2.35ms", Toolbox::GetHumanDuration(2345678));
+  ASSERT_EQ("2.35s", Toolbox::GetHumanDuration(2345678901));
+  ASSERT_EQ("23456.79s", Toolbox::GetHumanDuration(23456789012345));
+}
+
+TEST(Toolbox, GetHumanTransferSpeed)
+{
+  ASSERT_EQ("8.00Mbps", Toolbox::GetHumanTransferSpeed(false, 1000, 1000000));
+  ASSERT_EQ("8.59Gbps", Toolbox::GetHumanTransferSpeed(false, 1024*1024*1024, 1000000000));
+  ASSERT_EQ("1.00GB in 1.00s = 8.59Gbps", Toolbox::GetHumanTransferSpeed(true, 1024*1024*1024, 1000000000));
+  ASSERT_EQ("976.56KB in 1.00s = 8.00Mbps", Toolbox::GetHumanTransferSpeed(true, 1000*1000, 1000000000));
 }

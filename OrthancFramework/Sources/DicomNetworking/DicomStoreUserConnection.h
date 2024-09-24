@@ -2,8 +2,9 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -96,11 +97,13 @@ namespace Orthanc
                                       bool hasPreferred,
                                       DicomTransferSyntax preferred);
 
+#if ORTHANC_ENABLE_DCMTK_TRANSCODING == 1
     void LookupTranscoding(std::set<DicomTransferSyntax>& acceptedSyntaxes,
                            const std::string& sopClassUid,
                            DicomTransferSyntax sourceSyntax,
                            bool hasPreferred,
                            DicomTransferSyntax preferred);
+#endif
 
   public:
     explicit DicomStoreUserConnection(const DicomAssociationParameters& params);
@@ -142,6 +145,7 @@ namespace Orthanc
                           DicomTransferSyntax& transferSyntax,
                           DcmFileFormat& dicom);
 
+#if ORTHANC_ENABLE_DCMTK_TRANSCODING == 1
     void Transcode(std::string& sopClassUid /* out */,
                    std::string& sopInstanceUid /* out */,
                    IDicomTranscoder& transcoder,
@@ -151,7 +155,9 @@ namespace Orthanc
                    bool hasMoveOriginator,
                    const std::string& moveOriginatorAET,
                    uint16_t moveOriginatorID);
-
+#endif
+    
+#if ORTHANC_ENABLE_DCMTK_TRANSCODING == 1
     void Transcode(std::string& sopClassUid /* out */,
                    std::string& sopInstanceUid /* out */,
                    IDicomTranscoder& transcoder,
@@ -160,5 +166,6 @@ namespace Orthanc
                    bool hasMoveOriginator,
                    const std::string& moveOriginatorAET,
                    uint16_t moveOriginatorID);
+#endif
   };
 }

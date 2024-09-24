@@ -12,31 +12,33 @@ cat <<EOF > /tmp/cppcheck-suppressions.txt
 constParameter:../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.cpp
 knownArgument:../../OrthancFramework/UnitTestsSources/ImageTests.cpp
 knownConditionTrueFalse:../../OrthancServer/Plugins/Engine/OrthancPlugins.cpp
-nullPointer:../../OrthancFramework/UnitTestsSources/RestApiTests.cpp:322
-stlFindInsert:../../OrthancFramework/Sources/DicomFormat/DicomMap.cpp:1403
-stlFindInsert:../../OrthancFramework/Sources/RestApi/RestApiCallDocumentation.cpp:165
-stlFindInsert:../../OrthancFramework/Sources/RestApi/RestApiCallDocumentation.cpp:73
-stlFindInsert:../../OrthancServer/Sources/Database/StatelessDatabaseOperations.cpp:372
-stlFindInsert:../../OrthancServer/Sources/OrthancWebDav.cpp:377
-stlFindInsert:../../OrthancServer/Sources/ServerJobs/MergeStudyJob.cpp:40
-stlFindInsert:../../OrthancServer/Sources/ServerJobs/SplitStudyJob.cpp:190
-syntaxError:../../OrthancFramework/Sources/SQLite/FunctionContext.h:52
-syntaxError:../../OrthancFramework/UnitTestsSources/DicomMapTests.cpp:72
-syntaxError:../../OrthancFramework/UnitTestsSources/ZipTests.cpp:132
-syntaxError:../../OrthancServer/UnitTestsSources/UnitTestsMain.cpp:310
-uninitMemberVar:../../OrthancServer/Sources/ServerJobs/StorageCommitmentScpJob.cpp:416
+nullPointer:../../OrthancFramework/UnitTestsSources/RestApiTests.cpp:316
+stlFindInsert:../../OrthancFramework/Sources/DicomFormat/DicomMap.cpp:1477
+stlFindInsert:../../OrthancFramework/Sources/RestApi/RestApiCallDocumentation.cpp:166
+stlFindInsert:../../OrthancFramework/Sources/RestApi/RestApiCallDocumentation.cpp:74
+stlFindInsert:../../OrthancServer/Sources/Database/StatelessDatabaseOperations.cpp:374
+stlFindInsert:../../OrthancServer/Sources/OrthancWebDav.cpp:378
+stlFindInsert:../../OrthancServer/Sources/ServerJobs/MergeStudyJob.cpp:41
+stlFindInsert:../../OrthancServer/Sources/ServerJobs/SplitStudyJob.cpp:191
+stlFindInsert:../../OrthancServer/Sources/ServerJobs/ResourceModificationJob.cpp:361
+syntaxError:../../OrthancFramework/Sources/SQLite/FunctionContext.h:53
+syntaxError:../../OrthancFramework/UnitTestsSources/DicomMapTests.cpp:74
+syntaxError:../../OrthancFramework/UnitTestsSources/ZipTests.cpp:133
+syntaxError:../../OrthancServer/UnitTestsSources/UnitTestsMain.cpp:322
+uninitMemberVar:../../OrthancServer/Sources/ServerJobs/StorageCommitmentScpJob.cpp:417
 unreadVariable:../../OrthancFramework/Sources/FileStorage/StorageAccessor.cpp
-unreadVariable:../../OrthancServer/Sources/OrthancRestApi/OrthancRestModalities.cpp:1115
+unreadVariable:../../OrthancServer/Sources/OrthancRestApi/OrthancRestModalities.cpp:1123
 unusedFunction
-useInitializationList:../../OrthancFramework/Sources/Images/PngReader.cpp:90
-useInitializationList:../../OrthancFramework/Sources/Images/PngWriter.cpp:98
-useInitializationList:../../OrthancServer/Sources/ServerJobs/DicomModalityStoreJob.cpp:274
-assertWithSideEffect:../../OrthancServer/Plugins/Engine/OrthancPluginDatabase.cpp:276
-assertWithSideEffect:../../OrthancServer/Plugins/Engine/OrthancPluginDatabase.cpp:1018
-assertWithSideEffect:../../OrthancServer/Sources/Database/Compatibility/DatabaseLookup.cpp:289
-assertWithSideEffect:../../OrthancServer/Sources/Database/Compatibility/DatabaseLookup.cpp:388
-assertWithSideEffect:../../OrthancServer/Sources/Database/StatelessDatabaseOperations.cpp:3460
-assertWithSideEffect:../../OrthancServer/Sources/ServerJobs/ResourceModificationJob.cpp:241
+useInitializationList:../../OrthancFramework/Sources/Images/PngReader.cpp:91
+useInitializationList:../../OrthancFramework/Sources/Images/PngWriter.cpp:99
+useInitializationList:../../OrthancServer/Sources/ServerJobs/DicomModalityStoreJob.cpp:275
+assertWithSideEffect:../../OrthancServer/Plugins/Engine/OrthancPluginDatabase.cpp:277
+assertWithSideEffect:../../OrthancServer/Plugins/Engine/OrthancPluginDatabase.cpp:1026
+assertWithSideEffect:../../OrthancServer/Sources/Database/Compatibility/DatabaseLookup.cpp:290
+assertWithSideEffect:../../OrthancServer/Sources/Database/Compatibility/DatabaseLookup.cpp:389
+assertWithSideEffect:../../OrthancServer/Sources/Database/StatelessDatabaseOperations.cpp:3663
+assertWithSideEffect:../../OrthancServer/Sources/ServerJobs/ResourceModificationJob.cpp:286
+assertWithSideEffect:../../OrthancFramework/Sources/DicomNetworking/Internals/CommandDispatcher.cpp:454
 EOF
 
 ${CPPCHECK} --enable=all --quiet --std=c++11 \
@@ -48,6 +50,7 @@ ${CPPCHECK} --enable=all --quiet --std=c++11 \
             -DCIVETWEB_HAS_WEBDAV_WRITING=1 \
             -DDCMTK_VERSION_NUMBER=365 \
             -DHAVE_MALLOPT=1 \
+            -DHAVE_MALLOC_TRIM=1 \
             -DMONGOOSE_USE_CALLBACKS=1 \
             -DJSONCPP_VERSION_MAJOR=1 \
             -DJSONCPP_VERSION_MINOR=0 \
@@ -86,6 +89,7 @@ ${CPPCHECK} --enable=all --quiet --std=c++11 \
             -D__cplusplus=201103 \
             -D__linux__ \
             -UNDEBUG \
+            -DHAS_ORTHANC_EXCEPTION=1 \
             \
             ../../OrthancFramework/Sources \
             ../../OrthancFramework/UnitTestsSources \
@@ -93,5 +97,11 @@ ${CPPCHECK} --enable=all --quiet --std=c++11 \
             ../../OrthancServer/Plugins/Include \
             ../../OrthancServer/Sources \
             ../../OrthancServer/UnitTestsSources \
+            ../../OrthancServer/Plugins/Samples/Common \
+            ../../OrthancServer/Plugins/Samples/ConnectivityChecks \
+            ../../OrthancServer/Plugins/Samples/DelayedDeletion \
+            ../../OrthancServer/Plugins/Samples/Housekeeper \
+            ../../OrthancServer/Plugins/Samples/ModalityWorklists \
+            ../../OrthancServer/Plugins/Samples/MultitenantDicom \
             \
             2>&1

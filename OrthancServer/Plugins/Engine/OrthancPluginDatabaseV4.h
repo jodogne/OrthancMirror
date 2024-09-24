@@ -2,8 +2,9 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -26,7 +27,7 @@
 
 #include "../../../OrthancFramework/Sources/SharedLibrary.h"
 #include "../../Sources/Database/IDatabaseWrapper.h"
-#include "../Include/orthanc/OrthancCDatabasePlugin.h"
+#include "../Include/orthanc/OrthancCPlugin.h"
 #include "PluginsErrorDictionary.h"
 
 namespace Orthanc
@@ -36,24 +37,39 @@ namespace Orthanc
   private:
     class Transaction;
 
-    SharedLibrary&                  library_;
-    PluginsErrorDictionary&         errorDictionary_;
-    OrthancPluginDatabaseBackendV4  backend_;
-    void*                           database_;
-    std::string                     serverIdentifier_;
+    SharedLibrary&                          library_;
+    PluginsErrorDictionary&                 errorDictionary_;
+    _OrthancPluginRegisterDatabaseBackendV4 definition_;
+    std::string                             serverIdentifier_;
+    bool                                    open_;
+    unsigned int                            databaseVersion_;
+    IDatabaseWrapper::Capabilities          dbCapabilities_;
 
     void CheckSuccess(OrthancPluginErrorCode code) const;
 
   public:
     OrthancPluginDatabaseV4(SharedLibrary& library,
-                            PluginsErrorDictionary&  errorDictionary,
-                            const OrthancPluginDatabaseBackendV4* backend,
-                            size_t backendSize,
-                            void* database,
+                            PluginsErrorDictionary& errorDictionary,
+                            const _OrthancPluginRegisterDatabaseBackendV4& database,
                             const std::string& serverIdentifier);
 
     virtual ~OrthancPluginDatabaseV4();
 
+    const _OrthancPluginRegisterDatabaseBackendV4& GetDefinition() const
+    {
+      return definition_;
+    }
+
+    PluginsErrorDictionary& GetErrorDictionary() const
+    {
+      return errorDictionary_;
+    }
+
+    const std::string& GetServerIdentifier() const
+    {
+      return serverIdentifier_;
+    }
+    
     virtual void Open() ORTHANC_OVERRIDE;
 
     virtual void Close() ORTHANC_OVERRIDE;
@@ -63,14 +79,7 @@ namespace Orthanc
       return library_;
     }
 
-    virtual void FlushToDisk() ORTHANC_OVERRIDE
-    {
-    }
-
-    virtual bool HasFlushToDisk() const ORTHANC_OVERRIDE
-    {
-      return false;
-    }
+    virtual void FlushToDisk() ORTHANC_OVERRIDE;
 
     virtual IDatabaseWrapper::ITransaction* StartTransaction(TransactionType type,
                                                              IDatabaseListener& listener)
@@ -81,10 +90,9 @@ namespace Orthanc
     virtual void Upgrade(unsigned int targetVersion,
                          IStorageArea& storageArea) ORTHANC_OVERRIDE;    
 
-    virtual bool HasRevisionsSupport() const ORTHANC_OVERRIDE;
+    virtual uint64_t MeasureLatency() ORTHANC_OVERRIDE;
 
-    virtual bool HasAttachmentCustomDataSupport() const ORTHANC_OVERRIDE;
-
+    virtual const Capabilities GetDatabaseCapabilities() const ORTHANC_OVERRIDE;
   };
 }
 

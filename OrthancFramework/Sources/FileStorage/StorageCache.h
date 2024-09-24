@@ -2,8 +2,9 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -37,12 +38,67 @@ namespace Orthanc
    **/
    class ORTHANC_PUBLIC StorageCache : public boost::noncopyable
     {
+    public:
+
+      // The StorageCache is only accessible through this accessor.
+      // It will make sure that only one user will fill load data and fill
+      // the cache if multiple users try to access the same item at the same time.
+      // This scenario happens a lot when multiple workers from a viewer access 
+      // the same file.
+      class Accessor : public MemoryStringCache::Accessor
+      {
+        StorageCache& storageCache_;
+      public:
+        explicit Accessor(StorageCache& cache);
+
+        void Add(const std::string& uuid, 
+                 FileContentType contentType,
+                 const std::string& value);
+
+        void AddStartRange(const std::string& uuid, 
+                           FileContentType contentType,
+                           const std::string& value);
+
+        void Add(const std::string& uuid, 
+                 FileContentType contentType,
+                 const void* buffer,
+                 size_t size);
+
+        bool Fetch(std::string& value, 
+                   const std::string& uuid,
+                   FileContentType contentType);
+
+        bool FetchStartRange(std::string& value, 
+                             const std::string& uuid,
+                             FileContentType contentType,
+                             uint64_t end /* exclusive */);
+
+        bool FetchTranscodedInstance(std::string& value, 
+                                     const std::string& uuid,
+                                     DicomTransferSyntax targetSyntax);
+
+        void AddTranscodedInstance(const std::string& uuid,
+                                   DicomTransferSyntax targetSyntax,
+                                   const void* buffer,
+                                   size_t size);
+      };
+
     private:
-      MemoryStringCache   cache_;
-      
+      MemoryStringCache             cache_;
+      std::set<DicomTransferSyntax> subKeysTransferSyntax_;
+      boost::mutex                  subKeysMutex_;
+
     public:
       void SetMaximumSize(size_t size);
 
+      void Invalidate(const std::string& uuid,
+                      FileContentType contentType);
+
+      size_t GetCurrentSize() const;
+      
+      size_t GetNumberOfItems() const;
+
+    private:
       void Add(const std::string& uuid, 
                FileContentType contentType,
                const std::string& value);
@@ -55,9 +111,6 @@ namespace Orthanc
                FileContentType contentType,
                const void* buffer,
                size_t size);
-
-      void Invalidate(const std::string& uuid,
-                      FileContentType contentType);
 
       bool Fetch(std::string& value, 
                  const std::string& uuid,

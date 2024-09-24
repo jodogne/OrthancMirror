@@ -1,8 +1,9 @@
 # Orthanc - A Lightweight, RESTful DICOM Store
 # Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
 # Department, University Hospital of Liege, Belgium
-# Copyright (C) 2017-2022 Osimis S.A., Belgium
-# Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+# Copyright (C) 2017-2023 Osimis S.A., Belgium
+# Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+# Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
 #
 # This program is free software: you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public License
@@ -27,14 +28,14 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_CIVETWEB)
   ## "civetweb-1.14-fixed.tar.gz" as follows:
   ##
   ##  $ cd /tmp
-  ##  $ wget http://orthanc.osimis.io/ThirdPartyDownloads/civetweb-1.14.tar.gz
+  ##  $ wget https://orthanc.uclouvain.be/downloads/third-party-downloads/civetweb-1.14.tar.gz
   ##  $ tar xvf civetweb-1.14.tar.gz
   ##  $ rm -rf civetweb-1.14/src/third_party/ civetweb-1.14/test/
   ##  $ tar cvfz civetweb-1.14-fixed.tar.gz civetweb-1.14
   ##
   
   set(CIVETWEB_SOURCES_DIR ${CMAKE_BINARY_DIR}/civetweb-1.14)
-  set(CIVETWEB_URL "http://orthanc.osimis.io/ThirdPartyDownloads/civetweb-1.14-fixed.tar.gz")
+  set(CIVETWEB_URL "https://orthanc.uclouvain.be/downloads/third-party-downloads/civetweb-1.14-fixed.tar.gz")
   set(CIVETWEB_MD5 "1f25d516b7a4e65d8b270d1cc399e0a9")
 
   if (IS_DIRECTORY "${CIVETWEB_SOURCES_DIR}")
@@ -140,9 +141,3 @@ else()
 
   unset(CMAKE_REQUIRED_LIBRARIES)  # This reset must be after "CHECK_LIBRARY_EXISTS"
 endif()
-
-
-# New in Orthanc 1.8.1
-add_definitions(
-  -DCIVETWEB_KEEP_ALIVE_TIMEOUT_SECONDS=1
-  )
