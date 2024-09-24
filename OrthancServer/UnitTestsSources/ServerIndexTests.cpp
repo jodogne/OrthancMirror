@@ -167,7 +167,8 @@ namespace
       DicomTagConstraint c(tag, type, value, true, true);
       
       DatabaseConstraints lookup;
-      lookup.AddConstraint(c.ConvertToDatabaseConstraint(level, DicomTagType_Identifier));
+      bool isEquivalent;  // unused
+      lookup.AddConstraint(c.ConvertToDatabaseConstraint(isEquivalent, level, DicomTagType_Identifier));
 
       std::set<std::string> noLabel;
       transaction_->ApplyLookupResources(result, NULL, lookup, level, noLabel, LabelsConstraint_All, 0 /* no limit */);
@@ -187,8 +188,9 @@ namespace
       DicomTagConstraint c2(tag, type2, value2, true, true);
 
       DatabaseConstraints lookup;
-      lookup.AddConstraint(c1.ConvertToDatabaseConstraint(level, DicomTagType_Identifier));
-      lookup.AddConstraint(c2.ConvertToDatabaseConstraint(level, DicomTagType_Identifier));
+      bool isEquivalent;  // unused
+      lookup.AddConstraint(c1.ConvertToDatabaseConstraint(isEquivalent, level, DicomTagType_Identifier));
+      lookup.AddConstraint(c2.ConvertToDatabaseConstraint(isEquivalent, level, DicomTagType_Identifier));
       
       std::set<std::string> noLabel;
       transaction_->ApplyLookupResources(result, NULL, lookup, level, noLabel, LabelsConstraint_All, 0 /* no limit */);
@@ -618,7 +620,7 @@ TEST(ServerIndex, Sequence)
   FilesystemStorage storage(path);
   SQLiteDatabaseWrapper db;   // The SQLite DB is in memory
   db.Open();
-  ServerContext context(db, storage, true /* running unit tests */, 10);
+  ServerContext context(db, storage, true /* running unit tests */, 10, false /* readonly */);
   context.SetupJobsEngine(true, false);
 
   ServerIndex& index = context.GetIndex();
@@ -700,7 +702,7 @@ TEST(ServerIndex, AttachmentRecycling)
   FilesystemStorage storage(path);
   SQLiteDatabaseWrapper db;   // The SQLite DB is in memory
   db.Open();
-  ServerContext context(db, storage, true /* running unit tests */, 10);
+  ServerContext context(db, storage, true /* running unit tests */, 10, false /* readonly */);
   context.SetupJobsEngine(true, false);
   ServerIndex& index = context.GetIndex();
 
@@ -817,7 +819,7 @@ TEST(ServerIndex, Overwrite)
     MemoryStorageArea storage;
     SQLiteDatabaseWrapper db;   // The SQLite DB is in memory
     db.Open();
-    ServerContext context(db, storage, true /* running unit tests */, 10);
+    ServerContext context(db, storage, true /* running unit tests */, 10, false /* readonly */);
     context.SetupJobsEngine(true, false);
     context.SetCompressionEnabled(true);
 
@@ -982,7 +984,7 @@ TEST(ServerIndex, DicomUntilPixelData)
     MemoryStorageArea storage;
     SQLiteDatabaseWrapper db;   // The SQLite DB is in memory
     db.Open();
-    ServerContext context(db, storage, true /* running unit tests */, 10);
+    ServerContext context(db, storage, true /* running unit tests */, 10, false /* readonly */);
     context.SetupJobsEngine(true, false);
     context.SetCompressionEnabled(compression);
 

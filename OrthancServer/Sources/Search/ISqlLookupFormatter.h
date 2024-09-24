@@ -23,11 +23,7 @@
 
 #pragma once
 
-#if ORTHANC_BUILDING_SERVER_LIBRARY == 1
-#  include "../../../OrthancFramework/Sources/Enumerations.h"
-#else
-#  include <Enumerations.h>
-#endif
+#include "../../../OrthancFramework/Sources/Enumerations.h"
 
 #include <boost/noncopyable.hpp>
 #include <vector>
@@ -35,7 +31,8 @@
 namespace Orthanc
 {
   class DatabaseConstraints;
-  
+  class FindRequest;
+
   enum LabelsConstraint
   {
     LabelsConstraint_All,
@@ -43,7 +40,6 @@ namespace Orthanc
     LabelsConstraint_None
   };
 
-  // This class is also used by the "orthanc-databases" project
   class ISqlLookupFormatter : public boost::noncopyable
   {
   public:
@@ -56,6 +52,8 @@ namespace Orthanc
     virtual std::string FormatResourceType(ResourceType level) = 0;
 
     virtual std::string FormatWildcardEscape() = 0;
+
+    virtual std::string FormatLimits(uint64_t since, uint64_t count) = 0;
 
     /**
      * Whether to escape '[' and ']', which is only needed for
@@ -84,5 +82,9 @@ namespace Orthanc
                                  const std::set<std::string>& labels,  // New in Orthanc 1.12.0
                                  LabelsConstraint labelsConstraint,    // New in Orthanc 1.12.0
                                  size_t limit);
+
+    static void Apply(std::string& sql,
+                      ISqlLookupFormatter& formatter,
+                      const FindRequest& request);
   };
 }

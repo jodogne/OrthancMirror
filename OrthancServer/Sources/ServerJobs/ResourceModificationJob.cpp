@@ -744,10 +744,18 @@ namespace Orthanc
         }
         else
         {
-          ExpandedResource originalStudy;
-          if (GetContext().GetIndex().ExpandResource(originalStudy, *studyId, ResourceType_Study, emptyRequestedTags, ExpandResourceFlags_IncludeMainDicomTags))
+          FindRequest request(ResourceType_Study);
+          request.SetOrthancStudyId(*studyId);
+          request.SetRetrieveMainDicomTags(true);
+
+          FindResponse response;
+          GetContext().GetIndex().ExecuteFind(response, request);
+
+          if (response.GetSize() == 1)
           {
-            targetPatientId = originalStudy.GetMainDicomTags().GetStringValue(DICOM_TAG_PATIENT_ID, "", false);
+            DicomMap tags;
+            response.GetResourceByIndex(0).GetMainDicomTags(tags, ResourceType_Study);
+            targetPatientId = tags.GetStringValue(DICOM_TAG_PATIENT_ID, "", false);
           }
           else
           {
@@ -762,22 +770,34 @@ namespace Orthanc
         // if the patient exists, check how many child studies it has.
         if (lookupPatientResult.size() >= 1)
         {
-          ExpandedResource targetPatient;
-          
-          if (GetContext().GetIndex().ExpandResource(targetPatient, lookupPatientResult[0], ResourceType_Patient, emptyRequestedTags, static_cast<ExpandResourceFlags>(ExpandResourceFlags_IncludeMainDicomTags | ExpandResourceFlags_IncludeChildren)))
+          FindRequest request(ResourceType_Patient);
+          request.SetOrthancPatientId(lookupPatientResult[0]);
+          request.SetRetrieveMainDicomTags(true);
+          request.GetChildrenSpecification(ResourceType_Study).SetRetrieveIdentifiers(true);
+
+          FindResponse response;
+          GetContext().GetIndex().ExecuteFind(response, request);
+
+          if (response.GetSize() == 1)
           {
-            const std::list<std::string> childrenIds = targetPatient.childrenIds_;
+            const FindResponse::Resource& targetPatient = response.GetResourceByIndex(0);
+
+            const std::set<std::string>& childrenIds = targetPatient.GetChildrenIdentifiers(ResourceType_Study);
+
             bool targetPatientHasOtherStudies = childrenIds.size() > 1;
             if (childrenIds.size() == 1)
             {
-              targetPatientHasOtherStudies = std::find(childrenIds.begin(), childrenIds.end(), *studyId) == childrenIds.end();  // if the patient has one study that is not the one being modified
+              targetPatientHasOtherStudies = (childrenIds.find(*studyId) == childrenIds.end());  // if the patient has one study that is not the one being modified
             }
 
             if (targetPatientHasOtherStudies)
             {
+              DicomMap mainDicomTags;
+              targetPatient.GetMainDicomTags(mainDicomTags, ResourceType_Patient);
+
               // this is allowed if all patient replacedTags do match the target patient tags
               DicomMap targetPatientTags;
-              targetPatient.GetMainDicomTags().ExtractPatientInformation(targetPatientTags);
+              mainDicomTags.ExtractPatientInformation(targetPatientTags);
 
               std::set<DicomTag> mainPatientTags;
               DicomMap::GetMainDicomTags(mainPatientTags, ResourceType_Patient);

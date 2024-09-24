@@ -281,6 +281,10 @@ namespace Orthanc
     }
     
     target["Last"] = static_cast<int>(last);
+    if (!log.empty())
+    {
+      target["First"] = static_cast<int>(log.front().GetSeq());
+    }
   }
 
 
@@ -298,141 +302,6 @@ namespace Orthanc
       pos ++;
     }      
   }
-
-
-  class StatelessDatabaseOperations::MainDicomTagsRegistry : public boost::noncopyable
-  {
-  private:
-    class TagInfo
-    {
-    private:
-      ResourceType  level_;
-      DicomTagType  type_;
-
-    public:
-      TagInfo()
-      {
-      }
-
-      TagInfo(ResourceType level,
-              DicomTagType type) :
-        level_(level),
-        type_(type)
-      {
-      }
-
-      ResourceType GetLevel() const
-      {
-        return level_;
-      }
-
-      DicomTagType GetType() const
-      {
-        return type_;
-      }
-    };
-      
-    typedef std::map<DicomTag, TagInfo>   Registry;
-
-
-    Registry  registry_;
-      
-    void LoadTags(ResourceType level)
-    {
-      {
-        const DicomTag* tags = NULL;
-        size_t size;
-  
-        ServerToolbox::LoadIdentifiers(tags, size, level);
-  
-        for (size_t i = 0; i < size; i++)
-        {
-          if (registry_.find(tags[i]) == registry_.end())
-          {
-            registry_[tags[i]] = TagInfo(level, DicomTagType_Identifier);
-          }
-          else
-          {
-            // These patient-level tags are copied in the study level
-            assert(level == ResourceType_Study &&
-                   (tags[i] == DICOM_TAG_PATIENT_ID ||
-                    tags[i] == DICOM_TAG_PATIENT_NAME ||
-                    tags[i] == DICOM_TAG_PATIENT_BIRTH_DATE));
-          }
-        }
-      }
-
-      {
-        std::set<DicomTag> tags;
-        DicomMap::GetMainDicomTags(tags, level);
-
-        for (std::set<DicomTag>::const_iterator
-               tag = tags.begin(); tag != tags.end(); ++tag)
-        {
-          if (registry_.find(*tag) == registry_.end())
-          {
-            registry_[*tag] = TagInfo(level, DicomTagType_Main);
-          }
-        }
-      }
-    }
-
-    void LookupTag(ResourceType& level,
-                   DicomTagType& type,
-                   const DicomTag& tag) const
-    {
-      Registry::const_iterator it = registry_.find(tag);
-
-      if (it == registry_.end())
-      {
-        // Default values
-        level = ResourceType_Instance;
-        type = DicomTagType_Generic;
-      }
-      else
-      {
-        level = it->second.GetLevel();
-        type = it->second.GetType();
-      }
-    }
-
-  public:
-    MainDicomTagsRegistry()
-    {
-      LoadTags(ResourceType_Patient);
-      LoadTags(ResourceType_Study);
-      LoadTags(ResourceType_Series);
-      LoadTags(ResourceType_Instance);
-    }
-
-    void NormalizeLookup(DatabaseConstraints& target,
-                         const DatabaseLookup& source,
-                         ResourceType queryLevel) const
-    {
-      target.Clear();
-
-      for (size_t i = 0; i < source.GetConstraintsCount(); i++)
-      {
-        ResourceType level;
-        DicomTagType type;
-
-        LookupTag(level, type, source.GetConstraint(i).GetTag());
-
-        if (type == DicomTagType_Identifier ||
-            type == DicomTagType_Main)
-        {
-          // Use the fact that patient-level tags are copied at the study level
-          if (level == ResourceType_Patient &&
-              queryLevel != ResourceType_Patient)
-          {
-            level = ResourceType_Study;
-          }
-
-          target.AddConstraint(source.GetConstraint(i).ConvertToDatabaseConstraint(level, type));
-        }
-      }
-    }
-  };
 
 
   void StatelessDatabaseOperations::ReadWriteTransaction::LogChange(int64_t internalId,
@@ -612,6 +481,10 @@ namespace Orthanc
         else
         {
           assert(writeOperations != NULL);
+          if (readOnly_)
+          {
+            throw OrthancException(ErrorCode_ReadOnly, "The DB is trying to execute a ReadWrite transaction while Orthanc has been started in ReadOnly mode.");
+          }
           
           Transaction transaction(db_, *factory_, TransactionType_ReadWrite);
           {
@@ -649,10 +522,11 @@ namespace Orthanc
   }
 
   
-  StatelessDatabaseOperations::StatelessDatabaseOperations(IDatabaseWrapper& db) : 
+  StatelessDatabaseOperations::StatelessDatabaseOperations(IDatabaseWrapper& db, bool readOnly) : 
     db_(db),
     mainDicomTagsRegistry_(new MainDicomTagsRegistry),
-    maxRetries_(0)
+    maxRetries_(0),
+    readOnly_(readOnly)
   {
   }
 
@@ -867,7 +741,7 @@ namespace Orthanc
             }
 
             // check the main dicom tags list has not changed since the resource was stored
-            target.mainDicomTagsSignature_ = DicomMap::GetDefaultMainDicomTagsSignature(type);
+            target.mainDicomTagsSignature_ = DicomMap::GetDefaultMainDicomTagsSignatureFrom1_11(type);
             LookupStringMetadata(target.mainDicomTagsSignature_, target.metadata_, MetadataType_MainDicomTagsSignature);
           }
 
@@ -902,7 +776,7 @@ namespace Orthanc
               Toolbox::GetMissingsFromSet(target.missingRequestedTags_, requestedTags, savedMainDicomTags);
 
               while ((target.missingRequestedTags_.size() > 0)
-                    && currentLevel != ResourceType_Patient)
+                     && currentLevel != ResourceType_Patient)
               {
                 currentLevel = GetParentResourceType(currentLevel);
 
@@ -915,7 +789,7 @@ namespace Orthanc
                 std::map<MetadataType, std::string> parentMetadata;
                 transaction.GetAllMetadata(parentMetadata, currentParentId);
 
-                std::string parentMainDicomTagsSignature = DicomMap::GetDefaultMainDicomTagsSignature(currentLevel);
+                std::string parentMainDicomTagsSignature = DicomMap::GetDefaultMainDicomTagsSignatureFrom1_11(currentLevel);
                 LookupStringMetadata(parentMainDicomTagsSignature, parentMetadata, MetadataType_MainDicomTagsSignature);
 
                 std::set<DicomTag> parentSavedMainDicomTags;
@@ -1215,6 +1089,39 @@ namespace Orthanc
     
     Operations operations;
     operations.Apply(*this, target, since, maxResults);
+  }
+
+
+  void StatelessDatabaseOperations::GetChangesExtended(Json::Value& target,
+                                                       int64_t since,
+                                                       int64_t to,                               
+                                                       unsigned int maxResults,
+                                                       const std::set<ChangeType>& changeType)
+  {
+    class Operations : public ReadOnlyOperationsT5<Json::Value&, int64_t, int64_t, unsigned int, const std::set<ChangeType>&>
+    {
+    public:
+      virtual void ApplyTuple(ReadOnlyTransaction& transaction,
+                              const Tuple& tuple) ORTHANC_OVERRIDE
+      {
+        std::list<ServerIndexChange> changes;
+        bool done;
+        bool hasLast = false;
+        int64_t last = 0;
+
+        transaction.GetChangesExtended(changes, done, tuple.get<1>(), tuple.get<2>(), tuple.get<3>(), tuple.get<4>());
+        if (changes.empty())
+        {
+          last = transaction.GetLastChangeIndex();
+          hasLast = true;
+        }
+
+        FormatLog(tuple.get<0>(), changes, "Changes", done, tuple.get<1>(), hasLast, last);
+      }
+    };
+    
+    Operations operations;
+    operations.Apply(*this, target, since, to, maxResults, changeType);
   }
 
 
@@ -1687,7 +1594,8 @@ namespace Orthanc
     DicomTagConstraint c(tag, ConstraintType_Equal, value, true, true);
 
     DatabaseConstraints query;
-    query.AddConstraint(c.ConvertToDatabaseConstraint(level, DicomTagType_Identifier));
+    bool isIdentical;  // unused
+    query.AddConstraint(c.ConvertToDatabaseConstraint(isIdentical, level, DicomTagType_Identifier));
 
 
     class Operations : public IReadOnlyOperations
@@ -2515,7 +2423,7 @@ namespace Orthanc
             catch (boost::bad_lexical_cast&)
             {
               LOG(ERROR) << "Cannot read the global sequence "
-                        << boost::lexical_cast<std::string>(sequence_) << ", resetting it";
+                         << boost::lexical_cast<std::string>(sequence_) << ", resetting it";
               oldValue = 0;
             }
 
@@ -2814,8 +2722,8 @@ namespace Orthanc
 
     public:
       explicit Operations(const ParsedDicomFile& dicom, bool limitToThisLevelDicomTags, ResourceType limitToLevel)
-      : limitToThisLevelDicomTags_(limitToThisLevelDicomTags),
-        limitToLevel_(limitToLevel)
+        : limitToThisLevelDicomTags_(limitToThisLevelDicomTags),
+          limitToLevel_(limitToLevel)
       {
         OrthancConfiguration::DefaultExtractDicomSummary(summary_, dicom);
         hasher_.reset(new DicomInstanceHasher(summary_));
@@ -2940,7 +2848,7 @@ namespace Orthanc
   }                                                                           
 
   bool StatelessDatabaseOperations::ReadWriteTransaction::HasReachedMaxPatientCount(unsigned int maximumPatientCount,
-                                                                                   const std::string& patientId)
+                                                                                    const std::string& patientId)
   {
     if (maximumPatientCount != 0)
     {
@@ -3042,7 +2950,7 @@ namespace Orthanc
     };
 
     if (maximumStorageMode == MaxStorageMode_Recycle 
-      && (maximumStorageSize != 0 || maximumPatientCount != 0))
+        && (maximumStorageSize != 0 || maximumPatientCount != 0))
     {
       Operations operations(maximumStorageSize, maximumPatientCount);
       Apply(operations);
@@ -3106,9 +3014,9 @@ namespace Orthanc
       }
 
       static void SetMainDicomSequenceMetadata(ResourcesContent& content,
-                                                int64_t resource,
-                                                const DicomMap& dicomSummary,
-                                                ResourceType level)
+                                               int64_t resource,
+                                               const DicomMap& dicomSummary,
+                                               ResourceType level)
       {
         std::string serialized;
         GetMainDicomSequenceMetadataContent(serialized, dicomSummary, level);
@@ -3301,7 +3209,7 @@ namespace Orthanc
         // Ensure there is enough room in the storage for the new instance
         uint64_t instanceSize = 0;
         for (Attachments::const_iterator it = attachments_.begin();
-              it != attachments_.end(); ++it)
+             it != attachments_.end(); ++it)
         {
           instanceSize += it->GetCompressedSize();
         }
@@ -3330,7 +3238,7 @@ namespace Orthanc
     
         // Attach the files to the newly created instance
         for (Attachments::const_iterator it = attachments_.begin();
-              it != attachments_.end(); ++it)
+             it != attachments_.end(); ++it)
         {
           if (isReconstruct_)
           {
@@ -3805,5 +3713,88 @@ namespace Orthanc
   {
     boost::shared_lock<boost::shared_mutex> lock(mutex_);
     return db_.GetDatabaseCapabilities().HasLabelsSupport();
+  }
+
+  bool StatelessDatabaseOperations::HasExtendedChanges()
+  {
+    boost::shared_lock<boost::shared_mutex> lock(mutex_);
+    return db_.GetDatabaseCapabilities().HasExtendedChanges();
+  }
+
+  bool StatelessDatabaseOperations::HasFindSupport()
+  {
+    boost::shared_lock<boost::shared_mutex> lock(mutex_);
+    return db_.GetDatabaseCapabilities().HasFindSupport();
+  }
+
+  void StatelessDatabaseOperations::ExecuteFind(FindResponse& response,
+                                                const FindRequest& request)
+  {
+    class IntegratedFind : public ReadOnlyOperationsT3<FindResponse&, const FindRequest&,
+                                                       const IDatabaseWrapper::Capabilities&>
+    {
+    public:
+      virtual void ApplyTuple(ReadOnlyTransaction& transaction,
+                              const Tuple& tuple) ORTHANC_OVERRIDE
+      {
+        transaction.ExecuteFind(tuple.get<0>(), tuple.get<1>(), tuple.get<2>());
+      }
+    };
+
+    class FindStage : public ReadOnlyOperationsT3<std::list<std::string>&, const IDatabaseWrapper::Capabilities&, const FindRequest& >
+    {
+    public:
+      virtual void ApplyTuple(ReadOnlyTransaction& transaction,
+                              const Tuple& tuple) ORTHANC_OVERRIDE
+      {
+        transaction.ExecuteFind(tuple.get<0>(), tuple.get<1>(), tuple.get<2>());
+      }
+    };
+
+    class ExpandStage : public ReadOnlyOperationsT4<FindResponse&, const IDatabaseWrapper::Capabilities&, const FindRequest&, const std::string&>
+    {
+    public:
+      virtual void ApplyTuple(ReadOnlyTransaction& transaction,
+                              const Tuple& tuple) ORTHANC_OVERRIDE
+      {
+        transaction.ExecuteExpand(tuple.get<0>(), tuple.get<1>(), tuple.get<2>(), tuple.get<3>());
+      }
+    };
+
+    IDatabaseWrapper::Capabilities capabilities = db_.GetDatabaseCapabilities();
+
+    if (db_.HasIntegratedFind())
+    {
+      /**
+       * In this flavor, the "find" and the "expand" phases are
+       * executed in one single transaction.
+       **/
+      IntegratedFind operations;
+      operations.Apply(*this, response, request, capabilities);
+    }
+    else
+    {
+      /**
+       * In this flavor, the "find" and the "expand" phases for each
+       * found resource are executed in distinct transactions. This is
+       * the compatibility mode equivalent to Orthanc <= 1.12.3.
+       **/
+      std::list<std::string> identifiers;
+
+      FindStage find;
+      find.Apply(*this, identifiers, capabilities, request);
+
+      ExpandStage expand;
+
+      for (std::list<std::string>::const_iterator it = identifiers.begin(); it != identifiers.end(); ++it)
+      {
+        /**
+         * Not that the resource might have been deleted (as we are in
+         * another transaction). The database engine must ignore such
+         * error cases.
+         **/
+        expand.Apply(*this, response, capabilities, request, *it);
+      }
+    }
   }
 }

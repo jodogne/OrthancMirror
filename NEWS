@@ -16,13 +16,38 @@ Plugins
 * New database plugin SDK (v4) to handle customData for attachments.
 * New storage plugin SDK (v3) to handle customData for attachments,
 
+* TODO-FIND: complete the list of updated routes:
+  - /studies?expand and sibbling routes now also return "Metadata" (if the DB implements 'extended-api-v1')
+  - /studies?since=x&limit=0 and sibbling routes: limit=0 now means "no limit" instead of "no results"
 
+General
+-------
+
+* Database:
+  - Introduced database optimizations "ExtendedFind" to replace many small SQL queries
+    by a small number of large SQL queries to greatly reduce the cost of DB latency.
+    Furthermore, this "ExtendedFind" brings new sorting and filtering features to the 
+    Rest API (TODO).
+  - Introduced database optimizations "ExtendedChanges" to allow filtering of /changes.
+  - Reduced the number of SQL queries when ingesting DICOM files.
+* Introduced a new configuration "ReadOnly" to forbid an Orthanc instance to perform 
+  any modifications in the Index DB or in the storage.
+  
 REST API
------------
+--------
 
+* API version upgraded to 25
 * Improved parsing of multiple numerical values in DICOM tags.
   https://discourse.orthanc-server.org/t/qido-includefield-with-sequences/4746/6
-
+* in /system, added a new field "Capabilities" with new values:
+  - "HasExtendedChanges" for DB backend that provides this feature (the default SQLite DB
+    or PostgreSQL vX.X, MySQL vX.X, ODBC vX.X).
+  - "HasExendedFind" for DB backend that provides this feature (the default SQLite DB
+    or PostgreSQL vX.X, MySQL vX.X, ODBC vX.X).
+* With DB backend with "HasExtendedChanges" support, /changes now supports 2 more options: 
+  - 'type' to filter the changes returned by the query 
+  - 'to' to potentially cycle through changes in reverse order.
+  example: /changes?type=StableStudy&to=7584&limit=100
 
 Maintenance
 -----------
@@ -45,7 +70,20 @@ Maintenance
 * Added a new fallback when trying to decode a frame: transcode the file using the plugin
   before decoding the frame.  This solves some issues with JP2K Lossy compression:
   https://discourse.orthanc-server.org/t/decoding-displaying-jpeg2000-lossy-images/5117
-* Added a new warning that can be disabled in the configuration: W003_DecoderFailure
+* Added new warnings that can be disabled in the configuration: 
+  - W003_DecoderFailure
+  - W004_NoMainDicomTagsSignature
+  - W005_RequestingTagFromLowerResourceLevel
+* New default MainDicomTags are now stored in DB.  Note that, in order to store these values
+  for resources that were ingested in Orthanc before this release, you would have to run
+  the Housekeeper plugin or call /reconstruct on every resources
+  - At Study Level:
+    - TimezoneOffsetFromUTC (used in QIDO-RS default queries)
+  - At Series Level:
+    - TimezoneOffsetFromUTC (used in QIDO-RS default queries)
+    - PerformedProcedureStepStartDate (used in QIDO-RS default queries)
+    - PerformedProcedureStepStartTime (used in QIDO-RS default queries)
+    - RequestAttributesSequence (used in QIDO-RS default queries)
 
 
 

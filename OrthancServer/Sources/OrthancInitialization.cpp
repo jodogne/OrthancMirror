@@ -261,7 +261,17 @@ namespace Orthanc
             {
               LOG(INFO) << "  - " << tagName;
             }
-            DicomMap::AddMainDicomTag(tag, level);
+
+            try
+            {
+              DicomMap::AddMainDicomTag(tag, level);
+            }
+            catch(OrthancException& e)
+            {
+              LOG(WARNING) << "  - !!! " << tagName << " is already defined as a standard MainDicomTags, it is useless to include it in the ExtraMainDicomTags";
+            }
+            
+            
           }
         }
       }

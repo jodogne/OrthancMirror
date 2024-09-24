@@ -39,7 +39,9 @@ namespace Orthanc
 
     class DicomDeleteVisitor;
     class DicomFileVisitor;
+    class DicomFileVisitorV2;
     class DicomIdentifiersVisitor;  
+    class DicomIdentifiersVisitorV2;
     class InstancesOfSeries;
     class InternalNode;
     class ListOfResources;
@@ -47,6 +49,7 @@ namespace Orthanc
     class ListOfStudiesByMonth;
     class ListOfStudiesByYear;
     class OrthancJsonVisitor;
+    class OrthancJsonVisitorV2;
     class ResourcesIndex;
     class RootNode;
     class SingleDicomResource;

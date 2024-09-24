@@ -21,24 +21,12 @@
  **/
 
 
-#if !defined(ORTHANC_BUILDING_SERVER_LIBRARY)
-#  error Macro ORTHANC_BUILDING_SERVER_LIBRARY must be defined
-#endif
-
-#if ORTHANC_BUILDING_SERVER_LIBRARY == 1
-#  include "../PrecompiledHeadersServer.h"
-#endif
-
+#include "../PrecompiledHeadersServer.h"
 #include "ISqlLookupFormatter.h"
 
-#if ORTHANC_BUILDING_SERVER_LIBRARY == 1
-#  include "../../../OrthancFramework/Sources/OrthancException.h"
-#  include "../../../OrthancFramework/Sources/Toolbox.h"
-#else
-#  include <OrthancException.h>
-#  include <Toolbox.h>
-#endif
-
+#include "../../../OrthancFramework/Sources/OrthancException.h"
+#include "../../../OrthancFramework/Sources/Toolbox.h"
+#include "../Database/FindRequest.h"
 #include "DatabaseConstraint.h"
 
 #include <cassert>
@@ -617,6 +605,148 @@ namespace Orthanc
   }
 
 
+  void ISqlLookupFormatter::Apply(std::string& sql,
+                                  ISqlLookupFormatter& formatter,
+                                  const FindRequest& request)
+  {
+    const bool escapeBrackets = formatter.IsEscapeBrackets();
+    ResourceType queryLevel = request.GetLevel();
+    const std::string& strQueryLevel = FormatLevel(queryLevel);
+
+    ResourceType lowerLevel, upperLevel;
+    GetLookupLevels(lowerLevel, upperLevel, queryLevel, request.GetDicomTagConstraints());
+
+    assert(upperLevel <= queryLevel &&
+           queryLevel <= lowerLevel);
+
+    std::string ordering = "row_number() over (order by " + strQueryLevel + ".publicId) as rowNumber";  // we need a default ordering in order to make default queries repeatable when using since&limit
+
+
+    sql = ("SELECT " +
+           strQueryLevel + ".publicId, " +
+           strQueryLevel + ".internalId, " +
+           ordering + 
+           " FROM Resources AS " + strQueryLevel);
+
+
+    std::string joins, comparisons;
+
+    if (request.GetOrthancIdentifiers().IsDefined() && request.GetOrthancIdentifiers().DetectLevel() <= queryLevel)
+    {
+      // single child resource matching, there should not be other constraints (at least for now)
+      assert(request.GetDicomTagConstraints().GetSize() == 0);
+      assert(request.GetLabels().size() == 0);
+      assert(request.HasLimits() == false);
+
+      ResourceType topParentLevel = request.GetOrthancIdentifiers().DetectLevel();
+      const std::string& strTopParentLevel = FormatLevel(topParentLevel);
+
+      comparisons = " AND " + strTopParentLevel + ".publicId = " + formatter.GenerateParameter(request.GetOrthancIdentifiers().GetLevel(topParentLevel));
+
+      for (int level = queryLevel; level > topParentLevel; level--)
+      {
+        sql += (" INNER JOIN Resources " +
+                FormatLevel(static_cast<ResourceType>(level - 1)) + " ON " +
+                FormatLevel(static_cast<ResourceType>(level - 1)) + ".internalId=" +
+                FormatLevel(static_cast<ResourceType>(level)) + ".parentId");
+      }
+    }
+    else
+    {
+      size_t count = 0;
+      
+      const DatabaseConstraints& dicomTagsConstraints = request.GetDicomTagConstraints();
+      for (size_t i = 0; i < dicomTagsConstraints.GetSize(); i++)
+      {
+        const DatabaseConstraint& constraint = dicomTagsConstraints.GetConstraint(i);
+
+        std::string comparison;
+        
+        if (FormatComparison(comparison, formatter, constraint, count, escapeBrackets))
+        {
+          std::string join;
+          FormatJoin(join, constraint, count);
+          joins += join;
+
+          if (!comparison.empty())
+          {
+            comparisons += " AND " + comparison;
+          }
+          
+          count ++;
+        }
+      }
+    }
+
+    for (int level = queryLevel - 1; level >= upperLevel; level--)
+    {
+      sql += (" INNER JOIN Resources " +
+              FormatLevel(static_cast<ResourceType>(level)) + " ON " +
+              FormatLevel(static_cast<ResourceType>(level)) + ".internalId=" +
+              FormatLevel(static_cast<ResourceType>(level + 1)) + ".parentId");
+    }
+      
+    for (int level = queryLevel + 1; level <= lowerLevel; level++)
+    {
+      sql += (" INNER JOIN Resources " +
+              FormatLevel(static_cast<ResourceType>(level)) + " ON " +
+              FormatLevel(static_cast<ResourceType>(level - 1)) + ".internalId=" +
+              FormatLevel(static_cast<ResourceType>(level)) + ".parentId");
+    }
+
+    std::list<std::string> where;
+    where.push_back(strQueryLevel + ".resourceType = " +
+                    formatter.FormatResourceType(queryLevel) + comparisons);
+
+
+    if (!request.GetLabels().empty())
+    {
+      /**
+       * "In SQL Server, NOT EXISTS and NOT IN predicates are the best
+       * way to search for missing values, as long as both columns in
+       * question are NOT NULL."
+       * https://explainextended.com/2009/09/15/not-in-vs-not-exists-vs-left-join-is-null-sql-server/
+       **/
+
+      const std::set<std::string>& labels = request.GetLabels();
+      std::list<std::string> formattedLabels;
+      for (std::set<std::string>::const_iterator it = labels.begin(); it != labels.end(); ++it)
+      {
+        formattedLabels.push_back(formatter.GenerateParameter(*it));
+      }
+
+      std::string condition;
+      switch (request.GetLabelsConstraint())
+      {
+        case LabelsConstraint_Any:
+          condition = "> 0";
+          break;
+          
+        case LabelsConstraint_All:
+          condition = "= " + boost::lexical_cast<std::string>(labels.size());
+          break;
+          
+        case LabelsConstraint_None:
+          condition = "= 0";
+          break;
+          
+        default:
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+      
+      where.push_back("(SELECT COUNT(1) FROM Labels AS selectedLabels WHERE selectedLabels.id = " + strQueryLevel +
+                      ".internalId AND selectedLabels.label IN (" + Join(formattedLabels, "", ", ") + ")) " + condition);
+    }
+
+    sql += joins + Join(where, " WHERE ", " AND ");
+
+    if (request.HasLimits())
+    {
+      sql += formatter.FormatLimits(request.GetLimitsSince(), request.GetLimitsCount());
+    }
+  }
+
+
   void ISqlLookupFormatter::ApplySingleLevel(std::string& sql,
                                              ISqlLookupFormatter& formatter,
                                              const DatabaseConstraints& lookup,
@@ -730,5 +860,4 @@ namespace Orthanc
       sql += " LIMIT " + boost::lexical_cast<std::string>(limit);
     }
   }
-
 }

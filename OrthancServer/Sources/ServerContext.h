@@ -277,6 +277,7 @@ namespace Orthanc
     boost::mutex dynamicOptionsMutex_;
     bool isUnknownSopClassAccepted_;
     std::set<DicomTransferSyntax>  acceptedTransferSyntaxes_;
+    bool readOnly_;
 
     StoreResult StoreAfterTranscoding(std::string& resultPublicId,
                                       DicomInstanceToStore& dicom,
@@ -322,7 +323,8 @@ namespace Orthanc
     ServerContext(IDatabaseWrapper& database,
                   IStorageArea& area,
                   bool unitTesting,
-                  size_t maxCompletedJobs);
+                  size_t maxCompletedJobs,
+                  bool readOnly);
 
     ~ServerContext();
 
@@ -344,6 +346,15 @@ namespace Orthanc
     bool IsCompressionEnabled() const
     {
       return compressionEnabled_;
+    }
+    bool IsReadOnly() const
+    {
+      return readOnly_;
+    }
+
+    bool IsSaveJobs() const
+    {
+      return saveJobs_;
     }
 
     bool AddAttachment(int64_t& newRevision,
@@ -376,10 +387,16 @@ namespace Orthanc
 
     void ReadDicomAsJson(Json::Value& result,
                          const std::string& instancePublicId,
+                         const std::map<MetadataType, std::string>& instanceMetadata,
+                         const std::map<FileContentType, FileInfo>& instanceAttachments,
                          const std::set<DicomTag>& ignoreTagLength);
 
     void ReadDicomAsJson(Json::Value& result,
-                         const std::string& instancePublicId);
+                         const std::string& instancePublicId,
+                         const std::set<DicomTag>& ignoreTagLength);  // TODO-FIND: Can this be removed?
+
+    void ReadDicomAsJson(Json::Value& result,
+                         const std::string& instancePublicId);  // TODO-FIND: Can this be removed?
 
     void ReadDicom(std::string& dicom,
                    const std::string& instancePublicId);
@@ -447,6 +464,11 @@ namespace Orthanc
     }
 
     void Stop();
+
+    uint64_t GetDatabaseLimits(ResourceType level) const
+    {
+      return (level == ResourceType_Instance ? limitFindInstances_ : limitFindResults_);
+    }
 
     void Apply(ILookupVisitor& visitor,
                const DatabaseLookup& lookup,

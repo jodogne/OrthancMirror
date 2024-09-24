@@ -64,13 +64,11 @@ namespace Orthanc
                         int64_t id,
                         const std::string& publicId);
 
-    bool IsUnstableResource(ResourceType type,
-                            int64_t id);
-
   public:
     ServerIndex(ServerContext& context,
                 IDatabaseWrapper& database,
-                unsigned int threadSleepGranularityMilliseconds);
+                unsigned int threadSleepGranularityMilliseconds,
+                bool readOnly);
 
     ~ServerIndex();
 
@@ -103,5 +101,8 @@ namespace Orthanc
                               bool hasOldRevision,
                               int64_t oldRevision,
                               const std::string& oldMD5);
+
+    bool IsUnstableResource(ResourceType type,
+                            int64_t id);
   };
 }

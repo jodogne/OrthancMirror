@@ -215,6 +215,24 @@ namespace Orthanc
   }
 
 
+  static bool HasIntersection(const std::set<std::string>& expected,
+                              const std::string& values)
+  {
+    std::vector<std::string> tokens;
+    Toolbox::TokenizeString(tokens, values, '\\');
+
+    for (size_t i = 0; i < tokens.size(); i++)
+    {
+      if (expected.find(tokens[i]) != expected.end())
+      {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+
   bool DicomTagConstraint::IsMatch(const std::string& value) const
   {
     NormalizedString source(value, caseSensitive_);
@@ -224,7 +242,17 @@ namespace Orthanc
       case ConstraintType_Equal:
       {
         NormalizedString reference(GetValue(), caseSensitive_);
-        return source.GetValue() == reference.GetValue();
+
+        if (GetTag() == DICOM_TAG_MODALITIES_IN_STUDY)
+        {
+          std::set<std::string> expected;
+          expected.insert(reference.GetValue());
+          return HasIntersection(expected, source.GetValue());
+        }
+        else
+        {
+          return source.GetValue() == reference.GetValue();
+        }
       }
 
       case ConstraintType_SmallerOrEqual:
@@ -251,17 +279,16 @@ namespace Orthanc
 
       case ConstraintType_List:
       {
+        std::set<std::string> references;
+
         for (std::set<std::string>::const_iterator
                it = values_.begin(); it != values_.end(); ++it)
         {
           NormalizedString reference(*it, caseSensitive_);
-          if (source.GetValue() == reference.GetValue())
-          {
-            return true;
-          }
+          references.insert(reference.GetValue());
         }
 
-        return false;
+        return HasIntersection(references, source.GetValue());
       }
 
       default:
@@ -342,7 +369,8 @@ namespace Orthanc
   }
 
 
-  DatabaseConstraint* DicomTagConstraint::ConvertToDatabaseConstraint(ResourceType level,
+  DatabaseConstraint* DicomTagConstraint::ConvertToDatabaseConstraint(bool& isIdentical,
+                                                                      ResourceType level,
                                                                       DicomTagType tagType) const
   {
     bool isIdentifier, caseSensitive;
@@ -365,13 +393,21 @@ namespace Orthanc
 
     std::vector<std::string> values;
     values.reserve(values_.size());
-      
+
+    isIdentical = true;
+
     for (std::set<std::string>::const_iterator
            it = values_.begin(); it != values_.end(); ++it)
     {
       if (isIdentifier)
       {
-        values.push_back(ServerToolbox::NormalizeIdentifier(*it));
+        std::string normalized = ServerToolbox::NormalizeIdentifier(*it);
+        values.push_back(normalized);
+
+        if (normalized != *it)
+        {
+          isIdentical = false;
+        }
       }
       else
       {
