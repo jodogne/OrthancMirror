@@ -801,7 +801,6 @@ namespace Orthanc
     return result;
   }
 
-
   void Toolbox::ComputeSHA1(std::string& result,
                             const void* data,
                             size_t size)
@@ -814,11 +813,13 @@ namespace Orthanc
     }
 
     unsigned int digest[5];
-
     // Sanity check for the memory layout: A SHA-1 digest is 160 bits wide
-    assert(sizeof(unsigned int) == 4 && sizeof(digest) == (160 / 8)); 
+    assert(sizeof(unsigned int) == 4 && sizeof(digest) == (160 / 8));
+    assert(sizeof(boost::uuids::detail::sha1::digest_type) == 20);
     
-    sha1.get_digest(digest);
+    // From Boost 1.86, digest_type is "unsigned char[20]" while it was "unsigned int[5]"" in previous versions.
+    // Always perform the cast even if it is useless for Boost < 1.86
+    sha1.get_digest(*(reinterpret_cast<boost::uuids::detail::sha1::digest_type*>(digest)));
 
     result.resize(8 * 5 + 4);
     sprintf(&result[0], "%08x-%08x-%08x-%08x-%08x",
