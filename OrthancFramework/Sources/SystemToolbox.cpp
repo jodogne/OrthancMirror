@@ -2,8 +2,9 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -520,7 +521,7 @@ namespace Orthanc
   {
     // This is an adapted version of the patch proposed in issue #64
     // without an explicit call to "malloc()" to prevent memory leak
-    // https://bugs.orthanc-server.com/show_bug.cgi?id=64
+    // https://orthanc.uclouvain.be/bugs/show_bug.cgi?id=64
     // https://stackoverflow.com/q/31494901/881731
 
     const int mib[4] = { CTL_KERN, KERN_PROC_ARGS, getpid(), KERN_PROC_ARGV };
@@ -725,10 +726,56 @@ namespace Orthanc
     }
   }
 
+  bool SystemToolbox::IsContentCompressible(MimeType mime)
+  {
+    switch (mime)
+    {
+      case MimeType_Css:
+      case MimeType_Html:
+      case MimeType_JavaScript:
+      case MimeType_Json:
+      case MimeType_Pam:
+      case MimeType_Pdf:
+      case MimeType_PlainText:
+      case MimeType_WebAssembly:
+      case MimeType_Xml:
+      case MimeType_PrometheusText:
+      case MimeType_DicomWebJson:
+      case MimeType_DicomWebXml:
+        return true;
+      default: // for all other (JPEG, DICOM, binary, ...)
+        return false;
+    }
+  }
+  
+  bool SystemToolbox::IsContentCompressible(const std::string& contentType)
+  {
+    if (contentType.empty())
+    {
+      return false;
+    }
+
+    if (contentType.find(MIME_JSON) != std::string::npos ||
+        contentType.find(MIME_XML) != std::string::npos ||
+        contentType.find(MIME_DICOM_WEB_JSON) != std::string::npos ||
+        contentType.find(MIME_DICOM_WEB_XML) != std::string::npos ||
+        contentType.find(MIME_PDF) != std::string::npos ||
+        contentType.find(MIME_CSS) != std::string::npos ||
+        contentType.find(MIME_HTML) != std::string::npos ||
+        contentType.find(MIME_JAVASCRIPT) != std::string::npos ||
+        contentType.find(MIME_PLAIN_TEXT) != std::string::npos ||
+        contentType.find(MIME_WEB_ASSEMBLY) != std::string::npos ||
+        contentType.find(MIME_XML_2) != std::string::npos)
+    {
+      return true;
+    }
+
+    return false;
+  }
 
   MimeType SystemToolbox::AutodetectMimeType(const std::string& path)
   {
-    std::string extension = boost::filesystem::extension(path);
+    std::string extension = boost::filesystem::path(path).extension().string();
     Toolbox::ToLowerCase(extension);
 
     // http://en.wikipedia.org/wiki/Mime_types
@@ -824,6 +871,18 @@ namespace Orthanc
     else if (extension == ".zip")
     {
       return MimeType_Zip;
+    }
+    else if (extension == ".mtl")
+    {
+      return MimeType_Mtl;
+    }
+    else if (extension == ".obj")
+    {
+      return MimeType_Obj;
+    }
+    else if (extension == ".stl")
+    {
+      return MimeType_Stl;
     }
 
     // Default type

@@ -2,8 +2,9 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -152,7 +153,7 @@ namespace Orthanc
     static void ApplyLevel(SetOfResources& candidates,
                            IDatabaseWrapper::ITransaction& transaction,
                            ILookupResources& compatibility,
-                           const std::vector<DatabaseConstraint>& lookup,
+                           const DatabaseConstraints& lookup,
                            ResourceType level)
     {
       typedef std::set<const DatabaseConstraint*>  SetOfConstraints;
@@ -165,17 +166,19 @@ namespace Orthanc
       Identifiers       identifiers;
       SetOfConstraints  mainTags;
       
-      for (size_t i = 0; i < lookup.size(); i++)
+      for (size_t i = 0; i < lookup.GetSize(); i++)
       {
-        if (lookup[i].GetLevel() == level)
+        const DatabaseConstraint& constraint = lookup.GetConstraint(i);
+
+        if (constraint.GetLevel() == level)
         {
-          if (lookup[i].IsIdentifier())
+          if (constraint.IsIdentifier())
           {
-            identifiers[lookup[i].GetTag()].insert(&lookup[i]);
+            identifiers[constraint.GetTag()].insert(&constraint);
           }
           else
           {
-            mainTags.insert(&lookup[i]);
+            mainTags.insert(&constraint);
           }
         }
       }
@@ -305,7 +308,7 @@ namespace Orthanc
 
     void DatabaseLookup::ApplyLookupResources(std::list<std::string>& resourcesId,
                                               std::list<std::string>* instancesId,
-                                              const std::vector<DatabaseConstraint>& lookup,
+                                              const DatabaseConstraints& lookup,
                                               ResourceType queryLevel,
                                               size_t limit)
     {
@@ -319,9 +322,9 @@ namespace Orthanc
       ResourceType upperLevel = queryLevel;
       ResourceType lowerLevel = queryLevel;
 
-      for (size_t i = 0; i < lookup.size(); i++)
+      for (size_t i = 0; i < lookup.GetSize(); i++)
       {
-        ResourceType level = lookup[i].GetLevel();
+        ResourceType level = lookup.GetConstraint(i).GetLevel();
 
         if (level < upperLevel)
         {

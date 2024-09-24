@@ -2,8 +2,9 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -58,6 +59,8 @@ static const std::string CHECK_REVISIONS = "CheckRevisions";
 
 static const char* const IGNORE_LENGTH = "ignore-length";
 static const char* const RECONSTRUCT_FILES = "ReconstructFiles";
+static const char* const LIMIT_TO_THIS_LEVEL_MAIN_DICOM_TAGS = "LimitToThisLevelMainDicomTags";
+static const char* const ARG_WHOLE = "whole";
 
 
 namespace Orthanc
@@ -67,19 +70,19 @@ namespace Orthanc
     switch (type)
     {
       case Orthanc::ResourceType_Instance:
-        return "https://demo.orthanc-server.com/instances/d94d9a03-3003b047-a4affc69-322313b2-680530a2";
+        return "https://orthanc.uclouvain.be/demo/instances/6582b1c0-292ad5ab-ba0f088f-f7a1766f-9a29a54f";
         break;
         
       case Orthanc::ResourceType_Series:
-        return "https://demo.orthanc-server.com/series/37836232-d13a2350-fa1dedc5-962b31aa-010f8e52";
+        return "https://orthanc.uclouvain.be/demo/series/37836232-d13a2350-fa1dedc5-962b31aa-010f8e52";
         break;
         
       case Orthanc::ResourceType_Study:
-        return "https://demo.orthanc-server.com/studies/27f7126f-4f66fb14-03f4081b-f9341db2-53925988";
+        return "https://orthanc.uclouvain.be/demo/studies/27f7126f-4f66fb14-03f4081b-f9341db2-53925988";
         break;
         
       case Orthanc::ResourceType_Patient:
-        return "https://demo.orthanc-server.com/patients/46e6332c-677825b6-202fcf7c-f787bc5f-7b07c382";
+        return "https://orthanc.uclouvain.be/demo/patients/46e6332c-677825b6-202fcf7c-f787bc5f-7b07c382";
         break;
         
       default:
@@ -216,7 +219,7 @@ namespace Orthanc
                             "If present, retrieve detailed information about the individual " + resources, false)
         .AddAnswerType(MimeType_Json, "JSON array containing either the Orthanc identifiers, or detailed information "
                        "about the reported " + resources + " (if `expand` argument is provided)")
-        .SetHttpGetSample("https://demo.orthanc-server.com/" + resources + "?since=0&limit=2", true);
+        .SetHttpGetSample("https://orthanc.uclouvain.be/demo/" + resources + "?since=0&limit=2", true);
       return;
     }
     
@@ -254,7 +257,7 @@ namespace Orthanc
       index.GetAllUuids(result, resourceType);
     }
 
-    AnswerListOfResources(call.GetOutput(), context, result, resourceType, call.HasArgument("expand"),
+    AnswerListOfResources(call.GetOutput(), context, result, resourceType, call.HasArgument("expand") && call.GetBooleanArgument("expand", true),
                           OrthancRestApi::GetDicomFormat(call, DicomToJsonFormat_Human),
                           requestedTags,
                           true /* allowStorageAccess */);
@@ -342,8 +345,10 @@ namespace Orthanc
     {
       call.GetDocumentation()
         .SetTag("Patients")
-        .SetSummary("Protect one patient against recycling")
-        .SetDescription("Check out configuration options `MaximumStorageSize` and `MaximumPatientCount`")
+        .SetSummary("Protect/Unprotect a patient against recycling")
+        .SetDescription("Protects a patient by sending `1` or `true` in the payload request. "
+                        "Unprotects a patient by sending `0` or `false` in the payload requests. "
+                        "More info: https://orthanc.uclouvain.be/book/faq/features.html#recycling-protection")
         .SetUriArgument("id", "Orthanc identifier of the patient of interest");
       return;
     }
@@ -361,6 +366,8 @@ namespace Orthanc
  
   static void GetInstanceFile(RestApiGetCall& call)
   {
+    static const char* const TRANSCODE = "transcode";
+
     if (call.IsDocumentation())
     {
       call.GetDocumentation()
@@ -369,6 +376,9 @@ namespace Orthanc
         .SetDescription("Download one DICOM instance")
         .SetUriArgument("id", "Orthanc identifier of the DICOM instance of interest")
         .SetHttpHeader("Accept", "This HTTP header can be set to retrieve the DICOM instance in DICOMweb format")
+        .SetHttpGetArgument(TRANSCODE, RestApiCallDocumentation::Type_String,
+                            "If present, the DICOM file will be transcoded to the provided "
+                            "transfer syntax: https://orthanc.uclouvain.be/book/faq/transcoding.html", false)
         .AddAnswerType(MimeType_Dicom, "The DICOM instance")
         .AddAnswerType(MimeType_DicomWebJson, "The DICOM instance, in DICOMweb JSON format")
         .AddAnswerType(MimeType_DicomWebXml, "The DICOM instance, in DICOMweb XML format");
@@ -417,7 +427,23 @@ namespace Orthanc
       }
     }
 
-    context.AnswerAttachment(call.GetOutput(), publicId, FileContentType_Dicom);
+    if (call.HasArgument(TRANSCODE))
+    {
+      std::string source;
+      std::string attachmentId;
+      std::string transcoded;
+      context.ReadDicom(source, attachmentId, publicId);
+
+      if (context.TranscodeWithCache(transcoded, source, publicId, attachmentId, GetTransferSyntax(call.GetArgument(TRANSCODE, ""))))
+      {
+        call.GetOutput().AnswerBuffer(transcoded, MimeType_Dicom);
+      }
+    }
+    else
+    {
+      // return the attachment without any transcoding
+      context.AnswerAttachment(call.GetOutput(), publicId, FileContentType_Dicom);
+    }
   }
 
 
@@ -428,13 +454,24 @@ namespace Orthanc
       call.GetDocumentation()
         .SetTag("Instances")
         .SetSummary("Write DICOM onto filesystem")
-        .SetDescription("Write the DICOM file onto the filesystem where Orthanc is running")
+        .SetDescription("Write the DICOM file onto the filesystem where Orthanc is running.  This is insecure for "
+                        "Orthanc servers that are remotely accessible since one could overwrite any system file.  "
+                        "Since Orthanc 1.12.0, this route is disabled by default, but can be enabled using "
+                        "the `RestApiWriteToFileSystemEnabled` configuration option.")
         .SetUriArgument("id", "Orthanc identifier of the DICOM instance of interest")
         .AddRequestType(MimeType_PlainText, "Target path on the filesystem");
       return;
     }
 
     ServerContext& context = OrthancRestApi::GetContext(call);
+
+    if (!context.IsRestApiWriteToFileSystemEnabled())
+    {
+      LOG(ERROR) << "The URI /instances/../export is disallowed for security, "
+                 << "check your configuration option `RestApiWriteToFileSystemEnabled`";
+      call.GetOutput().SignalError(HttpStatus_403_Forbidden);
+      return;
+    }
 
     std::string publicId = call.GetUriComponent("id", "");
 
@@ -450,7 +487,8 @@ namespace Orthanc
 
 
   template <DicomToJsonFormat format>
-  static void GetInstanceTagsInternal(RestApiGetCall& call)
+  static void GetInstanceTagsInternal(RestApiGetCall& call,
+                                      bool whole)
   {
     ServerContext& context = OrthancRestApi::GetContext(call);
 
@@ -458,23 +496,59 @@ namespace Orthanc
 
     std::set<DicomTag> ignoreTagLength;
     ParseSetOfTags(ignoreTagLength, call, IGNORE_LENGTH);
-    
-    if (format != DicomToJsonFormat_Full ||
-        !ignoreTagLength.empty())
+
+    if (whole)
     {
-      Json::Value full;
-      context.ReadDicomAsJson(full, publicId, ignoreTagLength);
-      AnswerDicomAsJson(call, full, format);
+      // This is new in Orthanc 1.12.4. Reference:
+      // https://discourse.orthanc-server.org/t/private-tags-with-group-7fe0-are-not-provided-via-rest-api/4744
+      const DicomToJsonFlags flags = static_cast<DicomToJsonFlags>(DicomToJsonFlags_Default & ~DicomToJsonFlags_StopAfterPixelData);
+
+      Json::Value answer;
+
+      {
+        ServerContext::DicomCacheLocker locker(OrthancRestApi::GetContext(call), publicId);
+        locker.GetDicom().DatasetToJson(answer, format, flags,
+                                        ORTHANC_MAXIMUM_TAG_LENGTH, ignoreTagLength);
+      }
+
+      call.GetOutput().AnswerJson(answer);
     }
     else
     {
-      // This path allows one to avoid the JSON decoding if no
-      // simplification is asked, and if no "ignore-length" argument
-      // is present
-      Json::Value full;
-      context.ReadDicomAsJson(full, publicId);
-      call.GetOutput().AnswerJson(full);
+      if (format != DicomToJsonFormat_Full ||
+          !ignoreTagLength.empty())
+      {
+        Json::Value full;
+        context.ReadDicomAsJson(full, publicId, ignoreTagLength);
+        AnswerDicomAsJson(call, full, format);
+      }
+      else
+      {
+        // This path allows one to avoid the JSON decoding if no
+        // simplification is asked, and if no "ignore-length" argument
+        // is present
+        Json::Value full;
+        context.ReadDicomAsJson(full, publicId);
+        call.GetOutput().AnswerJson(full);
+      }
     }
+  }
+
+
+  static void DocumentGetInstanceTags(RestApiGetCall& call)
+  {
+    call.GetDocumentation()
+      .SetTag("Instances")
+      .SetUriArgument("id", "Orthanc identifier of the DICOM instance of interest")
+      .SetHttpGetArgument(
+        IGNORE_LENGTH, RestApiCallDocumentation::Type_JsonListOfStrings,
+        "Also include the DICOM tags that are provided in this list, even if their associated value is long", false)
+      .SetHttpGetArgument(
+        ARG_WHOLE, RestApiCallDocumentation::Type_Boolean, "Whether to read the whole DICOM file from the "
+        "storage area (new in Orthanc 1.12.4). If set to \"false\" (default value), the DICOM file is read "
+        "until the pixel data tag (7fe0,0010) to optimize access to storage. Setting the option "
+        "to \"true\" provides access to the DICOM tags stored after the pixel data tag.", false)
+      .AddAnswerType(MimeType_Json, "JSON object containing the DICOM tags and their associated value");
   }
 
 
@@ -483,31 +557,29 @@ namespace Orthanc
     if (call.IsDocumentation())
     {
       OrthancRestApi::DocumentDicomFormat(call, DicomToJsonFormat_Full);
+      DocumentGetInstanceTags(call);
       call.GetDocumentation()
-        .SetTag("Instances")
         .SetSummary("Get DICOM tags")
         .SetDescription("Get the DICOM tags in the specified format. By default, the `full` format is used, which "
                         "combines hexadecimal tags with human-readable description.")
-        .SetUriArgument("id", "Orthanc identifier of the DICOM instance of interest")
-        .SetHttpGetArgument(IGNORE_LENGTH, RestApiCallDocumentation::Type_JsonListOfStrings,
-                            "Also include the DICOM tags that are provided in this list, even if their associated value is long", false)
-        .AddAnswerType(MimeType_Json, "JSON object containing the DICOM tags and their associated value")
-        .SetTruncatedJsonHttpGetSample("https://demo.orthanc-server.com/instances/7c92ce8e-bbf67ed2-ffa3b8c1-a3b35d94-7ff3ae26/tags", 10);
+        .SetTruncatedJsonHttpGetSample("https://orthanc.uclouvain.be/demo/instances/7c92ce8e-bbf67ed2-ffa3b8c1-a3b35d94-7ff3ae26/tags", 10);
       return;
     }
+
+    const bool whole = call.GetBooleanArgument(ARG_WHOLE, false);
 
     switch (OrthancRestApi::GetDicomFormat(call, DicomToJsonFormat_Full))
     {
       case DicomToJsonFormat_Human:
-        GetInstanceTagsInternal<DicomToJsonFormat_Human>(call);
+        GetInstanceTagsInternal<DicomToJsonFormat_Human>(call, whole);
         break;
 
       case DicomToJsonFormat_Short:
-        GetInstanceTagsInternal<DicomToJsonFormat_Short>(call);
+        GetInstanceTagsInternal<DicomToJsonFormat_Short>(call, whole);
         break;
 
       case DicomToJsonFormat_Full:
-        GetInstanceTagsInternal<DicomToJsonFormat_Full>(call);
+        GetInstanceTagsInternal<DicomToJsonFormat_Full>(call, whole);
         break;
 
       default:
@@ -520,20 +592,16 @@ namespace Orthanc
   {
     if (call.IsDocumentation())
     {
+      DocumentGetInstanceTags(call);
       call.GetDocumentation()
-        .SetTag("Instances")
         .SetSummary("Get human-readable tags")
         .SetDescription("Get the DICOM tags in human-readable format (same as the `/instances/{id}/tags?simplify` route)")
-        .SetUriArgument("id", "Orthanc identifier of the DICOM instance of interest")
-        .SetHttpGetArgument(IGNORE_LENGTH, RestApiCallDocumentation::Type_JsonListOfStrings,
-                            "Also include the DICOM tags that are provided in this list, even if their associated value is long", false)
-        .AddAnswerType(MimeType_Json, "JSON object containing the DICOM tags and their associated value")
-        .SetTruncatedJsonHttpGetSample("https://demo.orthanc-server.com/instances/7c92ce8e-bbf67ed2-ffa3b8c1-a3b35d94-7ff3ae26/simplified-tags", 10);
+        .SetTruncatedJsonHttpGetSample("https://orthanc.uclouvain.be/demo/instances/7c92ce8e-bbf67ed2-ffa3b8c1-a3b35d94-7ff3ae26/simplified-tags", 10);
       return;
     }
     else
     {
-      GetInstanceTagsInternal<DicomToJsonFormat_Human>(call);
+      GetInstanceTagsInternal<DicomToJsonFormat_Human>(call, call.GetBooleanArgument(ARG_WHOLE, false));
     }
   }
 
@@ -548,7 +616,7 @@ namespace Orthanc
         .SetDescription("List the frames that are available in the DICOM instance of interest")
         .SetUriArgument("id", "Orthanc identifier of the DICOM instance of interest")
         .AddAnswerType(MimeType_Json, "The list of the indices of the available frames")
-        .SetHttpGetSample("https://demo.orthanc-server.com/instances/7c92ce8e-bbf67ed2-ffa3b8c1-a3b35d94-7ff3ae26/frames", true);      
+        .SetHttpGetSample("https://orthanc.uclouvain.be/demo/instances/7c92ce8e-bbf67ed2-ffa3b8c1-a3b35d94-7ff3ae26/frames", true);      
       return;
     }
 
@@ -628,7 +696,8 @@ namespace Orthanc
       }
 
       virtual void Handle(const std::string& type,
-                          const std::string& subtype) ORTHANC_OVERRIDE
+                          const std::string& subtype,
+                          const HttpContentNegociation::Dictionary& parameters) ORTHANC_OVERRIDE
       {
         assert(type == "image");
         assert(subtype == "png");
@@ -647,7 +716,8 @@ namespace Orthanc
       }
 
       virtual void Handle(const std::string& type,
-                          const std::string& subtype) ORTHANC_OVERRIDE
+                          const std::string& subtype,
+                          const HttpContentNegociation::Dictionary& parameters) ORTHANC_OVERRIDE
       {
         assert(type == "image");
         assert(subtype == "x-portable-arbitrarymap");
@@ -687,7 +757,8 @@ namespace Orthanc
       }
 
       virtual void Handle(const std::string& type,
-                          const std::string& subtype) ORTHANC_OVERRIDE
+                          const std::string& subtype,
+                          const HttpContentNegociation::Dictionary& parameters) ORTHANC_OVERRIDE
       {
         assert(type == "image");
         assert(subtype == "jpeg");
@@ -1446,7 +1517,7 @@ namespace Orthanc
         .SetTag("Instances")
         .SetSummary("Decode frame for Matlab")
         .SetDescription(description + ", and export this frame as a Octave/Matlab matrix to be imported with `eval()`: "
-                        "https://book.orthanc-server.com/faq/matlab.html")
+                        "https://orthanc.uclouvain.be/book/faq/matlab.html")
         .SetUriArgument("id", "Orthanc identifier of the DICOM instance of interest")
         .AddAnswerType(MimeType_PlainText, "Octave/Matlab matrix");
       return;
@@ -1666,6 +1737,8 @@ namespace Orthanc
         .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
         .SetHttpGetArgument("expand", RestApiCallDocumentation::Type_String,
                             "If present, also retrieve the value of the individual metadata", false)
+        .SetHttpGetArgument("numeric", RestApiCallDocumentation::Type_String,
+                            "If present, use the numeric identifier of the metadata instead of its symbolic name", false)
         .AddAnswerType(MimeType_Json, "JSON array containing the names of the available metadata, "
                        "or JSON associative array mapping metadata to their values (if `expand` argument is provided)")
         .SetHttpGetSample(GetDocumentationSampleResource(t) + "/metadata", true);
@@ -1683,15 +1756,26 @@ namespace Orthanc
 
     Json::Value result;
 
-    if (call.HasArgument("expand"))
+    bool isNumeric = call.HasArgument("numeric");
+
+    if (call.HasArgument("expand") && call.GetBooleanArgument("expand", true))
     {
       result = Json::objectValue;
       
       for (Metadata::const_iterator it = metadata.begin(); it != metadata.end(); ++it)
       {
-        std::string key = EnumerationToString(it->first);
+        std::string key;
+        if (isNumeric)
+        {
+          key = boost::lexical_cast<std::string>(it->first);
+        }
+        else
+        {
+          key = EnumerationToString(it->first);
+        }
+
         result[key] = it->second;
-      }      
+      }
     }
     else
     {
@@ -1699,7 +1783,14 @@ namespace Orthanc
       
       for (Metadata::const_iterator it = metadata.begin(); it != metadata.end(); ++it)
       {       
-        result.append(EnumerationToString(it->first));
+        if (isNumeric)
+        {
+          result.append(it->first);
+        }
+        else
+        {
+          result.append(EnumerationToString(it->first));
+        }
       }
     }
 
@@ -1857,7 +1948,8 @@ namespace Orthanc
     std::string name = call.GetUriComponent("name", "");
     MetadataType metadata = StringToMetadata(name);
 
-    if (IsUserMetadata(metadata))  // It is forbidden to modify internal metadata
+    if (IsUserMetadata(metadata) ||  // It is forbidden to delete internal metadata...
+        call.GetRequestOrigin() == RequestOrigin_Plugins)     // ...except for plugins
     {
       bool found;
       int64_t revision;
@@ -1923,7 +2015,8 @@ namespace Orthanc
     std::string value;
     call.BodyToString(value);
 
-    if (IsUserMetadata(metadata))  // It is forbidden to modify internal metadata
+    if (IsUserMetadata(metadata) ||  // It is forbidden to modify internal metadata...
+        call.GetRequestOrigin() == RequestOrigin_Plugins)     // ...except for plugins
     {
       int64_t oldRevision;
       std::string oldMD5;
@@ -1958,6 +2051,129 @@ namespace Orthanc
 
 
 
+  // Handling of labels -------------------------------------------------------
+
+  static void ListLabels(RestApiGetCall& call)
+  {
+    if (call.IsDocumentation())
+    {
+      ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
+      std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      call.GetDocumentation()
+        .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
+        .SetSummary("List labels")
+        .SetDescription("Get the labels that are associated with the given " + r + " (new in Orthanc 1.12.0)")
+        .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
+        .AddAnswerType(MimeType_Json, "JSON array containing the names of the labels")
+        .SetHttpGetSample(GetDocumentationSampleResource(t) + "/labels", true);
+      return;
+    }
+
+    assert(!call.GetFullUri().empty());
+    const std::string publicId = call.GetUriComponent("id", "");
+    ResourceType level = StringToResourceType(call.GetFullUri() [0].c_str());
+
+    std::set<std::string> labels;
+    OrthancRestApi::GetIndex(call).ListLabels(labels, publicId, level);
+
+    Json::Value result = Json::arrayValue;
+
+    for (std::set<std::string>::const_iterator it = labels.begin(); it != labels.end(); ++it)
+    {
+      result.append(*it);
+    }
+
+    call.GetOutput().AnswerJson(result);
+  }
+  
+
+  static void GetLabel(RestApiGetCall& call)
+  {
+    if (call.IsDocumentation())
+    {
+      ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
+      std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      call.GetDocumentation()
+        .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
+        .SetSummary("Test label")
+        .SetDescription("Test whether the " + r + " is associated with the given label")
+        .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
+        .SetUriArgument("label", "The label of interest")
+        .AddAnswerType(MimeType_PlainText, "Empty string is returned in the case of presence, error 404 in the case of absence");
+      return;
+    }
+
+    CheckValidResourceType(call);
+
+    assert(!call.GetFullUri().empty());
+    const std::string publicId = call.GetUriComponent("id", "");
+    const ResourceType level = StringToResourceType(call.GetFullUri() [0].c_str());
+
+    std::string label = call.GetUriComponent("label", "");
+
+    std::set<std::string> labels;
+    OrthancRestApi::GetIndex(call).ListLabels(labels, publicId, level);
+    
+    if (labels.find(label) != labels.end())
+    {
+      call.GetOutput().AnswerBuffer("", MimeType_PlainText);
+    }
+  }
+
+
+  static void AddLabel(RestApiPutCall& call)
+  {
+    if (call.IsDocumentation())
+    {
+      ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
+      std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      call.GetDocumentation()
+        .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
+        .SetSummary("Add label")
+        .SetDescription("Associate a label with a " + r)
+        .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
+        .SetUriArgument("label", "The label to be added");
+      return;
+    }
+
+    CheckValidResourceType(call);
+
+    std::string publicId = call.GetUriComponent("id", "");
+    const ResourceType level = StringToResourceType(call.GetFullUri() [0].c_str());
+
+    std::string label = call.GetUriComponent("label", "");
+    OrthancRestApi::GetIndex(call).ModifyLabel(publicId, level, label, StatelessDatabaseOperations::LabelOperation_Add);
+
+    call.GetOutput().AnswerBuffer("", MimeType_PlainText);
+  }
+
+
+  static void RemoveLabel(RestApiDeleteCall& call)
+  {
+    if (call.IsDocumentation())
+    {
+      ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
+      std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      call.GetDocumentation()
+        .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
+        .SetSummary("Remove label")
+        .SetDescription("Remove a label associated with a " + r)
+        .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
+        .SetUriArgument("label", "The label to be removed");
+      return;
+    }
+
+    CheckValidResourceType(call);
+
+    std::string publicId = call.GetUriComponent("id", "");
+    const ResourceType level = StringToResourceType(call.GetFullUri() [0].c_str());
+
+    std::string label = call.GetUriComponent("label", "");
+    OrthancRestApi::GetIndex(call).ModifyLabel(publicId, level, label, StatelessDatabaseOperations::LabelOperation_Remove);
+
+    call.GetOutput().AnswerBuffer("", MimeType_PlainText);
+  }
+  
 
   // Handling of attached files -----------------------------------------------
 
@@ -2070,7 +2286,7 @@ namespace Orthanc
         .SetSummary("List operations on attachments")
         .SetDescription("Get the list of the operations that are available for attachments associated with the given " + r)
         .AddAnswerType(MimeType_Json, "List of the available operations")
-        .SetHttpGetSample("https://demo.orthanc-server.com/instances/d94d9a03-3003b047-a4affc69-322313b2-680530a2/attachments/dicom", true);
+        .SetHttpGetSample("https://orthanc.uclouvain.be/demo/instances/6582b1c0-292ad5ab-ba0f088f-f7a1766f-9a29a54f/attachments/dicom", true);
       return;
     }
 
@@ -2105,8 +2321,6 @@ namespace Orthanc
       {
         operations.append("verify-md5");
       }
-
-      operations.append("uuid");
 
       call.GetOutput().AnswerJson(operations);
     }
@@ -2153,8 +2367,9 @@ namespace Orthanc
       {
         // Return the raw data (possibly compressed), as stored on the filesystem
         std::string content;
+        std::string attachmentId;
         int64_t revision;
-        context.ReadAttachment(content, revision, publicId, type, false, true /* skipCache when you absolutely need the compressed data */);
+        context.ReadAttachment(content, revision, attachmentId, publicId, type, false, true /* skipCache when you absolutely need the compressed data */);
 
         int64_t userRevision;
         std::string userMD5;
@@ -2207,7 +2422,7 @@ namespace Orthanc
         .SetSummary("Get info about the attachment")
         .SetDescription("Get all the information about the attachment associated with the given " + r)
         .AddAnswerType(MimeType_Json, "JSON object containing the information about the attachment")
-        .SetHttpGetSample("https://demo.orthanc-server.com/instances/7c92ce8e-bbf67ed2-ffa3b8c1-a3b35d94-7ff3ae26/attachments/dicom/info", true);
+        .SetHttpGetSample("https://orthanc.uclouvain.be/demo/instances/7c92ce8e-bbf67ed2-ffa3b8c1-a3b35d94-7ff3ae26/attachments/dicom/info", true);
       return;
     }
 
@@ -2336,7 +2551,9 @@ namespace Orthanc
 
     // First check whether the compressed data is correctly stored in the disk
     std::string data;
-    context.ReadAttachment(data, revision, publicId, StringToContentType(name), false, true /* skipCache when you absolutely need the compressed data */);
+    std::string attachmentId;
+
+    context.ReadAttachment(data, revision, attachmentId, publicId, StringToContentType(name), false, true /* skipCache when you absolutely need the compressed data */);
 
     std::string actualMD5;
     Toolbox::ComputeMD5(actualMD5, data);
@@ -2351,7 +2568,7 @@ namespace Orthanc
       }
       else
       {
-        context.ReadAttachment(data, revision, publicId, StringToContentType(name), true, true /* skipCache when you absolutely need the compressed data */);
+        context.ReadAttachment(data, revision, attachmentId, publicId, StringToContentType(name), true, true /* skipCache when you absolutely need the compressed data */);
         Toolbox::ComputeMD5(actualMD5, data);
         ok = (actualMD5 == info.GetUncompressedMD5());
       }
@@ -2396,7 +2613,8 @@ namespace Orthanc
     ResourceType resourceType = StringToResourceType(call.GetFullUri()[0].c_str());
 
     FileContentType contentType = StringToContentType(name);
-    if (IsUserContentType(contentType))  // It is forbidden to modify internal attachments
+    if (IsUserContentType(contentType) ||  // It is forbidden to modify internal attachments...
+        call.GetRequestOrigin() == RequestOrigin_Plugins)   // ...except for plugins
     {
       int64_t oldRevision;
       std::string oldMD5;
@@ -2455,7 +2673,8 @@ namespace Orthanc
     FileContentType contentType = StringToContentType(name);
 
     bool allowed;
-    if (IsUserContentType(contentType))
+    if (IsUserContentType(contentType) ||  // It is forbidden to delete internal attachments...
+        call.GetRequestOrigin() == RequestOrigin_Plugins)   // ...except for plugins
     {
       allowed = true;
     }
@@ -2580,7 +2799,7 @@ namespace Orthanc
         .SetSummary("Get raw tag")
         .SetDescription("Get the raw content of one DICOM tag in the hierarchy of DICOM dataset")
         .SetUriArgument("id", "Orthanc identifier of the DICOM instance of interest")
-        .SetUriArgument("...", "Path to the DICOM tag. This is the interleaving of one DICOM tag, possibly followed "
+        .SetUriArgument("path", "Path to the DICOM tag. This is the interleaving of one DICOM tag, possibly followed "
                         "by an index for sequences. Sequences are accessible as, for instance, `/0008-1140/1/0008-1150`")
         .AddAnswerType(MimeType_Binary, "The raw value of the tag of intereset "
                        "(binary data, whose memory layout depends on the underlying transfer syntax), "
@@ -2938,6 +3157,8 @@ namespace Orthanc
     static const char* const KEY_QUERY = "Query";
     static const char* const KEY_REQUESTED_TAGS = "RequestedTags";
     static const char* const KEY_SINCE = "Since";
+    static const char* const KEY_LABELS = "Labels";                       // New in Orthanc 1.12.0
+    static const char* const KEY_LABELS_CONSTRAINT = "LabelsConstraint";  // New in Orthanc 1.12.0
 
     if (call.IsDocumentation())
     {
@@ -2948,7 +3169,7 @@ namespace Orthanc
         .SetSummary("Look for local resources")
         .SetDescription("This URI can be used to perform a search on the content of the local Orthanc server, "
                         "in a way that is similar to querying remote DICOM modalities using C-FIND SCU: "
-                        "https://book.orthanc-server.com/users/rest.html#performing-finds-within-orthanc")
+                        "https://orthanc.uclouvain.be/book/users/rest.html#performing-finds-within-orthanc")
         .SetRequestField(KEY_CASE_SENSITIVE, RestApiCallDocumentation::Type_Boolean,
                          "Enable case-sensitive search for PN value representations (defaults to configuration option `CaseSensitivePN`)", false)
         .SetRequestField(KEY_EXPAND, RestApiCallDocumentation::Type_Boolean,
@@ -2967,6 +3188,10 @@ namespace Orthanc
                          "all Main Dicom Tags to keep backward compatibility with Orthanc prior to 1.11.0.", false)
         .SetRequestField(KEY_QUERY, RestApiCallDocumentation::Type_JsonObject,
                          "Associative array containing the filter on the values of the DICOM tags", true)
+        .SetRequestField(KEY_LABELS, RestApiCallDocumentation::Type_JsonListOfStrings,
+                         "List of strings specifying which labels to look for in the resources (new in Orthanc 1.12.0)", true)
+        .SetRequestField(KEY_LABELS_CONSTRAINT, RestApiCallDocumentation::Type_String,
+                         "Constraint on the labels, can be `All`, `Any`, or `None` (defaults to `All`, new in Orthanc 1.12.0)", true)
         .AddAnswerType(MimeType_Json, "JSON array containing either the Orthanc identifiers, or detailed information "
                        "about the reported resources (if `Expand` argument is `true`)");
       return;
@@ -2997,25 +3222,37 @@ namespace Orthanc
              request[KEY_CASE_SENSITIVE].type() != Json::booleanValue)
     {
       throw OrthancException(ErrorCode_BadRequest, 
-                             "Field \"" + std::string(KEY_CASE_SENSITIVE) + "\" should be a Boolean");
+                             "Field \"" + std::string(KEY_CASE_SENSITIVE) + "\" must be a Boolean");
     }
     else if (request.isMember(KEY_LIMIT) && 
              request[KEY_LIMIT].type() != Json::intValue)
     {
       throw OrthancException(ErrorCode_BadRequest, 
-                             "Field \"" + std::string(KEY_LIMIT) + "\" should be an integer");
+                             "Field \"" + std::string(KEY_LIMIT) + "\" must be an integer");
     }
     else if (request.isMember(KEY_SINCE) &&
              request[KEY_SINCE].type() != Json::intValue)
     {
       throw OrthancException(ErrorCode_BadRequest, 
-                             "Field \"" + std::string(KEY_SINCE) + "\" should be an integer");
+                             "Field \"" + std::string(KEY_SINCE) + "\" must be an integer");
     }
     else if (request.isMember(KEY_REQUESTED_TAGS) &&
              request[KEY_REQUESTED_TAGS].type() != Json::arrayValue)
     {
       throw OrthancException(ErrorCode_BadRequest, 
-                             "Field \"" + std::string(KEY_REQUESTED_TAGS) + "\" should be an array");
+                             "Field \"" + std::string(KEY_REQUESTED_TAGS) + "\" must be an array");
+    }
+    else if (request.isMember(KEY_LABELS) &&
+             request[KEY_LABELS].type() != Json::arrayValue)
+    {
+      throw OrthancException(ErrorCode_BadRequest, 
+                             "Field \"" + std::string(KEY_LABELS) + "\" must be an array of strings");
+    }
+    else if (request.isMember(KEY_LABELS_CONSTRAINT) &&
+             request[KEY_LABELS_CONSTRAINT].type() != Json::stringValue)
+    {
+      throw OrthancException(ErrorCode_BadRequest, 
+                             "Field \"" + std::string(KEY_LABELS_CONSTRAINT) + "\" must be an array of strings");
     }
     else
     {
@@ -3038,7 +3275,7 @@ namespace Orthanc
         if (tmp < 0)
         {
           throw OrthancException(ErrorCode_ParameterOutOfRange,
-                                 "Field \"" + std::string(KEY_LIMIT) + "\" should be a positive integer");
+                                 "Field \"" + std::string(KEY_LIMIT) + "\" must be a positive integer");
         }
 
         limit = static_cast<size_t>(tmp);
@@ -3051,7 +3288,7 @@ namespace Orthanc
         if (tmp < 0)
         {
           throw OrthancException(ErrorCode_ParameterOutOfRange,
-                                 "Field \"" + std::string(KEY_SINCE) + "\" should be a positive integer");
+                                 "Field \"" + std::string(KEY_SINCE) + "\" must be a positive integer");
         }
 
         since = static_cast<size_t>(tmp);
@@ -3074,7 +3311,7 @@ namespace Orthanc
         if (request[KEY_QUERY][members[i]].type() != Json::stringValue)
         {
           throw OrthancException(ErrorCode_BadRequest,
-                                 "Tag \"" + members[i] + "\" should be associated with a string");
+                                 "Tag \"" + members[i] + "\" must be associated with a string");
         }
 
         const std::string value = request[KEY_QUERY][members[i]].asString();
@@ -3089,8 +3326,48 @@ namespace Orthanc
         }
       }
 
+      std::set<std::string> labels;
+
+      if (request.isMember(KEY_LABELS))  // New in Orthanc 1.12.0
+      {
+        for (Json::Value::ArrayIndex i = 0; i < request[KEY_LABELS].size(); i++)
+        {
+          if (request[KEY_LABELS][i].type() != Json::stringValue)
+          {
+            throw OrthancException(ErrorCode_BadRequest, "Field \"" + std::string(KEY_LABELS) + "\" must contain strings");
+          }
+          else
+          {
+            labels.insert(request[KEY_LABELS][i].asString());
+          }
+        }
+      }
+
+      LabelsConstraint labelsConstraint = LabelsConstraint_All;
+      
+      if (request.isMember(KEY_LABELS_CONSTRAINT))
+      {
+        const std::string& s = request[KEY_LABELS_CONSTRAINT].asString();
+        if (s == "All")
+        {
+          labelsConstraint = LabelsConstraint_All;
+        }
+        else if (s == "Any")
+        {
+          labelsConstraint = LabelsConstraint_Any;
+        }
+        else if (s == "None")
+        {
+          labelsConstraint = LabelsConstraint_None;
+        }
+        else
+        {
+          throw OrthancException(ErrorCode_BadRequest, "Field \"" + std::string(KEY_LABELS_CONSTRAINT) + "\" must be \"All\", \"Any\", or \"None\"");
+        }
+      }
+      
       FindVisitor visitor(OrthancRestApi::GetDicomFormat(request, DicomToJsonFormat_Human), context.GetFindStorageAccessMode());
-      context.Apply(visitor, query, level, since, limit);
+      context.Apply(visitor, query, level, labels, labelsConstraint, since, limit);
       visitor.Answer(call.GetOutput(), context, level, expand, requestedTags);
     }
   }
@@ -3113,12 +3390,15 @@ namespace Orthanc
         .SetDescription("Get detailed information about the child " + children + " of the DICOM " +
                         resource + " whose Orthanc identifier is provided in the URL")
         .SetUriArgument("id", "Orthanc identifier of the " + resource + " of interest")
+        .SetHttpGetArgument("expand", RestApiCallDocumentation::Type_String,
+                            "If false or missing, only retrieve the list of child " + children, false)
         .AddAnswerType(MimeType_Json, "JSON array containing information about the child DICOM " + children)
         .SetTruncatedJsonHttpGetSample(GetDocumentationSampleResource(start) + "/" + children, 5);
       return;
     }
 
     ServerIndex& index = OrthancRestApi::GetIndex(call);
+    ServerContext& context = OrthancRestApi::GetContext(call);
 
     std::set<DicomTag> requestedTags;
     OrthancRestApi::GetRequestedTags(requestedTags, call);
@@ -3144,21 +3424,10 @@ namespace Orthanc
       a.splice(a.begin(), b);
     }
 
-    Json::Value result = Json::arrayValue;
-
-    const DicomToJsonFormat format = OrthancRestApi::GetDicomFormat(call, DicomToJsonFormat_Human);
-
-    for (std::list<std::string>::const_iterator
-           it = a.begin(); it != a.end(); ++it)
-    {
-      Json::Value resource;
-      if (OrthancRestApi::GetContext(call).ExpandResource(resource, *it, end, format, requestedTags, true /* allowStorageAccess */))
-      {
-        result.append(resource);
-      }
-    }
-
-    call.GetOutput().AnswerJson(result);
+    AnswerListOfResources(call.GetOutput(), context, a, type, !call.HasArgument("expand") || call.GetBooleanArgument("expand", false),  // this "expand" is the only one to have a false default value to keep backward compatibility
+                          OrthancRestApi::GetDicomFormat(call, DicomToJsonFormat_Human),
+                          requestedTags,
+                          true /* allowStorageAccess */);
   }
 
 
@@ -3325,7 +3594,7 @@ namespace Orthanc
                         "Same information as the `Slices` field, but in a compact form")
         .SetAnswerField("Type", RestApiCallDocumentation::Type_String,
                         "Can be `Volume` (for 3D volumes) or `Sequence` (notably for cine images)")
-        .SetTruncatedJsonHttpGetSample("https://demo.orthanc-server.com/series/1e2c125c-411b8e86-3f4fe68e-a7584dd3-c6da78f0/ordered-slices", 10);
+        .SetTruncatedJsonHttpGetSample("https://orthanc.uclouvain.be/demo/series/1e2c125c-411b8e86-3f4fe68e-a7584dd3-c6da78f0/ordered-slices", 10);
       return;
     }
 
@@ -3352,7 +3621,7 @@ namespace Orthanc
                         "combines hexadecimal tags with human-readable description.")
         .SetUriArgument("id", "Orthanc identifier of the DICOM instance of interest")
         .AddAnswerType(MimeType_Json, "JSON object containing the DICOM tags and their associated value")
-        .SetHttpGetSample("https://demo.orthanc-server.com/instances/7c92ce8e-bbf67ed2-ffa3b8c1-a3b35d94-7ff3ae26/header", true);
+        .SetHttpGetSample("https://orthanc.uclouvain.be/demo/instances/7c92ce8e-bbf67ed2-ffa3b8c1-a3b35d94-7ff3ae26/header", true);
       return;
     }
 
@@ -3385,7 +3654,7 @@ namespace Orthanc
         .SetDescription("Remove all the attachments of the type \"DICOM-as-JSON\" that are associated will all the "
                         "DICOM instances stored in Orthanc. These summaries will be automatically re-created on the next access. "
                         "This is notably useful after changes to the `Dictionary` configuration option. "
-                        "https://book.orthanc-server.com/faq/orthanc-storage.html#storage-area");
+                        "https://orthanc.uclouvain.be/book/faq/orthanc-storage.html#storage-area");
       return;
     }
 
@@ -3413,12 +3682,21 @@ namespace Orthanc
     call.GetOutput().AnswerBuffer("", MimeType_PlainText);
   }
 
-  void DocumentReconstructFilesField(RestApiPostCall& call)
+  void DocumentReconstructFilesField(RestApiPostCall& call, bool documentLimitField)
   {
     call.GetDocumentation()
       .SetRequestField(RECONSTRUCT_FILES, RestApiCallDocumentation::Type_Boolean,
                        "Also reconstruct the files of the resources (e.g: apply IngestTranscoding, StorageCompression). "
                        "'false' by default. (New in Orthanc 1.11.0)", false);
+    if (documentLimitField)
+    {
+      call.GetDocumentation()
+        .SetRequestField(LIMIT_TO_THIS_LEVEL_MAIN_DICOM_TAGS, RestApiCallDocumentation::Type_Boolean,
+                        "Only reconstruct this level MainDicomTags by re-reading them from a random child instance of the resource. "
+                        "This option is much faster than a full reconstruct and is useful e.g. if you have modified the "
+                        "'ExtraMainDicomTags' at the Study level to optimize the speed of some C-Find. "
+                        "'false' by default. (New in Orthanc 1.12.4)", false);
+    }
   }
 
   bool GetReconstructFilesField(const RestApiPostCall& call)
@@ -3440,6 +3718,26 @@ namespace Orthanc
     return reconstructFiles;
   }
 
+  bool GetLimitToThisLevelMainDicomTags(const RestApiPostCall& call)
+  {
+    bool limitToThisLevel = false;
+    Json::Value request;
+
+    if (call.GetBodySize() > 0 && call.ParseJsonRequest(request) && request.isMember(LIMIT_TO_THIS_LEVEL_MAIN_DICOM_TAGS))
+    {
+      if (!request[LIMIT_TO_THIS_LEVEL_MAIN_DICOM_TAGS].isBool())
+      {
+        throw OrthancException(ErrorCode_BadFileFormat,
+                               "The field " + std::string(LIMIT_TO_THIS_LEVEL_MAIN_DICOM_TAGS) + " must contain a Boolean");
+      }
+
+      limitToThisLevel = request[LIMIT_TO_THIS_LEVEL_MAIN_DICOM_TAGS].asBool();
+    }
+
+    return limitToThisLevel;
+  }
+
+
   template <enum ResourceType type>
   static void ReconstructResource(RestApiPostCall& call)
   {
@@ -3455,13 +3753,13 @@ namespace Orthanc
                         "Beware that this is a time-consuming operation, as all the children DICOM instances will be "
                         "parsed again, and the Orthanc index will be updated accordingly.")
         .SetUriArgument("id", "Orthanc identifier of the " + resource + " of interest");
-        DocumentReconstructFilesField(call);
+        DocumentReconstructFilesField(call, true);
 
       return;
     }
 
     ServerContext& context = OrthancRestApi::GetContext(call);
-    ServerToolbox::ReconstructResource(context, call.GetUriComponent("id", ""), GetReconstructFilesField(call));
+    ServerToolbox::ReconstructResource(context, call.GetUriComponent("id", ""), GetReconstructFilesField(call), GetLimitToThisLevelMainDicomTags(call), type);
     call.GetOutput().AnswerBuffer("", MimeType_PlainText);
   }
 
@@ -3479,7 +3777,7 @@ namespace Orthanc
                         "as all the DICOM instances will be parsed again, and as all the Orthanc index will be regenerated. "
                         "If you have a large database to process, it is advised to use the Housekeeper plugin to perform "
                         "this action resource by resource");
-        DocumentReconstructFilesField(call);
+        DocumentReconstructFilesField(call, false);
 
       return;
     }
@@ -3493,7 +3791,7 @@ namespace Orthanc
     for (std::list<std::string>::const_iterator 
            study = studies.begin(); study != studies.end(); ++study)
     {
-      ServerToolbox::ReconstructResource(context, *study, reconstructFiles);
+      ServerToolbox::ReconstructResource(context, *study, reconstructFiles, false, ResourceType_Study /*  dummy */);
     }
     
     call.GetOutput().AnswerBuffer("", MimeType_PlainText);
@@ -3842,6 +4140,12 @@ namespace Orthanc
       Register("/" + resourceTypes[i] + "/{id}/metadata/{name}", DeleteMetadata);
       Register("/" + resourceTypes[i] + "/{id}/metadata/{name}", GetMetadata);
       Register("/" + resourceTypes[i] + "/{id}/metadata/{name}", SetMetadata);
+
+      // New in Orthanc 1.12.0
+      Register("/" + resourceTypes[i] + "/{id}/labels", ListLabels);
+      Register("/" + resourceTypes[i] + "/{id}/labels/{label}", GetLabel);
+      Register("/" + resourceTypes[i] + "/{id}/labels/{label}", RemoveLabel);
+      Register("/" + resourceTypes[i] + "/{id}/labels/{label}", AddLabel);
 
       Register("/" + resourceTypes[i] + "/{id}/attachments", ListAttachments);
       Register("/" + resourceTypes[i] + "/{id}/attachments/{name}", DeleteAttachment);

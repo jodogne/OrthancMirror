@@ -2,8 +2,9 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -161,6 +162,7 @@ namespace Orthanc
     MetadataType_Instance_PixelDataOffset = 14,  // New in Orthanc 1.9.0
     MetadataType_MainDicomTagsSignature = 15,    // New in Orthanc 1.11.0
     MetadataType_MainDicomSequences = 16,        // New in Orthanc 1.11.1
+    MetadataType_Instance_PixelDataVR = 17,      // New in Orthanc 1.12.1
     
     // Make sure that the value "65535" can be stored into this enumeration
     MetadataType_StartUser = 1024,
@@ -205,6 +207,7 @@ namespace Orthanc
     Warnings_None,
     Warnings_001_TagsBeingReadFromStorage,
     Warnings_002_InconsistentDicomTagsInDb,
+    Warnings_003_DecoderFailure,              // new in Orthanc 1.12.5
   };
 
 
@@ -216,6 +219,8 @@ namespace Orthanc
   MetadataType StringToMetadata(const std::string& str);
 
   std::string EnumerationToString(MetadataType type);
+
+  void GetRegisteredUserMetadata(std::map<std::string, int>& allEntries);
 
   void RegisterUserContentType(int contentType,
                                const std::string& name,

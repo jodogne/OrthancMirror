@@ -2,8 +2,9 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -76,6 +77,7 @@
 #include "Internals/DicomImageDecoder.h"
 #include "ToDcmtkBridge.h"
 
+#include "../DicomFormat/DicomImageInformation.h"
 #include "../Images/Image.h"
 #include "../Images/ImageProcessing.h"
 #include "../Images/PamReader.h"
@@ -920,7 +922,7 @@ namespace Orthanc
        * equals the empty string, then proceed. In Orthanc <= 1.5.6,
        * an exception "Bad file format" was generated.
        * https://groups.google.com/d/msg/orthanc-users/aphG_h1AHVg/rfOTtTPTAgAJ
-       * https://hg.orthanc-server.com/orthanc/rev/4c45e018bd3de3cfa21d6efc6734673aaaee4435
+       * https://orthanc.uclouvain.be/hg/orthanc/rev/4c45e018bd3de3cfa21d6efc6734673aaaee4435
        **/
       patientId.clear();
     }        
@@ -938,9 +940,10 @@ namespace Orthanc
 
   void ParsedDicomFile::SaveToMemoryBuffer(std::string& buffer)
   {
-    if (!FromDcmtkBridge::SaveToMemoryBuffer(buffer, *GetDcmtkObject().getDataset()))
+    std::string errorMessage;
+    if (!FromDcmtkBridge::SaveToMemoryBuffer(buffer, *GetDcmtkObject().getDataset(), errorMessage))
     {
-      throw OrthancException(ErrorCode_InternalError, "Cannot write DICOM file to memory");
+      throw OrthancException(ErrorCode_InternalError, "Cannot write DICOM file to memory, DCMTK error: " + errorMessage);
     }
   }
 
@@ -1002,6 +1005,10 @@ namespace Orthanc
       if (GetDicomEncoding(encoding, tmp->GetContent().c_str()))
       {
         SetEncoding(encoding);
+      }
+      else if (permissive)
+      {
+        SetEncoding(defaultEncoding);
       }
       else
       {
@@ -1202,7 +1209,42 @@ namespace Orthanc
         break;
 
       case MimeType_Pdf:
-        EmbedPdf(content);
+      {
+        if (content.size() < 5 ||  // (*)
+            strncmp("%PDF-", content.c_str(), 5) != 0)
+        {
+          throw OrthancException(ErrorCode_BadFileFormat, "Not a PDF file");
+        }
+        
+        EncapsulateDocument(MimeType_Pdf, content);
+
+        // In Orthanc <= 1.9.7, the "Modality" would have always be overwritten as "OT"
+        // https://groups.google.com/g/orthanc-users/c/eNSddNrQDtM/m/wc1HahimAAAJ
+
+        SetIfAbsent(DICOM_TAG_SOP_CLASS_UID, UID_EncapsulatedPDFStorage);
+        SetIfAbsent(DICOM_TAG_MODALITY, "OT");
+        SetIfAbsent(FromDcmtkBridge::Convert(DCM_ConversionType), "WSD");
+        //SetIfAbsent(FromDcmtkBridge::Convert(DCM_SeriesNumber), "1");
+
+        break;
+      }
+
+      case MimeType_Mtl:
+        EncapsulateDocument(mime, content);
+        SetIfAbsent(DICOM_TAG_SOP_CLASS_UID, "1.2.840.10008.5.1.4.1.1.104.5");
+        SetIfAbsent(DICOM_TAG_MODALITY, "M3D");
+        break;
+
+      case MimeType_Obj:
+        EncapsulateDocument(mime, content);
+        SetIfAbsent(DICOM_TAG_SOP_CLASS_UID, "1.2.840.10008.5.1.4.1.1.104.4");
+        SetIfAbsent(DICOM_TAG_MODALITY, "M3D");
+        break;
+
+      case MimeType_Stl:
+        EncapsulateDocument(mime, content);
+        SetIfAbsent(DICOM_TAG_SOP_CLASS_UID, "1.2.840.10008.5.1.4.1.1.104.3");
+        SetIfAbsent(DICOM_TAG_MODALITY, "M3D");
         break;
 
       default:
@@ -1525,28 +1567,16 @@ namespace Orthanc
   }
 
 
-  void ParsedDicomFile::EmbedPdf(const std::string& pdf)
+  void ParsedDicomFile::EncapsulateDocument(MimeType mime,
+                                            const std::string& document)
   {
-    if (pdf.size() < 5 ||  // (*)
-        strncmp("%PDF-", pdf.c_str(), 5) != 0)
-    {
-      throw OrthancException(ErrorCode_BadFileFormat, "Not a PDF file");
-    }
-
     InvalidateCache();
 
-    // In Orthanc <= 1.9.7, the "Modality" would have always be overwritten as "OT"
-    // https://groups.google.com/g/orthanc-users/c/eNSddNrQDtM/m/wc1HahimAAAJ
-    
-    ReplacePlainString(DICOM_TAG_SOP_CLASS_UID, UID_EncapsulatedPDFStorage);
-    SetIfAbsent(FromDcmtkBridge::Convert(DCM_Modality), "OT");
-    SetIfAbsent(FromDcmtkBridge::Convert(DCM_ConversionType), "WSD");
-    SetIfAbsent(FromDcmtkBridge::Convert(DCM_MIMETypeOfEncapsulatedDocument), MIME_PDF);
-    //SetIfAbsent(FromDcmtkBridge::Convert(DCM_SeriesNumber), "1");
+    ReplacePlainString(FromDcmtkBridge::Convert(DCM_MIMETypeOfEncapsulatedDocument), EnumerationToString(mime));
 
     std::unique_ptr<DcmPolymorphOBOW> element(new DcmPolymorphOBOW(DCM_EncapsulatedDocument));
 
-    size_t s = pdf.size();
+    size_t s = document.size();
     if (s & 1)
     {
       // The size of the buffer must be even
@@ -1560,10 +1590,12 @@ namespace Orthanc
       throw OrthancException(ErrorCode_NotEnoughMemory);
     }
 
-    // Blank pad byte (no access violation, as "pdf.size() >= 5" because of (*) )
-    bytes[s - 1] = 0;
+    if (s > 0)
+    {
+      bytes[s - 1] = 0;
+    }
 
-    memcpy(bytes, pdf.c_str(), pdf.size());
+    memcpy(bytes, document.c_str(), document.size());
       
     DcmPolymorphOBOW* obj = element.release();
     result = GetDcmtkObject().getDataset()->insert(obj);
@@ -2118,6 +2150,84 @@ namespace Orthanc
       }
 
       return result.release();
+    }
+  }
+
+  
+  void ParsedDicomFile::InjectEmptyPixelData(ValueRepresentation vr)
+  {
+    DcmItem& dataset = *GetDcmtkObject().getDataset();
+
+    DcmElement *element = NULL;
+    if (!dataset.findAndGetElement(DCM_PixelData, element).good() ||
+        element == NULL)
+    {
+      // The pixel data is indeed nonexistent, insert it now
+      switch (vr)
+      {
+        case ValueRepresentation_OtherByte:
+          if (!dataset.putAndInsertUint8Array(DCM_PixelData, NULL, 0).good())
+          {
+            throw OrthancException(ErrorCode_InternalError);
+          }
+          break;
+
+        case ValueRepresentation_OtherWord:
+          if (!dataset.putAndInsertUint16Array(DCM_PixelData, NULL, 0).good())
+          {
+            throw OrthancException(ErrorCode_InternalError);
+          }
+          break;
+
+        default:
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+    }
+  }
+
+
+  void ParsedDicomFile::RemoveFromPixelData()
+  {
+    DcmItem& dataset = *GetDcmtkObject().getDataset();
+
+    // We need to go backward, otherwise "dataset.card()" is invalidated
+    for (unsigned long i = dataset.card(); i > 0; i--)
+    {
+      DcmElement* element = dataset.getElement(i - 1);
+      if (element == NULL)
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+
+      if (element->getTag().getGroup() > DCM_PixelData.getGroup() ||
+          (element->getTag().getGroup() == DCM_PixelData.getGroup() &&
+           element->getTag().getElement() >= DCM_PixelData.getElement()))
+      {
+        std::unique_ptr<DcmElement> removal(dataset.remove(i - 1));
+      }
+    }
+  }
+  
+
+  ValueRepresentation ParsedDicomFile::GuessPixelDataValueRepresentation() const
+  {
+    DicomTransferSyntax ts;
+    if (LookupTransferSyntax(ts))
+    {
+      DcmItem& dataset = *GetDcmtkObjectConst().getDataset();
+
+      uint16_t bitsAllocated;
+      if (!dataset.findAndGetUint16(DCM_BitsAllocated, bitsAllocated).good())
+      {
+        bitsAllocated = 8;
+      }
+
+      return DicomImageInformation::GuessPixelDataValueRepresentation(ts, bitsAllocated);
+    }
+    else
+    {
+      // Assume "OB" if the transfer syntax is unknown
+      return ValueRepresentation_OtherByte;
     }
   }
 

@@ -2,8 +2,9 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -39,9 +40,12 @@ namespace Orthanc
       const bool&           continue_;
       SharedMessageQueue&   queue_;
       boost::thread         thread_;
+      std::string           name_;
  
       static void WorkerThread(Worker* that)
       {
+        Logging::SetCurrentThreadName(that->name_);
+
         while (that->continue_)
         {
           try
@@ -81,9 +85,11 @@ namespace Orthanc
 
     public:
       Worker(const bool& globalContinue,
-             SharedMessageQueue& queue) : 
+             SharedMessageQueue& queue,
+             const std::string& name) : 
         continue_(globalContinue),
-        queue_(queue)
+        queue_(queue),
+        name_(name)
       {
         thread_ = boost::thread(WorkerThread, this);
       }
@@ -105,7 +111,7 @@ namespace Orthanc
 
 
 
-  RunnableWorkersPool::RunnableWorkersPool(size_t countWorkers) : pimpl_(new PImpl)
+  RunnableWorkersPool::RunnableWorkersPool(size_t countWorkers, const std::string& name) : pimpl_(new PImpl)
   {
     pimpl_->continue_ = true;
 
@@ -118,7 +124,8 @@ namespace Orthanc
 
     for (size_t i = 0; i < countWorkers; i++)
     {
-      pimpl_->workers_[i] = new PImpl::Worker(pimpl_->continue_, pimpl_->queue_);
+      std::string workerName = name + boost::lexical_cast<std::string>(i);
+      pimpl_->workers_[i] = new PImpl::Worker(pimpl_->continue_, pimpl_->queue_, workerName);
     }
   }
 

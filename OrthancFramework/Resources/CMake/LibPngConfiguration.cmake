@@ -1,8 +1,9 @@
 # Orthanc - A Lightweight, RESTful DICOM Store
 # Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
 # Department, University Hospital of Liege, Belgium
-# Copyright (C) 2017-2022 Osimis S.A., Belgium
-# Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+# Copyright (C) 2017-2023 Osimis S.A., Belgium
+# Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+# Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
 #
 # This program is free software: you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public License
@@ -20,9 +21,9 @@
 
 
 if (STATIC_BUILD OR NOT USE_SYSTEM_LIBPNG)
-  SET(LIBPNG_SOURCES_DIR ${CMAKE_BINARY_DIR}/libpng-1.6.36)
-  SET(LIBPNG_URL "http://orthanc.osimis.io/ThirdPartyDownloads/libpng-1.6.36.tar.gz")
-  SET(LIBPNG_MD5 "65afdeaa05f5ec14e31d9276143012e9")
+  SET(LIBPNG_SOURCES_DIR ${CMAKE_BINARY_DIR}/libpng-1.6.40)
+  SET(LIBPNG_URL "https://orthanc.uclouvain.be/downloads/third-party-downloads/libpng-1.6.40.tar.gz")
+  SET(LIBPNG_MD5 "ec4b597c3a9b1f8d2826575f530367b7")
 
   DownloadPackage(${LIBPNG_MD5} ${LIBPNG_URL} "${LIBPNG_SOURCES_DIR}")
 
@@ -71,7 +72,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_LIBPNG)
 else()
   include(FindPNG)
 
-  if (NOT ${PNG_FOUND})
+  if (NOT PNG_FOUND)
     message(FATAL_ERROR "Unable to find libpng")
   endif()
 

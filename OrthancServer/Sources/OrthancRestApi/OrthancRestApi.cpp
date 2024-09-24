@@ -2,8 +2,9 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -160,7 +161,7 @@ namespace Orthanc
 
     ServerContext& context = OrthancRestApi::GetContext(call);
 
-    CLOG(INFO, HTTP) << "Receiving a DICOM file of " << call.GetBodySize() << " bytes through HTTP";
+    CLOG(INFO, HTTP) << "Receiving a DICOM file of " << Toolbox::GetHumanFileSize(static_cast<uint64_t>(call.GetBodySize())) << " through HTTP";
 
     if (call.GetBodySize() == 0)
     {
@@ -259,7 +260,7 @@ namespace Orthanc
     resetRequestReceived_(false),
     activeRequests_(context.GetMetricsRegistry(), 
                     "orthanc_rest_api_active_requests", 
-                    MetricsType_MaxOver10Seconds)
+                    MetricsUpdatePolicy_MaxOver10Seconds)
   {
     RegisterSystem(orthancExplorerEnabled);
 
@@ -434,7 +435,32 @@ namespace Orthanc
     SubmitGenericJob(call, raii.release(), isDefaultSynchronous, body);
   }
 
-  
+  void OrthancRestApi::SubmitThreadedInstancesJob(RestApiPostCall& call,
+                                                  ThreadedSetOfInstancesJob* job,
+                                                  bool isDefaultSynchronous,
+                                                  const Json::Value& body) const
+  {
+    std::unique_ptr<ThreadedSetOfInstancesJob> raii(job);
+    
+    if (body.type() != Json::objectValue)
+    {
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
+
+    job->SetDescription("REST API");
+    
+    if (body.isMember(KEY_PERMISSIVE))
+    {
+      job->SetPermissive(SerializationToolbox::ReadBoolean(body, KEY_PERMISSIVE));
+    }
+    else
+    {
+      job->SetPermissive(false);
+    }
+
+    SubmitGenericJob(call, raii.release(), isDefaultSynchronous, body);
+  }  
+
   void OrthancRestApi::DocumentSubmitGenericJob(RestApiPostCall& call)
   {
     call.GetDocumentation()
@@ -446,7 +472,7 @@ namespace Orthanc
                        "If `true`, run the job in asynchronous mode, which means that the REST API call will immediately "
                        "return, reporting the identifier of a job. Prefer this flavor wherever possible.", false)
       .SetRequestField(KEY_PRIORITY, RestApiCallDocumentation::Type_Number,
-                       "In asynchronous mode, the priority of the job. The lower the value, the higher the priority.", false)
+                       "In asynchronous mode, the priority of the job. The higher the value, the higher the priority.", false)
       .SetAnswerField("ID", RestApiCallDocumentation::Type_String, "In asynchronous mode, identifier of the job")
       .SetAnswerField("Path", RestApiCallDocumentation::Type_String, "In asynchronous mode, path to access the job in the REST API");
   }
@@ -464,7 +490,8 @@ namespace Orthanc
   static const std::string GET_SIMPLIFY = "simplify";
   static const std::string GET_FULL = "full";
   static const std::string GET_SHORT = "short";
-  static const std::string GET_REQUESTED_TAGS = "requestedTags";
+  static const std::string GET_REQUESTED_TAGS_OLD = "requestedTags";  // This was the only option in Orthanc <= 1.12.3
+  static const std::string GET_REQUESTED_TAGS = "requested-tags";
 
   static const std::string POST_SIMPLIFY = "Simplify";
   static const std::string POST_FULL = "Full";
@@ -578,25 +605,36 @@ namespace Orthanc
   {
     requestedTags.clear();
 
+    std::string s;
+
     if (call.HasArgument(GET_REQUESTED_TAGS))
+    {
+      s = call.GetArgument(GET_REQUESTED_TAGS, "");
+    }
+    else if (call.HasArgument(GET_REQUESTED_TAGS_OLD))
+    {
+      // This is for backward compatibility with Orthanc <= 1.12.3
+      s = call.GetArgument(GET_REQUESTED_TAGS_OLD, "");
+    }
+
+    if (!s.empty())
     {
       try
       {
-        FromDcmtkBridge::ParseListOfTags(requestedTags, call.GetArgument("requestedTags", ""));
+        FromDcmtkBridge::ParseListOfTags(requestedTags, s);
       }
       catch (OrthancException& ex)
       {
         throw OrthancException(ErrorCode_BadRequest, std::string("Invalid requestedTags argument: ") + ex.What() + " " + ex.GetDetails());
       }
     }
-
   }
 
   void OrthancRestApi::DocumentRequestedTags(RestApiGetCall& call)
   {
       call.GetDocumentation().SetHttpGetArgument(GET_REQUESTED_TAGS, RestApiCallDocumentation::Type_String,
                           "If present, list the DICOM Tags you want to list in the response.  This argument is a semi-column separated list "
-                          "of DICOM Tags identifiers; e.g: 'requestedTags=0010,0010;PatientBirthDate'.  "
+                          "of DICOM Tags identifiers; e.g: '" + GET_REQUESTED_TAGS + "=0010,0010;PatientBirthDate'.  "
                           "The tags requested tags are returned in the 'RequestedTags' field in the response.  "
                           "Note that, if you are requesting tags that are not listed in the Main Dicom Tags stored in DB, building the response "
                           "might be slow since Orthanc will need to access the DICOM files.  If not specified, Orthanc will return ", false);

@@ -19,6 +19,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  **/
 
+#define ORTHANC_PLUGIN_NAME "advanced-storage"
 
 #include "../../../../OrthancFramework/Sources/Compatibility.h"
 #include "../../../../OrthancFramework/Sources/OrthancException.h"
@@ -379,7 +380,7 @@ OrthancPluginErrorCode StorageCreateAttachment(OrthancPluginMemoryBuffer* custom
 {
   try
   {
-    OrthancPlugins::LogInfo(std::string("Creating attachment \"") + uuid + "\"");
+    LOG(INFO) << "Creating attachment \"" << uuid << "\"";
 
     //TODO_CUSTOM_DATA: get tags from the Rest API...
     Json::Value tags;
@@ -409,7 +410,7 @@ OrthancPluginErrorCode StorageReadWhole(OrthancPluginMemoryBuffer64* target,
 
   if (!Orthanc::SystemToolbox::IsRegularFile(path))
   {
-    OrthancPlugins::LogError(std::string("The path does not point to a regular file: ") + path);
+    LOG(ERROR) << "The path does not point to a regular file: " << path;
     return OrthancPluginErrorCode_InexistentFile;
   }
 
@@ -419,7 +420,7 @@ OrthancPluginErrorCode StorageReadWhole(OrthancPluginMemoryBuffer64* target,
     f.open(path, std::ifstream::in | std::ifstream::binary);
     if (!f.good())
     {
-      OrthancPlugins::LogError(std::string("The path does not point to a regular file: ") + path);
+      LOG(ERROR) << "The path does not point to a regular file: " << path;
       return OrthancPluginErrorCode_InexistentFile;
     }
 
@@ -431,7 +432,7 @@ OrthancPluginErrorCode StorageReadWhole(OrthancPluginMemoryBuffer64* target,
     // The ReadWhole must allocate the buffer itself
     if (OrthancPluginCreateMemoryBuffer64(OrthancPlugins::GetGlobalContext(), target, fileSize) != OrthancPluginErrorCode_Success)
     {
-      OrthancPlugins::LogError(std::string("Unable to allocate memory to read file: ") + path);
+      LOG(ERROR) << "Unable to allocate memory to read file: " << path;
       return OrthancPluginErrorCode_NotEnoughMemory;
     }
 
@@ -444,7 +445,7 @@ OrthancPluginErrorCode StorageReadWhole(OrthancPluginMemoryBuffer64* target,
   }
   catch (...)
   {
-    OrthancPlugins::LogError(std::string("Unexpected error while reading: ") + path);
+    LOG(ERROR) << "Unexpected error while reading: " << path;
     return OrthancPluginErrorCode_StorageAreaPlugin;
   }
 
@@ -464,7 +465,7 @@ OrthancPluginErrorCode StorageReadRange (OrthancPluginMemoryBuffer64* target,
 
   if (!Orthanc::SystemToolbox::IsRegularFile(path))
   {
-    OrthancPlugins::LogError(std::string("The path does not point to a regular file: ") + path);
+    LOG(ERROR) << "The path does not point to a regular file: " << path;
     return OrthancPluginErrorCode_InexistentFile;
   }
 
@@ -474,7 +475,7 @@ OrthancPluginErrorCode StorageReadRange (OrthancPluginMemoryBuffer64* target,
     f.open(path, std::ifstream::in | std::ifstream::binary);
     if (!f.good())
     {
-      OrthancPlugins::LogError(std::string("The path does not point to a regular file: ") + path);
+      LOG(ERROR) << "The path does not point to a regular file: " << path;
       return OrthancPluginErrorCode_InexistentFile;
     }
 
@@ -487,7 +488,7 @@ OrthancPluginErrorCode StorageReadRange (OrthancPluginMemoryBuffer64* target,
   }
   catch (...)
   {
-    OrthancPlugins::LogError(std::string("Unexpected error while reading: ") + path);
+    LOG(ERROR) << "Unexpected error while reading: " << path;
     return OrthancPluginErrorCode_StorageAreaPlugin;
   }
 
@@ -549,8 +550,8 @@ extern "C"
       return -1;
     }
 
-    OrthancPlugins::LogWarning("AdvancedStorage plugin is initializing");
-    OrthancPluginSetDescription(context, "Provides alternative layout for your storage.");
+    LOG(WARNING) << "AdvancedStorage plugin is initializing";
+    OrthancPluginSetDescription2(context, ORTHANC_PLUGIN_NAME, "Provides alternative layout for your storage.");
 
     OrthancPlugins::OrthancConfiguration orthancConfiguration;
 
@@ -673,7 +674,7 @@ extern "C"
     }
     else
     {
-      OrthancPlugins::LogWarning("AdvancedStorage plugin is disabled by the configuration file");
+      LOG(WARNING) << "AdvancedStorage plugin is disabled by the configuration file";
     }
 
     return 0;
@@ -682,18 +683,18 @@ extern "C"
 
   ORTHANC_PLUGINS_API void OrthancPluginFinalize()
   {
-    OrthancPlugins::LogWarning("AdvancedStorage plugin is finalizing");
+    LOG(WARNING) << "AdvancedStorage plugin is finalizing";
   }
 
 
   ORTHANC_PLUGINS_API const char* OrthancPluginGetName()
   {
-    return "advanced-storage";
+    return ORTHANC_PLUGIN_NAME;
   }
 
 
   ORTHANC_PLUGINS_API const char* OrthancPluginGetVersion()
   {
-    return ORTHANC_PLUGIN_VERSION;
+    return ADVANCED_STORAGE_VERSION;
   }
 }

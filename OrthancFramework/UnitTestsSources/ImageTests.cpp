@@ -2,8 +2,9 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -33,10 +34,11 @@
 #include "../Sources/Images/ImageProcessing.h"
 #include "../Sources/Images/JpegReader.h"
 #include "../Sources/Images/JpegWriter.h"
-#include "../Sources/Images/PngReader.h"
-#include "../Sources/Images/PngWriter.h"
 #include "../Sources/Images/PamReader.h"
 #include "../Sources/Images/PamWriter.h"
+#include "../Sources/Images/PngReader.h"
+#include "../Sources/Images/PngWriter.h"
+#include "../Sources/OrthancException.h"
 #include "../Sources/Toolbox.h"
 
 #if ORTHANC_SANDBOXED != 1
@@ -96,14 +98,33 @@ TEST(PngWriter, Color16Pattern)
     uint8_t *p = &image[0] + y * pitch;
     for (unsigned int x = 0; x < width; x++, p += 8)
     {
-      p[0] = (y % 8 == 0) ? 255 : 0;
-      p[1] = (y % 8 == 1) ? 255 : 0;
-      p[2] = (y % 8 == 2) ? 255 : 0;
-      p[3] = (y % 8 == 3) ? 255 : 0;
-      p[4] = (y % 8 == 4) ? 255 : 0;
-      p[5] = (y % 8 == 5) ? 255 : 0;
-      p[6] = (y % 8 == 6) ? 255 : 0;
-      p[7] = (y % 8 == 7) ? 255 : 0;
+      switch (Orthanc::Toolbox::DetectEndianness())
+      {
+        case Orthanc::Endianness_Little:
+          p[0] = (y % 8 == 0) ? 255 : 0;
+          p[1] = (y % 8 == 1) ? 255 : 0;
+          p[2] = (y % 8 == 2) ? 255 : 0;
+          p[3] = (y % 8 == 3) ? 255 : 0;
+          p[4] = (y % 8 == 4) ? 255 : 0;
+          p[5] = (y % 8 == 5) ? 255 : 0;
+          p[6] = (y % 8 == 6) ? 255 : 0;
+          p[7] = (y % 8 == 7) ? 255 : 0;
+          break;
+
+        case Orthanc::Endianness_Big:
+          p[0] = (y % 8 == 1) ? 255 : 0;
+          p[1] = (y % 8 == 0) ? 255 : 0;
+          p[2] = (y % 8 == 3) ? 255 : 0;
+          p[3] = (y % 8 == 2) ? 255 : 0;
+          p[4] = (y % 8 == 5) ? 255 : 0;
+          p[5] = (y % 8 == 4) ? 255 : 0;
+          p[6] = (y % 8 == 7) ? 255 : 0;
+          p[7] = (y % 8 == 6) ? 255 : 0;
+          break;
+
+        default:
+          throw Orthanc::OrthancException(Orthanc::ErrorCode_NotImplemented);
+      }
     }
   }
 

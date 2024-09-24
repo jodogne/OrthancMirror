@@ -2,8 +2,9 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -93,7 +94,9 @@
 #endif
 
 #if DCMTK_USE_EMBEDDED_DICTIONARIES == 1
-#  include <OrthancFrameworkResources.h>
+#  if !defined(ORTHANC_FRAMEWORK_INCLUDE_RESOURCES) || (ORTHANC_FRAMEWORK_INCLUDE_RESOURCES == 1)
+#    include <OrthancFrameworkResources.h>
+#  endif
 #endif
 
 #if ORTHANC_ENABLE_DCMTK_JPEG == 1
@@ -289,7 +292,7 @@ namespace Orthanc
 
   void FromDcmtkBridge::InitializeDictionary(bool loadPrivateDictionary)
   {
-    CLOG(INFO, DICOM) << "Using DCTMK version: " << DCMTK_VERSION_NUMBER;
+    CLOG(INFO, DICOM) << "Using DCMTK version: " << DCMTK_VERSION_NUMBER;
     
 #if DCMTK_USE_EMBEDDED_DICTIONARIES == 1
     {
@@ -580,8 +583,8 @@ namespace Orthanc
                           ignoreTagLength, 1);
           }
 
-          target.SetValue(DicomTag(element->getTag().getGTag(), element->getTag().getETag()),
-                          jsonSequence);
+          target.SetSequenceValue(DicomTag(element->getTag().getGTag(), element->getTag().getETag()),
+                                  jsonSequence);
         }
       }
     }
@@ -1253,9 +1256,22 @@ namespace Orthanc
   }
 
 
+  static bool GetTagFromNameInternal(DicomTag& tag, const std::string& tagName)
+  {
+    // conversion from old tag names (ex: RETIRED_OtherPatientIDs is the new name for OtherPatientIDs that is still a valid name for DICOM_TAG_OTHER_PATIENT_IDS)
+    if (tagName == "OtherPatientIDs")
+    {
+      tag = DICOM_TAG_OTHER_PATIENT_IDS;
+      return true;
+    }
+
+    return false;
+  }
+
   std::string FromDcmtkBridge::GetTagName(const DicomTag& t,
                                           const std::string& privateCreator)
   {
+    
     DcmTag tag(t.GetGroup(), t.GetElement());
 
     if (!privateCreator.empty())
@@ -1315,6 +1331,12 @@ namespace Orthanc
     }
     else
     {
+      DicomTag dcmTag(0, 0);
+      if (GetTagFromNameInternal(dcmTag, name))
+      {
+        return dcmTag;
+      }
+
       CLOG(INFO, DICOM) << "Unknown DICOM tag: \"" << name << "\"";
       throw OrthancException(ErrorCode_UnknownDicomTag, name, false);
     }
@@ -1553,7 +1575,8 @@ namespace Orthanc
   
   static bool SaveToMemoryBufferInternal(std::string& buffer,
                                          DcmFileFormat& dicom,
-                                         E_TransferSyntax xfer)
+                                         E_TransferSyntax xfer,
+                                         std::string& errorMessage)
   {
     E_EncodingType encodingType = /*opt_sequenceType*/ EET_ExplicitLength;
 
@@ -1592,13 +1615,23 @@ namespace Orthanc
     {
       // Error
       buffer.clear();
+      errorMessage = std::string(c.text());
       return false;
     }
   }
-  
 
   bool FromDcmtkBridge::SaveToMemoryBuffer(std::string& buffer,
                                            DcmDataset& dataSet)
+  {
+    std::string errorMessageNotUsed;
+    return SaveToMemoryBuffer(buffer, dataSet, errorMessageNotUsed);
+  }
+
+
+
+  bool FromDcmtkBridge::SaveToMemoryBuffer(std::string& buffer,
+                                           DcmDataset& dataSet,
+                                           std::string& errorMessage)
   {
     // Determine the transfer syntax which shall be used to write the
     // information to the file. If not possible, switch to the Little
@@ -1626,7 +1659,7 @@ namespace Orthanc
     ff.validateMetaInfo(xfer);
     ff.removeInvalidGroups();
 
-    return SaveToMemoryBufferInternal(buffer, ff, xfer);
+    return SaveToMemoryBufferInternal(buffer, ff, xfer, errorMessage);
   }
 
 
@@ -1797,7 +1830,7 @@ namespace Orthanc
     {
       // This solves issue 140 (Modifying private tags with REST API
       // changes VR from LO to UN)
-      // https://bugs.orthanc-server.com/show_bug.cgi?id=140
+      // https://orthanc.uclouvain.be/bugs/show_bug.cgi?id=140
       LOG(WARNING) << "Private creator should not be empty while creating a private tag: " << tag.Format();
     }
     
@@ -1945,13 +1978,27 @@ namespace Orthanc
       
         case EVR_SL:  // signed long
         {
-          ok = element.putSint32(boost::lexical_cast<Sint32>(*decoded)).good();
+          if (decoded->find('\\') != std::string::npos)
+          {
+            ok = element.putString(decoded->c_str()).good();
+          }
+          else
+          {
+            ok = element.putSint32(boost::lexical_cast<Sint32>(*decoded)).good();
+          }
           break;
         }
 
         case EVR_SS:  // signed short
         {
-          ok = element.putSint16(boost::lexical_cast<Sint16>(*decoded)).good();
+          if (decoded->find('\\') != std::string::npos)
+          {
+            ok = element.putString(decoded->c_str()).good();
+          }
+          else
+          {
+            ok = element.putSint16(boost::lexical_cast<Sint16>(*decoded)).good();
+          }
           break;
         }
 
@@ -1960,7 +2007,14 @@ namespace Orthanc
         case EVR_OL:  // other long (requires byte-swapping)
 #endif
         {
-          ok = element.putUint32(boost::lexical_cast<Uint32>(*decoded)).good();
+          if (decoded->find('\\') != std::string::npos)
+          {
+            ok = element.putString(decoded->c_str()).good();
+          }
+          else
+          {
+            ok = element.putUint32(boost::lexical_cast<Uint32>(*decoded)).good();
+          }
           break;
         }
 
@@ -1983,14 +2037,28 @@ namespace Orthanc
 
         case EVR_US:  // unsigned short
         {
-          ok = element.putUint16(boost::lexical_cast<Uint16>(*decoded)).good();
+          if (decoded->find('\\') != std::string::npos)
+          {
+            ok = element.putString(decoded->c_str()).good();
+          }
+          else
+          {
+            ok = element.putUint16(boost::lexical_cast<Uint16>(*decoded)).good();
+          }
           break;
         }
 
         case EVR_FL:  // float single-precision
         case EVR_OF:  // other float (requires byte swapping)
         {
-          ok = element.putFloat32(boost::lexical_cast<float>(*decoded)).good();
+          if (decoded->find('\\') != std::string::npos)
+          {
+            ok = element.putString(decoded->c_str()).good();
+          }
+          else
+          {
+            ok = element.putFloat32(boost::lexical_cast<float>(*decoded)).good();
+          }
           break;
         }
 
@@ -1999,7 +2067,14 @@ namespace Orthanc
         case EVR_OD:  // other double (requires byte-swapping)
 #endif
         {
-          ok = element.putFloat64(boost::lexical_cast<double>(*decoded)).good();
+          if (decoded->find('\\') != std::string::npos)
+          {
+            ok = element.putString(decoded->c_str()).good();
+          }
+          else
+          {
+            ok = element.putFloat64(boost::lexical_cast<double>(*decoded)).good();
+          }
           break;
         }
 
@@ -2439,7 +2514,7 @@ namespace Orthanc
 
 #if ORTHANC_ENABLE_DCMTK_JPEG == 1
     CLOG(INFO, DICOM) << "Registering JPEG codecs in DCMTK";
-    DJDecoderRegistration::registerCodecs(); 
+    DJDecoderRegistration::registerCodecs();
 # if ORTHANC_ENABLE_DCMTK_TRANSCODING == 1
     DJEncoderRegistration::registerCodecs();
 # endif
@@ -2547,6 +2622,19 @@ namespace Orthanc
     if (evr == EVR_ox)  // OB or OW depending on context
     {
       evr = EVR_OB;
+    }
+    else if (evr == EVR_xs) // SS or US depending on context
+    {
+      // So far we assume that it's alway US (as a best guess: https://forum.dcmtk.org/viewtopic.php?t=932)
+      // However, e.g. in a LUTDescriptor (3 values), the middle value can be a SS depending on other tag values while first and third value are always US.
+      // This patch, although not perfect fixes  https://orthanc.uclouvain.be/bugs/show_bug.cgi?id=214.
+      // It might need some rework once we encounter a LUTDescriptor with a SS value. ref: https://dicom.nema.org/medical/dicom/current/output/chtml/part03/sect_C.11.2.html#sect_C.11.2.1.1
+      evr = EVR_US;  
+    }
+    else if (evr == EVR_lt) // US, SS or OW depending on context, used for LUT Data (thus the name)
+    {
+      // best guess is OW: final user should be able to interpret it correctly depending on the context
+      evr = EVR_OW;      
     }
 
     if (evr == EVR_UNKNOWN ||  // used internally for elements with unknown VR (encoded with 4-byte length field in explicit VR)

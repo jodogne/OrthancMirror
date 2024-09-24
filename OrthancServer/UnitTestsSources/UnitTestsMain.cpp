@@ -2,8 +2,9 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -241,42 +242,53 @@ TEST(DicomMap, DicomAsJson)
   Json::Value dicomAsJson;
   OrthancConfiguration::DefaultDicomDatasetToJson(dicomAsJson, toStore->GetParsedDicomFile());
   
-  DicomMap m;
-  m.FromDicomAsJson(dicomAsJson);
+  { // without parsing sequences
+    DicomMap m;
+    m.FromDicomAsJson(dicomAsJson);
 
-  ASSERT_EQ("ISO_IR 100", m.GetValue(DICOM_TAG_SPECIFIC_CHARACTER_SET).GetContent());
-  
-  ASSERT_FALSE(m.GetValue(DICOM_TAG_PATIENT_NAME).IsBinary());
-  ASSERT_EQ("Hello", m.GetValue(DICOM_TAG_PATIENT_NAME).GetContent());
-  
-  ASSERT_FALSE(m.GetValue(DICOM_TAG_STUDY_DESCRIPTION).IsBinary());
-  ASSERT_EQ(utf8, m.GetValue(DICOM_TAG_STUDY_DESCRIPTION).GetContent());
+    ASSERT_EQ("ISO_IR 100", m.GetValue(DICOM_TAG_SPECIFIC_CHARACTER_SET).GetContent());
+    
+    ASSERT_FALSE(m.GetValue(DICOM_TAG_PATIENT_NAME).IsBinary());
+    ASSERT_EQ("Hello", m.GetValue(DICOM_TAG_PATIENT_NAME).GetContent());
+    
+    ASSERT_FALSE(m.GetValue(DICOM_TAG_STUDY_DESCRIPTION).IsBinary());
+    ASSERT_EQ(utf8, m.GetValue(DICOM_TAG_STUDY_DESCRIPTION).GetContent());
 
-  ASSERT_FALSE(m.HasTag(DICOM_TAG_MANUFACTURER));                // Too long
-  ASSERT_FALSE(m.HasTag(DICOM_TAG_PIXEL_DATA));                  // Pixel data
-  ASSERT_FALSE(m.HasTag(DICOM_TAG_REFERENCED_SERIES_SEQUENCE));  // Sequence
-  ASSERT_EQ(DICOM_TAG_REFERENCED_SERIES_SEQUENCE.GetGroup(), DCM_ReferencedSeriesSequence.getGroup());
-  ASSERT_EQ(DICOM_TAG_REFERENCED_SERIES_SEQUENCE.GetElement(), DCM_ReferencedSeriesSequence.getElement());
+    ASSERT_FALSE(m.HasTag(DICOM_TAG_MANUFACTURER));                // Too long
+    ASSERT_FALSE(m.HasTag(DICOM_TAG_PIXEL_DATA));                  // Pixel data
+    ASSERT_FALSE(m.HasTag(DICOM_TAG_REFERENCED_SERIES_SEQUENCE));  // Sequence
+    ASSERT_EQ(DICOM_TAG_REFERENCED_SERIES_SEQUENCE.GetGroup(), DCM_ReferencedSeriesSequence.getGroup());
+    ASSERT_EQ(DICOM_TAG_REFERENCED_SERIES_SEQUENCE.GetElement(), DCM_ReferencedSeriesSequence.getElement());
 
-  ASSERT_TRUE(m.HasTag(DICOM_TAG_SERIES_DESCRIPTION));  // Maximum length
-  ASSERT_FALSE(m.GetValue(DICOM_TAG_SERIES_DESCRIPTION).IsBinary());
-  ASSERT_EQ(ORTHANC_MAXIMUM_TAG_LENGTH,
-            static_cast<int>(m.GetValue(DICOM_TAG_SERIES_DESCRIPTION).GetContent().length()));
+    ASSERT_TRUE(m.HasTag(DICOM_TAG_SERIES_DESCRIPTION));  // Maximum length
+    ASSERT_FALSE(m.GetValue(DICOM_TAG_SERIES_DESCRIPTION).IsBinary());
+    ASSERT_EQ(ORTHANC_MAXIMUM_TAG_LENGTH,
+              static_cast<int>(m.GetValue(DICOM_TAG_SERIES_DESCRIPTION).GetContent().length()));
 
-  ASSERT_FALSE(m.GetValue(DICOM_TAG_ROWS).IsBinary());
-  ASSERT_EQ("512", m.GetValue(DICOM_TAG_ROWS).GetContent());
+    ASSERT_FALSE(m.GetValue(DICOM_TAG_ROWS).IsBinary());
+    ASSERT_EQ("512", m.GetValue(DICOM_TAG_ROWS).GetContent());
 
-  ASSERT_FALSE(m.GetValue(DICOM_TAG_STUDY_ID).IsNull());
-  ASSERT_FALSE(m.GetValue(DICOM_TAG_STUDY_ID).IsBinary());
-  ASSERT_EQ("", m.GetValue(DICOM_TAG_STUDY_ID).GetContent());
+    ASSERT_FALSE(m.GetValue(DICOM_TAG_STUDY_ID).IsNull());
+    ASSERT_FALSE(m.GetValue(DICOM_TAG_STUDY_ID).IsBinary());
+    ASSERT_EQ("", m.GetValue(DICOM_TAG_STUDY_ID).GetContent());
 
-  DicomArray a(m);
-  ASSERT_EQ(6u, a.GetSize());
+    DicomArray a(m);
+    ASSERT_EQ(6u, a.GetSize());
 
-  
-  //dicom.SaveToFile("/tmp/test.dcm"); 
-  //std::cout << toStore.GetJson() << std::endl;
-  //a.Print(stdout);
+    
+    //dicom.SaveToFile("/tmp/test.dcm"); 
+    //std::cout << toStore.GetJson() << std::endl;
+    //a.Print(stdout);
+  }
+
+  { // now parses sequences
+    // LOG(INFO) << dicomAsJson.toStyledString();
+
+    DicomMap m;
+    m.FromDicomAsJson(dicomAsJson, false, true /* parseSequences */);
+
+    ASSERT_TRUE(m.HasTag(DICOM_TAG_REFERENCED_SERIES_SEQUENCE));
+  }
 }
 
 

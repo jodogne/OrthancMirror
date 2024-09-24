@@ -2,8 +2,9 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -144,7 +145,7 @@ namespace Orthanc
         try
         {
           // Read and parse the content of the DICOM file
-          StorageAccessor accessor(storageArea, NULL);  // no cache
+          StorageAccessor accessor(storageArea);  // no cache
 
           std::string content;
           accessor.Read(content, attachment);
@@ -211,6 +212,31 @@ namespace Orthanc
       std::string t;
       t.reserve(value.size());
 
+#if 0
+      // This version solves some indexing issue (https://discourse.orthanc-server.org/t/postgress-index-effectively-disabled-when-searching-for-greek-names/3371)
+      // and seems functional: I could run the integration tests with both SQLite and PG + the DicomWeb tests with PG.
+      // However, it can not go into production because NormalizeIdentifier is used both at ingest time and at search time;
+      // therefore, if we change it while we have an already populated DB, the searches won't work anymore and, on very large
+      // systems, running the Housekeeper to rebuild the indexes might take months ...
+      // We keep it here because it might be handy once we refactor the DicomIdentifier searches in the future.
+      for (size_t i = 0; i < value.size(); i++)
+      {
+        if (value[i] == '%' ||
+            value[i] == '_')
+        {
+          t.push_back(' ');  // These characters might break wildcard queries in SQL
+        }
+        else if (//isascii(value[i]) &&
+                 !iscntrl(value[i]) &&
+                 (!isspace(value[i]) || value[i] == ' '))
+        {
+          t.push_back(value[i]);
+        }
+      }
+
+      //Toolbox::ToUpperCase(t);
+      t = Toolbox::ToUpperCaseWithAccents(t);
+#else
       for (size_t i = 0; i < value.size(); i++)
       {
         if (value[i] == '%' ||
@@ -227,6 +253,7 @@ namespace Orthanc
       }
 
       Toolbox::ToUpperCase(t);
+#endif
 
       return Toolbox::StripSpaces(t);
     }
@@ -254,43 +281,86 @@ namespace Orthanc
     
     void ReconstructResource(ServerContext& context,
                              const std::string& resource,
-                             bool reconstructFiles)
+                             bool reconstructFiles,
+                             bool limitToThisLevelDicomTags,
+                             ResourceType limitToLevel)
     {
       LOG(WARNING) << "Reconstructing resource " << resource;
       
       std::list<std::string> instances;
       context.GetIndex().GetChildInstances(instances, resource);
 
-      for (std::list<std::string>::const_iterator 
-             it = instances.begin(); it != instances.end(); ++it)
+
+      if (limitToThisLevelDicomTags && instances.size() > 0) // in this case, we only need to rebuild one instance !
       {
-        ServerContext::DicomCacheLocker locker(context, *it);
-
-        // Delay the reconstruction of DICOM-as-JSON to its next access through "ServerContext"
-        context.GetIndex().DeleteAttachment(*it, FileContentType_DicomAsJson, false /* no revision */,
-                                            -1 /* dummy revision */, "" /* dummy MD5 */);
-        
-        context.GetIndex().ReconstructInstance(locker.GetDicom());
-
-        if (reconstructFiles)
+        ServerContext::DicomCacheLocker locker(context, instances.front());
+        context.GetIndex().ReconstructInstance(locker.GetDicom(), true, limitToLevel);
+      }
+      else
+      {
+        for (std::list<std::string>::const_iterator 
+              it = instances.begin(); it != instances.end(); ++it)
         {
-          // preserve metadata from old resource
-          typedef std::map<MetadataType, std::string>  InstanceMetadata;
-          InstanceMetadata  instanceMetadata;
+          ServerContext::DicomCacheLocker locker(context, *it);
 
-          std::string resultPublicId;  // ignored
-          std::unique_ptr<DicomInstanceToStore> dicomInstancetoStore(DicomInstanceToStore::CreateFromParsedDicomFile(locker.GetDicom()));
-
-          context.GetIndex().GetAllMetadata(instanceMetadata, *it, ResourceType_Instance);
+          // Delay the reconstruction of DICOM-as-JSON to its next access through "ServerContext"
+          context.GetIndex().DeleteAttachment(*it, FileContentType_DicomAsJson, false /* no revision */,
+                                              -1 /* dummy revision */, "" /* dummy MD5 */);
           
-          for (InstanceMetadata::const_iterator itm = instanceMetadata.begin();
-              itm != instanceMetadata.end(); ++itm)
-          {
-            dicomInstancetoStore->AddMetadata(ResourceType_Instance, itm->first, itm->second);
-          }
+          context.GetIndex().ReconstructInstance(locker.GetDicom(), false, ResourceType_Instance /* dummy */);
 
-          context.TranscodeAndStore(resultPublicId, dicomInstancetoStore.get(), StoreInstanceMode_OverwriteDuplicate, true);
+          if (reconstructFiles)
+          {
+            std::string resultPublicId;  // ignored
+            std::unique_ptr<DicomInstanceToStore> dicomInstancetoStore(DicomInstanceToStore::CreateFromParsedDicomFile(locker.GetDicom()));
+
+            // TODO: TranscodeAndStore and specifically ServerIndex::Store have been "poluted" by the isReconstruct parameter
+            // we should very likely refactor it
+            context.TranscodeAndStore(resultPublicId, dicomInstancetoStore.get(), StoreInstanceMode_OverwriteDuplicate, true);
+          }
         }
+      }
+    }
+
+    
+    bool IsValidLabel(const std::string& label)
+    {
+      if (label.empty())
+      {
+        return false;
+      }
+
+      if (label.size() > 64)
+      {
+        // This limitation is for MySQL, which cannot use a TEXT
+        // column of undefined length as a primary key
+        return false;
+      }
+      
+      for (size_t i = 0; i < label.size(); i++)
+      {
+        if (!(label[i] == '_' ||
+              label[i] == '-' ||
+              (label[i] >= 'a' && label[i] <= 'z') ||
+              (label[i] >= 'A' && label[i] <= 'Z') ||
+              (label[i] >= '0' && label[i] <= '9')))
+        {
+          return false;
+        }
+      }
+
+      return true;
+    }
+
+
+    void CheckValidLabel(const std::string& label)
+    {
+      if (!IsValidLabel(label))
+      {
+        throw OrthancException(ErrorCode_ParameterOutOfRange,
+                               "A label must be a non-empty, alphanumeric string, "
+                               "possibly with '_' or '-' characters, "
+                               "with maximum 64 characters, but got: " + label);
       }
     }
   }

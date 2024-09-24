@@ -2,8 +2,9 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -51,6 +52,7 @@ namespace Orthanc
   private:
     typedef std::map<std::string, RemoteModalityParameters>   Modalities;
     typedef std::map<std::string, WebServiceParameters>       Peers;
+    typedef std::map<std::string, unsigned int>               JobsEngineThreadsCount;
 
     boost::shared_mutex      mutex_;
     Json::Value              json_;
@@ -60,6 +62,7 @@ namespace Orthanc
     const char*              configurationFileArg_;
     Modalities               modalities_;
     Peers                    peers_;
+    JobsEngineThreadsCount   jobsEngineThreadsCount_;
     ServerIndex*             serverIndex_;
     std::set<Warnings>       disabledWarnings_;
 
@@ -160,6 +163,10 @@ namespace Orthanc
 
     void LoadWarnings();
 
+    void LoadJobsEngineThreadsCount();
+
+    unsigned int GetJobsEngineWorkersThread(const std::string& jobType) const;
+
     void RegisterFont(ServerResources::FileResourceId resource);
 
     bool LookupStringParameter(std::string& target,
@@ -197,7 +204,10 @@ namespace Orthanc
     
     void GetListOfStringsParameter(std::list<std::string>& target,
                                    const std::string& key) const;
-    
+
+    void GetSetOfStringsParameter(std::set<std::string>& target,
+                                  const std::string& key) const;
+
     bool IsSameAETitle(const std::string& aet1,
                        const std::string& aet2) const;
 

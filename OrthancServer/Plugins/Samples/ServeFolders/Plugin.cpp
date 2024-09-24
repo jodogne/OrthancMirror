@@ -2,8 +2,9 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -19,6 +20,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  **/
 
+
+#define SERVE_FOLDERS_NAME "serve-folders"
 
 #include "../Common/OrthancPluginCppWrapper.h"
 
@@ -92,7 +95,7 @@ static std::string GetMimeType(const std::string& path)
   }
   else
   {
-    OrthancPlugins::LogWarning("ServeFolders: Unknown MIME type for extension \"" + extension + "\"");
+    ORTHANC_PLUGINS_LOG_WARNING("ServeFolders: Unknown MIME type for extension \"" + extension + "\"");
     return "application/octet-stream";
   }
 }
@@ -107,7 +110,7 @@ static bool LookupFolder(std::string& folder,
   std::map<std::string, std::string>::const_iterator found = folders_.find(uri);
   if (found == folders_.end())
   {
-    OrthancPlugins::LogError("Unknown URI in plugin server-folders: " + uri);
+    ORTHANC_PLUGINS_LOG_ERROR("Unknown URI in plugin server-folders: " + uri);
     OrthancPluginSendHttpStatusCode(OrthancPlugins::GetGlobalContext(), output, 404);
     return false;
   }
@@ -263,7 +266,7 @@ static void ConfigureFolders(const Json::Value& folders)
 {
   if (folders.type() != Json::objectValue)
   {
-    OrthancPlugins::LogError("The list of folders to be served is badly formatted (must be a JSON object)");
+    ORTHANC_PLUGINS_LOG_ERROR("The list of folders to be served is badly formatted (must be a JSON object)");
     ORTHANC_PLUGINS_THROW_EXCEPTION(BadFileFormat);
   }
 
@@ -275,8 +278,8 @@ static void ConfigureFolders(const Json::Value& folders)
   {
     if (folders[*it].type() != Json::stringValue)
     {
-      OrthancPlugins::LogError("The folder to be served \"" + *it + 
-                               "\" must be associated with a string value (its mapped URI)");
+      ORTHANC_PLUGINS_LOG_ERROR("The folder to be served \"" + *it + 
+                                "\" must be associated with a string value (its mapped URI)");
       ORTHANC_PLUGINS_THROW_EXCEPTION(BadFileFormat);
     }
 
@@ -297,7 +300,7 @@ static void ConfigureFolders(const Json::Value& folders)
 
     if (baseUri.empty())
     {
-      OrthancPlugins::LogError("The URI of a folder to be served cannot be empty");
+      ORTHANC_PLUGINS_LOG_ERROR("The URI of a folder to be served cannot be empty");
       ORTHANC_PLUGINS_THROW_EXCEPTION(BadFileFormat);
     }
 
@@ -305,7 +308,7 @@ static void ConfigureFolders(const Json::Value& folders)
     const std::string folder = folders[*it].asString();
     if (!boost::filesystem::is_directory(folder))
     {
-      OrthancPlugins::LogError("Trying to serve an inexistent folder: " + folder);
+      ORTHANC_PLUGINS_LOG_ERROR("Trying to serve an inexistent folder: " + folder);
       ORTHANC_PLUGINS_THROW_EXCEPTION(InexistentFile);
     }
 
@@ -324,7 +327,7 @@ static void ConfigureExtensions(const Json::Value& extensions)
 {
   if (extensions.type() != Json::objectValue)
   {
-    OrthancPlugins::LogError("The list of extensions is badly formatted (must be a JSON object)");
+    ORTHANC_PLUGINS_LOG_ERROR("The list of extensions is badly formatted (must be a JSON object)");
     ORTHANC_PLUGINS_THROW_EXCEPTION(BadFileFormat);
   }
 
@@ -335,8 +338,8 @@ static void ConfigureExtensions(const Json::Value& extensions)
   {
     if (extensions[*it].type() != Json::stringValue)
     {
-      OrthancPlugins::LogError("The file extension \"" + *it + 
-                               "\" must be associated with a string value (its MIME type)");
+      ORTHANC_PLUGINS_LOG_ERROR("The file extension \"" + *it + 
+                                "\" must be associated with a string value (its MIME type)");
       ORTHANC_PLUGINS_THROW_EXCEPTION(BadFileFormat);
     }
 
@@ -354,13 +357,13 @@ static void ConfigureExtensions(const Json::Value& extensions)
 
     if (mime.empty())
     {
-      OrthancPlugins::LogWarning("ServeFolders: Removing MIME type for file extension \"." +
-                                 name + "\"");
+      ORTHANC_PLUGINS_LOG_WARNING("ServeFolders: Removing MIME type for file extension \"." +
+                                  name + "\"");
     }
     else
     {
-      OrthancPlugins::LogWarning("ServeFolders: Associating file extension \"." + name + 
-                                 "\" with MIME type \"" + mime + "\"");
+      ORTHANC_PLUGINS_LOG_WARNING("ServeFolders: Associating file extension \"." + name +
+                                  "\" with MIME type \"" + mime + "\"");
     }
   }  
 }
@@ -390,17 +393,16 @@ static void ReadConfiguration()
     if (configuration.LookupBooleanValue(tmp, "AllowCache"))
     {
       allowCache_ = tmp;
-      OrthancPlugins::LogWarning("ServeFolders: Requesting the HTTP client to " +
-                                 std::string(tmp ? "enable" : "disable") + 
-                                 " its caching mechanism");
+      ORTHANC_PLUGINS_LOG_WARNING("ServeFolders: Requesting the HTTP client to " +
+                                  std::string(tmp ? "enable" : "disable") +
+                                  " its caching mechanism");
     }
 
     if (configuration.LookupBooleanValue(tmp, "GenerateETag"))
     {
       generateETag_ = tmp;
-      OrthancPlugins::LogWarning("ServeFolders: The computation of an ETag for the "
-                                 "served resources is " +
-                                 std::string(tmp ? "enabled" : "disabled"));
+      ORTHANC_PLUGINS_LOG_WARNING("ServeFolders: The computation of an ETag for the served resources is " +
+                                  std::string(tmp ? "enabled" : "disabled"));
     }
 
     OrthancPlugins::OrthancConfiguration extensions;
@@ -410,8 +412,7 @@ static void ReadConfiguration()
 
   if (folders_.empty())
   {
-    OrthancPlugins::LogWarning("ServeFolders: Empty configuration file: "
-                               "No additional folder will be served!");
+    ORTHANC_PLUGINS_LOG_WARNING("ServeFolders: Empty configuration file: No additional folder will be served!");
   }
 }
 
@@ -420,7 +421,7 @@ extern "C"
 {
   ORTHANC_PLUGINS_API int32_t OrthancPluginInitialize(OrthancPluginContext* context)
   {
-    OrthancPlugins::SetGlobalContext(context);
+    OrthancPlugins::SetGlobalContext(context, SERVE_FOLDERS_NAME);
 
     /* Check the version of the Orthanc core */
     if (OrthancPluginCheckVersion(context) == 0)
@@ -432,8 +433,8 @@ extern "C"
     }
 
     RegisterDefaultExtensions();
-    OrthancPluginSetDescription(context, "Serve additional folders with the HTTP server of Orthanc.");
-    OrthancPluginSetRootUri(context, INDEX_URI);
+    OrthancPluginSetDescription2(context, SERVE_FOLDERS_NAME, "Serve additional folders with the HTTP server of Orthanc.");
+    OrthancPluginSetRootUri2(context, SERVE_FOLDERS_NAME, INDEX_URI);
     OrthancPlugins::RegisterRestCallback<ListServedFolders>(INDEX_URI, true);
 
     try
@@ -442,8 +443,8 @@ extern "C"
     }
     catch (OrthancPlugins::PluginException& e)
     {
-      OrthancPlugins::LogError("Error while initializing the ServeFolders plugin: " + 
-                               std::string(e.What(context)));
+      ORTHANC_PLUGINS_LOG_ERROR("Error while initializing the ServeFolders plugin: " +
+                                std::string(e.What(context)));
     }
 
     return 0;
@@ -457,7 +458,7 @@ extern "C"
 
   ORTHANC_PLUGINS_API const char* OrthancPluginGetName()
   {
-    return "serve-folders";
+    return SERVE_FOLDERS_NAME;
   }
 
 

@@ -1,0 +1,995 @@
+diff -urEb dcmtk-DCMTK-3.6.8.orig/dcmjpeg/libijg12/jccoefct.c dcmtk-DCMTK-3.6.8/dcmjpeg/libijg12/jccoefct.c
+--- dcmtk-DCMTK-3.6.8.orig/dcmjpeg/libijg12/jccoefct.c	2024-01-09 17:13:10.345673450 +0100
++++ dcmtk-DCMTK-3.6.8/dcmjpeg/libijg12/jccoefct.c	2024-01-09 17:48:28.974677157 +0100
+@@ -343,7 +343,7 @@
+ METHODDEF(boolean)
+ compress_output (j_compress_ptr cinfo, JSAMPIMAGE input_buf)
+ {
+-  (void)input_buf;
++  //(void)input_buf;
+   j_lossy_c_ptr lossyc = (j_lossy_c_ptr) cinfo->codec;
+   c_coef_ptr coef = (c_coef_ptr) lossyc->coef_private;
+   JDIMENSION MCU_col_num;   /* index of current MCU within row */
+diff -urEb dcmtk-DCMTK-3.6.8.orig/dcmjpeg/libijg12/jcdiffct.c dcmtk-DCMTK-3.6.8/dcmjpeg/libijg12/jcdiffct.c
+--- dcmtk-DCMTK-3.6.8.orig/dcmjpeg/libijg12/jcdiffct.c	2024-01-09 17:13:10.345673450 +0100
++++ dcmtk-DCMTK-3.6.8/dcmjpeg/libijg12/jcdiffct.c	2024-01-09 17:48:36.414609533 +0100
+@@ -302,7 +302,7 @@
+ METHODDEF(boolean)
+ compress_output (j_compress_ptr cinfo, JSAMPIMAGE input_buf)
+ {
+-  (void)input_buf;
++  //(void)input_buf;
+   j_lossless_c_ptr losslsc = (j_lossless_c_ptr) cinfo->codec;
+   c_diff_ptr diff = (c_diff_ptr) losslsc->diff_private;
+   /* JDIMENSION MCU_col_num; */ /* index of current MCU within row */
+diff -urEb dcmtk-DCMTK-3.6.8.orig/dcmjpeg/libijg12/jcpred.c dcmtk-DCMTK-3.6.8/dcmjpeg/libijg12/jcpred.c
+--- dcmtk-DCMTK-3.6.8.orig/dcmjpeg/libijg12/jcpred.c	2024-01-09 17:13:10.345673450 +0100
++++ dcmtk-DCMTK-3.6.8/dcmjpeg/libijg12/jcpred.c	2024-01-09 17:48:49.766488124 +0100
+@@ -213,7 +213,7 @@
+          const JSAMPROW input_buf, JSAMPROW prev_row,
+          JDIFFROW diff_buf, JDIMENSION width)
+ {
+-  (void)prev_row;
++  //(void)prev_row;
+   DIFFERENCE_1D(INITIAL_PREDICTORx);
+ 
+   /*
+diff -urEb dcmtk-DCMTK-3.6.8.orig/dcmjpeg/libijg12/jctrans.c dcmtk-DCMTK-3.6.8/dcmjpeg/libijg12/jctrans.c
+--- dcmtk-DCMTK-3.6.8.orig/dcmjpeg/libijg12/jctrans.c	2024-01-09 17:13:10.345673450 +0100
++++ dcmtk-DCMTK-3.6.8/dcmjpeg/libijg12/jctrans.c	2024-01-09 17:49:00.070394388 +0100
+@@ -267,7 +267,7 @@
+ METHODDEF(boolean)
+ compress_output (j_compress_ptr cinfo, JSAMPIMAGE input_buf)
+ {
+-  (void)input_buf;
++  //(void)input_buf;
+   j_lossy_c_ptr lossyc = (j_lossy_c_ptr) cinfo->codec;
+   c_coef_ptr coef = (c_coef_ptr) lossyc->coef_private;
+   JDIMENSION MCU_col_num;   /* index of current MCU within row */
+diff -urEb dcmtk-DCMTK-3.6.8.orig/dcmjpeg/libijg12/jdmerge.c dcmtk-DCMTK-3.6.8/dcmjpeg/libijg12/jdmerge.c
+--- dcmtk-DCMTK-3.6.8.orig/dcmjpeg/libijg12/jdmerge.c	2024-01-09 17:13:10.345673450 +0100
++++ dcmtk-DCMTK-3.6.8/dcmjpeg/libijg12/jdmerge.c	2024-01-09 17:49:11.910286634 +0100
+@@ -148,7 +148,7 @@
+             JDIMENSION out_rows_avail)
+ /* 2:1 vertical sampling case: may need a spare row. */
+ {
+-  (void) in_row_groups_avail;
++  //(void) in_row_groups_avail;
+   my_upsample_ptr upsample = (my_upsample_ptr) cinfo->upsample;
+   JSAMPROW work_ptrs[2];
+   JDIMENSION num_rows;      /* number of rows returned to caller */
+@@ -198,8 +198,8 @@
+             JDIMENSION out_rows_avail)
+ /* 1:1 vertical sampling case: much easier, never need a spare row. */
+ {
+-  (void) in_row_groups_avail;
+-  (void) out_rows_avail;
++  //(void) in_row_groups_avail;
++  //(void) out_rows_avail;
+   my_upsample_ptr upsample = (my_upsample_ptr) cinfo->upsample;
+ 
+   /* Just do the upsampling. */
+diff -urEb dcmtk-DCMTK-3.6.8.orig/dcmjpeg/libijg12/jdpostct.c dcmtk-DCMTK-3.6.8/dcmjpeg/libijg12/jdpostct.c
+--- dcmtk-DCMTK-3.6.8.orig/dcmjpeg/libijg12/jdpostct.c	2024-01-09 17:13:10.345673450 +0100
++++ dcmtk-DCMTK-3.6.8/dcmjpeg/libijg12/jdpostct.c	2024-01-09 17:49:24.910168268 +0100
+@@ -161,8 +161,8 @@
+               JSAMPARRAY output_buf, JDIMENSION *out_row_ctr,
+               JDIMENSION out_rows_avail)
+ {
+-  (void) output_buf;
+-  (void) out_rows_avail;
++  //(void) output_buf;
++  //(void) out_rows_avail;
+   my_post_ptr post = (my_post_ptr) cinfo->post;
+   JDIMENSION old_next_row, num_rows;
+ 
+@@ -207,9 +207,9 @@
+             JSAMPARRAY output_buf, JDIMENSION *out_row_ctr,
+             JDIMENSION out_rows_avail)
+ {
+-  (void) input_buf;
+-  (void) in_row_group_ctr;
+-  (void) in_row_groups_avail;
++  //(void) input_buf;
++  //(void) in_row_group_ctr;
++  //(void) in_row_groups_avail;
+ 
+   my_post_ptr post = (my_post_ptr) cinfo->post;
+   JDIMENSION num_rows, max_rows;
+diff -urEb dcmtk-DCMTK-3.6.8.orig/dcmjpeg/libijg12/jdpred.c dcmtk-DCMTK-3.6.8/dcmjpeg/libijg12/jdpred.c
+--- dcmtk-DCMTK-3.6.8.orig/dcmjpeg/libijg12/jdpred.c	2024-01-09 17:13:10.345673450 +0100
++++ dcmtk-DCMTK-3.6.8/dcmjpeg/libijg12/jdpred.c	2024-01-09 17:50:00.513843814 +0100
+@@ -101,8 +101,8 @@
+            const JDIFFROW diff_buf, const JDIFFROW prev_row,
+            JDIFFROW undiff_buf, JDIMENSION width)
+ {
+-  (void)cinfo;
+-  (void)comp_index;
++  //(void)cinfo;
++  //(void)comp_index;
+   UNDIFFERENCE_1D(INITIAL_PREDICTOR2);
+ }
+ 
+@@ -111,8 +111,8 @@
+            const JDIFFROW diff_buf, const JDIFFROW prev_row,
+            JDIFFROW undiff_buf, JDIMENSION width)
+ {
+-  (void)cinfo;
+-  (void)comp_index;
++  //(void)cinfo;
++  //(void)comp_index;
+   UNDIFFERENCE_2D(PREDICTOR2);
+   JPEG_UNUSED(Rc);
+   JPEG_UNUSED(Rb);
+@@ -123,8 +123,8 @@
+            const JDIFFROW diff_buf, const JDIFFROW prev_row,
+            JDIFFROW undiff_buf, JDIMENSION width)
+ {
+-  (void)cinfo;
+-  (void)comp_index;
++  //(void)cinfo;
++  //(void)comp_index;
+   UNDIFFERENCE_2D(PREDICTOR3);
+   JPEG_UNUSED(Rc);
+   JPEG_UNUSED(Rb);
+@@ -135,8 +135,8 @@
+            const JDIFFROW diff_buf, const JDIFFROW prev_row,
+            JDIFFROW undiff_buf, JDIMENSION width)
+ {
+-  (void)cinfo;
+-  (void)comp_index;
++  //(void)cinfo;
++  //(void)comp_index;
+   UNDIFFERENCE_2D(PREDICTOR4);
+   JPEG_UNUSED(Rc);
+   JPEG_UNUSED(Rb);
+@@ -147,8 +147,8 @@
+            const JDIFFROW diff_buf, const JDIFFROW prev_row,
+            JDIFFROW undiff_buf, JDIMENSION width)
+ {
+-  (void)cinfo;
+-  (void)comp_index;
++  //(void)cinfo;
++  //(void)comp_index;
+   SHIFT_TEMPS
+   UNDIFFERENCE_2D(PREDICTOR5);
+   JPEG_UNUSED(Rc);
+@@ -160,8 +160,8 @@
+            const JDIFFROW diff_buf, const JDIFFROW prev_row,
+            JDIFFROW undiff_buf, JDIMENSION width)
+ {
+-  (void)cinfo;
+-  (void)comp_index;
++  //(void)cinfo;
++  //(void)comp_index;
+   SHIFT_TEMPS
+   UNDIFFERENCE_2D(PREDICTOR6);
+   JPEG_UNUSED(Rc);
+@@ -173,8 +173,8 @@
+            const JDIFFROW diff_buf, const JDIFFROW prev_row,
+            JDIFFROW undiff_buf, JDIMENSION width)
+ {
+-  (void)cinfo;
+-  (void)comp_index;
++  //(void)cinfo;
++  //(void)comp_index;
+   SHIFT_TEMPS
+   UNDIFFERENCE_2D(PREDICTOR7);
+   JPEG_UNUSED(Rc);
+@@ -195,7 +195,7 @@
+                 JDIFFROW undiff_buf, JDIMENSION width)
+ {
+ 
+-  (void)prev_row;
++  //(void)prev_row;
+   j_lossless_d_ptr losslsd = (j_lossless_d_ptr) cinfo->codec;
+ 
+   UNDIFFERENCE_1D(INITIAL_PREDICTORx);
+diff -urEb dcmtk-DCMTK-3.6.8.orig/dcmjpeg/libijg12/jdsample.c dcmtk-DCMTK-3.6.8/dcmjpeg/libijg12/jdsample.c
+--- dcmtk-DCMTK-3.6.8.orig/dcmjpeg/libijg12/jdsample.c	2024-01-09 17:13:10.345673450 +0100
++++ dcmtk-DCMTK-3.6.8/dcmjpeg/libijg12/jdsample.c	2024-01-09 17:50:36.545515066 +0100
+@@ -92,7 +92,7 @@
+           JSAMPARRAY output_buf, JDIMENSION *out_row_ctr,
+           JDIMENSION out_rows_avail)
+ {
+-  (void)in_row_groups_avail;
++  //(void)in_row_groups_avail;
+   my_upsample_ptr upsample = (my_upsample_ptr) cinfo->upsample;
+   int ci;
+   jpeg_component_info * compptr;
+@@ -158,8 +158,8 @@
+ fullsize_upsample (j_decompress_ptr cinfo, jpeg_component_info * compptr,
+            JSAMPARRAY input_data, JSAMPARRAY * output_data_ptr)
+ {
+-  (void)cinfo;
+-  (void)compptr;
++  //(void)cinfo;
++  //(void)compptr;
+   *output_data_ptr = input_data;
+ }
+ 
+@@ -173,9 +173,9 @@
+ noop_upsample (j_decompress_ptr cinfo, jpeg_component_info * compptr,
+            JSAMPARRAY input_data, JSAMPARRAY * output_data_ptr)
+ {
+-  (void)cinfo;
+-  (void)compptr;
+-  (void)input_data;
++  //(void)cinfo;
++  //(void)compptr;
++  //(void)input_data;
+   *output_data_ptr = NULL;  /* safety check */
+ }
+ 
+@@ -239,7 +239,7 @@
+ h2v1_upsample (j_decompress_ptr cinfo, jpeg_component_info * compptr,
+            JSAMPARRAY input_data, JSAMPARRAY * output_data_ptr)
+ {
+-  (void)compptr;
++  //(void)compptr;
+   JSAMPARRAY output_data = *output_data_ptr;
+   register JSAMPROW inptr, outptr;
+   register JSAMPLE invalue;
+@@ -268,7 +268,7 @@
+ h2v2_upsample (j_decompress_ptr cinfo, jpeg_component_info * compptr,
+            JSAMPARRAY input_data, JSAMPARRAY * output_data_ptr)
+ {
+-  (void)compptr;
++  //(void)compptr;
+   JSAMPARRAY output_data = *output_data_ptr;
+   register JSAMPROW inptr, outptr;
+   register JSAMPLE invalue;
+diff -urEb dcmtk-DCMTK-3.6.8.orig/dcmjpeg/libijg12/jdscale.c dcmtk-DCMTK-3.6.8/dcmjpeg/libijg12/jdscale.c
+--- dcmtk-DCMTK-3.6.8.orig/dcmjpeg/libijg12/jdscale.c	2024-01-09 17:13:10.345673450 +0100
++++ dcmtk-DCMTK-3.6.8/dcmjpeg/libijg12/jdscale.c	2024-01-09 17:50:42.833457657 +0100
+@@ -67,7 +67,7 @@
+ 	const JDIFFROW diff_buf, JSAMPROW output_buf,
+ 	JDIMENSION width)
+ {
+-  (void)cinfo;
++  //(void)cinfo;
+   unsigned int xindex;
+ 
+   for (xindex = 0; xindex < width; xindex++)
+diff -urEb dcmtk-DCMTK-3.6.8.orig/dcmjpeg/libijg12/jquant1.c dcmtk-DCMTK-3.6.8/dcmjpeg/libijg12/jquant1.c
+--- dcmtk-DCMTK-3.6.8.orig/dcmjpeg/libijg12/jquant1.c	2024-01-09 17:13:10.345673450 +0100
++++ dcmtk-DCMTK-3.6.8/dcmjpeg/libijg12/jquant1.c	2024-01-09 17:51:03.049273013 +0100
+@@ -251,8 +251,8 @@
+    * (Forcing the upper and lower values to the limits ensures that
+    * dithering can't produce a color outside the selected gamut.)
+    */
+-  (void) cinfo;
+-  (void) ci;
++  //(void) cinfo;
++  //(void) ci;
+   return (int) (((IJG_INT32) j * MAXJSAMPLE + maxj/2) / maxj);
+ }
+ 
+@@ -262,8 +262,8 @@
+ /* Return largest input value that should map to j'th output value */
+ /* Must have largest(j=0) >= 0, and largest(j=maxj) >= MAXJSAMPLE */
+ {
+-  (void) cinfo;
+-  (void) ci;
++  //(void) cinfo;
++  //(void) ci;
+   /* Breakpoints are halfway between values returned by output_value */
+   return (int) (((IJG_INT32) (2*j + 1) * MAXJSAMPLE + maxj) / (2*maxj));
+ }
+@@ -744,7 +744,7 @@
+ METHODDEF(void)
+ start_pass_1_quant (j_decompress_ptr cinfo, boolean is_pre_scan)
+ {
+-  (void) is_pre_scan;
++  //(void) is_pre_scan;
+   my_cquantize_ptr cquantize = (my_cquantize_ptr) cinfo->cquantize;
+   size_t arraysize;
+   int i;
+@@ -802,7 +802,7 @@
+ METHODDEF(void)
+ finish_pass_1_quant (j_decompress_ptr cinfo)
+ {
+-  (void) cinfo;
++  //(void) cinfo;
+   /* no work in 1-pass case */
+ }
+ 
+diff -urEb dcmtk-DCMTK-3.6.8.orig/dcmjpeg/libijg12/jquant2.c dcmtk-DCMTK-3.6.8/dcmjpeg/libijg12/jquant2.c
+--- dcmtk-DCMTK-3.6.8.orig/dcmjpeg/libijg12/jquant2.c	2024-01-09 17:13:10.345673450 +0100
++++ dcmtk-DCMTK-3.6.8/dcmjpeg/libijg12/jquant2.c	2024-01-09 17:51:16.685148405 +0100
+@@ -224,7 +224,7 @@
+ prescan_quantize (j_decompress_ptr cinfo, JSAMPARRAY input_buf,
+           JSAMPARRAY output_buf, int num_rows)
+ {
+-  (void) output_buf;
++  //(void) output_buf;
+   my_cquantize_ptr cquantize = (my_cquantize_ptr) cinfo->cquantize;
+   register JSAMPROW ptr;
+   register histptr histp;
+@@ -1156,7 +1156,7 @@
+ METHODDEF(void)
+ finish_pass2 (j_decompress_ptr cinfo)
+ {
+-  (void) cinfo;
++  //(void) cinfo;
+   /* no work */
+ }
+ 
+diff -urEb dcmtk-DCMTK-3.6.8.orig/dcmjpeg/libijg16/jccoefct.c dcmtk-DCMTK-3.6.8/dcmjpeg/libijg16/jccoefct.c
+--- dcmtk-DCMTK-3.6.8.orig/dcmjpeg/libijg16/jccoefct.c	2024-01-09 17:13:10.345673450 +0100
++++ dcmtk-DCMTK-3.6.8/dcmjpeg/libijg16/jccoefct.c	2024-01-09 17:51:24.997072424 +0100
+@@ -343,7 +343,7 @@
+ METHODDEF(boolean)
+ compress_output (j_compress_ptr cinfo, JSAMPIMAGE input_buf)
+ {
+-  (void)input_buf;
++  //(void)input_buf;
+   j_lossy_c_ptr lossyc = (j_lossy_c_ptr) cinfo->codec;
+   c_coef_ptr coef = (c_coef_ptr) lossyc->coef_private;
+   JDIMENSION MCU_col_num;   /* index of current MCU within row */
+diff -urEb dcmtk-DCMTK-3.6.8.orig/dcmjpeg/libijg16/jcdiffct.c dcmtk-DCMTK-3.6.8/dcmjpeg/libijg16/jcdiffct.c
+--- dcmtk-DCMTK-3.6.8.orig/dcmjpeg/libijg16/jcdiffct.c	2024-01-09 17:13:10.345673450 +0100
++++ dcmtk-DCMTK-3.6.8/dcmjpeg/libijg16/jcdiffct.c	2024-01-09 17:51:31.549012520 +0100
+@@ -302,7 +302,7 @@
+ METHODDEF(boolean)
+ compress_output (j_compress_ptr cinfo, JSAMPIMAGE input_buf)
+ {
+-  (void)input_buf;
++  //(void)input_buf;
+   j_lossless_c_ptr losslsc = (j_lossless_c_ptr) cinfo->codec;
+   c_diff_ptr diff = (c_diff_ptr) losslsc->diff_private;
+   /* JDIMENSION MCU_col_num; */ /* index of current MCU within row */
+diff -urEb dcmtk-DCMTK-3.6.8.orig/dcmjpeg/libijg16/jcpred.c dcmtk-DCMTK-3.6.8/dcmjpeg/libijg16/jcpred.c
+--- dcmtk-DCMTK-3.6.8.orig/dcmjpeg/libijg16/jcpred.c	2024-01-09 17:13:10.345673450 +0100
++++ dcmtk-DCMTK-3.6.8/dcmjpeg/libijg16/jcpred.c	2024-01-09 17:51:40.740928459 +0100
+@@ -213,7 +213,7 @@
+          const JSAMPROW input_buf, JSAMPROW prev_row,
+          JDIFFROW diff_buf, JDIMENSION width)
+ {
+-  (void)prev_row;
++  //(void)prev_row;
+   DIFFERENCE_1D(INITIAL_PREDICTORx);
+ 
+   /*
+diff -urEb dcmtk-DCMTK-3.6.8.orig/dcmjpeg/libijg16/jctrans.c dcmtk-DCMTK-3.6.8/dcmjpeg/libijg16/jctrans.c
+--- dcmtk-DCMTK-3.6.8.orig/dcmjpeg/libijg16/jctrans.c	2024-01-09 17:13:10.345673450 +0100
++++ dcmtk-DCMTK-3.6.8/dcmjpeg/libijg16/jctrans.c	2024-01-09 17:51:49.244850672 +0100
+@@ -267,7 +267,7 @@
+ METHODDEF(boolean)
+ compress_output (j_compress_ptr cinfo, JSAMPIMAGE input_buf)
+ {
+-  (void)input_buf;
++  //(void)input_buf;
+   j_lossy_c_ptr lossyc = (j_lossy_c_ptr) cinfo->codec;
+   c_coef_ptr coef = (c_coef_ptr) lossyc->coef_private;
+   JDIMENSION MCU_col_num;   /* index of current MCU within row */
+diff -urEb dcmtk-DCMTK-3.6.8.orig/dcmjpeg/libijg16/jdmerge.c dcmtk-DCMTK-3.6.8/dcmjpeg/libijg16/jdmerge.c
+--- dcmtk-DCMTK-3.6.8.orig/dcmjpeg/libijg16/jdmerge.c	2024-01-09 17:13:10.345673450 +0100
++++ dcmtk-DCMTK-3.6.8/dcmjpeg/libijg16/jdmerge.c	2024-01-09 17:51:59.852753613 +0100
+@@ -171,7 +171,7 @@
+             JDIMENSION out_rows_avail)
+ /* 2:1 vertical sampling case: may need a spare row. */
+ {
+-  (void) in_row_groups_avail;
++  //(void) in_row_groups_avail;
+   my_upsample_ptr upsample = (my_upsample_ptr) cinfo->upsample;
+   JSAMPROW work_ptrs[2];
+   JDIMENSION num_rows;      /* number of rows returned to caller */
+@@ -221,8 +221,8 @@
+             JDIMENSION out_rows_avail)
+ /* 1:1 vertical sampling case: much easier, never need a spare row. */
+ {
+-  (void) in_row_groups_avail;
+-  (void) out_rows_avail;
++  //(void) in_row_groups_avail;
++  //(void) out_rows_avail;
+   my_upsample_ptr upsample = (my_upsample_ptr) cinfo->upsample;
+ 
+   /* Just do the upsampling. */
+diff -urEb dcmtk-DCMTK-3.6.8.orig/dcmjpeg/libijg16/jdpostct.c dcmtk-DCMTK-3.6.8/dcmjpeg/libijg16/jdpostct.c
+--- dcmtk-DCMTK-3.6.8.orig/dcmjpeg/libijg16/jdpostct.c	2024-01-09 17:13:10.345673450 +0100
++++ dcmtk-DCMTK-3.6.8/dcmjpeg/libijg16/jdpostct.c	2024-01-09 17:52:12.796635145 +0100
+@@ -161,8 +161,8 @@
+               JSAMPARRAY output_buf, JDIMENSION *out_row_ctr,
+               JDIMENSION out_rows_avail)
+ {
+-  (void) output_buf;
+-  (void) out_rows_avail;
++  //(void) output_buf;
++  //(void) out_rows_avail;
+   my_post_ptr post = (my_post_ptr) cinfo->post;
+   JDIMENSION old_next_row, num_rows;
+ 
+@@ -207,9 +207,9 @@
+             JSAMPARRAY output_buf, JDIMENSION *out_row_ctr,
+             JDIMENSION out_rows_avail)
+ {
+-  (void) input_buf;
+-  (void) in_row_group_ctr;
+-  (void) in_row_groups_avail;
++  //(void) input_buf;
++  //(void) in_row_group_ctr;
++  //(void) in_row_groups_avail;
+   my_post_ptr post = (my_post_ptr) cinfo->post;
+   JDIMENSION num_rows, max_rows;
+ 
+diff -urEb dcmtk-DCMTK-3.6.8.orig/dcmjpeg/libijg16/jdpred.c dcmtk-DCMTK-3.6.8/dcmjpeg/libijg16/jdpred.c
+--- dcmtk-DCMTK-3.6.8.orig/dcmjpeg/libijg16/jdpred.c	2024-01-09 17:13:10.345673450 +0100
++++ dcmtk-DCMTK-3.6.8/dcmjpeg/libijg16/jdpred.c	2024-01-09 17:53:08.884121363 +0100
+@@ -101,8 +101,8 @@
+            const JDIFFROW diff_buf, const JDIFFROW prev_row,
+            JDIFFROW undiff_buf, JDIMENSION width)
+ {
+-  (void)cinfo;
+-  (void)comp_index;
++  //(void)cinfo;
++  //(void)comp_index;
+   UNDIFFERENCE_1D(INITIAL_PREDICTOR2);
+ }
+ 
+@@ -111,8 +111,8 @@
+            const JDIFFROW diff_buf, const JDIFFROW prev_row,
+            JDIFFROW undiff_buf, JDIMENSION width)
+ {
+-   (void)cinfo;
+-  (void)comp_index;
++  //(void)cinfo;
++  //(void)comp_index;
+  UNDIFFERENCE_2D(PREDICTOR2);
+   JPEG_UNUSED(Rc);
+   JPEG_UNUSED(Rb);
+@@ -123,8 +123,8 @@
+            const JDIFFROW diff_buf, const JDIFFROW prev_row,
+            JDIFFROW undiff_buf, JDIMENSION width)
+ {
+-  (void)cinfo;
+-  (void)comp_index;
++  //(void)cinfo;
++  //(void)comp_index;
+   UNDIFFERENCE_2D(PREDICTOR3);
+   JPEG_UNUSED(Rc);
+   JPEG_UNUSED(Rb);
+@@ -135,8 +135,8 @@
+            const JDIFFROW diff_buf, const JDIFFROW prev_row,
+            JDIFFROW undiff_buf, JDIMENSION width)
+ {
+-  (void)cinfo;
+-  (void)comp_index;
++  //(void)cinfo;
++  //(void)comp_index;
+   UNDIFFERENCE_2D(PREDICTOR4A);
+   JPEG_UNUSED(Rc);
+   JPEG_UNUSED(Rb);
+@@ -147,8 +147,8 @@
+            const JDIFFROW diff_buf, const JDIFFROW prev_row,
+            JDIFFROW undiff_buf, JDIMENSION width)
+ {
+-  (void)cinfo;
+-  (void)comp_index;
++  //(void)cinfo;
++  //(void)comp_index;
+   UNDIFFERENCE_2D(PREDICTOR4);
+   JPEG_UNUSED(Rc);
+   JPEG_UNUSED(Rb);
+@@ -159,8 +159,8 @@
+            const JDIFFROW diff_buf, const JDIFFROW prev_row,
+            JDIFFROW undiff_buf, JDIMENSION width)
+ {
+-  (void)cinfo;
+-  (void)comp_index;
++  //(void)cinfo;
++  //(void)comp_index;
+   SHIFT_TEMPS
+   UNDIFFERENCE_2D(PREDICTOR5);
+   JPEG_UNUSED(Rc);
+@@ -172,8 +172,8 @@
+            const JDIFFROW diff_buf, const JDIFFROW prev_row,
+            JDIFFROW undiff_buf, JDIMENSION width)
+ {
+-  (void)cinfo;
+-  (void)comp_index;
++  //(void)cinfo;
++  //(void)comp_index;
+   SHIFT_TEMPS
+   UNDIFFERENCE_2D(PREDICTOR5A);
+   JPEG_UNUSED(Rc);
+@@ -185,8 +185,8 @@
+            const JDIFFROW diff_buf, const JDIFFROW prev_row,
+            JDIFFROW undiff_buf, JDIMENSION width)
+ {
+-  (void)cinfo;
+-  (void)comp_index;
++  //(void)cinfo;
++  //(void)comp_index;
+   SHIFT_TEMPS
+   UNDIFFERENCE_2D(PREDICTOR6);
+   JPEG_UNUSED(Rc);
+@@ -198,8 +198,8 @@
+            const JDIFFROW diff_buf, const JDIFFROW prev_row,
+            JDIFFROW undiff_buf, JDIMENSION width)
+ {
+-  (void)cinfo;
+-  (void)comp_index;
++  //(void)cinfo;
++  //(void)comp_index;
+   SHIFT_TEMPS
+   UNDIFFERENCE_2D(PREDICTOR6A);
+   JPEG_UNUSED(Rc);
+@@ -211,8 +211,8 @@
+            const JDIFFROW diff_buf, const JDIFFROW prev_row,
+            JDIFFROW undiff_buf, JDIMENSION width)
+ {
+-  (void)cinfo;
+-  (void)comp_index;
++  //(void)cinfo;
++  //(void)comp_index;
+   SHIFT_TEMPS
+   UNDIFFERENCE_2D(PREDICTOR7);
+   JPEG_UNUSED(Rc);
+@@ -224,8 +224,8 @@
+            const JDIFFROW diff_buf, const JDIFFROW prev_row,
+            JDIFFROW undiff_buf, JDIMENSION width)
+ {
+-  (void)cinfo;
+-  (void)comp_index;
++  //(void)cinfo;
++  //(void)comp_index;
+   SHIFT_TEMPS
+   UNDIFFERENCE_2D(PREDICTOR7A);
+   JPEG_UNUSED(Rc);
+@@ -245,7 +245,7 @@
+                 const JDIFFROW diff_buf, JDIFFROW prev_row,
+                 JDIFFROW undiff_buf, JDIMENSION width)
+ {
+-  (void)prev_row;
++  //(void)prev_row;
+   j_lossless_d_ptr losslsd = (j_lossless_d_ptr) cinfo->codec;
+ 
+   UNDIFFERENCE_1D(INITIAL_PREDICTORx);
+diff -urEb dcmtk-DCMTK-3.6.8.orig/dcmjpeg/libijg16/jdsample.c dcmtk-DCMTK-3.6.8/dcmjpeg/libijg16/jdsample.c
+--- dcmtk-DCMTK-3.6.8.orig/dcmjpeg/libijg16/jdsample.c	2024-01-09 17:13:10.345673450 +0100
++++ dcmtk-DCMTK-3.6.8/dcmjpeg/libijg16/jdsample.c	2024-01-09 17:53:28.779938946 +0100
+@@ -92,7 +92,7 @@
+           JSAMPARRAY output_buf, JDIMENSION *out_row_ctr,
+           JDIMENSION out_rows_avail)
+ {
+-  (void)in_row_groups_avail;
++  //(void)in_row_groups_avail;
+   my_upsample_ptr upsample = (my_upsample_ptr) cinfo->upsample;
+   int ci;
+   jpeg_component_info * compptr;
+@@ -158,8 +158,8 @@
+ fullsize_upsample (j_decompress_ptr cinfo, jpeg_component_info * compptr,
+            JSAMPARRAY input_data, JSAMPARRAY * output_data_ptr)
+ {
+-  (void)cinfo;
+-  (void)compptr;
++  //(void)cinfo;
++  //(void)compptr;
+   *output_data_ptr = input_data;
+ }
+ 
+@@ -173,9 +173,9 @@
+ noop_upsample (j_decompress_ptr cinfo, jpeg_component_info * compptr,
+            JSAMPARRAY input_data, JSAMPARRAY * output_data_ptr)
+ {
+-  (void)cinfo;
+-  (void)compptr;
+-  (void)input_data;
++  //(void)cinfo;
++  //(void)compptr;
++  //(void)input_data;
+   *output_data_ptr = NULL;  /* safety check */
+ }
+ 
+@@ -239,7 +239,7 @@
+ h2v1_upsample (j_decompress_ptr cinfo, jpeg_component_info * compptr,
+            JSAMPARRAY input_data, JSAMPARRAY * output_data_ptr)
+ {
+-  (void)compptr;
++  //(void)compptr;
+   JSAMPARRAY output_data = *output_data_ptr;
+   register JSAMPROW inptr, outptr;
+   register JSAMPLE invalue;
+@@ -268,7 +268,7 @@
+ h2v2_upsample (j_decompress_ptr cinfo, jpeg_component_info * compptr,
+            JSAMPARRAY input_data, JSAMPARRAY * output_data_ptr)
+ {
+-  (void)compptr;
++  //(void)compptr;
+   JSAMPARRAY output_data = *output_data_ptr;
+   register JSAMPROW inptr, outptr;
+   register JSAMPLE invalue;
+diff -urEb dcmtk-DCMTK-3.6.8.orig/dcmjpeg/libijg16/jdscale.c dcmtk-DCMTK-3.6.8/dcmjpeg/libijg16/jdscale.c
+--- dcmtk-DCMTK-3.6.8.orig/dcmjpeg/libijg16/jdscale.c	2024-01-09 17:13:10.345673450 +0100
++++ dcmtk-DCMTK-3.6.8/dcmjpeg/libijg16/jdscale.c	2024-01-09 17:53:34.795883773 +0100
+@@ -67,7 +67,7 @@
+ 	const JDIFFROW diff_buf, JSAMPROW output_buf,
+ 	JDIMENSION width)
+ {
+-  (void)cinfo;
++  //(void)cinfo;
+   unsigned int xindex;
+ 
+   for (xindex = 0; xindex < width; xindex++)
+diff -urEb dcmtk-DCMTK-3.6.8.orig/dcmjpeg/libijg16/jquant1.c dcmtk-DCMTK-3.6.8/dcmjpeg/libijg16/jquant1.c
+--- dcmtk-DCMTK-3.6.8.orig/dcmjpeg/libijg16/jquant1.c	2024-01-09 17:13:10.345673450 +0100
++++ dcmtk-DCMTK-3.6.8/dcmjpeg/libijg16/jquant1.c	2024-01-09 17:53:53.891708593 +0100
+@@ -251,8 +251,8 @@
+    * (Forcing the upper and lower values to the limits ensures that
+    * dithering can't produce a color outside the selected gamut.)
+    */
+-  (void) cinfo;
+-  (void) ci;
++  //(void) cinfo;
++  //(void) ci;
+   return (int) (((IJG_INT32) j * MAXJSAMPLE + maxj/2) / maxj);
+ }
+ 
+@@ -262,8 +262,8 @@
+ /* Return largest input value that should map to j'th output value */
+ /* Must have largest(j=0) >= 0, and largest(j=maxj) >= MAXJSAMPLE */
+ {
+-  (void) cinfo;
+-  (void) ci;
++  //(void) cinfo;
++  //(void) ci;
+   /* Breakpoints are halfway between values returned by output_value */
+   return (int) (((IJG_INT32) (2*j + 1) * MAXJSAMPLE + maxj) / (2*maxj));
+ }
+@@ -744,7 +744,7 @@
+ METHODDEF(void)
+ start_pass_1_quant (j_decompress_ptr cinfo, boolean is_pre_scan)
+ {
+-  (void) is_pre_scan;
++  //(void) is_pre_scan;
+   my_cquantize_ptr cquantize = (my_cquantize_ptr) cinfo->cquantize;
+   size_t arraysize;
+   int i;
+@@ -802,7 +802,7 @@
+ METHODDEF(void)
+ finish_pass_1_quant (j_decompress_ptr cinfo)
+ {
+-  (void) cinfo;
++  //(void) cinfo;
+   /* no work in 1-pass case */
+ }
+ 
+diff -urEb dcmtk-DCMTK-3.6.8.orig/dcmjpeg/libijg16/jquant2.c dcmtk-DCMTK-3.6.8/dcmjpeg/libijg16/jquant2.c
+--- dcmtk-DCMTK-3.6.8.orig/dcmjpeg/libijg16/jquant2.c	2024-01-09 17:13:10.345673450 +0100
++++ dcmtk-DCMTK-3.6.8/dcmjpeg/libijg16/jquant2.c	2024-01-09 17:54:05.051606183 +0100
+@@ -224,7 +224,7 @@
+ prescan_quantize (j_decompress_ptr cinfo, JSAMPARRAY input_buf,
+           JSAMPARRAY output_buf, int num_rows)
+ {
+-  (void) output_buf;
++  //(void) output_buf;
+   my_cquantize_ptr cquantize = (my_cquantize_ptr) cinfo->cquantize;
+   register JSAMPROW ptr;
+   register histptr histp;
+@@ -1156,7 +1156,7 @@
+ METHODDEF(void)
+ finish_pass2 (j_decompress_ptr cinfo)
+ {
+-  (void) cinfo;
++  //(void) cinfo;
+   /* no work */
+ }
+ 
+diff -urEb dcmtk-DCMTK-3.6.8.orig/dcmjpeg/libijg8/jccoefct.c dcmtk-DCMTK-3.6.8/dcmjpeg/libijg8/jccoefct.c
+--- dcmtk-DCMTK-3.6.8.orig/dcmjpeg/libijg8/jccoefct.c	2024-01-09 17:13:10.345673450 +0100
++++ dcmtk-DCMTK-3.6.8/dcmjpeg/libijg8/jccoefct.c	2024-01-09 17:54:11.635545753 +0100
+@@ -343,7 +343,7 @@
+ METHODDEF(boolean)
+ compress_output (j_compress_ptr cinfo, JSAMPIMAGE input_buf)
+ {
+-  (void)input_buf;
++  //(void)input_buf;
+   j_lossy_c_ptr lossyc = (j_lossy_c_ptr) cinfo->codec;
+   c_coef_ptr coef = (c_coef_ptr) lossyc->coef_private;
+   JDIMENSION MCU_col_num;   /* index of current MCU within row */
+diff -urEb dcmtk-DCMTK-3.6.8.orig/dcmjpeg/libijg8/jcdiffct.c dcmtk-DCMTK-3.6.8/dcmjpeg/libijg8/jcdiffct.c
+--- dcmtk-DCMTK-3.6.8.orig/dcmjpeg/libijg8/jcdiffct.c	2024-01-09 17:13:10.345673450 +0100
++++ dcmtk-DCMTK-3.6.8/dcmjpeg/libijg8/jcdiffct.c	2024-01-09 17:54:16.815498204 +0100
+@@ -302,7 +302,7 @@
+ METHODDEF(boolean)
+ compress_output (j_compress_ptr cinfo, JSAMPIMAGE input_buf)
+ {
+-  (void)input_buf;
++  //(void)input_buf;
+   j_lossless_c_ptr losslsc = (j_lossless_c_ptr) cinfo->codec;
+   c_diff_ptr diff = (c_diff_ptr) losslsc->diff_private;
+   /* JDIMENSION MCU_col_num; */ /* index of current MCU within row */
+diff -urEb dcmtk-DCMTK-3.6.8.orig/dcmjpeg/libijg8/jcpred.c dcmtk-DCMTK-3.6.8/dcmjpeg/libijg8/jcpred.c
+--- dcmtk-DCMTK-3.6.8.orig/dcmjpeg/libijg8/jcpred.c	2024-01-09 17:13:10.345673450 +0100
++++ dcmtk-DCMTK-3.6.8/dcmjpeg/libijg8/jcpred.c	2024-01-09 17:54:25.827415468 +0100
+@@ -213,7 +213,7 @@
+          const JSAMPROW input_buf, JSAMPROW prev_row,
+          JDIFFROW diff_buf, JDIMENSION width)
+ {
+-  (void)prev_row;
++  //(void)prev_row;
+   DIFFERENCE_1D(INITIAL_PREDICTORx);
+ 
+   /*
+diff -urEb dcmtk-DCMTK-3.6.8.orig/dcmjpeg/libijg8/jctrans.c dcmtk-DCMTK-3.6.8/dcmjpeg/libijg8/jctrans.c
+--- dcmtk-DCMTK-3.6.8.orig/dcmjpeg/libijg8/jctrans.c	2024-01-09 17:13:10.345673450 +0100
++++ dcmtk-DCMTK-3.6.8/dcmjpeg/libijg8/jctrans.c	2024-01-09 17:54:33.939340981 +0100
+@@ -267,7 +267,7 @@
+ METHODDEF(boolean)
+ compress_output (j_compress_ptr cinfo, JSAMPIMAGE input_buf)
+ {
+-  (void)input_buf;
++  //(void)input_buf;
+   j_lossy_c_ptr lossyc = (j_lossy_c_ptr) cinfo->codec;
+   c_coef_ptr coef = (c_coef_ptr) lossyc->coef_private;
+   JDIMENSION MCU_col_num;   /* index of current MCU within row */
+diff -urEb dcmtk-DCMTK-3.6.8.orig/dcmjpeg/libijg8/jdmerge.c dcmtk-DCMTK-3.6.8/dcmjpeg/libijg8/jdmerge.c
+--- dcmtk-DCMTK-3.6.8.orig/dcmjpeg/libijg8/jdmerge.c	2024-01-09 17:13:10.345673450 +0100
++++ dcmtk-DCMTK-3.6.8/dcmjpeg/libijg8/jdmerge.c	2024-01-09 17:54:41.019275962 +0100
+@@ -148,7 +148,7 @@
+             JDIMENSION out_rows_avail)
+ /* 2:1 vertical sampling case: may need a spare row. */
+ {
+-  (void) in_row_groups_avail;
++  //(void) in_row_groups_avail;
+   my_upsample_ptr upsample = (my_upsample_ptr) cinfo->upsample;
+   JSAMPROW work_ptrs[2];
+   JDIMENSION num_rows;      /* number of rows returned to caller */
+@@ -198,8 +198,8 @@
+             JDIMENSION out_rows_avail)
+ /* 1:1 vertical sampling case: much easier, never need a spare row. */
+ {
+-  (void) in_row_groups_avail;
+-  (void) out_rows_avail;
++  //(void) in_row_groups_avail;
++  //(void) out_rows_avail;
+   my_upsample_ptr upsample = (my_upsample_ptr) cinfo->upsample;
+ 
+   /* Just do the upsampling. */
+diff -urEb dcmtk-DCMTK-3.6.8.orig/dcmjpeg/libijg8/jdpostct.c dcmtk-DCMTK-3.6.8/dcmjpeg/libijg8/jdpostct.c
+--- dcmtk-DCMTK-3.6.8.orig/dcmjpeg/libijg8/jdpostct.c	2024-01-09 17:13:10.349673411 +0100
++++ dcmtk-DCMTK-3.6.8/dcmjpeg/libijg8/jdpostct.c	2024-01-09 17:54:48.891203659 +0100
+@@ -161,8 +161,8 @@
+               JSAMPARRAY output_buf, JDIMENSION *out_row_ctr,
+               JDIMENSION out_rows_avail)
+ {
+-  (void) output_buf;
+-  (void) out_rows_avail;
++  //(void) output_buf;
++  //(void) out_rows_avail;
+   my_post_ptr post = (my_post_ptr) cinfo->post;
+   JDIMENSION old_next_row, num_rows;
+ 
+@@ -207,9 +207,9 @@
+             JSAMPARRAY output_buf, JDIMENSION *out_row_ctr,
+             JDIMENSION out_rows_avail)
+ {
+-  (void) input_buf;
+-  (void) in_row_group_ctr;
+-  (void) in_row_groups_avail;
++  //(void) input_buf;
++  //(void) in_row_group_ctr;
++  //(void) in_row_groups_avail;
+   my_post_ptr post = (my_post_ptr) cinfo->post;
+   JDIMENSION num_rows, max_rows;
+ 
+diff -urEb dcmtk-DCMTK-3.6.8.orig/dcmjpeg/libijg8/jdpred.c dcmtk-DCMTK-3.6.8/dcmjpeg/libijg8/jdpred.c
+--- dcmtk-DCMTK-3.6.8.orig/dcmjpeg/libijg8/jdpred.c	2024-01-09 17:13:10.349673411 +0100
++++ dcmtk-DCMTK-3.6.8/dcmjpeg/libijg8/jdpred.c	2024-01-09 17:55:02.179081586 +0100
+@@ -101,8 +101,8 @@
+            const JDIFFROW diff_buf, const JDIFFROW prev_row,
+            JDIFFROW undiff_buf, JDIMENSION width)
+ {
+-  (void)cinfo;
+-  (void)comp_index;
++  //(void)cinfo;
++  //(void)comp_index;
+   UNDIFFERENCE_1D(INITIAL_PREDICTOR2);
+ }
+ 
+@@ -111,8 +111,8 @@
+            const JDIFFROW diff_buf, const JDIFFROW prev_row,
+            JDIFFROW undiff_buf, JDIMENSION width)
+ {
+-  (void)cinfo;
+-  (void)comp_index;
++  //(void)cinfo;
++  //(void)comp_index;
+   UNDIFFERENCE_2D(PREDICTOR2);
+   JPEG_UNUSED(Rc);
+   JPEG_UNUSED(Rb);
+@@ -123,8 +123,8 @@
+            const JDIFFROW diff_buf, const JDIFFROW prev_row,
+            JDIFFROW undiff_buf, JDIMENSION width)
+ {
+-  (void)cinfo;
+-  (void)comp_index;
++  //(void)cinfo;
++  //(void)comp_index;
+   UNDIFFERENCE_2D(PREDICTOR3);
+   JPEG_UNUSED(Rc);
+   JPEG_UNUSED(Rb);
+@@ -135,8 +135,8 @@
+            const JDIFFROW diff_buf, const JDIFFROW prev_row,
+            JDIFFROW undiff_buf, JDIMENSION width)
+ {
+-  (void)cinfo;
+-  (void)comp_index;
++  //(void)cinfo;
++  //(void)comp_index;
+   UNDIFFERENCE_2D(PREDICTOR4);
+   JPEG_UNUSED(Rc);
+   JPEG_UNUSED(Rb);
+@@ -147,8 +147,8 @@
+            const JDIFFROW diff_buf, const JDIFFROW prev_row,
+            JDIFFROW undiff_buf, JDIMENSION width)
+ {
+-  (void)cinfo;
+-  (void)comp_index;
++  //(void)cinfo;
++  //(void)comp_index;
+   SHIFT_TEMPS
+   UNDIFFERENCE_2D(PREDICTOR5);
+   JPEG_UNUSED(Rc);
+@@ -160,8 +160,8 @@
+            const JDIFFROW diff_buf, const JDIFFROW prev_row,
+            JDIFFROW undiff_buf, JDIMENSION width)
+ {
+-  (void)cinfo;
+-  (void)comp_index;
++  //(void)cinfo;
++  //(void)comp_index;
+   SHIFT_TEMPS
+   UNDIFFERENCE_2D(PREDICTOR6);
+   JPEG_UNUSED(Rc);
+@@ -173,8 +173,8 @@
+            const JDIFFROW diff_buf, const JDIFFROW prev_row,
+            JDIFFROW undiff_buf, JDIMENSION width)
+ {
+-  (void)cinfo;
+-  (void)comp_index;
++  //(void)cinfo;
++  //(void)comp_index;
+   SHIFT_TEMPS
+   UNDIFFERENCE_2D(PREDICTOR7);
+   JPEG_UNUSED(Rc);
+@@ -194,7 +194,7 @@
+                 const JDIFFROW diff_buf, JDIFFROW prev_row,
+                 JDIFFROW undiff_buf, JDIMENSION width)
+ {
+-  (void)prev_row;
++  //(void)prev_row;
+   j_lossless_d_ptr losslsd = (j_lossless_d_ptr) cinfo->codec;
+ 
+   UNDIFFERENCE_1D(INITIAL_PREDICTORx);
+diff -urEb dcmtk-DCMTK-3.6.8.orig/dcmjpeg/libijg8/jdsample.c dcmtk-DCMTK-3.6.8/dcmjpeg/libijg8/jdsample.c
+--- dcmtk-DCMTK-3.6.8.orig/dcmjpeg/libijg8/jdsample.c	2024-01-09 17:13:10.349673411 +0100
++++ dcmtk-DCMTK-3.6.8/dcmjpeg/libijg8/jdsample.c	2024-01-09 17:55:13.234979994 +0100
+@@ -92,7 +92,7 @@
+           JSAMPARRAY output_buf, JDIMENSION *out_row_ctr,
+           JDIMENSION out_rows_avail)
+ {
+-  (void)in_row_groups_avail;
++  //(void)in_row_groups_avail;
+   my_upsample_ptr upsample = (my_upsample_ptr) cinfo->upsample;
+   int ci;
+   jpeg_component_info * compptr;
+@@ -158,8 +158,8 @@
+ fullsize_upsample (j_decompress_ptr cinfo, jpeg_component_info * compptr,
+            JSAMPARRAY input_data, JSAMPARRAY * output_data_ptr)
+ {
+-  (void)cinfo;
+-  (void)compptr;
++  //(void)cinfo;
++  //(void)compptr;
+   *output_data_ptr = input_data;
+ }
+ 
+@@ -173,9 +173,9 @@
+ noop_upsample (j_decompress_ptr cinfo, jpeg_component_info * compptr,
+            JSAMPARRAY input_data, JSAMPARRAY * output_data_ptr)
+ {
+-  (void)cinfo;
+-  (void)compptr;
+-  (void)input_data;
++  //(void)cinfo;
++  //(void)compptr;
++  //(void)input_data;
+   *output_data_ptr = NULL;  /* safety check */
+ }
+ 
+@@ -239,7 +239,7 @@
+ h2v1_upsample (j_decompress_ptr cinfo, jpeg_component_info * compptr,
+            JSAMPARRAY input_data, JSAMPARRAY * output_data_ptr)
+ {
+-  (void)compptr;
++  //(void)compptr;
+   JSAMPARRAY output_data = *output_data_ptr;
+   register JSAMPROW inptr, outptr;
+   register JSAMPLE invalue;
+@@ -268,7 +268,7 @@
+ h2v2_upsample (j_decompress_ptr cinfo, jpeg_component_info * compptr,
+            JSAMPARRAY input_data, JSAMPARRAY * output_data_ptr)
+ {
+-  (void)compptr;
++  //(void)compptr;
+   JSAMPARRAY output_data = *output_data_ptr;
+   register JSAMPROW inptr, outptr;
+   register JSAMPLE invalue;
+diff -urEb dcmtk-DCMTK-3.6.8.orig/dcmjpeg/libijg8/jdscale.c dcmtk-DCMTK-3.6.8/dcmjpeg/libijg8/jdscale.c
+--- dcmtk-DCMTK-3.6.8.orig/dcmjpeg/libijg8/jdscale.c	2024-01-09 17:13:10.349673411 +0100
++++ dcmtk-DCMTK-3.6.8/dcmjpeg/libijg8/jdscale.c	2024-01-09 17:55:21.722901985 +0100
+@@ -67,7 +67,7 @@
+ 	const JDIFFROW diff_buf, JSAMPROW output_buf,
+ 	JDIMENSION width)
+ {
+-  (void)cinfo;
++  //(void)cinfo;
+   unsigned int xindex;
+ 
+   for (xindex = 0; xindex < width; xindex++)
+diff -urEb dcmtk-DCMTK-3.6.8.orig/dcmjpeg/libijg8/jquant1.c dcmtk-DCMTK-3.6.8/dcmjpeg/libijg8/jquant1.c
+--- dcmtk-DCMTK-3.6.8.orig/dcmjpeg/libijg8/jquant1.c	2024-01-09 17:13:10.349673411 +0100
++++ dcmtk-DCMTK-3.6.8/dcmjpeg/libijg8/jquant1.c	2024-01-09 17:48:22.270738074 +0100
+@@ -251,8 +251,8 @@
+    * (Forcing the upper and lower values to the limits ensures that
+    * dithering can't produce a color outside the selected gamut.)
+    */
+-  (void) cinfo;
+-  (void) ci;
++  //(void) cinfo;
++  //(void) ci;
+   return (int) (((IJG_INT32) j * MAXJSAMPLE + maxj/2) / maxj);
+ }
+ 
+@@ -262,8 +262,8 @@
+ /* Return largest input value that should map to j'th output value */
+ /* Must have largest(j=0) >= 0, and largest(j=maxj) >= MAXJSAMPLE */
+ {
+-  (void) cinfo;
+-  (void) ci;
++  //(void) cinfo;
++  //(void) ci;
+   /* Breakpoints are halfway between values returned by output_value */
+   return (int) (((IJG_INT32) (2*j + 1) * MAXJSAMPLE + maxj) / (2*maxj));
+ }
+@@ -744,7 +744,7 @@
+ METHODDEF(void)
+ start_pass_1_quant (j_decompress_ptr cinfo, boolean is_pre_scan)
+ {
+-  (void) is_pre_scan;
++  //(void) is_pre_scan;
+   my_cquantize_ptr cquantize = (my_cquantize_ptr) cinfo->cquantize;
+   size_t arraysize;
+   int i;
+@@ -802,7 +802,7 @@
+ METHODDEF(void)
+ finish_pass_1_quant (j_decompress_ptr cinfo)
+ {
+-  (void) cinfo;
++  //(void) cinfo;
+   /* no work in 1-pass case */
+ }
+ 
+diff -urEb dcmtk-DCMTK-3.6.8.orig/dcmjpeg/libijg8/jquant2.c dcmtk-DCMTK-3.6.8/dcmjpeg/libijg8/jquant2.c
+--- dcmtk-DCMTK-3.6.8.orig/dcmjpeg/libijg8/jquant2.c	2024-01-09 17:13:10.349673411 +0100
++++ dcmtk-DCMTK-3.6.8/dcmjpeg/libijg8/jquant2.c	2024-01-09 17:47:42.343100533 +0100
+@@ -224,7 +224,7 @@
+ prescan_quantize (j_decompress_ptr cinfo, JSAMPARRAY input_buf,
+           JSAMPARRAY output_buf, int num_rows)
+ {
+-  (void) output_buf;
++  //(void) output_buf;
+   my_cquantize_ptr cquantize = (my_cquantize_ptr) cinfo->cquantize;
+   register JSAMPROW ptr;
+   register histptr histp;
+@@ -1156,7 +1156,7 @@
+ METHODDEF(void)
+ finish_pass2 (j_decompress_ptr cinfo)
+ {
+-  (void) cinfo;
++  //(void) cinfo;
+   /* no work */
+ }
+ 

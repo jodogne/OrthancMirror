@@ -2,8 +2,9 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -35,8 +36,6 @@
 #include "ServerIndexChange.h"
 #include "ServerToolbox.h"
 
-
-static const uint64_t MEGA_BYTES = 1024 * 1024;
 
 namespace Orthanc
 {
@@ -194,16 +193,17 @@ namespace Orthanc
       }        
     };
 
-    virtual void MarkAsUnstable(int64_t id,
-                                Orthanc::ResourceType type,
+    virtual void MarkAsUnstable(ResourceType type,
+                                int64_t id,
                                 const std::string& publicId) ORTHANC_OVERRIDE
     {
-      context_.GetIndex().MarkAsUnstable(id, type, publicId);
+      context_.GetIndex().MarkAsUnstable(type, id, publicId);
     }
 
-    virtual bool IsUnstableResource(int64_t id) ORTHANC_OVERRIDE
+    virtual bool IsUnstableResource(ResourceType type,
+                                    int64_t id) ORTHANC_OVERRIDE
     {
-      return context_.GetIndex().IsUnstableResource(id);
+      return context_.GetIndex().IsUnstableResource(type, id);
     }
 
     virtual void Commit() ORTHANC_OVERRIDE
@@ -248,18 +248,15 @@ namespace Orthanc
   class ServerIndex::UnstableResourcePayload
   {
   private:
-    ResourceType type_;
     std::string publicId_;
     boost::posix_time::ptime time_;
 
   public:
-    UnstableResourcePayload() : type_(ResourceType_Instance)
+    UnstableResourcePayload()
     {
     }
 
-    UnstableResourcePayload(Orthanc::ResourceType type,
-                            const std::string& publicId) : 
-      type_(type),
+    explicit UnstableResourcePayload(const std::string& publicId) : 
       publicId_(publicId),
       time_(boost::posix_time::second_clock::local_time())
     {
@@ -269,11 +266,6 @@ namespace Orthanc
     {
       return (boost::posix_time::second_clock::local_time() - time_).total_seconds();
     }
-
-    ResourceType GetResourceType() const
-    {
-      return type_;
-    }
     
     const std::string& GetPublicId() const
     {
@@ -281,10 +273,45 @@ namespace Orthanc
     }
   };
 
+  void ServerIndex::UpdateStatisticsThread(ServerIndex* that,
+                                           unsigned int threadSleepGranularityMilliseconds)
+  {
+    Logging::SetCurrentThreadName("DB-STATS");
+
+    static const unsigned int SLEEP_SECONDS = 60;
+
+    if (threadSleepGranularityMilliseconds > 1000)
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+    LOG(INFO) << "Starting the update statistics thread (sleep = " << SLEEP_SECONDS << " seconds)";
+
+    unsigned int count = 0;
+    unsigned int countThreshold = (1000 * SLEEP_SECONDS) / threadSleepGranularityMilliseconds;
+
+    while (!that->done_)
+    {
+      boost::this_thread::sleep(boost::posix_time::milliseconds(threadSleepGranularityMilliseconds));
+      count++;
+      
+      if (count >= countThreshold)
+      {
+        uint64_t diskSize, uncompressedSize, countPatients, countStudies, countSeries, countInstances;
+        that->GetGlobalStatistics(diskSize, uncompressedSize, countPatients, countStudies, countSeries, countInstances);
+        
+        count = 0;
+      }
+    }
+
+    LOG(INFO) << "Stopping the update statistics thread";
+  }
 
   void ServerIndex::FlushThread(ServerIndex* that,
                                 unsigned int threadSleepGranularityMilliseconds)
   {
+    Logging::SetCurrentThreadName("DB-FLUSH");
+
     // By default, wait for 10 seconds before flushing
     static const unsigned int SLEEP_SECONDS = 10;
 
@@ -316,10 +343,11 @@ namespace Orthanc
   }
 
 
-  bool ServerIndex::IsUnstableResource(int64_t id)
+  bool ServerIndex::IsUnstableResource(ResourceType type,
+                                       int64_t id)
   {
     boost::mutex::scoped_lock lock(monitoringMutex_);
-    return unstableResources_.Contains(id);
+    return unstableResources_.Contains(std::make_pair(type, id));
   }
 
 
@@ -338,9 +366,18 @@ namespace Orthanc
     // execution of Orthanc
     StandaloneRecycling(maximumStorageMode_, maximumStorageSize_, maximumPatients_);
 
-    if (HasFlushToDisk())
+    // For some DB engines (like SQLite), make sure we flush the DB to disk at regular interval
+    if (GetDatabaseCapabilities().HasFlushToDisk())
     {
       flushThread_ = boost::thread(FlushThread, this, threadSleepGranularityMilliseconds);
+    }
+
+    // For some DB plugins that implements the UpdateAndGetStatistics function, updating 
+    // the statistics can take quite some time if you have not done it for a long time 
+    // -> make sure they are updated at regular interval
+    if (GetDatabaseCapabilities().HasUpdateAndGetStatistics())
+    {
+      updateStatisticsThread_ = boost::thread(UpdateStatisticsThread, this, threadSleepGranularityMilliseconds);
     }
 
     unstableResourcesMonitorThread_ = boost::thread
@@ -367,6 +404,11 @@ namespace Orthanc
       if (flushThread_.joinable())
       {
         flushThread_.join();
+      }
+
+      if (updateStatisticsThread_.joinable())
+      {
+        updateStatisticsThread_.join();
       }
 
       if (unstableResourcesMonitorThread_.joinable())
@@ -409,7 +451,7 @@ namespace Orthanc
       }
       else
       {
-        LOG(WARNING) << "At most " << (size / MEGA_BYTES) << "MB will be used for the storage area";
+        LOG(WARNING) << "At most " << Toolbox::GetHumanFileSize(size) << " will be used for the storage area";
       }
     }
 
@@ -424,11 +466,17 @@ namespace Orthanc
       
       if (mode == MaxStorageMode_Recycle)
       {
-        LOG(WARNING) << "Maximum Storage mode: Recycle";
+        if (maximumStorageSize_ > 0 || maximumPatients_ > 0)
+        {
+          LOG(WARNING) << "Maximum Storage mode: Recycle";
+        }
       }
       else
       {
-        LOG(WARNING) << "Maximum Storage mode: Reject";
+        if (maximumStorageSize_ > 0 || maximumPatients_ > 0)
+        {
+          LOG(WARNING) << "Maximum Storage mode: Reject";
+        }
       }
     }
 
@@ -438,6 +486,8 @@ namespace Orthanc
   void ServerIndex::UnstableResourcesMonitorThread(ServerIndex* that,
                                                    unsigned int threadSleepGranularityMilliseconds)
   {
+    Logging::SetCurrentThreadName("UNSTABLE-MON");
+
     int stableAge;
     
     {
@@ -459,7 +509,8 @@ namespace Orthanc
 
       for (;;)
       {
-        UnstableResourcePayload stableResource;
+        UnstableResourcePayload stablePayload;
+        ResourceType stableLevel;
         int64_t stableId;
 
         {      
@@ -470,8 +521,10 @@ namespace Orthanc
           {
             // This DICOM resource has not received any new instance for
             // some time. It can be considered as stable.
-            stableId = that->unstableResources_.RemoveOldest(stableResource);
-            //LOG(TRACE) << "Stable resource: " << EnumerationToString(stableResource.GetResourceType()) << " " << stableId;
+            std::pair<ResourceType, int64_t> stableResource = that->unstableResources_.RemoveOldest(stablePayload);
+            stableLevel = stableResource.first;
+            stableId = stableResource.second;
+            //LOG(TRACE) << "Stable resource: " << EnumerationToString(stablePayload.GetResourceType()) << " " << stableId;
           }
           else
           {
@@ -489,18 +542,18 @@ namespace Orthanc
            * another thread, which leads to calls to "MarkAsUnstable()",
            * which leads to two lockings of "monitoringMutex_").
            **/
-          switch (stableResource.GetResourceType())
+          switch (stableLevel)
           {
             case ResourceType_Patient:
-              that->LogChange(stableId, ChangeType_StablePatient, stableResource.GetPublicId(), ResourceType_Patient);
+              that->LogChange(stableId, ChangeType_StablePatient, stablePayload.GetPublicId(), ResourceType_Patient);
               break;
             
             case ResourceType_Study:
-              that->LogChange(stableId, ChangeType_StableStudy, stableResource.GetPublicId(), ResourceType_Study);
+              that->LogChange(stableId, ChangeType_StableStudy, stablePayload.GetPublicId(), ResourceType_Study);
               break;
             
             case ResourceType_Series:
-              that->LogChange(stableId, ChangeType_StableSeries, stableResource.GetPublicId(), ResourceType_Series);
+              that->LogChange(stableId, ChangeType_StableSeries, stablePayload.GetPublicId(), ResourceType_Series);
               break;
             
             default:
@@ -518,18 +571,18 @@ namespace Orthanc
   }
   
 
-  void ServerIndex::MarkAsUnstable(int64_t id,
-                                   Orthanc::ResourceType type,
+  void ServerIndex::MarkAsUnstable(ResourceType type,
+                                   int64_t id,
                                    const std::string& publicId)
   {
-    assert(type == Orthanc::ResourceType_Patient ||
-           type == Orthanc::ResourceType_Study ||
-           type == Orthanc::ResourceType_Series);
+    assert(type == ResourceType_Patient ||
+           type == ResourceType_Study ||
+           type == ResourceType_Series);
 
     {
       boost::mutex::scoped_lock lock(monitoringMutex_);
-      UnstableResourcePayload payload(type, publicId);
-      unstableResources_.AddOrMakeMostRecent(id, payload);
+      UnstableResourcePayload payload(publicId);
+      unstableResources_.AddOrMakeMostRecent(std::make_pair(type, id), payload);
       //LOG(INFO) << "Unstable resource: " << EnumerationToString(type) << " " << id;
     }
   }
@@ -545,6 +598,7 @@ namespace Orthanc
                                  DicomTransferSyntax transferSyntax,
                                  bool hasPixelDataOffset,
                                  uint64_t pixelDataOffset,
+                                 ValueRepresentation pixelDataVR,
                                  bool isReconstruct)
   {
     uint64_t maximumStorageSize;
@@ -560,7 +614,8 @@ namespace Orthanc
 
     return StatelessDatabaseOperations::Store(
       instanceMetadata, dicomSummary, attachments, metadata, origin, overwrite, hasTransferSyntax,
-      transferSyntax, hasPixelDataOffset, pixelDataOffset, maximumStorageMode, maximumStorageSize, maximumPatients, isReconstruct);
+      transferSyntax, hasPixelDataOffset, pixelDataOffset, pixelDataVR, maximumStorageMode,
+      maximumStorageSize, maximumPatients, isReconstruct);
   }
 
   

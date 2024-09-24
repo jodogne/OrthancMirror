@@ -2,8 +2,9 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -32,6 +33,10 @@
 #include "../Logging.h"
 #include "../OrthancException.h"
 #include "NetworkingCompatibility.h"
+
+#ifdef _WIN32
+#  include <winsock.h>
+#endif
 
 #include <dcmtk/dcmnet/diutil.h>  // For dcmConnectionTimeout()
 #include <dcmtk/dcmdata/dcdeftag.h>
@@ -104,6 +109,8 @@ namespace Orthanc
     
   void DicomAssociation::CloseInternal()
   {
+    CLOG(INFO, DICOM) << "Closing DICOM association";
+
 #if ORTHANC_ENABLE_SSL == 1
     tls_.reset(NULL);  // Transport layer must be destroyed before the association itself
 #endif
@@ -293,11 +300,12 @@ namespace Orthanc
       {
         assert(net_ != NULL &&
                params_ != NULL);
-        
         tls_.reset(Internals::InitializeDicomTls(net_, NET_REQUESTOR, parameters.GetOwnPrivateKeyPath(),
                                                  parameters.GetOwnCertificatePath(),
                                                  parameters.GetTrustedCertificatesPath(),
-                                                 parameters.IsRemoteCertificateRequired()));
+                                                 parameters.IsRemoteCertificateRequired(),
+                                                 parameters.GetMinimumTlsVersion(),
+                                                 parameters.GetAcceptedCiphers()));
       }
       catch (OrthancException&)
       {
@@ -389,8 +397,10 @@ namespace Orthanc
       LST_Position(l, (LST_NODE*)pc);
       while (pc)
       {
-        if (pc->result == ASC_P_ACCEPTANCE)
+        if (pc->result == ASC_P_ACCEPTANCE && strlen(pc->abstractSyntax) > 0)
         {
+          CLOG(TRACE, DICOM) << "DicomAssociation::Open, adding SOPClassUID " << pc->abstractSyntax << " - TS " << pc->acceptedTransferSyntax << " - PC ID " << boost::lexical_cast<std::string>(static_cast<int>(pc->presentationContextID));
+
           DicomTransferSyntax transferSyntax;
           if (LookupTransferSyntax(transferSyntax, pc->acceptedTransferSyntax))
           {

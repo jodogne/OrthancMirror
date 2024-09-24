@@ -2,8 +2,9 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -362,7 +363,8 @@ namespace Orthanc
       }
 
       {
-        const std::set<DicomTag>& tags = DicomMap::GetMainDicomTags(level);
+        std::set<DicomTag> tags;
+        DicomMap::GetMainDicomTags(tags, level);
 
         for (std::set<DicomTag>::const_iterator
                tag = tags.begin(); tag != tags.end(); ++tag)
@@ -373,15 +375,6 @@ namespace Orthanc
           }
         }
       }
-    }
-
-  public:
-    MainDicomTagsRegistry()
-    {
-      LoadTags(ResourceType_Patient);
-      LoadTags(ResourceType_Study);
-      LoadTags(ResourceType_Series);
-      LoadTags(ResourceType_Instance); 
     }
 
     void LookupTag(ResourceType& level,
@@ -402,6 +395,43 @@ namespace Orthanc
         type = it->second.GetType();
       }
     }
+
+  public:
+    MainDicomTagsRegistry()
+    {
+      LoadTags(ResourceType_Patient);
+      LoadTags(ResourceType_Study);
+      LoadTags(ResourceType_Series);
+      LoadTags(ResourceType_Instance);
+    }
+
+    void NormalizeLookup(DatabaseConstraints& target,
+                         const DatabaseLookup& source,
+                         ResourceType queryLevel) const
+    {
+      target.Clear();
+
+      for (size_t i = 0; i < source.GetConstraintsCount(); i++)
+      {
+        ResourceType level;
+        DicomTagType type;
+
+        LookupTag(level, type, source.GetConstraint(i).GetTag());
+
+        if (type == DicomTagType_Identifier ||
+            type == DicomTagType_Main)
+        {
+          // Use the fact that patient-level tags are copied at the study level
+          if (level == ResourceType_Patient &&
+              queryLevel != ResourceType_Patient)
+          {
+            level = ResourceType_Study;
+          }
+
+          target.AddConstraint(source.GetConstraint(i).ConvertToDatabaseConstraint(level, type));
+        }
+      }
+    }
   };
 
 
@@ -414,7 +444,7 @@ namespace Orthanc
 
     if (changeType <= ChangeType_INTERNAL_LastLogged)
     {
-      transaction_.LogChange(internalId, change);
+      transaction_.LogChange(changeType, resourceType, internalId, publicId, change.GetDate());
     }
 
     GetTransactionContext().SignalChange(change);
@@ -465,38 +495,6 @@ namespace Orthanc
     else
     {
       return SeriesStatus_Missing;
-    }
-  }
-
-
-  void StatelessDatabaseOperations::NormalizeLookup(std::vector<DatabaseConstraint>& target,
-                                                    const DatabaseLookup& source,
-                                                    ResourceType queryLevel) const
-  {
-    assert(mainDicomTagsRegistry_.get() != NULL);
-
-    target.clear();
-    target.reserve(source.GetConstraintsCount());
-
-    for (size_t i = 0; i < source.GetConstraintsCount(); i++)
-    {
-      ResourceType level;
-      DicomTagType type;
-      
-      mainDicomTagsRegistry_->LookupTag(level, type, source.GetConstraint(i).GetTag());
-
-      if (type == DicomTagType_Identifier ||
-          type == DicomTagType_Main)
-      {
-        // Use the fact that patient-level tags are copied at the study level
-        if (level == ResourceType_Patient &&
-            queryLevel != ResourceType_Patient)
-        {
-          level = ResourceType_Study;
-        }
-        
-        target.push_back(source.GetConstraint(i).ConvertToDatabaseConstraint(level, type));
-      }
     }
   }
 
@@ -631,6 +629,7 @@ namespace Orthanc
         {
           if (attempt >= maxRetries_)
           {
+            LOG(ERROR) << "Maximum transactions retries reached " << e.GetDetails();
             throw;
           }
           else
@@ -653,7 +652,6 @@ namespace Orthanc
   StatelessDatabaseOperations::StatelessDatabaseOperations(IDatabaseWrapper& db) : 
     db_(db),
     mainDicomTagsRegistry_(new MainDicomTagsRegistry),
-    hasFlushToDisk_(db.HasFlushToDisk()),
     maxRetries_(0)
   {
   }
@@ -714,13 +712,14 @@ namespace Orthanc
                                                    const std::string& publicId,
                                                    ResourceType level,
                                                    const std::set<DicomTag>& requestedTags,
-                                                   ExpandResourceDbFlags expandFlags)
+                                                   ExpandResourceFlags expandFlags)
   {    
     class Operations : public ReadOnlyOperationsT6<
-      bool&, ExpandedResource&, const std::string&, ResourceType, const std::set<DicomTag>&, ExpandResourceDbFlags>
+      bool&, ExpandedResource&, const std::string&, ResourceType, const std::set<DicomTag>&, ExpandResourceFlags>
     {
     private:
-  
+      bool hasLabelsSupport_;
+
       static bool LookupStringMetadata(std::string& result,
                                        const std::map<MetadataType, std::string>& metadata,
                                        MetadataType type)
@@ -762,6 +761,11 @@ namespace Orthanc
 
 
     public:
+      explicit Operations(bool hasLabelsSupport) :
+        hasLabelsSupport_(hasLabelsSupport)
+      {
+      }
+
       virtual void ApplyTuple(ReadOnlyTransaction& transaction,
                               const Tuple& tuple) ORTHANC_OVERRIDE
       {
@@ -777,7 +781,7 @@ namespace Orthanc
         else
         {
           ExpandedResource& target = tuple.get<1>();
-          ExpandResourceDbFlags expandFlags = tuple.get<5>();
+          ExpandResourceFlags expandFlags = tuple.get<5>();
 
           // Set information about the parent resource (if it exists)
           if (type == ResourceType_Patient)
@@ -797,16 +801,15 @@ namespace Orthanc
             target.parentId_ = parent;
           }
 
-          target.type_ = type;
-          target.id_ = tuple.get<2>();
+          target.SetResource(type, tuple.get<2>());
 
-          if (expandFlags & ExpandResourceDbFlags_IncludeChildren)
+          if (expandFlags & ExpandResourceFlags_IncludeChildren)
           {
             // List the children resources
             transaction.GetChildrenPublicId(target.childrenIds_, internalId);
           }
 
-          if (expandFlags & ExpandResourceDbFlags_IncludeMetadata)
+          if (expandFlags & ExpandResourceFlags_IncludeMetadata)
           {
             // Extract the metadata
             transaction.GetAllMetadata(target.metadata_, internalId);
@@ -868,10 +871,10 @@ namespace Orthanc
             LookupStringMetadata(target.mainDicomTagsSignature_, target.metadata_, MetadataType_MainDicomTagsSignature);
           }
 
-          if (expandFlags & ExpandResourceDbFlags_IncludeMainDicomTags)
+          if (expandFlags & ExpandResourceFlags_IncludeMainDicomTags)
           {
             // read all tags from DB
-            transaction.GetMainDicomTags(target.tags_, internalId);
+            transaction.GetMainDicomTags(target.GetMainDicomTags(), internalId);
 
             // read all main sequences from DB
             std::string serializedSequences;
@@ -881,7 +884,7 @@ namespace Orthanc
               Toolbox::ReadJson(jsonMetadata, serializedSequences);
 
               assert(jsonMetadata["Version"].asInt() == 1);
-              target.tags_.FromDicomAsJson(jsonMetadata["Sequences"], true /* append */, true /* parseSequences */);
+              target.GetMainDicomTags().FromDicomAsJson(jsonMetadata["Sequences"], true /* append */, true /* parseSequences */);
             }
 
             // check if we have access to all requestedTags or if we must get tags from parents
@@ -894,7 +897,7 @@ namespace Orthanc
               FromDcmtkBridge::ParseListOfTags(savedMainDicomTags, target.mainDicomTagsSignature_);
 
               // read parent main dicom tags as long as we have not gathered all requested tags
-              ResourceType currentLevel = target.type_;
+              ResourceType currentLevel = target.GetLevel();
               int64_t currentInternalId = internalId;
               Toolbox::GetMissingsFromSet(target.missingRequestedTags_, requestedTags, savedMainDicomTags);
 
@@ -930,12 +933,18 @@ namespace Orthanc
                   DicomMap parentTags;
                   transaction.GetMainDicomTags(parentTags, currentParentId);
 
-                  target.tags_.Merge(parentTags);
+                  target.GetMainDicomTags().Merge(parentTags);
                 }
 
                 currentInternalId = currentParentId;
               }
             }
+          }
+
+          if ((expandFlags & ExpandResourceFlags_IncludeLabels) &&
+              hasLabelsSupport_)
+          {
+            transaction.ListLabels(target.labels_, internalId);
           }
 
           std::string tmp;
@@ -954,7 +963,7 @@ namespace Orthanc
               type == ResourceType_Study ||
               type == ResourceType_Series)
           {
-            target.isStable_ = !transaction.GetTransactionContext().IsUnstableResource(internalId);
+            target.isStable_ = !transaction.GetTransactionContext().IsUnstableResource(type, internalId);
 
             if (LookupStringMetadata(tmp, target.metadata_, MetadataType_LastUpdate))
             {
@@ -972,7 +981,7 @@ namespace Orthanc
     };
 
     bool found;
-    Operations operations;
+    Operations operations(db_.GetDatabaseCapabilities().HasLabelsSupport());
     operations.Apply(*this, found, target, publicId, level, requestedTags, expandFlags);
     return found;
   }
@@ -1065,7 +1074,7 @@ namespace Orthanc
   void StatelessDatabaseOperations::GetAllUuids(std::list<std::string>& target,
                                                 ResourceType resourceType,
                                                 size_t since,
-                                                size_t limit)
+                                                uint32_t limit)
   {
     if (limit == 0)
     {
@@ -1097,7 +1106,54 @@ namespace Orthanc
                                                         /* out */ uint64_t& countSeries, 
                                                         /* out */ uint64_t& countInstances)
   {
-    class Operations : public ReadOnlyOperationsT6<uint64_t&, uint64_t&, uint64_t&, uint64_t&, uint64_t&, uint64_t&>
+    // Code introduced in Orthanc 1.12.3 that updates and gets all statistics.
+    // I.e, PostgreSQL now store "changes" to apply to the statistics to prevent row locking
+    // of the GlobalIntegers table while multiple clients are inserting/deleting new resources.
+    // Then, the statistics are updated when requested to make sure they are correct.
+    class Operations : public IReadWriteOperations
+    {
+    private:
+      int64_t diskSize_;
+      int64_t uncompressedSize_;
+      int64_t countPatients_;
+      int64_t countStudies_;
+      int64_t countSeries_;
+      int64_t countInstances_;
+
+    public:
+      Operations() :
+        diskSize_(0),
+        uncompressedSize_(0),
+        countPatients_(0),
+        countStudies_(0),
+        countSeries_(0),
+        countInstances_(0)
+      {
+      }
+
+      void GetValues(uint64_t& diskSize,
+                     uint64_t& uncompressedSize,
+                     uint64_t& countPatients, 
+                     uint64_t& countStudies, 
+                     uint64_t& countSeries, 
+                     uint64_t& countInstances) const
+      {
+        diskSize = static_cast<uint64_t>(diskSize_);
+        uncompressedSize = static_cast<uint64_t>(uncompressedSize_);
+        countPatients = static_cast<uint64_t>(countPatients_);
+        countStudies = static_cast<uint64_t>(countStudies_);
+        countSeries = static_cast<uint64_t>(countSeries_);
+        countInstances = static_cast<uint64_t>(countInstances_);
+      }
+
+      virtual void Apply(ReadWriteTransaction& transaction) ORTHANC_OVERRIDE
+      {
+        transaction.UpdateAndGetStatistics(countPatients_, countStudies_, countSeries_, countInstances_, diskSize_, uncompressedSize_);
+      }
+    };
+
+    // Compatibility with Orthanc SDK <= 1.12.2 that reads each entry individualy
+    class LegacyOperations : public ReadOnlyOperationsT6<uint64_t&, uint64_t&, uint64_t&, uint64_t&, uint64_t&, uint64_t&>
     {
     public:
       virtual void ApplyTuple(ReadOnlyTransaction& transaction,
@@ -1111,10 +1167,20 @@ namespace Orthanc
         tuple.get<5>() = transaction.GetResourcesCount(ResourceType_Instance);
       }
     };
-    
-    Operations operations;
-    operations.Apply(*this, diskSize, uncompressedSize, countPatients,
-                     countStudies, countSeries, countInstances);
+
+    if (GetDatabaseCapabilities().HasUpdateAndGetStatistics())
+    {
+      Operations operations;
+      Apply(operations);
+
+      operations.GetValues(diskSize, uncompressedSize, countPatients, countStudies, countSeries, countInstances);
+    } 
+    else
+    {   
+      LegacyOperations operations;
+      operations.Apply(*this, diskSize, uncompressedSize, countPatients,
+                       countStudies, countSeries, countInstances);
+    }
   }
 
 
@@ -1620,20 +1686,20 @@ namespace Orthanc
 
     DicomTagConstraint c(tag, ConstraintType_Equal, value, true, true);
 
-    std::vector<DatabaseConstraint> query;
-    query.push_back(c.ConvertToDatabaseConstraint(level, DicomTagType_Identifier));
+    DatabaseConstraints query;
+    query.AddConstraint(c.ConvertToDatabaseConstraint(level, DicomTagType_Identifier));
 
 
     class Operations : public IReadOnlyOperations
     {
     private:
-      std::vector<std::string>&               result_;
-      const std::vector<DatabaseConstraint>&  query_;
-      ResourceType                            level_;
+      std::vector<std::string>&   result_;
+      const DatabaseConstraints&  query_;
+      ResourceType                level_;
       
     public:
       Operations(std::vector<std::string>& result,
-                 const std::vector<DatabaseConstraint>& query,
+                 const DatabaseConstraints& query,
                  ResourceType level) :
         result_(result),
         query_(query),
@@ -1645,7 +1711,8 @@ namespace Orthanc
       {
         // TODO - CANDIDATE FOR "TransactionType_Implicit"
         std::list<std::string> tmp;
-        transaction.ApplyLookupResources(tmp, NULL, query_, level_, 0);
+        std::set<std::string> labels;
+        transaction.ApplyLookupResources(tmp, NULL, query_, level_, labels, LabelsConstraint_Any, 0);
         CopyListToVector(result_, tmp);
       }
     };
@@ -1914,9 +1981,12 @@ namespace Orthanc
                                                          std::vector<std::string>* instancesId,
                                                          const DatabaseLookup& lookup,
                                                          ResourceType queryLevel,
-                                                         size_t limit)
+                                                         const std::set<std::string>& labels,
+                                                         LabelsConstraint labelsConstraint,
+                                                         uint32_t limit)
   {
-    class Operations : public ReadOnlyOperationsT4<bool, const std::vector<DatabaseConstraint>&, ResourceType, size_t>
+    class Operations : public ReadOnlyOperationsT6<bool, const DatabaseConstraints&, ResourceType,
+                                                   const std::set<std::string>&, LabelsConstraint, size_t>
     {
     private:
       std::list<std::string>  resourcesList_;
@@ -1939,21 +2009,35 @@ namespace Orthanc
         // TODO - CANDIDATE FOR "TransactionType_Implicit"
         if (tuple.get<0>())
         {
-          transaction.ApplyLookupResources(resourcesList_, &instancesList_, tuple.get<1>(), tuple.get<2>(), tuple.get<3>());
+          transaction.ApplyLookupResources(
+            resourcesList_, &instancesList_, tuple.get<1>(), tuple.get<2>(), tuple.get<3>(), tuple.get<4>(), tuple.get<5>());
         }
         else
         {
-          transaction.ApplyLookupResources(resourcesList_, NULL, tuple.get<1>(), tuple.get<2>(), tuple.get<3>());
+          transaction.ApplyLookupResources(
+            resourcesList_, NULL, tuple.get<1>(), tuple.get<2>(), tuple.get<3>(), tuple.get<4>(), tuple.get<5>());
         }
       }
     };
 
+    if (!labels.empty() &&
+        !db_.GetDatabaseCapabilities().HasLabelsSupport())
+    {
+      throw OrthancException(ErrorCode_NotImplemented, "The database backend doesn't support labels");
+    }
 
-    std::vector<DatabaseConstraint> normalized;
-    NormalizeLookup(normalized, lookup, queryLevel);
+    for (std::set<std::string>::const_iterator it = labels.begin(); it != labels.end(); ++it)
+    {
+      ServerToolbox::CheckValidLabel(*it);
+    }
+
+    DatabaseConstraints normalized;
+
+    assert(mainDicomTagsRegistry_.get() != NULL);
+    mainDicomTagsRegistry_->NormalizeLookup(normalized, lookup, queryLevel);
 
     Operations operations;
-    operations.Apply(*this, (instancesId != NULL), normalized, queryLevel, limit);
+    operations.Apply(*this, (instancesId != NULL), normalized, queryLevel, labels, labelsConstraint, limit);
     
     CopyListToVector(resourcesId, operations.GetResourcesList());
 
@@ -2014,6 +2098,24 @@ namespace Orthanc
             remainingAncestor_["RemainingAncestor"]["Path"] = GetBasePath(remainingLevel, remainingPublicId);
             remainingAncestor_["RemainingAncestor"]["Type"] = EnumerationToString(remainingLevel);
             remainingAncestor_["RemainingAncestor"]["ID"] = remainingPublicId;
+
+            { // update the LastUpdate metadata of all parents
+              std::string now = SystemToolbox::GetNowIsoString(true /* use UTC time (not local time) */);
+              ResourcesContent content(true);
+
+              int64_t parentId = 0;
+              if (transaction.LookupResource(parentId, remainingLevel, remainingPublicId))
+              {
+
+                do
+                {
+                  content.AddMetadata(parentId, MetadataType_LastUpdate, now);
+                }
+                while (transaction.LookupParent(parentId, parentId));
+    
+                transaction.SetResourcesContent(content);
+              }
+            }
           }
           else
           {
@@ -2374,13 +2476,16 @@ namespace Orthanc
       uint64_t       newValue_;
       GlobalProperty sequence_;
       bool           shared_;
+      bool           hasAtomicIncrementGlobalProperty_;
 
     public:
       Operations(GlobalProperty sequence,
-                 bool shared) :
+                 bool shared,
+                 bool hasAtomicIncrementGlobalProperty) :
         newValue_(0),  // Dummy initialization
         sequence_(sequence),
-        shared_(shared)
+        shared_(shared),
+        hasAtomicIncrementGlobalProperty_(hasAtomicIncrementGlobalProperty)
       {
       }
 
@@ -2391,36 +2496,43 @@ namespace Orthanc
 
       virtual void Apply(ReadWriteTransaction& transaction) ORTHANC_OVERRIDE
       {
-        std::string oldString;
-
-        if (transaction.LookupGlobalProperty(oldString, sequence_, shared_))
+        if (hasAtomicIncrementGlobalProperty_)
         {
-          uint64_t oldValue;
-      
-          try
-          {
-            oldValue = boost::lexical_cast<uint64_t>(oldString);
-          }
-          catch (boost::bad_lexical_cast&)
-          {
-            LOG(ERROR) << "Cannot read the global sequence "
-                       << boost::lexical_cast<std::string>(sequence_) << ", resetting it";
-            oldValue = 0;
-          }
-
-          newValue_ = oldValue + 1;
+          newValue_ = static_cast<uint64_t>(transaction.IncrementGlobalProperty(sequence_, shared_, 1));
         }
         else
         {
-          // Initialize the sequence at "1"
-          newValue_ = 1;
-        }
+          std::string oldString;
 
-        transaction.SetGlobalProperty(sequence_, shared_, boost::lexical_cast<std::string>(newValue_));
+          if (transaction.LookupGlobalProperty(oldString, sequence_, shared_))
+          {
+            uint64_t oldValue;
+        
+            try
+            {
+              oldValue = boost::lexical_cast<uint64_t>(oldString);
+            }
+            catch (boost::bad_lexical_cast&)
+            {
+              LOG(ERROR) << "Cannot read the global sequence "
+                        << boost::lexical_cast<std::string>(sequence_) << ", resetting it";
+              oldValue = 0;
+            }
+
+            newValue_ = oldValue + 1;
+          }
+          else
+          {
+            // Initialize the sequence at "1"
+            newValue_ = 1;
+          }
+
+          transaction.SetGlobalProperty(sequence_, shared_, boost::lexical_cast<std::string>(newValue_));
+        }
       }
     };
 
-    Operations operations(sequence, shared);
+    Operations operations(sequence, shared, GetDatabaseCapabilities().HasAtomicIncrementGlobalProperty());
     Apply(operations);
     assert(operations.GetNewValue() != 0);
     return operations.GetNewValue();
@@ -2651,13 +2763,15 @@ namespace Orthanc
   }
 
 
-  void StatelessDatabaseOperations::ReconstructInstance(const ParsedDicomFile& dicom)
+  void StatelessDatabaseOperations::ReconstructInstance(const ParsedDicomFile& dicom, bool limitToThisLevelDicomTags, ResourceType limitToLevel)
   {
     class Operations : public IReadWriteOperations
     {
     private:
       DicomMap                              summary_;
       std::unique_ptr<DicomInstanceHasher>  hasher_;
+      bool                                  limitToThisLevelDicomTags_;
+      ResourceType                          limitToLevel_;
       bool                                  hasTransferSyntax_;
       DicomTransferSyntax                   transferSyntax_;
 
@@ -2699,7 +2813,9 @@ namespace Orthanc
       }
 
     public:
-      explicit Operations(const ParsedDicomFile& dicom)
+      explicit Operations(const ParsedDicomFile& dicom, bool limitToThisLevelDicomTags, ResourceType limitToLevel)
+      : limitToThisLevelDicomTags_(limitToThisLevelDicomTags),
+        limitToLevel_(limitToLevel)
       {
         OrthancConfiguration::DefaultExtractDicomSummary(summary_, dicom);
         hasher_.reset(new DicomInstanceHasher(summary_));
@@ -2727,48 +2843,76 @@ namespace Orthanc
           throw OrthancException(ErrorCode_InternalError);
         }
 
-        transaction.ClearMainDicomTags(patient);
-        transaction.ClearMainDicomTags(study);
-        transaction.ClearMainDicomTags(series);
-        transaction.ClearMainDicomTags(instance);
-
+        if (limitToThisLevelDicomTags_)
         {
           ResourcesContent content(false /* prevent the setting of metadata */);
-          content.AddResource(patient, ResourceType_Patient, summary_);
-          content.AddResource(study, ResourceType_Study, summary_);
-          content.AddResource(series, ResourceType_Series, summary_);
-          content.AddResource(instance, ResourceType_Instance, summary_);
+          int64_t resource = -1;
+          if (limitToLevel_ == ResourceType_Patient)
+          {
+            resource = patient;
+          }
+          else if (limitToLevel_ == ResourceType_Study)
+          {
+            resource = study;
+          }
+          else if (limitToLevel_ == ResourceType_Series)
+          {
+            resource = series;
+          }
+          else if (limitToLevel_ == ResourceType_Instance)
+          {
+            resource = instance;
+          }
 
+          transaction.ClearMainDicomTags(resource);
+          content.AddResource(resource, limitToLevel_, summary_);
           transaction.SetResourcesContent(content);
-
-          ReplaceMetadata(transaction, patient, MetadataType_MainDicomTagsSignature, DicomMap::GetMainDicomTagsSignature(ResourceType_Patient));    // New in Orthanc 1.11.0
-          ReplaceMetadata(transaction, study, MetadataType_MainDicomTagsSignature, DicomMap::GetMainDicomTagsSignature(ResourceType_Study));        // New in Orthanc 1.11.0
-          ReplaceMetadata(transaction, series, MetadataType_MainDicomTagsSignature, DicomMap::GetMainDicomTagsSignature(ResourceType_Series));      // New in Orthanc 1.11.0
-          ReplaceMetadata(transaction, instance, MetadataType_MainDicomTagsSignature, DicomMap::GetMainDicomTagsSignature(ResourceType_Instance));  // New in Orthanc 1.11.0
-        
-          SetMainDicomSequenceMetadata(transaction, patient, summary_, ResourceType_Patient);
-          SetMainDicomSequenceMetadata(transaction, study, summary_, ResourceType_Study);
-          SetMainDicomSequenceMetadata(transaction, series, summary_, ResourceType_Series);
-          SetMainDicomSequenceMetadata(transaction, instance, summary_, ResourceType_Instance);
+          ReplaceMetadata(transaction, resource, MetadataType_MainDicomTagsSignature, DicomMap::GetMainDicomTagsSignature(limitToLevel_));
         }
-
-        if (hasTransferSyntax_)
+        else
         {
-          ReplaceMetadata(transaction, instance, MetadataType_Instance_TransferSyntax, GetTransferSyntaxUid(transferSyntax_));
-        }
+          transaction.ClearMainDicomTags(patient);
+          transaction.ClearMainDicomTags(study);
+          transaction.ClearMainDicomTags(series);
+          transaction.ClearMainDicomTags(instance);
 
-        const DicomValue* value;
-        if ((value = summary_.TestAndGetValue(DICOM_TAG_SOP_CLASS_UID)) != NULL &&
-            !value->IsNull() &&
-            !value->IsBinary())
-        {
-          ReplaceMetadata(transaction, instance, MetadataType_Instance_SopClassUid, value->GetContent());
-        }
+          {
+            ResourcesContent content(false /* prevent the setting of metadata */);
+            content.AddResource(patient, ResourceType_Patient, summary_);
+            content.AddResource(study, ResourceType_Study, summary_);
+            content.AddResource(series, ResourceType_Series, summary_);
+            content.AddResource(instance, ResourceType_Instance, summary_);
 
+            transaction.SetResourcesContent(content);
+
+            ReplaceMetadata(transaction, patient, MetadataType_MainDicomTagsSignature, DicomMap::GetMainDicomTagsSignature(ResourceType_Patient));    // New in Orthanc 1.11.0
+            ReplaceMetadata(transaction, study, MetadataType_MainDicomTagsSignature, DicomMap::GetMainDicomTagsSignature(ResourceType_Study));        // New in Orthanc 1.11.0
+            ReplaceMetadata(transaction, series, MetadataType_MainDicomTagsSignature, DicomMap::GetMainDicomTagsSignature(ResourceType_Series));      // New in Orthanc 1.11.0
+            ReplaceMetadata(transaction, instance, MetadataType_MainDicomTagsSignature, DicomMap::GetMainDicomTagsSignature(ResourceType_Instance));  // New in Orthanc 1.11.0
+          
+            SetMainDicomSequenceMetadata(transaction, patient, summary_, ResourceType_Patient);
+            SetMainDicomSequenceMetadata(transaction, study, summary_, ResourceType_Study);
+            SetMainDicomSequenceMetadata(transaction, series, summary_, ResourceType_Series);
+            SetMainDicomSequenceMetadata(transaction, instance, summary_, ResourceType_Instance);
+          }
+
+          if (hasTransferSyntax_)
+          {
+            ReplaceMetadata(transaction, instance, MetadataType_Instance_TransferSyntax, GetTransferSyntaxUid(transferSyntax_));
+          }
+
+          const DicomValue* value;
+          if ((value = summary_.TestAndGetValue(DICOM_TAG_SOP_CLASS_UID)) != NULL &&
+              !value->IsNull() &&
+              !value->IsBinary())
+          {
+            ReplaceMetadata(transaction, instance, MetadataType_Instance_SopClassUid, value->GetContent());
+          }
+        }
       }
     };
 
-    Operations operations(dicom);
+    Operations operations(dicom, limitToThisLevelDicomTags, limitToLevel);
     Apply(operations);
   }
 
@@ -2916,6 +3060,7 @@ namespace Orthanc
                                                  DicomTransferSyntax transferSyntax,
                                                  bool hasPixelDataOffset,
                                                  uint64_t pixelDataOffset,
+                                                 ValueRepresentation pixelDataVR,
                                                  MaxStorageMode maximumStorageMode,
                                                  uint64_t maximumStorageSize,
                                                  unsigned int maximumPatients,
@@ -2935,6 +3080,7 @@ namespace Orthanc
       DicomTransferSyntax                  transferSyntax_;
       bool                                 hasPixelDataOffset_;
       uint64_t                             pixelDataOffset_;
+      ValueRepresentation                  pixelDataVR_;
       MaxStorageMode                       maximumStorageMode_;
       uint64_t                             maximumStorageSize_;
       unsigned int                         maximumPatientCount_;
@@ -3038,6 +3184,7 @@ namespace Orthanc
                  DicomTransferSyntax transferSyntax,
                  bool hasPixelDataOffset,
                  uint64_t pixelDataOffset,
+                 ValueRepresentation pixelDataVR,
                  MaxStorageMode maximumStorageMode,
                  uint64_t maximumStorageSize,
                  unsigned int maximumPatientCount,
@@ -3053,6 +3200,7 @@ namespace Orthanc
         transferSyntax_(transferSyntax),
         hasPixelDataOffset_(hasPixelDataOffset),
         pixelDataOffset_(pixelDataOffset),
+        pixelDataVR_(pixelDataVR),
         maximumStorageMode_(maximumStorageMode),
         maximumStorageSize_(maximumStorageSize),
         maximumPatientCount_(maximumPatientCount),
@@ -3076,261 +3224,287 @@ namespace Orthanc
         
       virtual void Apply(ReadWriteTransaction& transaction) ORTHANC_OVERRIDE
       {
-        try
+        IDatabaseWrapper::CreateInstanceResult status;
+        int64_t instanceId;
+        
+        bool isNewInstance = transaction.CreateInstance(status, instanceId, hashPatient_,
+                                                        hashStudy_, hashSeries_, hashInstance_);
+
+        if (isReconstruct_ && isNewInstance)
         {
-          IDatabaseWrapper::CreateInstanceResult status;
-          int64_t instanceId;
+          // In case of reconstruct, we just want to modify the attachments and some metadata like the TransferSyntex
+          // The DicomTags and many metadata have already been updated before we get here in ReconstructInstance
+          throw OrthancException(ErrorCode_InternalError, "New instance while reconstructing; this should not happen.");
+        }
 
-          // Check whether this instance is already stored
-          if (!transaction.CreateInstance(status, instanceId, hashPatient_,
-                                          hashStudy_, hashSeries_, hashInstance_))
+        // Check whether this instance is already stored
+        if (!isNewInstance && !isReconstruct_)
+        {
+          // The instance already exists
+          if (overwrite_)
           {
-            // The instance already exists
-        
-            if (overwrite_)
-            {
-              // Overwrite the old instance
-              LOG(INFO) << "Overwriting instance: " << hashInstance_;
-              transaction.DeleteResource(instanceId);
+            // Overwrite the old instance
+            LOG(INFO) << "Overwriting instance: " << hashInstance_;
+            transaction.DeleteResource(instanceId);
 
-              // Re-create the instance, now that the old one is removed
-              if (!transaction.CreateInstance(status, instanceId, hashPatient_,
-                                              hashStudy_, hashSeries_, hashInstance_))
-              {
-                throw OrthancException(ErrorCode_InternalError);
-              }
-            }
-            else
+            // Re-create the instance, now that the old one is removed
+            if (!transaction.CreateInstance(status, instanceId, hashPatient_,
+                                            hashStudy_, hashSeries_, hashInstance_))
             {
-              // Do nothing if the instance already exists and overwriting is disabled
-              transaction.GetAllMetadata(instanceMetadata_, instanceId);
-              storeStatus_ = StoreStatus_AlreadyStored;
-              return;
+              // Note that, sometime, it does not create a new instance, 
+              // in very rare occasions in READ COMMITTED mode when multiple clients are pushing the same instance at the same time,
+              // this thread will not create the instance because another thread has created it in the meantime.
+              // At the end, there is always a thread that creates the instance and this is what we expect.
+
+              // Note, we must delete the attachments that have already been stored from this failed insertion (they have not yet been added into the DB)
+              throw OrthancException(ErrorCode_DuplicateResource, "No new instance while overwriting; this might happen if another client has pushed the same instance at the same time.");
             }
           }
-
-
-          if (!isReconstruct_)  // don't signal new resources if this is a reconstruction
+          else
           {
-            // Warn about the creation of new resources. The order must be
-            // from instance to patient.
+            // Do nothing if the instance already exists and overwriting is disabled
+            transaction.GetAllMetadata(instanceMetadata_, instanceId);
+            storeStatus_ = StoreStatus_AlreadyStored;
+            return;
+          }
+        }
 
-            // NB: In theory, could be sped up by grouping the underlying
-            // calls to "transaction.LogChange()". However, this would only have an
-            // impact when new patient/study/series get created, which
-            // occurs far less often that creating new instances. The
-            // positive impact looks marginal in practice.
-            transaction.LogChange(instanceId, ChangeType_NewInstance, ResourceType_Instance, hashInstance_);
 
-            if (status.isNewSeries_)
-            {
-              transaction.LogChange(status.seriesId_, ChangeType_NewSeries, ResourceType_Series, hashSeries_);
-            }
-        
-            if (status.isNewStudy_)
-            {
-              transaction.LogChange(status.studyId_, ChangeType_NewStudy, ResourceType_Study, hashStudy_);
-            }
-        
-            if (status.isNewPatient_)
-            {
-              transaction.LogChange(status.patientId_, ChangeType_NewPatient, ResourceType_Patient, hashPatient_);
-            }
-          }      
+        if (!isReconstruct_)  // don't signal new resources if this is a reconstruction
+        {
+          // Warn about the creation of new resources. The order must be
+          // from instance to patient.
+
+          // NB: In theory, could be sped up by grouping the underlying
+          // calls to "transaction.LogChange()". However, this would only have an
+          // impact when new patient/study/series get created, which
+          // occurs far less often that creating new instances. The
+          // positive impact looks marginal in practice.
+          transaction.LogChange(instanceId, ChangeType_NewInstance, ResourceType_Instance, hashInstance_);
+
+          if (status.isNewSeries_)
+          {
+            transaction.LogChange(status.seriesId_, ChangeType_NewSeries, ResourceType_Series, hashSeries_);
+          }
       
-          // Ensure there is enough room in the storage for the new instance
-          uint64_t instanceSize = 0;
-          for (Attachments::const_iterator it = attachments_.begin();
-               it != attachments_.end(); ++it)
+          if (status.isNewStudy_)
           {
-            instanceSize += it->GetCompressedSize();
+            transaction.LogChange(status.studyId_, ChangeType_NewStudy, ResourceType_Study, hashStudy_);
           }
-
-          if (!isReconstruct_)  // reconstruction should not affect recycling
-          {
-            if (maximumStorageMode_ == MaxStorageMode_Reject)
-            {
-              if (transaction.HasReachedMaxStorageSize(maximumStorageSize_, instanceSize))
-              {
-                storeStatus_ = StoreStatus_StorageFull;
-                throw OrthancException(ErrorCode_FullStorage, HttpStatus_507_InsufficientStorage, "Maximum storage size reached"); // throw to cancel the transaction
-              }
-              if (transaction.HasReachedMaxPatientCount(maximumPatientCount_, hashPatient_))
-              {
-                storeStatus_ = StoreStatus_StorageFull;
-                throw OrthancException(ErrorCode_FullStorage, HttpStatus_507_InsufficientStorage, "Maximum patient count reached");  // throw to cancel the transaction
-              }
-            }
-            else
-            {
-              transaction.Recycle(maximumStorageSize_, maximumPatientCount_,
-                                  instanceSize, hashPatient_ /* don't consider the current patient for recycling */);
-            }
-          }  
-     
-          // Attach the files to the newly created instance
-          for (Attachments::const_iterator it = attachments_.begin();
-               it != attachments_.end(); ++it)
-          {
-            transaction.AddAttachment(instanceId, *it, 0 /* this is the first revision */);
-          }
-
       
+          if (status.isNewPatient_)
           {
-            ResourcesContent content(true /* new resource, metadata can be set */);
+            transaction.LogChange(status.patientId_, ChangeType_NewPatient, ResourceType_Patient, hashPatient_);
+          }
+        }      
+    
+        // Ensure there is enough room in the storage for the new instance
+        uint64_t instanceSize = 0;
+        for (Attachments::const_iterator it = attachments_.begin();
+              it != attachments_.end(); ++it)
+        {
+          instanceSize += it->GetCompressedSize();
+        }
 
-
-            // Attach the user-specified metadata (in case of reconstruction, metadata_ contains all past metadata, including the system ones we want to keep)
-            for (MetadataMap::const_iterator 
-                   it = metadata_.begin(); it != metadata_.end(); ++it)
+        if (!isReconstruct_)  // reconstruction should not affect recycling
+        {
+          if (maximumStorageMode_ == MaxStorageMode_Reject)
+          {
+            if (transaction.HasReachedMaxStorageSize(maximumStorageSize_, instanceSize))
             {
-              switch (it->first.first)
-              {
-                case ResourceType_Patient:
-                  content.AddMetadata(status.patientId_, it->first.second, it->second);
-                  break;
-
-                case ResourceType_Study:
-                  content.AddMetadata(status.studyId_, it->first.second, it->second);
-                  break;
-
-                case ResourceType_Series:
-                  content.AddMetadata(status.seriesId_, it->first.second, it->second);
-                  break;
-
-                case ResourceType_Instance:
-                  SetInstanceMetadata(content, instanceMetadata_, instanceId,
-                                      it->first.second, it->second);
-                  break;
-
-                default:
-                  throw OrthancException(ErrorCode_ParameterOutOfRange);
-              }
+              storeStatus_ = StoreStatus_StorageFull;
+              throw OrthancException(ErrorCode_FullStorage, HttpStatus_507_InsufficientStorage, "Maximum storage size reached"); // throw to cancel the transaction
             }
-
-            // Populate the tags of the newly-created resources
-
-            content.AddResource(instanceId, ResourceType_Instance, dicomSummary_);
-            SetInstanceMetadata(content, instanceMetadata_, instanceId, MetadataType_MainDicomTagsSignature, DicomMap::GetMainDicomTagsSignature(ResourceType_Instance));  // New in Orthanc 1.11.0
-            SetMainDicomSequenceMetadata(content, instanceId, dicomSummary_, ResourceType_Instance);   // new in Orthanc 1.11.1
-
-            if (status.isNewSeries_)
+            if (transaction.HasReachedMaxPatientCount(maximumPatientCount_, hashPatient_))
             {
-              content.AddResource(status.seriesId_, ResourceType_Series, dicomSummary_);
-              content.AddMetadata(status.seriesId_, MetadataType_MainDicomTagsSignature, DicomMap::GetMainDicomTagsSignature(ResourceType_Series));  // New in Orthanc 1.11.0
-              SetMainDicomSequenceMetadata(content, status.seriesId_, dicomSummary_, ResourceType_Series);   // new in Orthanc 1.11.1
+              storeStatus_ = StoreStatus_StorageFull;
+              throw OrthancException(ErrorCode_FullStorage, HttpStatus_507_InsufficientStorage, "Maximum patient count reached");  // throw to cancel the transaction
             }
-
-            if (status.isNewStudy_)
-            {
-              content.AddResource(status.studyId_, ResourceType_Study, dicomSummary_);
-              content.AddMetadata(status.studyId_, MetadataType_MainDicomTagsSignature, DicomMap::GetMainDicomTagsSignature(ResourceType_Study));  // New in Orthanc 1.11.0
-              SetMainDicomSequenceMetadata(content, status.studyId_, dicomSummary_, ResourceType_Study);   // new in Orthanc 1.11.1
-            }
-
-            if (status.isNewPatient_)
-            {
-              content.AddResource(status.patientId_, ResourceType_Patient, dicomSummary_);
-              content.AddMetadata(status.patientId_, MetadataType_MainDicomTagsSignature, DicomMap::GetMainDicomTagsSignature(ResourceType_Patient));  // New in Orthanc 1.11.0
-              SetMainDicomSequenceMetadata(content, status.patientId_, dicomSummary_, ResourceType_Patient);   // new in Orthanc 1.11.1
-            }
-
-            // Attach the auto-computed metadata for the patient/study/series levels
-            std::string now = SystemToolbox::GetNowIsoString(true /* use UTC time (not local time) */);
-            content.AddMetadata(status.seriesId_, MetadataType_LastUpdate, now);
-            content.AddMetadata(status.studyId_, MetadataType_LastUpdate, now);
-            content.AddMetadata(status.patientId_, MetadataType_LastUpdate, now);
-
-            if (status.isNewSeries_)
-            {
-              if (hasExpectedInstances_)
-              {
-                content.AddMetadata(status.seriesId_, MetadataType_Series_ExpectedNumberOfInstances,
-                                    boost::lexical_cast<std::string>(expectedInstances_));
-              }
-
-              // New in Orthanc 1.9.0
-              content.AddMetadata(status.seriesId_, MetadataType_RemoteAet,
-                                  origin_.GetRemoteAetC());
-            }
-
-            if (hasTransferSyntax_)
-            {
-              // New in Orthanc 1.2.0
-              SetInstanceMetadata(content, instanceMetadata_, instanceId,
-                                  MetadataType_Instance_TransferSyntax,
-                                  GetTransferSyntaxUid(transferSyntax_));
-            }
-
-            if (!isReconstruct_) // don't change origin metadata
-            {        
-              // Attach the auto-computed metadata for the instance level,
-              // reflecting these additions into the input metadata map
-              SetInstanceMetadata(content, instanceMetadata_, instanceId,
-                                  MetadataType_Instance_ReceptionDate, now);
-              SetInstanceMetadata(content, instanceMetadata_, instanceId, MetadataType_RemoteAet,
-                                  origin_.GetRemoteAetC());
-              SetInstanceMetadata(content, instanceMetadata_, instanceId, MetadataType_Instance_Origin, 
-                                  EnumerationToString(origin_.GetRequestOrigin()));
-
-              std::string s;
-
-              if (origin_.LookupRemoteIp(s))
-              {
-                // New in Orthanc 1.4.0
-                SetInstanceMetadata(content, instanceMetadata_, instanceId,
-                                    MetadataType_Instance_RemoteIp, s);
-              }
-
-              if (origin_.LookupCalledAet(s))
-              {
-                // New in Orthanc 1.4.0
-                SetInstanceMetadata(content, instanceMetadata_, instanceId,
-                                    MetadataType_Instance_CalledAet, s);
-              }
-
-              if (origin_.LookupHttpUsername(s))
-              {
-                // New in Orthanc 1.4.0
-                SetInstanceMetadata(content, instanceMetadata_, instanceId,
-                                    MetadataType_Instance_HttpUsername, s);
-              }
-            }
-
-            if (hasPixelDataOffset_)
-            {
-              // New in Orthanc 1.9.1
-              SetInstanceMetadata(content, instanceMetadata_, instanceId,
-                                  MetadataType_Instance_PixelDataOffset,
-                                  boost::lexical_cast<std::string>(pixelDataOffset_));
-            }
-        
-            const DicomValue* value;
-            if ((value = dicomSummary_.TestAndGetValue(DICOM_TAG_SOP_CLASS_UID)) != NULL &&
-                !value->IsNull() &&
-                !value->IsBinary())
-            {
-              SetInstanceMetadata(content, instanceMetadata_, instanceId,
-                                  MetadataType_Instance_SopClassUid, value->GetContent());
-            }
-
-
-            if ((value = dicomSummary_.TestAndGetValue(DICOM_TAG_INSTANCE_NUMBER)) != NULL ||
-                (value = dicomSummary_.TestAndGetValue(DICOM_TAG_IMAGE_INDEX)) != NULL)
-            {
-              if (!value->IsNull() && 
-                  !value->IsBinary())
-              {
-                SetInstanceMetadata(content, instanceMetadata_, instanceId,
-                                    MetadataType_Instance_IndexInSeries, Toolbox::StripSpaces(value->GetContent()));
-              }
-            }
-
-        
-            transaction.SetResourcesContent(content);
+          }
+          else
+          {
+            transaction.Recycle(maximumStorageSize_, maximumPatientCount_,
+                                instanceSize, hashPatient_ /* don't consider the current patient for recycling */);
+          }
+        }  
+    
+        // Attach the files to the newly created instance
+        for (Attachments::const_iterator it = attachments_.begin();
+              it != attachments_.end(); ++it)
+        {
+          if (isReconstruct_)
+          {
+            // we are replacing attachments during a reconstruction
+            transaction.DeleteAttachment(instanceId, it->GetContentType());
           }
 
-  
+          transaction.AddAttachment(instanceId, *it, 0 /* this is the first revision */);
+        }
+
+        ResourcesContent content(true /* new resource, metadata can be set */);
+
+        // Attach the user-specified metadata (in case of reconstruction, metadata_ contains all past metadata, including the system ones we want to keep)
+        for (MetadataMap::const_iterator 
+                it = metadata_.begin(); it != metadata_.end(); ++it)
+        {
+          switch (it->first.first)
+          {
+            case ResourceType_Patient:
+              content.AddMetadata(status.patientId_, it->first.second, it->second);
+              break;
+
+            case ResourceType_Study:
+              content.AddMetadata(status.studyId_, it->first.second, it->second);
+              break;
+
+            case ResourceType_Series:
+              content.AddMetadata(status.seriesId_, it->first.second, it->second);
+              break;
+
+            case ResourceType_Instance:
+              SetInstanceMetadata(content, instanceMetadata_, instanceId,
+                                  it->first.second, it->second);
+              break;
+
+            default:
+              throw OrthancException(ErrorCode_ParameterOutOfRange);
+          }
+        }
+
+        if (!isReconstruct_)
+        {
+          // Populate the tags of the newly-created resources
+          content.AddResource(instanceId, ResourceType_Instance, dicomSummary_);
+          SetInstanceMetadata(content, instanceMetadata_, instanceId, MetadataType_MainDicomTagsSignature, DicomMap::GetMainDicomTagsSignature(ResourceType_Instance));  // New in Orthanc 1.11.0
+          SetMainDicomSequenceMetadata(content, instanceId, dicomSummary_, ResourceType_Instance);   // new in Orthanc 1.11.1
+
+          if (status.isNewSeries_)
+          {
+            content.AddResource(status.seriesId_, ResourceType_Series, dicomSummary_);
+            content.AddMetadata(status.seriesId_, MetadataType_MainDicomTagsSignature, DicomMap::GetMainDicomTagsSignature(ResourceType_Series));  // New in Orthanc 1.11.0
+            SetMainDicomSequenceMetadata(content, status.seriesId_, dicomSummary_, ResourceType_Series);   // new in Orthanc 1.11.1
+          }
+
+          if (status.isNewStudy_)
+          {
+            content.AddResource(status.studyId_, ResourceType_Study, dicomSummary_);
+            content.AddMetadata(status.studyId_, MetadataType_MainDicomTagsSignature, DicomMap::GetMainDicomTagsSignature(ResourceType_Study));  // New in Orthanc 1.11.0
+            SetMainDicomSequenceMetadata(content, status.studyId_, dicomSummary_, ResourceType_Study);   // new in Orthanc 1.11.1
+          }
+
+          if (status.isNewPatient_)
+          {
+            content.AddResource(status.patientId_, ResourceType_Patient, dicomSummary_);
+            content.AddMetadata(status.patientId_, MetadataType_MainDicomTagsSignature, DicomMap::GetMainDicomTagsSignature(ResourceType_Patient));  // New in Orthanc 1.11.0
+            SetMainDicomSequenceMetadata(content, status.patientId_, dicomSummary_, ResourceType_Patient);   // new in Orthanc 1.11.1
+          }
+
+          // Attach the auto-computed metadata for the patient/study/series levels
+          std::string now = SystemToolbox::GetNowIsoString(true /* use UTC time (not local time) */);
+          content.AddMetadata(status.seriesId_, MetadataType_LastUpdate, now);
+          content.AddMetadata(status.studyId_, MetadataType_LastUpdate, now);
+          content.AddMetadata(status.patientId_, MetadataType_LastUpdate, now);
+
+          if (status.isNewSeries_)
+          {
+            if (hasExpectedInstances_)
+            {
+              content.AddMetadata(status.seriesId_, MetadataType_Series_ExpectedNumberOfInstances,
+                                  boost::lexical_cast<std::string>(expectedInstances_));
+            }
+
+            // New in Orthanc 1.9.0
+            content.AddMetadata(status.seriesId_, MetadataType_RemoteAet,
+                                origin_.GetRemoteAetC());
+          }
+          // Attach the auto-computed metadata for the instance level,
+          // reflecting these additions into the input metadata map
+          SetInstanceMetadata(content, instanceMetadata_, instanceId,
+                              MetadataType_Instance_ReceptionDate, now);
+          SetInstanceMetadata(content, instanceMetadata_, instanceId, MetadataType_RemoteAet,
+                              origin_.GetRemoteAetC());
+          SetInstanceMetadata(content, instanceMetadata_, instanceId, MetadataType_Instance_Origin, 
+                              EnumerationToString(origin_.GetRequestOrigin()));
+
+          std::string s;
+
+          if (origin_.LookupRemoteIp(s))
+          {
+            // New in Orthanc 1.4.0
+            SetInstanceMetadata(content, instanceMetadata_, instanceId,
+                                MetadataType_Instance_RemoteIp, s);
+          }
+
+          if (origin_.LookupCalledAet(s))
+          {
+            // New in Orthanc 1.4.0
+            SetInstanceMetadata(content, instanceMetadata_, instanceId,
+                                MetadataType_Instance_CalledAet, s);
+          }
+
+          if (origin_.LookupHttpUsername(s))
+          {
+            // New in Orthanc 1.4.0
+            SetInstanceMetadata(content, instanceMetadata_, instanceId,
+                                MetadataType_Instance_HttpUsername, s);
+          }
+        }
+
+        // Following metadatas are also updated if reconstructing the instance.
+        // They might be missing since they have been introduced along Orthanc versions.
+
+        if (hasTransferSyntax_)
+        {
+          // New in Orthanc 1.2.0
+          SetInstanceMetadata(content, instanceMetadata_, instanceId,
+                              MetadataType_Instance_TransferSyntax,
+                              GetTransferSyntaxUid(transferSyntax_));
+        }
+
+        if (hasPixelDataOffset_)
+        {
+          // New in Orthanc 1.9.1
+          SetInstanceMetadata(content, instanceMetadata_, instanceId,
+                              MetadataType_Instance_PixelDataOffset,
+                              boost::lexical_cast<std::string>(pixelDataOffset_));
+
+          // New in Orthanc 1.12.1
+          if (dicomSummary_.GuessPixelDataValueRepresentation(transferSyntax_) != pixelDataVR_)
+          {
+            // Store the VR of pixel data if it doesn't comply with the standard
+            SetInstanceMetadata(content, instanceMetadata_, instanceId,
+                                MetadataType_Instance_PixelDataVR,
+                                EnumerationToString(pixelDataVR_));
+          }
+        }
+    
+        const DicomValue* value;
+        if ((value = dicomSummary_.TestAndGetValue(DICOM_TAG_SOP_CLASS_UID)) != NULL &&
+            !value->IsNull() &&
+            !value->IsBinary())
+        {
+          SetInstanceMetadata(content, instanceMetadata_, instanceId,
+                              MetadataType_Instance_SopClassUid, value->GetContent());
+        }
+
+
+        if ((value = dicomSummary_.TestAndGetValue(DICOM_TAG_INSTANCE_NUMBER)) != NULL ||
+            (value = dicomSummary_.TestAndGetValue(DICOM_TAG_IMAGE_INDEX)) != NULL)
+        {
+          if (!value->IsNull() && 
+              !value->IsBinary())
+          {
+            SetInstanceMetadata(content, instanceMetadata_, instanceId,
+                                MetadataType_Instance_IndexInSeries, Toolbox::StripSpaces(value->GetContent()));
+          }
+        }
+
+    
+        transaction.SetResourcesContent(content);
+
+
+        if (!isReconstruct_)  // a reconstruct shall not trigger any events
+        {
           // Check whether the series of this new instance is now completed
           int64_t expectedNumberOfInstances;
           if (ComputeExpectedNumberOfInstances(expectedNumberOfInstances, dicomSummary_))
@@ -3347,41 +3521,38 @@ namespace Orthanc
           transaction.LogChange(status.patientId_, ChangeType_NewChildInstance, ResourceType_Patient, hashPatient_);
           
           // Mark the parent resources of this instance as unstable
-          transaction.GetTransactionContext().MarkAsUnstable(status.seriesId_, ResourceType_Series, hashSeries_);
-          transaction.GetTransactionContext().MarkAsUnstable(status.studyId_, ResourceType_Study, hashStudy_);
-          transaction.GetTransactionContext().MarkAsUnstable(status.patientId_, ResourceType_Patient, hashPatient_);
-          transaction.GetTransactionContext().SignalAttachmentsAdded(instanceSize);
-
-          storeStatus_ = StoreStatus_Success;          
+          transaction.GetTransactionContext().MarkAsUnstable(ResourceType_Series, status.seriesId_, hashSeries_);
+          transaction.GetTransactionContext().MarkAsUnstable(ResourceType_Study, status.studyId_, hashStudy_);
+          transaction.GetTransactionContext().MarkAsUnstable(ResourceType_Patient, status.patientId_, hashPatient_);
         }
-        catch (OrthancException& e)
-        {
-          if (e.GetErrorCode() == ErrorCode_DatabaseCannotSerialize)
-          {
-            throw;  // the transaction has failed -> do not commit the current transaction (and retry)
-          }
-          else
-          {
-            LOG(ERROR) << "EXCEPTION [" << e.What() << " - " << e.GetDetails() << "]";
 
-            if (e.GetErrorCode() == ErrorCode_FullStorage)
-            {
-              throw; // do not commit the current transaction
-            }
-
-            // this is an expected failure, exit normaly and commit the current transaction
-            storeStatus_ = StoreStatus_Failure;
-          }
-        }
+        transaction.GetTransactionContext().SignalAttachmentsAdded(instanceSize);
+        storeStatus_ = StoreStatus_Success;
       }
     };
 
 
-    Operations operations(instanceMetadata, dicomSummary, attachments, metadata, origin,
-                          overwrite, hasTransferSyntax, transferSyntax, hasPixelDataOffset,
-                          pixelDataOffset, maximumStorageMode, maximumStorageSize, maximumPatients, isReconstruct);
-    Apply(operations);
-    return operations.GetStoreStatus();
+    Operations operations(instanceMetadata, dicomSummary, attachments, metadata, origin, overwrite,
+                          hasTransferSyntax, transferSyntax, hasPixelDataOffset, pixelDataOffset,
+                          pixelDataVR, maximumStorageMode, maximumStorageSize, maximumPatients, isReconstruct);
+
+    try
+    {
+      Apply(operations);
+      return operations.GetStoreStatus();
+    }
+    catch (OrthancException& e)
+    {
+      if (e.GetErrorCode() == ErrorCode_FullStorage)
+      {
+        return StoreStatus_StorageFull;
+      }
+      else
+      {
+        // the transaction has failed -> do not commit the current transaction (and retry)
+        throw;
+      }
+    }
   }
 
 
@@ -3439,7 +3610,7 @@ namespace Orthanc
         int64_t resourceId;
         if (!transaction.LookupResource(resourceId, resourceType, publicId_))
         {
-          status_ = StoreStatus_Failure;  // Inexistent resource
+          throw OrthancException(ErrorCode_InexistentItem, HttpStatus_404_NotFound);
         }
         else
         {
@@ -3510,5 +3681,129 @@ namespace Orthanc
                           hasOldRevision, oldRevision, oldMD5);
     Apply(operations);
     return operations.GetStatus();
+  }
+
+
+  void StatelessDatabaseOperations::ListLabels(std::set<std::string>& target,
+                                               const std::string& publicId,
+                                               ResourceType level)
+  {
+    class Operations : public ReadOnlyOperationsT3<std::set<std::string>&, const std::string&, ResourceType>
+    {
+    public:
+      virtual void ApplyTuple(ReadOnlyTransaction& transaction,
+                              const Tuple& tuple) ORTHANC_OVERRIDE
+      {
+        ResourceType type;
+        int64_t id;
+        if (!transaction.LookupResource(id, type, tuple.get<1>()) ||
+            tuple.get<2>() != type)
+        {
+          throw OrthancException(ErrorCode_UnknownResource);
+        }
+        else
+        {
+          transaction.ListLabels(tuple.get<0>(), id);
+        }
+      }
+    };
+
+    Operations operations;
+    operations.Apply(*this, target, publicId, level);
+  }
+
+
+  void StatelessDatabaseOperations::ListAllLabels(std::set<std::string>& target)
+  {
+    class Operations : public ReadOnlyOperationsT1<std::set<std::string>& >
+    {
+    public:
+      virtual void ApplyTuple(ReadOnlyTransaction& transaction,
+                              const Tuple& tuple) ORTHANC_OVERRIDE
+      {
+        transaction.ListAllLabels(tuple.get<0>());
+      }
+    };
+
+    Operations operations;
+    operations.Apply(*this, target);
+  }
+  
+
+  void StatelessDatabaseOperations::AddLabels(const std::string& publicId,
+                                              ResourceType level,
+                                              const std::set<std::string>& labels)
+  {
+    for (std::set<std::string>::const_iterator it = labels.begin(); it != labels.end(); ++it)
+    {
+      ModifyLabel(publicId, level, *it, LabelOperation_Add);
+    }
+  }
+
+
+  void StatelessDatabaseOperations::ModifyLabel(const std::string& publicId,
+                                                ResourceType level,
+                                                const std::string& label,
+                                                LabelOperation operation)
+  {
+    class Operations : public IReadWriteOperations
+    {
+    private:
+      const std::string& publicId_;
+      ResourceType       level_;
+      const std::string& label_;
+      LabelOperation     operation_;
+
+    public:
+      Operations(const std::string& publicId,
+                 ResourceType level,
+                 const std::string& label,
+                 LabelOperation operation) :
+        publicId_(publicId),
+        level_(level),
+        label_(label),
+        operation_(operation)
+      {
+      }
+
+      virtual void Apply(ReadWriteTransaction& transaction) ORTHANC_OVERRIDE
+      {
+        ResourceType type;
+        int64_t id;
+        if (!transaction.LookupResource(id, type, publicId_) ||
+            level_ != type)
+        {
+          throw OrthancException(ErrorCode_UnknownResource);
+        }
+        else
+        {
+          switch (operation_)
+          {
+            case LabelOperation_Add:
+              transaction.AddLabel(id, label_);
+              break;
+
+            case LabelOperation_Remove:
+              transaction.RemoveLabel(id, label_);
+              break;
+
+            default:
+              throw OrthancException(ErrorCode_ParameterOutOfRange);
+          }
+        }
+      }
+    };
+
+    ServerToolbox::CheckValidLabel(label);
+    
+    Operations operations(publicId, level, label, operation);
+    Apply(operations);
+  }
+
+
+  bool StatelessDatabaseOperations::HasLabelsSupport()
+  {
+    boost::shared_lock<boost::shared_mutex> lock(mutex_);
+    return db_.GetDatabaseCapabilities().HasLabelsSupport();
   }
 }

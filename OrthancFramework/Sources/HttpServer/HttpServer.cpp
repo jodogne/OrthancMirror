@@ -2,8 +2,9 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -35,6 +36,7 @@
 #include "IHttpHandler.h"
 #include "MultipartStreamReader.h"
 #include "StringHttpOutput.h"
+#include <algorithm>
 
 #if ORTHANC_ENABLE_PUGIXML == 1
 #  include "IWebDavBucket.h"
@@ -109,12 +111,25 @@ namespace Orthanc
       {
         if (length > 0)
         {
-          int status = mg_write(connection_, buffer, length);
-          if (status != static_cast<int>(length))
+          // mg_write does not support buffers > 2GB (INT_MAX) -> need to split it
+          size_t offset = 0;
+          size_t remainingSize = length;
+
+          while (remainingSize > 0)
           {
-            // status == 0 when the connection has been closed, -1 on error
-            throw OrthancException(ErrorCode_NetworkProtocol);
-          }
+            size_t packetSize = std::min(remainingSize, static_cast<size_t>(INT_MAX));
+
+            int status = mg_write(connection_, &(reinterpret_cast<const char*>(buffer)[offset]), packetSize);  
+
+            if (status != static_cast<int>(packetSize))
+            {
+              // status == 0 when the connection has been closed, -1 on error
+              throw OrthancException(ErrorCode_NetworkProtocol);
+            }
+
+            offset += packetSize;
+            remainingSize -= packetSize;
+          }  
         }
       }
 
@@ -339,7 +354,7 @@ namespace Orthanc
                         size_t size)
     {
       StringHttpOutput stringOutput;
-      HttpOutput fakeOutput(stringOutput, false);
+      HttpOutput fakeOutput(stringOutput, false /* assume no keep-alive */, 0);
       HttpToolbox::GetArguments getArguments;
       
       if (!handler_.Handle(fakeOutput, RequestOrigin_RestApi, remoteIp_.c_str(), username_.c_str(), 
@@ -1442,13 +1457,13 @@ namespace Orthanc
       if (server == NULL)
       {
         MongooseOutputStream stream(connection);
-        HttpOutput output(stream, false /* assume no keep-alive */);
+        HttpOutput output(stream, false /* assume no keep-alive */, 0);
         output.SendStatus(HttpStatus_500_InternalServerError);
         return;
       }
 
       MongooseOutputStream stream(connection);
-      HttpOutput output(stream, server->IsKeepAliveEnabled());
+      HttpOutput output(stream, server->IsKeepAliveEnabled(), server->GetKeepAliveTimeout());
       HttpMethod method = HttpMethod_Get;
 
       try
@@ -1519,6 +1534,7 @@ namespace Orthanc
     }
   }
 
+  static uint16_t threadCounter = 0;
 
 #if MONGOOSE_USE_CALLBACKS == 0
   static void* Callback(enum mg_event event,
@@ -1542,6 +1558,11 @@ namespace Orthanc
   static int Callback(struct mg_connection *connection)
   {
     const struct mg_request_info *request = mg_get_request_info(connection);
+
+    if (!Logging::HasCurrentThreadName())
+    {
+      Logging::SetCurrentThreadName(std::string("HTTP-") + boost::lexical_cast<std::string>(threadCounter++));
+    }
 
     ProtectedCallback(connection, request);
 
@@ -1574,6 +1595,7 @@ namespace Orthanc
     port_(8000),
     filter_(NULL),
     keepAlive_(false),
+    keepAliveTimeout_(1),
     httpCompression_(true),
     exceptionFormatter_(NULL),
     realm_(ORTHANC_REALM),
@@ -1628,6 +1650,9 @@ namespace Orthanc
 
   void HttpServer::Start()
   {
+    // reset thread counter used to generate HTTP thread names.
+    threadCounter = 0;
+
 #if ORTHANC_ENABLE_MONGOOSE == 1
     CLOG(INFO, HTTP) << "Starting embedded Web server using Mongoose";
 #elif ORTHANC_ENABLE_CIVETWEB == 1
@@ -1641,7 +1666,7 @@ namespace Orthanc
       std::string port = boost::lexical_cast<std::string>(port_);
       std::string numThreads = boost::lexical_cast<std::string>(threadsCount_);
       std::string requestTimeoutMilliseconds = boost::lexical_cast<std::string>(requestTimeout_ * 1000);
-      std::string keepAliveTimeoutMilliseconds = boost::lexical_cast<std::string>(CIVETWEB_KEEP_ALIVE_TIMEOUT_SECONDS * 1000);
+      std::string keepAliveTimeoutMilliseconds = boost::lexical_cast<std::string>(keepAliveTimeout_ * 1000);
       std::string sslMinimumVersion = boost::lexical_cast<std::string>(sslMinimumVersion_);
 
       if (ssl_)
@@ -1945,6 +1970,20 @@ namespace Orthanc
 #endif
   }
 
+  void HttpServer::SetKeepAliveTimeout(unsigned int timeout)
+  {
+    Stop();
+    keepAliveTimeout_ = timeout;
+    CLOG(INFO, HTTP) << "HTTP keep alive Timeout is now " << keepAliveTimeout_ << " seconds";
+
+#if ORTHANC_ENABLE_MONGOOSE == 1
+    if (enabled)
+    {
+      CLOG(WARNING, HTTP) << "You should disable HTTP keep alive, as you are using Mongoose";
+    }
+#endif
+  }
+
   const std::string &HttpServer::GetSslCertificate() const
   {
     return certificate_;
@@ -1982,6 +2021,11 @@ namespace Orthanc
   bool HttpServer::IsKeepAliveEnabled() const
   {
     return keepAlive_;
+  }
+
+  unsigned int HttpServer::GetKeepAliveTimeout() const
+  {
+    return keepAliveTimeout_;
   }
 
   void HttpServer::SetRemoteAccessAllowed(bool allowed)

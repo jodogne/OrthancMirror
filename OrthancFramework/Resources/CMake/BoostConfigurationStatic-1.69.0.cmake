@@ -1,8 +1,9 @@
 # Orthanc - A Lightweight, RESTful DICOM Store
 # Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
 # Department, University Hospital of Liege, Belgium
-# Copyright (C) 2017-2022 Osimis S.A., Belgium
-# Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+# Copyright (C) 2017-2023 Osimis S.A., Belgium
+# Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+# Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
 #
 # This program is free software: you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public License
@@ -28,7 +29,7 @@ if (BOOST_STATIC)
   set(BOOST_VERSION 1.69.0)
   set(BOOST_BCP_SUFFIX bcpdigest-1.5.6)
   set(BOOST_MD5 "579bccc0ea4d1a261c1d0c5e27446c3d")
-  set(BOOST_URL "http://orthanc.osimis.io/ThirdPartyDownloads/${BOOST_NAME}_${BOOST_BCP_SUFFIX}.tar.gz")
+  set(BOOST_URL "https://orthanc.uclouvain.be/downloads/third-party-downloads/${BOOST_NAME}_${BOOST_BCP_SUFFIX}.tar.gz")
   set(BOOST_SOURCES_DIR ${CMAKE_BINARY_DIR}/${BOOST_NAME})
 
   if (IS_DIRECTORY "${BOOST_SOURCES_DIR}")

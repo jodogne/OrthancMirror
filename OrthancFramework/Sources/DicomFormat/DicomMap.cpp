@@ -2,8 +2,9 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -34,9 +35,15 @@
 #include "../OrthancException.h"
 #include "../Toolbox.h"
 #include "DicomArray.h"
+#include "DicomImageInformation.h"
 
 #if ORTHANC_ENABLE_DCMTK == 1
 #include "../DicomParsing/FromDcmtkBridge.h"
+#endif
+
+#if !defined(__EMSCRIPTEN__)
+// Multithreading is not supported in WebAssembly
+#  include <boost/thread/shared_mutex.hpp>
 #endif
 
 namespace Orthanc
@@ -58,8 +65,7 @@ namespace Orthanc
     DICOM_TAG_PATIENT_BIRTH_DATE,
     DICOM_TAG_PATIENT_SEX,
     DICOM_TAG_OTHER_PATIENT_IDS,
-    DICOM_TAG_PATIENT_ID,
-
+    DICOM_TAG_PATIENT_ID
   };
   
   static const DicomTag DEFAULT_STUDY_MAIN_DICOM_TAGS[] =
@@ -72,7 +78,8 @@ namespace Orthanc
     DICOM_TAG_STUDY_DESCRIPTION,
     DICOM_TAG_ACCESSION_NUMBER,
     DICOM_TAG_STUDY_INSTANCE_UID,
-    // New in db v6
+    
+    // New in db v6 (Orthanc 0.9.5)
     DICOM_TAG_REQUESTED_PROCEDURE_DESCRIPTION,
     DICOM_TAG_INSTITUTION_NAME,
     DICOM_TAG_REQUESTING_PHYSICIAN,
@@ -99,7 +106,7 @@ namespace Orthanc
     DICOM_TAG_NUMBER_OF_TIME_SLICES,
     DICOM_TAG_SERIES_INSTANCE_UID,
 
-        // New in db v6
+    // New in db v6 (Orthanc 0.9.5)
     DICOM_TAG_IMAGE_ORIENTATION_PATIENT,
     DICOM_TAG_SERIES_TYPE,
     DICOM_TAG_OPERATOR_NAME,
@@ -119,7 +126,7 @@ namespace Orthanc
     DICOM_TAG_TEMPORAL_POSITION_IDENTIFIER,
     DICOM_TAG_SOP_INSTANCE_UID,
 
-    // New in db v6
+    // New in db v6 (Orthanc 0.9.5)
     DICOM_TAG_IMAGE_POSITION_PATIENT,
     DICOM_TAG_IMAGE_COMMENTS,
 
@@ -133,18 +140,20 @@ namespace Orthanc
     DICOM_TAG_IMAGE_ORIENTATION_PATIENT  // New in Orthanc 1.4.2
   };
 
-
-
-
-  class DicomMap::MainDicomTagsConfiguration
+  class DicomMap::MainDicomTagsConfiguration : public boost::noncopyable
   {
   private:
-    friend DicomMap;
+#if !defined(__EMSCRIPTEN__)
+    typedef boost::unique_lock<boost::shared_mutex> WriterLock;
+    typedef boost::shared_lock<boost::shared_mutex> ReaderLock;
 
-    std::set<DicomTag>               patientsMainDicomTagsByLevel_;
-    std::set<DicomTag>               studiesMainDicomTagsByLevel_;
-    std::set<DicomTag>               seriesMainDicomTagsByLevel_;
-    std::set<DicomTag>               instancesMainDicomTagsByLevel_;
+    boost::shared_mutex mutex_;
+#endif
+    
+    std::set<DicomTag> patientsMainDicomTagsByLevel_;
+    std::set<DicomTag> studiesMainDicomTagsByLevel_;
+    std::set<DicomTag> seriesMainDicomTagsByLevel_;
+    std::set<DicomTag> instancesMainDicomTagsByLevel_;
 
     std::set<DicomTag> allMainDicomTags_;
 
@@ -154,27 +163,6 @@ namespace Orthanc
     MainDicomTagsConfiguration()
     {
       ResetDefaultMainDicomTags();
-    }
-
-    void ResetDefaultMainDicomTags()
-    {
-      patientsMainDicomTagsByLevel_.clear();
-      studiesMainDicomTagsByLevel_.clear();
-      seriesMainDicomTagsByLevel_.clear();
-      instancesMainDicomTagsByLevel_.clear();
-
-      allMainDicomTags_.clear();
-
-      // by default, initialize with the previous static list (up to 1.10.0)
-      LoadDefaultMainDicomTags(ResourceType_Patient);
-      LoadDefaultMainDicomTags(ResourceType_Study);
-      LoadDefaultMainDicomTags(ResourceType_Series);
-      LoadDefaultMainDicomTags(ResourceType_Instance);
-
-      defaultSignatures_[ResourceType_Patient] = signatures_[ResourceType_Patient];
-      defaultSignatures_[ResourceType_Study] = signatures_[ResourceType_Study];
-      defaultSignatures_[ResourceType_Series] = signatures_[ResourceType_Series];
-      defaultSignatures_[ResourceType_Instance] = signatures_[ResourceType_Instance];
     }
 
     std::string ComputeSignature(const std::set<DicomTag>& tags)
@@ -227,13 +215,11 @@ namespace Orthanc
 
       for (size_t i = 0; i < size; i++)
       {
-        AddMainDicomTag(tags[i], level);
+        AddMainDicomTagInternal(tags[i], level);
       }
-
     }
 
-
-    std::set<DicomTag>& GetMainDicomTagsByLevel(ResourceType level)
+    std::set<DicomTag>& GetMainDicomTagsByLevelInternal(ResourceType level)
     {
       switch (level)
       {
@@ -254,6 +240,22 @@ namespace Orthanc
       }
     }
 
+    void AddMainDicomTagInternal(const DicomTag& tag,
+                                 ResourceType level)
+    {
+      std::set<DicomTag>& existingLevelTags = GetMainDicomTagsByLevelInternal(level);
+      
+      if (existingLevelTags.find(tag) != existingLevelTags.end())
+      {
+        throw OrthancException(ErrorCode_MainDicomTagsMultiplyDefined, tag.Format() + " is already defined");
+      }
+
+      existingLevelTags.insert(tag);
+      allMainDicomTags_.insert(tag);
+
+      signatures_[level] = ComputeSignature(GetMainDicomTagsByLevelInternal(level));
+    }
+
   public:
     // Singleton pattern
     static MainDicomTagsConfiguration& GetInstance()
@@ -262,40 +264,99 @@ namespace Orthanc
       return parameters;
     }
 
-    void AddMainDicomTag(const DicomTag& tag, ResourceType level)
+    void ResetDefaultMainDicomTags()
     {
-      const std::set<DicomTag>& existingLevelTags = GetMainDicomTagsByLevel(level);
+#if !defined(__EMSCRIPTEN__)
+      WriterLock lock(mutex_);
+#endif
       
-      if (existingLevelTags.find(tag) != existingLevelTags.end())
-      {
-        throw OrthancException(ErrorCode_MainDicomTagsMultiplyDefined, tag.Format() + " is already defined");
-      }
+      patientsMainDicomTagsByLevel_.clear();
+      studiesMainDicomTagsByLevel_.clear();
+      seriesMainDicomTagsByLevel_.clear();
+      instancesMainDicomTagsByLevel_.clear();
 
+      allMainDicomTags_.clear();
 
-      GetMainDicomTagsByLevel(level).insert(tag);
-      allMainDicomTags_.insert(tag);
-      signatures_[level] = ComputeSignature(GetMainDicomTagsByLevel(level));
+      // by default, initialize with the previous static list (up to 1.10.0)
+      LoadDefaultMainDicomTags(ResourceType_Patient);
+      LoadDefaultMainDicomTags(ResourceType_Study);
+      LoadDefaultMainDicomTags(ResourceType_Series);
+      LoadDefaultMainDicomTags(ResourceType_Instance);
+
+      defaultSignatures_[ResourceType_Patient] = signatures_[ResourceType_Patient];
+      defaultSignatures_[ResourceType_Study] = signatures_[ResourceType_Study];
+      defaultSignatures_[ResourceType_Series] = signatures_[ResourceType_Series];
+      defaultSignatures_[ResourceType_Instance] = signatures_[ResourceType_Instance];
     }
 
-    const std::set<DicomTag>& GetAllMainDicomTags() const
+    void AddMainDicomTag(const DicomTag& tag,
+                         ResourceType level)
     {
-      return allMainDicomTags_;
+#if !defined(__EMSCRIPTEN__)
+      WriterLock lock(mutex_);
+#endif
+      
+      AddMainDicomTagInternal(tag, level);
     }
 
-    const std::string& GetMainDicomTagsSignature(ResourceType level)
+    void GetAllMainDicomTags(std::set<DicomTag>& target)
     {
+#if !defined(__EMSCRIPTEN__)
+      ReaderLock lock(mutex_);
+#endif
+      
+      target = allMainDicomTags_;
+    }
+
+    void GetMainDicomTagsByLevel(std::set<DicomTag>& target,
+                                 ResourceType level)
+    {
+#if !defined(__EMSCRIPTEN__)
+      ReaderLock lock(mutex_);
+#endif
+      
+      target = GetMainDicomTagsByLevelInternal(level);
+    }
+
+    std::string GetMainDicomTagsSignature(ResourceType level)
+    {
+#if !defined(__EMSCRIPTEN__)
+      ReaderLock lock(mutex_);
+#endif
+      
       assert(signatures_.find(level) != signatures_.end());
-
       return signatures_[level];
     }
 
-    const std::string& GetDefaultMainDicomTagsSignature(ResourceType level)
+    std::string GetDefaultMainDicomTagsSignature(ResourceType level)
     {
+#if !defined(__EMSCRIPTEN__)
+      ReaderLock lock(mutex_);
+#endif
+      
       assert(defaultSignatures_.find(level) != defaultSignatures_.end());
-
       return defaultSignatures_[level];
     }
 
+    bool IsMainDicomTag(const DicomTag& tag)
+    {
+#if !defined(__EMSCRIPTEN__)
+      ReaderLock lock(mutex_);
+#endif
+      
+      return allMainDicomTags_.find(tag) != allMainDicomTags_.end();
+    }
+
+    bool IsMainDicomTag(const DicomTag& tag,
+                        ResourceType level)
+    {
+#if !defined(__EMSCRIPTEN__)
+      ReaderLock lock(mutex_);
+#endif
+      
+      const std::set<DicomTag>& mainDicomTags = GetMainDicomTagsByLevelInternal(level);
+      return mainDicomTags.find(tag) != mainDicomTags.end();
+    }
   };
 
 
@@ -359,7 +420,7 @@ namespace Orthanc
     SetValueInternal(group, element, new DicomValue(str, isBinary));
   }
 
-  void DicomMap::SetValue(const DicomTag& tag, const Json::Value& value)
+  void DicomMap::SetSequenceValue(const DicomTag& tag, const Json::Value& value)
   {
     SetValueInternal(tag.GetGroup(), tag.GetElement(), new DicomValue(value));
   }
@@ -414,7 +475,8 @@ namespace Orthanc
 
   void DicomMap::ExtractResourceInformation(DicomMap& result, ResourceType level) const
   {
-    const std::set<DicomTag>& mainDicomTags = DicomMap::MainDicomTagsConfiguration::GetInstance().GetMainDicomTagsByLevel(level);
+    std::set<DicomTag> mainDicomTags;
+    DicomMap::MainDicomTagsConfiguration::GetInstance().GetMainDicomTagsByLevel(mainDicomTags, level);
     ExtractTagsInternal(result, content_, mainDicomTags);
   }
 
@@ -527,69 +589,81 @@ namespace Orthanc
     }
   }
 
-  static void SetupFindTemplate(DicomMap& result,
-                                const std::set<DicomTag>& mainDicomTags)
+  void DicomMap::SetupFindPatientTemplate(DicomMap& result)
   {
     result.Clear();
 
-    for (std::set<DicomTag>::const_iterator itmt = mainDicomTags.begin();
-         itmt != mainDicomTags.end(); ++itmt)
-    {
-      result.SetValue(*itmt, "", false);
-    }
-  }
+    // Identifying tags
+    result.SetValue(DICOM_TAG_PATIENT_ID, "", false);
 
-  void DicomMap::SetupFindPatientTemplate(DicomMap& result)
-  {
-    const std::set<DicomTag>& mainDicomTags = DicomMap::MainDicomTagsConfiguration::GetInstance().GetMainDicomTagsByLevel(ResourceType_Patient);
-    SetupFindTemplate(result, mainDicomTags);
+    // Other tags in the "Patient" module
+    result.SetValue(DICOM_TAG_OTHER_PATIENT_IDS, "", false);
+    result.SetValue(DICOM_TAG_PATIENT_BIRTH_DATE, "", false);
+    result.SetValue(DICOM_TAG_PATIENT_NAME, "", false);
+    result.SetValue(DICOM_TAG_PATIENT_SEX, "", false);
   }
 
   void DicomMap::SetupFindStudyTemplate(DicomMap& result)
   {
-    const std::set<DicomTag>& mainDicomTags = DicomMap::MainDicomTagsConfiguration::GetInstance().GetMainDicomTagsByLevel(ResourceType_Study);
-    SetupFindTemplate(result, mainDicomTags);
-    result.SetValue(DICOM_TAG_ACCESSION_NUMBER, "", false);
-    result.SetValue(DICOM_TAG_PATIENT_ID, "", false);
+    result.Clear();
 
-    // These main DICOM tags are only indirectly related to the
-    // General Study Module, remove them
-    result.Remove(DICOM_TAG_INSTITUTION_NAME);
-    result.Remove(DICOM_TAG_REQUESTING_PHYSICIAN);
-    result.Remove(DICOM_TAG_REQUESTED_PROCEDURE_DESCRIPTION);
+    // Identifying tags
+    result.SetValue(DICOM_TAG_PATIENT_ID, "", false);
+    result.SetValue(DICOM_TAG_ACCESSION_NUMBER, "", false);
+    result.SetValue(DICOM_TAG_STUDY_INSTANCE_UID, "", false);
+
+    // Other tags in the "General Study" module
+    result.SetValue(DICOM_TAG_REFERRING_PHYSICIAN_NAME, "", false);
+    result.SetValue(DICOM_TAG_STUDY_DATE, "", false);
+    result.SetValue(DICOM_TAG_STUDY_DESCRIPTION, "", false);
+    result.SetValue(DICOM_TAG_STUDY_ID, "", false);
+    result.SetValue(DICOM_TAG_STUDY_TIME, "", false);
   }
 
   void DicomMap::SetupFindSeriesTemplate(DicomMap& result)
   {
-    const std::set<DicomTag>& mainDicomTags = DicomMap::MainDicomTagsConfiguration::GetInstance().GetMainDicomTagsByLevel(ResourceType_Series);
-    SetupFindTemplate(result, mainDicomTags);
-    result.SetValue(DICOM_TAG_ACCESSION_NUMBER, "", false);
-    result.SetValue(DICOM_TAG_PATIENT_ID, "", false);
-    result.SetValue(DICOM_TAG_STUDY_INSTANCE_UID, "", false);
+    result.Clear();
 
-    // These tags are considered as "main" by Orthanc, but are not in the Series module
-    result.Remove(DicomTag(0x0008, 0x0070));  // Manufacturer
-    result.Remove(DicomTag(0x0008, 0x1010));  // Station name
-    result.Remove(DicomTag(0x0018, 0x0024));  // Sequence name
-    result.Remove(DICOM_TAG_CARDIAC_NUMBER_OF_IMAGES);
-    result.Remove(DICOM_TAG_IMAGES_IN_ACQUISITION);
-    result.Remove(DICOM_TAG_NUMBER_OF_SLICES);
-    result.Remove(DICOM_TAG_NUMBER_OF_TEMPORAL_POSITIONS);
-    result.Remove(DICOM_TAG_NUMBER_OF_TIME_SLICES);
-    result.Remove(DICOM_TAG_IMAGE_ORIENTATION_PATIENT);
-    result.Remove(DICOM_TAG_SERIES_TYPE);
-    result.Remove(DICOM_TAG_ACQUISITION_DEVICE_PROCESSING_DESCRIPTION);
-    result.Remove(DICOM_TAG_CONTRAST_BOLUS_AGENT);
+    // Identifying tags
+    result.SetValue(DICOM_TAG_PATIENT_ID, "", false);
+    result.SetValue(DICOM_TAG_ACCESSION_NUMBER, "", false);
+    result.SetValue(DICOM_TAG_STUDY_INSTANCE_UID, "", false);
+    result.SetValue(DICOM_TAG_SERIES_INSTANCE_UID, "", false);
+
+    // Other tags in the "General Series" module
+    result.SetValue(DICOM_TAG_BODY_PART_EXAMINED, "", false);
+    result.SetValue(DICOM_TAG_MODALITY, "", false);
+    result.SetValue(DICOM_TAG_OPERATOR_NAME, "", false);
+    result.SetValue(DICOM_TAG_PERFORMED_PROCEDURE_STEP_DESCRIPTION, "", false);
+    result.SetValue(DICOM_TAG_PROTOCOL_NAME, "", false);
+    result.SetValue(DICOM_TAG_SERIES_DATE, "", false);
+    result.SetValue(DICOM_TAG_SERIES_DESCRIPTION, "", false);
+    result.SetValue(DICOM_TAG_SERIES_NUMBER, "", false);
+    result.SetValue(DICOM_TAG_SERIES_TIME, "", false);
   }
 
   void DicomMap::SetupFindInstanceTemplate(DicomMap& result)
   {
-    const std::set<DicomTag>& mainDicomTags = DicomMap::MainDicomTagsConfiguration::GetInstance().GetMainDicomTagsByLevel(ResourceType_Instance);
-    SetupFindTemplate(result, mainDicomTags);
-    result.SetValue(DICOM_TAG_ACCESSION_NUMBER, "", false);
+    result.Clear();
+
+    // Identifying tags
     result.SetValue(DICOM_TAG_PATIENT_ID, "", false);
+    result.SetValue(DICOM_TAG_ACCESSION_NUMBER, "", false);
     result.SetValue(DICOM_TAG_STUDY_INSTANCE_UID, "", false);
     result.SetValue(DICOM_TAG_SERIES_INSTANCE_UID, "", false);
+    result.SetValue(DICOM_TAG_SOP_INSTANCE_UID, "", false);
+
+    // Other tags in the "SOP Common" module
+    result.SetValue(DICOM_TAG_ACQUISITION_NUMBER, "", false);
+    result.SetValue(DICOM_TAG_IMAGE_COMMENTS, "", false);
+    result.SetValue(DICOM_TAG_IMAGE_INDEX, "", false);
+    result.SetValue(DICOM_TAG_IMAGE_ORIENTATION_PATIENT, "", false);
+    result.SetValue(DICOM_TAG_IMAGE_POSITION_PATIENT, "", false);
+    result.SetValue(DICOM_TAG_INSTANCE_CREATION_DATE, "", false);
+    result.SetValue(DICOM_TAG_INSTANCE_CREATION_TIME, "", false);
+    result.SetValue(DICOM_TAG_INSTANCE_NUMBER, "", false);
+    result.SetValue(DICOM_TAG_NUMBER_OF_FRAMES, "", false);
+    result.SetValue(DICOM_TAG_TEMPORAL_POSITION_IDENTIFIER, "", false);
   }
 
 
@@ -605,8 +679,7 @@ namespace Orthanc
 
   bool DicomMap::IsMainDicomTag(const DicomTag& tag, ResourceType level)
   {
-    const std::set<DicomTag>& mainDicomTags = DicomMap::MainDicomTagsConfiguration::GetInstance().GetMainDicomTagsByLevel(level);
-    return mainDicomTags.find(tag) != mainDicomTags.end();
+    return DicomMap::MainDicomTagsConfiguration::GetInstance().IsMainDicomTag(tag, level);
   }
 
   bool DicomMap::IsMainDicomTag(const DicomTag& tag)
@@ -706,14 +779,15 @@ namespace Orthanc
   }
 
 
-  const std::set<DicomTag>& DicomMap::GetMainDicomTags(ResourceType level)
+  void DicomMap::GetMainDicomTags(std::set<DicomTag>& target,
+                                  ResourceType level)
   {
-    return DicomMap::MainDicomTagsConfiguration::GetInstance().GetMainDicomTagsByLevel(level);
+    DicomMap::MainDicomTagsConfiguration::GetInstance().GetMainDicomTagsByLevel(target, level);
   }
 
-  const std::set<DicomTag>& DicomMap::GetAllMainDicomTags()
+  void DicomMap::GetAllMainDicomTags(std::set<DicomTag>& target)
   {
-    return DicomMap::MainDicomTagsConfiguration::GetInstance().GetAllMainDicomTags();
+    DicomMap::MainDicomTagsConfiguration::GetInstance().GetAllMainDicomTags(target);
   }
 
   void DicomMap::AddMainDicomTag(const DicomTag& tag, ResourceType level)
@@ -726,12 +800,12 @@ namespace Orthanc
     DicomMap::MainDicomTagsConfiguration::GetInstance().ResetDefaultMainDicomTags();
   }
 
-  const std::string& DicomMap::GetMainDicomTagsSignature(ResourceType level)
+  std::string DicomMap::GetMainDicomTagsSignature(ResourceType level)
   {
     return DicomMap::MainDicomTagsConfiguration::GetInstance().GetMainDicomTagsSignature(level);
   }
 
-  const std::string& DicomMap::GetDefaultMainDicomTagsSignature(ResourceType level)
+  std::string DicomMap::GetDefaultMainDicomTagsSignature(ResourceType level)
   {
     return DicomMap::MainDicomTagsConfiguration::GetInstance().GetDefaultMainDicomTagsSignature(level);
   }
@@ -1384,7 +1458,7 @@ namespace Orthanc
         }
         else
         {
-          SetValue(tag, value["Value"]);
+          SetSequenceValue(tag, value["Value"]);
         }
       }
     }
@@ -1409,7 +1483,8 @@ namespace Orthanc
   void DicomMap::MergeMainDicomTags(const DicomMap& other,
                                     ResourceType level)
   {
-    const std::set<DicomTag>& mainDicomTags = DicomMap::MainDicomTagsConfiguration::GetInstance().GetMainDicomTagsByLevel(level);
+    std::set<DicomTag> mainDicomTags;
+    DicomMap::MainDicomTagsConfiguration::GetInstance().GetMainDicomTagsByLevel(mainDicomTags, level);
 
     for (std::set<DicomTag>::const_iterator itmt = mainDicomTags.begin();
          itmt != mainDicomTags.end(); ++itmt)
@@ -1438,11 +1513,9 @@ namespace Orthanc
 
   bool DicomMap::HasOnlyMainDicomTags() const
   {
-    const std::set<DicomTag>& allMainDicomTags = DicomMap::MainDicomTagsConfiguration::GetInstance().GetAllMainDicomTags();
-
     for (Content::const_iterator it = content_.begin(); it != content_.end(); ++it)
     {
-      if (allMainDicomTags.find(it->first) == allMainDicomTags.end())
+      if (!DicomMap::MainDicomTagsConfiguration::GetInstance().IsMainDicomTag(it->first))
       {
         return false;
       }
@@ -1459,7 +1532,7 @@ namespace Orthanc
     {
       if (it->second->IsSequence())
       {
-        result.SetValue(it->first, it->second->GetSequenceContent());
+        result.SetSequenceValue(it->first, it->second->GetSequenceContent());
       }
     }
   }
@@ -1710,7 +1783,8 @@ namespace Orthanc
   void DicomMap::DumpMainDicomTags(Json::Value& target,
                                    ResourceType level) const
   {
-    const std::set<DicomTag>& mainDicomTags = DicomMap::MainDicomTagsConfiguration::GetInstance().GetMainDicomTagsByLevel(level);
+    std::set<DicomTag> mainDicomTags;
+    DicomMap::MainDicomTagsConfiguration::GetInstance().GetMainDicomTagsByLevel(mainDicomTags, level);
     
     target = Json::objectValue;
 
@@ -1736,6 +1810,19 @@ namespace Orthanc
   }
   
 
+  ValueRepresentation DicomMap::GuessPixelDataValueRepresentation(DicomTransferSyntax transferSyntax) const
+  {
+    const DicomValue* value = TestAndGetValue(DICOM_TAG_BITS_ALLOCATED);
+
+    uint32_t bitsAllocated;
+    if (value == NULL ||
+        !value->ParseUnsignedInteger32(bitsAllocated))
+    {
+      bitsAllocated = 8;
+    }
+
+    return DicomImageInformation::GuessPixelDataValueRepresentation(transferSyntax, bitsAllocated);
+  }
   
 
   void DicomMap::Print(FILE* fp) const

@@ -2,8 +2,9 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -59,7 +60,8 @@ namespace Orthanc
     requestedTags.erase(DICOM_TAG_QUERY_RETRIEVE_LEVEL); // this is not part of the answer
 
     // reuse ExpandResource to get missing tags and computed tags (ModalitiesInStudy ...).  This code is therefore shared between C-Find, tools/find, list-resources and QIDO-RS
-    context.ExpandResource(resource, publicId, mainDicomTags, instanceId, dicomAsJson, level, requestedTags, ExpandResourceDbFlags_IncludeMainDicomTags, allowStorageAccess);
+    context.ExpandResource(resource, publicId, mainDicomTags, instanceId, dicomAsJson,
+                           level, requestedTags, ExpandResourceFlags_IncludeMainDicomTags, allowStorageAccess);
 
     DicomMap result;
 
@@ -84,7 +86,7 @@ namespace Orthanc
       else
       {
         const DicomTag& tag = query.GetElement(i).GetTag();
-        const DicomValue* value = resource.tags_.TestAndGetValue(tag);
+        const DicomValue* value = resource.GetMainDicomTags().TestAndGetValue(tag);
 
         if (value != NULL &&
             !value->IsNull() &&
@@ -172,7 +174,7 @@ namespace Orthanc
   {
     // Whatever the manufacturer, remove the GenericGroupLength tags
     // http://dicom.nema.org/medical/dicom/current/output/chtml/part05/sect_7.2.html
-    // https://bugs.orthanc-server.com/show_bug.cgi?id=31
+    // https://orthanc.uclouvain.be/bugs/show_bug.cgi?id=31
     if (tag.GetElement() == 0x0000)
     {
       return false;
@@ -438,9 +440,11 @@ namespace Orthanc
       const DicomElement& element = query.GetElement(i);
       const DicomTag tag = element.GetTag();
 
+      // remove tags that are not used for matching
       if (element.GetValue().IsNull() ||
           tag == DICOM_TAG_QUERY_RETRIEVE_LEVEL ||
-          tag == DICOM_TAG_SPECIFIC_CHARACTER_SET)
+          tag == DICOM_TAG_SPECIFIC_CHARACTER_SET ||
+          tag == DICOM_TAG_TIMEZONE_OFFSET_FROM_UTC)  // time zone is not directly used for matching.  Once we support "Timezone query adjustment", we may use it to adjust date-time filters but for now, just ignore it 
       {
         continue;
       }

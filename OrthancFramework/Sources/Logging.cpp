@@ -2,8 +2,9 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -26,6 +27,7 @@
 
 #include "OrthancException.h"
 
+#include <cassert>
 #include <stdint.h>
 
 
@@ -310,6 +312,10 @@ namespace Orthanc
     {
     }
 
+    void InitializePluginContext(void* pluginContext, const char* pluginName)
+    {
+    }
+
     void Initialize()
     {
     }
@@ -438,6 +444,10 @@ namespace Orthanc
     {
     }
 
+    void InitializePluginContext(void* pluginContext, const char* pluginName)
+    {
+    }
+
     void Initialize()
     {
     }
@@ -472,6 +482,7 @@ namespace Orthanc
  * mimics behavior from Google Log.
  *********************************************************/
 
+#include <boost/thread/thread.hpp>
 #include <cassert>
 
 namespace
@@ -486,6 +497,7 @@ namespace
     _OrthancPluginService_LogInfo = 1,
     _OrthancPluginService_LogWarning = 2,
     _OrthancPluginService_LogError = 3,
+    _OrthancPluginService_LogMessage = 45,
     _OrthancPluginService_INTERNAL = 0x7fffffff
   } _OrthancPluginService;
 
@@ -498,11 +510,23 @@ namespace
                                    _OrthancPluginService service,
                                    const void* params);
   } OrthancPluginContext;
+
+  typedef struct
+  {
+    const char*               message;
+    const char*               plugin;
+    const char*               file;
+    uint32_t                  line;
+    uint32_t                  category;  // can be a LogCategory or a OrthancPluginLogCategory
+    uint32_t                  level;     // can be a LogLevel or a OrthancPluginLogLevel
+  } _OrthancPluginLogMessage;
+
 }
   
 
 #include "Enumerations.h"
 #include "SystemToolbox.h"
+#include "Toolbox.h"
 
 #include <fstream>
 #include <boost/filesystem.hpp>
@@ -534,16 +558,27 @@ namespace
 
 
 
-static std::unique_ptr<LoggingStreamsContext> loggingStreamsContext_;
-static boost::mutex                           loggingStreamsMutex_;
-static Orthanc::Logging::NullStream           nullStream_;
-static OrthancPluginContext*                  pluginContext_ = NULL;
+static std::unique_ptr<LoggingStreamsContext>   loggingStreamsContext_;
+static boost::mutex                             loggingStreamsMutex_;
+static Orthanc::Logging::NullStream             nullStream_;
+static OrthancPluginContext*                    pluginContext_ = NULL;    // this is != NULL only when running from a plugin
+static std::string                              pluginName_;              // this string can only be non-empty if running from a plugin
+static bool                                     hasOrthancAdvancedLogging_ = false;  // Whether the Orthanc runtime is >= 1.12.4
+static boost::recursive_mutex                   threadNamesMutex_;
+static std::map<boost::thread::id, std::string> threadNames_;
+static bool                                     enableThreadNames_ = true;
+
 
 
 namespace Orthanc
 {
   namespace Logging
   {
+    void EnableThreadNames(bool enabled)
+    {
+      enableThreadNames_ = enabled;
+    }
+
     static void GetLogPath(boost::filesystem::path& log,
                            boost::filesystem::path& link,
                            const std::string& suffix,
@@ -612,10 +647,51 @@ namespace Orthanc
         throw OrthancException(ErrorCode_CannotWriteFile);
       }
     }
-    
+
+    void SetCurrentThreadNameInternal(const boost::thread::id& id, const std::string& name)
+    {
+      boost::recursive_mutex::scoped_lock lock(threadNamesMutex_);
+
+      if (name.size() > 16)
+      {
+        throw OrthancException(ErrorCode_InternalError, std::string("Thread name can not exceed 16 characters: ") + name);
+      }
+
+      threadNames_[id] = name;
+    }
+
+    void SetCurrentThreadName(const std::string& name)
+    {
+      boost::recursive_mutex::scoped_lock lock(threadNamesMutex_);
+      SetCurrentThreadNameInternal(boost::this_thread::get_id(), name);
+    }
+
+    bool HasCurrentThreadName()
+    {
+      boost::thread::id threadId = boost::this_thread::get_id();
+
+      boost::mutex::scoped_lock lock(loggingStreamsMutex_);
+      return threadNames_.find(threadId) != threadNames_.end();
+    }
+
+    static std::string GetCurrentThreadName()
+    {
+      boost::thread::id threadId = boost::this_thread::get_id();
+
+      boost::recursive_mutex::scoped_lock lock(threadNamesMutex_);
+
+      if (threadNames_.find(threadId) == threadNames_.end())
+      {
+        // set the threadId as the thread name
+        SetCurrentThreadNameInternal(threadId, boost::lexical_cast<std::string>(threadId));
+      }
+
+      return threadNames_[threadId];
+    }    
 
     static void GetLinePrefix(std::string& prefix,
                               LogLevel level,
+                              const char* pluginName,  // when logging in the core but coming from a plugin, pluginName_ is NULL but this argument is != NULL
                               const char* file,
                               int line,
                               LogCategory category)
@@ -679,7 +755,23 @@ namespace Orthanc
               static_cast<int>(duration.seconds()),
               static_cast<int>(duration.fractional_seconds()));
 
-      prefix = (std::string(date) + path.filename().string() + ":" +
+      char threadName[20]; // thread names are limited to 16 char + a space
+      if (enableThreadNames_)
+      {
+        sprintf(threadName, "%16s ", GetCurrentThreadName().c_str());
+      }
+      else
+      {
+        threadName[0] = '\0';
+      }
+
+      std::string internalPluginName = "";
+      if (pluginName != NULL)
+      {
+        internalPluginName = std::string(pluginName) + ":/";
+      }
+
+      prefix = (std::string(date) + threadName + internalPluginName + path.filename().string() + ":" +
                 boost::lexical_cast<std::string>(line) + "] ");
 
       if (level != LogLevel_ERROR &&
@@ -695,11 +787,26 @@ namespace Orthanc
     {
       assert(sizeof(_OrthancPluginService) == sizeof(int32_t));
 
+      if (pluginContext == NULL)
+      {
+        throw OrthancException(ErrorCode_NullPointer);
+      }
+
       boost::mutex::scoped_lock lock(loggingStreamsMutex_);
       loggingStreamsContext_.reset(NULL);
       pluginContext_ = reinterpret_cast<OrthancPluginContext*>(pluginContext);
 
+      // The value "hasOrthancAdvancedLogging_" is cached to avoid computing it on every logged message
+      hasOrthancAdvancedLogging_ = Toolbox::IsVersionAbove(pluginContext_->orthancVersion, 1, 12, 4);
+
       EnableInfoLevel(true);  // allow the plugin to log at info level (but the Orthanc Core still decides of the level)
+    }
+
+
+    void InitializePluginContext(void* pluginContext, const std::string& pluginName)
+    {
+      InitializePluginContext(pluginContext);
+      pluginName_ = pluginName;
     }
 
 
@@ -775,9 +882,17 @@ namespace Orthanc
     }
 
 
-    void InternalLogger::Setup(LogCategory category,
-                               const char* file,
-                               int line)
+    InternalLogger::InternalLogger(LogLevel level,
+                                   LogCategory category,
+                                   const char* pluginName,
+                                   const char* file,
+                                   int line) :
+      lock_(loggingStreamsMutex_, boost::defer_lock_t()),
+      level_(level),
+      stream_(&nullStream_),  // By default, logging to "/dev/null" is simulated
+      category_(category),
+      file_(file),
+      line_(line)
     {
       if (pluginContext_ != NULL)
       {
@@ -808,7 +923,7 @@ namespace Orthanc
         }
 
         std::string prefix;
-        GetLinePrefix(prefix, level_, file, line, category);
+        GetLinePrefix(prefix, level_, pluginName, file, line, category);
 
         {
           // We lock the global mutex. The mutex is locked until the
@@ -817,7 +932,9 @@ namespace Orthanc
       
           if (loggingStreamsContext_.get() == NULL)
           {
-            fprintf(stderr, "ERROR: Trying to log a message after the finalization of the logging engine\n");
+            // Have you called Orthanc::Logging::InitializePluginContext()?
+            fprintf(stderr, "ERROR: Trying to log a message after the finalization of the logging engine "
+                    "(or did you forgot to initialize it?)\n");
             lock_.unlock();
             return;
           }
@@ -867,28 +984,6 @@ namespace Orthanc
     }
 
 
-    InternalLogger::InternalLogger(LogLevel level,
-                                   LogCategory category,
-                                   const char* file,
-                                   int line) :
-      lock_(loggingStreamsMutex_, boost::defer_lock_t()),
-      level_(level),
-      stream_(&nullStream_)  // By default, logging to "/dev/null" is simulated
-    {
-      Setup(category, file, line);
-    }
-
-
-    InternalLogger::InternalLogger(LogLevel level,
-                                   const char* file,
-                                   int line) :
-      lock_(loggingStreamsMutex_, boost::defer_lock_t()),
-      level_(level),
-      stream_(&nullStream_)  // By default, logging to "/dev/null" is simulated
-    {
-      Setup(LogCategory_GENERIC, file, line);
-    }
-
 
     InternalLogger::~InternalLogger()
     {
@@ -900,22 +995,37 @@ namespace Orthanc
 
         if (pluginContext_ != NULL)
         {
-          switch (level_)
+          if (!pluginName_.empty() &&
+              hasOrthancAdvancedLogging_)
           {
-            case LogLevel_ERROR:
-              pluginContext_->InvokeService(pluginContext_, _OrthancPluginService_LogError, message.c_str());
-              break;
+            _OrthancPluginLogMessage m;
+            m.category = category_;
+            m.level = level_;
+            m.file = file_;
+            m.line = line_;
+            m.plugin = pluginName_.c_str();
+            m.message = message.c_str();
+            pluginContext_->InvokeService(pluginContext_, _OrthancPluginService_LogMessage, &m);
+          }
+          else
+          {
+            switch (level_)
+            {
+              case LogLevel_ERROR:
+                pluginContext_->InvokeService(pluginContext_, _OrthancPluginService_LogError, message.c_str());
+                break;
 
-            case LogLevel_WARNING:
-              pluginContext_->InvokeService(pluginContext_, _OrthancPluginService_LogWarning, message.c_str());
-              break;
+              case LogLevel_WARNING:
+                pluginContext_->InvokeService(pluginContext_, _OrthancPluginService_LogWarning, message.c_str());
+                break;
 
-            case LogLevel_INFO:
-              pluginContext_->InvokeService(pluginContext_, _OrthancPluginService_LogInfo, message.c_str());
-              break;
+              case LogLevel_INFO:
+                pluginContext_->InvokeService(pluginContext_, _OrthancPluginService_LogInfo, message.c_str());
+                break;
 
-            default:
-              break;
+              default:
+                break;
+            }
           }
         }
       }

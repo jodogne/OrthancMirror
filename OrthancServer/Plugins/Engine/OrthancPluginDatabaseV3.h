@@ -2,8 +2,9 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -25,13 +26,13 @@
 #if ORTHANC_ENABLE_PLUGINS == 1
 
 #include "../../../OrthancFramework/Sources/SharedLibrary.h"
-#include "../../Sources/Database/IDatabaseWrapper.h"
+#include "../../Sources/Database/BaseDatabaseWrapper.h"
 #include "../Include/orthanc/OrthancCDatabasePlugin.h"
 #include "PluginsErrorDictionary.h"
 
 namespace Orthanc
 {
-  class OrthancPluginDatabaseV3 : public IDatabaseWrapper
+  class OrthancPluginDatabaseV3 : public BaseDatabaseWrapper
   {
   private:
     class Transaction;
@@ -41,6 +42,7 @@ namespace Orthanc
     OrthancPluginDatabaseBackendV3  backend_;
     void*                           database_;
     std::string                     serverIdentifier_;
+    IDatabaseWrapper::Capabilities  dbCapabilities_;
 
     void CheckSuccess(OrthancPluginErrorCode code) const;
 
@@ -67,11 +69,6 @@ namespace Orthanc
     {
     }
 
-    virtual bool HasFlushToDisk() const ORTHANC_OVERRIDE
-    {
-      return false;
-    }
-
     virtual IDatabaseWrapper::ITransaction* StartTransaction(TransactionType type,
                                                              IDatabaseListener& listener)
       ORTHANC_OVERRIDE;
@@ -81,13 +78,10 @@ namespace Orthanc
     virtual void Upgrade(unsigned int targetVersion,
                          IStorageArea& storageArea) ORTHANC_OVERRIDE;    
 
-    virtual bool HasRevisionsSupport() const ORTHANC_OVERRIDE;
-
-    virtual bool HasAttachmentCustomDataSupport() const ORTHANC_OVERRIDE
+    virtual const Capabilities GetDatabaseCapabilities() const ORTHANC_OVERRIDE
     {
-      return false; // introduced in V4
+      return dbCapabilities_;
     }
-
   };
 }
 

@@ -2,8 +2,9 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -68,6 +69,7 @@
 #include "PluginsEnumerations.h"
 #include "PluginsJob.h"
 
+#include <boost/math/special_functions/round.hpp>
 #include <boost/regex.hpp>
 #include <dcmtk/dcmdata/dcdict.h>
 #include <dcmtk/dcmdata/dcdicent.h>
@@ -78,6 +80,125 @@
 
 namespace Orthanc
 {
+  class OrthancPlugins::IDicomInstance : public boost::noncopyable
+  {
+  public:
+    virtual ~IDicomInstance()
+    {
+    }
+
+    virtual bool CanBeFreed() const = 0;
+
+    virtual const DicomInstanceToStore& GetInstance() const = 0;
+  };
+
+
+  class OrthancPlugins::DicomInstanceFromCallback : public IDicomInstance
+  {
+  private:
+    const DicomInstanceToStore&  instance_;
+
+  public:
+    explicit DicomInstanceFromCallback(const DicomInstanceToStore& instance) :
+      instance_(instance)
+    {
+    }
+
+    virtual bool CanBeFreed() const ORTHANC_OVERRIDE
+    {
+      return false;
+    }
+
+    virtual const DicomInstanceToStore& GetInstance() const ORTHANC_OVERRIDE
+    {
+      return instance_;
+    };
+  };
+
+
+  class OrthancPlugins::DicomInstanceFromBuffer : public IDicomInstance
+  {
+  private:
+    std::string                            buffer_;
+    std::unique_ptr<DicomInstanceToStore>  instance_;
+
+    void Setup(const void* buffer,
+               size_t size)
+    {
+      buffer_.assign(reinterpret_cast<const char*>(buffer), size);
+
+      instance_.reset(DicomInstanceToStore::CreateFromBuffer(buffer_));
+      instance_->SetOrigin(DicomInstanceOrigin::FromPlugins());
+    }
+
+  public:
+    DicomInstanceFromBuffer(const void* buffer,
+                            size_t size)
+    {
+      Setup(buffer, size);
+    }
+
+    explicit DicomInstanceFromBuffer(const std::string& buffer)
+    {
+      Setup(buffer.empty() ? NULL : buffer.c_str(), buffer.size());
+    }
+
+    virtual bool CanBeFreed() const ORTHANC_OVERRIDE
+    {
+      return true;
+    }
+
+    virtual const DicomInstanceToStore& GetInstance() const ORTHANC_OVERRIDE
+    {
+      return *instance_;
+    };
+  };
+
+
+  class OrthancPlugins::DicomInstanceFromParsed : public IDicomInstance
+  {
+  private:
+    std::unique_ptr<ParsedDicomFile>       parsed_;
+    std::unique_ptr<DicomInstanceToStore>  instance_;
+
+    void Setup(ParsedDicomFile* parsed)
+    {
+      parsed_.reset(parsed);
+      
+      if (parsed_.get() == NULL)
+      {
+        throw OrthancException(ErrorCode_NullPointer);
+      }
+      else
+      {
+        instance_.reset(DicomInstanceToStore::CreateFromParsedDicomFile(*parsed_));
+        instance_->SetOrigin(DicomInstanceOrigin::FromPlugins());
+      }
+    }
+
+  public:
+    explicit DicomInstanceFromParsed(IDicomTranscoder::DicomImage& transcoded)
+    {
+      Setup(transcoded.ReleaseAsParsedDicomFile());
+    }
+
+    explicit DicomInstanceFromParsed(ParsedDicomFile* parsed /* takes ownership */)
+    {
+      Setup(parsed);
+    }
+
+    virtual bool CanBeFreed() const ORTHANC_OVERRIDE
+    {
+      return true;
+    }
+
+    virtual const DicomInstanceToStore& GetInstance() const ORTHANC_OVERRIDE
+    {
+      return *instance_;
+    };
+  };
+
+
   class OrthancPlugins::WebDavCollection : public IWebDavBucket
   {
   private:
@@ -415,99 +536,6 @@ namespace Orthanc
     }
   };
   
-  class OrthancPlugins::IDicomInstance : public boost::noncopyable
-  {
-  public:
-    virtual ~IDicomInstance()
-    {
-    }
-
-    virtual bool CanBeFreed() const = 0;
-
-    virtual const DicomInstanceToStore& GetInstance() const = 0;
-  };
-
-
-  class OrthancPlugins::DicomInstanceFromCallback : public IDicomInstance
-  {
-  private:
-    const DicomInstanceToStore&  instance_;
-
-  public:
-    explicit DicomInstanceFromCallback(const DicomInstanceToStore& instance) :
-      instance_(instance)
-    {
-    }
-
-    virtual bool CanBeFreed() const ORTHANC_OVERRIDE
-    {
-      return false;
-    }
-
-    virtual const DicomInstanceToStore& GetInstance() const ORTHANC_OVERRIDE
-    {
-      return instance_;
-    };
-  };
-
-
-  class OrthancPlugins::DicomInstanceFromBuffer : public IDicomInstance
-  {
-  private:
-    std::string                            buffer_;
-    std::unique_ptr<DicomInstanceToStore>  instance_;
-
-  public:
-    DicomInstanceFromBuffer(const void* buffer,
-                            size_t size)
-    {
-      buffer_.assign(reinterpret_cast<const char*>(buffer), size);
-
-      instance_.reset(DicomInstanceToStore::CreateFromBuffer(buffer_));
-      instance_->SetOrigin(DicomInstanceOrigin::FromPlugins());
-    }
-
-    virtual bool CanBeFreed() const ORTHANC_OVERRIDE
-    {
-      return true;
-    }
-
-    virtual const DicomInstanceToStore& GetInstance() const ORTHANC_OVERRIDE
-    {
-      return *instance_;
-    };
-  };
-
-
-  class OrthancPlugins::DicomInstanceFromTranscoded : public IDicomInstance
-  {
-  private:
-    std::unique_ptr<ParsedDicomFile>       parsed_;
-    std::unique_ptr<DicomInstanceToStore>  instance_;
-
-  public:
-    explicit DicomInstanceFromTranscoded(IDicomTranscoder::DicomImage& transcoded) :
-      parsed_(transcoded.ReleaseAsParsedDicomFile())
-    {
-      if (parsed_.get() == NULL)
-      {
-        throw OrthancException(ErrorCode_InternalError);
-      }
-      
-      instance_.reset(DicomInstanceToStore::CreateFromParsedDicomFile(*parsed_));
-      instance_->SetOrigin(DicomInstanceOrigin::FromPlugins());
-    }
-
-    virtual bool CanBeFreed() const ORTHANC_OVERRIDE
-    {
-      return true;
-    }
-
-    virtual const DicomInstanceToStore& GetInstance() const ORTHANC_OVERRIDE
-    {
-      return *instance_;
-    };
-  };
 
   static void CopyToMemoryBuffer(OrthancPluginMemoryBuffer& target,
                                  const void* data,
@@ -1433,7 +1461,10 @@ namespace Orthanc
   class OrthancPlugins::PImpl
   {
   private:
-    boost::mutex   contextMutex_;
+    boost::mutex              contextMutex_;
+    boost::condition_variable contextCond_;
+    size_t                    contextRefCount_;
+
     ServerContext* context_;
     
   public:
@@ -1801,21 +1832,38 @@ namespace Orthanc
     };
 
 
-    class ServerContextLock
+    // This class ensures that the Context remains valid while being used.
+    // But it does not prevent multiple users to use the context at the same time.
+    // (new behavior in 1.12.2.  In previous version, only one user could use the "locked" context)
+    class ServerContextReference
     {
     private:
-      boost::mutex::scoped_lock  lock_;
       ServerContext* context_;
+      boost::mutex&  mutex_;
+      boost::condition_variable& cond_;
+      size_t& refCount_;
 
     public:
-      explicit ServerContextLock(PImpl& that) : 
-        lock_(that.contextMutex_),
-        context_(that.context_)
+      explicit ServerContextReference(PImpl& that) : 
+        context_(that.context_),
+        mutex_(that.contextMutex_),
+        cond_(that.contextCond_),
+        refCount_(that.contextRefCount_)
       {
         if (context_ == NULL)
         {
           throw OrthancException(ErrorCode_DatabaseNotInitialized);
         }
+
+        boost::mutex::scoped_lock lock(mutex_);
+        refCount_++;
+      }
+
+      ~ServerContextReference()
+      {
+        boost::mutex::scoped_lock lock(mutex_);
+        refCount_--;
+        cond_.notify_one();
       }
 
       ServerContext& GetContext()
@@ -1828,7 +1876,13 @@ namespace Orthanc
 
     void SetServerContext(ServerContext* context)
     {
+      // update only the context while nobody is using it
       boost::mutex::scoped_lock lock(contextMutex_);
+
+      while (contextRefCount_ > 0)
+      {
+        contextCond_.wait(lock);
+      }
       context_ = context;
     }
 
@@ -1889,7 +1943,7 @@ namespace Orthanc
     Properties properties_;
     int argc_;
     char** argv_;
-    std::unique_ptr<OrthancPluginDatabase>  database_;
+    std::unique_ptr<OrthancPluginDatabase>    database_;
     std::unique_ptr<OrthancPluginDatabaseV3>  databaseV3_;  // New in Orthanc 1.9.2
     std::unique_ptr<OrthancPluginDatabaseV4>  databaseV4_;  // New in Orthanc 1.12.0
     PluginsErrorDictionary  dictionary_;
@@ -1897,6 +1951,7 @@ namespace Orthanc
     unsigned int maxDatabaseRetries_;   // New in Orthanc 1.9.2
 
     explicit PImpl(const std::string& databaseServerIdentifier) : 
+      contextRefCount_(0),
       context_(NULL), 
       findCallback_(NULL),
       worklistCallback_(NULL),
@@ -1943,7 +1998,7 @@ namespace Orthanc
       {
         static const char* LUA_CALLBACK = "IncomingWorklistRequestFilter";
 
-        PImpl::ServerContextLock lock(*that_.pimpl_);
+        PImpl::ServerContextReference lock(*that_.pimpl_);
         LuaScripting::Lock lua(lock.GetContext().GetLuaScripting());
 
         if (!lua.GetLua().IsExistingFunction(LUA_CALLBACK))
@@ -2381,7 +2436,8 @@ namespace Orthanc
   OrthancPlugins::OrthancPlugins(const std::string& databaseServerIdentifier)
   {
     /* Sanity check of the compiler */
-    if (sizeof(int32_t) != sizeof(OrthancPluginErrorCode) ||
+    if (sizeof(int32_t) != sizeof(int) ||  // Ensure binary compatibility with Orthanc SDK <= 1.12.1
+        sizeof(int32_t) != sizeof(OrthancPluginErrorCode) ||
         sizeof(int32_t) != sizeof(OrthancPluginHttpMethod) ||
         sizeof(int32_t) != sizeof(_OrthancPluginService) ||
         sizeof(int32_t) != sizeof(_OrthancPluginProperty) ||
@@ -2404,6 +2460,9 @@ namespace Orthanc
         sizeof(int32_t) != sizeof(OrthancPluginDicomWebBinaryMode) ||
         sizeof(int32_t) != sizeof(OrthancPluginStorageCommitmentFailureReason) ||
         sizeof(int32_t) != sizeof(OrthancPluginReceivedInstanceAction) ||
+        sizeof(int32_t) != sizeof(OrthancPluginLoadDicomInstanceMode) ||
+        sizeof(int32_t) != sizeof(OrthancPluginLogLevel) ||
+        sizeof(int32_t) != sizeof(OrthancPluginLogCategory) ||
         static_cast<int>(OrthancPluginDicomToJsonFlags_IncludeBinary) != static_cast<int>(DicomToJsonFlags_IncludeBinary) ||
         static_cast<int>(OrthancPluginDicomToJsonFlags_IncludePrivateTags) != static_cast<int>(DicomToJsonFlags_IncludePrivateTags) ||
         static_cast<int>(OrthancPluginDicomToJsonFlags_IncludeUnknownTags) != static_cast<int>(DicomToJsonFlags_IncludeUnknownTags) ||
@@ -2952,6 +3011,25 @@ namespace Orthanc
   }
 
 
+  void OrthancPlugins::SignalJobEvent(const JobEvent& event)
+  {
+    // job events are actually considered as changes inside plugins -> translate
+    switch (event.GetEventType())
+    {
+      case JobEventType_Submitted:
+        SignalChangeInternal(OrthancPluginChangeType_JobSubmitted, OrthancPluginResourceType_None, event.GetJobId().c_str());
+        break;
+      case JobEventType_Success:
+        SignalChangeInternal(OrthancPluginChangeType_JobSuccess, OrthancPluginResourceType_None, event.GetJobId().c_str());
+        break;
+      case JobEventType_Failure:
+        SignalChangeInternal(OrthancPluginChangeType_JobFailure, OrthancPluginResourceType_None, event.GetJobId().c_str());
+        break;
+      default:
+        throw OrthancException(ErrorCode_InternalError);
+    }
+  }
+
 
   void OrthancPlugins::RegisterRestCallback(const void* parameters,
                                             bool mutualExclusion)
@@ -2998,6 +3076,8 @@ namespace Orthanc
 
   void OrthancPlugins::RegisterOnChangeCallback(const void* parameters)
   {
+    boost::recursive_mutex::scoped_lock lock(pimpl_->changeCallbackMutex_);
+
     const _OrthancPluginOnChangeCallback& p = 
       *reinterpret_cast<const _OrthancPluginOnChangeCallback*>(parameters);
 
@@ -3357,11 +3437,32 @@ namespace Orthanc
     std::string dicom;
 
     {
-      PImpl::ServerContextLock lock(*pimpl_);
+      PImpl::ServerContextReference lock(*pimpl_);
       lock.GetContext().ReadDicom(dicom, p.instanceId);
     }
 
     CopyToMemoryBuffer(*p.target, dicom);
+  }
+
+  static void ThrowOnHttpError(HttpStatus httpStatus)
+  {
+    int intHttpStatus = static_cast<int>(httpStatus);
+    if (intHttpStatus >= 200 && intHttpStatus <= 300)
+    {
+      return; // not an error
+    }
+    else if (intHttpStatus == 401 || intHttpStatus == 403)
+    {
+      throw OrthancException(ErrorCode_Unauthorized);
+    }
+    else if (intHttpStatus == 404)
+    {
+      throw OrthancException(ErrorCode_UnknownResource);
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_BadRequest);
+    }
   }
 
 
@@ -3377,21 +3478,16 @@ namespace Orthanc
     IHttpHandler* handler;
 
     {
-      PImpl::ServerContextLock lock(*pimpl_);
+      PImpl::ServerContextReference lock(*pimpl_);
       handler = &lock.GetContext().GetHttpHandler().RestrictToOrthancRestApi(!afterPlugins);
     }
 
     std::map<std::string, std::string> httpHeaders;
 
     std::string result;
-    if (IHttpHandler::SimpleGet(result, NULL, *handler, RequestOrigin_Plugins, p.uri, httpHeaders) == HttpStatus_200_Ok)
-    {
-      CopyToMemoryBuffer(*p.target, result);
-    }
-    else
-    {
-      throw OrthancException(ErrorCode_UnknownResource);
-    }
+
+    ThrowOnHttpError(IHttpHandler::SimpleGet(result, NULL, *handler, RequestOrigin_Plugins, p.uri, httpHeaders));
+    CopyToMemoryBuffer(*p.target, result);
   }
 
 
@@ -3415,19 +3511,14 @@ namespace Orthanc
     IHttpHandler* handler;
 
     {
-      PImpl::ServerContextLock lock(*pimpl_);
+      PImpl::ServerContextReference lock(*pimpl_);
       handler = &lock.GetContext().GetHttpHandler().RestrictToOrthancRestApi(!p.afterPlugins);
     }
       
     std::string result;
-    if (IHttpHandler::SimpleGet(result, NULL, *handler, RequestOrigin_Plugins, p.uri, headers) == HttpStatus_200_Ok)
-    {
-      CopyToMemoryBuffer(*p.target, result);
-    }
-    else
-    {
-      throw OrthancException(ErrorCode_UnknownResource);
-    }
+
+    ThrowOnHttpError(IHttpHandler::SimpleGet(result, NULL, *handler, RequestOrigin_Plugins, p.uri, headers));
+    CopyToMemoryBuffer(*p.target, result);
   }
 
 
@@ -3444,25 +3535,20 @@ namespace Orthanc
     IHttpHandler* handler;
 
     {
-      PImpl::ServerContextLock lock(*pimpl_);
+      PImpl::ServerContextReference lock(*pimpl_);
       handler = &lock.GetContext().GetHttpHandler().RestrictToOrthancRestApi(!afterPlugins);
     }
       
     std::map<std::string, std::string> httpHeaders;
 
     std::string result;
-    if (isPost ? 
+    
+    ThrowOnHttpError((isPost ? 
         IHttpHandler::SimplePost(result, NULL, *handler, RequestOrigin_Plugins, p.uri,
-                                 p.body, p.bodySize, httpHeaders) == HttpStatus_200_Ok :
+                                 p.body, p.bodySize, httpHeaders) :
         IHttpHandler::SimplePut(result, NULL, *handler, RequestOrigin_Plugins, p.uri,
-                                p.body, p.bodySize, httpHeaders) == HttpStatus_200_Ok)
-    {
-      CopyToMemoryBuffer(*p.target, result);
-    }
-    else
-    {
-      throw OrthancException(ErrorCode_UnknownResource);
-    }
+                                p.body, p.bodySize, httpHeaders)));
+    CopyToMemoryBuffer(*p.target, result);
   }
 
 
@@ -3476,16 +3562,13 @@ namespace Orthanc
     IHttpHandler* handler;
 
     {
-      PImpl::ServerContextLock lock(*pimpl_);
+      PImpl::ServerContextReference lock(*pimpl_);
       handler = &lock.GetContext().GetHttpHandler().RestrictToOrthancRestApi(!afterPlugins);
     }
       
     std::map<std::string, std::string> httpHeaders;
 
-    if (IHttpHandler::SimpleDelete(NULL, *handler, RequestOrigin_Plugins, uri, httpHeaders) != HttpStatus_200_Ok)
-    {
-      throw OrthancException(ErrorCode_UnknownResource);
-    }
+    ThrowOnHttpError(IHttpHandler::SimpleDelete(NULL, *handler, RequestOrigin_Plugins, uri, httpHeaders));
   }
 
 
@@ -3538,7 +3621,7 @@ namespace Orthanc
     std::vector<std::string> result;
 
     {
-      PImpl::ServerContextLock lock(*pimpl_);
+      PImpl::ServerContextReference lock(*pimpl_);
       lock.GetContext().GetIndex().LookupIdentifierExact(result, level, tag, p.argument);
     }
 
@@ -3833,7 +3916,7 @@ namespace Orthanc
 
         std::unique_ptr<ImageAccessor> decoded;
         {
-          PImpl::ServerContextLock lock(*pimpl_);
+          PImpl::ServerContextReference lock(*pimpl_);
           decoded.reset(lock.GetContext().DecodeDicomFrame(instance, p.frameIndex));
         }
         
@@ -3916,7 +3999,7 @@ namespace Orthanc
 
       case OrthancPluginImageFormat_Dicom:
       {
-        PImpl::ServerContextLock lock(*pimpl_);
+        PImpl::ServerContextReference lock(*pimpl_);
         image.reset(lock.GetContext().DecodeDicomFrame(p.data, p.size, 0));
         break;
       }
@@ -4241,7 +4324,7 @@ namespace Orthanc
     IHttpHandler* handler;
 
     {
-      PImpl::ServerContextLock lock(*pimpl_);
+      PImpl::ServerContextReference lock(*pimpl_);
       handler = &lock.GetContext().GetHttpHandler().RestrictToOrthancRestApi(!p.afterPlugins);
     }
     
@@ -4463,7 +4546,7 @@ namespace Orthanc
       std::string content;
 
       {
-        PImpl::ServerContextLock lock(*pimpl_);
+        PImpl::ServerContextReference lock(*pimpl_);
         lock.GetContext().ReadDicom(content, p.instanceId);
       }
 
@@ -4499,7 +4582,7 @@ namespace Orthanc
     {
       // Fix issue 168 (Plugins can't read private tags from the
       // configuration file)
-      // https://bugs.orthanc-server.com/show_bug.cgi?id=168
+      // https://orthanc.uclouvain.be/bugs/show_bug.cgi?id=168
       std::string privateCreator;
 
       if (privateCreatorC == NULL)
@@ -4592,7 +4675,7 @@ namespace Orthanc
 
       case _OrthancPluginService_DecodeDicomImage:
       {
-        PImpl::ServerContextLock lock(*pimpl_);
+        PImpl::ServerContextReference lock(*pimpl_);
         result.reset(lock.GetContext().DecodeDicomFrame(p.constBuffer, p.bufferSize, p.frameIndex));
         break;
       }
@@ -4632,7 +4715,115 @@ namespace Orthanc
     
     reinterpret_cast<PImpl::PluginHttpOutput*>(p.output)->SendMultipartItem(p.answer, p.answerSize, headers);
   }
-      
+
+
+  void OrthancPlugins::ApplyLoadDicomInstance(const _OrthancPluginLoadDicomInstance& params)
+  {
+    std::unique_ptr<IDicomInstance> target;
+    
+    switch (params.mode)
+    {
+      case OrthancPluginLoadDicomInstanceMode_WholeDicom:
+      {
+        std::string buffer;
+
+        {
+          PImpl::ServerContextReference lock(*pimpl_);
+          lock.GetContext().ReadDicom(buffer, params.instanceId);
+        }
+
+        target.reset(new DicomInstanceFromBuffer(buffer));
+        break;
+      }
+        
+      case OrthancPluginLoadDicomInstanceMode_UntilPixelData:
+      case OrthancPluginLoadDicomInstanceMode_EmptyPixelData:
+      {
+        std::unique_ptr<ParsedDicomFile> parsed;
+
+        {
+          std::string buffer;
+        
+          {
+            PImpl::ServerContextReference lock(*pimpl_);
+            if (!lock.GetContext().ReadDicomUntilPixelData(buffer, params.instanceId))
+            {
+              lock.GetContext().ReadDicom(buffer, params.instanceId);
+            }
+          }
+
+          parsed.reset(new ParsedDicomFile(buffer));
+        }
+
+        parsed->RemoveFromPixelData();
+
+        if (params.mode == OrthancPluginLoadDicomInstanceMode_EmptyPixelData)
+        {
+          bool hasPixelData = false;
+          ValueRepresentation pixelDataVR = parsed->GuessPixelDataValueRepresentation();
+
+          {
+            PImpl::ServerContextReference lock(*pimpl_);
+
+            std::string s;
+            int64_t revision;  // unused
+            if (lock.GetContext().GetIndex().LookupMetadata(
+                  s, revision, params.instanceId,
+                  ResourceType_Instance, MetadataType_Instance_PixelDataVR))
+            {
+              hasPixelData = true;
+              if (s == "OB")
+              {
+                pixelDataVR = ValueRepresentation_OtherByte;
+              }
+              else if (s == "OW")
+              {
+                pixelDataVR = ValueRepresentation_OtherWord;
+              }
+              else
+              {
+                LOG(WARNING) << "Corrupted PixelDataVR metadata associated with instance "
+                             << params.instanceId << ": " << s;
+              }
+            }
+            else if (lock.GetContext().GetIndex().LookupMetadata(
+                       s, revision, params.instanceId,
+                       ResourceType_Instance, MetadataType_Instance_PixelDataOffset))
+            {
+              // This file was stored by an older version of Orthanc,
+              // "PixelDataVR" is not available, so use the guess
+              hasPixelData = true;
+            }
+            else
+            {
+              hasPixelData = false;
+            }
+          }
+
+          if (hasPixelData)
+          {
+            parsed->InjectEmptyPixelData(pixelDataVR);
+          }
+        }
+
+        target.reset(new DicomInstanceFromParsed(parsed.release()));
+        break;
+      }
+        
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+    if (target.get() == NULL)
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+    else
+    {
+      *params.target = reinterpret_cast<OrthancPluginDicomInstance*>(target.release());
+    } 
+  }
+  
 
   void OrthancPlugins::DatabaseAnswer(const void* parameters)
   {
@@ -4695,7 +4886,7 @@ namespace Orthanc
     {
       // Fix issue 168 (Plugins can't read private tags from the
       // configuration file)
-      // https://bugs.orthanc-server.com/show_bug.cgi?id=168
+      // https://orthanc.uclouvain.be/bugs/show_bug.cgi?id=168
       std::string privateCreator;
       {
         OrthancConfiguration::ReaderLock lock;
@@ -4903,7 +5094,7 @@ namespace Orthanc
         {
           // TODO - Plugins can only access global properties of their
           // own Orthanc server (no access to the shared global properties)
-          PImpl::ServerContextLock lock(*pimpl_);
+          PImpl::ServerContextReference lock(*pimpl_);
           lock.GetContext().GetIndex().SetGlobalProperty(static_cast<GlobalProperty>(p.property),
                                                          false /* not shared */, p.value);
           return true;
@@ -4920,7 +5111,7 @@ namespace Orthanc
         {
           // TODO - Plugins can only access global properties of their
           // own Orthanc server (no access to the shared global properties)
-          PImpl::ServerContextLock lock(*pimpl_);
+          PImpl::ServerContextReference lock(*pimpl_);
           result = lock.GetContext().GetIndex().GetGlobalProperty(static_cast<GlobalProperty>(p.property),
                                                                   false /* not shared */, p.value);
         }
@@ -5362,6 +5553,14 @@ namespace Orthanc
         return true;
       }
 
+      case _OrthancPluginService_CreateJob2:
+      {
+        const _OrthancPluginCreateJob2& p =
+          *reinterpret_cast<const _OrthancPluginCreateJob2*>(parameters);
+        *(p.target) = reinterpret_cast<OrthancPluginJob*>(new PluginsJob(p));
+        return true;
+      }
+
       case _OrthancPluginService_FreeJob:
       {
         const _OrthancPluginFreeJob& p =
@@ -5382,7 +5581,7 @@ namespace Orthanc
 
         std::string uuid;
 
-        PImpl::ServerContextLock lock(*pimpl_);
+        PImpl::ServerContextReference lock(*pimpl_);
         lock.GetContext().GetJobsEngine().GetRegistry().Submit
           (uuid, reinterpret_cast<PluginsJob*>(p.job), p.priority);
         
@@ -5404,24 +5603,22 @@ namespace Orthanc
         const _OrthancPluginSetMetricsValue& p =
           *reinterpret_cast<const _OrthancPluginSetMetricsValue*>(parameters);
 
-        MetricsType type;
-        switch (p.type)
         {
-          case OrthancPluginMetricsType_Default:
-            type = MetricsType_Default;
-            break;
-
-          case OrthancPluginMetricsType_Timer:
-            type = MetricsType_MaxOver10Seconds;
-            break;
-
-          default:
-            throw OrthancException(ErrorCode_ParameterOutOfRange);
+          PImpl::ServerContextReference lock(*pimpl_);
+          lock.GetContext().GetMetricsRegistry().SetFloatValue(p.name, p.value, Plugins::Convert(p.type));
         }
-        
+
+        return true;
+      }
+
+      case _OrthancPluginService_SetMetricsIntegerValue:
+      {
+        const _OrthancPluginSetMetricsIntegerValue& p =
+          *reinterpret_cast<const _OrthancPluginSetMetricsIntegerValue*>(parameters);
+
         {
-          PImpl::ServerContextLock lock(*pimpl_);
-          lock.GetContext().GetMetricsRegistry().SetValue(p.name, p.value, type);
+          PImpl::ServerContextReference lock(*pimpl_);
+          lock.GetContext().GetMetricsRegistry().SetIntegerValue(p.name, p.value, Plugins::Convert(p.type));
         }
 
         return true;
@@ -5512,7 +5709,7 @@ namespace Orthanc
           bool success;
           
           {
-            PImpl::ServerContextLock lock(*pimpl_);
+            PImpl::ServerContextReference lock(*pimpl_);
             success = lock.GetContext().Transcode(
               transcoded, source, syntaxes, true /* allow new sop */);
           }
@@ -5520,7 +5717,7 @@ namespace Orthanc
           if (success)
           {
             *(p.target) = reinterpret_cast<OrthancPluginDicomInstance*>(
-              new DicomInstanceFromTranscoded(transcoded));
+              new DicomInstanceFromParsed(transcoded));
             return true;
           }
           else
@@ -5581,6 +5778,20 @@ namespace Orthanc
       case _OrthancPluginService_RegisterIncomingHttpRequestFilter2:
         RegisterIncomingHttpRequestFilter2(parameters);
         return true;
+
+      case _OrthancPluginService_LoadDicomInstance:
+      {
+        const _OrthancPluginLoadDicomInstance& p =
+          *reinterpret_cast<const _OrthancPluginLoadDicomInstance*>(parameters);
+        ApplyLoadDicomInstance(p);
+        return true;
+      }
+
+      case _OrthancPluginService_SetCurrentThreadName:
+      {
+        Logging::SetCurrentThreadName(std::string(reinterpret_cast<const char*>(parameters)));
+        return true;
+      }
 
       default:
         return false;
@@ -5741,7 +5952,7 @@ namespace Orthanc
 
       case _OrthancPluginService_RegisterDatabaseBackend:
       {
-        LOG(WARNING) << "Performance warning: Plugin has registered a custom database back-end with an old API";
+        LOG(WARNING) << "Performance warning: Plugin has registered a custom database back-end with an old API (version 1)";
         LOG(WARNING) << "The database backend has *no* support for revisions of metadata and attachments";
 
         const _OrthancPluginRegisterDatabaseBackend& p =
@@ -5766,7 +5977,7 @@ namespace Orthanc
 
       case _OrthancPluginService_RegisterDatabaseBackendV2:
       {
-        LOG(WARNING) << "Performance warning: Plugin has registered a custom database back-end with an old API";
+        LOG(WARNING) << "Performance warning: Plugin has registered a custom database back-end with an old API (version 2)";
         LOG(WARNING) << "The database backend has *no* support for revisions of metadata and attachments";
 
         const _OrthancPluginRegisterDatabaseBackendV2& p =
@@ -5792,7 +6003,7 @@ namespace Orthanc
 
       case _OrthancPluginService_RegisterDatabaseBackendV3:
       {
-        CLOG(INFO, PLUGINS) << "Plugin has registered a custom database back-end (v3)";
+        LOG(WARNING) << "Performance warning: Plugin has registered a custom database back-end with an old API (version 3)";
 
         const _OrthancPluginRegisterDatabaseBackendV3& p =
           *reinterpret_cast<const _OrthancPluginRegisterDatabaseBackendV3*>(parameters);
@@ -5813,7 +6024,6 @@ namespace Orthanc
         return true;
       }
 
-
       case _OrthancPluginService_RegisterDatabaseBackendV4:
       {
         CLOG(INFO, PLUGINS) << "Plugin has registered a custom database back-end (v4)";
@@ -5825,8 +6035,7 @@ namespace Orthanc
             pimpl_->databaseV3_.get() == NULL &&
             pimpl_->databaseV4_.get() == NULL)
         {
-          pimpl_->databaseV4_.reset(new OrthancPluginDatabaseV4(plugin, GetErrorDictionary(), p.backend,
-                                                                p.backendSize, p.database, pimpl_->databaseServerIdentifier_));
+          pimpl_->databaseV4_.reset(new OrthancPluginDatabaseV4(plugin, GetErrorDictionary(), p, pimpl_->databaseServerIdentifier_));
           pimpl_->maxDatabaseRetries_ = p.maxDatabaseRetries;
         }
         else

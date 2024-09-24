@@ -1,0 +1,47 @@
+diff -urEb openssl-3.1.4.orig/crypto/riscvcap.c openssl-3.1.4/crypto/riscvcap.c
+--- openssl-3.1.4.orig/crypto/riscvcap.c	2024-01-24 16:58:48.308108757 +0100
++++ openssl-3.1.4/crypto/riscvcap.c	2024-01-24 17:01:04.114914015 +0100
+@@ -37,7 +37,8 @@
+ 
+ static void strtoupper(char *str)
+ {
+-    for (char *x = str; *x; ++x)
++    char* x;
++    for (x = str; *x; ++x)
+         *x = toupper(*x);
+ }
+ 
+@@ -51,12 +52,13 @@
+ {
+     char envstrupper[BUFLEN];
+     char buf[BUFLEN];
++    size_t i;
+ 
+     /* Convert env str to all uppercase */
+     OPENSSL_strlcpy(envstrupper, envstr, sizeof(envstrupper));
+     strtoupper(envstrupper);
+ 
+-    for (size_t i = 0; i < kRISCVNumCaps; ++i) {
++    for (i = 0; i < kRISCVNumCaps; ++i) {
+         /* Prefix capability with underscore in preparation for search */
+         BIO_snprintf(buf, BUFLEN, "_%s", RISCV_capabilities[i].name);
+         if (strstr(envstrupper, buf) != NULL) {
+diff -urEb openssl-3.1.4.orig/providers/implementations/rands/seeding/rand_unix.c openssl-3.1.4/providers/implementations/rands/seeding/rand_unix.c
+--- openssl-3.1.4.orig/providers/implementations/rands/seeding/rand_unix.c	2024-01-24 16:58:48.332108547 +0100
++++ openssl-3.1.4/providers/implementations/rands/seeding/rand_unix.c	2024-01-24 17:01:30.182683539 +0100
+@@ -452,6 +452,7 @@
+              * system call and this should always succeed which renders
+              * this alternative but essentially identical source moot.
+              */
++#if !defined(__LSB_VERSION__)  // "syscall()" is not available in LSB
+             if (uname(&un) == 0) {
+                 kernel[0] = atoi(un.release);
+                 p = strchr(un.release, '.');
+@@ -462,6 +463,7 @@
+                     return 0;
+                 }
+             }
++#endif
+             /* Open /dev/random and wait for it to be readable */
+             if ((fd = open(DEVRANDOM_WAIT, O_RDONLY)) != -1) {
+                 if (DEVRANDM_WAIT_USE_SELECT && fd < FD_SETSIZE) {

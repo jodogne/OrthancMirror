@@ -2,8 +2,9 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -58,8 +59,10 @@ static const char* const KEY_DICOM_TLS_PRIVATE_KEY = "DicomTlsPrivateKey";
 static const char* const KEY_DICOM_TLS_ENABLED = "DicomTlsEnabled";
 static const char* const KEY_DICOM_TLS_CERTIFICATE = "DicomTlsCertificate";
 static const char* const KEY_DICOM_TLS_TRUSTED_CERTIFICATES = "DicomTlsTrustedCertificates";
-static const char* const KEY_MAXIMUM_PDU_LENGTH = "MaximumPduLength";
 static const char* const KEY_DICOM_TLS_REMOTE_CERTIFICATE_REQUIRED = "DicomTlsRemoteCertificateRequired";
+static const char* const KEY_DICOM_TLS_MINIMUM_PROTOCOL_VERSION = "DicomTlsMinimumProtocolVersion";
+static const char* const KEY_DICOM_TLS_ACCEPTED_CIPHERS = "DicomTlsCiphersAccepted";
+static const char* const KEY_MAXIMUM_PDU_LENGTH = "MaximumPduLength";
 
 
 class OrthancStoreRequestHandler : public IStoreRequestHandler
@@ -682,7 +685,7 @@ static void PrintHelp(const char* path)
     << "case of a directory, all the JSON files it contains will be merged. " << std::endl
     << "If no configuration path is given on the command line, a set of default " << std::endl
     << "parameters is used. Please refer to the Orthanc Book for the full " << std::endl
-    << "instructions about how to use Orthanc <http://book.orthanc-server.com/>." << std::endl
+    << "instructions about how to use Orthanc <https://orthanc.uclouvain.be/book/>." << std::endl
     << std::endl
     << "Pay attention to the fact that the order of the options is important." << std::endl
     << "Options are read left to right. In particular, options such as \"--verbose\" can " << std::endl
@@ -742,8 +745,9 @@ static void PrintVersion(const char* path)
   std::cout
     << path << " " << ORTHANC_VERSION << std::endl
     << "Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics Department, University Hospital of Liege (Belgium)" << std::endl
-    << "Copyright (C) 2017-2022 Osimis S.A. (Belgium)" << std::endl
-    << "Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain (Belgium)" << std::endl
+    << "Copyright (C) 2017-2023 Osimis S.A. (Belgium)" << std::endl
+    << "Copyright (C) 2024-2024 Orthanc Team SRL (Belgium)" << std::endl
+    << "Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain (Belgium)" << std::endl
     << "Licensing GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>." << std::endl
     << "This is free software: you are free to change and redistribute it." << std::endl
     << "There is NO WARRANTY, to the extent permitted by law." << std::endl
@@ -819,6 +823,8 @@ static void PrintErrors(const char* path)
     PrintErrorCode(ErrorCode_DatabaseCannotSerialize, "Database could not serialize access due to concurrent update, the transaction should be retried");
     PrintErrorCode(ErrorCode_Revision, "A bad revision number was provided, which might indicate conflict between multiple writers");
     PrintErrorCode(ErrorCode_MainDicomTagsMultiplyDefined, "A main DICOM Tag has been defined multiple times for the same resource level");
+    PrintErrorCode(ErrorCode_ForbiddenAccess, "Access to a resource is forbidden");
+    PrintErrorCode(ErrorCode_DuplicateResource, "Duplicate resource");
     PrintErrorCode(ErrorCode_SQLiteNotOpened, "SQLite: The database is not opened");
     PrintErrorCode(ErrorCode_SQLiteAlreadyOpened, "SQLite: Connection is already open");
     PrintErrorCode(ErrorCode_SQLiteCannotOpen, "SQLite: Unable to open the database");
@@ -1029,7 +1035,8 @@ static bool StartHttpServer(ServerContext& context,
       httpServer.SetPortNumber(lock.GetConfiguration().GetUnsignedIntegerParameter("HttpPort", 8042));
       httpServer.SetRemoteAccessAllowed(lock.GetConfiguration().GetBooleanParameter("RemoteAccessAllowed", false));
       httpServer.SetKeepAliveEnabled(lock.GetConfiguration().GetBooleanParameter("KeepAlive", defaultKeepAlive));
-      httpServer.SetHttpCompressionEnabled(lock.GetConfiguration().GetBooleanParameter("HttpCompressionEnabled", true));
+      httpServer.SetKeepAliveTimeout(lock.GetConfiguration().GetUnsignedIntegerParameter("KeepAliveTimeout", 1));
+      httpServer.SetHttpCompressionEnabled(lock.GetConfiguration().GetBooleanParameter("HttpCompressionEnabled", false));
       httpServer.SetTcpNoDelay(lock.GetConfiguration().GetBooleanParameter("TcpNoDelay", true));
       httpServer.SetRequestTimeout(lock.GetConfiguration().GetUnsignedIntegerParameter("HttpRequestTimeout", 30));
 
@@ -1103,10 +1110,10 @@ static bool StartHttpServer(ServerContext& context,
         httpServer.SetSslEnabled(true);
         httpServer.SetSslCertificate(certificate.c_str());
         
-        // Default to TLS 1.2 as SSL minimum
+        // Default to TLS 1.2+1.3 as SSL minimum
         // See https://github.com/civetweb/civetweb/blob/master/docs/UserManual.md "ssl_protocol_version" for mapping
-        static const unsigned int TLS_1_2 = 4;
-        unsigned int minimumVersion = lock.GetConfiguration().GetUnsignedIntegerParameter("SslMinimumProtocolVersion", TLS_1_2);
+        static const unsigned int TLS_1_2_AND_1_3 = 4;
+        unsigned int minimumVersion = lock.GetConfiguration().GetUnsignedIntegerParameter("SslMinimumProtocolVersion", TLS_1_2_AND_1_3);
         httpServer.SetSslMinimumVersion(minimumVersion);
 
         static const char* SSL_CIPHERS_ACCEPTED = "SslCiphersAccepted";
@@ -1169,6 +1176,18 @@ static bool StartHttpServer(ServerContext& context,
       {
         context.SetExecuteLuaEnabled(false);
         LOG(WARNING) << "Remote LUA script execution is disabled";
+      }
+
+      if (lock.GetConfiguration().GetBooleanParameter("RestApiWriteToFileSystemEnabled", false))
+      {
+        context.SetRestApiWriteToFileSystemEnabled(true);
+        LOG(WARNING) << "====> Your REST API can write to the FileSystem.  Review your configuration option \"RestApiWriteToFileSystemEnabled\". "
+                     << "Your setup is POSSIBLY INSECURE <====";
+      }
+      else
+      {
+        context.SetRestApiWriteToFileSystemEnabled(false);
+        LOG(WARNING) << "REST API cannot write to the file system because the \"RestApiWriteToFileSystemEnabled\" configuration is set to false.  The URI /instances/../export is disabled.  This is the most secure configuration.";
       }
 
       if (lock.GetConfiguration().GetBooleanParameter("WebDavEnabled", true))
@@ -1262,6 +1281,12 @@ static bool StartDicomServer(ServerContext& context,
           lock.GetConfiguration().GetStringParameter(KEY_DICOM_TLS_CERTIFICATE, ""));
         dicomServer.SetTrustedCertificatesPath(
           lock.GetConfiguration().GetStringParameter(KEY_DICOM_TLS_TRUSTED_CERTIFICATES, ""));
+        dicomServer.SetMinimumTlsVersion(
+          lock.GetConfiguration().GetUnsignedIntegerParameter(KEY_DICOM_TLS_MINIMUM_PROTOCOL_VERSION, 0));
+        
+        std::set<std::string> acceptedCiphers;
+        lock.GetConfiguration().GetSetOfStringsParameter(acceptedCiphers, KEY_DICOM_TLS_ACCEPTED_CIPHERS);
+        dicomServer.SetAcceptedCiphers(acceptedCiphers);
       }
 
       dicomServer.SetMaximumPduLength(lock.GetConfiguration().GetUnsignedIntegerParameter(KEY_MAXIMUM_PDU_LENGTH, 16384));
@@ -1417,7 +1442,7 @@ static void UpgradeDatabase(IDatabaseWrapper& database,
   catch (OrthancException&)
   {
     LOG(ERROR) << "Unable to run the automated upgrade, please use the replication instructions: "
-               << "http://book.orthanc-server.com/users/replication.html";
+               << "https://orthanc.uclouvain.be/book/users/replication.html";
     throw;
   }
     
@@ -1592,6 +1617,7 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
       lock.GetConfiguration().LoadModalitiesAndPeers();
     }
 
+    // this function exits only when Orthanc stops or resets
     return ConfigureHttpHandler(context, plugins, loadJobsFromDatabase);
   }
 }
@@ -1628,7 +1654,7 @@ static bool ConfigureDatabase(IDatabaseWrapper& database,
     
     if (lock.GetConfiguration().GetBooleanParameter(CHECK_REVISIONS, false))
     {
-      if (database.HasRevisionsSupport())
+      if (database.GetDatabaseCapabilities().HasRevisionsSupport())
       {
         LOG(INFO) << "Handling of revisions is enabled, and the custom database back-end *has* "
                   << "support for revisions of metadata and attachments";
@@ -1651,8 +1677,19 @@ static bool ConfigureDatabase(IDatabaseWrapper& database,
     }
   }
 
-  bool success = ConfigureServerContext
-    (database, storageArea, plugins, loadJobsFromDatabase);
+  if (!database.GetDatabaseCapabilities().HasLabelsSupport())
+  {
+    LOG(WARNING) << "The custom database back-end has *no* support for labels";
+  }
+
+  if (database.GetDatabaseCapabilities().HasMeasureLatency())
+  {
+    uint64_t latency = database.MeasureLatency();
+    LOG(WARNING) << "The DB latency is " << latency << " µs";
+  }
+
+
+  bool success = ConfigureServerContext(database, storageArea, plugins, loadJobsFromDatabase);
 
   database.Close();
 
@@ -1761,6 +1798,7 @@ static bool DisplayPerformanceWarning()
 int main(int argc, char* argv[]) 
 {
   Logging::Initialize();
+  Logging::SetCurrentThreadName("MAIN");
   SetGlobalVerbosity(Verbosity_Default);
 
   bool upgradeDatabase = false;
@@ -1814,6 +1852,10 @@ int main(int argc, char* argv[])
     else if (argument == "--verbose")
     {
       SetGlobalVerbosity(Verbosity_Verbose);
+    }
+    else if (argument == "--logs-no-thread")
+    {
+      Logging::EnableThreadNames(false);
     }
     else if (argument == "--trace")
     {
@@ -1922,15 +1964,15 @@ int main(int argc, char* argv[])
         openapi["info"]["version"] = ORTHANC_VERSION;
         openapi["info"]["title"] = "Orthanc API";
         openapi["info"]["description"] =
-          "This is the full documentation of the [REST API](https://book.orthanc-server.com/users/rest.html) "
+          "This is the full documentation of the [REST API](https://orthanc.uclouvain.be/book/users/rest.html) "
           "of Orthanc.<p>This reference is automatically generated from the source code of Orthanc. A "
-          "[shorter cheat sheet](https://book.orthanc-server.com/users/rest-cheatsheet.html) is part of "
+          "[shorter cheat sheet](https://orthanc.uclouvain.be/book/users/rest-cheatsheet.html) is part of "
           "the Orthanc Book.<p>An earlier, manually crafted version from August 2019, is [still available]"
           "(2019-08-orthanc-openapi.html), but is not up-to-date anymore ([source]"
           "(https://groups.google.com/g/orthanc-users/c/NUiJTEICSl8/m/xKeqMrbqAAAJ)).";
 
         Json::Value server = Json::objectValue;
-        server["url"] = "https://demo.orthanc-server.com/";
+        server["url"] = "https://orthanc.uclouvain.be/demo/";
         openapi["servers"].append(server);
         
         std::string s;
@@ -1966,7 +2008,7 @@ int main(int argc, char* argv[])
           MemoryStorageArea inMemoryStorage;
           ServerContext context(inMemoryDatabase, inMemoryStorage, true /* unit testing */, 0 /* max completed jobs */);
           OrthancRestApi restApi(context, false /* no Orthanc Explorer */);
-          restApi.GenerateReStructuredTextCheatSheet(cheatsheet, "https://api.orthanc-server.com/index.html");
+          restApi.GenerateReStructuredTextCheatSheet(cheatsheet, "https://orthanc.uclouvain.be/api/index.html");
           context.Stop();
         }
 

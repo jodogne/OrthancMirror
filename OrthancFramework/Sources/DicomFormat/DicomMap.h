@@ -2,8 +2,9 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -31,10 +32,6 @@
 #include <map>
 #include <json/value.h>
 
-#if ORTHANC_BUILD_UNIT_TESTS == 1
-#  include <gtest/gtest_prod.h>
-#endif
-
 namespace Orthanc
 {
   class ORTHANC_PUBLIC DicomMap : public boost::noncopyable
@@ -48,10 +45,6 @@ namespace Orthanc
     friend class FromDcmtkBridge;
     friend class ParsedDicomFile;
 
-#if ORTHANC_BUILD_UNIT_TESTS == 1
-    friend class DicomMapMainTagsTests;
-#endif
-
     Content content_;
 
     // Warning: This takes the ownership of "value"
@@ -59,11 +52,10 @@ namespace Orthanc
                           uint16_t element, 
                           DicomValue* value);
 
-    // used for unit tests only
-    static void ResetDefaultMainDicomTags();
-
   public:
     ~DicomMap();
+
+    static void ResetDefaultMainDicomTags();
 
     size_t GetSize() const;
     
@@ -94,8 +86,8 @@ namespace Orthanc
                   const std::string& str,
                   bool isBinary);
 
-    void SetValue(const DicomTag& tag,
-                  const Json::Value& value);
+    void SetSequenceValue(const DicomTag& tag,
+                          const Json::Value& value);
 
     bool HasTag(uint16_t group, uint16_t element) const;
 
@@ -154,14 +146,15 @@ namespace Orthanc
 
     static bool HasComputedTags(const std::set<DicomTag>& tags);
 
-    static const std::set<DicomTag>& GetMainDicomTags(ResourceType level);
+    static void GetMainDicomTags(std::set<DicomTag>& target,
+                                 ResourceType level);
 
     // returns a string uniquely identifying the list of main dicom tags for a level
-    static const std::string& GetMainDicomTagsSignature(ResourceType level);
+    static std::string GetMainDicomTagsSignature(ResourceType level);
 
-    static const std::string& GetDefaultMainDicomTagsSignature(ResourceType level);
+    static std::string GetDefaultMainDicomTagsSignature(ResourceType level);
 
-    static const std::set<DicomTag>& GetAllMainDicomTags();
+    static void GetAllMainDicomTags(std::set<DicomTag>& target);
 
     // adds a main dicom tag to the definition of main dicom tags for each level.
     // this should be done once at startup before you use MainDicomTags methods
@@ -237,6 +230,8 @@ namespace Orthanc
 
     void DumpMainDicomTags(Json::Value& target,
                            ResourceType level) const;
+
+    ValueRepresentation GuessPixelDataValueRepresentation(DicomTransferSyntax transferSyntax) const;
 
     void Print(FILE* fp) const;  // For debugging only
   };

@@ -2,8 +2,9 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -23,6 +24,7 @@
 
 #include "../PrecompiledHeaders.h"
 #include "FilesystemStorage.h"
+#include <boost/thread.hpp>
 
 // http://stackoverflow.com/questions/1576272/storing-large-number-of-files-in-file-system
 // http://stackoverflow.com/questions/446358/storing-a-large-number-of-images
@@ -122,8 +124,9 @@ namespace Orthanc
                                  size_t size,
                                  FileContentType type)
   {
+    Toolbox::ElapsedTimer timer;
     LOG(INFO) << "Creating attachment \"" << uuid << "\" of \"" << GetDescriptionInternal(type) 
-              << "\" type (size: " << (size / (1024 * 1024) + 1) << "MB)";
+              << "\" type";
 
     boost::filesystem::path path;
     
@@ -133,36 +136,68 @@ namespace Orthanc
     {
       // Extremely unlikely case: This Uuid has already been created
       // in the past.
-      throw OrthancException(ErrorCode_InternalError);
+      throw OrthancException(ErrorCode_InternalError, "This file UUID already exists");
     }
 
-    if (boost::filesystem::exists(path.parent_path()))
+    // In very unlikely cases, a thread could be deleting a
+    // directory while another thread needs it -> introduce 3 retries at 1 ms interval
+    int retryCount = 0;
+    const int maxRetryCount = 3;
+    
+    while (retryCount < maxRetryCount)
     {
-      if (!boost::filesystem::is_directory(path.parent_path()))
+      retryCount++;
+      if (retryCount > 1)
       {
-        throw OrthancException(ErrorCode_DirectoryOverFile);
+        boost::this_thread::sleep(boost::posix_time::milliseconds(2 * retryCount + (rand() % 10)));
+        LOG(INFO) << "Retrying to create attachment \"" << uuid << "\" of \"" << GetDescriptionInternal(type) 
+                  << "\" type";
       }
-    }
-    else
-    {
-      if (!boost::filesystem::create_directories(path.parent_path()))
-      {
-        throw OrthancException(ErrorCode_FileStorageCannotWrite);
-      }
-    }
 
-    SystemToolbox::WriteFile(content, size, path.string(), fsyncOnWrite_);
+      try 
+      {
+        boost::filesystem::create_directories(path.parent_path());  // the function ensures that the directory exists or throws
+      }
+      catch (boost::filesystem::filesystem_error& er)
+      {
+        if (er.code() == boost::system::errc::file_exists  // the last element of the parent_path is a file
+          || er.code() == boost::system::errc::not_a_directory) // one of the element of the parent_path is not a directory 
+        {
+          throw OrthancException(ErrorCode_DirectoryOverFile, "One of the element of the path is a file");  // no need to retry this error
+        }
+
+        // ignore other errors and retry
+      }
+
+      try 
+      {
+        SystemToolbox::WriteFile(content, size, path.string(), fsyncOnWrite_);
+        
+        LOG(INFO) << "Created attachment \"" << uuid << "\" (" << timer.GetHumanTransferSpeed(true, size) << ")";
+        return;
+      }
+      catch (OrthancException& ex)
+      {
+        if (retryCount >= maxRetryCount)
+        {
+          throw ex;
+        }
+      }
+    }
   }
 
 
   IMemoryBuffer* FilesystemStorage::Read(const std::string& uuid,
                                          FileContentType type)
   {
+    Toolbox::ElapsedTimer timer;
     LOG(INFO) << "Reading attachment \"" << uuid << "\" of \"" << GetDescriptionInternal(type) 
               << "\" content type";
 
     std::string content;
     SystemToolbox::ReadFile(content, GetPath(uuid).string());
+
+    LOG(INFO) << "Read attachment \"" << uuid << "\" (" << timer.GetHumanTransferSpeed(true, content.size()) << ")";
 
     return StringMemoryBuffer::CreateFromSwap(content);
   }
@@ -173,6 +208,7 @@ namespace Orthanc
                                               uint64_t start /* inclusive */,
                                               uint64_t end /* exclusive */)
   {
+    Toolbox::ElapsedTimer timer;
     LOG(INFO) << "Reading attachment \"" << uuid << "\" of \"" << GetDescriptionInternal(type) 
               << "\" content type (range from " << start << " to " << end << ")";
 
@@ -180,6 +216,7 @@ namespace Orthanc
     SystemToolbox::ReadFileRange(
       content, GetPath(uuid).string(), start, end, true /* throw if overflow */);
 
+    LOG(INFO) << "Read range of attachment \"" << uuid << "\" (" << timer.GetHumanTransferSpeed(true, content.size()) << ")";
     return StringMemoryBuffer::CreateFromSwap(content);
   }
 

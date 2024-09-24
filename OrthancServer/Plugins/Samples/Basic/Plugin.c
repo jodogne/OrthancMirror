@@ -2,8 +2,9 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -19,6 +20,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  **/
 
+
+#define PLUGIN_NAME "sample"
 
 #include <orthanc/OrthancCPlugin.h>
 
@@ -282,6 +285,63 @@ void DicomWebBinaryCallback(
 }
 
 
+OrthancPluginErrorCode CallbackDicomWeb(OrthancPluginRestOutput* output,
+                                        const char* url,
+                                        const OrthancPluginHttpRequest* request)
+{
+  if (request->method != OrthancPluginHttpMethod_Get)
+  {
+    OrthancPluginSendMethodNotAllowed(context, output, "GET");
+  }
+  else
+  {
+    OrthancPluginLoadDicomInstanceMode mode = OrthancPluginLoadDicomInstanceMode_WholeDicom;
+    OrthancPluginDicomInstance* instance;
+    char* json;
+
+    if (request->getCount == 1)
+    {
+      if (strcmp(request->getKeys[0], "until-pixel-data") == 0)
+      {
+        mode = OrthancPluginLoadDicomInstanceMode_UntilPixelData;
+      }
+      else if (strcmp(request->getKeys[0], "empty-pixel-data") == 0)
+      {
+        mode = OrthancPluginLoadDicomInstanceMode_EmptyPixelData;
+      }
+      else
+      {
+        return OrthancPluginErrorCode_ParameterOutOfRange;
+      }
+    }
+    
+    instance = OrthancPluginLoadDicomInstance(context, request->groups[0], mode);
+    if (instance == NULL)
+    {
+      return OrthancPluginErrorCode_UnknownResource;
+    }
+
+    json = OrthancPluginEncodeDicomWebXml(context,
+                                          OrthancPluginGetInstanceData(context, instance),
+                                          OrthancPluginGetInstanceSize(context, instance),
+                                          DicomWebBinaryCallback);
+    OrthancPluginFreeDicomInstance(context, instance);
+
+    if (json != NULL)
+    {
+      OrthancPluginAnswerBuffer(context, output, json, strlen(json), "application/json");
+      OrthancPluginFreeString(context, json);
+    }
+    else
+    {
+      return OrthancPluginErrorCode_InternalError;
+    }
+  }
+
+  return OrthancPluginErrorCode_Success;
+}
+
+
 OrthancPluginErrorCode OnStoredCallback(const OrthancPluginDicomInstance* instance,
                                         const char* instanceId)
 {
@@ -511,6 +571,7 @@ ORTHANC_PLUGINS_API int32_t OrthancPluginInitialize(OrthancPluginContext* c)
   OrthancPluginRegisterRestCallback(context, "/forward/(built-in)(/.+)", Callback5);
   OrthancPluginRegisterRestCallback(context, "/forward/(plugins)(/.+)", Callback5);
   OrthancPluginRegisterRestCallback(context, "/plugin/create", CallbackCreateDicom);
+  OrthancPluginRegisterRestCallback(context, "/instances/([^/]+)/dicom-web", CallbackDicomWeb);
 
   OrthancPluginRegisterOnStoredInstanceCallback(context, OnStoredCallback);
   OrthancPluginRegisterOnChangeCallback(context, OnChangeCallback);
@@ -520,9 +581,9 @@ ORTHANC_PLUGINS_API int32_t OrthancPluginInitialize(OrthancPluginContext* c)
     
   
   /* Declare several properties of the plugin */
-  OrthancPluginSetRootUri(context, "/plugin/hello");
-  OrthancPluginSetDescription(context, "This is the description of the sample plugin that can be seen in Orthanc Explorer.");
-  OrthancPluginExtendOrthancExplorer(context, "alert('Hello Orthanc! From sample plugin with love.');");
+  OrthancPluginSetRootUri2(context, PLUGIN_NAME, "/plugin/hello");
+  OrthancPluginSetDescription2(context, PLUGIN_NAME, "This is the description of the sample plugin that can be seen in Orthanc Explorer.");
+  OrthancPluginExtendOrthancExplorer2(context, PLUGIN_NAME, "alert('Hello Orthanc! From sample plugin with love.');");
 
   customError = OrthancPluginRegisterErrorCode(context, 4, 402, "Hello world");
   
@@ -544,7 +605,7 @@ ORTHANC_PLUGINS_API void OrthancPluginFinalize()
 
 ORTHANC_PLUGINS_API const char* OrthancPluginGetName()
 {
-  return "sample";
+  return PLUGIN_NAME;
 }
 
 

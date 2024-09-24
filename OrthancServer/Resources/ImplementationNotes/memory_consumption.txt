@@ -1,0 +1,149 @@
+In Orthanc 1.11.3, we have introduced a Housekeeper thread that 
+tries to give back unused memory back to the system.  This is implemented 
+by calling malloc_trim every 30s (note: on 1.11.3 and 1.12.0, the interval
+was 100ms which caused high idle CPU load).
+
+
+Here is how we validated the effect of this new feature:
+-------------------------------------------------------
+
+We compared the behaviour of 2 osimis/orthanc Docker images from the mainline
+on Feb 1st 2023.  One image without the call to malloc_trim and the other with
+this call.
+
+
+1st test: unconstrained Docker containers
+.........................................
+
+5 large studies are uploaded to each instance of Orthanc (around 1GB in total).
+A script triggers anonymization of these studies as quick as possible.
+We compare the memory used by the containers after 2 minutes of execution 
+(using `docker stats`):
+- without malloc_trim:                   1500 MB
+- with malloc_trim:                       410 MB
+
+
+2nd test: memory constrained Docker containers
+..............................................
+
+Each Orthanc container is limited to 400MB (through the docker-compose configuration
+`mem_limit: 400m`)
+5 large studies are uploaded to each instance of Orthanc (around 1GB in total).
+Each study is anonymized manually, one by one and then, we repeat the operation.
+We compare the memory used by the containers after each anonymization 
+(using `docker stats`):
+            
+# study            without malloc_trim         with_malloc_trim
+0                       ~   50 MB                     ~   50 MB
+1                       ~  140 MB                     ~  140 MB
+2                       ~  390 MB                     ~  340 MB
+3                       ~  398 MB                     ~  345 MB
+4                  out-of-memory crash                ~  345 MB
+5..20                                                 ~  380 MB (stable)
+
+
+3rd test: memory constrained Docker containers
+..............................................
+
+In this last test, we lowered the memory allocation to 300MB and have been able to
+run the first test script for at least 7 minutes (we did not try longer !).  The 
+consumed memory is most of the time around 99% but it seems that the memory constrain
+is handled correctly.  Note that, in this configuration, 128 MB are used by the Dicom
+Cache.
+
+The same test without malloc_trim could never run for more than 35 seconds.
+
+
+4th test: performance impact of malloc_trim and available memory
+................................................................
+
+In this test, we have measured the time required to anonymize a 2000 instances study
+with various configurations.  It appears that malloc_trim or the total amount
+of memory available in the system has no significant impact on performance.
+
+- No malloc trim, 300 MB in the system:       ~ 38s
+- No malloc trim, 1500 MB in the system:      ~ 38s
+- With malloc trim, 300 MB in the system:     ~ 38s
+- With malloc trim, 1500 MB in the system:    ~ 38s
+
+
+Conclusion: 
+----------
+
+The use of malloc_trim reduces the overall memory consumption of Orthanc
+and avoids some of the out-of-memory situations.
+
+However, it does not guarantee that Orthanc will never reach a
+out-of-memory error, especially on very constrained systems.  
+
+Depending on the allocation pattern, the Orthanc memory can get
+very fragmented and increase regularly since malloc_trim only releases memory
+at the end of each of malloc arena.  However, note that, even long before the 
+introduction of malloc_trim, we have observed Orthanc instances running for years
+without ever reaching out-of-memory errors and Orthanc is usually considered as
+very stable.
+
+Moreover, before each release, Orthanc integration tests are run against Valgrind
+and no memory leaks have been identified.
+
+
+malloc_trim documentation
+-------------------------
+
+from (https://stackoverflow.com/questions/40513716/malloc-trim0-releases-fastbins-of-thread-arenas)
+
+    If possible, gives memory back to the system (via negative
+    arguments to sbrk) if there is unused memory at the `high' end of
+    the malloc pool. You can call this after freeing large blocks of
+    memory to potentially reduce the system-level memory requirements
+    of a program. However, it cannot guarantee to reduce memory. Under
+    some allocation patterns, some large free blocks of memory will be
+    locked between two used chunks, so they cannot be given back to
+    the system.
+
+    The `pad' argument to malloc_trim represents the amount of free
+    trailing space to leave untrimmed. If this argument is zero,
+    only the minimum amount of memory to maintain internal data
+    structures will be left (one page or less). Non-zero arguments
+    can be supplied to maintain enough trailing space to service
+    future expected allocations without having to re-obtain memory
+    from the system.
+
+    Malloc_trim returns 1 if it actually released any memory, else 0.
+    On systems that do not support "negative sbrks", it will always
+    return 0.
+
+
+glibc internals
+---------------
+
+Lots of useful info here: https://man7.org/linux/man-pages/man3/mallopt.3.html
+
+summary:
+- malloc uses sbrk() or mmap() to allocate memory.  mmap() is used to allocate 
+  large memory chunks, larger than M_MMAP_THRESHOLD.
+- about mmap(): On the other hand, there are some disadvantages to
+              the use of mmap(2): deallocated space is not placed on the
+              free list for reuse by later allocations; memory may be
+              wasted because mmap(2) allocations must be page-aligned;
+              and the kernel must perform the expensive task of zeroing
+              out memory allocated via mmap(2).  Balancing these factors
+              leads to a default setting of 128*1024 for the
+              M_MMAP_THRESHOLD parameter.
+- free() employs sbrk() to release memory back to the system and M_TRIM_THRESHOLD
+  specifies the minimum size that is released.  So, even without
+  malloc_trim, Orthanc is able to give back memory to the system.
+- free() never gives back block allocated by mmap() to the system, only malloc_trim() does !
+
+UPDATE on June 2023:
+-------------------
+
+Given this discussion: https://discourse.orthanc-server.org/t/onchange-callbacks-and-cpu-loads/3534,
+changed the interval from 100ms to 30s.
+We also added a metrics to monitor the duration: orthanc_memory_trimming_duration_ms
+
+Good reference article:
+https://www.algolia.com/blog/engineering/when-allocators-are-hoarding-your-precious-memory/
+
+
+

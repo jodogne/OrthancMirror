@@ -2,8 +2,9 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -39,13 +40,15 @@ namespace Orthanc
   class ResourcesContent : public boost::noncopyable
   {
   public:
-    struct TagValue
+    class TagValue
     {
+    private:
       int64_t      resourceId_;
       bool         isIdentifier_;
       DicomTag     tag_;
       std::string  value_;
 
+    public:
       TagValue(int64_t resourceId,
                bool isIdentifier,
                const DicomTag& tag,
@@ -56,21 +59,58 @@ namespace Orthanc
         value_(value)
       {
       }
+
+      int64_t GetResourceId() const
+      {
+        return resourceId_;
+      }
+
+      bool IsIdentifier() const
+      {
+        return isIdentifier_;
+      }
+
+      const DicomTag& GetTag() const
+      {
+        return tag_;
+      }
+
+      const std::string& GetValue() const
+      {
+        return value_;
+      }
     };
 
-    struct Metadata
+    class Metadata
     {
+    private:
       int64_t       resourceId_;
-      MetadataType  metadata_;
+      MetadataType  type_;
       std::string   value_;
 
+    public:
       Metadata(int64_t  resourceId,
-               MetadataType metadata,
+               MetadataType type,
                const std::string& value) :
         resourceId_(resourceId),
-        metadata_(metadata),
+        type_(type),
         value_(value)
       {
+      }
+
+      int64_t GetResourceId() const
+      {
+        return resourceId_;
+      }
+
+      MetadataType GetType() const
+      {
+        return type_;
+      }
+
+      const std::string& GetValue() const
+      {
+        return value_;
       }
     };
 

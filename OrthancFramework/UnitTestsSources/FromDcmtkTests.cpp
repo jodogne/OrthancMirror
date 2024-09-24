@@ -2,8 +2,9 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -37,6 +38,7 @@
 #include <gtest/gtest.h>
 
 #include "../Sources/Compatibility.h"
+#include "../Sources/DicomFormat/DicomImageInformation.h"
 #include "../Sources/DicomFormat/DicomPath.h"
 #include "../Sources/DicomNetworking/DicomFindAnswers.h"
 #include "../Sources/DicomParsing/DicomModification.h"
@@ -314,6 +316,10 @@ TEST(FromDcmtkBridge, Enumerations)
   ASSERT_TRUE(GetDicomEncoding(e, "ISO_IR 192"));  ASSERT_EQ(Encoding_Utf8, e);
   ASSERT_TRUE(GetDicomEncoding(e, "GB18030"));     ASSERT_EQ(Encoding_Chinese, e);
   ASSERT_TRUE(GetDicomEncoding(e, "GBK"));         ASSERT_EQ(Encoding_Chinese, e);
+
+  // common spelling mistakes
+  ASSERT_TRUE(GetDicomEncoding(e, "ISO_IR_100"));  ASSERT_EQ(Encoding_Latin1, e);
+  ASSERT_TRUE(GetDicomEncoding(e, "ISO_2022_IR_6"));  ASSERT_EQ(Encoding_Ascii, e);
 }
 
 
@@ -2767,7 +2773,7 @@ TEST(ParsedDicomFile, DicomPath)
 
     {
       DicomModification modif;
-      modif.SetupAnonymization(DicomVersion_2021b);
+      modif.SetupAnonymization(DicomVersion_2023b);
       modif.Apply(*dicom1);
       modif.Apply(*dicom2);
     }
@@ -2794,7 +2800,7 @@ TEST(ParsedDicomFile, DicomPath)
 
     {
       DicomModification modif;
-      modif.SetupAnonymization(DicomVersion_2021b);
+      modif.SetupAnonymization(DicomVersion_2023b);
       modif.Keep(DicomPath::Parse("ReferencedImageSequence[1].ReferencedSOPInstanceUID"));
       modif.Keep(DicomPath::Parse("RelatedSeriesSequence"));
       modif.Apply(*dicom);
@@ -3086,6 +3092,21 @@ TEST(FromDcmtkBridge, VisitorRemoveTag)
 }
 
 
+TEST(ParsedDicomFile, MultipleFloatValue)
+{
+  // from https://discourse.orthanc-server.org/t/qido-includefield-with-sequences/4746/6
+  Json::Value v = Json::objectValue;
+  v["4010,1001"][0]["4010,1004"] = "30\\20\\10";
+  std::unique_ptr<ParsedDicomFile> dicom(ParsedDicomFile::CreateFromJson(v, DicomFromJsonFlags_None, ""));
+  ASSERT_TRUE(dicom->HasTag(Orthanc::DicomTag(0x4010, 0x1001)));
+
+  DicomMap m;
+  ASSERT_TRUE(dicom->LookupSequenceItem(m, DicomPath(DicomTag(0x4010, 0x1001)), 0));
+  ASSERT_EQ(1u, m.GetSize());
+  std::string value = m.GetStringValue(DicomTag(0x4010, 0x1004), "", false);
+  ASSERT_EQ("30\\20\\10", value);
+}
+
 
 TEST(ParsedDicomFile, ImageInformation)
 {
@@ -3217,6 +3238,313 @@ TEST(DicomMap, DicomWebWithInteger64)
 }
 
 
+TEST(ParsedDicomFile, InjectEmptyPixelData)
+{
+  static const char* PIXEL_DATA = "7FE00010";
+
+  {
+    ParsedDicomFile dicom(true);
+
+    DicomWebJsonVisitor visitor;
+    dicom.Apply(visitor);
+
+    ASSERT_FALSE(visitor.GetResult().isMember(PIXEL_DATA));
+  }
+
+  {
+    ParsedDicomFile dicom(true);
+    dicom.InjectEmptyPixelData(ValueRepresentation_OtherByte);
+    dicom.InjectEmptyPixelData(ValueRepresentation_OtherWord); // Must be ignored
+
+    DicomWebJsonVisitor visitor;
+    dicom.Apply(visitor);
+
+    ASSERT_TRUE(visitor.GetResult().isMember(PIXEL_DATA));
+    ASSERT_EQ(2u, visitor.GetResult() [PIXEL_DATA].size());
+    ASSERT_EQ("", visitor.GetResult() [PIXEL_DATA]["InlineBinary"].asString());
+    ASSERT_EQ("OB", visitor.GetResult() [PIXEL_DATA]["vr"].asString());
+  }
+
+  {
+    ParsedDicomFile dicom(true);
+    dicom.InjectEmptyPixelData(ValueRepresentation_OtherWord);
+    dicom.InjectEmptyPixelData(ValueRepresentation_OtherByte); // Must be ignored
+
+    DicomWebJsonVisitor visitor;
+    dicom.Apply(visitor);
+
+    ASSERT_TRUE(visitor.GetResult().isMember(PIXEL_DATA));
+    ASSERT_EQ(2u, visitor.GetResult() [PIXEL_DATA].size());
+    ASSERT_EQ("", visitor.GetResult() [PIXEL_DATA]["InlineBinary"].asString());
+    ASSERT_EQ("OW", visitor.GetResult() [PIXEL_DATA]["vr"].asString());
+  }
+}
+
+
+TEST(ParsedDicomFile, RemoveFromPixelData)
+{
+  ParsedDicomFile dicom(true);
+  ASSERT_TRUE(dicom.GetDcmtkObject().getDataset()->putAndInsertString(DcmTag(0x7fe0, 0x0000), "").good());
+  ASSERT_TRUE(dicom.GetDcmtkObject().getDataset()->putAndInsertString(DcmTag(0x7fe0, 0x0009), "").good());
+  ASSERT_TRUE(dicom.GetDcmtkObject().getDataset()->putAndInsertUint8Array(DcmTag(0x7fe0, 0x0010), NULL, 0).good());
+  ASSERT_TRUE(dicom.GetDcmtkObject().getDataset()->putAndInsertString(DcmTag(0x7fe0, 0x0011), "").good());
+  ASSERT_TRUE(dicom.GetDcmtkObject().getDataset()->putAndInsertString(DcmTag(0x7fe1, 0x0000), "").good());
+
+  {
+    DicomMap m;
+    dicom.ExtractDicomSummary(m, 0);
+
+    ASSERT_EQ(10u, m.GetSize());
+    ASSERT_TRUE(m.HasTag(DICOM_TAG_MEDIA_STORAGE_SOP_INSTANCE_UID));
+    ASSERT_TRUE(m.HasTag(DICOM_TAG_SOP_INSTANCE_UID));
+    ASSERT_TRUE(m.HasTag(DICOM_TAG_PATIENT_ID));
+    ASSERT_TRUE(m.HasTag(DICOM_TAG_SERIES_INSTANCE_UID));
+    ASSERT_TRUE(m.HasTag(DICOM_TAG_STUDY_INSTANCE_UID));
+    ASSERT_TRUE(m.HasTag(0x7fe0, 0x0000));
+    ASSERT_TRUE(m.HasTag(0x7fe0, 0x0009));
+    ASSERT_TRUE(m.HasTag(DICOM_TAG_PIXEL_DATA));
+    ASSERT_TRUE(m.HasTag(0x7fe0, 0x0011));
+    ASSERT_TRUE(m.HasTag(0x7fe1, 0x0000));
+  }
+
+  dicom.RemoveFromPixelData();
+
+  {
+    DicomMap m;
+    dicom.ExtractDicomSummary(m, 0);
+
+    ASSERT_EQ(7u, m.GetSize());
+    ASSERT_TRUE(m.HasTag(DICOM_TAG_MEDIA_STORAGE_SOP_INSTANCE_UID));
+    ASSERT_TRUE(m.HasTag(DICOM_TAG_SOP_INSTANCE_UID));
+    ASSERT_TRUE(m.HasTag(DICOM_TAG_PATIENT_ID));
+    ASSERT_TRUE(m.HasTag(DICOM_TAG_SERIES_INSTANCE_UID));
+    ASSERT_TRUE(m.HasTag(DICOM_TAG_STUDY_INSTANCE_UID));
+    ASSERT_TRUE(m.HasTag(0x7fe0, 0x0000));
+    ASSERT_TRUE(m.HasTag(0x7fe0, 0x0009));
+    ASSERT_FALSE(m.HasTag(DICOM_TAG_PIXEL_DATA));
+    ASSERT_FALSE(m.HasTag(0x7fe0, 0x0011));
+    ASSERT_FALSE(m.HasTag(0x7fe1, 0x0000));
+  }
+}
+
+
+TEST(ParsedDicomFile, GuessPixelDataValueRepresentation)
+{
+  typedef std::list< std::pair<E_TransferSyntax, DicomTransferSyntax> > Syntaxes;
+
+  // Create a list of the main non-retired transfer syntaxes, from:
+  // https://www.dicomlibrary.com/dicom/transfer-syntax/
+  Syntaxes compressedSyntaxes;
+  compressedSyntaxes.push_back(std::make_pair(EXS_DeflatedLittleEndianExplicit, DicomTransferSyntax_DeflatedLittleEndianExplicit));
+  compressedSyntaxes.push_back(std::make_pair(EXS_JPEGProcess1, DicomTransferSyntax_JPEGProcess1));
+  compressedSyntaxes.push_back(std::make_pair(EXS_JPEGProcess2_4, DicomTransferSyntax_JPEGProcess2_4));
+  compressedSyntaxes.push_back(std::make_pair(EXS_JPEGProcess14, DicomTransferSyntax_JPEGProcess14));
+  compressedSyntaxes.push_back(std::make_pair(EXS_JPEGProcess14SV1, DicomTransferSyntax_JPEGProcess14SV1));
+  compressedSyntaxes.push_back(std::make_pair(EXS_JPEGLSLossless, DicomTransferSyntax_JPEGLSLossless));
+  compressedSyntaxes.push_back(std::make_pair(EXS_JPEGLSLossy, DicomTransferSyntax_JPEGLSLossy));
+  compressedSyntaxes.push_back(std::make_pair(EXS_JPEG2000LosslessOnly, DicomTransferSyntax_JPEG2000LosslessOnly));
+  compressedSyntaxes.push_back(std::make_pair(EXS_JPEG2000, DicomTransferSyntax_JPEG2000));
+  compressedSyntaxes.push_back(std::make_pair(EXS_JPEG2000MulticomponentLosslessOnly, DicomTransferSyntax_JPEG2000MulticomponentLosslessOnly));
+  compressedSyntaxes.push_back(std::make_pair(EXS_JPEG2000Multicomponent, DicomTransferSyntax_JPEG2000Multicomponent));
+  compressedSyntaxes.push_back(std::make_pair(EXS_JPIPReferenced, DicomTransferSyntax_JPIPReferenced));
+  compressedSyntaxes.push_back(std::make_pair(EXS_JPIPReferencedDeflate, DicomTransferSyntax_JPIPReferencedDeflate));
+  compressedSyntaxes.push_back(std::make_pair(EXS_RLELossless, DicomTransferSyntax_RLELossless));
+  compressedSyntaxes.push_back(std::make_pair(EXS_MPEG2MainProfileAtMainLevel, DicomTransferSyntax_MPEG2MainProfileAtMainLevel));
+  compressedSyntaxes.push_back(std::make_pair(EXS_MPEG4HighProfileLevel4_1, DicomTransferSyntax_MPEG4HighProfileLevel4_1));
+  compressedSyntaxes.push_back(std::make_pair(EXS_MPEG4BDcompatibleHighProfileLevel4_1, DicomTransferSyntax_MPEG4BDcompatibleHighProfileLevel4_1));
+
+  for (unsigned int i = 0; i < 3; i++)
+  {
+    unsigned int bitsAllocated;
+    switch (i)
+    {
+      case 0: bitsAllocated = 1;   break;
+      case 1: bitsAllocated = 8;   break;
+      case 2: bitsAllocated = 16;  break;
+      default:
+        throw OrthancException(ErrorCode_InternalError);
+    }
+      
+    for (Syntaxes::const_iterator it = compressedSyntaxes.begin(); it != compressedSyntaxes.end(); ++it)
+    {
+      // All the compressed transfer syntaxes must have "OB" pixel data
+      ASSERT_EQ(ValueRepresentation_OtherByte, DicomImageInformation::GuessPixelDataValueRepresentation(it->second, bitsAllocated));
+
+      {
+        DicomMap dicom;
+        dicom.SetValue(DICOM_TAG_BITS_ALLOCATED, boost::lexical_cast<std::string>(bitsAllocated), false);
+        ASSERT_EQ(ValueRepresentation_OtherByte, dicom.GuessPixelDataValueRepresentation(it->second));
+      }
+
+      {
+        DicomMap dicom;
+        ASSERT_EQ(ValueRepresentation_OtherByte, dicom.GuessPixelDataValueRepresentation(it->second));
+      }
+
+      {
+        ParsedDicomFile dicom(true);
+        ASSERT_TRUE(dicom.GetDcmtkObject().getDataset()->putAndInsertUint16(DCM_BitsAllocated, bitsAllocated).good());
+        ASSERT_TRUE(dicom.GetDcmtkObject().chooseRepresentation(it->first, NULL).good());
+        dicom.GetDcmtkObject().removeAllButCurrentRepresentations();
+        DicomTransferSyntax ts;
+        ASSERT_TRUE(dicom.LookupTransferSyntax(ts));
+        ASSERT_EQ(ts, it->second);
+        ASSERT_EQ(ValueRepresentation_OtherByte, dicom.GuessPixelDataValueRepresentation());
+      }
+    }
+
+    {
+      // Little endian implicit is always OW
+      ASSERT_EQ(ValueRepresentation_OtherWord, DicomImageInformation::GuessPixelDataValueRepresentation(DicomTransferSyntax_LittleEndianImplicit, bitsAllocated));
+
+      {
+        DicomMap dicom;
+        dicom.SetValue(DICOM_TAG_BITS_ALLOCATED, boost::lexical_cast<std::string>(bitsAllocated), false);
+        ASSERT_EQ(ValueRepresentation_OtherWord, dicom.GuessPixelDataValueRepresentation(DicomTransferSyntax_LittleEndianImplicit));
+      }
+
+      {
+        DicomMap dicom;
+        ASSERT_EQ(ValueRepresentation_OtherWord, dicom.GuessPixelDataValueRepresentation(DicomTransferSyntax_LittleEndianImplicit));
+      }
+
+      {
+        ParsedDicomFile dicom(true);
+        ASSERT_TRUE(dicom.GetDcmtkObject().getDataset()->putAndInsertUint16(DCM_BitsAllocated, bitsAllocated).good());
+        ASSERT_TRUE(dicom.GetDcmtkObject().chooseRepresentation(EXS_LittleEndianImplicit, NULL).good());
+        dicom.GetDcmtkObject().removeAllButCurrentRepresentations();
+        ASSERT_EQ(ValueRepresentation_OtherWord, dicom.GuessPixelDataValueRepresentation());
+      }
+    }
+
+  }
+
+  // Explicit little and big endian with <= 8 bpp is OB
+
+  for (unsigned int i = 0; i < 2; i++)
+  {
+    unsigned int bitsAllocated;
+    switch (i)
+    {
+      case 0: bitsAllocated = 1;   break;
+      case 1: bitsAllocated = 8;   break;
+      default:
+        throw OrthancException(ErrorCode_InternalError);
+    }
+
+    ASSERT_EQ(ValueRepresentation_OtherByte, DicomImageInformation::GuessPixelDataValueRepresentation(DicomTransferSyntax_LittleEndianExplicit, bitsAllocated));
+    ASSERT_EQ(ValueRepresentation_OtherByte, DicomImageInformation::GuessPixelDataValueRepresentation(DicomTransferSyntax_BigEndianExplicit, bitsAllocated));
+
+    {
+      DicomMap dicom;
+      dicom.SetValue(DICOM_TAG_BITS_ALLOCATED, boost::lexical_cast<std::string>(bitsAllocated), false);
+      ASSERT_EQ(ValueRepresentation_OtherByte, dicom.GuessPixelDataValueRepresentation(DicomTransferSyntax_LittleEndianExplicit));
+      ASSERT_EQ(ValueRepresentation_OtherByte, dicom.GuessPixelDataValueRepresentation(DicomTransferSyntax_BigEndianExplicit));
+    }
+
+    {
+      DicomMap dicom;
+      ASSERT_EQ(ValueRepresentation_OtherByte, dicom.GuessPixelDataValueRepresentation(DicomTransferSyntax_LittleEndianExplicit));
+      ASSERT_EQ(ValueRepresentation_OtherByte, dicom.GuessPixelDataValueRepresentation(DicomTransferSyntax_BigEndianExplicit));
+    }
+    
+    {
+      ParsedDicomFile dicom(true);
+      ASSERT_TRUE(dicom.GetDcmtkObject().getDataset()->putAndInsertUint16(DCM_BitsAllocated, bitsAllocated).good());
+      ASSERT_TRUE(dicom.GetDcmtkObject().chooseRepresentation(EXS_LittleEndianExplicit, NULL).good());
+      dicom.GetDcmtkObject().removeAllButCurrentRepresentations();
+      ASSERT_EQ(ValueRepresentation_OtherByte, dicom.GuessPixelDataValueRepresentation());
+    }
+
+    {
+      ParsedDicomFile dicom(true);
+      ASSERT_TRUE(dicom.GetDcmtkObject().getDataset()->putAndInsertUint16(DCM_BitsAllocated, bitsAllocated).good());
+      ASSERT_TRUE(dicom.GetDcmtkObject().chooseRepresentation(EXS_BigEndianExplicit, NULL).good());
+      dicom.GetDcmtkObject().removeAllButCurrentRepresentations();
+      ASSERT_EQ(ValueRepresentation_OtherByte, dicom.GuessPixelDataValueRepresentation());
+    }
+  }
+
+  // Explicit little and big endian with > 8 bpp is OW
+  
+  ASSERT_EQ(ValueRepresentation_OtherWord, DicomImageInformation::GuessPixelDataValueRepresentation(DicomTransferSyntax_LittleEndianExplicit, 16));
+  ASSERT_EQ(ValueRepresentation_OtherWord, DicomImageInformation::GuessPixelDataValueRepresentation(DicomTransferSyntax_BigEndianExplicit, 16));
+
+  {
+    DicomMap dicom;
+    dicom.SetValue(DICOM_TAG_BITS_ALLOCATED, "16", false);
+    ASSERT_EQ(ValueRepresentation_OtherWord, dicom.GuessPixelDataValueRepresentation(DicomTransferSyntax_LittleEndianExplicit));
+    ASSERT_EQ(ValueRepresentation_OtherWord, dicom.GuessPixelDataValueRepresentation(DicomTransferSyntax_BigEndianExplicit));
+  }
+
+  {
+    ParsedDicomFile dicom(true);
+    ASSERT_TRUE(dicom.GetDcmtkObject().getDataset()->putAndInsertUint16(DCM_BitsAllocated, 16).good());
+    ASSERT_TRUE(dicom.GetDcmtkObject().chooseRepresentation(EXS_LittleEndianExplicit, NULL).good());
+    dicom.GetDcmtkObject().removeAllButCurrentRepresentations();
+    ASSERT_EQ(ValueRepresentation_OtherWord, dicom.GuessPixelDataValueRepresentation());
+  }
+
+  {
+    ParsedDicomFile dicom(true);
+    ASSERT_TRUE(dicom.GetDcmtkObject().getDataset()->putAndInsertUint16(DCM_BitsAllocated, 16).good());
+    ASSERT_TRUE(dicom.GetDcmtkObject().chooseRepresentation(EXS_BigEndianExplicit, NULL).good());
+    dicom.GetDcmtkObject().removeAllButCurrentRepresentations();
+    ASSERT_EQ(ValueRepresentation_OtherWord, dicom.GuessPixelDataValueRepresentation());
+  }
+}
+
+
+#if ORTHANC_SANDBOXED != 1
+TEST(ParsedDicomFile, DISABLED_InjectEmptyPixelData2)
+{
+  static const char* PIXEL_DATA = "7FE00010";
+
+  for (int i = 0; i <= DicomTransferSyntax_XML; i++)
+  {
+    DicomTransferSyntax a = (DicomTransferSyntax) i;
+
+    std::string path = (std::string(getenv("HOME")) +
+                        "/Subversion/orthanc-tests/Database/TransferSyntaxes/" +
+                        std::string(GetTransferSyntaxUid(a)) + ".dcm");
+    if (Orthanc::SystemToolbox::IsRegularFile(path))
+    {
+      printf("\n======= %s\n", GetTransferSyntaxUid(a));
+
+      std::string source;
+      Orthanc::SystemToolbox::ReadFile(source, path);
+
+      ParsedDicomFile dicom(source);
+      std::unique_ptr<DcmElement> removal(dicom.GetDcmtkObject().getDataset()->remove(DCM_PixelData));
+
+      {
+        DicomWebJsonVisitor visitor;
+        dicom.Apply(visitor);
+        ASSERT_FALSE(visitor.GetResult().isMember(PIXEL_DATA));
+      }
+
+      {
+        DicomWebJsonVisitor visitor;
+        dicom.InjectEmptyPixelData(ValueRepresentation_OtherByte);
+        dicom.Apply(visitor);
+        ASSERT_TRUE(visitor.GetResult().isMember(PIXEL_DATA));
+        ASSERT_EQ("OB", visitor.GetResult() [PIXEL_DATA]["vr"].asString());
+      }
+
+      removal.reset(dicom.GetDcmtkObject().getDataset()->remove(DCM_PixelData));
+
+      {
+        DicomWebJsonVisitor visitor;
+        dicom.InjectEmptyPixelData(ValueRepresentation_OtherWord);
+        dicom.Apply(visitor);
+        ASSERT_TRUE(visitor.GetResult().isMember(PIXEL_DATA));
+        ASSERT_EQ("OW", visitor.GetResult() [PIXEL_DATA]["vr"].asString());
+      }
+    }
+  }
+}
+#endif
+
 
 
 #if ORTHANC_ENABLE_DCMTK_TRANSCODING == 1
@@ -3236,11 +3564,13 @@ TEST(Toto, DISABLED_Transcode3)
   DcmtkTranscoder transcoder;
 
   for (int j = 0; j < 2; j++)
+  {
     for (int i = 0; i <= DicomTransferSyntax_XML; i++)
     {
       DicomTransferSyntax a = (DicomTransferSyntax) i;
 
-      std::string path = ("/home/jodogne/Subversion/orthanc-tests/Database/TransferSyntaxes/" +
+      std::string path = (std::string(getenv("HOME")) +
+                          "/Subversion/orthanc-tests/Database/TransferSyntaxes/" +
                           std::string(GetTransferSyntaxUid(a)) + ".dcm");
       if (Orthanc::SystemToolbox::IsRegularFile(path))
       {
@@ -3268,6 +3598,7 @@ TEST(Toto, DISABLED_Transcode3)
         }
       }
     }
+  }
 }
 
 
@@ -3277,7 +3608,8 @@ TEST(Toto, DISABLED_Transcode4)
 
   {
     std::string source;
-    Orthanc::SystemToolbox::ReadFile(source, "/home/jodogne/Subversion/orthanc-tests/Database/KarstenHilbertRF.dcm");
+    Orthanc::SystemToolbox::ReadFile(source, std::string(getenv("HOME")) +
+                                     "/Subversion/orthanc-tests/Database/KarstenHilbertRF.dcm");
     toto.reset(FromDcmtkBridge::LoadFromMemoryBuffer(source.c_str(), source.size()));
   }
   

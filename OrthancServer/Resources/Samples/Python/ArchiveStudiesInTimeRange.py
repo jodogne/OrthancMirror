@@ -4,8 +4,9 @@
 # Orthanc - A Lightweight, RESTful DICOM Store
 # Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
 # Department, University Hospital of Liege, Belgium
-# Copyright (C) 2017-2022 Osimis S.A., Belgium
-# Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+# Copyright (C) 2017-2023 Osimis S.A., Belgium
+# Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+# Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
 #
 # This program is free software: you can redistribute it and/or
 # modify it under the terms of the GNU General Public License as
@@ -30,8 +31,8 @@ import RestToolbox
 def PrintHelp():
     print('Download ZIP archives for all the studies generated '
           'during a given time range (according to the StudyDate tag)\n')
-    print('Usage: %s <URL> <StartDate> <EndDate> <TargetFolder>\n' % sys.argv[0])
-    print('Example: %s http://127.0.0.1:8042/ 20150101 20151231 /tmp/\n' % sys.argv[0])
+    print('Usage: %s <URL> <StartDate> <EndDate> <TargetFolder> [login] [password]\n' % sys.argv[0])
+    print('Example: %s http://127.0.0.1:8042/ 20150101 20151231 /tmp/ login password\n' % sys.argv[0])
     exit(-1)
 
 def CheckIsDate(date):
@@ -40,13 +41,15 @@ def CheckIsDate(date):
         exit(-1)
 
 
-if len(sys.argv) != 5:
+if len(sys.argv) < 5:
     PrintHelp()
 
 URL = sys.argv[1]
 START = sys.argv[2]
 END = sys.argv[3]
 TARGET = sys.argv[4]
+if len(sys.argv) >= 7:
+    RestToolbox.SetCredentials(sys.argv[5], sys.argv[6])
 
 CheckIsDate(START)
 CheckIsDate(END)

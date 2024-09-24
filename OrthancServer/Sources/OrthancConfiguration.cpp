@@ -2,8 +2,9 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -44,6 +45,7 @@ static const char* const ORTHANC_PEERS_IN_DB = "OrthancPeersInDatabase";
 static const char* const TEMPORARY_DIRECTORY = "TemporaryDirectory";
 static const char* const DATABASE_SERVER_IDENTIFIER = "DatabaseServerIdentifier";
 static const char* const WARNINGS = "Warnings";
+static const char* const JOBS_ENGINE_THREADS_COUNT = "JobsEngineThreadsCount";
 
 namespace Orthanc
 {
@@ -113,7 +115,7 @@ namespace Orthanc
     {
       if (!is_directory(it->status()))
       {
-        std::string extension = boost::filesystem::extension(it->path());
+        std::string extension = it->path().extension().string();
         Toolbox::ToLowerCase(extension);
 
         if (extension == ".json")
@@ -271,6 +273,55 @@ namespace Orthanc
         modalities_.clear();
       }
     }
+  }
+
+  void OrthancConfiguration::LoadJobsEngineThreadsCount()
+  {
+    // default values
+    jobsEngineThreadsCount_["ResourceModification"] = 1;
+
+    if (json_.isMember(JOBS_ENGINE_THREADS_COUNT))
+    {
+      const Json::Value& source = json_[JOBS_ENGINE_THREADS_COUNT];
+      if (source.type() != Json::objectValue)
+      {
+        throw OrthancException(ErrorCode_BadFileFormat,
+                               "Bad format of the \"" + std::string(JOBS_ENGINE_THREADS_COUNT) +
+                               "\" configuration section");
+      }
+
+      Json::Value::Members members = source.getMemberNames();
+
+      for (size_t i = 0; i < members.size(); i++)
+      {
+        const std::string& name = members[i];
+        if (!source[name].isUInt())
+        {
+          throw OrthancException(ErrorCode_BadFileFormat,
+                                 "Bad format for \"" + std::string(JOBS_ENGINE_THREADS_COUNT) + "." + name + 
+                                 "\".  It should be an unsigned integer");
+        }
+        jobsEngineThreadsCount_[name] = source[name].asUInt();
+      }      
+    }
+  }
+
+  unsigned int OrthancConfiguration::GetJobsEngineWorkersThread(const std::string& jobType) const
+  {
+    unsigned int workersThread = 1;
+    
+    const JobsEngineThreadsCount::const_iterator it = jobsEngineThreadsCount_.find(jobType);
+    if (it != jobsEngineThreadsCount_.end())
+    {
+      workersThread = it->second;
+    }
+
+    if (workersThread == 0)
+    {
+      workersThread = SystemToolbox::GetHardwareConcurrency();
+    }
+
+    return workersThread;
   }
 
   void OrthancConfiguration::LoadPeers()
@@ -700,7 +751,7 @@ namespace Orthanc
 
     if (lst.type() != Json::arrayValue)
     {
-      throw OrthancException(ErrorCode_BadFileFormat, "Badly formatted list of strings");
+      throw OrthancException(ErrorCode_BadFileFormat, "Badly formatted list of strings: " + key);
     }
 
     for (Json::Value::ArrayIndex i = 0; i < lst.size(); i++)
@@ -709,7 +760,31 @@ namespace Orthanc
     }    
   }
 
-    
+
+  void OrthancConfiguration::GetSetOfStringsParameter(std::set<std::string>& target,
+                                                      const std::string& key) const
+  {
+    target.clear();
+  
+    if (!json_.isMember(key))
+    {
+      return;
+    }
+
+    const Json::Value& lst = json_[key];
+
+    if (lst.type() != Json::arrayValue)
+    {
+      throw OrthancException(ErrorCode_BadFileFormat, "Badly formatted set of strings: " + key);
+    }
+
+    for (Json::Value::ArrayIndex i = 0; i < lst.size(); i++)
+    {
+      target.insert(lst[i].asString());
+    }    
+  }
+
+
   bool OrthancConfiguration::IsSameAETitle(const std::string& aet1,
                                            const std::string& aet2) const
   {
@@ -1081,6 +1156,10 @@ namespace Orthanc
         else if (name == "W002_InconsistentDicomTagsInDb")
         {
           warning = Warnings_002_InconsistentDicomTagsInDb;
+        }
+        else if (name == "W003_DecoderFailure")
+        {
+          warning = Warnings_003_DecoderFailure;
         }
         else
         {

@@ -2,8 +2,9 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -165,10 +166,11 @@ namespace
       
       DicomTagConstraint c(tag, type, value, true, true);
       
-      std::vector<DatabaseConstraint> lookup;
-      lookup.push_back(c.ConvertToDatabaseConstraint(level, DicomTagType_Identifier));
-      
-      transaction_->ApplyLookupResources(result, NULL, lookup, level, 0 /* no limit */);
+      DatabaseConstraints lookup;
+      lookup.AddConstraint(c.ConvertToDatabaseConstraint(level, DicomTagType_Identifier));
+
+      std::set<std::string> noLabel;
+      transaction_->ApplyLookupResources(result, NULL, lookup, level, noLabel, LabelsConstraint_All, 0 /* no limit */);
     }    
 
     void DoLookupIdentifier2(std::list<std::string>& result,
@@ -183,12 +185,13 @@ namespace
       
       DicomTagConstraint c1(tag, type1, value1, true, true);
       DicomTagConstraint c2(tag, type2, value2, true, true);
+
+      DatabaseConstraints lookup;
+      lookup.AddConstraint(c1.ConvertToDatabaseConstraint(level, DicomTagType_Identifier));
+      lookup.AddConstraint(c2.ConvertToDatabaseConstraint(level, DicomTagType_Identifier));
       
-      std::vector<DatabaseConstraint> lookup;
-      lookup.push_back(c1.ConvertToDatabaseConstraint(level, DicomTagType_Identifier));
-      lookup.push_back(c2.ConvertToDatabaseConstraint(level, DicomTagType_Identifier));
-      
-      transaction_->ApplyLookupResources(result, NULL, lookup, level, 0 /* no limit */);
+      std::set<std::string> noLabel;
+      transaction_->ApplyLookupResources(result, NULL, lookup, level, noLabel, LabelsConstraint_All, 0 /* no limit */);
     }
   };
 }
@@ -739,18 +742,21 @@ TEST(ServerIndex, AttachmentRecycling)
       ASSERT_EQ(StoreStatus_Success, index.Store(
                   instanceMetadata, summary, attachments, toStore->GetMetadata(),
                   toStore->GetOrigin(), false /* don't overwrite */,
-                  hasTransferSyntax, transferSyntax, true /* pixel data offset */, 42, false));
+                  hasTransferSyntax, transferSyntax, true /* has pixel data */, 42 /* pixel data offset */,
+                  ValueRepresentation_PersonName /* pixel data VR */, false));
     }
     
-    ASSERT_EQ(7u, instanceMetadata.size());
+    ASSERT_EQ(8u, instanceMetadata.size());
     ASSERT_TRUE(instanceMetadata.find(MetadataType_RemoteAet) != instanceMetadata.end());
     ASSERT_TRUE(instanceMetadata.find(MetadataType_Instance_ReceptionDate) != instanceMetadata.end());
     ASSERT_TRUE(instanceMetadata.find(MetadataType_Instance_TransferSyntax) != instanceMetadata.end());
     ASSERT_TRUE(instanceMetadata.find(MetadataType_Instance_SopClassUid) != instanceMetadata.end());
     ASSERT_TRUE(instanceMetadata.find(MetadataType_Instance_PixelDataOffset) != instanceMetadata.end());
     ASSERT_TRUE(instanceMetadata.find(MetadataType_MainDicomTagsSignature) != instanceMetadata.end());
+    ASSERT_TRUE(instanceMetadata.find(MetadataType_Instance_PixelDataVR) != instanceMetadata.end());
 
     ASSERT_EQ("42", instanceMetadata[MetadataType_Instance_PixelDataOffset]);
+    ASSERT_EQ("PN", instanceMetadata[MetadataType_Instance_PixelDataVR]);
 
     // The default transfer syntax depends on the OS endianness
     std::string s = instanceMetadata[MetadataType_Instance_TransferSyntax];
@@ -1036,4 +1042,16 @@ TEST(ServerIndex, DicomUntilPixelData)
       }
     }
   }
+}
+
+
+TEST(ServerToolbox, ValidLabels)
+{
+  ASSERT_TRUE(ServerToolbox::IsValidLabel("abcdefghijklmnopqrstuvwxyz"
+                                          "ABCDEFGHIJKLMNOPQRSTUVWXYZ"));
+  ASSERT_TRUE(ServerToolbox::IsValidLabel("0123456789-_"));
+  ASSERT_FALSE(ServerToolbox::IsValidLabel(""));
+  ASSERT_FALSE(ServerToolbox::IsValidLabel(" "));
+  ASSERT_FALSE(ServerToolbox::IsValidLabel("&"));
+  ASSERT_FALSE(ServerToolbox::IsValidLabel("."));
 }

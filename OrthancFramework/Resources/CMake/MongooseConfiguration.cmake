@@ -1,8 +1,9 @@
 # Orthanc - A Lightweight, RESTful DICOM Store
 # Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
 # Department, University Hospital of Liege, Belgium
-# Copyright (C) 2017-2022 Osimis S.A., Belgium
-# Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+# Copyright (C) 2017-2023 Osimis S.A., Belgium
+# Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+# Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
 #
 # This program is free software: you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public License
@@ -32,7 +33,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_MONGOOSE)
     # Use Mongoose 3.1
     DownloadPackage(
       "e718fc287b4eb1bd523be3fa00942bb0"
-      "http://orthanc.osimis.io/ThirdPartyDownloads/mongoose-3.1.tgz"
+      "https://orthanc.uclouvain.be/downloads/third-party-downloads/mongoose-3.1.tgz"
       "${MONGOOSE_SOURCES_DIR}")
     
     add_definitions(-DMONGOOSE_USE_CALLBACKS=0)
@@ -42,7 +43,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_MONGOOSE)
     # Use Mongoose 3.8
     DownloadPackage(
       "7e3296295072792cdc3c633f9404e0c3"
-      "http://orthanc.osimis.io/ThirdPartyDownloads/mongoose-3.8.tgz"
+      "https://orthanc.uclouvain.be/downloads/third-party-downloads/mongoose-3.8.tgz"
       "${MONGOOSE_SOURCES_DIR}")
     
     add_definitions(-DMONGOOSE_USE_CALLBACKS=1)

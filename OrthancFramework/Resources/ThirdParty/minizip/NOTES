@@ -1,1 +1,2 @@
-These files come from the "contrib/minizip" directory in zlib 1.2.11.
+These files come from the "contrib/minizip" directory in zlib 1.3+.
+It was last synced on this commit: https://github.com/madler/zlib/commit/73331a6a0481067628f065ffe87bb1d8f787d10c.

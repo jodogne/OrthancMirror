@@ -2,8 +2,9 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -239,25 +240,14 @@ namespace Orthanc
   };
 
 
-  class LuaScripting::JobEvent : public LuaScripting::IEvent
+  class LuaScripting::LuaJobEvent : public LuaScripting::IEvent
   {
-  public:
-    enum Type
-    {
-      Type_Failure,
-      Type_Submitted,
-      Type_Success
-    };
-    
   private:
-    Type         type_;
-    std::string  jobId_;
+    JobEvent event_;
 
   public:
-    JobEvent(Type type,
-             const std::string& jobId) :
-      type_(type),
-      jobId_(jobId)
+    explicit LuaJobEvent(const JobEvent& event) :
+      event_(event)
     {
     }
 
@@ -265,17 +255,17 @@ namespace Orthanc
     {
       std::string functionName;
       
-      switch (type_)
+      switch (event_.GetEventType())
       {
-        case Type_Failure:
+        case JobEventType_Failure:
           functionName = "OnJobFailure";
           break;
 
-        case Type_Submitted:
+        case JobEventType_Submitted:
           functionName = "OnJobSubmitted";
           break;
 
-        case Type_Success:
+        case JobEventType_Success:
           functionName = "OnJobSuccess";
           break;
 
@@ -289,7 +279,7 @@ namespace Orthanc
         if (lock.GetLua().IsExistingFunction(functionName.c_str()))
         {
           LuaFunctionCall call(lock.GetLua(), functionName.c_str());
-          call.PushString(jobId_);
+          call.PushString(event_.GetJobId());
           call.Execute();
         }
       }
@@ -787,6 +777,8 @@ namespace Orthanc
 
   void LuaScripting::HeartBeatThread(LuaScripting* that)
   {
+    Logging::SetCurrentThreadName("LUA-HEARTBEAT");
+
     static const unsigned int GRANULARITY = 100;  // In milliseconds
     
     const boost::posix_time::time_duration PERIODICITY =
@@ -823,6 +815,8 @@ namespace Orthanc
 
   void LuaScripting::EventThread(LuaScripting* that)
   {
+    Logging::SetCurrentThreadName("LUA-EVENTS");
+
     for (;;)
     {
       std::unique_ptr<IDynamicObject> event(that->pendingEvents_.Dequeue(100));
@@ -1056,20 +1050,9 @@ namespace Orthanc
   }
 
   
-  void LuaScripting::SignalJobSubmitted(const std::string& jobId)
+  void LuaScripting::SignalJobEvent(const JobEvent& event)
   {
-    pendingEvents_.Enqueue(new JobEvent(JobEvent::Type_Submitted, jobId));
-  }
-  
-
-  void LuaScripting::SignalJobSuccess(const std::string& jobId)
-  {
-    pendingEvents_.Enqueue(new JobEvent(JobEvent::Type_Success, jobId));
-  }
-  
-
-  void LuaScripting::SignalJobFailure(const std::string& jobId)
-  {
-    pendingEvents_.Enqueue(new JobEvent(JobEvent::Type_Failure, jobId));
+    // Lua has its own event thread and queue to dissociate it completely from the main JobEventsThread
+    pendingEvents_.Enqueue(new LuaJobEvent(event));
   }
 }

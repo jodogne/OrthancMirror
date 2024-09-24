@@ -2,8 +2,9 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -68,6 +69,21 @@ namespace Orthanc
     else
     {
       return value[field.c_str()].asString();
+    }
+  }
+
+
+  std::string SerializationToolbox::ReadString(const Json::Value& value,
+                                               const std::string& field,
+                                               const std::string& defaultValue)
+  {
+    if (value.isMember(field.c_str()))
+    {
+      return ReadString(value, field);
+    }
+    else
+    {
+      return defaultValue;
     }
   }
 
@@ -155,31 +171,52 @@ namespace Orthanc
 
   
   void SerializationToolbox::ReadArrayOfStrings(std::vector<std::string>& target,
-                                                const Json::Value& value,
+                                                const Json::Value& valueObject,
                                                 const std::string& field)
   {
-    if (value.type() != Json::objectValue ||
-        !value.isMember(field.c_str()) ||
-        value[field.c_str()].type() != Json::arrayValue)
+    if (valueObject.type() != Json::objectValue ||
+        !valueObject.isMember(field.c_str()) ||
+        valueObject[field.c_str()].type() != Json::arrayValue)
     {
       throw OrthancException(ErrorCode_BadFileFormat,
-                             "List of strings expected in field: " + field);
+                            "List of strings expected in field: " + field);
     }
 
-    const Json::Value& arr = value[field.c_str()];
+    const Json::Value& arr = valueObject[field.c_str()];
 
-    target.resize(arr.size());
-
-    for (Json::Value::ArrayIndex i = 0; i < arr.size(); i++)
+    try
     {
-      if (arr[i].type() != Json::stringValue)
+      ReadArrayOfStrings(target, arr);
+    }
+    catch (OrthancException& ex)
+    {  // more detailed error
+      throw OrthancException(ErrorCode_BadFileFormat,
+                              "List of strings expected in field: " + field);
+    }
+  }
+
+
+  void SerializationToolbox::ReadArrayOfStrings(std::vector<std::string>& target,
+                                                const Json::Value& valueArray)
+  {
+    if (valueArray.type() != Json::arrayValue)
+    {
+      throw OrthancException(ErrorCode_BadFileFormat,
+                             "List of strings expected");
+    }
+
+    target.resize(valueArray.size());
+
+    for (Json::Value::ArrayIndex i = 0; i < valueArray.size(); i++)
+    {
+      if (valueArray[i].type() != Json::stringValue)
       {
         throw OrthancException(ErrorCode_BadFileFormat,
-                               "List of strings expected in field: " + field);
+                               "List of strings expected");
       }
       else
       {
-        target[i] = arr[i].asString();
+        target[i] = valueArray[i].asString();
       }
     }
   }
@@ -201,11 +238,25 @@ namespace Orthanc
   
 
   void SerializationToolbox::ReadSetOfStrings(std::set<std::string>& target,
-                                              const Json::Value& value,
+                                              const Json::Value& valueObject,
                                               const std::string& field)
   {
     std::vector<std::string> tmp;
-    ReadArrayOfStrings(tmp, value, field);
+    ReadArrayOfStrings(tmp, valueObject, field);
+
+    target.clear();
+    for (size_t i = 0; i < tmp.size(); i++)
+    {
+      target.insert(tmp[i]);
+    }
+  }
+
+
+  void SerializationToolbox::ReadSetOfStrings(std::set<std::string>& target,
+                                              const Json::Value& valueArray)
+  {
+    std::vector<std::string> tmp;
+    ReadArrayOfStrings(tmp, valueArray);
 
     target.clear();
     for (size_t i = 0; i < tmp.size(); i++)
@@ -364,24 +415,38 @@ namespace Orthanc
   }
 
 
-  void SerializationToolbox::WriteSetOfStrings(Json::Value& target,
+  void SerializationToolbox::WriteSetOfStrings(Json::Value& targetObject,
                                                const std::set<std::string>& values,
                                                const std::string& field)
   {
-    if (target.type() != Json::objectValue ||
-        target.isMember(field.c_str()))
+    if (targetObject.type() != Json::objectValue ||
+        targetObject.isMember(field.c_str()))
     {
       throw OrthancException(ErrorCode_BadFileFormat);
     }
 
-    Json::Value& value = target[field];
+    Json::Value& targetArray = targetObject[field];
 
-    value = Json::arrayValue;
+    targetArray = Json::arrayValue;
+
+    WriteSetOfStrings(targetArray, values);
+  }
+
+
+  void SerializationToolbox::WriteSetOfStrings(Json::Value& targetArray,
+                                               const std::set<std::string>& values)
+  {
+    if (targetArray.type() != Json::arrayValue)
+    {
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
+
+    targetArray.clear();
 
     for (std::set<std::string>::const_iterator it = values.begin();
          it != values.end(); ++it)
     {
-      value.append(*it);
+      targetArray.append(*it);
     }
   }
 

@@ -1,8 +1,9 @@
 # Orthanc - A Lightweight, RESTful DICOM Store
 # Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
 # Department, University Hospital of Liege, Belgium
-# Copyright (C) 2017-2022 Osimis S.A., Belgium
-# Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+# Copyright (C) 2017-2023 Osimis S.A., Belgium
+# Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+# Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
 #
 # This program is free software: you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public License
@@ -23,7 +24,7 @@ if (NOT ${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
 
   if (STATIC_BUILD OR NOT USE_SYSTEM_UUID)
     SET(E2FSPROGS_SOURCES_DIR ${CMAKE_BINARY_DIR}/e2fsprogs-1.44.5)
-    SET(E2FSPROGS_URL "http://orthanc.osimis.io/ThirdPartyDownloads/e2fsprogs-1.44.5.tar.gz")
+    SET(E2FSPROGS_URL "https://orthanc.uclouvain.be/downloads/third-party-downloads/e2fsprogs-1.44.5.tar.gz")
     SET(E2FSPROGS_MD5 "8d78b11d04d26c0b2dd149529441fa80")
 
     if (IS_DIRECTORY "${E2FSPROGS_SOURCES_DIR}")

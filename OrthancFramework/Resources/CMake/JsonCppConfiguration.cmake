@@ -1,8 +1,9 @@
 # Orthanc - A Lightweight, RESTful DICOM Store
 # Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
 # Department, University Hospital of Liege, Belgium
-# Copyright (C) 2017-2022 Osimis S.A., Belgium
-# Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+# Copyright (C) 2017-2023 Osimis S.A., Belgium
+# Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+# Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
 #
 # This program is free software: you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public License
@@ -24,13 +25,13 @@ set(JSONCPP_CXX11 OFF)
 if (STATIC_BUILD OR NOT USE_SYSTEM_JSONCPP)
   if (USE_LEGACY_JSONCPP)
     set(JSONCPP_SOURCES_DIR ${CMAKE_BINARY_DIR}/jsoncpp-0.10.7)
-    set(JSONCPP_URL "http://orthanc.osimis.io/ThirdPartyDownloads/jsoncpp-0.10.7.tar.gz")
+    set(JSONCPP_URL "https://orthanc.uclouvain.be/downloads/third-party-downloads/jsoncpp-0.10.7.tar.gz")
     set(JSONCPP_MD5 "3a8072ca6a1fa9cbaf7715ae625f134f")
     add_definitions(-DORTHANC_LEGACY_JSONCPP=1)
   else()
-    set(JSONCPP_SOURCES_DIR ${CMAKE_BINARY_DIR}/jsoncpp-1.9.4)
-    set(JSONCPP_URL "http://orthanc.osimis.io/ThirdPartyDownloads/jsoncpp-1.9.4.tar.gz")
-    set(JSONCPP_MD5 "4757b26ec89798c5247fa638edfdc446")
+    set(JSONCPP_SOURCES_DIR ${CMAKE_BINARY_DIR}/jsoncpp-1.9.5)
+    set(JSONCPP_URL "https://orthanc.uclouvain.be/downloads/third-party-downloads/jsoncpp-1.9.5.tar.gz")
+    set(JSONCPP_MD5 "d6c8c609f2162eff373db62b90a051c7")
     add_definitions(-DORTHANC_LEGACY_JSONCPP=0)
     set(JSONCPP_CXX11 ON)
   endif()

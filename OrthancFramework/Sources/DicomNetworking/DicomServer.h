@@ -2,8 +2,9 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -90,6 +91,8 @@ namespace Orthanc
     std::string  trustedCertificatesPath_;
     unsigned int maximumPduLength_;
     bool         remoteCertificateRequired_;  // New in 1.9.3
+    unsigned int minimumTlsVersion_;          // New in 1.12.4
+    std::set<std::string> acceptedCiphers_;   // New in 1.12.4
 
 
     static void ServerThread(DicomServer* server,
@@ -152,6 +155,9 @@ namespace Orthanc
 
     void SetDicomTlsEnabled(bool enabled);
     bool IsDicomTlsEnabled() const;
+
+    void SetMinimumTlsVersion(unsigned int version);
+    void SetAcceptedCiphers(const std::set<std::string>& ciphers);
 
     void SetOwnCertificatePath(const std::string& privateKeyPath,
                                const std::string& certificatePath);

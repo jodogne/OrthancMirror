@@ -2,8 +2,9 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -64,7 +65,7 @@ namespace Orthanc
       call.GetDocumentation()
         .SetTag("Tracking changes")
         .SetSummary("List changes")
-        .SetDescription("Whenever Orthanc receives a new DICOM instance, this event is recorded in the so-called _Changes Log_. This enables remote scripts to react to the arrival of new DICOM resources. A typical application is auto-routing, where an external script waits for a new DICOM instance to arrive into Orthanc, then forward this instance to another modality.")
+        .SetDescription("Whenever Orthanc receives a new DICOM instance, this event is recorded in the so-called _Changes Log_. This enables remote scripts to react to the arrival of new DICOM resources. A typical application is auto-routing, where an external script waits for a new DICOM instance to arrive into Orthanc, then forward this instance to another modality. Please note that, when resources are deleted, their corresponding change entries are also removed from the Changes Log, which helps ensuring that this log does not grow indefinitely.")
         .SetHttpGetArgument("limit", RestApiCallDocumentation::Type_Number, "Limit the number of results", false)
         .SetHttpGetArgument("since", RestApiCallDocumentation::Type_Number, "Show only the resources since the provided index", false)
         .AddAnswerType(MimeType_Json, "The list of changes")
@@ -73,7 +74,7 @@ namespace Orthanc
                         "Whether the last reported change is the last of the full history")
         .SetAnswerField("Last", RestApiCallDocumentation::Type_Number,
                         "The index of the last reported change, can be used for the `since` argument in subsequent calls to this route")
-        .SetHttpGetSample("https://demo.orthanc-server.com/changes?since=0&limit=2", true);
+        .SetHttpGetSample("https://orthanc.uclouvain.be/demo/changes?since=0&limit=2", true);
       return;
     }
     

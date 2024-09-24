@@ -1,8 +1,9 @@
 # Orthanc - A Lightweight, RESTful DICOM Store
 # Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
 # Department, University Hospital of Liege, Belgium
-# Copyright (C) 2017-2022 Osimis S.A., Belgium
-# Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+# Copyright (C) 2017-2023 Osimis S.A., Belgium
+# Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+# Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
 #
 # This program is free software: you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public License
@@ -257,6 +258,8 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
     ${ORTHANC_DICOM_SOURCES}
     )
 
+  DefineSourceBasenameForTarget(OrthancFramework)
+
   # CMake does not natively handle SIDE_MODULE, and believes that
   # Emscripten produces a ".js" file (whereas it creates only the
   # ".wasm"). Create a dummy ".js" for target to work.
@@ -272,6 +275,8 @@ else()
       ${ORTHANC_DICOM_SOURCES}
       DllMain.cpp
       )
+
+    DefineSourceBasenameForTarget(OrthancFramework)
 
     # By default, hide all the symbols
     set_target_properties(OrthancFramework PROPERTIES C_VISIBILITY_PRESET hidden)
@@ -301,10 +306,14 @@ else()
       ${ORTHANC_DICOM_SOURCES}
       )
 
+    DefineSourceBasenameForTarget(OrthancFramework)
+
     # Add the "-fPIC" option to use the static library from Orthanc
     # plugins (the latter being shared libraries)
     set_property(TARGET OrthancFramework PROPERTY POSITION_INDEPENDENT_CODE ON)
   endif()
+
+  DefineSourceBasenameForTarget(OrthancFramework)
 endif()
 
 

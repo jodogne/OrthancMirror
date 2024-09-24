@@ -2,8 +2,9 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -23,28 +24,79 @@
 
 #pragma once
 
-#include "MemoryObjectCache.h"
+#include "../OrthancFramework.h"
+#include "ICacheable.h"
+#include "LeastRecentlyUsedIndex.h"
+
+#include <boost/thread/condition_variable.hpp>
+#include <boost/thread/mutex.hpp>
+
 
 namespace Orthanc
 {
   /**
-   * Facade object around "MemoryObjectCache" that caches a dictionary
+   * Class that caches a dictionary
    * of strings, using the "fetch/add" paradigm of memcached.
+   * 
+   * Starting from 1.12.2, if multiple clients are trying to access
+   * an inexistent item at the same time, only one of them will load it
+   * and the others will wait until the first one has loaded the data.
+   * 
+   * The MemoryStringCache is only accessible through an Accessor.
    * 
    * Note: this class is thread safe
    **/
   class ORTHANC_PUBLIC MemoryStringCache : public boost::noncopyable
   {
+  public:
+    class ORTHANC_PUBLIC Accessor : public boost::noncopyable
+    {
+    protected:
+      MemoryStringCache& cache_;
+
+    private:
+      bool                shouldAdd_;  // when this accessor is the one who should load and add the data
+      std::string         keyToAdd_;
+
+
+    public:
+      explicit Accessor(MemoryStringCache& cache);
+      ~Accessor();
+
+      bool Fetch(std::string& value, const std::string& key);
+      void Add(const std::string& key, const std::string& value);
+      void Add(const std::string& key,const char* buffer, size_t size);
+    };
+
   private:
     class StringValue;
 
-    MemoryObjectCache  cache_;
+    mutable boost::mutex      cacheMutex_;  // note: we can not use recursive_mutex with condition_variable
+    boost::condition_variable cacheCond_;
+    std::set<std::string>     itemsBeingLoaded_;
+
+    size_t currentSize_;
+    size_t maxSize_;
+    LeastRecentlyUsedIndex<std::string, StringValue*>  content_;
+
+    void Recycle(size_t targetSize);
 
   public:
+    MemoryStringCache();
+
+    ~MemoryStringCache();
+
     size_t GetMaximumSize();
     
     void SetMaximumSize(size_t size);
 
+    void Invalidate(const std::string& key);
+
+    size_t GetCurrentSize() const;
+    
+    size_t GetNumberOfItems() const;
+
+  private:
     void Add(const std::string& key,
              const std::string& value);
 
@@ -52,9 +104,12 @@ namespace Orthanc
              const void* buffer,
              size_t size);
 
-    void Invalidate(const std::string& key);
-
     bool Fetch(std::string& value,
                const std::string& key);
+
+    void RemoveFromItemsBeingLoaded(const std::string& key);
+    void RemoveFromItemsBeingLoadedInternal(const std::string& key);
+
+    void AddToItemsBeingLoadedInternal(const std::string& key);
   };
 }

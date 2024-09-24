@@ -2,8 +2,9 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -363,6 +364,10 @@ TEST(Uri, AutodetectMimeType)
   ASSERT_STREQ("image/svg+xml", EnumerationToString(SystemToolbox::AutodetectMimeType(".svg")));
   ASSERT_STREQ("text/css", EnumerationToString(SystemToolbox::AutodetectMimeType(".css")));
   ASSERT_STREQ("text/html", EnumerationToString(SystemToolbox::AutodetectMimeType(".html")));
+
+  ASSERT_STREQ("model/obj", EnumerationToString(SystemToolbox::AutodetectMimeType(".obj")));
+  ASSERT_STREQ("model/mtl", EnumerationToString(SystemToolbox::AutodetectMimeType(".mtl")));
+  ASSERT_STREQ("model/stl", EnumerationToString(SystemToolbox::AutodetectMimeType(".stl")));
 }
 #endif
 
@@ -377,6 +382,21 @@ TEST(Toolbox, ComputeMD5)
   ASSERT_EQ("8b1a9953c4611296a827abf8c47804d7", s);
   Toolbox::ComputeMD5(s, "");
   ASSERT_EQ("d41d8cd98f00b204e9800998ecf8427e", s);
+
+  Toolbox::ComputeMD5(s, "aaabbbccc");
+  ASSERT_EQ("d1aaf4767a3c10a473407a4e47b02da6", s);
+
+  std::set<std::string> set;
+
+  Toolbox::ComputeMD5(s, set);
+  ASSERT_EQ("d41d8cd98f00b204e9800998ecf8427e", s);  // empty set same as empty string
+
+  set.insert("bbb");
+  set.insert("ccc");
+  set.insert("aaa");
+
+  Toolbox::ComputeMD5(s, set);
+  ASSERT_EQ("d1aaf4767a3c10a473407a4e47b02da6", s); // set md5 same as string with the values sorted
 }
 
 TEST(Toolbox, ComputeSHA1)
@@ -702,6 +722,82 @@ TEST(Toolbox, Tokenize)
   ASSERT_EQ("", t[3]);
 }
 
+TEST(Toolbox, SplitString)
+{
+  {
+    std::set<std::string> result;
+    Toolbox::SplitString(result, "", ';');
+    ASSERT_EQ(0u, result.size());
+  }
+
+  {
+    std::set<std::string> result;
+    Toolbox::SplitString(result, "a", ';');
+    ASSERT_EQ(1u, result.size());
+    ASSERT_TRUE(result.end() != result.find("a"));
+  }
+
+  {
+    std::set<std::string> result;
+    Toolbox::SplitString(result, "a;b", ';');
+    ASSERT_EQ(2u, result.size());
+    ASSERT_TRUE(result.end() != result.find("a"));
+    ASSERT_TRUE(result.end() != result.find("b"));
+  }
+
+  {
+    std::set<std::string> result;
+    Toolbox::SplitString(result, "a;b;", ';');
+    ASSERT_EQ(2u, result.size());
+    ASSERT_TRUE(result.end() != result.find("a"));
+    ASSERT_TRUE(result.end() != result.find("b"));
+  }
+
+  {
+    std::set<std::string> result;
+    Toolbox::SplitString(result, "a;a", ';');
+    ASSERT_EQ(1u, result.size());
+    ASSERT_TRUE(result.end() != result.find("a"));
+  }
+
+  {
+    std::vector<std::string> result;
+    Toolbox::SplitString(result, "", ';');
+    ASSERT_EQ(0u, result.size());
+  }
+
+  {
+    std::vector<std::string> result;
+    Toolbox::SplitString(result, "a", ';');
+    ASSERT_EQ(1u, result.size());
+    ASSERT_EQ("a", result[0]);
+  }
+
+  {
+    std::vector<std::string> result;
+    Toolbox::SplitString(result, "a;b", ';');
+    ASSERT_EQ(2u, result.size());
+    ASSERT_EQ("a", result[0]);
+    ASSERT_EQ("b", result[1]);
+  }
+
+  {
+    std::vector<std::string> result;
+    Toolbox::SplitString(result, "a;b;", ';');
+    ASSERT_EQ(2u, result.size());
+    ASSERT_EQ("a", result[0]);
+    ASSERT_EQ("b", result[1]);
+  }
+
+  {
+    std::vector<std::string> result;
+    Toolbox::TokenizeString(result, "a;a", ';');
+    ASSERT_EQ(2u, result.size());
+    ASSERT_EQ("a", result[0]);
+    ASSERT_EQ("a", result[1]);
+  }
+}
+
 TEST(Toolbox, Enumerations)
 {
   ASSERT_EQ(Encoding_Utf8, StringToEncoding(EnumerationToString(Encoding_Utf8)));
@@ -749,6 +845,7 @@ TEST(Toolbox, Enumerations)
   ASSERT_EQ(DicomVersion_2008, StringToDicomVersion(EnumerationToString(DicomVersion_2008)));
   ASSERT_EQ(DicomVersion_2017c, StringToDicomVersion(EnumerationToString(DicomVersion_2017c)));
   ASSERT_EQ(DicomVersion_2021b, StringToDicomVersion(EnumerationToString(DicomVersion_2021b)));
+  ASSERT_EQ(DicomVersion_2023b, StringToDicomVersion(EnumerationToString(DicomVersion_2023b)));
 
   for (int i = static_cast<int>(ValueRepresentation_ApplicationEntity);
        i < static_cast<int>(ValueRepresentation_NotSupported); i += 1)
@@ -790,6 +887,9 @@ TEST(Toolbox, Enumerations)
   ASSERT_EQ(MimeType_Xml, StringToMimeType(EnumerationToString(MimeType_Xml)));
   ASSERT_EQ(MimeType_DicomWebJson, StringToMimeType(EnumerationToString(MimeType_DicomWebJson)));
   ASSERT_EQ(MimeType_DicomWebXml, StringToMimeType(EnumerationToString(MimeType_DicomWebXml)));
+  ASSERT_EQ(MimeType_Mtl, StringToMimeType(EnumerationToString(MimeType_Mtl)));
+  ASSERT_EQ(MimeType_Obj, StringToMimeType(EnumerationToString(MimeType_Obj)));
+  ASSERT_EQ(MimeType_Stl, StringToMimeType(EnumerationToString(MimeType_Stl)));
   ASSERT_THROW(StringToMimeType("nope"), OrthancException);
 
   ASSERT_TRUE(IsResourceLevelAboveOrEqual(ResourceType_Patient, ResourceType_Patient));
@@ -1311,7 +1411,7 @@ TEST(MetricsRegistry, Basic)
   {
     MetricsRegistry m;
     m.SetEnabled(false);
-    m.SetValue("hello.world", 42.5f);
+    m.SetIntegerValue("hello.world", 42);
     
     std::string s;
     m.ExportPrometheusText(s);
@@ -1320,7 +1420,7 @@ TEST(MetricsRegistry, Basic)
 
   {
     MetricsRegistry m;
-    m.Register("hello.world", MetricsType_Default);
+    m.Register("hello.world", MetricsUpdatePolicy_Directly, MetricsDataType_Integer);
     
     std::string s;
     m.ExportPrometheusText(s);
@@ -1329,9 +1429,9 @@ TEST(MetricsRegistry, Basic)
 
   {
     MetricsRegistry m;
-    m.SetValue("hello.world", 42.5f);
-    ASSERT_EQ(MetricsType_Default, m.GetMetricsType("hello.world"));
-    ASSERT_THROW(m.GetMetricsType("nope"), OrthancException);
+    m.SetIntegerValue("hello.world", -42);
+    ASSERT_EQ(MetricsUpdatePolicy_Directly, m.GetUpdatePolicy("hello.world"));
+    ASSERT_THROW(m.GetUpdatePolicy("nope"), OrthancException);
     
     std::string s;
     m.ExportPrometheusText(s);
@@ -1339,33 +1439,33 @@ TEST(MetricsRegistry, Basic)
     std::vector<std::string> t;
     Toolbox::TokenizeString(t, s, '\n');
     ASSERT_EQ(2u, t.size());
-    ASSERT_EQ("hello.world 42.5 ", t[0].substr(0, 17));
+    ASSERT_EQ("hello.world -42 ", t[0].substr(0, 16));
     ASSERT_TRUE(t[1].empty());
   }
 
   {
     MetricsRegistry m;
-    m.Register("hello.max", MetricsType_MaxOver10Seconds);
-    m.SetValue("hello.max", 10);
-    m.SetValue("hello.max", 20);
-    m.SetValue("hello.max", -10);
-    m.SetValue("hello.max", 5);
+    m.Register("hello.max", MetricsUpdatePolicy_MaxOver10Seconds, MetricsDataType_Integer);
+    m.SetIntegerValue("hello.max", 10);
+    m.SetIntegerValue("hello.max", 20);
+    m.SetIntegerValue("hello.max", -10);
+    m.SetIntegerValue("hello.max", 5);
 
-    m.Register("hello.min", MetricsType_MinOver10Seconds);
-    m.SetValue("hello.min", 10);
-    m.SetValue("hello.min", 20);
-    m.SetValue("hello.min", -10);
-    m.SetValue("hello.min", 5);
+    m.Register("hello.min", MetricsUpdatePolicy_MinOver10Seconds, MetricsDataType_Integer);
+    m.SetIntegerValue("hello.min", 10);
+    m.SetIntegerValue("hello.min", 20);
+    m.SetIntegerValue("hello.min", -10);
+    m.SetIntegerValue("hello.min", 5);
     
-    m.Register("hello.default", MetricsType_Default);
-    m.SetValue("hello.default", 10);
-    m.SetValue("hello.default", 20);
-    m.SetValue("hello.default", -10);
-    m.SetValue("hello.default", 5);
+    m.Register("hello.directly", MetricsUpdatePolicy_Directly, MetricsDataType_Integer);
+    m.SetIntegerValue("hello.directly", 10);
+    m.SetIntegerValue("hello.directly", 20);
+    m.SetIntegerValue("hello.directly", -10);
+    m.SetIntegerValue("hello.directly", 5);
     
-    ASSERT_EQ(MetricsType_MaxOver10Seconds, m.GetMetricsType("hello.max"));
-    ASSERT_EQ(MetricsType_MinOver10Seconds, m.GetMetricsType("hello.min"));
-    ASSERT_EQ(MetricsType_Default, m.GetMetricsType("hello.default"));
+    ASSERT_EQ(MetricsUpdatePolicy_MaxOver10Seconds, m.GetUpdatePolicy("hello.max"));
+    ASSERT_EQ(MetricsUpdatePolicy_MinOver10Seconds, m.GetUpdatePolicy("hello.min"));
+    ASSERT_EQ(MetricsUpdatePolicy_Directly, m.GetUpdatePolicy("hello.directly"));
 
     std::string s;
     m.ExportPrometheusText(s);
@@ -1385,25 +1485,25 @@ TEST(MetricsRegistry, Basic)
 
     ASSERT_EQ("20", u["hello.max"]);
     ASSERT_EQ("-10", u["hello.min"]);
-    ASSERT_EQ("5", u["hello.default"]);
+    ASSERT_EQ("5", u["hello.directly"]);
   }
 
   {
     MetricsRegistry m;
 
-    m.SetValue("a", 10);
-    m.SetValue("b", 10, MetricsType_MinOver10Seconds);
+    m.SetIntegerValue("a", 10);
+    m.SetIntegerValue("b", 10, MetricsUpdatePolicy_MinOver10Seconds);
 
-    m.Register("c", MetricsType_MaxOver10Seconds);
-    m.SetValue("c", 10, MetricsType_MinOver10Seconds);
+    m.Register("c", MetricsUpdatePolicy_MaxOver10Seconds, MetricsDataType_Integer);
+    m.SetIntegerValue("c", 10, MetricsUpdatePolicy_MinOver10Seconds);
 
-    m.Register("d", MetricsType_MaxOver10Seconds);
-    m.Register("d", MetricsType_Default);
+    m.Register("d", MetricsUpdatePolicy_MaxOver10Seconds, MetricsDataType_Integer);
+    ASSERT_THROW(m.Register("d", MetricsUpdatePolicy_Directly, MetricsDataType_Integer), OrthancException);
 
-    ASSERT_EQ(MetricsType_Default, m.GetMetricsType("a"));
-    ASSERT_EQ(MetricsType_MinOver10Seconds, m.GetMetricsType("b"));
-    ASSERT_EQ(MetricsType_MaxOver10Seconds, m.GetMetricsType("c"));
-    ASSERT_EQ(MetricsType_Default, m.GetMetricsType("d"));
+    ASSERT_EQ(MetricsUpdatePolicy_Directly, m.GetUpdatePolicy("a"));
+    ASSERT_EQ(MetricsUpdatePolicy_MinOver10Seconds, m.GetUpdatePolicy("b"));
+    ASSERT_EQ(MetricsUpdatePolicy_MaxOver10Seconds, m.GetUpdatePolicy("c"));
+    ASSERT_EQ(MetricsUpdatePolicy_MaxOver10Seconds, m.GetUpdatePolicy("d"));
   }
 
   {
@@ -1411,11 +1511,47 @@ TEST(MetricsRegistry, Basic)
 
     {
       MetricsRegistry::Timer t1(m, "a");
-      MetricsRegistry::Timer t2(m, "b", MetricsType_MinOver10Seconds);
+      MetricsRegistry::Timer t2(m, "b", MetricsUpdatePolicy_MinOver10Seconds);
     }
 
-    ASSERT_EQ(MetricsType_MaxOver10Seconds, m.GetMetricsType("a"));
-    ASSERT_EQ(MetricsType_MinOver10Seconds, m.GetMetricsType("b"));
+    ASSERT_EQ(MetricsUpdatePolicy_MaxOver10Seconds, m.GetUpdatePolicy("a"));
+    ASSERT_EQ(MetricsUpdatePolicy_MinOver10Seconds, m.GetUpdatePolicy("b"));
+  }
+
+  {
+    MetricsRegistry m;
+    m.Register("c", MetricsUpdatePolicy_MaxOver10Seconds, MetricsDataType_Integer);
+    m.SetFloatValue("c", 100, MetricsUpdatePolicy_MinOver10Seconds);
+
+    ASSERT_EQ(MetricsUpdatePolicy_MaxOver10Seconds, m.GetUpdatePolicy("c"));
+    ASSERT_EQ(MetricsDataType_Integer, m.GetDataType("c"));
+  }
+
+  {
+    MetricsRegistry m;
+    m.Register("c", MetricsUpdatePolicy_MaxOver10Seconds, MetricsDataType_Float);
+    m.SetIntegerValue("c", 100, MetricsUpdatePolicy_MinOver10Seconds);
+
+    ASSERT_EQ(MetricsUpdatePolicy_MaxOver10Seconds, m.GetUpdatePolicy("c"));
+    ASSERT_EQ(MetricsDataType_Float, m.GetDataType("c"));
+  }
+
+  {
+    MetricsRegistry m;
+    m.SetIntegerValue("c", 100, MetricsUpdatePolicy_MinOver10Seconds);
+    m.SetFloatValue("c", 101, MetricsUpdatePolicy_MaxOver10Seconds);
+
+    ASSERT_EQ(MetricsUpdatePolicy_MinOver10Seconds, m.GetUpdatePolicy("c"));
+    ASSERT_EQ(MetricsDataType_Integer, m.GetDataType("c"));
+  }
+
+  {
+    MetricsRegistry m;
+    m.SetIntegerValue("c", 100);
+    m.SetFloatValue("c", 101, MetricsUpdatePolicy_MaxOver10Seconds);
+
+    ASSERT_EQ(MetricsUpdatePolicy_Directly, m.GetUpdatePolicy("c"));
+    ASSERT_EQ(MetricsDataType_Integer, m.GetDataType("c"));
   }
 }
 #endif
@@ -1467,3 +1603,53 @@ TEST(Toolbox, GetMacAddressess)
   }
 }
 #endif
+
+
+TEST(Toolbox, IsVersionAbove)
+{
+  unsigned int a, b, c;
+  ASSERT_FALSE(Toolbox::ParseVersion(a, b, c, "nope"));
+  ASSERT_FALSE(Toolbox::ParseVersion(a, b, c, "mainline"));
+  ASSERT_FALSE(Toolbox::ParseVersion(a, b, c, ""));
+  ASSERT_FALSE(Toolbox::ParseVersion(a, b, c, "-1"));
+  ASSERT_FALSE(Toolbox::ParseVersion(a, b, c, "1.-1"));
+  ASSERT_FALSE(Toolbox::ParseVersion(a, b, c, "1.1.-1"));
+
+  ASSERT_TRUE(Toolbox::ParseVersion(a, b, c, "14.17.20"));
+  ASSERT_EQ(14u, a);
+  ASSERT_EQ(17u, b);
+  ASSERT_EQ(20u, c);
+
+  ASSERT_TRUE(Toolbox::ParseVersion(a, b, c, "18.19"));
+  ASSERT_EQ(18u, a);
+  ASSERT_EQ(19u, b);
+  ASSERT_EQ(0u, c);
+
+  ASSERT_TRUE(Toolbox::ParseVersion(a, b, c, "78"));
+  ASSERT_EQ(78u, a);
+  ASSERT_EQ(0u, b);
+  ASSERT_EQ(0u, c);
+
+  ASSERT_TRUE(Toolbox::IsVersionAbove("mainline", 99, 99, 99));
+
+  ASSERT_TRUE(Toolbox::IsVersionAbove("18", 17, 99, 99));
+  ASSERT_TRUE(Toolbox::IsVersionAbove("18", 18, 0, 0));
+  ASSERT_FALSE(Toolbox::IsVersionAbove("18", 18, 0, 1));
+  ASSERT_FALSE(Toolbox::IsVersionAbove("18", 18, 1, 0));
+  ASSERT_FALSE(Toolbox::IsVersionAbove("18", 19, 0, 0));
+
+  ASSERT_TRUE(Toolbox::IsVersionAbove("18.19", 17, 99, 99));
+  ASSERT_TRUE(Toolbox::IsVersionAbove("18.19", 18, 18, 99));
+  ASSERT_TRUE(Toolbox::IsVersionAbove("18.19", 18, 19, 0));
+  ASSERT_FALSE(Toolbox::IsVersionAbove("18.19", 18, 19, 1));
+  ASSERT_FALSE(Toolbox::IsVersionAbove("18.19", 18, 20, 0));
+  ASSERT_FALSE(Toolbox::IsVersionAbove("18.19", 19, 0, 0));
+
+  ASSERT_TRUE(Toolbox::IsVersionAbove("18.19.20", 17, 99, 99));
+  ASSERT_TRUE(Toolbox::IsVersionAbove("18.19.20", 18, 18, 99));
+  ASSERT_TRUE(Toolbox::IsVersionAbove("18.19.20", 18, 19, 19));
+  ASSERT_TRUE(Toolbox::IsVersionAbove("18.19.20", 18, 19, 20));
+  ASSERT_FALSE(Toolbox::IsVersionAbove("18.19.20", 18, 19, 21));
+  ASSERT_FALSE(Toolbox::IsVersionAbove("18.19.20", 18, 20, 0));
+  ASSERT_FALSE(Toolbox::IsVersionAbove("18.19.20", 19, 0, 0));
+}

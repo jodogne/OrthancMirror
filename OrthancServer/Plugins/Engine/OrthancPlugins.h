@@ -2,8 +2,9 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -88,7 +89,7 @@ namespace Orthanc
     class HttpServerChunkedReader;
     class IDicomInstance;
     class DicomInstanceFromBuffer;
-    class DicomInstanceFromTranscoded;
+    class DicomInstanceFromParsed;
     class WebDavCollection;
 
 public:
@@ -220,6 +221,8 @@ private:
 
     void ApplySendMultipartItem2(const void* parameters);
 
+    void ApplyLoadDicomInstance(const _OrthancPluginLoadDicomInstance& parameters);
+
     void ComputeHash(_OrthancPluginService service,
                      const void* parameters);
 
@@ -270,7 +273,9 @@ private:
                                const void* parameters) ORTHANC_OVERRIDE;
 
     virtual void SignalChange(const ServerIndexChange& change) ORTHANC_OVERRIDE;
-    
+
+    virtual void SignalJobEvent(const JobEvent& event) ORTHANC_OVERRIDE;
+
     virtual void SignalStoredInstance(const std::string& instanceId,
                                       const DicomInstanceToStore& instance,
                                       const Json::Value& simplifiedTags) ORTHANC_OVERRIDE;
@@ -318,21 +323,6 @@ private:
     void SignalOrthancStopped()
     {
       SignalChangeInternal(OrthancPluginChangeType_OrthancStopped, OrthancPluginResourceType_None, NULL);
-    }
-
-    void SignalJobSubmitted(const std::string& jobId)
-    {
-      SignalChangeInternal(OrthancPluginChangeType_JobSubmitted, OrthancPluginResourceType_None, jobId.c_str());
-    }
-
-    void SignalJobSuccess(const std::string& jobId)
-    {
-      SignalChangeInternal(OrthancPluginChangeType_JobSuccess, OrthancPluginResourceType_None, jobId.c_str());
-    }
-
-    void SignalJobFailure(const std::string& jobId)
-    {
-      SignalChangeInternal(OrthancPluginChangeType_JobFailure, OrthancPluginResourceType_None, jobId.c_str());
     }
 
     void SignalUpdatedPeers()

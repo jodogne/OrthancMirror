@@ -2,8 +2,9 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -31,6 +32,7 @@
  * "orthanc-databases" project.
  **/
 
+#include "../../../OrthancFramework/Sources/MetricsRegistry.h"
 #include "../../Sources/Search/DatabaseConstraint.h"
 #include "../../Sources/ServerEnumerations.h"
 #include "../Include/orthanc/OrthancCPlugin.h"
@@ -71,6 +73,8 @@ namespace Orthanc
     JobStepCode Convert(OrthancPluginJobStepStatus step);
 
     StorageCommitmentFailureReason Convert(OrthancPluginStorageCommitmentFailureReason reason);
+
+    MetricsUpdatePolicy Convert(OrthancPluginMetricsType type);
   }
 }
 

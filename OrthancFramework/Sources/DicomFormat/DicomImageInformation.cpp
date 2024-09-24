@@ -2,8 +2,9 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -59,60 +60,66 @@ namespace Orthanc
 
     try
     {
-      std::string p = values.GetValue(DICOM_TAG_PHOTOMETRIC_INTERPRETATION).GetContent();
-      Toolbox::ToUpperCase(p);
+      std::string p;
+      if (values.LookupStringValue(p, DICOM_TAG_PHOTOMETRIC_INTERPRETATION, false)) {
+        Toolbox::ToUpperCase(p);
 
-      if (p == "RGB")
-      {
-        photometric_ = PhotometricInterpretation_RGB;
-      }
-      else if (p == "MONOCHROME1")
-      {
-        photometric_ = PhotometricInterpretation_Monochrome1;
-      }
-      else if (p == "MONOCHROME2")
-      {
-        photometric_ = PhotometricInterpretation_Monochrome2;
-      }
-      else if (p == "PALETTE COLOR")
-      {
-        photometric_ = PhotometricInterpretation_Palette;
-      }
-      else if (p == "HSV")
-      {
-        photometric_ = PhotometricInterpretation_HSV;
-      }
-      else if (p == "ARGB")
-      {
-        photometric_ = PhotometricInterpretation_ARGB;
-      }
-      else if (p == "CMYK")
-      {
-        photometric_ = PhotometricInterpretation_CMYK;
-      }
-      else if (p == "YBR_FULL")
-      {
-        photometric_ = PhotometricInterpretation_YBRFull;
-      }
-      else if (p == "YBR_FULL_422")
-      {
-        photometric_ = PhotometricInterpretation_YBRFull422;
-      }
-      else if (p == "YBR_PARTIAL_420")
-      {
-        photometric_ = PhotometricInterpretation_YBRPartial420;
-      }
-      else if (p == "YBR_PARTIAL_422")
-      {
-        photometric_ = PhotometricInterpretation_YBRPartial422;
-      }
-      else if (p == "YBR_ICT")
-      {
-        photometric_ = PhotometricInterpretation_YBR_ICT;
-      }
-      else if (p == "YBR_RCT")
-      {
-        photometric_ = PhotometricInterpretation_YBR_RCT;
+        if (p == "RGB")
+        {
+          photometric_ = PhotometricInterpretation_RGB;
+        }
+        else if (p == "MONOCHROME1")
+        {
+          photometric_ = PhotometricInterpretation_Monochrome1;
+        }
+        else if (p == "MONOCHROME2")
+        {
+          photometric_ = PhotometricInterpretation_Monochrome2;
+        }
+        else if (p == "PALETTE COLOR")
+        {
+          photometric_ = PhotometricInterpretation_Palette;
+        }
+        else if (p == "HSV")
+        {
+          photometric_ = PhotometricInterpretation_HSV;
+        }
+        else if (p == "ARGB")
+        {
+          photometric_ = PhotometricInterpretation_ARGB;
+        }
+        else if (p == "CMYK")
+        {
+          photometric_ = PhotometricInterpretation_CMYK;
+        }
+        else if (p == "YBR_FULL")
+        {
+          photometric_ = PhotometricInterpretation_YBRFull;
+        }
+        else if (p == "YBR_FULL_422")
+        {
+          photometric_ = PhotometricInterpretation_YBRFull422;
+        }
+        else if (p == "YBR_PARTIAL_420")
+        {
+          photometric_ = PhotometricInterpretation_YBRPartial420;
+        }
+        else if (p == "YBR_PARTIAL_422")
+        {
+          photometric_ = PhotometricInterpretation_YBRPartial422;
+        }
+        else if (p == "YBR_ICT")
+        {
+          photometric_ = PhotometricInterpretation_YBR_ICT;
+        }
+        else if (p == "YBR_RCT")
+        {
+          photometric_ = PhotometricInterpretation_YBR_RCT;
+        }
+        else
+        {
+          photometric_ = PhotometricInterpretation_Unknown;
+        }
       }
       else
       {
@@ -422,5 +429,47 @@ namespace Orthanc
   unsigned int DicomImageInformation::GetUsefulTagLength()
   {
     return 256;
+  }
+
+
+  ValueRepresentation DicomImageInformation::GuessPixelDataValueRepresentation(const DicomTransferSyntax& transferSyntax,
+                                                                               unsigned int bitsAllocated)
+  {
+    /**
+     * This approach is validated in "Tests/GuessPixelDataVR.py":
+     * https://orthanc.uclouvain.be/hg/orthanc-tests/file/default/Tests/GuessPixelDataVR.py
+     **/
+
+    if (transferSyntax == DicomTransferSyntax_LittleEndianExplicit ||
+        transferSyntax == DicomTransferSyntax_BigEndianExplicit)
+    {
+      /**
+       * Same rules apply to Little Endian Explicit and Big Endian
+       * Explicit (now retired). The VR of the pixel data directly
+       * depends upon the "Bits Allocated (0028,0100)" tag:
+       * https://dicom.nema.org/medical/dicom/current/output/chtml/part05/sect_A.2.html
+       * https://dicom.nema.org/medical/dicom/2016b/output/chtml/part05/sect_A.3.html
+       **/
+      if (bitsAllocated > 8)
+      {
+        return ValueRepresentation_OtherWord;
+      }
+      else
+      {
+        return ValueRepresentation_OtherByte;
+      }
+    }
+    else if (transferSyntax == DicomTransferSyntax_LittleEndianImplicit)
+    {
+      // Assume "OW" for DICOM Implicit VR Little Endian Transfer Syntax
+      // https://dicom.nema.org/medical/dicom/current/output/chtml/part05/chapter_A.html#sect_A.1
+      return ValueRepresentation_OtherWord;
+    }
+    else
+    {
+      // Assume "OB" for all the compressed transfer syntaxes
+      // https://dicom.nema.org/medical/dicom/current/output/chtml/part05/sect_A.4.html
+      return ValueRepresentation_OtherByte;
+    }
   }
 }

@@ -161,7 +161,7 @@ SUPPORTED - Ubuntu 18.04 LTS
        	       	       uuid-dev libcurl4-openssl-dev liblua5.3-dev \
        	       	       libgtest-dev libpng-dev libsqlite3-dev libssl-dev libjpeg-dev \
 		       zlib1g-dev libdcmtk-dev libboost-all-dev libwrap0-dev \
-                       libcharls-dev libjsoncpp-dev libpugixml-dev locales
+                       libcharls-dev libjsoncpp-dev libpugixml-dev locales protobuf-compiler
 
 # cd ./Build
 # cmake -DALLOW_DOWNLOADS=ON \
@@ -235,7 +235,7 @@ not work anymore as such, they can serve as a basis.
 
 You can find build instructions for Orthanc up to 0.7.0 on the
 following Wiki page:
-https://book.orthanc-server.com/faq/compiling-old.html
+https://orthanc.uclouvain.be/book/faq/compiling-old.html
 
 These instructions will not work as such beyond Orthanc 0.7.0, but
 they might give indications.

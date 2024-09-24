@@ -1,8 +1,9 @@
 # Orthanc - A Lightweight, RESTful DICOM Store
 # Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
 # Department, University Hospital of Liege, Belgium
-# Copyright (C) 2017-2022 Osimis S.A., Belgium
-# Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+# Copyright (C) 2017-2023 Osimis S.A., Belgium
+# Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+# Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
 #
 # This program is free software: you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public License
@@ -43,6 +44,13 @@ if ("${CMAKE_SYSTEM_VERSION}" STREQUAL "LinuxStandardBase")
   # use by "ExternalProject" in CMake
   SET(CMAKE_LSB_CC $ENV{LSB_CC} CACHE STRING "")
   SET(CMAKE_LSB_CXX $ENV{LSB_CXX} CACHE STRING "")
+
+  # This is necessary to build "Orthanc mainline - Framework LSB
+  # Release" on "buildbot-worker-debian11"
+  set(LSB_PTHREAD_NONSHARED "${LSB_PATH}/lib64-${LSB_TARGET_VERSION}/libpthread_nonshared.a")
+  if (EXISTS ${LSB_PTHREAD_NONSHARED})
+    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${LSB_PTHREAD_NONSHARED}")
+  endif()
 endif()
 
 
@@ -124,12 +132,17 @@ if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux" OR
     ${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD" OR
     ${CMAKE_SYSTEM_NAME} STREQUAL "OpenBSD")
 
-  if (NOT ${CMAKE_SYSTEM_NAME} STREQUAL "OpenBSD" AND
+  if (# NOT ${CMAKE_SYSTEM_VERSION} STREQUAL "LinuxStandardBase" AND
+      NOT ${CMAKE_SYSTEM_NAME} STREQUAL "OpenBSD" AND
       NOT ${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD")
     # The "--no-undefined" linker flag makes the shared libraries
     # (plugins ModalityWorklists and ServeFolders) fail to compile on
     # OpenBSD, and make the PostgreSQL plugin complain about missing
-    # "environ" global variable in FreeBSD
+    # "environ" global variable in FreeBSD.
+    #
+    # TODO - Furthermore, on Linux Standard Base running on Debian 12,
+    # the "-Wl,--no-undefined" seems to break the compilation (added
+    # after Orthanc 1.12.2). This is disabled for now.
     set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} -Wl,--no-undefined")
     set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--no-undefined")
   endif()
@@ -219,6 +232,10 @@ elseif(${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
   endif()
 
 elseif (${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
+
+  # fix this error that appears with recent compilers on MacOS: boost/mpl/aux_/integral_wrapper.hpp:73:31: error: integer value -1 is outside the valid range of values [0, 3] for this enumeration type [-Wenum-constexpr-conversion]
+  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-enum-constexpr-conversion")
+
   add_definitions(
     -D_XOPEN_SOURCE=1
     )
@@ -237,7 +254,8 @@ endif()
 
 
 if (DEFINED ENABLE_PROFILING AND ENABLE_PROFILING)
-  if (CMAKE_COMPILER_IS_GNUCXX)
+  if (CMAKE_COMPILER_IS_GNUCXX OR
+      CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pg")
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pg")
@@ -262,3 +280,24 @@ if (CMAKE_COMPILER_IS_GNUCXX)
   # preceding batches. https://cmake.org/Bug/view.php?id=14874
   set(CMAKE_CXX_ARCHIVE_APPEND "<CMAKE_AR> <LINK_FLAGS> q <TARGET> <OBJECTS>")
 endif()
+
+
+# This function defines macro "__ORTHANC_FILE__" as a replacement to
+# macro "__FILE__", as the latter leaks the full path of the source
+# files in the binaries
+# https://stackoverflow.com/questions/8487986/file-macro-shows-full-path
+# https://twitter.com/wget42/status/1676877802375634944?s=20
+function(DefineSourceBasenameForTarget targetname)
+  # Microsoft Visual Studio is extremely slow if using
+  # "set_property()", we only enable this feature for gcc and clang
+  if (CMAKE_COMPILER_IS_GNUCXX OR
+      CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    get_target_property(source_files "${targetname}" SOURCES)
+    foreach(sourcefile ${source_files})
+      get_filename_component(basename "${sourcefile}" NAME)
+      set_property(
+        SOURCE "${sourcefile}" APPEND
+        PROPERTY COMPILE_DEFINITIONS "__ORTHANC_FILE__=\"${basename}\"")
+    endforeach()
+  endif()
+endfunction()

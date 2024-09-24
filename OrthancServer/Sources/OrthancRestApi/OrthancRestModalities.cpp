@@ -2,8 +2,9 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -44,6 +45,9 @@ namespace Orthanc
 {
   static const char* const KEY_LEVEL = "Level";
   static const char* const KEY_LOCAL_AET = "LocalAet";
+  static const char* const KEY_CALLED_AET = "CalledAet";
+  static const char* const KEY_HOST = "Host";
+  static const char* const KEY_PORT = "Port";
   static const char* const KEY_NORMALIZE = "Normalize";
   static const char* const KEY_QUERY = "Query";
   static const char* const KEY_RESOURCES = "Resources";
@@ -112,7 +116,11 @@ namespace Orthanc
       .SetRequestField("Manufacturer", RestApiCallDocumentation::Type_String, "Manufacturer of the remote DICOM "
                        "modality (check configuration option `DicomModalities` for possible values", false)
       .SetRequestField("UseDicomTls", RestApiCallDocumentation::Type_Boolean, "Whether to use DICOM TLS "
-                       "in the SCU connection initiated by Orthanc (new in Orthanc 1.9.0)", false);
+                       "in the SCU connection initiated by Orthanc (new in Orthanc 1.9.0)", false)
+      .SetRequestField(KEY_LOCAL_AET, RestApiCallDocumentation::Type_String, "Whether to override the default DicomAet "
+                       "in the SCU connection initiated by Orthanc to this modality", false)
+      .SetRequestField(KEY_TIMEOUT, RestApiCallDocumentation::Type_Number, "Whether to override the default DicomScuTimeout "
+                       "in the SCU connection initiated by Orthanc to this modality", false);
 
     if (includePermissions)
     {
@@ -192,8 +200,6 @@ namespace Orthanc
   static void DocumentEchoShared(RestApiPostCall& call)
   {
     call.GetDocumentation()
-      .SetRequestField(KEY_TIMEOUT, RestApiCallDocumentation::Type_Number,
-                       "Timeout for the C-ECHO command, in seconds", false)
       .SetRequestField(KEY_CHECK_FIND, RestApiCallDocumentation::Type_Boolean,
                        "Issue a dummy C-FIND command after the C-GET SCU, in order to check whether the remote "
                        "modality knows about Orthanc. This field defaults to the value of the `DicomEchoChecksFind` "
@@ -210,7 +216,9 @@ namespace Orthanc
         .SetTag("Networking")
         .SetSummary("Trigger C-ECHO SCU")
         .SetDescription("Trigger C-ECHO SCU command against the DICOM modality whose identifier is provided in URL: "
-                        "https://book.orthanc-server.com/users/rest.html#performing-c-echo")
+                        "https://orthanc.uclouvain.be/book/users/rest.html#performing-c-echo")
+        .SetRequestField(KEY_TIMEOUT, RestApiCallDocumentation::Type_Number,
+                         "Timeout for the C-ECHO command, in seconds", false)
         .SetUriArgument("id", "Identifier of the modality of interest");
       return;
     }
@@ -654,7 +662,7 @@ namespace Orthanc
         .SetTag("Networking")
         .SetSummary("Trigger C-FIND SCU")
         .SetDescription("Trigger C-FIND SCU command against the DICOM modality whose identifier is provided in URL: "
-                        "https://book.orthanc-server.com/users/rest.html#performing-query-retrieve-c-find-and-find-with-rest")
+                        "https://orthanc.uclouvain.be/book/users/rest.html#performing-query-retrieve-c-find-and-find-with-rest")
         .SetUriArgument("id", "Identifier of the modality of interest")
         .SetRequestField(KEY_QUERY, RestApiCallDocumentation::Type_JsonObject,
                          "Associative array containing the filter on the values of the DICOM tags", true)
@@ -757,7 +765,7 @@ namespace Orthanc
         .SetDescription("List the identifiers of all the query/retrieve operations on DICOM modalities, "
                         "as initiated by calls to `/modalities/{id}/query`. The length of this list is bounded "
                         "by the `QueryRetrieveSize` configuration option of Orthanc. "
-                        "https://book.orthanc-server.com/users/rest.html#performing-query-retrieve-c-find-and-find-with-rest")
+                        "https://orthanc.uclouvain.be/book/users/rest.html#performing-query-retrieve-c-find-and-find-with-rest")
         .AddAnswerType(MimeType_Json, "JSON array containing the identifiers");
       return;
     }
@@ -840,7 +848,7 @@ namespace Orthanc
       return;
     }
 
-    const bool expand = call.HasArgument("expand");
+    const bool expand = call.HasArgument("expand") && call.GetBooleanArgument("expand", true);
     const DicomToJsonFormat format = OrthancRestApi::GetDicomFormat(call, DicomToJsonFormat_Full);
     
     QueryAccessor query(call);
@@ -994,7 +1002,7 @@ namespace Orthanc
         .SetSummary("Retrieve one answer")
         .SetDescription("Start a C-MOVE SCU command as a job, in order to retrieve one answer associated with the "
                         "query/retrieve operation whose identifiers are provided in the URL: "
-                        "https://book.orthanc-server.com/users/rest.html#performing-retrieve-c-move")
+                        "https://orthanc.uclouvain.be/book/users/rest.html#performing-retrieve-c-move")
         .SetUriArgument("index", "Index of the answer");
       return;
     }
@@ -1013,7 +1021,7 @@ namespace Orthanc
         .SetSummary("Retrieve all answers")
         .SetDescription("Start a C-MOVE SCU command as a job, in order to retrieve all the answers associated with the "
                         "query/retrieve operation whose identifier is provided in the URL: "
-                        "https://book.orthanc-server.com/users/rest.html#performing-retrieve-c-move");
+                        "https://orthanc.uclouvain.be/book/users/rest.html#performing-retrieve-c-move");
       return;
     }
 
@@ -1414,20 +1422,29 @@ namespace Orthanc
         .SetSummary("Trigger C-STORE SCU")
         .SetDescription("Start a C-STORE SCU command as a job, in order to send DICOM resources stored locally "
                         "to some remote DICOM modality whose identifier is provided in the URL: "
-                        "https://book.orthanc-server.com/users/rest.html#rest-store-scu")
+                        "https://orthanc.uclouvain.be/book/users/rest.html#rest-store-scu")
         .AddRequestType(MimeType_PlainText, "The Orthanc identifier of one resource to be sent")
         .SetRequestField(KEY_RESOURCES, RestApiCallDocumentation::Type_JsonListOfStrings,
                          "List of the Orthanc identifiers of all the DICOM resources to be sent", true)
         .SetRequestField(KEY_LOCAL_AET, RestApiCallDocumentation::Type_String,
                          "Local AET that is used for this commands, defaults to `DicomAet` configuration option. "
                          "Ignored if `DicomModalities` already sets `LocalAet` for this modality.", false)
+        .SetRequestField(KEY_CALLED_AET, RestApiCallDocumentation::Type_String,
+                         "Called AET that is used for this commands, defaults to `AET` configuration option. "
+                         "Allows you to overwrite the destination AET for a specific operation.", false)
+        .SetRequestField(KEY_HOST, RestApiCallDocumentation::Type_String,
+                         "Host that is used for this commands, defaults to `Host` configuration option. "
+                         "Allows you to overwrite the destination host for a specific operation.", false)
+        .SetRequestField(KEY_PORT, RestApiCallDocumentation::Type_Number,
+                         "Port that is used for this command, defaults to `Port` configuration option. "
+                         "Allows you to overwrite the destination port for a specific operation.", false)
         .SetRequestField(KEY_MOVE_ORIGINATOR_AET, RestApiCallDocumentation::Type_String,
                          "Move originator AET that is used for this commands, in order to fake a C-MOVE SCU", false)
         .SetRequestField(KEY_MOVE_ORIGINATOR_ID, RestApiCallDocumentation::Type_Number,
                          "Move originator ID that is used for this commands, in order to fake a C-MOVE SCU", false)
         .SetRequestField(KEY_STORAGE_COMMITMENT, RestApiCallDocumentation::Type_Boolean,
                          "Whether to chain C-STORE with DICOM storage commitment to validate the success of the transmission: "
-                         "https://book.orthanc-server.com/users/storage-commitment.html#chaining-c-store-with-storage-commitment", false)
+                         "https://orthanc.uclouvain.be/book/users/storage-commitment.html#chaining-c-store-with-storage-commitment", false)
         .SetRequestField(KEY_TIMEOUT, RestApiCallDocumentation::Type_Number,
                          "Timeout for the C-STORE command, in seconds", false)
         .SetUriArgument("id", "Identifier of the modality of interest");
@@ -1450,8 +1467,17 @@ namespace Orthanc
     int moveOriginatorID = Toolbox::GetJsonIntegerField
       (request, KEY_MOVE_ORIGINATOR_ID, 0 /* By default, not a C-MOVE */);
 
+    RemoteModalityParameters remoteModality = MyGetModalityUsingSymbolicName(remote);
+
+    remoteModality.SetApplicationEntityTitle(Toolbox::GetJsonStringField
+      (request, KEY_CALLED_AET, remoteModality.GetApplicationEntityTitle()));
+    remoteModality.SetHost(Toolbox::GetJsonStringField
+      (request, KEY_HOST, remoteModality.GetHost()));
+    remoteModality.SetPortNumber(static_cast<uint16_t>(Toolbox::GetJsonUnsignedIntegerField
+      (request, KEY_PORT, remoteModality.GetPortNumber())));
+
     job->SetLocalAet(localAet);
-    job->SetRemoteModality(MyGetModalityUsingSymbolicName(remote));
+    job->SetRemoteModality(remoteModality);
 
     if (moveOriginatorID != 0)
     {
@@ -1499,7 +1525,9 @@ namespace Orthanc
 
     std::string sopClassUid, sopInstanceUid;
     connection.Store(sopClassUid, sopInstanceUid, call.GetBodyData(),
-                     call.GetBodySize(), false /* Not a C-MOVE */, "", 0);
+                     call.GetBodySize(), 
+                     false /* Not a C-MOVE */, 
+                     "", 0);
 
     Json::Value answer = Json::objectValue;
     answer[SOP_CLASS_UID] = sopClassUid;
@@ -1523,7 +1551,7 @@ namespace Orthanc
         .SetSummary("Trigger C-MOVE SCU")
         .SetDescription("Start a C-MOVE SCU command as a job, in order to drive the execution of a sequence of "
                         "C-STORE commands by some remote DICOM modality whose identifier is provided in the URL: "
-                        "https://book.orthanc-server.com/users/rest.html#performing-c-move")
+                        "https://orthanc.uclouvain.be/book/users/rest.html#performing-c-move")
         .SetRequestField(KEY_RESOURCES, RestApiCallDocumentation::Type_JsonListOfObjects,
                          "List of queries identifying all the DICOM resources to be sent", true)
         .SetRequestField(KEY_LEVEL, RestApiCallDocumentation::Type_String,
@@ -1628,7 +1656,7 @@ namespace Orthanc
     OrthancRestApi::SetOfStrings peers;
     lock.GetConfiguration().GetListOfOrthancPeers(peers);
 
-    if (call.HasArgument("expand"))
+    if (call.HasArgument("expand") && call.GetBooleanArgument("expand", true))
     {
       Json::Value result = Json::objectValue;
       for (OrthancRestApi::SetOfStrings::const_iterator
@@ -1695,7 +1723,7 @@ namespace Orthanc
         .SetTag("Networking")
         .SetSummary("Send to Orthanc peer")
         .SetDescription("Send DICOM resources stored locally to some remote Orthanc peer whose identifier is provided in the URL: "
-                        "https://book.orthanc-server.com/users/rest.html#sending-one-resource")
+                        "https://orthanc.uclouvain.be/book/users/rest.html#sending-one-resource")
         .AddRequestType(MimeType_PlainText, "The Orthanc identifier of one resource to be sent")
         .SetRequestField(KEY_RESOURCES, RestApiCallDocumentation::Type_JsonListOfStrings,
                          "List of the Orthanc identifiers of all the DICOM resources to be sent", true)
@@ -1912,7 +1940,7 @@ namespace Orthanc
     OrthancRestApi::SetOfStrings modalities;
     lock.GetConfiguration().GetListOfDicomModalities(modalities);
 
-    if (call.HasArgument("expand"))
+    if (call.HasArgument("expand") && call.GetBooleanArgument("expand", true))
     {
       Json::Value result = Json::objectValue;
       for (OrthancRestApi::SetOfStrings::const_iterator
@@ -2213,7 +2241,7 @@ namespace Orthanc
         .SetTag("Networking")
         .SetSummary("Trigger storage commitment request")
         .SetDescription("Trigger a storage commitment request to some remote DICOM modality whose identifier is provided "
-                        "in the URL: https://book.orthanc-server.com/users/storage-commitment.html#storage-commitment-scu")
+                        "in the URL: https://orthanc.uclouvain.be/book/users/storage-commitment.html#storage-commitment-scu")
         .SetRequestField(ORTHANC_RESOURCES, RestApiCallDocumentation::Type_JsonListOfStrings,
                          "List of the Orthanc identifiers of the DICOM resources to be checked by storage commitment", true)
         .SetRequestField(DICOM_INSTANCES, RestApiCallDocumentation::Type_JsonListOfObjects,
@@ -2402,7 +2430,7 @@ namespace Orthanc
         .SetTag("Networking")
         .SetSummary("Get storage commitment report")
         .SetDescription("Get the storage commitment report whose identifier is provided in the URL: "
-                        "https://book.orthanc-server.com/users/storage-commitment.html#storage-commitment-scu")
+                        "https://orthanc.uclouvain.be/book/users/storage-commitment.html#storage-commitment-scu")
         .SetAnswerField("Status", RestApiCallDocumentation::Type_String,
                         "Can be `Success`, `Failure`, or `Pending` (the latter means that no report has been received yet)")
         .SetAnswerField("RemoteAET", RestApiCallDocumentation::Type_String,
@@ -2450,7 +2478,7 @@ namespace Orthanc
         .SetDescription("Remove out of Orthanc, the DICOM instances that have been reported to have been properly "
                         "received the storage commitment report whose identifier is provided in the URL. This is "
                         "only possible if the `Status` of the storage commitment report is `Success`. "
-                        "https://book.orthanc-server.com/users/storage-commitment.html#removing-the-instances")
+                        "https://orthanc.uclouvain.be/book/users/storage-commitment.html#removing-the-instances")
         .SetUriArgument("id", "Identifier of the storage commitment report");
       return;
     }

@@ -2,8 +2,9 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -34,6 +35,7 @@
 #include "../ServerContext.h"
 
 #include <stdio.h>
+#include <boost/range/algorithm/count.hpp>
 
 #if defined(_MSC_VER)
 #define snprintf _snprintf
@@ -71,7 +73,7 @@ namespace Orthanc
                           countInstances >= 65535 - FILES_MARGIN);
 
     LOG(INFO) << "Creating a ZIP file with " << countInstances << " files of size "
-              << (uncompressedSize / MEGA_BYTES) << "MB using the "
+              << Toolbox::GetHumanFileSize(uncompressedSize) << " using the "
               << (isZip64 ? "ZIP64" : "ZIP32") << " file format";
 
     return isZip64;
@@ -82,9 +84,13 @@ namespace Orthanc
   {
   protected:
     ServerContext&                        context_;
+    bool                                  transcode_;
+    DicomTransferSyntax                   transferSyntax_;
   public:
-    explicit InstanceLoader(ServerContext& context)
-    : context_(context)
+    explicit InstanceLoader(ServerContext& context, bool transcode, DicomTransferSyntax transferSyntax)
+    : context_(context),
+      transcode_(transcode),
+      transferSyntax_(transferSyntax)
     {
     }
 
@@ -94,7 +100,31 @@ namespace Orthanc
 
     virtual void PrepareDicom(const std::string& instanceId)
     {
+    }
 
+    bool TranscodeDicom(std::string& transcodedBuffer, const std::string& sourceBuffer, const std::string& instanceId)
+    {
+      if (transcode_)
+      {
+        std::set<DicomTransferSyntax> syntaxes;
+        syntaxes.insert(transferSyntax_);
+
+        IDicomTranscoder::DicomImage source, transcoded;
+        source.SetExternalBuffer(sourceBuffer);
+
+        if (context_.Transcode(transcoded, source, syntaxes, true /* allow new SOP instance UID */))
+        {
+          transcodedBuffer.assign(reinterpret_cast<const char*>(transcoded.GetBufferData()), transcoded.GetBufferSize());
+          return true;
+        }
+        else
+        {
+          LOG(INFO) << "Cannot transcode instance " << instanceId
+                    << " to transfer syntax: " << GetTransferSyntaxUid(transferSyntax_);
+        }
+      }
+
+      return false;
     }
 
     virtual void GetDicom(std::string& dicom, const std::string& instanceId) = 0;
@@ -107,14 +137,24 @@ namespace Orthanc
   class ArchiveJob::SynchronousInstanceLoader : public ArchiveJob::InstanceLoader
   {
   public:
-    explicit SynchronousInstanceLoader(ServerContext& context)
-    : InstanceLoader(context)
+    explicit SynchronousInstanceLoader(ServerContext& context, bool transcode, DicomTransferSyntax transferSyntax)
+    : InstanceLoader(context, transcode, transferSyntax)
     {
     }
 
     virtual void GetDicom(std::string& dicom, const std::string& instanceId) ORTHANC_OVERRIDE
     {
       context_.ReadDicom(dicom, instanceId);
+
+      if (transcode_)
+      {
+        std::string transcoded;
+        if (TranscodeDicom(transcoded, dicom, instanceId))
+        {
+          dicom.swap(transcoded);
+        }
+      }
+      
     }
   };
 
@@ -138,6 +178,7 @@ namespace Orthanc
   class ArchiveJob::ThreadedInstanceLoader : public ArchiveJob::InstanceLoader
   {
     Semaphore                           availableInstancesSemaphore_;
+    Semaphore                           bufferedInstancesSemaphore_;
     std::map<std::string, boost::shared_ptr<std::string> >  availableInstances_;
     boost::mutex                        availableInstancesMutex_;
     SharedMessageQueue                  instancesToPreload_;
@@ -145,9 +186,10 @@ namespace Orthanc
 
 
   public:
-    ThreadedInstanceLoader(ServerContext& context, size_t threadCount)
-    : InstanceLoader(context),
-      availableInstancesSemaphore_(0)
+    ThreadedInstanceLoader(ServerContext& context, size_t threadCount, bool transcode, DicomTransferSyntax transferSyntax)
+    : InstanceLoader(context, transcode, transferSyntax),
+      availableInstancesSemaphore_(0),
+      bufferedInstancesSemaphore_(3*threadCount)
     {
       for (size_t i = 0; i < threadCount; i++)
       {
@@ -182,6 +224,9 @@ namespace Orthanc
 
     static void PreloaderWorkerThread(ThreadedInstanceLoader* that)
     {
+      static uint16_t threadCounter = 0;
+      Logging::SetCurrentThreadName(std::string("ARCH-LOAD-") + boost::lexical_cast<std::string>(threadCounter++));
+
       while (true)
       {
         std::unique_ptr<InstanceId> instanceId(dynamic_cast<InstanceId*>(that->instancesToPreload_.Dequeue(0)));
@@ -189,11 +234,24 @@ namespace Orthanc
         {
           return;
         }
+        
+        // wait for the consumers (zip writer), no need to accumulate instances in memory if loaders are faster than writers
+        that->bufferedInstancesSemaphore_.Acquire();
 
         try
         {
           boost::shared_ptr<std::string> dicomContent(new std::string());
           that->context_.ReadDicom(*dicomContent, instanceId->GetId());
+
+          if (that->transcode_)
+          {
+            boost::shared_ptr<std::string> transcodedDicom(new std::string());
+            if (that->TranscodeDicom(*transcodedDicom, *dicomContent, instanceId->GetId()))
+            {
+              dicomContent = transcodedDicom;
+            }
+          }
+
           {
             boost::mutex::scoped_lock lock(that->availableInstancesMutex_);
             that->availableInstances_[instanceId->GetId()] = dicomContent;
@@ -222,6 +280,7 @@ namespace Orthanc
       {
         // wait for an instance to be available but this might not be the one we are waiting for !
         availableInstancesSemaphore_.Acquire();
+        bufferedInstancesSemaphore_.Release(); // unlock the "flow" of loaders
 
         boost::shared_ptr<std::string> dicomContent;
         {
@@ -251,6 +310,91 @@ namespace Orthanc
       }
     }
   };
+
+  // This enum defines specific resource types to be used when exporting the archive.
+  // It defines if we should use the PatientInfo from the Patient or from the Study.
+  enum ArchiveResourceType
+  {
+    ArchiveResourceType_Patient = 0,
+    ArchiveResourceType_PatientInfoFromStudy = 1,
+    ArchiveResourceType_Study = 2,
+    ArchiveResourceType_Series = 3,
+    ArchiveResourceType_Instance = 4
+  };
+
+  ResourceType GetResourceIdType(ArchiveResourceType type)
+  {
+    switch (type)
+    {
+      case ArchiveResourceType_Patient:
+        return ResourceType_Patient;
+      case ArchiveResourceType_PatientInfoFromStudy: // get the Patient tags from the Study id
+        return ResourceType_Study;
+      case ArchiveResourceType_Study:
+        return ResourceType_Study;
+      case ArchiveResourceType_Series:
+        return ResourceType_Series;
+      case ArchiveResourceType_Instance:
+        return ResourceType_Instance;
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+  ResourceType GetResourceLevel(ArchiveResourceType type)
+  {
+    switch (type)
+    {
+      case ArchiveResourceType_Patient:
+        return ResourceType_Patient;
+      case ArchiveResourceType_PatientInfoFromStudy: // this is actually the same level as the Patient
+        return ResourceType_Patient;
+      case ArchiveResourceType_Study:
+        return ResourceType_Study;
+      case ArchiveResourceType_Series:
+        return ResourceType_Series;
+      case ArchiveResourceType_Instance:
+        return ResourceType_Instance;
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+  ArchiveResourceType GetArchiveResourceType(ResourceType type)
+  {
+    switch (type)
+    {
+      case ResourceType_Patient:
+        return ArchiveResourceType_Patient;
+      case ArchiveResourceType_Study:
+       return ArchiveResourceType_PatientInfoFromStudy;
+      case ResourceType_Series:
+        return ArchiveResourceType_Series;
+      case ResourceType_Instance:
+        return ArchiveResourceType_Instance;
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+  ArchiveResourceType GetChildResourceType(ArchiveResourceType type)
+  {
+    switch (type)
+    {
+      case ArchiveResourceType_Patient:
+      case ArchiveResourceType_PatientInfoFromStudy:
+        return ArchiveResourceType_Study;
+
+      case ArchiveResourceType_Study:
+        return ArchiveResourceType_Series;
+        
+      case ArchiveResourceType_Series:
+        return ArchiveResourceType_Instance;
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
 
 
   class ArchiveJob::ResourceIdentifiers : public boost::noncopyable
@@ -356,7 +500,7 @@ namespace Orthanc
     {
     }
 
-    virtual void Open(ResourceType level,
+    virtual void Open(ArchiveResourceType level,
                       const std::string& publicId) = 0;
 
     virtual void Close() = 0;
@@ -385,7 +529,7 @@ namespace Orthanc
     // A "NULL" value for ArchiveIndex indicates a non-expanded node
     typedef std::map<std::string, ArchiveIndex*>   Resources;
 
-    ResourceType         level_;
+    ArchiveResourceType  level_;
     Resources            resources_;   // Only at patient/study/series level
     std::list<Instance>  instances_;   // Only at instance level
 
@@ -393,7 +537,7 @@ namespace Orthanc
     void AddResourceToExpand(ServerIndex& index,
                              const std::string& id)
     {
-      if (level_ == ResourceType_Instance)
+      if (level_ == ArchiveResourceType_Instance)
       {
         FileInfo tmp;
         int64_t revision;  // ignored
@@ -410,7 +554,7 @@ namespace Orthanc
 
 
   public:
-    explicit ArchiveIndex(ResourceType level) :
+    explicit ArchiveIndex(ArchiveResourceType level) :
       level_(level)
     {
     }
@@ -428,14 +572,14 @@ namespace Orthanc
     void Add(ServerIndex& index,
              const ResourceIdentifiers& resource)
     {
-      const std::string& id = resource.GetIdentifier(level_);
+      const std::string& id = resource.GetIdentifier(GetResourceIdType(level_));
       Resources::iterator previous = resources_.find(id);
 
-      if (level_ == ResourceType_Instance)
+      if (level_ == ArchiveResourceType_Instance)
       {
         AddResourceToExpand(index, id);
       }
-      else if (resource.GetLevel() == level_)
+      else if (resource.GetLevel() == GetResourceLevel(level_))
       {
         // Mark this resource for further expansion
         if (previous != resources_.end())
@@ -465,7 +609,7 @@ namespace Orthanc
 
     void Expand(ServerIndex& index)
     {
-      if (level_ == ResourceType_Instance)
+      if (level_ == ArchiveResourceType_Instance)
       {
         // Expanding an instance node makes no sense
         return;
@@ -499,7 +643,7 @@ namespace Orthanc
 
     void Apply(IArchiveVisitor& visitor) const
     {
-      if (level_ == ResourceType_Instance)
+      if (level_ == ArchiveResourceType_Instance)
       {
         for (std::list<Instance>::const_iterator 
                it = instances_.begin(); it != instances_.end(); ++it)
@@ -597,55 +741,20 @@ namespace Orthanc
               return;
             }
 
-            //boost::this_thread::sleep(boost::posix_time::milliseconds(300));
-
             writer.OpenFile(filename_.c_str());
-
-            bool transcodeSuccess = false;
 
             std::unique_ptr<ParsedDicomFile> parsed;
             
-            if (transcode)
+            writer.Write(content);
+
+            if (dicomDir != NULL)
             {
-              // New in Orthanc 1.7.0
-              std::set<DicomTransferSyntax> syntaxes;
-              syntaxes.insert(transferSyntax);
-
-              IDicomTranscoder::DicomImage source, transcoded;
-              source.SetExternalBuffer(content);
-
-              if (context.Transcode(transcoded, source, syntaxes, true /* allow new SOP instance UID */))
+              if (parsed.get() == NULL)
               {
-                writer.Write(transcoded.GetBufferData(), transcoded.GetBufferSize());
-
-                if (dicomDir != NULL)
-                {
-                  std::unique_ptr<ParsedDicomFile> tmp(transcoded.ReleaseAsParsedDicomFile());
-                  dicomDir->Add(dicomDirFolder, filename_, *tmp);
-                }
-                
-                transcodeSuccess = true;
+                parsed.reset(new ParsedDicomFile(content));
               }
-              else
-              {
-                LOG(INFO) << "Cannot transcode instance " << instanceId_
-                          << " to transfer syntax: " << GetTransferSyntaxUid(transferSyntax);
-              }
-            }
 
-            if (!transcodeSuccess)
-            {
-              writer.Write(content);
-
-              if (dicomDir != NULL)
-              {
-                if (parsed.get() == NULL)
-                {
-                  parsed.reset(new ParsedDicomFile(content));
-                }
-
-                dicomDir->Add(dicomDirFolder, filename_, *parsed);
-              }
+              dicomDir->Add(dicomDirFolder, filename_, *parsed);
             }
               
             break;
@@ -804,25 +913,29 @@ namespace Orthanc
       snprintf(instanceFormat_, sizeof(instanceFormat_) - 1, "%%08d.dcm");
     }
 
-    virtual void Open(ResourceType level,
+    virtual void Open(ArchiveResourceType level,
                       const std::string& publicId) ORTHANC_OVERRIDE
     {
       std::string path;
 
       DicomMap tags;
-      if (context_.GetIndex().GetMainDicomTags(tags, publicId, level, level))
+      ResourceType resourceIdLevel = GetResourceIdType(level);
+      ResourceType interestLevel = (level == ArchiveResourceType_PatientInfoFromStudy ? ResourceType_Patient : resourceIdLevel);
+
+      if (context_.GetIndex().GetMainDicomTags(tags, publicId, resourceIdLevel, interestLevel))
       {
         switch (level)
         {
-          case ResourceType_Patient:
+          case ArchiveResourceType_Patient:
+          case ArchiveResourceType_PatientInfoFromStudy:
             path = GetTag(tags, DICOM_TAG_PATIENT_ID) + " " + GetTag(tags, DICOM_TAG_PATIENT_NAME);
             break;
 
-          case ResourceType_Study:
+          case ArchiveResourceType_Study:
             path = GetTag(tags, DICOM_TAG_ACCESSION_NUMBER) + " " + GetTag(tags, DICOM_TAG_STUDY_DESCRIPTION);
             break;
 
-          case ResourceType_Series:
+          case ArchiveResourceType_Series:
           {
             std::string modality = GetTag(tags, DICOM_TAG_MODALITY);
             path = modality + " " + GetTag(tags, DICOM_TAG_SERIES_DESCRIPTION);
@@ -854,9 +967,10 @@ namespace Orthanc
 
       path = Toolbox::StripSpaces(Toolbox::ConvertToAscii(path));
 
-      if (path.empty())
+      if (path.empty() 
+          || (static_cast<size_t>(boost::count(path, '^')) == path.size()))  // this happens with non ASCII patient names: only the '^' remains and this is not a valid zip folder name
       {
-        path = std::string("Unknown ") + EnumerationToString(level);
+        path = std::string("Unknown ") + EnumerationToString(GetResourceLevel(level));
       }
 
       commands_.AddOpenDirectory(path.c_str());
@@ -892,7 +1006,7 @@ namespace Orthanc
     {
     }
 
-    virtual void Open(ResourceType level,
+    virtual void Open(ArchiveResourceType level,
                       const std::string& publicId) ORTHANC_OVERRIDE
     {
     }
@@ -1083,9 +1197,10 @@ namespace Orthanc
 
   ArchiveJob::ArchiveJob(ServerContext& context,
                          bool isMedia,
-                         bool enableExtendedSopClass) :
+                         bool enableExtendedSopClass,
+                         ResourceType jobLevel) :
     context_(context),
-    archive_(new ArchiveIndex(ResourceType_Patient)),  // root
+    archive_(new ArchiveIndex(GetArchiveResourceType(jobLevel))),  // get patient Info from this level
     isMedia_(isMedia),
     enableExtendedSopClass_(enableExtendedSopClass),
     currentStep_(0),
@@ -1142,7 +1257,9 @@ namespace Orthanc
   }
 
   
-  void ArchiveJob::AddResource(const std::string& publicId)
+  void ArchiveJob::AddResource(const std::string& publicId,
+                               bool mustExist,
+                               ResourceType expectedType)
   {
     if (writer_.get() != NULL)   // Already started
     {
@@ -1150,6 +1267,17 @@ namespace Orthanc
     }
     else
     {
+      if (mustExist)
+      {
+        ResourceType type;
+        if (!context_.GetIndex().LookupResourceType(type, publicId) ||
+            type != expectedType)
+        {
+          throw OrthancException(ErrorCode_InexistentItem,
+                                 "Missing resource while creating an archive: " + publicId);
+        }
+      }
+      
       ResourceIdentifiers resource(context_.GetIndex(), publicId);
       archive_->Add(context_.GetIndex(), resource);
     }
@@ -1195,11 +1323,11 @@ namespace Orthanc
     if (loaderThreads_ == 0)
     {
       // default behaviour before loaderThreads was introducted in 1.10.0
-      instanceLoader_.reset(new SynchronousInstanceLoader(context_));
+      instanceLoader_.reset(new SynchronousInstanceLoader(context_, transcode_, transferSyntax_));
     }
     else
     {
-      instanceLoader_.reset(new ThreadedInstanceLoader(context_, loaderThreads_));
+      instanceLoader_.reset(new ThreadedInstanceLoader(context_, loaderThreads_, transcode_, transferSyntax_));
     }
 
     if (writer_.get() != NULL)
@@ -1426,5 +1554,33 @@ namespace Orthanc
     {
       return false;
     }
+  }
+
+  bool ArchiveJob::DeleteOutput(const std::string& key)
+  {   
+    if (key == "archive" &&
+        !mediaArchiveId_.empty())
+    {
+      SharedArchive::Accessor accessor(context_.GetMediaArchive(), mediaArchiveId_);
+
+      if (accessor.IsValid())
+      {
+        context_.GetMediaArchive().Remove(mediaArchiveId_);
+        return true;
+      }
+      else
+      {
+        return false;
+      }
+    }    
+    else
+    {
+      return false;
+    }
+  }
+
+  void ArchiveJob::DeleteAllOutputs()
+  {
+    DeleteOutput("archive");
   }
 }

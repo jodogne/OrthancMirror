@@ -2,8 +2,9 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -649,6 +650,42 @@ namespace Orthanc
   }
 
 
+  bool JobsRegistry::DeleteJobInfo(const std::string& id)
+  {
+    LOG(INFO) << "Deleting job: " << id;
+
+    boost::mutex::scoped_lock lock(mutex_);
+    CheckInvariants();
+
+    JobsIndex::iterator found = jobsIndex_.find(id);
+
+    if (found == jobsIndex_.end())
+    {
+      LOG(WARNING) << "Unknown job to delete: " << id;
+      return false;
+    }
+    else
+    {
+      for (CompletedJobs::iterator it = completedJobs_.begin();
+           it != completedJobs_.end(); ++it)
+      {
+        if (*it == found->second)
+        {
+          found->second->GetJob().DeleteAllOutputs();
+          delete found->second;
+          
+          completedJobs_.erase(it);
+          jobsIndex_.erase(id);
+          return true;
+        }
+      }
+
+      LOG(WARNING) << "Can not delete a job that is not complete: " << id;
+      return false;
+    }
+  }
+
+
   bool JobsRegistry::GetJobOutput(std::string& output,
                                   MimeType& mime,
                                   std::string& filename,
@@ -671,6 +708,33 @@ namespace Orthanc
       if (handler.GetState() == JobState_Success)
       {
         return handler.GetJob().GetOutput(output, mime, filename, key);
+      }
+      else
+      {
+        return false;
+      }
+    }
+  }
+
+  bool JobsRegistry::DeleteJobOutput(const std::string& job,
+                                     const std::string& key)
+  {
+    boost::mutex::scoped_lock lock(mutex_);
+    CheckInvariants();
+
+    JobsIndex::const_iterator found = jobsIndex_.find(job);
+
+    if (found == jobsIndex_.end())
+    {
+      return false;
+    }
+    else
+    {
+      const JobHandler& handler = *found->second;
+
+      if (handler.GetState() == JobState_Success)
+      {
+        return handler.GetJob().DeleteOutput(key);
       }
       else
       {

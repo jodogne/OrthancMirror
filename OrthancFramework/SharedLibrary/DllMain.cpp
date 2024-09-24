@@ -2,8 +2,9 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -27,35 +28,55 @@
    ${BOOST_SOURCES_DIR}/libs/thread/src/win32/tss_dll.cpp
    ${OPENSSL_SOURCES_DIR}/crypto/dllmain.c
 
- **/
+**/
 
 #if defined(_WIN32) || defined(__CYGWIN__)
-# ifdef __CYGWIN__
-#  include <windows.h>
-# endif
 
-#include "e_os.h"
-#include "crypto/cryptlib.h"
+#include <boost/thread/detail/tss_hooks.hpp>
 
-BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
+#include <windows.h>
+
+#include <crypto/cryptlib.h>
+
+#if defined(__BORLANDC__)
+extern "C" BOOL WINAPI DllEntryPoint(HINSTANCE /*hInstance*/, DWORD dwReason, LPVOID /*lpReserved*/)
+#elif defined(_WIN32_WCE)
+  extern "C" BOOL WINAPI DllMain(HANDLE /*hInstance*/, DWORD dwReason, LPVOID /*lpReserved*/)
+#else
+  extern "C" BOOL WINAPI DllMain(HINSTANCE /*hInstance*/, DWORD dwReason, LPVOID /*lpReserved*/)
+#endif
 {
-  switch (fdwReason)
+  switch(dwReason)
   {
     case DLL_PROCESS_ATTACH:
+    {
       //OPENSSL_cpuid_setup();  // TODO - Is this necessary?
+      boost::on_process_enter();
+      boost::on_thread_enter();
       break;
-        
+    }
+
     case DLL_THREAD_ATTACH:
+    {
+      boost::on_thread_enter();
       break;
-        
+    }
+
     case DLL_THREAD_DETACH:
+    {
       OPENSSL_thread_stop();
+      boost::on_thread_exit();
       break;
-        
+    }
+
     case DLL_PROCESS_DETACH:
+    {
+      boost::on_thread_exit();
+      boost::on_process_exit();
       break;
+    }
   }
-    
+
   return TRUE;
 }
 

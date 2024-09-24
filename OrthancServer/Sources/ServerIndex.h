@@ -2,8 +2,9 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
- * Copyright (C) 2017-2022 Osimis S.A., Belgium
- * Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2017-2023 Osimis S.A., Belgium
+ * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -41,9 +42,10 @@ namespace Orthanc
     bool done_;
     boost::mutex monitoringMutex_;
     boost::thread flushThread_;
+    boost::thread updateStatisticsThread_;
     boost::thread unstableResourcesMonitorThread_;
 
-    LeastRecentlyUsedIndex<int64_t, UnstableResourcePayload>  unstableResources_;
+    LeastRecentlyUsedIndex<std::pair<ResourceType, int64_t>, UnstableResourcePayload>  unstableResources_;
 
     MaxStorageMode  maximumStorageMode_;
     uint64_t        maximumStorageSize_;
@@ -52,14 +54,18 @@ namespace Orthanc
     static void FlushThread(ServerIndex* that,
                             unsigned int threadSleep);
 
+    static void UpdateStatisticsThread(ServerIndex* that,
+                                       unsigned int threadSleep);
+
     static void UnstableResourcesMonitorThread(ServerIndex* that,
                                                unsigned int threadSleep);
 
-    void MarkAsUnstable(int64_t id,
-                        Orthanc::ResourceType type,
+    void MarkAsUnstable(ResourceType type,
+                        int64_t id,
                         const std::string& publicId);
 
-    bool IsUnstableResource(int64_t id);
+    bool IsUnstableResource(ResourceType type,
+                            int64_t id);
 
   public:
     ServerIndex(ServerContext& context,
@@ -88,7 +94,8 @@ namespace Orthanc
                       DicomTransferSyntax transferSyntax,
                       bool hasPixelDataOffset,
                       uint64_t pixelDataOffset,
-                      bool isResonstruct);
+                      ValueRepresentation pixelDataVR,
+                      bool isReconstruct);
 
     StoreStatus AddAttachment(int64_t& newRevision /*out*/,
                               const FileInfo& attachment,

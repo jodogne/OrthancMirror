@@ -1,8 +1,9 @@
 # Orthanc - A Lightweight, RESTful DICOM Store
 # Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
 # Department, University Hospital of Liege, Belgium
-# Copyright (C) 2017-2022 Osimis S.A., Belgium
-# Copyright (C) 2021-2022 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+# Copyright (C) 2017-2023 Osimis S.A., Belgium
+# Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
+# Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
 #
 # This program is free software: you can redistribute it and/or
 # modify it under the terms of the GNU General Public License as
@@ -50,8 +51,9 @@ endif()
 
 EmbedResources(
   --framework-path=${CMAKE_SOURCE_DIR}/../../../../OrthancFramework/Sources
+  --target=ConnectivityChecksResources
   WEB_RESOURCES  ${CMAKE_CURRENT_SOURCE_DIR}/WebResources
-  LIBRARIES      ${JAVASCRIPT_LIBS_DIR}
+  LIBRARIES      ${CONNECTIVITY_CHECKS_JAVASCRIPT_DIR}
   )
 
 add_definitions(
@@ -75,6 +77,8 @@ add_library(ConnectivityChecks SHARED
   ${CMAKE_SOURCE_DIR}/../../../../OrthancFramework/Sources/Toolbox.cpp
   Plugin.cpp
   )
+
+DefineSourceBasenameForTarget(ConnectivityChecks)
 
 set_target_properties(
   ConnectivityChecks PROPERTIES 
