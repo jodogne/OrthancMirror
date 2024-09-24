@@ -1,7 +1,6 @@
 Pending changes in the mainline
 ===============================
 
-<<<<<<< working copy
 General
 -------
 
@@ -18,8 +17,6 @@ Plugins
 * New storage plugin SDK (v3) to handle customData for attachments,
 
 
-version 1.11.2 (2022-08-30)
-=======
 REST API
 -----------
 
@@ -399,7 +396,6 @@ Maintenance
 
 
 Version 1.11.2 (2022-08-30)
->>>>>>> merge rev
 ===========================
 
 General

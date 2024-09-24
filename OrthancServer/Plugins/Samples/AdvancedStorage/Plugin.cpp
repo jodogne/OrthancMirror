@@ -154,8 +154,9 @@ void GetCustomData(std::string& output, const fs::path& path)
   Json::Value customDataJson;
   customDataJson["Version"] = 1;
 
+  // no need to store the path since if we are in the default mode
   if (namingScheme_ != "OrthancDefault")
-  { // no need to store the pathc since we are in the default mode
+  { 
     customDataJson["Path"] = path.string();
   }
 
@@ -164,7 +165,7 @@ void GetCustomData(std::string& output, const fs::path& path)
     customDataJson["StorageId"] = currentStorageId_;
   }
 
-  return  Orthanc::Toolbox::WriteFastJson(output, customDataJson);
+  return Orthanc::Toolbox::WriteFastJson(output, customDataJson);
 }
 
 void AddSplitDateDicomTagToPath(fs::path& path, const Json::Value& tags, const char* tagName, const char* defaultValue = NULL)
