@@ -804,6 +804,7 @@ TEST(DicomWebJson, Multiplicity)
   dicom.ReplacePlainString(DICOM_TAG_PATIENT_NAME, "SB1^SB2^SB3^SB4^SB5");
   dicom.ReplacePlainString(DICOM_TAG_IMAGE_ORIENTATION_PATIENT, "1\\2.3\\4");
   dicom.ReplacePlainString(DICOM_TAG_IMAGE_POSITION_PATIENT, "");
+  dicom.ReplacePlainString(DICOM_TAG_PIXEL_SPACING, "0,143\\0,143");  // seen in https://discourse.orthanc-server.org/t/dicomwebplugin-does-not-return-series-metadata-properly/5195
 
   DicomWebJsonVisitor visitor;
   dicom.Apply(visitor);
@@ -815,10 +816,10 @@ TEST(DicomWebJson, Multiplicity)
     ASSERT_EQ(EnumerationToString(ValueRepresentation_DecimalString), tag["vr"].asString());
     ASSERT_EQ(2u, tag.getMemberNames().size());
     ASSERT_EQ(3u, value.size());
-    ASSERT_EQ(Json::realValue, value[1].type());
-    ASSERT_FLOAT_EQ(1.0f, value[0].asFloat());
-    ASSERT_FLOAT_EQ(2.3f, value[1].asFloat());
-    ASSERT_FLOAT_EQ(4.0f, value[2].asFloat());
+    ASSERT_EQ(Json::stringValue, value[1].type());  // since Orthanc 1.12.5, this is now stored as a string
+    ASSERT_EQ("1", value[0].asString());
+    ASSERT_EQ("2.3", value[1].asString());
+    ASSERT_EQ("4", value[2].asString());
   }
 
   {
@@ -827,13 +828,23 @@ TEST(DicomWebJson, Multiplicity)
     ASSERT_EQ(1u, tag.getMemberNames().size());
   }
 
+  {
+    const Json::Value& tag = visitor.GetResult() ["00280030"];  // PixelSpacing
+    const Json::Value& value = tag["Value"];
+
+    ASSERT_EQ(EnumerationToString(ValueRepresentation_DecimalString), tag["vr"].asString());
+    ASSERT_EQ(2u, value.size());
+    ASSERT_EQ("0.143", value[0].asString());
+    ASSERT_EQ("0.143", value[1].asString());
+  }
+
   std::string xml;
   visitor.FormatXml(xml);
 
   {
     DicomMap m;
     m.FromDicomWeb(visitor.GetResult());
-    ASSERT_EQ(3u, m.GetSize());
+    ASSERT_EQ(4u, m.GetSize());
 
     std::string s;
     ASSERT_TRUE(m.LookupStringValue(s, DICOM_TAG_PATIENT_NAME, false));
@@ -869,12 +880,12 @@ TEST(DicomWebJson, NullValue)
     ASSERT_EQ(EnumerationToString(ValueRepresentation_DecimalString), tag["vr"].asString());
     ASSERT_EQ(2u, tag.getMemberNames().size());
     ASSERT_EQ(4u, value.size());
-    ASSERT_EQ(Json::realValue, value[0].type());
+    ASSERT_EQ(Json::stringValue, value[0].type());
     ASSERT_EQ(Json::nullValue, value[1].type());
     ASSERT_EQ(Json::nullValue, value[2].type());
-    ASSERT_EQ(Json::realValue, value[3].type());
-    ASSERT_FLOAT_EQ(1.5f, value[0].asFloat());
-    ASSERT_FLOAT_EQ(2.5f, value[3].asFloat());
+    ASSERT_EQ(Json::stringValue, value[3].type());
+    ASSERT_EQ("1.5", value[0].asString());
+    ASSERT_EQ("2.5", value[3].asString());
   }
 
   std::string xml;
@@ -912,8 +923,8 @@ TEST(DicomWebJson, PixelSpacing)
   target.FromDicomWeb(visitor.GetResult());
 
   ASSERT_EQ("DS", visitor.GetResult() ["00280030"]["vr"].asString());
-  ASSERT_FLOAT_EQ(1.5f, visitor.GetResult() ["00280030"]["Value"][0].asFloat());
-  ASSERT_FLOAT_EQ(1.3f, visitor.GetResult() ["00280030"]["Value"][1].asFloat());
+  ASSERT_EQ("1.5", visitor.GetResult() ["00280030"]["Value"][0].asString());
+  ASSERT_EQ("1.3", visitor.GetResult() ["00280030"]["Value"][1].asString());
 
   std::string s;
   ASSERT_TRUE(target.LookupStringValue(s, DICOM_TAG_PIXEL_SPACING, false));
