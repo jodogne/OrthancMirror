@@ -51,6 +51,7 @@ bool multipleStoragesEnabled_ = false;
 std::map<std::string, fs::path> rootPaths_;
 std::string currentStorageId_;
 std::string namingScheme_;
+std::string otherAttachmentsPrefix_;
 bool fsyncOnWrite_ = true;
 size_t maxPathLength_ = 256;
 size_t legacyPathLength = 39; // ex "/00/f7/00f7fd8b-47bd8c3a-ff917804-d180cdbc-40cf9527"
@@ -89,6 +90,11 @@ fs::path GetLegacyRelativePath(const std::string& uuid)
 
   fs::path path;
 
+  if (!otherAttachmentsPrefix_.empty())
+  {
+    path /= otherAttachmentsPrefix_;
+  }
+
   path /= std::string(&uuid[0], &uuid[2]);
   path /= std::string(&uuid[2], &uuid[4]);
   path /= uuid;
@@ -109,20 +115,20 @@ fs::path GetPath(const std::string& uuid, const std::string& customDataString)
     Json::Value customData;
     Orthanc::Toolbox::ReadJson(customData, customDataString);
 
-    if (customData["Version"].asInt() == 1)
+    if (customData["v"].asInt() == 1)   // Version
     {
-      if (customData.isMember("StorageId"))
+      if (customData.isMember("s"))     // Storage ID
       {
-        path = GetRootPath(customData["StorageId"].asString());
+        path = GetRootPath(customData["s"].asString());
       }
       else
       {
         path = GetRootPath();
       }
       
-      if (customData.isMember("Path"))
+      if (customData.isMember("p"))   // Path
       {
-        path /= customData["Path"].asString();
+        path /= customData["p"].asString();
       }
       else
       { // we are in "legacy mode" for the path part
@@ -136,7 +142,7 @@ fs::path GetPath(const std::string& uuid, const std::string& customDataString)
   }
   else // we are in "legacy mode"
   {
-    path = GetRootPath();
+    path = rootPath_;
     path /= GetLegacyRelativePath(uuid);
   }
 
@@ -153,48 +159,22 @@ void GetCustomData(std::string& output, const fs::path& path)
   }
 
   Json::Value customDataJson;
-  customDataJson["Version"] = 1;
+  // Keep short field names to reduce SQL data usage
+  customDataJson["v"] = 1;  // Version
 
   // no need to store the path since if we are in the default mode
   if (namingScheme_ != "OrthancDefault")
   { 
-    customDataJson["Path"] = path.string();
+    customDataJson["p"] = path.string();   // Path
   }
 
   if (multipleStoragesEnabled_)
   {
-    customDataJson["StorageId"] = currentStorageId_;
+    customDataJson["s"] = currentStorageId_;  // Storage id
   }
 
   return Orthanc::Toolbox::WriteFastJson(output, customDataJson);
 }
-
-// void AddSplitDateDicomTagToPath(fs::path& path, const Json::Value& tags, const char* tagName, const char* defaultValue = NULL)
-// {
-//   if (tags.isMember(tagName) && tags[tagName].asString().size() == 8)
-//   {
-//     std::string date = tags[tagName].asString();
-//     path /= date.substr(0, 4);
-//     path /= date.substr(4, 2);
-//     path /= date.substr(6, 2);
-//   }
-//   else if (defaultValue != NULL)
-//   {
-//     path /= defaultValue;
-//   }
-// }
-
-// void AddStringDicomTagToPath(fs::path& path, const Json::Value& tags, const char* tagName, const char* defaultValue = NULL)
-// {
-//   if (tags.isMember(tagName) && tags[tagName].isString() && tags[tagName].asString().size() > 0)
-//   {
-//     path /= tags[tagName].asString();
-//   }
-//   else if (defaultValue != NULL)
-//   {
-//     path /= defaultValue;
-//   }
-// }
 
 std::string GetSplitDateDicomTagToPath(const Json::Value& tags, const char* tagName, const char* defaultValue = NULL)
 {
@@ -211,7 +191,7 @@ std::string GetSplitDateDicomTagToPath(const Json::Value& tags, const char* tagN
   return "";
 }
 
-std::string GetStringDicomTagForPath(const Json::Value& tags, const char* tagName, const char* defaultValue = NULL)
+std::string GetStringDicomTagForPath(const Json::Value& tags, const std::string& tagName, const char* defaultValue = NULL)
 {
   if (tags.isMember(tagName) && tags[tagName].isString() && tags[tagName].asString().size() > 0)
   {
@@ -224,6 +204,75 @@ std::string GetStringDicomTagForPath(const Json::Value& tags, const char* tagNam
   
   return "";
 }
+
+std::string GetIntDicomTagForPath(const Json::Value& tags, const std::string& tagName, const char* defaultValue = NULL, size_t padding = 0)
+{
+  if (tags.isMember(tagName))
+  {
+    std::string value;
+    if (tags[tagName].isInt())
+    {
+      value = boost::lexical_cast<std::string>(tags[tagName].asInt());
+    }
+    else if (tags[tagName].isString())
+    {
+      value = tags[tagName].asString();
+    }
+
+    if (padding > 0 && padding > value.size())
+    {
+      value = std::string(padding - value.size(), '0') + value;
+    }
+    return value;
+  }
+  else if (defaultValue != NULL)
+  {
+    return defaultValue;
+  }
+  
+  return "";
+}
+
+void ReplaceTagKeyword(std::string& folderName, const std::string& keyword, const Json::Value& tags, const char* defaultValue, const char* tagKey = NULL)
+{
+  if (folderName.find(keyword) != std::string::npos)
+  {
+    std::string key = keyword.substr(1, keyword.size() -2);
+    if (tagKey != NULL)
+    {
+      key = tagKey;
+    }
+    boost::replace_all(folderName, keyword, GetStringDicomTagForPath(tags, key, defaultValue));
+  }
+}
+
+void ReplaceIntTagKeyword(std::string& folderName, const std::string& keyword, const Json::Value& tags, const char* defaultValue, size_t padding, const char* tagKey = NULL)
+{
+  if (folderName.find(keyword) != std::string::npos)
+  {
+    std::string key = keyword.substr(1, keyword.size() -2);
+    if (tagKey != NULL)
+    {
+      key = tagKey;
+    }
+    boost::replace_all(folderName, keyword, GetIntDicomTagForPath(tags, key, defaultValue, padding));
+  }
+}
+
+
+void ReplaceOrthancID(std::string& folderName, const std::string& keyword, const std::string& id, size_t from, size_t length)
+{
+  if (length == 0)
+  {
+    boost::replace_all(folderName, keyword, id);
+  }
+  else
+  {
+    boost::replace_all(folderName, keyword, id.substr(from, length));
+  }
+}
+
+
 
 void AddIntDicomTagToPath(fs::path& path, const Json::Value& tags, const char* tagName, size_t zeroPaddingWidth = 0, const char* defaultValue = NULL)
 {
@@ -272,7 +321,6 @@ std::string GetExtension(OrthancPluginContentType type, bool isCompressed)
 fs::path GetRelativePathFromTags(const Json::Value& tags, const char* uuid, OrthancPluginContentType type, bool isCompressed)
 {
   fs::path path;
-  bool foundUuid = false;
 
   if (!tags.isNull())
   { 
@@ -282,99 +330,71 @@ fs::path GetRelativePathFromTags(const Json::Value& tags, const char* uuid, Orth
     for (std::vector<std::string>::const_iterator it = folderNames.begin(); it != folderNames.end(); ++it)
     {
       std::string folderName = *it;
-
-      if (folderName.find("$StudyDate$") != std::string::npos)
-      {
-        boost::replace_all(folderName, "$StudyDate$", GetStringDicomTagForPath(tags, "StudyDate", "NO_STUDY_DATE"));
-      }
       
-      if (folderName.find("$split(StudyDate)$"))
+      if (folderName.find("{split(StudyDate)}") != std::string::npos)
       {
-        boost::replace_all(folderName, "$split(StudyDate)$", GetSplitDateDicomTagToPath(tags, "StudyDate", "NO_STUDY_DATE"));
+        boost::replace_all(folderName, "{split(StudyDate)}", GetSplitDateDicomTagToPath(tags, "StudyDate", "NO_STUDY_DATE"));
       }
 
-      if (folderName.find("$PatientBirthDate$") != std::string::npos)
+      if (folderName.find("{split(PatientBirthDate)}") != std::string::npos)
       {
-        boost::replace_all(folderName, "$PatientBirthDate$", GetStringDicomTagForPath(tags, "PatientBirthDate", "NO_PATIENT_BIRTH_DATE"));
-      }
-      
-      if (folderName.find("$split(PatientBirthDate)$"))
-      {
-        boost::replace_all(folderName, "$split(PatientBirthDate)$", GetSplitDateDicomTagToPath(tags, "PatientBirthDate", "NO_PATIENT_BIRTH_DATE"));
+        boost::replace_all(folderName, "{split(PatientBirthDate)}", GetSplitDateDicomTagToPath(tags, "PatientBirthDate", "NO_PATIENT_BIRTH_DATE"));
       }
 
-      if (folderName.find("$PatientID$") != std::string::npos)
+      ReplaceTagKeyword(folderName, "{PatientID}", tags, "NO_PATIENT_ID");
+      ReplaceTagKeyword(folderName, "{PatientBirthDate}", tags, "NO_PATIENT_BIRTH_DATE");
+      ReplaceTagKeyword(folderName, "{PatientName}", tags, "NO_PATIENT_NAME");
+      ReplaceTagKeyword(folderName, "{PatientSex}", tags, "NO_PATIENT_SEX");
+      ReplaceTagKeyword(folderName, "{StudyInstanceUID}", tags, "NO_STUDY_INSTANCE_UID");
+      ReplaceTagKeyword(folderName, "{StudyDate}", tags, "NO_STUDY_DATE");
+      ReplaceTagKeyword(folderName, "{StudyID}", tags, "NO_STUDY_ID");
+      ReplaceTagKeyword(folderName, "{StudyDescription}", tags, "NO_STUDY_DESCRIPTION");
+      ReplaceTagKeyword(folderName, "{AccessionNumber}", tags, "NO_ACCESSION_NUMBER");
+      ReplaceTagKeyword(folderName, "{SeriesInstanceUID}", tags, "NO_SERIES_INSTANCE_UID");
+      ReplaceTagKeyword(folderName, "{SeriesDate}", tags, "NO_SERIES_DATE");
+      ReplaceTagKeyword(folderName, "{SeriesDescription}", tags, "NO_SERIES_DESCRIPTION");
+      ReplaceTagKeyword(folderName, "{SOPInstanceUID}", tags, "NO_SOP_INSTANCE_UID");
+      ReplaceIntTagKeyword(folderName, "{SeriesNumber}", tags, "NO_SERIES_NUMBER", 0);
+      ReplaceIntTagKeyword(folderName, "{InstanceNumber}", tags, "NO_INSTANCE_NUMBER", 0);
+      ReplaceIntTagKeyword(folderName, "{pad4(SeriesNumber)}", tags, "NO_SERIES_NUMBER", 4, "SeriesNumber");
+      ReplaceIntTagKeyword(folderName, "{pad4(InstanceNumber)}", tags, "NO_INSTANCE_NUMBER", 4, "InstanceNumber");
+      ReplaceIntTagKeyword(folderName, "{pad6(SeriesNumber)}", tags, "NO_SERIES_NUMBER", 6, "SeriesNumber");
+      ReplaceIntTagKeyword(folderName, "{pad6(InstanceNumber)}", tags, "NO_INSTANCE_NUMBER", 6, "InstanceNumber");
+      ReplaceIntTagKeyword(folderName, "{pad8(SeriesNumber)}", tags, "NO_SERIES_NUMBER", 8, "SeriesNumber");
+      ReplaceIntTagKeyword(folderName, "{pad8(InstanceNumber)}", tags, "NO_INSTANCE_NUMBER", 8, "InstanceNumber");
+
+      Orthanc::DicomInstanceHasher hasher(tags["PatientID"].asString(), tags["StudyInstanceUID"].asString(), tags["SeriesInstanceUID"].asString(), tags["SOPInstanceUID"].asString());
+      std::string orthancPatientId = hasher.HashPatient();
+      std::string orthancStudyId = hasher.HashStudy();
+      std::string orthancSeriesId = hasher.HashSeries();
+      std::string orthancInstanceId = hasher.HashInstance();
+
+      ReplaceOrthancID(folderName, "{OrthancPatientID}", orthancPatientId, 0, 0);
+      ReplaceOrthancID(folderName, "{OrthancStudyID}", orthancStudyId, 0, 0);
+      ReplaceOrthancID(folderName, "{OrthancSeriesID}", orthancSeriesId, 0, 0);
+      ReplaceOrthancID(folderName, "{OrthancInstanceID}", orthancInstanceId, 0, 0);
+
+      ReplaceOrthancID(folderName, "{01(OrthancPatientID)}", orthancPatientId, 0, 2);
+      ReplaceOrthancID(folderName, "{01(OrthancStudyID)}", orthancStudyId, 0, 2);
+      ReplaceOrthancID(folderName, "{01(OrthancSeriesID)}", orthancSeriesId, 0, 2);
+      ReplaceOrthancID(folderName, "{01(OrthancInstanceID)}", orthancInstanceId, 0, 2);
+
+      ReplaceOrthancID(folderName, "{23(OrthancPatientID)}", orthancPatientId, 2, 2);
+      ReplaceOrthancID(folderName, "{23(OrthancStudyID)}", orthancStudyId, 2, 2);
+      ReplaceOrthancID(folderName, "{23(OrthancSeriesID)}", orthancSeriesId, 2, 2);
+      ReplaceOrthancID(folderName, "{23(OrthancInstanceID)}", orthancInstanceId, 2, 2);
+
+      if (folderName.find("{UUID}") != std::string::npos)
       {
-        boost::replace_all(folderName, "$PatientID$", GetStringDicomTagForPath(tags, "PatientID", "EMPTY_PATIENT_ID"));
+        boost::replace_all(folderName, "{UUID}", uuid);
       }
 
-      if (folderName.find("$StudyDescription$") != std::string::npos)
+      if (folderName.find("{.ext}") != std::string::npos)
       {
-        boost::replace_all(folderName, "$StudyDescription$", GetStringDicomTagForPath(tags, "StudyDescription", "NO_STUDY_DESCRIPTION"));
-      }
-
-      if (folderName.find("$SeriesDescription$") != std::string::npos)
-      {
-        boost::replace_all(folderName, "$SeriesDescription$", GetStringDicomTagForPath(tags, "SeriesDescription", "NO_SERIES_DESCRIPTION"));
-      }
-
-      if (folderName.find("$StudyInstanceUID$") != std::string::npos)
-      {
-        boost::replace_all(folderName, "$StudyInstanceUID$", GetStringDicomTagForPath(tags, "StudyDescription", "NO_STUDY_INSTANCE_UID"));
-      }
-
-      if (folderName.find("$SeriesInstanceUID$") != std::string::npos)
-      {
-        boost::replace_all(folderName, "$SeriesInstanceUID$", GetStringDicomTagForPath(tags, "SeriesInstanceUID", "NO_SERIES_INSTANCE_UID"));
-      }
-
-      if (folderName.find("$SOPInstanceUID$") != std::string::npos)
-      {
-        boost::replace_all(folderName, "$SOPInstanceUID$", GetStringDicomTagForPath(tags, "SOPInstanceUID", "NO_SOP_INSTANCE_UID"));
-      }
-
-      if (folderName.find("$OrthancPatientID$") != std::string::npos)
-      {
-        Orthanc::DicomInstanceHasher hasher(tags["PatientID"].asString(), tags["StudyInstanceUID"].asString(), tags["SeriesInstanceUID"].asString(), tags["SOPInstanceUID"].asString());
-        boost::replace_all(folderName, "$OrthancPatientID$", hasher.HashPatient());
-      }
-
-      if (folderName.find("$OrthancStudyID$") != std::string::npos)
-      {
-        Orthanc::DicomInstanceHasher hasher(tags["PatientID"].asString(), tags["StudyInstanceUID"].asString(), tags["SeriesInstanceUID"].asString(), tags["SOPInstanceUID"].asString());
-        boost::replace_all(folderName, "$OrthancStudyID$", hasher.HashPatient());
-      }
-
-      if (folderName.find("$OrthancSeriesID$") != std::string::npos)
-      {
-        Orthanc::DicomInstanceHasher hasher(tags["PatientID"].asString(), tags["StudyInstanceUID"].asString(), tags["SeriesInstanceUID"].asString(), tags["SOPInstanceUID"].asString());
-        boost::replace_all(folderName, "$OrthancSeriesID$", hasher.HashPatient());
-      }
-
-      if (folderName.find("$OrthancInstanceID$") != std::string::npos)
-      {
-        Orthanc::DicomInstanceHasher hasher(tags["PatientID"].asString(), tags["StudyInstanceUID"].asString(), tags["SeriesInstanceUID"].asString(), tags["SOPInstanceUID"].asString());
-        boost::replace_all(folderName, "$OrthancInstanceID$", hasher.HashPatient());
-      }
-
-      if (folderName.find("$UUID$") != std::string::npos)
-      {
-        boost::replace_all(folderName, "$UUID$", uuid);
-        foundUuid = true;
-      }
-
-      if (folderName.find("$.ext$") != std::string::npos)
-      {
-        boost::replace_all(folderName, "$.ext$", GetExtension(type, isCompressed));
+        boost::replace_all(folderName, "{.ext}", GetExtension(type, isCompressed));
       }
 
       path /= folderName;
-    }
-
-    if (!foundUuid)
-    {
-      LOG(WARNING) << "Your naming scheme does not contain $UUID$.  There is a high risk of files being overwritten.  Using the default naming scheme.";
-      return GetLegacyRelativePath(uuid);
     }
 
     return path;
@@ -393,20 +413,16 @@ OrthancPluginErrorCode StorageCreate(OrthancPluginMemoryBuffer* customData,
                                              bool isCompressed)
 {
   fs::path relativePath = GetRelativePathFromTags(tags, uuid, type, isCompressed);
-  std::string customDataString;
-  GetCustomData(customDataString, relativePath);
-
   fs::path rootPath = GetRootPath();
   fs::path path = rootPath / relativePath;
-
-  LOG(INFO) << "Advanced Storage - creating attachment \"" << uuid << "\" of type " << static_cast<int>(type) << " (path = " + path.string() + ")";
 
   // check that the final path is not 'above' the root path (this could happen if e.g., a PatientName is ../../../../toto)
   // fs::canonical() can not be used for that since the file needs to exist
   // so far, we'll just forbid path containing '..' since they might be suspicious
   if (path.string().find("..") != std::string::npos)
   {
-    fs::path legacyPath = rootPath / GetLegacyRelativePath(uuid);
+    relativePath = GetLegacyRelativePath(uuid);
+    fs::path legacyPath = rootPath / relativePath;
     LOG(WARNING) << "Advanced Storage - WAS02 - Path is suspicious since it contains '..': '" << path.string() << "' will be stored in '" << legacyPath << "'";
     path = legacyPath;
   }
@@ -414,7 +430,8 @@ OrthancPluginErrorCode StorageCreate(OrthancPluginMemoryBuffer* customData,
   // check path length !!!!!, if too long, go back to legacy path and issue a warning
   if (path.string().size() > maxPathLength_)
   {
-    fs::path legacyPath = rootPath / GetLegacyRelativePath(uuid);
+    relativePath = GetLegacyRelativePath(uuid);
+    fs::path legacyPath = rootPath / relativePath;
     LOG(WARNING) << "Advanced Storage - WAS01 - Path is too long: '" << path.string() << "' will be stored in '" << legacyPath << "'";
     path = legacyPath;
   }
@@ -427,6 +444,12 @@ OrthancPluginErrorCode StorageCreate(OrthancPluginMemoryBuffer* customData,
 
     // TODO for the future: handle duplicates path (e.g: there's no uuid in the path and we are uploading the same file again)
   }
+
+  std::string customDataString;
+  GetCustomData(customDataString, relativePath);
+
+  LOG(INFO) << "Advanced Storage - creating attachment \"" << uuid << "\" of type " << static_cast<int>(type) << " (path = " + path.string() + ")";
+
 
   if (fs::exists(path.parent_path()))
   {
@@ -694,12 +717,48 @@ extern "C"
               "CurrentStorage" : "2",
             },
 
-            // Defines the storage structure and file namings.  Right now, 
-            // only the "OrthancDefault" value shall be used in a production environment.  
-            // All other values are currently experimental
-            // "OrthancDefault" = same structure and file naming as default orthanc, 
-            // "Preset1-StudyDatePatientID" = split(StudyDate)/PatientID - PatientName/StudyDescription/SeriesInstanceUID/uuid.ext
-            // "Preset2-OrthancStudyID-OrthancSeriesID-UUID" = OrthancStudyID/OrthancSeriesID/uuid.ext
+            // Defines the storage structure and file namings.  
+            // These keywords can be used to generate the path:
+            // Attachment info:
+            //   {UUID}                           : A unique file identifier
+            //   {01(UUID)}                       : The first 2 characters of the file UUID
+            //   {23(UUID)}                       : The 3rd and 4th characters of the file UUID
+            //   {.ext}                           : The file extension
+            // DICOM TAGS:
+            //   {PatientID}, {PatientName}, {PatientBirthDate}
+            //   {StudyInstanceUID}, {SeriesInstanceUID}, {SOPInstanceUID}
+            //   {StudyDescription}, {SeriesDescription}
+            //   {StudyDate}, {AccessionNumber}, {InstanceNumber}, {SeriesNumber}
+            // Transformed DICOM TAGS:
+            //   {split(StudyDate)}               : 3 subfolders: YYYY/MM/DD
+            //   {split(PatientBirthDate)}        : 3 subfolders: YYYY/MM/DD
+            //   {pad4(InstanceNumber)}           : the instance number padded with zeroes to have 4 characters
+            //   {pad4(SeriesNumber)}             : the instance number padded with zeroes to have 4 characters
+            //   {pad6(InstanceNumber)}           : the instance number padded with zeroes to have 6 characters
+            //   {pad6(SeriesNumber)}             : the instance number padded with zeroes to have 6 characters
+            //   {pad8(InstanceNumber)}           : the instance number padded with zeroes to have 8 characters
+            //   {pad8(SeriesNumber)}             : the instance number padded with zeroes to have 8 characters
+            // Orthanc IDs:
+            //   {OrthancPatientID}, {OrthancStudyID}, {OrthancSeriesID}, {OrthancInstanceID}
+            // Transformed Orthanc IDs:
+            //   {01(OrthancPatientID)}, {01(OrthancStudyID)}, ...  : the first 2 characters of the Orthanc ID
+            //   {23(OrthancPatientID)}, {23(OrthancStudyID)}, ...  : the 3rd and 4th characters of the Orthanc ID
+            // Examples:
+            // "OrthancDefault"                         is a special value to use the same structure as the Orthanc core.  
+            //                                          This option consumes less space in the SQL DB since the path must not be saved in DB.
+            // "{01(UUID)}/{23(UUID)}/{UUID}{.ext}"     is equivalent with the structure of the Orthanc core with and added file extension
+            // "{split(StudyDate)}/{StudyInstanceUID} - {PatientID}/{SeriesInstanceUID}/{pad6(InstanceNumber)} - {UUID}{.ext}"
+            // "{PatientID} - {PatientName}/{StudyDate} - {StudyInstanceUID} - {StudyDescription}/{SeriesInstanceUID}/{UUID}{.ext}"
+            // Notes:
+            // - To prevent files from being overwritten, it is very important that their path is unique !
+            //   Therefore, your NamingScheme must always include:
+            //   - either the file {UUID} (this is mandatory in this Beta version !!!!!)
+            //   - maybe later:   at least a patient identifier {PatientID} or {OrthancPatientID},
+            //     a study identifier {StudyInstanceUID} or {OrthancStudyID},
+            //     a series identifier {SeriesInstanceUID} or {OrthancSeriesID},
+            //     an instance identifier {SOPInstanceUID} or {OrthancInstanceID}
+            // - The NamingScheme defines a RELATIVE path to either the "StorageDirectory" of Orthanc or one of
+            //   the "MultipleStorages" of this plugin.
             "NamingScheme" : "OrthancDefault",
 
             // Defines the maximum length for path used in the storage.  If a file is longer
@@ -707,7 +766,15 @@ extern "C"
             // (and a warning is issued).
             // Note, on Windows, the maximum path length is 260 bytes by default but can be increased
             // through a configuration.
-            "MaxPathLength" : 256
+            "MaxPathLength" : 256,
+
+            // When saving non DICOM attachments, Orthanc does not have access to the DICOM tags
+            // and can therefore not compute a path using the NamingScheme.
+            // Therefore, all non DICOM attachements are grouped in a subfolder using the 
+            // legacy structure.  With this option, you can define a root folder for these 
+            // non DICOM attachments
+            // e.g: "OtherAttachmentsPrefix": "_attachments"
+            "OtherAttachmentsPrefix": "",
           }
         }
       */
@@ -717,17 +784,49 @@ extern "C"
       const Json::Value& pluginJson = advancedStorage.GetJson();
 
       namingScheme_ = advancedStorage.GetStringValue("NamingScheme", "OrthancDefault");
-      if (namingScheme_ != "OrthancDefault" && namingScheme_.find("$UUID") == std::string::npos)
+      if (namingScheme_ != "OrthancDefault")
       {
-        LOG(ERROR) << "AdvancedStorage - Your naming scheme does not contain $UUID$.  The risk of files being overwritten is to high.";
-        return -1;
+        // when using a custom scheme, to avoid collisions, you must include, at least the attachment UUID
+        // or each of the DICOM IDs or orthanc IDs
+        if (namingScheme_.find("{UUID}") == std::string::npos)
+        {
+          LOG(ERROR) << "AdvancedStorage - To avoid files from being overwritten, your naming scheme shall alway contain the {UUID} (at least in this beta version !!!).";
+          return -1;
+
+          if (namingScheme_.find("PatientID") == std::string::npos && namingScheme_.find("OrthancPatientID") == std::string::npos)
+          {
+            LOG(ERROR) << "AdvancedStorage - To avoid files from being overwritten, your naming scheme shall alway contain either the {UUID} or 4 DICOM identifiers ({PatientID}, {StudyInstanceUID}, {SeriesInstanceUID}, {SOPInstanceUID}) or 4 Orthanc identifiers ({PatientOrthancID}, {StudyOrthancID}, {SeriesOrthancID}, {SOPInstanceUID}).";
+            return -1;
+          }
+
+          if (namingScheme_.find("StudyInstanceUID") == std::string::npos && namingScheme_.find("OrthancStudyID") == std::string::npos)
+          {
+            LOG(ERROR) << "AdvancedStorage - To avoid files from being overwritten, your naming scheme shall alway contain either the {UUID} or 4 DICOM identifiers ({PatientID}, {StudyInstanceUID}, {SeriesInstanceUID}, {SOPInstanceUID}) or 4 Orthanc identifiers ({PatientOrthancID}, {StudyOrthancID}, {SeriesOrthancID}, {SOPInstanceUID}).";
+            return -1;
+          }
+
+          if (namingScheme_.find("SeriesInstanceUID") == std::string::npos && namingScheme_.find("OrthancSeriesID") == std::string::npos)
+          {
+            LOG(ERROR) << "AdvancedStorage - To avoid files from being overwritten, your naming scheme shall alway contain either the {UUID} or 4 DICOM identifiers ({PatientID}, {StudyInstanceUID}, {SeriesInstanceUID}, {SOPInstanceUID}) or 4 Orthanc identifiers ({PatientOrthancID}, {StudyOrthancID}, {SeriesOrthancID}, {SOPInstanceUID}).";
+            return -1;
+          }
+
+          if (namingScheme_.find("SOPInstanceUID") == std::string::npos && namingScheme_.find("OrthancInstanceID") == std::string::npos)
+          {
+            LOG(ERROR) << "AdvancedStorage - To avoid files from being overwritten, your naming scheme shall alway contain either the {UUID} or 4 DICOM identifiers ({PatientID}, {StudyInstanceUID}, {SeriesInstanceUID}, {SOPInstanceUID}) or 4 Orthanc identifiers ({PatientOrthancID}, {StudyOrthancID}, {SeriesOrthancID}, {SOPInstanceUID}).";
+            return -1;
+          }
+        }
       }
 
+      otherAttachmentsPrefix_ = advancedStorage.GetStringValue("OtherAttachmentsPrefix", "");
+      LOG(WARNING) << "AdvancedStorage - Path to the other attachments root: " << otherAttachmentsPrefix_;
+      
       // if we have enabled multiple storage after files have been saved without this plugin, we still need the default StorageDirectory
       rootPath_ = fs::path(orthancConfiguration.GetStringValue("StorageDirectory", "OrthancStorage"));
       LOG(WARNING) << "AdvancedStorage - Path to the default storage area: " << rootPath_.string();
 
-      maxPathLength_ = orthancConfiguration.GetIntegerValue("MaxPathLength", 256);
+      maxPathLength_ = advancedStorage.GetIntegerValue("MaxPathLength", 256);
       LOG(WARNING) << "AdvancedStorage - Maximum path length: " << maxPathLength_;
 
       if (!rootPath_.is_absolute())
