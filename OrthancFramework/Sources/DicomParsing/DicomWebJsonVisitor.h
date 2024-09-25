@@ -74,6 +74,8 @@ namespace Orthanc
 
     static Json::Value FormatDouble(double value);
 
+    static Json::Value FormatDecimalString(double value, const std::string& originalString);
+
   public:
     DicomWebJsonVisitor();
 
