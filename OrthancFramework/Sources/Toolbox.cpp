@@ -837,7 +837,7 @@ namespace Orthanc
     assert(sizeof(unsigned int) == 4 && sizeof(digest) == (160 / 8));
     assert(sizeof(boost::uuids::detail::sha1::digest_type) == 20);
 
-    sha1.get_digest(digest));
+    sha1.get_digest(digest);
 
     result.resize(8 * 5 + 4);
     sprintf(&result[0], "%08x-%08x-%08x-%08x-%08x",
