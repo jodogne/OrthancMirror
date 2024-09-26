@@ -4380,7 +4380,7 @@ namespace Orthanc
     }
     else
     {
-      LOG(WARNING) << "READ-ONLY SYSTEM: DELETE routes are not available";
+      LOG(WARNING) << "READ-ONLY SYSTEM: deactivating DELETE routes";
     }
 
     Register("/instances/{id}", GetSingleResource<ResourceType_Instance>);
@@ -4437,7 +4437,7 @@ namespace Orthanc
     }
     else
     {
-      LOG(WARNING) << "READ-ONLY SYSTEM: PUT /patients/{id}/protected route is not available";
+      LOG(WARNING) << "READ-ONLY SYSTEM: deactivating PUT /patients/{id}/protected route";
     }
 
 

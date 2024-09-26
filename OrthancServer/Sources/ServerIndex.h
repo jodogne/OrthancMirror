@@ -50,6 +50,7 @@ namespace Orthanc
     MaxStorageMode  maximumStorageMode_;
     uint64_t        maximumStorageSize_;
     unsigned int    maximumPatients_;
+    bool            readOnly_;
 
     static void FlushThread(ServerIndex* that,
                             unsigned int threadSleep);

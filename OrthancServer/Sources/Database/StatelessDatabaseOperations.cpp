@@ -1042,7 +1042,7 @@ namespace Orthanc
       }
     };
 
-    if (GetDatabaseCapabilities().HasUpdateAndGetStatistics())
+    if (GetDatabaseCapabilities().HasUpdateAndGetStatistics() && !IsReadOnly())
     {
       Operations operations;
       Apply(operations);

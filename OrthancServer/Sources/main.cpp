@@ -1570,12 +1570,7 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
 
     if (context.IsReadOnly())
     {
-      LOG(WARNING) << "READ-ONLY SYSTEM: ignoring these configurations: StorageCompression, StoreMD5ForAttachments, OverwriteInstances, MaximumPatientCount, MaximumStorageSize, MaximumStorageMode"; 
-
-      if (context.IsSaveJobs())
-      {
-        throw OrthancException(ErrorCode_IncompatibleConfigurations, "\"SaveJobs\" can not be true when \"ReadOnly\" is true");
-      }
+      LOG(WARNING) << "READ-ONLY SYSTEM: ignoring these configurations: StorageCompression, StoreMD5ForAttachments, OverwriteInstances, MaximumPatientCount, MaximumStorageSize, MaximumStorageMode, SaveJobs"; 
     }
     else
     {
