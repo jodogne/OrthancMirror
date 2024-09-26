@@ -352,7 +352,8 @@ namespace Orthanc
     done_(false),
     maximumStorageMode_(MaxStorageMode_Recycle),
     maximumStorageSize_(0),
-    maximumPatients_(0)
+    maximumPatients_(0),
+    readOnly_(readOnly)
   {
     SetTransactionContextFactory(new TransactionContextFactory(context));
 

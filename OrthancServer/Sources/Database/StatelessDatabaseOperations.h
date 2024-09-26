@@ -608,6 +608,11 @@ namespace Orthanc
                              uint64_t maximumStorageSize,
                              unsigned int maximumPatientCount);
 
+    bool IsReadOnly()
+    {
+      return readOnly_;
+    }
+
   public:
     explicit StatelessDatabaseOperations(IDatabaseWrapper& database, bool readOnly);
 
