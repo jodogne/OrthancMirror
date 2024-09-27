@@ -2825,8 +2825,8 @@ namespace Orthanc
   }
 
 
-  bool StatelessDatabaseOperations::ReadWriteTransaction::HasReachedMaxStorageSize(uint64_t maximumStorageSize,
-                                                                                   uint64_t addedInstanceSize)
+  bool StatelessDatabaseOperations::ReadOnlyTransaction::HasReachedMaxStorageSize(uint64_t maximumStorageSize,
+                                                                                  uint64_t addedInstanceSize)
   {
     if (maximumStorageSize != 0)
     {
@@ -2847,8 +2847,8 @@ namespace Orthanc
     return false;
   }                                                                           
 
-  bool StatelessDatabaseOperations::ReadWriteTransaction::HasReachedMaxPatientCount(unsigned int maximumPatientCount,
-                                                                                    const std::string& patientId)
+  bool StatelessDatabaseOperations::ReadOnlyTransaction::HasReachedMaxPatientCount(unsigned int maximumPatientCount,
+                                                                                   const std::string& patientId)
   {
     if (maximumPatientCount != 0)
     {
