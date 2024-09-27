@@ -7,15 +7,11 @@ REST API
 * API version upgraded to 26
 * Improved parsing of multiple numerical values in DICOM tags.
   https://discourse.orthanc-server.org/t/qido-includefield-with-sequences/4746/6
-* POSSIBLE BREAKING-CHANGES:
-  In DICOMWeb json, the "DS - Decimal String" values were represented by float numbers
-  and they are now represented as strings to avoid loss of precision when the decimal
-  number can not be exactly represented as a float.  This is based on the DICOMWeb
-  standard https://dicom.nema.org/medical/dicom/current/output/chtml/part18/sect_F.2.3.html
-  - DS values can be represented as String or Number in Json.
-  - For IS, DS, SV and UV, a JSON String representation can be used to preserve the original 
-    format during transformation of the representation, or if needed to avoid losing 
-    precision of a decimal string.
+* In DICOMWeb json, the "DS - Decimal String" values were represented by float numbers
+  and they are now represented as strings to avoid introduction of long float representation
+  (e.g 0.1429999999999 vs "0.143") and be more compliant with the DICOMWeb
+  standard https://dicom.nema.org/medical/dicom/current/output/chtml/part18/sect_F.2.3.html.
+  This has no impact on StoneViewer and OHIF.
   https://discourse.orthanc-server.org/t/dicomwebplugin-does-not-return-series-metadata-properly/5195
 
 
