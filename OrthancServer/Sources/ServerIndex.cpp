@@ -271,7 +271,7 @@ namespace Orthanc
   {
     Logging::SetCurrentThreadName("DB-STATS");
 
-    static const unsigned int SLEEP_SECONDS = 60;
+    static const unsigned int SLEEP_SECONDS = 10;
 
     if (threadSleepGranularityMilliseconds > 1000)
     {

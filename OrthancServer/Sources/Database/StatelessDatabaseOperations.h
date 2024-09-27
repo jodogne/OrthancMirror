@@ -401,6 +401,12 @@ namespace Orthanc
         transaction_.ListAllLabels(target);
       }
 
+      bool HasReachedMaxStorageSize(uint64_t maximumStorageSize,
+                                    uint64_t addedInstanceSize);
+
+      bool HasReachedMaxPatientCount(unsigned int maximumPatientCount,
+                                     const std::string& patientId);
+
       void ExecuteFind(FindResponse& response,
                        const FindRequest& request,
                        const IDatabaseWrapper::Capabilities& capabilities)
@@ -541,12 +547,6 @@ namespace Orthanc
                    uint64_t addedInstanceSize,
                    const std::string& newPatientId);
 
-      bool HasReachedMaxStorageSize(uint64_t maximumStorageSize,
-                                    uint64_t addedInstanceSize);
-
-      bool HasReachedMaxPatientCount(unsigned int maximumPatientCount,
-                                     const std::string& patientId);
-      
       bool IsRecyclingNeeded(uint64_t maximumStorageSize,
                              unsigned int maximumPatients,
                              uint64_t addedInstanceSize,
