@@ -26,6 +26,7 @@ Maintenance
   for a long period.
 * Fix C-Find queries not returning computed tags like ModalitiesInStudy, NumberOfStudyRelatedSeries, ...
   in very specific use-cases.
+* Fix C-Find queries not returning private tags in the modality worklist plugin.
 * Fix extremely rare error when 2 threads are trying to create the same folder in the File Storage 
   at the same time.
 * Metrics:
