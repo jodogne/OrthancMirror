@@ -278,7 +278,7 @@ namespace Orthanc
   {
     Logging::SetCurrentThreadName("DB-STATS");
 
-    static const unsigned int SLEEP_SECONDS = 60;
+    static const unsigned int SLEEP_SECONDS = 10;
 
     if (threadSleepGranularityMilliseconds > 1000)
     {
@@ -359,7 +359,8 @@ namespace Orthanc
     done_(false),
     maximumStorageMode_(MaxStorageMode_Recycle),
     maximumStorageSize_(0),
-    maximumPatients_(0)
+    maximumPatients_(0),
+    readOnly_(readOnly)
   {
     SetTransactionContextFactory(new TransactionContextFactory(context));
 
