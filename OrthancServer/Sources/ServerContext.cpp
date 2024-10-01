@@ -406,7 +406,14 @@ namespace Orthanc
           new SharedArchive(lock.GetConfiguration().GetUnsignedIntegerParameter("MediaArchiveSize", 1)));
         defaultLocalAet_ = lock.GetConfiguration().GetOrthancAET();
         jobsEngine_.SetWorkersCount(lock.GetConfiguration().GetUnsignedIntegerParameter("ConcurrentJobs", 2));
+
         saveJobs_ = lock.GetConfiguration().GetBooleanParameter("SaveJobs", true);
+        if (readOnly_ && saveJobs_)
+        {
+          LOG(WARNING) << "READ-ONLY SYSTEM: SaveJobs = true is incompatible with a ReadOnly system, ignoring this configuration";
+          saveJobs_ = false;
+        }
+
         metricsRegistry_->SetEnabled(lock.GetConfiguration().GetBooleanParameter("MetricsEnabled", true));
 
         // New configuration options in Orthanc 1.5.1
