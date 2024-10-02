@@ -704,15 +704,17 @@ extern "C"
             "Enable": false,
 
             // Enables/disables support for multiple StorageDirectories
+            // Note: when saving a file, the plugin stores only the storage-id in the SQL DB
             "MultipleStorages" : {
               "Storages" : {
-                // The storgae ids below may never change since they are stored in DB
-                // The storage path may change in case you move your data from one place to the other
+                // Only the storage id is stored in the SQL DB for each file, not the storage path.
+                // Therefore, storage path may change in case you move your data from one place to another.
+                // The storgae ids may never change since they are stored in DB; you can only add new ones.
                 "1" : "/var/lib/orthanc/db",
                 "2" : "/mnt/disk2/orthanc"
               },
 
-              // the storage on which new data is stored.
+              // The storage on which new data is stored.
               // There's currently no automatic changes of disks
               "CurrentStorage" : "2",
             },
@@ -753,12 +755,14 @@ extern "C"
             // - To prevent files from being overwritten, it is very important that their path is unique !
             //   Therefore, your NamingScheme must always include:
             //   - either the file {UUID} (this is mandatory in this Beta version !!!!!)
-            //   - maybe later:   at least a patient identifier {PatientID} or {OrthancPatientID},
+            //   - MAYBE IN A LATER BETA VERSION: at least a patient identifier {PatientID} or {OrthancPatientID},
             //     a study identifier {StudyInstanceUID} or {OrthancStudyID},
             //     a series identifier {SeriesInstanceUID} or {OrthancSeriesID},
             //     an instance identifier {SOPInstanceUID} or {OrthancInstanceID}
             // - The NamingScheme defines a RELATIVE path to either the "StorageDirectory" of Orthanc or one of
             //   the "MultipleStorages" of this plugin.
+            // - The path generated from the NamingScheme is stored in the SQL DB.  Therefore, you may change the
+            //   NamingScheme at any time and you'll still be able to access previously saved files.
             "NamingScheme" : "OrthancDefault",
 
             // Defines the maximum length for path used in the storage.  If a file is longer
@@ -774,6 +778,9 @@ extern "C"
             // legacy structure.  With this option, you can define a root folder for these 
             // non DICOM attachments
             // e.g: "OtherAttachmentsPrefix": "_attachments"
+            // Notes:
+            // - When using a prefix, the path is saved in the SQL DB.  Therefore, you may change the OtherAttachmentsPrefix
+            // at any time and you'll still be able to access previously saved files.
             "OtherAttachmentsPrefix": "",
           }
         }

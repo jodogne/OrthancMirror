@@ -95,18 +95,6 @@ extern "C"
 
   typedef struct
   {
-    const char* uuid;
-    int32_t     contentType;
-    uint64_t    uncompressedSize;
-    const char* uncompressedHash;
-    int32_t     compressionType;
-    uint64_t    compressedSize;
-    const char* compressedHash;
-    const char* customData;
-  } OrthancPluginAttachment2;
-
-  typedef struct
-  {
     uint16_t     group;
     uint16_t     element;
     const char*  value;
@@ -320,19 +308,6 @@ extern "C"
     context->InvokeService(context, _OrthancPluginService_DatabaseAnswer, &params);
   }
 
-  ORTHANC_PLUGIN_INLINE void OrthancPluginDatabaseAnswerAttachment2(
-    OrthancPluginContext*          context,
-    OrthancPluginDatabaseContext*  database,
-    const OrthancPluginAttachment2* attachment)
-  {
-    _OrthancPluginDatabaseAnswer params;
-    memset(&params, 0, sizeof(params));
-    params.database = database;
-    params.type = _OrthancPluginDatabaseAnswerType_Attachment2;
-    params.valueGeneric = attachment;
-    context->InvokeService(context, _OrthancPluginService_DatabaseAnswer, &params);
-  }
-
   ORTHANC_PLUGIN_INLINE void OrthancPluginDatabaseAnswerResource(
     OrthancPluginContext*          context,
     OrthancPluginDatabaseContext*  database,
@@ -389,19 +364,6 @@ extern "C"
     memset(&params, 0, sizeof(params));
     params.database = database;
     params.type = _OrthancPluginDatabaseAnswerType_DeletedAttachment;
-    params.valueGeneric = attachment;
-    context->InvokeService(context, _OrthancPluginService_DatabaseAnswer, &params);
-  }
-
-  ORTHANC_PLUGIN_INLINE void OrthancPluginDatabaseSignalDeletedAttachment2(
-    OrthancPluginContext*          context,
-    OrthancPluginDatabaseContext*  database,
-    const OrthancPluginAttachment2* attachment)
-  {
-    _OrthancPluginDatabaseAnswer params;
-    memset(&params, 0, sizeof(params));
-    params.database = database;
-    params.type = _OrthancPluginDatabaseAnswerType_DeletedAttachment2;
     params.valueGeneric = attachment;
     context->InvokeService(context, _OrthancPluginService_DatabaseAnswer, &params);
   }
