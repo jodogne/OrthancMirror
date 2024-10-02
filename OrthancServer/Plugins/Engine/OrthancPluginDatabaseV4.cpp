@@ -472,6 +472,7 @@ namespace Orthanc
       request.mutable_add_attachment()->mutable_attachment()->set_compression_type(attachment.GetCompressionType());
       request.mutable_add_attachment()->mutable_attachment()->set_compressed_size(attachment.GetCompressedSize());
       request.mutable_add_attachment()->mutable_attachment()->set_compressed_hash(attachment.GetCompressedMD5());        
+      request.mutable_add_attachment()->mutable_attachment()->set_custom_data(attachment.GetCustomData());        // new in 1.12.6
       request.mutable_add_attachment()->set_revision(revision);
 
       ExecuteTransaction(DatabasePluginMessages::OPERATION_ADD_ATTACHMENT, request);
