@@ -28,12 +28,15 @@ REST API
 * in /system, added a new field "Capabilities" with new values:
   - "HasExtendedChanges" for DB backend that provides this feature (the default SQLite DB
     or PostgreSQL vX.X, MySQL vX.X, ODBC vX.X).
-  - "HasExendedFind" for DB backend that provides this feature (the default SQLite DB
+  - "HasExtendedFind" for DB backend that provides this feature (the default SQLite DB
     or PostgreSQL vX.X, MySQL vX.X, ODBC vX.X).
 * With DB backend with "HasExtendedChanges" support, /changes now supports 2 more options: 
   - 'type' to filter the changes returned by the query 
   - 'to' to potentially cycle through changes in reverse order.
   example: /changes?type=StableStudy&to=7584&limit=100
+* With DB backend with "HasExtendedFind" support, /tools/find now supports new options:
+  - 'OrderBy' to order by DICOM Tag or metadata value
+
 
 Maintenance
 -----------
