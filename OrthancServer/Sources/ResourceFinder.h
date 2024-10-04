@@ -133,6 +133,19 @@ namespace Orthanc
 
     void AddRequestedTags(const std::set<DicomTag>& tags);
 
+    void AddOrdering(const DicomTag& tag,
+                     FindRequest::OrderingDirection direction)
+    {
+      request_.AddOrdering(tag, direction);
+    }
+
+    void AddOrdering(MetadataType metadataType,
+                     FindRequest::OrderingDirection direction)
+    {
+      request_.AddOrdering(metadataType, direction);
+    }
+
+
     void SetLabels(const std::set<std::string>& labels)
     {
       request_.SetLabels(labels);

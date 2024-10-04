@@ -28,6 +28,7 @@
 #include "../../../OrthancFramework/Sources/Toolbox.h"
 #include "../Database/FindRequest.h"
 #include "DatabaseConstraint.h"
+#include "../Database/MainDicomTagsRegistry.h"
 
 #include <cassert>
 #include <boost/lexical_cast.hpp>
@@ -262,6 +263,76 @@ namespace Orthanc
                boost::lexical_cast<std::string>(constraint.GetTag().GetElement()));
   }
 
+
+  static void FormatJoinForOrdering(std::string& target,
+                                    const DicomTag& tag,
+                                    size_t index,
+                                    ResourceType requestLevel)
+  {
+    std::string orderArg = "order" + boost::lexical_cast<std::string>(index);
+
+    target.clear();
+
+    ResourceType tagLevel;
+    DicomTagType tagType;
+    MainDicomTagsRegistry registry;
+
+    registry.LookupTag(tagLevel, tagType, tag);
+
+    if (tagLevel == ResourceType_Patient && requestLevel == ResourceType_Study)
+    { // Patient tags are copied at study level
+      tagLevel = ResourceType_Study;
+    }
+
+    std::string tagTable;
+    if (tagType == DicomTagType_Identifier)
+    {
+      tagTable = "DicomIdentifiers ";
+    }
+    else
+    {
+      tagTable = "MainDicomTags ";
+    }
+
+    std::string tagFilter = orderArg + ".tagGroup = " + boost::lexical_cast<std::string>(tag.GetGroup()) + " AND " + orderArg + ".tagElement = " + boost::lexical_cast<std::string>(tag.GetElement());
+
+    if (tagLevel == requestLevel)
+    {
+      target = " LEFT JOIN " + tagTable + " " + orderArg + " ON " + orderArg + ".id = " + FormatLevel(requestLevel) +
+                ".internalId AND " + tagFilter;
+    }
+    else if (static_cast<int32_t>(requestLevel) - static_cast<int32_t>(tagLevel) == 1)
+    {
+      target = " INNER JOIN Resources " + orderArg + "parent ON " + orderArg + "parent.internalId = " + FormatLevel(requestLevel) + ".parentId "
+               " LEFT JOIN " + tagTable + " " + orderArg + " ON " + orderArg + ".id = " + orderArg + "parent.internalId AND " + tagFilter;
+    }
+    else if (static_cast<int32_t>(requestLevel) - static_cast<int32_t>(tagLevel) == 2)
+    {
+      target = " INNER JOIN Resources " + orderArg + "parent ON " + orderArg + "parent.internalId = " + FormatLevel(requestLevel) + ".parentId "
+               " INNER JOIN Resources " + orderArg + "grandparent ON " + orderArg + "grandparent.internalId = " + orderArg + "parent.parentId "
+               " LEFT JOIN " + tagTable + " " + orderArg + " ON " + orderArg + ".id = " + orderArg + "grandparent.internalId AND " + tagFilter;
+    }
+    else if (static_cast<int32_t>(requestLevel) - static_cast<int32_t>(tagLevel) == 3)
+    {
+      target = " INNER JOIN Resources " + orderArg + "parent ON " + orderArg + "parent.internalId = " + FormatLevel(requestLevel) + ".parentId "
+               " INNER JOIN Resources " + orderArg + "grandparent ON " + orderArg + "grandparent.internalId = " + orderArg + "parent.parentId "
+               " INNER JOIN Resources " + orderArg + "grandgrandparent ON " + orderArg + "grandgrandparent.internalId = " + orderArg + "grandparent.parentId "
+               " LEFT JOIN " + tagTable + " " + orderArg + " ON " + orderArg + ".id = " + orderArg + "grandgrandparent.internalId AND " + tagFilter;
+    }
+  }
+
+  static void FormatJoinForOrdering(std::string& target,
+                                    const MetadataType& metadata,
+                                    size_t index,
+                                    ResourceType requestLevel)
+  {
+    std::string arg = "order" + boost::lexical_cast<std::string>(index);
+
+
+    target = " INNER JOIN Metadata " + arg + " ON " + arg + ".id = " + FormatLevel(requestLevel) +
+             ".internalId AND " + arg + ".type = " +
+             boost::lexical_cast<std::string>(metadata);
+  }
 
   static std::string Join(const std::list<std::string>& values,
                           const std::string& prefix,
@@ -619,8 +690,51 @@ namespace Orthanc
     assert(upperLevel <= queryLevel &&
            queryLevel <= lowerLevel);
 
-    std::string ordering = "row_number() over (order by " + strQueryLevel + ".publicId) as rowNumber";  // we need a default ordering in order to make default queries repeatable when using since&limit
+    std::string ordering;
+    std::string orderingJoins;
 
+    if (request.GetOrdering().size() > 0)
+    {
+      int counter = 0;
+      std::vector<std::string> orderByFields;
+      for (std::deque<FindRequest::Ordering*>::const_iterator it = request.GetOrdering().begin(); it != request.GetOrdering().end(); ++it)
+      {
+        std::string orderingJoin;
+
+        switch ((*it)->GetKeyType())
+        {
+          case FindRequest::KeyType_DicomTag:
+            FormatJoinForOrdering(orderingJoin, (*it)->GetDicomTag(), counter, request.GetLevel());
+            break;
+          case FindRequest::KeyType_Metadata:
+            FormatJoinForOrdering(orderingJoin, (*it)->GetMetadataType(), counter, request.GetLevel());
+            break;
+          default:
+            throw OrthancException(ErrorCode_InternalError);
+        }
+        orderingJoins += orderingJoin;
+        
+        std::string orderByField = "order" + boost::lexical_cast<std::string>(counter) + ".value";
+        if ((*it)->GetDirection() == FindRequest::OrderingDirection_Ascending)
+        {
+          orderByField += " ASC";
+        }
+        else
+        {
+          orderByField += " DESC";
+        }
+        orderByFields.push_back(orderByField);
+        ++counter;
+      }
+
+      std::string orderByFieldsString;
+      Toolbox::JoinStrings(orderByFieldsString, orderByFields, ", ");
+      ordering = "ROW_NUMBER() OVER (ORDER BY " + orderByFieldsString + ") AS rowNumber";
+    }
+    else
+    {
+      ordering = "ROW_NUMBER() OVER (ORDER BY " + strQueryLevel + ".publicId) AS rowNumber";  // we need a default ordering in order to make default queries repeatable when using since&limit
+    }
 
     sql = ("SELECT " +
            strQueryLevel + ".publicId, " +
@@ -738,7 +852,7 @@ namespace Orthanc
                       ".internalId AND selectedLabels.label IN (" + Join(formattedLabels, "", ", ") + ")) " + condition);
     }
 
-    sql += joins + Join(where, " WHERE ", " AND ");
+    sql += joins + orderingJoins + Join(where, " WHERE ", " AND ");
 
     if (request.HasLimits())
     {

@@ -3248,6 +3248,11 @@ namespace Orthanc
     static const char* const KEY_SINCE = "Since";
     static const char* const KEY_LABELS = "Labels";                       // New in Orthanc 1.12.0
     static const char* const KEY_LABELS_CONSTRAINT = "LabelsConstraint";  // New in Orthanc 1.12.0
+    static const char* const KEY_ORDER_BY = "OrderBy";                    // New in Orthanc 1.12.5
+    static const char* const KEY_ORDER_BY_KEY = "Key";                    // New in Orthanc 1.12.5
+    static const char* const KEY_ORDER_BY_TYPE = "Type";                  // New in Orthanc 1.12.5
+    static const char* const KEY_ORDER_BY_DIRECTION = "Direction";        // New in Orthanc 1.12.5
+
 
     if (call.IsDocumentation())
     {
@@ -3281,6 +3286,8 @@ namespace Orthanc
                          "List of strings specifying which labels to look for in the resources (new in Orthanc 1.12.0)", true)
         .SetRequestField(KEY_LABELS_CONSTRAINT, RestApiCallDocumentation::Type_String,
                          "Constraint on the labels, can be `All`, `Any`, or `None` (defaults to `All`, new in Orthanc 1.12.0)", true)
+        .SetRequestField(KEY_ORDER_BY, RestApiCallDocumentation::Type_JsonListOfObjects,
+                         "Array of associative arrays containing the requested ordering", true)
         .AddAnswerType(MimeType_Json, "JSON array containing either the Orthanc identifiers, or detailed information "
                        "about the reported resources (if `Expand` argument is `true`)");
       return;
@@ -3342,6 +3349,12 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_BadRequest, 
                              "Field \"" + std::string(KEY_LABELS_CONSTRAINT) + "\" must be an array of strings");
+    }
+    else if (request.isMember(KEY_ORDER_BY) &&
+             request[KEY_ORDER_BY].type() != Json::arrayValue)
+    {
+      throw OrthancException(ErrorCode_BadRequest, 
+                             "Field \"" + std::string(KEY_ORDER_BY) + "\" must be an array");
     }
     else if (true)
     {
@@ -3465,6 +3478,69 @@ namespace Orthanc
         else
         {
           throw OrthancException(ErrorCode_BadRequest, "Field \"" + std::string(KEY_LABELS_CONSTRAINT) + "\" must be \"All\", \"Any\", or \"None\"");
+        }
+      }
+
+      if (request.isMember(KEY_ORDER_BY))  // New in Orthanc 1.12.5
+      {
+        for (Json::Value::ArrayIndex i = 0; i < request[KEY_ORDER_BY].size(); i++)
+        {
+          if (request[KEY_ORDER_BY][i].type() != Json::objectValue)
+          {
+            throw OrthancException(ErrorCode_BadRequest, "Field \"" + std::string(KEY_ORDER_BY) + "\" must contain objects");
+          }
+          else
+          {
+            const Json::Value& order = request[KEY_ORDER_BY][i];
+            FindRequest::OrderingDirection direction;
+            std::string directionString;
+            std::string typeString;
+
+            if (!order.isMember(KEY_ORDER_BY_KEY) || order[KEY_ORDER_BY_KEY].type() != Json::stringValue)
+            {
+              throw OrthancException(ErrorCode_BadRequest, "Field \"" + std::string(KEY_ORDER_BY_KEY) + "\" must be a string");
+            }
+
+            if (!order.isMember(KEY_ORDER_BY_DIRECTION) || order[KEY_ORDER_BY_DIRECTION].type() != Json::stringValue)
+            {
+              throw OrthancException(ErrorCode_BadRequest, "Field \"" + std::string(KEY_ORDER_BY_DIRECTION) + "\" must be \"ASC\" or \"DESC\"");
+            }
+
+            Toolbox::ToLowerCase(directionString,  order[KEY_ORDER_BY_DIRECTION].asString());
+            if (directionString == "asc")
+            {
+              direction = FindRequest::OrderingDirection_Ascending;
+            }
+            else if (directionString == "desc")
+            {
+              direction = FindRequest::OrderingDirection_Descending;
+            }
+            else
+            {
+              throw OrthancException(ErrorCode_BadRequest, "Field \"" + std::string(KEY_ORDER_BY_DIRECTION) + "\" must be \"ASC\" or \"DESC\"");
+            }
+
+            if (!order.isMember(KEY_ORDER_BY_TYPE) || order[KEY_ORDER_BY_TYPE].type() != Json::stringValue)
+            {
+              throw OrthancException(ErrorCode_BadRequest, "Field \"" + std::string(KEY_ORDER_BY_TYPE) + "\" must be \"DicomTag\" or \"Metadata\"");
+            }
+
+            Toolbox::ToLowerCase(typeString, order[KEY_ORDER_BY_TYPE].asString());
+            if (typeString == "dicomtag")
+            {
+              DicomTag tag = FromDcmtkBridge::ParseTag(order[KEY_ORDER_BY_KEY].asString());
+              finder.AddOrdering(tag, direction);
+            }
+            else if (typeString == "metadata")
+            {
+              MetadataType metadata = StringToMetadata(order[KEY_ORDER_BY_KEY].asString());
+              finder.AddOrdering(metadata, direction);
+            }
+            else
+            {
+              throw OrthancException(ErrorCode_BadRequest, "Field \"" + std::string(KEY_ORDER_BY_TYPE) + "\" must be \"DicomTag\" or \"Metadata\"");
+            }
+          }
         }
       }
 
