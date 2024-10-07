@@ -25,77 +25,57 @@
 
 #include "../../../OrthancFramework/Sources/DicomFormat/DicomMap.h"
 #include "../ServerEnumerations.h"
-
-#if ORTHANC_ENABLE_PLUGINS == 1
-#  include "../../Plugins/Include/orthanc/OrthancCDatabasePlugin.h"
-#endif
+#include "IDatabaseConstraint.h"
 
 namespace Orthanc
 {
-  class DatabaseConstraint : public boost::noncopyable
+  class DatabaseMetadataConstraint : public IDatabaseConstraint
   {
   private:
-    ResourceType              level_;
-    DicomTag                  tag_;
-    bool                      isIdentifier_;
+    MetadataType              metadata_;
     ConstraintType            constraintType_;
     std::vector<std::string>  values_;
     bool                      caseSensitive_;
-    bool                      mandatory_;
 
   public:
-    DatabaseConstraint(ResourceType level,
-                       const DicomTag& tag,
-                       bool isIdentifier,
-                       ConstraintType type,
-                       const std::vector<std::string>& values,
-                       bool caseSensitive,
-                       bool mandatory);
-    
-    ResourceType GetLevel() const
+    DatabaseMetadataConstraint(MetadataType metadata,
+                               ConstraintType type,
+                               const std::string& value,
+                               bool caseSensitive);
+
+    DatabaseMetadataConstraint(MetadataType metadata,
+                               ConstraintType type,
+                               const std::vector<std::string>& values,
+                               bool caseSensitive);
+
+    const MetadataType& GetMetadata() const
     {
-      return level_;
+      return metadata_;
     }
 
-    const DicomTag& GetTag() const
-    {
-      return tag_;
-    }
-
-    bool IsIdentifier() const
-    {
-      return isIdentifier_;
-    }
-
-    ConstraintType GetConstraintType() const
+    virtual ConstraintType GetConstraintType() const ORTHANC_OVERRIDE
     {
       return constraintType_;
     }
 
-    size_t GetValuesCount() const
+    virtual size_t GetValuesCount() const ORTHANC_OVERRIDE
     {
       return values_.size();
     }
 
-    const std::string& GetValue(size_t index) const;
+    virtual const std::string& GetValue(size_t index) const ORTHANC_OVERRIDE;
 
-    const std::string& GetSingleValue() const;
+    virtual const std::string& GetSingleValue() const ORTHANC_OVERRIDE;
 
-    bool IsCaseSensitive() const
+    virtual bool IsCaseSensitive() const ORTHANC_OVERRIDE
     {
       return caseSensitive_;
     }
 
-    bool IsMandatory() const
+    virtual bool IsMandatory() const ORTHANC_OVERRIDE
     {
-      return mandatory_;
+      return true;
     }
 
-    bool IsMatch(const DicomMap& dicom) const;
-
-#if ORTHANC_ENABLE_PLUGINS == 1
-    void EncodeForPlugins(OrthancPluginDatabaseConstraint& constraint,
-                          std::vector<const char*>& tmpValues) const;
-#endif    
   };
 }

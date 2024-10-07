@@ -22,7 +22,7 @@
 
 
 #include "../PrecompiledHeadersServer.h"
-#include "DatabaseConstraint.h"
+#include "DatabaseDicomTagConstraint.h"
 
 #include "../../../OrthancFramework/Sources/OrthancException.h"
 
@@ -36,13 +36,13 @@
 
 namespace Orthanc
 {
-  DatabaseConstraint::DatabaseConstraint(ResourceType level,
-                                         const DicomTag& tag,
-                                         bool isIdentifier,
-                                         ConstraintType type,
-                                         const std::vector<std::string>& values,
-                                         bool caseSensitive,
-                                         bool mandatory) :
+  DatabaseDicomTagConstraint::DatabaseDicomTagConstraint(ResourceType level,
+                                                         const DicomTag& tag,
+                                                         bool isIdentifier,
+                                                         ConstraintType type,
+                                                         const std::vector<std::string>& values,
+                                                         bool caseSensitive,
+                                                         bool mandatory) :
     level_(level),
     tag_(tag),
     isIdentifier_(isIdentifier),
@@ -59,7 +59,7 @@ namespace Orthanc
   }      
 
     
-  const std::string& DatabaseConstraint::GetValue(size_t index) const
+  const std::string& DatabaseDicomTagConstraint::GetValue(size_t index) const
   {
     if (index >= values_.size())
     {
@@ -72,7 +72,7 @@ namespace Orthanc
   }
 
 
-  const std::string& DatabaseConstraint::GetSingleValue() const
+  const std::string& DatabaseDicomTagConstraint::GetSingleValue() const
   {
     if (values_.size() != 1)
     {
@@ -86,8 +86,8 @@ namespace Orthanc
 
 
 #if ORTHANC_ENABLE_PLUGINS == 1
-  void DatabaseConstraint::EncodeForPlugins(OrthancPluginDatabaseConstraint& constraint,
-                                            std::vector<const char*>& tmpValues) const
+  void DatabaseDicomTagConstraint::EncodeForPlugins(OrthancPluginDatabaseConstraint& constraint,
+                                                    std::vector<const char*>& tmpValues) const
   {
     memset(&constraint, 0, sizeof(constraint));
     

@@ -38,6 +38,7 @@ REST API
   - 'OrderBy' to order by DICOM Tag or metadata value
   - 'ParentPatient', 'ParentStudy', 'ParentSeries' to retrieve only descendants of an
     Orthanc resource.
+  - 'QueryMetadata' to filter results based on metadata values.
 
 
 Maintenance

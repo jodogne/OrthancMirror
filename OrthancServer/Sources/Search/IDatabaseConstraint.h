@@ -23,39 +23,28 @@
 
 #pragma once
 
-#include "DatabaseConstraint.h"
-
-#include <deque>
+#include "../ServerEnumerations.h"
+#include <boost/noncopyable.hpp>
 
 namespace Orthanc
 {
-  class DatabaseConstraints : public boost::noncopyable
+  class IDatabaseConstraint : public boost::noncopyable
   {
-  private:
-    std::deque<DatabaseConstraint*>  constraints_;
-
   public:
-    ~DatabaseConstraints()
+    virtual ~IDatabaseConstraint()
     {
-      Clear();
     }
+    
+    virtual ConstraintType GetConstraintType() const = 0;
 
-    void Clear();
+    virtual size_t GetValuesCount() const = 0;
 
-    void AddConstraint(DatabaseConstraint* constraint);  // Takes ownership
+    virtual const std::string& GetValue(size_t index) const = 0;
 
-    bool IsEmpty() const
-    {
-      return constraints_.empty();
-    }
+    virtual const std::string& GetSingleValue() const = 0;
 
-    size_t GetSize() const
-    {
-      return constraints_.size();
-    }
+    virtual bool IsCaseSensitive() const  = 0;
 
-    const DatabaseConstraint& GetConstraint(size_t index) const;
-
-    std::string Format() const;
+    virtual bool IsMandatory() const  = 0;
   };
 }

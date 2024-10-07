@@ -601,7 +601,7 @@ namespace Orthanc
 
     for (size_t i = 0; i < request_.GetDicomTagConstraints().GetSize(); i++)
     {
-      const DatabaseConstraint& constraint = request_.GetDicomTagConstraints().GetConstraint(i);
+      const DatabaseDicomTagConstraint& constraint = request_.GetDicomTagConstraints().GetConstraint(i);
       if (constraint.GetLevel() == request_.GetLevel())
       {
         request_.SetRetrieveMainDicomTags(true);
