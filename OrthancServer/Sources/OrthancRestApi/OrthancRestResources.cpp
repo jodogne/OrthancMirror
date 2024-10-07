@@ -3252,7 +3252,9 @@ namespace Orthanc
     static const char* const KEY_ORDER_BY_KEY = "Key";                    // New in Orthanc 1.12.5
     static const char* const KEY_ORDER_BY_TYPE = "Type";                  // New in Orthanc 1.12.5
     static const char* const KEY_ORDER_BY_DIRECTION = "Direction";        // New in Orthanc 1.12.5
-
+    static const char* const KEY_PARENT_PATIENT = "ParentPatient";        // New in Orthanc 1.12.5
+    static const char* const KEY_PARENT_STUDY = "ParentStudy";            // New in Orthanc 1.12.5
+    static const char* const KEY_PARENT_SERIES = "ParentSeries";          // New in Orthanc 1.12.5
 
     if (call.IsDocumentation())
     {
@@ -3287,7 +3289,13 @@ namespace Orthanc
         .SetRequestField(KEY_LABELS_CONSTRAINT, RestApiCallDocumentation::Type_String,
                          "Constraint on the labels, can be `All`, `Any`, or `None` (defaults to `All`, new in Orthanc 1.12.0)", true)
         .SetRequestField(KEY_ORDER_BY, RestApiCallDocumentation::Type_JsonListOfObjects,
-                         "Array of associative arrays containing the requested ordering", true)
+                         "Array of associative arrays containing the requested ordering (new in Orthanc 1.12.5)", true)
+        .SetRequestField(KEY_PARENT_PATIENT, RestApiCallDocumentation::Type_String,
+                         "Limit the reported resources to descendants of this patient (new in Orthanc 1.12.5)", true)
+        .SetRequestField(KEY_PARENT_STUDY, RestApiCallDocumentation::Type_String,
+                         "Limit the reported resources to descendants of this study (new in Orthanc 1.12.5)", true)
+        .SetRequestField(KEY_PARENT_SERIES, RestApiCallDocumentation::Type_String,
+                         "Limit the reported resources to descendants of this series (new in Orthanc 1.12.5)", true)
         .AddAnswerType(MimeType_Json, "JSON array containing either the Orthanc identifiers, or detailed information "
                        "about the reported resources (if `Expand` argument is `true`)");
       return;
@@ -3355,6 +3363,24 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_BadRequest, 
                              "Field \"" + std::string(KEY_ORDER_BY) + "\" must be an array");
+    }
+    else if (request.isMember(KEY_PARENT_PATIENT) &&
+             request[KEY_PARENT_PATIENT].type() != Json::stringValue)
+    {
+      throw OrthancException(ErrorCode_BadRequest, 
+                             "Field \"" + std::string(KEY_PARENT_PATIENT) + "\" must be a string");
+    }
+    else if (request.isMember(KEY_PARENT_STUDY) &&
+             request[KEY_PARENT_STUDY].type() != Json::stringValue)
+    {
+      throw OrthancException(ErrorCode_BadRequest, 
+                             "Field \"" + std::string(KEY_PARENT_STUDY) + "\" must be a string");
+    }
+    else if (request.isMember(KEY_PARENT_SERIES) &&
+             request[KEY_PARENT_SERIES].type() != Json::stringValue)
+    {
+      throw OrthancException(ErrorCode_BadRequest, 
+                             "Field \"" + std::string(KEY_PARENT_SERIES) + "\" must be a string");
     }
     else if (true)
     {
@@ -3480,6 +3506,19 @@ namespace Orthanc
           throw OrthancException(ErrorCode_BadRequest, "Field \"" + std::string(KEY_LABELS_CONSTRAINT) + "\" must be \"All\", \"Any\", or \"None\"");
         }
       }
+
+      if (request.isMember(KEY_PARENT_PATIENT)) // New in Orthanc 1.12.5
+      {
+        finder.SetOrthancId(ResourceType_Patient, request[KEY_PARENT_PATIENT].asString());
+      }
+      else if (request.isMember(KEY_PARENT_STUDY))
+      {
+        finder.SetOrthancId(ResourceType_Study, request[KEY_PARENT_STUDY].asString());
+      }
+      else if (request.isMember(KEY_PARENT_SERIES))
+      {
+        finder.SetOrthancId(ResourceType_Series, request[KEY_PARENT_SERIES].asString());
+     }
 
       if (request.isMember(KEY_ORDER_BY))  // New in Orthanc 1.12.5
       {

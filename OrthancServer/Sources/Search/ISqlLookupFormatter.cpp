@@ -57,7 +57,28 @@ namespace Orthanc
         throw OrthancException(ErrorCode_InternalError);
     }
   }      
-  
+
+  static std::string FormatLevel(const char* prefix, ResourceType level)
+  {
+    switch (level)
+    {
+      case ResourceType_Patient:
+        return std::string(prefix) + "patients";
+        
+      case ResourceType_Study:
+        return std::string(prefix) + "studies";
+        
+      case ResourceType_Series:
+        return std::string(prefix) + "series";
+        
+      case ResourceType_Instance:
+        return std::string(prefix) + "instances";
+
+      default:
+        throw OrthancException(ErrorCode_InternalError);
+    }
+  }      
+
 
   static bool FormatComparison(std::string& target,
                                ISqlLookupFormatter& formatter,
@@ -745,28 +766,37 @@ namespace Orthanc
 
     std::string joins, comparisons;
 
-    if (request.GetOrthancIdentifiers().IsDefined() && request.GetOrthancIdentifiers().DetectLevel() <= queryLevel)
     {
-      // single child resource matching, there should not be other constraints (at least for now)
-      assert(request.GetDicomTagConstraints().GetSize() == 0);
-      assert(request.GetLabels().size() == 0);
-      assert(request.HasLimits() == false);
-
-      ResourceType topParentLevel = request.GetOrthancIdentifiers().DetectLevel();
-      const std::string& strTopParentLevel = FormatLevel(topParentLevel);
-
-      comparisons = " AND " + strTopParentLevel + ".publicId = " + formatter.GenerateParameter(request.GetOrthancIdentifiers().GetLevel(topParentLevel));
-
-      for (int level = queryLevel; level > topParentLevel; level--)
+      // handle parent constraints
+      if (request.GetOrthancIdentifiers().IsDefined() && request.GetOrthancIdentifiers().DetectLevel() <= queryLevel)
       {
-        sql += (" INNER JOIN Resources " +
-                FormatLevel(static_cast<ResourceType>(level - 1)) + " ON " +
-                FormatLevel(static_cast<ResourceType>(level - 1)) + ".internalId=" +
-                FormatLevel(static_cast<ResourceType>(level)) + ".parentId");
+        ResourceType topParentLevel = request.GetOrthancIdentifiers().DetectLevel();
+
+        if (topParentLevel == queryLevel)
+        {
+          comparisons += " AND " + FormatLevel(topParentLevel) + ".publicId = " + formatter.GenerateParameter(request.GetOrthancIdentifiers().GetLevel(topParentLevel));
+        }
+        else
+        {
+          comparisons += " AND " + FormatLevel("parent", topParentLevel) + ".publicId = " + formatter.GenerateParameter(request.GetOrthancIdentifiers().GetLevel(topParentLevel));
+
+          for (int level = queryLevel; level > topParentLevel; level--)
+          {
+            joins += " INNER JOIN Resources " +
+                    FormatLevel("parent", static_cast<ResourceType>(level - 1)) + " ON " +
+                    FormatLevel("parent", static_cast<ResourceType>(level - 1)) + ".internalId = ";
+            if (level == queryLevel)
+            {
+              joins += FormatLevel(static_cast<ResourceType>(level)) + ".parentId";
+            }
+            else
+            {
+              joins += FormatLevel("parent", static_cast<ResourceType>(level)) + ".parentId";
+            }
+          }
+        }
       }
-    }
-    else
-    {
+
       size_t count = 0;
       
       const DatabaseConstraints& dicomTagsConstraints = request.GetDicomTagConstraints();
