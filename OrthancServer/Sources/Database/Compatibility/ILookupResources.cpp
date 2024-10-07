@@ -35,7 +35,7 @@ namespace Orthanc
       ILookupResources& compatibility,
       std::list<std::string>& resourcesId,
       std::list<std::string>* instancesId,
-      const DatabaseConstraints& lookup,
+      const DatabaseDicomTagConstraints& lookup,
       ResourceType queryLevel,
       size_t limit)
     {

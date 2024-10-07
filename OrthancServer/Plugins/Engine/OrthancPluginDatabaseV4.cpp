@@ -136,7 +136,7 @@ namespace Orthanc
 
 
   static void Convert(DatabasePluginMessages::DatabaseConstraint& target,
-                      const DatabaseConstraint& source)
+                      const DatabaseDicomTagConstraint& source)
   {
     target.set_level(Convert(source.GetLevel()));
     target.set_tag_group(source.GetTag().GetGroup());
@@ -1137,7 +1137,7 @@ namespace Orthanc
 
     virtual void ApplyLookupResources(std::list<std::string>& resourcesId,
                                       std::list<std::string>* instancesId, // Can be NULL if not needed
-                                      const DatabaseConstraints& lookup,
+                                      const DatabaseDicomTagConstraints& lookup,
                                       ResourceType queryLevel,
                                       const std::set<std::string>& labels,
                                       LabelsConstraint labelsConstraint,

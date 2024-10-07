@@ -145,6 +145,10 @@ namespace Orthanc
       request_.AddOrdering(metadataType, direction);
     }
 
+    void AddMetadataConstraint(DatabaseMetadataConstraint* constraint)
+    {
+      request_.AddMetadataConstraint(constraint);
+    }
 
     void SetLabels(const std::set<std::string>& labels)
     {

@@ -27,7 +27,7 @@
 #include "../../../OrthancFramework/Sources/OrthancException.h"
 #include "../../../OrthancFramework/Sources/Toolbox.h"
 #include "../Database/FindRequest.h"
-#include "DatabaseConstraint.h"
+#include "DatabaseDicomTagConstraint.h"
 #include "../Database/MainDicomTagsRegistry.h"
 
 #include <cassert>
@@ -82,7 +82,7 @@ namespace Orthanc
 
   static bool FormatComparison(std::string& target,
                                ISqlLookupFormatter& formatter,
-                               const DatabaseConstraint& constraint,
+                               const IDatabaseConstraint& constraint,
                                size_t index,
                                bool escapeBrackets)
   {
@@ -254,7 +254,7 @@ namespace Orthanc
 
 
   static void FormatJoin(std::string& target,
-                         const DatabaseConstraint& constraint,
+                         const DatabaseDicomTagConstraint& constraint,
                          size_t index)
   {
     std::string tag = "t" + boost::lexical_cast<std::string>(index);
@@ -282,6 +282,29 @@ namespace Orthanc
                boost::lexical_cast<std::string>(constraint.GetTag().GetGroup()) +
                " AND " + tag + ".tagElement = " +
                boost::lexical_cast<std::string>(constraint.GetTag().GetElement()));
+  }
+
+  static void FormatJoin(std::string& target,
+                         const DatabaseMetadataConstraint& constraint,
+                         ResourceType level,
+                         size_t index)
+  {
+    std::string tag = "t" + boost::lexical_cast<std::string>(index);
+
+    if (constraint.IsMandatory())
+    {
+      target = " INNER JOIN ";
+    }
+    else
+    {
+      target = " LEFT JOIN ";
+    }
+
+    target += "Metadata ";
+
+    target += tag + " ON " + tag + ".id = " + FormatLevel(level) +
+               ".internalId AND " + tag + ".type = " +
+               boost::lexical_cast<std::string>(constraint.GetMetadata());
   }
 
 
@@ -388,7 +411,7 @@ namespace Orthanc
 
   static bool FormatComparison2(std::string& target,
                                 ISqlLookupFormatter& formatter,
-                                const DatabaseConstraint& constraint,
+                                const DatabaseDicomTagConstraint& constraint,
                                 bool escapeBrackets)
   {
     std::string comparison;
@@ -558,7 +581,7 @@ namespace Orthanc
   void ISqlLookupFormatter::GetLookupLevels(ResourceType& lowerLevel,
                                             ResourceType& upperLevel,
                                             const ResourceType& queryLevel,
-                                            const DatabaseConstraints& lookup)
+                                            const DatabaseDicomTagConstraints& lookup)
   {
     assert(ResourceType_Patient < ResourceType_Study &&
            ResourceType_Study < ResourceType_Series &&
@@ -586,12 +609,13 @@ namespace Orthanc
 
   void ISqlLookupFormatter::Apply(std::string& sql,
                                   ISqlLookupFormatter& formatter,
-                                  const DatabaseConstraints& lookup,
+                                  const DatabaseDicomTagConstraints& lookup,
                                   ResourceType queryLevel,
                                   const std::set<std::string>& labels,
                                   LabelsConstraint labelsConstraint,
                                   size_t limit)
   {
+    // get the limit levels of the DICOM Tags lookup
     ResourceType lowerLevel, upperLevel;
     GetLookupLevels(lowerLevel, upperLevel, queryLevel, lookup);
 
@@ -606,7 +630,7 @@ namespace Orthanc
     
     for (size_t i = 0; i < lookup.GetSize(); i++)
     {
-      const DatabaseConstraint& constraint = lookup.GetConstraint(i);
+      const DatabaseDicomTagConstraint& constraint = lookup.GetConstraint(i);
 
       std::string comparison;
       
@@ -798,10 +822,10 @@ namespace Orthanc
 
     size_t count = 0;
     
-    const DatabaseConstraints& dicomTagsConstraints = request.GetDicomTagConstraints();
+    const DatabaseDicomTagConstraints& dicomTagsConstraints = request.GetDicomTagConstraints();
     for (size_t i = 0; i < dicomTagsConstraints.GetSize(); i++)
     {
-      const DatabaseConstraint& constraint = dicomTagsConstraints.GetConstraint(i);
+      const DatabaseDicomTagConstraint& constraint = dicomTagsConstraints.GetConstraint(i);
 
       std::string comparison;
       
@@ -809,6 +833,25 @@ namespace Orthanc
       {
         std::string join;
         FormatJoin(join, constraint, count);
+        joins += join;
+
+        if (!comparison.empty())
+        {
+          comparisons += " AND " + comparison;
+        }
+        
+        count ++;
+      }
+    }
+
+    for (std::deque<DatabaseMetadataConstraint*>::const_iterator it = request.GetMetadataConstraint().begin(); it != request.GetMetadataConstraint().end(); ++it)
+    {
+      std::string comparison;
+      
+      if (FormatComparison(comparison, formatter, *(*it), count, escapeBrackets))
+      {
+        std::string join;
+        FormatJoin(join, *(*it), request.GetLevel(), count);
         joins += join;
 
         if (!comparison.empty())
@@ -891,7 +934,7 @@ namespace Orthanc
 
   void ISqlLookupFormatter::ApplySingleLevel(std::string& sql,
                                              ISqlLookupFormatter& formatter,
-                                             const DatabaseConstraints& lookup,
+                                             const DatabaseDicomTagConstraints& lookup,
                                              ResourceType queryLevel,
                                              const std::set<std::string>& labels,
                                              LabelsConstraint labelsConstraint,
@@ -910,7 +953,7 @@ namespace Orthanc
 
     for (size_t i = 0; i < lookup.GetSize(); i++)
     {
-      const DatabaseConstraint& constraint = lookup.GetConstraint(i);
+      const DatabaseDicomTagConstraint& constraint = lookup.GetConstraint(i);
 
       std::string comparison;
       

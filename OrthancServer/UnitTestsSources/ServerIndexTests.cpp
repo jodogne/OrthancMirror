@@ -166,7 +166,7 @@ namespace
       
       DicomTagConstraint c(tag, type, value, true, true);
       
-      DatabaseConstraints lookup;
+      DatabaseDicomTagConstraints lookup;
       bool isEquivalent;  // unused
       lookup.AddConstraint(c.ConvertToDatabaseConstraint(isEquivalent, level, DicomTagType_Identifier));
 
@@ -187,7 +187,7 @@ namespace
       DicomTagConstraint c1(tag, type1, value1, true, true);
       DicomTagConstraint c2(tag, type2, value2, true, true);
 
-      DatabaseConstraints lookup;
+      DatabaseDicomTagConstraints lookup;
       bool isEquivalent;  // unused
       lookup.AddConstraint(c1.ConvertToDatabaseConstraint(isEquivalent, level, DicomTagType_Identifier));
       lookup.AddConstraint(c2.ConvertToDatabaseConstraint(isEquivalent, level, DicomTagType_Identifier));

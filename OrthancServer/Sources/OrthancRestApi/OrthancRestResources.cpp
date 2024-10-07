@@ -41,6 +41,7 @@
 
 #include "../OrthancConfiguration.h"
 #include "../Search/DatabaseLookup.h"
+#include "../Search/DatabaseMetadataConstraint.h"
 #include "../ServerContext.h"
 #include "../ServerToolbox.h"
 #include "../SliceOrdering.h"
@@ -3255,6 +3256,7 @@ namespace Orthanc
     static const char* const KEY_PARENT_PATIENT = "ParentPatient";        // New in Orthanc 1.12.5
     static const char* const KEY_PARENT_STUDY = "ParentStudy";            // New in Orthanc 1.12.5
     static const char* const KEY_PARENT_SERIES = "ParentSeries";          // New in Orthanc 1.12.5
+    static const char* const KEY_QUERY_METADATA = "QueryMetadata";        // New in Orthanc 1.12.5
 
     if (call.IsDocumentation())
     {
@@ -3296,6 +3298,8 @@ namespace Orthanc
                          "Limit the reported resources to descendants of this study (new in Orthanc 1.12.5)", true)
         .SetRequestField(KEY_PARENT_SERIES, RestApiCallDocumentation::Type_String,
                          "Limit the reported resources to descendants of this series (new in Orthanc 1.12.5)", true)
+        .SetRequestField(KEY_QUERY_METADATA, RestApiCallDocumentation::Type_JsonObject,
+                         "Associative array containing the filter on the values of the metadata (new in Orthanc 1.12.5)", true)
         .AddAnswerType(MimeType_Json, "JSON array containing either the Orthanc identifiers, or detailed information "
                        "about the reported resources (if `Expand` argument is `true`)");
       return;
@@ -3363,6 +3367,12 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_BadRequest, 
                              "Field \"" + std::string(KEY_ORDER_BY) + "\" must be an array");
+    }
+    else if (request.isMember(KEY_QUERY_METADATA) &&
+             request[KEY_QUERY_METADATA].type() != Json::objectValue)
+    {
+      throw OrthancException(ErrorCode_BadRequest, 
+                             "Field \"" + std::string(KEY_QUERY_METADATA) + "\" must be an JSON object");
     }
     else if (request.isMember(KEY_PARENT_PATIENT) &&
              request[KEY_PARENT_PATIENT].type() != Json::stringValue)
@@ -3436,30 +3446,66 @@ namespace Orthanc
           caseSensitive = request[KEY_CASE_SENSITIVE].asBool();
         }
 
-        DatabaseLookup query;
+        { // DICOM Tag query
+          DatabaseLookup dicomTagLookup;
 
-        Json::Value::Members members = request[KEY_QUERY].getMemberNames();
-        for (size_t i = 0; i < members.size(); i++)
-        {
-          if (request[KEY_QUERY][members[i]].type() != Json::stringValue)
+          Json::Value::Members members = request[KEY_QUERY].getMemberNames();
+          for (size_t i = 0; i < members.size(); i++)
           {
-            throw OrthancException(ErrorCode_BadRequest,
-                                   "Tag \"" + members[i] + "\" must be associated with a string");
+            if (request[KEY_QUERY][members[i]].type() != Json::stringValue)
+            {
+              throw OrthancException(ErrorCode_BadRequest,
+                                    "Tag \"" + members[i] + "\" must be associated with a string");
+            }
+
+            const std::string value = request[KEY_QUERY][members[i]].asString();
+
+            if (!value.empty())
+            {
+              // An empty string corresponds to an universal constraint,
+              // so we ignore it. This mimics the behavior of class
+              // "OrthancFindRequestHandler"
+              dicomTagLookup.AddRestConstraint(FromDcmtkBridge::ParseTag(members[i]),
+                                      value, caseSensitive, true);
+            }
           }
 
-          const std::string value = request[KEY_QUERY][members[i]].asString();
-
-          if (!value.empty())
-          {
-            // An empty string corresponds to an universal constraint,
-            // so we ignore it. This mimics the behavior of class
-            // "OrthancFindRequestHandler"
-            query.AddRestConstraint(FromDcmtkBridge::ParseTag(members[i]),
-                                    value, caseSensitive, true);
-          }
+          finder.SetDatabaseLookup(dicomTagLookup);
         }
 
-        finder.SetDatabaseLookup(query);
+        { // Metadata query
+          Json::Value::Members members = request[KEY_QUERY_METADATA].getMemberNames();
+          for (size_t i = 0; i < members.size(); i++)
+          {
+            if (request[KEY_QUERY_METADATA][members[i]].type() != Json::stringValue)
+            {
+              throw OrthancException(ErrorCode_BadRequest,
+                                    "Tag \"" + members[i] + "\" must be associated with a string");
+            }
+            MetadataType metadata = StringToMetadata(members[i]);
+
+            const std::string value = request[KEY_QUERY_METADATA][members[i]].asString();
+
+            if (!value.empty())
+            {
+              if (value.find('\\') != std::string::npos)
+              {
+                std::vector<std::string> items;
+                Toolbox::TokenizeString(items, value, '\\');
+                
+                finder.AddMetadataConstraint(new DatabaseMetadataConstraint(metadata, ConstraintType_List, items, caseSensitive));
+              }
+              else if (value.find('*') != std::string::npos || value.find('?') != std::string::npos)
+              {
+                finder.AddMetadataConstraint(new DatabaseMetadataConstraint(metadata, ConstraintType_Wildcard, value, caseSensitive));
+              }
+              else
+              {
+                finder.AddMetadataConstraint(new DatabaseMetadataConstraint(metadata, ConstraintType_Equal, value, caseSensitive));
+              }
+            }
+          }
+        }
       }
 
       if (request.isMember(KEY_REQUESTED_TAGS))
