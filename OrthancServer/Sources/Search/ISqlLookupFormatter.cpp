@@ -766,59 +766,57 @@ namespace Orthanc
 
     std::string joins, comparisons;
 
+    // handle parent constraints
+    if (request.GetOrthancIdentifiers().IsDefined() && request.GetOrthancIdentifiers().DetectLevel() <= queryLevel)
     {
-      // handle parent constraints
-      if (request.GetOrthancIdentifiers().IsDefined() && request.GetOrthancIdentifiers().DetectLevel() <= queryLevel)
+      ResourceType topParentLevel = request.GetOrthancIdentifiers().DetectLevel();
+
+      if (topParentLevel == queryLevel)
       {
-        ResourceType topParentLevel = request.GetOrthancIdentifiers().DetectLevel();
+        comparisons += " AND " + FormatLevel(topParentLevel) + ".publicId = " + formatter.GenerateParameter(request.GetOrthancIdentifiers().GetLevel(topParentLevel));
+      }
+      else
+      {
+        comparisons += " AND " + FormatLevel("parent", topParentLevel) + ".publicId = " + formatter.GenerateParameter(request.GetOrthancIdentifiers().GetLevel(topParentLevel));
 
-        if (topParentLevel == queryLevel)
+        for (int level = queryLevel; level > topParentLevel; level--)
         {
-          comparisons += " AND " + FormatLevel(topParentLevel) + ".publicId = " + formatter.GenerateParameter(request.GetOrthancIdentifiers().GetLevel(topParentLevel));
-        }
-        else
-        {
-          comparisons += " AND " + FormatLevel("parent", topParentLevel) + ".publicId = " + formatter.GenerateParameter(request.GetOrthancIdentifiers().GetLevel(topParentLevel));
-
-          for (int level = queryLevel; level > topParentLevel; level--)
+          joins += " INNER JOIN Resources " +
+                  FormatLevel("parent", static_cast<ResourceType>(level - 1)) + " ON " +
+                  FormatLevel("parent", static_cast<ResourceType>(level - 1)) + ".internalId = ";
+          if (level == queryLevel)
           {
-            joins += " INNER JOIN Resources " +
-                    FormatLevel("parent", static_cast<ResourceType>(level - 1)) + " ON " +
-                    FormatLevel("parent", static_cast<ResourceType>(level - 1)) + ".internalId = ";
-            if (level == queryLevel)
-            {
-              joins += FormatLevel(static_cast<ResourceType>(level)) + ".parentId";
-            }
-            else
-            {
-              joins += FormatLevel("parent", static_cast<ResourceType>(level)) + ".parentId";
-            }
+            joins += FormatLevel(static_cast<ResourceType>(level)) + ".parentId";
+          }
+          else
+          {
+            joins += FormatLevel("parent", static_cast<ResourceType>(level)) + ".parentId";
           }
         }
       }
+    }
 
-      size_t count = 0;
+    size_t count = 0;
+    
+    const DatabaseConstraints& dicomTagsConstraints = request.GetDicomTagConstraints();
+    for (size_t i = 0; i < dicomTagsConstraints.GetSize(); i++)
+    {
+      const DatabaseConstraint& constraint = dicomTagsConstraints.GetConstraint(i);
+
+      std::string comparison;
       
-      const DatabaseConstraints& dicomTagsConstraints = request.GetDicomTagConstraints();
-      for (size_t i = 0; i < dicomTagsConstraints.GetSize(); i++)
+      if (FormatComparison(comparison, formatter, constraint, count, escapeBrackets))
       {
-        const DatabaseConstraint& constraint = dicomTagsConstraints.GetConstraint(i);
+        std::string join;
+        FormatJoin(join, constraint, count);
+        joins += join;
 
-        std::string comparison;
-        
-        if (FormatComparison(comparison, formatter, constraint, count, escapeBrackets))
+        if (!comparison.empty())
         {
-          std::string join;
-          FormatJoin(join, constraint, count);
-          joins += join;
-
-          if (!comparison.empty())
-          {
-            comparisons += " AND " + comparison;
-          }
-          
-          count ++;
+          comparisons += " AND " + comparison;
         }
+        
+        count ++;
       }
     }
 
