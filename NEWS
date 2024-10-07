@@ -36,6 +36,8 @@ REST API
   example: /changes?type=StableStudy&to=7584&limit=100
 * With DB backend with "HasExtendedFind" support, /tools/find now supports new options:
   - 'OrderBy' to order by DICOM Tag or metadata value
+  - 'ParentPatient', 'ParentStudy', 'ParentSeries' to retrieve only descendants of an
+    Orthanc resource.
 
 
 Maintenance
