@@ -210,15 +210,14 @@ namespace Orthanc
   void ResourceFinder::Expand(Json::Value& target,
                               const FindResponse::Resource& resource,
                               ServerIndex& index,
-                              DicomToJsonFormat format,
-                              bool includeAllMetadata) const
+                              DicomToJsonFormat format) const
   {
     /**
      * This method closely follows "SerializeExpandedResource()" in
      * "ServerContext.cpp" from Orthanc 1.12.4.
      **/
 
-    if (!expand_)
+    if (responseContent_ == ResponseContentFlags_ID)
     {
       throw OrthancException(ErrorCode_BadSequenceOfCalls);
     }
@@ -233,28 +232,31 @@ namespace Orthanc
     target["Type"] = GetResourceTypeText(resource.GetLevel(), false, true);
     target["ID"] = resource.GetIdentifier();
 
-    switch (resource.GetLevel())
+    if (responseContent_ & ResponseContentFlags_Parent)
     {
-      case ResourceType_Patient:
-        break;
+      switch (resource.GetLevel())
+      {
+        case ResourceType_Patient:
+          break;
 
-      case ResourceType_Study:
-        target["ParentPatient"] = resource.GetParentIdentifier();
-        break;
+        case ResourceType_Study:
+          target["ParentPatient"] = resource.GetParentIdentifier();
+          break;
 
-      case ResourceType_Series:
-        target["ParentStudy"] = resource.GetParentIdentifier();
-        break;
+        case ResourceType_Series:
+          target["ParentStudy"] = resource.GetParentIdentifier();
+          break;
 
-      case ResourceType_Instance:
-        target["ParentSeries"] = resource.GetParentIdentifier();
-        break;
+        case ResourceType_Instance:
+          target["ParentSeries"] = resource.GetParentIdentifier();
+          break;
 
-      default:
-        throw OrthancException(ErrorCode_InternalError);
+        default:
+          throw OrthancException(ErrorCode_InternalError);
+      }
     }
 
-    if (resource.GetLevel() != ResourceType_Instance)
+    if ((responseContent_ & ResponseContentFlags_Children) && (resource.GetLevel() != ResourceType_Instance))
     {
       const std::set<std::string>& children = resource.GetChildrenIdentifiers(GetChildResourceType(resource.GetLevel()));
 
@@ -292,52 +294,65 @@ namespace Orthanc
 
       case ResourceType_Series:
       {
-        uint32_t expectedNumberOfInstances;
-        SeriesStatus status = GetSeriesStatus(expectedNumberOfInstances, resource);
-
-        target["Status"] = EnumerationToString(status);
-
-        static const char* const EXPECTED_NUMBER_OF_INSTANCES = "ExpectedNumberOfInstances";
-
-        if (status == SeriesStatus_Unknown)
+        if ((responseContent_ & ResponseContentFlags_Status) || (responseContent_ & ResponseContentFlags_MetadataLegacy) )
         {
-          target[EXPECTED_NUMBER_OF_INSTANCES] = Json::nullValue;
-        }
-        else
-        {
-          target[EXPECTED_NUMBER_OF_INSTANCES] = expectedNumberOfInstances;
-        }
+          uint32_t expectedNumberOfInstances;
+          SeriesStatus status = GetSeriesStatus(expectedNumberOfInstances, resource);
+          
+          if (responseContent_ & ResponseContentFlags_Status )
+          {
+            target["Status"] = EnumerationToString(status);
+          }
 
+          if (responseContent_ & ResponseContentFlags_MetadataLegacy)
+          {
+            static const char* const EXPECTED_NUMBER_OF_INSTANCES = "ExpectedNumberOfInstances";
+
+            if (status == SeriesStatus_Unknown)
+            {
+              target[EXPECTED_NUMBER_OF_INSTANCES] = Json::nullValue;
+            }
+            else
+            {
+              target[EXPECTED_NUMBER_OF_INSTANCES] = expectedNumberOfInstances;
+            }
+          }
+        }
         break;
       }
 
       case ResourceType_Instance:
       {
-        FileInfo info;
-        if (resource.LookupAttachment(info, FileContentType_Dicom))
+        if (responseContent_ & ResponseContentFlags_AttachmentsLegacy)
         {
-          target["FileSize"] = static_cast<Json::UInt64>(info.GetUncompressedSize());
-          target["FileUuid"] = info.GetUuid();
-        }
-        else
-        {
-          throw OrthancException(ErrorCode_InternalError);
-        }
-
-        static const char* const INDEX_IN_SERIES = "IndexInSeries";
-
-        std::string s;
-        uint32_t indexInSeries;
-        if (resource.LookupMetadata(s, ResourceType_Instance, MetadataType_Instance_IndexInSeries) &&
-            SerializationToolbox::ParseUnsignedInteger32(indexInSeries, s))
-        {
-          target[INDEX_IN_SERIES] = indexInSeries;
-        }
-        else
-        {
-          target[INDEX_IN_SERIES] = Json::nullValue;
+          FileInfo info;
+          if (resource.LookupAttachment(info, FileContentType_Dicom))
+          {
+            target["FileSize"] = static_cast<Json::UInt64>(info.GetUncompressedSize());
+            target["FileUuid"] = info.GetUuid();
+          }
+          else
+          {
+            throw OrthancException(ErrorCode_InternalError);
+          }
         }
 
+        if (responseContent_ & ResponseContentFlags_MetadataLegacy)
+        {
+          static const char* const INDEX_IN_SERIES = "IndexInSeries";
+
+          std::string s;
+          uint32_t indexInSeries;
+          if (resource.LookupMetadata(s, ResourceType_Instance, MetadataType_Instance_IndexInSeries) &&
+              SerializationToolbox::ParseUnsignedInteger32(indexInSeries, s))
+          {
+            target[INDEX_IN_SERIES] = indexInSeries;
+          }
+          else
+          {
+            target[INDEX_IN_SERIES] = Json::nullValue;
+          }
+        }
         break;
       }
 
@@ -346,28 +361,40 @@ namespace Orthanc
     }
 
     std::string s;
-    if (resource.LookupMetadata(s, resource.GetLevel(), MetadataType_AnonymizedFrom))
+    if (responseContent_ & ResponseContentFlags_MetadataLegacy)
     {
-      target["AnonymizedFrom"] = s;
-    }
-
-    if (resource.LookupMetadata(s, resource.GetLevel(), MetadataType_ModifiedFrom))
-    {
-      target["ModifiedFrom"] = s;
-    }
-
-    if (resource.GetLevel() == ResourceType_Patient ||
-        resource.GetLevel() == ResourceType_Study ||
-        resource.GetLevel() == ResourceType_Series)
-    {
-      target["IsStable"] = !index.IsUnstableResource(resource.GetLevel(), resource.GetInternalId());
-
-      if (resource.LookupMetadata(s, resource.GetLevel(), MetadataType_LastUpdate))
+      if (resource.LookupMetadata(s, resource.GetLevel(), MetadataType_AnonymizedFrom))
       {
-        target["LastUpdate"] = s;
+        target["AnonymizedFrom"] = s;
+      }
+
+      if (resource.LookupMetadata(s, resource.GetLevel(), MetadataType_ModifiedFrom))
+      {
+        target["ModifiedFrom"] = s;
+      }
+
+      if (resource.GetLevel() == ResourceType_Patient ||
+          resource.GetLevel() == ResourceType_Study ||
+          resource.GetLevel() == ResourceType_Series)
+      {
+        if (resource.LookupMetadata(s, resource.GetLevel(), MetadataType_LastUpdate))
+        {
+          target["LastUpdate"] = s;
+        }
       }
     }
 
+    if (responseContent_ & ResponseContentFlags_IsStable)
+    {
+      if (resource.GetLevel() == ResourceType_Patient ||
+          resource.GetLevel() == ResourceType_Study ||
+          resource.GetLevel() == ResourceType_Series)
+      {
+        target["IsStable"] = !index.IsUnstableResource(resource.GetLevel(), resource.GetInternalId());
+      }
+    }
+
+    if (responseContent_ & ResponseContentFlags_MainDicomTags)
     {
       DicomMap allMainDicomTags;
       resource.GetMainDicomTags(allMainDicomTags, resource.GetLevel());
@@ -396,6 +423,7 @@ namespace Orthanc
       }
     }
 
+    if (responseContent_ & ResponseContentFlags_Labels)
     {
       Json::Value labels = Json::arrayValue;
 
@@ -408,7 +436,7 @@ namespace Orthanc
       target["Labels"] = labels;
     }
 
-    if (includeAllMetadata)  // new in Orthanc 1.12.4
+    if (responseContent_ & ResponseContentFlags_Metadata)  // new in Orthanc 1.12.4
     {
       const std::map<MetadataType, std::string>& m = resource.GetMetadata(resource.GetLevel());
 
@@ -420,6 +448,26 @@ namespace Orthanc
       }
 
       target["Metadata"] = metadata;
+    }
+
+    if (responseContent_ & ResponseContentFlags_Attachments)  // new in Orthanc 1.12.5
+    {
+      const std::map<FileContentType, FileInfo>& attachments = resource.GetAttachments();
+
+      target["Attachments"] = Json::arrayValue;
+
+      for (std::map<FileContentType, FileInfo>::const_iterator it = attachments.begin(); it != attachments.end(); ++it)
+      {
+        Json::Value attachment = Json::objectValue;    
+        attachment["Uuid"] = it->second.GetUuid();
+        attachment["ContentType"] = it->second.GetContentType();
+        attachment["UncompressedSize"] = Json::Value::UInt64(it->second.GetUncompressedSize());
+        attachment["CompressedSize"] = Json::Value::UInt64(it->second.GetCompressedSize());
+        attachment["UncompressedMD5"] = it->second.GetUncompressedMD5();
+        attachment["CompressedMD5"] = it->second.GetCompressedMD5();
+
+        target["Attachments"].append(attachment);
+      }
     }
   }
 
@@ -473,7 +521,7 @@ namespace Orthanc
 
 
   ResourceFinder::ResourceFinder(ResourceType level,
-                                 bool expand) :
+                                 ResponseContentFlags responseContent) :
     request_(level),
     databaseLimits_(0),
     isSimpleLookup_(true),
@@ -482,7 +530,7 @@ namespace Orthanc
     hasLimitsCount_(false),
     limitsSince_(0),
     limitsCount_(0),
-    expand_(expand),
+    responseContent_(responseContent),
     allowStorageAccess_(true),
     isWarning002Enabled_(false),
     isWarning004Enabled_(false),
@@ -495,40 +543,43 @@ namespace Orthanc
       isWarning005Enabled_ = lock.GetConfiguration().IsWarningEnabled(Warnings_005_RequestingTagFromLowerResourceLevel);
     }
 
-
     UpdateRequestLimits();
 
-    if (expand)
+    request_.SetRetrieveMainDicomTags(responseContent_ & ResponseContentFlags_MainDicomTags);
+    request_.SetRetrieveMetadata((responseContent_ & ResponseContentFlags_Metadata) || (responseContent_ & ResponseContentFlags_MetadataLegacy));
+    request_.SetRetrieveLabels(responseContent_ & ResponseContentFlags_Labels);
+
+    switch (level)
     {
-      request_.SetRetrieveMainDicomTags(true);
-      request_.SetRetrieveMetadata(true);
-      request_.SetRetrieveLabels(true);
+      case ResourceType_Patient:
+        request_.GetChildrenSpecification(ResourceType_Study).SetRetrieveIdentifiers(responseContent_ & ResponseContentFlags_Children);
+        request_.SetRetrieveAttachments(responseContent_ & ResponseContentFlags_Attachments); 
+        break;
 
-      switch (level)
-      {
-        case ResourceType_Patient:
-          request_.GetChildrenSpecification(ResourceType_Study).SetRetrieveIdentifiers(true);
-          break;
+      case ResourceType_Study:
+        request_.GetChildrenSpecification(ResourceType_Series).SetRetrieveIdentifiers(responseContent_ & ResponseContentFlags_Children);
+        request_.SetRetrieveParentIdentifier(responseContent_ & ResponseContentFlags_Parent);
+        request_.SetRetrieveAttachments(responseContent_ & ResponseContentFlags_Attachments); 
+        break;
 
-        case ResourceType_Study:
-          request_.GetChildrenSpecification(ResourceType_Series).SetRetrieveIdentifiers(true);
-          request_.SetRetrieveParentIdentifier(true);
-          break;
-
-        case ResourceType_Series:
+      case ResourceType_Series:
+        if (responseContent_ & ResponseContentFlags_Status)
+        {
           request_.GetChildrenSpecification(ResourceType_Instance).AddMetadata(MetadataType_Instance_IndexInSeries); // required for the SeriesStatus
-          request_.GetChildrenSpecification(ResourceType_Instance).SetRetrieveIdentifiers(true);
-          request_.SetRetrieveParentIdentifier(true);
-          break;
+        }
+        request_.GetChildrenSpecification(ResourceType_Instance).SetRetrieveIdentifiers(responseContent_ & ResponseContentFlags_Children);
+        request_.SetRetrieveParentIdentifier(responseContent_ & ResponseContentFlags_Parent);
+        request_.SetRetrieveAttachments(responseContent_ & ResponseContentFlags_Attachments); 
+        break;
 
-        case ResourceType_Instance:
-          request_.SetRetrieveAttachments(true); // for FileSize & FileUuid
-          request_.SetRetrieveParentIdentifier(true);
-          break;
+      case ResourceType_Instance:
+        request_.SetRetrieveAttachments((responseContent_ & ResponseContentFlags_AttachmentsLegacy) // for FileSize & FileUuid
+                                        || (responseContent_ & ResponseContentFlags_Attachments)); 
+        request_.SetRetrieveParentIdentifier(true);
+        break;
 
-        default:
-          throw OrthancException(ErrorCode_ParameterOutOfRange);
-      }
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
   }
 
@@ -1126,10 +1177,10 @@ namespace Orthanc
       virtual void Apply(const FindResponse::Resource& resource,
                          const DicomMap& requestedTags) ORTHANC_OVERRIDE
       {
-        if (that_.expand_)
+        if (that_.responseContent_ != ResponseContentFlags_ID)
         {
           Json::Value item;
-          that_.Expand(item, resource, index_, format_, includeAllMetadata_);
+          that_.Expand(item, resource, index_, format_);
 
           if (hasRequestedTags_)
           {
