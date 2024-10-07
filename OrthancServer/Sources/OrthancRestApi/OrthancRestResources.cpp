@@ -137,7 +137,14 @@ namespace Orthanc
                              DicomToJsonFormat format,
                              bool retrieveMetadata)
   {
-    ResourceFinder finder(level, true /* expand */);
+    ResponseContentFlags responseContent = ResponseContentFlags_Default;
+    
+    if (retrieveMetadata)
+    {
+      responseContent = static_cast<ResponseContentFlags>(static_cast<uint32_t>(responseContent) | ResponseContentFlags_Metadata);
+    }
+
+    ResourceFinder finder(level, responseContent);
     finder.SetOrthancId(level, identifier);
     finder.SetRetrieveMetadata(retrieveMetadata);
 
@@ -258,7 +265,7 @@ namespace Orthanc
       std::set<DicomTag> requestedTags;
       OrthancRestApi::GetRequestedTags(requestedTags, call);
 
-      ResourceFinder finder(resourceType, expand);
+      ResourceFinder finder(resourceType, (expand ? ResponseContentFlags_Default : ResponseContentFlags_ID));
       finder.AddRequestedTags(requestedTags);
 
       if (call.HasArgument("limit") ||
@@ -364,7 +371,7 @@ namespace Orthanc
        * EXPERIMENTAL VERSION
        **/
 
-      ResourceFinder finder(resourceType, true /* expand */);
+      ResourceFinder finder(resourceType, ResponseContentFlags_Default);
       finder.AddRequestedTags(requestedTags);
       finder.SetOrthancId(resourceType, call.GetUriComponent("id", ""));
 
@@ -3257,6 +3264,7 @@ namespace Orthanc
     static const char* const KEY_PARENT_STUDY = "ParentStudy";            // New in Orthanc 1.12.5
     static const char* const KEY_PARENT_SERIES = "ParentSeries";          // New in Orthanc 1.12.5
     static const char* const KEY_QUERY_METADATA = "QueryMetadata";        // New in Orthanc 1.12.5
+    static const char* const KEY_RESPONSE_CONTENT = "ResponseContent";    // New in Orthanc 1.12.5
 
     if (call.IsDocumentation())
     {
@@ -3300,6 +3308,10 @@ namespace Orthanc
                          "Limit the reported resources to descendants of this series (new in Orthanc 1.12.5)", true)
         .SetRequestField(KEY_QUERY_METADATA, RestApiCallDocumentation::Type_JsonObject,
                          "Associative array containing the filter on the values of the metadata (new in Orthanc 1.12.5)", true)
+        .SetRequestField(KEY_RESPONSE_CONTENT, RestApiCallDocumentation::Type_JsonListOfStrings,
+                         "Defines the content of response for each returned resource.  Allowed values are `MainDicomTags`, "
+                         "`Metadata`, `Children`, `Parent`, `Labels`, `Status`, `IsStable`, `Attachments`.  "
+                         "(new in Orthanc 1.12.5)", true)
         .AddAnswerType(MimeType_Json, "JSON array containing either the Orthanc identifiers, or detailed information "
                        "about the reported resources (if `Expand` argument is `true`)");
       return;
@@ -3350,6 +3362,12 @@ namespace Orthanc
       throw OrthancException(ErrorCode_BadRequest, 
                              "Field \"" + std::string(KEY_REQUESTED_TAGS) + "\" must be an array");
     }
+    else if (request.isMember(KEY_RESPONSE_CONTENT) &&
+             request[KEY_RESPONSE_CONTENT].type() != Json::arrayValue)
+    {
+      throw OrthancException(ErrorCode_BadRequest, 
+                             "Field \"" + std::string(KEY_RESPONSE_CONTENT) + "\" must be an array");
+    }
     else if (request.isMember(KEY_LABELS) &&
              request[KEY_LABELS].type() != Json::arrayValue)
     {
@@ -3398,15 +3416,23 @@ namespace Orthanc
        * EXPERIMENTAL VERSION
        **/
 
-      bool expand = false;
-      if (request.isMember(KEY_EXPAND))
+      ResponseContentFlags responseContent = ResponseContentFlags_ID;
+      
+      if (request.isMember(KEY_RESPONSE_CONTENT))
       {
-        expand = request[KEY_EXPAND].asBool();
+        for (Json::ArrayIndex i = 0; i < request[KEY_RESPONSE_CONTENT].size(); ++i)
+        {
+          responseContent = static_cast<ResponseContentFlags>(static_cast<uint32_t>(responseContent) | StringToResponseContent(request[KEY_RESPONSE_CONTENT][i].asString()));
+        }
+      }
+      else if (request.isMember(KEY_EXPAND) && request[KEY_EXPAND].asBool())
+      {
+        responseContent = ResponseContentFlags_Default;
       }
 
       const ResourceType level = StringToResourceType(request[KEY_LEVEL].asCString());
 
-      ResourceFinder finder(level, expand);
+      ResourceFinder finder(level, responseContent);
       finder.SetDatabaseLimits(context.GetDatabaseLimits(level));
 
       const DicomToJsonFormat format = OrthancRestApi::GetDicomFormat(request, DicomToJsonFormat_Human);
@@ -3796,7 +3822,7 @@ namespace Orthanc
        * EXPERIMENTAL VERSION
        **/
 
-      ResourceFinder finder(end, expand);
+      ResourceFinder finder(end, (expand ? ResponseContentFlags_Default : ResponseContentFlags_ID));
       finder.SetOrthancId(start, call.GetUriComponent("id", ""));
       finder.AddRequestedTags(requestedTags);
 
