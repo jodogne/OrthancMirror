@@ -61,6 +61,7 @@ Maintenance
   - added 2 metrics: orthanc_storage_cache_miss_count & orthanc_storage_cache_hit_count 
 * Upgraded dependencies for static builds:
   - curl 8.9.0
+  - SQLite 3.46
 * Added a new fallback when trying to decode a frame: transcode the file using the plugin
   before decoding the frame.  This solves some issues with JP2K Lossy compression:
   https://discourse.orthanc-server.org/t/decoding-displaying-jpeg2000-lossy-images/5117

@@ -759,7 +759,15 @@ namespace Orthanc
         }
         orderingJoins += orderingJoin;
         
-        std::string orderByField = "order" + boost::lexical_cast<std::string>(counter) + ".value";
+        std::string orderByField;
+
+#if ORTHANC_SQLITE_VERSION < 3030001
+        // this is a way to push NULL values at the end before "NULLS LAST" was introduced:
+        // first filter by 0/1 and then by the column value itself
+        orderByField += "order" + boost::lexical_cast<std::string>(counter) + ".value IS NULL, ";
+#endif
+        orderByField += "order" + boost::lexical_cast<std::string>(counter) + ".value";
+
         if ((*it)->GetDirection() == FindRequest::OrderingDirection_Ascending)
         {
           orderByField += " ASC";
@@ -774,7 +782,12 @@ namespace Orthanc
 
       std::string orderByFieldsString;
       Toolbox::JoinStrings(orderByFieldsString, orderByFields, ", ");
-      ordering = "ROW_NUMBER() OVER (ORDER BY " + orderByFieldsString + ") AS rowNumber";
+
+      ordering = "ROW_NUMBER() OVER (ORDER BY " + orderByFieldsString;
+#if ORTHANC_SQLITE_VERSION >= 3030001
+      ordering += " NULLS LAST";
+#endif
+      ordering += ") AS rowNumber";
     }
     else
     {
