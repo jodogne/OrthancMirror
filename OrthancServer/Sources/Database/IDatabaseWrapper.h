@@ -39,7 +39,7 @@
 
 namespace Orthanc
 {
-  class DatabaseConstraints;
+  class DatabaseDicomTagConstraints;
   class ResourcesContent;
 
   class IDatabaseWrapper : public boost::noncopyable
@@ -55,6 +55,7 @@ namespace Orthanc
       bool hasUpdateAndGetStatistics_;
       bool hasMeasureLatency_;
       bool hasFindSupport_;
+      bool hasExtendedChanges_;
 
     public:
       Capabilities() :
@@ -64,7 +65,8 @@ namespace Orthanc
         hasAtomicIncrementGlobalProperty_(false),
         hasUpdateAndGetStatistics_(false),
         hasMeasureLatency_(false),
-        hasFindSupport_(false)
+        hasFindSupport_(false),
+        hasExtendedChanges_(false)
       {
       }
 
@@ -96,6 +98,16 @@ namespace Orthanc
       bool HasLabelsSupport() const
       {
         return hasLabelsSupport_;
+      }
+
+      void SetHasExtendedChanges(bool value)
+      {
+        hasExtendedChanges_ = value;
+      }
+
+      bool HasExtendedChanges() const
+      {
+        return hasExtendedChanges_;
       }
 
       void SetAtomicIncrementGlobalProperty(bool value)
@@ -296,7 +308,7 @@ namespace Orthanc
     
       virtual void ApplyLookupResources(std::list<std::string>& resourcesId,
                                         std::list<std::string>* instancesId, // Can be NULL if not needed
-                                        const DatabaseConstraints& lookup,
+                                        const DatabaseDicomTagConstraints& lookup,
                                         ResourceType queryLevel,
                                         const std::set<std::string>& labels,
                                         LabelsConstraint labelsConstraint,
@@ -359,6 +371,7 @@ namespace Orthanc
                                               int64_t increment,
                                               bool shared) = 0;
 
+      // New in Orthanc 1.12.3
       virtual void UpdateAndGetStatistics(int64_t& patientsCount,
                                           int64_t& studiesCount,
                                           int64_t& seriesCount,
@@ -393,6 +406,14 @@ namespace Orthanc
                                  const Capabilities& capabilities,
                                  const FindRequest& request,
                                  const std::string& identifier) = 0;
+
+      // New in Orthanc 1.12.5
+      virtual void GetChangesExtended(std::list<ServerIndexChange>& target /*out*/,
+                                      bool& done /*out*/,
+                                      int64_t since,
+                                      int64_t to,
+                                      uint32_t limit,
+                                      const std::set<ChangeType>& filterType) = 0;
     };
 
 

@@ -65,15 +65,14 @@ namespace Orthanc
     bool                             hasLimitsCount_;
     uint64_t                         limitsSince_;
     uint64_t                         limitsCount_;
-    bool                             expand_;
+    ResponseContentFlags             responseContent_;
     bool                             allowStorageAccess_;
-    bool                             hasRequestedTags_;
-    std::set<DicomTag>               requestedPatientTags_;
-    std::set<DicomTag>               requestedStudyTags_;
-    std::set<DicomTag>               requestedSeriesTags_;
-    std::set<DicomTag>               requestedInstanceTags_;
-    std::set<DicomTag>               requestedTagsFromFileStorage_;
+    std::set<DicomTag>               requestedTags_;
     std::set<DicomTag>               requestedComputedTags_;
+
+    bool                             isWarning002Enabled_;
+    bool                             isWarning004Enabled_;
+    bool                             isWarning005Enabled_;
 
     bool IsRequestedComputedTag(const DicomTag& tag) const
     {
@@ -97,9 +96,14 @@ namespace Orthanc
 
     void UpdateRequestLimits();
 
+    bool HasRequestedTags() const
+    {
+      return requestedTags_.size() > 0;
+    }
+
   public:
     ResourceFinder(ResourceType level,
-                   bool expand);
+                   ResponseContentFlags responseContent);
 
     void SetDatabaseLimits(uint64_t limits);
 
@@ -129,6 +133,23 @@ namespace Orthanc
 
     void AddRequestedTags(const std::set<DicomTag>& tags);
 
+    void AddOrdering(const DicomTag& tag,
+                     FindRequest::OrderingDirection direction)
+    {
+      request_.AddOrdering(tag, direction);
+    }
+
+    void AddOrdering(MetadataType metadataType,
+                     FindRequest::OrderingDirection direction)
+    {
+      request_.AddOrdering(metadataType, direction);
+    }
+
+    void AddMetadataConstraint(DatabaseMetadataConstraint* constraint)
+    {
+      request_.AddMetadataConstraint(constraint);
+    }
+
     void SetLabels(const std::set<std::string>& labels)
     {
       request_.SetLabels(labels);
@@ -144,9 +165,9 @@ namespace Orthanc
       request_.SetLabelsConstraint(constraint);
     }
 
-    void SetRetrieveOneInstanceIdentifier(bool retrieve)
+    void SetRetrieveOneInstanceMetadataAndAttachments(bool retrieve)
     {
-      request_.SetRetrieveOneInstanceIdentifier(retrieve);
+      request_.SetRetrieveOneInstanceMetadataAndAttachments(retrieve);
     }
 
     void SetRetrieveMetadata(bool retrieve)
@@ -163,8 +184,7 @@ namespace Orthanc
     void Expand(Json::Value& target,
                 const FindResponse::Resource& resource,
                 ServerIndex& index,
-                DicomToJsonFormat format,
-                bool includeAllMetadata /* Same as: ExpandResourceFlags_IncludeAllMetadata */) const;
+                DicomToJsonFormat format) const;
 
     void Execute(IVisitor& visitor,
                  ServerContext& context) const;

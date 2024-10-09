@@ -270,7 +270,16 @@ namespace Orthanc
     RegisterAnonymizeModify();
     RegisterArchive();
 
-    Register("/instances", UploadDicomFile);
+    if (!context_.IsReadOnly())
+    {
+      Register("/instances", UploadDicomFile);
+    }
+    else
+    {
+      LOG(WARNING) << "READ-ONLY SYSTEM: deactivating POST /instances route";
+    }
+
+    
 
     // Auto-generated directories
     Register("/tools", RestApi::AutoListChildren);

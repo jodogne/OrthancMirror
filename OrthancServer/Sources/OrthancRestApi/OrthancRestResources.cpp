@@ -41,6 +41,7 @@
 
 #include "../OrthancConfiguration.h"
 #include "../Search/DatabaseLookup.h"
+#include "../Search/DatabaseMetadataConstraint.h"
 #include "../ServerContext.h"
 #include "../ServerToolbox.h"
 #include "../SliceOrdering.h"
@@ -136,7 +137,14 @@ namespace Orthanc
                              DicomToJsonFormat format,
                              bool retrieveMetadata)
   {
-    ResourceFinder finder(level, true /* expand */);
+    ResponseContentFlags responseContent = ResponseContentFlags_ExpandTrue;
+    
+    if (retrieveMetadata)
+    {
+      responseContent = static_cast<ResponseContentFlags>(static_cast<uint32_t>(responseContent) | ResponseContentFlags_Metadata);
+    }
+
+    ResourceFinder finder(level, responseContent);
     finder.SetOrthancId(level, identifier);
     finder.SetRetrieveMetadata(retrieveMetadata);
 
@@ -177,7 +185,7 @@ namespace Orthanc
     std::set<DicomTag> requestedTags;
     OrthancRestApi::GetRequestedTags(requestedTags, call);
 
-    ResourceFinder finder(resourceType, expand);
+    ResourceFinder finder(resourceType, (expand ? ResponseContentFlags_ExpandTrue : ResponseContentFlags_ID));
     finder.AddRequestedTags(requestedTags);
 
     if (call.HasArgument("limit") ||
@@ -235,7 +243,7 @@ namespace Orthanc
 
     const DicomToJsonFormat format = OrthancRestApi::GetDicomFormat(call, DicomToJsonFormat_Human);
 
-    ResourceFinder finder(resourceType, true /* expand */);
+    ResourceFinder finder(resourceType, ResponseContentFlags_ExpandTrue);
     finder.AddRequestedTags(requestedTags);
     finder.SetOrthancId(resourceType, call.GetUriComponent("id", ""));
 
@@ -3042,6 +3050,15 @@ namespace Orthanc
     static const char* const KEY_SINCE = "Since";
     static const char* const KEY_LABELS = "Labels";                       // New in Orthanc 1.12.0
     static const char* const KEY_LABELS_CONSTRAINT = "LabelsConstraint";  // New in Orthanc 1.12.0
+    static const char* const KEY_ORDER_BY = "OrderBy";                    // New in Orthanc 1.12.5
+    static const char* const KEY_ORDER_BY_KEY = "Key";                    // New in Orthanc 1.12.5
+    static const char* const KEY_ORDER_BY_TYPE = "Type";                  // New in Orthanc 1.12.5
+    static const char* const KEY_ORDER_BY_DIRECTION = "Direction";        // New in Orthanc 1.12.5
+    static const char* const KEY_PARENT_PATIENT = "ParentPatient";        // New in Orthanc 1.12.5
+    static const char* const KEY_PARENT_STUDY = "ParentStudy";            // New in Orthanc 1.12.5
+    static const char* const KEY_PARENT_SERIES = "ParentSeries";          // New in Orthanc 1.12.5
+    static const char* const KEY_QUERY_METADATA = "QueryMetadata";        // New in Orthanc 1.12.5
+    static const char* const KEY_RESPONSE_CONTENT = "ResponseContent";    // New in Orthanc 1.12.5
 
     if (call.IsDocumentation())
     {
@@ -3075,6 +3092,20 @@ namespace Orthanc
                          "List of strings specifying which labels to look for in the resources (new in Orthanc 1.12.0)", true)
         .SetRequestField(KEY_LABELS_CONSTRAINT, RestApiCallDocumentation::Type_String,
                          "Constraint on the labels, can be `All`, `Any`, or `None` (defaults to `All`, new in Orthanc 1.12.0)", true)
+        .SetRequestField(KEY_ORDER_BY, RestApiCallDocumentation::Type_JsonListOfObjects,
+                         "Array of associative arrays containing the requested ordering (new in Orthanc 1.12.5)", true)
+        .SetRequestField(KEY_PARENT_PATIENT, RestApiCallDocumentation::Type_String,
+                         "Limit the reported resources to descendants of this patient (new in Orthanc 1.12.5)", true)
+        .SetRequestField(KEY_PARENT_STUDY, RestApiCallDocumentation::Type_String,
+                         "Limit the reported resources to descendants of this study (new in Orthanc 1.12.5)", true)
+        .SetRequestField(KEY_PARENT_SERIES, RestApiCallDocumentation::Type_String,
+                         "Limit the reported resources to descendants of this series (new in Orthanc 1.12.5)", true)
+        .SetRequestField(KEY_QUERY_METADATA, RestApiCallDocumentation::Type_JsonObject,
+                         "Associative array containing the filter on the values of the metadata (new in Orthanc 1.12.5)", true)
+        .SetRequestField(KEY_RESPONSE_CONTENT, RestApiCallDocumentation::Type_JsonListOfStrings,
+                         "Defines the content of response for each returned resource.  Allowed values are `MainDicomTags`, "
+                         "`Metadata`, `Children`, `Parent`, `Labels`, `Status`, `IsStable`, `Attachments`.  "
+                         "(new in Orthanc 1.12.5)", true)
         .AddAnswerType(MimeType_Json, "JSON array containing either the Orthanc identifiers, or detailed information "
                        "about the reported resources (if `Expand` argument is `true`)");
       return;
@@ -3125,6 +3156,12 @@ namespace Orthanc
       throw OrthancException(ErrorCode_BadRequest, 
                              "Field \"" + std::string(KEY_REQUESTED_TAGS) + "\" must be an array");
     }
+    else if (request.isMember(KEY_RESPONSE_CONTENT) &&
+             request[KEY_RESPONSE_CONTENT].type() != Json::arrayValue)
+    {
+      throw OrthancException(ErrorCode_BadRequest, 
+                             "Field \"" + std::string(KEY_RESPONSE_CONTENT) + "\" must be an array");
+    }
     else if (request.isMember(KEY_LABELS) &&
              request[KEY_LABELS].type() != Json::arrayValue)
     {
@@ -3137,17 +3174,57 @@ namespace Orthanc
       throw OrthancException(ErrorCode_BadRequest, 
                              "Field \"" + std::string(KEY_LABELS_CONSTRAINT) + "\" must be an array of strings");
     }
-    else
+    else if (request.isMember(KEY_ORDER_BY) &&
+             request[KEY_ORDER_BY].type() != Json::arrayValue)
     {
-      bool expand = false;
-      if (request.isMember(KEY_EXPAND))
+      throw OrthancException(ErrorCode_BadRequest, 
+                             "Field \"" + std::string(KEY_ORDER_BY) + "\" must be an array");
+    }
+    else if (request.isMember(KEY_QUERY_METADATA) &&
+             request[KEY_QUERY_METADATA].type() != Json::objectValue)
+    {
+      throw OrthancException(ErrorCode_BadRequest, 
+                             "Field \"" + std::string(KEY_QUERY_METADATA) + "\" must be an JSON object");
+    }
+    else if (request.isMember(KEY_PARENT_PATIENT) &&
+             request[KEY_PARENT_PATIENT].type() != Json::stringValue)
+    {
+      throw OrthancException(ErrorCode_BadRequest, 
+                             "Field \"" + std::string(KEY_PARENT_PATIENT) + "\" must be a string");
+    }
+    else if (request.isMember(KEY_PARENT_STUDY) &&
+             request[KEY_PARENT_STUDY].type() != Json::stringValue)
+    {
+      throw OrthancException(ErrorCode_BadRequest, 
+                             "Field \"" + std::string(KEY_PARENT_STUDY) + "\" must be a string");
+    }
+    else if (request.isMember(KEY_PARENT_SERIES) &&
+             request[KEY_PARENT_SERIES].type() != Json::stringValue)
+    {
+      throw OrthancException(ErrorCode_BadRequest, 
+                             "Field \"" + std::string(KEY_PARENT_SERIES) + "\" must be a string");
+    }
+    else if (true)
+    {
+      ResponseContentFlags responseContent = ResponseContentFlags_ID;
+      
+      if (request.isMember(KEY_RESPONSE_CONTENT))
       {
-        expand = request[KEY_EXPAND].asBool();
+        responseContent = ResponseContentFlags_Default;
+
+        for (Json::ArrayIndex i = 0; i < request[KEY_RESPONSE_CONTENT].size(); ++i)
+        {
+          responseContent = static_cast<ResponseContentFlags>(static_cast<uint32_t>(responseContent) | StringToResponseContent(request[KEY_RESPONSE_CONTENT][i].asString()));
+        }
+      }
+      else if (request.isMember(KEY_EXPAND) && request[KEY_EXPAND].asBool())
+      {
+        responseContent = ResponseContentFlags_ExpandTrue;
       }
 
       const ResourceType level = StringToResourceType(request[KEY_LEVEL].asCString());
 
-      ResourceFinder finder(level, expand);
+      ResourceFinder finder(level, responseContent);
       finder.SetDatabaseLimits(context.GetDatabaseLimits(level));
 
       const DicomToJsonFormat format = OrthancRestApi::GetDicomFormat(request, DicomToJsonFormat_Human);
@@ -3187,30 +3264,66 @@ namespace Orthanc
           caseSensitive = request[KEY_CASE_SENSITIVE].asBool();
         }
 
-        DatabaseLookup query;
+        { // DICOM Tag query
+          DatabaseLookup dicomTagLookup;
 
-        Json::Value::Members members = request[KEY_QUERY].getMemberNames();
-        for (size_t i = 0; i < members.size(); i++)
-        {
-          if (request[KEY_QUERY][members[i]].type() != Json::stringValue)
+          Json::Value::Members members = request[KEY_QUERY].getMemberNames();
+          for (size_t i = 0; i < members.size(); i++)
           {
-            throw OrthancException(ErrorCode_BadRequest,
-                                   "Tag \"" + members[i] + "\" must be associated with a string");
+            if (request[KEY_QUERY][members[i]].type() != Json::stringValue)
+            {
+              throw OrthancException(ErrorCode_BadRequest,
+                                    "Tag \"" + members[i] + "\" must be associated with a string");
+            }
+
+            const std::string value = request[KEY_QUERY][members[i]].asString();
+
+            if (!value.empty())
+            {
+              // An empty string corresponds to an universal constraint,
+              // so we ignore it. This mimics the behavior of class
+              // "OrthancFindRequestHandler"
+              dicomTagLookup.AddRestConstraint(FromDcmtkBridge::ParseTag(members[i]),
+                                      value, caseSensitive, true);
+            }
           }
 
-          const std::string value = request[KEY_QUERY][members[i]].asString();
-
-          if (!value.empty())
-          {
-            // An empty string corresponds to an universal constraint,
-            // so we ignore it. This mimics the behavior of class
-            // "OrthancFindRequestHandler"
-            query.AddRestConstraint(FromDcmtkBridge::ParseTag(members[i]),
-                                    value, caseSensitive, true);
-          }
+          finder.SetDatabaseLookup(dicomTagLookup);
         }
 
-        finder.SetDatabaseLookup(query);
+        { // Metadata query
+          Json::Value::Members members = request[KEY_QUERY_METADATA].getMemberNames();
+          for (size_t i = 0; i < members.size(); i++)
+          {
+            if (request[KEY_QUERY_METADATA][members[i]].type() != Json::stringValue)
+            {
+              throw OrthancException(ErrorCode_BadRequest,
+                                    "Tag \"" + members[i] + "\" must be associated with a string");
+            }
+            MetadataType metadata = StringToMetadata(members[i]);
+
+            const std::string value = request[KEY_QUERY_METADATA][members[i]].asString();
+
+            if (!value.empty())
+            {
+              if (value.find('\\') != std::string::npos)
+              {
+                std::vector<std::string> items;
+                Toolbox::TokenizeString(items, value, '\\');
+                
+                finder.AddMetadataConstraint(new DatabaseMetadataConstraint(metadata, ConstraintType_List, items, caseSensitive));
+              }
+              else if (value.find('*') != std::string::npos || value.find('?') != std::string::npos)
+              {
+                finder.AddMetadataConstraint(new DatabaseMetadataConstraint(metadata, ConstraintType_Wildcard, value, caseSensitive));
+              }
+              else
+              {
+                finder.AddMetadataConstraint(new DatabaseMetadataConstraint(metadata, ConstraintType_Equal, value, caseSensitive));
+              }
+            }
+          }
+        }
       }
 
       if (request.isMember(KEY_REQUESTED_TAGS))
@@ -3258,6 +3371,82 @@ namespace Orthanc
         }
       }
 
+      if (request.isMember(KEY_PARENT_PATIENT)) // New in Orthanc 1.12.5
+      {
+        finder.SetOrthancId(ResourceType_Patient, request[KEY_PARENT_PATIENT].asString());
+      }
+      else if (request.isMember(KEY_PARENT_STUDY))
+      {
+        finder.SetOrthancId(ResourceType_Study, request[KEY_PARENT_STUDY].asString());
+      }
+      else if (request.isMember(KEY_PARENT_SERIES))
+      {
+        finder.SetOrthancId(ResourceType_Series, request[KEY_PARENT_SERIES].asString());
+     }
+
+      if (request.isMember(KEY_ORDER_BY))  // New in Orthanc 1.12.5
+      {
+        for (Json::Value::ArrayIndex i = 0; i < request[KEY_ORDER_BY].size(); i++)
+        {
+          if (request[KEY_ORDER_BY][i].type() != Json::objectValue)
+          {
+            throw OrthancException(ErrorCode_BadRequest, "Field \"" + std::string(KEY_ORDER_BY) + "\" must contain objects");
+          }
+          else
+          {
+            const Json::Value& order = request[KEY_ORDER_BY][i];
+            FindRequest::OrderingDirection direction;
+            std::string directionString;
+            std::string typeString;
+
+            if (!order.isMember(KEY_ORDER_BY_KEY) || order[KEY_ORDER_BY_KEY].type() != Json::stringValue)
+            {
+              throw OrthancException(ErrorCode_BadRequest, "Field \"" + std::string(KEY_ORDER_BY_KEY) + "\" must be a string");
+            }
+
+            if (!order.isMember(KEY_ORDER_BY_DIRECTION) || order[KEY_ORDER_BY_DIRECTION].type() != Json::stringValue)
+            {
+              throw OrthancException(ErrorCode_BadRequest, "Field \"" + std::string(KEY_ORDER_BY_DIRECTION) + "\" must be \"ASC\" or \"DESC\"");
+            }
+
+            Toolbox::ToLowerCase(directionString,  order[KEY_ORDER_BY_DIRECTION].asString());
+            if (directionString == "asc")
+            {
+              direction = FindRequest::OrderingDirection_Ascending;
+            }
+            else if (directionString == "desc")
+            {
+              direction = FindRequest::OrderingDirection_Descending;
+            }
+            else
+            {
+              throw OrthancException(ErrorCode_BadRequest, "Field \"" + std::string(KEY_ORDER_BY_DIRECTION) + "\" must be \"ASC\" or \"DESC\"");
+            }
+
+            if (!order.isMember(KEY_ORDER_BY_TYPE) || order[KEY_ORDER_BY_TYPE].type() != Json::stringValue)
+            {
+              throw OrthancException(ErrorCode_BadRequest, "Field \"" + std::string(KEY_ORDER_BY_TYPE) + "\" must be \"DicomTag\" or \"Metadata\"");
+            }
+
+            Toolbox::ToLowerCase(typeString, order[KEY_ORDER_BY_TYPE].asString());
+            if (typeString == "dicomtag")
+            {
+              DicomTag tag = FromDcmtkBridge::ParseTag(order[KEY_ORDER_BY_KEY].asString());
+              finder.AddOrdering(tag, direction);
+            }
+            else if (typeString == "metadata")
+            {
+              MetadataType metadata = StringToMetadata(order[KEY_ORDER_BY_KEY].asString());
+              finder.AddOrdering(metadata, direction);
+            }
+            else
+            {
+              throw OrthancException(ErrorCode_BadRequest, "Field \"" + std::string(KEY_ORDER_BY_TYPE) + "\" must be \"DicomTag\" or \"Metadata\"");
+            }
+          }
+        }
+      }
+
       Json::Value answer;
       finder.Execute(answer, context, format, false /* no "Metadata" field */);
       call.GetOutput().AnswerJson(answer);
@@ -3297,7 +3486,7 @@ namespace Orthanc
     std::set<DicomTag> requestedTags;
     OrthancRestApi::GetRequestedTags(requestedTags, call);
 
-    ResourceFinder finder(end, expand);
+    ResourceFinder finder(end, (expand ? ResponseContentFlags_ExpandTrue : ResponseContentFlags_ID));
     finder.SetOrthancId(start, call.GetUriComponent("id", ""));
     finder.AddRequestedTags(requestedTags);
 
@@ -3920,13 +4109,23 @@ namespace Orthanc
     Register("/series", ListResources<ResourceType_Series>);
     Register("/studies", ListResources<ResourceType_Study>);
 
-    Register("/instances/{id}", DeleteSingleResource<ResourceType_Instance>);
+    if (!context_.IsReadOnly())
+    {
+      Register("/instances/{id}", DeleteSingleResource<ResourceType_Instance>);
+      Register("/patients/{id}", DeleteSingleResource<ResourceType_Patient>);
+      Register("/series/{id}", DeleteSingleResource<ResourceType_Series>);
+      Register("/studies/{id}", DeleteSingleResource<ResourceType_Study>);
+
+      Register("/tools/bulk-delete", BulkDelete);
+    }
+    else
+    {
+      LOG(WARNING) << "READ-ONLY SYSTEM: deactivating DELETE routes";
+    }
+
     Register("/instances/{id}", GetSingleResource<ResourceType_Instance>);
-    Register("/patients/{id}", DeleteSingleResource<ResourceType_Patient>);
     Register("/patients/{id}", GetSingleResource<ResourceType_Patient>);
-    Register("/series/{id}", DeleteSingleResource<ResourceType_Series>);
     Register("/series/{id}", GetSingleResource<ResourceType_Series>);
-    Register("/studies/{id}", DeleteSingleResource<ResourceType_Study>);
     Register("/studies/{id}", GetSingleResource<ResourceType_Study>);
 
     Register("/instances/{id}/statistics", GetResourceStatistics);
@@ -3971,7 +4170,16 @@ namespace Orthanc
     Register("/instances/{id}/numpy", GetNumpyInstance);  // New in Orthanc 1.10.0
 
     Register("/patients/{id}/protected", IsProtectedPatient);
-    Register("/patients/{id}/protected", SetPatientProtection);
+  
+    if (!context_.IsReadOnly())
+    {
+      Register("/patients/{id}/protected", SetPatientProtection);
+    }
+    else
+    {
+      LOG(WARNING) << "READ-ONLY SYSTEM: deactivating PUT /patients/{id}/protected route";
+    }
+
 
     std::vector<std::string> resourceTypes;
     resourceTypes.push_back("patients");
@@ -3989,14 +4197,15 @@ namespace Orthanc
       // New in Orthanc 1.12.0
       Register("/" + resourceTypes[i] + "/{id}/labels", ListLabels);
       Register("/" + resourceTypes[i] + "/{id}/labels/{label}", GetLabel);
-      Register("/" + resourceTypes[i] + "/{id}/labels/{label}", RemoveLabel);
-      Register("/" + resourceTypes[i] + "/{id}/labels/{label}", AddLabel);
+
+      if (!context_.IsReadOnly())
+      {
+        Register("/" + resourceTypes[i] + "/{id}/labels/{label}", RemoveLabel);
+        Register("/" + resourceTypes[i] + "/{id}/labels/{label}", AddLabel);
+      }
 
       Register("/" + resourceTypes[i] + "/{id}/attachments", ListAttachments);
-      Register("/" + resourceTypes[i] + "/{id}/attachments/{name}", DeleteAttachment);
       Register("/" + resourceTypes[i] + "/{id}/attachments/{name}", GetAttachmentOperations);
-      Register("/" + resourceTypes[i] + "/{id}/attachments/{name}", UploadAttachment);
-      Register("/" + resourceTypes[i] + "/{id}/attachments/{name}/compress", ChangeAttachmentCompression<CompressionType_ZlibWithSize>);
       Register("/" + resourceTypes[i] + "/{id}/attachments/{name}/compressed-data", GetAttachmentData<0>);
       Register("/" + resourceTypes[i] + "/{id}/attachments/{name}/compressed-md5", GetAttachmentCompressedMD5);
       Register("/" + resourceTypes[i] + "/{id}/attachments/{name}/compressed-size", GetAttachmentCompressedSize);
@@ -4004,12 +4213,29 @@ namespace Orthanc
       Register("/" + resourceTypes[i] + "/{id}/attachments/{name}/is-compressed", IsAttachmentCompressed);
       Register("/" + resourceTypes[i] + "/{id}/attachments/{name}/md5", GetAttachmentMD5);
       Register("/" + resourceTypes[i] + "/{id}/attachments/{name}/size", GetAttachmentSize);
-      Register("/" + resourceTypes[i] + "/{id}/attachments/{name}/uncompress", ChangeAttachmentCompression<CompressionType_None>);
       Register("/" + resourceTypes[i] + "/{id}/attachments/{name}/info", GetAttachmentInfo);
       Register("/" + resourceTypes[i] + "/{id}/attachments/{name}/verify-md5", VerifyAttachment);
+
+      if (!context_.IsReadOnly())
+      {
+        Register("/" + resourceTypes[i] + "/{id}/attachments/{name}", DeleteAttachment);
+        Register("/" + resourceTypes[i] + "/{id}/attachments/{name}", UploadAttachment);
+        Register("/" + resourceTypes[i] + "/{id}/attachments/{name}/compress", ChangeAttachmentCompression<CompressionType_ZlibWithSize>);
+        Register("/" + resourceTypes[i] + "/{id}/attachments/{name}/uncompress", ChangeAttachmentCompression<CompressionType_None>);
+      }
     }
 
-    Register("/tools/invalidate-tags", InvalidateTags);
+    if (context_.IsReadOnly())
+    {
+      LOG(WARNING) << "READ-ONLY SYSTEM: deactivating PUT, POST and DELETE attachments routes";
+      LOG(WARNING) << "READ-ONLY SYSTEM: deactivating PUT and DELETE labels routes";
+    }
+
+    if (!context_.IsReadOnly())
+    {
+      Register("/tools/invalidate-tags", InvalidateTags);
+    }
+
     Register("/tools/lookup", Lookup);
     Register("/tools/find", Find);
 
@@ -4036,13 +4262,19 @@ namespace Orthanc
     Register("/series/{id}/ordered-slices", OrderSlices);
     Register("/series/{id}/numpy", GetNumpySeries);  // New in Orthanc 1.10.0
 
-    Register("/patients/{id}/reconstruct", ReconstructResource<ResourceType_Patient>);
-    Register("/studies/{id}/reconstruct", ReconstructResource<ResourceType_Study>);
-    Register("/series/{id}/reconstruct", ReconstructResource<ResourceType_Series>);
-    Register("/instances/{id}/reconstruct", ReconstructResource<ResourceType_Instance>);
-    Register("/tools/reconstruct", ReconstructAllResources);
+    if (!context_.IsReadOnly())
+    {
+      Register("/patients/{id}/reconstruct", ReconstructResource<ResourceType_Patient>);
+      Register("/studies/{id}/reconstruct", ReconstructResource<ResourceType_Study>);
+      Register("/series/{id}/reconstruct", ReconstructResource<ResourceType_Series>);
+      Register("/instances/{id}/reconstruct", ReconstructResource<ResourceType_Instance>);
+      Register("/tools/reconstruct", ReconstructAllResources);
+    }
+    else
+    {
+      LOG(WARNING) << "READ-ONLY SYSTEM: deactivating /reconstruct routes";
+    }
 
     Register("/tools/bulk-content", BulkContent);
-    Register("/tools/bulk-delete", BulkDelete);
-  }
+   }
 }

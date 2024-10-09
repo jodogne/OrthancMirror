@@ -129,13 +129,30 @@ namespace Orthanc
           !request.GetOrthancIdentifiers().HasSeriesId() &&
           !request.GetOrthancIdentifiers().HasInstanceId())
       {
-        if (request.HasLimits())
+        if (!request.HasLimits())
+        {
+          transaction_.GetAllPublicIds(identifiers, request.GetLevel());
+        }
+        else if (request.GetLimitsCount() != 0)
         {
           transaction_.GetAllPublicIds(identifiers, request.GetLevel(), request.GetLimitsSince(), request.GetLimitsCount());
         }
         else
         {
-          transaction_.GetAllPublicIds(identifiers, request.GetLevel());
+          // Starting with Orthanc 1.12.5, "limit=0" means "no limit"
+          std::list<std::string> tmp;
+          transaction_.GetAllPublicIds(tmp, request.GetLevel());
+
+          size_t count = 0;
+          for (std::list<std::string>::const_iterator it = tmp.begin(); it != tmp.end(); ++it)
+          {
+            if (count >= request.GetLimitsSince())
+            {
+              identifiers.push_back(*it);
+            }
+
+            count++;
+          }
         }
       }
       else if (IsRequestWithoutContraint(request) &&
@@ -401,7 +418,7 @@ namespace Orthanc
 
       if (level != request.GetLevel())
       {
-        throw OrthancException(ErrorCode_DatabasePlugin);
+        throw OrthancException(ErrorCode_UnknownResource, "Wrong resource level for this ID");  // this might happen e.g if you call /instances/... with a series instance id
       }
 
       std::unique_ptr<FindResponse::Resource> resource(new FindResponse::Resource(request.GetLevel(), internalId, identifier));
@@ -566,8 +583,8 @@ namespace Orthanc
         }
       }
 
-      if (request.IsRetrieveOneInstanceIdentifier() &&
-          !request.GetChildrenSpecification(ResourceType_Instance).IsRetrieveIdentifiers())
+      if (request.GetLevel() != ResourceType_Instance &&
+          request.IsRetrieveOneInstanceMetadataAndAttachments())
       {
         int64_t currentId = internalId;
         ResourceType currentLevel = level;
@@ -587,7 +604,28 @@ namespace Orthanc
           }
         }
 
-        resource->AddChildIdentifier(ResourceType_Instance, transaction_.GetPublicId(currentId));
+        std::map<MetadataType, std::string> metadata;
+        transaction_.GetAllMetadata(metadata, currentId);
+
+        std::set<FileContentType> attachmentsType;
+        transaction_.ListAvailableAttachments(attachmentsType, currentId);
+
+        std::map<FileContentType, FileInfo> attachments;
+        for (std::set<FileContentType>::const_iterator it = attachmentsType.begin(); it != attachmentsType.end(); ++it)
+        {
+          FileInfo info;
+          int64_t revision;  // Unused in this case
+          if (transaction_.LookupAttachment(info, revision, currentId, *it))
+          {
+            attachments[*it] = info;
+          }
+          else
+          {
+            throw OrthancException(ErrorCode_DatabasePlugin);
+          }
+        }
+
+        resource->SetOneInstanceMetadataAndAttachments(transaction_.GetPublicId(currentId), metadata, attachments);
       }
 
       response.Add(resource.release());

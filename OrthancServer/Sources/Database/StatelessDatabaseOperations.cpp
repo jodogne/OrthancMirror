@@ -281,6 +281,10 @@ namespace Orthanc
     }
     
     target["Last"] = static_cast<int>(last);
+    if (!log.empty())
+    {
+      target["First"] = static_cast<int>(log.front().GetSeq());
+    }
   }
 
 
@@ -477,6 +481,10 @@ namespace Orthanc
         else
         {
           assert(writeOperations != NULL);
+          if (readOnly_)
+          {
+            throw OrthancException(ErrorCode_ReadOnly, "The DB is trying to execute a ReadWrite transaction while Orthanc has been started in ReadOnly mode.");
+          }
           
           Transaction transaction(db_, *factory_, TransactionType_ReadWrite);
           {
@@ -514,10 +522,11 @@ namespace Orthanc
   }
 
   
-  StatelessDatabaseOperations::StatelessDatabaseOperations(IDatabaseWrapper& db) : 
+  StatelessDatabaseOperations::StatelessDatabaseOperations(IDatabaseWrapper& db, bool readOnly) : 
     db_(db),
     mainDicomTagsRegistry_(new MainDicomTagsRegistry),
-    maxRetries_(0)
+    maxRetries_(0),
+    readOnly_(readOnly)
   {
   }
 
@@ -754,7 +763,7 @@ namespace Orthanc
       }
     };
 
-    if (GetDatabaseCapabilities().HasUpdateAndGetStatistics())
+    if (GetDatabaseCapabilities().HasUpdateAndGetStatistics() && !IsReadOnly())
     {
       Operations operations;
       Apply(operations);
@@ -801,6 +810,39 @@ namespace Orthanc
     
     Operations operations;
     operations.Apply(*this, target, since, maxResults);
+  }
+
+
+  void StatelessDatabaseOperations::GetChangesExtended(Json::Value& target,
+                                                       int64_t since,
+                                                       int64_t to,                               
+                                                       unsigned int maxResults,
+                                                       const std::set<ChangeType>& changeType)
+  {
+    class Operations : public ReadOnlyOperationsT5<Json::Value&, int64_t, int64_t, unsigned int, const std::set<ChangeType>&>
+    {
+    public:
+      virtual void ApplyTuple(ReadOnlyTransaction& transaction,
+                              const Tuple& tuple) ORTHANC_OVERRIDE
+      {
+        std::list<ServerIndexChange> changes;
+        bool done;
+        bool hasLast = false;
+        int64_t last = 0;
+
+        transaction.GetChangesExtended(changes, done, tuple.get<1>(), tuple.get<2>(), tuple.get<3>(), tuple.get<4>());
+        if (changes.empty())
+        {
+          last = transaction.GetLastChangeIndex();
+          hasLast = true;
+        }
+
+        FormatLog(tuple.get<0>(), changes, "Changes", done, tuple.get<1>(), hasLast, last);
+      }
+    };
+    
+    Operations operations;
+    operations.Apply(*this, target, since, to, maxResults, changeType);
   }
 
 
@@ -1272,7 +1314,7 @@ namespace Orthanc
 
     DicomTagConstraint c(tag, ConstraintType_Equal, value, true, true);
 
-    DatabaseConstraints query;
+    DatabaseDicomTagConstraints query;
     bool isIdentical;  // unused
     query.AddConstraint(c.ConvertToDatabaseConstraint(isIdentical, level, DicomTagType_Identifier));
 
@@ -1281,12 +1323,12 @@ namespace Orthanc
     {
     private:
       std::vector<std::string>&   result_;
-      const DatabaseConstraints&  query_;
+      const DatabaseDicomTagConstraints&  query_;
       ResourceType                level_;
       
     public:
       Operations(std::vector<std::string>& result,
-                 const DatabaseConstraints& query,
+                 const DatabaseDicomTagConstraints& query,
                  ResourceType level) :
         result_(result),
         query_(query),
@@ -2433,8 +2475,8 @@ namespace Orthanc
   }
 
 
-  bool StatelessDatabaseOperations::ReadWriteTransaction::HasReachedMaxStorageSize(uint64_t maximumStorageSize,
-                                                                                   uint64_t addedInstanceSize)
+  bool StatelessDatabaseOperations::ReadOnlyTransaction::HasReachedMaxStorageSize(uint64_t maximumStorageSize,
+                                                                                  uint64_t addedInstanceSize)
   {
     if (maximumStorageSize != 0)
     {
@@ -2455,8 +2497,8 @@ namespace Orthanc
     return false;
   }                                                                           
 
-  bool StatelessDatabaseOperations::ReadWriteTransaction::HasReachedMaxPatientCount(unsigned int maximumPatientCount,
-                                                                                    const std::string& patientId)
+  bool StatelessDatabaseOperations::ReadOnlyTransaction::HasReachedMaxPatientCount(unsigned int maximumPatientCount,
+                                                                                   const std::string& patientId)
   {
     if (maximumPatientCount != 0)
     {
@@ -3323,6 +3365,17 @@ namespace Orthanc
     return db_.GetDatabaseCapabilities().HasLabelsSupport();
   }
 
+  bool StatelessDatabaseOperations::HasExtendedChanges()
+  {
+    boost::shared_lock<boost::shared_mutex> lock(mutex_);
+    return db_.GetDatabaseCapabilities().HasExtendedChanges();
+  }
+
+  bool StatelessDatabaseOperations::HasFindSupport()
+  {
+    boost::shared_lock<boost::shared_mutex> lock(mutex_);
+    return db_.GetDatabaseCapabilities().HasFindSupport();
+  }
 
   void StatelessDatabaseOperations::ExecuteFind(FindResponse& response,
                                                 const FindRequest& request)

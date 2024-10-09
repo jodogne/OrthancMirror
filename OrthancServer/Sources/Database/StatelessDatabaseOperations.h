@@ -125,7 +125,7 @@ namespace Orthanc
 
       void ApplyLookupResources(std::list<std::string>& resourcesId,
                                 std::list<std::string>* instancesId, // Can be NULL if not needed
-                                const DatabaseConstraints& lookup,
+                                const DatabaseDicomTagConstraints& lookup,
                                 ResourceType queryLevel,
                                 const std::set<std::string>& labels,  // New in Orthanc 1.12.0
                                 LabelsConstraint labelsConstraint,    // New in Orthanc 1.12.0
@@ -161,6 +161,16 @@ namespace Orthanc
                       uint32_t limit)
       {
         transaction_.GetChanges(target, done, since, limit);
+      }
+
+      void GetChangesExtended(std::list<ServerIndexChange>& target /*out*/,
+                              bool& done /*out*/,
+                              int64_t since,
+                              int64_t to,
+                              uint32_t limit,
+                              const std::set<ChangeType>& filterType)
+      {
+        transaction_.GetChangesExtended(target, done, since, to, limit, filterType);
       }
 
       void GetChildrenInternalId(std::list<int64_t>& target,
@@ -294,6 +304,12 @@ namespace Orthanc
       {
         transaction_.ListAllLabels(target);
       }
+
+      bool HasReachedMaxStorageSize(uint64_t maximumStorageSize,
+                                    uint64_t addedInstanceSize);
+
+      bool HasReachedMaxPatientCount(unsigned int maximumPatientCount,
+                                     const std::string& patientId);
 
       void ExecuteFind(FindResponse& response,
                        const FindRequest& request,
@@ -435,12 +451,6 @@ namespace Orthanc
                    uint64_t addedInstanceSize,
                    const std::string& newPatientId);
 
-      bool HasReachedMaxStorageSize(uint64_t maximumStorageSize,
-                                    uint64_t addedInstanceSize);
-
-      bool HasReachedMaxPatientCount(unsigned int maximumPatientCount,
-                                     const std::string& patientId);
-      
       bool IsRecyclingNeeded(uint64_t maximumStorageSize,
                              unsigned int maximumPatients,
                              uint64_t addedInstanceSize,
@@ -492,6 +502,7 @@ namespace Orthanc
     boost::shared_mutex                          mutex_;
     std::unique_ptr<ITransactionContextFactory>  factory_;
     unsigned int                                 maxRetries_;
+    bool                                         readOnly_;
 
     void ApplyInternal(IReadOnlyOperations* readOperations,
                        IReadWriteOperations* writeOperations);
@@ -501,8 +512,13 @@ namespace Orthanc
                              uint64_t maximumStorageSize,
                              unsigned int maximumPatientCount);
 
+    bool IsReadOnly()
+    {
+      return readOnly_;
+    }
+
   public:
-    explicit StatelessDatabaseOperations(IDatabaseWrapper& database);
+    explicit StatelessDatabaseOperations(IDatabaseWrapper& database, bool readOnly);
 
     void SetTransactionContextFactory(ITransactionContextFactory* factory /* takes ownership */);
 
@@ -557,8 +573,18 @@ namespace Orthanc
                     int64_t since,
                     uint32_t limit);
 
+    void GetChangesExtended(Json::Value& target,
+                            int64_t since,
+                            int64_t to,
+                            uint32_t limit,
+                            const std::set<ChangeType>& filterType);
+
     void GetLastChange(Json::Value& target);
 
+    bool HasExtendedChanges();
+
+    bool HasFindSupport();
+    
     void GetExportedResources(Json::Value& target,
                               int64_t since,
                               uint32_t limit);
