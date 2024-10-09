@@ -98,7 +98,7 @@ namespace Orthanc
   }
 
 
-  bool MainDicomTagsRegistry::NormalizeLookup(DatabaseConstraints& target,
+  bool MainDicomTagsRegistry::NormalizeLookup(DatabaseDicomTagConstraints& target,
                                               const DatabaseLookup& source,
                                               ResourceType queryLevel) const
   {

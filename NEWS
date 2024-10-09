@@ -42,12 +42,20 @@ REST API
 * in /system, added a new field "Capabilities" with new values:
   - "HasExtendedChanges" for DB backend that provides this feature (the default SQLite DB
     or PostgreSQL vX.X, MySQL vX.X, ODBC vX.X).
-  - "HasExendedFind" for DB backend that provides this feature (the default SQLite DB
+  - "HasExtendedFind" for DB backend that provides this feature (the default SQLite DB
     or PostgreSQL vX.X, MySQL vX.X, ODBC vX.X).
 * With DB backend with "HasExtendedChanges" support, /changes now supports 2 more options: 
   - 'type' to filter the changes returned by the query 
   - 'to' to potentially cycle through changes in reverse order.
   example: /changes?type=StableStudy&to=7584&limit=100
+* With DB backend with "HasExtendedFind" support, /tools/find now supports new options:
+  - 'OrderBy' to order by DICOM Tag or metadata value
+  - 'ParentPatient', 'ParentStudy', 'ParentSeries' to retrieve only descendants of an
+    Orthanc resource.
+  - 'QueryMetadata' to filter results based on metadata values.
+  - 'ResponseContent' to define what shall be included in the response for each returned
+    resource (e.g: Metadata, Children, ...)
+
 
 Maintenance
 -----------
@@ -67,6 +75,7 @@ Maintenance
   - added 2 metrics: orthanc_storage_cache_miss_count & orthanc_storage_cache_hit_count 
 * Upgraded dependencies for static builds:
   - curl 8.9.0
+  - SQLite 3.46
 * Added a new fallback when trying to decode a frame: transcode the file using the plugin
   before decoding the frame.  This solves some issues with JP2K Lossy compression:
   https://discourse.orthanc-server.org/t/decoding-displaying-jpeg2000-lossy-images/5117

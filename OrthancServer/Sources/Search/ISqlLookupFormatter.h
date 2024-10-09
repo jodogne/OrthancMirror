@@ -30,7 +30,7 @@
 
 namespace Orthanc
 {
-  class DatabaseConstraints;
+  class DatabaseDicomTagConstraints;
   class FindRequest;
 
   enum LabelsConstraint
@@ -65,11 +65,11 @@ namespace Orthanc
     static void GetLookupLevels(ResourceType& lowerLevel,
                                 ResourceType& upperLevel,
                                 const ResourceType& queryLevel,
-                                const DatabaseConstraints& lookup);
+                                const DatabaseDicomTagConstraints& lookup);
 
     static void Apply(std::string& sql,
                       ISqlLookupFormatter& formatter,
-                      const DatabaseConstraints& lookup,
+                      const DatabaseDicomTagConstraints& lookup,
                       ResourceType queryLevel,
                       const std::set<std::string>& labels,  // New in Orthanc 1.12.0
                       LabelsConstraint labelsConstraint,    // New in Orthanc 1.12.0
@@ -77,7 +77,7 @@ namespace Orthanc
 
     static void ApplySingleLevel(std::string& sql,
                                  ISqlLookupFormatter& formatter,
-                                 const DatabaseConstraints& lookup,
+                                 const DatabaseDicomTagConstraints& lookup,
                                  ResourceType queryLevel,
                                  const std::set<std::string>& labels,  // New in Orthanc 1.12.0
                                  LabelsConstraint labelsConstraint,    // New in Orthanc 1.12.0

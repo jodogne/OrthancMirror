@@ -1593,7 +1593,7 @@ namespace Orthanc
 
     DicomTagConstraint c(tag, ConstraintType_Equal, value, true, true);
 
-    DatabaseConstraints query;
+    DatabaseDicomTagConstraints query;
     bool isIdentical;  // unused
     query.AddConstraint(c.ConvertToDatabaseConstraint(isIdentical, level, DicomTagType_Identifier));
 
@@ -1602,12 +1602,12 @@ namespace Orthanc
     {
     private:
       std::vector<std::string>&   result_;
-      const DatabaseConstraints&  query_;
+      const DatabaseDicomTagConstraints&  query_;
       ResourceType                level_;
       
     public:
       Operations(std::vector<std::string>& result,
-                 const DatabaseConstraints& query,
+                 const DatabaseDicomTagConstraints& query,
                  ResourceType level) :
         result_(result),
         query_(query),
@@ -1893,7 +1893,7 @@ namespace Orthanc
                                                          LabelsConstraint labelsConstraint,
                                                          uint32_t limit)
   {
-    class Operations : public ReadOnlyOperationsT6<bool, const DatabaseConstraints&, ResourceType,
+    class Operations : public ReadOnlyOperationsT6<bool, const DatabaseDicomTagConstraints&, ResourceType,
                                                    const std::set<std::string>&, LabelsConstraint, size_t>
     {
     private:
@@ -1939,7 +1939,7 @@ namespace Orthanc
       ServerToolbox::CheckValidLabel(*it);
     }
 
-    DatabaseConstraints normalized;
+    DatabaseDicomTagConstraints normalized;
 
     assert(mainDicomTagsRegistry_.get() != NULL);
     mainDicomTagsRegistry_->NormalizeLookup(normalized, lookup, queryLevel);

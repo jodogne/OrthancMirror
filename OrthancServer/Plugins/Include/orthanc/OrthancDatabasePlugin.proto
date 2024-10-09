@@ -79,6 +79,16 @@ enum LabelsConstraintType {
   LABELS_CONSTRAINT_NONE = 2;
 }
 
+enum OrderingKeyType {
+  ORDERING_KEY_TYPE_DICOM_TAG = 0;
+  ORDERING_KEY_TYPE_METADATA = 1;
+}
+
+enum OrderingDirection {
+  ORDERING_DIRECTION_ASC = 0;
+  ORDERING_DIRECTION_DESC = 1;
+}
+
 message ServerIndexChange {
   int64         seq = 1;
   int32         change_type = 2;   // opaque "ChangeType" in Orthanc
@@ -110,6 +120,13 @@ message DatabaseConstraint {
   repeated string  values = 8;
 }
 
+message DatabaseMetadataConstraint {
+  int32            metadata = 1;
+  bool             is_case_sensitive = 2;
+  bool             is_mandatory = 3;
+  ConstraintType   type = 4;
+  repeated string  values = 5;
+}
 
 /**
  * Database-level operations.
@@ -861,6 +878,15 @@ message Find {        // New in Orthanc 1.12.5
       repeated int32 retrieve_metadata = 2;
       repeated Tag retrieve_main_dicom_tags = 3;
     }
+    message Ordering {
+      OrderingKeyType key_type = 1;
+      OrderingDirection direction = 2;
+      uint32 tag_group = 3;
+      uint32 tag_element = 4;
+      bool is_identifier_tag = 5;
+      ResourceType tag_level = 6;
+      int32 metadata = 7;
+    }
 
     // Part 1 of the request: Constraints
     ResourceType level = 1;
@@ -872,9 +898,9 @@ message Find {        // New in Orthanc 1.12.5
     Limits limits = 7;               // optional
     repeated string labels = 8;
     LabelsConstraintType labels_constraint = 9;
+    repeated Ordering ordering = 10;
+    repeated DatabaseMetadataConstraint metadata_constraints = 11;
 
-    // TODO-FIND: ordering_
-    // TODO-FIND: metadataConstraints_
 
     // Part 2 of the request: What is to be retrieved
     bool retrieve_main_dicom_tags = 100;
