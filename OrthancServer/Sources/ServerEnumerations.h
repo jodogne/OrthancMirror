@@ -124,27 +124,36 @@ namespace Orthanc
   enum ResponseContentFlags
   {
     ResponseContentFlags_ID                   = (1 << 0),
-    ResponseContentFlags_MainDicomTags        = (1 << 1),
-    ResponseContentFlags_MetadataLegacy       = (1 << 2),    // when "Expand": true -> all metadata are included at root level
-    ResponseContentFlags_AttachmentsLegacy    = (1 << 3),    // when "Expand": true -> include attachments info at instance level
-    ResponseContentFlags_Metadata             = (1 << 4),    // all metadata are listed in a "Metadata" field
-    ResponseContentFlags_Attachments          = (1 << 5),    // all attachments are listed in a "Attachments" field
-    ResponseContentFlags_Status               = (1 << 6),
-    ResponseContentFlags_Parent               = (1 << 7),
-    ResponseContentFlags_Children             = (1 << 8),
-    ResponseContentFlags_Labels               = (1 << 9),
-    ResponseContentFlags_IsStable             = (1 << 10),
+    ResponseContentFlags_Type                 = (1 << 1),
+    ResponseContentFlags_RequestedTags        = (1 << 2),
+    ResponseContentFlags_MainDicomTags        = (1 << 3),
+    ResponseContentFlags_MetadataLegacy       = (1 << 4),    // when "Expand": true -> all metadata are included at root level
+    ResponseContentFlags_AttachmentsLegacy    = (1 << 5),    // when "Expand": true -> include attachments info at instance level
+    ResponseContentFlags_Metadata             = (1 << 6),    // all metadata are listed in a "Metadata" field
+    ResponseContentFlags_Attachments          = (1 << 7),    // all attachments are listed in a "Attachments" field
+    ResponseContentFlags_Status               = (1 << 8),
+    ResponseContentFlags_Parent               = (1 << 9),
+    ResponseContentFlags_Children             = (1 << 10),
+    ResponseContentFlags_Labels               = (1 << 11),
+    ResponseContentFlags_IsStable             = (1 << 12),
 
     // Some predefined combinations
-    ResponseContentFlags_Default  = (ResponseContentFlags_ID |
-                                     ResponseContentFlags_MainDicomTags |
-                                     ResponseContentFlags_MetadataLegacy |
-                                     ResponseContentFlags_AttachmentsLegacy | 
-                                     ResponseContentFlags_Status | 
-                                     ResponseContentFlags_Parent | 
-                                     ResponseContentFlags_Children | 
-                                     ResponseContentFlags_Labels |
-                                     ResponseContentFlags_IsStable)  // equivalent to "Expand": true
+    ResponseContentFlags_ExpandTrue  = (ResponseContentFlags_ID |
+                                        ResponseContentFlags_Type |
+                                        ResponseContentFlags_RequestedTags |
+                                        ResponseContentFlags_MainDicomTags |
+                                        ResponseContentFlags_MetadataLegacy |
+                                        ResponseContentFlags_AttachmentsLegacy | 
+                                        ResponseContentFlags_Status | 
+                                        ResponseContentFlags_Parent | 
+                                        ResponseContentFlags_Children | 
+                                        ResponseContentFlags_Labels |
+                                        ResponseContentFlags_IsStable),  // equivalent to "Expand": true
+    
+    ResponseContentFlags_Default = (ResponseContentFlags_ID |
+                                    ResponseContentFlags_Type |
+                                    ResponseContentFlags_RequestedTags) // minimal content as soon as you have a "ResponseContent"
+    
   };
 
   /**

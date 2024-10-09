@@ -1666,7 +1666,7 @@ namespace Orthanc
                              ResourceType level,
                              const DatabaseLookup& query)
   {
-    ResourceFinder finder(level, ResponseContentFlags_Default);
+    ResourceFinder finder(level, ResponseContentFlags_ExpandTrue);
     finder.SetDatabaseLookup(query);
 
     Json::Value expanded;
