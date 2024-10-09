@@ -23,32 +23,39 @@
 
 #pragma once
 
-#include "../IDatabaseWrapper.h"
-#include "ILookupResources.h"
+#include "DatabaseDicomTagConstraint.h"
+
+#include <deque>
 
 namespace Orthanc
 {
-  namespace Compatibility
+  class DatabaseDicomTagConstraints : public boost::noncopyable
   {
-    class DatabaseLookup : public boost::noncopyable
+  private:
+    std::deque<DatabaseDicomTagConstraint*>  constraints_;
+
+  public:
+    ~DatabaseDicomTagConstraints()
     {
-    private:
-      IDatabaseWrapper::ITransaction&  transaction_;
-      ILookupResources&  compatibility_;
+      Clear();
+    }
 
-    public:
-      DatabaseLookup(IDatabaseWrapper::ITransaction& transaction,
-                     ILookupResources& compatibility) :
-        transaction_(transaction),
-        compatibility_(compatibility)
-      {
-      }
+    void Clear();
 
-      void ApplyLookupResources(std::list<std::string>& resourcesId,
-                                std::list<std::string>* instancesId,
-                                const DatabaseDicomTagConstraints& lookup,
-                                ResourceType queryLevel,
-                                size_t limit);
-    };
-  }
+    void AddConstraint(DatabaseDicomTagConstraint* constraint);  // Takes ownership
+
+    bool IsEmpty() const
+    {
+      return constraints_.empty();
+    }
+
+    size_t GetSize() const
+    {
+      return constraints_.size();
+    }
+
+    const DatabaseDicomTagConstraint& GetConstraint(size_t index) const;
+
+    std::string Format() const;
+  };
 }

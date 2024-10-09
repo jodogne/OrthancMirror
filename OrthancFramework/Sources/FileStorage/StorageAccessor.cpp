@@ -44,6 +44,8 @@ static const std::string METRICS_READ_DURATION = "orthanc_storage_read_duration_
 static const std::string METRICS_REMOVE_DURATION = "orthanc_storage_remove_duration_ms";
 static const std::string METRICS_READ_BYTES = "orthanc_storage_read_bytes";
 static const std::string METRICS_WRITTEN_BYTES = "orthanc_storage_written_bytes";
+static const std::string METRICS_CACHE_HIT_COUNT = "orthanc_storage_cache_hit_count";
+static const std::string METRICS_CACHE_MISS_COUNT = "orthanc_storage_cache_miss_count";
 
 
 namespace Orthanc
@@ -208,10 +210,19 @@ namespace Orthanc
 
       if (!cacheAccessor.Fetch(content, info.GetUuid(), info.GetContentType()))
       {
+        if (metrics_ != NULL)
+        {
+          metrics_->IncrementIntegerValue(METRICS_CACHE_MISS_COUNT, 1);
+        }
+
         ReadWholeInternal(content, info);
 
         // always store the uncompressed data in cache
         cacheAccessor.Add(info.GetUuid(), info.GetContentType(), content);
+      } 
+      else if (metrics_ != NULL)
+      {
+        metrics_->IncrementIntegerValue(METRICS_CACHE_HIT_COUNT, 1);
       }
     }
   }
@@ -284,9 +295,18 @@ namespace Orthanc
 
       if (!cacheAccessor.Fetch(content, info.GetUuid(), info.GetContentType()))
       {
+        if (metrics_ != NULL)
+        {
+          metrics_->IncrementIntegerValue(METRICS_CACHE_MISS_COUNT, 1);
+        }
+
         ReadRawInternal(content, info);
 
         cacheAccessor.Add(info.GetUuid(), info.GetContentType(), content);
+      }
+      else if (metrics_ != NULL)
+      {
+        metrics_->IncrementIntegerValue(METRICS_CACHE_HIT_COUNT, 1);
       }
     }
   }
@@ -353,24 +373,38 @@ namespace Orthanc
       StorageCache::Accessor accessorStartRange(*cache_);
       if (!accessorStartRange.FetchStartRange(target, info.GetUuid(), info.GetContentType(), end))
       {
-        ReadStartRangeInternal(target, info, end);
-        accessorStartRange.AddStartRange(info.GetUuid(), info.GetContentType(), target);
-      }
-      else
-      {
+        // the start range is not in cache, let's check if the whole file is
         StorageCache::Accessor accessorWhole(*cache_);
         if (!accessorWhole.Fetch(target, info.GetUuid(), info.GetContentType()))
         {
-          ReadWholeInternal(target, info);
-          accessorWhole.Add(info.GetUuid(), info.GetContentType(), target);
-        }
+          if (metrics_ != NULL)
+          {
+            metrics_->IncrementIntegerValue(METRICS_CACHE_MISS_COUNT, 1);
+          }
 
-        if (target.size() < end)
+          // if nothing is in the cache, let's read and cache only the start
+          ReadStartRangeInternal(target, info, end);
+          accessorStartRange.AddStartRange(info.GetUuid(), info.GetContentType(), target);
+        }
+        else
         {
-          throw OrthancException(ErrorCode_CorruptedFile);
-        }
+          if (metrics_ != NULL)
+          {
+            metrics_->IncrementIntegerValue(METRICS_CACHE_HIT_COUNT, 1);
+          }
 
-        target.resize(end);
+          // we have read the whole file, check size and resize if needed
+          if (target.size() < end)
+          {
+            throw OrthancException(ErrorCode_CorruptedFile);
+          }
+
+          target.resize(end);
+        }
+      }
+      else if (metrics_ != NULL)
+      {
+        metrics_->IncrementIntegerValue(METRICS_CACHE_HIT_COUNT, 1);
       }
     }
   }

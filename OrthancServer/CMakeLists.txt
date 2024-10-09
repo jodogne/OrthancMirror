@@ -125,7 +125,9 @@ set(ORTHANC_SERVER_SOURCES
   ${CMAKE_SOURCE_DIR}/Sources/OrthancWebDav.cpp
   ${CMAKE_SOURCE_DIR}/Sources/QueryRetrieveHandler.cpp
   ${CMAKE_SOURCE_DIR}/Sources/ResourceFinder.cpp
-  ${CMAKE_SOURCE_DIR}/Sources/Search/DatabaseConstraint.cpp
+  ${CMAKE_SOURCE_DIR}/Sources/Search/DatabaseDicomTagConstraint.cpp
+  ${CMAKE_SOURCE_DIR}/Sources/Search/DatabaseDicomTagConstraints.cpp
+  ${CMAKE_SOURCE_DIR}/Sources/Search/DatabaseMetadataConstraint.cpp
   ${CMAKE_SOURCE_DIR}/Sources/Search/DatabaseLookup.cpp
   ${CMAKE_SOURCE_DIR}/Sources/Search/DicomTagConstraint.cpp
   ${CMAKE_SOURCE_DIR}/Sources/Search/HierarchicalMatcher.cpp
@@ -332,7 +334,6 @@ endif()
 
 add_definitions(
   -DORTHANC_BUILD_UNIT_TESTS=1
-  -DORTHANC_BUILDING_SERVER_LIBRARY=1
 
   # Macros for the plugins
   -DHAS_ORTHANC_EXCEPTION=0

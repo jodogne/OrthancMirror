@@ -23,32 +23,28 @@
 
 #pragma once
 
-#include "../IDatabaseWrapper.h"
-#include "ILookupResources.h"
+#include "../ServerEnumerations.h"
+#include <boost/noncopyable.hpp>
 
 namespace Orthanc
 {
-  namespace Compatibility
+  class IDatabaseConstraint : public boost::noncopyable
   {
-    class DatabaseLookup : public boost::noncopyable
+  public:
+    virtual ~IDatabaseConstraint()
     {
-    private:
-      IDatabaseWrapper::ITransaction&  transaction_;
-      ILookupResources&  compatibility_;
+    }
+    
+    virtual ConstraintType GetConstraintType() const = 0;
 
-    public:
-      DatabaseLookup(IDatabaseWrapper::ITransaction& transaction,
-                     ILookupResources& compatibility) :
-        transaction_(transaction),
-        compatibility_(compatibility)
-      {
-      }
+    virtual size_t GetValuesCount() const = 0;
 
-      void ApplyLookupResources(std::list<std::string>& resourcesId,
-                                std::list<std::string>* instancesId,
-                                const DatabaseDicomTagConstraints& lookup,
-                                ResourceType queryLevel,
-                                size_t limit);
-    };
-  }
+    virtual const std::string& GetValue(size_t index) const = 0;
+
+    virtual const std::string& GetSingleValue() const = 0;
+
+    virtual bool IsCaseSensitive() const  = 0;
+
+    virtual bool IsMandatory() const  = 0;
+  };
 }

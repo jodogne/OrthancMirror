@@ -36,6 +36,7 @@
 #include "../../Sources/Database/VoidDatabaseListener.h"
 #include "../../Sources/ServerToolbox.h"
 #include "PluginsEnumerations.h"
+#include "../../Sources/Database/MainDicomTagsRegistry.h"
 
 #include "OrthancDatabasePlugin.pb.h"  // Auto-generated file
 
@@ -136,7 +137,7 @@ namespace Orthanc
 
 
   static void Convert(DatabasePluginMessages::DatabaseConstraint& target,
-                      const DatabaseConstraint& source)
+                      const DatabaseDicomTagConstraint& source)
   {
     target.set_level(Convert(source.GetLevel()));
     target.set_tag_group(source.GetTag().GetGroup());
@@ -178,6 +179,94 @@ namespace Orthanc
     }
   }
 
+
+  static void Convert(DatabasePluginMessages::DatabaseMetadataConstraint& target,
+                      const DatabaseMetadataConstraint& source)
+  {
+    target.set_metadata(source.GetMetadata());
+    target.set_is_case_sensitive(source.IsCaseSensitive());
+    target.set_is_mandatory(source.IsMandatory());
+
+    target.mutable_values()->Reserve(source.GetValuesCount());
+    for (size_t j = 0; j < source.GetValuesCount(); j++)
+    {
+      target.add_values(source.GetValue(j));
+    }
+
+    switch (source.GetConstraintType())
+    {
+      case ConstraintType_Equal:
+        target.set_type(DatabasePluginMessages::CONSTRAINT_EQUAL);
+        break;
+
+      case ConstraintType_SmallerOrEqual:
+        target.set_type(DatabasePluginMessages::CONSTRAINT_SMALLER_OR_EQUAL);
+        break;
+
+      case ConstraintType_GreaterOrEqual:
+        target.set_type(DatabasePluginMessages::CONSTRAINT_GREATER_OR_EQUAL);
+        break;
+
+      case ConstraintType_Wildcard:
+        target.set_type(DatabasePluginMessages::CONSTRAINT_WILDCARD);
+        break;
+
+      case ConstraintType_List:
+        target.set_type(DatabasePluginMessages::CONSTRAINT_LIST);
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+
+  static void Convert(DatabasePluginMessages::Find_Request_Ordering& target,
+                      const FindRequest::Ordering& source)
+  {
+    switch (source.GetKeyType())
+    {
+      case FindRequest::KeyType_DicomTag:
+      {
+        ResourceType tagLevel;
+        DicomTagType tagType;
+        MainDicomTagsRegistry registry;
+
+        registry.LookupTag(tagLevel, tagType, source.GetDicomTag());
+
+        target.set_key_type(DatabasePluginMessages::ORDERING_KEY_TYPE_DICOM_TAG);
+        target.set_tag_group(source.GetDicomTag().GetGroup());
+        target.set_tag_element(source.GetDicomTag().GetElement());
+        target.set_is_identifier_tag(tagType == DicomTagType_Identifier);
+        target.set_tag_level(Convert(tagLevel));
+
+      }; break;
+
+      case FindRequest::KeyType_Metadata:
+        target.set_key_type(DatabasePluginMessages::ORDERING_KEY_TYPE_METADATA);
+        target.set_metadata(source.GetMetadataType());
+
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+    switch (source.GetDirection())
+    {
+      case FindRequest::OrderingDirection_Ascending:
+        target.set_direction(DatabasePluginMessages::ORDERING_DIRECTION_ASC);
+        break;
+
+      case FindRequest::OrderingDirection_Descending:
+        target.set_direction(DatabasePluginMessages::ORDERING_DIRECTION_DESC);
+
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
 
   static DatabasePluginMessages::LabelsConstraintType Convert(LabelsConstraint constraint)
   {
@@ -623,6 +712,37 @@ namespace Orthanc
       for (int i = 0; i < response.get_changes().changes().size(); i++)
       {
         target.push_back(Convert(response.get_changes().changes(i)));
+      }
+    }
+
+    virtual void GetChangesExtended(std::list<ServerIndexChange>& target /*out*/,
+                                    bool& done /*out*/,
+                                    int64_t since,
+                                    int64_t to,
+                                    uint32_t limit,
+                                    const std::set<ChangeType>& changeTypes) ORTHANC_OVERRIDE
+    {
+      assert(database_.GetDatabaseCapabilities().HasExtendedChanges());
+
+      DatabasePluginMessages::TransactionRequest request;
+      DatabasePluginMessages::TransactionResponse response;
+
+      request.mutable_get_changes_extended()->set_since(since);
+      request.mutable_get_changes_extended()->set_limit(limit);
+      request.mutable_get_changes_extended()->set_to(to);
+      for (std::set<ChangeType>::const_iterator it = changeTypes.begin(); it != changeTypes.end(); ++it)
+      {
+        request.mutable_get_changes_extended()->add_change_type(*it);
+      }
+      
+      ExecuteTransaction(response, DatabasePluginMessages::OPERATION_GET_CHANGES_EXTENDED, request);
+
+      done = response.get_changes_extended().done();
+
+      target.clear();
+      for (int i = 0; i < response.get_changes_extended().changes().size(); i++)
+      {
+        target.push_back(Convert(response.get_changes_extended().changes(i)));
       }
     }
 
@@ -1106,7 +1226,7 @@ namespace Orthanc
 
     virtual void ApplyLookupResources(std::list<std::string>& resourcesId,
                                       std::list<std::string>* instancesId, // Can be NULL if not needed
-                                      const DatabaseConstraints& lookup,
+                                      const DatabaseDicomTagConstraints& lookup,
                                       ResourceType queryLevel,
                                       const std::set<std::string>& labels,
                                       LabelsConstraint labelsConstraint,
@@ -1389,6 +1509,16 @@ namespace Orthanc
           Convert(*dbRequest.mutable_find()->add_dicom_tag_constraints(), request.GetDicomTagConstraints().GetConstraint(i));
         }
 
+        for (std::deque<DatabaseMetadataConstraint*>::const_iterator it = request.GetMetadataConstraint().begin(); it != request.GetMetadataConstraint().end(); ++it)
+        {
+          Convert(*dbRequest.mutable_find()->add_metadata_constraints(), *(*it)); 
+        }
+
+        for (std::deque<FindRequest::Ordering*>::const_iterator it = request.GetOrdering().begin(); it != request.GetOrdering().end(); ++it)
+        {
+          Convert(*dbRequest.mutable_find()->add_ordering(), *(*it)); 
+        }
+
         if (request.HasLimits())
         {
           dbRequest.mutable_find()->mutable_limits()->set_since(request.GetLimitsSince());
@@ -1402,15 +1532,20 @@ namespace Orthanc
 
         dbRequest.mutable_find()->set_labels_constraint(Convert(request.GetLabelsConstraint()));
 
-        // TODO-FIND: ordering_
-        // TODO-FIND: metadataConstraints__
-
         dbRequest.mutable_find()->set_retrieve_main_dicom_tags(request.IsRetrieveMainDicomTags());
         dbRequest.mutable_find()->set_retrieve_metadata(request.IsRetrieveMetadata());
         dbRequest.mutable_find()->set_retrieve_labels(request.IsRetrieveLabels());
         dbRequest.mutable_find()->set_retrieve_attachments(request.IsRetrieveAttachments());
         dbRequest.mutable_find()->set_retrieve_parent_identifier(request.IsRetrieveParentIdentifier());
-        dbRequest.mutable_find()->set_retrieve_at_least_one_instance(request.IsRetrieveOneInstanceIdentifier());
+
+        if (request.GetLevel() == ResourceType_Instance)
+        {
+          dbRequest.mutable_find()->set_retrieve_one_instance_metadata_and_attachments(false);
+        }
+        else
+        {
+          dbRequest.mutable_find()->set_retrieve_one_instance_metadata_and_attachments(request.IsRetrieveOneInstanceMetadataAndAttachments());
+        }
 
         if (request.GetLevel() == ResourceType_Study ||
             request.GetLevel() == ResourceType_Series ||
@@ -1498,26 +1633,59 @@ namespace Orthanc
 
           if (request.GetLevel() == ResourceType_Patient)
           {
-            Convert(*target, ResourceType_Patient, source.children_studies_content());
+            Convert(*target, ResourceType_Study, source.children_studies_content());
           }
 
           if (request.GetLevel() == ResourceType_Patient ||
               request.GetLevel() == ResourceType_Study)
           {
-            Convert(*target, ResourceType_Study, source.children_series_content());
+            Convert(*target, ResourceType_Series, source.children_series_content());
           }
 
           if (request.GetLevel() == ResourceType_Patient ||
               request.GetLevel() == ResourceType_Study ||
               request.GetLevel() == ResourceType_Series)
           {
-            Convert(*target, ResourceType_Series, source.children_instances_content());
+            Convert(*target, ResourceType_Instance, source.children_instances_content());
+          }
+
+          if (request.GetLevel() != ResourceType_Instance &&
+              request.IsRetrieveOneInstanceMetadataAndAttachments())
+          {
+            std::map<MetadataType, std::string> metadata;
+            for (int i = 0; i < source.one_instance_metadata().size(); i++)
+            {
+              MetadataType key = static_cast<MetadataType>(source.one_instance_metadata(i).key());
+              if (metadata.find(key) == metadata.end())
+              {
+                metadata[key] = source.one_instance_metadata(i).value();
+              }
+              else
+              {
+                throw OrthancException(ErrorCode_DatabasePlugin);
+              }
+            }
+
+            std::map<FileContentType, FileInfo> attachments;
+
+            for (int i = 0; i < source.one_instance_attachments().size(); i++)
+            {
+              FileInfo info(Convert(source.one_instance_attachments(i)));
+              if (attachments.find(info.GetContentType()) == attachments.end())
+              {
+                attachments[info.GetContentType()] = info;
+              }
+              else
+              {
+                throw OrthancException(ErrorCode_DatabasePlugin);
+              }
+            }
+
+            target->SetOneInstanceMetadataAndAttachments(source.one_instance_public_id(), metadata, attachments);
           }
 
           response.Add(target.release());
         }
-
-        throw OrthancException(ErrorCode_NotImplemented);
       }
       else
       {
@@ -1647,9 +1815,8 @@ namespace Orthanc
       dbCapabilities_.SetAtomicIncrementGlobalProperty(systemInfo.supports_increment_global_property());
       dbCapabilities_.SetUpdateAndGetStatistics(systemInfo.has_update_and_get_statistics());
       dbCapabilities_.SetMeasureLatency(systemInfo.has_measure_latency());
+      dbCapabilities_.SetHasExtendedChanges(systemInfo.has_extended_changes());
       dbCapabilities_.SetHasFindSupport(systemInfo.supports_find());
-
-      printf(">>> %d\n", dbCapabilities_.HasFindSupport());
     }
 
     open_ = true;

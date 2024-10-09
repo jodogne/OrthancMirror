@@ -936,7 +936,7 @@ namespace Orthanc
 
       Visitor visitor(resources);
 
-      ResourceFinder finder(ResourceType_Study, false /* no expand */);
+      ResourceFinder finder(ResourceType_Study, ResponseContentFlags_ID);
       finder.SetDatabaseLookup(query);
       finder.Execute(visitor, GetContext());
     }
@@ -1014,7 +1014,7 @@ namespace Orthanc
 
       Visitor visitor;
 
-      ResourceFinder finder(ResourceType_Study, false /* no expand */);
+      ResourceFinder finder(ResourceType_Study, ResponseContentFlags_ID);
       finder.SetDatabaseLookup(query);
       finder.Execute(visitor, context_);
 
@@ -1392,7 +1392,7 @@ namespace Orthanc
         return false;
       }
 
-      ResourceFinder finder(level, false /* don't expand */);
+      ResourceFinder finder(level, ResponseContentFlags_ID);
       finder.SetDatabaseLookup(query);
       finder.SetRetrieveMetadata(true);
 
@@ -1443,7 +1443,7 @@ namespace Orthanc
                              ResourceType level,
                              const DatabaseLookup& query)
   {
-    ResourceFinder finder(level, true /* expand */);
+    ResourceFinder finder(level, ResponseContentFlags_ExpandTrue);
     finder.SetDatabaseLookup(query);
 
     Json::Value expanded;
@@ -1513,7 +1513,7 @@ namespace Orthanc
       
         mime = MimeType_Dicom;
 
-        ResourceFinder finder(ResourceType_Instance, false /* no expand */);
+        ResourceFinder finder(ResourceType_Instance, ResponseContentFlags_ID);
         finder.SetDatabaseLookup(query);
         finder.SetRetrieveMetadata(true);
         finder.SetRetrieveAttachments(true);
@@ -1643,7 +1643,7 @@ namespace Orthanc
 
         DicomDeleteVisitor visitor(context_, level);
 
-        ResourceFinder finder(level, false /* no expand */);
+        ResourceFinder finder(level, ResponseContentFlags_ID);
         finder.SetDatabaseLookup(query);
         finder.Execute(visitor, context_);
         return true;

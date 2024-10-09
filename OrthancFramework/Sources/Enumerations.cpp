@@ -186,6 +186,9 @@ namespace Orthanc
       case ErrorCode_DuplicateResource:
         return "Duplicate resource";
 
+      case ErrorCode_IncompatibleConfigurations:
+        return "Your configuration file contains configuration that are mutually incompatible";
+
       case ErrorCode_SQLiteNotOpened:
         return "SQLite: The database is not opened";
 
@@ -220,7 +223,7 @@ namespace Orthanc
         return "SQLite: Cannot step over a cached statement";
 
       case ErrorCode_SQLiteBindOutOfRange:
-        return "SQLite: Bing a value while out of range (serious error)";
+        return "SQLite: Bind a value while out of range (serious error)";
 
       case ErrorCode_SQLitePrepareStatement:
         return "SQLite: Cannot prepare a cached statement";

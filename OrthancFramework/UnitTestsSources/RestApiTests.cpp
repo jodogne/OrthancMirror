@@ -98,20 +98,20 @@ TEST(HttpClient, Basic)
    
    (1) We retrieve the URI of the root CA of BitBucket:
 
-   # echo | openssl s_client -servername bitbucket.org -connect bitbucket.org:443 2>/dev/null | openssl x509 -text | grep "CA Issuers"
+   # echo | openssl s_client -servername raw.githubusercontent.com -connect raw.githubusercontent.com:443 2>/dev/null | openssl x509 -text | grep "CA Issuers"
 
    (2) Once we get the URL to the CA certificate, we convert it to a C
    macro that can be used by libcurl:
 
    # cd UnitTestsSources
-   # python2 ../Resources/RetrieveCACertificates.py BITBUCKET_CERTIFICATES http://cacerts.digicert.com/DigiCertSHA2ExtendedValidationServerCA.crt > BitbucketCACertificates.h
+   # python2 ../Resources/RetrieveCACertificates.py GITHUB_CERTIFICATES http://cacerts.digicert.com/DigiCertGlobalG2TLSRSASHA2562020CA1-1.crt > GithubCACertificates.h
 **/
 
-#include "BitbucketCACertificates.h"
+#include "GithubCACertificates.h"
 
 TEST(HttpClient, Ssl)
 {
-  SystemToolbox::WriteFile(BITBUCKET_CERTIFICATES, "UnitTestsResults/bitbucket.cert");
+  SystemToolbox::WriteFile(GITHUB_CERTIFICATES, "UnitTestsResults/github.cert");
 
   /*{
     std::string s;
@@ -122,12 +122,12 @@ TEST(HttpClient, Ssl)
   HttpClient c;
   //c.SetVerbose(true);
   c.SetHttpsVerifyPeers(true);
-  c.SetHttpsCACertificates("UnitTestsResults/bitbucket.cert");
+  c.SetHttpsCACertificates("UnitTestsResults/github.cert");
 
   // Test file modified on 2020-04-20, in order to use a git
   // repository on BitBucket instead of a Mercurial repository
   // (because Mercurial support disappears on 2020-05-31)
-  c.SetUrl("https://bitbucket.org/osimis/orthanc-setup-samples/raw/master/docker/serve-folders/orthanc/serve-folders.json");
+  c.SetUrl("https://raw.githubusercontent.com/orthanc-server/orthanc-setup-samples/refs/heads/master/docker/serve-folders/orthanc/serve-folders.json");
 
   Json::Value v;
   c.Apply(v);
@@ -138,7 +138,7 @@ TEST(HttpClient, SslNoVerification)
 {
   HttpClient c;
   c.SetHttpsVerifyPeers(false);
-  c.SetUrl("https://bitbucket.org/osimis/orthanc-setup-samples/raw/master/docker/serve-folders/orthanc/serve-folders.json");
+  c.SetUrl("https://raw.githubusercontent.com/orthanc-server/orthanc-setup-samples/refs/heads/master/docker/serve-folders/orthanc/serve-folders.json");
 
   Json::Value v;
   c.Apply(v);

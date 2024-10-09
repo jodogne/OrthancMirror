@@ -60,6 +60,13 @@ namespace Orthanc
                                  const Capabilities& capabilities,
                                  const FindRequest& request,
                                  const std::string& identifier) ORTHANC_OVERRIDE;
+
+      virtual void GetChangesExtended(std::list<ServerIndexChange>& target /*out*/,
+                                      bool& done /*out*/,
+                                      int64_t since,
+                                      int64_t to,
+                                      uint32_t limit,
+                                      const std::set<ChangeType>& filterType) ORTHANC_OVERRIDE;
     };
 
     virtual uint64_t MeasureLatency() ORTHANC_OVERRIDE;

@@ -24,6 +24,7 @@
 #pragma once
 
 #include "../Search/DatabaseLookup.h"
+#include "../Search/DatabaseDicomTagConstraints.h"
 
 #include <boost/noncopyable.hpp>
 
@@ -81,7 +82,7 @@ namespace Orthanc
      * constraints are less strict than the original DatabaseLookup,
      * so more resources will match them.
      **/
-    bool NormalizeLookup(DatabaseConstraints& target,
+    bool NormalizeLookup(DatabaseDicomTagConstraints& target,
                          const DatabaseLookup& source,
                          ResourceType queryLevel) const;
   };

@@ -93,15 +93,20 @@ namespace Orthanc
     retrieveLabels_(false),
     retrieveAttachments_(false),
     retrieveParentIdentifier_(false),
-    retrieveOneInstanceIdentifier_(false)
+    retrieveOneInstanceMetadataAndAttachments_(false)
   {
   }
 
 
   FindRequest::~FindRequest()
   {
-
     for (std::deque<Ordering*>::iterator it = ordering_.begin(); it != ordering_.end(); ++it)
+    {
+      assert(*it != NULL);
+      delete *it;
+    }
+
+    for (std::deque<DatabaseMetadataConstraint*>::iterator it = metadataConstraints_.begin(); it != metadataConstraints_.end(); ++it)
     {
       assert(*it != NULL);
       delete *it;
@@ -233,6 +238,12 @@ namespace Orthanc
   }
 
 
+  void FindRequest::AddMetadataConstraint(DatabaseMetadataConstraint* constraint)
+  {
+    metadataConstraints_.push_back(constraint);
+  }
+
+
   void FindRequest::SetRetrieveParentIdentifier(bool retrieve)
   {
     if (level_ == ResourceType_Patient)
@@ -246,7 +257,7 @@ namespace Orthanc
   }
 
 
-  void FindRequest::SetRetrieveOneInstanceIdentifier(bool retrieve)
+  void FindRequest::SetRetrieveOneInstanceMetadataAndAttachments(bool retrieve)
   {
     if (level_ == ResourceType_Instance)
     {
@@ -254,7 +265,20 @@ namespace Orthanc
     }
     else
     {
-      retrieveOneInstanceIdentifier_ = retrieve;
+      retrieveOneInstanceMetadataAndAttachments_ = retrieve;
+    }
+  }
+
+
+  bool FindRequest::IsRetrieveOneInstanceMetadataAndAttachments() const
+  {
+    if (level_ == ResourceType_Instance)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    else
+    {
+      return retrieveOneInstanceMetadataAndAttachments_;
     }
   }
 }

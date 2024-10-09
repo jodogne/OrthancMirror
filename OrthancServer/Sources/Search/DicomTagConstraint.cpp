@@ -30,7 +30,7 @@
 
 #include "../../../OrthancFramework/Sources/OrthancException.h"
 #include "../../../OrthancFramework/Sources/Toolbox.h"
-#include "DatabaseConstraint.h"
+#include "DatabaseDicomTagConstraint.h"
 
 #include <boost/regex.hpp>
 
@@ -154,7 +154,7 @@ namespace Orthanc
   }
     
 
-  DicomTagConstraint::DicomTagConstraint(const DatabaseConstraint& constraint) :
+  DicomTagConstraint::DicomTagConstraint(const DatabaseDicomTagConstraint& constraint) :
     tag_(constraint.GetTag()),
     constraintType_(constraint.GetConstraintType()),
     caseSensitive_(constraint.IsCaseSensitive()),
@@ -369,9 +369,9 @@ namespace Orthanc
   }
 
 
-  DatabaseConstraint* DicomTagConstraint::ConvertToDatabaseConstraint(bool& isIdentical,
-                                                                      ResourceType level,
-                                                                      DicomTagType tagType) const
+  DatabaseDicomTagConstraint* DicomTagConstraint::ConvertToDatabaseConstraint(bool& isIdentical,
+                                                                              ResourceType level,
+                                                                              DicomTagType tagType) const
   {
     bool isIdentifier, caseSensitive;
     
@@ -415,7 +415,7 @@ namespace Orthanc
       }
     }
 
-    return new DatabaseConstraint(level, tag_, isIdentifier, constraintType_,
-                                  values, caseSensitive, mandatory_);
+    return new DatabaseDicomTagConstraint(level, tag_, isIdentifier, constraintType_,
+                                          values, caseSensitive, mandatory_);
   }  
 }

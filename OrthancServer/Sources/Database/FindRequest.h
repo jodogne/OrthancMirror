@@ -24,7 +24,8 @@
 #pragma once
 
 #include "../../../OrthancFramework/Sources/DicomFormat/DicomTag.h"
-#include "../Search/DatabaseConstraint.h"
+#include "../Search/DatabaseDicomTagConstraints.h"
+#include "../Search/DatabaseMetadataConstraint.h"
 #include "../Search/DicomTagConstraint.h"
 #include "../Search/ISqlLookupFormatter.h"
 #include "../ServerEnumerations.h"
@@ -232,16 +233,15 @@ namespace Orthanc
     // filter & ordering fields
     ResourceType                         level_;                // The level of the response (the filtering on tags, labels and metadata also happens at this level)
     OrthancIdentifiers                   orthancIdentifiers_;   // The response must belong to this Orthanc resources hierarchy
-    DatabaseConstraints                  dicomTagConstraints_;  // All tags filters (note: the order is not important)
+    DatabaseDicomTagConstraints          dicomTagConstraints_;  // All tags filters (note: the order is not important)
     bool                                 hasLimits_;
     uint64_t                             limitsSince_;
     uint64_t                             limitsCount_;
     std::set<std::string>                labels_;
     LabelsConstraint                     labelsConstraint_;
 
-    // TODO-FIND
     std::deque<Ordering*>                ordering_;             // The ordering criteria (note: the order is important !)
-    std::deque<void*>   /* TODO-FIND */       metadataConstraints_;  // All metadata filters (note: the order is not important)
+    std::deque<DatabaseMetadataConstraint*>  metadataConstraints_;  // All metadata filters (note: the order is not important)
 
     bool                                 retrieveMainDicomTags_;
     bool                                 retrieveMetadata_;
@@ -254,7 +254,7 @@ namespace Orthanc
     ChildrenSpecification                retrieveChildrenStudies_;
     ChildrenSpecification                retrieveChildrenSeries_;
     ChildrenSpecification                retrieveChildrenInstances_;
-    bool                                 retrieveOneInstanceIdentifier_;
+    bool                                 retrieveOneInstanceMetadataAndAttachments_;
 
     std::unique_ptr<MainDicomTagsRegistry>  mainDicomTagsRegistry_;
 
@@ -284,12 +284,12 @@ namespace Orthanc
       return orthancIdentifiers_;
     }
 
-    DatabaseConstraints& GetDicomTagConstraints()
+    DatabaseDicomTagConstraints& GetDicomTagConstraints()
     {
       return dicomTagConstraints_;
     }
 
-    const DatabaseConstraints& GetDicomTagConstraints() const
+    const DatabaseDicomTagConstraints& GetDicomTagConstraints() const
     {
       return dicomTagConstraints_;
     }
@@ -325,6 +325,13 @@ namespace Orthanc
     const std::deque<Ordering*>& GetOrdering() const
     {
       return ordering_;
+    }
+
+    void AddMetadataConstraint(DatabaseMetadataConstraint* constraint);
+
+    const std::deque<DatabaseMetadataConstraint*>& GetMetadataConstraint() const
+    {
+      return metadataConstraints_;
     }
 
     void SetLabels(const std::set<std::string>& labels)
@@ -413,13 +420,8 @@ namespace Orthanc
       return const_cast<FindRequest&>(*this).GetChildrenSpecification(level);
     }
 
-    void SetRetrieveOneInstanceIdentifier(bool retrieve);
+    void SetRetrieveOneInstanceMetadataAndAttachments(bool retrieve);
 
-    bool IsRetrieveOneInstanceIdentifier() const
-    {
-      return (retrieveOneInstanceIdentifier_ ||
-              (level_ != ResourceType_Instance &&
-               GetChildrenSpecification(ResourceType_Instance).IsRetrieveIdentifiers()));
-    }
+    bool IsRetrieveOneInstanceMetadataAndAttachments() const;
   };
 }
