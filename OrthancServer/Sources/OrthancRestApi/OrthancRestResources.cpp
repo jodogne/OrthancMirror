@@ -137,7 +137,7 @@ namespace Orthanc
                              DicomToJsonFormat format,
                              bool retrieveMetadata)
   {
-    ResponseContentFlags responseContent = ResponseContentFlags_Default;
+    ResponseContentFlags responseContent = ResponseContentFlags_ExpandTrue;
     
     if (retrieveMetadata)
     {
@@ -265,7 +265,7 @@ namespace Orthanc
       std::set<DicomTag> requestedTags;
       OrthancRestApi::GetRequestedTags(requestedTags, call);
 
-      ResourceFinder finder(resourceType, (expand ? ResponseContentFlags_Default : ResponseContentFlags_ID));
+      ResourceFinder finder(resourceType, (expand ? ResponseContentFlags_ExpandTrue : ResponseContentFlags_ID));
       finder.AddRequestedTags(requestedTags);
 
       if (call.HasArgument("limit") ||
@@ -371,7 +371,7 @@ namespace Orthanc
        * EXPERIMENTAL VERSION
        **/
 
-      ResourceFinder finder(resourceType, ResponseContentFlags_Default);
+      ResourceFinder finder(resourceType, ResponseContentFlags_ExpandTrue);
       finder.AddRequestedTags(requestedTags);
       finder.SetOrthancId(resourceType, call.GetUriComponent("id", ""));
 
@@ -3420,6 +3420,8 @@ namespace Orthanc
       
       if (request.isMember(KEY_RESPONSE_CONTENT))
       {
+        responseContent = ResponseContentFlags_Default;
+
         for (Json::ArrayIndex i = 0; i < request[KEY_RESPONSE_CONTENT].size(); ++i)
         {
           responseContent = static_cast<ResponseContentFlags>(static_cast<uint32_t>(responseContent) | StringToResponseContent(request[KEY_RESPONSE_CONTENT][i].asString()));
@@ -3427,7 +3429,7 @@ namespace Orthanc
       }
       else if (request.isMember(KEY_EXPAND) && request[KEY_EXPAND].asBool())
       {
-        responseContent = ResponseContentFlags_Default;
+        responseContent = ResponseContentFlags_ExpandTrue;
       }
 
       const ResourceType level = StringToResourceType(request[KEY_LEVEL].asCString());
@@ -3822,7 +3824,7 @@ namespace Orthanc
        * EXPERIMENTAL VERSION
        **/
 
-      ResourceFinder finder(end, (expand ? ResponseContentFlags_Default : ResponseContentFlags_ID));
+      ResourceFinder finder(end, (expand ? ResponseContentFlags_ExpandTrue : ResponseContentFlags_ID));
       finder.SetOrthancId(start, call.GetUriComponent("id", ""));
       finder.AddRequestedTags(requestedTags);
 
