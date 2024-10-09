@@ -100,8 +100,13 @@ namespace Orthanc
 
   FindRequest::~FindRequest()
   {
-
     for (std::deque<Ordering*>::iterator it = ordering_.begin(); it != ordering_.end(); ++it)
+    {
+      assert(*it != NULL);
+      delete *it;
+    }
+
+    for (std::deque<DatabaseMetadataConstraint*>::iterator it = metadataConstraints_.begin(); it != metadataConstraints_.end(); ++it)
     {
       assert(*it != NULL);
       delete *it;
@@ -230,6 +235,12 @@ namespace Orthanc
                                 OrderingDirection direction)
   {
     ordering_.push_back(new Ordering(Key(metadataType), direction));
+  }
+
+
+  void FindRequest::AddMetadataConstraint(DatabaseMetadataConstraint* constraint)
+  {
+    metadataConstraints_.push_back(constraint);
   }
 
 

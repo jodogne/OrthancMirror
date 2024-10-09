@@ -36,6 +36,7 @@
 #include "../../Sources/Database/VoidDatabaseListener.h"
 #include "../../Sources/ServerToolbox.h"
 #include "PluginsEnumerations.h"
+#include "../../Sources/Database/MainDicomTagsRegistry.h"
 
 #include "OrthancDatabasePlugin.pb.h"  // Auto-generated file
 
@@ -137,7 +138,7 @@ namespace Orthanc
 
 
   static void Convert(DatabasePluginMessages::DatabaseConstraint& target,
-                      const DatabaseConstraint& source)
+                      const DatabaseDicomTagConstraint& source)
   {
     target.set_level(Convert(source.GetLevel()));
     target.set_tag_group(source.GetTag().GetGroup());
@@ -179,6 +180,94 @@ namespace Orthanc
     }
   }
 
+
+  static void Convert(DatabasePluginMessages::DatabaseMetadataConstraint& target,
+                      const DatabaseMetadataConstraint& source)
+  {
+    target.set_metadata(source.GetMetadata());
+    target.set_is_case_sensitive(source.IsCaseSensitive());
+    target.set_is_mandatory(source.IsMandatory());
+
+    target.mutable_values()->Reserve(source.GetValuesCount());
+    for (size_t j = 0; j < source.GetValuesCount(); j++)
+    {
+      target.add_values(source.GetValue(j));
+    }
+
+    switch (source.GetConstraintType())
+    {
+      case ConstraintType_Equal:
+        target.set_type(DatabasePluginMessages::CONSTRAINT_EQUAL);
+        break;
+
+      case ConstraintType_SmallerOrEqual:
+        target.set_type(DatabasePluginMessages::CONSTRAINT_SMALLER_OR_EQUAL);
+        break;
+
+      case ConstraintType_GreaterOrEqual:
+        target.set_type(DatabasePluginMessages::CONSTRAINT_GREATER_OR_EQUAL);
+        break;
+
+      case ConstraintType_Wildcard:
+        target.set_type(DatabasePluginMessages::CONSTRAINT_WILDCARD);
+        break;
+
+      case ConstraintType_List:
+        target.set_type(DatabasePluginMessages::CONSTRAINT_LIST);
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+
+  static void Convert(DatabasePluginMessages::Find_Request_Ordering& target,
+                      const FindRequest::Ordering& source)
+  {
+    switch (source.GetKeyType())
+    {
+      case FindRequest::KeyType_DicomTag:
+      {
+        ResourceType tagLevel;
+        DicomTagType tagType;
+        MainDicomTagsRegistry registry;
+
+        registry.LookupTag(tagLevel, tagType, source.GetDicomTag());
+
+        target.set_key_type(DatabasePluginMessages::ORDERING_KEY_TYPE_DICOM_TAG);
+        target.set_tag_group(source.GetDicomTag().GetGroup());
+        target.set_tag_element(source.GetDicomTag().GetElement());
+        target.set_is_identifier_tag(tagType == DicomTagType_Identifier);
+        target.set_tag_level(Convert(tagLevel));
+
+      }; break;
+
+      case FindRequest::KeyType_Metadata:
+        target.set_key_type(DatabasePluginMessages::ORDERING_KEY_TYPE_METADATA);
+        target.set_metadata(source.GetMetadataType());
+
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+    switch (source.GetDirection())
+    {
+      case FindRequest::OrderingDirection_Ascending:
+        target.set_direction(DatabasePluginMessages::ORDERING_DIRECTION_ASC);
+        break;
+
+      case FindRequest::OrderingDirection_Descending:
+        target.set_direction(DatabasePluginMessages::ORDERING_DIRECTION_DESC);
+
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
 
   static DatabasePluginMessages::LabelsConstraintType Convert(LabelsConstraint constraint)
   {
@@ -1139,7 +1228,7 @@ namespace Orthanc
 
     virtual void ApplyLookupResources(std::list<std::string>& resourcesId,
                                       std::list<std::string>* instancesId, // Can be NULL if not needed
-                                      const DatabaseConstraints& lookup,
+                                      const DatabaseDicomTagConstraints& lookup,
                                       ResourceType queryLevel,
                                       const std::set<std::string>& labels,
                                       LabelsConstraint labelsConstraint,
@@ -1422,6 +1511,16 @@ namespace Orthanc
           Convert(*dbRequest.mutable_find()->add_dicom_tag_constraints(), request.GetDicomTagConstraints().GetConstraint(i));
         }
 
+        for (std::deque<DatabaseMetadataConstraint*>::const_iterator it = request.GetMetadataConstraint().begin(); it != request.GetMetadataConstraint().end(); ++it)
+        {
+          Convert(*dbRequest.mutable_find()->add_metadata_constraints(), *(*it)); 
+        }
+
+        for (std::deque<FindRequest::Ordering*>::const_iterator it = request.GetOrdering().begin(); it != request.GetOrdering().end(); ++it)
+        {
+          Convert(*dbRequest.mutable_find()->add_ordering(), *(*it)); 
+        }
+
         if (request.HasLimits())
         {
           dbRequest.mutable_find()->mutable_limits()->set_since(request.GetLimitsSince());
@@ -1434,9 +1533,6 @@ namespace Orthanc
         }
 
         dbRequest.mutable_find()->set_labels_constraint(Convert(request.GetLabelsConstraint()));
-
-        // TODO-FIND: ordering_
-        // TODO-FIND: metadataConstraints__
 
         dbRequest.mutable_find()->set_retrieve_main_dicom_tags(request.IsRetrieveMainDicomTags());
         dbRequest.mutable_find()->set_retrieve_metadata(request.IsRetrieveMetadata());

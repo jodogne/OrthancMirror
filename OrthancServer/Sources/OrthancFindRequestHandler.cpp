@@ -631,7 +631,7 @@ namespace Orthanc
        * EXPERIMENTAL VERSION
        **/
 
-      ResourceFinder finder(level, false /* don't expand */);
+      ResourceFinder finder(level, ResponseContentFlags_ID);
       finder.SetDatabaseLookup(lookup);
       finder.AddRequestedTags(requestedTags);
 

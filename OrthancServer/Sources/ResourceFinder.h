@@ -65,7 +65,7 @@ namespace Orthanc
     bool                             hasLimitsCount_;
     uint64_t                         limitsSince_;
     uint64_t                         limitsCount_;
-    bool                             expand_;
+    ResponseContentFlags             responseContent_;
     bool                             allowStorageAccess_;
     std::set<DicomTag>               requestedTags_;
     std::set<DicomTag>               requestedComputedTags_;
@@ -103,7 +103,7 @@ namespace Orthanc
 
   public:
     ResourceFinder(ResourceType level,
-                   bool expand);
+                   ResponseContentFlags responseContent);
 
     void SetDatabaseLimits(uint64_t limits);
 
@@ -132,6 +132,23 @@ namespace Orthanc
     void AddRequestedTag(const DicomTag& tag);
 
     void AddRequestedTags(const std::set<DicomTag>& tags);
+
+    void AddOrdering(const DicomTag& tag,
+                     FindRequest::OrderingDirection direction)
+    {
+      request_.AddOrdering(tag, direction);
+    }
+
+    void AddOrdering(MetadataType metadataType,
+                     FindRequest::OrderingDirection direction)
+    {
+      request_.AddOrdering(metadataType, direction);
+    }
+
+    void AddMetadataConstraint(DatabaseMetadataConstraint* constraint)
+    {
+      request_.AddMetadataConstraint(constraint);
+    }
 
     void SetLabels(const std::set<std::string>& labels)
     {
@@ -167,8 +184,7 @@ namespace Orthanc
     void Expand(Json::Value& target,
                 const FindResponse::Resource& resource,
                 ServerIndex& index,
-                DicomToJsonFormat format,
-                bool includeAllMetadata /* Same as: ExpandResourceFlags_IncludeAllMetadata */) const;
+                DicomToJsonFormat format) const;
 
     void Execute(IVisitor& visitor,
                  ServerContext& context) const;

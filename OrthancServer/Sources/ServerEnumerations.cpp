@@ -616,4 +616,45 @@ namespace Orthanc
         throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
   }
+
+  ResponseContentFlags StringToResponseContent(const std::string& value)
+  {
+    if (value == "MainDicomTags")
+    {
+      return ResponseContentFlags_MainDicomTags;
+    }
+    else if (value == "Metadata")
+    {
+      return ResponseContentFlags_Metadata;
+    }
+    else if (value == "Status")
+    {
+      return ResponseContentFlags_Status;
+    }
+    else if (value == "Parent")
+    {
+      return ResponseContentFlags_Parent;
+    }
+    else if (value == "Children")
+    {
+      return ResponseContentFlags_Children;
+    }
+    else if (value == "Labels")
+    {
+      return ResponseContentFlags_Labels;
+    }
+    else if (value == "Attachments")
+    {
+      return ResponseContentFlags_Attachments;
+    }
+    else if (value == "IsStable")
+    {
+      return ResponseContentFlags_IsStable;
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange,
+                             "Unrecognized value for \"ResponseContent\": " + value);
+    }    
+  }
 }

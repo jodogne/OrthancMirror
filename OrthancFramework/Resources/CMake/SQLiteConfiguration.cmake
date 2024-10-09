@@ -37,11 +37,11 @@ endif()
 
 
 if (SQLITE_STATIC)
-  SET(SQLITE_SOURCES_DIR ${CMAKE_BINARY_DIR}/sqlite-amalgamation-3270100)
-  SET(SQLITE_MD5 "16717b26358ba81f0bfdac07addc77da")
-  SET(SQLITE_URL "https://orthanc.uclouvain.be/downloads/third-party-downloads/sqlite-amalgamation-3270100.zip")
+  SET(SQLITE_SOURCES_DIR ${CMAKE_BINARY_DIR}/sqlite-amalgamation-3460100)
+  SET(SQLITE_MD5 "1fb0f7ebbee45752098cf453b6dffff3")
+  SET(SQLITE_URL "https://orthanc.uclouvain.be/downloads/third-party-downloads/sqlite-amalgamation-3460100.zip")
 
-  set(ORTHANC_SQLITE_VERSION 3027001)
+  set(ORTHANC_SQLITE_VERSION 3046001)
 
   DownloadPackage(${SQLITE_MD5} ${SQLITE_URL} "${SQLITE_SOURCES_DIR}")
 

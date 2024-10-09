@@ -59,7 +59,7 @@
 #include "../../Sources/Database/VoidDatabaseListener.h"
 #include "../../Sources/OrthancConfiguration.h"
 #include "../../Sources/OrthancFindRequestHandler.h"
-#include "../../Sources/Search/DatabaseConstraint.h"
+#include "../../Sources/Search/IDatabaseConstraint.h"
 #include "../../Sources/Search/HierarchicalMatcher.h"
 #include "../../Sources/ServerContext.h"
 #include "../../Sources/ServerToolbox.h"

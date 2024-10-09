@@ -22,7 +22,7 @@
 
 
 #include "../PrecompiledHeadersServer.h"
-#include "DatabaseConstraints.h"
+#include "DatabaseDicomTagConstraints.h"
 
 #include "../../../OrthancFramework/Sources/OrthancException.h"
 
@@ -32,7 +32,7 @@
 
 namespace Orthanc
 {
-  void DatabaseConstraints::Clear()
+  void DatabaseDicomTagConstraints::Clear()
   {
     for (size_t i = 0; i < constraints_.size(); i++)
     {
@@ -44,7 +44,7 @@ namespace Orthanc
   }
 
 
-  void DatabaseConstraints::AddConstraint(DatabaseConstraint* constraint)
+  void DatabaseDicomTagConstraints::AddConstraint(DatabaseDicomTagConstraint* constraint)
   {
     if (constraint == NULL)
     {
@@ -57,7 +57,7 @@ namespace Orthanc
   }
 
 
-  const DatabaseConstraint& DatabaseConstraints::GetConstraint(size_t index) const
+  const DatabaseDicomTagConstraint& DatabaseDicomTagConstraints::GetConstraint(size_t index) const
   {
     if (index >= constraints_.size())
     {
@@ -71,14 +71,14 @@ namespace Orthanc
   }
 
 
-  std::string DatabaseConstraints::Format() const
+  std::string DatabaseDicomTagConstraints::Format() const
   {
     std::string s;
 
     for (size_t i = 0; i < constraints_.size(); i++)
     {
       assert(constraints_[i] != NULL);
-      const DatabaseConstraint& constraint = *constraints_[i];
+      const DatabaseDicomTagConstraint& constraint = *constraints_[i];
       s += "Constraint " + boost::lexical_cast<std::string>(i) + " at " + EnumerationToString(constraint.GetLevel()) +
         ": " + constraint.GetTag().Format();
 
