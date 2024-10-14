@@ -474,49 +474,72 @@ namespace Orthanc
 
   void ResourceFinder::UpdateRequestLimits()
   {
-    // By default, use manual paging
-    pagingMode_ = PagingMode_FullManual;
-
-    if (databaseLimits_ != 0)
+    if (true) // simplified code by AM by probably missing a few things ...
     {
-      request_.SetLimits(0, databaseLimits_ + 1);
+      // By default, use manual paging
+      pagingMode_ = PagingMode_FullDatabase;
+
+      if (hasLimitsSince_ || hasLimitsCount_)
+      {
+        pagingMode_ = PagingMode_FullDatabase;
+        if (databaseLimits_ != 0 && limitsCount_ > databaseLimits_)
+        {
+          LOG(WARNING) << "ResourceFinder: 'Limit' is larger than LimitFindResults/LimitFindInstances configurations, using limit fron the configuration file";
+          limitsCount_ = databaseLimits_;
+        }
+
+        request_.SetLimits(limitsSince_, limitsCount_);
+      }
+      else if (databaseLimits_ != 0)
+      {
+        request_.SetLimits(0, databaseLimits_);
+      }
+
     }
     else
     {
-      request_.ClearLimits();
-    }
+      // By default, use manual paging
+      pagingMode_ = PagingMode_FullManual;
 
-    if (lookup_.get() == NULL &&
-        (hasLimitsSince_ || hasLimitsCount_))
-    {
-      pagingMode_ = PagingMode_FullDatabase;
-      request_.SetLimits(limitsSince_, limitsCount_);
-    }
-
-    if (lookup_.get() != NULL &&
-        isSimpleLookup_ &&
-        (hasLimitsSince_ || hasLimitsCount_))
-    {
-      /**
-       * TODO-FIND: "IDatabaseWrapper::ApplyLookupResources()" only
-       * accept the "limit" argument.  The "since" must be implemented
-       * manually.
-       **/
-
-      if (hasLimitsSince_ &&
-          limitsSince_ != 0)
+      if (databaseLimits_ != 0)
       {
-        pagingMode_ = PagingMode_ManualSkip;
-        request_.SetLimits(0, limitsCount_ + limitsSince_);
+        request_.SetLimits(0, databaseLimits_ + 1);
       }
       else
       {
+        request_.ClearLimits();
+      }
+
+      if (lookup_.get() == NULL &&
+          (hasLimitsSince_ || hasLimitsCount_))
+      {
         pagingMode_ = PagingMode_FullDatabase;
-        request_.SetLimits(0, limitsCount_);
+        request_.SetLimits(limitsSince_, limitsCount_);
+      }
+
+      if (lookup_.get() != NULL &&
+          isSimpleLookup_ &&
+          (hasLimitsSince_ || hasLimitsCount_))
+      {
+        /**
+         * TODO-FIND: "IDatabaseWrapper::ApplyLookupResources()" only
+         * accept the "limit" argument.  The "since" must be implemented
+         * manually.
+         **/
+
+        if (hasLimitsSince_ &&
+            limitsSince_ != 0)
+        {
+          pagingMode_ = PagingMode_ManualSkip;
+          request_.SetLimits(0, limitsCount_ + limitsSince_);
+        }
+        else
+        {
+          pagingMode_ = PagingMode_FullDatabase;
+          request_.SetLimits(0, limitsCount_);
+        }
       }
     }
-
-    // TODO-FIND: More cases could be added, depending on "GetDatabaseCapabilities()"
   }
 
 
