@@ -3263,7 +3263,7 @@ namespace Orthanc
     static const char* const KEY_PARENT_PATIENT = "ParentPatient";        // New in Orthanc 1.12.5
     static const char* const KEY_PARENT_STUDY = "ParentStudy";            // New in Orthanc 1.12.5
     static const char* const KEY_PARENT_SERIES = "ParentSeries";          // New in Orthanc 1.12.5
-    static const char* const KEY_QUERY_METADATA = "QueryMetadata";        // New in Orthanc 1.12.5
+    static const char* const KEY_METADATA_QUERY = "MetadataQuery";        // New in Orthanc 1.12.5
     static const char* const KEY_RESPONSE_CONTENT = "ResponseContent";    // New in Orthanc 1.12.5
 
     if (call.IsDocumentation())
@@ -3306,7 +3306,7 @@ namespace Orthanc
                          "Limit the reported resources to descendants of this study (new in Orthanc 1.12.5)", true)
         .SetRequestField(KEY_PARENT_SERIES, RestApiCallDocumentation::Type_String,
                          "Limit the reported resources to descendants of this series (new in Orthanc 1.12.5)", true)
-        .SetRequestField(KEY_QUERY_METADATA, RestApiCallDocumentation::Type_JsonObject,
+        .SetRequestField(KEY_METADATA_QUERY, RestApiCallDocumentation::Type_JsonObject,
                          "Associative array containing the filter on the values of the metadata (new in Orthanc 1.12.5)", true)
         .SetRequestField(KEY_RESPONSE_CONTENT, RestApiCallDocumentation::Type_JsonListOfStrings,
                          "Defines the content of response for each returned resource.  Allowed values are `MainDicomTags`, "
@@ -3386,11 +3386,11 @@ namespace Orthanc
       throw OrthancException(ErrorCode_BadRequest, 
                              "Field \"" + std::string(KEY_ORDER_BY) + "\" must be an array");
     }
-    else if (request.isMember(KEY_QUERY_METADATA) &&
-             request[KEY_QUERY_METADATA].type() != Json::objectValue)
+    else if (request.isMember(KEY_METADATA_QUERY) &&
+             request[KEY_METADATA_QUERY].type() != Json::objectValue)
     {
       throw OrthancException(ErrorCode_BadRequest, 
-                             "Field \"" + std::string(KEY_QUERY_METADATA) + "\" must be an JSON object");
+                             "Field \"" + std::string(KEY_METADATA_QUERY) + "\" must be an JSON object");
     }
     else if (request.isMember(KEY_PARENT_PATIENT) &&
              request[KEY_PARENT_PATIENT].type() != Json::stringValue)
@@ -3502,17 +3502,17 @@ namespace Orthanc
         }
 
         { // Metadata query
-          Json::Value::Members members = request[KEY_QUERY_METADATA].getMemberNames();
+          Json::Value::Members members = request[KEY_METADATA_QUERY].getMemberNames();
           for (size_t i = 0; i < members.size(); i++)
           {
-            if (request[KEY_QUERY_METADATA][members[i]].type() != Json::stringValue)
+            if (request[KEY_METADATA_QUERY][members[i]].type() != Json::stringValue)
             {
               throw OrthancException(ErrorCode_BadRequest,
                                     "Tag \"" + members[i] + "\" must be associated with a string");
             }
             MetadataType metadata = StringToMetadata(members[i]);
 
-            const std::string value = request[KEY_QUERY_METADATA][members[i]].asString();
+            const std::string value = request[KEY_METADATA_QUERY][members[i]].asString();
 
             if (!value.empty())
             {
