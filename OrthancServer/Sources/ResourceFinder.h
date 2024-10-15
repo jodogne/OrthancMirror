@@ -198,5 +198,7 @@ namespace Orthanc
                             ServerContext& context,
                             DicomToJsonFormat format,
                             bool includeAllMetadata) const;
+
+    uint64_t Count(ServerContext& context) const;
   };
 }

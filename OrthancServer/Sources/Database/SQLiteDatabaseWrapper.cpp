@@ -502,6 +502,25 @@ namespace Orthanc
 #define STRINGIFY(x) #x
 #define TOSTRING(x) STRINGIFY(x)
 
+    virtual void ExecuteCount(uint64_t& count,
+                              const FindRequest& request,
+                              const Capabilities& capabilities) ORTHANC_OVERRIDE
+    {
+      LookupFormatter formatter;
+      std::string sql;
+
+      std::string lookupSql;
+      LookupFormatter::Apply(lookupSql, formatter, request);
+
+      // base query, retrieve the ordered internalId and publicId of the selected resources
+      sql = "WITH Lookup AS (" + lookupSql + ") SELECT COUNT(*) FROM Lookup";
+      SQLite::Statement s(db_, SQLITE_FROM_HERE_DYNAMIC(sql), sql);
+      formatter.Bind(s);
+
+      s.Step();
+      count = s.ColumnInt64(0);
+    }
+
 
     virtual void ExecuteFind(FindResponse& response,
                              const FindRequest& request,

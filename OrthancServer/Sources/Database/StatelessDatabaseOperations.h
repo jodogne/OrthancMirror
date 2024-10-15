@@ -407,6 +407,13 @@ namespace Orthanc
       bool HasReachedMaxPatientCount(unsigned int maximumPatientCount,
                                      const std::string& patientId);
 
+      void ExecuteCount(uint64_t& count,
+                        const FindRequest& request,
+                        const IDatabaseWrapper::Capabilities& capabilities)
+      {
+        transaction_.ExecuteCount(count, request, capabilities);
+      }
+
       void ExecuteFind(FindResponse& response,
                        const FindRequest& request,
                        const IDatabaseWrapper::Capabilities& capabilities)
@@ -860,5 +867,9 @@ namespace Orthanc
 
     void ExecuteFind(FindResponse& response,
                      const FindRequest& request);
+
+    void ExecuteCount(uint64_t& count,
+                      const FindRequest& request);
+
   };
 }

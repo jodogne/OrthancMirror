@@ -41,6 +41,8 @@ REST API
   - 'MetadataQuery' to filter results based on metadata values.
   - 'ResponseContent' to define what shall be included in the response for each returned
     resource (e.g: Metadata, Children, ...)
+* With DB backend with "HasExtendedFind" support, a new /tools/count-resources API route
+  is similar to tools/find but only returns the number of resources matching the criteria.
 
 
 Maintenance

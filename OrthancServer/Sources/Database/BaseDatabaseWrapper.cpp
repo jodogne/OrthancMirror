@@ -58,6 +58,13 @@ namespace Orthanc
 
 
 
+  void BaseDatabaseWrapper::BaseTransaction::ExecuteCount(uint64_t& count,
+                                                          const FindRequest& request,
+                                                          const Capabilities& capabilities)
+  {
+    throw OrthancException(ErrorCode_NotImplemented);  // Not supported
+  }
+
   void BaseDatabaseWrapper::BaseTransaction::ExecuteFind(FindResponse& response,
                                                          const FindRequest& request,
                                                          const Capabilities& capabilities)

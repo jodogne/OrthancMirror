@@ -314,6 +314,7 @@ enum TransactionOperation {
   OPERATION_UPDATE_AND_GET_STATISTICS = 49;   // New in Orthanc 1.12.3
   OPERATION_FIND = 50;                        // New in Orthanc 1.12.5
   OPERATION_GET_CHANGES_EXTENDED = 51;        // New in Orthanc 1.12.5
+  OPERATION_COUNT_RESOURCES = 52;             // New in Orthanc 1.12.5
 }
 
 message Rollback {
@@ -963,6 +964,14 @@ message Find {        // New in Orthanc 1.12.5
   }
 }
 
+message CountResources
+{
+  message Response
+  {
+    uint64 count = 1;
+  }
+}
+
 message TransactionRequest {
   sfixed64              transaction = 1;
   TransactionOperation  operation = 2;
@@ -1019,6 +1028,7 @@ message TransactionRequest {
   UpdateAndGetStatistics.Request          update_and_get_statistics = 149;
   Find.Request                            find = 150;
   GetChangesExtended.Request              get_changes_extended = 151;
+  Find.Request                            count_resources = 152;
 }
 
 message TransactionResponse {
@@ -1074,6 +1084,7 @@ message TransactionResponse {
   UpdateAndGetStatistics.Response          update_and_get_statistics = 149;
   repeated Find.Response                   find = 150;   // One message per found resources
   GetChangesExtended.Response              get_changes_extended = 151;
+  CountResources.Response                  count_resources = 152;
 }
 
 enum RequestType {

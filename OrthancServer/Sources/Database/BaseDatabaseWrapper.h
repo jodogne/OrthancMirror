@@ -48,6 +48,10 @@ namespace Orthanc
                                           int64_t& compressedSize,
                                           int64_t& uncompressedSize) ORTHANC_OVERRIDE;
 
+      virtual void ExecuteCount(uint64_t& count,
+                                const FindRequest& request,
+                                const Capabilities& capabilities) ORTHANC_OVERRIDE;
+
       virtual void ExecuteFind(FindResponse& response,
                                const FindRequest& request,
                                const Capabilities& capabilities) ORTHANC_OVERRIDE;
