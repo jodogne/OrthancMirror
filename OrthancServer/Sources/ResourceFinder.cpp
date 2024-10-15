@@ -1014,6 +1014,13 @@ namespace Orthanc
     }
   }
 
+  uint64_t ResourceFinder::Count(ServerContext& context) const
+  {
+    uint64_t count = 0;
+    context.GetIndex().ExecuteCount(count, request_);
+    return count;
+  }
+
 
   void ResourceFinder::Execute(IVisitor& visitor,
                                ServerContext& context) const

@@ -3727,6 +3727,33 @@ namespace Orthanc
     return db_.GetDatabaseCapabilities().HasFindSupport();
   }
 
+  void StatelessDatabaseOperations::ExecuteCount(uint64_t& count,
+                                                 const FindRequest& request)
+  {
+    class IntegratedCount : public ReadOnlyOperationsT3<uint64_t&, const FindRequest&,
+                                                       const IDatabaseWrapper::Capabilities&>
+    {
+    public:
+      virtual void ApplyTuple(ReadOnlyTransaction& transaction,
+                              const Tuple& tuple) ORTHANC_OVERRIDE
+      {
+        transaction.ExecuteCount(tuple.get<0>(), tuple.get<1>(), tuple.get<2>());
+      }
+    };
+
+    IDatabaseWrapper::Capabilities capabilities = db_.GetDatabaseCapabilities();
+
+    if (db_.HasIntegratedFind())
+    {
+      IntegratedCount operations;
+      operations.Apply(*this, count, request, capabilities);
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_NotImplemented);
+    }
+  }
+
   void StatelessDatabaseOperations::ExecuteFind(FindResponse& response,
                                                 const FindRequest& request)
   {
