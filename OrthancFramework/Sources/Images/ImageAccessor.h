@@ -86,7 +86,7 @@ namespace Orthanc
 
     unsigned int GetPitch() const;
 
-    unsigned int GetSize() const;
+    size_t GetSize() const;
 
     const void* GetConstBuffer() const;
 
