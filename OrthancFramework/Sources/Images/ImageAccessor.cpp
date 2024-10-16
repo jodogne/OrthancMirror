@@ -139,7 +139,7 @@ namespace Orthanc
     return pitch_;
   }
 
-  unsigned int ImageAccessor::GetSize() const
+  size_t ImageAccessor::GetSize() const
   {
     return GetHeight() * GetPitch();
   }
@@ -165,7 +165,7 @@ namespace Orthanc
   {
     if (buffer_ != NULL)
     {
-      return buffer_ + y * pitch_;
+      return buffer_ + static_cast<size_t>(y) * static_cast<size_t>(pitch_);
     }
     else
     {
@@ -184,7 +184,7 @@ namespace Orthanc
 
     if (buffer_ != NULL)
     {
-      return buffer_ + y * pitch_;
+      return buffer_ + static_cast<size_t>(y) * static_cast<size_t>(pitch_);
     }
     else
     {
@@ -325,8 +325,8 @@ namespace Orthanc
     else
     {
       uint8_t* p = (buffer_ + 
-                    y * pitch_ + 
-                    x * GetBytesPerPixel());
+                    static_cast<size_t>(y) * static_cast<size_t>(pitch_) +
+                    static_cast<size_t>(x) * static_cast<size_t>(GetBytesPerPixel()));
 
       if (readOnly_)
       {

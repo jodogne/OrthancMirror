@@ -47,7 +47,7 @@ namespace Orthanc
       */
 
       pitch_ = GetBytesPerPixel() * width_;
-      size_t size = pitch_ * height_;
+      size_t size = static_cast<size_t>(pitch_) * static_cast<size_t>(height_);
 
       if (size == 0)
       {
