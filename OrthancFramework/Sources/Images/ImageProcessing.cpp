@@ -2888,8 +2888,7 @@ namespace Orthanc
     const unsigned int width = image.GetWidth();
     const unsigned int height = image.GetHeight();
     const unsigned int pitch = image.GetPitch();
-    uint8_t* buffer = reinterpret_cast<uint8_t*>(image.GetBuffer());
-        
+
     if (image.GetFormat() != PixelFormat_RGB24 ||
         pitch < 3 * width)
     {
@@ -2898,7 +2897,7 @@ namespace Orthanc
 
     for (unsigned int y = 0; y < height; y++)
     {
-      uint8_t* p = buffer + y * pitch;
+      uint8_t* p = reinterpret_cast<uint8_t*>(image.GetRow(y));
           
       for (unsigned int x = 0; x < width; x++, p += 3)
       {
