@@ -43,6 +43,8 @@ REST API
     resource (e.g: Metadata, Children, ...)
 * With DB backend with "HasExtendedFind" support, a new /tools/count-resources API route
   is similar to tools/find but only returns the number of resources matching the criteria.
+* With DB backend with "HasExtendedFind" support, usage of 'Limit' and 'Since in /tools/find
+  is not allowed if your query includes filtering on DICOM tags that are not stored in DB.
 
 
 Maintenance

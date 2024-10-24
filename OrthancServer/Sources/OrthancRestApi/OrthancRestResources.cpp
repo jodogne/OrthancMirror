@@ -3465,6 +3465,8 @@ namespace Orthanc
 
       ResourceFinder finder(level, responseContent);
 
+      DatabaseLookup dicomTagLookup;
+
       { // common query code
         bool caseSensitive = false;
         if (request.isMember(KEY_CASE_SENSITIVE))
@@ -3473,7 +3475,6 @@ namespace Orthanc
         }
 
         { // DICOM Tag query
-          DatabaseLookup dicomTagLookup;
 
           Json::Value::Members members = request[KEY_QUERY].getMemberNames();
           for (size_t i = 0; i < members.size(); i++)
@@ -3600,6 +3601,13 @@ namespace Orthanc
         const DicomToJsonFormat format = OrthancRestApi::GetDicomFormat(request, DicomToJsonFormat_Human);
 
         finder.SetDatabaseLimits(context.GetDatabaseLimits(level));
+
+        if ((request.isMember(KEY_LIMIT) || request.isMember(KEY_SINCE)) &&
+          !dicomTagLookup.HasOnlyMainDicomTags())
+        {
+            throw OrthancException(ErrorCode_BadRequest,
+                                  "Unable to use " + std::string(KEY_LIMIT) + " or " + std::string(KEY_SINCE) + " in tools/find when querying tags that are not stored as MainDicomTags in the Database");
+        }
 
         if (request.isMember(KEY_LIMIT))
         {
