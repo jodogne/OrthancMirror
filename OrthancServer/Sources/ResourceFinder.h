@@ -94,7 +94,7 @@ namespace Orthanc
     void InjectComputedTags(DicomMap& requestedTags,
                             const FindResponse::Resource& resource) const;
 
-    void UpdateRequestLimits();
+    void UpdateRequestLimits(ServerContext& context);
 
     bool HasRequestedTags() const
     {
@@ -187,16 +187,18 @@ namespace Orthanc
                 DicomToJsonFormat format) const;
 
     void Execute(IVisitor& visitor,
-                 ServerContext& context) const;
+                 ServerContext& context);
 
     void Execute(Json::Value& target,
                  ServerContext& context,
                  DicomToJsonFormat format,
-                 bool includeAllMetadata) const;
+                 bool includeAllMetadata);
 
     bool ExecuteOneResource(Json::Value& target,
                             ServerContext& context,
                             DicomToJsonFormat format,
-                            bool includeAllMetadata) const;
+                            bool includeAllMetadata);
+
+    uint64_t Count(ServerContext& context) const;
   };
 }

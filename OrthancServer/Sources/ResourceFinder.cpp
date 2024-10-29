@@ -472,51 +472,73 @@ namespace Orthanc
   }
 
 
-  void ResourceFinder::UpdateRequestLimits()
+  void ResourceFinder::UpdateRequestLimits(ServerContext& context)
   {
-    // By default, use manual paging
-    pagingMode_ = PagingMode_FullManual;
-
-    if (databaseLimits_ != 0)
+    if (context.GetIndex().HasFindSupport())  // in this case, limits are fully implemented in DB
     {
-      request_.SetLimits(0, databaseLimits_ + 1);
+      pagingMode_ = PagingMode_FullDatabase;
+
+      if (hasLimitsSince_ || hasLimitsCount_)
+      {
+        pagingMode_ = PagingMode_FullDatabase;
+        if (databaseLimits_ != 0 && limitsCount_ > databaseLimits_)
+        {
+          LOG(WARNING) << "ResourceFinder: 'Limit' is larger than LimitFindResults/LimitFindInstances configurations, using limit fron the configuration file";
+          limitsCount_ = databaseLimits_;
+        }
+
+        request_.SetLimits(limitsSince_, limitsCount_);
+      }
+      else if (databaseLimits_ != 0)
+      {
+        request_.SetLimits(0, databaseLimits_);
+      }
+
     }
     else
     {
-      request_.ClearLimits();
-    }
+      // By default, use manual paging
+      pagingMode_ = PagingMode_FullManual;
 
-    if (lookup_.get() == NULL &&
-        (hasLimitsSince_ || hasLimitsCount_))
-    {
-      pagingMode_ = PagingMode_FullDatabase;
-      request_.SetLimits(limitsSince_, limitsCount_);
-    }
-
-    if (lookup_.get() != NULL &&
-        isSimpleLookup_ &&
-        (hasLimitsSince_ || hasLimitsCount_))
-    {
-      /**
-       * TODO-FIND: "IDatabaseWrapper::ApplyLookupResources()" only
-       * accept the "limit" argument.  The "since" must be implemented
-       * manually.
-       **/
-
-      if (hasLimitsSince_ &&
-          limitsSince_ != 0)
+      if (databaseLimits_ != 0)
       {
-        pagingMode_ = PagingMode_ManualSkip;
-        request_.SetLimits(0, limitsCount_ + limitsSince_);
+        request_.SetLimits(0, databaseLimits_ + 1);
       }
       else
       {
+        request_.ClearLimits();
+      }
+
+      if (lookup_.get() == NULL &&
+          (hasLimitsSince_ || hasLimitsCount_))
+      {
         pagingMode_ = PagingMode_FullDatabase;
-        request_.SetLimits(0, limitsCount_);
+        request_.SetLimits(limitsSince_, limitsCount_);
+      }
+
+      if (lookup_.get() != NULL &&
+          isSimpleLookup_ &&
+          (hasLimitsSince_ || hasLimitsCount_))
+      {
+        /**
+         * TODO-FIND: "IDatabaseWrapper::ApplyLookupResources()" only
+         * accept the "limit" argument.  The "since" must be implemented
+         * manually.
+         **/
+
+        if (hasLimitsSince_ &&
+            limitsSince_ != 0)
+        {
+          pagingMode_ = PagingMode_ManualSkip;
+          request_.SetLimits(0, limitsCount_ + limitsSince_);
+        }
+        else
+        {
+          pagingMode_ = PagingMode_FullDatabase;
+          request_.SetLimits(0, limitsCount_);
+        }
       }
     }
-
-    // TODO-FIND: More cases could be added, depending on "GetDatabaseCapabilities()"
   }
 
 
@@ -542,8 +564,6 @@ namespace Orthanc
       isWarning004Enabled_ = lock.GetConfiguration().IsWarningEnabled(Warnings_004_NoMainDicomTagsSignature);
       isWarning005Enabled_ = lock.GetConfiguration().IsWarningEnabled(Warnings_005_RequestingTagFromLowerResourceLevel);
     }
-
-    UpdateRequestLimits();
 
     request_.SetRetrieveMainDicomTags(responseContent_ & ResponseContentFlags_MainDicomTags);
     request_.SetRetrieveMetadata((responseContent_ & ResponseContentFlags_Metadata) || (responseContent_ & ResponseContentFlags_MetadataLegacy));
@@ -587,7 +607,6 @@ namespace Orthanc
   void ResourceFinder::SetDatabaseLimits(uint64_t limits)
   {
     databaseLimits_ = limits;
-    UpdateRequestLimits();
   }
 
 
@@ -601,7 +620,6 @@ namespace Orthanc
     {
       hasLimitsSince_ = true;
       limitsSince_ = since;
-      UpdateRequestLimits();
     }
   }
 
@@ -616,7 +634,6 @@ namespace Orthanc
     {
       hasLimitsCount_ = true;
       limitsCount_ = count;
-      UpdateRequestLimits();
     }
   }
 
@@ -674,8 +691,6 @@ namespace Orthanc
         throw OrthancException(ErrorCode_InternalError);
       }
     }
-
-    UpdateRequestLimits();
   }
 
 
@@ -991,10 +1006,19 @@ namespace Orthanc
     }
   }
 
+  uint64_t ResourceFinder::Count(ServerContext& context) const
+  {
+    uint64_t count = 0;
+    context.GetIndex().ExecuteCount(count, request_);
+    return count;
+  }
+
 
   void ResourceFinder::Execute(IVisitor& visitor,
-                               ServerContext& context) const
+                               ServerContext& context)
   {
+    UpdateRequestLimits(context);
+
     bool isWarning002Enabled = false;
     bool isWarning004Enabled = false;
 
@@ -1146,7 +1170,7 @@ namespace Orthanc
   void ResourceFinder::Execute(Json::Value& target,
                                ServerContext& context,
                                DicomToJsonFormat format,
-                               bool includeAllMetadata) const
+                               bool includeAllMetadata)
   {
     class Visitor : public IVisitor
     {
@@ -1202,6 +1226,8 @@ namespace Orthanc
       }
     };
 
+    UpdateRequestLimits(context);
+
     target = Json::arrayValue;
 
     Visitor visitor(*this, context.GetIndex(), target, format, HasRequestedTags(), includeAllMetadata);
@@ -1212,7 +1238,7 @@ namespace Orthanc
   bool ResourceFinder::ExecuteOneResource(Json::Value& target,
                                           ServerContext& context,
                                           DicomToJsonFormat format,
-                                          bool includeAllMetadata) const
+                                          bool includeAllMetadata)
   {
     Json::Value answer;
     Execute(answer, context, format, includeAllMetadata);

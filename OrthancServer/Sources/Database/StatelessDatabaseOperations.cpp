@@ -586,28 +586,25 @@ namespace Orthanc
                                                    const std::string& publicId,
                                                    ResourceType level)
   {
-    class Operations : public ReadOnlyOperationsT3<std::map<MetadataType, std::string>&, const std::string&, ResourceType>
-    {
-    public:
-      virtual void ApplyTuple(ReadOnlyTransaction& transaction,
-                              const Tuple& tuple) ORTHANC_OVERRIDE
-      {
-        ResourceType type;
-        int64_t id;
-        if (!transaction.LookupResource(id, type, tuple.get<1>()) ||
-            tuple.get<2>() != type)
-        {
-          throw OrthancException(ErrorCode_UnknownResource);
-        }
-        else
-        {
-          transaction.GetAllMetadata(tuple.get<0>(), id);
-        }
-      }
-    };
+    FindRequest request(level);
+    request.SetOrthancId(level, publicId);
+    request.SetRetrieveMetadata(true);
 
-    Operations operations;
-    operations.Apply(*this, target, publicId, level);
+    FindResponse response;
+    ExecuteFind(response, request);
+
+    if (response.GetSize() == 0)
+    {
+      throw OrthancException(ErrorCode_UnknownResource);
+    }
+    else if (response.GetSize() == 1)
+    {
+      target = response.GetResourceByIndex(0).GetMetadata(level);
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_DatabasePlugin);
+    }
   }
 
 
@@ -650,19 +647,17 @@ namespace Orthanc
   void StatelessDatabaseOperations::GetAllUuids(std::list<std::string>& target,
                                                 ResourceType resourceType)
   {
-    class Operations : public ReadOnlyOperationsT2<std::list<std::string>&, ResourceType>
-    {
-    public:
-      virtual void ApplyTuple(ReadOnlyTransaction& transaction,
-                              const Tuple& tuple) ORTHANC_OVERRIDE
-      {
-        // TODO - CANDIDATE FOR "TransactionType_Implicit"
-        transaction.GetAllPublicIds(tuple.get<0>(), tuple.get<1>());
-      }
-    };
+    // This method is tested by "orthanc-tests/Plugins/WebDav/Run.py"
+    FindRequest request(resourceType);
 
-    Operations operations;
-    operations.Apply(*this, target, resourceType);
+    FindResponse response;
+    ExecuteFind(response, request);
+
+    target.clear();
+    for (size_t i = 0; i < response.GetSize(); i++)
+    {
+      target.push_back(response.GetResourceByIndex(i).GetIdentifier());
+    }
   }
 
 
@@ -3375,6 +3370,33 @@ namespace Orthanc
   {
     boost::shared_lock<boost::shared_mutex> lock(mutex_);
     return db_.GetDatabaseCapabilities().HasFindSupport();
+  }
+
+  void StatelessDatabaseOperations::ExecuteCount(uint64_t& count,
+                                                 const FindRequest& request)
+  {
+    class IntegratedCount : public ReadOnlyOperationsT3<uint64_t&, const FindRequest&,
+                                                       const IDatabaseWrapper::Capabilities&>
+    {
+    public:
+      virtual void ApplyTuple(ReadOnlyTransaction& transaction,
+                              const Tuple& tuple) ORTHANC_OVERRIDE
+      {
+        transaction.ExecuteCount(tuple.get<0>(), tuple.get<1>(), tuple.get<2>());
+      }
+    };
+
+    IDatabaseWrapper::Capabilities capabilities = db_.GetDatabaseCapabilities();
+
+    if (db_.HasIntegratedFind())
+    {
+      IntegratedCount operations;
+      operations.Apply(*this, count, request, capabilities);
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_NotImplemented);
+    }
   }
 
   void StatelessDatabaseOperations::ExecuteFind(FindResponse& response,

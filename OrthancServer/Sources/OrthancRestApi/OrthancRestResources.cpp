@@ -3039,6 +3039,13 @@ namespace Orthanc
   }
 
 
+  enum FindType
+  {
+    FindType_Find,
+    FindType_Count
+  };
+
+  template <enum FindType requestType>
   static void Find(RestApiPostCall& call)
   {
     static const char* const KEY_CASE_SENSITIVE = "CaseSensitive";
@@ -3057,57 +3064,73 @@ namespace Orthanc
     static const char* const KEY_PARENT_PATIENT = "ParentPatient";        // New in Orthanc 1.12.5
     static const char* const KEY_PARENT_STUDY = "ParentStudy";            // New in Orthanc 1.12.5
     static const char* const KEY_PARENT_SERIES = "ParentSeries";          // New in Orthanc 1.12.5
-    static const char* const KEY_QUERY_METADATA = "QueryMetadata";        // New in Orthanc 1.12.5
+    static const char* const KEY_METADATA_QUERY = "MetadataQuery";        // New in Orthanc 1.12.5
     static const char* const KEY_RESPONSE_CONTENT = "ResponseContent";    // New in Orthanc 1.12.5
 
     if (call.IsDocumentation())
     {
       OrthancRestApi::DocumentDicomFormat(call, DicomToJsonFormat_Human);
 
-      call.GetDocumentation()
-        .SetTag("System")
-        .SetSummary("Look for local resources")
-        .SetDescription("This URI can be used to perform a search on the content of the local Orthanc server, "
-                        "in a way that is similar to querying remote DICOM modalities using C-FIND SCU: "
-                        "https://orthanc.uclouvain.be/book/users/rest.html#performing-finds-within-orthanc")
+      RestApiCallDocumentation& doc = call.GetDocumentation();
+
+      doc.SetTag("System")
         .SetRequestField(KEY_CASE_SENSITIVE, RestApiCallDocumentation::Type_Boolean,
                          "Enable case-sensitive search for PN value representations (defaults to configuration option `CaseSensitivePN`)", false)
-        .SetRequestField(KEY_EXPAND, RestApiCallDocumentation::Type_Boolean,
-                         "Also retrieve the content of the matching resources, not only their Orthanc identifiers", false)
         .SetRequestField(KEY_LEVEL, RestApiCallDocumentation::Type_String,
                          "Level of the query (`Patient`, `Study`, `Series` or `Instance`)", true)
-        .SetRequestField(KEY_LIMIT, RestApiCallDocumentation::Type_Number,
-                         "Limit the number of reported resources", false)
-        .SetRequestField(KEY_SINCE, RestApiCallDocumentation::Type_Number,
-                         "Show only the resources since the provided index (in conjunction with `Limit`)", false)
-        .SetRequestField(KEY_REQUESTED_TAGS, RestApiCallDocumentation::Type_JsonListOfStrings,
-                         "A list of DICOM tags to include in the response (applicable only if \"Expand\" is set to true).  "
-                         "The tags requested tags are returned in the 'RequestedTags' field in the response.  "
-                         "Note that, if you are requesting tags that are not listed in the Main Dicom Tags stored in DB, building the response "
-                         "might be slow since Orthanc will need to access the DICOM files.  If not specified, Orthanc will return "
-                         "all Main Dicom Tags to keep backward compatibility with Orthanc prior to 1.11.0.", false)
         .SetRequestField(KEY_QUERY, RestApiCallDocumentation::Type_JsonObject,
                          "Associative array containing the filter on the values of the DICOM tags", true)
         .SetRequestField(KEY_LABELS, RestApiCallDocumentation::Type_JsonListOfStrings,
                          "List of strings specifying which labels to look for in the resources (new in Orthanc 1.12.0)", true)
         .SetRequestField(KEY_LABELS_CONSTRAINT, RestApiCallDocumentation::Type_String,
                          "Constraint on the labels, can be `All`, `Any`, or `None` (defaults to `All`, new in Orthanc 1.12.0)", true)
-        .SetRequestField(KEY_ORDER_BY, RestApiCallDocumentation::Type_JsonListOfObjects,
-                         "Array of associative arrays containing the requested ordering (new in Orthanc 1.12.5)", true)
         .SetRequestField(KEY_PARENT_PATIENT, RestApiCallDocumentation::Type_String,
                          "Limit the reported resources to descendants of this patient (new in Orthanc 1.12.5)", true)
         .SetRequestField(KEY_PARENT_STUDY, RestApiCallDocumentation::Type_String,
                          "Limit the reported resources to descendants of this study (new in Orthanc 1.12.5)", true)
         .SetRequestField(KEY_PARENT_SERIES, RestApiCallDocumentation::Type_String,
                          "Limit the reported resources to descendants of this series (new in Orthanc 1.12.5)", true)
-        .SetRequestField(KEY_QUERY_METADATA, RestApiCallDocumentation::Type_JsonObject,
-                         "Associative array containing the filter on the values of the metadata (new in Orthanc 1.12.5)", true)
-        .SetRequestField(KEY_RESPONSE_CONTENT, RestApiCallDocumentation::Type_JsonListOfStrings,
-                         "Defines the content of response for each returned resource.  Allowed values are `MainDicomTags`, "
-                         "`Metadata`, `Children`, `Parent`, `Labels`, `Status`, `IsStable`, `Attachments`.  "
-                         "(new in Orthanc 1.12.5)", true)
-        .AddAnswerType(MimeType_Json, "JSON array containing either the Orthanc identifiers, or detailed information "
-                       "about the reported resources (if `Expand` argument is `true`)");
+        .SetRequestField(KEY_METADATA_QUERY, RestApiCallDocumentation::Type_JsonObject,
+                         "Associative array containing the filter on the values of the metadata (new in Orthanc 1.12.5)", true);
+      
+      switch (requestType)
+      {
+        case FindType_Find:
+          doc.SetSummary("Look for local resources")
+          .SetDescription("This URI can be used to perform a search on the content of the local Orthanc server, "
+                          "in a way that is similar to querying remote DICOM modalities using C-FIND SCU: "
+                          "https://orthanc.uclouvain.be/book/users/rest.html#performing-finds-within-orthanc")
+          .SetRequestField(KEY_EXPAND, RestApiCallDocumentation::Type_Boolean,
+                          "Also retrieve the content of the matching resources, not only their Orthanc identifiers", false)
+          .SetRequestField(KEY_LIMIT, RestApiCallDocumentation::Type_Number,
+                          "Limit the number of reported resources", false)
+          .SetRequestField(KEY_SINCE, RestApiCallDocumentation::Type_Number,
+                          "Show only the resources since the provided index (in conjunction with `Limit`)", false)
+          .SetRequestField(KEY_REQUESTED_TAGS, RestApiCallDocumentation::Type_JsonListOfStrings,
+                          "A list of DICOM tags to include in the response (applicable only if \"Expand\" is set to true).  "
+                          "The tags requested tags are returned in the 'RequestedTags' field in the response.  "
+                          "Note that, if you are requesting tags that are not listed in the Main Dicom Tags stored in DB, building the response "
+                          "might be slow since Orthanc will need to access the DICOM files.  If not specified, Orthanc will return "
+                          "all Main Dicom Tags to keep backward compatibility with Orthanc prior to 1.11.0.", false)
+          .SetRequestField(KEY_ORDER_BY, RestApiCallDocumentation::Type_JsonListOfObjects,
+                          "Array of associative arrays containing the requested ordering (new in Orthanc 1.12.5)", true)
+          .SetRequestField(KEY_RESPONSE_CONTENT, RestApiCallDocumentation::Type_JsonListOfStrings,
+                          "Defines the content of response for each returned resource.  Allowed values are `MainDicomTags`, "
+                          "`Metadata`, `Children`, `Parent`, `Labels`, `Status`, `IsStable`, `Attachments`.  "
+                          "(new in Orthanc 1.12.5)", true)
+          .AddAnswerType(MimeType_Json, "JSON array containing either the Orthanc identifiers, or detailed information "
+                        "about the reported resources (if `Expand` argument is `true`)");
+          break;
+        case FindType_Count:
+          doc.SetSummary("Count local resources")
+          .SetDescription("This URI can be used to count the resources that are matching criterias on the content of the local Orthanc server, "
+                          "in a way that is similar to tools/find")
+          .AddAnswerType(MimeType_Json, "A JSON object with the `Count` of matching resources");
+          break;
+        default:
+          throw OrthancException(ErrorCode_NotImplemented);
+      }
+        
       return;
     }
 
@@ -3138,30 +3161,6 @@ namespace Orthanc
       throw OrthancException(ErrorCode_BadRequest, 
                              "Field \"" + std::string(KEY_CASE_SENSITIVE) + "\" must be a Boolean");
     }
-    else if (request.isMember(KEY_LIMIT) && 
-             request[KEY_LIMIT].type() != Json::intValue)
-    {
-      throw OrthancException(ErrorCode_BadRequest, 
-                             "Field \"" + std::string(KEY_LIMIT) + "\" must be an integer");
-    }
-    else if (request.isMember(KEY_SINCE) &&
-             request[KEY_SINCE].type() != Json::intValue)
-    {
-      throw OrthancException(ErrorCode_BadRequest, 
-                             "Field \"" + std::string(KEY_SINCE) + "\" must be an integer");
-    }
-    else if (request.isMember(KEY_REQUESTED_TAGS) &&
-             request[KEY_REQUESTED_TAGS].type() != Json::arrayValue)
-    {
-      throw OrthancException(ErrorCode_BadRequest, 
-                             "Field \"" + std::string(KEY_REQUESTED_TAGS) + "\" must be an array");
-    }
-    else if (request.isMember(KEY_RESPONSE_CONTENT) &&
-             request[KEY_RESPONSE_CONTENT].type() != Json::arrayValue)
-    {
-      throw OrthancException(ErrorCode_BadRequest, 
-                             "Field \"" + std::string(KEY_RESPONSE_CONTENT) + "\" must be an array");
-    }
     else if (request.isMember(KEY_LABELS) &&
              request[KEY_LABELS].type() != Json::arrayValue)
     {
@@ -3174,17 +3173,11 @@ namespace Orthanc
       throw OrthancException(ErrorCode_BadRequest, 
                              "Field \"" + std::string(KEY_LABELS_CONSTRAINT) + "\" must be an array of strings");
     }
-    else if (request.isMember(KEY_ORDER_BY) &&
-             request[KEY_ORDER_BY].type() != Json::arrayValue)
+    else if (request.isMember(KEY_METADATA_QUERY) &&
+             request[KEY_METADATA_QUERY].type() != Json::objectValue)
     {
       throw OrthancException(ErrorCode_BadRequest, 
-                             "Field \"" + std::string(KEY_ORDER_BY) + "\" must be an array");
-    }
-    else if (request.isMember(KEY_QUERY_METADATA) &&
-             request[KEY_QUERY_METADATA].type() != Json::objectValue)
-    {
-      throw OrthancException(ErrorCode_BadRequest, 
-                             "Field \"" + std::string(KEY_QUERY_METADATA) + "\" must be an JSON object");
+                             "Field \"" + std::string(KEY_METADATA_QUERY) + "\" must be an JSON object");
     }
     else if (request.isMember(KEY_PARENT_PATIENT) &&
              request[KEY_PARENT_PATIENT].type() != Json::stringValue)
@@ -3204,60 +3197,68 @@ namespace Orthanc
       throw OrthancException(ErrorCode_BadRequest, 
                              "Field \"" + std::string(KEY_PARENT_SERIES) + "\" must be a string");
     }
+    else if (requestType == FindType_Find && request.isMember(KEY_LIMIT) && 
+             request[KEY_LIMIT].type() != Json::intValue)
+    {
+      throw OrthancException(ErrorCode_BadRequest, 
+                             "Field \"" + std::string(KEY_LIMIT) + "\" must be an integer");
+    }
+    else if (requestType == FindType_Find && request.isMember(KEY_SINCE) &&
+             request[KEY_SINCE].type() != Json::intValue)
+    {
+      throw OrthancException(ErrorCode_BadRequest, 
+                             "Field \"" + std::string(KEY_SINCE) + "\" must be an integer");
+    }
+    else if (requestType == FindType_Find && request.isMember(KEY_REQUESTED_TAGS) &&
+             request[KEY_REQUESTED_TAGS].type() != Json::arrayValue)
+    {
+      throw OrthancException(ErrorCode_BadRequest, 
+                             "Field \"" + std::string(KEY_REQUESTED_TAGS) + "\" must be an array");
+    }
+    else if (requestType == FindType_Find && request.isMember(KEY_RESPONSE_CONTENT) &&
+             request[KEY_RESPONSE_CONTENT].type() != Json::arrayValue)
+    {
+      throw OrthancException(ErrorCode_BadRequest, 
+                             "Field \"" + std::string(KEY_RESPONSE_CONTENT) + "\" must be an array");
+    }
+    else if (requestType == FindType_Find && request.isMember(KEY_ORDER_BY) &&
+             request[KEY_ORDER_BY].type() != Json::arrayValue)
+    {
+      throw OrthancException(ErrorCode_BadRequest, 
+                             "Field \"" + std::string(KEY_ORDER_BY) + "\" must be an array");
+    }
     else if (true)
     {
       ResponseContentFlags responseContent = ResponseContentFlags_ID;
       
-      if (request.isMember(KEY_RESPONSE_CONTENT))
+      if (requestType == FindType_Find)
       {
-        responseContent = ResponseContentFlags_Default;
-
-        for (Json::ArrayIndex i = 0; i < request[KEY_RESPONSE_CONTENT].size(); ++i)
+        if (request.isMember(KEY_RESPONSE_CONTENT))
         {
-          responseContent = static_cast<ResponseContentFlags>(static_cast<uint32_t>(responseContent) | StringToResponseContent(request[KEY_RESPONSE_CONTENT][i].asString()));
+          responseContent = ResponseContentFlags_Default;
+
+          for (Json::ArrayIndex i = 0; i < request[KEY_RESPONSE_CONTENT].size(); ++i)
+          {
+            responseContent = static_cast<ResponseContentFlags>(static_cast<uint32_t>(responseContent) | StringToResponseContent(request[KEY_RESPONSE_CONTENT][i].asString()));
+          }
+        }
+        else if (request.isMember(KEY_EXPAND) && request[KEY_EXPAND].asBool())
+        {
+          responseContent = ResponseContentFlags_ExpandTrue;
         }
       }
-      else if (request.isMember(KEY_EXPAND) && request[KEY_EXPAND].asBool())
+      else if (requestType == FindType_Count)
       {
-        responseContent = ResponseContentFlags_ExpandTrue;
+        responseContent = ResponseContentFlags_INTERNAL_CountResources;
       }
 
       const ResourceType level = StringToResourceType(request[KEY_LEVEL].asCString());
 
       ResourceFinder finder(level, responseContent);
-      finder.SetDatabaseLimits(context.GetDatabaseLimits(level));
 
-      const DicomToJsonFormat format = OrthancRestApi::GetDicomFormat(request, DicomToJsonFormat_Human);
+      DatabaseLookup dicomTagLookup;
 
-      if (request.isMember(KEY_LIMIT))
-      {
-        int64_t tmp = request[KEY_LIMIT].asInt64();
-        if (tmp < 0)
-        {
-          throw OrthancException(ErrorCode_ParameterOutOfRange,
-                                 "Field \"" + std::string(KEY_LIMIT) + "\" must be a positive integer");
-        }
-        else if (tmp != 0)  // This is for compatibility with Orthanc 1.12.4
-        {
-          finder.SetLimitsCount(static_cast<uint64_t>(tmp));
-        }
-      }
-
-      if (request.isMember(KEY_SINCE))
-      {
-        int64_t tmp = request[KEY_SINCE].asInt64();
-        if (tmp < 0)
-        {
-          throw OrthancException(ErrorCode_ParameterOutOfRange,
-                                 "Field \"" + std::string(KEY_SINCE) + "\" must be a positive integer");
-        }
-        else
-        {
-          finder.SetLimitsSince(static_cast<uint64_t>(tmp));
-        }
-      }
-
-      {
+      { // common query code
         bool caseSensitive = false;
         if (request.isMember(KEY_CASE_SENSITIVE))
         {
@@ -3265,7 +3266,6 @@ namespace Orthanc
         }
 
         { // DICOM Tag query
-          DatabaseLookup dicomTagLookup;
 
           Json::Value::Members members = request[KEY_QUERY].getMemberNames();
           for (size_t i = 0; i < members.size(); i++)
@@ -3288,21 +3288,27 @@ namespace Orthanc
             }
           }
 
+          if (requestType == FindType_Count && !dicomTagLookup.HasOnlyMainDicomTags())
+          {
+              throw OrthancException(ErrorCode_BadRequest,
+                                    "Unable to count resources when querying tags that are not stored as MainDicomTags in the Database");
+          }
+
           finder.SetDatabaseLookup(dicomTagLookup);
         }
 
         { // Metadata query
-          Json::Value::Members members = request[KEY_QUERY_METADATA].getMemberNames();
+          Json::Value::Members members = request[KEY_METADATA_QUERY].getMemberNames();
           for (size_t i = 0; i < members.size(); i++)
           {
-            if (request[KEY_QUERY_METADATA][members[i]].type() != Json::stringValue)
+            if (request[KEY_METADATA_QUERY][members[i]].type() != Json::stringValue)
             {
               throw OrthancException(ErrorCode_BadRequest,
                                     "Tag \"" + members[i] + "\" must be associated with a string");
             }
             MetadataType metadata = StringToMetadata(members[i]);
 
-            const std::string value = request[KEY_QUERY_METADATA][members[i]].asString();
+            const std::string value = request[KEY_METADATA_QUERY][members[i]].asString();
 
             if (!value.empty())
             {
@@ -3324,132 +3330,186 @@ namespace Orthanc
             }
           }
         }
-      }
 
-      if (request.isMember(KEY_REQUESTED_TAGS))
-      {
-        std::set<DicomTag> requestedTags;
-        FromDcmtkBridge::ParseListOfTags(requestedTags, request[KEY_REQUESTED_TAGS]);
-        finder.AddRequestedTags(requestedTags);
-      }
-
-      if (request.isMember(KEY_LABELS))  // New in Orthanc 1.12.0
-      {
-        for (Json::Value::ArrayIndex i = 0; i < request[KEY_LABELS].size(); i++)
-        {
-          if (request[KEY_LABELS][i].type() != Json::stringValue)
+        { // labels query
+          if (request.isMember(KEY_LABELS))  // New in Orthanc 1.12.0
           {
-            throw OrthancException(ErrorCode_BadRequest, "Field \"" + std::string(KEY_LABELS) + "\" must contain strings");
+            for (Json::Value::ArrayIndex i = 0; i < request[KEY_LABELS].size(); i++)
+            {
+              if (request[KEY_LABELS][i].type() != Json::stringValue)
+              {
+                throw OrthancException(ErrorCode_BadRequest, "Field \"" + std::string(KEY_LABELS) + "\" must contain strings");
+              }
+              else
+              {
+                finder.AddLabel(request[KEY_LABELS][i].asString());
+              }
+            }
           }
-          else
-          {
-            finder.AddLabel(request[KEY_LABELS][i].asString());
-          }
-        }
-      }
 
-      finder.SetLabelsConstraint(LabelsConstraint_All);
-
-      if (request.isMember(KEY_LABELS_CONSTRAINT))
-      {
-        const std::string& s = request[KEY_LABELS_CONSTRAINT].asString();
-        if (s == "All")
-        {
           finder.SetLabelsConstraint(LabelsConstraint_All);
-        }
-        else if (s == "Any")
-        {
-          finder.SetLabelsConstraint(LabelsConstraint_Any);
-        }
-        else if (s == "None")
-        {
-          finder.SetLabelsConstraint(LabelsConstraint_None);
-        }
-        else
-        {
-          throw OrthancException(ErrorCode_BadRequest, "Field \"" + std::string(KEY_LABELS_CONSTRAINT) + "\" must be \"All\", \"Any\", or \"None\"");
-        }
-      }
 
-      if (request.isMember(KEY_PARENT_PATIENT)) // New in Orthanc 1.12.5
-      {
-        finder.SetOrthancId(ResourceType_Patient, request[KEY_PARENT_PATIENT].asString());
-      }
-      else if (request.isMember(KEY_PARENT_STUDY))
-      {
-        finder.SetOrthancId(ResourceType_Study, request[KEY_PARENT_STUDY].asString());
-      }
-      else if (request.isMember(KEY_PARENT_SERIES))
-      {
-        finder.SetOrthancId(ResourceType_Series, request[KEY_PARENT_SERIES].asString());
-     }
-
-      if (request.isMember(KEY_ORDER_BY))  // New in Orthanc 1.12.5
-      {
-        for (Json::Value::ArrayIndex i = 0; i < request[KEY_ORDER_BY].size(); i++)
-        {
-          if (request[KEY_ORDER_BY][i].type() != Json::objectValue)
+          if (request.isMember(KEY_LABELS_CONSTRAINT))
           {
-            throw OrthancException(ErrorCode_BadRequest, "Field \"" + std::string(KEY_ORDER_BY) + "\" must contain objects");
+            const std::string& s = request[KEY_LABELS_CONSTRAINT].asString();
+            if (s == "All")
+            {
+              finder.SetLabelsConstraint(LabelsConstraint_All);
+            }
+            else if (s == "Any")
+            {
+              finder.SetLabelsConstraint(LabelsConstraint_Any);
+            }
+            else if (s == "None")
+            {
+              finder.SetLabelsConstraint(LabelsConstraint_None);
+            }
+            else
+            {
+              throw OrthancException(ErrorCode_BadRequest, "Field \"" + std::string(KEY_LABELS_CONSTRAINT) + "\" must be \"All\", \"Any\", or \"None\"");
+            }
+          }
+        }
+
+        // parents query
+        if (request.isMember(KEY_PARENT_PATIENT)) // New in Orthanc 1.12.5
+        {
+          finder.SetOrthancId(ResourceType_Patient, request[KEY_PARENT_PATIENT].asString());
+        }
+        else if (request.isMember(KEY_PARENT_STUDY))
+        {
+          finder.SetOrthancId(ResourceType_Study, request[KEY_PARENT_STUDY].asString());
+        }
+        else if (request.isMember(KEY_PARENT_SERIES))
+        {
+          finder.SetOrthancId(ResourceType_Series, request[KEY_PARENT_SERIES].asString());
+        }
+      }
+
+      // response
+      if (requestType == FindType_Find)
+      {
+        const DicomToJsonFormat format = OrthancRestApi::GetDicomFormat(request, DicomToJsonFormat_Human);
+
+        finder.SetDatabaseLimits(context.GetDatabaseLimits(level));
+
+        if ((request.isMember(KEY_LIMIT) || request.isMember(KEY_SINCE)) &&
+          !dicomTagLookup.HasOnlyMainDicomTags())
+        {
+            throw OrthancException(ErrorCode_BadRequest,
+                                  "Unable to use " + std::string(KEY_LIMIT) + " or " + std::string(KEY_SINCE) + " in tools/find when querying tags that are not stored as MainDicomTags in the Database");
+        }
+
+        if (request.isMember(KEY_LIMIT))
+        {
+          int64_t tmp = request[KEY_LIMIT].asInt64();
+          if (tmp < 0)
+          {
+            throw OrthancException(ErrorCode_ParameterOutOfRange,
+                                  "Field \"" + std::string(KEY_LIMIT) + "\" must be a positive integer");
+          }
+          else if (tmp != 0)  // This is for compatibility with Orthanc 1.12.4
+          {
+            finder.SetLimitsCount(static_cast<uint64_t>(tmp));
+          }
+        }
+
+        if (request.isMember(KEY_SINCE))
+        {
+          int64_t tmp = request[KEY_SINCE].asInt64();
+          if (tmp < 0)
+          {
+            throw OrthancException(ErrorCode_ParameterOutOfRange,
+                                  "Field \"" + std::string(KEY_SINCE) + "\" must be a positive integer");
           }
           else
           {
-            const Json::Value& order = request[KEY_ORDER_BY][i];
-            FindRequest::OrderingDirection direction;
-            std::string directionString;
-            std::string typeString;
+            finder.SetLimitsSince(static_cast<uint64_t>(tmp));
+          }
+        }
 
-            if (!order.isMember(KEY_ORDER_BY_KEY) || order[KEY_ORDER_BY_KEY].type() != Json::stringValue)
-            {
-              throw OrthancException(ErrorCode_BadRequest, "Field \"" + std::string(KEY_ORDER_BY_KEY) + "\" must be a string");
-            }
+        if (request.isMember(KEY_REQUESTED_TAGS))
+        {
+          std::set<DicomTag> requestedTags;
+          FromDcmtkBridge::ParseListOfTags(requestedTags, request[KEY_REQUESTED_TAGS]);
+          finder.AddRequestedTags(requestedTags);
+        }
 
-            if (!order.isMember(KEY_ORDER_BY_DIRECTION) || order[KEY_ORDER_BY_DIRECTION].type() != Json::stringValue)
+        if (request.isMember(KEY_ORDER_BY))  // New in Orthanc 1.12.5
+        {
+          for (Json::Value::ArrayIndex i = 0; i < request[KEY_ORDER_BY].size(); i++)
+          {
+            if (request[KEY_ORDER_BY][i].type() != Json::objectValue)
             {
-              throw OrthancException(ErrorCode_BadRequest, "Field \"" + std::string(KEY_ORDER_BY_DIRECTION) + "\" must be \"ASC\" or \"DESC\"");
-            }
-
-            Toolbox::ToLowerCase(directionString,  order[KEY_ORDER_BY_DIRECTION].asString());
-            if (directionString == "asc")
-            {
-              direction = FindRequest::OrderingDirection_Ascending;
-            }
-            else if (directionString == "desc")
-            {
-              direction = FindRequest::OrderingDirection_Descending;
+              throw OrthancException(ErrorCode_BadRequest, "Field \"" + std::string(KEY_ORDER_BY) + "\" must contain objects");
             }
             else
             {
-              throw OrthancException(ErrorCode_BadRequest, "Field \"" + std::string(KEY_ORDER_BY_DIRECTION) + "\" must be \"ASC\" or \"DESC\"");
-            }
+              const Json::Value& order = request[KEY_ORDER_BY][i];
+              FindRequest::OrderingDirection direction;
+              std::string directionString;
+              std::string typeString;
 
-            if (!order.isMember(KEY_ORDER_BY_TYPE) || order[KEY_ORDER_BY_TYPE].type() != Json::stringValue)
-            {
-              throw OrthancException(ErrorCode_BadRequest, "Field \"" + std::string(KEY_ORDER_BY_TYPE) + "\" must be \"DicomTag\" or \"Metadata\"");
-            }
+              if (!order.isMember(KEY_ORDER_BY_KEY) || order[KEY_ORDER_BY_KEY].type() != Json::stringValue)
+              {
+                throw OrthancException(ErrorCode_BadRequest, "Field \"" + std::string(KEY_ORDER_BY_KEY) + "\" must be a string");
+              }
 
-            Toolbox::ToLowerCase(typeString, order[KEY_ORDER_BY_TYPE].asString());
-            if (typeString == "dicomtag")
-            {
-              DicomTag tag = FromDcmtkBridge::ParseTag(order[KEY_ORDER_BY_KEY].asString());
-              finder.AddOrdering(tag, direction);
-            }
-            else if (typeString == "metadata")
-            {
-              MetadataType metadata = StringToMetadata(order[KEY_ORDER_BY_KEY].asString());
-              finder.AddOrdering(metadata, direction);
-            }
-            else
-            {
-              throw OrthancException(ErrorCode_BadRequest, "Field \"" + std::string(KEY_ORDER_BY_TYPE) + "\" must be \"DicomTag\" or \"Metadata\"");
+              if (!order.isMember(KEY_ORDER_BY_DIRECTION) || order[KEY_ORDER_BY_DIRECTION].type() != Json::stringValue)
+              {
+                throw OrthancException(ErrorCode_BadRequest, "Field \"" + std::string(KEY_ORDER_BY_DIRECTION) + "\" must be \"ASC\" or \"DESC\"");
+              }
+
+              Toolbox::ToLowerCase(directionString,  order[KEY_ORDER_BY_DIRECTION].asString());
+              if (directionString == "asc")
+              {
+                direction = FindRequest::OrderingDirection_Ascending;
+              }
+              else if (directionString == "desc")
+              {
+                direction = FindRequest::OrderingDirection_Descending;
+              }
+              else
+              {
+                throw OrthancException(ErrorCode_BadRequest, "Field \"" + std::string(KEY_ORDER_BY_DIRECTION) + "\" must be \"ASC\" or \"DESC\"");
+              }
+
+              if (!order.isMember(KEY_ORDER_BY_TYPE) || order[KEY_ORDER_BY_TYPE].type() != Json::stringValue)
+              {
+                throw OrthancException(ErrorCode_BadRequest, "Field \"" + std::string(KEY_ORDER_BY_TYPE) + "\" must be \"DicomTag\" or \"Metadata\"");
+              }
+
+              Toolbox::ToLowerCase(typeString, order[KEY_ORDER_BY_TYPE].asString());
+              if (typeString == "dicomtag")
+              {
+                DicomTag tag = FromDcmtkBridge::ParseTag(order[KEY_ORDER_BY_KEY].asString());
+                finder.AddOrdering(tag, direction);
+              }
+              else if (typeString == "metadata")
+              {
+                MetadataType metadata = StringToMetadata(order[KEY_ORDER_BY_KEY].asString());
+                finder.AddOrdering(metadata, direction);
+              }
+              else
+              {
+                throw OrthancException(ErrorCode_BadRequest, "Field \"" + std::string(KEY_ORDER_BY_TYPE) + "\" must be \"DicomTag\" or \"Metadata\"");
+              }
             }
           }
         }
+
+        Json::Value answer;
+        finder.Execute(answer, context, format, false /* no "Metadata" field */);
+        call.GetOutput().AnswerJson(answer);
+      }
+      else if (requestType == FindType_Count)
+      {
+        uint64_t count = finder.Count(context);
+        Json::Value answer;
+        answer["Count"] = Json::Value::UInt64(count);
+        call.GetOutput().AnswerJson(answer);
       }
 
-      Json::Value answer;
-      finder.Execute(answer, context, format, false /* no "Metadata" field */);
-      call.GetOutput().AnswerJson(answer);
     }
   }
 
@@ -4237,7 +4297,11 @@ namespace Orthanc
     }
 
     Register("/tools/lookup", Lookup);
-    Register("/tools/find", Find);
+    Register("/tools/find", Find<FindType_Find>);
+    if (context_.GetIndex().HasFindSupport())
+    {
+      Register("/tools/count-resources", Find<FindType_Count>);
+    }
 
     Register("/patients/{id}/studies", GetChildResources<ResourceType_Patient, ResourceType_Study>);
     Register("/patients/{id}/series", GetChildResources<ResourceType_Patient, ResourceType_Series>);
