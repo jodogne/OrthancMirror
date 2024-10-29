@@ -39,102 +39,6 @@ namespace Orthanc
   class ParsedDicomFile;
   struct ServerIndexChange;
 
-  class ExpandedResource : public boost::noncopyable
-  {
-  private:
-    std::string                         id_;
-    ResourceType                        level_;
-    DicomMap                            tags_;  // all main tags and main sequences from DB
-
-  public:
-    std::string                         mainDicomTagsSignature_;
-    std::string                         parentId_;
-    std::list<std::string>              childrenIds_;
-    std::map<MetadataType, std::string> metadata_;
-    std::string                         anonymizedFrom_;
-    std::string                         modifiedFrom_;
-    std::string                         lastUpdate_;
-    std::set<DicomTag>                  missingRequestedTags_;
-
-    // for patients/studies/series
-    bool                                isStable_;
-
-    // for series only
-    int                                 expectedNumberOfInstances_;
-    std::string                         status_;
-
-    // for instances only
-    size_t                              fileSize_;
-    std::string                         fileUuid_;
-    int                                 indexInSeries_;
-
-    // New in Orthanc 1.12.0
-    std::set<std::string>               labels_;
-
-  public:
-    // TODO - Cleanup
-    ExpandedResource() :
-      level_(ResourceType_Instance),
-      isStable_(false),
-      expectedNumberOfInstances_(0),
-      fileSize_(0),
-      indexInSeries_(0)
-    {
-    }
-
-    void SetResource(ResourceType level,
-                     const std::string& id)
-    {
-      level_ = level;
-      id_ = id;
-    }
-
-    const std::string& GetPublicId() const
-    {
-      return id_;
-    }
-
-    ResourceType GetLevel() const
-    {
-      return level_;
-    }
-
-    DicomMap& GetMainDicomTags()
-    {
-      return tags_;
-    }
-
-    const DicomMap& GetMainDicomTags() const
-    {
-      return tags_;
-    }
-  };
-
-  enum ExpandResourceFlags
-  {
-    ExpandResourceFlags_None                    = 0,
-    // used to fetch from DB and for output
-    ExpandResourceFlags_IncludeMetadata         = (1 << 0),
-    ExpandResourceFlags_IncludeChildren         = (1 << 1),
-    ExpandResourceFlags_IncludeMainDicomTags    = (1 << 2),
-    ExpandResourceFlags_IncludeLabels           = (1 << 3),
-
-    // only used for output
-    ExpandResourceFlags_IncludeAllMetadata      = (1 << 4),  // new in Orthanc 1.12.4
-    ExpandResourceFlags_IncludeIsStable         = (1 << 5),  // new in Orthanc 1.12.4
-
-    ExpandResourceFlags_DefaultExtract = (ExpandResourceFlags_IncludeMetadata |
-                                          ExpandResourceFlags_IncludeChildren |
-                                          ExpandResourceFlags_IncludeMainDicomTags |
-                                          ExpandResourceFlags_IncludeLabels),
-
-    ExpandResourceFlags_DefaultOutput = (ExpandResourceFlags_IncludeMetadata |
-                                         ExpandResourceFlags_IncludeChildren |
-                                         ExpandResourceFlags_IncludeMainDicomTags |
-                                         ExpandResourceFlags_IncludeLabels |
-                                         ExpandResourceFlags_IncludeIsStable)
-  };
-
   class StatelessDatabaseOperations : public boost::noncopyable
   {
   public:
@@ -648,12 +552,6 @@ namespace Orthanc
   
     void Apply(IReadWriteOperations& operations);
 
-    bool ExpandResource(ExpandedResource& target,
-                        const std::string& publicId,
-                        ResourceType level,
-                        const std::set<DicomTag>& requestedTags,
-                        ExpandResourceFlags expandFlags);
-
     void GetAllMetadata(std::map<MetadataType, std::string>& target,
                         const std::string& publicId,
                         ResourceType level);
@@ -759,14 +657,6 @@ namespace Orthanc
     bool LookupParent(std::string& target,
                       const std::string& publicId,
                       ResourceType parentType);
-
-    void ApplyLookupResources(std::vector<std::string>& resourcesId,
-                              std::vector<std::string>* instancesId,  // Can be NULL if not needed
-                              const DatabaseLookup& lookup,
-                              ResourceType queryLevel,
-                              const std::set<std::string>& labels,
-                              LabelsConstraint labelsConstraint,
-                              uint32_t limit);
 
     bool DeleteResource(Json::Value& remainingAncestor /* out */,
                         const std::string& uuid,
