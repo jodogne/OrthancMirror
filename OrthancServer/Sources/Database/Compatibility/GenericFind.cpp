@@ -56,7 +56,7 @@ namespace Orthanc
     }
 
     static void GetChildren(std::list<std::string>& target,
-                            IDatabaseWrapper::ITransaction& transaction,
+                            IDatabaseWrapper::ICompatibilityTransaction& transaction,
                             const std::list<int64_t>& resources)
     {
       target.clear();
@@ -71,6 +71,7 @@ namespace Orthanc
 
     static void GetChildrenIdentifiers(std::list<std::string>& children,
                                        IDatabaseWrapper::ITransaction& transaction,
+                                       IDatabaseWrapper::ICompatibilityTransaction& compatibilityTransaction,
                                        const OrthancIdentifiers& identifiers,
                                        ResourceType topLevel,
                                        ResourceType bottomLevel)
@@ -100,7 +101,7 @@ namespace Orthanc
         ResourceType nextLevel = GetChildResourceType(currentLevel);
         if (nextLevel == bottomLevel)
         {
-          GetChildren(children, transaction, currentResources);
+          GetChildren(children, compatibilityTransaction, currentResources);
         }
         else
         {
@@ -209,7 +210,8 @@ namespace Orthanc
                !request.GetOrthancIdentifiers().HasSeriesId() &&
                !request.GetOrthancIdentifiers().HasInstanceId())
       {
-        GetChildrenIdentifiers(identifiers, transaction_, request.GetOrthancIdentifiers(), ResourceType_Patient, request.GetLevel());
+        GetChildrenIdentifiers(identifiers, transaction_, compatibilityTransaction_,
+                               request.GetOrthancIdentifiers(), ResourceType_Patient, request.GetLevel());
       }
       else if (IsRequestWithoutContraint(request) &&
                (request.GetLevel() == ResourceType_Series ||
@@ -219,7 +221,8 @@ namespace Orthanc
                !request.GetOrthancIdentifiers().HasSeriesId() &&
                !request.GetOrthancIdentifiers().HasInstanceId())
       {
-        GetChildrenIdentifiers(identifiers, transaction_, request.GetOrthancIdentifiers(), ResourceType_Study, request.GetLevel());
+        GetChildrenIdentifiers(identifiers, transaction_, compatibilityTransaction_,
+                               request.GetOrthancIdentifiers(), ResourceType_Study, request.GetLevel());
       }
       else if (IsRequestWithoutContraint(request) &&
                request.GetLevel() == ResourceType_Instance &&
@@ -228,7 +231,8 @@ namespace Orthanc
                request.GetOrthancIdentifiers().HasSeriesId() &&
                !request.GetOrthancIdentifiers().HasInstanceId())
       {
-        GetChildrenIdentifiers(identifiers, transaction_, request.GetOrthancIdentifiers(), ResourceType_Series, request.GetLevel());
+        GetChildrenIdentifiers(identifiers, transaction_, compatibilityTransaction_,
+                               request.GetOrthancIdentifiers(), ResourceType_Series, request.GetLevel());
       }
       else if (request.GetMetadataConstraintsCount() == 0 &&
                request.GetOrdering().empty() &&
@@ -393,7 +397,7 @@ namespace Orthanc
 
       if (request.IsRetrieveParentIdentifier())
       {
-        if (!transaction_.LookupResourceAndParent(internalId, level, parent, identifier))
+        if (!compatibilityTransaction_.LookupResourceAndParent(internalId, level, parent, identifier))
         {
           return;  // The resource is not available anymore
         }
@@ -519,7 +523,7 @@ namespace Orthanc
             for (std::list<int64_t>::const_iterator it = currentIds.begin(); it != currentIds.end(); ++it)
             {
               std::list<std::string> ids;
-              transaction_.GetChildrenPublicId(ids, *it);
+              compatibilityTransaction_.GetChildrenPublicId(ids, *it);
 
               for (std::list<std::string>::const_iterator it2 = ids.begin(); it2 != ids.end(); ++it2)
               {
