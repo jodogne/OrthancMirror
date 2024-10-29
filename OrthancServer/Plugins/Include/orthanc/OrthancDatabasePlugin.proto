@@ -961,6 +961,7 @@ message Find {        // New in Orthanc 1.12.5
     string one_instance_public_id = 13;
     repeated Metadata one_instance_metadata = 14;
     repeated FileInfo one_instance_attachments = 15;
+    repeated int64 attachments_revisions = 16;
   }
 }
 

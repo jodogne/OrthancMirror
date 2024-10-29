@@ -455,11 +455,14 @@ namespace Orthanc
   }
 
 
-  void FindResponse::Resource::AddAttachment(const FileInfo& attachment)
+  void FindResponse::Resource::AddAttachment(const FileInfo& attachment,
+                                             int64_t revision)
   {
-    if (attachments_.find(attachment.GetContentType()) == attachments_.end())
+    if (attachments_.find(attachment.GetContentType()) == attachments_.end() &&
+        revisions_.find(attachment.GetContentType()) == revisions_.end())
     {
       attachments_[attachment.GetContentType()] = attachment;
+      revisions_[attachment.GetContentType()] = revision;
     }
     else
     {
@@ -468,17 +471,36 @@ namespace Orthanc
   }
 
 
-  bool FindResponse::Resource::LookupAttachment(FileInfo& target, FileContentType type) const
+  bool FindResponse::Resource::LookupAttachment(FileInfo& target,
+                                                int64_t& revision,
+                                                FileContentType type) const
   {
     std::map<FileContentType, FileInfo>::const_iterator it = attachments_.find(type);
+    std::map<FileContentType, int64_t>::const_iterator it2 = revisions_.find(type);
+
     if (it != attachments_.end())
     {
-      target = it->second;
-      return true;
+      if (it2 != revisions_.end())
+      {
+        target = it->second;
+        revision = it2->second;
+        return true;
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
     }
     else
     {
-      return false;
+      if (it2 == revisions_.end())
+      {
+        return false;
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
     }
   }
 

@@ -497,7 +497,7 @@ namespace Orthanc
           if (transaction_.LookupAttachment(info, revision, internalId, *it) &&
               info.GetContentType() == *it)
           {
-            resource->AddAttachment(info);
+            resource->AddAttachment(info, revision);
           }
           else
           {

@@ -326,7 +326,8 @@ namespace Orthanc
         if (responseContent_ & ResponseContentFlags_AttachmentsLegacy)
         {
           FileInfo info;
-          if (resource.LookupAttachment(info, FileContentType_Dicom))
+          int64_t revision;
+          if (resource.LookupAttachment(info, revision, FileContentType_Dicom))
           {
             target["FileSize"] = static_cast<Json::UInt64>(info.GetUncompressedSize());
             target["FileUuid"] = info.GetUuid();

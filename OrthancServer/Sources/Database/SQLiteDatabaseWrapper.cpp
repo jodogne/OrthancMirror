@@ -987,7 +987,7 @@ namespace Orthanc
                           s.ColumnInt64(C8_BIG_INT_1), s.ColumnString(C4_STRING_2),
                           static_cast<CompressionType>(s.ColumnInt(C7_INT_2)),
                           s.ColumnInt64(C9_BIG_INT_2), s.ColumnString(C5_STRING_3));
-            res.AddAttachment(file);
+            res.AddAttachment(file, 0 /* TODO - REVISIONS */);
           }; break;
 
           case QUERY_MAIN_DICOM_TAGS:

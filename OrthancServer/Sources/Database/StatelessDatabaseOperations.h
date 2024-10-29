@@ -541,7 +541,7 @@ namespace Orthanc
     bool LookupAttachment(FileInfo& attachment,
                           int64_t& revision,
                           ResourceType level,
-                          const std::string& instancePublicId,
+                          const std::string& publicId,
                           FileContentType contentType);
 
     void GetChanges(Json::Value& target,
