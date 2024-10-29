@@ -356,10 +356,12 @@ namespace Orthanc
                                   bool isReconstruct = false);
 
     void AnswerAttachment(RestApiOutput& output,
+                          ResourceType level,
                           const std::string& resourceId,
                           FileContentType content);
 
-    void ChangeAttachmentCompression(const std::string& resourceId,
+    void ChangeAttachmentCompression(ResourceType level,
+                                     const std::string& resourceId,
                                      FileContentType attachmentType,
                                      CompressionType compression);
 
@@ -393,6 +395,7 @@ namespace Orthanc
     void ReadAttachment(std::string& result,
                         int64_t& revision,
                         std::string& attachmentId,
+                        ResourceType level,
                         const std::string& instancePublicId,
                         FileContentType content,
                         bool uncompressIfNeeded,

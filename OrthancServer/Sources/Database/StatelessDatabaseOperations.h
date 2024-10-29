@@ -540,6 +540,7 @@ namespace Orthanc
 
     bool LookupAttachment(FileInfo& attachment,
                           int64_t& revision,
+                          ResourceType level,
                           const std::string& instancePublicId,
                           FileContentType contentType);
 
