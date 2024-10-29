@@ -962,12 +962,13 @@ namespace Orthanc
 
   
   void ServerContext::AnswerAttachment(RestApiOutput& output,
+                                       ResourceType level,
                                        const std::string& resourceId,
                                        FileContentType content)
   {
     FileInfo attachment;
     int64_t revision;
-    if (!index_.LookupAttachment(attachment, revision, resourceId, content))
+    if (!index_.LookupAttachment(attachment, revision, level, resourceId, content))
     {
       throw OrthancException(ErrorCode_UnknownResource);
     }
@@ -979,7 +980,8 @@ namespace Orthanc
   }
 
 
-  void ServerContext::ChangeAttachmentCompression(const std::string& resourceId,
+  void ServerContext::ChangeAttachmentCompression(ResourceType level,
+                                                  const std::string& resourceId,
                                                   FileContentType attachmentType,
                                                   CompressionType compression)
   {
@@ -990,7 +992,7 @@ namespace Orthanc
 
     FileInfo attachment;
     int64_t revision;
-    if (!index_.LookupAttachment(attachment, revision, resourceId, attachmentType))
+    if (!index_.LookupAttachment(attachment, revision, level, resourceId, attachmentType))
     {
       throw OrthancException(ErrorCode_UnknownResource);
     }
@@ -1092,17 +1094,17 @@ namespace Orthanc
     FileInfo attachment;
     int64_t revision;  // Ignored
 
-    if (index_.LookupAttachment(attachment, revision, instancePublicId, FileContentType_Dicom))
+    if (index_.LookupAttachment(attachment, revision, ResourceType_Instance, instancePublicId, FileContentType_Dicom))
     {
       attachments[FileContentType_Dicom] = attachment;
     }
 
-    if (index_.LookupAttachment(attachment, revision, instancePublicId, FileContentType_DicomUntilPixelData))
+    if (index_.LookupAttachment(attachment, revision, ResourceType_Instance, instancePublicId, FileContentType_DicomUntilPixelData))
     {
       attachments[FileContentType_DicomUntilPixelData] = attachment;
     }
 
-    if (index_.LookupAttachment(attachment, revision, instancePublicId, FileContentType_DicomAsJson))
+    if (index_.LookupAttachment(attachment, revision, ResourceType_Instance, instancePublicId, FileContentType_DicomAsJson))
     {
       attachments[FileContentType_DicomAsJson] = attachment;
     }
@@ -1295,7 +1297,7 @@ namespace Orthanc
                                 const std::string& instancePublicId)
   {
     int64_t revision;
-    ReadAttachment(dicom, revision, attachmentId, instancePublicId, FileContentType_Dicom, true /* uncompress */);
+    ReadAttachment(dicom, revision, attachmentId, ResourceType_Instance, instancePublicId, FileContentType_Dicom, true /* uncompress */);
   }
 
 
@@ -1320,7 +1322,7 @@ namespace Orthanc
   {
     FileInfo attachment;
     int64_t revision;  // Ignored
-    if (index_.LookupAttachment(attachment, revision, instancePublicId, FileContentType_DicomUntilPixelData))
+    if (index_.LookupAttachment(attachment, revision, ResourceType_Instance, instancePublicId, FileContentType_DicomUntilPixelData))
     {
       StorageAccessor accessor(area_, storageCache_, GetMetricsRegistry());
 
@@ -1335,7 +1337,7 @@ namespace Orthanc
       return false;
     }
     
-    if (!index_.LookupAttachment(attachment, revision, instancePublicId, FileContentType_Dicom))
+    if (!index_.LookupAttachment(attachment, revision, ResourceType_Instance, instancePublicId, FileContentType_Dicom))
     {
       throw OrthancException(ErrorCode_InternalError,
                              "Unable to read the DICOM file of instance " + instancePublicId);
@@ -1372,13 +1374,14 @@ namespace Orthanc
   void ServerContext::ReadAttachment(std::string& result,
                                      int64_t& revision,
                                      std::string& attachmentId,
+                                     ResourceType level,
                                      const std::string& instancePublicId,
                                      FileContentType content,
                                      bool uncompressIfNeeded,
                                      bool skipCache)
   {
     FileInfo attachment;
-    if (!index_.LookupAttachment(attachment, revision, instancePublicId, content))
+    if (!index_.LookupAttachment(attachment, revision, level, instancePublicId, content))
     {
       throw OrthancException(ErrorCode_InternalError,
                              "Unable to read attachment " + EnumerationToString(content) +

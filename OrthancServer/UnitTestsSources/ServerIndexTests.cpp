@@ -865,15 +865,15 @@ TEST(ServerIndex, Overwrite)
     {
       FileInfo nope;
       int64_t revision;
-      ASSERT_FALSE(context.GetIndex().LookupAttachment(nope, revision, id, FileContentType_DicomAsJson));
+      ASSERT_FALSE(context.GetIndex().LookupAttachment(nope, revision, ResourceType_Instance, id, FileContentType_DicomAsJson));
     }
 
     FileInfo dicom1, pixelData1;
     int64_t revision;
-    ASSERT_TRUE(context.GetIndex().LookupAttachment(dicom1, revision, id, FileContentType_Dicom));
+    ASSERT_TRUE(context.GetIndex().LookupAttachment(dicom1, revision, ResourceType_Instance, id, FileContentType_Dicom));
     ASSERT_EQ(0, revision);
     revision = -1;
-    ASSERT_TRUE(context.GetIndex().LookupAttachment(pixelData1, revision, id, FileContentType_DicomUntilPixelData));
+    ASSERT_TRUE(context.GetIndex().LookupAttachment(pixelData1, revision, ResourceType_Instance, id, FileContentType_DicomUntilPixelData));
     ASSERT_EQ(0, revision);
 
     context.GetIndex().GetGlobalStatistics(diskSize, uncompressedSize, countPatients, 
@@ -915,14 +915,14 @@ TEST(ServerIndex, Overwrite)
     {
       FileInfo nope;
       int64_t revision;
-      ASSERT_FALSE(context.GetIndex().LookupAttachment(nope, revision, id, FileContentType_DicomAsJson));
+      ASSERT_FALSE(context.GetIndex().LookupAttachment(nope, revision, ResourceType_Instance, id, FileContentType_DicomAsJson));
     }
 
     FileInfo dicom2, pixelData2;
-    ASSERT_TRUE(context.GetIndex().LookupAttachment(dicom2, revision, id, FileContentType_Dicom));
+    ASSERT_TRUE(context.GetIndex().LookupAttachment(dicom2, revision, ResourceType_Instance, id, FileContentType_Dicom));
     ASSERT_EQ(0, revision);
     revision = -1;
-    ASSERT_TRUE(context.GetIndex().LookupAttachment(pixelData2, revision, id, FileContentType_DicomUntilPixelData));
+    ASSERT_TRUE(context.GetIndex().LookupAttachment(pixelData2, revision, ResourceType_Instance, id, FileContentType_DicomUntilPixelData));
     ASSERT_EQ(0, revision);
 
     context.GetIndex().GetGlobalStatistics(diskSize, uncompressedSize, countPatients, 

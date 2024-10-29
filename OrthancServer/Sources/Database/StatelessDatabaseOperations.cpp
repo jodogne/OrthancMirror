@@ -610,10 +610,11 @@ namespace Orthanc
 
   bool StatelessDatabaseOperations::LookupAttachment(FileInfo& attachment,
                                                      int64_t& revision,
+                                                     ResourceType level,
                                                      const std::string& instancePublicId,
                                                      FileContentType contentType)
   {
-    class Operations : public ReadOnlyOperationsT5<bool&, FileInfo&, int64_t&, const std::string&, FileContentType>
+    class Operations : public ReadOnlyOperationsT6<bool&, FileInfo&, int64_t&, const std::string&, FileContentType, ResourceType>
     {
     public:
       virtual void ApplyTuple(ReadOnlyTransaction& transaction,
@@ -625,7 +626,13 @@ namespace Orthanc
         {
           throw OrthancException(ErrorCode_UnknownResource);
         }
-        else if (transaction.LookupAttachment(tuple.get<1>(), tuple.get<2>(), internalId, tuple.get<4>()))
+
+        if (type != tuple.get<5>())
+        {
+          throw OrthancException(ErrorCode_DatabasePlugin);
+        }
+
+        if (transaction.LookupAttachment(tuple.get<1>(), tuple.get<2>(), internalId, tuple.get<4>()))
         {
           assert(tuple.get<1>().GetContentType() == tuple.get<4>());
           tuple.get<0>() = true;
@@ -639,7 +646,7 @@ namespace Orthanc
 
     bool found;
     Operations operations;
-    operations.Apply(*this, found, attachment, revision, instancePublicId, contentType);
+    operations.Apply(*this, found, attachment, revision, instancePublicId, contentType, level);
     return found;
   }
 

@@ -399,7 +399,7 @@ namespace Orthanc
     else
     {
       // return the attachment without any transcoding
-      context.AnswerAttachment(call.GetOutput(), publicId, FileContentType_Dicom);
+      context.AnswerAttachment(call.GetOutput(), ResourceType_Instance, publicId, FileContentType_Dicom);
     }
   }
 
@@ -1673,11 +1673,17 @@ namespace Orthanc
 
   // Handling of metadata -----------------------------------------------------
 
-  static void CheckValidResourceType(const RestApiCall& call)
+  static ResourceType GetResourceTypeFromUri(const RestApiCall& call)
   {
     assert(!call.GetFullUri().empty());
     const std::string resourceType = call.GetFullUri() [0];
-    StringToResourceType(resourceType.c_str());
+    return StringToResourceType(resourceType.c_str());
+  }
+
+
+  static void CheckValidResourceType(const RestApiCall& call)
+  {
+    GetResourceTypeFromUri(call);
   }
 
 
@@ -2197,6 +2203,7 @@ namespace Orthanc
 
   
   static bool GetAttachmentInfo(FileInfo& info,
+                                ResourceType level,
                                 RestApiGetCall& call)
   {
     CheckValidResourceType(call);
@@ -2206,7 +2213,7 @@ namespace Orthanc
     FileContentType contentType = StringToContentType(name);
 
     int64_t revision;
-    if (OrthancRestApi::GetIndex(call).LookupAttachment(info, revision, publicId, contentType))
+    if (OrthancRestApi::GetIndex(call).LookupAttachment(info, revision, level, publicId, contentType))
     {
       SetAttachmentETag(call.GetOutput(), revision, info);  // New in Orthanc 1.9.2
 
@@ -2233,6 +2240,8 @@ namespace Orthanc
 
   static void GetAttachmentOperations(RestApiGetCall& call)
   {
+    const ResourceType t = GetResourceTypeFromUri(call);
+
     if (call.IsDocumentation())
     {
       ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
@@ -2248,7 +2257,7 @@ namespace Orthanc
     }
 
     FileInfo info;
-    if (GetAttachmentInfo(info, call))
+    if (GetAttachmentInfo(info, t, call))
     {
       Json::Value operations = Json::arrayValue;
 
@@ -2287,9 +2296,10 @@ namespace Orthanc
   template <int uncompress>
   static void GetAttachmentData(RestApiGetCall& call)
   {
+    const ResourceType t = GetResourceTypeFromUri(call);
+
     if (call.IsDocumentation())
     {
-      ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
       std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
       call.GetDocumentation()
         .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
@@ -2312,13 +2322,13 @@ namespace Orthanc
     FileContentType type = StringToContentType(call.GetUriComponent("name", ""));
 
     FileInfo info;
-    if (GetAttachmentInfo(info, call))
+    if (GetAttachmentInfo(info, t, call))
     {
       // NB: "SetAttachmentETag()" is already invoked by "GetAttachmentInfo()"
 
       if (uncompress)
       {
-        context.AnswerAttachment(call.GetOutput(), publicId, type);
+        context.AnswerAttachment(call.GetOutput(), t, publicId, type);
       }
       else
       {
@@ -2326,7 +2336,7 @@ namespace Orthanc
         std::string content;
         std::string attachmentId;
         int64_t revision;
-        context.ReadAttachment(content, revision, attachmentId, publicId, type, false, true /* skipCache when you absolutely need the compressed data */);
+        context.ReadAttachment(content, revision, attachmentId, t, publicId, type, false, true /* skipCache when you absolutely need the compressed data */);
 
         int64_t userRevision;
         std::string userMD5;
@@ -2347,9 +2357,10 @@ namespace Orthanc
 
   static void GetAttachmentSize(RestApiGetCall& call)
   {
+    const ResourceType t = GetResourceTypeFromUri(call);
+
     if (call.IsDocumentation())
     {
-      ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
       std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
       AddAttachmentDocumentation(call, r);
       call.GetDocumentation()
@@ -2361,7 +2372,7 @@ namespace Orthanc
     }
 
     FileInfo info;
-    if (GetAttachmentInfo(info, call))
+    if (GetAttachmentInfo(info, t, call))
     {
       call.GetOutput().AnswerBuffer(boost::lexical_cast<std::string>(info.GetUncompressedSize()), MimeType_PlainText);
     }
@@ -2369,9 +2380,10 @@ namespace Orthanc
 
   static void GetAttachmentInfo(RestApiGetCall& call)
   {
+    const ResourceType t = GetResourceTypeFromUri(call);
+
     if (call.IsDocumentation())
     {
-      ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
       std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
       AddAttachmentDocumentation(call, r);
       call.GetDocumentation()
@@ -2384,7 +2396,7 @@ namespace Orthanc
     }
 
     FileInfo info;
-    if (GetAttachmentInfo(info, call))
+    if (GetAttachmentInfo(info, t, call))
     {
       Json::Value result = Json::objectValue;    
       result["Uuid"] = info.GetUuid();
@@ -2400,9 +2412,10 @@ namespace Orthanc
 
   static void GetAttachmentCompressedSize(RestApiGetCall& call)
   {
+    const ResourceType t = GetResourceTypeFromUri(call);
+
     if (call.IsDocumentation())
     {
-      ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
       std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
       AddAttachmentDocumentation(call, r);
       call.GetDocumentation()
@@ -2415,7 +2428,7 @@ namespace Orthanc
     }
 
     FileInfo info;
-    if (GetAttachmentInfo(info, call))
+    if (GetAttachmentInfo(info, t, call))
     {
       call.GetOutput().AnswerBuffer(boost::lexical_cast<std::string>(info.GetCompressedSize()), MimeType_PlainText);
     }
@@ -2424,9 +2437,10 @@ namespace Orthanc
 
   static void GetAttachmentMD5(RestApiGetCall& call)
   {
+    const ResourceType t = GetResourceTypeFromUri(call);
+
     if (call.IsDocumentation())
     {
-      ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
       std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
       AddAttachmentDocumentation(call, r);
       call.GetDocumentation()
@@ -2438,7 +2452,7 @@ namespace Orthanc
     }
 
     FileInfo info;
-    if (GetAttachmentInfo(info, call) &&
+    if (GetAttachmentInfo(info, t, call) &&
         info.GetUncompressedMD5() != "")
     {
       call.GetOutput().AnswerBuffer(boost::lexical_cast<std::string>(info.GetUncompressedMD5()), MimeType_PlainText);
@@ -2448,9 +2462,10 @@ namespace Orthanc
 
   static void GetAttachmentCompressedMD5(RestApiGetCall& call)
   {
+    const ResourceType t = GetResourceTypeFromUri(call);
+
     if (call.IsDocumentation())
     {
-      ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
       std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
       AddAttachmentDocumentation(call, r);
       call.GetDocumentation()
@@ -2463,7 +2478,7 @@ namespace Orthanc
     }
 
     FileInfo info;
-    if (GetAttachmentInfo(info, call) &&
+    if (GetAttachmentInfo(info, t, call) &&
         info.GetCompressedMD5() != "")
     {
       call.GetOutput().AnswerBuffer(boost::lexical_cast<std::string>(info.GetCompressedMD5()), MimeType_PlainText);
@@ -2473,9 +2488,10 @@ namespace Orthanc
 
   static void VerifyAttachment(RestApiPostCall& call)
   {
+    const ResourceType t = GetResourceTypeFromUri(call);
+
     if (call.IsDocumentation())
     {
-      ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
       std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
       call.GetDocumentation()
         .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
@@ -2496,7 +2512,7 @@ namespace Orthanc
 
     FileInfo info;
     int64_t revision;  // Ignored
-    if (!OrthancRestApi::GetIndex(call).LookupAttachment(info, revision, publicId, contentType) ||
+    if (!OrthancRestApi::GetIndex(call).LookupAttachment(info, revision, t, publicId, contentType) ||
         info.GetCompressedMD5() == "" ||
         info.GetUncompressedMD5() == "")
     {
@@ -2510,7 +2526,7 @@ namespace Orthanc
     std::string data;
     std::string attachmentId;
 
-    context.ReadAttachment(data, revision, attachmentId, publicId, StringToContentType(name), false, true /* skipCache when you absolutely need the compressed data */);
+    context.ReadAttachment(data, revision, attachmentId, t, publicId, StringToContentType(name), false, true /* skipCache when you absolutely need the compressed data */);
 
     std::string actualMD5;
     Toolbox::ComputeMD5(actualMD5, data);
@@ -2525,7 +2541,7 @@ namespace Orthanc
       }
       else
       {
-        context.ReadAttachment(data, revision, attachmentId, publicId, StringToContentType(name), true, true /* skipCache when you absolutely need the compressed data */);
+        context.ReadAttachment(data, revision, attachmentId, t, publicId, StringToContentType(name), true, true /* skipCache when you absolutely need the compressed data */);
         Toolbox::ComputeMD5(actualMD5, data);
         ok = (actualMD5 == info.GetUncompressedMD5());
       }
@@ -2695,9 +2711,10 @@ namespace Orthanc
   template <enum CompressionType compression>
   static void ChangeAttachmentCompression(RestApiPostCall& call)
   {
+    const ResourceType t = GetResourceTypeFromUri(call);
+
     if (call.IsDocumentation())
     {
-      ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
       std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
       call.GetDocumentation()
         .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
@@ -2714,16 +2731,17 @@ namespace Orthanc
     std::string name = call.GetUriComponent("name", "");
     FileContentType contentType = StringToContentType(name);
 
-    OrthancRestApi::GetContext(call).ChangeAttachmentCompression(publicId, contentType, compression);
+    OrthancRestApi::GetContext(call).ChangeAttachmentCompression(t, publicId, contentType, compression);
     call.GetOutput().AnswerBuffer("{}", MimeType_Json);
   }
 
 
   static void IsAttachmentCompressed(RestApiGetCall& call)
   {
+    const ResourceType t = GetResourceTypeFromUri(call);
+
     if (call.IsDocumentation())
     {
-      ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
       std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
       AddAttachmentDocumentation(call, r);
       call.GetDocumentation()
@@ -2735,7 +2753,7 @@ namespace Orthanc
     }
 
     FileInfo info;
-    if (GetAttachmentInfo(info, call))
+    if (GetAttachmentInfo(info, t, call))
     {
       std::string answer = (info.GetCompressionType() == CompressionType_None) ? "0" : "1";
       call.GetOutput().AnswerBuffer(answer, MimeType_PlainText);

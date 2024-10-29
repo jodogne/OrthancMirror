@@ -452,7 +452,7 @@ namespace Orthanc
 
           FileInfo info;
           int64_t revision;  // Ignored
-          if (context_.GetIndex().LookupAttachment(info, revision, *it, FileContentType_Dicom))
+          if (context_.GetIndex().LookupAttachment(info, revision, ResourceType_Instance, *it, FileContentType_Dicom))
           {
             std::unique_ptr<File> resource(new File(*it + ".dcm"));
             resource->SetMimeType(MimeType_Dicom);
