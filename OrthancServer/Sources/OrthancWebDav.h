@@ -38,9 +38,7 @@ namespace Orthanc
     typedef std::map<ResourceType, std::string>  Templates;
 
     class DicomDeleteVisitor;
-    class DicomFileVisitor;
     class DicomFileVisitorV2;
-    class DicomIdentifiersVisitor;  
     class DicomIdentifiersVisitorV2;
     class InstancesOfSeries;
     class InternalNode;
