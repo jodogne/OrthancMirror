@@ -34,7 +34,9 @@ namespace Orthanc
   class BaseDatabaseWrapper : public IDatabaseWrapper
   {
   public:
-    class BaseTransaction : public IDatabaseWrapper::ITransaction
+    class BaseTransaction :
+      public IDatabaseWrapper::ITransaction,
+      public IDatabaseWrapper::ICompatibilityTransaction
     {
     public:
       virtual int64_t IncrementGlobalProperty(GlobalProperty property,

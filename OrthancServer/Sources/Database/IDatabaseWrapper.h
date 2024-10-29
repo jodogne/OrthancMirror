@@ -202,11 +202,6 @@ namespace Orthanc
       virtual void GetAllPublicIds(std::list<std::string>& target,
                                    ResourceType resourceType) = 0;
 
-      virtual void GetAllPublicIds(std::list<std::string>& target,
-                                   ResourceType resourceType,
-                                   int64_t since,
-                                   uint32_t limit) = 0;
-
       virtual void GetChanges(std::list<ServerIndexChange>& target /*out*/,
                               bool& done /*out*/,
                               int64_t since,
@@ -419,6 +414,21 @@ namespace Orthanc
                                       int64_t to,
                                       uint32_t limit,
                                       const std::set<ChangeType>& filterType) = 0;
+    };
+
+
+    // TODO-FIND: Could this interface be removed?
+    class ICompatibilityTransaction : public boost::noncopyable
+    {
+    public:
+      virtual ~ICompatibilityTransaction()
+      {
+      }
+
+      virtual void GetAllPublicIdsCompatibility(std::list<std::string>& target,
+                                                ResourceType resourceType,
+                                                int64_t since,
+                                                uint32_t limit) = 0;
     };
 
 
