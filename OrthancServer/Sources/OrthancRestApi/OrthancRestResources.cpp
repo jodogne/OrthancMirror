@@ -68,6 +68,14 @@ static const char* const ARG_WHOLE = "whole";
 
 namespace Orthanc
 {
+  static ResourceType GetResourceTypeFromUri(const RestApiCall& call)
+  {
+    assert(!call.GetFullUri().empty());
+    const std::string resourceType = call.GetFullUri() [0];
+    return StringToResourceType(resourceType.c_str());
+  }
+
+
   static std::string GetDocumentationSampleResource(ResourceType type)
   {
     switch (type)
@@ -1576,12 +1584,13 @@ namespace Orthanc
 
   static void GetResourceStatistics(RestApiGetCall& call)
   {
+    const ResourceType level = GetResourceTypeFromUri(call);
+
     if (call.IsDocumentation())
     {
-      ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
-      std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      std::string r = GetResourceTypeText(level, false /* plural */, false /* upper case */);
       call.GetDocumentation()
-        .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
+        .SetTag(GetResourceTypeText(level, true /* plural */, true /* upper case */))
         .SetSummary("Get " + r + " statistics")
         .SetDescription("Get statistics about the given " + r)
         .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
@@ -1602,9 +1611,9 @@ namespace Orthanc
                         "Size on the disk of the uncompressed DICOM instances associated with the " + r + ", expressed in bytes")
         .SetAnswerField("DicomUncompressedSizeMB", RestApiCallDocumentation::Type_Number,
                         "Size on the disk of the uncompressed DICOM instances associated with the " + r + ", expressed in megabytes (MB)")
-        .SetHttpGetSample(GetDocumentationSampleResource(t) + "/statistics", true);
+        .SetHttpGetSample(GetDocumentationSampleResource(level) + "/statistics", true);
 
-      switch (t)
+      switch (level)
       {
         // Do NOT add "break" below this point!
         case ResourceType_Patient:
@@ -1673,28 +1682,15 @@ namespace Orthanc
 
   // Handling of metadata -----------------------------------------------------
 
-  static ResourceType GetResourceTypeFromUri(const RestApiCall& call)
-  {
-    assert(!call.GetFullUri().empty());
-    const std::string resourceType = call.GetFullUri() [0];
-    return StringToResourceType(resourceType.c_str());
-  }
-
-
-  static void CheckValidResourceType(const RestApiCall& call)
-  {
-    GetResourceTypeFromUri(call);
-  }
-
-
   static void ListMetadata(RestApiGetCall& call)
   {
+    const ResourceType level = GetResourceTypeFromUri(call);
+
     if (call.IsDocumentation())
     {
-      ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
-      std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      std::string r = GetResourceTypeText(level, false /* plural */, false /* upper case */);
       call.GetDocumentation()
-        .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
+        .SetTag(GetResourceTypeText(level, true /* plural */, true /* upper case */))
         .SetSummary("List metadata")
         .SetDescription("Get the list of metadata that are associated with the given " + r)
         .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
@@ -1704,13 +1700,12 @@ namespace Orthanc
                             "If present, use the numeric identifier of the metadata instead of its symbolic name", false)
         .AddAnswerType(MimeType_Json, "JSON array containing the names of the available metadata, "
                        "or JSON associative array mapping metadata to their values (if `expand` argument is provided)")
-        .SetHttpGetSample(GetDocumentationSampleResource(t) + "/metadata", true);
+        .SetHttpGetSample(GetDocumentationSampleResource(level) + "/metadata", true);
       return;
     }
 
     assert(!call.GetFullUri().empty());
     const std::string publicId = call.GetUriComponent("id", "");
-    ResourceType level = StringToResourceType(call.GetFullUri() [0].c_str());
 
     typedef std::map<MetadataType, std::string>  Metadata;
 
@@ -1842,12 +1837,13 @@ namespace Orthanc
 
   static void GetMetadata(RestApiGetCall& call)
   {
+    const ResourceType level = GetResourceTypeFromUri(call);
+
     if (call.IsDocumentation())
     {
-      ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
-      std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      std::string r = GetResourceTypeText(level, false /* plural */, false /* upper case */);
       call.GetDocumentation()
-        .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
+        .SetTag(GetResourceTypeText(level, true /* plural */, true /* upper case */))
         .SetSummary("Get metadata")
         .SetDescription("Get the value of a metadata that is associated with the given " + r)
         .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
@@ -1860,7 +1856,6 @@ namespace Orthanc
 
     assert(!call.GetFullUri().empty());
     const std::string publicId = call.GetUriComponent("id", "");
-    const ResourceType level = StringToResourceType(call.GetFullUri() [0].c_str());
 
     std::string name = call.GetUriComponent("name", "");
     MetadataType metadata = StringToMetadata(name);
@@ -1889,12 +1884,13 @@ namespace Orthanc
 
   static void DeleteMetadata(RestApiDeleteCall& call)
   {
+    const ResourceType level = GetResourceTypeFromUri(call);
+
     if (call.IsDocumentation())
     {
-      ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
-      std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      std::string r = GetResourceTypeText(level, false /* plural */, false /* upper case */);
       call.GetDocumentation()
-        .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
+        .SetTag(GetResourceTypeText(level, true /* plural */, true /* upper case */))
         .SetSummary("Delete metadata")
         .SetDescription("Delete some metadata associated with the given DICOM " + r +
                         ". This call will fail if trying to delete a system metadata (i.e. whose index is < 1024).")
@@ -1905,7 +1901,6 @@ namespace Orthanc
       return;
     }
 
-    CheckValidResourceType(call);
     const std::string publicId = call.GetUriComponent("id", "");
 
     std::string name = call.GetUriComponent("name", "");
@@ -1953,12 +1948,13 @@ namespace Orthanc
 
   static void SetMetadata(RestApiPutCall& call)
   {
+    const ResourceType level = GetResourceTypeFromUri(call);
+
     if (call.IsDocumentation())
     {
-      ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
-      std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      std::string r = GetResourceTypeText(level, false /* plural */, false /* upper case */);
       call.GetDocumentation()
-        .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
+        .SetTag(GetResourceTypeText(level, true /* plural */, true /* upper case */))
         .SetSummary("Set metadata")
         .SetDescription("Set the value of some metadata in the given DICOM " + r +
                         ". This call will fail if trying to modify a system metadata (i.e. whose index is < 1024).")
@@ -1968,8 +1964,6 @@ namespace Orthanc
         .SetHttpHeader("If-Match", "Revision of the metadata, if this is not the first time this metadata is set.");
       return;
     }
-
-    CheckValidResourceType(call);
 
     std::string publicId = call.GetUriComponent("id", "");
     std::string name = call.GetUriComponent("name", "");
@@ -2018,23 +2012,22 @@ namespace Orthanc
 
   static void ListLabels(RestApiGetCall& call)
   {
+    const ResourceType level = GetResourceTypeFromUri(call);
+
     if (call.IsDocumentation())
     {
-      ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
-      std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      std::string r = GetResourceTypeText(level, false /* plural */, false /* upper case */);
       call.GetDocumentation()
-        .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
+        .SetTag(GetResourceTypeText(level, true /* plural */, true /* upper case */))
         .SetSummary("List labels")
         .SetDescription("Get the labels that are associated with the given " + r + " (new in Orthanc 1.12.0)")
         .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
         .AddAnswerType(MimeType_Json, "JSON array containing the names of the labels")
-        .SetHttpGetSample(GetDocumentationSampleResource(t) + "/labels", true);
+        .SetHttpGetSample(GetDocumentationSampleResource(level) + "/labels", true);
       return;
     }
 
-    assert(!call.GetFullUri().empty());
     const std::string publicId = call.GetUriComponent("id", "");
-    ResourceType level = StringToResourceType(call.GetFullUri() [0].c_str());
 
     std::set<std::string> labels;
     OrthancRestApi::GetIndex(call).ListLabels(labels, publicId, level);
@@ -2052,12 +2045,13 @@ namespace Orthanc
 
   static void GetLabel(RestApiGetCall& call)
   {
+    const ResourceType level = GetResourceTypeFromUri(call);
+
     if (call.IsDocumentation())
     {
-      ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
-      std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      std::string r = GetResourceTypeText(level, false /* plural */, false /* upper case */);
       call.GetDocumentation()
-        .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
+        .SetTag(GetResourceTypeText(level, true /* plural */, true /* upper case */))
         .SetSummary("Test label")
         .SetDescription("Test whether the " + r + " is associated with the given label")
         .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
@@ -2066,11 +2060,7 @@ namespace Orthanc
       return;
     }
 
-    CheckValidResourceType(call);
-
-    assert(!call.GetFullUri().empty());
     const std::string publicId = call.GetUriComponent("id", "");
-    const ResourceType level = StringToResourceType(call.GetFullUri() [0].c_str());
 
     std::string label = call.GetUriComponent("label", "");
 
@@ -2086,12 +2076,13 @@ namespace Orthanc
 
   static void AddLabel(RestApiPutCall& call)
   {
+    const ResourceType level = GetResourceTypeFromUri(call);
+
     if (call.IsDocumentation())
     {
-      ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
-      std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      std::string r = GetResourceTypeText(level, false /* plural */, false /* upper case */);
       call.GetDocumentation()
-        .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
+        .SetTag(GetResourceTypeText(level, true /* plural */, true /* upper case */))
         .SetSummary("Add label")
         .SetDescription("Associate a label with a " + r)
         .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
@@ -2099,10 +2090,7 @@ namespace Orthanc
       return;
     }
 
-    CheckValidResourceType(call);
-
     std::string publicId = call.GetUriComponent("id", "");
-    const ResourceType level = StringToResourceType(call.GetFullUri() [0].c_str());
 
     std::string label = call.GetUriComponent("label", "");
     OrthancRestApi::GetIndex(call).ModifyLabel(publicId, level, label, StatelessDatabaseOperations::LabelOperation_Add);
@@ -2113,12 +2101,13 @@ namespace Orthanc
 
   static void RemoveLabel(RestApiDeleteCall& call)
   {
+    const ResourceType level = GetResourceTypeFromUri(call);
+
     if (call.IsDocumentation())
     {
-      ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
-      std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      std::string r = GetResourceTypeText(level, false /* plural */, false /* upper case */);
       call.GetDocumentation()
-        .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
+        .SetTag(GetResourceTypeText(level, true /* plural */, true /* upper case */))
         .SetSummary("Remove label")
         .SetDescription("Remove a label associated with a " + r)
         .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
@@ -2126,10 +2115,7 @@ namespace Orthanc
       return;
     }
 
-    CheckValidResourceType(call);
-
     std::string publicId = call.GetUriComponent("id", "");
-    const ResourceType level = StringToResourceType(call.GetFullUri() [0].c_str());
 
     std::string label = call.GetUriComponent("label", "");
     OrthancRestApi::GetIndex(call).ModifyLabel(publicId, level, label, StatelessDatabaseOperations::LabelOperation_Remove);
@@ -2142,26 +2128,26 @@ namespace Orthanc
 
   static void ListAttachments(RestApiGetCall& call)
   {
+    const ResourceType level = GetResourceTypeFromUri(call);
+
     if (call.IsDocumentation())
     {
-      ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
-      std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      std::string r = GetResourceTypeText(level, false /* plural */, false /* upper case */);
       call.GetDocumentation()
-        .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
+        .SetTag(GetResourceTypeText(level, true /* plural */, true /* upper case */))
         .SetSummary("List attachments")
         .SetDescription("Get the list of attachments that are associated with the given " + r)
         .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
         .SetHttpGetArgument("full", RestApiCallDocumentation::Type_String,
                             "If present, retrieve the attachments list and their numerical ids", false)
         .AddAnswerType(MimeType_Json, "JSON array containing the names of the attachments")
-        .SetHttpGetSample(GetDocumentationSampleResource(t) + "/attachments", true);
+        .SetHttpGetSample(GetDocumentationSampleResource(level) + "/attachments", true);
       return;
     }
 
-    const std::string resourceType = call.GetFullUri() [0];
     const std::string publicId = call.GetUriComponent("id", "");
     std::set<FileContentType> attachments;
-    OrthancRestApi::GetIndex(call).ListAvailableAttachments(attachments, publicId, StringToResourceType(resourceType.c_str()));
+    OrthancRestApi::GetIndex(call).ListAvailableAttachments(attachments, publicId, level);
 
     Json::Value result;
 
@@ -2170,7 +2156,7 @@ namespace Orthanc
       result = Json::objectValue;
       
       for (std::set<FileContentType>::const_iterator 
-            it = attachments.begin(); it != attachments.end(); ++it)
+             it = attachments.begin(); it != attachments.end(); ++it)
       {
         std::string key = EnumerationToString(*it);
         result[key] = static_cast<uint16_t>(*it);
@@ -2181,7 +2167,7 @@ namespace Orthanc
       result = Json::arrayValue;
       
       for (std::set<FileContentType>::const_iterator 
-            it = attachments.begin(); it != attachments.end(); ++it)
+             it = attachments.begin(); it != attachments.end(); ++it)
       {
         result.append(EnumerationToString(*it));
       }
@@ -2206,8 +2192,6 @@ namespace Orthanc
                                 ResourceType level,
                                 RestApiGetCall& call)
   {
-    CheckValidResourceType(call);
- 
     const std::string publicId = call.GetUriComponent("id", "");
     const std::string name = call.GetUriComponent("name", "");
     FileContentType contentType = StringToContentType(name);
@@ -2240,12 +2224,11 @@ namespace Orthanc
 
   static void GetAttachmentOperations(RestApiGetCall& call)
   {
-    const ResourceType t = GetResourceTypeFromUri(call);
+    const ResourceType level = GetResourceTypeFromUri(call);
 
     if (call.IsDocumentation())
     {
-      ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
-      std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      std::string r = GetResourceTypeText(level, false /* plural */, false /* upper case */);
       AddAttachmentDocumentation(call, r);
       call.GetDocumentation()
         .SetTag("Other")
@@ -2257,7 +2240,7 @@ namespace Orthanc
     }
 
     FileInfo info;
-    if (GetAttachmentInfo(info, t, call))
+    if (GetAttachmentInfo(info, level, call))
     {
       Json::Value operations = Json::arrayValue;
 
@@ -2296,13 +2279,13 @@ namespace Orthanc
   template <int uncompress>
   static void GetAttachmentData(RestApiGetCall& call)
   {
-    const ResourceType t = GetResourceTypeFromUri(call);
+    const ResourceType level = GetResourceTypeFromUri(call);
 
     if (call.IsDocumentation())
     {
-      std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      std::string r = GetResourceTypeText(level, false /* plural */, false /* upper case */);
       call.GetDocumentation()
-        .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
+        .SetTag(GetResourceTypeText(level, true /* plural */, true /* upper case */))
         .SetSummary("Get attachment" + std::string(uncompress ? "" : " (no decompression)"))
         .SetDescription("Get the (binary) content of one attachment associated with the given " + r +
                         std::string(uncompress ? "" : ". The attachment will not be decompressed if `StorageCompression` is `true`."))
@@ -2316,19 +2299,17 @@ namespace Orthanc
 
     ServerContext& context = OrthancRestApi::GetContext(call);
 
-    CheckValidResourceType(call);
- 
     std::string publicId = call.GetUriComponent("id", "");
     FileContentType type = StringToContentType(call.GetUriComponent("name", ""));
 
     FileInfo info;
-    if (GetAttachmentInfo(info, t, call))
+    if (GetAttachmentInfo(info, level, call))
     {
       // NB: "SetAttachmentETag()" is already invoked by "GetAttachmentInfo()"
 
       if (uncompress)
       {
-        context.AnswerAttachment(call.GetOutput(), t, publicId, type);
+        context.AnswerAttachment(call.GetOutput(), level, publicId, type);
       }
       else
       {
@@ -2336,7 +2317,7 @@ namespace Orthanc
         std::string content;
         std::string attachmentId;
         int64_t revision;
-        context.ReadAttachment(content, revision, attachmentId, t, publicId, type, false, true /* skipCache when you absolutely need the compressed data */);
+        context.ReadAttachment(content, revision, attachmentId, level, publicId, type, false, true /* skipCache when you absolutely need the compressed data */);
 
         int64_t userRevision;
         std::string userMD5;
@@ -2357,14 +2338,14 @@ namespace Orthanc
 
   static void GetAttachmentSize(RestApiGetCall& call)
   {
-    const ResourceType t = GetResourceTypeFromUri(call);
+    const ResourceType level = GetResourceTypeFromUri(call);
 
     if (call.IsDocumentation())
     {
-      std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      std::string r = GetResourceTypeText(level, false /* plural */, false /* upper case */);
       AddAttachmentDocumentation(call, r);
       call.GetDocumentation()
-        .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
+        .SetTag(GetResourceTypeText(level, true /* plural */, true /* upper case */))
         .SetSummary("Get size of attachment")
         .SetDescription("Get the size of one attachment associated with the given " + r)
         .AddAnswerType(MimeType_PlainText, "The size of the attachment");
@@ -2372,7 +2353,7 @@ namespace Orthanc
     }
 
     FileInfo info;
-    if (GetAttachmentInfo(info, t, call))
+    if (GetAttachmentInfo(info, level, call))
     {
       call.GetOutput().AnswerBuffer(boost::lexical_cast<std::string>(info.GetUncompressedSize()), MimeType_PlainText);
     }
@@ -2380,14 +2361,14 @@ namespace Orthanc
 
   static void GetAttachmentInfo(RestApiGetCall& call)
   {
-    const ResourceType t = GetResourceTypeFromUri(call);
+    const ResourceType level = GetResourceTypeFromUri(call);
 
     if (call.IsDocumentation())
     {
-      std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      std::string r = GetResourceTypeText(level, false /* plural */, false /* upper case */);
       AddAttachmentDocumentation(call, r);
       call.GetDocumentation()
-        .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
+        .SetTag(GetResourceTypeText(level, true /* plural */, true /* upper case */))
         .SetSummary("Get info about the attachment")
         .SetDescription("Get all the information about the attachment associated with the given " + r)
         .AddAnswerType(MimeType_Json, "JSON object containing the information about the attachment")
@@ -2396,7 +2377,7 @@ namespace Orthanc
     }
 
     FileInfo info;
-    if (GetAttachmentInfo(info, t, call))
+    if (GetAttachmentInfo(info, level, call))
     {
       Json::Value result = Json::objectValue;    
       result["Uuid"] = info.GetUuid();
@@ -2412,14 +2393,14 @@ namespace Orthanc
 
   static void GetAttachmentCompressedSize(RestApiGetCall& call)
   {
-    const ResourceType t = GetResourceTypeFromUri(call);
+    const ResourceType level = GetResourceTypeFromUri(call);
 
     if (call.IsDocumentation())
     {
-      std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      std::string r = GetResourceTypeText(level, false /* plural */, false /* upper case */);
       AddAttachmentDocumentation(call, r);
       call.GetDocumentation()
-        .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
+        .SetTag(GetResourceTypeText(level, true /* plural */, true /* upper case */))
         .SetSummary("Get size of attachment on disk")
         .SetDescription("Get the size of one attachment associated with the given " + r + ", as stored on the disk. "
                         "This is different from `.../size` iff `EnableStorage` is `true`.")
@@ -2428,7 +2409,7 @@ namespace Orthanc
     }
 
     FileInfo info;
-    if (GetAttachmentInfo(info, t, call))
+    if (GetAttachmentInfo(info, level, call))
     {
       call.GetOutput().AnswerBuffer(boost::lexical_cast<std::string>(info.GetCompressedSize()), MimeType_PlainText);
     }
@@ -2437,14 +2418,14 @@ namespace Orthanc
 
   static void GetAttachmentMD5(RestApiGetCall& call)
   {
-    const ResourceType t = GetResourceTypeFromUri(call);
+    const ResourceType level = GetResourceTypeFromUri(call);
 
     if (call.IsDocumentation())
     {
-      std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      std::string r = GetResourceTypeText(level, false /* plural */, false /* upper case */);
       AddAttachmentDocumentation(call, r);
       call.GetDocumentation()
-        .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
+        .SetTag(GetResourceTypeText(level, true /* plural */, true /* upper case */))
         .SetSummary("Get MD5 of attachment")
         .SetDescription("Get the MD5 hash of one attachment associated with the given " + r)
         .AddAnswerType(MimeType_PlainText, "The MD5 of the attachment");
@@ -2452,7 +2433,7 @@ namespace Orthanc
     }
 
     FileInfo info;
-    if (GetAttachmentInfo(info, t, call) &&
+    if (GetAttachmentInfo(info, level, call) &&
         info.GetUncompressedMD5() != "")
     {
       call.GetOutput().AnswerBuffer(boost::lexical_cast<std::string>(info.GetUncompressedMD5()), MimeType_PlainText);
@@ -2462,14 +2443,14 @@ namespace Orthanc
 
   static void GetAttachmentCompressedMD5(RestApiGetCall& call)
   {
-    const ResourceType t = GetResourceTypeFromUri(call);
+    const ResourceType level = GetResourceTypeFromUri(call);
 
     if (call.IsDocumentation())
     {
-      std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      std::string r = GetResourceTypeText(level, false /* plural */, false /* upper case */);
       AddAttachmentDocumentation(call, r);
       call.GetDocumentation()
-        .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
+        .SetTag(GetResourceTypeText(level, true /* plural */, true /* upper case */))
         .SetSummary("Get MD5 of attachment on disk")
         .SetDescription("Get the MD5 hash of one attachment associated with the given " + r + ", as stored on the disk. "
                         "This is different from `.../md5` iff `EnableStorage` is `true`.")
@@ -2478,7 +2459,7 @@ namespace Orthanc
     }
 
     FileInfo info;
-    if (GetAttachmentInfo(info, t, call) &&
+    if (GetAttachmentInfo(info, level, call) &&
         info.GetCompressedMD5() != "")
     {
       call.GetOutput().AnswerBuffer(boost::lexical_cast<std::string>(info.GetCompressedMD5()), MimeType_PlainText);
@@ -2488,13 +2469,13 @@ namespace Orthanc
 
   static void VerifyAttachment(RestApiPostCall& call)
   {
-    const ResourceType t = GetResourceTypeFromUri(call);
+    const ResourceType level = GetResourceTypeFromUri(call);
 
     if (call.IsDocumentation())
     {
-      std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      std::string r = GetResourceTypeText(level, false /* plural */, false /* upper case */);
       call.GetDocumentation()
-        .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
+        .SetTag(GetResourceTypeText(level, true /* plural */, true /* upper case */))
         .SetSummary("Verify attachment")
         .SetDescription("Verify that the attachment is not corrupted, by validating its MD5 hash")
         .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
@@ -2504,7 +2485,6 @@ namespace Orthanc
     }
 
     ServerContext& context = OrthancRestApi::GetContext(call);
-    CheckValidResourceType(call);
 
     std::string publicId = call.GetUriComponent("id", "");
     std::string name = call.GetUriComponent("name", "");
@@ -2512,7 +2492,7 @@ namespace Orthanc
 
     FileInfo info;
     int64_t revision;  // Ignored
-    if (!OrthancRestApi::GetIndex(call).LookupAttachment(info, revision, t, publicId, contentType) ||
+    if (!OrthancRestApi::GetIndex(call).LookupAttachment(info, revision, level, publicId, contentType) ||
         info.GetCompressedMD5() == "" ||
         info.GetUncompressedMD5() == "")
     {
@@ -2526,7 +2506,7 @@ namespace Orthanc
     std::string data;
     std::string attachmentId;
 
-    context.ReadAttachment(data, revision, attachmentId, t, publicId, StringToContentType(name), false, true /* skipCache when you absolutely need the compressed data */);
+    context.ReadAttachment(data, revision, attachmentId, level, publicId, StringToContentType(name), false, true /* skipCache when you absolutely need the compressed data */);
 
     std::string actualMD5;
     Toolbox::ComputeMD5(actualMD5, data);
@@ -2541,7 +2521,7 @@ namespace Orthanc
       }
       else
       {
-        context.ReadAttachment(data, revision, attachmentId, t, publicId, StringToContentType(name), true, true /* skipCache when you absolutely need the compressed data */);
+        context.ReadAttachment(data, revision, attachmentId, level, publicId, StringToContentType(name), true, true /* skipCache when you absolutely need the compressed data */);
         Toolbox::ComputeMD5(actualMD5, data);
         ok = (actualMD5 == info.GetUncompressedMD5());
       }
@@ -2561,12 +2541,13 @@ namespace Orthanc
 
   static void UploadAttachment(RestApiPutCall& call)
   {
+    const ResourceType level = GetResourceTypeFromUri(call);
+
     if (call.IsDocumentation())
     {
-      ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
-      std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      std::string r = GetResourceTypeText(level, false /* plural */, false /* upper case */);
       call.GetDocumentation()
-        .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
+        .SetTag(GetResourceTypeText(level, true /* plural */, true /* upper case */))
         .SetSummary("Set attachment")
         .SetDescription("Attach a file to the given DICOM " + r +
                         ". This call will fail if trying to modify a system attachment (i.e. whose index is < 1024).")
@@ -2579,7 +2560,6 @@ namespace Orthanc
     }
 
     ServerContext& context = OrthancRestApi::GetContext(call);
-    CheckValidResourceType(call);
  
     std::string publicId = call.GetUriComponent("id", "");
     std::string name = call.GetUriComponent("name", "");
@@ -2622,12 +2602,13 @@ namespace Orthanc
 
   static void DeleteAttachment(RestApiDeleteCall& call)
   {
+    const ResourceType level = GetResourceTypeFromUri(call);
+
     if (call.IsDocumentation())
     {
-      ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
-      std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      std::string r = GetResourceTypeText(level, false /* plural */, false /* upper case */);
       call.GetDocumentation()
-        .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
+        .SetTag(GetResourceTypeText(level, true /* plural */, true /* upper case */))
         .SetSummary("Delete attachment")
         .SetDescription("Delete an attachment associated with the given DICOM " + r +
                         ". This call will fail if trying to delete a system attachment (i.e. whose index is < 1024).")
@@ -2637,8 +2618,6 @@ namespace Orthanc
                        "be deleted. This header is mandatory if `CheckRevisions` option is `true`.");
       return;
     }
-
-    CheckValidResourceType(call);
 
     std::string publicId = call.GetUriComponent("id", "");
     std::string name = call.GetUriComponent("name", "");
@@ -2711,13 +2690,13 @@ namespace Orthanc
   template <enum CompressionType compression>
   static void ChangeAttachmentCompression(RestApiPostCall& call)
   {
-    const ResourceType t = GetResourceTypeFromUri(call);
+    const ResourceType level = GetResourceTypeFromUri(call);
 
     if (call.IsDocumentation())
     {
-      std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      std::string r = GetResourceTypeText(level, false /* plural */, false /* upper case */);
       call.GetDocumentation()
-        .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
+        .SetTag(GetResourceTypeText(level, true /* plural */, true /* upper case */))
         .SetSummary(compression == CompressionType_None ? "Uncompress attachment" : "Compress attachment")
         .SetDescription("Change the compression scheme that is used to store an attachment.")
         .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
@@ -2725,27 +2704,25 @@ namespace Orthanc
       return;
     }
 
-    CheckValidResourceType(call);
-
     std::string publicId = call.GetUriComponent("id", "");
     std::string name = call.GetUriComponent("name", "");
     FileContentType contentType = StringToContentType(name);
 
-    OrthancRestApi::GetContext(call).ChangeAttachmentCompression(t, publicId, contentType, compression);
+    OrthancRestApi::GetContext(call).ChangeAttachmentCompression(level, publicId, contentType, compression);
     call.GetOutput().AnswerBuffer("{}", MimeType_Json);
   }
 
 
   static void IsAttachmentCompressed(RestApiGetCall& call)
   {
-    const ResourceType t = GetResourceTypeFromUri(call);
+    const ResourceType level = GetResourceTypeFromUri(call);
 
     if (call.IsDocumentation())
     {
-      std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      std::string r = GetResourceTypeText(level, false /* plural */, false /* upper case */);
       AddAttachmentDocumentation(call, r);
       call.GetDocumentation()
-        .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
+        .SetTag(GetResourceTypeText(level, true /* plural */, true /* upper case */))
         .SetSummary("Is attachment compressed?")
         .SetDescription("Test whether the attachment has been stored as a compressed file on the disk.")
         .AddAnswerType(MimeType_PlainText, "`0` if the attachment was stored uncompressed, `1` if it was compressed");
@@ -2753,7 +2730,7 @@ namespace Orthanc
     }
 
     FileInfo info;
-    if (GetAttachmentInfo(info, t, call))
+    if (GetAttachmentInfo(info, level, call))
     {
       std::string answer = (info.GetCompressionType() == CompressionType_None) ? "0" : "1";
       call.GetOutput().AnswerBuffer(answer, MimeType_PlainText);
@@ -2866,20 +2843,21 @@ namespace Orthanc
 
   static void GetSharedTags(RestApiGetCall& call)
   {
+    const ResourceType level = GetResourceTypeFromUri(call);
+
     if (call.IsDocumentation())
     {
       OrthancRestApi::DocumentDicomFormat(call, DicomToJsonFormat_Full);
 
-      ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
-      std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      std::string r = GetResourceTypeText(level, false /* plural */, false /* upper case */);
       call.GetDocumentation()
-        .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
+        .SetTag(GetResourceTypeText(level, true /* plural */, true /* upper case */))
         .SetSummary("Get shared tags")
         .SetDescription("Extract the DICOM tags whose value is constant across all the child instances of "
                         "the DICOM " + r + " whose Orthanc identifier is provided in the URL")
         .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
         .AddAnswerType(MimeType_Json, "JSON object containing the values of the DICOM tags")
-        .SetTruncatedJsonHttpGetSample(GetDocumentationSampleResource(t) + "/shared-tags", 5);
+        .SetTruncatedJsonHttpGetSample(GetDocumentationSampleResource(level) + "/shared-tags", 5);
       return;
     }
 
@@ -3576,14 +3554,15 @@ namespace Orthanc
 
   static void GetChildInstancesTags(RestApiGetCall& call)
   {
+    const ResourceType level = GetResourceTypeFromUri(call);
+
     if (call.IsDocumentation())
     {
       OrthancRestApi::DocumentDicomFormat(call, DicomToJsonFormat_Full);
 
-      ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
-      std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      std::string r = GetResourceTypeText(level, false /* plural */, false /* upper case */);
       call.GetDocumentation()
-        .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
+        .SetTag(GetResourceTypeText(level, true /* plural */, true /* upper case */))
         .SetSummary("Get tags of instances")
         .SetDescription("Get the tags of all the child instances of the DICOM " + r +
                         " whose Orthanc identifier is provided in the URL")
@@ -3591,7 +3570,7 @@ namespace Orthanc
         .SetHttpGetArgument(IGNORE_LENGTH, RestApiCallDocumentation::Type_JsonListOfStrings,
                             "Also include the DICOM tags that are provided in this list, even if their associated value is long", false)
         .AddAnswerType(MimeType_Json, "JSON object associating the Orthanc identifiers of the instances, with the values of their DICOM tags")
-        .SetTruncatedJsonHttpGetSample(GetDocumentationSampleResource(t) + "/instances-tags", 5);
+        .SetTruncatedJsonHttpGetSample(GetDocumentationSampleResource(level) + "/instances-tags", 5);
       return;
     }
 
