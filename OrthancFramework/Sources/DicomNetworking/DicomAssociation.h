@@ -122,6 +122,10 @@ namespace Orthanc
 
     T_ASC_Network& GetDcmtkNetwork() const;
 
+    bool GetAssociationParameters(std::string& remoteAet,
+                                  std::string& remoteIp,
+                                  std::string& calledAet) const;
+
     static void CheckCondition(const OFCondition& cond,
                                const DicomAssociationParameters& parameters,
                                const std::string& command);

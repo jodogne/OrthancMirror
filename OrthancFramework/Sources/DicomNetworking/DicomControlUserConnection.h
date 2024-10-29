@@ -37,6 +37,14 @@ namespace Orthanc
 {
   class DicomAssociation;  // Forward declaration for PImpl design pattern
   
+  typedef uint16_t (*CGetInstanceReceivedCallback)(void *callbackContext,
+                                                   DcmDataset& dataset,
+                                                   const std::string& remoteAet,
+                                                   const std::string& remoteIp,
+                                                   const std::string& calledAet
+                                                   );
+
+
   class DicomControlUserConnection : public boost::noncopyable
   {
   private:
@@ -71,6 +79,10 @@ namespace Orthanc
               ResourceType level,
               const DicomMap& originalFields,
               bool normalize);
+
+    void Get(const DicomMap& getQuery,
+             CGetInstanceReceivedCallback instanceReceivedCallback,
+             void* callbackContext);
 
     void Move(const std::string& targetAet,
               ResourceType level,

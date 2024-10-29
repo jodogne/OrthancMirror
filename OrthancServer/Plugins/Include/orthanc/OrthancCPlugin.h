@@ -323,6 +323,7 @@ extern "C"
     OrthancPluginErrorCode_AlreadyExistingTag = 2042    /*!< Cannot override the value of a tag that already exists */,
     OrthancPluginErrorCode_NoStorageCommitmentHandler = 2043    /*!< No request handler factory for DICOM N-ACTION SCP (storage commitment) */,
     OrthancPluginErrorCode_NoCGetHandler = 2044    /*!< No request handler factory for DICOM C-GET SCP */,
+    OrthancPluginErrorCode_DicomGetUnavailable = 2045    /*!< DicomUserConnection: The C-GET command is not supported by the remote SCP */,
     OrthancPluginErrorCode_UnsupportedMediaType = 3000    /*!< Unsupported media type */,
 
     _OrthancPluginErrorCode_INTERNAL = 0x7fffffff

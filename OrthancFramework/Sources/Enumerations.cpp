@@ -369,6 +369,9 @@ namespace Orthanc
       case ErrorCode_NoCGetHandler:
         return "No request handler factory for DICOM C-GET SCP";
 
+      case ErrorCode_DicomGetUnavailable:
+        return "DicomUserConnection: The C-GET command is not supported by the remote SCP";
+
       case ErrorCode_UnsupportedMediaType:
         return "Unsupported media type";
 
