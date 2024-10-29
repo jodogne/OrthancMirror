@@ -210,9 +210,6 @@ namespace Orthanc
       virtual void GetChildrenInternalId(std::list<int64_t>& target,
                                          int64_t id) = 0;
 
-      virtual void GetChildrenPublicId(std::list<std::string>& target,
-                                       int64_t id) = 0;
-
       virtual void GetExportedResources(std::list<ExportedResource>& target /*out*/,
                                         bool& done /*out*/,
                                         int64_t since,
@@ -336,16 +333,6 @@ namespace Orthanc
 
 
       /**
-       * Primitives introduced in Orthanc 1.5.4
-       **/
-
-      virtual bool LookupResourceAndParent(int64_t& id,
-                                           ResourceType& type,
-                                           std::string& parentPublicId,
-                                           const std::string& publicId) = 0;
-
-
-      /**
        * Primitives introduced in Orthanc 1.12.0
        **/
 
@@ -429,6 +416,18 @@ namespace Orthanc
                                                 ResourceType resourceType,
                                                 int64_t since,
                                                 uint32_t limit) = 0;
+
+      virtual void GetChildrenPublicId(std::list<std::string>& target,
+                                       int64_t id) = 0;
+
+      /**
+       * Primitives introduced in Orthanc 1.5.4
+       **/
+
+      virtual bool LookupResourceAndParent(int64_t& id,
+                                           ResourceType& type,
+                                           std::string& parentPublicId,
+                                           const std::string& publicId) = 0;
     };
 
 

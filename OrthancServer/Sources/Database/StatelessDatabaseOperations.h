@@ -165,12 +165,6 @@ namespace Orthanc
         transaction_.GetChildrenInternalId(target, id);
       }
 
-      void GetChildrenPublicId(std::list<std::string>& target,
-                               int64_t id)
-      {
-        transaction_.GetChildrenPublicId(target, id);
-      }
-
       void GetExportedResources(std::list<ExportedResource>& target /*out*/,
                                 bool& done /*out*/,
                                 int64_t since,
@@ -270,14 +264,6 @@ namespace Orthanc
                           const std::string& publicId)
       {
         return transaction_.LookupResource(id, type, publicId);
-      }
-      
-      bool LookupResourceAndParent(int64_t& id,
-                                   ResourceType& type,
-                                   std::string& parentPublicId,
-                                   const std::string& publicId)
-      {
-        return transaction_.LookupResourceAndParent(id, type, parentPublicId, publicId);
       }
 
       void ListLabels(std::set<std::string>& target,
