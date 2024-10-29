@@ -130,6 +130,7 @@ set(ORTHANC_SERVER_SOURCES
   ${CMAKE_SOURCE_DIR}/Sources/ServerJobs/ArchiveJob.cpp
   ${CMAKE_SOURCE_DIR}/Sources/ServerJobs/CleaningInstancesJob.cpp
   ${CMAKE_SOURCE_DIR}/Sources/ServerJobs/DicomModalityStoreJob.cpp
+  ${CMAKE_SOURCE_DIR}/Sources/ServerJobs/DicomGetScuJob.cpp
   ${CMAKE_SOURCE_DIR}/Sources/ServerJobs/DicomMoveScuJob.cpp
   ${CMAKE_SOURCE_DIR}/Sources/ServerJobs/LuaJobManager.cpp
   ${CMAKE_SOURCE_DIR}/Sources/ServerJobs/MergeStudyJob.cpp

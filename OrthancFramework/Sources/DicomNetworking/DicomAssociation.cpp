@@ -526,6 +526,35 @@ namespace Orthanc
     }
   }
 
+  bool DicomAssociation::GetAssociationParameters(std::string& remoteAet,
+                                                  std::string& remoteIp,
+                                                  std::string& calledAet) const
+  {
+    T_ASC_Association& dcmtkAssoc = GetDcmtkAssociation();
+
+    DIC_AE remoteAet_C;
+    DIC_AE calledAet_C;
+    DIC_AE remoteIp_C;
+    DIC_AE calledIP_C;
+
+    if (
+#if DCMTK_VERSION_NUMBER >= 364
+      ASC_getAPTitles(dcmtkAssoc.params, remoteAet_C, sizeof(remoteAet_C), calledAet_C, sizeof(calledAet_C), NULL, 0).good() &&
+      ASC_getPresentationAddresses(dcmtkAssoc.params, remoteIp_C, sizeof(remoteIp_C), calledIP_C, sizeof(calledIP_C)).good()
+#else
+      ASC_getAPTitles(dcmtkAssoc.params, remoteAet_C, calledAet_C, NULL).good() &&
+      ASC_getPresentationAddresses(dcmtkAssoc.params, remoteIp_C, calledIP_C).good()
+#endif
+      )
+    {
+      remoteIp = std::string(/*OFSTRING_GUARD*/(remoteIp_C));
+      remoteAet = std::string(/*OFSTRING_GUARD*/(remoteAet_C));
+      calledAet = (/*OFSTRING_GUARD*/(calledAet_C));
+      return true;
+    }
+
+    return false;
+  }
     
   T_ASC_Network& DicomAssociation::GetDcmtkNetwork() const
   {

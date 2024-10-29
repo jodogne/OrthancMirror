@@ -792,7 +792,10 @@ namespace Orthanc
         }
       }
 
-      LOG(INFO) << "New job submitted with priority " << priority << ": " << id;
+      std::string jobType;
+      handler->GetJob().GetJobType(jobType);
+
+      LOG(INFO) << "New " << jobType << " job submitted with priority " << priority << ": " << id;
 
       if (observer_ != NULL)
       {

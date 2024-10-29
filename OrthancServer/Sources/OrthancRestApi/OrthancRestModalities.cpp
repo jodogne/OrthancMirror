@@ -36,6 +36,7 @@
 #include "../ServerContext.h"
 #include "../ServerJobs/DicomModalityStoreJob.h"
 #include "../ServerJobs/DicomMoveScuJob.h"
+#include "../ServerJobs/DicomGetScuJob.h"
 #include "../ServerJobs/OrthancPeerStoreJob.h"
 #include "../ServerToolbox.h"
 #include "../StorageCommitmentReports.h"
@@ -1623,6 +1624,80 @@ namespace Orthanc
   }
 
 
+  /***************************************************************************
+   * DICOM C-Get SCU
+   ***************************************************************************/
+  
+  static void DicomGet(RestApiPostCall& call)
+  {
+    if (call.IsDocumentation())
+    {
+      OrthancRestApi::DocumentSubmitCommandsJob(call);
+      call.GetDocumentation()
+        .SetTag("Networking")
+        .SetSummary("Trigger C-GET SCU")
+        .SetDescription("Start a C-GET SCU command as a job, in order to retrieve DICOM resources "
+                        "from a remote DICOM modality whose identifier is provided in the URL: ")
+                        // "https://orthanc.uclouvain.be/book/users/rest.html#performing-c-move")
+        .SetRequestField(KEY_QUERY, RestApiCallDocumentation::Type_JsonObject,
+                         "A query object identifying all the DICOM resources to be retrieved", true)
+        .SetRequestField(KEY_LOCAL_AET, RestApiCallDocumentation::Type_String,
+                         "Local AET that is used for this commands, defaults to `DicomAet` configuration option. "
+                         "Ignored if `DicomModalities` already sets `LocalAet` for this modality.", false)
+        .SetRequestField(KEY_TIMEOUT, RestApiCallDocumentation::Type_Number,
+                         "Timeout for the C-GET command, in seconds", false)
+        .SetUriArgument("id", "Identifier of the modality of interest");
+      return;
+    }
+
+    ServerContext& context = OrthancRestApi::GetContext(call);
+
+    Json::Value request;
+
+    if (!call.ParseJsonRequest(request) ||
+        request.type() != Json::objectValue ||
+        !request.isMember(KEY_QUERY) ||
+        request[KEY_QUERY].type() != Json::objectValue)
+    {
+      throw OrthancException(ErrorCode_BadFileFormat, "Must provide a JSON body containing fields " +
+                             std::string(KEY_QUERY));
+    }
+
+    std::string localAet = Toolbox::GetJsonStringField  // TODO-GET: keep this ?
+      (request, KEY_LOCAL_AET, context.GetDefaultLocalApplicationEntityTitle());
+
+    const RemoteModalityParameters source =
+      MyGetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
+
+    std::unique_ptr<DicomGetScuJob> job(new DicomGetScuJob(context));
+
+    job->SetQueryFormat(DicomToJsonFormat_Short);  // TODO-GET: keep this ?
+    job->SetLocalAet(localAet);
+    job->SetRemoteModality(source);
+
+        // TODO-GET: asynchronous
+        // TODO-GET: permissive
+
+
+    if (request[KEY_QUERY].isMember("PatientID"))  // TODO-GET: handle get of multiple resources + series + instances 
+    {
+      job->AddResourceToRetrieve(ResourceType_Patient, request[KEY_QUERY]["PatientID"].asString());
+    }
+    else if (request[KEY_QUERY].isMember("StudyInstanceUID"))  // TODO-GET: handle get of multiple resources + series + instances 
+    {
+      job->AddResourceToRetrieve(ResourceType_Study, request[KEY_QUERY]["StudyInstanceUID"].asString());
+    }
+
+    if (request.isMember(KEY_TIMEOUT))
+    {
+      job->SetTimeout(SerializationToolbox::ReadUnsignedInteger(request, KEY_TIMEOUT));
+    }
+
+    OrthancRestApi::GetApi(call).SubmitCommandsJob
+      (call, job.release(), true /* synchronous by default */, request);
+    return;
+  }
+
 
   /***************************************************************************
    * Orthanc Peers => Store client
@@ -2544,6 +2619,7 @@ namespace Orthanc
     Register("/modalities/{id}/store", DicomStore);
     Register("/modalities/{id}/store-straight", DicomStoreStraight);  // New in 1.6.1
     Register("/modalities/{id}/move", DicomMove);
+    Register("/modalities/{id}/get", DicomGet);
     Register("/modalities/{id}/configuration", GetModalityConfiguration);  // New in 1.8.1
 
     // For Query/Retrieve
