@@ -49,8 +49,7 @@ namespace Orthanc
     public Compatibility::IGetChildrenMetadata,
     public Compatibility::ILookupResources,
     public Compatibility::ILookupResourceAndParent,
-    public Compatibility::ISetResourcesContent,
-    public IDatabaseWrapper::ICompatibilityTransaction
+    public Compatibility::ISetResourcesContent
   {
   private:
     typedef std::pair<int64_t, ResourceType>     AnswerResource;
