@@ -141,20 +141,6 @@ namespace Orthanc
         transaction_.GetAllMetadata(target, id);
       }
 
-      void GetAllPublicIds(std::list<std::string>& target,
-                           ResourceType resourceType)
-      {
-        return transaction_.GetAllPublicIds(target, resourceType);
-      }
-
-      void GetAllPublicIds(std::list<std::string>& target,
-                           ResourceType resourceType,
-                           size_t since,
-                           uint32_t limit)
-      {
-        return transaction_.GetAllPublicIds(target, resourceType, since, limit);
-      }  
-
       void GetChanges(std::list<ServerIndexChange>& target /*out*/,
                       bool& done /*out*/,
                       int64_t since,
@@ -558,11 +544,6 @@ namespace Orthanc
 
     void GetAllUuids(std::list<std::string>& target,
                      ResourceType resourceType);
-
-    void GetAllUuids(std::list<std::string>& target,
-                     ResourceType resourceType,
-                     size_t since,
-                     uint32_t limit);
 
     void GetGlobalStatistics(/* out */ uint64_t& diskSize,
                              /* out */ uint64_t& uncompressedSize,

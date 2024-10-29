@@ -661,34 +661,6 @@ namespace Orthanc
   }
 
 
-  void StatelessDatabaseOperations::GetAllUuids(std::list<std::string>& target,
-                                                ResourceType resourceType,
-                                                size_t since,
-                                                uint32_t limit)
-  {
-    if (limit == 0)
-    {
-      target.clear();
-    }
-    else
-    {
-      class Operations : public ReadOnlyOperationsT4<std::list<std::string>&, ResourceType, size_t, size_t>
-      {
-      public:
-        virtual void ApplyTuple(ReadOnlyTransaction& transaction,
-                                const Tuple& tuple) ORTHANC_OVERRIDE
-        {
-          // TODO - CANDIDATE FOR "TransactionType_Implicit"
-          transaction.GetAllPublicIds(tuple.get<0>(), tuple.get<1>(), tuple.get<2>(), tuple.get<3>());
-        }
-      };
-
-      Operations operations;
-      operations.Apply(*this, target, resourceType, since, limit);
-    }
-  }
-
-
   void StatelessDatabaseOperations::GetGlobalStatistics(/* out */ uint64_t& diskSize,
                                                         /* out */ uint64_t& uncompressedSize,
                                                         /* out */ uint64_t& countPatients, 
