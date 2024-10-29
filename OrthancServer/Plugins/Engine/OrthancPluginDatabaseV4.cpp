@@ -1665,9 +1665,14 @@ namespace Orthanc
             target->AddLabel(source.labels(i));
           }
 
+          if (source.attachments().size() != source.attachments_revisions().size())
+          {
+            throw OrthancException(ErrorCode_DatabasePlugin);
+          }
+
           for (int i = 0; i < source.attachments().size(); i++)
           {
-            target->AddAttachment(Convert(source.attachments(i)));
+            target->AddAttachment(Convert(source.attachments(i)), source.attachments_revisions(i));
           }
 
           Convert(*target, ResourceType_Patient, source.patient_content());

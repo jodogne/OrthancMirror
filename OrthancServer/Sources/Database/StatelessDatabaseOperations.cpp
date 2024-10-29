@@ -599,7 +599,14 @@ namespace Orthanc
     }
     else if (response.GetSize() == 1)
     {
-      target = response.GetResourceByIndex(0).GetMetadata(level);
+      if (response.GetResourceByIndex(0).GetLevel() != level)
+      {
+        throw OrthancException(ErrorCode_DatabasePlugin);
+      }
+      else
+      {
+        target = response.GetResourceByIndex(0).GetMetadata(level);
+      }
     }
     else
     {
@@ -611,43 +618,35 @@ namespace Orthanc
   bool StatelessDatabaseOperations::LookupAttachment(FileInfo& attachment,
                                                      int64_t& revision,
                                                      ResourceType level,
-                                                     const std::string& instancePublicId,
+                                                     const std::string& publicId,
                                                      FileContentType contentType)
   {
-    class Operations : public ReadOnlyOperationsT6<bool&, FileInfo&, int64_t&, const std::string&, FileContentType, ResourceType>
+    FindRequest request(level);
+    request.SetOrthancId(level, publicId);
+    request.SetRetrieveAttachments(true);
+
+    FindResponse response;
+    ExecuteFind(response, request);
+
+    if (response.GetSize() == 0)
     {
-    public:
-      virtual void ApplyTuple(ReadOnlyTransaction& transaction,
-                              const Tuple& tuple) ORTHANC_OVERRIDE
+      throw OrthancException(ErrorCode_UnknownResource);
+    }
+    else if (response.GetSize() == 1)
+    {
+      if (response.GetResourceByIndex(0).GetLevel() != level)
       {
-        int64_t internalId;
-        ResourceType type;
-        if (!transaction.LookupResource(internalId, type, tuple.get<3>()))
-        {
-          throw OrthancException(ErrorCode_UnknownResource);
-        }
-
-        if (type != tuple.get<5>())
-        {
-          throw OrthancException(ErrorCode_DatabasePlugin);
-        }
-
-        if (transaction.LookupAttachment(tuple.get<1>(), tuple.get<2>(), internalId, tuple.get<4>()))
-        {
-          assert(tuple.get<1>().GetContentType() == tuple.get<4>());
-          tuple.get<0>() = true;
-        }
-        else
-        {
-          tuple.get<0>() = false;
-        }
+        throw OrthancException(ErrorCode_DatabasePlugin);
       }
-    };
-
-    bool found;
-    Operations operations;
-    operations.Apply(*this, found, attachment, revision, instancePublicId, contentType, level);
-    return found;
+      else
+      {
+        return response.GetResourceByIndex(0).LookupAttachment(attachment, revision, contentType);
+      }
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_DatabasePlugin);
+    }
   }
 
 

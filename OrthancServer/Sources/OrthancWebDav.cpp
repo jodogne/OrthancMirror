@@ -145,7 +145,8 @@ namespace Orthanc
         if (resource.GetLevel() == ResourceType_Instance)
         {
           FileInfo info;
-          if (resource.LookupAttachment(info, FileContentType_Dicom))
+          int64_t revision;
+          if (resource.LookupAttachment(info, revision, FileContentType_Dicom))
           {
             std::unique_ptr<File> f(new File(uid + ".dcm"));
             f->SetMimeType(MimeType_Dicom);

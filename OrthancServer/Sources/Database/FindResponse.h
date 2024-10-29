@@ -123,6 +123,7 @@ namespace Orthanc
       ChildrenInformation                   childrenInstancesInformation_;
       std::set<std::string>                 labels_;
       std::map<FileContentType, FileInfo>   attachments_;
+      std::map<FileContentType, int64_t>    revisions_;
       bool                                  hasOneInstanceMetadataAndAttachments_;
       std::string                           oneInstancePublicId_;
       std::map<MetadataType, std::string>   oneInstanceMetadata_;
@@ -263,9 +264,11 @@ namespace Orthanc
         return labels_;
       }
 
-      void AddAttachment(const FileInfo& attachment);
+      void AddAttachment(const FileInfo& attachment,
+                         int64_t revision);
 
       bool LookupAttachment(FileInfo& target,
+                            int64_t& revision,
                             FileContentType type) const;
 
       const std::map<FileContentType, FileInfo>& GetAttachments() const

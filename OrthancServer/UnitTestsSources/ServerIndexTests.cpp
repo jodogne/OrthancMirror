@@ -869,7 +869,7 @@ TEST(ServerIndex, Overwrite)
     }
 
     FileInfo dicom1, pixelData1;
-    int64_t revision;
+    int64_t revision = -1;
     ASSERT_TRUE(context.GetIndex().LookupAttachment(dicom1, revision, ResourceType_Instance, id, FileContentType_Dicom));
     ASSERT_EQ(0, revision);
     revision = -1;
