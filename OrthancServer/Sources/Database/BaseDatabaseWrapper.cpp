@@ -77,7 +77,7 @@ namespace Orthanc
                                                          const Capabilities& capabilities,
                                                          const FindRequest& request)
   {
-    Compatibility::GenericFind find(*this);
+    Compatibility::GenericFind find(*this, *this);
     find.ExecuteFind(identifiers, capabilities, request);
   }
 
@@ -87,7 +87,7 @@ namespace Orthanc
                                                            const FindRequest& request,
                                                            const std::string& identifier)
   {
-    Compatibility::GenericFind find(*this);
+    Compatibility::GenericFind find(*this, *this);
     find.ExecuteExpand(response, capabilities, request, identifier);
   }
 

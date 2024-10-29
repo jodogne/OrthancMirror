@@ -49,7 +49,8 @@ namespace Orthanc
     public Compatibility::IGetChildrenMetadata,
     public Compatibility::ILookupResources,
     public Compatibility::ILookupResourceAndParent,
-    public Compatibility::ISetResourcesContent
+    public Compatibility::ISetResourcesContent,
+    public IDatabaseWrapper::ICompatibilityTransaction
   {
   private:
     typedef std::pair<int64_t, ResourceType>     AnswerResource;
@@ -806,10 +807,10 @@ namespace Orthanc
     }
 
 
-    virtual void GetAllPublicIds(std::list<std::string>& target,
-                                 ResourceType resourceType,
-                                 int64_t since,
-                                 uint32_t limit) ORTHANC_OVERRIDE
+    virtual void GetAllPublicIdsCompatibility(std::list<std::string>& target,
+                                              ResourceType resourceType,
+                                              int64_t since,
+                                              uint32_t limit) ORTHANC_OVERRIDE
     {
       if (that_.extensions_.getAllPublicIdsWithLimit != NULL)
       {

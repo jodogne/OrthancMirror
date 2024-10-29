@@ -398,7 +398,9 @@ namespace Orthanc
   }
 
   
-  class OrthancPluginDatabaseV4::Transaction : public IDatabaseWrapper::ITransaction
+  class OrthancPluginDatabaseV4::Transaction :
+    public IDatabaseWrapper::ITransaction,
+    public IDatabaseWrapper::ICompatibilityTransaction
   {
   private:
     OrthancPluginDatabaseV4&  database_;
@@ -673,10 +675,10 @@ namespace Orthanc
     }
 
     
-    virtual void GetAllPublicIds(std::list<std::string>& target,
-                                 ResourceType resourceType,
-                                 int64_t since,
-                                 uint32_t limit) ORTHANC_OVERRIDE
+    virtual void GetAllPublicIdsCompatibility(std::list<std::string>& target,
+                                              ResourceType resourceType,
+                                              int64_t since,
+                                              uint32_t limit) ORTHANC_OVERRIDE
     {
       DatabasePluginMessages::TransactionRequest request;
       request.mutable_get_all_public_ids_with_limits()->set_resource_type(Convert(resourceType));
@@ -1762,7 +1764,7 @@ namespace Orthanc
       }
       else
       {
-        Compatibility::GenericFind find(*this);
+        Compatibility::GenericFind find(*this, *this);
         find.ExecuteFind(identifiers, capabilities, request);
       }
     }
@@ -1780,7 +1782,7 @@ namespace Orthanc
       }
       else
       {
-        Compatibility::GenericFind find(*this);
+        Compatibility::GenericFind find(*this, *this);
         find.ExecuteExpand(response, capabilities, request, identifier);
       }
     }

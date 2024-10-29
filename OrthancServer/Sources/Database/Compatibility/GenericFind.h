@@ -33,14 +33,17 @@ namespace Orthanc
     {
     private:
       IDatabaseWrapper::ITransaction&  transaction_;
+      IDatabaseWrapper::ICompatibilityTransaction&  compatibilityTransaction_;
 
       void RetrieveMainDicomTags(FindResponse::Resource& target,
                                  ResourceType level,
                                  int64_t internalId);
 
     public:
-      explicit GenericFind(IDatabaseWrapper::ITransaction& transaction) :
-        transaction_(transaction)
+      explicit GenericFind(IDatabaseWrapper::ITransaction& transaction,
+                           IDatabaseWrapper::ICompatibilityTransaction& compatibilityTransaction) :
+        transaction_(transaction),
+        compatibilityTransaction_(compatibilityTransaction)
       {
       }
 

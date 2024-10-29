@@ -46,7 +46,9 @@
 
 namespace Orthanc
 {
-  class OrthancPluginDatabaseV3::Transaction : public BaseDatabaseWrapper::BaseTransaction
+  class OrthancPluginDatabaseV3::Transaction :
+    public BaseDatabaseWrapper::BaseTransaction,
+    public IDatabaseWrapper::ICompatibilityTransaction
   {
   private:
     OrthancPluginDatabaseV3&           that_;
@@ -386,10 +388,10 @@ namespace Orthanc
     }
 
     
-    virtual void GetAllPublicIds(std::list<std::string>& target,
-                                 ResourceType resourceType,
-                                 int64_t since,
-                                 uint32_t limit) ORTHANC_OVERRIDE
+    virtual void GetAllPublicIdsCompatibility(std::list<std::string>& target,
+                                              ResourceType resourceType,
+                                              int64_t since,
+                                              uint32_t limit) ORTHANC_OVERRIDE
     {
       CheckSuccess(that_.backend_.getAllPublicIdsWithLimit(
                      transaction_, Plugins::Convert(resourceType),

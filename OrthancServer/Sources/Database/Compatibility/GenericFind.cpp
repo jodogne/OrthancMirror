@@ -140,7 +140,7 @@ namespace Orthanc
         }
         else if (request.GetLimitsCount() != 0)
         {
-          transaction_.GetAllPublicIds(identifiers, request.GetLevel(), request.GetLimitsSince(), request.GetLimitsCount());
+          compatibilityTransaction_.GetAllPublicIdsCompatibility(identifiers, request.GetLevel(), request.GetLimitsSince(), request.GetLimitsCount());
         }
         else
         {
