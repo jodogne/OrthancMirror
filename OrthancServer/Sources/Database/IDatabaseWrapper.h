@@ -380,8 +380,13 @@ namespace Orthanc
                                           int64_t& uncompressedSize) = 0;
 
       /**
-       * Primitives introduced in Orthanc 1.12.4
+       * Primitives introduced in Orthanc 1.12.5
        **/
+
+      // This is only implemented if "HasIntegratedFind()" is "true"
+      virtual void ExecuteCount(uint64_t& count,
+                                const FindRequest& request,
+                                const Capabilities& capabilities) = 0;
 
       // This is only implemented if "HasIntegratedFind()" is "true"
       virtual void ExecuteFind(FindResponse& response,

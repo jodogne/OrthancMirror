@@ -1475,6 +1475,63 @@ namespace Orthanc
     }
 
 
+    virtual void ExecuteCount(uint64_t& count,
+                              const FindRequest& request,
+                              const Capabilities& capabilities) ORTHANC_OVERRIDE
+    {
+      if (capabilities.HasFindSupport())
+      {
+        DatabasePluginMessages::TransactionRequest dbRequest;
+        dbRequest.mutable_find()->set_level(Convert(request.GetLevel()));
+
+        if (request.GetOrthancIdentifiers().HasPatientId())
+        {
+          dbRequest.mutable_find()->set_orthanc_id_patient(request.GetOrthancIdentifiers().GetPatientId());
+        }
+
+        if (request.GetOrthancIdentifiers().HasStudyId())
+        {
+          dbRequest.mutable_find()->set_orthanc_id_study(request.GetOrthancIdentifiers().GetStudyId());
+        }
+
+        if (request.GetOrthancIdentifiers().HasSeriesId())
+        {
+          dbRequest.mutable_find()->set_orthanc_id_series(request.GetOrthancIdentifiers().GetSeriesId());
+        }
+
+        if (request.GetOrthancIdentifiers().HasInstanceId())
+        {
+          dbRequest.mutable_find()->set_orthanc_id_instance(request.GetOrthancIdentifiers().GetInstanceId());
+        }
+
+        for (size_t i = 0; i < request.GetDicomTagConstraints().GetSize(); i++)
+        {
+          Convert(*dbRequest.mutable_find()->add_dicom_tag_constraints(), request.GetDicomTagConstraints().GetConstraint(i));
+        }
+
+        for (std::deque<DatabaseMetadataConstraint*>::const_iterator it = request.GetMetadataConstraint().begin(); it != request.GetMetadataConstraint().end(); ++it)
+        {
+          Convert(*dbRequest.mutable_find()->add_metadata_constraints(), *(*it)); 
+        }
+
+        for (std::set<std::string>::const_iterator it = request.GetLabels().begin(); it != request.GetLabels().end(); ++it)
+        {
+          dbRequest.mutable_find()->add_labels(*it);
+        }
+
+        dbRequest.mutable_find()->set_labels_constraint(Convert(request.GetLabelsConstraint()));
+
+        DatabasePluginMessages::TransactionResponse dbResponse;
+        ExecuteTransaction(dbResponse, DatabasePluginMessages::OPERATION_COUNT_RESOURCES, dbRequest);
+
+        count = dbResponse.count_resources().count();
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_NotImplemented);
+      }
+    }
+
     virtual void ExecuteFind(FindResponse& response,
                              const FindRequest& request,
                              const Capabilities& capabilities) ORTHANC_OVERRIDE

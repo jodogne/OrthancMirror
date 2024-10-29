@@ -123,6 +123,11 @@ namespace Orthanc
         throw OrthancException(ErrorCode_NotImplemented, "The database backend doesn't support labels");
       }
 
+      if (!request.GetOrdering().empty())
+      {
+        throw OrthancException(ErrorCode_NotImplemented, "The database backend doesn't support ordering");
+      }
+
       if (IsRequestWithoutContraint(request) &&
           !request.GetOrthancIdentifiers().HasPatientId() &&
           !request.GetOrthancIdentifiers().HasStudyId() &&
