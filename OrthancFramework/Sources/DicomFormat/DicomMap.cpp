@@ -800,6 +800,17 @@ namespace Orthanc
     return false;
   }
 
+  bool DicomMap::HasMetaInformationTags(const std::set<DicomTag>& tags)
+  {
+    for (std::set<DicomTag>::const_iterator it = tags.begin(); it != tags.end(); ++it)
+    {
+      if (it->GetGroup() == 0x0002)
+      {
+        return true;
+      }
+    }
+    return false;
+  }
 
   void DicomMap::GetMainDicomTags(std::set<DicomTag>& target,
                                   ResourceType level)
