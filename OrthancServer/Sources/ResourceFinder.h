@@ -101,9 +101,7 @@ namespace Orthanc
       return requestedTags_.size() > 0;
     }
 
-    bool IsStorageAccessAllowedOnAnswers();
-
-    bool IsStorageAccessOnLookup();
+    bool IsStorageAccessAllowed();
 
   public:
     ResourceFinder(ResourceType level,
