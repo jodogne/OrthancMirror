@@ -3389,8 +3389,9 @@ namespace Orthanc
 
         finder.SetDatabaseLimits(context.GetDatabaseLimits(level));
 
-        if ((request.isMember(KEY_LIMIT) || request.isMember(KEY_SINCE)) &&
-          !dicomTagLookup.HasOnlyMainDicomTags())
+        if (((request.isMember(KEY_LIMIT) && request[KEY_LIMIT].asInt64() != 0) || 
+             (request.isMember(KEY_SINCE) && request[KEY_SINCE].asInt64() != 0)) &&
+            !dicomTagLookup.HasOnlyMainDicomTags())
         {
             throw OrthancException(ErrorCode_BadRequest,
                                   "Unable to use " + std::string(KEY_LIMIT) + " or " + std::string(KEY_SINCE) + " in tools/find when querying tags that are not stored as MainDicomTags in the Database");
