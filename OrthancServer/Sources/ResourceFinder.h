@@ -66,7 +66,7 @@ namespace Orthanc
     uint64_t                         limitsSince_;
     uint64_t                         limitsCount_;
     ResponseContentFlags             responseContent_;
-    bool                             allowStorageAccess_;
+    FindStorageAccessMode            storageAccessMode_;
     std::set<DicomTag>               requestedTags_;
     std::set<DicomTag>               requestedComputedTags_;
 
@@ -101,21 +101,16 @@ namespace Orthanc
       return requestedTags_.size() > 0;
     }
 
+    bool IsStorageAccessAllowedOnAnswers();
+
+    bool IsStorageAccessOnLookup();
+
   public:
     ResourceFinder(ResourceType level,
-                   ResponseContentFlags responseContent);
+                   ResponseContentFlags responseContent,
+                   FindStorageAccessMode storageAccessMode);
 
     void SetDatabaseLimits(uint64_t limits);
-
-    bool IsAllowStorageAccess() const
-    {
-      return allowStorageAccess_;
-    }
-
-    void SetAllowStorageAccess(bool allow)
-    {
-      allowStorageAccess_ = allow;
-    }
 
     void SetOrthancId(ResourceType level,
                       const std::string& id)

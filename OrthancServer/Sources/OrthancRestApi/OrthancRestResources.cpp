@@ -152,7 +152,7 @@ namespace Orthanc
       responseContent = static_cast<ResponseContentFlags>(static_cast<uint32_t>(responseContent) | ResponseContentFlags_Metadata);
     }
 
-    ResourceFinder finder(level, responseContent);
+    ResourceFinder finder(level, responseContent, context.GetFindStorageAccessMode());
     finder.SetOrthancId(level, identifier);
     finder.SetRetrieveMetadata(retrieveMetadata);
 
@@ -193,7 +193,7 @@ namespace Orthanc
     std::set<DicomTag> requestedTags;
     OrthancRestApi::GetRequestedTags(requestedTags, call);
 
-    ResourceFinder finder(resourceType, (expand ? ResponseContentFlags_ExpandTrue : ResponseContentFlags_ID));
+    ResourceFinder finder(resourceType, (expand ? ResponseContentFlags_ExpandTrue : ResponseContentFlags_ID), OrthancRestApi::GetContext(call).GetFindStorageAccessMode());
     finder.AddRequestedTags(requestedTags);
 
     if (call.HasArgument("limit") ||
@@ -251,7 +251,7 @@ namespace Orthanc
 
     const DicomToJsonFormat format = OrthancRestApi::GetDicomFormat(call, DicomToJsonFormat_Human);
 
-    ResourceFinder finder(resourceType, ResponseContentFlags_ExpandTrue);
+    ResourceFinder finder(resourceType, ResponseContentFlags_ExpandTrue, OrthancRestApi::GetContext(call).GetFindStorageAccessMode());
     finder.AddRequestedTags(requestedTags);
     finder.SetOrthancId(resourceType, call.GetUriComponent("id", ""));
 
@@ -3250,7 +3250,7 @@ namespace Orthanc
 
       const ResourceType level = StringToResourceType(request[KEY_LEVEL].asCString());
 
-      ResourceFinder finder(level, responseContent);
+      ResourceFinder finder(level, responseContent, context.GetFindStorageAccessMode());
 
       DatabaseLookup dicomTagLookup;
 
@@ -3542,7 +3542,7 @@ namespace Orthanc
     std::set<DicomTag> requestedTags;
     OrthancRestApi::GetRequestedTags(requestedTags, call);
 
-    ResourceFinder finder(end, (expand ? ResponseContentFlags_ExpandTrue : ResponseContentFlags_ID));
+    ResourceFinder finder(end, (expand ? ResponseContentFlags_ExpandTrue : ResponseContentFlags_ID), OrthancRestApi::GetContext(call).GetFindStorageAccessMode());
     finder.SetOrthancId(start, call.GetUriComponent("id", ""));
     finder.AddRequestedTags(requestedTags);
 
