@@ -63,7 +63,7 @@ static const char* const KEY_DICOM_TLS_REMOTE_CERTIFICATE_REQUIRED = "DicomTlsRe
 static const char* const KEY_DICOM_TLS_MINIMUM_PROTOCOL_VERSION = "DicomTlsMinimumProtocolVersion";
 static const char* const KEY_DICOM_TLS_ACCEPTED_CIPHERS = "DicomTlsCiphersAccepted";
 static const char* const KEY_MAXIMUM_PDU_LENGTH = "MaximumPduLength";
-
+static const char* const KEY_READ_ONLY = "ReadOnly";
 
 class OrthancStoreRequestHandler : public IStoreRequestHandler
 {
@@ -1547,7 +1547,7 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
     }
 
     // New option in Orthanc 1.12.5
-    readOnly = lock.GetConfiguration().GetBooleanParameter("ReadOnly", false);
+    readOnly = lock.GetConfiguration().GetBooleanParameter(KEY_READ_ONLY, false);
     
     // Configuration of DICOM TLS for Orthanc SCU (since Orthanc 1.9.0)
     DicomAssociationParameters::SetDefaultOwnCertificatePath(
