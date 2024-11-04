@@ -253,7 +253,8 @@ namespace Orthanc
     Warnings_002_InconsistentDicomTagsInDb,
     Warnings_003_DecoderFailure,              // new in Orthanc 1.12.5
     Warnings_004_NoMainDicomTagsSignature,    // new in Orthanc 1.12.5
-    Warnings_005_RequestingTagFromLowerResourceLevel    // new in Orthanc 1.12.5
+    Warnings_005_RequestingTagFromLowerResourceLevel,    // new in Orthanc 1.12.5
+    Warnings_006_RequestingTagFromMetaHeader    // new in Orthanc 1.12.5
   };
 
 

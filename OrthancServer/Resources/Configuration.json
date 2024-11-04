@@ -1004,7 +1004,12 @@
     // from a lower resource level; e.g. when requesting "StudyDescription" at
     // Patient level.
     // (new in Orthanc 1.12.5)
-    "W005_RequestingTagFromLowerResourceLevel": true
+    "W005_RequestingTagFromLowerResourceLevel": true,
+
+    // Display a warning when a user performs a find request and requests a tag
+    // from the DICOM Meta Header.
+    // (new in Orthanc 1.12.5)
+    "W006_RequestingTagFromMetaHeader": true
   },
 
   // Configure Orthanc in read only mode.

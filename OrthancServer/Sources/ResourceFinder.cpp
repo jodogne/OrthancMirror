@@ -1022,11 +1022,13 @@ namespace Orthanc
 
     bool isWarning002Enabled = false;
     bool isWarning004Enabled = false;
+    bool isWarning006Enabled = false;
 
     {
       OrthancConfiguration::ReaderLock lock;
       isWarning002Enabled = lock.GetConfiguration().IsWarningEnabled(Warnings_002_InconsistentDicomTagsInDb);
       isWarning004Enabled = lock.GetConfiguration().IsWarningEnabled(Warnings_004_NoMainDicomTagsSignature);
+      isWarning006Enabled = lock.GetConfiguration().IsWarningEnabled(Warnings_006_RequestingTagFromMetaHeader);
     }
 
     FindResponse response;
@@ -1083,6 +1085,28 @@ namespace Orthanc
         InjectRequestedTags(outRequestedTags, remainingRequestedTags, resource, ResourceType_Study);
         InjectRequestedTags(outRequestedTags, remainingRequestedTags, resource, ResourceType_Series);
         InjectRequestedTags(outRequestedTags, remainingRequestedTags, resource, ResourceType_Instance);
+
+        if (DicomMap::HasMetaInformationTags(remainingRequestedTags)) // we are not able to retrieve meta information in RequestedTags
+        {
+          std::set<DicomTag> metaTagsToRemove;
+          for (std::set<DicomTag>::const_iterator it = remainingRequestedTags.begin(); it != remainingRequestedTags.end(); ++it)
+          {
+            if (it->GetGroup() == 0x0002)
+            {
+              metaTagsToRemove.insert(*it);
+            }
+          }
+
+          if (isWarning006Enabled)
+          {
+            std::string joinedMetaTags;
+            FromDcmtkBridge::FormatListOfTags(joinedMetaTags, metaTagsToRemove);
+            LOG(WARNING) << "W006: Unable to include tags from the Meta Header in 'RequestedTags'.  Skipping them: " << joinedMetaTags;
+          }
+
+          Toolbox::RemoveSets(remainingRequestedTags, metaTagsToRemove);
+        }
+
 
         if (!remainingRequestedTags.empty() && 
             !DicomMap::HasOnlyComputedTags(remainingRequestedTags)) // if the only remaining tags are computed tags, it is worthless to read them from disk

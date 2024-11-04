@@ -1169,6 +1169,10 @@ namespace Orthanc
         {
           warning = Warnings_005_RequestingTagFromLowerResourceLevel;
         }
+        else if (name == "W006_RequestingTagFromMetaHeader")
+        {
+          warning = Warnings_006_RequestingTagFromMetaHeader;
+        }
         else
         {
           throw OrthancException(ErrorCode_BadFileFormat, name + " is not recognized as a valid warning name");
