@@ -1114,7 +1114,9 @@ namespace Orthanc
         if (!remainingRequestedTags.empty() && 
             !DicomMap::HasOnlyComputedTags(remainingRequestedTags)) // if the only remaining tags are computed tags, it is worthless to read them from disk
         {
-          if (IsStorageAccessAllowedOnAnswers())
+          // If a lookup tag is not available from DB, it is included in remainingRequestedTags and it will always be included in the answer too
+          // -> from 1.12.5, "StorageAccessOnFind": "Always" is actually equivalent to "StorageAccessOnFind": "Answers"
+          if (IsStorageAccessAllowed())
           {
             ReadMissingTagsFromStorageArea(outRequestedTags, context, request_, resource, remainingRequestedTags);
           }
@@ -1195,7 +1197,7 @@ namespace Orthanc
     }
   }
 
-  bool ResourceFinder::IsStorageAccessAllowedOnAnswers()
+  bool ResourceFinder::IsStorageAccessAllowed()
   {
     switch (storageAccessMode_)
     {
@@ -1204,21 +1206,6 @@ namespace Orthanc
         return true;
       case FindStorageAccessMode_DatabaseOnly:
         return false;
-      default:
-        throw OrthancException(ErrorCode_InternalError);
-    }
-  }
-
-
-  bool ResourceFinder::IsStorageAccessOnLookup()
-  {
-    switch (storageAccessMode_)
-    {
-      case FindStorageAccessMode_DiskOnAnswer:
-        return false;
-      case FindStorageAccessMode_DiskOnLookupAndAnswer:
-      case FindStorageAccessMode_DatabaseOnly:
-        return true;
       default:
         throw OrthancException(ErrorCode_InternalError);
     }
