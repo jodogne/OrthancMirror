@@ -1173,6 +1173,10 @@ namespace Orthanc
         {
           warning = Warnings_006_RequestingTagFromMetaHeader;
         }
+        else if (name == "W007_MissingRequestedTagsNotReadFromDisk")
+        {
+          warning = Warnings_007_MissingRequestedTagsNotReadFromDisk;
+        }
         else
         {
           throw OrthancException(ErrorCode_BadFileFormat, name + " is not recognized as a valid warning name");

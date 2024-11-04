@@ -544,7 +544,8 @@ namespace Orthanc
 
 
   ResourceFinder::ResourceFinder(ResourceType level,
-                                 ResponseContentFlags responseContent) :
+                                 ResponseContentFlags responseContent,
+                                 FindStorageAccessMode storageAccessMode) :
     request_(level),
     databaseLimits_(0),
     isSimpleLookup_(true),
@@ -554,7 +555,7 @@ namespace Orthanc
     limitsSince_(0),
     limitsCount_(0),
     responseContent_(responseContent),
-    allowStorageAccess_(true),
+    storageAccessMode_(storageAccessMode),
     isWarning002Enabled_(false),
     isWarning004Enabled_(false),
     isWarning005Enabled_(false)
@@ -1023,12 +1024,14 @@ namespace Orthanc
     bool isWarning002Enabled = false;
     bool isWarning004Enabled = false;
     bool isWarning006Enabled = false;
+    bool isWarning007Enabled = false;
 
     {
       OrthancConfiguration::ReaderLock lock;
       isWarning002Enabled = lock.GetConfiguration().IsWarningEnabled(Warnings_002_InconsistentDicomTagsInDb);
       isWarning004Enabled = lock.GetConfiguration().IsWarningEnabled(Warnings_004_NoMainDicomTagsSignature);
       isWarning006Enabled = lock.GetConfiguration().IsWarningEnabled(Warnings_006_RequestingTagFromMetaHeader);
+      isWarning007Enabled = lock.GetConfiguration().IsWarningEnabled(Warnings_007_MissingRequestedTagsNotReadFromDisk);
     }
 
     FindResponse response;
@@ -1111,14 +1114,15 @@ namespace Orthanc
         if (!remainingRequestedTags.empty() && 
             !DicomMap::HasOnlyComputedTags(remainingRequestedTags)) // if the only remaining tags are computed tags, it is worthless to read them from disk
         {
-          if (!allowStorageAccess_)
-          {
-            throw OrthancException(ErrorCode_BadSequenceOfCalls,
-                                   "Cannot add missing requested tags, as access to file storage is disallowed");
-          }
-          else
+          if (IsStorageAccessAllowedOnAnswers())
           {
             ReadMissingTagsFromStorageArea(outRequestedTags, context, request_, resource, remainingRequestedTags);
+          }
+          else if (isWarning007Enabled)
+          {
+            std::string joinedTags;
+            FromDcmtkBridge::FormatListOfTags(joinedTags, remainingRequestedTags);
+            LOG(WARNING) << "W007: Unable to include requested tags since 'StorageAccessOnFind' does not allow accessing the storage to build answers: " << joinedTags;
           }
         }
 
@@ -1191,6 +1195,34 @@ namespace Orthanc
     }
   }
 
+  bool ResourceFinder::IsStorageAccessAllowedOnAnswers()
+  {
+    switch (storageAccessMode_)
+    {
+      case FindStorageAccessMode_DiskOnAnswer:
+      case FindStorageAccessMode_DiskOnLookupAndAnswer:
+        return true;
+      case FindStorageAccessMode_DatabaseOnly:
+        return false;
+      default:
+        throw OrthancException(ErrorCode_InternalError);
+    }
+  }
+
+
+  bool ResourceFinder::IsStorageAccessOnLookup()
+  {
+    switch (storageAccessMode_)
+    {
+      case FindStorageAccessMode_DiskOnAnswer:
+        return false;
+      case FindStorageAccessMode_DiskOnLookupAndAnswer:
+      case FindStorageAccessMode_DatabaseOnly:
+        return true;
+      default:
+        throw OrthancException(ErrorCode_InternalError);
+    }
+  }
 
   void ResourceFinder::Execute(Json::Value& target,
                                ServerContext& context,
