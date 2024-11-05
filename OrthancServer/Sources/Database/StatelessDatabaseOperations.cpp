@@ -926,43 +926,29 @@ namespace Orthanc
 
 
   void StatelessDatabaseOperations::GetChildren(std::list<std::string>& result,
+                                                ResourceType level,
                                                 const std::string& publicId)
   {
-    class Operations : public ReadOnlyOperationsT2<std::list<std::string>&, const std::string&>
+    const ResourceType childLevel = GetChildResourceType(level);
+
+    FindRequest request(level);
+    request.SetOrthancId(level, publicId);
+    request.GetChildrenSpecification(childLevel).SetRetrieveIdentifiers(true);
+
+    FindResponse response;
+    ExecuteFind(response, request);
+
+    result.clear();
+
+    for (size_t i = 0; i < response.GetSize(); i++)
     {
-    public:
-      virtual void ApplyTuple(ReadOnlyTransaction& transaction,
-                              const Tuple& tuple) ORTHANC_OVERRIDE
+      const std::set<std::string>& children = response.GetResourceByIndex(i).GetChildrenIdentifiers(childLevel);
+
+      for (std::set<std::string>::const_iterator it = children.begin(); it != children.end(); ++it)
       {
-        ResourceType type;
-        int64_t resource;
-        if (!transaction.LookupResource(resource, type, tuple.get<1>()))
-        {
-          throw OrthancException(ErrorCode_UnknownResource);
-        }
-        else if (type == ResourceType_Instance)
-        {
-          // An instance cannot have a child
-          throw OrthancException(ErrorCode_BadParameterType);
-        }
-        else
-        {
-          std::list<int64_t> tmp;
-          transaction.GetChildrenInternalId(tmp, resource);
-
-          tuple.get<0>().clear();
-
-          for (std::list<int64_t>::const_iterator 
-                 it = tmp.begin(); it != tmp.end(); ++it)
-          {
-            tuple.get<0>().push_back(transaction.GetPublicId(*it));
-          }
-        }
+        result.push_back(*it);
       }
-    };
-    
-    Operations operations;
-    operations.Apply(*this, result, publicId);
+    }
   }
 
 

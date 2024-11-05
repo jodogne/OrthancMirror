@@ -569,6 +569,7 @@ namespace Orthanc
     bool IsProtectedPatient(const std::string& publicId);
 
     void GetChildren(std::list<std::string>& result,
+                     ResourceType level,
                      const std::string& publicId);
 
     void GetChildInstances(std::list<std::string>& result,

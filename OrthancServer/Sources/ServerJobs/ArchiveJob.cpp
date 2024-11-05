@@ -622,7 +622,7 @@ namespace Orthanc
         {
           // This is resource is marked for expansion
           std::list<std::string> children;
-          index.GetChildren(children, it->first);
+          index.GetChildren(children, GetResourceLevel(level_), it->first);
 
           std::unique_ptr<ArchiveIndex> child(new ArchiveIndex(GetChildResourceType(level_)));
 
