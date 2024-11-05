@@ -297,7 +297,7 @@ namespace Orthanc
   void SliceOrdering::CreateInstances()
   {
     std::list<std::string> instancesId;
-    index_.GetChildren(instancesId, seriesId_);
+    index_.GetChildren(instancesId, ResourceType_Series, seriesId_);
 
     instances_.reserve(instancesId.size());
     for (std::list<std::string>::const_iterator

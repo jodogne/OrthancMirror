@@ -437,7 +437,7 @@ namespace Orthanc
         std::list<std::string> resources;
         try
         {
-          context_.GetIndex().GetChildren(resources, parentSeries_);
+          context_.GetIndex().GetChildren(resources, ResourceType_Series, parentSeries_);
         }
         catch (OrthancException&)
         {
@@ -506,7 +506,7 @@ namespace Orthanc
         std::list<std::string> resources;
         try
         {
-          context_.GetIndex().GetChildren(resources, parentSeries_);
+          context_.GetIndex().GetChildren(resources, ResourceType_Series, parentSeries_);
         }
         catch (OrthancException&)
         {
@@ -824,6 +824,7 @@ namespace Orthanc
   class OrthancWebDav::SingleDicomResource : public ListOfResources
   {
   private:
+    ResourceType parentLevel_;
     std::string  parentId_;
     
   protected: 
@@ -831,7 +832,7 @@ namespace Orthanc
     {
       try
       {
-        GetContext().GetIndex().GetChildren(resources, parentId_);
+        GetContext().GetIndex().GetChildren(resources, parentLevel_, parentId_);
       }
       catch (OrthancException&)
       {
@@ -863,6 +864,7 @@ namespace Orthanc
                         const std::string& parentId,
                         const Templates& templates) :
       ListOfResources(context, level, templates),
+      parentLevel_(GetParentResourceType(level)),
       parentId_(parentId)
     {
     }

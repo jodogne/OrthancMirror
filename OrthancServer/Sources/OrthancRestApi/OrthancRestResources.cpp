@@ -3923,6 +3923,7 @@ namespace Orthanc
 
   static void GetBulkChildren(std::set<std::string>& target,
                               ServerIndex& index,
+                              ResourceType level,
                               const std::set<std::string>& source)
   {
     target.clear();
@@ -3931,7 +3932,7 @@ namespace Orthanc
            it = source.begin(); it != source.end(); ++it)
     {
       std::list<std::string> children;
-      index.GetChildren(children, *it);
+      index.GetChildren(children, level, *it);
 
       for (std::list<std::string>::const_iterator
              child = children.begin(); child != children.end(); ++child)
@@ -4018,11 +4019,11 @@ namespace Orthanc
               // Need to explore children
               std::set<std::string> current;
               current.insert(*it);
-              
+
               for (;;)
               {
                 std::set<std::string> children;
-                GetBulkChildren(children, index, current);
+                GetBulkChildren(children, index, type, current);
 
                 type = GetChildResourceType(type);
                 if (type == level)
