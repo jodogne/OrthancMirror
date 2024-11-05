@@ -1038,7 +1038,7 @@ namespace Orthanc
             FindResponse::Resource& res = response.GetResourceByInternalId(internalId);
             res.AddMetadata(static_cast<ResourceType>(requestLevel), 
                             static_cast<MetadataType>(s.ColumnInt(C6_INT_1)),
-                            s.ColumnString(C3_STRING_1));
+                            s.ColumnString(C3_STRING_1), 0 /* no support for revision */);
           }; break;
 
           case QUERY_PARENT_METADATA:
@@ -1046,7 +1046,7 @@ namespace Orthanc
             FindResponse::Resource& res = response.GetResourceByInternalId(internalId);
             res.AddMetadata(static_cast<ResourceType>(requestLevel - 1), 
                             static_cast<MetadataType>(s.ColumnInt(C6_INT_1)),
-                            s.ColumnString(C3_STRING_1));
+                            s.ColumnString(C3_STRING_1), 0 /* no support for revision */);
           }; break;
 
           case QUERY_GRAND_PARENT_METADATA:
@@ -1054,7 +1054,7 @@ namespace Orthanc
             FindResponse::Resource& res = response.GetResourceByInternalId(internalId);
             res.AddMetadata(static_cast<ResourceType>(requestLevel - 2), 
                             static_cast<MetadataType>(s.ColumnInt(C6_INT_1)),
-                            s.ColumnString(C3_STRING_1));
+                            s.ColumnString(C3_STRING_1), 0 /* no support for revision */);
           }; break;
 
           case QUERY_CHILDREN_METADATA:

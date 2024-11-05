@@ -4515,9 +4515,8 @@ namespace Orthanc
             PImpl::ServerContextReference lock(*pimpl_);
 
             std::string s;
-            int64_t revision;  // unused
             if (lock.GetContext().GetIndex().LookupMetadata(
-                  s, revision, params.instanceId,
+                  s, params.instanceId,
                   ResourceType_Instance, MetadataType_Instance_PixelDataVR))
             {
               hasPixelData = true;
@@ -4536,7 +4535,7 @@ namespace Orthanc
               }
             }
             else if (lock.GetContext().GetIndex().LookupMetadata(
-                       s, revision, params.instanceId,
+                       s, params.instanceId,
                        ResourceType_Instance, MetadataType_Instance_PixelDataOffset))
             {
               // This file was stored by an older version of Orthanc,

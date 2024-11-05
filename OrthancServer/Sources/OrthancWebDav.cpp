@@ -74,8 +74,7 @@ namespace Orthanc
                          MetadataType metadata)
   {
     std::string value;
-    int64_t revision;  // Ignored
-    if (context.GetIndex().LookupMetadata(value, revision, publicId, level, metadata))
+    if (context.GetIndex().LookupMetadata(value, publicId, level, metadata))
     {
       ParseTime(target, value);
     }

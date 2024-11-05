@@ -245,6 +245,7 @@ namespace Orthanc
 
     bool                                 retrieveMainDicomTags_;
     bool                                 retrieveMetadata_;
+    bool                                 retrieveMetadataRevisions_;
     bool                                 retrieveLabels_;
     bool                                 retrieveAttachments_;
     bool                                 retrieveParentIdentifier_;
@@ -377,6 +378,16 @@ namespace Orthanc
     bool IsRetrieveMetadata() const
     {
       return retrieveMetadata_;
+    }
+
+    void SetRetrieveMetadataRevisions(bool retrieve)
+    {
+      retrieveMetadataRevisions_ = retrieve;
+    }
+
+    bool IsRetrieveMetadataRevisions() const
+    {
+      return retrieveMetadataRevisions_;
     }
 
     void SetRetrieveLabels(bool retrieve)

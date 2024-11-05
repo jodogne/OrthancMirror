@@ -90,6 +90,7 @@ namespace Orthanc
     labelsConstraint_(LabelsConstraint_All),
     retrieveMainDicomTags_(false),
     retrieveMetadata_(false),
+    retrieveMetadataRevisions_(false),
     retrieveLabels_(false),
     retrieveAttachments_(false),
     retrieveParentIdentifier_(false),

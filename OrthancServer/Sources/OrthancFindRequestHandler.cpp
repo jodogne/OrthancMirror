@@ -30,7 +30,7 @@
 #include "../../OrthancFramework/Sources/Lua/LuaFunctionCall.h"
 #include "../../OrthancFramework/Sources/MetricsRegistry.h"
 #include "OrthancConfiguration.h"
-#include "ResourceFinder.cpp"
+#include "ResourceFinder.h"
 #include "Search/DatabaseLookup.h"
 #include "ServerContext.h"
 #include "ServerToolbox.h"

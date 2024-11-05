@@ -1110,7 +1110,7 @@ namespace Orthanc
     }
 
     std::string s;
-    if (index_.LookupMetadata(s, revision, instancePublicId, ResourceType_Instance,
+    if (index_.LookupMetadata(s, instancePublicId, ResourceType_Instance,
                               MetadataType_Instance_PixelDataOffset))
     {
       metadata[MetadataType_Instance_PixelDataOffset] = s;
@@ -1346,7 +1346,7 @@ namespace Orthanc
     std::string s;
 
     if (attachment.GetCompressionType() == CompressionType_None &&
-        index_.LookupMetadata(s, revision, instancePublicId, ResourceType_Instance,
+        index_.LookupMetadata(s, instancePublicId, ResourceType_Instance,
                               MetadataType_Instance_PixelDataOffset) &&
         !s.empty())
     {
@@ -1638,8 +1638,7 @@ namespace Orthanc
     if (metadata == MetadataType_Instance_SopClassUid ||
         metadata == MetadataType_Instance_TransferSyntax)
     {
-      int64_t revision;  // Ignored
-      if (index_.LookupMetadata(target, revision, publicId, level, metadata))
+      if (index_.LookupMetadata(target, publicId, level, metadata))
       {
         return true;
       }
@@ -1694,8 +1693,7 @@ namespace Orthanc
     else
     {
       // No backward
-      int64_t revision;  // Ignored
-      return index_.LookupMetadata(target, revision, publicId, level, metadata);
+      return index_.LookupMetadata(target, publicId, level, metadata);
     }
   }
 

@@ -576,6 +576,11 @@ namespace Orthanc
                            const std::string& publicId);
 
     bool LookupMetadata(std::string& target,
+                        const std::string& publicId,
+                        ResourceType expectedType,
+                        MetadataType type);
+
+    bool LookupMetadata(std::string& target,
                         int64_t& revision,
                         const std::string& publicId,
                         ResourceType expectedType,

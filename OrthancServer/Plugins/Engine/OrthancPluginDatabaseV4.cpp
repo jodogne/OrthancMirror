@@ -318,7 +318,8 @@ namespace Orthanc
 
     for (int i = 0; i < source.metadata().size(); i++)
     {
-      target.AddMetadata(level, static_cast<MetadataType>(source.metadata(i).key()), source.metadata(i).value());
+      target.AddMetadata(level, static_cast<MetadataType>(source.metadata(i).key()),
+                         source.metadata(i).value(), source.metadata(i).revision());
     }
   }
 
