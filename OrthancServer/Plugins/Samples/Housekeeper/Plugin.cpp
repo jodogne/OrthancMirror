@@ -859,12 +859,15 @@ extern "C"
               "StorageCompressionChange": true,
               "MainDicomTagsChange": true,
               "UnnecessaryDicomAsJsonFiles": true,
+              "IngestTranscodingChange": true,
               "DicomWebCacheChange": true   // new in 1.12.2
             },
 
-            // When rebuilding MainDicomTags, limit to a single level of resource.
-            // Allowed values: "Patient", "Study", "Series", "Instance"
-            "LimitMainDicomTagsReconstructLevel": "Study"
+            // When rebuilding MainDicomTags, limit to a single level of resource
+            // which can greatly improve performances e.g. if you have only updated 
+            // the Study level ExtraMainDicomTags.
+            // Allowed values: "Patient", "Study", "Series", "Instance", "All"
+            "LimitMainDicomTagsReconstructLevel": "All"
 
           }
         }
@@ -887,11 +890,12 @@ extern "C"
         triggerOnDicomWebCacheChange_ = triggers.GetBooleanValue("DicomWebCacheChange", true);
       }
 
-      limitMainDicomTagsReconstructLevel_ = housekeeper.GetStringValue("LimitMainDicomTagsReconstructLevel", "");
+      limitMainDicomTagsReconstructLevel_ = housekeeper.GetStringValue("LimitMainDicomTagsReconstructLevel", "All");
       if (limitMainDicomTagsReconstructLevel_ != "Patient" && limitMainDicomTagsReconstructLevel_ != "Study"
-        && limitMainDicomTagsReconstructLevel_ != "Series" && limitMainDicomTagsReconstructLevel_ != "Instance")
+        && limitMainDicomTagsReconstructLevel_ != "Series" && limitMainDicomTagsReconstructLevel_ != "Instance" && limitMainDicomTagsReconstructLevel_ != "All")
       {
         ORTHANC_PLUGINS_LOG_ERROR("Housekeeper invalid value for 'LimitMainDicomTagsReconstructLevel': '" + limitMainDicomTagsReconstructLevel_ + "'");
+        return -1;
       }
       else if (limitMainDicomTagsReconstructLevel_ == "Patient")
       {
