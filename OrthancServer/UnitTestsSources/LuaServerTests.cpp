@@ -138,38 +138,43 @@ TEST(Lua, Simple)
 TEST(Lua, Http)
 {
   Orthanc::LuaContext lua;
-
-#if UNIT_TESTS_WITH_HTTP_CONNEXIONS == 1
-  // The "http://www.orthanc-server.com/downloads/third-party/" does
-  // not automatically redirect to HTTPS, so we use it even if the
-  // OpenSSL/HTTPS support is disabled in curl
-  const std::string BASE = "http://www.orthanc-server.com/downloads/third-party/";
-
-#if LUA_VERSION_NUM >= 502
-  // Since Lua >= 5.2.0, the function "loadstring" has been replaced by "load"
-  lua.Execute("JSON = load(HttpGet('" + BASE + "JSON.lua')) ()");
-#else
-  lua.Execute("JSON = loadstring(HttpGet('" + BASE + "JSON.lua')) ()");
-#endif
-
-  const std::string url(BASE + "Product.json");
-#endif
+  ASSERT_TRUE(lua.IsHttpsVerifyPeers());
+  lua.SetHttpsVerifyPeers(false);
+  ASSERT_FALSE(lua.IsHttpsVerifyPeers());
 
   std::string s;
   lua.Execute(s, "print(HttpGet({}))");
   ASSERT_EQ("nil", Orthanc::Toolbox::StripSpaces(s));
 
-#if UNIT_TESTS_WITH_HTTP_CONNEXIONS == 1  
-  lua.Execute(s, "print(string.len(HttpGet(\"" + url + "\")))");
-  ASSERT_LE(100, boost::lexical_cast<int>(Orthanc::Toolbox::StripSpaces(s)));
+#if UNIT_TESTS_WITH_HTTP_CONNEXIONS == 1
+  // The "http://httpbin.org/get" URL does not automatically redirect
+  // to HTTPS, so we can use it even if the OpenSSL/HTTPS support is
+  // disabled in curl
 
-  // Parse a JSON file
-  lua.Execute(s, "print(JSON:decode(HttpGet(\"" + url + "\")) ['Product'])");
-  ASSERT_EQ("OrthancClient", Orthanc::Toolbox::StripSpaces(s));
+  const std::string URL = "http://httpbin.org/get";
+  lua.Execute(s, "print(HttpGet(\"" + URL + "\"))");
+
+  Json::Value json;
+  Orthanc::Toolbox::ReadJson(json, s);
+
+  ASSERT_TRUE(json.type() == Json::objectValue);
+  ASSERT_TRUE(json.isMember("url"));
+  ASSERT_EQ(URL, json["url"].asString());
 
 #if 0
   // This part of the test can only be executed if one instance of
-  // Orthanc is running on the localhost
+  // Orthanc is running on the localhost, with configuration option
+  // "ExecuteLuaEnabled" equals to "true"
+
+  const std::string JSON_LUA_TOOLBOX = "https://regex.info/code/JSON.lua";
+  lua.Execute("HttpGet('" + JSON_LUA_TOOLBOX + "')");
+
+#if LUA_VERSION_NUM >= 502
+  // Since Lua >= 5.2.0, the function "loadstring" has been replaced by "load"
+  lua.Execute("JSON = load(HttpGet('" + JSON_LUA_TOOLBOX + "')) ()");
+#else
+  lua.Execute("JSON = loadstring(HttpGet('" + JSON_LUA_TOOLBOX + "')) ()");
+#endif
 
   lua.Execute("modality = {}");
   lua.Execute("table.insert(modality, 'ORTHANC')");

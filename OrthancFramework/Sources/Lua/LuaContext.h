@@ -124,5 +124,17 @@ namespace Orthanc
                                       lua_State* state,
                                       int top,
                                       bool keyToLowerCase);
+
+#if ORTHANC_ENABLE_CURL == 1
+    void SetHttpsVerifyPeers(bool verify)
+    {
+      httpClient_.SetHttpsVerifyPeers(verify);
+    }
+
+    bool IsHttpsVerifyPeers() const
+    {
+      return httpClient_.IsHttpsVerifyPeers();
+    }
+#endif
   };
 }
