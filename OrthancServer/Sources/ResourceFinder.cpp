@@ -439,13 +439,13 @@ namespace Orthanc
 
     if (responseContent_ & ResponseContentFlags_Metadata)  // new in Orthanc 1.12.4
     {
-      const std::map<MetadataType, std::string>& m = resource.GetMetadata(resource.GetLevel());
+      const std::map<MetadataType, FindResponse::MetadataContent>& m = resource.GetMetadata(resource.GetLevel());
 
       Json::Value metadata = Json::objectValue;
 
-      for (std::map<MetadataType, std::string>::const_iterator it = m.begin(); it != m.end(); ++it)
+      for (std::map<MetadataType, FindResponse::MetadataContent>::const_iterator it = m.begin(); it != m.end(); ++it)
       {
-        metadata[EnumerationToString(it->first)] = it->second;
+        metadata[EnumerationToString(it->first)] = it->second.GetValue();
       }
 
       target["Metadata"] = metadata;
@@ -908,6 +908,19 @@ namespace Orthanc
   }
 
 
+  static void ConvertMetadata(std::map<MetadataType, std::string>& converted,
+                              const FindResponse::Resource& resource)
+  {
+    const std::map<MetadataType, FindResponse::MetadataContent> metadata = resource.GetMetadata(ResourceType_Instance);
+
+    for (std::map<MetadataType, FindResponse::MetadataContent>::const_iterator
+           it = metadata.begin(); it != metadata.end(); ++it)
+    {
+      converted[it->first] = it->second.GetValue();
+    }
+  }
+
+
   static void ReadMissingTagsFromStorageArea(DicomMap& requestedTags,
                                              ServerContext& context,
                                              const FindRequest& request,
@@ -937,7 +950,10 @@ namespace Orthanc
     {
       LOG(INFO) << "Will retrieve missing DICOM tags from instance: " << resource.GetIdentifier();
 
-      context.ReadDicomAsJson(tmpDicomAsJson, resource.GetIdentifier(), resource.GetMetadata(ResourceType_Instance),
+      std::map<MetadataType, std::string> converted;
+      ConvertMetadata(converted, resource);
+
+      context.ReadDicomAsJson(tmpDicomAsJson, resource.GetIdentifier(), converted,
                               resource.GetAttachments(), missingTags /* ignoreTagLength */);
     }
     else if (request.GetLevel() != ResourceType_Instance &&
@@ -980,7 +996,10 @@ namespace Orthanc
 
         if (request.GetLevel() == ResourceType_Instance)
         {
-          context.ReadDicomAsJson(tmpDicomAsJson, response.GetIdentifier(), response.GetMetadata(ResourceType_Instance),
+          std::map<MetadataType, std::string> converted;
+          ConvertMetadata(converted, resource);
+
+          context.ReadDicomAsJson(tmpDicomAsJson, response.GetIdentifier(), converted,
                                   response.GetAttachments(), missingTags /* ignoreTagLength */);
         }
         else

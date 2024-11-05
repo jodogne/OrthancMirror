@@ -926,6 +926,7 @@ message Find {        // New in Orthanc 1.12.5
     message Metadata {
       int32 key = 1;
       string value = 2;
+      int64 revision = 3;
     }
     message MultipleTags {
       uint32 group = 1;

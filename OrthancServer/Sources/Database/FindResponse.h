@@ -101,6 +101,48 @@ namespace Orthanc
 
 
   public:
+    class MetadataContent
+    {
+    private:
+      std::string  value_;
+      int64_t      revision_;
+
+    public:
+      MetadataContent() :
+        revision_(0)
+      {
+      }
+
+      MetadataContent(const std::string& value,
+                      int64_t revision) :
+        value_(value),
+        revision_(revision)
+      {
+      }
+
+      MetadataContent(const std::string& value) :
+        value_(value),
+        revision_(0)
+      {
+      }
+
+      const std::string& GetValue() const
+      {
+        return value_;
+      }
+
+      int64_t GetRevision() const
+      {
+        return revision_;
+      }
+
+      void SetRevision(int64_t revision)
+      {
+        revision_ = revision;
+      }
+    };
+
+
     class Resource : public boost::noncopyable
     {
     private:
@@ -114,10 +156,10 @@ namespace Orthanc
       MainDicomTagsAtLevel                  mainDicomTagsStudy_;
       MainDicomTagsAtLevel                  mainDicomTagsSeries_;
       MainDicomTagsAtLevel                  mainDicomTagsInstance_;
-      std::map<MetadataType, std::string>   metadataPatient_;
-      std::map<MetadataType, std::string>   metadataStudy_;
-      std::map<MetadataType, std::string>   metadataSeries_;
-      std::map<MetadataType, std::string>   metadataInstance_;
+      std::map<MetadataType, MetadataContent>   metadataPatient_;
+      std::map<MetadataType, MetadataContent>   metadataStudy_;
+      std::map<MetadataType, MetadataContent>   metadataSeries_;
+      std::map<MetadataType, MetadataContent>   metadataInstance_;
       ChildrenInformation                   childrenStudiesInformation_;
       ChildrenInformation                   childrenSeriesInformation_;
       ChildrenInformation                   childrenInstancesInformation_;
@@ -200,16 +242,22 @@ namespace Orthanc
 
       void AddMetadata(ResourceType level,
                        MetadataType metadata,
-                       const std::string& value);
+                       const std::string& value,
+                       int64_t revision);
 
-      std::map<MetadataType, std::string>& GetMetadata(ResourceType level);
+      std::map<MetadataType, MetadataContent>& GetMetadata(ResourceType level);
 
-      const std::map<MetadataType, std::string>& GetMetadata(ResourceType level) const
+      const std::map<MetadataType, MetadataContent>& GetMetadata(ResourceType level) const
       {
         return const_cast<Resource&>(*this).GetMetadata(level);
       }
 
       bool LookupMetadata(std::string& value,
+                          ResourceType level,
+                          MetadataType metadata) const;
+
+      bool LookupMetadata(std::string& value,
+                          int64_t& revision,
                           ResourceType level,
                           MetadataType metadata) const;
 

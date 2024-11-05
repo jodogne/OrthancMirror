@@ -333,9 +333,10 @@ namespace Orthanc
 
   void FindResponse::Resource::AddMetadata(ResourceType level,
                                            MetadataType metadata,
-                                           const std::string& value)
+                                           const std::string& value,
+                                           int64_t revision)
   {
-    std::map<MetadataType, std::string>& m = GetMetadata(level);
+    std::map<MetadataType, MetadataContent>& m = GetMetadata(level);
 
     if (m.find(metadata) != m.end())
     {
@@ -343,12 +344,12 @@ namespace Orthanc
     }
     else
     {
-      m[metadata] = value;
+      m[metadata] = MetadataContent(value, revision);
     }
   }
 
 
-  std::map<MetadataType, std::string>& FindResponse::Resource::GetMetadata(ResourceType level)
+  std::map<MetadataType, FindResponse::MetadataContent>& FindResponse::Resource::GetMetadata(ResourceType level)
   {
     if (!IsResourceLevelAboveOrEqual(level, level_))
     {
@@ -379,9 +380,9 @@ namespace Orthanc
                                               ResourceType level,
                                               MetadataType metadata) const
   {
-    const std::map<MetadataType, std::string>& m = GetMetadata(level);
+    const std::map<MetadataType, MetadataContent>& m = GetMetadata(level);
 
-    std::map<MetadataType, std::string>::const_iterator found = m.find(metadata);
+    std::map<MetadataType, MetadataContent>::const_iterator found = m.find(metadata);
 
     if (found == m.end())
     {
@@ -389,7 +390,29 @@ namespace Orthanc
     }
     else
     {
-      value = found->second;
+      value = found->second.GetValue();
+      return true;
+    }
+  }
+
+
+  bool FindResponse::Resource::LookupMetadata(std::string& value,
+                                              int64_t& revision,
+                                              ResourceType level,
+                                              MetadataType metadata) const
+  {
+    const std::map<MetadataType, MetadataContent>& m = GetMetadata(level);
+
+    std::map<MetadataType, MetadataContent>::const_iterator found = m.find(metadata);
+
+    if (found == m.end())
+    {
+      return false;
+    }
+    else
+    {
+      value = found->second.GetValue();
+      revision = found->second.GetRevision();
       return true;
     }
   }
@@ -644,6 +667,18 @@ namespace Orthanc
     for (std::map<MetadataType, std::string>::const_iterator it = m.begin(); it != m.end(); ++it)
     {
       target[EnumerationToString(it->first)] = it->second;
+    }
+  }
+
+
+  static void DebugMetadata(Json::Value& target,
+                            const std::map<MetadataType, FindResponse::MetadataContent>& m)
+  {
+    target = Json::objectValue;
+
+    for (std::map<MetadataType, FindResponse::MetadataContent>::const_iterator it = m.begin(); it != m.end(); ++it)
+    {
+      target[EnumerationToString(it->first)] = it->second.GetValue();
     }
   }
 

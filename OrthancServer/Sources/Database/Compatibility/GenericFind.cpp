@@ -445,7 +445,32 @@ namespace Orthanc
 
       if (request.IsRetrieveMetadata())
       {
-        transaction_.GetAllMetadata(resource->GetMetadata(level), internalId);
+        std::map<MetadataType, std::string> metadata;
+        transaction_.GetAllMetadata(metadata, internalId);
+
+        for (std::map<MetadataType, std::string>::const_iterator
+               it = metadata.begin(); it != metadata.end(); ++it)
+        {
+          if (request.IsRetrieveMetadataRevisions() &&
+              capabilities.HasRevisionsSupport())
+          {
+            std::string value;
+            int64_t revision;
+            if (transaction_.LookupMetadata(value, revision, internalId, it->first) &&
+                value == it->second)
+            {
+              resource->AddMetadata(level, it->first, it->second, revision);
+            }
+            else
+            {
+              throw OrthancException(ErrorCode_DatabasePlugin);
+            }
+          }
+          else
+          {
+            resource->AddMetadata(level, it->first, it->second, 0 /* revision not requested */);
+          }
+        }
       }
 
       {
@@ -474,7 +499,14 @@ namespace Orthanc
 
           if (request.GetParentSpecification(currentLevel).IsRetrieveMetadata())
           {
-            transaction_.GetAllMetadata(resource->GetMetadata(currentLevel), currentId);
+            std::map<MetadataType, std::string> metadata;
+            transaction_.GetAllMetadata(metadata, currentId);
+
+            for (std::map<MetadataType, std::string>::const_iterator
+                   it = metadata.begin(); it != metadata.end(); ++it)
+            {
+              resource->AddMetadata(currentLevel, it->first, it->second, 0 /* revision not request */);
+            }
           }
         }
       }

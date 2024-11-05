@@ -605,7 +605,13 @@ namespace Orthanc
       }
       else
       {
-        target = response.GetResourceByIndex(0).GetMetadata(level);
+        std::map<MetadataType, FindResponse::MetadataContent> metadata = response.GetResourceByIndex(0).GetMetadata(level);
+
+        target.clear();
+        for (std::map<MetadataType, FindResponse::MetadataContent>::const_iterator it = metadata.begin(); it != metadata.end(); ++it)
+        {
+          target[it->first] = it->second.GetValue();
+        }
       }
     }
     else
@@ -1014,36 +1020,73 @@ namespace Orthanc
 
 
   bool StatelessDatabaseOperations::LookupMetadata(std::string& target,
+                                                   const std::string& publicId,
+                                                   ResourceType expectedType,
+                                                   MetadataType type)
+  {
+    FindRequest request(expectedType);
+    request.SetOrthancId(expectedType, publicId);
+    request.SetRetrieveMetadata(true);
+    request.SetRetrieveMetadataRevisions(false);  // No need to retrieve revisions
+
+    FindResponse response;
+    ExecuteFind(response, request);
+
+    if (response.GetSize() == 0)
+    {
+      throw OrthancException(ErrorCode_UnknownResource);
+    }
+    else if (response.GetSize() == 1)
+    {
+      if (response.GetResourceByIndex(0).GetLevel() != expectedType)
+      {
+        throw OrthancException(ErrorCode_DatabasePlugin);
+      }
+      else
+      {
+        return response.GetResourceByIndex(0).LookupMetadata(target, expectedType, type);
+      }
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_DatabasePlugin);
+    }
+  }
+
+
+  bool StatelessDatabaseOperations::LookupMetadata(std::string& target,
                                                    int64_t& revision,
                                                    const std::string& publicId,
                                                    ResourceType expectedType,
                                                    MetadataType type)
   {
-    class Operations : public ReadOnlyOperationsT6<bool&, std::string&, int64_t&,
-                                                   const std::string&, ResourceType, MetadataType>
-    {
-    public:
-      virtual void ApplyTuple(ReadOnlyTransaction& transaction,
-                              const Tuple& tuple) ORTHANC_OVERRIDE
-      {
-        ResourceType resourceType;
-        int64_t id;
-        if (!transaction.LookupResource(id, resourceType, tuple.get<3>()) ||
-            resourceType != tuple.get<4>())
-        {
-          throw OrthancException(ErrorCode_UnknownResource);
-        }
-        else
-        {
-          tuple.get<0>() = transaction.LookupMetadata(tuple.get<1>(), tuple.get<2>(), id, tuple.get<5>());
-        }
-      }
-    };
+    FindRequest request(expectedType);
+    request.SetOrthancId(expectedType, publicId);
+    request.SetRetrieveMetadata(true);
+    request.SetRetrieveMetadataRevisions(true);  // We are asked to retrieve revisions
 
-    bool found;
-    Operations operations;
-    operations.Apply(*this, found, target, revision, publicId, expectedType, type);
-    return found;
+    FindResponse response;
+    ExecuteFind(response, request);
+
+    if (response.GetSize() == 0)
+    {
+      throw OrthancException(ErrorCode_UnknownResource);
+    }
+    else if (response.GetSize() == 1)
+    {
+      if (response.GetResourceByIndex(0).GetLevel() != expectedType)
+      {
+        throw OrthancException(ErrorCode_DatabasePlugin);
+      }
+      else
+      {
+        return response.GetResourceByIndex(0).LookupMetadata(target, revision, expectedType, type);
+      }
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_DatabasePlugin);
+    }
   }
 
 
