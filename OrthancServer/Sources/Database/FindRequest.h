@@ -185,10 +185,12 @@ namespace Orthanc
       bool                    identifiers_;
       std::set<MetadataType>  metadata_;
       std::set<DicomTag>      mainDicomTags_;
+      bool                    count_;
 
     public:
       ChildrenSpecification() :
-        identifiers_(false)
+        identifiers_(false),
+        count_(false)
       {
       }
 
@@ -200,6 +202,16 @@ namespace Orthanc
       bool IsRetrieveIdentifiers() const
       {
         return identifiers_;
+      }
+
+      void SetRetrieveCount(bool retrieve)
+      {
+        count_ = retrieve;
+      }
+
+      bool IsRetrieveCount() const
+      {
+        return count_;
       }
 
       void AddMetadata(MetadataType metadata)

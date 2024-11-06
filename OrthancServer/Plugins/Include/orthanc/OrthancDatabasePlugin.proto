@@ -877,6 +877,7 @@ message Find {        // New in Orthanc 1.12.5
       bool retrieve_identifiers = 1;
       repeated int32 retrieve_metadata = 2;
       repeated Tag retrieve_main_dicom_tags = 3;
+      bool retrieve_count = 4;
     }
     message Ordering {
       OrderingKeyType key_type = 1;
@@ -945,6 +946,7 @@ message Find {        // New in Orthanc 1.12.5
       repeated string identifiers = 1;
       repeated MultipleTags main_dicom_tags = 2;
       repeated MultipleMetadata metadata = 3;
+      uint64 count = 4;
     }
 
     int64 internal_id = 1;
