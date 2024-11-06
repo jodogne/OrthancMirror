@@ -2131,7 +2131,7 @@ namespace Orthanc
     dbCapabilities_.SetFlushToDisk(true);
     dbCapabilities_.SetLabelsSupport(true);
     dbCapabilities_.SetHasExtendedChanges(true);
-    dbCapabilities_.SetHasFindSupport(true);
+    dbCapabilities_.SetHasFindSupport(HasIntegratedFind());
     db_.Open(path);
   }
 
@@ -2145,7 +2145,7 @@ namespace Orthanc
     dbCapabilities_.SetFlushToDisk(true);
     dbCapabilities_.SetLabelsSupport(true);
     dbCapabilities_.SetHasExtendedChanges(true);
-    dbCapabilities_.SetHasFindSupport(true);
+    dbCapabilities_.SetHasFindSupport(HasIntegratedFind());
     db_.OpenInMemory();
   }
 
