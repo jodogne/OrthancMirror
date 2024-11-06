@@ -73,10 +73,16 @@ namespace Orthanc
       typedef std::map<DicomTag, std::set<std::string>* >      MainDicomTagValues;
 
       std::set<std::string>  identifiers_;
+      uint64_t               count_;
       MetadataValues         metadataValues_;
       MainDicomTagValues     mainDicomTagValues_;
 
     public:
+      ChildrenInformation()
+      : count_(0)
+      {
+      }
+
       ~ChildrenInformation();
 
       void AddIdentifier(const std::string& identifier);
@@ -84,6 +90,16 @@ namespace Orthanc
       const std::set<std::string>& GetIdentifiers() const
       {
         return identifiers_;
+      }
+
+      void SetCount(uint64_t count)
+      {
+        count_ = count;
+      }
+
+      uint64_t GetCount() const
+      {
+        return count_;
       }
 
       void AddMetadataValue(MetadataType metadata,
@@ -270,6 +286,17 @@ namespace Orthanc
       const std::set<std::string>& GetChildrenIdentifiers(ResourceType level) const
       {
         return GetChildrenInformation(level).GetIdentifiers();
+      }
+
+      void SetChildrenCount(ResourceType level,
+                            uint64_t count)
+      {
+        GetChildrenInformation(level).SetCount(count);
+      }
+
+      uint64_t GetChildrenCount(ResourceType level) const
+      {
+        return GetChildrenInformation(level).GetCount();
       }
 
       void AddChildrenMetadataValue(ResourceType level,

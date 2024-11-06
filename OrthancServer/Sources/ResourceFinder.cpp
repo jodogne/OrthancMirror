@@ -56,7 +56,7 @@ namespace Orthanc
     if (request_.GetLevel() == parentLevel)
     {
       requestedComputedTags_.insert(tag);
-      request_.GetChildrenSpecification(childLevel).SetRetrieveIdentifiers(true);
+      request_.GetChildrenSpecification(childLevel).SetRetrieveCount(true);
     }
   }
 
@@ -68,8 +68,7 @@ namespace Orthanc
   {
     if (IsRequestedComputedTag(tag))
     {
-      const std::set<std::string>& children = resource.GetChildrenIdentifiers(level);
-      requestedTags.SetValue(tag, boost::lexical_cast<std::string>(children.size()), false);
+      requestedTags.SetValue(tag, boost::lexical_cast<std::string>(resource.GetChildrenCount(level)), false);
     }
   }
 

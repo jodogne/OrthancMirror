@@ -291,6 +291,7 @@ namespace Orthanc
                       const FindRequest::ChildrenSpecification& source)
   {
     target.set_retrieve_identifiers(source.IsRetrieveIdentifiers());
+    target.set_retrieve_count(source.IsRetrieveCount());
 
     for (std::set<MetadataType>::const_iterator it = source.GetMetadata().begin(); it != source.GetMetadata().end(); ++it)
     {
@@ -332,6 +333,8 @@ namespace Orthanc
     {
       target.AddChildIdentifier(level, source.identifiers(i));
     }
+
+    target.SetChildrenCount(level, source.count());
 
     for (int i = 0; i < source.main_dicom_tags().size(); i++)
     {

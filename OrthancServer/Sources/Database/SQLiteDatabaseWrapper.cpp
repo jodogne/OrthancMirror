@@ -491,10 +491,13 @@ namespace Orthanc
 #define QUERY_CHILDREN_IDENTIFIERS 20
 #define QUERY_CHILDREN_MAIN_DICOM_TAGS 21
 #define QUERY_CHILDREN_METADATA 22
+#define QUERY_CHILDREN_COUNT 23
 #define QUERY_GRAND_CHILDREN_IDENTIFIERS 30
 #define QUERY_GRAND_CHILDREN_MAIN_DICOM_TAGS 31
 #define QUERY_GRAND_CHILDREN_METADATA 32
+#define QUERY_GRAND_CHILDREN_COUNT 33
 #define QUERY_GRAND_GRAND_CHILDREN_IDENTIFIERS 40
+#define QUERY_GRAND_GRAND_CHILDREN_COUNT 41
 #define QUERY_ONE_INSTANCE_IDENTIFIER 50
 #define QUERY_ONE_INSTANCE_METADATA 51
 #define QUERY_ONE_INSTANCE_ATTACHMENTS 52
@@ -911,6 +914,25 @@ namespace Orthanc
                "FROM Lookup "
                "  INNER JOIN Resources childLevel ON Lookup.internalId = childLevel.parentId ";
       }
+      // no need to count if we have retrieved the list of identifiers
+      else if ((requestLevel == ResourceType_Patient && request.GetChildrenSpecification(ResourceType_Study).IsRetrieveCount()) ||
+          (requestLevel == ResourceType_Study && request.GetChildrenSpecification(ResourceType_Series).IsRetrieveCount()) ||
+          (requestLevel == ResourceType_Series && request.GetChildrenSpecification(ResourceType_Instance).IsRetrieveCount()))
+      {
+        sql += "UNION SELECT "
+               "  " TOSTRING(QUERY_CHILDREN_COUNT) " AS c0_queryId, "
+               "  Lookup.internalId AS c1_internalId, "
+               "  NULL AS c2_rowNumber, "
+               "  NULL AS c3_string1, "
+               "  NULL AS c4_string2, "
+               "  NULL AS c5_string3, "
+               "  COUNT(*) AS c6_int1, "
+               "  NULL AS c7_int2, "
+               "  NULL AS c8_big_int1, "
+               "  NULL AS c9_big_int2 "
+               "FROM Lookup "
+               "  INNER JOIN Resources childLevel ON Lookup.internalId = childLevel.parentId GROUP BY Lookup.internalId ";
+      }
 
       // need grandchildren identifiers ?
       if ((requestLevel == ResourceType_Patient && request.GetChildrenSpecification(ResourceType_Series).IsRetrieveIdentifiers()) ||
@@ -931,6 +953,25 @@ namespace Orthanc
               "INNER JOIN Resources childLevel ON Lookup.internalId = childLevel.parentId "
               "INNER JOIN Resources grandChildLevel ON childLevel.internalId = grandChildLevel.parentId ";
       }
+      // no need to count if we have retrieved the list of identifiers
+      else if ((requestLevel == ResourceType_Patient && request.GetChildrenSpecification(ResourceType_Series).IsRetrieveCount()) ||
+          (requestLevel == ResourceType_Study && request.GetChildrenSpecification(ResourceType_Instance).IsRetrieveCount()))
+      {
+        sql += "UNION SELECT "
+              "  " TOSTRING(QUERY_GRAND_CHILDREN_COUNT) " AS c0_queryId, "
+              "  Lookup.internalId AS c1_internalId, "
+              "  NULL AS c2_rowNumber, "
+              "  NULL AS c3_string1, "
+              "  NULL AS c4_string2, "
+              "  NULL AS c5_string3, "
+               "  COUNT(*) AS c6_int1, "
+              "  NULL AS c7_int2, "
+              "  NULL AS c8_big_int1, "
+              "  NULL AS c9_big_int2 "
+              "FROM Lookup "
+              "INNER JOIN Resources childLevel ON Lookup.internalId = childLevel.parentId "
+              "INNER JOIN Resources grandChildLevel ON childLevel.internalId = grandChildLevel.parentId GROUP BY Lookup.internalId ";
+      }
 
       // need grandgrandchildren identifiers ?
       if (requestLevel == ResourceType_Patient && request.GetChildrenSpecification(ResourceType_Instance).IsRetrieveIdentifiers())
@@ -950,6 +991,25 @@ namespace Orthanc
               "INNER JOIN Resources childLevel ON Lookup.internalId = childLevel.parentId "
               "INNER JOIN Resources grandChildLevel ON childLevel.internalId = grandChildLevel.parentId "
               "INNER JOIN Resources grandGrandChildLevel ON grandChildLevel.internalId = grandGrandChildLevel.parentId ";
+      }
+      // no need to count if we have retrieved the list of identifiers
+      else if (requestLevel == ResourceType_Patient && request.GetChildrenSpecification(ResourceType_Instance).IsRetrieveCount())
+      {
+        sql += "UNION SELECT "
+              "  " TOSTRING(QUERY_GRAND_GRAND_CHILDREN_COUNT) " AS c0_queryId, "
+              "  Lookup.internalId AS c1_internalId, "
+              "  NULL AS c2_rowNumber, "
+              "  NULL AS c3_string1, "
+              "  NULL AS c4_string2, "
+              "  NULL AS c5_string3, "
+               "  COUNT(*) AS c6_int1, "
+              "  NULL AS c7_int2, "
+              "  NULL AS c8_big_int1, "
+              "  NULL AS c9_big_int2 "
+              "FROM Lookup "
+              "INNER JOIN Resources childLevel ON Lookup.internalId = childLevel.parentId "
+              "INNER JOIN Resources grandChildLevel ON childLevel.internalId = grandChildLevel.parentId "
+              "INNER JOIN Resources grandGrandChildLevel ON grandChildLevel.internalId = grandGrandChildLevel.parentId GROUP BY Lookup.internalId ";
       }
 
 
@@ -983,10 +1043,10 @@ namespace Orthanc
           case QUERY_ATTACHMENTS:
           {
             FindResponse::Resource& res = response.GetResourceByInternalId(internalId);
-            FileInfo file(s.ColumnString(C3_STRING_1), static_cast<FileContentType>(s.ColumnInt(C6_INT_1)), 
-                          s.ColumnInt64(C8_BIG_INT_1), s.ColumnString(C4_STRING_2),
+            FileInfo file(s.ColumnString(C3_STRING_1), static_cast<FileContentType>(s.ColumnInt(C6_INT_1)),
+                          s.ColumnInt64(C9_BIG_INT_2), s.ColumnString(C4_STRING_2),
                           static_cast<CompressionType>(s.ColumnInt(C7_INT_2)),
-                          s.ColumnInt64(C9_BIG_INT_2), s.ColumnString(C5_STRING_3));
+                          s.ColumnInt64(C8_BIG_INT_1), s.ColumnString(C5_STRING_3));
             res.AddAttachment(file, 0 /* TODO - REVISIONS */);
           }; break;
 
@@ -1084,6 +1144,8 @@ namespace Orthanc
             FindResponse::Resource& res = response.GetResourceByInternalId(internalId);
             res.AddChildIdentifier(static_cast<ResourceType>(requestLevel + 1),
                                    s.ColumnString(C3_STRING_1));
+            res.SetChildrenCount(static_cast<ResourceType>(requestLevel + 1),
+                                 res.GetChildrenIdentifiers(static_cast<ResourceType>(requestLevel + 1)).size());
           }; break;
 
           case QUERY_GRAND_CHILDREN_IDENTIFIERS:
@@ -1091,6 +1153,8 @@ namespace Orthanc
             FindResponse::Resource& res = response.GetResourceByInternalId(internalId);
             res.AddChildIdentifier(static_cast<ResourceType>(requestLevel + 2),
                                    s.ColumnString(C3_STRING_1));
+            res.SetChildrenCount(static_cast<ResourceType>(requestLevel + 2),
+                                 res.GetChildrenIdentifiers(static_cast<ResourceType>(requestLevel + 2)).size());
           }; break;
 
           case QUERY_GRAND_GRAND_CHILDREN_IDENTIFIERS:
@@ -1098,6 +1162,29 @@ namespace Orthanc
             FindResponse::Resource& res = response.GetResourceByInternalId(internalId);
             res.AddChildIdentifier(static_cast<ResourceType>(requestLevel + 3),
                                    s.ColumnString(C3_STRING_1));
+            res.SetChildrenCount(static_cast<ResourceType>(requestLevel + 3),
+                                 res.GetChildrenIdentifiers(static_cast<ResourceType>(requestLevel + 3)).size());
+          }; break;
+
+          case QUERY_CHILDREN_COUNT:
+          {
+            FindResponse::Resource& res = response.GetResourceByInternalId(internalId);
+            res.SetChildrenCount(static_cast<ResourceType>(requestLevel + 1),
+                                 static_cast<uint64_t>(s.ColumnInt64(C6_INT_1)));
+          }; break;
+
+          case QUERY_GRAND_CHILDREN_COUNT:
+          {
+            FindResponse::Resource& res = response.GetResourceByInternalId(internalId);
+            res.SetChildrenCount(static_cast<ResourceType>(requestLevel + 2),
+                                 static_cast<uint64_t>(s.ColumnInt64(C6_INT_1)));
+          }; break;
+
+          case QUERY_GRAND_GRAND_CHILDREN_COUNT:
+          {
+            FindResponse::Resource& res = response.GetResourceByInternalId(internalId);
+            res.SetChildrenCount(static_cast<ResourceType>(requestLevel + 3),
+                                 static_cast<uint64_t>(s.ColumnInt64(C6_INT_1)));
           }; break;
 
           case QUERY_ONE_INSTANCE_IDENTIFIER:
@@ -1115,10 +1202,10 @@ namespace Orthanc
           case QUERY_ONE_INSTANCE_ATTACHMENTS:
           {
             FindResponse::Resource& res = response.GetResourceByInternalId(internalId);
-            FileInfo file(s.ColumnString(C3_STRING_1), static_cast<FileContentType>(s.ColumnInt(C6_INT_1)), 
-                          s.ColumnInt64(C8_BIG_INT_1), s.ColumnString(C4_STRING_2),
+            FileInfo file(s.ColumnString(C3_STRING_1), static_cast<FileContentType>(s.ColumnInt(C6_INT_1)),
+                          s.ColumnInt64(C9_BIG_INT_2), s.ColumnString(C4_STRING_2),
                           static_cast<CompressionType>(s.ColumnInt(C7_INT_2)),
-                          s.ColumnInt64(C9_BIG_INT_2), s.ColumnString(C5_STRING_3));
+                          s.ColumnInt64(C8_BIG_INT_1), s.ColumnString(C5_STRING_3));
             res.AddOneInstanceAttachment(file);
           }; break;
 
