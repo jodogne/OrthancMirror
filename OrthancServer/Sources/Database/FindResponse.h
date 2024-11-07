@@ -97,6 +97,11 @@ namespace Orthanc
         count_ = count;
       }
 
+      void IncrementCount(uint64_t count)
+      {
+        count_ += count;
+      }
+
       uint64_t GetCount() const
       {
         return count_;
@@ -292,6 +297,12 @@ namespace Orthanc
                             uint64_t count)
       {
         GetChildrenInformation(level).SetCount(count);
+      }
+
+      void IncrementChildrenCount(ResourceType level,
+                                 uint64_t count)
+      {
+        GetChildrenInformation(level).IncrementCount(count);
       }
 
       uint64_t GetChildrenCount(ResourceType level) const

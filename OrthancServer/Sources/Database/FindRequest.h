@@ -236,7 +236,7 @@ namespace Orthanc
 
       bool IsOfInterest() const
       {
-        return (identifiers_ || !metadata_.empty() || !mainDicomTags_.empty());
+        return (identifiers_ || !metadata_.empty() || !mainDicomTags_.empty() || count_);
       }
     };
 
