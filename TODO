@@ -286,6 +286,14 @@ SDK
   https://discourse.orthanc-server.org/t/delayeddeletion-improvement-unique-index-on-pending-uuid-column/4032
 
 
+-----------
+Housekeeper
+-----------
+
+* The Housekeeper should just refuse to start if you are using a lossy transfer syntax because that would generate 
+  new orthanc ids as well and there is a risk of messing up things.  tools/reconstruct shall return a 400 as well.
+  https://discourse.orthanc-server.org/t/crashes-on-housekeeper-transcode-storing-in-s3/5330/2
+
 ----------------
 Ideas of plugins
 ----------------
