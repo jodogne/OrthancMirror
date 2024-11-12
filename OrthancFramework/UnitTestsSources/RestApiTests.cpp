@@ -73,19 +73,24 @@ TEST(HttpClient, Basic)
   ASSERT_TRUE(c.IsVerbose());
   c.SetVerbose(false);
   ASSERT_FALSE(c.IsVerbose());
+  ASSERT_TRUE(c.IsRedirectionFollowed());
+  c.SetRedirectionFollowed(false);
+  ASSERT_FALSE(c.IsRedirectionFollowed());
 
 #if UNIT_TESTS_WITH_HTTP_CONNEXIONS == 1
-  // The "http://www.orthanc-server.com/downloads/third-party/" does
-  // not automatically redirect to HTTPS, so we cas use it even if the
-  // OpenSSL/HTTPS support is disabled in curl
-  const std::string BASE = "http://www.orthanc-server.com/downloads/third-party/";
+  // The "http://httpbin.org/get" URL does not automatically redirect
+  // to HTTPS, so we can use it even if the OpenSSL/HTTPS support is
+  // disabled in curl
 
+  const std::string URL = "http://httpbin.org/get";
+  
   Json::Value v;
-  c.SetUrl(BASE + "Product.json");
+  c.SetUrl(URL);
 
   c.Apply(v);
   ASSERT_TRUE(v.type() == Json::objectValue);
-  ASSERT_TRUE(v.isMember("Description"));
+  ASSERT_TRUE(v.isMember("url"));
+  ASSERT_EQ(URL, v["url"].asString());
 #endif
 }
 #endif
