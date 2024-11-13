@@ -281,7 +281,13 @@ namespace Orthanc
                                   "no timeout") << ")";
 
     CheckConnecting(parameters, ASC_initializeNetwork(NET_REQUESTOR, 0, /*opt_acse_timeout*/ acseTimeout, &net_));
+#if DCMTK_VERSION_NUMBER >= 368
+    Sint32 timeout = parameters.GetRemoteModality().GetTimeout();
+    CheckConnecting(parameters, ASC_createAssociationParameters(&params_, parameters.GetMaximumPduLength(), timeout));
+#else
+    // from 3.6.8, this version is obsolete
     CheckConnecting(parameters, ASC_createAssociationParameters(&params_, parameters.GetMaximumPduLength()));
+#endif
 
 #if ORTHANC_ENABLE_SSL == 1
     if (parameters.GetRemoteModality().IsDicomTlsEnabled())
