@@ -59,12 +59,12 @@ namespace Orthanc
     {
       std::string                    abstractSyntax_;
       std::set<DicomTransferSyntax>  transferSyntaxes_;
+      DicomAssociationRole           role_;
     };
 
     typedef std::map<std::string, std::map<DicomTransferSyntax, uint8_t> >
     AcceptedPresentationContexts;
 
-    DicomAssociationRole                      role_;
     bool                                      isOpen_;
     std::vector<ProposedPresentationContext>  proposed_;
     AcceptedPresentationContexts              accepted_;
@@ -95,8 +95,6 @@ namespace Orthanc
       return isOpen_;
     }
 
-    void SetRole(DicomAssociationRole role);
-
     void ClearPresentationContexts();
 
     void Open(const DicomAssociationParameters& parameters);
@@ -109,6 +107,13 @@ namespace Orthanc
 
     void ProposeGenericPresentationContext(const std::string& abstractSyntax);
 
+    void ProposeGenericPresentationContext(const std::string& abstractSyntax,
+                                           DicomAssociationRole role);
+
+    void ProposePresentationContext(const std::string& abstractSyntax,
+                                    DicomTransferSyntax transferSyntax,
+                                    DicomAssociationRole role);
+
     void ProposePresentationContext(const std::string& abstractSyntax,
                                     DicomTransferSyntax transferSyntax);
 
@@ -117,7 +122,12 @@ namespace Orthanc
     void ProposePresentationContext(
       const std::string& abstractSyntax,
       const std::set<DicomTransferSyntax>& transferSyntaxes);
-    
+
+    void ProposePresentationContext(
+      const std::string& abstractSyntax,
+      const std::set<DicomTransferSyntax>& transferSyntaxes,
+      DicomAssociationRole role);
+
     T_ASC_Association& GetDcmtkAssociation() const;
 
     T_ASC_Network& GetDcmtkNetwork() const;

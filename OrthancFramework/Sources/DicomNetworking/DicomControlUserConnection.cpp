@@ -247,8 +247,8 @@ namespace Orthanc
     association_->ProposeGenericPresentationContext(UID_GETPatientRootQueryRetrieveInformationModel);
     
     // for C-GET SCU, in order to receive the C-Store message  TODO-GET: we need to refine this list based on what we know we are going to retrieve
-    association_->ProposeGenericPresentationContext(UID_ComputedRadiographyImageStorage);
-    association_->ProposeGenericPresentationContext(UID_MRImageStorage);
+    association_->ProposeGenericPresentationContext(UID_ComputedRadiographyImageStorage, DicomAssociationRole_Scp);
+    association_->ProposeGenericPresentationContext(UID_MRImageStorage, DicomAssociationRole_Scp);
   }
     
 
