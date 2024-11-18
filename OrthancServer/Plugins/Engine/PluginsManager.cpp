@@ -244,8 +244,7 @@ namespace Orthanc
   {
     if (!boost::filesystem::exists(path))
     {
-      LOG(ERROR) << "Inexistent path to plugins: " << path;
-      return;
+      throw OrthancException(ErrorCode_SharedLibrary, "Inexistent path to plugin: " + path);
     }
 
     if (boost::filesystem::is_directory(path))
