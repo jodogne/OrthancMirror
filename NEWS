@@ -30,6 +30,8 @@ Maintenance
 * Fix extremely rare error when 2 threads are trying to create the same folder in the File Storage 
   at the same time.
 * Fix crashes if handling very large images
+* Loading plugins:
+  - Orthanc will now fail to start when provided with a plugin path that can not be found.
 * Metrics:
   - fix a few metrics that were not published
   - added 2 metrics: orthanc_storage_cache_miss_count & orthanc_storage_cache_hit_count 
