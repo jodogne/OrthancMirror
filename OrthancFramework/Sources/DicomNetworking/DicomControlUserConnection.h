@@ -45,13 +45,31 @@ namespace Orthanc
                                                    );
 
 
+  enum ScuOperationFlags
+  {
+    ScuOperationFlags_Echo = 1 << 0,
+    ScuOperationFlags_FindPatient = 1 << 1,
+    ScuOperationFlags_FindStudy = 1 << 2,
+    ScuOperationFlags_FindWorklist = 1 << 3,
+    ScuOperationFlags_MoveStudy = 1 << 4,
+    ScuOperationFlags_MovePatient = 1 << 5,
+    // C-Store is not using DicomControlUserConnection but DicomStoreUserConnection
+    ScuOperationFlags_Get = 1 << 6,
+
+    ScuOperationFlags_Find = ScuOperationFlags_FindPatient | ScuOperationFlags_FindStudy | ScuOperationFlags_FindWorklist,
+    ScuOperationFlags_Move = ScuOperationFlags_MoveStudy | ScuOperationFlags_MovePatient,
+    ScuOperationFlags_All = ScuOperationFlags_Echo | ScuOperationFlags_Find | ScuOperationFlags_Move | ScuOperationFlags_Get
+  };
+
   class DicomControlUserConnection : public boost::noncopyable
   {
   private:
     DicomAssociationParameters           parameters_;
     boost::shared_ptr<DicomAssociation>  association_;
 
-    void SetupPresentationContexts();
+    void SetupPresentationContexts(ScuOperationFlags scuOperation,
+                                   const std::set<std::string>& acceptedStorageSopClasses,
+                                   const std::set<DicomTransferSyntax>& acceptedTransferSyntaxes); // TODO-GET: in order of preference ?
 
     void FindInternal(DicomFindAnswers& answers,
                       DcmDataset* dataset,
@@ -64,8 +82,14 @@ namespace Orthanc
                       const DicomMap& fields);
     
   public:
-    explicit DicomControlUserConnection(const DicomAssociationParameters& params);
-    
+    explicit DicomControlUserConnection(const DicomAssociationParameters& params, ScuOperationFlags scuOperation);
+
+    // specific constructor for CGet SCU
+    explicit DicomControlUserConnection(const DicomAssociationParameters& params, 
+                                        ScuOperationFlags scuOperation,
+                                        const std::set<std::string>& acceptedStorageSopClasses,
+                                        const std::set<DicomTransferSyntax>& acceptedTransferSyntaxes); // TODO-GET: in order of preference ?
+
     const DicomAssociationParameters& GetParameters() const
     {
       return parameters_;

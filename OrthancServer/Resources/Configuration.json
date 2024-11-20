@@ -202,6 +202,18 @@
   // SOP classes (aka. "promiscuous mode")
   "UnknownSopClassAccepted" : false,
 
+  // The list of accepted Storage SOP classes.
+  // If empty or not defined, this list defaults
+  // to all DCMTK storage classes in case of C-STORE SCP
+  // and to a reduced list of 120 most standard storage
+  // classes in case of C-GET SCU.
+  // (new in Orthanc 1.12.6)
+  // "AcceptedSopClasses" : [
+  //   "1.2.840.10008.5.1.4.1.1.2",
+  //   "1.2.840.10008.5.1.4.1.1.4"
+  // ]
+
+
   // Set the timeout (in seconds) after which the DICOM associations
   // are closed by the Orthanc SCP (server) if no further DIMSE
   // command is received from the SCU (client).

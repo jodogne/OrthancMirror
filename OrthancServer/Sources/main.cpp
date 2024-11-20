@@ -501,6 +501,12 @@ public:
   {
     return context_.IsUnknownSopClassAccepted();
   }
+
+  virtual void GetAcceptedSopClasses(std::set<std::string>& sopClasses,
+                                     size_t maxCount) ORTHANC_OVERRIDE
+  {
+    context_.GetAcceptedSopClasses(sopClasses, maxCount);
+  }
 };
 
 

@@ -29,7 +29,7 @@
 #include "../../../../OrthancFramework/Sources/OrthancException.h"
 
 #include "../Common/OrthancPluginCppWrapper.h"
-
+#include <dcmtk/dcmdata/dcuid.h>        /* for variable dcmAllStorageSOPClassUIDs */
 
 DicomFilter::DicomFilter() :
   hasAcceptedTransferSyntaxes_(false)
@@ -41,6 +41,7 @@ DicomFilter::DicomFilter() :
     alwaysAllowMove_ = config.GetBooleanValue("DicomAlwaysAllowMove", false);
     alwaysAllowStore_ = config.GetBooleanValue("DicomAlwaysAllowStore", true);
     unknownSopClassAccepted_ = config.GetBooleanValue("UnknownSopClassAccepted", false);
+    config.LookupSetOfStrings(acceptedStorageClasses_, "AcceptedSopClasses", false);
     isStrict_ = config.GetBooleanValue("StrictAetComparison", false);
     checkModalityHost_ = config.GetBooleanValue("DicomCheckModalityHost", false);
   }
@@ -206,4 +207,45 @@ bool DicomFilter::IsUnknownSopClassAccepted(const std::string& remoteIp,
 {
   boost::shared_lock<boost::shared_mutex>  lock(mutex_);
   return unknownSopClassAccepted_;
+}
+
+
+void DicomFilter::GetAcceptedSopClasses(std::set<std::string>& sopClasses, size_t maxCount)
+{
+  boost::shared_lock<boost::shared_mutex>  lock(mutex_);
+  
+  if (acceptedStorageClasses_.size() >= 0)
+  {
+    size_t count = 0;
+    std::set<std::string>::const_iterator it = acceptedStorageClasses_.begin();
+
+    while (it != acceptedStorageClasses_.end() && (maxCount == 0 || count < maxCount))
+    {
+      sopClasses.insert(*it);
+      count++;
+    }
+  }
+  else
+  {
+    if (maxCount != 0)
+    {
+      size_t count = 0;
+      // we actually take a list of default 120 most common storage SOP classes defined in DCMTK
+      while (dcmLongSCUStorageSOPClassUIDs[count] != NULL && count < maxCount)
+      {
+        sopClasses.insert(dcmAllStorageSOPClassUIDs[count]);
+        count++;
+      }
+    }
+    else
+    {
+      size_t count = 0;
+      // we actually take all known storage SOP classes defined in DCMTK
+      while (dcmAllStorageSOPClassUIDs[count] != NULL)
+      {
+        sopClasses.insert(dcmAllStorageSOPClassUIDs[count]);
+        count++;
+      }
+    }
+  }
 }

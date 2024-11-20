@@ -502,13 +502,21 @@ namespace Orthanc
           }
           else                                         // see dcmqrsrv.cc lines 839 - 876
           {
+            std::set<std::string> acceptedStorageClasses;
+
+            if (server.HasApplicationEntityFilter())
+            {
+              server.GetApplicationEntityFilter().GetAcceptedSopClasses(acceptedStorageClasses, 0);
+            }
+
             /* accept storage syntaxes with proposed role */
             int npc = ASC_countPresentationContexts(assoc->params);
             for (int i = 0; i < npc; i++)
             {
               T_ASC_PresentationContext pc;
               ASC_getPresentationContext(assoc->params, i, &pc);
-              if (dcmIsaStorageSOPClassUID(pc.abstractSyntax))
+              if (acceptedStorageClasses.find(pc.abstractSyntax) != acceptedStorageClasses.end()
+                 || (!server.HasApplicationEntityFilter() && dcmIsaStorageSOPClassUID(pc.abstractSyntax)))  // previous behavior kept for compatibility in case the server does not have an ApplicationEntityFilter
               {
                 /**
                  * We are prepared to accept whatever role the caller
