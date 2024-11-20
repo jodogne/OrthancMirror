@@ -88,7 +88,7 @@ namespace Orthanc
   {
     if (connection_.get() == NULL)
     {
-      connection_.reset(new DicomControlUserConnection(parameters_));
+      connection_.reset(new DicomControlUserConnection(parameters_, ScuOperationFlags_Move));
     }
     
     connection_->Move(targetAet_, findAnswer);

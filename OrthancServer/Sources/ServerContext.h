@@ -274,9 +274,10 @@ namespace Orthanc
 
     // New in Orthanc 1.9.0
     DicomTransferSyntax preferredTransferSyntax_;
-    boost::mutex dynamicOptionsMutex_;
+    mutable boost::mutex dynamicOptionsMutex_;
     bool isUnknownSopClassAccepted_;
     std::set<DicomTransferSyntax>  acceptedTransferSyntaxes_;
+    std::set<std::string>          acceptedSopClasses_;
 
     StoreResult StoreAfterTranscoding(std::string& resultPublicId,
                                       DicomInstanceToStore& dicom,
@@ -592,11 +593,15 @@ namespace Orthanc
 
     const std::string& GetDeidentifiedContent(const DicomElement& element) const;
 
-    void GetAcceptedTransferSyntaxes(std::set<DicomTransferSyntax>& syntaxes);
+    void GetAcceptedTransferSyntaxes(std::set<DicomTransferSyntax>& syntaxes) const;
 
     void SetAcceptedTransferSyntaxes(const std::set<DicomTransferSyntax>& syntaxes);
 
-    bool IsUnknownSopClassAccepted();
+    void SetAcceptedSopClasses(const std::set<std::string>& sopClasses);
+
+    void GetAcceptedSopClasses(std::set<std::string>& sopClasses, size_t maxCount) const;
+
+    bool IsUnknownSopClassAccepted() const;
 
     void SetUnknownSopClassAccepted(bool accepted);
 

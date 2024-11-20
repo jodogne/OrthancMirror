@@ -234,21 +234,58 @@ namespace Orthanc
 
 
 
-  void DicomControlUserConnection::SetupPresentationContexts() // TODO-GET, setup only the presentation contexts that are enabled for that modality
+  void DicomControlUserConnection::SetupPresentationContexts(
+    ScuOperationFlags scuOperation,
+    const std::set<std::string>& acceptedStorageSopClasses,
+    const std::set<DicomTransferSyntax>& acceptedTransferSyntaxes)
   {
     assert(association_.get() != NULL);
-    association_->ProposeGenericPresentationContext(UID_VerificationSOPClass);
-    association_->ProposeGenericPresentationContext(UID_FINDPatientRootQueryRetrieveInformationModel);
-    association_->ProposeGenericPresentationContext(UID_MOVEPatientRootQueryRetrieveInformationModel);
-    association_->ProposeGenericPresentationContext(UID_FINDStudyRootQueryRetrieveInformationModel);
-    association_->ProposeGenericPresentationContext(UID_MOVEStudyRootQueryRetrieveInformationModel);
-    association_->ProposeGenericPresentationContext(UID_FINDModalityWorklistInformationModel);
-    association_->ProposeGenericPresentationContext(UID_GETStudyRootQueryRetrieveInformationModel);
-    association_->ProposeGenericPresentationContext(UID_GETPatientRootQueryRetrieveInformationModel);
-    
-    // for C-GET SCU, in order to receive the C-Store message  TODO-GET: we need to refine this list based on what we know we are going to retrieve
-    association_->ProposeGenericPresentationContext(UID_ComputedRadiographyImageStorage, DicomAssociationRole_Scp);
-    association_->ProposeGenericPresentationContext(UID_MRImageStorage, DicomAssociationRole_Scp);
+
+    if ((scuOperation & ScuOperationFlags_Echo) != 0)
+    {
+      association_->ProposeGenericPresentationContext(UID_VerificationSOPClass);
+    }
+
+    if ((scuOperation & ScuOperationFlags_FindPatient) != 0)
+    {
+      association_->ProposeGenericPresentationContext(UID_FINDPatientRootQueryRetrieveInformationModel);
+    }
+
+    if ((scuOperation & ScuOperationFlags_FindStudy) != 0)
+    {
+      association_->ProposeGenericPresentationContext(UID_FINDStudyRootQueryRetrieveInformationModel);
+    }
+
+    if ((scuOperation & ScuOperationFlags_FindWorklist) != 0)
+    {
+      association_->ProposeGenericPresentationContext(UID_FINDModalityWorklistInformationModel);
+    }
+
+    if ((scuOperation & ScuOperationFlags_MovePatient) != 0)
+    {
+      association_->ProposeGenericPresentationContext(UID_MOVEPatientRootQueryRetrieveInformationModel);
+    }
+
+    if ((scuOperation & ScuOperationFlags_MoveStudy) != 0)
+    {
+      association_->ProposeGenericPresentationContext(UID_MOVEStudyRootQueryRetrieveInformationModel);
+    }
+
+    if ((scuOperation & ScuOperationFlags_Get) != 0)
+    {
+      association_->ProposeGenericPresentationContext(UID_GETStudyRootQueryRetrieveInformationModel);
+      association_->ProposeGenericPresentationContext(UID_GETPatientRootQueryRetrieveInformationModel);
+
+      if (acceptedStorageSopClasses.size() == 0)
+      {
+        throw OrthancException(ErrorCode_BadSequenceOfCalls); // the acceptedStorageSopClassUids should always be defined for a C-Get
+      }
+
+      for (std::set<std::string>::const_iterator it = acceptedStorageSopClasses.begin(); it != acceptedStorageSopClasses.end(); ++it)
+      {
+        association_->ProposePresentationContext(*it, acceptedTransferSyntaxes, DicomAssociationRole_Scp);
+      }
+    }
   }
     
 
@@ -665,11 +702,25 @@ namespace Orthanc
 }
 
 
-  DicomControlUserConnection::DicomControlUserConnection(const DicomAssociationParameters& params) :
+  DicomControlUserConnection::DicomControlUserConnection(const DicomAssociationParameters& params, ScuOperationFlags scuOperation) :
     parameters_(params),
     association_(new DicomAssociation)
   {
-    SetupPresentationContexts();
+    assert((scuOperation & ScuOperationFlags_Get) == 0);  // you must provide acceptedStorageSopClassUids for Get SCU
+    std::set<std::string> emptyStorageSopClasses;
+    std::set<DicomTransferSyntax> emptyStorageTransferSyntaxes;
+
+    SetupPresentationContexts(scuOperation, emptyStorageSopClasses, emptyStorageTransferSyntaxes);
+  }
+    
+  DicomControlUserConnection::DicomControlUserConnection(const DicomAssociationParameters& params, 
+                                                         ScuOperationFlags scuOperation,
+                                                         const std::set<std::string>& acceptedStorageSopClasses,
+                                                         const std::set<DicomTransferSyntax>& acceptedTransferSyntaxes) :
+    parameters_(params),
+    association_(new DicomAssociation)
+  {
+    SetupPresentationContexts(scuOperation, acceptedStorageSopClasses, acceptedTransferSyntaxes);
   }
     
 

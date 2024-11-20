@@ -112,7 +112,27 @@ namespace Orthanc
   {
     if (connection_.get() == NULL)
     {
-      connection_.reset(new DicomControlUserConnection(parameters_));
+      std::set<std::string> storageSopClassUids;
+      std::set<DicomTransferSyntax> storageAcceptedTransferSyntaxes;
+
+      if (findAnswer.HasTag(DICOM_TAG_SOP_CLASSES_IN_STUDY))
+      {
+        throw OrthancException(ErrorCode_NotImplemented);
+        // TODO-GET
+      }
+      else
+      {
+        // when we don't know what SOP Classes to use, we must limit to 120 SOP Classes because 
+        // there are only 128 presentation contexts available
+        context_.GetAcceptedSopClasses(storageSopClassUids, 120); 
+      }
+
+      context_.GetAcceptedTransferSyntaxes(storageAcceptedTransferSyntaxes);
+
+      connection_.reset(new DicomControlUserConnection(parameters_, 
+                                                       ScuOperationFlags_Get, 
+                                                       storageSopClassUids,
+                                                       storageAcceptedTransferSyntaxes));
     }
     
     connection_->Get(findAnswer, InstanceReceivedHandler, &context_);

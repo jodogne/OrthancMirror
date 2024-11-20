@@ -156,24 +156,31 @@ namespace Orthanc
                           const DicomAssociationParameters& parameters,
                           const Json::Value& body)
   {
-    DicomControlUserConnection connection(parameters);
+    bool checkFind = false;
+    
+    if (body.type() == Json::objectValue &&
+        body.isMember(KEY_CHECK_FIND))
+    {
+      checkFind = SerializationToolbox::ReadBoolean(body, KEY_CHECK_FIND);
+    }
+    else
+    {
+      OrthancConfiguration::ReaderLock lock;
+      checkFind = lock.GetConfiguration().GetBooleanParameter("DicomEchoChecksFind", false);
+    }
 
+    ScuOperationFlags operations = ScuOperationFlags_Echo;
+    
+    if (checkFind)
+    {
+      operations = static_cast<ScuOperationFlags>(operations | ScuOperationFlags_Find);
+    }
+
+    DicomControlUserConnection connection(parameters, operations);
     if (connection.Echo())
     {
-      bool find = false;
-      
-      if (body.type() == Json::objectValue &&
-          body.isMember(KEY_CHECK_FIND))
-      {
-        find = SerializationToolbox::ReadBoolean(body, KEY_CHECK_FIND);
-      }
-      else
-      {
-        OrthancConfiguration::ReaderLock lock;
-        find = lock.GetConfiguration().GetBooleanParameter("DicomEchoChecksFind", false);
-      }
 
-      if (find)
+      if (checkFind)
       {
         // Issue a C-FIND request at the study level about a random Study Instance UID
         const std::string studyInstanceUid = FromDcmtkBridge::GenerateUniqueIdentifier(ResourceType_Study);
@@ -386,7 +393,7 @@ namespace Orthanc
     DicomFindAnswers answers(false);
 
     {
-      DicomControlUserConnection connection(GetAssociationParameters(call));
+      DicomControlUserConnection connection(GetAssociationParameters(call), ScuOperationFlags_FindPatient);
       FindPatient(answers, connection, fields);
     }
 
@@ -429,7 +436,7 @@ namespace Orthanc
     DicomFindAnswers answers(false);
 
     {
-      DicomControlUserConnection connection(GetAssociationParameters(call));
+      DicomControlUserConnection connection(GetAssociationParameters(call), ScuOperationFlags_FindStudy);
       FindStudy(answers, connection, fields);
     }
 
@@ -473,7 +480,7 @@ namespace Orthanc
     DicomFindAnswers answers(false);
 
     {
-      DicomControlUserConnection connection(GetAssociationParameters(call));
+      DicomControlUserConnection connection(GetAssociationParameters(call), ScuOperationFlags_FindStudy);
       FindSeries(answers, connection, fields);
     }
 
@@ -518,7 +525,7 @@ namespace Orthanc
     DicomFindAnswers answers(false);
 
     {
-      DicomControlUserConnection connection(GetAssociationParameters(call));
+      DicomControlUserConnection connection(GetAssociationParameters(call), ScuOperationFlags_FindStudy);
       FindInstance(answers, connection, fields);
     }
 
@@ -567,7 +574,7 @@ namespace Orthanc
       return;
     }
  
-    DicomControlUserConnection connection(GetAssociationParameters(call));
+    DicomControlUserConnection connection(GetAssociationParameters(call), ScuOperationFlags_Find);
     
     DicomFindAnswers patients(false);
     FindPatient(patients, connection, m);
@@ -2288,7 +2295,7 @@ namespace Orthanc
       DicomFindAnswers answers(true);
 
       {
-        DicomControlUserConnection connection(GetAssociationParameters(call, json));
+        DicomControlUserConnection connection(GetAssociationParameters(call, json), ScuOperationFlags_FindWorklist);
         connection.FindWorklist(answers, *query);
       }
 

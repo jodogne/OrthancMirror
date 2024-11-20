@@ -55,5 +55,8 @@ namespace Orthanc
     virtual bool IsUnknownSopClassAccepted(const std::string& remoteIp,
                                            const std::string& remoteAet,
                                            const std::string& calledAet) = 0;
+
+    virtual void GetAcceptedSopClasses(std::set<std::string>& sopClasses,
+                                       size_t maxCount) = 0;
   };
 }

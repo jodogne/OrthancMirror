@@ -49,6 +49,7 @@
 
 #include <dcmtk/dcmdata/dcfilefo.h>
 #include <dcmtk/dcmnet/dimse.h>
+#include <dcmtk/dcmdata/dcuid.h>        /* for variable dcmAllStorageSOPClassUIDs */
 
 #if HAVE_MALLOC_TRIM == 1
 #  include <malloc.h>
@@ -485,6 +486,8 @@ namespace Orthanc
         lock.GetConfiguration().GetAcceptedTransferSyntaxes(acceptedTransferSyntaxes_);
 
         isUnknownSopClassAccepted_ = lock.GetConfiguration().GetBooleanParameter("UnknownSopClassAccepted", false);
+
+        lock.GetConfiguration().GetSetOfStringsParameter(acceptedSopClasses_, "AcceptedSopClasses");
       }
 
       jobsEngine_.SetThreadSleep(unitTesting ? 20 : 200);
@@ -2107,8 +2110,53 @@ namespace Orthanc
     }
   }
 
+  void ServerContext::SetAcceptedSopClasses(const std::set<std::string>& sopClasses)
+  {
+    boost::mutex::scoped_lock lock(dynamicOptionsMutex_);
+    acceptedSopClasses_ = sopClasses;
+  }
 
-  void ServerContext::GetAcceptedTransferSyntaxes(std::set<DicomTransferSyntax>& syntaxes)
+  void ServerContext::GetAcceptedSopClasses(std::set<std::string>& sopClasses, size_t maxCount) const
+  {
+    boost::mutex::scoped_lock lock(dynamicOptionsMutex_);
+
+    if (acceptedSopClasses_.size() > 0)
+    {
+      size_t count = 0;
+      std::set<std::string>::const_iterator it = acceptedSopClasses_.begin();
+
+      while (it != acceptedSopClasses_.end() && (maxCount == 0 || count < maxCount))
+      {
+        sopClasses.insert(*it);
+        count++;
+      }
+    }
+    else
+    {
+      if (maxCount != 0)
+      {
+        size_t count = 0;
+        // we actually take a list of default 120 most common storage SOP classes defined in DCMTK
+        while (dcmLongSCUStorageSOPClassUIDs[count] != NULL && count < maxCount)
+        {
+          sopClasses.insert(dcmAllStorageSOPClassUIDs[count]);
+          count++;
+        }
+      }
+      else
+      {
+        size_t count = 0;
+        // we actually take all known storage SOP classes defined in DCMTK
+        while (dcmAllStorageSOPClassUIDs[count] != NULL)
+        {
+          sopClasses.insert(dcmAllStorageSOPClassUIDs[count]);
+          count++;
+        }
+      }
+    }
+  }
+
+  void ServerContext::GetAcceptedTransferSyntaxes(std::set<DicomTransferSyntax>& syntaxes) const
   {
     boost::mutex::scoped_lock lock(dynamicOptionsMutex_);
     syntaxes = acceptedTransferSyntaxes_;
@@ -2122,7 +2170,7 @@ namespace Orthanc
   }
 
 
-  bool ServerContext::IsUnknownSopClassAccepted()
+  bool ServerContext::IsUnknownSopClassAccepted() const
   {
     boost::mutex::scoped_lock lock(dynamicOptionsMutex_);
     return isUnknownSopClassAccepted_;

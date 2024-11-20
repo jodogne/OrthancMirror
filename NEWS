@@ -1,6 +1,14 @@
 Pending changes in the mainline
 ===============================
 
+General
+-------
+
+* DICOM:
+  - Added support for C-GET SCU.
+  - Added a configuration "AcceptedSopClasses" to limit the SOP classes accepted by
+    Orthanc.
+
 REST API
 -----------
 
@@ -20,6 +28,10 @@ Maintenance
 
 * DICOM TLS: "DicomTlsTrustedCertificates" is not required anymore when issuing
   an outgoing SCU connexion when "DicomTlsRemoteCertificateRequired" is set to false.
+* DICOM negotiation:
+  - When opening a DICOM SCU connection, Orthanc now only proposes the contexts that it is
+    going to use in the connection and not all contexts as in previous versions.  E.g, when
+    performing a C-ECHO, Orthanc will not propose C-MOVE or C-FIND.
 * Introduced a new thread to update the statistics at regular interval for the
   DB plugins that are implementing the UpdateAndGetStatistics function (currently only
   PostgreSQL).  This avoids very long update times in case you don't call /statistics
