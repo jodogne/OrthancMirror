@@ -1300,7 +1300,22 @@ namespace Orthanc
       return value->CopyToString(result, allowBinary);
     }
   }
-    
+
+  bool DicomMap::LookupStringValues(std::set<std::string>& results,
+                                    const DicomTag& tag,
+                                    bool allowBinary) const
+  {
+    std::string tmp;
+    if (LookupStringValue(tmp, tag, allowBinary))
+    {
+      Toolbox::SplitString(results, tmp, '\\');
+      return true;
+    }
+
+    return false;
+  }
+
+
   bool DicomMap::ParseInteger32(int32_t& result,
                                 const DicomTag& tag) const
   {

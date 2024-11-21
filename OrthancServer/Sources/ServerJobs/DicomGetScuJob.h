@@ -59,12 +59,12 @@ namespace Orthanc
     DicomGetScuJob(ServerContext& context,
                     const Json::Value& serialized);
 
-    // void AddFindAnswer(const DicomMap& answer);
+    void AddFindAnswer(const DicomMap& answer);
     
     // void AddQuery(const DicomMap& query);
 
-    // void AddFindAnswer(QueryRetrieveHandler& query,
-    //                    size_t i);
+    void AddFindAnswer(QueryRetrieveHandler& query,
+                       size_t i);
 
     void AddResourceToRetrieve(ResourceType level, const std::string& dicomId);
 

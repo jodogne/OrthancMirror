@@ -207,12 +207,26 @@
   // to all DCMTK storage classes in case of C-STORE SCP
   // and to a reduced list of 120 most standard storage
   // classes in case of C-GET SCU.
+  // Each entry can contain wildcards ("?" or "*") to add
+  // subsets of SOP classes that are defined in DCMTK.
+  // If you want to adda a SOP class that is not defined in
+  // DCMTK, you must add it explicitely.
   // (new in Orthanc 1.12.6)
   // "AcceptedSopClasses" : [
   //   "1.2.840.10008.5.1.4.1.1.2",
   //   "1.2.840.10008.5.1.4.1.1.4"
   // ]
 
+  // The list of rejected Storage SOP classes.
+  // This configuration is only meaningful if
+  // "AcceptedSopClasses" is using regular expressions
+  // or if it has the default value.
+  // Each entry can contain wildcards ("?" or "*").
+  // (new in Orthanc 1.12.6)
+  // "RejectedSopClasses" : [
+  //   "1.2.840.10008.5.1.4.1.1.2",
+  //   "1.2.840.10008.5.1.4.1.1.4"
+  // ]
 
   // Set the timeout (in seconds) after which the DICOM associations
   // are closed by the Orthanc SCP (server) if no further DIMSE
