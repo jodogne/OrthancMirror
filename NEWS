@@ -31,6 +31,8 @@ Maintenance
   at the same time.
 * Fix crashes if handling very large images.
 * Fix deadlock when parsing specific invalid DICOM files.
+* Loading plugins:
+  - Orthanc will now fail to start when provided with a plugin path that can not be found.
 * Metrics:
   - fix a few metrics that were not published
   - added 2 metrics: orthanc_storage_cache_miss_count & orthanc_storage_cache_hit_count 
