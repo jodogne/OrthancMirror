@@ -247,6 +247,10 @@ namespace Orthanc
           
         pos += length + 12;
       }
+      else
+      {
+        throw OrthancException(ErrorCode_BadFileFormat, "Invalid DICOM File: Unable to parse Meta Header");
+      }
     }
 
     if (pos != block.size())
