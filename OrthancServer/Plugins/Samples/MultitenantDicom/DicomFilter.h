@@ -44,6 +44,7 @@ private:
 
   bool hasAcceptedTransferSyntaxes_;
   std::set<Orthanc::DicomTransferSyntax>  acceptedTransferSyntaxes_;
+  bool hasAcceptedStorageClasses_;
   std::set<std::string>                   acceptedStorageClasses_;
 
 public:

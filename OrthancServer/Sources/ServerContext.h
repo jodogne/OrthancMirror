@@ -277,7 +277,7 @@ namespace Orthanc
     mutable boost::mutex dynamicOptionsMutex_;
     bool isUnknownSopClassAccepted_;
     std::set<DicomTransferSyntax>  acceptedTransferSyntaxes_;
-    std::set<std::string>          acceptedSopClasses_;
+    std::list<std::string>         acceptedSopClasses_;  // ordered; the most 120 common ones first
 
     StoreResult StoreAfterTranscoding(std::string& resultPublicId,
                                       DicomInstanceToStore& dicom,
@@ -597,7 +597,8 @@ namespace Orthanc
 
     void SetAcceptedTransferSyntaxes(const std::set<DicomTransferSyntax>& syntaxes);
 
-    void SetAcceptedSopClasses(const std::set<std::string>& sopClasses);
+    void SetAcceptedSopClasses(const std::list<std::string>& acceptedSopClasses,
+                               const std::set<std::string>& rejectedSopClasses);
 
     void GetAcceptedSopClasses(std::set<std::string>& sopClasses, size_t maxCount) const;
 

@@ -32,7 +32,8 @@
 #include <dcmtk/dcmdata/dcuid.h>        /* for variable dcmAllStorageSOPClassUIDs */
 
 DicomFilter::DicomFilter() :
-  hasAcceptedTransferSyntaxes_(false)
+  hasAcceptedTransferSyntaxes_(false),
+  hasAcceptedStorageClasses_(false)
 {
   {
     OrthancPlugins::OrthancConfiguration config;
@@ -41,7 +42,6 @@ DicomFilter::DicomFilter() :
     alwaysAllowMove_ = config.GetBooleanValue("DicomAlwaysAllowMove", false);
     alwaysAllowStore_ = config.GetBooleanValue("DicomAlwaysAllowStore", true);
     unknownSopClassAccepted_ = config.GetBooleanValue("UnknownSopClassAccepted", false);
-    config.LookupSetOfStrings(acceptedStorageClasses_, "AcceptedSopClasses", false);
     isStrict_ = config.GetBooleanValue("StrictAetComparison", false);
     checkModalityHost_ = config.GetBooleanValue("DicomCheckModalityHost", false);
   }
@@ -212,40 +212,43 @@ bool DicomFilter::IsUnknownSopClassAccepted(const std::string& remoteIp,
 
 void DicomFilter::GetAcceptedSopClasses(std::set<std::string>& sopClasses, size_t maxCount)
 {
-  boost::shared_lock<boost::shared_mutex>  lock(mutex_);
-  
-  if (acceptedStorageClasses_.size() >= 0)
-  {
-    size_t count = 0;
-    std::set<std::string>::const_iterator it = acceptedStorageClasses_.begin();
+  boost::unique_lock<boost::shared_mutex>  lock(mutex_);
 
-    while (it != acceptedStorageClasses_.end() && (maxCount == 0 || count < maxCount))
-    {
-      sopClasses.insert(*it);
-      count++;
-    }
-  }
-  else
+  if (!hasAcceptedStorageClasses_)
   {
-    if (maxCount != 0)
+    Json::Value jsonSopClasses;
+
+    if (!OrthancPlugins::RestApiGet(jsonSopClasses, "/tools/accepted-sop-classes", false) ||
+        jsonSopClasses.type() != Json::arrayValue)
     {
-      size_t count = 0;
-      // we actually take a list of default 120 most common storage SOP classes defined in DCMTK
-      while (dcmLongSCUStorageSOPClassUIDs[count] != NULL && count < maxCount)
-      {
-        sopClasses.insert(dcmAllStorageSOPClassUIDs[count]);
-        count++;
-      }
+      throw Orthanc::OrthancException(Orthanc::ErrorCode_InternalError);
     }
     else
     {
-      size_t count = 0;
-      // we actually take all known storage SOP classes defined in DCMTK
-      while (dcmAllStorageSOPClassUIDs[count] != NULL)
+      for (Json::Value::ArrayIndex i = 0; i < jsonSopClasses.size(); i++)
       {
-        sopClasses.insert(dcmAllStorageSOPClassUIDs[count]);
-        count++;
+        if (jsonSopClasses[i].type() != Json::stringValue)
+        {
+          throw Orthanc::OrthancException(Orthanc::ErrorCode_InternalError);
+        }
+        else
+        {
+          acceptedStorageClasses_.insert(jsonSopClasses[i].asString());
+        }
       }
     }
+
+    hasAcceptedStorageClasses_ = true;
   }
+
+  std::set<std::string>::const_iterator it = acceptedStorageClasses_.begin();
+    size_t count = 0;
+
+  while (it != acceptedStorageClasses_.end() && (maxCount == 0 || count < maxCount))
+  {
+    sopClasses.insert(*it);
+    count++;
+    it++;
+  }
+
 }

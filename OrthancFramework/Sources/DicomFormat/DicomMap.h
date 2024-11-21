@@ -179,7 +179,11 @@ namespace Orthanc
     bool LookupStringValue(std::string& result,
                            const DicomTag& tag,
                            bool allowBinary) const;
-    
+
+    bool LookupStringValues(std::set<std::string>& results,
+                           const DicomTag& tag,
+                           bool allowBinary) const;
+
     bool ParseInteger32(int32_t& result,
                         const DicomTag& tag) const;
 

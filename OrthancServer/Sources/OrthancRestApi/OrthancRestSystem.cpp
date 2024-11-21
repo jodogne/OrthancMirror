@@ -466,6 +466,33 @@ namespace Orthanc
     AnswerAcceptedTransferSyntaxes(call);
   }
 
+  static void GetAcceptedSopClasses(RestApiGetCall& call)
+  {
+    if (call.IsDocumentation())
+    {
+      call.GetDocumentation()
+        .SetTag("System")
+        .SetSummary("Get accepted SOPClassUID")
+        .SetDescription("Get the list of SOP Class UIDs that are accepted "
+                        "by Orthanc C-STORE SCP. This corresponds to the configuration options "
+                        "`AcceptedSopClasses` and `RejectedSopClasses`.")
+        .AddAnswerType(MimeType_Json, "JSON array containing the SOP Class UIDs");
+      return;
+    }
+
+    std::set<std::string> sopClasses;
+    OrthancRestApi::GetContext(call).GetAcceptedSopClasses(sopClasses, 0);
+    
+    Json::Value json = Json::arrayValue;
+    for (std::set<std::string>::const_iterator
+           sop = sopClasses.begin(); sop != sopClasses.end(); ++sop)
+    {
+      json.append(*sop);
+    }
+    
+    call.GetOutput().AnswerJson(json);
+  }
+
 
   static void GetUnknownSopClassAccepted(RestApiGetCall& call)
   {
@@ -1188,5 +1215,8 @@ namespace Orthanc
     Register("/tools/unknown-sop-class-accepted", SetUnknownSopClassAccepted);
 
     Register("/tools/labels", ListAllLabels);  // New in Orthanc 1.12.0
+
+    Register("/tools/accepted-sop-classes", GetAcceptedSopClasses);
+
   }
 }

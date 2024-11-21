@@ -27,6 +27,7 @@
 #include "../../../OrthancFramework/Sources/SerializationToolbox.h"
 #include "../ServerContext.h"
 #include <dcmtk/dcmnet/dimse.h>
+#include <algorithm>
 
 static const char* const LOCAL_AET = "LocalAet";
 static const char* const QUERY = "Query";
@@ -112,31 +113,67 @@ namespace Orthanc
   {
     if (connection_.get() == NULL)
     {
-      std::set<std::string> storageSopClassUids;
+      std::set<std::string> sopClassesToPropose;
+      std::set<std::string> sopClassesInStudy;
+      std::set<std::string> acceptedSopClasses;
       std::set<DicomTransferSyntax> storageAcceptedTransferSyntaxes;
 
-      if (findAnswer.HasTag(DICOM_TAG_SOP_CLASSES_IN_STUDY))
+      if (findAnswer.HasTag(DICOM_TAG_SOP_CLASSES_IN_STUDY) &&
+          findAnswer.LookupStringValues(sopClassesInStudy, DICOM_TAG_SOP_CLASSES_IN_STUDY, false))
       {
-        throw OrthancException(ErrorCode_NotImplemented);
-        // TODO-GET
+        context_.GetAcceptedSopClasses(acceptedSopClasses, 0); 
+
+        // keep the sop classes from the resources to retrieve only if they are accepted by Orthanc
+        Toolbox::GetIntersection(sopClassesToPropose, sopClassesInStudy, acceptedSopClasses);
       }
       else
       {
-        // when we don't know what SOP Classes to use, we must limit to 120 SOP Classes because 
+        // when we don't know what SOP Classes to use, we include the 120 most common SOP Classes because 
         // there are only 128 presentation contexts available
-        context_.GetAcceptedSopClasses(storageSopClassUids, 120); 
+        context_.GetAcceptedSopClasses(sopClassesToPropose, 120); 
+      }
+
+      if (sopClassesToPropose.size() == 0)
+      {
+        throw OrthancException(ErrorCode_NoPresentationContext, "Cannot perform C-Get, no SOPClassUID have been accepted by Orthanc.");        
       }
 
       context_.GetAcceptedTransferSyntaxes(storageAcceptedTransferSyntaxes);
 
       connection_.reset(new DicomControlUserConnection(parameters_, 
                                                        ScuOperationFlags_Get, 
-                                                       storageSopClassUids,
+                                                       sopClassesToPropose,
                                                        storageAcceptedTransferSyntaxes));
     }
     
     connection_->Get(findAnswer, InstanceReceivedHandler, &context_);
   }
+
+  // this method is used to implement the retrieve part of a Q&R 
+  // it keeps only the main dicom tags from the C-Find answer
+  void DicomGetScuJob::AddFindAnswer(const DicomMap& answer)
+  {
+    DicomMap item;
+    item.CopyTagIfExists(answer, DICOM_TAG_QUERY_RETRIEVE_LEVEL);
+    item.CopyTagIfExists(answer, DICOM_TAG_PATIENT_ID);
+    item.CopyTagIfExists(answer, DICOM_TAG_STUDY_INSTANCE_UID);
+    item.CopyTagIfExists(answer, DICOM_TAG_SERIES_INSTANCE_UID);
+    item.CopyTagIfExists(answer, DICOM_TAG_SOP_INSTANCE_UID);
+    item.CopyTagIfExists(answer, DICOM_TAG_ACCESSION_NUMBER);
+
+    query_.Add(item);
+    query_.GetAnswer(query_.GetSize() - 1).Remove(DICOM_TAG_SPECIFIC_CHARACTER_SET); // Remove the "SpecificCharacterSet" (0008,0005) tag that is automatically added if creating a ParsedDicomFile object from a DicomMap
+
+    AddCommand(new Command(*this, answer));
+  }
+
+  void DicomGetScuJob::AddFindAnswer(QueryRetrieveHandler& query,
+                                     size_t i)
+  {
+    DicomMap answer;
+    query.GetAnswer(answer, i);
+    AddFindAnswer(answer);
+  }    
 
   void DicomGetScuJob::AddResourceToRetrieve(ResourceType level, const std::string& dicomId)
   {
@@ -218,7 +255,7 @@ namespace Orthanc
   }
   
 
-  void DicomGetScuJob::SetQueryFormat(DicomToJsonFormat format)
+  void DicomGetScuJob::SetQueryFormat(DicomToJsonFormat format)  // TODO-GET: is this usefull ?
   {
     if (IsStarted())
     {

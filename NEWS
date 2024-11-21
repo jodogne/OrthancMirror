@@ -6,11 +6,12 @@ General
 
 * DICOM:
   - Added support for C-GET SCU.
-  - Added a configuration "AcceptedSopClasses" to limit the SOP classes accepted by
-    Orthanc.
+  - Added a configuration "AcceptedSopClasses" and "RejectedSopClasses" to limit 
+    the SOP classes accepted by Orthanc when acting as C-STORE SCP.
+
 
 REST API
------------
+--------
 
 * API version upgraded to 26
 * Improved parsing of multiple numerical values in DICOM tags.

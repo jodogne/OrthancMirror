@@ -914,6 +914,59 @@ namespace Orthanc
   }
 
 
+  static void SubmitGetScuJob(RestApiPostCall& call,
+                              bool allAnswers,
+                              size_t index)
+  {
+    ServerContext& context = OrthancRestApi::GetContext(call);
+
+    int timeout = -1;
+    Json::Value body;
+
+    if (call.ParseJsonRequest(body))
+    {
+      timeout = Toolbox::GetJsonIntegerField(body, KEY_TIMEOUT, -1);
+    }
+    
+    std::unique_ptr<DicomGetScuJob> job(new DicomGetScuJob(context));
+    job->SetQueryFormat(OrthancRestApi::GetDicomFormat(body, DicomToJsonFormat_Short));
+    
+    {
+      QueryAccessor query(call);
+      job->SetRemoteModality(query.GetHandler().GetRemoteModality());
+
+      if (timeout >= 0)
+      {
+        // New in Orthanc 1.7.0
+        job->SetTimeout(static_cast<uint32_t>(timeout));
+      }
+      else if (query.GetHandler().HasTimeout())
+      {
+        // New in Orthanc 1.9.1
+        job->SetTimeout(query.GetHandler().GetTimeout());
+      }
+
+      LOG(WARNING) << "Driving C-Get SCU on remote modality "
+                   << query.GetHandler().GetRemoteModality().GetApplicationEntityTitle();
+
+      if (allAnswers)
+      {
+        for (size_t i = 0; i < query.GetHandler().GetAnswersCount(); i++)
+        {
+          job->AddFindAnswer(query.GetHandler(), i);
+        }
+      }
+      else
+      {
+        job->AddFindAnswer(query.GetHandler(), index);
+      }
+    }
+
+    OrthancRestApi::GetApi(call).SubmitCommandsJob
+      (call, job.release(), true /* synchronous by default */, body);
+  }
+
+
   static void SubmitRetrieveJob(RestApiPostCall& call,
                                 bool allAnswers,
                                 size_t index)
@@ -1007,7 +1060,7 @@ namespace Orthanc
     {
       DocumentRetrieveShared(call);
       call.GetDocumentation()
-        .SetSummary("Retrieve one answer")
+        .SetSummary("Retrieve one answer with a C-MOVE SCU")
         .SetDescription("Start a C-MOVE SCU command as a job, in order to retrieve one answer associated with the "
                         "query/retrieve operation whose identifiers are provided in the URL: "
                         "https://orthanc.uclouvain.be/book/users/rest.html#performing-retrieve-c-move")
@@ -1020,13 +1073,49 @@ namespace Orthanc
   }
 
 
+  static void RetrieveOneAnswerWithGet(RestApiPostCall& call)
+  {
+    if (call.IsDocumentation())
+    {
+      DocumentRetrieveShared(call);
+      call.GetDocumentation()
+        .SetSummary("Retrieve one answer with a C-GET SCU")
+        .SetDescription("Start a C-GET SCU command as a job, in order to retrieve one answer associated with the "
+                        "query/retrieve operation whose identifiers are provided in the URL: "
+                        "https://orthanc.uclouvain.be/book/users/rest.html#performing-retrieve-c-get")  // TODO-GET: write doc
+        .SetUriArgument("index", "Index of the answer");
+      return;
+    }
+
+    size_t index = boost::lexical_cast<size_t>(call.GetUriComponent("index", ""));
+    SubmitRetrieveJob(call, false, index);
+  }
+
+
+  static void RetrieveAllAnswersWithGet(RestApiPostCall& call)
+  {
+    if (call.IsDocumentation())
+    {
+      DocumentRetrieveShared(call);
+      call.GetDocumentation()
+        .SetSummary("Retrieve all answers with C-GET SCU")
+        .SetDescription("Start a C-GET SCU command as a job, in order to retrieve all the answers associated with the "
+                        "query/retrieve operation whose identifier is provided in the URL: "
+                        "https://orthanc.uclouvain.be/book/users/rest.html#performing-retrieve-c-get");
+      return;
+    }
+
+    SubmitGetScuJob(call, true, 0);
+  }
+
+
   static void RetrieveAllAnswers(RestApiPostCall& call)
   {
     if (call.IsDocumentation())
     {
       DocumentRetrieveShared(call);
       call.GetDocumentation()
-        .SetSummary("Retrieve all answers")
+        .SetSummary("Retrieve all answers with C-MOVE SCU")
         .SetDescription("Start a C-MOVE SCU command as a job, in order to retrieve all the answers associated with the "
                         "query/retrieve operation whose identifier is provided in the URL: "
                         "https://orthanc.uclouvain.be/book/users/rest.html#performing-retrieve-c-move");
@@ -2638,6 +2727,7 @@ namespace Orthanc
     Register("/queries/{id}/answers/{index}", ListQueryAnswerOperations);
     Register("/queries/{id}/answers/{index}/content", GetQueryOneAnswer);
     Register("/queries/{id}/answers/{index}/retrieve", RetrieveOneAnswer);
+    Register("/queries/{id}/answers/{index}/get", RetrieveOneAnswerWithGet);
     Register("/queries/{id}/answers/{index}/query-instances",
              QueryAnswerChildren<ResourceType_Instance>);
     Register("/queries/{id}/answers/{index}/query-series",
@@ -2648,6 +2738,7 @@ namespace Orthanc
     Register("/queries/{id}/modality", GetQueryModality);
     Register("/queries/{id}/query", GetQueryArguments);
     Register("/queries/{id}/retrieve", RetrieveAllAnswers);
+    Register("/queries/{id}/get", RetrieveAllAnswersWithGet);
 
     Register("/peers", ListPeers);
     Register("/peers/{id}", ListPeerOperations);

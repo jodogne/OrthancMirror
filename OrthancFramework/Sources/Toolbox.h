@@ -262,7 +262,7 @@ namespace Orthanc
       }
     }
 
-    // returns true if all element of 'needles' are found in 'haystack'
+    // returns the elements that are both in a and b
     template <typename T> static void GetIntersection(std::set<T>& target, const std::set<T>& a, const std::set<T>& b)
     {
       target.clear();
