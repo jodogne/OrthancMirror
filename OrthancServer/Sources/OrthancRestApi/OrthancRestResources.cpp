@@ -177,23 +177,22 @@ namespace Orthanc
         .SetDescription("List the Orthanc identifiers of all the available DICOM " + resources)
         .SetHttpGetArgument("limit", RestApiCallDocumentation::Type_Number, "Limit the number of results", false)
         .SetHttpGetArgument("since", RestApiCallDocumentation::Type_Number, "Show only the resources since the provided index", false)
-        .SetHttpGetArgument("expand", RestApiCallDocumentation::Type_String,
-                            "If present, retrieve detailed information about the individual " + resources, false)
         .AddAnswerType(MimeType_Json, "JSON array containing either the Orthanc identifiers, or detailed information "
                        "about the reported " + resources + " (if `expand` argument is provided)")
         .SetHttpGetSample("https://orthanc.uclouvain.be/demo/" + resources + "?since=0&limit=2", true);
+      OrthancRestApi::DocumentResponseContentAndExpand(call);
       return;
     }
 
-    // TODO-FIND: include the FindRequest options parsing in a method (parse from get-arguments and from post payload)
-    // TODO-FIND: support other values for expand like expand=MainDicomTags,Labels,Parent,SeriesStatus
-    const bool expand = (call.HasArgument("expand") &&
-                         call.GetBooleanArgument("expand", true));
+    // TODO-FIND: include the FindRequest options parsing like since, limit in a method (parse from get-arguments and from post payload)
 
     std::set<DicomTag> requestedTags;
+    ResponseContentFlags responseContent;
+    
     OrthancRestApi::GetRequestedTags(requestedTags, call);
+    OrthancRestApi::GetResponseContentAndExpand(responseContent, call);
 
-    ResourceFinder finder(resourceType, (expand ? ResponseContentFlags_ExpandTrue : ResponseContentFlags_ID), OrthancRestApi::GetContext(call).GetFindStorageAccessMode());
+    ResourceFinder finder(resourceType, responseContent, OrthancRestApi::GetContext(call).GetFindStorageAccessMode());
     finder.AddRequestedTags(requestedTags);
 
     if (call.HasArgument("limit") ||
@@ -3102,20 +3101,23 @@ namespace Orthanc
                           "Limit the number of reported resources", false)
           .SetRequestField(KEY_SINCE, RestApiCallDocumentation::Type_Number,
                           "Show only the resources since the provided index (in conjunction with `Limit`)", false)
-          .SetRequestField(KEY_REQUESTED_TAGS, RestApiCallDocumentation::Type_JsonListOfStrings,
-                          "A list of DICOM tags to include in the response (applicable only if \"Expand\" is set to true).  "
-                          "The tags requested tags are returned in the 'RequestedTags' field in the response.  "
-                          "Note that, if you are requesting tags that are not listed in the Main Dicom Tags stored in DB, building the response "
-                          "might be slow since Orthanc will need to access the DICOM files.  If not specified, Orthanc will return "
-                          "all Main Dicom Tags to keep backward compatibility with Orthanc prior to 1.11.0.", false)
+          // .SetRequestField(KEY_REQUESTED_TAGS, RestApiCallDocumentation::Type_JsonListOfStrings,
+          //                 "A list of DICOM tags to include in the response (applicable only if \"Expand\" is set to true).  "
+          //                 "The tags requested tags are returned in the 'RequestedTags' field in the response.  "
+          //                 "Note that, if you are requesting tags that are not listed in the Main Dicom Tags stored in DB, building the response "
+          //                 "might be slow since Orthanc will need to access the DICOM files.  If not specified, Orthanc will return "
+          //                 "all Main Dicom Tags to keep backward compatibility with Orthanc prior to 1.11.0.", false)
           .SetRequestField(KEY_ORDER_BY, RestApiCallDocumentation::Type_JsonListOfObjects,
                           "Array of associative arrays containing the requested ordering (new in Orthanc 1.12.5)", true)
-          .SetRequestField(KEY_RESPONSE_CONTENT, RestApiCallDocumentation::Type_JsonListOfStrings,
-                          "Defines the content of response for each returned resource.  Allowed values are `MainDicomTags`, "
-                          "`Metadata`, `Children`, `Parent`, `Labels`, `Status`, `IsStable`, `Attachments`.  "
-                          "(new in Orthanc 1.12.5)", true)
+          // .SetRequestField(KEY_RESPONSE_CONTENT, RestApiCallDocumentation::Type_JsonListOfStrings,
+          //                 "Defines the content of response for each returned resource.  Allowed values are `MainDicomTags`, "
+          //                 "`Metadata`, `Children`, `Parent`, `Labels`, `Status`, `IsStable`, `Attachments`.  "
+          //                 "(new in Orthanc 1.12.5)", true)
           .AddAnswerType(MimeType_Json, "JSON array containing either the Orthanc identifiers, or detailed information "
                         "about the reported resources (if `Expand` argument is `true`)");
+
+          OrthancRestApi::DocumentRequestedTags(call);
+          OrthancRestApi::DocumentResponseContentAndExpand(call);
           break;
         case FindType_Count:
           doc.SetSummary("Count local resources")
