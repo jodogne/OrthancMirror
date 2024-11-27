@@ -406,6 +406,11 @@ namespace Orthanc
         return transaction_.UpdateAndGetStatistics(patientsCount, studiesCount, seriesCount, instancesCount, compressedSize, uncompressedSize);
       }
 
+      void PerformDbHousekeeping()
+      {
+        return transaction_.PerformDbHousekeeping();
+      }
+
       void SetMetadata(int64_t id,
                        MetadataType type,
                        const std::string& value,
@@ -734,6 +739,8 @@ namespace Orthanc
 
     void ExecuteCount(uint64_t& count,
                       const FindRequest& request);
+
+    void PerformDbHousekeeping();
 
   };
 }

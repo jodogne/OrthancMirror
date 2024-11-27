@@ -46,6 +46,11 @@ namespace Orthanc
     throw OrthancException(ErrorCode_NotImplemented);  // Not supported
   }
 
+  void BaseDatabaseWrapper::BaseTransaction::PerformDbHousekeeping()
+  {
+    throw OrthancException(ErrorCode_NotImplemented);  // Not supported
+  }
+
   void BaseDatabaseWrapper::BaseTransaction::GetChangesExtended(std::list<ServerIndexChange>& target /*out*/,
                                                                 bool& done /*out*/,
                                                                 int64_t since,

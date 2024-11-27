@@ -266,19 +266,19 @@ namespace Orthanc
     }
   };
 
-  void ServerIndex::UpdateStatisticsThread(ServerIndex* that,
-                                           unsigned int threadSleepGranularityMilliseconds)
+  void ServerIndex::PerformDbHouskeeping(ServerIndex* that,
+                                         unsigned int threadSleepGranularityMilliseconds)
   {
-    Logging::SetCurrentThreadName("DB-STATS");
+    Logging::SetCurrentThreadName("DB-HK");
 
-    static const unsigned int SLEEP_SECONDS = 10;
+    static const unsigned int SLEEP_SECONDS = 1;
 
     if (threadSleepGranularityMilliseconds > 1000)
     {
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
 
-    LOG(INFO) << "Starting the update statistics thread (sleep = " << SLEEP_SECONDS << " seconds)";
+    LOG(INFO) << "Starting the DB Housekeeping thread (sleep = " << SLEEP_SECONDS << " seconds)";
 
     unsigned int count = 0;
     unsigned int countThreshold = (1000 * SLEEP_SECONDS) / threadSleepGranularityMilliseconds;
@@ -290,14 +290,13 @@ namespace Orthanc
       
       if (count >= countThreshold)
       {
-        uint64_t diskSize, uncompressedSize, countPatients, countStudies, countSeries, countInstances;
-        that->GetGlobalStatistics(diskSize, uncompressedSize, countPatients, countStudies, countSeries, countInstances);
+        that->PerformDbHousekeeping();
         
         count = 0;
       }
     }
 
-    LOG(INFO) << "Stopping the update statistics thread";
+    LOG(INFO) << "Stopping the DB Housekeeping thread";
   }
 
   void ServerIndex::FlushThread(ServerIndex* that,
@@ -377,18 +376,17 @@ namespace Orthanc
       }
     }
 
-    // For some DB plugins that implements the UpdateAndGetStatistics function, updating 
-    // the statistics can take quite some time if you have not done it for a long time 
-    // -> make sure they are updated at regular interval
-    if (GetDatabaseCapabilities().HasUpdateAndGetStatistics())
+    // For some DB plugins, some housekeeping might be required at regular interval
+    // like computing the statistics or update some tables after an upgrade
+    if (GetDatabaseCapabilities().HasDbHousekeeping())
     {
       if (readOnly)
       {
-        LOG(WARNING) << "READ-ONLY SYSTEM: not starting the UpdateStatisticsThread";
+        LOG(WARNING) << "READ-ONLY SYSTEM: not starting the DB Housekeeping thread";
       }
       else
       {
-        updateStatisticsThread_ = boost::thread(UpdateStatisticsThread, this, threadSleepGranularityMilliseconds);
+        dbHousekeepingThread_ = boost::thread(PerformDbHouskeeping, this, threadSleepGranularityMilliseconds);
       }
     }
 
@@ -425,9 +423,9 @@ namespace Orthanc
         flushThread_.join();
       }
 
-      if (updateStatisticsThread_.joinable())
+      if (dbHousekeepingThread_.joinable())
       {
-        updateStatisticsThread_.join();
+        dbHousekeepingThread_.join();
       }
 
       if (unstableResourcesMonitorThread_.joinable())

@@ -21,7 +21,7 @@ When you add a new method in the DB (e.g: UpdateAndGetStatistics with a new sign
 - define it in OrthancPluginDatabaseV4
 - define a NotImplemented default implementation in BaseDatabaseWrapper
 - optionally define it in SQLiteDatabaseWrapper if it can be implemented in SQLite
-- very likely define it as a DbCapabilities in IDatabaseWrapper::DbCapabilities (e.g: Has/SetUpdateAndGetStatistics()) such that the Orthanc
+- very likely define it as a DbCapabilities in IDatabaseWrapper::DbCapabilities (e.g: Has/SetHasUpdateAndGetStatistics()) such that the Orthanc
   core knows if it can use it or not.
 
 Then, in the orthanc-databases repo, you should:
