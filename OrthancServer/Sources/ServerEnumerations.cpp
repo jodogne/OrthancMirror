@@ -623,6 +623,10 @@ namespace Orthanc
     {
       return ResponseContentFlags_MainDicomTags;
     }
+    else if (value == "RequestedTags")
+    {
+      return ResponseContentFlags_RequestedTags;
+    }
     else if (value == "Metadata")
     {
       return ResponseContentFlags_Metadata;
