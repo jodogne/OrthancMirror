@@ -290,7 +290,14 @@ namespace Orthanc
       
       if (count >= countThreshold)
       {
-        that->PerformDbHousekeeping();
+        try
+        {
+          that->PerformDbHousekeeping();
+        }
+        catch (...)
+        {
+          LOG(ERROR) << "Error while performing DB Housekeeping";
+        }
         
         count = 0;
       }
