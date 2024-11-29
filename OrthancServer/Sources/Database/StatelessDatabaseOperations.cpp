@@ -3196,28 +3196,12 @@ namespace Orthanc
                                                const std::string& publicId,
                                                ResourceType level)
   {
-    class Operations : public ReadOnlyOperationsT3<std::set<std::string>&, const std::string&, ResourceType>
-    {
-    public:
-      virtual void ApplyTuple(ReadOnlyTransaction& transaction,
-                              const Tuple& tuple) ORTHANC_OVERRIDE
-      {
-        ResourceType type;
-        int64_t id;
-        if (!transaction.LookupResource(id, type, tuple.get<1>()) ||
-            tuple.get<2>() != type)
-        {
-          throw OrthancException(ErrorCode_UnknownResource);
-        }
-        else
-        {
-          transaction.ListLabels(tuple.get<0>(), id);
-        }
-      }
-    };
+    FindRequest request(level);
+    request.SetOrthancId(level, publicId);
+    request.SetRetrieveLabels(true);
 
-    Operations operations;
-    operations.Apply(*this, target, publicId, level);
+    FindResponse response;
+    target = ExecuteSingleResource(response, request).GetLabels();
   }
 
 

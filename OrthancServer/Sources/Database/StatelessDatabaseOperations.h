@@ -266,12 +266,6 @@ namespace Orthanc
         return transaction_.LookupResource(id, type, publicId);
       }
 
-      void ListLabels(std::set<std::string>& target,
-                      int64_t id)
-      {
-        transaction_.ListLabels(target, id);
-      }
-
       void ListAllLabels(std::set<std::string>& target)
       {
         transaction_.ListAllLabels(target);
