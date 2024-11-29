@@ -2043,7 +2043,7 @@ TEST(DicomWebJson, ValueRepresentation)
   ASSERT_EQ("DA", visitor.GetResult() ["00080012"]["vr"].asString());
   ASSERT_EQ("DA", visitor.GetResult() ["00080012"]["Value"][0].asString());
   ASSERT_EQ("DS", visitor.GetResult() ["00101020"]["vr"].asString());
-  ASSERT_FLOAT_EQ(42.0f, visitor.GetResult() ["00101020"]["Value"][0].asFloat());
+  ASSERT_EQ("42", visitor.GetResult() ["00101020"]["Value"][0].asString());
   ASSERT_EQ("DT", visitor.GetResult() ["0008002A"]["vr"].asString());
   ASSERT_EQ("DT", visitor.GetResult() ["0008002A"]["Value"][0].asString());
   ASSERT_EQ("FL", visitor.GetResult() ["00109431"]["vr"].asString());
