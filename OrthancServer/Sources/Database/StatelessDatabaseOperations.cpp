@@ -288,22 +288,6 @@ namespace Orthanc
   }
 
 
-  static void CopyListToVector(std::vector<std::string>& target,
-                               const std::list<std::string>& source)
-  {
-    target.resize(source.size());
-
-    size_t pos = 0;
-    
-    for (std::list<std::string>::const_iterator
-           it = source.begin(); it != source.end(); ++it)
-    {
-      target[pos] = *it;
-      pos ++;
-    }      
-  }
-
-
   void StatelessDatabaseOperations::ReadWriteTransaction::LogChange(int64_t internalId,
                                                                     ChangeType changeType,
                                                                     ResourceType resourceType,
@@ -1245,45 +1229,24 @@ namespace Orthanc
            (level == ResourceType_Study && tag == DICOM_TAG_ACCESSION_NUMBER) ||
            (level == ResourceType_Series && tag == DICOM_TAG_SERIES_INSTANCE_UID) ||
            (level == ResourceType_Instance && tag == DICOM_TAG_SOP_INSTANCE_UID));
-    
-    result.clear();
+
+    FindRequest request(level);
 
     DicomTagConstraint c(tag, ConstraintType_Equal, value, true, true);
 
-    DatabaseDicomTagConstraints query;
     bool isIdentical;  // unused
-    query.AddConstraint(c.ConvertToDatabaseConstraint(isIdentical, level, DicomTagType_Identifier));
+    request.GetDicomTagConstraints().AddConstraint(c.ConvertToDatabaseConstraint(isIdentical, level, DicomTagType_Identifier));
 
+    FindResponse response;
+    ExecuteFind(response, request);
 
-    class Operations : public IReadOnlyOperations
+    result.clear();
+    result.reserve(response.GetSize());
+
+    for (size_t i = 0; i < response.GetSize(); i++)
     {
-    private:
-      std::vector<std::string>&   result_;
-      const DatabaseDicomTagConstraints&  query_;
-      ResourceType                level_;
-      
-    public:
-      Operations(std::vector<std::string>& result,
-                 const DatabaseDicomTagConstraints& query,
-                 ResourceType level) :
-        result_(result),
-        query_(query),
-        level_(level)
-      {
-      }
-
-      virtual void Apply(ReadOnlyTransaction& transaction) ORTHANC_OVERRIDE
-      {
-        // TODO - CANDIDATE FOR "TransactionType_Implicit"
-        std::list<std::string> tmp;
-        std::set<std::string> labels;
-        transaction.ApplyLookupResources(tmp, NULL, query_, level_, labels, LabelsConstraint_Any, 0);
-        CopyListToVector(result_, tmp);
-      }
-    };
-
-    Operations operations(result, query, level);
-    Apply(operations);
+      result.push_back(response.GetResourceByIndex(i).GetIdentifier());
+    }
   }
 
 

@@ -310,13 +310,6 @@ namespace Orthanc
     
       virtual bool IsDiskSizeAbove(uint64_t threshold) = 0;
     
-      virtual void ApplyLookupResources(std::list<std::string>& resourcesId,
-                                        std::list<std::string>* instancesId, // Can be NULL if not needed
-                                        const DatabaseDicomTagConstraints& lookup,
-                                        ResourceType queryLevel,
-                                        const std::set<std::string>& labels,
-                                        LabelsConstraint labelsConstraint,
-                                        uint32_t limit) = 0;
 
       // Returns "true" iff. the instance is new and has been inserted
       // into the database. If "false" is returned, the content of
@@ -430,6 +423,18 @@ namespace Orthanc
 
       virtual void GetChildrenPublicId(std::list<std::string>& target,
                                        int64_t id) = 0;
+
+      /**
+       * Primitives introduced in Orthanc 1.5.2
+       **/
+
+      virtual void ApplyLookupResources(std::list<std::string>& resourcesId,
+                                        std::list<std::string>* instancesId, // Can be NULL if not needed
+                                        const DatabaseDicomTagConstraints& lookup,
+                                        ResourceType queryLevel,
+                                        const std::set<std::string>& labels,
+                                        LabelsConstraint labelsConstraint,
+                                        uint32_t limit) = 0;
 
       /**
        * Primitives introduced in Orthanc 1.5.4
