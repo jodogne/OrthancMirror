@@ -241,9 +241,9 @@ namespace Orthanc
                !request.GetOrthancIdentifiers().HasSeriesId() &&
                !request.GetOrthancIdentifiers().HasInstanceId())
       {
-        transaction_.ApplyLookupResources(identifiers, NULL /* TODO-FIND: Could the "instancesId" information be exploited? */,
-                                          request.GetDicomTagConstraints(), request.GetLevel(), request.GetLabels(),
-                                          request.GetLabelsConstraint(), request.HasLimits() ? request.GetLimitsCount() : 0);
+        compatibilityTransaction_.ApplyLookupResources(identifiers, NULL /* TODO-FIND: Could the "instancesId" information be exploited? */,
+                                                       request.GetDicomTagConstraints(), request.GetLevel(), request.GetLabels(),
+                                                       request.GetLabelsConstraint(), request.HasLimits() ? request.GetLimitsCount() : 0);
       }
       else
       {
