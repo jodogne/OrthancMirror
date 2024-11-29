@@ -611,7 +611,7 @@ namespace Orthanc
                           ResourceType expectedType,
                           ResourceType levelOfInterest);
 
-    // Only applicable at the instance level
+    // Only applicable at the instance level, retrieves tags from patient/study/series levels
     bool GetAllMainDicomTags(DicomMap& result,
                              const std::string& instancePublicId);
 
