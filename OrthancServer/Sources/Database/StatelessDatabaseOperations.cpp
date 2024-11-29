@@ -1359,83 +1359,66 @@ namespace Orthanc
   bool StatelessDatabaseOperations::GetAllMainDicomTags(DicomMap& result,
                                                         const std::string& instancePublicId)
   {
-    class Operations : public ReadOnlyOperationsT3<bool&, DicomMap&, const std::string&>
-    {
-    public:
-      virtual void ApplyTuple(ReadOnlyTransaction& transaction,
-                              const Tuple& tuple) ORTHANC_OVERRIDE
-      {
-        // Lookup for the requested resource
-        int64_t instance;
-        ResourceType type;
-        if (!transaction.LookupResource(instance, type, tuple.get<2>()) ||
-            type != ResourceType_Instance)
-        {
-          tuple.get<0>() =  false;
-        }
-        else
-        {
-          DicomMap tmp;
-
-          transaction.GetMainDicomTags(tmp, instance);
-          tuple.get<1>().Merge(tmp);
-
-          int64_t series;
-          if (!transaction.LookupParent(series, instance))
-          {
-            throw OrthancException(ErrorCode_InternalError);
-          }
-
-          tmp.Clear();
-          transaction.GetMainDicomTags(tmp, series);
-          tuple.get<1>().Merge(tmp);
-
-          int64_t study;
-          if (!transaction.LookupParent(study, series))
-          {
-            throw OrthancException(ErrorCode_InternalError);
-          }
-
-          tmp.Clear();
-          transaction.GetMainDicomTags(tmp, study);
-          tuple.get<1>().Merge(tmp);
+    FindRequest request(ResourceType_Instance);
+    request.SetOrthancId(ResourceType_Instance, instancePublicId);
+    request.GetParentSpecification(ResourceType_Study).SetRetrieveMainDicomTags(true);
+    request.GetParentSpecification(ResourceType_Series).SetRetrieveMainDicomTags(true);
+    request.SetRetrieveMainDicomTags(true);
 
 #ifndef NDEBUG
-          {
-            // Sanity test to check that all the main DICOM tags from the
-            // patient level are copied at the study level
-        
-            int64_t patient;
-            if (!transaction.LookupParent(patient, study))
-            {
-              throw OrthancException(ErrorCode_InternalError);
-            }
-
-            tmp.Clear();
-            transaction.GetMainDicomTags(tmp, study);
-
-            std::set<DicomTag> patientTags;
-            tmp.GetTags(patientTags);
-
-            for (std::set<DicomTag>::const_iterator
-                   it = patientTags.begin(); it != patientTags.end(); ++it)
-            {
-              assert(tuple.get<1>().HasTag(*it));
-            }
-          }
+    // For sanity check below
+    request.GetParentSpecification(ResourceType_Patient).SetRetrieveMainDicomTags(true);
 #endif
-      
-          tuple.get<0>() =  true;
+
+    FindResponse response;
+    ExecuteFind(response, request);
+
+    if (response.GetSize() == 0)
+    {
+      return false;
+    }
+    else if (response.GetSize() > 1)
+    {
+      throw OrthancException(ErrorCode_DatabasePlugin);
+    }
+    else
+    {
+      const FindResponse::Resource& resource = response.GetResourceByIndex(0);
+
+      result.Clear();
+
+      DicomMap tmp;
+      resource.GetMainDicomTags(tmp, ResourceType_Instance);
+      result.Merge(tmp);
+
+      tmp.Clear();
+      resource.GetMainDicomTags(tmp, ResourceType_Series);
+      result.Merge(tmp);
+
+      tmp.Clear();
+      resource.GetMainDicomTags(tmp, ResourceType_Study);
+      result.Merge(tmp);
+
+#ifndef NDEBUG
+      {
+        // Sanity test to check that all the main DICOM tags from the
+        // patient level are copied at the study level
+        tmp.Clear();
+        resource.GetMainDicomTags(tmp, ResourceType_Patient);
+
+        std::set<DicomTag> patientTags;
+        tmp.GetTags(patientTags);
+
+        for (std::set<DicomTag>::const_iterator
+               it = patientTags.begin(); it != patientTags.end(); ++it)
+        {
+          assert(result.HasTag(*it));
         }
       }
-    };
+#endif
 
-    result.Clear();
-    
-    bool found;
-    Operations operations;
-    operations.Apply(*this, found, result, instancePublicId);
-    return found;
+      return true;
+    }
   }
 
 
