@@ -491,6 +491,9 @@ namespace Orthanc
     void ApplyInternal(IReadOnlyOperations* readOperations,
                        IReadWriteOperations* writeOperations);
 
+    const FindResponse::Resource &ExecuteSingleResource(FindResponse &response,
+                                                        const FindRequest &request);
+
   protected:
     void StandaloneRecycling(MaxStorageMode maximumStorageMode,
                              uint64_t maximumStorageSize,

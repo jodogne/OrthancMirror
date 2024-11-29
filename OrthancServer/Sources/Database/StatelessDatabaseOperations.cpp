@@ -580,7 +580,34 @@ namespace Orthanc
   {
     ApplyInternal(NULL, &operations);
   }
-  
+
+
+  const FindResponse::Resource& StatelessDatabaseOperations::ExecuteSingleResource(FindResponse& response,
+    const FindRequest& request)
+  {
+    ExecuteFind(response, request);
+
+    if (response.GetSize() == 0)
+    {
+      throw OrthancException(ErrorCode_UnknownResource);
+    }
+    else if (response.GetSize() == 1)
+    {
+      if (response.GetResourceByIndex(0).GetLevel() != request.GetLevel())
+      {
+        throw OrthancException(ErrorCode_DatabasePlugin);
+      }
+      else
+      {
+        return response.GetResourceByIndex(0);
+      }
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_DatabasePlugin);
+    }
+  }
+
 
   void StatelessDatabaseOperations::GetAllMetadata(std::map<MetadataType, std::string>& target,
                                                    const std::string& publicId,
@@ -591,32 +618,13 @@ namespace Orthanc
     request.SetRetrieveMetadata(true);
 
     FindResponse response;
-    ExecuteFind(response, request);
+    std::map<MetadataType, FindResponse::MetadataContent> metadata = ExecuteSingleResource(response, request).GetMetadata(level);
 
-    if (response.GetSize() == 0)
+    target.clear();
+    for (std::map<MetadataType, FindResponse::MetadataContent>::const_iterator
+         it = metadata.begin(); it != metadata.end(); ++it)
     {
-      throw OrthancException(ErrorCode_UnknownResource);
-    }
-    else if (response.GetSize() == 1)
-    {
-      if (response.GetResourceByIndex(0).GetLevel() != level)
-      {
-        throw OrthancException(ErrorCode_DatabasePlugin);
-      }
-      else
-      {
-        std::map<MetadataType, FindResponse::MetadataContent> metadata = response.GetResourceByIndex(0).GetMetadata(level);
-
-        target.clear();
-        for (std::map<MetadataType, FindResponse::MetadataContent>::const_iterator it = metadata.begin(); it != metadata.end(); ++it)
-        {
-          target[it->first] = it->second.GetValue();
-        }
-      }
-    }
-    else
-    {
-      throw OrthancException(ErrorCode_DatabasePlugin);
+      target[it->first] = it->second.GetValue();
     }
   }
 
@@ -632,27 +640,7 @@ namespace Orthanc
     request.SetRetrieveAttachments(true);
 
     FindResponse response;
-    ExecuteFind(response, request);
-
-    if (response.GetSize() == 0)
-    {
-      throw OrthancException(ErrorCode_UnknownResource);
-    }
-    else if (response.GetSize() == 1)
-    {
-      if (response.GetResourceByIndex(0).GetLevel() != level)
-      {
-        throw OrthancException(ErrorCode_DatabasePlugin);
-      }
-      else
-      {
-        return response.GetResourceByIndex(0).LookupAttachment(attachment, revision, contentType);
-      }
-    }
-    else
-    {
-      throw OrthancException(ErrorCode_DatabasePlugin);
-    }
+    return ExecuteSingleResource(response, request).LookupAttachment(attachment, revision, contentType);
   }
 
 
@@ -1030,27 +1018,7 @@ namespace Orthanc
     request.SetRetrieveMetadataRevisions(false);  // No need to retrieve revisions
 
     FindResponse response;
-    ExecuteFind(response, request);
-
-    if (response.GetSize() == 0)
-    {
-      throw OrthancException(ErrorCode_UnknownResource);
-    }
-    else if (response.GetSize() == 1)
-    {
-      if (response.GetResourceByIndex(0).GetLevel() != expectedType)
-      {
-        throw OrthancException(ErrorCode_DatabasePlugin);
-      }
-      else
-      {
-        return response.GetResourceByIndex(0).LookupMetadata(target, expectedType, type);
-      }
-    }
-    else
-    {
-      throw OrthancException(ErrorCode_DatabasePlugin);
-    }
+    return ExecuteSingleResource(response, request).LookupMetadata(target, expectedType, type);
   }
 
 
@@ -1066,27 +1034,7 @@ namespace Orthanc
     request.SetRetrieveMetadataRevisions(true);  // We are asked to retrieve revisions
 
     FindResponse response;
-    ExecuteFind(response, request);
-
-    if (response.GetSize() == 0)
-    {
-      throw OrthancException(ErrorCode_UnknownResource);
-    }
-    else if (response.GetSize() == 1)
-    {
-      if (response.GetResourceByIndex(0).GetLevel() != expectedType)
-      {
-        throw OrthancException(ErrorCode_DatabasePlugin);
-      }
-      else
-      {
-        return response.GetResourceByIndex(0).LookupMetadata(target, revision, expectedType, type);
-      }
-    }
-    else
-    {
-      throw OrthancException(ErrorCode_DatabasePlugin);
-    }
+    return ExecuteSingleResource(response, request).LookupMetadata(target, revision, expectedType, type);
   }
 
 
