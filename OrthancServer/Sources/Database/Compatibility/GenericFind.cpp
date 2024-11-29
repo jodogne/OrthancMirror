@@ -514,7 +514,7 @@ namespace Orthanc
       if (capabilities.HasLabelsSupport() &&
           request.IsRetrieveLabels())
       {
-        transaction_.ListLabels(resource->GetLabels(), internalId);
+        compatibilityTransaction_.ListLabels(resource->GetLabels(), internalId);
       }
 
       if (request.IsRetrieveAttachments())
