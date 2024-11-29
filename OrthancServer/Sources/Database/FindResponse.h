@@ -362,6 +362,8 @@ namespace Orthanc
         return attachments_;
       }
 
+      void ListAttachments(std::set<FileContentType>& target) const;
+
       void SetOneInstanceMetadataAndAttachments(const std::string& instancePublicId,
                                                 const std::map<MetadataType, std::string>& metadata,
                                                 const std::map<FileContentType, FileInfo>& attachments);

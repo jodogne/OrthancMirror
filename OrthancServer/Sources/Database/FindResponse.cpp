@@ -528,6 +528,18 @@ namespace Orthanc
   }
 
 
+  void FindResponse::Resource::ListAttachments(std::set<FileContentType>& target) const
+  {
+    target.clear();
+
+    for (std::map<FileContentType, FileInfo>::const_iterator
+           it = attachments_.begin(); it != attachments_.end(); ++it)
+    {
+      target.insert(it->first);
+    }
+  }
+
+
   void FindResponse::Resource::SetOneInstanceMetadataAndAttachments(const std::string& instancePublicId,
                                                                     const std::map<MetadataType, std::string>& metadata,
                                                                     const std::map<FileContentType, FileInfo>& attachments)

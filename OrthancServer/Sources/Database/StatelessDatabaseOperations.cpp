@@ -949,6 +949,8 @@ namespace Orthanc
   void StatelessDatabaseOperations::GetChildInstances(std::list<std::string>& result,
                                                       const std::string& publicId)
   {
+    // TODO-FIND
+
     class Operations : public ReadOnlyOperationsT2<std::list<std::string>&, const std::string&>
     {
     public:
@@ -1042,28 +1044,12 @@ namespace Orthanc
                                                              const std::string& publicId,
                                                              ResourceType expectedType)
   {
-    class Operations : public ReadOnlyOperationsT3<std::set<FileContentType>&, const std::string&, ResourceType>
-    {
-    public:
-      virtual void ApplyTuple(ReadOnlyTransaction& transaction,
-                              const Tuple& tuple) ORTHANC_OVERRIDE
-      {
-        ResourceType type;
-        int64_t id;
-        if (!transaction.LookupResource(id, type, tuple.get<1>()) ||
-            tuple.get<2>() != type)
-        {
-          throw OrthancException(ErrorCode_UnknownResource);
-        }
-        else
-        {
-          transaction.ListAvailableAttachments(tuple.get<0>(), id);
-        }
-      }
-    };
-    
-    Operations operations;
-    operations.Apply(*this, target, publicId, expectedType);
+    FindRequest request(expectedType);
+    request.SetOrthancId(expectedType, publicId);
+    request.SetRetrieveAttachments(true);
+
+    FindResponse response;
+    ExecuteSingleResource(response, request).ListAttachments(target);
   }
 
 
