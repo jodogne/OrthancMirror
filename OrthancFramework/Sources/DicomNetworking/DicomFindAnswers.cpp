@@ -202,7 +202,7 @@ namespace Orthanc
                                 DicomToJsonFormat format) const
   {
     const ParsedDicomFile& answer = GetAnswer(index);
-    answer.DatasetToJson(target, format, DicomToJsonFlags_None, 0);
+    answer.DatasetToJson(target, format, DicomToJsonFlags_IncludePrivateTags, 0);
   }
 
 

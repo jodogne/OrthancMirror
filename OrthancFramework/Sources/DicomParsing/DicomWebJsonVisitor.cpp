@@ -28,6 +28,7 @@
 #include "../Logging.h"
 #include "../OrthancException.h"
 #include "../Toolbox.h"
+#include "../SerializationToolbox.h"
 #include "FromDcmtkBridge.h"
 
 #include <boost/math/special_functions/round.hpp>
@@ -338,6 +339,31 @@ namespace Orthanc
       // Can occur if "long long" is too small to receive this value
       // (e.g. infinity)
       return Json::Value(value);
+    }
+  }
+
+  Json::Value DicomWebJsonVisitor::FormatDecimalString(double value, const std::string& originalString)
+  {
+    try
+    {
+      long long a = boost::math::llround<double>(value);
+
+      double d = fabs(value - static_cast<double>(a));
+
+      if (d <= std::numeric_limits<double>::epsilon() * 100.0)
+      {
+        return FormatInteger(a);  // if the decimal number is an integer, you can represent it as an integer  
+      }
+      else
+      {
+        return Json::Value(originalString);  // keep the original string to avoid rounding errors e.g, transforming "0.143" into 0.14299999999999
+      }
+    }
+    catch (boost::math::rounding_error&)
+    {
+      // Can occur if "long long" is too small to receive this value
+      // (e.g. infinity)
+      return Json::Value(originalString);
     }
   }
 
@@ -677,14 +703,33 @@ namespace Orthanc
                 case ValueRepresentation_DecimalString:
                 {
                   std::string t = Toolbox::StripSpaces(tokens[i]);
+                  boost::replace_all(t, ",", "."); // some invalid files uses "," instead of "."
+                  
+                  // remove invalid/useless trailing decimal separator
+                  if (t.size() > 0 && t[t.size()-1] == '.')
+                  {
+                    t.resize(t.size() -1);
+                  }
+
                   if (t.empty())
                   {
                     node[KEY_VALUE].append(Json::nullValue);
                   }
                   else
                   {
-                    double tmp = boost::lexical_cast<double>(t);
-                    node[KEY_VALUE].append(FormatDouble(tmp));
+                    // https://dicom.nema.org/medical/dicom/current/output/chtml/part18/sect_F.2.3.html
+                    // DS values can be represented as String or Number in Json.
+                    // For IS, DS, SV and UV, a JSON String representation can be used to preserve the original format during transformation of the representation, or if needed to avoid losing precision of a decimal string.
+                    // Since 1.12.5, always use the string repesentation.  Before, decimal numbers were represented as double which led to loss of precision (e.g: 0.143 represented as 0.1429999999)
+                    double tmp;
+                    if (SerializationToolbox::ParseDouble(tmp, t)) // make sure that the string contains a valid decimal number
+                    {
+                      node[KEY_VALUE].append(t);
+                    }
+                    else
+                    {
+                      throw boost::bad_lexical_cast();
+                    }
                   }
 
                   break;
