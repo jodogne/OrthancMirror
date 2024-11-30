@@ -562,6 +562,11 @@ namespace Orthanc
                      ResourceType level,
                      const std::string& publicId);
 
+    // Always prefer this flavor, which is more efficient than the flavor without "level"
+    void GetChildInstances(std::list<std::string>& result,
+                           const std::string& publicId,
+                           ResourceType level);
+
     void GetChildInstances(std::list<std::string>& result,
                            const std::string& publicId);
 

@@ -190,7 +190,7 @@ namespace Orthanc
     DicomTag::AddTagsForModule(removals_, DicomModule_Study);
     
     std::list<std::string> instances;
-    GetContext().GetIndex().GetChildInstances(instances, targetStudy);
+    GetContext().GetIndex().GetChildInstances(instances, targetStudy, ResourceType_Study);
     
     if (instances.empty())
     {
