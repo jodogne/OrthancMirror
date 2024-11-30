@@ -282,4 +282,12 @@ namespace Orthanc
       return retrieveOneInstanceMetadataAndAttachments_;
     }
   }
+
+  bool FindRequest::HasConstraints() const
+  {
+    return (!GetDicomTagConstraints().IsEmpty() ||
+            GetMetadataConstraintsCount() != 0 ||
+            !GetLabels().empty() ||
+            !GetOrdering().empty());
+  }
 }
