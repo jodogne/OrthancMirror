@@ -32,7 +32,7 @@ namespace Orthanc
    * for all recent methods (1.12.X)
    **/
 
-  class BaseTransaction :
+  class BaseCompatibilityTransaction :
     public IDatabaseWrapper::ITransaction,
     public IDatabaseWrapper::ICompatibilityTransaction
   {

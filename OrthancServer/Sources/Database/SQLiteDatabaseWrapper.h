@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "BaseDatabaseWrapper.h"
+#include "BaseCompatibilityTransaction.h"
 
 #include "../../../OrthancFramework/Sources/SQLite/Connection.h"
 
@@ -112,7 +112,7 @@ namespace Orthanc
      * "UnitTestsTransaction" give access to additional information
      * about the underlying SQLite database to be used in unit tests.
      **/
-    class UnitTestsTransaction : public BaseTransaction
+    class UnitTestsTransaction : public BaseCompatibilityTransaction
     {
     protected:
       SQLite::Connection& db_;

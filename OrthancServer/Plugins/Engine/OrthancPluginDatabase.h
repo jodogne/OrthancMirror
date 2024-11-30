@@ -26,7 +26,7 @@
 #if ORTHANC_ENABLE_PLUGINS == 1
 
 #include "../../../OrthancFramework/Sources/SharedLibrary.h"
-#include "../../Sources/Database/BaseDatabaseWrapper.h"
+#include "../../Sources/Database/BaseCompatibilityTransaction.h"
 #include "../Include/orthanc/OrthancCDatabasePlugin.h"
 #include "PluginsErrorDictionary.h"
 
