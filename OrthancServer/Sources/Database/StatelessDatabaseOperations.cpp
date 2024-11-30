@@ -1442,43 +1442,28 @@ namespace Orthanc
                                                  const std::string& publicId,
                                                  ResourceType parentType)
   {
-    class Operations : public ReadOnlyOperationsT4<bool&, std::string&, const std::string&, ResourceType>
+    const ResourceType level = GetChildResourceType(parentType);
+
+    FindRequest request(level);
+    request.SetOrthancId(level, publicId);
+    request.SetRetrieveParentIdentifier(true);
+
+    FindResponse response;
+    ExecuteFind(response, request);
+
+    if (response.GetSize() == 0)
     {
-    public:
-      virtual void ApplyTuple(ReadOnlyTransaction& transaction,
-                              const Tuple& tuple) ORTHANC_OVERRIDE
-      {
-        ResourceType type;
-        int64_t id;
-        if (!transaction.LookupResource(id, type, tuple.get<2>()))
-        {
-          throw OrthancException(ErrorCode_UnknownResource);
-        }
-
-        while (type != tuple.get<3>())
-        {
-          int64_t parentId;
-
-          if (type == ResourceType_Patient ||    // Cannot further go up in hierarchy
-              !transaction.LookupParent(parentId, id))
-          {
-            tuple.get<0>() = false;
-            return;
-          }
-
-          id = parentId;
-          type = GetParentResourceType(type);
-        }
-
-        tuple.get<0>() = true;
-        tuple.get<1>() = transaction.GetPublicId(id);
-      }
-    };
-
-    bool found;
-    Operations operations;
-    operations.Apply(*this, found, target, publicId, parentType);
-    return found;
+      return false;
+    }
+    else if (response.GetSize() > 1)
+    {
+      throw OrthancException(ErrorCode_DatabasePlugin);
+    }
+    else
+    {
+      target = response.GetResourceByIndex(0).GetParentIdentifier();
+      return true;
+    }
   }
 
 
