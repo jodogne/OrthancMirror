@@ -46,7 +46,7 @@
 
 namespace Orthanc
 {
-  class OrthancPluginDatabaseV3::Transaction : public BaseTransaction
+  class OrthancPluginDatabaseV3::Transaction : public BaseCompatibilityTransaction
   {
   private:
     OrthancPluginDatabaseV3&           that_;

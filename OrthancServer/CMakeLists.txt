@@ -88,7 +88,7 @@ include(${CMAKE_SOURCE_DIR}/Plugins/Samples/Common/OrthancPluginsExports.cmake)
 #####################################################################
 
 set(ORTHANC_SERVER_SOURCES
-  ${CMAKE_SOURCE_DIR}/Sources/Database/BaseDatabaseWrapper.cpp
+  ${CMAKE_SOURCE_DIR}/Sources/Database/BaseCompatibilityTransaction.cpp
   ${CMAKE_SOURCE_DIR}/Sources/Database/Compatibility/DatabaseLookup.cpp
   ${CMAKE_SOURCE_DIR}/Sources/Database/Compatibility/GenericFind.cpp
   ${CMAKE_SOURCE_DIR}/Sources/Database/Compatibility/ICreateInstance.cpp
