@@ -46,7 +46,7 @@ namespace Orthanc
    * able to rollback the modifications. Read-only accesses didn't
    * start a transaction, as they were protected by the global mutex.
    **/
-  class OrthancPluginDatabase : public BaseDatabaseWrapper
+  class OrthancPluginDatabase : public IDatabaseWrapper
   {
   private:
     class Transaction;
@@ -111,6 +111,13 @@ namespace Orthanc
     }
 
     void AnswerReceived(const _OrthancPluginDatabaseAnswer& answer);
+
+    uint64_t MeasureLatency() ORTHANC_OVERRIDE;
+
+    bool HasIntegratedFind() const ORTHANC_OVERRIDE
+    {
+      return false;
+    }
   };
 }
 

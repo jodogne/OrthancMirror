@@ -28,77 +28,66 @@
 
 namespace Orthanc
 {
-  int64_t BaseDatabaseWrapper::BaseTransaction::IncrementGlobalProperty(GlobalProperty property,
-                                                                        int64_t increment,
-                                                                        bool shared)
+  int64_t BaseTransaction::IncrementGlobalProperty(GlobalProperty property,
+                                                   int64_t increment,
+                                                   bool shared)
   {
     throw OrthancException(ErrorCode_NotImplemented);  // Not supported
   }
 
-
-  void BaseDatabaseWrapper::BaseTransaction::UpdateAndGetStatistics(int64_t& patientsCount,
-                                                                    int64_t& studiesCount,
-                                                                    int64_t& seriesCount,
-                                                                    int64_t& instancesCount,
-                                                                    int64_t& compressedSize,
-                                                                    int64_t& uncompressedSize)
+  void BaseTransaction::UpdateAndGetStatistics(int64_t& patientsCount,
+                                               int64_t& studiesCount,
+                                               int64_t& seriesCount,
+                                               int64_t& instancesCount,
+                                               int64_t& compressedSize,
+                                               int64_t& uncompressedSize)
   {
     throw OrthancException(ErrorCode_NotImplemented);  // Not supported
   }
 
-  void BaseDatabaseWrapper::BaseTransaction::PerformDbHousekeeping()
+  void BaseTransaction::PerformDbHousekeeping()
   {
     throw OrthancException(ErrorCode_NotImplemented);  // Not supported
   }
 
-  void BaseDatabaseWrapper::BaseTransaction::GetChangesExtended(std::list<ServerIndexChange>& target /*out*/,
-                                                                bool& done /*out*/,
-                                                                int64_t since,
-                                                                int64_t to,
-                                                                uint32_t limit,
-                                                                const std::set<ChangeType>& filterType)
+  void BaseTransaction::GetChangesExtended(std::list<ServerIndexChange>& target /*out*/,
+                                           bool& done /*out*/,
+                                           int64_t since,
+                                           int64_t to,
+                                           uint32_t limit,
+                                           const std::set<ChangeType>& filterType)
   {
     throw OrthancException(ErrorCode_NotImplemented);  // Not supported
   }
 
-
-
-  void BaseDatabaseWrapper::BaseTransaction::ExecuteCount(uint64_t& count,
-                                                          const FindRequest& request,
-                                                          const Capabilities& capabilities)
+  void BaseTransaction::ExecuteCount(uint64_t& count,
+                                     const FindRequest& request,
+                                     const IDatabaseWrapper::Capabilities& capabilities)
   {
     throw OrthancException(ErrorCode_NotImplemented);  // Not supported
   }
 
-  void BaseDatabaseWrapper::BaseTransaction::ExecuteFind(FindResponse& response,
-                                                         const FindRequest& request,
-                                                         const Capabilities& capabilities)
+  void BaseTransaction::ExecuteFind(FindResponse& response,
+                                    const FindRequest& request,
+                                    const IDatabaseWrapper::Capabilities& capabilities)
   {
     throw OrthancException(ErrorCode_NotImplemented);  // Not supported
   }
-
-
-  void BaseDatabaseWrapper::BaseTransaction::ExecuteFind(std::list<std::string>& identifiers,
-                                                         const Capabilities& capabilities,
-                                                         const FindRequest& request)
+  
+  void BaseTransaction::ExecuteFind(std::list<std::string>& identifiers,
+                                    const IDatabaseWrapper::Capabilities& capabilities,
+                                    const FindRequest& request)
   {
     Compatibility::GenericFind find(*this, *this);
     find.ExecuteFind(identifiers, capabilities, request);
   }
 
-
-  void BaseDatabaseWrapper::BaseTransaction::ExecuteExpand(FindResponse& response,
-                                                           const Capabilities& capabilities,
-                                                           const FindRequest& request,
-                                                           const std::string& identifier)
+  void BaseTransaction::ExecuteExpand(FindResponse& response,
+                                      const IDatabaseWrapper::Capabilities& capabilities,
+                                      const FindRequest& request,
+                                      const std::string& identifier)
   {
     Compatibility::GenericFind find(*this, *this);
     find.ExecuteExpand(response, capabilities, request, identifier);
-  }
-
-
-  uint64_t BaseDatabaseWrapper::MeasureLatency()
-  {
-    throw OrthancException(ErrorCode_NotImplemented);  // only implemented in V4
   }
 }

@@ -31,57 +31,48 @@ namespace Orthanc
    * This class provides a default "not implemented" implementation
    * for all recent methods (1.12.X)
    **/
-  class BaseDatabaseWrapper : public IDatabaseWrapper
+
+  class BaseTransaction :
+    public IDatabaseWrapper::ITransaction,
+    public IDatabaseWrapper::ICompatibilityTransaction
   {
   public:
-    class BaseTransaction :
-      public IDatabaseWrapper::ITransaction,
-      public IDatabaseWrapper::ICompatibilityTransaction
-    {
-    public:
-      virtual int64_t IncrementGlobalProperty(GlobalProperty property,
-                                              int64_t increment,
-                                              bool shared) ORTHANC_OVERRIDE;
+    virtual int64_t IncrementGlobalProperty(GlobalProperty property,
+                                            int64_t increment,
+                                            bool shared) ORTHANC_OVERRIDE;
 
-      virtual void UpdateAndGetStatistics(int64_t& patientsCount,
-                                          int64_t& studiesCount,
-                                          int64_t& seriesCount,
-                                          int64_t& instancesCount,
-                                          int64_t& compressedSize,
-                                          int64_t& uncompressedSize) ORTHANC_OVERRIDE;
+    virtual void UpdateAndGetStatistics(int64_t& patientsCount,
+                                        int64_t& studiesCount,
+                                        int64_t& seriesCount,
+                                        int64_t& instancesCount,
+                                        int64_t& compressedSize,
+                                        int64_t& uncompressedSize) ORTHANC_OVERRIDE;
 
-      virtual void PerformDbHousekeeping() ORTHANC_OVERRIDE;
+    virtual void PerformDbHousekeeping() ORTHANC_OVERRIDE;
 
-      virtual void ExecuteCount(uint64_t& count,
-                                const FindRequest& request,
-                                const Capabilities& capabilities) ORTHANC_OVERRIDE;
+    virtual void ExecuteCount(uint64_t& count,
+                              const FindRequest& request,
+                              const IDatabaseWrapper::Capabilities& capabilities) ORTHANC_OVERRIDE;
 
-      virtual void ExecuteFind(FindResponse& response,
+    virtual void ExecuteFind(FindResponse& response,
+                             const FindRequest& request,
+                             const IDatabaseWrapper::Capabilities& capabilities) ORTHANC_OVERRIDE;
+
+    virtual void ExecuteFind(std::list<std::string>& identifiers,
+                             const IDatabaseWrapper::Capabilities& capabilities,
+                             const FindRequest& request) ORTHANC_OVERRIDE;
+
+    virtual void ExecuteExpand(FindResponse& response,
+                               const IDatabaseWrapper::Capabilities& capabilities,
                                const FindRequest& request,
-                               const Capabilities& capabilities) ORTHANC_OVERRIDE;
+                               const std::string& identifier) ORTHANC_OVERRIDE;
 
-      virtual void ExecuteFind(std::list<std::string>& identifiers,
-                               const Capabilities& capabilities,
-                               const FindRequest& request) ORTHANC_OVERRIDE;
-
-      virtual void ExecuteExpand(FindResponse& response,
-                                 const Capabilities& capabilities,
-                                 const FindRequest& request,
-                                 const std::string& identifier) ORTHANC_OVERRIDE;
-
-      virtual void GetChangesExtended(std::list<ServerIndexChange>& target /*out*/,
-                                      bool& done /*out*/,
-                                      int64_t since,
-                                      int64_t to,
-                                      uint32_t limit,
-                                      const std::set<ChangeType>& filterType) ORTHANC_OVERRIDE;
-    };
-
-    virtual uint64_t MeasureLatency() ORTHANC_OVERRIDE;
-
-    virtual bool HasIntegratedFind() const ORTHANC_OVERRIDE
-    {
-      return false;
-    }
+    virtual void GetChangesExtended(std::list<ServerIndexChange>& target /*out*/,
+                                    bool& done /*out*/,
+                                    int64_t since,
+                                    int64_t to,
+                                    uint32_t limit,
+                                    const std::set<ChangeType>& filterType) ORTHANC_OVERRIDE;
   };
+
 }

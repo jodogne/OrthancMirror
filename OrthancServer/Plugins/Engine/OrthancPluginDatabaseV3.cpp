@@ -46,8 +46,7 @@
 
 namespace Orthanc
 {
-  class OrthancPluginDatabaseV3::Transaction :
-    public BaseDatabaseWrapper::BaseTransaction
+  class OrthancPluginDatabaseV3::Transaction : public BaseTransaction
   {
   private:
     OrthancPluginDatabaseV3&           that_;
@@ -1255,6 +1254,11 @@ namespace Orthanc
         throw OrthancException(static_cast<ErrorCode>(code));
       }
     }
+  }
+
+  uint64_t OrthancPluginDatabaseV3::MeasureLatency()
+  {
+    throw OrthancException(ErrorCode_NotImplemented);
   }
 
 }
