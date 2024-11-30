@@ -44,7 +44,7 @@
 namespace Orthanc
 {
   class OrthancPluginDatabase::Transaction :
-    public BaseDatabaseWrapper::BaseTransaction,
+    public BaseTransaction,
     public Compatibility::ICreateInstance,
     public Compatibility::IGetChildrenMetadata,
     public Compatibility::ILookupResources,
@@ -1659,5 +1659,10 @@ namespace Orthanc
     {
       LOG(WARNING) << "Received an answer from the database index plugin, but not transaction is active";
     }
+  }
+
+  uint64_t OrthancPluginDatabase::MeasureLatency()
+  {
+    throw OrthancException(ErrorCode_NotImplemented);
   }
 }

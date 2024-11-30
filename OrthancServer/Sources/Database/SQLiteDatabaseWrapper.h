@@ -36,7 +36,7 @@ namespace Orthanc
    * translates low-level requests into SQL statements. Mutual
    * exclusion MUST be implemented at a higher level.
    **/
-  class SQLiteDatabaseWrapper : public BaseDatabaseWrapper
+  class SQLiteDatabaseWrapper : public IDatabaseWrapper
   {
   private:
     class TransactionBase;
@@ -112,7 +112,7 @@ namespace Orthanc
      * "UnitTestsTransaction" give access to additional information
      * about the underlying SQLite database to be used in unit tests.
      **/
-    class UnitTestsTransaction : public BaseDatabaseWrapper::BaseTransaction
+    class UnitTestsTransaction : public BaseTransaction
     {
     protected:
       SQLite::Connection& db_;
