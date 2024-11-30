@@ -446,5 +446,7 @@ namespace Orthanc
     void SetRetrieveOneInstanceMetadataAndAttachments(bool retrieve);
 
     bool IsRetrieveOneInstanceMetadataAndAttachments() const;
+
+    bool HasConstraints() const;
   };
 }

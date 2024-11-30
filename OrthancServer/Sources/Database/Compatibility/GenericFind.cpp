@@ -33,14 +33,6 @@ namespace Orthanc
 {
   namespace Compatibility
   {
-    static bool IsRequestWithoutContraint(const FindRequest& request)
-    {
-      return (request.GetDicomTagConstraints().IsEmpty() &&
-              request.GetMetadataConstraintsCount() == 0 &&
-              request.GetLabels().empty() &&
-              request.GetOrdering().empty());
-    }
-
     static void GetChildren(std::list<int64_t>& target,
                             IDatabaseWrapper::ITransaction& transaction,
                             const std::list<int64_t>& resources)
@@ -129,7 +121,7 @@ namespace Orthanc
         throw OrthancException(ErrorCode_NotImplemented, "The database backend doesn't support ordering");
       }
 
-      if (IsRequestWithoutContraint(request) &&
+      if (!request.HasConstraints() &&
           !request.GetOrthancIdentifiers().HasPatientId() &&
           !request.GetOrthancIdentifiers().HasStudyId() &&
           !request.GetOrthancIdentifiers().HasSeriesId() &&
@@ -161,47 +153,7 @@ namespace Orthanc
           }
         }
       }
-      else if (IsRequestWithoutContraint(request) &&
-               request.GetLevel() == ResourceType_Patient &&
-               request.GetOrthancIdentifiers().HasPatientId() &&
-               !request.GetOrthancIdentifiers().HasStudyId() &&
-               !request.GetOrthancIdentifiers().HasSeriesId() &&
-               !request.GetOrthancIdentifiers().HasInstanceId())
-      {
-        // TODO-FIND: This is a trivial case for which no transaction is needed
-        identifiers.push_back(request.GetOrthancIdentifiers().GetPatientId());
-      }
-      else if (IsRequestWithoutContraint(request) &&
-               request.GetLevel() == ResourceType_Study &&
-               !request.GetOrthancIdentifiers().HasPatientId() &&
-               request.GetOrthancIdentifiers().HasStudyId() &&
-               !request.GetOrthancIdentifiers().HasSeriesId() &&
-               !request.GetOrthancIdentifiers().HasInstanceId())
-      {
-        // TODO-FIND: This is a trivial case for which no transaction is needed
-        identifiers.push_back(request.GetOrthancIdentifiers().GetStudyId());
-      }
-      else if (IsRequestWithoutContraint(request) &&
-               request.GetLevel() == ResourceType_Series &&
-               !request.GetOrthancIdentifiers().HasPatientId() &&
-               !request.GetOrthancIdentifiers().HasStudyId() &&
-               request.GetOrthancIdentifiers().HasSeriesId() &&
-               !request.GetOrthancIdentifiers().HasInstanceId())
-      {
-        // TODO-FIND: This is a trivial case for which no transaction is needed
-        identifiers.push_back(request.GetOrthancIdentifiers().GetSeriesId());
-      }
-      else if (IsRequestWithoutContraint(request) &&
-               request.GetLevel() == ResourceType_Instance &&
-               !request.GetOrthancIdentifiers().HasPatientId() &&
-               !request.GetOrthancIdentifiers().HasStudyId() &&
-               !request.GetOrthancIdentifiers().HasSeriesId() &&
-               request.GetOrthancIdentifiers().HasInstanceId())
-      {
-        // TODO-FIND: This is a trivial case for which no transaction is needed
-        identifiers.push_back(request.GetOrthancIdentifiers().GetInstanceId());
-      }
-      else if (IsRequestWithoutContraint(request) &&
+      else if (!request.HasConstraints() &&
                (request.GetLevel() == ResourceType_Study ||
                 request.GetLevel() == ResourceType_Series ||
                 request.GetLevel() == ResourceType_Instance) &&
@@ -213,7 +165,7 @@ namespace Orthanc
         GetChildrenIdentifiers(identifiers, transaction_, compatibilityTransaction_,
                                request.GetOrthancIdentifiers(), ResourceType_Patient, request.GetLevel());
       }
-      else if (IsRequestWithoutContraint(request) &&
+      else if (!request.HasConstraints() &&
                (request.GetLevel() == ResourceType_Series ||
                 request.GetLevel() == ResourceType_Instance) &&
                !request.GetOrthancIdentifiers().HasPatientId() &&
@@ -224,7 +176,7 @@ namespace Orthanc
         GetChildrenIdentifiers(identifiers, transaction_, compatibilityTransaction_,
                                request.GetOrthancIdentifiers(), ResourceType_Study, request.GetLevel());
       }
-      else if (IsRequestWithoutContraint(request) &&
+      else if (!request.HasConstraints() &&
                request.GetLevel() == ResourceType_Instance &&
                !request.GetOrthancIdentifiers().HasPatientId() &&
                !request.GetOrthancIdentifiers().HasStudyId() &&

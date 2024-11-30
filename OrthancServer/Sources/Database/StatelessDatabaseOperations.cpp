@@ -3281,8 +3281,52 @@ namespace Orthanc
        **/
       std::list<std::string> identifiers;
 
-      FindStage find;
-      find.Apply(*this, identifiers, capabilities, request);
+      if (!request.HasConstraints() &&
+          request.GetLevel() == ResourceType_Patient &&
+          request.GetOrthancIdentifiers().HasPatientId() &&
+          !request.GetOrthancIdentifiers().HasStudyId() &&
+          !request.GetOrthancIdentifiers().HasSeriesId() &&
+          !request.GetOrthancIdentifiers().HasInstanceId())
+      {
+        // This is a trivial case for which no transaction is needed
+        identifiers.push_back(request.GetOrthancIdentifiers().GetPatientId());
+      }
+      else if (!request.HasConstraints() &&
+               request.GetLevel() == ResourceType_Study &&
+               !request.GetOrthancIdentifiers().HasPatientId() &&
+               request.GetOrthancIdentifiers().HasStudyId() &&
+               !request.GetOrthancIdentifiers().HasSeriesId() &&
+               !request.GetOrthancIdentifiers().HasInstanceId())
+      {
+        // This is a trivial case for which no transaction is needed
+        identifiers.push_back(request.GetOrthancIdentifiers().GetStudyId());
+      }
+      else if (!request.HasConstraints() &&
+               request.GetLevel() == ResourceType_Series &&
+               !request.GetOrthancIdentifiers().HasPatientId() &&
+               !request.GetOrthancIdentifiers().HasStudyId() &&
+               request.GetOrthancIdentifiers().HasSeriesId() &&
+               !request.GetOrthancIdentifiers().HasInstanceId())
+      {
+        // This is a trivial case for which no transaction is needed
+        identifiers.push_back(request.GetOrthancIdentifiers().GetSeriesId());
+      }
+      else if (!request.HasConstraints() &&
+               request.GetLevel() == ResourceType_Instance &&
+               !request.GetOrthancIdentifiers().HasPatientId() &&
+               !request.GetOrthancIdentifiers().HasStudyId() &&
+               !request.GetOrthancIdentifiers().HasSeriesId() &&
+               request.GetOrthancIdentifiers().HasInstanceId())
+      {
+        // This is a trivial case for which no transaction is needed
+        identifiers.push_back(request.GetOrthancIdentifiers().GetInstanceId());
+      }
+      else
+      {
+        // Non-trival case, a transaction is needed
+        FindStage find;
+        find.Apply(*this, identifiers, capabilities, request);
+      }
 
       ExpandStage expand;
 
