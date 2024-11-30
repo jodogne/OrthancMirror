@@ -1303,56 +1303,50 @@ namespace Orthanc
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
 
+    FindRequest request(expectedType);
+    request.SetOrthancId(expectedType, publicId);
+    request.SetRetrieveMainDicomTags(true);
 
-    class Operations : public ReadOnlyOperationsT5<bool&, DicomMap&, const std::string&, ResourceType, ResourceType>
+    FindResponse response;
+    ExecuteFind(response, request);
+
+    if (response.GetSize() == 0)
     {
-    public:
-      virtual void ApplyTuple(ReadOnlyTransaction& transaction,
-                              const Tuple& tuple) ORTHANC_OVERRIDE
+      return false;
+    }
+    else if (response.GetSize() > 1)
+    {
+      throw OrthancException(ErrorCode_DatabasePlugin);
+    }
+    else
+    {
+      result.Clear();
+      if (expectedType == ResourceType_Study)
       {
-        // Lookup for the requested resource
-        int64_t id;
-        ResourceType type;
-        if (!transaction.LookupResource(id, type, tuple.get<2>()) ||
-            type != tuple.get<3>())
+        DicomMap tmp;
+        response.GetResourceByIndex(0).GetMainDicomTags(tmp, expectedType);
+
+        switch (levelOfInterest)
         {
-          tuple.get<0>() = false;
+          case ResourceType_Study:
+            tmp.ExtractStudyInformation(result);
+            break;
+
+          case ResourceType_Patient:
+            tmp.ExtractPatientInformation(result);
+            break;
+
+          default:
+            throw OrthancException(ErrorCode_InternalError);
         }
-        else if (type == ResourceType_Study)
-        {
-          DicomMap tmp;
-          transaction.GetMainDicomTags(tmp, id);
-
-          switch (tuple.get<4>())
-          {
-            case ResourceType_Patient:
-              tmp.ExtractPatientInformation(tuple.get<1>());
-              tuple.get<0>() = true;
-              break;
-
-            case ResourceType_Study:
-              tmp.ExtractStudyInformation(tuple.get<1>());
-              tuple.get<0>() = true;
-              break;
-
-            default:
-              throw OrthancException(ErrorCode_InternalError);
-          }
-        }
-        else
-        {
-          transaction.GetMainDicomTags(tuple.get<1>(), id);
-          tuple.get<0>() = true;
-        }    
       }
-    };
-
-    result.Clear();
-
-    bool found;
-    Operations operations;
-    operations.Apply(*this, found, result, publicId, expectedType, levelOfInterest);
-    return found;
+      else
+      {
+        assert(expectedType == levelOfInterest);
+        response.GetResourceByIndex(0).GetMainDicomTags(result, expectedType);
+      }
+      return true;
+    }
   }
 
 
