@@ -2767,12 +2767,13 @@ namespace Orthanc
 
   static bool ExtractSharedTags(Json::Value& shared,
                                 ServerContext& context,
-                                const std::string& publicId)
+                                const std::string& publicId,
+                                ResourceType level)
   {
     // Retrieve all the instances of this patient/study/series
     typedef std::list<std::string> Instances;
     Instances instances;
-    context.GetIndex().GetChildInstances(instances, publicId);  // (*)
+    context.GetIndex().GetChildInstances(instances, publicId, level);  // (*)
 
     // Loop over the instances
     bool isFirst = true;
@@ -2864,7 +2865,7 @@ namespace Orthanc
     std::string publicId = call.GetUriComponent("id", "");
 
     Json::Value sharedTags;
-    if (ExtractSharedTags(sharedTags, context, publicId))
+    if (ExtractSharedTags(sharedTags, context, publicId, level))
     {
       // Success: Send the value of the shared tags
       AnswerDicomAsJson(call, sharedTags, OrthancRestApi::GetDicomFormat(call, DicomToJsonFormat_Full));
@@ -2939,7 +2940,7 @@ namespace Orthanc
       // Retrieve all the instances of this patient/study/series
       typedef std::list<std::string> Instances;
       Instances instances;
-      context.GetIndex().GetChildInstances(instances, publicId);
+      context.GetIndex().GetChildInstances(instances, publicId, resourceType);
 
       if (instances.empty())
       {
@@ -3578,7 +3579,7 @@ namespace Orthanc
     typedef std::list<std::string> Instances;
     Instances instances;
 
-    context.GetIndex().GetChildInstances(instances, publicId);  // (*)
+    context.GetIndex().GetChildInstances(instances, publicId, level);  // (*)
 
     Json::Value result = Json::objectValue;
 
@@ -3784,7 +3785,7 @@ namespace Orthanc
            study = studies.begin(); study != studies.end(); ++study)
     {
       std::list<std::string> instances;
-      index.GetChildInstances(instances, *study);
+      index.GetChildInstances(instances, *study, ResourceType_Study);
 
       for (std::list<std::string>::const_iterator 
              instance = instances.begin(); instance != instances.end(); ++instance)

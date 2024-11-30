@@ -931,65 +931,43 @@ namespace Orthanc
 
 
   void StatelessDatabaseOperations::GetChildInstances(std::list<std::string>& result,
+                                                      const std::string& publicId,
+                                                      ResourceType level)
+  {
+    result.clear();
+    if (level == ResourceType_Instance)
+    {
+      result.push_back(publicId);
+    }
+    else
+    {
+      FindRequest request(level);
+      request.SetOrthancId(level, publicId);
+      request.GetChildrenSpecification(ResourceType_Instance).SetRetrieveIdentifiers(true);
+
+      FindResponse response;
+      const std::set<std::string>& instances = ExecuteSingleResource(response, request).GetChildrenIdentifiers(ResourceType_Instance);
+
+      for (std::set<std::string>::const_iterator it = instances.begin(); it != instances.end(); ++it)
+      {
+        result.push_back(*it);
+      }
+    }
+  }
+
+
+  void StatelessDatabaseOperations::GetChildInstances(std::list<std::string>& result,
                                                       const std::string& publicId)
   {
-    // TODO-FIND
-
-    class Operations : public ReadOnlyOperationsT2<std::list<std::string>&, const std::string&>
+    ResourceType level;
+    if (LookupResourceType(level, publicId))
     {
-    public:
-      virtual void ApplyTuple(ReadOnlyTransaction& transaction,
-                              const Tuple& tuple) ORTHANC_OVERRIDE
-      {
-        tuple.get<0>().clear();
-        
-        ResourceType type;
-        int64_t top;
-        if (!transaction.LookupResource(top, type, tuple.get<1>()))
-        {
-          throw OrthancException(ErrorCode_UnknownResource);
-        }
-        else if (type == ResourceType_Instance)
-        {
-          // The resource is already an instance: Do not go down the hierarchy
-          tuple.get<0>().push_back(tuple.get<1>());
-        }
-        else
-        {
-          std::stack<int64_t> toExplore;
-          toExplore.push(top);
-
-          std::list<int64_t> tmp;
-          while (!toExplore.empty())
-          {
-            // Get the internal ID of the current resource
-            int64_t resource = toExplore.top();
-            toExplore.pop();
-
-            // TODO - This could be optimized by seeing how many
-            // levels "type == transaction.GetResourceType(top)" is
-            // above the "instances level"
-            if (transaction.GetResourceType(resource) == ResourceType_Instance)
-            {
-              tuple.get<0>().push_back(transaction.GetPublicId(resource));
-            }
-            else
-            {
-              // Tag all the children of this resource as to be explored
-              transaction.GetChildrenInternalId(tmp, resource);
-              for (std::list<int64_t>::const_iterator 
-                     it = tmp.begin(); it != tmp.end(); ++it)
-              {
-                toExplore.push(*it);
-              }
-            }
-          }
-        }
-      }
-    };
-    
-    Operations operations;
-    operations.Apply(*this, result, publicId);
+      GetChildInstances(result, publicId, level);
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_UnknownResource);
+    }
   }
 
 
