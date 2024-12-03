@@ -1670,9 +1670,9 @@ namespace Orthanc
             target->SetParentIdentifier(source.parent_public_id());
           }
 
-          for (int i = 0; i < source.labels().size(); i++)
+          for (int j = 0; j < source.labels().size(); j++)
           {
-            target->AddLabel(source.labels(i));
+            target->AddLabel(source.labels(j));
           }
 
           if (source.attachments().size() != source.attachments_revisions().size())
@@ -1680,9 +1680,9 @@ namespace Orthanc
             throw OrthancException(ErrorCode_DatabasePlugin);
           }
 
-          for (int i = 0; i < source.attachments().size(); i++)
+          for (int j = 0; j < source.attachments().size(); j++)
           {
-            target->AddAttachment(Convert(source.attachments(i)), source.attachments_revisions(i));
+            target->AddAttachment(Convert(source.attachments(j)), source.attachments_revisions(j));
           }
 
           Convert(*target, ResourceType_Patient, source.patient_content());
@@ -1727,12 +1727,12 @@ namespace Orthanc
               request.IsRetrieveOneInstanceMetadataAndAttachments())
           {
             std::map<MetadataType, std::string> metadata;
-            for (int i = 0; i < source.one_instance_metadata().size(); i++)
+            for (int j = 0; j < source.one_instance_metadata().size(); j++)
             {
-              MetadataType key = static_cast<MetadataType>(source.one_instance_metadata(i).key());
+              MetadataType key = static_cast<MetadataType>(source.one_instance_metadata(j).key());
               if (metadata.find(key) == metadata.end())
               {
-                metadata[key] = source.one_instance_metadata(i).value();
+                metadata[key] = source.one_instance_metadata(j).value();
               }
               else
               {
@@ -1742,9 +1742,9 @@ namespace Orthanc
 
             std::map<FileContentType, FileInfo> attachments;
 
-            for (int i = 0; i < source.one_instance_attachments().size(); i++)
+            for (int j = 0; j < source.one_instance_attachments().size(); j++)
             {
-              FileInfo info(Convert(source.one_instance_attachments(i)));
+              FileInfo info(Convert(source.one_instance_attachments(j)));
               if (attachments.find(info.GetContentType()) == attachments.end())
               {
                 attachments[info.GetContentType()] = info;
