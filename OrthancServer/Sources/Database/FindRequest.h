@@ -448,5 +448,7 @@ namespace Orthanc
     bool IsRetrieveOneInstanceMetadataAndAttachments() const;
 
     bool HasConstraints() const;
+
+    bool IsTrivialFind(std::string& publicId /* out */) const;
   };
 }
