@@ -141,7 +141,7 @@ namespace Orthanc
       {
       }
 
-      MetadataContent(const std::string& value) :
+      explicit MetadataContent(const std::string& value) :
         value_(value),
         revision_(0)
       {

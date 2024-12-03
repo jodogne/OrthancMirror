@@ -137,7 +137,7 @@ namespace Orthanc
     ResponseContentFlags_Labels               = (1 << 11),
     ResponseContentFlags_IsStable             = (1 << 12),
 
-    ResponseContentFlags_INTERNAL_CountResources = (1 << 31),
+    ResponseContentFlags_INTERNAL_CountResources = (1 << 30),
     
     // Some predefined combinations
     ResponseContentFlags_ExpandTrue  = (ResponseContentFlags_ID |
