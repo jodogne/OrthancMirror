@@ -116,7 +116,7 @@ namespace Orthanc
       std::set<std::string> sopClassesToPropose;
       std::set<std::string> sopClassesInStudy;
       std::set<std::string> acceptedSopClasses;
-      std::set<DicomTransferSyntax> storageAcceptedTransferSyntaxes;
+      std::list<DicomTransferSyntax> proposedTransferSyntaxes;
 
       if (findAnswer.HasTag(DICOM_TAG_SOP_CLASSES_IN_STUDY) &&
           findAnswer.LookupStringValues(sopClassesInStudy, DICOM_TAG_SOP_CLASSES_IN_STUDY, false))
@@ -138,12 +138,12 @@ namespace Orthanc
         throw OrthancException(ErrorCode_NoPresentationContext, "Cannot perform C-Get, no SOPClassUID have been accepted by Orthanc.");        
       }
 
-      context_.GetAcceptedTransferSyntaxes(storageAcceptedTransferSyntaxes);
+      context_.GetProposedStorageTransferSyntaxes(proposedTransferSyntaxes);
 
       connection_.reset(new DicomControlUserConnection(parameters_, 
                                                        ScuOperationFlags_Get, 
                                                        sopClassesToPropose,
-                                                       storageAcceptedTransferSyntaxes));
+                                                       proposedTransferSyntaxes));
     }
     
     connection_->Get(findAnswer, InstanceReceivedHandler, &context_);

@@ -597,6 +597,8 @@ namespace Orthanc
 
     void SetAcceptedTransferSyntaxes(const std::set<DicomTransferSyntax>& syntaxes);
 
+    void GetProposedStorageTransferSyntaxes(std::list<DicomTransferSyntax>& syntaxes) const;
+
     void SetAcceptedSopClasses(const std::list<std::string>& acceptedSopClasses,
                                const std::set<std::string>& rejectedSopClasses);
 

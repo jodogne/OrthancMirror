@@ -494,6 +494,13 @@ public:
     context_.GetAcceptedTransferSyntaxes(target);
   }
 
+  virtual void GetProposedStorageTransferSyntaxes(std::list<DicomTransferSyntax>& target,
+                                                  const std::string& remoteIp,
+                                                  const std::string& remoteAet,
+                                                  const std::string& calledAet) ORTHANC_OVERRIDE
+  {
+    context_.GetProposedStorageTransferSyntaxes(target);
+  }
   
   virtual bool IsUnknownSopClassAccepted(const std::string& remoteIp,
                                          const std::string& remoteAet,

@@ -79,13 +79,7 @@ namespace Orthanc
           params.SetTimeout(timeout_);
         }
         
-        std::set<std::string> acceptedStorageClasses;
-        std::set<DicomTransferSyntax> acceptedTransferSyntaxes;
-        
-        context_.GetAcceptedSopClasses(acceptedStorageClasses, 120); // limit to 120 SOP Classes since there are 128 presentation contexts available.
-        context_.GetAcceptedTransferSyntaxes(acceptedTransferSyntaxes);
-
-        DicomControlUserConnection connection(params, static_cast<ScuOperationFlags>(ScuOperationFlags_Find | ScuOperationFlags_Move | ScuOperationFlags_Get), acceptedStorageClasses, acceptedTransferSyntaxes);
+        DicomControlUserConnection connection(params, static_cast<ScuOperationFlags>(ScuOperationFlags_Find));
         connection.Find(answers_, level_, fixed, findNormalized_);
       }
 
