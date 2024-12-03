@@ -33,6 +33,8 @@ Maintenance
   - When opening a DICOM SCU connection, Orthanc now only proposes the contexts that it is
     going to use in the connection and not all contexts as in previous versions.  E.g, when
     performing a C-ECHO, Orthanc will not propose C-MOVE or C-FIND.
+* DICOM Get-SCP: Orthanc won't refuse anymore to send e.g. a LittleEndianExplicit file when
+  the accepted transfer syntax is a compressed one.
 * Introduced a new thread to update the statistics at regular interval for the
   DB plugins that are implementing the UpdateAndGetStatistics function (currently only
   PostgreSQL).  This avoids very long update times in case you don't call /statistics

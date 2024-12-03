@@ -44,6 +44,7 @@
 #include <stdint.h>   // For uint8_t
 #include <boost/noncopyable.hpp>
 #include <set>
+#include <list>
 
 namespace Orthanc
 {
@@ -58,7 +59,7 @@ namespace Orthanc
     struct ProposedPresentationContext
     {
       std::string                    abstractSyntax_;
-      std::set<DicomTransferSyntax>  transferSyntaxes_;
+      std::list<DicomTransferSyntax> transferSyntaxes_;
       DicomAssociationRole           role_;
     };
 
@@ -121,11 +122,11 @@ namespace Orthanc
 
     void ProposePresentationContext(
       const std::string& abstractSyntax,
-      const std::set<DicomTransferSyntax>& transferSyntaxes);
+      const std::list<DicomTransferSyntax>& transferSyntaxes);
 
     void ProposePresentationContext(
       const std::string& abstractSyntax,
-      const std::set<DicomTransferSyntax>& transferSyntaxes,
+      const std::list<DicomTransferSyntax>& transferSyntaxes,
       DicomAssociationRole role);
 
     T_ASC_Association& GetDcmtkAssociation() const;

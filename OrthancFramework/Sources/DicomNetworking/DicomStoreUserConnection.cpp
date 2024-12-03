@@ -57,7 +57,7 @@ namespace Orthanc
                                                      bool hasPreferred,
                                                      DicomTransferSyntax preferred)
   {
-    typedef std::list< std::set<DicomTransferSyntax> >  GroupsOfSyntaxes;
+    typedef std::list< std::list<DicomTransferSyntax> >  GroupsOfSyntaxes;
 
     GroupsOfSyntaxes  groups;
 
@@ -65,8 +65,8 @@ namespace Orthanc
     for (std::set<DicomTransferSyntax>::const_iterator
            it = sourceSyntaxes.begin(); it != sourceSyntaxes.end(); ++it)
     {
-      std::set<DicomTransferSyntax> group;
-      group.insert(*it);
+      std::list<DicomTransferSyntax> group;
+      group.push_back(*it);
       groups.push_back(group);
     }
 
@@ -74,8 +74,8 @@ namespace Orthanc
     if (hasPreferred &&
         sourceSyntaxes.find(preferred) == sourceSyntaxes.end())
     {
-      std::set<DicomTransferSyntax> group;
-      group.insert(preferred);
+      std::list<DicomTransferSyntax> group;
+      group.push_back(preferred);
       groups.push_back(group);
     }
 
@@ -89,7 +89,7 @@ namespace Orthanc
         DicomTransferSyntax_BigEndianExplicit
       };
 
-      std::set<DicomTransferSyntax> group;
+      std::list<DicomTransferSyntax> group;
 
       for (size_t i = 0; i < N; i++)
       {
@@ -97,7 +97,7 @@ namespace Orthanc
         if (sourceSyntaxes.find(syntax) == sourceSyntaxes.end() &&
             (!hasPreferred || preferred != syntax))
         {
-          group.insert(syntax);
+          group.push_back(syntax);
         }
       }
 

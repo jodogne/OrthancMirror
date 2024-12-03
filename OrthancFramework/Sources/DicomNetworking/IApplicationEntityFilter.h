@@ -28,6 +28,7 @@
 
 #include <boost/noncopyable.hpp>
 #include <string>
+#include <list>
 
 namespace Orthanc
 {
@@ -47,11 +48,18 @@ namespace Orthanc
                                   const std::string& calledAet,
                                   DicomRequestType type) = 0;
 
+    // Get the set of TransferSyntaxes that are accepted when negotiation a C-Store association, acting as SCP when it has been initiated by the C-Store SCU.
     virtual void GetAcceptedTransferSyntaxes(std::set<DicomTransferSyntax>& target,
                                              const std::string& remoteIp,
                                              const std::string& remoteAet,
                                              const std::string& calledAet) = 0;
-    
+
+    // Get the list of TransferSyntaxes that are proposed when initiating a C-Store SCP which actually only happens in a C-Get SCU
+    virtual void GetProposedStorageTransferSyntaxes(std::list<DicomTransferSyntax>& target,
+                                                    const std::string& remoteIp,
+                                                    const std::string& remoteAet,
+                                                    const std::string& calledAet) = 0;
+
     virtual bool IsUnknownSopClassAccepted(const std::string& remoteIp,
                                            const std::string& remoteAet,
                                            const std::string& calledAet) = 0;

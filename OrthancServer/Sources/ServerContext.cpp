@@ -2241,6 +2241,24 @@ namespace Orthanc
   }
 
 
+  void ServerContext::GetProposedStorageTransferSyntaxes(std::list<DicomTransferSyntax>& syntaxes) const
+  {
+    boost::mutex::scoped_lock lock(dynamicOptionsMutex_);
+    
+    // // TODO: investigate: actually, neither Orthanc 1.12.4 nor DCM4CHEE will accept to send a LittleEndianExplicit file
+    // //                    while e.g., Jpeg-LS has been presented (and accepted) as the preferred TS for the C-Store SCP.
+    // // if we have defined IngestTranscoding, let's propose this TS first to avoid any unnecessary transcoding
+    // if (isIngestTranscoding_)
+    // {
+    //   syntaxes.push_back(ingestTransferSyntax_);
+    // }
+    
+    // then, propose the default ones
+    syntaxes.push_back(DicomTransferSyntax_LittleEndianExplicit);
+    syntaxes.push_back(DicomTransferSyntax_LittleEndianImplicit);
+  }
+  
+
   bool ServerContext::IsUnknownSopClassAccepted() const
   {
     boost::mutex::scoped_lock lock(dynamicOptionsMutex_);

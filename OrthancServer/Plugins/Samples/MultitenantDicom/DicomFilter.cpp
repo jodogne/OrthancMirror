@@ -201,6 +201,18 @@ void DicomFilter::GetAcceptedTransferSyntaxes(std::set<Orthanc::DicomTransferSyn
 }
 
 
+void DicomFilter::GetProposedStorageTransferSyntaxes(std::list<Orthanc::DicomTransferSyntax>& target,
+                                                     const std::string& remoteIp,
+                                                     const std::string& remoteAet,
+                                                     const std::string& calledAet)
+{
+  // default TS
+  target.push_back(Orthanc::DicomTransferSyntax_LittleEndianExplicit);
+  target.push_back(Orthanc::DicomTransferSyntax_LittleEndianImplicit);
+  target.push_back(Orthanc::DicomTransferSyntax_BigEndianExplicit);
+}
+
+
 bool DicomFilter::IsUnknownSopClassAccepted(const std::string& remoteIp,
                                             const std::string& remoteAet,
                                             const std::string& calledAet)

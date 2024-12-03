@@ -237,7 +237,7 @@ namespace Orthanc
   void DicomControlUserConnection::SetupPresentationContexts(
     ScuOperationFlags scuOperation,
     const std::set<std::string>& acceptedStorageSopClasses,
-    const std::set<DicomTransferSyntax>& acceptedTransferSyntaxes)
+    const std::list<DicomTransferSyntax>& proposedStorageTransferSyntaxes)
   {
     assert(association_.get() != NULL);
 
@@ -283,7 +283,7 @@ namespace Orthanc
 
       for (std::set<std::string>::const_iterator it = acceptedStorageSopClasses.begin(); it != acceptedStorageSopClasses.end(); ++it)
       {
-        association_->ProposePresentationContext(*it, acceptedTransferSyntaxes, DicomAssociationRole_Scp);
+        association_->ProposePresentationContext(*it, proposedStorageTransferSyntaxes, DicomAssociationRole_Scp);
       }
     }
   }
@@ -708,7 +708,7 @@ namespace Orthanc
   {
     assert((scuOperation & ScuOperationFlags_Get) == 0);  // you must provide acceptedStorageSopClassUids for Get SCU
     std::set<std::string> emptyStorageSopClasses;
-    std::set<DicomTransferSyntax> emptyStorageTransferSyntaxes;
+    std::list<DicomTransferSyntax> emptyStorageTransferSyntaxes;
 
     SetupPresentationContexts(scuOperation, emptyStorageSopClasses, emptyStorageTransferSyntaxes);
   }
@@ -716,11 +716,11 @@ namespace Orthanc
   DicomControlUserConnection::DicomControlUserConnection(const DicomAssociationParameters& params, 
                                                          ScuOperationFlags scuOperation,
                                                          const std::set<std::string>& acceptedStorageSopClasses,
-                                                         const std::set<DicomTransferSyntax>& acceptedTransferSyntaxes) :
+                                                         const std::list<DicomTransferSyntax>& proposedStorageTransferSyntaxes) :
     parameters_(params),
     association_(new DicomAssociation)
   {
-    SetupPresentationContexts(scuOperation, acceptedStorageSopClasses, acceptedTransferSyntaxes);
+    SetupPresentationContexts(scuOperation, acceptedStorageSopClasses, proposedStorageTransferSyntaxes);
   }
     
 

@@ -69,7 +69,7 @@ namespace Orthanc
 
     void SetupPresentationContexts(ScuOperationFlags scuOperation,
                                    const std::set<std::string>& acceptedStorageSopClasses,
-                                   const std::set<DicomTransferSyntax>& acceptedTransferSyntaxes); // TODO-GET: in order of preference ?
+                                   const std::list<DicomTransferSyntax>& proposedStorageTransferSyntaxes);
 
     void FindInternal(DicomFindAnswers& answers,
                       DcmDataset* dataset,
@@ -88,7 +88,7 @@ namespace Orthanc
     explicit DicomControlUserConnection(const DicomAssociationParameters& params, 
                                         ScuOperationFlags scuOperation,
                                         const std::set<std::string>& acceptedStorageSopClasses,
-                                        const std::set<DicomTransferSyntax>& acceptedTransferSyntaxes); // TODO-GET: in order of preference ?
+                                        const std::list<DicomTransferSyntax>& proposedStorageTransferSyntaxes);
 
     const DicomAssociationParameters& GetParameters() const
     {
