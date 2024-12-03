@@ -165,6 +165,7 @@ namespace Orthanc
      * 2. Select the preferred transfer syntaxes, which corresponds to
      * the source transfer syntax, plus all the uncompressed transfer
      * syntaxes if transcoding is enabled.
+     * This way, we minimize the transcoding on our side.
      **/
     
     std::list<DicomTransferSyntax> preferred;
@@ -208,7 +209,16 @@ namespace Orthanc
       }
     }
 
-    // No preferred syntax was accepted
+    // No preferred syntax was accepted but, if a PC has been accepted, it means that we have accepted a TS.
+    // This maybe means that we need to transcode twice on our side (from a compressed format to another compressed format).
+    if (allowTranscoding && accepted.size() >  0)
+    {
+      Accepted::const_iterator it = accepted.begin();
+      selectedPresentationId = it->second;
+      selectedSyntax = it->first;
+      return true;
+    }
+
     return false;
   }                                                           
 
