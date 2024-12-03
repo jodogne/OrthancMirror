@@ -290,4 +290,53 @@ namespace Orthanc
             !GetLabels().empty() ||
             !GetOrdering().empty());
   }
+
+
+  bool FindRequest::IsTrivialFind(std::string& publicId /* out */) const
+  {
+    if (HasConstraints())
+    {
+      return false;
+    }
+    else if (GetLevel() == ResourceType_Patient &&
+             GetOrthancIdentifiers().HasPatientId() &&
+             !GetOrthancIdentifiers().HasStudyId() &&
+             !GetOrthancIdentifiers().HasSeriesId() &&
+             !GetOrthancIdentifiers().HasInstanceId())
+    {
+      publicId = GetOrthancIdentifiers().GetPatientId();
+      return true;
+    }
+    else if (GetLevel() == ResourceType_Study &&
+             !GetOrthancIdentifiers().HasPatientId() &&
+             GetOrthancIdentifiers().HasStudyId() &&
+             !GetOrthancIdentifiers().HasSeriesId() &&
+             !GetOrthancIdentifiers().HasInstanceId())
+    {
+      publicId = GetOrthancIdentifiers().GetStudyId();
+      return true;
+    }
+    else if (GetLevel() == ResourceType_Series &&
+             !GetOrthancIdentifiers().HasPatientId() &&
+             !GetOrthancIdentifiers().HasStudyId() &&
+             GetOrthancIdentifiers().HasSeriesId() &&
+             !GetOrthancIdentifiers().HasInstanceId())
+    {
+      publicId = GetOrthancIdentifiers().GetSeriesId();
+      return true;
+    }
+    else if (GetLevel() == ResourceType_Instance &&
+             !GetOrthancIdentifiers().HasPatientId() &&
+             !GetOrthancIdentifiers().HasStudyId() &&
+             !GetOrthancIdentifiers().HasSeriesId() &&
+             GetOrthancIdentifiers().HasInstanceId())
+    {
+      publicId = GetOrthancIdentifiers().GetInstanceId();
+      return true;
+    }
+    else
+    {
+      return false;
+    }
+  }
 }
