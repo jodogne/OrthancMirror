@@ -38,6 +38,8 @@
 
 #include <boost/date_time/posix_time/posix_time.hpp>
 
+#include "../../OrthancFramework/Sources/FileStorage/StorageAccessor.h"
+
 namespace Orthanc
 {
   class DicomInstanceToStore;
@@ -356,9 +358,7 @@ namespace Orthanc
                                   bool isReconstruct = false);
 
     void AnswerAttachment(RestApiOutput& output,
-                          ResourceType level,
-                          const std::string& resourceId,
-                          FileContentType content);
+                          const FileInfo& fileInfo);
 
     void ChangeAttachmentCompression(ResourceType level,
                                      const std::string& resourceId,
@@ -393,13 +393,14 @@ namespace Orthanc
 
     // This method is for low-level operations on "/instances/.../attachments/..."
     void ReadAttachment(std::string& result,
-                        int64_t& revision,
-                        std::string& attachmentId,
-                        ResourceType level,
-                        const std::string& instancePublicId,
-                        FileContentType content,
+                        const FileInfo& attachment,
                         bool uncompressIfNeeded,
                         bool skipCache = false);
+
+    void ReadAttachmentRange(std::string& result,
+                             const FileInfo& attachment,
+                             const StorageAccessor::Range& range,
+                             bool uncompressIfNeeded);
 
     void SetStoreMD5ForAttachments(bool storeMD5);
 
