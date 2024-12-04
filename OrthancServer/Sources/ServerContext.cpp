@@ -958,20 +958,10 @@ namespace Orthanc
 
   
   void ServerContext::AnswerAttachment(RestApiOutput& output,
-                                       const std::string& resourceId,
-                                       FileContentType content)
+                                       const FileInfo& attachment)
   {
-    FileInfo attachment;
-    int64_t revision;
-    if (!index_.LookupAttachment(attachment, revision, resourceId, content))
-    {
-      throw OrthancException(ErrorCode_UnknownResource);
-    }
-    else
-    {
-      StorageAccessor accessor(area_, storageCache_, GetMetricsRegistry());
-      accessor.AnswerFile(output, attachment, GetFileContentMime(content));
-    }
+    StorageAccessor accessor(area_, storageCache_, GetMetricsRegistry());
+    accessor.AnswerFile(output, attachment, GetFileContentMime(attachment.GetContentType()));
   }
 
 
@@ -1212,8 +1202,20 @@ namespace Orthanc
                                 std::string& attachmentId,
                                 const std::string& instancePublicId)
   {
+    FileInfo attachment;
     int64_t revision;
-    ReadAttachment(dicom, revision, attachmentId, instancePublicId, FileContentType_Dicom, true /* uncompress */);
+
+    if (!index_.LookupAttachment(attachment, revision, instancePublicId, FileContentType_Dicom))
+    {
+      throw OrthancException(ErrorCode_InternalError,
+                             "Unable to read attachment " + EnumerationToString(FileContentType_Dicom) +
+                             " of instance " + instancePublicId);
+    }
+
+    assert(attachment.GetContentType() == FileContentType_Dicom);
+    attachmentId = attachment.GetUuid();
+
+    ReadAttachment(dicom, attachment, true /* uncompress */);
   }
 
 
@@ -1288,47 +1290,40 @@ namespace Orthanc
   
 
   void ServerContext::ReadAttachment(std::string& result,
-                                     int64_t& revision,
-                                     std::string& attachmentId,
-                                     const std::string& instancePublicId,
-                                     FileContentType content,
+                                     const FileInfo& attachment,
                                      bool uncompressIfNeeded,
                                      bool skipCache)
   {
-    FileInfo attachment;
-    if (!index_.LookupAttachment(attachment, revision, instancePublicId, content))
-    {
-      throw OrthancException(ErrorCode_InternalError,
-                             "Unable to read attachment " + EnumerationToString(content) +
-                             " of instance " + instancePublicId);
-    }
-
-    assert(attachment.GetContentType() == content);
-    attachmentId = attachment.GetUuid();
-    
-    {
-      std::unique_ptr<StorageAccessor> accessor;
+    std::unique_ptr<StorageAccessor> accessor;
       
-      if (skipCache)
-      {
-        accessor.reset(new StorageAccessor(area_, GetMetricsRegistry()));
-      }
-      else
-      {
-        accessor.reset(new StorageAccessor(area_, storageCache_, GetMetricsRegistry()));
-      }
-
-      if (uncompressIfNeeded)
-      {
-        accessor->Read(result, attachment);
-      }
-      else
-      {
-        // Do not uncompress the content of the storage area, return the
-        // raw data
-        accessor->ReadRaw(result, attachment);
-      }
+    if (skipCache)
+    {
+      accessor.reset(new StorageAccessor(area_, GetMetricsRegistry()));
     }
+    else
+    {
+      accessor.reset(new StorageAccessor(area_, storageCache_, GetMetricsRegistry()));
+    }
+
+    if (uncompressIfNeeded)
+    {
+      accessor->Read(result, attachment);
+    }
+    else
+    {
+      // Do not uncompress the content of the storage area, return the
+      // raw data
+      accessor->ReadRaw(result, attachment);
+    }
+  }
+
+  void ServerContext::ReadAttachmentRange(std::string &result,
+                                          const FileInfo &attachment,
+                                          const StorageAccessor::Range &range,
+                                          bool uncompressIfNeeded)
+  {
+    StorageAccessor accessor(area_, storageCache_, GetMetricsRegistry());
+    accessor.ReadRange(result, attachment, range, uncompressIfNeeded);
   }
 
 
