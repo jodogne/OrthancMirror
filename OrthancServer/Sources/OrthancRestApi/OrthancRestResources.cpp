@@ -50,6 +50,8 @@
 #include <boost/math/special_functions/round.hpp>
 #include <boost/shared_ptr.hpp>
 
+#include "../../../OrthancFramework/Sources/FileStorage/StorageAccessor.h"
+
 /**
  * This semaphore is used to limit the number of concurrent HTTP
  * requests on CPU-intensive routes of the REST API, in order to
@@ -406,7 +408,16 @@ namespace Orthanc
     else
     {
       // return the attachment without any transcoding
-      context.AnswerAttachment(call.GetOutput(), ResourceType_Instance, publicId, FileContentType_Dicom);
+      FileInfo info;
+      int64_t revision;
+      if (!context.GetIndex().LookupAttachment(info, revision, ResourceType_Instance, publicId, FileContentType_Dicom))
+      {
+        throw OrthancException(ErrorCode_UnknownResource);
+      }
+      else
+      {
+        context.AnswerAttachment(call.GetOutput(), info);
+      }
     }
   }
 
@@ -2187,15 +2198,14 @@ namespace Orthanc
   }
 
   
-  static bool GetAttachmentInfo(FileInfo& info,
+  static bool GetAttachmentInfo(FileInfo& info /* out */,
+                                int64_t& revision /* out */,
                                 ResourceType level,
                                 RestApiGetCall& call)
   {
     const std::string publicId = call.GetUriComponent("id", "");
-    const std::string name = call.GetUriComponent("name", "");
-    FileContentType contentType = StringToContentType(name);
+    FileContentType contentType = StringToContentType(call.GetUriComponent("name", ""));
 
-    int64_t revision;
     if (OrthancRestApi::GetIndex(call).LookupAttachment(info, revision, level, publicId, contentType))
     {
       SetAttachmentETag(call.GetOutput(), revision, info);  // New in Orthanc 1.9.2
@@ -2239,7 +2249,8 @@ namespace Orthanc
     }
 
     FileInfo info;
-    if (GetAttachmentInfo(info, level, call))
+    int64_t revision;
+    if (GetAttachmentInfo(info, revision, level, call))
     {
       Json::Value operations = Json::arrayValue;
 
@@ -2292,44 +2303,62 @@ namespace Orthanc
         .SetUriArgument("name", "The name of the attachment, or its index (cf. `UserContentType` configuration option)")
         .AddAnswerType(MimeType_Binary, "The attachment")
         .SetAnswerHeader("ETag", "Revision of the attachment, to be used in further `PUT` or `DELETE` operations")
-        .SetHttpHeader("If-None-Match", "Optional revision of the metadata, to check if its content has changed");
+        .SetHttpHeader("If-None-Match", "Optional revision of the attachment, to check if its content has changed")
+        .SetHttpHeader("Content-Range", "Optional content range to access part of the attachment (new in Orthanc 1.12.5)");
       return;
     }
 
     ServerContext& context = OrthancRestApi::GetContext(call);
 
     std::string publicId = call.GetUriComponent("id", "");
-    FileContentType type = StringToContentType(call.GetUriComponent("name", ""));
+
+    bool hasRangeHeader = false;
+    StorageAccessor::Range range;
+
+    HttpToolbox::Arguments::const_iterator rangeHeader = call.GetHttpHeaders().find("range");
+    if (rangeHeader != call.GetHttpHeaders().end())
+    {
+      hasRangeHeader = true;
+      range = StorageAccessor::Range::ParseHttpRange(rangeHeader->second);
+    }
 
     FileInfo info;
-    if (GetAttachmentInfo(info, level, call))
+    int64_t revision;
+    if (GetAttachmentInfo(info, revision, level, call))
     {
       // NB: "SetAttachmentETag()" is already invoked by "GetAttachmentInfo()"
 
-      if (uncompress)
+      int64_t userRevision;
+      std::string userMD5;
+      if (GetRevisionHeader(userRevision, userMD5, call, "If-None-Match") &&
+          revision == userRevision &&
+          info.GetUncompressedMD5() == userMD5)
       {
-        context.AnswerAttachment(call.GetOutput(), level, publicId, type);
+        call.GetOutput().GetLowLevelOutput().SendStatus(HttpStatus_304_NotModified);
+        return;
+      }
+
+      if (hasRangeHeader)
+      {
+        std::string fragment;
+        context.ReadAttachmentRange(fragment, info, range, uncompress);
+
+        uint64_t fullSize = (uncompress ? info.GetUncompressedSize() : info.GetCompressedSize());
+        call.GetOutput().GetLowLevelOutput().SetContentType(MimeType_Binary);
+        call.GetOutput().GetLowLevelOutput().AddHeader("Content-Range", range.FormatHttpContentRange(fullSize));
+        call.GetOutput().GetLowLevelOutput().SendStatus(HttpStatus_206_PartialContent, fragment);
+      }
+      else if (uncompress ||
+               info.GetCompressionType() == CompressionType_None)
+      {
+        context.AnswerAttachment(call.GetOutput(), info);
       }
       else
       {
-        // Return the raw data (possibly compressed), as stored on the filesystem
+        // Access to the raw attachment (which is compressed)
         std::string content;
-        std::string attachmentId;
-        int64_t revision;
-        context.ReadAttachment(content, revision, attachmentId, level, publicId, type, false, true /* skipCache when you absolutely need the compressed data */);
-
-        int64_t userRevision;
-        std::string userMD5;
-        if (GetRevisionHeader(userRevision, userMD5, call, "If-None-Match") &&
-            revision == userRevision &&
-            info.GetUncompressedMD5() == userMD5)
-        {
-          call.GetOutput().GetLowLevelOutput().SendStatus(HttpStatus_304_NotModified);
-        }
-        else
-        {
-          call.GetOutput().AnswerBuffer(content, MimeType_Binary);
-        }
+        context.ReadAttachment(content, info, false /* don't uncompress */, true /* skip cache */);
+        call.GetOutput().AnswerBuffer(content, MimeType_Binary);
       }
     }
   }
@@ -2352,7 +2381,8 @@ namespace Orthanc
     }
 
     FileInfo info;
-    if (GetAttachmentInfo(info, level, call))
+    int64_t revision;
+    if (GetAttachmentInfo(info, revision, level, call))
     {
       call.GetOutput().AnswerBuffer(boost::lexical_cast<std::string>(info.GetUncompressedSize()), MimeType_PlainText);
     }
@@ -2376,7 +2406,8 @@ namespace Orthanc
     }
 
     FileInfo info;
-    if (GetAttachmentInfo(info, level, call))
+    int64_t revision;
+    if (GetAttachmentInfo(info, revision, level, call))
     {
       Json::Value result = Json::objectValue;    
       result["Uuid"] = info.GetUuid();
@@ -2408,7 +2439,8 @@ namespace Orthanc
     }
 
     FileInfo info;
-    if (GetAttachmentInfo(info, level, call))
+    int64_t revision;
+    if (GetAttachmentInfo(info, revision, level, call))
     {
       call.GetOutput().AnswerBuffer(boost::lexical_cast<std::string>(info.GetCompressedSize()), MimeType_PlainText);
     }
@@ -2432,7 +2464,8 @@ namespace Orthanc
     }
 
     FileInfo info;
-    if (GetAttachmentInfo(info, level, call) &&
+    int64_t revision;
+    if (GetAttachmentInfo(info, revision, level, call) &&
         info.GetUncompressedMD5() != "")
     {
       call.GetOutput().AnswerBuffer(boost::lexical_cast<std::string>(info.GetUncompressedMD5()), MimeType_PlainText);
@@ -2458,7 +2491,8 @@ namespace Orthanc
     }
 
     FileInfo info;
-    if (GetAttachmentInfo(info, level, call) &&
+    int64_t revision;
+    if (GetAttachmentInfo(info, revision, level, call) &&
         info.GetCompressedMD5() != "")
     {
       call.GetOutput().AnswerBuffer(boost::lexical_cast<std::string>(info.GetCompressedMD5()), MimeType_PlainText);
@@ -2503,9 +2537,7 @@ namespace Orthanc
 
     // First check whether the compressed data is correctly stored in the disk
     std::string data;
-    std::string attachmentId;
-
-    context.ReadAttachment(data, revision, attachmentId, level, publicId, StringToContentType(name), false, true /* skipCache when you absolutely need the compressed data */);
+    context.ReadAttachment(data, info, false, true /* skipCache when you absolutely need the compressed data */);
 
     std::string actualMD5;
     Toolbox::ComputeMD5(actualMD5, data);
@@ -2520,7 +2552,7 @@ namespace Orthanc
       }
       else
       {
-        context.ReadAttachment(data, revision, attachmentId, level, publicId, StringToContentType(name), true, true /* skipCache when you absolutely need the compressed data */);
+        context.ReadAttachment(data, info, true, true /* skipCache when you absolutely need the compressed data */);
         Toolbox::ComputeMD5(actualMD5, data);
         ok = (actualMD5 == info.GetUncompressedMD5());
       }
@@ -2729,7 +2761,8 @@ namespace Orthanc
     }
 
     FileInfo info;
-    if (GetAttachmentInfo(info, level, call))
+    int64_t revision;
+    if (GetAttachmentInfo(info, revision, level, call))
     {
       std::string answer = (info.GetCompressionType() == CompressionType_None) ? "0" : "1";
       call.GetOutput().AnswerBuffer(answer, MimeType_PlainText);

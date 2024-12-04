@@ -23,6 +23,8 @@ REST API
 --------
 
 * API version upgraded to 26
+* Support HTTP "Range" request header on "{...}/attachments/{...}/data" and
+  "{...}/attachments/{...}/compressed-data"
 * Improved parsing of multiple numerical values in DICOM tags.
   https://discourse.orthanc-server.org/t/qido-includefield-with-sequences/4746/6
 * in /system, added a new field "Capabilities" with new values:

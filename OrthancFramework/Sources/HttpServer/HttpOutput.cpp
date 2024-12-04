@@ -62,7 +62,8 @@ namespace Orthanc
     contentPosition_(0),
     keepAlive_(isKeepAlive),
     keepAliveTimeout_(keepAliveTimeout),
-    hasXContentTypeOptions_(false)
+    hasXContentTypeOptions_(false),
+    hasContentType_(false)
   {
   }
 
@@ -105,6 +106,7 @@ namespace Orthanc
 
   void HttpOutput::StateMachine::SetContentType(const char* contentType)
   {
+    hasContentType_ = true;
     AddHeader("Content-Type", contentType);
   }
 
@@ -380,7 +382,8 @@ namespace Orthanc
     
     stateMachine_.SetHttpStatus(status);
 
-    if (messageSize > 0)
+    if (messageSize > 0 &&
+      !stateMachine_.HasContentType())
     {
       // Assume that the body always contains a textual description of the error
       stateMachine_.SetContentType("text/plain");
