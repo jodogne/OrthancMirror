@@ -1014,91 +1014,62 @@ namespace Orthanc
       retrieveMethod = context.GetDefaultDicomRetrieveMethod();
     }
 
+    std::unique_ptr<DicomRetrieveScuBaseJob> job;
+
+
     switch (retrieveMethod)
     {
       case RetrieveMethod_Move:
       {
-        std::unique_ptr<DicomMoveScuJob> job(new DicomMoveScuJob(context));
-        job->SetQueryFormat(OrthancRestApi::GetDicomFormat(body, DicomToJsonFormat_Short));
-
-        job->SetTargetAet(targetAet);
-        job->SetLocalAet(query.GetHandler().GetLocalAet());
-        job->SetRemoteModality(query.GetHandler().GetRemoteModality());
-
-        // TODO: refactor in a base class for DicomGetScuJob and DicomMoveScuJob
-        if (timeout >= 0)
-        {
-          // New in Orthanc 1.7.0
-          job->SetTimeout(static_cast<uint32_t>(timeout));
-        }
-        else if (query.GetHandler().HasTimeout())
-        {
-          // New in Orthanc 1.9.1
-          job->SetTimeout(query.GetHandler().GetTimeout());
-        }
+        job.reset(new DicomMoveScuJob(context));
+        (dynamic_cast<DicomMoveScuJob*>(job.get()))->SetTargetAet(targetAet);
 
         LOG(WARNING) << "Driving C-Move SCU on remote modality "
                     << query.GetHandler().GetRemoteModality().GetApplicationEntityTitle()
                     << " to target modality " << targetAet;
-
-        // TODO: refactor in a base class for DicomGetScuJob and DicomMoveScuJob
-        if (allAnswers)
-        {
-          for (size_t i = 0; i < query.GetHandler().GetAnswersCount(); i++)
-          {
-            job->AddFindAnswer(query.GetHandler(), i);
-          }
-        }
-        else
-        {
-          job->AddFindAnswer(query.GetHandler(), index);
-        }
-
-        OrthancRestApi::GetApi(call).SubmitCommandsJob
-          (call, job.release(), true /* synchronous by default */, body);
-
       }; break;
       case RetrieveMethod_Get:
       {
-        std::unique_ptr<DicomGetScuJob> job(new DicomGetScuJob(context));
-        job->SetQueryFormat(OrthancRestApi::GetDicomFormat(body, DicomToJsonFormat_Short));
-        job->SetRemoteModality(query.GetHandler().GetRemoteModality());
-
-        // TODO: refactor in a base class for DicomGetScuJob and DicomMoveScuJob
-        if (timeout >= 0)
-        {
-          // New in Orthanc 1.7.0
-          job->SetTimeout(static_cast<uint32_t>(timeout));
-        }
-        else if (query.GetHandler().HasTimeout())
-        {
-          // New in Orthanc 1.9.1
-          job->SetTimeout(query.GetHandler().GetTimeout());
-        }
+        job.reset(new DicomGetScuJob(context));
 
         LOG(WARNING) << "Driving C-Get SCU on remote modality "
                     << query.GetHandler().GetRemoteModality().GetApplicationEntityTitle();
-
-        // TODO: refactor in a base class for DicomGetScuJob and DicomMoveScuJob
-        if (allAnswers)
-        {
-          for (size_t i = 0; i < query.GetHandler().GetAnswersCount(); i++)
-          {
-            job->AddFindAnswer(query.GetHandler(), i);
-          }
-        }
-        else
-        {
-          job->AddFindAnswer(query.GetHandler(), index);
-        }
-
-        OrthancRestApi::GetApi(call).SubmitCommandsJob
-          (call, job.release(), true /* synchronous by default */, body);
-
       }; break;
       default:
         throw OrthancException(ErrorCode_NotImplemented);
     }
+
+    job->SetQueryFormat(OrthancRestApi::GetDicomFormat(body, DicomToJsonFormat_Short));
+
+    job->SetLocalAet(query.GetHandler().GetLocalAet());
+    job->SetRemoteModality(query.GetHandler().GetRemoteModality());
+
+    if (timeout >= 0)
+    {
+      // New in Orthanc 1.7.0
+      job->SetTimeout(static_cast<uint32_t>(timeout));
+    }
+    else if (query.GetHandler().HasTimeout())
+    {
+      // New in Orthanc 1.9.1
+      job->SetTimeout(query.GetHandler().GetTimeout());
+    }
+
+    if (allAnswers)
+    {
+      for (size_t i = 0; i < query.GetHandler().GetAnswersCount(); i++)
+      {
+        job->AddFindAnswer(query.GetHandler(), i);
+      }
+    }
+    else
+    {
+      job->AddFindAnswer(query.GetHandler(), index);
+    }
+
+    OrthancRestApi::GetApi(call).SubmitCommandsJob
+      (call, job.release(), true /* synchronous by default */, body);
+
   }
 
 
