@@ -25,7 +25,8 @@
 
 #include "../../../OrthancFramework/Sources/Compatibility.h"
 #include "../../../OrthancFramework/Sources/DicomNetworking/DicomControlUserConnection.h"
-#include "../../../OrthancFramework/Sources/JobsEngine/SetOfCommandsJob.h"
+// #include "../../../OrthancFramework/Sources/JobsEngine/SetOfCommandsJob.h"
+#include "DicomRetrieveScuBaseJob.h"
 
 #include "../QueryRetrieveHandler.h"
 
@@ -33,50 +34,21 @@ namespace Orthanc
 {
   class ServerContext;
   
-  class DicomMoveScuJob : public SetOfCommandsJob
+  class DicomMoveScuJob : public DicomRetrieveScuBaseJob
   {
   private:
-    class Command;
-    class Unserializer;
-    
-    ServerContext&              context_;
-    DicomAssociationParameters  parameters_;
     std::string                 targetAet_;
-    DicomFindAnswers            query_;
-    DicomToJsonFormat           queryFormat_;  // New in 1.9.5
-
-    std::unique_ptr<DicomControlUserConnection>  connection_;
     
-    void Retrieve(const DicomMap& findAnswer);
+    virtual void Retrieve(const DicomMap& findAnswer) ORTHANC_OVERRIDE;
     
   public:
     explicit DicomMoveScuJob(ServerContext& context) :
-      context_(context),
-      query_(false  /* this is not for worklists */),
-      queryFormat_(DicomToJsonFormat_Short)
+      DicomRetrieveScuBaseJob(context)
     {
     }
 
     DicomMoveScuJob(ServerContext& context,
                     const Json::Value& serialized);
-
-    void AddFindAnswer(const DicomMap& answer);
-    
-    void AddQuery(const DicomMap& query);
-
-    void AddFindAnswer(QueryRetrieveHandler& query,
-                       size_t i);
-
-    const DicomAssociationParameters& GetParameters() const
-    {
-      return parameters_;
-    }
-    
-    void SetLocalAet(const std::string& aet);
-
-    void SetRemoteModality(const RemoteModalityParameters& remote);
-
-    void SetTimeout(uint32_t timeout);
 
     const std::string& GetTargetAet() const
     {
@@ -84,15 +56,6 @@ namespace Orthanc
     }
     
     void SetTargetAet(const std::string& aet);
-
-    void SetQueryFormat(DicomToJsonFormat format);
-
-    DicomToJsonFormat GetQueryFormat() const
-    {
-      return queryFormat_;
-    }
-
-    virtual void Stop(JobStopReason reason) ORTHANC_OVERRIDE;
 
     virtual void GetJobType(std::string& target) ORTHANC_OVERRIDE
     {

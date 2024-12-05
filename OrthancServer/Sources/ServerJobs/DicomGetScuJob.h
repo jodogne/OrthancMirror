@@ -25,76 +25,35 @@
 
 #include "../../../OrthancFramework/Sources/Compatibility.h"
 #include "../../../OrthancFramework/Sources/DicomNetworking/DicomControlUserConnection.h"
-#include "../../../OrthancFramework/Sources/JobsEngine/SetOfCommandsJob.h"
-
+#include "DicomRetrieveScuBaseJob.h"
 #include "../QueryRetrieveHandler.h"
 
 namespace Orthanc
 {
   class ServerContext;
   
-  class DicomGetScuJob : public SetOfCommandsJob
+  class DicomGetScuJob : public DicomRetrieveScuBaseJob
   {
   private:
-    class Command;
-    class Unserializer;
     
-    ServerContext&              context_;
-    DicomAssociationParameters  parameters_;
-    DicomFindAnswers            query_;
-    DicomToJsonFormat           queryFormat_;  // New in 1.9.5
-
-    std::unique_ptr<DicomControlUserConnection>  connection_;
-    
-    void Retrieve(const DicomMap& findAnswer);
+    virtual void Retrieve(const DicomMap& findAnswer) ORTHANC_OVERRIDE;
     
   public:
     explicit DicomGetScuJob(ServerContext& context) :
-      context_(context),
-      query_(false  /* this is not for worklists */),
-      queryFormat_(DicomToJsonFormat_Short)
+      DicomRetrieveScuBaseJob(context)
     {
     }
 
     DicomGetScuJob(ServerContext& context,
-                    const Json::Value& serialized);
+                   const Json::Value& serialized);
 
-    void AddFindAnswer(const DicomMap& answer);
-    
-    // void AddQuery(const DicomMap& query);
-
-    void AddFindAnswer(QueryRetrieveHandler& query,
-                       size_t i);
 
     void AddResourceToRetrieve(ResourceType level, const std::string& dicomId);
 
-    const DicomAssociationParameters& GetParameters() const
-    {
-      return parameters_;
-    }
-    
-    void SetLocalAet(const std::string& aet);
-
-    void SetRemoteModality(const RemoteModalityParameters& remote);
-
-    void SetTimeout(uint32_t timeout);
-
-    void SetQueryFormat(DicomToJsonFormat format);
-
-    DicomToJsonFormat GetQueryFormat() const
-    {
-      return queryFormat_;
-    }
-
-    virtual void Stop(JobStopReason reason) ORTHANC_OVERRIDE;
 
     virtual void GetJobType(std::string& target) ORTHANC_OVERRIDE
     {
       target = "DicomGetScu";
     }
-
-    virtual void GetPublicContent(Json::Value& value) ORTHANC_OVERRIDE;
-
-    virtual bool Serialize(Json::Value& target) ORTHANC_OVERRIDE;
   };
 }
