@@ -489,11 +489,14 @@ namespace Orthanc
 
         isUnknownSopClassAccepted_ = lock.GetConfiguration().GetBooleanParameter("UnknownSopClassAccepted", false);
 
+        // New options in Orthanc 1.12.6
         std::list<std::string> acceptedSopClasses;
         std::set<std::string> rejectedSopClasses;
         lock.GetConfiguration().GetListOfStringsParameter(acceptedSopClasses, "AcceptedSopClasses");
         lock.GetConfiguration().GetSetOfStringsParameter(rejectedSopClasses, "RejectSopClasses");
         SetAcceptedSopClasses(acceptedSopClasses, rejectedSopClasses);
+
+        defaultDicomRetrieveMethod_ = StringToRetrieveMethod(lock.GetConfiguration().GetStringParameter("DicomDefaultRetrieveMethod", "C-MOVE"));
       }
 
       jobsEngine_.SetThreadSleep(unitTesting ? 20 : 200);

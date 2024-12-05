@@ -2493,6 +2493,44 @@ namespace Orthanc
     }
   }
 
+  RetrieveMethod StringToRetrieveMethod(const std::string& str)
+  {
+    if (str == "C-MOVE")
+    {
+      return RetrieveMethod_Move;
+    }
+    else if (str == "C-GET")
+    {
+      return RetrieveMethod_Get;
+    }
+    else if (str == "SystemDefault")
+    {
+      return RetrieveMethod_SystemDefault;
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange,
+                             "RetrieveMethod can be \"C-MOVE\", \"C-GET\" or \"SystemDefault\": " + str);
+    }    
+  }
+
+  const char* EnumerationToString(RetrieveMethod method)
+  {
+    switch (method)
+    {
+      case RetrieveMethod_Get:
+        return "C-GET";
+
+      case RetrieveMethod_Move:
+        return "C-MOVE";
+
+      case RetrieveMethod_SystemDefault:
+        return "SystemDefault";
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
 }
 
 

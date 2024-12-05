@@ -485,6 +485,10 @@
      * for Orthanc when initiating an SCU to this very specific
      * modality. Similarly, "Timeout" allows one to overwrite the
      * global value "DicomScuTimeout" on a per-modality basis.
+     *
+     * The "RetrieveMethod" option allows one to overwrite the global
+     * "DicomDefaultRetrieveMethod" configuration option for this
+     * specific modality. (Allowed values: "C-MOVE" or "C-GET").
      **/
     //"untrusted" : {
     //  "AET" : "ORTHANC",
@@ -501,7 +505,8 @@
     //  "AllowTranscoding" : true,         // new in 1.7.0
     //  "UseDicomTls" : false,             // new in 1.9.0
     //  "LocalAet" : "HELLO",              // new in 1.9.0
-    //  "Timeout" : 60                     // new in 1.9.1
+    //  "Timeout" : 60,                    // new in 1.9.1
+    //  "RetrieveMethod": "C-MOVE"         // new in 1.12.6
     //}
   },
 
@@ -514,6 +519,13 @@
   // modality. This allows one to check that the remote modality does
   // accept C-FIND requests from Orthanc (new in Orthanc 1.8.1).
   "DicomEchoChecksFind" : false,
+
+  // Wheter Orthanc uses C-MOVE or C-GET to retrieve a resource after
+  // a C-Find (when calling /queries/.../retrieve).
+  // This configuration can be overriden for each modality by providing
+  // "RetrieveMethod" in the "DicomModalities" entry.
+  // (new in Orthanc 1.12.6)
+  "DicomDefaultRetrieveMethod" : "C-MOVE",
 
   // The timeout (in seconds) after which the DICOM associations are
   // considered as closed by the Orthanc SCU (client) if the remote
