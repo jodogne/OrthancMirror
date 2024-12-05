@@ -250,6 +250,7 @@ namespace Orthanc
         
     std::unique_ptr<SharedArchive>  queryRetrieveArchive_;
     std::string defaultLocalAet_;
+    RetrieveMethod defaultDicomRetrieveMethod_;
     OrthancHttpHandler  httpHandler_;
     bool saveJobs_;
     FindStorageAccessMode findStorageAccessMode_;
@@ -432,6 +433,11 @@ namespace Orthanc
     const std::string& GetDefaultLocalApplicationEntityTitle() const
     {
       return defaultLocalAet_;
+    }
+
+    RetrieveMethod GetDefaultDicomRetrieveMethod() const
+    {
+      return defaultDicomRetrieveMethod_;
     }
 
     LuaScripting& GetLuaScripting()

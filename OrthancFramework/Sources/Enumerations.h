@@ -793,6 +793,14 @@ namespace Orthanc
     ResourceType_Instance = 4
   };
 
+  enum RetrieveMethod                         // new in Orthanc 1.12.6
+  {
+    RetrieveMethod_Move = 1,
+    RetrieveMethod_Get = 2,
+
+    RetrieveMethod_SystemDefault = 65535
+  };
+
 
   ORTHANC_PUBLIC
   const char* EnumerationToString(ErrorCode code);
@@ -847,6 +855,9 @@ namespace Orthanc
 
   ORTHANC_PUBLIC
   const char* EnumerationToString(DicomToJsonFormat format);
+
+  ORTHANC_PUBLIC
+  const char* EnumerationToString(RetrieveMethod method);
 
   ORTHANC_PUBLIC
   Encoding StringToEncoding(const char* encoding);
@@ -947,4 +958,7 @@ ORTHANC_PUBLIC
 
   ORTHANC_PUBLIC
   void GetAllDicomTransferSyntaxes(std::set<DicomTransferSyntax>& target);
+
+  ORTHANC_PUBLIC 
+  RetrieveMethod StringToRetrieveMethod(const std::string& str);
 }
