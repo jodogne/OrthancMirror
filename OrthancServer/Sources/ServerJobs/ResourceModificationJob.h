@@ -116,14 +116,14 @@ namespace Orthanc
     // Only possible if "IsSingleResourceModification()"
     ResourceType GetOutputLevel() const;
 
-    virtual void GetJobType(std::string& target) ORTHANC_OVERRIDE
+    virtual void GetJobType(std::string& target) const ORTHANC_OVERRIDE
     {
       target = "ResourceModification";
     }
 
-    virtual void GetPublicContent(Json::Value& value) ORTHANC_OVERRIDE;
+    virtual void GetPublicContent(Json::Value& value) const ORTHANC_OVERRIDE;
     
-    virtual bool Serialize(Json::Value& value) ORTHANC_OVERRIDE;
+    virtual bool Serialize(Json::Value& value) const ORTHANC_OVERRIDE;
 
     virtual void Reset() ORTHANC_OVERRIDE;
 

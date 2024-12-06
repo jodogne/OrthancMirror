@@ -25,6 +25,7 @@
 #include "../../../OrthancFramework/Sources/Compatibility.h"
 #include "../../../OrthancFramework/Sources/DicomNetworking/DicomControlUserConnection.h"
 #include "../../../OrthancFramework/Sources/JobsEngine/SetOfCommandsJob.h"
+#include <boost/thread/mutex.hpp>
 
 #include "../QueryRetrieveHandler.h"
 
@@ -87,6 +88,7 @@ namespace Orthanc
 
     std::unique_ptr<DicomControlUserConnection> connection_;
 
+    mutable boost::mutex progressMutex_;
     uint16_t nbRemainingSubOperations_;
     uint16_t nbCompletedSubOperations_;
     uint16_t nbFailedSubOperations_;
@@ -132,15 +134,21 @@ namespace Orthanc
 
     virtual void Stop(JobStopReason reason) ORTHANC_OVERRIDE;
 
-    virtual void GetPublicContent(Json::Value &value) ORTHANC_OVERRIDE;
+    virtual void GetPublicContent(Json::Value &value) const ORTHANC_OVERRIDE;
 
-    virtual bool Serialize(Json::Value &target) ORTHANC_OVERRIDE;
+    virtual bool Serialize(Json::Value &target) const ORTHANC_OVERRIDE;
 
     virtual void OnProgressUpdated(uint16_t nbRemainingSubOperations,
                                     uint16_t nbCompletedSubOperations,
                                     uint16_t nbFailedSubOperations,
                                     uint16_t nbWarningSubOperations) ORTHANC_OVERRIDE;
 
-    virtual float GetProgress() ORTHANC_OVERRIDE;
+    virtual float GetProgress() const ORTHANC_OVERRIDE;
+
+    virtual bool NeedsProgressUpdateBetweenSteps() const ORTHANC_OVERRIDE
+    {
+      return true;
+    }
+
   };
 }

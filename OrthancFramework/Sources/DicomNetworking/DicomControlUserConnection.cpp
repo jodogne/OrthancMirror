@@ -401,7 +401,6 @@ namespace Orthanc
     DicomControlUserConnection::IProgressListener* listener = reinterpret_cast<DicomControlUserConnection::IProgressListener*>(callbackData);
     if (listener)
     {
-      LOG(INFO) << "---------" << response->NumberOfRemainingSubOperations << "  " << response->NumberOfCompletedSubOperations;
       listener->OnProgressUpdated(response->NumberOfRemainingSubOperations,
                                   response->NumberOfCompletedSubOperations,
                                   response->NumberOfFailedSubOperations,

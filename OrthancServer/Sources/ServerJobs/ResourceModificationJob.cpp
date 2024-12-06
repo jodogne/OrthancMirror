@@ -542,7 +542,7 @@ namespace Orthanc
   }
 
 
-  void ResourceModificationJob::GetPublicContent(Json::Value& value)
+  void ResourceModificationJob::GetPublicContent(Json::Value& value) const
   {
     boost::recursive_mutex::scoped_lock lock(outputMutex_);
 
@@ -636,7 +636,7 @@ namespace Orthanc
     }
   }
   
-  bool ResourceModificationJob::Serialize(Json::Value& value)
+  bool ResourceModificationJob::Serialize(Json::Value& value) const
   {
     if (modification_.get() == NULL)
     {

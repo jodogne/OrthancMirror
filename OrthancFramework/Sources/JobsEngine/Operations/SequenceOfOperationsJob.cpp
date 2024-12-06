@@ -398,7 +398,7 @@ namespace Orthanc
   }
 
 
-  float SequenceOfOperationsJob::GetProgress()
+  float SequenceOfOperationsJob::GetProgress() const
   {
     boost::mutex::scoped_lock lock(mutex_);
       
@@ -406,13 +406,13 @@ namespace Orthanc
             static_cast<float>(operations_.size() + 1));
   }
 
-  void SequenceOfOperationsJob::GetJobType(std::string& target)
+  void SequenceOfOperationsJob::GetJobType(std::string& target) const
   {
     target = "SequenceOfOperations";
   }
 
 
-  void SequenceOfOperationsJob::GetPublicContent(Json::Value& value)
+  void SequenceOfOperationsJob::GetPublicContent(Json::Value& value) const
   {
     boost::mutex::scoped_lock lock(mutex_);
 
@@ -421,7 +421,7 @@ namespace Orthanc
   }
 
 
-  bool SequenceOfOperationsJob::Serialize(Json::Value& value)
+  bool SequenceOfOperationsJob::Serialize(Json::Value& value) const
   {
     boost::mutex::scoped_lock lock(mutex_);
 

@@ -83,7 +83,7 @@ namespace Orthanc
   }
 
   
-  bool CleaningInstancesJob::Serialize(Json::Value& target)
+  bool CleaningInstancesJob::Serialize(Json::Value& target) const
   {
     if (!SetOfInstancesJob::Serialize(target))
     {

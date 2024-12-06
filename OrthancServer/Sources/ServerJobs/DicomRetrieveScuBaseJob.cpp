@@ -28,6 +28,7 @@
 #include "../ServerContext.h"
 #include <dcmtk/dcmnet/dimse.h>
 #include <algorithm>
+#include "../../../OrthancFramework/Sources/Logging.h"
 
 static const char* const LOCAL_AET = "LocalAet";
 static const char* const QUERY = "Query";
@@ -142,7 +143,7 @@ namespace Orthanc
   }
 
 
-  void DicomRetrieveScuBaseJob::GetPublicContent(Json::Value& value)
+  void DicomRetrieveScuBaseJob::GetPublicContent(Json::Value& value) const
   {
     SetOfCommandsJob::GetPublicContent(value);
 
@@ -187,7 +188,7 @@ namespace Orthanc
   }
 
   
-  bool DicomRetrieveScuBaseJob::Serialize(Json::Value& target)
+  bool DicomRetrieveScuBaseJob::Serialize(Json::Value& target) const
   {
     if (!SetOfCommandsJob::Serialize(target))
     {
@@ -212,19 +213,25 @@ namespace Orthanc
                                                   uint16_t nbFailedSubOperations,
                                                   uint16_t nbWarningSubOperations)
   {
+    boost::mutex::scoped_lock lock(progressMutex_);
+
     nbRemainingSubOperations_ = nbRemainingSubOperations;
     nbCompletedSubOperations_ = nbCompletedSubOperations;
     nbFailedSubOperations_ = nbFailedSubOperations;
     nbWarningSubOperations_ = nbWarningSubOperations;
   }
 
-  float DicomRetrieveScuBaseJob::GetProgress()
+  float DicomRetrieveScuBaseJob::GetProgress() const
   {
+    boost::mutex::scoped_lock lock(progressMutex_);
+    
     uint32_t totalOperations = nbRemainingSubOperations_ + nbCompletedSubOperations_ + nbFailedSubOperations_ + nbWarningSubOperations_;
     if (totalOperations == 0)
     {
       return 0.0f;
     }
+
+    LOG(INFO) << "---------" << nbRemainingSubOperations_ << "  " << nbCompletedSubOperations_;
 
     return float(nbCompletedSubOperations_ + nbFailedSubOperations_ + nbWarningSubOperations_) / float(totalOperations);
   }

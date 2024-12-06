@@ -67,7 +67,7 @@ namespace Orthanc
   
 
 
-  void DicomMoveScuJob::GetPublicContent(Json::Value& value)
+  void DicomMoveScuJob::GetPublicContent(Json::Value& value) const
   {
     DicomRetrieveScuBaseJob::GetPublicContent(value);
 
@@ -83,7 +83,7 @@ namespace Orthanc
   }
 
   
-  bool DicomMoveScuJob::Serialize(Json::Value& target)
+  bool DicomMoveScuJob::Serialize(Json::Value& target) const
   {
     if (!DicomRetrieveScuBaseJob::Serialize(target))
     {

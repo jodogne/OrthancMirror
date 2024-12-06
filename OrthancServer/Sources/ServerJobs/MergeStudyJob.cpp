@@ -353,7 +353,7 @@ namespace Orthanc
   }
   
 
-  void MergeStudyJob::GetPublicContent(Json::Value& value)
+  void MergeStudyJob::GetPublicContent(Json::Value& value) const
   {
     CleaningInstancesJob::GetPublicContent(value);
     value["TargetStudy"] = targetStudy_;
@@ -386,7 +386,7 @@ namespace Orthanc
   }
 
   
-  bool MergeStudyJob::Serialize(Json::Value& target)
+  bool MergeStudyJob::Serialize(Json::Value& target) const
   {
     if (!CleaningInstancesJob::Serialize(target))
     {

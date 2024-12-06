@@ -62,7 +62,7 @@ namespace Orthanc
     
     void SetKeepSource(bool keep);
 
-    virtual bool Serialize(Json::Value& target) ORTHANC_OVERRIDE;
+    virtual bool Serialize(Json::Value& target) const ORTHANC_OVERRIDE;
 
     virtual void Start() ORTHANC_OVERRIDE;
   };

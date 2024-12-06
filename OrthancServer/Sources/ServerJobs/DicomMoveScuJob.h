@@ -57,13 +57,13 @@ namespace Orthanc
     
     void SetTargetAet(const std::string& aet);
 
-    virtual void GetJobType(std::string& target) ORTHANC_OVERRIDE
+    virtual void GetJobType(std::string& target) const ORTHANC_OVERRIDE
     {
       target = "DicomMoveScu";
     }
 
-    virtual void GetPublicContent(Json::Value& value) ORTHANC_OVERRIDE;
+    virtual void GetPublicContent(Json::Value& value) const ORTHANC_OVERRIDE;
 
-    virtual bool Serialize(Json::Value& target) ORTHANC_OVERRIDE;
+    virtual bool Serialize(Json::Value& target) const ORTHANC_OVERRIDE;
   };
 }
