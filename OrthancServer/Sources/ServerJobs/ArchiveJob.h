@@ -107,13 +107,13 @@ namespace Orthanc
 
     virtual void Stop(JobStopReason reason) ORTHANC_OVERRIDE;
 
-    virtual float GetProgress() ORTHANC_OVERRIDE;
+    virtual float GetProgress() const ORTHANC_OVERRIDE;
 
-    virtual void GetJobType(std::string& target) ORTHANC_OVERRIDE;
+    virtual void GetJobType(std::string& target) const ORTHANC_OVERRIDE;
     
-    virtual void GetPublicContent(Json::Value& value) ORTHANC_OVERRIDE;
+    virtual void GetPublicContent(Json::Value& value) const ORTHANC_OVERRIDE;
 
-    virtual bool Serialize(Json::Value& value) ORTHANC_OVERRIDE
+    virtual bool Serialize(Json::Value& value) const ORTHANC_OVERRIDE
     {
       return false;  // Cannot serialize this kind of job
     }

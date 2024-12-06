@@ -49,13 +49,18 @@ namespace Orthanc
     // For pausing/canceling/ending jobs: This method must release allocated resources
     virtual void Stop(JobStopReason reason) = 0;
 
-    virtual float GetProgress() = 0;
+    virtual float GetProgress() const = 0;
 
-    virtual void GetJobType(std::string& target) = 0;
+    virtual bool NeedsProgressUpdateBetweenSteps() const // only for jobs whose progress is updated by outside events (like C-Move and C-Get)
+    {
+      return false;
+    }
+
+    virtual void GetJobType(std::string& target) const = 0;
     
-    virtual void GetPublicContent(Json::Value& value) = 0;
+    virtual void GetPublicContent(Json::Value& value) const = 0;
 
-    virtual bool Serialize(Json::Value& value) = 0;
+    virtual bool Serialize(Json::Value& value) const = 0;
 
     // This function can only be called if the job has reached its
     // "success" state

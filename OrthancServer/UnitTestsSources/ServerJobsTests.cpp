@@ -106,24 +106,24 @@ namespace
     {
     }
 
-    virtual float GetProgress() ORTHANC_OVERRIDE
+    virtual float GetProgress() const ORTHANC_OVERRIDE
     {
       return static_cast<float>(count_) / static_cast<float>(steps_ - 1);
     }
 
-    virtual void GetJobType(std::string& type) ORTHANC_OVERRIDE
+    virtual void GetJobType(std::string& type) const ORTHANC_OVERRIDE
     {
       type = "DummyJob";
     }
 
-    virtual bool Serialize(Json::Value& value) ORTHANC_OVERRIDE
+    virtual bool Serialize(Json::Value& value) const ORTHANC_OVERRIDE
     {
       value = Json::objectValue;
       value["Type"] = "DummyJob";
       return true;
     }
 
-    virtual void GetPublicContent(Json::Value& value) ORTHANC_OVERRIDE
+    virtual void GetPublicContent(Json::Value& value) const ORTHANC_OVERRIDE
     {
       value["hello"] = "world";
     }
@@ -202,7 +202,7 @@ namespace
     {
     }
 
-    virtual void GetJobType(std::string& s) ORTHANC_OVERRIDE
+    virtual void GetJobType(std::string& s) const ORTHANC_OVERRIDE
     {
       s = "DummyInstancesJob";
     }

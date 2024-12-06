@@ -223,8 +223,14 @@ namespace Orthanc
       lastStateChangeTime_ = time;
     }
 
-    const boost::posix_time::time_duration& GetRuntime() const
+    boost::posix_time::time_duration GetRuntime() const
     {
+      if (state_ == JobState_Running)
+      {
+        const boost::posix_time::ptime now = boost::posix_time::microsec_clock::universal_time();
+        return now - lastStateChangeTime_;
+      }
+
       return runtime_;
     }
 
@@ -644,7 +650,8 @@ namespace Orthanc
                        handler.GetLastStatus(),
                        handler.GetCreationTime(),
                        handler.GetLastStateChangeTime(),
-                       handler.GetRuntime());
+                       handler.GetRuntime(),
+                       handler.GetJob());
       return true;
     }
   }

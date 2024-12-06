@@ -51,7 +51,7 @@ namespace Orthanc
     void AddResourceToRetrieve(ResourceType level, const std::string& dicomId);
 
 
-    virtual void GetJobType(std::string& target) ORTHANC_OVERRIDE
+    virtual void GetJobType(std::string& target) const ORTHANC_OVERRIDE
     {
       target = "DicomGetScu";
     }
