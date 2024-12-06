@@ -537,11 +537,9 @@ namespace Orthanc
     {
       case ResourceType_Patient:
         sopClass = UID_GETPatientRootQueryRetrieveInformationModel;
-        // DU_putStringDOElement(queryDataset, DCM_QueryRetrieveLevel, ResourceTypeToDicomQueryRetrieveLevel(ResourceType_Patient));  // TODO-GET
         break;
       case ResourceType_Study:
         sopClass = UID_GETStudyRootQueryRetrieveInformationModel;
-        // DU_putStringDOElement(queryDataset, DCM_QueryRetrieveLevel, ResourceTypeToDicomQueryRetrieveLevel(ResourceType_Study));  // TODO-GET
         break;
       default:
         throw OrthancException(ErrorCode_InternalError); // TODO-GET: implement series + instances
@@ -659,7 +657,7 @@ namespace Orthanc
                                                   parameters_.GetTimeout(),
                                                   &cmdPresId,
                                                   &dataObject,
-                                                  NULL /*callback*/, NULL /*callbackData*/);  // TODO-GET
+                                                  NULL, NULL);
 
           if (result.bad())
           {

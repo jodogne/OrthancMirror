@@ -1712,7 +1712,7 @@ namespace Orthanc
                              std::string(KEY_QUERY));
     }
 
-    std::string localAet = Toolbox::GetJsonStringField  // TODO-GET: keep this ?
+    std::string localAet = Toolbox::GetJsonStringField
       (request, KEY_LOCAL_AET, context.GetDefaultLocalApplicationEntityTitle());
 
     const RemoteModalityParameters source =
@@ -1720,13 +1720,9 @@ namespace Orthanc
 
     std::unique_ptr<DicomGetScuJob> job(new DicomGetScuJob(context));
 
-    job->SetQueryFormat(DicomToJsonFormat_Short);  // TODO-GET: keep this ?
+    job->SetQueryFormat(DicomToJsonFormat_Short);
     job->SetLocalAet(localAet);
     job->SetRemoteModality(source);
-
-        // TODO-GET: asynchronous
-        // TODO-GET: permissive
-
 
     if (request[KEY_QUERY].isMember("PatientID"))  // TODO-GET: handle get of multiple resources + series + instances 
     {
