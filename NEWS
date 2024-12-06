@@ -27,6 +27,7 @@ REST API
   https://discourse.orthanc-server.org/t/dicomwebplugin-does-not-return-series-metadata-properly/5195
 * /queries/../retrieve now accepts a new field in the payload: "RetrieveMethod" to define wheter 
   Orthanc uses C-MOVE or C-GET to retrieve the resource.
+* improved progress reporting of DicomMoveScu jobs.
 
 Maintenance
 -----------

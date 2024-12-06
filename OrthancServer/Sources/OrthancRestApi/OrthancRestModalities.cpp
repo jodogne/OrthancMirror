@@ -915,59 +915,6 @@ namespace Orthanc
   }
 
 
-  // static void SubmitGetScuJob(RestApiPostCall& call,
-  //                             bool allAnswers,
-  //                             size_t index)
-  // {
-  //   ServerContext& context = OrthancRestApi::GetContext(call);
-
-  //   int timeout = -1;
-  //   Json::Value body;
-
-  //   if (call.ParseJsonRequest(body))
-  //   {
-  //     timeout = Toolbox::GetJsonIntegerField(body, KEY_TIMEOUT, -1);
-  //   }
-    
-  //   std::unique_ptr<DicomGetScuJob> job(new DicomGetScuJob(context));
-  //   job->SetQueryFormat(OrthancRestApi::GetDicomFormat(body, DicomToJsonFormat_Short));
-    
-  //   {
-  //     QueryAccessor query(call);
-  //     job->SetRemoteModality(query.GetHandler().GetRemoteModality());
-
-  //     if (timeout >= 0)
-  //     {
-  //       // New in Orthanc 1.7.0
-  //       job->SetTimeout(static_cast<uint32_t>(timeout));
-  //     }
-  //     else if (query.GetHandler().HasTimeout())
-  //     {
-  //       // New in Orthanc 1.9.1
-  //       job->SetTimeout(query.GetHandler().GetTimeout());
-  //     }
-
-  //     LOG(WARNING) << "Driving C-Get SCU on remote modality "
-  //                  << query.GetHandler().GetRemoteModality().GetApplicationEntityTitle();
-
-  //     if (allAnswers)
-  //     {
-  //       for (size_t i = 0; i < query.GetHandler().GetAnswersCount(); i++)
-  //       {
-  //         job->AddFindAnswer(query.GetHandler(), i);
-  //       }
-  //     }
-  //     else
-  //     {
-  //       job->AddFindAnswer(query.GetHandler(), index);
-  //     }
-  //   }
-
-  //   OrthancRestApi::GetApi(call).SubmitCommandsJob
-  //     (call, job.release(), true /* synchronous by default */, body);
-  // }
-
-
   static void SubmitRetrieveJob(RestApiPostCall& call,
                                 bool allAnswers,
                                 size_t index)

@@ -46,6 +46,7 @@ namespace Orthanc
       connection_.reset(new DicomControlUserConnection(parameters_, ScuOperationFlags_Move));
     }
     
+    connection_->SetProgressListener(this);
     connection_->Move(targetAet_, findAnswer);
   }
 

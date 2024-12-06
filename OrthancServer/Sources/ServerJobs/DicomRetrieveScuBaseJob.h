@@ -32,7 +32,7 @@ namespace Orthanc
 {
   class ServerContext;
 
-  class DicomRetrieveScuBaseJob : public SetOfCommandsJob
+  class DicomRetrieveScuBaseJob : public SetOfCommandsJob, public DicomControlUserConnection::IProgressListener
   {
   protected:
     class Command : public SetOfCommandsJob::ICommand
@@ -87,6 +87,11 @@ namespace Orthanc
 
     std::unique_ptr<DicomControlUserConnection> connection_;
 
+    uint16_t nbRemainingSubOperations_;
+    uint16_t nbCompletedSubOperations_;
+    uint16_t nbFailedSubOperations_;
+    uint16_t nbWarningSubOperations_;
+
     virtual void Retrieve(const DicomMap &findAnswer) = 0;
 
     explicit DicomRetrieveScuBaseJob(ServerContext &context) : 
@@ -130,5 +135,12 @@ namespace Orthanc
     virtual void GetPublicContent(Json::Value &value) ORTHANC_OVERRIDE;
 
     virtual bool Serialize(Json::Value &target) ORTHANC_OVERRIDE;
+
+    virtual void OnProgressUpdated(uint16_t nbRemainingSubOperations,
+                                    uint16_t nbCompletedSubOperations,
+                                    uint16_t nbFailedSubOperations,
+                                    uint16_t nbWarningSubOperations) ORTHANC_OVERRIDE;
+
+    virtual float GetProgress() ORTHANC_OVERRIDE;
   };
 }

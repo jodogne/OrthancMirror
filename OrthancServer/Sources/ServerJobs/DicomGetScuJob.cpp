@@ -99,7 +99,8 @@ namespace Orthanc
                                                        sopClassesToPropose,
                                                        proposedTransferSyntaxes));
     }
-    
+
+    connection_->SetProgressListener(this);
     connection_->Get(findAnswer, InstanceReceivedHandler, &context_);
   }
 
