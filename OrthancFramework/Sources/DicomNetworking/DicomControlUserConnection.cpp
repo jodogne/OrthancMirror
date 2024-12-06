@@ -393,6 +393,22 @@ namespace Orthanc
     }
   }
 
+  void MoveProgressCallback(void *callbackData,
+                            T_DIMSE_C_MoveRQ *request,
+                            int responseCount, 
+                            T_DIMSE_C_MoveRSP *response)
+  {
+    DicomControlUserConnection::IProgressListener* listener = reinterpret_cast<DicomControlUserConnection::IProgressListener*>(callbackData);
+    if (listener)
+    {
+      LOG(INFO) << "---------" << response->NumberOfRemainingSubOperations << "  " << response->NumberOfCompletedSubOperations;
+      listener->OnProgressUpdated(response->NumberOfRemainingSubOperations,
+                                  response->NumberOfCompletedSubOperations,
+                                  response->NumberOfFailedSubOperations,
+                                  response->NumberOfWarningSubOperations);
+    }
+  }
+
     
   void DicomControlUserConnection::MoveInternal(const std::string& targetAet,
                                                 ResourceType level,
@@ -434,7 +450,8 @@ namespace Orthanc
     DcmDataset* statusDetail = NULL;
     DcmDataset* responseIdentifiers = NULL;
     OFCondition cond = DIMSE_moveUser(
-      &association_->GetDcmtkAssociation(), presID, &request, dataset, /*moveCallback*/ NULL, NULL,
+      &association_->GetDcmtkAssociation(), presID, &request, dataset, 
+      (progressListener_ != NULL ? MoveProgressCallback : NULL), progressListener_,
       /*opt_blockMode*/ (parameters_.HasTimeout() ? DIMSE_NONBLOCKING : DIMSE_BLOCKING),
       /*opt_dimse_timeout*/ parameters_.GetTimeout(),
       &association_->GetDcmtkNetwork(), /*subOpCallback*/ NULL, NULL,
@@ -456,6 +473,14 @@ namespace Orthanc
       OFString str;
       CLOG(TRACE, DICOM) << "Received Final Move Response:" << std::endl
                          << DIMSE_dumpMessage(str, response, DIMSE_INCOMING);
+
+      if (progressListener_ != NULL)
+      {
+        progressListener_->OnProgressUpdated(response.NumberOfRemainingSubOperations,
+                                             response.NumberOfCompletedSubOperations,
+                                             response.NumberOfFailedSubOperations,
+                                             response.NumberOfWarningSubOperations);
+      }
     }
     
     /**
@@ -494,8 +519,6 @@ namespace Orthanc
   {
     assert(association_.get() != NULL);
     association_->Open(parameters_);
-
-    // TODO-GET: if findResults is the result of a C-Find, we can use the SopClassUIDs for the negotiation
 
     std::unique_ptr<ParsedDicomFile> query(
       ConvertQueryFields(findResult, parameters_.GetRemoteModality().GetManufacturer()));
@@ -550,7 +573,7 @@ namespace Orthanc
     
     OFCondition cond = DIMSE_sendMessageUsingMemoryData(
           &(association_->GetDcmtkAssociation()), cgetPresID, &msgGetRequest, NULL /* statusDetail */, queryDataset,
-          NULL /* progress callback TODO-GET */, NULL /* callback context */, NULL /* commandSet */);
+          NULL, NULL, NULL /* commandSet */);
       
     if (cond.bad())
     {
@@ -597,17 +620,18 @@ namespace Orthanc
               << DIMSE_dumpMessage(tempStr, rsp, DIMSE_INCOMING, NULL, cmdPresId);
           }
 
-          // TODO-GET: for progress handler
-          // OFunique_ptr<RetrieveResponse> getRSP(new RetrieveResponse());
-          // getRSP->m_affectedSOPClassUID     = rsp.msg.CGetRSP.AffectedSOPClassUID;
-          // getRSP->m_messageIDRespondedTo    = rsp.msg.CGetRSP.MessageIDBeingRespondedTo;
-          // getRSP->m_status                  = rsp.msg.CGetRSP.DimseStatus;
-          // getRSP->m_numberOfRemainingSubops = rsp.msg.CGetRSP.NumberOfRemainingSubOperations;
-          // getRSP->m_numberOfCompletedSubops = rsp.msg.CGetRSP.NumberOfCompletedSubOperations;
-          // getRSP->m_numberOfFailedSubops    = rsp.msg.CGetRSP.NumberOfFailedSubOperations;
-          // getRSP->m_numberOfWarningSubops   = rsp.msg.CGetRSP.NumberOfWarningSubOperations;
-          // getRSP->m_statusDetail            = statusDetail;
+          if (progressListener_ != NULL)
+          {
+            progressListener_->OnProgressUpdated(rsp.msg.CGetRSP.NumberOfRemainingSubOperations,
+                                                  rsp.msg.CGetRSP.NumberOfCompletedSubOperations,
+                                                  rsp.msg.CGetRSP.NumberOfFailedSubOperations,
+                                                  rsp.msg.CGetRSP.NumberOfWarningSubOperations);
+          }
 
+          if (rsp.msg.CGetRSP.DimseStatus == 0x0000)  // final success message
+          {
+            continueSession = false;
+          }
         }
         // Handle C-STORE Request
         else if (rsp.CommandField == DIMSE_C_STORE_RQ)
@@ -669,7 +693,7 @@ namespace Orthanc
             result = DIMSE_sendMessageUsingMemoryData(&(association_->GetDcmtkAssociation()), 
                                                       cmdPresId, 
                                                       &storeResponse, NULL /* statusDetail */, NULL /* dataObject */,
-                                                      NULL /* progress callback TODO-GET */, NULL /* callback context */, NULL /* commandSet */);
+                                                      NULL, NULL, NULL /* commandSet */);
             if (result.bad())
             {
               continueSession = false;
@@ -704,7 +728,8 @@ namespace Orthanc
 
   DicomControlUserConnection::DicomControlUserConnection(const DicomAssociationParameters& params, ScuOperationFlags scuOperation) :
     parameters_(params),
-    association_(new DicomAssociation)
+    association_(new DicomAssociation),
+    progressListener_(NULL)
   {
     assert((scuOperation & ScuOperationFlags_Get) == 0);  // you must provide acceptedStorageSopClassUids for Get SCU
     std::set<std::string> emptyStorageSopClasses;
@@ -718,7 +743,8 @@ namespace Orthanc
                                                          const std::set<std::string>& acceptedStorageSopClasses,
                                                          const std::list<DicomTransferSyntax>& proposedStorageTransferSyntaxes) :
     parameters_(params),
-    association_(new DicomAssociation)
+    association_(new DicomAssociation),
+    progressListener_(NULL)
   {
     SetupPresentationContexts(scuOperation, acceptedStorageSopClasses, proposedStorageTransferSyntaxes);
   }

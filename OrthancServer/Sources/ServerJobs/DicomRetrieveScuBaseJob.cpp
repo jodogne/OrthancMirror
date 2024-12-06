@@ -160,7 +160,11 @@ namespace Orthanc
     context_(context),
     parameters_(DicomAssociationParameters::UnserializeJob(serialized)),
     query_(true),
-    queryFormat_(DicomToJsonFormat_Short)
+    queryFormat_(DicomToJsonFormat_Short),
+    nbRemainingSubOperations_(0),
+    nbCompletedSubOperations_(0),
+    nbFailedSubOperations_(0),
+    nbWarningSubOperations_(0)  
   {
     if (serialized.isMember(QUERY))
     {
@@ -201,5 +205,27 @@ namespace Orthanc
       
       return true;
     }
+  }
+
+  void DicomRetrieveScuBaseJob::OnProgressUpdated(uint16_t nbRemainingSubOperations,
+                                                  uint16_t nbCompletedSubOperations,
+                                                  uint16_t nbFailedSubOperations,
+                                                  uint16_t nbWarningSubOperations)
+  {
+    nbRemainingSubOperations_ = nbRemainingSubOperations;
+    nbCompletedSubOperations_ = nbCompletedSubOperations;
+    nbFailedSubOperations_ = nbFailedSubOperations;
+    nbWarningSubOperations_ = nbWarningSubOperations;
+  }
+
+  float DicomRetrieveScuBaseJob::GetProgress()
+  {
+    uint32_t totalOperations = nbRemainingSubOperations_ + nbCompletedSubOperations_ + nbFailedSubOperations_ + nbWarningSubOperations_;
+    if (totalOperations == 0)
+    {
+      return 0.0f;
+    }
+
+    return float(nbCompletedSubOperations_ + nbFailedSubOperations_ + nbWarningSubOperations_) / float(totalOperations);
   }
 }

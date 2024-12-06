@@ -63,9 +63,20 @@ namespace Orthanc
 
   class DicomControlUserConnection : public boost::noncopyable
   {
+  public:
+    class IProgressListener
+    {
+    public:
+      virtual void OnProgressUpdated(uint16_t nbRemainingSubOperations,
+                                     uint16_t nbCompletedSubOperations,
+                                     uint16_t nbFailedSubOperations,
+                                     uint16_t nbWarningSubOperations) = 0;
+    };
+
   private:
     DicomAssociationParameters           parameters_;
     boost::shared_ptr<DicomAssociation>  association_;
+    IProgressListener*                   progressListener_;
 
     void SetupPresentationContexts(ScuOperationFlags scuOperation,
                                    const std::set<std::string>& acceptedStorageSopClasses,
@@ -98,6 +109,11 @@ namespace Orthanc
     void Close();
 
     bool Echo();
+
+    void SetProgressListener(IProgressListener* progressListener)
+    {
+      progressListener_ = progressListener;
+    }
 
     void Find(DicomFindAnswers& result,
               ResourceType level,
