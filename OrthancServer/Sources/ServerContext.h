@@ -577,7 +577,8 @@ namespace Orthanc
                               const std::string& dicom,
                               bool hasMoveOriginator,
                               const std::string& moveOriginatorAet,
-                              uint16_t moveOriginatorId);
+                              uint16_t moveOriginatorId,
+                              bool ignoreErrors);
 
     // This method can be used even if the global option
     // "TranscodeDicomProtocol" is set to "false"

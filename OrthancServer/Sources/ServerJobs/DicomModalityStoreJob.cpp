@@ -65,7 +65,7 @@ namespace Orthanc
 
     std::string sopClassUid, sopInstanceUid;
     context_.StoreWithTranscoding(sopClassUid, sopInstanceUid, *connection_, dicom,
-                                  HasMoveOriginator(), moveOriginatorAet_, moveOriginatorId_);
+                                  HasMoveOriginator(), moveOriginatorAet_, moveOriginatorId_, IsPermissive());
 
     if (storageCommitment_)
     {

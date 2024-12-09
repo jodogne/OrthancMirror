@@ -110,7 +110,7 @@ namespace Orthanc
 
         std::string sopClassUid, sopInstanceUid;  // Unused
         context_.StoreWithTranscoding(sopClassUid, sopInstanceUid, *connection_, dicom,
-                                      true, originatorAet_, originatorId_);
+                                      true, originatorAet_, originatorId_, false); // TODO: ignoreErrors
 
         return Status_Success;
       }

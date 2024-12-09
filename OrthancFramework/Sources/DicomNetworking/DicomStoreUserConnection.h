@@ -130,7 +130,8 @@ namespace Orthanc
                DcmFileFormat& dicom,
                bool hasMoveOriginator,
                const std::string& moveOriginatorAET,
-               uint16_t moveOriginatorID);
+               uint16_t moveOriginatorID,
+               bool ignoreErrors);
 
     void Store(std::string& sopClassUid,
                std::string& sopInstanceUid,
@@ -138,7 +139,8 @@ namespace Orthanc
                size_t size,
                bool hasMoveOriginator,
                const std::string& moveOriginatorAET,
-               uint16_t moveOriginatorID);
+               uint16_t moveOriginatorID,
+               bool ignoreErrors);
 
     void LookupParameters(std::string& sopClassUid,
                           std::string& sopInstanceUid,
@@ -154,7 +156,8 @@ namespace Orthanc
                    DicomTransferSyntax preferredTransferSyntax,
                    bool hasMoveOriginator,
                    const std::string& moveOriginatorAET,
-                   uint16_t moveOriginatorID);
+                   uint16_t moveOriginatorID,
+                   bool errorsAsWarning);
 #endif
     
 #if ORTHANC_ENABLE_DCMTK_TRANSCODING == 1
@@ -165,7 +168,8 @@ namespace Orthanc
                    size_t size,
                    bool hasMoveOriginator,
                    const std::string& moveOriginatorAET,
-                   uint16_t moveOriginatorID);
+                   uint16_t moveOriginatorID,
+                   bool errorsAsWarning);
 #endif
   };
 }
