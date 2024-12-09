@@ -194,6 +194,7 @@ Mid-term
   - What shall we log/warn if an external modality tries to send a PT/CT
   - What shall we log/warn if we try to C-GET a PT/CT
   Should the rejected files be logged as Failed, Warning, Refused, ...
+  Note: some tentative work has been initiated in the get-scu-test branch.
 * Support "Retrieve AE Title" (0008,0054) in C-FIND:
   - On SCP side: done by https://orthanc.uclouvain.be/hg/orthanc/rev/1ec3e1e18f50
   - On SCU side:
