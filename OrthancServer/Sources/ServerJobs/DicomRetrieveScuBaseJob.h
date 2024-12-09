@@ -107,7 +107,7 @@ namespace Orthanc
                             const Json::Value &serialized);
 
   public:
-    void AddFindAnswer(const DicomMap &answer);
+    virtual void AddFindAnswer(const DicomMap &answer);
 
     void AddQuery(const DicomMap& query);
 
