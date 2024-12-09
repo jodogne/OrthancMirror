@@ -543,7 +543,7 @@ namespace Orthanc
         sopClass = UID_GETStudyRootQueryRetrieveInformationModel;
         break;
       default:
-        throw OrthancException(ErrorCode_InternalError); // TODO-GET: implement series + instances
+        throw OrthancException(ErrorCode_InternalError);
     }
 
     // Figure out which of the accepted presentation contexts should be used
@@ -662,8 +662,8 @@ namespace Orthanc
 
           if (result.bad())
           {
+            LOG(WARNING) << "C-GET SCU handler: Failed to receive dataset: " << result.text();
             desiredCStoreReturnStatus = STATUS_STORE_Error_CannotUnderstand;
-            // TODO-GET: return ?
           }
           else
           {

@@ -186,9 +186,6 @@ DICOM
 Mid-term
 --------
 
-* Support C-GET SCU (note that C-GET SCP was introduced in Orthanc 1.7.0)
-* Configure the list of accepted SOP Classes
-  https://discourse.orthanc-server.org/t/can-you-limit-the-sop-classes-accepted-as-store-scp/4606
 * Check how Orthanc shall behave wrt to AcceptedSopClasses in these situations (consider Orthanc
   accepts CT but not PT)
   - What shall we log/warn if an external modality tries to send a PT/CT
@@ -204,9 +201,6 @@ Mid-term
 * Strict hierarchical C-FIND:
   https://groups.google.com/d/msg/orthanc-users/VBHpeGVSNKM/tkaVvjWFBwAJ
 * report DIMSE error codes in Rest API and job status for /store /query /move /retrieve
-* report progress report of C-Move operation in jop progress.  There are 
-  progress callbacks available in DIMSE_moveUser
-  https://groups.google.com/g/orthanc-users/c/c8cGnA7FzsE/m/BSs66D8wBwAJ
 * Log outgoing C-Find queries
 * Support other Transfer Syntaxes in the Worklist plugin:
   https://discourse.orthanc-server.org/t/could-you-please-create-an-option-to-set-the-transfer-syntax-in-the-worklist-plugin-currently-little-endian-explicit-is-fixed/4871
