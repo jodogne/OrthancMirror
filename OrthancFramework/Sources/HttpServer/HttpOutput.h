@@ -66,6 +66,7 @@ namespace Orthanc
       unsigned int keepAliveTimeout_;
       std::list<std::string> headers_;
       bool hasXContentTypeOptions_;
+      bool hasContentType_;
 
       std::string multipartBoundary_;
       std::string multipartContentType_;
@@ -125,6 +126,11 @@ namespace Orthanc
                           size_t size);
 
       void CloseStream();
+
+      bool HasContentType() const
+      {
+        return hasContentType_;
+      }
     };
 
     StateMachine stateMachine_;
