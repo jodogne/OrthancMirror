@@ -220,7 +220,7 @@
   // The list of rejected Storage SOP classes.
   // This configuration is only meaningful if
   // "AcceptedSopClasses" is using regular expressions
-  // or if it not defined.
+  // or if it is not defined.
   // Each entry can contain wildcards ("?" or "*").
   // (new in Orthanc 1.12.6)
   // "RejectedSopClasses" : [
