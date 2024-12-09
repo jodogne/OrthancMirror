@@ -35,7 +35,8 @@ namespace Orthanc
   class DicomGetScuJob : public DicomRetrieveScuBaseJob
   {
   private:
-    
+    std::set<std::string> sopClassesFromResourcesToRetrieve_;
+
     virtual void Retrieve(const DicomMap& findAnswer) ORTHANC_OVERRIDE;
     
   public:
@@ -48,7 +49,7 @@ namespace Orthanc
                    const Json::Value& serialized);
 
 
-    void AddResourceToRetrieve(ResourceType level, const std::string& dicomId);
+    virtual void AddFindAnswer(const DicomMap &answer) ORTHANC_OVERRIDE;
 
 
     virtual void GetJobType(std::string& target) const ORTHANC_OVERRIDE
