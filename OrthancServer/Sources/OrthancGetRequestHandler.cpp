@@ -250,10 +250,9 @@ namespace Orthanc
     {
       failedCount_++;
       AddFailedUIDInstance(sopInstanceUid);
-      throw OrthancException(ErrorCode_NetworkProtocol,
-                             "C-GET SCP: storeSCU: No presentation context for: (" +
-                             std::string(dcmSOPClassUIDToModality(sopClassUid.c_str(), "OT")) +
-                             ") " + sopClassUid);
+      LOG(WARNING) << "C-GET SCP: storeSCU: No presentation context for: (" 
+                   << dcmSOPClassUIDToModality(sopClassUid.c_str(), "OT") << ") " << sopClassUid;
+      return true;
     }
     else
     {

@@ -56,7 +56,7 @@ namespace Orthanc
 
       std::string sopClassUid, sopInstanceUid;  // Unused
       context_.StoreWithTranscoding(sopClassUid, sopInstanceUid, lock.GetConnection(), dicom,
-                                    false /* Not a C-MOVE */, "", 0);
+                                    false /* Not a C-MOVE */, "", 0, false);  // TODO: get "permissive from job"
     }
     catch (OrthancException& e)
     {

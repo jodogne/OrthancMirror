@@ -2007,7 +2007,8 @@ namespace Orthanc
                                            const std::string& dicom,
                                            bool hasMoveOriginator,
                                            const std::string& moveOriginatorAet,
-                                           uint16_t moveOriginatorId)
+                                           uint16_t moveOriginatorId,
+                                           bool ignoreErrors)
   {
     const void* data = dicom.empty() ? NULL : dicom.c_str();
     const RemoteModalityParameters& modality = connection.GetParameters().GetRemoteModality();
@@ -2016,12 +2017,12 @@ namespace Orthanc
         !modality.IsTranscodingAllowed())
     {
       connection.Store(sopClassUid, sopInstanceUid, data, dicom.size(),
-                       hasMoveOriginator, moveOriginatorAet, moveOriginatorId);
+                       hasMoveOriginator, moveOriginatorAet, moveOriginatorId, ignoreErrors);
     }
     else
     {
       connection.Transcode(sopClassUid, sopInstanceUid, *this, data, dicom.size(), preferredTransferSyntax_,
-                           hasMoveOriginator, moveOriginatorAet, moveOriginatorId);
+                           hasMoveOriginator, moveOriginatorAet, moveOriginatorId, ignoreErrors);
     }
   }
 

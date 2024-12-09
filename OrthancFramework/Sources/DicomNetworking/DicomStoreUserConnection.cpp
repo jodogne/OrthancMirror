@@ -377,7 +377,8 @@ namespace Orthanc
                                        DcmFileFormat& dicom,
                                        bool hasMoveOriginator,
                                        const std::string& moveOriginatorAET,
-                                       uint16_t moveOriginatorID)
+                                       uint16_t moveOriginatorID,
+                                       bool ignoreErrors)
   {
     DicomTransferSyntax transferSyntax;
     LookupParameters(sopClassUid, sopInstanceUid, transferSyntax, dicom);
@@ -388,12 +389,21 @@ namespace Orthanc
     if (!NegotiatePresentationContext(presID, sopClassUid, transferSyntax, proposeUncompressedSyntaxes_,
                                       DicomTransferSyntax_LittleEndianExplicit))
     {
-      throw OrthancException(ErrorCode_NetworkProtocol,
-                             "No valid presentation context was negotiated for "
-                             "SOP class UID [" + sopClassUid + "] and transfer "
-                             "syntax [" + GetTransferSyntaxUid(transferSyntax) + "] "
-                             "while sending to modality [" +
-                             parameters_.GetRemoteModality().GetApplicationEntityTitle() + "]");
+      if (ignoreErrors)
+      {
+        LOG(INFO) << "No valid presentation context was negotiated for SOP class UID [" << sopClassUid << "] and transfer "
+                      "syntax [" << GetTransferSyntaxUid(transferSyntax) << "] "
+                      "while sending to modality [" << parameters_.GetRemoteModality().GetApplicationEntityTitle() << "]";
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_NetworkProtocol,
+                              "No valid presentation context was negotiated for "
+                              "SOP class UID [" + sopClassUid + "] and transfer "
+                              "syntax [" + GetTransferSyntaxUid(transferSyntax) + "] "
+                              "while sending to modality [" +
+                              parameters_.GetRemoteModality().GetApplicationEntityTitle() + "]");
+      }
     }
     
     // Prepare the transmission of data
@@ -469,7 +479,8 @@ namespace Orthanc
                                        size_t size,
                                        bool hasMoveOriginator,
                                        const std::string& moveOriginatorAET,
-                                       uint16_t moveOriginatorID)
+                                       uint16_t moveOriginatorID,
+                                       bool ignoreErrors)
   {
     std::unique_ptr<DcmFileFormat> dicom(
       FromDcmtkBridge::LoadFromMemoryBuffer(buffer, size));
@@ -479,7 +490,7 @@ namespace Orthanc
       throw OrthancException(ErrorCode_InternalError);
     }
     
-    Store(sopClassUid, sopInstanceUid, *dicom, hasMoveOriginator, moveOriginatorAET, moveOriginatorID);
+    Store(sopClassUid, sopInstanceUid, *dicom, hasMoveOriginator, moveOriginatorAET, moveOriginatorID, ignoreErrors);
   }
 
 
@@ -523,7 +534,8 @@ namespace Orthanc
                                            DicomTransferSyntax preferredTransferSyntax,
                                            bool hasMoveOriginator,
                                            const std::string& moveOriginatorAET,
-                                           uint16_t moveOriginatorID)
+                                           uint16_t moveOriginatorID,
+                                           bool ignoreErrors)
   {
     std::unique_ptr<DcmFileFormat> dicom(FromDcmtkBridge::LoadFromMemoryBuffer(buffer, size));
     if (dicom.get() == NULL ||
@@ -540,15 +552,24 @@ namespace Orthanc
 
     if (accepted.size() == 0)
     {
-      throw OrthancException(ErrorCode_NoPresentationContext, "Cannot C-Store an instance of SOPClassUID " + 
-                             sopClassUid + ", the destination has not accepted any TransferSyntax for this SOPClassUID.");
+      if (ignoreErrors)
+      {
+        LOG(WARNING) << "Cannot C-Store an instance of SOPClassUID " << 
+                      sopClassUid + ", the destination has not accepted any TransferSyntax for this SOPClassUID.";  // TODO: add an option to enable/disable this warning
+        return;
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_NoPresentationContext, "Cannot C-Store an instance of SOPClassUID " + 
+                               sopClassUid + ", the destination has not accepted any TransferSyntax for this SOPClassUID.");
+      }
     }
 
     if (accepted.find(sourceSyntax) != accepted.end())
     {
       // No need for transcoding
       Store(sopClassUid, sopInstanceUid, *dicom,
-            hasMoveOriginator, moveOriginatorAET, moveOriginatorID);
+            hasMoveOriginator, moveOriginatorAET, moveOriginatorID, ignoreErrors);
     }
     else
     {
@@ -639,7 +660,7 @@ namespace Orthanc
         else
         {
           Store(sopClassUid, sopInstanceUid, transcoded.GetParsed(),
-                hasMoveOriginator, moveOriginatorAET, moveOriginatorID);
+                hasMoveOriginator, moveOriginatorAET, moveOriginatorID, ignoreErrors);
         }
       }
       else
@@ -669,10 +690,11 @@ namespace Orthanc
                                            size_t size,
                                            bool hasMoveOriginator,
                                            const std::string& moveOriginatorAET,
-                                           uint16_t moveOriginatorID)
+                                           uint16_t moveOriginatorID,
+                                           bool ignoreErrors)
   {
     Transcode(sopClassUid, sopInstanceUid, transcoder, buffer, size, DicomTransferSyntax_LittleEndianExplicit,
-              hasMoveOriginator, moveOriginatorAET, moveOriginatorID);
+              hasMoveOriginator, moveOriginatorAET, moveOriginatorID, ignoreErrors);
   }
 #endif
 }
