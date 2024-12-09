@@ -17,6 +17,8 @@ REST API
 --------
 
 * API version upgraded to 26
+* Support HTTP "Range" request header on "{...}/attachments/{...}/data" and
+  "{...}/attachments/{...}/compressed-data"
 * Improved parsing of multiple numerical values in DICOM tags.
   https://discourse.orthanc-server.org/t/qido-includefield-with-sequences/4746/6
 * In DICOMWeb json, the "DS - Decimal String" values were represented by float numbers
@@ -49,7 +51,10 @@ Maintenance
 * Fix C-Find queries not returning private tags in the modality worklist plugin.
 * Fix extremely rare error when 2 threads are trying to create the same folder in the File Storage 
   at the same time.
-* Fix crashes if handling very large images
+* Fix crashes if handling very large images.
+* Fix deadlock when parsing specific invalid DICOM files.
+* Loading plugins:
+  - Orthanc will now fail to start when provided with a plugin path that can not be found.
 * Metrics:
   - fix a few metrics that were not published
   - added 2 metrics: orthanc_storage_cache_miss_count & orthanc_storage_cache_hit_count 
@@ -85,7 +90,7 @@ Plugins
 * Housekeeper plugin: 
   - Added an option "LimitMainDicomTagsReconstructLevel"
     (allowed values: "Patient", "Study", "Series", "Instance"). This can greatly speed
-    up the housekeeper process, e.g. if you have only update the Study level ExtraMainDicomTags.
+    up the housekeeper process, e.g. if you have only updated the Study level ExtraMainDicomTags.
   - Fixed broken /instances/../tags route after running the Housekeeper
     after having changed the "IngestTranscoding".
 * SDK: added OrthancPluginLogMessage() as a new primitive for plugins
