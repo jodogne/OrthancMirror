@@ -538,6 +538,8 @@ namespace Orthanc
         sopClass = UID_GETPatientRootQueryRetrieveInformationModel;
         break;
       case ResourceType_Study:
+      case ResourceType_Series:
+      case ResourceType_Instance:
         sopClass = UID_GETStudyRootQueryRetrieveInformationModel;
         break;
       default:
