@@ -40,6 +40,11 @@ General
 * Add configurations to enable/disable warnings:
   - Modifying an instance while keeping its original SOPInstanceUID: This should be avoided!
   - Modifying a study while keeping its original StudyInstanceUID: This should be avoided!
+  In order to be able to disable/enable warnings in both the server and the framework, we should add a map of
+  enabled warnings in the logging classes directly and have something like:
+  LOG_WARNING_IF_ENABLED("Warning_ID") << ...
+  ENABLE_WARNING("Warning_ID", true)
+  Warnings from Framework should have a separate range like W999_ or WF001_ ...
 * Store the job registry in a dedicatd table in DB ?
   https://discourse.orthanc-server.org/t/performance-issue-when-adding-a-lot-of-jobs-in-the-queue/3915/2
   Note: that might also be the right time to have a central jobs registry when working
@@ -184,6 +189,11 @@ Mid-term
 * Support C-GET SCU (note that C-GET SCP was introduced in Orthanc 1.7.0)
 * Configure the list of accepted SOP Classes
   https://discourse.orthanc-server.org/t/can-you-limit-the-sop-classes-accepted-as-store-scp/4606
+* Check how Orthanc shall behave wrt to AcceptedSopClasses in these situations (consider Orthanc
+  accepts CT but not PT)
+  - What shall we log/warn if an external modality tries to send a PT/CT
+  - What shall we log/warn if we try to C-GET a PT/CT
+  Should the rejected files be logged as Failed, Warning, Refused, ...
 * Support "Retrieve AE Title" (0008,0054) in C-FIND:
   - On SCP side: done by https://orthanc.uclouvain.be/hg/orthanc/rev/1ec3e1e18f50
   - On SCU side:
