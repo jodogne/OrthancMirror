@@ -297,7 +297,21 @@ SDK
   https://groups.google.com/g/orthanc-users/c/ymtaAmgSs6Q/m/PqVBactQAQAJ
 * Add an index on the UUID column in the DelayedDeletion plugin:
   https://discourse.orthanc-server.org/t/delayeddeletion-improvement-unique-index-on-pending-uuid-column/4032
+* Orthanc shall refuse to start if one registers 2 storage plugins.
+  Right now, this is not possible because OrthancPluginRegisterStorageArea2 does not return any value
+  and it can not throw an Exception because that's a core function called from a plugin -> the Exception
+  can not cross the C/C++ frontier safely -> we need a OrthancPluginRegisterStorageArea3 with a return value.
+  Ex: install DelayedDeletion + S3 storage.  Right now, the second plugin to load is just ignored with an error
+  message in the logs.
 
+
+-----------
+Housekeeper
+-----------
+
+* The Housekeeper should just refuse to start if you are using a lossy transfer syntax because that would generate 
+  new orthanc ids as well and there is a risk of messing up things.  tools/reconstruct shall return a 400 as well.
+  https://discourse.orthanc-server.org/t/crashes-on-housekeeper-transcode-storing-in-s3/5330/2
 
 ----------------
 Ideas of plugins
