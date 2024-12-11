@@ -48,8 +48,6 @@ namespace Orthanc
                                         int64_t& compressedSize,
                                         int64_t& uncompressedSize) ORTHANC_OVERRIDE;
 
-    virtual void PerformDbHousekeeping() ORTHANC_OVERRIDE;
-
     virtual void ExecuteCount(uint64_t& count,
                               const FindRequest& request,
                               const IDatabaseWrapper::Capabilities& capabilities) ORTHANC_OVERRIDE;

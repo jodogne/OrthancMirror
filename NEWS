@@ -60,9 +60,6 @@ Maintenance
 
 * DICOM TLS: "DicomTlsTrustedCertificates" is not required anymore when issuing
   an outgoing SCU connexion when "DicomTlsRemoteCertificateRequired" is set to false.
-* Introduced a new thread to perform DB Housekeeping at regular interval (1s) for the
-  DB plugins requiring it (currently only PostgreSQL).  E.g: This avoids very long update 
-  times in case you don't call /statistics for a long period.
 * Fix C-Find queries not returning computed tags like ModalitiesInStudy, NumberOfStudyRelatedSeries, ...
   in very specific use-cases.
 * Fix C-Find queries not returning private tags in the modality worklist plugin.

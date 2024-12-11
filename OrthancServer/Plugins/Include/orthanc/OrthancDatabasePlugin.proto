@@ -160,7 +160,6 @@ message GetSystemInformation {
     bool has_measure_latency = 7;
     bool supports_find = 8;         // New in Orthanc 1.12.5
     bool has_extended_changes = 9;  // New in Orthanc 1.12.5
-    bool has_db_housekeeping = 10;  // New in Orthanc 1.12.5
   }
 }
 
@@ -316,7 +315,6 @@ enum TransactionOperation {
   OPERATION_FIND = 50;                        // New in Orthanc 1.12.5
   OPERATION_GET_CHANGES_EXTENDED = 51;        // New in Orthanc 1.12.5
   OPERATION_COUNT_RESOURCES = 52;             // New in Orthanc 1.12.5
-  OPERATION_PERFORM_DB_HOUSEKEEPING = 53;     // New in Orthanc 1.12.5
 }
 
 message Rollback {
@@ -707,13 +705,6 @@ message UpdateAndGetStatistics {
   }
 }
 
-message PerformDbHousekeeping {
-  message Request {
-  }
-  message Response {
-  }
-}
-
 message ClearMainDicomTags {
   message Request {
     int64 id = 1;
@@ -1042,7 +1033,6 @@ message TransactionRequest {
   Find.Request                            find = 150;
   GetChangesExtended.Request              get_changes_extended = 151;
   Find.Request                            count_resources = 152;
-  PerformDbHousekeeping.Request           perform_db_housekeeping = 153;
 }
 
 message TransactionResponse {
@@ -1096,10 +1086,9 @@ message TransactionResponse {
   ListLabels.Response                      list_labels = 147;
   IncrementGlobalProperty.Response         increment_global_property = 148;
   UpdateAndGetStatistics.Response          update_and_get_statistics = 149;
-  repeated Find.Response                   find = 150;   // One message per found resources
+  repeated Find.Response                   find = 150;   // One message per found resource
   GetChangesExtended.Response              get_changes_extended = 151;
   CountResources.Response                  count_resources = 152;
-  PerformDbHousekeeping.Response           perform_db_housekeeping = 153;
 }
 
 enum RequestType {

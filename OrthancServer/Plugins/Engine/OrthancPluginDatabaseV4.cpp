@@ -1063,12 +1063,6 @@ namespace Orthanc
       uncompressedSize = response.update_and_get_statistics().total_uncompressed_size();
     }
 
-    virtual void PerformDbHousekeeping() ORTHANC_OVERRIDE
-    {
-      DatabasePluginMessages::TransactionResponse response;
-      ExecuteTransaction(response, DatabasePluginMessages::OPERATION_PERFORM_DB_HOUSEKEEPING);
-    }
-
     virtual bool LookupMetadata(std::string& target,
                                 int64_t& revision,
                                 int64_t id,
@@ -1891,7 +1885,6 @@ namespace Orthanc
       dbCapabilities_.SetMeasureLatency(systemInfo.has_measure_latency());
       dbCapabilities_.SetHasExtendedChanges(systemInfo.has_extended_changes());
       dbCapabilities_.SetHasFindSupport(systemInfo.supports_find());
-      dbCapabilities_.SetHasDbHousekeeping(systemInfo.has_db_housekeeping());
     }
 
     open_ = true;
