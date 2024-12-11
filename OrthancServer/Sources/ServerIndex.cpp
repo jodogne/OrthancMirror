@@ -266,46 +266,6 @@ namespace Orthanc
     }
   };
 
-  void ServerIndex::PerformDbHouskeeping(ServerIndex* that,
-                                         unsigned int threadSleepGranularityMilliseconds)
-  {
-    Logging::SetCurrentThreadName("DB-HK");
-
-    static const unsigned int SLEEP_SECONDS = 1;
-
-    if (threadSleepGranularityMilliseconds > 1000)
-    {
-      throw OrthancException(ErrorCode_ParameterOutOfRange);
-    }
-
-    LOG(INFO) << "Starting the DB Housekeeping thread (sleep = " << SLEEP_SECONDS << " seconds)";
-
-    unsigned int count = 0;
-    unsigned int countThreshold = (1000 * SLEEP_SECONDS) / threadSleepGranularityMilliseconds;
-
-    while (!that->done_)
-    {
-      boost::this_thread::sleep(boost::posix_time::milliseconds(threadSleepGranularityMilliseconds));
-      count++;
-      
-      if (count >= countThreshold)
-      {
-        try
-        {
-          that->PerformDbHousekeeping();
-        }
-        catch (...)
-        {
-          LOG(ERROR) << "Error while performing DB Housekeeping";
-        }
-        
-        count = 0;
-      }
-    }
-
-    LOG(INFO) << "Stopping the DB Housekeeping thread";
-  }
-
   void ServerIndex::FlushThread(ServerIndex* that,
                                 unsigned int threadSleepGranularityMilliseconds)
   {
@@ -383,20 +343,6 @@ namespace Orthanc
       }
     }
 
-    // For some DB plugins, some housekeeping might be required at regular interval
-    // like computing the statistics or update some tables after an upgrade
-    if (GetDatabaseCapabilities().HasDbHousekeeping())
-    {
-      if (readOnly)
-      {
-        LOG(WARNING) << "READ-ONLY SYSTEM: not starting the DB Housekeeping thread";
-      }
-      else
-      {
-        dbHousekeepingThread_ = boost::thread(PerformDbHouskeeping, this, threadSleepGranularityMilliseconds);
-      }
-    }
-
     if (readOnly)
     {
       LOG(WARNING) << "READ-ONLY SYSTEM: not starting the unstable resources monitor thread";
@@ -428,11 +374,6 @@ namespace Orthanc
       if (flushThread_.joinable())
       {
         flushThread_.join();
-      }
-
-      if (dbHousekeepingThread_.joinable())
-      {
-        dbHousekeepingThread_.join();
       }
 
       if (unstableResourcesMonitorThread_.joinable())

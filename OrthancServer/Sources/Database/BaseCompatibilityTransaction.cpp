@@ -45,11 +45,6 @@ namespace Orthanc
     throw OrthancException(ErrorCode_NotImplemented);  // Not supported
   }
 
-  void BaseCompatibilityTransaction::PerformDbHousekeeping()
-  {
-    throw OrthancException(ErrorCode_NotImplemented);  // Not supported
-  }
-
   void BaseCompatibilityTransaction::GetChangesExtended(std::list<ServerIndexChange>& target /*out*/,
                                                         bool& done /*out*/,
                                                         int64_t since,

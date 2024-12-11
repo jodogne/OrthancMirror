@@ -3307,24 +3307,4 @@ namespace Orthanc
       }
     }
   }
-
-  void StatelessDatabaseOperations::PerformDbHousekeeping()
-  {
-    class Operations : public IReadWriteOperations
-    {
-    public:
-      Operations()
-      {
-      }
-
-      virtual void Apply(ReadWriteTransaction& transaction) ORTHANC_OVERRIDE
-      {
-        transaction.PerformDbHousekeeping();
-      }
-    };
-
-    Operations operations;
-    Apply(operations);
-  }
-
 }

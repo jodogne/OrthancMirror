@@ -56,7 +56,6 @@ namespace Orthanc
       bool hasMeasureLatency_;
       bool hasFindSupport_;
       bool hasExtendedChanges_;
-      bool hasDbHousekeeping_;
 
     public:
       Capabilities() :
@@ -67,8 +66,7 @@ namespace Orthanc
         hasUpdateAndGetStatistics_(false),
         hasMeasureLatency_(false),
         hasFindSupport_(false),
-        hasExtendedChanges_(false),
-        hasDbHousekeeping_(false)
+        hasExtendedChanges_(false)
       {
       }
 
@@ -130,16 +128,6 @@ namespace Orthanc
       bool HasUpdateAndGetStatistics() const
       {
         return hasUpdateAndGetStatistics_;
-      }
-
-      void SetHasDbHousekeeping(bool value)
-      {
-        hasDbHousekeeping_ = value;
-      }
-
-      bool HasDbHousekeeping() const
-      {
-        return hasDbHousekeeping_;
       }
 
       void SetMeasureLatency(bool value)
@@ -402,9 +390,6 @@ namespace Orthanc
                                       int64_t to,
                                       uint32_t limit,
                                       const std::set<ChangeType>& filterType) = 0;
-
-      // New in Orthanc 1.12.5
-      virtual void PerformDbHousekeeping() = 0;
     };
 
 
