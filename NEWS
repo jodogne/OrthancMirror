@@ -1,10 +1,6 @@
 Pending changes in the mainline
 ===============================
 
-* TODO-FIND: complete the list of updated routes:
-  - /studies?expand and sibbling routes now also return "Metadata" (if the DB implements 'extended-api-v1')
-  - /studies?since=x&limit=0 and sibbling routes: limit=0 now means "no limit" instead of "no results"
-
 General
 -------
 
@@ -28,25 +24,30 @@ REST API
 * Improved parsing of multiple numerical values in DICOM tags.
   https://discourse.orthanc-server.org/t/qido-includefield-with-sequences/4746/6
 * in /system, added a new field "Capabilities" with new values:
-  - "HasExtendedChanges" for DB backend that provides this feature (the default SQLite DB
-    or PostgreSQL vX.X, MySQL vX.X, ODBC vX.X).
-  - "HasExtendedFind" for DB backend that provides this feature (the default SQLite DB
-    or PostgreSQL vX.X, MySQL vX.X, ODBC vX.X).
-* With DB backend with "HasExtendedChanges" support, /changes now supports 2 more options: 
-  - 'type' to filter the changes returned by the query 
-  - 'to' to potentially cycle through changes in reverse order.
-  example: /changes?type=StableStudy&to=7584&limit=100
-* With DB backend with "HasExtendedFind" support, /tools/find now supports new options:
-  - 'OrderBy' to order by DICOM Tag or metadata value
-  - 'ParentPatient', 'ParentStudy', 'ParentSeries' to retrieve only descendants of an
-    Orthanc resource.
-  - 'MetadataQuery' to filter results based on metadata values.
-  - 'ResponseContent' to define what shall be included in the response for each returned
-    resource (e.g: Metadata, Children, ...)
-* With DB backend with "HasExtendedFind" support, a new /tools/count-resources API route
-  is similar to tools/find but only returns the number of resources matching the criteria.
-* With DB backend with "HasExtendedFind" support, usage of 'Limit' and 'Since in /tools/find
-  is not allowed if your query includes filtering on DICOM tags that are not stored in DB.
+  - "HasExtendedChanges" for DB backend that provides this feature (currently, the default 
+    SQLite DB and upcoming PostgreSQL v7.0).
+  - "HasExtendedFind" for DB backend that provides this feature (currently, the default 
+    SQLite DB and upcoming PostgreSQL v7.0).
+* With DB backend with "HasExtendedChanges" support:
+  - /changes now supports 2 more options: 
+    - 'type' to filter the changes returned by the query 
+    - 'to' to potentially cycle through changes in reverse order.
+    example: /changes?type=StableStudy&to=7584&limit=100
+* With DB backend with "HasExtendedFind" support:
+  - /tools/find now supports new options:
+    - 'OrderBy' to order by DICOM Tag or metadata value
+    - 'ParentPatient', 'ParentStudy', 'ParentSeries' to retrieve only descendants of an
+      Orthanc resource.
+    - 'MetadataQuery' to filter results based on metadata values.
+    - 'ResponseContent' to define what shall be included in the response for each returned
+      resource (e.g: Metadata, Children, ...)
+  - in /tools/find: 'Limit' and 'Since' are not allowed anymore if your query includes 
+    filtering on DICOM tags that are not stored in DB.
+  - /tools/count-resources API route is similar to tools/find but only returns the number 
+    of resources matching the criteria.
+  - /studies?expand and sibbling routes now also return "Metadata"
+  - /studies?since=x&limit=0 and sibbling routes: limit=0 now means "no limit" instead of 
+    "no results" in previous versions.
 * In DICOMWeb json, the "DS - Decimal String" values were represented by float numbers
   and they are now represented as strings to avoid introduction of long float representation
   (e.g 0.1429999999999 vs "0.143") and be more compliant with the DICOMWeb
