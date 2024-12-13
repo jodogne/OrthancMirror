@@ -73,7 +73,7 @@ namespace Orthanc
         .SetHttpGetArgument("limit", RestApiCallDocumentation::Type_Number, "Limit the number of results", false)
         .SetHttpGetArgument("since", RestApiCallDocumentation::Type_Number, "Show only the resources since the provided index excluded", false)
         .SetHttpGetArgument("to", RestApiCallDocumentation::Type_Number, "Show only the resources till the provided index included (only available if your DB backend supports ExtendedChanges)", false)
-        .SetHttpGetArgument("type", RestApiCallDocumentation::Type_String, "Show only the changes of the provided type (only available if your DB backend supports ExtendedChanges)", false)
+        .SetHttpGetArgument("type", RestApiCallDocumentation::Type_String, "Show only the changes of the provided type (only available if your DB backend supports ExtendedChanges).  Multiple values can be provided and must be separated by a ';'.", false)
         .AddAnswerType(MimeType_Json, "The list of changes")
         .SetAnswerField("Changes", RestApiCallDocumentation::Type_JsonListOfObjects, "The individual changes")
         .SetAnswerField("Done", RestApiCallDocumentation::Type_Boolean,
