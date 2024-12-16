@@ -339,21 +339,13 @@ namespace Orthanc
     for (int i = 0; i < source.main_dicom_tags().size(); i++)
     {
       const DicomTag tag(source.main_dicom_tags(i).group(), source.main_dicom_tags(i).element());
-
-      for (int j = 0; j < source.main_dicom_tags(i).values().size(); j++)
-      {
-        target.AddChildrenMainDicomTagValue(level, tag, source.main_dicom_tags(i).values(j));
-      }
+      target.AddChildrenMainDicomTagValue(level, tag, source.main_dicom_tags(i).value());
     }
 
     for (int i = 0; i < source.metadata().size(); i++)
     {
       MetadataType key = static_cast<MetadataType>(source.metadata(i).key());
-
-      for (int j = 0; j < source.metadata(i).values().size(); j++)
-      {
-        target.AddChildrenMetadataValue(level, key, source.metadata(i).values(j));
-      }
+      target.AddChildrenMetadataValue(level, key, source.metadata(i).value());
     }
   }
 
