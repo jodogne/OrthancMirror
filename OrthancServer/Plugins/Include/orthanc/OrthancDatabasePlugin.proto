@@ -88,6 +88,12 @@ enum OrderingDirection {
   ORDERING_DIRECTION_DESC = 1;
 }
 
+enum OrderingCast {
+  ORDERING_CAST_STRING = 0;
+  ORDERING_CAST_INT = 1;
+  ORDERING_CAST_FLOAT = 2;
+}
+
 message ServerIndexChange {
   int64         seq = 1;
   int32         change_type = 2;   // opaque "ChangeType" in Orthanc
@@ -882,11 +888,12 @@ message Find {        // New in Orthanc 1.12.5
     message Ordering {
       OrderingKeyType key_type = 1;
       OrderingDirection direction = 2;
-      uint32 tag_group = 3;
-      uint32 tag_element = 4;
-      bool is_identifier_tag = 5;
-      ResourceType tag_level = 6;
-      int32 metadata = 7;
+      OrderingCast cast = 3;
+      uint32 tag_group = 4;
+      uint32 tag_element = 5;
+      bool is_identifier_tag = 6;
+      ResourceType tag_level = 7;
+      int32 metadata = 8;
     }
 
     // Part 1 of the request: Constraints

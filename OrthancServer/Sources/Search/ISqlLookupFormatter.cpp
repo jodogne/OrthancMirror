@@ -766,7 +766,17 @@ namespace Orthanc
         // first filter by 0/1 and then by the column value itself
         orderByField += "order" + boost::lexical_cast<std::string>(counter) + ".value IS NULL, ";
 #endif
-        orderByField += "order" + boost::lexical_cast<std::string>(counter) + ".value";
+        switch ((*it)->GetCast())
+        {
+          case FindRequest::OrderingCast_Int:
+            orderByField += "CAST(order" + boost::lexical_cast<std::string>(counter) + ".value AS INTEGER)";
+            break;
+          case FindRequest::OrderingCast_Float:
+            orderByField += "CAST(order" + boost::lexical_cast<std::string>(counter) + ".value AS REAL)";
+            break;
+          default:
+            orderByField += "order" + boost::lexical_cast<std::string>(counter) + ".value";
+        }
 
         if ((*it)->GetDirection() == FindRequest::OrderingDirection_Ascending)
         {

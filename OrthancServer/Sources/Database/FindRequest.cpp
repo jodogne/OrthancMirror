@@ -226,16 +226,18 @@ namespace Orthanc
 
 
   void FindRequest::AddOrdering(const DicomTag& tag,
+                                OrderingCast cast,
                                 OrderingDirection direction)
   {
-    ordering_.push_back(new Ordering(Key(tag), direction));
+    ordering_.push_back(new Ordering(Key(tag), cast, direction));
   }
 
 
   void FindRequest::AddOrdering(MetadataType metadataType, 
+                                OrderingCast cast,
                                 OrderingDirection direction)
   {
-    ordering_.push_back(new Ordering(Key(metadataType), direction));
+    ordering_.push_back(new Ordering(Key(metadataType), cast, direction));
   }
 
 
