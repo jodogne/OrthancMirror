@@ -3127,8 +3127,6 @@ namespace Orthanc
           .SetDescription("This URI can be used to perform a search on the content of the local Orthanc server, "
                           "in a way that is similar to querying remote DICOM modalities using C-FIND SCU: "
                           "https://orthanc.uclouvain.be/book/users/rest.html#performing-finds-within-orthanc")
-          .SetRequestField(KEY_EXPAND, RestApiCallDocumentation::Type_Boolean,
-                          "Also retrieve the content of the matching resources, not only their Orthanc identifiers", false)
           .SetRequestField(KEY_LIMIT, RestApiCallDocumentation::Type_Number,
                           "Limit the number of reported resources", false)
           .SetRequestField(KEY_SINCE, RestApiCallDocumentation::Type_Number,

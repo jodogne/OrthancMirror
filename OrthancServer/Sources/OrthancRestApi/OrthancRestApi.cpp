@@ -711,7 +711,7 @@ namespace Orthanc
                             "(new in Orthanc 1.12.5 - overrides `expand`)", false);
 
       call.GetDocumentation().SetHttpGetArgument(GET_EXPAND, RestApiCallDocumentation::Type_String,
-                            "If present, retrieve detailed information about the individual resources", false);
+                            "If present, retrieve detailed information about the individual resources, not only their Orthanc identifiers", false);
 
     }
     else if (call.GetMethod() == HttpMethod_Post)
@@ -724,7 +724,7 @@ namespace Orthanc
                             "(new in Orthanc 1.12.5)", false);
 
       call.GetDocumentation().SetRequestField(POST_EXPAND, RestApiCallDocumentation::Type_Boolean,
-                            "If present, retrieve detailed information about the individual resources", false);
+                            "If set to \"true\", retrieve detailed information about the individual resources, not only their Orthanc identifiers", false);
     }
     else
     {
