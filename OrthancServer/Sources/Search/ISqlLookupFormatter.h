@@ -26,6 +26,7 @@
 #include "../../../OrthancFramework/Sources/Enumerations.h"
 
 #include <boost/noncopyable.hpp>
+#include <stdint.h>
 #include <vector>
 
 namespace Orthanc
