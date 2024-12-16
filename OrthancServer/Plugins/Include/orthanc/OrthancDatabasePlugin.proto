@@ -929,23 +929,14 @@ message Find {        // New in Orthanc 1.12.5
       string value = 2;
       int64 revision = 3;
     }
-    message MultipleTags {
-      uint32 group = 1;
-      uint32 element = 2;
-      repeated string values = 3;
-    }
-    message MultipleMetadata {
-      int32 key = 1;
-      repeated string values = 2;
-    }
     message ResourceContent {
       repeated Tag main_dicom_tags = 1;
       repeated Metadata metadata = 2;
     }
     message ChildrenContent {
       repeated string identifiers = 1;
-      repeated MultipleTags main_dicom_tags = 2;
-      repeated MultipleMetadata metadata = 3;
+      repeated Tag main_dicom_tags = 2;
+      repeated Metadata metadata = 3;  // As of Orthanc 1.12.5, the "revision" field is unused in this case
       uint64 count = 4;
     }
 
