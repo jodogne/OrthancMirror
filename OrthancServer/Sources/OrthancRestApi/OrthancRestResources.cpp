@@ -2310,8 +2310,6 @@ namespace Orthanc
 
     ServerContext& context = OrthancRestApi::GetContext(call);
 
-    std::string publicId = call.GetUriComponent("id", "");
-
     bool hasRangeHeader = false;
     StorageAccessor::Range range;
 
