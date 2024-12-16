@@ -3503,19 +3503,43 @@ namespace Orthanc
               }
 
               Toolbox::ToLowerCase(typeString, order[KEY_ORDER_BY_TYPE].asString());
-              if (typeString == "dicomtag")
+              if (Toolbox::StartsWith(typeString, "dicomtag"))
               {
                 DicomTag tag = FromDcmtkBridge::ParseTag(order[KEY_ORDER_BY_KEY].asString());
-                finder.AddOrdering(tag, direction);
+
+                if (typeString == "dicomtagasint")
+                {
+                  finder.AddOrdering(tag, FindRequest::OrderingCast_Int, direction);
+                }
+                else if (typeString == "dicomtagasfloat")
+                {
+                  finder.AddOrdering(tag, FindRequest::OrderingCast_Float, direction);
+                }
+                else
+                {
+                  finder.AddOrdering(tag, FindRequest::OrderingCast_String, direction);
+                }
               }
-              else if (typeString == "metadata")
+              else if (Toolbox::StartsWith(typeString, "metadata"))
               {
                 MetadataType metadata = StringToMetadata(order[KEY_ORDER_BY_KEY].asString());
-                finder.AddOrdering(metadata, direction);
+
+                if (typeString == "metadataasint")
+                {
+                  finder.AddOrdering(metadata, FindRequest::OrderingCast_Int, direction);
+                }
+                else if (typeString == "dicomtagasfloat")
+                {
+                  finder.AddOrdering(metadata, FindRequest::OrderingCast_Float, direction);
+                }
+                else
+                {
+                  finder.AddOrdering(metadata, FindRequest::OrderingCast_String, direction);
+                }
               }
               else
               {
-                throw OrthancException(ErrorCode_BadRequest, "Field \"" + std::string(KEY_ORDER_BY_TYPE) + "\" must be \"DicomTag\" or \"Metadata\"");
+                throw OrthancException(ErrorCode_BadRequest, "Field \"" + std::string(KEY_ORDER_BY_TYPE) + "\" must be \"DicomTag\", \"DicomTagAsInt\", \"DicomTagAsFloat\" or \"Metadata\", \"MetadataAsInt\", \"MetadataAsFloat\"");
               }
             }
           }
