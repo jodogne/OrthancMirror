@@ -198,8 +198,7 @@ namespace Orthanc
 
       try
       {
-        int64_t revision;  // Ignored
-        if (index.LookupMetadata(s, revision, instanceId, ResourceType_Instance, MetadataType_Instance_IndexInSeries))
+        if (index.LookupMetadata(s, instanceId, ResourceType_Instance, MetadataType_Instance_IndexInSeries))
         {
           indexInSeries_ = boost::lexical_cast<size_t>(Toolbox::StripSpaces(s));
           hasIndexInSeries_ = true;
@@ -297,7 +296,7 @@ namespace Orthanc
   void SliceOrdering::CreateInstances()
   {
     std::list<std::string> instancesId;
-    index_.GetChildren(instancesId, seriesId_);
+    index_.GetChildren(instancesId, ResourceType_Series, seriesId_);
 
     instances_.reserve(instancesId.size());
     for (std::list<std::string>::const_iterator

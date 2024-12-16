@@ -46,7 +46,7 @@
 
 namespace Orthanc
 {
-  class OrthancPluginDatabaseV3::Transaction : public BaseDatabaseWrapper::BaseTransaction
+  class OrthancPluginDatabaseV3::Transaction : public BaseCompatibilityTransaction
   {
   private:
     OrthancPluginDatabaseV3&           that_;
@@ -386,10 +386,10 @@ namespace Orthanc
     }
 
     
-    virtual void GetAllPublicIds(std::list<std::string>& target,
-                                 ResourceType resourceType,
-                                 int64_t since,
-                                 uint32_t limit) ORTHANC_OVERRIDE
+    virtual void GetAllPublicIdsCompatibility(std::list<std::string>& target,
+                                              ResourceType resourceType,
+                                              int64_t since,
+                                              uint32_t limit) ORTHANC_OVERRIDE
     {
       CheckSuccess(that_.backend_.getAllPublicIdsWithLimit(
                      transaction_, Plugins::Convert(resourceType),
@@ -798,7 +798,7 @@ namespace Orthanc
     
     virtual void ApplyLookupResources(std::list<std::string>& resourcesId,
                                       std::list<std::string>* instancesId, // Can be NULL if not needed
-                                      const DatabaseConstraints& lookup,
+                                      const DatabaseDicomTagConstraints& lookup,
                                       ResourceType queryLevel,
                                       const std::set<std::string>& labels,
                                       LabelsConstraint labelsConstraint,
@@ -1254,6 +1254,11 @@ namespace Orthanc
         throw OrthancException(static_cast<ErrorCode>(code));
       }
     }
+  }
+
+  uint64_t OrthancPluginDatabaseV3::MeasureLatency()
+  {
+    throw OrthancException(ErrorCode_NotImplemented);
   }
 
 }
