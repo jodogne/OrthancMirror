@@ -284,6 +284,8 @@ namespace Orthanc
 
         boost::shared_ptr<std::string> dicomContent;
         {
+          boost::mutex::scoped_lock lock(availableInstancesMutex_);
+
           if (availableInstances_.find(instanceId) != availableInstances_.end())
           {
             // this is the instance we were waiting for
