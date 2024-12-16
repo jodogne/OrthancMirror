@@ -567,7 +567,7 @@ namespace Orthanc
 
 
   const FindResponse::Resource& StatelessDatabaseOperations::ExecuteSingleResource(FindResponse& response,
-    const FindRequest& request)
+                                                                                   const FindRequest& request)
   {
     ExecuteFind(response, request);
 
@@ -3299,7 +3299,7 @@ namespace Orthanc
       for (std::list<std::string>::const_iterator it = identifiers.begin(); it != identifiers.end(); ++it)
       {
         /**
-         * Not that the resource might have been deleted (as we are in
+         * Note that the resource might have been deleted (as we are in
          * another transaction). The database engine must ignore such
          * error cases.
          **/
