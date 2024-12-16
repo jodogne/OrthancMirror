@@ -57,6 +57,12 @@ namespace Orthanc
       OrderingDirection_Descending
     };
 
+    enum OrderingCast
+    {
+      OrderingCast_String,
+      OrderingCast_Int,
+      OrderingCast_Float
+    };
 
     class Key
     {
@@ -107,12 +113,15 @@ namespace Orthanc
     {
     private:
       OrderingDirection   direction_;
+      OrderingCast        cast_;
       Key                 key_;
 
     public:
       Ordering(const Key& key,
+               OrderingCast cast,
                OrderingDirection direction) :
         direction_(direction),
+        cast_(cast),
         key_(key)
       {
       }
@@ -125,6 +134,11 @@ namespace Orthanc
       OrderingDirection GetDirection() const
       {
         return direction_;
+      }
+
+      OrderingCast GetCast() const
+      {
+        return cast_;
       }
 
       MetadataType GetMetadataType() const
@@ -330,9 +344,11 @@ namespace Orthanc
     uint64_t GetLimitsCount() const;
 
     void AddOrdering(const DicomTag& tag,
+                     OrderingCast cast,
                      OrderingDirection direction);
 
     void AddOrdering(MetadataType metadataType,
+                     OrderingCast cast,
                      OrderingDirection direction);
 
     const std::deque<Ordering*>& GetOrdering() const
