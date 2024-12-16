@@ -483,7 +483,7 @@ namespace Orthanc
         pagingMode_ = PagingMode_FullDatabase;
         if (databaseLimits_ != 0 && limitsCount_ > databaseLimits_)
         {
-          LOG(WARNING) << "ResourceFinder: 'Limit' is larger than LimitFindResults/LimitFindInstances configurations, using limit fron the configuration file";
+          LOG(WARNING) << "ResourceFinder: \"Limit\" is larger than LimitFindResults/LimitFindInstances configurations, using limit from the configuration file";
           limitsCount_ = databaseLimits_;
         }
 
@@ -1122,7 +1122,7 @@ namespace Orthanc
           {
             std::string joinedMetaTags;
             FromDcmtkBridge::FormatListOfTags(joinedMetaTags, metaTagsToRemove);
-            LOG(WARNING) << "W006: Unable to include tags from the Meta Header in 'RequestedTags'.  Skipping them: " << joinedMetaTags;
+            LOG(WARNING) << "W006: Unable to include tags from the Meta Header in \"RequestedTags\".  Skipping them: " << joinedMetaTags;
           }
 
           Toolbox::RemoveSets(remainingRequestedTags, metaTagsToRemove);
@@ -1142,7 +1142,7 @@ namespace Orthanc
           {
             std::string joinedTags;
             FromDcmtkBridge::FormatListOfTags(joinedTags, remainingRequestedTags);
-            LOG(WARNING) << "W007: Unable to include requested tags since 'StorageAccessOnFind' does not allow accessing the storage to build answers: " << joinedTags;
+            LOG(WARNING) << "W007: Unable to include requested tags since \"StorageAccessOnFind\" does not allow accessing the storage to build answers: " << joinedTags;
           }
         }
 
