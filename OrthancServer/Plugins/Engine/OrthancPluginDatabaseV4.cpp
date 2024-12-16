@@ -266,6 +266,24 @@ namespace Orthanc
       default:
         throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
+
+    switch (source.GetCast())
+    {
+      case FindRequest::OrderingCast_Int:
+        target.set_cast(DatabasePluginMessages::ORDERING_CAST_INT);
+        break;
+
+      case FindRequest::OrderingCast_Float:
+        target.set_cast(DatabasePluginMessages::ORDERING_CAST_FLOAT);
+        break;
+
+      case FindRequest::OrderingCast_String:
+        target.set_cast(DatabasePluginMessages::ORDERING_CAST_STRING);
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
   }
 
   static DatabasePluginMessages::LabelsConstraintType Convert(LabelsConstraint constraint)

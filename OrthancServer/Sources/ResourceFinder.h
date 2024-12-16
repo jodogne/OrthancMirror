@@ -127,15 +127,17 @@ namespace Orthanc
     void AddRequestedTags(const std::set<DicomTag>& tags);
 
     void AddOrdering(const DicomTag& tag,
+                     FindRequest::OrderingCast cast,
                      FindRequest::OrderingDirection direction)
     {
-      request_.AddOrdering(tag, direction);
+      request_.AddOrdering(tag, cast, direction);
     }
 
     void AddOrdering(MetadataType metadataType,
+                     FindRequest::OrderingCast cast,
                      FindRequest::OrderingDirection direction)
     {
-      request_.AddOrdering(metadataType, direction);
+      request_.AddOrdering(metadataType, cast, direction);
     }
 
     void AddMetadataConstraint(DatabaseMetadataConstraint* constraint)
