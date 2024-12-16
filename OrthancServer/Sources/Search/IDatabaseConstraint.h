@@ -23,32 +23,28 @@
 
 #pragma once
 
-#include "IDatabaseWrapper.h"
+#include "../ServerEnumerations.h"
+#include <boost/noncopyable.hpp>
 
 namespace Orthanc
 {
-  /**
-   * This class provides a default "not implemented" implementation
-   * for all recent methods (1.12.X)
-   **/
-  class BaseDatabaseWrapper : public IDatabaseWrapper
+  class IDatabaseConstraint : public boost::noncopyable
   {
   public:
-    class BaseTransaction : public IDatabaseWrapper::ITransaction
+    virtual ~IDatabaseConstraint()
     {
-    public:
-      virtual int64_t IncrementGlobalProperty(GlobalProperty property,
-                                              int64_t increment,
-                                              bool shared) ORTHANC_OVERRIDE;
+    }
+    
+    virtual ConstraintType GetConstraintType() const = 0;
 
-      virtual void UpdateAndGetStatistics(int64_t& patientsCount,
-                                          int64_t& studiesCount,
-                                          int64_t& seriesCount,
-                                          int64_t& instancesCount,
-                                          int64_t& compressedSize,
-                                          int64_t& uncompressedSize) ORTHANC_OVERRIDE;
-    };
+    virtual size_t GetValuesCount() const = 0;
 
-    virtual uint64_t MeasureLatency() ORTHANC_OVERRIDE;
+    virtual const std::string& GetValue(size_t index) const = 0;
+
+    virtual const std::string& GetSingleValue() const = 0;
+
+    virtual bool IsCaseSensitive() const  = 0;
+
+    virtual bool IsMandatory() const  = 0;
   };
 }

@@ -63,7 +63,7 @@ static const char* const KEY_DICOM_TLS_REMOTE_CERTIFICATE_REQUIRED = "DicomTlsRe
 static const char* const KEY_DICOM_TLS_MINIMUM_PROTOCOL_VERSION = "DicomTlsMinimumProtocolVersion";
 static const char* const KEY_DICOM_TLS_ACCEPTED_CIPHERS = "DicomTlsCiphersAccepted";
 static const char* const KEY_MAXIMUM_PDU_LENGTH = "MaximumPduLength";
-
+static const char* const KEY_READ_ONLY = "ReadOnly";
 
 class OrthancStoreRequestHandler : public IStoreRequestHandler
 {
@@ -825,6 +825,7 @@ static void PrintErrors(const char* path)
     PrintErrorCode(ErrorCode_MainDicomTagsMultiplyDefined, "A main DICOM Tag has been defined multiple times for the same resource level");
     PrintErrorCode(ErrorCode_ForbiddenAccess, "Access to a resource is forbidden");
     PrintErrorCode(ErrorCode_DuplicateResource, "Duplicate resource");
+    PrintErrorCode(ErrorCode_IncompatibleConfigurations, "Your configuration file contains configuration that are mutually incompatible");
     PrintErrorCode(ErrorCode_SQLiteNotOpened, "SQLite: The database is not opened");
     PrintErrorCode(ErrorCode_SQLiteAlreadyOpened, "SQLite: Connection is already open");
     PrintErrorCode(ErrorCode_SQLiteCannotOpen, "SQLite: Unable to open the database");
@@ -836,7 +837,7 @@ static void PrintErrors(const char* path)
     PrintErrorCode(ErrorCode_SQLiteFlush, "SQLite: Unable to flush the database");
     PrintErrorCode(ErrorCode_SQLiteCannotRun, "SQLite: Cannot run a cached statement");
     PrintErrorCode(ErrorCode_SQLiteCannotStep, "SQLite: Cannot step over a cached statement");
-    PrintErrorCode(ErrorCode_SQLiteBindOutOfRange, "SQLite: Bing a value while out of range (serious error)");
+    PrintErrorCode(ErrorCode_SQLiteBindOutOfRange, "SQLite: Bind a value while out of range (serious error)");
     PrintErrorCode(ErrorCode_SQLitePrepareStatement, "SQLite: Cannot prepare a cached statement");
     PrintErrorCode(ErrorCode_SQLiteTransactionAlreadyStarted, "SQLite: Beginning the same transaction twice");
     PrintErrorCode(ErrorCode_SQLiteTransactionCommit, "SQLite: Failure when committing the transaction");
@@ -1517,6 +1518,7 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
                                    bool loadJobsFromDatabase)
 {
   size_t maxCompletedJobs;
+  bool readOnly;
   
   {
     OrthancConfiguration::ReaderLock lock;
@@ -1544,6 +1546,9 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
       LOG(WARNING) << "Setting option \"JobsHistorySize\" to zero is not recommended";
     }
 
+    // New option in Orthanc 1.12.5
+    readOnly = lock.GetConfiguration().GetBooleanParameter(KEY_READ_ONLY, false);
+    
     // Configuration of DICOM TLS for Orthanc SCU (since Orthanc 1.9.0)
     DicomAssociationParameters::SetDefaultOwnCertificatePath(
       lock.GetConfiguration().GetStringParameter(KEY_DICOM_TLS_PRIVATE_KEY, ""),
@@ -1558,46 +1563,54 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
       lock.GetConfiguration().GetBooleanParameter(KEY_DICOM_TLS_REMOTE_CERTIFICATE_REQUIRED, true));
   }
   
-  ServerContext context(database, storageArea, false /* not running unit tests */, maxCompletedJobs);
+  ServerContext context(database, storageArea, false /* not running unit tests */, maxCompletedJobs, readOnly);
 
   {
     OrthancConfiguration::ReaderLock lock;
 
-    context.SetCompressionEnabled(lock.GetConfiguration().GetBooleanParameter("StorageCompression", false));
-    context.SetStoreMD5ForAttachments(lock.GetConfiguration().GetBooleanParameter("StoreMD5ForAttachments", true));
+    if (context.IsReadOnly())
+    {
+      LOG(WARNING) << "READ-ONLY SYSTEM: ignoring these configurations: StorageCompression, StoreMD5ForAttachments, OverwriteInstances, MaximumPatientCount, MaximumStorageSize, MaximumStorageMode, SaveJobs"; 
+    }
+    else
+    {
+      context.SetCompressionEnabled(lock.GetConfiguration().GetBooleanParameter("StorageCompression", false));
+      context.SetStoreMD5ForAttachments(lock.GetConfiguration().GetBooleanParameter("StoreMD5ForAttachments", true));
 
-    // New option in Orthanc 1.4.2
-    context.SetOverwriteInstances(lock.GetConfiguration().GetBooleanParameter("OverwriteInstances", false));
+      // New option in Orthanc 1.4.2
+      context.SetOverwriteInstances(lock.GetConfiguration().GetBooleanParameter("OverwriteInstances", false));
 
-    try
-    {
-      context.GetIndex().SetMaximumPatientCount(lock.GetConfiguration().GetUnsignedIntegerParameter("MaximumPatientCount", 0));
-    }
-    catch (...)
-    {
-      context.GetIndex().SetMaximumPatientCount(0);
+      try
+      {
+        context.GetIndex().SetMaximumPatientCount(lock.GetConfiguration().GetUnsignedIntegerParameter("MaximumPatientCount", 0));
+      }
+      catch (...)
+      {
+        context.GetIndex().SetMaximumPatientCount(0);
+      }
+
+      try
+      {
+        uint64_t size = lock.GetConfiguration().GetUnsignedIntegerParameter("MaximumStorageSize", 0);
+        context.GetIndex().SetMaximumStorageSize(size * 1024 * 1024);
+      }
+      catch (...)
+      {
+        context.GetIndex().SetMaximumStorageSize(0);
+      }
+
+      try
+      {
+        std::string mode = lock.GetConfiguration().GetStringParameter("MaximumStorageMode", "Recycle");
+        context.GetIndex().SetMaximumStorageMode(StringToMaxStorageMode(mode));
+      }
+      catch (...)
+      {
+        context.GetIndex().SetMaximumStorageMode(MaxStorageMode_Recycle);
+      }
     }
 
-    try
-    {
-      uint64_t size = lock.GetConfiguration().GetUnsignedIntegerParameter("MaximumStorageSize", 0);
-      context.GetIndex().SetMaximumStorageSize(size * 1024 * 1024);
-    }
-    catch (...)
-    {
-      context.GetIndex().SetMaximumStorageSize(0);
-    }
-
-    try
-    {
-      std::string mode = lock.GetConfiguration().GetStringParameter("MaximumStorageMode", "Recycle");
-      context.GetIndex().SetMaximumStorageMode(StringToMaxStorageMode(mode));
-    }
-    catch (...)
-    {
-      context.GetIndex().SetMaximumStorageMode(MaxStorageMode_Recycle);
-    }
-
+    // note: this config is valid in ReadOnlyMode
     try
     {
       uint64_t size = lock.GetConfiguration().GetUnsignedIntegerParameter("MaximumStorageCacheSize", 128);
@@ -1955,7 +1968,7 @@ int main(int argc, char* argv[])
           SQLiteDatabaseWrapper inMemoryDatabase;
           inMemoryDatabase.Open();
           MemoryStorageArea inMemoryStorage;
-          ServerContext context(inMemoryDatabase, inMemoryStorage, true /* unit testing */, 0 /* max completed jobs */);
+          ServerContext context(inMemoryDatabase, inMemoryStorage, true /* unit testing */, 0 /* max completed jobs */, false /* readonly */);
           OrthancRestApi restApi(context, false /* no Orthanc Explorer */);
           restApi.GenerateOpenApiDocumentation(openapi);
           context.Stop();
@@ -2006,7 +2019,7 @@ int main(int argc, char* argv[])
           SQLiteDatabaseWrapper inMemoryDatabase;
           inMemoryDatabase.Open();
           MemoryStorageArea inMemoryStorage;
-          ServerContext context(inMemoryDatabase, inMemoryStorage, true /* unit testing */, 0 /* max completed jobs */);
+          ServerContext context(inMemoryDatabase, inMemoryStorage, true /* unit testing */, 0 /* max completed jobs */, false /* readonly */);
           OrthancRestApi restApi(context, false /* no Orthanc Explorer */);
           restApi.GenerateReStructuredTextCheatSheet(cheatsheet, "https://orthanc.uclouvain.be/api/index.html");
           context.Stop();

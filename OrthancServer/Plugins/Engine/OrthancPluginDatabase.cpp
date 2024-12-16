@@ -44,7 +44,7 @@
 namespace Orthanc
 {
   class OrthancPluginDatabase::Transaction :
-    public BaseDatabaseWrapper::BaseTransaction,
+    public BaseCompatibilityTransaction,
     public Compatibility::ICreateInstance,
     public Compatibility::IGetChildrenMetadata,
     public Compatibility::ILookupResources,
@@ -564,7 +564,7 @@ namespace Orthanc
     
     virtual void ApplyLookupResources(std::list<std::string>& resourcesId,
                                       std::list<std::string>* instancesId,
-                                      const DatabaseConstraints& lookup,
+                                      const DatabaseDicomTagConstraints& lookup,
                                       ResourceType queryLevel,
                                       const std::set<std::string>& labels,
                                       LabelsConstraint labelsConstraint,
@@ -806,10 +806,10 @@ namespace Orthanc
     }
 
 
-    virtual void GetAllPublicIds(std::list<std::string>& target,
-                                 ResourceType resourceType,
-                                 int64_t since,
-                                 uint32_t limit) ORTHANC_OVERRIDE
+    virtual void GetAllPublicIdsCompatibility(std::list<std::string>& target,
+                                              ResourceType resourceType,
+                                              int64_t since,
+                                              uint32_t limit) ORTHANC_OVERRIDE
     {
       if (that_.extensions_.getAllPublicIdsWithLimit != NULL)
       {
@@ -1659,5 +1659,10 @@ namespace Orthanc
     {
       LOG(WARNING) << "Received an answer from the database index plugin, but not transaction is active";
     }
+  }
+
+  uint64_t OrthancPluginDatabase::MeasureLatency()
+  {
+    throw OrthancException(ErrorCode_NotImplemented);
   }
 }

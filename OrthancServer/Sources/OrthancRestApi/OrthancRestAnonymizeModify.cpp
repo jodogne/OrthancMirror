@@ -807,7 +807,7 @@ namespace Orthanc
       {
         // Retrieve all the instances of the parent resource
         std::list<std::string>  siblingInstances;
-        context.GetIndex().GetChildInstances(siblingInstances, parent);
+        context.GetIndex().GetChildInstances(siblingInstances, parent, parentType);
 
         if (siblingInstances.empty())
 	{

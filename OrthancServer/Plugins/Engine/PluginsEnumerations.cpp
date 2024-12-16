@@ -595,5 +595,74 @@ namespace Orthanc
           throw OrthancException(ErrorCode_ParameterOutOfRange);
       }
     }
+
+
+    OrthancPluginResourceType Convert(ResourceType type)
+    {
+      switch (type)
+      {
+        case ResourceType_Patient:
+          return OrthancPluginResourceType_Patient;
+
+        case ResourceType_Study:
+          return OrthancPluginResourceType_Study;
+
+        case ResourceType_Series:
+          return OrthancPluginResourceType_Series;
+
+        case ResourceType_Instance:
+          return OrthancPluginResourceType_Instance;
+
+        default:
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+    }
+
+
+    ResourceType Convert(OrthancPluginResourceType type)
+    {
+      switch (type)
+      {
+        case OrthancPluginResourceType_Patient:
+          return ResourceType_Patient;
+
+        case OrthancPluginResourceType_Study:
+          return ResourceType_Study;
+
+        case OrthancPluginResourceType_Series:
+          return ResourceType_Series;
+
+        case OrthancPluginResourceType_Instance:
+          return ResourceType_Instance;
+
+        default:
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+    }
+
+
+    OrthancPluginConstraintType Convert(ConstraintType constraint)
+    {
+      switch (constraint)
+      {
+        case ConstraintType_Equal:
+          return OrthancPluginConstraintType_Equal;
+
+        case ConstraintType_GreaterOrEqual:
+          return OrthancPluginConstraintType_GreaterOrEqual;
+
+        case ConstraintType_SmallerOrEqual:
+          return OrthancPluginConstraintType_SmallerOrEqual;
+
+        case ConstraintType_Wildcard:
+          return OrthancPluginConstraintType_Wildcard;
+
+        case ConstraintType_List:
+          return OrthancPluginConstraintType_List;
+
+        default:
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+    }
   }
 }

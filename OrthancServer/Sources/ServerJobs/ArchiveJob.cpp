@@ -284,6 +284,8 @@ namespace Orthanc
 
         boost::shared_ptr<std::string> dicomContent;
         {
+          boost::mutex::scoped_lock lock(availableInstancesMutex_);
+
           if (availableInstances_.find(instanceId) != availableInstances_.end())
           {
             // this is the instance we were waiting for
@@ -541,7 +543,7 @@ namespace Orthanc
       {
         FileInfo tmp;
         int64_t revision;  // ignored
-        if (index.LookupAttachment(tmp, revision, id, FileContentType_Dicom))
+        if (index.LookupAttachment(tmp, revision, ResourceType_Instance, id, FileContentType_Dicom))
         {
           instances_.push_back(Instance(id, tmp.GetUncompressedSize()));
         }
@@ -622,7 +624,7 @@ namespace Orthanc
         {
           // This is resource is marked for expansion
           std::list<std::string> children;
-          index.GetChildren(children, it->first);
+          index.GetChildren(children, GetResourceLevel(level_), it->first);
 
           std::unique_ptr<ArchiveIndex> child(new ArchiveIndex(GetChildResourceType(level_)));
 

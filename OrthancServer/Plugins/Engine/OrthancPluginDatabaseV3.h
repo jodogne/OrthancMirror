@@ -26,13 +26,13 @@
 #if ORTHANC_ENABLE_PLUGINS == 1
 
 #include "../../../OrthancFramework/Sources/SharedLibrary.h"
-#include "../../Sources/Database/BaseDatabaseWrapper.h"
+#include "../../Sources/Database/BaseCompatibilityTransaction.h"
 #include "../Include/orthanc/OrthancCDatabasePlugin.h"
 #include "PluginsErrorDictionary.h"
 
 namespace Orthanc
 {
-  class OrthancPluginDatabaseV3 : public BaseDatabaseWrapper
+  class OrthancPluginDatabaseV3 : public IDatabaseWrapper
   {
   private:
     class Transaction;
@@ -81,6 +81,13 @@ namespace Orthanc
     virtual const Capabilities GetDatabaseCapabilities() const ORTHANC_OVERRIDE
     {
       return dbCapabilities_;
+    }
+
+    uint64_t MeasureLatency() ORTHANC_OVERRIDE;
+
+    bool HasIntegratedFind() const ORTHANC_OVERRIDE
+    {
+      return false;
     }
   };
 }

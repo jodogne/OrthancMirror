@@ -12,12 +12,12 @@ cat <<EOF > /tmp/cppcheck-suppressions.txt
 constParameter:../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.cpp
 knownArgument:../../OrthancFramework/UnitTestsSources/ImageTests.cpp
 knownConditionTrueFalse:../../OrthancServer/Plugins/Engine/OrthancPlugins.cpp
-nullPointer:../../OrthancFramework/UnitTestsSources/RestApiTests.cpp:316
-stlFindInsert:../../OrthancFramework/Sources/DicomFormat/DicomMap.cpp:1477
+nullPointer:../../OrthancFramework/UnitTestsSources/RestApiTests.cpp:321
+stlFindInsert:../../OrthancFramework/Sources/DicomFormat/DicomMap.cpp:1510
 stlFindInsert:../../OrthancFramework/Sources/RestApi/RestApiCallDocumentation.cpp:166
 stlFindInsert:../../OrthancFramework/Sources/RestApi/RestApiCallDocumentation.cpp:74
-stlFindInsert:../../OrthancServer/Sources/Database/StatelessDatabaseOperations.cpp:374
-stlFindInsert:../../OrthancServer/Sources/OrthancWebDav.cpp:378
+stlFindInsert:../../OrthancServer/Sources/Database/MainDicomTagsRegistry.cpp:65
+stlFindInsert:../../OrthancServer/Sources/OrthancWebDav.cpp:328
 stlFindInsert:../../OrthancServer/Sources/ServerJobs/MergeStudyJob.cpp:41
 stlFindInsert:../../OrthancServer/Sources/ServerJobs/SplitStudyJob.cpp:191
 stlFindInsert:../../OrthancServer/Sources/ServerJobs/ResourceModificationJob.cpp:361
@@ -34,9 +34,9 @@ useInitializationList:../../OrthancFramework/Sources/Images/PngWriter.cpp:99
 useInitializationList:../../OrthancServer/Sources/ServerJobs/DicomModalityStoreJob.cpp:275
 assertWithSideEffect:../../OrthancServer/Plugins/Engine/OrthancPluginDatabase.cpp:277
 assertWithSideEffect:../../OrthancServer/Plugins/Engine/OrthancPluginDatabase.cpp:1026
-assertWithSideEffect:../../OrthancServer/Sources/Database/Compatibility/DatabaseLookup.cpp:290
-assertWithSideEffect:../../OrthancServer/Sources/Database/Compatibility/DatabaseLookup.cpp:389
-assertWithSideEffect:../../OrthancServer/Sources/Database/StatelessDatabaseOperations.cpp:3663
+assertWithSideEffect:../../OrthancServer/Sources/Database/Compatibility/DatabaseLookup.cpp:292
+assertWithSideEffect:../../OrthancServer/Sources/Database/Compatibility/DatabaseLookup.cpp:391
+assertWithSideEffect:../../OrthancServer/Sources/Database/StatelessDatabaseOperations.cpp:3058
 assertWithSideEffect:../../OrthancServer/Sources/ServerJobs/ResourceModificationJob.cpp:286
 assertWithSideEffect:../../OrthancFramework/Sources/DicomNetworking/Internals/CommandDispatcher.cpp:454
 EOF
@@ -55,7 +55,6 @@ ${CPPCHECK} --enable=all --quiet --std=c++11 \
             -DJSONCPP_VERSION_MAJOR=1 \
             -DJSONCPP_VERSION_MINOR=0 \
             -DORTHANC_BUILDING_FRAMEWORK_LIBRARY=0 \
-            -DORTHANC_BUILDING_SERVER_LIBRARY=1 \
             -DORTHANC_BUILD_UNIT_TESTS=1 \
             -DORTHANC_ENABLE_BASE64=1 \
             -DORTHANC_ENABLE_CIVETWEB=1 \

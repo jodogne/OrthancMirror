@@ -166,8 +166,9 @@ namespace
       
       DicomTagConstraint c(tag, type, value, true, true);
       
-      DatabaseConstraints lookup;
-      lookup.AddConstraint(c.ConvertToDatabaseConstraint(level, DicomTagType_Identifier));
+      DatabaseDicomTagConstraints lookup;
+      bool isEquivalent;  // unused
+      lookup.AddConstraint(c.ConvertToDatabaseConstraint(isEquivalent, level, DicomTagType_Identifier));
 
       std::set<std::string> noLabel;
       transaction_->ApplyLookupResources(result, NULL, lookup, level, noLabel, LabelsConstraint_All, 0 /* no limit */);
@@ -186,9 +187,10 @@ namespace
       DicomTagConstraint c1(tag, type1, value1, true, true);
       DicomTagConstraint c2(tag, type2, value2, true, true);
 
-      DatabaseConstraints lookup;
-      lookup.AddConstraint(c1.ConvertToDatabaseConstraint(level, DicomTagType_Identifier));
-      lookup.AddConstraint(c2.ConvertToDatabaseConstraint(level, DicomTagType_Identifier));
+      DatabaseDicomTagConstraints lookup;
+      bool isEquivalent;  // unused
+      lookup.AddConstraint(c1.ConvertToDatabaseConstraint(isEquivalent, level, DicomTagType_Identifier));
+      lookup.AddConstraint(c2.ConvertToDatabaseConstraint(isEquivalent, level, DicomTagType_Identifier));
       
       std::set<std::string> noLabel;
       transaction_->ApplyLookupResources(result, NULL, lookup, level, noLabel, LabelsConstraint_All, 0 /* no limit */);
@@ -619,7 +621,7 @@ TEST(ServerIndex, Sequence)
   FilesystemStorage storage(path);
   SQLiteDatabaseWrapper db;   // The SQLite DB is in memory
   db.Open();
-  ServerContext context(db, storage, true /* running unit tests */, 10);
+  ServerContext context(db, storage, true /* running unit tests */, 10, false /* readonly */);
   context.SetupJobsEngine(true, false);
 
   ServerIndex& index = context.GetIndex();
@@ -701,7 +703,7 @@ TEST(ServerIndex, AttachmentRecycling)
   FilesystemStorage storage(path);
   SQLiteDatabaseWrapper db;   // The SQLite DB is in memory
   db.Open();
-  ServerContext context(db, storage, true /* running unit tests */, 10);
+  ServerContext context(db, storage, true /* running unit tests */, 10, false /* readonly */);
   context.SetupJobsEngine(true, false);
   ServerIndex& index = context.GetIndex();
 
@@ -818,7 +820,7 @@ TEST(ServerIndex, Overwrite)
     MemoryStorageArea storage;
     SQLiteDatabaseWrapper db;   // The SQLite DB is in memory
     db.Open();
-    ServerContext context(db, storage, true /* running unit tests */, 10);
+    ServerContext context(db, storage, true /* running unit tests */, 10, false /* readonly */);
     context.SetupJobsEngine(true, false);
     context.SetCompressionEnabled(true);
 
@@ -863,15 +865,15 @@ TEST(ServerIndex, Overwrite)
     {
       FileInfo nope;
       int64_t revision;
-      ASSERT_FALSE(context.GetIndex().LookupAttachment(nope, revision, id, FileContentType_DicomAsJson));
+      ASSERT_FALSE(context.GetIndex().LookupAttachment(nope, revision, ResourceType_Instance, id, FileContentType_DicomAsJson));
     }
 
     FileInfo dicom1, pixelData1;
-    int64_t revision;
-    ASSERT_TRUE(context.GetIndex().LookupAttachment(dicom1, revision, id, FileContentType_Dicom));
+    int64_t revision = -1;
+    ASSERT_TRUE(context.GetIndex().LookupAttachment(dicom1, revision, ResourceType_Instance, id, FileContentType_Dicom));
     ASSERT_EQ(0, revision);
     revision = -1;
-    ASSERT_TRUE(context.GetIndex().LookupAttachment(pixelData1, revision, id, FileContentType_DicomUntilPixelData));
+    ASSERT_TRUE(context.GetIndex().LookupAttachment(pixelData1, revision, ResourceType_Instance, id, FileContentType_DicomUntilPixelData));
     ASSERT_EQ(0, revision);
 
     context.GetIndex().GetGlobalStatistics(diskSize, uncompressedSize, countPatients, 
@@ -913,14 +915,14 @@ TEST(ServerIndex, Overwrite)
     {
       FileInfo nope;
       int64_t revision;
-      ASSERT_FALSE(context.GetIndex().LookupAttachment(nope, revision, id, FileContentType_DicomAsJson));
+      ASSERT_FALSE(context.GetIndex().LookupAttachment(nope, revision, ResourceType_Instance, id, FileContentType_DicomAsJson));
     }
 
     FileInfo dicom2, pixelData2;
-    ASSERT_TRUE(context.GetIndex().LookupAttachment(dicom2, revision, id, FileContentType_Dicom));
+    ASSERT_TRUE(context.GetIndex().LookupAttachment(dicom2, revision, ResourceType_Instance, id, FileContentType_Dicom));
     ASSERT_EQ(0, revision);
     revision = -1;
-    ASSERT_TRUE(context.GetIndex().LookupAttachment(pixelData2, revision, id, FileContentType_DicomUntilPixelData));
+    ASSERT_TRUE(context.GetIndex().LookupAttachment(pixelData2, revision, ResourceType_Instance, id, FileContentType_DicomUntilPixelData));
     ASSERT_EQ(0, revision);
 
     context.GetIndex().GetGlobalStatistics(diskSize, uncompressedSize, countPatients, 
@@ -983,7 +985,7 @@ TEST(ServerIndex, DicomUntilPixelData)
     MemoryStorageArea storage;
     SQLiteDatabaseWrapper db;   // The SQLite DB is in memory
     db.Open();
-    ServerContext context(db, storage, true /* running unit tests */, 10);
+    ServerContext context(db, storage, true /* running unit tests */, 10, false /* readonly */);
     context.SetupJobsEngine(true, false);
     context.SetCompressionEnabled(compression);
 

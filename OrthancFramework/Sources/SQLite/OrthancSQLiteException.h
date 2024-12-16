@@ -129,7 +129,7 @@ namespace Orthanc
             return "SQLite: Cannot step over a cached statement";
 
           case ErrorCode_SQLiteBindOutOfRange:
-            return "SQLite: Bing a value while out of range (serious error)";
+            return "SQLite: Bind a value while out of range (serious error)";
 
           case ErrorCode_SQLitePrepareStatement:
             return "SQLite: Cannot prepare a cached statement";

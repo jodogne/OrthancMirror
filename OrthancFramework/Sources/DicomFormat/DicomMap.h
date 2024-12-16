@@ -129,7 +129,7 @@ namespace Orthanc
 
     static void SetupFindInstanceTemplate(DicomMap& result);
 
-    void CopyTagIfExists(const DicomMap& source,
+    bool CopyTagIfExists(const DicomMap& source,
                          const DicomTag& tag);
 
     static bool IsMainDicomTag(const DicomTag& tag, ResourceType level);
@@ -146,13 +146,15 @@ namespace Orthanc
 
     static bool HasComputedTags(const std::set<DicomTag>& tags);
 
+    static bool HasMetaInformationTags(const std::set<DicomTag>& tags);
+
     static void GetMainDicomTags(std::set<DicomTag>& target,
                                  ResourceType level);
 
     // returns a string uniquely identifying the list of main dicom tags for a level
     static std::string GetMainDicomTagsSignature(ResourceType level);
 
-    static std::string GetDefaultMainDicomTagsSignature(ResourceType level);
+    static std::string GetDefaultMainDicomTagsSignatureFrom1_11(ResourceType level);
 
     static void GetAllMainDicomTags(std::set<DicomTag>& target);
 

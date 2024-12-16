@@ -121,7 +121,7 @@
 
 #define ORTHANC_PLUGINS_MINIMAL_MAJOR_NUMBER     1
 #define ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER     12
-#define ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER  4
+#define ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER  5
 
 
 #if !defined(ORTHANC_PLUGINS_VERSION_IS_ABOVE)
@@ -262,6 +262,7 @@ extern "C"
     OrthancPluginErrorCode_MainDicomTagsMultiplyDefined = 44    /*!< A main DICOM Tag has been defined multiple times for the same resource level */,
     OrthancPluginErrorCode_ForbiddenAccess = 45    /*!< Access to a resource is forbidden */,
     OrthancPluginErrorCode_DuplicateResource = 46    /*!< Duplicate resource */,
+    OrthancPluginErrorCode_IncompatibleConfigurations = 47    /*!< Your configuration file contains configuration that are mutually incompatible */,
     OrthancPluginErrorCode_SQLiteNotOpened = 1000    /*!< SQLite: The database is not opened */,
     OrthancPluginErrorCode_SQLiteAlreadyOpened = 1001    /*!< SQLite: Connection is already open */,
     OrthancPluginErrorCode_SQLiteCannotOpen = 1002    /*!< SQLite: Unable to open the database */,
@@ -273,7 +274,7 @@ extern "C"
     OrthancPluginErrorCode_SQLiteFlush = 1008    /*!< SQLite: Unable to flush the database */,
     OrthancPluginErrorCode_SQLiteCannotRun = 1009    /*!< SQLite: Cannot run a cached statement */,
     OrthancPluginErrorCode_SQLiteCannotStep = 1010    /*!< SQLite: Cannot step over a cached statement */,
-    OrthancPluginErrorCode_SQLiteBindOutOfRange = 1011    /*!< SQLite: Bing a value while out of range (serious error) */,
+    OrthancPluginErrorCode_SQLiteBindOutOfRange = 1011    /*!< SQLite: Bind a value while out of range (serious error) */,
     OrthancPluginErrorCode_SQLitePrepareStatement = 1012    /*!< SQLite: Cannot prepare a cached statement */,
     OrthancPluginErrorCode_SQLiteTransactionAlreadyStarted = 1013    /*!< SQLite: Beginning the same transaction twice */,
     OrthancPluginErrorCode_SQLiteTransactionCommit = 1014    /*!< SQLite: Failure when committing the transaction */,
@@ -748,6 +749,7 @@ extern "C"
 
   /**
    * The supported types of changes that can be signaled to the change callback.
+   * Note: this enum is not used to store changes in the DB !
    * @ingroup Callbacks
    **/
   typedef enum

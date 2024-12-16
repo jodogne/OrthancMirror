@@ -213,7 +213,7 @@ namespace Orthanc
 
       // Add all the instances of the series as to be processed
       std::list<std::string> instances;
-      GetContext().GetIndex().GetChildren(instances, series);
+      GetContext().GetIndex().GetChildren(instances, ResourceType_Series, series);
 
       for (std::list<std::string>::const_iterator
              it = instances.begin(); it != instances.end(); ++it)

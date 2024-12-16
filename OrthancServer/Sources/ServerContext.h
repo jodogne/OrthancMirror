@@ -68,25 +68,6 @@ namespace Orthanc
     friend class ServerIndex;  // To access "RemoveFile()"
     
   public:
-    class ILookupVisitor : public boost::noncopyable
-    {
-    public:
-      virtual ~ILookupVisitor()
-      {
-      }
-
-      virtual bool IsDicomAsJsonNeeded() const = 0;
-      
-      virtual void MarkAsComplete() = 0;
-
-      // NB: "dicomAsJson" must *not* be deleted, and can be NULL if
-      // "!IsDicomAsJsonNeeded()"
-      virtual void Visit(const std::string& publicId,
-                         const std::string& instanceId,
-                         const DicomMap& mainDicomTags,
-                         const Json::Value* dicomAsJson) = 0;
-    };
-    
     struct StoreResult
     {
     private:
@@ -279,6 +260,7 @@ namespace Orthanc
     boost::mutex dynamicOptionsMutex_;
     bool isUnknownSopClassAccepted_;
     std::set<DicomTransferSyntax>  acceptedTransferSyntaxes_;
+    bool readOnly_;
 
     StoreResult StoreAfterTranscoding(std::string& resultPublicId,
                                       DicomInstanceToStore& dicom,
@@ -323,7 +305,8 @@ namespace Orthanc
     ServerContext(IDatabaseWrapper& database,
                   IStorageArea& area,
                   bool unitTesting,
-                  size_t maxCompletedJobs);
+                  size_t maxCompletedJobs,
+                  bool readOnly);
 
     ~ServerContext();
 
@@ -345,6 +328,15 @@ namespace Orthanc
     bool IsCompressionEnabled() const
     {
       return compressionEnabled_;
+    }
+    bool IsReadOnly() const
+    {
+      return readOnly_;
+    }
+
+    bool IsSaveJobs() const
+    {
+      return saveJobs_;
     }
 
     bool AddAttachment(int64_t& newRevision,
@@ -368,16 +360,23 @@ namespace Orthanc
     void AnswerAttachment(RestApiOutput& output,
                           const FileInfo& fileInfo);
 
-    void ChangeAttachmentCompression(const std::string& resourceId,
+    void ChangeAttachmentCompression(ResourceType level,
+                                     const std::string& resourceId,
                                      FileContentType attachmentType,
                                      CompressionType compression);
 
     void ReadDicomAsJson(Json::Value& result,
                          const std::string& instancePublicId,
+                         const std::map<MetadataType, std::string>& instanceMetadata,
+                         const std::map<FileContentType, FileInfo>& instanceAttachments,
                          const std::set<DicomTag>& ignoreTagLength);
 
     void ReadDicomAsJson(Json::Value& result,
-                         const std::string& instancePublicId);
+                         const std::string& instancePublicId,
+                         const std::set<DicomTag>& ignoreTagLength);  // TODO-FIND: Can this be removed?
+
+    void ReadDicomAsJson(Json::Value& result,
+                         const std::string& instancePublicId);  // TODO-FIND: Can this be removed?
 
     void ReadDicom(std::string& dicom,
                    const std::string& instancePublicId);
@@ -448,21 +447,9 @@ namespace Orthanc
 
     void Stop();
 
-    void Apply(ILookupVisitor& visitor,
-               const DatabaseLookup& lookup,
-               ResourceType queryLevel,
-               const std::set<std::string>& labels,
-               LabelsConstraint labelsConstraint,
-               size_t since,
-               size_t limit);
-
-    void Apply(ILookupVisitor& visitor,
-               const DatabaseLookup& lookup,
-               ResourceType queryLevel,
-               size_t since,
-               size_t limit)
+    uint64_t GetDatabaseLimits(ResourceType level) const
     {
-      Apply(visitor, lookup, queryLevel, std::set<std::string>(), LabelsConstraint_All, since, limit);
+      return (level == ResourceType_Instance ? limitFindInstances_ : limitFindResults_);
     }
 
     bool LookupOrReconstructMetadata(std::string& target,
@@ -602,33 +589,6 @@ namespace Orthanc
     bool IsUnknownSopClassAccepted();
 
     void SetUnknownSopClassAccepted(bool accepted);
-
-    bool ExpandResource(Json::Value& target,
-                        const std::string& publicId,
-                        ResourceType level,
-                        DicomToJsonFormat format,
-                        const std::set<DicomTag>& requestedTags,
-                        bool allowStorageAccess);
-
-    bool ExpandResource(Json::Value& target,
-                        const std::string& publicId,
-                        const DicomMap& mainDicomTags,    // optional: the main dicom tags for the resource (if already available)
-                        const std::string& instanceId,    // optional: the id of an instance for the resource
-                        const Json::Value* dicomAsJson,   // optional: the dicom-as-json for the resource
-                        ResourceType level,
-                        DicomToJsonFormat format,
-                        const std::set<DicomTag>& requestedTags,
-                        bool allowStorageAccess);
-
-    bool ExpandResource(ExpandedResource& target,
-                        const std::string& publicId,
-                        const DicomMap& mainDicomTags,    // optional: the main dicom tags for the resource (if already available)
-                        const std::string& instanceId,    // optional: the id of an instance for the resource
-                        const Json::Value* dicomAsJson,   // optional: the dicom-as-json for the resource
-                        ResourceType level,
-                        const std::set<DicomTag>& requestedTags,
-                        ExpandResourceFlags expandFlags,
-                        bool allowStorageAccess);
 
     FindStorageAccessMode GetFindStorageAccessMode() const
     {
