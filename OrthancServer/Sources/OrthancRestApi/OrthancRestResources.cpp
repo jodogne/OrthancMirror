@@ -3101,8 +3101,6 @@ namespace Orthanc
       RestApiCallDocumentation& doc = call.GetDocumentation();
 
       doc.SetTag("System")
-        .SetRequestField(KEY_CASE_SENSITIVE, RestApiCallDocumentation::Type_Boolean,
-                         "Enable case-sensitive search for PN value representations (defaults to configuration option `CaseSensitivePN`)", false)
         .SetRequestField(KEY_LEVEL, RestApiCallDocumentation::Type_String,
                          "Level of the query (`Patient`, `Study`, `Series` or `Instance`)", true)
         .SetRequestField(KEY_QUERY, RestApiCallDocumentation::Type_JsonObject,
@@ -3124,6 +3122,8 @@ namespace Orthanc
       {
         case FindType_Find:
           doc.SetSummary("Look for local resources")
+          .SetRequestField(KEY_CASE_SENSITIVE, RestApiCallDocumentation::Type_Boolean,
+                           "Enable case-sensitive search for PN value representations (defaults to configuration option `CaseSensitivePN`)", false)
           .SetDescription("This URI can be used to perform a search on the content of the local Orthanc server, "
                           "in a way that is similar to querying remote DICOM modalities using C-FIND SCU: "
                           "https://orthanc.uclouvain.be/book/users/rest.html#performing-finds-within-orthanc")
@@ -3141,7 +3141,7 @@ namespace Orthanc
           break;
         case FindType_Count:
           doc.SetSummary("Count local resources")
-          .SetDescription("This URI can be used to count the resources that are matching criterias on the content of the local Orthanc server, "
+          .SetDescription("This URI can be used to count the resources that are matching criteria on the content of the local Orthanc server, "
                           "in a way that is similar to tools/find")
           .AddAnswerType(MimeType_Json, "A JSON object with the `Count` of matching resources");
           break;
@@ -3281,6 +3281,12 @@ namespace Orthanc
         if (request.isMember(KEY_CASE_SENSITIVE))
         {
           caseSensitive = request[KEY_CASE_SENSITIVE].asBool();
+
+          if (requestType == FindType_Count && caseSensitive)
+          {
+            throw OrthancException(ErrorCode_ParameterOutOfRange, "Setting \"" + std::string(KEY_CASE_SENSITIVE) +
+                                                                  "\" to \"true\" is not supported by /tools/count-resources");
+          }
         }
 
         { // DICOM Tag query
@@ -3552,7 +3558,10 @@ namespace Orthanc
         answer["Count"] = Json::Value::UInt64(count);
         call.GetOutput().AnswerJson(answer);
       }
-
+      else
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
     }
   }
 
@@ -4343,10 +4352,7 @@ namespace Orthanc
 
     Register("/tools/lookup", Lookup);
     Register("/tools/find", Find<FindType_Find>);
-    if (context_.GetIndex().HasFindSupport())
-    {
-      Register("/tools/count-resources", Find<FindType_Count>);
-    }
+    Register("/tools/count-resources", Find<FindType_Count>);
 
     Register("/patients/{id}/studies", GetChildResources<ResourceType_Patient, ResourceType_Study>);
     Register("/patients/{id}/series", GetChildResources<ResourceType_Patient, ResourceType_Series>);
