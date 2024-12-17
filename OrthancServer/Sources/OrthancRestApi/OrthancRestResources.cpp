@@ -3284,8 +3284,15 @@ namespace Orthanc
 
           if (requestType == FindType_Count && caseSensitive)
           {
+            /**
+             * Explanation: "/tools/find" uses "lookup_->IsMatch(tags)" in "ResourceFinder::Execute()"
+             * to apply case sensitiveness (as the database stores tags with PN VR in lower case).
+             * But, the purpose of "/tools/count-resources" is to speed up the counting the number of
+             * matching resources: Calling "lookup_->IsMatch(tags)" would require gathering the main
+             * DICOM tags, which would lead to no speedup wrt. "/tools/find".
+             **/
             throw OrthancException(ErrorCode_ParameterOutOfRange, "Setting \"" + std::string(KEY_CASE_SENSITIVE) +
-                                                                  "\" to \"true\" is not supported by /tools/count-resources");
+                                   "\" to \"true\" is not supported by /tools/count-resources");
           }
         }
 
