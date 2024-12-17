@@ -3214,6 +3214,18 @@ namespace Orthanc
       }
     };
 
+    class Compatibility : public ReadOnlyOperationsT3<uint64_t&, const FindRequest&, const IDatabaseWrapper::Capabilities&>
+    {
+    public:
+      virtual void ApplyTuple(ReadOnlyTransaction& transaction,
+                              const Tuple& tuple) ORTHANC_OVERRIDE
+      {
+        std::list<std::string> identifiers;
+        transaction.ExecuteFind(identifiers, tuple.get<2>(), tuple.get<1>());
+        tuple.get<0>() = identifiers.size();
+      }
+    };
+
     IDatabaseWrapper::Capabilities capabilities = db_.GetDatabaseCapabilities();
 
     if (db_.HasIntegratedFind())
@@ -3223,7 +3235,8 @@ namespace Orthanc
     }
     else
     {
-      throw OrthancException(ErrorCode_NotImplemented);
+      Compatibility operations;
+      operations.Apply(*this, count, request, capabilities);
     }
   }
 
