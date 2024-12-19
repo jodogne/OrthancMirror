@@ -226,12 +226,6 @@ Performance
 
 * (2) DicomMap: create a cache to the main DICOM tags index
 * (3) Check out rapidjson: https://github.com/miloyip/nativejson-benchmark
-* For C-Find results: we could store the computed tags
-    in metadata on some events like NewSeries + DeletedSeries (same for other computer tags).
-    OtherTags that could be saved in Metadata as well:
-    - ModalitiesInStudy
-    - all computed counters at series/study/patient level
-    - RequestAttributesSequence (sequence that must be included in all DicomWeb QIDO-RS for series)
 
 * Long-shot & not sure it is even feasible at all: try to reduce memory usage by implementing streaming
   when receiving DICOM instances from the Rest API or from DICOM and store files directly to disk as they
@@ -248,6 +242,9 @@ Performance
     to Orthanc and/or the Storage plugin (instead of passing a memory buffer) -> the object-storage plugin could 
     "stream" the file to the storage.  The HTTP server could also "stream" its response from file handles.
     Transcoding should be "file based" too.
+  Alternative option 4: Catch out-of-memory exceptions at quite high level in HTTPHandlers and DICOM receivers
+    and implement retries.  After a few retries, fail for good and return "out-of-resources".
+    Would be interesting to log these errors and count them in the prometheus metrics.
 * To investigate: usage of mapped_file (not only in the indexer plugin): 
   https://discourse.orthanc-server.org/t/patch-for-orthanc-indexer-plugin-crashing-on-big-non-dicom-files/3849/7
 
