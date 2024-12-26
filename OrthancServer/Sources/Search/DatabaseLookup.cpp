@@ -282,6 +282,14 @@ namespace Orthanc
 
   bool DatabaseLookup::HasOnlyMainDicomTags() const
   {
+    std::set<DicomTag> notUsed;
+    
+    return HasOnlyMainDicomTags(notUsed);
+  }
+
+
+  bool DatabaseLookup::HasOnlyMainDicomTags(std::set<DicomTag>& /* out*/ nonMainDicomTags) const
+  {
     std::set<DicomTag> allMainTags;
     DicomMap::GetAllMainDicomTags(allMainTags);
 
@@ -292,11 +300,11 @@ namespace Orthanc
       if (allMainTags.find(constraints_[i]->GetTag()) == allMainTags.end())
       {
         // This is not a main DICOM tag
-        return false;
+        nonMainDicomTags.insert(constraints_[i]->GetTag());
       }
     }
 
-    return true;
+    return nonMainDicomTags.size() == 0;
   }
 
 
