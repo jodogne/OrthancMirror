@@ -84,6 +84,8 @@ namespace Orthanc
 
     bool HasOnlyMainDicomTags() const;
 
+    bool HasOnlyMainDicomTags(std::set<DicomTag>& /* out*/ nonMainDicomTags) const;
+
     std::string Format() const;
 
     bool HasTag(const DicomTag& tag) const;
