@@ -7,6 +7,7 @@ Maintenance
 * When the "HttpsCACertificates" configuration is empty.  Orthanc will now use the
   operating system native CA store (if any).  This is equivalent to the --ca-native
   curl option.
+* Housekeeper plugin: fixed the "Force" configuration that was ineffective.
 
 
 Version 1.12.5 (2024-12-17)
