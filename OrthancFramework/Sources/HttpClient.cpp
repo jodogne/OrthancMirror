@@ -860,7 +860,15 @@ namespace Orthanc
 
     if (verifyPeers_)
     {
-      CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_CAINFO, caCertificates_.c_str()));
+      if (caCertificates_.empty())  // use native CA store (equivalent to --ca-native)
+      {
+        CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_SSL_OPTIONS, CURLSSLOPT_NATIVE_CA));
+      }
+      else // use provided CA file (equivalent to --cacert)
+      {
+        CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_CAINFO, caCertificates_.c_str()));
+      }
+      
       CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_SSL_VERIFYHOST, 2));  // libcurl default is strict verifyhost
       CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_SSL_VERIFYPEER, 1)); 
     }
@@ -1187,8 +1195,8 @@ namespace Orthanc
     {
       if (httpsVerifyCertificates.empty())
       {
-        LOG(WARNING) << "No certificates are provided to validate peers, "
-                     << "set \"HttpsCACertificates\" if you need to do HTTPS requests";
+        LOG(WARNING) << "No certificates are provided to validate peers.  Orthanc will use the native CA store. "
+                     << "Set \"HttpsCACertificates\" if you need to do HTTPS requests and use custom CAs.";
       }
       else
       {

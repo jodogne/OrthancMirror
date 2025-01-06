@@ -1526,9 +1526,15 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
     // These configuration options must be set before creating the
     // ServerContext, otherwise the possible Lua scripts will not be
     // able to properly issue HTTP/HTTPS queries
+
+    std::string httpsCaCertificates = lock.GetConfiguration().GetStringParameter("HttpsCACertificates", "");
+    if (!httpsCaCertificates.empty())
+    {
+      httpsCaCertificates = lock.GetConfiguration().InterpretStringParameterAsPath(httpsCaCertificates);
+    }
+
     HttpClient::ConfigureSsl(lock.GetConfiguration().GetBooleanParameter("HttpsVerifyPeers", true),
-                             lock.GetConfiguration().InterpretStringParameterAsPath
-                             (lock.GetConfiguration().GetStringParameter("HttpsCACertificates", "")));
+                             httpsCaCertificates);
     HttpClient::SetDefaultVerbose(lock.GetConfiguration().GetBooleanParameter("HttpVerbose", false));
 
     // The value "0" below makes the class HttpClient use its default

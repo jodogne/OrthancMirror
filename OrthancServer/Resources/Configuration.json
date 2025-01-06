@@ -572,10 +572,10 @@
   // Set the timeout for HTTP requests issued by Orthanc (in seconds).
   "HttpTimeout" : 60,
 
-  // Enable the verification of the peers during HTTPS requests. This
-  // option must be set to "false" if using self-signed certificates.
-  // Pay attention that setting this option to "false" results in
-  // security risks!
+  // Enable the verification of the peers certificates during HTTPS 
+  // requests. Setting this option to false is equivalent to the 
+  // "--insecure" curl option. Pay attention that setting this option 
+  // to "false" results in security risks!
   // Reference: http://curl.haxx.se/docs/sslcerts.html
   "HttpsVerifyPeers" : true,
 
@@ -585,7 +585,10 @@
   // verify the peers. The file may contain multiple CA
   // certificates. The certificate(s) must be in PEM format." On
   // Debian-based systems, this option can be set to
-  // "/etc/ssl/certs/ca-certificates.crt"
+  // "/etc/ssl/certs/ca-certificates.crt".
+  // Starting with Orthanc 1.12.6, when this option is empty,
+  // Orthanc uses the operating system native CA store ("--ca-native"
+  // option)
   "HttpsCACertificates" : "",
 
 
