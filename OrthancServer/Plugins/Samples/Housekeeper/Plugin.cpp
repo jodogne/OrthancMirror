@@ -566,7 +566,7 @@ static bool ProcessChanges(bool needsReconstruct, bool needsReingest, bool needs
         {
           Json::Value result;
 
-          if (needsReconstruct || needsReingest)
+          if (needsReconstruct || needsReingest ||force_)
           {
             Json::Value request;
             if (needsReingest)
