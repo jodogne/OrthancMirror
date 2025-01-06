@@ -938,9 +938,19 @@ namespace Orthanc
         source.SetExternalBuffer(dicom->GetBufferData(), dicom->GetBufferSize());
         
         IDicomTranscoder::DicomImage transcoded;
+        
         if (Transcode(transcoded, source, syntaxes, true /* allow new SOP instance UID */))
         {
           std::unique_ptr<ParsedDicomFile> tmp(transcoded.ReleaseAsParsedDicomFile());
+
+          if (isReconstruct)
+          {
+            // when reconstructing, we always want to keep the DICOM IDs untouched even if the transcoding has generated a new SOPInstanceUID.
+            const Orthanc::ParsedDicomFile& sourceDicom = dicom->GetParsedDicomFile();
+            std::string sopInstanceUid;
+            sourceDicom.GetTagValue(sopInstanceUid, DICOM_TAG_SOP_INSTANCE_UID);
+            tmp->ReplacePlainString(DICOM_TAG_SOP_INSTANCE_UID, sopInstanceUid);
+          }
 
           std::unique_ptr<DicomInstanceToStore> toStore(DicomInstanceToStore::CreateFromParsedDicomFile(*tmp));
           toStore->SetOrigin(dicom->GetOrigin());
