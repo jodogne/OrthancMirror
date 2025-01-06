@@ -860,12 +860,15 @@ namespace Orthanc
 
     if (verifyPeers_)
     {
+#if defined(CURLSSLOPT_NATIVE_CA)   // from curl v 8.2.0     
       if (caCertificates_.empty())  // use native CA store (equivalent to --ca-native)
       {
         CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_SSL_OPTIONS, CURLSSLOPT_NATIVE_CA));
       }
-      else // use provided CA file (equivalent to --cacert)
+      else 
+#endif
       {
+        // use provided CA file (equivalent to --cacert)
         CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_CAINFO, caCertificates_.c_str()));
       }
       
