@@ -586,7 +586,8 @@
   // certificates. The certificate(s) must be in PEM format." On
   // Debian-based systems, this option can be set to
   // "/etc/ssl/certs/ca-certificates.crt".
-  // Starting with Orthanc 1.12.6, when this option is empty,
+  // Starting with Orthanc 1.12.6 and provided that Orthanc has been
+  // built with libcurl > 8.2.0, when this option is empty,
   // Orthanc uses the operating system native CA store ("--ca-native"
   // option)
   "HttpsCACertificates" : "",
