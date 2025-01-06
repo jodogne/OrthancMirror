@@ -8,6 +8,8 @@ Maintenance
   operating system native CA store (if any).  This is equivalent to the --ca-native
   curl option.
 * Housekeeper plugin: fixed the "Force" configuration that was ineffective.
+* Housekeeper plugin: allow transcoding to lossy transfer syntax.  Orthanc will keep
+  the SOPInstanceUID untouched in this case.
 
 
 Version 1.12.5 (2024-12-17)
