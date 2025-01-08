@@ -938,7 +938,7 @@ namespace Orthanc
 
       Visitor visitor(resources);
 
-      ResourceFinder finder(ResourceType_Study, ResponseContentFlags_ID, GetContext().GetFindStorageAccessMode());
+      ResourceFinder finder(ResourceType_Study, ResponseContentFlags_ID, GetContext().GetFindStorageAccessMode(), GetContext().GetIndex().HasFindSupport());
       finder.SetDatabaseLookup(query);
       finder.Execute(visitor, GetContext());
     }
@@ -1016,7 +1016,7 @@ namespace Orthanc
 
       Visitor visitor;
 
-      ResourceFinder finder(ResourceType_Study, ResponseContentFlags_ID, context_.GetFindStorageAccessMode());
+      ResourceFinder finder(ResourceType_Study, ResponseContentFlags_ID, context_.GetFindStorageAccessMode(), context_.GetIndex().HasFindSupport());
       finder.SetDatabaseLookup(query);
       finder.Execute(visitor, context_);
 
@@ -1394,7 +1394,7 @@ namespace Orthanc
         return false;
       }
 
-      ResourceFinder finder(level, ResponseContentFlags_ID, context_.GetFindStorageAccessMode());
+      ResourceFinder finder(level, ResponseContentFlags_ID, context_.GetFindStorageAccessMode(), context_.GetIndex().HasFindSupport());
       finder.SetDatabaseLookup(query);
       finder.SetRetrieveMetadata(true);
 
@@ -1445,7 +1445,7 @@ namespace Orthanc
                              ResourceType level,
                              const DatabaseLookup& query)
   {
-    ResourceFinder finder(level, ResponseContentFlags_ExpandTrue, context.GetFindStorageAccessMode());
+    ResourceFinder finder(level, ResponseContentFlags_ExpandTrue, context.GetFindStorageAccessMode(), context.GetIndex().HasFindSupport());
     finder.SetDatabaseLookup(query);
 
     Json::Value expanded;
@@ -1515,7 +1515,7 @@ namespace Orthanc
       
         mime = MimeType_Dicom;
 
-        ResourceFinder finder(ResourceType_Instance, ResponseContentFlags_ID, context_.GetFindStorageAccessMode());
+        ResourceFinder finder(ResourceType_Instance, ResponseContentFlags_ID, context_.GetFindStorageAccessMode(), context_.GetIndex().HasFindSupport());
         finder.SetDatabaseLookup(query);
         finder.SetRetrieveMetadata(true);
         finder.SetRetrieveAttachments(true);
@@ -1645,7 +1645,7 @@ namespace Orthanc
 
         DicomDeleteVisitor visitor(context_, level);
 
-        ResourceFinder finder(level, ResponseContentFlags_ID, context_.GetFindStorageAccessMode());
+        ResourceFinder finder(level, ResponseContentFlags_ID, context_.GetFindStorageAccessMode(), context_.GetIndex().HasFindSupport());
         finder.SetDatabaseLookup(query);
         finder.Execute(visitor, context_);
         return true;

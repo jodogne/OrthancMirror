@@ -4,6 +4,9 @@ Pending changes in the mainline
 Maintenance
 -----------
 
+* Fix: With "ExtendedFind", using tools/find while querying against ModalitiesInStudy 
+  was not compatible with pagination which prevented, amongst others, to use the 
+  modality filter in OE2.
 * When the "HttpsCACertificates" configuration is empty.  Orthanc will now use the
   operating system native CA store (if any).  This is equivalent to the --ca-native
   curl option.
