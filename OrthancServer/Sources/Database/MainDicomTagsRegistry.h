@@ -82,8 +82,10 @@ namespace Orthanc
      * constraints are less strict than the original DatabaseLookup,
      * so more resources will match them.
      **/
-    bool NormalizeLookup(DatabaseDicomTagConstraints& target,
+    bool NormalizeLookup(bool& canBeFullyPerformedInDb,
+                         DatabaseDicomTagConstraints& target,
                          const DatabaseLookup& source,
-                         ResourceType queryLevel) const;
+                         ResourceType queryLevel,
+                         bool allowChildrenExistsQueries) const;
   };
 }

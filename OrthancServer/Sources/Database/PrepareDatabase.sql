@@ -40,6 +40,9 @@ CREATE TABLE MainDicomTags(
        );
 
 -- The following table was added in Orthanc 0.8.5 (database v5)
+-- It contains only the DICOM Tags that are commonly used for searches.
+-- All these tags are converted to UPPERCASE !
+-- These tags are also stored in the MainDicomTags table without casing modificiation.
 CREATE TABLE DicomIdentifiers(
        id INTEGER REFERENCES Resources(internalId) ON DELETE CASCADE,
        tagGroup INTEGER,

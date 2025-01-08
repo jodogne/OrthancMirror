@@ -444,7 +444,7 @@ namespace Orthanc
      * Run the query.
      **/
 
-    ResourceFinder finder(level, ResponseContentFlags_ID, context_.GetFindStorageAccessMode());
+    ResourceFinder finder(level, ResponseContentFlags_ID, context_.GetFindStorageAccessMode(), context_.GetIndex().HasFindSupport());
     finder.SetDatabaseLookup(lookup);
     finder.AddRequestedTags(requestedTags);
 

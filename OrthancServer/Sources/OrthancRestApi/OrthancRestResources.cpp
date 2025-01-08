@@ -154,7 +154,7 @@ namespace Orthanc
       responseContent = static_cast<ResponseContentFlags>(static_cast<uint32_t>(responseContent) | ResponseContentFlags_Metadata);
     }
 
-    ResourceFinder finder(level, responseContent, context.GetFindStorageAccessMode());
+    ResourceFinder finder(level, responseContent, context.GetFindStorageAccessMode(), context.GetIndex().HasFindSupport());
     finder.SetOrthancId(level, identifier);
     finder.SetRetrieveMetadata(retrieveMetadata);
 
@@ -194,7 +194,10 @@ namespace Orthanc
     OrthancRestApi::GetRequestedTags(requestedTags, call);
     OrthancRestApi::GetResponseContentAndExpand(responseContent, call);
 
-    ResourceFinder finder(resourceType, responseContent, OrthancRestApi::GetContext(call).GetFindStorageAccessMode());
+    ResourceFinder finder(resourceType, 
+                          responseContent, 
+                          OrthancRestApi::GetContext(call).GetFindStorageAccessMode(),
+                          OrthancRestApi::GetContext(call).GetIndex().HasFindSupport());
     finder.AddRequestedTags(requestedTags);
 
     if (call.HasArgument("limit") ||
@@ -252,7 +255,10 @@ namespace Orthanc
 
     const DicomToJsonFormat format = OrthancRestApi::GetDicomFormat(call, DicomToJsonFormat_Human);
 
-    ResourceFinder finder(resourceType, ResponseContentFlags_ExpandTrue, OrthancRestApi::GetContext(call).GetFindStorageAccessMode());
+    ResourceFinder finder(resourceType, 
+                          ResponseContentFlags_ExpandTrue, 
+                          OrthancRestApi::GetContext(call).GetFindStorageAccessMode(),
+                          OrthancRestApi::GetContext(call).GetIndex().HasFindSupport());
     finder.AddRequestedTags(requestedTags);
     finder.SetOrthancId(resourceType, call.GetUriComponent("id", ""));
 
@@ -3072,25 +3078,6 @@ namespace Orthanc
     FindType_Count
   };
 
-  static bool CanBePerformedInDb(const DatabaseLookup& lookup)
-  {
-    std::set<DicomTag> nonMainDicomTags;
-    if (!lookup.HasOnlyMainDicomTags(nonMainDicomTags))
-    {
-      // TODO: prepared work for https://github.com/orthanc-server/orthanc-explorer-2/issues/73
-      
-      // // filtering on ModalitiesInStudy is actually performed in DB too although the tag is not stored in the MainDicomTags
-      // if (nonMainDicomTags.size() == 1 && nonMainDicomTags.find(DICOM_TAG_MODALITIES_IN_STUDY) != nonMainDicomTags.end())
-      // {
-      //   return true;
-      // }
-
-      return false;
-    }
-
-    return true;
-  }
-
 
   template <enum FindType requestType>
   static void Find(RestApiPostCall& call)
@@ -3292,7 +3279,7 @@ namespace Orthanc
 
       const ResourceType level = StringToResourceType(request[KEY_LEVEL].asCString());
 
-      ResourceFinder finder(level, responseContent, context.GetFindStorageAccessMode());
+      ResourceFinder finder(level, responseContent, context.GetFindStorageAccessMode(), context.GetIndex().HasFindSupport());
 
       DatabaseLookup dicomTagLookup;
 
@@ -3337,12 +3324,6 @@ namespace Orthanc
               dicomTagLookup.AddRestConstraint(FromDcmtkBridge::ParseTag(members[i]),
                                       value, caseSensitive, true);
             }
-          }
-
-          if (requestType == FindType_Count && !CanBePerformedInDb(dicomTagLookup))
-          {
-              throw OrthancException(ErrorCode_BadRequest,
-                                    "Unable to count resources when querying tags that are not stored as MainDicomTags in the Database");
           }
 
           finder.SetDatabaseLookup(dicomTagLookup);
@@ -3444,12 +3425,11 @@ namespace Orthanc
 
         finder.SetDatabaseLimits(context.GetDatabaseLimits(level));
 
-        if (((request.isMember(KEY_LIMIT) && request[KEY_LIMIT].asInt64() != 0) || 
-             (request.isMember(KEY_SINCE) && request[KEY_SINCE].asInt64() != 0)) &&
-            !CanBePerformedInDb(dicomTagLookup))
+        if ((request.isMember(KEY_SINCE) && request[KEY_SINCE].asInt64() != 0) &&
+            !finder.CanBeFullyPerformedInDb())
         {
             throw OrthancException(ErrorCode_BadRequest,
-                                  "Unable to use " + std::string(KEY_LIMIT) + " or " + std::string(KEY_SINCE) + " in tools/find when querying tags that are not stored as MainDicomTags in the Database");
+                                  "Unable to use '" + std::string(KEY_SINCE) + "' in tools/find when querying tags that are not stored as MainDicomTags in the Database");
         }
 
         if (request.isMember(KEY_LIMIT))
@@ -3625,7 +3605,10 @@ namespace Orthanc
     std::set<DicomTag> requestedTags;
     OrthancRestApi::GetRequestedTags(requestedTags, call);
 
-    ResourceFinder finder(end, (expand ? ResponseContentFlags_ExpandTrue : ResponseContentFlags_ID), OrthancRestApi::GetContext(call).GetFindStorageAccessMode());
+    ResourceFinder finder(end, 
+                          (expand ? ResponseContentFlags_ExpandTrue : ResponseContentFlags_ID), 
+                          OrthancRestApi::GetContext(call).GetFindStorageAccessMode(),
+                          OrthancRestApi::GetContext(call).GetIndex().HasFindSupport());
     finder.SetOrthancId(start, call.GetUriComponent("id", ""));
     finder.AddRequestedTags(requestedTags);
 

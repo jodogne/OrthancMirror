@@ -517,7 +517,7 @@ namespace Orthanc
       }
 
       if (lookup_.get() != NULL &&
-          isSimpleLookup_ &&
+          canBeFullyPerformedInDb_ &&
           (hasLimitsSince_ || hasLimitsCount_))
       {
         /**
@@ -544,10 +544,12 @@ namespace Orthanc
 
   ResourceFinder::ResourceFinder(ResourceType level,
                                  ResponseContentFlags responseContent,
-                                 FindStorageAccessMode storageAccessMode) :
+                                 FindStorageAccessMode storageAccessMode,
+                                 bool supportsChildExistQueries) :
     request_(level),
     databaseLimits_(0),
     isSimpleLookup_(true),
+    canBeFullyPerformedInDb_(true),
     pagingMode_(PagingMode_FullManual),
     hasLimitsSince_(false),
     hasLimitsCount_(false),
@@ -555,6 +557,7 @@ namespace Orthanc
     limitsCount_(0),
     responseContent_(responseContent),
     storageAccessMode_(storageAccessMode),
+    supportsChildExistQueries_(supportsChildExistQueries),
     isWarning002Enabled_(false),
     isWarning004Enabled_(false),
     isWarning005Enabled_(false)
@@ -664,7 +667,7 @@ namespace Orthanc
       }
     }
 
-    isSimpleLookup_ = registry.NormalizeLookup(request_.GetDicomTagConstraints(), lookup, request_.GetLevel());
+    isSimpleLookup_ = registry.NormalizeLookup(canBeFullyPerformedInDb_, request_.GetDicomTagConstraints(), lookup, request_.GetLevel(), supportsChildExistQueries_);
 
     // "request_.GetDicomTagConstraints()" only contains constraints on main DICOM tags
 
@@ -681,12 +684,15 @@ namespace Orthanc
       }
       else
       {
-        LOG(WARNING) << "Executing a database lookup at level " << EnumerationToString(request_.GetLevel())
-                     << " on main DICOM tag " << constraint.GetTag().Format() << " from an inferior level ("
-                     << EnumerationToString(constraint.GetLevel()) << "), this will return no result";
+        if (!supportsChildExistQueries_ || (constraint.GetLevel() != ResourceType_Series && constraint.GetTag() != DICOM_TAG_MODALITIES_IN_STUDY))
+        {
+          LOG(WARNING) << "Executing a database lookup at level " << EnumerationToString(request_.GetLevel())
+                      << " on main DICOM tag " << constraint.GetTag().Format() << " from an inferior level ("
+                      << EnumerationToString(constraint.GetLevel()) << "), this will return no result";
+        }
       }
 
-      if (IsComputedTag(constraint.GetTag()))
+      if (IsComputedTag(constraint.GetTag()) && constraint.GetTag() != DICOM_TAG_MODALITIES_IN_STUDY)
       {
         // Sanity check
         throw OrthancException(ErrorCode_InternalError);
@@ -1028,6 +1034,12 @@ namespace Orthanc
 
   uint64_t ResourceFinder::Count(ServerContext& context) const
   {
+    if (!canBeFullyPerformedInDb_)
+    {
+      throw OrthancException(ErrorCode_BadRequest,
+                            "Unable to count resources when querying tags that are not stored as MainDicomTags in the Database or when using case sensitive queries.");
+    }
+
     uint64_t count = 0;
     context.GetIndex().ExecuteCount(count, request_);
     return count;
@@ -1038,6 +1050,13 @@ namespace Orthanc
                                ServerContext& context)
   {
     UpdateRequestLimits(context);
+
+    if ((request_.HasLimits() && request_.GetLimitsSince() > 0) &&
+        !canBeFullyPerformedInDb_)
+    {
+      throw OrthancException(ErrorCode_BadRequest,
+                             "nable to use 'Since' when finding resources when querying against Dicom Tags that are not in the MainDicomTags or when using CaseSenstive queries.");
+    }
 
     bool isWarning002Enabled = false;
     bool isWarning004Enabled = false;

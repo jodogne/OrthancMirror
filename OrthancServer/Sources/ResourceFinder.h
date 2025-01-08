@@ -60,6 +60,7 @@ namespace Orthanc
     uint64_t                         databaseLimits_;
     std::unique_ptr<DatabaseLookup>  lookup_;
     bool                             isSimpleLookup_;
+    bool                             canBeFullyPerformedInDb_;
     PagingMode                       pagingMode_;
     bool                             hasLimitsSince_;
     bool                             hasLimitsCount_;
@@ -67,6 +68,7 @@ namespace Orthanc
     uint64_t                         limitsCount_;
     ResponseContentFlags             responseContent_;
     FindStorageAccessMode            storageAccessMode_;
+    bool                             supportsChildExistQueries_;
     std::set<DicomTag>               requestedTags_;
     std::set<DicomTag>               requestedComputedTags_;
 
@@ -106,7 +108,8 @@ namespace Orthanc
   public:
     ResourceFinder(ResourceType level,
                    ResponseContentFlags responseContent,
-                   FindStorageAccessMode storageAccessMode);
+                   FindStorageAccessMode storageAccessMode,
+                   bool supportsChildExistQueries);
 
     void SetDatabaseLimits(uint64_t limits);
 
@@ -195,5 +198,10 @@ namespace Orthanc
                             bool includeAllMetadata);
 
     uint64_t Count(ServerContext& context) const;
+
+    bool CanBeFullyPerformedInDb() const
+    {
+      return canBeFullyPerformedInDb_;
+    }
   };
 }

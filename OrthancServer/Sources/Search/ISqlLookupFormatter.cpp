@@ -856,13 +856,25 @@ namespace Orthanc
       {
         std::string join;
         FormatJoin(join, constraint, count);
-        joins += join;
+
+        if (constraint.GetLevel() <= queryLevel)
+        {
+          joins += join;
+        }
+        else if (constraint.GetLevel() == queryLevel + 1 && !comparison.empty())
+        {
+          // new in v 1.12.6, the constraints on child tags are actually looking for one child with this value
+          comparison = " EXISTS (SELECT 1 FROM Resources AS " + FormatLevel(static_cast<ResourceType>(queryLevel + 1)) + 
+                       join + 
+                       " WHERE " + comparison + " AND " + 
+                       FormatLevel(static_cast<ResourceType>(queryLevel + 1)) + ".parentId = " + FormatLevel(static_cast<ResourceType>(queryLevel)) + ".internalId) ";
+        }
 
         if (!comparison.empty())
         {
           comparisons += " AND " + comparison;
         }
-        
+
         count ++;
       }
     }
@@ -894,13 +906,14 @@ namespace Orthanc
               FormatLevel(static_cast<ResourceType>(level + 1)) + ".parentId");
     }
       
-    for (int level = queryLevel + 1; level <= lowerLevel; level++)
-    {
-      sql += (" INNER JOIN Resources " +
-              FormatLevel(static_cast<ResourceType>(level)) + " ON " +
-              FormatLevel(static_cast<ResourceType>(level - 1)) + ".internalId=" +
-              FormatLevel(static_cast<ResourceType>(level)) + ".parentId");
-    }
+    // disabled in v 1.12.6 now that the child levels are considered as "is there at least one child that meets this constraint"
+    // for (int level = queryLevel + 1; level <= lowerLevel; level++)
+    // {
+    //   sql += (" INNER JOIN Resources " +
+    //           FormatLevel(static_cast<ResourceType>(level)) + " ON " +
+    //           FormatLevel(static_cast<ResourceType>(level - 1)) + ".internalId=" +
+    //           FormatLevel(static_cast<ResourceType>(level)) + ".parentId");
+    // }
 
     std::list<std::string> where;
     where.push_back(strQueryLevel + ".resourceType = " +
