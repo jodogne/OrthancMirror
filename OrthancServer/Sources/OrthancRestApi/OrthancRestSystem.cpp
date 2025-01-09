@@ -75,6 +75,7 @@ namespace Orthanc
     static const char* const DATABASE_BACKEND_PLUGIN = "DatabaseBackendPlugin";
     static const char* const DATABASE_VERSION = "DatabaseVersion";
     static const char* const DATABASE_SERVER_IDENTIFIER = "DatabaseServerIdentifier";
+    static const char* const DEFAULT_RETRIEVE_METHOD = "DefaultRetrieveMethod";
     static const char* const DICOM_AET = "DicomAet";
     static const char* const DICOM_PORT = "DicomPort";
     static const char* const HTTP_PORT = "HttpPort";
@@ -111,6 +112,7 @@ namespace Orthanc
                         "Information about the installed storage area plugin (`null` if no such plugin is installed)")
         .SetAnswerField(DATABASE_BACKEND_PLUGIN, RestApiCallDocumentation::Type_String,
                         "Information about the installed database index plugin (`null` if no such plugin is installed)")
+        .SetAnswerField(DEFAULT_RETRIEVE_METHOD, RestApiCallDocumentation::Type_String, "The DefaultRetrieveMethod configuration")
         .SetAnswerField(DICOM_AET, RestApiCallDocumentation::Type_String, "The DICOM AET of Orthanc")
         .SetAnswerField(DICOM_PORT, RestApiCallDocumentation::Type_Number, "The port to the DICOM server of Orthanc")
         .SetAnswerField(HTTP_PORT, RestApiCallDocumentation::Type_Number, "The port to the HTTP server of Orthanc")
@@ -165,6 +167,7 @@ namespace Orthanc
       result[MAXIMUM_STORAGE_SIZE] = lock.GetConfiguration().GetUnsignedIntegerParameter(MAXIMUM_STORAGE_SIZE, 0); // New in Orthanc 1.11.3
       result[MAXIMUM_PATIENT_COUNT] = lock.GetConfiguration().GetUnsignedIntegerParameter(MAXIMUM_PATIENT_COUNT, 0); // New in Orthanc 1.12.4
       result[MAXIMUM_STORAGE_MODE] = lock.GetConfiguration().GetStringParameter(MAXIMUM_STORAGE_MODE, "Recycle"); // New in Orthanc 1.11.3
+      result[DEFAULT_RETRIEVE_METHOD] = lock.GetConfiguration().GetStringParameter(DEFAULT_RETRIEVE_METHOD, "C-MOVE");
     }
 
     result[STORAGE_AREA_PLUGIN] = Json::nullValue;

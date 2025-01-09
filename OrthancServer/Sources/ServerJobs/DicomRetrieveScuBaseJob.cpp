@@ -231,8 +231,6 @@ namespace Orthanc
       return 0.0f;
     }
 
-    LOG(INFO) << "---------" << nbRemainingSubOperations_ << "  " << nbCompletedSubOperations_;
-
     return float(nbCompletedSubOperations_ + nbFailedSubOperations_ + nbWarningSubOperations_) / float(totalOperations);
   }
 }
