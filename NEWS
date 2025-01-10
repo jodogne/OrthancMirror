@@ -15,6 +15,13 @@ Maintenance
   the SOPInstanceUID untouched in this case.
 
 
+Plugins
+-------
+
+* SDK: added OrthancPluginStartStreamAnswer and OrthancPluginSendStreamChunk to allow
+  sending HTTP response by chunks.
+
+
 Version 1.12.5 (2024-12-17)
 ===========================
 

@@ -224,5 +224,14 @@ namespace Orthanc
      * used to handle compression using "Content-Encoding".
      **/
     void AnswerWithoutBuffering(IHttpStreamAnswer& stream);
+
+    void StartStream(const std::string& contentType);
+
+    void SendStreamItem(const void* data,
+                        size_t size);
+
+    void CloseStream();
+
+    bool IsWritingStream() const;
   };
 }
