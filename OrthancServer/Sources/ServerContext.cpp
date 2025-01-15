@@ -356,7 +356,8 @@ namespace Orthanc
                                IStorageArea& area,
                                bool unitTesting,
                                size_t maxCompletedJobs,
-                               bool readOnly) :
+                               bool readOnly,
+                               unsigned int maxConcurrentDcmtkTranscoder) :
     index_(*this, database, (unitTesting ? 20 : 500), readOnly),
     area_(area),
     compressionEnabled_(false),
@@ -378,7 +379,7 @@ namespace Orthanc
     isExecuteLuaEnabled_(false),
     isRestApiWriteToFileSystemEnabled_(false),
     overwriteInstances_(false),
-    dcmtkTranscoder_(new DcmtkTranscoder),
+    dcmtkTranscoder_(new DcmtkTranscoder(maxConcurrentDcmtkTranscoder)),
     isIngestTranscoding_(false),
     ingestTranscodingOfUncompressed_(true),
     ingestTranscodingOfCompressed_(true),

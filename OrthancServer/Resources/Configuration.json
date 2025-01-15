@@ -1025,7 +1025,12 @@
   // In this mode, many Orthanc features that requires a write access to the 
   // Index DB or the disk storage won't be available at all.
   // (new in Orthanc 1.12.5)
-  "ReadOnly" : false
+  "ReadOnly" : false,
 
+  // Maximum number of DCMTK transcoders that are simultaneously running
+  // at any given time. A value of "0" indicates to use all the
+  // available CPU logical cores. Prior to Orthanc 1.12.6, there were not limit.
+  // (new in Orthanc 1.12.6)
+  "MaximumConcurrentDcmtkTranscoders" : 0
 
 }
