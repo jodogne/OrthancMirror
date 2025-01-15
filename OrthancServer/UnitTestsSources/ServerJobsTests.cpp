@@ -536,7 +536,7 @@ namespace
     OrthancJobsSerialization()
     {
       db_.Open();
-      context_.reset(new ServerContext(db_, storage_, true /* running unit tests */, 10, false /* readonly */));
+      context_.reset(new ServerContext(db_, storage_, true /* running unit tests */, 10, false /* readonly */, 1 /* DCMTK concurrent transcoders */));
       context_->SetupJobsEngine(true, false);
     }
 

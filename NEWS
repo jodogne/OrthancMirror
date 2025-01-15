@@ -1,6 +1,15 @@
 Pending changes in the mainline
 ===============================
 
+General
+-------
+
+* New configuration options:
+  - "MaximumConcurrentDcmtkTranscoders" to reduce CPU and memory usage by limiting
+    the number of concurrent DCMTK transcoders that are simultaneously running
+    at any given time.
+
+
 Maintenance
 -----------
 

@@ -64,6 +64,8 @@ static const char* const KEY_DICOM_TLS_MINIMUM_PROTOCOL_VERSION = "DicomTlsMinim
 static const char* const KEY_DICOM_TLS_ACCEPTED_CIPHERS = "DicomTlsCiphersAccepted";
 static const char* const KEY_MAXIMUM_PDU_LENGTH = "MaximumPduLength";
 static const char* const KEY_READ_ONLY = "ReadOnly";
+static const char* const KEY_MAXIMUM_CONCURRENT_DCMTK_TRANSCODERS = "MaximumConcurrentDcmtkTranscoders";
+
 
 class OrthancStoreRequestHandler : public IStoreRequestHandler
 {
@@ -1519,7 +1521,8 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
 {
   size_t maxCompletedJobs;
   bool readOnly;
-  
+  unsigned int maxDcmtkConcurrentTranscoders;
+
   {
     OrthancConfiguration::ReaderLock lock;
 
@@ -1555,6 +1558,13 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
     // New option in Orthanc 1.12.5
     readOnly = lock.GetConfiguration().GetBooleanParameter(KEY_READ_ONLY, false);
     
+    // New option in Orthanc 1.12.6
+    maxDcmtkConcurrentTranscoders = lock.GetConfiguration().GetUnsignedIntegerParameter(KEY_MAXIMUM_CONCURRENT_DCMTK_TRANSCODERS, 0);
+    if (maxDcmtkConcurrentTranscoders == 0)
+    {
+      maxDcmtkConcurrentTranscoders = static_cast<unsigned int>(boost::thread::hardware_concurrency());
+    }
+
     // Configuration of DICOM TLS for Orthanc SCU (since Orthanc 1.9.0)
     DicomAssociationParameters::SetDefaultOwnCertificatePath(
       lock.GetConfiguration().GetStringParameter(KEY_DICOM_TLS_PRIVATE_KEY, ""),
@@ -1569,7 +1579,7 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
       lock.GetConfiguration().GetBooleanParameter(KEY_DICOM_TLS_REMOTE_CERTIFICATE_REQUIRED, true));
   }
   
-  ServerContext context(database, storageArea, false /* not running unit tests */, maxCompletedJobs, readOnly);
+  ServerContext context(database, storageArea, false /* not running unit tests */, maxCompletedJobs, readOnly, maxDcmtkConcurrentTranscoders);
 
   {
     OrthancConfiguration::ReaderLock lock;
@@ -1974,7 +1984,7 @@ int main(int argc, char* argv[])
           SQLiteDatabaseWrapper inMemoryDatabase;
           inMemoryDatabase.Open();
           MemoryStorageArea inMemoryStorage;
-          ServerContext context(inMemoryDatabase, inMemoryStorage, true /* unit testing */, 0 /* max completed jobs */, false /* readonly */);
+          ServerContext context(inMemoryDatabase, inMemoryStorage, true /* unit testing */, 0 /* max completed jobs */, false /* readonly */, 1 /* DCMTK concurrent transcoders */);
           OrthancRestApi restApi(context, false /* no Orthanc Explorer */);
           restApi.GenerateOpenApiDocumentation(openapi);
           context.Stop();
@@ -2025,7 +2035,7 @@ int main(int argc, char* argv[])
           SQLiteDatabaseWrapper inMemoryDatabase;
           inMemoryDatabase.Open();
           MemoryStorageArea inMemoryStorage;
-          ServerContext context(inMemoryDatabase, inMemoryStorage, true /* unit testing */, 0 /* max completed jobs */, false /* readonly */);
+          ServerContext context(inMemoryDatabase, inMemoryStorage, true /* unit testing */, 0 /* max completed jobs */, false /* readonly */, 1 /* DCMTK concurrent transcoders */);
           OrthancRestApi restApi(context, false /* no Orthanc Explorer */);
           restApi.GenerateReStructuredTextCheatSheet(cheatsheet, "https://orthanc.uclouvain.be/api/index.html");
           context.Stop();

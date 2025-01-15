@@ -306,7 +306,8 @@ namespace Orthanc
                   IStorageArea& area,
                   bool unitTesting,
                   size_t maxCompletedJobs,
-                  bool readOnly);
+                  bool readOnly,
+                  unsigned int maxConcurrentDcmtkTranscoder);
 
     ~ServerContext();
 
