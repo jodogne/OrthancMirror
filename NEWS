@@ -32,6 +32,8 @@ Maintenance
   in the series.
 * optimized /archive to use the "ExtendedFind" extension and reduce the number of
   SQL queries.
+* By default, DCMTK now uses its own "oficonv" library for character set conversion.
+  This can be tuned using the new CMake option "-DDCMTK_LOCALE_BACKEND=oficonv"
 * Upgraded dependencies for static builds:
   - dcmtk 3.6.9
 
