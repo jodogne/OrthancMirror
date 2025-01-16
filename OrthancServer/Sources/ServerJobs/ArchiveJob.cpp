@@ -31,6 +31,7 @@
 #include "../../../OrthancFramework/Sources/Logging.h"
 #include "../../../OrthancFramework/Sources/OrthancException.h"
 #include "../../../OrthancFramework/Sources/MultiThreading/Semaphore.h"
+#include "../../../OrthancFramework/Sources/SerializationToolbox.h"
 #include "../OrthancConfiguration.h"
 #include "../ServerContext.h"
 #include "../SimpleInstanceOrdering.h"
@@ -586,7 +587,20 @@ namespace Orthanc
 
       if (level_ == ArchiveResourceType_Instance)
       {
-        AddResourceToExpand(id);
+        std::string strIndexInSeries;
+        uint32_t indexInSeries = 0;
+        FileInfo fileInfo;
+        int64_t revisionNotUsed;
+        
+        if (index.LookupMetadata(strIndexInSeries, id, ResourceType_Instance, MetadataType_Instance_IndexInSeries))
+        {
+          SerializationToolbox::ParseUnsignedInteger32(indexInSeries, strIndexInSeries);
+        }
+
+        if (index.LookupAttachment(fileInfo, revisionNotUsed, ResourceType_Instance, id, FileContentType_Dicom))
+        {
+          AddInstance(id, indexInSeries, fileInfo);
+        }
       }
       else if (resource.GetLevel() == GetResourceLevel(level_))
       {
