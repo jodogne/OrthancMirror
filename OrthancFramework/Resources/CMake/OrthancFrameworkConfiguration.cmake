@@ -456,7 +456,8 @@ if (ENABLE_LOCALE)
     # is shipped with the stdlib
     unset(BOOST_LOCALE_BACKEND CACHE)
   else()
-    if (BOOST_LOCALE_BACKEND STREQUAL "gcc")
+    if (BOOST_LOCALE_BACKEND STREQUAL "gcc" OR
+        BOOST_LOCALE_BACKEND STREQUAL "oficonv")
     elseif (BOOST_LOCALE_BACKEND STREQUAL "libiconv")
       include(${CMAKE_CURRENT_LIST_DIR}/LibIconvConfiguration.cmake)
     elseif (BOOST_LOCALE_BACKEND STREQUAL "icu")
