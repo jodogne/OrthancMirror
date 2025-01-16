@@ -33,6 +33,7 @@
 #include "../../../OrthancFramework/Sources/MultiThreading/Semaphore.h"
 #include "../OrthancConfiguration.h"
 #include "../ServerContext.h"
+#include "../SimpleInstanceOrdering.h"
 
 #include <stdio.h>
 #include <boost/range/algorithm/count.hpp>
@@ -508,6 +509,7 @@ namespace Orthanc
     virtual void Close() = 0;
 
     virtual void AddInstance(const std::string& instanceId,
+                             uint32_t index,
                              uint64_t uncompressedSize) = 0;
   };
 
@@ -518,12 +520,21 @@ namespace Orthanc
     struct Instance
     {
       std::string  id_;
-      uint64_t     uncompressedSize_;
+      uint32_t     index_;
+      FileInfo     fileInfo_;
 
       Instance(const std::string& id,
-               uint64_t uncompressedSize) : 
+               uint32_t index,
+               FileInfo fileInfo) : 
         id_(id),
-        uncompressedSize_(uncompressedSize)
+        index_(index),
+        fileInfo_(fileInfo.GetUuid(),
+                  fileInfo.GetContentType(),
+                  fileInfo.GetUncompressedSize(),
+                  fileInfo.GetUncompressedMD5(),
+                  fileInfo.GetCompressionType(),
+                  fileInfo.GetCompressedSize(),
+                  fileInfo.GetCompressedMD5())
       {
       }
     };
@@ -536,22 +547,18 @@ namespace Orthanc
     std::list<Instance>  instances_;   // Only at instance level
 
 
-    void AddResourceToExpand(ServerIndex& index,
-                             const std::string& id)
+    void AddResourceToExpand(const std::string& id)
     {
-      if (level_ == ArchiveResourceType_Instance)
-      {
-        FileInfo tmp;
-        int64_t revision;  // ignored
-        if (index.LookupAttachment(tmp, revision, ResourceType_Instance, id, FileContentType_Dicom))
-        {
-          instances_.push_back(Instance(id, tmp.GetUncompressedSize()));
-        }
-      }
-      else
-      {
-        resources_[id] = NULL;
-      }
+      assert(level_ != ArchiveResourceType_Instance);
+      resources_[id] = NULL;
+    }
+
+    void AddInstance(const std::string& id,
+                     uint32_t indexInSeries,
+                     const FileInfo& fileInfo)
+    {
+      assert(level_ == ArchiveResourceType_Instance);
+      instances_.push_back(Instance(id, indexInSeries, fileInfo));
     }
 
 
@@ -579,7 +586,7 @@ namespace Orthanc
 
       if (level_ == ArchiveResourceType_Instance)
       {
-        AddResourceToExpand(index, id);
+        AddResourceToExpand(id);
       }
       else if (resource.GetLevel() == GetResourceLevel(level_))
       {
@@ -622,16 +629,31 @@ namespace Orthanc
       {
         if (it->second == NULL)
         {
-          // This is resource is marked for expansion
-          std::list<std::string> children;
-          index.GetChildren(children, GetResourceLevel(level_), it->first);
-
+          // This resource is marked for expansion
           std::unique_ptr<ArchiveIndex> child(new ArchiveIndex(GetChildResourceType(level_)));
 
-          for (std::list<std::string>::const_iterator 
-                 it2 = children.begin(); it2 != children.end(); ++it2)
+          if (level_ == ArchiveResourceType_Series)
           {
-            child->AddResourceToExpand(index, *it2);
+            // Instances ordering is important !  
+            // From 1.12.6, when possible, the id in the filename will match the index in series.
+            // Only if there are duplicate index in series, we'll use a simple counter
+            SimpleInstanceOrdering orderedInstances(index, it->first);
+
+            for (size_t i = 0; i < orderedInstances.GetInstancesCount(); ++i)
+            {
+              child->AddInstance(orderedInstances.GetInstanceId(i), orderedInstances.GetInstanceIndexInSeries(i), orderedInstances.GetInstanceFileInfo(i));
+            }
+          }
+          else
+          {
+            std::list<std::string> children;
+            index.GetChildren(children, GetResourceLevel(level_), it->first);
+
+            for (std::list<std::string>::const_iterator 
+                  it2 = children.begin(); it2 != children.end(); ++it2)
+            {
+              child->AddResourceToExpand(*it2);
+            }
           }
 
           it->second = child.release();
@@ -650,7 +672,7 @@ namespace Orthanc
         for (std::list<Instance>::const_iterator 
                it = instances_.begin(); it != instances_.end(); ++it)
         {
-          visitor.AddInstance(it->id_, it->uncompressedSize_);
+          visitor.AddInstance(it->id_,  it->index_, it->fileInfo_.GetUncompressedSize());
         }          
       }
       else
@@ -984,11 +1006,11 @@ namespace Orthanc
     }
 
     virtual void AddInstance(const std::string& instanceId,
+                             uint32_t index,
                              uint64_t uncompressedSize) ORTHANC_OVERRIDE
     {
       char filename[24];
-      snprintf(filename, sizeof(filename) - 1, instanceFormat_, counter_);
-      counter_ ++;
+      snprintf(filename, sizeof(filename) - 1, instanceFormat_, index);
 
       commands_.AddWriteInstance(filename, instanceId, uncompressedSize);
     }
@@ -1018,6 +1040,7 @@ namespace Orthanc
     }
 
     virtual void AddInstance(const std::string& instanceId,
+                             uint32_t indexNotUsed,
                              uint64_t uncompressedSize) ORTHANC_OVERRIDE
     {
       // "DICOM restricts the filenames on DICOM media to 8
