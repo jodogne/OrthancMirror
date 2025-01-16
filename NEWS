@@ -25,6 +25,8 @@ Maintenance
 * /archive: The numbers in the filenames now match the InstanceNumber when possible.
   When not, the files are now, at least, ordered in the same order as the instances 
   in the series.
+* optimized /archive to use the "ExtendedFind" extension and reduce the number of
+  SQL queries.
 
 
 Plugins
