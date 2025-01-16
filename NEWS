@@ -22,6 +22,9 @@ Maintenance
 * Housekeeper plugin: fixed the "Force" configuration that was ineffective.
 * Housekeeper plugin: allow transcoding to lossy transfer syntax.  Orthanc will keep
   the SOPInstanceUID untouched in this case.
+* /archive: The numbers in the filenames now match the InstanceNumber when possible.
+  When not, the files are now, at least, ordered in the same order as the instances 
+  in the series.
 
 
 Plugins
