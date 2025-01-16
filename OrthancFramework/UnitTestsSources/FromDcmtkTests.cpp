@@ -3561,7 +3561,7 @@ TEST(Toto, DISABLED_Transcode3)
   scu.SetCommonClassesProposed(false);
   scu.SetRetiredBigEndianProposed(true);
 
-  DcmtkTranscoder transcoder;
+  DcmtkTranscoder transcoder(1);
 
   for (int j = 0; j < 2; j++)
   {
@@ -3618,7 +3618,7 @@ TEST(Toto, DISABLED_Transcode4)
   DicomTransferSyntax sourceSyntax;
   ASSERT_TRUE(FromDcmtkBridge::LookupOrthancTransferSyntax(sourceSyntax, *toto));
 
-  DcmtkTranscoder transcoder;
+  DcmtkTranscoder transcoder(1);
 
   for (int i = 0; i <= DicomTransferSyntax_XML; i++)
   {

@@ -176,11 +176,11 @@ namespace Orthanc
         LOG(INFO) << "Created attachment \"" << uuid << "\" (" << timer.GetHumanTransferSpeed(true, size) << ")";
         return;
       }
-      catch (OrthancException& ex)
+      catch (OrthancException& e)
       {
         if (retryCount >= maxRetryCount)
         {
-          throw ex;
+          throw;
         }
       }
     }

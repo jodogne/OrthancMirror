@@ -610,10 +610,10 @@
   // Set the timeout for HTTP requests issued by Orthanc (in seconds).
   "HttpTimeout" : 60,
 
-  // Enable the verification of the peers during HTTPS requests. This
-  // option must be set to "false" if using self-signed certificates.
-  // Pay attention that setting this option to "false" results in
-  // security risks!
+  // Enable the verification of the peers certificates during HTTPS 
+  // requests. Setting this option to false is equivalent to the 
+  // "--insecure" curl option. Pay attention that setting this option 
+  // to "false" results in security risks!
   // Reference: http://curl.haxx.se/docs/sslcerts.html
   "HttpsVerifyPeers" : true,
 
@@ -623,7 +623,11 @@
   // verify the peers. The file may contain multiple CA
   // certificates. The certificate(s) must be in PEM format." On
   // Debian-based systems, this option can be set to
-  // "/etc/ssl/certs/ca-certificates.crt"
+  // "/etc/ssl/certs/ca-certificates.crt".
+  // Starting with Orthanc 1.12.6 and provided that Orthanc has been
+  // built with libcurl > 8.2.0, when this option is empty,
+  // Orthanc uses the operating system native CA store ("--ca-native"
+  // option)
   "HttpsCACertificates" : "",
 
 
@@ -1023,12 +1027,48 @@
     // saved with another "ExtraMainDicomTags" configuration which means that
     // your response might be incomplete/inconsistent.
     // You should call patients|studies|series|instances/../reconstruct to rebuild
-    // the DB.  You may also check for the "Housekeeper" plugin
+    // the DB.  You may also check for the "Housekeeper" plugin.
     "W002_InconsistentDicomTagsInDb": true,
 
     // Display a warning message when Orthanc and its plugins are unable
     // to decode a frame (new in Orthanc 1.12.5).
-    "W003_DecoderFailure": true
-  }
+    "W003_DecoderFailure": true,
+
+    // Display a warning when the MainDicomTagsSignature metadata has not been
+    // found which means that the resource has been saved with a version prior
+    // to 1.11.0.
+    // You should call patients|studies|series|instances/../reconstruct to rebuild
+    // the DB.  You may also check for the "Housekeeper" plugin.
+    // (new in Orthanc 1.12.5)
+    "W004_NoMainDicomTagsSignature": true,
+
+    // Display a warning when a user performs a find request and requests a tag
+    // from a lower resource level; e.g. when requesting "StudyDescription" at
+    // Patient level.
+    // (new in Orthanc 1.12.5)
+    "W005_RequestingTagFromLowerResourceLevel": true,
+
+    // Display a warning when a user performs a find request and requests a tag
+    // from the DICOM Meta Header.
+    // (new in Orthanc 1.12.5)
+    "W006_RequestingTagFromMetaHeader": true,
+
+    // Display a warning when a user requests a tag that can not be read from disk
+    // because "StorageAccessOnFind" is set to "Never".
+    // (new in Orthanc 1.12.5)
+    "W007_MissingRequestedTagsNotReadFromDisk": true
+  },
+
+  // Configure Orthanc in read only mode.
+  // In this mode, many Orthanc features that requires a write access to the 
+  // Index DB or the disk storage won't be available at all.
+  // (new in Orthanc 1.12.5)
+  "ReadOnly" : false,
+
+  // Maximum number of DCMTK transcoders that are simultaneously running
+  // at any given time. A value of "0" indicates to use all the
+  // available CPU logical cores. Prior to Orthanc 1.12.6, there were not limit.
+  // (new in Orthanc 1.12.6)
+  "MaximumConcurrentDcmtkTranscoders" : 0
 
 }

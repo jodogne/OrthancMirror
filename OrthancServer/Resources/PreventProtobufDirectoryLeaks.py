@@ -29,12 +29,20 @@ if len(sys.argv) != 2:
 with open(sys.argv[1], 'r') as f:
     s = f.read()
 
-s = s.replace('__FILE__', '__ORTHANC_FILE__')
+if False:
+    # This was the version in Orthanc 1.12.4, doesn't seem to work anymore
+    s = s.replace('__FILE__', '__ORTHANC_FILE__')
 
-s = """
+    s = """
 #if !defined(__ORTHANC_FILE__)
 #  define __ORTHANC_FILE__ __FILE__
 #endif
+""" + s
+else:
+    # New version in Orthanc 1.12.5
+    s = """
+#undef __FILE__
+#define __FILE__ __ORTHANC_FILE__
 """ + s
 
 with open(sys.argv[1], 'w') as f:

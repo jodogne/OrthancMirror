@@ -29,6 +29,7 @@
 #include "../../../OrthancFramework/Sources/SQLite/Transaction.h"
 #include "../Search/ISqlLookupFormatter.h"
 #include "../ServerToolbox.h"
+#include "Compatibility/GenericFind.h"
 #include "Compatibility/ICreateInstance.h"
 #include "Compatibility/IGetChildrenMetadata.h"
 #include "Compatibility/ILookupResourceAndParent.h"
@@ -42,6 +43,53 @@
 
 namespace Orthanc
 {  
+  static std::string JoinRequestedMetadata(const FindRequest::ChildrenSpecification& childrenSpec)
+  {
+    std::set<std::string> metadataTypes;
+    for (std::set<MetadataType>::const_iterator it = childrenSpec.GetMetadata().begin(); it != childrenSpec.GetMetadata().end(); ++it)
+    {
+      metadataTypes.insert(boost::lexical_cast<std::string>(*it));
+    }
+    std::string joinedMetadataTypes;
+    Orthanc::Toolbox::JoinStrings(joinedMetadataTypes, metadataTypes, ", ");
+
+    return joinedMetadataTypes;
+  }
+
+  static std::string JoinRequestedTags(const FindRequest::ChildrenSpecification& childrenSpec)
+  {
+    // note: SQLite does not seem to support (tagGroup, tagElement) in ((x, y), (z, w)) in complex subqueries.
+    // Therefore, since we expect the requested tag list to be short, we write it as 
+    // ((tagGroup = x AND tagElement = y ) OR (tagGroup = z AND tagElement = w))
+
+    std::string sql = " (";
+    std::set<std::string> tags;
+    for (std::set<DicomTag>::const_iterator it = childrenSpec.GetMainDicomTags().begin(); it != childrenSpec.GetMainDicomTags().end(); ++it)
+    {
+      tags.insert("(tagGroup = " + boost::lexical_cast<std::string>(it->GetGroup()) 
+                  + " AND tagElement = " + boost::lexical_cast<std::string>(it->GetElement()) + ")");
+    }
+    std::string joinedTags;
+    Orthanc::Toolbox::JoinStrings(joinedTags, tags, " OR ");
+
+    sql += joinedTags + ") ";
+    return sql;
+  }
+
+  static std::string JoinChanges(const std::set<ChangeType>& changeTypes)
+  {
+    std::set<std::string> changeTypesString;
+    for (std::set<ChangeType>::const_iterator it = changeTypes.begin(); it != changeTypes.end(); ++it)
+    {
+      changeTypesString.insert(boost::lexical_cast<std::string>(static_cast<uint32_t>(*it)));
+    }
+
+    std::string joinedChangesTypes;
+    Orthanc::Toolbox::JoinStrings(joinedChangesTypes, changeTypesString, ", ");
+
+    return joinedChangesTypes;
+  }
+
   class SQLiteDatabaseWrapper::LookupFormatter : public ISqlLookupFormatter
   {
   private:
@@ -62,6 +110,28 @@ namespace Orthanc
     virtual std::string FormatWildcardEscape() ORTHANC_OVERRIDE
     {
       return "ESCAPE '\\'";
+    }
+
+    virtual std::string FormatLimits(uint64_t since, uint64_t count) ORTHANC_OVERRIDE
+    {
+      std::string sql;
+
+      if (count > 0)
+      {
+        sql += " LIMIT " + boost::lexical_cast<std::string>(count);
+      }
+
+      if (since > 0)
+      {
+        if (count == 0)
+        {
+          sql += " LIMIT -1";  // In SQLite, "OFFSET" cannot appear without "LIMIT"
+        }
+
+        sql += " OFFSET " + boost::lexical_cast<std::string>(since);
+      }
+      
+      return sql;
     }
 
     virtual bool IsEscapeBrackets() const ORTHANC_OVERRIDE
@@ -234,11 +304,12 @@ namespace Orthanc
     void GetChangesInternal(std::list<ServerIndexChange>& target,
                             bool& done,
                             SQLite::Statement& s,
-                            uint32_t limit)
+                            uint32_t limit,
+                            bool returnFirstResults) // the statement usually returns limit+1 results while we only need the limit results -> we need to know which ones to return, the firsts or the lasts
     {
       target.clear();
 
-      while (target.size() < limit && s.Step())
+      while (s.Step())
       {
         int64_t seq = s.ColumnInt64(0);
         ChangeType changeType = static_cast<ChangeType>(s.ColumnInt(1));
@@ -251,7 +322,22 @@ namespace Orthanc
         target.push_back(ServerIndexChange(seq, changeType, resourceType, publicId, date));
       }
 
-      done = !(target.size() == limit && s.Step());
+      done = target.size() <= limit;  // 'done' means "there are no more other changes of this type in that direction (depending on since/to)"
+      
+      // if we have retrieved more changes than requested -> cleanup
+      if (target.size() > limit)
+      {
+        assert(target.size() == limit+1); // the statement should only request 1 element more
+
+        if (returnFirstResults)
+        {
+          target.pop_back();
+        }
+        else
+        {
+          target.pop_front();
+        }
+      }
     }
 
 
@@ -340,7 +426,7 @@ namespace Orthanc
 
     virtual void ApplyLookupResources(std::list<std::string>& resourcesId,
                                       std::list<std::string>* instancesId,
-                                      const DatabaseConstraints& lookup,
+                                      const DatabaseDicomTagConstraints& lookup,
                                       ResourceType queryLevel,
                                       const std::set<std::string>& labels,
                                       LabelsConstraint labelsConstraint,
@@ -351,7 +437,7 @@ namespace Orthanc
       std::string sql;
       LookupFormatter::Apply(sql, formatter, lookup, queryLevel, labels, labelsConstraint, limit);
 
-      sql = "CREATE TEMPORARY TABLE Lookup AS " + sql;
+      sql = "CREATE TEMPORARY TABLE Lookup AS " + sql;   // TODO-FIND: use a CTE (or is this method obsolete ?)
     
       {
         SQLite::Statement s(db_, SQLITE_FROM_HERE, "DROP TABLE IF EXISTS Lookup");
@@ -381,6 +467,753 @@ namespace Orthanc
       }
     }
 
+#define C0_QUERY_ID 0
+#define C1_INTERNAL_ID 1
+#define C2_ROW_NUMBER 2
+#define C3_STRING_1 3
+#define C4_STRING_2 4
+#define C5_STRING_3 5
+#define C6_INT_1 6
+#define C7_INT_2 7
+#define C8_BIG_INT_1 8
+#define C9_BIG_INT_2 9
+
+#define QUERY_LOOKUP 1
+#define QUERY_MAIN_DICOM_TAGS 2
+#define QUERY_ATTACHMENTS 3
+#define QUERY_METADATA 4
+#define QUERY_LABELS 5
+#define QUERY_PARENT_MAIN_DICOM_TAGS 10
+#define QUERY_PARENT_IDENTIFIER 11
+#define QUERY_PARENT_METADATA 12
+#define QUERY_GRAND_PARENT_MAIN_DICOM_TAGS 15
+#define QUERY_GRAND_PARENT_METADATA 16
+#define QUERY_CHILDREN_IDENTIFIERS 20
+#define QUERY_CHILDREN_MAIN_DICOM_TAGS 21
+#define QUERY_CHILDREN_METADATA 22
+#define QUERY_CHILDREN_COUNT 23
+#define QUERY_GRAND_CHILDREN_IDENTIFIERS 30
+#define QUERY_GRAND_CHILDREN_MAIN_DICOM_TAGS 31
+#define QUERY_GRAND_CHILDREN_METADATA 32
+#define QUERY_GRAND_CHILDREN_COUNT 33
+#define QUERY_GRAND_GRAND_CHILDREN_IDENTIFIERS 40
+#define QUERY_GRAND_GRAND_CHILDREN_COUNT 41
+#define QUERY_ONE_INSTANCE_IDENTIFIER 50
+#define QUERY_ONE_INSTANCE_METADATA 51
+#define QUERY_ONE_INSTANCE_ATTACHMENTS 52
+
+#define STRINGIFY(x) #x
+#define TOSTRING(x) STRINGIFY(x)
+
+    virtual void ExecuteCount(uint64_t& count,
+                              const FindRequest& request,
+                              const Capabilities& capabilities) ORTHANC_OVERRIDE
+    {
+      LookupFormatter formatter;
+      std::string sql;
+
+      std::string lookupSql;
+      LookupFormatter::Apply(lookupSql, formatter, request);
+
+      // base query, retrieve the ordered internalId and publicId of the selected resources
+      sql = "WITH Lookup AS (" + lookupSql + ") SELECT COUNT(*) FROM Lookup";
+      SQLite::Statement s(db_, SQLITE_FROM_HERE_DYNAMIC(sql), sql);
+      formatter.Bind(s);
+
+      s.Step();
+      count = s.ColumnInt64(0);
+    }
+
+
+    virtual void ExecuteFind(FindResponse& response,
+                             const FindRequest& request,
+                             const Capabilities& capabilities) ORTHANC_OVERRIDE
+    {
+      LookupFormatter formatter;
+      std::string sql;
+      const ResourceType requestLevel = request.GetLevel();
+
+      std::string lookupSql;
+      LookupFormatter::Apply(lookupSql, formatter, request);
+
+      // base query, retrieve the ordered internalId and publicId of the selected resources
+      sql = "WITH Lookup AS (" + lookupSql + ") ";
+
+      // in SQLite, all CTEs must be created at the beginning of the query, you can not define local CTE inside subqueries
+      // need one instance info ? (part 1: create the CTE)
+      if (request.GetLevel() != ResourceType_Instance &&
+          request.IsRetrieveOneInstanceMetadataAndAttachments())
+      {
+        // Here, we create a nested CTE 'OneInstance' with one instance ID to join with metadata and main
+        sql += ", OneInstance AS";
+
+        switch (requestLevel)
+        {
+          case ResourceType_Series:
+          {
+            sql+= "  (SELECT Lookup.internalId AS parentInternalId, childLevel.publicId AS instancePublicId, childLevel.internalId AS instanceInternalId"
+                  "   FROM Resources AS childLevel "
+                  "   INNER JOIN Lookup ON childLevel.parentId = Lookup.internalId GROUP BY Lookup.internalId) ";
+            break;
+          }
+
+          case ResourceType_Study:
+          {
+            sql+= "  (SELECT Lookup.internalId AS parentInternalId, grandChildLevel.publicId AS instancePublicId, grandChildLevel.internalId AS instanceInternalId"
+                  "   FROM Resources AS grandChildLevel "
+                  "   INNER JOIN Resources childLevel ON grandChildLevel.parentId = childLevel.internalId "
+                  "   INNER JOIN Lookup ON childLevel.parentId = Lookup.internalId GROUP BY Lookup.internalId) ";
+            break;
+          }
+
+          case ResourceType_Patient:
+          {
+            sql+= "  (SELECT Lookup.internalId AS parentInternalId, grandGrandChildLevel.publicId AS instancePublicId, grandGrandChildLevel.internalId AS instanceInternalId"
+                  "   FROM Resources AS grandGrandChildLevel "
+                  "   INNER JOIN Resources grandChildLevel ON grandGrandChildLevel.parentId = grandChildLevel.internalId "
+                  "   INNER JOIN Resources childLevel ON grandChildLevel.parentId = childLevel.internalId "
+                  "   INNER JOIN Lookup ON childLevel.parentId = Lookup.internalId GROUP BY Lookup.internalId) ";
+            break;
+          }
+
+          default:
+            throw OrthancException(ErrorCode_InternalError);
+        }
+      }
+
+      sql += "SELECT "
+             "  " TOSTRING(QUERY_LOOKUP) " AS c0_queryId, "
+             "  Lookup.internalId AS c1_internalId, "
+             "  Lookup.rowNumber AS c2_rowNumber, "
+             "  Lookup.publicId AS c3_string1, "
+             "  NULL AS c4_string2, "
+             "  NULL AS c5_string3, "
+             "  NULL AS c6_int1, "
+             "  NULL AS c7_int2, "
+             "  NULL AS c8_big_int1, "
+             "  NULL AS c9_big_int2 "
+             "  FROM Lookup ";
+
+      // need one instance info ? (part 2: execute the queries)
+      if (request.GetLevel() != ResourceType_Instance &&
+          request.IsRetrieveOneInstanceMetadataAndAttachments())
+      {
+        sql += "   UNION SELECT"
+               "    " TOSTRING(QUERY_ONE_INSTANCE_IDENTIFIER) " AS c0_queryId, "
+               "    parentInternalId AS c1_internalId, "
+               "    NULL AS c2_rowNumber, "
+               "    instancePublicId AS c3_string1, "
+               "    NULL AS c4_string2, "
+               "    NULL AS c5_string3, "
+               "    NULL AS c6_int1, "
+               "    NULL AS c7_int2, "
+               "    instanceInternalId AS c8_big_int1, "
+               "    NULL AS c9_big_int2 "
+               "   FROM OneInstance ";
+
+        sql += "   UNION SELECT"
+               "    " TOSTRING(QUERY_ONE_INSTANCE_METADATA) " AS c0_queryId, "
+               "    parentInternalId AS c1_internalId, "
+               "    NULL AS c2_rowNumber, "
+               "    Metadata.value AS c3_string1, "
+               "    NULL AS c4_string2, "
+               "    NULL AS c5_string3, "
+               "    Metadata.type AS c6_int1, "
+               "    NULL AS c7_int2, "
+               "    NULL AS c8_big_int1, "
+               "    NULL AS c9_big_int2 "
+               "   FROM OneInstance "
+               "   INNER JOIN Metadata ON Metadata.id = OneInstance.instanceInternalId ";
+              
+        sql += "   UNION SELECT"
+               "    " TOSTRING(QUERY_ONE_INSTANCE_ATTACHMENTS) " AS c0_queryId, "
+               "    parentInternalId AS c1_internalId, "
+               "    NULL AS c2_rowNumber, "
+               "    uuid AS c3_string1, "
+               "    uncompressedMD5 AS c4_string2, "
+               "    compressedMD5 AS c5_string3, "
+               "    fileType AS c6_int1, "
+               "    compressionType AS c7_int2, "
+               "    compressedSize AS c8_big_int1, "
+               "    uncompressedSize AS c9_big_int2 "
+               "   FROM OneInstance "
+               "   INNER JOIN AttachedFiles ON AttachedFiles.id = OneInstance.instanceInternalId ";
+
+      }
+
+      // need MainDicomTags from resource ?
+      if (request.IsRetrieveMainDicomTags())
+      {
+        sql += "UNION SELECT "
+               "  " TOSTRING(QUERY_MAIN_DICOM_TAGS) " AS c0_queryId, "
+               "  Lookup.internalId AS c1_internalId, "
+               "  NULL AS c2_rowNumber, "
+               "  value AS c3_string1, "
+               "  NULL AS c4_string2, "
+               "  NULL AS c5_string3, "
+               "  tagGroup AS c6_int1, "
+               "  tagElement AS c7_int2, "
+               "  NULL AS c8_big_int1, "
+               "  NULL AS c9_big_int2 "
+               "FROM Lookup "
+               "INNER JOIN MainDicomTags ON MainDicomTags.id = Lookup.internalId ";
+      }
+
+      // need resource metadata ?
+      if (request.IsRetrieveMetadata())
+      {
+        sql += "UNION SELECT "
+               "  " TOSTRING(QUERY_METADATA) " AS c0_queryId, "
+               "  Lookup.internalId AS c1_internalId, "
+               "  NULL AS c2_rowNumber, "
+               "  value AS c3_string1, "
+               "  NULL AS c4_string2, "
+               "  NULL AS c5_string3, "
+               "  type AS c6_int1, "
+               "  NULL AS c7_int2, "
+               "  NULL AS c8_big_int1, "
+               "  NULL AS c9_big_int2 "
+               "FROM Lookup "
+               "INNER JOIN Metadata ON Metadata.id = Lookup.internalId ";
+      }
+
+      // need resource attachments ?
+      if (request.IsRetrieveAttachments())
+      {
+        sql += "UNION SELECT "
+               "  " TOSTRING(QUERY_ATTACHMENTS) " AS c0_queryId, "
+               "  Lookup.internalId AS c1_internalId, "
+               "  NULL AS c2_rowNumber, "
+               "  uuid AS c3_string1, "
+               "  uncompressedMD5 AS c4_string2, "
+               "  compressedMD5 AS c5_string3, "
+               "  fileType AS c6_int1, "
+               "  compressionType AS c7_int2, "
+               "  compressedSize AS c8_big_int1, "
+               "  uncompressedSize AS c9_big_int2 "
+               "FROM Lookup "
+               "INNER JOIN AttachedFiles ON AttachedFiles.id = Lookup.internalId ";
+      }
+
+
+      // need resource labels ?
+      if (request.IsRetrieveLabels())
+      {
+        sql += "UNION SELECT "
+               "  " TOSTRING(QUERY_LABELS) " AS c0_queryId, "
+               "  Lookup.internalId AS c1_internalId, "
+               "  NULL AS c2_rowNumber, "
+               "  label AS c3_string1, "
+               "  NULL AS c4_string2, "
+               "  NULL AS c5_string3, "
+               "  NULL AS c6_int1, "
+               "  NULL AS c7_int2, "
+               "  NULL AS c8_big_int1, "
+               "  NULL AS c9_big_int2 "
+               "FROM Lookup "
+               "INNER JOIN Labels ON Labels.id = Lookup.internalId ";
+      }
+
+      if (requestLevel > ResourceType_Patient)
+      {
+        // need MainDicomTags from parent ?
+        if (request.GetParentSpecification(static_cast<ResourceType>(requestLevel - 1)).IsRetrieveMainDicomTags())
+        {
+          sql += "UNION SELECT "
+                 "  " TOSTRING(QUERY_PARENT_MAIN_DICOM_TAGS) " AS c0_queryId, "
+                 "  Lookup.internalId AS c1_internalId, "
+                 "  NULL AS c2_rowNumber, "
+                 "  value AS c3_string1, "
+                 "  NULL AS c4_string2, "
+                 "  NULL AS c5_string3, "
+                 "  tagGroup AS c6_int1, "
+                 "  tagElement AS c7_int2, "
+                 "  NULL AS c8_big_int1, "
+                 "  NULL AS c9_big_int2 "
+                 "FROM Lookup "
+                 "INNER JOIN Resources currentLevel ON Lookup.internalId = currentLevel.internalId "
+                 "INNER JOIN MainDicomTags ON MainDicomTags.id = currentLevel.parentId ";
+        }
+
+        // need metadata from parent ?
+        if (request.GetParentSpecification(static_cast<ResourceType>(requestLevel - 1)).IsRetrieveMetadata())
+        {
+          sql += "UNION SELECT "
+                 "  " TOSTRING(QUERY_PARENT_METADATA) " AS c0_queryId, "
+                 "  Lookup.internalId AS c1_internalId, "
+                 "  NULL AS c2_rowNumber, "
+                 "  value AS c3_string1, "
+                 "  NULL AS c4_string2, "
+                 "  NULL AS c5_string3, "
+                 "  type AS c6_int1, "
+                 "  NULL AS c7_int2, "
+                 "  NULL AS c8_big_int1, "
+                 "  NULL AS c9_big_int2 "
+                 "FROM Lookup "
+                 "INNER JOIN Resources currentLevel ON Lookup.internalId = currentLevel.internalId "
+                 "INNER JOIN Metadata ON Metadata.id = currentLevel.parentId ";        
+        }
+
+        if (requestLevel > ResourceType_Study)
+        {
+          // need MainDicomTags from grandparent ?
+          if (request.GetParentSpecification(static_cast<ResourceType>(requestLevel - 2)).IsRetrieveMainDicomTags())
+          {
+            sql += "UNION SELECT "
+                  "  " TOSTRING(QUERY_GRAND_PARENT_MAIN_DICOM_TAGS) " AS c0_queryId, "
+                  "  Lookup.internalId AS c1_internalId, "
+                  "  NULL AS c2_rowNumber, "
+                  "  value AS c3_string1, "
+                  "  NULL AS c4_string2, "
+                  "  NULL AS c5_string3, "
+                  "  tagGroup AS c6_int1, "
+                  "  tagElement AS c7_int2, "
+                  "  NULL AS c8_big_int1, "
+                  "  NULL AS c9_big_int2 "
+                  "FROM Lookup "
+                  "INNER JOIN Resources currentLevel ON Lookup.internalId = currentLevel.internalId "
+                  "INNER JOIN Resources parentLevel ON currentLevel.parentId = parentLevel.internalId "
+                  "INNER JOIN MainDicomTags ON MainDicomTags.id = parentLevel.parentId ";
+          }
+
+          // need metadata from grandparent ?
+          if (request.GetParentSpecification(static_cast<ResourceType>(requestLevel - 2)).IsRetrieveMetadata())
+          {
+            sql += "UNION SELECT "
+                  "  " TOSTRING(QUERY_GRAND_PARENT_METADATA) " AS c0_queryId, "
+                  "  Lookup.internalId AS c1_internalId, "
+                  "  NULL AS c2_rowNumber, "
+                  "  value AS c3_string1, "
+                  "  NULL AS c4_string2, "
+                  "  NULL AS c5_string3, "
+                  "  type AS c6_int1, "
+                  "  NULL AS c7_int2, "
+                  "  NULL AS c8_big_int1, "
+                  "  NULL AS c9_big_int2 "
+                  "FROM Lookup "
+                  "INNER JOIN Resources currentLevel ON Lookup.internalId = currentLevel.internalId "
+                  "INNER JOIN Resources parentLevel ON currentLevel.parentId = parentLevel.internalId "
+                  "INNER JOIN Metadata ON Metadata.id = parentLevel.parentId ";
+          }
+        }
+      }
+
+      // need MainDicomTags from children ?
+      if (requestLevel <= ResourceType_Series && request.GetChildrenSpecification(static_cast<ResourceType>(requestLevel + 1)).GetMainDicomTags().size() > 0)
+      {
+        sql += "UNION SELECT "
+               "  " TOSTRING(QUERY_CHILDREN_MAIN_DICOM_TAGS) " AS c0_queryId, "
+               "  Lookup.internalId AS c1_internalId, "
+               "  NULL AS c2_rowNumber, "
+               "  value AS c3_string1, "
+               "  NULL AS c4_string2, "
+               "  NULL AS c5_string3, "
+               "  tagGroup AS c6_int1, "
+               "  tagElement AS c7_int2, "
+               "  NULL AS c8_big_int1, "
+               "  NULL AS c9_big_int2 "
+               "FROM Lookup "
+               "  INNER JOIN Resources childLevel ON childLevel.parentId = Lookup.internalId "
+               "  INNER JOIN MainDicomTags ON MainDicomTags.id = childLevel.internalId AND " + JoinRequestedTags(request.GetChildrenSpecification(static_cast<ResourceType>(requestLevel + 1))); 
+      }
+
+      // need MainDicomTags from grandchildren ?
+      if (requestLevel <= ResourceType_Study && request.GetChildrenSpecification(static_cast<ResourceType>(requestLevel + 2)).GetMainDicomTags().size() > 0)
+      {
+        sql += "UNION SELECT "
+                "  " TOSTRING(QUERY_GRAND_CHILDREN_MAIN_DICOM_TAGS) " AS c0_queryId, "
+                "  Lookup.internalId AS c1_internalId, "
+                "  NULL AS c2_rowNumber, "
+                "  value AS c3_string1, "
+                "  NULL AS c4_string2, "
+                "  NULL AS c5_string3, "
+                "  tagGroup AS c6_int1, "
+                "  tagElement AS c7_int2, "
+                "  NULL AS c8_big_int1, "
+                "  NULL AS c9_big_int2 "
+                "FROM Lookup "
+                "  INNER JOIN Resources childLevel ON childLevel.parentId = Lookup.internalId "
+                "  INNER JOIN Resources grandChildLevel ON grandChildLevel.parentId = childLevel.internalId "
+                "  INNER JOIN MainDicomTags ON MainDicomTags.id = grandChildLevel.internalId AND " + JoinRequestedTags(request.GetChildrenSpecification(static_cast<ResourceType>(requestLevel + 2))); 
+      }
+
+      // need parent identifier ?
+      if (request.IsRetrieveParentIdentifier())
+      {
+        sql += "UNION SELECT "
+               "  " TOSTRING(QUERY_PARENT_IDENTIFIER) " AS c0_queryId, "
+               "  Lookup.internalId AS c1_internalId, "
+               "  NULL AS c2_rowNumber, "
+               "  parentLevel.publicId AS c3_string1, "
+               "  NULL AS c4_string2, "
+               "  NULL AS c5_string3, "
+               "  NULL AS c6_int1, "
+               "  NULL AS c7_int2, "
+               "  NULL AS c8_big_int1, "
+               "  NULL AS c9_big_int2 "
+               "FROM Lookup "
+               "  INNER JOIN Resources currentLevel ON currentLevel.internalId = Lookup.internalId "
+               "  INNER JOIN Resources parentLevel ON currentLevel.parentId = parentLevel.internalId ";
+      }
+
+      // need children metadata ?
+      if (requestLevel <= ResourceType_Series && request.GetChildrenSpecification(static_cast<ResourceType>(requestLevel + 1)).GetMetadata().size() > 0)
+      {
+        sql += "UNION SELECT "
+                "  " TOSTRING(QUERY_CHILDREN_METADATA) " AS c0_queryId, "
+                "  Lookup.internalId AS c1_internalId, "
+                "  NULL AS c2_rowNumber, "
+                "  value AS c3_string1, "
+                "  NULL AS c4_string2, "
+                "  NULL AS c5_string3, "
+                "  type AS c6_int1, "
+                "  NULL AS c7_int2, "
+                "  NULL AS c8_big_int1, "
+                "  NULL AS c9_big_int2 "
+                "FROM Lookup "
+                "  INNER JOIN Resources childLevel ON childLevel.parentId = Lookup.internalId "
+                "  INNER JOIN Metadata ON Metadata.id = childLevel.internalId AND Metadata.type IN (" + JoinRequestedMetadata(request.GetChildrenSpecification(static_cast<ResourceType>(requestLevel + 1))) + ") ";
+      }
+
+      // need grandchildren metadata ?
+      if (requestLevel <= ResourceType_Study && request.GetChildrenSpecification(static_cast<ResourceType>(requestLevel + 2)).GetMetadata().size() > 0)
+      {
+        sql += "UNION SELECT "
+                "  " TOSTRING(QUERY_GRAND_CHILDREN_METADATA) " AS c0_queryId, "
+                "  Lookup.internalId AS c1_internalId, "
+                "  NULL AS c2_rowNumber, "
+                "  value AS c3_string1, "
+                "  NULL AS c4_string2, "
+                "  NULL AS c5_string3, "
+                "  type AS c6_int1, "
+                "  NULL AS c7_int2, "
+                "  NULL AS c8_big_int1, "
+                "  NULL AS c9_big_int2 "
+                "FROM Lookup "
+                "  INNER JOIN Resources childLevel ON childLevel.parentId = Lookup.internalId "
+                "  INNER JOIN Resources grandChildLevel ON grandChildLevel.parentId = childLevel.internalId "
+                "  INNER JOIN Metadata ON Metadata.id = grandChildLevel.internalId AND Metadata.type IN (" + JoinRequestedMetadata(request.GetChildrenSpecification(static_cast<ResourceType>(requestLevel + 2))) + ") ";
+      }
+
+      // need children identifiers ?
+      if ((requestLevel == ResourceType_Patient && request.GetChildrenSpecification(ResourceType_Study).IsRetrieveIdentifiers()) ||
+          (requestLevel == ResourceType_Study && request.GetChildrenSpecification(ResourceType_Series).IsRetrieveIdentifiers()) ||
+          (requestLevel == ResourceType_Series && request.GetChildrenSpecification(ResourceType_Instance).IsRetrieveIdentifiers()))
+      {
+        sql += "UNION SELECT "
+               "  " TOSTRING(QUERY_CHILDREN_IDENTIFIERS) " AS c0_queryId, "
+               "  Lookup.internalId AS c1_internalId, "
+               "  NULL AS c2_rowNumber, "
+               "  childLevel.publicId AS c3_string1, "
+               "  NULL AS c4_string2, "
+               "  NULL AS c5_string3, "
+               "  NULL AS c6_int1, "
+               "  NULL AS c7_int2, "
+               "  NULL AS c8_big_int1, "
+               "  NULL AS c9_big_int2 "
+               "FROM Lookup "
+               "  INNER JOIN Resources childLevel ON Lookup.internalId = childLevel.parentId ";
+      }
+      // no need to count if we have retrieved the list of identifiers
+      else if ((requestLevel == ResourceType_Patient && request.GetChildrenSpecification(ResourceType_Study).IsRetrieveCount()) ||
+          (requestLevel == ResourceType_Study && request.GetChildrenSpecification(ResourceType_Series).IsRetrieveCount()) ||
+          (requestLevel == ResourceType_Series && request.GetChildrenSpecification(ResourceType_Instance).IsRetrieveCount()))
+      {
+        sql += "UNION SELECT "
+               "  " TOSTRING(QUERY_CHILDREN_COUNT) " AS c0_queryId, "
+               "  Lookup.internalId AS c1_internalId, "
+               "  NULL AS c2_rowNumber, "
+               "  NULL AS c3_string1, "
+               "  NULL AS c4_string2, "
+               "  NULL AS c5_string3, "
+               "  COUNT(*) AS c6_int1, "
+               "  NULL AS c7_int2, "
+               "  NULL AS c8_big_int1, "
+               "  NULL AS c9_big_int2 "
+               "FROM Lookup "
+               "  INNER JOIN Resources childLevel ON Lookup.internalId = childLevel.parentId GROUP BY Lookup.internalId ";
+      }
+
+      // need grandchildren identifiers ?
+      if ((requestLevel == ResourceType_Patient && request.GetChildrenSpecification(ResourceType_Series).IsRetrieveIdentifiers()) ||
+          (requestLevel == ResourceType_Study && request.GetChildrenSpecification(ResourceType_Instance).IsRetrieveIdentifiers()))
+      {
+        sql += "UNION SELECT "
+              "  " TOSTRING(QUERY_GRAND_CHILDREN_IDENTIFIERS) " AS c0_queryId, "
+              "  Lookup.internalId AS c1_internalId, "
+              "  NULL AS c2_rowNumber, "
+              "  grandChildLevel.publicId AS c3_string1, "
+              "  NULL AS c4_string2, "
+              "  NULL AS c5_string3, "
+              "  NULL AS c6_int1, "
+              "  NULL AS c7_int2, "
+              "  NULL AS c8_big_int1, "
+              "  NULL AS c9_big_int2 "
+              "FROM Lookup "
+              "INNER JOIN Resources childLevel ON Lookup.internalId = childLevel.parentId "
+              "INNER JOIN Resources grandChildLevel ON childLevel.internalId = grandChildLevel.parentId ";
+      }
+      // no need to count if we have retrieved the list of identifiers
+      else if ((requestLevel == ResourceType_Patient && request.GetChildrenSpecification(ResourceType_Series).IsRetrieveCount()) ||
+          (requestLevel == ResourceType_Study && request.GetChildrenSpecification(ResourceType_Instance).IsRetrieveCount()))
+      {
+        sql += "UNION SELECT "
+              "  " TOSTRING(QUERY_GRAND_CHILDREN_COUNT) " AS c0_queryId, "
+              "  Lookup.internalId AS c1_internalId, "
+              "  NULL AS c2_rowNumber, "
+              "  NULL AS c3_string1, "
+              "  NULL AS c4_string2, "
+              "  NULL AS c5_string3, "
+               "  COUNT(*) AS c6_int1, "
+              "  NULL AS c7_int2, "
+              "  NULL AS c8_big_int1, "
+              "  NULL AS c9_big_int2 "
+              "FROM Lookup "
+              "INNER JOIN Resources childLevel ON Lookup.internalId = childLevel.parentId "
+              "INNER JOIN Resources grandChildLevel ON childLevel.internalId = grandChildLevel.parentId GROUP BY Lookup.internalId ";
+      }
+
+      // need grandgrandchildren identifiers ?
+      if (requestLevel == ResourceType_Patient && request.GetChildrenSpecification(ResourceType_Instance).IsRetrieveIdentifiers())
+      {
+        sql += "UNION SELECT "
+              "  " TOSTRING(QUERY_GRAND_GRAND_CHILDREN_IDENTIFIERS) " AS c0_queryId, "
+              "  Lookup.internalId AS c1_internalId, "
+              "  NULL AS c2_rowNumber, "
+              "  grandGrandChildLevel.publicId AS c3_string1, "
+              "  NULL AS c4_string2, "
+              "  NULL AS c5_string3, "
+              "  NULL AS c6_int1, "
+              "  NULL AS c7_int2, "
+              "  NULL AS c8_big_int1, "
+              "  NULL AS c9_big_int2 "
+              "FROM Lookup "
+              "INNER JOIN Resources childLevel ON Lookup.internalId = childLevel.parentId "
+              "INNER JOIN Resources grandChildLevel ON childLevel.internalId = grandChildLevel.parentId "
+              "INNER JOIN Resources grandGrandChildLevel ON grandChildLevel.internalId = grandGrandChildLevel.parentId ";
+      }
+      // no need to count if we have retrieved the list of identifiers
+      else if (requestLevel == ResourceType_Patient && request.GetChildrenSpecification(ResourceType_Instance).IsRetrieveCount())
+      {
+        sql += "UNION SELECT "
+              "  " TOSTRING(QUERY_GRAND_GRAND_CHILDREN_COUNT) " AS c0_queryId, "
+              "  Lookup.internalId AS c1_internalId, "
+              "  NULL AS c2_rowNumber, "
+              "  NULL AS c3_string1, "
+              "  NULL AS c4_string2, "
+              "  NULL AS c5_string3, "
+               "  COUNT(*) AS c6_int1, "
+              "  NULL AS c7_int2, "
+              "  NULL AS c8_big_int1, "
+              "  NULL AS c9_big_int2 "
+              "FROM Lookup "
+              "INNER JOIN Resources childLevel ON Lookup.internalId = childLevel.parentId "
+              "INNER JOIN Resources grandChildLevel ON childLevel.internalId = grandChildLevel.parentId "
+              "INNER JOIN Resources grandGrandChildLevel ON grandChildLevel.internalId = grandGrandChildLevel.parentId GROUP BY Lookup.internalId ";
+      }
+
+
+      sql += " ORDER BY c0_queryId, c2_rowNumber";  // this is really important to make sure that the Lookup query is the first one to provide results since we use it to create the responses element !
+
+      SQLite::Statement s(db_, SQLITE_FROM_HERE_DYNAMIC(sql), sql);
+      formatter.Bind(s);
+
+      while (s.Step())
+      {
+        int queryId = s.ColumnInt(C0_QUERY_ID);
+        int64_t internalId = s.ColumnInt64(C1_INTERNAL_ID);
+
+        // LOG(INFO) << queryId << ": " << internalId;
+        // continue;
+
+        assert(queryId == QUERY_LOOKUP || response.HasResource(internalId)); // the QUERY_LOOKUP must be read first and must create the response before any other query tries to populate the fields
+
+        switch (queryId)
+        {
+          case QUERY_LOOKUP:
+            response.Add(new FindResponse::Resource(requestLevel, internalId, s.ColumnString(C3_STRING_1)));
+            break;
+
+          case QUERY_LABELS:
+          {
+            FindResponse::Resource& res = response.GetResourceByInternalId(internalId);
+            res.AddLabel(s.ColumnString(C3_STRING_1));
+          }; break;
+
+          case QUERY_ATTACHMENTS:
+          {
+            FindResponse::Resource& res = response.GetResourceByInternalId(internalId);
+            FileInfo file(s.ColumnString(C3_STRING_1), static_cast<FileContentType>(s.ColumnInt(C6_INT_1)),
+                          s.ColumnInt64(C9_BIG_INT_2), s.ColumnString(C4_STRING_2),
+                          static_cast<CompressionType>(s.ColumnInt(C7_INT_2)),
+                          s.ColumnInt64(C8_BIG_INT_1), s.ColumnString(C5_STRING_3));
+            res.AddAttachment(file, 0 /* TODO - REVISIONS */);
+          }; break;
+
+          case QUERY_MAIN_DICOM_TAGS:
+          {
+            FindResponse::Resource& res = response.GetResourceByInternalId(internalId);
+            res.AddStringDicomTag(requestLevel, 
+                                  static_cast<uint16_t>(s.ColumnInt(C6_INT_1)),
+                                  static_cast<uint16_t>(s.ColumnInt(C7_INT_2)),
+                                  s.ColumnString(C3_STRING_1));
+          }; break;
+
+          case QUERY_PARENT_MAIN_DICOM_TAGS:
+          {
+            FindResponse::Resource& res = response.GetResourceByInternalId(internalId);
+            res.AddStringDicomTag(static_cast<ResourceType>(requestLevel - 1), 
+                                  static_cast<uint16_t>(s.ColumnInt(C6_INT_1)),
+                                  static_cast<uint16_t>(s.ColumnInt(C7_INT_2)),
+                                  s.ColumnString(C3_STRING_1));
+          }; break;
+
+          case QUERY_GRAND_PARENT_MAIN_DICOM_TAGS:
+          {
+            FindResponse::Resource& res = response.GetResourceByInternalId(internalId);
+            res.AddStringDicomTag(static_cast<ResourceType>(requestLevel - 2), 
+                                  static_cast<uint16_t>(s.ColumnInt(C6_INT_1)),
+                                  static_cast<uint16_t>(s.ColumnInt(C7_INT_2)),
+                                  s.ColumnString(C3_STRING_1));
+          }; break;
+
+          case QUERY_CHILDREN_MAIN_DICOM_TAGS:
+          {
+            FindResponse::Resource& res = response.GetResourceByInternalId(internalId);
+            res.AddChildrenMainDicomTagValue(static_cast<ResourceType>(requestLevel + 1), 
+                                             DicomTag(static_cast<uint16_t>(s.ColumnInt(C6_INT_1)), static_cast<uint16_t>(s.ColumnInt(C7_INT_2))),
+                                             s.ColumnString(C3_STRING_1));
+          }; break;
+
+          case QUERY_GRAND_CHILDREN_MAIN_DICOM_TAGS:
+          {
+            FindResponse::Resource& res = response.GetResourceByInternalId(internalId);
+            res.AddChildrenMainDicomTagValue(static_cast<ResourceType>(requestLevel + 2), 
+                                             DicomTag(static_cast<uint16_t>(s.ColumnInt(C6_INT_1)), static_cast<uint16_t>(s.ColumnInt(C7_INT_2))),
+                                             s.ColumnString(C3_STRING_1));
+          }; break;
+
+          case QUERY_METADATA:
+          {
+            FindResponse::Resource& res = response.GetResourceByInternalId(internalId);
+            res.AddMetadata(static_cast<ResourceType>(requestLevel), 
+                            static_cast<MetadataType>(s.ColumnInt(C6_INT_1)),
+                            s.ColumnString(C3_STRING_1), 0 /* no support for revision */);
+          }; break;
+
+          case QUERY_PARENT_METADATA:
+          {
+            FindResponse::Resource& res = response.GetResourceByInternalId(internalId);
+            res.AddMetadata(static_cast<ResourceType>(requestLevel - 1), 
+                            static_cast<MetadataType>(s.ColumnInt(C6_INT_1)),
+                            s.ColumnString(C3_STRING_1), 0 /* no support for revision */);
+          }; break;
+
+          case QUERY_GRAND_PARENT_METADATA:
+          {
+            FindResponse::Resource& res = response.GetResourceByInternalId(internalId);
+            res.AddMetadata(static_cast<ResourceType>(requestLevel - 2), 
+                            static_cast<MetadataType>(s.ColumnInt(C6_INT_1)),
+                            s.ColumnString(C3_STRING_1), 0 /* no support for revision */);
+          }; break;
+
+          case QUERY_CHILDREN_METADATA:
+          {
+            FindResponse::Resource& res = response.GetResourceByInternalId(internalId);
+            res.AddChildrenMetadataValue(static_cast<ResourceType>(requestLevel + 1), 
+                                         static_cast<MetadataType>(s.ColumnInt(C6_INT_1)),
+                                         s.ColumnString(C3_STRING_1));
+          }; break;
+
+          case QUERY_GRAND_CHILDREN_METADATA:
+          {
+            FindResponse::Resource& res = response.GetResourceByInternalId(internalId);
+            res.AddChildrenMetadataValue(static_cast<ResourceType>(requestLevel + 2), 
+                                         static_cast<MetadataType>(s.ColumnInt(C6_INT_1)),
+                                         s.ColumnString(C3_STRING_1));
+          }; break;
+
+          case QUERY_PARENT_IDENTIFIER:
+          {
+            FindResponse::Resource& res = response.GetResourceByInternalId(internalId);
+            res.SetParentIdentifier(s.ColumnString(C3_STRING_1));
+          }; break;
+
+          case QUERY_CHILDREN_IDENTIFIERS:
+          {
+            FindResponse::Resource& res = response.GetResourceByInternalId(internalId);
+            res.AddChildIdentifier(static_cast<ResourceType>(requestLevel + 1),
+                                   s.ColumnString(C3_STRING_1));
+            res.SetChildrenCount(static_cast<ResourceType>(requestLevel + 1),
+                                 res.GetChildrenIdentifiers(static_cast<ResourceType>(requestLevel + 1)).size());
+          }; break;
+
+          case QUERY_GRAND_CHILDREN_IDENTIFIERS:
+          {
+            FindResponse::Resource& res = response.GetResourceByInternalId(internalId);
+            res.AddChildIdentifier(static_cast<ResourceType>(requestLevel + 2),
+                                   s.ColumnString(C3_STRING_1));
+            res.SetChildrenCount(static_cast<ResourceType>(requestLevel + 2),
+                                 res.GetChildrenIdentifiers(static_cast<ResourceType>(requestLevel + 2)).size());
+          }; break;
+
+          case QUERY_GRAND_GRAND_CHILDREN_IDENTIFIERS:
+          {
+            FindResponse::Resource& res = response.GetResourceByInternalId(internalId);
+            res.AddChildIdentifier(static_cast<ResourceType>(requestLevel + 3),
+                                   s.ColumnString(C3_STRING_1));
+            res.SetChildrenCount(static_cast<ResourceType>(requestLevel + 3),
+                                 res.GetChildrenIdentifiers(static_cast<ResourceType>(requestLevel + 3)).size());
+          }; break;
+
+          case QUERY_CHILDREN_COUNT:
+          {
+            FindResponse::Resource& res = response.GetResourceByInternalId(internalId);
+            res.SetChildrenCount(static_cast<ResourceType>(requestLevel + 1),
+                                 static_cast<uint64_t>(s.ColumnInt64(C6_INT_1)));
+          }; break;
+
+          case QUERY_GRAND_CHILDREN_COUNT:
+          {
+            FindResponse::Resource& res = response.GetResourceByInternalId(internalId);
+            res.SetChildrenCount(static_cast<ResourceType>(requestLevel + 2),
+                                 static_cast<uint64_t>(s.ColumnInt64(C6_INT_1)));
+          }; break;
+
+          case QUERY_GRAND_GRAND_CHILDREN_COUNT:
+          {
+            FindResponse::Resource& res = response.GetResourceByInternalId(internalId);
+            res.SetChildrenCount(static_cast<ResourceType>(requestLevel + 3),
+                                 static_cast<uint64_t>(s.ColumnInt64(C6_INT_1)));
+          }; break;
+
+          case QUERY_ONE_INSTANCE_IDENTIFIER:
+          {
+            FindResponse::Resource& res = response.GetResourceByInternalId(internalId);
+            res.SetOneInstancePublicId(s.ColumnString(C3_STRING_1));
+          }; break;
+
+          case QUERY_ONE_INSTANCE_METADATA:
+          {
+            FindResponse::Resource& res = response.GetResourceByInternalId(internalId);
+            res.AddOneInstanceMetadata(static_cast<MetadataType>(s.ColumnInt(C6_INT_1)), s.ColumnString(C3_STRING_1));
+          }; break;
+
+          case QUERY_ONE_INSTANCE_ATTACHMENTS:
+          {
+            FindResponse::Resource& res = response.GetResourceByInternalId(internalId);
+            FileInfo file(s.ColumnString(C3_STRING_1), static_cast<FileContentType>(s.ColumnInt(C6_INT_1)),
+                          s.ColumnInt64(C9_BIG_INT_2), s.ColumnString(C4_STRING_2),
+                          static_cast<CompressionType>(s.ColumnInt(C7_INT_2)),
+                          s.ColumnInt64(C8_BIG_INT_1), s.ColumnString(C5_STRING_3));
+            res.AddOneInstanceAttachment(file);
+          }; break;
+
+          default:
+            throw Orthanc::OrthancException(Orthanc::ErrorCode_NotImplemented);
+        }
+      }
+    }
 
     // From the "ICreateInstance" interface
     virtual void AttachChild(int64_t parent,
@@ -510,22 +1343,16 @@ namespace Orthanc
     }
 
 
-    virtual void GetAllPublicIds(std::list<std::string>& target,
-                                 ResourceType resourceType,
-                                 int64_t since,
-                                 uint32_t limit) ORTHANC_OVERRIDE
+    virtual void GetAllPublicIdsCompatibility(std::list<std::string>& target,
+                                              ResourceType resourceType,
+                                              int64_t since,
+                                              uint32_t limit) ORTHANC_OVERRIDE
     {
-      if (limit == 0)
-      {
-        target.clear();
-        return;
-      }
-
       SQLite::Statement s(db_, SQLITE_FROM_HERE,
                           "SELECT publicId FROM Resources WHERE "
                           "resourceType=? LIMIT ? OFFSET ?");
       s.BindInt(0, resourceType);
-      s.BindInt64(1, limit);
+      s.BindInt64(1, limit == 0 ? -1 : limit);  // In SQLite, setting "LIMIT" to "-1" means "no limit"
       s.BindInt64(2, since);
 
       target.clear();
@@ -541,10 +1368,72 @@ namespace Orthanc
                             int64_t since,
                             uint32_t limit) ORTHANC_OVERRIDE
     {
-      SQLite::Statement s(db_, SQLITE_FROM_HERE, "SELECT * FROM Changes WHERE seq>? ORDER BY seq LIMIT ?");
-      s.BindInt64(0, since);
-      s.BindInt(1, limit + 1);
-      GetChangesInternal(target, done, s, limit);
+      std::set<ChangeType> filter;
+      GetChangesExtended(target, done, since, -1, limit, filter);
+    }
+
+    virtual void GetChangesExtended(std::list<ServerIndexChange>& target /*out*/,
+                                    bool& done /*out*/,
+                                    int64_t since,
+                                    int64_t to,
+                                    uint32_t limit,
+                                    const std::set<ChangeType>& filterType) ORTHANC_OVERRIDE
+    {
+      std::vector<std::string> filters;
+      bool hasSince = false;
+      bool hasTo = false;
+
+      if (since > 0)
+      {
+        hasSince = true;
+        filters.push_back("seq>?");
+      }
+      if (to != -1)
+      {
+        hasTo = true;
+        filters.push_back("seq<=?");
+      }
+      if (filterType.size() != 0)
+      {
+        filters.push_back("changeType IN ( " + JoinChanges(filterType) +  " )");
+      }
+
+      std::string filtersString;
+      if (filters.size() > 0)
+      {
+        Toolbox::JoinStrings(filtersString, filters, " AND ");
+        filtersString = "WHERE " + filtersString;
+      }
+
+      std::string sql;
+      bool returnFirstResults;
+      if (hasTo && !hasSince)
+      {
+        // in this case, we want the largest values in the LIMIT clause but we want them ordered in ascending order
+        sql = "SELECT * FROM (SELECT * FROM Changes " + filtersString + " ORDER BY seq DESC LIMIT ?) ORDER BY seq ASC";
+        returnFirstResults = false;
+      }
+      else
+      {
+        // default query: we want the smallest values ordered in ascending order
+        sql = "SELECT * FROM Changes " + filtersString + " ORDER BY seq ASC LIMIT ?";
+        returnFirstResults = true;
+      }
+       
+      SQLite::Statement s(db_, SQLITE_FROM_HERE_DYNAMIC(sql), sql);
+
+      int paramCounter = 0;
+      if (hasSince)
+      {
+        s.BindInt64(paramCounter++, since);
+      }
+      if (hasTo)
+      {
+        s.BindInt64(paramCounter++, to);
+      }
+
+      s.BindInt(paramCounter++, limit + 1); // we take limit+1 because we use the +1 to know if "Done" must be set to true
+      GetChangesInternal(target, done, s, limit, returnFirstResults);
     }
 
 
@@ -605,7 +1494,7 @@ namespace Orthanc
     {
       bool done;  // Ignored
       SQLite::Statement s(db_, SQLITE_FROM_HERE, "SELECT * FROM Changes ORDER BY seq DESC LIMIT 1");
-      GetChangesInternal(target, done, s, 1);
+      GetChangesInternal(target, done, s, 1, true);
     }
 
 
@@ -1328,6 +2217,8 @@ namespace Orthanc
     // TODO: implement revisions in SQLite
     dbCapabilities_.SetFlushToDisk(true);
     dbCapabilities_.SetLabelsSupport(true);
+    dbCapabilities_.SetHasExtendedChanges(true);
+    dbCapabilities_.SetHasFindSupport(HasIntegratedFind());
     db_.Open(path);
   }
 
@@ -1340,6 +2231,8 @@ namespace Orthanc
     // TODO: implement revisions in SQLite
     dbCapabilities_.SetFlushToDisk(true);
     dbCapabilities_.SetLabelsSupport(true);
+    dbCapabilities_.SetHasExtendedChanges(true);
+    dbCapabilities_.SetHasFindSupport(HasIntegratedFind());
     db_.OpenInMemory();
   }
 

@@ -157,6 +157,11 @@ namespace Orthanc
     static void GetRequestedTags(std::set<DicomTag>& requestedTags,
                                  const RestApiGetCall& call);
 
-    static void DocumentRequestedTags(RestApiGetCall& call);
+    static void DocumentRequestedTags(RestApiCall& call);
+
+    static void GetResponseContentAndExpand(ResponseContentFlags& responseContent,
+                                            const RestApiGetCall& call);
+
+    static void DocumentResponseContentAndExpand(RestApiCall& call);
   };
 }

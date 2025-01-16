@@ -50,8 +50,9 @@
 
 namespace Orthanc
 {
-  DcmtkTranscoder::DcmtkTranscoder() :
-    lossyQuality_(90)
+  DcmtkTranscoder::DcmtkTranscoder(unsigned int maxConcurrentExecutions) :
+    lossyQuality_(90),
+    maxConcurrentExecutionsSemaphore_(maxConcurrentExecutions)
   {
   }
 
@@ -317,6 +318,8 @@ namespace Orthanc
                                   const std::set<DicomTransferSyntax>& allowedSyntaxes,
                                   bool allowNewSopInstanceUid)
   {
+    Semaphore::Locker lock(maxConcurrentExecutionsSemaphore_); // limit the number of concurrent executions
+
     target.Clear();
     
     DicomTransferSyntax sourceSyntax;

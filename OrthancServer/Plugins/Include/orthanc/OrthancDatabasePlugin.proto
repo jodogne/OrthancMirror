@@ -78,6 +78,22 @@ enum LabelsConstraintType {
   LABELS_CONSTRAINT_NONE = 2;
 }
 
+enum OrderingKeyType {
+  ORDERING_KEY_TYPE_DICOM_TAG = 0;
+  ORDERING_KEY_TYPE_METADATA = 1;
+}
+
+enum OrderingDirection {
+  ORDERING_DIRECTION_ASC = 0;
+  ORDERING_DIRECTION_DESC = 1;
+}
+
+enum OrderingCast {
+  ORDERING_CAST_STRING = 0;
+  ORDERING_CAST_INT = 1;
+  ORDERING_CAST_FLOAT = 2;
+}
+
 message ServerIndexChange {
   int64         seq = 1;
   int32         change_type = 2;   // opaque "ChangeType" in Orthanc
@@ -109,6 +125,13 @@ message DatabaseConstraint {
   repeated string  values = 8;
 }
 
+message DatabaseMetadataConstraint {
+  int32            metadata = 1;
+  bool             is_case_sensitive = 2;
+  bool             is_mandatory = 3;
+  ConstraintType   type = 4;
+  repeated string  values = 5;
+}
 
 /**
  * Database-level operations.
@@ -141,6 +164,8 @@ message GetSystemInformation {
     bool supports_increment_global_property = 5;
     bool has_update_and_get_statistics = 6;
     bool has_measure_latency = 7;
+    bool supports_find = 8;         // New in Orthanc 1.12.5
+    bool has_extended_changes = 9;  // New in Orthanc 1.12.5
   }
 }
 
@@ -288,11 +313,14 @@ enum TransactionOperation {
   OPERATION_GET_CHILDREN_METADATA = 42;
   OPERATION_GET_LAST_CHANGE_INDEX = 43;
   OPERATION_LOOKUP_RESOURCE_AND_PARENT = 44;
-  OPERATION_ADD_LABEL = 45;        // New in Orthanc 1.12.0
-  OPERATION_REMOVE_LABEL = 46;     // New in Orthanc 1.12.0
-  OPERATION_LIST_LABELS = 47;      // New in Orthanc 1.12.0
-  OPERATION_INCREMENT_GLOBAL_PROPERTY = 48;      // New in Orthanc 1.12.3
-  OPERATION_UPDATE_AND_GET_STATISTICS = 49;      // New in Orthanc 1.12.3
+  OPERATION_ADD_LABEL = 45;                   // New in Orthanc 1.12.0
+  OPERATION_REMOVE_LABEL = 46;                // New in Orthanc 1.12.0
+  OPERATION_LIST_LABELS = 47;                 // New in Orthanc 1.12.0
+  OPERATION_INCREMENT_GLOBAL_PROPERTY = 48;   // New in Orthanc 1.12.3
+  OPERATION_UPDATE_AND_GET_STATISTICS = 49;   // New in Orthanc 1.12.3
+  OPERATION_FIND = 50;                        // New in Orthanc 1.12.5
+  OPERATION_GET_CHANGES_EXTENDED = 51;        // New in Orthanc 1.12.5
+  OPERATION_COUNT_RESOURCES = 52;             // New in Orthanc 1.12.5
 }
 
 message Rollback {
@@ -406,6 +434,19 @@ message GetChanges {
   message Request {
     int64 since = 1;
     uint32 limit = 2;
+  }
+  message Response {
+    repeated ServerIndexChange changes = 1;
+    bool done = 2;
+  }
+}
+
+message GetChangesExtended {
+  message Request {
+    int64 since = 1;
+    int64 to = 2;
+    repeated int32 change_type = 3;
+    uint32 limit = 4;
   }
   message Response {
     repeated ServerIndexChange changes = 1;
@@ -824,6 +865,115 @@ message ListLabels {
   }
 }
 
+message Find {        // New in Orthanc 1.12.5
+  message Request {   // This corresponds to "FindRequest" in C++
+    message Tag {
+      uint32 group = 1;
+      uint32 element = 2;
+    }
+    message Limits {
+      uint64 since = 1;
+      uint64 count = 2;
+    }
+    message ParentSpecification {
+      bool retrieve_main_dicom_tags = 1;
+      bool retrieve_metadata = 2;
+    }
+    message ChildrenSpecification {
+      bool retrieve_identifiers = 1;
+      repeated int32 retrieve_metadata = 2;
+      repeated Tag retrieve_main_dicom_tags = 3;
+      bool retrieve_count = 4;
+    }
+    message Ordering {
+      OrderingKeyType key_type = 1;
+      OrderingDirection direction = 2;
+      OrderingCast cast = 3;
+      uint32 tag_group = 4;
+      uint32 tag_element = 5;
+      bool is_identifier_tag = 6;
+      ResourceType tag_level = 7;
+      int32 metadata = 8;
+    }
+
+    // Part 1 of the request: Constraints
+    ResourceType level = 1;
+    string orthanc_id_patient = 2;   // optional - GetOrthancIdentifiers().GetPatientId();
+    string orthanc_id_study = 3;     // optional - GetOrthancIdentifiers().GetStudyId();
+    string orthanc_id_series = 4;    // optional - GetOrthancIdentifiers().GetSeriesId();
+    string orthanc_id_instance = 5;  // optional - GetOrthancIdentifiers().GetInstanceId();
+    repeated DatabaseConstraint dicom_tag_constraints = 6;
+    Limits limits = 7;               // optional
+    repeated string labels = 8;
+    LabelsConstraintType labels_constraint = 9;
+    repeated Ordering ordering = 10;
+    repeated DatabaseMetadataConstraint metadata_constraints = 11;
+
+
+    // Part 2 of the request: What is to be retrieved
+    bool retrieve_main_dicom_tags = 100;
+    bool retrieve_metadata = 101;
+    bool retrieve_labels = 102;
+    bool retrieve_attachments = 103;
+    bool retrieve_parent_identifier = 104;
+    bool retrieve_one_instance_metadata_and_attachments = 105;
+    ParentSpecification parent_patient = 106;
+    ParentSpecification parent_study = 107;
+    ParentSpecification parent_series = 108;
+    ChildrenSpecification children_studies = 109;
+    ChildrenSpecification children_series = 110;
+    ChildrenSpecification children_instances = 111;
+  }
+
+  message Response {  // This corresponds to "FindResponse" in C++
+    message Tag {
+      uint32 group = 1;
+      uint32 element = 2;
+      string value = 3;
+    }
+    message Metadata {
+      int32 key = 1;
+      string value = 2;
+      int64 revision = 3;
+    }
+    message ResourceContent {
+      repeated Tag main_dicom_tags = 1;
+      repeated Metadata metadata = 2;
+    }
+    message ChildrenContent {
+      repeated string identifiers = 1;
+      repeated Tag main_dicom_tags = 2;
+      repeated Metadata metadata = 3;  // As of Orthanc 1.12.5, the "revision" field is unused in this case
+      uint64 count = 4;
+    }
+
+    int64 internal_id = 1;
+    string public_id = 2;
+    string parent_public_id = 3;   // optional
+    repeated string labels = 4;
+    repeated FileInfo attachments = 5;
+    ResourceContent patient_content = 6;
+    ResourceContent study_content = 7;
+    ResourceContent series_content = 8;
+    ResourceContent instance_content = 9;
+    ChildrenContent children_studies_content = 10;
+    ChildrenContent children_series_content = 11;
+    ChildrenContent children_instances_content = 12;
+    string one_instance_public_id = 13;
+    repeated Metadata one_instance_metadata = 14;
+    repeated FileInfo one_instance_attachments = 15;
+    repeated int64 attachments_revisions = 16;
+  }
+}
+
+message CountResources
+{
+  message Response
+  {
+    uint64 count = 1;
+  }
+}
+
 message TransactionRequest {
   sfixed64              transaction = 1;
   TransactionOperation  operation = 2;
@@ -878,6 +1028,9 @@ message TransactionRequest {
   ListLabels.Request                      list_labels = 147;
   IncrementGlobalProperty.Request         increment_global_property = 148;
   UpdateAndGetStatistics.Request          update_and_get_statistics = 149;
+  Find.Request                            find = 150;
+  GetChangesExtended.Request              get_changes_extended = 151;
+  Find.Request                            count_resources = 152;
 }
 
 message TransactionResponse {
@@ -931,6 +1084,9 @@ message TransactionResponse {
   ListLabels.Response                      list_labels = 147;
   IncrementGlobalProperty.Response         increment_global_property = 148;
   UpdateAndGetStatistics.Response          update_and_get_statistics = 149;
+  repeated Find.Response                   find = 150;   // One message per found resource
+  GetChangesExtended.Response              get_changes_extended = 151;
+  CountResources.Response                  count_resources = 152;
 }
 
 enum RequestType {

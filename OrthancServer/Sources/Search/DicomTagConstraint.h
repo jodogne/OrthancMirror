@@ -25,7 +25,7 @@
 
 #include "../ServerEnumerations.h"
 #include "../../../OrthancFramework/Sources/DicomFormat/DicomMap.h"
-#include "DatabaseConstraint.h"
+#include "DatabaseDicomTagConstraint.h"
 
 #include <boost/shared_ptr.hpp>
 
@@ -62,7 +62,7 @@ namespace Orthanc
 
     explicit DicomTagConstraint(const DicomTagConstraint& other);
     
-    explicit DicomTagConstraint(const DatabaseConstraint& constraint);
+    explicit DicomTagConstraint(const DatabaseDicomTagConstraint& constraint);
 
     const DicomTag& GetTag() const
     {
@@ -109,7 +109,8 @@ namespace Orthanc
 
     std::string Format() const;
 
-    DatabaseConstraint* ConvertToDatabaseConstraint(ResourceType level,
-                                                    DicomTagType tagType) const;
+    DatabaseDicomTagConstraint* ConvertToDatabaseConstraint(bool& isIdentical /* out */,
+                                                            ResourceType level,
+                                                            DicomTagType tagType) const;
   };
 }

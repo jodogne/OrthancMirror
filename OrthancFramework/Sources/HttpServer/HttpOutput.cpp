@@ -474,6 +474,10 @@ namespace Orthanc
     return stateMachine_.GetState() == StateMachine::State_WritingMultipart;
   }
 
+  bool HttpOutput::IsWritingStream() const
+  {
+    return stateMachine_.GetState() == StateMachine::State_WritingStream;
+  }
   
   void HttpOutput::Answer(const void* buffer,
                           size_t length)
@@ -977,4 +981,21 @@ namespace Orthanc
 
     stateMachine_.CloseStream();
   }
+
+  void HttpOutput::StartStream(const std::string& contentType)
+  {
+    stateMachine_.StartStream(contentType.c_str());
+  }
+
+  void HttpOutput::SendStreamItem(const void* data,
+                                  size_t size)
+  {
+    stateMachine_.SendStreamItem(data, size);
+  }
+
+  void HttpOutput::CloseStream()
+  {
+    stateMachine_.CloseStream();
+  }
+
 }

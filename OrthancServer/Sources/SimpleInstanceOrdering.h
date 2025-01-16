@@ -23,32 +23,39 @@
 
 #pragma once
 
-#include "IDatabaseWrapper.h"
+#include "../../OrthancFramework/Sources/DicomFormat/DicomMap.h"
 
 namespace Orthanc
 {
-  /**
-   * This class provides a default "not implemented" implementation
-   * for all recent methods (1.12.X)
-   **/
-  class BaseDatabaseWrapper : public IDatabaseWrapper
+  class ServerIndex;
+  class FileInfo;
+
+  class SimpleInstanceOrdering
   {
+  private:
+    struct Instance;
+
+    std::vector<Instance*>   instances_;
+		bool                     hasDuplicateIndexInSeries_;
+
   public:
-    class BaseTransaction : public IDatabaseWrapper::ITransaction
+    SimpleInstanceOrdering(ServerIndex& index,
+                           const std::string& seriesId);
+    ~SimpleInstanceOrdering();
+
+    size_t GetInstancesCount() const
     {
-    public:
-      virtual int64_t IncrementGlobalProperty(GlobalProperty property,
-                                              int64_t increment,
-                                              bool shared) ORTHANC_OVERRIDE;
+      return instances_.size();
+    }
 
-      virtual void UpdateAndGetStatistics(int64_t& patientsCount,
-                                          int64_t& studiesCount,
-                                          int64_t& seriesCount,
-                                          int64_t& instancesCount,
-                                          int64_t& compressedSize,
-                                          int64_t& uncompressedSize) ORTHANC_OVERRIDE;
-    };
+    const std::string& GetInstanceId(size_t index) const;
 
-    virtual uint64_t MeasureLatency() ORTHANC_OVERRIDE;
+    uint32_t GetInstanceIndexInSeries(size_t index) const;
+
+    const FileInfo& GetInstanceFileInfo(size_t index) const;
+
+  private:
+    static bool IndexInSeriesComparator(const SimpleInstanceOrdering::Instance* a,
+                                        const SimpleInstanceOrdering::Instance* b);
   };
 }
