@@ -74,7 +74,7 @@ namespace Orthanc
           }
         }
         
-        void Add(const DatabaseConstraint& constraint)
+        void Add(const DatabaseDicomTagConstraint& constraint)
         {
           constraints_.push_back(new DicomTagConstraint(constraint));
         }          
@@ -84,7 +84,7 @@ namespace Orthanc
     
     static void ApplyIdentifierConstraint(SetOfResources& candidates,
                                           ILookupResources& compatibility,
-                                          const DatabaseConstraint& constraint,
+                                          const DatabaseDicomTagConstraint& constraint,
                                           ResourceType level)
     {
       std::list<int64_t> matches;
@@ -134,8 +134,8 @@ namespace Orthanc
     
     static void ApplyIdentifierRange(SetOfResources& candidates,
                                      ILookupResources& compatibility,
-                                     const DatabaseConstraint& smaller,
-                                     const DatabaseConstraint& greater,
+                                     const DatabaseDicomTagConstraint& smaller,
+                                     const DatabaseDicomTagConstraint& greater,
                                      ResourceType level)
     {
       assert(smaller.GetConstraintType() == ConstraintType_SmallerOrEqual &&
@@ -153,10 +153,10 @@ namespace Orthanc
     static void ApplyLevel(SetOfResources& candidates,
                            IDatabaseWrapper::ITransaction& transaction,
                            ILookupResources& compatibility,
-                           const DatabaseConstraints& lookup,
+                           const DatabaseDicomTagConstraints& lookup,
                            ResourceType level)
     {
-      typedef std::set<const DatabaseConstraint*>  SetOfConstraints;
+      typedef std::set<const DatabaseDicomTagConstraint*>  SetOfConstraints;
       typedef std::map<DicomTag, SetOfConstraints> Identifiers;
 
       // (1) Select which constraints apply to this level, and split
@@ -168,7 +168,7 @@ namespace Orthanc
       
       for (size_t i = 0; i < lookup.GetSize(); i++)
       {
-        const DatabaseConstraint& constraint = lookup.GetConstraint(i);
+        const DatabaseDicomTagConstraint& constraint = lookup.GetConstraint(i);
 
         if (constraint.GetLevel() == level)
         {
@@ -191,8 +191,8 @@ namespace Orthanc
       {
         // Check whether some range constraint over identifiers is
         // present at this level
-        const DatabaseConstraint* smaller = NULL;
-        const DatabaseConstraint* greater = NULL;
+        const DatabaseDicomTagConstraint* smaller = NULL;
+        const DatabaseDicomTagConstraint* greater = NULL;
         
         for (SetOfConstraints::const_iterator it2 = it->second.begin();
              it2 != it->second.end(); ++it2)
@@ -308,7 +308,7 @@ namespace Orthanc
 
     void DatabaseLookup::ApplyLookupResources(std::list<std::string>& resourcesId,
                                               std::list<std::string>* instancesId,
-                                              const DatabaseConstraints& lookup,
+                                              const DatabaseDicomTagConstraints& lookup,
                                               ResourceType queryLevel,
                                               size_t limit)
     {

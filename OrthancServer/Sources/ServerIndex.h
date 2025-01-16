@@ -42,7 +42,6 @@ namespace Orthanc
     bool done_;
     boost::mutex monitoringMutex_;
     boost::thread flushThread_;
-    boost::thread updateStatisticsThread_;
     boost::thread unstableResourcesMonitorThread_;
 
     LeastRecentlyUsedIndex<std::pair<ResourceType, int64_t>, UnstableResourcePayload>  unstableResources_;
@@ -50,12 +49,10 @@ namespace Orthanc
     MaxStorageMode  maximumStorageMode_;
     uint64_t        maximumStorageSize_;
     unsigned int    maximumPatients_;
+    bool            readOnly_;
 
     static void FlushThread(ServerIndex* that,
                             unsigned int threadSleep);
-
-    static void UpdateStatisticsThread(ServerIndex* that,
-                                       unsigned int threadSleep);
 
     static void UnstableResourcesMonitorThread(ServerIndex* that,
                                                unsigned int threadSleep);
@@ -64,13 +61,11 @@ namespace Orthanc
                         int64_t id,
                         const std::string& publicId);
 
-    bool IsUnstableResource(ResourceType type,
-                            int64_t id);
-
   public:
     ServerIndex(ServerContext& context,
                 IDatabaseWrapper& database,
-                unsigned int threadSleepGranularityMilliseconds);
+                unsigned int threadSleepGranularityMilliseconds,
+                bool readOnly);
 
     ~ServerIndex();
 
@@ -103,5 +98,8 @@ namespace Orthanc
                               bool hasOldRevision,
                               int64_t oldRevision,
                               const std::string& oldMD5);
+
+    bool IsUnstableResource(ResourceType type,
+                            int64_t id);
   };
 }

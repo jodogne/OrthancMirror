@@ -30,6 +30,7 @@
 #include "../../OrthancFramework/Sources/Lua/LuaFunctionCall.h"
 #include "../../OrthancFramework/Sources/MetricsRegistry.h"
 #include "OrthancConfiguration.h"
+#include "ResourceFinder.h"
 #include "Search/DatabaseLookup.h"
 #include "ServerContext.h"
 #include "ServerToolbox.h"
@@ -39,132 +40,46 @@
 
 namespace Orthanc
 {
-  static void AddAnswer(DicomFindAnswers& answers,
-                        ServerContext& context,
-                        const std::string& publicId,
-                        const std::string& instanceId,
-                        const DicomMap& mainDicomTags,
-                        const Json::Value* dicomAsJson,
-                        ResourceType level,
-                        const DicomArray& query,
-                        const std::list<DicomTag>& sequencesToReturn,
-                        const std::string& defaultPrivateCreator,
-                        const std::map<uint16_t, std::string>& privateCreators,
-                        const std::string& retrieveAet,
-                        bool allowStorageAccess)
+  static void CopySequence(ParsedDicomFile& dicom,
+                           const DicomTag& tag,
+                           const Json::Value& source,
+                           const std::string& defaultPrivateCreator,
+                           const std::map<uint16_t, std::string>& privateCreators)
   {
-    ExpandedResource resource;
-    std::set<DicomTag> requestedTags;
-    
-    query.GetTags(requestedTags);
-    requestedTags.erase(DICOM_TAG_QUERY_RETRIEVE_LEVEL); // this is not part of the answer
-
-    // reuse ExpandResource to get missing tags and computed tags (ModalitiesInStudy ...).  This code is therefore shared between C-Find, tools/find, list-resources and QIDO-RS
-    context.ExpandResource(resource, publicId, mainDicomTags, instanceId, dicomAsJson,
-                           level, requestedTags, ExpandResourceFlags_IncludeMainDicomTags, allowStorageAccess);
-
-    DicomMap result;
-
-    /**
-     * Add the mandatory "Retrieve AE Title (0008,0054)" tag, which was missing in Orthanc <= 1.7.2.
-     * http://dicom.nema.org/medical/dicom/current/output/html/part04.html#sect_C.4.1.1.3.2
-     * https://groups.google.com/g/orthanc-users/c/-7zNTKR_PMU/m/kfjwzEVNAgAJ
-     **/
-    result.SetValue(DICOM_TAG_RETRIEVE_AE_TITLE, retrieveAet, false /* not binary */);
-
-    for (size_t i = 0; i < query.GetSize(); i++)
+    if (source.type() == Json::objectValue &&
+        source.isMember("Type") &&
+        source.isMember("Value") &&
+        source["Type"].asString() == "Sequence" &&
+        source["Value"].type() == Json::arrayValue)
     {
-      if (query.GetElement(i).GetTag() == DICOM_TAG_QUERY_RETRIEVE_LEVEL)
-      {
-        // Fix issue 30 on Google Code (QR response missing "Query/Retrieve Level" (008,0052))
-        result.SetValue(query.GetElement(i).GetTag(), query.GetElement(i).GetValue());
-      }
-      else if (query.GetElement(i).GetTag() == DICOM_TAG_SPECIFIC_CHARACTER_SET)
-      {
-        // Do not include the encoding, this is handled by class ParsedDicomFile
-      }
-      else
-      {
-        const DicomTag& tag = query.GetElement(i).GetTag();
-        const DicomValue* value = resource.GetMainDicomTags().TestAndGetValue(tag);
+      Json::Value content = Json::arrayValue;
 
-        if (value != NULL &&
-            !value->IsNull() &&
-            !value->IsBinary())
+      for (Json::Value::ArrayIndex i = 0; i < source["Value"].size(); i++)
+      {
+        Json::Value item;
+        Toolbox::SimplifyDicomAsJson(item, source["Value"][i], DicomToJsonFormat_Short);
+        content.append(item);
+      }
+
+      if (tag.IsPrivate())
+      {
+        std::map<uint16_t, std::string>::const_iterator found = privateCreators.find(tag.GetGroup());
+
+        if (found != privateCreators.end())
         {
-          result.SetValue(tag, value->GetContent(), false);
+          dicom.Replace(tag, content, false, DicomReplaceMode_InsertIfAbsent, found->second.c_str());
         }
         else
         {
-          result.SetValue(tag, "", false);
+          dicom.Replace(tag, content, false, DicomReplaceMode_InsertIfAbsent, defaultPrivateCreator);
         }
       }
-    }
-
-    if (result.GetSize() == 0 &&
-        sequencesToReturn.empty())
-    {
-      CLOG(WARNING, DICOM) << "The C-FIND request does not return any DICOM tag";
-    }
-    else if (sequencesToReturn.empty())
-    {
-      answers.Add(result);
-    }
-    else if (dicomAsJson == NULL)
-    {
-      CLOG(WARNING, DICOM) << "C-FIND query requesting a sequence, but reading JSON from disk is disabled";
-      answers.Add(result);
-    }
-    else
-    {
-      ParsedDicomFile dicom(result, GetDefaultDicomEncoding(),
-                            true /* be permissive, cf. issue #136 */, defaultPrivateCreator, privateCreators);
-
-      for (std::list<DicomTag>::const_iterator tag = sequencesToReturn.begin();
-           tag != sequencesToReturn.end(); ++tag)
+      else
       {
-        assert(dicomAsJson != NULL);
-        const Json::Value& source = (*dicomAsJson) [tag->Format()];
-
-        if (source.type() == Json::objectValue &&
-            source.isMember("Type") &&
-            source.isMember("Value") &&
-            source["Type"].asString() == "Sequence" &&
-            source["Value"].type() == Json::arrayValue)
-        {
-          Json::Value content = Json::arrayValue;
-
-          for (Json::Value::ArrayIndex i = 0; i < source["Value"].size(); i++)
-          {
-            Json::Value item;
-            Toolbox::SimplifyDicomAsJson(item, source["Value"][i], DicomToJsonFormat_Short);
-            content.append(item);
-          }
-
-          if (tag->IsPrivate())
-          {
-            std::map<uint16_t, std::string>::const_iterator found = privateCreators.find(tag->GetGroup());
-            
-            if (found != privateCreators.end())
-            {
-              dicom.Replace(*tag, content, false, DicomReplaceMode_InsertIfAbsent, found->second.c_str());
-            }
-            else
-            {
-              dicom.Replace(*tag, content, false, DicomReplaceMode_InsertIfAbsent, defaultPrivateCreator);
-            }
-          }
-          else
-          {
-            dicom.Replace(*tag, content, false, DicomReplaceMode_InsertIfAbsent, "" /* no private creator */);
-          }
-        }
+        dicom.Replace(tag, content, false, DicomReplaceMode_InsertIfAbsent, "" /* no private creator */);
       }
-
-      answers.Add(dicom);
     }
   }
-
 
 
   bool OrthancFindRequestHandler::FilterQueryTag(std::string& value /* can be modified */,
@@ -237,86 +152,122 @@ namespace Orthanc
   }
 
 
-  class OrthancFindRequestHandler::LookupVisitor : public ServerContext::ILookupVisitor
+  namespace
   {
-  private:
-    DicomFindAnswers&           answers_;
-    ServerContext&              context_;
-    ResourceType                level_;
-    const DicomMap&             query_;
-    DicomArray                  queryAsArray_;
-    const std::list<DicomTag>&  sequencesToReturn_;
-    std::string                 defaultPrivateCreator_;       // the private creator to use if the group is not defined in the query itself
-    const std::map<uint16_t, std::string>& privateCreators_;  // the private creators defined in the query itself
-    std::string                 retrieveAet_;
-    FindStorageAccessMode       findStorageAccessMode_;
-
-  public:
-    LookupVisitor(DicomFindAnswers&  answers,
-                  ServerContext& context,
-                  ResourceType level,
-                  const DicomMap& query,
-                  const std::list<DicomTag>& sequencesToReturn,
-                  const std::map<uint16_t, std::string>& privateCreators,
-                  FindStorageAccessMode findStorageAccessMode) :
-      answers_(answers),
-      context_(context),
-      level_(level),
-      query_(query),
-      queryAsArray_(query),
-      sequencesToReturn_(sequencesToReturn),
-      privateCreators_(privateCreators),
-      findStorageAccessMode_(findStorageAccessMode)
+    class LookupVisitorV2 : public ResourceFinder::IVisitor
     {
-      answers_.SetComplete(false);
+    private:
+      DicomFindAnswers&           answers_;
+      DicomArray                  queryAsArray_;
+      const std::list<DicomTag>&  sequencesToReturn_;
+      std::string                 defaultPrivateCreator_;       // the private creator to use if the group is not defined in the query itself
+      const std::map<uint16_t, std::string>& privateCreators_;  // the private creators defined in the query itself
+      std::string                 retrieveAet_;
 
+    public:
+      LookupVisitorV2(DicomFindAnswers& answers,
+                      const DicomMap& query,
+                      const std::list<DicomTag>& sequencesToReturn,
+                      const std::map<uint16_t, std::string>& privateCreators) :
+        answers_(answers),
+        queryAsArray_(query),
+        sequencesToReturn_(sequencesToReturn),
+        privateCreators_(privateCreators)
       {
-        OrthancConfiguration::ReaderLock lock;
-        defaultPrivateCreator_ = lock.GetConfiguration().GetDefaultPrivateCreator();
-        retrieveAet_ = lock.GetConfiguration().GetOrthancAET();
+        answers_.SetComplete(false);
+
+        {
+          OrthancConfiguration::ReaderLock lock;
+          defaultPrivateCreator_ = lock.GetConfiguration().GetDefaultPrivateCreator();
+          retrieveAet_ = lock.GetConfiguration().GetOrthancAET();
+        }
       }
-    }
 
-    virtual bool IsDicomAsJsonNeeded() const ORTHANC_OVERRIDE
-    {
-      // Ask the "DICOM-as-JSON" attachment only if sequences are to
-      // be returned OR if "query_" contains non-main DICOM tags!
+      virtual void Apply(const FindResponse::Resource& resource,
+                         const DicomMap& requestedTags) ORTHANC_OVERRIDE
+      {
+        DicomMap resourceTags;
+        resource.GetAllMainDicomTags(resourceTags);
+        resourceTags.Merge(requestedTags);
 
-      DicomMap withoutSpecialTags;
-      withoutSpecialTags.Assign(query_);
+        DicomMap result;
 
-      // Check out "ComputeCounters()"
-      withoutSpecialTags.Remove(DICOM_TAG_MODALITIES_IN_STUDY);
-      withoutSpecialTags.Remove(DICOM_TAG_NUMBER_OF_PATIENT_RELATED_INSTANCES);
-      withoutSpecialTags.Remove(DICOM_TAG_NUMBER_OF_PATIENT_RELATED_SERIES);
-      withoutSpecialTags.Remove(DICOM_TAG_NUMBER_OF_PATIENT_RELATED_STUDIES);
-      withoutSpecialTags.Remove(DICOM_TAG_NUMBER_OF_SERIES_RELATED_INSTANCES);
-      withoutSpecialTags.Remove(DICOM_TAG_NUMBER_OF_STUDY_RELATED_INSTANCES);
-      withoutSpecialTags.Remove(DICOM_TAG_NUMBER_OF_STUDY_RELATED_SERIES);
-      withoutSpecialTags.Remove(DICOM_TAG_SOP_CLASSES_IN_STUDY);
+        /**
+         * Add the mandatory "Retrieve AE Title (0008,0054)" tag, which was missing in Orthanc <= 1.7.2.
+         * http://dicom.nema.org/medical/dicom/current/output/html/part04.html#sect_C.4.1.1.3.2
+         * https://groups.google.com/g/orthanc-users/c/-7zNTKR_PMU/m/kfjwzEVNAgAJ
+         **/
+        result.SetValue(DICOM_TAG_RETRIEVE_AE_TITLE, retrieveAet_, false /* not binary */);
 
-      // Check out "AddAnswer()"
-      withoutSpecialTags.Remove(DICOM_TAG_SPECIFIC_CHARACTER_SET);
-      withoutSpecialTags.Remove(DICOM_TAG_QUERY_RETRIEVE_LEVEL);
-      
-      return (!sequencesToReturn_.empty() ||
-              !withoutSpecialTags.HasOnlyMainDicomTags());
-    }
-      
-    virtual void MarkAsComplete() ORTHANC_OVERRIDE
-    {
-      answers_.SetComplete(true);
-    }
+        for (size_t i = 0; i < queryAsArray_.GetSize(); i++)
+        {
+          const DicomTag tag = queryAsArray_.GetElement(i).GetTag();
 
-    virtual void Visit(const std::string& publicId,
-                       const std::string& instanceId,
-                       const DicomMap& mainDicomTags,
-                       const Json::Value* dicomAsJson) ORTHANC_OVERRIDE
-    {
-      AddAnswer(answers_, context_, publicId, instanceId, mainDicomTags, dicomAsJson, level_, queryAsArray_, sequencesToReturn_,
-                defaultPrivateCreator_, privateCreators_, retrieveAet_, IsStorageAccessAllowedForAnswers(findStorageAccessMode_));
-    }
-  };
+          if (tag == DICOM_TAG_QUERY_RETRIEVE_LEVEL)
+          {
+            // Fix issue 30 on Google Code (QR response missing "Query/Retrieve Level" (008,0052))
+            result.SetValue(tag, queryAsArray_.GetElement(i).GetValue());
+          }
+          else if (tag == DICOM_TAG_SPECIFIC_CHARACTER_SET)
+          {
+            // Do not include the encoding, this is handled by class ParsedDicomFile
+          }
+          else
+          {
+            const DicomValue* value = resourceTags.TestAndGetValue(tag);
+
+            if (value == NULL ||
+                value->IsNull() ||
+                value->IsBinary())
+            {
+              result.SetValue(tag, "", false);
+            }
+            else
+            {
+              result.SetValue(tag, value->GetContent(), false);
+            }
+          }
+        }
+
+        if (result.GetSize() == 0 &&
+            sequencesToReturn_.empty())
+        {
+          CLOG(WARNING, DICOM) << "The C-FIND request does not return any DICOM tag";
+        }
+        else if (sequencesToReturn_.empty())
+        {
+          answers_.Add(result);
+        }
+        else
+        {
+          ParsedDicomFile dicom(result, GetDefaultDicomEncoding(),
+                                true /* be permissive, cf. issue #136 */, defaultPrivateCreator_, privateCreators_);
+
+          for (std::list<DicomTag>::const_iterator tag = sequencesToReturn_.begin();
+               tag != sequencesToReturn_.end(); ++tag)
+          {
+            const DicomValue* value = resourceTags.TestAndGetValue(*tag);
+            if (value != NULL &&
+                value->IsSequence())
+            {
+              CopySequence(dicom, *tag, value->GetSequenceContent(), defaultPrivateCreator_, privateCreators_);
+            }
+            else
+            {
+              dicom.Replace(*tag, std::string(""), false, DicomReplaceMode_InsertIfAbsent, defaultPrivateCreator_);
+            }
+          }
+
+          answers_.Add(dicom);
+        }
+      }
+
+      virtual void MarkAsComplete() ORTHANC_OVERRIDE
+      {
+        answers_.SetComplete(true);
+      }
+    };
+  }
 
 
   void OrthancFindRequestHandler::Handle(DicomFindAnswers& answers,
@@ -396,7 +347,6 @@ namespace Orthanc
       throw OrthancException(ErrorCode_NotImplemented);
     }
 
-
     DicomArray query(*filteredInput);
     CLOG(INFO, DICOM) << "DICOM C-Find request at level: " << EnumerationToString(level);
 
@@ -410,9 +360,12 @@ namespace Orthanc
       }
     }
 
+    std::set<DicomTag> requestedTags;
+
     for (std::list<DicomTag>::const_iterator it = sequencesToReturn.begin();
          it != sequencesToReturn.end(); ++it)
     {
+      requestedTags.insert(*it);
       CLOG(INFO, DICOM) << "  (" << it->Format()
                         << ")  " << FromDcmtkBridge::GetTagName(*it, "")
                         << " : sequence tag whose content will be copied";
@@ -441,11 +394,18 @@ namespace Orthanc
       const DicomTag tag = element.GetTag();
 
       // remove tags that are not used for matching
-      if (element.GetValue().IsNull() ||
-          tag == DICOM_TAG_QUERY_RETRIEVE_LEVEL ||
+      if (tag == DICOM_TAG_QUERY_RETRIEVE_LEVEL ||
           tag == DICOM_TAG_SPECIFIC_CHARACTER_SET ||
           tag == DICOM_TAG_TIMEZONE_OFFSET_FROM_UTC)  // time zone is not directly used for matching.  Once we support "Timezone query adjustment", we may use it to adjust date-time filters but for now, just ignore it 
       {
+        continue;
+      }
+
+      requestedTags.insert(tag);
+
+      if (element.GetValue().IsNull())
+      {
+        // There is no constraint on this tag
         continue;
       }
 
@@ -453,6 +413,7 @@ namespace Orthanc
       if (value.size() == 0)
       {
         // An empty string corresponds to an universal constraint, so we ignore it
+        requestedTags.insert(tag);
         continue;
       }
 
@@ -483,11 +444,12 @@ namespace Orthanc
      * Run the query.
      **/
 
-    size_t limit = (level == ResourceType_Instance) ? maxInstances_ : maxResults_;
+    ResourceFinder finder(level, ResponseContentFlags_ID, context_.GetFindStorageAccessMode(), context_.GetIndex().HasFindSupport());
+    finder.SetDatabaseLookup(lookup);
+    finder.AddRequestedTags(requestedTags);
 
-
-    LookupVisitor visitor(answers, context_, level, *filteredInput, sequencesToReturn, privateCreators, context_.GetFindStorageAccessMode());
-    context_.Apply(visitor, lookup, level, 0 /* "since" is not relevant to C-FIND */, limit);
+    LookupVisitorV2 visitor(answers, *filteredInput, sequencesToReturn, privateCreators);
+    finder.Execute(visitor, context_);
   }
 
 

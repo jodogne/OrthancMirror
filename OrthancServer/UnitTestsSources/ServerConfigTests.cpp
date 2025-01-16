@@ -42,7 +42,7 @@ TEST(ServerConfig, AcceptedSopClasses)
   MemoryStorageArea storage;
   SQLiteDatabaseWrapper db;   // The SQLite DB is in memory
   db.Open();
-  ServerContext context(db, storage, true /* running unit tests */, 10);
+  ServerContext context(db, storage, true /* running unit tests */, 10, false, 1);
 
   { // default config -> all SOP Classes should be accepted
     std::set<std::string> s;

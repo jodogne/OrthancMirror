@@ -33,6 +33,8 @@
 #endif
 
 #include "IDicomTranscoder.h"
+#include "../MultiThreading/Semaphore.h"
+
 
 namespace Orthanc
 {
@@ -40,7 +42,8 @@ namespace Orthanc
   {
   private:
     unsigned int  lossyQuality_;
-    
+    Semaphore maxConcurrentExecutionsSemaphore_;
+
     bool InplaceTranscode(DicomTransferSyntax& selectedSyntax /* out */,
                           std::string& failureReason /* out */,
                           DcmFileFormat& dicom,
@@ -48,7 +51,7 @@ namespace Orthanc
                           bool allowNewSopInstanceUid);
     
   public:
-    DcmtkTranscoder();
+    DcmtkTranscoder(unsigned int maxConcurrentExecutions);
 
     void SetLossyQuality(unsigned int quality);
 

@@ -31,8 +31,10 @@
 #include "../../../OrthancFramework/Sources/Logging.h"
 #include "../../../OrthancFramework/Sources/OrthancException.h"
 #include "../../../OrthancFramework/Sources/MultiThreading/Semaphore.h"
+#include "../../../OrthancFramework/Sources/SerializationToolbox.h"
 #include "../OrthancConfiguration.h"
 #include "../ServerContext.h"
+#include "../SimpleInstanceOrdering.h"
 
 #include <stdio.h>
 #include <boost/range/algorithm/count.hpp>
@@ -98,7 +100,7 @@ namespace Orthanc
     {
     }
 
-    virtual void PrepareDicom(const std::string& instanceId)
+    virtual void PrepareDicom(const std::string& instanceId, const FileInfo& fileInfo)
     {
     }
 
@@ -127,7 +129,7 @@ namespace Orthanc
       return false;
     }
 
-    virtual void GetDicom(std::string& dicom, const std::string& instanceId) = 0;
+    virtual void GetDicom(std::string& dicom, const std::string& instanceId, const FileInfo& fileInfo) = 0;
 
     virtual void Clear()
     {
@@ -142,9 +144,9 @@ namespace Orthanc
     {
     }
 
-    virtual void GetDicom(std::string& dicom, const std::string& instanceId) ORTHANC_OVERRIDE
+    virtual void GetDicom(std::string& dicom, const std::string& instanceId, const FileInfo& fileInfo) ORTHANC_OVERRIDE
     {
-      context_.ReadDicom(dicom, instanceId);
+      context_.ReadAttachment(dicom, fileInfo, true);
 
       if (transcode_)
       {
@@ -158,21 +160,25 @@ namespace Orthanc
     }
   };
 
-  class InstanceId : public Orthanc::IDynamicObject
+  class InstanceToPreload : public Orthanc::IDynamicObject
   {
   private:
     std::string id_;
+    FileInfo    fileInfo_;
 
   public:
-    explicit InstanceId(const std::string& id) : id_(id)
+    explicit InstanceToPreload(const std::string& id, const FileInfo& fileInfo) : 
+      id_(id),
+      fileInfo_(fileInfo)
     {
     }
 
-    virtual ~InstanceId() ORTHANC_OVERRIDE
+    virtual ~InstanceToPreload() ORTHANC_OVERRIDE
     {
     }
 
-    std::string GetId() const {return id_;};
+    const std::string& GetId() const {return id_;};
+    const FileInfo& GetFileInfo() const {return fileInfo_;};
   };
 
   class ArchiveJob::ThreadedInstanceLoader : public ArchiveJob::InstanceLoader
@@ -229,8 +235,8 @@ namespace Orthanc
 
       while (true)
       {
-        std::unique_ptr<InstanceId> instanceId(dynamic_cast<InstanceId*>(that->instancesToPreload_.Dequeue(0)));
-        if (instanceId.get() == NULL)  // that's the signal to exit the thread
+        std::unique_ptr<InstanceToPreload> instanceToPreload(dynamic_cast<InstanceToPreload*>(that->instancesToPreload_.Dequeue(0)));
+        if (instanceToPreload.get() == NULL)  // that's the signal to exit the thread
         {
           return;
         }
@@ -241,12 +247,12 @@ namespace Orthanc
         try
         {
           boost::shared_ptr<std::string> dicomContent(new std::string());
-          that->context_.ReadDicom(*dicomContent, instanceId->GetId());
+          that->context_.ReadAttachment(*dicomContent, instanceToPreload->GetFileInfo(), true);
 
           if (that->transcode_)
           {
             boost::shared_ptr<std::string> transcodedDicom(new std::string());
-            if (that->TranscodeDicom(*transcodedDicom, *dicomContent, instanceId->GetId()))
+            if (that->TranscodeDicom(*transcodedDicom, *dicomContent, instanceToPreload->GetId()))
             {
               dicomContent = transcodedDicom;
             }
@@ -254,7 +260,7 @@ namespace Orthanc
 
           {
             boost::mutex::scoped_lock lock(that->availableInstancesMutex_);
-            that->availableInstances_[instanceId->GetId()] = dicomContent;
+            that->availableInstances_[instanceToPreload->GetId()] = dicomContent;
           }
 
           that->availableInstancesSemaphore_.Release();
@@ -263,18 +269,18 @@ namespace Orthanc
         {
           boost::mutex::scoped_lock lock(that->availableInstancesMutex_);
           // store a NULL result to notify that we could not read the instance
-          that->availableInstances_[instanceId->GetId()] = boost::shared_ptr<std::string>(); 
+          that->availableInstances_[instanceToPreload->GetId()] = boost::shared_ptr<std::string>(); 
           that->availableInstancesSemaphore_.Release();
         }
       }
     }
 
-    virtual void PrepareDicom(const std::string& instanceId) ORTHANC_OVERRIDE
+    virtual void PrepareDicom(const std::string& instanceId, const FileInfo& fileInfo) ORTHANC_OVERRIDE
     {
-      instancesToPreload_.Enqueue(new InstanceId(instanceId));
+      instancesToPreload_.Enqueue(new InstanceToPreload(instanceId, fileInfo));
     }
 
-    virtual void GetDicom(std::string& dicom, const std::string& instanceId) ORTHANC_OVERRIDE
+    virtual void GetDicom(std::string& dicom, const std::string& instanceId, const FileInfo& fileInfo) ORTHANC_OVERRIDE
     {
       while (true)
       {
@@ -284,6 +290,8 @@ namespace Orthanc
 
         boost::shared_ptr<std::string> dicomContent;
         {
+          boost::mutex::scoped_lock lock(availableInstancesMutex_);
+
           if (availableInstances_.find(instanceId) != availableInstances_.end())
           {
             // this is the instance we were waiting for
@@ -506,7 +514,8 @@ namespace Orthanc
     virtual void Close() = 0;
 
     virtual void AddInstance(const std::string& instanceId,
-                             uint64_t uncompressedSize) = 0;
+                             uint32_t index,
+                             const FileInfo& fileInfo) = 0;
   };
 
 
@@ -516,12 +525,15 @@ namespace Orthanc
     struct Instance
     {
       std::string  id_;
-      uint64_t     uncompressedSize_;
+      uint32_t     index_;
+      FileInfo     fileInfo_;
 
       Instance(const std::string& id,
-               uint64_t uncompressedSize) : 
+               uint32_t index,
+               FileInfo fileInfo) : 
         id_(id),
-        uncompressedSize_(uncompressedSize)
+        index_(index),
+        fileInfo_(fileInfo)
       {
       }
     };
@@ -534,22 +546,18 @@ namespace Orthanc
     std::list<Instance>  instances_;   // Only at instance level
 
 
-    void AddResourceToExpand(ServerIndex& index,
-                             const std::string& id)
+    void AddResourceToExpand(const std::string& id)
     {
-      if (level_ == ArchiveResourceType_Instance)
-      {
-        FileInfo tmp;
-        int64_t revision;  // ignored
-        if (index.LookupAttachment(tmp, revision, id, FileContentType_Dicom))
-        {
-          instances_.push_back(Instance(id, tmp.GetUncompressedSize()));
-        }
-      }
-      else
-      {
-        resources_[id] = NULL;
-      }
+      assert(level_ != ArchiveResourceType_Instance);
+      resources_[id] = NULL;
+    }
+
+    void AddInstance(const std::string& id,
+                     uint32_t indexInSeries,
+                     const FileInfo& fileInfo)
+    {
+      assert(level_ == ArchiveResourceType_Instance);
+      instances_.push_back(Instance(id, indexInSeries, fileInfo));
     }
 
 
@@ -577,7 +585,20 @@ namespace Orthanc
 
       if (level_ == ArchiveResourceType_Instance)
       {
-        AddResourceToExpand(index, id);
+        std::string strIndexInSeries;
+        uint32_t indexInSeries = 0;
+        FileInfo fileInfo;
+        int64_t revisionNotUsed;
+        
+        if (index.LookupMetadata(strIndexInSeries, id, ResourceType_Instance, MetadataType_Instance_IndexInSeries))
+        {
+          SerializationToolbox::ParseUnsignedInteger32(indexInSeries, strIndexInSeries);
+        }
+
+        if (index.LookupAttachment(fileInfo, revisionNotUsed, ResourceType_Instance, id, FileContentType_Dicom))
+        {
+          AddInstance(id, indexInSeries, fileInfo);
+        }
       }
       else if (resource.GetLevel() == GetResourceLevel(level_))
       {
@@ -620,16 +641,31 @@ namespace Orthanc
       {
         if (it->second == NULL)
         {
-          // This is resource is marked for expansion
-          std::list<std::string> children;
-          index.GetChildren(children, it->first);
-
+          // This resource is marked for expansion
           std::unique_ptr<ArchiveIndex> child(new ArchiveIndex(GetChildResourceType(level_)));
 
-          for (std::list<std::string>::const_iterator 
-                 it2 = children.begin(); it2 != children.end(); ++it2)
+          if (level_ == ArchiveResourceType_Series)
           {
-            child->AddResourceToExpand(index, *it2);
+            // Instances ordering is important !  
+            // From 1.12.6, when possible, the id in the filename will match the index in series.
+            // Only if there are duplicate index in series, we'll use a simple counter
+            SimpleInstanceOrdering orderedInstances(index, it->first);
+
+            for (size_t i = 0; i < orderedInstances.GetInstancesCount(); ++i)
+            {
+              child->AddInstance(orderedInstances.GetInstanceId(i), orderedInstances.GetInstanceIndexInSeries(i), orderedInstances.GetInstanceFileInfo(i));
+            }
+          }
+          else
+          {
+            std::list<std::string> children;
+            index.GetChildren(children, GetResourceLevel(level_), it->first);
+
+            for (std::list<std::string>::const_iterator 
+                  it2 = children.begin(); it2 != children.end(); ++it2)
+            {
+              child->AddResourceToExpand(*it2);
+            }
           }
 
           it->second = child.release();
@@ -648,7 +684,7 @@ namespace Orthanc
         for (std::list<Instance>::const_iterator 
                it = instances_.begin(); it != instances_.end(); ++it)
         {
-          visitor.AddInstance(it->id_, it->uncompressedSize_);
+          visitor.AddInstance(it->id_,  it->index_, it->fileInfo_);
         }          
       }
       else
@@ -683,6 +719,7 @@ namespace Orthanc
       Type          type_;
       std::string   filename_;
       std::string   instanceId_;
+      FileInfo      fileInfo_;
 
     public:
       explicit Command(Type type) :
@@ -701,10 +738,12 @@ namespace Orthanc
         
       Command(Type type,
               const std::string& filename,
-              const std::string& instanceId) :
+              const std::string& instanceId,
+              const FileInfo& fileInfo) :
         type_(type),
         filename_(filename),
-        instanceId_(instanceId)
+        instanceId_(instanceId),
+        fileInfo_(fileInfo)
       {
         assert(type_ == Type_WriteInstance);
       }
@@ -733,7 +772,7 @@ namespace Orthanc
 
             try
             {
-              instanceLoader.GetDicom(content, instanceId_);
+              instanceLoader.GetDicom(content, instanceId_, fileInfo_);
             }
             catch (OrthancException& e)
             {
@@ -858,12 +897,12 @@ namespace Orthanc
 
     void AddWriteInstance(const std::string& filename,
                           const std::string& instanceId,
-                          uint64_t uncompressedSize)
+                          const FileInfo& fileInfo)
     {
-      instanceLoader_.PrepareDicom(instanceId);
-      commands_.push_back(new Command(Type_WriteInstance, filename, instanceId));
+      instanceLoader_.PrepareDicom(instanceId, fileInfo);
+      commands_.push_back(new Command(Type_WriteInstance, filename, instanceId, fileInfo));
       instancesCount_ ++;
-      uncompressedSize_ += uncompressedSize;
+      uncompressedSize_ += fileInfo.GetUncompressedSize();
     }
 
     bool IsZip64() const
@@ -982,13 +1021,13 @@ namespace Orthanc
     }
 
     virtual void AddInstance(const std::string& instanceId,
-                             uint64_t uncompressedSize) ORTHANC_OVERRIDE
+                             uint32_t index,
+                             const FileInfo& fileInfo) ORTHANC_OVERRIDE
     {
       char filename[24];
-      snprintf(filename, sizeof(filename) - 1, instanceFormat_, counter_);
-      counter_ ++;
+      snprintf(filename, sizeof(filename) - 1, instanceFormat_, index);
 
-      commands_.AddWriteInstance(filename, instanceId, uncompressedSize);
+      commands_.AddWriteInstance(filename, instanceId, fileInfo);
     }
   };
 
@@ -1016,13 +1055,14 @@ namespace Orthanc
     }
 
     virtual void AddInstance(const std::string& instanceId,
-                             uint64_t uncompressedSize) ORTHANC_OVERRIDE
+                             uint32_t indexNotUsed,
+                             const FileInfo& fileInfo) ORTHANC_OVERRIDE
     {
       // "DICOM restricts the filenames on DICOM media to 8
       // characters (some systems wrongly use 8.3, but this does not
       // conform to the standard)."
       std::string filename = "IM" + boost::lexical_cast<std::string>(counter_);
-      commands_.AddWriteInstance(filename, instanceId, uncompressedSize);
+      commands_.AddWriteInstance(filename, instanceId, fileInfo);
 
       counter_ ++;
     }

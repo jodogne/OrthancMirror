@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "BaseDatabaseWrapper.h"
+#include "BaseCompatibilityTransaction.h"
 
 #include "../../../OrthancFramework/Sources/SQLite/Connection.h"
 
@@ -36,7 +36,7 @@ namespace Orthanc
    * translates low-level requests into SQL statements. Mutual
    * exclusion MUST be implemented at a higher level.
    **/
-  class SQLiteDatabaseWrapper : public BaseDatabaseWrapper
+  class SQLiteDatabaseWrapper : public IDatabaseWrapper
   {
   private:
     class TransactionBase;
@@ -57,7 +57,8 @@ namespace Orthanc
     void GetChangesInternal(std::list<ServerIndexChange>& target,
                             bool& done,
                             SQLite::Statement& s,
-                            uint32_t maxResults);
+                            uint32_t maxResults,
+                            bool returnFirstResults);
 
     void GetExportedResourcesInternal(std::list<ExportedResource>& target,
                                       bool& done,
@@ -99,13 +100,19 @@ namespace Orthanc
       throw OrthancException(ErrorCode_NotImplemented);
     }
 
+    virtual bool HasIntegratedFind() const ORTHANC_OVERRIDE
+    {
+      return true;   // => This uses specialized SQL commands
+      //return false;   // => This uses Compatibility/GenericFind
+    }
+
     /**
      * The "StartTransaction()" method is guaranteed to return a class
      * derived from "UnitTestsTransaction". The methods of
      * "UnitTestsTransaction" give access to additional information
      * about the underlying SQLite database to be used in unit tests.
      **/
-    class UnitTestsTransaction : public BaseDatabaseWrapper::BaseTransaction
+    class UnitTestsTransaction : public BaseCompatibilityTransaction
     {
     protected:
       SQLite::Connection& db_;

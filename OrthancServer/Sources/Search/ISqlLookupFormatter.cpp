@@ -21,25 +21,14 @@
  **/
 
 
-#if !defined(ORTHANC_BUILDING_SERVER_LIBRARY)
-#  error Macro ORTHANC_BUILDING_SERVER_LIBRARY must be defined
-#endif
-
-#if ORTHANC_BUILDING_SERVER_LIBRARY == 1
-#  include "../PrecompiledHeadersServer.h"
-#endif
-
+#include "../PrecompiledHeadersServer.h"
 #include "ISqlLookupFormatter.h"
 
-#if ORTHANC_BUILDING_SERVER_LIBRARY == 1
-#  include "../../../OrthancFramework/Sources/OrthancException.h"
-#  include "../../../OrthancFramework/Sources/Toolbox.h"
-#else
-#  include <OrthancException.h>
-#  include <Toolbox.h>
-#endif
-
-#include "DatabaseConstraint.h"
+#include "../../../OrthancFramework/Sources/OrthancException.h"
+#include "../../../OrthancFramework/Sources/Toolbox.h"
+#include "../Database/FindRequest.h"
+#include "DatabaseDicomTagConstraint.h"
+#include "../Database/MainDicomTagsRegistry.h"
 
 #include <cassert>
 #include <boost/lexical_cast.hpp>
@@ -68,11 +57,32 @@ namespace Orthanc
         throw OrthancException(ErrorCode_InternalError);
     }
   }      
-  
+
+  static std::string FormatLevel(const char* prefix, ResourceType level)
+  {
+    switch (level)
+    {
+      case ResourceType_Patient:
+        return std::string(prefix) + "patients";
+        
+      case ResourceType_Study:
+        return std::string(prefix) + "studies";
+        
+      case ResourceType_Series:
+        return std::string(prefix) + "series";
+        
+      case ResourceType_Instance:
+        return std::string(prefix) + "instances";
+
+      default:
+        throw OrthancException(ErrorCode_InternalError);
+    }
+  }      
+
 
   static bool FormatComparison(std::string& target,
                                ISqlLookupFormatter& formatter,
-                               const DatabaseConstraint& constraint,
+                               const IDatabaseConstraint& constraint,
                                size_t index,
                                bool escapeBrackets)
   {
@@ -244,7 +254,7 @@ namespace Orthanc
 
 
   static void FormatJoin(std::string& target,
-                         const DatabaseConstraint& constraint,
+                         const DatabaseDicomTagConstraint& constraint,
                          size_t index)
   {
     std::string tag = "t" + boost::lexical_cast<std::string>(index);
@@ -274,6 +284,99 @@ namespace Orthanc
                boost::lexical_cast<std::string>(constraint.GetTag().GetElement()));
   }
 
+  static void FormatJoin(std::string& target,
+                         const DatabaseMetadataConstraint& constraint,
+                         ResourceType level,
+                         size_t index)
+  {
+    std::string tag = "t" + boost::lexical_cast<std::string>(index);
+
+    if (constraint.IsMandatory())
+    {
+      target = " INNER JOIN ";
+    }
+    else
+    {
+      target = " LEFT JOIN ";
+    }
+
+    target += "Metadata ";
+
+    target += tag + " ON " + tag + ".id = " + FormatLevel(level) +
+               ".internalId AND " + tag + ".type = " +
+               boost::lexical_cast<std::string>(constraint.GetMetadata());
+  }
+
+
+  static void FormatJoinForOrdering(std::string& target,
+                                    const DicomTag& tag,
+                                    size_t index,
+                                    ResourceType requestLevel)
+  {
+    std::string orderArg = "order" + boost::lexical_cast<std::string>(index);
+
+    target.clear();
+
+    ResourceType tagLevel;
+    DicomTagType tagType;
+    MainDicomTagsRegistry registry;
+
+    registry.LookupTag(tagLevel, tagType, tag);
+
+    if (tagLevel == ResourceType_Patient && requestLevel == ResourceType_Study)
+    { // Patient tags are copied at study level
+      tagLevel = ResourceType_Study;
+    }
+
+    std::string tagTable;
+    if (tagType == DicomTagType_Identifier)
+    {
+      tagTable = "DicomIdentifiers ";
+    }
+    else
+    {
+      tagTable = "MainDicomTags ";
+    }
+
+    std::string tagFilter = orderArg + ".tagGroup = " + boost::lexical_cast<std::string>(tag.GetGroup()) + " AND " + orderArg + ".tagElement = " + boost::lexical_cast<std::string>(tag.GetElement());
+
+    if (tagLevel == requestLevel)
+    {
+      target = " LEFT JOIN " + tagTable + " " + orderArg + " ON " + orderArg + ".id = " + FormatLevel(requestLevel) +
+                ".internalId AND " + tagFilter;
+    }
+    else if (static_cast<int32_t>(requestLevel) - static_cast<int32_t>(tagLevel) == 1)
+    {
+      target = " INNER JOIN Resources " + orderArg + "parent ON " + orderArg + "parent.internalId = " + FormatLevel(requestLevel) + ".parentId "
+               " LEFT JOIN " + tagTable + " " + orderArg + " ON " + orderArg + ".id = " + orderArg + "parent.internalId AND " + tagFilter;
+    }
+    else if (static_cast<int32_t>(requestLevel) - static_cast<int32_t>(tagLevel) == 2)
+    {
+      target = " INNER JOIN Resources " + orderArg + "parent ON " + orderArg + "parent.internalId = " + FormatLevel(requestLevel) + ".parentId "
+               " INNER JOIN Resources " + orderArg + "grandparent ON " + orderArg + "grandparent.internalId = " + orderArg + "parent.parentId "
+               " LEFT JOIN " + tagTable + " " + orderArg + " ON " + orderArg + ".id = " + orderArg + "grandparent.internalId AND " + tagFilter;
+    }
+    else if (static_cast<int32_t>(requestLevel) - static_cast<int32_t>(tagLevel) == 3)
+    {
+      target = " INNER JOIN Resources " + orderArg + "parent ON " + orderArg + "parent.internalId = " + FormatLevel(requestLevel) + ".parentId "
+               " INNER JOIN Resources " + orderArg + "grandparent ON " + orderArg + "grandparent.internalId = " + orderArg + "parent.parentId "
+               " INNER JOIN Resources " + orderArg + "grandgrandparent ON " + orderArg + "grandgrandparent.internalId = " + orderArg + "grandparent.parentId "
+               " LEFT JOIN " + tagTable + " " + orderArg + " ON " + orderArg + ".id = " + orderArg + "grandgrandparent.internalId AND " + tagFilter;
+    }
+  }
+
+  static void FormatJoinForOrdering(std::string& target,
+                                    const MetadataType& metadata,
+                                    size_t index,
+                                    ResourceType requestLevel)
+  {
+    std::string arg = "order" + boost::lexical_cast<std::string>(index);
+
+
+    target = " INNER JOIN Metadata " + arg + " ON " + arg + ".id = " + FormatLevel(requestLevel) +
+             ".internalId AND " + arg + ".type = " +
+             boost::lexical_cast<std::string>(metadata);
+  }
 
   static std::string Join(const std::list<std::string>& values,
                           const std::string& prefix,
@@ -308,7 +411,7 @@ namespace Orthanc
 
   static bool FormatComparison2(std::string& target,
                                 ISqlLookupFormatter& formatter,
-                                const DatabaseConstraint& constraint,
+                                const DatabaseDicomTagConstraint& constraint,
                                 bool escapeBrackets)
   {
     std::string comparison;
@@ -478,7 +581,7 @@ namespace Orthanc
   void ISqlLookupFormatter::GetLookupLevels(ResourceType& lowerLevel,
                                             ResourceType& upperLevel,
                                             const ResourceType& queryLevel,
-                                            const DatabaseConstraints& lookup)
+                                            const DatabaseDicomTagConstraints& lookup)
   {
     assert(ResourceType_Patient < ResourceType_Study &&
            ResourceType_Study < ResourceType_Series &&
@@ -506,12 +609,13 @@ namespace Orthanc
 
   void ISqlLookupFormatter::Apply(std::string& sql,
                                   ISqlLookupFormatter& formatter,
-                                  const DatabaseConstraints& lookup,
+                                  const DatabaseDicomTagConstraints& lookup,
                                   ResourceType queryLevel,
                                   const std::set<std::string>& labels,
                                   LabelsConstraint labelsConstraint,
                                   size_t limit)
   {
+    // get the limit levels of the DICOM Tags lookup
     ResourceType lowerLevel, upperLevel;
     GetLookupLevels(lowerLevel, upperLevel, queryLevel, lookup);
 
@@ -526,7 +630,7 @@ namespace Orthanc
     
     for (size_t i = 0; i < lookup.GetSize(); i++)
     {
-      const DatabaseConstraint& constraint = lookup.GetConstraint(i);
+      const DatabaseDicomTagConstraint& constraint = lookup.GetConstraint(i);
 
       std::string comparison;
       
@@ -617,9 +721,256 @@ namespace Orthanc
   }
 
 
+  void ISqlLookupFormatter::Apply(std::string& sql,
+                                  ISqlLookupFormatter& formatter,
+                                  const FindRequest& request)
+  {
+    const bool escapeBrackets = formatter.IsEscapeBrackets();
+    ResourceType queryLevel = request.GetLevel();
+    const std::string& strQueryLevel = FormatLevel(queryLevel);
+
+    ResourceType lowerLevel, upperLevel;
+    GetLookupLevels(lowerLevel, upperLevel, queryLevel, request.GetDicomTagConstraints());
+
+    assert(upperLevel <= queryLevel &&
+           queryLevel <= lowerLevel);
+
+    std::string ordering;
+    std::string orderingJoins;
+
+    if (request.GetOrdering().size() > 0)
+    {
+      int counter = 0;
+      std::vector<std::string> orderByFields;
+      for (std::deque<FindRequest::Ordering*>::const_iterator it = request.GetOrdering().begin(); it != request.GetOrdering().end(); ++it)
+      {
+        std::string orderingJoin;
+
+        switch ((*it)->GetKeyType())
+        {
+          case FindRequest::KeyType_DicomTag:
+            FormatJoinForOrdering(orderingJoin, (*it)->GetDicomTag(), counter, request.GetLevel());
+            break;
+          case FindRequest::KeyType_Metadata:
+            FormatJoinForOrdering(orderingJoin, (*it)->GetMetadataType(), counter, request.GetLevel());
+            break;
+          default:
+            throw OrthancException(ErrorCode_InternalError);
+        }
+        orderingJoins += orderingJoin;
+        
+        std::string orderByField;
+
+#if ORTHANC_SQLITE_VERSION < 3030001
+        // this is a way to push NULL values at the end before "NULLS LAST" was introduced:
+        // first filter by 0/1 and then by the column value itself
+        orderByField += "order" + boost::lexical_cast<std::string>(counter) + ".value IS NULL, ";
+#endif
+        switch ((*it)->GetCast())
+        {
+          case FindRequest::OrderingCast_Int:
+            orderByField += "CAST(order" + boost::lexical_cast<std::string>(counter) + ".value AS INTEGER)";
+            break;
+          case FindRequest::OrderingCast_Float:
+            orderByField += "CAST(order" + boost::lexical_cast<std::string>(counter) + ".value AS REAL)";
+            break;
+          default:
+            orderByField += "order" + boost::lexical_cast<std::string>(counter) + ".value";
+        }
+
+        if ((*it)->GetDirection() == FindRequest::OrderingDirection_Ascending)
+        {
+          orderByField += " ASC";
+        }
+        else
+        {
+          orderByField += " DESC";
+        }
+        orderByFields.push_back(orderByField);
+        ++counter;
+      }
+
+      std::string orderByFieldsString;
+      Toolbox::JoinStrings(orderByFieldsString, orderByFields, ", ");
+
+      ordering = "ROW_NUMBER() OVER (ORDER BY " + orderByFieldsString;
+#if ORTHANC_SQLITE_VERSION >= 3030001
+      ordering += " NULLS LAST";
+#endif
+      ordering += ") AS rowNumber";
+    }
+    else
+    {
+      ordering = "ROW_NUMBER() OVER (ORDER BY " + strQueryLevel + ".publicId) AS rowNumber";  // we need a default ordering in order to make default queries repeatable when using since&limit
+    }
+
+    sql = ("SELECT " +
+           strQueryLevel + ".publicId, " +
+           strQueryLevel + ".internalId, " +
+           ordering + 
+           " FROM Resources AS " + strQueryLevel);
+
+
+    std::string joins, comparisons;
+
+    // handle parent constraints
+    if (request.GetOrthancIdentifiers().IsDefined() && request.GetOrthancIdentifiers().DetectLevel() <= queryLevel)
+    {
+      ResourceType topParentLevel = request.GetOrthancIdentifiers().DetectLevel();
+
+      if (topParentLevel == queryLevel)
+      {
+        comparisons += " AND " + FormatLevel(topParentLevel) + ".publicId = " + formatter.GenerateParameter(request.GetOrthancIdentifiers().GetLevel(topParentLevel));
+      }
+      else
+      {
+        comparisons += " AND " + FormatLevel("parent", topParentLevel) + ".publicId = " + formatter.GenerateParameter(request.GetOrthancIdentifiers().GetLevel(topParentLevel));
+
+        for (int level = queryLevel; level > topParentLevel; level--)
+        {
+          joins += " INNER JOIN Resources " +
+                  FormatLevel("parent", static_cast<ResourceType>(level - 1)) + " ON " +
+                  FormatLevel("parent", static_cast<ResourceType>(level - 1)) + ".internalId = ";
+          if (level == queryLevel)
+          {
+            joins += FormatLevel(static_cast<ResourceType>(level)) + ".parentId";
+          }
+          else
+          {
+            joins += FormatLevel("parent", static_cast<ResourceType>(level)) + ".parentId";
+          }
+        }
+      }
+    }
+
+    size_t count = 0;
+    
+    const DatabaseDicomTagConstraints& dicomTagsConstraints = request.GetDicomTagConstraints();
+    for (size_t i = 0; i < dicomTagsConstraints.GetSize(); i++)
+    {
+      const DatabaseDicomTagConstraint& constraint = dicomTagsConstraints.GetConstraint(i);
+
+      std::string comparison;
+      
+      if (FormatComparison(comparison, formatter, constraint, count, escapeBrackets))
+      {
+        std::string join;
+        FormatJoin(join, constraint, count);
+
+        if (constraint.GetLevel() <= queryLevel)
+        {
+          joins += join;
+        }
+        else if (constraint.GetLevel() == queryLevel + 1 && !comparison.empty())
+        {
+          // new in v 1.12.6, the constraints on child tags are actually looking for one child with this value
+          comparison = " EXISTS (SELECT 1 FROM Resources AS " + FormatLevel(static_cast<ResourceType>(queryLevel + 1)) + 
+                       join + 
+                       " WHERE " + comparison + " AND " + 
+                       FormatLevel(static_cast<ResourceType>(queryLevel + 1)) + ".parentId = " + FormatLevel(static_cast<ResourceType>(queryLevel)) + ".internalId) ";
+        }
+
+        if (!comparison.empty())
+        {
+          comparisons += " AND " + comparison;
+        }
+
+        count ++;
+      }
+    }
+
+    for (std::deque<DatabaseMetadataConstraint*>::const_iterator it = request.GetMetadataConstraint().begin(); it != request.GetMetadataConstraint().end(); ++it)
+    {
+      std::string comparison;
+      
+      if (FormatComparison(comparison, formatter, *(*it), count, escapeBrackets))
+      {
+        std::string join;
+        FormatJoin(join, *(*it), request.GetLevel(), count);
+        joins += join;
+
+        if (!comparison.empty())
+        {
+          comparisons += " AND " + comparison;
+        }
+        
+        count ++;
+      }
+    }
+
+    for (int level = queryLevel - 1; level >= upperLevel; level--)
+    {
+      sql += (" INNER JOIN Resources " +
+              FormatLevel(static_cast<ResourceType>(level)) + " ON " +
+              FormatLevel(static_cast<ResourceType>(level)) + ".internalId=" +
+              FormatLevel(static_cast<ResourceType>(level + 1)) + ".parentId");
+    }
+      
+    // disabled in v 1.12.6 now that the child levels are considered as "is there at least one child that meets this constraint"
+    // for (int level = queryLevel + 1; level <= lowerLevel; level++)
+    // {
+    //   sql += (" INNER JOIN Resources " +
+    //           FormatLevel(static_cast<ResourceType>(level)) + " ON " +
+    //           FormatLevel(static_cast<ResourceType>(level - 1)) + ".internalId=" +
+    //           FormatLevel(static_cast<ResourceType>(level)) + ".parentId");
+    // }
+
+    std::list<std::string> where;
+    where.push_back(strQueryLevel + ".resourceType = " +
+                    formatter.FormatResourceType(queryLevel) + comparisons);
+
+
+    if (!request.GetLabels().empty())
+    {
+      /**
+       * "In SQL Server, NOT EXISTS and NOT IN predicates are the best
+       * way to search for missing values, as long as both columns in
+       * question are NOT NULL."
+       * https://explainextended.com/2009/09/15/not-in-vs-not-exists-vs-left-join-is-null-sql-server/
+       **/
+
+      const std::set<std::string>& labels = request.GetLabels();
+      std::list<std::string> formattedLabels;
+      for (std::set<std::string>::const_iterator it = labels.begin(); it != labels.end(); ++it)
+      {
+        formattedLabels.push_back(formatter.GenerateParameter(*it));
+      }
+
+      std::string condition;
+      switch (request.GetLabelsConstraint())
+      {
+        case LabelsConstraint_Any:
+          condition = "> 0";
+          break;
+          
+        case LabelsConstraint_All:
+          condition = "= " + boost::lexical_cast<std::string>(labels.size());
+          break;
+          
+        case LabelsConstraint_None:
+          condition = "= 0";
+          break;
+          
+        default:
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+      
+      where.push_back("(SELECT COUNT(1) FROM Labels AS selectedLabels WHERE selectedLabels.id = " + strQueryLevel +
+                      ".internalId AND selectedLabels.label IN (" + Join(formattedLabels, "", ", ") + ")) " + condition);
+    }
+
+    sql += joins + orderingJoins + Join(where, " WHERE ", " AND ");
+
+    if (request.HasLimits())
+    {
+      sql += formatter.FormatLimits(request.GetLimitsSince(), request.GetLimitsCount());
+    }
+  }
+
+
   void ISqlLookupFormatter::ApplySingleLevel(std::string& sql,
                                              ISqlLookupFormatter& formatter,
-                                             const DatabaseConstraints& lookup,
+                                             const DatabaseDicomTagConstraints& lookup,
                                              ResourceType queryLevel,
                                              const std::set<std::string>& labels,
                                              LabelsConstraint labelsConstraint,
@@ -638,7 +989,7 @@ namespace Orthanc
 
     for (size_t i = 0; i < lookup.GetSize(); i++)
     {
-      const DatabaseConstraint& constraint = lookup.GetConstraint(i);
+      const DatabaseDicomTagConstraint& constraint = lookup.GetConstraint(i);
 
       std::string comparison;
       
@@ -730,5 +1081,4 @@ namespace Orthanc
       sql += " LIMIT " + boost::lexical_cast<std::string>(limit);
     }
   }
-
 }
