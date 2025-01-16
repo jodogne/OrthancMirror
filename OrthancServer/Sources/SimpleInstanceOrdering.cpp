@@ -43,14 +43,14 @@ namespace Orthanc
   private:
     std::string   instanceId_;
     uint32_t      indexInSeries_;
-		FileInfo      fileInfo_;
+    FileInfo      fileInfo_;
 
 
   public:
     Instance(const std::string& instanceId, uint32_t indexInSeries, FileInfo fileInfo) :
       instanceId_(instanceId),
       indexInSeries_(indexInSeries),
-			fileInfo_(fileInfo)
+      fileInfo_(fileInfo)
     {
     }
 
@@ -79,44 +79,44 @@ namespace Orthanc
 
   SimpleInstanceOrdering::SimpleInstanceOrdering(ServerIndex& index,
                                                  const std::string& seriesId) :
-		hasDuplicateIndexInSeries_(false)
+    hasDuplicateIndexInSeries_(false)
   {
-		FindRequest request(ResourceType_Instance);
-		request.SetOrthancSeriesId(seriesId);
-		request.SetRetrieveMetadata(true);
-		request.SetRetrieveAttachments(true);
+    FindRequest request(ResourceType_Instance);
+    request.SetOrthancSeriesId(seriesId);
+    request.SetRetrieveMetadata(true);
+    request.SetRetrieveAttachments(true);
 
-		FindResponse response;
-		index.ExecuteFind(response, request);
+    FindResponse response;
+    index.ExecuteFind(response, request);
 
     std::set<uint32_t> allIndexInSeries;
 
-		for (size_t i = 0; i < response.GetSize(); ++i)
-		{
-			const FindResponse::Resource& resource = response.GetResourceByIndex(i);
-			std::string instanceId = resource.GetIdentifier();
+    for (size_t i = 0; i < response.GetSize(); ++i)
+    {
+      const FindResponse::Resource& resource = response.GetResourceByIndex(i);
+      std::string instanceId = resource.GetIdentifier();
 
-			std::string strIndexInSeries;
-			uint32_t indexInSeries = 0;
-			FileInfo fileInfo;
-			int64_t revisionNotUsed;
+      std::string strIndexInSeries;
+      uint32_t indexInSeries = 0;
+      FileInfo fileInfo;
+      int64_t revisionNotUsed;
 			
-			if (resource.LookupMetadata(strIndexInSeries, ResourceType_Instance, MetadataType_Instance_IndexInSeries))
-			{
-				SerializationToolbox::ParseUnsignedInteger32(indexInSeries, strIndexInSeries);
-			}
+      if (resource.LookupMetadata(strIndexInSeries, ResourceType_Instance, MetadataType_Instance_IndexInSeries))
+      {
+        SerializationToolbox::ParseUnsignedInteger32(indexInSeries, strIndexInSeries);
+      }
 
-			if (resource.LookupAttachment(fileInfo, revisionNotUsed, FileContentType_Dicom))
-			{
-				allIndexInSeries.insert(indexInSeries);
-				instances_.push_back(new SimpleInstanceOrdering::Instance(instanceId, indexInSeries, fileInfo));
-			}
-		}
+      if (resource.LookupAttachment(fileInfo, revisionNotUsed, FileContentType_Dicom))
+      {
+        allIndexInSeries.insert(indexInSeries);
+        instances_.push_back(new SimpleInstanceOrdering::Instance(instanceId, indexInSeries, fileInfo));
+      }
+    }
 
-		// if there are duplicates, the set will be smaller than the vector
-		hasDuplicateIndexInSeries_ = allIndexInSeries.size() != instances_.size(); 
+    // if there are duplicates, the set will be smaller than the vector
+    hasDuplicateIndexInSeries_ = allIndexInSeries.size() != instances_.size(); 
 
-		std::sort(instances_.begin(), instances_.end(), IndexInSeriesComparator);
+    std::sort(instances_.begin(), instances_.end(), IndexInSeriesComparator);
   }
 
   SimpleInstanceOrdering::~SimpleInstanceOrdering()
@@ -132,28 +132,26 @@ namespace Orthanc
   }
 
   const std::string& SimpleInstanceOrdering::GetInstanceId(size_t index) const
-	{
-		return instances_[index]->GetIdentifier();
-	}
+  {
+    return instances_[index]->GetIdentifier();
+  }
 
   uint32_t SimpleInstanceOrdering::GetInstanceIndexInSeries(size_t index) const
-	{
-		if (hasDuplicateIndexInSeries_)
-		{
-			// if there are duplicates, we count the instances from 0
-			return index; 
-		}
-		else
-		{
-			// if there are no duplicates, we return the real index in series (that may not start at 0 but that is more human friendly)
-			return instances_[index]->GetIndexInSeries();
-		}
-	}
+  {
+    if (hasDuplicateIndexInSeries_)
+    {
+      // if there are duplicates, we count the instances from 0
+      return index; 
+    }
+    else
+    {
+      // if there are no duplicates, we return the real index in series (that may not start at 0 but that is more human friendly)
+      return instances_[index]->GetIndexInSeries();
+    }
+  }
 
   const FileInfo& SimpleInstanceOrdering::GetInstanceFileInfo(size_t index) const
-	{
-		return instances_[index]->GetFileInfo();
-	}
-
-
+  {
+    return instances_[index]->GetFileInfo();
+  }
 }
