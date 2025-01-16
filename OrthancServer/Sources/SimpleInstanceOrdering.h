@@ -24,11 +24,11 @@
 #pragma once
 
 #include "../../OrthancFramework/Sources/DicomFormat/DicomMap.h"
+#include "../../OrthancFramework/Sources/FileStorage/FileInfo.h"
 
 namespace Orthanc
 {
   class ServerIndex;
-  class FileInfo;
 
   class SimpleInstanceOrdering
   {
@@ -36,7 +36,7 @@ namespace Orthanc
     struct Instance;
 
     std::vector<Instance*>   instances_;
-		bool                     hasDuplicateIndexInSeries_;
+    bool                     hasDuplicateIndexInSeries_;
 
   public:
     SimpleInstanceOrdering(ServerIndex& index,
