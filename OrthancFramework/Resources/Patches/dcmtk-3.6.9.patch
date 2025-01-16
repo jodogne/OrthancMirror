@@ -151,19 +151,6 @@ diff -urEb dcmtk-3.6.9.orig/ofstd/include/dcmtk/ofstd/offile.h dcmtk-3.6.9/ofstd
      this->setvbuf(NULL, _IOLBF, 0);
  #else
      :: setlinebuf(file_);
-diff -urEb dcmtk-3.6.9.orig/ofstd/include/dcmtk/ofstd/oftypes.h dcmtk-3.6.9/ofstd/include/dcmtk/ofstd/oftypes.h
---- dcmtk-3.6.9.orig/ofstd/include/dcmtk/ofstd/oftypes.h	2025-01-16 18:04:46.148846202 +0100
-+++ dcmtk-3.6.9/ofstd/include/dcmtk/ofstd/oftypes.h	2025-01-16 18:33:37.935316634 +0100
-@@ -82,7 +82,9 @@
- #ifdef HAVE_STDINT_H
- #include <stdint.h>
- #endif
-+#ifdef HAVE_INTTYPES_H
- #include <inttypes.h>
-+#endif
- END_EXTERN_C
- 
- #include "dcmtk/ofstd/ofstream.h"
 diff -urEb dcmtk-3.6.9.orig/ofstd/libsrc/ofstub.cc dcmtk-3.6.9/ofstd/libsrc/ofstub.cc
 --- dcmtk-3.6.9.orig/ofstd/libsrc/ofstub.cc	2025-01-16 18:04:46.148846202 +0100
 +++ dcmtk-3.6.9/ofstd/libsrc/ofstub.cc	2025-01-16 18:06:15.963074668 +0100
