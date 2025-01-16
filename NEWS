@@ -9,6 +9,11 @@ General
     the number of concurrent DCMTK transcoders that are simultaneously running
     at any given time.
 
+Plugins
+-------
+
+* SDK: added OrthancPluginStartStreamAnswer() and OrthancPluginSendStreamChunk() to allow
+  sending HTTP response by chunks.
 
 Maintenance
 -----------
@@ -27,13 +32,8 @@ Maintenance
   in the series.
 * optimized /archive to use the "ExtendedFind" extension and reduce the number of
   SQL queries.
-
-
-Plugins
--------
-
-* SDK: added OrthancPluginStartStreamAnswer and OrthancPluginSendStreamChunk to allow
-  sending HTTP response by chunks.
+* Upgraded dependencies for static builds:
+  - dcmtk 3.6.9
 
 
 Version 1.12.5 (2024-12-17)
