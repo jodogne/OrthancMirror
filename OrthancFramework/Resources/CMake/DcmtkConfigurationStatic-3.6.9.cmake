@@ -285,6 +285,14 @@ if (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
       -DDCMTK_LOG4CPLUS_SINGLE_THREADED
       )
   endif()
+
+  if (CMAKE_COMPILER_IS_GNUCXX)  # MinGW
+    # Necessary since DCMTK 3.6.9
+    add_definitions(
+      -DENABLE_OLD_OFSTD_FTOA_IMPLEMENTATION
+      -DENABLE_OLD_OFSTD_ATOF_IMPLEMENTATION
+      )
+  endif()
 endif()
 
 
