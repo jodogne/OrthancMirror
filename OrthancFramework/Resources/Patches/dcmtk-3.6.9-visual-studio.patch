@@ -1,3 +1,58 @@
+diff -urEb dcmtk-3.6.9.orig/config/math.cc dcmtk-3.6.9/config/math.cc
+--- dcmtk-3.6.9.orig/config/math.cc	2025-01-16 18:04:46.121846434 +0100
++++ dcmtk-3.6.9/config/math.cc	2025-01-17 07:45:46.252026376 +0100
+@@ -42,11 +42,17 @@
+ #include <windows.h>
+ #endif
+ 
++#if defined(_MSC_VER)
++#include <float.h>
++#endif
++
+ struct dcmtk_config_math
+ {
+   static inline OFBool isnan( float f )
+   {
+-#ifdef HAVE_PROTOTYPE_STD__ISNAN
++#if defined(_MSC_VER)
++    return _isnan(static_cast<double>(f)) != 0;
++#elif defined(HAVE_PROTOTYPE_STD__ISNAN)
+     return STD_NAMESPACE isnan(f);
+ #else
+     return ::isnan(f);
+@@ -55,7 +61,9 @@
+ 
+   static inline OFBool isnan( double d )
+   {
+-#ifdef HAVE_PROTOTYPE_STD__ISNAN
++#if defined(_MSC_VER)
++    return _isnan(d) != 0;
++#elif defined(HAVE_PROTOTYPE_STD__ISNAN)
+     return STD_NAMESPACE isnan(d);
+ #else
+     return ::isnan(d);
+@@ -64,7 +72,9 @@
+ 
+   static inline OFBool isinf( float f )
+   {
+-#ifdef HAVE_PROTOTYPE_STD__ISINF
++#if defined(_MSC_VER)
++    return _finite(static_cast<double>(f)) != 0;
++#elif defined(HAVE_PROTOTYPE_STD__ISINF)
+     return STD_NAMESPACE isinf( f );
+ #else
+     return ::isinf( f );
+@@ -73,7 +83,9 @@
+ 
+   static inline OFBool isinf( double d )
+   {
+-#ifdef HAVE_PROTOTYPE_STD__ISINF
++#if defined(_MSC_VER)
++    return _finite(d) != 0;
++#elif defined(HAVE_PROTOTYPE_STD__ISINF)
+     return STD_NAMESPACE isinf( d );
+ #else
+     return ::isinf( d );
 diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg12/jccoefct.c dcmtk-3.6.9/dcmjpeg/libijg12/jccoefct.c
 --- dcmtk-3.6.9.orig/dcmjpeg/libijg12/jccoefct.c	2025-01-16 18:04:46.158846116 +0100
 +++ dcmtk-3.6.9/dcmjpeg/libijg12/jccoefct.c	2025-01-16 20:11:42.016717178 +0100
@@ -993,10 +1048,311 @@ diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg8/jquant2.c dcmtk-3.6.9/dcmjpeg/libijg
    /* no work */
  }
  
+diff -urEb dcmtk-3.6.9.orig/oficonv/libsrc/citrus_bcs.h dcmtk-3.6.9/oficonv/libsrc/citrus_bcs.h
+--- dcmtk-3.6.9.orig/oficonv/libsrc/citrus_bcs.h	2025-01-16 18:04:46.146846219 +0100
++++ dcmtk-3.6.9/oficonv/libsrc/citrus_bcs.h	2025-01-17 07:57:51.710083362 +0100
+@@ -39,7 +39,14 @@
+ #include <errno.h>
+ #include <stdint.h>
+ #include <limits.h>
++
++#if (_MSC_VER >= 1900)
+ #include <stdbool.h>
++#else
++#define bool int
++#define false 0
++#define true 1
++#endif
+ 
+ #define CITRUS_DECONST(type, var)    ((type)(uintptr_t)(const void *)(var))
+ 
+diff -urEb dcmtk-3.6.9.orig/oficonv/libsrc/citrus_esdb.c dcmtk-3.6.9/oficonv/libsrc/citrus_esdb.c
+--- dcmtk-3.6.9.orig/oficonv/libsrc/citrus_esdb.c	2025-01-16 18:04:46.137846297 +0100
++++ dcmtk-3.6.9/oficonv/libsrc/citrus_esdb.c	2025-01-17 07:57:57.711032732 +0100
+@@ -34,7 +34,15 @@
+ 
+ #include <errno.h>
+ #include <limits.h>
++
++#if (_MSC_VER >= 1900)
+ #include <stdbool.h>
++#else
++#define bool int
++#define false 0
++#define true 1
++#endif
++
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include <string.h>
+diff -urEb dcmtk-3.6.9.orig/oficonv/libsrc/citrus_esdb.h dcmtk-3.6.9/oficonv/libsrc/citrus_esdb.h
+--- dcmtk-3.6.9.orig/oficonv/libsrc/citrus_esdb.h	2025-01-16 18:04:46.137846297 +0100
++++ dcmtk-3.6.9/oficonv/libsrc/citrus_esdb.h	2025-01-17 07:58:02.525992089 +0100
+@@ -29,7 +29,14 @@
+ 
+ #include "dcmtk/config/osconfig.h"
+ #include "citrus_types.h"
++
++#if (_MSC_VER >= 1900)
+ #include <stdbool.h>
++#else
++#define bool int
++#define false 0
++#define true 1
++#endif
+ 
+ struct _citrus_esdb_charset {
+     _citrus_csid_t           ec_csid;
+diff -urEb dcmtk-3.6.9.orig/oficonv/libsrc/citrus_gbk2k.c dcmtk-3.6.9/oficonv/libsrc/citrus_gbk2k.c
+--- dcmtk-3.6.9.orig/oficonv/libsrc/citrus_gbk2k.c	2025-01-16 18:04:46.146846219 +0100
++++ dcmtk-3.6.9/oficonv/libsrc/citrus_gbk2k.c	2025-01-17 07:58:08.702939916 +0100
+@@ -34,7 +34,15 @@
+ 
+ #include <errno.h>
+ #include <limits.h>
++
++#if (_MSC_VER >= 1900)
+ #include <stdbool.h>
++#else
++#define bool int
++#define false 0
++#define true 1
++#endif
++
+ #include <stddef.h>
+ #include <stdio.h>
+ #include <stdlib.h>
+diff -urEb dcmtk-3.6.9.orig/oficonv/libsrc/citrus_iconv.c dcmtk-3.6.9/oficonv/libsrc/citrus_iconv.c
+--- dcmtk-3.6.9.orig/oficonv/libsrc/citrus_iconv.c	2025-01-16 18:04:46.146846219 +0100
++++ dcmtk-3.6.9/oficonv/libsrc/citrus_iconv.c	2025-01-17 07:58:14.511890822 +0100
+@@ -49,7 +49,15 @@
+ #endif
+ 
+ #include <limits.h>
++
++#if (_MSC_VER >= 1900)
+ #include <stdbool.h>
++#else
++#define bool int
++#define false 0
++#define true 1
++#endif
++
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include <string.h>
+diff -urEb dcmtk-3.6.9.orig/oficonv/libsrc/citrus_iconv_local.h dcmtk-3.6.9/oficonv/libsrc/citrus_iconv_local.h
+--- dcmtk-3.6.9.orig/oficonv/libsrc/citrus_iconv_local.h	2025-01-16 18:04:46.146846219 +0100
++++ dcmtk-3.6.9/oficonv/libsrc/citrus_iconv_local.h	2025-01-17 07:58:20.317841727 +0100
+@@ -29,7 +29,15 @@
+ 
+ #include "dcmtk/config/osconfig.h"
+ #include "dcmtk/oficonv/iconv.h"
++
++#if (_MSC_VER >= 1900)
+ #include <stdbool.h>
++#else
++#define bool int
++#define false 0
++#define true 1
++#endif
++
+ #include <stdint.h>
+ 
+ #ifdef HAVE_SYS_QUEUE_H
+diff -urEb dcmtk-3.6.9.orig/oficonv/libsrc/citrus_iconv_none.c dcmtk-3.6.9/oficonv/libsrc/citrus_iconv_none.c
+--- dcmtk-3.6.9.orig/oficonv/libsrc/citrus_iconv_none.c	2025-01-16 18:04:46.141846262 +0100
++++ dcmtk-3.6.9/oficonv/libsrc/citrus_iconv_none.c	2025-01-17 07:58:25.509797800 +0100
+@@ -35,7 +35,15 @@
+ 
+ 
+ #include <errno.h>
++
++#if (_MSC_VER >= 1900)
+ #include <stdbool.h>
++#else
++#define bool int
++#define false 0
++#define true 1
++#endif
++
+ #include <stdlib.h>
+ #include <string.h>
+ 
+diff -urEb dcmtk-3.6.9.orig/oficonv/libsrc/citrus_iconv_std.c dcmtk-3.6.9/oficonv/libsrc/citrus_iconv_std.c
+--- dcmtk-3.6.9.orig/oficonv/libsrc/citrus_iconv_std.c	2025-01-16 18:04:46.141846262 +0100
++++ dcmtk-3.6.9/oficonv/libsrc/citrus_iconv_std.c	2025-01-17 07:58:30.205758052 +0100
+@@ -36,7 +36,15 @@
+ 
+ #include <errno.h>
+ #include <limits.h>
++
++#if (_MSC_VER >= 1900)
+ #include <stdbool.h>
++#else
++#define bool int
++#define false 0
++#define true 1
++#endif
++
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include <string.h>
+diff -urEb dcmtk-3.6.9.orig/oficonv/libsrc/citrus_iso2022.c dcmtk-3.6.9/oficonv/libsrc/citrus_iso2022.c
+--- dcmtk-3.6.9.orig/oficonv/libsrc/citrus_iso2022.c	2025-01-16 18:04:46.142846254 +0100
++++ dcmtk-3.6.9/oficonv/libsrc/citrus_iso2022.c	2025-01-17 07:58:35.485713336 +0100
+@@ -35,7 +35,15 @@
+ 
+ #include <errno.h>
+ #include <limits.h>
++
++#if (_MSC_VER >= 1900)
+ #include <stdbool.h>
++#else
++#define bool int
++#define false 0
++#define true 1
++#endif
++
+ #include <stddef.h>
+ #include <stdio.h>
+ #include <stdlib.h>
+diff -urEb dcmtk-3.6.9.orig/oficonv/libsrc/citrus_johab.c dcmtk-3.6.9/oficonv/libsrc/citrus_johab.c
+--- dcmtk-3.6.9.orig/oficonv/libsrc/citrus_johab.c	2025-01-16 18:04:46.144846236 +0100
++++ dcmtk-3.6.9/oficonv/libsrc/citrus_johab.c	2025-01-17 07:58:40.390671776 +0100
+@@ -34,7 +34,15 @@
+ 
+ #include <errno.h>
+ #include <limits.h>
++
++#if (_MSC_VER >= 1900)
+ #include <stdbool.h>
++#else
++#define bool int
++#define false 0
++#define true 1
++#endif
++
+ #include <stddef.h>
+ #include <stdint.h>
+ #include <stdio.h>
+diff -urEb dcmtk-3.6.9.orig/oficonv/libsrc/citrus_module.c dcmtk-3.6.9/oficonv/libsrc/citrus_module.c
+--- dcmtk-3.6.9.orig/oficonv/libsrc/citrus_module.c	2025-01-16 18:04:46.146846219 +0100
++++ dcmtk-3.6.9/oficonv/libsrc/citrus_module.c	2025-01-17 07:58:45.172631238 +0100
+@@ -98,7 +98,15 @@
+ #endif
+ #include <errno.h>
+ #include <limits.h>
++
++#if (_MSC_VER >= 1900)
+ #include <stdbool.h>
++#else
++#define bool int
++#define false 0
++#define true 1
++#endif
++
+ #include <stddef.h>
+ #include <stdio.h>
+ #include <stdlib.h>
+diff -urEb dcmtk-3.6.9.orig/oficonv/libsrc/citrus_mskanji.c dcmtk-3.6.9/oficonv/libsrc/citrus_mskanji.c
+--- dcmtk-3.6.9.orig/oficonv/libsrc/citrus_mskanji.c	2025-01-16 18:04:46.146846219 +0100
++++ dcmtk-3.6.9/oficonv/libsrc/citrus_mskanji.c	2025-01-17 07:58:51.749575452 +0100
+@@ -67,7 +67,15 @@
+ 
+ #include <errno.h>
+ #include <limits.h>
++
++#if (_MSC_VER >= 1900)
+ #include <stdbool.h>
++#else
++#define bool int
++#define false 0
++#define true 1
++#endif
++
+ #include <stddef.h>
+ #include <stdio.h>
+ #include <stdlib.h>
+diff -urEb dcmtk-3.6.9.orig/oficonv/libsrc/citrus_prop.c dcmtk-3.6.9/oficonv/libsrc/citrus_prop.c
+--- dcmtk-3.6.9.orig/oficonv/libsrc/citrus_prop.c	2025-01-16 18:04:46.140846271 +0100
++++ dcmtk-3.6.9/oficonv/libsrc/citrus_prop.c	2025-01-17 07:58:55.534543331 +0100
+@@ -30,7 +30,15 @@
+ 
+ #include <errno.h>
+ #include <limits.h>
++
++#if (_MSC_VER >= 1900)
+ #include <stdbool.h>
++#else
++#define bool int
++#define false 0
++#define true 1
++#endif
++
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include <string.h>
+diff -urEb dcmtk-3.6.9.orig/oficonv/libsrc/citrus_region.h dcmtk-3.6.9/oficonv/libsrc/citrus_region.h
+--- dcmtk-3.6.9.orig/oficonv/libsrc/citrus_region.h	2025-01-16 18:04:46.142846254 +0100
++++ dcmtk-3.6.9/oficonv/libsrc/citrus_region.h	2025-01-17 07:59:02.917480641 +0100
+@@ -31,7 +31,14 @@
+ #include "dcmtk/config/osconfig.h"
+ #include <stdint.h>
+ #include <string.h>
++
++#if (_MSC_VER >= 1900)
+ #include <stdbool.h>
++#else
++#define bool int
++#define false 0
++#define true 1
++#endif
+ 
+ #ifdef HAVE_SYS_TYPES_H
+ #include <sys/types.h>
+diff -urEb dcmtk-3.6.9.orig/oficonv/libsrc/citrus_utf8.c dcmtk-3.6.9/oficonv/libsrc/citrus_utf8.c
+--- dcmtk-3.6.9.orig/oficonv/libsrc/citrus_utf8.c	2025-01-16 18:04:46.146846219 +0100
++++ dcmtk-3.6.9/oficonv/libsrc/citrus_utf8.c	2025-01-17 07:57:46.519127132 +0100
+@@ -66,7 +66,15 @@
+ 
+ #include <errno.h>
+ #include <limits.h>
++
++#if (_MSC_VER >= 1900)
+ #include <stdbool.h>
++#else
++#define bool int
++#define false 0
++#define true 1
++#endif
++
+ #include <stddef.h>
+ #include <stdio.h>
+ #include <stdlib.h>
+diff -urEb dcmtk-3.6.9.orig/oficonv/libsrc/oficonv_iconv.c dcmtk-3.6.9/oficonv/libsrc/oficonv_iconv.c
+--- dcmtk-3.6.9.orig/oficonv/libsrc/oficonv_iconv.c	2025-01-16 18:04:46.137846297 +0100
++++ dcmtk-3.6.9/oficonv/libsrc/oficonv_iconv.c	2025-01-17 07:57:35.926216376 +0100
+@@ -40,7 +40,15 @@
+ 
+ #include <errno.h>
+ #include <limits.h>
++
++#if (_MSC_VER >= 1900)
+ #include <stdbool.h>
++#else
++#define bool int
++#define false 0
++#define true 1
++#endif
++
+ #include <stdlib.h>
+ #include <string.h>
+ #include <stdio.h>
 diff -urEb dcmtk-3.6.9.orig/ofstd/include/dcmtk/ofstd/oftypes.h dcmtk-3.6.9/ofstd/include/dcmtk/ofstd/oftypes.h
 --- dcmtk-3.6.9.orig/ofstd/include/dcmtk/ofstd/oftypes.h	2025-01-16 18:04:46.148846202 +0100
-+++ dcmtk-3.6.9/ofstd/include/dcmtk/ofstd/oftypes.h	2025-01-16 20:21:43.071128829 +0100
-@@ -79,10 +79,12 @@
++++ dcmtk-3.6.9/ofstd/include/dcmtk/ofstd/oftypes.h	2025-01-17 07:49:26.122182761 +0100
+@@ -79,10 +79,9 @@
  
  #include <cstddef>
  BEGIN_EXTERN_C
@@ -1004,9 +1360,7 @@ diff -urEb dcmtk-3.6.9.orig/ofstd/include/dcmtk/ofstd/oftypes.h dcmtk-3.6.9/ofst
 +#if defined(HAVE_STDINT_H) || _MSC_VER >= 1600
  #include <stdint.h>
  #endif
-+#ifdef HAVE_INTTYPES_H
- #include <inttypes.h>
-+#endif
+-#include <inttypes.h>
  END_EXTERN_C
  
  #include "dcmtk/ofstd/ofstream.h"
