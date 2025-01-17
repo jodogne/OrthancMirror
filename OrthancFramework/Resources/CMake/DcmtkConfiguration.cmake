@@ -60,9 +60,9 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
     )
 
   if (CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
-    message(${DCMTK_SOURCES_DIR})
     list(REMOVE_ITEM DCMTK_SOURCES 
       ${DCMTK_SOURCES_DIR}/ofstd/libsrc/offilsys.cc
+      ${DCMTK_SOURCES_DIR}/ofstd/libsrc/ofwhere.c   # Needed since DCMTK 3.6.9
       )
   endif()
 
