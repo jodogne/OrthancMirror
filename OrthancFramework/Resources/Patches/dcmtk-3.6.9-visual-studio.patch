@@ -306,6 +306,20 @@ diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg12/jdscale.c dcmtk-3.6.9/dcmjpeg/libij
    unsigned int xindex;
  
    for (xindex = 0; xindex < width; xindex++)
+diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg12/jerror.c dcmtk-3.6.9/dcmjpeg/libijg12/jerror.c
+--- dcmtk-3.6.9.orig/dcmjpeg/libijg12/jerror.c	2025-01-16 18:04:46.158846116 +0100
++++ dcmtk-3.6.9/dcmjpeg/libijg12/jerror.c	2025-01-17 10:16:13.857638295 +0100
+@@ -34,6 +34,10 @@
+ #define EXIT_FAILURE  1
+ #endif
+ 
++#if defined(_MSC_VER)
++#define snprintf _snprintf
++#endif
++
+ 
+ /*
+  * Create the message string table.
 diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg12/jquant1.c dcmtk-3.6.9/dcmjpeg/libijg12/jquant1.c
 --- dcmtk-3.6.9.orig/dcmjpeg/libijg12/jquant1.c	2025-01-16 18:04:46.157846124 +0100
 +++ dcmtk-3.6.9/dcmjpeg/libijg12/jquant1.c	2025-01-16 20:11:42.018717160 +0100
@@ -667,6 +681,20 @@ diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg16/jdscale.c dcmtk-3.6.9/dcmjpeg/libij
    unsigned int xindex;
  
    for (xindex = 0; xindex < width; xindex++)
+diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg16/jerror.c dcmtk-3.6.9/dcmjpeg/libijg16/jerror.c
+--- dcmtk-3.6.9.orig/dcmjpeg/libijg16/jerror.c	2025-01-16 18:04:46.159846107 +0100
++++ dcmtk-3.6.9/dcmjpeg/libijg16/jerror.c	2025-01-17 10:16:17.504607029 +0100
+@@ -34,6 +34,10 @@
+ #define EXIT_FAILURE  1
+ #endif
+ 
++#if defined(_MSC_VER)
++#define snprintf _snprintf
++#endif
++
+ 
+ /*
+  * Create the message string table.
 diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg16/jquant1.c dcmtk-3.6.9/dcmjpeg/libijg16/jquant1.c
 --- dcmtk-3.6.9.orig/dcmjpeg/libijg16/jquant1.c	2025-01-16 18:04:46.158846116 +0100
 +++ dcmtk-3.6.9/dcmjpeg/libijg16/jquant1.c	2025-01-16 20:11:42.020717140 +0100
@@ -984,6 +1012,20 @@ diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg8/jdscale.c dcmtk-3.6.9/dcmjpeg/libijg
    unsigned int xindex;
  
    for (xindex = 0; xindex < width; xindex++)
+diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg8/jerror.c dcmtk-3.6.9/dcmjpeg/libijg8/jerror.c
+--- dcmtk-3.6.9.orig/dcmjpeg/libijg8/jerror.c	2025-01-16 18:04:46.160846099 +0100
++++ dcmtk-3.6.9/dcmjpeg/libijg8/jerror.c	2025-01-17 10:16:07.984688645 +0100
+@@ -34,6 +34,10 @@
+ #define EXIT_FAILURE  1
+ #endif
+ 
++#if defined(_MSC_VER)
++#define snprintf _snprintf
++#endif
++
+ 
+ /*
+  * Create the message string table.
 diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg8/jquant1.c dcmtk-3.6.9/dcmjpeg/libijg8/jquant1.c
 --- dcmtk-3.6.9.orig/dcmjpeg/libijg8/jquant1.c	2025-01-16 18:04:46.160846099 +0100
 +++ dcmtk-3.6.9/dcmjpeg/libijg8/jquant1.c	2025-01-16 20:11:42.022717122 +0100
@@ -1050,11 +1092,14 @@ diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg8/jquant2.c dcmtk-3.6.9/dcmjpeg/libijg
  
 diff -urEb dcmtk-3.6.9.orig/oficonv/libsrc/citrus_bcs.h dcmtk-3.6.9/oficonv/libsrc/citrus_bcs.h
 --- dcmtk-3.6.9.orig/oficonv/libsrc/citrus_bcs.h	2025-01-16 18:04:46.146846219 +0100
-+++ dcmtk-3.6.9/oficonv/libsrc/citrus_bcs.h	2025-01-17 07:57:51.710083362 +0100
-@@ -39,7 +39,14 @@
++++ dcmtk-3.6.9/oficonv/libsrc/citrus_bcs.h	2025-01-17 10:14:14.842658687 +0100
+@@ -39,7 +39,21 @@
  #include <errno.h>
  #include <stdint.h>
  #include <limits.h>
++
++#undef EOPNOTSUPP
++#define EOPNOTSUPP 130   // https://learn.microsoft.com/fr-fr/cpp/c-runtime-library/errno-constants
 +
 +#if (_MSC_VER >= 1900)
  #include <stdbool.h>
@@ -1063,8 +1108,61 @@ diff -urEb dcmtk-3.6.9.orig/oficonv/libsrc/citrus_bcs.h dcmtk-3.6.9/oficonv/libs
 +#define false 0
 +#define true 1
 +#endif
++
++#if defined(_MSC_VER)
++#define snprintf _snprintf
++#endif
  
  #define CITRUS_DECONST(type, var)    ((type)(uintptr_t)(const void *)(var))
+ 
+diff -urEb dcmtk-3.6.9.orig/oficonv/libsrc/citrus_big5.c dcmtk-3.6.9/oficonv/libsrc/citrus_big5.c
+--- dcmtk-3.6.9.orig/oficonv/libsrc/citrus_big5.c	2025-01-16 18:04:46.137846297 +0100
++++ dcmtk-3.6.9/oficonv/libsrc/citrus_big5.c	2025-01-17 09:59:15.249381150 +0100
+@@ -218,13 +218,6 @@
+     return (0);
+ }
+ 
+-static const _citrus_prop_hint_t root_hints[] = {
+-    _CITRUS_PROP_HINT_NUM("row", &_citrus_BIG5_fill_rowcol),
+-    _CITRUS_PROP_HINT_NUM("col", &_citrus_BIG5_fill_rowcol),
+-    _CITRUS_PROP_HINT_NUM("excludes", &_citrus_BIG5_fill_excludes),
+-    _CITRUS_PROP_HINT_END
+-};
+-
+ static void
+ /*ARGSUSED*/
+ _citrus_BIG5_encoding_module_uninit(_BIG5EncodingInfo *ei)
+@@ -245,6 +238,18 @@
+     const char *s;
+     int err;
+ 
++    _citrus_prop_hint_t root_hints[4];
++    root_hints[0].name = "row";
++    root_hints[0].type = _CITRUS_PROP_NUM;
++    root_hints[0].cb.num.func = _citrus_BIG5_fill_rowcol;
++    root_hints[1].name = "col";
++    root_hints[1].type = _CITRUS_PROP_NUM;
++    root_hints[1].cb.num.func = _citrus_BIG5_fill_rowcol;
++    root_hints[2].name = "excludes";
++    root_hints[2].type = _CITRUS_PROP_NUM;
++    root_hints[2].cb.num.func = _citrus_BIG5_fill_excludes;
++    root_hints[3].name = NULL;  // _CITRUS_PROP_HINT_END
++
+     memset((void *)ei, 0, sizeof(*ei));
+     TAILQ_INIT(&ei->excludes);
+ 
+diff -urEb dcmtk-3.6.9.orig/oficonv/libsrc/citrus_db_hash.h dcmtk-3.6.9/oficonv/libsrc/citrus_db_hash.h
+--- dcmtk-3.6.9.orig/oficonv/libsrc/citrus_db_hash.h	2025-01-16 18:04:46.135846314 +0100
++++ dcmtk-3.6.9/oficonv/libsrc/citrus_db_hash.h	2025-01-17 09:36:14.692449741 +0100
+@@ -29,7 +29,8 @@
+ 
+ #include "dcmtk/config/osconfig.h"
+ #include "dcmtk/oficonv/oidefine.h"
+-#include <inttypes.h>
++
++#include <stdint.h>
+ 
+ struct _citrus_region;
  
 diff -urEb dcmtk-3.6.9.orig/oficonv/libsrc/citrus_esdb.c dcmtk-3.6.9/oficonv/libsrc/citrus_esdb.c
 --- dcmtk-3.6.9.orig/oficonv/libsrc/citrus_esdb.c	2025-01-16 18:04:46.137846297 +0100
@@ -1122,9 +1220,73 @@ diff -urEb dcmtk-3.6.9.orig/oficonv/libsrc/citrus_gbk2k.c dcmtk-3.6.9/oficonv/li
  #include <stddef.h>
  #include <stdio.h>
  #include <stdlib.h>
+diff -urEb dcmtk-3.6.9.orig/oficonv/libsrc/citrus_hz.c dcmtk-3.6.9/oficonv/libsrc/citrus_hz.c
+--- dcmtk-3.6.9.orig/oficonv/libsrc/citrus_hz.c	2025-01-16 18:04:46.144846236 +0100
++++ dcmtk-3.6.9/oficonv/libsrc/citrus_hz.c	2025-01-17 10:04:16.511792074 +0100
+@@ -571,13 +571,6 @@
+     return (0);
+ }
+ 
+-static const _citrus_prop_hint_t escape_hints[] = {
+-_CITRUS_PROP_HINT_STR("CH", &_citrus_HZ_parse_char),
+-_CITRUS_PROP_HINT_STR("GL", &_citrus_HZ_parse_graphic),
+-_CITRUS_PROP_HINT_STR("GR", &_citrus_HZ_parse_graphic),
+-_CITRUS_PROP_HINT_END
+-};
+-
+ static int
+ _citrus_HZ_parse_escape(void *context, const char *name, const char *s)
+ {
+@@ -585,6 +578,18 @@
+     escape_t *escape;
+     void *p[2];
+ 
++    _citrus_prop_hint_t escape_hints[4];
++    escape_hints[0].name = "CH";
++    escape_hints[0].type = _CITRUS_PROP_STR;
++    escape_hints[0].cb.str.func = _citrus_HZ_parse_char;
++    escape_hints[1].name = "GL";
++    escape_hints[1].type = _CITRUS_PROP_STR;
++    escape_hints[1].cb.str.func = _citrus_HZ_parse_graphic;
++    escape_hints[2].name = "GR";
++    escape_hints[2].type = _CITRUS_PROP_STR;
++    escape_hints[2].cb.str.func = _citrus_HZ_parse_graphic;
++    escape_hints[3].name = NULL;  // _CITRUS_PROP_HINT_END
++
+     ei = (_HZEncodingInfo *)context;
+     escape = calloc(1, sizeof(*escape));
+     if (escape == NULL)
+@@ -605,18 +610,21 @@
+         escape_hints, (void *)&p[0], s, strlen(s)));
+ }
+ 
+-static const _citrus_prop_hint_t root_hints[] = {
+-_CITRUS_PROP_HINT_STR("0", &_citrus_HZ_parse_escape),
+-_CITRUS_PROP_HINT_STR("1", &_citrus_HZ_parse_escape),
+-_CITRUS_PROP_HINT_END
+-};
+-
+ static int
+ _citrus_HZ_encoding_module_init(_HZEncodingInfo * ei,
+     const void * var, size_t lenvar)
+ {
+     int errnum;
+ 
++    _citrus_prop_hint_t root_hints[3];
++    root_hints[0].name = "0";
++    root_hints[0].type = _CITRUS_PROP_STR;
++    root_hints[0].cb.str.func = _citrus_HZ_parse_escape;
++    root_hints[1].name = "1";
++    root_hints[1].type = _CITRUS_PROP_STR;
++    root_hints[1].cb.str.func = _citrus_HZ_parse_escape;
++    root_hints[2].name = NULL;  // _CITRUS_PROP_HINT_END
++
+     memset(ei, 0, sizeof(*ei));
+     TAILQ_INIT(E0SET(ei));
+     TAILQ_INIT(E1SET(ei));
 diff -urEb dcmtk-3.6.9.orig/oficonv/libsrc/citrus_iconv.c dcmtk-3.6.9/oficonv/libsrc/citrus_iconv.c
 --- dcmtk-3.6.9.orig/oficonv/libsrc/citrus_iconv.c	2025-01-16 18:04:46.146846219 +0100
-+++ dcmtk-3.6.9/oficonv/libsrc/citrus_iconv.c	2025-01-17 07:58:14.511890822 +0100
++++ dcmtk-3.6.9/oficonv/libsrc/citrus_iconv.c	2025-01-17 09:23:11.596327937 +0100
 @@ -49,7 +49,15 @@
  #endif
  
@@ -1141,6 +1303,26 @@ diff -urEb dcmtk-3.6.9.orig/oficonv/libsrc/citrus_iconv.c dcmtk-3.6.9/oficonv/li
  #include <stdio.h>
  #include <stdlib.h>
  #include <string.h>
+@@ -299,14 +307,17 @@
+ _citrus_iconv_open(struct _citrus_iconv * * rcv,
+     const char * src, const char * dst)
+ {
+-struct _citrus_iconv *cv = NULL;
++#ifdef HAVE_WINDOWS_H
++    char current_codepage[20];
++#endif
++
++    struct _citrus_iconv *cv = NULL;
+     struct _citrus_iconv_shared *ci = NULL;
+     char realdst[OFICONV_PATH_MAX], realsrc[OFICONV_PATH_MAX];
+     int ret;
+ 
+     init_cache();
+ #ifdef HAVE_WINDOWS_H
+-    char current_codepage[20];
+     snprintf(current_codepage, sizeof(current_codepage), "%lu", (unsigned long) GetConsoleOutputCP());
+ #endif
+ 
 diff -urEb dcmtk-3.6.9.orig/oficonv/libsrc/citrus_iconv_local.h dcmtk-3.6.9/oficonv/libsrc/citrus_iconv_local.h
 --- dcmtk-3.6.9.orig/oficonv/libsrc/citrus_iconv_local.h	2025-01-16 18:04:46.146846219 +0100
 +++ dcmtk-3.6.9/oficonv/libsrc/citrus_iconv_local.h	2025-01-17 07:58:20.317841727 +0100
@@ -1332,7 +1514,7 @@ diff -urEb dcmtk-3.6.9.orig/oficonv/libsrc/citrus_utf8.c dcmtk-3.6.9/oficonv/lib
  #include <stdlib.h>
 diff -urEb dcmtk-3.6.9.orig/oficonv/libsrc/oficonv_iconv.c dcmtk-3.6.9/oficonv/libsrc/oficonv_iconv.c
 --- dcmtk-3.6.9.orig/oficonv/libsrc/oficonv_iconv.c	2025-01-16 18:04:46.137846297 +0100
-+++ dcmtk-3.6.9/oficonv/libsrc/oficonv_iconv.c	2025-01-17 07:57:35.926216376 +0100
++++ dcmtk-3.6.9/oficonv/libsrc/oficonv_iconv.c	2025-01-17 09:16:42.622548106 +0100
 @@ -40,7 +40,15 @@
  
  #include <errno.h>
@@ -1349,6 +1531,73 @@ diff -urEb dcmtk-3.6.9.orig/oficonv/libsrc/oficonv_iconv.c dcmtk-3.6.9/oficonv/l
  #include <stdlib.h>
  #include <string.h>
  #include <stdio.h>
+diff -urEb dcmtk-3.6.9.orig/oficonv/libsrc/windows_mmap.h dcmtk-3.6.9/oficonv/libsrc/windows_mmap.h
+--- dcmtk-3.6.9.orig/oficonv/libsrc/windows_mmap.h	2025-01-16 18:04:46.137846297 +0100
++++ dcmtk-3.6.9/oficonv/libsrc/windows_mmap.h	2025-01-17 09:21:53.565976060 +0100
+@@ -74,6 +74,12 @@
+ 
+ static void *mmap(void *start, size_t length, int prot, int flags, int fd, off_t offset)
+ {
++  DWORD flProtect;
++  DWORD dwDesiredAccess;
++  HANDLE mmap_fd, h;
++  off_t end;
++  void *ret;
++
+     (void) start;
+ 
+ 	if (prot & ~(PROT_READ | PROT_WRITE | PROT_EXEC))
+@@ -84,7 +90,6 @@
+ 	} else if (flags & MAP_ANON)
+ 		return MAP_FAILED;
+ 
+-	DWORD flProtect;
+     flProtect = 0;
+ 	if (prot & PROT_WRITE) {
+ 		if (prot & PROT_EXEC)
+@@ -99,8 +104,7 @@
+ 	} else
+ 		flProtect = PAGE_READONLY;
+ 
+-	off_t end = (off_t)(length + offset);
+-	HANDLE mmap_fd, h;
++	end = (off_t)(length + offset);
+ 	if (fd == -1)
+ 		mmap_fd = INVALID_HANDLE_VALUE;
+ 	else
+@@ -109,7 +113,6 @@
+ 	if (h == NULL)
+ 		return MAP_FAILED;
+ 
+-	DWORD dwDesiredAccess;
+ 	if (prot & PROT_WRITE)
+ 		dwDesiredAccess = FILE_MAP_WRITE;
+ 	else
+@@ -118,7 +121,7 @@
+ 		dwDesiredAccess |= FILE_MAP_EXECUTE;
+ 	if (flags & MAP_PRIVATE)
+ 		dwDesiredAccess |= FILE_MAP_COPY;
+-	void *ret = MapViewOfFile(h, dwDesiredAccess, MM_DWORD_HI(offset), MM_DWORD_LO(offset), length);
++	ret = MapViewOfFile(h, dwDesiredAccess, MM_DWORD_HI(offset), MM_DWORD_LO(offset), length);
+ 	if (ret == NULL) {
+ 		CloseHandle(h);
+ 		ret = MAP_FAILED;
+@@ -140,11 +143,13 @@
+ 
+ static void munmap(void *addr, size_t length)
+ {
++  mmap_cleanup_t **prevPtr;
++  mmap_cleanup_t *mc;
++
+     (void) length;
+ 	UnmapViewOfFile(addr);
+ 	// Look up through the tracking elements to close the handle
+-	mmap_cleanup_t **prevPtr = &mmap_cleanup;
+-	mmap_cleanup_t *mc;
++	prevPtr = &mmap_cleanup;
+ 	for (mc = *prevPtr; mc != NULL; prevPtr = &mc->next, mc = *prevPtr)
+ 	{
+ 		if (mc->addr == addr)
 diff -urEb dcmtk-3.6.9.orig/ofstd/include/dcmtk/ofstd/oftypes.h dcmtk-3.6.9/ofstd/include/dcmtk/ofstd/oftypes.h
 --- dcmtk-3.6.9.orig/ofstd/include/dcmtk/ofstd/oftypes.h	2025-01-16 18:04:46.148846202 +0100
 +++ dcmtk-3.6.9/ofstd/include/dcmtk/ofstd/oftypes.h	2025-01-17 07:49:26.122182761 +0100
