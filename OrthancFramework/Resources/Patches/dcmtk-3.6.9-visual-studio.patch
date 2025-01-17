@@ -308,12 +308,12 @@ diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg12/jdscale.c dcmtk-3.6.9/dcmjpeg/libij
    for (xindex = 0; xindex < width; xindex++)
 diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg12/jerror.c dcmtk-3.6.9/dcmjpeg/libijg12/jerror.c
 --- dcmtk-3.6.9.orig/dcmjpeg/libijg12/jerror.c	2025-01-16 18:04:46.158846116 +0100
-+++ dcmtk-3.6.9/dcmjpeg/libijg12/jerror.c	2025-01-17 10:16:13.857638295 +0100
++++ dcmtk-3.6.9/dcmjpeg/libijg12/jerror.c	2025-01-17 11:14:11.975382089 +0100
 @@ -34,6 +34,10 @@
  #define EXIT_FAILURE  1
  #endif
  
-+#if defined(_MSC_VER)
++#if defined(_MSC_VER) && _MSC_VER < 1900
 +#define snprintf _snprintf
 +#endif
 +
@@ -683,12 +683,12 @@ diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg16/jdscale.c dcmtk-3.6.9/dcmjpeg/libij
    for (xindex = 0; xindex < width; xindex++)
 diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg16/jerror.c dcmtk-3.6.9/dcmjpeg/libijg16/jerror.c
 --- dcmtk-3.6.9.orig/dcmjpeg/libijg16/jerror.c	2025-01-16 18:04:46.159846107 +0100
-+++ dcmtk-3.6.9/dcmjpeg/libijg16/jerror.c	2025-01-17 10:16:17.504607029 +0100
++++ dcmtk-3.6.9/dcmjpeg/libijg16/jerror.c	2025-01-17 11:14:19.002328399 +0100
 @@ -34,6 +34,10 @@
  #define EXIT_FAILURE  1
  #endif
  
-+#if defined(_MSC_VER)
++#if defined(_MSC_VER) && _MSC_VER < 1900
 +#define snprintf _snprintf
 +#endif
 +
@@ -1014,12 +1014,12 @@ diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg8/jdscale.c dcmtk-3.6.9/dcmjpeg/libijg
    for (xindex = 0; xindex < width; xindex++)
 diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg8/jerror.c dcmtk-3.6.9/dcmjpeg/libijg8/jerror.c
 --- dcmtk-3.6.9.orig/dcmjpeg/libijg8/jerror.c	2025-01-16 18:04:46.160846099 +0100
-+++ dcmtk-3.6.9/dcmjpeg/libijg8/jerror.c	2025-01-17 10:16:07.984688645 +0100
++++ dcmtk-3.6.9/dcmjpeg/libijg8/jerror.c	2025-01-17 11:14:02.543454148 +0100
 @@ -34,6 +34,10 @@
  #define EXIT_FAILURE  1
  #endif
  
-+#if defined(_MSC_VER)
++#if defined(_MSC_VER) && _MSC_VER < 1900
 +#define snprintf _snprintf
 +#endif
 +
@@ -1092,7 +1092,7 @@ diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg8/jquant2.c dcmtk-3.6.9/dcmjpeg/libijg
  
 diff -urEb dcmtk-3.6.9.orig/oficonv/libsrc/citrus_bcs.h dcmtk-3.6.9/oficonv/libsrc/citrus_bcs.h
 --- dcmtk-3.6.9.orig/oficonv/libsrc/citrus_bcs.h	2025-01-16 18:04:46.146846219 +0100
-+++ dcmtk-3.6.9/oficonv/libsrc/citrus_bcs.h	2025-01-17 10:14:14.842658687 +0100
++++ dcmtk-3.6.9/oficonv/libsrc/citrus_bcs.h	2025-01-17 11:14:44.746131630 +0100
 @@ -39,7 +39,21 @@
  #include <errno.h>
  #include <stdint.h>
@@ -1109,7 +1109,7 @@ diff -urEb dcmtk-3.6.9.orig/oficonv/libsrc/citrus_bcs.h dcmtk-3.6.9/oficonv/libs
 +#define true 1
 +#endif
 +
-+#if defined(_MSC_VER)
++#if defined(_MSC_VER) && _MSC_VER < 1900
 +#define snprintf _snprintf
 +#endif
  
