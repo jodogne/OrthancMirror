@@ -79,7 +79,7 @@ namespace Orthanc
           params.SetTimeout(timeout_);
         }
         
-        DicomControlUserConnection connection(params);
+        DicomControlUserConnection connection(params, static_cast<ScuOperationFlags>(ScuOperationFlags_Find));
         connection.Find(answers_, level_, fixed, findNormalized_);
       }
 

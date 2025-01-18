@@ -132,7 +132,10 @@ namespace Orthanc
 
       if (running.IsValid())
       {
-        CLOG(INFO, JOBS) << "Executing job with priority " << running.GetPriority()
+        std::string jobType;
+        running.GetJob().GetJobType(jobType);
+
+        CLOG(INFO, JOBS) << "Executing " << jobType << " job with priority " << running.GetPriority()
                          << " in worker thread " << workerIndex << ": " << running.GetId();
 
         while (engine->IsRunning())

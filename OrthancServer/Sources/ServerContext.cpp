@@ -50,6 +50,9 @@
 
 #include <dcmtk/dcmdata/dcfilefo.h>
 #include <dcmtk/dcmnet/dimse.h>
+#include <dcmtk/dcmdata/dcuid.h>        /* for variable dcmAllStorageSOPClassUIDs */
+
+#include <boost/regex.hpp>
 
 #if HAVE_MALLOC_TRIM == 1
 #  include <malloc.h>
@@ -490,6 +493,15 @@ namespace Orthanc
         lock.GetConfiguration().GetAcceptedTransferSyntaxes(acceptedTransferSyntaxes_);
 
         isUnknownSopClassAccepted_ = lock.GetConfiguration().GetBooleanParameter("UnknownSopClassAccepted", false);
+
+        // New options in Orthanc 1.12.6
+        std::list<std::string> acceptedSopClasses;
+        std::set<std::string> rejectedSopClasses;
+        lock.GetConfiguration().GetListOfStringsParameter(acceptedSopClasses, "AcceptedSopClasses");
+        lock.GetConfiguration().GetSetOfStringsParameter(rejectedSopClasses, "RejectSopClasses");
+        SetAcceptedSopClasses(acceptedSopClasses, rejectedSopClasses);
+
+        defaultDicomRetrieveMethod_ = StringToRetrieveMethod(lock.GetConfiguration().GetStringParameter("DicomDefaultRetrieveMethod", "C-MOVE"));
       }
 
       jobsEngine_.SetThreadSleep(unitTesting ? 20 : 200);
@@ -2009,8 +2021,118 @@ namespace Orthanc
     }
   }
 
+  void ServerContext::SetAcceptedSopClasses(const std::list<std::string>& acceptedSopClasses,
+                                            const std::set<std::string>& rejectedSopClasses)
+  {
+    boost::mutex::scoped_lock lock(dynamicOptionsMutex_);
+    acceptedSopClasses_.clear();
 
-  void ServerContext::GetAcceptedTransferSyntaxes(std::set<DicomTransferSyntax>& syntaxes)
+    size_t count = 0;
+    std::set<std::string> allDcmtkSopClassUids;
+    std::set<std::string> shortDcmtkSopClassUids;
+
+    // we actually take a list of default 120 most common storage SOP classes defined in DCMTK
+    while (dcmLongSCUStorageSOPClassUIDs[count] != NULL)
+    {
+      shortDcmtkSopClassUids.insert(dcmLongSCUStorageSOPClassUIDs[count++]);
+    }
+
+    count = 0;
+    while (dcmAllStorageSOPClassUIDs[count] != NULL)
+    {
+      allDcmtkSopClassUids.insert(dcmAllStorageSOPClassUIDs[count++]);
+    }
+
+    if (acceptedSopClasses.size() == 0)
+    {
+      // by default, include the short list first and then all the others
+      for (std::set<std::string>::const_iterator it = shortDcmtkSopClassUids.begin(); it != shortDcmtkSopClassUids.end(); ++it)
+      {
+        acceptedSopClasses_.push_back(*it);
+      }
+
+      for (std::set<std::string>::const_iterator it = allDcmtkSopClassUids.begin(); it != allDcmtkSopClassUids.end(); ++it)
+      {
+        if (shortDcmtkSopClassUids.find(*it) == shortDcmtkSopClassUids.end()) // don't add the classes that we have already added
+        {
+          acceptedSopClasses_.push_back(*it);
+        }
+      }
+    }
+    else
+    {
+      std::set<std::string> addedSopClasses;
+
+      for (std::list<std::string>::const_iterator it = acceptedSopClasses.begin(); it != acceptedSopClasses.end(); ++it)
+      {
+        if (it->find('*') != std::string::npos || it->find('?') != std::string::npos)
+        {
+          // if it contains wildcard, add all the matching SOP classes known by DCMTK
+          boost::regex pattern(Toolbox::WildcardToRegularExpression(*it));
+
+          for (std::set<std::string>::const_iterator itall = allDcmtkSopClassUids.begin(); itall != allDcmtkSopClassUids.end(); ++itall)
+          {
+            if (regex_match(*itall, pattern) && addedSopClasses.find(*itall) == addedSopClasses.end())
+            {
+              acceptedSopClasses_.push_back(*itall);
+              addedSopClasses.insert(*itall);
+            }
+          }
+        }
+        else
+        {
+          // if it is a SOP Class UID, add it without checking if it is known by DCMTK
+          acceptedSopClasses_.push_back(*it);
+          addedSopClasses.insert(*it);
+        }
+      }
+    }
+    
+    // now remove all rejected syntaxes
+    if (rejectedSopClasses.size() > 0)
+    {
+      for (std::set<std::string>::const_iterator it = rejectedSopClasses.begin(); it != rejectedSopClasses.end(); ++it)
+      {
+        if (it->find('*') != std::string::npos || it->find('?') != std::string::npos)
+        {
+          // if it contains wildcard, get all the matching SOP classes known by DCMTK
+          boost::regex pattern(Toolbox::WildcardToRegularExpression(*it));
+
+          for (std::set<std::string>::const_iterator itall = allDcmtkSopClassUids.begin(); itall != allDcmtkSopClassUids.end(); ++itall)
+          {
+            if (regex_match(*itall, pattern))
+            {
+              acceptedSopClasses_.remove(*itall);
+            }
+          }
+        }
+        else
+        {
+          // if it is a SOP Class UID, remove it without checking if it is known by DCMTK
+          acceptedSopClasses_.remove(*it);
+        }
+      }
+    }
+  }
+
+  void ServerContext::GetAcceptedSopClasses(std::set<std::string>& sopClasses, size_t maxCount) const
+  {
+    sopClasses.clear();
+
+    boost::mutex::scoped_lock lock(dynamicOptionsMutex_);
+
+    size_t count = 0;
+    std::list<std::string>::const_iterator it = acceptedSopClasses_.begin();
+
+    while (it != acceptedSopClasses_.end() && (maxCount == 0 || count < maxCount))
+    {
+      sopClasses.insert(*it);
+      count++;
+      it++;
+    }
+  }
+
+  void ServerContext::GetAcceptedTransferSyntaxes(std::set<DicomTransferSyntax>& syntaxes) const
   {
     boost::mutex::scoped_lock lock(dynamicOptionsMutex_);
     syntaxes = acceptedTransferSyntaxes_;
@@ -2024,7 +2146,25 @@ namespace Orthanc
   }
 
 
-  bool ServerContext::IsUnknownSopClassAccepted()
+  void ServerContext::GetProposedStorageTransferSyntaxes(std::list<DicomTransferSyntax>& syntaxes) const
+  {
+    boost::mutex::scoped_lock lock(dynamicOptionsMutex_);
+    
+    // // TODO: investigate: actually, neither Orthanc 1.12.4 nor DCM4CHEE will accept to send a LittleEndianExplicit file
+    // //                    while e.g., Jpeg-LS has been presented (and accepted) as the preferred TS for the C-Store SCP.
+    // // if we have defined IngestTranscoding, let's propose this TS first to avoid any unnecessary transcoding
+    // if (isIngestTranscoding_)
+    // {
+    //   syntaxes.push_back(ingestTransferSyntax_);
+    // }
+    
+    // then, propose the default ones
+    syntaxes.push_back(DicomTransferSyntax_LittleEndianExplicit);
+    syntaxes.push_back(DicomTransferSyntax_LittleEndianImplicit);
+  }
+  
+
+  bool ServerContext::IsUnknownSopClassAccepted() const
   {
     boost::mutex::scoped_lock lock(dynamicOptionsMutex_);
     return isUnknownSopClassAccepted_;

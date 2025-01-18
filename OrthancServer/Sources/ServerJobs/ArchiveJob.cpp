@@ -1518,7 +1518,7 @@ namespace Orthanc
   }
 
 
-  float ArchiveJob::GetProgress()
+  float ArchiveJob::GetProgress() const
   {
     if (writer_.get() == NULL ||
         writer_->GetStepsCount() == 0)
@@ -1533,7 +1533,7 @@ namespace Orthanc
   }
 
     
-  void ArchiveJob::GetJobType(std::string& target)
+  void ArchiveJob::GetJobType(std::string& target) const
   {
     if (isMedia_)
     {
@@ -1546,7 +1546,7 @@ namespace Orthanc
   }
 
 
-  void ArchiveJob::GetPublicContent(Json::Value& value)
+  void ArchiveJob::GetPublicContent(Json::Value& value) const
   {
     value = Json::objectValue;
     value[KEY_DESCRIPTION] = description_;

@@ -54,7 +54,8 @@ namespace Orthanc
                    const JobStatus& status,
                    const boost::posix_time::ptime& creationTime,
                    const boost::posix_time::ptime& lastStateChangeTime,
-                   const boost::posix_time::time_duration& runtime) :
+                   const boost::posix_time::time_duration& runtime,
+                   const IJob& job) :
     id_(id),
     priority_(priority),
     state_(state),
@@ -68,11 +69,16 @@ namespace Orthanc
     if (state_ == JobState_Running)
     {
       float ms = static_cast<float>(runtime_.total_milliseconds());
+      if (job.NeedsProgressUpdateBetweenSteps())
+      {
+        status_.UpdateProgress(job);
+      }
 
-      if (status_.GetProgress() > 0.01f &&
+      float progress = status_.GetProgress();
+
+      if (progress > 0.01f &&
           ms > 0.01f)
       {
-        float progress = status_.GetProgress();
         long long remaining = boost::math::llround(ms / progress * (1.0f - progress));
         eta_ = timestamp_ + boost::posix_time::milliseconds(remaining);
         hasEta_ = true;

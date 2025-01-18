@@ -137,7 +137,7 @@ namespace Orthanc
   }
 
 
-  float SetOfCommandsJob::GetProgress()
+  float SetOfCommandsJob::GetProgress() const
   {
     if (commands_.empty())
     {
@@ -237,13 +237,13 @@ namespace Orthanc
   static const char* KEY_COMMANDS = "Commands";
 
   
-  void SetOfCommandsJob::GetPublicContent(Json::Value& value)
+  void SetOfCommandsJob::GetPublicContent(Json::Value& value) const
   {
     value[KEY_DESCRIPTION] = GetDescription();
   }    
 
 
-  bool SetOfCommandsJob::Serialize(Json::Value& target)
+  bool SetOfCommandsJob::Serialize(Json::Value& target) const
   {
     target = Json::objectValue;
 

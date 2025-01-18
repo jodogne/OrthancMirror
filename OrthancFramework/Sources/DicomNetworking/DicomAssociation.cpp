@@ -173,7 +173,6 @@ namespace Orthanc
 
   DicomAssociation::DicomAssociation()
   {
-    role_ = DicomAssociationRole_Default;
     isOpen_ = false;
     net_ = NULL; 
     params_ = NULL;
@@ -198,16 +197,6 @@ namespace Orthanc
   }
 
 
-  void DicomAssociation::SetRole(DicomAssociationRole role)
-  {
-    if (role_ != role)
-    {
-      Close();
-      role_ = role;
-    }
-  }
-
-  
   void DicomAssociation::ClearPresentationContexts()
   {
     Close();
@@ -215,7 +204,26 @@ namespace Orthanc
     proposed_.reserve(MAX_PROPOSED_PRESENTATIONS);
   }
 
-  
+
+  static T_ASC_SC_ROLE GetDcmtkRole(DicomAssociationRole role)
+  {
+    switch (role)
+    {
+      case DicomAssociationRole_Default:
+        return ASC_SC_ROLE_DEFAULT;
+
+      case DicomAssociationRole_Scu:
+        return ASC_SC_ROLE_SCU;
+
+      case DicomAssociationRole_Scp:
+        return ASC_SC_ROLE_SCP;
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+
   void DicomAssociation::Open(const DicomAssociationParameters& parameters)
   {
     if (isOpen_)
@@ -240,24 +248,6 @@ namespace Orthanc
       dcmConnectionTimeout.set(acseTimeout);
     }
       
-    T_ASC_SC_ROLE dcmtkRole;
-    switch (role_)
-    {
-      case DicomAssociationRole_Default:
-        dcmtkRole = ASC_SC_ROLE_DEFAULT;
-        break;
-
-      case DicomAssociationRole_Scu:
-        dcmtkRole = ASC_SC_ROLE_SCU;
-        break;
-
-      case DicomAssociationRole_Scp:
-        dcmtkRole = ASC_SC_ROLE_SCP;
-        break;
-
-      default:
-        throw OrthancException(ErrorCode_ParameterOutOfRange);
-    }
 
     assert(net_ == NULL &&
            params_ == NULL &&
@@ -291,7 +281,12 @@ namespace Orthanc
                                   "no timeout") << ")";
 
     CheckConnecting(parameters, ASC_initializeNetwork(NET_REQUESTOR, 0, /*opt_acse_timeout*/ acseTimeout, &net_));
+#if DCMTK_VERSION_NUMBER >= 368
+    CheckConnecting(parameters, ASC_createAssociationParameters(&params_, parameters.GetMaximumPduLength(), acseTimeout));
+#else
+    // from 3.6.8, this version is obsolete
     CheckConnecting(parameters, ASC_createAssociationParameters(&params_, parameters.GetMaximumPduLength()));
+#endif
 
 #if ORTHANC_ENABLE_SSL == 1
     if (parameters.GetRemoteModality().IsDicomTlsEnabled())
@@ -351,12 +346,12 @@ namespace Orthanc
       assert(presentationContextId <= 255);
       const char* abstractSyntax = proposed_[i].abstractSyntax_.c_str();
 
-      const std::set<DicomTransferSyntax>& source = proposed_[i].transferSyntaxes_;
+      const std::list<DicomTransferSyntax>& source = proposed_[i].transferSyntaxes_;
           
       std::vector<const char*> transferSyntaxes;
       transferSyntaxes.reserve(source.size());
           
-      for (std::set<DicomTransferSyntax>::const_iterator
+      for (std::list<DicomTransferSyntax>::const_iterator
              it = source.begin(); it != source.end(); ++it)
       {
         transferSyntaxes.push_back(GetTransferSyntaxUid(*it));
@@ -365,7 +360,7 @@ namespace Orthanc
       assert(!transferSyntaxes.empty());
       CheckConnecting(parameters, ASC_addPresentationContext(
                         params_, presentationContextId, abstractSyntax,
-                        &transferSyntaxes[0], transferSyntaxes.size(), dcmtkRole));
+                        &transferSyntaxes[0], transferSyntaxes.size(), GetDcmtkRole(proposed_[i].role_)));
 
       presentationContextId += 2;
     }
@@ -456,36 +451,56 @@ namespace Orthanc
     }
   }
 
+  void DicomAssociation::ProposeGenericPresentationContext(const std::string& abstractSyntax,
+                                                           DicomAssociationRole role)
+  {
+    std::list<DicomTransferSyntax> ts;
+    ts.push_back(DicomTransferSyntax_LittleEndianExplicit); // the most standard one first !
+    ts.push_back(DicomTransferSyntax_LittleEndianImplicit);
+    ts.push_back(DicomTransferSyntax_BigEndianExplicit);  // Retired but was historicaly proposed by Orthanc
+    ProposePresentationContext(abstractSyntax, ts, role);
+  }
     
   void DicomAssociation::ProposeGenericPresentationContext(const std::string& abstractSyntax)
   {
-    std::set<DicomTransferSyntax> ts;
-    ts.insert(DicomTransferSyntax_LittleEndianImplicit);
-    ts.insert(DicomTransferSyntax_LittleEndianExplicit);
-    ts.insert(DicomTransferSyntax_BigEndianExplicit);  // Retired
-    ProposePresentationContext(abstractSyntax, ts);
+    ProposeGenericPresentationContext(abstractSyntax, DicomAssociationRole_Default);
   }
 
     
   void DicomAssociation::ProposePresentationContext(const std::string& abstractSyntax,
                                                     DicomTransferSyntax transferSyntax)
   {
-    std::set<DicomTransferSyntax> ts;
-    ts.insert(transferSyntax);
-    ProposePresentationContext(abstractSyntax, ts);
+    ProposePresentationContext(abstractSyntax, transferSyntax, DicomAssociationRole_Default);
   }
 
-    
+
+  void DicomAssociation::ProposePresentationContext(const std::string& abstractSyntax,
+                                                    DicomTransferSyntax transferSyntax,
+                                                    DicomAssociationRole role)
+  {
+    std::list<DicomTransferSyntax> ts;
+    ts.push_back(transferSyntax);
+    ProposePresentationContext(abstractSyntax, ts, role);
+  }
+
   size_t DicomAssociation::GetRemainingPropositions() const
   {
     assert(proposed_.size() <= MAX_PROPOSED_PRESENTATIONS);
     return MAX_PROPOSED_PRESENTATIONS - proposed_.size();
   }
     
+  void DicomAssociation::ProposePresentationContext(
+    const std::string& abstractSyntax,
+    const std::list<DicomTransferSyntax>& transferSyntaxes)
+  {
+    ProposePresentationContext(abstractSyntax, transferSyntaxes, DicomAssociationRole_Default);
+  }
+
 
   void DicomAssociation::ProposePresentationContext(
     const std::string& abstractSyntax,
-    const std::set<DicomTransferSyntax>& transferSyntaxes)
+    const std::list<DicomTransferSyntax>& transferSyntaxes,
+    DicomAssociationRole role)
   {
     if (transferSyntaxes.empty())
     {
@@ -507,6 +522,7 @@ namespace Orthanc
     ProposedPresentationContext context;
     context.abstractSyntax_ = abstractSyntax;
     context.transferSyntaxes_ = transferSyntaxes;
+    context.role_ = role;
 
     proposed_.push_back(context);
   }
@@ -526,6 +542,35 @@ namespace Orthanc
     }
   }
 
+  bool DicomAssociation::GetAssociationParameters(std::string& remoteAet,
+                                                  std::string& remoteIp,
+                                                  std::string& calledAet) const
+  {
+    T_ASC_Association& dcmtkAssoc = GetDcmtkAssociation();
+
+    DIC_AE remoteAet_C;
+    DIC_AE calledAet_C;
+    DIC_AE remoteIp_C;
+    DIC_AE calledIP_C;
+
+    if (
+#if DCMTK_VERSION_NUMBER >= 364
+      ASC_getAPTitles(dcmtkAssoc.params, remoteAet_C, sizeof(remoteAet_C), calledAet_C, sizeof(calledAet_C), NULL, 0).good() &&
+      ASC_getPresentationAddresses(dcmtkAssoc.params, remoteIp_C, sizeof(remoteIp_C), calledIP_C, sizeof(calledIP_C)).good()
+#else
+      ASC_getAPTitles(dcmtkAssoc.params, remoteAet_C, calledAet_C, NULL).good() &&
+      ASC_getPresentationAddresses(dcmtkAssoc.params, remoteIp_C, calledIP_C).good()
+#endif
+      )
+    {
+      remoteIp = std::string(/*OFSTRING_GUARD*/(remoteIp_C));
+      remoteAet = std::string(/*OFSTRING_GUARD*/(remoteAet_C));
+      calledAet = (/*OFSTRING_GUARD*/(calledAet_C));
+      return true;
+    }
+
+    return false;
+  }
     
   T_ASC_Network& DicomAssociation::GetDcmtkNetwork() const
   {
@@ -649,13 +694,12 @@ namespace Orthanc
     DicomAssociation association;
 
     {
-      std::set<DicomTransferSyntax> transferSyntaxes;
-      transferSyntaxes.insert(DicomTransferSyntax_LittleEndianExplicit);
-      transferSyntaxes.insert(DicomTransferSyntax_LittleEndianImplicit);
+      std::list<DicomTransferSyntax> transferSyntaxes;
+      transferSyntaxes.push_back(DicomTransferSyntax_LittleEndianExplicit);
+      transferSyntaxes.push_back(DicomTransferSyntax_LittleEndianImplicit);
 
-      association.SetRole(DicomAssociationRole_Scp);
       association.ProposePresentationContext(UID_StorageCommitmentPushModelSOPClass,
-                                             transferSyntaxes);
+                                             transferSyntaxes, DicomAssociationRole_Scp);
     }
       
     association.Open(parameters);
@@ -828,13 +872,13 @@ namespace Orthanc
     DicomAssociation association;
 
     {
-      std::set<DicomTransferSyntax> transferSyntaxes;
-      transferSyntaxes.insert(DicomTransferSyntax_LittleEndianExplicit);
-      transferSyntaxes.insert(DicomTransferSyntax_LittleEndianImplicit);
+      std::list<DicomTransferSyntax> transferSyntaxes;
+      transferSyntaxes.push_back(DicomTransferSyntax_LittleEndianExplicit);
+      transferSyntaxes.push_back(DicomTransferSyntax_LittleEndianImplicit);
       
-      association.SetRole(DicomAssociationRole_Default);
+      // association.SetRole(DicomAssociationRole_Default);
       association.ProposePresentationContext(UID_StorageCommitmentPushModelSOPClass,
-                                             transferSyntaxes);
+                                             transferSyntaxes, DicomAssociationRole_Default);
     }
       
     association.Open(parameters);

@@ -209,7 +209,7 @@ namespace Orthanc
   static const char* KEY_FAILED_INSTANCES = "FailedInstances";
   static const char* KEY_PARENT_RESOURCES = "ParentResources";
 
-  void SetOfInstancesJob::GetPublicContent(Json::Value& target)
+  void SetOfInstancesJob::GetPublicContent(Json::Value& target) const
   {
     SetOfCommandsJob::GetPublicContent(target);
     target["InstancesCount"] = static_cast<uint32_t>(GetInstancesCount());
@@ -222,7 +222,7 @@ namespace Orthanc
   }
 
 
-  bool SetOfInstancesJob::Serialize(Json::Value& target) 
+  bool SetOfInstancesJob::Serialize(Json::Value& target) const 
   {
     if (SetOfCommandsJob::Serialize(target))
     {

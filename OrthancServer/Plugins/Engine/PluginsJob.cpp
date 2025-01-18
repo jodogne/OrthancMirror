@@ -147,7 +147,7 @@ namespace Orthanc
     }
   }
 
-  float PluginsJob::GetProgress()
+  float PluginsJob::GetProgress() const
   {
     return parameters_.getProgress(parameters_.job);
   }
@@ -194,7 +194,7 @@ namespace Orthanc
     };
   }
   
-  void PluginsJob::GetPublicContent(Json::Value& value)
+  void PluginsJob::GetPublicContent(Json::Value& value) const
   {
     if (parameters_.getContent != NULL)
     {
@@ -232,7 +232,7 @@ namespace Orthanc
     }
   }
 
-  bool PluginsJob::Serialize(Json::Value& value)
+  bool PluginsJob::Serialize(Json::Value& value) const
   {
     if (parameters_.getSerialized != NULL)
     {

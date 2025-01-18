@@ -404,7 +404,7 @@ namespace Orthanc
   }
 
 
-  void StorageCommitmentScpJob::GetPublicContent(Json::Value& value)
+  void StorageCommitmentScpJob::GetPublicContent(Json::Value& value) const
   {
     SetOfCommandsJob::GetPublicContent(value);
       
@@ -434,7 +434,7 @@ namespace Orthanc
   }
   
 
-  bool StorageCommitmentScpJob::Serialize(Json::Value& target)
+  bool StorageCommitmentScpJob::Serialize(Json::Value& target) const
   {
     if (!SetOfCommandsJob::Serialize(target))
     {

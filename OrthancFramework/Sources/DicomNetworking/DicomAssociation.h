@@ -44,6 +44,7 @@
 #include <stdint.h>   // For uint8_t
 #include <boost/noncopyable.hpp>
 #include <set>
+#include <list>
 
 namespace Orthanc
 {
@@ -58,13 +59,13 @@ namespace Orthanc
     struct ProposedPresentationContext
     {
       std::string                    abstractSyntax_;
-      std::set<DicomTransferSyntax>  transferSyntaxes_;
+      std::list<DicomTransferSyntax> transferSyntaxes_;
+      DicomAssociationRole           role_;
     };
 
     typedef std::map<std::string, std::map<DicomTransferSyntax, uint8_t> >
     AcceptedPresentationContexts;
 
-    DicomAssociationRole                      role_;
     bool                                      isOpen_;
     std::vector<ProposedPresentationContext>  proposed_;
     AcceptedPresentationContexts              accepted_;
@@ -95,8 +96,6 @@ namespace Orthanc
       return isOpen_;
     }
 
-    void SetRole(DicomAssociationRole role);
-
     void ClearPresentationContexts();
 
     void Open(const DicomAssociationParameters& parameters);
@@ -109,6 +108,13 @@ namespace Orthanc
 
     void ProposeGenericPresentationContext(const std::string& abstractSyntax);
 
+    void ProposeGenericPresentationContext(const std::string& abstractSyntax,
+                                           DicomAssociationRole role);
+
+    void ProposePresentationContext(const std::string& abstractSyntax,
+                                    DicomTransferSyntax transferSyntax,
+                                    DicomAssociationRole role);
+
     void ProposePresentationContext(const std::string& abstractSyntax,
                                     DicomTransferSyntax transferSyntax);
 
@@ -116,11 +122,20 @@ namespace Orthanc
 
     void ProposePresentationContext(
       const std::string& abstractSyntax,
-      const std::set<DicomTransferSyntax>& transferSyntaxes);
-    
+      const std::list<DicomTransferSyntax>& transferSyntaxes);
+
+    void ProposePresentationContext(
+      const std::string& abstractSyntax,
+      const std::list<DicomTransferSyntax>& transferSyntaxes,
+      DicomAssociationRole role);
+
     T_ASC_Association& GetDcmtkAssociation() const;
 
     T_ASC_Network& GetDcmtkNetwork() const;
+
+    bool GetAssociationParameters(std::string& remoteAet,
+                                  std::string& remoteIp,
+                                  std::string& calledAet) const;
 
     static void CheckCondition(const OFCondition& cond,
                                const DicomAssociationParameters& parameters,

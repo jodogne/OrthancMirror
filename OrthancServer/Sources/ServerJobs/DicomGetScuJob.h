@@ -23,47 +23,38 @@
 
 #pragma once
 
-#include "../../../OrthancFramework/Sources/JobsEngine/SetOfInstancesJob.h"
+#include "../../../OrthancFramework/Sources/Compatibility.h"
+#include "../../../OrthancFramework/Sources/DicomNetworking/DicomControlUserConnection.h"
+#include "DicomRetrieveScuBaseJob.h"
+#include "../QueryRetrieveHandler.h"
 
 namespace Orthanc
 {
   class ServerContext;
   
-  class CleaningInstancesJob : public SetOfInstancesJob
+  class DicomGetScuJob : public DicomRetrieveScuBaseJob
   {
   private:
-    ServerContext&  context_;
-    bool            keepSource_;
-    
-  protected:
-    virtual bool HandleTrailingStep() ORTHANC_OVERRIDE;
+    std::set<std::string> sopClassesFromResourcesToRetrieve_;
+
+    virtual void Retrieve(const DicomMap& findAnswer) ORTHANC_OVERRIDE;
     
   public:
-    CleaningInstancesJob(ServerContext& context,
-                         bool keepSource) :
-      context_(context),
-      keepSource_(keepSource)
+    explicit DicomGetScuJob(ServerContext& context) :
+      DicomRetrieveScuBaseJob(context)
     {
     }
 
-    CleaningInstancesJob(ServerContext& context,
-                         const Json::Value& serialized,
-                         bool defaultKeepSource);
+    DicomGetScuJob(ServerContext& context,
+                   const Json::Value& serialized);
 
-    ServerContext& GetContext() const
+
+    virtual void AddFindAnswer(const DicomMap &answer) ORTHANC_OVERRIDE;
+
+
+    virtual void GetJobType(std::string& target) const ORTHANC_OVERRIDE
     {
-      return context_;
+      target = "DicomGetScu";
     }
-    
-    bool IsKeepSource() const
-    {
-      return keepSource_;
-    }
-    
-    void SetKeepSource(bool keep);
-
-    virtual bool Serialize(Json::Value& target) const ORTHANC_OVERRIDE;
-
-    virtual void Start() ORTHANC_OVERRIDE;
   };
 }

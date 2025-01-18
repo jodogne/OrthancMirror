@@ -202,6 +202,32 @@
   // SOP classes (aka. "promiscuous mode")
   "UnknownSopClassAccepted" : false,
 
+  // The list of accepted Storage SOP classes.
+  // If empty or not defined, this list defaults
+  // to all storage classes defined in DCMTK in case of 
+  // C-STORE SCP and to a reduced list of 120 common storage
+  // classes in case of C-GET SCU.
+  // Each entry can contain wildcards ("?" or "*") to add
+  // subsets of SOP classes that are defined in DCMTK.
+  // If you want to add a a SOP class that is not defined in
+  // DCMTK, you must add it explicitely.
+  // (new in Orthanc 1.12.6)
+  // "AcceptedSopClasses" : [
+  //   "1.2.840.10008.5.1.4.1.1.2",
+  //   "1.2.840.10008.5.1.4.1.1.4"
+  // ]
+
+  // The list of rejected Storage SOP classes.
+  // This configuration is only meaningful if
+  // "AcceptedSopClasses" is using regular expressions
+  // or if it is not defined.
+  // Each entry can contain wildcards ("?" or "*").
+  // (new in Orthanc 1.12.6)
+  // "RejectedSopClasses" : [
+  //   "1.2.840.10008.5.1.4.1.1.2",
+  //   "1.2.840.10008.5.1.4.1.1.4"
+  // ]
+
   // Set the timeout (in seconds) after which the DICOM associations
   // are closed by the Orthanc SCP (server) if no further DIMSE
   // command is received from the SCU (client).
@@ -459,6 +485,10 @@
      * for Orthanc when initiating an SCU to this very specific
      * modality. Similarly, "Timeout" allows one to overwrite the
      * global value "DicomScuTimeout" on a per-modality basis.
+     *
+     * The "RetrieveMethod" option allows one to overwrite the global
+     * "DicomDefaultRetrieveMethod" configuration option for this
+     * specific modality. (Allowed values: "C-MOVE" or "C-GET").
      **/
     //"untrusted" : {
     //  "AET" : "ORTHANC",
@@ -475,7 +505,8 @@
     //  "AllowTranscoding" : true,         // new in 1.7.0
     //  "UseDicomTls" : false,             // new in 1.9.0
     //  "LocalAet" : "HELLO",              // new in 1.9.0
-    //  "Timeout" : 60                     // new in 1.9.1
+    //  "Timeout" : 60,                    // new in 1.9.1
+    //  "RetrieveMethod": "C-MOVE"         // new in 1.12.6
     //}
   },
 
@@ -488,6 +519,13 @@
   // modality. This allows one to check that the remote modality does
   // accept C-FIND requests from Orthanc (new in Orthanc 1.8.1).
   "DicomEchoChecksFind" : false,
+
+  // Wheter Orthanc uses C-MOVE or C-GET to retrieve a resource after
+  // a C-Find (when calling /queries/.../retrieve).
+  // This configuration can be overriden for each modality by providing
+  // "RetrieveMethod" in the "DicomModalities" entry.
+  // (new in Orthanc 1.12.6)
+  "DicomDefaultRetrieveMethod" : "C-MOVE",
 
   // The timeout (in seconds) after which the DICOM associations are
   // considered as closed by the Orthanc SCU (client) if the remote

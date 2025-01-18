@@ -51,6 +51,7 @@ namespace Orthanc
     bool                  useDicomTls_;
     std::string           localAet_;
     uint32_t              timeout_;
+    RetrieveMethod        retrieveMethod_;   // New in Orthanc 1.12.6
     
     void Clear();
 
@@ -118,5 +119,10 @@ namespace Orthanc
     uint32_t GetTimeout() const;
 
     bool HasTimeout() const;    
+
+    RetrieveMethod GetRetrieveMethod() const;
+
+    void SetRetrieveMethod(RetrieveMethod retrieveMethod);
+
   };
 }

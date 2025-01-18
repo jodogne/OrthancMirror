@@ -341,9 +341,9 @@ $('#query-retrieve-4').live('pagebeforeshow', function() {
       success: function(system) {
         $('#retrieve-target').val(system['DicomAet']);
 
+        $('#retrieve-form').unbind('submit');
         $('#retrieve-form').submit(function(event) {
           var aet;
-
           event.preventDefault();
 
           aet = $('#retrieve-target').val();

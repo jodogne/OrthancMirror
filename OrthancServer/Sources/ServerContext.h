@@ -233,6 +233,7 @@ namespace Orthanc
         
     std::unique_ptr<SharedArchive>  queryRetrieveArchive_;
     std::string defaultLocalAet_;
+    RetrieveMethod defaultDicomRetrieveMethod_;
     OrthancHttpHandler  httpHandler_;
     bool saveJobs_;
     FindStorageAccessMode findStorageAccessMode_;
@@ -257,9 +258,10 @@ namespace Orthanc
 
     // New in Orthanc 1.9.0
     DicomTransferSyntax preferredTransferSyntax_;
-    boost::mutex dynamicOptionsMutex_;
+    mutable boost::mutex dynamicOptionsMutex_;
     bool isUnknownSopClassAccepted_;
     std::set<DicomTransferSyntax>  acceptedTransferSyntaxes_;
+    std::list<std::string>         acceptedSopClasses_;  // ordered; the most 120 common ones first
     bool readOnly_;
 
     StoreResult StoreAfterTranscoding(std::string& resultPublicId,
@@ -436,6 +438,11 @@ namespace Orthanc
       return defaultLocalAet_;
     }
 
+    RetrieveMethod GetDefaultDicomRetrieveMethod() const
+    {
+      return defaultDicomRetrieveMethod_;
+    }
+
     LuaScripting& GetLuaScripting()
     {
       return mainLua_;
@@ -583,11 +590,18 @@ namespace Orthanc
 
     const std::string& GetDeidentifiedContent(const DicomElement& element) const;
 
-    void GetAcceptedTransferSyntaxes(std::set<DicomTransferSyntax>& syntaxes);
+    void GetAcceptedTransferSyntaxes(std::set<DicomTransferSyntax>& syntaxes) const;
 
     void SetAcceptedTransferSyntaxes(const std::set<DicomTransferSyntax>& syntaxes);
 
-    bool IsUnknownSopClassAccepted();
+    void GetProposedStorageTransferSyntaxes(std::list<DicomTransferSyntax>& syntaxes) const;
+
+    void SetAcceptedSopClasses(const std::list<std::string>& acceptedSopClasses,
+                               const std::set<std::string>& rejectedSopClasses);
+
+    void GetAcceptedSopClasses(std::set<std::string>& sopClasses, size_t maxCount) const;
+
+    bool IsUnknownSopClassAccepted() const;
 
     void SetUnknownSopClassAccepted(bool accepted);
 
