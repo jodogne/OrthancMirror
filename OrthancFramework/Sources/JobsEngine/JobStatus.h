@@ -44,7 +44,7 @@ namespace Orthanc
 
     JobStatus(ErrorCode code,
               const std::string& details,
-              IJob& job);
+              const IJob& job);
 
     ErrorCode GetErrorCode() const
     {
@@ -59,6 +59,11 @@ namespace Orthanc
     float GetProgress() const
     {
       return progress_;
+    }
+
+    void UpdateProgress(const IJob& job)
+    {
+      progress_ = job.GetProgress();
     }
 
     const std::string& GetJobType() const

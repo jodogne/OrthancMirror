@@ -242,7 +242,7 @@ namespace Orthanc
   }
   
 
-  void DicomModalityStoreJob::GetPublicContent(Json::Value& value)
+  void DicomModalityStoreJob::GetPublicContent(Json::Value& value) const
   {
     SetOfInstancesJob::GetPublicContent(value);
     
@@ -281,7 +281,7 @@ namespace Orthanc
   }
 
 
-  bool DicomModalityStoreJob::Serialize(Json::Value& target)
+  bool DicomModalityStoreJob::Serialize(Json::Value& target) const
   {
     if (!SetOfInstancesJob::Serialize(target))
     {

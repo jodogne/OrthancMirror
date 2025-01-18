@@ -376,7 +376,7 @@ namespace Orthanc
   static const char* KEY_WORKERS_COUNT = "WorkersCount";
 
 
-  void ThreadedSetOfInstancesJob::GetPublicContent(Json::Value& target)
+  void ThreadedSetOfInstancesJob::GetPublicContent(Json::Value& target) const
   {
     boost::recursive_mutex::scoped_lock lock(mutex_);
 
@@ -391,7 +391,7 @@ namespace Orthanc
   }
 
 
-  bool ThreadedSetOfInstancesJob::Serialize(Json::Value& target)
+  bool ThreadedSetOfInstancesJob::Serialize(Json::Value& target) const
   {
     boost::recursive_mutex::scoped_lock lock(mutex_);
 
@@ -478,7 +478,7 @@ namespace Orthanc
     return keepSource_;
   }
 
-  float ThreadedSetOfInstancesJob::GetProgress()
+  float ThreadedSetOfInstancesJob::GetProgress() const
   {
     boost::recursive_mutex::scoped_lock lock(mutex_);
 

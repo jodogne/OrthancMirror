@@ -92,7 +92,7 @@ namespace Orthanc
     
     virtual void Start() ORTHANC_OVERRIDE;
     
-    virtual float GetProgress() ORTHANC_OVERRIDE;
+    virtual float GetProgress() const ORTHANC_OVERRIDE;
 
     bool IsStarted() const;
 
@@ -100,9 +100,9 @@ namespace Orthanc
       
     virtual JobStepResult Step(const std::string& jobId) ORTHANC_OVERRIDE;
     
-    virtual void GetPublicContent(Json::Value& value) ORTHANC_OVERRIDE;
+    virtual void GetPublicContent(Json::Value& value) const ORTHANC_OVERRIDE;
     
-    virtual bool Serialize(Json::Value& target) ORTHANC_OVERRIDE;
+    virtual bool Serialize(Json::Value& target) const ORTHANC_OVERRIDE;
 
     virtual bool GetOutput(std::string& output,
                            MimeType& mime,

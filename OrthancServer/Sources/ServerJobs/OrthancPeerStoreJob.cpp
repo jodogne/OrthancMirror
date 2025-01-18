@@ -220,7 +220,7 @@ namespace Orthanc
   }
 
 
-  void OrthancPeerStoreJob::GetPublicContent(Json::Value& value)
+  void OrthancPeerStoreJob::GetPublicContent(Json::Value& value) const
   {
     SetOfInstancesJob::GetPublicContent(value);
     
@@ -285,7 +285,7 @@ namespace Orthanc
   }
 
 
-  bool OrthancPeerStoreJob::Serialize(Json::Value& target)
+  bool OrthancPeerStoreJob::Serialize(Json::Value& target) const
   {
     if (!SetOfInstancesJob::Serialize(target))
     {

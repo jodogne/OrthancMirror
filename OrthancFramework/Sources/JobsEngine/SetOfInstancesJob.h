@@ -77,8 +77,8 @@ namespace Orthanc
 
     virtual void Reset() ORTHANC_OVERRIDE;
 
-    virtual void GetPublicContent(Json::Value& target) ORTHANC_OVERRIDE;
+    virtual void GetPublicContent(Json::Value& target) const ORTHANC_OVERRIDE;
 
-    virtual bool Serialize(Json::Value& target) ORTHANC_OVERRIDE;
+    virtual bool Serialize(Json::Value& target) const ORTHANC_OVERRIDE;
   };
 }

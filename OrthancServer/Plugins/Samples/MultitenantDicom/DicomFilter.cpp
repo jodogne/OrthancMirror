@@ -29,10 +29,11 @@
 #include "../../../../OrthancFramework/Sources/OrthancException.h"
 
 #include "../Common/OrthancPluginCppWrapper.h"
-
+#include <dcmtk/dcmdata/dcuid.h>        /* for variable dcmAllStorageSOPClassUIDs */
 
 DicomFilter::DicomFilter() :
-  hasAcceptedTransferSyntaxes_(false)
+  hasAcceptedTransferSyntaxes_(false),
+  hasAcceptedStorageClasses_(false)
 {
   {
     OrthancPlugins::OrthancConfiguration config;
@@ -200,10 +201,66 @@ void DicomFilter::GetAcceptedTransferSyntaxes(std::set<Orthanc::DicomTransferSyn
 }
 
 
+void DicomFilter::GetProposedStorageTransferSyntaxes(std::list<Orthanc::DicomTransferSyntax>& target,
+                                                     const std::string& remoteIp,
+                                                     const std::string& remoteAet,
+                                                     const std::string& calledAet)
+{
+  // default TS
+  target.push_back(Orthanc::DicomTransferSyntax_LittleEndianExplicit);
+  target.push_back(Orthanc::DicomTransferSyntax_LittleEndianImplicit);
+  target.push_back(Orthanc::DicomTransferSyntax_BigEndianExplicit);
+}
+
+
 bool DicomFilter::IsUnknownSopClassAccepted(const std::string& remoteIp,
                                             const std::string& remoteAet,
                                             const std::string& calledAet)
 {
   boost::shared_lock<boost::shared_mutex>  lock(mutex_);
   return unknownSopClassAccepted_;
+}
+
+
+void DicomFilter::GetAcceptedSopClasses(std::set<std::string>& sopClasses, size_t maxCount)
+{
+  boost::unique_lock<boost::shared_mutex>  lock(mutex_);
+
+  if (!hasAcceptedStorageClasses_)
+  {
+    Json::Value jsonSopClasses;
+
+    if (!OrthancPlugins::RestApiGet(jsonSopClasses, "/tools/accepted-sop-classes", false) ||
+        jsonSopClasses.type() != Json::arrayValue)
+    {
+      throw Orthanc::OrthancException(Orthanc::ErrorCode_InternalError);
+    }
+    else
+    {
+      for (Json::Value::ArrayIndex i = 0; i < jsonSopClasses.size(); i++)
+      {
+        if (jsonSopClasses[i].type() != Json::stringValue)
+        {
+          throw Orthanc::OrthancException(Orthanc::ErrorCode_InternalError);
+        }
+        else
+        {
+          acceptedStorageClasses_.insert(jsonSopClasses[i].asString());
+        }
+      }
+    }
+
+    hasAcceptedStorageClasses_ = true;
+  }
+
+  std::set<std::string>::const_iterator it = acceptedStorageClasses_.begin();
+    size_t count = 0;
+
+  while (it != acceptedStorageClasses_.end() && (maxCount == 0 || count < maxCount))
+  {
+    sopClasses.insert(*it);
+    count++;
+    it++;
+  }
+
 }

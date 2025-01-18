@@ -37,13 +37,50 @@ namespace Orthanc
 {
   class DicomAssociation;  // Forward declaration for PImpl design pattern
   
+  typedef uint16_t (*CGetInstanceReceivedCallback)(void *callbackContext,
+                                                   DcmDataset& dataset,
+                                                   const std::string& remoteAet,
+                                                   const std::string& remoteIp,
+                                                   const std::string& calledAet
+                                                   );
+
+
+  enum ScuOperationFlags
+  {
+    ScuOperationFlags_Echo = 1 << 0,
+    ScuOperationFlags_FindPatient = 1 << 1,
+    ScuOperationFlags_FindStudy = 1 << 2,
+    ScuOperationFlags_FindWorklist = 1 << 3,
+    ScuOperationFlags_MoveStudy = 1 << 4,
+    ScuOperationFlags_MovePatient = 1 << 5,
+    // C-Store is not using DicomControlUserConnection but DicomStoreUserConnection
+    ScuOperationFlags_Get = 1 << 6,
+
+    ScuOperationFlags_Find = ScuOperationFlags_FindPatient | ScuOperationFlags_FindStudy | ScuOperationFlags_FindWorklist,
+    ScuOperationFlags_Move = ScuOperationFlags_MoveStudy | ScuOperationFlags_MovePatient,
+    ScuOperationFlags_All = ScuOperationFlags_Echo | ScuOperationFlags_Find | ScuOperationFlags_Move | ScuOperationFlags_Get
+  };
+
   class DicomControlUserConnection : public boost::noncopyable
   {
+  public:
+    class IProgressListener
+    {
+    public:
+      virtual void OnProgressUpdated(uint16_t nbRemainingSubOperations,
+                                     uint16_t nbCompletedSubOperations,
+                                     uint16_t nbFailedSubOperations,
+                                     uint16_t nbWarningSubOperations) = 0;
+    };
+
   private:
     DicomAssociationParameters           parameters_;
     boost::shared_ptr<DicomAssociation>  association_;
+    IProgressListener*                   progressListener_;
 
-    void SetupPresentationContexts();
+    void SetupPresentationContexts(ScuOperationFlags scuOperation,
+                                   const std::set<std::string>& acceptedStorageSopClasses,
+                                   const std::list<DicomTransferSyntax>& proposedStorageTransferSyntaxes);
 
     void FindInternal(DicomFindAnswers& answers,
                       DcmDataset* dataset,
@@ -56,8 +93,14 @@ namespace Orthanc
                       const DicomMap& fields);
     
   public:
-    explicit DicomControlUserConnection(const DicomAssociationParameters& params);
-    
+    explicit DicomControlUserConnection(const DicomAssociationParameters& params, ScuOperationFlags scuOperation);
+
+    // specific constructor for CGet SCU
+    explicit DicomControlUserConnection(const DicomAssociationParameters& params, 
+                                        ScuOperationFlags scuOperation,
+                                        const std::set<std::string>& acceptedStorageSopClasses,
+                                        const std::list<DicomTransferSyntax>& proposedStorageTransferSyntaxes);
+
     const DicomAssociationParameters& GetParameters() const
     {
       return parameters_;
@@ -67,10 +110,19 @@ namespace Orthanc
 
     bool Echo();
 
+    void SetProgressListener(IProgressListener* progressListener)
+    {
+      progressListener_ = progressListener;
+    }
+
     void Find(DicomFindAnswers& result,
               ResourceType level,
               const DicomMap& originalFields,
               bool normalize);
+
+    void Get(const DicomMap& getQuery,
+             CGetInstanceReceivedCallback instanceReceivedCallback,
+             void* callbackContext);
 
     void Move(const std::string& targetAet,
               ResourceType level,

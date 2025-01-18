@@ -607,6 +607,11 @@
     "Name": "NoCGetHandler", 
     "Description": "No request handler factory for DICOM C-GET SCP"
   },
+  {
+    "Code": 2045, 
+    "Name": "DicomGetUnavailable", 
+    "Description": "DicomUserConnection: The C-GET command is not supported by the remote SCP"
+  },
 
 
 

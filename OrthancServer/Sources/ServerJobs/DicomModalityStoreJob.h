@@ -88,14 +88,14 @@ namespace Orthanc
 
     virtual void Stop(JobStopReason reason) ORTHANC_OVERRIDE;
 
-    virtual void GetJobType(std::string& target) ORTHANC_OVERRIDE
+    virtual void GetJobType(std::string& target) const ORTHANC_OVERRIDE
     {
       target = "DicomModalityStore";
     }
 
-    virtual void GetPublicContent(Json::Value& value) ORTHANC_OVERRIDE;
+    virtual void GetPublicContent(Json::Value& value) const ORTHANC_OVERRIDE;
 
-    virtual bool Serialize(Json::Value& target) ORTHANC_OVERRIDE;
+    virtual bool Serialize(Json::Value& target) const ORTHANC_OVERRIDE;
 
     virtual void Reset() ORTHANC_OVERRIDE;
 

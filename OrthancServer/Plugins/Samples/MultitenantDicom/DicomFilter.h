@@ -44,6 +44,8 @@ private:
 
   bool hasAcceptedTransferSyntaxes_;
   std::set<Orthanc::DicomTransferSyntax>  acceptedTransferSyntaxes_;
+  bool hasAcceptedStorageClasses_;
+  std::set<std::string>                   acceptedStorageClasses_;
 
 public:
   DicomFilter();
@@ -62,7 +64,15 @@ public:
                                            const std::string& remoteAet,
                                            const std::string& calledAet) ORTHANC_OVERRIDE;
 
+  virtual void GetProposedStorageTransferSyntaxes(std::list<Orthanc::DicomTransferSyntax>& target,
+                                                  const std::string& remoteIp,
+                                                  const std::string& remoteAet,
+                                                  const std::string& calledAet) ORTHANC_OVERRIDE;
+
+
   virtual bool IsUnknownSopClassAccepted(const std::string& remoteIp,
                                          const std::string& remoteAet,
                                          const std::string& calledAet) ORTHANC_OVERRIDE;
+  
+  virtual void GetAcceptedSopClasses(std::set<std::string>& sopClasses, size_t maxCount) ORTHANC_OVERRIDE;
 };

@@ -4,6 +4,14 @@ Pending changes in the mainline
 General
 -------
 
+* DICOM:
+  - Added support for C-GET SCU.
+  - Added a configuration "AcceptedSopClasses" and "RejectedSopClasses" to limit 
+    the SOP classes accepted by Orthanc when acting as C-STORE SCP.
+  - New config option "DicomDefaultRetrieveMethod" to define wheter Orthanc uses C-MOVE or C-GET 
+    to retrieve a resource after a C-Find (when calling /queries/.../retrieve).
+    This configuration can be overriden for each modality in "DicomModalities->..->RetrieveMethod".
+    Default value: "C-MOVE" to keep the backward compatibility.
 * New configuration options:
   - "MaximumConcurrentDcmtkTranscoders" to reduce CPU and memory usage by limiting
     the number of concurrent DCMTK transcoders that are simultaneously running
@@ -92,12 +100,36 @@ REST API
   https://dicom.nema.org/medical/dicom/current/output/chtml/part18/sect_F.2.3.html
   This has no impact on the Stone Web viewer and OHIF:
   https://discourse.orthanc-server.org/t/dicomwebplugin-does-not-return-series-metadata-properly/5195
-
+* /queries/../retrieve now accepts a new field in the payload: "RetrieveMethod" to define wheter 
+  Orthanc uses C-MOVE or C-GET to retrieve the resource.
+* improved progress reporting of DicomMoveScu jobs.
 
 Maintenance
 -----------
 
 * DICOM TLS: "DicomTlsTrustedCertificates" is not required anymore when issuing
+<<<<<<< working copy
+  an outgoing SCU connexion when "DicomTlsRemoteCertificateRequired" is set to false.
+* DICOM negotiation:
+  - When opening a DICOM SCU connection, Orthanc now only proposes the contexts that it is
+    going to use in the connection and not all contexts as in previous versions.  E.g, when
+    performing a C-ECHO, Orthanc will not propose C-MOVE or C-FIND.
+* DICOM Get-SCP: Orthanc won't refuse anymore to send e.g. a LittleEndianExplicit file when
+  the accepted transfer syntax is a compressed one.
+* Introduced a new thread to update the statistics at regular interval for the
+  DB plugins that are implementing the UpdateAndGetStatistics function (currently only
+  PostgreSQL).  This avoids very long update times in case you don't call /statistics
+  for a long period.
+* Fix C-Find queries not returning computed tags like ModalitiesInStudy, NumberOfStudyRelatedSeries, ...
+  in very specific use-cases.
+* Fix C-Find queries not returning private tags in the modality worklist plugin.
+* Fix extremely rare error when 2 threads are trying to create the same folder in the File Storage 
+  at the same time.
+* Fix crashes if handling very large images.
+* Fix deadlock when parsing specific invalid DICOM files.
+* Loading plugins:
+  - Orthanc will now fail to start when provided with a plugin path that can not be found.
+=======
   an outgoing SCU connection if "DicomTlsRemoteCertificateRequired" is set to "false"
 * Fix C-Find queries not returning computed tags such as ModalitiesInStudy,
   NumberOfStudyRelatedSeries,... in very specific use cases
@@ -108,6 +140,7 @@ Maintenance
 * Fix deadlock when parsing specific invalid DICOM files
 * Loading plugins: Orthanc will now fail to start when provided with a plugin path
   that can not be found
+>>>>>>> merge rev
 * Metrics:
   - Fix a few metrics that were not published
   - Added 2 metrics: "orthanc_storage_cache_miss_count" and "orthanc_storage_cache_hit_count"

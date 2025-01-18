@@ -138,6 +138,8 @@ set(ORTHANC_SERVER_SOURCES
   ${CMAKE_SOURCE_DIR}/Sources/ServerJobs/ArchiveJob.cpp
   ${CMAKE_SOURCE_DIR}/Sources/ServerJobs/CleaningInstancesJob.cpp
   ${CMAKE_SOURCE_DIR}/Sources/ServerJobs/DicomModalityStoreJob.cpp
+  ${CMAKE_SOURCE_DIR}/Sources/ServerJobs/DicomRetrieveScuBaseJob.cpp
+  ${CMAKE_SOURCE_DIR}/Sources/ServerJobs/DicomGetScuJob.cpp
   ${CMAKE_SOURCE_DIR}/Sources/ServerJobs/DicomMoveScuJob.cpp
   ${CMAKE_SOURCE_DIR}/Sources/ServerJobs/LuaJobManager.cpp
   ${CMAKE_SOURCE_DIR}/Sources/ServerJobs/MergeStudyJob.cpp
@@ -184,6 +186,7 @@ set(ORTHANC_SERVER_UNIT_TESTS
   ${CMAKE_SOURCE_DIR}/UnitTestsSources/DatabaseLookupTests.cpp
   ${CMAKE_SOURCE_DIR}/UnitTestsSources/LuaServerTests.cpp
   ${CMAKE_SOURCE_DIR}/UnitTestsSources/PluginsTests.cpp
+  ${CMAKE_SOURCE_DIR}/UnitTestsSources/ServerConfigTests.cpp
   ${CMAKE_SOURCE_DIR}/UnitTestsSources/ServerIndexTests.cpp
   ${CMAKE_SOURCE_DIR}/UnitTestsSources/ServerJobsTests.cpp
   ${CMAKE_SOURCE_DIR}/UnitTestsSources/SizeOfTests.cpp

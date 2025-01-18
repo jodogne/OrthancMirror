@@ -41,7 +41,7 @@ namespace Orthanc
   
   JobStatus::JobStatus(ErrorCode code,
                        const std::string& details,
-                       IJob& job) :
+                       const IJob& job) :
     errorCode_(code),
     progress_(job.GetProgress()),
     publicContent_(Json::objectValue),

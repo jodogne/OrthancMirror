@@ -306,7 +306,7 @@ namespace Orthanc
   }
   
     
-  void SplitStudyJob::GetPublicContent(Json::Value& value)
+  void SplitStudyJob::GetPublicContent(Json::Value& value) const
   {
     CleaningInstancesJob::GetPublicContent(value);
 
@@ -351,7 +351,7 @@ namespace Orthanc
   }
 
   
-  bool SplitStudyJob::Serialize(Json::Value& target)
+  bool SplitStudyJob::Serialize(Json::Value& target) const
   {
     if (!CleaningInstancesJob::Serialize(target))
     {

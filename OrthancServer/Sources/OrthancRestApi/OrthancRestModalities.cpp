@@ -36,6 +36,7 @@
 #include "../ServerContext.h"
 #include "../ServerJobs/DicomModalityStoreJob.h"
 #include "../ServerJobs/DicomMoveScuJob.h"
+#include "../ServerJobs/DicomGetScuJob.h"
 #include "../ServerJobs/OrthancPeerStoreJob.h"
 #include "../ServerToolbox.h"
 #include "../StorageCommitmentReports.h"
@@ -56,6 +57,7 @@ namespace Orthanc
   static const char* const KEY_CHECK_FIND = "CheckFind";
   static const char* const SOP_CLASS_UID = "SOPClassUID";
   static const char* const SOP_INSTANCE_UID = "SOPInstanceUID";
+  static const char* const KEY_RETRIEVE_METHOD = "RetrieveMethod";
   
   static RemoteModalityParameters MyGetModalityUsingSymbolicName(const std::string& name)
   {
@@ -155,24 +157,31 @@ namespace Orthanc
                           const DicomAssociationParameters& parameters,
                           const Json::Value& body)
   {
-    DicomControlUserConnection connection(parameters);
+    bool checkFind = false;
+    
+    if (body.type() == Json::objectValue &&
+        body.isMember(KEY_CHECK_FIND))
+    {
+      checkFind = SerializationToolbox::ReadBoolean(body, KEY_CHECK_FIND);
+    }
+    else
+    {
+      OrthancConfiguration::ReaderLock lock;
+      checkFind = lock.GetConfiguration().GetBooleanParameter("DicomEchoChecksFind", false);
+    }
 
+    ScuOperationFlags operations = ScuOperationFlags_Echo;
+    
+    if (checkFind)
+    {
+      operations = static_cast<ScuOperationFlags>(operations | ScuOperationFlags_Find);
+    }
+
+    DicomControlUserConnection connection(parameters, operations);
     if (connection.Echo())
     {
-      bool find = false;
-      
-      if (body.type() == Json::objectValue &&
-          body.isMember(KEY_CHECK_FIND))
-      {
-        find = SerializationToolbox::ReadBoolean(body, KEY_CHECK_FIND);
-      }
-      else
-      {
-        OrthancConfiguration::ReaderLock lock;
-        find = lock.GetConfiguration().GetBooleanParameter("DicomEchoChecksFind", false);
-      }
 
-      if (find)
+      if (checkFind)
       {
         // Issue a C-FIND request at the study level about a random Study Instance UID
         const std::string studyInstanceUid = FromDcmtkBridge::GenerateUniqueIdentifier(ResourceType_Study);
@@ -385,7 +394,7 @@ namespace Orthanc
     DicomFindAnswers answers(false);
 
     {
-      DicomControlUserConnection connection(GetAssociationParameters(call));
+      DicomControlUserConnection connection(GetAssociationParameters(call), ScuOperationFlags_FindPatient);
       FindPatient(answers, connection, fields);
     }
 
@@ -428,7 +437,7 @@ namespace Orthanc
     DicomFindAnswers answers(false);
 
     {
-      DicomControlUserConnection connection(GetAssociationParameters(call));
+      DicomControlUserConnection connection(GetAssociationParameters(call), ScuOperationFlags_FindStudy);
       FindStudy(answers, connection, fields);
     }
 
@@ -472,7 +481,7 @@ namespace Orthanc
     DicomFindAnswers answers(false);
 
     {
-      DicomControlUserConnection connection(GetAssociationParameters(call));
+      DicomControlUserConnection connection(GetAssociationParameters(call), ScuOperationFlags_FindStudy);
       FindSeries(answers, connection, fields);
     }
 
@@ -517,7 +526,7 @@ namespace Orthanc
     DicomFindAnswers answers(false);
 
     {
-      DicomControlUserConnection connection(GetAssociationParameters(call));
+      DicomControlUserConnection connection(GetAssociationParameters(call), ScuOperationFlags_FindStudy);
       FindInstance(answers, connection, fields);
     }
 
@@ -566,7 +575,7 @@ namespace Orthanc
       return;
     }
  
-    DicomControlUserConnection connection(GetAssociationParameters(call));
+    DicomControlUserConnection connection(GetAssociationParameters(call), ScuOperationFlags_Find);
     
     DicomFindAnswers patients(false);
     FindPatient(patients, connection, m);
@@ -914,12 +923,25 @@ namespace Orthanc
 
     std::string targetAet;
     int timeout = -1;
-    
+
+    QueryAccessor query(call);
+
+    RetrieveMethod retrieveMethod = query.GetHandler().GetRemoteModality().GetRetrieveMethod();
+
     Json::Value body;
     if (call.ParseJsonRequest(body))
     {
+      OrthancConfiguration::ReaderLock lock;
+
       targetAet = Toolbox::GetJsonStringField(body, KEY_TARGET_AET, context.GetDefaultLocalApplicationEntityTitle());
       timeout = Toolbox::GetJsonIntegerField(body, KEY_TIMEOUT, -1);
+      
+      std::string strRetrieveMethod = SerializationToolbox::ReadString(body, KEY_RETRIEVE_METHOD, "");
+      
+      if (!strRetrieveMethod.empty())
+      {
+        retrieveMethod = StringToRetrieveMethod(strRetrieveMethod);
+      }
     }
     else
     {
@@ -934,45 +956,67 @@ namespace Orthanc
       }
     }
     
-    std::unique_ptr<DicomMoveScuJob> job(new DicomMoveScuJob(context));
-    job->SetQueryFormat(OrthancRestApi::GetDicomFormat(body, DicomToJsonFormat_Short));
-    
+    if (retrieveMethod == RetrieveMethod_SystemDefault)
     {
-      QueryAccessor query(call);
-      job->SetTargetAet(targetAet);
-      job->SetLocalAet(query.GetHandler().GetLocalAet());
-      job->SetRemoteModality(query.GetHandler().GetRemoteModality());
+      retrieveMethod = context.GetDefaultDicomRetrieveMethod();
+    }
 
-      if (timeout >= 0)
-      {
-        // New in Orthanc 1.7.0
-        job->SetTimeout(static_cast<uint32_t>(timeout));
-      }
-      else if (query.GetHandler().HasTimeout())
-      {
-        // New in Orthanc 1.9.1
-        job->SetTimeout(query.GetHandler().GetTimeout());
-      }
+    std::unique_ptr<DicomRetrieveScuBaseJob> job;
 
-      LOG(WARNING) << "Driving C-Move SCU on remote modality "
-                   << query.GetHandler().GetRemoteModality().GetApplicationEntityTitle()
-                   << " to target modality " << targetAet;
 
-      if (allAnswers)
+    switch (retrieveMethod)
+    {
+      case RetrieveMethod_Move:
       {
-        for (size_t i = 0; i < query.GetHandler().GetAnswersCount(); i++)
-        {
-          job->AddFindAnswer(query.GetHandler(), i);
-        }
-      }
-      else
+        job.reset(new DicomMoveScuJob(context));
+        (dynamic_cast<DicomMoveScuJob*>(job.get()))->SetTargetAet(targetAet);
+
+        LOG(WARNING) << "Driving C-Move SCU on remote modality "
+                    << query.GetHandler().GetRemoteModality().GetApplicationEntityTitle()
+                    << " to target modality " << targetAet;
+      }; break;
+      case RetrieveMethod_Get:
       {
-        job->AddFindAnswer(query.GetHandler(), index);
+        job.reset(new DicomGetScuJob(context));
+
+        LOG(WARNING) << "Driving C-Get SCU on remote modality "
+                    << query.GetHandler().GetRemoteModality().GetApplicationEntityTitle();
+      }; break;
+      default:
+        throw OrthancException(ErrorCode_NotImplemented);
+    }
+
+    job->SetQueryFormat(OrthancRestApi::GetDicomFormat(body, DicomToJsonFormat_Short));
+
+    job->SetLocalAet(query.GetHandler().GetLocalAet());
+    job->SetRemoteModality(query.GetHandler().GetRemoteModality());
+
+    if (timeout >= 0)
+    {
+      // New in Orthanc 1.7.0
+      job->SetTimeout(static_cast<uint32_t>(timeout));
+    }
+    else if (query.GetHandler().HasTimeout())
+    {
+      // New in Orthanc 1.9.1
+      job->SetTimeout(query.GetHandler().GetTimeout());
+    }
+
+    if (allAnswers)
+    {
+      for (size_t i = 0; i < query.GetHandler().GetAnswersCount(); i++)
+      {
+        job->AddFindAnswer(query.GetHandler(), i);
       }
+    }
+    else
+    {
+      job->AddFindAnswer(query.GetHandler(), index);
     }
 
     OrthancRestApi::GetApi(call).SubmitCommandsJob
       (call, job.release(), true /* synchronous by default */, body);
+
   }
 
 
@@ -989,6 +1033,10 @@ namespace Orthanc
                        "`DicomAet` configuration option.", false)
       .SetRequestField(KEY_TIMEOUT, RestApiCallDocumentation::Type_Number,
                        "Timeout for the C-MOVE command, in seconds", false)
+      .SetRequestField(KEY_RETRIEVE_METHOD, RestApiCallDocumentation::Type_String,
+                        "Force usage of C-MOVE or C-GET to retrieve the resource.  If note defined in the payload, "
+                        "the retrieve method is defined in the DicomDefaultRetrieveMethod configuration or in "
+                        "DicomModalities->..->RetrieveMethod", false)
       .AddRequestType(MimeType_PlainText, "AET of the target modality");
   }
   
@@ -999,8 +1047,8 @@ namespace Orthanc
     {
       DocumentRetrieveShared(call);
       call.GetDocumentation()
-        .SetSummary("Retrieve one answer")
-        .SetDescription("Start a C-MOVE SCU command as a job, in order to retrieve one answer associated with the "
+        .SetSummary("Retrieve one answer with a C-MOVE or a C-GET SCU")
+        .SetDescription("Start a C-MOVE or a C-GET SCU command as a job, in order to retrieve one answer associated with the "
                         "query/retrieve operation whose identifiers are provided in the URL: "
                         "https://orthanc.uclouvain.be/book/users/rest.html#performing-retrieve-c-move")
         .SetUriArgument("index", "Index of the answer");
@@ -1012,13 +1060,15 @@ namespace Orthanc
   }
 
 
+
+
   static void RetrieveAllAnswers(RestApiPostCall& call)
   {
     if (call.IsDocumentation())
     {
       DocumentRetrieveShared(call);
       call.GetDocumentation()
-        .SetSummary("Retrieve all answers")
+        .SetSummary("Retrieve all answers with C-MOVE SCU")
         .SetDescription("Start a C-MOVE SCU command as a job, in order to retrieve all the answers associated with the "
                         "query/retrieve operation whose identifier is provided in the URL: "
                         "https://orthanc.uclouvain.be/book/users/rest.html#performing-retrieve-c-move");
@@ -1536,6 +1586,48 @@ namespace Orthanc
     call.GetOutput().AnswerJson(answer);
   }
 
+  void ParseMoveGetJob(DicomRetrieveScuBaseJob& job, Json::Value& request, RestApiPostCall& call)
+  {
+    ServerContext& context = OrthancRestApi::GetContext(call);
+
+    if (!call.ParseJsonRequest(request) ||
+        request.type() != Json::objectValue ||
+        !request.isMember(KEY_RESOURCES) ||
+        !request.isMember(KEY_LEVEL) ||
+        request[KEY_RESOURCES].type() != Json::arrayValue ||
+        request[KEY_LEVEL].type() != Json::stringValue)
+    {
+      throw OrthancException(ErrorCode_BadFileFormat, "Must provide a JSON body containing fields " +
+                             std::string(KEY_RESOURCES) + " and " + std::string(KEY_LEVEL));
+    }
+
+    ResourceType level = StringToResourceType(request[KEY_LEVEL].asCString());
+    
+    std::string localAet = Toolbox::GetJsonStringField
+      (request, KEY_LOCAL_AET, context.GetDefaultLocalApplicationEntityTitle());
+
+    const RemoteModalityParameters source =
+      MyGetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
+
+    job.SetQueryFormat(DicomToJsonFormat_Short);
+    job.SetLocalAet(localAet);
+    job.SetRemoteModality(source);
+
+    if (request.isMember(KEY_TIMEOUT))
+    {
+      job.SetTimeout(SerializationToolbox::ReadUnsignedInteger(request, KEY_TIMEOUT));
+    }
+
+    for (Json::Value::ArrayIndex i = 0; i < request[KEY_RESOURCES].size(); i++)
+    {
+      DicomMap resource;
+      FromDcmtkBridge::FromJson(resource, request[KEY_RESOURCES][i], "Resources elements");
+
+      resource.SetValue(DICOM_TAG_QUERY_RETRIEVE_LEVEL, std::string(ResourceTypeToDicomQueryRetrieveLevel(level)), false);
+
+      job.AddQuery(resource);      
+    }
+  }
 
   /***************************************************************************
    * DICOM C-Move SCU
@@ -1569,59 +1661,66 @@ namespace Orthanc
     }
 
     ServerContext& context = OrthancRestApi::GetContext(call);
-
     Json::Value request;
-
-    if (!call.ParseJsonRequest(request) ||
-        request.type() != Json::objectValue ||
-        !request.isMember(KEY_RESOURCES) ||
-        !request.isMember(KEY_LEVEL) ||
-        request[KEY_RESOURCES].type() != Json::arrayValue ||
-        request[KEY_LEVEL].type() != Json::stringValue)
-    {
-      throw OrthancException(ErrorCode_BadFileFormat, "Must provide a JSON body containing fields " +
-                             std::string(KEY_RESOURCES) + " and " + std::string(KEY_LEVEL));
-    }
-
-    ResourceType level = StringToResourceType(request[KEY_LEVEL].asCString());
-    
-    std::string localAet = Toolbox::GetJsonStringField
-      (request, KEY_LOCAL_AET, context.GetDefaultLocalApplicationEntityTitle());
-    std::string targetAet = Toolbox::GetJsonStringField
-      (request, KEY_TARGET_AET, context.GetDefaultLocalApplicationEntityTitle());
-
-    const RemoteModalityParameters source =
-      MyGetModalityUsingSymbolicName(call.GetUriComponent("id", ""));
 
     std::unique_ptr<DicomMoveScuJob> job(new DicomMoveScuJob(context));
 
-    job->SetQueryFormat(DicomToJsonFormat_Short);
-    
-    // QueryAccessor query(call);
+    ParseMoveGetJob(*job, request, call);
+
+    std::string targetAet = Toolbox::GetJsonStringField
+      (request, KEY_TARGET_AET, context.GetDefaultLocalApplicationEntityTitle());
     job->SetTargetAet(targetAet);
-    job->SetLocalAet(localAet);
-    job->SetRemoteModality(source);
-
-    if (request.isMember(KEY_TIMEOUT))
-    {
-      job->SetTimeout(SerializationToolbox::ReadUnsignedInteger(request, KEY_TIMEOUT));
-    }
-
-    for (Json::Value::ArrayIndex i = 0; i < request[KEY_RESOURCES].size(); i++)
-    {
-      DicomMap resource;
-      FromDcmtkBridge::FromJson(resource, request[KEY_RESOURCES][i], "Resources elements");
-
-      resource.SetValue(DICOM_TAG_QUERY_RETRIEVE_LEVEL, std::string(ResourceTypeToDicomQueryRetrieveLevel(level)), false);
-
-      job->AddQuery(resource);      
-    }
 
     OrthancRestApi::GetApi(call).SubmitCommandsJob
       (call, job.release(), true /* synchronous by default */, request);
     return;
   }
 
+
+  /***************************************************************************
+   * DICOM C-Get SCU
+   ***************************************************************************/
+  
+  static void DicomGet(RestApiPostCall& call)
+  {
+    if (call.IsDocumentation())
+    {
+      OrthancRestApi::DocumentSubmitCommandsJob(call);
+      call.GetDocumentation()
+        .SetTag("Networking")
+        .SetSummary("Trigger C-GET SCU")
+        .SetDescription("Start a C-GET SCU command as a job, in order to retrieve DICOM resources "
+                        "from a remote DICOM modality whose identifier is provided in the URL: ")
+                        // "https://orthanc.uclouvain.be/book/users/rest.html#performing-c-move")   // TODO-GET
+        .SetRequestField(KEY_RESOURCES, RestApiCallDocumentation::Type_JsonListOfObjects,
+                         "List of queries identifying all the DICOM resources to be sent.  "
+                         "Usage of wildcards is prohibited and the query shall only contain DICOM ID tags.  "
+                         "Additionally, you may provide SOPClassesInStudy to limit the scope of the DICOM "
+                         "negotiation to certain SOPClassUID or to present uncommon SOPClassUID during "
+                         "the DICOM negotation.  By default, "
+                         "Orhanc will propose the most 120 common SOPClassUIDs.", true)
+        .SetRequestField(KEY_QUERY, RestApiCallDocumentation::Type_JsonObject,
+                         "A query object identifying all the DICOM resources to be retrieved", true)
+        .SetRequestField(KEY_LOCAL_AET, RestApiCallDocumentation::Type_String,
+                         "Local AET that is used for this commands, defaults to `DicomAet` configuration option. "
+                         "Ignored if `DicomModalities` already sets `LocalAet` for this modality.", false)
+        .SetRequestField(KEY_TIMEOUT, RestApiCallDocumentation::Type_Number,
+                         "Timeout for the C-GET command, in seconds", false)
+        .SetUriArgument("id", "Identifier of the modality of interest");
+      return;
+    }
+
+    ServerContext& context = OrthancRestApi::GetContext(call);
+    Json::Value request;
+
+    std::unique_ptr<DicomGetScuJob> job(new DicomGetScuJob(context));
+
+    ParseMoveGetJob(*job, request, call);
+
+    OrthancRestApi::GetApi(call).SubmitCommandsJob
+      (call, job.release(), true /* synchronous by default */, request);
+    return;
+  }
 
 
   /***************************************************************************
@@ -2213,7 +2312,7 @@ namespace Orthanc
       DicomFindAnswers answers(true);
 
       {
-        DicomControlUserConnection connection(GetAssociationParameters(call, json));
+        DicomControlUserConnection connection(GetAssociationParameters(call, json), ScuOperationFlags_FindWorklist);
         connection.FindWorklist(answers, *query);
       }
 
@@ -2544,6 +2643,7 @@ namespace Orthanc
     Register("/modalities/{id}/store", DicomStore);
     Register("/modalities/{id}/store-straight", DicomStoreStraight);  // New in 1.6.1
     Register("/modalities/{id}/move", DicomMove);
+    Register("/modalities/{id}/get", DicomGet);
     Register("/modalities/{id}/configuration", GetModalityConfiguration);  // New in 1.8.1
 
     // For Query/Retrieve

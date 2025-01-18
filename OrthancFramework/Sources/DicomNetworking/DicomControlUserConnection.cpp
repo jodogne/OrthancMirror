@@ -234,15 +234,58 @@ namespace Orthanc
 
 
 
-  void DicomControlUserConnection::SetupPresentationContexts()
+  void DicomControlUserConnection::SetupPresentationContexts(
+    ScuOperationFlags scuOperation,
+    const std::set<std::string>& acceptedStorageSopClasses,
+    const std::list<DicomTransferSyntax>& proposedStorageTransferSyntaxes)
   {
     assert(association_.get() != NULL);
-    association_->ProposeGenericPresentationContext(UID_VerificationSOPClass);
-    association_->ProposeGenericPresentationContext(UID_FINDPatientRootQueryRetrieveInformationModel);
-    association_->ProposeGenericPresentationContext(UID_MOVEPatientRootQueryRetrieveInformationModel);
-    association_->ProposeGenericPresentationContext(UID_FINDStudyRootQueryRetrieveInformationModel);
-    association_->ProposeGenericPresentationContext(UID_MOVEStudyRootQueryRetrieveInformationModel);
-    association_->ProposeGenericPresentationContext(UID_FINDModalityWorklistInformationModel);
+
+    if ((scuOperation & ScuOperationFlags_Echo) != 0)
+    {
+      association_->ProposeGenericPresentationContext(UID_VerificationSOPClass);
+    }
+
+    if ((scuOperation & ScuOperationFlags_FindPatient) != 0)
+    {
+      association_->ProposeGenericPresentationContext(UID_FINDPatientRootQueryRetrieveInformationModel);
+    }
+
+    if ((scuOperation & ScuOperationFlags_FindStudy) != 0)
+    {
+      association_->ProposeGenericPresentationContext(UID_FINDStudyRootQueryRetrieveInformationModel);
+    }
+
+    if ((scuOperation & ScuOperationFlags_FindWorklist) != 0)
+    {
+      association_->ProposeGenericPresentationContext(UID_FINDModalityWorklistInformationModel);
+    }
+
+    if ((scuOperation & ScuOperationFlags_MovePatient) != 0)
+    {
+      association_->ProposeGenericPresentationContext(UID_MOVEPatientRootQueryRetrieveInformationModel);
+    }
+
+    if ((scuOperation & ScuOperationFlags_MoveStudy) != 0)
+    {
+      association_->ProposeGenericPresentationContext(UID_MOVEStudyRootQueryRetrieveInformationModel);
+    }
+
+    if ((scuOperation & ScuOperationFlags_Get) != 0)
+    {
+      association_->ProposeGenericPresentationContext(UID_GETStudyRootQueryRetrieveInformationModel);
+      association_->ProposeGenericPresentationContext(UID_GETPatientRootQueryRetrieveInformationModel);
+
+      if (acceptedStorageSopClasses.size() == 0)
+      {
+        throw OrthancException(ErrorCode_BadSequenceOfCalls); // the acceptedStorageSopClassUids should always be defined for a C-Get
+      }
+
+      for (std::set<std::string>::const_iterator it = acceptedStorageSopClasses.begin(); it != acceptedStorageSopClasses.end(); ++it)
+      {
+        association_->ProposePresentationContext(*it, proposedStorageTransferSyntaxes, DicomAssociationRole_Scp);
+      }
+    }
   }
     
 
@@ -350,6 +393,21 @@ namespace Orthanc
     }
   }
 
+  void MoveProgressCallback(void *callbackData,
+                            T_DIMSE_C_MoveRQ *request,
+                            int responseCount, 
+                            T_DIMSE_C_MoveRSP *response)
+  {
+    DicomControlUserConnection::IProgressListener* listener = reinterpret_cast<DicomControlUserConnection::IProgressListener*>(callbackData);
+    if (listener)
+    {
+      listener->OnProgressUpdated(response->NumberOfRemainingSubOperations,
+                                  response->NumberOfCompletedSubOperations,
+                                  response->NumberOfFailedSubOperations,
+                                  response->NumberOfWarningSubOperations);
+    }
+  }
+
     
   void DicomControlUserConnection::MoveInternal(const std::string& targetAet,
                                                 ResourceType level,
@@ -391,7 +449,8 @@ namespace Orthanc
     DcmDataset* statusDetail = NULL;
     DcmDataset* responseIdentifiers = NULL;
     OFCondition cond = DIMSE_moveUser(
-      &association_->GetDcmtkAssociation(), presID, &request, dataset, /*moveCallback*/ NULL, NULL,
+      &association_->GetDcmtkAssociation(), presID, &request, dataset, 
+      (progressListener_ != NULL ? MoveProgressCallback : NULL), progressListener_,
       /*opt_blockMode*/ (parameters_.HasTimeout() ? DIMSE_NONBLOCKING : DIMSE_BLOCKING),
       /*opt_dimse_timeout*/ parameters_.GetTimeout(),
       &association_->GetDcmtkNetwork(), /*subOpCallback*/ NULL, NULL,
@@ -413,6 +472,14 @@ namespace Orthanc
       OFString str;
       CLOG(TRACE, DICOM) << "Received Final Move Response:" << std::endl
                          << DIMSE_dumpMessage(str, response, DIMSE_INCOMING);
+
+      if (progressListener_ != NULL)
+      {
+        progressListener_->OnProgressUpdated(response.NumberOfRemainingSubOperations,
+                                             response.NumberOfCompletedSubOperations,
+                                             response.NumberOfFailedSubOperations,
+                                             response.NumberOfWarningSubOperations);
+      }
     }
     
     /**
@@ -445,11 +512,240 @@ namespace Orthanc
   }
     
 
-  DicomControlUserConnection::DicomControlUserConnection(const DicomAssociationParameters& params) :
-    parameters_(params),
-    association_(new DicomAssociation)
+  void DicomControlUserConnection::Get(const DicomMap& findResult,
+                                       CGetInstanceReceivedCallback instanceReceivedCallback,
+                                       void* callbackContext)
   {
-    SetupPresentationContexts();
+    assert(association_.get() != NULL);
+    association_->Open(parameters_);
+
+    std::unique_ptr<ParsedDicomFile> query(
+      ConvertQueryFields(findResult, parameters_.GetRemoteModality().GetManufacturer()));
+    DcmDataset* queryDataset = query->GetDcmtkObject().getDataset();
+
+    std::string remoteAet;
+    std::string remoteIp;
+    std::string calledAet;
+
+    association_->GetAssociationParameters(remoteAet, remoteIp, calledAet);
+
+    const char* sopClass = NULL;
+    const std::string tmp = findResult.GetValue(DICOM_TAG_QUERY_RETRIEVE_LEVEL).GetContent();
+    ResourceType level = StringToResourceType(tmp.c_str());
+    switch (level)
+    {
+      case ResourceType_Patient:
+        sopClass = UID_GETPatientRootQueryRetrieveInformationModel;
+        break;
+      case ResourceType_Study:
+      case ResourceType_Series:
+      case ResourceType_Instance:
+        sopClass = UID_GETStudyRootQueryRetrieveInformationModel;
+        break;
+      default:
+        throw OrthancException(ErrorCode_InternalError);
+    }
+
+    // Figure out which of the accepted presentation contexts should be used
+    int cgetPresID = ASC_findAcceptedPresentationContextID(&association_->GetDcmtkAssociation(), sopClass);
+    if (cgetPresID == 0)
+    {
+      throw OrthancException(ErrorCode_DicomGetUnavailable,
+                             "Remote AET is " + parameters_.GetRemoteModality().GetApplicationEntityTitle());
+    }
+
+    T_DIMSE_Message msgGetRequest;
+    memset((char*)&msgGetRequest, 0, sizeof(msgGetRequest));
+    msgGetRequest.CommandField = DIMSE_C_GET_RQ;
+
+    T_DIMSE_C_GetRQ* request = &(msgGetRequest.msg.CGetRQ);
+    request->MessageID = association_->GetDcmtkAssociation().nextMsgID++;
+    strncpy(request->AffectedSOPClassUID, sopClass, DIC_UI_LEN);
+    request->Priority = DIMSE_PRIORITY_MEDIUM;
+    request->DataSetType = DIMSE_DATASET_PRESENT;
+
+    {
+      OFString str;
+      CLOG(TRACE, DICOM) << "Sending Get Request:" << std::endl
+                         << DIMSE_dumpMessage(str, *request, DIMSE_OUTGOING, NULL, cgetPresID);
+    }
+    
+    OFCondition cond = DIMSE_sendMessageUsingMemoryData(
+          &(association_->GetDcmtkAssociation()), cgetPresID, &msgGetRequest, NULL /* statusDetail */, queryDataset,
+          NULL, NULL, NULL /* commandSet */);
+      
+    if (cond.bad())
+    {
+        OFString tempStr;
+        CLOG(TRACE, DICOM) << "Failed sending C-GET request: " << DimseCondition::dump(tempStr, cond);
+        // return cond;
+    }
+
+    // equivalent to handleCGETSession in DCMTK
+    bool continueSession = true;
+
+    // As long we want to continue (usually, as long as we receive more objects,
+    // i.e. the final C-GET response has not arrived yet)
+    while (continueSession)
+    {
+        T_DIMSE_Message rsp;
+        // Make sure everything is zeroed (especially options)
+        memset((char*)&rsp, 0, sizeof(rsp));
+
+        // DcmDataset* statusDetail = NULL;
+        T_ASC_PresentationContextID cmdPresId = 0;
+
+        OFCondition result = DIMSE_receiveCommand(&(association_->GetDcmtkAssociation()),
+                                                  (parameters_.HasTimeout() ? DIMSE_NONBLOCKING : DIMSE_BLOCKING),
+                                                  parameters_.GetTimeout(),
+                                                  &cmdPresId,
+                                                  &rsp,
+                                                  NULL /* statusDetail */,
+                                                  NULL /* not interested in the command set */);
+
+        if (result.bad())
+        {
+          OFString tempStr;
+          CLOG(TRACE, DICOM) << "Failed receiving DIMSE command: " << DimseCondition::dump(tempStr, result);
+          // delete statusDetail;
+          break;  // TODO: return value
+        }
+        // Handle C-GET Response
+        if (rsp.CommandField == DIMSE_C_GET_RSP)
+        {
+          {
+            OFString tempStr;
+            CLOG(TRACE, DICOM) << "Received C-GET Response: " << std::endl
+              << DIMSE_dumpMessage(tempStr, rsp, DIMSE_INCOMING, NULL, cmdPresId);
+          }
+
+          if (progressListener_ != NULL)
+          {
+            progressListener_->OnProgressUpdated(rsp.msg.CGetRSP.NumberOfRemainingSubOperations,
+                                                  rsp.msg.CGetRSP.NumberOfCompletedSubOperations,
+                                                  rsp.msg.CGetRSP.NumberOfFailedSubOperations,
+                                                  rsp.msg.CGetRSP.NumberOfWarningSubOperations);
+          }
+
+          if (rsp.msg.CGetRSP.DimseStatus == 0x0000)  // final success message
+          {
+            continueSession = false;
+          }
+        }
+        // Handle C-STORE Request
+        else if (rsp.CommandField == DIMSE_C_STORE_RQ)
+        {
+          {
+            OFString tempStr;
+            CLOG(TRACE, DICOM) << "Received C-STORE Request: " << std::endl
+              << DIMSE_dumpMessage(tempStr, rsp, DIMSE_INCOMING, NULL, cmdPresId);
+          }
+
+          T_DIMSE_C_StoreRQ* storeRequest = &(rsp.msg.CStoreRQ);
+
+          // Check if dataset is announced correctly
+          if (rsp.msg.CStoreRQ.DataSetType == DIMSE_DATASET_NULL)
+          {
+            CLOG(WARNING, DICOM) << "C-GET SCU handler: Incoming C-STORE with no dataset";
+          }
+
+          Uint16 desiredCStoreReturnStatus = 0;
+          DcmDataset* dataObject = NULL;
+
+          // Receive dataset
+          result = DIMSE_receiveDataSetInMemory(&(association_->GetDcmtkAssociation()),
+                                                  (parameters_.HasTimeout() ? DIMSE_NONBLOCKING : DIMSE_BLOCKING),
+                                                  parameters_.GetTimeout(),
+                                                  &cmdPresId,
+                                                  &dataObject,
+                                                  NULL, NULL);
+
+          if (result.bad())
+          {
+            LOG(WARNING) << "C-GET SCU handler: Failed to receive dataset: " << result.text();
+            desiredCStoreReturnStatus = STATUS_STORE_Error_CannotUnderstand;
+          }
+          else
+          {
+            // callback the OrthancServer with the received data
+            if (instanceReceivedCallback != NULL)
+            {
+              desiredCStoreReturnStatus = instanceReceivedCallback(callbackContext, *dataObject, remoteAet, remoteIp, calledAet);
+            }
+
+            // send the Store response
+            T_DIMSE_Message storeResponse;
+            memset((char*)&storeResponse, 0, sizeof(storeResponse));
+            storeResponse.CommandField         = DIMSE_C_STORE_RSP;
+
+            T_DIMSE_C_StoreRSP& storeRsp       = storeResponse.msg.CStoreRSP;
+            storeRsp.MessageIDBeingRespondedTo = storeRequest->MessageID;
+            storeRsp.DimseStatus               = desiredCStoreReturnStatus;
+            storeRsp.DataSetType               = DIMSE_DATASET_NULL;
+
+            OFStandard::strlcpy(
+                storeRsp.AffectedSOPClassUID, storeRequest->AffectedSOPClassUID, sizeof(storeRsp.AffectedSOPClassUID));
+            OFStandard::strlcpy(
+                storeRsp.AffectedSOPInstanceUID, storeRequest->AffectedSOPInstanceUID, sizeof(storeRsp.AffectedSOPInstanceUID));
+            storeRsp.opts = O_STORE_AFFECTEDSOPCLASSUID | O_STORE_AFFECTEDSOPINSTANCEUID;
+
+            result = DIMSE_sendMessageUsingMemoryData(&(association_->GetDcmtkAssociation()), 
+                                                      cmdPresId, 
+                                                      &storeResponse, NULL /* statusDetail */, NULL /* dataObject */,
+                                                      NULL, NULL, NULL /* commandSet */);
+            if (result.bad())
+            {
+              continueSession = false;
+            }
+            else
+            {
+              OFString tempStr;
+              CLOG(TRACE, DICOM) << "Sent C-STORE Response: " << std::endl
+                << DIMSE_dumpMessage(tempStr, storeResponse, DIMSE_OUTGOING, NULL, cmdPresId);
+            }
+          }
+        }
+        // Handle other DIMSE command (error since other command than GET/STORE not expected)
+        else
+        {
+          CLOG(WARNING, DICOM) << "Expected C-GET response or C-STORE request but received DIMSE command 0x"
+                               << std::hex << std::setfill('0') << std::setw(4)
+                               << static_cast<unsigned int>(rsp.CommandField);
+          
+          result          = DIMSE_BADCOMMANDTYPE;
+          continueSession = false;
+        }
+
+        // delete statusDetail; // should be NULL if not existing or added to response list
+        // statusDetail = NULL;
+    }
+    /* All responses received or break signal occurred */
+
+    // return result;
+}
+
+
+  DicomControlUserConnection::DicomControlUserConnection(const DicomAssociationParameters& params, ScuOperationFlags scuOperation) :
+    parameters_(params),
+    association_(new DicomAssociation),
+    progressListener_(NULL)
+  {
+    assert((scuOperation & ScuOperationFlags_Get) == 0);  // you must provide acceptedStorageSopClassUids for Get SCU
+    std::set<std::string> emptyStorageSopClasses;
+    std::list<DicomTransferSyntax> emptyStorageTransferSyntaxes;
+
+    SetupPresentationContexts(scuOperation, emptyStorageSopClasses, emptyStorageTransferSyntaxes);
+  }
+    
+  DicomControlUserConnection::DicomControlUserConnection(const DicomAssociationParameters& params, 
+                                                         ScuOperationFlags scuOperation,
+                                                         const std::set<std::string>& acceptedStorageSopClasses,
+                                                         const std::list<DicomTransferSyntax>& proposedStorageTransferSyntaxes) :
+    parameters_(params),
+    association_(new DicomAssociation),
+    progressListener_(NULL)
+  {
+    SetupPresentationContexts(scuOperation, acceptedStorageSopClasses, proposedStorageTransferSyntaxes);
   }
     
 
