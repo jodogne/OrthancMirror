@@ -32,17 +32,17 @@
 #include "DicomFindAnswers.h"
 
 #include <boost/noncopyable.hpp>
+#include <list>
 
 namespace Orthanc
 {
   class DicomAssociation;  // Forward declaration for PImpl design pattern
   
-  typedef uint16_t (*CGetInstanceReceivedCallback)(void *callbackContext,
-                                                   DcmDataset& dataset,
-                                                   const std::string& remoteAet,
-                                                   const std::string& remoteIp,
-                                                   const std::string& calledAet
-                                                   );
+  typedef uint16_t (*CGetInstanceReceivedCallback) (void *callbackContext,
+                                                    DcmDataset& dataset,
+                                                    const std::string& remoteAet,
+                                                    const std::string& remoteIp,
+                                                    const std::string& calledAet);
 
 
   enum ScuOperationFlags
