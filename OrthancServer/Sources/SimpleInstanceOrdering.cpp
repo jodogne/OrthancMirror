@@ -47,7 +47,9 @@ namespace Orthanc
 
 
   public:
-    Instance(const std::string& instanceId, uint32_t indexInSeries, FileInfo fileInfo) :
+    Instance(const std::string& instanceId,
+             uint32_t indexInSeries,
+             const FileInfo& fileInfo) :
       instanceId_(instanceId),
       indexInSeries_(indexInSeries),
       fileInfo_(fileInfo)

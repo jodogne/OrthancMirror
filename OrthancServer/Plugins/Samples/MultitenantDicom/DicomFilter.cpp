@@ -260,7 +260,6 @@ void DicomFilter::GetAcceptedSopClasses(std::set<std::string>& sopClasses, size_
   {
     sopClasses.insert(*it);
     count++;
-    it++;
+    ++it;
   }
-
 }

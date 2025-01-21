@@ -13,7 +13,7 @@ constParameter:../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.cpp
 knownArgument:../../OrthancFramework/UnitTestsSources/ImageTests.cpp
 knownConditionTrueFalse:../../OrthancServer/Plugins/Engine/OrthancPlugins.cpp
 nullPointer:../../OrthancFramework/UnitTestsSources/RestApiTests.cpp:321
-stlFindInsert:../../OrthancFramework/Sources/DicomFormat/DicomMap.cpp:1510
+stlFindInsert:../../OrthancFramework/Sources/DicomFormat/DicomMap.cpp:1525
 stlFindInsert:../../OrthancFramework/Sources/RestApi/RestApiCallDocumentation.cpp:166
 stlFindInsert:../../OrthancFramework/Sources/RestApi/RestApiCallDocumentation.cpp:74
 stlFindInsert:../../OrthancServer/Sources/Database/MainDicomTagsRegistry.cpp:65
@@ -27,7 +27,7 @@ syntaxError:../../OrthancFramework/UnitTestsSources/ZipTests.cpp:133
 syntaxError:../../OrthancServer/UnitTestsSources/UnitTestsMain.cpp:322
 uninitMemberVar:../../OrthancServer/Sources/ServerJobs/StorageCommitmentScpJob.cpp:417
 unreadVariable:../../OrthancFramework/Sources/FileStorage/StorageAccessor.cpp
-unreadVariable:../../OrthancServer/Sources/OrthancRestApi/OrthancRestModalities.cpp:1123
+unreadVariable:../../OrthancServer/Sources/OrthancRestApi/OrthancRestModalities.cpp:1173
 unusedFunction
 useInitializationList:../../OrthancFramework/Sources/Images/PngReader.cpp:91
 useInitializationList:../../OrthancFramework/Sources/Images/PngWriter.cpp:99

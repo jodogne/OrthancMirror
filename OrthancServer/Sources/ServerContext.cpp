@@ -2128,7 +2128,7 @@ namespace Orthanc
     {
       sopClasses.insert(*it);
       count++;
-      it++;
+      ++it;
     }
   }
 
