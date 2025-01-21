@@ -87,13 +87,13 @@ diff -urEb dcmtk-3.6.9.orig/oficonv/include/dcmtk/oficonv/iconv.h dcmtk-3.6.9/of
  #define OFICONV_CITRUS_WC_T_DEFINED
 diff -urEb dcmtk-3.6.9.orig/oficonv/libsrc/citrus_lock.h dcmtk-3.6.9/oficonv/libsrc/citrus_lock.h
 --- dcmtk-3.6.9.orig/oficonv/libsrc/citrus_lock.h	2025-01-21 15:53:12.646715143 +0100
-+++ dcmtk-3.6.9/oficonv/libsrc/citrus_lock.h	2025-01-21 16:03:17.310652376 +0100
++++ dcmtk-3.6.9/oficonv/libsrc/citrus_lock.h	2025-01-21 16:43:36.463693959 +0100
 @@ -31,7 +31,7 @@
  
  #ifdef WITH_THREADS
  
 -#ifdef HAVE_WINDOWS_H
-+#if defined(HAVE_WINDOWS_H) && defined(HAVE_PROTOTYPE_TRYACQUIRESRWLOCKSHARE)
++#if defined(HAVE_WINDOWS_H) && !defined(HAVE_PTHREAD_H)  /* Favor pthread if available, for MinGW */
  
  #include <windows.h>
  #define WLOCK(lock)  AcquireSRWLockExclusive(lock);
