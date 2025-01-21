@@ -374,7 +374,7 @@ namespace Orthanc
     {
       case ResourceType_Patient:
         return ArchiveResourceType_Patient;
-      case ArchiveResourceType_Study:
+      case ResourceType_Study:
        return ArchiveResourceType_PatientInfoFromStudy;
       case ResourceType_Series:
         return ArchiveResourceType_Series;
