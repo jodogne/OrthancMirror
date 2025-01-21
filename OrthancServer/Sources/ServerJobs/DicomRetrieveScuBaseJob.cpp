@@ -155,6 +155,18 @@ namespace Orthanc
   }
 
 
+  DicomRetrieveScuBaseJob::DicomRetrieveScuBaseJob(ServerContext &context) :
+    context_(context),
+    query_(false /* this is not for worklists */),
+    queryFormat_(DicomToJsonFormat_Short),
+    nbRemainingSubOperations_(0),
+    nbCompletedSubOperations_(0),
+    nbFailedSubOperations_(0),
+    nbWarningSubOperations_(0)
+  {
+  }
+
+
   DicomRetrieveScuBaseJob::DicomRetrieveScuBaseJob(ServerContext& context,
                                                    const Json::Value& serialized) :
     SetOfCommandsJob(new Unserializer(*this), serialized),
