@@ -530,7 +530,7 @@ namespace Orthanc
 
       Instance(const std::string& id,
                uint32_t index,
-               FileInfo fileInfo) : 
+               const FileInfo& fileInfo) :
         id_(id),
         index_(index),
         fileInfo_(fileInfo)

@@ -51,7 +51,7 @@ namespace Orthanc
                           bool allowNewSopInstanceUid);
     
   public:
-    DcmtkTranscoder(unsigned int maxConcurrentExecutions);
+    explicit DcmtkTranscoder(unsigned int maxConcurrentExecutions);
 
     void SetLossyQuality(unsigned int quality);
 

@@ -1588,7 +1588,7 @@ namespace Orthanc
 
   void ParseMoveGetJob(DicomRetrieveScuBaseJob& job, Json::Value& request, RestApiPostCall& call)
   {
-    ServerContext& context = OrthancRestApi::GetContext(call);
+    const ServerContext& context = OrthancRestApi::GetContext(call);
 
     if (!call.ParseJsonRequest(request) ||
         request.type() != Json::objectValue ||

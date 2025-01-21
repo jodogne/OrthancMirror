@@ -783,7 +783,7 @@ static bool CheckSameJson(const Json::Value& a,
 
 
 static bool CheckIdempotentSerialization(IJobUnserializer& unserializer,
-                                         IJob& job)
+                                         const IJob& job)
 {
   Json::Value a = 42;
   
@@ -809,7 +809,7 @@ static bool CheckIdempotentSerialization(IJobUnserializer& unserializer,
 
 
 static bool CheckIdempotentSetOfInstances(IJobUnserializer& unserializer,
-                                          SetOfInstancesJob& job)
+                                          const SetOfInstancesJob& job)
 {
   Json::Value a = 42;
   
