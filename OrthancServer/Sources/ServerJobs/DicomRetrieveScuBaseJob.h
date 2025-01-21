@@ -96,12 +96,7 @@ namespace Orthanc
 
     virtual void Retrieve(const DicomMap &findAnswer) = 0;
 
-    explicit DicomRetrieveScuBaseJob(ServerContext &context) : 
-    context_(context),
-    query_(false /* this is not for worklists */),
-    queryFormat_(DicomToJsonFormat_Short)
-    {
-    }
+    explicit DicomRetrieveScuBaseJob(ServerContext &context);
 
     DicomRetrieveScuBaseJob(ServerContext &context,
                             const Json::Value &serialized);
