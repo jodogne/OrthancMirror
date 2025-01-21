@@ -143,6 +143,32 @@ TEST(ServerConfig, AcceptedSopClasses)
       ASSERT_TRUE(s.find("1.2.3.4") != s.end());
     }
 
+    { // accept the default ones + a custom one
+      acceptedStorageClasses.clear();
+      acceptedStorageClasses.push_back("1.2.840.*");
+      acceptedStorageClasses.push_back("1.2.3.4");
+      rejectedStorageClasses.clear();
+      context.SetAcceptedSopClasses(acceptedStorageClasses, rejectedStorageClasses);
+
+      context.GetAcceptedSopClasses(s, 0);
+      ASSERT_LE(100u, s.size());
+      ASSERT_TRUE(s.find("1.2.3.4") != s.end());
+      ASSERT_TRUE(s.find("1.2.840.10008.5.1.4.1.1.12.2.1") != s.end());
+    }
+
+    { // test the ? in regex to replace a single char
+      acceptedStorageClasses.clear();
+      acceptedStorageClasses.push_back("1.2.840.10008.5.1.4.1.1.12.2.?");
+      acceptedStorageClasses.push_back("1.2.3.4");
+      rejectedStorageClasses.clear();
+      context.SetAcceptedSopClasses(acceptedStorageClasses, rejectedStorageClasses);
+
+      context.GetAcceptedSopClasses(s, 0);
+      ASSERT_EQ(2u, s.size());
+      ASSERT_TRUE(s.find("1.2.3.4") != s.end());
+      ASSERT_TRUE(s.find("1.2.840.10008.5.1.4.1.1.12.2.1") != s.end());
+    }
+
   }
 
   context.Stop();

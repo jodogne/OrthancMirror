@@ -207,11 +207,22 @@
   // to all storage classes defined in DCMTK in case of 
   // C-STORE SCP and to a reduced list of 120 common storage
   // classes in case of C-GET SCU.
+  // List of DCMTK default Storage SOP Classes:
+  // https://github.com/DCMTK/dcmtk/blob/410ffe2019b9db6a8f4036daac742a6f5e4d36c2/dcmdata/libsrc/dcuid.cc#L664
   // Each entry can contain wildcards ("?" or "*") to add
-  // subsets of SOP classes that are defined in DCMTK.
+  // subsets of SOP classes that are defined in DCMTK defaults.
+  // "?" accepts any single character at that position.
+  // "*" accepts any string value at that position.
   // If you want to add a a SOP class that is not defined in
-  // DCMTK, you must add it explicitely.
+  // DCMTK defaults, you must add it explicitely.
   // (new in Orthanc 1.12.6)
+  // Example to add a non standard class
+  // and keep the default ones:
+  // "AcceptedSopClasses" : [
+  //   "1.3.12.2.1107.5.9.1",
+  //   "1.2.840.*"
+  // ]
+  // Example to limit to 2 SOP Classes:
   // "AcceptedSopClasses" : [
   //   "1.2.840.10008.5.1.4.1.1.2",
   //   "1.2.840.10008.5.1.4.1.1.4"
