@@ -651,7 +651,7 @@ namespace Orthanc
           s += " " + std::string(GetTransferSyntaxUid(*it));
         }
         
-        throw OrthancException(ErrorCode_NotImplemented, "Cannot transcode instance of SOPClassUID " + 
+        throw OrthancException(ErrorCode_InternalError, "Cannot transcode instance of SOPClassUID " + 
                                sopClassUid + " from " +
                                std::string(GetTransferSyntaxUid(sourceSyntax)) +
                                " to one of [" + s + " ]");
