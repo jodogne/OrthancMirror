@@ -1101,20 +1101,6 @@ namespace Orthanc
     class PluginHttpOutput : public boost::noncopyable
     {
     private:
-      // enum MultipartState
-      // {
-      //   MultipartState_None,
-      //   MultipartState_FirstPart,
-      //   MultipartState_SecondPart,
-      //   MultipartState_NextParts
-      // };
-
-      // enum StreamState
-      // {
-      //   StreamState_None,
-      //   StreamState_Opened
-      // };
-
       enum State
       {
         State_None,
@@ -1122,46 +1108,34 @@ namespace Orthanc
         State_MultipartSecondPart,
         State_MultipartNextParts,
         State_WritingStream
-
       };
-
-      // enum StreamState
-      // {
-      //   StreamState_None,
-      //   StreamState_Opened
-      // };
 
       HttpOutput&                 output_;
       std::unique_ptr<std::string>  errorDetails_;
       bool                        logDetails_;
-      // MultipartState              multipartState_;
+      State                       state_;
       std::string                 multipartSubType_;
       std::string                 multipartContentType_;
       std::string                 multipartFirstPart_;
       std::map<std::string, std::string>  multipartFirstHeaders_;
-      // StreamState                 streamState_;
-      State                       state_;
 
     public:
       explicit PluginHttpOutput(HttpOutput& output) :
         output_(output),
         logDetails_(false),
         state_(State_None)
-        // multipartState_(MultipartState_None),
-        // streamState_(StreamState_None)
       {
       }
 
       HttpOutput& GetOutput()
       {
-        // if (multipartState_ == MultipartState_None)
         if (state_ == State_None)
         {
           return output_;
         }
         else
         {
-          // Must use "SendMultipartItem()" on multipart streams or SendStreamChunk
+          // Must use "SendMultipartItem()" on multipart streams or "SendStreamChunk()"
           throw OrthancException(ErrorCode_BadSequenceOfCalls);
         }
       }
@@ -1198,14 +1172,12 @@ namespace Orthanc
       void StartMultipart(const char* subType,
                           const char* contentType)
       {
-        // if (multipartState_ != MultipartState_None)
         if (state_ != State_None)
         {
           throw OrthancException(ErrorCode_BadSequenceOfCalls);
         }
         else
         {
-          // multipartState_ = MultipartState_FirstPart;
           state_ = State_MultipartFirstPart;
           multipartSubType_ = subType;
           multipartContentType_ = contentType;
