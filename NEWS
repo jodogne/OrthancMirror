@@ -4,15 +4,15 @@ Pending changes in the mainline
 General
 -------
 
-* DICOM:
-  - Added support for C-GET SCU.
-  - Added a configuration "AcceptedSopClasses" and "RejectedSopClasses" to limit 
-    the SOP classes accepted by Orthanc when acting as C-STORE SCP.
-  - New config option "DicomDefaultRetrieveMethod" to define wheter Orthanc uses C-MOVE or C-GET 
-    to retrieve a resource after a C-Find (when calling /queries/.../retrieve).
-    This configuration can be overriden for each modality in "DicomModalities->..->RetrieveMethod".
-    Default value: "C-MOVE" to keep the backward compatibility.
-* New configuration options:
+* DICOM: Added support for C-GET SCU, through the new route "/modalities/{id}/get".
+* Added new configuration options:
+  - "AcceptedSopClasses" and "RejectedSopClasses" to limit the SOP classes
+    accepted by Orthanc when acting as C-STORE SCP.
+  - "DicomDefaultRetrieveMethod" to define whether Orthanc uses C-MOVE or
+    C-GET to retrieve a resource after a C-FIND (if calling "/queries/.../retrieve").
+    This configuration can be overridden for each DICOM modality by setting
+    the "RetrieveMethod" field in the "DicomModalities" section.
+    Default value: "C-MOVE" to preserve backward compatibility.
   - "MaximumConcurrentDcmtkTranscoders" to reduce CPU and memory usage by limiting
     the number of concurrent DCMTK transcoders that are simultaneously running
     at any given time.
@@ -20,28 +20,29 @@ General
 Plugins
 -------
 
-* SDK: added OrthancPluginStartStreamAnswer() and OrthancPluginSendStreamChunk() to allow
-  sending HTTP response by chunks.
+* SDK: Added "OrthancPluginStartStreamAnswer()" and "OrthancPluginSendStreamChunk()"
+  to allow the sending of HTTP responses by chunks.
 
 Maintenance
 -----------
 
-* Fix: With "ExtendedFind", using tools/find while querying against ModalitiesInStudy 
-  was not compatible with pagination which prevented, amongst others, to use the 
-  modality filter in OE2.
-* When the "HttpsCACertificates" configuration is empty.  Orthanc will now use the
-  operating system native CA store (if any).  This is equivalent to the --ca-native
+* Fix: In the "ExtendedFind" mode, using "tools/find" while querying against
+  "ModalitiesInStudy" was not compatible with pagination. This notably prevented
+  the use of the modality filter in Orthanc Explorer 2.
+* If the "HttpsCACertificates" configuration is empty, Orthanc now uses the
+  operating system native CA store (if any). This is equivalent to the "--ca-native"
   curl option.
-* Housekeeper plugin: fixed the "Force" configuration that was ineffective.
-* Housekeeper plugin: allow transcoding to lossy transfer syntax.  Orthanc will keep
-  the SOPInstanceUID untouched in this case.
-* /archive: The numbers in the filenames now match the InstanceNumber when possible.
-  When not, the files are now, at least, ordered in the same order as the instances 
-  in the series.
-* optimized /archive to use the "ExtendedFind" extension and reduce the number of
-  SQL queries.
+* Housekeeper plugin:
+  - Fix the "Force" configuration that was ineffective.
+  - Allow transcoding to lossy transfer syntax. Orthanc will leave
+    the "SOPInstanceUID" DICOM tag untouched in this case.
+* In the "/archive" routes:
+  - The numbers in the filenames now match the "InstanceNumber" tag whenever possible.
+    When not, the files are ordered in the same order as the instances in the series.
+  - Added optimization to use the "ExtendedFind" extension, hereby reducing the number
+    of SQL queries.
 * By default, DCMTK now uses its own "oficonv" library for character set conversion.
-  This can be tuned using the new CMake option "-DDCMTK_LOCALE_BACKEND=oficonv"
+  This can be tuned using the new CMake option "-DDCMTK_LOCALE_BACKEND=oficonv".
 * Upgraded dependencies for static builds:
   - dcmtk 3.6.9
 
