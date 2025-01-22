@@ -49,9 +49,7 @@ https://orthanc.uclouvain.be/book/developers/repositories.html
 Licensing
 ---------
 
-Orthanc is licensed under the GPLv3 license, with the OpenSSL
-exception:
-http://people.gnome.org/~markmc/openssl-and-the-gpl.html
+Orthanc is licensed under the GPLv3 license.
 
 Full information about the licensing of the Orthanc ecosystem is
 available in the Orthanc Book:
