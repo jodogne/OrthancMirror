@@ -1287,10 +1287,12 @@ namespace Orthanc
             case State_MultipartNextParts:
               assert(output_.IsWritingMultipart());
               output_.CloseMultipart();
+              break;
 
             case State_WritingStream:
               assert(output_.IsWritingStream());
               output_.CloseStream();
+              break;
 
             default:
               throw OrthancException(ErrorCode_InternalError);
