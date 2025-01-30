@@ -1,6 +1,12 @@
 Pending changes in the mainline
 ===============================
 
+Maintenance
+-----------
+
+* In the "ExtendedFind" mode, optimized "tools/find" when "StorageAccessMode" is 
+  set to "Never".
+
 
 Version 1.12.6 (2025-01-22)
 ===========================
