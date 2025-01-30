@@ -4684,7 +4684,7 @@ namespace Orthanc
 
     if (entry == NULL)
     {
-      throw OrthancException(ErrorCode_UnknownDicomTag);
+      throw OrthancException(ErrorCode_UnknownDicomTag, p.name);
     }
     else
     {

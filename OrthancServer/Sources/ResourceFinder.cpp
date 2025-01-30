@@ -849,7 +849,8 @@ namespace Orthanc
 
       if (request_.GetLevel() != ResourceType_Instance)
       {
-        request_.SetRetrieveOneInstanceMetadataAndAttachments(true);
+        // only retrieve the instance attachments and metadata if we have allowed access to the storage
+        request_.SetRetrieveOneInstanceMetadataAndAttachments(IsStorageAccessAllowed());
       }
     }
   }
