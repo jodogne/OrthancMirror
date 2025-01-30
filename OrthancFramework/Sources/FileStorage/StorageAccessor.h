@@ -3,8 +3,8 @@
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
  * Copyright (C) 2017-2023 Osimis S.A., Belgium
- * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
- * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2024-2025 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2025 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -65,6 +65,48 @@ namespace Orthanc
    **/
   class ORTHANC_PUBLIC StorageAccessor : boost::noncopyable
   {
+  public:
+    class ORTHANC_PUBLIC Range
+    {
+    private:
+      bool      hasStart_;
+      uint64_t  start_;
+      bool      hasEnd_;
+      uint64_t  end_;
+
+      void SanityCheck() const;
+
+    public:
+      Range();
+
+      void SetStartInclusive(uint64_t start);
+
+      void SetEndInclusive(uint64_t end);
+
+      bool HasStart() const
+      {
+        return hasStart_;
+      }
+
+      bool HasEnd() const
+      {
+        return hasEnd_;
+      }
+
+      uint64_t GetStartInclusive() const;
+
+      uint64_t GetEndInclusive() const;
+
+      std::string FormatHttpContentRange(uint64_t fullSize) const;
+
+      void Extract(std::string& target,
+                   const std::string& source) const;
+
+      uint64_t GetContentLength(uint64_t fullSize) const;
+
+      static Range ParseHttpRange(const std::string& s);
+    };
+
   private:
     class MetricsTimer;
 
@@ -148,6 +190,11 @@ namespace Orthanc
                 const std::string& customData);
 
     void Remove(const FileInfo& info);
+
+    void ReadRange(std::string& target,
+                   const FileInfo& info,
+                   const Range& range,
+                   bool uncompressIfNeeded);
 
 #if ORTHANC_ENABLE_CIVETWEB == 1 || ORTHANC_ENABLE_MONGOOSE == 1
     void AnswerFile(HttpOutput& output,

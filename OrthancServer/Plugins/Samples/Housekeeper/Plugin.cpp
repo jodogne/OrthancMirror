@@ -3,8 +3,8 @@
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
  * Copyright (C) 2017-2023 Osimis S.A., Belgium
- * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
- * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2024-2025 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2025 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -566,7 +566,7 @@ static bool ProcessChanges(bool needsReconstruct, bool needsReingest, bool needs
         {
           Json::Value result;
 
-          if (needsReconstruct || needsReingest)
+          if (needsReconstruct || needsReingest ||force_)
           {
             Json::Value request;
             if (needsReingest)
@@ -859,12 +859,15 @@ extern "C"
               "StorageCompressionChange": true,
               "MainDicomTagsChange": true,
               "UnnecessaryDicomAsJsonFiles": true,
+              "IngestTranscodingChange": true,
               "DicomWebCacheChange": true   // new in 1.12.2
             },
 
-            // When rebuilding MainDicomTags, limit to a single level of resource.
-            // Allowed values: "Patient", "Study", "Series", "Instance"
-            "LimitMainDicomTagsReconstructLevel": "Study"
+            // When rebuilding MainDicomTags, limit to a single level of resource
+            // which can greatly improve performances e.g. if you have only updated 
+            // the Study level ExtraMainDicomTags.
+            // Allowed values: "Patient", "Study", "Series", "Instance", "All"
+            "LimitMainDicomTagsReconstructLevel": "All"
 
           }
         }
@@ -887,11 +890,12 @@ extern "C"
         triggerOnDicomWebCacheChange_ = triggers.GetBooleanValue("DicomWebCacheChange", true);
       }
 
-      limitMainDicomTagsReconstructLevel_ = housekeeper.GetStringValue("LimitMainDicomTagsReconstructLevel", "");
+      limitMainDicomTagsReconstructLevel_ = housekeeper.GetStringValue("LimitMainDicomTagsReconstructLevel", "All");
       if (limitMainDicomTagsReconstructLevel_ != "Patient" && limitMainDicomTagsReconstructLevel_ != "Study"
-        && limitMainDicomTagsReconstructLevel_ != "Series" && limitMainDicomTagsReconstructLevel_ != "Instance")
+        && limitMainDicomTagsReconstructLevel_ != "Series" && limitMainDicomTagsReconstructLevel_ != "Instance" && limitMainDicomTagsReconstructLevel_ != "All")
       {
         ORTHANC_PLUGINS_LOG_ERROR("Housekeeper invalid value for 'LimitMainDicomTagsReconstructLevel': '" + limitMainDicomTagsReconstructLevel_ + "'");
+        return -1;
       }
       else if (limitMainDicomTagsReconstructLevel_ == "Patient")
       {

@@ -3,8 +3,8 @@
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
  * Copyright (C) 2017-2023 Osimis S.A., Belgium
- * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
- * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2024-2025 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2025 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -49,13 +49,18 @@ namespace Orthanc
     // For pausing/canceling/ending jobs: This method must release allocated resources
     virtual void Stop(JobStopReason reason) = 0;
 
-    virtual float GetProgress() = 0;
+    virtual float GetProgress() const = 0;
 
-    virtual void GetJobType(std::string& target) = 0;
+    virtual bool NeedsProgressUpdateBetweenSteps() const // only for jobs whose progress is updated by outside events (like C-Move and C-Get)
+    {
+      return false;
+    }
+
+    virtual void GetJobType(std::string& target) const = 0;
     
-    virtual void GetPublicContent(Json::Value& value) = 0;
+    virtual void GetPublicContent(Json::Value& value) const = 0;
 
-    virtual bool Serialize(Json::Value& value) = 0;
+    virtual bool Serialize(Json::Value& value) const = 0;
 
     // This function can only be called if the job has reached its
     // "success" state

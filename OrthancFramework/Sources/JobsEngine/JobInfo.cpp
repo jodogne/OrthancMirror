@@ -3,8 +3,8 @@
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
  * Copyright (C) 2017-2023 Osimis S.A., Belgium
- * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
- * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2024-2025 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2025 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -54,7 +54,8 @@ namespace Orthanc
                    const JobStatus& status,
                    const boost::posix_time::ptime& creationTime,
                    const boost::posix_time::ptime& lastStateChangeTime,
-                   const boost::posix_time::time_duration& runtime) :
+                   const boost::posix_time::time_duration& runtime,
+                   const IJob& job) :
     id_(id),
     priority_(priority),
     state_(state),
@@ -68,11 +69,16 @@ namespace Orthanc
     if (state_ == JobState_Running)
     {
       float ms = static_cast<float>(runtime_.total_milliseconds());
+      if (job.NeedsProgressUpdateBetweenSteps())
+      {
+        status_.UpdateProgress(job);
+      }
 
-      if (status_.GetProgress() > 0.01f &&
+      float progress = status_.GetProgress();
+
+      if (progress > 0.01f &&
           ms > 0.01f)
       {
-        float progress = status_.GetProgress();
         long long remaining = boost::math::llround(ms / progress * (1.0f - progress));
         eta_ = timestamp_ + boost::posix_time::milliseconds(remaining);
         hasEta_ = true;

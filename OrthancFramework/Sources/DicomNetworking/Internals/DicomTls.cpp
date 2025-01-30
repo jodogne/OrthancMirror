@@ -3,8 +3,8 @@
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
  * Copyright (C) 2017-2023 Osimis S.A., Belgium
- * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
- * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2024-2025 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2025 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -40,6 +40,16 @@ static std::string opt_ciphersuites(TLS1_TXT_RSA_WITH_AES_128_SHA ":" SSL3_TXT_R
 #  else
 // This seems to correspond to TSP_Profile_Basic in DCMTK >= 3.6.4: https://support.dcmtk.org/docs/tlsciphr_8h.html
 static std::string opt_ciphersuites(SSL3_TXT_RSA_DES_192_CBC3_SHA);
+#  endif
+#endif
+
+
+#if ORTHANC_ENABLE_PLUGINS == 1
+#  if defined(__ORTHANC_FILE__)
+//   Prevents the system-wide DCMTK library from leaking the
+//   full path of this source file in "DCMTLS_ERROR()"
+#    undef __FILE__
+#    define __FILE__ __ORTHANC_FILE__
 #  endif
 #endif
 

@@ -3,8 +3,8 @@
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
  * Copyright (C) 2017-2023 Osimis S.A., Belgium
- * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
- * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2024-2025 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2025 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -33,14 +33,6 @@ namespace Orthanc
 {
   namespace Compatibility
   {
-    static bool IsRequestWithoutContraint(const FindRequest& request)
-    {
-      return (request.GetDicomTagConstraints().IsEmpty() &&
-              request.GetMetadataConstraintsCount() == 0 &&
-              request.GetLabels().empty() &&
-              request.GetOrdering().empty());
-    }
-
     static void GetChildren(std::list<int64_t>& target,
                             IDatabaseWrapper::ITransaction& transaction,
                             const std::list<int64_t>& resources)
@@ -56,7 +48,7 @@ namespace Orthanc
     }
 
     static void GetChildren(std::list<std::string>& target,
-                            IDatabaseWrapper::ITransaction& transaction,
+                            IDatabaseWrapper::ICompatibilityTransaction& transaction,
                             const std::list<int64_t>& resources)
     {
       target.clear();
@@ -71,6 +63,7 @@ namespace Orthanc
 
     static void GetChildrenIdentifiers(std::list<std::string>& children,
                                        IDatabaseWrapper::ITransaction& transaction,
+                                       IDatabaseWrapper::ICompatibilityTransaction& compatibilityTransaction,
                                        const OrthancIdentifiers& identifiers,
                                        ResourceType topLevel,
                                        ResourceType bottomLevel)
@@ -100,7 +93,7 @@ namespace Orthanc
         ResourceType nextLevel = GetChildResourceType(currentLevel);
         if (nextLevel == bottomLevel)
         {
-          GetChildren(children, transaction, currentResources);
+          GetChildren(children, compatibilityTransaction, currentResources);
         }
         else
         {
@@ -123,7 +116,12 @@ namespace Orthanc
         throw OrthancException(ErrorCode_NotImplemented, "The database backend doesn't support labels");
       }
 
-      if (IsRequestWithoutContraint(request) &&
+      if (!request.GetOrdering().empty())
+      {
+        throw OrthancException(ErrorCode_NotImplemented, "The database backend doesn't support ordering");
+      }
+
+      if (!request.HasConstraints() &&
           !request.GetOrthancIdentifiers().HasPatientId() &&
           !request.GetOrthancIdentifiers().HasStudyId() &&
           !request.GetOrthancIdentifiers().HasSeriesId() &&
@@ -135,7 +133,7 @@ namespace Orthanc
         }
         else if (request.GetLimitsCount() != 0)
         {
-          transaction_.GetAllPublicIds(identifiers, request.GetLevel(), request.GetLimitsSince(), request.GetLimitsCount());
+          compatibilityTransaction_.GetAllPublicIdsCompatibility(identifiers, request.GetLevel(), request.GetLimitsSince(), request.GetLimitsCount());
         }
         else
         {
@@ -155,47 +153,7 @@ namespace Orthanc
           }
         }
       }
-      else if (IsRequestWithoutContraint(request) &&
-               request.GetLevel() == ResourceType_Patient &&
-               request.GetOrthancIdentifiers().HasPatientId() &&
-               !request.GetOrthancIdentifiers().HasStudyId() &&
-               !request.GetOrthancIdentifiers().HasSeriesId() &&
-               !request.GetOrthancIdentifiers().HasInstanceId())
-      {
-        // TODO-FIND: This is a trivial case for which no transaction is needed
-        identifiers.push_back(request.GetOrthancIdentifiers().GetPatientId());
-      }
-      else if (IsRequestWithoutContraint(request) &&
-               request.GetLevel() == ResourceType_Study &&
-               !request.GetOrthancIdentifiers().HasPatientId() &&
-               request.GetOrthancIdentifiers().HasStudyId() &&
-               !request.GetOrthancIdentifiers().HasSeriesId() &&
-               !request.GetOrthancIdentifiers().HasInstanceId())
-      {
-        // TODO-FIND: This is a trivial case for which no transaction is needed
-        identifiers.push_back(request.GetOrthancIdentifiers().GetStudyId());
-      }
-      else if (IsRequestWithoutContraint(request) &&
-               request.GetLevel() == ResourceType_Series &&
-               !request.GetOrthancIdentifiers().HasPatientId() &&
-               !request.GetOrthancIdentifiers().HasStudyId() &&
-               request.GetOrthancIdentifiers().HasSeriesId() &&
-               !request.GetOrthancIdentifiers().HasInstanceId())
-      {
-        // TODO-FIND: This is a trivial case for which no transaction is needed
-        identifiers.push_back(request.GetOrthancIdentifiers().GetSeriesId());
-      }
-      else if (IsRequestWithoutContraint(request) &&
-               request.GetLevel() == ResourceType_Instance &&
-               !request.GetOrthancIdentifiers().HasPatientId() &&
-               !request.GetOrthancIdentifiers().HasStudyId() &&
-               !request.GetOrthancIdentifiers().HasSeriesId() &&
-               request.GetOrthancIdentifiers().HasInstanceId())
-      {
-        // TODO-FIND: This is a trivial case for which no transaction is needed
-        identifiers.push_back(request.GetOrthancIdentifiers().GetInstanceId());
-      }
-      else if (IsRequestWithoutContraint(request) &&
+      else if (!request.HasConstraints() &&
                (request.GetLevel() == ResourceType_Study ||
                 request.GetLevel() == ResourceType_Series ||
                 request.GetLevel() == ResourceType_Instance) &&
@@ -204,9 +162,10 @@ namespace Orthanc
                !request.GetOrthancIdentifiers().HasSeriesId() &&
                !request.GetOrthancIdentifiers().HasInstanceId())
       {
-        GetChildrenIdentifiers(identifiers, transaction_, request.GetOrthancIdentifiers(), ResourceType_Patient, request.GetLevel());
+        GetChildrenIdentifiers(identifiers, transaction_, compatibilityTransaction_,
+                               request.GetOrthancIdentifiers(), ResourceType_Patient, request.GetLevel());
       }
-      else if (IsRequestWithoutContraint(request) &&
+      else if (!request.HasConstraints() &&
                (request.GetLevel() == ResourceType_Series ||
                 request.GetLevel() == ResourceType_Instance) &&
                !request.GetOrthancIdentifiers().HasPatientId() &&
@@ -214,16 +173,18 @@ namespace Orthanc
                !request.GetOrthancIdentifiers().HasSeriesId() &&
                !request.GetOrthancIdentifiers().HasInstanceId())
       {
-        GetChildrenIdentifiers(identifiers, transaction_, request.GetOrthancIdentifiers(), ResourceType_Study, request.GetLevel());
+        GetChildrenIdentifiers(identifiers, transaction_, compatibilityTransaction_,
+                               request.GetOrthancIdentifiers(), ResourceType_Study, request.GetLevel());
       }
-      else if (IsRequestWithoutContraint(request) &&
+      else if (!request.HasConstraints() &&
                request.GetLevel() == ResourceType_Instance &&
                !request.GetOrthancIdentifiers().HasPatientId() &&
                !request.GetOrthancIdentifiers().HasStudyId() &&
                request.GetOrthancIdentifiers().HasSeriesId() &&
                !request.GetOrthancIdentifiers().HasInstanceId())
       {
-        GetChildrenIdentifiers(identifiers, transaction_, request.GetOrthancIdentifiers(), ResourceType_Series, request.GetLevel());
+        GetChildrenIdentifiers(identifiers, transaction_, compatibilityTransaction_,
+                               request.GetOrthancIdentifiers(), ResourceType_Series, request.GetLevel());
       }
       else if (request.GetMetadataConstraintsCount() == 0 &&
                request.GetOrdering().empty() &&
@@ -232,9 +193,9 @@ namespace Orthanc
                !request.GetOrthancIdentifiers().HasSeriesId() &&
                !request.GetOrthancIdentifiers().HasInstanceId())
       {
-        transaction_.ApplyLookupResources(identifiers, NULL /* TODO-FIND: Could the "instancesId" information be exploited? */,
-                                          request.GetDicomTagConstraints(), request.GetLevel(), request.GetLabels(),
-                                          request.GetLabelsConstraint(), request.HasLimits() ? request.GetLimitsCount() : 0);
+        compatibilityTransaction_.ApplyLookupResources(identifiers, NULL /* TODO-FIND: Could the "instancesId" information be exploited? */,
+                                                       request.GetDicomTagConstraints(), request.GetLevel(), request.GetLabels(),
+                                                       request.GetLabelsConstraint(), request.HasLimits() ? request.GetLimitsCount() : 0);
       }
       else
       {
@@ -388,7 +349,7 @@ namespace Orthanc
 
       if (request.IsRetrieveParentIdentifier())
       {
-        if (!transaction_.LookupResourceAndParent(internalId, level, parent, identifier))
+        if (!compatibilityTransaction_.LookupResourceAndParent(internalId, level, parent, identifier))
         {
           return;  // The resource is not available anymore
         }
@@ -436,7 +397,32 @@ namespace Orthanc
 
       if (request.IsRetrieveMetadata())
       {
-        transaction_.GetAllMetadata(resource->GetMetadata(level), internalId);
+        std::map<MetadataType, std::string> metadata;
+        transaction_.GetAllMetadata(metadata, internalId);
+
+        for (std::map<MetadataType, std::string>::const_iterator
+               it = metadata.begin(); it != metadata.end(); ++it)
+        {
+          if (request.IsRetrieveMetadataRevisions() &&
+              capabilities.HasRevisionsSupport())
+          {
+            std::string value;
+            int64_t revision;
+            if (transaction_.LookupMetadata(value, revision, internalId, it->first) &&
+                value == it->second)
+            {
+              resource->AddMetadata(level, it->first, it->second, revision);
+            }
+            else
+            {
+              throw OrthancException(ErrorCode_DatabasePlugin);
+            }
+          }
+          else
+          {
+            resource->AddMetadata(level, it->first, it->second, 0 /* revision not requested */);
+          }
+        }
       }
 
       {
@@ -465,7 +451,14 @@ namespace Orthanc
 
           if (request.GetParentSpecification(currentLevel).IsRetrieveMetadata())
           {
-            transaction_.GetAllMetadata(resource->GetMetadata(currentLevel), currentId);
+            std::map<MetadataType, std::string> metadata;
+            transaction_.GetAllMetadata(metadata, currentId);
+
+            for (std::map<MetadataType, std::string>::const_iterator
+                   it = metadata.begin(); it != metadata.end(); ++it)
+            {
+              resource->AddMetadata(currentLevel, it->first, it->second, 0 /* revision not request */);
+            }
           }
         }
       }
@@ -473,7 +466,7 @@ namespace Orthanc
       if (capabilities.HasLabelsSupport() &&
           request.IsRetrieveLabels())
       {
-        transaction_.ListLabels(resource->GetLabels(), internalId);
+        compatibilityTransaction_.ListLabels(resource->GetLabels(), internalId);
       }
 
       if (request.IsRetrieveAttachments())
@@ -488,7 +481,7 @@ namespace Orthanc
           if (transaction_.LookupAttachment(info, revision, internalId, *it) &&
               info.GetContentType() == *it)
           {
-            resource->AddAttachment(info);
+            resource->AddAttachment(info, revision);
           }
           else
           {
@@ -509,17 +502,19 @@ namespace Orthanc
         {
           ResourceType childrenLevel = GetChildResourceType(currentLevel);
 
-          if (request.GetChildrenSpecification(childrenLevel).IsRetrieveIdentifiers())
+          if (request.GetChildrenSpecification(childrenLevel).IsRetrieveIdentifiers() || 
+              request.GetChildrenSpecification(childrenLevel).IsRetrieveCount())
           {
             for (std::list<int64_t>::const_iterator it = currentIds.begin(); it != currentIds.end(); ++it)
             {
               std::list<std::string> ids;
-              transaction_.GetChildrenPublicId(ids, *it);
+              compatibilityTransaction_.GetChildrenPublicId(ids, *it);
 
               for (std::list<std::string>::const_iterator it2 = ids.begin(); it2 != ids.end(); ++it2)
               {
                 resource->AddChildIdentifier(childrenLevel, *it2);
               }
+              resource->IncrementChildrenCount(childrenLevel, ids.size());
             }
           }
 

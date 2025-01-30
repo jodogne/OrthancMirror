@@ -3,8 +3,8 @@
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
  * Copyright (C) 2017-2023 Osimis S.A., Belgium
- * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
- * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2024-2025 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2025 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -44,6 +44,8 @@ private:
 
   bool hasAcceptedTransferSyntaxes_;
   std::set<Orthanc::DicomTransferSyntax>  acceptedTransferSyntaxes_;
+  bool hasAcceptedStorageClasses_;
+  std::set<std::string>                   acceptedStorageClasses_;
 
 public:
   DicomFilter();
@@ -62,7 +64,15 @@ public:
                                            const std::string& remoteAet,
                                            const std::string& calledAet) ORTHANC_OVERRIDE;
 
+  virtual void GetProposedStorageTransferSyntaxes(std::list<Orthanc::DicomTransferSyntax>& target,
+                                                  const std::string& remoteIp,
+                                                  const std::string& remoteAet,
+                                                  const std::string& calledAet) ORTHANC_OVERRIDE;
+
+
   virtual bool IsUnknownSopClassAccepted(const std::string& remoteIp,
                                          const std::string& remoteAet,
                                          const std::string& calledAet) ORTHANC_OVERRIDE;
+  
+  virtual void GetAcceptedSopClasses(std::set<std::string>& sopClasses, size_t maxCount) ORTHANC_OVERRIDE;
 };

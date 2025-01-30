@@ -2,10 +2,10 @@
  * Orthanc - A Lightweight, RESTful DICOM Store
  *
  * Copyright (C) 2012-2016 Sebastien Jodogne <s.jodogne@orthanc-labs.com>,
- * Medical Physics Department, CHU of Liege, Belgium
+ * Medical Physics Department, University Hospital of Liege, Belgium
  * Copyright (C) 2017-2023 Osimis S.A., Belgium
- * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
- * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2024-2025 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2025 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -17,7 +17,7 @@
  * copyright notice, this list of conditions and the following disclaimer
  * in the documentation and/or other materials provided with the
  * distribution.
- *    * Neither the name of the CHU of Liege, nor the names of its
+ *    * Neither the name of the University Hospital of Liege, nor the names of its
  * contributors may be used to endorse or promote products derived
  * from this software without specific prior written permission.
  *

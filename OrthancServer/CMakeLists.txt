@@ -2,8 +2,8 @@
 # Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
 # Department, University Hospital of Liege, Belgium
 # Copyright (C) 2017-2023 Osimis S.A., Belgium
-# Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
-# Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+# Copyright (C) 2024-2025 Orthanc Team SRL, Belgium
+# Copyright (C) 2021-2025 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
 #
 # This program is free software: you can redistribute it and/or
 # modify it under the terms of the GNU General Public License as
@@ -89,7 +89,7 @@ include(${CMAKE_SOURCE_DIR}/Plugins/Samples/Common/OrthancPluginsExports.cmake)
 #####################################################################
 
 set(ORTHANC_SERVER_SOURCES
-  ${CMAKE_SOURCE_DIR}/Sources/Database/BaseDatabaseWrapper.cpp
+  ${CMAKE_SOURCE_DIR}/Sources/Database/BaseCompatibilityTransaction.cpp
   ${CMAKE_SOURCE_DIR}/Sources/Database/Compatibility/DatabaseLookup.cpp
   ${CMAKE_SOURCE_DIR}/Sources/Database/Compatibility/GenericFind.cpp
   ${CMAKE_SOURCE_DIR}/Sources/Database/Compatibility/ICreateInstance.cpp
@@ -139,6 +139,8 @@ set(ORTHANC_SERVER_SOURCES
   ${CMAKE_SOURCE_DIR}/Sources/ServerJobs/ArchiveJob.cpp
   ${CMAKE_SOURCE_DIR}/Sources/ServerJobs/CleaningInstancesJob.cpp
   ${CMAKE_SOURCE_DIR}/Sources/ServerJobs/DicomModalityStoreJob.cpp
+  ${CMAKE_SOURCE_DIR}/Sources/ServerJobs/DicomRetrieveScuBaseJob.cpp
+  ${CMAKE_SOURCE_DIR}/Sources/ServerJobs/DicomGetScuJob.cpp
   ${CMAKE_SOURCE_DIR}/Sources/ServerJobs/DicomMoveScuJob.cpp
   ${CMAKE_SOURCE_DIR}/Sources/ServerJobs/LuaJobManager.cpp
   ${CMAKE_SOURCE_DIR}/Sources/ServerJobs/MergeStudyJob.cpp
@@ -155,6 +157,7 @@ set(ORTHANC_SERVER_SOURCES
   ${CMAKE_SOURCE_DIR}/Sources/ServerJobs/StorageCommitmentScpJob.cpp
   ${CMAKE_SOURCE_DIR}/Sources/ServerJobs/ThreadedSetOfInstancesJob.cpp  
   ${CMAKE_SOURCE_DIR}/Sources/ServerToolbox.cpp
+  ${CMAKE_SOURCE_DIR}/Sources/SimpleInstanceOrdering.cpp
   ${CMAKE_SOURCE_DIR}/Sources/SliceOrdering.cpp
   ${CMAKE_SOURCE_DIR}/Sources/StorageCommitmentReports.cpp
   )
@@ -184,6 +187,7 @@ set(ORTHANC_SERVER_UNIT_TESTS
   ${CMAKE_SOURCE_DIR}/UnitTestsSources/DatabaseLookupTests.cpp
   ${CMAKE_SOURCE_DIR}/UnitTestsSources/LuaServerTests.cpp
   ${CMAKE_SOURCE_DIR}/UnitTestsSources/PluginsTests.cpp
+  ${CMAKE_SOURCE_DIR}/UnitTestsSources/ServerConfigTests.cpp
   ${CMAKE_SOURCE_DIR}/UnitTestsSources/ServerIndexTests.cpp
   ${CMAKE_SOURCE_DIR}/UnitTestsSources/ServerJobsTests.cpp
   ${CMAKE_SOURCE_DIR}/UnitTestsSources/SizeOfTests.cpp

@@ -3,8 +3,8 @@
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
  * Copyright (C) 2017-2023 Osimis S.A., Belgium
- * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
- * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2024-2025 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2025 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -50,6 +50,7 @@ static const char* KEY_PORT = "Port";
 static const char* KEY_USE_DICOM_TLS = "UseDicomTls";
 static const char* KEY_LOCAL_AET = "LocalAet";
 static const char* KEY_TIMEOUT = "Timeout";
+static const char* KEY_RETRIEVE_METHOD = "RetrieveMethod";
 
 
 namespace Orthanc
@@ -72,6 +73,7 @@ namespace Orthanc
     useDicomTls_ = false;
     localAet_.clear();
     timeout_ = 0;
+    retrieveMethod_ = RetrieveMethod_SystemDefault;
   }
 
 
@@ -308,6 +310,17 @@ namespace Orthanc
     {
       timeout_ = SerializationToolbox::ReadUnsignedInteger(serialized, KEY_TIMEOUT);
     }
+
+    if (serialized.isMember(KEY_RETRIEVE_METHOD))
+    {
+      retrieveMethod_ = StringToRetrieveMethod
+        (SerializationToolbox::ReadString(serialized, KEY_RETRIEVE_METHOD));
+    }   
+    else
+    {
+      retrieveMethod_ = RetrieveMethod_SystemDefault;
+    }
+
   }
 
 
@@ -427,6 +440,7 @@ namespace Orthanc
       target[KEY_USE_DICOM_TLS] = useDicomTls_;
       target[KEY_LOCAL_AET] = localAet_;
       target[KEY_TIMEOUT] = timeout_;
+      target[KEY_RETRIEVE_METHOD] = EnumerationToString(retrieveMethod_);
     }
     else
     {
@@ -520,5 +534,15 @@ namespace Orthanc
   bool RemoteModalityParameters::HasTimeout() const
   {
     return timeout_ != 0;
+  }
+
+  RetrieveMethod RemoteModalityParameters::GetRetrieveMethod() const
+  {
+    return retrieveMethod_;
+  }
+
+  void RemoteModalityParameters::SetRetrieveMethod(RetrieveMethod retrieveMethod)
+  {
+    retrieveMethod_ = retrieveMethod;
   }
 }

@@ -3,8 +3,8 @@
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
  * Copyright (C) 2017-2023 Osimis S.A., Belgium
- * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
- * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2024-2025 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2025 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -50,6 +50,8 @@
 #include <boost/math/special_functions/round.hpp>
 #include <boost/shared_ptr.hpp>
 
+#include "../../../OrthancFramework/Sources/FileStorage/StorageAccessor.h"
+
 /**
  * This semaphore is used to limit the number of concurrent HTTP
  * requests on CPU-intensive routes of the REST API, in order to
@@ -68,6 +70,14 @@ static const char* const ARG_WHOLE = "whole";
 
 namespace Orthanc
 {
+  static ResourceType GetResourceTypeFromUri(const RestApiCall& call)
+  {
+    assert(!call.GetFullUri().empty());
+    const std::string resourceType = call.GetFullUri() [0];
+    return StringToResourceType(resourceType.c_str());
+  }
+
+
   static std::string GetDocumentationSampleResource(ResourceType type)
   {
     switch (type)
@@ -144,7 +154,7 @@ namespace Orthanc
       responseContent = static_cast<ResponseContentFlags>(static_cast<uint32_t>(responseContent) | ResponseContentFlags_Metadata);
     }
 
-    ResourceFinder finder(level, responseContent);
+    ResourceFinder finder(level, responseContent, context.GetFindStorageAccessMode(), context.GetIndex().HasFindSupport());
     finder.SetOrthancId(level, identifier);
     finder.SetRetrieveMetadata(retrieveMetadata);
 
@@ -154,77 +164,6 @@ namespace Orthanc
 
   // List all the patients, studies, series or instances ----------------------
  
-  static void AnswerListOfResources1(RestApiOutput& output,
-                                    ServerContext& context,
-                                    const std::list<std::string>& resources,
-                                    const std::map<std::string, std::string>& instancesIds, // optional: the id of an instance for each found resource.
-                                    const std::map<std::string, boost::shared_ptr<DicomMap> >& resourcesMainDicomTags,  // optional: all tags read from DB for a resource (current level and upper levels)
-                                    const std::map<std::string, boost::shared_ptr<Json::Value> >& resourcesDicomAsJson, // optional: the dicom-as-json for each resource
-                                    ResourceType level,
-                                    bool expand,
-                                    DicomToJsonFormat format,
-                                    const std::set<DicomTag>& requestedTags,
-                                    bool allowStorageAccess)
-  {
-    Json::Value answer = Json::arrayValue;
-
-    for (std::list<std::string>::const_iterator
-           resource = resources.begin(); resource != resources.end(); ++resource)
-    {
-      if (expand)
-      {
-        Json::Value expanded;
-
-        std::map<std::string, std::string>::const_iterator instanceId = instancesIds.find(*resource);
-        if (instanceId != instancesIds.end())  // if it is found in instancesIds, it is also in resourcesDicomAsJson and mainDicomTags
-        {
-          // reuse data already collected before (e.g during lookup)
-          std::map<std::string, boost::shared_ptr<DicomMap> >::const_iterator mainDicomTags = resourcesMainDicomTags.find(*resource);
-          std::map<std::string, boost::shared_ptr<Json::Value> >::const_iterator dicomAsJson = resourcesDicomAsJson.find(*resource);
-
-          context.ExpandResource(expanded, *resource, 
-                                 *(mainDicomTags->second.get()),
-                                 instanceId->second,
-                                 dicomAsJson->second.get(),
-                                 level, format, requestedTags, allowStorageAccess);
-        }
-        else
-        {
-          context.ExpandResource(expanded, *resource, level, format, requestedTags, allowStorageAccess);
-        }
-
-        if (expanded.type() == Json::objectValue)
-        {
-          answer.append(expanded);
-        }
-      }
-      else
-      {
-        answer.append(*resource);
-      }
-    }
-
-    output.AnswerJson(answer);
-  }
-
-
-  static void AnswerListOfResources2(RestApiOutput& output,
-                                    ServerContext& context,
-                                    const std::list<std::string>& resources,
-                                    ResourceType level,
-                                    bool expand,
-                                    DicomToJsonFormat format,
-                                    const std::set<DicomTag>& requestedTags,
-                                    bool allowStorageAccess)
-  {
-    std::map<std::string, std::string> unusedInstancesIds;
-    std::map<std::string, boost::shared_ptr<DicomMap> > unusedResourcesMainDicomTags;
-    std::map<std::string, boost::shared_ptr<Json::Value> > unusedResourcesDicomAsJson;
-
-    AnswerListOfResources1(output, context, resources, unusedInstancesIds, unusedResourcesMainDicomTags, unusedResourcesDicomAsJson, level, expand, format, requestedTags, allowStorageAccess);
-  }
-
-
   template <enum ResourceType resourceType>
   static void ListResources(RestApiGetCall& call)
   {
@@ -240,103 +179,54 @@ namespace Orthanc
         .SetDescription("List the Orthanc identifiers of all the available DICOM " + resources)
         .SetHttpGetArgument("limit", RestApiCallDocumentation::Type_Number, "Limit the number of results", false)
         .SetHttpGetArgument("since", RestApiCallDocumentation::Type_Number, "Show only the resources since the provided index", false)
-        .SetHttpGetArgument("expand", RestApiCallDocumentation::Type_String,
-                            "If present, retrieve detailed information about the individual " + resources, false)
         .AddAnswerType(MimeType_Json, "JSON array containing either the Orthanc identifiers, or detailed information "
                        "about the reported " + resources + " (if `expand` argument is provided)")
         .SetHttpGetSample("https://orthanc.uclouvain.be/demo/" + resources + "?since=0&limit=2", true);
+      OrthancRestApi::DocumentResponseContentAndExpand(call);
       return;
     }
+
+    // TODO-FIND: include the FindRequest options parsing like since, limit in a method (parse from get-arguments and from post payload)
+
+    std::set<DicomTag> requestedTags;
+    ResponseContentFlags responseContent;
     
-    ServerIndex& index = OrthancRestApi::GetIndex(call);
-    ServerContext& context = OrthancRestApi::GetContext(call);
+    OrthancRestApi::GetRequestedTags(requestedTags, call);
+    OrthancRestApi::GetResponseContentAndExpand(responseContent, call);
 
-    if (true)
+    ResourceFinder finder(resourceType, 
+                          responseContent, 
+                          OrthancRestApi::GetContext(call).GetFindStorageAccessMode(),
+                          OrthancRestApi::GetContext(call).GetIndex().HasFindSupport());
+    finder.AddRequestedTags(requestedTags);
+
+    if (call.HasArgument("limit") ||
+        call.HasArgument("since"))
     {
-      /**
-       * EXPERIMENTAL VERSION
-       **/
-
-      // TODO-FIND: include the FindRequest options parsing in a method (parse from get-arguments and from post payload)
-      // TODO-FIND: support other values for expand like expand=MainDicomTags,Labels,Parent,SeriesStatus
-      const bool expand = (call.HasArgument("expand") &&
-                           call.GetBooleanArgument("expand", true));
-
-      std::set<DicomTag> requestedTags;
-      OrthancRestApi::GetRequestedTags(requestedTags, call);
-
-      ResourceFinder finder(resourceType, (expand ? ResponseContentFlags_ExpandTrue : ResponseContentFlags_ID));
-      finder.AddRequestedTags(requestedTags);
-
-      if (call.HasArgument("limit") ||
-          call.HasArgument("since"))
+      if (!call.HasArgument("limit"))
       {
-        if (!call.HasArgument("limit"))
-        {
-          throw OrthancException(ErrorCode_BadRequest,
-                                 "Missing \"limit\" argument for GET request against: " +
-                                 call.FlattenUri());
-        }
-
-        if (!call.HasArgument("since"))
-        {
-          throw OrthancException(ErrorCode_BadRequest,
-                                 "Missing \"since\" argument for GET request against: " +
-                                 call.FlattenUri());
-        }
-
-        uint64_t since = boost::lexical_cast<uint64_t>(call.GetArgument("since", ""));
-        uint64_t limit = boost::lexical_cast<uint64_t>(call.GetArgument("limit", ""));
-        finder.SetLimitsSince(since);
-        finder.SetLimitsCount(limit);
+        throw OrthancException(ErrorCode_BadRequest,
+                               "Missing \"limit\" argument for GET request against: " +
+                               call.FlattenUri());
       }
 
-      Json::Value answer;
-      finder.Execute(answer, context, OrthancRestApi::GetDicomFormat(call, DicomToJsonFormat_Human), false /* no "Metadata" field */);
-      call.GetOutput().AnswerJson(answer);
+      if (!call.HasArgument("since"))
+      {
+        throw OrthancException(ErrorCode_BadRequest,
+                               "Missing \"since\" argument for GET request against: " +
+                               call.FlattenUri());
+      }
+
+      uint64_t since = boost::lexical_cast<uint64_t>(call.GetArgument("since", ""));
+      uint64_t limit = boost::lexical_cast<uint64_t>(call.GetArgument("limit", ""));
+      finder.SetLimitsSince(since);
+      finder.SetLimitsCount(limit);
     }
-    else
-    {
-      /**
-       * VERSION IN ORTHANC <= 1.12.4
-       **/
 
-      std::list<std::string> result;
-
-      std::set<DicomTag> requestedTags;
-      OrthancRestApi::GetRequestedTags(requestedTags, call);
-
-      if (call.HasArgument("limit") ||
-          call.HasArgument("since"))
-      {
-        if (!call.HasArgument("limit"))
-        {
-          throw OrthancException(ErrorCode_BadRequest,
-                                 "Missing \"limit\" argument for GET request against: " +
-                                 call.FlattenUri());
-        }
-
-        if (!call.HasArgument("since"))
-        {
-          throw OrthancException(ErrorCode_BadRequest,
-                                 "Missing \"since\" argument for GET request against: " +
-                                 call.FlattenUri());
-        }
-
-        size_t since = boost::lexical_cast<size_t>(call.GetArgument("since", ""));
-        size_t limit = boost::lexical_cast<size_t>(call.GetArgument("limit", ""));
-        index.GetAllUuids(result, resourceType, since, limit);
-      }
-      else
-      {
-        index.GetAllUuids(result, resourceType);
-      }
-
-      AnswerListOfResources2(call.GetOutput(), context, result, resourceType, call.HasArgument("expand") && call.GetBooleanArgument("expand", true),
-                            OrthancRestApi::GetDicomFormat(call, DicomToJsonFormat_Human),
-                            requestedTags,
-                            true /* allowStorageAccess */);
-    }
+    Json::Value answer;
+    finder.Execute(answer, OrthancRestApi::GetContext(call),
+                   OrthancRestApi::GetDicomFormat(call, DicomToJsonFormat_Human), false /* no "Metadata" field */);
+    call.GetOutput().AnswerJson(answer);
   }
 
 
@@ -360,39 +250,22 @@ namespace Orthanc
       return;
     }
 
-    const DicomToJsonFormat format = OrthancRestApi::GetDicomFormat(call, DicomToJsonFormat_Human);
-
     std::set<DicomTag> requestedTags;
     OrthancRestApi::GetRequestedTags(requestedTags, call);
 
-    if (true)
+    const DicomToJsonFormat format = OrthancRestApi::GetDicomFormat(call, DicomToJsonFormat_Human);
+
+    ResourceFinder finder(resourceType, 
+                          ResponseContentFlags_ExpandTrue, 
+                          OrthancRestApi::GetContext(call).GetFindStorageAccessMode(),
+                          OrthancRestApi::GetContext(call).GetIndex().HasFindSupport());
+    finder.AddRequestedTags(requestedTags);
+    finder.SetOrthancId(resourceType, call.GetUriComponent("id", ""));
+
+    Json::Value json;
+    if (finder.ExecuteOneResource(json, OrthancRestApi::GetContext(call), format, false /* no "Metadata" field */))
     {
-      /**
-       * EXPERIMENTAL VERSION
-       **/
-
-      ResourceFinder finder(resourceType, ResponseContentFlags_ExpandTrue);
-      finder.AddRequestedTags(requestedTags);
-      finder.SetOrthancId(resourceType, call.GetUriComponent("id", ""));
-
-      Json::Value json;
-      if (finder.ExecuteOneResource(json, OrthancRestApi::GetContext(call), format, false /* no "Metadata" field */))
-      {
-        call.GetOutput().AnswerJson(json);
-      }
-    }
-    else
-    {
-      /**
-       * VERSION IN ORTHANC <= 1.12.4
-       **/
-
-      Json::Value json;
-      if (OrthancRestApi::GetContext(call).ExpandResource(
-            json, call.GetUriComponent("id", ""), resourceType, format, requestedTags, true /* allowStorageAccess */))
-      {
-        call.GetOutput().AnswerJson(json);
-      }
+      call.GetOutput().AnswerJson(json);
     }
   }
 
@@ -541,7 +414,16 @@ namespace Orthanc
     else
     {
       // return the attachment without any transcoding
-      context.AnswerAttachment(call.GetOutput(), publicId, FileContentType_Dicom);
+      FileInfo info;
+      int64_t revision;
+      if (!context.GetIndex().LookupAttachment(info, revision, ResourceType_Instance, publicId, FileContentType_Dicom))
+      {
+        throw OrthancException(ErrorCode_UnknownResource);
+      }
+      else
+      {
+        context.AnswerAttachment(call.GetOutput(), info);
+      }
     }
   }
 
@@ -1718,12 +1600,13 @@ namespace Orthanc
 
   static void GetResourceStatistics(RestApiGetCall& call)
   {
+    const ResourceType level = GetResourceTypeFromUri(call);
+
     if (call.IsDocumentation())
     {
-      ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
-      std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      std::string r = GetResourceTypeText(level, false /* plural */, false /* upper case */);
       call.GetDocumentation()
-        .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
+        .SetTag(GetResourceTypeText(level, true /* plural */, true /* upper case */))
         .SetSummary("Get " + r + " statistics")
         .SetDescription("Get statistics about the given " + r)
         .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
@@ -1744,9 +1627,9 @@ namespace Orthanc
                         "Size on the disk of the uncompressed DICOM instances associated with the " + r + ", expressed in bytes")
         .SetAnswerField("DicomUncompressedSizeMB", RestApiCallDocumentation::Type_Number,
                         "Size on the disk of the uncompressed DICOM instances associated with the " + r + ", expressed in megabytes (MB)")
-        .SetHttpGetSample(GetDocumentationSampleResource(t) + "/statistics", true);
+        .SetHttpGetSample(GetDocumentationSampleResource(level) + "/statistics", true);
 
-      switch (t)
+      switch (level)
       {
         // Do NOT add "break" below this point!
         case ResourceType_Patient:
@@ -1815,22 +1698,15 @@ namespace Orthanc
 
   // Handling of metadata -----------------------------------------------------
 
-  static void CheckValidResourceType(const RestApiCall& call)
-  {
-    assert(!call.GetFullUri().empty());
-    const std::string resourceType = call.GetFullUri() [0];
-    StringToResourceType(resourceType.c_str());
-  }
-
-
   static void ListMetadata(RestApiGetCall& call)
   {
+    const ResourceType level = GetResourceTypeFromUri(call);
+
     if (call.IsDocumentation())
     {
-      ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
-      std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      std::string r = GetResourceTypeText(level, false /* plural */, false /* upper case */);
       call.GetDocumentation()
-        .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
+        .SetTag(GetResourceTypeText(level, true /* plural */, true /* upper case */))
         .SetSummary("List metadata")
         .SetDescription("Get the list of metadata that are associated with the given " + r)
         .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
@@ -1840,13 +1716,12 @@ namespace Orthanc
                             "If present, use the numeric identifier of the metadata instead of its symbolic name", false)
         .AddAnswerType(MimeType_Json, "JSON array containing the names of the available metadata, "
                        "or JSON associative array mapping metadata to their values (if `expand` argument is provided)")
-        .SetHttpGetSample(GetDocumentationSampleResource(t) + "/metadata", true);
+        .SetHttpGetSample(GetDocumentationSampleResource(level) + "/metadata", true);
       return;
     }
 
     assert(!call.GetFullUri().empty());
     const std::string publicId = call.GetUriComponent("id", "");
-    ResourceType level = StringToResourceType(call.GetFullUri() [0].c_str());
 
     typedef std::map<MetadataType, std::string>  Metadata;
 
@@ -1978,12 +1853,13 @@ namespace Orthanc
 
   static void GetMetadata(RestApiGetCall& call)
   {
+    const ResourceType level = GetResourceTypeFromUri(call);
+
     if (call.IsDocumentation())
     {
-      ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
-      std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      std::string r = GetResourceTypeText(level, false /* plural */, false /* upper case */);
       call.GetDocumentation()
-        .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
+        .SetTag(GetResourceTypeText(level, true /* plural */, true /* upper case */))
         .SetSummary("Get metadata")
         .SetDescription("Get the value of a metadata that is associated with the given " + r)
         .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
@@ -1996,7 +1872,6 @@ namespace Orthanc
 
     assert(!call.GetFullUri().empty());
     const std::string publicId = call.GetUriComponent("id", "");
-    const ResourceType level = StringToResourceType(call.GetFullUri() [0].c_str());
 
     std::string name = call.GetUriComponent("name", "");
     MetadataType metadata = StringToMetadata(name);
@@ -2025,12 +1900,13 @@ namespace Orthanc
 
   static void DeleteMetadata(RestApiDeleteCall& call)
   {
+    const ResourceType level = GetResourceTypeFromUri(call);
+
     if (call.IsDocumentation())
     {
-      ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
-      std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      std::string r = GetResourceTypeText(level, false /* plural */, false /* upper case */);
       call.GetDocumentation()
-        .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
+        .SetTag(GetResourceTypeText(level, true /* plural */, true /* upper case */))
         .SetSummary("Delete metadata")
         .SetDescription("Delete some metadata associated with the given DICOM " + r +
                         ". This call will fail if trying to delete a system metadata (i.e. whose index is < 1024).")
@@ -2041,7 +1917,6 @@ namespace Orthanc
       return;
     }
 
-    CheckValidResourceType(call);
     const std::string publicId = call.GetUriComponent("id", "");
 
     std::string name = call.GetUriComponent("name", "");
@@ -2089,12 +1964,13 @@ namespace Orthanc
 
   static void SetMetadata(RestApiPutCall& call)
   {
+    const ResourceType level = GetResourceTypeFromUri(call);
+
     if (call.IsDocumentation())
     {
-      ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
-      std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      std::string r = GetResourceTypeText(level, false /* plural */, false /* upper case */);
       call.GetDocumentation()
-        .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
+        .SetTag(GetResourceTypeText(level, true /* plural */, true /* upper case */))
         .SetSummary("Set metadata")
         .SetDescription("Set the value of some metadata in the given DICOM " + r +
                         ". This call will fail if trying to modify a system metadata (i.e. whose index is < 1024).")
@@ -2104,8 +1980,6 @@ namespace Orthanc
         .SetHttpHeader("If-Match", "Revision of the metadata, if this is not the first time this metadata is set.");
       return;
     }
-
-    CheckValidResourceType(call);
 
     std::string publicId = call.GetUriComponent("id", "");
     std::string name = call.GetUriComponent("name", "");
@@ -2154,23 +2028,22 @@ namespace Orthanc
 
   static void ListLabels(RestApiGetCall& call)
   {
+    const ResourceType level = GetResourceTypeFromUri(call);
+
     if (call.IsDocumentation())
     {
-      ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
-      std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      std::string r = GetResourceTypeText(level, false /* plural */, false /* upper case */);
       call.GetDocumentation()
-        .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
+        .SetTag(GetResourceTypeText(level, true /* plural */, true /* upper case */))
         .SetSummary("List labels")
         .SetDescription("Get the labels that are associated with the given " + r + " (new in Orthanc 1.12.0)")
         .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
         .AddAnswerType(MimeType_Json, "JSON array containing the names of the labels")
-        .SetHttpGetSample(GetDocumentationSampleResource(t) + "/labels", true);
+        .SetHttpGetSample(GetDocumentationSampleResource(level) + "/labels", true);
       return;
     }
 
-    assert(!call.GetFullUri().empty());
     const std::string publicId = call.GetUriComponent("id", "");
-    ResourceType level = StringToResourceType(call.GetFullUri() [0].c_str());
 
     std::set<std::string> labels;
     OrthancRestApi::GetIndex(call).ListLabels(labels, publicId, level);
@@ -2188,12 +2061,13 @@ namespace Orthanc
 
   static void GetLabel(RestApiGetCall& call)
   {
+    const ResourceType level = GetResourceTypeFromUri(call);
+
     if (call.IsDocumentation())
     {
-      ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
-      std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      std::string r = GetResourceTypeText(level, false /* plural */, false /* upper case */);
       call.GetDocumentation()
-        .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
+        .SetTag(GetResourceTypeText(level, true /* plural */, true /* upper case */))
         .SetSummary("Test label")
         .SetDescription("Test whether the " + r + " is associated with the given label")
         .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
@@ -2202,11 +2076,7 @@ namespace Orthanc
       return;
     }
 
-    CheckValidResourceType(call);
-
-    assert(!call.GetFullUri().empty());
     const std::string publicId = call.GetUriComponent("id", "");
-    const ResourceType level = StringToResourceType(call.GetFullUri() [0].c_str());
 
     std::string label = call.GetUriComponent("label", "");
 
@@ -2222,12 +2092,13 @@ namespace Orthanc
 
   static void AddLabel(RestApiPutCall& call)
   {
+    const ResourceType level = GetResourceTypeFromUri(call);
+
     if (call.IsDocumentation())
     {
-      ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
-      std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      std::string r = GetResourceTypeText(level, false /* plural */, false /* upper case */);
       call.GetDocumentation()
-        .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
+        .SetTag(GetResourceTypeText(level, true /* plural */, true /* upper case */))
         .SetSummary("Add label")
         .SetDescription("Associate a label with a " + r)
         .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
@@ -2235,10 +2106,7 @@ namespace Orthanc
       return;
     }
 
-    CheckValidResourceType(call);
-
     std::string publicId = call.GetUriComponent("id", "");
-    const ResourceType level = StringToResourceType(call.GetFullUri() [0].c_str());
 
     std::string label = call.GetUriComponent("label", "");
     OrthancRestApi::GetIndex(call).ModifyLabel(publicId, level, label, StatelessDatabaseOperations::LabelOperation_Add);
@@ -2249,12 +2117,13 @@ namespace Orthanc
 
   static void RemoveLabel(RestApiDeleteCall& call)
   {
+    const ResourceType level = GetResourceTypeFromUri(call);
+
     if (call.IsDocumentation())
     {
-      ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
-      std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      std::string r = GetResourceTypeText(level, false /* plural */, false /* upper case */);
       call.GetDocumentation()
-        .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
+        .SetTag(GetResourceTypeText(level, true /* plural */, true /* upper case */))
         .SetSummary("Remove label")
         .SetDescription("Remove a label associated with a " + r)
         .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
@@ -2262,10 +2131,7 @@ namespace Orthanc
       return;
     }
 
-    CheckValidResourceType(call);
-
     std::string publicId = call.GetUriComponent("id", "");
-    const ResourceType level = StringToResourceType(call.GetFullUri() [0].c_str());
 
     std::string label = call.GetUriComponent("label", "");
     OrthancRestApi::GetIndex(call).ModifyLabel(publicId, level, label, StatelessDatabaseOperations::LabelOperation_Remove);
@@ -2278,26 +2144,26 @@ namespace Orthanc
 
   static void ListAttachments(RestApiGetCall& call)
   {
+    const ResourceType level = GetResourceTypeFromUri(call);
+
     if (call.IsDocumentation())
     {
-      ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
-      std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      std::string r = GetResourceTypeText(level, false /* plural */, false /* upper case */);
       call.GetDocumentation()
-        .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
+        .SetTag(GetResourceTypeText(level, true /* plural */, true /* upper case */))
         .SetSummary("List attachments")
         .SetDescription("Get the list of attachments that are associated with the given " + r)
         .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
         .SetHttpGetArgument("full", RestApiCallDocumentation::Type_String,
                             "If present, retrieve the attachments list and their numerical ids", false)
         .AddAnswerType(MimeType_Json, "JSON array containing the names of the attachments")
-        .SetHttpGetSample(GetDocumentationSampleResource(t) + "/attachments", true);
+        .SetHttpGetSample(GetDocumentationSampleResource(level) + "/attachments", true);
       return;
     }
 
-    const std::string resourceType = call.GetFullUri() [0];
     const std::string publicId = call.GetUriComponent("id", "");
     std::set<FileContentType> attachments;
-    OrthancRestApi::GetIndex(call).ListAvailableAttachments(attachments, publicId, StringToResourceType(resourceType.c_str()));
+    OrthancRestApi::GetIndex(call).ListAvailableAttachments(attachments, publicId, level);
 
     Json::Value result;
 
@@ -2306,7 +2172,7 @@ namespace Orthanc
       result = Json::objectValue;
       
       for (std::set<FileContentType>::const_iterator 
-            it = attachments.begin(); it != attachments.end(); ++it)
+             it = attachments.begin(); it != attachments.end(); ++it)
       {
         std::string key = EnumerationToString(*it);
         result[key] = static_cast<uint16_t>(*it);
@@ -2317,7 +2183,7 @@ namespace Orthanc
       result = Json::arrayValue;
       
       for (std::set<FileContentType>::const_iterator 
-            it = attachments.begin(); it != attachments.end(); ++it)
+             it = attachments.begin(); it != attachments.end(); ++it)
       {
         result.append(EnumerationToString(*it));
       }
@@ -2338,17 +2204,15 @@ namespace Orthanc
   }
 
   
-  static bool GetAttachmentInfo(FileInfo& info,
+  static bool GetAttachmentInfo(FileInfo& info /* out */,
+                                int64_t& revision /* out */,
+                                ResourceType level,
                                 RestApiGetCall& call)
   {
-    CheckValidResourceType(call);
- 
     const std::string publicId = call.GetUriComponent("id", "");
-    const std::string name = call.GetUriComponent("name", "");
-    FileContentType contentType = StringToContentType(name);
+    FileContentType contentType = StringToContentType(call.GetUriComponent("name", ""));
 
-    int64_t revision;
-    if (OrthancRestApi::GetIndex(call).LookupAttachment(info, revision, publicId, contentType))
+    if (OrthancRestApi::GetIndex(call).LookupAttachment(info, revision, level, publicId, contentType))
     {
       SetAttachmentETag(call.GetOutput(), revision, info);  // New in Orthanc 1.9.2
 
@@ -2375,10 +2239,11 @@ namespace Orthanc
 
   static void GetAttachmentOperations(RestApiGetCall& call)
   {
+    const ResourceType level = GetResourceTypeFromUri(call);
+
     if (call.IsDocumentation())
     {
-      ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
-      std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      std::string r = GetResourceTypeText(level, false /* plural */, false /* upper case */);
       AddAttachmentDocumentation(call, r);
       call.GetDocumentation()
         .SetTag("Other")
@@ -2390,7 +2255,8 @@ namespace Orthanc
     }
 
     FileInfo info;
-    if (GetAttachmentInfo(info, call))
+    int64_t revision;
+    if (GetAttachmentInfo(info, revision, level, call))
     {
       Json::Value operations = Json::arrayValue;
 
@@ -2429,12 +2295,13 @@ namespace Orthanc
   template <int uncompress>
   static void GetAttachmentData(RestApiGetCall& call)
   {
+    const ResourceType level = GetResourceTypeFromUri(call);
+
     if (call.IsDocumentation())
     {
-      ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
-      std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      std::string r = GetResourceTypeText(level, false /* plural */, false /* upper case */);
       call.GetDocumentation()
-        .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
+        .SetTag(GetResourceTypeText(level, true /* plural */, true /* upper case */))
         .SetSummary("Get attachment" + std::string(uncompress ? "" : " (no decompression)"))
         .SetDescription("Get the (binary) content of one attachment associated with the given " + r +
                         std::string(uncompress ? "" : ". The attachment will not be decompressed if `StorageCompression` is `true`."))
@@ -2442,46 +2309,60 @@ namespace Orthanc
         .SetUriArgument("name", "The name of the attachment, or its index (cf. `UserContentType` configuration option)")
         .AddAnswerType(MimeType_Binary, "The attachment")
         .SetAnswerHeader("ETag", "Revision of the attachment, to be used in further `PUT` or `DELETE` operations")
-        .SetHttpHeader("If-None-Match", "Optional revision of the metadata, to check if its content has changed");
+        .SetHttpHeader("If-None-Match", "Optional revision of the attachment, to check if its content has changed")
+        .SetHttpHeader("Content-Range", "Optional content range to access part of the attachment (new in Orthanc 1.12.5)");
       return;
     }
 
     ServerContext& context = OrthancRestApi::GetContext(call);
 
-    CheckValidResourceType(call);
- 
-    std::string publicId = call.GetUriComponent("id", "");
-    FileContentType type = StringToContentType(call.GetUriComponent("name", ""));
+    bool hasRangeHeader = false;
+    StorageAccessor::Range range;
+
+    HttpToolbox::Arguments::const_iterator rangeHeader = call.GetHttpHeaders().find("range");
+    if (rangeHeader != call.GetHttpHeaders().end())
+    {
+      hasRangeHeader = true;
+      range = StorageAccessor::Range::ParseHttpRange(rangeHeader->second);
+    }
 
     FileInfo info;
-    if (GetAttachmentInfo(info, call))
+    int64_t revision;
+    if (GetAttachmentInfo(info, revision, level, call))
     {
       // NB: "SetAttachmentETag()" is already invoked by "GetAttachmentInfo()"
 
-      if (uncompress)
+      int64_t userRevision;
+      std::string userMD5;
+      if (GetRevisionHeader(userRevision, userMD5, call, "If-None-Match") &&
+          revision == userRevision &&
+          info.GetUncompressedMD5() == userMD5)
       {
-        context.AnswerAttachment(call.GetOutput(), publicId, type);
+        call.GetOutput().GetLowLevelOutput().SendStatus(HttpStatus_304_NotModified);
+        return;
+      }
+
+      if (hasRangeHeader)
+      {
+        std::string fragment;
+        context.ReadAttachmentRange(fragment, info, range, uncompress);
+
+        uint64_t fullSize = (uncompress ? info.GetUncompressedSize() : info.GetCompressedSize());
+        call.GetOutput().GetLowLevelOutput().SetContentType(MimeType_Binary);
+        call.GetOutput().GetLowLevelOutput().AddHeader("Content-Range", range.FormatHttpContentRange(fullSize));
+        call.GetOutput().GetLowLevelOutput().SendStatus(HttpStatus_206_PartialContent, fragment);
+      }
+      else if (uncompress ||
+               info.GetCompressionType() == CompressionType_None)
+      {
+        context.AnswerAttachment(call.GetOutput(), info);
       }
       else
       {
-        // Return the raw data (possibly compressed), as stored on the filesystem
+        // Access to the raw attachment (which is compressed)
         std::string content;
-        std::string attachmentId;
-        int64_t revision;
-        context.ReadAttachment(content, revision, attachmentId, publicId, type, false, true /* skipCache when you absolutely need the compressed data */);
-
-        int64_t userRevision;
-        std::string userMD5;
-        if (GetRevisionHeader(userRevision, userMD5, call, "If-None-Match") &&
-            revision == userRevision &&
-            info.GetUncompressedMD5() == userMD5)
-        {
-          call.GetOutput().GetLowLevelOutput().SendStatus(HttpStatus_304_NotModified);
-        }
-        else
-        {
-          call.GetOutput().AnswerBuffer(content, MimeType_Binary);
-        }
+        context.ReadAttachment(content, info, false /* don't uncompress */, true /* skip cache */);
+        call.GetOutput().AnswerBuffer(content, MimeType_Binary);
       }
     }
   }
@@ -2489,13 +2370,14 @@ namespace Orthanc
 
   static void GetAttachmentSize(RestApiGetCall& call)
   {
+    const ResourceType level = GetResourceTypeFromUri(call);
+
     if (call.IsDocumentation())
     {
-      ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
-      std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      std::string r = GetResourceTypeText(level, false /* plural */, false /* upper case */);
       AddAttachmentDocumentation(call, r);
       call.GetDocumentation()
-        .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
+        .SetTag(GetResourceTypeText(level, true /* plural */, true /* upper case */))
         .SetSummary("Get size of attachment")
         .SetDescription("Get the size of one attachment associated with the given " + r)
         .AddAnswerType(MimeType_PlainText, "The size of the attachment");
@@ -2503,7 +2385,8 @@ namespace Orthanc
     }
 
     FileInfo info;
-    if (GetAttachmentInfo(info, call))
+    int64_t revision;
+    if (GetAttachmentInfo(info, revision, level, call))
     {
       call.GetOutput().AnswerBuffer(boost::lexical_cast<std::string>(info.GetUncompressedSize()), MimeType_PlainText);
     }
@@ -2511,13 +2394,14 @@ namespace Orthanc
 
   static void GetAttachmentInfo(RestApiGetCall& call)
   {
+    const ResourceType level = GetResourceTypeFromUri(call);
+
     if (call.IsDocumentation())
     {
-      ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
-      std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      std::string r = GetResourceTypeText(level, false /* plural */, false /* upper case */);
       AddAttachmentDocumentation(call, r);
       call.GetDocumentation()
-        .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
+        .SetTag(GetResourceTypeText(level, true /* plural */, true /* upper case */))
         .SetSummary("Get info about the attachment")
         .SetDescription("Get all the information about the attachment associated with the given " + r)
         .AddAnswerType(MimeType_Json, "JSON object containing the information about the attachment")
@@ -2526,7 +2410,8 @@ namespace Orthanc
     }
 
     FileInfo info;
-    if (GetAttachmentInfo(info, call))
+    int64_t revision;
+    if (GetAttachmentInfo(info, revision, level, call))
     {
       Json::Value result = Json::objectValue;    
       result["Uuid"] = info.GetUuid();
@@ -2542,13 +2427,14 @@ namespace Orthanc
 
   static void GetAttachmentCompressedSize(RestApiGetCall& call)
   {
+    const ResourceType level = GetResourceTypeFromUri(call);
+
     if (call.IsDocumentation())
     {
-      ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
-      std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      std::string r = GetResourceTypeText(level, false /* plural */, false /* upper case */);
       AddAttachmentDocumentation(call, r);
       call.GetDocumentation()
-        .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
+        .SetTag(GetResourceTypeText(level, true /* plural */, true /* upper case */))
         .SetSummary("Get size of attachment on disk")
         .SetDescription("Get the size of one attachment associated with the given " + r + ", as stored on the disk. "
                         "This is different from `.../size` iff `EnableStorage` is `true`.")
@@ -2557,7 +2443,8 @@ namespace Orthanc
     }
 
     FileInfo info;
-    if (GetAttachmentInfo(info, call))
+    int64_t revision;
+    if (GetAttachmentInfo(info, revision, level, call))
     {
       call.GetOutput().AnswerBuffer(boost::lexical_cast<std::string>(info.GetCompressedSize()), MimeType_PlainText);
     }
@@ -2566,13 +2453,14 @@ namespace Orthanc
 
   static void GetAttachmentMD5(RestApiGetCall& call)
   {
+    const ResourceType level = GetResourceTypeFromUri(call);
+
     if (call.IsDocumentation())
     {
-      ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
-      std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      std::string r = GetResourceTypeText(level, false /* plural */, false /* upper case */);
       AddAttachmentDocumentation(call, r);
       call.GetDocumentation()
-        .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
+        .SetTag(GetResourceTypeText(level, true /* plural */, true /* upper case */))
         .SetSummary("Get MD5 of attachment")
         .SetDescription("Get the MD5 hash of one attachment associated with the given " + r)
         .AddAnswerType(MimeType_PlainText, "The MD5 of the attachment");
@@ -2580,7 +2468,8 @@ namespace Orthanc
     }
 
     FileInfo info;
-    if (GetAttachmentInfo(info, call) &&
+    int64_t revision;
+    if (GetAttachmentInfo(info, revision, level, call) &&
         info.GetUncompressedMD5() != "")
     {
       call.GetOutput().AnswerBuffer(boost::lexical_cast<std::string>(info.GetUncompressedMD5()), MimeType_PlainText);
@@ -2590,13 +2479,14 @@ namespace Orthanc
 
   static void GetAttachmentCompressedMD5(RestApiGetCall& call)
   {
+    const ResourceType level = GetResourceTypeFromUri(call);
+
     if (call.IsDocumentation())
     {
-      ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
-      std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      std::string r = GetResourceTypeText(level, false /* plural */, false /* upper case */);
       AddAttachmentDocumentation(call, r);
       call.GetDocumentation()
-        .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
+        .SetTag(GetResourceTypeText(level, true /* plural */, true /* upper case */))
         .SetSummary("Get MD5 of attachment on disk")
         .SetDescription("Get the MD5 hash of one attachment associated with the given " + r + ", as stored on the disk. "
                         "This is different from `.../md5` iff `EnableStorage` is `true`.")
@@ -2605,7 +2495,8 @@ namespace Orthanc
     }
 
     FileInfo info;
-    if (GetAttachmentInfo(info, call) &&
+    int64_t revision;
+    if (GetAttachmentInfo(info, revision, level, call) &&
         info.GetCompressedMD5() != "")
     {
       call.GetOutput().AnswerBuffer(boost::lexical_cast<std::string>(info.GetCompressedMD5()), MimeType_PlainText);
@@ -2615,12 +2506,13 @@ namespace Orthanc
 
   static void VerifyAttachment(RestApiPostCall& call)
   {
+    const ResourceType level = GetResourceTypeFromUri(call);
+
     if (call.IsDocumentation())
     {
-      ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
-      std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      std::string r = GetResourceTypeText(level, false /* plural */, false /* upper case */);
       call.GetDocumentation()
-        .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
+        .SetTag(GetResourceTypeText(level, true /* plural */, true /* upper case */))
         .SetSummary("Verify attachment")
         .SetDescription("Verify that the attachment is not corrupted, by validating its MD5 hash")
         .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
@@ -2630,7 +2522,6 @@ namespace Orthanc
     }
 
     ServerContext& context = OrthancRestApi::GetContext(call);
-    CheckValidResourceType(call);
 
     std::string publicId = call.GetUriComponent("id", "");
     std::string name = call.GetUriComponent("name", "");
@@ -2638,7 +2529,7 @@ namespace Orthanc
 
     FileInfo info;
     int64_t revision;  // Ignored
-    if (!OrthancRestApi::GetIndex(call).LookupAttachment(info, revision, publicId, contentType) ||
+    if (!OrthancRestApi::GetIndex(call).LookupAttachment(info, revision, level, publicId, contentType) ||
         info.GetCompressedMD5() == "" ||
         info.GetUncompressedMD5() == "")
     {
@@ -2650,9 +2541,7 @@ namespace Orthanc
 
     // First check whether the compressed data is correctly stored in the disk
     std::string data;
-    std::string attachmentId;
-
-    context.ReadAttachment(data, revision, attachmentId, publicId, StringToContentType(name), false, true /* skipCache when you absolutely need the compressed data */);
+    context.ReadAttachment(data, info, false, true /* skipCache when you absolutely need the compressed data */);
 
     std::string actualMD5;
     Toolbox::ComputeMD5(actualMD5, data);
@@ -2667,7 +2556,7 @@ namespace Orthanc
       }
       else
       {
-        context.ReadAttachment(data, revision, attachmentId, publicId, StringToContentType(name), true, true /* skipCache when you absolutely need the compressed data */);
+        context.ReadAttachment(data, info, true, true /* skipCache when you absolutely need the compressed data */);
         Toolbox::ComputeMD5(actualMD5, data);
         ok = (actualMD5 == info.GetUncompressedMD5());
       }
@@ -2687,12 +2576,13 @@ namespace Orthanc
 
   static void UploadAttachment(RestApiPutCall& call)
   {
+    const ResourceType level = GetResourceTypeFromUri(call);
+
     if (call.IsDocumentation())
     {
-      ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
-      std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      std::string r = GetResourceTypeText(level, false /* plural */, false /* upper case */);
       call.GetDocumentation()
-        .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
+        .SetTag(GetResourceTypeText(level, true /* plural */, true /* upper case */))
         .SetSummary("Set attachment")
         .SetDescription("Attach a file to the given DICOM " + r +
                         ". This call will fail if trying to modify a system attachment (i.e. whose index is < 1024).")
@@ -2705,11 +2595,9 @@ namespace Orthanc
     }
 
     ServerContext& context = OrthancRestApi::GetContext(call);
-    CheckValidResourceType(call);
  
     std::string publicId = call.GetUriComponent("id", "");
     std::string name = call.GetUriComponent("name", "");
-    ResourceType resourceType = StringToResourceType(call.GetFullUri()[0].c_str());
 
     FileContentType contentType = StringToContentType(name);
     if (IsUserContentType(contentType) ||  // It is forbidden to modify internal attachments...
@@ -2734,7 +2622,7 @@ namespace Orthanc
       }
 
       int64_t newRevision;
-      context.AddAttachment(newRevision, publicId, resourceType, StringToContentType(name), call.GetBodyData(),
+      context.AddAttachment(newRevision, publicId, level, StringToContentType(name), call.GetBodyData(),
                             call.GetBodySize(), hasOldRevision, oldRevision, oldMD5);
 
       SetBufferContentETag(call.GetOutput(), newRevision, call.GetBodyData(), call.GetBodySize());  // New in Orthanc 1.9.2
@@ -2749,12 +2637,13 @@ namespace Orthanc
 
   static void DeleteAttachment(RestApiDeleteCall& call)
   {
+    const ResourceType level = GetResourceTypeFromUri(call);
+
     if (call.IsDocumentation())
     {
-      ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
-      std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      std::string r = GetResourceTypeText(level, false /* plural */, false /* upper case */);
       call.GetDocumentation()
-        .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
+        .SetTag(GetResourceTypeText(level, true /* plural */, true /* upper case */))
         .SetSummary("Delete attachment")
         .SetDescription("Delete an attachment associated with the given DICOM " + r +
                         ". This call will fail if trying to delete a system attachment (i.e. whose index is < 1024).")
@@ -2764,8 +2653,6 @@ namespace Orthanc
                        "be deleted. This header is mandatory if `CheckRevisions` option is `true`.");
       return;
     }
-
-    CheckValidResourceType(call);
 
     std::string publicId = call.GetUriComponent("id", "");
     std::string name = call.GetUriComponent("name", "");
@@ -2838,12 +2725,13 @@ namespace Orthanc
   template <enum CompressionType compression>
   static void ChangeAttachmentCompression(RestApiPostCall& call)
   {
+    const ResourceType level = GetResourceTypeFromUri(call);
+
     if (call.IsDocumentation())
     {
-      ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
-      std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      std::string r = GetResourceTypeText(level, false /* plural */, false /* upper case */);
       call.GetDocumentation()
-        .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
+        .SetTag(GetResourceTypeText(level, true /* plural */, true /* upper case */))
         .SetSummary(compression == CompressionType_None ? "Uncompress attachment" : "Compress attachment")
         .SetDescription("Change the compression scheme that is used to store an attachment.")
         .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
@@ -2851,27 +2739,25 @@ namespace Orthanc
       return;
     }
 
-    CheckValidResourceType(call);
-
     std::string publicId = call.GetUriComponent("id", "");
     std::string name = call.GetUriComponent("name", "");
-    ResourceType resourceType = StringToResourceType(call.GetFullUri()[0].c_str());
     FileContentType contentType = StringToContentType(name);
 
-    OrthancRestApi::GetContext(call).ChangeAttachmentCompression(publicId, resourceType, contentType, compression);
+    OrthancRestApi::GetContext(call).ChangeAttachmentCompression(level, publicId, contentType, compression);
     call.GetOutput().AnswerBuffer("{}", MimeType_Json);
   }
 
 
   static void IsAttachmentCompressed(RestApiGetCall& call)
   {
+    const ResourceType level = GetResourceTypeFromUri(call);
+
     if (call.IsDocumentation())
     {
-      ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
-      std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      std::string r = GetResourceTypeText(level, false /* plural */, false /* upper case */);
       AddAttachmentDocumentation(call, r);
       call.GetDocumentation()
-        .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
+        .SetTag(GetResourceTypeText(level, true /* plural */, true /* upper case */))
         .SetSummary("Is attachment compressed?")
         .SetDescription("Test whether the attachment has been stored as a compressed file on the disk.")
         .AddAnswerType(MimeType_PlainText, "`0` if the attachment was stored uncompressed, `1` if it was compressed");
@@ -2879,7 +2765,8 @@ namespace Orthanc
     }
 
     FileInfo info;
-    if (GetAttachmentInfo(info, call))
+    int64_t revision;
+    if (GetAttachmentInfo(info, revision, level, call))
     {
       std::string answer = (info.GetCompressionType() == CompressionType_None) ? "0" : "1";
       call.GetOutput().AnswerBuffer(answer, MimeType_PlainText);
@@ -2917,12 +2804,13 @@ namespace Orthanc
 
   static bool ExtractSharedTags(Json::Value& shared,
                                 ServerContext& context,
-                                const std::string& publicId)
+                                const std::string& publicId,
+                                ResourceType level)
   {
     // Retrieve all the instances of this patient/study/series
     typedef std::list<std::string> Instances;
     Instances instances;
-    context.GetIndex().GetChildInstances(instances, publicId);  // (*)
+    context.GetIndex().GetChildInstances(instances, publicId, level);  // (*)
 
     // Loop over the instances
     bool isFirst = true;
@@ -2992,20 +2880,21 @@ namespace Orthanc
 
   static void GetSharedTags(RestApiGetCall& call)
   {
+    const ResourceType level = GetResourceTypeFromUri(call);
+
     if (call.IsDocumentation())
     {
       OrthancRestApi::DocumentDicomFormat(call, DicomToJsonFormat_Full);
 
-      ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
-      std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      std::string r = GetResourceTypeText(level, false /* plural */, false /* upper case */);
       call.GetDocumentation()
-        .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
+        .SetTag(GetResourceTypeText(level, true /* plural */, true /* upper case */))
         .SetSummary("Get shared tags")
         .SetDescription("Extract the DICOM tags whose value is constant across all the child instances of "
                         "the DICOM " + r + " whose Orthanc identifier is provided in the URL")
         .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
         .AddAnswerType(MimeType_Json, "JSON object containing the values of the DICOM tags")
-        .SetTruncatedJsonHttpGetSample(GetDocumentationSampleResource(t) + "/shared-tags", 5);
+        .SetTruncatedJsonHttpGetSample(GetDocumentationSampleResource(level) + "/shared-tags", 5);
       return;
     }
 
@@ -3013,7 +2902,7 @@ namespace Orthanc
     std::string publicId = call.GetUriComponent("id", "");
 
     Json::Value sharedTags;
-    if (ExtractSharedTags(sharedTags, context, publicId))
+    if (ExtractSharedTags(sharedTags, context, publicId, level))
     {
       // Success: Send the value of the shared tags
       AnswerDicomAsJson(call, sharedTags, OrthancRestApi::GetDicomFormat(call, DicomToJsonFormat_Full));
@@ -3088,7 +2977,7 @@ namespace Orthanc
       // Retrieve all the instances of this patient/study/series
       typedef std::list<std::string> Instances;
       Instances instances;
-      context.GetIndex().GetChildInstances(instances, publicId);
+      context.GetIndex().GetChildInstances(instances, publicId, resourceType);
 
       if (instances.empty())
       {
@@ -3183,70 +3072,14 @@ namespace Orthanc
   }
 
 
-  namespace 
+  enum FindType
   {
-    class FindVisitor : public ServerContext::ILookupVisitor
-    {
-    private:
-      bool                    isComplete_;
-      std::list<std::string>  resources_;
-      FindStorageAccessMode   findStorageAccessMode_;
-      
-      // cache the data we used during lookup and that we could reuse when building the answers
-      std::map<std::string, std::string> instancesIds_;         // the id of an instance for each found resource.
-      std::map<std::string, boost::shared_ptr<DicomMap> > resourcesMainDicomTags_;  // all tags read from DB for a resource (current level and upper levels)
-      std::map<std::string, boost::shared_ptr<Json::Value> > resourcesDicomAsJson_; // the dicom-as-json for a resource
-
-      DicomToJsonFormat       format_;
-
-    public:
-      explicit FindVisitor(DicomToJsonFormat format, FindStorageAccessMode findStorageAccessMode) :
-        isComplete_(false),
-        findStorageAccessMode_(findStorageAccessMode),
-        format_(format)
-      {
-      }
-      
-      virtual bool IsDicomAsJsonNeeded() const ORTHANC_OVERRIDE
-      {
-        return false;   // (*)
-      }
-      
-      virtual void MarkAsComplete() ORTHANC_OVERRIDE
-      {
-        isComplete_ = true;  // Unused information as of Orthanc 1.5.0
-      }
-
-      virtual void Visit(const std::string& publicId,
-                         const std::string& instanceId,
-                         const DicomMap& mainDicomTags,
-                         const Json::Value* dicomAsJson)  ORTHANC_OVERRIDE
-      {
-        resources_.push_back(publicId);
-        instancesIds_[publicId] = instanceId;
-        resourcesMainDicomTags_[publicId].reset(mainDicomTags.Clone());
-        if (dicomAsJson != NULL)
-        {
-          resourcesDicomAsJson_[publicId].reset(new Json::Value(*dicomAsJson));  // keep our own copy because we might reuse it between lookup and answers
-        }
-        else
-        {
-          resourcesDicomAsJson_[publicId] = boost::shared_ptr<Json::Value>();
-        }
-      }
-
-      void Answer(RestApiOutput& output,
-                  ServerContext& context,
-                  ResourceType level,
-                  bool expand,
-                  const std::set<DicomTag>& requestedTags) const
-      {
-        AnswerListOfResources1(output, context, resources_, instancesIds_, resourcesMainDicomTags_, resourcesDicomAsJson_, level, expand, format_, requestedTags, IsStorageAccessAllowedForAnswers(findStorageAccessMode_));
-      }
-    };
-  }
+    FindType_Find,
+    FindType_Count
+  };
 
 
+  template <enum FindType requestType>
   static void Find(RestApiPostCall& call)
   {
     static const char* const KEY_CASE_SENSITIVE = "CaseSensitive";
@@ -3265,57 +3098,64 @@ namespace Orthanc
     static const char* const KEY_PARENT_PATIENT = "ParentPatient";        // New in Orthanc 1.12.5
     static const char* const KEY_PARENT_STUDY = "ParentStudy";            // New in Orthanc 1.12.5
     static const char* const KEY_PARENT_SERIES = "ParentSeries";          // New in Orthanc 1.12.5
-    static const char* const KEY_QUERY_METADATA = "QueryMetadata";        // New in Orthanc 1.12.5
+    static const char* const KEY_METADATA_QUERY = "MetadataQuery";        // New in Orthanc 1.12.5
     static const char* const KEY_RESPONSE_CONTENT = "ResponseContent";    // New in Orthanc 1.12.5
 
     if (call.IsDocumentation())
     {
       OrthancRestApi::DocumentDicomFormat(call, DicomToJsonFormat_Human);
 
-      call.GetDocumentation()
-        .SetTag("System")
-        .SetSummary("Look for local resources")
-        .SetDescription("This URI can be used to perform a search on the content of the local Orthanc server, "
-                        "in a way that is similar to querying remote DICOM modalities using C-FIND SCU: "
-                        "https://orthanc.uclouvain.be/book/users/rest.html#performing-finds-within-orthanc")
-        .SetRequestField(KEY_CASE_SENSITIVE, RestApiCallDocumentation::Type_Boolean,
-                         "Enable case-sensitive search for PN value representations (defaults to configuration option `CaseSensitivePN`)", false)
-        .SetRequestField(KEY_EXPAND, RestApiCallDocumentation::Type_Boolean,
-                         "Also retrieve the content of the matching resources, not only their Orthanc identifiers", false)
+      RestApiCallDocumentation& doc = call.GetDocumentation();
+
+      doc.SetTag("System")
         .SetRequestField(KEY_LEVEL, RestApiCallDocumentation::Type_String,
                          "Level of the query (`Patient`, `Study`, `Series` or `Instance`)", true)
-        .SetRequestField(KEY_LIMIT, RestApiCallDocumentation::Type_Number,
-                         "Limit the number of reported resources", false)
-        .SetRequestField(KEY_SINCE, RestApiCallDocumentation::Type_Number,
-                         "Show only the resources since the provided index (in conjunction with `Limit`)", false)
-        .SetRequestField(KEY_REQUESTED_TAGS, RestApiCallDocumentation::Type_JsonListOfStrings,
-                         "A list of DICOM tags to include in the response (applicable only if \"Expand\" is set to true).  "
-                         "The tags requested tags are returned in the 'RequestedTags' field in the response.  "
-                         "Note that, if you are requesting tags that are not listed in the Main Dicom Tags stored in DB, building the response "
-                         "might be slow since Orthanc will need to access the DICOM files.  If not specified, Orthanc will return "
-                         "all Main Dicom Tags to keep backward compatibility with Orthanc prior to 1.11.0.", false)
         .SetRequestField(KEY_QUERY, RestApiCallDocumentation::Type_JsonObject,
                          "Associative array containing the filter on the values of the DICOM tags", true)
         .SetRequestField(KEY_LABELS, RestApiCallDocumentation::Type_JsonListOfStrings,
                          "List of strings specifying which labels to look for in the resources (new in Orthanc 1.12.0)", true)
         .SetRequestField(KEY_LABELS_CONSTRAINT, RestApiCallDocumentation::Type_String,
                          "Constraint on the labels, can be `All`, `Any`, or `None` (defaults to `All`, new in Orthanc 1.12.0)", true)
-        .SetRequestField(KEY_ORDER_BY, RestApiCallDocumentation::Type_JsonListOfObjects,
-                         "Array of associative arrays containing the requested ordering (new in Orthanc 1.12.5)", true)
         .SetRequestField(KEY_PARENT_PATIENT, RestApiCallDocumentation::Type_String,
                          "Limit the reported resources to descendants of this patient (new in Orthanc 1.12.5)", true)
         .SetRequestField(KEY_PARENT_STUDY, RestApiCallDocumentation::Type_String,
                          "Limit the reported resources to descendants of this study (new in Orthanc 1.12.5)", true)
         .SetRequestField(KEY_PARENT_SERIES, RestApiCallDocumentation::Type_String,
                          "Limit the reported resources to descendants of this series (new in Orthanc 1.12.5)", true)
-        .SetRequestField(KEY_QUERY_METADATA, RestApiCallDocumentation::Type_JsonObject,
-                         "Associative array containing the filter on the values of the metadata (new in Orthanc 1.12.5)", true)
-        .SetRequestField(KEY_RESPONSE_CONTENT, RestApiCallDocumentation::Type_JsonListOfStrings,
-                         "Defines the content of response for each returned resource.  Allowed values are `MainDicomTags`, "
-                         "`Metadata`, `Children`, `Parent`, `Labels`, `Status`, `IsStable`, `Attachments`.  "
-                         "(new in Orthanc 1.12.5)", true)
-        .AddAnswerType(MimeType_Json, "JSON array containing either the Orthanc identifiers, or detailed information "
-                       "about the reported resources (if `Expand` argument is `true`)");
+        .SetRequestField(KEY_METADATA_QUERY, RestApiCallDocumentation::Type_JsonObject,
+                         "Associative array containing the filter on the values of the metadata (new in Orthanc 1.12.5)", true);
+      
+      switch (requestType)
+      {
+        case FindType_Find:
+          doc.SetSummary("Look for local resources")
+          .SetRequestField(KEY_CASE_SENSITIVE, RestApiCallDocumentation::Type_Boolean,
+                           "Enable case-sensitive search for PN value representations (defaults to configuration option `CaseSensitivePN`)", false)
+          .SetDescription("This URI can be used to perform a search on the content of the local Orthanc server, "
+                          "in a way that is similar to querying remote DICOM modalities using C-FIND SCU: "
+                          "https://orthanc.uclouvain.be/book/users/rest.html#performing-finds-within-orthanc")
+          .SetRequestField(KEY_LIMIT, RestApiCallDocumentation::Type_Number,
+                          "Limit the number of reported resources", false)
+          .SetRequestField(KEY_SINCE, RestApiCallDocumentation::Type_Number,
+                          "Show only the resources since the provided index (in conjunction with `Limit`)", false)
+          .SetRequestField(KEY_ORDER_BY, RestApiCallDocumentation::Type_JsonListOfObjects,
+                          "Array of associative arrays containing the requested ordering (new in Orthanc 1.12.5)", true)
+          .AddAnswerType(MimeType_Json, "JSON array containing either the Orthanc identifiers, or detailed information "
+                        "about the reported resources (if `Expand` argument is `true`)");
+
+          OrthancRestApi::DocumentRequestedTags(call);
+          OrthancRestApi::DocumentResponseContentAndExpand(call);
+          break;
+        case FindType_Count:
+          doc.SetSummary("Count local resources")
+          .SetDescription("This URI can be used to count the resources that are matching criteria on the content of the local Orthanc server, "
+                          "in a way that is similar to tools/find")
+          .AddAnswerType(MimeType_Json, "A JSON object with the `Count` of matching resources");
+          break;
+        default:
+          throw OrthancException(ErrorCode_NotImplemented);
+      }
+        
       return;
     }
 
@@ -3346,30 +3186,6 @@ namespace Orthanc
       throw OrthancException(ErrorCode_BadRequest, 
                              "Field \"" + std::string(KEY_CASE_SENSITIVE) + "\" must be a Boolean");
     }
-    else if (request.isMember(KEY_LIMIT) && 
-             request[KEY_LIMIT].type() != Json::intValue)
-    {
-      throw OrthancException(ErrorCode_BadRequest, 
-                             "Field \"" + std::string(KEY_LIMIT) + "\" must be an integer");
-    }
-    else if (request.isMember(KEY_SINCE) &&
-             request[KEY_SINCE].type() != Json::intValue)
-    {
-      throw OrthancException(ErrorCode_BadRequest, 
-                             "Field \"" + std::string(KEY_SINCE) + "\" must be an integer");
-    }
-    else if (request.isMember(KEY_REQUESTED_TAGS) &&
-             request[KEY_REQUESTED_TAGS].type() != Json::arrayValue)
-    {
-      throw OrthancException(ErrorCode_BadRequest, 
-                             "Field \"" + std::string(KEY_REQUESTED_TAGS) + "\" must be an array");
-    }
-    else if (request.isMember(KEY_RESPONSE_CONTENT) &&
-             request[KEY_RESPONSE_CONTENT].type() != Json::arrayValue)
-    {
-      throw OrthancException(ErrorCode_BadRequest, 
-                             "Field \"" + std::string(KEY_RESPONSE_CONTENT) + "\" must be an array");
-    }
     else if (request.isMember(KEY_LABELS) &&
              request[KEY_LABELS].type() != Json::arrayValue)
     {
@@ -3382,17 +3198,11 @@ namespace Orthanc
       throw OrthancException(ErrorCode_BadRequest, 
                              "Field \"" + std::string(KEY_LABELS_CONSTRAINT) + "\" must be an array of strings");
     }
-    else if (request.isMember(KEY_ORDER_BY) &&
-             request[KEY_ORDER_BY].type() != Json::arrayValue)
+    else if (request.isMember(KEY_METADATA_QUERY) &&
+             request[KEY_METADATA_QUERY].type() != Json::objectValue)
     {
       throw OrthancException(ErrorCode_BadRequest, 
-                             "Field \"" + std::string(KEY_ORDER_BY) + "\" must be an array");
-    }
-    else if (request.isMember(KEY_QUERY_METADATA) &&
-             request[KEY_QUERY_METADATA].type() != Json::objectValue)
-    {
-      throw OrthancException(ErrorCode_BadRequest, 
-                             "Field \"" + std::string(KEY_QUERY_METADATA) + "\" must be an JSON object");
+                             "Field \"" + std::string(KEY_METADATA_QUERY) + "\" must be an JSON object");
     }
     else if (request.isMember(KEY_PARENT_PATIENT) &&
              request[KEY_PARENT_PATIENT].type() != Json::stringValue)
@@ -3412,72 +3222,88 @@ namespace Orthanc
       throw OrthancException(ErrorCode_BadRequest, 
                              "Field \"" + std::string(KEY_PARENT_SERIES) + "\" must be a string");
     }
+    else if (requestType == FindType_Find && request.isMember(KEY_LIMIT) && 
+             request[KEY_LIMIT].type() != Json::intValue)
+    {
+      throw OrthancException(ErrorCode_BadRequest, 
+                             "Field \"" + std::string(KEY_LIMIT) + "\" must be an integer");
+    }
+    else if (requestType == FindType_Find && request.isMember(KEY_SINCE) &&
+             request[KEY_SINCE].type() != Json::intValue)
+    {
+      throw OrthancException(ErrorCode_BadRequest, 
+                             "Field \"" + std::string(KEY_SINCE) + "\" must be an integer");
+    }
+    else if (requestType == FindType_Find && request.isMember(KEY_REQUESTED_TAGS) &&
+             request[KEY_REQUESTED_TAGS].type() != Json::arrayValue)
+    {
+      throw OrthancException(ErrorCode_BadRequest, 
+                             "Field \"" + std::string(KEY_REQUESTED_TAGS) + "\" must be an array");
+    }
+    else if (requestType == FindType_Find && request.isMember(KEY_RESPONSE_CONTENT) &&
+             request[KEY_RESPONSE_CONTENT].type() != Json::arrayValue)
+    {
+      throw OrthancException(ErrorCode_BadRequest, 
+                             "Field \"" + std::string(KEY_RESPONSE_CONTENT) + "\" must be an array");
+    }
+    else if (requestType == FindType_Find && request.isMember(KEY_ORDER_BY) &&
+             request[KEY_ORDER_BY].type() != Json::arrayValue)
+    {
+      throw OrthancException(ErrorCode_BadRequest, 
+                             "Field \"" + std::string(KEY_ORDER_BY) + "\" must be an array");
+    }
     else if (true)
     {
-      /**
-       * EXPERIMENTAL VERSION
-       **/
-
       ResponseContentFlags responseContent = ResponseContentFlags_ID;
       
-      if (request.isMember(KEY_RESPONSE_CONTENT))
+      if (requestType == FindType_Find)
       {
-        responseContent = ResponseContentFlags_Default;
-
-        for (Json::ArrayIndex i = 0; i < request[KEY_RESPONSE_CONTENT].size(); ++i)
+        if (request.isMember(KEY_RESPONSE_CONTENT))
         {
-          responseContent = static_cast<ResponseContentFlags>(static_cast<uint32_t>(responseContent) | StringToResponseContent(request[KEY_RESPONSE_CONTENT][i].asString()));
+          responseContent = ResponseContentFlags_Default;
+
+          for (Json::ArrayIndex i = 0; i < request[KEY_RESPONSE_CONTENT].size(); ++i)
+          {
+            responseContent = static_cast<ResponseContentFlags>(static_cast<uint32_t>(responseContent) | StringToResponseContent(request[KEY_RESPONSE_CONTENT][i].asString()));
+          }
+        }
+        else if (request.isMember(KEY_EXPAND) && request[KEY_EXPAND].asBool())
+        {
+          responseContent = ResponseContentFlags_ExpandTrue;
         }
       }
-      else if (request.isMember(KEY_EXPAND) && request[KEY_EXPAND].asBool())
+      else if (requestType == FindType_Count)
       {
-        responseContent = ResponseContentFlags_ExpandTrue;
+        responseContent = ResponseContentFlags_INTERNAL_CountResources;
       }
 
       const ResourceType level = StringToResourceType(request[KEY_LEVEL].asCString());
 
-      ResourceFinder finder(level, responseContent);
-      finder.SetDatabaseLimits(context.GetDatabaseLimits(level));
+      ResourceFinder finder(level, responseContent, context.GetFindStorageAccessMode(), context.GetIndex().HasFindSupport());
 
-      const DicomToJsonFormat format = OrthancRestApi::GetDicomFormat(request, DicomToJsonFormat_Human);
+      DatabaseLookup dicomTagLookup;
 
-      if (request.isMember(KEY_LIMIT))
-      {
-        int64_t tmp = request[KEY_LIMIT].asInt64();
-        if (tmp < 0)
-        {
-          throw OrthancException(ErrorCode_ParameterOutOfRange,
-                                 "Field \"" + std::string(KEY_LIMIT) + "\" must be a positive integer");
-        }
-        else if (tmp != 0)  // This is for compatibility with Orthanc 1.12.4
-        {
-          finder.SetLimitsCount(static_cast<uint64_t>(tmp));
-        }
-      }
-
-      if (request.isMember(KEY_SINCE))
-      {
-        int64_t tmp = request[KEY_SINCE].asInt64();
-        if (tmp < 0)
-        {
-          throw OrthancException(ErrorCode_ParameterOutOfRange,
-                                 "Field \"" + std::string(KEY_SINCE) + "\" must be a positive integer");
-        }
-        else
-        {
-          finder.SetLimitsSince(static_cast<uint64_t>(tmp));
-        }
-      }
-
-      {
+      { // common query code
         bool caseSensitive = false;
         if (request.isMember(KEY_CASE_SENSITIVE))
         {
           caseSensitive = request[KEY_CASE_SENSITIVE].asBool();
+
+          if (requestType == FindType_Count && caseSensitive)
+          {
+            /**
+             * Explanation: "/tools/find" uses "lookup_->IsMatch(tags)" in "ResourceFinder::Execute()"
+             * to apply case sensitiveness (as the database stores tags with PN VR in lower case).
+             * But, the purpose of "/tools/count-resources" is to speed up the counting the number of
+             * matching resources: Calling "lookup_->IsMatch(tags)" would require gathering the main
+             * DICOM tags, which would lead to no speedup wrt. "/tools/find".
+             **/
+            throw OrthancException(ErrorCode_ParameterOutOfRange, "Setting \"" + std::string(KEY_CASE_SENSITIVE) +
+                                   "\" to \"true\" is not supported by /tools/count-resources");
+          }
         }
 
         { // DICOM Tag query
-          DatabaseLookup dicomTagLookup;
 
           Json::Value::Members members = request[KEY_QUERY].getMemberNames();
           for (size_t i = 0; i < members.size(); i++)
@@ -3504,17 +3330,17 @@ namespace Orthanc
         }
 
         { // Metadata query
-          Json::Value::Members members = request[KEY_QUERY_METADATA].getMemberNames();
+          Json::Value::Members members = request[KEY_METADATA_QUERY].getMemberNames();
           for (size_t i = 0; i < members.size(); i++)
           {
-            if (request[KEY_QUERY_METADATA][members[i]].type() != Json::stringValue)
+            if (request[KEY_METADATA_QUERY][members[i]].type() != Json::stringValue)
             {
               throw OrthancException(ErrorCode_BadRequest,
                                     "Tag \"" + members[i] + "\" must be associated with a string");
             }
             MetadataType metadata = StringToMetadata(members[i]);
 
-            const std::string value = request[KEY_QUERY_METADATA][members[i]].asString();
+            const std::string value = request[KEY_METADATA_QUERY][members[i]].asString();
 
             if (!value.empty())
             {
@@ -3536,251 +3362,213 @@ namespace Orthanc
             }
           }
         }
-      }
 
-      if (request.isMember(KEY_REQUESTED_TAGS))
-      {
-        std::set<DicomTag> requestedTags;
-        FromDcmtkBridge::ParseListOfTags(requestedTags, request[KEY_REQUESTED_TAGS]);
-        finder.AddRequestedTags(requestedTags);
-      }
-
-      if (request.isMember(KEY_LABELS))  // New in Orthanc 1.12.0
-      {
-        for (Json::Value::ArrayIndex i = 0; i < request[KEY_LABELS].size(); i++)
-        {
-          if (request[KEY_LABELS][i].type() != Json::stringValue)
+        { // labels query
+          if (request.isMember(KEY_LABELS))  // New in Orthanc 1.12.0
           {
-            throw OrthancException(ErrorCode_BadRequest, "Field \"" + std::string(KEY_LABELS) + "\" must contain strings");
+            for (Json::Value::ArrayIndex i = 0; i < request[KEY_LABELS].size(); i++)
+            {
+              if (request[KEY_LABELS][i].type() != Json::stringValue)
+              {
+                throw OrthancException(ErrorCode_BadRequest, "Field \"" + std::string(KEY_LABELS) + "\" must contain strings");
+              }
+              else
+              {
+                finder.AddLabel(request[KEY_LABELS][i].asString());
+              }
+            }
           }
-          else
-          {
-            finder.AddLabel(request[KEY_LABELS][i].asString());
-          }
-        }
-      }
 
-      finder.SetLabelsConstraint(LabelsConstraint_All);
-
-      if (request.isMember(KEY_LABELS_CONSTRAINT))
-      {
-        const std::string& s = request[KEY_LABELS_CONSTRAINT].asString();
-        if (s == "All")
-        {
           finder.SetLabelsConstraint(LabelsConstraint_All);
-        }
-        else if (s == "Any")
-        {
-          finder.SetLabelsConstraint(LabelsConstraint_Any);
-        }
-        else if (s == "None")
-        {
-          finder.SetLabelsConstraint(LabelsConstraint_None);
-        }
-        else
-        {
-          throw OrthancException(ErrorCode_BadRequest, "Field \"" + std::string(KEY_LABELS_CONSTRAINT) + "\" must be \"All\", \"Any\", or \"None\"");
-        }
-      }
 
-      if (request.isMember(KEY_PARENT_PATIENT)) // New in Orthanc 1.12.5
-      {
-        finder.SetOrthancId(ResourceType_Patient, request[KEY_PARENT_PATIENT].asString());
-      }
-      else if (request.isMember(KEY_PARENT_STUDY))
-      {
-        finder.SetOrthancId(ResourceType_Study, request[KEY_PARENT_STUDY].asString());
-      }
-      else if (request.isMember(KEY_PARENT_SERIES))
-      {
-        finder.SetOrthancId(ResourceType_Series, request[KEY_PARENT_SERIES].asString());
-     }
-
-      if (request.isMember(KEY_ORDER_BY))  // New in Orthanc 1.12.5
-      {
-        for (Json::Value::ArrayIndex i = 0; i < request[KEY_ORDER_BY].size(); i++)
-        {
-          if (request[KEY_ORDER_BY][i].type() != Json::objectValue)
+          if (request.isMember(KEY_LABELS_CONSTRAINT))
           {
-            throw OrthancException(ErrorCode_BadRequest, "Field \"" + std::string(KEY_ORDER_BY) + "\" must contain objects");
-          }
-          else
-          {
-            const Json::Value& order = request[KEY_ORDER_BY][i];
-            FindRequest::OrderingDirection direction;
-            std::string directionString;
-            std::string typeString;
-
-            if (!order.isMember(KEY_ORDER_BY_KEY) || order[KEY_ORDER_BY_KEY].type() != Json::stringValue)
+            const std::string& s = request[KEY_LABELS_CONSTRAINT].asString();
+            if (s == "All")
             {
-              throw OrthancException(ErrorCode_BadRequest, "Field \"" + std::string(KEY_ORDER_BY_KEY) + "\" must be a string");
+              finder.SetLabelsConstraint(LabelsConstraint_All);
             }
-
-            if (!order.isMember(KEY_ORDER_BY_DIRECTION) || order[KEY_ORDER_BY_DIRECTION].type() != Json::stringValue)
+            else if (s == "Any")
             {
-              throw OrthancException(ErrorCode_BadRequest, "Field \"" + std::string(KEY_ORDER_BY_DIRECTION) + "\" must be \"ASC\" or \"DESC\"");
+              finder.SetLabelsConstraint(LabelsConstraint_Any);
             }
-
-            Toolbox::ToLowerCase(directionString,  order[KEY_ORDER_BY_DIRECTION].asString());
-            if (directionString == "asc")
+            else if (s == "None")
             {
-              direction = FindRequest::OrderingDirection_Ascending;
-            }
-            else if (directionString == "desc")
-            {
-              direction = FindRequest::OrderingDirection_Descending;
+              finder.SetLabelsConstraint(LabelsConstraint_None);
             }
             else
             {
-              throw OrthancException(ErrorCode_BadRequest, "Field \"" + std::string(KEY_ORDER_BY_DIRECTION) + "\" must be \"ASC\" or \"DESC\"");
-            }
-
-            if (!order.isMember(KEY_ORDER_BY_TYPE) || order[KEY_ORDER_BY_TYPE].type() != Json::stringValue)
-            {
-              throw OrthancException(ErrorCode_BadRequest, "Field \"" + std::string(KEY_ORDER_BY_TYPE) + "\" must be \"DicomTag\" or \"Metadata\"");
-            }
-
-            Toolbox::ToLowerCase(typeString, order[KEY_ORDER_BY_TYPE].asString());
-            if (typeString == "dicomtag")
-            {
-              DicomTag tag = FromDcmtkBridge::ParseTag(order[KEY_ORDER_BY_KEY].asString());
-              finder.AddOrdering(tag, direction);
-            }
-            else if (typeString == "metadata")
-            {
-              MetadataType metadata = StringToMetadata(order[KEY_ORDER_BY_KEY].asString());
-              finder.AddOrdering(metadata, direction);
-            }
-            else
-            {
-              throw OrthancException(ErrorCode_BadRequest, "Field \"" + std::string(KEY_ORDER_BY_TYPE) + "\" must be \"DicomTag\" or \"Metadata\"");
+              throw OrthancException(ErrorCode_BadRequest, "Field \"" + std::string(KEY_LABELS_CONSTRAINT) + "\" must be \"All\", \"Any\", or \"None\"");
             }
           }
         }
-      }
 
-      Json::Value answer;
-      finder.Execute(answer, context, format, false /* no "Metadata" field */);
-      call.GetOutput().AnswerJson(answer);
-    }
-    else
-    {
-      /**
-       * VERSION IN ORTHANC <= 1.12.4
-       **/
-      bool expand = false;
-      if (request.isMember(KEY_EXPAND))
-      {
-        expand = request[KEY_EXPAND].asBool();
-      }
-
-      bool caseSensitive = false;
-      if (request.isMember(KEY_CASE_SENSITIVE))
-      {
-        caseSensitive = request[KEY_CASE_SENSITIVE].asBool();
-      }
-
-      size_t limit = 0;
-      if (request.isMember(KEY_LIMIT))
-      {
-        int tmp = request[KEY_LIMIT].asInt();
-        if (tmp < 0)
+        // parents query
+        if (request.isMember(KEY_PARENT_PATIENT)) // New in Orthanc 1.12.5
         {
-          throw OrthancException(ErrorCode_ParameterOutOfRange,
-                                 "Field \"" + std::string(KEY_LIMIT) + "\" must be a positive integer");
+          finder.SetOrthancId(ResourceType_Patient, request[KEY_PARENT_PATIENT].asString());
         }
-
-        limit = static_cast<size_t>(tmp);
-      }
-
-      size_t since = 0;
-      if (request.isMember(KEY_SINCE))
-      {
-        int tmp = request[KEY_SINCE].asInt();
-        if (tmp < 0)
+        else if (request.isMember(KEY_PARENT_STUDY))
         {
-          throw OrthancException(ErrorCode_ParameterOutOfRange,
-                                 "Field \"" + std::string(KEY_SINCE) + "\" must be a positive integer");
+          finder.SetOrthancId(ResourceType_Study, request[KEY_PARENT_STUDY].asString());
         }
-
-        since = static_cast<size_t>(tmp);
-      }
-
-      std::set<DicomTag> requestedTags;
-
-      if (request.isMember(KEY_REQUESTED_TAGS))
-      {
-        FromDcmtkBridge::ParseListOfTags(requestedTags, request[KEY_REQUESTED_TAGS]);
-      }
-
-      ResourceType level = StringToResourceType(request[KEY_LEVEL].asCString());
-
-      DatabaseLookup query;
-
-      Json::Value::Members members = request[KEY_QUERY].getMemberNames();
-      for (size_t i = 0; i < members.size(); i++)
-      {
-        if (request[KEY_QUERY][members[i]].type() != Json::stringValue)
+        else if (request.isMember(KEY_PARENT_SERIES))
         {
-          throw OrthancException(ErrorCode_BadRequest,
-                                 "Tag \"" + members[i] + "\" must be associated with a string");
-        }
-
-        const std::string value = request[KEY_QUERY][members[i]].asString();
-
-        if (!value.empty())
-        {
-          // An empty string corresponds to an universal constraint,
-          // so we ignore it. This mimics the behavior of class
-          // "OrthancFindRequestHandler"
-          query.AddRestConstraint(FromDcmtkBridge::ParseTag(members[i]), 
-                                  value, caseSensitive, true);
+          finder.SetOrthancId(ResourceType_Series, request[KEY_PARENT_SERIES].asString());
         }
       }
 
-      std::set<std::string> labels;
-
-      if (request.isMember(KEY_LABELS))  // New in Orthanc 1.12.0
+      // response
+      if (requestType == FindType_Find)
       {
-        for (Json::Value::ArrayIndex i = 0; i < request[KEY_LABELS].size(); i++)
+        const DicomToJsonFormat format = OrthancRestApi::GetDicomFormat(request, DicomToJsonFormat_Human);
+
+        finder.SetDatabaseLimits(context.GetDatabaseLimits(level));
+
+        if ((request.isMember(KEY_SINCE) && request[KEY_SINCE].asInt64() != 0) &&
+            !finder.CanBeFullyPerformedInDb())
         {
-          if (request[KEY_LABELS][i].type() != Json::stringValue)
+            throw OrthancException(ErrorCode_BadRequest,
+                                  "Unable to use '" + std::string(KEY_SINCE) + "' in tools/find when querying tags that are not stored as MainDicomTags in the Database");
+        }
+
+        if (request.isMember(KEY_LIMIT))
+        {
+          int64_t tmp = request[KEY_LIMIT].asInt64();
+          if (tmp < 0)
           {
-            throw OrthancException(ErrorCode_BadRequest, "Field \"" + std::string(KEY_LABELS) + "\" must contain strings");
+            throw OrthancException(ErrorCode_ParameterOutOfRange,
+                                  "Field \"" + std::string(KEY_LIMIT) + "\" must be a positive integer");
+          }
+          else if (tmp != 0)  // This is for compatibility with Orthanc 1.12.4
+          {
+            finder.SetLimitsCount(static_cast<uint64_t>(tmp));
+          }
+        }
+
+        if (request.isMember(KEY_SINCE))
+        {
+          int64_t tmp = request[KEY_SINCE].asInt64();
+          if (tmp < 0)
+          {
+            throw OrthancException(ErrorCode_ParameterOutOfRange,
+                                  "Field \"" + std::string(KEY_SINCE) + "\" must be a positive integer");
           }
           else
           {
-            labels.insert(request[KEY_LABELS][i].asString());
+            finder.SetLimitsSince(static_cast<uint64_t>(tmp));
           }
         }
-      }
 
-      LabelsConstraint labelsConstraint = LabelsConstraint_All;
-      
-      if (request.isMember(KEY_LABELS_CONSTRAINT))
-      {
-        const std::string& s = request[KEY_LABELS_CONSTRAINT].asString();
-        if (s == "All")
+        if (request.isMember(KEY_REQUESTED_TAGS))
         {
-          labelsConstraint = LabelsConstraint_All;
+          std::set<DicomTag> requestedTags;
+          FromDcmtkBridge::ParseListOfTags(requestedTags, request[KEY_REQUESTED_TAGS]);
+          finder.AddRequestedTags(requestedTags);
         }
-        else if (s == "Any")
+
+        if (request.isMember(KEY_ORDER_BY))  // New in Orthanc 1.12.5
         {
-          labelsConstraint = LabelsConstraint_Any;
+          for (Json::Value::ArrayIndex i = 0; i < request[KEY_ORDER_BY].size(); i++)
+          {
+            if (request[KEY_ORDER_BY][i].type() != Json::objectValue)
+            {
+              throw OrthancException(ErrorCode_BadRequest, "Field \"" + std::string(KEY_ORDER_BY) + "\" must contain objects");
+            }
+            else
+            {
+              const Json::Value& order = request[KEY_ORDER_BY][i];
+              FindRequest::OrderingDirection direction;
+              std::string directionString;
+              std::string typeString;
+
+              if (!order.isMember(KEY_ORDER_BY_KEY) || order[KEY_ORDER_BY_KEY].type() != Json::stringValue)
+              {
+                throw OrthancException(ErrorCode_BadRequest, "Field \"" + std::string(KEY_ORDER_BY_KEY) + "\" must be a string");
+              }
+
+              if (!order.isMember(KEY_ORDER_BY_DIRECTION) || order[KEY_ORDER_BY_DIRECTION].type() != Json::stringValue)
+              {
+                throw OrthancException(ErrorCode_BadRequest, "Field \"" + std::string(KEY_ORDER_BY_DIRECTION) + "\" must be \"ASC\" or \"DESC\"");
+              }
+
+              Toolbox::ToLowerCase(directionString,  order[KEY_ORDER_BY_DIRECTION].asString());
+              if (directionString == "asc")
+              {
+                direction = FindRequest::OrderingDirection_Ascending;
+              }
+              else if (directionString == "desc")
+              {
+                direction = FindRequest::OrderingDirection_Descending;
+              }
+              else
+              {
+                throw OrthancException(ErrorCode_BadRequest, "Field \"" + std::string(KEY_ORDER_BY_DIRECTION) + "\" must be \"ASC\" or \"DESC\"");
+              }
+
+              if (!order.isMember(KEY_ORDER_BY_TYPE) || order[KEY_ORDER_BY_TYPE].type() != Json::stringValue)
+              {
+                throw OrthancException(ErrorCode_BadRequest, "Field \"" + std::string(KEY_ORDER_BY_TYPE) + "\" must be \"DicomTag\" or \"Metadata\"");
+              }
+
+              Toolbox::ToLowerCase(typeString, order[KEY_ORDER_BY_TYPE].asString());
+              if (Toolbox::StartsWith(typeString, "dicomtag"))
+              {
+                DicomTag tag = FromDcmtkBridge::ParseTag(order[KEY_ORDER_BY_KEY].asString());
+
+                if (typeString == "dicomtagasint")
+                {
+                  finder.AddOrdering(tag, FindRequest::OrderingCast_Int, direction);
+                }
+                else if (typeString == "dicomtagasfloat")
+                {
+                  finder.AddOrdering(tag, FindRequest::OrderingCast_Float, direction);
+                }
+                else
+                {
+                  finder.AddOrdering(tag, FindRequest::OrderingCast_String, direction);
+                }
+              }
+              else if (Toolbox::StartsWith(typeString, "metadata"))
+              {
+                MetadataType metadata = StringToMetadata(order[KEY_ORDER_BY_KEY].asString());
+
+                if (typeString == "metadataasint")
+                {
+                  finder.AddOrdering(metadata, FindRequest::OrderingCast_Int, direction);
+                }
+                else if (typeString == "dicomtagasfloat")
+                {
+                  finder.AddOrdering(metadata, FindRequest::OrderingCast_Float, direction);
+                }
+                else
+                {
+                  finder.AddOrdering(metadata, FindRequest::OrderingCast_String, direction);
+                }
+              }
+              else
+              {
+                throw OrthancException(ErrorCode_BadRequest, "Field \"" + std::string(KEY_ORDER_BY_TYPE) + "\" must be \"DicomTag\", \"DicomTagAsInt\", \"DicomTagAsFloat\" or \"Metadata\", \"MetadataAsInt\", \"MetadataAsFloat\"");
+              }
+            }
+          }
         }
-        else if (s == "None")
-        {
-          labelsConstraint = LabelsConstraint_None;
-        }
-        else
-        {
-          throw OrthancException(ErrorCode_BadRequest, "Field \"" + std::string(KEY_LABELS_CONSTRAINT) + "\" must be \"All\", \"Any\", or \"None\"");
-        }
+
+        Json::Value answer;
+        finder.Execute(answer, context, format, false /* no "Metadata" field */);
+        call.GetOutput().AnswerJson(answer);
       }
-      
-      FindVisitor visitor(OrthancRestApi::GetDicomFormat(request, DicomToJsonFormat_Human), context.GetFindStorageAccessMode());
-      context.Apply(visitor, query, level, labels, labelsConstraint, since, limit);
-      visitor.Answer(call.GetOutput(), context, level, expand, requestedTags);
+      else if (requestType == FindType_Count)
+      {
+        uint64_t count = finder.Count(context);
+        Json::Value answer;
+        answer["Count"] = Json::Value::UInt64(count);
+        call.GetOutput().AnswerJson(answer);
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
     }
   }
 
@@ -3809,9 +3597,6 @@ namespace Orthanc
       return;
     }
 
-    ServerIndex& index = OrthancRestApi::GetIndex(call);
-    ServerContext& context = OrthancRestApi::GetContext(call);
-
     const bool expand = (!call.HasArgument("expand") ||
                          // this "expand" is the only one to have a false default value to keep backward compatibility
                          call.GetBooleanArgument("expand", false));
@@ -3820,61 +3605,30 @@ namespace Orthanc
     std::set<DicomTag> requestedTags;
     OrthancRestApi::GetRequestedTags(requestedTags, call);
 
-    if (true)
-    {
-      /**
-       * EXPERIMENTAL VERSION
-       **/
+    ResourceFinder finder(end, 
+                          (expand ? ResponseContentFlags_ExpandTrue : ResponseContentFlags_ID), 
+                          OrthancRestApi::GetContext(call).GetFindStorageAccessMode(),
+                          OrthancRestApi::GetContext(call).GetIndex().HasFindSupport());
+    finder.SetOrthancId(start, call.GetUriComponent("id", ""));
+    finder.AddRequestedTags(requestedTags);
 
-      ResourceFinder finder(end, (expand ? ResponseContentFlags_ExpandTrue : ResponseContentFlags_ID));
-      finder.SetOrthancId(start, call.GetUriComponent("id", ""));
-      finder.AddRequestedTags(requestedTags);
-
-      Json::Value answer;
-      finder.Execute(answer, context, format, false /* no "Metadata" field */);
-      call.GetOutput().AnswerJson(answer);
-    }
-    else
-    {
-      /**
-       * VERSION IN ORTHANC <= 1.12.4
-       **/
-      std::list<std::string> a, b, c;
-      a.push_back(call.GetUriComponent("id", ""));
-
-      ResourceType type = start;
-      while (type != end)
-      {
-        b.clear();
-
-        for (std::list<std::string>::const_iterator
-               it = a.begin(); it != a.end(); ++it)
-        {
-          index.GetChildren(c, *it);
-          b.splice(b.begin(), c);
-        }
-
-        type = GetChildResourceType(type);
-
-        a.clear();
-        a.splice(a.begin(), b);
-      }
-
-      AnswerListOfResources2(call.GetOutput(), context, a, type, expand, format, requestedTags, true /* allowStorageAccess */);
-    }
+    Json::Value answer;
+    finder.Execute(answer, OrthancRestApi::GetContext(call), format, false /* no "Metadata" field */);
+    call.GetOutput().AnswerJson(answer);
   }
 
 
   static void GetChildInstancesTags(RestApiGetCall& call)
   {
+    const ResourceType level = GetResourceTypeFromUri(call);
+
     if (call.IsDocumentation())
     {
       OrthancRestApi::DocumentDicomFormat(call, DicomToJsonFormat_Full);
 
-      ResourceType t = StringToResourceType(call.GetFullUri()[0].c_str());
-      std::string r = GetResourceTypeText(t, false /* plural */, false /* upper case */);
+      std::string r = GetResourceTypeText(level, false /* plural */, false /* upper case */);
       call.GetDocumentation()
-        .SetTag(GetResourceTypeText(t, true /* plural */, true /* upper case */))
+        .SetTag(GetResourceTypeText(level, true /* plural */, true /* upper case */))
         .SetSummary("Get tags of instances")
         .SetDescription("Get the tags of all the child instances of the DICOM " + r +
                         " whose Orthanc identifier is provided in the URL")
@@ -3882,7 +3636,7 @@ namespace Orthanc
         .SetHttpGetArgument(IGNORE_LENGTH, RestApiCallDocumentation::Type_JsonListOfStrings,
                             "Also include the DICOM tags that are provided in this list, even if their associated value is long", false)
         .AddAnswerType(MimeType_Json, "JSON object associating the Orthanc identifiers of the instances, with the values of their DICOM tags")
-        .SetTruncatedJsonHttpGetSample(GetDocumentationSampleResource(t) + "/instances-tags", 5);
+        .SetTruncatedJsonHttpGetSample(GetDocumentationSampleResource(level) + "/instances-tags", 5);
       return;
     }
 
@@ -3897,7 +3651,7 @@ namespace Orthanc
     typedef std::list<std::string> Instances;
     Instances instances;
 
-    context.GetIndex().GetChildInstances(instances, publicId);  // (*)
+    context.GetIndex().GetChildInstances(instances, publicId, level);  // (*)
 
     Json::Value result = Json::objectValue;
 
@@ -3974,26 +3728,9 @@ namespace Orthanc
     const DicomToJsonFormat format = OrthancRestApi::GetDicomFormat(call, DicomToJsonFormat_Human);
 
     Json::Value resource;
-
-    if (true)
+    if (ExpandResource(resource, OrthancRestApi::GetContext(call), currentType, current, format, false))
     {
-      /**
-       * EXPERIMENTAL VERSION
-       **/
-      if (ExpandResource(resource, OrthancRestApi::GetContext(call), currentType, current, format, false))
-      {
-        call.GetOutput().AnswerJson(resource);
-      }
-    }
-    else
-    {
-      /**
-       * VERSION IN ORTHANC <= 1.12.4
-       **/
-      if (OrthancRestApi::GetContext(call).ExpandResource(resource, current, end, format, requestedTags, true /* allowStorageAccess */))
-      {
-        call.GetOutput().AnswerJson(resource);
-      }
+      call.GetOutput().AnswerJson(resource);
     }
   }
 
@@ -4120,7 +3857,7 @@ namespace Orthanc
            study = studies.begin(); study != studies.end(); ++study)
     {
       std::list<std::string> instances;
-      index.GetChildInstances(instances, *study);
+      index.GetChildInstances(instances, *study, ResourceType_Study);
 
       for (std::list<std::string>::const_iterator 
              instance = instances.begin(); instance != instances.end(); ++instance)
@@ -4251,6 +3988,7 @@ namespace Orthanc
 
   static void GetBulkChildren(std::set<std::string>& target,
                               ServerIndex& index,
+                              ResourceType level,
                               const std::set<std::string>& source)
   {
     target.clear();
@@ -4259,31 +3997,13 @@ namespace Orthanc
            it = source.begin(); it != source.end(); ++it)
     {
       std::list<std::string> children;
-      index.GetChildren(children, *it);
+      index.GetChildren(children, level, *it);
 
       for (std::list<std::string>::const_iterator
              child = children.begin(); child != children.end(); ++child)
       {
         target.insert(*child);
       }
-    }
-  }
-
-
-  static void AddMetadata(Json::Value& target,
-                          ServerIndex& index,
-                          const std::string& resource,
-                          ResourceType level)
-  {
-    target = Json::objectValue;
-    
-    std::map<MetadataType, std::string> content;
-    index.GetAllMetadata(content, resource, level);
-    
-    for (std::map<MetadataType, std::string>::const_iterator
-           it = content.begin(); it != content.end(); ++it)
-    {
-      target[EnumerationToString(it->first)] = it->second;
     }
   }
 
@@ -4364,11 +4084,11 @@ namespace Orthanc
               // Need to explore children
               std::set<std::string> current;
               current.insert(*it);
-              
+
               for (;;)
               {
                 std::set<std::string> children;
-                GetBulkChildren(children, index, current);
+                GetBulkChildren(children, index, type, current);
 
                 type = GetChildResourceType(type);
                 if (type == level)
@@ -4424,34 +4144,10 @@ namespace Orthanc
         for (std::set<std::string>::const_iterator
                it = interest.begin(); it != interest.end(); ++it)
         {
-          if (true)
+          Json::Value item;
+          if (ExpandResource(item, OrthancRestApi::GetContext(call), level, *it, format, metadata))
           {
-            /**
-             * EXPERIMENTAL VERSION
-             **/
-            Json::Value item;
-            if (ExpandResource(item, OrthancRestApi::GetContext(call), level, *it, format, metadata))
-            {
-              answer.append(item);
-            }
-          }
-          else
-          {
-            /**
-             * VERSION IN ORTHANC <= 1.12.4
-             **/
-            Json::Value item;
-            std::set<DicomTag> emptyRequestedTags;  // not supported for bulk content
-
-            if (OrthancRestApi::GetContext(call).ExpandResource(item, *it, level, format, emptyRequestedTags, true /* allowStorageAccess */))
-            {
-              if (metadata)
-              {
-                AddMetadata(item[METADATA], index, *it, level);
-              }
-
-              answer.append(item);
-            }
+            answer.append(item);
           }
         }
       }
@@ -4466,38 +4162,15 @@ namespace Orthanc
         {
           ResourceType level;
           Json::Value item;
-          std::set<DicomTag> emptyRequestedTags;  // not supported for bulk content
 
-          if (true)
+          if (index.LookupResourceType(level, *it) &&
+              ExpandResource(item, OrthancRestApi::GetContext(call), level, *it, format, metadata))
           {
-            /**
-             * EXPERIMENTAL VERSION
-             **/
-            if (index.LookupResourceType(level, *it) &&
-                ExpandResource(item, OrthancRestApi::GetContext(call), level, *it, format, metadata))
-            {
-              answer.append(item);
-            }
+            answer.append(item);
           }
           else
           {
-            /**
-             * VERSION IN ORTHANC <= 1.12.4
-             **/
-            if (index.LookupResourceType(level, *it) &&
-                OrthancRestApi::GetContext(call).ExpandResource(item, *it, level, format, emptyRequestedTags, true /* allowStorageAccess */))
-            {
-              if (metadata)
-              {
-                AddMetadata(item[METADATA], index, *it, level);
-              }
-
-              answer.append(item);
-            }
-            else
-            {
-              CLOG(INFO, HTTP) << "Unknown resource during a bulk content retrieval: " << *it;
-            }
+            CLOG(INFO, HTTP) << "Unknown resource during a bulk content retrieval: " << *it;
           }
         }
       }
@@ -4688,7 +4361,8 @@ namespace Orthanc
     }
 
     Register("/tools/lookup", Lookup);
-    Register("/tools/find", Find);
+    Register("/tools/find", Find<FindType_Find>);
+    Register("/tools/count-resources", Find<FindType_Count>);
 
     Register("/patients/{id}/studies", GetChildResources<ResourceType_Patient, ResourceType_Study>);
     Register("/patients/{id}/series", GetChildResources<ResourceType_Patient, ResourceType_Series>);

@@ -3,8 +3,8 @@
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
  * Copyright (C) 2017-2023 Osimis S.A., Belgium
- * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
- * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2024-2025 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2025 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -812,14 +812,32 @@ namespace Orthanc
       sha1.process_bytes(data, size);
     }
 
+#if BOOST_VERSION >= 108600
+    unsigned char digest[20];
+
+    // Sanity check for the memory layout: A SHA-1 digest is 160 bits wide
+    assert(sizeof(digest) == (160 / 8));
+    assert(sizeof(boost::uuids::detail::sha1::digest_type) == 20);
+
+    // From Boost 1.86, digest_type is "unsigned char[20]" while it was "unsigned int[5]"" in previous versions.
+    // Always perform the cast even if it is useless for Boost < 1.86
+    sha1.get_digest(digest);
+
+    result.resize(8 * 5 + 4);
+    sprintf(&result[0], "%02x%02x%02x%02x-%02x%02x%02x%02x-%02x%02x%02x%02x-%02x%02x%02x%02x-%02x%02x%02x%02x",
+            digest[0], digest[1], digest[2], digest[3],
+            digest[4], digest[5], digest[6], digest[7],
+            digest[8], digest[9], digest[10], digest[11],
+            digest[12], digest[13], digest[14], digest[15],
+            digest[16], digest[17], digest[18], digest[19]);
+
+#else
     unsigned int digest[5];
     // Sanity check for the memory layout: A SHA-1 digest is 160 bits wide
     assert(sizeof(unsigned int) == 4 && sizeof(digest) == (160 / 8));
     assert(sizeof(boost::uuids::detail::sha1::digest_type) == 20);
-    
-    // From Boost 1.86, digest_type is "unsigned char[20]" while it was "unsigned int[5]"" in previous versions.
-    // Always perform the cast even if it is useless for Boost < 1.86
-    sha1.get_digest(*(reinterpret_cast<boost::uuids::detail::sha1::digest_type*>(digest)));
+
+    sha1.get_digest(digest);
 
     result.resize(8 * 5 + 4);
     sprintf(&result[0], "%08x-%08x-%08x-%08x-%08x",
@@ -828,6 +846,9 @@ namespace Orthanc
             digest[2],
             digest[3],
             digest[4]);
+
+#endif
+
   }
 
   void Toolbox::ComputeSHA1(std::string& result,

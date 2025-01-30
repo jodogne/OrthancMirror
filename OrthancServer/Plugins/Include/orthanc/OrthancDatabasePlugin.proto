@@ -3,8 +3,8 @@
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
  * Copyright (C) 2017-2023 Osimis S.A., Belgium
- * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
- * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2024-2025 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2025 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -55,7 +55,7 @@ message FileInfo {
   int32   compression_type = 5;  // opaque "CompressionType" in Orthanc
   uint64  compressed_size = 6;
   string  compressed_hash = 7;
-  string  custom_data = 8;       // added in v 1.12.5
+  string  custom_data = 8;       // added in v 1.12.7
 }
 
 enum ResourceType {
@@ -87,6 +87,12 @@ enum OrderingKeyType {
 enum OrderingDirection {
   ORDERING_DIRECTION_ASC = 0;
   ORDERING_DIRECTION_DESC = 1;
+}
+
+enum OrderingCast {
+  ORDERING_CAST_STRING = 0;
+  ORDERING_CAST_INT = 1;
+  ORDERING_CAST_FLOAT = 2;
 }
 
 message ServerIndexChange {
@@ -315,6 +321,7 @@ enum TransactionOperation {
   OPERATION_UPDATE_AND_GET_STATISTICS = 49;   // New in Orthanc 1.12.3
   OPERATION_FIND = 50;                        // New in Orthanc 1.12.5
   OPERATION_GET_CHANGES_EXTENDED = 51;        // New in Orthanc 1.12.5
+  OPERATION_COUNT_RESOURCES = 52;             // New in Orthanc 1.12.5
 }
 
 message Rollback {
@@ -877,15 +884,17 @@ message Find {        // New in Orthanc 1.12.5
       bool retrieve_identifiers = 1;
       repeated int32 retrieve_metadata = 2;
       repeated Tag retrieve_main_dicom_tags = 3;
+      bool retrieve_count = 4;
     }
     message Ordering {
       OrderingKeyType key_type = 1;
       OrderingDirection direction = 2;
-      uint32 tag_group = 3;
-      uint32 tag_element = 4;
-      bool is_identifier_tag = 5;
-      ResourceType tag_level = 6;
-      int32 metadata = 7;
+      OrderingCast cast = 3;
+      uint32 tag_group = 4;
+      uint32 tag_element = 5;
+      bool is_identifier_tag = 6;
+      ResourceType tag_level = 7;
+      int32 metadata = 8;
     }
 
     // Part 1 of the request: Constraints
@@ -926,15 +935,7 @@ message Find {        // New in Orthanc 1.12.5
     message Metadata {
       int32 key = 1;
       string value = 2;
-    }
-    message MultipleTags {
-      uint32 group = 1;
-      uint32 element = 2;
-      repeated string values = 3;
-    }
-    message MultipleMetadata {
-      int32 key = 1;
-      repeated string values = 2;
+      int64 revision = 3;
     }
     message ResourceContent {
       repeated Tag main_dicom_tags = 1;
@@ -942,8 +943,9 @@ message Find {        // New in Orthanc 1.12.5
     }
     message ChildrenContent {
       repeated string identifiers = 1;
-      repeated MultipleTags main_dicom_tags = 2;
-      repeated MultipleMetadata metadata = 3;
+      repeated Tag main_dicom_tags = 2;
+      repeated Metadata metadata = 3;  // As of Orthanc 1.12.5, the "revision" field is unused in this case
+      uint64 count = 4;
     }
 
     int64 internal_id = 1;
@@ -961,6 +963,15 @@ message Find {        // New in Orthanc 1.12.5
     string one_instance_public_id = 13;
     repeated Metadata one_instance_metadata = 14;
     repeated FileInfo one_instance_attachments = 15;
+    repeated int64 attachments_revisions = 16;
+  }
+}
+
+message CountResources
+{
+  message Response
+  {
+    uint64 count = 1;
   }
 }
 
@@ -1020,6 +1031,7 @@ message TransactionRequest {
   UpdateAndGetStatistics.Request          update_and_get_statistics = 149;
   Find.Request                            find = 150;
   GetChangesExtended.Request              get_changes_extended = 151;
+  Find.Request                            count_resources = 152;
 }
 
 message TransactionResponse {
@@ -1073,8 +1085,9 @@ message TransactionResponse {
   ListLabels.Response                      list_labels = 147;
   IncrementGlobalProperty.Response         increment_global_property = 148;
   UpdateAndGetStatistics.Response          update_and_get_statistics = 149;
-  repeated Find.Response                   find = 150;   // One message per found resources
+  repeated Find.Response                   find = 150;   // One message per found resource
   GetChangesExtended.Response              get_changes_extended = 151;
+  CountResources.Response                  count_resources = 152;
 }
 
 enum RequestType {

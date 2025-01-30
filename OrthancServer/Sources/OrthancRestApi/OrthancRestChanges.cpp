@@ -3,8 +3,8 @@
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
  * Copyright (C) 2017-2023 Osimis S.A., Belgium
- * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
- * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2024-2025 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2025 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -73,7 +73,7 @@ namespace Orthanc
         .SetHttpGetArgument("limit", RestApiCallDocumentation::Type_Number, "Limit the number of results", false)
         .SetHttpGetArgument("since", RestApiCallDocumentation::Type_Number, "Show only the resources since the provided index excluded", false)
         .SetHttpGetArgument("to", RestApiCallDocumentation::Type_Number, "Show only the resources till the provided index included (only available if your DB backend supports ExtendedChanges)", false)
-        .SetHttpGetArgument("type", RestApiCallDocumentation::Type_String, "Show only the changes of the provided type (only available if your DB backend supports ExtendedChanges)", false)
+        .SetHttpGetArgument("type", RestApiCallDocumentation::Type_String, "Show only the changes of the provided type (only available if your DB backend supports ExtendedChanges).  Multiple values can be provided and must be separated by a ';'.", false)
         .AddAnswerType(MimeType_Json, "The list of changes")
         .SetAnswerField("Changes", RestApiCallDocumentation::Type_JsonListOfObjects, "The individual changes")
         .SetAnswerField("Done", RestApiCallDocumentation::Type_Boolean,

@@ -3,8 +3,8 @@
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
  * Copyright (C) 2017-2023 Osimis S.A., Belgium
- * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
- * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2024-2025 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2025 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -198,8 +198,7 @@ namespace Orthanc
 
       try
       {
-        int64_t revision;  // Ignored
-        if (index.LookupMetadata(s, revision, instanceId, ResourceType_Instance, MetadataType_Instance_IndexInSeries))
+        if (index.LookupMetadata(s, instanceId, ResourceType_Instance, MetadataType_Instance_IndexInSeries))
         {
           indexInSeries_ = boost::lexical_cast<size_t>(Toolbox::StripSpaces(s));
           hasIndexInSeries_ = true;
@@ -297,7 +296,7 @@ namespace Orthanc
   void SliceOrdering::CreateInstances()
   {
     std::list<std::string> instancesId;
-    index_.GetChildren(instancesId, seriesId_);
+    index_.GetChildren(instancesId, ResourceType_Series, seriesId_);
 
     instances_.reserve(instancesId.size());
     for (std::list<std::string>::const_iterator

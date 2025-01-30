@@ -3,8 +3,8 @@
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
  * Copyright (C) 2017-2023 Osimis S.A., Belgium
- * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
- * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2024-2025 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2025 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -74,8 +74,7 @@ namespace Orthanc
                          MetadataType metadata)
   {
     std::string value;
-    int64_t revision;  // Ignored
-    if (context.GetIndex().LookupMetadata(value, revision, publicId, level, metadata))
+    if (context.GetIndex().LookupMetadata(value, publicId, level, metadata))
     {
       ParseTime(target, value);
     }
@@ -84,99 +83,6 @@ namespace Orthanc
       target = GetNow();
     }
   }
-
-  
-  class OrthancWebDav::DicomIdentifiersVisitor : public ServerContext::ILookupVisitor
-  {
-  private:
-    ServerContext&  context_;
-    bool            isComplete_;
-    Collection&     target_;
-    ResourceType    level_;
-
-  public:
-    DicomIdentifiersVisitor(ServerContext& context,
-                            Collection&  target,
-                            ResourceType level) :
-      context_(context),
-      isComplete_(false),
-      target_(target),
-      level_(level)
-    {
-    }
-      
-    virtual bool IsDicomAsJsonNeeded() const ORTHANC_OVERRIDE
-    {
-      return false;   // (*)
-    }
-      
-    virtual void MarkAsComplete() ORTHANC_OVERRIDE
-    {
-      isComplete_ = true;  // TODO
-    }
-
-    virtual void Visit(const std::string& publicId,
-                       const std::string& instanceId   /* unused     */,
-                       const DicomMap& mainDicomTags,
-                       const Json::Value* dicomAsJson  /* unused (*) */)  ORTHANC_OVERRIDE
-    {
-      DicomTag tag(0, 0);
-      MetadataType timeMetadata;
-
-      switch (level_)
-      {
-        case ResourceType_Study:
-          tag = DICOM_TAG_STUDY_INSTANCE_UID;
-          timeMetadata = MetadataType_LastUpdate;
-          break;
-
-        case ResourceType_Series:
-          tag = DICOM_TAG_SERIES_INSTANCE_UID;
-          timeMetadata = MetadataType_LastUpdate;
-          break;
-        
-        case ResourceType_Instance:
-          tag = DICOM_TAG_SOP_INSTANCE_UID;
-          timeMetadata = MetadataType_Instance_ReceptionDate;
-          break;
-
-        default:
-          throw OrthancException(ErrorCode_InternalError);
-      }
-        
-      std::string s;
-      if (mainDicomTags.LookupStringValue(s, tag, false) &&
-          !s.empty())
-      {
-        std::unique_ptr<Resource> resource;
-
-        if (level_ == ResourceType_Instance)
-        {
-          FileInfo info;
-          int64_t revision;  // Ignored
-          if (context_.GetIndex().LookupAttachment(info, revision, publicId, FileContentType_Dicom))
-          {
-            std::unique_ptr<File> f(new File(s + ".dcm"));
-            f->SetMimeType(MimeType_Dicom);
-            f->SetContentLength(info.GetUncompressedSize());
-            resource.reset(f.release());
-          }
-        }
-        else
-        {
-          resource.reset(new Folder(s));
-        }
-
-        if (resource.get() != NULL)
-        {
-          boost::posix_time::ptime t;
-          LookupTime(t, context_, publicId, level_, timeMetadata);
-          resource->SetCreationTime(t);
-          target_.AddResource(resource.release());
-        }
-      }
-    }
-  };
 
   
   class OrthancWebDav::DicomIdentifiersVisitorV2 : public ResourceFinder::IVisitor
@@ -238,7 +144,8 @@ namespace Orthanc
         if (resource.GetLevel() == ResourceType_Instance)
         {
           FileInfo info;
-          if (resource.LookupAttachment(info, FileContentType_Dicom))
+          int64_t revision;
+          if (resource.LookupAttachment(info, revision, FileContentType_Dicom))
           {
             std::unique_ptr<File> f(new File(uid + ".dcm"));
             f->SetMimeType(MimeType_Dicom);
@@ -270,58 +177,6 @@ namespace Orthanc
     }
   };
 
-
-  class OrthancWebDav::DicomFileVisitor : public ServerContext::ILookupVisitor
-  {
-  private:
-    ServerContext&  context_;
-    bool            success_;
-    std::string&    target_;
-    boost::posix_time::ptime&  time_;
-
-  public:
-    DicomFileVisitor(ServerContext& context,
-                     std::string& target,
-                     boost::posix_time::ptime& time) :
-      context_(context),
-      success_(false),
-      target_(target),
-      time_(time)
-    {
-    }
-
-    bool IsSuccess() const
-    {
-      return success_;
-    }
-
-    virtual bool IsDicomAsJsonNeeded() const ORTHANC_OVERRIDE
-    {
-      return false;   // (*)
-    }
-      
-    virtual void MarkAsComplete() ORTHANC_OVERRIDE
-    {
-    }
-
-    virtual void Visit(const std::string& publicId,
-                       const std::string& instanceId   /* unused     */,
-                       const DicomMap& mainDicomTags,
-                       const Json::Value* dicomAsJson  /* unused (*) */)  ORTHANC_OVERRIDE
-    {
-      if (success_)
-      {
-        success_ = false;  // Two matches => Error
-      }
-      else
-      {
-        LookupTime(time_, context_, publicId, ResourceType_Instance, MetadataType_Instance_ReceptionDate);
-        context_.ReadDicom(target_, publicId);
-        success_ = true;
-      }
-    }
-  };
-  
 
   class OrthancWebDav::DicomFileVisitorV2 : public ResourceFinder::IVisitor
   {
@@ -372,67 +227,6 @@ namespace Orthanc
 
         context_.ReadDicom(target_, resource.GetIdentifier());
         success_ = true;
-      }
-    }
-  };
-
-
-  class OrthancWebDav::OrthancJsonVisitor : public ServerContext::ILookupVisitor
-  {
-  private:
-    ServerContext&  context_;
-    bool            success_;
-    std::string&    target_;
-    ResourceType    level_;
-
-  public:
-    OrthancJsonVisitor(ServerContext& context,
-                       std::string& target,
-                       ResourceType level) :
-      context_(context),
-      success_(false),
-      target_(target),
-      level_(level)
-    {
-    }
-
-    bool IsSuccess() const
-    {
-      return success_;
-    }
-
-    virtual bool IsDicomAsJsonNeeded() const ORTHANC_OVERRIDE
-    {
-      return false;   // (*)
-    }
-      
-    virtual void MarkAsComplete() ORTHANC_OVERRIDE
-    {
-    }
-
-    virtual void Visit(const std::string& publicId,
-                       const std::string& instanceId   /* unused     */,
-                       const DicomMap& mainDicomTags,
-                       const Json::Value* dicomAsJson  /* unused (*) */)  ORTHANC_OVERRIDE
-    {
-      Json::Value resource;
-      std::set<DicomTag> emptyRequestedTags;  // not supported for webdav
-
-      if (context_.ExpandResource(resource, publicId, level_, DicomToJsonFormat_Human, emptyRequestedTags, true /* allowStorageAccess */))
-      {
-        if (success_)
-        {
-          success_ = false;  // Two matches => Error
-        }
-        else
-        {
-          target_ = resource.toStyledString();
-
-          // Replace UNIX newlines with DOS newlines 
-          boost::replace_all(target_, "\n", "\r\n");
-
-          success_ = true;
-        }
       }
     }
   };
@@ -642,7 +436,7 @@ namespace Orthanc
         std::list<std::string> resources;
         try
         {
-          context_.GetIndex().GetChildren(resources, parentSeries_);
+          context_.GetIndex().GetChildren(resources, ResourceType_Series, parentSeries_);
         }
         catch (OrthancException&)
         {
@@ -658,7 +452,7 @@ namespace Orthanc
 
           FileInfo info;
           int64_t revision;  // Ignored
-          if (context_.GetIndex().LookupAttachment(info, revision, *it, FileContentType_Dicom))
+          if (context_.GetIndex().LookupAttachment(info, revision, ResourceType_Instance, *it, FileContentType_Dicom))
           {
             std::unique_ptr<File> resource(new File(*it + ".dcm"));
             resource->SetMimeType(MimeType_Dicom);
@@ -711,7 +505,7 @@ namespace Orthanc
         std::list<std::string> resources;
         try
         {
-          context_.GetIndex().GetChildren(resources, parentSeries_);
+          context_.GetIndex().GetChildren(resources, ResourceType_Series, parentSeries_);
         }
         catch (OrthancException&)
         {
@@ -1029,6 +823,7 @@ namespace Orthanc
   class OrthancWebDav::SingleDicomResource : public ListOfResources
   {
   private:
+    ResourceType parentLevel_;
     std::string  parentId_;
     
   protected: 
@@ -1036,7 +831,7 @@ namespace Orthanc
     {
       try
       {
-        GetContext().GetIndex().GetChildren(resources, parentId_);
+        GetContext().GetIndex().GetChildren(resources, parentLevel_, parentId_);
       }
       catch (OrthancException&)
       {
@@ -1068,6 +863,7 @@ namespace Orthanc
                         const std::string& parentId,
                         const Templates& templates) :
       ListOfResources(context, level, templates),
+      parentLevel_(GetParentResourceType(level)),
       parentId_(parentId)
     {
     }
@@ -1142,7 +938,7 @@ namespace Orthanc
 
       Visitor visitor(resources);
 
-      ResourceFinder finder(ResourceType_Study, ResponseContentFlags_ID);
+      ResourceFinder finder(ResourceType_Study, ResponseContentFlags_ID, GetContext().GetFindStorageAccessMode(), GetContext().GetIndex().HasFindSupport());
       finder.SetDatabaseLookup(query);
       finder.Execute(visitor, GetContext());
     }
@@ -1220,7 +1016,7 @@ namespace Orthanc
 
       Visitor visitor;
 
-      ResourceFinder finder(ResourceType_Study, ResponseContentFlags_ID);
+      ResourceFinder finder(ResourceType_Study, ResponseContentFlags_ID, context_.GetFindStorageAccessMode(), context_.GetIndex().HasFindSupport());
       finder.SetDatabaseLookup(query);
       finder.Execute(visitor, context_);
 
@@ -1569,12 +1365,11 @@ namespace Orthanc
     {
       DatabaseLookup query;
       ResourceType level;
-      size_t limit = 0;  // By default, no limits
 
       if (path.size() == 1)
       {
         level = ResourceType_Study;
-        limit = 0;  // TODO - Should we limit here?
+        // TODO - Should we limit here?
       }
       else if (path.size() == 2)
       {
@@ -1599,47 +1394,31 @@ namespace Orthanc
         return false;
       }
 
-      if (true)
+      ResourceFinder finder(level, ResponseContentFlags_ID, context_.GetFindStorageAccessMode(), context_.GetIndex().HasFindSupport());
+      finder.SetDatabaseLookup(query);
+      finder.SetRetrieveMetadata(true);
+
+      switch (level)
       {
-        /**
-         * EXPERIMENTAL VERSION
-         **/
+        case ResourceType_Study:
+          finder.AddRequestedTag(DICOM_TAG_STUDY_INSTANCE_UID);
+          break;
 
-        ResourceFinder finder(level, ResponseContentFlags_ID);
-        finder.SetDatabaseLookup(query);
-        finder.SetRetrieveMetadata(true);
+        case ResourceType_Series:
+          finder.AddRequestedTag(DICOM_TAG_SERIES_INSTANCE_UID);
+          break;
 
-        switch (level)
-        {
-          case ResourceType_Study:
-            finder.AddRequestedTag(DICOM_TAG_STUDY_INSTANCE_UID);
-            break;
+        case ResourceType_Instance:
+          finder.AddRequestedTag(DICOM_TAG_SOP_INSTANCE_UID);
+          finder.SetRetrieveAttachments(true);
+          break;
 
-          case ResourceType_Series:
-            finder.AddRequestedTag(DICOM_TAG_SERIES_INSTANCE_UID);
-            break;
-
-          case ResourceType_Instance:
-            finder.AddRequestedTag(DICOM_TAG_SOP_INSTANCE_UID);
-            finder.SetRetrieveAttachments(true);
-            break;
-
-          default:
-            throw OrthancException(ErrorCode_InternalError);
-        }
-
-        DicomIdentifiersVisitorV2 visitor(collection);
-        finder.Execute(visitor, context_);
+        default:
+          throw OrthancException(ErrorCode_InternalError);
       }
-      else
-      {
-        /**
-         * VERSION IN ORTHANC <= 1.12.4
-         **/
 
-        DicomIdentifiersVisitor visitor(context_, collection, level);
-        context_.Apply(visitor, query, level, 0 /* since */, limit);
-      }
+      DicomIdentifiersVisitorV2 visitor(collection);
+      finder.Execute(visitor, context_);
 
       return true;
     }
@@ -1666,7 +1445,7 @@ namespace Orthanc
                              ResourceType level,
                              const DatabaseLookup& query)
   {
-    ResourceFinder finder(level, ResponseContentFlags_ExpandTrue);
+    ResourceFinder finder(level, ResponseContentFlags_ExpandTrue, context.GetFindStorageAccessMode(), context.GetIndex().HasFindSupport());
     finder.SetDatabaseLookup(query);
 
     Json::Value expanded;
@@ -1707,23 +1486,7 @@ namespace Orthanc
                                 true /* case sensitive */, true /* mandatory tag */);
 
         mime = MimeType_Json;
-
-        if (true)
-        {
-          /**
-           * EXPERIMENTAL VERSION
-           **/
-          return GetOrthancJson(content, context_, ResourceType_Study, query);
-        }
-        else
-        {
-          /**
-           * VERSION IN ORTHANC <= 1.12.4
-           **/
-          OrthancJsonVisitor visitor(context_, content, ResourceType_Study);
-          context_.Apply(visitor, query, ResourceType_Study, 0 /* since */, 0 /* no limit */);
-          return visitor.IsSuccess();
-        }
+        return GetOrthancJson(content, context_, ResourceType_Study, query);
       }
       else if (path.size() == 4 &&
                path[3] == SERIES_INFO)
@@ -1735,23 +1498,7 @@ namespace Orthanc
                                 true /* case sensitive */, true /* mandatory tag */);
       
         mime = MimeType_Json;
-
-        if (true)
-        {
-          /**
-           * EXPERIMENTAL VERSION
-           **/
-          return GetOrthancJson(content, context_, ResourceType_Series, query);
-        }
-        else
-        {
-          /**
-           * VERSION IN ORTHANC <= 1.12.4
-           **/
-          OrthancJsonVisitor visitor(context_, content, ResourceType_Series);
-          context_.Apply(visitor, query, ResourceType_Series, 0 /* since */, 0 /* no limit */);
-          return visitor.IsSuccess();
-        }
+        return GetOrthancJson(content, context_, ResourceType_Series, query);
       }
       else if (path.size() == 4 &&
                boost::ends_with(path[3], ".dcm"))
@@ -1768,30 +1515,15 @@ namespace Orthanc
       
         mime = MimeType_Dicom;
 
-        if (true)
-        {
-          /**
-           * EXPERIMENTAL VERSION
-           **/
-          ResourceFinder finder(ResourceType_Instance, ResponseContentFlags_ID);
-          finder.SetDatabaseLookup(query);
-          finder.SetRetrieveMetadata(true);
-          finder.SetRetrieveAttachments(true);
+        ResourceFinder finder(ResourceType_Instance, ResponseContentFlags_ID, context_.GetFindStorageAccessMode(), context_.GetIndex().HasFindSupport());
+        finder.SetDatabaseLookup(query);
+        finder.SetRetrieveMetadata(true);
+        finder.SetRetrieveAttachments(true);
 
-          DicomFileVisitorV2 visitor(context_, content, modificationTime);
-          finder.Execute(visitor, context_);
+        DicomFileVisitorV2 visitor(context_, content, modificationTime);
+        finder.Execute(visitor, context_);
 
-          return visitor.IsSuccess();
-        }
-        else
-        {
-          /**
-           * VERSION IN ORTHANC <= 1.12.4
-           **/
-          DicomFileVisitor visitor(context_, content, modificationTime);
-          context_.Apply(visitor, query, ResourceType_Instance, 0 /* since */, 0 /* no limit */);
-          return visitor.IsSuccess();
-        }
+        return visitor.IsSuccess();
       }
       else
       {
@@ -1913,7 +1645,7 @@ namespace Orthanc
 
         DicomDeleteVisitor visitor(context_, level);
 
-        ResourceFinder finder(level, ResponseContentFlags_ID);
+        ResourceFinder finder(level, ResponseContentFlags_ID, context_.GetFindStorageAccessMode(), context_.GetIndex().HasFindSupport());
         finder.SetDatabaseLookup(query);
         finder.Execute(visitor, context_);
         return true;

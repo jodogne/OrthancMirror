@@ -3,8 +3,8 @@
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
  * Copyright (C) 2017-2023 Osimis S.A., Belgium
- * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
- * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2024-2025 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2025 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -26,7 +26,7 @@
 #if ORTHANC_ENABLE_PLUGINS == 1
 
 #include "../../../OrthancFramework/Sources/SharedLibrary.h"
-#include "../../Sources/Database/BaseDatabaseWrapper.h"
+#include "../../Sources/Database/BaseCompatibilityTransaction.h"
 #include "../Include/orthanc/OrthancCDatabasePlugin.h"
 #include "PluginsErrorDictionary.h"
 
@@ -46,7 +46,7 @@ namespace Orthanc
    * able to rollback the modifications. Read-only accesses didn't
    * start a transaction, as they were protected by the global mutex.
    **/
-  class OrthancPluginDatabase : public BaseDatabaseWrapper
+  class OrthancPluginDatabase : public IDatabaseWrapper
   {
   private:
     class Transaction;
@@ -111,6 +111,13 @@ namespace Orthanc
     }
 
     void AnswerReceived(const _OrthancPluginDatabaseAnswer& answer);
+
+    uint64_t MeasureLatency() ORTHANC_OVERRIDE;
+
+    bool HasIntegratedFind() const ORTHANC_OVERRIDE
+    {
+      return false;
+    }
   };
 }
 

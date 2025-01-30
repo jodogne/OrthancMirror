@@ -3,8 +3,8 @@
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
  * Copyright (C) 2017-2023 Osimis S.A., Belgium
- * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
- * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2024-2025 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2025 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -333,9 +333,10 @@ namespace Orthanc
 
   void FindResponse::Resource::AddMetadata(ResourceType level,
                                            MetadataType metadata,
-                                           const std::string& value)
+                                           const std::string& value,
+                                           int64_t revision)
   {
-    std::map<MetadataType, std::string>& m = GetMetadata(level);
+    std::map<MetadataType, MetadataContent>& m = GetMetadata(level);
 
     if (m.find(metadata) != m.end())
     {
@@ -343,12 +344,12 @@ namespace Orthanc
     }
     else
     {
-      m[metadata] = value;
+      m[metadata] = MetadataContent(value, revision);
     }
   }
 
 
-  std::map<MetadataType, std::string>& FindResponse::Resource::GetMetadata(ResourceType level)
+  std::map<MetadataType, FindResponse::MetadataContent>& FindResponse::Resource::GetMetadata(ResourceType level)
   {
     if (!IsResourceLevelAboveOrEqual(level, level_))
     {
@@ -379,9 +380,9 @@ namespace Orthanc
                                               ResourceType level,
                                               MetadataType metadata) const
   {
-    const std::map<MetadataType, std::string>& m = GetMetadata(level);
+    const std::map<MetadataType, MetadataContent>& m = GetMetadata(level);
 
-    std::map<MetadataType, std::string>::const_iterator found = m.find(metadata);
+    std::map<MetadataType, MetadataContent>::const_iterator found = m.find(metadata);
 
     if (found == m.end())
     {
@@ -389,7 +390,29 @@ namespace Orthanc
     }
     else
     {
-      value = found->second;
+      value = found->second.GetValue();
+      return true;
+    }
+  }
+
+
+  bool FindResponse::Resource::LookupMetadata(std::string& value,
+                                              int64_t& revision,
+                                              ResourceType level,
+                                              MetadataType metadata) const
+  {
+    const std::map<MetadataType, MetadataContent>& m = GetMetadata(level);
+
+    std::map<MetadataType, MetadataContent>::const_iterator found = m.find(metadata);
+
+    if (found == m.end())
+    {
+      return false;
+    }
+    else
+    {
+      value = found->second.GetValue();
+      revision = found->second.GetRevision();
       return true;
     }
   }
@@ -455,11 +478,14 @@ namespace Orthanc
   }
 
 
-  void FindResponse::Resource::AddAttachment(const FileInfo& attachment)
+  void FindResponse::Resource::AddAttachment(const FileInfo& attachment,
+                                             int64_t revision)
   {
-    if (attachments_.find(attachment.GetContentType()) == attachments_.end())
+    if (attachments_.find(attachment.GetContentType()) == attachments_.end() &&
+        revisions_.find(attachment.GetContentType()) == revisions_.end())
     {
       attachments_[attachment.GetContentType()] = attachment;
+      revisions_[attachment.GetContentType()] = revision;
     }
     else
     {
@@ -468,17 +494,48 @@ namespace Orthanc
   }
 
 
-  bool FindResponse::Resource::LookupAttachment(FileInfo& target, FileContentType type) const
+  bool FindResponse::Resource::LookupAttachment(FileInfo& target,
+                                                int64_t& revision,
+                                                FileContentType type) const
   {
     std::map<FileContentType, FileInfo>::const_iterator it = attachments_.find(type);
+    std::map<FileContentType, int64_t>::const_iterator it2 = revisions_.find(type);
+
     if (it != attachments_.end())
     {
-      target = it->second;
-      return true;
+      if (it2 != revisions_.end())
+      {
+        target = it->second;
+        revision = it2->second;
+        return true;
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
     }
     else
     {
-      return false;
+      if (it2 == revisions_.end())
+      {
+        return false;
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+    }
+  }
+
+
+  void FindResponse::Resource::ListAttachments(std::set<FileContentType>& target) const
+  {
+    target.clear();
+
+    for (std::map<FileContentType, FileInfo>::const_iterator
+           it = attachments_.begin(); it != attachments_.end(); ++it)
+    {
+      target.insert(it->first);
     }
   }
 
@@ -622,6 +679,18 @@ namespace Orthanc
     for (std::map<MetadataType, std::string>::const_iterator it = m.begin(); it != m.end(); ++it)
     {
       target[EnumerationToString(it->first)] = it->second;
+    }
+  }
+
+
+  static void DebugMetadata(Json::Value& target,
+                            const std::map<MetadataType, FindResponse::MetadataContent>& m)
+  {
+    target = Json::objectValue;
+
+    for (std::map<MetadataType, FindResponse::MetadataContent>::const_iterator it = m.begin(); it != m.end(); ++it)
+    {
+      target[EnumerationToString(it->first)] = it->second.GetValue();
     }
   }
 

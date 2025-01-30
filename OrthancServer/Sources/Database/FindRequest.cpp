@@ -3,8 +3,8 @@
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
  * Copyright (C) 2017-2023 Osimis S.A., Belgium
- * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
- * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2024-2025 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2025 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -90,6 +90,7 @@ namespace Orthanc
     labelsConstraint_(LabelsConstraint_All),
     retrieveMainDicomTags_(false),
     retrieveMetadata_(false),
+    retrieveMetadataRevisions_(false),
     retrieveLabels_(false),
     retrieveAttachments_(false),
     retrieveParentIdentifier_(false),
@@ -225,16 +226,18 @@ namespace Orthanc
 
 
   void FindRequest::AddOrdering(const DicomTag& tag,
+                                OrderingCast cast,
                                 OrderingDirection direction)
   {
-    ordering_.push_back(new Ordering(Key(tag), direction));
+    ordering_.push_back(new Ordering(Key(tag), cast, direction));
   }
 
 
   void FindRequest::AddOrdering(MetadataType metadataType, 
+                                OrderingCast cast,
                                 OrderingDirection direction)
   {
-    ordering_.push_back(new Ordering(Key(metadataType), direction));
+    ordering_.push_back(new Ordering(Key(metadataType), cast, direction));
   }
 
 
@@ -279,6 +282,63 @@ namespace Orthanc
     else
     {
       return retrieveOneInstanceMetadataAndAttachments_;
+    }
+  }
+
+  bool FindRequest::HasConstraints() const
+  {
+    return (!GetDicomTagConstraints().IsEmpty() ||
+            GetMetadataConstraintsCount() != 0 ||
+            !GetLabels().empty() ||
+            !GetOrdering().empty());
+  }
+
+
+  bool FindRequest::IsTrivialFind(std::string& publicId /* out */) const
+  {
+    if (HasConstraints())
+    {
+      return false;
+    }
+    else if (GetLevel() == ResourceType_Patient &&
+             GetOrthancIdentifiers().HasPatientId() &&
+             !GetOrthancIdentifiers().HasStudyId() &&
+             !GetOrthancIdentifiers().HasSeriesId() &&
+             !GetOrthancIdentifiers().HasInstanceId())
+    {
+      publicId = GetOrthancIdentifiers().GetPatientId();
+      return true;
+    }
+    else if (GetLevel() == ResourceType_Study &&
+             !GetOrthancIdentifiers().HasPatientId() &&
+             GetOrthancIdentifiers().HasStudyId() &&
+             !GetOrthancIdentifiers().HasSeriesId() &&
+             !GetOrthancIdentifiers().HasInstanceId())
+    {
+      publicId = GetOrthancIdentifiers().GetStudyId();
+      return true;
+    }
+    else if (GetLevel() == ResourceType_Series &&
+             !GetOrthancIdentifiers().HasPatientId() &&
+             !GetOrthancIdentifiers().HasStudyId() &&
+             GetOrthancIdentifiers().HasSeriesId() &&
+             !GetOrthancIdentifiers().HasInstanceId())
+    {
+      publicId = GetOrthancIdentifiers().GetSeriesId();
+      return true;
+    }
+    else if (GetLevel() == ResourceType_Instance &&
+             !GetOrthancIdentifiers().HasPatientId() &&
+             !GetOrthancIdentifiers().HasStudyId() &&
+             !GetOrthancIdentifiers().HasSeriesId() &&
+             GetOrthancIdentifiers().HasInstanceId())
+    {
+      publicId = GetOrthancIdentifiers().GetInstanceId();
+      return true;
+    }
+    else
+    {
+      return false;
     }
   }
 }

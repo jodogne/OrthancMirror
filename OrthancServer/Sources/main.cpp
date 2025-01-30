@@ -3,8 +3,8 @@
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
  * Copyright (C) 2017-2023 Osimis S.A., Belgium
- * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
- * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2024-2025 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2025 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -63,6 +63,8 @@ static const char* const KEY_DICOM_TLS_REMOTE_CERTIFICATE_REQUIRED = "DicomTlsRe
 static const char* const KEY_DICOM_TLS_MINIMUM_PROTOCOL_VERSION = "DicomTlsMinimumProtocolVersion";
 static const char* const KEY_DICOM_TLS_ACCEPTED_CIPHERS = "DicomTlsCiphersAccepted";
 static const char* const KEY_MAXIMUM_PDU_LENGTH = "MaximumPduLength";
+static const char* const KEY_READ_ONLY = "ReadOnly";
+static const char* const KEY_MAXIMUM_CONCURRENT_DCMTK_TRANSCODERS = "MaximumConcurrentDcmtkTranscoders";
 
 
 class OrthancStoreRequestHandler : public IStoreRequestHandler
@@ -494,12 +496,25 @@ public:
     context_.GetAcceptedTransferSyntaxes(target);
   }
 
+  virtual void GetProposedStorageTransferSyntaxes(std::list<DicomTransferSyntax>& target,
+                                                  const std::string& remoteIp,
+                                                  const std::string& remoteAet,
+                                                  const std::string& calledAet) ORTHANC_OVERRIDE
+  {
+    context_.GetProposedStorageTransferSyntaxes(target);
+  }
   
   virtual bool IsUnknownSopClassAccepted(const std::string& remoteIp,
                                          const std::string& remoteAet,
                                          const std::string& calledAet) ORTHANC_OVERRIDE
   {
     return context_.IsUnknownSopClassAccepted();
+  }
+
+  virtual void GetAcceptedSopClasses(std::set<std::string>& sopClasses,
+                                     size_t maxCount) ORTHANC_OVERRIDE
+  {
+    context_.GetAcceptedSopClasses(sopClasses, maxCount);
   }
 };
 
@@ -746,8 +761,8 @@ static void PrintVersion(const char* path)
     << path << " " << ORTHANC_VERSION << std::endl
     << "Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics Department, University Hospital of Liege (Belgium)" << std::endl
     << "Copyright (C) 2017-2023 Osimis S.A. (Belgium)" << std::endl
-    << "Copyright (C) 2024-2024 Orthanc Team SRL (Belgium)" << std::endl
-    << "Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain (Belgium)" << std::endl
+    << "Copyright (C) 2024-2025 Orthanc Team SRL (Belgium)" << std::endl
+    << "Copyright (C) 2021-2025 Sebastien Jodogne, ICTEAM UCLouvain (Belgium)" << std::endl
     << "Licensing GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>." << std::endl
     << "This is free software: you are free to change and redistribute it." << std::endl
     << "There is NO WARRANTY, to the extent permitted by law." << std::endl
@@ -887,6 +902,7 @@ static void PrintErrors(const char* path)
     PrintErrorCode(ErrorCode_AlreadyExistingTag, "Cannot override the value of a tag that already exists");
     PrintErrorCode(ErrorCode_NoStorageCommitmentHandler, "No request handler factory for DICOM N-ACTION SCP (storage commitment)");
     PrintErrorCode(ErrorCode_NoCGetHandler, "No request handler factory for DICOM C-GET SCP");
+    PrintErrorCode(ErrorCode_DicomGetUnavailable, "DicomUserConnection: The C-GET command is not supported by the remote SCP");
     PrintErrorCode(ErrorCode_UnsupportedMediaType, "Unsupported media type");
   }
 
@@ -1519,16 +1535,23 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
 {
   size_t maxCompletedJobs;
   bool readOnly;
-  
+  unsigned int maxDcmtkConcurrentTranscoders;
+
   {
     OrthancConfiguration::ReaderLock lock;
 
     // These configuration options must be set before creating the
     // ServerContext, otherwise the possible Lua scripts will not be
     // able to properly issue HTTP/HTTPS queries
+
+    std::string httpsCaCertificates = lock.GetConfiguration().GetStringParameter("HttpsCACertificates", "");
+    if (!httpsCaCertificates.empty())
+    {
+      httpsCaCertificates = lock.GetConfiguration().InterpretStringParameterAsPath(httpsCaCertificates);
+    }
+
     HttpClient::ConfigureSsl(lock.GetConfiguration().GetBooleanParameter("HttpsVerifyPeers", true),
-                             lock.GetConfiguration().InterpretStringParameterAsPath
-                             (lock.GetConfiguration().GetStringParameter("HttpsCACertificates", "")));
+                             httpsCaCertificates);
     HttpClient::SetDefaultVerbose(lock.GetConfiguration().GetBooleanParameter("HttpVerbose", false));
 
     // The value "0" below makes the class HttpClient use its default
@@ -1547,8 +1570,15 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
     }
 
     // New option in Orthanc 1.12.5
-    readOnly = lock.GetConfiguration().GetBooleanParameter("ReadOnly", false);
+    readOnly = lock.GetConfiguration().GetBooleanParameter(KEY_READ_ONLY, false);
     
+    // New option in Orthanc 1.12.6
+    maxDcmtkConcurrentTranscoders = lock.GetConfiguration().GetUnsignedIntegerParameter(KEY_MAXIMUM_CONCURRENT_DCMTK_TRANSCODERS, 0);
+    if (maxDcmtkConcurrentTranscoders == 0)
+    {
+      maxDcmtkConcurrentTranscoders = static_cast<unsigned int>(boost::thread::hardware_concurrency());
+    }
+
     // Configuration of DICOM TLS for Orthanc SCU (since Orthanc 1.9.0)
     DicomAssociationParameters::SetDefaultOwnCertificatePath(
       lock.GetConfiguration().GetStringParameter(KEY_DICOM_TLS_PRIVATE_KEY, ""),
@@ -1563,7 +1593,7 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
       lock.GetConfiguration().GetBooleanParameter(KEY_DICOM_TLS_REMOTE_CERTIFICATE_REQUIRED, true));
   }
   
-  ServerContext context(database, storageArea, false /* not running unit tests */, maxCompletedJobs, readOnly);
+  ServerContext context(database, storageArea, false /* not running unit tests */, maxCompletedJobs, readOnly, maxDcmtkConcurrentTranscoders);
 
   {
     OrthancConfiguration::ReaderLock lock;
@@ -1968,7 +1998,7 @@ int main(int argc, char* argv[])
           SQLiteDatabaseWrapper inMemoryDatabase;
           inMemoryDatabase.Open();
           MemoryStorageArea inMemoryStorage;
-          ServerContext context(inMemoryDatabase, inMemoryStorage, true /* unit testing */, 0 /* max completed jobs */, false /* readonly */);
+          ServerContext context(inMemoryDatabase, inMemoryStorage, true /* unit testing */, 0 /* max completed jobs */, false /* readonly */, 1 /* DCMTK concurrent transcoders */);
           OrthancRestApi restApi(context, false /* no Orthanc Explorer */);
           restApi.GenerateOpenApiDocumentation(openapi);
           context.Stop();
@@ -2019,7 +2049,7 @@ int main(int argc, char* argv[])
           SQLiteDatabaseWrapper inMemoryDatabase;
           inMemoryDatabase.Open();
           MemoryStorageArea inMemoryStorage;
-          ServerContext context(inMemoryDatabase, inMemoryStorage, true /* unit testing */, 0 /* max completed jobs */, false /* readonly */);
+          ServerContext context(inMemoryDatabase, inMemoryStorage, true /* unit testing */, 0 /* max completed jobs */, false /* readonly */, 1 /* DCMTK concurrent transcoders */);
           OrthancRestApi restApi(context, false /* no Orthanc Explorer */);
           restApi.GenerateReStructuredTextCheatSheet(cheatsheet, "https://orthanc.uclouvain.be/api/index.html");
           context.Stop();

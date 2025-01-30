@@ -3,8 +3,8 @@
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
  * Copyright (C) 2017-2023 Osimis S.A., Belgium
- * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
- * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2024-2025 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2025 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -28,15 +28,17 @@
 
 #include "../Logging.h"
 #include "../StringMemoryBuffer.h"
-#include "../Compatibility.h"
 #include "../Compression/ZlibCompressor.h"
 #include "../MetricsRegistry.h"
 #include "../OrthancException.h"
+#include "../SerializationToolbox.h"
 #include "../Toolbox.h"
 
 #if ORTHANC_ENABLE_CIVETWEB == 1 || ORTHANC_ENABLE_MONGOOSE == 1
 #  include "../HttpServer/HttpStreamTranscoder.h"
 #endif
+
+#include <boost/algorithm/string.hpp>
 
 
 static const std::string METRICS_CREATE_DURATION = "orthanc_storage_create_duration_ms";
@@ -50,6 +52,212 @@ static const std::string METRICS_CACHE_MISS_COUNT = "orthanc_storage_cache_miss_
 
 namespace Orthanc
 {
+  void StorageAccessor::Range::SanityCheck() const
+  {
+    if (hasStart_ && hasEnd_ && start_ > end_)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+  }
+
+  StorageAccessor::Range::Range():
+    hasStart_(false),
+    start_(0),
+    hasEnd_(false),
+    end_(0)
+  {
+  }
+
+  void StorageAccessor::Range::SetStartInclusive(uint64_t start)
+  {
+    hasStart_ = true;
+    start_ = start;
+  }
+
+  void StorageAccessor::Range::SetEndInclusive(uint64_t end)
+  {
+    hasEnd_ = true;
+    end_ = end;
+  }
+
+  uint64_t StorageAccessor::Range::GetStartInclusive() const
+  {
+    if (!hasStart_)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    else if (hasEnd_ && start_ > end_)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    else
+    {
+      return start_;
+    }
+  }
+
+  uint64_t StorageAccessor::Range::GetEndInclusive() const
+  {
+    if (!hasEnd_)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    else if (hasStart_ && start_ > end_)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    else
+    {
+      return end_;
+    }
+  }
+
+  std::string StorageAccessor::Range::FormatHttpContentRange(uint64_t fullSize) const
+  {
+    SanityCheck();
+
+    if (fullSize == 0 ||
+        (hasStart_ && start_ >= fullSize) ||
+        (hasEnd_ && end_ >= fullSize))
+    {
+      throw OrthancException(ErrorCode_BadRange);
+    }
+
+    std::string s = "bytes ";
+
+    if (hasStart_)
+    {
+      s += boost::lexical_cast<std::string>(start_);
+    }
+    else
+    {
+      s += "0";
+    }
+
+    s += "-";
+
+    if (hasEnd_)
+    {
+      s += boost::lexical_cast<std::string>(end_);
+    }
+    else
+    {
+      s += boost::lexical_cast<std::string>(fullSize - 1);
+    }
+
+    return s + "/" + boost::lexical_cast<std::string>(fullSize);
+  }
+
+  void StorageAccessor::Range::Extract(std::string &target,
+                                       const std::string &source) const
+  {
+    SanityCheck();
+
+    if (hasStart_ && start_ >= source.size())
+    {
+      throw OrthancException(ErrorCode_BadRange);
+    }
+
+    if (hasEnd_ && end_ >= source.size())
+    {
+      throw OrthancException(ErrorCode_BadRange);
+    }
+
+    if (hasStart_ && hasEnd_)
+    {
+      target = source.substr(start_, end_ - start_ + 1);
+    }
+    else if (hasStart_)
+    {
+      target = source.substr(start_, source.size() - start_);
+    }
+    else if (hasEnd_)
+    {
+      target = source.substr(0, end_ + 1);
+    }
+    else
+    {
+      target = source;
+    }
+  }
+
+  uint64_t StorageAccessor::Range::GetContentLength(uint64_t fullSize) const
+  {
+    SanityCheck();
+
+    if (fullSize == 0)
+    {
+      throw OrthancException(ErrorCode_BadRange);
+    }
+
+    if (hasStart_ && start_ >= fullSize)
+    {
+      throw OrthancException(ErrorCode_BadRange);
+    }
+
+    if (hasEnd_ && end_ >= fullSize)
+    {
+      throw OrthancException(ErrorCode_BadRange);
+    }
+
+    if (hasStart_ && hasEnd_)
+    {
+      return end_ - start_ + 1;
+    }
+    else if (hasStart_)
+    {
+      return fullSize - start_;
+    }
+    else if (hasEnd_)
+    {
+      return end_ + 1;
+    }
+    else
+    {
+      return fullSize;
+    }
+  }
+
+  StorageAccessor::Range StorageAccessor::Range::ParseHttpRange(const std::string& s)
+  {
+    static const std::string BYTES = "bytes=";
+
+    if (!boost::starts_with(s, BYTES))
+    {
+      throw OrthancException(ErrorCode_BadRange);  // Range not satisfiable
+    }
+
+    std::vector<std::string> tokens;
+    Orthanc::Toolbox::TokenizeString(tokens, s.substr(BYTES.length()), '-');
+
+    if (tokens.size() != 2)
+    {
+      throw OrthancException(ErrorCode_BadRange);
+    }
+
+    Range range;
+
+    uint64_t tmp;
+    if (!tokens[0].empty())
+    {
+      if (SerializationToolbox::ParseUnsignedInteger64(tmp, tokens[0]))
+      {
+        range.SetStartInclusive(tmp);
+      }
+    }
+
+    if (!tokens[1].empty())
+    {
+      if (SerializationToolbox::ParseUnsignedInteger64(tmp, tokens[1]))
+      {
+        range.SetEndInclusive(tmp);
+      }
+    }
+
+    range.SanityCheck();
+    return range;
+  }
+
   class StorageAccessor::MetricsTimer : public boost::noncopyable
   {
   private:
@@ -432,15 +640,6 @@ namespace Orthanc
   }
 
 
-  void ReadStartRangeFromAreaInternal(std::string& target,
-                                      IStorageArea& area,
-                                      const std::string& fileUuid,
-                                      FileContentType contentType,
-                                      uint64_t end /* exclusive */)
-  {
-
-  }
-
   void StorageAccessor::ReadStartRange(std::string& target,
                                        const FileInfo& info,
                                        uint64_t end /* exclusive */)
@@ -508,6 +707,79 @@ namespace Orthanc
     }
 
     buffer->MoveToString(target);
+  }
+
+
+  void StorageAccessor::ReadRange(std::string &target,
+                                  const FileInfo &info,
+                                  const Range &range,
+                                  bool uncompressIfNeeded)
+  {
+    if (uncompressIfNeeded &&
+        info.GetCompressionType() != CompressionType_None)
+    {
+      // An uncompression is needed in this case
+      if (cache_ != NULL)
+      {
+        StorageCache::Accessor cacheAccessor(*cache_);
+
+        std::string content;
+        if (cacheAccessor.Fetch(content, info.GetUuid(), info.GetContentType()))
+        {
+          range.Extract(target, content);
+          return;
+        }
+      }
+
+      std::string content;
+      Read(content, info);
+      range.Extract(target, content);
+    }
+    else
+    {
+      // Access to the raw attachment is sufficient in this case
+      if (info.GetCompressionType() == CompressionType_None &&
+          cache_ != NULL)
+      {
+        // Check out whether the raw attachment is already present in the cache, by chance
+        StorageCache::Accessor cacheAccessor(*cache_);
+
+        std::string content;
+        if (cacheAccessor.Fetch(content, info.GetUuid(), info.GetContentType()))
+        {
+          range.Extract(target, content);
+          return;
+        }
+      }
+
+      if (range.HasEnd() &&
+        range.GetEndInclusive() >= info.GetCompressedSize())
+      {
+        throw OrthancException(ErrorCode_BadRange);
+      }
+
+      std::unique_ptr<IMemoryBuffer> buffer;
+
+      if (range.HasStart() &&
+          range.HasEnd())
+      {
+        buffer.reset(area_.ReadRange(info.GetUuid(), info.GetContentType(), range.GetStartInclusive(), range.GetEndInclusive() + 1, info.GetCustomData()));
+      }
+      else if (range.HasStart())
+      {
+        buffer.reset(area_.ReadRange(info.GetUuid(), info.GetContentType(), range.GetStartInclusive(), info.GetCompressedSize(), info.GetCustomData()));
+      }
+      else if (range.HasEnd())
+      {
+        buffer.reset(area_.ReadRange(info.GetUuid(), info.GetContentType(), 0, range.GetEndInclusive() + 1, info.GetCustomData()));
+      }
+      else
+      {
+        buffer.reset(area_.Read(info.GetUuid(), info.GetContentType(), info.GetCustomData()));
+      }
+
+      buffer->MoveToString(target);
+    }
   }
 
 

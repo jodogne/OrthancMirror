@@ -3,8 +3,8 @@
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
  * Copyright (C) 2017-2023 Osimis S.A., Belgium
- * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
- * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2024-2025 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2025 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -501,11 +501,15 @@ namespace Orthanc
   static const std::string GET_SHORT = "short";
   static const std::string GET_REQUESTED_TAGS_OLD = "requestedTags";  // This was the only option in Orthanc <= 1.12.3
   static const std::string GET_REQUESTED_TAGS = "requested-tags";
+  static const std::string GET_RESPONSE_CONTENT = "response-content";
+  static const std::string GET_EXPAND = "expand";
 
   static const std::string POST_SIMPLIFY = "Simplify";
   static const std::string POST_FULL = "Full";
   static const std::string POST_SHORT = "Short";
   static const std::string POST_REQUESTED_TAGS = "RequestedTags";
+  static const std::string POST_RESPONSE_CONTENT = "ResponseContent";
+  static const std::string POST_EXPAND = "Expand";
 
   static const std::string DOCUMENT_SIMPLIFY =
     "report the DICOM tags in human-readable format (using the symbolic name of the tags)";
@@ -634,19 +638,100 @@ namespace Orthanc
       }
       catch (OrthancException& ex)
       {
-        throw OrthancException(ErrorCode_BadRequest, std::string("Invalid requestedTags argument: ") + ex.What() + " " + ex.GetDetails());
+        throw OrthancException(ErrorCode_BadRequest, std::string("Invalid requested-tags argument: ") + ex.What() + " " + ex.GetDetails());
       }
     }
   }
 
-  void OrthancRestApi::DocumentRequestedTags(RestApiGetCall& call)
+  void OrthancRestApi::DocumentRequestedTags(RestApiCall& call)
   {
+    if (call.GetMethod() == HttpMethod_Get)
+    {
       call.GetDocumentation().SetHttpGetArgument(GET_REQUESTED_TAGS, RestApiCallDocumentation::Type_String,
                           "If present, list the DICOM Tags you want to list in the response.  This argument is a semi-column separated list "
                           "of DICOM Tags identifiers; e.g: '" + GET_REQUESTED_TAGS + "=0010,0010;PatientBirthDate'.  "
                           "The tags requested tags are returned in the 'RequestedTags' field in the response.  "
                           "Note that, if you are requesting tags that are not listed in the Main Dicom Tags stored in DB, building the response "
-                          "might be slow since Orthanc will need to access the DICOM files.  If not specified, Orthanc will return ", false);
+                          "might be slow since Orthanc will need to access the DICOM files.  If not specified, Orthanc will return "
+                          "all Main Dicom Tags to keep backward compatibility with Orthanc prior to 1.11.0.", false);
+    }
+    else if (call.GetMethod() == HttpMethod_Post)
+    {
+      call.GetDocumentation().SetRequestField(POST_REQUESTED_TAGS, RestApiCallDocumentation::Type_JsonListOfStrings,
+                            "A list of DICOM tags to include in the response (applicable only if \"Expand\" is set to true).  "
+                            "The tags requested tags are returned in the 'RequestedTags' field in the response.  "
+                            "Note that, if you are requesting tags that are not listed in the Main Dicom Tags stored in DB, building the response "
+                            "might be slow since Orthanc will need to access the DICOM files.  If not specified, Orthanc will return "
+                            "all Main Dicom Tags to keep backward compatibility with Orthanc prior to 1.11.0.", false);
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
   }
+
+  void OrthancRestApi::GetResponseContentAndExpand(ResponseContentFlags& responseContent,
+                                                   const RestApiGetCall& call)
+  {
+    if (call.HasArgument(GET_RESPONSE_CONTENT))
+    {
+      std::string s = call.GetArgument(GET_RESPONSE_CONTENT, "");
+      responseContent = ResponseContentFlags_Default;
+
+      if (!s.empty())
+      {
+        std::set<std::string> splitResponseContent;
+        Toolbox::SplitString(splitResponseContent, s, ';');
+
+        for (std::set<std::string>::const_iterator it = splitResponseContent.begin(); it != splitResponseContent.end(); ++it)
+        {
+          responseContent = static_cast<ResponseContentFlags>(static_cast<uint32_t>(responseContent) | StringToResponseContent(*it));
+        }
+      }
+    }
+    else if (call.HasArgument(GET_EXPAND) && call.GetBooleanArgument("expand", true))
+    {
+      responseContent = ResponseContentFlags_ExpandTrue;
+    }
+    else
+    {
+      responseContent = ResponseContentFlags_ID;
+    }
+  }
+
+  void OrthancRestApi::DocumentResponseContentAndExpand(RestApiCall& call)
+  {
+    if (call.GetMethod() == HttpMethod_Get)
+    {
+      call.GetDocumentation().SetHttpGetArgument(GET_RESPONSE_CONTENT, RestApiCallDocumentation::Type_String,
+                            "Defines the content of response for each returned resource.  Allowed values are `MainDicomTags`, "
+                            "`Metadata`, `Children`, `Parent`, `Labels`, `Status`, `IsStable`, `Attachments`.  If not specified, Orthanc "
+                            "will return `MainDicomTags`, `Metadata`, `Children`, `Parent`, `Labels`, `Status`, `IsStable`."
+                            "e.g: '" + GET_RESPONSE_CONTENT + "=MainDicomTags;Children "
+                            "(new in Orthanc 1.12.5 - overrides `expand`)", false);
+
+      call.GetDocumentation().SetHttpGetArgument(GET_EXPAND, RestApiCallDocumentation::Type_String,
+                            "If present, retrieve detailed information about the individual resources, not only their Orthanc identifiers", false);
+
+    }
+    else if (call.GetMethod() == HttpMethod_Post)
+    {
+      call.GetDocumentation().SetRequestField(POST_RESPONSE_CONTENT, RestApiCallDocumentation::Type_JsonListOfStrings,
+                            "Defines the content of response for each returned resource. (this field, if present, overrides the \"Expand\" field).  "
+                            "Allowed values are `MainDicomTags`, "
+                            "`Metadata`, `Children`, `Parent`, `Labels`, `Status`, `IsStable`, `Attachments`.  If not specified, Orthanc "
+                            "will return `MainDicomTags`, `Metadata`, `Children`, `Parent`, `Labels`, `Status`, `IsStable`."
+                            "(new in Orthanc 1.12.5)", false);
+
+      call.GetDocumentation().SetRequestField(POST_EXPAND, RestApiCallDocumentation::Type_Boolean,
+                            "If set to \"true\", retrieve detailed information about the individual resources, not only their Orthanc identifiers", false);
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+
+  }
+
 
 }

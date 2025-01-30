@@ -3,8 +3,8 @@
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
  * Copyright (C) 2017-2023 Osimis S.A., Belgium
- * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
- * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2024-2025 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2025 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -73,10 +73,16 @@ namespace Orthanc
       typedef std::map<DicomTag, std::set<std::string>* >      MainDicomTagValues;
 
       std::set<std::string>  identifiers_;
+      uint64_t               count_;
       MetadataValues         metadataValues_;
       MainDicomTagValues     mainDicomTagValues_;
 
     public:
+      ChildrenInformation()
+      : count_(0)
+      {
+      }
+
       ~ChildrenInformation();
 
       void AddIdentifier(const std::string& identifier);
@@ -84,6 +90,21 @@ namespace Orthanc
       const std::set<std::string>& GetIdentifiers() const
       {
         return identifiers_;
+      }
+
+      void SetCount(uint64_t count)
+      {
+        count_ = count;
+      }
+
+      void IncrementCount(uint64_t count)
+      {
+        count_ += count;
+      }
+
+      uint64_t GetCount() const
+      {
+        return count_;
       }
 
       void AddMetadataValue(MetadataType metadata,
@@ -101,6 +122,48 @@ namespace Orthanc
 
 
   public:
+    class MetadataContent
+    {
+    private:
+      std::string  value_;
+      int64_t      revision_;
+
+    public:
+      MetadataContent() :
+        revision_(0)
+      {
+      }
+
+      MetadataContent(const std::string& value,
+                      int64_t revision) :
+        value_(value),
+        revision_(revision)
+      {
+      }
+
+      explicit MetadataContent(const std::string& value) :
+        value_(value),
+        revision_(0)
+      {
+      }
+
+      const std::string& GetValue() const
+      {
+        return value_;
+      }
+
+      int64_t GetRevision() const
+      {
+        return revision_;
+      }
+
+      void SetRevision(int64_t revision)
+      {
+        revision_ = revision;
+      }
+    };
+
+
     class Resource : public boost::noncopyable
     {
     private:
@@ -114,15 +177,16 @@ namespace Orthanc
       MainDicomTagsAtLevel                  mainDicomTagsStudy_;
       MainDicomTagsAtLevel                  mainDicomTagsSeries_;
       MainDicomTagsAtLevel                  mainDicomTagsInstance_;
-      std::map<MetadataType, std::string>   metadataPatient_;
-      std::map<MetadataType, std::string>   metadataStudy_;
-      std::map<MetadataType, std::string>   metadataSeries_;
-      std::map<MetadataType, std::string>   metadataInstance_;
+      std::map<MetadataType, MetadataContent>   metadataPatient_;
+      std::map<MetadataType, MetadataContent>   metadataStudy_;
+      std::map<MetadataType, MetadataContent>   metadataSeries_;
+      std::map<MetadataType, MetadataContent>   metadataInstance_;
       ChildrenInformation                   childrenStudiesInformation_;
       ChildrenInformation                   childrenSeriesInformation_;
       ChildrenInformation                   childrenInstancesInformation_;
       std::set<std::string>                 labels_;
       std::map<FileContentType, FileInfo>   attachments_;
+      std::map<FileContentType, int64_t>    revisions_;
       bool                                  hasOneInstanceMetadataAndAttachments_;
       std::string                           oneInstancePublicId_;
       std::map<MetadataType, std::string>   oneInstanceMetadata_;
@@ -199,16 +263,22 @@ namespace Orthanc
 
       void AddMetadata(ResourceType level,
                        MetadataType metadata,
-                       const std::string& value);
+                       const std::string& value,
+                       int64_t revision);
 
-      std::map<MetadataType, std::string>& GetMetadata(ResourceType level);
+      std::map<MetadataType, MetadataContent>& GetMetadata(ResourceType level);
 
-      const std::map<MetadataType, std::string>& GetMetadata(ResourceType level) const
+      const std::map<MetadataType, MetadataContent>& GetMetadata(ResourceType level) const
       {
         return const_cast<Resource&>(*this).GetMetadata(level);
       }
 
       bool LookupMetadata(std::string& value,
+                          ResourceType level,
+                          MetadataType metadata) const;
+
+      bool LookupMetadata(std::string& value,
+                          int64_t& revision,
                           ResourceType level,
                           MetadataType metadata) const;
 
@@ -221,6 +291,23 @@ namespace Orthanc
       const std::set<std::string>& GetChildrenIdentifiers(ResourceType level) const
       {
         return GetChildrenInformation(level).GetIdentifiers();
+      }
+
+      void SetChildrenCount(ResourceType level,
+                            uint64_t count)
+      {
+        GetChildrenInformation(level).SetCount(count);
+      }
+
+      void IncrementChildrenCount(ResourceType level,
+                                 uint64_t count)
+      {
+        GetChildrenInformation(level).IncrementCount(count);
+      }
+
+      uint64_t GetChildrenCount(ResourceType level) const
+      {
+        return GetChildrenInformation(level).GetCount();
       }
 
       void AddChildrenMetadataValue(ResourceType level,
@@ -263,15 +350,19 @@ namespace Orthanc
         return labels_;
       }
 
-      void AddAttachment(const FileInfo& attachment);
+      void AddAttachment(const FileInfo& attachment,
+                         int64_t revision);
 
       bool LookupAttachment(FileInfo& target,
+                            int64_t& revision,
                             FileContentType type) const;
 
       const std::map<FileContentType, FileInfo>& GetAttachments() const
       {
         return attachments_;
       }
+
+      void ListAttachments(std::set<FileContentType>& target) const;
 
       void SetOneInstanceMetadataAndAttachments(const std::string& instancePublicId,
                                                 const std::map<MetadataType, std::string>& metadata,

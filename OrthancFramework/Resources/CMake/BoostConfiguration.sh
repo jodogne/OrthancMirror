@@ -27,9 +27,10 @@ set -u
 ##   - Orthanc 1.12.2: Boost 1.83.0
 ##   - Orthanc 1.12.3: Boost 1.84.0
 ##   - Orthanc > 1.12.3: Boost 1.85.0
+##   - Orthanc 1.12.5: Boost 1.86.0
 
-BOOST_VERSION=1_85_0
-ORTHANC_VERSION=1.12.4
+BOOST_VERSION=1_86_0
+ORTHANC_VERSION=1.12.5
 
 rm -rf /tmp/boost_${BOOST_VERSION}
 rm -rf /tmp/bcp/boost_${BOOST_VERSION}

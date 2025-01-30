@@ -3,8 +3,8 @@
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
  * Copyright (C) 2017-2023 Osimis S.A., Belgium
- * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
- * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2024-2025 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2025 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -213,7 +213,7 @@ namespace Orthanc
 
       // Add all the instances of the series as to be processed
       std::list<std::string> instances;
-      GetContext().GetIndex().GetChildren(instances, series);
+      GetContext().GetIndex().GetChildren(instances, ResourceType_Series, series);
 
       for (std::list<std::string>::const_iterator
              it = instances.begin(); it != instances.end(); ++it)
@@ -306,7 +306,7 @@ namespace Orthanc
   }
   
     
-  void SplitStudyJob::GetPublicContent(Json::Value& value)
+  void SplitStudyJob::GetPublicContent(Json::Value& value) const
   {
     CleaningInstancesJob::GetPublicContent(value);
 
@@ -351,7 +351,7 @@ namespace Orthanc
   }
 
   
-  bool SplitStudyJob::Serialize(Json::Value& target)
+  bool SplitStudyJob::Serialize(Json::Value& target) const
   {
     if (!CleaningInstancesJob::Serialize(target))
     {

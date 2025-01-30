@@ -2,8 +2,8 @@
 # Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
 # Department, University Hospital of Liege, Belgium
 # Copyright (C) 2017-2023 Osimis S.A., Belgium
-# Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
-# Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+# Copyright (C) 2024-2025 Orthanc Team SRL, Belgium
+# Copyright (C) 2021-2025 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
 #
 # This program is free software: you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public License
@@ -20,16 +20,7 @@
 # <http://www.gnu.org/licenses/>.
 
 
-if (APPLE)
-  # Under OS X, the binaries must always be linked against the
-  # system-wide version of SQLite. Otherwise, if some Orthanc plugin
-  # also uses its own version of SQLite (such as orthanc-webviewer),
-  # this results in a crash in "sqlite3_mutex_enter(db->mutex);" (the
-  # mutex is not initialized), probably because the EXE and the DYNLIB
-  # share the same memory location for this mutex.
-  set(SQLITE_STATIC OFF)
-
-elseif (STATIC_BUILD OR NOT USE_SYSTEM_SQLITE)
+if (STATIC_BUILD OR NOT USE_SYSTEM_SQLITE)
   set(SQLITE_STATIC ON)
 else()
   set(SQLITE_STATIC OFF)

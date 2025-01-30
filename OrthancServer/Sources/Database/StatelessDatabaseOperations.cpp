@@ -3,8 +3,8 @@
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
  * Copyright (C) 2017-2023 Osimis S.A., Belgium
- * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
- * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2024-2025 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2025 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -288,22 +288,6 @@ namespace Orthanc
   }
 
 
-  static void CopyListToVector(std::vector<std::string>& target,
-                               const std::list<std::string>& source)
-  {
-    target.resize(source.size());
-
-    size_t pos = 0;
-    
-    for (std::list<std::string>::const_iterator
-           it = source.begin(); it != source.end(); ++it)
-    {
-      target[pos] = *it;
-      pos ++;
-    }      
-  }
-
-
   void StatelessDatabaseOperations::ReadWriteTransaction::LogChange(int64_t internalId,
                                                                     ChangeType changeType,
                                                                     ResourceType resourceType,
@@ -580,284 +564,32 @@ namespace Orthanc
   {
     ApplyInternal(NULL, &operations);
   }
-  
 
-  bool StatelessDatabaseOperations::ExpandResource(ExpandedResource& target,
-                                                   const std::string& publicId,
-                                                   ResourceType level,
-                                                   const std::set<DicomTag>& requestedTags,
-                                                   ExpandResourceFlags expandFlags)
-  {    
-    class Operations : public ReadOnlyOperationsT6<
-      bool&, ExpandedResource&, const std::string&, ResourceType, const std::set<DicomTag>&, ExpandResourceFlags>
+
+  const FindResponse::Resource& StatelessDatabaseOperations::ExecuteSingleResource(FindResponse& response,
+                                                                                   const FindRequest& request)
+  {
+    ExecuteFind(response, request);
+
+    if (response.GetSize() == 0)
     {
-    private:
-      bool hasLabelsSupport_;
-
-      static bool LookupStringMetadata(std::string& result,
-                                       const std::map<MetadataType, std::string>& metadata,
-                                       MetadataType type)
+      throw OrthancException(ErrorCode_UnknownResource);
+    }
+    else if (response.GetSize() == 1)
+    {
+      if (response.GetResourceByIndex(0).GetLevel() != request.GetLevel())
       {
-        std::map<MetadataType, std::string>::const_iterator found = metadata.find(type);
-
-        if (found == metadata.end())
-        {
-          return false;
-        }
-        else
-        {
-          result = found->second;
-          return true;
-        }
+        throw OrthancException(ErrorCode_DatabasePlugin);
       }
-
-
-      static bool LookupIntegerMetadata(int64_t& result,
-                                        const std::map<MetadataType, std::string>& metadata,
-                                        MetadataType type)
+      else
       {
-        std::string s;
-        if (!LookupStringMetadata(s, metadata, type))
-        {
-          return false;
-        }
-
-        try
-        {
-          result = boost::lexical_cast<int64_t>(s);
-          return true;
-        }
-        catch (boost::bad_lexical_cast&)
-        {
-          return false;
-        }
+        return response.GetResourceByIndex(0);
       }
-
-
-    public:
-      explicit Operations(bool hasLabelsSupport) :
-        hasLabelsSupport_(hasLabelsSupport)
-      {
-      }
-
-      virtual void ApplyTuple(ReadOnlyTransaction& transaction,
-                              const Tuple& tuple) ORTHANC_OVERRIDE
-      {
-        // Lookup for the requested resource
-        int64_t internalId;
-        ResourceType type;
-        std::string parent;
-        if (!transaction.LookupResourceAndParent(internalId, type, parent, tuple.get<2>()) ||
-            type != tuple.get<3>())
-        {
-          tuple.get<0>() = false;
-        }
-        else
-        {
-          ExpandedResource& target = tuple.get<1>();
-          ExpandResourceFlags expandFlags = tuple.get<5>();
-
-          // Set information about the parent resource (if it exists)
-          if (type == ResourceType_Patient)
-          {
-            if (!parent.empty())
-            {
-              throw OrthancException(ErrorCode_DatabasePlugin);
-            }
-          }
-          else
-          {
-            if (parent.empty())
-            {
-              throw OrthancException(ErrorCode_DatabasePlugin);
-            }
-
-            target.parentId_ = parent;
-          }
-
-          target.SetResource(type, tuple.get<2>());
-
-          if (expandFlags & ExpandResourceFlags_IncludeChildren)
-          {
-            // List the children resources
-            transaction.GetChildrenPublicId(target.childrenIds_, internalId);
-          }
-
-          if (expandFlags & ExpandResourceFlags_IncludeMetadata)
-          {
-            // Extract the metadata
-            transaction.GetAllMetadata(target.metadata_, internalId);
-
-            switch (type)
-            {
-              case ResourceType_Patient:
-              case ResourceType_Study:
-                break;
-
-              case ResourceType_Series:
-              {
-                int64_t i;
-                if (LookupIntegerMetadata(i, target.metadata_, MetadataType_Series_ExpectedNumberOfInstances))
-                {
-                  target.expectedNumberOfInstances_ = static_cast<int>(i);
-                  target.status_ = EnumerationToString(transaction.GetSeriesStatus(internalId, i));
-                }
-                else
-                {
-                  target.expectedNumberOfInstances_ = -1;
-                  target.status_ = EnumerationToString(SeriesStatus_Unknown);
-                }
-
-                break;
-              }
-
-              case ResourceType_Instance:
-              {
-                FileInfo attachment;
-                int64_t revision;  // ignored
-                if (!transaction.LookupAttachment(attachment, revision, internalId, FileContentType_Dicom))
-                {
-                  throw OrthancException(ErrorCode_InternalError);
-                }
-
-                target.fileSize_ = static_cast<unsigned int>(attachment.GetUncompressedSize());
-                target.fileUuid_ = attachment.GetUuid();
-
-                int64_t i;
-                if (LookupIntegerMetadata(i, target.metadata_, MetadataType_Instance_IndexInSeries))
-                {
-                  target.indexInSeries_ = static_cast<int>(i);
-                }
-                else
-                {
-                  target.indexInSeries_ = -1;
-                }
-
-                break;
-              }
-
-              default:
-                throw OrthancException(ErrorCode_InternalError);
-            }
-
-            // check the main dicom tags list has not changed since the resource was stored
-            target.mainDicomTagsSignature_ = DicomMap::GetDefaultMainDicomTagsSignatureFrom1_11(type);
-            LookupStringMetadata(target.mainDicomTagsSignature_, target.metadata_, MetadataType_MainDicomTagsSignature);
-          }
-
-          if (expandFlags & ExpandResourceFlags_IncludeMainDicomTags)
-          {
-            // read all tags from DB
-            transaction.GetMainDicomTags(target.GetMainDicomTags(), internalId);
-
-            // read all main sequences from DB
-            std::string serializedSequences;
-            if (LookupStringMetadata(serializedSequences, target.metadata_, MetadataType_MainDicomSequences))
-            {
-              Json::Value jsonMetadata;
-              Toolbox::ReadJson(jsonMetadata, serializedSequences);
-
-              assert(jsonMetadata["Version"].asInt() == 1);
-              target.GetMainDicomTags().FromDicomAsJson(jsonMetadata["Sequences"], true /* append */, true /* parseSequences */);
-            }
-
-            // check if we have access to all requestedTags or if we must get tags from parents
-            const std::set<DicomTag>& requestedTags = tuple.get<4>();
-
-            if (requestedTags.size() > 0)
-            {
-              std::set<DicomTag> savedMainDicomTags;
-              
-              FromDcmtkBridge::ParseListOfTags(savedMainDicomTags, target.mainDicomTagsSignature_);
-
-              // read parent main dicom tags as long as we have not gathered all requested tags
-              ResourceType currentLevel = target.GetLevel();
-              int64_t currentInternalId = internalId;
-              Toolbox::GetMissingsFromSet(target.missingRequestedTags_, requestedTags, savedMainDicomTags);
-
-              while ((target.missingRequestedTags_.size() > 0)
-                     && currentLevel != ResourceType_Patient)
-              {
-                currentLevel = GetParentResourceType(currentLevel);
-
-                int64_t currentParentId;
-                if (!transaction.LookupParent(currentParentId, currentInternalId))
-                {
-                  break;
-                }
-
-                std::map<MetadataType, std::string> parentMetadata;
-                transaction.GetAllMetadata(parentMetadata, currentParentId);
-
-                std::string parentMainDicomTagsSignature = DicomMap::GetDefaultMainDicomTagsSignatureFrom1_11(currentLevel);
-                LookupStringMetadata(parentMainDicomTagsSignature, parentMetadata, MetadataType_MainDicomTagsSignature);
-
-                std::set<DicomTag> parentSavedMainDicomTags;
-                FromDcmtkBridge::ParseListOfTags(parentSavedMainDicomTags, parentMainDicomTagsSignature);
-                
-                size_t previousMissingCount = target.missingRequestedTags_.size();
-                Toolbox::AppendSets(savedMainDicomTags, parentSavedMainDicomTags);
-                Toolbox::GetMissingsFromSet(target.missingRequestedTags_, requestedTags, savedMainDicomTags);
-
-                // read the parent tags from DB only if it reduces the number of missing tags
-                if (target.missingRequestedTags_.size() < previousMissingCount)
-                { 
-                  Toolbox::AppendSets(savedMainDicomTags, parentSavedMainDicomTags);
-
-                  DicomMap parentTags;
-                  transaction.GetMainDicomTags(parentTags, currentParentId);
-
-                  target.GetMainDicomTags().Merge(parentTags);
-                }
-
-                currentInternalId = currentParentId;
-              }
-            }
-          }
-
-          if ((expandFlags & ExpandResourceFlags_IncludeLabels) &&
-              hasLabelsSupport_)
-          {
-            transaction.ListLabels(target.labels_, internalId);
-          }
-
-          std::string tmp;
-
-          if (LookupStringMetadata(tmp, target.metadata_, MetadataType_AnonymizedFrom))
-          {
-            target.anonymizedFrom_ = tmp;
-          }
-
-          if (LookupStringMetadata(tmp, target.metadata_, MetadataType_ModifiedFrom))
-          {
-            target.modifiedFrom_ = tmp;
-          }
-
-          if (type == ResourceType_Patient ||
-              type == ResourceType_Study ||
-              type == ResourceType_Series)
-          {
-            target.isStable_ = !transaction.GetTransactionContext().IsUnstableResource(type, internalId);
-
-            if (LookupStringMetadata(tmp, target.metadata_, MetadataType_LastUpdate))
-            {
-              target.lastUpdate_ = tmp;
-            }
-          }
-          else
-          {
-            target.isStable_ = false;
-          }
-
-          tuple.get<0>() = true;
-        }
-      }
-    };
-
-    bool found;
-    Operations operations(db_.GetDatabaseCapabilities().HasLabelsSupport());
-    operations.Apply(*this, found, target, publicId, level, requestedTags, expandFlags);
-    return found;
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_DatabasePlugin);
+    }
   }
 
 
@@ -865,110 +597,50 @@ namespace Orthanc
                                                    const std::string& publicId,
                                                    ResourceType level)
   {
-    class Operations : public ReadOnlyOperationsT3<std::map<MetadataType, std::string>&, const std::string&, ResourceType>
-    {
-    public:
-      virtual void ApplyTuple(ReadOnlyTransaction& transaction,
-                              const Tuple& tuple) ORTHANC_OVERRIDE
-      {
-        ResourceType type;
-        int64_t id;
-        if (!transaction.LookupResource(id, type, tuple.get<1>()) ||
-            tuple.get<2>() != type)
-        {
-          throw OrthancException(ErrorCode_UnknownResource);
-        }
-        else
-        {
-          transaction.GetAllMetadata(tuple.get<0>(), id);
-        }
-      }
-    };
+    FindRequest request(level);
+    request.SetOrthancId(level, publicId);
+    request.SetRetrieveMetadata(true);
 
-    Operations operations;
-    operations.Apply(*this, target, publicId, level);
+    FindResponse response;
+    std::map<MetadataType, FindResponse::MetadataContent> metadata = ExecuteSingleResource(response, request).GetMetadata(level);
+
+    target.clear();
+    for (std::map<MetadataType, FindResponse::MetadataContent>::const_iterator
+         it = metadata.begin(); it != metadata.end(); ++it)
+    {
+      target[it->first] = it->second.GetValue();
+    }
   }
 
 
   bool StatelessDatabaseOperations::LookupAttachment(FileInfo& attachment,
                                                      int64_t& revision,
-                                                     const std::string& instancePublicId,
+                                                     ResourceType level,
+                                                     const std::string& publicId,
                                                      FileContentType contentType)
   {
-    class Operations : public ReadOnlyOperationsT5<bool&, FileInfo&, int64_t&, const std::string&, FileContentType>
-    {
-    public:
-      virtual void ApplyTuple(ReadOnlyTransaction& transaction,
-                              const Tuple& tuple) ORTHANC_OVERRIDE
-      {
-        int64_t internalId;
-        ResourceType type;
-        if (!transaction.LookupResource(internalId, type, tuple.get<3>()))
-        {
-          throw OrthancException(ErrorCode_UnknownResource);
-        }
-        else if (transaction.LookupAttachment(tuple.get<1>(), tuple.get<2>(), internalId, tuple.get<4>()))
-        {
-          assert(tuple.get<1>().GetContentType() == tuple.get<4>());
-          tuple.get<0>() = true;
-        }
-        else
-        {
-          tuple.get<0>() = false;
-        }
-      }
-    };
+    FindRequest request(level);
+    request.SetOrthancId(level, publicId);
+    request.SetRetrieveAttachments(true);
 
-    bool found;
-    Operations operations;
-    operations.Apply(*this, found, attachment, revision, instancePublicId, contentType);
-    return found;
+    FindResponse response;
+    return ExecuteSingleResource(response, request).LookupAttachment(attachment, revision, contentType);
   }
 
 
   void StatelessDatabaseOperations::GetAllUuids(std::list<std::string>& target,
                                                 ResourceType resourceType)
   {
-    class Operations : public ReadOnlyOperationsT2<std::list<std::string>&, ResourceType>
+    // This method is tested by "orthanc-tests/Plugins/WebDav/Run.py"
+    FindRequest request(resourceType);
+
+    FindResponse response;
+    ExecuteFind(response, request);
+
+    target.clear();
+    for (size_t i = 0; i < response.GetSize(); i++)
     {
-    public:
-      virtual void ApplyTuple(ReadOnlyTransaction& transaction,
-                              const Tuple& tuple) ORTHANC_OVERRIDE
-      {
-        // TODO - CANDIDATE FOR "TransactionType_Implicit"
-        transaction.GetAllPublicIds(tuple.get<0>(), tuple.get<1>());
-      }
-    };
-
-    Operations operations;
-    operations.Apply(*this, target, resourceType);
-  }
-
-
-  void StatelessDatabaseOperations::GetAllUuids(std::list<std::string>& target,
-                                                ResourceType resourceType,
-                                                size_t since,
-                                                uint32_t limit)
-  {
-    if (limit == 0)
-    {
-      target.clear();
-    }
-    else
-    {
-      class Operations : public ReadOnlyOperationsT4<std::list<std::string>&, ResourceType, size_t, size_t>
-      {
-      public:
-        virtual void ApplyTuple(ReadOnlyTransaction& transaction,
-                                const Tuple& tuple) ORTHANC_OVERRIDE
-        {
-          // TODO - CANDIDATE FOR "TransactionType_Implicit"
-          transaction.GetAllPublicIds(tuple.get<0>(), tuple.get<1>(), tuple.get<2>(), tuple.get<3>());
-        }
-      };
-
-      Operations operations;
-      operations.Apply(*this, target, resourceType, since, limit);
+      target.push_back(response.GetResourceByIndex(i).GetIdentifier());
     }
   }
 
@@ -1232,104 +904,85 @@ namespace Orthanc
 
 
   void StatelessDatabaseOperations::GetChildren(std::list<std::string>& result,
+                                                ResourceType level,
                                                 const std::string& publicId)
   {
-    class Operations : public ReadOnlyOperationsT2<std::list<std::string>&, const std::string&>
+    const ResourceType childLevel = GetChildResourceType(level);
+
+    FindRequest request(level);
+    request.SetOrthancId(level, publicId);
+    request.GetChildrenSpecification(childLevel).SetRetrieveIdentifiers(true);
+
+    FindResponse response;
+    ExecuteFind(response, request);
+
+    result.clear();
+
+    for (size_t i = 0; i < response.GetSize(); i++)
     {
-    public:
-      virtual void ApplyTuple(ReadOnlyTransaction& transaction,
-                              const Tuple& tuple) ORTHANC_OVERRIDE
+      const std::set<std::string>& children = response.GetResourceByIndex(i).GetChildrenIdentifiers(childLevel);
+
+      for (std::set<std::string>::const_iterator it = children.begin(); it != children.end(); ++it)
       {
-        ResourceType type;
-        int64_t resource;
-        if (!transaction.LookupResource(resource, type, tuple.get<1>()))
-        {
-          throw OrthancException(ErrorCode_UnknownResource);
-        }
-        else if (type == ResourceType_Instance)
-        {
-          // An instance cannot have a child
-          throw OrthancException(ErrorCode_BadParameterType);
-        }
-        else
-        {
-          std::list<int64_t> tmp;
-          transaction.GetChildrenInternalId(tmp, resource);
-
-          tuple.get<0>().clear();
-
-          for (std::list<int64_t>::const_iterator 
-                 it = tmp.begin(); it != tmp.end(); ++it)
-          {
-            tuple.get<0>().push_back(transaction.GetPublicId(*it));
-          }
-        }
+        result.push_back(*it);
       }
-    };
-    
-    Operations operations;
-    operations.Apply(*this, result, publicId);
+    }
+  }
+
+
+  void StatelessDatabaseOperations::GetChildInstances(std::list<std::string>& result,
+                                                      const std::string& publicId,
+                                                      ResourceType level)
+  {
+    result.clear();
+    if (level == ResourceType_Instance)
+    {
+      result.push_back(publicId);
+    }
+    else
+    {
+      FindRequest request(level);
+      request.SetOrthancId(level, publicId);
+      request.GetChildrenSpecification(ResourceType_Instance).SetRetrieveIdentifiers(true);
+
+      FindResponse response;
+      const std::set<std::string>& instances = ExecuteSingleResource(response, request).GetChildrenIdentifiers(ResourceType_Instance);
+
+      for (std::set<std::string>::const_iterator it = instances.begin(); it != instances.end(); ++it)
+      {
+        result.push_back(*it);
+      }
+    }
   }
 
 
   void StatelessDatabaseOperations::GetChildInstances(std::list<std::string>& result,
                                                       const std::string& publicId)
   {
-    class Operations : public ReadOnlyOperationsT2<std::list<std::string>&, const std::string&>
+    ResourceType level;
+    if (LookupResourceType(level, publicId))
     {
-    public:
-      virtual void ApplyTuple(ReadOnlyTransaction& transaction,
-                              const Tuple& tuple) ORTHANC_OVERRIDE
-      {
-        tuple.get<0>().clear();
-        
-        ResourceType type;
-        int64_t top;
-        if (!transaction.LookupResource(top, type, tuple.get<1>()))
-        {
-          throw OrthancException(ErrorCode_UnknownResource);
-        }
-        else if (type == ResourceType_Instance)
-        {
-          // The resource is already an instance: Do not go down the hierarchy
-          tuple.get<0>().push_back(tuple.get<1>());
-        }
-        else
-        {
-          std::stack<int64_t> toExplore;
-          toExplore.push(top);
+      GetChildInstances(result, publicId, level);
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_UnknownResource);
+    }
+  }
 
-          std::list<int64_t> tmp;
-          while (!toExplore.empty())
-          {
-            // Get the internal ID of the current resource
-            int64_t resource = toExplore.top();
-            toExplore.pop();
 
-            // TODO - This could be optimized by seeing how many
-            // levels "type == transaction.GetResourceType(top)" is
-            // above the "instances level"
-            if (transaction.GetResourceType(resource) == ResourceType_Instance)
-            {
-              tuple.get<0>().push_back(transaction.GetPublicId(resource));
-            }
-            else
-            {
-              // Tag all the children of this resource as to be explored
-              transaction.GetChildrenInternalId(tmp, resource);
-              for (std::list<int64_t>::const_iterator 
-                     it = tmp.begin(); it != tmp.end(); ++it)
-              {
-                toExplore.push(*it);
-              }
-            }
-          }
-        }
-      }
-    };
-    
-    Operations operations;
-    operations.Apply(*this, result, publicId);
+  bool StatelessDatabaseOperations::LookupMetadata(std::string& target,
+                                                   const std::string& publicId,
+                                                   ResourceType expectedType,
+                                                   MetadataType type)
+  {
+    FindRequest request(expectedType);
+    request.SetOrthancId(expectedType, publicId);
+    request.SetRetrieveMetadata(true);
+    request.SetRetrieveMetadataRevisions(false);  // No need to retrieve revisions
+
+    FindResponse response;
+    return ExecuteSingleResource(response, request).LookupMetadata(target, expectedType, type);
   }
 
 
@@ -1339,31 +992,13 @@ namespace Orthanc
                                                    ResourceType expectedType,
                                                    MetadataType type)
   {
-    class Operations : public ReadOnlyOperationsT6<bool&, std::string&, int64_t&,
-                                                   const std::string&, ResourceType, MetadataType>
-    {
-    public:
-      virtual void ApplyTuple(ReadOnlyTransaction& transaction,
-                              const Tuple& tuple) ORTHANC_OVERRIDE
-      {
-        ResourceType resourceType;
-        int64_t id;
-        if (!transaction.LookupResource(id, resourceType, tuple.get<3>()) ||
-            resourceType != tuple.get<4>())
-        {
-          throw OrthancException(ErrorCode_UnknownResource);
-        }
-        else
-        {
-          tuple.get<0>() = transaction.LookupMetadata(tuple.get<1>(), tuple.get<2>(), id, tuple.get<5>());
-        }
-      }
-    };
+    FindRequest request(expectedType);
+    request.SetOrthancId(expectedType, publicId);
+    request.SetRetrieveMetadata(true);
+    request.SetRetrieveMetadataRevisions(true);  // We are asked to retrieve revisions
 
-    bool found;
-    Operations operations;
-    operations.Apply(*this, found, target, revision, publicId, expectedType, type);
-    return found;
+    FindResponse response;
+    return ExecuteSingleResource(response, request).LookupMetadata(target, revision, expectedType, type);
   }
 
 
@@ -1371,28 +1006,12 @@ namespace Orthanc
                                                              const std::string& publicId,
                                                              ResourceType expectedType)
   {
-    class Operations : public ReadOnlyOperationsT3<std::set<FileContentType>&, const std::string&, ResourceType>
-    {
-    public:
-      virtual void ApplyTuple(ReadOnlyTransaction& transaction,
-                              const Tuple& tuple) ORTHANC_OVERRIDE
-      {
-        ResourceType type;
-        int64_t id;
-        if (!transaction.LookupResource(id, type, tuple.get<1>()) ||
-            tuple.get<2>() != type)
-        {
-          throw OrthancException(ErrorCode_UnknownResource);
-        }
-        else
-        {
-          transaction.ListAvailableAttachments(tuple.get<0>(), id);
-        }
-      }
-    };
-    
-    Operations operations;
-    operations.Apply(*this, target, publicId, expectedType);
+    FindRequest request(expectedType);
+    request.SetOrthancId(expectedType, publicId);
+    request.SetRetrieveAttachments(true);
+
+    FindResponse response;
+    ExecuteSingleResource(response, request).ListAttachments(target);
   }
 
 
@@ -1588,45 +1207,24 @@ namespace Orthanc
            (level == ResourceType_Study && tag == DICOM_TAG_ACCESSION_NUMBER) ||
            (level == ResourceType_Series && tag == DICOM_TAG_SERIES_INSTANCE_UID) ||
            (level == ResourceType_Instance && tag == DICOM_TAG_SOP_INSTANCE_UID));
-    
-    result.clear();
+
+    FindRequest request(level);
 
     DicomTagConstraint c(tag, ConstraintType_Equal, value, true, true);
 
-    DatabaseDicomTagConstraints query;
     bool isIdentical;  // unused
-    query.AddConstraint(c.ConvertToDatabaseConstraint(isIdentical, level, DicomTagType_Identifier));
+    request.GetDicomTagConstraints().AddConstraint(c.ConvertToDatabaseConstraint(isIdentical, level, DicomTagType_Identifier));
 
+    FindResponse response;
+    ExecuteFind(response, request);
 
-    class Operations : public IReadOnlyOperations
+    result.clear();
+    result.reserve(response.GetSize());
+
+    for (size_t i = 0; i < response.GetSize(); i++)
     {
-    private:
-      std::vector<std::string>&   result_;
-      const DatabaseDicomTagConstraints&  query_;
-      ResourceType                level_;
-      
-    public:
-      Operations(std::vector<std::string>& result,
-                 const DatabaseDicomTagConstraints& query,
-                 ResourceType level) :
-        result_(result),
-        query_(query),
-        level_(level)
-      {
-      }
-
-      virtual void Apply(ReadOnlyTransaction& transaction) ORTHANC_OVERRIDE
-      {
-        // TODO - CANDIDATE FOR "TransactionType_Implicit"
-        std::list<std::string> tmp;
-        std::set<std::string> labels;
-        transaction.ApplyLookupResources(tmp, NULL, query_, level_, labels, LabelsConstraint_Any, 0);
-        CopyListToVector(result_, tmp);
-      }
-    };
-
-    Operations operations(result, query, level);
-    Apply(operations);
+      result.push_back(response.GetResourceByIndex(i).GetIdentifier());
+    }
   }
 
 
@@ -1683,139 +1281,116 @@ namespace Orthanc
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
 
+    FindRequest request(expectedType);
+    request.SetOrthancId(expectedType, publicId);
+    request.SetRetrieveMainDicomTags(true);
 
-    class Operations : public ReadOnlyOperationsT5<bool&, DicomMap&, const std::string&, ResourceType, ResourceType>
+    FindResponse response;
+    ExecuteFind(response, request);
+
+    if (response.GetSize() == 0)
     {
-    public:
-      virtual void ApplyTuple(ReadOnlyTransaction& transaction,
-                              const Tuple& tuple) ORTHANC_OVERRIDE
+      return false;
+    }
+    else if (response.GetSize() > 1)
+    {
+      throw OrthancException(ErrorCode_DatabasePlugin);
+    }
+    else
+    {
+      result.Clear();
+      if (expectedType == ResourceType_Study)
       {
-        // Lookup for the requested resource
-        int64_t id;
-        ResourceType type;
-        if (!transaction.LookupResource(id, type, tuple.get<2>()) ||
-            type != tuple.get<3>())
+        DicomMap tmp;
+        response.GetResourceByIndex(0).GetMainDicomTags(tmp, expectedType);
+
+        switch (levelOfInterest)
         {
-          tuple.get<0>() = false;
+          case ResourceType_Study:
+            tmp.ExtractStudyInformation(result);
+            break;
+
+          case ResourceType_Patient:
+            tmp.ExtractPatientInformation(result);
+            break;
+
+          default:
+            throw OrthancException(ErrorCode_InternalError);
         }
-        else if (type == ResourceType_Study)
-        {
-          DicomMap tmp;
-          transaction.GetMainDicomTags(tmp, id);
-
-          switch (tuple.get<4>())
-          {
-            case ResourceType_Patient:
-              tmp.ExtractPatientInformation(tuple.get<1>());
-              tuple.get<0>() = true;
-              break;
-
-            case ResourceType_Study:
-              tmp.ExtractStudyInformation(tuple.get<1>());
-              tuple.get<0>() = true;
-              break;
-
-            default:
-              throw OrthancException(ErrorCode_InternalError);
-          }
-        }
-        else
-        {
-          transaction.GetMainDicomTags(tuple.get<1>(), id);
-          tuple.get<0>() = true;
-        }    
       }
-    };
-
-    result.Clear();
-
-    bool found;
-    Operations operations;
-    operations.Apply(*this, found, result, publicId, expectedType, levelOfInterest);
-    return found;
+      else
+      {
+        assert(expectedType == levelOfInterest);
+        response.GetResourceByIndex(0).GetMainDicomTags(result, expectedType);
+      }
+      return true;
+    }
   }
 
 
   bool StatelessDatabaseOperations::GetAllMainDicomTags(DicomMap& result,
                                                         const std::string& instancePublicId)
   {
-    class Operations : public ReadOnlyOperationsT3<bool&, DicomMap&, const std::string&>
-    {
-    public:
-      virtual void ApplyTuple(ReadOnlyTransaction& transaction,
-                              const Tuple& tuple) ORTHANC_OVERRIDE
-      {
-        // Lookup for the requested resource
-        int64_t instance;
-        ResourceType type;
-        if (!transaction.LookupResource(instance, type, tuple.get<2>()) ||
-            type != ResourceType_Instance)
-        {
-          tuple.get<0>() =  false;
-        }
-        else
-        {
-          DicomMap tmp;
-
-          transaction.GetMainDicomTags(tmp, instance);
-          tuple.get<1>().Merge(tmp);
-
-          int64_t series;
-          if (!transaction.LookupParent(series, instance))
-          {
-            throw OrthancException(ErrorCode_InternalError);
-          }
-
-          tmp.Clear();
-          transaction.GetMainDicomTags(tmp, series);
-          tuple.get<1>().Merge(tmp);
-
-          int64_t study;
-          if (!transaction.LookupParent(study, series))
-          {
-            throw OrthancException(ErrorCode_InternalError);
-          }
-
-          tmp.Clear();
-          transaction.GetMainDicomTags(tmp, study);
-          tuple.get<1>().Merge(tmp);
+    FindRequest request(ResourceType_Instance);
+    request.SetOrthancId(ResourceType_Instance, instancePublicId);
+    request.GetParentSpecification(ResourceType_Study).SetRetrieveMainDicomTags(true);
+    request.GetParentSpecification(ResourceType_Series).SetRetrieveMainDicomTags(true);
+    request.SetRetrieveMainDicomTags(true);
 
 #ifndef NDEBUG
-          {
-            // Sanity test to check that all the main DICOM tags from the
-            // patient level are copied at the study level
-        
-            int64_t patient;
-            if (!transaction.LookupParent(patient, study))
-            {
-              throw OrthancException(ErrorCode_InternalError);
-            }
-
-            tmp.Clear();
-            transaction.GetMainDicomTags(tmp, study);
-
-            std::set<DicomTag> patientTags;
-            tmp.GetTags(patientTags);
-
-            for (std::set<DicomTag>::const_iterator
-                   it = patientTags.begin(); it != patientTags.end(); ++it)
-            {
-              assert(tuple.get<1>().HasTag(*it));
-            }
-          }
+    // For sanity check below
+    request.GetParentSpecification(ResourceType_Patient).SetRetrieveMainDicomTags(true);
 #endif
-      
-          tuple.get<0>() =  true;
+
+    FindResponse response;
+    ExecuteFind(response, request);
+
+    if (response.GetSize() == 0)
+    {
+      return false;
+    }
+    else if (response.GetSize() > 1)
+    {
+      throw OrthancException(ErrorCode_DatabasePlugin);
+    }
+    else
+    {
+      const FindResponse::Resource& resource = response.GetResourceByIndex(0);
+
+      result.Clear();
+
+      DicomMap tmp;
+      resource.GetMainDicomTags(tmp, ResourceType_Instance);
+      result.Merge(tmp);
+
+      tmp.Clear();
+      resource.GetMainDicomTags(tmp, ResourceType_Series);
+      result.Merge(tmp);
+
+      tmp.Clear();
+      resource.GetMainDicomTags(tmp, ResourceType_Study);
+      result.Merge(tmp);
+
+#ifndef NDEBUG
+      {
+        // Sanity test to check that all the main DICOM tags from the
+        // patient level are copied at the study level
+        tmp.Clear();
+        resource.GetMainDicomTags(tmp, ResourceType_Patient);
+
+        std::set<DicomTag> patientTags;
+        tmp.GetTags(patientTags);
+
+        for (std::set<DicomTag>::const_iterator
+               it = patientTags.begin(); it != patientTags.end(); ++it)
+        {
+          assert(result.HasTag(*it));
         }
       }
-    };
+#endif
 
-    result.Clear();
-    
-    bool found;
-    Operations operations;
-    operations.Apply(*this, found, result, instancePublicId);
-    return found;
+      return true;
+    }
   }
 
 
@@ -1845,113 +1420,27 @@ namespace Orthanc
                                                  const std::string& publicId,
                                                  ResourceType parentType)
   {
-    class Operations : public ReadOnlyOperationsT4<bool&, std::string&, const std::string&, ResourceType>
+    const ResourceType level = GetChildResourceType(parentType);
+
+    FindRequest request(level);
+    request.SetOrthancId(level, publicId);
+    request.SetRetrieveParentIdentifier(true);
+
+    FindResponse response;
+    ExecuteFind(response, request);
+
+    if (response.GetSize() == 0)
     {
-    public:
-      virtual void ApplyTuple(ReadOnlyTransaction& transaction,
-                              const Tuple& tuple) ORTHANC_OVERRIDE
-      {
-        ResourceType type;
-        int64_t id;
-        if (!transaction.LookupResource(id, type, tuple.get<2>()))
-        {
-          throw OrthancException(ErrorCode_UnknownResource);
-        }
-
-        while (type != tuple.get<3>())
-        {
-          int64_t parentId;
-
-          if (type == ResourceType_Patient ||    // Cannot further go up in hierarchy
-              !transaction.LookupParent(parentId, id))
-          {
-            tuple.get<0>() = false;
-            return;
-          }
-
-          id = parentId;
-          type = GetParentResourceType(type);
-        }
-
-        tuple.get<0>() = true;
-        tuple.get<1>() = transaction.GetPublicId(id);
-      }
-    };
-
-    bool found;
-    Operations operations;
-    operations.Apply(*this, found, target, publicId, parentType);
-    return found;
-  }
-
-
-  void StatelessDatabaseOperations::ApplyLookupResources(std::vector<std::string>& resourcesId,
-                                                         std::vector<std::string>* instancesId,
-                                                         const DatabaseLookup& lookup,
-                                                         ResourceType queryLevel,
-                                                         const std::set<std::string>& labels,
-                                                         LabelsConstraint labelsConstraint,
-                                                         uint32_t limit)
-  {
-    class Operations : public ReadOnlyOperationsT6<bool, const DatabaseDicomTagConstraints&, ResourceType,
-                                                   const std::set<std::string>&, LabelsConstraint, size_t>
-    {
-    private:
-      std::list<std::string>  resourcesList_;
-      std::list<std::string>  instancesList_;
-      
-    public:
-      const std::list<std::string>& GetResourcesList() const
-      {
-        return resourcesList_;
-      }
-
-      const std::list<std::string>& GetInstancesList() const
-      {
-        return instancesList_;
-      }
-
-      virtual void ApplyTuple(ReadOnlyTransaction& transaction,
-                              const Tuple& tuple) ORTHANC_OVERRIDE
-      {
-        // TODO - CANDIDATE FOR "TransactionType_Implicit"
-        if (tuple.get<0>())
-        {
-          transaction.ApplyLookupResources(
-            resourcesList_, &instancesList_, tuple.get<1>(), tuple.get<2>(), tuple.get<3>(), tuple.get<4>(), tuple.get<5>());
-        }
-        else
-        {
-          transaction.ApplyLookupResources(
-            resourcesList_, NULL, tuple.get<1>(), tuple.get<2>(), tuple.get<3>(), tuple.get<4>(), tuple.get<5>());
-        }
-      }
-    };
-
-    if (!labels.empty() &&
-        !db_.GetDatabaseCapabilities().HasLabelsSupport())
-    {
-      throw OrthancException(ErrorCode_NotImplemented, "The database backend doesn't support labels");
+      return false;
     }
-
-    for (std::set<std::string>::const_iterator it = labels.begin(); it != labels.end(); ++it)
+    else if (response.GetSize() > 1)
     {
-      ServerToolbox::CheckValidLabel(*it);
+      throw OrthancException(ErrorCode_DatabasePlugin);
     }
-
-    DatabaseDicomTagConstraints normalized;
-
-    assert(mainDicomTagsRegistry_.get() != NULL);
-    mainDicomTagsRegistry_->NormalizeLookup(normalized, lookup, queryLevel);
-
-    Operations operations;
-    operations.Apply(*this, (instancesId != NULL), normalized, queryLevel, labels, labelsConstraint, limit);
-    
-    CopyListToVector(resourcesId, operations.GetResourcesList());
-
-    if (instancesId != NULL)
-    { 
-      CopyListToVector(*instancesId, operations.GetInstancesList());
+    else
+    {
+      target = response.GetResourceByIndex(0).GetParentIdentifier();
+      return true;
     }
   }
 
@@ -3596,28 +3085,12 @@ namespace Orthanc
                                                const std::string& publicId,
                                                ResourceType level)
   {
-    class Operations : public ReadOnlyOperationsT3<std::set<std::string>&, const std::string&, ResourceType>
-    {
-    public:
-      virtual void ApplyTuple(ReadOnlyTransaction& transaction,
-                              const Tuple& tuple) ORTHANC_OVERRIDE
-      {
-        ResourceType type;
-        int64_t id;
-        if (!transaction.LookupResource(id, type, tuple.get<1>()) ||
-            tuple.get<2>() != type)
-        {
-          throw OrthancException(ErrorCode_UnknownResource);
-        }
-        else
-        {
-          transaction.ListLabels(tuple.get<0>(), id);
-        }
-      }
-    };
+    FindRequest request(level);
+    request.SetOrthancId(level, publicId);
+    request.SetRetrieveLabels(true);
 
-    Operations operations;
-    operations.Apply(*this, target, publicId, level);
+    FindResponse response;
+    target = ExecuteSingleResource(response, request).GetLabels();
   }
 
 
@@ -3727,6 +3200,46 @@ namespace Orthanc
     return db_.GetDatabaseCapabilities().HasFindSupport();
   }
 
+  void StatelessDatabaseOperations::ExecuteCount(uint64_t& count,
+                                                 const FindRequest& request)
+  {
+    class IntegratedCount : public ReadOnlyOperationsT3<uint64_t&, const FindRequest&,
+                                                       const IDatabaseWrapper::Capabilities&>
+    {
+    public:
+      virtual void ApplyTuple(ReadOnlyTransaction& transaction,
+                              const Tuple& tuple) ORTHANC_OVERRIDE
+      {
+        transaction.ExecuteCount(tuple.get<0>(), tuple.get<1>(), tuple.get<2>());
+      }
+    };
+
+    class Compatibility : public ReadOnlyOperationsT3<uint64_t&, const FindRequest&, const IDatabaseWrapper::Capabilities&>
+    {
+    public:
+      virtual void ApplyTuple(ReadOnlyTransaction& transaction,
+                              const Tuple& tuple) ORTHANC_OVERRIDE
+      {
+        std::list<std::string> identifiers;
+        transaction.ExecuteFind(identifiers, tuple.get<2>(), tuple.get<1>());
+        tuple.get<0>() = identifiers.size();
+      }
+    };
+
+    IDatabaseWrapper::Capabilities capabilities = db_.GetDatabaseCapabilities();
+
+    if (db_.HasIntegratedFind())
+    {
+      IntegratedCount operations;
+      operations.Apply(*this, count, request, capabilities);
+    }
+    else
+    {
+      Compatibility operations;
+      operations.Apply(*this, count, request, capabilities);
+    }
+  }
+
   void StatelessDatabaseOperations::ExecuteFind(FindResponse& response,
                                                 const FindRequest& request)
   {
@@ -3781,15 +3294,25 @@ namespace Orthanc
        **/
       std::list<std::string> identifiers;
 
-      FindStage find;
-      find.Apply(*this, identifiers, capabilities, request);
+      std::string publicId;
+      if (request.IsTrivialFind(publicId))
+      {
+        // This is a trivial case for which no transaction is needed
+        identifiers.push_back(publicId);
+      }
+      else
+      {
+        // Non-trival case, a transaction is needed
+        FindStage find;
+        find.Apply(*this, identifiers, capabilities, request);
+      }
 
       ExpandStage expand;
 
       for (std::list<std::string>::const_iterator it = identifiers.begin(); it != identifiers.end(); ++it)
       {
         /**
-         * Not that the resource might have been deleted (as we are in
+         * Note that the resource might have been deleted (as we are in
          * another transaction). The database engine must ignore such
          * error cases.
          **/

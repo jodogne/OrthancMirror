@@ -3,8 +3,8 @@
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
  * Copyright (C) 2017-2023 Osimis S.A., Belgium
- * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
- * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2024-2025 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2025 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -57,6 +57,12 @@ namespace Orthanc
       OrderingDirection_Descending
     };
 
+    enum OrderingCast
+    {
+      OrderingCast_String,
+      OrderingCast_Int,
+      OrderingCast_Float
+    };
 
     class Key
     {
@@ -107,12 +113,15 @@ namespace Orthanc
     {
     private:
       OrderingDirection   direction_;
+      OrderingCast        cast_;
       Key                 key_;
 
     public:
       Ordering(const Key& key,
+               OrderingCast cast,
                OrderingDirection direction) :
         direction_(direction),
+        cast_(cast),
         key_(key)
       {
       }
@@ -125,6 +134,11 @@ namespace Orthanc
       OrderingDirection GetDirection() const
       {
         return direction_;
+      }
+
+      OrderingCast GetCast() const
+      {
+        return cast_;
       }
 
       MetadataType GetMetadataType() const
@@ -185,10 +199,12 @@ namespace Orthanc
       bool                    identifiers_;
       std::set<MetadataType>  metadata_;
       std::set<DicomTag>      mainDicomTags_;
+      bool                    count_;
 
     public:
       ChildrenSpecification() :
-        identifiers_(false)
+        identifiers_(false),
+        count_(false)
       {
       }
 
@@ -200,6 +216,16 @@ namespace Orthanc
       bool IsRetrieveIdentifiers() const
       {
         return identifiers_;
+      }
+
+      void SetRetrieveCount(bool retrieve)
+      {
+        count_ = retrieve;
+      }
+
+      bool IsRetrieveCount() const
+      {
+        return count_;
       }
 
       void AddMetadata(MetadataType metadata)
@@ -224,7 +250,7 @@ namespace Orthanc
 
       bool IsOfInterest() const
       {
-        return (identifiers_ || !metadata_.empty() || !mainDicomTags_.empty());
+        return (identifiers_ || !metadata_.empty() || !mainDicomTags_.empty() || count_);
       }
     };
 
@@ -245,6 +271,7 @@ namespace Orthanc
 
     bool                                 retrieveMainDicomTags_;
     bool                                 retrieveMetadata_;
+    bool                                 retrieveMetadataRevisions_;
     bool                                 retrieveLabels_;
     bool                                 retrieveAttachments_;
     bool                                 retrieveParentIdentifier_;
@@ -317,9 +344,11 @@ namespace Orthanc
     uint64_t GetLimitsCount() const;
 
     void AddOrdering(const DicomTag& tag,
+                     OrderingCast cast,
                      OrderingDirection direction);
 
     void AddOrdering(MetadataType metadataType,
+                     OrderingCast cast,
                      OrderingDirection direction);
 
     const std::deque<Ordering*>& GetOrdering() const
@@ -379,6 +408,16 @@ namespace Orthanc
       return retrieveMetadata_;
     }
 
+    void SetRetrieveMetadataRevisions(bool retrieve)
+    {
+      retrieveMetadataRevisions_ = retrieve;
+    }
+
+    bool IsRetrieveMetadataRevisions() const
+    {
+      return retrieveMetadataRevisions_;
+    }
+
     void SetRetrieveLabels(bool retrieve)
     {
       retrieveLabels_ = retrieve;
@@ -423,5 +462,9 @@ namespace Orthanc
     void SetRetrieveOneInstanceMetadataAndAttachments(bool retrieve);
 
     bool IsRetrieveOneInstanceMetadataAndAttachments() const;
+
+    bool HasConstraints() const;
+
+    bool IsTrivialFind(std::string& publicId /* out */) const;
   };
 }

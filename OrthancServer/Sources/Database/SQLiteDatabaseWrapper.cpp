@@ -3,8 +3,8 @@
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
  * Copyright (C) 2017-2023 Osimis S.A., Belgium
- * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
- * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2024-2025 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2025 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -480,8 +480,9 @@ namespace Orthanc
 #define C6_STRING_4 6
 #define C7_INT_1 7
 #define C8_INT_2 8
-#define C9_BIG_INT_1 9
-#define C10_BIG_INT_2 10
+#define C9_INT_3 9
+#define C10_BIG_INT_1 10
+#define C11_BIG_INT_2 11
 
 #define QUERY_LOOKUP 1
 #define QUERY_MAIN_DICOM_TAGS 2
@@ -496,16 +497,38 @@ namespace Orthanc
 #define QUERY_CHILDREN_IDENTIFIERS 20
 #define QUERY_CHILDREN_MAIN_DICOM_TAGS 21
 #define QUERY_CHILDREN_METADATA 22
+#define QUERY_CHILDREN_COUNT 23
 #define QUERY_GRAND_CHILDREN_IDENTIFIERS 30
 #define QUERY_GRAND_CHILDREN_MAIN_DICOM_TAGS 31
 #define QUERY_GRAND_CHILDREN_METADATA 32
+#define QUERY_GRAND_CHILDREN_COUNT 33
 #define QUERY_GRAND_GRAND_CHILDREN_IDENTIFIERS 40
+#define QUERY_GRAND_GRAND_CHILDREN_COUNT 41
 #define QUERY_ONE_INSTANCE_IDENTIFIER 50
 #define QUERY_ONE_INSTANCE_METADATA 51
 #define QUERY_ONE_INSTANCE_ATTACHMENTS 52
 
 #define STRINGIFY(x) #x
 #define TOSTRING(x) STRINGIFY(x)
+
+    virtual void ExecuteCount(uint64_t& count,
+                              const FindRequest& request,
+                              const Capabilities& capabilities) ORTHANC_OVERRIDE
+    {
+      LookupFormatter formatter;
+      std::string sql;
+
+      std::string lookupSql;
+      LookupFormatter::Apply(lookupSql, formatter, request);
+
+      // base query, retrieve the ordered internalId and publicId of the selected resources
+      sql = "WITH Lookup AS (" + lookupSql + ") SELECT COUNT(*) FROM Lookup";
+      SQLite::Statement s(db_, SQLITE_FROM_HERE_DYNAMIC(sql), sql);
+      formatter.Bind(s);
+
+      s.Step();
+      count = s.ColumnInt64(0);
+    }
 
 
     virtual void ExecuteFind(FindResponse& response,
@@ -574,8 +597,9 @@ namespace Orthanc
              "  NULL AS c6_string4, "
              "  NULL AS c7_int1, "
              "  NULL AS c8_int2, "
-             "  NULL AS c9_big_int1, "
-             "  NULL AS c10_big_int2 "
+             "  NULL AS c9_int3, "
+             "  NULL AS c10_big_int1, "
+             "  NULL AS c11_big_int2 "
              "  FROM Lookup ";
 
       // need one instance info ? (part 2: execute the queries)
@@ -592,8 +616,9 @@ namespace Orthanc
                "    NULL AS c6_string4, "
                "    NULL AS c7_int1, "
                "    NULL AS c8_int2, "
-               "    instanceInternalId AS c9_big_int1, "
-               "    NULL AS c10_big_int2 "
+               "    NULL AS c9_int3, "
+               "    instanceInternalId AS c10_big_int1, "
+               "    NULL AS c11_big_int2 "
                "   FROM OneInstance ";
 
         sql += "   UNION SELECT"
@@ -606,8 +631,9 @@ namespace Orthanc
                "    NULL AS c6_string4, "
                "    Metadata.type AS c7_int1, "
                "    NULL AS c8_int2, "
-               "    NULL AS c9_big_int1, "
-               "    NULL AS c10_big_int2 "
+               "    NULL AS c9_int3, "
+               "    NULL AS c10_big_int1, "
+               "    NULL AS c11_big_int2 "
                "   FROM OneInstance "
                "   INNER JOIN Metadata ON Metadata.id = OneInstance.instanceInternalId ";
               
@@ -621,8 +647,9 @@ namespace Orthanc
                "    customData AS c6_string4, "
                "    fileType AS c7_int1, "
                "    compressionType AS c8_int2, "
-               "    compressedSize AS c9_big_int1, "
-               "    uncompressedSize AS c10_big_int2 "
+               "    revision AS c9_int3, "
+               "    compressedSize AS c10_big_int1, "
+               "    uncompressedSize AS c11_big_int2 "
                "   FROM OneInstance "
                "   INNER JOIN AttachedFiles ON AttachedFiles.id = OneInstance.instanceInternalId ";
 
@@ -641,8 +668,9 @@ namespace Orthanc
                "  NULL AS c6_string4, "
                "  tagGroup AS c7_int1, "
                "  tagElement AS c8_int2, "
-               "  NULL AS c9_big_int1, "
-               "  NULL AS c10_big_int2 "
+               "  NULL AS c9_int3, "
+               "  NULL AS c10_big_int1, "
+               "  NULL AS c11_big_int2 "
                "FROM Lookup "
                "INNER JOIN MainDicomTags ON MainDicomTags.id = Lookup.internalId ";
       }
@@ -659,9 +687,10 @@ namespace Orthanc
                "  NULL AS c5_string3, "
                "  NULL AS c6_string4, "
                "  type AS c7_int1, "
-               "  NULL AS c8_int2, "
-               "  NULL AS c9_big_int1, "
-               "  NULL AS c10_big_int2 "
+               "  revision AS c8_int2, "
+               "  NULL AS c9_int3, "
+               "  NULL AS c10_big_int1, "
+               "  NULL AS c11_big_int2 "
                "FROM Lookup "
                "INNER JOIN Metadata ON Metadata.id = Lookup.internalId ";
       }
@@ -679,8 +708,9 @@ namespace Orthanc
                "  customData AS c6_string4, "
                "  fileType AS c7_int1, "
                "  compressionType AS c8_int2, "
-               "  compressedSize AS c9_big_int1, "
-               "  uncompressedSize AS c10_big_int2 "
+               "  revision AS c9_int3, "
+               "  compressedSize AS c10_big_int1, "
+               "  uncompressedSize AS c11_big_int2 "
                "FROM Lookup "
                "INNER JOIN AttachedFiles ON AttachedFiles.id = Lookup.internalId ";
       }
@@ -699,8 +729,9 @@ namespace Orthanc
                "  NULL AS c6_string4, "
                "  NULL AS c7_int1, "
                "  NULL AS c8_int2, "
-               "  NULL AS c9_big_int1, "
-               "  NULL AS c10_big_int2 "
+               "  NULL AS c9_int3, "
+               "  NULL AS c10_big_int1, "
+               "  NULL AS c11_big_int2 "
                "FROM Lookup "
                "INNER JOIN Labels ON Labels.id = Lookup.internalId ";
       }
@@ -720,8 +751,9 @@ namespace Orthanc
                  "  NULL AS c6_string4, "
                  "  tagGroup AS c7_int1, "
                  "  tagElement AS c8_int2, "
-                 "  NULL AS c9_big_int1, "
-                 "  NULL AS c10_big_int2 "
+                 "  NULL AS c9_int3, "
+                 "  NULL AS c10_big_int1, "
+                 "  NULL AS c11_big_int2 "
                  "FROM Lookup "
                  "INNER JOIN Resources currentLevel ON Lookup.internalId = currentLevel.internalId "
                  "INNER JOIN MainDicomTags ON MainDicomTags.id = currentLevel.parentId ";
@@ -739,9 +771,10 @@ namespace Orthanc
                  "  NULL AS c5_string3, "
                  "  NULL AS c6_string4, "
                  "  type AS c7_int1, "
-                 "  NULL AS c8_int2, "
-                 "  NULL AS c9_big_int1, "
-                 "  NULL AS c10_big_int2 "
+                 "  revision AS c8_int2, "
+                 "  NULL AS c9_int3, "
+                 "  NULL AS c10_big_int1, "
+                 "  NULL AS c11_big_int2 "
                  "FROM Lookup "
                  "INNER JOIN Resources currentLevel ON Lookup.internalId = currentLevel.internalId "
                  "INNER JOIN Metadata ON Metadata.id = currentLevel.parentId ";        
@@ -762,8 +795,9 @@ namespace Orthanc
                   "  NULL AS c6_string4, "
                   "  tagGroup AS c7_int1, "
                   "  tagElement AS c8_int2, "
-                  "  NULL AS c9_big_int1, "
-                  "  NULL AS c10_big_int2 "
+                  "  NULL AS c9_int3, "
+                  "  NULL AS c10_big_int1, "
+                  "  NULL AS c11_big_int2 "
                   "FROM Lookup "
                   "INNER JOIN Resources currentLevel ON Lookup.internalId = currentLevel.internalId "
                   "INNER JOIN Resources parentLevel ON currentLevel.parentId = parentLevel.internalId "
@@ -782,9 +816,10 @@ namespace Orthanc
                   "  NULL AS c5_string3, "
                   "  NULL AS c6_string4, "
                   "  type AS c7_int1, "
-                  "  NULL AS c8_int2, "
-                  "  NULL AS c9_big_int1, "
-                  "  NULL AS c10_big_int2 "
+                  "  revision AS c8_int2, "
+                  "  NULL AS c9_int3, "
+                  "  NULL AS c10_big_int1, "
+                  "  NULL AS c11_big_int2 "
                   "FROM Lookup "
                   "INNER JOIN Resources currentLevel ON Lookup.internalId = currentLevel.internalId "
                   "INNER JOIN Resources parentLevel ON currentLevel.parentId = parentLevel.internalId "
@@ -806,8 +841,9 @@ namespace Orthanc
                "  NULL AS c6_string4, "
                "  tagGroup AS c7_int1, "
                "  tagElement AS c8_int2, "
-               "  NULL AS c9_big_int1, "
-               "  NULL AS c10_big_int2 "
+               "  NULL AS c9_int3, "
+               "  NULL AS c10_big_int1, "
+               "  NULL AS c11_big_int2 "
                "FROM Lookup "
                "  INNER JOIN Resources childLevel ON childLevel.parentId = Lookup.internalId "
                "  INNER JOIN MainDicomTags ON MainDicomTags.id = childLevel.internalId AND " + JoinRequestedTags(request.GetChildrenSpecification(static_cast<ResourceType>(requestLevel + 1))); 
@@ -826,8 +862,9 @@ namespace Orthanc
                 "  NULL AS c6_string4, "
                 "  tagGroup AS c7_int1, "
                 "  tagElement AS c8_int2, "
-                "  NULL AS c9_big_int1, "
-                "  NULL AS c10_big_int2 "
+                "  NULL AS c9_int3, "
+                "  NULL AS c10_big_int1, "
+                "  NULL AS c11_big_int2 "
                 "FROM Lookup "
                 "  INNER JOIN Resources childLevel ON childLevel.parentId = Lookup.internalId "
                 "  INNER JOIN Resources grandChildLevel ON grandChildLevel.parentId = childLevel.internalId "
@@ -847,8 +884,9 @@ namespace Orthanc
                "  NULL AS c6_string4, "
                "  NULL AS c7_int1, "
                "  NULL AS c8_int2, "
-               "  NULL AS c9_big_int1, "
-               "  NULL AS c10_big_int2 "
+               "  NULL AS c9_int3, "
+               "  NULL AS c10_big_int1, "
+               "  NULL AS c11_big_int2 "
                "FROM Lookup "
                "  INNER JOIN Resources currentLevel ON currentLevel.internalId = Lookup.internalId "
                "  INNER JOIN Resources parentLevel ON currentLevel.parentId = parentLevel.internalId ";
@@ -866,9 +904,10 @@ namespace Orthanc
                 "  NULL AS c5_string3, "
                 "  NULL AS c6_string4, "
                 "  type AS c7_int1, "
-                "  NULL AS c8_int2, "
-                "  NULL AS c9_big_int1, "
-                "  NULL AS c10_big_int2 "
+                "  revision AS c8_int2, "
+                "  NULL AS c9_int3, "
+                "  NULL AS c10_big_int1, "
+                "  NULL AS c11_big_int2 "
                 "FROM Lookup "
                 "  INNER JOIN Resources childLevel ON childLevel.parentId = Lookup.internalId "
                 "  INNER JOIN Metadata ON Metadata.id = childLevel.internalId AND Metadata.type IN (" + JoinRequestedMetadata(request.GetChildrenSpecification(static_cast<ResourceType>(requestLevel + 1))) + ") ";
@@ -886,9 +925,10 @@ namespace Orthanc
                 "  NULL AS c5_string3, "
                 "  NULL AS c6_string4, "
                 "  type AS c7_int1, "
-                "  NULL AS c8_int2, "
-                "  NULL AS c9_big_int1, "
-                "  NULL AS c10_big_int2 "
+                "  revision AS c8_int2, "
+                "  NULL AS c9_int3, "
+                "  NULL AS c10_big_int1, "
+                "  NULL AS c11_big_int2 "
                 "FROM Lookup "
                 "  INNER JOIN Resources childLevel ON childLevel.parentId = Lookup.internalId "
                 "  INNER JOIN Resources grandChildLevel ON grandChildLevel.parentId = childLevel.internalId "
@@ -910,10 +950,32 @@ namespace Orthanc
                "  NULL AS c6_string4, "
                "  NULL AS c7_int1, "
                "  NULL AS c8_int2, "
-               "  NULL AS c9_big_int1, "
-               "  NULL AS c10_big_int2 "
+               "  NULL AS c9_int3, "
+               "  NULL AS c10_big_int1, "
+               "  NULL AS c11_big_int2 "
                "FROM Lookup "
                "  INNER JOIN Resources childLevel ON Lookup.internalId = childLevel.parentId ";
+      }
+      // no need to count if we have retrieved the list of identifiers
+      else if ((requestLevel == ResourceType_Patient && request.GetChildrenSpecification(ResourceType_Study).IsRetrieveCount()) ||
+          (requestLevel == ResourceType_Study && request.GetChildrenSpecification(ResourceType_Series).IsRetrieveCount()) ||
+          (requestLevel == ResourceType_Series && request.GetChildrenSpecification(ResourceType_Instance).IsRetrieveCount()))
+      {
+        sql += "UNION SELECT "
+               "  " TOSTRING(QUERY_CHILDREN_COUNT) " AS c0_queryId, "
+               "  Lookup.internalId AS c1_internalId, "
+               "  NULL AS c2_rowNumber, "
+               "  NULL AS c3_string1, "
+               "  NULL AS c4_string2, "
+               "  NULL AS c5_string3, "
+               "  NULL AS c6_string4, "
+               "  COUNT(*) AS c7_int1, "
+               "  NULL AS c8_int2, "
+               "  NULL AS c9_int3, "
+               "  NULL AS c10_big_int1, "
+               "  NULL AS c11_big_int2 "
+               "FROM Lookup "
+               "  INNER JOIN Resources childLevel ON Lookup.internalId = childLevel.parentId GROUP BY Lookup.internalId ";
       }
 
       // need grandchildren identifiers ?
@@ -930,11 +992,33 @@ namespace Orthanc
               "  NULL AS c6_string4, "
               "  NULL AS c7_int1, "
               "  NULL AS c8_int2, "
-              "  NULL AS c9_big_int1, "
-              "  NULL AS c10_big_int2 "
+              "  NULL AS c9_int3, "
+              "  NULL AS c10_big_int1, "
+              "  NULL AS c11_big_int2 "
               "FROM Lookup "
               "INNER JOIN Resources childLevel ON Lookup.internalId = childLevel.parentId "
               "INNER JOIN Resources grandChildLevel ON childLevel.internalId = grandChildLevel.parentId ";
+      }
+      // no need to count if we have retrieved the list of identifiers
+      else if ((requestLevel == ResourceType_Patient && request.GetChildrenSpecification(ResourceType_Series).IsRetrieveCount()) ||
+          (requestLevel == ResourceType_Study && request.GetChildrenSpecification(ResourceType_Instance).IsRetrieveCount()))
+      {
+        sql += "UNION SELECT "
+              "  " TOSTRING(QUERY_GRAND_CHILDREN_COUNT) " AS c0_queryId, "
+              "  Lookup.internalId AS c1_internalId, "
+              "  NULL AS c2_rowNumber, "
+              "  NULL AS c3_string1, "
+              "  NULL AS c4_string2, "
+              "  NULL AS c5_string3, "
+              "  NULL AS c6_string4, "
+              "  COUNT(*) AS c7_int1, "
+              "  NULL AS c8_int2, "
+              "  NULL AS c9_int3, "
+              "  NULL AS c10_big_int1, "
+              "  NULL AS c11_big_int2 "
+              "FROM Lookup "
+              "INNER JOIN Resources childLevel ON Lookup.internalId = childLevel.parentId "
+              "INNER JOIN Resources grandChildLevel ON childLevel.internalId = grandChildLevel.parentId GROUP BY Lookup.internalId ";
       }
 
       // need grandgrandchildren identifiers ?
@@ -950,12 +1034,34 @@ namespace Orthanc
               "  NULL AS c6_string4, "
               "  NULL AS c7_int1, "
               "  NULL AS c8_int2, "
-              "  NULL AS c9_big_int1, "
-              "  NULL AS c10_big_int2 "
+              "  NULL AS c9_int3, "
+              "  NULL AS c10_big_int1, "
+              "  NULL AS c11_big_int2 "
               "FROM Lookup "
               "INNER JOIN Resources childLevel ON Lookup.internalId = childLevel.parentId "
               "INNER JOIN Resources grandChildLevel ON childLevel.internalId = grandChildLevel.parentId "
               "INNER JOIN Resources grandGrandChildLevel ON grandChildLevel.internalId = grandGrandChildLevel.parentId ";
+      }
+      // no need to count if we have retrieved the list of identifiers
+      else if (requestLevel == ResourceType_Patient && request.GetChildrenSpecification(ResourceType_Instance).IsRetrieveCount())
+      {
+        sql += "UNION SELECT "
+              "  " TOSTRING(QUERY_GRAND_GRAND_CHILDREN_COUNT) " AS c0_queryId, "
+              "  Lookup.internalId AS c1_internalId, "
+              "  NULL AS c2_rowNumber, "
+              "  NULL AS c3_string1, "
+              "  NULL AS c4_string2, "
+              "  NULL AS c5_string3, "
+              "  NULL AS c6_string4, "
+              "  COUNT(*) AS c7_int1, "
+              "  NULL AS c8_int2, "
+              "  NULL AS c9_int3, "
+              "  NULL AS c10_big_int1, "
+              "  NULL AS c11_big_int2 "
+              "FROM Lookup "
+              "INNER JOIN Resources childLevel ON Lookup.internalId = childLevel.parentId "
+              "INNER JOIN Resources grandChildLevel ON childLevel.internalId = grandChildLevel.parentId "
+              "INNER JOIN Resources grandGrandChildLevel ON grandChildLevel.internalId = grandGrandChildLevel.parentId GROUP BY Lookup.internalId ";
       }
 
 
@@ -989,11 +1095,11 @@ namespace Orthanc
           case QUERY_ATTACHMENTS:
           {
             FindResponse::Resource& res = response.GetResourceByInternalId(internalId);
-            FileInfo file(s.ColumnString(C3_STRING_1), static_cast<FileContentType>(s.ColumnInt(C7_INT_1)), 
-                          s.ColumnInt64(C9_BIG_INT_1), s.ColumnString(C4_STRING_2),
+            FileInfo file(s.ColumnString(C3_STRING_1), static_cast<FileContentType>(s.ColumnInt(C7_INT_1)),
+                          s.ColumnInt64(C11_BIG_INT_2), s.ColumnString(C4_STRING_2),
                           static_cast<CompressionType>(s.ColumnInt(C8_INT_2)),
-                          s.ColumnInt64(C10_BIG_INT_2), s.ColumnString(C5_STRING_3), s.ColumnString(C6_STRING_4));
-            res.AddAttachment(file);
+                          s.ColumnInt64(C10_BIG_INT_1), s.ColumnString(C5_STRING_3), s.ColumnString(C6_STRING_4));
+            res.AddAttachment(file, s.ColumnInt(C9_INT_3));
           }; break;
 
           case QUERY_MAIN_DICOM_TAGS:
@@ -1044,7 +1150,7 @@ namespace Orthanc
             FindResponse::Resource& res = response.GetResourceByInternalId(internalId);
             res.AddMetadata(static_cast<ResourceType>(requestLevel), 
                             static_cast<MetadataType>(s.ColumnInt(C7_INT_1)),
-                            s.ColumnString(C3_STRING_1));
+                            s.ColumnString(C3_STRING_1), s.ColumnInt(C8_INT_2));
           }; break;
 
           case QUERY_PARENT_METADATA:
@@ -1052,7 +1158,7 @@ namespace Orthanc
             FindResponse::Resource& res = response.GetResourceByInternalId(internalId);
             res.AddMetadata(static_cast<ResourceType>(requestLevel - 1), 
                             static_cast<MetadataType>(s.ColumnInt(C7_INT_1)),
-                            s.ColumnString(C3_STRING_1));
+                            s.ColumnString(C3_STRING_1), s.ColumnInt(C8_INT_2));
           }; break;
 
           case QUERY_GRAND_PARENT_METADATA:
@@ -1060,7 +1166,7 @@ namespace Orthanc
             FindResponse::Resource& res = response.GetResourceByInternalId(internalId);
             res.AddMetadata(static_cast<ResourceType>(requestLevel - 2), 
                             static_cast<MetadataType>(s.ColumnInt(C7_INT_1)),
-                            s.ColumnString(C3_STRING_1));
+                            s.ColumnString(C3_STRING_1), s.ColumnInt(C8_INT_2));
           }; break;
 
           case QUERY_CHILDREN_METADATA:
@@ -1090,6 +1196,8 @@ namespace Orthanc
             FindResponse::Resource& res = response.GetResourceByInternalId(internalId);
             res.AddChildIdentifier(static_cast<ResourceType>(requestLevel + 1),
                                    s.ColumnString(C3_STRING_1));
+            res.SetChildrenCount(static_cast<ResourceType>(requestLevel + 1),
+                                 res.GetChildrenIdentifiers(static_cast<ResourceType>(requestLevel + 1)).size());
           }; break;
 
           case QUERY_GRAND_CHILDREN_IDENTIFIERS:
@@ -1097,6 +1205,8 @@ namespace Orthanc
             FindResponse::Resource& res = response.GetResourceByInternalId(internalId);
             res.AddChildIdentifier(static_cast<ResourceType>(requestLevel + 2),
                                    s.ColumnString(C3_STRING_1));
+            res.SetChildrenCount(static_cast<ResourceType>(requestLevel + 2),
+                                 res.GetChildrenIdentifiers(static_cast<ResourceType>(requestLevel + 2)).size());
           }; break;
 
           case QUERY_GRAND_GRAND_CHILDREN_IDENTIFIERS:
@@ -1104,6 +1214,29 @@ namespace Orthanc
             FindResponse::Resource& res = response.GetResourceByInternalId(internalId);
             res.AddChildIdentifier(static_cast<ResourceType>(requestLevel + 3),
                                    s.ColumnString(C3_STRING_1));
+            res.SetChildrenCount(static_cast<ResourceType>(requestLevel + 3),
+                                 res.GetChildrenIdentifiers(static_cast<ResourceType>(requestLevel + 3)).size());
+          }; break;
+
+          case QUERY_CHILDREN_COUNT:
+          {
+            FindResponse::Resource& res = response.GetResourceByInternalId(internalId);
+            res.SetChildrenCount(static_cast<ResourceType>(requestLevel + 1),
+                                 static_cast<uint64_t>(s.ColumnInt64(C7_INT_1)));
+          }; break;
+
+          case QUERY_GRAND_CHILDREN_COUNT:
+          {
+            FindResponse::Resource& res = response.GetResourceByInternalId(internalId);
+            res.SetChildrenCount(static_cast<ResourceType>(requestLevel + 2),
+                                 static_cast<uint64_t>(s.ColumnInt64(C7_INT_1)));
+          }; break;
+
+          case QUERY_GRAND_GRAND_CHILDREN_COUNT:
+          {
+            FindResponse::Resource& res = response.GetResourceByInternalId(internalId);
+            res.SetChildrenCount(static_cast<ResourceType>(requestLevel + 3),
+                                 static_cast<uint64_t>(s.ColumnInt64(C7_INT_1)));
           }; break;
 
           case QUERY_ONE_INSTANCE_IDENTIFIER:
@@ -1121,10 +1254,10 @@ namespace Orthanc
           case QUERY_ONE_INSTANCE_ATTACHMENTS:
           {
             FindResponse::Resource& res = response.GetResourceByInternalId(internalId);
-            FileInfo file(s.ColumnString(C3_STRING_1), static_cast<FileContentType>(s.ColumnInt(C7_INT_1)), 
-                          s.ColumnInt64(C9_BIG_INT_1), s.ColumnString(C4_STRING_2),
+            FileInfo file(s.ColumnString(C3_STRING_1), static_cast<FileContentType>(s.ColumnInt(C7_INT_1)),
+                          s.ColumnInt64(C11_BIG_INT_2), s.ColumnString(C4_STRING_2),
                           static_cast<CompressionType>(s.ColumnInt(C8_INT_2)),
-                          s.ColumnInt64(C10_BIG_INT_2), s.ColumnString(C5_STRING_3), s.ColumnString(C6_STRING_4));
+                          s.ColumnInt64(C10_BIG_INT_1), s.ColumnString(C5_STRING_3), s.ColumnString(C6_STRING_4));
             res.AddOneInstanceAttachment(file);
           }; break;
 
@@ -1284,10 +1417,10 @@ namespace Orthanc
     }
 
 
-    virtual void GetAllPublicIds(std::list<std::string>& target,
-                                 ResourceType resourceType,
-                                 int64_t since,
-                                 uint32_t limit) ORTHANC_OVERRIDE
+    virtual void GetAllPublicIdsCompatibility(std::list<std::string>& target,
+                                              ResourceType resourceType,
+                                              int64_t since,
+                                              uint32_t limit) ORTHANC_OVERRIDE
     {
       SQLite::Statement s(db_, SQLITE_FROM_HERE,
                           "SELECT publicId FROM Resources WHERE "
@@ -2167,7 +2300,7 @@ namespace Orthanc
     dbCapabilities_.SetFlushToDisk(true);
     dbCapabilities_.SetLabelsSupport(true);
     dbCapabilities_.SetHasExtendedChanges(true);
-    dbCapabilities_.SetHasFindSupport(true);
+    dbCapabilities_.SetHasFindSupport(HasIntegratedFind());
     db_.Open(path);
   }
 
@@ -2181,7 +2314,7 @@ namespace Orthanc
     dbCapabilities_.SetFlushToDisk(true);
     dbCapabilities_.SetLabelsSupport(true);
     dbCapabilities_.SetHasExtendedChanges(true);
-    dbCapabilities_.SetHasFindSupport(true);
+    dbCapabilities_.SetHasFindSupport(HasIntegratedFind());
     db_.OpenInMemory();
   }
 
@@ -2281,7 +2414,7 @@ namespace Orthanc
         }
       }
 
-      // New in Orthanc 1.12.5
+      // New in Orthanc 1.12.7
       if (version_ >= 6)
       {
         if (!transaction->LookupGlobalProperty(tmp, GlobalProperty_SQLiteHasCustomDataAndRevision, true /* unused in SQLite */) 

@@ -3,8 +3,8 @@
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
  * Copyright (C) 2017-2023 Osimis S.A., Belgium
- * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
- * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2024-2025 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2025 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -66,6 +66,7 @@ namespace Orthanc
       unsigned int keepAliveTimeout_;
       std::list<std::string> headers_;
       bool hasXContentTypeOptions_;
+      bool hasContentType_;
 
       std::string multipartBoundary_;
       std::string multipartContentType_;
@@ -125,6 +126,11 @@ namespace Orthanc
                           size_t size);
 
       void CloseStream();
+
+      bool HasContentType() const
+      {
+        return hasContentType_;
+      }
     };
 
     StateMachine stateMachine_;
@@ -218,5 +224,14 @@ namespace Orthanc
      * used to handle compression using "Content-Encoding".
      **/
     void AnswerWithoutBuffering(IHttpStreamAnswer& stream);
+
+    void StartStream(const std::string& contentType);
+
+    void SendStreamItem(const void* data,
+                        size_t size);
+
+    void CloseStream();
+
+    bool IsWritingStream() const;
   };
 }

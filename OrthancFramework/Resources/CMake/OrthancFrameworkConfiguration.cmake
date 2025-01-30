@@ -2,8 +2,8 @@
 # Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
 # Department, University Hospital of Liege, Belgium
 # Copyright (C) 2017-2023 Osimis S.A., Belgium
-# Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
-# Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+# Copyright (C) 2024-2025 Orthanc Team SRL, Belgium
+# Copyright (C) 2021-2025 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
 #
 # This program is free software: you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public License
@@ -456,7 +456,8 @@ if (ENABLE_LOCALE)
     # is shipped with the stdlib
     unset(BOOST_LOCALE_BACKEND CACHE)
   else()
-    if (BOOST_LOCALE_BACKEND STREQUAL "gcc")
+    if (BOOST_LOCALE_BACKEND STREQUAL "gcc" OR
+        BOOST_LOCALE_BACKEND STREQUAL "oficonv")
     elseif (BOOST_LOCALE_BACKEND STREQUAL "libiconv")
       include(${CMAKE_CURRENT_LIST_DIR}/LibIconvConfiguration.cmake)
     elseif (BOOST_LOCALE_BACKEND STREQUAL "icu")

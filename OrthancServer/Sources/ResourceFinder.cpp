@@ -3,8 +3,8 @@
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
  * Copyright (C) 2017-2023 Osimis S.A., Belgium
- * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
- * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2024-2025 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2025 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -56,7 +56,7 @@ namespace Orthanc
     if (request_.GetLevel() == parentLevel)
     {
       requestedComputedTags_.insert(tag);
-      request_.GetChildrenSpecification(childLevel).SetRetrieveIdentifiers(true);
+      request_.GetChildrenSpecification(childLevel).SetRetrieveCount(true);
     }
   }
 
@@ -68,8 +68,7 @@ namespace Orthanc
   {
     if (IsRequestedComputedTag(tag))
     {
-      const std::set<std::string>& children = resource.GetChildrenIdentifiers(level);
-      requestedTags.SetValue(tag, boost::lexical_cast<std::string>(children.size()), false);
+      requestedTags.SetValue(tag, boost::lexical_cast<std::string>(resource.GetChildrenCount(level)), false);
     }
   }
 
@@ -326,7 +325,8 @@ namespace Orthanc
         if (responseContent_ & ResponseContentFlags_AttachmentsLegacy)
         {
           FileInfo info;
-          if (resource.LookupAttachment(info, FileContentType_Dicom))
+          int64_t revision;
+          if (resource.LookupAttachment(info, revision, FileContentType_Dicom))
           {
             target["FileSize"] = static_cast<Json::UInt64>(info.GetUncompressedSize());
             target["FileUuid"] = info.GetUuid();
@@ -438,13 +438,13 @@ namespace Orthanc
 
     if (responseContent_ & ResponseContentFlags_Metadata)  // new in Orthanc 1.12.4
     {
-      const std::map<MetadataType, std::string>& m = resource.GetMetadata(resource.GetLevel());
+      const std::map<MetadataType, FindResponse::MetadataContent>& m = resource.GetMetadata(resource.GetLevel());
 
       Json::Value metadata = Json::objectValue;
 
-      for (std::map<MetadataType, std::string>::const_iterator it = m.begin(); it != m.end(); ++it)
+      for (std::map<MetadataType, FindResponse::MetadataContent>::const_iterator it = m.begin(); it != m.end(); ++it)
       {
-        metadata[EnumerationToString(it->first)] = it->second;
+        metadata[EnumerationToString(it->first)] = it->second.GetValue();
       }
 
       target["Metadata"] = metadata;
@@ -472,66 +472,92 @@ namespace Orthanc
   }
 
 
-  void ResourceFinder::UpdateRequestLimits()
+  void ResourceFinder::UpdateRequestLimits(ServerContext& context)
   {
-    // By default, use manual paging
-    pagingMode_ = PagingMode_FullManual;
-
-    if (databaseLimits_ != 0)
+    if (context.GetIndex().HasFindSupport())  // in this case, limits are fully implemented in DB
     {
-      request_.SetLimits(0, databaseLimits_ + 1);
+      pagingMode_ = PagingMode_FullDatabase;
+
+      if (hasLimitsSince_ || hasLimitsCount_)
+      {
+        pagingMode_ = PagingMode_FullDatabase;
+        if (databaseLimits_ != 0 && limitsCount_ > databaseLimits_)
+        {
+          LOG(WARNING) << "ResourceFinder: \"Limit\" is larger than LimitFindResults/LimitFindInstances configurations, using limit from the configuration file";
+          limitsCount_ = databaseLimits_;
+        }
+
+        request_.SetLimits(limitsSince_, limitsCount_);
+      }
+      else if (databaseLimits_ != 0)
+      {
+        request_.SetLimits(0, databaseLimits_);
+      }
+
     }
     else
     {
-      request_.ClearLimits();
-    }
+      // By default, use manual paging
+      pagingMode_ = PagingMode_FullManual;
 
-    if (lookup_.get() == NULL &&
-        (hasLimitsSince_ || hasLimitsCount_))
-    {
-      pagingMode_ = PagingMode_FullDatabase;
-      request_.SetLimits(limitsSince_, limitsCount_);
-    }
-
-    if (lookup_.get() != NULL &&
-        isSimpleLookup_ &&
-        (hasLimitsSince_ || hasLimitsCount_))
-    {
-      /**
-       * TODO-FIND: "IDatabaseWrapper::ApplyLookupResources()" only
-       * accept the "limit" argument.  The "since" must be implemented
-       * manually.
-       **/
-
-      if (hasLimitsSince_ &&
-          limitsSince_ != 0)
+      if (databaseLimits_ != 0)
       {
-        pagingMode_ = PagingMode_ManualSkip;
-        request_.SetLimits(0, limitsCount_ + limitsSince_);
+        request_.SetLimits(0, databaseLimits_ + 1);
       }
       else
       {
+        request_.ClearLimits();
+      }
+
+      if (lookup_.get() == NULL &&
+          (hasLimitsSince_ || hasLimitsCount_))
+      {
         pagingMode_ = PagingMode_FullDatabase;
-        request_.SetLimits(0, limitsCount_);
+        request_.SetLimits(limitsSince_, limitsCount_);
+      }
+
+      if (lookup_.get() != NULL &&
+          canBeFullyPerformedInDb_ &&
+          (hasLimitsSince_ || hasLimitsCount_))
+      {
+        /**
+         * TODO-FIND: "IDatabaseWrapper::ApplyLookupResources()" only
+         * accept the "limit" argument.  The "since" must be implemented
+         * manually.
+         **/
+
+        if (hasLimitsSince_ &&
+            limitsSince_ != 0)
+        {
+          pagingMode_ = PagingMode_ManualSkip;
+          request_.SetLimits(0, limitsCount_ + limitsSince_);
+        }
+        else
+        {
+          pagingMode_ = PagingMode_FullDatabase;
+          request_.SetLimits(0, limitsCount_);
+        }
       }
     }
-
-    // TODO-FIND: More cases could be added, depending on "GetDatabaseCapabilities()"
   }
 
 
   ResourceFinder::ResourceFinder(ResourceType level,
-                                 ResponseContentFlags responseContent) :
+                                 ResponseContentFlags responseContent,
+                                 FindStorageAccessMode storageAccessMode,
+                                 bool supportsChildExistQueries) :
     request_(level),
     databaseLimits_(0),
     isSimpleLookup_(true),
+    canBeFullyPerformedInDb_(true),
     pagingMode_(PagingMode_FullManual),
     hasLimitsSince_(false),
     hasLimitsCount_(false),
     limitsSince_(0),
     limitsCount_(0),
     responseContent_(responseContent),
-    allowStorageAccess_(true),
+    storageAccessMode_(storageAccessMode),
+    supportsChildExistQueries_(supportsChildExistQueries),
     isWarning002Enabled_(false),
     isWarning004Enabled_(false),
     isWarning005Enabled_(false)
@@ -542,8 +568,6 @@ namespace Orthanc
       isWarning004Enabled_ = lock.GetConfiguration().IsWarningEnabled(Warnings_004_NoMainDicomTagsSignature);
       isWarning005Enabled_ = lock.GetConfiguration().IsWarningEnabled(Warnings_005_RequestingTagFromLowerResourceLevel);
     }
-
-    UpdateRequestLimits();
 
     request_.SetRetrieveMainDicomTags(responseContent_ & ResponseContentFlags_MainDicomTags);
     request_.SetRetrieveMetadata((responseContent_ & ResponseContentFlags_Metadata) || (responseContent_ & ResponseContentFlags_MetadataLegacy));
@@ -587,7 +611,6 @@ namespace Orthanc
   void ResourceFinder::SetDatabaseLimits(uint64_t limits)
   {
     databaseLimits_ = limits;
-    UpdateRequestLimits();
   }
 
 
@@ -601,7 +624,6 @@ namespace Orthanc
     {
       hasLimitsSince_ = true;
       limitsSince_ = since;
-      UpdateRequestLimits();
     }
   }
 
@@ -616,7 +638,6 @@ namespace Orthanc
     {
       hasLimitsCount_ = true;
       limitsCount_ = count;
-      UpdateRequestLimits();
     }
   }
 
@@ -646,7 +667,7 @@ namespace Orthanc
       }
     }
 
-    isSimpleLookup_ = registry.NormalizeLookup(request_.GetDicomTagConstraints(), lookup, request_.GetLevel());
+    isSimpleLookup_ = registry.NormalizeLookup(canBeFullyPerformedInDb_, request_.GetDicomTagConstraints(), lookup, request_.GetLevel(), supportsChildExistQueries_);
 
     // "request_.GetDicomTagConstraints()" only contains constraints on main DICOM tags
 
@@ -663,19 +684,20 @@ namespace Orthanc
       }
       else
       {
-        LOG(WARNING) << "Executing a database lookup at level " << EnumerationToString(request_.GetLevel())
-                     << " on main DICOM tag " << constraint.GetTag().Format() << " from an inferior level ("
-                     << EnumerationToString(constraint.GetLevel()) << "), this will return no result";
+        if (!supportsChildExistQueries_ || (constraint.GetLevel() != ResourceType_Series && constraint.GetTag() != DICOM_TAG_MODALITIES_IN_STUDY))
+        {
+          LOG(WARNING) << "Executing a database lookup at level " << EnumerationToString(request_.GetLevel())
+                      << " on main DICOM tag " << constraint.GetTag().Format() << " from an inferior level ("
+                      << EnumerationToString(constraint.GetLevel()) << "), this will return no result";
+        }
       }
 
-      if (IsComputedTag(constraint.GetTag()))
+      if (IsComputedTag(constraint.GetTag()) && constraint.GetTag() != DICOM_TAG_MODALITIES_IN_STUDY)
       {
         // Sanity check
         throw OrthancException(ErrorCode_InternalError);
       }
     }
-
-    UpdateRequestLimits();
   }
 
 
@@ -827,7 +849,8 @@ namespace Orthanc
 
       if (request_.GetLevel() != ResourceType_Instance)
       {
-        request_.SetRetrieveOneInstanceMetadataAndAttachments(true);
+        // only retrieve the instance attachments and metadata if we have allowed access to the storage
+        request_.SetRetrieveOneInstanceMetadataAndAttachments(IsStorageAccessAllowed());
       }
     }
   }
@@ -891,6 +914,19 @@ namespace Orthanc
   }
 
 
+  static void ConvertMetadata(std::map<MetadataType, std::string>& converted,
+                              const FindResponse::Resource& resource)
+  {
+    const std::map<MetadataType, FindResponse::MetadataContent> metadata = resource.GetMetadata(ResourceType_Instance);
+
+    for (std::map<MetadataType, FindResponse::MetadataContent>::const_iterator
+           it = metadata.begin(); it != metadata.end(); ++it)
+    {
+      converted[it->first] = it->second.GetValue();
+    }
+  }
+
+
   static void ReadMissingTagsFromStorageArea(DicomMap& requestedTags,
                                              ServerContext& context,
                                              const FindRequest& request,
@@ -920,7 +956,10 @@ namespace Orthanc
     {
       LOG(INFO) << "Will retrieve missing DICOM tags from instance: " << resource.GetIdentifier();
 
-      context.ReadDicomAsJson(tmpDicomAsJson, resource.GetIdentifier(), resource.GetMetadata(ResourceType_Instance),
+      std::map<MetadataType, std::string> converted;
+      ConvertMetadata(converted, resource);
+
+      context.ReadDicomAsJson(tmpDicomAsJson, resource.GetIdentifier(), converted,
                               resource.GetAttachments(), missingTags /* ignoreTagLength */);
     }
     else if (request.GetLevel() != ResourceType_Instance &&
@@ -963,7 +1002,10 @@ namespace Orthanc
 
         if (request.GetLevel() == ResourceType_Instance)
         {
-          context.ReadDicomAsJson(tmpDicomAsJson, response.GetIdentifier(), response.GetMetadata(ResourceType_Instance),
+          std::map<MetadataType, std::string> converted;
+          ConvertMetadata(converted, resource);
+
+          context.ReadDicomAsJson(tmpDicomAsJson, response.GetIdentifier(), converted,
                                   response.GetAttachments(), missingTags /* ignoreTagLength */);
         }
         else
@@ -991,17 +1033,43 @@ namespace Orthanc
     }
   }
 
+  uint64_t ResourceFinder::Count(ServerContext& context) const
+  {
+    if (!canBeFullyPerformedInDb_)
+    {
+      throw OrthancException(ErrorCode_BadRequest,
+                            "Unable to count resources when querying tags that are not stored as MainDicomTags in the Database or when using case sensitive queries.");
+    }
+
+    uint64_t count = 0;
+    context.GetIndex().ExecuteCount(count, request_);
+    return count;
+  }
+
 
   void ResourceFinder::Execute(IVisitor& visitor,
-                               ServerContext& context) const
+                               ServerContext& context)
   {
+    UpdateRequestLimits(context);
+
+    if ((request_.HasLimits() && request_.GetLimitsSince() > 0) &&
+        !canBeFullyPerformedInDb_)
+    {
+      throw OrthancException(ErrorCode_BadRequest,
+                             "nable to use 'Since' when finding resources when querying against Dicom Tags that are not in the MainDicomTags or when using CaseSenstive queries.");
+    }
+
     bool isWarning002Enabled = false;
     bool isWarning004Enabled = false;
+    bool isWarning006Enabled = false;
+    bool isWarning007Enabled = false;
 
     {
       OrthancConfiguration::ReaderLock lock;
       isWarning002Enabled = lock.GetConfiguration().IsWarningEnabled(Warnings_002_InconsistentDicomTagsInDb);
       isWarning004Enabled = lock.GetConfiguration().IsWarningEnabled(Warnings_004_NoMainDicomTagsSignature);
+      isWarning006Enabled = lock.GetConfiguration().IsWarningEnabled(Warnings_006_RequestingTagFromMetaHeader);
+      isWarning007Enabled = lock.GetConfiguration().IsWarningEnabled(Warnings_007_MissingRequestedTagsNotReadFromDisk);
     }
 
     FindResponse response;
@@ -1059,17 +1127,42 @@ namespace Orthanc
         InjectRequestedTags(outRequestedTags, remainingRequestedTags, resource, ResourceType_Series);
         InjectRequestedTags(outRequestedTags, remainingRequestedTags, resource, ResourceType_Instance);
 
+        if (DicomMap::HasMetaInformationTags(remainingRequestedTags)) // we are not able to retrieve meta information in RequestedTags
+        {
+          std::set<DicomTag> metaTagsToRemove;
+          for (std::set<DicomTag>::const_iterator it = remainingRequestedTags.begin(); it != remainingRequestedTags.end(); ++it)
+          {
+            if (it->GetGroup() == 0x0002)
+            {
+              metaTagsToRemove.insert(*it);
+            }
+          }
+
+          if (isWarning006Enabled)
+          {
+            std::string joinedMetaTags;
+            FromDcmtkBridge::FormatListOfTags(joinedMetaTags, metaTagsToRemove);
+            LOG(WARNING) << "W006: Unable to include tags from the Meta Header in \"RequestedTags\".  Skipping them: " << joinedMetaTags;
+          }
+
+          Toolbox::RemoveSets(remainingRequestedTags, metaTagsToRemove);
+        }
+
+
         if (!remainingRequestedTags.empty() && 
             !DicomMap::HasOnlyComputedTags(remainingRequestedTags)) // if the only remaining tags are computed tags, it is worthless to read them from disk
         {
-          if (!allowStorageAccess_)
-          {
-            throw OrthancException(ErrorCode_BadSequenceOfCalls,
-                                   "Cannot add missing requested tags, as access to file storage is disallowed");
-          }
-          else
+          // If a lookup tag is not available from DB, it is included in remainingRequestedTags and it will always be included in the answer too
+          // -> from 1.12.5, "StorageAccessOnFind": "Always" is actually equivalent to "StorageAccessOnFind": "Answers"
+          if (IsStorageAccessAllowed())
           {
             ReadMissingTagsFromStorageArea(outRequestedTags, context, request_, resource, remainingRequestedTags);
+          }
+          else if (isWarning007Enabled)
+          {
+            std::string joinedTags;
+            FromDcmtkBridge::FormatListOfTags(joinedTags, remainingRequestedTags);
+            LOG(WARNING) << "W007: Unable to include requested tags since \"StorageAccessOnFind\" does not allow accessing the storage to build answers: " << joinedTags;
           }
         }
 
@@ -1142,11 +1235,24 @@ namespace Orthanc
     }
   }
 
+  bool ResourceFinder::IsStorageAccessAllowed()
+  {
+    switch (storageAccessMode_)
+    {
+      case FindStorageAccessMode_DiskOnAnswer:
+      case FindStorageAccessMode_DiskOnLookupAndAnswer:
+        return true;
+      case FindStorageAccessMode_DatabaseOnly:
+        return false;
+      default:
+        throw OrthancException(ErrorCode_InternalError);
+    }
+  }
 
   void ResourceFinder::Execute(Json::Value& target,
                                ServerContext& context,
                                DicomToJsonFormat format,
-                               bool includeAllMetadata) const
+                               bool includeAllMetadata)
   {
     class Visitor : public IVisitor
     {
@@ -1202,6 +1308,8 @@ namespace Orthanc
       }
     };
 
+    UpdateRequestLimits(context);
+
     target = Json::arrayValue;
 
     Visitor visitor(*this, context.GetIndex(), target, format, HasRequestedTags(), includeAllMetadata);
@@ -1212,7 +1320,7 @@ namespace Orthanc
   bool ResourceFinder::ExecuteOneResource(Json::Value& target,
                                           ServerContext& context,
                                           DicomToJsonFormat format,
-                                          bool includeAllMetadata) const
+                                          bool includeAllMetadata)
   {
     Json::Value answer;
     Execute(answer, context, format, includeAllMetadata);
