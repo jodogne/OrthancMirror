@@ -3,8 +3,8 @@
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
  * Copyright (C) 2017-2023 Osimis S.A., Belgium
- * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
- * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2024-2025 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2025 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -57,7 +57,7 @@ namespace Orthanc
                                                      bool hasPreferred,
                                                      DicomTransferSyntax preferred)
   {
-    typedef std::list< std::set<DicomTransferSyntax> >  GroupsOfSyntaxes;
+    typedef std::list< std::list<DicomTransferSyntax> >  GroupsOfSyntaxes;
 
     GroupsOfSyntaxes  groups;
 
@@ -65,8 +65,8 @@ namespace Orthanc
     for (std::set<DicomTransferSyntax>::const_iterator
            it = sourceSyntaxes.begin(); it != sourceSyntaxes.end(); ++it)
     {
-      std::set<DicomTransferSyntax> group;
-      group.insert(*it);
+      std::list<DicomTransferSyntax> group;
+      group.push_back(*it);
       groups.push_back(group);
     }
 
@@ -74,8 +74,8 @@ namespace Orthanc
     if (hasPreferred &&
         sourceSyntaxes.find(preferred) == sourceSyntaxes.end())
     {
-      std::set<DicomTransferSyntax> group;
-      group.insert(preferred);
+      std::list<DicomTransferSyntax> group;
+      group.push_back(preferred);
       groups.push_back(group);
     }
 
@@ -89,7 +89,7 @@ namespace Orthanc
         DicomTransferSyntax_BigEndianExplicit
       };
 
-      std::set<DicomTransferSyntax> group;
+      std::list<DicomTransferSyntax> group;
 
       for (size_t i = 0; i < N; i++)
       {
@@ -97,7 +97,7 @@ namespace Orthanc
         if (sourceSyntaxes.find(syntax) == sourceSyntaxes.end() &&
             (!hasPreferred || preferred != syntax))
         {
-          group.insert(syntax);
+          group.push_back(syntax);
         }
       }
 
@@ -651,7 +651,7 @@ namespace Orthanc
           s += " " + std::string(GetTransferSyntaxUid(*it));
         }
         
-        throw OrthancException(ErrorCode_NotImplemented, "Cannot transcode instance of SOPClassUID " + 
+        throw OrthancException(ErrorCode_InternalError, "Cannot transcode instance of SOPClassUID " + 
                                sopClassUid + " from " +
                                std::string(GetTransferSyntaxUid(sourceSyntax)) +
                                " to one of [" + s + " ]");

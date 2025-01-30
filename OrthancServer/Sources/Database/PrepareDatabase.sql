@@ -2,8 +2,8 @@
 -- Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
 -- Department, University Hospital of Liege, Belgium
 -- Copyright (C) 2017-2023 Osimis S.A., Belgium
--- Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
--- Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+-- Copyright (C) 2024-2025 Orthanc Team SRL, Belgium
+-- Copyright (C) 2021-2025 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
 --
 -- This program is free software: you can redistribute it and/or
 -- modify it under the terms of the GNU General Public License as
@@ -40,6 +40,9 @@ CREATE TABLE MainDicomTags(
        );
 
 -- The following table was added in Orthanc 0.8.5 (database v5)
+-- It contains only the DICOM Tags that are commonly used for searches.
+-- All these tags are converted to UPPERCASE !
+-- These tags are also stored in the MainDicomTags table without casing modificiation.
 CREATE TABLE DicomIdentifiers(
        id INTEGER REFERENCES Resources(internalId) ON DELETE CASCADE,
        tagGroup INTEGER,
@@ -52,7 +55,7 @@ CREATE TABLE Metadata(
        id INTEGER REFERENCES Resources(internalId) ON DELETE CASCADE,
        type INTEGER,
        value TEXT,
-       -- revision INTEGER,      -- New in Orthanc 1.12.0 (added in InstallRevisionAndCustomData.sql)
+       -- revision INTEGER,      -- New in Orthanc 1.12.7 (added in InstallRevisionAndCustomData.sql)
        PRIMARY KEY(id, type)
        );
 
@@ -65,8 +68,8 @@ CREATE TABLE AttachedFiles(
        compressionType INTEGER,
        uncompressedMD5 TEXT,  -- New in Orthanc 0.7.3 (database v4)
        compressedMD5 TEXT,    -- New in Orthanc 0.7.3 (database v4)
-       -- revision INTEGER,      -- New in Orthanc 1.12.0 (added in InstallRevisionAndCustomData.sql)
-       -- customData TEXT,       -- New in Orthanc 1.12.0 (added in InstallRevisionAndCustomData.sql)
+       -- revision INTEGER,      -- New in Orthanc 1.12.7 (added in InstallRevisionAndCustomData.sql)
+       -- customData TEXT,       -- New in Orthanc 1.12.7 (added in InstallRevisionAndCustomData.sql)
        PRIMARY KEY(id, fileType)
        );              
 

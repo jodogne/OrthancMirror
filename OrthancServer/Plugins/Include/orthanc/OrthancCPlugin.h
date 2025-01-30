@@ -86,8 +86,8 @@
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
  * Copyright (C) 2017-2023 Osimis S.A., Belgium
- * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
- * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2024-2025 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2025 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -121,7 +121,7 @@
 
 #define ORTHANC_PLUGINS_MINIMAL_MAJOR_NUMBER     1
 #define ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER     12
-#define ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER  6
+#define ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER  7
 
 
 #if !defined(ORTHANC_PLUGINS_VERSION_IS_ABOVE)
@@ -324,6 +324,7 @@ extern "C"
     OrthancPluginErrorCode_AlreadyExistingTag = 2042    /*!< Cannot override the value of a tag that already exists */,
     OrthancPluginErrorCode_NoStorageCommitmentHandler = 2043    /*!< No request handler factory for DICOM N-ACTION SCP (storage commitment) */,
     OrthancPluginErrorCode_NoCGetHandler = 2044    /*!< No request handler factory for DICOM C-GET SCP */,
+    OrthancPluginErrorCode_DicomGetUnavailable = 2045    /*!< DicomUserConnection: The C-GET command is not supported by the remote SCP */,
     OrthancPluginErrorCode_UnsupportedMediaType = 3000    /*!< Unsupported media type */,
 
     _OrthancPluginErrorCode_INTERNAL = 0x7fffffff
@@ -508,6 +509,8 @@ extern "C"
     _OrthancPluginService_CompressAndAnswerImage = 2011,
     _OrthancPluginService_SendMultipartItem2 = 2012,
     _OrthancPluginService_SetHttpErrorDetails = 2013,
+    _OrthancPluginService_StartStreamAnswer = 2014,
+    _OrthancPluginService_SendStreamChunk = 2015,
 
     /* Access to the Orthanc database and API */
     _OrthancPluginService_GetDicomForInstance = 3000,
@@ -1444,7 +1447,7 @@ extern "C"
   /**
    * @brief Callback for writing to the storage area.
    *
-   * Signature of a callback function that is triggered when Orthanc writes a file to the storage area.
+   * Signature of a callback function that is triggered when Orthanc writes an instance to the storage area.
    *
    * @param customData The custom data of the attachment (out)
    * @param uuid The UUID of the file.
@@ -9726,6 +9729,67 @@ extern "C"
     m.level = level;
     context->InvokeService(context, _OrthancPluginService_LogMessage, &m);
   }
+
+
+  typedef struct
+  {
+    OrthancPluginRestOutput* output;
+    const char*              contentType;
+  } _OrthancPluginStartStreamAnswer;
+
+  /**
+   * @brief Start an HTTP stream answer.
+   *
+   * Initiates an HTTP stream answer, as the result of a REST request.
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param output The HTTP connection to the client application.
+   * @param contentType The MIME type of the items in the stream answer.
+   * @return 0 if success, or the error code if failure.
+   * @see OrthancPluginSendStreamChunk()
+   * @ingroup REST
+   **/
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginStartStreamAnswer(
+    OrthancPluginContext*    context,
+    OrthancPluginRestOutput* output,
+    const char*              contentType)
+  {
+    _OrthancPluginStartStreamAnswer params;
+    params.output = output;
+    params.contentType = contentType;
+    return context->InvokeService(context, _OrthancPluginService_StartStreamAnswer, &params);
+  }
+
+
+  /**
+   * @brief Send a chunk as a part of an HTTP stream answer.
+   *
+   * This function sends a chunk as part of an HTTP stream
+   * answer that was initiated by OrthancPluginStartStreamAnswer().
+   * 
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param output The HTTP connection to the client application.
+   * @param answer Pointer to the memory buffer containing the item.
+   * @param answerSize Number of bytes of the item.
+   * @return 0 if success, or the error code if failure (this notably happens
+   * if the connection is closed by the client).
+   * @see OrthancPluginStartStreamAnswer()
+   * @ingroup REST
+   **/
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginSendStreamChunk(
+    OrthancPluginContext*    context,
+    OrthancPluginRestOutput* output,
+    const void*              answer,
+    uint32_t                 answerSize)
+  {
+    _OrthancPluginAnswerBuffer params;
+    params.output = output;
+    params.answer = answer;
+    params.answerSize = answerSize;
+    params.mimeType = NULL;
+    return context->InvokeService(context, _OrthancPluginService_SendStreamChunk, &params);
+  }
+
 
 #ifdef  __cplusplus
 }

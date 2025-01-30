@@ -3,8 +3,8 @@
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
  * Copyright (C) 2017-2023 Osimis S.A., Belgium
- * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
- * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2024-2025 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2025 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -44,6 +44,7 @@
 #include <stdint.h>   // For uint8_t
 #include <boost/noncopyable.hpp>
 #include <set>
+#include <list>
 
 namespace Orthanc
 {
@@ -58,13 +59,13 @@ namespace Orthanc
     struct ProposedPresentationContext
     {
       std::string                    abstractSyntax_;
-      std::set<DicomTransferSyntax>  transferSyntaxes_;
+      std::list<DicomTransferSyntax> transferSyntaxes_;
+      DicomAssociationRole           role_;
     };
 
     typedef std::map<std::string, std::map<DicomTransferSyntax, uint8_t> >
     AcceptedPresentationContexts;
 
-    DicomAssociationRole                      role_;
     bool                                      isOpen_;
     std::vector<ProposedPresentationContext>  proposed_;
     AcceptedPresentationContexts              accepted_;
@@ -95,8 +96,6 @@ namespace Orthanc
       return isOpen_;
     }
 
-    void SetRole(DicomAssociationRole role);
-
     void ClearPresentationContexts();
 
     void Open(const DicomAssociationParameters& parameters);
@@ -109,6 +108,13 @@ namespace Orthanc
 
     void ProposeGenericPresentationContext(const std::string& abstractSyntax);
 
+    void ProposeGenericPresentationContext(const std::string& abstractSyntax,
+                                           DicomAssociationRole role);
+
+    void ProposePresentationContext(const std::string& abstractSyntax,
+                                    DicomTransferSyntax transferSyntax,
+                                    DicomAssociationRole role);
+
     void ProposePresentationContext(const std::string& abstractSyntax,
                                     DicomTransferSyntax transferSyntax);
 
@@ -116,11 +122,20 @@ namespace Orthanc
 
     void ProposePresentationContext(
       const std::string& abstractSyntax,
-      const std::set<DicomTransferSyntax>& transferSyntaxes);
-    
+      const std::list<DicomTransferSyntax>& transferSyntaxes);
+
+    void ProposePresentationContext(
+      const std::string& abstractSyntax,
+      const std::list<DicomTransferSyntax>& transferSyntaxes,
+      DicomAssociationRole role);
+
     T_ASC_Association& GetDcmtkAssociation() const;
 
     T_ASC_Network& GetDcmtkNetwork() const;
+
+    bool GetAssociationParameters(std::string& remoteAet,
+                                  std::string& remoteIp,
+                                  std::string& calledAet) const;
 
     static void CheckCondition(const OFCondition& cond,
                                const DicomAssociationParameters& parameters,

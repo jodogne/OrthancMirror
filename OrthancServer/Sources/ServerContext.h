@@ -3,8 +3,8 @@
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
  * Copyright (C) 2017-2023 Osimis S.A., Belgium
- * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
- * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2024-2025 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2025 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -38,6 +38,8 @@
 
 #include <boost/date_time/posix_time/posix_time.hpp>
 
+#include "../../OrthancFramework/Sources/FileStorage/StorageAccessor.h"
+
 namespace Orthanc
 {
   class DicomInstanceToStore;
@@ -66,25 +68,6 @@ namespace Orthanc
     friend class ServerIndex;  // To access "RemoveFile()"
     
   public:
-    class ILookupVisitor : public boost::noncopyable
-    {
-    public:
-      virtual ~ILookupVisitor()
-      {
-      }
-
-      virtual bool IsDicomAsJsonNeeded() const = 0;
-      
-      virtual void MarkAsComplete() = 0;
-
-      // NB: "dicomAsJson" must *not* be deleted, and can be NULL if
-      // "!IsDicomAsJsonNeeded()"
-      virtual void Visit(const std::string& publicId,
-                         const std::string& instanceId,
-                         const DicomMap& mainDicomTags,
-                         const Json::Value* dicomAsJson) = 0;
-    };
-    
     struct StoreResult
     {
     private:
@@ -250,6 +233,7 @@ namespace Orthanc
         
     std::unique_ptr<SharedArchive>  queryRetrieveArchive_;
     std::string defaultLocalAet_;
+    RetrieveMethod defaultDicomRetrieveMethod_;
     OrthancHttpHandler  httpHandler_;
     bool saveJobs_;
     FindStorageAccessMode findStorageAccessMode_;
@@ -274,9 +258,10 @@ namespace Orthanc
 
     // New in Orthanc 1.9.0
     DicomTransferSyntax preferredTransferSyntax_;
-    boost::mutex dynamicOptionsMutex_;
+    mutable boost::mutex dynamicOptionsMutex_;
     bool isUnknownSopClassAccepted_;
     std::set<DicomTransferSyntax>  acceptedTransferSyntaxes_;
+    std::list<std::string>         acceptedSopClasses_;  // ordered; the most 120 common ones first
     bool readOnly_;
 
     StoreResult StoreAfterTranscoding(std::string& resultPublicId,
@@ -324,7 +309,8 @@ namespace Orthanc
                   IStorageArea& area,
                   bool unitTesting,
                   size_t maxCompletedJobs,
-                  bool readOnly);
+                  bool readOnly,
+                  unsigned int maxConcurrentDcmtkTranscoder);
 
     ~ServerContext();
 
@@ -377,11 +363,10 @@ namespace Orthanc
                                   bool isReconstruct = false);
 
     void AnswerAttachment(RestApiOutput& output,
-                          const std::string& resourceId,
-                          FileContentType content);
+                          const FileInfo& fileInfo);
 
-    void ChangeAttachmentCompression(const std::string& resourceId,
-                                     ResourceType resourceType,
+    void ChangeAttachmentCompression(ResourceType level,
+                                     const std::string& resourceId,
                                      FileContentType attachmentType,
                                      CompressionType compression);
 
@@ -413,12 +398,14 @@ namespace Orthanc
 
     // This method is for low-level operations on "/instances/.../attachments/..."
     void ReadAttachment(std::string& result,
-                        int64_t& revision,
-                        std::string& attachmentId,
-                        const std::string& instancePublicId,
-                        FileContentType content,
+                        const FileInfo& attachment,
                         bool uncompressIfNeeded,
                         bool skipCache = false);
+
+    void ReadAttachmentRange(std::string& result,
+                             const FileInfo& attachment,
+                             const StorageAccessor::Range& range,
+                             bool uncompressIfNeeded);
 
     void SetStoreMD5ForAttachments(bool storeMD5);
 
@@ -453,6 +440,11 @@ namespace Orthanc
       return defaultLocalAet_;
     }
 
+    RetrieveMethod GetDefaultDicomRetrieveMethod() const
+    {
+      return defaultDicomRetrieveMethod_;
+    }
+
     LuaScripting& GetLuaScripting()
     {
       return mainLua_;
@@ -468,23 +460,6 @@ namespace Orthanc
     uint64_t GetDatabaseLimits(ResourceType level) const
     {
       return (level == ResourceType_Instance ? limitFindInstances_ : limitFindResults_);
-    }
-
-    void Apply(ILookupVisitor& visitor,
-               const DatabaseLookup& lookup,
-               ResourceType queryLevel,
-               const std::set<std::string>& labels,
-               LabelsConstraint labelsConstraint,
-               size_t since,
-               size_t limit);
-
-    void Apply(ILookupVisitor& visitor,
-               const DatabaseLookup& lookup,
-               ResourceType queryLevel,
-               size_t since,
-               size_t limit)
-    {
-      Apply(visitor, lookup, queryLevel, std::set<std::string>(), LabelsConstraint_All, since, limit);
     }
 
     bool LookupOrReconstructMetadata(std::string& target,
@@ -617,40 +592,20 @@ namespace Orthanc
 
     const std::string& GetDeidentifiedContent(const DicomElement& element) const;
 
-    void GetAcceptedTransferSyntaxes(std::set<DicomTransferSyntax>& syntaxes);
+    void GetAcceptedTransferSyntaxes(std::set<DicomTransferSyntax>& syntaxes) const;
 
     void SetAcceptedTransferSyntaxes(const std::set<DicomTransferSyntax>& syntaxes);
 
-    bool IsUnknownSopClassAccepted();
+    void GetProposedStorageTransferSyntaxes(std::list<DicomTransferSyntax>& syntaxes) const;
+
+    void SetAcceptedSopClasses(const std::list<std::string>& acceptedSopClasses,
+                               const std::set<std::string>& rejectedSopClasses);
+
+    void GetAcceptedSopClasses(std::set<std::string>& sopClasses, size_t maxCount) const;
+
+    bool IsUnknownSopClassAccepted() const;
 
     void SetUnknownSopClassAccepted(bool accepted);
-
-    bool ExpandResource(Json::Value& target,
-                        const std::string& publicId,
-                        ResourceType level,
-                        DicomToJsonFormat format,
-                        const std::set<DicomTag>& requestedTags,
-                        bool allowStorageAccess);
-
-    bool ExpandResource(Json::Value& target,
-                        const std::string& publicId,
-                        const DicomMap& mainDicomTags,    // optional: the main dicom tags for the resource (if already available)
-                        const std::string& instanceId,    // optional: the id of an instance for the resource
-                        const Json::Value* dicomAsJson,   // optional: the dicom-as-json for the resource
-                        ResourceType level,
-                        DicomToJsonFormat format,
-                        const std::set<DicomTag>& requestedTags,
-                        bool allowStorageAccess);
-
-    bool ExpandResource(ExpandedResource& target,
-                        const std::string& publicId,
-                        const DicomMap& mainDicomTags,    // optional: the main dicom tags for the resource (if already available)
-                        const std::string& instanceId,    // optional: the id of an instance for the resource
-                        const Json::Value* dicomAsJson,   // optional: the dicom-as-json for the resource
-                        ResourceType level,
-                        const std::set<DicomTag>& requestedTags,
-                        ExpandResourceFlags expandFlags,
-                        bool allowStorageAccess);
 
     FindStorageAccessMode GetFindStorageAccessMode() const
     {

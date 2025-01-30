@@ -3,8 +3,8 @@
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
  * Copyright (C) 2017-2023 Osimis S.A., Belgium
- * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
- * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2024-2025 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2025 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -62,7 +62,8 @@ namespace Orthanc
     contentPosition_(0),
     keepAlive_(isKeepAlive),
     keepAliveTimeout_(keepAliveTimeout),
-    hasXContentTypeOptions_(false)
+    hasXContentTypeOptions_(false),
+    hasContentType_(false)
   {
   }
 
@@ -105,6 +106,7 @@ namespace Orthanc
 
   void HttpOutput::StateMachine::SetContentType(const char* contentType)
   {
+    hasContentType_ = true;
     AddHeader("Content-Type", contentType);
   }
 
@@ -380,7 +382,8 @@ namespace Orthanc
     
     stateMachine_.SetHttpStatus(status);
 
-    if (messageSize > 0)
+    if (messageSize > 0 &&
+      !stateMachine_.HasContentType())
     {
       // Assume that the body always contains a textual description of the error
       stateMachine_.SetContentType("text/plain");
@@ -471,6 +474,10 @@ namespace Orthanc
     return stateMachine_.GetState() == StateMachine::State_WritingMultipart;
   }
 
+  bool HttpOutput::IsWritingStream() const
+  {
+    return stateMachine_.GetState() == StateMachine::State_WritingStream;
+  }
   
   void HttpOutput::Answer(const void* buffer,
                           size_t length)
@@ -974,4 +981,21 @@ namespace Orthanc
 
     stateMachine_.CloseStream();
   }
+
+  void HttpOutput::StartStream(const std::string& contentType)
+  {
+    stateMachine_.StartStream(contentType.c_str());
+  }
+
+  void HttpOutput::SendStreamItem(const void* data,
+                                  size_t size)
+  {
+    stateMachine_.SendStreamItem(data, size);
+  }
+
+  void HttpOutput::CloseStream()
+  {
+    stateMachine_.CloseStream();
+  }
+
 }

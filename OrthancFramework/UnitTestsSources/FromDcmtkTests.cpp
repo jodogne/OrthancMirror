@@ -3,8 +3,8 @@
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
  * Copyright (C) 2017-2023 Osimis S.A., Belgium
- * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
- * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2024-2025 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2025 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -2043,7 +2043,7 @@ TEST(DicomWebJson, ValueRepresentation)
   ASSERT_EQ("DA", visitor.GetResult() ["00080012"]["vr"].asString());
   ASSERT_EQ("DA", visitor.GetResult() ["00080012"]["Value"][0].asString());
   ASSERT_EQ("DS", visitor.GetResult() ["00101020"]["vr"].asString());
-  ASSERT_FLOAT_EQ(42.0f, visitor.GetResult() ["00101020"]["Value"][0].asFloat());
+  ASSERT_EQ("42", visitor.GetResult() ["00101020"]["Value"][0].asString());
   ASSERT_EQ("DT", visitor.GetResult() ["0008002A"]["vr"].asString());
   ASSERT_EQ("DT", visitor.GetResult() ["0008002A"]["Value"][0].asString());
   ASSERT_EQ("FL", visitor.GetResult() ["00109431"]["vr"].asString());
@@ -3561,7 +3561,7 @@ TEST(Toto, DISABLED_Transcode3)
   scu.SetCommonClassesProposed(false);
   scu.SetRetiredBigEndianProposed(true);
 
-  DcmtkTranscoder transcoder;
+  DcmtkTranscoder transcoder(1);
 
   for (int j = 0; j < 2; j++)
   {
@@ -3618,7 +3618,7 @@ TEST(Toto, DISABLED_Transcode4)
   DicomTransferSyntax sourceSyntax;
   ASSERT_TRUE(FromDcmtkBridge::LookupOrthancTransferSyntax(sourceSyntax, *toto));
 
-  DcmtkTranscoder transcoder;
+  DcmtkTranscoder transcoder(1);
 
   for (int i = 0; i <= DicomTransferSyntax_XML; i++)
   {

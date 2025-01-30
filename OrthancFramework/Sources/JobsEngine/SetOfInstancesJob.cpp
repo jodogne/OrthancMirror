@@ -3,8 +3,8 @@
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
  * Copyright (C) 2017-2023 Osimis S.A., Belgium
- * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
- * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2024-2025 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2025 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -209,7 +209,7 @@ namespace Orthanc
   static const char* KEY_FAILED_INSTANCES = "FailedInstances";
   static const char* KEY_PARENT_RESOURCES = "ParentResources";
 
-  void SetOfInstancesJob::GetPublicContent(Json::Value& target)
+  void SetOfInstancesJob::GetPublicContent(Json::Value& target) const
   {
     SetOfCommandsJob::GetPublicContent(target);
     target["InstancesCount"] = static_cast<uint32_t>(GetInstancesCount());
@@ -222,7 +222,7 @@ namespace Orthanc
   }
 
 
-  bool SetOfInstancesJob::Serialize(Json::Value& target) 
+  bool SetOfInstancesJob::Serialize(Json::Value& target) const 
   {
     if (SetOfCommandsJob::Serialize(target))
     {

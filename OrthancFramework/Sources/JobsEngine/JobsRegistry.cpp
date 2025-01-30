@@ -3,8 +3,8 @@
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
  * Copyright (C) 2017-2023 Osimis S.A., Belgium
- * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
- * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2024-2025 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2025 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -223,8 +223,14 @@ namespace Orthanc
       lastStateChangeTime_ = time;
     }
 
-    const boost::posix_time::time_duration& GetRuntime() const
+    boost::posix_time::time_duration GetRuntime() const
     {
+      if (state_ == JobState_Running)
+      {
+        const boost::posix_time::ptime now = boost::posix_time::microsec_clock::universal_time();
+        return now - lastStateChangeTime_;
+      }
+
       return runtime_;
     }
 
@@ -644,7 +650,8 @@ namespace Orthanc
                        handler.GetLastStatus(),
                        handler.GetCreationTime(),
                        handler.GetLastStateChangeTime(),
-                       handler.GetRuntime());
+                       handler.GetRuntime(),
+                       handler.GetJob());
       return true;
     }
   }
@@ -792,7 +799,10 @@ namespace Orthanc
         }
       }
 
-      LOG(INFO) << "New job submitted with priority " << priority << ": " << id;
+      std::string jobType;
+      handler->GetJob().GetJobType(jobType);
+
+      LOG(INFO) << "New " << jobType << " job submitted with priority " << priority << ": " << id;
 
       if (observer_ != NULL)
       {

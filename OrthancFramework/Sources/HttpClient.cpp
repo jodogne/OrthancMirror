@@ -3,8 +3,8 @@
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
  * Copyright (C) 2017-2023 Osimis S.A., Belgium
- * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
- * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2024-2025 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2025 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -860,7 +860,18 @@ namespace Orthanc
 
     if (verifyPeers_)
     {
-      CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_CAINFO, caCertificates_.c_str()));
+#if defined(CURLSSLOPT_NATIVE_CA)   // from curl v 8.2.0     
+      if (caCertificates_.empty())  // use native CA store (equivalent to --ca-native)
+      {
+        CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_SSL_OPTIONS, CURLSSLOPT_NATIVE_CA));
+      }
+      else 
+#endif
+      {
+        // use provided CA file (equivalent to --cacert)
+        CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_CAINFO, caCertificates_.c_str()));
+      }
+      
       CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_SSL_VERIFYHOST, 2));  // libcurl default is strict verifyhost
       CheckCode(curl_easy_setopt(pimpl_->curl_, CURLOPT_SSL_VERIFYPEER, 1)); 
     }
@@ -1187,8 +1198,8 @@ namespace Orthanc
     {
       if (httpsVerifyCertificates.empty())
       {
-        LOG(WARNING) << "No certificates are provided to validate peers, "
-                     << "set \"HttpsCACertificates\" if you need to do HTTPS requests";
+        LOG(WARNING) << "No certificates are provided to validate peers.  Orthanc will use the native CA store. "
+                     << "Set \"HttpsCACertificates\" if you need to do HTTPS requests and use custom CAs.";
       }
       else
       {

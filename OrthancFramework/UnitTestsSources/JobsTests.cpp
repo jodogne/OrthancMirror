@@ -3,8 +3,8 @@
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
  * Copyright (C) 2017-2023 Osimis S.A., Belgium
- * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
- * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2024-2025 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2025 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -103,24 +103,24 @@ namespace
     {
     }
 
-    virtual float GetProgress() ORTHANC_OVERRIDE
+    virtual float GetProgress() const ORTHANC_OVERRIDE
     {
       return static_cast<float>(count_) / static_cast<float>(steps_ - 1);
     }
 
-    virtual void GetJobType(std::string& type) ORTHANC_OVERRIDE
+    virtual void GetJobType(std::string& type) const ORTHANC_OVERRIDE
     {
       type = "DummyJob";
     }
 
-    virtual bool Serialize(Json::Value& value) ORTHANC_OVERRIDE
+    virtual bool Serialize(Json::Value& value) const ORTHANC_OVERRIDE
     {
       value = Json::objectValue;
       value["Type"] = "DummyJob";
       return true;
     }
 
-    virtual void GetPublicContent(Json::Value& value) ORTHANC_OVERRIDE
+    virtual void GetPublicContent(Json::Value& value) const ORTHANC_OVERRIDE
     {
       value["hello"] = "world";
     }
@@ -199,7 +199,7 @@ namespace
     {
     }
 
-    virtual void GetJobType(std::string& s) ORTHANC_OVERRIDE
+    virtual void GetJobType(std::string& s) const ORTHANC_OVERRIDE
     {
       s = "DummyInstancesJob";
     }
@@ -783,7 +783,7 @@ static bool CheckSameJson(const Json::Value& a,
 
 
 static bool CheckIdempotentSerialization(IJobUnserializer& unserializer,
-                                         IJob& job)
+                                         const IJob& job)
 {
   Json::Value a = 42;
   
@@ -809,7 +809,7 @@ static bool CheckIdempotentSerialization(IJobUnserializer& unserializer,
 
 
 static bool CheckIdempotentSetOfInstances(IJobUnserializer& unserializer,
-                                          SetOfInstancesJob& job)
+                                          const SetOfInstancesJob& job)
 {
   Json::Value a = 42;
   

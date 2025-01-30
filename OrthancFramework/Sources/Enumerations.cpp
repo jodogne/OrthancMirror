@@ -3,8 +3,8 @@
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
  * Copyright (C) 2017-2023 Osimis S.A., Belgium
- * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
- * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2024-2025 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2025 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -371,6 +371,9 @@ namespace Orthanc
 
       case ErrorCode_NoCGetHandler:
         return "No request handler factory for DICOM C-GET SCP";
+
+      case ErrorCode_DicomGetUnavailable:
+        return "DicomUserConnection: The C-GET command is not supported by the remote SCP";
 
       case ErrorCode_UnsupportedMediaType:
         return "Unsupported media type";
@@ -2493,6 +2496,44 @@ namespace Orthanc
     }
   }
 
+  RetrieveMethod StringToRetrieveMethod(const std::string& str)
+  {
+    if (str == "C-MOVE")
+    {
+      return RetrieveMethod_Move;
+    }
+    else if (str == "C-GET")
+    {
+      return RetrieveMethod_Get;
+    }
+    else if (str == "SystemDefault")
+    {
+      return RetrieveMethod_SystemDefault;
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange,
+                             "RetrieveMethod can be \"C-MOVE\", \"C-GET\" or \"SystemDefault\": " + str);
+    }    
+  }
+
+  const char* EnumerationToString(RetrieveMethod method)
+  {
+    switch (method)
+    {
+      case RetrieveMethod_Get:
+        return "C-GET";
+
+      case RetrieveMethod_Move:
+        return "C-MOVE";
+
+      case RetrieveMethod_SystemDefault:
+        return "SystemDefault";
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
 }
 
 

@@ -3,8 +3,8 @@
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
  * Copyright (C) 2017-2023 Osimis S.A., Belgium
- * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
- * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2024-2025 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2025 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -92,7 +92,7 @@ namespace Orthanc
     
     virtual void Start() ORTHANC_OVERRIDE;
     
-    virtual float GetProgress() ORTHANC_OVERRIDE;
+    virtual float GetProgress() const ORTHANC_OVERRIDE;
 
     bool IsStarted() const;
 
@@ -100,9 +100,9 @@ namespace Orthanc
       
     virtual JobStepResult Step(const std::string& jobId) ORTHANC_OVERRIDE;
     
-    virtual void GetPublicContent(Json::Value& value) ORTHANC_OVERRIDE;
+    virtual void GetPublicContent(Json::Value& value) const ORTHANC_OVERRIDE;
     
-    virtual bool Serialize(Json::Value& target) ORTHANC_OVERRIDE;
+    virtual bool Serialize(Json::Value& target) const ORTHANC_OVERRIDE;
 
     virtual bool GetOutput(std::string& output,
                            MimeType& mime,

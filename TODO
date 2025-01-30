@@ -65,6 +65,11 @@ General
 * Add configurations to enable/disable warnings:
   - Modifying an instance while keeping its original SOPInstanceUID: This should be avoided!
   - Modifying a study while keeping its original StudyInstanceUID: This should be avoided!
+  In order to be able to disable/enable warnings in both the server and the framework, we should add a map of
+  enabled warnings in the logging classes directly and have something like:
+  LOG_WARNING_IF_ENABLED("Warning_ID") << ...
+  ENABLE_WARNING("Warning_ID", true)
+  Warnings from Framework should have a separate range like W999_ or WF001_ ...
 * Store the job registry in a dedicatd table in DB ?
   https://discourse.orthanc-server.org/t/performance-issue-when-adding-a-lot-of-jobs-in-the-queue/3915/2
   Note: that might also be the right time to have a central jobs registry when working
@@ -206,7 +211,12 @@ DICOM
 Mid-term
 --------
 
-* Support C-GET SCU (note that C-GET SCP was introduced in Orthanc 1.7.0)
+* Check how Orthanc shall behave wrt to AcceptedSopClasses in these situations (consider Orthanc
+  accepts CT but not PT)
+  - What shall we log/warn if an external modality tries to send a PT/CT
+  - What shall we log/warn if we try to C-GET a PT/CT
+  Should the rejected files be logged as Failed, Warning, Refused, ...
+  Note: some tentative work has been initiated in the get-scu-test branch.
 * Support "Retrieve AE Title" (0008,0054) in C-FIND:
   - On SCP side: done by https://orthanc.uclouvain.be/hg/orthanc/rev/1ec3e1e18f50
   - On SCU side:
@@ -216,9 +226,6 @@ Mid-term
 * Strict hierarchical C-FIND:
   https://groups.google.com/d/msg/orthanc-users/VBHpeGVSNKM/tkaVvjWFBwAJ
 * report DIMSE error codes in Rest API and job status for /store /query /move /retrieve
-* report progress report of C-Move operation in jop progress.  There are 
-  progress callbacks available in DIMSE_moveUser
-  https://groups.google.com/g/orthanc-users/c/c8cGnA7FzsE/m/BSs66D8wBwAJ
 * Log outgoing C-Find queries
 * Support other Transfer Syntaxes in the Worklist plugin:
   https://discourse.orthanc-server.org/t/could-you-please-create-an-option-to-set-the-transfer-syntax-in-the-worklist-plugin-currently-little-endian-explicit-is-fixed/4871
@@ -257,12 +264,6 @@ Performance
 
 * (2) DicomMap: create a cache to the main DICOM tags index
 * (3) Check out rapidjson: https://github.com/miloyip/nativejson-benchmark
-* For C-Find results: we could store the computed tags
-    in metadata on some events like NewSeries + DeletedSeries (same for other computer tags).
-    OtherTags that could be saved in Metadata as well:
-    - ModalitiesInStudy
-    - all computed counters at series/study/patient level
-    - RequestAttributesSequence (sequence that must be included in all DicomWeb QIDO-RS for series)
 
 * Long-shot & not sure it is even feasible at all: try to reduce memory usage by implementing streaming
   when receiving DICOM instances from the Rest API or from DICOM and store files directly to disk as they
@@ -279,6 +280,9 @@ Performance
     to Orthanc and/or the Storage plugin (instead of passing a memory buffer) -> the object-storage plugin could 
     "stream" the file to the storage.  The HTTP server could also "stream" its response from file handles.
     Transcoding should be "file based" too.
+  Alternative option 4: Catch out-of-memory exceptions at quite high level in HTTPHandlers and DICOM receivers
+    and implement retries.  After a few retries, fail for good and return "out-of-resources".
+    Would be interesting to log these errors and count them in the prometheus metrics.
 * To investigate: usage of mapped_file (not only in the indexer plugin): 
   https://discourse.orthanc-server.org/t/patch-for-orthanc-indexer-plugin-crashing-on-big-non-dicom-files/3849/7
 
@@ -315,7 +319,21 @@ SDK
   https://groups.google.com/g/orthanc-users/c/ymtaAmgSs6Q/m/PqVBactQAQAJ
 * Add an index on the UUID column in the DelayedDeletion plugin:
   https://discourse.orthanc-server.org/t/delayeddeletion-improvement-unique-index-on-pending-uuid-column/4032
+* Orthanc shall refuse to start if one registers 2 storage plugins.
+  Right now, this is not possible because OrthancPluginRegisterStorageArea2 does not return any value
+  and it can not throw an Exception because that's a core function called from a plugin -> the Exception
+  can not cross the C/C++ frontier safely -> we need a OrthancPluginRegisterStorageArea3 with a return value.
+  Ex: install DelayedDeletion + S3 storage.  Right now, the second plugin to load is just ignored with an error
+  message in the logs.
 
+
+-----------
+Housekeeper
+-----------
+
+* The Housekeeper should just refuse to start if you are using a lossy transfer syntax because that would generate 
+  new orthanc ids as well and there is a risk of messing up things.  tools/reconstruct shall return a 400 as well.
+  https://discourse.orthanc-server.org/t/crashes-on-housekeeper-transcode-storing-in-s3/5330/2
 
 ----------------
 Ideas of plugins

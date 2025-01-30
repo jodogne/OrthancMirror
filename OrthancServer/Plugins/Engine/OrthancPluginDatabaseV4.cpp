@@ -3,8 +3,8 @@
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
  * Copyright (C) 2017-2023 Osimis S.A., Belgium
- * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
- * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2024-2025 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2025 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -267,6 +267,24 @@ namespace Orthanc
       default:
         throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
+
+    switch (source.GetCast())
+    {
+      case FindRequest::OrderingCast_Int:
+        target.set_cast(DatabasePluginMessages::ORDERING_CAST_INT);
+        break;
+
+      case FindRequest::OrderingCast_Float:
+        target.set_cast(DatabasePluginMessages::ORDERING_CAST_FLOAT);
+        break;
+
+      case FindRequest::OrderingCast_String:
+        target.set_cast(DatabasePluginMessages::ORDERING_CAST_STRING);
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
   }
 
   static DatabasePluginMessages::LabelsConstraintType Convert(LabelsConstraint constraint)
@@ -292,6 +310,7 @@ namespace Orthanc
                       const FindRequest::ChildrenSpecification& source)
   {
     target.set_retrieve_identifiers(source.IsRetrieveIdentifiers());
+    target.set_retrieve_count(source.IsRetrieveCount());
 
     for (std::set<MetadataType>::const_iterator it = source.GetMetadata().begin(); it != source.GetMetadata().end(); ++it)
     {
@@ -319,7 +338,8 @@ namespace Orthanc
 
     for (int i = 0; i < source.metadata().size(); i++)
     {
-      target.AddMetadata(level, static_cast<MetadataType>(source.metadata(i).key()), source.metadata(i).value());
+      target.AddMetadata(level, static_cast<MetadataType>(source.metadata(i).key()),
+                         source.metadata(i).value(), source.metadata(i).revision());
     }
   }
 
@@ -333,24 +353,18 @@ namespace Orthanc
       target.AddChildIdentifier(level, source.identifiers(i));
     }
 
+    target.SetChildrenCount(level, source.count());
+
     for (int i = 0; i < source.main_dicom_tags().size(); i++)
     {
       const DicomTag tag(source.main_dicom_tags(i).group(), source.main_dicom_tags(i).element());
-
-      for (int j = 0; j < source.main_dicom_tags(i).values().size(); j++)
-      {
-        target.AddChildrenMainDicomTagValue(level, tag, source.main_dicom_tags(i).values(j));
-      }
+      target.AddChildrenMainDicomTagValue(level, tag, source.main_dicom_tags(i).value());
     }
 
     for (int i = 0; i < source.metadata().size(); i++)
     {
       MetadataType key = static_cast<MetadataType>(source.metadata(i).key());
-
-      for (int j = 0; j < source.metadata(i).values().size(); j++)
-      {
-        target.AddChildrenMetadataValue(level, key, source.metadata(i).values(j));
-      }
+      target.AddChildrenMetadataValue(level, key, source.metadata(i).value());
     }
   }
 
@@ -399,7 +413,9 @@ namespace Orthanc
   }
 
   
-  class OrthancPluginDatabaseV4::Transaction : public IDatabaseWrapper::ITransaction
+  class OrthancPluginDatabaseV4::Transaction :
+    public IDatabaseWrapper::ITransaction,
+    public IDatabaseWrapper::ICompatibilityTransaction
   {
   private:
     OrthancPluginDatabaseV4&  database_;
@@ -561,7 +577,7 @@ namespace Orthanc
       request.mutable_add_attachment()->mutable_attachment()->set_compression_type(attachment.GetCompressionType());
       request.mutable_add_attachment()->mutable_attachment()->set_compressed_size(attachment.GetCompressedSize());
       request.mutable_add_attachment()->mutable_attachment()->set_compressed_hash(attachment.GetCompressedMD5());        
-      request.mutable_add_attachment()->mutable_attachment()->set_custom_data(attachment.GetCustomData());        // new in 1.12.6
+      request.mutable_add_attachment()->mutable_attachment()->set_custom_data(attachment.GetCustomData());        // new in 1.12.7
       request.mutable_add_attachment()->set_revision(revision);
 
       ExecuteTransaction(DatabasePluginMessages::OPERATION_ADD_ATTACHMENT, request);
@@ -675,10 +691,10 @@ namespace Orthanc
     }
 
     
-    virtual void GetAllPublicIds(std::list<std::string>& target,
-                                 ResourceType resourceType,
-                                 int64_t since,
-                                 uint32_t limit) ORTHANC_OVERRIDE
+    virtual void GetAllPublicIdsCompatibility(std::list<std::string>& target,
+                                              ResourceType resourceType,
+                                              int64_t since,
+                                              uint32_t limit) ORTHANC_OVERRIDE
     {
       DatabasePluginMessages::TransactionRequest request;
       request.mutable_get_all_public_ids_with_limits()->set_resource_type(Convert(resourceType));
@@ -1477,6 +1493,63 @@ namespace Orthanc
     }
 
 
+    virtual void ExecuteCount(uint64_t& count,
+                              const FindRequest& request,
+                              const Capabilities& capabilities) ORTHANC_OVERRIDE
+    {
+      if (capabilities.HasFindSupport())
+      {
+        DatabasePluginMessages::TransactionRequest dbRequest;
+        dbRequest.mutable_find()->set_level(Convert(request.GetLevel()));
+
+        if (request.GetOrthancIdentifiers().HasPatientId())
+        {
+          dbRequest.mutable_find()->set_orthanc_id_patient(request.GetOrthancIdentifiers().GetPatientId());
+        }
+
+        if (request.GetOrthancIdentifiers().HasStudyId())
+        {
+          dbRequest.mutable_find()->set_orthanc_id_study(request.GetOrthancIdentifiers().GetStudyId());
+        }
+
+        if (request.GetOrthancIdentifiers().HasSeriesId())
+        {
+          dbRequest.mutable_find()->set_orthanc_id_series(request.GetOrthancIdentifiers().GetSeriesId());
+        }
+
+        if (request.GetOrthancIdentifiers().HasInstanceId())
+        {
+          dbRequest.mutable_find()->set_orthanc_id_instance(request.GetOrthancIdentifiers().GetInstanceId());
+        }
+
+        for (size_t i = 0; i < request.GetDicomTagConstraints().GetSize(); i++)
+        {
+          Convert(*dbRequest.mutable_find()->add_dicom_tag_constraints(), request.GetDicomTagConstraints().GetConstraint(i));
+        }
+
+        for (std::deque<DatabaseMetadataConstraint*>::const_iterator it = request.GetMetadataConstraint().begin(); it != request.GetMetadataConstraint().end(); ++it)
+        {
+          Convert(*dbRequest.mutable_find()->add_metadata_constraints(), *(*it)); 
+        }
+
+        for (std::set<std::string>::const_iterator it = request.GetLabels().begin(); it != request.GetLabels().end(); ++it)
+        {
+          dbRequest.mutable_find()->add_labels(*it);
+        }
+
+        dbRequest.mutable_find()->set_labels_constraint(Convert(request.GetLabelsConstraint()));
+
+        DatabasePluginMessages::TransactionResponse dbResponse;
+        ExecuteTransaction(dbResponse, DatabasePluginMessages::OPERATION_COUNT_RESOURCES, dbRequest);
+
+        count = dbResponse.count_resources().count();
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_NotImplemented);
+      }
+    }
+
     virtual void ExecuteFind(FindResponse& response,
                              const FindRequest& request,
                              const Capabilities& capabilities) ORTHANC_OVERRIDE
@@ -1603,14 +1676,19 @@ namespace Orthanc
             target->SetParentIdentifier(source.parent_public_id());
           }
 
-          for (int i = 0; i < source.labels().size(); i++)
+          for (int j = 0; j < source.labels().size(); j++)
           {
-            target->AddLabel(source.labels(i));
+            target->AddLabel(source.labels(j));
           }
 
-          for (int i = 0; i < source.attachments().size(); i++)
+          if (source.attachments().size() != source.attachments_revisions().size())
           {
-            target->AddAttachment(Convert(source.attachments(i)));
+            throw OrthancException(ErrorCode_DatabasePlugin);
+          }
+
+          for (int j = 0; j < source.attachments().size(); j++)
+          {
+            target->AddAttachment(Convert(source.attachments(j)), source.attachments_revisions(j));
           }
 
           Convert(*target, ResourceType_Patient, source.patient_content());
@@ -1655,12 +1733,12 @@ namespace Orthanc
               request.IsRetrieveOneInstanceMetadataAndAttachments())
           {
             std::map<MetadataType, std::string> metadata;
-            for (int i = 0; i < source.one_instance_metadata().size(); i++)
+            for (int j = 0; j < source.one_instance_metadata().size(); j++)
             {
-              MetadataType key = static_cast<MetadataType>(source.one_instance_metadata(i).key());
+              MetadataType key = static_cast<MetadataType>(source.one_instance_metadata(j).key());
               if (metadata.find(key) == metadata.end())
               {
-                metadata[key] = source.one_instance_metadata(i).value();
+                metadata[key] = source.one_instance_metadata(j).value();
               }
               else
               {
@@ -1670,9 +1748,9 @@ namespace Orthanc
 
             std::map<FileContentType, FileInfo> attachments;
 
-            for (int i = 0; i < source.one_instance_attachments().size(); i++)
+            for (int j = 0; j < source.one_instance_attachments().size(); j++)
             {
-              FileInfo info(Convert(source.one_instance_attachments(i)));
+              FileInfo info(Convert(source.one_instance_attachments(j)));
               if (attachments.find(info.GetContentType()) == attachments.end())
               {
                 attachments[info.GetContentType()] = info;
@@ -1707,7 +1785,7 @@ namespace Orthanc
       }
       else
       {
-        Compatibility::GenericFind find(*this);
+        Compatibility::GenericFind find(*this, *this);
         find.ExecuteFind(identifiers, capabilities, request);
       }
     }
@@ -1725,7 +1803,7 @@ namespace Orthanc
       }
       else
       {
-        Compatibility::GenericFind find(*this);
+        Compatibility::GenericFind find(*this, *this);
         find.ExecuteExpand(response, capabilities, request, identifier);
       }
     }
@@ -1815,7 +1893,7 @@ namespace Orthanc
       dbCapabilities_.SetRevisionsSupport(systemInfo.supports_revisions());
       dbCapabilities_.SetLabelsSupport(systemInfo.supports_labels());
       dbCapabilities_.SetAtomicIncrementGlobalProperty(systemInfo.supports_increment_global_property());
-      dbCapabilities_.SetUpdateAndGetStatistics(systemInfo.has_update_and_get_statistics());
+      dbCapabilities_.SetHasUpdateAndGetStatistics(systemInfo.has_update_and_get_statistics());
       dbCapabilities_.SetMeasureLatency(systemInfo.has_measure_latency());
       dbCapabilities_.SetHasExtendedChanges(systemInfo.has_extended_changes());
       dbCapabilities_.SetHasFindSupport(systemInfo.supports_find());

@@ -3,8 +3,8 @@
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
  * Copyright (C) 2017-2023 Osimis S.A., Belgium
- * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
- * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2024-2025 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2025 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -75,6 +75,7 @@ namespace Orthanc
     static const char* const DATABASE_BACKEND_PLUGIN = "DatabaseBackendPlugin";
     static const char* const DATABASE_VERSION = "DatabaseVersion";
     static const char* const DATABASE_SERVER_IDENTIFIER = "DatabaseServerIdentifier";
+    static const char* const DEFAULT_RETRIEVE_METHOD = "DefaultRetrieveMethod";
     static const char* const DICOM_AET = "DicomAet";
     static const char* const DICOM_PORT = "DicomPort";
     static const char* const HTTP_PORT = "HttpPort";
@@ -115,6 +116,7 @@ namespace Orthanc
                         "Information about the installed storage area plugin (`null` if no such plugin is installed)")
         .SetAnswerField(DATABASE_BACKEND_PLUGIN, RestApiCallDocumentation::Type_String,
                         "Information about the installed database index plugin (`null` if no such plugin is installed)")
+        .SetAnswerField(DEFAULT_RETRIEVE_METHOD, RestApiCallDocumentation::Type_String, "The DefaultRetrieveMethod configuration")
         .SetAnswerField(DICOM_AET, RestApiCallDocumentation::Type_String, "The DICOM AET of Orthanc")
         .SetAnswerField(DICOM_PORT, RestApiCallDocumentation::Type_Number, "The port to the DICOM server of Orthanc")
         .SetAnswerField(HTTP_PORT, RestApiCallDocumentation::Type_Number, "The port to the HTTP server of Orthanc")
@@ -173,6 +175,7 @@ namespace Orthanc
       result[MAXIMUM_STORAGE_SIZE] = lock.GetConfiguration().GetUnsignedIntegerParameter(MAXIMUM_STORAGE_SIZE, 0); // New in Orthanc 1.11.3
       result[MAXIMUM_PATIENT_COUNT] = lock.GetConfiguration().GetUnsignedIntegerParameter(MAXIMUM_PATIENT_COUNT, 0); // New in Orthanc 1.12.4
       result[MAXIMUM_STORAGE_MODE] = lock.GetConfiguration().GetStringParameter(MAXIMUM_STORAGE_MODE, "Recycle"); // New in Orthanc 1.11.3
+      result[DEFAULT_RETRIEVE_METHOD] = lock.GetConfiguration().GetStringParameter(DEFAULT_RETRIEVE_METHOD, "C-MOVE");
     }
 
     result[STORAGE_AREA_PLUGIN] = Json::nullValue;
@@ -476,6 +479,33 @@ namespace Orthanc
     OrthancRestApi::GetContext(call).SetAcceptedTransferSyntaxes(syntaxes);
     
     AnswerAcceptedTransferSyntaxes(call);
+  }
+
+  static void GetAcceptedSopClasses(RestApiGetCall& call)
+  {
+    if (call.IsDocumentation())
+    {
+      call.GetDocumentation()
+        .SetTag("System")
+        .SetSummary("Get accepted SOPClassUID")
+        .SetDescription("Get the list of SOP Class UIDs that are accepted "
+                        "by Orthanc C-STORE SCP. This corresponds to the configuration options "
+                        "`AcceptedSopClasses` and `RejectedSopClasses`.")
+        .AddAnswerType(MimeType_Json, "JSON array containing the SOP Class UIDs");
+      return;
+    }
+
+    std::set<std::string> sopClasses;
+    OrthancRestApi::GetContext(call).GetAcceptedSopClasses(sopClasses, 0);
+    
+    Json::Value json = Json::arrayValue;
+    for (std::set<std::string>::const_iterator
+           sop = sopClasses.begin(); sop != sopClasses.end(); ++sop)
+    {
+      json.append(*sop);
+    }
+    
+    call.GetOutput().AnswerJson(json);
   }
 
 
@@ -1200,5 +1230,8 @@ namespace Orthanc
     Register("/tools/unknown-sop-class-accepted", SetUnknownSopClassAccepted);
 
     Register("/tools/labels", ListAllLabels);  // New in Orthanc 1.12.0
+
+    Register("/tools/accepted-sop-classes", GetAcceptedSopClasses);
+
   }
 }

@@ -3,8 +3,8 @@
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
  * Copyright (C) 2017-2023 Osimis S.A., Belgium
- * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
- * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2024-2025 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2025 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -28,6 +28,7 @@
 
 #include <boost/noncopyable.hpp>
 #include <string>
+#include <list>
 
 namespace Orthanc
 {
@@ -47,13 +48,23 @@ namespace Orthanc
                                   const std::string& calledAet,
                                   DicomRequestType type) = 0;
 
+    // Get the set of TransferSyntaxes that are accepted when negotiation a C-Store association, acting as SCP when it has been initiated by the C-Store SCU.
     virtual void GetAcceptedTransferSyntaxes(std::set<DicomTransferSyntax>& target,
                                              const std::string& remoteIp,
                                              const std::string& remoteAet,
                                              const std::string& calledAet) = 0;
-    
+
+    // Get the list of TransferSyntaxes that are proposed when initiating a C-Store SCP which actually only happens in a C-Get SCU
+    virtual void GetProposedStorageTransferSyntaxes(std::list<DicomTransferSyntax>& target,
+                                                    const std::string& remoteIp,
+                                                    const std::string& remoteAet,
+                                                    const std::string& calledAet) = 0;
+
     virtual bool IsUnknownSopClassAccepted(const std::string& remoteIp,
                                            const std::string& remoteAet,
                                            const std::string& calledAet) = 0;
+
+    virtual void GetAcceptedSopClasses(std::set<std::string>& sopClasses,
+                                       size_t maxCount) = 0;
   };
 }

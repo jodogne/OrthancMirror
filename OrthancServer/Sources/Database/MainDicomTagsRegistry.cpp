@@ -3,8 +3,8 @@
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
  * Copyright (C) 2017-2023 Osimis S.A., Belgium
- * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
- * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2024-2025 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2025 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -98,11 +98,14 @@ namespace Orthanc
   }
 
 
-  bool MainDicomTagsRegistry::NormalizeLookup(DatabaseDicomTagConstraints& target,
+  bool MainDicomTagsRegistry::NormalizeLookup(bool& canBeFullyPerformedInDb,
+                                              DatabaseDicomTagConstraints& target,
                                               const DatabaseLookup& source,
-                                              ResourceType queryLevel) const
+                                              ResourceType queryLevel,
+                                              bool allowChildrenExistsQueries) const
   {
     bool isEquivalentLookup = true;
+    canBeFullyPerformedInDb = true;
 
     target.Clear();
 
@@ -110,8 +113,10 @@ namespace Orthanc
     {
       ResourceType level;
       DicomTagType type;
+      const DicomTag& tag = source.GetConstraint(i).GetTag();
 
-      LookupTag(level, type, source.GetConstraint(i).GetTag());
+      LookupTag(level, type, tag);
+
 
       if (type == DicomTagType_Identifier ||
           type == DicomTagType_Main)
@@ -124,6 +129,13 @@ namespace Orthanc
         }
 
         bool isEquivalentConstraint;
+        
+        // DicomIdentifiers are stored UPPERCASE -> as soon as a case senstive search happens, it is currently not possible to perform it in DB only
+        if (type == DicomTagType_Identifier && source.GetConstraint(i).IsCaseSensitive())
+        {
+          canBeFullyPerformedInDb = false;
+        }
+
         target.AddConstraint(source.GetConstraint(i).ConvertToDatabaseConstraint(isEquivalentConstraint, level, type));
 
         if (!isEquivalentConstraint)
@@ -133,7 +145,26 @@ namespace Orthanc
       }
       else
       {
-        isEquivalentLookup = false;
+        if (allowChildrenExistsQueries &&
+            tag == DICOM_TAG_MODALITIES_IN_STUDY && queryLevel == ResourceType_Study)
+        {
+          // transform the query into a children query
+          std::vector<std::string> values(source.GetConstraint(i).GetValues().begin(), source.GetConstraint(i).GetValues().end());
+
+          std::unique_ptr<DatabaseDicomTagConstraint> constraint(new DatabaseDicomTagConstraint(ResourceType_Series,
+                                                                 DICOM_TAG_MODALITY,
+                                                                 false,
+                                                                 ConstraintType_List,
+                                                                 values,
+                                                                 false,
+                                                                 true));
+          target.AddConstraint(constraint.release());
+        }
+        else
+        {
+          isEquivalentLookup = false;
+          canBeFullyPerformedInDb = false;
+        }
       }
     }
 

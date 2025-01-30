@@ -3,8 +3,8 @@
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
  * Copyright (C) 2017-2023 Osimis S.A., Belgium
- * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
- * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2024-2025 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2025 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -60,13 +60,15 @@ namespace Orthanc
     uint64_t                         databaseLimits_;
     std::unique_ptr<DatabaseLookup>  lookup_;
     bool                             isSimpleLookup_;
+    bool                             canBeFullyPerformedInDb_;
     PagingMode                       pagingMode_;
     bool                             hasLimitsSince_;
     bool                             hasLimitsCount_;
     uint64_t                         limitsSince_;
     uint64_t                         limitsCount_;
     ResponseContentFlags             responseContent_;
-    bool                             allowStorageAccess_;
+    FindStorageAccessMode            storageAccessMode_;
+    bool                             supportsChildExistQueries_;
     std::set<DicomTag>               requestedTags_;
     std::set<DicomTag>               requestedComputedTags_;
 
@@ -94,28 +96,22 @@ namespace Orthanc
     void InjectComputedTags(DicomMap& requestedTags,
                             const FindResponse::Resource& resource) const;
 
-    void UpdateRequestLimits();
+    void UpdateRequestLimits(ServerContext& context);
 
     bool HasRequestedTags() const
     {
       return requestedTags_.size() > 0;
     }
 
+    bool IsStorageAccessAllowed();
+
   public:
     ResourceFinder(ResourceType level,
-                   ResponseContentFlags responseContent);
+                   ResponseContentFlags responseContent,
+                   FindStorageAccessMode storageAccessMode,
+                   bool supportsChildExistQueries);
 
     void SetDatabaseLimits(uint64_t limits);
-
-    bool IsAllowStorageAccess() const
-    {
-      return allowStorageAccess_;
-    }
-
-    void SetAllowStorageAccess(bool allow)
-    {
-      allowStorageAccess_ = allow;
-    }
 
     void SetOrthancId(ResourceType level,
                       const std::string& id)
@@ -134,15 +130,17 @@ namespace Orthanc
     void AddRequestedTags(const std::set<DicomTag>& tags);
 
     void AddOrdering(const DicomTag& tag,
+                     FindRequest::OrderingCast cast,
                      FindRequest::OrderingDirection direction)
     {
-      request_.AddOrdering(tag, direction);
+      request_.AddOrdering(tag, cast, direction);
     }
 
     void AddOrdering(MetadataType metadataType,
+                     FindRequest::OrderingCast cast,
                      FindRequest::OrderingDirection direction)
     {
-      request_.AddOrdering(metadataType, direction);
+      request_.AddOrdering(metadataType, cast, direction);
     }
 
     void AddMetadataConstraint(DatabaseMetadataConstraint* constraint)
@@ -187,16 +185,23 @@ namespace Orthanc
                 DicomToJsonFormat format) const;
 
     void Execute(IVisitor& visitor,
-                 ServerContext& context) const;
+                 ServerContext& context);
 
     void Execute(Json::Value& target,
                  ServerContext& context,
                  DicomToJsonFormat format,
-                 bool includeAllMetadata) const;
+                 bool includeAllMetadata);
 
     bool ExecuteOneResource(Json::Value& target,
                             ServerContext& context,
                             DicomToJsonFormat format,
-                            bool includeAllMetadata) const;
+                            bool includeAllMetadata);
+
+    uint64_t Count(ServerContext& context) const;
+
+    bool CanBeFullyPerformedInDb() const
+    {
+      return canBeFullyPerformedInDb_;
+    }
   };
 }

@@ -3,8 +3,8 @@
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
  * Copyright (C) 2017-2023 Osimis S.A., Belgium
- * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
- * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2024-2025 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2025 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -234,6 +234,7 @@ namespace Orthanc
     ErrorCode_AlreadyExistingTag = 2042    /*!< Cannot override the value of a tag that already exists */,
     ErrorCode_NoStorageCommitmentHandler = 2043    /*!< No request handler factory for DICOM N-ACTION SCP (storage commitment) */,
     ErrorCode_NoCGetHandler = 2044    /*!< No request handler factory for DICOM C-GET SCP */,
+    ErrorCode_DicomGetUnavailable = 2045    /*!< DicomUserConnection: The C-GET command is not supported by the remote SCP */,
     ErrorCode_UnsupportedMediaType = 3000    /*!< Unsupported media type */,
     ErrorCode_START_PLUGINS = 1000000
   };
@@ -793,6 +794,14 @@ namespace Orthanc
     ResourceType_Instance = 4
   };
 
+  enum RetrieveMethod                         // new in Orthanc 1.12.6
+  {
+    RetrieveMethod_Move = 1,
+    RetrieveMethod_Get = 2,
+
+    RetrieveMethod_SystemDefault = 65535
+  };
+
 
   ORTHANC_PUBLIC
   const char* EnumerationToString(ErrorCode code);
@@ -847,6 +856,9 @@ namespace Orthanc
 
   ORTHANC_PUBLIC
   const char* EnumerationToString(DicomToJsonFormat format);
+
+  ORTHANC_PUBLIC
+  const char* EnumerationToString(RetrieveMethod method);
 
   ORTHANC_PUBLIC
   Encoding StringToEncoding(const char* encoding);
@@ -947,4 +959,7 @@ ORTHANC_PUBLIC
 
   ORTHANC_PUBLIC
   void GetAllDicomTransferSyntaxes(std::set<DicomTransferSyntax>& target);
+
+  ORTHANC_PUBLIC 
+  RetrieveMethod StringToRetrieveMethod(const std::string& str);
 }

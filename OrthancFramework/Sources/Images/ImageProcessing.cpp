@@ -3,8 +3,8 @@
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
  * Copyright (C) 2017-2023 Osimis S.A., Belgium
- * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
- * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2024-2025 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2025 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -2888,8 +2888,7 @@ namespace Orthanc
     const unsigned int width = image.GetWidth();
     const unsigned int height = image.GetHeight();
     const unsigned int pitch = image.GetPitch();
-    uint8_t* buffer = reinterpret_cast<uint8_t*>(image.GetBuffer());
-        
+
     if (image.GetFormat() != PixelFormat_RGB24 ||
         pitch < 3 * width)
     {
@@ -2898,7 +2897,7 @@ namespace Orthanc
 
     for (unsigned int y = 0; y < height; y++)
     {
-      uint8_t* p = buffer + y * pitch;
+      uint8_t* p = reinterpret_cast<uint8_t*>(image.GetRow(y));
           
       for (unsigned int x = 0; x < width; x++, p += 3)
       {

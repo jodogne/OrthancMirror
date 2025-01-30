@@ -2,8 +2,8 @@
 # Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
 # Department, University Hospital of Liege, Belgium
 # Copyright (C) 2017-2023 Osimis S.A., Belgium
-# Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
-# Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+# Copyright (C) 2024-2025 Orthanc Team SRL, Belgium
+# Copyright (C) 2021-2025 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
 #
 # This program is free software: you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public License
@@ -91,10 +91,10 @@ if (BOOST_STATIC AND NOT USE_LEGACY_BOOST)
   ## Parameters for static compilation of Boost 
   ##
   
-  set(BOOST_NAME boost_1_85_0)
-  set(BOOST_VERSION 1.85.0)
-  set(BOOST_BCP_SUFFIX bcpdigest-1.12.4)
-  set(BOOST_MD5 "1017e9c8383efdea01c059a8d3cc4dda")
+  set(BOOST_NAME boost_1_86_0)
+  set(BOOST_VERSION 1.86.0)
+  set(BOOST_BCP_SUFFIX bcpdigest-1.12.5)
+  set(BOOST_MD5 "20b9c325c0dde830889ee75a9e64ded8")
   set(BOOST_URL "https://orthanc.uclouvain.be/downloads/third-party-downloads/${BOOST_NAME}_${BOOST_BCP_SUFFIX}.tar.gz")
   set(BOOST_SOURCES_DIR ${CMAKE_BINARY_DIR}/${BOOST_NAME})
 
@@ -115,7 +115,7 @@ if (BOOST_STATIC AND NOT USE_LEGACY_BOOST)
   if (FirstRun)
     execute_process(
       COMMAND ${PATCH_EXECUTABLE} -p0 -N -i
-      ${CMAKE_CURRENT_LIST_DIR}/../Patches/boost-1.85.0-emscripten.patch
+      ${CMAKE_CURRENT_LIST_DIR}/../Patches/boost-1.86.0-emscripten.patch
       WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
       RESULT_VARIABLE Failure
       )

@@ -3,8 +3,8 @@
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
  * Copyright (C) 2017-2023 Osimis S.A., Belgium
- * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
- * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2024-2025 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2025 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -273,40 +273,6 @@ namespace Orthanc
     }
   };
 
-  void ServerIndex::UpdateStatisticsThread(ServerIndex* that,
-                                           unsigned int threadSleepGranularityMilliseconds)
-  {
-    Logging::SetCurrentThreadName("DB-STATS");
-
-    static const unsigned int SLEEP_SECONDS = 10;
-
-    if (threadSleepGranularityMilliseconds > 1000)
-    {
-      throw OrthancException(ErrorCode_ParameterOutOfRange);
-    }
-
-    LOG(INFO) << "Starting the update statistics thread (sleep = " << SLEEP_SECONDS << " seconds)";
-
-    unsigned int count = 0;
-    unsigned int countThreshold = (1000 * SLEEP_SECONDS) / threadSleepGranularityMilliseconds;
-
-    while (!that->done_)
-    {
-      boost::this_thread::sleep(boost::posix_time::milliseconds(threadSleepGranularityMilliseconds));
-      count++;
-      
-      if (count >= countThreshold)
-      {
-        uint64_t diskSize, uncompressedSize, countPatients, countStudies, countSeries, countInstances;
-        that->GetGlobalStatistics(diskSize, uncompressedSize, countPatients, countStudies, countSeries, countInstances);
-        
-        count = 0;
-      }
-    }
-
-    LOG(INFO) << "Stopping the update statistics thread";
-  }
-
   void ServerIndex::FlushThread(ServerIndex* that,
                                 unsigned int threadSleepGranularityMilliseconds)
   {
@@ -384,21 +350,6 @@ namespace Orthanc
       }
     }
 
-    // For some DB plugins that implements the UpdateAndGetStatistics function, updating 
-    // the statistics can take quite some time if you have not done it for a long time 
-    // -> make sure they are updated at regular interval
-    if (GetDatabaseCapabilities().HasUpdateAndGetStatistics())
-    {
-      if (readOnly)
-      {
-        LOG(WARNING) << "READ-ONLY SYSTEM: not starting the UpdateStatisticsThread";
-      }
-      else
-      {
-        updateStatisticsThread_ = boost::thread(UpdateStatisticsThread, this, threadSleepGranularityMilliseconds);
-      }
-    }
-
     if (readOnly)
     {
       LOG(WARNING) << "READ-ONLY SYSTEM: not starting the unstable resources monitor thread";
@@ -430,11 +381,6 @@ namespace Orthanc
       if (flushThread_.joinable())
       {
         flushThread_.join();
-      }
-
-      if (updateStatisticsThread_.joinable())
-      {
-        updateStatisticsThread_.join();
       }
 
       if (unstableResourcesMonitorThread_.joinable())

@@ -3,8 +3,8 @@
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
  * Copyright (C) 2017-2023 Osimis S.A., Belgium
- * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
- * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2024-2025 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2025 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -620,7 +620,7 @@ TEST(ServerIndex, Sequence)
   FilesystemStorage storage(path);
   SQLiteDatabaseWrapper db;   // The SQLite DB is in memory
   db.Open();
-  ServerContext context(db, storage, true /* running unit tests */, 10, false /* readonly */);
+  ServerContext context(db, storage, true /* running unit tests */, 10, false /* readonly */, 1 /* DCMTK concurrent transcoders */);
   context.SetupJobsEngine(true, false);
 
   ServerIndex& index = context.GetIndex();
@@ -702,7 +702,7 @@ TEST(ServerIndex, AttachmentRecycling)
   FilesystemStorage storage(path);
   SQLiteDatabaseWrapper db;   // The SQLite DB is in memory
   db.Open();
-  ServerContext context(db, storage, true /* running unit tests */, 10, false /* readonly */);
+  ServerContext context(db, storage, true /* running unit tests */, 10, false /* readonly */, 1 /* DCMTK concurrent transcoders */);
   context.SetupJobsEngine(true, false);
   ServerIndex& index = context.GetIndex();
 
@@ -819,7 +819,7 @@ TEST(ServerIndex, Overwrite)
     MemoryStorageArea storage;
     SQLiteDatabaseWrapper db;   // The SQLite DB is in memory
     db.Open();
-    ServerContext context(db, storage, true /* running unit tests */, 10, false /* readonly */);
+    ServerContext context(db, storage, true /* running unit tests */, 10, false /* readonly */, 1 /* DCMTK concurrent transcoders */);
     context.SetupJobsEngine(true, false);
     context.SetCompressionEnabled(true);
 
@@ -864,15 +864,15 @@ TEST(ServerIndex, Overwrite)
     {
       FileInfo nope;
       int64_t revision;
-      ASSERT_FALSE(context.GetIndex().LookupAttachment(nope, revision, id, FileContentType_DicomAsJson));
+      ASSERT_FALSE(context.GetIndex().LookupAttachment(nope, revision, ResourceType_Instance, id, FileContentType_DicomAsJson));
     }
 
     FileInfo dicom1, pixelData1;
-    int64_t revision;
-    ASSERT_TRUE(context.GetIndex().LookupAttachment(dicom1, revision, id, FileContentType_Dicom));
+    int64_t revision = -1;
+    ASSERT_TRUE(context.GetIndex().LookupAttachment(dicom1, revision, ResourceType_Instance, id, FileContentType_Dicom));
     ASSERT_EQ(0, revision);
     revision = -1;
-    ASSERT_TRUE(context.GetIndex().LookupAttachment(pixelData1, revision, id, FileContentType_DicomUntilPixelData));
+    ASSERT_TRUE(context.GetIndex().LookupAttachment(pixelData1, revision, ResourceType_Instance, id, FileContentType_DicomUntilPixelData));
     ASSERT_EQ(0, revision);
 
     context.GetIndex().GetGlobalStatistics(diskSize, uncompressedSize, countPatients, 
@@ -914,14 +914,14 @@ TEST(ServerIndex, Overwrite)
     {
       FileInfo nope;
       int64_t revision;
-      ASSERT_FALSE(context.GetIndex().LookupAttachment(nope, revision, id, FileContentType_DicomAsJson));
+      ASSERT_FALSE(context.GetIndex().LookupAttachment(nope, revision, ResourceType_Instance, id, FileContentType_DicomAsJson));
     }
 
     FileInfo dicom2, pixelData2;
-    ASSERT_TRUE(context.GetIndex().LookupAttachment(dicom2, revision, id, FileContentType_Dicom));
+    ASSERT_TRUE(context.GetIndex().LookupAttachment(dicom2, revision, ResourceType_Instance, id, FileContentType_Dicom));
     ASSERT_EQ(0, revision);
     revision = -1;
-    ASSERT_TRUE(context.GetIndex().LookupAttachment(pixelData2, revision, id, FileContentType_DicomUntilPixelData));
+    ASSERT_TRUE(context.GetIndex().LookupAttachment(pixelData2, revision, ResourceType_Instance, id, FileContentType_DicomUntilPixelData));
     ASSERT_EQ(0, revision);
 
     context.GetIndex().GetGlobalStatistics(diskSize, uncompressedSize, countPatients, 
@@ -984,7 +984,7 @@ TEST(ServerIndex, DicomUntilPixelData)
     MemoryStorageArea storage;
     SQLiteDatabaseWrapper db;   // The SQLite DB is in memory
     db.Open();
-    ServerContext context(db, storage, true /* running unit tests */, 10, false /* readonly */);
+    ServerContext context(db, storage, true /* running unit tests */, 10, false /* readonly */, 1 /* DCMTK concurrent transcoders */);
     context.SetupJobsEngine(true, false);
     context.SetCompressionEnabled(compression);
 

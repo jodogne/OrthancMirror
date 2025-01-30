@@ -1,0 +1,179 @@
+diff -urEb dcmtk-3.6.9.orig/CMake/GenerateDCMTKConfigure.cmake dcmtk-3.6.9/CMake/GenerateDCMTKConfigure.cmake
+--- dcmtk-3.6.9.orig/CMake/GenerateDCMTKConfigure.cmake	2025-01-21 15:53:12.632715225 +0100
++++ dcmtk-3.6.9/CMake/GenerateDCMTKConfigure.cmake	2025-01-21 15:53:27.614627545 +0100
+@@ -227,12 +227,15 @@
+ 
+ # Check the sizes of various types
+ include (CheckTypeSize)
++if (NOT CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
++  # This doesn't work for wasm, Orthanc defines the macros manually
+ CHECK_TYPE_SIZE("double" SIZEOF_DOUBLE)
+ CHECK_TYPE_SIZE("float" SIZEOF_FLOAT)
+ CHECK_TYPE_SIZE("int" SIZEOF_INT)
+ CHECK_TYPE_SIZE("long" SIZEOF_LONG)
+ CHECK_TYPE_SIZE("short" SIZEOF_SHORT)
+ CHECK_TYPE_SIZE("void*" SIZEOF_VOID_P)
++endif()
+ 
+ # Check for include files, libraries, and functions
+ include("${DCMTK_CMAKE_INCLUDE}CMake/dcmtkTryCompile.cmake")
+diff -urEb dcmtk-3.6.9.orig/dcmdata/include/dcmtk/dcmdata/dcdict.h dcmtk-3.6.9/dcmdata/include/dcmtk/dcmdata/dcdict.h
+--- dcmtk-3.6.9.orig/dcmdata/include/dcmtk/dcmdata/dcdict.h	2025-01-21 15:53:12.622715283 +0100
++++ dcmtk-3.6.9/dcmdata/include/dcmtk/dcmdata/dcdict.h	2025-01-21 15:53:27.614627545 +0100
+@@ -163,6 +163,12 @@
+     /// returns an iterator to the end of the repeating groups data dictionary
+     DcmDictEntryListIterator repeatingEnd() { return repDict.end(); }
+ 
++    // Function by the Orthanc project to load a dictionary from a
++    // memory buffer, which is necessary in sandboxed
++    // environments. This is an adapted version of
++    // DcmDataDictionary::loadDictionary().
++    OFBool loadFromMemory(const std::string& content, OFBool errorIfAbsent = OFTrue);
++    
+ private:
+ 
+     /** private undefined assignment operator
+diff -urEb dcmtk-3.6.9.orig/dcmdata/libsrc/dcdict.cc dcmtk-3.6.9/dcmdata/libsrc/dcdict.cc
+--- dcmtk-3.6.9.orig/dcmdata/libsrc/dcdict.cc	2025-01-21 15:53:12.625715265 +0100
++++ dcmtk-3.6.9/dcmdata/libsrc/dcdict.cc	2025-01-21 15:53:27.615627539 +0100
+@@ -904,3 +904,5 @@
+   wrlock().clear();
+   wrunlock();
+ }
++
++#include "dcdict_orthanc.cc"
+diff -urEb dcmtk-3.6.9.orig/dcmdata/libsrc/dcpxitem.cc dcmtk-3.6.9/dcmdata/libsrc/dcpxitem.cc
+--- dcmtk-3.6.9.orig/dcmdata/libsrc/dcpxitem.cc	2025-01-21 15:53:12.623715277 +0100
++++ dcmtk-3.6.9/dcmdata/libsrc/dcpxitem.cc	2025-01-21 15:53:27.615627539 +0100
+@@ -31,6 +31,8 @@
+ #include "dcmtk/dcmdata/dcostrma.h"    /* for class DcmOutputStream */
+ #include "dcmtk/dcmdata/dcwcache.h"    /* for class DcmWriteCache */
+ 
++#undef max
++#include "dcmtk/ofstd/oflimits.h"
+ 
+ // ********************************
+ 
+diff -urEb dcmtk-3.6.9.orig/dcmnet/libsrc/scu.cc dcmtk-3.6.9/dcmnet/libsrc/scu.cc
+--- dcmtk-3.6.9.orig/dcmnet/libsrc/scu.cc	2025-01-21 15:53:12.655715091 +0100
++++ dcmtk-3.6.9/dcmnet/libsrc/scu.cc	2025-01-21 15:53:27.616627533 +0100
+@@ -19,6 +19,11 @@
+  *
+  */
+ 
++#if defined(_WIN32)
++#  define __STDC_LIMIT_MACROS   // Get access to UINT16_MAX
++#  include <stdint.h>
++#endif
++
+ #include "dcmtk/config/osconfig.h" /* make sure OS specific configuration is included first */
+ 
+ #include "dcmtk/dcmdata/dcostrmf.h" /* for class DcmOutputFileStream */
+diff -urEb dcmtk-3.6.9.orig/oficonv/include/dcmtk/oficonv/iconv.h dcmtk-3.6.9/oficonv/include/dcmtk/oficonv/iconv.h
+--- dcmtk-3.6.9.orig/oficonv/include/dcmtk/oficonv/iconv.h	2025-01-21 15:53:12.637715196 +0100
++++ dcmtk-3.6.9/oficonv/include/dcmtk/oficonv/iconv.h	2025-01-21 15:53:27.617627527 +0100
+@@ -55,7 +55,12 @@
+ #endif
+ 
+ struct __tag_iconv_t;
++
++#if defined(__LSB_VERSION__)
++typedef void *iconv_t;
++#else
+ typedef struct __tag_iconv_t *iconv_t;
++#endif
+ 
+ #ifndef OFICONV_CITRUS_WC_T_DEFINED
+ #define OFICONV_CITRUS_WC_T_DEFINED
+diff -urEb dcmtk-3.6.9.orig/oficonv/libsrc/citrus_lock.h dcmtk-3.6.9/oficonv/libsrc/citrus_lock.h
+--- dcmtk-3.6.9.orig/oficonv/libsrc/citrus_lock.h	2025-01-21 15:53:12.646715143 +0100
++++ dcmtk-3.6.9/oficonv/libsrc/citrus_lock.h	2025-01-21 16:43:36.463693959 +0100
+@@ -31,7 +31,7 @@
+ 
+ #ifdef WITH_THREADS
+ 
+-#ifdef HAVE_WINDOWS_H
++#if defined(HAVE_WINDOWS_H) && !defined(HAVE_PTHREAD_H)  /* Favor pthread if available, for MinGW */
+ 
+ #include <windows.h>
+ #define WLOCK(lock)  AcquireSRWLockExclusive(lock);
+diff -urEb dcmtk-3.6.9.orig/oflog/include/dcmtk/oflog/thread/syncpub.h dcmtk-3.6.9/oflog/include/dcmtk/oflog/thread/syncpub.h
+--- dcmtk-3.6.9.orig/oflog/include/dcmtk/oflog/thread/syncpub.h	2025-01-21 15:53:12.605715381 +0100
++++ dcmtk-3.6.9/oflog/include/dcmtk/oflog/thread/syncpub.h	2025-01-21 15:53:27.617627527 +0100
+@@ -63,7 +63,7 @@
+ 
+ DCMTK_LOG4CPLUS_INLINE_EXPORT
+ Mutex::Mutex (Mutex::Type t)
+-    : mtx (DCMTK_LOG4CPLUS_THREADED (new impl::Mutex (t) + 0))
++    : mtx (DCMTK_LOG4CPLUS_THREADED (new impl::Mutex (t)))
+ { }
+ 
+ 
+@@ -106,7 +106,7 @@
+ DCMTK_LOG4CPLUS_INLINE_EXPORT
+ Semaphore::Semaphore (unsigned DCMTK_LOG4CPLUS_THREADED (max),
+     unsigned DCMTK_LOG4CPLUS_THREADED (initial))
+-    : sem (DCMTK_LOG4CPLUS_THREADED (new impl::Semaphore (max, initial) + 0))
++    : sem (DCMTK_LOG4CPLUS_THREADED (new impl::Semaphore (max, initial)))
+ { }
+ 
+ 
+@@ -190,7 +190,7 @@
+ 
+ DCMTK_LOG4CPLUS_INLINE_EXPORT
+ ManualResetEvent::ManualResetEvent (bool DCMTK_LOG4CPLUS_THREADED (sig))
+-    : ev (DCMTK_LOG4CPLUS_THREADED (new impl::ManualResetEvent (sig) + 0))
++    : ev (DCMTK_LOG4CPLUS_THREADED (new impl::ManualResetEvent (sig)))
+ { }
+ 
+ 
+@@ -252,7 +252,7 @@
+ 
+ DCMTK_LOG4CPLUS_INLINE_EXPORT
+ SharedMutex::SharedMutex ()
+-    : sm (DCMTK_LOG4CPLUS_THREADED (new impl::SharedMutex + 0))
++    : sm (DCMTK_LOG4CPLUS_THREADED (new impl::SharedMutex))
+ { }
+ 
+ 
+diff -urEb dcmtk-3.6.9.orig/oflog/libsrc/oflog.cc dcmtk-3.6.9/oflog/libsrc/oflog.cc
+--- dcmtk-3.6.9.orig/oflog/libsrc/oflog.cc	2025-01-21 15:53:12.606715376 +0100
++++ dcmtk-3.6.9/oflog/libsrc/oflog.cc	2025-01-21 15:53:27.617627527 +0100
+@@ -19,6 +19,11 @@
+  *
+  */
+ 
++
++#if defined(_WIN32)
++#  include <winsock2.h>
++#endif
++
+ #include "dcmtk/config/osconfig.h"    /* make sure OS specific configuration is included first */
+ #include "dcmtk/oflog/oflog.h"
+ 
+diff -urEb dcmtk-3.6.9.orig/ofstd/include/dcmtk/ofstd/offile.h dcmtk-3.6.9/ofstd/include/dcmtk/ofstd/offile.h
+--- dcmtk-3.6.9.orig/ofstd/include/dcmtk/ofstd/offile.h	2025-01-21 15:53:12.651715114 +0100
++++ dcmtk-3.6.9/ofstd/include/dcmtk/ofstd/offile.h	2025-01-21 15:53:27.618627521 +0100
+@@ -569,7 +569,7 @@
+    */
+   void setlinebuf()
+   {
+-#if defined(_WIN32) || defined(__hpux)
++#if defined(_WIN32) || defined(__hpux) || defined(__LSB_VERSION__)
+     this->setvbuf(NULL, _IOLBF, 0);
+ #else
+     :: setlinebuf(file_);
+diff -urEb dcmtk-3.6.9.orig/ofstd/libsrc/ofstub.cc dcmtk-3.6.9/ofstd/libsrc/ofstub.cc
+--- dcmtk-3.6.9.orig/ofstd/libsrc/ofstub.cc	2025-01-21 15:53:12.652715108 +0100
++++ dcmtk-3.6.9/ofstd/libsrc/ofstub.cc	2025-01-21 15:53:27.618627521 +0100
+@@ -35,6 +35,10 @@
+ #include <windows.h>
+ #endif /* HAVE_WINDOWS_H */
+ 
++#if defined(__LSB_VERSION__)
++#include <errno.h>
++#endif
++
+ #define EXITCODE_CANNOT_DETERMINE_DIR        90
+ #define EXITCODE_EXEC_FAILED                 91
+ #define EXITCODE_ILLEGAL_PARAMS              92

@@ -3,8 +3,8 @@
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
  * Copyright (C) 2017-2023 Osimis S.A., Belgium
- * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
- * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2024-2025 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2025 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -50,6 +50,9 @@
 
 #include <dcmtk/dcmdata/dcfilefo.h>
 #include <dcmtk/dcmnet/dimse.h>
+#include <dcmtk/dcmdata/dcuid.h>        /* for variable dcmAllStorageSOPClassUIDs */
+
+#include <boost/regex.hpp>
 
 #if HAVE_MALLOC_TRIM == 1
 #  include <malloc.h>
@@ -69,12 +72,6 @@ static size_t DICOM_CACHE_SIZE = 128 * 1024 * 1024;  // 128 MB
 
 namespace Orthanc
 {
-  static void ComputeStudyTags(ExpandedResource& resource,
-                               ServerContext& context,
-                               const std::string& studyPublicId,
-                               const std::set<DicomTag>& requestedTags);
-
-
   static bool IsUncompressedTransferSyntax(DicomTransferSyntax transferSyntax)
   {
     return (transferSyntax == DicomTransferSyntax_LittleEndianImplicit ||
@@ -362,7 +359,8 @@ namespace Orthanc
                                IStorageArea& area,
                                bool unitTesting,
                                size_t maxCompletedJobs,
-                               bool readOnly) :
+                               bool readOnly,
+                               unsigned int maxConcurrentDcmtkTranscoder) :
     index_(*this, database, (unitTesting ? 20 : 500), readOnly),
     area_(area),
     compressionEnabled_(false),
@@ -384,7 +382,7 @@ namespace Orthanc
     isExecuteLuaEnabled_(false),
     isRestApiWriteToFileSystemEnabled_(false),
     overwriteInstances_(false),
-    dcmtkTranscoder_(new DcmtkTranscoder),
+    dcmtkTranscoder_(new DcmtkTranscoder(maxConcurrentDcmtkTranscoder)),
     isIngestTranscoding_(false),
     ingestTranscodingOfUncompressed_(true),
     ingestTranscodingOfCompressed_(true),
@@ -495,6 +493,15 @@ namespace Orthanc
         lock.GetConfiguration().GetAcceptedTransferSyntaxes(acceptedTransferSyntaxes_);
 
         isUnknownSopClassAccepted_ = lock.GetConfiguration().GetBooleanParameter("UnknownSopClassAccepted", false);
+
+        // New options in Orthanc 1.12.6
+        std::list<std::string> acceptedSopClasses;
+        std::set<std::string> rejectedSopClasses;
+        lock.GetConfiguration().GetListOfStringsParameter(acceptedSopClasses, "AcceptedSopClasses");
+        lock.GetConfiguration().GetSetOfStringsParameter(rejectedSopClasses, "RejectSopClasses");
+        SetAcceptedSopClasses(acceptedSopClasses, rejectedSopClasses);
+
+        defaultDicomRetrieveMethod_ = StringToRetrieveMethod(lock.GetConfiguration().GetStringParameter("DicomDefaultRetrieveMethod", "C-MOVE"));
       }
 
       jobsEngine_.SetThreadSleep(unitTesting ? 20 : 200);
@@ -951,9 +958,19 @@ namespace Orthanc
         source.SetExternalBuffer(dicom->GetBufferData(), dicom->GetBufferSize());
         
         IDicomTranscoder::DicomImage transcoded;
+        
         if (Transcode(transcoded, source, syntaxes, true /* allow new SOP instance UID */))
         {
           std::unique_ptr<ParsedDicomFile> tmp(transcoded.ReleaseAsParsedDicomFile());
+
+          if (isReconstruct)
+          {
+            // when reconstructing, we always want to keep the DICOM IDs untouched even if the transcoding has generated a new SOPInstanceUID.
+            const Orthanc::ParsedDicomFile& sourceDicom = dicom->GetParsedDicomFile();
+            std::string sopInstanceUid;
+            sourceDicom.GetTagValue(sopInstanceUid, DICOM_TAG_SOP_INSTANCE_UID);
+            tmp->ReplacePlainString(DICOM_TAG_SOP_INSTANCE_UID, sopInstanceUid);
+          }
 
           std::unique_ptr<DicomInstanceToStore> toStore(DicomInstanceToStore::CreateFromParsedDicomFile(*tmp));
           toStore->SetOrigin(dicom->GetOrigin());
@@ -975,25 +992,15 @@ namespace Orthanc
 
   
   void ServerContext::AnswerAttachment(RestApiOutput& output,
-                                       const std::string& resourceId,
-                                       FileContentType content)
+                                       const FileInfo& attachment)
   {
-    FileInfo attachment;
-    int64_t revision;
-    if (!index_.LookupAttachment(attachment, revision, resourceId, content))
-    {
-      throw OrthancException(ErrorCode_UnknownResource);
-    }
-    else
-    {
-      StorageAccessor accessor(area_, storageCache_, GetMetricsRegistry());
-      accessor.AnswerFile(output, attachment, GetFileContentMime(content));
-    }
+    StorageAccessor accessor(area_, storageCache_, GetMetricsRegistry());
+    accessor.AnswerFile(output, attachment, GetFileContentMime(attachment.GetContentType()));
   }
 
 
-  void ServerContext::ChangeAttachmentCompression(const std::string& resourceId,
-                                                  ResourceType resourceType,
+  void ServerContext::ChangeAttachmentCompression(ResourceType level,
+                                                  const std::string& resourceId,
                                                   FileContentType attachmentType,
                                                   CompressionType compression)
   {
@@ -1004,7 +1011,7 @@ namespace Orthanc
 
     FileInfo attachment;
     int64_t revision;
-    if (!index_.LookupAttachment(attachment, revision, resourceId, attachmentType))
+    if (!index_.LookupAttachment(attachment, revision, level, resourceId, attachmentType))
     {
       throw OrthancException(ErrorCode_UnknownResource);
     }
@@ -1033,9 +1040,8 @@ namespace Orthanc
     // }
     // else
     {
-      ResourceType resourceType = ResourceType_Instance; //TODO_CUSTOM_DATA: get it from above in the stack
-      modified = accessor.WriteAttachment(newCustomData, resourceId, resourceType, content.empty() ? NULL : content.c_str(),
-                                       content.size(), attachmentType, compression, storeMD5_, newUuid);
+      modified = accessor.WriteAttachment(newCustomData, resourceId, level, content.empty() ? NULL : content.c_str(),
+                                          content.size(), attachmentType, compression, storeMD5_, newUuid);
     }
 
 
@@ -1123,23 +1129,23 @@ namespace Orthanc
     FileInfo attachment;
     int64_t revision;  // Ignored
 
-    if (index_.LookupAttachment(attachment, revision, instancePublicId, FileContentType_Dicom))
+    if (index_.LookupAttachment(attachment, revision, ResourceType_Instance, instancePublicId, FileContentType_Dicom))
     {
       attachments[FileContentType_Dicom] = attachment;
     }
 
-    if (index_.LookupAttachment(attachment, revision, instancePublicId, FileContentType_DicomUntilPixelData))
+    if (index_.LookupAttachment(attachment, revision, ResourceType_Instance, instancePublicId, FileContentType_DicomUntilPixelData))
     {
       attachments[FileContentType_DicomUntilPixelData] = attachment;
     }
 
-    if (index_.LookupAttachment(attachment, revision, instancePublicId, FileContentType_DicomAsJson))
+    if (index_.LookupAttachment(attachment, revision, ResourceType_Instance, instancePublicId, FileContentType_DicomAsJson))
     {
       attachments[FileContentType_DicomAsJson] = attachment;
     }
 
     std::string s;
-    if (index_.LookupMetadata(s, revision, instancePublicId, ResourceType_Instance,
+    if (index_.LookupMetadata(s, instancePublicId, ResourceType_Instance,
                               MetadataType_Instance_PixelDataOffset))
     {
       metadata[MetadataType_Instance_PixelDataOffset] = s;
@@ -1325,8 +1331,20 @@ namespace Orthanc
                                 std::string& attachmentId,
                                 const std::string& instancePublicId)
   {
+    FileInfo attachment;
     int64_t revision;
-    ReadAttachment(dicom, revision, attachmentId, instancePublicId, FileContentType_Dicom, true /* uncompress */);
+
+    if (!index_.LookupAttachment(attachment, revision, ResourceType_Instance, instancePublicId, FileContentType_Dicom))
+    {
+      throw OrthancException(ErrorCode_InternalError,
+                             "Unable to read attachment " + EnumerationToString(FileContentType_Dicom) +
+                             " of instance " + instancePublicId);
+    }
+
+    assert(attachment.GetContentType() == FileContentType_Dicom);
+    attachmentId = attachment.GetUuid();
+
+    ReadAttachment(dicom, attachment, true /* uncompress */);
   }
 
 
@@ -1351,7 +1369,7 @@ namespace Orthanc
   {
     FileInfo attachment;
     int64_t revision;  // Ignored
-    if (index_.LookupAttachment(attachment, revision, instancePublicId, FileContentType_DicomUntilPixelData))
+    if (index_.LookupAttachment(attachment, revision, ResourceType_Instance, instancePublicId, FileContentType_DicomUntilPixelData))
     {
       StorageAccessor accessor(area_, storageCache_, GetMetricsRegistry());
 
@@ -1366,7 +1384,7 @@ namespace Orthanc
       return false;
     }
     
-    if (!index_.LookupAttachment(attachment, revision, instancePublicId, FileContentType_Dicom))
+    if (!index_.LookupAttachment(attachment, revision, ResourceType_Instance, instancePublicId, FileContentType_Dicom))
     {
       throw OrthancException(ErrorCode_InternalError,
                              "Unable to read the DICOM file of instance " + instancePublicId);
@@ -1375,7 +1393,7 @@ namespace Orthanc
     std::string s;
 
     if (attachment.GetCompressionType() == CompressionType_None &&
-        index_.LookupMetadata(s, revision, instancePublicId, ResourceType_Instance,
+        index_.LookupMetadata(s, instancePublicId, ResourceType_Instance,
                               MetadataType_Instance_PixelDataOffset) &&
         !s.empty())
     {
@@ -1401,47 +1419,40 @@ namespace Orthanc
   
 
   void ServerContext::ReadAttachment(std::string& result,
-                                     int64_t& revision,
-                                     std::string& attachmentId,
-                                     const std::string& instancePublicId,
-                                     FileContentType content,
+                                     const FileInfo& attachment,
                                      bool uncompressIfNeeded,
                                      bool skipCache)
   {
-    FileInfo attachment;
-    if (!index_.LookupAttachment(attachment, revision, instancePublicId, content))
-    {
-      throw OrthancException(ErrorCode_InternalError,
-                             "Unable to read attachment " + EnumerationToString(content) +
-                             " of instance " + instancePublicId);
-    }
-
-    assert(attachment.GetContentType() == content);
-    attachmentId = attachment.GetUuid();
-    
-    {
-      std::unique_ptr<StorageAccessor> accessor;
+    std::unique_ptr<StorageAccessor> accessor;
       
-      if (skipCache)
-      {
-        accessor.reset(new StorageAccessor(area_, GetMetricsRegistry()));
-      }
-      else
-      {
-        accessor.reset(new StorageAccessor(area_, storageCache_, GetMetricsRegistry()));
-      }
-
-      if (uncompressIfNeeded)
-      {
-        accessor->Read(result, attachment);
-      }
-      else
-      {
-        // Do not uncompress the content of the storage area, return the
-        // raw data
-        accessor->ReadRaw(result, attachment);
-      }
+    if (skipCache)
+    {
+      accessor.reset(new StorageAccessor(area_, GetMetricsRegistry()));
     }
+    else
+    {
+      accessor.reset(new StorageAccessor(area_, storageCache_, GetMetricsRegistry()));
+    }
+
+    if (uncompressIfNeeded)
+    {
+      accessor->Read(result, attachment);
+    }
+    else
+    {
+      // Do not uncompress the content of the storage area, return the
+      // raw data
+      accessor->ReadRaw(result, attachment);
+    }
+  }
+
+  void ServerContext::ReadAttachmentRange(std::string &result,
+                                          const FileInfo &attachment,
+                                          const StorageAccessor::Range &range,
+                                          bool uncompressIfNeeded)
+  {
+    StorageAccessor accessor(area_, storageCache_, GetMetricsRegistry());
+    accessor.ReadRange(result, attachment, range, uncompressIfNeeded);
   }
 
 
@@ -1661,188 +1672,6 @@ namespace Orthanc
   }
 
 
-  void ServerContext::Apply(ILookupVisitor& visitor,
-                            const DatabaseLookup& lookup,
-                            ResourceType queryLevel,
-                            const std::set<std::string>& labels,
-                            LabelsConstraint labelsConstraint,
-                            size_t since,
-                            size_t limit)
-  {    
-    const uint64_t databaseLimit = GetDatabaseLimits(queryLevel);
-      
-    std::vector<std::string> resources, instances;
-    const DicomTagConstraint* dicomModalitiesConstraint = NULL;
-
-    bool hasModalitiesInStudyLookup = (queryLevel == ResourceType_Study &&
-          lookup.GetConstraint(dicomModalitiesConstraint, DICOM_TAG_MODALITIES_IN_STUDY) &&
-          ((dicomModalitiesConstraint->GetConstraintType() == ConstraintType_Equal && !dicomModalitiesConstraint->GetValue().empty()) ||
-          (dicomModalitiesConstraint->GetConstraintType() == ConstraintType_List && !dicomModalitiesConstraint->GetValues().empty())));
-
-    std::unique_ptr<DatabaseLookup> fastLookup(lookup.Clone());
-    
-    if (hasModalitiesInStudyLookup)
-    {
-      fastLookup->RemoveConstraint(DICOM_TAG_MODALITIES_IN_STUDY);
-    }
-
-    const size_t lookupLimit = (databaseLimit == 0 ? 0 : databaseLimit + 1);
-    GetIndex().ApplyLookupResources(resources, &instances, *fastLookup, queryLevel, labels, labelsConstraint, lookupLimit);
-
-    bool complete = (databaseLimit == 0 ||
-                     resources.size() <= databaseLimit);
-
-    LOG(INFO) << "Number of candidate resources after fast DB filtering on main DICOM tags: " << resources.size();
-
-    /**
-     * "resources" contains the Orthanc ID of the resource at level
-     * "queryLevel", "instances" contains one the Orthanc ID of one
-     * sample instance from this resource.
-     **/
-    assert(resources.size() == instances.size());
-
-    size_t countResults = 0;
-    size_t skipped = 0;
-
-    const bool isDicomAsJsonNeeded = visitor.IsDicomAsJsonNeeded();
-    
-    for (size_t i = 0; i < instances.size(); i++)
-    {
-      // Optimization in Orthanc 1.5.1 - Don't read the full JSON from
-      // the disk if only "main DICOM tags" are to be returned
-
-      boost::shared_ptr<Json::Value> dicomAsJson;
-
-      bool hasOnlyMainDicomTags;
-      DicomMap dicom;
-      DicomMap allMainDicomTagsFromDB;
-      
-      if (!IsStorageAccessAllowedForAnswers(findStorageAccessMode_) 
-          || fastLookup->HasOnlyMainDicomTags())
-      {
-        // Case (1): The main DICOM tags, as stored in the database,
-        // are sufficient to look for match
-
-        if (!GetIndex().GetAllMainDicomTags(allMainDicomTagsFromDB, instances[i]))
-        {
-          // The instance has been removed during the execution of the
-          // lookup, ignore it
-          continue;
-        }
-
-        // New in Orthanc 1.6.0: Only keep the main DICOM tags at the
-        // level of interest for the query
-        switch (queryLevel)
-        {
-          // WARNING: Don't reorder cases below, and don't add "break"
-          case ResourceType_Instance:
-            dicom.MergeMainDicomTags(allMainDicomTagsFromDB, ResourceType_Instance);
-
-          case ResourceType_Series:
-            dicom.MergeMainDicomTags(allMainDicomTagsFromDB, ResourceType_Series);
-
-          case ResourceType_Study:
-            dicom.MergeMainDicomTags(allMainDicomTagsFromDB, ResourceType_Study);
-            
-          case ResourceType_Patient:
-            dicom.MergeMainDicomTags(allMainDicomTagsFromDB, ResourceType_Patient);
-            break;
-
-          default:
-            throw OrthancException(ErrorCode_InternalError);
-        }
-        
-        hasOnlyMainDicomTags = true;
-      }
-      else
-      {
-        // Case (2): Need to read the "DICOM-as-JSON" attachment from
-        // the storage area
-        dicomAsJson.reset(new Json::Value);
-        ReadDicomAsJson(*dicomAsJson, instances[i]);
-
-        dicom.FromDicomAsJson(*dicomAsJson);
-
-        // This map contains the entire JSON, i.e. more than the main DICOM tags
-        hasOnlyMainDicomTags = false;   
-      }
-      
-      if (fastLookup->IsMatch(dicom))
-      {
-        bool isMatch = true;
-
-        if (hasModalitiesInStudyLookup)
-        {
-          std::set<DicomTag> requestedTags;
-          requestedTags.insert(DICOM_TAG_MODALITIES_IN_STUDY);
-          ExpandedResource resource;
-          ComputeStudyTags(resource, *this, resources[i], requestedTags);
-
-          std::vector<std::string> modalities;
-          Toolbox::TokenizeString(modalities, resource.GetMainDicomTags().GetValue(DICOM_TAG_MODALITIES_IN_STUDY).GetContent(), '\\');
-          bool hasAtLeastOneModalityMatching = false;
-          for (size_t m = 0; m < modalities.size(); m++)
-          {
-            hasAtLeastOneModalityMatching |= dicomModalitiesConstraint->IsMatch(modalities[m]);
-          }
-
-          isMatch = isMatch && hasAtLeastOneModalityMatching;
-          // copy the value of ModalitiesInStudy such that it can be reused to build the answer
-          allMainDicomTagsFromDB.SetValue(DICOM_TAG_MODALITIES_IN_STUDY, resource.GetMainDicomTags().GetValue(DICOM_TAG_MODALITIES_IN_STUDY));
-        }
-
-        if (isMatch)
-        {
-          if (skipped < since)
-          {
-            skipped++;
-          }
-          else if (limit != 0 &&
-                  countResults >= limit)
-          {
-            // Too many results, don't mark as complete
-            complete = false;
-            break;
-          }
-          else
-          {
-            if (IsStorageAccessAllowedForAnswers(findStorageAccessMode_) &&
-                dicomAsJson.get() == NULL &&
-                isDicomAsJsonNeeded)
-            {
-              dicomAsJson.reset(new Json::Value);
-              ReadDicomAsJson(*dicomAsJson, instances[i]);
-            }
-
-            if (hasOnlyMainDicomTags)
-            {
-              // This is Case (1): The variable "dicom" only contains the main DICOM tags
-              visitor.Visit(resources[i], instances[i], allMainDicomTagsFromDB, dicomAsJson.get());
-            }
-            else
-            {
-              // Remove the non-main DICOM tags from "dicom" if Case (2)
-              // was used, for consistency with Case (1)
-
-              DicomMap mainDicomTags;
-              mainDicomTags.ExtractMainDicomTags(dicom);
-              visitor.Visit(resources[i], instances[i], mainDicomTags, dicomAsJson.get());            
-            }
-              
-            countResults ++;
-          }
-        }
-      }
-    }
-
-    if (complete)
-    {
-      visitor.MarkAsComplete();
-    }
-
-    LOG(INFO) << "Number of matching resources: " << countResults;
-  }
-
   bool ServerContext::LookupOrReconstructMetadata(std::string& target,
                                                   const std::string& publicId,
                                                   ResourceType level,
@@ -1855,8 +1684,7 @@ namespace Orthanc
     if (metadata == MetadataType_Instance_SopClassUid ||
         metadata == MetadataType_Instance_TransferSyntax)
     {
-      int64_t revision;  // Ignored
-      if (index_.LookupMetadata(target, revision, publicId, level, metadata))
+      if (index_.LookupMetadata(target, publicId, level, metadata))
       {
         return true;
       }
@@ -1911,8 +1739,7 @@ namespace Orthanc
     else
     {
       // No backward
-      int64_t revision;  // Ignored
-      return index_.LookupMetadata(target, revision, publicId, level, metadata);
+      return index_.LookupMetadata(target, publicId, level, metadata);
     }
   }
 
@@ -2224,8 +2051,118 @@ namespace Orthanc
     }
   }
 
+  void ServerContext::SetAcceptedSopClasses(const std::list<std::string>& acceptedSopClasses,
+                                            const std::set<std::string>& rejectedSopClasses)
+  {
+    boost::mutex::scoped_lock lock(dynamicOptionsMutex_);
+    acceptedSopClasses_.clear();
 
-  void ServerContext::GetAcceptedTransferSyntaxes(std::set<DicomTransferSyntax>& syntaxes)
+    size_t count = 0;
+    std::set<std::string> allDcmtkSopClassUids;
+    std::set<std::string> shortDcmtkSopClassUids;
+
+    // we actually take a list of default 120 most common storage SOP classes defined in DCMTK
+    while (dcmLongSCUStorageSOPClassUIDs[count] != NULL)
+    {
+      shortDcmtkSopClassUids.insert(dcmLongSCUStorageSOPClassUIDs[count++]);
+    }
+
+    count = 0;
+    while (dcmAllStorageSOPClassUIDs[count] != NULL)
+    {
+      allDcmtkSopClassUids.insert(dcmAllStorageSOPClassUIDs[count++]);
+    }
+
+    if (acceptedSopClasses.size() == 0)
+    {
+      // by default, include the short list first and then all the others
+      for (std::set<std::string>::const_iterator it = shortDcmtkSopClassUids.begin(); it != shortDcmtkSopClassUids.end(); ++it)
+      {
+        acceptedSopClasses_.push_back(*it);
+      }
+
+      for (std::set<std::string>::const_iterator it = allDcmtkSopClassUids.begin(); it != allDcmtkSopClassUids.end(); ++it)
+      {
+        if (shortDcmtkSopClassUids.find(*it) == shortDcmtkSopClassUids.end()) // don't add the classes that we have already added
+        {
+          acceptedSopClasses_.push_back(*it);
+        }
+      }
+    }
+    else
+    {
+      std::set<std::string> addedSopClasses;
+
+      for (std::list<std::string>::const_iterator it = acceptedSopClasses.begin(); it != acceptedSopClasses.end(); ++it)
+      {
+        if (it->find('*') != std::string::npos || it->find('?') != std::string::npos)
+        {
+          // if it contains wildcard, add all the matching SOP classes known by DCMTK
+          boost::regex pattern(Toolbox::WildcardToRegularExpression(*it));
+
+          for (std::set<std::string>::const_iterator itall = allDcmtkSopClassUids.begin(); itall != allDcmtkSopClassUids.end(); ++itall)
+          {
+            if (regex_match(*itall, pattern) && addedSopClasses.find(*itall) == addedSopClasses.end())
+            {
+              acceptedSopClasses_.push_back(*itall);
+              addedSopClasses.insert(*itall);
+            }
+          }
+        }
+        else
+        {
+          // if it is a SOP Class UID, add it without checking if it is known by DCMTK
+          acceptedSopClasses_.push_back(*it);
+          addedSopClasses.insert(*it);
+        }
+      }
+    }
+    
+    // now remove all rejected syntaxes
+    if (rejectedSopClasses.size() > 0)
+    {
+      for (std::set<std::string>::const_iterator it = rejectedSopClasses.begin(); it != rejectedSopClasses.end(); ++it)
+      {
+        if (it->find('*') != std::string::npos || it->find('?') != std::string::npos)
+        {
+          // if it contains wildcard, get all the matching SOP classes known by DCMTK
+          boost::regex pattern(Toolbox::WildcardToRegularExpression(*it));
+
+          for (std::set<std::string>::const_iterator itall = allDcmtkSopClassUids.begin(); itall != allDcmtkSopClassUids.end(); ++itall)
+          {
+            if (regex_match(*itall, pattern))
+            {
+              acceptedSopClasses_.remove(*itall);
+            }
+          }
+        }
+        else
+        {
+          // if it is a SOP Class UID, remove it without checking if it is known by DCMTK
+          acceptedSopClasses_.remove(*it);
+        }
+      }
+    }
+  }
+
+  void ServerContext::GetAcceptedSopClasses(std::set<std::string>& sopClasses, size_t maxCount) const
+  {
+    sopClasses.clear();
+
+    boost::mutex::scoped_lock lock(dynamicOptionsMutex_);
+
+    size_t count = 0;
+    std::list<std::string>::const_iterator it = acceptedSopClasses_.begin();
+
+    while (it != acceptedSopClasses_.end() && (maxCount == 0 || count < maxCount))
+    {
+      sopClasses.insert(*it);
+      count++;
+      ++it;
+    }
+  }
+
+  void ServerContext::GetAcceptedTransferSyntaxes(std::set<DicomTransferSyntax>& syntaxes) const
   {
     boost::mutex::scoped_lock lock(dynamicOptionsMutex_);
     syntaxes = acceptedTransferSyntaxes_;
@@ -2239,7 +2176,25 @@ namespace Orthanc
   }
 
 
-  bool ServerContext::IsUnknownSopClassAccepted()
+  void ServerContext::GetProposedStorageTransferSyntaxes(std::list<DicomTransferSyntax>& syntaxes) const
+  {
+    boost::mutex::scoped_lock lock(dynamicOptionsMutex_);
+    
+    // // TODO: investigate: actually, neither Orthanc 1.12.4 nor DCM4CHEE will accept to send a LittleEndianExplicit file
+    // //                    while e.g., Jpeg-LS has been presented (and accepted) as the preferred TS for the C-Store SCP.
+    // // if we have defined IngestTranscoding, let's propose this TS first to avoid any unnecessary transcoding
+    // if (isIngestTranscoding_)
+    // {
+    //   syntaxes.push_back(ingestTransferSyntax_);
+    // }
+    
+    // then, propose the default ones
+    syntaxes.push_back(DicomTransferSyntax_LittleEndianExplicit);
+    syntaxes.push_back(DicomTransferSyntax_LittleEndianImplicit);
+  }
+  
+
+  bool ServerContext::IsUnknownSopClassAccepted() const
   {
     boost::mutex::scoped_lock lock(dynamicOptionsMutex_);
     return isUnknownSopClassAccepted_;
@@ -2250,600 +2205,6 @@ namespace Orthanc
   {
     boost::mutex::scoped_lock lock(dynamicOptionsMutex_);
     isUnknownSopClassAccepted_ = accepted;
-  }
-
-
-  static void SerializeExpandedResource(Json::Value& target,
-                                        const ExpandedResource& resource,
-                                        DicomToJsonFormat format,
-                                        const std::set<DicomTag>& requestedTags,
-                                        ExpandResourceFlags expandFlags)
-  {
-    target = Json::objectValue;
-
-    target["Type"] = GetResourceTypeText(resource.GetLevel(), false, true);
-    target["ID"] = resource.GetPublicId();
-
-    if (!resource.parentId_.empty())
-    {
-      switch (resource.GetLevel())
-      {
-        case ResourceType_Patient:
-          break;
-
-        case ResourceType_Study:
-          target["ParentPatient"] = resource.parentId_;
-          break;
-
-        case ResourceType_Series:
-          target["ParentStudy"] = resource.parentId_;
-          break;
-
-        case ResourceType_Instance:
-          target["ParentSeries"] = resource.parentId_;
-          break;
-
-        default:
-          throw OrthancException(ErrorCode_InternalError);
-      }
-    }
-
-    if ((expandFlags & ExpandResourceFlags_IncludeChildren) != 0)
-    {
-      switch (resource.GetLevel())
-      {
-        case ResourceType_Patient:
-        case ResourceType_Study:
-        case ResourceType_Series:
-        {
-          Json::Value c = Json::arrayValue;
-
-          for (std::list<std::string>::const_iterator
-                  it = resource.childrenIds_.begin(); it != resource.childrenIds_.end(); ++it)
-          {
-            c.append(*it);
-          }
-
-          if (resource.GetLevel() == ResourceType_Patient)
-          {
-            target["Studies"] = c;
-          }
-          else if (resource.GetLevel() == ResourceType_Study)
-          {
-            target["Series"] = c;
-          }
-          else
-          {
-            target["Instances"] = c;
-          }
-          break;
-        }
-
-        case ResourceType_Instance:
-          break;
-
-        default:
-          throw OrthancException(ErrorCode_InternalError);
-      }
-    }
-
-    if ((expandFlags & ExpandResourceFlags_IncludeMetadata) != 0)
-    {
-      switch (resource.GetLevel())
-      {
-        case ResourceType_Patient:
-        case ResourceType_Study:
-          break;
-
-        case ResourceType_Series:
-          if (resource.expectedNumberOfInstances_ < 0)
-          {
-            target["ExpectedNumberOfInstances"] = Json::nullValue;
-          }
-          else
-          {
-            target["ExpectedNumberOfInstances"] = resource.expectedNumberOfInstances_;
-          }
-          target["Status"] = resource.status_;
-          break;
-
-        case ResourceType_Instance:
-        {
-          target["FileSize"] = static_cast<unsigned int>(resource.fileSize_);
-          target["FileUuid"] = resource.fileUuid_;
-
-          if (resource.indexInSeries_ < 0)
-          {
-            target["IndexInSeries"] = Json::nullValue;
-          }
-          else
-          {
-            target["IndexInSeries"] = resource.indexInSeries_;
-          }
-
-          break;
-        }
-
-        default:
-          throw OrthancException(ErrorCode_InternalError);
-      }
-    
-      if (!resource.anonymizedFrom_.empty())
-      {
-        target["AnonymizedFrom"] = resource.anonymizedFrom_;
-      }
-      
-      if (!resource.modifiedFrom_.empty())
-      {
-        target["ModifiedFrom"] = resource.modifiedFrom_;
-      }
-    }
-
-    if (resource.GetLevel() == ResourceType_Patient ||
-        resource.GetLevel() == ResourceType_Study ||
-        resource.GetLevel() == ResourceType_Series)
-    {
-      if ((expandFlags & ExpandResourceFlags_IncludeIsStable) != 0)
-      {
-        target["IsStable"] = resource.isStable_;
-      }
-
-      if (!resource.lastUpdate_.empty())
-      {
-        target["LastUpdate"] = resource.lastUpdate_;
-      }
-    }
-
-    if ((expandFlags & ExpandResourceFlags_IncludeMainDicomTags) != 0)
-    {
-      // serialize tags
-
-      static const char* const MAIN_DICOM_TAGS = "MainDicomTags";
-      static const char* const PATIENT_MAIN_DICOM_TAGS = "PatientMainDicomTags";
-
-      DicomMap mainDicomTags;
-      resource.GetMainDicomTags().ExtractResourceInformation(mainDicomTags, resource.GetLevel());
-
-      target[MAIN_DICOM_TAGS] = Json::objectValue;
-      FromDcmtkBridge::ToJson(target[MAIN_DICOM_TAGS], mainDicomTags, format);
-      
-      if (resource.GetLevel() == ResourceType_Study)
-      {
-        DicomMap patientMainDicomTags;
-        resource.GetMainDicomTags().ExtractPatientInformation(patientMainDicomTags);
-
-        target[PATIENT_MAIN_DICOM_TAGS] = Json::objectValue;
-        FromDcmtkBridge::ToJson(target[PATIENT_MAIN_DICOM_TAGS], patientMainDicomTags, format);
-      }
-
-      if (requestedTags.size() > 0)
-      {
-        static const char* const REQUESTED_TAGS = "RequestedTags";
-
-        DicomMap tags;
-        resource.GetMainDicomTags().ExtractTags(tags, requestedTags);
-
-        target[REQUESTED_TAGS] = Json::objectValue;
-        FromDcmtkBridge::ToJson(target[REQUESTED_TAGS], tags, format);
-
-      }
-    }
-
-    if ((expandFlags & ExpandResourceFlags_IncludeLabels) != 0)
-    {
-      Json::Value labels = Json::arrayValue;
-
-      for (std::set<std::string>::const_iterator it = resource.labels_.begin(); it != resource.labels_.end(); ++it)
-      {
-        labels.append(*it);
-      }
-
-      target["Labels"] = labels;
-    }
-
-    // new in Orthanc 1.12.4
-    if ((expandFlags & ExpandResourceFlags_IncludeAllMetadata) != 0)
-    {
-      Json::Value metadata = Json::objectValue;
-
-      for (std::map<MetadataType, std::string>::const_iterator it = resource.metadata_.begin(); it != resource.metadata_.end(); ++it)
-      {
-        metadata[EnumerationToString(it->first)] = it->second;
-      }
-
-      target["Metadata"] = metadata;
-    }
-  }
-
-
-  static void ComputeInstanceTags(ExpandedResource& resource,
-                                  ServerContext& context,
-                                  const std::string& instancePublicId,
-                                  const std::set<DicomTag>& requestedTags)
-  {
-    if (requestedTags.count(DICOM_TAG_INSTANCE_AVAILABILITY) > 0)
-    {
-      resource.GetMainDicomTags().SetValue(DICOM_TAG_INSTANCE_AVAILABILITY, "ONLINE", false);
-      resource.missingRequestedTags_.erase(DICOM_TAG_INSTANCE_AVAILABILITY);
-    }
-  }
-
-
-  static void ComputeSeriesTags(ExpandedResource& resource,
-                                ServerContext& context,
-                                const std::string& seriesPublicId,
-                                const std::set<DicomTag>& requestedTags)
-  {
-    if (requestedTags.count(DICOM_TAG_NUMBER_OF_SERIES_RELATED_INSTANCES) > 0)
-    {
-      ServerIndex& index = context.GetIndex();
-      std::list<std::string> instances;
-
-      index.GetChildren(instances, seriesPublicId);
-
-      resource.GetMainDicomTags().SetValue(DICOM_TAG_NUMBER_OF_SERIES_RELATED_INSTANCES,
-                              boost::lexical_cast<std::string>(instances.size()), false);
-      resource.missingRequestedTags_.erase(DICOM_TAG_NUMBER_OF_SERIES_RELATED_INSTANCES);
-    }
-  }
-
-  static void ComputeStudyTags(ExpandedResource& resource,
-                               ServerContext& context,
-                               const std::string& studyPublicId,
-                               const std::set<DicomTag>& requestedTags)
-  {
-    ServerIndex& index = context.GetIndex();
-    std::list<std::string> series;
-    std::list<std::string> instances;
-
-    bool hasNbRelatedSeries = requestedTags.count(DICOM_TAG_NUMBER_OF_STUDY_RELATED_SERIES) > 0;
-    bool hasNbRelatedInstances = requestedTags.count(DICOM_TAG_NUMBER_OF_STUDY_RELATED_INSTANCES) > 0;
-    bool hasModalitiesInStudy = requestedTags.count(DICOM_TAG_MODALITIES_IN_STUDY) > 0;
-    bool hasSopClassesInStudy = requestedTags.count(DICOM_TAG_SOP_CLASSES_IN_STUDY) > 0;
-
-    index.GetChildren(series, studyPublicId);
-
-    if (hasModalitiesInStudy)
-    {
-      std::set<std::string> values;
-
-      for (std::list<std::string>::const_iterator
-            it = series.begin(); it != series.end(); ++it)
-      {
-        DicomMap tags;
-        index.GetMainDicomTags(tags, *it, ResourceType_Series, ResourceType_Series);
-
-        const DicomValue* value = tags.TestAndGetValue(DICOM_TAG_MODALITY);
-
-        if (value != NULL &&
-            !value->IsNull() &&
-            !value->IsBinary())
-        {
-          values.insert(value->GetContent());
-        }
-      }
-
-      std::string modalities;
-      Toolbox::JoinStrings(modalities, values, "\\");
-
-      resource.GetMainDicomTags().SetValue(DICOM_TAG_MODALITIES_IN_STUDY, modalities, false);
-      resource.missingRequestedTags_.erase(DICOM_TAG_MODALITIES_IN_STUDY);
-    }
-
-    if (hasNbRelatedSeries)
-    {
-      resource.GetMainDicomTags().SetValue(DICOM_TAG_NUMBER_OF_STUDY_RELATED_SERIES,
-                              boost::lexical_cast<std::string>(series.size()), false);
-      resource.missingRequestedTags_.erase(DICOM_TAG_NUMBER_OF_STUDY_RELATED_SERIES);
-    }
-
-    if (hasNbRelatedInstances || hasSopClassesInStudy)
-    {
-      for (std::list<std::string>::const_iterator
-            it = series.begin(); it != series.end(); ++it)
-      {
-        std::list<std::string> seriesInstancesIds;
-        index.GetChildren(seriesInstancesIds, *it);
-
-        instances.splice(instances.end(), seriesInstancesIds);
-      }
-
-      if (hasNbRelatedInstances)
-      {
-        resource.GetMainDicomTags().SetValue(DICOM_TAG_NUMBER_OF_STUDY_RELATED_INSTANCES,
-                                boost::lexical_cast<std::string>(instances.size()), false);      
-        resource.missingRequestedTags_.erase(DICOM_TAG_NUMBER_OF_STUDY_RELATED_INSTANCES);
-      }
-
-      if (hasSopClassesInStudy)
-      {
-        std::set<std::string> values;
-
-        for (std::list<std::string>::const_iterator
-              it = instances.begin(); it != instances.end(); ++it)
-        {
-          std::string value;
-
-          if (context.LookupOrReconstructMetadata(value, *it, ResourceType_Instance, MetadataType_Instance_SopClassUid))
-          {
-            values.insert(value);
-          }
-        }
-
-        if (values.size() > 0)
-        {
-          std::string sopClassUids;
-          Toolbox::JoinStrings(sopClassUids, values, "\\");
-          resource.GetMainDicomTags().SetValue(DICOM_TAG_SOP_CLASSES_IN_STUDY, sopClassUids, false);
-        }
-
-        resource.missingRequestedTags_.erase(DICOM_TAG_SOP_CLASSES_IN_STUDY);
-      }
-    }
-  }
-
-  static void ComputePatientTags(ExpandedResource& resource,
-                                 ServerContext& context,
-                                 const std::string& patientPublicId,
-                                 const std::set<DicomTag>& requestedTags)
-  {
-    ServerIndex& index = context.GetIndex();
-
-    std::list<std::string> studies;
-    std::list<std::string> series;
-    std::list<std::string> instances;
-
-    bool hasNbRelatedStudies = requestedTags.count(DICOM_TAG_NUMBER_OF_PATIENT_RELATED_STUDIES) > 0;
-    bool hasNbRelatedSeries = requestedTags.count(DICOM_TAG_NUMBER_OF_PATIENT_RELATED_SERIES) > 0;
-    bool hasNbRelatedInstances = requestedTags.count(DICOM_TAG_NUMBER_OF_PATIENT_RELATED_INSTANCES) > 0;
-
-    index.GetChildren(studies, patientPublicId);
-
-    if (hasNbRelatedStudies)
-    {
-      resource.GetMainDicomTags().SetValue(DICOM_TAG_NUMBER_OF_PATIENT_RELATED_STUDIES,
-                              boost::lexical_cast<std::string>(studies.size()), false);
-      resource.missingRequestedTags_.erase(DICOM_TAG_NUMBER_OF_PATIENT_RELATED_STUDIES);
-    }
-
-    if (hasNbRelatedSeries || hasNbRelatedInstances)
-    {
-      for (std::list<std::string>::const_iterator
-            it = studies.begin(); it != studies.end(); ++it)
-      {
-        std::list<std::string> thisSeriesIds;
-        index.GetChildren(thisSeriesIds, *it);
-        series.splice(series.end(), thisSeriesIds);
-      }
-
-      if (hasNbRelatedSeries)
-      {
-        resource.GetMainDicomTags().SetValue(DICOM_TAG_NUMBER_OF_PATIENT_RELATED_SERIES,
-                                boost::lexical_cast<std::string>(series.size()), false);
-        resource.missingRequestedTags_.erase(DICOM_TAG_NUMBER_OF_PATIENT_RELATED_SERIES);
-      }
-    }
-
-    if (hasNbRelatedInstances)
-    {
-      for (std::list<std::string>::const_iterator
-            it = series.begin(); it != series.end(); ++it)
-      {
-        std::list<std::string> thisInstancesIds;
-        index.GetChildren(thisInstancesIds, *it);
-        instances.splice(instances.end(), thisInstancesIds);
-      }
-
-      resource.GetMainDicomTags().SetValue(DICOM_TAG_NUMBER_OF_PATIENT_RELATED_INSTANCES,
-                              boost::lexical_cast<std::string>(instances.size()), false);
-      resource.missingRequestedTags_.erase(DICOM_TAG_NUMBER_OF_PATIENT_RELATED_INSTANCES);
-    }
-  }
-
-
-  static void ComputeTags(ExpandedResource& resource,
-                          ServerContext& context,
-                          const std::string& resourceId,
-                          ResourceType level,
-                          const std::set<DicomTag>& requestedTags)
-  {
-    if (level == ResourceType_Patient 
-        && DicomMap::HasComputedTags(resource.missingRequestedTags_, ResourceType_Patient))
-    {
-      ComputePatientTags(resource, context, resourceId, requestedTags);
-    }
-
-    if (level == ResourceType_Study 
-        && DicomMap::HasComputedTags(resource.missingRequestedTags_, ResourceType_Study))
-    {
-      ComputeStudyTags(resource, context, resourceId, requestedTags);
-    }
-
-    if (level == ResourceType_Series 
-        && DicomMap::HasComputedTags(resource.missingRequestedTags_, ResourceType_Series))
-    {
-      ComputeSeriesTags(resource, context, resourceId, requestedTags);
-    }
-
-    if (level == ResourceType_Instance 
-        && DicomMap::HasComputedTags(resource.missingRequestedTags_, ResourceType_Instance))
-    {
-      ComputeInstanceTags(resource, context, resourceId, requestedTags);
-    }
-  }
-
-  bool ServerContext::ExpandResource(Json::Value& target,
-                                     const std::string& publicId,
-                                     ResourceType level,
-                                     DicomToJsonFormat format,
-                                     const std::set<DicomTag>& requestedTags,
-                                     bool allowStorageAccess)
-  {
-    std::string unusedInstanceId;
-    Json::Value* unusedDicomAsJson = NULL;
-    DicomMap unusedMainDicomTags;
-
-    return ExpandResource(target, publicId, unusedMainDicomTags, unusedInstanceId, unusedDicomAsJson, level, format, requestedTags, allowStorageAccess);
-  }
-
-  bool ServerContext::ExpandResource(Json::Value& target,
-                                     const std::string& publicId,
-                                     const DicomMap& mainDicomTags,    // optional: the main dicom tags for the resource (if already available)
-                                     const std::string& instanceId,    // optional: the id of an instance for the resource (if already available)
-                                     const Json::Value* dicomAsJson,   // optional: the dicom-as-json for the resource (if already available)
-                                     ResourceType level,
-                                     DicomToJsonFormat format,
-                                     const std::set<DicomTag>& requestedTags,
-                                     bool allowStorageAccess)
-  {
-    ExpandedResource resource;
-
-    if (ExpandResource(resource, publicId, mainDicomTags, instanceId, dicomAsJson, level, requestedTags, ExpandResourceFlags_DefaultExtract, allowStorageAccess))
-    {
-      SerializeExpandedResource(target, resource, format, requestedTags, ExpandResourceFlags_DefaultOutput);
-      return true;
-    }
-
-    return false;
-  }
-  
-  bool ServerContext::ExpandResource(ExpandedResource& resource,
-                                     const std::string& publicId,
-                                     const DicomMap& mainDicomTags,    // optional: the main dicom tags for the resource (if already available)
-                                     const std::string& instanceId,    // optional: the id of an instance for the resource (if already available)
-                                     const Json::Value* dicomAsJson,   // optional: the dicom-as-json for the resource (if already available)
-                                     ResourceType level,
-                                     const std::set<DicomTag>& requestedTags,
-                                     ExpandResourceFlags expandFlags,
-                                     bool allowStorageAccess)
-  {
-    // first try to get the tags from what is already available
-    
-    if ((expandFlags & ExpandResourceFlags_IncludeMainDicomTags) &&
-        mainDicomTags.GetSize() > 0 &&
-        dicomAsJson != NULL)
-    {
-      
-      resource.GetMainDicomTags().Merge(mainDicomTags);
-
-      if (dicomAsJson->isObject())
-      {
-        resource.GetMainDicomTags().FromDicomAsJson(*dicomAsJson);
-      }
-
-      std::set<DicomTag> retrievedTags;
-      std::set<DicomTag> missingTags;
-      resource.GetMainDicomTags().GetTags(retrievedTags);
-
-      Toolbox::GetMissingsFromSet(missingTags, requestedTags, retrievedTags);
-
-      // if all possible tags have been read, no need to get them from DB anymore
-      if (missingTags.size() > 0 && DicomMap::HasOnlyComputedTags(missingTags))
-      {
-        resource.missingRequestedTags_ = missingTags;
-        ComputeTags(resource, *this, publicId, level, requestedTags);
-        return true;
-      }
-      else if (missingTags.size() == 0)
-      {
-        expandFlags = static_cast<ExpandResourceFlags>(expandFlags & ~ExpandResourceFlags_IncludeMainDicomTags);
-      }
-
-      if (missingTags.size() == 0 && expandFlags == ExpandResourceFlags_None)  // we have already retrieved anything we need
-      {
-        return true;
-      }
-    }
-
-    if (expandFlags != ExpandResourceFlags_None &&
-        GetIndex().ExpandResource(resource, publicId, level, requestedTags,
-                                  static_cast<ExpandResourceFlags>(expandFlags | ExpandResourceFlags_IncludeMetadata)))  // we always need the metadata to get the mainDicomTagsSignature
-    {
-      // check the main dicom tags list has not changed since the resource was stored
-      if (resource.mainDicomTagsSignature_ != DicomMap::GetMainDicomTagsSignature(resource.GetLevel()))
-      {
-        OrthancConfiguration::ReaderLock lock;
-        if (lock.GetConfiguration().IsWarningEnabled(Warnings_002_InconsistentDicomTagsInDb))
-        {
-          LOG(WARNING) << "W002: " << Orthanc::GetResourceTypeText(resource.GetLevel(), false , false)
-                       << " has been stored with another version of Main Dicom Tags list, you should POST to /"
-                       << Orthanc::GetResourceTypeText(resource.GetLevel(), true, false)
-                       << "/" << resource.GetPublicId()
-                       << "/reconstruct to update the list of tags saved in DB.  Some MainDicomTags might be missing from this answer.";
-        }
-      }
-
-      // possibly merge missing requested tags from dicom-as-json
-      if (allowStorageAccess &&
-          !resource.missingRequestedTags_.empty() &&
-          !DicomMap::HasOnlyComputedTags(resource.missingRequestedTags_))
-      {
-        OrthancConfiguration::ReaderLock lock;
-        if (lock.GetConfiguration().IsWarningEnabled(Warnings_001_TagsBeingReadFromStorage))
-        {
-          std::set<DicomTag> missingTags;
-          Toolbox::AppendSets(missingTags, resource.missingRequestedTags_);
-          for (std::set<DicomTag>::const_iterator it = resource.missingRequestedTags_.begin(); it != resource.missingRequestedTags_.end(); ++it)
-          {
-            if (DicomMap::IsComputedTag(*it))
-            {
-              missingTags.erase(*it);
-            }
-          }
-
-          std::string missings;
-          FromDcmtkBridge::FormatListOfTags(missings, missingTags);
-
-          LOG(WARNING) << "W001: Accessing Dicom tags from storage when accessing "
-                       << Orthanc::GetResourceTypeText(resource.GetLevel(), false, false)
-                       << " : " << missings;
-        }
-
-
-        std::string instanceId_ = instanceId;
-        DicomMap tagsFromJson;
-
-        if (dicomAsJson == NULL)
-        {
-          if (instanceId_.empty())
-          {
-            if (level == ResourceType_Instance)
-            {
-              instanceId_ = publicId;
-            }
-            else
-            {
-              std::list<std::string> instancesIds;
-              GetIndex().GetChildInstances(instancesIds, publicId);
-              if (instancesIds.size() < 1)
-              {
-                throw OrthancException(ErrorCode_InternalError, "ExpandResource: no instances found");
-              }
-              instanceId_ = instancesIds.front();
-            }
-          }
-  
-          Json::Value tmpDicomAsJson;
-          ReadDicomAsJson(tmpDicomAsJson, instanceId_, resource.missingRequestedTags_ /* ignoreTagLength */);  // read all tags from DICOM and avoid cropping requested tags
-          tagsFromJson.FromDicomAsJson(tmpDicomAsJson, false /* append */, true /* parseSequences*/);
-        }
-        else
-        {
-          tagsFromJson.FromDicomAsJson(*dicomAsJson, false /* append */, true /* parseSequences*/);
-        }
-
-        resource.GetMainDicomTags().Merge(tagsFromJson);
-      }
-
-      // compute the requested tags
-      ComputeTags(resource, *this, publicId, level, requestedTags);
-    }
-    else
-    {
-      return false;
-    }
-
-    return true;
   }
 
   int64_t ServerContext::GetServerUpTime() const

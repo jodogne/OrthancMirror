@@ -3,8 +3,8 @@
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
  * Copyright (C) 2017-2023 Osimis S.A., Belgium
- * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
- * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2024-2025 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2025 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -111,7 +111,7 @@ namespace Orthanc
       {
         return hasAttachmentCustomDataSupport_;
       }
-
+      
       void SetHasExtendedChanges(bool value)
       {
         hasExtendedChanges_ = value;
@@ -132,7 +132,7 @@ namespace Orthanc
         return hasAtomicIncrementGlobalProperty_;
       }
 
-      void SetUpdateAndGetStatistics(bool value)
+      void SetHasUpdateAndGetStatistics(bool value)
       {
         hasUpdateAndGetStatistics_ = value;
       }
@@ -214,11 +214,6 @@ namespace Orthanc
       virtual void GetAllPublicIds(std::list<std::string>& target,
                                    ResourceType resourceType) = 0;
 
-      virtual void GetAllPublicIds(std::list<std::string>& target,
-                                   ResourceType resourceType,
-                                   int64_t since,
-                                   uint32_t limit) = 0;
-
       virtual void GetChanges(std::list<ServerIndexChange>& target /*out*/,
                               bool& done /*out*/,
                               int64_t since,
@@ -226,9 +221,6 @@ namespace Orthanc
 
       virtual void GetChildrenInternalId(std::list<int64_t>& target,
                                          int64_t id) = 0;
-
-      virtual void GetChildrenPublicId(std::list<std::string>& target,
-                                       int64_t id) = 0;
 
       virtual void GetExportedResources(std::list<ExportedResource>& target /*out*/,
                                         bool& done /*out*/,
@@ -318,13 +310,6 @@ namespace Orthanc
     
       virtual bool IsDiskSizeAbove(uint64_t threshold) = 0;
     
-      virtual void ApplyLookupResources(std::list<std::string>& resourcesId,
-                                        std::list<std::string>* instancesId, // Can be NULL if not needed
-                                        const DatabaseDicomTagConstraints& lookup,
-                                        ResourceType queryLevel,
-                                        const std::set<std::string>& labels,
-                                        LabelsConstraint labelsConstraint,
-                                        uint32_t limit) = 0;
 
       // Returns "true" iff. the instance is new and has been inserted
       // into the database. If "false" is returned, the content of
@@ -353,16 +338,6 @@ namespace Orthanc
 
 
       /**
-       * Primitives introduced in Orthanc 1.5.4
-       **/
-
-      virtual bool LookupResourceAndParent(int64_t& id,
-                                           ResourceType& type,
-                                           std::string& parentPublicId,
-                                           const std::string& publicId) = 0;
-
-
-      /**
        * Primitives introduced in Orthanc 1.12.0
        **/
 
@@ -371,10 +346,6 @@ namespace Orthanc
 
       virtual void RemoveLabel(int64_t resource,
                                const std::string& label) = 0;
-
-      // List the labels of one single resource
-      virtual void ListLabels(std::set<std::string>& target,
-                              int64_t resource) = 0;
 
       // List all the labels that are present in any resource
       virtual void ListAllLabels(std::set<std::string>& target) = 0;
@@ -392,8 +363,13 @@ namespace Orthanc
                                           int64_t& uncompressedSize) = 0;
 
       /**
-       * Primitives introduced in Orthanc 1.12.4
+       * Primitives introduced in Orthanc 1.12.5
        **/
+
+      // This is only implemented if "HasIntegratedFind()" is "true"
+      virtual void ExecuteCount(uint64_t& count,
+                                const FindRequest& request,
+                                const Capabilities& capabilities) = 0;
 
       // This is only implemented if "HasIntegratedFind()" is "true"
       virtual void ExecuteFind(FindResponse& response,
@@ -426,6 +402,53 @@ namespace Orthanc
                                       int64_t to,
                                       uint32_t limit,
                                       const std::set<ChangeType>& filterType) = 0;
+    };
+
+
+    // TODO-FIND: Could this interface be removed?
+    class ICompatibilityTransaction : public boost::noncopyable
+    {
+    public:
+      virtual ~ICompatibilityTransaction()
+      {
+      }
+
+      virtual void GetAllPublicIdsCompatibility(std::list<std::string>& target,
+                                                ResourceType resourceType,
+                                                int64_t since,
+                                                uint32_t limit) = 0;
+
+      virtual void GetChildrenPublicId(std::list<std::string>& target,
+                                       int64_t id) = 0;
+
+      /**
+       * Primitives introduced in Orthanc 1.5.2
+       **/
+
+      virtual void ApplyLookupResources(std::list<std::string>& resourcesId,
+                                        std::list<std::string>* instancesId, // Can be NULL if not needed
+                                        const DatabaseDicomTagConstraints& lookup,
+                                        ResourceType queryLevel,
+                                        const std::set<std::string>& labels,
+                                        LabelsConstraint labelsConstraint,
+                                        uint32_t limit) = 0;
+
+      /**
+       * Primitives introduced in Orthanc 1.5.4
+       **/
+
+      virtual bool LookupResourceAndParent(int64_t& id,
+                                           ResourceType& type,
+                                           std::string& parentPublicId,
+                                           const std::string& publicId) = 0;
+
+      /**
+       * Primitives introduced in Orthanc 1.12.0
+       **/
+
+      // List the labels of one single resource
+      virtual void ListLabels(std::set<std::string>& target,
+                              int64_t resource) = 0;
     };
 
 

@@ -3,8 +3,8 @@
  * Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics
  * Department, University Hospital of Liege, Belgium
  * Copyright (C) 2017-2023 Osimis S.A., Belgium
- * Copyright (C) 2024-2024 Orthanc Team SRL, Belgium
- * Copyright (C) 2021-2024 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
+ * Copyright (C) 2024-2025 Orthanc Team SRL, Belgium
+ * Copyright (C) 2021-2025 Sebastien Jodogne, ICTEAM UCLouvain, Belgium
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -244,8 +244,21 @@ namespace Orthanc
   {
     if (!boost::filesystem::exists(path))
     {
-      LOG(ERROR) << "Inexistent path to plugins: " << path;
-      return;
+      boost::filesystem::path p(path);
+      std::string extension = p.extension().string();
+      Toolbox::ToLowerCase(extension);
+
+      if (extension == PLUGIN_EXTENSION)
+      { 
+        // if this is a plugin path, fail to start
+        throw OrthancException(ErrorCode_SharedLibrary, "Inexistent path to plugin: " + path);
+      }
+      else
+      { 
+        // it might be a directory -> just log a warning
+        LOG(WARNING) << "Inexistent path to plugins: " << path;
+        return;
+      }
     }
 
     if (boost::filesystem::is_directory(path))
