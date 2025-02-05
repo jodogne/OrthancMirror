@@ -3615,6 +3615,14 @@ namespace Orthanc
 
     Json::Value answer;
     finder.Execute(answer, OrthancRestApi::GetContext(call), format, false /* no "Metadata" field */);
+    
+    // Given the data model, if there are no children, it means there is no parent.
+    // https://discourse.orthanc-server.org/t/patients-id-instances-quirk/5498
+    if (answer.size() == 0) 
+    {
+      throw OrthancException(ErrorCode_UnknownResource);
+    }
+
     call.GetOutput().AnswerJson(answer);
   }
 
