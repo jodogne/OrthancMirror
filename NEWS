@@ -6,6 +6,7 @@ Maintenance
 
 * In the "ExtendedFind" mode, optimized "tools/find" when "StorageAccessMode" is 
   set to "Never".
+* Fixed interpretation of returnUnsupportedImage in /preview route. 
 
 
 Version 1.12.6 (2025-01-22)

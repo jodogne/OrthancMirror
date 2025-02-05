@@ -850,7 +850,7 @@ namespace Orthanc
             .SetTag("Instances")
             .SetUriArgument("id", "Orthanc identifier of the DICOM instance of interest")
             .SetHttpGetArgument("quality", RestApiCallDocumentation::Type_Number, "Quality for JPEG images (between 1 and 100, defaults to 90)", false)
-            .SetHttpGetArgument("returnUnsupportedImage", RestApiCallDocumentation::Type_Boolean, "Returns an unsupported.png placeholder image if unable to provide the image instead of returning a 415 HTTP error (defaults to false)", false)
+            .SetHttpGetArgument("returnUnsupportedImage", RestApiCallDocumentation::Type_Boolean, "Returns an unsupported.png placeholder image if unable to provide the image instead of returning a 415 HTTP error (value is true if option is present)", false)
             .SetHttpHeader("Accept", "Format of the resulting image. Can be `image/png` (default), `image/jpeg` or `image/x-portable-arbitrarymap`")
             .AddAnswerType(MimeType_Png, "PNG image")
             .AddAnswerType(MimeType_Jpeg, "JPEG image")
@@ -913,7 +913,8 @@ namespace Orthanc
           }
           else
           {
-            if (call.HasArgument("returnUnsupportedImage"))
+            // if present and not explicitely set to false
+            if (call.HasArgument("returnUnsupportedImage") && call.GetBooleanArgument("returnUnsupportedImage", true))
             {
               std::string root = "";
               for (size_t i = 1; i < call.GetFullUri().size(); i++)
