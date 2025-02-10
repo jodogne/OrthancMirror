@@ -861,20 +861,4 @@ namespace Orthanc
   }
 #endif
 
-  // bool StorageAccessor::HandlesCustomData()
-  // {
-  //   return area_.HandlesCustomData();
-  // }
-
-  // void StorageAccessor::GetCustomData(std::string& customData,
-  //                                     const std::string& uuid,
-  //                                     const DicomInstanceToStore* instance,
-  //                                     const void* content, 
-  //                                     size_t size,
-  //                                     FileContentType type,
-  //                                     bool compression)
-  // {
-  //   area_.GetCustomData(customData, uuid, instance, content, size, type, compression);
-  // }
-
 }
