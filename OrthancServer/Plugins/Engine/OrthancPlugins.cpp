@@ -929,7 +929,7 @@ namespace Orthanc
     };
 
 
-    // New in Orthanc 1.12.0
+    // New in Orthanc 1.12.7
     class PluginStorageArea3 : public IStorageArea
     {
     private:
@@ -1003,7 +1003,7 @@ namespace Orthanc
             remove2_ == NULL ||
             readWhole2_ == NULL)
         {
-          throw OrthancException(ErrorCode_Plugin, "Storage area plugin doesn't implement all the required primitives (create, remove, readWhole");
+          throw OrthancException(ErrorCode_Plugin, "Storage area plugin doesn't implement all the required primitives (createInstance, createAttachment, remove, readWhole");
         }
       }
 
