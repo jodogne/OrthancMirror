@@ -258,6 +258,8 @@ Performance
   Alternative option 4: Catch out-of-memory exceptions at quite high level in HTTPHandlers and DICOM receivers
     and implement retries.  After a few retries, fail for good and return "out-of-resources".
     Would be interesting to log these errors and count them in the prometheus metrics.
+  Note: I'm (maybe naively) thinking that you only need the beginning of the file to get the DICOM tags to be stored 
+  in the database, so maybe the rest of the file could be "streamed" directly to disk and not kept in memory?
 * To investigate: usage of mapped_file (not only in the indexer plugin): 
   https://discourse.orthanc-server.org/t/patch-for-orthanc-indexer-plugin-crashing-on-big-non-dicom-files/3849/7
 
