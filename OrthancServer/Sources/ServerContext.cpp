@@ -985,10 +985,11 @@ namespace Orthanc
 
   
   void ServerContext::AnswerAttachment(RestApiOutput& output,
-                                       const FileInfo& attachment)
+                                       const FileInfo& attachment,
+                                       const std::string& filename)
   {
     StorageAccessor accessor(area_, storageCache_, GetMetricsRegistry());
-    accessor.AnswerFile(output, attachment, GetFileContentMime(attachment.GetContentType()));
+    accessor.AnswerFile(output, attachment, GetFileContentMime(attachment.GetContentType()), filename);
   }
 
 

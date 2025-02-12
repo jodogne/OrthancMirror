@@ -1243,6 +1243,7 @@ namespace Orthanc
     archive_(new ArchiveIndex(GetArchiveResourceType(jobLevel))),  // get patient Info from this level
     isMedia_(isMedia),
     enableExtendedSopClass_(enableExtendedSopClass),
+    filename_("archive.zip"),
     currentStep_(0),
     instancesCount_(0),
     uncompressedSize_(0),
@@ -1296,7 +1297,18 @@ namespace Orthanc
     }
   }
 
-  
+  void ArchiveJob::SetFilename(const std::string& filename)
+  {
+    if (writer_.get() != NULL)   // Already started
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    else
+    {
+      filename_ = filename;
+    }
+  }
+
   void ArchiveJob::AddResource(const std::string& publicId,
                                bool mustExist,
                                ResourceType expectedType)
@@ -1582,7 +1594,7 @@ namespace Orthanc
         const DynamicTemporaryFile& f = dynamic_cast<DynamicTemporaryFile&>(accessor.GetItem());
         f.GetFile().Read(output);
         mime = MimeType_Zip;
-        filename = "archive.zip";
+        filename = filename_;
         return true;
       }
       else
