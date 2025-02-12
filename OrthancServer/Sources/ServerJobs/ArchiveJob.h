@@ -57,6 +57,7 @@ namespace Orthanc
     bool                                  isMedia_;
     bool                                  enableExtendedSopClass_;
     std::string                           description_;
+    std::string                           filename_;
 
     boost::shared_ptr<ZipWriterIterator>  writer_;
     size_t                                currentStep_;
@@ -89,6 +90,13 @@ namespace Orthanc
     const std::string& GetDescription() const
     {
       return description_;
+    }
+
+    void SetFilename(const std::string& filename);
+
+    const std::string& GetFilename() const
+    {
+      return filename_;
     }
 
     void AddResource(const std::string& publicId,

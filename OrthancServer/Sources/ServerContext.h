@@ -361,7 +361,8 @@ namespace Orthanc
                                   bool isReconstruct = false);
 
     void AnswerAttachment(RestApiOutput& output,
-                          const FileInfo& fileInfo);
+                          const FileInfo& fileInfo,
+                          const std::string& filename);
 
     void ChangeAttachmentCompression(ResourceType level,
                                      const std::string& resourceId,

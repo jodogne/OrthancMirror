@@ -338,7 +338,8 @@ namespace Orthanc
  
   static void GetInstanceFile(RestApiGetCall& call)
   {
-    static const char* const TRANSCODE = "transcode";
+    static const char* const GET_TRANSCODE = "transcode";
+    static const char* const GET_FILENAME = "filename";
 
     if (call.IsDocumentation())
     {
@@ -348,9 +349,12 @@ namespace Orthanc
         .SetDescription("Download one DICOM instance")
         .SetUriArgument("id", "Orthanc identifier of the DICOM instance of interest")
         .SetHttpHeader("Accept", "This HTTP header can be set to retrieve the DICOM instance in DICOMweb format")
-        .SetHttpGetArgument(TRANSCODE, RestApiCallDocumentation::Type_String,
+        .SetHttpGetArgument(GET_TRANSCODE, RestApiCallDocumentation::Type_String,
                             "If present, the DICOM file will be transcoded to the provided "
                             "transfer syntax: https://orthanc.uclouvain.be/book/faq/transcoding.html", false)
+        .SetHttpGetArgument(GET_FILENAME, RestApiCallDocumentation::Type_String,
+                              "Filename to set in the \"Content-Disposition\" HTTP header "
+                              "(including file extension)", false)
         .AddAnswerType(MimeType_Dicom, "The DICOM instance")
         .AddAnswerType(MimeType_DicomWebJson, "The DICOM instance, in DICOMweb JSON format")
         .AddAnswerType(MimeType_DicomWebXml, "The DICOM instance, in DICOMweb XML format");
@@ -399,15 +403,18 @@ namespace Orthanc
       }
     }
 
-    if (call.HasArgument(TRANSCODE))
+    const std::string filename = call.GetArgument(GET_FILENAME, publicId + ".dcm");  // New in Orthanc 1.12.7
+
+    if (call.HasArgument(GET_TRANSCODE))
     {
       std::string source;
       std::string attachmentId;
       std::string transcoded;
       context.ReadDicom(source, attachmentId, publicId);
 
-      if (context.TranscodeWithCache(transcoded, source, publicId, attachmentId, GetTransferSyntax(call.GetArgument(TRANSCODE, ""))))
+      if (context.TranscodeWithCache(transcoded, source, publicId, attachmentId, GetTransferSyntax(call.GetArgument(GET_TRANSCODE, ""))))
       {
+        call.GetOutput().SetContentFilename(filename.c_str());
         call.GetOutput().AnswerBuffer(transcoded, MimeType_Dicom);
       }
     }
@@ -422,7 +429,7 @@ namespace Orthanc
       }
       else
       {
-        context.AnswerAttachment(call.GetOutput(), info);
+        context.AnswerAttachment(call.GetOutput(), info, filename);
       }
     }
   }
@@ -2298,6 +2305,8 @@ namespace Orthanc
   {
     const ResourceType level = GetResourceTypeFromUri(call);
 
+    static const char* const GET_FILENAME = "filename";
+
     if (call.IsDocumentation())
     {
       std::string r = GetResourceTypeText(level, false /* plural */, false /* upper case */);
@@ -2308,11 +2317,15 @@ namespace Orthanc
                         std::string(uncompress ? "" : ". The attachment will not be decompressed if `StorageCompression` is `true`."))
         .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
         .SetUriArgument("name", "The name of the attachment, or its index (cf. `UserContentType` configuration option)")
+        .SetHttpGetArgument(GET_FILENAME, RestApiCallDocumentation::Type_String,
+          "Filename to set in the \"Content-Disposition\" HTTP header "
+          "(including file extension)", false)
         .AddAnswerType(MimeType_Binary, "The attachment")
         .SetAnswerHeader("ETag", "Revision of the attachment, to be used in further `PUT` or `DELETE` operations")
         .SetHttpHeader("If-None-Match", "Optional revision of the attachment, to check if its content has changed")
         .SetHttpHeader("Content-Range", "Optional content range to access part of the attachment (new in Orthanc 1.12.5)");
-      return;
+    
+        return;
     }
 
     ServerContext& context = OrthancRestApi::GetContext(call);
@@ -2343,6 +2356,8 @@ namespace Orthanc
         return;
       }
 
+      const std::string filename = call.GetArgument(GET_FILENAME, info.GetUuid());  // New in Orthanc 1.12.7
+
       if (hasRangeHeader)
       {
         std::string fragment;
@@ -2356,7 +2371,7 @@ namespace Orthanc
       else if (uncompress ||
                info.GetCompressionType() == CompressionType_None)
       {
-        context.AnswerAttachment(call.GetOutput(), info);
+        context.AnswerAttachment(call.GetOutput(), info, filename);
       }
       else
       {
