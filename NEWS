@@ -10,14 +10,13 @@ REST API
 * GET /instances/../file and sibbling ../attachments/../data routes now all accept a 'filename' GET argument.
 
 
-
-
 Maintenance
 -----------
 
 * In the "ExtendedFind" mode, optimized "tools/find" when "StorageAccessMode" is 
   set to "Never".
 * Fixed interpretation of returnUnsupportedImage in /preview route. 
+* GET /series/../study now also contain LastUpdate field (https://discourse.orthanc-server.org/t/lastupdate-coherency/5524)
 
 
 Version 1.12.6 (2025-01-22)
