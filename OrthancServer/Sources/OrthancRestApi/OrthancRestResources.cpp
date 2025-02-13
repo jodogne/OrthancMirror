@@ -156,7 +156,6 @@ namespace Orthanc
 
     ResourceFinder finder(level, responseContent, context.GetFindStorageAccessMode(), context.GetIndex().HasFindSupport());
     finder.SetOrthancId(level, identifier);
-    finder.SetRetrieveMetadata(retrieveMetadata);
 
     return finder.ExecuteOneResource(target, context, format, retrieveMetadata);
   }
