@@ -286,6 +286,7 @@ if (NOT DCMTK_USE_EMBEDDED_DICTIONARIES)
     find_path(DCMTK_DICTIONARY_DIR_AUTO dicom.dic
       /usr/share/dcmtk
       /usr/share/dcmtk-3.6.8
+      /usr/share/dcmtk-3.6.9
       /usr/share/libdcmtk1
       /usr/share/libdcmtk2
       /usr/share/libdcmtk3
