@@ -57,6 +57,8 @@ General
   - Also consider the use case of an Orthanc cluster that is being scaled-down just after one Orthanc instance
     has received a few instances -> we can not only check for missing stable events at startup since no Orthanc will start.  
     We would need to maintain the list of "unstable" resources in DB instead of memory only.
+  - Also check the PG plugin and its new table InvalidChildCounts, with a timestamp there, we can detect for
+    how long a study has not been modified !
 * In prometheus metrics, implement Histograms or Exponential Histograms to measure durations.  Right now, we only provide
   "average" durations that are not very relevant
   (https://opentelemetry.io/docs/specs/otel/metrics/data-model/#histogram)
@@ -204,6 +206,8 @@ Mid-term
 * Log outgoing C-Find queries
 * Support other Transfer Syntaxes in the Worklist plugin:
   https://discourse.orthanc-server.org/t/could-you-please-create-an-option-to-set-the-transfer-syntax-in-the-worklist-plugin-currently-little-endian-explicit-is-fixed/4871
+* Compile DCMTK with ZLib support: https://discourse.orthanc-server.org/t/transcoding-to-deflated-transfer-syntax-fails/5489/7
+
 
 ---------
 Long-term
