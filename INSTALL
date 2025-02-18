@@ -76,7 +76,7 @@ Native Windows build with Microsoft Visual Studio 2008
 
 # cd [...]\Orthanc\Build
 # cmake -DSTANDALONE_BUILD=ON -DSTATIC_BUILD=ON -DALLOW_DOWNLOADS=ON \
-  -DUSE_LEGACY_JSONCPP=ON -G "Visual Studio 9 2008" [...]\OrthancServer
+  -DUSE_LEGACY_JSONCPP=ON -DUSE_LEGACY_BOOST=ON -G "Visual Studio 9 2008" [...]\OrthancServer
 
 Then open the "[...]\Orthanc\Build\Orthanc.sln" with Visual Studio.
 
@@ -145,17 +145,20 @@ Instructions to include support for Asian encodings:
 Cross-Compilation for Windows under GNU/Linux
 ---------------------------------------------
 
-Some versions of MinGW-W64 might have problems with C++11 (notably
-those shipped in Ubuntu 16.04 LTS, in the "mingw-w64" package). Use
-the following command to disable C++11:
+Some versions of MinGW-W64 may have insufficient support C++11 to
+compile recent versions of Boost or ICU (notably those shipped in
+Ubuntu 22.04 LTS, in the "g++-mingw-w64-i686-win32" package). Use the
+following command to disable C++11 in Boost and ICU:
 
 # cd ~/Orthanc/Build
 # cmake ../OrthancServer \
-        -DCMAKE_BUILD_TYPE=Debug \
-        -DCMAKE_TOOLCHAIN_FILE=~/Orthanc/Resources/MinGW-W64-Toolchain32.cmake \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_TOOLCHAIN_FILE=../OrthancFramework/Resources/Toolchains/MinGW-W64-Toolchain32.cmake \
         -DSTANDALONE_BUILD=ON \
         -DSTATIC_BUILD=ON \
-        -DUSE_LEGACY_JSONCPP=ON
+        -DBOOST_LOCALE_BACKEND=icu \
+        -DUSE_LEGACY_BOOST=ON \
+        -DUSE_LEGACY_LIBICU=ON
 # make
 
 NB: Use the toolchain "MinGW-W64-Toolchain64.cmake" to produce 64bit
@@ -170,10 +173,12 @@ disable C++11:
 
 # cd ~/Orthanc/Build
 # cmake ../OrthancServer \
-        -DCMAKE_BUILD_TYPE=Debug \
-        -DCMAKE_TOOLCHAIN_FILE=~/Orthanc/Resources/MinGWToolchain.cmake \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_TOOLCHAIN_FILE=../OrthancFramework/Resources/Toolchains/MinGWToolchain.cmake \
         -DSTANDALONE_BUILD=ON \
         -DSTATIC_BUILD=ON \
         -DDCMTK_STATIC_VERSION=3.6.0 \
-        -DUSE_LEGACY_JSONCPP=ON
+        -DUSE_LEGACY_JSONCPP=ON \
+        -DUSE_LEGACY_BOOST=ON \
+        -DUSE_LEGACY_LIBICU=ON
 # make
