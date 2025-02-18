@@ -1,6 +1,6 @@
 diff -urEb dcmtk-3.6.9.orig/config/math.cc dcmtk-3.6.9/config/math.cc
---- dcmtk-3.6.9.orig/config/math.cc	2025-01-16 18:04:46.121846434 +0100
-+++ dcmtk-3.6.9/config/math.cc	2025-01-17 07:45:46.252026376 +0100
+--- dcmtk-3.6.9.orig/config/math.cc	2025-02-18 18:03:13.501406015 +0100
++++ dcmtk-3.6.9/config/math.cc	2025-02-18 18:05:52.950086576 +0100
 @@ -42,11 +42,17 @@
  #include <windows.h>
  #endif
@@ -54,8 +54,8 @@ diff -urEb dcmtk-3.6.9.orig/config/math.cc dcmtk-3.6.9/config/math.cc
  #else
      return ::isinf( d );
 diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg12/jccoefct.c dcmtk-3.6.9/dcmjpeg/libijg12/jccoefct.c
---- dcmtk-3.6.9.orig/dcmjpeg/libijg12/jccoefct.c	2025-01-16 18:04:46.158846116 +0100
-+++ dcmtk-3.6.9/dcmjpeg/libijg12/jccoefct.c	2025-01-16 20:11:42.016717178 +0100
+--- dcmtk-3.6.9.orig/dcmjpeg/libijg12/jccoefct.c	2025-02-18 18:03:13.530405562 +0100
++++ dcmtk-3.6.9/dcmjpeg/libijg12/jccoefct.c	2025-02-18 18:05:52.950086576 +0100
 @@ -343,7 +343,7 @@
  METHODDEF(boolean)
  compress_output (j_compress_ptr cinfo, JSAMPIMAGE input_buf)
@@ -66,8 +66,8 @@ diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg12/jccoefct.c dcmtk-3.6.9/dcmjpeg/libi
    c_coef_ptr coef = (c_coef_ptr) lossyc->coef_private;
    JDIMENSION MCU_col_num;   /* index of current MCU within row */
 diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg12/jcdiffct.c dcmtk-3.6.9/dcmjpeg/libijg12/jcdiffct.c
---- dcmtk-3.6.9.orig/dcmjpeg/libijg12/jcdiffct.c	2025-01-16 18:04:46.158846116 +0100
-+++ dcmtk-3.6.9/dcmjpeg/libijg12/jcdiffct.c	2025-01-16 20:11:42.016717178 +0100
+--- dcmtk-3.6.9.orig/dcmjpeg/libijg12/jcdiffct.c	2025-02-18 18:03:13.531405546 +0100
++++ dcmtk-3.6.9/dcmjpeg/libijg12/jcdiffct.c	2025-02-18 18:05:52.951086562 +0100
 @@ -302,7 +302,7 @@
  METHODDEF(boolean)
  compress_output (j_compress_ptr cinfo, JSAMPIMAGE input_buf)
@@ -78,8 +78,8 @@ diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg12/jcdiffct.c dcmtk-3.6.9/dcmjpeg/libi
    c_diff_ptr diff = (c_diff_ptr) losslsc->diff_private;
    /* JDIMENSION MCU_col_num; */ /* index of current MCU within row */
 diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg12/jcpred.c dcmtk-3.6.9/dcmjpeg/libijg12/jcpred.c
---- dcmtk-3.6.9.orig/dcmjpeg/libijg12/jcpred.c	2025-01-16 18:04:46.158846116 +0100
-+++ dcmtk-3.6.9/dcmjpeg/libijg12/jcpred.c	2025-01-16 20:11:42.017717169 +0100
+--- dcmtk-3.6.9.orig/dcmjpeg/libijg12/jcpred.c	2025-02-18 18:03:13.530405562 +0100
++++ dcmtk-3.6.9/dcmjpeg/libijg12/jcpred.c	2025-02-18 18:05:52.951086562 +0100
 @@ -213,7 +213,7 @@
           const JSAMPROW input_buf, JSAMPROW prev_row,
           JDIFFROW diff_buf, JDIMENSION width)
@@ -90,8 +90,8 @@ diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg12/jcpred.c dcmtk-3.6.9/dcmjpeg/libijg
  
    /*
 diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg12/jctrans.c dcmtk-3.6.9/dcmjpeg/libijg12/jctrans.c
---- dcmtk-3.6.9.orig/dcmjpeg/libijg12/jctrans.c	2025-01-16 18:04:46.158846116 +0100
-+++ dcmtk-3.6.9/dcmjpeg/libijg12/jctrans.c	2025-01-16 20:11:42.017717169 +0100
+--- dcmtk-3.6.9.orig/dcmjpeg/libijg12/jctrans.c	2025-02-18 18:03:13.530405562 +0100
++++ dcmtk-3.6.9/dcmjpeg/libijg12/jctrans.c	2025-02-18 18:05:52.951086562 +0100
 @@ -267,7 +267,7 @@
  METHODDEF(boolean)
  compress_output (j_compress_ptr cinfo, JSAMPIMAGE input_buf)
@@ -102,8 +102,8 @@ diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg12/jctrans.c dcmtk-3.6.9/dcmjpeg/libij
    c_coef_ptr coef = (c_coef_ptr) lossyc->coef_private;
    JDIMENSION MCU_col_num;   /* index of current MCU within row */
 diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg12/jdmerge.c dcmtk-3.6.9/dcmjpeg/libijg12/jdmerge.c
---- dcmtk-3.6.9.orig/dcmjpeg/libijg12/jdmerge.c	2025-01-16 18:04:46.158846116 +0100
-+++ dcmtk-3.6.9/dcmjpeg/libijg12/jdmerge.c	2025-01-16 20:11:42.017717169 +0100
+--- dcmtk-3.6.9.orig/dcmjpeg/libijg12/jdmerge.c	2025-02-18 18:03:13.530405562 +0100
++++ dcmtk-3.6.9/dcmjpeg/libijg12/jdmerge.c	2025-02-18 18:05:52.951086562 +0100
 @@ -148,7 +148,7 @@
              JDIMENSION out_rows_avail)
  /* 2:1 vertical sampling case: may need a spare row. */
@@ -125,8 +125,8 @@ diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg12/jdmerge.c dcmtk-3.6.9/dcmjpeg/libij
  
    /* Just do the upsampling. */
 diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg12/jdpostct.c dcmtk-3.6.9/dcmjpeg/libijg12/jdpostct.c
---- dcmtk-3.6.9.orig/dcmjpeg/libijg12/jdpostct.c	2025-01-16 18:04:46.158846116 +0100
-+++ dcmtk-3.6.9/dcmjpeg/libijg12/jdpostct.c	2025-01-16 20:11:42.017717169 +0100
+--- dcmtk-3.6.9.orig/dcmjpeg/libijg12/jdpostct.c	2025-02-18 18:03:13.530405562 +0100
++++ dcmtk-3.6.9/dcmjpeg/libijg12/jdpostct.c	2025-02-18 18:05:52.952086549 +0100
 @@ -161,8 +161,8 @@
                JSAMPARRAY output_buf, JDIMENSION *out_row_ctr,
                JDIMENSION out_rows_avail)
@@ -152,8 +152,8 @@ diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg12/jdpostct.c dcmtk-3.6.9/dcmjpeg/libi
    my_post_ptr post = (my_post_ptr) cinfo->post;
    JDIMENSION num_rows, max_rows;
 diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg12/jdpred.c dcmtk-3.6.9/dcmjpeg/libijg12/jdpred.c
---- dcmtk-3.6.9.orig/dcmjpeg/libijg12/jdpred.c	2025-01-16 18:04:46.158846116 +0100
-+++ dcmtk-3.6.9/dcmjpeg/libijg12/jdpred.c	2025-01-16 20:11:42.017717169 +0100
+--- dcmtk-3.6.9.orig/dcmjpeg/libijg12/jdpred.c	2025-02-18 18:03:13.530405562 +0100
++++ dcmtk-3.6.9/dcmjpeg/libijg12/jdpred.c	2025-02-18 18:05:52.952086549 +0100
 @@ -101,8 +101,8 @@
             const JDIFFROW diff_buf, const JDIFFROW prev_row,
             JDIFFROW undiff_buf, JDIMENSION width)
@@ -241,8 +241,8 @@ diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg12/jdpred.c dcmtk-3.6.9/dcmjpeg/libijg
  
    UNDIFFERENCE_1D(INITIAL_PREDICTORx);
 diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg12/jdsample.c dcmtk-3.6.9/dcmjpeg/libijg12/jdsample.c
---- dcmtk-3.6.9.orig/dcmjpeg/libijg12/jdsample.c	2025-01-16 18:04:46.158846116 +0100
-+++ dcmtk-3.6.9/dcmjpeg/libijg12/jdsample.c	2025-01-16 20:11:42.018717160 +0100
+--- dcmtk-3.6.9.orig/dcmjpeg/libijg12/jdsample.c	2025-02-18 18:03:13.530405562 +0100
++++ dcmtk-3.6.9/dcmjpeg/libijg12/jdsample.c	2025-02-18 18:05:52.952086549 +0100
 @@ -92,7 +92,7 @@
            JSAMPARRAY output_buf, JDIMENSION *out_row_ctr,
            JDIMENSION out_rows_avail)
@@ -295,8 +295,8 @@ diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg12/jdsample.c dcmtk-3.6.9/dcmjpeg/libi
    register JSAMPROW inptr, outptr;
    register JSAMPLE invalue;
 diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg12/jdscale.c dcmtk-3.6.9/dcmjpeg/libijg12/jdscale.c
---- dcmtk-3.6.9.orig/dcmjpeg/libijg12/jdscale.c	2025-01-16 18:04:46.157846124 +0100
-+++ dcmtk-3.6.9/dcmjpeg/libijg12/jdscale.c	2025-01-16 20:11:42.018717160 +0100
+--- dcmtk-3.6.9.orig/dcmjpeg/libijg12/jdscale.c	2025-02-18 18:03:13.530405562 +0100
++++ dcmtk-3.6.9/dcmjpeg/libijg12/jdscale.c	2025-02-18 18:05:52.953086535 +0100
 @@ -67,7 +67,7 @@
  	const JDIFFROW diff_buf, JSAMPROW output_buf,
  	JDIMENSION width)
@@ -307,8 +307,8 @@ diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg12/jdscale.c dcmtk-3.6.9/dcmjpeg/libij
  
    for (xindex = 0; xindex < width; xindex++)
 diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg12/jerror.c dcmtk-3.6.9/dcmjpeg/libijg12/jerror.c
---- dcmtk-3.6.9.orig/dcmjpeg/libijg12/jerror.c	2025-01-16 18:04:46.158846116 +0100
-+++ dcmtk-3.6.9/dcmjpeg/libijg12/jerror.c	2025-01-17 11:14:11.975382089 +0100
+--- dcmtk-3.6.9.orig/dcmjpeg/libijg12/jerror.c	2025-02-18 18:03:13.530405562 +0100
++++ dcmtk-3.6.9/dcmjpeg/libijg12/jerror.c	2025-02-18 18:05:52.953086535 +0100
 @@ -34,6 +34,10 @@
  #define EXIT_FAILURE  1
  #endif
@@ -321,8 +321,8 @@ diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg12/jerror.c dcmtk-3.6.9/dcmjpeg/libijg
  /*
   * Create the message string table.
 diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg12/jquant1.c dcmtk-3.6.9/dcmjpeg/libijg12/jquant1.c
---- dcmtk-3.6.9.orig/dcmjpeg/libijg12/jquant1.c	2025-01-16 18:04:46.157846124 +0100
-+++ dcmtk-3.6.9/dcmjpeg/libijg12/jquant1.c	2025-01-16 20:11:42.018717160 +0100
+--- dcmtk-3.6.9.orig/dcmjpeg/libijg12/jquant1.c	2025-02-18 18:03:13.530405562 +0100
++++ dcmtk-3.6.9/dcmjpeg/libijg12/jquant1.c	2025-02-18 18:05:52.953086535 +0100
 @@ -251,8 +251,8 @@
     * (Forcing the upper and lower values to the limits ensures that
     * dithering can't produce a color outside the selected gamut.)
@@ -364,8 +364,8 @@ diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg12/jquant1.c dcmtk-3.6.9/dcmjpeg/libij
  }
  
 diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg12/jquant2.c dcmtk-3.6.9/dcmjpeg/libijg12/jquant2.c
---- dcmtk-3.6.9.orig/dcmjpeg/libijg12/jquant2.c	2025-01-16 18:04:46.157846124 +0100
-+++ dcmtk-3.6.9/dcmjpeg/libijg12/jquant2.c	2025-01-16 20:11:42.018717160 +0100
+--- dcmtk-3.6.9.orig/dcmjpeg/libijg12/jquant2.c	2025-02-18 18:03:13.530405562 +0100
++++ dcmtk-3.6.9/dcmjpeg/libijg12/jquant2.c	2025-02-18 18:05:52.954086521 +0100
 @@ -224,7 +224,7 @@
  prescan_quantize (j_decompress_ptr cinfo, JSAMPARRAY input_buf,
            JSAMPARRAY output_buf, int num_rows)
@@ -385,8 +385,8 @@ diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg12/jquant2.c dcmtk-3.6.9/dcmjpeg/libij
  }
  
 diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg16/jccoefct.c dcmtk-3.6.9/dcmjpeg/libijg16/jccoefct.c
---- dcmtk-3.6.9.orig/dcmjpeg/libijg16/jccoefct.c	2025-01-16 18:04:46.159846107 +0100
-+++ dcmtk-3.6.9/dcmjpeg/libijg16/jccoefct.c	2025-01-16 20:11:42.019717150 +0100
+--- dcmtk-3.6.9.orig/dcmjpeg/libijg16/jccoefct.c	2025-02-18 18:03:13.531405546 +0100
++++ dcmtk-3.6.9/dcmjpeg/libijg16/jccoefct.c	2025-02-18 18:05:52.954086521 +0100
 @@ -343,7 +343,7 @@
  METHODDEF(boolean)
  compress_output (j_compress_ptr cinfo, JSAMPIMAGE input_buf)
@@ -397,8 +397,8 @@ diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg16/jccoefct.c dcmtk-3.6.9/dcmjpeg/libi
    c_coef_ptr coef = (c_coef_ptr) lossyc->coef_private;
    JDIMENSION MCU_col_num;   /* index of current MCU within row */
 diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg16/jcdiffct.c dcmtk-3.6.9/dcmjpeg/libijg16/jcdiffct.c
---- dcmtk-3.6.9.orig/dcmjpeg/libijg16/jcdiffct.c	2025-01-16 18:04:46.159846107 +0100
-+++ dcmtk-3.6.9/dcmjpeg/libijg16/jcdiffct.c	2025-01-16 20:11:42.019717150 +0100
+--- dcmtk-3.6.9.orig/dcmjpeg/libijg16/jcdiffct.c	2025-02-18 18:03:13.531405546 +0100
++++ dcmtk-3.6.9/dcmjpeg/libijg16/jcdiffct.c	2025-02-18 18:05:52.954086521 +0100
 @@ -302,7 +302,7 @@
  METHODDEF(boolean)
  compress_output (j_compress_ptr cinfo, JSAMPIMAGE input_buf)
@@ -409,8 +409,8 @@ diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg16/jcdiffct.c dcmtk-3.6.9/dcmjpeg/libi
    c_diff_ptr diff = (c_diff_ptr) losslsc->diff_private;
    /* JDIMENSION MCU_col_num; */ /* index of current MCU within row */
 diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg16/jcpred.c dcmtk-3.6.9/dcmjpeg/libijg16/jcpred.c
---- dcmtk-3.6.9.orig/dcmjpeg/libijg16/jcpred.c	2025-01-16 18:04:46.159846107 +0100
-+++ dcmtk-3.6.9/dcmjpeg/libijg16/jcpred.c	2025-01-16 20:11:42.019717150 +0100
+--- dcmtk-3.6.9.orig/dcmjpeg/libijg16/jcpred.c	2025-02-18 18:03:13.531405546 +0100
++++ dcmtk-3.6.9/dcmjpeg/libijg16/jcpred.c	2025-02-18 18:05:52.954086521 +0100
 @@ -213,7 +213,7 @@
           const JSAMPROW input_buf, JSAMPROW prev_row,
           JDIFFROW diff_buf, JDIMENSION width)
@@ -421,8 +421,8 @@ diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg16/jcpred.c dcmtk-3.6.9/dcmjpeg/libijg
  
    /*
 diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg16/jctrans.c dcmtk-3.6.9/dcmjpeg/libijg16/jctrans.c
---- dcmtk-3.6.9.orig/dcmjpeg/libijg16/jctrans.c	2025-01-16 18:04:46.159846107 +0100
-+++ dcmtk-3.6.9/dcmjpeg/libijg16/jctrans.c	2025-01-16 20:11:42.019717150 +0100
+--- dcmtk-3.6.9.orig/dcmjpeg/libijg16/jctrans.c	2025-02-18 18:03:13.531405546 +0100
++++ dcmtk-3.6.9/dcmjpeg/libijg16/jctrans.c	2025-02-18 18:05:52.954086521 +0100
 @@ -267,7 +267,7 @@
  METHODDEF(boolean)
  compress_output (j_compress_ptr cinfo, JSAMPIMAGE input_buf)
@@ -433,8 +433,8 @@ diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg16/jctrans.c dcmtk-3.6.9/dcmjpeg/libij
    c_coef_ptr coef = (c_coef_ptr) lossyc->coef_private;
    JDIMENSION MCU_col_num;   /* index of current MCU within row */
 diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg16/jdmerge.c dcmtk-3.6.9/dcmjpeg/libijg16/jdmerge.c
---- dcmtk-3.6.9.orig/dcmjpeg/libijg16/jdmerge.c	2025-01-16 18:04:46.159846107 +0100
-+++ dcmtk-3.6.9/dcmjpeg/libijg16/jdmerge.c	2025-01-16 20:11:42.019717150 +0100
+--- dcmtk-3.6.9.orig/dcmjpeg/libijg16/jdmerge.c	2025-02-18 18:03:13.531405546 +0100
++++ dcmtk-3.6.9/dcmjpeg/libijg16/jdmerge.c	2025-02-18 18:05:52.955086508 +0100
 @@ -169,7 +169,7 @@
              JDIMENSION out_rows_avail)
  /* 2:1 vertical sampling case: may need a spare row. */
@@ -456,8 +456,8 @@ diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg16/jdmerge.c dcmtk-3.6.9/dcmjpeg/libij
  
    /* Just do the upsampling. */
 diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg16/jdpostct.c dcmtk-3.6.9/dcmjpeg/libijg16/jdpostct.c
---- dcmtk-3.6.9.orig/dcmjpeg/libijg16/jdpostct.c	2025-01-16 18:04:46.159846107 +0100
-+++ dcmtk-3.6.9/dcmjpeg/libijg16/jdpostct.c	2025-01-16 20:11:42.019717150 +0100
+--- dcmtk-3.6.9.orig/dcmjpeg/libijg16/jdpostct.c	2025-02-18 18:03:13.531405546 +0100
++++ dcmtk-3.6.9/dcmjpeg/libijg16/jdpostct.c	2025-02-18 18:05:52.955086508 +0100
 @@ -161,8 +161,8 @@
                JSAMPARRAY output_buf, JDIMENSION *out_row_ctr,
                JDIMENSION out_rows_avail)
@@ -483,8 +483,8 @@ diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg16/jdpostct.c dcmtk-3.6.9/dcmjpeg/libi
    JDIMENSION num_rows, max_rows;
  
 diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg16/jdpred.c dcmtk-3.6.9/dcmjpeg/libijg16/jdpred.c
---- dcmtk-3.6.9.orig/dcmjpeg/libijg16/jdpred.c	2025-01-16 18:04:46.159846107 +0100
-+++ dcmtk-3.6.9/dcmjpeg/libijg16/jdpred.c	2025-01-16 20:11:42.020717140 +0100
+--- dcmtk-3.6.9.orig/dcmjpeg/libijg16/jdpred.c	2025-02-18 18:03:13.531405546 +0100
++++ dcmtk-3.6.9/dcmjpeg/libijg16/jdpred.c	2025-02-18 18:05:52.955086508 +0100
 @@ -101,8 +101,8 @@
             const JDIFFROW diff_buf, const JDIFFROW prev_row,
             JDIFFROW undiff_buf, JDIMENSION width)
@@ -616,8 +616,8 @@ diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg16/jdpred.c dcmtk-3.6.9/dcmjpeg/libijg
  
    UNDIFFERENCE_1D(INITIAL_PREDICTORx);
 diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg16/jdsample.c dcmtk-3.6.9/dcmjpeg/libijg16/jdsample.c
---- dcmtk-3.6.9.orig/dcmjpeg/libijg16/jdsample.c	2025-01-16 18:04:46.159846107 +0100
-+++ dcmtk-3.6.9/dcmjpeg/libijg16/jdsample.c	2025-01-16 20:11:42.020717140 +0100
+--- dcmtk-3.6.9.orig/dcmjpeg/libijg16/jdsample.c	2025-02-18 18:03:13.531405546 +0100
++++ dcmtk-3.6.9/dcmjpeg/libijg16/jdsample.c	2025-02-18 18:05:52.955086508 +0100
 @@ -92,7 +92,7 @@
            JSAMPARRAY output_buf, JDIMENSION *out_row_ctr,
            JDIMENSION out_rows_avail)
@@ -670,8 +670,8 @@ diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg16/jdsample.c dcmtk-3.6.9/dcmjpeg/libi
    register JSAMPROW inptr, outptr;
    register JSAMPLE invalue;
 diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg16/jdscale.c dcmtk-3.6.9/dcmjpeg/libijg16/jdscale.c
---- dcmtk-3.6.9.orig/dcmjpeg/libijg16/jdscale.c	2025-01-16 18:04:46.158846116 +0100
-+++ dcmtk-3.6.9/dcmjpeg/libijg16/jdscale.c	2025-01-16 20:11:42.020717140 +0100
+--- dcmtk-3.6.9.orig/dcmjpeg/libijg16/jdscale.c	2025-02-18 18:03:13.531405546 +0100
++++ dcmtk-3.6.9/dcmjpeg/libijg16/jdscale.c	2025-02-18 18:05:52.955086508 +0100
 @@ -67,7 +67,7 @@
  	const JDIFFROW diff_buf, JSAMPROW output_buf,
  	JDIMENSION width)
@@ -682,8 +682,8 @@ diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg16/jdscale.c dcmtk-3.6.9/dcmjpeg/libij
  
    for (xindex = 0; xindex < width; xindex++)
 diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg16/jerror.c dcmtk-3.6.9/dcmjpeg/libijg16/jerror.c
---- dcmtk-3.6.9.orig/dcmjpeg/libijg16/jerror.c	2025-01-16 18:04:46.159846107 +0100
-+++ dcmtk-3.6.9/dcmjpeg/libijg16/jerror.c	2025-01-17 11:14:19.002328399 +0100
+--- dcmtk-3.6.9.orig/dcmjpeg/libijg16/jerror.c	2025-02-18 18:03:13.531405546 +0100
++++ dcmtk-3.6.9/dcmjpeg/libijg16/jerror.c	2025-02-18 18:05:52.955086508 +0100
 @@ -34,6 +34,10 @@
  #define EXIT_FAILURE  1
  #endif
@@ -696,8 +696,8 @@ diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg16/jerror.c dcmtk-3.6.9/dcmjpeg/libijg
  /*
   * Create the message string table.
 diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg16/jquant1.c dcmtk-3.6.9/dcmjpeg/libijg16/jquant1.c
---- dcmtk-3.6.9.orig/dcmjpeg/libijg16/jquant1.c	2025-01-16 18:04:46.158846116 +0100
-+++ dcmtk-3.6.9/dcmjpeg/libijg16/jquant1.c	2025-01-16 20:11:42.020717140 +0100
+--- dcmtk-3.6.9.orig/dcmjpeg/libijg16/jquant1.c	2025-02-18 18:03:13.531405546 +0100
++++ dcmtk-3.6.9/dcmjpeg/libijg16/jquant1.c	2025-02-18 18:05:52.956086494 +0100
 @@ -251,8 +251,8 @@
     * (Forcing the upper and lower values to the limits ensures that
     * dithering can't produce a color outside the selected gamut.)
@@ -739,8 +739,8 @@ diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg16/jquant1.c dcmtk-3.6.9/dcmjpeg/libij
  }
  
 diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg16/jquant2.c dcmtk-3.6.9/dcmjpeg/libijg16/jquant2.c
---- dcmtk-3.6.9.orig/dcmjpeg/libijg16/jquant2.c	2025-01-16 18:04:46.158846116 +0100
-+++ dcmtk-3.6.9/dcmjpeg/libijg16/jquant2.c	2025-01-16 20:11:42.021717131 +0100
+--- dcmtk-3.6.9.orig/dcmjpeg/libijg16/jquant2.c	2025-02-18 18:03:13.531405546 +0100
++++ dcmtk-3.6.9/dcmjpeg/libijg16/jquant2.c	2025-02-18 18:05:52.956086494 +0100
 @@ -224,7 +224,7 @@
  prescan_quantize (j_decompress_ptr cinfo, JSAMPARRAY input_buf,
            JSAMPARRAY output_buf, int num_rows)
@@ -760,8 +760,8 @@ diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg16/jquant2.c dcmtk-3.6.9/dcmjpeg/libij
  }
  
 diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg8/jccoefct.c dcmtk-3.6.9/dcmjpeg/libijg8/jccoefct.c
---- dcmtk-3.6.9.orig/dcmjpeg/libijg8/jccoefct.c	2025-01-16 18:04:46.161846090 +0100
-+++ dcmtk-3.6.9/dcmjpeg/libijg8/jccoefct.c	2025-01-16 20:11:42.021717131 +0100
+--- dcmtk-3.6.9.orig/dcmjpeg/libijg8/jccoefct.c	2025-02-18 18:03:13.533405515 +0100
++++ dcmtk-3.6.9/dcmjpeg/libijg8/jccoefct.c	2025-02-18 18:05:52.956086494 +0100
 @@ -343,7 +343,7 @@
  METHODDEF(boolean)
  compress_output (j_compress_ptr cinfo, JSAMPIMAGE input_buf)
@@ -772,8 +772,8 @@ diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg8/jccoefct.c dcmtk-3.6.9/dcmjpeg/libij
    c_coef_ptr coef = (c_coef_ptr) lossyc->coef_private;
    JDIMENSION MCU_col_num;   /* index of current MCU within row */
 diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg8/jcdiffct.c dcmtk-3.6.9/dcmjpeg/libijg8/jcdiffct.c
---- dcmtk-3.6.9.orig/dcmjpeg/libijg8/jcdiffct.c	2025-01-16 18:04:46.161846090 +0100
-+++ dcmtk-3.6.9/dcmjpeg/libijg8/jcdiffct.c	2025-01-16 20:11:42.021717131 +0100
+--- dcmtk-3.6.9.orig/dcmjpeg/libijg8/jcdiffct.c	2025-02-18 18:03:13.533405515 +0100
++++ dcmtk-3.6.9/dcmjpeg/libijg8/jcdiffct.c	2025-02-18 18:05:52.956086494 +0100
 @@ -302,7 +302,7 @@
  METHODDEF(boolean)
  compress_output (j_compress_ptr cinfo, JSAMPIMAGE input_buf)
@@ -784,8 +784,8 @@ diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg8/jcdiffct.c dcmtk-3.6.9/dcmjpeg/libij
    c_diff_ptr diff = (c_diff_ptr) losslsc->diff_private;
    /* JDIMENSION MCU_col_num; */ /* index of current MCU within row */
 diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg8/jcpred.c dcmtk-3.6.9/dcmjpeg/libijg8/jcpred.c
---- dcmtk-3.6.9.orig/dcmjpeg/libijg8/jcpred.c	2025-01-16 18:04:46.161846090 +0100
-+++ dcmtk-3.6.9/dcmjpeg/libijg8/jcpred.c	2025-01-16 20:11:42.021717131 +0100
+--- dcmtk-3.6.9.orig/dcmjpeg/libijg8/jcpred.c	2025-02-18 18:03:13.533405515 +0100
++++ dcmtk-3.6.9/dcmjpeg/libijg8/jcpred.c	2025-02-18 18:05:52.957086481 +0100
 @@ -213,7 +213,7 @@
           const JSAMPROW input_buf, JSAMPROW prev_row,
           JDIFFROW diff_buf, JDIMENSION width)
@@ -796,8 +796,8 @@ diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg8/jcpred.c dcmtk-3.6.9/dcmjpeg/libijg8
  
    /*
 diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg8/jctrans.c dcmtk-3.6.9/dcmjpeg/libijg8/jctrans.c
---- dcmtk-3.6.9.orig/dcmjpeg/libijg8/jctrans.c	2025-01-16 18:04:46.161846090 +0100
-+++ dcmtk-3.6.9/dcmjpeg/libijg8/jctrans.c	2025-01-16 20:11:42.021717131 +0100
+--- dcmtk-3.6.9.orig/dcmjpeg/libijg8/jctrans.c	2025-02-18 18:03:13.533405515 +0100
++++ dcmtk-3.6.9/dcmjpeg/libijg8/jctrans.c	2025-02-18 18:05:52.957086481 +0100
 @@ -267,7 +267,7 @@
  METHODDEF(boolean)
  compress_output (j_compress_ptr cinfo, JSAMPIMAGE input_buf)
@@ -808,8 +808,8 @@ diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg8/jctrans.c dcmtk-3.6.9/dcmjpeg/libijg
    c_coef_ptr coef = (c_coef_ptr) lossyc->coef_private;
    JDIMENSION MCU_col_num;   /* index of current MCU within row */
 diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg8/jdmerge.c dcmtk-3.6.9/dcmjpeg/libijg8/jdmerge.c
---- dcmtk-3.6.9.orig/dcmjpeg/libijg8/jdmerge.c	2025-01-16 18:04:46.161846090 +0100
-+++ dcmtk-3.6.9/dcmjpeg/libijg8/jdmerge.c	2025-01-16 20:11:42.021717131 +0100
+--- dcmtk-3.6.9.orig/dcmjpeg/libijg8/jdmerge.c	2025-02-18 18:03:13.533405515 +0100
++++ dcmtk-3.6.9/dcmjpeg/libijg8/jdmerge.c	2025-02-18 18:05:52.957086481 +0100
 @@ -148,7 +148,7 @@
              JDIMENSION out_rows_avail)
  /* 2:1 vertical sampling case: may need a spare row. */
@@ -831,8 +831,8 @@ diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg8/jdmerge.c dcmtk-3.6.9/dcmjpeg/libijg
  
    /* Just do the upsampling. */
 diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg8/jdpostct.c dcmtk-3.6.9/dcmjpeg/libijg8/jdpostct.c
---- dcmtk-3.6.9.orig/dcmjpeg/libijg8/jdpostct.c	2025-01-16 18:04:46.160846099 +0100
-+++ dcmtk-3.6.9/dcmjpeg/libijg8/jdpostct.c	2025-01-16 20:11:42.022717122 +0100
+--- dcmtk-3.6.9.orig/dcmjpeg/libijg8/jdpostct.c	2025-02-18 18:03:13.533405515 +0100
++++ dcmtk-3.6.9/dcmjpeg/libijg8/jdpostct.c	2025-02-18 18:05:52.957086481 +0100
 @@ -161,8 +161,8 @@
                JSAMPARRAY output_buf, JDIMENSION *out_row_ctr,
                JDIMENSION out_rows_avail)
@@ -858,8 +858,8 @@ diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg8/jdpostct.c dcmtk-3.6.9/dcmjpeg/libij
    JDIMENSION num_rows, max_rows;
  
 diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg8/jdpred.c dcmtk-3.6.9/dcmjpeg/libijg8/jdpred.c
---- dcmtk-3.6.9.orig/dcmjpeg/libijg8/jdpred.c	2025-01-16 18:04:46.161846090 +0100
-+++ dcmtk-3.6.9/dcmjpeg/libijg8/jdpred.c	2025-01-16 20:11:42.022717122 +0100
+--- dcmtk-3.6.9.orig/dcmjpeg/libijg8/jdpred.c	2025-02-18 18:03:13.533405515 +0100
++++ dcmtk-3.6.9/dcmjpeg/libijg8/jdpred.c	2025-02-18 18:05:52.957086481 +0100
 @@ -101,8 +101,8 @@
             const JDIFFROW diff_buf, const JDIFFROW prev_row,
             JDIFFROW undiff_buf, JDIMENSION width)
@@ -947,8 +947,8 @@ diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg8/jdpred.c dcmtk-3.6.9/dcmjpeg/libijg8
  
    UNDIFFERENCE_1D(INITIAL_PREDICTORx);
 diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg8/jdsample.c dcmtk-3.6.9/dcmjpeg/libijg8/jdsample.c
---- dcmtk-3.6.9.orig/dcmjpeg/libijg8/jdsample.c	2025-01-16 18:04:46.161846090 +0100
-+++ dcmtk-3.6.9/dcmjpeg/libijg8/jdsample.c	2025-01-16 20:11:42.022717122 +0100
+--- dcmtk-3.6.9.orig/dcmjpeg/libijg8/jdsample.c	2025-02-18 18:03:13.533405515 +0100
++++ dcmtk-3.6.9/dcmjpeg/libijg8/jdsample.c	2025-02-18 18:05:52.957086481 +0100
 @@ -92,7 +92,7 @@
            JSAMPARRAY output_buf, JDIMENSION *out_row_ctr,
            JDIMENSION out_rows_avail)
@@ -1001,8 +1001,8 @@ diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg8/jdsample.c dcmtk-3.6.9/dcmjpeg/libij
    register JSAMPROW inptr, outptr;
    register JSAMPLE invalue;
 diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg8/jdscale.c dcmtk-3.6.9/dcmjpeg/libijg8/jdscale.c
---- dcmtk-3.6.9.orig/dcmjpeg/libijg8/jdscale.c	2025-01-16 18:04:46.160846099 +0100
-+++ dcmtk-3.6.9/dcmjpeg/libijg8/jdscale.c	2025-01-16 20:11:42.022717122 +0100
+--- dcmtk-3.6.9.orig/dcmjpeg/libijg8/jdscale.c	2025-02-18 18:03:13.532405530 +0100
++++ dcmtk-3.6.9/dcmjpeg/libijg8/jdscale.c	2025-02-18 18:05:52.958086467 +0100
 @@ -67,7 +67,7 @@
  	const JDIFFROW diff_buf, JSAMPROW output_buf,
  	JDIMENSION width)
@@ -1013,8 +1013,8 @@ diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg8/jdscale.c dcmtk-3.6.9/dcmjpeg/libijg
  
    for (xindex = 0; xindex < width; xindex++)
 diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg8/jerror.c dcmtk-3.6.9/dcmjpeg/libijg8/jerror.c
---- dcmtk-3.6.9.orig/dcmjpeg/libijg8/jerror.c	2025-01-16 18:04:46.160846099 +0100
-+++ dcmtk-3.6.9/dcmjpeg/libijg8/jerror.c	2025-01-17 11:14:02.543454148 +0100
+--- dcmtk-3.6.9.orig/dcmjpeg/libijg8/jerror.c	2025-02-18 18:03:13.533405515 +0100
++++ dcmtk-3.6.9/dcmjpeg/libijg8/jerror.c	2025-02-18 18:05:52.958086467 +0100
 @@ -34,6 +34,10 @@
  #define EXIT_FAILURE  1
  #endif
@@ -1027,8 +1027,8 @@ diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg8/jerror.c dcmtk-3.6.9/dcmjpeg/libijg8
  /*
   * Create the message string table.
 diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg8/jquant1.c dcmtk-3.6.9/dcmjpeg/libijg8/jquant1.c
---- dcmtk-3.6.9.orig/dcmjpeg/libijg8/jquant1.c	2025-01-16 18:04:46.160846099 +0100
-+++ dcmtk-3.6.9/dcmjpeg/libijg8/jquant1.c	2025-01-16 20:11:42.022717122 +0100
+--- dcmtk-3.6.9.orig/dcmjpeg/libijg8/jquant1.c	2025-02-18 18:03:13.532405530 +0100
++++ dcmtk-3.6.9/dcmjpeg/libijg8/jquant1.c	2025-02-18 18:05:52.958086467 +0100
 @@ -251,8 +251,8 @@
     * (Forcing the upper and lower values to the limits ensures that
     * dithering can't produce a color outside the selected gamut.)
@@ -1070,8 +1070,8 @@ diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg8/jquant1.c dcmtk-3.6.9/dcmjpeg/libijg
  }
  
 diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg8/jquant2.c dcmtk-3.6.9/dcmjpeg/libijg8/jquant2.c
---- dcmtk-3.6.9.orig/dcmjpeg/libijg8/jquant2.c	2025-01-16 18:04:46.160846099 +0100
-+++ dcmtk-3.6.9/dcmjpeg/libijg8/jquant2.c	2025-01-16 20:11:42.023717112 +0100
+--- dcmtk-3.6.9.orig/dcmjpeg/libijg8/jquant2.c	2025-02-18 18:03:13.532405530 +0100
++++ dcmtk-3.6.9/dcmjpeg/libijg8/jquant2.c	2025-02-18 18:05:52.958086467 +0100
 @@ -224,7 +224,7 @@
  prescan_quantize (j_decompress_ptr cinfo, JSAMPARRAY input_buf,
            JSAMPARRAY output_buf, int num_rows)
@@ -1091,8 +1091,8 @@ diff -urEb dcmtk-3.6.9.orig/dcmjpeg/libijg8/jquant2.c dcmtk-3.6.9/dcmjpeg/libijg
  }
  
 diff -urEb dcmtk-3.6.9.orig/oficonv/libsrc/citrus_bcs.h dcmtk-3.6.9/oficonv/libsrc/citrus_bcs.h
---- dcmtk-3.6.9.orig/oficonv/libsrc/citrus_bcs.h	2025-01-16 18:04:46.146846219 +0100
-+++ dcmtk-3.6.9/oficonv/libsrc/citrus_bcs.h	2025-01-17 11:14:44.746131630 +0100
+--- dcmtk-3.6.9.orig/oficonv/libsrc/citrus_bcs.h	2025-02-18 18:03:13.519405733 +0100
++++ dcmtk-3.6.9/oficonv/libsrc/citrus_bcs.h	2025-02-18 18:05:52.958086467 +0100
 @@ -39,7 +39,21 @@
  #include <errno.h>
  #include <stdint.h>
@@ -1116,8 +1116,8 @@ diff -urEb dcmtk-3.6.9.orig/oficonv/libsrc/citrus_bcs.h dcmtk-3.6.9/oficonv/libs
  #define CITRUS_DECONST(type, var)    ((type)(uintptr_t)(const void *)(var))
  
 diff -urEb dcmtk-3.6.9.orig/oficonv/libsrc/citrus_big5.c dcmtk-3.6.9/oficonv/libsrc/citrus_big5.c
---- dcmtk-3.6.9.orig/oficonv/libsrc/citrus_big5.c	2025-01-16 18:04:46.137846297 +0100
-+++ dcmtk-3.6.9/oficonv/libsrc/citrus_big5.c	2025-01-17 09:59:15.249381150 +0100
+--- dcmtk-3.6.9.orig/oficonv/libsrc/citrus_big5.c	2025-02-18 18:03:13.511405858 +0100
++++ dcmtk-3.6.9/oficonv/libsrc/citrus_big5.c	2025-02-18 18:05:52.959086454 +0100
 @@ -218,13 +218,6 @@
      return (0);
  }
@@ -1152,8 +1152,8 @@ diff -urEb dcmtk-3.6.9.orig/oficonv/libsrc/citrus_big5.c dcmtk-3.6.9/oficonv/lib
      TAILQ_INIT(&ei->excludes);
  
 diff -urEb dcmtk-3.6.9.orig/oficonv/libsrc/citrus_db_hash.h dcmtk-3.6.9/oficonv/libsrc/citrus_db_hash.h
---- dcmtk-3.6.9.orig/oficonv/libsrc/citrus_db_hash.h	2025-01-16 18:04:46.135846314 +0100
-+++ dcmtk-3.6.9/oficonv/libsrc/citrus_db_hash.h	2025-01-17 09:36:14.692449741 +0100
+--- dcmtk-3.6.9.orig/oficonv/libsrc/citrus_db_hash.h	2025-02-18 18:03:13.510405874 +0100
++++ dcmtk-3.6.9/oficonv/libsrc/citrus_db_hash.h	2025-02-18 18:05:52.959086454 +0100
 @@ -29,7 +29,8 @@
  
  #include "dcmtk/config/osconfig.h"
@@ -1165,8 +1165,8 @@ diff -urEb dcmtk-3.6.9.orig/oficonv/libsrc/citrus_db_hash.h dcmtk-3.6.9/oficonv/
  struct _citrus_region;
  
 diff -urEb dcmtk-3.6.9.orig/oficonv/libsrc/citrus_esdb.c dcmtk-3.6.9/oficonv/libsrc/citrus_esdb.c
---- dcmtk-3.6.9.orig/oficonv/libsrc/citrus_esdb.c	2025-01-16 18:04:46.137846297 +0100
-+++ dcmtk-3.6.9/oficonv/libsrc/citrus_esdb.c	2025-01-17 07:57:57.711032732 +0100
+--- dcmtk-3.6.9.orig/oficonv/libsrc/citrus_esdb.c	2025-02-18 18:03:13.511405858 +0100
++++ dcmtk-3.6.9/oficonv/libsrc/citrus_esdb.c	2025-02-18 18:05:52.959086454 +0100
 @@ -34,7 +34,15 @@
  
  #include <errno.h>
@@ -1184,8 +1184,8 @@ diff -urEb dcmtk-3.6.9.orig/oficonv/libsrc/citrus_esdb.c dcmtk-3.6.9/oficonv/lib
  #include <stdlib.h>
  #include <string.h>
 diff -urEb dcmtk-3.6.9.orig/oficonv/libsrc/citrus_esdb.h dcmtk-3.6.9/oficonv/libsrc/citrus_esdb.h
---- dcmtk-3.6.9.orig/oficonv/libsrc/citrus_esdb.h	2025-01-16 18:04:46.137846297 +0100
-+++ dcmtk-3.6.9/oficonv/libsrc/citrus_esdb.h	2025-01-17 07:58:02.525992089 +0100
+--- dcmtk-3.6.9.orig/oficonv/libsrc/citrus_esdb.h	2025-02-18 18:03:13.512405843 +0100
++++ dcmtk-3.6.9/oficonv/libsrc/citrus_esdb.h	2025-02-18 18:05:52.959086454 +0100
 @@ -29,7 +29,14 @@
  
  #include "dcmtk/config/osconfig.h"
@@ -1202,8 +1202,8 @@ diff -urEb dcmtk-3.6.9.orig/oficonv/libsrc/citrus_esdb.h dcmtk-3.6.9/oficonv/lib
  struct _citrus_esdb_charset {
      _citrus_csid_t           ec_csid;
 diff -urEb dcmtk-3.6.9.orig/oficonv/libsrc/citrus_gbk2k.c dcmtk-3.6.9/oficonv/libsrc/citrus_gbk2k.c
---- dcmtk-3.6.9.orig/oficonv/libsrc/citrus_gbk2k.c	2025-01-16 18:04:46.146846219 +0100
-+++ dcmtk-3.6.9/oficonv/libsrc/citrus_gbk2k.c	2025-01-17 07:58:08.702939916 +0100
+--- dcmtk-3.6.9.orig/oficonv/libsrc/citrus_gbk2k.c	2025-02-18 18:03:13.519405733 +0100
++++ dcmtk-3.6.9/oficonv/libsrc/citrus_gbk2k.c	2025-02-18 18:05:52.959086454 +0100
 @@ -34,7 +34,15 @@
  
  #include <errno.h>
@@ -1221,8 +1221,8 @@ diff -urEb dcmtk-3.6.9.orig/oficonv/libsrc/citrus_gbk2k.c dcmtk-3.6.9/oficonv/li
  #include <stdio.h>
  #include <stdlib.h>
 diff -urEb dcmtk-3.6.9.orig/oficonv/libsrc/citrus_hz.c dcmtk-3.6.9/oficonv/libsrc/citrus_hz.c
---- dcmtk-3.6.9.orig/oficonv/libsrc/citrus_hz.c	2025-01-16 18:04:46.144846236 +0100
-+++ dcmtk-3.6.9/oficonv/libsrc/citrus_hz.c	2025-01-17 10:04:16.511792074 +0100
+--- dcmtk-3.6.9.orig/oficonv/libsrc/citrus_hz.c	2025-02-18 18:03:13.518405749 +0100
++++ dcmtk-3.6.9/oficonv/libsrc/citrus_hz.c	2025-02-18 18:05:52.959086454 +0100
 @@ -571,13 +571,6 @@
      return (0);
  }
@@ -1284,48 +1284,9 @@ diff -urEb dcmtk-3.6.9.orig/oficonv/libsrc/citrus_hz.c dcmtk-3.6.9/oficonv/libsr
      memset(ei, 0, sizeof(*ei));
      TAILQ_INIT(E0SET(ei));
      TAILQ_INIT(E1SET(ei));
-diff -urEb dcmtk-3.6.9.orig/oficonv/libsrc/citrus_iconv.c dcmtk-3.6.9/oficonv/libsrc/citrus_iconv.c
---- dcmtk-3.6.9.orig/oficonv/libsrc/citrus_iconv.c	2025-01-16 18:04:46.146846219 +0100
-+++ dcmtk-3.6.9/oficonv/libsrc/citrus_iconv.c	2025-01-17 09:23:11.596327937 +0100
-@@ -49,7 +49,15 @@
- #endif
- 
- #include <limits.h>
-+
-+#if (_MSC_VER >= 1900)
- #include <stdbool.h>
-+#else
-+#define bool int
-+#define false 0
-+#define true 1
-+#endif
-+
- #include <stdio.h>
- #include <stdlib.h>
- #include <string.h>
-@@ -299,14 +307,17 @@
- _citrus_iconv_open(struct _citrus_iconv * * rcv,
-     const char * src, const char * dst)
- {
--struct _citrus_iconv *cv = NULL;
-+#ifdef HAVE_WINDOWS_H
-+    char current_codepage[20];
-+#endif
-+
-+    struct _citrus_iconv *cv = NULL;
-     struct _citrus_iconv_shared *ci = NULL;
-     char realdst[OFICONV_PATH_MAX], realsrc[OFICONV_PATH_MAX];
-     int ret;
- 
-     init_cache();
- #ifdef HAVE_WINDOWS_H
--    char current_codepage[20];
-     snprintf(current_codepage, sizeof(current_codepage), "%lu", (unsigned long) GetConsoleOutputCP());
- #endif
- 
 diff -urEb dcmtk-3.6.9.orig/oficonv/libsrc/citrus_iconv_local.h dcmtk-3.6.9/oficonv/libsrc/citrus_iconv_local.h
---- dcmtk-3.6.9.orig/oficonv/libsrc/citrus_iconv_local.h	2025-01-16 18:04:46.146846219 +0100
-+++ dcmtk-3.6.9/oficonv/libsrc/citrus_iconv_local.h	2025-01-17 07:58:20.317841727 +0100
+--- dcmtk-3.6.9.orig/oficonv/libsrc/citrus_iconv_local.h	2025-02-18 18:03:13.520405718 +0100
++++ dcmtk-3.6.9/oficonv/libsrc/citrus_iconv_local.h	2025-02-18 18:05:52.960086440 +0100
 @@ -29,7 +29,15 @@
  
  #include "dcmtk/config/osconfig.h"
@@ -1343,8 +1304,8 @@ diff -urEb dcmtk-3.6.9.orig/oficonv/libsrc/citrus_iconv_local.h dcmtk-3.6.9/ofic
  
  #ifdef HAVE_SYS_QUEUE_H
 diff -urEb dcmtk-3.6.9.orig/oficonv/libsrc/citrus_iconv_none.c dcmtk-3.6.9/oficonv/libsrc/citrus_iconv_none.c
---- dcmtk-3.6.9.orig/oficonv/libsrc/citrus_iconv_none.c	2025-01-16 18:04:46.141846262 +0100
-+++ dcmtk-3.6.9/oficonv/libsrc/citrus_iconv_none.c	2025-01-17 07:58:25.509797800 +0100
+--- dcmtk-3.6.9.orig/oficonv/libsrc/citrus_iconv_none.c	2025-02-18 18:03:13.516405780 +0100
++++ dcmtk-3.6.9/oficonv/libsrc/citrus_iconv_none.c	2025-02-18 18:05:52.960086440 +0100
 @@ -35,7 +35,15 @@
  
  
@@ -1362,8 +1323,8 @@ diff -urEb dcmtk-3.6.9.orig/oficonv/libsrc/citrus_iconv_none.c dcmtk-3.6.9/ofico
  #include <string.h>
  
 diff -urEb dcmtk-3.6.9.orig/oficonv/libsrc/citrus_iconv_std.c dcmtk-3.6.9/oficonv/libsrc/citrus_iconv_std.c
---- dcmtk-3.6.9.orig/oficonv/libsrc/citrus_iconv_std.c	2025-01-16 18:04:46.141846262 +0100
-+++ dcmtk-3.6.9/oficonv/libsrc/citrus_iconv_std.c	2025-01-17 07:58:30.205758052 +0100
+--- dcmtk-3.6.9.orig/oficonv/libsrc/citrus_iconv_std.c	2025-02-18 18:03:13.516405780 +0100
++++ dcmtk-3.6.9/oficonv/libsrc/citrus_iconv_std.c	2025-02-18 18:05:52.960086440 +0100
 @@ -36,7 +36,15 @@
  
  #include <errno.h>
@@ -1381,8 +1342,8 @@ diff -urEb dcmtk-3.6.9.orig/oficonv/libsrc/citrus_iconv_std.c dcmtk-3.6.9/oficon
  #include <stdlib.h>
  #include <string.h>
 diff -urEb dcmtk-3.6.9.orig/oficonv/libsrc/citrus_iso2022.c dcmtk-3.6.9/oficonv/libsrc/citrus_iso2022.c
---- dcmtk-3.6.9.orig/oficonv/libsrc/citrus_iso2022.c	2025-01-16 18:04:46.142846254 +0100
-+++ dcmtk-3.6.9/oficonv/libsrc/citrus_iso2022.c	2025-01-17 07:58:35.485713336 +0100
+--- dcmtk-3.6.9.orig/oficonv/libsrc/citrus_iso2022.c	2025-02-18 18:03:13.516405780 +0100
++++ dcmtk-3.6.9/oficonv/libsrc/citrus_iso2022.c	2025-02-18 18:05:52.960086440 +0100
 @@ -35,7 +35,15 @@
  
  #include <errno.h>
@@ -1400,8 +1361,8 @@ diff -urEb dcmtk-3.6.9.orig/oficonv/libsrc/citrus_iso2022.c dcmtk-3.6.9/oficonv/
  #include <stdio.h>
  #include <stdlib.h>
 diff -urEb dcmtk-3.6.9.orig/oficonv/libsrc/citrus_johab.c dcmtk-3.6.9/oficonv/libsrc/citrus_johab.c
---- dcmtk-3.6.9.orig/oficonv/libsrc/citrus_johab.c	2025-01-16 18:04:46.144846236 +0100
-+++ dcmtk-3.6.9/oficonv/libsrc/citrus_johab.c	2025-01-17 07:58:40.390671776 +0100
+--- dcmtk-3.6.9.orig/oficonv/libsrc/citrus_johab.c	2025-02-18 18:03:13.518405749 +0100
++++ dcmtk-3.6.9/oficonv/libsrc/citrus_johab.c	2025-02-18 18:05:52.961086427 +0100
 @@ -34,7 +34,15 @@
  
  #include <errno.h>
@@ -1419,8 +1380,8 @@ diff -urEb dcmtk-3.6.9.orig/oficonv/libsrc/citrus_johab.c dcmtk-3.6.9/oficonv/li
  #include <stdint.h>
  #include <stdio.h>
 diff -urEb dcmtk-3.6.9.orig/oficonv/libsrc/citrus_module.c dcmtk-3.6.9/oficonv/libsrc/citrus_module.c
---- dcmtk-3.6.9.orig/oficonv/libsrc/citrus_module.c	2025-01-16 18:04:46.146846219 +0100
-+++ dcmtk-3.6.9/oficonv/libsrc/citrus_module.c	2025-01-17 07:58:45.172631238 +0100
+--- dcmtk-3.6.9.orig/oficonv/libsrc/citrus_module.c	2025-02-18 18:03:13.520405718 +0100
++++ dcmtk-3.6.9/oficonv/libsrc/citrus_module.c	2025-02-18 18:05:52.961086427 +0100
 @@ -98,7 +98,15 @@
  #endif
  #include <errno.h>
@@ -1438,8 +1399,8 @@ diff -urEb dcmtk-3.6.9.orig/oficonv/libsrc/citrus_module.c dcmtk-3.6.9/oficonv/l
  #include <stdio.h>
  #include <stdlib.h>
 diff -urEb dcmtk-3.6.9.orig/oficonv/libsrc/citrus_mskanji.c dcmtk-3.6.9/oficonv/libsrc/citrus_mskanji.c
---- dcmtk-3.6.9.orig/oficonv/libsrc/citrus_mskanji.c	2025-01-16 18:04:46.146846219 +0100
-+++ dcmtk-3.6.9/oficonv/libsrc/citrus_mskanji.c	2025-01-17 07:58:51.749575452 +0100
+--- dcmtk-3.6.9.orig/oficonv/libsrc/citrus_mskanji.c	2025-02-18 18:03:13.519405733 +0100
++++ dcmtk-3.6.9/oficonv/libsrc/citrus_mskanji.c	2025-02-18 18:05:52.961086427 +0100
 @@ -67,7 +67,15 @@
  
  #include <errno.h>
@@ -1457,8 +1418,8 @@ diff -urEb dcmtk-3.6.9.orig/oficonv/libsrc/citrus_mskanji.c dcmtk-3.6.9/oficonv/
  #include <stdio.h>
  #include <stdlib.h>
 diff -urEb dcmtk-3.6.9.orig/oficonv/libsrc/citrus_prop.c dcmtk-3.6.9/oficonv/libsrc/citrus_prop.c
---- dcmtk-3.6.9.orig/oficonv/libsrc/citrus_prop.c	2025-01-16 18:04:46.140846271 +0100
-+++ dcmtk-3.6.9/oficonv/libsrc/citrus_prop.c	2025-01-17 07:58:55.534543331 +0100
+--- dcmtk-3.6.9.orig/oficonv/libsrc/citrus_prop.c	2025-02-18 18:03:13.514405812 +0100
++++ dcmtk-3.6.9/oficonv/libsrc/citrus_prop.c	2025-02-18 18:05:52.961086427 +0100
 @@ -30,7 +30,15 @@
  
  #include <errno.h>
@@ -1476,8 +1437,8 @@ diff -urEb dcmtk-3.6.9.orig/oficonv/libsrc/citrus_prop.c dcmtk-3.6.9/oficonv/lib
  #include <stdlib.h>
  #include <string.h>
 diff -urEb dcmtk-3.6.9.orig/oficonv/libsrc/citrus_region.h dcmtk-3.6.9/oficonv/libsrc/citrus_region.h
---- dcmtk-3.6.9.orig/oficonv/libsrc/citrus_region.h	2025-01-16 18:04:46.142846254 +0100
-+++ dcmtk-3.6.9/oficonv/libsrc/citrus_region.h	2025-01-17 07:59:02.917480641 +0100
+--- dcmtk-3.6.9.orig/oficonv/libsrc/citrus_region.h	2025-02-18 18:03:13.516405780 +0100
++++ dcmtk-3.6.9/oficonv/libsrc/citrus_region.h	2025-02-18 18:05:52.961086427 +0100
 @@ -31,7 +31,14 @@
  #include "dcmtk/config/osconfig.h"
  #include <stdint.h>
@@ -1494,8 +1455,8 @@ diff -urEb dcmtk-3.6.9.orig/oficonv/libsrc/citrus_region.h dcmtk-3.6.9/oficonv/l
  #ifdef HAVE_SYS_TYPES_H
  #include <sys/types.h>
 diff -urEb dcmtk-3.6.9.orig/oficonv/libsrc/citrus_utf8.c dcmtk-3.6.9/oficonv/libsrc/citrus_utf8.c
---- dcmtk-3.6.9.orig/oficonv/libsrc/citrus_utf8.c	2025-01-16 18:04:46.146846219 +0100
-+++ dcmtk-3.6.9/oficonv/libsrc/citrus_utf8.c	2025-01-17 07:57:46.519127132 +0100
+--- dcmtk-3.6.9.orig/oficonv/libsrc/citrus_utf8.c	2025-02-18 18:03:13.519405733 +0100
++++ dcmtk-3.6.9/oficonv/libsrc/citrus_utf8.c	2025-02-18 18:05:52.961086427 +0100
 @@ -66,7 +66,15 @@
  
  #include <errno.h>
@@ -1513,8 +1474,8 @@ diff -urEb dcmtk-3.6.9.orig/oficonv/libsrc/citrus_utf8.c dcmtk-3.6.9/oficonv/lib
  #include <stdio.h>
  #include <stdlib.h>
 diff -urEb dcmtk-3.6.9.orig/oficonv/libsrc/oficonv_iconv.c dcmtk-3.6.9/oficonv/libsrc/oficonv_iconv.c
---- dcmtk-3.6.9.orig/oficonv/libsrc/oficonv_iconv.c	2025-01-16 18:04:46.137846297 +0100
-+++ dcmtk-3.6.9/oficonv/libsrc/oficonv_iconv.c	2025-01-17 09:16:42.622548106 +0100
+--- dcmtk-3.6.9.orig/oficonv/libsrc/oficonv_iconv.c	2025-02-18 18:03:13.512405843 +0100
++++ dcmtk-3.6.9/oficonv/libsrc/oficonv_iconv.c	2025-02-18 18:05:52.962086413 +0100
 @@ -40,7 +40,15 @@
  
  #include <errno.h>
@@ -1532,8 +1493,8 @@ diff -urEb dcmtk-3.6.9.orig/oficonv/libsrc/oficonv_iconv.c dcmtk-3.6.9/oficonv/l
  #include <string.h>
  #include <stdio.h>
 diff -urEb dcmtk-3.6.9.orig/oficonv/libsrc/windows_mmap.h dcmtk-3.6.9/oficonv/libsrc/windows_mmap.h
---- dcmtk-3.6.9.orig/oficonv/libsrc/windows_mmap.h	2025-01-16 18:04:46.137846297 +0100
-+++ dcmtk-3.6.9/oficonv/libsrc/windows_mmap.h	2025-01-17 09:21:53.565976060 +0100
+--- dcmtk-3.6.9.orig/oficonv/libsrc/windows_mmap.h	2025-02-18 18:03:13.511405858 +0100
++++ dcmtk-3.6.9/oficonv/libsrc/windows_mmap.h	2025-02-18 18:05:52.962086413 +0100
 @@ -74,6 +74,12 @@
  
  static void *mmap(void *start, size_t length, int prot, int flags, int fd, off_t offset)
@@ -1599,8 +1560,8 @@ diff -urEb dcmtk-3.6.9.orig/oficonv/libsrc/windows_mmap.h dcmtk-3.6.9/oficonv/li
  	{
  		if (mc->addr == addr)
 diff -urEb dcmtk-3.6.9.orig/ofstd/include/dcmtk/ofstd/oftypes.h dcmtk-3.6.9/ofstd/include/dcmtk/ofstd/oftypes.h
---- dcmtk-3.6.9.orig/ofstd/include/dcmtk/ofstd/oftypes.h	2025-01-16 18:04:46.148846202 +0100
-+++ dcmtk-3.6.9/ofstd/include/dcmtk/ofstd/oftypes.h	2025-01-17 07:49:26.122182761 +0100
+--- dcmtk-3.6.9.orig/ofstd/include/dcmtk/ofstd/oftypes.h	2025-02-18 18:03:13.523405671 +0100
++++ dcmtk-3.6.9/ofstd/include/dcmtk/ofstd/oftypes.h	2025-02-18 18:05:52.962086413 +0100
 @@ -79,10 +79,9 @@
  
  #include <cstddef>
