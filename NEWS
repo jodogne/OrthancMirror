@@ -13,10 +13,11 @@ REST API
 Maintenance
 -----------
 
-* In the "ExtendedFind" mode, optimized "tools/find" when "StorageAccessMode" is 
-  set to "Never".
+* In the "ExtendedFind" mode, optimized "tools/find" when "StorageAccessMode" is set to "Never".
 * Fixed interpretation of returnUnsupportedImage in /preview route. 
-* GET /series/../study now also contain LastUpdate field (https://discourse.orthanc-server.org/t/lastupdate-coherency/5524)
+* GET /series/../study now also contain LastUpdate field:
+  https://discourse.orthanc-server.org/t/lastupdate-coherency/5524
+* Recovered compatibility with Windows XP that was broken because of DCMTK 3.6.9
 
 
 Version 1.12.6 (2025-01-22)
