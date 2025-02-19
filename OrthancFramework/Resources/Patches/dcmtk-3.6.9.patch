@@ -1,6 +1,6 @@
 diff -urEb dcmtk-3.6.9.orig/CMake/GenerateDCMTKConfigure.cmake dcmtk-3.6.9/CMake/GenerateDCMTKConfigure.cmake
---- dcmtk-3.6.9.orig/CMake/GenerateDCMTKConfigure.cmake	2025-01-21 15:53:12.632715225 +0100
-+++ dcmtk-3.6.9/CMake/GenerateDCMTKConfigure.cmake	2025-01-21 15:53:27.614627545 +0100
+--- dcmtk-3.6.9.orig/CMake/GenerateDCMTKConfigure.cmake	2025-02-18 18:03:13.505405952 +0100
++++ dcmtk-3.6.9/CMake/GenerateDCMTKConfigure.cmake	2025-02-18 18:06:53.925278621 +0100
 @@ -227,12 +227,15 @@
  
  # Check the sizes of various types
@@ -18,8 +18,8 @@ diff -urEb dcmtk-3.6.9.orig/CMake/GenerateDCMTKConfigure.cmake dcmtk-3.6.9/CMake
  # Check for include files, libraries, and functions
  include("${DCMTK_CMAKE_INCLUDE}CMake/dcmtkTryCompile.cmake")
 diff -urEb dcmtk-3.6.9.orig/dcmdata/include/dcmtk/dcmdata/dcdict.h dcmtk-3.6.9/dcmdata/include/dcmtk/dcmdata/dcdict.h
---- dcmtk-3.6.9.orig/dcmdata/include/dcmtk/dcmdata/dcdict.h	2025-01-21 15:53:12.622715283 +0100
-+++ dcmtk-3.6.9/dcmdata/include/dcmtk/dcmdata/dcdict.h	2025-01-21 15:53:27.614627545 +0100
+--- dcmtk-3.6.9.orig/dcmdata/include/dcmtk/dcmdata/dcdict.h	2025-02-18 18:03:13.497406077 +0100
++++ dcmtk-3.6.9/dcmdata/include/dcmtk/dcmdata/dcdict.h	2025-02-18 18:06:53.925278621 +0100
 @@ -163,6 +163,12 @@
      /// returns an iterator to the end of the repeating groups data dictionary
      DcmDictEntryListIterator repeatingEnd() { return repDict.end(); }
@@ -34,8 +34,8 @@ diff -urEb dcmtk-3.6.9.orig/dcmdata/include/dcmtk/dcmdata/dcdict.h dcmtk-3.6.9/d
  
      /** private undefined assignment operator
 diff -urEb dcmtk-3.6.9.orig/dcmdata/libsrc/dcdict.cc dcmtk-3.6.9/dcmdata/libsrc/dcdict.cc
---- dcmtk-3.6.9.orig/dcmdata/libsrc/dcdict.cc	2025-01-21 15:53:12.625715265 +0100
-+++ dcmtk-3.6.9/dcmdata/libsrc/dcdict.cc	2025-01-21 15:53:27.615627539 +0100
+--- dcmtk-3.6.9.orig/dcmdata/libsrc/dcdict.cc	2025-02-18 18:03:13.499406046 +0100
++++ dcmtk-3.6.9/dcmdata/libsrc/dcdict.cc	2025-02-18 18:06:53.926278608 +0100
 @@ -904,3 +904,5 @@
    wrlock().clear();
    wrunlock();
@@ -43,8 +43,8 @@ diff -urEb dcmtk-3.6.9.orig/dcmdata/libsrc/dcdict.cc dcmtk-3.6.9/dcmdata/libsrc/
 +
 +#include "dcdict_orthanc.cc"
 diff -urEb dcmtk-3.6.9.orig/dcmdata/libsrc/dcpxitem.cc dcmtk-3.6.9/dcmdata/libsrc/dcpxitem.cc
---- dcmtk-3.6.9.orig/dcmdata/libsrc/dcpxitem.cc	2025-01-21 15:53:12.623715277 +0100
-+++ dcmtk-3.6.9/dcmdata/libsrc/dcpxitem.cc	2025-01-21 15:53:27.615627539 +0100
+--- dcmtk-3.6.9.orig/dcmdata/libsrc/dcpxitem.cc	2025-02-18 18:03:13.497406077 +0100
++++ dcmtk-3.6.9/dcmdata/libsrc/dcpxitem.cc	2025-02-18 18:06:53.926278608 +0100
 @@ -31,6 +31,8 @@
  #include "dcmtk/dcmdata/dcostrma.h"    /* for class DcmOutputStream */
  #include "dcmtk/dcmdata/dcwcache.h"    /* for class DcmWriteCache */
@@ -55,8 +55,8 @@ diff -urEb dcmtk-3.6.9.orig/dcmdata/libsrc/dcpxitem.cc dcmtk-3.6.9/dcmdata/libsr
  // ********************************
  
 diff -urEb dcmtk-3.6.9.orig/dcmnet/libsrc/scu.cc dcmtk-3.6.9/dcmnet/libsrc/scu.cc
---- dcmtk-3.6.9.orig/dcmnet/libsrc/scu.cc	2025-01-21 15:53:12.655715091 +0100
-+++ dcmtk-3.6.9/dcmnet/libsrc/scu.cc	2025-01-21 15:53:27.616627533 +0100
+--- dcmtk-3.6.9.orig/dcmnet/libsrc/scu.cc	2025-02-18 18:03:13.525405640 +0100
++++ dcmtk-3.6.9/dcmnet/libsrc/scu.cc	2025-02-18 18:06:53.927278595 +0100
 @@ -19,6 +19,11 @@
   *
   */
@@ -70,8 +70,8 @@ diff -urEb dcmtk-3.6.9.orig/dcmnet/libsrc/scu.cc dcmtk-3.6.9/dcmnet/libsrc/scu.c
  
  #include "dcmtk/dcmdata/dcostrmf.h" /* for class DcmOutputFileStream */
 diff -urEb dcmtk-3.6.9.orig/oficonv/include/dcmtk/oficonv/iconv.h dcmtk-3.6.9/oficonv/include/dcmtk/oficonv/iconv.h
---- dcmtk-3.6.9.orig/oficonv/include/dcmtk/oficonv/iconv.h	2025-01-21 15:53:12.637715196 +0100
-+++ dcmtk-3.6.9/oficonv/include/dcmtk/oficonv/iconv.h	2025-01-21 15:53:27.617627527 +0100
+--- dcmtk-3.6.9.orig/oficonv/include/dcmtk/oficonv/iconv.h	2025-02-18 18:03:13.510405874 +0100
++++ dcmtk-3.6.9/oficonv/include/dcmtk/oficonv/iconv.h	2025-02-18 18:06:53.927278595 +0100
 @@ -55,7 +55,12 @@
  #endif
  
@@ -85,21 +85,138 @@ diff -urEb dcmtk-3.6.9.orig/oficonv/include/dcmtk/oficonv/iconv.h dcmtk-3.6.9/of
  
  #ifndef OFICONV_CITRUS_WC_T_DEFINED
  #define OFICONV_CITRUS_WC_T_DEFINED
+diff -urEb dcmtk-3.6.9.orig/oficonv/libsrc/citrus_csmapper.c dcmtk-3.6.9/oficonv/libsrc/citrus_csmapper.c
+--- dcmtk-3.6.9.orig/oficonv/libsrc/citrus_csmapper.c	2025-02-18 18:03:13.510405874 +0100
++++ dcmtk-3.6.9/oficonv/libsrc/citrus_csmapper.c	2025-02-18 18:06:53.927278595 +0100
+@@ -63,7 +63,8 @@
+ 
+ #ifdef WITH_THREADS
+ #ifdef HAVE_WINDOWS_H
+-static SRWLOCK ma_lock = SRWLOCK_INIT;
++static int ma_lock_initialized = 0;
++static CRITICAL_SECTION ma_lock;
+ #elif defined(HAVE_PTHREAD_H)
+ static pthread_rwlock_t ma_lock = PTHREAD_RWLOCK_INITIALIZER;
+ #endif
+@@ -382,6 +383,14 @@
+     char mapper_path[OFICONV_PATH_MAX];
+     unsigned long norm;
+     int ret;
++
++#if defined(WITH_THREADS) && defined(HAVE_WINDOWS_H)
++    if (ma_lock_initialized == 0) { /* Very minor risk of race condition here */
++      InitializeCriticalSection(&ma_lock);
++      ma_lock_initialized = 1;
++    }
++#endif
++
+     norm = 0;
+ 
+     getCSMapperPath(mapper_path, sizeof(mapper_path), NULL);
+diff -urEb dcmtk-3.6.9.orig/oficonv/libsrc/citrus_iconv.c dcmtk-3.6.9/oficonv/libsrc/citrus_iconv.c
+--- dcmtk-3.6.9.orig/oficonv/libsrc/citrus_iconv.c	2025-02-18 18:03:13.520405718 +0100
++++ dcmtk-3.6.9/oficonv/libsrc/citrus_iconv.c	2025-02-18 18:10:35.928614598 +0100
+@@ -49,7 +49,15 @@
+ #endif
+ 
+ #include <limits.h>
++
++#if (_MSC_VER >= 1900)
+ #include <stdbool.h>
++#else
++#define bool int
++#define false 0
++#define true 1
++#endif
++
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include <string.h>
+@@ -80,7 +88,8 @@
+ 
+ #ifdef WITH_THREADS
+ #ifdef HAVE_WINDOWS_H
+-static SRWLOCK ci_lock = SRWLOCK_INIT;
++static int ci_lock_initialized = 0;
++static CRITICAL_SECTION ci_lock;
+ #elif defined(HAVE_PTHREAD_H)
+ static pthread_rwlock_t ci_lock = PTHREAD_RWLOCK_INITIALIZER;
+ #endif
+@@ -299,14 +308,24 @@
+ _citrus_iconv_open(struct _citrus_iconv * * rcv,
+     const char * src, const char * dst)
+ {
+-struct _citrus_iconv *cv = NULL;
++#ifdef HAVE_WINDOWS_H
++    char current_codepage[20];
++#endif
++
++    struct _citrus_iconv *cv = NULL;
+     struct _citrus_iconv_shared *ci = NULL;
+     char realdst[OFICONV_PATH_MAX], realsrc[OFICONV_PATH_MAX];
+     int ret;
+ 
++#if defined(WITH_THREADS) && defined(HAVE_WINDOWS_H)
++    if (ci_lock_initialized == 0) { /* Very minor risk of race condition here */
++      InitializeCriticalSection(&ci_lock);
++      ci_lock_initialized = 1;
++    }
++#endif
++
+     init_cache();
+ #ifdef HAVE_WINDOWS_H
+-    char current_codepage[20];
+     snprintf(current_codepage, sizeof(current_codepage), "%lu", (unsigned long) GetConsoleOutputCP());
+ #endif
+ 
 diff -urEb dcmtk-3.6.9.orig/oficonv/libsrc/citrus_lock.h dcmtk-3.6.9/oficonv/libsrc/citrus_lock.h
---- dcmtk-3.6.9.orig/oficonv/libsrc/citrus_lock.h	2025-01-21 15:53:12.646715143 +0100
-+++ dcmtk-3.6.9/oficonv/libsrc/citrus_lock.h	2025-01-21 16:43:36.463693959 +0100
-@@ -31,7 +31,7 @@
+--- dcmtk-3.6.9.orig/oficonv/libsrc/citrus_lock.h	2025-02-18 18:03:13.518405749 +0100
++++ dcmtk-3.6.9/oficonv/libsrc/citrus_lock.h	2025-02-18 18:06:53.927278595 +0100
+@@ -31,11 +31,11 @@
  
  #ifdef WITH_THREADS
  
 -#ifdef HAVE_WINDOWS_H
-+#if defined(HAVE_WINDOWS_H) && !defined(HAVE_PTHREAD_H)  /* Favor pthread if available, for MinGW */
++#if defined(HAVE_WINDOWS_H)
  
  #include <windows.h>
- #define WLOCK(lock)  AcquireSRWLockExclusive(lock);
+-#define WLOCK(lock)  AcquireSRWLockExclusive(lock);
+-#define UNLOCK(lock) ReleaseSRWLockExclusive(lock);
++#define WLOCK(lock)  EnterCriticalSection(lock);
++#define UNLOCK(lock) LeaveCriticalSection(lock);
+ 
+ #else /* HAVE_WINDOWS_H */
+ 
+diff -urEb dcmtk-3.6.9.orig/oficonv/libsrc/citrus_mapper.c dcmtk-3.6.9/oficonv/libsrc/citrus_mapper.c
+--- dcmtk-3.6.9.orig/oficonv/libsrc/citrus_mapper.c	2025-02-18 18:03:13.516405780 +0100
++++ dcmtk-3.6.9/oficonv/libsrc/citrus_mapper.c	2025-02-18 18:06:53.928278582 +0100
+@@ -64,7 +64,8 @@
+ 
+ #ifdef WITH_THREADS
+ #ifdef HAVE_WINDOWS_H
+-static SRWLOCK cm_lock = SRWLOCK_INIT;
++static int cm_lock_initialized = 0;
++static CRITICAL_SECTION cm_lock;
+ #elif defined(HAVE_PTHREAD_H)
+ static pthread_rwlock_t cm_lock = PTHREAD_RWLOCK_INITIALIZER;
+ #endif
+@@ -355,6 +356,13 @@
+     const char *module, *variable;
+     int hashval, ret;
+ 
++#if defined(WITH_THREADS) && defined(HAVE_WINDOWS_H)
++    if (cm_lock_initialized == 0) { /* Very minor risk of race condition here */
++      InitializeCriticalSection(&cm_lock);
++      cm_lock_initialized = 1;
++    }
++#endif
++
+     variable = NULL;
+ 
+     WLOCK(&cm_lock);
 diff -urEb dcmtk-3.6.9.orig/oflog/include/dcmtk/oflog/thread/syncpub.h dcmtk-3.6.9/oflog/include/dcmtk/oflog/thread/syncpub.h
---- dcmtk-3.6.9.orig/oflog/include/dcmtk/oflog/thread/syncpub.h	2025-01-21 15:53:12.605715381 +0100
-+++ dcmtk-3.6.9/oflog/include/dcmtk/oflog/thread/syncpub.h	2025-01-21 15:53:27.617627527 +0100
+--- dcmtk-3.6.9.orig/oflog/include/dcmtk/oflog/thread/syncpub.h	2025-02-18 18:03:13.473406452 +0100
++++ dcmtk-3.6.9/oflog/include/dcmtk/oflog/thread/syncpub.h	2025-02-18 18:06:53.928278582 +0100
 @@ -63,7 +63,7 @@
  
  DCMTK_LOG4CPLUS_INLINE_EXPORT
@@ -137,8 +254,8 @@ diff -urEb dcmtk-3.6.9.orig/oflog/include/dcmtk/oflog/thread/syncpub.h dcmtk-3.6
  
  
 diff -urEb dcmtk-3.6.9.orig/oflog/libsrc/oflog.cc dcmtk-3.6.9/oflog/libsrc/oflog.cc
---- dcmtk-3.6.9.orig/oflog/libsrc/oflog.cc	2025-01-21 15:53:12.606715376 +0100
-+++ dcmtk-3.6.9/oflog/libsrc/oflog.cc	2025-01-21 15:53:27.617627527 +0100
+--- dcmtk-3.6.9.orig/oflog/libsrc/oflog.cc	2025-02-18 18:03:13.475406421 +0100
++++ dcmtk-3.6.9/oflog/libsrc/oflog.cc	2025-02-18 18:06:53.928278582 +0100
 @@ -19,6 +19,11 @@
   *
   */
@@ -152,8 +269,8 @@ diff -urEb dcmtk-3.6.9.orig/oflog/libsrc/oflog.cc dcmtk-3.6.9/oflog/libsrc/oflog
  #include "dcmtk/oflog/oflog.h"
  
 diff -urEb dcmtk-3.6.9.orig/ofstd/include/dcmtk/ofstd/offile.h dcmtk-3.6.9/ofstd/include/dcmtk/ofstd/offile.h
---- dcmtk-3.6.9.orig/ofstd/include/dcmtk/ofstd/offile.h	2025-01-21 15:53:12.651715114 +0100
-+++ dcmtk-3.6.9/ofstd/include/dcmtk/ofstd/offile.h	2025-01-21 15:53:27.618627521 +0100
+--- dcmtk-3.6.9.orig/ofstd/include/dcmtk/ofstd/offile.h	2025-02-18 18:03:13.523405671 +0100
++++ dcmtk-3.6.9/ofstd/include/dcmtk/ofstd/offile.h	2025-02-18 18:06:53.929278570 +0100
 @@ -569,7 +569,7 @@
     */
    void setlinebuf()
@@ -164,8 +281,8 @@ diff -urEb dcmtk-3.6.9.orig/ofstd/include/dcmtk/ofstd/offile.h dcmtk-3.6.9/ofstd
  #else
      :: setlinebuf(file_);
 diff -urEb dcmtk-3.6.9.orig/ofstd/libsrc/ofstub.cc dcmtk-3.6.9/ofstd/libsrc/ofstub.cc
---- dcmtk-3.6.9.orig/ofstd/libsrc/ofstub.cc	2025-01-21 15:53:12.652715108 +0100
-+++ dcmtk-3.6.9/ofstd/libsrc/ofstub.cc	2025-01-21 15:53:27.618627521 +0100
+--- dcmtk-3.6.9.orig/ofstd/libsrc/ofstub.cc	2025-02-18 18:03:13.523405671 +0100
++++ dcmtk-3.6.9/ofstd/libsrc/ofstub.cc	2025-02-18 18:06:53.929278570 +0100
 @@ -35,6 +35,10 @@
  #include <windows.h>
  #endif /* HAVE_WINDOWS_H */
