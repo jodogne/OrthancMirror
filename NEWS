@@ -13,7 +13,9 @@ REST API
 Maintenance
 -----------
 
-* In the "ExtendedFind" mode, optimized "tools/find" when "StorageAccessMode" is set to "Never".
+* In the "ExtendedFind" mode:
+  - optimized "tools/find" when "StorageAccessMode" is set to "Never".
+  - "tools/find" is now returning results when e.g, ordering instances against a metadata they don't have
 * Fixed interpretation of returnUnsupportedImage in /preview route. 
 * GET /series/../study now also contain LastUpdate field:
   https://discourse.orthanc-server.org/t/lastupdate-coherency/5524
