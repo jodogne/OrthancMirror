@@ -1155,6 +1155,7 @@ namespace Orthanc
             resource.LookupMetadata(sopClassUidFromMetadata, ResourceType_Instance, MetadataType_Instance_SopClassUid))
         {
           outRequestedTags.SetValue(DICOM_TAG_SOP_CLASS_UID, sopClassUidFromMetadata, false);
+          remainingRequestedTags.erase(DICOM_TAG_SOP_CLASS_UID);
         }
 
         if (!remainingRequestedTags.empty() && 
