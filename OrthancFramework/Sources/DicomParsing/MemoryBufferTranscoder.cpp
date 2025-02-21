@@ -56,6 +56,14 @@ namespace Orthanc
 #endif
   }
     
+  bool MemoryBufferTranscoder::Transcode(DicomImage& target,
+                                         DicomImage& source,
+                                         const std::set<DicomTransferSyntax>& allowedSyntaxes,
+                                         bool allowNewSopInstanceUid,
+                                         unsigned int lossyQualityNotUsed)
+  {
+    return Transcode(target, source, allowedSyntaxes, allowNewSopInstanceUid);
+  }
 
   bool MemoryBufferTranscoder::Transcode(DicomImage& target,
                                          DicomImage& source,

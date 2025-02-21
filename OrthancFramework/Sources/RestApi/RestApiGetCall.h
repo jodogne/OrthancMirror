@@ -65,7 +65,10 @@ namespace Orthanc
 
     bool GetBooleanArgument(const std::string& name,
                             bool defaultValue) const;
-    
+
+    uint32_t GetUnsignedInteger32Argument(const std::string& name,      
+                                          uint32_t defaultValue) const;
+  
     virtual bool ParseJsonRequest(Json::Value& result) const ORTHANC_OVERRIDE;
   };
 }

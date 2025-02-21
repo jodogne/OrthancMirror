@@ -69,6 +69,7 @@ namespace Orthanc
     // New in Orthanc 1.7.0
     bool                 transcode_;
     DicomTransferSyntax  transferSyntax_;
+    unsigned int         lossyQuality_;
 
     // New in Orthanc 1.10.0
     unsigned int         loaderThreads_;
@@ -104,6 +105,8 @@ namespace Orthanc
                      ResourceType expectedType);
 
     void SetTranscode(DicomTransferSyntax transferSyntax);
+
+    void SetLossyQuality(unsigned int lossyQuality);
 
     void SetLoaderThreads(unsigned int loaderThreads);
 

@@ -69,4 +69,31 @@ namespace Orthanc
                              name + "\", found: " + found->second);
     }
   }
+
+  uint32_t RestApiGetCall::GetUnsignedInteger32Argument(const std::string& name,
+                                                        uint32_t defaultValue) const
+  {
+    HttpToolbox::Arguments::const_iterator found = getArguments_.find(name);
+
+    uint32_t value;
+    
+    if (found == getArguments_.end())
+    {
+      return defaultValue;
+    }
+    else if (found->second.empty())
+    {
+      return true;
+    }
+    else if (SerializationToolbox::ParseUnsignedInteger32(value, found->second))
+    {
+      return value;
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange, "Expected a Unsigned Int for GET argument \"" +
+                             name + "\", found: " + found->second);
+    }
+  }
+
 }
