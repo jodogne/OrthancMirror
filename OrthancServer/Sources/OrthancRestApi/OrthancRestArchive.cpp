@@ -620,7 +620,7 @@ namespace Orthanc
     }
   }
 
-  static unsigned int GetLossyQuality(RestApiGetCall& call)
+  static unsigned int GetLossyQuality(const RestApiGetCall& call)
   {
     unsigned int lossyQuality;
 
