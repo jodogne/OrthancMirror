@@ -963,7 +963,7 @@ namespace Orthanc
         }
         else
         {
-          std::unique_ptr<IMemoryBuffer> whole(Read(uuid, type, customData));
+          std::unique_ptr<IMemoryBuffer> whole(ReadWhole(uuid, type, customData));
 
           if (start == 0 &&
               end == whole->GetSize())
@@ -1082,7 +1082,7 @@ namespace Orthanc
         }
       }
 
-      virtual IMemoryBuffer* Read(const std::string& uuid,
+      virtual IMemoryBuffer* ReadWhole(const std::string& uuid,
                                   FileContentType type,
                                   const std::string& customData) ORTHANC_OVERRIDE
       {
@@ -5331,7 +5331,7 @@ namespace Orthanc
           *reinterpret_cast<const _OrthancPluginStorageAreaRead*>(parameters);
         IStorageArea& storage = *reinterpret_cast<IStorageArea*>(p.storageArea);
         std::string customDataNotUsed;
-        std::unique_ptr<IMemoryBuffer> content(storage.Read(p.uuid, Plugins::Convert(p.type), customDataNotUsed));
+        std::unique_ptr<IMemoryBuffer> content(storage.ReadWhole(p.uuid, Plugins::Convert(p.type), customDataNotUsed));
         CopyToMemoryBuffer(*p.target, content->GetData(), content->GetSize());
         return true;
       }
