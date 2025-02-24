@@ -393,8 +393,6 @@ namespace Orthanc
   {
     try
     {
-      unsigned int lossyQuality;
-
       {
         OrthancConfiguration::ReaderLock lock;
 
@@ -425,7 +423,6 @@ namespace Orthanc
         // New options in Orthanc 1.7.0
         transcodeDicomProtocol_ = lock.GetConfiguration().GetBooleanParameter("TranscodeDicomProtocol", true);
         builtinDecoderTranscoderOrder_ = StringToBuiltinDecoderTranscoderOrder(lock.GetConfiguration().GetStringParameter("BuiltinDecoderTranscoderOrder", "After"));
-        lossyQuality = lock.GetConfiguration().GetUnsignedIntegerParameter("DicomLossyTranscodingQuality", 90);
 
         std::string s;
         if (lock.GetConfiguration().LookupStringParameter(s, "IngestTranscoding"))
@@ -502,6 +499,8 @@ namespace Orthanc
         SetAcceptedSopClasses(acceptedSopClasses, rejectedSopClasses);
 
         defaultDicomRetrieveMethod_ = StringToRetrieveMethod(lock.GetConfiguration().GetStringParameter("DicomDefaultRetrieveMethod", "C-MOVE"));
+
+        dynamic_cast<DcmtkTranscoder&>(*dcmtkTranscoder_).SetDefaultLossyQuality(lock.GetConfiguration().GetDicomLossyTranscodingQuality());
       }
 
       jobsEngine_.SetThreadSleep(unitTesting ? 20 : 200);
@@ -516,8 +515,6 @@ namespace Orthanc
 #else
       LOG(INFO) << "Your platform does not support malloc_trim(), not starting the memory trimming thread";
 #endif
-      
-      dynamic_cast<DcmtkTranscoder&>(*dcmtkTranscoder_).SetLossyQuality(lossyQuality);
     }
     catch (OrthancException&)
     {
@@ -992,10 +989,11 @@ namespace Orthanc
 
   
   void ServerContext::AnswerAttachment(RestApiOutput& output,
-                                       const FileInfo& attachment)
+                                       const FileInfo& attachment,
+                                       const std::string& filename)
   {
     StorageAccessor accessor(area_, storageCache_, GetMetricsRegistry());
-    accessor.AnswerFile(output, attachment, GetFileContentMime(attachment.GetContentType()));
+    accessor.AnswerFile(output, attachment, GetFileContentMime(attachment.GetContentType()), filename);
   }
 
 
@@ -1988,15 +1986,31 @@ namespace Orthanc
     return true;
   }
 
-
   bool ServerContext::Transcode(DicomImage& target,
                                 DicomImage& source /* in, "GetParsed()" possibly modified */,
                                 const std::set<DicomTransferSyntax>& allowedSyntaxes,
                                 bool allowNewSopInstanceUid)
   {
+    unsigned int lossyQuality;
+
+    {
+      OrthancConfiguration::ReaderLock lock;
+      lossyQuality = lock.GetConfiguration().GetDicomLossyTranscodingQuality();
+    }
+
+    return Transcode(target, source, allowedSyntaxes, allowNewSopInstanceUid, lossyQuality);
+  }
+
+
+  bool ServerContext::Transcode(DicomImage& target,
+                                DicomImage& source /* in, "GetParsed()" possibly modified */,
+                                const std::set<DicomTransferSyntax>& allowedSyntaxes,
+                                bool allowNewSopInstanceUid,
+                                unsigned int lossyQuality)
+  {
     if (builtinDecoderTranscoderOrder_ == BuiltinDecoderTranscoderOrder_Before)
     {
-      if (dcmtkTranscoder_->Transcode(target, source, allowedSyntaxes, allowNewSopInstanceUid))
+      if (dcmtkTranscoder_->Transcode(target, source, allowedSyntaxes, allowNewSopInstanceUid, lossyQuality))
       {
         return true;
       }
@@ -2006,7 +2020,7 @@ namespace Orthanc
     if (HasPlugins() &&
         GetPlugins().HasCustomTranscoder())
     {
-      if (GetPlugins().Transcode(target, source, allowedSyntaxes, allowNewSopInstanceUid))
+      if (GetPlugins().Transcode(target, source, allowedSyntaxes, allowNewSopInstanceUid))  // TODO: pass lossyQuality to plugins -> needs a new plugin interface
       {
         return true;
       }
@@ -2020,7 +2034,7 @@ namespace Orthanc
 
     if (builtinDecoderTranscoderOrder_ == BuiltinDecoderTranscoderOrder_After)
     {
-      return dcmtkTranscoder_->Transcode(target, source, allowedSyntaxes, allowNewSopInstanceUid);
+      return dcmtkTranscoder_->Transcode(target, source, allowedSyntaxes, allowNewSopInstanceUid, lossyQuality);
     }
     else
     {

@@ -43,5 +43,11 @@ namespace Orthanc
                            DicomImage& source,
                            const std::set<DicomTransferSyntax>& allowedSyntaxes,
                            bool allowNewSopInstanceUid) ORTHANC_OVERRIDE;
+
+    virtual bool Transcode(DicomImage& target /* out */,
+                           DicomImage& source,
+                           const std::set<DicomTransferSyntax>& allowedSyntaxes,
+                           bool allowNewSopInstanceUid,
+                           unsigned int lossyQualityNotUsed) ORTHANC_OVERRIDE;
   };
 }

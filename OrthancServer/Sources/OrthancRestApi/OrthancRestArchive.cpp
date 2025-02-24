@@ -42,6 +42,13 @@ namespace Orthanc
   static const char* const KEY_RESOURCES = "Resources";
   static const char* const KEY_EXTENDED = "Extended";
   static const char* const KEY_TRANSCODE = "Transcode";
+  static const char* const KEY_LOSSY_QUALITY = "LossyQuality";
+  static const char* const KEY_FILENAME = "Filename";
+  
+  static const char* const GET_TRANSCODE = "transcode";
+  static const char* const GET_LOSSY_QUALITY = "lossy-quality";
+  static const char* const GET_FILENAME = "filename";
+  static const char* const GET_RESOURCES = "resources";
 
   static const char* const CONFIG_LOADER_THREADS = "ZipLoaderThreads";
 
@@ -113,10 +120,13 @@ namespace Orthanc
                                bool& extended,               /* out */
                                bool& transcode,              /* out */
                                DicomTransferSyntax& syntax,  /* out */
+                               unsigned int& lossyQuality,   /* out */
                                int& priority,                /* out */
                                unsigned int& loaderThreads,  /* out */
+                               std::string& filename,        /* out */
                                const Json::Value& body,      /* in */
-                               const bool defaultExtended    /* in */)
+                               const bool defaultExtended    /* in */,
+                               const std::string& defaultFilename /* in */)
   {
     synchronous = OrthancRestApi::IsSynchronousJobRequest
       (true /* synchronous by default */, body);
@@ -138,10 +148,30 @@ namespace Orthanc
     {
       transcode = true;
       syntax = Orthanc::GetTransferSyntax(SerializationToolbox::ReadString(body, KEY_TRANSCODE));
+      
+      {
+        OrthancConfiguration::ReaderLock lock;
+        lossyQuality = lock.GetConfiguration().GetDicomLossyTranscodingQuality();
+      }
+
+      if (body.isMember(KEY_LOSSY_QUALITY)) 
+      {
+        lossyQuality = SerializationToolbox::ReadUnsignedInteger(body, KEY_LOSSY_QUALITY);
+      }
     }
     else
     {
       transcode = false;
+    }
+
+    if (body.type() == Json::objectValue &&
+      body.isMember(KEY_FILENAME) && body[KEY_FILENAME].isString())
+    {
+      filename = body[KEY_FILENAME].asString();
+    }
+    else
+    {
+      filename = defaultFilename;
     }
 
     {
@@ -487,6 +517,7 @@ namespace Orthanc
     }
     else
     {
+      job->SetFilename(filename);
       OrthancRestApi::SubmitGenericJob(output, context, job.release(), false, priority);
     }
   }
@@ -508,6 +539,13 @@ namespace Orthanc
       .SetRequestField(KEY_TRANSCODE, RestApiCallDocumentation::Type_String,
                        "If present, the DICOM files in the archive will be transcoded to the provided "
                        "transfer syntax: https://orthanc.uclouvain.be/book/faq/transcoding.html", false)
+      .SetRequestField(KEY_LOSSY_QUALITY, RestApiCallDocumentation::Type_Number,
+                        "If transcoding to a lossy transfer syntax, this entry defines the quality "
+                        "as an integer between 1 and 100.  If not provided, the value is defined "
+                        "by the \"DicomLossyTranscodingQuality\" configuration. (new in v1.12.7)", false)
+      .SetRequestField(KEY_FILENAME, RestApiCallDocumentation::Type_String,
+                        "Filename to set in the \"Content-Disposition\" HTTP header "
+                        "(including file extension)", false)
       .SetRequestField("Priority", RestApiCallDocumentation::Type_Number,
                        "In asynchronous mode, the priority of the job. The higher the value, the higher the priority.", false)
       .AddAnswerType(MimeType_Zip, "In synchronous mode, the ZIP file containing the archive")
@@ -539,8 +577,11 @@ namespace Orthanc
         .SetSummary("Create " + m)
         .SetDescription("Create a " + m + " containing the DICOM resources (patients, studies, series, or instances) "
                         "whose Orthanc identifiers are provided in the body")
-        .SetRequestField("Resources", RestApiCallDocumentation::Type_JsonListOfStrings,
-                         "The list of Orthanc identifiers of interest.", false);
+        .SetRequestField(KEY_RESOURCES, RestApiCallDocumentation::Type_JsonListOfStrings,
+                         "The list of Orthanc identifiers of interest.", false)
+        .SetRequestField(KEY_FILENAME, RestApiCallDocumentation::Type_String,
+                         "Filename to set in the \"Content-Disposition\" HTTP header "
+                         "(including file extension)", false);
       return;
     }
 
@@ -553,8 +594,11 @@ namespace Orthanc
       DicomTransferSyntax transferSyntax;
       int priority;
       unsigned int loaderThreads;
-      GetJobParameters(synchronous, extended, transcode, transferSyntax,
-                       priority, loaderThreads, body, DEFAULT_IS_EXTENDED);
+      std::string filename;
+      unsigned int lossyQuality;
+
+      GetJobParameters(synchronous, extended, transcode, transferSyntax, lossyQuality,
+                       priority, loaderThreads, filename, body, DEFAULT_IS_EXTENDED, "Archive.zip");
       
       std::unique_ptr<ArchiveJob> job(new ArchiveJob(context, IS_MEDIA, extended, ResourceType_Patient));
       AddResourcesOfInterest(*job, body);
@@ -562,11 +606,12 @@ namespace Orthanc
       if (transcode)
       {
         job->SetTranscode(transferSyntax);
+        job->SetLossyQuality(lossyQuality);
       }
       
       job->SetLoaderThreads(loaderThreads);
 
-      SubmitJob(call.GetOutput(), context, job, priority, synchronous, "Archive.zip");
+      SubmitJob(call.GetOutput(), context, job, priority, synchronous, filename);
     }
     else
     {
@@ -574,15 +619,23 @@ namespace Orthanc
                              "Expected a list of resources to archive in the body");
     }
   }
-  
+
+  static unsigned int GetLossyQuality(const RestApiGetCall& call)
+  {
+    unsigned int lossyQuality;
+
+    OrthancConfiguration::ReaderLock lock;
+    lossyQuality = lock.GetConfiguration().GetDicomLossyTranscodingQuality();
+    lossyQuality = call.GetUnsignedInteger32Argument(GET_LOSSY_QUALITY, lossyQuality);
+    
+    return lossyQuality;
+  }
+
 
   template <bool IS_MEDIA,
             bool DEFAULT_IS_EXTENDED  /* only makes sense for media (i.e. not ZIP archives) */ >
   static void CreateBatchGet(RestApiGetCall& call)
   {
-    static const char* const TRANSCODE = "transcode";
-    static const char* const RESOURCES = "resources";
-
     if (call.IsDocumentation())
     {
       std::string m = (IS_MEDIA ? "DICOMDIR media" : "ZIP archive");
@@ -591,10 +644,17 @@ namespace Orthanc
         .SetSummary("Create " + m)
         .SetDescription("Create a " + m + " containing the DICOM resources (patients, studies, series, or instances) "
                         "whose Orthanc identifiers are provided in the 'resources' argument")
-        .SetHttpGetArgument(TRANSCODE, RestApiCallDocumentation::Type_String,
+        .SetHttpGetArgument(GET_FILENAME, RestApiCallDocumentation::Type_String,
+                          "Filename to set in the \"Content-Disposition\" HTTP header "
+                          "(including file extension)", false)
+        .SetHttpGetArgument(GET_TRANSCODE, RestApiCallDocumentation::Type_String,
                             "If present, the DICOM files will be transcoded to the provided "
                             "transfer syntax: https://orthanc.uclouvain.be/book/faq/transcoding.html", false)
-        .SetHttpGetArgument(RESOURCES, RestApiCallDocumentation::Type_String,
+        .SetHttpGetArgument(GET_LOSSY_QUALITY, RestApiCallDocumentation::Type_Number,
+                            "If transcoding to a lossy transfer syntax, this entry defines the quality "
+                            "as an integer between 1 and 100.  If not provided, the value is defined "
+                            "by the \"DicomLossyTranscodingQuality\" configuration. (new in v1.12.7)", false)
+        .SetHttpGetArgument(GET_RESOURCES, RestApiCallDocumentation::Type_String,
                             "A comma separated list of Orthanc resource identifiers to include in the " + m + ".", true);
       return;
     }
@@ -602,27 +662,32 @@ namespace Orthanc
     ServerContext& context = OrthancRestApi::GetContext(call);
     bool transcode = false;
     DicomTransferSyntax transferSyntax = DicomTransferSyntax_LittleEndianImplicit;  // Initialize variable to avoid warnings
+    unsigned int lossyQuality;
 
-    if (call.HasArgument(TRANSCODE))
+    if (call.HasArgument(GET_TRANSCODE))
     {
       transcode = true;
-      transferSyntax = GetTransferSyntax(call.GetArgument(TRANSCODE, ""));
+      transferSyntax = GetTransferSyntax(call.GetArgument(GET_TRANSCODE, ""));
+      lossyQuality = GetLossyQuality(call);
     }
     
-    if (!call.HasArgument(RESOURCES))
+    if (!call.HasArgument(GET_RESOURCES))
     {
-      throw OrthancException(Orthanc::ErrorCode_BadRequest, std::string("Missing ") + RESOURCES + " argument");
+      throw OrthancException(Orthanc::ErrorCode_BadRequest, std::string("Missing ") + GET_RESOURCES + " argument");
     }
 
     std::unique_ptr<ArchiveJob> job(new ArchiveJob(context, IS_MEDIA, DEFAULT_IS_EXTENDED, ResourceType_Patient));
-    AddResourcesOfInterestFromString(*job, call.GetArgument(RESOURCES, ""));
+    AddResourcesOfInterestFromString(*job, call.GetArgument(GET_RESOURCES, ""));
 
     if (transcode)
     {
       job->SetTranscode(transferSyntax);
+      job->SetLossyQuality(lossyQuality);
     }
 
-    SubmitJob(call.GetOutput(), context, job, 0, true, "Archive.zip");
+    const std::string filename = call.GetArgument(GET_FILENAME, "Archive.zip");  // New in Orthanc 1.12.7
+
+    SubmitJob(call.GetOutput(), context, job, 0, true, filename);
   }
 
 
@@ -630,8 +695,6 @@ namespace Orthanc
             bool IS_MEDIA>
   static void CreateSingleGet(RestApiGetCall& call)
   {
-    static const char* const TRANSCODE = "transcode";
-    static const char* const FILENAME = "filename";
 
     if (call.IsDocumentation())
     {
@@ -646,12 +709,16 @@ namespace Orthanc
                         "which might *not* be desirable to archive large amount of data, as it might "
                         "lead to network timeouts. Prefer the asynchronous version using `POST` method.")
         .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
-        .SetHttpGetArgument(FILENAME, RestApiCallDocumentation::Type_String,
+        .SetHttpGetArgument(GET_FILENAME, RestApiCallDocumentation::Type_String,
                             "Filename to set in the \"Content-Disposition\" HTTP header "
                             "(including file extension)", false)
-        .SetHttpGetArgument(TRANSCODE, RestApiCallDocumentation::Type_String,
+        .SetHttpGetArgument(GET_TRANSCODE, RestApiCallDocumentation::Type_String,
                             "If present, the DICOM files in the archive will be transcoded to the provided "
                             "transfer syntax: https://orthanc.uclouvain.be/book/faq/transcoding.html", false)
+        .SetHttpGetArgument(GET_LOSSY_QUALITY, RestApiCallDocumentation::Type_Number,
+                            "If transcoding to a lossy transfer syntax, this entry defines the quality "
+                            "as an integer between 1 and 100.  If not provided, the value is defined "
+                            "by the \"DicomLossyTranscodingQuality\" configuration. (new in v1.12.7)", false)
         .AddAnswerType(MimeType_Zip, "ZIP file containing the archive");
       if (IS_MEDIA)
       {
@@ -665,7 +732,7 @@ namespace Orthanc
     ServerContext& context = OrthancRestApi::GetContext(call);
 
     const std::string id = call.GetUriComponent("id", "");
-    const std::string filename = call.GetArgument(FILENAME, id + ".zip");  // New in Orthanc 1.11.0
+    const std::string filename = call.GetArgument(GET_FILENAME, id + ".zip");  // New in Orthanc 1.11.0
 
     bool extended;
     if (IS_MEDIA)
@@ -680,9 +747,10 @@ namespace Orthanc
     std::unique_ptr<ArchiveJob> job(new ArchiveJob(context, IS_MEDIA, extended, (LEVEL == ResourceType_Patient ? ResourceType_Patient : ResourceType_Study))); // use patient info from study except when exporting a patient
     job->AddResource(id, true, LEVEL);
 
-    if (call.HasArgument(TRANSCODE))
+    if (call.HasArgument(GET_TRANSCODE))
     {
-      job->SetTranscode(GetTransferSyntax(call.GetArgument(TRANSCODE, "")));
+      job->SetTranscode(GetTransferSyntax(call.GetArgument(GET_TRANSCODE, "")));
+      job->SetLossyQuality(GetLossyQuality(call));
     }
 
     {
@@ -726,8 +794,10 @@ namespace Orthanc
       DicomTransferSyntax transferSyntax;
       int priority;
       unsigned int loaderThreads;
-      GetJobParameters(synchronous, extended, transcode, transferSyntax,
-                       priority, loaderThreads, body, false /* by default, not extented */);
+      std::string filename;
+      unsigned int lossyQuality;
+      GetJobParameters(synchronous, extended, transcode, transferSyntax, lossyQuality,
+                       priority, loaderThreads, filename, body, false /* by default, not extented */, id + ".zip");
       
       std::unique_ptr<ArchiveJob> job(new ArchiveJob(context, IS_MEDIA, extended, LEVEL));
       job->AddResource(id, true, LEVEL);
@@ -735,11 +805,12 @@ namespace Orthanc
       if (transcode)
       {
         job->SetTranscode(transferSyntax);
+        job->SetLossyQuality(lossyQuality);
       }
 
       job->SetLoaderThreads(loaderThreads);
 
-      SubmitJob(call.GetOutput(), context, job, priority, synchronous, id + ".zip");
+      SubmitJob(call.GetOutput(), context, job, priority, synchronous, filename);
     }
     else
     {

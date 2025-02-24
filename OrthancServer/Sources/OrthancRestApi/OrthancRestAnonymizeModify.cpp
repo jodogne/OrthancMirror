@@ -58,6 +58,8 @@ static const char* const RESOURCES = "Resources";
 static const char* const SERIES = "Series";
 static const char* const TAGS = "Tags";
 static const char* const TRANSCODE = "Transcode";
+static const char* const LOSSY_QUALITY = "LossyQuality";
+
 
 
 namespace Orthanc
@@ -88,6 +90,10 @@ namespace Orthanc
       .SetRequestField(TRANSCODE, RestApiCallDocumentation::Type_String,
                        "Transcode the DICOM instances to the provided DICOM transfer syntax: "
                        "https://orthanc.uclouvain.be/book/faq/transcoding.html", false)
+      .SetRequestField(LOSSY_QUALITY, RestApiCallDocumentation::Type_Number,
+                        "If transcoding to a lossy transfer syntax, this entry defines the quality "
+                        "as an integer between 1 and 100.  If not provided, the value is defined "
+                        "by the \"DicomLossyTranscodingQuality\" configuration. (new in v1.12.7)", false)
       .SetRequestField(FORCE, RestApiCallDocumentation::Type_Boolean,
                        "Allow the modification of tags related to DICOM identifiers, at the risk of "
                        "breaking the DICOM model of the real world", false)
@@ -116,6 +122,10 @@ namespace Orthanc
       .SetRequestField(TRANSCODE, RestApiCallDocumentation::Type_String,
                        "Transcode the DICOM instances to the provided DICOM transfer syntax: "
                        "https://orthanc.uclouvain.be/book/faq/transcoding.html", false)
+      .SetRequestField(LOSSY_QUALITY, RestApiCallDocumentation::Type_Number,
+                        "If transcoding to a lossy transfer syntax, this entry defines the quality "
+                        "as an integer between 1 and 100.  If not provided, the value is defined "
+                        "by the \"DicomLossyTranscodingQuality\" configuration. (new in v1.12.7)", false)
       .SetRequestField(FORCE, RestApiCallDocumentation::Type_Boolean,
                        "Allow the modification of tags related to DICOM identifiers, at the risk of "
                        "breaking the DICOM model of the real world", false)
@@ -196,7 +206,8 @@ namespace Orthanc
   static void AnonymizeOrModifyInstance(DicomModification& modification,
                                         RestApiPostCall& call,
                                         bool transcode,
-                                        DicomTransferSyntax targetSyntax)
+                                        DicomTransferSyntax targetSyntax,
+                                        unsigned int lossyQuality)
   {
     ServerContext& context = OrthancRestApi::GetContext(call);
     std::string id = call.GetUriComponent("id", "");
@@ -220,7 +231,7 @@ namespace Orthanc
       std::set<DicomTransferSyntax> s;
       s.insert(targetSyntax);
       
-      if (context.Transcode(transcoded, source, s, true))
+      if (context.Transcode(transcoded, source, s, true, lossyQuality))
       {      
         call.GetOutput().AnswerBuffer(transcoded.GetBufferData(),
                                       transcoded.GetBufferSize(), MimeType_Dicom);
@@ -259,6 +270,20 @@ namespace Orthanc
     }
   }
 
+  static unsigned int GetLossyQuality(const Json::Value& request)
+  {
+    unsigned int lossyQuality;
+    {
+      OrthancConfiguration::ReaderLock lock;
+      lossyQuality = lock.GetConfiguration().GetDicomLossyTranscodingQuality();
+    }
+
+    if (request.isMember(LOSSY_QUALITY)) 
+    {
+      lossyQuality = SerializationToolbox::ReadUnsignedInteger(request, LOSSY_QUALITY);
+    }
+    return lossyQuality;
+}
 
   static void ModifyInstance(RestApiPostCall& call)
   {
@@ -286,11 +311,11 @@ namespace Orthanc
     if (request.isMember(TRANSCODE))
     {
       std::string s = SerializationToolbox::ReadString(request, TRANSCODE);
-      
+
       DicomTransferSyntax syntax;
       if (LookupTransferSyntax(syntax, s))
       {
-        AnonymizeOrModifyInstance(modification, call, true, syntax);
+        AnonymizeOrModifyInstance(modification, call, true, syntax, GetLossyQuality(request));
       }
       else
       {
@@ -300,7 +325,7 @@ namespace Orthanc
     else
     {
       AnonymizeOrModifyInstance(modification, call, false /* no transcoding */,
-                                DicomTransferSyntax_LittleEndianImplicit /* unused */);
+                                DicomTransferSyntax_LittleEndianImplicit /* unused */, 0 /* unused */);
     }
   }
 
@@ -326,8 +351,25 @@ namespace Orthanc
     Json::Value request;
     ParseAnonymizationRequest(request, modification, call);
 
-    AnonymizeOrModifyInstance(modification, call, false /* no transcoding */,
-                              DicomTransferSyntax_LittleEndianImplicit /* unused */);
+    if (request.isMember(TRANSCODE))
+    {
+      std::string s = SerializationToolbox::ReadString(request, TRANSCODE);
+
+      DicomTransferSyntax syntax;
+      if (LookupTransferSyntax(syntax, s))
+      {
+        AnonymizeOrModifyInstance(modification, call, true, syntax, GetLossyQuality(request));
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_ParameterOutOfRange, "Unknown transfer syntax: " + s);
+      }
+    }
+    else
+    {
+      AnonymizeOrModifyInstance(modification, call, false /* no transcoding */,
+                                DicomTransferSyntax_LittleEndianImplicit /* unused */, 0 /* unused */);
+    }
   }
 
 

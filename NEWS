@@ -14,7 +14,12 @@ REST API
 --------
 
 * API version upgraded to 28
-
+* GET /studies/../archive and sibbling routes now all accept a 'filename' GET argument.
+* POST /studies/../archive and sibbling routes now all accept a 'Filename' query argument.
+* GET /instances/../file and sibbling ../attachments/../data routes now all accept a 'filename' GET argument.
+* All routes accepting a "transcode" url argument or a "Transcode" field in the payload now also
+  accepts a "lossy-quality" url argument or a "LossyQuality" field to define the compression quality factor.
+  If not specified, the "DicomLossyTranscodingQuality" configuration is taken into account.
 
 Plugins
 -------
@@ -22,12 +27,18 @@ Plugins
 * New database plugin SDK (vX) to handle customData for attachments.
 * New storage plugin SDK (v3) to handle customData for attachments,
 
-
 Maintenance
 -----------
 
-* In the "ExtendedFind" mode, optimized "tools/find" when "StorageAccessMode" is 
-  set to "Never".
+* In the "ExtendedFind" mode:
+  - optimized "tools/find" when "StorageAccessMode" is set to "Never".
+  - "tools/find" is now returning results when e.g, ordering instances against a metadata they don't have
+* Fixed interpretation of returnUnsupportedImage in /preview route. 
+* GET /series/../study now also contain LastUpdate field:
+  https://discourse.orthanc-server.org/t/lastupdate-coherency/5524
+* Recovered compatibility with Windows XP that was broken because of DCMTK 3.6.9
+* Enabled support of the 1.2.840.10008.1.2.1.99 transfer syntax
+  (Deflated Explicit VR Little Endian) in static builds
 
 
 Version 1.12.6 (2025-01-22)

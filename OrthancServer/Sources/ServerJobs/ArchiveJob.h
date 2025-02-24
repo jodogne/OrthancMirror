@@ -57,6 +57,7 @@ namespace Orthanc
     bool                                  isMedia_;
     bool                                  enableExtendedSopClass_;
     std::string                           description_;
+    std::string                           filename_;
 
     boost::shared_ptr<ZipWriterIterator>  writer_;
     size_t                                currentStep_;
@@ -68,6 +69,7 @@ namespace Orthanc
     // New in Orthanc 1.7.0
     bool                 transcode_;
     DicomTransferSyntax  transferSyntax_;
+    unsigned int         lossyQuality_;
 
     // New in Orthanc 1.10.0
     unsigned int         loaderThreads_;
@@ -91,11 +93,20 @@ namespace Orthanc
       return description_;
     }
 
+    void SetFilename(const std::string& filename);
+
+    const std::string& GetFilename() const
+    {
+      return filename_;
+    }
+
     void AddResource(const std::string& publicId,
                      bool mustExist,
                      ResourceType expectedType);
 
     void SetTranscode(DicomTransferSyntax transferSyntax);
+
+    void SetLossyQuality(unsigned int lossyQuality);
 
     void SetLoaderThreads(unsigned int loaderThreads);
 

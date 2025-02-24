@@ -817,9 +817,10 @@ namespace Orthanc
 #if ORTHANC_ENABLE_CIVETWEB == 1 || ORTHANC_ENABLE_MONGOOSE == 1
   void StorageAccessor::AnswerFile(HttpOutput& output,
                                    const FileInfo& info,
-                                   MimeType mime)
+                                   MimeType mime,
+                                   const std::string& contentFilename)
   {
-    AnswerFile(output, info, EnumerationToString(mime));
+    AnswerFile(output, info, EnumerationToString(mime), contentFilename);
   }
 #endif
 
@@ -827,10 +828,12 @@ namespace Orthanc
 #if ORTHANC_ENABLE_CIVETWEB == 1 || ORTHANC_ENABLE_MONGOOSE == 1
   void StorageAccessor::AnswerFile(HttpOutput& output,
                                    const FileInfo& info,
-                                   const std::string& mime)
+                                   const std::string& mime,
+                                   const std::string& contentFilename)
   {
     BufferHttpSender sender;
     SetupSender(sender, info, mime);
+    sender.SetContentFilename(contentFilename);
   
     HttpStreamTranscoder transcoder(sender, CompressionType_None); // since 1.11.2, the storage accessor only returns uncompressed buffers
     output.Answer(transcoder);
@@ -841,9 +844,10 @@ namespace Orthanc
 #if ORTHANC_ENABLE_CIVETWEB == 1 || ORTHANC_ENABLE_MONGOOSE == 1
   void StorageAccessor::AnswerFile(RestApiOutput& output,
                                    const FileInfo& info,
-                                   MimeType mime)
+                                   MimeType mime,
+                                   const std::string& contentFilename)
   {
-    AnswerFile(output, info, EnumerationToString(mime));
+    AnswerFile(output, info, EnumerationToString(mime), contentFilename);
   }
 #endif
 
@@ -851,11 +855,13 @@ namespace Orthanc
 #if ORTHANC_ENABLE_CIVETWEB == 1 || ORTHANC_ENABLE_MONGOOSE == 1
   void StorageAccessor::AnswerFile(RestApiOutput& output,
                                    const FileInfo& info,
-                                   const std::string& mime)
+                                   const std::string& mime,
+                                   const std::string& contentFilename)
   {
     BufferHttpSender sender;
     SetupSender(sender, info, mime);
-  
+    sender.SetContentFilename(contentFilename);
+
     HttpStreamTranscoder transcoder(sender, CompressionType_None); // since 1.11.2, the storage accessor only returns uncompressed buffers
     output.AnswerStream(transcoder);
   }

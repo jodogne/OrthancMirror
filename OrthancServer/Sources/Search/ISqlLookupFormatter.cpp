@@ -373,7 +373,7 @@ namespace Orthanc
     std::string arg = "order" + boost::lexical_cast<std::string>(index);
 
 
-    target = " INNER JOIN Metadata " + arg + " ON " + arg + ".id = " + FormatLevel(requestLevel) +
+    target = " LEFT JOIN Metadata " + arg + " ON " + arg + ".id = " + FormatLevel(requestLevel) +
              ".internalId AND " + arg + ".type = " +
              boost::lexical_cast<std::string>(metadata);
   }

@@ -203,6 +203,14 @@ else()
   message(FATAL_ERROR "Invalid value for DCMTK_LOCALE_BACKEND: ${DCMTK_LOCALE_BACKEND}")
 endif()
 
+
+# Enable support of the 1.2.840.10008.1.2.1.99 transfer syntax in
+# static builds of Orthanc (Deflated Explicit VR Little
+# Endian). Defining "WITH_ZLIB" is always OK, as zlib is part of the
+# core dependencies of the Orthanc framework.
+# https://discourse.orthanc-server.org/t/transcoding-to-deflated-transfer-syntax-fails/
+set(WITH_ZLIB ON)
+
 CONFIGURE_FILE(
   ${DCMTK_SOURCES_DIR}/CMake/osconfig.h.in
   ${DCMTK_SOURCES_DIR}/config/include/dcmtk/config/osconfig.h)

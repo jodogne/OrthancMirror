@@ -1148,6 +1148,15 @@ namespace Orthanc
           Toolbox::RemoveSets(remainingRequestedTags, metaTagsToRemove);
         }
 
+        // if SOPClassUID has been requested, we might still find it at metadata level (useful e.g. for StoneViewer)
+        std::string sopClassUidFromMetadata;
+        if (resource.GetLevel() == ResourceType_Instance &&
+            remainingRequestedTags.find(DICOM_TAG_SOP_CLASS_UID) != remainingRequestedTags.end() && 
+            resource.LookupMetadata(sopClassUidFromMetadata, ResourceType_Instance, MetadataType_Instance_SopClassUid))
+        {
+          outRequestedTags.SetValue(DICOM_TAG_SOP_CLASS_UID, sopClassUidFromMetadata, false);
+          remainingRequestedTags.erase(DICOM_TAG_SOP_CLASS_UID);
+        }
 
         if (!remainingRequestedTags.empty() && 
             !DicomMap::HasOnlyComputedTags(remainingRequestedTags)) // if the only remaining tags are computed tags, it is worthless to read them from disk

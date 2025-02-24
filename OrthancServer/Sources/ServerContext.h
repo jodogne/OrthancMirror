@@ -363,7 +363,8 @@ namespace Orthanc
                                   bool isReconstruct = false);
 
     void AnswerAttachment(RestApiOutput& output,
-                          const FileInfo& fileInfo);
+                          const FileInfo& fileInfo,
+                          const std::string& filename);
 
     void ChangeAttachmentCompression(ResourceType level,
                                      const std::string& resourceId,
@@ -578,6 +579,12 @@ namespace Orthanc
                            DicomImage& source /* in, "GetParsed()" possibly modified */,
                            const std::set<DicomTransferSyntax>& allowedSyntaxes,
                            bool allowNewSopInstanceUid) ORTHANC_OVERRIDE;
+    
+    virtual bool Transcode(DicomImage& target,
+                           DicomImage& source /* in, "GetParsed()" possibly modified */,
+                           const std::set<DicomTransferSyntax>& allowedSyntaxes,
+                           bool allowNewSopInstanceUid,
+                           unsigned int lossyQuality) ORTHANC_OVERRIDE;
 
     virtual bool TranscodeWithCache(std::string& target,
                                     const std::string& source,
