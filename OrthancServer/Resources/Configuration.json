@@ -920,8 +920,10 @@
   // that have a compressed transfer syntax (new in Orthanc 1.8.2).
   "IngestTranscodingOfCompressed" : true,
   
-  // The compression level that is used when transcoding to one of the
-  // lossy/JPEG transfer syntaxes (integer between 1 and 100).
+  // The default compression level that is used when transcoding to one
+  // of the lossy/JPEG transfer syntaxes (integer between 1 and 100).
+  // This value is currently only used by the default built-in DCMTK
+  // transcoder and is not provided to transcoding plugins.
   "DicomLossyTranscodingQuality" : 90,
 
   // Whether "fsync()" is called after each write to the storage area

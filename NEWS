@@ -8,6 +8,9 @@ REST API
 * GET /studies/../archive and sibbling routes now all accept a 'filename' GET argument.
 * POST /studies/../archive and sibbling routes now all accept a 'Filename' query argument.
 * GET /instances/../file and sibbling ../attachments/../data routes now all accept a 'filename' GET argument.
+* All routes accepting a "transcode" url argument or a "Transcode" field in the payload now also
+  accepts a "lossy-quality" url argument or a "LossyQuality" field to define the compression quality factor.
+  If not specified, the "DicomLossyTranscodingQuality" configuration is taken into account.
 
 
 Maintenance
