@@ -60,9 +60,9 @@ namespace Orthanc
                                   FileContentType type,
                                   bool isCompressed) = 0;
 
-    virtual IMemoryBuffer* Read(const std::string& uuid,
-                                FileContentType type,
-                                const std::string& customData) = 0;
+    virtual IMemoryBuffer* ReadWhole(const std::string& uuid,
+                                     FileContentType type,
+                                     const std::string& customData) = 0;
 
     virtual IMemoryBuffer* ReadRange(const std::string& uuid,
                                      FileContentType type,
@@ -104,9 +104,9 @@ namespace Orthanc
       Create(uuid, content, size, type);
     }
 
-    virtual IMemoryBuffer* Read(const std::string& uuid,
-                                FileContentType type,
-                                const std::string& /*customData*/) ORTHANC_OVERRIDE
+    virtual IMemoryBuffer* ReadWhole(const std::string& uuid,
+                                     FileContentType type,
+                                     const std::string& /*customData*/) ORTHANC_OVERRIDE
     {
       return Read(uuid, type);
     }

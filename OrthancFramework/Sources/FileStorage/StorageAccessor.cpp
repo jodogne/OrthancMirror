@@ -526,7 +526,7 @@ namespace Orthanc
 
         {
           MetricsTimer timer(*this, METRICS_READ_DURATION);
-          buffer.reset(area_.Read(info.GetUuid(), info.GetContentType(), info.GetCustomData()));
+          buffer.reset(area_.ReadWhole(info.GetUuid(), info.GetContentType(), info.GetCustomData()));
         }
 
         if (metrics_ != NULL)
@@ -547,7 +547,7 @@ namespace Orthanc
         
         {
           MetricsTimer timer(*this, METRICS_READ_DURATION);
-          compressed.reset(area_.Read(info.GetUuid(), info.GetContentType(), info.GetCustomData()));
+          compressed.reset(area_.ReadWhole(info.GetUuid(), info.GetContentType(), info.GetCustomData()));
         }
         
         if (metrics_ != NULL)
@@ -606,7 +606,7 @@ namespace Orthanc
 
     {
       MetricsTimer timer(*this, METRICS_READ_DURATION);
-      buffer.reset(area_.Read(info.GetUuid(), info.GetContentType(), info.GetCustomData()));
+      buffer.reset(area_.ReadWhole(info.GetUuid(), info.GetContentType(), info.GetCustomData()));
     }
 
     if (metrics_ != NULL)
@@ -775,7 +775,7 @@ namespace Orthanc
       }
       else
       {
-        buffer.reset(area_.Read(info.GetUuid(), info.GetContentType(), info.GetCustomData()));
+        buffer.reset(area_.ReadWhole(info.GetUuid(), info.GetContentType(), info.GetCustomData()));
       }
 
       buffer->MoveToString(target);
