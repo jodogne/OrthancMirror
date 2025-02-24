@@ -5321,7 +5321,6 @@ namespace Orthanc
         const _OrthancPluginStorageAreaCreate& p =
           *reinterpret_cast<const _OrthancPluginStorageAreaCreate*>(parameters);
         PluginStorageAreaBase& storage = *reinterpret_cast<PluginStorageAreaBase*>(p.storageArea);
-        std::string customDataNotUsed;
         storage.Create(p.uuid, p.content, static_cast<size_t>(p.size), Plugins::Convert(p.type));
         return true;
       }
