@@ -46,6 +46,7 @@ static const char* const TEMPORARY_DIRECTORY = "TemporaryDirectory";
 static const char* const DATABASE_SERVER_IDENTIFIER = "DatabaseServerIdentifier";
 static const char* const WARNINGS = "Warnings";
 static const char* const JOBS_ENGINE_THREADS_COUNT = "JobsEngineThreadsCount";
+static const char* const DICOM_LOSSY_TRANSCODING_QUALITY = "DicomLossyTranscodingQuality";
 
 namespace Orthanc
 {
@@ -698,6 +699,11 @@ namespace Orthanc
     {
       target.insert(it->first);
     }
+  }
+
+  unsigned int OrthancConfiguration::GetDicomLossyTranscodingQuality() const
+  {
+    return GetUnsignedIntegerParameter(DICOM_LOSSY_TRANSCODING_QUALITY, 90);
   }
 
 

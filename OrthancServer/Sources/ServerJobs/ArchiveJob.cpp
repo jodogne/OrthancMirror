@@ -88,11 +88,13 @@ namespace Orthanc
     ServerContext&                        context_;
     bool                                  transcode_;
     DicomTransferSyntax                   transferSyntax_;
+    unsigned int                          lossyQuality_;
   public:
-    explicit InstanceLoader(ServerContext& context, bool transcode, DicomTransferSyntax transferSyntax)
+    explicit InstanceLoader(ServerContext& context, bool transcode, DicomTransferSyntax transferSyntax, unsigned int lossyQuality)
     : context_(context),
       transcode_(transcode),
-      transferSyntax_(transferSyntax)
+      transferSyntax_(transferSyntax),
+      lossyQuality_(lossyQuality)
     {
     }
 
@@ -114,7 +116,7 @@ namespace Orthanc
         IDicomTranscoder::DicomImage source, transcoded;
         source.SetExternalBuffer(sourceBuffer);
 
-        if (context_.Transcode(transcoded, source, syntaxes, true /* allow new SOP instance UID */))
+        if (context_.Transcode(transcoded, source, syntaxes, true /* allow new SOP instance UID */, lossyQuality_))
         {
           transcodedBuffer.assign(reinterpret_cast<const char*>(transcoded.GetBufferData()), transcoded.GetBufferSize());
           return true;
@@ -139,8 +141,8 @@ namespace Orthanc
   class ArchiveJob::SynchronousInstanceLoader : public ArchiveJob::InstanceLoader
   {
   public:
-    explicit SynchronousInstanceLoader(ServerContext& context, bool transcode, DicomTransferSyntax transferSyntax)
-    : InstanceLoader(context, transcode, transferSyntax)
+    explicit SynchronousInstanceLoader(ServerContext& context, bool transcode, DicomTransferSyntax transferSyntax, unsigned int lossyQuality)
+    : InstanceLoader(context, transcode, transferSyntax, lossyQuality)
     {
     }
 
@@ -192,8 +194,8 @@ namespace Orthanc
 
 
   public:
-    ThreadedInstanceLoader(ServerContext& context, size_t threadCount, bool transcode, DicomTransferSyntax transferSyntax)
-    : InstanceLoader(context, transcode, transferSyntax),
+    ThreadedInstanceLoader(ServerContext& context, size_t threadCount, bool transcode, DicomTransferSyntax transferSyntax, unsigned int lossyQuality)
+    : InstanceLoader(context, transcode, transferSyntax, lossyQuality),
       availableInstancesSemaphore_(0),
       bufferedInstancesSemaphore_(3*threadCount)
     {
@@ -1243,12 +1245,14 @@ namespace Orthanc
     archive_(new ArchiveIndex(GetArchiveResourceType(jobLevel))),  // get patient Info from this level
     isMedia_(isMedia),
     enableExtendedSopClass_(enableExtendedSopClass),
+    filename_("archive.zip"),
     currentStep_(0),
     instancesCount_(0),
     uncompressedSize_(0),
     archiveSize_(0),
     transcode_(false),
     transferSyntax_(DicomTransferSyntax_LittleEndianImplicit),
+    lossyQuality_(100),
     loaderThreads_(0)
   {
   }
@@ -1296,7 +1300,18 @@ namespace Orthanc
     }
   }
 
-  
+  void ArchiveJob::SetFilename(const std::string& filename)
+  {
+    if (writer_.get() != NULL)   // Already started
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    else
+    {
+      filename_ = filename;
+    }
+  }
+
   void ArchiveJob::AddResource(const std::string& publicId,
                                bool mustExist,
                                ResourceType expectedType)
@@ -1337,7 +1352,20 @@ namespace Orthanc
     }
   }
 
-  
+
+  void ArchiveJob::SetLossyQuality(unsigned int lossyQuality)
+  {
+    if (writer_.get() != NULL)   // Already started
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+    else
+    {
+      lossyQuality_ = lossyQuality;
+    }
+  }
+
+
   void ArchiveJob::SetLoaderThreads(unsigned int loaderThreads)
   {
     if (writer_.get() != NULL)   // Already started
@@ -1363,11 +1391,11 @@ namespace Orthanc
     if (loaderThreads_ == 0)
     {
       // default behaviour before loaderThreads was introducted in 1.10.0
-      instanceLoader_.reset(new SynchronousInstanceLoader(context_, transcode_, transferSyntax_));
+      instanceLoader_.reset(new SynchronousInstanceLoader(context_, transcode_, transferSyntax_, lossyQuality_));
     }
     else
     {
-      instanceLoader_.reset(new ThreadedInstanceLoader(context_, loaderThreads_, transcode_, transferSyntax_));
+      instanceLoader_.reset(new ThreadedInstanceLoader(context_, loaderThreads_, transcode_, transferSyntax_, lossyQuality_));
     }
 
     if (writer_.get() != NULL)
@@ -1582,7 +1610,7 @@ namespace Orthanc
         const DynamicTemporaryFile& f = dynamic_cast<DynamicTemporaryFile&>(accessor.GetItem());
         f.GetFile().Read(output);
         mime = MimeType_Zip;
-        filename = "archive.zip";
+        filename = filename_;
         return true;
       }
       else

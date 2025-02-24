@@ -41,21 +41,22 @@ namespace Orthanc
   class ORTHANC_PUBLIC DcmtkTranscoder : public IDicomTranscoder
   {
   private:
-    unsigned int  lossyQuality_;
+    unsigned int  defaultLossyQuality_;
     Semaphore maxConcurrentExecutionsSemaphore_;
 
     bool InplaceTranscode(DicomTransferSyntax& selectedSyntax /* out */,
                           std::string& failureReason /* out */,
                           DcmFileFormat& dicom,
                           const std::set<DicomTransferSyntax>& allowedSyntaxes,
-                          bool allowNewSopInstanceUid);
+                          bool allowNewSopInstanceUid,
+                          unsigned int lossyQuality);
     
   public:
     explicit DcmtkTranscoder(unsigned int maxConcurrentExecutions);
 
-    void SetLossyQuality(unsigned int quality);
+    void SetDefaultLossyQuality(unsigned int quality);
 
-    unsigned int GetLossyQuality() const;
+    unsigned int GetDefaultLossyQuality() const;
     
     static bool IsSupported(DicomTransferSyntax syntax);
 
@@ -63,5 +64,11 @@ namespace Orthanc
                            DicomImage& source /* in, "GetParsed()" possibly modified */,
                            const std::set<DicomTransferSyntax>& allowedSyntaxes,
                            bool allowNewSopInstanceUid) ORTHANC_OVERRIDE;
+
+    virtual bool Transcode(DicomImage& target,
+                           DicomImage& source /* in, "GetParsed()" possibly modified */,
+                           const std::set<DicomTransferSyntax>& allowedSyntaxes,
+                           bool allowNewSopInstanceUid,
+                           unsigned int lossyQuality) ORTHANC_OVERRIDE;
   };
 }

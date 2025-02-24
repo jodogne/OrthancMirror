@@ -197,6 +197,8 @@ namespace Orthanc
 
     void GetListOfOrthancPeers(std::set<std::string>& target) const;
 
+    unsigned int GetDicomLossyTranscodingQuality() const;
+    
     // Returns "true" iff. at least one user is registered
     bool SetupRegisteredUsers(HttpServer& httpServer) const;
 

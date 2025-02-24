@@ -156,7 +156,6 @@ namespace Orthanc
 
     ResourceFinder finder(level, responseContent, context.GetFindStorageAccessMode(), context.GetIndex().HasFindSupport());
     finder.SetOrthancId(level, identifier);
-    finder.SetRetrieveMetadata(retrieveMetadata);
 
     return finder.ExecuteOneResource(target, context, format, retrieveMetadata);
   }
@@ -338,7 +337,9 @@ namespace Orthanc
  
   static void GetInstanceFile(RestApiGetCall& call)
   {
-    static const char* const TRANSCODE = "transcode";
+    static const char* const GET_TRANSCODE = "transcode";
+    static const char* const GET_LOSSY_QUALITY = "lossy-quality";
+    static const char* const GET_FILENAME = "filename";
 
     if (call.IsDocumentation())
     {
@@ -348,9 +349,16 @@ namespace Orthanc
         .SetDescription("Download one DICOM instance")
         .SetUriArgument("id", "Orthanc identifier of the DICOM instance of interest")
         .SetHttpHeader("Accept", "This HTTP header can be set to retrieve the DICOM instance in DICOMweb format")
-        .SetHttpGetArgument(TRANSCODE, RestApiCallDocumentation::Type_String,
+        .SetHttpGetArgument(GET_TRANSCODE, RestApiCallDocumentation::Type_String,
                             "If present, the DICOM file will be transcoded to the provided "
                             "transfer syntax: https://orthanc.uclouvain.be/book/faq/transcoding.html", false)
+        .SetHttpGetArgument(GET_LOSSY_QUALITY, RestApiCallDocumentation::Type_Number,
+                            "If transcoding to a lossy transfer syntax, this entry defines the quality "
+                            "as an integer between 1 and 100.  If not provided, the value is defined "
+                            "by the \"DicomLossyTranscodingQuality\" configuration. (new in v1.12.7)", false)
+        .SetHttpGetArgument(GET_FILENAME, RestApiCallDocumentation::Type_String,
+                              "Filename to set in the \"Content-Disposition\" HTTP header "
+                              "(including file extension)", false)
         .AddAnswerType(MimeType_Dicom, "The DICOM instance")
         .AddAnswerType(MimeType_DicomWebJson, "The DICOM instance, in DICOMweb JSON format")
         .AddAnswerType(MimeType_DicomWebXml, "The DICOM instance, in DICOMweb XML format");
@@ -399,15 +407,40 @@ namespace Orthanc
       }
     }
 
-    if (call.HasArgument(TRANSCODE))
+    const std::string filename = call.GetArgument(GET_FILENAME, publicId + ".dcm");  // New in Orthanc 1.12.7
+
+    if (call.HasArgument(GET_TRANSCODE))
     {
+      unsigned int lossyQuality;
+      unsigned int defaultLossyQuality;
+      {
+        OrthancConfiguration::ReaderLock lock;
+        defaultLossyQuality = lock.GetConfiguration().GetDicomLossyTranscodingQuality();
+      }
+      lossyQuality = call.GetUnsignedInteger32Argument(GET_LOSSY_QUALITY, defaultLossyQuality);
+
       std::string source;
       std::string attachmentId;
       std::string transcoded;
       context.ReadDicom(source, attachmentId, publicId);
 
-      if (context.TranscodeWithCache(transcoded, source, publicId, attachmentId, GetTransferSyntax(call.GetArgument(TRANSCODE, ""))))
+      if (lossyQuality != defaultLossyQuality) // we can't use the cache if the lossy quality is not the default one
       {
+        IDicomTranscoder::DicomImage targetImage;
+        IDicomTranscoder::DicomImage sourceImage;
+        sourceImage.SetExternalBuffer(source);
+        std::set<DicomTransferSyntax> allowedSyntaxes;
+        allowedSyntaxes.insert(GetTransferSyntax(call.GetArgument(GET_TRANSCODE, "")));
+
+        if (context.Transcode(targetImage, sourceImage, allowedSyntaxes, true, lossyQuality))
+        {
+          call.GetOutput().SetContentFilename(filename.c_str());
+          call.GetOutput().AnswerBuffer(targetImage.GetBufferData(), targetImage.GetBufferSize(), MimeType_Dicom);
+        }
+      }
+      else if (context.TranscodeWithCache(transcoded, source, publicId, attachmentId, GetTransferSyntax(call.GetArgument(GET_TRANSCODE, ""))))
+      {
+        call.GetOutput().SetContentFilename(filename.c_str());
         call.GetOutput().AnswerBuffer(transcoded, MimeType_Dicom);
       }
     }
@@ -422,7 +455,7 @@ namespace Orthanc
       }
       else
       {
-        context.AnswerAttachment(call.GetOutput(), info);
+        context.AnswerAttachment(call.GetOutput(), info, filename);
       }
     }
   }
@@ -850,7 +883,7 @@ namespace Orthanc
             .SetTag("Instances")
             .SetUriArgument("id", "Orthanc identifier of the DICOM instance of interest")
             .SetHttpGetArgument("quality", RestApiCallDocumentation::Type_Number, "Quality for JPEG images (between 1 and 100, defaults to 90)", false)
-            .SetHttpGetArgument("returnUnsupportedImage", RestApiCallDocumentation::Type_Boolean, "Returns an unsupported.png placeholder image if unable to provide the image instead of returning a 415 HTTP error (defaults to false)", false)
+            .SetHttpGetArgument("returnUnsupportedImage", RestApiCallDocumentation::Type_Boolean, "Returns an unsupported.png placeholder image if unable to provide the image instead of returning a 415 HTTP error (value is true if option is present)", false)
             .SetHttpHeader("Accept", "Format of the resulting image. Can be `image/png` (default), `image/jpeg` or `image/x-portable-arbitrarymap`")
             .AddAnswerType(MimeType_Png, "PNG image")
             .AddAnswerType(MimeType_Jpeg, "JPEG image")
@@ -913,7 +946,8 @@ namespace Orthanc
           }
           else
           {
-            if (call.HasArgument("returnUnsupportedImage"))
+            // if present and not explicitely set to false
+            if (call.HasArgument("returnUnsupportedImage") && call.GetBooleanArgument("returnUnsupportedImage", true))
             {
               std::string root = "";
               for (size_t i = 1; i < call.GetFullUri().size(); i++)
@@ -2297,6 +2331,8 @@ namespace Orthanc
   {
     const ResourceType level = GetResourceTypeFromUri(call);
 
+    static const char* const GET_FILENAME = "filename";
+
     if (call.IsDocumentation())
     {
       std::string r = GetResourceTypeText(level, false /* plural */, false /* upper case */);
@@ -2307,11 +2343,15 @@ namespace Orthanc
                         std::string(uncompress ? "" : ". The attachment will not be decompressed if `StorageCompression` is `true`."))
         .SetUriArgument("id", "Orthanc identifier of the " + r + " of interest")
         .SetUriArgument("name", "The name of the attachment, or its index (cf. `UserContentType` configuration option)")
+        .SetHttpGetArgument(GET_FILENAME, RestApiCallDocumentation::Type_String,
+          "Filename to set in the \"Content-Disposition\" HTTP header "
+          "(including file extension)", false)
         .AddAnswerType(MimeType_Binary, "The attachment")
         .SetAnswerHeader("ETag", "Revision of the attachment, to be used in further `PUT` or `DELETE` operations")
         .SetHttpHeader("If-None-Match", "Optional revision of the attachment, to check if its content has changed")
         .SetHttpHeader("Content-Range", "Optional content range to access part of the attachment (new in Orthanc 1.12.5)");
-      return;
+    
+        return;
     }
 
     ServerContext& context = OrthancRestApi::GetContext(call);
@@ -2342,6 +2382,8 @@ namespace Orthanc
         return;
       }
 
+      const std::string filename = call.GetArgument(GET_FILENAME, info.GetUuid());  // New in Orthanc 1.12.7
+
       if (hasRangeHeader)
       {
         std::string fragment;
@@ -2355,7 +2397,7 @@ namespace Orthanc
       else if (uncompress ||
                info.GetCompressionType() == CompressionType_None)
       {
-        context.AnswerAttachment(call.GetOutput(), info);
+        context.AnswerAttachment(call.GetOutput(), info, filename);
       }
       else
       {
@@ -3614,6 +3656,14 @@ namespace Orthanc
 
     Json::Value answer;
     finder.Execute(answer, OrthancRestApi::GetContext(call), format, false /* no "Metadata" field */);
+    
+    // Given the data model, if there are no children, it means there is no parent.
+    // https://discourse.orthanc-server.org/t/patients-id-instances-quirk/5498
+    if (answer.size() == 0) 
+    {
+      throw OrthancException(ErrorCode_UnknownResource);
+    }
+
     call.GetOutput().AnswerJson(answer);
   }
 
