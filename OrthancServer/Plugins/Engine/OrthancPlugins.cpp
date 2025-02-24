@@ -1012,18 +1012,18 @@ namespace Orthanc
                           CompressionType compression,
                           const DicomInstanceToStore* dicomInstance /* can be NULL if not a DICOM instance */) ORTHANC_OVERRIDE
       {
-        OrthancPluginMemoryBuffer customDataBuffer;
+        MemoryBufferRaii customDataBuffer;
         OrthancPluginErrorCode error;
 
         if (dicomInstance != NULL)
         {
           Orthanc::OrthancPlugins::DicomInstanceFromCallback wrapped(*dicomInstance);
-          error = create_(&customDataBuffer, uuid.c_str(), content, size, Plugins::Convert(type), Plugins::Convert(compression),
+          error = create_(customDataBuffer.GetObject(), uuid.c_str(), content, size, Plugins::Convert(type), Plugins::Convert(compression),
                           reinterpret_cast<OrthancPluginDicomInstance*>(&wrapped));
         }
         else
         {
-          error = create_(&customDataBuffer, uuid.c_str(), content, size, Plugins::Convert(type), Plugins::Convert(compression), NULL);
+          error = create_(customDataBuffer.GetObject(), uuid.c_str(), content, size, Plugins::Convert(type), Plugins::Convert(compression), NULL);
         }
 
         if (error != OrthancPluginErrorCode_Success)
@@ -1031,11 +1031,9 @@ namespace Orthanc
           errorDictionary_.LogError(error, true);
           throw OrthancException(static_cast<ErrorCode>(error));
         }
-
-        if (customDataBuffer.size > 0)
+        else
         {
-          customData.assign(reinterpret_cast<char*>(customDataBuffer.data),
-                            static_cast<size_t>(customDataBuffer.size));
+          customDataBuffer.ToString(customData);
         }
       }
 
