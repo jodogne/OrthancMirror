@@ -279,7 +279,6 @@ namespace Orthanc
   {
     namespace fs = boost::filesystem;
     typedef std::set<std::string> List;
-    std::string customDataNotUsed;
 
     List result;
     ListAllFiles(result);

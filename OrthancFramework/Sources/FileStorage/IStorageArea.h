@@ -24,8 +24,9 @@
 
 #pragma once
 
-#include "../IMemoryBuffer.h"
+#include "../Compatibility.h"
 #include "../Enumerations.h"
+#include "../IMemoryBuffer.h"
 
 #include <stdint.h>
 #include <string>
@@ -86,7 +87,7 @@ namespace Orthanc
                                const void* content,
                                size_t size,
                                FileContentType type,
-                               bool isCompressed)
+                               bool isCompressed) ORTHANC_OVERRIDE
     {
       Create(uuid, content, size, type);
     }
@@ -98,14 +99,14 @@ namespace Orthanc
                                   const void* content,
                                   size_t size,
                                   FileContentType type,
-                                  bool isCompressed)
+                                  bool isCompressed) ORTHANC_OVERRIDE
     {
       Create(uuid, content, size, type);
     }
 
     virtual IMemoryBuffer* Read(const std::string& uuid,
                                 FileContentType type,
-                                const std::string& /*customData*/)
+                                const std::string& /*customData*/) ORTHANC_OVERRIDE
     {
       return Read(uuid, type);
     }
@@ -114,14 +115,14 @@ namespace Orthanc
                                      FileContentType type,
                                      uint64_t start /* inclusive */,
                                      uint64_t end /* exclusive */,
-                                     const std::string& /*customData */)
+                                     const std::string& /*customData */) ORTHANC_OVERRIDE
     {
       return ReadRange(uuid, type, start, end);
     }
 
     virtual void Remove(const std::string& uuid,
                         FileContentType type,
-                        const std::string& customData)
+                        const std::string& customData) ORTHANC_OVERRIDE
     {
       Remove(uuid, type);
     }
