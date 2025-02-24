@@ -206,7 +206,6 @@ Mid-term
 * Log outgoing C-Find queries
 * Support other Transfer Syntaxes in the Worklist plugin:
   https://discourse.orthanc-server.org/t/could-you-please-create-an-option-to-set-the-transfer-syntax-in-the-worklist-plugin-currently-little-endian-explicit-is-fixed/4871
-* Compile DCMTK with ZLib support: https://discourse.orthanc-server.org/t/transcoding-to-deflated-transfer-syntax-fails/5489/7
 
 
 ---------
