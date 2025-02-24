@@ -51,7 +51,7 @@
 namespace Orthanc
 {
   DcmtkTranscoder::DcmtkTranscoder(unsigned int maxConcurrentExecutions) :
-    lossyQuality_(90),
+  defaultLossyQuality_(90),
     maxConcurrentExecutionsSemaphore_(maxConcurrentExecutions)
   {
   }
@@ -64,26 +64,26 @@ namespace Orthanc
   }
 
   
-  void DcmtkTranscoder::SetLossyQuality(unsigned int quality)
+  void DcmtkTranscoder::SetDefaultLossyQuality(unsigned int quality)
   {
     if (quality == 0 ||
         quality > 100)
     {
       throw OrthancException(
         ErrorCode_ParameterOutOfRange,
-        "The quality for lossy transcoding must be an integer between 1 and 100, received: " +
+        "The default quality for lossy transcoding must be an integer between 1 and 100, received: " +
         boost::lexical_cast<std::string>(quality));
     }
     else
     {
-      LOG(INFO) << "Quality for lossy transcoding using DCMTK is set to: " << quality;
-      lossyQuality_ = quality;
+      LOG(INFO) << "Default quality for lossy transcoding using DCMTK is set to: " << quality;
+      defaultLossyQuality_ = quality;
     }
   }
 
-  unsigned int DcmtkTranscoder::GetLossyQuality() const
+  unsigned int DcmtkTranscoder::GetDefaultLossyQuality() const
   {
-    return lossyQuality_;
+    return defaultLossyQuality_;
   }
 
   bool TryTranscode(std::vector<std::string>& failureReasons, /* out */
@@ -109,7 +109,8 @@ namespace Orthanc
                                          std::string& failureReason /* out */,
                                          DcmFileFormat& dicom, /* in/out */
                                          const std::set<DicomTransferSyntax>& allowedSyntaxes,
-                                         bool allowNewSopInstanceUid) 
+                                         bool allowNewSopInstanceUid,
+                                         unsigned int lossyQuality) 
   {
     std::vector<std::string> failureReasons;
 
@@ -169,7 +170,7 @@ namespace Orthanc
       else
       {
         // Check out "dcmjpeg/apps/dcmcjpeg.cc"
-        DJ_RPLossy parameters(lossyQuality_);
+        DJ_RPLossy parameters(lossyQuality);
           
         if (FromDcmtkBridge::Transcode(dicom, DicomTransferSyntax_JPEGProcess1, &parameters))
         {
@@ -195,7 +196,7 @@ namespace Orthanc
       else
       {
         // Check out "dcmjpeg/apps/dcmcjpeg.cc"
-        DJ_RPLossy parameters(lossyQuality_);
+        DJ_RPLossy parameters(lossyQuality);
         if (FromDcmtkBridge::Transcode(dicom, DicomTransferSyntax_JPEGProcess2_4, &parameters))
         {
           selectedSyntax = DicomTransferSyntax_JPEGProcess2_4;
@@ -312,11 +313,20 @@ namespace Orthanc
     return false;
   }
 
-
   bool DcmtkTranscoder::Transcode(DicomImage& target,
                                   DicomImage& source /* in, "GetParsed()" possibly modified */,
                                   const std::set<DicomTransferSyntax>& allowedSyntaxes,
                                   bool allowNewSopInstanceUid)
+  {
+    return Transcode(target, source, allowedSyntaxes, allowNewSopInstanceUid, defaultLossyQuality_);
+  }
+
+
+  bool DcmtkTranscoder::Transcode(DicomImage& target,
+                                  DicomImage& source /* in, "GetParsed()" possibly modified */,
+                                  const std::set<DicomTransferSyntax>& allowedSyntaxes,
+                                  bool allowNewSopInstanceUid,
+                                  unsigned int lossyQuality)
   {
     Semaphore::Locker lock(maxConcurrentExecutionsSemaphore_); // limit the number of concurrent executions
 
@@ -363,7 +373,7 @@ namespace Orthanc
       return true;
     }
     else if (InplaceTranscode(targetSyntax, failureReason, source.GetParsed(),
-                              allowedSyntaxes, allowNewSopInstanceUid))
+                              allowedSyntaxes, allowNewSopInstanceUid, lossyQuality))
     {   
       // Sanity check
       DicomTransferSyntax targetSyntax2;

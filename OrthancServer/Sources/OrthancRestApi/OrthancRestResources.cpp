@@ -338,6 +338,7 @@ namespace Orthanc
   static void GetInstanceFile(RestApiGetCall& call)
   {
     static const char* const GET_TRANSCODE = "transcode";
+    static const char* const GET_LOSSY_QUALITY = "lossy-quality";
     static const char* const GET_FILENAME = "filename";
 
     if (call.IsDocumentation())
@@ -351,6 +352,10 @@ namespace Orthanc
         .SetHttpGetArgument(GET_TRANSCODE, RestApiCallDocumentation::Type_String,
                             "If present, the DICOM file will be transcoded to the provided "
                             "transfer syntax: https://orthanc.uclouvain.be/book/faq/transcoding.html", false)
+        .SetHttpGetArgument(GET_LOSSY_QUALITY, RestApiCallDocumentation::Type_Number,
+                            "If transcoding to a lossy transfer syntax, this entry defines the quality "
+                            "as an integer between 1 and 100.  If not provided, the value is defined "
+                            "by the \"DicomLossyTranscodingQuality\" configuration. (new in v1.12.7)", false)
         .SetHttpGetArgument(GET_FILENAME, RestApiCallDocumentation::Type_String,
                               "Filename to set in the \"Content-Disposition\" HTTP header "
                               "(including file extension)", false)
@@ -406,12 +411,34 @@ namespace Orthanc
 
     if (call.HasArgument(GET_TRANSCODE))
     {
+      unsigned int lossyQuality;
+      unsigned int defaultLossyQuality;
+      {
+        OrthancConfiguration::ReaderLock lock;
+        defaultLossyQuality = lock.GetConfiguration().GetDicomLossyTranscodingQuality();
+      }
+      lossyQuality = call.GetUnsignedInteger32Argument(GET_LOSSY_QUALITY, defaultLossyQuality);
+
       std::string source;
       std::string attachmentId;
       std::string transcoded;
       context.ReadDicom(source, attachmentId, publicId);
 
-      if (context.TranscodeWithCache(transcoded, source, publicId, attachmentId, GetTransferSyntax(call.GetArgument(GET_TRANSCODE, ""))))
+      if (lossyQuality != defaultLossyQuality) // we can't use the cache if the lossy quality is not the default one
+      {
+        IDicomTranscoder::DicomImage targetImage;
+        IDicomTranscoder::DicomImage sourceImage;
+        sourceImage.SetExternalBuffer(source);
+        std::set<DicomTransferSyntax> allowedSyntaxes;
+        allowedSyntaxes.insert(GetTransferSyntax(call.GetArgument(GET_TRANSCODE, "")));
+
+        if (context.Transcode(targetImage, sourceImage, allowedSyntaxes, true, lossyQuality))
+        {
+          call.GetOutput().SetContentFilename(filename.c_str());
+          call.GetOutput().AnswerBuffer(targetImage.GetBufferData(), targetImage.GetBufferSize(), MimeType_Dicom);
+        }
+      }
+      else if (context.TranscodeWithCache(transcoded, source, publicId, attachmentId, GetTransferSyntax(call.GetArgument(GET_TRANSCODE, ""))))
       {
         call.GetOutput().SetContentFilename(filename.c_str());
         call.GetOutput().AnswerBuffer(transcoded, MimeType_Dicom);

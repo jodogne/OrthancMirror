@@ -42,9 +42,11 @@ namespace Orthanc
   static const char* const KEY_RESOURCES = "Resources";
   static const char* const KEY_EXTENDED = "Extended";
   static const char* const KEY_TRANSCODE = "Transcode";
+  static const char* const KEY_LOSSY_QUALITY = "LossyQuality";
   static const char* const KEY_FILENAME = "Filename";
   
   static const char* const GET_TRANSCODE = "transcode";
+  static const char* const GET_LOSSY_QUALITY = "lossy-quality";
   static const char* const GET_FILENAME = "filename";
   static const char* const GET_RESOURCES = "resources";
 
@@ -118,6 +120,7 @@ namespace Orthanc
                                bool& extended,               /* out */
                                bool& transcode,              /* out */
                                DicomTransferSyntax& syntax,  /* out */
+                               unsigned int& lossyQuality,   /* out */
                                int& priority,                /* out */
                                unsigned int& loaderThreads,  /* out */
                                std::string& filename,        /* out */
@@ -145,6 +148,16 @@ namespace Orthanc
     {
       transcode = true;
       syntax = Orthanc::GetTransferSyntax(SerializationToolbox::ReadString(body, KEY_TRANSCODE));
+      
+      {
+        OrthancConfiguration::ReaderLock lock;
+        lossyQuality = lock.GetConfiguration().GetDicomLossyTranscodingQuality();
+      }
+
+      if (body.isMember(KEY_LOSSY_QUALITY)) 
+      {
+        lossyQuality = SerializationToolbox::ReadUnsignedInteger(body, KEY_LOSSY_QUALITY);
+      }
     }
     else
     {
@@ -526,6 +539,10 @@ namespace Orthanc
       .SetRequestField(KEY_TRANSCODE, RestApiCallDocumentation::Type_String,
                        "If present, the DICOM files in the archive will be transcoded to the provided "
                        "transfer syntax: https://orthanc.uclouvain.be/book/faq/transcoding.html", false)
+      .SetRequestField(KEY_LOSSY_QUALITY, RestApiCallDocumentation::Type_Number,
+                        "If transcoding to a lossy transfer syntax, this entry defines the quality "
+                        "as an integer between 1 and 100.  If not provided, the value is defined "
+                        "by the \"DicomLossyTranscodingQuality\" configuration. (new in v1.12.7)", false)
       .SetRequestField(KEY_FILENAME, RestApiCallDocumentation::Type_String,
                         "Filename to set in the \"Content-Disposition\" HTTP header "
                         "(including file extension)", false)
@@ -578,7 +595,9 @@ namespace Orthanc
       int priority;
       unsigned int loaderThreads;
       std::string filename;
-      GetJobParameters(synchronous, extended, transcode, transferSyntax,
+      unsigned int lossyQuality;
+
+      GetJobParameters(synchronous, extended, transcode, transferSyntax, lossyQuality,
                        priority, loaderThreads, filename, body, DEFAULT_IS_EXTENDED, "Archive.zip");
       
       std::unique_ptr<ArchiveJob> job(new ArchiveJob(context, IS_MEDIA, extended, ResourceType_Patient));
@@ -587,6 +606,7 @@ namespace Orthanc
       if (transcode)
       {
         job->SetTranscode(transferSyntax);
+        job->SetLossyQuality(lossyQuality);
       }
       
       job->SetLoaderThreads(loaderThreads);
@@ -599,7 +619,18 @@ namespace Orthanc
                              "Expected a list of resources to archive in the body");
     }
   }
-  
+
+  static unsigned int GetLossyQuality(RestApiGetCall& call)
+  {
+    unsigned int lossyQuality;
+
+    OrthancConfiguration::ReaderLock lock;
+    lossyQuality = lock.GetConfiguration().GetDicomLossyTranscodingQuality();
+    lossyQuality = call.GetUnsignedInteger32Argument(GET_LOSSY_QUALITY, lossyQuality);
+    
+    return lossyQuality;
+  }
+
 
   template <bool IS_MEDIA,
             bool DEFAULT_IS_EXTENDED  /* only makes sense for media (i.e. not ZIP archives) */ >
@@ -619,6 +650,10 @@ namespace Orthanc
         .SetHttpGetArgument(GET_TRANSCODE, RestApiCallDocumentation::Type_String,
                             "If present, the DICOM files will be transcoded to the provided "
                             "transfer syntax: https://orthanc.uclouvain.be/book/faq/transcoding.html", false)
+        .SetHttpGetArgument(GET_LOSSY_QUALITY, RestApiCallDocumentation::Type_Number,
+                            "If transcoding to a lossy transfer syntax, this entry defines the quality "
+                            "as an integer between 1 and 100.  If not provided, the value is defined "
+                            "by the \"DicomLossyTranscodingQuality\" configuration. (new in v1.12.7)", false)
         .SetHttpGetArgument(GET_RESOURCES, RestApiCallDocumentation::Type_String,
                             "A comma separated list of Orthanc resource identifiers to include in the " + m + ".", true);
       return;
@@ -627,11 +662,13 @@ namespace Orthanc
     ServerContext& context = OrthancRestApi::GetContext(call);
     bool transcode = false;
     DicomTransferSyntax transferSyntax = DicomTransferSyntax_LittleEndianImplicit;  // Initialize variable to avoid warnings
+    unsigned int lossyQuality;
 
     if (call.HasArgument(GET_TRANSCODE))
     {
       transcode = true;
       transferSyntax = GetTransferSyntax(call.GetArgument(GET_TRANSCODE, ""));
+      lossyQuality = GetLossyQuality(call);
     }
     
     if (!call.HasArgument(GET_RESOURCES))
@@ -645,6 +682,7 @@ namespace Orthanc
     if (transcode)
     {
       job->SetTranscode(transferSyntax);
+      job->SetLossyQuality(lossyQuality);
     }
 
     const std::string filename = call.GetArgument(GET_FILENAME, "Archive.zip");  // New in Orthanc 1.12.7
@@ -677,6 +715,10 @@ namespace Orthanc
         .SetHttpGetArgument(GET_TRANSCODE, RestApiCallDocumentation::Type_String,
                             "If present, the DICOM files in the archive will be transcoded to the provided "
                             "transfer syntax: https://orthanc.uclouvain.be/book/faq/transcoding.html", false)
+        .SetHttpGetArgument(GET_LOSSY_QUALITY, RestApiCallDocumentation::Type_Number,
+                            "If transcoding to a lossy transfer syntax, this entry defines the quality "
+                            "as an integer between 1 and 100.  If not provided, the value is defined "
+                            "by the \"DicomLossyTranscodingQuality\" configuration. (new in v1.12.7)", false)
         .AddAnswerType(MimeType_Zip, "ZIP file containing the archive");
       if (IS_MEDIA)
       {
@@ -708,6 +750,7 @@ namespace Orthanc
     if (call.HasArgument(GET_TRANSCODE))
     {
       job->SetTranscode(GetTransferSyntax(call.GetArgument(GET_TRANSCODE, "")));
+      job->SetLossyQuality(GetLossyQuality(call));
     }
 
     {
@@ -752,7 +795,8 @@ namespace Orthanc
       int priority;
       unsigned int loaderThreads;
       std::string filename;
-      GetJobParameters(synchronous, extended, transcode, transferSyntax,
+      unsigned int lossyQuality;
+      GetJobParameters(synchronous, extended, transcode, transferSyntax, lossyQuality,
                        priority, loaderThreads, filename, body, false /* by default, not extented */, id + ".zip");
       
       std::unique_ptr<ArchiveJob> job(new ArchiveJob(context, IS_MEDIA, extended, LEVEL));
@@ -761,6 +805,7 @@ namespace Orthanc
       if (transcode)
       {
         job->SetTranscode(transferSyntax);
+        job->SetLossyQuality(lossyQuality);
       }
 
       job->SetLoaderThreads(loaderThreads);
