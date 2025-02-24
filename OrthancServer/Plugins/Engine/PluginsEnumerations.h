@@ -73,6 +73,8 @@ namespace Orthanc
     ResourceType Convert(OrthancPluginResourceType type);
 
     OrthancPluginConstraintType Convert(ConstraintType constraint);
+
+    OrthancPluginCompressionType Convert(CompressionType type);
   }
 }
 

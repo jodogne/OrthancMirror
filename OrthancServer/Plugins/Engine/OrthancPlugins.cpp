@@ -933,11 +933,10 @@ namespace Orthanc
     class PluginStorageArea3 : public IStorageArea
     {
     private:
-      OrthancPluginStorageCreateInstance createInstance_;
-      OrthancPluginStorageCreateAttachment createAttachment_;
-      OrthancPluginStorageRemove2 remove2_;
+      OrthancPluginStorageCreate2     create_;
       OrthancPluginStorageReadWhole2  readWhole2_;
       OrthancPluginStorageReadRange2  readRange2_;
+      OrthancPluginStorageRemove2     remove2_;
 
       PluginsErrorDictionary&    errorDictionary_;
 
@@ -990,39 +989,42 @@ namespace Orthanc
       
     public:
       PluginStorageArea3(const _OrthancPluginRegisterStorageArea3& callbacks,
-                      PluginsErrorDictionary&  errorDictionary) : 
-        createInstance_(callbacks.createInstance),
-        createAttachment_(callbacks.createAttachment),
-        remove2_(callbacks.remove),
+                         PluginsErrorDictionary&  errorDictionary) :
+        create_(callbacks.create),
         readWhole2_(callbacks.readWhole),
         readRange2_(callbacks.readRange),
+        remove2_(callbacks.remove),
         errorDictionary_(errorDictionary)
       {
-        if (createInstance_ == NULL ||
-            createAttachment_ == NULL ||
-            remove2_ == NULL ||
-            readWhole2_ == NULL)
+        if (create_ == NULL ||
+            readWhole2_ == NULL ||
+            remove2_ == NULL)
         {
-          throw OrthancException(ErrorCode_Plugin, "Storage area plugin doesn't implement all the required primitives (createInstance, createAttachment, remove, readWhole");
+          throw OrthancException(ErrorCode_Plugin, "Storage area plugin doesn't implement all the required primitives (createInstance, remove, readWhole");
         }
       }
 
-      virtual void CreateInstance(std::string& customData,
-                                const DicomInstanceToStore& instance,
-                                const std::string& uuid,
-                                const void* content,
-                                size_t size,
-                                FileContentType type,
-                                bool isCompressed) ORTHANC_OVERRIDE
+      virtual void Create(std::string& customData /* out */,
+                          const std::string& uuid,
+                          const void* content,
+                          size_t size,
+                          FileContentType type,
+                          CompressionType compression,
+                          const DicomInstanceToStore* dicomInstance /* can be NULL if not a DICOM instance */) ORTHANC_OVERRIDE
       {
         OrthancPluginMemoryBuffer customDataBuffer;
-        Orthanc::OrthancPlugins::DicomInstanceFromCallback wrapped(instance);
+        OrthancPluginErrorCode error;
 
-        OrthancPluginErrorCode error = createInstance_(&customDataBuffer,
-                                                       uuid.c_str(),
-                                                       reinterpret_cast<OrthancPluginDicomInstance*>(&wrapped),
-                                                       content, size, Plugins::Convert(type),
-                                                       isCompressed);
+        if (dicomInstance != NULL)
+        {
+          Orthanc::OrthancPlugins::DicomInstanceFromCallback wrapped(*dicomInstance);
+          error = create_(&customDataBuffer, uuid.c_str(), content, size, Plugins::Convert(type), Plugins::Convert(compression),
+                          reinterpret_cast<OrthancPluginDicomInstance*>(&wrapped));
+        }
+        else
+        {
+          error = create_(&customDataBuffer, uuid.c_str(), content, size, Plugins::Convert(type), Plugins::Convert(compression), NULL);
+        }
 
         if (error != OrthancPluginErrorCode_Success)
         {
@@ -1032,38 +1034,7 @@ namespace Orthanc
 
         if (customDataBuffer.size > 0)
         {
-          customData.assign(reinterpret_cast<char*>(customDataBuffer.data), 
-                            static_cast<size_t>(customDataBuffer.size));
-        }
-      }
-
-      virtual void CreateAttachment(std::string& customData,
-                                    const std::string& resourceId,
-                                    ResourceType resourceLevel,
-                                    const std::string& uuid,
-                                    const void* content,
-                                    size_t size,
-                                    FileContentType type,
-                                    bool isCompressed) ORTHANC_OVERRIDE
-      {
-        OrthancPluginMemoryBuffer customDataBuffer;
-
-        OrthancPluginErrorCode error = createAttachment_(&customDataBuffer,
-                                                         uuid.c_str(),
-                                                         resourceId.c_str(),
-                                                         Plugins::Convert(resourceLevel),
-                                                         content, size, Plugins::Convert(type),
-                                                         isCompressed);
-
-        if (error != OrthancPluginErrorCode_Success)
-        {
-          errorDictionary_.LogError(error, true);
-          throw OrthancException(static_cast<ErrorCode>(error));
-        }
-
-        if (customDataBuffer.size > 0)
-        {
-          customData.assign(reinterpret_cast<char*>(customDataBuffer.data), 
+          customData.assign(reinterpret_cast<char*>(customDataBuffer.data),
                             static_cast<size_t>(customDataBuffer.size));
         }
       }
@@ -1072,8 +1043,8 @@ namespace Orthanc
                           FileContentType type,
                           const std::string& customData) ORTHANC_OVERRIDE
       {
-        OrthancPluginErrorCode error = remove2_
-          (uuid.c_str(), customData.c_str(), Plugins::Convert(type));
+        OrthancPluginErrorCode error = remove2_(uuid.c_str(), Plugins::Convert(type),
+                                                customData.empty() ? NULL : customData.c_str(), customData.size());
 
         if (error != OrthancPluginErrorCode_Success)
         {
@@ -1083,8 +1054,8 @@ namespace Orthanc
       }
 
       virtual IMemoryBuffer* ReadWhole(const std::string& uuid,
-                                  FileContentType type,
-                                  const std::string& customData) ORTHANC_OVERRIDE
+                                       FileContentType type,
+                                       const std::string& customData) ORTHANC_OVERRIDE
       {
         std::unique_ptr<MallocMemoryBuffer> result(new MallocMemoryBuffer);
 
@@ -1092,7 +1063,8 @@ namespace Orthanc
         buffer.size = 0;
         buffer.data = NULL;
         
-        OrthancPluginErrorCode error = readWhole2_(&buffer, uuid.c_str(), customData.c_str(), Plugins::Convert(type));
+        OrthancPluginErrorCode error = readWhole2_(&buffer, uuid.c_str(), Plugins::Convert(type),
+                                                   customData.empty() ? NULL : customData.c_str(), customData.size());
 
         if (error == OrthancPluginErrorCode_Success)
         {
@@ -1137,7 +1109,7 @@ namespace Orthanc
             buffer.size = static_cast<uint64_t>(range.size());
 
             OrthancPluginErrorCode error =
-              readRange2_(&buffer, uuid.c_str(), customData.c_str(), Plugins::Convert(type), start);
+              readRange2_(&buffer, uuid.c_str(), Plugins::Convert(type), start, customData.empty() ? NULL : customData.c_str(), customData.size());
 
             if (error == OrthancPluginErrorCode_Success)
             {
@@ -3860,6 +3832,12 @@ namespace Orthanc
           compressor.reset(new GzipCompressor);
           compressor->SetPrefixWithUncompressedSize(true);
           break;
+        }
+
+        case OrthancPluginCompressionType_None:
+        {
+          CopyToMemoryBuffer(*p.target, p.source, p.size);
+          return;
         }
 
         default:

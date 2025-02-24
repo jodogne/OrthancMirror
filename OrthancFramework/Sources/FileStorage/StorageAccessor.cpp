@@ -310,15 +310,15 @@ namespace Orthanc
   }
 
 
-  FileInfo StorageAccessor::WriteInstance(std::string& customData,
-                                          const DicomInstanceToStore& instance,
-                                          const void* data,
-                                          size_t size,
-                                          FileContentType type,
-                                          CompressionType compression,
-                                          bool storeMd5,
-                                          const std::string& uuid)
+  FileInfo StorageAccessor::Write(const void* data,
+                                  size_t size,
+                                  FileContentType type,
+                                  CompressionType compression,
+                                  bool storeMd5,
+                                  const DicomInstanceToStore* instance)
   {
+    const std::string uuid = Toolbox::GenerateUuid();
+
     std::string md5;
 
     if (storeMd5)
@@ -326,13 +326,15 @@ namespace Orthanc
       Toolbox::ComputeMD5(md5, data, size);
     }
 
+    std::string customData;
+
     switch (compression)
     {
       case CompressionType_None:
       {
         {
           MetricsTimer timer(*this, METRICS_CREATE_DURATION);
-          area_.CreateInstance(customData, instance, uuid, data, size, type, false);
+          area_.Create(customData, uuid, data, size, type, compression, instance);
         }
 
         if (metrics_ != NULL)
@@ -368,11 +370,11 @@ namespace Orthanc
 
           if (compressed.size() > 0)
           {
-            area_.CreateInstance(customData, instance, uuid, &compressed[0], compressed.size(), type, true);
+            area_.Create(customData, uuid, &compressed[0], compressed.size(), type, compression, instance);
           }
           else
           {
-            area_.CreateInstance(customData, instance, uuid, NULL, 0, type, true);
+            area_.Create(customData, uuid, NULL, 0, type, compression, instance);
           }
         }
 
@@ -395,95 +397,6 @@ namespace Orthanc
         throw OrthancException(ErrorCode_NotImplemented);
     }
   }
-
-  FileInfo StorageAccessor::WriteAttachment(std::string& customData,
-                                            const std::string& resourceId,
-                                            ResourceType resourceType,
-                                            const void* data,
-                                            size_t size,
-                                            FileContentType type,
-                                            CompressionType compression,
-                                            bool storeMd5,
-                                            const std::string& uuid)
-  {
-    std::string md5;
-
-    if (storeMd5)
-    {
-      Toolbox::ComputeMD5(md5, data, size);
-    }
-
-    switch (compression)
-    {
-      case CompressionType_None:
-      {
-        {
-          MetricsTimer timer(*this, METRICS_CREATE_DURATION);
-          area_.CreateAttachment(customData, resourceId, resourceType, uuid, data, size, type, false);
-        }
-        
-        if (metrics_ != NULL)
-        {
-          metrics_->IncrementIntegerValue(METRICS_WRITTEN_BYTES, size);
-        }
-        
-        if (cache_ != NULL)
-        {
-          StorageCache::Accessor cacheAccessor(*cache_);
-          cacheAccessor.Add(uuid, type, data, size);
-        }
-
-
-        return FileInfo(uuid, type, size, md5, customData);
-      }
-
-      case CompressionType_ZlibWithSize:
-      {
-        ZlibCompressor zlib;
-
-        std::string compressed;
-        zlib.Compress(compressed, data, size);
-
-        std::string compressedMD5;
-      
-        if (storeMd5)
-        {
-          Toolbox::ComputeMD5(compressedMD5, compressed);
-        }
-
-        {
-          MetricsTimer timer(*this, METRICS_CREATE_DURATION);
-
-          if (compressed.size() > 0)
-          {
-            area_.CreateAttachment(customData, resourceId, resourceType, uuid, &compressed[0], compressed.size(), type, true);
-          }
-          else
-          {
-            area_.CreateAttachment(customData, resourceId, resourceType, uuid, NULL, 0, type, true);
-          }
-        }
-
-        if (metrics_ != NULL)
-        {
-          metrics_->IncrementIntegerValue(METRICS_WRITTEN_BYTES, compressed.size());
-        }
-
-        if (cache_ != NULL)
-        {
-          StorageCache::Accessor cacheAccessor(*cache_);
-          cacheAccessor.Add(uuid, type, data, size);    // always add uncompressed data to cache
-        }
-
-        return FileInfo(uuid, type, size, md5,
-                        CompressionType_ZlibWithSize, compressed.size(), compressedMD5, customData);
-      }
-
-      default:
-        throw OrthancException(ErrorCode_NotImplemented);
-    }
-  }
-
 
   void StorageAccessor::Read(std::string& content,
                              const FileInfo& info)
