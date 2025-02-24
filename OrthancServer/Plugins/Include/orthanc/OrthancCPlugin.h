@@ -1465,7 +1465,7 @@ extern "C"
     const void* content,
     int64_t size,
     OrthancPluginContentType type,
-    bool isCompressed);
+    uint8_t isCompressed);
 
   /**
    * @brief Callback for writing to the storage area.
@@ -1490,7 +1490,7 @@ extern "C"
     const void* content,
     int64_t size,
     OrthancPluginContentType type,
-    bool isCompressed);
+    uint8_t isCompressed);
 
 
 
