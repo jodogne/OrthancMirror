@@ -708,11 +708,7 @@ namespace Orthanc
       // TODO Should we use "gzip" instead?
       CompressionType compression = (compressionEnabled_ ? CompressionType_ZlibWithSize : CompressionType_None);
 
-      std::string dicomCustomData;
-      std::string dicomUuid = Toolbox::GenerateUuid();
-
-      FileInfo dicomInfo = accessor.WriteInstance(dicomCustomData, dicom, dicom.GetBufferData(), dicom.GetBufferSize(), 
-                                          FileContentType_Dicom, compression, storeMD5_, dicomUuid);
+      FileInfo dicomInfo = accessor.Write(dicom.GetBufferData(), dicom.GetBufferSize(), FileContentType_Dicom, compression, storeMD5_, &dicom);
 
       ServerIndex::Attachments attachments;
       attachments.push_back(dicomInfo);
@@ -722,11 +718,7 @@ namespace Orthanc
           (!area_.HasReadRange() ||
            compressionEnabled_))
       {
-        std::string dicomHeaderCustomData;
-        std::string dicomHeaderUuid = Toolbox::GenerateUuid();
-
-        dicomUntilPixelData = accessor.WriteInstance(dicomHeaderCustomData, dicom, dicom.GetBufferData(), pixelDataOffset, 
-                                             FileContentType_DicomUntilPixelData, compression, storeMD5_, dicomHeaderUuid);
+        dicomUntilPixelData = accessor.Write(dicom.GetBufferData(), pixelDataOffset, FileContentType_DicomUntilPixelData, compression, storeMD5_, NULL);
         attachments.push_back(dicomUntilPixelData);
       }
 
@@ -1025,24 +1017,7 @@ namespace Orthanc
     StorageAccessor accessor(area_, storageCache_, GetMetricsRegistry());
     accessor.Read(content, attachment);
 
-    std::string newUuid = Toolbox::GenerateUuid();
-    std::string newCustomData;
-    FileInfo modified;
-
-    // if (attachmentType == FileContentType_Dicom || attachmentType == FileContentType_DicomUntilPixelData)
-    // {
-    //   // DicomInstanceToStore instance;
-    //   // TODO_CUSTOM_DATA: get the Instance such that we can call accessor.GetCustomData ...
-    //   // modified = accessor.WriteInstance(newCustomData, instance, content.empty() ? NULL : content.c_str(),
-    //   //                                 content.size(), attachmentType, compression, storeMD5_, newUuid);
-    // }
-    // else
-    {
-      modified = accessor.WriteAttachment(newCustomData, resourceId, level, content.empty() ? NULL : content.c_str(),
-                                          content.size(), attachmentType, compression, storeMD5_, newUuid);
-    }
-
-
+    FileInfo modified = accessor.Write(content.empty() ? NULL : content.c_str(), content.size(), attachmentType, compression, storeMD5_, NULL);
 
     try
     {
@@ -1551,12 +1526,9 @@ namespace Orthanc
 
     StorageAccessor accessor(area_, storageCache_, GetMetricsRegistry());
 
-    std::string uuid = Toolbox::GenerateUuid();
-    std::string customData;
-
     assert(attachmentType != FileContentType_Dicom && attachmentType != FileContentType_DicomUntilPixelData); // this method can not be used to store instances
 
-    FileInfo attachment = accessor.WriteAttachment(customData, resourceId, resourceType, data, size, attachmentType, compression, storeMD5_, uuid);
+    FileInfo attachment = accessor.Write(data, size, attachmentType, compression, storeMD5_, NULL);
 
     try
     {

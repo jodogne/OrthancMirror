@@ -664,5 +664,21 @@ namespace Orthanc
           throw OrthancException(ErrorCode_ParameterOutOfRange);
       }
     }
+
+
+    OrthancPluginCompressionType Convert(CompressionType type)
+    {
+      switch (type)
+      {
+        case CompressionType_None:
+          return OrthancPluginCompressionType_None;
+
+        case CompressionType_ZlibWithSize:
+          return OrthancPluginCompressionType_ZlibWithSize;
+
+        default:
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+    }
   }
 }

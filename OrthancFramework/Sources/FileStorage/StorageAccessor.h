@@ -133,24 +133,12 @@ namespace Orthanc
                     StorageCache& cache,
                     MetricsRegistry& metrics);
 
-    FileInfo WriteInstance(std::string& customData,
-                           const DicomInstanceToStore& instance,
-                           const void* data,
-                           size_t size,
-                           FileContentType type,
-                           CompressionType compression,
-                           bool storeMd5,
-                           const std::string& uuid);
-
-    FileInfo WriteAttachment(std::string& customData,
-                             const std::string& resourceId,
-                             ResourceType resourceType,
-                             const void* data,
-                             size_t size,
-                             FileContentType type,
-                             CompressionType compression,
-                             bool storeMd5,
-                             const std::string& uuid);
+    FileInfo Write(const void* data,
+                   size_t size,
+                   FileContentType type,
+                   CompressionType compression,
+                   bool storeMd5,
+                   const DicomInstanceToStore* instance);
 
     void Read(std::string& content,
               const FileInfo& info);
@@ -194,8 +182,6 @@ namespace Orthanc
                     const std::string& mime,
                     const std::string& contentFilename);
 #endif
-
-    bool HandlesCustomData();
 
   private:
     void ReadStartRangeInternal(std::string& target,

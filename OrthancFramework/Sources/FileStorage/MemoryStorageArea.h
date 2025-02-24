@@ -44,7 +44,6 @@ namespace Orthanc
   public:
     virtual ~MemoryStorageArea();
     
-  protected:
     virtual void Create(const std::string& uuid,
                         const void* content,
                         size_t size,

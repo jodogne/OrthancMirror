@@ -173,10 +173,9 @@ TEST(StorageAccessor, NoCompression)
   StorageCache cache;
   StorageAccessor accessor(s, cache);
 
-  std::string data = "Hello world";
-  std::string uuid = Toolbox::GenerateUuid();
-  FileInfo info = accessor.WriteAttachment(data, "", ResourceType_Instance, data.c_str(), data.size(), FileContentType_Dicom, CompressionType_None, true, uuid);
-  
+  const std::string data = "Hello world";
+  FileInfo info = accessor.Write(data.c_str(), data.size(), FileContentType_Dicom, CompressionType_None, true, NULL);
+
   std::string r;
   accessor.Read(r, info);
 
@@ -196,10 +195,9 @@ TEST(StorageAccessor, Compression)
   StorageCache cache;
   StorageAccessor accessor(s, cache);
 
-  std::string data = "Hello world";
-  std::string uuid = Toolbox::GenerateUuid();
-  FileInfo info = accessor.WriteAttachment(data, "", ResourceType_Instance, data.c_str(), data.size(), FileContentType_Dicom, CompressionType_ZlibWithSize, true, uuid);
-  
+  const std::string data = "Hello world";
+  FileInfo info = accessor.Write(data.c_str(), data.size(), FileContentType_Dicom, CompressionType_ZlibWithSize, true, NULL);
+
   std::string r;
   accessor.Read(r, info);
 
@@ -209,7 +207,6 @@ TEST(StorageAccessor, Compression)
   ASSERT_EQ(FileContentType_Dicom, info.GetContentType());
   ASSERT_EQ("3e25960a79dbc69b674cd4ec67a72c62", info.GetUncompressedMD5());
   ASSERT_NE(info.GetUncompressedMD5(), info.GetCompressedMD5());
-  ASSERT_EQ(uuid, info.GetUuid());
 }
 
 
@@ -219,13 +216,13 @@ TEST(StorageAccessor, Mix)
   StorageCache cache;
   StorageAccessor accessor(s, cache);
 
+  const std::string compressedData = "Hello";
+  const std::string uncompressedData = "HelloWorld";
+
+  FileInfo compressedInfo = accessor.Write(compressedData.c_str(), compressedData.size(), FileContentType_Dicom, CompressionType_ZlibWithSize, false, NULL);
+  FileInfo uncompressedInfo = accessor.Write(uncompressedData.c_str(), uncompressedData.size(), FileContentType_Dicom, CompressionType_None, false, NULL);
+
   std::string r;
-  std::string compressedData = "Hello";
-  std::string uncompressedData = "HelloWorld";
-
-  FileInfo compressedInfo = accessor.WriteAttachment(compressedData, "", ResourceType_Instance, compressedData.c_str(), compressedData.size(), FileContentType_Dicom, CompressionType_ZlibWithSize, false, Toolbox::GenerateUuid());
-  FileInfo uncompressedInfo = accessor.WriteAttachment(uncompressedData, "", ResourceType_Instance, uncompressedData.c_str(), uncompressedData.size(), FileContentType_Dicom, CompressionType_None, false, Toolbox::GenerateUuid());
-
   accessor.Read(r, compressedInfo);
   ASSERT_EQ(compressedData, r);
 

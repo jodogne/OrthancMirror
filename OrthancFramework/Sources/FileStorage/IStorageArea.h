@@ -43,22 +43,13 @@ namespace Orthanc
     {
     }
 
-    virtual void CreateInstance(std::string& customData,
-                               const DicomInstanceToStore& instance,
-                               const std::string& uuid,
-                               const void* content,
-                               size_t size,
-                               FileContentType type,
-                               bool isCompressed) = 0;
-
-    virtual void CreateAttachment(std::string& customData,
-                                  const std::string& resourceId,
-                                  ResourceType resourceLevel,
-                                  const std::string& uuid,
-                                  const void* content,
-                                  size_t size,
-                                  FileContentType type,
-                                  bool isCompressed) = 0;
+    virtual void Create(std::string& customData /* out */,
+                        const std::string& uuid,
+                        const void* content,
+                        size_t size,
+                        FileContentType type,
+                        CompressionType compression,
+                        const DicomInstanceToStore* dicomInstance /* can be NULL if not a DICOM instance */) = 0;
 
     virtual IMemoryBuffer* ReadWhole(const std::string& uuid,
                                      FileContentType type,
@@ -81,32 +72,21 @@ namespace Orthanc
   class ICoreStorageArea : public IStorageArea
   {
   public:
-    virtual void CreateInstance(std::string& customData,
-                               const DicomInstanceToStore& instance,
-                               const std::string& uuid,
-                               const void* content,
-                               size_t size,
-                               FileContentType type,
-                               bool isCompressed) ORTHANC_OVERRIDE
+    virtual void Create(std::string& customData,
+                        const std::string& uuid,
+                        const void* content,
+                        size_t size,
+                        FileContentType type,
+                        CompressionType compression,
+                        const DicomInstanceToStore* dicomInstance) ORTHANC_OVERRIDE
     {
-      Create(uuid, content, size, type);
-    }
-
-    virtual void CreateAttachment(std::string& customData,
-                                  const std::string& resourceId,
-                                  ResourceType resourceLevel,
-                                  const std::string& uuid,
-                                  const void* content,
-                                  size_t size,
-                                  FileContentType type,
-                                  bool isCompressed) ORTHANC_OVERRIDE
-    {
+      customData.clear();
       Create(uuid, content, size, type);
     }
 
     virtual IMemoryBuffer* ReadWhole(const std::string& uuid,
                                      FileContentType type,
-                                     const std::string& /*customData*/) ORTHANC_OVERRIDE
+                                     const std::string& customData) ORTHANC_OVERRIDE
     {
       return Read(uuid, type);
     }
@@ -115,7 +95,7 @@ namespace Orthanc
                                      FileContentType type,
                                      uint64_t start /* inclusive */,
                                      uint64_t end /* exclusive */,
-                                     const std::string& /*customData */) ORTHANC_OVERRIDE
+                                     const std::string& customData) ORTHANC_OVERRIDE
     {
       return ReadRange(uuid, type, start, end);
     }
@@ -128,7 +108,7 @@ namespace Orthanc
     }
 
     virtual void Create(const std::string& uuid,
-                        const void* content, 
+                        const void* content,
                         size_t size,
                         FileContentType type) = 0;
 
@@ -142,6 +122,5 @@ namespace Orthanc
 
     virtual void Remove(const std::string& uuid,
                         FileContentType type) = 0;
-
   };
 }
