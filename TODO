@@ -28,7 +28,7 @@ General
   For a DICOM Transfer, that would be nice to include the modality in the context + a study identifier or a job id.
 * (1) Accept extra DICOM tags dictionaries in the DCMTK format '.dic' (easier to use than declare
   them in the Orthanc configuration file).  Even the standard dictionaries could be 
-  overriden by these custom dictionaries.
+  overridden by these custom dictionaries.
 * Add configurations to enable/disable warnings:
   - Modifying an instance while keeping its original SOPInstanceUID: This should be avoided!
   - Modifying a study while keeping its original StudyInstanceUID: This should be avoided!
