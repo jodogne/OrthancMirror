@@ -26,6 +26,7 @@
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/move/unique_ptr.hpp>
 #include <boost/thread.hpp>
+#include <boost/algorithm/string/join.hpp>
 
 
 #include <json/reader.h>
@@ -4076,6 +4077,26 @@ namespace OrthancPlugins
       result[request->headersKeys[i]] = request->headersValues[i];
     }    
   }
+
+  void SerializeGetArguments(std::string& output, const OrthancPluginHttpRequest* request)
+  {
+    output.clear();
+    std::vector<std::string> arguments;
+    for (uint32_t i = 0; i < request->getCount; ++i)
+    {
+      if (request->getValues[i] && strlen(request->getValues[i]) > 0)
+      {
+        arguments.push_back(std::string(request->getKeys[i]) + "=" + std::string(request->getValues[i]));
+      }
+      else
+      {
+        arguments.push_back(std::string(request->getKeys[i]));
+      }
+    }
+
+    output = boost::algorithm::join(arguments, "&");
+  }
+
 
 #if !ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 12, 4)
   static void SetPluginProperty(const std::string& pluginIdentifier,
