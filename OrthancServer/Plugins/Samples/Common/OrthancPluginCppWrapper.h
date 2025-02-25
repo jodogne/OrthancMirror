@@ -1399,6 +1399,9 @@ namespace OrthancPlugins
 // helper method to convert Http headers from the plugin SDK to a std::map
 void GetHttpHeaders(HttpHeaders& result, const OrthancPluginHttpRequest* request);
 
+// helper method to re-serialize the get arguments from the SDK into a string
+void SerializeGetArguments(std::string& output, const OrthancPluginHttpRequest* request);
+
 #if HAS_ORTHANC_PLUGIN_WEBDAV == 1
   class IWebDavCollection : public boost::noncopyable
   {
