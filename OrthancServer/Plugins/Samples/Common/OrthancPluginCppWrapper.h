@@ -1531,6 +1531,10 @@ void SerializeGetArguments(std::string& output, const OrthancPluginHttpRequest* 
 
   public:
     RestApiClient();
+    
+    // used to forward a call from the plugin to the core
+    RestApiClient(const char* url,
+                  const OrthancPluginHttpRequest* request);
 
     void SetMethod(OrthancPluginHttpMethod method)
     {
@@ -1587,12 +1591,17 @@ void SerializeGetArguments(std::string& output, const OrthancPluginHttpRequest* 
 
     bool Execute();
 
+    // Execute and forward the response as is
+    void Forward(OrthancPluginContext* context, OrthancPluginRestOutput* output);
+
     uint16_t GetHttpStatus() const;
 
     bool LookupAnswerHeader(std::string& value,
                             const std::string& key) const;
 
     const std::string& GetAnswerBody() const;
+
+    bool GetAnswerJson(Json::Value& output) const;
   };
 #endif
 }
