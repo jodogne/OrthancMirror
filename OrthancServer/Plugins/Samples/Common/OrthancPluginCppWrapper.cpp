@@ -4151,6 +4151,24 @@ namespace OrthancPlugins
     httpStatus_(0)
   {
   }
+
+  RestApiClient::RestApiClient(const char* url,
+                               const OrthancPluginHttpRequest* request) :
+    method_(request->method),
+    path_(url),
+    afterPlugins_(false),
+    httpStatus_(0)
+  {
+    OrthancPlugins::GetHttpHeaders(requestHeaders_, request);
+
+    std::string getArguments;
+    OrthancPlugins::SerializeGetArguments(getArguments, request);
+
+    if (!getArguments.empty())
+    {
+      path_ += "?" + getArguments;
+    }
+  }
 #endif
 
 
@@ -4215,6 +4233,32 @@ namespace OrthancPlugins
         ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(code);
       }
     }
+  }
+
+  void RestApiClient::Forward(OrthancPluginContext* context, OrthancPluginRestOutput* output)
+  {
+    if (Execute() && httpStatus_ == 200)
+    {
+      const char* mimeType = NULL;
+      for (HttpHeaders::const_iterator h = answerHeaders_.begin(); h != answerHeaders_.end(); ++h)
+      {
+        if (h->first == "content-type")
+        {
+          mimeType = h->second.c_str();
+        }
+      }
+      
+      AnswerString(answerBody_, mimeType, output);
+    }
+    else
+    {
+      AnswerHttpError(httpStatus_, output);
+    }
+  }
+
+  bool RestApiClient::GetAnswerJson(Json::Value& output) const
+  {
+    return ReadJson(output, answerBody_);
   }
 #endif
 
