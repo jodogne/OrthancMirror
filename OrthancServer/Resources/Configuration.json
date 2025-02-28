@@ -947,7 +947,8 @@
 
   // Deidentify/anonymize the contents of the logs (notably C-FIND,
   // C-GET, and C-MOVE queries submitted to Orthanc) according to
-  // Table E.1-1 of the DICOM standard (new in Orthanc 1.8.2)
+  // Table E.1-1 of the DICOM standard (new in Orthanc 1.8.2).
+  // Note that, the DICOM logs at TRACE level are not deidentified !
   "DeidentifyLogs" : true,
 
   // If "DeidentifyLogs" is true, this sets the DICOM standard to
