@@ -2756,6 +2756,19 @@ namespace Orthanc
         }
         break;
 
+      case PixelFormat_Grayscale16:
+        if (useRound)
+        {
+          SeparableConvolutionFloat<uint16_t, 1u, true>
+            (image, horizontal, horizontalAnchor, vertical, verticalAnchor, normalization);
+        }
+        else
+        {
+          SeparableConvolutionFloat<uint16_t, 1u, false>
+            (image, horizontal, horizontalAnchor, vertical, verticalAnchor, normalization);
+        }
+        break;
+
       case PixelFormat_RGB24:
         if (useRound)
         {
@@ -2788,6 +2801,14 @@ namespace Orthanc
     SeparableConvolution(image, kernel, 2, kernel, 2, useRound);
   }
 
+
+  void ImageProcessing::MeanFilter(ImageAccessor& image, size_t horizontalKernelWidth, size_t verticalKernelWidth)
+  {
+    std::vector<float> hKernel(horizontalKernelWidth, 1.0f);
+    std::vector<float> vKernel(verticalKernelWidth, 1.0f);
+    
+    SeparableConvolution(image, hKernel, horizontalKernelWidth / 2, vKernel, verticalKernelWidth / 2, false);
+  }
 
   void ImageProcessing::FitSize(ImageAccessor& target,
                                 const ImageAccessor& source)

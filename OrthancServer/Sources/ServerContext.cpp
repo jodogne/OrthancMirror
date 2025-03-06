@@ -50,6 +50,7 @@
 
 #include <dcmtk/dcmdata/dcfilefo.h>
 #include <dcmtk/dcmnet/dimse.h>
+#include <dcmtk/dcmdata/dcdeftag.h>
 #include <dcmtk/dcmdata/dcuid.h>        /* for variable dcmAllStorageSOPClassUIDs */
 
 #include <boost/regex.hpp>
@@ -2011,6 +2012,80 @@ namespace Orthanc
       return false;
     }
   }
+
+  void ServerContext::Modify(std::unique_ptr<ParsedDicomFile>& dicomFile, 
+                             DicomModification& modification,
+                             bool transcode,
+                             DicomTransferSyntax targetSyntax,
+                             unsigned int lossyQuality,
+                             bool keepSOPInstanceUidDuringLossyTranscoding)
+  {
+    // do we need to transcode before ?
+    DicomTransferSyntax currentTransferSyntax;
+    if (modification.RequiresUncompressedTransferSyntax() && 
+        dicomFile->LookupTransferSyntax(currentTransferSyntax) &&
+        currentTransferSyntax > DicomTransferSyntax_BigEndianExplicit)
+    {
+      IDicomTranscoder::DicomImage source;
+      source.AcquireParsed(*dicomFile);  // "dicomFile" is invalid below this point
+
+      IDicomTranscoder::DicomImage transcoded;
+
+      std::set<DicomTransferSyntax> uncompressedTransferSyntax;
+      uncompressedTransferSyntax.insert(DicomTransferSyntax_LittleEndianExplicit);
+      Transcode(transcoded, source, uncompressedTransferSyntax, true);
+      
+      if (!transcode) // if we had to change the TS for the modification, we need to restore the original TS afterwards
+      {
+        transcode = true;
+        targetSyntax = currentTransferSyntax;
+      }
+      dicomFile.reset(transcoded.ReleaseAsParsedDicomFile());
+    }
+
+    modification.Apply(*dicomFile);
+
+    if (transcode)
+    {
+      const std::string modifiedUid = IDicomTranscoder::GetSopInstanceUid(dicomFile->GetDcmtkObject());
+
+      IDicomTranscoder::DicomImage source;
+      source.AcquireParsed(*dicomFile);  // "dicomFile" is invalid below this point
+      
+      IDicomTranscoder::DicomImage transcoded;
+
+      std::set<DicomTransferSyntax> s;
+      s.insert(targetSyntax);
+
+      if (Transcode(transcoded, source, s, true, lossyQuality))
+      {      
+        dicomFile.reset(transcoded.ReleaseAsParsedDicomFile());
+
+        if (keepSOPInstanceUidDuringLossyTranscoding)
+        {
+          // Fix the SOP instance UID in order the preserve the
+          // references between instance UIDs in the DICOM hierarchy
+          // (the UID might have changed during this last transcoding step in the case of lossy transcoding)
+          if (dicomFile.get() == NULL ||
+              dicomFile->GetDcmtkObject().getDataset() == NULL ||
+              !dicomFile->GetDcmtkObject().getDataset()->putAndInsertString(
+                DCM_SOPInstanceUID, modifiedUid.c_str(), OFTrue /* replace */).good())
+          {
+            throw OrthancException(ErrorCode_InternalError);
+          }
+        }
+        return;
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_InternalError,
+                               "Cannot transcode to transfer syntax " +
+                               std::string(GetTransferSyntaxUid(targetSyntax)));
+      }
+    }
+  }
+
+
 
   const std::string& ServerContext::GetDeidentifiedContent(const DicomElement &element) const
   {

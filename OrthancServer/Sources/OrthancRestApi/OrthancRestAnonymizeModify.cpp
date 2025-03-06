@@ -218,35 +218,9 @@ namespace Orthanc
       ServerContext::DicomCacheLocker locker(context, id);
       modified.reset(locker.GetDicom().Clone(true));
     }
-    
-    modification.Apply(*modified);
-
-    if (transcode)
-    {
-      IDicomTranscoder::DicomImage source;
-      source.AcquireParsed(*modified);  // "modified" is invalid below this point
-      
-      IDicomTranscoder::DicomImage transcoded;
-
-      std::set<DicomTransferSyntax> s;
-      s.insert(targetSyntax);
-      
-      if (context.Transcode(transcoded, source, s, true, lossyQuality))
-      {      
-        call.GetOutput().AnswerBuffer(transcoded.GetBufferData(),
-                                      transcoded.GetBufferSize(), MimeType_Dicom);
-      }
-      else
-      {
-        throw OrthancException(ErrorCode_InternalError,
-                               "Cannot transcode to transfer syntax: " +
-                               std::string(GetTransferSyntaxUid(targetSyntax)));
-      }
-    }
-    else
-    {
-      modified->Answer(call.GetOutput());
-    }
+  
+    context.Modify(modified, modification, transcode, targetSyntax, lossyQuality, false /* keepSOPInstanceUidDuringLossyTranscoding*/);
+    modified->Answer(call.GetOutput());
   }
 
 

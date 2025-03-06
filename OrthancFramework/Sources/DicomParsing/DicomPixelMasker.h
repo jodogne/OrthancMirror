@@ -24,54 +24,53 @@
 
 #pragma once
 
-#include "../../Compatibility.h"
-#include "../../Enumerations.h"
+#include "ParsedDicomFile.h"
+#include "../Images/ImageProcessing.h"
 
-#include <dcmtk/dcmdata/dcdatset.h>
-#include <dcmtk/dcmdata/dcfilefo.h>
-#include <vector>
-#include <stdint.h>
-#include <boost/noncopyable.hpp>
-#include <memory>
+#include <list>
+
 
 namespace Orthanc
 {
-  class DicomFrameIndex
+  enum DicomPixelMaskerMode
   {
-  private:
-    class IIndex : public boost::noncopyable
+    DicomPixelMaskerMode_Fill,
+    DicomPixelMaskerMode_MeanFilter
+  };
+
+  class ORTHANC_PUBLIC DicomPixelMasker : public boost::noncopyable
+  {
+    struct Region
     {
-    public:
-      virtual ~IIndex()
+      unsigned int            x_;
+      unsigned int            y_;
+      unsigned int            width_;
+      unsigned int            height_;
+      DicomPixelMaskerMode    mode_;
+      int32_t                 fillValue_;  // pixel value
+      uint32_t                filterWidth_;  // filter width
+      std::list<std::string>  targetSeries_;
+
+      Region() :
+        x_(0),
+        y_(0),
+        width_(0),
+        height_(0),
+        mode_(DicomPixelMaskerMode_Fill),
+        fillValue_(0),
+        filterWidth_(0)
       {
       }
-
-      virtual void GetRawFrame(std::string& frame,
-                               unsigned int index) const = 0;
-
-      virtual uint8_t* GetRawFrameBuffer(unsigned int index) = 0;
     };
 
-    class FragmentIndex;
-    class UncompressedIndex;
-    class PsmctRle1Index;
-
-    std::unique_ptr<IIndex>  index_;
-    unsigned int             countFrames_;
+  private:
+    std::list<Region>   regions_;
 
   public:
-    explicit DicomFrameIndex(DcmDataset& dicom);
+    DicomPixelMasker();
 
-    unsigned int GetFramesCount() const
-    {
-      return countFrames_;
-    }
+    void Apply(ParsedDicomFile& toModify);
 
-    void GetRawFrame(std::string& frame,
-                     unsigned int index) const;
-
-    static unsigned int GetFramesCount(DcmDataset& dicom);
-
-    uint8_t* GetRawFrameBuffer(unsigned int index);
+    void ParseRequest(const Json::Value& request);
   };
 }

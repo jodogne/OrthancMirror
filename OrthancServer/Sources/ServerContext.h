@@ -590,6 +590,13 @@ namespace Orthanc
                                     const std::string& attachmentId, // for the storage cache
                                     DicomTransferSyntax targetSyntax);
 
+    void Modify(std::unique_ptr<ParsedDicomFile>& toModify, 
+                DicomModification& modification,
+                bool transcode,
+                DicomTransferSyntax targetSyntax,
+                unsigned int lossyQuality,
+                bool keepSOPInstanceUidDuringLossyTranscoding);
+
     bool IsTranscodeDicomProtocol() const
     {
       return transcodeDicomProtocol_;

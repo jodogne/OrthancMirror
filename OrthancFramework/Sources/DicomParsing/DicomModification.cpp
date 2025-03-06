@@ -1145,6 +1145,12 @@ namespace Orthanc
       toModify.ReplacePath((*it)->GetPath(), (*it)->GetValue(), true /* decode data URI scheme */,
                            DicomReplaceMode_InsertIfAbsent, privateCreator_);
     }
+
+    // (9) New in Orthanc 1.X.X: Apply pixel modifications
+    if (pixelMasker_ != NULL)
+    {
+      pixelMasker_->Apply(toModify);
+    }
   }
 
   void DicomModification::SetAllowManualIdentifiers(bool check)
@@ -1379,7 +1385,7 @@ namespace Orthanc
   {
     if (!request.isObject())
     {
-      throw OrthancException(ErrorCode_BadFileFormat);
+      throw OrthancException(ErrorCode_BadFileFormat, "The payload should be a JSON object.");
     }
 
     bool force = GetBooleanValue("Force", request, false);
@@ -1393,7 +1399,7 @@ namespace Orthanc
     {
       if (request["DicomVersion"].type() != Json::stringValue)
       {
-        throw OrthancException(ErrorCode_BadFileFormat);
+        throw OrthancException(ErrorCode_BadFileFormat, "DicomVersion should be a string");
       }
       else
       {
@@ -1434,6 +1440,13 @@ namespace Orthanc
     if (request.isMember("PrivateCreator"))
     {
       privateCreator_ = SerializationToolbox::ReadString(request, "PrivateCreator");
+    }
+
+    // New in Orthanc 1.X.X
+    if (request.isMember("MaskPixelData") && request["MaskPixelData"].isObject())
+    {
+      pixelMasker_.reset(new DicomPixelMasker());
+      pixelMasker_->ParseRequest(request);
     }
   }
 
@@ -1895,5 +1908,10 @@ namespace Orthanc
     {
       target.insert(it->first);
     }
+  }
+
+  bool DicomModification::RequiresUncompressedTransferSyntax() const
+  {
+    return pixelMasker_ != NULL;
   }
 }

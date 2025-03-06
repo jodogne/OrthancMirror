@@ -25,6 +25,7 @@
 #pragma once
 
 #include "ParsedDicomFile.h"
+#include "DicomPixelMasker.h"
 
 #include <list>
 
@@ -154,6 +155,9 @@ namespace Orthanc
     ListOfPaths          removeSequences_;       // Must *never* be a path whose prefix is empty
     SequenceReplacements sequenceReplacements_;  // Must *never* be a path whose prefix is empty
 
+    // New in Orthanc 1.X.X
+    std::unique_ptr<DicomPixelMasker>     pixelMasker_;    // TODO: check ownership & serialization
+
     std::string MapDicomIdentifier(const std::string& original,
                                    ResourceType level);
 
@@ -268,5 +272,7 @@ namespace Orthanc
                  bool safeForAnonymization);
 
     bool IsAlteredTag(const DicomTag& tag) const;
+
+    bool RequiresUncompressedTransferSyntax() const;
   };
 }
