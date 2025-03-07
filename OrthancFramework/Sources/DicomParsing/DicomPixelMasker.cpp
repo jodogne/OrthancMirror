@@ -27,7 +27,7 @@
 #include "DicomPixelMasker.h"
 #include "../OrthancException.h"
 #include "../SerializationToolbox.h"
-
+#include "../Logging.h"
 
 namespace Orthanc
 {
@@ -44,6 +44,7 @@ namespace Orthanc
   static const char* KEY_ORIGIN = "Origin";
   static const char* KEY_END = "End";
   static const char* KEY_TARGET_SERIES = "TargetSeries";
+  static const char* KEY_TARGET_INSTANCES = "TargetInstances";
 
   DicomPixelMasker::DicomPixelMasker()
   {
@@ -51,10 +52,25 @@ namespace Orthanc
 
   void DicomPixelMasker::Apply(ParsedDicomFile& toModify)
   {
+    DicomInstanceHasher hasher = toModify.GetHasher();
+    const std::string& seriesId = hasher.HashSeries();
+    const std::string& instanceId = hasher.HashInstance();
+
     for (std::list<Region>::const_iterator r = regions_.begin(); r != regions_.end(); ++r)
     {
+      // LOG(INFO) << " +++ " << seriesId << "   " << instanceId;
+      if (r->targetSeries_.size() > 0 && r->targetSeries_.find(seriesId) == r->targetSeries_.end())
+      {
+        continue;
+      }
+
+      if (r->targetInstances_.size() > 0 && r->targetInstances_.find(instanceId) == r->targetInstances_.end())
+      {
+        continue;
+      }
+
       ImageAccessor imageRegion;
-      toModify.GetRawFrame(0)->GetRegion(imageRegion, r->x_, r->y_, r->width_, r->height_);
+      toModify.GetRawFrame(0)->GetRegion(imageRegion, r->x_, r->y_, r->width_, r->height_);  // TODO-PIXEL-ANON: handle frames
 
       if (r->mode_ == DicomPixelMaskerMode_MeanFilter)
       {
@@ -110,7 +126,12 @@ namespace Orthanc
 
           if (regionJson.isMember(KEY_TARGET_SERIES) && regionJson[KEY_TARGET_SERIES].isArray())
           {
-            SerializationToolbox::ReadListOfStrings(region.targetSeries_, regionJson, KEY_TARGET_SERIES);
+            SerializationToolbox::ReadSetOfStrings(region.targetSeries_, regionJson, KEY_TARGET_SERIES);
+          }
+
+          if (regionJson.isMember(KEY_TARGET_INSTANCES) && regionJson[KEY_TARGET_INSTANCES].isArray())
+          {
+            SerializationToolbox::ReadSetOfStrings(region.targetInstances_, regionJson, KEY_TARGET_INSTANCES);
           }
 
           if (regionJson.isMember(KEY_REGION_TYPE) && regionJson[KEY_REGION_TYPE].asString() == KEY_REGION_PIXELS)
