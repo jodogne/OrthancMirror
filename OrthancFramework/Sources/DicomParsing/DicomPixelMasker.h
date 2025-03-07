@@ -27,7 +27,7 @@
 #include "ParsedDicomFile.h"
 #include "../Images/ImageProcessing.h"
 
-#include <list>
+#include <set>
 
 
 namespace Orthanc
@@ -49,7 +49,8 @@ namespace Orthanc
       DicomPixelMaskerMode    mode_;
       int32_t                 fillValue_;  // pixel value
       uint32_t                filterWidth_;  // filter width
-      std::list<std::string>  targetSeries_;
+      std::set<std::string>  targetSeries_;
+      std::set<std::string>  targetInstances_;
 
       Region() :
         x_(0),

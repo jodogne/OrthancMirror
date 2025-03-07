@@ -1007,8 +1007,16 @@ namespace Orthanc
       }
     }
 
+    // (0.1) New in Orthanc 1.X.X: Apply pixel modifications
+    // This is done before modifying any tags because the pixelMasker has filters on the Orthanc ids ->
+    // the DICOM UID tags must not be modified before.
+    if (pixelMasker_ != NULL)
+    {
+      pixelMasker_->Apply(toModify);
+    }
 
-    // (0) Create a summary of the source file, if a custom generator
+
+    // (0.2) Create a summary of the source file, if a custom generator
     // is provided
     if (identifierGenerator_ != NULL)
     {
@@ -1146,11 +1154,6 @@ namespace Orthanc
                            DicomReplaceMode_InsertIfAbsent, privateCreator_);
     }
 
-    // (9) New in Orthanc 1.X.X: Apply pixel modifications
-    if (pixelMasker_ != NULL)
-    {
-      pixelMasker_->Apply(toModify);
-    }
   }
 
   void DicomModification::SetAllowManualIdentifiers(bool check)
@@ -1320,6 +1323,13 @@ namespace Orthanc
     if (request.isMember("PrivateCreator"))
     {
       privateCreator_ = SerializationToolbox::ReadString(request, "PrivateCreator");
+    }
+
+    // New in Orthanc 1.X.X
+    if (request.isMember("MaskPixelData") && request["MaskPixelData"].isObject())
+    {
+      pixelMasker_.reset(new DicomPixelMasker());
+      pixelMasker_->ParseRequest(request);
     }
 
     if (!force)
