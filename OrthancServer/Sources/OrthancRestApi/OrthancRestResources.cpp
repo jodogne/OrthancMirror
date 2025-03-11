@@ -946,7 +946,7 @@ namespace Orthanc
           }
           else
           {
-            // if present and not explicitely set to false
+            // if present and not explicitly set to false
             if (call.HasArgument("returnUnsupportedImage") && call.GetBooleanArgument("returnUnsupportedImage", true))
             {
               std::string root = "";
