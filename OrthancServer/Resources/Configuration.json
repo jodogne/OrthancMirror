@@ -214,7 +214,7 @@
   // "?" accepts any single character at that position.
   // "*" accepts any string value at that position.
   // If you want to add a a SOP class that is not defined in
-  // DCMTK defaults, you must add it explicitely.
+  // DCMTK defaults, you must add it explicitly.
   // (new in Orthanc 1.12.6)
   // Example to add a non standard class
   // and keep the default ones:
@@ -531,9 +531,9 @@
   // accept C-FIND requests from Orthanc (new in Orthanc 1.8.1).
   "DicomEchoChecksFind" : false,
 
-  // Wheter Orthanc uses C-MOVE or C-GET to retrieve a resource after
+  // Whether Orthanc uses C-MOVE or C-GET to retrieve a resource after
   // a C-Find (when calling /queries/.../retrieve).
-  // This configuration can be overriden for each modality by providing
+  // This configuration can be overridden for each modality by providing
   // "RetrieveMethod" in the "DicomModalities" entry.
   // (new in Orthanc 1.12.6)
   "DicomDefaultRetrieveMethod" : "C-MOVE",
@@ -947,7 +947,8 @@
 
   // Deidentify/anonymize the contents of the logs (notably C-FIND,
   // C-GET, and C-MOVE queries submitted to Orthanc) according to
-  // Table E.1-1 of the DICOM standard (new in Orthanc 1.8.2)
+  // Table E.1-1 of the DICOM standard (new in Orthanc 1.8.2).
+  // Note that, the DICOM logs at TRACE level are not deidentified !
   "DeidentifyLogs" : true,
 
   // If "DeidentifyLogs" is true, this sets the DICOM standard to

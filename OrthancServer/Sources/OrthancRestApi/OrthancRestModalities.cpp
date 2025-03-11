@@ -1697,7 +1697,7 @@ namespace Orthanc
                          "Usage of wildcards is prohibited and the query shall only contain DICOM ID tags.  "
                          "Additionally, you may provide SOPClassesInStudy to limit the scope of the DICOM "
                          "negotiation to certain SOPClassUID or to present uncommon SOPClassUID during "
-                         "the DICOM negotation.  By default, "
+                         "the DICOM negotiation.  By default, "
                          "Orhanc will propose the most 120 common SOPClassUIDs.", true)
         .SetRequestField(KEY_QUERY, RestApiCallDocumentation::Type_JsonObject,
                          "A query object identifying all the DICOM resources to be retrieved", true)

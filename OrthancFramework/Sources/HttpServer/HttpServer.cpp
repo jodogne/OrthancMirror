@@ -699,7 +699,7 @@ namespace Orthanc
                             const HttpToolbox::Arguments& headers,
                             const HttpToolbox::GetArguments& argumentsGET)
   {
-    std::string overriden;
+    std::string overridden;
 
     // Check whether some PUT/DELETE faking is done
 
@@ -709,7 +709,7 @@ namespace Orthanc
 
     if (methodOverride != headers.end())
     {
-      overriden = methodOverride->second;
+      overridden = methodOverride->second;
     }
     else if (!strcmp(request->request_method, "GET"))
     {
@@ -719,25 +719,25 @@ namespace Orthanc
       {
         if (argumentsGET[i].first == "_method")
         {
-          overriden = argumentsGET[i].second;
+          overridden = argumentsGET[i].second;
           break;
         }
       }
     }
 
-    if (overriden.size() > 0)
+    if (overridden.size() > 0)
     {
       // A faking has been done within this request
-      Toolbox::ToUpperCase(overriden);
+      Toolbox::ToUpperCase(overridden);
 
-      CLOG(INFO, HTTP) << "HTTP method faking has been detected for " << overriden;
+      CLOG(INFO, HTTP) << "HTTP method faking has been detected for " << overridden;
 
-      if (overriden == "PUT")
+      if (overridden == "PUT")
       {
         method = HttpMethod_Put;
         return true;
       }
-      else if (overriden == "DELETE")
+      else if (overridden == "DELETE")
       {
         method = HttpMethod_Delete;
         return true;
