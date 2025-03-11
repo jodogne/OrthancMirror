@@ -198,6 +198,9 @@ Mid-term
 * Log outgoing C-Find queries
 * Support other Transfer Syntaxes in the Worklist plugin:
   https://discourse.orthanc-server.org/t/could-you-please-create-an-option-to-set-the-transfer-syntax-in-the-worklist-plugin-currently-little-endian-explicit-is-fixed/4871
+* Deidentify Trace level logs: https://discourse.orthanc-server.org/t/dicom-log-deidentification-at-trace-log-level/5563
+  We should implement something like GetDeidentifiedContent(const DcmDataSet& dataset) that would 
+  reproduce DcmDataSet::print but hide individual elements that contain PHI.
 
 
 ---------
