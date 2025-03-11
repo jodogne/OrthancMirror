@@ -39,6 +39,9 @@ Maintenance
 * Recovered compatibility with Windows XP that was broken because of DCMTK 3.6.9
 * Enabled support of the 1.2.840.10008.1.2.1.99 transfer syntax
   (Deflated Explicit VR Little Endian) in static builds
+* Housekeeper plugin:
+  - When encountering an error, the housekeeper now skips the resource and continues processing.
+
 
 
 Version 1.12.6 (2025-01-22)

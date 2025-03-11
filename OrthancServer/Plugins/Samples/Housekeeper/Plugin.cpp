@@ -549,39 +549,46 @@ static bool ProcessChanges(bool needsReconstruct, bool needsReingest, bool needs
       const Json::Value& change = changes["Changes"][i];
       int64_t seq = change["Seq"].asInt64();
 
-      if (!limitToChange_.empty()) // if updating only maindicomtags for a single level 
+      try
       {
-        if (change["ChangeType"] == limitToChange_)
+        if (!limitToChange_.empty()) // if updating only maindicomtags for a single level 
         {
-          Json::Value result;
-          Json::Value request;
-          request["ReconstructFiles"] = false;
-          request["LimitToThisLevelMainDicomTags"] = true;
-          OrthancPlugins::RestApiPost(result, "/" + limitToUrl_ + "/" + change["ID"].asString() + "/reconstruct", request, false);
+          if (change["ChangeType"] == limitToChange_)
+          {
+            Json::Value result;
+            Json::Value request;
+            request["ReconstructFiles"] = false;
+            request["LimitToThisLevelMainDicomTags"] = true;
+            OrthancPlugins::RestApiPost(result, "/" + limitToUrl_ + "/" + change["ID"].asString() + "/reconstruct", request, false);
+          }
+        }
+        else
+        {
+          if (change["ChangeType"] == "NewStudy") // some StableStudy might be missing if orthanc was shutdown during a StableAge -> consider only the NewStudy events that can not be missed
+          {
+            Json::Value result;
+
+            if (needsReconstruct || needsReingest ||force_)
+            {
+              Json::Value request;
+              if (needsReingest)
+              {
+                request["ReconstructFiles"] = true;
+              }
+              OrthancPlugins::RestApiPost(result, "/studies/" + change["ID"].asString() + "/reconstruct", request, false);
+            }
+
+            if (needsDicomWebCaching)
+            {
+              Json::Value request;
+              OrthancPlugins::RestApiPost(result, "/studies/" + change["ID"].asString() + "/update-dicomweb-cache", request, true);
+            }
+          }
         }
       }
-      else
+      catch (...)
       {
-        if (change["ChangeType"] == "NewStudy") // some StableStudy might be missing if orthanc was shutdown during a StableAge -> consider only the NewStudy events that can not be missed
-        {
-          Json::Value result;
-
-          if (needsReconstruct || needsReingest ||force_)
-          {
-            Json::Value request;
-            if (needsReingest)
-            {
-              request["ReconstructFiles"] = true;
-            }
-            OrthancPlugins::RestApiPost(result, "/studies/" + change["ID"].asString() + "/reconstruct", request, false);
-          }
-
-          if (needsDicomWebCaching)
-          {
-            Json::Value request;
-            OrthancPlugins::RestApiPost(result, "/studies/" + change["ID"].asString() + "/update-dicomweb-cache", request, true);
-          }
-        }
+        ORTHANC_PLUGINS_LOG_ERROR("Housekeeper: unhandled error while processing change " + boost::lexical_cast<std::string>(seq) + ", skipping resource.");
       }
 
       {
@@ -703,9 +710,17 @@ static void WorkerThread()
   {
     if (runningPeriods_.isInPeriod())
     {
-      completed = ProcessChanges(needsReconstruct, needsReingest, needsDicomWebCaching, currentDbConfiguration);
-      SaveStatusInDb();
-      
+      try
+      {
+        completed = ProcessChanges(needsReconstruct, needsReingest, needsDicomWebCaching, currentDbConfiguration);
+        SaveStatusInDb();
+      }
+      catch (...)
+      {
+        ORTHANC_PLUGINS_LOG_ERROR("Housekeeper: unhandled error while processing change " + boost::lexical_cast<std::string>(pluginStatus_.lastProcessedChange) +
+                                 " / " + boost::lexical_cast<std::string>(pluginStatus_.lastChangeToProcess));
+      }
+
       if (!completed)
       {
         boost::recursive_mutex::scoped_lock lock(pluginStatusMutex_);
