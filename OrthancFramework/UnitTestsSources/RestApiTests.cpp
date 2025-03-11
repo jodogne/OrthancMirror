@@ -99,9 +99,9 @@ TEST(HttpClient, Basic)
 #if (UNIT_TESTS_WITH_HTTP_CONNEXIONS == 1) && (ORTHANC_ENABLE_SSL == 1) && (ORTHANC_SANDBOXED != 1)
 
 /**
-   The HTTPS CA certificates for BitBucket were extracted as follows:
+   The HTTPS CA certificates for Github were extracted as follows:
    
-   (1) We retrieve the URI of the root CA of BitBucket:
+   (1) We retrieve the URI of the root CA of Github:
 
    # echo | openssl s_client -servername raw.githubusercontent.com -connect raw.githubusercontent.com:443 2>/dev/null | openssl x509 -text | grep "CA Issuers"
 
@@ -109,7 +109,7 @@ TEST(HttpClient, Basic)
    macro that can be used by libcurl:
 
    # cd UnitTestsSources
-   # python2 ../Resources/RetrieveCACertificates.py GITHUB_CERTIFICATES http://cacerts.digicert.com/DigiCertGlobalG2TLSRSASHA2562020CA1-1.crt > GithubCACertificates.h
+   # python2 ../Resources/RetrieveCACertificates.py GITHUB_CERTIFICATES http://crt.sectigo.com/SectigoRSADomainValidationSecureServerCA.crt > GithubCACertificates.h
 **/
 
 #include "GithubCACertificates.h"
