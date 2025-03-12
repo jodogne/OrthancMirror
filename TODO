@@ -465,7 +465,7 @@ curl http://localhost:8043/instances/19565ed8-6bd8f20e-efbd6c34-36688133-bc91329
 curl -X POST http://localhost:8043/studies/321d3848-40c81c82-49f6f235-df6b1ec7-ed52f2fa/modify \
 --data-binary @- << EOF
 {
-    "Replace" : {"StudyInstanceUID": "1.2.3", "StudyDescription": "modified-all-slices"},
+    "Replace" : {"StudyInstanceUID": "1.2.2", "StudyDescription": "modified-all-slices"},
     "Force": true,
     "MaskPixelData": {
         "Regions": [{
@@ -495,6 +495,43 @@ curl -X POST http://localhost:8043/studies/321d3848-40c81c82-49f6f235-df6b1ec7-e
             "Origin": [150, 100],
             "End": [400, 200],
             "TargetInstances" : ["11e0b13a-fb44c3d5-819193d8-314b3bb5-4da13bc4", "372d70bb-886e6cc5-a89eefcc-405b2346-f4676bb2"]
+      }]
+    }
+}
+EOF
+
+
+# modify all frames of a multiframe study (CARDIO)
+curl -X POST http://localhost:8043/studies/595df1a1-74fe920a-4b9e3509-826f17a3-762a2dc3/modify \
+--data-binary @- << EOF
+{
+    "Replace" : {"StudyInstanceUID": "1.2.4", "StudyDescription": "modified-multi-frame"},
+    "Force": true,
+    "MaskPixelData": {
+        "Regions": [{
+            "MaskType": "MeanFilter",
+            "FilterWidth": 30,
+            "RegionType" : "Pixels",
+            "Origin": [150, 100],
+            "End": [400, 200]
+      }]
+    }
+}
+EOF
+
+# modify all frames of a multiframe US study (Cine US, TS = .50)
+curl -X POST http://localhost:8043/studies/50f2961c-c35755eb-8762b05b-0e01cd97-dd8a294c/modify \
+--data-binary @- << EOF
+{
+    "Replace" : {"StudyInstanceUID": "1.2.5", "StudyDescription": "modified-multi-frame-us"},
+    "Force": true,
+    "MaskPixelData": {
+        "Regions": [{
+            "MaskType": "MeanFilter",
+            "FilterWidth": 30,
+            "RegionType" : "Pixels",
+            "Origin": [0, 0],
+            "End": [768, 45]
       }]
     }
 }

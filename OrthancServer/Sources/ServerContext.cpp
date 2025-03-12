@@ -2027,7 +2027,7 @@ namespace Orthanc
     DicomTransferSyntax currentTransferSyntax;
     if (modification.RequiresUncompressedTransferSyntax() && 
         dicomFile->LookupTransferSyntax(currentTransferSyntax) &&
-        currentTransferSyntax > DicomTransferSyntax_BigEndianExplicit)  // TODO-PIXEL-ANON: write a function IsRawTransferSyntax()
+        !IsRawTransferSyntax(currentTransferSyntax))
     {
       IDicomTranscoder::DicomImage source;
       source.AcquireParsed(*dicomFile);  // "dicomFile" is invalid below this point
@@ -2038,13 +2038,15 @@ namespace Orthanc
       uncompressedTransferSyntax.insert(DicomTransferSyntax_LittleEndianExplicit);
       Transcode(transcoded, source, uncompressedTransferSyntax, true);
 
-      if (currentTransferSyntax == DicomTransferSyntax_JPEGProcess1)  // TODO-PIXEL-ANON: write a function IsLossyTransferSyntax()
+      dicomFile.reset(transcoded.ReleaseAsParsedDicomFile());
+
+      if (IsLossyTransferSyntax(currentTransferSyntax))
       {
         // TODO-PIXEL-ANON:  Test this path with IngestTranscoding = lossy syntax
         // TODO-PIXEL-ANON:  + Test with source = lossy + modification requires a transcoding to a raw TS -> the transcoding shall not be performed after pixel modification since it is already being done now but the SOPInstance UID must be changed afterwards
         
         // this means we have moved from lossy to raw -> the SOPInstanceUID should have changed here but, 
-        // keep the SOPInstanceUID unchanged during this pre-transcoding to make sure the orthanc ids are 
+        // let's keep the SOPInstanceUID unchanged during this pre-transcoding to make sure the orthanc ids are 
         // still the original ones when the pixelMasker is applied (since the pixelMasker has a filter on Orthanc ids).
         // however, after the modification, we must make sure that we change the SOPInstanceUID.
         if (dicomFile.get() && dicomFile->GetDcmtkObject().getDataset())
@@ -2063,7 +2065,7 @@ namespace Orthanc
         transcode = true;
         targetSyntax = currentTransferSyntax;
       }
-      dicomFile.reset(transcoded.ReleaseAsParsedDicomFile());
+      
     }
 
     modification.Apply(*dicomFile);

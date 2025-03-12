@@ -82,4 +82,44 @@ namespace Orthanc
     target.insert(DicomTransferSyntax_{{Value}});
     {{/Syntaxes}}
   }
+
+
+  bool IsLossyTransferSyntax(DicomTransferSyntax syntax)
+  {
+    switch (syntax)
+    {
+      {{#Syntaxes}}
+      case DicomTransferSyntax_{{Value}}:
+        {{#Lossless}}
+        return false;
+        {{/Lossless}}
+        {{^Lossless}}
+        return true;
+        {{/Lossless}}
+
+      {{/Syntaxes}}
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+
+  bool IsRawTransferSyntax(DicomTransferSyntax syntax)
+  {
+    switch (syntax)
+    {
+      {{#Syntaxes}}
+      case DicomTransferSyntax_{{Value}}:
+        {{#Raw}}
+        return true;
+        {{/Raw}}
+        {{^Raw}}
+        return false;
+        {{/Raw}}
+
+      {{/Syntaxes}}
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
 }

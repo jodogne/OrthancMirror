@@ -58,7 +58,6 @@ namespace Orthanc
 
     for (std::list<Region>::const_iterator r = regions_.begin(); r != regions_.end(); ++r)
     {
-      // LOG(INFO) << " +++ " << seriesId << "   " << instanceId;
       if (r->targetSeries_.size() > 0 && r->targetSeries_.find(seriesId) == r->targetSeries_.end())
       {
         continue;
@@ -69,16 +68,21 @@ namespace Orthanc
         continue;
       }
 
-      ImageAccessor imageRegion;
-      toModify.GetRawFrame(0)->GetRegion(imageRegion, r->x_, r->y_, r->width_, r->height_);  // TODO-PIXEL-ANON: handle frames
+      for (unsigned int i = 0; i < toModify.GetFramesCount(); ++i)
+      {
+        // TODO-PIXEL-ANON: skip unwanted frames
 
-      if (r->mode_ == DicomPixelMaskerMode_MeanFilter)
-      {
-        ImageProcessing::MeanFilter(imageRegion, r->filterWidth_, r->filterWidth_);
-      }
-      else if (r->mode_ == DicomPixelMaskerMode_Fill)
-      {
-        ImageProcessing::Set(imageRegion, r->fillValue_);
+        ImageAccessor imageRegion;
+        toModify.GetRawFrame(i)->GetRegion(imageRegion, r->x_, r->y_, r->width_, r->height_);  
+
+        if (r->mode_ == DicomPixelMaskerMode_MeanFilter)
+        {
+          ImageProcessing::MeanFilter(imageRegion, r->filterWidth_, r->filterWidth_);
+        }
+        else if (r->mode_ == DicomPixelMaskerMode_Fill)
+        {
+          ImageProcessing::Set(imageRegion, r->fillValue_);
+        }
       }
     }
   }
