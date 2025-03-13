@@ -31,6 +31,7 @@
 #include "../SerializationToolbox.h"
 #include "FromDcmtkBridge.h"
 #include "ITagVisitor.h"
+#include "DicomPixelMasker.h"
 
 #include <memory>   // For std::unique_ptr
 
