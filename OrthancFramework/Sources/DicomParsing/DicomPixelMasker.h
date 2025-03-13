@@ -35,40 +35,108 @@ namespace Orthanc
   enum DicomPixelMaskerMode
   {
     DicomPixelMaskerMode_Fill,
-    DicomPixelMaskerMode_MeanFilter
+    DicomPixelMaskerMode_MeanFilter,
+
+    DicomPixelMaskerMode_Undefined
   };
 
   class ORTHANC_PUBLIC DicomPixelMasker : public boost::noncopyable
   {
-    struct Region
+    class BaseRegion
     {
-      unsigned int            x_;
-      unsigned int            y_;
-      unsigned int            width_;
-      unsigned int            height_;
       DicomPixelMaskerMode    mode_;
-      int32_t                 fillValue_;  // pixel value
-      uint32_t                filterWidth_;  // filter width
-      std::set<std::string>  targetSeries_;
-      std::set<std::string>  targetInstances_;
+      int32_t                 fillValue_;     // pixel value
+      uint32_t                filterWidth_;   // filter width
+      std::set<std::string>   targetSeries_;
+      std::set<std::string>   targetInstances_;
 
-      Region() :
-        x_(0),
-        y_(0),
-        width_(0),
-        height_(0),
-        mode_(DicomPixelMaskerMode_Fill),
-        fillValue_(0),
-        filterWidth_(0)
+    protected:
+      bool IsTargeted(const ParsedDicomFile& file) const;
+      BaseRegion();
+
+    public:
+      
+      virtual ~BaseRegion()
       {
+      }
+
+      virtual bool GetPixelMaskArea(unsigned int& x1, unsigned int& y1, unsigned int& x2, unsigned int& y2, const ParsedDicomFile& file, unsigned int frameIndex) const = 0;
+
+      DicomPixelMaskerMode GetMode() const
+      {
+        return mode_;
+      }
+
+      int32_t GetFillValue() const
+      {
+        assert(mode_ == DicomPixelMaskerMode_Fill);
+        return fillValue_;
+      }
+
+      int32_t GetFilterWidth() const
+      {
+        assert(mode_ == DicomPixelMaskerMode_MeanFilter);
+        return filterWidth_;
+      }
+
+      void SetFillValue(int32_t value)
+      {
+        mode_ = DicomPixelMaskerMode_Fill;
+        fillValue_ = value;
+      }
+
+      void SetMeanFilter(uint32_t value)
+      {
+        mode_ = DicomPixelMaskerMode_MeanFilter;
+        filterWidth_ = value;
+      }
+
+      void SetTargetSeries(const std::set<std::string> targetSeries)
+      {
+        targetSeries_ = targetSeries;
+      }
+
+      void SetTargetInstances(const std::set<std::string> targetInstances)
+      {
+        targetInstances_ = targetInstances;
       }
     };
 
+    class Region2D : public BaseRegion
+    {
+      unsigned int            x1_;
+      unsigned int            y1_;
+      unsigned int            x2_;
+      unsigned int            y2_;
+
+    public:
+      Region2D(unsigned int x1, unsigned int y1, unsigned int x2, unsigned int y2);
+      
+      virtual bool GetPixelMaskArea(unsigned int& x1, unsigned int& y1, unsigned int& x2, unsigned int& y2, const ParsedDicomFile& file, unsigned int frameIndex) const ORTHANC_OVERRIDE;
+    };
+
+    class Region3D : public BaseRegion
+    {
+      double             x1_;
+      double             y1_;
+      double             z1_;
+      double             x2_;
+      double             y2_;
+      double             z2_;
+
+    public:
+      Region3D(double x1, double y1, double z1, double x2, double y2, double z2);
+
+      virtual bool GetPixelMaskArea(unsigned int& x1, unsigned int& y1, unsigned int& x2, unsigned int& y2, const ParsedDicomFile& file, unsigned int frameIndex) const ORTHANC_OVERRIDE;
+    };
+
   private:
-    std::list<Region>   regions_;
+    std::list<BaseRegion*>   regions_;
 
   public:
     DicomPixelMasker();
+    
+    ~DicomPixelMasker();
 
     void Apply(ParsedDicomFile& toModify);
 
