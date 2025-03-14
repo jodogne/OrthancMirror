@@ -27,7 +27,8 @@ Maintenance
   (Deflated Explicit VR Little Endian) in static builds
 * Housekeeper plugin:
   - When encountering an error, the housekeeper now skips the resource and continues processing.
-
+* Orthanc Explorer:
+  - Allow '-' and '_' in labels.
 
 
 Version 1.12.6 (2025-01-22)
