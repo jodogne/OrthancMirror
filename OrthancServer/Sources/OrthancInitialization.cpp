@@ -59,6 +59,7 @@
 #    undef __FILE__
 #    define __FILE__ __ORTHANC_FILE__
 #  endif
+#  include <google/protobuf/stubs/common.h>
 #  include <google/protobuf/any.h>
 #endif
 

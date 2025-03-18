@@ -1603,7 +1603,7 @@ namespace Orthanc
       // buffer if its size was overestimated by (*)
       ob.flush();
 
-      size_t effectiveSize = static_cast<size_t>(ob.tell());
+      size_t effectiveSize = static_cast<size_t>(ob.filled());
       if (effectiveSize < buffer.size())
       {
         buffer.resize(effectiveSize);
