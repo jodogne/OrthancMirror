@@ -446,7 +446,7 @@ Rest API proposal:
 			{                                    
 				"MaskType": "Fill",
 				"FillValue": 0,
-				"RegionType" : "3D",                // area is defined by a volume in world coordinates  (TODO-PIXEL-ANON)
+				"RegionType" : "3D",                // area is defined by a volume in world coordinates
 				"Origin": [-150.5, -250.4, -811],   // X, Y, Z in World coordinates
 				"End": [148.4, 220.7, -955],        // X, Y, Z in World coordinates
 				"TargetSeries" : [                  // in this mode, no need to list the instances since the Z coordinate shall handle that !
