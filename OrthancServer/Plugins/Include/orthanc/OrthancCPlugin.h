@@ -469,6 +469,7 @@ extern "C"
     _OrthancPluginService_SetMetricsIntegerValue = 43,              /* New in Orthanc 1.12.1 */
     _OrthancPluginService_SetCurrentThreadName = 44,                /* New in Orthanc 1.12.2 */
     _OrthancPluginService_LogMessage = 45,                          /* New in Orthanc 1.12.4 */
+    _OrthancPluginService_AdoptAttachment = 46,                     /* New in Orthanc 1.12.7 */
 
 
     /* Registration of callbacks */
@@ -1480,7 +1481,7 @@ extern "C"
    * @param target Memory buffer where to store the content of the file. It must be allocated by the
    * plugin using OrthancPluginCreateMemoryBuffer64(). The core of Orthanc will free it.
    * @param uuid The UUID of the file of interest.
-   * @param customData The custom data of the file to be removed.
+   * @param customData The custom data of the file of interest.
    * @param type The content type corresponding to this file.
    * @ingroup Callbacks
    **/
@@ -1504,7 +1505,7 @@ extern "C"
    * The memory buffer is allocated and freed by Orthanc. The length of the range
    * of interest corresponds to the size of this buffer.
    * @param uuid The UUID of the file of interest.
-   * @param customData The custom data of the file to be removed.
+   * @param customData The custom data of the file of interest.
    * @param type The content type corresponding to this file.
    * @param rangeStart Start position of the requested range in the file.
    * @return 0 if success, other value if error.
@@ -9766,6 +9767,61 @@ extern "C"
     return context->InvokeService(context, _OrthancPluginService_SendStreamChunk, &params);
   }
 
+  typedef struct
+  {
+    const char* uuid;
+    int32_t     contentType;
+    uint64_t    uncompressedSize;
+    const char* uncompressedHash;
+    int32_t     compressionType;
+    uint64_t    compressedSize;
+    const char* compressedHash;
+    const void* customData;
+    uint64_t    customDataSize;
+  } OrthancPluginAttachment2;
+
+
+  typedef struct
+  {
+    const void*                   buffer; /* in */
+    uint64_t                      bufferSize; /* in, can be only the beginning of a DICOM file (until the pixel data) */
+    // TODO_ATTACH_CUSTOM_DATA uint64_t                      pixelDataOffset; /* in, zero = undefined */
+    OrthancPluginAttachment2*     attachmentInfo;  /* in, uuid may not be defined */
+    OrthancPluginResourceType     attachToResourceType; /* in */
+    const char*                   attachToResourceId; /* in */
+    OrthancPluginMemoryBuffer*    createdResourceId; /* out */
+    OrthancPluginMemoryBuffer*    attachmentUuid;    /* out */
+  } _OrthancPluginAdoptAttachment;
+  
+  /**
+   * @brief Tell Orthanc to adopt an existing attachment.
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+TODO_ATTACH_CUSTOM_DATA TODO TODO
+   **/
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginAdoptAttachment(
+    OrthancPluginContext*         context,
+    const void*                   buffer,
+    uint64_t                      bufferSize,
+    // TODO_ATTACH_CUSTOM_DATA uint64_t                      pixelDataOffset,
+    OrthancPluginAttachment2*     attachmentInfo,
+    OrthancPluginResourceType     attachToResourceType,
+    const char*                   attachToResourceId,
+    OrthancPluginMemoryBuffer*    createdResourceId, /* out */
+    OrthancPluginMemoryBuffer*    attachmentUuid) /* out */
+  {
+    _OrthancPluginAdoptAttachment params;
+    params.buffer = buffer;
+    params.bufferSize = bufferSize;
+    // TODO_ATTACH_CUSTOM_DATA ? params.pixelDataOffset = pixelDataOffset; 
+    params.attachmentInfo = attachmentInfo;
+    params.attachToResourceType = attachToResourceType;
+    params.attachToResourceId = attachToResourceId;
+    params.createdResourceId = createdResourceId;
+    params.attachmentUuid = attachmentUuid;
+
+    return context->InvokeService(context, _OrthancPluginService_AdoptAttachment, &params);
+  }
 
 #ifdef  __cplusplus
 }

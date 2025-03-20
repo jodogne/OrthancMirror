@@ -606,6 +606,37 @@ namespace Orthanc
                                                                   StoreInstanceMode mode,
                                                                   bool isReconstruct)
   {
+    FileInfo adoptedFileNotUsed;
+
+    return StoreAfterTranscoding(resultPublicId,
+                                 dicom,
+                                 mode,
+                                 isReconstruct,
+                                 false,
+                                 adoptedFileNotUsed);
+  }
+
+  ServerContext::StoreResult ServerContext::AdoptAttachment(std::string& resultPublicId,
+                                                            DicomInstanceToStore& dicom,
+                                                            StoreInstanceMode mode,
+                                                            const FileInfo& adoptedFile)
+  {
+    return StoreAfterTranscoding(resultPublicId,
+                                 dicom,
+                                 mode,
+                                 false,
+                                 true,
+                                 adoptedFile);
+  }
+
+
+  ServerContext::StoreResult ServerContext::StoreAfterTranscoding(std::string& resultPublicId,
+                                                                  DicomInstanceToStore& dicom,
+                                                                  StoreInstanceMode mode,
+                                                                  bool isReconstruct,
+                                                                  bool isAdoption,
+                                                                  const FileInfo& adoptedFile)
+  {
     bool overwrite;
     switch (mode)
     {
@@ -708,10 +739,18 @@ namespace Orthanc
       // TODO Should we use "gzip" instead?
       CompressionType compression = (compressionEnabled_ ? CompressionType_ZlibWithSize : CompressionType_None);
 
-      FileInfo dicomInfo = accessor.Write(dicom.GetBufferData(), dicom.GetBufferSize(), FileContentType_Dicom, compression, storeMD5_, &dicom);
-
       ServerIndex::Attachments attachments;
-      attachments.push_back(dicomInfo);
+      FileInfo dicomInfo;
+
+      if (!isAdoption)
+      {
+        dicomInfo = accessor.Write(dicom.GetBufferData(), dicom.GetBufferSize(), FileContentType_Dicom, compression, storeMD5_, &dicom);
+        attachments.push_back(dicomInfo);
+      }
+      else
+      {
+        attachments.push_back(adoptedFile);
+      }
 
       FileInfo dicomUntilPixelData;
       if (hasPixelDataOffset &&
@@ -763,7 +802,10 @@ namespace Orthanc
             
       if (result.GetStatus() != StoreStatus_Success)
       {
-        accessor.Remove(dicomInfo);
+        if (!isAdoption)
+        {
+          accessor.Remove(dicomInfo);
+        }
 
         if (dicomUntilPixelData.IsValid())
         {
@@ -777,7 +819,14 @@ namespace Orthanc
         switch (result.GetStatus())
         {
           case StoreStatus_Success:
-            LOG(INFO) << "New instance stored (" << resultPublicId << ")";
+            if (isAdoption)
+            {
+              LOG(INFO) << "New instance adopted (" << resultPublicId << ")";
+            }
+            else
+            {
+              LOG(INFO) << "New instance stored (" << resultPublicId << ")";
+            }
             break;
 
           case StoreStatus_AlreadyStored:
