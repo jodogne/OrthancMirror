@@ -11,6 +11,7 @@ REST API
 * All routes accepting a "transcode" url argument or a "Transcode" field in the payload now also
   accepts a "lossy-quality" url argument or a "LossyQuality" field to define the compression quality factor.
   If not specified, the "DicomLossyTranscodingQuality" configuration is taken into account.
+* Fix OpenAPI documentation for /modalities/../get
 
 
 Maintenance
