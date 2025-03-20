@@ -71,6 +71,11 @@ function IsAlphanumeric(s)
   return s.match(/^[0-9a-zA-Z]+$/);
 }
 
+function IsValidLabelName(s)
+{
+  return s.match(/^[0-9a-zA-Z\-_]+$/);
+}
+
 
 function DeepCopy(obj)
 {
@@ -780,7 +785,7 @@ function ConfigureLabels(target, system, resourceLevel, resourceId)
             click: function () {
               var label = $.mobile.sdLastInput;
               if (label.length > 0) {
-                if (IsAlphanumeric(label)) {
+                if (IsValidLabelName(label)) {
                   $.ajax({
                     url: '../' + resourceLevel + '/' + resourceId + '/labels/' + label,
                     dataType: 'json',
