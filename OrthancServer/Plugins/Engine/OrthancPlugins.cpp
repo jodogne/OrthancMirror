@@ -4726,6 +4726,59 @@ namespace Orthanc
     reinterpret_cast<PImpl::PluginHttpOutput*>(p.output)->SendMultipartItem(p.answer, p.answerSize, headers);
   }
 
+  // static FileInfo CreateFileInfoFromPluginAttachment(OrthancPluginAttachment* attachment)
+  // {
+  //   return FileInfo(attachment->uuid,
+  //                   Orthanc::Plugins::Convert(attachment->contentType),
+  //                   attachment->uncompressedSize,
+  //                   attachment->uncompressedHash
+  //                                        )    fileInfo()
+  // }
+
+  static FileInfo Convert(const OrthancPluginAttachment2& attachment)
+  {
+    std::string uuid, customData;
+    if (attachment.uuid != NULL)
+    {
+      uuid = attachment.uuid;
+    }
+    else
+    {
+      uuid = Toolbox::GenerateUuid();
+    }
+
+    if (attachment.customData != NULL)
+    {
+      customData = std::string(reinterpret_cast<const char*>(attachment.customData), attachment.customDataSize);
+    }
+
+    return FileInfo(uuid,
+                    Orthanc::Plugins::Convert(static_cast<OrthancPluginContentType>(attachment.contentType)),
+                    attachment.uncompressedSize,
+                    attachment.uncompressedHash,
+                    Orthanc::Plugins::Convert(static_cast<OrthancPluginCompressionType>(attachment.compressionType)),
+                    attachment.compressedSize,
+                    attachment.compressedHash,
+                    customData);
+  }
+
+  void OrthancPlugins::ApplyAdoptAttachment(const _OrthancPluginAdoptAttachment& parameters)
+  {
+    PImpl::ServerContextReference lock(*pimpl_);
+    FileInfo adoptedFile = Convert(*(parameters.attachmentInfo));
+
+    if (adoptedFile.GetContentType() == FileContentType_Dicom)
+    {
+      std::unique_ptr<DicomInstanceToStore> dicom(DicomInstanceToStore::CreateFromBuffer(parameters.buffer, parameters.bufferSize));
+      dicom->SetOrigin(DicomInstanceOrigin::FromPlugins());
+
+      std::string resultPublicId;
+
+      ServerContext::StoreResult result = lock.GetContext().AdoptAttachment(resultPublicId, *dicom, StoreInstanceMode_Default, adoptedFile);
+
+      // TODO_ATTACH_CUSTOM_DATA: handle result
+    }
+  }
 
   void OrthancPlugins::ApplyLoadDicomInstance(const _OrthancPluginLoadDicomInstance& params)
   {
@@ -5813,6 +5866,14 @@ namespace Orthanc
       case _OrthancPluginService_SetCurrentThreadName:
       {
         Logging::SetCurrentThreadName(std::string(reinterpret_cast<const char*>(parameters)));
+        return true;
+      }
+
+      case _OrthancPluginService_AdoptAttachment:
+      {
+        const _OrthancPluginAdoptAttachment& p =
+          *reinterpret_cast<const _OrthancPluginAdoptAttachment*>(parameters);
+        ApplyAdoptAttachment(p);
         return true;
       }
 

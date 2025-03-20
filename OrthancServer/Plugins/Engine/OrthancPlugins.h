@@ -223,6 +223,8 @@ private:
 
     void ApplyLoadDicomInstance(const _OrthancPluginLoadDicomInstance& parameters);
 
+    void ApplyAdoptAttachment(const _OrthancPluginAdoptAttachment& parameters);
+
     void ComputeHash(_OrthancPluginService service,
                      const void* parameters);
 

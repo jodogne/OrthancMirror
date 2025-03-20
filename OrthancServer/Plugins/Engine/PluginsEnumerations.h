@@ -75,6 +75,8 @@ namespace Orthanc
     OrthancPluginConstraintType Convert(ConstraintType constraint);
 
     OrthancPluginCompressionType Convert(CompressionType type);
+
+    CompressionType Convert(OrthancPluginCompressionType type);
   }
 }
 

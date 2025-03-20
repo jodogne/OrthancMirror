@@ -269,6 +269,13 @@ namespace Orthanc
                                       StoreInstanceMode mode,
                                       bool isReconstruct);
 
+    StoreResult StoreAfterTranscoding(std::string& resultPublicId,
+                                      DicomInstanceToStore& dicom,
+                                      StoreInstanceMode mode,
+                                      bool isReconstruct,
+                                      bool isAdoption,
+                                      const FileInfo& adoptedFile);
+
     // This method must only be called from "ServerIndex"!
     void RemoveFile(const std::string& fileUuid,
                     FileContentType type,
@@ -356,6 +363,11 @@ namespace Orthanc
     StoreResult Store(std::string& resultPublicId,
                       DicomInstanceToStore& dicom,
                       StoreInstanceMode mode);
+
+    StoreResult AdoptAttachment(std::string& resultPublicId,
+                                DicomInstanceToStore& dicom,
+                                StoreInstanceMode mode,
+                                const FileInfo& adoptedFile);
 
     StoreResult TranscodeAndStore(std::string& resultPublicId,
                                   DicomInstanceToStore* dicom,
