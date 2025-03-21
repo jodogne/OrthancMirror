@@ -27,6 +27,12 @@ Maintenance
 * Enabled support of the 1.2.840.10008.1.2.1.99 transfer syntax
   (Deflated Explicit VR Little Endian) in static builds + fix length of saved files.
   https://discourse.orthanc-server.org/t/transcoding-to-deflated-transfer-syntax-fails/5489
+* When anonymizing a resource while forcing some value with the 'Replace' fields, the tag
+  0012,0063 was cleared out because the DICOM Anonymization profile was not strictly followed.
+  From now on:
+  - 0012,0063 will contain "Orthanc {version} - {Anonymization profile}" if no 'Replace' is used.
+  - 0012,0063 will contain "Orthanc {version}" if 'Replace' is used.
+  (https://orthanc.uclouvain.be/bugs/show_bug.cgi?id=240)
 * Housekeeper plugin:
   - When encountering an error, the housekeeper now skips the resource and continues processing.
 * Orthanc Explorer:
