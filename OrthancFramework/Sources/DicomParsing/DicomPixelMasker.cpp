@@ -116,18 +116,12 @@ namespace Orthanc
     return false;
   }
 
-  static void GetDoubleVector(std::vector<double>& target, const ParsedDicomFile& file, const DicomTag& tag, size_t expectedSize)
+  static void GetDoubleVector(std::vector<double>& target, const std::string& strValue, const DicomTag& tag, size_t expectedSize)
   {
     target.clear();
 
-    std::string str;
-    if (!file.GetTagValue(str, tag))
-    {
-      throw OrthancException(ErrorCode_InexistentTag, "Unable to perform 3D -> 2D conversion, missing tag" + tag.Format());
-    }
-
     std::vector<std::string> strVector;
-    Toolbox::SplitString(strVector, str, '\\');
+    Toolbox::SplitString(strVector, strValue, '\\');
 
     if (strVector.size() != expectedSize)
     {
@@ -147,32 +141,88 @@ namespace Orthanc
     }
   }
 
+  static void GetDoubleVector(std::vector<double>& target, const ParsedDicomFile& file, const DicomTag& tag, size_t expectedSize)
+  {
+    std::string str;
+    if (!file.GetTagValue(str, tag))
+    {
+      throw OrthancException(ErrorCode_InexistentTag, "Unable to perform 3D -> 2D conversion, missing tag" + tag.Format());
+    }
+
+    GetDoubleVector(target, str, tag, expectedSize);
+  }
+
   bool DicomPixelMasker::Region3D::GetPixelMaskArea(unsigned int& x1, unsigned int& y1, unsigned int& x2, unsigned int& y2, const ParsedDicomFile& file, unsigned int frameIndex) const
   {
     if (IsTargeted(file))
     {
+      DicomMap tags;
+      file.ExtractDicomSummary(tags, 256);
+
       std::vector<double> imagePositionPatient;
       std::vector<double> imageOrientationPatient;
       std::vector<double> pixelSpacing;
+      double sliceSpacing = 0.0;
 
-      GetDoubleVector(imagePositionPatient, file, DICOM_TAG_IMAGE_POSITION_PATIENT, 3);
-      GetDoubleVector(imageOrientationPatient, file, DICOM_TAG_IMAGE_ORIENTATION_PATIENT, 6);
+      if (file.HasTag(DICOM_TAG_IMAGE_POSITION_PATIENT) && file.HasTag(DICOM_TAG_IMAGE_ORIENTATION_PATIENT))
+      {
+        GetDoubleVector(imagePositionPatient, file, DICOM_TAG_IMAGE_POSITION_PATIENT, 3);
+        GetDoubleVector(imageOrientationPatient, file, DICOM_TAG_IMAGE_ORIENTATION_PATIENT, 6);
+      }
+      else if (file.HasTag(DICOM_TAG_DETECTOR_INFORMATION_SEQUENCE)) // find it in the detector info sequence (for some multi frame instances like NM or scintigraphy) TODO-PIXEL-ANON: to validate
+      {
+        const Json::Value& jsonSequence = tags.GetValue(DICOM_TAG_DETECTOR_INFORMATION_SEQUENCE).GetSequenceContent();
+        if (jsonSequence.size() == 1)
+        {
+          std::string strImagePositionPatient = jsonSequence[0]["0020,0032"]["Value"].asString();
+          std::string strImageOrientationPatient = jsonSequence[0]["0020,0037"]["Value"].asString();
+
+          GetDoubleVector(imagePositionPatient, strImagePositionPatient, DICOM_TAG_IMAGE_POSITION_PATIENT, 3);
+          GetDoubleVector(imageOrientationPatient, strImageOrientationPatient, DICOM_TAG_IMAGE_ORIENTATION_PATIENT, 6);
+        }
+        else
+        {
+          throw OrthancException(ErrorCode_InternalError, "Unable to find ImagePositionPatient in DetectorInformationSequence, invalid sequence size");
+        }
+      }
+      else
+      {
+        throw OrthancException(ErrorCode_InternalError, "Unable to find ImagePositionPatient or ImageOrientationPatient");
+      }
+
       GetDoubleVector(pixelSpacing, file, DICOM_TAG_PIXEL_SPACING, 2);
+
+      if (file.HasTag(DICOM_TAG_SPACING_BETWEEN_SLICES))
+      {
+        std::string strSliceSpacing;
+        if (file.GetTagValue(strSliceSpacing, DICOM_TAG_SPACING_BETWEEN_SLICES))
+        {
+          sliceSpacing = boost::lexical_cast<double>(strSliceSpacing);
+        }
+      }
+
+      double z = imagePositionPatient[2];
+      
+      if (sliceSpacing != 0.0)
+      {
+        z = z - frameIndex * sliceSpacing;
+      }
 
       // note: To simplify, for the z, we only check that imagePositionPatient is between the authorized z values.
       //       This won't be perfectly true for weird images with slices that are not parallel but let's wait for someone to complain ...
-      if (imagePositionPatient[2] < std::min(z1_, z2_) || 
-          imagePositionPatient[2] > std::max(z1_, z2_))
+      if (z < std::min(z1_, z2_) || 
+          z > std::max(z1_, z2_))
       {
         return false;
       }
       
+
       double deltaX1 = x1_ - imagePositionPatient[0];
       double deltaY1 = y1_ - imagePositionPatient[1];
-      double deltaZ1 = z1_ - imagePositionPatient[2];
+      double deltaZ1 = z1_ - z;
       double deltaX2 = x2_ - imagePositionPatient[0];
       double deltaY2 = y2_ - imagePositionPatient[1];
-      double deltaZ2 = z2_ - imagePositionPatient[2];
+      double deltaZ2 = z2_ - z;
 
       double ix1 = (deltaX1 * imageOrientationPatient[0] + deltaY1 * imageOrientationPatient[1] + deltaZ1 * imageOrientationPatient[2]) / pixelSpacing[0];
       double iy1 = (deltaX1 * imageOrientationPatient[3] + deltaY1 * imageOrientationPatient[4] + deltaZ1 * imageOrientationPatient[5]) / pixelSpacing[1];

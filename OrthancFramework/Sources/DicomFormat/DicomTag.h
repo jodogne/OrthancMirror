@@ -102,6 +102,8 @@ namespace Orthanc
   static const DicomTag DICOM_TAG_SERIES_DESCRIPTION(0x0008, 0x103e);
   static const DicomTag DICOM_TAG_MODALITY(0x0008, 0x0060);
 
+  static const DicomTag DICOM_TAG_DETECTOR_INFORMATION_SEQUENCE(0x0054, 0x0022);
+
   // The following is used for "modify/anonymize" operations
   static const DicomTag DICOM_TAG_SOP_CLASS_UID(0x0008, 0x0016);
   static const DicomTag DICOM_TAG_MEDIA_STORAGE_SOP_CLASS_UID(0x0002, 0x0002);
@@ -194,6 +196,7 @@ namespace Orthanc
   static const DicomTag DICOM_TAG_RESCALE_INTERCEPT(0x0028, 0x1052);
   static const DicomTag DICOM_TAG_RESCALE_SLOPE(0x0028, 0x1053);
   static const DicomTag DICOM_TAG_SLICE_THICKNESS(0x0018, 0x0050);
+  static const DicomTag DICOM_TAG_SPACING_BETWEEN_SLICES(0x0018, 0x0088);
   static const DicomTag DICOM_TAG_WINDOW_CENTER(0x0028, 0x1050);
   static const DicomTag DICOM_TAG_WINDOW_WIDTH(0x0028, 0x1051);
   static const DicomTag DICOM_TAG_DOSE_GRID_SCALING(0x3004, 0x000e);

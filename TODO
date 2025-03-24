@@ -571,3 +571,42 @@ curl -X POST http://localhost:8043/studies/50f2961c-c35755eb-8762b05b-0e01cd97-d
     }
 }
 EOF
+
+
+# modify some frames of a multiframe scintigraphy study
+curl -X POST http://localhost:8043/studies/ab67d5f8-95865506-8fb83c8b-93610651-ddce6e77/modify \
+--data-binary @- << EOF
+{
+    "Replace" : {"StudyInstanceUID": "1.2.6", "StudyDescription": "modified-scinti"},
+    "Force": true,
+    "MaskPixelData": {
+        "Regions": [{
+            "MaskType": "Fill",
+            "FillValue": 3000,
+            "RegionType" : "3D",
+            "Origin": [-150.0, -200, 200],
+            "End": [150.0, -150, 100]
+      }]
+    }
+}
+EOF
+
+
+# modify some frames of a multiframe PET-CT study
+curl -X POST http://localhost:8043/studies/890e1167-55ad171a-7721ffec-db91e2c1-700778c0/modify \
+--data-binary @- << EOF
+{
+    "Replace" : {"StudyInstanceUID": "1.2.7", "StudyDescription": "modified-pet-ct"},
+    "Force": true,
+    "MaskPixelData": {
+        "Regions": [{
+            "MaskType": "Fill",
+            "FillValue": 3000,
+            "RegionType" : "3D",
+            "Origin": [-150.0, -100, -85],
+            "End": [150.0, 100, -250]
+      }]
+    }
+}
+EOF
+
