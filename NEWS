@@ -19,7 +19,9 @@ Maintenance
 
 * In the "ExtendedFind" mode:
   - optimized "tools/find" when "StorageAccessMode" is set to "Never".
-  - "tools/find" is now returning results when e.g, ordering instances against a metadata they don't have
+  - "tools/find" is now returning results when e.g, ordering instances against a metadata they don't have.
+  - Get SOPClassUID from metadata when available -> this fixes display of PDF files in Stone when 
+    "StorageAccessOnFind" is set to "Never".
 * Fixed interpretation of returnUnsupportedImage in /preview route. 
 * GET /series/../study now also contain LastUpdate field:
   https://discourse.orthanc-server.org/t/lastupdate-coherency/5524
