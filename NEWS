@@ -20,6 +20,7 @@ REST API
 * All routes accepting a "transcode" url argument or a "Transcode" field in the payload now also
   accepts a "lossy-quality" url argument or a "LossyQuality" field to define the compression quality factor.
   If not specified, the "DicomLossyTranscodingQuality" configuration is taken into account.
+* Fix OpenAPI documentation for /modalities/../get
 
 Plugins
 -------
@@ -32,7 +33,9 @@ Maintenance
 
 * In the "ExtendedFind" mode:
   - optimized "tools/find" when "StorageAccessMode" is set to "Never".
-  - "tools/find" is now returning results when e.g, ordering instances against a metadata they don't have
+  - "tools/find" is now returning results when e.g, ordering instances against a metadata they don't have.
+  - Get SOPClassUID from metadata when available -> this fixes display of PDF files in Stone when 
+    "StorageAccessOnFind" is set to "Never".
 * Fixed interpretation of returnUnsupportedImage in /preview route. 
 * GET /series/../study now also contain LastUpdate field:
   https://discourse.orthanc-server.org/t/lastupdate-coherency/5524
@@ -40,6 +43,12 @@ Maintenance
 * Enabled support of the 1.2.840.10008.1.2.1.99 transfer syntax
   (Deflated Explicit VR Little Endian) in static builds + fix length of saved files.
   https://discourse.orthanc-server.org/t/transcoding-to-deflated-transfer-syntax-fails/5489
+* When anonymizing a resource while forcing some value with the 'Replace' fields, the tag
+  0012,0063 was cleared out because the DICOM Anonymization profile was not strictly followed.
+  From now on:
+  - 0012,0063 will contain "Orthanc {version} - {Anonymization profile}" if no 'Replace' is used.
+  - 0012,0063 will contain "Orthanc {version}" if 'Replace' is used.
+  (https://orthanc.uclouvain.be/bugs/show_bug.cgi?id=240)
 * Housekeeper plugin:
   - When encountering an error, the housekeeper now skips the resource and continues processing.
 * Orthanc Explorer:

@@ -1699,8 +1699,8 @@ namespace Orthanc
                          "negotiation to certain SOPClassUID or to present uncommon SOPClassUID during "
                          "the DICOM negotiation.  By default, "
                          "Orhanc will propose the most 120 common SOPClassUIDs.", true)
-        .SetRequestField(KEY_QUERY, RestApiCallDocumentation::Type_JsonObject,
-                         "A query object identifying all the DICOM resources to be retrieved", true)
+        .SetRequestField(KEY_LEVEL, RestApiCallDocumentation::Type_String,
+                         "Level of the query (`Patient`, `Study`, `Series` or `Instance`)", true)
         .SetRequestField(KEY_LOCAL_AET, RestApiCallDocumentation::Type_String,
                          "Local AET that is used for this commands, defaults to `DicomAet` configuration option. "
                          "Ignored if `DicomModalities` already sets `LocalAet` for this modality.", false)
