@@ -1473,28 +1473,6 @@ extern "C"
 
 
   /**
-   * @brief Callback for reading a whole file from the storage area.
-   *
-   * Signature of a callback function that is triggered when Orthanc
-   * reads a whole file from the storage area.
-   *
-   * @param target Memory buffer where to store the content of the file. It must be allocated by the
-   * plugin using OrthancPluginCreateMemoryBuffer64(). The core of Orthanc will free it.
-   * @param uuid The UUID of the file of interest.
-   * @param customData The custom data of the file of interest.
-   * @param type The content type corresponding to this file.
-   * @ingroup Callbacks
-   **/
-  typedef OrthancPluginErrorCode (*OrthancPluginStorageReadWhole2) (
-    OrthancPluginMemoryBuffer64* target,
-    const char* uuid,
-    OrthancPluginContentType type,
-    const void* customData,
-    uint64_t customDataSize);
-
-
-
-  /**
    * @brief Callback for reading a range of a file from the storage area.
    *
    * Signature of a callback function that is triggered when Orthanc
@@ -5052,6 +5030,8 @@ extern "C"
    * @ingroup Callbacks
    * @deprecated This function should not be used anymore. Use "OrthancPluginRestApiGet()" on
    * "/{patients|studies|series|instances}/{id}/attachments/{name}" instead.
+   * @warning This function will result in a "not implemented" error on versions of the
+   * Orthanc core above 1.12.6.
    **/
   ORTHANC_PLUGIN_DEPRECATED ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginStorageAreaRead(
     OrthancPluginContext*       context,
@@ -9465,7 +9445,6 @@ extern "C"
   typedef struct
   {
     OrthancPluginStorageCreate2     create;
-    OrthancPluginStorageReadWhole2  readWhole;
     OrthancPluginStorageReadRange2  readRange;
     OrthancPluginStorageRemove2     remove;
   } _OrthancPluginRegisterStorageArea3;
@@ -9489,13 +9468,11 @@ extern "C"
   ORTHANC_PLUGIN_INLINE void OrthancPluginRegisterStorageArea3(
     OrthancPluginContext*           context,
     OrthancPluginStorageCreate2     create,
-    OrthancPluginStorageReadWhole2  readWhole,
     OrthancPluginStorageReadRange2  readRange,
     OrthancPluginStorageRemove2     remove)
   {
     _OrthancPluginRegisterStorageArea3 params;
     params.create = create;
-    params.readWhole = readWhole;
     params.readRange = readRange;
     params.remove = remove;
     context->InvokeService(context, _OrthancPluginService_RegisterStorageArea3, &params);

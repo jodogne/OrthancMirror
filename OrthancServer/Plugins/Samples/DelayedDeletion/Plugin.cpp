@@ -113,7 +113,7 @@ static OrthancPluginErrorCode StorageReadWhole(OrthancPluginMemoryBuffer64* targ
 {
   try
   {
-    std::unique_ptr<Orthanc::IMemoryBuffer> buffer(storage_->Read(uuid, Convert(type)));
+    std::unique_ptr<Orthanc::IMemoryBuffer> buffer(storage_->ReadWhole(uuid, Convert(type)));
 
     // copy from a buffer allocated on plugin's heap into a buffer allocated on core's heap
     if (OrthancPluginCreateMemoryBuffer64(OrthancPlugins::GetGlobalContext(), target, buffer->GetSize()) != OrthancPluginErrorCode_Success)

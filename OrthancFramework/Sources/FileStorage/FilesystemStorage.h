@@ -80,15 +80,19 @@ namespace Orthanc
                         size_t size,
                         FileContentType type) ORTHANC_OVERRIDE;
 
-    virtual IMemoryBuffer* Read(const std::string& uuid,
-                                FileContentType type) ORTHANC_OVERRIDE;
+    // This flavor is only used in the "DelayedDeletion" plugin
+    IMemoryBuffer* ReadWhole(const std::string& uuid,
+                             FileContentType type);
 
     virtual IMemoryBuffer* ReadRange(const std::string& uuid,
                                      FileContentType type,
                                      uint64_t start /* inclusive */,
                                      uint64_t end /* exclusive */) ORTHANC_OVERRIDE;
 
-    virtual bool HasReadRange() const ORTHANC_OVERRIDE;
+    virtual bool HasEfficientReadRange() const ORTHANC_OVERRIDE
+    {
+      return true;
+    }
 
     virtual void Remove(const std::string& uuid,
                         FileContentType type) ORTHANC_OVERRIDE;
