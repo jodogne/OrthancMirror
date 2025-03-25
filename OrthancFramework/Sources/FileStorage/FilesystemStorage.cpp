@@ -187,8 +187,8 @@ namespace Orthanc
   }
 
 
-  IMemoryBuffer* FilesystemStorage::Read(const std::string& uuid,
-                                         FileContentType type)
+  IMemoryBuffer* FilesystemStorage::ReadWhole(const std::string& uuid,
+                                              FileContentType type)
   {
     Toolbox::ElapsedTimer timer;
     LOG(INFO) << "Reading attachment \"" << uuid << "\" of \"" << GetDescriptionInternal(type) 
@@ -218,12 +218,6 @@ namespace Orthanc
 
     LOG(INFO) << "Read range of attachment \"" << uuid << "\" (" << timer.GetHumanTransferSpeed(true, content.size()) << ")";
     return StringMemoryBuffer::CreateFromSwap(content);
-  }
-
-
-  bool FilesystemStorage::HasReadRange() const
-  {
-    return true;
   }
 
 

@@ -69,31 +69,6 @@ namespace Orthanc
   }
 
   
-  IMemoryBuffer* MemoryStorageArea::Read(const std::string& uuid,
-                                         FileContentType type) 
-  {
-    LOG(INFO) << "Reading attachment \"" << uuid << "\" of \""
-              << static_cast<int>(type) << "\" content type";
-
-    Mutex::ScopedLock lock(mutex_);
-
-    Content::const_iterator found = content_.find(uuid);
-
-    if (found == content_.end())
-    {
-      throw OrthancException(ErrorCode_InexistentFile);
-    }
-    else if (found->second == NULL)
-    {
-      throw OrthancException(ErrorCode_InternalError);
-    }
-    else
-    {
-      return StringMemoryBuffer::CreateFromCopy(*found->second);
-    }
-  }
-      
-
   IMemoryBuffer* MemoryStorageArea::ReadRange(const std::string& uuid,
                                               FileContentType type,
                                               uint64_t start /* inclusive */,
@@ -140,12 +115,6 @@ namespace Orthanc
         return StringMemoryBuffer::CreateFromSwap(range);
       }
     }
-  }
-
-
-  bool MemoryStorageArea::HasReadRange() const
-  {
-    return true;
   }
 
 

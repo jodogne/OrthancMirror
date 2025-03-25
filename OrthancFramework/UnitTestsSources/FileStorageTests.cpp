@@ -63,12 +63,18 @@ TEST(FilesystemStorage, Basic)
   s.Create(uid.c_str(), &data[0], data.size(), FileContentType_Unknown);
   std::string d;
   {
-    std::unique_ptr<IMemoryBuffer> buffer(s.Read(uid, FileContentType_Unknown));
+    std::unique_ptr<IMemoryBuffer> buffer(s.ReadWhole(uid, FileContentType_Unknown));
     buffer->MoveToString(d);    
   }
   ASSERT_EQ(d.size(), data.size());
   ASSERT_FALSE(memcmp(&d[0], &data[0], data.size()));
   ASSERT_EQ(s.GetSize(uid), data.size());
+  {
+    std::unique_ptr<IMemoryBuffer> buffer2(s.ReadRange(uid, FileContentType_Unknown, 0, uid.size()));
+    std::string d2;
+    buffer2->MoveToString(d2);
+    ASSERT_EQ(d, d2);
+  }
 }
 
 TEST(FilesystemStorage, Basic2)
@@ -81,12 +87,18 @@ TEST(FilesystemStorage, Basic2)
   s.Create(uid.c_str(), &data[0], data.size(), FileContentType_Unknown);
   std::string d;
   {
-    std::unique_ptr<IMemoryBuffer> buffer(s.Read(uid, FileContentType_Unknown));
+    std::unique_ptr<IMemoryBuffer> buffer(s.ReadWhole(uid, FileContentType_Unknown));
     buffer->MoveToString(d);    
   }
   ASSERT_EQ(d.size(), data.size());
   ASSERT_FALSE(memcmp(&d[0], &data[0], data.size()));
   ASSERT_EQ(s.GetSize(uid), data.size());
+  {
+    std::unique_ptr<IMemoryBuffer> buffer2(s.ReadRange(uid, FileContentType_Unknown, 0, uid.size()));
+    std::string d2;
+    buffer2->MoveToString(d2);
+    ASSERT_EQ(d, d2);
+  }
 }
 
 TEST(FilesystemStorage, FileWithSameNameAsTopDirectory)

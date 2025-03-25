@@ -476,19 +476,6 @@ namespace Orthanc
         }
       }
 
-      virtual IMemoryBuffer* Read(const std::string& uuid,
-                                  FileContentType type) ORTHANC_OVERRIDE
-      {
-        if (type != FileContentType_Dicom)
-        {
-          return storage_.Read(uuid, type);
-        }
-        else
-        {
-          throw OrthancException(ErrorCode_UnknownResource);
-        }
-      }
-
       virtual IMemoryBuffer* ReadRange(const std::string& uuid,
                                        FileContentType type,
                                        uint64_t start /* inclusive */,
@@ -504,9 +491,9 @@ namespace Orthanc
         }
       }
 
-      virtual bool HasReadRange() const ORTHANC_OVERRIDE
+      virtual bool HasEfficientReadRange() const ORTHANC_OVERRIDE
       {
-        return storage_.HasReadRange();
+        return storage_.HasEfficientReadRange();
       }
 
       virtual void Remove(const std::string& uuid,

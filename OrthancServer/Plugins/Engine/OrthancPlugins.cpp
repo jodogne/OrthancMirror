@@ -669,7 +669,46 @@ namespace Orthanc
         }
       }
     };
-  
+
+
+    static IMemoryBuffer* GetRangeFromWhole(std::unique_ptr<MallocMemoryBuffer>& whole,
+                                            uint64_t start /* inclusive */,
+                                            uint64_t end /* exclusive */)
+    {
+      if (start > end)
+      {
+        throw OrthancException(ErrorCode_BadRange);
+      }
+      else if (start == end)
+      {
+        return new StringMemoryBuffer;  // Empty
+      }
+      else
+      {
+        if (start == 0 &&
+            end == whole->GetSize())
+        {
+          return whole.release();
+        }
+        else if (end > whole->GetSize())
+        {
+          throw OrthancException(ErrorCode_BadRange);
+        }
+        else
+        {
+          std::string range;
+          range.resize(end - start);
+          assert(!range.empty());
+
+          memcpy(&range[0], reinterpret_cast<const char*>(whole->GetData()) + start, range.size());
+
+          whole.reset(NULL);
+          return StringMemoryBuffer::CreateFromSwap(range);
+        }
+      }
+    }
+
+
     // "legacy" storage plugins don't store customData -> derive from ICoreStorageArea
     class PluginStorageAreaBase : public ICoreStorageArea
     {
@@ -684,46 +723,6 @@ namespace Orthanc
         return errorDictionary_;
       }
 
-      IMemoryBuffer* RangeFromWhole(const std::string& uuid,
-                                    FileContentType type,
-                                    uint64_t start /* inclusive */,
-                                    uint64_t end /* exclusive */)
-      {
-        if (start > end)
-        {
-          throw OrthancException(ErrorCode_BadRange);
-        }
-        else if (start == end)
-        {
-          return new StringMemoryBuffer;  // Empty
-        }
-        else
-        {
-          std::unique_ptr<IMemoryBuffer> whole(Read(uuid, type));
-
-          if (start == 0 &&
-              end == whole->GetSize())
-          {
-            return whole.release();
-          }
-          else if (end > whole->GetSize())
-          {
-            throw OrthancException(ErrorCode_BadRange);
-          }
-          else
-          {
-            std::string range;
-            range.resize(end - start);
-            assert(!range.empty());
-            
-            memcpy(&range[0], reinterpret_cast<const char*>(whole->GetData()) + start, range.size());
-
-            whole.reset(NULL);
-            return StringMemoryBuffer::CreateFromSwap(range);
-          }
-        }
-      }      
-      
     public:
       PluginStorageAreaBase(OrthancPluginStorageCreate create,
                             OrthancPluginStorageRemove remove,
@@ -775,14 +774,6 @@ namespace Orthanc
       OrthancPluginStorageRead   read_;
       OrthancPluginFree          free_;
       
-      void Free(void* buffer) const
-      {
-        if (buffer != NULL)
-        {
-          free_(buffer);
-        }
-      }
-
     public:
       PluginStorageArea(const _OrthancPluginRegisterStorageArea& callbacks,
                         PluginsErrorDictionary&  errorDictionary) :
@@ -796,21 +787,21 @@ namespace Orthanc
         }
       }
 
-      virtual IMemoryBuffer* Read(const std::string& uuid,
-                                  FileContentType type) ORTHANC_OVERRIDE
+      virtual IMemoryBuffer* ReadRange(const std::string& uuid,
+                                       FileContentType type,
+                                       uint64_t start /* inclusive */,
+                                       uint64_t end /* exclusive */) ORTHANC_OVERRIDE
       {
-        std::unique_ptr<MallocMemoryBuffer> result(new MallocMemoryBuffer);
-
         void* buffer = NULL;
         int64_t size = 0;
 
-        OrthancPluginErrorCode error = read_
-          (&buffer, &size, uuid.c_str(), Plugins::Convert(type));
+        OrthancPluginErrorCode error = read_(&buffer, &size, uuid.c_str(), Plugins::Convert(type));
 
         if (error == OrthancPluginErrorCode_Success)
         {
-          result->Assign(buffer, size, free_);
-          return result.release();
+          std::unique_ptr<MallocMemoryBuffer> whole(new MallocMemoryBuffer);
+          whole->Assign(buffer, size, free_);
+          return GetRangeFromWhole(whole, start, end);
         }
         else
         {
@@ -819,15 +810,7 @@ namespace Orthanc
         }
       }
 
-      virtual IMemoryBuffer* ReadRange(const std::string& uuid,
-                                       FileContentType type,
-                                       uint64_t start /* inclusive */,
-                                       uint64_t end /* exclusive */) ORTHANC_OVERRIDE
-      {
-        return RangeFromWhole(uuid, type, start, end);
-      }
-
-      virtual bool HasReadRange() const ORTHANC_OVERRIDE
+      virtual bool HasEfficientReadRange() const ORTHANC_OVERRIDE
       {
         return false;
       }
@@ -854,29 +837,6 @@ namespace Orthanc
         }
       }
 
-      virtual IMemoryBuffer* Read(const std::string& uuid,
-                                  FileContentType type) ORTHANC_OVERRIDE
-      {
-        std::unique_ptr<MallocMemoryBuffer> result(new MallocMemoryBuffer);
-
-        OrthancPluginMemoryBuffer64 buffer;
-        buffer.size = 0;
-        buffer.data = NULL;
-        
-        OrthancPluginErrorCode error = readWhole_(&buffer, uuid.c_str(), Plugins::Convert(type));
-
-        if (error == OrthancPluginErrorCode_Success)
-        {
-          result->Assign(buffer.data, buffer.size, ::free);
-          return result.release();
-        }
-        else
-        {
-          GetErrorDictionary().LogError(error, true);
-          throw OrthancException(static_cast<ErrorCode>(error));
-        }
-      }
-
       virtual IMemoryBuffer* ReadRange(const std::string& uuid,
                                        FileContentType type,
                                        uint64_t start /* inclusive */,
@@ -884,7 +844,23 @@ namespace Orthanc
       {
         if (readRange_ == NULL)
         {
-          return RangeFromWhole(uuid, type, start, end);
+          OrthancPluginMemoryBuffer64 buffer;
+          buffer.size = 0;
+          buffer.data = NULL;
+
+          OrthancPluginErrorCode error = readWhole_(&buffer, uuid.c_str(), Plugins::Convert(type));
+
+          if (error == OrthancPluginErrorCode_Success)
+          {
+            std::unique_ptr<MallocMemoryBuffer> whole(new MallocMemoryBuffer);
+            whole->Assign(buffer.data, buffer.size, ::free);
+            return GetRangeFromWhole(whole, start, end);
+          }
+          else
+          {
+            GetErrorDictionary().LogError(error, true);
+            throw OrthancException(static_cast<ErrorCode>(error));
+          }
         }
         else
         {
@@ -922,7 +898,7 @@ namespace Orthanc
         }
       }
       
-      virtual bool HasReadRange() const ORTHANC_OVERRIDE
+      virtual bool HasEfficientReadRange() const ORTHANC_OVERRIDE
       {
         return (readRange_ != NULL);
       }
@@ -934,7 +910,6 @@ namespace Orthanc
     {
     private:
       OrthancPluginStorageCreate2     create_;
-      OrthancPluginStorageReadWhole2  readWhole2_;
       OrthancPluginStorageReadRange2  readRange2_;
       OrthancPluginStorageRemove2     remove2_;
 
@@ -946,58 +921,16 @@ namespace Orthanc
         return errorDictionary_;
       }
 
-      IMemoryBuffer* RangeFromWhole(const std::string& uuid,
-                                    const std::string& customData,
-                                    FileContentType type,
-                                    uint64_t start /* inclusive */,
-                                    uint64_t end /* exclusive */)
-      {
-        if (start > end)
-        {
-          throw OrthancException(ErrorCode_BadRange);
-        }
-        else if (start == end)
-        {
-          return new StringMemoryBuffer;  // Empty
-        }
-        else
-        {
-          std::unique_ptr<IMemoryBuffer> whole(ReadWhole(uuid, type, customData));
-
-          if (start == 0 &&
-              end == whole->GetSize())
-          {
-            return whole.release();
-          }
-          else if (end > whole->GetSize())
-          {
-            throw OrthancException(ErrorCode_BadRange);
-          }
-          else
-          {
-            std::string range;
-            range.resize(end - start);
-            assert(!range.empty());
-            
-            memcpy(&range[0], reinterpret_cast<const char*>(whole->GetData()) + start, range.size());
-
-            whole.reset(NULL);
-            return StringMemoryBuffer::CreateFromSwap(range);
-          }
-        }
-      }      
-      
     public:
       PluginStorageArea3(const _OrthancPluginRegisterStorageArea3& callbacks,
                          PluginsErrorDictionary&  errorDictionary) :
         create_(callbacks.create),
-        readWhole2_(callbacks.readWhole),
         readRange2_(callbacks.readRange),
         remove2_(callbacks.remove),
         errorDictionary_(errorDictionary)
       {
         if (create_ == NULL ||
-            readWhole2_ == NULL ||
+            readRange2_ == NULL ||
             remove2_ == NULL)
         {
           throw OrthancException(ErrorCode_Plugin, "Storage area plugin doesn't implement all the required primitives (createInstance, remove, readWhole");
@@ -1051,78 +984,46 @@ namespace Orthanc
         }
       }
 
-      virtual IMemoryBuffer* ReadWhole(const std::string& uuid,
-                                       FileContentType type,
-                                       const std::string& customData) ORTHANC_OVERRIDE
-      {
-        std::unique_ptr<MallocMemoryBuffer> result(new MallocMemoryBuffer);
-
-        OrthancPluginMemoryBuffer64 buffer;
-        buffer.size = 0;
-        buffer.data = NULL;
-        
-        OrthancPluginErrorCode error = readWhole2_(&buffer, uuid.c_str(), Plugins::Convert(type),
-                                                   customData.empty() ? NULL : customData.c_str(), customData.size());
-
-        if (error == OrthancPluginErrorCode_Success)
-        {
-          result->Assign(buffer.data, buffer.size, ::free);
-          return result.release();
-        }
-        else
-        {
-          GetErrorDictionary().LogError(error, true);
-          throw OrthancException(static_cast<ErrorCode>(error));
-        }
-      }
-
       virtual IMemoryBuffer* ReadRange(const std::string& uuid,
                                        FileContentType type,
                                        uint64_t start /* inclusive */,
                                        uint64_t end /* exclusive */,
                                        const std::string& customData) ORTHANC_OVERRIDE
       {
-        if (readRange2_ == NULL)
+        if (start > end)
         {
-          return RangeFromWhole(uuid, customData, type, start, end);
+          throw OrthancException(ErrorCode_BadRange);
+        }
+        else if (start == end)
+        {
+          return new StringMemoryBuffer;
         }
         else
         {
-          if (start > end)
+          std::string range;
+          range.resize(end - start);
+          assert(!range.empty());
+
+          OrthancPluginMemoryBuffer64 buffer;
+          buffer.data = &range[0];
+          buffer.size = static_cast<uint64_t>(range.size());
+
+          OrthancPluginErrorCode error =
+            readRange2_(&buffer, uuid.c_str(), Plugins::Convert(type), start, customData.empty() ? NULL : customData.c_str(), customData.size());
+
+          if (error == OrthancPluginErrorCode_Success)
           {
-            throw OrthancException(ErrorCode_BadRange);
-          }
-          else if (start == end)
-          {
-            return new StringMemoryBuffer;
+            return StringMemoryBuffer::CreateFromSwap(range);
           }
           else
           {
-            std::string range;
-            range.resize(end - start);
-            assert(!range.empty());
-
-            OrthancPluginMemoryBuffer64 buffer;
-            buffer.data = &range[0];
-            buffer.size = static_cast<uint64_t>(range.size());
-
-            OrthancPluginErrorCode error =
-              readRange2_(&buffer, uuid.c_str(), Plugins::Convert(type), start, customData.empty() ? NULL : customData.c_str(), customData.size());
-
-            if (error == OrthancPluginErrorCode_Success)
-            {
-              return StringMemoryBuffer::CreateFromSwap(range);
-            }
-            else
-            {
-              GetErrorDictionary().LogError(error, true);
-              throw OrthancException(static_cast<ErrorCode>(error));
-            }
+            GetErrorDictionary().LogError(error, true);
+            throw OrthancException(static_cast<ErrorCode>(error));
           }
         }
       }
 
-      virtual bool HasReadRange() const ORTHANC_OVERRIDE
+      virtual bool HasEfficientReadRange() const ORTHANC_OVERRIDE
       {
         return (readRange2_ != NULL);
       }
@@ -5355,15 +5256,7 @@ namespace Orthanc
       }
 
       case _OrthancPluginService_StorageAreaRead:
-      {
-        const _OrthancPluginStorageAreaRead& p =
-          *reinterpret_cast<const _OrthancPluginStorageAreaRead*>(parameters);
-        IStorageArea& storage = *reinterpret_cast<IStorageArea*>(p.storageArea);
-        std::string customDataNotUsed;
-        std::unique_ptr<IMemoryBuffer> content(storage.ReadWhole(p.uuid, Plugins::Convert(p.type), customDataNotUsed));
-        CopyToMemoryBuffer(*p.target, content->GetData(), content->GetSize());
-        return true;
-      }
+        throw OrthancException(ErrorCode_NotImplemented, "The SDK function OrthancPluginStorageAreaRead() is only available in Orthanc <= 1.12.6");
 
       case _OrthancPluginService_StorageAreaRemove:
       {

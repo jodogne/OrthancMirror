@@ -51,17 +51,13 @@ namespace Orthanc
                         CompressionType compression,
                         const DicomInstanceToStore* dicomInstance /* can be NULL if not a DICOM instance */) = 0;
 
-    virtual IMemoryBuffer* ReadWhole(const std::string& uuid,
-                                     FileContentType type,
-                                     const std::string& customData) = 0;
-
     virtual IMemoryBuffer* ReadRange(const std::string& uuid,
                                      FileContentType type,
                                      uint64_t start /* inclusive */,
                                      uint64_t end /* exclusive */,
                                      const std::string& customData) = 0;
 
-    virtual bool HasReadRange() const = 0;
+    virtual bool HasEfficientReadRange() const = 0;
 
     virtual void Remove(const std::string& uuid,
                         FileContentType type,
@@ -84,13 +80,6 @@ namespace Orthanc
       Create(uuid, content, size, type);
     }
 
-    virtual IMemoryBuffer* ReadWhole(const std::string& uuid,
-                                     FileContentType type,
-                                     const std::string& customData) ORTHANC_OVERRIDE
-    {
-      return Read(uuid, type);
-    }
-
     virtual IMemoryBuffer* ReadRange(const std::string& uuid,
                                      FileContentType type,
                                      uint64_t start /* inclusive */,
@@ -111,9 +100,6 @@ namespace Orthanc
                         const void* content,
                         size_t size,
                         FileContentType type) = 0;
-
-    virtual IMemoryBuffer* Read(const std::string& uuid,
-                                FileContentType type) = 0;
 
     virtual IMemoryBuffer* ReadRange(const std::string& uuid,
                                      FileContentType type,

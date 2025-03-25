@@ -439,7 +439,7 @@ namespace Orthanc
 
         {
           MetricsTimer timer(*this, METRICS_READ_DURATION);
-          buffer.reset(area_.ReadWhole(info.GetUuid(), info.GetContentType(), info.GetCustomData()));
+          buffer.reset(area_.ReadRange(info.GetUuid(), info.GetContentType(), 0, info.GetCompressedSize(), info.GetCustomData()));
         }
 
         if (metrics_ != NULL)
@@ -460,7 +460,7 @@ namespace Orthanc
         
         {
           MetricsTimer timer(*this, METRICS_READ_DURATION);
-          compressed.reset(area_.ReadWhole(info.GetUuid(), info.GetContentType(), info.GetCustomData()));
+          compressed.reset(area_.ReadRange(info.GetUuid(), info.GetContentType(), 0, info.GetCompressedSize(), info.GetCustomData()));
         }
         
         if (metrics_ != NULL)
@@ -519,7 +519,7 @@ namespace Orthanc
 
     {
       MetricsTimer timer(*this, METRICS_READ_DURATION);
-      buffer.reset(area_.ReadWhole(info.GetUuid(), info.GetContentType(), info.GetCustomData()));
+      buffer.reset(area_.ReadRange(info.GetUuid(), info.GetContentType(), 0, info.GetCompressedSize(), info.GetCustomData()));
     }
 
     if (metrics_ != NULL)
@@ -688,7 +688,7 @@ namespace Orthanc
       }
       else
       {
-        buffer.reset(area_.ReadWhole(info.GetUuid(), info.GetContentType(), info.GetCustomData()));
+        buffer.reset(area_.ReadRange(info.GetUuid(), info.GetContentType(), 0, info.GetCompressedSize(), info.GetCustomData()));
       }
 
       buffer->MoveToString(target);

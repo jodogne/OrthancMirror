@@ -754,7 +754,7 @@ namespace Orthanc
 
       FileInfo dicomUntilPixelData;
       if (hasPixelDataOffset &&
-          (!area_.HasReadRange() ||
+          (!area_.HasEfficientReadRange() ||
            compressionEnabled_))
       {
         dicomUntilPixelData = accessor.Write(dicom.GetBufferData(), pixelDataOffset, FileContentType_DicomUntilPixelData, compression, storeMD5_, NULL);
@@ -1248,7 +1248,7 @@ namespace Orthanc
 
 
       if (hasPixelDataOffset &&
-          area_.HasReadRange() &&
+          area_.HasEfficientReadRange() &&
           LookupAttachment(attachment, FileContentType_Dicom, instanceAttachments) &&
           attachment.GetCompressionType() == CompressionType_None)
       {
@@ -1326,7 +1326,7 @@ namespace Orthanc
             index_.OverwriteMetadata(instancePublicId, MetadataType_Instance_PixelDataOffset,
                                      boost::lexical_cast<std::string>(pixelDataOffset));
 
-            if (!area_.HasReadRange() ||
+            if (!area_.HasEfficientReadRange() ||
                 compressionEnabled_)
             {
               int64_t newRevision;
@@ -1401,7 +1401,7 @@ namespace Orthanc
       return true;
     }
 
-    if (!area_.HasReadRange())
+    if (!area_.HasEfficientReadRange())
     {
       return false;
     }
