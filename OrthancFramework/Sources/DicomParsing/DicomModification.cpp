@@ -47,6 +47,9 @@ static const std::string ORTHANC_DEIDENTIFICATION_METHOD_2021b =
 static const std::string ORTHANC_DEIDENTIFICATION_METHOD_2023b =
   "Orthanc " ORTHANC_VERSION " - PS 3.15-2023b Table E.1-1 Basic Profile";
 
+static const std::string ORTHANC_UNSAFE_DEIDENTIFICATION =
+  "Orthanc " ORTHANC_VERSION;
+
 namespace Orthanc
 {
   namespace
@@ -434,8 +437,7 @@ namespace Orthanc
           it->second->asString() == ORTHANC_DEIDENTIFICATION_METHOD_2021b ||
           it->second->asString() == ORTHANC_DEIDENTIFICATION_METHOD_2023b)
       {
-        delete it->second;
-        replacements_.erase(it);
+        ReplaceInternal(DICOM_TAG_DEIDENTIFICATION_METHOD, ORTHANC_UNSAFE_DEIDENTIFICATION);
       }
     }
   }
@@ -916,7 +918,7 @@ namespace Orthanc
     }
 
     // Set the PatientIdentityRemoved tag
-    ReplaceInternal(DicomTag(0x0012, 0x0062), "YES");
+    ReplaceInternal(DICOM_TAG_PATIENT_IDENTITY_REMOVED, "YES");
 
     // (*) Choose a random patient name and ID
     uids_.insert(DICOM_TAG_PATIENT_ID);
