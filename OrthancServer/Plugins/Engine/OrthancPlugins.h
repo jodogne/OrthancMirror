@@ -296,7 +296,7 @@ private:
 
     bool HasStorageArea() const;
 
-    IStorageArea* CreateStorageArea();  // To be freed after use
+    IPluginStorageArea* CreateStorageArea();  // To be freed after use
 
     const SharedLibrary& GetStorageAreaLibrary() const;
 

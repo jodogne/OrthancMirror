@@ -43,6 +43,31 @@ namespace Orthanc
     {
     }
 
+    virtual void Create(const std::string& uuid,
+                        const void* content,
+                        size_t size,
+                        FileContentType type) = 0;
+
+    virtual IMemoryBuffer* ReadRange(const std::string& uuid,
+                                     FileContentType type,
+                                     uint64_t start /* inclusive */,
+                                     uint64_t end /* exclusive */) = 0;
+
+    virtual bool HasEfficientReadRange() const = 0;
+
+    virtual void Remove(const std::string& uuid,
+                        FileContentType type) = 0;
+  };
+
+
+  // storage area with customData (customData are used only in plugins)
+  class IPluginStorageArea : public boost::noncopyable
+  {
+  public:
+    virtual ~IPluginStorageArea()
+    {
+    }
+
     virtual void Create(std::string& customData /* out */,
                         const std::string& uuid,
                         const void* content,
@@ -62,51 +87,5 @@ namespace Orthanc
     virtual void Remove(const std::string& uuid,
                         FileContentType type,
                         const std::string& customData) = 0;
-  };
-
-  // storage area without customData (customData are used only in plugins)
-  class ICoreStorageArea : public IStorageArea
-  {
-  public:
-    virtual void Create(std::string& customData,
-                        const std::string& uuid,
-                        const void* content,
-                        size_t size,
-                        FileContentType type,
-                        CompressionType compression,
-                        const DicomInstanceToStore* dicomInstance) ORTHANC_OVERRIDE
-    {
-      customData.clear();
-      Create(uuid, content, size, type);
-    }
-
-    virtual IMemoryBuffer* ReadRange(const std::string& uuid,
-                                     FileContentType type,
-                                     uint64_t start /* inclusive */,
-                                     uint64_t end /* exclusive */,
-                                     const std::string& customData) ORTHANC_OVERRIDE
-    {
-      return ReadRange(uuid, type, start, end);
-    }
-
-    virtual void Remove(const std::string& uuid,
-                        FileContentType type,
-                        const std::string& customData) ORTHANC_OVERRIDE
-    {
-      Remove(uuid, type);
-    }
-
-    virtual void Create(const std::string& uuid,
-                        const void* content,
-                        size_t size,
-                        FileContentType type) = 0;
-
-    virtual IMemoryBuffer* ReadRange(const std::string& uuid,
-                                     FileContentType type,
-                                     uint64_t start /* inclusive */,
-                                     uint64_t end /* exclusive */) = 0;
-
-    virtual void Remove(const std::string& uuid,
-                        FileContentType type) = 0;
   };
 }

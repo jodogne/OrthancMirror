@@ -1963,7 +1963,7 @@ namespace Orthanc
 
   
   void OrthancPluginDatabaseV4::Upgrade(unsigned int targetVersion,
-                                        IStorageArea& storageArea)
+                                        IPluginStorageArea& storageArea)
   {
     if (!open_)
     {

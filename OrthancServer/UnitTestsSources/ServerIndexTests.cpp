@@ -27,6 +27,7 @@
 #include "../../OrthancFramework/Sources/Compatibility.h"
 #include "../../OrthancFramework/Sources/FileStorage/FilesystemStorage.h"
 #include "../../OrthancFramework/Sources/FileStorage/MemoryStorageArea.h"
+#include "../../OrthancFramework/Sources/FileStorage/PluginStorageAreaAdapter.h"
 #include "../../OrthancFramework/Sources/Images/Image.h"
 #include "../../OrthancFramework/Sources/Logging.h"
 
@@ -617,7 +618,7 @@ TEST(ServerIndex, Sequence)
   const std::string path = "UnitTestsStorage";
 
   SystemToolbox::RemoveFile(path + "/index");
-  FilesystemStorage storage(path);
+  PluginStorageAreaAdapter storage(new FilesystemStorage(path));
   SQLiteDatabaseWrapper db;   // The SQLite DB is in memory
   db.Open();
   ServerContext context(db, storage, true /* running unit tests */, 10, false /* readonly */, 1 /* DCMTK concurrent transcoders */);
@@ -699,7 +700,7 @@ TEST(ServerIndex, AttachmentRecycling)
   const std::string path = "UnitTestsStorage";
 
   SystemToolbox::RemoveFile(path + "/index");
-  FilesystemStorage storage(path);
+  PluginStorageAreaAdapter storage(new FilesystemStorage(path));
   SQLiteDatabaseWrapper db;   // The SQLite DB is in memory
   db.Open();
   ServerContext context(db, storage, true /* running unit tests */, 10, false /* readonly */, 1 /* DCMTK concurrent transcoders */);
@@ -816,7 +817,7 @@ TEST(ServerIndex, Overwrite)
   {
     bool overwrite = (i == 0);
 
-    MemoryStorageArea storage;
+    PluginStorageAreaAdapter storage(new MemoryStorageArea);
     SQLiteDatabaseWrapper db;   // The SQLite DB is in memory
     db.Open();
     ServerContext context(db, storage, true /* running unit tests */, 10, false /* readonly */, 1 /* DCMTK concurrent transcoders */);
@@ -981,7 +982,7 @@ TEST(ServerIndex, DicomUntilPixelData)
   {
     const bool compression = (i == 0);
     
-    MemoryStorageArea storage;
+    PluginStorageAreaAdapter storage(new MemoryStorageArea);
     SQLiteDatabaseWrapper db;   // The SQLite DB is in memory
     db.Open();
     ServerContext context(db, storage, true /* running unit tests */, 10, false /* readonly */, 1 /* DCMTK concurrent transcoders */);

@@ -2453,7 +2453,7 @@ namespace Orthanc
 
 
   void SQLiteDatabaseWrapper::Upgrade(unsigned int targetVersion,
-                                      IStorageArea& storageArea)
+                                      IPluginStorageArea& storageArea)
   {
     boost::mutex::scoped_lock lock(mutex_);
 

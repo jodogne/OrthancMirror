@@ -110,7 +110,7 @@ namespace Orthanc
   private:
     class MetricsTimer;
 
-    IStorageArea&     area_;
+    IPluginStorageArea&     area_;
     StorageCache*     cache_;
     MetricsRegistry*  metrics_;
 
@@ -121,15 +121,15 @@ namespace Orthanc
 #endif
 
   public:
-    explicit StorageAccessor(IStorageArea& area);
+    explicit StorageAccessor(IPluginStorageArea& area);
 
-    StorageAccessor(IStorageArea& area,
+    StorageAccessor(IPluginStorageArea& area,
                     StorageCache& cache);
 
-    StorageAccessor(IStorageArea& area,
+    StorageAccessor(IPluginStorageArea& area,
                     MetricsRegistry& metrics);
 
-    StorageAccessor(IStorageArea& area,
+    StorageAccessor(IPluginStorageArea& area,
                     StorageCache& cache,
                     MetricsRegistry& metrics);
 

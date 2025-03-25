@@ -356,7 +356,7 @@ namespace Orthanc
 
 
   ServerContext::ServerContext(IDatabaseWrapper& database,
-                               IStorageArea& area,
+                               IPluginStorageArea& area,
                                bool unitTesting,
                                size_t maxCompletedJobs,
                                bool readOnly,
