@@ -26,6 +26,7 @@
 
 #include "../../OrthancFramework/Sources/Compatibility.h"
 #include "../../OrthancFramework/Sources/FileStorage/MemoryStorageArea.h"
+#include "../../OrthancFramework/Sources/FileStorage/PluginStorageAreaAdapter.h"
 #include "../../OrthancFramework/Sources/JobsEngine/Operations/LogJobOperation.h"
 #include "../../OrthancFramework/Sources/Logging.h"
 #include "../../OrthancFramework/Sources/SerializationToolbox.h"
@@ -528,12 +529,13 @@ namespace
   class OrthancJobsSerialization : public testing::Test
   {
   private:
-    MemoryStorageArea              storage_;
-    SQLiteDatabaseWrapper          db_;   // The SQLite DB is in memory
-    std::unique_ptr<ServerContext>   context_;
+    PluginStorageAreaAdapter        storage_;
+    SQLiteDatabaseWrapper           db_;   // The SQLite DB is in memory
+    std::unique_ptr<ServerContext>  context_;
 
   public:
-    OrthancJobsSerialization()
+    OrthancJobsSerialization() :
+      storage_(new MemoryStorageArea)
     {
       db_.Open();
       context_.reset(new ServerContext(db_, storage_, true /* running unit tests */, 10, false /* readonly */, 1 /* DCMTK concurrent transcoders */));

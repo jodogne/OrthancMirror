@@ -43,7 +43,7 @@
 namespace Orthanc
 {
   class DicomInstanceToStore;
-  class IStorageArea;
+  class IPluginStorageArea;
   class JobsEngine;
   class MetricsRegistry;
   class OrthancPlugins;
@@ -193,7 +193,7 @@ namespace Orthanc
     virtual void SignalJobFailure(const std::string& jobId) ORTHANC_OVERRIDE;
 
     ServerIndex index_;
-    IStorageArea& area_;
+    IPluginStorageArea& area_;
     StorageCache storageCache_;
 
     bool compressionEnabled_;
@@ -313,7 +313,7 @@ namespace Orthanc
     };
 
     ServerContext(IDatabaseWrapper& database,
-                  IStorageArea& area,
+                  IPluginStorageArea& area,
                   bool unitTesting,
                   size_t maxCompletedJobs,
                   bool readOnly,

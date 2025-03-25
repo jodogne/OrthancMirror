@@ -1233,7 +1233,7 @@ namespace Orthanc
 
   
   void OrthancPluginDatabaseV3::Upgrade(unsigned int targetVersion,
-                                        IStorageArea& storageArea)
+                                        IPluginStorageArea& storageArea)
   {
     VoidDatabaseListener listener;
     

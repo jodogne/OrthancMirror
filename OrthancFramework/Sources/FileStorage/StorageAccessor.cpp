@@ -275,7 +275,7 @@ namespace Orthanc
   };
 
 
-  StorageAccessor::StorageAccessor(IStorageArea& area) :
+  StorageAccessor::StorageAccessor(IPluginStorageArea& area) :
     area_(area),
     cache_(NULL),
     metrics_(NULL)
@@ -283,7 +283,7 @@ namespace Orthanc
   }
   
 
-  StorageAccessor::StorageAccessor(IStorageArea& area, 
+  StorageAccessor::StorageAccessor(IPluginStorageArea& area,
                                    StorageCache& cache) :
     area_(area),
     cache_(&cache),
@@ -292,7 +292,7 @@ namespace Orthanc
   }
 
 
-  StorageAccessor::StorageAccessor(IStorageArea& area,
+  StorageAccessor::StorageAccessor(IPluginStorageArea& area,
                                    MetricsRegistry& metrics) :
     area_(area),
     cache_(NULL),
@@ -300,7 +300,7 @@ namespace Orthanc
   {
   }
 
-  StorageAccessor::StorageAccessor(IStorageArea& area, 
+  StorageAccessor::StorageAccessor(IPluginStorageArea& area,
                                    StorageCache& cache,
                                    MetricsRegistry& metrics) :
     area_(area),

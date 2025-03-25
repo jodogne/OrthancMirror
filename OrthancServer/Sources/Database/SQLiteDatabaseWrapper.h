@@ -88,7 +88,7 @@ namespace Orthanc
     }
 
     virtual void Upgrade(unsigned int targetVersion,
-                         IStorageArea& storageArea) ORTHANC_OVERRIDE;
+                         IPluginStorageArea& storageArea) ORTHANC_OVERRIDE;
 
     virtual const Capabilities GetDatabaseCapabilities() const ORTHANC_OVERRIDE
     {

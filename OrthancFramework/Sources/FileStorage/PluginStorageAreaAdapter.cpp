@@ -22,44 +22,32 @@
  **/
 
 
-#pragma once
+#include "../PrecompiledHeaders.h"
+#include "PluginStorageAreaAdapter.h"
 
-#include "IStorageArea.h"
-
-#include "../Compatibility.h"  // For ORTHANC_OVERRIDE
-#include "../MultiThreading/Mutex.h"
-
-#include <map>
+#include "../OrthancException.h"
 
 namespace Orthanc
 {
-  class MemoryStorageArea : public IStorageArea
+  PluginStorageAreaAdapter::PluginStorageAreaAdapter(IStorageArea* storage) :
+    storage_(storage)
   {
-  private:
-    typedef std::map<std::string, std::string*>  Content;
-    
-    Mutex    mutex_;
-    Content  content_;
-    
-  public:
-    virtual ~MemoryStorageArea();
-    
-    virtual void Create(const std::string& uuid,
-                        const void* content,
-                        size_t size,
-                        FileContentType type) ORTHANC_OVERRIDE;
-
-    virtual IMemoryBuffer* ReadRange(const std::string& uuid,
-                                     FileContentType type,
-                                     uint64_t start /* inclusive */,
-                                     uint64_t end /* exclusive */) ORTHANC_OVERRIDE;
-    
-    virtual bool HasEfficientReadRange() const ORTHANC_OVERRIDE
+    if (storage == NULL)
     {
-      return true;
+      throw OrthancException(Orthanc::ErrorCode_NullPointer);
     }
+  }
 
-    virtual void Remove(const std::string& uuid,
-                        FileContentType type) ORTHANC_OVERRIDE;
-  };
+
+  void PluginStorageAreaAdapter::Create(std::string& customData,
+                                        const std::string& uuid,
+                                        const void* content,
+                                        size_t size,
+                                        FileContentType type,
+                                        CompressionType compression,
+                                        const DicomInstanceToStore* dicomInstance)
+  {
+    customData.clear();
+    storage_->Create(uuid, content, size, type);
+  }
 }

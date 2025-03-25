@@ -39,7 +39,7 @@
 #include "../../../OrthancFramework/Sources/DicomParsing/DicomWebJsonVisitor.h"
 #include "../../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.h"
 #include "../../../OrthancFramework/Sources/DicomParsing/Internals/DicomImageDecoder.h"
-#include "../../../OrthancFramework/Sources/DicomParsing/ToDcmtkBridge.h"
+#include "../../../OrthancFramework/Sources/FileStorage/PluginStorageAreaAdapter.h"
 #include "../../../OrthancFramework/Sources/HttpServer/HttpServer.h"
 #include "../../../OrthancFramework/Sources/HttpServer/HttpToolbox.h"
 #include "../../../OrthancFramework/Sources/Images/Image.h"
@@ -59,7 +59,6 @@
 #include "../../Sources/Database/VoidDatabaseListener.h"
 #include "../../Sources/OrthancConfiguration.h"
 #include "../../Sources/OrthancFindRequestHandler.h"
-#include "../../Sources/Search/IDatabaseConstraint.h"
 #include "../../Sources/Search/HierarchicalMatcher.h"
 #include "../../Sources/ServerContext.h"
 #include "../../Sources/ServerToolbox.h"
@@ -710,7 +709,7 @@ namespace Orthanc
 
 
     // "legacy" storage plugins don't store customData -> derive from ICoreStorageArea
-    class PluginStorageAreaBase : public ICoreStorageArea
+    class PluginStorageAreaBase : public IStorageArea
     {
     private:
       OrthancPluginStorageCreate create_;
@@ -906,7 +905,7 @@ namespace Orthanc
 
 
     // New in Orthanc 1.12.7
-    class PluginStorageArea3 : public IStorageArea
+    class PluginStorageArea3 : public IPluginStorageArea
     {
     private:
       OrthancPluginStorageCreate2     create_;
@@ -1098,15 +1097,15 @@ namespace Orthanc
         return sharedLibrary_;
       }
 
-      IStorageArea* Create() const
+      IPluginStorageArea* Create() const
       {
         switch (version_)
         {
           case Version1:
-            return new PluginStorageArea(callbacks_, errorDictionary_);
+            return new PluginStorageAreaAdapter(new PluginStorageArea(callbacks_, errorDictionary_));
 
           case Version2:
-            return new PluginStorageArea2(callbacks2_, errorDictionary_);
+            return new PluginStorageAreaAdapter(new PluginStorageArea2(callbacks2_, errorDictionary_));
 
           case Version3:
             return new PluginStorageArea3(callbacks3_, errorDictionary_);
@@ -5262,7 +5261,7 @@ namespace Orthanc
       {
         const _OrthancPluginStorageAreaRemove& p =
           *reinterpret_cast<const _OrthancPluginStorageAreaRemove*>(parameters);
-        IStorageArea& storage = *reinterpret_cast<IStorageArea*>(p.storageArea);
+        IPluginStorageArea& storage = *reinterpret_cast<IPluginStorageArea*>(p.storageArea);
         std::string customDataNotUsed;
         storage.Remove(p.uuid, Plugins::Convert(p.type), customDataNotUsed);
         return true;
@@ -6068,7 +6067,7 @@ namespace Orthanc
         VoidDatabaseListener listener;
         
         {
-          IStorageArea& storage = *reinterpret_cast<IStorageArea*>(p.storageArea);
+          IPluginStorageArea& storage = *reinterpret_cast<IPluginStorageArea*>(p.storageArea);
 
           std::unique_ptr<IDatabaseWrapper::ITransaction> transaction(
             pimpl_->database_->StartTransaction(TransactionType_ReadWrite, listener));
@@ -6167,7 +6166,7 @@ namespace Orthanc
   }
 
 
-  IStorageArea* OrthancPlugins::CreateStorageArea()
+  IPluginStorageArea* OrthancPlugins::CreateStorageArea()
   {
     if (!HasStorageArea())
     {

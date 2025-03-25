@@ -468,7 +468,7 @@ namespace Orthanc
     virtual unsigned int GetDatabaseVersion() = 0;
 
     virtual void Upgrade(unsigned int targetVersion,
-                         IStorageArea& storageArea) = 0;
+                         IPluginStorageArea& storageArea) = 0;
 
     virtual const Capabilities GetDatabaseCapabilities() const = 0;
 

@@ -30,10 +30,9 @@
 #include <gtest/gtest.h>
 
 #include "../Sources/FileStorage/FilesystemStorage.h"
+#include "../Sources/FileStorage/PluginStorageAreaAdapter.h"
 #include "../Sources/FileStorage/StorageAccessor.h"
 #include "../Sources/FileStorage/StorageCache.h"
-#include "../Sources/HttpServer/BufferHttpSender.h"
-#include "../Sources/HttpServer/FilesystemHttpSender.h"
 #include "../Sources/Logging.h"
 #include "../Sources/OrthancException.h"
 #include "../Sources/Toolbox.h"
@@ -181,7 +180,7 @@ TEST(FilesystemStorage, EndToEnd)
 
 TEST(StorageAccessor, NoCompression)
 {
-  FilesystemStorage s("UnitTestsStorage");
+  PluginStorageAreaAdapter s(new FilesystemStorage("UnitTestsStorage"));
   StorageCache cache;
   StorageAccessor accessor(s, cache);
 
@@ -203,7 +202,7 @@ TEST(StorageAccessor, NoCompression)
 
 TEST(StorageAccessor, Compression)
 {
-  FilesystemStorage s("UnitTestsStorage");
+  PluginStorageAreaAdapter s(new FilesystemStorage("UnitTestsStorage"));
   StorageCache cache;
   StorageAccessor accessor(s, cache);
 
@@ -224,7 +223,7 @@ TEST(StorageAccessor, Compression)
 
 TEST(StorageAccessor, Mix)
 {
-  FilesystemStorage s("UnitTestsStorage");
+  PluginStorageAreaAdapter s(new FilesystemStorage("UnitTestsStorage"));
   StorageCache cache;
   StorageAccessor accessor(s, cache);
 
