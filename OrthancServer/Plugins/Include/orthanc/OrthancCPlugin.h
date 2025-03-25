@@ -4986,6 +4986,8 @@ extern "C"
    * @ingroup Callbacks
    * @deprecated This function should not be used anymore. Use "OrthancPluginRestApiPut()" on
    * "/{patients|studies|series|instances}/{id}/attachments/{name}" instead.
+   * @warning This function will result in a "not implemented" error on versions of the
+   * Orthanc core above 1.12.6.
    **/
   ORTHANC_PLUGIN_DEPRECATED ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginStorageAreaCreate(
     OrthancPluginContext*       context,
@@ -5071,6 +5073,8 @@ extern "C"
    * @ingroup Callbacks
    * @deprecated This function should not be used anymore. Use "OrthancPluginRestApiDelete()" on
    * "/{patients|studies|series|instances}/{id}/attachments/{name}" instead.
+   * @warning This function will result in a "not implemented" error on versions of the
+   * Orthanc core above 1.12.6.
    **/
   ORTHANC_PLUGIN_DEPRECATED ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode  OrthancPluginStorageAreaRemove(
     OrthancPluginContext*       context,

@@ -5246,26 +5246,13 @@ namespace Orthanc
         return true;
 
       case _OrthancPluginService_StorageAreaCreate:
-      {
-        const _OrthancPluginStorageAreaCreate& p =
-          *reinterpret_cast<const _OrthancPluginStorageAreaCreate*>(parameters);
-        PluginStorageAreaBase& storage = *reinterpret_cast<PluginStorageAreaBase*>(p.storageArea);
-        storage.Create(p.uuid, p.content, static_cast<size_t>(p.size), Plugins::Convert(p.type));
-        return true;
-      }
+        throw OrthancException(ErrorCode_NotImplemented, "The SDK function OrthancPluginStorageAreaCreate() is only available in Orthanc <= 1.12.6");
 
       case _OrthancPluginService_StorageAreaRead:
         throw OrthancException(ErrorCode_NotImplemented, "The SDK function OrthancPluginStorageAreaRead() is only available in Orthanc <= 1.12.6");
 
       case _OrthancPluginService_StorageAreaRemove:
-      {
-        const _OrthancPluginStorageAreaRemove& p =
-          *reinterpret_cast<const _OrthancPluginStorageAreaRemove*>(parameters);
-        IPluginStorageArea& storage = *reinterpret_cast<IPluginStorageArea*>(p.storageArea);
-        std::string customDataNotUsed;
-        storage.Remove(p.uuid, Plugins::Convert(p.type), customDataNotUsed);
-        return true;
-      }
+        throw OrthancException(ErrorCode_NotImplemented, "The SDK function OrthancPluginStorageAreaRemove() is only available in Orthanc <= 1.12.6");
 
       case _OrthancPluginService_DicomBufferToJson:
       case _OrthancPluginService_DicomInstanceToJson:
