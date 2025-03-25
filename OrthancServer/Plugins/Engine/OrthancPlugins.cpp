@@ -708,8 +708,8 @@ namespace Orthanc
     }
 
 
-    // "legacy" storage plugins don't store customData -> derive from ICoreStorageArea
-    class PluginStorageAreaBase : public IStorageArea
+    // "legacy" storage plugins don't store customData -> derive from IStorageArea
+    class StorageAreaWithoutCustomData : public IStorageArea
     {
     private:
       OrthancPluginStorageCreate create_;
@@ -723,9 +723,9 @@ namespace Orthanc
       }
 
     public:
-      PluginStorageAreaBase(OrthancPluginStorageCreate create,
-                            OrthancPluginStorageRemove remove,
-                            PluginsErrorDictionary&  errorDictionary) : 
+      StorageAreaWithoutCustomData(OrthancPluginStorageCreate create,
+                                   OrthancPluginStorageRemove remove,
+                                   PluginsErrorDictionary&  errorDictionary) :
         create_(create),
         remove_(remove),
         errorDictionary_(errorDictionary)
@@ -767,16 +767,16 @@ namespace Orthanc
     };
 
 
-    class PluginStorageArea : public PluginStorageAreaBase
+    class PluginStorageAreaV1 : public StorageAreaWithoutCustomData
     {
     private:
       OrthancPluginStorageRead   read_;
       OrthancPluginFree          free_;
       
     public:
-      PluginStorageArea(const _OrthancPluginRegisterStorageArea& callbacks,
-                        PluginsErrorDictionary&  errorDictionary) :
-        PluginStorageAreaBase(callbacks.create, callbacks.remove, errorDictionary),
+      PluginStorageAreaV1(const _OrthancPluginRegisterStorageArea& callbacks,
+                          PluginsErrorDictionary&  errorDictionary) :
+        StorageAreaWithoutCustomData(callbacks.create, callbacks.remove, errorDictionary),
         read_(callbacks.read),
         free_(callbacks.free)
       {
@@ -817,16 +817,16 @@ namespace Orthanc
 
 
     // New in Orthanc 1.9.0
-    class PluginStorageArea2 : public PluginStorageAreaBase
+    class PluginStorageAreaV2 : public StorageAreaWithoutCustomData
     {
     private:
       OrthancPluginStorageReadWhole  readWhole_;
       OrthancPluginStorageReadRange  readRange_;
 
     public:
-      PluginStorageArea2(const _OrthancPluginRegisterStorageArea2& callbacks,
-                         PluginsErrorDictionary&  errorDictionary) :
-        PluginStorageAreaBase(callbacks.create, callbacks.remove, errorDictionary),
+      PluginStorageAreaV2(const _OrthancPluginRegisterStorageArea2& callbacks,
+                          PluginsErrorDictionary&  errorDictionary) :
+        StorageAreaWithoutCustomData(callbacks.create, callbacks.remove, errorDictionary),
         readWhole_(callbacks.readWhole),
         readRange_(callbacks.readRange)
       {
@@ -905,12 +905,12 @@ namespace Orthanc
 
 
     // New in Orthanc 1.12.7
-    class PluginStorageArea3 : public IPluginStorageArea
+    class PluginStorageAreaV3 : public IPluginStorageArea
     {
     private:
       OrthancPluginStorageCreate2     create_;
-      OrthancPluginStorageReadRange2  readRange2_;
-      OrthancPluginStorageRemove2     remove2_;
+      OrthancPluginStorageReadRange2  readRange_;
+      OrthancPluginStorageRemove2     remove_;
 
       PluginsErrorDictionary&    errorDictionary_;
 
@@ -921,18 +921,18 @@ namespace Orthanc
       }
 
     public:
-      PluginStorageArea3(const _OrthancPluginRegisterStorageArea3& callbacks,
-                         PluginsErrorDictionary&  errorDictionary) :
+      PluginStorageAreaV3(const _OrthancPluginRegisterStorageArea3& callbacks,
+                          PluginsErrorDictionary&  errorDictionary) :
         create_(callbacks.create),
-        readRange2_(callbacks.readRange),
-        remove2_(callbacks.remove),
+        readRange_(callbacks.readRange),
+        remove_(callbacks.remove),
         errorDictionary_(errorDictionary)
       {
         if (create_ == NULL ||
-            readRange2_ == NULL ||
-            remove2_ == NULL)
+            readRange_ == NULL ||
+            remove_ == NULL)
         {
-          throw OrthancException(ErrorCode_Plugin, "Storage area plugin doesn't implement all the required primitives (createInstance, remove, readWhole");
+          throw OrthancException(ErrorCode_Plugin, "Storage area plugin does not implement all the required primitives (create, remove, and readRange)");
         }
       }
 
@@ -973,7 +973,7 @@ namespace Orthanc
                           FileContentType type,
                           const std::string& customData) ORTHANC_OVERRIDE
       {
-        OrthancPluginErrorCode error = remove2_(uuid.c_str(), Plugins::Convert(type),
+        OrthancPluginErrorCode error = remove_(uuid.c_str(), Plugins::Convert(type),
                                                 customData.empty() ? NULL : customData.c_str(), customData.size());
 
         if (error != OrthancPluginErrorCode_Success)
@@ -1008,7 +1008,7 @@ namespace Orthanc
           buffer.size = static_cast<uint64_t>(range.size());
 
           OrthancPluginErrorCode error =
-            readRange2_(&buffer, uuid.c_str(), Plugins::Convert(type), start, customData.empty() ? NULL : customData.c_str(), customData.size());
+            readRange_(&buffer, uuid.c_str(), Plugins::Convert(type), start, customData.empty() ? NULL : customData.c_str(), customData.size());
 
           if (error == OrthancPluginErrorCode_Success)
           {
@@ -1024,9 +1024,8 @@ namespace Orthanc
 
       virtual bool HasEfficientReadRange() const ORTHANC_OVERRIDE
       {
-        return (readRange2_ != NULL);
+        return true;
       }
-
     };
 
 
@@ -1042,7 +1041,7 @@ namespace Orthanc
       
       SharedLibrary&                      sharedLibrary_;
       Version                             version_;
-      _OrthancPluginRegisterStorageArea   callbacks_;
+      _OrthancPluginRegisterStorageArea   callbacks1_;
       _OrthancPluginRegisterStorageArea2  callbacks2_;
       _OrthancPluginRegisterStorageArea3  callbacks3_;
       PluginsErrorDictionary&             errorDictionary_;
@@ -1058,7 +1057,7 @@ namespace Orthanc
                          PluginsErrorDictionary&  errorDictionary) :
         sharedLibrary_(sharedLibrary),
         version_(Version1),
-        callbacks_(callbacks),
+        callbacks1_(callbacks),
         errorDictionary_(errorDictionary)
       {
         WarnNoReadRange();
@@ -1102,13 +1101,13 @@ namespace Orthanc
         switch (version_)
         {
           case Version1:
-            return new PluginStorageAreaAdapter(new PluginStorageArea(callbacks_, errorDictionary_));
+            return new PluginStorageAreaAdapter(new PluginStorageAreaV1(callbacks1_, errorDictionary_));
 
           case Version2:
-            return new PluginStorageAreaAdapter(new PluginStorageArea2(callbacks2_, errorDictionary_));
+            return new PluginStorageAreaAdapter(new PluginStorageAreaV2(callbacks2_, errorDictionary_));
 
           case Version3:
-            return new PluginStorageArea3(callbacks3_, errorDictionary_);
+            return new PluginStorageAreaV3(callbacks3_, errorDictionary_);
 
           default:
             throw OrthancException(ErrorCode_InternalError);
