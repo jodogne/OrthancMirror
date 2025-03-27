@@ -151,7 +151,7 @@ TEST(Versions, CurlSslStatic)
 
 TEST(Versions, LuaStatic)
 {
-  ASSERT_STREQ("Lua 5.3.5", LUA_RELEASE);
+  ASSERT_STREQ("Lua 5.4.7", LUA_RELEASE);
 }
 
 

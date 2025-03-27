@@ -21,9 +21,9 @@
 
 
 if (STATIC_BUILD OR NOT USE_SYSTEM_LUA)
-  SET(LUA_SOURCES_DIR ${CMAKE_BINARY_DIR}/lua-5.3.5)
-  SET(LUA_MD5 "4f4b4f323fd3514a68e0ab3da8ce3455")
-  SET(LUA_URL "https://orthanc.uclouvain.be/downloads/third-party-downloads/lua-5.3.5.tar.gz")
+  SET(LUA_SOURCES_DIR ${CMAKE_BINARY_DIR}/lua-5.4.7)
+  SET(LUA_MD5 "fc3f3291353bbe6ee6dec85ee61331e8")
+  SET(LUA_URL "https://orthanc.uclouvain.be/downloads/third-party-downloads/lua-5.4.7.tar.gz")
 
   DownloadPackage(${LUA_MD5} ${LUA_URL} "${LUA_SOURCES_DIR}")
 
@@ -106,7 +106,6 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_LUA)
     # Base Lua modules
     ${LUA_SOURCES_DIR}/src/lauxlib.c
     ${LUA_SOURCES_DIR}/src/lbaselib.c
-    ${LUA_SOURCES_DIR}/src/lbitlib.c
     ${LUA_SOURCES_DIR}/src/lcorolib.c
     ${LUA_SOURCES_DIR}/src/ldblib.c
     ${LUA_SOURCES_DIR}/src/liolib.c

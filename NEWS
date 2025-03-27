@@ -41,7 +41,7 @@ Maintenance
   - Allow '-' and '_' in labels.
 * Upgraded dependencies for static builds:
   - curl 8.12.1
-
+  - lua 5.4.7
 
 
 Version 1.12.6 (2025-01-22)
