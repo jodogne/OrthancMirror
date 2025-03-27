@@ -21,9 +21,9 @@
 
 
 if (STATIC_BUILD OR NOT USE_SYSTEM_CURL)
-  SET(CURL_SOURCES_DIR ${CMAKE_BINARY_DIR}/curl-8.12.1)
-  SET(CURL_URL "https://orthanc.uclouvain.be/downloads/third-party-downloads/curl-8.12.1.tar.gz")
-  SET(CURL_MD5 "3b651db7d8fbf3d4650b9e9cf8a8180d")
+  SET(CURL_SOURCES_DIR ${CMAKE_BINARY_DIR}/curl-8.9.0)
+  SET(CURL_URL "https://orthanc.uclouvain.be/downloads/third-party-downloads/curl-8.9.0.tar.gz")
+  SET(CURL_MD5 "f9bca5d4d5bac1f04e6c5eb4d0418618")
 
   if (IS_DIRECTORY "${CURL_SOURCES_DIR}")
     set(FirstRun OFF)
@@ -36,7 +36,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_CURL)
   if (FirstRun)
     execute_process(
       COMMAND ${PATCH_EXECUTABLE} -p0 -N -i
-      ${CMAKE_CURRENT_LIST_DIR}/../Patches/curl-8.12.1.patch
+      ${CMAKE_CURRENT_LIST_DIR}/../Patches/curl-8.9.0.patch
       WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
       RESULT_VARIABLE Failure
       )
@@ -48,7 +48,6 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_CURL)
   
   include_directories(
     ${CURL_SOURCES_DIR}/include
-    ${CURL_SOURCES_DIR}/lib             # for urldata.h
     )
 
   AUX_SOURCE_DIRECTORY(${CURL_SOURCES_DIR}/lib CURL_SOURCES)
@@ -107,90 +106,89 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_CURL)
       ${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD" OR
       ${CMAKE_SYSTEM_NAME} STREQUAL "kFreeBSD" OR
       ${CMAKE_SYSTEM_NAME} STREQUAL "OpenBSD")
+    if ("${CMAKE_SIZEOF_VOID_P}" EQUAL "8")
+      SET(TMP_OS "x86_64")
+    else()
+      SET(TMP_OS "x86")
+    endif()
 
     set_property(
       SOURCE ${CURL_SOURCES} APPEND
-      PROPERTY COMPILE_DEFINITIONS "HAVE_CONFIG_H=1"
+      PROPERTY COMPILE_DEFINITIONS "HAVE_CONFIG_H=1;OS=\"${TMP_OS}\""
       )
-
-    if(CMAKE_C_COMPILER_TARGET)
-      set(CURL_OS "\"${CMAKE_C_COMPILER_TARGET}\"")
-    else()
-      set(CURL_OS "\"${CMAKE_SYSTEM_NAME}\"")
-    endif()
-
+   
     include(${CURL_SOURCES_DIR}/CMake/Macros.cmake)
 
-    # WARNING: Do *not* reorder the "check_include_file_concat_curl()" below!
-    check_include_file_concat_curl("stdio.h"          HAVE_STDIO_H)
-    check_include_file_concat_curl("inttypes.h"       HAVE_INTTYPES_H)
-    check_include_file_concat_curl("sys/filio.h"      HAVE_SYS_FILIO_H)
-    check_include_file_concat_curl("sys/ioctl.h"      HAVE_SYS_IOCTL_H)
-    check_include_file_concat_curl("sys/param.h"      HAVE_SYS_PARAM_H)
-    check_include_file_concat_curl("sys/poll.h"       HAVE_SYS_POLL_H)
-    check_include_file_concat_curl("sys/resource.h"   HAVE_SYS_RESOURCE_H)
-    check_include_file_concat_curl("sys/select.h"     HAVE_SYS_SELECT_H)
-    check_include_file_concat_curl("sys/socket.h"     HAVE_SYS_SOCKET_H)
-    check_include_file_concat_curl("sys/sockio.h"     HAVE_SYS_SOCKIO_H)
-    check_include_file_concat_curl("sys/stat.h"       HAVE_SYS_STAT_H)
-    check_include_file_concat_curl("sys/time.h"       HAVE_SYS_TIME_H)
-    check_include_file_concat_curl("sys/types.h"      HAVE_SYS_TYPES_H)
-    check_include_file_concat_curl("sys/uio.h"        HAVE_SYS_UIO_H)
-    check_include_file_concat_curl("sys/un.h"         HAVE_SYS_UN_H)
-    check_include_file_concat_curl("sys/utime.h"      HAVE_SYS_UTIME_H)
-    check_include_file_concat_curl("sys/xattr.h"      HAVE_SYS_XATTR_H)
-    check_include_file_concat_curl("alloca.h"         HAVE_ALLOCA_H)
-    check_include_file_concat_curl("arpa/inet.h"      HAVE_ARPA_INET_H)
-    check_include_file_concat_curl("arpa/tftp.h"      HAVE_ARPA_TFTP_H)
-    check_include_file_concat_curl("assert.h"         HAVE_ASSERT_H)
-    check_include_file_concat_curl("crypto.h"         HAVE_CRYPTO_H)
-    check_include_file_concat_curl("des.h"            HAVE_DES_H)
-    check_include_file_concat_curl("err.h"            HAVE_ERR_H)
-    check_include_file_concat_curl("errno.h"          HAVE_ERRNO_H)
-    check_include_file_concat_curl("fcntl.h"          HAVE_FCNTL_H)
-    check_include_file_concat_curl("idn2.h"           HAVE_IDN2_H)
-    check_include_file_concat_curl("ifaddrs.h"        HAVE_IFADDRS_H)
-    check_include_file_concat_curl("io.h"             HAVE_IO_H)
-    check_include_file_concat_curl("krb.h"            HAVE_KRB_H)
-    check_include_file_concat_curl("libgen.h"         HAVE_LIBGEN_H)
-    check_include_file_concat_curl("limits.h"         HAVE_LIMITS_H)
-    check_include_file_concat_curl("locale.h"         HAVE_LOCALE_H)
-    check_include_file_concat_curl("net/if.h"         HAVE_NET_IF_H)
-    check_include_file_concat_curl("netdb.h"          HAVE_NETDB_H)
-    check_include_file_concat_curl("netinet/in.h"     HAVE_NETINET_IN_H)
-    check_include_file_concat_curl("netinet/tcp.h"    HAVE_NETINET_TCP_H)
+    # WARNING: Do *not* reorder the "check_include_file_concat()" below!
+    check_include_file_concat("stdio.h"          HAVE_STDIO_H)
+    check_include_file_concat("inttypes.h"       HAVE_INTTYPES_H)
+    check_include_file_concat("sys/filio.h"      HAVE_SYS_FILIO_H)
+    check_include_file_concat("sys/ioctl.h"      HAVE_SYS_IOCTL_H)
+    check_include_file_concat("sys/param.h"      HAVE_SYS_PARAM_H)
+    check_include_file_concat("sys/poll.h"       HAVE_SYS_POLL_H)
+    check_include_file_concat("sys/resource.h"   HAVE_SYS_RESOURCE_H)
+    check_include_file_concat("sys/select.h"     HAVE_SYS_SELECT_H)
+    check_include_file_concat("sys/socket.h"     HAVE_SYS_SOCKET_H)
+    check_include_file_concat("sys/sockio.h"     HAVE_SYS_SOCKIO_H)
+    check_include_file_concat("sys/stat.h"       HAVE_SYS_STAT_H)
+    check_include_file_concat("sys/time.h"       HAVE_SYS_TIME_H)
+    check_include_file_concat("sys/types.h"      HAVE_SYS_TYPES_H)
+    check_include_file_concat("sys/uio.h"        HAVE_SYS_UIO_H)
+    check_include_file_concat("sys/un.h"         HAVE_SYS_UN_H)
+    check_include_file_concat("sys/utime.h"      HAVE_SYS_UTIME_H)
+    check_include_file_concat("sys/xattr.h"      HAVE_SYS_XATTR_H)
+    check_include_file_concat("alloca.h"         HAVE_ALLOCA_H)
+    check_include_file_concat("arpa/inet.h"      HAVE_ARPA_INET_H)
+    check_include_file_concat("arpa/tftp.h"      HAVE_ARPA_TFTP_H)
+    check_include_file_concat("assert.h"         HAVE_ASSERT_H)
+    check_include_file_concat("crypto.h"         HAVE_CRYPTO_H)
+    check_include_file_concat("des.h"            HAVE_DES_H)
+    check_include_file_concat("err.h"            HAVE_ERR_H)
+    check_include_file_concat("errno.h"          HAVE_ERRNO_H)
+    check_include_file_concat("fcntl.h"          HAVE_FCNTL_H)
+    check_include_file_concat("idn2.h"           HAVE_IDN2_H)
+    check_include_file_concat("ifaddrs.h"        HAVE_IFADDRS_H)
+    check_include_file_concat("io.h"             HAVE_IO_H)
+    check_include_file_concat("krb.h"            HAVE_KRB_H)
+    check_include_file_concat("libgen.h"         HAVE_LIBGEN_H)
+    check_include_file_concat("limits.h"         HAVE_LIMITS_H)
+    check_include_file_concat("locale.h"         HAVE_LOCALE_H)
+    check_include_file_concat("net/if.h"         HAVE_NET_IF_H)
+    check_include_file_concat("netdb.h"          HAVE_NETDB_H)
+    check_include_file_concat("netinet/in.h"     HAVE_NETINET_IN_H)
+    check_include_file_concat("netinet/tcp.h"    HAVE_NETINET_TCP_H)
 
-    check_include_file_concat_curl("pem.h"            HAVE_PEM_H)
-    check_include_file_concat_curl("poll.h"           HAVE_POLL_H)
-    check_include_file_concat_curl("pwd.h"            HAVE_PWD_H)
-    check_include_file_concat_curl("rsa.h"            HAVE_RSA_H)
-    check_include_file_concat_curl("setjmp.h"         HAVE_SETJMP_H)
-    check_include_file_concat_curl("sgtty.h"          HAVE_SGTTY_H)
-    check_include_file_concat_curl("signal.h"         HAVE_SIGNAL_H)
-    check_include_file_concat_curl("ssl.h"            HAVE_SSL_H)
-    check_include_file_concat_curl("stdbool.h"        HAVE_STDBOOL_H)
-    check_include_file_concat_curl("stdint.h"         HAVE_STDINT_H)
-    check_include_file_concat_curl("stdio.h"          HAVE_STDIO_H)
-    check_include_file_concat_curl("stdlib.h"         HAVE_STDLIB_H)
-    check_include_file_concat_curl("string.h"         HAVE_STRING_H)
-    check_include_file_concat_curl("strings.h"        HAVE_STRINGS_H)
-    check_include_file_concat_curl("stropts.h"        HAVE_STROPTS_H)
-    check_include_file_concat_curl("termio.h"         HAVE_TERMIO_H)
-    check_include_file_concat_curl("termios.h"        HAVE_TERMIOS_H)
-    check_include_file_concat_curl("time.h"           HAVE_TIME_H)
-    check_include_file_concat_curl("unistd.h"         HAVE_UNISTD_H)
-    check_include_file_concat_curl("utime.h"          HAVE_UTIME_H)
-    check_include_file_concat_curl("x509.h"           HAVE_X509_H)
+    check_include_file_concat("pem.h"            HAVE_PEM_H)
+    check_include_file_concat("poll.h"           HAVE_POLL_H)
+    check_include_file_concat("pwd.h"            HAVE_PWD_H)
+    check_include_file_concat("rsa.h"            HAVE_RSA_H)
+    check_include_file_concat("setjmp.h"         HAVE_SETJMP_H)
+    check_include_file_concat("sgtty.h"          HAVE_SGTTY_H)
+    check_include_file_concat("signal.h"         HAVE_SIGNAL_H)
+    check_include_file_concat("ssl.h"            HAVE_SSL_H)
+    check_include_file_concat("stdbool.h"        HAVE_STDBOOL_H)
+    check_include_file_concat("stdint.h"         HAVE_STDINT_H)
+    check_include_file_concat("stdio.h"          HAVE_STDIO_H)
+    check_include_file_concat("stdlib.h"         HAVE_STDLIB_H)
+    check_include_file_concat("string.h"         HAVE_STRING_H)
+    check_include_file_concat("strings.h"        HAVE_STRINGS_H)
+    check_include_file_concat("stropts.h"        HAVE_STROPTS_H)
+    check_include_file_concat("termio.h"         HAVE_TERMIO_H)
+    check_include_file_concat("termios.h"        HAVE_TERMIOS_H)
+    check_include_file_concat("time.h"           HAVE_TIME_H)
+    check_include_file_concat("unistd.h"         HAVE_UNISTD_H)
+    check_include_file_concat("utime.h"          HAVE_UTIME_H)
+    check_include_file_concat("x509.h"           HAVE_X509_H)
 
-    check_include_file_concat_curl("process.h"        HAVE_PROCESS_H)
-    check_include_file_concat_curl("stddef.h"         HAVE_STDDEF_H)
-    check_include_file_concat_curl("dlfcn.h"          HAVE_DLFCN_H)
-    check_include_file_concat_curl("malloc.h"         HAVE_MALLOC_H)
-    check_include_file_concat_curl("memory.h"         HAVE_MEMORY_H)
-    check_include_file_concat_curl("netinet/if_ether.h" HAVE_NETINET_IF_ETHER_H)
-    check_include_file_concat_curl("stdint.h"        HAVE_STDINT_H)
-    check_include_file_concat_curl("sockio.h"        HAVE_SOCKIO_H)
-    check_include_file_concat_curl("sys/utsname.h"   HAVE_SYS_UTSNAME_H)
+    check_include_file_concat("process.h"        HAVE_PROCESS_H)
+    check_include_file_concat("stddef.h"         HAVE_STDDEF_H)
+    check_include_file_concat("dlfcn.h"          HAVE_DLFCN_H)
+    check_include_file_concat("malloc.h"         HAVE_MALLOC_H)
+    check_include_file_concat("memory.h"         HAVE_MEMORY_H)
+    check_include_file_concat("netinet/if_ether.h" HAVE_NETINET_IF_ETHER_H)
+    check_include_file_concat("stdint.h"        HAVE_STDINT_H)
+    check_include_file_concat("sockio.h"        HAVE_SOCKIO_H)
+    check_include_file_concat("sys/utsname.h"   HAVE_SYS_UTSNAME_H)
 
     check_type_size("size_t"  SIZEOF_SIZE_T)
     check_type_size("ssize_t"  SIZEOF_SSIZE_T)
@@ -283,7 +281,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_CURL)
     check_function_exists(mach_absolute_time HAVE_MACH_ABSOLUTE_TIME)
     check_function_exists(gethostname HAVE_GETHOSTNAME)
 
-    check_include_file_concat_curl("pthread.h" HAVE_PTHREAD_H)
+    check_include_file_concat("pthread.h" HAVE_PTHREAD_H)
     check_symbol_exists(recv "sys/socket.h" HAVE_RECV)
     check_symbol_exists(send "sys/socket.h" HAVE_SEND)
 
@@ -306,17 +304,30 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_CURL)
         HAVE_IOCTL_FIONBIO
         HAVE_IOCTL_SIOCGIFADDR
         HAVE_SETSOCKOPT_SO_NONBLOCK
+        HAVE_SOCKADDR_IN6_SIN6_SCOPE_ID
+        TIME_WITH_SYS_TIME
+        HAVE_O_NONBLOCK
+        HAVE_GETHOSTBYADDR_R_5
+        HAVE_GETHOSTBYADDR_R_7
+        HAVE_GETHOSTBYADDR_R_8
+        HAVE_GETHOSTBYADDR_R_5_REENTRANT
+        HAVE_GETHOSTBYADDR_R_7_REENTRANT
+        HAVE_GETHOSTBYADDR_R_8_REENTRANT
         HAVE_GETHOSTBYNAME_R_3
         HAVE_GETHOSTBYNAME_R_5
         HAVE_GETHOSTBYNAME_R_6
         HAVE_GETHOSTBYNAME_R_3_REENTRANT
         HAVE_GETHOSTBYNAME_R_5_REENTRANT
         HAVE_GETHOSTBYNAME_R_6_REENTRANT
+        HAVE_SOCKLEN_T
         HAVE_IN_ADDR_T
         HAVE_BOOL_T
         STDC_HEADERS
+        RETSIGTYPE_TEST
+        HAVE_INET_NTOA_R_DECL
+        HAVE_INET_NTOA_R_DECL_REENTRANT
+        HAVE_GETADDRINFO
         HAVE_FILE_OFFSET_BITS
-        HAVE_ATOMIC
         )
       curl_internal_test(${CURL_TEST})
     endforeach(CURL_TEST)

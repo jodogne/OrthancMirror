@@ -40,7 +40,6 @@ Maintenance
 * Orthanc Explorer:
   - Allow '-' and '_' in labels.
 * Upgraded dependencies for static builds:
-  - curl 8.12.1
   - lua 5.4.7
 
 
