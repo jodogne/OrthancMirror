@@ -55,7 +55,7 @@ CREATE TABLE Metadata(
        id INTEGER REFERENCES Resources(internalId) ON DELETE CASCADE,
        type INTEGER,
        value TEXT,
-       -- revision INTEGER,      -- New in Orthanc 1.12.7 (added in InstallRevisionAndCustomData.sql)
+       -- revision INTEGER,      -- New in Orthanc 1.12.99 (added in InstallRevisionAndCustomData.sql)
        PRIMARY KEY(id, type)
        );
 
@@ -68,8 +68,8 @@ CREATE TABLE AttachedFiles(
        compressionType INTEGER,
        uncompressedMD5 TEXT,  -- New in Orthanc 0.7.3 (database v4)
        compressedMD5 TEXT,    -- New in Orthanc 0.7.3 (database v4)
-       -- revision INTEGER,      -- New in Orthanc 1.12.7 (added in InstallRevisionAndCustomData.sql)
-       -- customData TEXT,       -- New in Orthanc 1.12.7 (added in InstallRevisionAndCustomData.sql)
+       -- revision INTEGER,      -- New in Orthanc 1.12.99 (added in InstallRevisionAndCustomData.sql)
+       -- customData TEXT,       -- New in Orthanc 1.12.99 (added in InstallRevisionAndCustomData.sql)
        PRIMARY KEY(id, fileType)
        );              
 

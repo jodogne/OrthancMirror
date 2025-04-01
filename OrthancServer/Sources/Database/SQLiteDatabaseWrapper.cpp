@@ -2414,7 +2414,7 @@ namespace Orthanc
         }
       }
 
-      // New in Orthanc 1.12.7
+      // New in Orthanc 1.12.99
       if (version_ >= 6)
       {
         if (!transaction->LookupGlobalProperty(tmp, GlobalProperty_SQLiteHasCustomDataAndRevision, true /* unused in SQLite */) 
