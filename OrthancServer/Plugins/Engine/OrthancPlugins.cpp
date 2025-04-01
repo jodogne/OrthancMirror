@@ -904,7 +904,7 @@ namespace Orthanc
     };
 
 
-    // New in Orthanc 1.12.7
+    // New in Orthanc 1.12.99
     class PluginStorageAreaV3 : public IPluginStorageArea
     {
     private:
