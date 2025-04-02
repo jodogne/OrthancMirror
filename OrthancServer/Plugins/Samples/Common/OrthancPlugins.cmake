@@ -23,11 +23,9 @@ include(CheckIncludeFiles)
 include(CheckIncludeFileCXX)
 include(CheckLibraryExists)
 
-if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.12")
-  # Use FindPython for CMake 3.12 and later
+if(CMAKE_VERSION VERSION_GREATER "3.11")
   find_package(Python REQUIRED COMPONENTS Interpreter)
 else()
-  # Use FindPythonInterp for versions earlier than 3.12
   include(FindPythonInterp)
 endif()
 
