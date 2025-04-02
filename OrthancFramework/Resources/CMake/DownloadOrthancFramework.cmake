@@ -504,6 +504,7 @@ if (ORTHANC_FRAMEWORK_SOURCE STREQUAL "system")
   
   if(CMAKE_VERSION VERSION_GREATER "3.11")
     find_package(Python REQUIRED COMPONENTS Interpreter)
+    set(PYTHON_EXECUTABLE ${Python_EXECUTABLE})
   else()
     include(FindPythonInterp)
     find_package(PythonInterp REQUIRED)
