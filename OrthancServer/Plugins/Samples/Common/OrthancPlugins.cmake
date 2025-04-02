@@ -27,6 +27,7 @@ if(CMAKE_VERSION VERSION_GREATER "3.11")
   find_package(Python REQUIRED COMPONENTS Interpreter)
 else()
   include(FindPythonInterp)
+  find_package(PythonInterp REQUIRED)
 endif()
 
 
