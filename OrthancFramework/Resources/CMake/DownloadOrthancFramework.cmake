@@ -506,6 +506,7 @@ if (ORTHANC_FRAMEWORK_SOURCE STREQUAL "system")
     find_package(Python REQUIRED COMPONENTS Interpreter)
   else()
     include(FindPythonInterp)
+    find_package(PythonInterp REQUIRED)
   endif()
   
   include(${CMAKE_CURRENT_LIST_DIR}/Compiler.cmake)
