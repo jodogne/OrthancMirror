@@ -41,8 +41,10 @@ if False:
 else:
     # New version in Orthanc 1.12.5
     s = """
-#undef __FILE__
-#define __FILE__ __ORTHANC_FILE__
+#if defined(__ORTHANC_FILE__)
+#  undef __FILE__
+#  define __FILE__ __ORTHANC_FILE__
+#endif
 """ + s
 
 with open(sys.argv[1], 'w') as f:
