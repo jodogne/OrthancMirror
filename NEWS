@@ -5,9 +5,11 @@ REST API
 --------
 
 * API version upgraded to 28
-* GET /studies/../archive and sibbling routes now all accept a 'filename' GET argument.
-* POST /studies/../archive and sibbling routes now all accept a 'Filename' query argument.
-* GET /instances/../file and sibbling ../attachments/../data routes now all accept a 'filename' GET argument.
+* POST /tools/create-dicom accepts new argument "Encapsulate" to encapsulate a raw JPEG
+  image into a DICOM envelope without transcoding, using 1.2.840.10008.1.2.4.50 transfer syntax.
+* GET /studies/../archive and sibbling routes now all accept a "filename" GET argument.
+* POST /studies/../archive and sibbling routes now all accept a "Filename" query argument.
+* GET /instances/../file and sibbling ../attachments/../data routes now all accept a "filename" GET argument.
 * All routes accepting a "transcode" url argument or a "Transcode" field in the payload now also
   accepts a "lossy-quality" url argument or a "LossyQuality" field to define the compression quality factor.
   If not specified, the "DicomLossyTranscodingQuality" configuration is taken into account.
@@ -29,16 +31,16 @@ Maintenance
 * Enabled support of the 1.2.840.10008.1.2.1.99 transfer syntax
   (Deflated Explicit VR Little Endian) in static builds + fix length of saved files.
   https://discourse.orthanc-server.org/t/transcoding-to-deflated-transfer-syntax-fails/5489
-* When anonymizing a resource while forcing some value with the 'Replace' fields, the tag
+* When anonymizing a resource while forcing some value with the "Replace" fields, the tag
   0012,0063 was cleared out because the DICOM Anonymization profile was not strictly followed.
   From now on:
-  - 0012,0063 will contain "Orthanc {version} - {Anonymization profile}" if no 'Replace' is used.
-  - 0012,0063 will contain "Orthanc {version}" if 'Replace' is used.
+  - 0012,0063 will contain "Orthanc {version} - {Anonymization profile}" if no "Replace" is used.
+  - 0012,0063 will contain "Orthanc {version}" if "Replace" is used.
   (https://orthanc.uclouvain.be/bugs/show_bug.cgi?id=240)
 * Housekeeper plugin:
   - When encountering an error, the housekeeper now skips the resource and continues processing.
 * Orthanc Explorer:
-  - Allow '-' and '_' in labels.
+  - Allow "-" and "_" in labels.
 * Upgraded dependencies for static builds:
   - lua 5.4.7
 
