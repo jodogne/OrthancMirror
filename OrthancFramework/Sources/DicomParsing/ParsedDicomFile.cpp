@@ -1312,13 +1312,14 @@ namespace Orthanc
   }
 
 
-  void ParsedDicomFile::EmbedImage(const ImageAccessor& accessor)
+  void ParsedDicomFile::ConfigureTagsForUncompressedImage(unsigned int& bytesPerPixel /* out */,
+                                                          const ImageAccessor& accessor)
   {
     if (accessor.GetFormat() != PixelFormat_Grayscale8 &&
         accessor.GetFormat() != PixelFormat_Grayscale16 &&
         accessor.GetFormat() != PixelFormat_SignedGrayscale16 &&
         accessor.GetFormat() != PixelFormat_RGB24 &&
-        accessor.GetFormat() != PixelFormat_RGBA32 && 
+        accessor.GetFormat() != PixelFormat_RGBA32 &&
         accessor.GetFormat() != PixelFormat_RGBA64)
     {
       throw OrthancException(ErrorCode_NotImplemented);
@@ -1326,7 +1327,7 @@ namespace Orthanc
 
     InvalidateCache();
 
-    if (accessor.GetFormat() == PixelFormat_RGBA32 || 
+    if (accessor.GetFormat() == PixelFormat_RGBA32 ||
         accessor.GetFormat() == PixelFormat_RGBA64)
     {
       LOG(WARNING) << "Getting rid of the alpha channel when embedding a RGBA image inside DICOM";
@@ -1351,7 +1352,7 @@ namespace Orthanc
       ReplacePlainString(DICOM_TAG_PIXEL_REPRESENTATION, "0");  // Unsigned pixels
     }
 
-    unsigned int bytesPerPixel = 0;
+    bytesPerPixel = 0;
 
     switch (accessor.GetFormat())
     {
@@ -1379,7 +1380,7 @@ namespace Orthanc
         ReplacePlainString(DICOM_TAG_PLANAR_CONFIGURATION, "0");  // Color channels are interleaved
 
         break;
-      
+
       case PixelFormat_RGBA64:
         ReplacePlainString(DICOM_TAG_PHOTOMETRIC_INTERPRETATION, "RGB");
         ReplacePlainString(DICOM_TAG_SAMPLES_PER_PIXEL, "3");
@@ -1410,6 +1411,12 @@ namespace Orthanc
     }
 
     assert(bytesPerPixel != 0);
+  }
+
+  void ParsedDicomFile::EmbedImage(const ImageAccessor& accessor)
+  {
+    unsigned int bytesPerPixel = 0;
+    ConfigureTagsForUncompressedImage(bytesPerPixel, accessor);
 
     DcmTag key(DICOM_TAG_PIXEL_DATA.GetGroup(), 
                DICOM_TAG_PIXEL_DATA.GetElement());
@@ -2228,6 +2235,63 @@ namespace Orthanc
     {
       // Assume "OB" if the transfer syntax is unknown
       return ValueRepresentation_OtherByte;
+    }
+  }
+
+
+  void ParsedDicomFile::EncapsulatePixelData(const std::string& dataUriScheme)
+  {
+    std::string mime, content;
+    if (!Toolbox::DecodeDataUriScheme(mime, content, dataUriScheme))
+    {
+      throw OrthancException(ErrorCode_BadFileFormat);
+    }
+
+    Remove(DICOM_TAG_PIXEL_DATA);
+
+    if (mime == MIME_JPEG)
+    {
+#if ORTHANC_ENABLE_JPEG == 1
+      JpegReader reader;
+      reader.ReadFromMemory(content);
+      unsigned int bytesPerPixel = 0;
+
+      ConfigureTagsForUncompressedImage(bytesPerPixel, reader);
+
+      if (reader.GetFormat() == PixelFormat_RGB24)
+      {
+        ReplacePlainString(DICOM_TAG_PHOTOMETRIC_INTERPRETATION, "YBR_FULL_422");
+      }
+
+      Uint8* raw = const_cast<Uint8*>(reinterpret_cast<const Uint8*>(content.c_str()));
+
+      DcmOffsetList offsetList;
+
+      std::unique_ptr<DcmPixelSequence> pixelSequence(new DcmPixelSequence(DCM_PixelData));
+
+      DcmPixelItem* offsetTable = new DcmPixelItem(DCM_PixelItemTag);
+      if (!pixelSequence->insert(offsetTable).good() ||
+          !pixelSequence->storeCompressedFrame(offsetList, raw, content.size(), 0 /* unlimited fragment size */).good() ||
+          !offsetTable->createOffsetTable(offsetList).good())
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+
+      std::unique_ptr<DcmPixelData> pixelData(new DcmPixelData(DCM_PixelData));
+      pixelData->putOriginalRepresentation(EXS_JPEGProcess1, NULL, pixelSequence.release());
+
+      if (!GetDcmtkObject().getDataset()->insert(pixelData.release(), true, false).good() ||
+          !GetDcmtkObject().getDataset()->chooseRepresentation(EXS_JPEGProcess1, NULL).good())
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+#else
+      throw OrthancException(ErrorCode_InternalError, "Orthanc was compiled without support for JPEG");
+#endif
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_NotImplemented, "Cannot encapsulate pixel data from MIME type: " + mime);
     }
   }
 
