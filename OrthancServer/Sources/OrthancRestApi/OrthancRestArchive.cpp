@@ -660,16 +660,6 @@ namespace Orthanc
     }
 
     ServerContext& context = OrthancRestApi::GetContext(call);
-    bool transcode = false;
-    DicomTransferSyntax transferSyntax = DicomTransferSyntax_LittleEndianImplicit;  // Initialize variable to avoid warnings
-    unsigned int lossyQuality;
-
-    if (call.HasArgument(GET_TRANSCODE))
-    {
-      transcode = true;
-      transferSyntax = GetTransferSyntax(call.GetArgument(GET_TRANSCODE, ""));
-      lossyQuality = GetLossyQuality(call);
-    }
     
     if (!call.HasArgument(GET_RESOURCES))
     {
@@ -679,10 +669,10 @@ namespace Orthanc
     std::unique_ptr<ArchiveJob> job(new ArchiveJob(context, IS_MEDIA, DEFAULT_IS_EXTENDED, ResourceType_Patient));
     AddResourcesOfInterestFromString(*job, call.GetArgument(GET_RESOURCES, ""));
 
-    if (transcode)
+    if (call.HasArgument(GET_TRANSCODE))
     {
-      job->SetTranscode(transferSyntax);
-      job->SetLossyQuality(lossyQuality);
+      job->SetTranscode(GetTransferSyntax(call.GetArgument(GET_TRANSCODE, "")));
+      job->SetLossyQuality(GetLossyQuality(call));
     }
 
     const std::string filename = call.GetArgument(GET_FILENAME, "Archive.zip");  // New in Orthanc 1.12.7
