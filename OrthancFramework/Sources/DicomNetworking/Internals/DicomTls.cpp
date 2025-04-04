@@ -25,6 +25,16 @@
 #include "../../PrecompiledHeaders.h"
 #include "DicomTls.h"
 
+
+// This must be *before* the inclusion of "Logging.h"
+#if defined(__ORTHANC_FILE__)
+// Prevents the system-wide DCMTK library from leaking the
+// full path of this source file in "DCMTLS_ERROR()"
+#  undef __FILE__
+#  define __FILE__ __ORTHANC_FILE__
+#endif
+
+
 #include "../../Logging.h"
 #include "../../OrthancException.h"
 #include "../../SystemToolbox.h"
@@ -40,16 +50,6 @@ static std::string opt_ciphersuites(TLS1_TXT_RSA_WITH_AES_128_SHA ":" SSL3_TXT_R
 #  else
 // This seems to correspond to TSP_Profile_Basic in DCMTK >= 3.6.4: https://support.dcmtk.org/docs/tlsciphr_8h.html
 static std::string opt_ciphersuites(SSL3_TXT_RSA_DES_192_CBC3_SHA);
-#  endif
-#endif
-
-
-#if ORTHANC_ENABLE_PLUGINS == 1
-#  if defined(__ORTHANC_FILE__)
-//   Prevents the system-wide DCMTK library from leaking the
-//   full path of this source file in "DCMTLS_ERROR()"
-#    undef __FILE__
-#    define __FILE__ __ORTHANC_FILE__
 #  endif
 #endif
 
