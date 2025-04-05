@@ -1541,6 +1541,39 @@ namespace Orthanc
 
         switch (source.GetFormat())
         {
+          case PixelFormat_Grayscale8:
+            if (useRound)
+            {
+              ShiftScaleIntegerInternal<uint8_t, uint8_t, true, false>(target, source, a, b);
+            }
+            else
+            {
+              ShiftScaleIntegerInternal<uint8_t, uint8_t, false, false>(target, source, a, b);
+            }
+            return;
+
+          case PixelFormat_Grayscale16:
+            if (useRound)
+            {
+              ShiftScaleIntegerInternal<uint8_t, uint16_t, true, false>(target, source, a, b);
+            }
+            else
+            {
+              ShiftScaleIntegerInternal<uint8_t, uint16_t, false, false>(target, source, a, b);
+            }
+            return;
+
+          case PixelFormat_SignedGrayscale16:
+            if (useRound)
+            {
+              ShiftScaleIntegerInternal<uint8_t, int16_t, true, false>(target, source, a, b);
+            }
+            else
+            {
+              ShiftScaleIntegerInternal<uint8_t, int16_t, false, false>(target, source, a, b);
+            }
+            return;
+
           case PixelFormat_Float32:
             if (useRound)
             {
