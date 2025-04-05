@@ -222,7 +222,7 @@ TEST(DicomImageInformation, FromDcmtkTests)
     DicomImageInformation info(m);
     Window w = info.GetDefaultWindow();
     ASSERT_DOUBLE_EQ(12.0, w.GetCenter());
-    ASSERT_DOUBLE_EQ(-22.0, w.GetWidth());
+    ASSERT_DOUBLE_EQ(22.0, w.GetWidth());
     ASSERT_DOUBLE_EQ(-22.0, info.GetRescaleIntercept());
     ASSERT_DOUBLE_EQ(-23.0, info.GetRescaleSlope());
   }
@@ -238,7 +238,7 @@ TEST(DicomImageInformation, FromDcmtkTests)
     DicomImageInformation info(m);
     Window w = info.GetDefaultWindow();
     ASSERT_DOUBLE_EQ(12.0, w.GetCenter());
-    ASSERT_DOUBLE_EQ(-22.0, w.GetWidth());
+    ASSERT_DOUBLE_EQ(22.0, w.GetWidth());
     ASSERT_DOUBLE_EQ(0.0, info.GetRescaleIntercept());
     ASSERT_DOUBLE_EQ(1.0, info.GetRescaleSlope());
   }
