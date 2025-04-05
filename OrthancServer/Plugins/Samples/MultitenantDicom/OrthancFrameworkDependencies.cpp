@@ -46,6 +46,7 @@
 #include "../../../../OrthancFramework/Sources/DicomFormat/DicomPath.cpp"
 #include "../../../../OrthancFramework/Sources/DicomFormat/DicomTag.cpp"
 #include "../../../../OrthancFramework/Sources/DicomFormat/DicomValue.cpp"
+#include "../../../../OrthancFramework/Sources/DicomFormat/Window.cpp"
 #include "../../../../OrthancFramework/Sources/DicomNetworking/DicomAssociation.cpp"
 #include "../../../../OrthancFramework/Sources/DicomNetworking/DicomAssociationParameters.cpp"
 #include "../../../../OrthancFramework/Sources/DicomNetworking/DicomFindAnswers.cpp"

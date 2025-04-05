@@ -44,29 +44,6 @@
 
 namespace Orthanc
 {
-  Window::Window(double center,
-                 double width) :
-    center_(center)
-  {
-    width_ = std::abs(width);
-  }
-
-
-  void Window::GetBounds(double& low,
-                         double& high) const
-  {
-    low = center_ - width_ / 2.0;
-    high = center_ + width_ / 2.0;
-  }
-
-
-  Window Window::FromBounds(double low,
-                            double high)
-  {
-    return Window((low + high) / 2.0, std::abs(high - low));
-  }
-
-
   DicomImageInformation::DicomImageInformation(const DicomMap& values)
   {
     std::string sopClassUid;

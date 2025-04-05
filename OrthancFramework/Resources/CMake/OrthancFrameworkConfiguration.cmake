@@ -163,8 +163,9 @@ set(ORTHANC_CORE_SOURCES_INTERNAL
   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Cache/MemoryCache.cpp
   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Cache/MemoryObjectCache.cpp
   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/ChunkedBuffer.cpp
-  ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomFormat/DicomTag.cpp
   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomFormat/DicomPath.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomFormat/DicomTag.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomFormat/Window.cpp
   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/EnumerationDictionary.h
   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Enumerations.cpp
   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/FileStorage/FileInfo.cpp
