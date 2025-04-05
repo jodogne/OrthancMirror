@@ -81,6 +81,176 @@ TEST(DicomImageInformation, ExtractPixelFormat2)
 }
 
 
+TEST(DicomImageInformation, Windowing)
+{
+  DicomMap m;
+  m.SetValue(DICOM_TAG_ROWS, "24", false);
+  m.SetValue(DICOM_TAG_COLUMNS, "16", false);
+  m.SetValue(DICOM_TAG_BITS_ALLOCATED, "16", false);
+  m.SetValue(DICOM_TAG_PHOTOMETRIC_INTERPRETATION, "MONOCHROME2", false);
+
+  {
+    DicomImageInformation info(m);
+    ASSERT_DOUBLE_EQ(1.0, info.GetRescaleSlope());
+    ASSERT_DOUBLE_EQ(0.0, info.GetRescaleIntercept());
+    ASSERT_EQ(PhotometricInterpretation_Monochrome2, info.GetPhotometricInterpretation());
+    ASSERT_EQ(0, info.GetWindowsCount());
+    ASSERT_DOUBLE_EQ(14.0, info.ApplyRescale(14.0));
+  }
+
+  m.SetValue(DICOM_TAG_RESCALE_SLOPE, "10.25", false);
+  m.SetValue(DICOM_TAG_RESCALE_INTERCEPT, "-1.75", false);
+  m.SetValue(DICOM_TAG_PHOTOMETRIC_INTERPRETATION, "MONOCHROME1", false);
+
+  {
+    DicomImageInformation info(m);
+    ASSERT_DOUBLE_EQ(10.25, info.GetRescaleSlope());
+    ASSERT_DOUBLE_EQ(-1.75, info.GetRescaleIntercept());
+    ASSERT_EQ(PhotometricInterpretation_Monochrome1, info.GetPhotometricInterpretation());
+    ASSERT_FALSE(info.HasWindows());
+    ASSERT_EQ(0, info.GetWindowsCount());
+    ASSERT_THROW(info.GetWindowWidth(0), OrthancException);
+    ASSERT_THROW(info.GetWindowCenter(0), OrthancException);
+    ASSERT_DOUBLE_EQ(141.75, info.ApplyRescale(14.0));
+  }
+
+  m.SetValue(Orthanc::DICOM_TAG_WINDOW_CENTER, "10\\100\\1000", false);
+  m.SetValue(Orthanc::DICOM_TAG_WINDOW_WIDTH, "50\\60\\70", false);
+
+  {
+    DicomImageInformation info(m);
+    ASSERT_TRUE(info.HasWindows());
+    ASSERT_EQ(3u, info.GetWindowsCount());
+    ASSERT_DOUBLE_EQ(10.0, info.GetWindowCenter(0));
+    ASSERT_DOUBLE_EQ(50.0, info.GetWindowWidth(0));
+    ASSERT_DOUBLE_EQ(100.0, info.GetWindowCenter(1));
+    ASSERT_DOUBLE_EQ(60.0, info.GetWindowWidth(1));
+    ASSERT_DOUBLE_EQ(1000.0, info.GetWindowCenter(2));
+    ASSERT_DOUBLE_EQ(70.0, info.GetWindowWidth(2));
+    ASSERT_THROW(info.GetWindowWidth(3), OrthancException);
+    ASSERT_THROW(info.GetWindowCenter(3), OrthancException);
+  }
+}
+
+
+TEST(DicomImageInformation, FromDcmtkTests)
+{
+  // This replicates TEST(ParsedDicomFile, ImageInformation) in
+  // "FromDcmtkTests.cpp", without the handling of frames and sequences
+
+  DicomMap m;
+  m.SetValue(DICOM_TAG_ROWS, "24", false);
+  m.SetValue(DICOM_TAG_COLUMNS, "16", false);
+  m.SetValue(DICOM_TAG_BITS_ALLOCATED, "8", false);
+
+  double wc, ww;
+
+  {
+    DicomImageInformation info(m);
+    info.GetDefaultWindowing(wc, ww);
+    ASSERT_DOUBLE_EQ(128.0, wc);
+    ASSERT_DOUBLE_EQ(256.0, ww);
+    ASSERT_EQ(PhotometricInterpretation_Unknown, info.GetPhotometricInterpretation());
+    ASSERT_DOUBLE_EQ(0.0, info.GetRescaleIntercept());
+    ASSERT_DOUBLE_EQ(1.0, info.GetRescaleSlope());
+
+    double offset, scaling, x;
+    info.ComputeRenderingTransform(offset, scaling, -100, 200);
+
+    x = -200;  ASSERT_NEAR(0, x * scaling + offset, 0.000001);
+    x = -100;  ASSERT_NEAR(127.5, x * scaling + offset, 0.000001);
+    x = 0;     ASSERT_NEAR(255, x * scaling + offset, 0.000001);
+  }
+
+  m.SetValue(DICOM_TAG_PHOTOMETRIC_INTERPRETATION, "MONOCHROME1", false);
+
+  {
+    DicomImageInformation info(m);
+    info.GetDefaultWindowing(wc, ww);
+    ASSERT_EQ(PhotometricInterpretation_Monochrome1, info.GetPhotometricInterpretation());
+
+    double offset, scaling, x;
+    info.ComputeRenderingTransform(offset, scaling, -100, 200);
+
+    x = -200;  ASSERT_NEAR(255, x * scaling + offset, 0.000001);
+    x = -100;  ASSERT_NEAR(127.5, x * scaling + offset, 0.000001);
+    x = 0;     ASSERT_NEAR(0, x * scaling + offset, 0.000001);
+  }
+
+  m.SetValue(DICOM_TAG_PHOTOMETRIC_INTERPRETATION, "MONOCHROME2", false);
+  m.SetValue(DICOM_TAG_RESCALE_SLOPE, "20", false);
+  m.SetValue(DICOM_TAG_RESCALE_INTERCEPT, "-100", false);
+
+  {
+    DicomImageInformation info(m);
+    info.GetDefaultWindowing(wc, ww);
+    ASSERT_EQ(PhotometricInterpretation_Monochrome2, info.GetPhotometricInterpretation());
+
+    double offset, scaling, x;
+    info.ComputeRenderingTransform(offset, scaling, -100, 200);
+
+    x = -5; ASSERT_NEAR(0, x * scaling + offset, 0.000001);
+    x = 0;  ASSERT_NEAR(127.5, x * scaling + offset, 0.000001);
+    x = 5;  ASSERT_NEAR(255, x * scaling + offset, 0.000001);
+  }
+
+  m.SetValue(DICOM_TAG_PHOTOMETRIC_INTERPRETATION, "MONOCHROME1", false);
+
+  {
+    DicomImageInformation info(m);
+    info.GetDefaultWindowing(wc, ww);
+    ASSERT_EQ(PhotometricInterpretation_Monochrome1, info.GetPhotometricInterpretation());
+
+    double offset, scaling, x;
+    info.ComputeRenderingTransform(offset, scaling, -100, 200);
+
+    x = -5; ASSERT_NEAR(255, x * scaling + offset, 0.000001);
+    x = 0;  ASSERT_NEAR(127.5, x * scaling + offset, 0.000001);
+    x = 5;  ASSERT_NEAR(0, x * scaling + offset, 0.000001);
+  }
+
+  m.SetValue(DICOM_TAG_PHOTOMETRIC_INTERPRETATION, "RGB", false);
+  m.SetValue(DICOM_TAG_BITS_STORED, "4", false);
+
+  {
+    DicomImageInformation info(m);
+    info.GetDefaultWindowing(wc, ww);
+    ASSERT_DOUBLE_EQ(8.0, wc);
+    ASSERT_DOUBLE_EQ(16.0, ww);
+    ASSERT_EQ(PhotometricInterpretation_RGB, info.GetPhotometricInterpretation());
+  }
+
+  m.SetValue(DICOM_TAG_WINDOW_CENTER, "12", false);
+  m.SetValue(DICOM_TAG_WINDOW_WIDTH, "-22", false);
+  m.SetValue(DICOM_TAG_RESCALE_INTERCEPT, "-22", false);
+  m.SetValue(DICOM_TAG_RESCALE_SLOPE, "-23", false);
+
+  {
+    DicomImageInformation info(m);
+    info.GetDefaultWindowing(wc, ww);
+    ASSERT_DOUBLE_EQ(12.0, wc);
+    ASSERT_DOUBLE_EQ(-22.0, ww);
+    ASSERT_DOUBLE_EQ(-22.0, info.GetRescaleIntercept());
+    ASSERT_DOUBLE_EQ(-23.0, info.GetRescaleSlope());
+  }
+
+  m.Remove(DICOM_TAG_RESCALE_SLOPE);
+  m.Remove(DICOM_TAG_RESCALE_INTERCEPT);
+  m.SetValue(DICOM_TAG_WINDOW_CENTER, "12\\13\\14", false);
+  m.SetValue(DICOM_TAG_WINDOW_WIDTH, "-22\\-23\\-24", false);
+  m.SetValue(DICOM_TAG_RESCALE_INTERCEPT, "-22\\33\\34", false);
+  m.SetValue(DICOM_TAG_RESCALE_SLOPE, "-23\\-43\\-44", false);
+
+  {
+    DicomImageInformation info(m);
+    info.GetDefaultWindowing(wc, ww);
+    ASSERT_DOUBLE_EQ(12.0, wc);
+    ASSERT_DOUBLE_EQ(-22.0, ww);
+    ASSERT_DOUBLE_EQ(0.0, info.GetRescaleIntercept());
+    ASSERT_DOUBLE_EQ(1.0, info.GetRescaleSlope());
+  }
+}
+
 
 namespace
 {

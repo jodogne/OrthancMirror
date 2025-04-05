@@ -33,6 +33,31 @@ namespace Orthanc
   class ORTHANC_PUBLIC DicomImageInformation
   {  
   private:
+    class Window
+    {
+    private:
+      double center_;
+      double width_;
+
+    public:
+      Window(double center,
+                double width) :
+        center_(center),
+        width_(width)
+      {
+      }
+
+      double GetCenter() const
+      {
+        return center_;
+      }
+
+      double GetWidth() const
+      {
+        return width_;
+      }
+    };
+
     unsigned int width_;
     unsigned int height_;
     unsigned int samplesPerPixel_;
@@ -47,6 +72,10 @@ namespace Orthanc
     uint32_t highBit_;
 
     PhotometricInterpretation  photometric_;
+
+    double rescaleSlope_;
+    double rescaleIntercept_;
+    std::vector<Window>  windows_;
 
   protected:
     explicit DicomImageInformation()
@@ -99,5 +128,55 @@ namespace Orthanc
 
     static ValueRepresentation GuessPixelDataValueRepresentation(const DicomTransferSyntax& transferSyntax,
                                                                  unsigned int bitsAllocated);
+
+    double GetRescaleSlope() const
+    {
+      return rescaleSlope_;
+    }
+
+    double GetRescaleIntercept() const
+    {
+      return rescaleIntercept_;
+    }
+
+    bool HasWindows() const
+    {
+      return !windows_.empty();
+    }
+
+    size_t GetWindowsCount() const
+    {
+      return windows_.size();
+    }
+
+    double GetWindowCenter(size_t index) const;
+
+    double GetWindowWidth(size_t index) const;
+
+    double ApplyRescale(double value) const;
+
+    void GetDefaultWindowing(double& center,
+                             double& width) const;
+
+    /**
+     * Compute the linear transform "x * scaling + offset" that maps a
+     * window onto the [0,255] range of a grayscale image. The
+     * inversion due to MONOCHROME1 is taken into consideration. This
+     * information can be used in ImageProcessing::ShiftScale2().
+     **/
+    void ComputeRenderingTransform(double& offset,
+                                   double& scaling,
+                                   double windowCenter,
+                                   double windowWidth) const;
+
+    void ComputeRenderingTransform(double& offset,
+                                   double& scaling,
+                                   size_t windowIndex) const
+    {
+      ComputeRenderingTransform(offset, scaling, GetWindowCenter(windowIndex), GetWindowWidth(windowIndex));
+    }
+
+    void ComputeRenderingTransform(double& offset,
+                                   double& scaling) const;  // Use the default windowing
   };
 }

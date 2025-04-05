@@ -1935,7 +1935,7 @@ namespace Orthanc
       }
 
       windowWidth = static_cast<double>(1 << bitsStored);
-      windowCenter = windowWidth / 2.0f;
+      windowCenter = windowWidth / 2.0;
     }
   }
 
