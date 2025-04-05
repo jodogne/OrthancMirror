@@ -26,6 +26,7 @@
 
 #include "../OrthancFramework.h"
 
+#include "../DicomFormat/DicomImageInformation.h"
 #include "ImageAccessor.h"
 
 #include <vector>
@@ -222,5 +223,14 @@ namespace Orthanc
 
     static void Maximum(ImageAccessor& image /* inout */,
                         const ImageAccessor& other);
+
+    static void Render(ImageAccessor& target,
+                       const DicomImageInformation& info,
+                       const ImageAccessor& source,
+                       const Window& window);
+
+    static void RenderDefaultWindow(ImageAccessor& target,
+                                    const DicomImageInformation& info,
+                                    const ImageAccessor& source);
   };
 }
