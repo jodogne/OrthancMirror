@@ -30,34 +30,37 @@
 
 namespace Orthanc
 {
+  class ORTHANC_PUBLIC Window
+  {
+  private:
+    double center_;
+    double width_;
+
+  public:
+    Window(double center,
+           double width);
+
+    double GetCenter() const
+    {
+      return center_;
+    }
+
+    double GetWidth() const
+    {
+      return width_;
+    }
+
+    void GetBounds(double& low,
+                   double& high) const;
+
+    static Window FromBounds(double low,
+                             double high);
+  };
+
+
   class ORTHANC_PUBLIC DicomImageInformation
   {  
   private:
-    class Window
-    {
-    private:
-      double center_;
-      double width_;
-
-    public:
-      Window(double center,
-                double width) :
-        center_(center),
-        width_(width)
-      {
-      }
-
-      double GetCenter() const
-      {
-        return center_;
-      }
-
-      double GetWidth() const
-      {
-        return width_;
-      }
-    };
-
     unsigned int width_;
     unsigned int height_;
     unsigned int samplesPerPixel_;
@@ -149,14 +152,11 @@ namespace Orthanc
       return windows_.size();
     }
 
-    double GetWindowCenter(size_t index) const;
-
-    double GetWindowWidth(size_t index) const;
+    const Window& GetWindow(size_t index) const;
 
     double ApplyRescale(double value) const;
 
-    void GetDefaultWindowing(double& center,
-                             double& width) const;
+    Window GetDefaultWindow() const;
 
     /**
      * Compute the linear transform "x * scaling + offset" that maps a
@@ -166,14 +166,13 @@ namespace Orthanc
      **/
     void ComputeRenderingTransform(double& offset,
                                    double& scaling,
-                                   double windowCenter,
-                                   double windowWidth) const;
+                                   const Window& window) const;
 
     void ComputeRenderingTransform(double& offset,
                                    double& scaling,
                                    size_t windowIndex) const
     {
-      ComputeRenderingTransform(offset, scaling, GetWindowCenter(windowIndex), GetWindowWidth(windowIndex));
+      ComputeRenderingTransform(offset, scaling, GetWindow(windowIndex));
     }
 
     void ComputeRenderingTransform(double& offset,

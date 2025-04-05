@@ -44,6 +44,29 @@
 
 namespace Orthanc
 {
+  Window::Window(double center,
+                 double width) :
+    center_(center)
+  {
+    width_ = std::abs(width);
+  }
+
+
+  void Window::GetBounds(double& low,
+                         double& high) const
+  {
+    low = center_ - width_ / 2.0;
+    high = center_ + width_ / 2.0;
+  }
+
+
+  Window Window::FromBounds(double low,
+                            double high)
+  {
+    return Window((low + high) / 2.0, std::abs(high - low));
+  }
+
+
   DicomImageInformation::DicomImageInformation(const DicomMap& values)
   {
     std::string sopClassUid;
@@ -526,24 +549,11 @@ namespace Orthanc
   }
 
 
-  double DicomImageInformation::GetWindowCenter(size_t index) const
+  const Window& DicomImageInformation::GetWindow(size_t index) const
   {
     if (index < windows_.size())
     {
-      return windows_[index].GetCenter();
-    }
-    else
-    {
-      throw OrthancException(ErrorCode_ParameterOutOfRange);
-    }
-  }
-
-
-  double DicomImageInformation::GetWindowWidth(size_t index) const
-  {
-    if (index < windows_.size())
-    {
-      return windows_[index].GetWidth();
+      return windows_[index];
     }
     else
     {
@@ -558,30 +568,28 @@ namespace Orthanc
   }
 
 
-  void DicomImageInformation::GetDefaultWindowing(double& center,
-                                                  double& width) const
+  Window DicomImageInformation::GetDefaultWindow() const
   {
     if (windows_.empty())
     {
-      width = static_cast<double>(1 << GetBitsStored());
-      center = width / 2.0;
+      const double width = static_cast<double>(1 << GetBitsStored());
+      const double center = width / 2.0;
+      return Window(center, width);
     }
     else
     {
-      center = windows_[0].GetCenter();
-      width = windows_[0].GetWidth();
+      return windows_[0];
     }
   }
 
 
   void DicomImageInformation::ComputeRenderingTransform(double& offset,
                                                         double& scaling,
-                                                        double windowCenter,
-                                                        double windowWidth) const
+                                                        const Window& window) const
   {
     // Check out "../../../OrthancServer/Resources/ImplementationNotes/windowing.py"
 
-    windowWidth = std::abs(windowWidth);
+    float windowWidth = std::abs(window.GetWidth());
 
     // Avoid divisions by zero
     static const double MIN = 0.0001;
@@ -593,12 +601,12 @@ namespace Orthanc
     if (GetPhotometricInterpretation() == PhotometricInterpretation_Monochrome1)
     {
       scaling = -255.0 * GetRescaleSlope() / windowWidth;
-      offset = 255.0 * (windowCenter - GetRescaleIntercept()) / windowWidth + 127.5;
+      offset = 255.0 * (window.GetCenter() - GetRescaleIntercept()) / windowWidth + 127.5;
     }
     else
     {
       scaling = 255.0 * GetRescaleSlope() / windowWidth;
-      offset = 255.0 * (GetRescaleIntercept() - windowCenter) / windowWidth + 127.5;
+      offset = 255.0 * (GetRescaleIntercept() - window.GetCenter()) / windowWidth + 127.5;
     }
   }
 
@@ -606,8 +614,6 @@ namespace Orthanc
   void DicomImageInformation::ComputeRenderingTransform(double& offset,
                                                         double& scaling) const
   {
-    double center, width;
-    GetDefaultWindowing(center, width);
-    ComputeRenderingTransform(offset, scaling, center, width);
+    ComputeRenderingTransform(offset, scaling, GetDefaultWindow());
   }
 }

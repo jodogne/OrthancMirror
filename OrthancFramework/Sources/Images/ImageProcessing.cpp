@@ -3103,4 +3103,74 @@ namespace Orthanc
         throw OrthancException(ErrorCode_NotImplemented);
     }
   }
+
+
+  void ImageProcessing::Render(ImageAccessor& target,
+                               const DicomImageInformation& info,
+                               const ImageAccessor& source,
+                               const Window& window)
+  {
+    if (source.GetFormat() == PixelFormat_RGB24)
+    {
+      Copy(target, source);
+    }
+    else if (source.GetFormat() == PixelFormat_Grayscale8 ||
+             source.GetFormat() == PixelFormat_Grayscale16 ||
+             source.GetFormat() == PixelFormat_SignedGrayscale16)
+    {
+      if (target.GetFormat() != PixelFormat_Grayscale8)
+      {
+        throw OrthancException(ErrorCode_IncompatibleImageFormat);
+      }
+
+      double offset, scaling;
+      info.ComputeRenderingTransform(offset, scaling);
+      ShiftScale2(target, source, static_cast<float>(offset), static_cast<float>(scaling), false);
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_NotImplemented);
+    }
+  }
+
+
+  void ImageProcessing::RenderDefaultWindow(ImageAccessor& target,
+                                            const DicomImageInformation& info,
+                                            const ImageAccessor& source)
+  {
+    if (source.GetFormat() == PixelFormat_RGB24)
+    {
+      Copy(target, source);
+    }
+    else if (source.GetFormat() == PixelFormat_Grayscale8 ||
+             source.GetFormat() == PixelFormat_Grayscale16 ||
+             source.GetFormat() == PixelFormat_SignedGrayscale16)
+    {
+      if (target.GetFormat() != PixelFormat_Grayscale8)
+      {
+        throw OrthancException(ErrorCode_IncompatibleImageFormat);
+      }
+
+      double offset, scaling;
+      if (info.HasWindows())
+      {
+        info.ComputeRenderingTransform(offset, scaling);  // Use the default windowing
+      }
+      else
+      {
+        // Use the full dynamic range of the image
+        int64_t minValue, maxValue;
+        GetMinMaxIntegerValue(minValue, maxValue, source);
+        double minRescaled = info.ApplyRescale(minValue);
+        double maxRescaled = info.ApplyRescale(maxValue);
+        info.ComputeRenderingTransform(offset, scaling, Window::FromBounds(minRescaled, maxRescaled));
+      }
+
+      ShiftScale2(target, source, static_cast<float>(offset), static_cast<float>(scaling), false);
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_NotImplemented);
+    }
+  }
 }
