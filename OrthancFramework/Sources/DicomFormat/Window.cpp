@@ -26,6 +26,8 @@
 #include "Window.h"
 
 
+#include <cmath>
+
 namespace Orthanc
 {
   Window::Window(double center,
