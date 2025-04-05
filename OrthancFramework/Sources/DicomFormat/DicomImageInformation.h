@@ -25,39 +25,12 @@
 #pragma once
 
 #include "DicomMap.h"
+#include "Window.h"
 
 #include <stdint.h>
 
 namespace Orthanc
 {
-  class ORTHANC_PUBLIC Window
-  {
-  private:
-    double center_;
-    double width_;
-
-  public:
-    Window(double center,
-           double width);
-
-    double GetCenter() const
-    {
-      return center_;
-    }
-
-    double GetWidth() const
-    {
-      return width_;
-    }
-
-    void GetBounds(double& low,
-                   double& high) const;
-
-    static Window FromBounds(double low,
-                             double high);
-  };
-
-
   class ORTHANC_PUBLIC DicomImageInformation
   {  
   private:
