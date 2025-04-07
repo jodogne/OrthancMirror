@@ -22,7 +22,7 @@
 
 #   $ LSB_CC=gcc-4.8 LSB_CXX=g++-4.8 cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=../../Resources/Toolchains/LinuxStandardBaseToolchain.cmake -G Ninja
 
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 2.8...4.0)
 
 project(DcmtkTools)
 
