@@ -59,6 +59,7 @@ static const char* const SERIES = "Series";
 static const char* const TAGS = "Tags";
 static const char* const TRANSCODE = "Transcode";
 static const char* const LOSSY_QUALITY = "LossyQuality";
+static const char* const ENCAPSULATE = "Encapsulate";  // New in Orthanc 1.12.7
 
 
 
@@ -1008,20 +1009,40 @@ namespace Orthanc
     // Inject the content (either an image, a PDF file, or a STL/OBJ/MTL file)
     if (request.isMember(CONTENT))
     {
+      bool encapsulate = false;
+      if (request.isMember(ENCAPSULATE))
+      {
+        encapsulate = request[ENCAPSULATE].asBool();
+      }
+
       const Json::Value& content = request[CONTENT];
 
       if (content.type() == Json::stringValue)
       {
-        dicom.EmbedContent(request[CONTENT].asString());
-
+        if (encapsulate)
+        {
+          // New in Orthanc 1.12.7
+          dicom.EncapsulatePixelData(request[CONTENT].asString());
+        }
+        else
+        {
+          dicom.EmbedContent(request[CONTENT].asString());
+        }
       }
       else if (content.type() == Json::arrayValue)
       {
         if (content.size() > 0)
         {
-          // Let's create a series instead of a single instance
-          CreateSeries(call, dicom, content, decodeBinaryTags, privateCreator, force);
-          return;
+          if (encapsulate)
+          {
+            throw OrthancException(ErrorCode_NotImplemented);
+          }
+          else
+          {
+            // Let's create a series instead of a single instance
+            CreateSeries(call, dicom, content, decodeBinaryTags, privateCreator, force);
+            return;
+          }
         }
       }
       else
@@ -1066,6 +1087,10 @@ namespace Orthanc
                          "Avoid the consistency checks for the DICOM tags that enforce the DICOM model of the real-world. "
                          "You can notably use this flag if you need to manually set the tags `StudyInstanceUID`, "
                          "`SeriesInstanceUID`, or `SOPInstanceUID`. Be careful with this feature.", false)
+        .SetRequestField(ENCAPSULATE, RestApiCallDocumentation::Type_Boolean,
+                         "If set to `true`, encapsulate the binary data of `ContentData` as such, using a compressed transfer syntax. "
+                         "Only applicable if `ContentData` contains a grayscale or color JPEG image in 8bpp, "
+                         "in which case the transfer syntax is set to \"1.2.840.10008.1.2.4.50\". (new in Orthanc 1.12.7)", false)
         .SetAnswerField("ID", RestApiCallDocumentation::Type_String, "Orthanc identifier of the newly created instance")
         .SetAnswerField("Path", RestApiCallDocumentation::Type_String, "Path to access the instance in the REST API");
       return;

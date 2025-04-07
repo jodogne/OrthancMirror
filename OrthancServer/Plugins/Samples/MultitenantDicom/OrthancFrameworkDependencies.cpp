@@ -29,6 +29,10 @@
 #  include <winsock2.h>
 #endif
 
+// This must be the first inclusion, as it can modify __FILE__ to
+// avoid the leaking of paths for reproducible builds
+#include "../../../../OrthancFramework/Sources/DicomNetworking/Internals/DicomTls.cpp"
+
 #include "../../../../OrthancFramework/Sources/ChunkedBuffer.cpp"
 #include "../../../../OrthancFramework/Sources/Compression/DeflateBaseCompressor.cpp"
 #include "../../../../OrthancFramework/Sources/Compression/GzipCompressor.cpp"
@@ -42,12 +46,12 @@
 #include "../../../../OrthancFramework/Sources/DicomFormat/DicomPath.cpp"
 #include "../../../../OrthancFramework/Sources/DicomFormat/DicomTag.cpp"
 #include "../../../../OrthancFramework/Sources/DicomFormat/DicomValue.cpp"
+#include "../../../../OrthancFramework/Sources/DicomFormat/Window.cpp"
 #include "../../../../OrthancFramework/Sources/DicomNetworking/DicomAssociation.cpp"
 #include "../../../../OrthancFramework/Sources/DicomNetworking/DicomAssociationParameters.cpp"
 #include "../../../../OrthancFramework/Sources/DicomNetworking/DicomFindAnswers.cpp"
 #include "../../../../OrthancFramework/Sources/DicomNetworking/DicomServer.cpp"
 #include "../../../../OrthancFramework/Sources/DicomNetworking/Internals/CommandDispatcher.cpp"
-#include "../../../../OrthancFramework/Sources/DicomNetworking/Internals/DicomTls.cpp"
 #include "../../../../OrthancFramework/Sources/DicomNetworking/Internals/FindScp.cpp"
 #include "../../../../OrthancFramework/Sources/DicomNetworking/Internals/GetScp.cpp"
 #include "../../../../OrthancFramework/Sources/DicomNetworking/Internals/MoveScp.cpp"
