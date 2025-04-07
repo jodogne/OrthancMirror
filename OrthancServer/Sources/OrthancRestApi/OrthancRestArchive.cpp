@@ -578,10 +578,7 @@ namespace Orthanc
         .SetDescription("Create a " + m + " containing the DICOM resources (patients, studies, series, or instances) "
                         "whose Orthanc identifiers are provided in the body")
         .SetRequestField(KEY_RESOURCES, RestApiCallDocumentation::Type_JsonListOfStrings,
-                         "The list of Orthanc identifiers of interest.", false)
-        .SetRequestField(KEY_FILENAME, RestApiCallDocumentation::Type_String,
-                         "Filename to set in the \"Content-Disposition\" HTTP header "
-                         "(including file extension)", false);
+                         "The list of Orthanc identifiers of interest.", false);
       return;
     }
 
