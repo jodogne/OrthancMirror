@@ -78,6 +78,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
     AUX_SOURCE_DIRECTORY(${DCMTK_SOURCES_DIR}/dcmimage/libsrc DCMTK_SOURCES)
     include_directories(
       ${DCMTK_SOURCES_DIR}/dcmimage/include
+      ${DCMTK_SOURCES_DIR}/dcmimgle/include
       )
   endif()
   
@@ -91,7 +92,6 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
       ${DCMTK_SOURCES_DIR}/dcmjpeg/libijg8
       ${DCMTK_SOURCES_DIR}/dcmjpeg/libijg12
       ${DCMTK_SOURCES_DIR}/dcmjpeg/libijg16
-      ${DCMTK_SOURCES_DIR}/dcmimgle/include
       )
     list(REMOVE_ITEM DCMTK_SOURCES 
       ${DCMTK_SOURCES_DIR}/dcmjpeg/libsrc/ddpiimpl.cc
