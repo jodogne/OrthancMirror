@@ -78,6 +78,11 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
     AUX_SOURCE_DIRECTORY(${DCMTK_SOURCES_DIR}/dcmimage/libsrc DCMTK_SOURCES)
     include_directories(
       ${DCMTK_SOURCES_DIR}/dcmimage/include
+      )
+  endif()
+
+  if (ENABLE_DCMTK_TRANSCODING OR ENABLE_DCMTK_JPEG OR ENABLE_DCMTK_JPEG_LOSSLESS)
+    include_directories(
       ${DCMTK_SOURCES_DIR}/dcmimgle/include
       )
   endif()
