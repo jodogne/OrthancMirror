@@ -1,6 +1,12 @@
 Pending changes in the mainline
 ===============================
 
+Maintenance
+-----------
+
+* In verbose logs, added the elapsed time spent in each HTTP call.
+
+
 
 Version 1.12.7 (2025-04-07)
 ===========================

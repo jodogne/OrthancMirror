@@ -1257,10 +1257,12 @@ namespace Orthanc
     
     HttpMethod filterMethod;
 
-    
+    std::unique_ptr<Toolbox::ApiElapsedTimeLogger> apiLogTimer; // to log the time spent in the API call
+
     if (ExtractMethod(method, request, headers, argumentsGET))
     {
-      CLOG(INFO, HTTP) << EnumerationToString(method) << " " << Toolbox::FlattenUri(uri);
+      apiLogTimer.reset(new Toolbox::ApiElapsedTimeLogger(std::string(EnumerationToString(method)) + " " + Toolbox::FlattenUri(uri)));
+      
       filterMethod = method;
     }
 #if ORTHANC_ENABLE_PUGIXML == 1
@@ -1268,8 +1270,7 @@ namespace Orthanc
              !strcmp(request->request_method, "PROPFIND") ||
              !strcmp(request->request_method, "HEAD"))
     {
-      CLOG(INFO, HTTP) << "Incoming read-only WebDAV request: "
-                       << request->request_method << " " << requestUri;
+      apiLogTimer.reset(new Toolbox::ApiElapsedTimeLogger(std::string("Incoming read-only WebDAV request: ") + request->request_method + " " + requestUri));
       filterMethod = HttpMethod_Get;
       isWebDav = true;
     }
@@ -1278,8 +1279,7 @@ namespace Orthanc
              !strcmp(request->request_method, "UNLOCK") ||
              !strcmp(request->request_method, "MKCOL"))
     {
-      CLOG(INFO, HTTP) << "Incoming read-write WebDAV request: "
-                       << request->request_method << " " << requestUri;
+      apiLogTimer.reset(new Toolbox::ApiElapsedTimeLogger(std::string("Incoming read-write WebDAV request: ") + request->request_method + " " + requestUri));
       filterMethod = HttpMethod_Put;
       isWebDav = true;
     }
