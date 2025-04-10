@@ -25,6 +25,7 @@
 #pragma once
 
 #include "DicomMap.h"
+#include "Window.h"
 
 #include <stdint.h>
 
@@ -47,6 +48,10 @@ namespace Orthanc
     uint32_t highBit_;
 
     PhotometricInterpretation  photometric_;
+
+    double rescaleSlope_;
+    double rescaleIntercept_;
+    std::vector<Window>  windows_;
 
   protected:
     explicit DicomImageInformation()
@@ -99,5 +104,51 @@ namespace Orthanc
 
     static ValueRepresentation GuessPixelDataValueRepresentation(const DicomTransferSyntax& transferSyntax,
                                                                  unsigned int bitsAllocated);
+
+    double GetRescaleSlope() const
+    {
+      return rescaleSlope_;
+    }
+
+    double GetRescaleIntercept() const
+    {
+      return rescaleIntercept_;
+    }
+
+    bool HasWindows() const
+    {
+      return !windows_.empty();
+    }
+
+    size_t GetWindowsCount() const
+    {
+      return windows_.size();
+    }
+
+    const Window& GetWindow(size_t index) const;
+
+    double ApplyRescale(double value) const;
+
+    Window GetDefaultWindow() const;
+
+    /**
+     * Compute the linear transform "x * scaling + offset" that maps a
+     * window onto the [0,255] range of a grayscale image. The
+     * inversion due to MONOCHROME1 is taken into consideration. This
+     * information can be used in ImageProcessing::ShiftScale2().
+     **/
+    void ComputeRenderingTransform(double& offset,
+                                   double& scaling,
+                                   const Window& window) const;
+
+    void ComputeRenderingTransform(double& offset,
+                                   double& scaling,
+                                   size_t windowIndex) const
+    {
+      ComputeRenderingTransform(offset, scaling, GetWindow(windowIndex));
+    }
+
+    void ComputeRenderingTransform(double& offset,
+                                   double& scaling) const;  // Use the default windowing
   };
 }

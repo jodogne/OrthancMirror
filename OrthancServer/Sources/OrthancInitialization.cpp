@@ -36,6 +36,22 @@
 #  include <malloc.h>
 #endif
 
+
+// This must be *before* the inclusion of "Logging.h"
+#if defined(__ORTHANC_FILE__)
+// Prevents the system-wide Google Protobuf library from leaking the
+// full path of this source file
+#  undef __FILE__
+#  define __FILE__ __ORTHANC_FILE__
+#endif
+
+
+#if ORTHANC_ENABLE_PLUGINS == 1
+#  include <google/protobuf/stubs/common.h>
+#  include <google/protobuf/any.h>
+#endif
+
+
 #include "OrthancInitialization.h"
 
 #include "../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.h"
@@ -52,15 +68,6 @@
 
 #include <dcmtk/dcmnet/diutil.h>  // For DCM_dcmnetLogger
 
-#if ORTHANC_ENABLE_PLUGINS == 1
-#  if defined(__ORTHANC_FILE__)
-//   Prevents the system-wide Google Protobuf library from leaking the
-//   full path of this source file
-#    undef __FILE__
-#    define __FILE__ __ORTHANC_FILE__
-#  endif
-#  include <google/protobuf/any.h>
-#endif
 
 
 static const char* const STORAGE_DIRECTORY = "StorageDirectory";

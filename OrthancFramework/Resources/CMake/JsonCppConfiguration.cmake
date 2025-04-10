@@ -99,10 +99,4 @@ if (JSONCPP_CXX11)
   # default value (1000), so we increase this limit
   # https://gitlab.kitware.com/third-party/jsoncpp/commit/56df2068470241f9043b676bfae415ed62a0c172
   add_definitions(-DJSONCPP_DEPRECATED_STACK_LIMIT=5000)
-
-  if (APPLE AND
-      "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-    # Explicitly adding "-std=c++11" is needed on XCode
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-  endif()
 endif()

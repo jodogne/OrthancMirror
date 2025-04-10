@@ -29,7 +29,7 @@
 # -> Copy the result as "../arith.h"
 
 
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 2.8.3...4.0)
 
 
 #####################################################################

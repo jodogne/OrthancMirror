@@ -24,7 +24,7 @@
 ## This file is meant to be used only by ../SharedLibrary/CMakeLists.txt
 ##
 
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 2.8...4.0)
 project(UnitTestsProject)
 
 set(STATIC_BUILD OFF CACHE BOOL "Static build of the third-party libraries (necessary for Windows)")

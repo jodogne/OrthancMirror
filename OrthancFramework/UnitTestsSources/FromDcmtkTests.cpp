@@ -3110,6 +3110,9 @@ TEST(ParsedDicomFile, MultipleFloatValue)
 
 TEST(ParsedDicomFile, ImageInformation)
 {
+  // If modifying this test, make sure to reflect the modification in
+  // "TEST(DicomImageInformation, FromDcmtkTests)" in file "ImageProcessingTests.cpp"
+
   double wc, ww;
   double ri, rs;
   PhotometricInterpretation p;

@@ -105,6 +105,9 @@ namespace Orthanc
     // the top of DCMTK API
     DcmFileFormat& GetDcmtkObjectConst() const;
 
+    void ConfigureTagsForUncompressedImage(unsigned int& bytesPerPixel /* out */,
+                                           const ImageAccessor& accessor);
+
     explicit ParsedDicomFile(DcmFileFormat* dicom);  // This takes ownership (no clone)
 
 #if ORTHANC_BUILDING_FRAMEWORK_LIBRARY == 1
@@ -323,5 +326,7 @@ namespace Orthanc
     void RemoveFromPixelData();
 
     ValueRepresentation GuessPixelDataValueRepresentation() const;
+
+    void EncapsulatePixelData(const std::string& dataUriScheme);
   };
 }
