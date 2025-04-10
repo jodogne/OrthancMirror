@@ -33,6 +33,7 @@
 #include "../Compatibility.h"
 #include "../Logging.h"
 #include "../OrthancException.h"
+#include "../SerializationToolbox.h"
 #include "../Toolbox.h"
 
 #include <boost/lexical_cast.hpp>
@@ -235,6 +236,54 @@ namespace Orthanc
 
     isPlanar_ = (planarConfiguration != 0 ? true : false);
     isSigned_ = (pixelRepresentation != 0 ? true : false);
+
+    // New in Orthanc 1.12.7
+    double d;
+
+    if (values.ParseDouble(d, DICOM_TAG_RESCALE_SLOPE))
+    {
+      rescaleSlope_ = d;
+    }
+    else
+    {
+      rescaleSlope_ = 1;
+    }
+
+    if (values.ParseDouble(d, DICOM_TAG_RESCALE_INTERCEPT))
+    {
+      rescaleIntercept_ = d;
+    }
+    else
+    {
+      rescaleIntercept_ = 0;
+    }
+
+    if (values.ParseDouble(d, DICOM_TAG_DOSE_GRID_SCALING))
+    {
+      rescaleSlope_ *= d;
+    }
+
+    const std::string centerTag = values.GetStringValue(DICOM_TAG_WINDOW_CENTER, "", false);
+    const std::string widthTag = values.GetStringValue(DICOM_TAG_WINDOW_WIDTH, "", false);
+    if (!centerTag.empty() &&
+        !widthTag.empty())
+    {
+      std::vector<std::string> centers, widths;
+      Toolbox::TokenizeString(centers, centerTag, '\\');
+      Toolbox::TokenizeString(widths, widthTag, '\\');
+      if (centers.size() == widths.size())
+      {
+        for (size_t i = 0; i < centers.size(); i++)
+        {
+          double center, width;
+          if (SerializationToolbox::ParseDouble(center, centers[i]) &&
+              SerializationToolbox::ParseDouble(width, widths[i]))
+          {
+            windows_.push_back(Window(center, width));
+          }
+        }
+      }
+    }
   }
 
   DicomImageInformation* DicomImageInformation::Clone() const
@@ -251,6 +300,9 @@ namespace Orthanc
     target->bitsStored_ = bitsStored_;
     target->highBit_ = highBit_;
     target->photometric_ = photometric_;
+    target->rescaleSlope_ = rescaleSlope_;
+    target->rescaleIntercept_ = rescaleIntercept_;
+    target->windows_ = windows_;
 
     return target.release();
   }
@@ -471,5 +523,74 @@ namespace Orthanc
       // https://dicom.nema.org/medical/dicom/current/output/chtml/part05/sect_A.4.html
       return ValueRepresentation_OtherByte;
     }
+  }
+
+
+  const Window& DicomImageInformation::GetWindow(size_t index) const
+  {
+    if (index < windows_.size())
+    {
+      return windows_[index];
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+
+  double DicomImageInformation::ApplyRescale(double value) const
+  {
+    return rescaleSlope_ * value + rescaleIntercept_;
+  }
+
+
+  Window DicomImageInformation::GetDefaultWindow() const
+  {
+    if (windows_.empty())
+    {
+      const double width = static_cast<double>(1 << GetBitsStored());
+      const double center = width / 2.0;
+      return Window(center, width);
+    }
+    else
+    {
+      return windows_[0];
+    }
+  }
+
+
+  void DicomImageInformation::ComputeRenderingTransform(double& offset,
+                                                        double& scaling,
+                                                        const Window& window) const
+  {
+    // Check out "../../../OrthancServer/Resources/ImplementationNotes/windowing.py"
+
+    float windowWidth = std::abs(window.GetWidth());
+
+    // Avoid divisions by zero
+    static const double MIN = 0.0001;
+    if (windowWidth <= MIN)
+    {
+      windowWidth = MIN;
+    }
+
+    if (GetPhotometricInterpretation() == PhotometricInterpretation_Monochrome1)
+    {
+      scaling = -255.0 * GetRescaleSlope() / windowWidth;
+      offset = 255.0 * (window.GetCenter() - GetRescaleIntercept()) / windowWidth + 127.5;
+    }
+    else
+    {
+      scaling = 255.0 * GetRescaleSlope() / windowWidth;
+      offset = 255.0 * (GetRescaleIntercept() - window.GetCenter()) / windowWidth + 127.5;
+    }
+  }
+
+
+  void DicomImageInformation::ComputeRenderingTransform(double& offset,
+                                                        double& scaling) const
+  {
+    ComputeRenderingTransform(offset, scaling, GetDefaultWindow());
   }
 }

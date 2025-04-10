@@ -20,7 +20,7 @@
 # <http://www.gnu.org/licenses/>.
 
 
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 2.8...4.0)
 
 project(Sample)
 

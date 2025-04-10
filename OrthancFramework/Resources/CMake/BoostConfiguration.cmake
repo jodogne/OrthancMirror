@@ -23,7 +23,12 @@
 if (STATIC_BUILD OR NOT USE_SYSTEM_BOOST)
   set(BOOST_STATIC 1)
 else()
-  include(FindBoost)
+  # https://cmake.org/cmake/help/latest/policy/CMP0167.html
+  if (CMAKE_VERSION VERSION_GREATER "3.30")
+    find_package(Boost CONFIG)
+  else()
+    include(FindBoost)
+  endif()
 
   set(BOOST_STATIC 0)
   #set(Boost_DEBUG 1)
