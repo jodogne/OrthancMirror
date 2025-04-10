@@ -394,21 +394,31 @@ namespace Orthanc
     };
 
     // This is a helper class to measure and log time spend e.g in a method.
-    // This should be used only during debugging and should likely not ever used in a release.
+    // This should be used only during debugging and should likely not ever be used in a release.
     // By default, you should use it as a RAII but you may force Restart/StopAndLog manually if needed.
-    class ORTHANC_PUBLIC ElapsedTimeLogger
+    class ORTHANC_PUBLIC DebugElapsedTimeLogger
     {
-    private:
       ElapsedTimer      timer_;
       const std::string message_;
       bool logged_;
 
     public:
-      explicit ElapsedTimeLogger(const std::string& message);
-      ~ElapsedTimeLogger();  
+      explicit DebugElapsedTimeLogger(const std::string& message);
+      ~DebugElapsedTimeLogger();  
 
       void Restart();
       void StopAndLog();
+    };
+
+    // This variant logs the same message when entering the method and when exiting (with the elapsed time).
+    // Logs goes to verbose-http.
+    class ORTHANC_PUBLIC ApiElapsedTimeLogger
+    {
+      ElapsedTimer      timer_;
+      const std::string message_;
+    public:
+      explicit ApiElapsedTimeLogger(const std::string& message);
+      ~ApiElapsedTimeLogger();
     };
 
     static std::string GetHumanFileSize(uint64_t sizeInBytes);
