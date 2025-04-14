@@ -591,6 +591,25 @@ curl -X POST http://localhost:8043/studies/ab67d5f8-95865506-8fb83c8b-93610651-d
 }
 EOF
 
+# modify some frames of a multiframe scintigraphy series
+curl -X POST http://localhost:8043/series/08a23232-a61c3cb9-5cdb4518-b725cd5d-820ee1f6/modify \
+--data-binary @- << EOF
+{
+    "Replace" : {"StudyInstanceUID": "1.2.6", "StudyDescription": "modified-scinti"},
+    "Force": true,
+    "MaskPixelData": {
+        "Regions": [{
+            "MaskType": "Fill",
+            "FillValue": 3000,
+            "RegionType" : "3D",
+            "Origin": [-150.0, -200, 200],
+            "End": [150.0, -150, 100]
+      }]
+    }
+}
+EOF
+
+
 
 # modify some frames of a multiframe PET-CT study
 curl -X POST http://localhost:8043/studies/890e1167-55ad171a-7721ffec-db91e2c1-700778c0/modify \
