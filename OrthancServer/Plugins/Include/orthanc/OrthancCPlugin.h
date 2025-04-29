@@ -1509,6 +1509,10 @@ extern "C"
    * concurrently by different threads of the Web server of
    * Orthanc. You must implement proper locking if applicable.
    *
+   * Note that if you are using HTTP basic authentication, you can extract
+   * the username from the "Authorization" HTTP header.  The value of that header
+   * contains username:pwd encoded in base64.
+   *
    * @param method The HTTP method used by the request.
    * @param uri The URI of interest.
    * @param ip The IP address of the HTTP client.
