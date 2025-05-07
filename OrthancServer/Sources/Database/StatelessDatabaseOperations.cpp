@@ -3200,6 +3200,12 @@ namespace Orthanc
     return db_.GetDatabaseCapabilities().HasFindSupport();
   }
 
+  bool StatelessDatabaseOperations::HasKeyValueStore()
+  {
+    boost::shared_lock<boost::shared_mutex> lock(mutex_);
+    return db_.GetDatabaseCapabilities().HasKeyValueStore();
+  }
+
   void StatelessDatabaseOperations::ExecuteCount(uint64_t& count,
                                                  const FindRequest& request)
   {
@@ -3320,4 +3326,94 @@ namespace Orthanc
       }
     }
   }
+
+  void StatelessDatabaseOperations::StoreKeyValue(const std::string& pluginId,
+                                                  const std::string& key,
+                                                  const std::string& value)
+  {
+    class Operations : public IReadWriteOperations
+    {
+    private:
+      const std::string& pluginId_;
+      const std::string& key_;
+      const std::string& value_;
+
+    public:
+      Operations(const std::string& pluginId,
+                 const std::string& key,
+                 const std::string& value) :
+        pluginId_(pluginId),
+        key_(key),
+        value_(value)
+      {
+      }
+
+      virtual void Apply(ReadWriteTransaction& transaction) ORTHANC_OVERRIDE
+      {
+        transaction.StoreKeyValue(pluginId_, key_, value_);
+      }
+    };
+
+    Operations operations(pluginId, key, value);
+    Apply(operations);
+  }
+
+  void StatelessDatabaseOperations::DeleteKeyValue(const std::string& pluginId,
+                                                   const std::string& key)
+  {
+    class Operations : public IReadWriteOperations
+    {
+    private:
+      const std::string& pluginId_;
+      const std::string& key_;
+
+    public:
+      Operations(const std::string& pluginId,
+                 const std::string& key) :
+        pluginId_(pluginId),
+        key_(key)
+      {
+      }
+
+      virtual void Apply(ReadWriteTransaction& transaction) ORTHANC_OVERRIDE
+      {
+        transaction.DeleteKeyValue(pluginId_, key_);
+      }
+    };
+
+    Operations operations(pluginId, key);
+    Apply(operations);
+  }
+
+  bool StatelessDatabaseOperations::GetKeyValue(std::string& value,
+                                                const std::string& pluginId,
+                                                const std::string& key)
+  {
+    class Operations : public ReadOnlyOperationsT3<std::string&, const std::string&, const std::string& >
+    {
+      bool found_;
+    public:
+      Operations():
+        found_(false)
+      {}
+
+      bool HasFound()
+      {
+        return found_;
+      }
+
+      virtual void ApplyTuple(ReadOnlyTransaction& transaction,
+                              const Tuple& tuple) ORTHANC_OVERRIDE
+      {
+        found_ = transaction.GetKeyValue(tuple.get<0>(), tuple.get<1>(), tuple.get<2>());
+      }
+    };
+
+    Operations operations;
+    operations.Apply(*this, value, pluginId, key);
+
+    return operations.HasFound();
+  }
+
+
 }

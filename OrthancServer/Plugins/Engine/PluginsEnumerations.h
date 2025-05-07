@@ -77,6 +77,10 @@ namespace Orthanc
     OrthancPluginCompressionType Convert(CompressionType type);
 
     CompressionType Convert(OrthancPluginCompressionType type);
+
+    OrthancPluginStoreStatus Convert(StoreStatus type);
+
+    StoreStatus Convert(OrthancPluginStoreStatus type);
   }
 }
 

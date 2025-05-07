@@ -1807,6 +1807,27 @@ namespace Orthanc
         find.ExecuteExpand(response, capabilities, request, identifier);
       }
     }
+
+    virtual void StoreKeyValue(const std::string& pluginId,
+                               const std::string& key,
+                               const std::string& value) ORTHANC_OVERRIDE
+    {
+      throw OrthancException(ErrorCode_NotImplemented);  // TODO_ATTACH_CUSTOM_DATA
+    }
+
+    virtual void DeleteKeyValue(const std::string& pluginId,
+                                const std::string& key) ORTHANC_OVERRIDE
+    {
+      throw OrthancException(ErrorCode_NotImplemented);  // TODO_ATTACH_CUSTOM_DATA
+    }
+
+    virtual bool GetKeyValue(std::string& value,
+                             const std::string& pluginId,
+                             const std::string& key) ORTHANC_OVERRIDE
+    {
+      throw OrthancException(ErrorCode_NotImplemented);  // TODO_ATTACH_CUSTOM_DATA
+    }
+
   };
 
 
@@ -1897,6 +1918,7 @@ namespace Orthanc
       dbCapabilities_.SetMeasureLatency(systemInfo.has_measure_latency());
       dbCapabilities_.SetHasExtendedChanges(systemInfo.has_extended_changes());
       dbCapabilities_.SetHasFindSupport(systemInfo.supports_find());
+      dbCapabilities_.SetHasKeyValueStore(systemInfo.has_key_value_store());
     }
 
     open_ = true;

@@ -225,6 +225,14 @@ private:
 
     void ApplyAdoptAttachment(const _OrthancPluginAdoptAttachment& parameters);
 
+    bool HasKeyValueStore();
+
+    void ApplyStoreKeyValue(const _OrthancPluginStoreKeyValue& parameters);
+
+    void ApplyDeleteKeyValue(const _OrthancPluginDeleteKeyValue& parameters);
+
+    bool ApplyGetKeyValue(const _OrthancPluginGetKeyValue& parameters);
+
     void ComputeHash(_OrthancPluginService service,
                      const void* parameters);
 
