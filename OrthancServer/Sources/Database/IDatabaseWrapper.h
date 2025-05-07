@@ -57,6 +57,7 @@ namespace Orthanc
       bool hasFindSupport_;
       bool hasExtendedChanges_;
       bool hasAttachmentCustomDataSupport_;
+      bool hasKeyValueStore_;
 
     public:
       Capabilities() :
@@ -68,7 +69,8 @@ namespace Orthanc
         hasMeasureLatency_(false),
         hasFindSupport_(false),
         hasExtendedChanges_(false),
-        hasAttachmentCustomDataSupport_(false)
+        hasAttachmentCustomDataSupport_(false),
+        hasKeyValueStore_(false)
       {
       }
 
@@ -160,6 +162,16 @@ namespace Orthanc
       bool HasFindSupport() const
       {
         return hasFindSupport_;
+      }
+
+      void SetHasKeyValueStore(bool value)
+      {
+        hasKeyValueStore_ = value;
+      }
+
+      bool HasKeyValueStore() const
+      {
+        return hasKeyValueStore_;
       }
     };
 
@@ -402,6 +414,20 @@ namespace Orthanc
                                       int64_t to,
                                       uint32_t limit,
                                       const std::set<ChangeType>& filterType) = 0;
+
+      // New in Orthanc 1.12.99
+      virtual void StoreKeyValue(const std::string& pluginId,
+                                 const std::string& key,
+                                 const std::string& value) = 0;
+
+      // New in Orthanc 1.12.99
+      virtual void DeleteKeyValue(const std::string& pluginId,
+                                  const std::string& key) = 0;
+
+      // New in Orthanc 1.12.99
+      virtual bool GetKeyValue(std::string& value,
+                               const std::string& pluginId,
+                               const std::string& key) = 0;
     };
 
 

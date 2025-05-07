@@ -1063,6 +1063,27 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_InternalError);  // Not supported
     }
+
+    virtual void StoreKeyValue(const std::string& pluginId,
+                               const std::string& key,
+                               const std::string& value) ORTHANC_OVERRIDE
+    {
+      throw OrthancException(ErrorCode_InternalError);  // Not supported
+    }
+
+    virtual void DeleteKeyValue(const std::string& pluginId,
+                                const std::string& key) ORTHANC_OVERRIDE
+    {
+      throw OrthancException(ErrorCode_InternalError);  // Not supported
+    }
+
+    virtual bool GetKeyValue(std::string& value,
+                             const std::string& pluginId,
+                             const std::string& key) ORTHANC_OVERRIDE
+    {
+      throw OrthancException(ErrorCode_InternalError);  // Not supported
+    }
+
   };
 
   

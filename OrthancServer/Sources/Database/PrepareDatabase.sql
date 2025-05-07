@@ -159,6 +159,16 @@ BEGIN
   INSERT INTO PatientRecyclingOrder VALUES (NULL, new.internalId);
 END;
 
+-- new in Orthanc 1.12.99
+CREATE TABLE KeyValueStore(
+       pluginId TEXT NOT NULL,
+       key TEXT NOT NULL,
+       value TEXT NOT NULL,
+       PRIMARY KEY(pluginId, key)  -- Prevents duplicates
+       );
+
+-- new in Orthanc 1.12.99
+CREATE INDEX KeyValueStoreIndex ON KeyValueStore (pluginId, key);
 
 -- Set the version of the database schema
 -- The "1" corresponds to the "GlobalProperty_DatabaseSchemaVersion" enumeration

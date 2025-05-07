@@ -2102,6 +2102,48 @@ namespace Orthanc
         target.insert(s.ColumnString(0));
       }
     }
+
+    virtual void StoreKeyValue(const std::string& pluginId,
+                               const std::string& key,
+                               const std::string& value) ORTHANC_OVERRIDE
+    {
+      SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT OR REPLACE INTO KeyValueStore (pluginId, key, value) VALUES(?, ?, ?)");
+      s.BindString(0, pluginId);
+      s.BindString(1, key);
+      s.BindString(2, value);
+      s.Run();
+    }
+
+    virtual void DeleteKeyValue(const std::string& pluginId,
+                                const std::string& key) ORTHANC_OVERRIDE
+    {
+      SQLite::Statement s(db_, SQLITE_FROM_HERE, "DELETE FROM KeyValueStore WHERE pluginId = ? AND key = ?");
+      s.BindString(0, pluginId);
+      s.BindString(1, key);
+      s.Run();
+    }
+
+    virtual bool GetKeyValue(std::string& value,
+                             const std::string& pluginId,
+                             const std::string& key) ORTHANC_OVERRIDE
+    {
+      SQLite::Statement s(db_, SQLITE_FROM_HERE, 
+                          "SELECT value FROM KeyValueStore WHERE pluginId=? AND key=?");
+      s.BindString(0, pluginId);
+      s.BindString(1, key);
+
+      if (!s.Step())
+      {
+        // No value found
+        return false;
+      }
+      else
+      {
+        value = s.ColumnString(0);
+        return true;
+      }    
+    }
+
   };
 
 
@@ -2296,11 +2338,12 @@ namespace Orthanc
     signalRemainingAncestor_(NULL),
     version_(0)
   {
-    // TODO: implement revisions in SQLite
+    dbCapabilities_.SetRevisionsSupport(true);
     dbCapabilities_.SetFlushToDisk(true);
     dbCapabilities_.SetLabelsSupport(true);
     dbCapabilities_.SetHasExtendedChanges(true);
     dbCapabilities_.SetHasFindSupport(HasIntegratedFind());
+    dbCapabilities_.SetHasKeyValueStore(true);
     db_.Open(path);
   }
 
@@ -2310,11 +2353,12 @@ namespace Orthanc
     signalRemainingAncestor_(NULL),
     version_(0)
   {
-    // TODO: implement revisions in SQLite
+    dbCapabilities_.SetRevisionsSupport(true);
     dbCapabilities_.SetFlushToDisk(true);
     dbCapabilities_.SetLabelsSupport(true);
     dbCapabilities_.SetHasExtendedChanges(true);
     dbCapabilities_.SetHasFindSupport(HasIntegratedFind());
+    dbCapabilities_.SetHasKeyValueStore(true);
     db_.OpenInMemory();
   }
 
@@ -2412,17 +2456,22 @@ namespace Orthanc
           ServerResources::GetFileResource(query, ServerResources::INSTALL_LABELS_TABLE);
           db_.Execute(query);
         }
-      }
 
-      // New in Orthanc 1.12.99
-      if (version_ >= 6)
-      {
+        // New in Orthanc 1.12.99
         if (!transaction->LookupGlobalProperty(tmp, GlobalProperty_SQLiteHasCustomDataAndRevision, true /* unused in SQLite */) 
             || tmp != "1")
         {
           LOG(INFO) << "Upgrading SQLite schema to support revision and customData";
           std::string query;
           ServerResources::GetFileResource(query, ServerResources::INSTALL_REVISION_AND_CUSTOM_DATA);
+          db_.Execute(query);
+        }
+
+        if (!db_.DoesTableExist("KeyValueStore"))
+        {
+          LOG(INFO) << "Installing the \"KeyValueStore\" table";
+          std::string query;
+          ServerResources::GetFileResource(query, ServerResources::INSTALL_KEY_VALUE_STORE);
           db_.Execute(query);
         }
       }

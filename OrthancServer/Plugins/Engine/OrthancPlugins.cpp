@@ -4675,7 +4675,48 @@ namespace Orthanc
 
       ServerContext::StoreResult result = lock.GetContext().AdoptAttachment(resultPublicId, *dicom, StoreInstanceMode_Default, adoptedFile);
 
-      // TODO_ATTACH_CUSTOM_DATA: handle result
+      CopyToMemoryBuffer(*parameters.attachmentUuid, adoptedFile.GetUuid().size() > 0 ? adoptedFile.GetUuid().c_str() : NULL, adoptedFile.GetUuid().size());
+      CopyToMemoryBuffer(*parameters.createdResourceId, resultPublicId.size() > 0 ? resultPublicId.c_str() : NULL, resultPublicId.size());
+      *(parameters.storeStatus) = Plugins::Convert(result.GetStatus());
+    }
+  }
+
+  bool OrthancPlugins::HasKeyValueStore()
+  {
+    PImpl::ServerContextReference lock(*pimpl_);
+
+    return lock.GetContext().GetIndex().HasKeyValueStore();
+  }
+
+  void OrthancPlugins::ApplyStoreKeyValue(const _OrthancPluginStoreKeyValue& parameters)
+  {
+    PImpl::ServerContextReference lock(*pimpl_);
+    std::string value(parameters.value, parameters.valueSize);
+
+    lock.GetContext().GetIndex().StoreKeyValue(parameters.pluginIdentifier, parameters.key, value);
+  }
+
+  void OrthancPlugins::ApplyDeleteKeyValue(const _OrthancPluginDeleteKeyValue& parameters)
+  {
+    PImpl::ServerContextReference lock(*pimpl_);
+
+    lock.GetContext().GetIndex().DeleteKeyValue(parameters.pluginIdentifier, parameters.key);
+  }
+
+  bool OrthancPlugins::ApplyGetKeyValue(const _OrthancPluginGetKeyValue& parameters)
+  {
+    PImpl::ServerContextReference lock(*pimpl_);
+
+    std::string value;
+
+    if (lock.GetContext().GetIndex().GetKeyValue(value, parameters.pluginIdentifier, parameters.key))
+    {
+      CopyToMemoryBuffer(*parameters.value, value.size() > 0 ? value.c_str() : NULL, value.size());
+      return true;
+    }
+    else
+    {
+      return false;
     }
   }
 
@@ -5753,6 +5794,54 @@ namespace Orthanc
           *reinterpret_cast<const _OrthancPluginAdoptAttachment*>(parameters);
         ApplyAdoptAttachment(p);
         return true;
+      }
+
+      case _OrthancPluginService_StoreKeyValue:
+      {
+        if (!HasKeyValueStore())
+        {
+          LOG(ERROR) << "The DB engine does not support Key Value Store";
+          return false;
+        }
+
+        const _OrthancPluginStoreKeyValue& p =
+          *reinterpret_cast<const _OrthancPluginStoreKeyValue*>(parameters);
+        ApplyStoreKeyValue(p);
+        return true;
+      }
+
+      case _OrthancPluginService_DeleteKeyValue:
+      {
+        if (!HasKeyValueStore())
+        {
+          LOG(ERROR) << "The DB engine does not support Key Value Store";
+          return false;
+        }
+
+        const _OrthancPluginDeleteKeyValue& p =
+          *reinterpret_cast<const _OrthancPluginDeleteKeyValue*>(parameters);
+        ApplyDeleteKeyValue(p);
+        return true;
+      }
+
+      case _OrthancPluginService_GetKeyValue:
+      {
+        if (!HasKeyValueStore())
+        {
+          LOG(ERROR) << "The DB engine does not support Key Value Store";
+          return false;
+        }
+
+        const _OrthancPluginGetKeyValue& p =
+          *reinterpret_cast<const _OrthancPluginGetKeyValue*>(parameters);
+        if (ApplyGetKeyValue(p))
+        {
+          return true;
+        }
+        else
+        {
+          throw OrthancException(ErrorCode_UnknownResource);
+        }
       }
 
       default:

@@ -469,7 +469,10 @@ extern "C"
     _OrthancPluginService_SetMetricsIntegerValue = 43,              /* New in Orthanc 1.12.1 */
     _OrthancPluginService_SetCurrentThreadName = 44,                /* New in Orthanc 1.12.2 */
     _OrthancPluginService_LogMessage = 45,                          /* New in Orthanc 1.12.4 */
-    _OrthancPluginService_AdoptAttachment = 46,                     /* New in Orthanc 99 */
+    _OrthancPluginService_AdoptAttachment = 46,                     /* New in Orthanc 1.12.99 */
+    _OrthancPluginService_StoreKeyValue = 47,                       /* New in Orthanc 1.12.99 */
+    _OrthancPluginService_DeleteKeyValue = 48,                      /* New in Orthanc 1.12.99 */
+    _OrthancPluginService_GetKeyValue = 49,                         /* New in Orthanc 1.12.99 */
 
 
     /* Registration of callbacks */
@@ -1131,6 +1134,18 @@ extern "C"
     _OrthancPluginLogCategory_INTERNAL = 0x7fffffff
   } OrthancPluginLogCategory;
 
+
+  /**
+   * The store status response to AdoptAttachment.
+   **/
+  typedef enum
+  {
+    OrthancPluginStoreStatus_Success = 0,         /*!< The file has been stored/adopted */
+    OrthancPluginStoreStatus_AlreadyStored = 1,   /*!< The file has already been stored/adopted (only if OverwriteInstances is set to false)*/
+    OrthancPluginStoreStatus_Failure = 2,         /*!< The file could not be stored/adopted */
+    OrthancPluginStoreStatus_FilteredOut = 3,     /*!< The file has been filtered out by a lua script or a plugin */
+    OrthancPluginStoreStatus_StorageFull = 4      /*!< The storage is full (only if MaximumStorageSize/MaximumPatientCount is set and MaximumStorageMode is Reject)*/
+  } OrthancPluginStoreStatus;
 
   /**
    * @brief A 32-bit memory buffer allocated by the core system of Orthanc.
@@ -9772,6 +9787,7 @@ extern "C"
     const char*                   attachToResourceId; /* in */
     OrthancPluginMemoryBuffer*    createdResourceId; /* out */
     OrthancPluginMemoryBuffer*    attachmentUuid;    /* out */
+    OrthancPluginStoreStatus*     storeStatus;       /* out */
   } _OrthancPluginAdoptAttachment;
   
   /**
@@ -9789,7 +9805,9 @@ TODO_ATTACH_CUSTOM_DATA TODO TODO
     OrthancPluginResourceType     attachToResourceType,
     const char*                   attachToResourceId,
     OrthancPluginMemoryBuffer*    createdResourceId, /* out */
-    OrthancPluginMemoryBuffer*    attachmentUuid) /* out */
+    OrthancPluginMemoryBuffer*    attachmentUuid, /* out */
+    OrthancPluginStoreStatus*     storeStatus /* out */
+  ) 
   {
     _OrthancPluginAdoptAttachment params;
     params.buffer = buffer;
@@ -9800,8 +9818,90 @@ TODO_ATTACH_CUSTOM_DATA TODO TODO
     params.attachToResourceId = attachToResourceId;
     params.createdResourceId = createdResourceId;
     params.attachmentUuid = attachmentUuid;
+    params.storeStatus = storeStatus;
 
     return context->InvokeService(context, _OrthancPluginService_AdoptAttachment, &params);
+  }
+
+  typedef struct
+  {
+    const char*                   pluginIdentifier;
+    const char*                   key;
+    const char*                   value;
+    uint64_t                      valueSize;
+  } _OrthancPluginStoreKeyValue;
+  
+  /**
+   * @brief Tell Orthanc to store a key-value in its store.
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+TODO_ATTACH_CUSTOM_DATA TODO TODO
+   **/
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginStoreKeyValue(
+    OrthancPluginContext*         context,
+    const char*                   pluginIdentifier, /* in */
+    const char*                   key, /* in */
+    const char*                   value, /* in */
+    uint64_t                      valueSize /* in */)
+  {
+    _OrthancPluginStoreKeyValue params;
+    params.pluginIdentifier = pluginIdentifier;
+    params.key = key;
+    params.value = value;
+    params.valueSize = valueSize;
+
+    return context->InvokeService(context, _OrthancPluginService_StoreKeyValue, &params);
+  }
+
+  typedef struct
+  {
+    const char*                   pluginIdentifier;
+    const char*                   key;
+  } _OrthancPluginDeleteKeyValue;
+  
+  /**
+   * @brief Tell Orthanc to delete a key-value from its store.
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+TODO_ATTACH_CUSTOM_DATA TODO TODO
+   **/
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginDeleteKeyValue(
+    OrthancPluginContext*         context,
+    const char*                   pluginIdentifier, /* in */
+    const char*                   key /* in */)
+  {
+    _OrthancPluginDeleteKeyValue params;
+    params.pluginIdentifier = pluginIdentifier;
+    params.key = key;
+
+    return context->InvokeService(context, _OrthancPluginService_DeleteKeyValue, &params);
+  }
+
+  typedef struct
+  {
+    const char*                   pluginIdentifier;
+    const char*                   key;
+    OrthancPluginMemoryBuffer*    value;
+  } _OrthancPluginGetKeyValue;
+  
+  /**
+   * @brief Get the value associated to this key in the key-value store.
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+TODO_ATTACH_CUSTOM_DATA TODO TODO
+   **/
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginGetKeyValue(
+    OrthancPluginContext*         context,
+    const char*                   pluginIdentifier, /* in */
+    const char*                   key, /* in */
+    OrthancPluginMemoryBuffer*    value /* out */)
+  {
+    _OrthancPluginGetKeyValue params;
+    params.pluginIdentifier = pluginIdentifier;
+    params.key = key;
+    params.value = value;
+
+    return context->InvokeService(context, _OrthancPluginService_GetKeyValue, &params);
   }
 
 #ifdef  __cplusplus

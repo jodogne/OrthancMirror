@@ -167,6 +167,7 @@ message GetSystemInformation {
     bool has_measure_latency = 7;
     bool supports_find = 8;         // New in Orthanc 1.12.5
     bool has_extended_changes = 9;  // New in Orthanc 1.12.5
+    bool has_key_value_store = 10;  // New in Orthanc 1.12.99
   }
 }
 
@@ -322,6 +323,9 @@ enum TransactionOperation {
   OPERATION_FIND = 50;                        // New in Orthanc 1.12.5
   OPERATION_GET_CHANGES_EXTENDED = 51;        // New in Orthanc 1.12.5
   OPERATION_COUNT_RESOURCES = 52;             // New in Orthanc 1.12.5
+  OPERATION_STORE_KEY_VALUE = 53;             // New in Orthanc 1.12.99
+  OPERATION_DELETE_KEY_VALUE = 54;            // New in Orthanc 1.12.99
+  OPERATION_GET_KEY_VALUE = 55;               // New in Orthanc 1.12.99
 }
 
 message Rollback {
@@ -975,6 +979,39 @@ message CountResources
   }
 }
 
+message StoreKeyValue {
+  message Request {
+    string plugin_id = 1;
+    string key = 2;
+    string value = 3;
+  }
+
+  message Response {
+  }
+}
+
+message DeleteKeyValue {
+  message Request {
+    string plugin_id = 1;
+    string key = 2;
+  }
+
+  message Response {
+  }
+}
+
+message GetKeyValue {
+  message Request {
+    string plugin_id = 1;
+    string key = 2;
+  }
+
+  message Response {
+    string value = 1;
+  }
+}
+
+
 message TransactionRequest {
   sfixed64              transaction = 1;
   TransactionOperation  operation = 2;
@@ -1032,6 +1069,9 @@ message TransactionRequest {
   Find.Request                            find = 150;
   GetChangesExtended.Request              get_changes_extended = 151;
   Find.Request                            count_resources = 152;
+  StoreKeyValue.Request                   store_key_value = 153;
+  DeleteKeyValue.Request                  delete_key_value = 154;
+  GetKeyValue.Request                     get_key_value = 155;
 }
 
 message TransactionResponse {
@@ -1088,6 +1128,9 @@ message TransactionResponse {
   repeated Find.Response                   find = 150;   // One message per found resource
   GetChangesExtended.Response              get_changes_extended = 151;
   CountResources.Response                  count_resources = 152;
+  StoreKeyValue.Response                   store_key_value = 153;
+  DeleteKeyValue.Response                  delete_key_value = 154;
+  GetKeyValue.Response                     get_key_value = 155;
 }
 
 enum RequestType {

@@ -696,5 +696,54 @@ namespace Orthanc
       }
     }
 
+    OrthancPluginStoreStatus Convert(StoreStatus status)
+    {
+      switch (status)
+      {
+        case StoreStatus_Success:
+          return OrthancPluginStoreStatus_Success;
+
+        case StoreStatus_AlreadyStored:
+          return OrthancPluginStoreStatus_AlreadyStored;
+
+        case StoreStatus_Failure:
+          return OrthancPluginStoreStatus_Failure;
+
+        case StoreStatus_FilteredOut:
+          return OrthancPluginStoreStatus_FilteredOut;
+
+        case StoreStatus_StorageFull:
+          return OrthancPluginStoreStatus_StorageFull;
+
+        default:
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+    }
+
+
+    StoreStatus Convert(OrthancPluginStoreStatus status)
+    {
+      switch (status)
+      {
+        case OrthancPluginStoreStatus_Success:
+          return StoreStatus_Success;
+
+        case OrthancPluginStoreStatus_AlreadyStored:
+          return StoreStatus_AlreadyStored;
+
+        case OrthancPluginStoreStatus_Failure:
+          return StoreStatus_Failure;
+
+        case OrthancPluginStoreStatus_FilteredOut:
+          return StoreStatus_FilteredOut;
+
+        case OrthancPluginStoreStatus_StorageFull:
+          return StoreStatus_StorageFull;
+
+        default:
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+    }
+
   }
 }

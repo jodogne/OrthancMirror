@@ -13,7 +13,7 @@ General
 Plugins
 -------
 
-* New database plugin SDK (vX) to handle customData for attachments.
+* New database plugin SDK (vX) to handle customData for attachments and key-value store.
 * New storage plugin SDK (v3) to handle customData for attachments.
 
 

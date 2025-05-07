@@ -293,6 +293,14 @@ namespace Orthanc
       {
         transaction_.ExecuteExpand(response, capabilities, request, identifier);
       }
+
+      bool GetKeyValue(std::string& value,
+                       const std::string& pluginId,
+                       const std::string& key)
+      {
+        return transaction_.GetKeyValue(value, pluginId, key);
+      }
+
     };
 
 
@@ -428,6 +436,20 @@ namespace Orthanc
       {
         transaction_.RemoveLabel(id, label);
       }
+
+      void StoreKeyValue(const std::string& pluginId,
+                         const std::string& key,
+                         const std::string& value)
+      {
+        transaction_.StoreKeyValue(pluginId, key, value);
+      }
+
+      void DeleteKeyValue(const std::string& pluginId,
+                          const std::string& key)
+      {
+        transaction_.DeleteKeyValue(pluginId, key);
+      }
+
     };
 
 
@@ -544,6 +566,8 @@ namespace Orthanc
     bool HasExtendedChanges();
 
     bool HasFindSupport();
+
+    bool HasKeyValueStore();
     
     void GetExportedResources(Json::Value& target,
                               int64_t since,
@@ -724,5 +748,17 @@ namespace Orthanc
 
     void ExecuteCount(uint64_t& count,
                       const FindRequest& request);
+
+    void StoreKeyValue(const std::string& pluginId,
+                       const std::string& key,
+                       const std::string& value);
+
+    void DeleteKeyValue(const std::string& pluginId,
+                        const std::string& key);
+
+    bool GetKeyValue(std::string& value,
+                     const std::string& pluginId,
+                     const std::string& key);
+
   };
 }
