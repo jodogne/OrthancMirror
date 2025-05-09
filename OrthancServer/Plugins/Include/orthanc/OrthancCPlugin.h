@@ -9780,12 +9780,11 @@ extern "C"
   typedef struct
   {
     const void*                   buffer; /* in */
-    uint64_t                      bufferSize; /* in, can be only the beginning of a DICOM file (until the pixel data) */
-    // TODO_ATTACH_CUSTOM_DATA uint64_t                      pixelDataOffset; /* in, zero = undefined */
-    OrthancPluginAttachment2*     attachmentInfo;  /* in, uuid may not be defined */
+    uint64_t                      bufferSize; /* in */
+    OrthancPluginAttachment2*     attachmentInfo;  /* in, note: uuid may not be defined */
     OrthancPluginResourceType     attachToResourceType; /* in */
-    const char*                   attachToResourceId; /* in */
-    OrthancPluginMemoryBuffer*    createdResourceId; /* out */
+    const char*                   attachToResourceId; /* in, can be null in case the attachment is a new instance */
+    OrthancPluginMemoryBuffer*    createdResourceId; /* out, in case the attachment is actually a new instance */
     OrthancPluginMemoryBuffer*    attachmentUuid;    /* out */
     OrthancPluginStoreStatus*     storeStatus;       /* out */
   } _OrthancPluginAdoptAttachment;
@@ -9800,7 +9799,6 @@ TODO_ATTACH_CUSTOM_DATA TODO TODO
     OrthancPluginContext*         context,
     const void*                   buffer,
     uint64_t                      bufferSize,
-    // TODO_ATTACH_CUSTOM_DATA uint64_t                      pixelDataOffset,
     OrthancPluginAttachment2*     attachmentInfo,
     OrthancPluginResourceType     attachToResourceType,
     const char*                   attachToResourceId,
@@ -9812,7 +9810,6 @@ TODO_ATTACH_CUSTOM_DATA TODO TODO
     _OrthancPluginAdoptAttachment params;
     params.buffer = buffer;
     params.bufferSize = bufferSize;
-    // TODO_ATTACH_CUSTOM_DATA ? params.pixelDataOffset = pixelDataOffset; 
     params.attachmentInfo = attachmentInfo;
     params.attachToResourceType = attachToResourceType;
     params.attachToResourceId = attachToResourceId;
