@@ -745,5 +745,35 @@ namespace Orthanc
       }
     }
 
+    OrthancPluginQueueOrigin Convert(QueueOrigin origin)
+    {
+      switch (origin)
+      {
+        case QueueOrigin_Front:
+          return OrthancPluginQueueOrigin_Front;
+
+        case QueueOrigin_Back:
+          return OrthancPluginQueueOrigin_Back;
+
+        default:
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+    }
+
+    QueueOrigin Convert(OrthancPluginQueueOrigin origin)
+    {
+      switch (origin)
+      {
+        case OrthancPluginQueueOrigin_Front:
+          return QueueOrigin_Front;
+
+        case OrthancPluginQueueOrigin_Back:
+          return QueueOrigin_Back;
+
+        default:
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+      }
+    }
+
   }
 }

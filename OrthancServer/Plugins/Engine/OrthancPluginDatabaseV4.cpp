@@ -1808,24 +1808,37 @@ namespace Orthanc
       }
     }
 
-    virtual void StoreKeyValue(const std::string& pluginId,
+    virtual void StoreKeyValue(const std::string& storeId,
                                const std::string& key,
                                const std::string& value) ORTHANC_OVERRIDE
     {
       throw OrthancException(ErrorCode_NotImplemented);  // TODO_ATTACH_CUSTOM_DATA
     }
 
-    virtual void DeleteKeyValue(const std::string& pluginId,
+    virtual void DeleteKeyValue(const std::string& storeId,
                                 const std::string& key) ORTHANC_OVERRIDE
     {
       throw OrthancException(ErrorCode_NotImplemented);  // TODO_ATTACH_CUSTOM_DATA
     }
 
     virtual bool GetKeyValue(std::string& value,
-                             const std::string& pluginId,
+                             const std::string& storeId,
                              const std::string& key) ORTHANC_OVERRIDE
     {
       throw OrthancException(ErrorCode_NotImplemented);  // TODO_ATTACH_CUSTOM_DATA
+    }
+
+    virtual void EnqueueValue(const std::string& queueId,
+                              const std::string& value) ORTHANC_OVERRIDE
+    {
+      throw OrthancException(ErrorCode_InternalError);  // Not supported
+    }
+
+    virtual bool DequeueValue(std::string& value,
+                              const std::string& queueId,
+                              QueueOrigin origin) ORTHANC_OVERRIDE
+    {
+      throw OrthancException(ErrorCode_InternalError);  // Not supported
     }
 
   };
@@ -1919,6 +1932,7 @@ namespace Orthanc
       dbCapabilities_.SetHasExtendedChanges(systemInfo.has_extended_changes());
       dbCapabilities_.SetHasFindSupport(systemInfo.supports_find());
       dbCapabilities_.SetHasKeyValueStore(systemInfo.has_key_value_store());
+      dbCapabilities_.SetHasQueue(systemInfo.has_queue());
     }
 
     open_ = true;

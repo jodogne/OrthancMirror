@@ -295,10 +295,10 @@ namespace Orthanc
       }
 
       bool GetKeyValue(std::string& value,
-                       const std::string& pluginId,
+                       const std::string& storeId,
                        const std::string& key)
       {
-        return transaction_.GetKeyValue(value, pluginId, key);
+        return transaction_.GetKeyValue(value, storeId, key);
       }
 
     };
@@ -437,18 +437,32 @@ namespace Orthanc
         transaction_.RemoveLabel(id, label);
       }
 
-      void StoreKeyValue(const std::string& pluginId,
+      void StoreKeyValue(const std::string& storeId,
                          const std::string& key,
                          const std::string& value)
       {
-        transaction_.StoreKeyValue(pluginId, key, value);
+        transaction_.StoreKeyValue(storeId, key, value);
       }
 
-      void DeleteKeyValue(const std::string& pluginId,
+      void DeleteKeyValue(const std::string& storeId,
                           const std::string& key)
       {
-        transaction_.DeleteKeyValue(pluginId, key);
+        transaction_.DeleteKeyValue(storeId, key);
       }
+
+      void EnqueueValue(const std::string& queueId,
+                        const std::string& value)
+      {
+        transaction_.EnqueueValue(queueId, value);
+      }
+
+      bool DequeueValue(std::string& value,
+                        const std::string& queueId,
+                        QueueOrigin origin)
+      {
+        return transaction_.DequeueValue(value, queueId, origin);
+      }
+
 
     };
 
@@ -568,6 +582,8 @@ namespace Orthanc
     bool HasFindSupport();
 
     bool HasKeyValueStore();
+
+    bool HasQueue();
     
     void GetExportedResources(Json::Value& target,
                               int64_t since,
@@ -749,16 +765,23 @@ namespace Orthanc
     void ExecuteCount(uint64_t& count,
                       const FindRequest& request);
 
-    void StoreKeyValue(const std::string& pluginId,
+    void StoreKeyValue(const std::string& storeId,
                        const std::string& key,
                        const std::string& value);
 
-    void DeleteKeyValue(const std::string& pluginId,
+    void DeleteKeyValue(const std::string& storeId,
                         const std::string& key);
 
     bool GetKeyValue(std::string& value,
-                     const std::string& pluginId,
+                     const std::string& storeId,
                      const std::string& key);
+
+    void EnqueueValue(const std::string& queueId,
+                      const std::string& value);
+
+    bool DequeueValue(std::string& value,
+                      const std::string& queueId,
+                      QueueOrigin origin);
 
   };
 }

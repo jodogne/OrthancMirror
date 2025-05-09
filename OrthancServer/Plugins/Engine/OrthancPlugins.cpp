@@ -4720,6 +4720,38 @@ namespace Orthanc
     }
   }
 
+  bool OrthancPlugins::HasQueue()
+  {
+    PImpl::ServerContextReference lock(*pimpl_);
+
+    return lock.GetContext().GetIndex().HasQueue();
+  }
+
+  void OrthancPlugins::ApplyEnqueueValue(const _OrthancPluginEnqueueValue& parameters)
+  {
+    PImpl::ServerContextReference lock(*pimpl_);
+    std::string value(parameters.value, parameters.valueSize);
+
+    lock.GetContext().GetIndex().EnqueueValue(parameters.pluginIdentifier, value);
+  }
+
+  bool OrthancPlugins::ApplyDequeueValue(const _OrthancPluginDequeueValue& parameters)
+  {
+    PImpl::ServerContextReference lock(*pimpl_);
+
+    std::string value;
+
+    if (lock.GetContext().GetIndex().DequeueValue(value, parameters.pluginIdentifier, Plugins::Convert(parameters.origin)))
+    {
+      CopyToMemoryBuffer(*parameters.value, value.size() > 0 ? value.c_str() : NULL, value.size());
+      return true;
+    }
+    else
+    {
+      return false;
+    }
+  }
+
   void OrthancPlugins::ApplyLoadDicomInstance(const _OrthancPluginLoadDicomInstance& params)
   {
     std::unique_ptr<IDicomInstance> target;
@@ -5835,6 +5867,40 @@ namespace Orthanc
         const _OrthancPluginGetKeyValue& p =
           *reinterpret_cast<const _OrthancPluginGetKeyValue*>(parameters);
         if (ApplyGetKeyValue(p))
+        {
+          return true;
+        }
+        else
+        {
+          throw OrthancException(ErrorCode_UnknownResource);
+        }
+      }
+
+      case _OrthancPluginService_EnqueueValue:
+      {
+        if (!HasQueue())
+        {
+          LOG(ERROR) << "The DB engine does not support Queues";
+          return false;
+        }
+
+        const _OrthancPluginEnqueueValue& p =
+          *reinterpret_cast<const _OrthancPluginEnqueueValue*>(parameters);
+        ApplyEnqueueValue(p);
+        return true;
+      }
+
+      case _OrthancPluginService_DequeueValue:
+      {
+        if (!HasQueue())
+        {
+          LOG(ERROR) << "The DB engine does not support Queues";
+          return false;
+        }
+
+        const _OrthancPluginDequeueValue& p =
+          *reinterpret_cast<const _OrthancPluginDequeueValue*>(parameters);
+        if (ApplyDequeueValue(p))
         {
           return true;
         }

@@ -2103,33 +2103,33 @@ namespace Orthanc
       }
     }
 
-    virtual void StoreKeyValue(const std::string& pluginId,
+    virtual void StoreKeyValue(const std::string& storeId,
                                const std::string& key,
                                const std::string& value) ORTHANC_OVERRIDE
     {
-      SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT OR REPLACE INTO KeyValueStore (pluginId, key, value) VALUES(?, ?, ?)");
-      s.BindString(0, pluginId);
+      SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT OR REPLACE INTO KeyValueStore (storeId, key, value) VALUES(?, ?, ?)");
+      s.BindString(0, storeId);
       s.BindString(1, key);
       s.BindString(2, value);
       s.Run();
     }
 
-    virtual void DeleteKeyValue(const std::string& pluginId,
+    virtual void DeleteKeyValue(const std::string& storeId,
                                 const std::string& key) ORTHANC_OVERRIDE
     {
-      SQLite::Statement s(db_, SQLITE_FROM_HERE, "DELETE FROM KeyValueStore WHERE pluginId = ? AND key = ?");
-      s.BindString(0, pluginId);
+      SQLite::Statement s(db_, SQLITE_FROM_HERE, "DELETE FROM KeyValueStore WHERE storeId = ? AND key = ?");
+      s.BindString(0, storeId);
       s.BindString(1, key);
       s.Run();
     }
 
     virtual bool GetKeyValue(std::string& value,
-                             const std::string& pluginId,
+                             const std::string& storeId,
                              const std::string& key) ORTHANC_OVERRIDE
     {
       SQLite::Statement s(db_, SQLITE_FROM_HERE, 
-                          "SELECT value FROM KeyValueStore WHERE pluginId=? AND key=?");
-      s.BindString(0, pluginId);
+                          "SELECT value FROM KeyValueStore WHERE storeId=? AND key=?");
+      s.BindString(0, storeId);
       s.BindString(1, key);
 
       if (!s.Step())
@@ -2143,6 +2143,58 @@ namespace Orthanc
         return true;
       }    
     }
+
+    // New in Orthanc 1.12.99
+    virtual void EnqueueValue(const std::string& queueId,
+                              const std::string& value) ORTHANC_OVERRIDE
+    {
+      SQLite::Statement s(db_, SQLITE_FROM_HERE, 
+                          "INSERT INTO Queues (queueId, value) VALUES (?, ?)");
+      s.BindString(0, queueId);
+      s.BindString(1, value);
+      s.Run();
+    }
+
+    // New in Orthanc 1.12.99
+    virtual bool DequeueValue(std::string& value,
+                              const std::string& queueId,
+                              QueueOrigin origin) ORTHANC_OVERRIDE
+    {
+      int64_t rowId;
+      std::unique_ptr<SQLite::Statement> s;
+
+      switch (origin)
+      {
+        case QueueOrigin_Front:
+          s.reset(new SQLite::Statement(db_, SQLITE_FROM_HERE, "SELECT id, value FROM KeyValueStore WHERE queueId=? ORDER BY id ASC LIMIT 1"));
+          break;
+        case QueueOrigin_Back:
+          s.reset(new SQLite::Statement(db_, SQLITE_FROM_HERE, "SELECT id, value FROM KeyValueStore WHERE queueId=? ORDER BY id DESC LIMIT 1"));
+          break;
+        default:
+          throw OrthancException(ErrorCode_InternalError);
+      }
+
+      s->BindString(0, queueId);
+      if (!s->Step())
+      {
+        // No value found
+        return false;
+      }
+      else
+      {
+        rowId = s->ColumnInt64(0);
+        value = s->ColumnString(1);
+
+        SQLite::Statement s2(db_, SQLITE_FROM_HERE, 
+                            "DELETE FROM Queues WHERE id = ?");
+        s2.BindInt64(0, rowId);
+        s2.Run();
+
+        return true;
+      }    
+    }
+
 
   };
 
@@ -2344,6 +2396,7 @@ namespace Orthanc
     dbCapabilities_.SetHasExtendedChanges(true);
     dbCapabilities_.SetHasFindSupport(HasIntegratedFind());
     dbCapabilities_.SetHasKeyValueStore(true);
+    dbCapabilities_.SetHasQueue(true);
     db_.Open(path);
   }
 
@@ -2359,6 +2412,7 @@ namespace Orthanc
     dbCapabilities_.SetHasExtendedChanges(true);
     dbCapabilities_.SetHasFindSupport(HasIntegratedFind());
     dbCapabilities_.SetHasKeyValueStore(true);
+    dbCapabilities_.SetHasQueue(true);
     db_.OpenInMemory();
   }
 

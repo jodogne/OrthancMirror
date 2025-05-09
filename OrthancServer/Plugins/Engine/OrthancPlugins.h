@@ -233,6 +233,12 @@ private:
 
     bool ApplyGetKeyValue(const _OrthancPluginGetKeyValue& parameters);
 
+    bool HasQueue();
+
+    void ApplyEnqueueValue(const _OrthancPluginEnqueueValue& parameters);
+
+    bool ApplyDequeueValue(const _OrthancPluginDequeueValue& parameters);
+
     void ComputeHash(_OrthancPluginService service,
                      const void* parameters);
 

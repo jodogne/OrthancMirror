@@ -19,11 +19,19 @@
 -- along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 
-CREATE TABLE KeyValueStore(
-       pluginId TEXT NOT NULL,
+CREATE TABLE KeyValueStores(
+       storeId TEXT NOT NULL,
        key TEXT NOT NULL,
        value TEXT NOT NULL,
-       PRIMARY KEY(pluginId, key)  -- Prevents duplicates
+       PRIMARY KEY(storeId, key)  -- Prevents duplicates
        );
 
-CREATE INDEX KeyValueStoreIndex ON KeyValueStore (pluginId, key);
+CREATE INDEX KeyValueStoresIndex ON KeyValueStores (storeId, key);
+
+CREATE TABLE Queues (
+       id INTEGER PRIMARY KEY AUTOINCREMENT,
+       queueId TEXT NOT NULL,
+       value TEXT
+);
+
+CREATE INDEX QueuesIndex ON Queues (queueId, id);
