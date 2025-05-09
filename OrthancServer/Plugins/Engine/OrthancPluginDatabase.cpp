@@ -1451,22 +1451,35 @@ namespace Orthanc
       throw OrthancException(ErrorCode_InternalError);  // Not supported
     }
 
-    virtual void StoreKeyValue(const std::string& pluginId,
+    virtual void StoreKeyValue(const std::string& storeId,
                                const std::string& key,
                                const std::string& value) ORTHANC_OVERRIDE
     {
       throw OrthancException(ErrorCode_InternalError);  // Not supported
     }
 
-    virtual void DeleteKeyValue(const std::string& pluginId,
+    virtual void DeleteKeyValue(const std::string& storeId,
                                 const std::string& key) ORTHANC_OVERRIDE
     {
       throw OrthancException(ErrorCode_InternalError);  // Not supported
     }
 
     virtual bool GetKeyValue(std::string& value,
-                             const std::string& pluginId,
+                             const std::string& storeId,
                              const std::string& key) ORTHANC_OVERRIDE
+    {
+      throw OrthancException(ErrorCode_InternalError);  // Not supported
+    }
+
+    virtual void EnqueueValue(const std::string& queueId,
+                              const std::string& value) ORTHANC_OVERRIDE
+    {
+      throw OrthancException(ErrorCode_InternalError);  // Not supported
+    }
+
+    virtual bool DequeueValue(std::string& value,
+                              const std::string& queueId,
+                              QueueOrigin origin) ORTHANC_OVERRIDE
     {
       throw OrthancException(ErrorCode_InternalError);  // Not supported
     }

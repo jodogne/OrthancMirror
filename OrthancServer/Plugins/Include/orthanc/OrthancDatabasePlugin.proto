@@ -95,6 +95,11 @@ enum OrderingCast {
   ORDERING_CAST_FLOAT = 2;
 }
 
+enum QueueOrigin {
+  QUEUE_ORIGIN_FRONT = 0;
+  QUEUE_ORIGIN_BACK = 1;
+}
+
 message ServerIndexChange {
   int64         seq = 1;
   int32         change_type = 2;   // opaque "ChangeType" in Orthanc
@@ -168,6 +173,7 @@ message GetSystemInformation {
     bool supports_find = 8;         // New in Orthanc 1.12.5
     bool has_extended_changes = 9;  // New in Orthanc 1.12.5
     bool has_key_value_store = 10;  // New in Orthanc 1.12.99
+    bool has_queue = 11;            // New in Orthanc 1.12.99
   }
 }
 
@@ -326,6 +332,8 @@ enum TransactionOperation {
   OPERATION_STORE_KEY_VALUE = 53;             // New in Orthanc 1.12.99
   OPERATION_DELETE_KEY_VALUE = 54;            // New in Orthanc 1.12.99
   OPERATION_GET_KEY_VALUE = 55;               // New in Orthanc 1.12.99
+  OPERATION_ENQUEUE_VALUE = 56;               // New in Orthanc 1.12.99
+  OPERATION_DEQUEUE_VALUE = 57;               // New in Orthanc 1.12.99
 }
 
 message Rollback {
@@ -1011,6 +1019,26 @@ message GetKeyValue {
   }
 }
 
+message EnqueueValue {
+  message Request {
+    string plugin_id = 1;
+    string value = 2;
+  }
+
+  message Response {
+  }
+}
+
+message DequeueValue {
+  message Request {
+    string plugin_id = 1;
+    QueueOrigin origin = 2;
+  }
+
+  message Response {
+    string value = 1;
+  }
+}
 
 message TransactionRequest {
   sfixed64              transaction = 1;
@@ -1072,6 +1100,8 @@ message TransactionRequest {
   StoreKeyValue.Request                   store_key_value = 153;
   DeleteKeyValue.Request                  delete_key_value = 154;
   GetKeyValue.Request                     get_key_value = 155;
+  EnqueueValue.Request                    enqueue_value = 156;
+  DequeueValue.Request                    dequeue_value = 157;
 }
 
 message TransactionResponse {
@@ -1131,6 +1161,8 @@ message TransactionResponse {
   StoreKeyValue.Response                   store_key_value = 153;
   DeleteKeyValue.Response                  delete_key_value = 154;
   GetKeyValue.Response                     get_key_value = 155;
+  EnqueueValue.Request                    enqueue_value = 156;
+  DequeueValue.Request                    dequeue_value = 157;
 }
 
 enum RequestType {

@@ -160,15 +160,24 @@ BEGIN
 END;
 
 -- new in Orthanc 1.12.99
-CREATE TABLE KeyValueStore(
-       pluginId TEXT NOT NULL,
+CREATE TABLE KeyValueStores(
+       storeId TEXT NOT NULL,
        key TEXT NOT NULL,
        value TEXT NOT NULL,
-       PRIMARY KEY(pluginId, key)  -- Prevents duplicates
+       PRIMARY KEY(storeId, key)  -- Prevents duplicates
        );
 
 -- new in Orthanc 1.12.99
-CREATE INDEX KeyValueStoreIndex ON KeyValueStore (pluginId, key);
+CREATE INDEX KeyValueStoresIndex ON KeyValueStore (storeId, key);
+
+-- new in Orthanc 1.12.99
+CREATE TABLE Queues (
+       id INTEGER PRIMARY KEY AUTOINCREMENT,
+       queueId TEXT NOT NULL,
+       value TEXT
+);
+
+CREATE INDEX QueuesIndex ON Queues (queueId, id);
 
 -- Set the version of the database schema
 -- The "1" corresponds to the "GlobalProperty_DatabaseSchemaVersion" enumeration

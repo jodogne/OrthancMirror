@@ -3206,6 +3206,12 @@ namespace Orthanc
     return db_.GetDatabaseCapabilities().HasKeyValueStore();
   }
 
+  bool StatelessDatabaseOperations::HasQueue()
+  {
+    boost::shared_lock<boost::shared_mutex> lock(mutex_);
+    return db_.GetDatabaseCapabilities().HasQueue();
+  }
+
   void StatelessDatabaseOperations::ExecuteCount(uint64_t& count,
                                                  const FindRequest& request)
   {
@@ -3327,22 +3333,22 @@ namespace Orthanc
     }
   }
 
-  void StatelessDatabaseOperations::StoreKeyValue(const std::string& pluginId,
+  void StatelessDatabaseOperations::StoreKeyValue(const std::string& storeId,
                                                   const std::string& key,
                                                   const std::string& value)
   {
     class Operations : public IReadWriteOperations
     {
     private:
-      const std::string& pluginId_;
+      const std::string& storeId_;
       const std::string& key_;
       const std::string& value_;
 
     public:
-      Operations(const std::string& pluginId,
+      Operations(const std::string& storeId,
                  const std::string& key,
                  const std::string& value) :
-        pluginId_(pluginId),
+        storeId_(storeId),
         key_(key),
         value_(value)
       {
@@ -3350,43 +3356,43 @@ namespace Orthanc
 
       virtual void Apply(ReadWriteTransaction& transaction) ORTHANC_OVERRIDE
       {
-        transaction.StoreKeyValue(pluginId_, key_, value_);
+        transaction.StoreKeyValue(storeId_, key_, value_);
       }
     };
 
-    Operations operations(pluginId, key, value);
+    Operations operations(storeId, key, value);
     Apply(operations);
   }
 
-  void StatelessDatabaseOperations::DeleteKeyValue(const std::string& pluginId,
+  void StatelessDatabaseOperations::DeleteKeyValue(const std::string& storeId,
                                                    const std::string& key)
   {
     class Operations : public IReadWriteOperations
     {
     private:
-      const std::string& pluginId_;
+      const std::string& storeId_;
       const std::string& key_;
 
     public:
-      Operations(const std::string& pluginId,
+      Operations(const std::string& storeId,
                  const std::string& key) :
-        pluginId_(pluginId),
+        storeId_(storeId),
         key_(key)
       {
       }
 
       virtual void Apply(ReadWriteTransaction& transaction) ORTHANC_OVERRIDE
       {
-        transaction.DeleteKeyValue(pluginId_, key_);
+        transaction.DeleteKeyValue(storeId_, key_);
       }
     };
 
-    Operations operations(pluginId, key);
+    Operations operations(storeId, key);
     Apply(operations);
   }
 
   bool StatelessDatabaseOperations::GetKeyValue(std::string& value,
-                                                const std::string& pluginId,
+                                                const std::string& storeId,
                                                 const std::string& key)
   {
     class Operations : public ReadOnlyOperationsT3<std::string&, const std::string&, const std::string& >
@@ -3410,10 +3416,76 @@ namespace Orthanc
     };
 
     Operations operations;
-    operations.Apply(*this, value, pluginId, key);
+    operations.Apply(*this, value, storeId, key);
 
     return operations.HasFound();
   }
 
+  void StatelessDatabaseOperations::EnqueueValue(const std::string& queueId,
+                                                 const std::string& value)
+  {
+    class Operations : public IReadWriteOperations
+    {
+    private:
+      const std::string& queueId_;
+      const std::string& value_;
+
+    public:
+      Operations(const std::string& queueId,
+                 const std::string& value) :
+        queueId_(queueId),
+        value_(value)
+      {
+      }
+
+      virtual void Apply(ReadWriteTransaction& transaction) ORTHANC_OVERRIDE
+      {
+        transaction.EnqueueValue(queueId_, value_);
+      }
+    };
+
+    Operations operations(queueId, value);
+    Apply(operations);
+  }
+
+  bool StatelessDatabaseOperations::DequeueValue(std::string& value,
+                                                 const std::string& queueId,
+                                                 QueueOrigin origin)
+  {
+    class Operations : public IReadWriteOperations
+    {
+    private:
+      const std::string& queueId_;
+      std::string& value_;
+      QueueOrigin origin_;
+      bool found_;
+
+    public:
+      Operations(std::string& value,
+                 const std::string& queueId,
+                 QueueOrigin origin) :
+        queueId_(queueId),
+        value_(value),
+        origin_(origin),
+        found_(false)
+      {
+      }
+
+      bool HasFound()
+      {
+        return found_;
+      }
+
+      virtual void Apply(ReadWriteTransaction& transaction) ORTHANC_OVERRIDE
+      {
+        found_ = transaction.DequeueValue(value_, queueId_, origin_);
+      }
+    };
+
+    Operations operations(value, queueId, origin);
+    Apply(operations);
+
+    return operations.HasFound();
+  }
 
 }

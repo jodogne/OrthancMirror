@@ -58,6 +58,7 @@ namespace Orthanc
       bool hasExtendedChanges_;
       bool hasAttachmentCustomDataSupport_;
       bool hasKeyValueStore_;
+      bool hasQueue_;
 
     public:
       Capabilities() :
@@ -70,7 +71,8 @@ namespace Orthanc
         hasFindSupport_(false),
         hasExtendedChanges_(false),
         hasAttachmentCustomDataSupport_(false),
-        hasKeyValueStore_(false)
+        hasKeyValueStore_(false),
+        hasQueue_(false)
       {
       }
 
@@ -172,6 +174,16 @@ namespace Orthanc
       bool HasKeyValueStore() const
       {
         return hasKeyValueStore_;
+      }
+
+      void SetHasQueue(bool value)
+      {
+        hasQueue_ = value;
+      }
+
+      bool HasQueue() const
+      {
+        return hasQueue_;
       }
     };
 
@@ -416,18 +428,28 @@ namespace Orthanc
                                       const std::set<ChangeType>& filterType) = 0;
 
       // New in Orthanc 1.12.99
-      virtual void StoreKeyValue(const std::string& pluginId,
+      virtual void StoreKeyValue(const std::string& storeId,
                                  const std::string& key,
                                  const std::string& value) = 0;
 
       // New in Orthanc 1.12.99
-      virtual void DeleteKeyValue(const std::string& pluginId,
+      virtual void DeleteKeyValue(const std::string& storeId,
                                   const std::string& key) = 0;
 
       // New in Orthanc 1.12.99
       virtual bool GetKeyValue(std::string& value,
-                               const std::string& pluginId,
+                               const std::string& storeId,
                                const std::string& key) = 0;
+
+      // New in Orthanc 1.12.99
+      virtual void EnqueueValue(const std::string& queueId,
+                                const std::string& value) = 0;
+
+      // New in Orthanc 1.12.99
+      virtual bool DequeueValue(std::string& value,
+                                const std::string& queueId,
+                                QueueOrigin origin) = 0;
+
     };
 
 

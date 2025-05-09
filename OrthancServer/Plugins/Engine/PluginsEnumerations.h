@@ -81,6 +81,10 @@ namespace Orthanc
     OrthancPluginStoreStatus Convert(StoreStatus type);
 
     StoreStatus Convert(OrthancPluginStoreStatus type);
+
+    OrthancPluginQueueOrigin Convert(QueueOrigin type);
+
+    QueueOrigin Convert(OrthancPluginQueueOrigin type);
   }
 }
 

@@ -473,6 +473,8 @@ extern "C"
     _OrthancPluginService_StoreKeyValue = 47,                       /* New in Orthanc 1.12.99 */
     _OrthancPluginService_DeleteKeyValue = 48,                      /* New in Orthanc 1.12.99 */
     _OrthancPluginService_GetKeyValue = 49,                         /* New in Orthanc 1.12.99 */
+    _OrthancPluginService_EnqueueValue = 50,                        /* New in Orthanc 1.12.99 */
+    _OrthancPluginService_DequeueValue = 51,                        /* New in Orthanc 1.12.99 */
 
 
     /* Registration of callbacks */
@@ -1144,8 +1146,23 @@ extern "C"
     OrthancPluginStoreStatus_AlreadyStored = 1,   /*!< The file has already been stored/adopted (only if OverwriteInstances is set to false)*/
     OrthancPluginStoreStatus_Failure = 2,         /*!< The file could not be stored/adopted */
     OrthancPluginStoreStatus_FilteredOut = 3,     /*!< The file has been filtered out by a lua script or a plugin */
-    OrthancPluginStoreStatus_StorageFull = 4      /*!< The storage is full (only if MaximumStorageSize/MaximumPatientCount is set and MaximumStorageMode is Reject)*/
+    OrthancPluginStoreStatus_StorageFull = 4,     /*!< The storage is full (only if MaximumStorageSize/MaximumPatientCount is set and MaximumStorageMode is Reject)*/
+    
+    _OrthancPluginStoreStatus_INTERNAL = 0x7fffffff
   } OrthancPluginStoreStatus;
+
+  /**
+   * The supported types of enqueuing
+   **/
+  typedef enum
+  {
+    OrthancPluginQueueOrigin_Front = 0,     /*!< Pop from the front of the queue */
+    OrthancPluginQueueOrigin_Back = 1,     /*!< Pop from the back of the queue */
+    
+    _OrthancPluginQueueOrigin_INTERNAL = 0x7fffffff
+  } OrthancPluginQueueOrigin;
+
+
 
   /**
    * @brief A 32-bit memory buffer allocated by the core system of Orthanc.
@@ -9832,7 +9849,10 @@ TODO_ATTACH_CUSTOM_DATA TODO TODO
    * @brief Tell Orthanc to store a key-value in its store.
    *
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
-TODO_ATTACH_CUSTOM_DATA TODO TODO
+   * @param pluginIdentifier A unique identifier identifying both the plugin and the store
+   * @param key The key of the value to store (Note: pluginIdentifier + key must be unique)
+   * @param value The value to store
+   * @param valueSize The lenght of the value to store
    **/
   ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginStoreKeyValue(
     OrthancPluginContext*         context,
@@ -9860,7 +9880,8 @@ TODO_ATTACH_CUSTOM_DATA TODO TODO
    * @brief Tell Orthanc to delete a key-value from its store.
    *
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
-TODO_ATTACH_CUSTOM_DATA TODO TODO
+   * @param pluginIdentifier A unique identifier identifying both the plugin and the store
+   * @param key The key of the value to store (Note: pluginIdentifier + key must be unique)
    **/
   ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginDeleteKeyValue(
     OrthancPluginContext*         context,
@@ -9885,7 +9906,9 @@ TODO_ATTACH_CUSTOM_DATA TODO TODO
    * @brief Get the value associated to this key in the key-value store.
    *
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
-TODO_ATTACH_CUSTOM_DATA TODO TODO
+   * @param pluginIdentifier A unique identifier identifying both the plugin and the store
+   * @param key The key of the value to retrieve from the store (Note: pluginIdentifier + key must be unique)
+   * @param value The value retrieved from the store
    **/
   ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginGetKeyValue(
     OrthancPluginContext*         context,
@@ -9899,6 +9922,65 @@ TODO_ATTACH_CUSTOM_DATA TODO TODO
     params.value = value;
 
     return context->InvokeService(context, _OrthancPluginService_GetKeyValue, &params);
+  }
+
+
+  typedef struct
+  {
+    const char*                   pluginIdentifier;
+    const char*                   value;
+    uint64_t                      valueSize;
+  } _OrthancPluginEnqueueValue;
+
+  /**
+   * @brief Tell Orthanc to store a value in a queue.
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param pluginIdentifier A unique identifier identifying both the plugin and the queue
+   * @param value The value to store
+   * @param valueSize The lenght of the value to store
+   **/
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginEnqueueValue(
+    OrthancPluginContext*         context,
+    const char*                   pluginIdentifier, /* in */
+    const char*                   value, /* in */
+    uint64_t                      valueSize /* in */)
+  {
+    _OrthancPluginEnqueueValue params;
+    params.pluginIdentifier = pluginIdentifier;
+    params.value = value;
+    params.valueSize = valueSize;
+
+    return context->InvokeService(context, _OrthancPluginService_EnqueueValue, &params);
+  }
+
+  typedef struct
+  {
+    const char*                   pluginIdentifier;
+    OrthancPluginQueueOrigin      origin;
+    OrthancPluginMemoryBuffer*    value;
+  } _OrthancPluginDequeueValue;
+  
+  /**
+   * @brief Dequeue a value from a queue.
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param pluginIdentifier A unique identifier identifying both the plugin and the store
+   * @param origin The extremity of the queue the value is dequeue from (back for LIFO or front for FIFO)
+   * @param value The value retrieved from the queue
+   **/
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginDequeueValue(
+    OrthancPluginContext*         context,
+    const char*                   pluginIdentifier, /* in */
+    OrthancPluginQueueOrigin      origin, /* in */
+    OrthancPluginMemoryBuffer*    value /* out */)
+  {
+    _OrthancPluginDequeueValue params;
+    params.pluginIdentifier = pluginIdentifier;
+    params.origin = origin;
+    params.value = value;
+
+    return context->InvokeService(context, _OrthancPluginService_DequeueValue, &params);
   }
 
 #ifdef  __cplusplus

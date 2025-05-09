@@ -259,6 +259,11 @@ namespace Orthanc
     Warnings_007_MissingRequestedTagsNotReadFromDisk       // new in Orthanc 1.12.5
   };
 
+  enum QueueOrigin
+  {
+    QueueOrigin_Front,
+    QueueOrigin_Back
+  };
 
   void InitializeServerEnumerations();
 
