@@ -9839,7 +9839,7 @@ TODO_ATTACH_CUSTOM_DATA TODO TODO
 
   typedef struct
   {
-    const char*                   pluginIdentifier;
+    const char*                   storeId;
     const char*                   key;
     const char*                   value;
     uint64_t                      valueSize;
@@ -9849,20 +9849,20 @@ TODO_ATTACH_CUSTOM_DATA TODO TODO
    * @brief Tell Orthanc to store a key-value in its store.
    *
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
-   * @param pluginIdentifier A unique identifier identifying both the plugin and the store
-   * @param key The key of the value to store (Note: pluginIdentifier + key must be unique)
+   * @param storeId A unique identifier identifying both the plugin and the store
+   * @param key The key of the value to store (Note: storeId + key must be unique)
    * @param value The value to store
    * @param valueSize The lenght of the value to store
    **/
   ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginStoreKeyValue(
     OrthancPluginContext*         context,
-    const char*                   pluginIdentifier, /* in */
+    const char*                   storeId, /* in */
     const char*                   key, /* in */
     const char*                   value, /* in */
     uint64_t                      valueSize /* in */)
   {
     _OrthancPluginStoreKeyValue params;
-    params.pluginIdentifier = pluginIdentifier;
+    params.storeId = storeId;
     params.key = key;
     params.value = value;
     params.valueSize = valueSize;
@@ -9872,7 +9872,7 @@ TODO_ATTACH_CUSTOM_DATA TODO TODO
 
   typedef struct
   {
-    const char*                   pluginIdentifier;
+    const char*                   storeId;
     const char*                   key;
   } _OrthancPluginDeleteKeyValue;
   
@@ -9880,16 +9880,16 @@ TODO_ATTACH_CUSTOM_DATA TODO TODO
    * @brief Tell Orthanc to delete a key-value from its store.
    *
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
-   * @param pluginIdentifier A unique identifier identifying both the plugin and the store
-   * @param key The key of the value to store (Note: pluginIdentifier + key must be unique)
+   * @param storeId A unique identifier identifying both the plugin and the store
+   * @param key The key of the value to store (Note: storeId + key must be unique)
    **/
   ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginDeleteKeyValue(
     OrthancPluginContext*         context,
-    const char*                   pluginIdentifier, /* in */
+    const char*                   storeId, /* in */
     const char*                   key /* in */)
   {
     _OrthancPluginDeleteKeyValue params;
-    params.pluginIdentifier = pluginIdentifier;
+    params.storeId = storeId;
     params.key = key;
 
     return context->InvokeService(context, _OrthancPluginService_DeleteKeyValue, &params);
@@ -9897,7 +9897,7 @@ TODO_ATTACH_CUSTOM_DATA TODO TODO
 
   typedef struct
   {
-    const char*                   pluginIdentifier;
+    const char*                   storeId;
     const char*                   key;
     OrthancPluginMemoryBuffer*    value;
   } _OrthancPluginGetKeyValue;
@@ -9906,18 +9906,18 @@ TODO_ATTACH_CUSTOM_DATA TODO TODO
    * @brief Get the value associated to this key in the key-value store.
    *
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
-   * @param pluginIdentifier A unique identifier identifying both the plugin and the store
-   * @param key The key of the value to retrieve from the store (Note: pluginIdentifier + key must be unique)
+   * @param storeId A unique identifier identifying both the plugin and the store
+   * @param key The key of the value to retrieve from the store (Note: storeId + key must be unique)
    * @param value The value retrieved from the store
    **/
   ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginGetKeyValue(
     OrthancPluginContext*         context,
-    const char*                   pluginIdentifier, /* in */
+    const char*                   storeId, /* in */
     const char*                   key, /* in */
     OrthancPluginMemoryBuffer*    value /* out */)
   {
     _OrthancPluginGetKeyValue params;
-    params.pluginIdentifier = pluginIdentifier;
+    params.storeId = storeId;
     params.key = key;
     params.value = value;
 
@@ -9927,7 +9927,7 @@ TODO_ATTACH_CUSTOM_DATA TODO TODO
 
   typedef struct
   {
-    const char*                   pluginIdentifier;
+    const char*                   queueId;
     const char*                   value;
     uint64_t                      valueSize;
   } _OrthancPluginEnqueueValue;
@@ -9936,18 +9936,18 @@ TODO_ATTACH_CUSTOM_DATA TODO TODO
    * @brief Tell Orthanc to store a value in a queue.
    *
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
-   * @param pluginIdentifier A unique identifier identifying both the plugin and the queue
+   * @param queueId A unique identifier identifying both the plugin and the queue
    * @param value The value to store
    * @param valueSize The lenght of the value to store
    **/
   ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginEnqueueValue(
     OrthancPluginContext*         context,
-    const char*                   pluginIdentifier, /* in */
+    const char*                   queueId, /* in */
     const char*                   value, /* in */
     uint64_t                      valueSize /* in */)
   {
     _OrthancPluginEnqueueValue params;
-    params.pluginIdentifier = pluginIdentifier;
+    params.queueId = queueId;
     params.value = value;
     params.valueSize = valueSize;
 
@@ -9956,7 +9956,7 @@ TODO_ATTACH_CUSTOM_DATA TODO TODO
 
   typedef struct
   {
-    const char*                   pluginIdentifier;
+    const char*                   queueId;
     OrthancPluginQueueOrigin      origin;
     OrthancPluginMemoryBuffer*    value;
   } _OrthancPluginDequeueValue;
@@ -9965,18 +9965,18 @@ TODO_ATTACH_CUSTOM_DATA TODO TODO
    * @brief Dequeue a value from a queue.
    *
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
-   * @param pluginIdentifier A unique identifier identifying both the plugin and the store
+   * @param queueId A unique identifier identifying both the plugin and the store
    * @param origin The extremity of the queue the value is dequeue from (back for LIFO or front for FIFO)
    * @param value The value retrieved from the queue
    **/
   ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginDequeueValue(
     OrthancPluginContext*         context,
-    const char*                   pluginIdentifier, /* in */
+    const char*                   queueId, /* in */
     OrthancPluginQueueOrigin      origin, /* in */
     OrthancPluginMemoryBuffer*    value /* out */)
   {
     _OrthancPluginDequeueValue params;
-    params.pluginIdentifier = pluginIdentifier;
+    params.queueId = queueId;
     params.origin = origin;
     params.value = value;
 
