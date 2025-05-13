@@ -4693,14 +4693,14 @@ namespace Orthanc
     PImpl::ServerContextReference lock(*pimpl_);
     std::string value(parameters.value, parameters.valueSize);
 
-    lock.GetContext().GetIndex().StoreKeyValue(parameters.pluginIdentifier, parameters.key, value);
+    lock.GetContext().GetIndex().StoreKeyValue(parameters.storeId, parameters.key, value);
   }
 
   void OrthancPlugins::ApplyDeleteKeyValue(const _OrthancPluginDeleteKeyValue& parameters)
   {
     PImpl::ServerContextReference lock(*pimpl_);
 
-    lock.GetContext().GetIndex().DeleteKeyValue(parameters.pluginIdentifier, parameters.key);
+    lock.GetContext().GetIndex().DeleteKeyValue(parameters.storeId, parameters.key);
   }
 
   bool OrthancPlugins::ApplyGetKeyValue(const _OrthancPluginGetKeyValue& parameters)
@@ -4709,7 +4709,7 @@ namespace Orthanc
 
     std::string value;
 
-    if (lock.GetContext().GetIndex().GetKeyValue(value, parameters.pluginIdentifier, parameters.key))
+    if (lock.GetContext().GetIndex().GetKeyValue(value, parameters.storeId, parameters.key))
     {
       CopyToMemoryBuffer(*parameters.value, value.size() > 0 ? value.c_str() : NULL, value.size());
       return true;
@@ -4732,7 +4732,7 @@ namespace Orthanc
     PImpl::ServerContextReference lock(*pimpl_);
     std::string value(parameters.value, parameters.valueSize);
 
-    lock.GetContext().GetIndex().EnqueueValue(parameters.pluginIdentifier, value);
+    lock.GetContext().GetIndex().EnqueueValue(parameters.queueId, value);
   }
 
   bool OrthancPlugins::ApplyDequeueValue(const _OrthancPluginDequeueValue& parameters)
@@ -4741,7 +4741,7 @@ namespace Orthanc
 
     std::string value;
 
-    if (lock.GetContext().GetIndex().DequeueValue(value, parameters.pluginIdentifier, Plugins::Convert(parameters.origin)))
+    if (lock.GetContext().GetIndex().DequeueValue(value, parameters.queueId, Plugins::Convert(parameters.origin)))
     {
       CopyToMemoryBuffer(*parameters.value, value.size() > 0 ? value.c_str() : NULL, value.size());
       return true;
