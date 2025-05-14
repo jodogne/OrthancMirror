@@ -4681,6 +4681,31 @@ namespace Orthanc
     }
   }
 
+  void OrthancPlugins::ApplyGetAttachmentCustomData(const _OrthancPluginGetAttachmentCustomData& parameters)
+  {
+    PImpl::ServerContextReference lock(*pimpl_);
+    FileInfo fileInfo;
+    int64_t revision;
+    
+    if (lock.GetContext().GetIndex().GetAttachment(fileInfo, revision, parameters.attachmentUuid))
+    {
+      CopyToMemoryBuffer(*parameters.customData, fileInfo.GetCustomData().size() > 0 ? fileInfo.GetCustomData().c_str() : NULL, fileInfo.GetCustomData().size());
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_UnknownResource);
+    }
+  }
+
+  void OrthancPlugins::ApplyUpdateAttachmentCustomData(const _OrthancPluginUpdateAttachmentCustomData& parameters)
+  {
+    PImpl::ServerContextReference lock(*pimpl_);
+    FileInfo fileInfo;
+    std::string customData(parameters.customData, parameters.customDataSize);
+    
+    lock.GetContext().GetIndex().UpdateAttachmentCustomData(parameters.attachmentUuid, customData);
+  }
+
   bool OrthancPlugins::HasKeyValueStore()
   {
     PImpl::ServerContextReference lock(*pimpl_);
@@ -5825,6 +5850,22 @@ namespace Orthanc
         const _OrthancPluginAdoptAttachment& p =
           *reinterpret_cast<const _OrthancPluginAdoptAttachment*>(parameters);
         ApplyAdoptAttachment(p);
+        return true;
+      }
+
+      case _OrthancPluginService_GetAttachmentCustomData:
+      {
+        const _OrthancPluginGetAttachmentCustomData& p =
+          *reinterpret_cast<const _OrthancPluginGetAttachmentCustomData*>(parameters);
+        ApplyGetAttachmentCustomData(p);
+        return true;
+      }
+
+      case _OrthancPluginService_UpdateAttachmentCustomData:
+      {
+        const _OrthancPluginUpdateAttachmentCustomData& p =
+          *reinterpret_cast<const _OrthancPluginUpdateAttachmentCustomData*>(parameters);
+        ApplyUpdateAttachmentCustomData(p);
         return true;
       }
 

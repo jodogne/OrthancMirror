@@ -226,6 +226,13 @@ namespace Orthanc
         return transaction_.LookupAttachment(attachment, revision, id, contentType);
       }
       
+      bool GetAttachment(FileInfo& attachment,
+                         int64_t& revision,
+                         const std::string& attachmentUuid)
+      {
+        return transaction_.GetAttachment(attachment, revision, attachmentUuid);
+      }
+
       bool LookupGlobalProperty(std::string& target,
                                 GlobalProperty property,
                                 bool shared)
@@ -464,6 +471,12 @@ namespace Orthanc
       }
 
 
+      void UpdateAttachmentCustomData(const std::string& attachmentUuid,
+                                      const std::string& customData)
+      {
+        return transaction_.UpdateAttachmentCustomData(attachmentUuid, customData);
+      }
+
     };
 
 
@@ -558,6 +571,13 @@ namespace Orthanc
                              /* out */ uint64_t& countStudies, 
                              /* out */ uint64_t& countSeries, 
                              /* out */ uint64_t& countInstances);
+
+    bool GetAttachment(FileInfo& attachment,
+                       int64_t& revision,
+                       const std::string& attachmentUuid);
+
+    void UpdateAttachmentCustomData(const std::string& attachmentUuid,
+                                    const std::string& customData);
 
     bool LookupAttachment(FileInfo& attachment,
                           int64_t& revision,

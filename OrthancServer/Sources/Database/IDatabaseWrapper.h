@@ -286,6 +286,13 @@ namespace Orthanc
                                     int64_t id,
                                     FileContentType contentType) = 0;
 
+      virtual bool GetAttachment(FileInfo& attachment,
+                                 int64_t& revision,
+                                 const std::string& attachmentUuid) = 0;
+
+      virtual void UpdateAttachmentCustomData(const std::string& attachmentUuid,
+                                              const std::string& customData) = 0;
+
       /**
        * If "shared" is "true", the property is shared by all the
        * Orthanc servers that access the same database. If "shared" is

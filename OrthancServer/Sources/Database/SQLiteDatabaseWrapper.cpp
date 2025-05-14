@@ -1784,6 +1784,43 @@ namespace Orthanc
       }
     }
 
+    virtual bool GetAttachment(FileInfo& attachment,
+                               int64_t& revision,
+                               const std::string& attachmentUuid) ORTHANC_OVERRIDE
+    {
+      SQLite::Statement s(db_, SQLITE_FROM_HERE, 
+                          "SELECT uuid, uncompressedSize, compressionType, compressedSize, "
+                          "uncompressedMD5, compressedMD5, revision, customData, fileType FROM AttachedFiles WHERE uuid=?");
+      s.BindString(0, attachmentUuid);
+
+      if (!s.Step())
+      {
+        return false;
+      }
+      else
+      {
+        attachment = FileInfo(s.ColumnString(0),
+                              static_cast<FileContentType>(s.ColumnInt(8)),
+                              s.ColumnInt64(1),
+                              s.ColumnString(4),
+                              static_cast<CompressionType>(s.ColumnInt(2)),
+                              s.ColumnInt64(3),
+                              s.ColumnString(5),
+                              s.ColumnString(7));
+        revision = s.ColumnInt(6);
+        return true;
+      }
+    }
+
+    virtual void UpdateAttachmentCustomData(const std::string& attachmentUuid,
+                                            const std::string& customData) ORTHANC_OVERRIDE
+    {
+      SQLite::Statement s(db_, SQLITE_FROM_HERE, 
+                          "UPDATE AttachedFiles SET customData=? WHERE uuid=?");
+      s.BindString(0, customData);
+      s.BindString(1, attachmentUuid);
+      s.Run();
+    }
 
     virtual bool LookupGlobalProperty(std::string& target,
                                       GlobalProperty property,
@@ -2521,11 +2558,11 @@ namespace Orthanc
           db_.Execute(query);
         }
 
-        if (!db_.DoesTableExist("KeyValueStore"))
+        if (!db_.DoesTableExist("KeyValueStores"))
         {
-          LOG(INFO) << "Installing the \"KeyValueStore\" table";
+          LOG(INFO) << "Installing the \"KeyValueStores\" and \"Queues\" tables";
           std::string query;
-          ServerResources::GetFileResource(query, ServerResources::INSTALL_KEY_VALUE_STORE);
+          ServerResources::GetFileResource(query, ServerResources::INSTALL_KEY_VALUE_STORE_AND_QUEUES);
           db_.Execute(query);
         }
       }

@@ -168,7 +168,7 @@ CREATE TABLE KeyValueStores(
        );
 
 -- new in Orthanc 1.12.99
-CREATE INDEX KeyValueStoresIndex ON KeyValueStore (storeId, key);
+CREATE INDEX KeyValueStoresIndex ON KeyValueStores (storeId, key);
 
 -- new in Orthanc 1.12.99
 CREATE TABLE Queues (
