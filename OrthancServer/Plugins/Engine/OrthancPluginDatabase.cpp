@@ -1484,6 +1484,18 @@ namespace Orthanc
       throw OrthancException(ErrorCode_InternalError);  // Not supported
     }
 
+    virtual bool GetAttachment(FileInfo& attachment,
+                               int64_t& revision,
+                               const std::string& attachmentUuid) ORTHANC_OVERRIDE
+    {
+      throw OrthancException(ErrorCode_NotImplemented);  // Not supported
+    }
+
+    virtual void UpdateAttachmentCustomData(const std::string& attachmentUuid,
+                                            const std::string& customData) ORTHANC_OVERRIDE
+    {
+      throw OrthancException(ErrorCode_NotImplemented);  // Not supported
+    }
   };
 
 

@@ -1018,7 +1018,21 @@ namespace Orthanc
       }
     }
 
-    
+
+    virtual bool GetAttachment(FileInfo& attachment,
+                               int64_t& revision,
+                               const std::string& attachmentUuid) ORTHANC_OVERRIDE
+    {
+      throw OrthancException(ErrorCode_NotImplemented);  // TODO_ATTACH_CUSTOM_DATA
+    }
+
+    virtual void UpdateAttachmentCustomData(const std::string& attachmentUuid,
+                                            const std::string& customData) ORTHANC_OVERRIDE
+    {
+      throw OrthancException(ErrorCode_NotImplemented);  // TODO_ATTACH_CUSTOM_DATA
+    }
+
+
     virtual bool LookupGlobalProperty(std::string& target,
                                       GlobalProperty property,
                                       bool shared) ORTHANC_OVERRIDE

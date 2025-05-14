@@ -475,6 +475,8 @@ extern "C"
     _OrthancPluginService_GetKeyValue = 49,                         /* New in Orthanc 1.12.99 */
     _OrthancPluginService_EnqueueValue = 50,                        /* New in Orthanc 1.12.99 */
     _OrthancPluginService_DequeueValue = 51,                        /* New in Orthanc 1.12.99 */
+    _OrthancPluginService_GetAttachmentCustomData = 52,             /* New in Orthanc 1.12.99 */
+    _OrthancPluginService_UpdateAttachmentCustomData = 53,          /* New in Orthanc 1.12.99 */
 
 
     /* Registration of callbacks */
@@ -9836,6 +9838,64 @@ TODO_ATTACH_CUSTOM_DATA TODO TODO
 
     return context->InvokeService(context, _OrthancPluginService_AdoptAttachment, &params);
   }
+
+  typedef struct
+  {
+    const char*                   attachmentUuid; /* in */
+    // OrthancPluginContentType      contentType; /* in */
+    OrthancPluginMemoryBuffer*    customData;  /* out */
+  } _OrthancPluginGetAttachmentCustomData;
+
+  /**
+   * @brief Retrieve attachment customData from the Orthanc DB.
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+TODO_ATTACH_CUSTOM_DATA TODO TODO
+   **/
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginGetAttachmentCustomData(
+    OrthancPluginContext*         context,
+    const char*                   attachmentUuid, /* in */
+    // OrthancPluginContentType      contentType, /* in */
+    OrthancPluginMemoryBuffer*    customData /* out */
+  ) 
+  {
+    _OrthancPluginGetAttachmentCustomData params;
+    params.attachmentUuid = attachmentUuid;
+    // params.contentType = contentType;
+    params.customData = customData;
+
+    return context->InvokeService(context, _OrthancPluginService_GetAttachmentCustomData, &params);
+  }
+
+  typedef struct
+  {
+    const char*                   attachmentUuid; /* in */
+    const char*                   customData;  /* in */
+    int64_t                       customDataSize; /* in */
+  } _OrthancPluginUpdateAttachmentCustomData;
+
+
+  /**
+   * @brief Update attachment custom data in the Orthanc DB.  E.g if a plugin has moved an attachment.
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+TODO_ATTACH_CUSTOM_DATA TODO TODO
+   **/
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginUpdateAttachmentCustomData(
+    OrthancPluginContext*         context,
+    const char*                   attachmentUuid, /* in */
+    const char*                   customData,  /* in */
+    int64_t                       customDataSize /* in */
+  ) 
+  {
+    _OrthancPluginUpdateAttachmentCustomData params;
+    params.attachmentUuid = attachmentUuid;
+    params.customData = customData;
+    params.customDataSize = customDataSize;
+
+    return context->InvokeService(context, _OrthancPluginService_UpdateAttachmentCustomData, &params);
+  }
+
 
   typedef struct
   {

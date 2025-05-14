@@ -225,6 +225,10 @@ private:
 
     void ApplyAdoptAttachment(const _OrthancPluginAdoptAttachment& parameters);
 
+    void ApplyGetAttachmentCustomData(const _OrthancPluginGetAttachmentCustomData& parameters);
+
+    void ApplyUpdateAttachmentCustomData(const _OrthancPluginUpdateAttachmentCustomData& parameters);
+
     bool HasKeyValueStore();
 
     void ApplyStoreKeyValue(const _OrthancPluginStoreKeyValue& parameters);
