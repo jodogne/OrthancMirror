@@ -476,8 +476,9 @@ extern "C"
     _OrthancPluginService_ListKeys = 50,                            /* New in Orthanc 1.12.99 */
     _OrthancPluginService_EnqueueValue = 51,                        /* New in Orthanc 1.12.99 */
     _OrthancPluginService_DequeueValue = 52,                        /* New in Orthanc 1.12.99 */
-    _OrthancPluginService_GetAttachmentCustomData = 53,             /* New in Orthanc 1.12.99 */
-    _OrthancPluginService_UpdateAttachmentCustomData = 54,          /* New in Orthanc 1.12.99 */
+    _OrthancPluginService_GetQueueSize = 53,                        /* New in Orthanc 1.12.99 */
+    _OrthancPluginService_GetAttachmentCustomData = 54,             /* New in Orthanc 1.12.99 */
+    _OrthancPluginService_UpdateAttachmentCustomData = 55,          /* New in Orthanc 1.12.99 */
 
 
     /* Registration of callbacks */
@@ -10060,7 +10061,7 @@ TODO_ATTACH_CUSTOM_DATA TODO TODO
    * @brief Dequeue a value from a queue.
    *
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
-   * @param queueId A unique identifier identifying both the plugin and the store
+   * @param queueId A unique identifier identifying both the plugin and the queue
    * @param origin The extremity of the queue the value is dequeue from (back for LIFO or front for FIFO)
    * @param value The value retrieved from the queue
    **/
@@ -10076,6 +10077,31 @@ TODO_ATTACH_CUSTOM_DATA TODO TODO
     params.value = value;
 
     return context->InvokeService(context, _OrthancPluginService_DequeueValue, &params);
+  }
+
+  typedef struct
+  {
+    const char*                   queueId;
+    uint64_t*                     size;
+  } _OrthancPluginGetQueueSize;
+  
+  /**
+   * @brief Get the number of elements in a queue.
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param queueId A unique identifier identifying both the plugin and the queue
+   * @param size The number of elements in the queue
+   **/
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginGetQueueSize(
+    OrthancPluginContext*         context,
+    const char*                   queueId, /* in */
+    uint64_t*                     size /* out */)
+  {
+    _OrthancPluginGetQueueSize params;
+    params.queueId = queueId;
+    params.size = size;
+
+    return context->InvokeService(context, _OrthancPluginService_GetQueueSize, &params);
   }
 
 #ifdef  __cplusplus

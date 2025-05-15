@@ -308,6 +308,12 @@ namespace Orthanc
         return transaction_.GetKeyValue(value, storeId, key);
       }
 
+      void GetQueueSize(uint64_t& size,
+                        const std::string& queueId)
+      {
+        return transaction_.GetQueueSize(size, queueId);
+      }
+
       void ListKeys(std::list<std::string>& keys,
                     const std::string& storeId,
                     uint64_t since,
@@ -477,7 +483,6 @@ namespace Orthanc
         return transaction_.DequeueValue(value, queueId, origin);
       }
 
-
       void UpdateAttachmentCustomData(const std::string& attachmentUuid,
                                       const std::string& customData)
       {
@@ -608,9 +613,9 @@ namespace Orthanc
 
     bool HasFindSupport();
 
-    bool HasKeyValueStore();
+    bool HasKeyValueStoresSupport();
 
-    bool HasQueue();
+    bool HasQueuesSupport();
     
     void GetExportedResources(Json::Value& target,
                               int64_t since,
@@ -814,6 +819,8 @@ namespace Orthanc
     bool DequeueValue(std::string& value,
                       const std::string& queueId,
                       QueueOrigin origin);
-
+    
+    void GetQueueSize(uint64_t& size,
+                      const std::string& queueId);
   };
 }

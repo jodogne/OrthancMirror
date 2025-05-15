@@ -172,8 +172,8 @@ message GetSystemInformation {
     bool has_measure_latency = 7;
     bool supports_find = 8;         // New in Orthanc 1.12.5
     bool has_extended_changes = 9;  // New in Orthanc 1.12.5
-    bool has_key_value_store = 10;  // New in Orthanc 1.12.99
-    bool has_queue = 11;            // New in Orthanc 1.12.99
+    bool supports_key_value_stores = 10;  // New in Orthanc 1.12.99
+    bool supports_queues = 11;            // New in Orthanc 1.12.99
   }
 }
 

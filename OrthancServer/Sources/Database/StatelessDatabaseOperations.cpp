@@ -3200,16 +3200,16 @@ namespace Orthanc
     return db_.GetDatabaseCapabilities().HasFindSupport();
   }
 
-  bool StatelessDatabaseOperations::HasKeyValueStore()
+  bool StatelessDatabaseOperations::HasKeyValueStoresSupport()
   {
     boost::shared_lock<boost::shared_mutex> lock(mutex_);
-    return db_.GetDatabaseCapabilities().HasKeyValueStore();
+    return db_.GetDatabaseCapabilities().HasKeyValueStoresSupport();
   }
 
-  bool StatelessDatabaseOperations::HasQueue()
+  bool StatelessDatabaseOperations::HasQueuesSupport()
   {
     boost::shared_lock<boost::shared_mutex> lock(mutex_);
-    return db_.GetDatabaseCapabilities().HasQueue();
+    return db_.GetDatabaseCapabilities().HasQueuesSupport();
   }
 
   void StatelessDatabaseOperations::ExecuteCount(uint64_t& count,
@@ -3509,6 +3509,25 @@ namespace Orthanc
 
     return operations.HasFound();
   }
+
+  void StatelessDatabaseOperations::GetQueueSize(uint64_t& size,
+                                                 const std::string& queueId)
+  {
+    class Operations : public ReadOnlyOperationsT2<uint64_t&, const std::string& >
+    {
+    public:
+
+      virtual void ApplyTuple(ReadOnlyTransaction& transaction,
+                              const Tuple& tuple) ORTHANC_OVERRIDE
+      {
+        transaction.GetQueueSize(tuple.get<0>(), tuple.get<1>());
+      }
+    };
+
+    Operations operations;
+    operations.Apply(*this, size, queueId);
+  }
+
 
   bool StatelessDatabaseOperations::GetAttachment(FileInfo& attachment,
                                                   int64_t& revision,

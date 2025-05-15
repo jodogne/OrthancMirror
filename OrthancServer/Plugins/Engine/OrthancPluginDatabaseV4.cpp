@@ -1853,14 +1853,20 @@ namespace Orthanc
     virtual void EnqueueValue(const std::string& queueId,
                               const std::string& value) ORTHANC_OVERRIDE
     {
-      throw OrthancException(ErrorCode_InternalError);  // Not supported
+      throw OrthancException(ErrorCode_InternalError);  // TODO_ATTACH_CUSTOM_DATA
     }
 
     virtual bool DequeueValue(std::string& value,
                               const std::string& queueId,
                               QueueOrigin origin) ORTHANC_OVERRIDE
     {
-      throw OrthancException(ErrorCode_InternalError);  // Not supported
+      throw OrthancException(ErrorCode_InternalError);  // TODO_ATTACH_CUSTOM_DATA
+    }
+
+    virtual void GetQueueSize(uint64_t& size,
+                              const std::string& queueId) ORTHANC_OVERRIDE
+    {
+      throw OrthancException(ErrorCode_InternalError);  // TODO_ATTACH_CUSTOM_DATA
     }
 
   };
@@ -1953,8 +1959,8 @@ namespace Orthanc
       dbCapabilities_.SetMeasureLatency(systemInfo.has_measure_latency());
       dbCapabilities_.SetHasExtendedChanges(systemInfo.has_extended_changes());
       dbCapabilities_.SetHasFindSupport(systemInfo.supports_find());
-      dbCapabilities_.SetHasKeyValueStore(systemInfo.has_key_value_store());
-      dbCapabilities_.SetHasQueue(systemInfo.has_queue());
+      dbCapabilities_.SetKeyValueStoresSupport(systemInfo.supports_key_value_stores());
+      dbCapabilities_.SetQueuesSupport(systemInfo.supports_queues());
     }
 
     open_ = true;

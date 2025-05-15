@@ -1623,6 +1623,26 @@ void SerializeGetArguments(std::string& output, const OrthancPluginHttpRequest* 
 
     bool GetAllKeys(std::list<std::string>& keys, uint64_t since, uint64_t limit);
   };
+
+  class Queue : public boost::noncopyable
+  {
+  private:
+    std::string queueId_;
+
+    bool PopInternal(std::string& value, OrthancPluginQueueOrigin origin);
+
+  public:
+    Queue(const std::string& queueId);
+
+    void PushBack(const std::string& value);
+
+    bool PopFront(std::string& value);
+
+    bool PopBack(std::string& value);
+
+    uint64_t GetSize();
+  };
+
 #endif
 
 }

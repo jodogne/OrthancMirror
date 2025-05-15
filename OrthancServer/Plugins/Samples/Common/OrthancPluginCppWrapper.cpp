@@ -4387,7 +4387,78 @@ namespace OrthancPlugins
       return limit == 0 || (jsonKeys.size() < limit);
     }
     
+#if HAS_ORTHANC_EXCEPTION == 1
     throw Orthanc::OrthancException(Orthanc::ErrorCode_InternalError, "Unable to list keys");
+#else
+    ORTHANC_PLUGINS_LOG_ERROR("Unable to list keys");
+    ORTHANC_PLUGINS_THROW_EXCEPTION(InternalError);
+#endif
+  }
+
+  Queue::Queue(const std::string& queueId)
+  : queueId_(queueId)
+  {
+  }
+
+  void Queue::PushBack(const std::string& value)
+  {
+    OrthancPluginEnqueueValue(OrthancPlugins::GetGlobalContext(),
+                              queueId_.c_str(),
+                              value.c_str(),
+                              value.size());
+  }
+
+  bool Queue::PopInternal(std::string& value, OrthancPluginQueueOrigin origin)
+  {
+    OrthancPlugins::MemoryBuffer valueBuffer;
+    OrthancPluginErrorCode ret = OrthancPluginDequeueValue(OrthancPlugins::GetGlobalContext(),
+                                                           queueId_.c_str(),
+                                                           origin,
+                                                           *valueBuffer);
+
+    if (ret == OrthancPluginErrorCode_Success)
+    {
+      if (!valueBuffer.IsEmpty())
+      {
+        value.assign(valueBuffer.GetData(), valueBuffer.GetSize());
+        return true;
+      }
+      else
+      {
+        return false;
+      }
+    }
+    
+    return false;
+  }
+
+  bool Queue::PopBack(std::string& value)
+  {
+    return PopInternal(value, OrthancPluginQueueOrigin_Back);
+  }
+
+  bool Queue::PopFront(std::string& value)
+  {
+    return PopInternal(value, OrthancPluginQueueOrigin_Front);
+  }
+
+  uint64_t Queue::GetSize()
+  {
+    uint64_t size = 0;
+    OrthancPluginErrorCode ret = OrthancPluginGetQueueSize(OrthancPlugins::GetGlobalContext(),
+                                                           queueId_.c_str(),
+                                                           &size);
+    if (ret != OrthancPluginErrorCode_Success)
+    {
+#if HAS_ORTHANC_EXCEPTION == 1
+      throw Orthanc::OrthancException(Orthanc::ErrorCode_InternalError, "Unable get queue size");
+#else
+      ORTHANC_PLUGINS_LOG_ERROR("Unable get queue size");
+      ORTHANC_PLUGINS_THROW_EXCEPTION(InternalError);
+#endif
+    }
+
+    return size;
   }
 #endif
 

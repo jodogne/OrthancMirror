@@ -2222,10 +2222,10 @@ namespace Orthanc
       switch (origin)
       {
         case QueueOrigin_Front:
-          s.reset(new SQLite::Statement(db_, SQLITE_FROM_HERE, "SELECT id, value FROM KeyValueStores WHERE queueId=? ORDER BY id ASC LIMIT 1"));
+          s.reset(new SQLite::Statement(db_, SQLITE_FROM_HERE, "SELECT id, value FROM Queues WHERE queueId=? ORDER BY id ASC LIMIT 1"));
           break;
         case QueueOrigin_Back:
-          s.reset(new SQLite::Statement(db_, SQLITE_FROM_HERE, "SELECT id, value FROM KeyValueStores WHERE queueId=? ORDER BY id DESC LIMIT 1"));
+          s.reset(new SQLite::Statement(db_, SQLITE_FROM_HERE, "SELECT id, value FROM Queues WHERE queueId=? ORDER BY id DESC LIMIT 1"));
           break;
         default:
           throw OrthancException(ErrorCode_InternalError);
@@ -2251,6 +2251,15 @@ namespace Orthanc
       }    
     }
 
+    // New in Orthanc 1.12.99
+    virtual void GetQueueSize(uint64_t& size,
+                              const std::string& queueId) ORTHANC_OVERRIDE
+    {
+      SQLite::Statement s(db_, SQLITE_FROM_HERE, "SELECT COUNT(*) FROM Queues WHERE queueId=?");
+      s.BindString(0, queueId);
+      s.Step();
+      size = s.ColumnInt64(0);
+    }
 
   };
 
@@ -2451,8 +2460,8 @@ namespace Orthanc
     dbCapabilities_.SetLabelsSupport(true);
     dbCapabilities_.SetHasExtendedChanges(true);
     dbCapabilities_.SetHasFindSupport(HasIntegratedFind());
-    dbCapabilities_.SetHasKeyValueStore(true);
-    dbCapabilities_.SetHasQueue(true);
+    dbCapabilities_.SetKeyValueStoresSupport(true);
+    dbCapabilities_.SetQueuesSupport(true);
     db_.Open(path);
   }
 
@@ -2467,8 +2476,8 @@ namespace Orthanc
     dbCapabilities_.SetLabelsSupport(true);
     dbCapabilities_.SetHasExtendedChanges(true);
     dbCapabilities_.SetHasFindSupport(HasIntegratedFind());
-    dbCapabilities_.SetHasKeyValueStore(true);
-    dbCapabilities_.SetHasQueue(true);
+    dbCapabilities_.SetKeyValueStoresSupport(true);
+    dbCapabilities_.SetQueuesSupport(true);
     db_.OpenInMemory();
   }
 
@@ -2671,10 +2680,27 @@ namespace Orthanc
 
   }
 
+  // class RaiiTransactionLogger
+  // {
+  //   TransactionType type_;
+  //   public:
+  //     RaiiTransactionLogger(TransactionType type)
+  //     : type_(type)
+  //     {
+  //       LOG(INFO) << "IN  " << (type_ == TransactionType_ReadOnly ? "RO" : "RW");
+  //     }
+  //     ~RaiiTransactionLogger()
+  //     {
+  //     LOG(INFO) << "OUT " << (type_ == TransactionType_ReadOnly ? "RO" : "RW");
+  //     }
+
+  // };
 
   IDatabaseWrapper::ITransaction* SQLiteDatabaseWrapper::StartTransaction(TransactionType type,
                                                                           IDatabaseListener& listener)
   {
+    // RaiiTransactionLogger logger(type);
+
     switch (type)
     {
       case TransactionType_ReadOnly:
