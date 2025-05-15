@@ -4722,11 +4722,11 @@ namespace Orthanc
     lock.GetContext().GetIndex().UpdateAttachmentCustomData(parameters.attachmentUuid, customData);
   }
 
-  bool OrthancPlugins::HasKeyValueStore()
+  bool OrthancPlugins::HasKeyValueStoresSupport()
   {
     PImpl::ServerContextReference lock(*pimpl_);
 
-    return lock.GetContext().GetIndex().HasKeyValueStore();
+    return lock.GetContext().GetIndex().HasKeyValueStoresSupport();
   }
 
   void OrthancPlugins::ApplyStoreKeyValue(const _OrthancPluginStoreKeyValue& parameters)
@@ -4766,11 +4766,11 @@ namespace Orthanc
     CopyStringList(*(parameters.keys), keys);
   }
 
-  bool OrthancPlugins::HasQueue()
+  bool OrthancPlugins::HasQueuesSupport()
   {
     PImpl::ServerContextReference lock(*pimpl_);
 
-    return lock.GetContext().GetIndex().HasQueue();
+    return lock.GetContext().GetIndex().HasQueuesSupport();
   }
 
   void OrthancPlugins::ApplyEnqueueValue(const _OrthancPluginEnqueueValue& parameters)
@@ -4781,7 +4781,7 @@ namespace Orthanc
     lock.GetContext().GetIndex().EnqueueValue(parameters.queueId, value);
   }
 
-  bool OrthancPlugins::ApplyDequeueValue(const _OrthancPluginDequeueValue& parameters)
+  void OrthancPlugins::ApplyDequeueValue(const _OrthancPluginDequeueValue& parameters)
   {
     PImpl::ServerContextReference lock(*pimpl_);
 
@@ -4790,12 +4790,14 @@ namespace Orthanc
     if (lock.GetContext().GetIndex().DequeueValue(value, parameters.queueId, Plugins::Convert(parameters.origin)))
     {
       CopyToMemoryBuffer(*parameters.value, value.size() > 0 ? value.c_str() : NULL, value.size());
-      return true;
     }
-    else
-    {
-      return false;
-    }
+  }
+
+  void OrthancPlugins::ApplyGetQueueSize(const _OrthancPluginGetQueueSize& parameters)
+  {
+    PImpl::ServerContextReference lock(*pimpl_);
+
+    lock.GetContext().GetIndex().GetQueueSize(*parameters.size, parameters.queueId);
   }
 
   void OrthancPlugins::ApplyLoadDicomInstance(const _OrthancPluginLoadDicomInstance& params)
@@ -5892,7 +5894,7 @@ namespace Orthanc
 
       case _OrthancPluginService_StoreKeyValue:
       {
-        if (!HasKeyValueStore())
+        if (!HasKeyValueStoresSupport())
         {
           LOG(ERROR) << "The DB engine does not support Key Value Store";
           return false;
@@ -5906,7 +5908,7 @@ namespace Orthanc
 
       case _OrthancPluginService_DeleteKeyValue:
       {
-        if (!HasKeyValueStore())
+        if (!HasKeyValueStoresSupport())
         {
           LOG(ERROR) << "The DB engine does not support Key Value Store";
           return false;
@@ -5920,7 +5922,7 @@ namespace Orthanc
 
       case _OrthancPluginService_GetKeyValue:
       {
-        if (!HasKeyValueStore())
+        if (!HasKeyValueStoresSupport())
         {
           LOG(ERROR) << "The DB engine does not support Key Value Store";
           return false;
@@ -5934,7 +5936,7 @@ namespace Orthanc
 
       case _OrthancPluginService_ListKeys:
       {
-        if (!HasKeyValueStore())
+        if (!HasKeyValueStoresSupport())
         {
           LOG(ERROR) << "The DB engine does not support Key Value Store";
           return false;
@@ -5948,7 +5950,7 @@ namespace Orthanc
 
       case _OrthancPluginService_EnqueueValue:
       {
-        if (!HasQueue())
+        if (!HasQueuesSupport())
         {
           LOG(ERROR) << "The DB engine does not support Queues";
           return false;
@@ -5962,7 +5964,7 @@ namespace Orthanc
 
       case _OrthancPluginService_DequeueValue:
       {
-        if (!HasQueue())
+        if (!HasQueuesSupport())
         {
           LOG(ERROR) << "The DB engine does not support Queues";
           return false;
@@ -5970,14 +5972,22 @@ namespace Orthanc
 
         const _OrthancPluginDequeueValue& p =
           *reinterpret_cast<const _OrthancPluginDequeueValue*>(parameters);
-        if (ApplyDequeueValue(p))
+        ApplyDequeueValue(p);
+        return true;
+      }
+
+      case _OrthancPluginService_GetQueueSize:
+      {
+        if (!HasQueuesSupport())
         {
-          return true;
+          LOG(ERROR) << "The DB engine does not support Queues";
+          return false;
         }
-        else
-        {
-          throw OrthancException(ErrorCode_UnknownResource);
-        }
+
+        const _OrthancPluginGetQueueSize& p =
+          *reinterpret_cast<const _OrthancPluginGetQueueSize*>(parameters);
+        ApplyGetQueueSize(p);
+        return true;
       }
 
       default:

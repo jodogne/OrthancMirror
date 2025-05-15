@@ -229,7 +229,7 @@ private:
 
     void ApplyUpdateAttachmentCustomData(const _OrthancPluginUpdateAttachmentCustomData& parameters);
 
-    bool HasKeyValueStore();
+    bool HasKeyValueStoresSupport();
 
     void ApplyStoreKeyValue(const _OrthancPluginStoreKeyValue& parameters);
 
@@ -239,11 +239,13 @@ private:
 
     void ApplyListKeys(const _OrthancPluginListKeys& parameters);
 
-    bool HasQueue();
+    bool HasQueuesSupport();
 
     void ApplyEnqueueValue(const _OrthancPluginEnqueueValue& parameters);
 
-    bool ApplyDequeueValue(const _OrthancPluginDequeueValue& parameters);
+    void ApplyDequeueValue(const _OrthancPluginDequeueValue& parameters);
+
+    void ApplyGetQueueSize(const _OrthancPluginGetQueueSize& parameters);
 
     void ComputeHash(_OrthancPluginService service,
                      const void* parameters);

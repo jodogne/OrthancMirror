@@ -1104,6 +1104,12 @@ namespace Orthanc
       throw OrthancException(ErrorCode_InternalError);  // Not supported
     }
 
+    virtual void GetQueueSize(uint64_t& size,
+                              const std::string& queueId) ORTHANC_OVERRIDE
+    {
+      throw OrthancException(ErrorCode_InternalError);  // Not supported
+    }
+
     virtual bool GetAttachment(FileInfo& attachment,
                                int64_t& revision,
                                const std::string& attachmentUuid) ORTHANC_OVERRIDE

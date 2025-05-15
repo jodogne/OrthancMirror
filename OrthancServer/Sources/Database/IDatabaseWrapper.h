@@ -57,8 +57,8 @@ namespace Orthanc
       bool hasFindSupport_;
       bool hasExtendedChanges_;
       bool hasAttachmentCustomDataSupport_;
-      bool hasKeyValueStore_;
-      bool hasQueue_;
+      bool hasKeyValueStoresSupport_;
+      bool hasQueuesSupport_;
 
     public:
       Capabilities() :
@@ -71,8 +71,8 @@ namespace Orthanc
         hasFindSupport_(false),
         hasExtendedChanges_(false),
         hasAttachmentCustomDataSupport_(false),
-        hasKeyValueStore_(false),
-        hasQueue_(false)
+        hasKeyValueStoresSupport_(false),
+        hasQueuesSupport_(false)
       {
       }
 
@@ -166,24 +166,24 @@ namespace Orthanc
         return hasFindSupport_;
       }
 
-      void SetHasKeyValueStore(bool value)
+      void SetKeyValueStoresSupport(bool value)
       {
-        hasKeyValueStore_ = value;
+        hasKeyValueStoresSupport_ = value;
       }
 
-      bool HasKeyValueStore() const
+      bool HasKeyValueStoresSupport() const
       {
-        return hasKeyValueStore_;
+        return hasKeyValueStoresSupport_;
       }
 
-      void SetHasQueue(bool value)
+      void SetQueuesSupport(bool value)
       {
-        hasQueue_ = value;
+        hasQueuesSupport_ = value;
       }
 
-      bool HasQueue() const
+      bool HasQueuesSupport() const
       {
-        return hasQueue_;
+        return hasQueuesSupport_;
       }
     };
 
@@ -462,6 +462,9 @@ namespace Orthanc
       virtual bool DequeueValue(std::string& value,
                                 const std::string& queueId,
                                 QueueOrigin origin) = 0;
+
+      virtual void GetQueueSize(uint64_t& size,
+                                const std::string& queueId) = 0;
 
     };
 
