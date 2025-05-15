@@ -3421,6 +3421,28 @@ namespace Orthanc
     return operations.HasFound();
   }
 
+  void StatelessDatabaseOperations::ListKeys(std::list<std::string>& keys,
+                                             const std::string& storeId,
+                                             uint64_t since,
+                                             uint64_t limit)
+  {
+    class Operations : public ReadOnlyOperationsT4<std::list<std::string>&, const std::string&, uint64_t, uint64_t>
+    {
+    public:
+      Operations()
+      {}
+
+      virtual void ApplyTuple(ReadOnlyTransaction& transaction,
+                              const Tuple& tuple) ORTHANC_OVERRIDE
+      {
+        transaction.ListKeys(tuple.get<0>(), tuple.get<1>(), tuple.get<2>(), tuple.get<3>());
+      }
+    };
+
+    Operations operations;
+    operations.Apply(*this, keys, storeId, since, limit);
+  }
+
   void StatelessDatabaseOperations::EnqueueValue(const std::string& queueId,
                                                  const std::string& value)
   {

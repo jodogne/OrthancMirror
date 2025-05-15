@@ -2144,7 +2144,7 @@ namespace Orthanc
                                const std::string& key,
                                const std::string& value) ORTHANC_OVERRIDE
     {
-      SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT OR REPLACE INTO KeyValueStore (storeId, key, value) VALUES(?, ?, ?)");
+      SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT OR REPLACE INTO KeyValueStores (storeId, key, value) VALUES(?, ?, ?)");
       s.BindString(0, storeId);
       s.BindString(1, key);
       s.BindString(2, value);
@@ -2154,7 +2154,7 @@ namespace Orthanc
     virtual void DeleteKeyValue(const std::string& storeId,
                                 const std::string& key) ORTHANC_OVERRIDE
     {
-      SQLite::Statement s(db_, SQLITE_FROM_HERE, "DELETE FROM KeyValueStore WHERE storeId = ? AND key = ?");
+      SQLite::Statement s(db_, SQLITE_FROM_HERE, "DELETE FROM KeyValueStores WHERE storeId = ? AND key = ?");
       s.BindString(0, storeId);
       s.BindString(1, key);
       s.Run();
@@ -2165,7 +2165,7 @@ namespace Orthanc
                              const std::string& key) ORTHANC_OVERRIDE
     {
       SQLite::Statement s(db_, SQLITE_FROM_HERE, 
-                          "SELECT value FROM KeyValueStore WHERE storeId=? AND key=?");
+                          "SELECT value FROM KeyValueStores WHERE storeId=? AND key=?");
       s.BindString(0, storeId);
       s.BindString(1, key);
 
@@ -2180,6 +2180,25 @@ namespace Orthanc
         return true;
       }    
     }
+
+    // New in Orthanc 1.12.99
+    virtual void ListKeys(std::list<std::string>& keys,
+                          const std::string& storeId,
+                          uint64_t since,
+                          uint64_t limit) ORTHANC_OVERRIDE
+    {
+      LookupFormatter formatter;
+
+      std::string sql = "SELECT key FROM KeyValueStores WHERE storeId=? ORDER BY key ASC " + formatter.FormatLimits(since, limit);
+      SQLite::Statement s(db_, SQLITE_FROM_HERE_DYNAMIC(sql), sql);
+      s.BindString(0, storeId);
+
+      while (s.Step())
+      {
+        keys.push_back(s.ColumnString(0));
+      }
+    }
+
 
     // New in Orthanc 1.12.99
     virtual void EnqueueValue(const std::string& queueId,
@@ -2203,10 +2222,10 @@ namespace Orthanc
       switch (origin)
       {
         case QueueOrigin_Front:
-          s.reset(new SQLite::Statement(db_, SQLITE_FROM_HERE, "SELECT id, value FROM KeyValueStore WHERE queueId=? ORDER BY id ASC LIMIT 1"));
+          s.reset(new SQLite::Statement(db_, SQLITE_FROM_HERE, "SELECT id, value FROM KeyValueStores WHERE queueId=? ORDER BY id ASC LIMIT 1"));
           break;
         case QueueOrigin_Back:
-          s.reset(new SQLite::Statement(db_, SQLITE_FROM_HERE, "SELECT id, value FROM KeyValueStore WHERE queueId=? ORDER BY id DESC LIMIT 1"));
+          s.reset(new SQLite::Statement(db_, SQLITE_FROM_HERE, "SELECT id, value FROM KeyValueStores WHERE queueId=? ORDER BY id DESC LIMIT 1"));
           break;
         default:
           throw OrthancException(ErrorCode_InternalError);

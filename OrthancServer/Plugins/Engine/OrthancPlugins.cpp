@@ -623,6 +623,22 @@ namespace Orthanc
   }
 
 
+  static void CopyStringList(OrthancPluginMemoryBuffer& target,
+                             const std::list<std::string>& list)
+  {
+    Json::Value json = Json::arrayValue;
+
+    for (std::list<std::string>::const_iterator 
+           it = list.begin(); it != list.end(); ++it)
+    {
+      json.append(*it);
+    }
+        
+    std::string s;
+    Toolbox::WriteFastJson(s, json);
+    CopyToMemoryBuffer(target, s);
+  }
+
   namespace
   {
     class MemoryBufferRaii : public boost::noncopyable
@@ -4728,7 +4744,7 @@ namespace Orthanc
     lock.GetContext().GetIndex().DeleteKeyValue(parameters.storeId, parameters.key);
   }
 
-  bool OrthancPlugins::ApplyGetKeyValue(const _OrthancPluginGetKeyValue& parameters)
+  void OrthancPlugins::ApplyGetKeyValue(const _OrthancPluginGetKeyValue& parameters)
   {
     PImpl::ServerContextReference lock(*pimpl_);
 
@@ -4737,12 +4753,17 @@ namespace Orthanc
     if (lock.GetContext().GetIndex().GetKeyValue(value, parameters.storeId, parameters.key))
     {
       CopyToMemoryBuffer(*parameters.value, value.size() > 0 ? value.c_str() : NULL, value.size());
-      return true;
     }
-    else
-    {
-      return false;
-    }
+  }
+
+  void OrthancPlugins::ApplyListKeys(const _OrthancPluginListKeys& parameters)
+  {
+    PImpl::ServerContextReference lock(*pimpl_);
+
+    std::list<std::string> keys;
+
+    lock.GetContext().GetIndex().ListKeys(keys, parameters.storeId, parameters.since, parameters.limit);
+    CopyStringList(*(parameters.keys), keys);
   }
 
   bool OrthancPlugins::HasQueue()
@@ -5907,14 +5928,22 @@ namespace Orthanc
 
         const _OrthancPluginGetKeyValue& p =
           *reinterpret_cast<const _OrthancPluginGetKeyValue*>(parameters);
-        if (ApplyGetKeyValue(p))
+        ApplyGetKeyValue(p);
+        return true;
+      }
+
+      case _OrthancPluginService_ListKeys:
+      {
+        if (!HasKeyValueStore())
         {
-          return true;
+          LOG(ERROR) << "The DB engine does not support Key Value Store";
+          return false;
         }
-        else
-        {
-          throw OrthancException(ErrorCode_UnknownResource);
-        }
+
+        const _OrthancPluginListKeys& p =
+          *reinterpret_cast<const _OrthancPluginListKeys*>(parameters);
+        ApplyListKeys(p);
+        return true;
       }
 
       case _OrthancPluginService_EnqueueValue:

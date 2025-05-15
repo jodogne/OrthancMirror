@@ -308,6 +308,13 @@ namespace Orthanc
         return transaction_.GetKeyValue(value, storeId, key);
       }
 
+      void ListKeys(std::list<std::string>& keys,
+                    const std::string& storeId,
+                    uint64_t since,
+                    uint64_t limit)
+      {
+        return transaction_.ListKeys(keys, storeId, since, limit);
+      }
     };
 
 
@@ -795,6 +802,11 @@ namespace Orthanc
     bool GetKeyValue(std::string& value,
                      const std::string& storeId,
                      const std::string& key);
+
+    void ListKeys(std::list<std::string>& keys,
+                  const std::string& storeId,
+                  uint64_t since,
+                  uint64_t limit);
 
     void EnqueueValue(const std::string& queueId,
                       const std::string& value);

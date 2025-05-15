@@ -4316,4 +4316,79 @@ namespace OrthancPlugins
     }
   }
 #endif
+
+#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 12, 99)
+
+  KeyValueStore::KeyValueStore(const std::string& storeId)
+  : storeId_(storeId)
+  {
+  }
+
+  void KeyValueStore::Store(const std::string& key, const std::string& value)
+  {
+    OrthancPluginStoreKeyValue(OrthancPlugins::GetGlobalContext(),
+                               storeId_.c_str(),
+                               key.c_str(),
+                               value.c_str(),
+                               value.size());
+  }
+
+  bool KeyValueStore::Get(std::string& value, const std::string& key)
+  {
+    OrthancPlugins::MemoryBuffer valueBuffer;
+    OrthancPluginErrorCode ret = OrthancPluginGetKeyValue(OrthancPlugins::GetGlobalContext(),
+                                                          storeId_.c_str(),
+                                                          key.c_str(),
+                                                          *valueBuffer);
+
+    if (ret == OrthancPluginErrorCode_Success)
+    {
+      if (!valueBuffer.IsEmpty())
+      {
+        value.assign(valueBuffer.GetData(), valueBuffer.GetSize());
+        return true;
+      }
+      else
+      {
+        return false;
+      }
+    }
+    
+    return false;
+  }
+
+  void KeyValueStore::Delete(const std::string& key)
+  {
+    OrthancPluginDeleteKeyValue(OrthancPlugins::GetGlobalContext(),
+                                storeId_.c_str(),
+                                key.c_str());
+  }
+
+  bool KeyValueStore::GetAllKeys(std::list<std::string>& keys, uint64_t since, uint64_t limit)
+  {
+    OrthancPlugins::MemoryBuffer keysListBuffer;
+    OrthancPluginErrorCode ret = OrthancPluginListKeys(OrthancPlugins::GetGlobalContext(),
+                                                       storeId_.c_str(),
+                                                       since,
+                                                       limit,
+                                                       *keysListBuffer);
+
+    if (ret == OrthancPluginErrorCode_Success)
+    {
+      Json::Value jsonKeys;
+      keysListBuffer.ToJson(jsonKeys);
+
+      for (Json::ArrayIndex i = 0; i < jsonKeys.size(); ++i)
+      {
+        keys.push_back(jsonKeys[i].asString());
+      }
+
+      // return true if all values have been read
+      return limit == 0 || (jsonKeys.size() < limit);
+    }
+    
+    throw Orthanc::OrthancException(Orthanc::ErrorCode_InternalError, "Unable to list keys");
+  }
+#endif
+
 }

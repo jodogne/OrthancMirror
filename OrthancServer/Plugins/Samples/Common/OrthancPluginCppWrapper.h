@@ -1604,4 +1604,25 @@ void SerializeGetArguments(std::string& output, const OrthancPluginHttpRequest* 
     bool GetAnswerJson(Json::Value& output) const;
   };
 #endif
+
+#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 12, 99)
+
+  class KeyValueStore : public boost::noncopyable
+  {
+  private:
+    std::string storeId_;
+
+  public:
+    KeyValueStore(const std::string& storeId);
+
+    void Store(const std::string& key, const std::string& value);
+
+    bool Get(std::string& value, const std::string& key);
+
+    void Delete(const std::string& key);
+
+    bool GetAllKeys(std::list<std::string>& keys, uint64_t since, uint64_t limit);
+  };
+#endif
+
 }
