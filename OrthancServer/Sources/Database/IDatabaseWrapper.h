@@ -449,6 +449,12 @@ namespace Orthanc
                                const std::string& key) = 0;
 
       // New in Orthanc 1.12.99
+      virtual void ListKeys(std::list<std::string>& keys,
+                            const std::string& storeId,
+                            uint64_t since,
+                            uint64_t limit) = 0;
+
+      // New in Orthanc 1.12.99
       virtual void EnqueueValue(const std::string& queueId,
                                 const std::string& value) = 0;
 

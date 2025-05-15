@@ -473,10 +473,11 @@ extern "C"
     _OrthancPluginService_StoreKeyValue = 47,                       /* New in Orthanc 1.12.99 */
     _OrthancPluginService_DeleteKeyValue = 48,                      /* New in Orthanc 1.12.99 */
     _OrthancPluginService_GetKeyValue = 49,                         /* New in Orthanc 1.12.99 */
-    _OrthancPluginService_EnqueueValue = 50,                        /* New in Orthanc 1.12.99 */
-    _OrthancPluginService_DequeueValue = 51,                        /* New in Orthanc 1.12.99 */
-    _OrthancPluginService_GetAttachmentCustomData = 52,             /* New in Orthanc 1.12.99 */
-    _OrthancPluginService_UpdateAttachmentCustomData = 53,          /* New in Orthanc 1.12.99 */
+    _OrthancPluginService_ListKeys = 50,                            /* New in Orthanc 1.12.99 */
+    _OrthancPluginService_EnqueueValue = 51,                        /* New in Orthanc 1.12.99 */
+    _OrthancPluginService_DequeueValue = 52,                        /* New in Orthanc 1.12.99 */
+    _OrthancPluginService_GetAttachmentCustomData = 53,             /* New in Orthanc 1.12.99 */
+    _OrthancPluginService_UpdateAttachmentCustomData = 54,          /* New in Orthanc 1.12.99 */
 
 
     /* Registration of callbacks */
@@ -9982,6 +9983,40 @@ TODO_ATTACH_CUSTOM_DATA TODO TODO
     params.value = value;
 
     return context->InvokeService(context, _OrthancPluginService_GetKeyValue, &params);
+  }
+
+  typedef struct
+  {
+    const char*                   storeId;
+    uint64_t                      since;
+    uint64_t                      limit;
+    OrthancPluginMemoryBuffer*    keys;
+  } _OrthancPluginListKeys;
+
+
+  /**
+   * @brief List the keys from a key-value store.
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param storeId A unique identifier identifying both the plugin and the store
+   * @param since The index of the first key to return when sorted alphabetically
+   * @param limit The number of keys to return (0 for no limit)
+   * @param keys The keys serialized in a json string
+   **/
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginListKeys(
+    OrthancPluginContext*         context,
+    const char*                   storeId, /* in */
+    uint64_t                      since, /* in */
+    uint64_t                      limit, /* in */
+    OrthancPluginMemoryBuffer*    keys /* out */)
+  {
+    _OrthancPluginListKeys params;
+    params.storeId = storeId;
+    params.since = since;
+    params.limit = limit;
+    params.keys = keys;
+
+    return context->InvokeService(context, _OrthancPluginService_ListKeys, &params);
   }
 
 

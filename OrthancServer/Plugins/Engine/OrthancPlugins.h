@@ -235,7 +235,9 @@ private:
 
     void ApplyDeleteKeyValue(const _OrthancPluginDeleteKeyValue& parameters);
 
-    bool ApplyGetKeyValue(const _OrthancPluginGetKeyValue& parameters);
+    void ApplyGetKeyValue(const _OrthancPluginGetKeyValue& parameters);
+
+    void ApplyListKeys(const _OrthancPluginListKeys& parameters);
 
     bool HasQueue();
 

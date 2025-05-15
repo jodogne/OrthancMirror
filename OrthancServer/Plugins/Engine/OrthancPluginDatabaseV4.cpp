@@ -1842,6 +1842,14 @@ namespace Orthanc
       throw OrthancException(ErrorCode_NotImplemented);  // TODO_ATTACH_CUSTOM_DATA
     }
 
+    virtual void ListKeys(std::list<std::string>& keys,
+                          const std::string& storeId,
+                          uint64_t since,
+                          uint64_t limit) ORTHANC_OVERRIDE
+    {
+      throw OrthancException(ErrorCode_InternalError);  // TODO_ATTACH_CUSTOM_DATA
+    }
+
     virtual void EnqueueValue(const std::string& queueId,
                               const std::string& value) ORTHANC_OVERRIDE
     {
