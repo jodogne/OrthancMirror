@@ -651,6 +651,13 @@ static void WorkerThread()
     needsFullProcessing = needsReconstruct || needsReingest || needsDicomWebCaching;
     needsProcessing = needsFullProcessing;
 
+    if (needsFullProcessing && !limitToChange_.empty())
+    {
+      ORTHANC_PLUGINS_LOG_WARNING("Housekeeper: full processing needed -> ignoring the \"LimitMainDicomTagsReconstructLevel\" configuration");
+      limitToChange_.clear();
+      limitToUrl_.clear();
+    }
+
       // if a processing was in progress, check if the config has changed since
     if (pluginStatus_.currentlyProcessingConfiguration.IsDefined())
     {
@@ -679,7 +686,7 @@ static void WorkerThread()
     }
     else
     {
-      ORTHANC_PLUGINS_LOG_WARNING("Housekeeper: the DB configuration has changed since last run, will reprocess the whole DB !");
+      ORTHANC_PLUGINS_LOG_WARNING("Housekeeper: the Orthanc configuration has changed since last run, will reprocess the whole DB !");
     }
     
     Json::Value changes;
@@ -695,7 +702,7 @@ static void WorkerThread()
   }
   else
   {
-    ORTHANC_PLUGINS_LOG_WARNING("Housekeeper: the DB configuration has not changed since last run, will continue processing changes");
+    ORTHANC_PLUGINS_LOG_WARNING("Housekeeper: the Orthanc configuration has not changed since last run, will continue processing changes");
   }
 
   bool completed = false;

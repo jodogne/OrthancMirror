@@ -80,6 +80,12 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
       ${DCMTK_SOURCES_DIR}/dcmimage/include
       )
   endif()
+
+  if (ENABLE_DCMTK_TRANSCODING OR ENABLE_DCMTK_JPEG OR ENABLE_DCMTK_JPEG_LOSSLESS)
+    include_directories(
+      ${DCMTK_SOURCES_DIR}/dcmimgle/include
+      )
+  endif()
   
   if (ENABLE_DCMTK_JPEG)
     AUX_SOURCE_DIRECTORY(${DCMTK_SOURCES_DIR}/dcmjpeg/libsrc DCMTK_SOURCES)
@@ -91,7 +97,6 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_DCMTK)
       ${DCMTK_SOURCES_DIR}/dcmjpeg/libijg8
       ${DCMTK_SOURCES_DIR}/dcmjpeg/libijg12
       ${DCMTK_SOURCES_DIR}/dcmjpeg/libijg16
-      ${DCMTK_SOURCES_DIR}/dcmimgle/include
       )
     list(REMOVE_ITEM DCMTK_SOURCES 
       ${DCMTK_SOURCES_DIR}/dcmjpeg/libsrc/ddpiimpl.cc
