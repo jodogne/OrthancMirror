@@ -2576,14 +2576,14 @@ namespace Orthanc
     return Toolbox::GetHumanTransferSpeed(full, sizeInBytes, GetElapsedNanoseconds());
   }
 
-  Toolbox::ElapsedTimeLogger::ElapsedTimeLogger(const std::string& message)
+  Toolbox::DebugElapsedTimeLogger::DebugElapsedTimeLogger(const std::string& message)
   : message_(message),
     logged_(false)
   {
     Restart();
   }
 
-  Toolbox::ElapsedTimeLogger::~ElapsedTimeLogger()
+  Toolbox::DebugElapsedTimeLogger::~DebugElapsedTimeLogger()
   {
     if (!logged_)
     {
@@ -2591,15 +2591,27 @@ namespace Orthanc
     }
   }
 
-  void Toolbox::ElapsedTimeLogger::Restart()
+  void Toolbox::DebugElapsedTimeLogger::Restart()
   {
     timer_.Restart();
   }
 
-  void Toolbox::ElapsedTimeLogger::StopAndLog()
+  void Toolbox::DebugElapsedTimeLogger::StopAndLog()
   {
     LOG(WARNING) << "ELAPSED TIMER: " << message_ << " (" << timer_.GetElapsedMicroseconds() << " us)";
     logged_ = true;
+  }
+
+  Toolbox::ApiElapsedTimeLogger::ApiElapsedTimeLogger(const std::string& message) :
+    message_(message)
+  {
+    timer_.Restart();
+    CLOG(INFO, HTTP) << message_;
+  }
+  
+  Toolbox::ApiElapsedTimeLogger::~ApiElapsedTimeLogger()
+  {
+    CLOG(INFO, HTTP) << message_ << " (elapsed: " << timer_.GetElapsedMicroseconds() << " us)";
   }
 
   std::string Toolbox::GetHumanFileSize(uint64_t sizeInBytes)

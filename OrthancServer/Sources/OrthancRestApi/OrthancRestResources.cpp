@@ -976,6 +976,8 @@ namespace Orthanc
         ImageToEncode image(decoded, mode, invert);
 
         HttpContentNegociation negociation;
+
+        // The first call to "Register()" indicates the default content type (here, PNG)
         EncodePng png(image);
         negociation.Register(MIME_PNG, png);
 

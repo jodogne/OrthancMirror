@@ -855,6 +855,13 @@ namespace OrthancPlugins
                 const HttpHeaders& headers) const;
 
     bool DoPost(MemoryBuffer& target,
+                size_t index,
+                const std::string& uri,
+                const std::string& body,
+                const HttpHeaders& headers,
+                unsigned int timeout) const;
+
+    bool DoPost(MemoryBuffer& target,
                 const std::string& name,
                 const std::string& uri,
                 const std::string& body,
@@ -865,6 +872,13 @@ namespace OrthancPlugins
                 const std::string& uri,
                 const std::string& body,
                 const HttpHeaders& headers) const;
+
+    bool DoPost(Json::Value& target,
+                size_t index,
+                const std::string& uri,
+                const std::string& body,
+                const HttpHeaders& headers,
+                unsigned int timeout) const;
 
     bool DoPost(Json::Value& target,
                 const std::string& name,

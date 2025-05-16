@@ -14,6 +14,15 @@ Plugins
 * New storage plugin SDK (v3) to handle customData for attachments.
 * New functions available to all plugins to store key-values and queues.
 
+Maintenance
+-----------
+
+* In verbose logs, added the elapsed time spent in each HTTP call.
+* Housekeeper plugin: 
+  - If "LimitMainDicomTagsReconstructLevel" was set, files were not transcoded if they had to.
+    The "LimitMainDicomTagsReconstructLevel" configuration is now ignored when a full processing
+    is required.
+
 
 Version 1.12.7 (2025-04-07)
 ===========================

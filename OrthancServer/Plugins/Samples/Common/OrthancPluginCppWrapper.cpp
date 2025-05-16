@@ -2052,6 +2052,26 @@ namespace OrthancPlugins
             DoPost(target, index, uri, body, headers));
   }
 
+  bool OrthancPeers::DoPost(Json::Value& target,
+                            size_t index,
+                            const std::string& uri,
+                            const std::string& body,
+                            const HttpHeaders& headers, 
+                            unsigned int timeout) const
+  {
+    MemoryBuffer buffer;
+
+    if (DoPost(buffer, index, uri, body, headers, timeout))
+    {
+      buffer.ToJson(target);
+      return true;
+    }
+    else
+    {
+      return false;
+    }
+  }
+
 
   bool OrthancPeers::DoPost(Json::Value& target,
                             size_t index,
@@ -2099,6 +2119,17 @@ namespace OrthancPlugins
                             const std::string& body,
                             const HttpHeaders& headers) const
   {
+    return DoPost(target, index, uri, body, headers, timeout_);
+  }
+
+
+  bool OrthancPeers::DoPost(MemoryBuffer& target,
+                            size_t index,
+                            const std::string& uri,
+                            const std::string& body,
+                            const HttpHeaders& headers,
+                            unsigned int timeout) const
+  {
     if (index >= index_.size())
     {
       ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(OrthancPluginErrorCode_ParameterOutOfRange);
@@ -2117,7 +2148,7 @@ namespace OrthancPlugins
     OrthancPluginErrorCode code = OrthancPluginCallPeerApi
       (GetGlobalContext(), *answer, NULL, &status, peers_,
        static_cast<uint32_t>(index), OrthancPluginHttpMethod_Post, uri.c_str(),
-       pluginHeaders.GetSize(), pluginHeaders.GetKeys(), pluginHeaders.GetValues(), body.empty() ? NULL : body.c_str(), body.size(), timeout_);
+       pluginHeaders.GetSize(), pluginHeaders.GetKeys(), pluginHeaders.GetValues(), body.empty() ? NULL : body.c_str(), body.size(), timeout);
 
     if (code == OrthancPluginErrorCode_Success)
     {
