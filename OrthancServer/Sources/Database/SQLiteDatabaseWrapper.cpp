@@ -386,12 +386,12 @@ namespace Orthanc
       }
     }
 
-    boost::mutex::scoped_lock  lock_;
+    boost::recursive_mutex::scoped_lock  lock_;
     IDatabaseListener&         listener_;
     SignalRemainingAncestor&   signalRemainingAncestor_;
 
   public:
-    TransactionBase(boost::mutex& mutex,
+    TransactionBase(boost::recursive_mutex& mutex,
                     SQLite::Connection& db,
                     IDatabaseListener& listener,
                     SignalRemainingAncestor& signalRemainingAncestor) :
@@ -2361,20 +2361,39 @@ namespace Orthanc
     SQLiteDatabaseWrapper&                that_;
     std::unique_ptr<SQLite::Transaction>  transaction_;
     int64_t                               initialDiskSize_;
+    bool                                  isNested_;
+
+  // Rationale for the isNested_ field: 
+  //   This was added while implementing the DelayedDeletion part of the advanced-storage plugin.
+  //   When Orthanc deletes an attachment, a SQLite transaction is created to delete the attachment from
+  //   the SQLite DB and, while the transaction is still active, the StorageRemove callback is called.
+  //   The DelayedDeleter does not delete the file directly but, instead, it queues it for deletion.
+  //   Queuing is done through the Orthanc SDK that creates a RW transaction (because it is a generic function).
+  //   Since there is already an active RW transaction, this "nested" transaction does not need to perform anything
+  //   in its Begin/Commit since this will be performed at higher level by the current activeTransaction_.
+  //   However, in case of Rollback, this nested transaction must call the top level transaction Rollback.
 
   public:
     ReadWriteTransaction(SQLiteDatabaseWrapper& that,
                          IDatabaseListener& listener) :
       TransactionBase(that.mutex_, that.db_, listener, *that.signalRemainingAncestor_),
       that_(that),
-      transaction_(new SQLite::Transaction(that_.db_))
+      transaction_(new SQLite::Transaction(that_.db_)),
+      isNested_(false)
     {
       if (that_.activeTransaction_ != NULL)
       {
-        throw OrthancException(ErrorCode_InternalError);
+        if (dynamic_cast<SQLiteDatabaseWrapper::ReadWriteTransaction*>(that_.activeTransaction_) == NULL)
+        {
+          throw OrthancException(ErrorCode_InternalError, "Unable to create a nested RW transaction, the current transaction is not a RW transaction");
+        }
+        
+        isNested_ = true;
       }
-      
-      that_.activeTransaction_ = this;
+      else
+      {
+        that_.activeTransaction_ = this;
+      }
 
 #if defined(NDEBUG)
       // Release mode
@@ -2387,26 +2406,42 @@ namespace Orthanc
 
     virtual ~ReadWriteTransaction()
     {
-      assert(that_.activeTransaction_ != NULL);    
-      that_.activeTransaction_ = NULL;
+      if (!isNested_)
+      {
+        assert(that_.activeTransaction_ != NULL);    
+        that_.activeTransaction_ = NULL;
+      }
     }
 
-    void Begin()
+    virtual void Begin()
     {
-      transaction_->Begin();
+      if (!isNested_)
+      {
+        transaction_->Begin();
+      }
     }
 
     virtual void Rollback() ORTHANC_OVERRIDE
     {
-      transaction_->Rollback();
+      if (isNested_)
+      {
+        that_.activeTransaction_->Rollback();
+      }
+      else
+      {
+        transaction_->Rollback();
+      }
     }
 
     virtual void Commit(int64_t fileSizeDelta /* only used in debug */) ORTHANC_OVERRIDE
     {
-      transaction_->Commit();
+      if (!isNested_)
+      {
+        transaction_->Commit();
 
-      assert(initialDiskSize_ + fileSizeDelta >= 0 &&
-             initialDiskSize_ + fileSizeDelta == static_cast<int64_t>(GetTotalCompressedSize()));
+        assert(initialDiskSize_ + fileSizeDelta >= 0 &&
+              initialDiskSize_ + fileSizeDelta == static_cast<int64_t>(GetTotalCompressedSize()));
+      }
     }
   };
 
@@ -2493,7 +2528,7 @@ namespace Orthanc
   void SQLiteDatabaseWrapper::Open()
   {
     {
-      boost::mutex::scoped_lock lock(mutex_);
+      boost::recursive_mutex::scoped_lock lock(mutex_);
 
       if (signalRemainingAncestor_ != NULL)
       {
@@ -2602,7 +2637,7 @@ namespace Orthanc
 
   void SQLiteDatabaseWrapper::Close()
   {
-    boost::mutex::scoped_lock lock(mutex_);
+    boost::recursive_mutex::scoped_lock lock(mutex_);
     // close and delete the WAL when exiting properly -> the DB is stored in a single file (no more -wal and -shm files)
     db_.Execute("PRAGMA JOURNAL_MODE=DELETE;");
     db_.Close();
@@ -2623,7 +2658,7 @@ namespace Orthanc
   void SQLiteDatabaseWrapper::Upgrade(unsigned int targetVersion,
                                       IPluginStorageArea& storageArea)
   {
-    boost::mutex::scoped_lock lock(mutex_);
+    boost::recursive_mutex::scoped_lock lock(mutex_);
 
     if (targetVersion != 7)
     {
@@ -2693,7 +2728,6 @@ namespace Orthanc
   //     {
   //     LOG(INFO) << "OUT " << (type_ == TransactionType_ReadOnly ? "RO" : "RW");
   //     }
-
   // };
 
   IDatabaseWrapper::ITransaction* SQLiteDatabaseWrapper::StartTransaction(TransactionType type,
@@ -2722,7 +2756,7 @@ namespace Orthanc
   
   void SQLiteDatabaseWrapper::FlushToDisk()
   {
-    boost::mutex::scoped_lock lock(mutex_);
+    boost::recursive_mutex::scoped_lock lock(mutex_);
     db_.FlushToDisk();
   }
 
