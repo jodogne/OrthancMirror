@@ -1929,15 +1929,16 @@ namespace Orthanc
     virtual void ListKeysValues(std::list<std::string>& keys,
                                 std::list<std::string>& values,
                                 const std::string& storeId,
-                                bool first,
-                                const std::string& from,
+                                bool fromFirst,
+                                const std::string& fromKey,
                                 uint64_t limit) ORTHANC_OVERRIDE
     {
       if (database_.GetDatabaseCapabilities().HasKeyValueStoresSupport())
       {
         DatabasePluginMessages::TransactionRequest request;
         request.mutable_list_key_values()->set_store_id(storeId);
-        // request.mutable_list_key_values()->set_since(since);  // TODO_ATTACH_CUSTOM_DATA
+        request.mutable_list_key_values()->set_from_first(fromFirst);
+        request.mutable_list_key_values()->set_from_key(fromKey);
         request.mutable_list_key_values()->set_limit(limit);
 
         DatabasePluginMessages::TransactionResponse response;
@@ -1946,7 +1947,7 @@ namespace Orthanc
         for (int i = 0; i < response.list_key_values().key_values_size(); ++i)
         {
           keys.push_back(response.list_key_values().key_values(i).key());
-          // values .push_back(response.list_key_value().key_values(i)); // TODO_ATTACH_CUSTOM_DATA
+          values .push_back(response.list_key_values().key_values(i).value());
         }
       }
       else
