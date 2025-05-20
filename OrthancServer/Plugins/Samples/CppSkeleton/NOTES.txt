@@ -1,0 +1,43 @@
+
+Content
+=======
+
+This folder contains a sample, minimal C++ plugin for Orthanc that
+supports multiple target architectures. This skeleton also illustrates
+how to properly include the Orthanc Framework and how to use embedded
+resources.
+
+
+Build instructions
+==================
+
+To compile for developers:
+
+$ mkdir Build
+$ cd Build
+$ cmake .. \
+        -DORTHANC_FRAMEWORK_ROOT=${PWD}/../../../../../OrthancFramework/Sources \
+        -DORTHANC_FRAMEWORK_SOURCE=path \
+        -DUSE_SYSTEM_ORTHANC_SDK=OFF
+$ make -j4
+
+
+Shipping to users
+=================
+
+If shipping the plugin to users (i.e., non-developers), you would have
+to prepare your project by typing:
+
+$ ./Resources/SyncOrthancFolder.py
+
+The resulting content of the "./Resources/Orthanc/" must be included
+in your project.
+
+Evidently, do not forget to adapt the values in "CMakeLists.txt"
+
+The users would then use the following build instructions:
+
+$ mkdir Build
+$ cd Build
+$ cmake .. -DALLOW_DOWNLOADS=ON -DUSE_SYSTEM_ORTHANC_SDK=OFF
+$ make -j4
