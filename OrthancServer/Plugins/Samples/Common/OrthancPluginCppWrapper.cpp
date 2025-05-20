@@ -4434,8 +4434,8 @@ namespace OrthancPlugins
 
 
 #if HAS_ORTHANC_PLUGIN_KEY_VALUE_STORES == 1
-  bool KeyValueStore::Get(std::string& value,
-                          const std::string& key)
+  bool KeyValueStore::GetValue(std::string& value,
+                               const std::string& key)
   {
     uint8_t isExisting = false;
     OrthancPlugins::MemoryBuffer valueBuffer;
@@ -4460,7 +4460,7 @@ namespace OrthancPlugins
 
 
 #if HAS_ORTHANC_PLUGIN_KEY_VALUE_STORES == 1
-  void KeyValueStore::Delete(const std::string& key)
+  void KeyValueStore::DeleteKey(const std::string& key)
   {
     OrthancPluginErrorCode code = OrthancPluginDeleteKeyValue(OrthancPlugins::GetGlobalContext(),
                                                               storeId_.c_str(), key.c_str());

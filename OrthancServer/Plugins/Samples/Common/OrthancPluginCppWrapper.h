@@ -1661,10 +1661,10 @@ void SerializeGetArguments(std::string& output, const OrthancPluginHttpRequest* 
     void Store(const std::string& key,
                const std::string& value);
 
-    bool Get(std::string& value,
-             const std::string& key);
+    bool GetValue(std::string& value,
+                  const std::string& key);
 
-    void Delete(const std::string& key);
+    void DeleteKey(const std::string& key);
 
     Iterator* CreateIterator();
   };
