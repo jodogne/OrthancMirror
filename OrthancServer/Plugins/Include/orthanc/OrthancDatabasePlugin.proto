@@ -1028,8 +1028,8 @@ message GetKeyValue {
 message ListKeysValues {
   message Request {
     string store_id = 1;
-    bool first = 2;
-    string from = 3;  // Only meaningful if "first == false"
+    bool from_first = 2;
+    string from_key = 3;  // Only meaningful if "from_first == false"
     uint64 limit = 4;
   }
 

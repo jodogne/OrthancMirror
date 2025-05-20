@@ -1929,16 +1929,16 @@ namespace Orthanc
     virtual void ListKeysValues(std::list<std::string>& keys,
                                 std::list<std::string>& values,
                                 const std::string& storeId,
-                                bool first,
-                                const std::string& from,
+                                bool fromFirst,
+                                const std::string& fromKey,
                                 uint64_t limit) ORTHANC_OVERRIDE
     {
       if (database_.GetDatabaseCapabilities().HasKeyValueStoresSupport())
       {
         DatabasePluginMessages::TransactionRequest request;
         request.mutable_list_keys_values()->set_store_id(storeId);
-        request.mutable_list_keys_values()->set_first(first);
-        request.mutable_list_keys_values()->set_from(from);
+        request.mutable_list_keys_values()->set_from_first(fromFirst);
+        request.mutable_list_keys_values()->set_from_key(fromKey);
         request.mutable_list_keys_values()->set_limit(limit);
 
         DatabasePluginMessages::TransactionResponse response;
