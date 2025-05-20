@@ -3510,22 +3510,24 @@ namespace Orthanc
     return operations.HasFound();
   }
 
-  void StatelessDatabaseOperations::GetQueueSize(uint64_t& size,
-                                                 const std::string& queueId)
+  uint64_t StatelessDatabaseOperations::GetQueueSize(const std::string& queueId)
   {
     class Operations : public ReadOnlyOperationsT2<uint64_t&, const std::string& >
     {
     public:
-
       virtual void ApplyTuple(ReadOnlyTransaction& transaction,
                               const Tuple& tuple) ORTHANC_OVERRIDE
       {
-        transaction.GetQueueSize(tuple.get<0>(), tuple.get<1>());
+        tuple.get<0>() = transaction.GetQueueSize(tuple.get<1>());
       }
     };
 
+    uint64_t size;
+
     Operations operations;
     operations.Apply(*this, size, queueId);
+
+    return size;
   }
 
 

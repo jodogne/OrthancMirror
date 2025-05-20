@@ -1863,12 +1863,10 @@ namespace Orthanc
       throw OrthancException(ErrorCode_InternalError);  // TODO_ATTACH_CUSTOM_DATA
     }
 
-    virtual void GetQueueSize(uint64_t& size,
-                              const std::string& queueId) ORTHANC_OVERRIDE
+    virtual uint64_t GetQueueSize(const std::string& queueId) ORTHANC_OVERRIDE
     {
       throw OrthancException(ErrorCode_InternalError);  // TODO_ATTACH_CUSTOM_DATA
     }
-
   };
 
 
