@@ -26,8 +26,6 @@ CREATE TABLE KeyValueStores(
        PRIMARY KEY(storeId, key)  -- Prevents duplicates
        );
 
-CREATE INDEX KeyValueStoresIndex ON KeyValueStores (storeId, key);
-
 CREATE TABLE Queues (
        id INTEGER PRIMARY KEY AUTOINCREMENT,
        queueId TEXT NOT NULL,
