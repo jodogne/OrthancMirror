@@ -2182,20 +2182,39 @@ namespace Orthanc
     }
 
     // New in Orthanc 1.12.99
-    virtual void ListKeys(std::list<std::string>& keys,
-                          const std::string& storeId,
-                          uint64_t since,
-                          uint64_t limit) ORTHANC_OVERRIDE
+    virtual void ListKeysValues(std::list<std::string>& keys /* out */,
+                                std::list<std::string>& values /* out */,
+                                const std::string& storeId,
+                                bool first,
+                                const std::string& from /* only used if "first == false" */,
+                                uint64_t limit) ORTHANC_OVERRIDE
     {
-      LookupFormatter formatter;
-
-      std::string sql = "SELECT key FROM KeyValueStores WHERE storeId=? ORDER BY key ASC " + formatter.FormatLimits(since, limit);
-      SQLite::Statement s(db_, SQLITE_FROM_HERE_DYNAMIC(sql), sql);
-      s.BindString(0, storeId);
-
-      while (s.Step())
+      int64_t actualLimit = limit;
+      if (limit == 0)
       {
-        keys.push_back(s.ColumnString(0));
+        actualLimit = -1;  // In SQLite, "if negative, there is no upper bound on the number of rows returned"
+      }
+
+      std::unique_ptr<SQLite::Statement> statement;
+
+      if (first)
+      {
+        statement.reset(new SQLite::Statement(db_, SQLITE_FROM_HERE, "SELECT key, value FROM KeyValueStores WHERE storeId=? ORDER BY key ASC LIMIT ?"));
+        statement->BindString(0, storeId);
+        statement->BindInt64(1, actualLimit);
+      }
+      else
+      {
+        statement.reset(new SQLite::Statement(db_, SQLITE_FROM_HERE, "SELECT key, value FROM KeyValueStores WHERE storeId=? AND key>? ORDER BY key ASC LIMIT ?"));
+        statement->BindString(0, storeId);
+        statement->BindString(1, from);
+        statement->BindInt64(2, actualLimit);
+      }
+
+      while (statement->Step())
+      {
+        keys.push_back(statement->ColumnString(0));
+        values.push_back(statement->ColumnString(1));
       }
     }
 
@@ -2244,7 +2263,7 @@ namespace Orthanc
         rowId = s->ColumnInt64(0);
         value = s->ColumnString(1);
 
-        SQLite::Statement s2(db_, SQLITE_FROM_HERE, 
+        SQLite::Statement s2(db_, SQLITE_FROM_HERE,
                             "DELETE FROM Queues WHERE id = ?");
         s2.BindInt64(0, rowId);
         s2.Run();

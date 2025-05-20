@@ -1471,10 +1471,12 @@ namespace Orthanc
       throw OrthancException(ErrorCode_InternalError);  // Not supported
     }
 
-    virtual void ListKeys(std::list<std::string>& keys,
-                          const std::string& storeId,
-                          uint64_t since,
-                          uint64_t limit) ORTHANC_OVERRIDE
+    virtual void ListKeysValues(std::list<std::string>& keys,
+                                std::list<std::string>& values,
+                                const std::string& storeId,
+                                bool first,
+                                const std::string& from,
+                                uint64_t limit) ORTHANC_OVERRIDE
     {
       throw OrthancException(ErrorCode_InternalError);  // Not supported
     }

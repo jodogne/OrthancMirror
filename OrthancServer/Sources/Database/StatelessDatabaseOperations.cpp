@@ -3421,28 +3421,6 @@ namespace Orthanc
     return operations.HasFound();
   }
 
-  void StatelessDatabaseOperations::ListKeys(std::list<std::string>& keys,
-                                             const std::string& storeId,
-                                             uint64_t since,
-                                             uint64_t limit)
-  {
-    class Operations : public ReadOnlyOperationsT4<std::list<std::string>&, const std::string&, uint64_t, uint64_t>
-    {
-    public:
-      Operations()
-      {}
-
-      virtual void ApplyTuple(ReadOnlyTransaction& transaction,
-                              const Tuple& tuple) ORTHANC_OVERRIDE
-      {
-        transaction.ListKeys(tuple.get<0>(), tuple.get<1>(), tuple.get<2>(), tuple.get<3>());
-      }
-    };
-
-    Operations operations;
-    operations.Apply(*this, keys, storeId, since, limit);
-  }
-
   void StatelessDatabaseOperations::EnqueueValue(const std::string& queueId,
                                                  const std::string& value)
   {
@@ -3588,4 +3566,125 @@ namespace Orthanc
     Apply(operations);
   }
 
+  StatelessDatabaseOperations::KeysValuesIterator::KeysValuesIterator(StatelessDatabaseOperations& db,
+                                                                      const std::string& storeId) :
+    db_(db),
+    state_(State_Waiting),
+    storeId_(storeId),
+    limit_(100)
+  {
+  }
+
+  bool StatelessDatabaseOperations::KeysValuesIterator::Next()
+  {
+    if (state_ == State_Done)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+
+    if (state_ == State_Available)
+    {
+      assert(currentKey_ != keys_.end());
+      assert(currentValue_ != values_.end());
+      ++currentKey_;
+      ++currentValue_;
+
+      if (currentKey_ != keys_.end() &&
+          currentValue_ != values_.end())
+      {
+        // A value is still available in the last keys-values block fetched from the database
+        return true;
+      }
+      else if (currentKey_ != keys_.end() ||
+               currentValue_ != values_.end())
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+    }
+
+    class Operations : public ReadOnlyOperationsT6<std::list<std::string>&, std::list<std::string>&, const std::string&, bool, const std::string&, uint64_t>
+    {
+    public:
+      virtual void ApplyTuple(ReadOnlyTransaction& transaction,
+                              const Tuple& tuple) ORTHANC_OVERRIDE
+      {
+        transaction.ListKeysValues(tuple.get<0>(), tuple.get<1>(), tuple.get<2>(), tuple.get<3>(), tuple.get<4>(), tuple.get<5>());
+      }
+    };
+
+    if (state_ == State_Waiting)
+    {
+      keys_.clear();
+      values_.clear();
+
+      Operations operations;
+      operations.Apply(db_, keys_, values_, storeId_, true, "", limit_);
+    }
+    else
+    {
+      assert(state_ == State_Available);
+      if (keys_.empty())
+      {
+        state_ = State_Done;
+        return false;
+      }
+      else
+      {
+        const std::string lastKey = keys_.back();
+        keys_.clear();
+        values_.clear();
+
+        Operations operations;
+        operations.Apply(db_, keys_, values_, storeId_, false, lastKey, limit_);
+      }
+    }
+
+    if (keys_.size() != values_.size())
+    {
+      throw OrthancException(ErrorCode_DatabasePlugin);
+    }
+
+    if (keys_.empty() &&
+        values_.empty())
+    {
+      state_ = State_Done;
+      return false;
+    }
+    else if (!keys_.empty() &&
+             !values_.empty())
+    {
+      state_ = State_Available;
+      currentKey_ = keys_.begin();
+      currentValue_ = values_.begin();
+      return true;
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_InternalError);  // Should never happen
+    }
+  }
+
+  const std::string &StatelessDatabaseOperations::KeysValuesIterator::GetKey() const
+  {
+    if (state_ == State_Available)
+    {
+      return *currentKey_;
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+  }
+
+  const std::string &StatelessDatabaseOperations::KeysValuesIterator::GetValue() const
+  {
+    if (state_ == State_Available)
+    {
+      return *currentValue_;
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+  }
 }
