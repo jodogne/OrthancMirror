@@ -1023,13 +1023,47 @@ namespace Orthanc
                                int64_t& revision,
                                const std::string& attachmentUuid) ORTHANC_OVERRIDE
     {
-      throw OrthancException(ErrorCode_NotImplemented);  // TODO_ATTACH_CUSTOM_DATA
+      if (database_.GetDatabaseCapabilities().HasAttachmentCustomDataSupport())
+      {
+        DatabasePluginMessages::TransactionRequest request;
+        request.mutable_get_attachment()->set_uuid(attachmentUuid);
+
+        DatabasePluginMessages::TransactionResponse response;
+        ExecuteTransaction(response, DatabasePluginMessages::OPERATION_GET_ATTACHMENT, request);
+
+        if (response.get_attachment().found())
+        {
+          revision = response.get_attachment().revision();
+          attachment = Convert(response.get_attachment().attachment());
+          return true;
+        }
+
+        return false;
+      }
+      else
+      {
+        // This method shouldn't have been called
+        throw OrthancException(ErrorCode_InternalError);
+      }
     }
 
     virtual void UpdateAttachmentCustomData(const std::string& attachmentUuid,
                                             const std::string& customData) ORTHANC_OVERRIDE
     {
-      throw OrthancException(ErrorCode_NotImplemented);  // TODO_ATTACH_CUSTOM_DATA
+      if (database_.GetDatabaseCapabilities().HasAttachmentCustomDataSupport())
+      {
+        DatabasePluginMessages::TransactionRequest request;
+        request.mutable_update_attachment_custom_data()->set_uuid(attachmentUuid);
+        request.mutable_update_attachment_custom_data()->set_custom_data(customData);
+
+        DatabasePluginMessages::TransactionResponse response;
+        ExecuteTransaction(response, DatabasePluginMessages::OPERATION_UPDATE_ATTACHMENT_CUSTOM_DATA, request);
+      }
+      else
+      {
+        // This method shouldn't have been called
+        throw OrthancException(ErrorCode_InternalError);
+      }
     }
 
 
@@ -1826,20 +1860,66 @@ namespace Orthanc
                                const std::string& key,
                                const std::string& value) ORTHANC_OVERRIDE
     {
-      throw OrthancException(ErrorCode_NotImplemented);  // TODO_ATTACH_CUSTOM_DATA
+      if (database_.GetDatabaseCapabilities().HasKeyValueStoresSupport())
+      {
+        DatabasePluginMessages::TransactionRequest request;
+        request.mutable_store_key_value()->set_store_id(storeId);
+        request.mutable_store_key_value()->set_key(key);
+        request.mutable_store_key_value()->set_value(value);
+
+        ExecuteTransaction(DatabasePluginMessages::OPERATION_STORE_KEY_VALUE, request);
+      }
+      else
+      {
+        // This method shouldn't have been called
+        throw OrthancException(ErrorCode_InternalError);
+      }
     }
 
     virtual void DeleteKeyValue(const std::string& storeId,
                                 const std::string& key) ORTHANC_OVERRIDE
     {
-      throw OrthancException(ErrorCode_NotImplemented);  // TODO_ATTACH_CUSTOM_DATA
+      if (database_.GetDatabaseCapabilities().HasKeyValueStoresSupport())
+      {
+        DatabasePluginMessages::TransactionRequest request;
+        request.mutable_delete_key_value()->set_store_id(storeId);
+        request.mutable_delete_key_value()->set_key(key);
+
+        ExecuteTransaction(DatabasePluginMessages::OPERATION_DELETE_KEY_VALUE, request);
+      }
+      else
+      {
+        // This method shouldn't have been called
+        throw OrthancException(ErrorCode_InternalError);
+      }
     }
 
     virtual bool GetKeyValue(std::string& value,
                              const std::string& storeId,
                              const std::string& key) ORTHANC_OVERRIDE
     {
-      throw OrthancException(ErrorCode_NotImplemented);  // TODO_ATTACH_CUSTOM_DATA
+      if (database_.GetDatabaseCapabilities().HasKeyValueStoresSupport())
+      {
+        DatabasePluginMessages::TransactionRequest request;
+        request.mutable_get_key_value()->set_store_id(storeId);
+        request.mutable_get_key_value()->set_key(key);
+
+        DatabasePluginMessages::TransactionResponse response;
+        ExecuteTransaction(response, DatabasePluginMessages::OPERATION_GET_KEY_VALUE, request);
+
+        if (response.get_key_value().found())
+        {
+          value = response.get_key_value().value();
+          return true;
+        }
+
+        return false;
+      }
+      else
+      {
+        // This method shouldn't have been called
+        throw OrthancException(ErrorCode_InternalError);
+      }
     }
 
     virtual void ListKeys(std::list<std::string>& keys,
@@ -1847,25 +1927,102 @@ namespace Orthanc
                           uint64_t since,
                           uint64_t limit) ORTHANC_OVERRIDE
     {
-      throw OrthancException(ErrorCode_InternalError);  // TODO_ATTACH_CUSTOM_DATA
+      if (database_.GetDatabaseCapabilities().HasKeyValueStoresSupport())
+      {
+        DatabasePluginMessages::TransactionRequest request;
+        request.mutable_list_key_values()->set_store_id(storeId);
+        request.mutable_list_key_values()->set_since(since);
+        request.mutable_list_key_values()->set_limit(limit);
+
+        DatabasePluginMessages::TransactionResponse response;
+        ExecuteTransaction(response, DatabasePluginMessages::OPERATION_LIST_KEY_VALUES, request);
+
+        for (int i = 0; i < response.list_key_values().key_values_size(); ++i)
+        {
+          keys.push_back(response.list_key_values().key_values(i).key());
+          // values .push_back(response.list_key_value().key_values(i)); // TODO_ATTACH_CUSTOM_DATA
+        }
+      }
+      else
+      {
+        // This method shouldn't have been called
+        throw OrthancException(ErrorCode_InternalError);
+      }
     }
 
     virtual void EnqueueValue(const std::string& queueId,
                               const std::string& value) ORTHANC_OVERRIDE
     {
-      throw OrthancException(ErrorCode_InternalError);  // TODO_ATTACH_CUSTOM_DATA
+      if (database_.GetDatabaseCapabilities().HasQueuesSupport())
+      {
+        DatabasePluginMessages::TransactionRequest request;
+        request.mutable_enqueue_value()->set_queue_id(queueId);
+        request.mutable_enqueue_value()->set_value(value);
+
+        ExecuteTransaction(DatabasePluginMessages::OPERATION_ENQUEUE_VALUE, request);
+      }
+      else
+      {
+        // This method shouldn't have been called
+        throw OrthancException(ErrorCode_InternalError);
+      }
     }
 
     virtual bool DequeueValue(std::string& value,
                               const std::string& queueId,
                               QueueOrigin origin) ORTHANC_OVERRIDE
     {
-      throw OrthancException(ErrorCode_InternalError);  // TODO_ATTACH_CUSTOM_DATA
+      if (database_.GetDatabaseCapabilities().HasQueuesSupport())
+      {
+        DatabasePluginMessages::TransactionRequest request;
+        request.mutable_dequeue_value()->set_queue_id(queueId);
+        switch (origin)
+        {
+          case QueueOrigin_Back:
+            request.mutable_dequeue_value()->set_origin(DatabasePluginMessages::QUEUE_ORIGIN_BACK);
+            break;
+          case QueueOrigin_Front:
+            request.mutable_dequeue_value()->set_origin(DatabasePluginMessages::QUEUE_ORIGIN_FRONT);
+            break;
+          default:
+            throw OrthancException(ErrorCode_InternalError);
+        }
+
+        DatabasePluginMessages::TransactionResponse response;
+        ExecuteTransaction(response, DatabasePluginMessages::OPERATION_DEQUEUE_VALUE, request);
+
+        if (response.dequeue_value().found())
+        {
+          value = response.dequeue_value().value();
+          return true;
+        }
+
+        return false;
+      }
+      else
+      {
+        // This method shouldn't have been called
+        throw OrthancException(ErrorCode_InternalError);
+      }
     }
 
     virtual uint64_t GetQueueSize(const std::string& queueId) ORTHANC_OVERRIDE
     {
-      throw OrthancException(ErrorCode_InternalError);  // TODO_ATTACH_CUSTOM_DATA
+      if (database_.GetDatabaseCapabilities().HasQueuesSupport())
+      {
+        DatabasePluginMessages::TransactionRequest request;
+        request.mutable_get_queue_size()->set_queue_id(queueId);
+
+        DatabasePluginMessages::TransactionResponse response;
+        ExecuteTransaction(response, DatabasePluginMessages::OPERATION_GET_QUEUE_SIZE, request);
+
+        return response.get_queue_size().size();
+      }
+      else
+      {
+        // This method shouldn't have been called
+        throw OrthancException(ErrorCode_InternalError);
+      }
     }
   };
 
