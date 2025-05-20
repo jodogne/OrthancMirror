@@ -1327,8 +1327,6 @@ extern "C"
 
   } OrthancPluginDatabaseBackendV3;
 
-/*<! @endcond */
-  
 
   typedef struct
   {
@@ -1361,6 +1359,9 @@ extern "C"
 
     return context->InvokeService(context, _OrthancPluginService_RegisterDatabaseBackendV3, &params);
   }
+
+/*<! @endcond */
+
 
 #ifdef  __cplusplus
 }

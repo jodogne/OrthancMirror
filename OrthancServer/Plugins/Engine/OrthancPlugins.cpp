@@ -4732,7 +4732,7 @@ namespace Orthanc
   void OrthancPlugins::ApplyStoreKeyValue(const _OrthancPluginStoreKeyValue& parameters)
   {
     PImpl::ServerContextReference lock(*pimpl_);
-    std::string value(parameters.value, parameters.valueSize);
+    std::string value(reinterpret_cast<const char*>(parameters.value), parameters.valueSize);
 
     lock.GetContext().GetIndex().StoreKeyValue(parameters.storeId, parameters.key, value);
   }
@@ -4752,7 +4752,12 @@ namespace Orthanc
 
     if (lock.GetContext().GetIndex().GetKeyValue(value, parameters.storeId, parameters.key))
     {
-      CopyToMemoryBuffer(*parameters.value, value.size() > 0 ? value.c_str() : NULL, value.size());
+      CopyToMemoryBuffer(*parameters.target, value.size() > 0 ? value.c_str() : NULL, value.size());
+      *parameters.isExisting = true;
+    }
+    else
+    {
+      *parameters.isExisting = false;
     }
   }
 
@@ -4776,7 +4781,7 @@ namespace Orthanc
   void OrthancPlugins::ApplyEnqueueValue(const _OrthancPluginEnqueueValue& parameters)
   {
     PImpl::ServerContextReference lock(*pimpl_);
-    std::string value(parameters.value, parameters.valueSize);
+    std::string value(reinterpret_cast<const char*>(parameters.value), parameters.valueSize);
 
     lock.GetContext().GetIndex().EnqueueValue(parameters.queueId, value);
   }
@@ -4789,7 +4794,12 @@ namespace Orthanc
 
     if (lock.GetContext().GetIndex().DequeueValue(value, parameters.queueId, Plugins::Convert(parameters.origin)))
     {
-      CopyToMemoryBuffer(*parameters.value, value.size() > 0 ? value.c_str() : NULL, value.size());
+      CopyToMemoryBuffer(*parameters.target, value.size() > 0 ? value.c_str() : NULL, value.size());
+      *parameters.isExisting = true;
+    }
+    else
+    {
+      *parameters.isExisting = false;
     }
   }
 
@@ -5969,11 +5979,13 @@ namespace Orthanc
           LOG(ERROR) << "The DB engine does not support Queues";
           return false;
         }
-
-        const _OrthancPluginDequeueValue& p =
-          *reinterpret_cast<const _OrthancPluginDequeueValue*>(parameters);
-        ApplyDequeueValue(p);
-        return true;
+        else
+        {
+          const _OrthancPluginDequeueValue& p =
+            *reinterpret_cast<const _OrthancPluginDequeueValue*>(parameters);
+          ApplyDequeueValue(p);
+          return true;
+        }
       }
 
       case _OrthancPluginService_GetQueueSize:

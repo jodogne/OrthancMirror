@@ -134,6 +134,14 @@
 #  define HAS_ORTHANC_PLUGIN_LOG_MESSAGE  0
 #endif
 
+#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 12, 99)
+#  define HAS_ORTHANC_PLUGIN_KEY_VALUE_STORES  1
+#  define HAS_ORTHANC_PLUGIN_QUEUES            1
+#else
+#  define HAS_ORTHANC_PLUGIN_KEY_VALUE_STORES  0
+#  define HAS_ORTHANC_PLUGIN_QUEUES            0
+#endif
+
 
 // Macro to tag a function as having been deprecated
 #if (__cplusplus >= 201402L)  // C++14
@@ -1619,25 +1627,33 @@ void SerializeGetArguments(std::string& output, const OrthancPluginHttpRequest* 
   };
 #endif
 
-#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 12, 99)
 
+#if HAS_ORTHANC_PLUGIN_KEY_VALUE_STORES == 1
   class KeyValueStore : public boost::noncopyable
   {
   private:
     std::string storeId_;
 
   public:
-    KeyValueStore(const std::string& storeId);
+    explicit KeyValueStore(const std::string& storeId) :
+      storeId_(storeId)
+    {
+    }
 
-    void Store(const std::string& key, const std::string& value);
+    void Store(const std::string& key,
+               const std::string& value);
 
-    bool Get(std::string& value, const std::string& key);
+    bool Get(std::string& value,
+             const std::string& key);
 
     void Delete(const std::string& key);
 
     bool GetAllKeys(std::list<std::string>& keys, uint64_t since, uint64_t limit);
   };
+#endif
 
+
+#if HAS_ORTHANC_PLUGIN_QUEUES == 1
   class Queue : public boost::noncopyable
   {
   private:
@@ -1646,17 +1662,24 @@ void SerializeGetArguments(std::string& output, const OrthancPluginHttpRequest* 
     bool PopInternal(std::string& value, OrthancPluginQueueOrigin origin);
 
   public:
-    Queue(const std::string& queueId);
+    explicit Queue(const std::string& queueId) :
+      queueId_(queueId)
+    {
+    }
 
     void PushBack(const std::string& value);
 
-    bool PopFront(std::string& value);
+    bool PopBack(std::string& value)
+    {
+      return PopInternal(value, OrthancPluginQueueOrigin_Back);
+    }
 
-    bool PopBack(std::string& value);
+    bool PopFront(std::string& value)
+    {
+      return PopInternal(value, OrthancPluginQueueOrigin_Front);
+    }
 
     uint64_t GetSize();
   };
-
 #endif
-
 }
