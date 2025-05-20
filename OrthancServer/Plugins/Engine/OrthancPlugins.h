@@ -237,8 +237,6 @@ private:
 
     void ApplyGetKeyValue(const _OrthancPluginGetKeyValue& parameters);
 
-    void ApplyListKeys(const _OrthancPluginListKeys& parameters);
-
     bool HasQueuesSupport();
 
     void ApplyEnqueueValue(const _OrthancPluginEnqueueValue& parameters);
