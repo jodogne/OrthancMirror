@@ -1033,8 +1033,9 @@ message KeyValue {
 message ListKeyValues {
   message Request {
     string store_id = 1;
-    uint64 since = 2;
-    uint64 limit = 3;
+    bool from_first = 2;
+    string from_key = 3;
+    uint64 limit = 4;
   }
 
   message Response {
