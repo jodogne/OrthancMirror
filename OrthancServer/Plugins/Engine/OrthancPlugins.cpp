@@ -4797,7 +4797,7 @@ namespace Orthanc
   {
     PImpl::ServerContextReference lock(*pimpl_);
 
-    lock.GetContext().GetIndex().GetQueueSize(*parameters.size, parameters.queueId);
+    *parameters.size = lock.GetContext().GetIndex().GetQueueSize(parameters.queueId);
   }
 
   void OrthancPlugins::ApplyLoadDicomInstance(const _OrthancPluginLoadDicomInstance& params)

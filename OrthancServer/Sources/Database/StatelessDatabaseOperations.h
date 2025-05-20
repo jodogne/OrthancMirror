@@ -308,10 +308,9 @@ namespace Orthanc
         return transaction_.GetKeyValue(value, storeId, key);
       }
 
-      void GetQueueSize(uint64_t& size,
-                        const std::string& queueId)
+      uint64_t GetQueueSize(const std::string& queueId)
       {
-        return transaction_.GetQueueSize(size, queueId);
+        return transaction_.GetQueueSize(queueId);
       }
 
       void ListKeys(std::list<std::string>& keys,
@@ -820,7 +819,6 @@ namespace Orthanc
                       const std::string& queueId,
                       QueueOrigin origin);
     
-    void GetQueueSize(uint64_t& size,
-                      const std::string& queueId);
+    uint64_t GetQueueSize(const std::string& queueId);
   };
 }

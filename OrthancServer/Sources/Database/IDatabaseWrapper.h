@@ -463,9 +463,8 @@ namespace Orthanc
                                 const std::string& queueId,
                                 QueueOrigin origin) = 0;
 
-      virtual void GetQueueSize(uint64_t& size,
-                                const std::string& queueId) = 0;
-
+      // New in Orthanc 1.12.99, for statistics only
+      virtual uint64_t GetQueueSize(const std::string& queueId) = 0;
     };
 
 
