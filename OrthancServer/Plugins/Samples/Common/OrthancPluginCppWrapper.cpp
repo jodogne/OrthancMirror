@@ -4350,6 +4350,76 @@ namespace OrthancPlugins
 
 
 #if HAS_ORTHANC_PLUGIN_KEY_VALUE_STORES == 1
+  KeyValueStore::Iterator::Iterator(OrthancPluginKeysValuesIterator  *iterator) :
+    iterator_(iterator)
+  {
+    if (iterator_ == NULL)
+    {
+      ORTHANC_PLUGINS_THROW_EXCEPTION(InternalError);
+    }
+  }
+#endif
+
+
+#if HAS_ORTHANC_PLUGIN_KEY_VALUE_STORES == 1
+  KeyValueStore::Iterator::~Iterator()
+  {
+    OrthancPluginFreeKeysValuesIterator(OrthancPlugins::GetGlobalContext(), iterator_);
+  }
+#endif
+
+
+#if HAS_ORTHANC_PLUGIN_KEY_VALUE_STORES == 1
+  bool KeyValueStore::Iterator::Next()
+  {
+    uint8_t done;
+    OrthancPluginErrorCode code = OrthancPluginKeysValuesIteratorNext(OrthancPlugins::GetGlobalContext(), &done, iterator_);
+
+    if (code != OrthancPluginErrorCode_Success)
+    {
+      ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(code);
+    }
+    else
+    {
+      return (done != 0);
+    }
+  }
+#endif
+
+
+#if HAS_ORTHANC_PLUGIN_KEY_VALUE_STORES == 1
+  std::string KeyValueStore::Iterator::GetKey() const
+  {
+    const char* s = OrthancPluginKeysValuesIteratorGetKey(OrthancPlugins::GetGlobalContext(), iterator_);
+    if (s == NULL)
+    {
+      ORTHANC_PLUGINS_THROW_EXCEPTION(InternalError);
+    }
+    else
+    {
+      return s;
+    }
+  }
+#endif
+
+
+#if HAS_ORTHANC_PLUGIN_KEY_VALUE_STORES == 1
+  std::string KeyValueStore::Iterator::GetValue() const
+  {
+    const char* s = OrthancPluginKeysValuesIteratorGetValue(OrthancPlugins::GetGlobalContext(), iterator_);
+    if (s == NULL)
+    {
+      ORTHANC_PLUGINS_THROW_EXCEPTION(InternalError);
+    }
+    else
+    {
+      return s;
+    }
+  }
+#endif
+
+
+#if HAS_ORTHANC_PLUGIN_KEY_VALUE_STORES == 1
   void KeyValueStore::Store(const std::string& key,
                             const std::string& value)
   {
@@ -4404,32 +4474,9 @@ namespace OrthancPlugins
 
 
 #if HAS_ORTHANC_PLUGIN_KEY_VALUE_STORES == 1
-  bool KeyValueStore::GetAllKeys(std::list<std::string>& keys, uint64_t since, uint64_t limit)
+  KeyValueStore::Iterator* KeyValueStore::CreateIterator()
   {
-    OrthancPlugins::MemoryBuffer keysListBuffer;
-    OrthancPluginErrorCode ret = OrthancPluginListKeys(OrthancPlugins::GetGlobalContext(), storeId_.c_str(),
-                                                       since, limit, *keysListBuffer);
-
-    if (ret == OrthancPluginErrorCode_Success)
-    {
-      Json::Value jsonKeys;
-      keysListBuffer.ToJson(jsonKeys);
-
-      for (Json::ArrayIndex i = 0; i < jsonKeys.size(); ++i)
-      {
-        keys.push_back(jsonKeys[i].asString());
-      }
-
-      // return true if all values have been read
-      return limit == 0 || (jsonKeys.size() < limit);
-    }
-    
-#if HAS_ORTHANC_EXCEPTION == 1
-    throw Orthanc::OrthancException(Orthanc::ErrorCode_InternalError, "Unable to list keys");
-#else
-    ORTHANC_PLUGINS_LOG_ERROR("Unable to list keys");
-    ORTHANC_PLUGINS_THROW_EXCEPTION(InternalError);
-#endif
+    return new Iterator(OrthancPluginCreateKeysValuesIterator(OrthancPlugins::GetGlobalContext(), storeId_.c_str()));
   }
 #endif
 

@@ -623,22 +623,6 @@ namespace Orthanc
   }
 
 
-  static void CopyStringList(OrthancPluginMemoryBuffer& target,
-                             const std::list<std::string>& list)
-  {
-    Json::Value json = Json::arrayValue;
-
-    for (std::list<std::string>::const_iterator 
-           it = list.begin(); it != list.end(); ++it)
-    {
-      json.append(*it);
-    }
-        
-    std::string s;
-    Toolbox::WriteFastJson(s, json);
-    CopyToMemoryBuffer(target, s);
-  }
-
   namespace
   {
     class MemoryBufferRaii : public boost::noncopyable
@@ -4761,16 +4745,6 @@ namespace Orthanc
     }
   }
 
-  void OrthancPlugins::ApplyListKeys(const _OrthancPluginListKeys& parameters)
-  {
-    PImpl::ServerContextReference lock(*pimpl_);
-
-    std::list<std::string> keys;
-
-    //lock.GetContext().GetIndex().ListKeys(keys, parameters.storeId, parameters.since, parameters.limit);
-    CopyStringList(*(parameters.keys), keys);
-  }
-
   bool OrthancPlugins::HasQueuesSupport()
   {
     PImpl::ServerContextReference lock(*pimpl_);
@@ -5903,81 +5877,136 @@ namespace Orthanc
       }
 
       case _OrthancPluginService_StoreKeyValue:
-      {
         if (!HasKeyValueStoresSupport())
         {
-          LOG(ERROR) << "The DB engine does not support Key Value Store";
-          return false;
+          throw OrthancException(ErrorCode_NotImplemented, "The DB engine does not support key-value stores");
         }
-
-        const _OrthancPluginStoreKeyValue& p =
-          *reinterpret_cast<const _OrthancPluginStoreKeyValue*>(parameters);
-        ApplyStoreKeyValue(p);
-        return true;
-      }
+        else
+        {
+          const _OrthancPluginStoreKeyValue& p =
+            *reinterpret_cast<const _OrthancPluginStoreKeyValue*>(parameters);
+          ApplyStoreKeyValue(p);
+          return true;
+        }
 
       case _OrthancPluginService_DeleteKeyValue:
-      {
         if (!HasKeyValueStoresSupport())
         {
-          LOG(ERROR) << "The DB engine does not support Key Value Store";
-          return false;
+          throw OrthancException(ErrorCode_NotImplemented, "The DB engine does not support key-value stores");
         }
-
-        const _OrthancPluginDeleteKeyValue& p =
-          *reinterpret_cast<const _OrthancPluginDeleteKeyValue*>(parameters);
-        ApplyDeleteKeyValue(p);
-        return true;
-      }
+        else
+        {
+          const _OrthancPluginDeleteKeyValue& p =
+            *reinterpret_cast<const _OrthancPluginDeleteKeyValue*>(parameters);
+          ApplyDeleteKeyValue(p);
+          return true;
+        }
 
       case _OrthancPluginService_GetKeyValue:
-      {
         if (!HasKeyValueStoresSupport())
         {
-          LOG(ERROR) << "The DB engine does not support Key Value Store";
-          return false;
+          throw OrthancException(ErrorCode_NotImplemented, "The DB engine does not support key-value stores");
+        }
+        else
+        {
+          const _OrthancPluginGetKeyValue& p =
+            *reinterpret_cast<const _OrthancPluginGetKeyValue*>(parameters);
+          ApplyGetKeyValue(p);
+          return true;
         }
 
-        const _OrthancPluginGetKeyValue& p =
-          *reinterpret_cast<const _OrthancPluginGetKeyValue*>(parameters);
-        ApplyGetKeyValue(p);
-        return true;
-      }
-
-      case _OrthancPluginService_ListKeys:
-      {
+      case _OrthancPluginService_CreateKeysValuesIterator:
         if (!HasKeyValueStoresSupport())
         {
-          LOG(ERROR) << "The DB engine does not support Key Value Store";
-          return false;
+          throw OrthancException(ErrorCode_NotImplemented, "The DB engine does not support key-value stores");
+        }
+        else
+        {
+          const _OrthancPluginCreateKeysValuesIterator& p =
+            *reinterpret_cast<const _OrthancPluginCreateKeysValuesIterator*>(parameters);
+
+          {
+            PImpl::ServerContextReference lock(*pimpl_);
+            *p.target = reinterpret_cast<OrthancPluginKeysValuesIterator*>(new StatelessDatabaseOperations::KeysValuesIterator(lock.GetContext().GetIndex(), p.storeId));
+          }
+
+          return true;
         }
 
-        const _OrthancPluginListKeys& p =
-          *reinterpret_cast<const _OrthancPluginListKeys*>(parameters);
-        ApplyListKeys(p);
-        return true;
-      }
+      case _OrthancPluginService_FreeKeysValuesIterator:
+        if (!HasKeyValueStoresSupport())
+        {
+          throw OrthancException(ErrorCode_NotImplemented, "The DB engine does not support key-value stores");
+        }
+        else
+        {
+          const _OrthancPluginFreeKeysValuesIterator& p =
+            *reinterpret_cast<const _OrthancPluginFreeKeysValuesIterator*>(parameters);
+          delete reinterpret_cast<StatelessDatabaseOperations::KeysValuesIterator*>(p.iterator);
+          return true;
+        }
+
+      case _OrthancPluginService_KeysValuesIteratorNext:
+        if (!HasKeyValueStoresSupport())
+        {
+          throw OrthancException(ErrorCode_NotImplemented, "The DB engine does not support key-value stores");
+        }
+        else
+        {
+          const _OrthancPluginKeysValuesIteratorNext& p =
+            *reinterpret_cast<const _OrthancPluginKeysValuesIteratorNext*>(parameters);
+
+          StatelessDatabaseOperations::KeysValuesIterator& iterator = *reinterpret_cast<StatelessDatabaseOperations::KeysValuesIterator*>(p.iterator);
+          *p.done = iterator.Next() ? 1 : 0;
+          return true;
+        }
+
+      case _OrthancPluginService_KeysValuesIteratorGetKey:
+      case _OrthancPluginService_KeysValuesIteratorGetValue:
+        if (!HasKeyValueStoresSupport())
+        {
+          throw OrthancException(ErrorCode_NotImplemented, "The DB engine does not support key-value stores");
+        }
+        else
+        {
+          const _OrthancPluginKeysValuesIteratorGetString& p =
+            *reinterpret_cast<const _OrthancPluginKeysValuesIteratorGetString*>(parameters);
+
+          StatelessDatabaseOperations::KeysValuesIterator& iterator = *reinterpret_cast<StatelessDatabaseOperations::KeysValuesIterator*>(p.iterator);
+
+          if (service == _OrthancPluginService_KeysValuesIteratorGetKey)
+          {
+            *p.target = iterator.GetKey().c_str();
+            return true;
+          }
+          else if (service == _OrthancPluginService_KeysValuesIteratorGetValue)
+          {
+            *p.target = iterator.GetValue().c_str();
+            return true;
+          }
+          else
+          {
+            throw OrthancException(ErrorCode_InternalError);
+          }
+        }
 
       case _OrthancPluginService_EnqueueValue:
-      {
         if (!HasQueuesSupport())
         {
-          LOG(ERROR) << "The DB engine does not support Queues";
-          return false;
+          throw OrthancException(ErrorCode_NotImplemented, "The DB engine does not support queues");
+        }
+        else
+        {
+          const _OrthancPluginEnqueueValue& p =
+            *reinterpret_cast<const _OrthancPluginEnqueueValue*>(parameters);
+          ApplyEnqueueValue(p);
+          return true;
         }
 
-        const _OrthancPluginEnqueueValue& p =
-          *reinterpret_cast<const _OrthancPluginEnqueueValue*>(parameters);
-        ApplyEnqueueValue(p);
-        return true;
-      }
-
       case _OrthancPluginService_DequeueValue:
-      {
         if (!HasQueuesSupport())
         {
-          LOG(ERROR) << "The DB engine does not support Queues";
-          return false;
+          throw OrthancException(ErrorCode_NotImplemented, "The DB engine does not support queues");
         }
         else
         {
@@ -5986,21 +6015,19 @@ namespace Orthanc
           ApplyDequeueValue(p);
           return true;
         }
-      }
 
       case _OrthancPluginService_GetQueueSize:
-      {
         if (!HasQueuesSupport())
         {
-          LOG(ERROR) << "The DB engine does not support Queues";
-          return false;
+          throw OrthancException(ErrorCode_NotImplemented, "The DB engine does not support queues");
         }
-
-        const _OrthancPluginGetQueueSize& p =
-          *reinterpret_cast<const _OrthancPluginGetQueueSize*>(parameters);
-        ApplyGetQueueSize(p);
-        return true;
-      }
+        else
+        {
+          const _OrthancPluginGetQueueSize& p =
+            *reinterpret_cast<const _OrthancPluginGetQueueSize*>(parameters);
+          ApplyGetQueueSize(p);
+          return true;
+        }
 
       default:
         return false;

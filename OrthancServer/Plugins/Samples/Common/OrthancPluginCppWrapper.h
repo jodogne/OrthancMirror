@@ -1631,6 +1631,24 @@ void SerializeGetArguments(std::string& output, const OrthancPluginHttpRequest* 
 #if HAS_ORTHANC_PLUGIN_KEY_VALUE_STORES == 1
   class KeyValueStore : public boost::noncopyable
   {
+  public:
+    class Iterator : public boost::noncopyable
+    {
+    private:
+      OrthancPluginKeysValuesIterator  *iterator_;
+
+    public:
+      Iterator(OrthancPluginKeysValuesIterator  *iterator);
+
+      ~Iterator();
+
+      bool Next();
+
+      std::string GetKey() const;
+
+      std::string GetValue() const;
+    };
+
   private:
     std::string storeId_;
 
@@ -1648,7 +1666,7 @@ void SerializeGetArguments(std::string& output, const OrthancPluginHttpRequest* 
 
     void Delete(const std::string& key);
 
-    bool GetAllKeys(std::list<std::string>& keys, uint64_t since, uint64_t limit);
+    Iterator* CreateIterator();
   };
 #endif
 

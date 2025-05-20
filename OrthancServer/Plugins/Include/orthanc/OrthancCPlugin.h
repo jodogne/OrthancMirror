@@ -470,15 +470,19 @@ extern "C"
     _OrthancPluginService_SetCurrentThreadName = 44,                /* New in Orthanc 1.12.2 */
     _OrthancPluginService_LogMessage = 45,                          /* New in Orthanc 1.12.4 */
     _OrthancPluginService_AdoptAttachment = 46,                     /* New in Orthanc 1.12.99 */
-    _OrthancPluginService_StoreKeyValue = 47,                       /* New in Orthanc 1.12.99 */
-    _OrthancPluginService_DeleteKeyValue = 48,                      /* New in Orthanc 1.12.99 */
-    _OrthancPluginService_GetKeyValue = 49,                         /* New in Orthanc 1.12.99 */
-    _OrthancPluginService_ListKeys = 50,                            /* New in Orthanc 1.12.99 */
-    _OrthancPluginService_EnqueueValue = 51,                        /* New in Orthanc 1.12.99 */
-    _OrthancPluginService_DequeueValue = 52,                        /* New in Orthanc 1.12.99 */
-    _OrthancPluginService_GetQueueSize = 53,                        /* New in Orthanc 1.12.99 */
-    _OrthancPluginService_GetAttachmentCustomData = 54,             /* New in Orthanc 1.12.99 */
-    _OrthancPluginService_UpdateAttachmentCustomData = 55,          /* New in Orthanc 1.12.99 */
+    _OrthancPluginService_GetAttachmentCustomData = 47,             /* New in Orthanc 1.12.99 */
+    _OrthancPluginService_UpdateAttachmentCustomData = 48,          /* New in Orthanc 1.12.99 */
+    _OrthancPluginService_StoreKeyValue = 49,                       /* New in Orthanc 1.12.99 */
+    _OrthancPluginService_DeleteKeyValue = 50,                      /* New in Orthanc 1.12.99 */
+    _OrthancPluginService_GetKeyValue = 51,                         /* New in Orthanc 1.12.99 */
+    _OrthancPluginService_CreateKeysValuesIterator = 52,            /* New in Orthanc 1.12.99 */
+    _OrthancPluginService_FreeKeysValuesIterator = 53,              /* New in Orthanc 1.12.99 */
+    _OrthancPluginService_KeysValuesIteratorNext = 54,              /* New in Orthanc 1.12.99 */
+    _OrthancPluginService_KeysValuesIteratorGetKey = 55,            /* New in Orthanc 1.12.99 */
+    _OrthancPluginService_KeysValuesIteratorGetValue = 56,          /* New in Orthanc 1.12.99 */
+    _OrthancPluginService_EnqueueValue = 57,                        /* New in Orthanc 1.12.99 */
+    _OrthancPluginService_DequeueValue = 58,                        /* New in Orthanc 1.12.99 */
+    _OrthancPluginService_GetQueueSize = 59,                        /* New in Orthanc 1.12.99 */
 
 
     /* Registration of callbacks */
@@ -9849,7 +9853,7 @@ TODO_ATTACH_CUSTOM_DATA TODO TODO
   typedef struct
   {
     const char*                   attachmentUuid; /* in */
-    // OrthancPluginContentType      contentType; /* in */
+    /* OrthancPluginContentType      contentType; */ /* in */
     OrthancPluginMemoryBuffer*    customData;  /* out */
   } _OrthancPluginGetAttachmentCustomData;
 
@@ -9862,13 +9866,13 @@ TODO_ATTACH_CUSTOM_DATA TODO TODO
   ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginGetAttachmentCustomData(
     OrthancPluginContext*         context,
     const char*                   attachmentUuid, /* in */
-    // OrthancPluginContentType      contentType, /* in */
+    /* OrthancPluginContentType      contentType, */ /* in */
     OrthancPluginMemoryBuffer*    customData /* out */
   ) 
   {
     _OrthancPluginGetAttachmentCustomData params;
     params.attachmentUuid = attachmentUuid;
-    // params.contentType = contentType;
+    /* params.contentType = contentType; */
     params.customData = customData;
 
     return context->InvokeService(context, _OrthancPluginService_GetAttachmentCustomData, &params);
@@ -9998,40 +10002,138 @@ TODO_ATTACH_CUSTOM_DATA TODO TODO
     return context->InvokeService(context, _OrthancPluginService_GetKeyValue, &params);
   }
 
-  typedef struct
-  {
-    const char*                   storeId;
-    uint64_t                      since;
-    uint64_t                      limit;
-    OrthancPluginMemoryBuffer*    keys;
-  } _OrthancPluginListKeys;
-
 
   /**
-   * @brief Create an iterator over the keys and values stored in a key-value store.
-   *
-   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
-   * @param storeId A unique identifier identifying both the plugin and the store
-   * @param since The index of the first key to return when sorted alphabetically
-   * @param limit The number of keys to return (0 for no limit)
-   * @param keys The keys serialized in a json string
-   * @return 0 if success, other value if error.
+   * @brief Opaque structure that represents an iterator to the keys and values of
+   * a key-value store.
+   * @ingroup Callbacks
    **/
-  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginListKeys(
-    OrthancPluginContext*         context,
-    const char*                   storeId, /* in */
-    uint64_t                      since, /* in */
-    uint64_t                      limit, /* in */
-    OrthancPluginMemoryBuffer*    keys /* out */)
-  {
-    _OrthancPluginListKeys params;
-    params.storeId = storeId;
-    params.since = since;
-    params.limit = limit;
-    params.keys = keys;
+  typedef struct _OrthancPluginKeysValuesIterator_t OrthancPluginKeysValuesIterator;
 
-    return context->InvokeService(context, _OrthancPluginService_ListKeys, &params);
+
+
+  typedef struct
+  {
+    OrthancPluginKeysValuesIterator**  target;
+    const char*                        storeId;
+  } _OrthancPluginCreateKeysValuesIterator;
+
+
+  /* TODO_ATTACH_CUSTOM_DATA TODO DOCUMENT */
+
+  ORTHANC_PLUGIN_INLINE OrthancPluginKeysValuesIterator* OrthancPluginCreateKeysValuesIterator(
+    OrthancPluginContext*  context,
+    const char*            storeId)
+  {
+    OrthancPluginKeysValuesIterator* target = NULL;
+
+    _OrthancPluginCreateKeysValuesIterator params;
+    params.target = &target;
+    params.storeId = storeId;
+
+    if (context->InvokeService(context, _OrthancPluginService_CreateKeysValuesIterator, &params) != OrthancPluginErrorCode_Success)
+    {
+      return NULL;
+    }
+    else
+    {
+      return target;
+    }
   }
+
+
+  typedef struct
+  {
+    OrthancPluginKeysValuesIterator*   iterator;
+  } _OrthancPluginFreeKeysValuesIterator;
+
+  /* TODO_ATTACH_CUSTOM_DATA TODO DOCUMENT */
+
+  ORTHANC_PLUGIN_INLINE void  OrthancPluginFreeKeysValuesIterator(
+    OrthancPluginContext*             context,
+    OrthancPluginKeysValuesIterator*  iterator)
+  {
+    _OrthancPluginFreeKeysValuesIterator params;
+    params.iterator = iterator;
+
+    context->InvokeService(context, _OrthancPluginService_FreeKeysValuesIterator, &params);
+  }
+
+
+  typedef struct
+  {
+    uint8_t*                          done;
+    OrthancPluginKeysValuesIterator*  iterator;
+  } _OrthancPluginKeysValuesIteratorNext;
+
+
+  /* TODO_ATTACH_CUSTOM_DATA TODO DOCUMENT */
+
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginKeysValuesIteratorNext(
+    OrthancPluginContext*             context,
+    uint8_t*                          done,
+    OrthancPluginKeysValuesIterator*  iterator)
+  {
+    _OrthancPluginKeysValuesIteratorNext params;
+    params.done = done;
+    params.iterator = iterator;
+
+    return context->InvokeService(context, _OrthancPluginService_KeysValuesIteratorNext, &params);
+  }
+
+
+  typedef struct
+  {
+    const char**                      target;
+    OrthancPluginKeysValuesIterator*  iterator;
+  } _OrthancPluginKeysValuesIteratorGetString;
+
+
+  /* TODO_ATTACH_CUSTOM_DATA TODO DOCUMENT */
+
+  ORTHANC_PLUGIN_INLINE const char* OrthancPluginKeysValuesIteratorGetKey(
+    OrthancPluginContext*             context,
+    OrthancPluginKeysValuesIterator*  iterator)
+  {
+    const char* target = NULL;
+
+    _OrthancPluginKeysValuesIteratorGetString params;
+    params.target = &target;
+    params.iterator = iterator;
+
+    if (context->InvokeService(context, _OrthancPluginService_KeysValuesIteratorGetKey, &params) == OrthancPluginErrorCode_Success)
+    {
+      return target;
+    }
+    else
+    {
+      return NULL;
+    }
+  }
+
+
+  /* TODO_ATTACH_CUSTOM_DATA TODO DOCUMENT */
+
+  ORTHANC_PLUGIN_INLINE const char* OrthancPluginKeysValuesIteratorGetValue(
+    OrthancPluginContext*             context,
+    OrthancPluginKeysValuesIterator*  iterator)
+  {
+    const char* target = NULL;
+
+    _OrthancPluginKeysValuesIteratorGetString params;
+    params.target = &target;
+    params.iterator = iterator;
+
+    if (context->InvokeService(context, _OrthancPluginService_KeysValuesIteratorGetValue, &params) == OrthancPluginErrorCode_Success)
+    {
+      return target;
+    }
+    else
+    {
+      return NULL;
+    }
+  }
+
 
 
   typedef struct
