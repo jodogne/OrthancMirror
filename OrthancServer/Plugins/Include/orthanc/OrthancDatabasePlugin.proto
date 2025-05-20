@@ -1025,20 +1025,20 @@ message GetKeyValue {
   }
 }
 
-message KeyValue {
-  string key = 1;
-  string value = 2;
-}
-
-message ListKeyValues {
+message ListKeysValues {
   message Request {
     string store_id = 1;
-    uint64 since = 2;
-    uint64 limit = 3;
+    bool first = 2;
+    string from = 3;  // Only meaningful if "first == false"
+    uint64 limit = 4;
   }
 
   message Response {
-    repeated KeyValue key_values = 1;
+    message KeyValue {
+      string key = 1;
+      string value = 2;
+    }
+    repeated KeyValue keys_values = 1;
   }
 }
 
@@ -1156,7 +1156,7 @@ message TransactionRequest {
   StoreKeyValue.Request                   store_key_value = 153;
   DeleteKeyValue.Request                  delete_key_value = 154;
   GetKeyValue.Request                     get_key_value = 155;
-  ListKeyValues.Request                   list_key_values = 156;
+  ListKeysValues.Request                  list_keys_values = 156;
   EnqueueValue.Request                    enqueue_value = 157;
   DequeueValue.Request                    dequeue_value = 158;
   GetQueueSize.Request                    get_queue_size = 159;
@@ -1221,7 +1221,7 @@ message TransactionResponse {
   StoreKeyValue.Response                   store_key_value = 153;
   DeleteKeyValue.Response                  delete_key_value = 154;
   GetKeyValue.Response                     get_key_value = 155;
-  ListKeyValues.Response                   list_key_values = 156;
+  ListKeysValues.Response                  list_keys_values = 156;
   EnqueueValue.Response                    enqueue_value = 157;
   DequeueValue.Response                    dequeue_value = 158;
   GetQueueSize.Response                    get_queue_size = 159;

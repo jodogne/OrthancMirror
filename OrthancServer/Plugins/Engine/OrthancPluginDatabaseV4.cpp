@@ -1936,17 +1936,18 @@ namespace Orthanc
       if (database_.GetDatabaseCapabilities().HasKeyValueStoresSupport())
       {
         DatabasePluginMessages::TransactionRequest request;
-        request.mutable_list_key_values()->set_store_id(storeId);
-        // request.mutable_list_key_values()->set_since(since);  // TODO_ATTACH_CUSTOM_DATA
-        request.mutable_list_key_values()->set_limit(limit);
+        request.mutable_list_keys_values()->set_store_id(storeId);
+        request.mutable_list_keys_values()->set_first(first);
+        request.mutable_list_keys_values()->set_from(from);
+        request.mutable_list_keys_values()->set_limit(limit);
 
         DatabasePluginMessages::TransactionResponse response;
         ExecuteTransaction(response, DatabasePluginMessages::OPERATION_LIST_KEY_VALUES, request);
 
-        for (int i = 0; i < response.list_key_values().key_values_size(); ++i)
+        for (int i = 0; i < response.list_keys_values().keys_values_size(); ++i)
         {
-          keys.push_back(response.list_key_values().key_values(i).key());
-          // values .push_back(response.list_key_value().key_values(i)); // TODO_ATTACH_CUSTOM_DATA
+          keys.push_back(response.list_keys_values().keys_values(i).key());
+          values.push_back(response.list_keys_values().keys_values(i).value());
         }
       }
       else
@@ -1982,14 +1983,17 @@ namespace Orthanc
       {
         DatabasePluginMessages::TransactionRequest request;
         request.mutable_dequeue_value()->set_queue_id(queueId);
+
         switch (origin)
         {
           case QueueOrigin_Back:
             request.mutable_dequeue_value()->set_origin(DatabasePluginMessages::QUEUE_ORIGIN_BACK);
             break;
+
           case QueueOrigin_Front:
             request.mutable_dequeue_value()->set_origin(DatabasePluginMessages::QUEUE_ORIGIN_FRONT);
             break;
+
           default:
             throw OrthancException(ErrorCode_InternalError);
         }
