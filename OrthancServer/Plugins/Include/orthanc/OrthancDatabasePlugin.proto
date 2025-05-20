@@ -332,8 +332,13 @@ enum TransactionOperation {
   OPERATION_STORE_KEY_VALUE = 53;             // New in Orthanc 1.12.99
   OPERATION_DELETE_KEY_VALUE = 54;            // New in Orthanc 1.12.99
   OPERATION_GET_KEY_VALUE = 55;               // New in Orthanc 1.12.99
-  OPERATION_ENQUEUE_VALUE = 56;               // New in Orthanc 1.12.99
-  OPERATION_DEQUEUE_VALUE = 57;               // New in Orthanc 1.12.99
+  OPERATION_LIST_KEY_VALUES = 56;             // New in Orthanc 1.12.99
+  OPERATION_ENQUEUE_VALUE = 57;               // New in Orthanc 1.12.99
+  OPERATION_DEQUEUE_VALUE = 58;               // New in Orthanc 1.12.99
+  OPERATION_GET_QUEUE_SIZE = 59;              // New in Orthanc 1.12.99
+  OPERATION_GET_ATTACHMENT = 60;              // New in Orthanc 1.12.99
+  OPERATION_UPDATE_ATTACHMENT_CUSTOM_DATA = 61; // New in Orthanc 1.12.99
+
 }
 
 message Rollback {
@@ -989,7 +994,7 @@ message CountResources
 
 message StoreKeyValue {
   message Request {
-    string plugin_id = 1;
+    string store_id = 1;
     string key = 2;
     string value = 3;
   }
@@ -1000,7 +1005,7 @@ message StoreKeyValue {
 
 message DeleteKeyValue {
   message Request {
-    string plugin_id = 1;
+    string store_id = 1;
     string key = 2;
   }
 
@@ -1010,18 +1015,36 @@ message DeleteKeyValue {
 
 message GetKeyValue {
   message Request {
-    string plugin_id = 1;
+    string store_id = 1;
     string key = 2;
   }
 
   message Response {
-    string value = 1;
+    bool found = 1;
+    string value = 2;
+  }
+}
+
+message KeyValue {
+  string key = 1;
+  string value = 2;
+}
+
+message ListKeyValues {
+  message Request {
+    string store_id = 1;
+    uint64 since = 2;
+    uint64 limit = 3;
+  }
+
+  message Response {
+    repeated KeyValue key_values = 1;
   }
 }
 
 message EnqueueValue {
   message Request {
-    string plugin_id = 1;
+    string queue_id = 1;
     string value = 2;
   }
 
@@ -1031,12 +1054,45 @@ message EnqueueValue {
 
 message DequeueValue {
   message Request {
-    string plugin_id = 1;
+    string queue_id = 1;
     QueueOrigin origin = 2;
   }
 
   message Response {
-    string value = 1;
+    bool found = 1;
+    string value = 2;
+  }
+}
+
+message GetQueueSize {
+  message Request {
+    string queue_id = 1;
+  }
+
+  message Response {
+    uint64 size = 1;
+  }
+}
+
+message GetAttachment {
+  message Request {
+    string uuid = 1;
+  }
+
+  message Response {
+    bool found = 1;
+    FileInfo attachment = 2;
+    int64 revision = 3;
+  }
+}
+
+message UpdateAttachmentCustomData {
+  message Request {
+    string uuid = 1;
+    string custom_data = 2;
+  }
+
+  message Response {
   }
 }
 
@@ -1100,8 +1156,12 @@ message TransactionRequest {
   StoreKeyValue.Request                   store_key_value = 153;
   DeleteKeyValue.Request                  delete_key_value = 154;
   GetKeyValue.Request                     get_key_value = 155;
-  EnqueueValue.Request                    enqueue_value = 156;
-  DequeueValue.Request                    dequeue_value = 157;
+  ListKeyValues.Request                   list_key_values = 156;
+  EnqueueValue.Request                    enqueue_value = 157;
+  DequeueValue.Request                    dequeue_value = 158;
+  GetQueueSize.Request                    get_queue_size = 159;
+  GetAttachment.Request                   get_attachment = 160;
+  UpdateAttachmentCustomData.Request      update_attachment_custom_data = 161;
 }
 
 message TransactionResponse {
@@ -1161,8 +1221,12 @@ message TransactionResponse {
   StoreKeyValue.Response                   store_key_value = 153;
   DeleteKeyValue.Response                  delete_key_value = 154;
   GetKeyValue.Response                     get_key_value = 155;
-  EnqueueValue.Request                    enqueue_value = 156;
-  DequeueValue.Request                    dequeue_value = 157;
+  ListKeyValues.Response                   list_key_values = 156;
+  EnqueueValue.Response                    enqueue_value = 157;
+  DequeueValue.Response                    dequeue_value = 158;
+  GetQueueSize.Response                    get_queue_size = 159;
+  GetAttachment.Response                   get_attachment = 160;
+  UpdateAttachmentCustomData.Response      update_attachment_custom_data = 161;
 }
 
 enum RequestType {
