@@ -197,6 +197,74 @@ namespace
       transaction_->ApplyLookupResources(result, NULL, lookup, level, noLabel, LabelsConstraint_All, 0 /* no limit */);
     }
   };
+
+  class DummyTransactionContextFactory : public StatelessDatabaseOperations::ITransactionContextFactory
+  {
+  public:
+    virtual StatelessDatabaseOperations::ITransactionContext* Create()
+    {
+      class DummyTransactionContext : public StatelessDatabaseOperations::ITransactionContext
+      {
+      public:
+        virtual void SignalRemainingAncestor(ResourceType parentType,
+                                             const std::string& publicId) ORTHANC_OVERRIDE
+        {
+          throw OrthancException(ErrorCode_NotImplemented);
+        }
+
+        virtual void SignalAttachmentDeleted(const FileInfo& info) ORTHANC_OVERRIDE
+        {
+          throw OrthancException(ErrorCode_NotImplemented);
+        }
+
+        virtual void SignalResourceDeleted(ResourceType type,
+                                           const std::string& publicId) ORTHANC_OVERRIDE
+        {
+          throw OrthancException(ErrorCode_NotImplemented);
+        }
+
+        virtual void Commit() ORTHANC_OVERRIDE
+        {
+        }
+
+        virtual int64_t GetCompressedSizeDelta() ORTHANC_OVERRIDE
+        {
+          return 0;
+        }
+
+        virtual bool IsUnstableResource(Orthanc::ResourceType type,
+                                        int64_t id) ORTHANC_OVERRIDE
+        {
+          throw OrthancException(ErrorCode_NotImplemented);
+        }
+
+        virtual bool LookupRemainingLevel(std::string& remainingPublicId /* out */,
+                                          ResourceType& remainingLevel   /* out */) ORTHANC_OVERRIDE
+        {
+          throw OrthancException(ErrorCode_NotImplemented);
+        }
+
+        virtual void MarkAsUnstable(Orthanc::ResourceType type,
+                                    int64_t id,
+                                    const std::string& publicId) ORTHANC_OVERRIDE
+        {
+          throw OrthancException(ErrorCode_NotImplemented);
+        }
+
+        virtual void SignalAttachmentsAdded(uint64_t compressedSize)  ORTHANC_OVERRIDE
+        {
+          throw OrthancException(ErrorCode_NotImplemented);
+        }
+
+        virtual void SignalChange(const ServerIndexChange& change)  ORTHANC_OVERRIDE
+        {
+          throw OrthancException(ErrorCode_NotImplemented);
+        }
+      };
+
+      return new DummyTransactionContext;
+    }
+  };
 }
 
 
@@ -1057,4 +1125,132 @@ TEST(ServerToolbox, ValidLabels)
   ASSERT_FALSE(ServerToolbox::IsValidLabel(" "));
   ASSERT_FALSE(ServerToolbox::IsValidLabel("&"));
   ASSERT_FALSE(ServerToolbox::IsValidLabel("."));
+}
+
+
+TEST(SQLiteDatabaseWrapper, KeyValueStores)
+{
+  SQLiteDatabaseWrapper db;   // The SQLite DB is in memory
+  db.Open();
+
+  {
+    StatelessDatabaseOperations op(db, false);
+    op.SetTransactionContextFactory(new DummyTransactionContextFactory);
+
+    for (unsigned int limit = 0; limit < 5; limit++)
+    {
+      StatelessDatabaseOperations::KeysValuesIterator it(op, "test");
+      it.SetLimit(limit);
+      ASSERT_THROW(it.GetValue(), OrthancException);
+      ASSERT_THROW(it.GetKey(), OrthancException);
+      ASSERT_FALSE(it.Next());
+      ASSERT_THROW(it.GetValue(), OrthancException);
+      ASSERT_THROW(it.GetKey(), OrthancException);
+    }
+
+    op.StoreKeyValue("test", "hello", "world");
+
+    for (unsigned int limit = 0; limit < 5; limit++)
+    {
+      StatelessDatabaseOperations::KeysValuesIterator it(op, "test");
+      it.SetLimit(limit);
+      ASSERT_THROW(it.GetValue(), OrthancException);
+      ASSERT_THROW(it.GetKey(), OrthancException);
+      ASSERT_TRUE(it.Next());
+      ASSERT_EQ("hello", it.GetKey());
+      ASSERT_EQ("world", it.GetValue());
+      ASSERT_FALSE(it.Next());
+      ASSERT_THROW(it.GetValue(), OrthancException);
+      ASSERT_THROW(it.GetKey(), OrthancException);
+    }
+
+    op.StoreKeyValue("test", "hello2", "world2");
+    op.StoreKeyValue("test", "hello3", "world3");
+
+    for (unsigned int limit = 0; limit < 5; limit++)
+    {
+      StatelessDatabaseOperations::KeysValuesIterator it(op, "test");
+      it.SetLimit(limit);
+      ASSERT_THROW(it.GetValue(), OrthancException);
+      ASSERT_THROW(it.GetKey(), OrthancException);
+      ASSERT_TRUE(it.Next());
+      ASSERT_EQ("hello", it.GetKey());
+      ASSERT_EQ("world", it.GetValue());
+      ASSERT_TRUE(it.Next());
+      ASSERT_EQ("hello2", it.GetKey());
+      ASSERT_EQ("world2", it.GetValue());
+      ASSERT_TRUE(it.Next());
+      ASSERT_EQ("hello3", it.GetKey());
+      ASSERT_EQ("world3", it.GetValue());
+      ASSERT_FALSE(it.Next());
+      ASSERT_THROW(it.GetValue(), OrthancException);
+      ASSERT_THROW(it.GetKey(), OrthancException);
+    }
+
+    op.DeleteKeyValue("test", "hello2");
+
+    for (unsigned int limit = 0; limit < 5; limit++)
+    {
+      StatelessDatabaseOperations::KeysValuesIterator it(op, "test");
+      it.SetLimit(limit);
+      ASSERT_TRUE(it.Next());
+      ASSERT_EQ("hello", it.GetKey());
+      ASSERT_EQ("world", it.GetValue());
+      ASSERT_TRUE(it.Next());
+      ASSERT_EQ("hello3", it.GetKey());
+      ASSERT_EQ("world3", it.GetValue());
+      ASSERT_FALSE(it.Next());
+    }
+
+    std::string s;
+    ASSERT_TRUE(op.GetKeyValue(s, "test", "hello"));   ASSERT_EQ("world", s);
+    ASSERT_TRUE(op.GetKeyValue(s, "test", "hello3"));  ASSERT_EQ("world3", s);
+    ASSERT_FALSE(op.GetKeyValue(s, "test", "hello2"));
+
+    op.DeleteKeyValue("test", "nope");
+
+    op.DeleteKeyValue("test", "hello");
+    op.DeleteKeyValue("test", "hello3");
+
+    for (unsigned int limit = 0; limit < 5; limit++)
+    {
+      StatelessDatabaseOperations::KeysValuesIterator it(op, "test");
+      it.SetLimit(limit);
+      ASSERT_FALSE(it.Next());
+    }
+  }
+
+  db.Close();
+}
+
+
+TEST(SQLiteDatabaseWrapper, Queues)
+{
+  SQLiteDatabaseWrapper db;   // The SQLite DB is in memory
+  db.Open();
+
+  {
+    StatelessDatabaseOperations op(db, false);
+    op.SetTransactionContextFactory(new DummyTransactionContextFactory);
+
+    ASSERT_EQ(0u, op.GetQueueSize("test"));
+    op.EnqueueValue("test", "hello");
+    ASSERT_EQ(1u, op.GetQueueSize("test"));
+    op.EnqueueValue("test", "world");
+    ASSERT_EQ(2u, op.GetQueueSize("test"));
+
+    std::string s;
+    ASSERT_TRUE(op.DequeueValue(s, "test", QueueOrigin_Back));  ASSERT_EQ("world", s);
+    ASSERT_TRUE(op.DequeueValue(s, "test", QueueOrigin_Back));  ASSERT_EQ("hello", s);
+    ASSERT_FALSE(op.DequeueValue(s, "test", QueueOrigin_Back));
+
+    op.EnqueueValue("test", "hello");
+    op.EnqueueValue("test", "world");
+
+    ASSERT_TRUE(op.DequeueValue(s, "test", QueueOrigin_Front));  ASSERT_EQ("hello", s);
+    ASSERT_TRUE(op.DequeueValue(s, "test", QueueOrigin_Front));  ASSERT_EQ("world", s);
+    ASSERT_FALSE(op.DequeueValue(s, "test", QueueOrigin_Front));
+  }
+
+  db.Close();
 }

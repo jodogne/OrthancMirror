@@ -4762,7 +4762,7 @@ namespace Orthanc
 
     std::list<std::string> keys;
 
-    lock.GetContext().GetIndex().ListKeys(keys, parameters.storeId, parameters.since, parameters.limit);
+    //lock.GetContext().GetIndex().ListKeys(keys, parameters.storeId, parameters.since, parameters.limit);
     CopyStringList(*(parameters.keys), keys);
   }
 

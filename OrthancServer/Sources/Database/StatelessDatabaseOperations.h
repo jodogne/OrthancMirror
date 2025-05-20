@@ -313,12 +313,14 @@ namespace Orthanc
         return transaction_.GetQueueSize(queueId);
       }
 
-      void ListKeys(std::list<std::string>& keys,
-                    const std::string& storeId,
-                    uint64_t since,
-                    uint64_t limit)
+      void ListKeysValues(std::list<std::string>& keys,
+                          std::list<std::string>& values,
+                          const std::string& storeId,
+                          bool first,
+                          const std::string& from,
+                          uint64_t limit)
       {
-        return transaction_.ListKeys(keys, storeId, since, limit);
+        return transaction_.ListKeysValues(keys, values, storeId, first, from, limit);
       }
     };
 
@@ -807,11 +809,6 @@ namespace Orthanc
                      const std::string& storeId,
                      const std::string& key);
 
-    void ListKeys(std::list<std::string>& keys,
-                  const std::string& storeId,
-                  uint64_t since,
-                  uint64_t limit);
-
     void EnqueueValue(const std::string& queueId,
                       const std::string& value);
 
@@ -820,5 +817,45 @@ namespace Orthanc
                       QueueOrigin origin);
     
     uint64_t GetQueueSize(const std::string& queueId);
+
+    class KeysValuesIterator : public boost::noncopyable
+    {
+    private:
+      enum State
+      {
+        State_Waiting,
+        State_Available,
+        State_Done
+      };
+
+      StatelessDatabaseOperations&            db_;
+      State                                   state_;
+      std::string                             storeId_;
+      uint64_t                                limit_;
+      std::list<std::string>                  keys_;
+      std::list<std::string>                  values_;
+      std::list<std::string>::const_iterator  currentKey_;
+      std::list<std::string>::const_iterator  currentValue_;
+
+    public:
+      KeysValuesIterator(StatelessDatabaseOperations& db,
+                         const std::string& storeId);
+
+      void SetLimit(uint64_t limit)
+      {
+        limit_ = limit;
+      }
+
+      uint64_t GetLimit() const
+      {
+        return limit_;
+      }
+
+      bool Next();
+
+      const std::string& GetKey() const;
+
+      const std::string& GetValue() const;
+    };
   };
 }
