@@ -499,6 +499,40 @@ namespace Orthanc
   }
 
   void Toolbox::ComputeMD5(std::string& result,
+                           std::istream& inputStream)
+  {
+    md5_state_s state;
+    md5_init(&state);
+
+    const size_t bufferSize = 1024;
+    char buffer[bufferSize];
+    
+    while (inputStream.good())
+    {
+      inputStream.read(buffer, bufferSize);
+      std::streamsize bytesRead = inputStream.gcount();
+
+      if (bytesRead > 0)
+      {
+        md5_append(&state, 
+                   reinterpret_cast<const md5_byte_t*>(buffer), 
+                 static_cast<int>(bytesRead));
+      }
+    }
+
+    md5_byte_t actualHash[16];
+    md5_finish(&state, actualHash);
+
+    result.resize(32);
+    for (unsigned int i = 0; i < 16; i++)
+    {
+      result[2 * i] = GetHexadecimalCharacter(static_cast<uint8_t>(actualHash[i] / 16));
+      result[2 * i + 1] = GetHexadecimalCharacter(static_cast<uint8_t>(actualHash[i] % 16));
+    }
+  }
+
+
+  void Toolbox::ComputeMD5(std::string& result,
                            const std::set<std::string>& data)
   {
     std::string s;

@@ -2516,6 +2516,7 @@ namespace Orthanc
     dbCapabilities_.SetHasFindSupport(HasIntegratedFind());
     dbCapabilities_.SetKeyValueStoresSupport(true);
     dbCapabilities_.SetQueuesSupport(true);
+    dbCapabilities_.SetAttachmentCustomDataSupport(true);
     db_.Open(path);
   }
 
@@ -2532,6 +2533,7 @@ namespace Orthanc
     dbCapabilities_.SetHasFindSupport(HasIntegratedFind());
     dbCapabilities_.SetKeyValueStoresSupport(true);
     dbCapabilities_.SetQueuesSupport(true);
+    dbCapabilities_.SetAttachmentCustomDataSupport(true);
     db_.OpenInMemory();
   }
 

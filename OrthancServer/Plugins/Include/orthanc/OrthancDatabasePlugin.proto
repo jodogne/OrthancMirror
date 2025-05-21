@@ -174,6 +174,7 @@ message GetSystemInformation {
     bool has_extended_changes = 9;  // New in Orthanc 1.12.5
     bool supports_key_value_stores = 10;  // New in Orthanc 1.12.99
     bool supports_queues = 11;            // New in Orthanc 1.12.99
+    bool has_attachment_custom_data = 12; // New in Orthanc 1.12.99
   }
 }
 
