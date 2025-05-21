@@ -2128,6 +2128,7 @@ namespace Orthanc
       dbCapabilities_.SetHasFindSupport(systemInfo.supports_find());
       dbCapabilities_.SetKeyValueStoresSupport(systemInfo.supports_key_value_stores());
       dbCapabilities_.SetQueuesSupport(systemInfo.supports_queues());
+      dbCapabilities_.SetAttachmentCustomDataSupport(systemInfo.has_attachment_custom_data());
     }
 
     open_ = true;
