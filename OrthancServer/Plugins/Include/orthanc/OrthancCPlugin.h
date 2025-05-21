@@ -9970,7 +9970,7 @@ TODO_ATTACH_CUSTOM_DATA TODO TODO
 
   typedef struct
   {
-    uint8_t*                      isExisting;
+    uint8_t*                      found;
     OrthancPluginMemoryBuffer*    target;
     const char*                   storeId;
     const char*                   key;
@@ -9980,7 +9980,7 @@ TODO_ATTACH_CUSTOM_DATA TODO TODO
    * @brief Get the value associated to this key in the key-value store.
    *
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
-   * @param isExisting Pointer to a Boolean that is set to "true" iff. the key exists in the store
+   * @param found Pointer to a Boolean that is set to "true" iff. the key exists in the store
    * @param target Memory buffer where to store the retrieved value
    * @param storeId A unique identifier identifying both the plugin and the store
    * @param key The key of the value to retrieve from the store (note: storeId + key must be unique)
@@ -9988,13 +9988,13 @@ TODO_ATTACH_CUSTOM_DATA TODO TODO
    **/
   ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginGetKeyValue(
     OrthancPluginContext*         context,
-    uint8_t*                      isExisting,
+    uint8_t*                      found,
     OrthancPluginMemoryBuffer*    target, /* out */
     const char*                   storeId, /* in */
     const char*                   key /* in */)
   {
     _OrthancPluginGetKeyValue params;
-    params.isExisting = isExisting;
+    params.found = found;
     params.target = target;
     params.storeId = storeId;
     params.key = key;
@@ -10168,7 +10168,7 @@ TODO_ATTACH_CUSTOM_DATA TODO TODO
 
   typedef struct
   {
-    uint8_t*                      isExisting;
+    uint8_t*                      found;
     OrthancPluginMemoryBuffer*    target;
     const char*                   queueId;
     OrthancPluginQueueOrigin      origin;
@@ -10178,7 +10178,7 @@ TODO_ATTACH_CUSTOM_DATA TODO TODO
    * @brief Dequeue a value from a queue.
    *
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
-   * @param isExisting Pointer to a Boolean that is set to "true" iff. a value has been dequeued
+   * @param found Pointer to a Boolean that is set to "true" iff. a value has been dequeued
    * @param target Memory buffer where to store the value that has been retrieved from the queue
    * @param queueId A unique identifier identifying both the plugin and the queue
    * @param origin The queue position where the value is removed (back for LIFO, front for FIFO)
@@ -10186,13 +10186,13 @@ TODO_ATTACH_CUSTOM_DATA TODO TODO
    **/
   ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginDequeueValue(
     OrthancPluginContext*         context,
-    uint8_t*                      isExisting,  /* out */
-    OrthancPluginMemoryBuffer*    target,      /* out */
-    const char*                   queueId,     /* in */
-    OrthancPluginQueueOrigin      origin       /* in */)
+    uint8_t*                      found,    /* out */
+    OrthancPluginMemoryBuffer*    target,   /* out */
+    const char*                   queueId,  /* in */
+    OrthancPluginQueueOrigin      origin    /* in */)
   {
     _OrthancPluginDequeueValue params;
-    params.isExisting = isExisting;
+    params.found = found;
     params.target = target;
     params.queueId = queueId;
     params.origin = origin;
