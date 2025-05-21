@@ -454,6 +454,31 @@ namespace Orthanc
     }
   }
 
+#if ORTHANC_ENABLE_MD5 == 1
+  void SystemToolbox::ComputeFileMD5(std::string& result,
+                                     const std::string& path)
+  {
+    std::ifstream fileStream(path, std::ifstream::binary);
+    Toolbox::ComputeMD5(result, fileStream);
+  }
+
+  bool SystemToolbox::CompareFilesMD5(const std::string& path1,
+                                      const std::string& path2)
+  {
+    if (SystemToolbox::GetFileSize(path1) != SystemToolbox::GetFileSize(path2))
+    {
+      return false;
+    }
+
+    std::string path1md5, path2md5;
+    
+    SystemToolbox::ComputeFileMD5(path1md5, path1);
+    SystemToolbox::ComputeFileMD5(path2md5, path2);
+
+    return path1md5 == path2md5;
+  }
+#endif
+
 
   void SystemToolbox::MakeDirectory(const std::string& path)
   {

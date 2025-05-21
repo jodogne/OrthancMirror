@@ -397,6 +397,10 @@ TEST(Toolbox, ComputeMD5)
 
   Toolbox::ComputeMD5(s, set);
   ASSERT_EQ("d1aaf4767a3c10a473407a4e47b02da6", s); // set md5 same as string with the values sorted
+
+  std::istringstream iss(std::string("aaabbbccc"));
+  Toolbox::ComputeMD5(s, iss);
+  ASSERT_EQ("d1aaf4767a3c10a473407a4e47b02da6", s);
 }
 
 TEST(Toolbox, ComputeSHA1)
@@ -1590,6 +1594,50 @@ TEST(Toolbox, ReadFileRange)
 }
 #endif
 
+
+#if ORTHANC_SANDBOXED != 1 && ORTHANC_ENABLE_MD5 == 1
+TEST(Toolbox, FileMD5)
+{
+  std::string path;
+
+  {
+    TemporaryFile tmp1, tmp2;
+    std::string s = "aaabbbccc";
+
+    SystemToolbox::WriteFile(s, tmp1.GetPath());
+    SystemToolbox::WriteFile(s, tmp2.GetPath());
+
+    std::string md5;
+    SystemToolbox::ComputeFileMD5(md5, tmp1.GetPath());
+
+    ASSERT_EQ("d1aaf4767a3c10a473407a4e47b02da6", md5);
+    ASSERT_TRUE(SystemToolbox::CompareFilesMD5(tmp1.GetPath(), tmp2.GetPath()));
+  }
+
+  { // different sizes
+    TemporaryFile tmp1, tmp2;
+    std::string s1 = "aaabbbccc";
+    std::string s2 = "aaabbbcccd";
+
+    SystemToolbox::WriteFile(s1, tmp1.GetPath());
+    SystemToolbox::WriteFile(s2, tmp2.GetPath());
+
+    ASSERT_FALSE(SystemToolbox::CompareFilesMD5(tmp1.GetPath(), tmp2.GetPath()));
+  }
+
+  { // same sizes, different contents
+    TemporaryFile tmp1, tmp2;
+    std::string s1 = "aaabbbccc";
+    std::string s2 = "aaabbbccd";
+
+    SystemToolbox::WriteFile(s1, tmp1.GetPath());
+    SystemToolbox::WriteFile(s2, tmp2.GetPath());
+
+    ASSERT_FALSE(SystemToolbox::CompareFilesMD5(tmp1.GetPath(), tmp2.GetPath()));
+  }
+
+}
+#endif
 
 #if ORTHANC_SANDBOXED != 1
 TEST(Toolbox, GetMacAddressess)
