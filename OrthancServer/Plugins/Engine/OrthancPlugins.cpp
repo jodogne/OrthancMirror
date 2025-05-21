@@ -4737,11 +4737,11 @@ namespace Orthanc
     if (lock.GetContext().GetIndex().GetKeyValue(value, parameters.storeId, parameters.key))
     {
       CopyToMemoryBuffer(*parameters.target, value.size() > 0 ? value.c_str() : NULL, value.size());
-      *parameters.isExisting = true;
+      *parameters.found = true;
     }
     else
     {
-      *parameters.isExisting = false;
+      *parameters.found = false;
     }
   }
 
@@ -4769,11 +4769,11 @@ namespace Orthanc
     if (lock.GetContext().GetIndex().DequeueValue(value, parameters.queueId, Plugins::Convert(parameters.origin)))
     {
       CopyToMemoryBuffer(*parameters.target, value.size() > 0 ? value.c_str() : NULL, value.size());
-      *parameters.isExisting = true;
+      *parameters.found = true;
     }
     else
     {
-      *parameters.isExisting = false;
+      *parameters.found = false;
     }
   }
 

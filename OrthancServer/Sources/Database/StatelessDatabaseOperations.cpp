@@ -3644,6 +3644,13 @@ namespace Orthanc
       throw OrthancException(ErrorCode_DatabasePlugin);
     }
 
+    if (limit_ != 0 &&
+        keys_.size() > limit_)
+    {
+      // The database plugin has returned too many key-value pairs
+      throw OrthancException(ErrorCode_DatabasePlugin);
+    }
+
     if (keys_.empty() &&
         values_.empty())
     {
