@@ -4437,16 +4437,16 @@ namespace OrthancPlugins
   bool KeyValueStore::GetValue(std::string& value,
                                const std::string& key)
   {
-    uint8_t isExisting = false;
+    uint8_t found = false;
     OrthancPlugins::MemoryBuffer valueBuffer;
-    OrthancPluginErrorCode code = OrthancPluginGetKeyValue(OrthancPlugins::GetGlobalContext(), &isExisting,
+    OrthancPluginErrorCode code = OrthancPluginGetKeyValue(OrthancPlugins::GetGlobalContext(), &found,
                                                            *valueBuffer, storeId_.c_str(), key.c_str());
 
     if (code != OrthancPluginErrorCode_Success)
     {
       ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(code);
     }
-    else if (isExisting)
+    else if (found)
     {
       valueBuffer.ToString(value);
       return true;
@@ -4499,17 +4499,17 @@ namespace OrthancPlugins
   bool Queue::PopInternal(std::string& value,
                           OrthancPluginQueueOrigin origin)
   {
-    uint8_t isExisting = false;
+    uint8_t found = false;
     OrthancPlugins::MemoryBuffer valueBuffer;
 
-    OrthancPluginErrorCode code = OrthancPluginDequeueValue(OrthancPlugins::GetGlobalContext(), &isExisting,
+    OrthancPluginErrorCode code = OrthancPluginDequeueValue(OrthancPlugins::GetGlobalContext(), &found,
                                                             *valueBuffer, queueId_.c_str(), origin);
 
     if (code != OrthancPluginErrorCode_Success)
     {
       ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(code);
     }
-    else if (isExisting)
+    else if (found)
     {
       valueBuffer.ToString(value);
       return true;
