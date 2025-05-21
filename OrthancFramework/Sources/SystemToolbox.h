@@ -83,6 +83,15 @@ namespace Orthanc
 
     static uint64_t GetFileSize(const std::string& path);
 
+#if ORTHANC_ENABLE_MD5 == 1
+    static void ComputeFileMD5(std::string& result,
+                               const std::string& path);
+
+    // returns true if file have the same MD5
+    static bool CompareFilesMD5(const std::string& path1,
+                                const std::string& path2); 
+#endif
+
     static void MakeDirectory(const std::string& path);
 
     static bool IsExistingFile(const std::string& path);
