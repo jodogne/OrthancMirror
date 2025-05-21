@@ -4425,7 +4425,7 @@ namespace OrthancPlugins
   {
     OrthancPluginErrorCode code = OrthancPluginStoreKeyValue(OrthancPlugins::GetGlobalContext(), storeId_.c_str(),
                                                              key.c_str(), value.c_str(), value.size());
-    if (code == OrthancPluginErrorCode_Success)
+    if (code != OrthancPluginErrorCode_Success)
     {
       ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(code);
     }
@@ -4437,16 +4437,16 @@ namespace OrthancPlugins
   bool KeyValueStore::GetValue(std::string& value,
                                const std::string& key)
   {
-    uint8_t found = false;
+    uint8_t isExisting = false;
     OrthancPlugins::MemoryBuffer valueBuffer;
-    OrthancPluginErrorCode code = OrthancPluginGetKeyValue(OrthancPlugins::GetGlobalContext(), &found,
+    OrthancPluginErrorCode code = OrthancPluginGetKeyValue(OrthancPlugins::GetGlobalContext(), &isExisting,
                                                            *valueBuffer, storeId_.c_str(), key.c_str());
 
     if (code != OrthancPluginErrorCode_Success)
     {
       ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(code);
     }
-    else if (found)
+    else if (isExisting)
     {
       valueBuffer.ToString(value);
       return true;
@@ -4499,17 +4499,17 @@ namespace OrthancPlugins
   bool Queue::PopInternal(std::string& value,
                           OrthancPluginQueueOrigin origin)
   {
-    uint8_t found = false;
+    uint8_t isExisting = false;
     OrthancPlugins::MemoryBuffer valueBuffer;
 
-    OrthancPluginErrorCode code = OrthancPluginDequeueValue(OrthancPlugins::GetGlobalContext(), &found,
+    OrthancPluginErrorCode code = OrthancPluginDequeueValue(OrthancPlugins::GetGlobalContext(), &isExisting,
                                                             *valueBuffer, queueId_.c_str(), origin);
 
     if (code != OrthancPluginErrorCode_Success)
     {
       ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(code);
     }
-    else if (found)
+    else if (isExisting)
     {
       valueBuffer.ToString(value);
       return true;
