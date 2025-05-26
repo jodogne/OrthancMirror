@@ -2469,25 +2469,33 @@ namespace Orthanc
   {
   private:
     SQLiteDatabaseWrapper&  that_;
+    bool                    isNested_;  // see explanation on the ReadWriteTransaction
     
   public:
     ReadOnlyTransaction(SQLiteDatabaseWrapper& that,
                         IDatabaseListener& listener) :
       TransactionBase(that.mutex_, that.db_, listener, *that.signalRemainingAncestor_),
-      that_(that)
+      that_(that),
+      isNested_(false)
     {
       if (that_.activeTransaction_ != NULL)
       {
-        throw OrthancException(ErrorCode_InternalError);
+        isNested_ = true;
+        // throw OrthancException(ErrorCode_InternalError);
       }
-      
-      that_.activeTransaction_ = this;
+      else
+      {      
+        that_.activeTransaction_ = this;
+      }
     }
 
     virtual ~ReadOnlyTransaction()
     {
-      assert(that_.activeTransaction_ != NULL);    
-      that_.activeTransaction_ = NULL;
+      if (!isNested_)
+      {
+        assert(that_.activeTransaction_ != NULL);    
+        that_.activeTransaction_ = NULL;
+      }
     }
 
     virtual void Rollback() ORTHANC_OVERRIDE
