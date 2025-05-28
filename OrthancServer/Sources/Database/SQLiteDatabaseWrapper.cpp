@@ -2650,6 +2650,7 @@ namespace Orthanc
           db_.Execute(query);
         }
 
+        // New in Orthanc 1.12.99
         if (!db_.DoesTableExist("KeyValueStores"))
         {
           LOG(INFO) << "Installing the \"KeyValueStores\" and \"Queues\" tables";
@@ -2689,7 +2690,7 @@ namespace Orthanc
   {
     boost::recursive_mutex::scoped_lock lock(mutex_);
 
-    if (targetVersion != 7)
+    if (targetVersion != 6)
     {
       throw OrthancException(ErrorCode_IncompatibleDatabaseVersion);
     }
@@ -2699,8 +2700,7 @@ namespace Orthanc
     if (version_ != 3 &&
         version_ != 4 &&
         version_ != 5 &&
-        version_ != 6 &&
-        version_ != 7)
+        version_ != 6)
     {
       throw OrthancException(ErrorCode_IncompatibleDatabaseVersion);
     }
@@ -2730,6 +2730,14 @@ namespace Orthanc
       
       {
         std::unique_ptr<ITransaction> transaction(StartTransaction(TransactionType_ReadWrite, listener));
+
+        // ReconstructMaindDicomTags uses LookupAttachment that needs revision and customData.  Since we don't want to maintain a legacy version
+        // of LookupAttachmet, we modify the table now)
+        LOG(INFO) << "First Upgrading SQLite schema to support revision and customData in order to be able to reconstruct main dicom tags";
+        std::string query;
+        ServerResources::GetFileResource(query, ServerResources::INSTALL_REVISION_AND_CUSTOM_DATA);
+        db_.Execute(query);
+
         ServerToolbox::ReconstructMainDicomTags(*transaction, storageArea, ResourceType_Patient);
         ServerToolbox::ReconstructMainDicomTags(*transaction, storageArea, ResourceType_Study);
         ServerToolbox::ReconstructMainDicomTags(*transaction, storageArea, ResourceType_Series);
