@@ -88,6 +88,12 @@ namespace Orthanc
     }
     else
     {
+      const uint64_t size = end - start;
+      if (static_cast<uint64_t>(static_cast<size_t>(size)) != size)
+      {
+        throw OrthancException(ErrorCode_InternalError, "Buffer larger than 4GB, which is too large for Orthanc running in 32bits");
+      }
+
       Mutex::ScopedLock lock(mutex_);
 
       Content::const_iterator found = content_.find(uuid);
@@ -107,7 +113,7 @@ namespace Orthanc
       else
       {
         std::string range;
-        range.resize(end - start);
+        range.resize(static_cast<size_t>(size));
         assert(!range.empty());
 
         memcpy(&range[0], &found->second[start], range.size());
