@@ -55,7 +55,7 @@ message FileInfo {
   int32   compression_type = 5;  // opaque "CompressionType" in Orthanc
   uint64  compressed_size = 6;
   string  compressed_hash = 7;
-  string  custom_data = 8;       // added in v 1.12.99
+  string  custom_data = 8;       // New in v 1.12.8
 }
 
 enum ResourceType {
@@ -172,9 +172,9 @@ message GetSystemInformation {
     bool has_measure_latency = 7;
     bool supports_find = 8;         // New in Orthanc 1.12.5
     bool has_extended_changes = 9;  // New in Orthanc 1.12.5
-    bool supports_key_value_stores = 10;  // New in Orthanc 1.12.99
-    bool supports_queues = 11;            // New in Orthanc 1.12.99
-    bool has_attachment_custom_data = 12; // New in Orthanc 1.12.99
+    bool supports_key_value_stores = 10;  // New in Orthanc 1.12.8
+    bool supports_queues = 11;            // New in Orthanc 1.12.8
+    bool has_attachment_custom_data = 12; // New in Orthanc 1.12.8
   }
 }
 
@@ -330,15 +330,15 @@ enum TransactionOperation {
   OPERATION_FIND = 50;                        // New in Orthanc 1.12.5
   OPERATION_GET_CHANGES_EXTENDED = 51;        // New in Orthanc 1.12.5
   OPERATION_COUNT_RESOURCES = 52;             // New in Orthanc 1.12.5
-  OPERATION_STORE_KEY_VALUE = 53;             // New in Orthanc 1.12.99
-  OPERATION_DELETE_KEY_VALUE = 54;            // New in Orthanc 1.12.99
-  OPERATION_GET_KEY_VALUE = 55;               // New in Orthanc 1.12.99
-  OPERATION_LIST_KEY_VALUES = 56;             // New in Orthanc 1.12.99
-  OPERATION_ENQUEUE_VALUE = 57;               // New in Orthanc 1.12.99
-  OPERATION_DEQUEUE_VALUE = 58;               // New in Orthanc 1.12.99
-  OPERATION_GET_QUEUE_SIZE = 59;              // New in Orthanc 1.12.99
-  OPERATION_GET_ATTACHMENT = 60;              // New in Orthanc 1.12.99
-  OPERATION_UPDATE_ATTACHMENT_CUSTOM_DATA = 61; // New in Orthanc 1.12.99
+  OPERATION_STORE_KEY_VALUE = 53;             // New in Orthanc 1.12.8
+  OPERATION_DELETE_KEY_VALUE = 54;            // New in Orthanc 1.12.8
+  OPERATION_GET_KEY_VALUE = 55;               // New in Orthanc 1.12.8
+  OPERATION_LIST_KEY_VALUES = 56;             // New in Orthanc 1.12.8
+  OPERATION_ENQUEUE_VALUE = 57;               // New in Orthanc 1.12.8
+  OPERATION_DEQUEUE_VALUE = 58;               // New in Orthanc 1.12.8
+  OPERATION_GET_QUEUE_SIZE = 59;              // New in Orthanc 1.12.8
+  OPERATION_GET_ATTACHMENT = 60;              // New in Orthanc 1.12.8
+  OPERATION_UPDATE_ATTACHMENT_CUSTOM_DATA = 61;  // New in Orthanc 1.12.8
 
 }
 

@@ -2181,7 +2181,7 @@ namespace Orthanc
       }    
     }
 
-    // New in Orthanc 1.12.99
+    // New in Orthanc 1.12.8
     virtual void ListKeysValues(std::list<std::string>& keys /* out */,
                                 std::list<std::string>& values /* out */,
                                 const std::string& storeId,
@@ -2219,7 +2219,7 @@ namespace Orthanc
     }
 
 
-    // New in Orthanc 1.12.99
+    // New in Orthanc 1.12.8
     virtual void EnqueueValue(const std::string& queueId,
                               const std::string& value) ORTHANC_OVERRIDE
     {
@@ -2230,7 +2230,7 @@ namespace Orthanc
       s.Run();
     }
 
-    // New in Orthanc 1.12.99
+    // New in Orthanc 1.12.8
     virtual bool DequeueValue(std::string& value,
                               const std::string& queueId,
                               QueueOrigin origin) ORTHANC_OVERRIDE
@@ -2272,7 +2272,7 @@ namespace Orthanc
       }    
     }
 
-    // New in Orthanc 1.12.99
+    // New in Orthanc 1.12.8
     virtual uint64_t GetQueueSize(const std::string& queueId) ORTHANC_OVERRIDE
     {
       SQLite::Statement s(db_, SQLITE_FROM_HERE, "SELECT COUNT(*) FROM Queues WHERE queueId=?");
@@ -2640,7 +2640,7 @@ namespace Orthanc
           db_.Execute(query);
         }
 
-        // New in Orthanc 1.12.99
+        // New in Orthanc 1.12.8
         if (!transaction->LookupGlobalProperty(tmp, GlobalProperty_SQLiteHasCustomDataAndRevision, true /* unused in SQLite */) 
             || tmp != "1")
         {
@@ -2650,7 +2650,7 @@ namespace Orthanc
           db_.Execute(query);
         }
 
-        // New in Orthanc 1.12.99
+        // New in Orthanc 1.12.8
         if (!db_.DoesTableExist("KeyValueStores"))
         {
           LOG(INFO) << "Installing the \"KeyValueStores\" and \"Queues\" tables";
