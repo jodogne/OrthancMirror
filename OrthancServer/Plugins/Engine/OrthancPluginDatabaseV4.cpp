@@ -41,7 +41,7 @@
 #include "OrthancDatabasePlugin.pb.h"  // Auto-generated file
 
 #include <cassert>
-
+#include <limits>
 
 namespace Orthanc
 {
@@ -1860,14 +1860,22 @@ namespace Orthanc
 
     virtual void StoreKeyValue(const std::string& storeId,
                                const std::string& key,
-                               const std::string& value) ORTHANC_OVERRIDE
+                               const void* value,
+                               size_t valueSize) ORTHANC_OVERRIDE
     {
+      // In protobuf, bytes "may contain any arbitrary sequence of bytes no longer than 2^32"
+      // https://protobuf.dev/programming-guides/proto3/
+      if (valueSize > std::numeric_limits<uint32_t>::max())
+      {
+        throw OrthancException(ErrorCode_NotEnoughMemory);
+      }
+
       if (database_.GetDatabaseCapabilities().HasKeyValueStoresSupport())
       {
         DatabasePluginMessages::TransactionRequest request;
         request.mutable_store_key_value()->set_store_id(storeId);
         request.mutable_store_key_value()->set_key(key);
-        request.mutable_store_key_value()->set_value(value);
+        request.mutable_store_key_value()->set_value(value, valueSize);
 
         ExecuteTransaction(DatabasePluginMessages::OPERATION_STORE_KEY_VALUE, request);
       }
@@ -1958,13 +1966,21 @@ namespace Orthanc
     }
 
     virtual void EnqueueValue(const std::string& queueId,
-                              const std::string& value) ORTHANC_OVERRIDE
+                              const void* value,
+                              size_t valueSize) ORTHANC_OVERRIDE
     {
+      // In protobuf, bytes "may contain any arbitrary sequence of bytes no longer than 2^32"
+      // https://protobuf.dev/programming-guides/proto3/
+      if (valueSize > std::numeric_limits<uint32_t>::max())
+      {
+        throw OrthancException(ErrorCode_NotEnoughMemory);
+      }
+
       if (database_.GetDatabaseCapabilities().HasQueuesSupport())
       {
         DatabasePluginMessages::TransactionRequest request;
         request.mutable_enqueue_value()->set_queue_id(queueId);
-        request.mutable_enqueue_value()->set_value(value);
+        request.mutable_enqueue_value()->set_value(value, valueSize);
 
         ExecuteTransaction(DatabasePluginMessages::OPERATION_ENQUEUE_VALUE, request);
       }

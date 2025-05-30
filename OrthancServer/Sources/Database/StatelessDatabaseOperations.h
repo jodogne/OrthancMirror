@@ -460,9 +460,10 @@ namespace Orthanc
 
       void StoreKeyValue(const std::string& storeId,
                          const std::string& key,
-                         const std::string& value)
+                         const void* value,
+                         size_t valueSize)
       {
-        transaction_.StoreKeyValue(storeId, key, value);
+        transaction_.StoreKeyValue(storeId, key, value, valueSize);
       }
 
       void DeleteKeyValue(const std::string& storeId,
@@ -472,9 +473,10 @@ namespace Orthanc
       }
 
       void EnqueueValue(const std::string& queueId,
-                        const std::string& value)
+                        const void* value,
+                        size_t valueSize)
       {
-        transaction_.EnqueueValue(queueId, value);
+        transaction_.EnqueueValue(queueId, value, valueSize);
       }
 
       bool DequeueValue(std::string& value,
@@ -800,7 +802,15 @@ namespace Orthanc
 
     void StoreKeyValue(const std::string& storeId,
                        const std::string& key,
-                       const std::string& value);
+                       const void* value,
+                       size_t valueSize);
+
+    void StoreKeyValue(const std::string& storeId,
+                       const std::string& key,
+                       const std::string& value)
+    {
+      StoreKeyValue(storeId, key, value.empty() ? NULL : value.c_str(), value.size());
+    }
 
     void DeleteKeyValue(const std::string& storeId,
                         const std::string& key);
@@ -810,7 +820,14 @@ namespace Orthanc
                      const std::string& key);
 
     void EnqueueValue(const std::string& queueId,
-                      const std::string& value);
+                      const void* value,
+                      size_t valueSize);
+
+    void EnqueueValue(const std::string& queueId,
+                      const std::string& value)
+    {
+      EnqueueValue(queueId, value.empty() ? NULL : value.c_str(), value.size());
+    }
 
     bool DequeueValue(std::string& value,
                       const std::string& queueId,

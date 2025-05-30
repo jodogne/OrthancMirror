@@ -484,7 +484,6 @@ extern "C"
     _OrthancPluginService_DequeueValue = 58,                        /* New in Orthanc 1.12.8 */
     _OrthancPluginService_GetQueueSize = 59,                        /* New in Orthanc 1.12.8 */
 
-
     /* Registration of callbacks */
     _OrthancPluginService_RegisterRestCallback = 1000,
     _OrthancPluginService_RegisterOnStoredInstanceCallback = 1001,
@@ -10100,7 +10099,7 @@ TODO_ATTACH_CUSTOM_DATA TODO TODO
   {
     const char**                      target;
     OrthancPluginKeysValuesIterator*  iterator;
-  } _OrthancPluginKeysValuesIteratorGetString;
+  } _OrthancPluginKeysValuesIteratorGetKey;
 
   /**
    * @brief Get the current key of an iterator over a key-value store.
@@ -10118,7 +10117,7 @@ TODO_ATTACH_CUSTOM_DATA TODO TODO
   {
     const char* target = NULL;
 
-    _OrthancPluginKeysValuesIteratorGetString params;
+    _OrthancPluginKeysValuesIteratorGetKey params;
     params.target = &target;
     params.iterator = iterator;
 
@@ -10133,6 +10132,12 @@ TODO_ATTACH_CUSTOM_DATA TODO TODO
   }
 
 
+  typedef struct
+  {
+    OrthancPluginMemoryBuffer*        target;
+    OrthancPluginKeysValuesIterator*  iterator;
+  } _OrthancPluginKeysValuesIteratorGetValue;
+
   /**
    * @brief Get the current value of an iterator over a key-value store.
    *
@@ -10140,27 +10145,21 @@ TODO_ATTACH_CUSTOM_DATA TODO TODO
    * must have been called at least once.
    *
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param target Memory buffer where to store the value that has been retrieved from the key-value store.
+   * It must be freed with OrthancPluginFreeMemoryBuffer().
    * @param iterator The iterator of interest.
    * @return The current value, or NULL in the case of an error.
    **/
-  ORTHANC_PLUGIN_INLINE const char* OrthancPluginKeysValuesIteratorGetValue(
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginKeysValuesIteratorGetValue(
     OrthancPluginContext*             context,
-    OrthancPluginKeysValuesIterator*  iterator)
+    OrthancPluginMemoryBuffer*        target   /* out */,
+    OrthancPluginKeysValuesIterator*  iterator /* in */)
   {
-    const char* target = NULL;
-
-    _OrthancPluginKeysValuesIteratorGetString params;
-    params.target = &target;
+    _OrthancPluginKeysValuesIteratorGetValue params;
+    params.target = target;
     params.iterator = iterator;
 
-    if (context->InvokeService(context, _OrthancPluginService_KeysValuesIteratorGetValue, &params) == OrthancPluginErrorCode_Success)
-    {
-      return target;
-    }
-    else
-    {
-      return NULL;
-    }
+    return context->InvokeService(context, _OrthancPluginService_KeysValuesIteratorGetValue, &params);
   }
 
 
@@ -10209,6 +10208,7 @@ TODO_ATTACH_CUSTOM_DATA TODO TODO
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param found Pointer to a Boolean that is set to "true" iff. a value has been dequeued.
    * @param target Memory buffer where to store the value that has been retrieved from the queue.
+   * It must be freed with OrthancPluginFreeMemoryBuffer().
    * @param queueId A unique identifier identifying both the plugin and the queue.
    * @param origin The position from where the value is dequeued (back for LIFO, front for FIFO).
    * @return 0 if success, other value if error.

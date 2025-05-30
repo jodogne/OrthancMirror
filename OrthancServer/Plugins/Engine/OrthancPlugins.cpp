@@ -1963,7 +1963,7 @@ namespace Orthanc
 
       std::string dicom;
       currentQuery_->SaveToMemoryBuffer(dicom);
-      CopyToMemoryBuffer(target, dicom.c_str(), dicom.size());
+      CopyToMemoryBuffer(target, dicom);
     }
 
     bool IsMatch(const void* dicom,
@@ -3951,7 +3951,7 @@ namespace Orthanc
         throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
 
-    CopyToMemoryBuffer(*p.target, compressed.size() > 0 ? compressed.c_str() : NULL, compressed.size());
+    CopyToMemoryBuffer(*p.target, compressed);
   }
 
 
@@ -4675,8 +4675,8 @@ namespace Orthanc
 
       ServerContext::StoreResult result = lock.GetContext().AdoptAttachment(resultPublicId, *dicom, StoreInstanceMode_Default, adoptedFile);
 
-      CopyToMemoryBuffer(*parameters.attachmentUuid, adoptedFile.GetUuid().size() > 0 ? adoptedFile.GetUuid().c_str() : NULL, adoptedFile.GetUuid().size());
-      CopyToMemoryBuffer(*parameters.createdResourceId, resultPublicId.size() > 0 ? resultPublicId.c_str() : NULL, resultPublicId.size());
+      CopyToMemoryBuffer(*parameters.attachmentUuid, adoptedFile.GetUuid());
+      CopyToMemoryBuffer(*parameters.createdResourceId, resultPublicId);
       *(parameters.storeStatus) = Plugins::Convert(result.GetStatus());
     }
   }
@@ -4689,7 +4689,7 @@ namespace Orthanc
     
     if (lock.GetContext().GetIndex().GetAttachment(fileInfo, revision, parameters.attachmentUuid))
     {
-      CopyToMemoryBuffer(*parameters.customData, fileInfo.GetCustomData().size() > 0 ? fileInfo.GetCustomData().c_str() : NULL, fileInfo.GetCustomData().size());
+      CopyToMemoryBuffer(*parameters.customData, fileInfo.GetCustomData());
     }
     else
     {
@@ -4709,22 +4709,18 @@ namespace Orthanc
   bool OrthancPlugins::HasKeyValueStoresSupport()
   {
     PImpl::ServerContextReference lock(*pimpl_);
-
     return lock.GetContext().GetIndex().HasKeyValueStoresSupport();
   }
 
   void OrthancPlugins::ApplyStoreKeyValue(const _OrthancPluginStoreKeyValue& parameters)
   {
     PImpl::ServerContextReference lock(*pimpl_);
-    std::string value(reinterpret_cast<const char*>(parameters.value), parameters.valueSize);
-
-    lock.GetContext().GetIndex().StoreKeyValue(parameters.storeId, parameters.key, value);
+    lock.GetContext().GetIndex().StoreKeyValue(parameters.storeId, parameters.key, parameters.value, parameters.valueSize);
   }
 
   void OrthancPlugins::ApplyDeleteKeyValue(const _OrthancPluginDeleteKeyValue& parameters)
   {
     PImpl::ServerContextReference lock(*pimpl_);
-
     lock.GetContext().GetIndex().DeleteKeyValue(parameters.storeId, parameters.key);
   }
 
@@ -4736,7 +4732,7 @@ namespace Orthanc
 
     if (lock.GetContext().GetIndex().GetKeyValue(value, parameters.storeId, parameters.key))
     {
-      CopyToMemoryBuffer(*parameters.target, value.size() > 0 ? value.c_str() : NULL, value.size());
+      CopyToMemoryBuffer(*parameters.target, value);
       *parameters.found = true;
     }
     else
@@ -4748,16 +4744,13 @@ namespace Orthanc
   bool OrthancPlugins::HasQueuesSupport()
   {
     PImpl::ServerContextReference lock(*pimpl_);
-
     return lock.GetContext().GetIndex().HasQueuesSupport();
   }
 
   void OrthancPlugins::ApplyEnqueueValue(const _OrthancPluginEnqueueValue& parameters)
   {
     PImpl::ServerContextReference lock(*pimpl_);
-    std::string value(reinterpret_cast<const char*>(parameters.value), parameters.valueSize);
-
-    lock.GetContext().GetIndex().EnqueueValue(parameters.queueId, value);
+    lock.GetContext().GetIndex().EnqueueValue(parameters.queueId, parameters.value, parameters.valueSize);
   }
 
   void OrthancPlugins::ApplyDequeueValue(const _OrthancPluginDequeueValue& parameters)
@@ -4768,7 +4761,7 @@ namespace Orthanc
 
     if (lock.GetContext().GetIndex().DequeueValue(value, parameters.queueId, Plugins::Convert(parameters.origin)))
     {
-      CopyToMemoryBuffer(*parameters.target, value.size() > 0 ? value.c_str() : NULL, value.size());
+      CopyToMemoryBuffer(*parameters.target, value);
       *parameters.found = true;
     }
     else
@@ -5232,7 +5225,7 @@ namespace Orthanc
 
         std::string content;
         SystemToolbox::ReadFile(content, p.path);
-        CopyToMemoryBuffer(*p.target, content.size() > 0 ? content.c_str() : NULL, content.size());
+        CopyToMemoryBuffer(*p.target, content);
 
         return true;
       }
@@ -5962,6 +5955,20 @@ namespace Orthanc
         }
 
       case _OrthancPluginService_KeysValuesIteratorGetKey:
+        if (!HasKeyValueStoresSupport())
+        {
+          throw OrthancException(ErrorCode_NotImplemented, "The DB engine does not support key-value stores");
+        }
+        else
+        {
+          const _OrthancPluginKeysValuesIteratorGetKey& p =
+            *reinterpret_cast<const _OrthancPluginKeysValuesIteratorGetKey*>(parameters);
+
+          StatelessDatabaseOperations::KeysValuesIterator& iterator = *reinterpret_cast<StatelessDatabaseOperations::KeysValuesIterator*>(p.iterator);
+          *p.target = iterator.GetKey().c_str();
+          return true;
+        }
+
       case _OrthancPluginService_KeysValuesIteratorGetValue:
         if (!HasKeyValueStoresSupport())
         {
@@ -5969,25 +5976,12 @@ namespace Orthanc
         }
         else
         {
-          const _OrthancPluginKeysValuesIteratorGetString& p =
-            *reinterpret_cast<const _OrthancPluginKeysValuesIteratorGetString*>(parameters);
+          const _OrthancPluginKeysValuesIteratorGetValue& p =
+            *reinterpret_cast<const _OrthancPluginKeysValuesIteratorGetValue*>(parameters);
 
           StatelessDatabaseOperations::KeysValuesIterator& iterator = *reinterpret_cast<StatelessDatabaseOperations::KeysValuesIterator*>(p.iterator);
-
-          if (service == _OrthancPluginService_KeysValuesIteratorGetKey)
-          {
-            *p.target = iterator.GetKey().c_str();
-            return true;
-          }
-          else if (service == _OrthancPluginService_KeysValuesIteratorGetValue)
-          {
-            *p.target = iterator.GetValue().c_str();
-            return true;
-          }
-          else
-          {
-            throw OrthancException(ErrorCode_InternalError);
-          }
+          CopyToMemoryBuffer(*p.target, iterator.GetValue());
+          return true;
         }
 
       case _OrthancPluginService_EnqueueValue:

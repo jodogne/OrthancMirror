@@ -1646,7 +1646,7 @@ void SerializeGetArguments(std::string& output, const OrthancPluginHttpRequest* 
 
       std::string GetKey() const;
 
-      std::string GetValue() const;
+      void GetValue(std::string& target) const;
     };
 
   private:

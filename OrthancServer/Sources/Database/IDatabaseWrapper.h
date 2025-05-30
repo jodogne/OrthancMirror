@@ -437,7 +437,8 @@ namespace Orthanc
       // New in Orthanc 1.12.8
       virtual void StoreKeyValue(const std::string& storeId,
                                  const std::string& key,
-                                 const std::string& value) = 0;
+                                 const void* value,
+                                 size_t valueSize) = 0;
 
       // New in Orthanc 1.12.8
       virtual void DeleteKeyValue(const std::string& storeId,
@@ -453,12 +454,13 @@ namespace Orthanc
                                   std::list<std::string>& values /* out */,
                                   const std::string& storeId,
                                   bool first,
-                                  const std::string& from /* only used if "first == false" */,
+                                  const std::string& from /* exclusive bound, only used if "first == false" */,
                                   uint64_t limit /* maximum number of elements */) = 0;
 
       // New in Orthanc 1.12.8
       virtual void EnqueueValue(const std::string& queueId,
-                                const std::string& value) = 0;
+                                const void* value,
+                                size_t valueSize) = 0;
 
       // New in Orthanc 1.12.8
       virtual bool DequeueValue(std::string& value,
