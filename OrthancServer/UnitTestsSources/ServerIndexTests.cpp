@@ -1207,6 +1207,10 @@ TEST(SQLiteDatabaseWrapper, KeyValueStores)
     ASSERT_TRUE(op.GetKeyValue(s, "test", "hello3"));  ASSERT_EQ("world3", s);
     ASSERT_FALSE(op.GetKeyValue(s, "test", "hello2"));
 
+    ASSERT_TRUE(op.GetKeyValue(s, "test", "hello"));   ASSERT_EQ("world", s);
+    op.StoreKeyValue("test", "hello", "overwritten");
+    ASSERT_TRUE(op.GetKeyValue(s, "test", "hello"));   ASSERT_EQ("overwritten", s);
+
     op.DeleteKeyValue("test", "nope");
 
     op.DeleteKeyValue("test", "hello");
