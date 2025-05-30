@@ -188,10 +188,11 @@ namespace Orthanc
     {
       ReadArrayOfStrings(target, arr);
     }
-    catch (OrthancException& ex)
-    {  // more detailed error
+    catch (OrthancException&)
+    {
+      // more detailed error
       throw OrthancException(ErrorCode_BadFileFormat,
-                              "List of strings expected in field: " + field);
+                             "List of strings expected in field: " + field);
     }
   }
 

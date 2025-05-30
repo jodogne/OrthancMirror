@@ -75,7 +75,7 @@ namespace Orthanc
    };
 
 
-    struct Reference;
+    class Reference;
 
     typedef std::vector<std::string>  Tokens;
     typedef std::list<Handler>   Handlers;
