@@ -30,6 +30,10 @@
 #  error The macro ORTHANC_SANDBOXED must be defined
 #endif
 
+#if !defined(ORTHANC_ENABLE_MD5)
+#  error The macro ORTHANC_ENABLE_MD5 must be defined
+#endif
+
 #if ORTHANC_SANDBOXED == 1
 #  error The namespace SystemToolbox cannot be used in sandboxed environments
 #endif
@@ -84,6 +88,9 @@ namespace Orthanc
     static uint64_t GetFileSize(const std::string& path);
 
 #if ORTHANC_ENABLE_MD5 == 1
+    static void ComputeStreamMD5(std::string& result,
+                                 std::istream& stream);
+
     static void ComputeFileMD5(std::string& result,
                                const std::string& path);
 

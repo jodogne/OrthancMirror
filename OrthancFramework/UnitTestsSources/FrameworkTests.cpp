@@ -398,9 +398,24 @@ TEST(Toolbox, ComputeMD5)
   Toolbox::ComputeMD5(s, set);
   ASSERT_EQ("d1aaf4767a3c10a473407a4e47b02da6", s); // set md5 same as string with the values sorted
 
-  std::istringstream iss(std::string("aaabbbccc"));
-  Toolbox::ComputeMD5(s, iss);
-  ASSERT_EQ("d1aaf4767a3c10a473407a4e47b02da6", s);
+  {
+    Toolbox::MD5Context context;
+    context.Append("");
+    context.Append(NULL, 0);
+    context.Append("Hello");
+    context.Export(s);
+    ASSERT_EQ("8b1a9953c4611296a827abf8c47804d7", s);
+    ASSERT_THROW(context.Append("World"), OrthancException);
+    ASSERT_THROW(context.Export(s), OrthancException);
+  }
+
+#if ORTHANC_SANDBOXED != 1
+  {
+    std::istringstream iss(std::string("aaabbbccc"));
+    SystemToolbox::ComputeStreamMD5(s, iss);
+    ASSERT_EQ("d1aaf4767a3c10a473407a4e47b02da6", s);
+  }
+#endif
 }
 
 TEST(Toolbox, ComputeSHA1)
@@ -1598,8 +1613,6 @@ TEST(Toolbox, ReadFileRange)
 #if ORTHANC_SANDBOXED != 1 && ORTHANC_ENABLE_MD5 == 1
 TEST(Toolbox, FileMD5)
 {
-  std::string path;
-
   {
     TemporaryFile tmp1, tmp2;
     std::string s = "aaabbbccc";
@@ -1635,7 +1648,6 @@ TEST(Toolbox, FileMD5)
 
     ASSERT_FALSE(SystemToolbox::CompareFilesMD5(tmp1.GetPath(), tmp2.GetPath()));
   }
-
 }
 #endif
 
