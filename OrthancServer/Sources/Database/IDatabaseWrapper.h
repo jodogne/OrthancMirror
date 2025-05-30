@@ -434,21 +434,21 @@ namespace Orthanc
                                       uint32_t limit,
                                       const std::set<ChangeType>& filterType) = 0;
 
-      // New in Orthanc 1.12.99
+      // New in Orthanc 1.12.8
       virtual void StoreKeyValue(const std::string& storeId,
                                  const std::string& key,
                                  const std::string& value) = 0;
 
-      // New in Orthanc 1.12.99
+      // New in Orthanc 1.12.8
       virtual void DeleteKeyValue(const std::string& storeId,
                                   const std::string& key) = 0;
 
-      // New in Orthanc 1.12.99
+      // New in Orthanc 1.12.8
       virtual bool GetKeyValue(std::string& value,
                                const std::string& storeId,
                                const std::string& key) = 0;
 
-      // New in Orthanc 1.12.99
+      // New in Orthanc 1.12.8
       virtual void ListKeysValues(std::list<std::string>& keys /* out */,
                                   std::list<std::string>& values /* out */,
                                   const std::string& storeId,
@@ -456,16 +456,16 @@ namespace Orthanc
                                   const std::string& from /* only used if "first == false" */,
                                   uint64_t limit /* maximum number of elements */) = 0;
 
-      // New in Orthanc 1.12.99
+      // New in Orthanc 1.12.8
       virtual void EnqueueValue(const std::string& queueId,
                                 const std::string& value) = 0;
 
-      // New in Orthanc 1.12.99
+      // New in Orthanc 1.12.8
       virtual bool DequeueValue(std::string& value,
                                 const std::string& queueId,
                                 QueueOrigin origin) = 0;
 
-      // New in Orthanc 1.12.99, for statistics only
+      // New in Orthanc 1.12.8, for statistics only
       virtual uint64_t GetQueueSize(const std::string& queueId) = 0;
     };
 

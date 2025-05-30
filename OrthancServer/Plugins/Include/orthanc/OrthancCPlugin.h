@@ -121,7 +121,7 @@
 
 #define ORTHANC_PLUGINS_MINIMAL_MAJOR_NUMBER     1
 #define ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER     12
-#define ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER  99
+#define ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER  8
 
 
 #if !defined(ORTHANC_PLUGINS_VERSION_IS_ABOVE)
@@ -469,20 +469,20 @@ extern "C"
     _OrthancPluginService_SetMetricsIntegerValue = 43,              /* New in Orthanc 1.12.1 */
     _OrthancPluginService_SetCurrentThreadName = 44,                /* New in Orthanc 1.12.2 */
     _OrthancPluginService_LogMessage = 45,                          /* New in Orthanc 1.12.4 */
-    _OrthancPluginService_AdoptAttachment = 46,                     /* New in Orthanc 1.12.99 */
-    _OrthancPluginService_GetAttachmentCustomData = 47,             /* New in Orthanc 1.12.99 */
-    _OrthancPluginService_UpdateAttachmentCustomData = 48,          /* New in Orthanc 1.12.99 */
-    _OrthancPluginService_StoreKeyValue = 49,                       /* New in Orthanc 1.12.99 */
-    _OrthancPluginService_DeleteKeyValue = 50,                      /* New in Orthanc 1.12.99 */
-    _OrthancPluginService_GetKeyValue = 51,                         /* New in Orthanc 1.12.99 */
-    _OrthancPluginService_CreateKeysValuesIterator = 52,            /* New in Orthanc 1.12.99 */
-    _OrthancPluginService_FreeKeysValuesIterator = 53,              /* New in Orthanc 1.12.99 */
-    _OrthancPluginService_KeysValuesIteratorNext = 54,              /* New in Orthanc 1.12.99 */
-    _OrthancPluginService_KeysValuesIteratorGetKey = 55,            /* New in Orthanc 1.12.99 */
-    _OrthancPluginService_KeysValuesIteratorGetValue = 56,          /* New in Orthanc 1.12.99 */
-    _OrthancPluginService_EnqueueValue = 57,                        /* New in Orthanc 1.12.99 */
-    _OrthancPluginService_DequeueValue = 58,                        /* New in Orthanc 1.12.99 */
-    _OrthancPluginService_GetQueueSize = 59,                        /* New in Orthanc 1.12.99 */
+    _OrthancPluginService_AdoptAttachment = 46,                     /* New in Orthanc 1.12.8 */
+    _OrthancPluginService_GetAttachmentCustomData = 47,             /* New in Orthanc 1.12.8 */
+    _OrthancPluginService_UpdateAttachmentCustomData = 48,          /* New in Orthanc 1.12.8 */
+    _OrthancPluginService_StoreKeyValue = 49,                       /* New in Orthanc 1.12.8 */
+    _OrthancPluginService_DeleteKeyValue = 50,                      /* New in Orthanc 1.12.8 */
+    _OrthancPluginService_GetKeyValue = 51,                         /* New in Orthanc 1.12.8 */
+    _OrthancPluginService_CreateKeysValuesIterator = 52,            /* New in Orthanc 1.12.8 */
+    _OrthancPluginService_FreeKeysValuesIterator = 53,              /* New in Orthanc 1.12.8 */
+    _OrthancPluginService_KeysValuesIteratorNext = 54,              /* New in Orthanc 1.12.8 */
+    _OrthancPluginService_KeysValuesIteratorGetKey = 55,            /* New in Orthanc 1.12.8 */
+    _OrthancPluginService_KeysValuesIteratorGetValue = 56,          /* New in Orthanc 1.12.8 */
+    _OrthancPluginService_EnqueueValue = 57,                        /* New in Orthanc 1.12.8 */
+    _OrthancPluginService_DequeueValue = 58,                        /* New in Orthanc 1.12.8 */
+    _OrthancPluginService_GetQueueSize = 59,                        /* New in Orthanc 1.12.8 */
 
 
     /* Registration of callbacks */
@@ -506,7 +506,7 @@ extern "C"
     _OrthancPluginService_RegisterIncomingCStoreInstanceFilter = 1017,  /* New in Orthanc 1.10.0 */
     _OrthancPluginService_RegisterReceivedInstanceCallback = 1018,  /* New in Orthanc 1.10.0 */
     _OrthancPluginService_RegisterWebDavCollection = 1019,     /* New in Orthanc 1.10.1 */
-    _OrthancPluginService_RegisterStorageArea3 = 1020,         /* New in Orthanc 1.12.99 */
+    _OrthancPluginService_RegisterStorageArea3 = 1020,         /* New in Orthanc 1.12.8 */
 
     /* Sending answers to REST calls */
     _OrthancPluginService_AnswerBuffer = 2000,
@@ -806,7 +806,7 @@ extern "C"
     OrthancPluginCompressionType_ZlibWithSize = 1,  /*!< zlib, prefixed with uncompressed size (uint64_t) */
     OrthancPluginCompressionType_Gzip = 2,          /*!< Standard gzip compression */
     OrthancPluginCompressionType_GzipWithSize = 3,  /*!< gzip, prefixed with uncompressed size (uint64_t) */
-    OrthancPluginCompressionType_None = 4,          /*!< No compression (new in Orthanc 1.12.99) */
+    OrthancPluginCompressionType_None = 4,          /*!< No compression (new in Orthanc 1.12.8) */
 
     _OrthancPluginCompressionType_INTERNAL = 0x7fffffff
   } OrthancPluginCompressionType;

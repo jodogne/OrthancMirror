@@ -55,7 +55,7 @@ CREATE TABLE Metadata(
        id INTEGER REFERENCES Resources(internalId) ON DELETE CASCADE,
        type INTEGER,
        value TEXT,
-       revision INTEGER,      -- New in Orthanc 1.12.99 (added in InstallRevisionAndCustomData.sql)
+       revision INTEGER,      -- New in Orthanc 1.12.8 (added in InstallRevisionAndCustomData.sql)
        PRIMARY KEY(id, type)
        );
 
@@ -68,8 +68,8 @@ CREATE TABLE AttachedFiles(
        compressionType INTEGER,
        uncompressedMD5 TEXT,  -- New in Orthanc 0.7.3 (database v4)
        compressedMD5 TEXT,    -- New in Orthanc 0.7.3 (database v4)
-       revision INTEGER,      -- New in Orthanc 1.12.99 (added in InstallRevisionAndCustomData.sql)
-       customData TEXT,       -- New in Orthanc 1.12.99 (added in InstallRevisionAndCustomData.sql)
+       revision INTEGER,      -- New in Orthanc 1.12.8 (added in InstallRevisionAndCustomData.sql)
+       customData TEXT,       -- New in Orthanc 1.12.8 (added in InstallRevisionAndCustomData.sql)
        PRIMARY KEY(id, fileType)
        );              
 
@@ -179,7 +179,7 @@ CREATE INDEX LabelsIndex2 ON Labels(label);  -- This index allows efficient look
 --------------------------------------------------
 
 
--- new in Orthanc 1.12.99 ------------------------- equivalent to InstallRevisionAndCustomData.sql
+-- new in Orthanc 1.12.8 ------------------------- equivalent to InstallRevisionAndCustomData.sql
 
 CREATE TABLE DeletedFiles(
        uuid TEXT NOT NULL,        -- 0
@@ -203,7 +203,7 @@ INSERT INTO GlobalProperties VALUES (7, 1);  -- GlobalProperty_SQLiteHasCustomDa
 ---------------------------------------------------
 
 
--- new in Orthanc 1.12.99 ------------------------- equivalent to InstallKeyValueStoresAndQueues.sql
+-- new in Orthanc 1.12.8 ------------------------- equivalent to InstallKeyValueStoresAndQueues.sql
 CREATE TABLE KeyValueStores(
        storeId TEXT NOT NULL,
        key TEXT NOT NULL,
