@@ -672,7 +672,7 @@ namespace Orthanc
           reader.Consume(visitor);
           isLittleEndian = reader.IsLittleEndian();
         }
-        catch (OrthancException& e)
+        catch (OrthancException&)
         {
           // Invalid DICOM file
           return false;

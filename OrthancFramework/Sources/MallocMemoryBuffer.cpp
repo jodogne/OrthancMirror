@@ -76,7 +76,7 @@ namespace Orthanc
     }
 
     buffer_ = buffer;
-    size_ = size;
+    size_ = static_cast<size_t>(size);
     free_ = freeFunction;
 
     if (size_ != 0 &&

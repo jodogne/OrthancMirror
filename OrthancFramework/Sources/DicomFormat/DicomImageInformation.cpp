@@ -566,7 +566,7 @@ namespace Orthanc
   {
     // Check out "../../../OrthancServer/Resources/ImplementationNotes/windowing.py"
 
-    float windowWidth = std::abs(window.GetWidth());
+    double windowWidth = std::abs(window.GetWidth());
 
     // Avoid divisions by zero
     static const double MIN = 0.0001;
