@@ -9,6 +9,9 @@ Maintenance
   - If "LimitMainDicomTagsReconstructLevel" was set, files were not transcoded if they had to.
     The "LimitMainDicomTagsReconstructLevel" configuration is now ignored when a full processing
     is required.
+* Configuration options "RejectSopClasses" and "RejectedSopClasses" are taken as synonyms.
+  In Orthanc 1.12.6 and 1.12.7, "RejectSopClasses" was used instead of the expected
+  "RejectedSopClasses" spelling.
 
 
 Version 1.12.7 (2025-04-07)
