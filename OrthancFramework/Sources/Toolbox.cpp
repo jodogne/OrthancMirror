@@ -64,6 +64,7 @@
 #include <boost/algorithm/string/join.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/regex.hpp>
+#include <cassert>
 
 #if BOOST_VERSION >= 106600
 #  include <boost/uuid/detail/sha1.hpp>
@@ -245,22 +246,39 @@ namespace Orthanc
   void Toolbox::MD5Context::Append(const void* data,
                                    size_t size)
   {
+    static const size_t MAX_SIZE = 128 * 1024 * 1024;
+
     if (pimpl_->done_)
     {
       throw OrthancException(ErrorCode_BadSequenceOfCalls);
     }
 
-    if (static_cast<size_t>(static_cast<int>(size)) != size)
-    {
-      throw OrthancException(ErrorCode_InternalError,
-                             "The built-in implementation of MD5 does not support buffers larger than 32bits");
-    }
+    const uint8_t *p = reinterpret_cast<const uint8_t*>(data);
 
-    if (size > 0)
+    while (size > 0)
     {
-      md5_append(&pimpl_->state_,
-                 reinterpret_cast<const md5_byte_t*>(data),
-                 static_cast<int>(size));
+      /**
+       * The built-in implementation of MD5 requires that "size" can
+       * be casted to "int", so we feed it by chunks of maximum
+       * 128MB. This fixes an incorrect behavior in Orthanc <= 1.12.7.
+       **/
+
+      int chunkSize;
+      if (size > MAX_SIZE)
+      {
+        chunkSize = static_cast<int>(MAX_SIZE);
+      }
+      else
+      {
+        chunkSize = static_cast<int>(size);
+      }
+
+      md5_append(&pimpl_->state_, reinterpret_cast<const md5_byte_t*>(p), chunkSize);
+
+      p += chunkSize;
+
+      assert(static_cast<size_t>(chunkSize) <= size);
+      size -= chunkSize;
     }
   }
 
