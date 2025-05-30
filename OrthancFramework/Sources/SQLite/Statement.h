@@ -130,7 +130,7 @@ namespace Orthanc
       void BindCString(int col, const char* val);
       void BindString(int col, const std::string& val);
       //void BindString16(int col, const string16& value);
-      void BindBlob(int col, const void* value, int value_len);
+      void BindBlob(int col, const void* value, size_t value_len);
 
 
       // Retrieving ----------------------------------------------------------------

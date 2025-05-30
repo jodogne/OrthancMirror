@@ -1218,6 +1218,24 @@ TEST(SQLiteDatabaseWrapper, KeyValueStores)
       it.SetLimit(limit);
       ASSERT_FALSE(it.Next());
     }
+
+    {
+      std::string blob;
+      blob.push_back(0);
+      blob.push_back(1);
+      blob.push_back(0);
+      blob.push_back(2);
+      op.StoreKeyValue("test", "blob", blob); // Storing binary values
+    }
+
+    ASSERT_TRUE(op.GetKeyValue(s, "test", "blob"));
+    ASSERT_EQ(4u, s.size());
+    ASSERT_EQ(0, static_cast<uint8_t>(s[0]));
+    ASSERT_EQ(1, static_cast<uint8_t>(s[1]));
+    ASSERT_EQ(0, static_cast<uint8_t>(s[2]));
+    ASSERT_EQ(2, static_cast<uint8_t>(s[3]));
+    op.DeleteKeyValue("test", "blob");
+    ASSERT_FALSE(op.GetKeyValue(s, "test", "blob"));
   }
 
   db.Close();
@@ -1241,14 +1259,37 @@ TEST(SQLiteDatabaseWrapper, Queues)
 
     std::string s;
     ASSERT_TRUE(op.DequeueValue(s, "test", QueueOrigin_Back));  ASSERT_EQ("world", s);
+    ASSERT_EQ(1u, op.GetQueueSize("test"));
     ASSERT_TRUE(op.DequeueValue(s, "test", QueueOrigin_Back));  ASSERT_EQ("hello", s);
+    ASSERT_EQ(0u, op.GetQueueSize("test"));
     ASSERT_FALSE(op.DequeueValue(s, "test", QueueOrigin_Back));
 
     op.EnqueueValue("test", "hello");
     op.EnqueueValue("test", "world");
+    ASSERT_EQ(2u, op.GetQueueSize("test"));
 
     ASSERT_TRUE(op.DequeueValue(s, "test", QueueOrigin_Front));  ASSERT_EQ("hello", s);
     ASSERT_TRUE(op.DequeueValue(s, "test", QueueOrigin_Front));  ASSERT_EQ("world", s);
+    ASSERT_EQ(0u, op.GetQueueSize("test"));
+    ASSERT_FALSE(op.DequeueValue(s, "test", QueueOrigin_Front));
+
+    {
+      std::string blob;
+      blob.push_back(0);
+      blob.push_back(1);
+      blob.push_back(0);
+      blob.push_back(2);
+      op.EnqueueValue("test", blob); // Storing binary values
+    }
+
+    ASSERT_EQ(1u, op.GetQueueSize("test"));
+    ASSERT_TRUE(op.DequeueValue(s, "test", QueueOrigin_Front));
+    ASSERT_EQ(0u, op.GetQueueSize("test"));
+    ASSERT_EQ(4u, s.size());
+    ASSERT_EQ(0, static_cast<uint8_t>(s[0]));
+    ASSERT_EQ(1, static_cast<uint8_t>(s[1]));
+    ASSERT_EQ(0, static_cast<uint8_t>(s[2]));
+    ASSERT_EQ(2, static_cast<uint8_t>(s[3]));
     ASSERT_FALSE(op.DequeueValue(s, "test", QueueOrigin_Front));
   }
 

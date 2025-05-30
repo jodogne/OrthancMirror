@@ -1065,7 +1065,8 @@ namespace Orthanc
 
     virtual void StoreKeyValue(const std::string& storeId,
                                const std::string& key,
-                               const std::string& value) ORTHANC_OVERRIDE
+                               const void* value,
+                               size_t valueSize) ORTHANC_OVERRIDE
     {
       throw OrthancException(ErrorCode_InternalError);  // Not supported
     }
@@ -1094,7 +1095,8 @@ namespace Orthanc
     }
 
     virtual void EnqueueValue(const std::string& queueId,
-                              const std::string& value) ORTHANC_OVERRIDE
+                              const void* value,
+                              size_t valueSize) ORTHANC_OVERRIDE
     {
       throw OrthancException(ErrorCode_InternalError);  // Not supported
     }

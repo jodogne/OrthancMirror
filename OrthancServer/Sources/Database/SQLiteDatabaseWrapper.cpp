@@ -2142,12 +2142,13 @@ namespace Orthanc
 
     virtual void StoreKeyValue(const std::string& storeId,
                                const std::string& key,
-                               const std::string& value) ORTHANC_OVERRIDE
+                               const void* value,
+                               size_t valueSize) ORTHANC_OVERRIDE
     {
       SQLite::Statement s(db_, SQLITE_FROM_HERE, "INSERT OR REPLACE INTO KeyValueStores (storeId, key, value) VALUES(?, ?, ?)");
       s.BindString(0, storeId);
       s.BindString(1, key);
-      s.BindString(2, value);
+      s.BindBlob(2, value, valueSize);
       s.Run();
     }
 
@@ -2221,12 +2222,18 @@ namespace Orthanc
 
     // New in Orthanc 1.12.8
     virtual void EnqueueValue(const std::string& queueId,
-                              const std::string& value) ORTHANC_OVERRIDE
+                              const void* value,
+                              size_t valueSize) ORTHANC_OVERRIDE
     {
-      SQLite::Statement s(db_, SQLITE_FROM_HERE, 
+      if (static_cast<size_t>(static_cast<int>(valueSize)) != valueSize)
+      {
+        throw OrthancException(ErrorCode_NotEnoughMemory, "Value is too large for a SQLite database");
+      }
+
+      SQLite::Statement s(db_, SQLITE_FROM_HERE,
                           "INSERT INTO Queues (queueId, value) VALUES (?, ?)");
       s.BindString(0, queueId);
-      s.BindString(1, value);
+      s.BindBlob(1, value, valueSize);
       s.Run();
     }
 

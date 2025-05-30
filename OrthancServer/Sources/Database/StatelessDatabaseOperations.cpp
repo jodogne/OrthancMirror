@@ -3335,32 +3335,42 @@ namespace Orthanc
 
   void StatelessDatabaseOperations::StoreKeyValue(const std::string& storeId,
                                                   const std::string& key,
-                                                  const std::string& value)
+                                                  const void* value,
+                                                  size_t valueSize)
   {
+    if (value == NULL &&
+        valueSize > 0)
+    {
+      throw OrthancException(ErrorCode_NullPointer);
+    }
+
     class Operations : public IReadWriteOperations
     {
     private:
       const std::string& storeId_;
       const std::string& key_;
-      const std::string& value_;
+      const void* value_;
+      size_t valueSize_;
 
     public:
       Operations(const std::string& storeId,
                  const std::string& key,
-                 const std::string& value) :
+                 const void* value,
+                 size_t valueSize) :
         storeId_(storeId),
         key_(key),
-        value_(value)
+        value_(value),
+        valueSize_(valueSize)
       {
       }
 
       virtual void Apply(ReadWriteTransaction& transaction) ORTHANC_OVERRIDE
       {
-        transaction.StoreKeyValue(storeId_, key_, value_);
+        transaction.StoreKeyValue(storeId_, key_, value_, valueSize_);
       }
     };
 
-    Operations operations(storeId, key, value);
+    Operations operations(storeId, key, value, valueSize);
     Apply(operations);
   }
 
@@ -3422,29 +3432,39 @@ namespace Orthanc
   }
 
   void StatelessDatabaseOperations::EnqueueValue(const std::string& queueId,
-                                                 const std::string& value)
+                                                 const void* value,
+                                                 size_t valueSize)
   {
+    if (value == NULL &&
+        valueSize > 0)
+    {
+      throw OrthancException(ErrorCode_NullPointer);
+    }
+
     class Operations : public IReadWriteOperations
     {
     private:
       const std::string& queueId_;
-      const std::string& value_;
+      const void* value_;
+      size_t valueSize_;
 
     public:
       Operations(const std::string& queueId,
-                 const std::string& value) :
+                 const void* value,
+                 size_t valueSize) :
         queueId_(queueId),
-        value_(value)
+        value_(value),
+        valueSize_(valueSize)
       {
       }
 
       virtual void Apply(ReadWriteTransaction& transaction) ORTHANC_OVERRIDE
       {
-        transaction.EnqueueValue(queueId_, value_);
+        transaction.EnqueueValue(queueId_, value_, valueSize_);
       }
     };
 
-    Operations operations(queueId, value);
+    Operations operations(queueId, value, valueSize);
     Apply(operations);
   }
 

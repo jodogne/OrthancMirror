@@ -4404,16 +4404,18 @@ namespace OrthancPlugins
 
 
 #if HAS_ORTHANC_PLUGIN_KEY_VALUE_STORES == 1
-  std::string KeyValueStore::Iterator::GetValue() const
+  void KeyValueStore::Iterator::GetValue(std::string& value) const
   {
-    const char* s = OrthancPluginKeysValuesIteratorGetValue(OrthancPlugins::GetGlobalContext(), iterator_);
-    if (s == NULL)
+    OrthancPlugins::MemoryBuffer valueBuffer;
+    OrthancPluginErrorCode code = OrthancPluginKeysValuesIteratorGetValue(OrthancPlugins::GetGlobalContext(), *valueBuffer, iterator_);
+
+    if (code != OrthancPluginErrorCode_Success)
     {
-      ORTHANC_PLUGINS_THROW_EXCEPTION(InternalError);
+      ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(code);
     }
     else
     {
-      return s;
+      valueBuffer.ToString(value);
     }
   }
 #endif

@@ -207,14 +207,14 @@ INSERT INTO GlobalProperties VALUES (7, 1);  -- GlobalProperty_SQLiteHasCustomDa
 CREATE TABLE KeyValueStores(
        storeId TEXT NOT NULL,
        key TEXT NOT NULL,
-       value TEXT NOT NULL,
+       value BLOB NOT NULL,
        PRIMARY KEY(storeId, key)  -- Prevents duplicates
        );
 
 CREATE TABLE Queues (
        id INTEGER PRIMARY KEY AUTOINCREMENT,
        queueId TEXT NOT NULL,
-       value TEXT
+       value BLOB
 );
 
 CREATE INDEX QueuesIndex ON Queues (queueId, id);
