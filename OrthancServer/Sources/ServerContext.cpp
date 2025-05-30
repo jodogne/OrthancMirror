@@ -495,7 +495,27 @@ namespace Orthanc
         std::list<std::string> acceptedSopClasses;
         std::set<std::string> rejectedSopClasses;
         lock.GetConfiguration().GetListOfStringsParameter(acceptedSopClasses, "AcceptedSopClasses");
-        lock.GetConfiguration().GetSetOfStringsParameter(rejectedSopClasses, "RejectSopClasses");
+
+        static const char* const REJECTED_SOP_CLASS = "RejectedSopClasses";
+        if (lock.GetJson().isMember(REJECTED_SOP_CLASS))
+        {
+          lock.GetConfiguration().GetSetOfStringsParameter(rejectedSopClasses, REJECTED_SOP_CLASS);
+        }
+        else
+        {
+          static const char* const REJECT_SOP_CLASS = "RejectSopClasses";
+          if (lock.GetJson().isMember(REJECT_SOP_CLASS))
+          {
+            /**
+             * This is for backward compatibility. In Orthanc 1.12.6,
+             * there was a typo: "RejectedSopClasses" was spelled as
+             * "RejectSopClasses".
+             * https://discourse.orthanc-server.org/t/fix-for-config-param-rejectsopclasses-vs-rejectedsopclasses/5900
+             **/
+            lock.GetConfiguration().GetSetOfStringsParameter(rejectedSopClasses, REJECT_SOP_CLASS);
+          }
+        }
+
         SetAcceptedSopClasses(acceptedSopClasses, rejectedSopClasses);
 
         defaultDicomRetrieveMethod_ = StringToRetrieveMethod(lock.GetConfiguration().GetStringParameter("DicomDefaultRetrieveMethod", "C-MOVE"));
