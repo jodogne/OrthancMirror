@@ -3338,6 +3338,11 @@ namespace Orthanc
                                                   const void* value,
                                                   size_t valueSize)
   {
+    if (storeId.empty())
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
     if (value == NULL &&
         valueSize > 0)
     {
@@ -3377,6 +3382,11 @@ namespace Orthanc
   void StatelessDatabaseOperations::DeleteKeyValue(const std::string& storeId,
                                                    const std::string& key)
   {
+    if (storeId.empty())
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
     class Operations : public IReadWriteOperations
     {
     private:
@@ -3405,6 +3415,11 @@ namespace Orthanc
                                                 const std::string& storeId,
                                                 const std::string& key)
   {
+    if (storeId.empty())
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
     class Operations : public ReadOnlyOperationsT3<std::string&, const std::string&, const std::string& >
     {
       bool found_;
@@ -3435,6 +3450,11 @@ namespace Orthanc
                                                  const void* value,
                                                  size_t valueSize)
   {
+    if (queueId.empty())
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
     if (value == NULL &&
         valueSize > 0)
     {
@@ -3472,6 +3492,11 @@ namespace Orthanc
                                                  const std::string& queueId,
                                                  QueueOrigin origin)
   {
+    if (queueId.empty())
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
     class Operations : public IReadWriteOperations
     {
     private:
@@ -3510,6 +3535,11 @@ namespace Orthanc
 
   uint64_t StatelessDatabaseOperations::GetQueueSize(const std::string& queueId)
   {
+    if (queueId.empty())
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
     class Operations : public ReadOnlyOperationsT2<uint64_t&, const std::string& >
     {
     public:
@@ -3593,6 +3623,10 @@ namespace Orthanc
     storeId_(storeId),
     limit_(100)
   {
+    if (storeId.empty())
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
   }
 
   bool StatelessDatabaseOperations::KeysValuesIterator::Next()
