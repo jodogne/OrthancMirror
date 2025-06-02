@@ -136,6 +136,7 @@ namespace Orthanc
     ResponseContentFlags_Children             = (1 << 10),
     ResponseContentFlags_Labels               = (1 << 11),
     ResponseContentFlags_IsStable             = (1 << 12),
+    ResponseContentFlags_IsProtected          = (1 << 13),
 
     ResponseContentFlags_INTERNAL_CountResources = (1 << 30),
     
@@ -150,7 +151,8 @@ namespace Orthanc
                                         ResponseContentFlags_Parent | 
                                         ResponseContentFlags_Children | 
                                         ResponseContentFlags_Labels |
-                                        ResponseContentFlags_IsStable),  // equivalent to "Expand": true
+                                        ResponseContentFlags_IsStable |
+                                        ResponseContentFlags_IsProtected),  // equivalent to "Expand": true
     
     ResponseContentFlags_Default = (ResponseContentFlags_ID |
                                     ResponseContentFlags_Type |

@@ -22,6 +22,15 @@ Maintenance
   "RejectedSopClasses" spelling.
 
 
+REST API
+--------
+
+* If the index database provides the "HasExtendedFind" primitive, the "ResponseContent" option in
+  "/tools/find" now allows to specify "IsProtected" to retrieve the "IsProtected" status of a
+  patient resource.
+
+
+
 Version 1.12.7 (2025-04-07)
 ===========================
 
