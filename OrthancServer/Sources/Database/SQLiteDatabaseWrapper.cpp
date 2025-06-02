@@ -39,6 +39,7 @@
 #include <OrthancServerResources.h>
 
 #include <stdio.h>
+#include <boost/algorithm/string/replace.hpp>
 #include <boost/lexical_cast.hpp>
 
 
@@ -2576,6 +2577,25 @@ namespace Orthanc
   }
 
 
+  static void ExecuteEmbeddedScript(SQLite::Connection& db,
+                                    ServerResources::FileResourceId resourceId)
+  {
+    std::string script;
+    ServerResources::GetFileResource(script, resourceId);
+    db.Execute(script);
+  }
+
+
+  static void InjectEmbeddedScript(std::string& sql,
+                                   const std::string& name,
+                                   ServerResources::FileResourceId resourceId)
+  {
+    std::string script;
+    ServerResources::GetFileResource(script, resourceId);
+    boost::replace_all(sql, name, script);
+  }
+
+
   void SQLiteDatabaseWrapper::Open()
   {
     {
@@ -2614,6 +2634,11 @@ namespace Orthanc
         LOG(INFO) << "Creating the database";
         std::string query;
         ServerResources::GetFileResource(query, ServerResources::PREPARE_DATABASE);
+
+        InjectEmbeddedScript(query, "${INSTALL_TRACK_ATTACHMENTS_SIZE}", ServerResources::INSTALL_TRACK_ATTACHMENTS_SIZE);
+        InjectEmbeddedScript(query, "${INSTALL_LABELS_TABLE}", ServerResources::INSTALL_LABELS_TABLE);
+        InjectEmbeddedScript(query, "${INSTALL_KEY_VALUE_STORES_AND_QUEUES}", ServerResources::INSTALL_KEY_VALUE_STORES_AND_QUEUES);
+
         db_.Execute(query);
       }
 
@@ -2648,18 +2673,14 @@ namespace Orthanc
             tmp != "1")
         {
           LOG(INFO) << "Installing the SQLite triggers to track the size of the attachments";
-          std::string query;
-          ServerResources::GetFileResource(query, ServerResources::INSTALL_TRACK_ATTACHMENTS_SIZE);
-          db_.Execute(query);
+          ExecuteEmbeddedScript(db_, ServerResources::INSTALL_TRACK_ATTACHMENTS_SIZE);
         }
 
         // New in Orthanc 1.12.0
         if (!db_.DoesTableExist("Labels"))
         {
           LOG(INFO) << "Installing the \"Labels\" table";
-          std::string query;
-          ServerResources::GetFileResource(query, ServerResources::INSTALL_LABELS_TABLE);
-          db_.Execute(query);
+          ExecuteEmbeddedScript(db_, ServerResources::INSTALL_LABELS_TABLE);
         }
 
         // New in Orthanc 1.12.8
@@ -2667,18 +2688,14 @@ namespace Orthanc
             || tmp != "1")
         {
           LOG(INFO) << "Upgrading SQLite schema to support revision and customData";
-          std::string query;
-          ServerResources::GetFileResource(query, ServerResources::INSTALL_REVISION_AND_CUSTOM_DATA);
-          db_.Execute(query);
+          ExecuteEmbeddedScript(db_, ServerResources::INSTALL_REVISION_AND_CUSTOM_DATA);
         }
 
         // New in Orthanc 1.12.8
         if (!db_.DoesTableExist("KeyValueStores"))
         {
           LOG(INFO) << "Installing the \"KeyValueStores\" and \"Queues\" tables";
-          std::string query;
-          ServerResources::GetFileResource(query, ServerResources::INSTALL_KEY_VALUE_STORE_AND_QUEUES);
-          db_.Execute(query);
+          ExecuteEmbeddedScript(db_, ServerResources::INSTALL_KEY_VALUE_STORES_AND_QUEUES);
         }
       }
 
