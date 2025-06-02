@@ -389,16 +389,19 @@ namespace Orthanc
     boost::recursive_mutex::scoped_lock  lock_;
     IDatabaseListener&         listener_;
     SignalRemainingAncestor&   signalRemainingAncestor_;
+    bool                       hasFastTotalSize_;
 
   public:
     TransactionBase(boost::recursive_mutex& mutex,
                     SQLite::Connection& db,
                     IDatabaseListener& listener,
-                    SignalRemainingAncestor& signalRemainingAncestor) :
+                    SignalRemainingAncestor& signalRemainingAncestor,
+                    bool hasFastTotalSize) :
       UnitTestsTransaction(db),
       lock_(mutex),
       listener_(listener),
-      signalRemainingAncestor_(signalRemainingAncestor)
+      signalRemainingAncestor_(signalRemainingAncestor),
+      hasFastTotalSize_(hasFastTotalSize)
     {
     }
 
@@ -1671,23 +1674,39 @@ namespace Orthanc
 
     virtual uint64_t GetTotalCompressedSize() ORTHANC_OVERRIDE
     {
-      // Old SQL query that was used in Orthanc <= 1.5.0:
-      // SQLite::Statement s(db_, SQLITE_FROM_HERE, "SELECT SUM(compressedSize) FROM AttachedFiles");
+      std::unique_ptr<SQLite::Statement> statement;
 
-      SQLite::Statement s(db_, SQLITE_FROM_HERE, "SELECT value FROM GlobalIntegers WHERE key=0");
-      s.Run();
-      return static_cast<uint64_t>(s.ColumnInt64(0));
+      if (hasFastTotalSize_)
+      {
+        statement.reset(new SQLite::Statement(db_, SQLITE_FROM_HERE, "SELECT value FROM GlobalIntegers WHERE key=0"));
+      }
+      else
+      {
+        // Old SQL query that was used in Orthanc <= 1.5.0:
+        statement.reset(new SQLite::Statement(db_, SQLITE_FROM_HERE, "SELECT SUM(compressedSize) FROM AttachedFiles"));
+      }
+
+      statement->Run();
+      return static_cast<uint64_t>(statement->ColumnInt64(0));
     }
 
     
     virtual uint64_t GetTotalUncompressedSize() ORTHANC_OVERRIDE
     {
-      // Old SQL query that was used in Orthanc <= 1.5.0:
-      // SQLite::Statement s(db_, SQLITE_FROM_HERE, "SELECT SUM(uncompressedSize) FROM AttachedFiles");
+      std::unique_ptr<SQLite::Statement> statement;
 
-      SQLite::Statement s(db_, SQLITE_FROM_HERE, "SELECT value FROM GlobalIntegers WHERE key=1");
-      s.Run();
-      return static_cast<uint64_t>(s.ColumnInt64(0));
+      if (hasFastTotalSize_)
+      {
+        statement.reset(new SQLite::Statement(db_, SQLITE_FROM_HERE, "SELECT value FROM GlobalIntegers WHERE key=1"));
+      }
+      else
+      {
+        // Old SQL query that was used in Orthanc <= 1.5.0:
+        statement.reset(new SQLite::Statement(db_, SQLITE_FROM_HERE, "SELECT SUM(uncompressedSize) FROM AttachedFiles"));
+      }
+
+      statement->Run();
+      return static_cast<uint64_t>(statement->ColumnInt64(0));
     }
 
 
@@ -2417,8 +2436,9 @@ namespace Orthanc
 
   public:
     ReadWriteTransaction(SQLiteDatabaseWrapper& that,
-                         IDatabaseListener& listener) :
-      TransactionBase(that.mutex_, that.db_, listener, *that.signalRemainingAncestor_),
+                         IDatabaseListener& listener,
+                         bool hasFastTotalSize) :
+      TransactionBase(that.mutex_, that.db_, listener, *that.signalRemainingAncestor_, hasFastTotalSize),
       that_(that),
       transaction_(new SQLite::Transaction(that_.db_)),
       isNested_(false)
@@ -2496,8 +2516,9 @@ namespace Orthanc
     
   public:
     ReadOnlyTransaction(SQLiteDatabaseWrapper& that,
-                        IDatabaseListener& listener) :
-      TransactionBase(that.mutex_, that.db_, listener, *that.signalRemainingAncestor_),
+                        IDatabaseListener& listener,
+                        bool hasFastTotalSize) :
+      TransactionBase(that.mutex_, that.db_, listener, *that.signalRemainingAncestor_, hasFastTotalSize),
       that_(that),
       isNested_(false)
     {
@@ -2685,11 +2706,16 @@ namespace Orthanc
         }
 
         // New in Orthanc 1.12.8
-        if (!transaction->LookupGlobalProperty(tmp, GlobalProperty_SQLiteHasCustomDataAndRevision, true /* unused in SQLite */) 
+        if (!transaction->LookupGlobalProperty(tmp, GlobalProperty_SQLiteHasRevisionAndCustomData, true /* unused in SQLite */)
             || tmp != "1")
         {
           LOG(INFO) << "Upgrading SQLite schema to support revision and customData";
           ExecuteEmbeddedScript(db_, ServerResources::INSTALL_REVISION_AND_CUSTOM_DATA);
+        }
+
+        // New in Orthanc 1.12.8
+        if (!db_.DoesTableExist("DeletedFiles"))
+        {
           ExecuteEmbeddedScript(db_, ServerResources::INSTALL_DELETED_FILES);
         }
 
@@ -2770,7 +2796,8 @@ namespace Orthanc
       VoidDatabaseListener listener;
       
       {
-        std::unique_ptr<ITransaction> transaction(StartTransaction(TransactionType_ReadWrite, listener));
+        ReadWriteTransaction transaction(*this, listener, false /* GetTotalSizeIsFast necessitates the table "GlobalIntegers" */);
+        transaction.Begin();
 
         // ReconstructMaindDicomTags uses LookupAttachment that needs revision and customData.  Since we don't want to maintain a legacy version
         // of LookupAttachment, we modify the table now)
@@ -2779,13 +2806,13 @@ namespace Orthanc
         ServerResources::GetFileResource(query, ServerResources::INSTALL_REVISION_AND_CUSTOM_DATA);
         db_.Execute(query);
 
-        ServerToolbox::ReconstructMainDicomTags(*transaction, storageArea, ResourceType_Patient);
-        ServerToolbox::ReconstructMainDicomTags(*transaction, storageArea, ResourceType_Study);
-        ServerToolbox::ReconstructMainDicomTags(*transaction, storageArea, ResourceType_Series);
-        ServerToolbox::ReconstructMainDicomTags(*transaction, storageArea, ResourceType_Instance);
+        ServerToolbox::ReconstructMainDicomTags(transaction, storageArea, ResourceType_Patient);
+        ServerToolbox::ReconstructMainDicomTags(transaction, storageArea, ResourceType_Study);
+        ServerToolbox::ReconstructMainDicomTags(transaction, storageArea, ResourceType_Series);
+        ServerToolbox::ReconstructMainDicomTags(transaction, storageArea, ResourceType_Instance);
         db_.Execute("UPDATE GlobalProperties SET value=\"6\" WHERE property=" +
                     boost::lexical_cast<std::string>(GlobalProperty_DatabaseSchemaVersion) + ";");
-        transaction->Commit(0);
+        transaction.Commit(0);
       }
       
       version_ = 6;
@@ -2816,12 +2843,12 @@ namespace Orthanc
     switch (type)
     {
       case TransactionType_ReadOnly:
-        return new ReadOnlyTransaction(*this, listener);  // This is a no-op transaction in SQLite (thanks to mutex)
+        return new ReadOnlyTransaction(*this, listener, true);  // This is a no-op transaction in SQLite (thanks to mutex)
 
       case TransactionType_ReadWrite:
       {
         std::unique_ptr<ReadWriteTransaction> transaction;
-        transaction.reset(new ReadWriteTransaction(*this, listener));
+        transaction.reset(new ReadWriteTransaction(*this, listener, true));
         transaction->Begin();
         return transaction.release();
       }
