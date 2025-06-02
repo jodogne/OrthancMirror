@@ -1658,8 +1658,20 @@ void SerializeGetArguments(std::string& output, const OrthancPluginHttpRequest* 
     {
     }
 
+    const std::string& GetStoreId() const
+    {
+      return storeId_;
+    }
+
     void Store(const std::string& key,
-               const std::string& value);
+               const void* value,
+               size_t valueSize);
+
+    void Store(const std::string& key,
+               const std::string& value)
+    {
+      Store(key, value.empty() ? NULL : value.c_str(), value.size());
+    }
 
     bool GetValue(std::string& value,
                   const std::string& key);
@@ -1677,7 +1689,7 @@ void SerializeGetArguments(std::string& output, const OrthancPluginHttpRequest* 
   private:
     std::string queueId_;
 
-    bool PopInternal(std::string& value, OrthancPluginQueueOrigin origin);
+    bool DequeueInternal(std::string& value, OrthancPluginQueueOrigin origin);
 
   public:
     explicit Queue(const std::string& queueId) :
@@ -1685,16 +1697,27 @@ void SerializeGetArguments(std::string& output, const OrthancPluginHttpRequest* 
     {
     }
 
-    void PushBack(const std::string& value);
-
-    bool PopBack(std::string& value)
+    const std::string& GetQueueId() const
     {
-      return PopInternal(value, OrthancPluginQueueOrigin_Back);
+      return queueId_;
     }
 
-    bool PopFront(std::string& value)
+    void Enqueue(const void* value,
+                 size_t valueSize);
+
+    void Enqueue(const std::string& value)
     {
-      return PopInternal(value, OrthancPluginQueueOrigin_Front);
+      Enqueue(value.empty() ? NULL : value.c_str(), value.size());
+    }
+
+    bool DequeueBack(std::string& value)
+    {
+      return DequeueInternal(value, OrthancPluginQueueOrigin_Back);
+    }
+
+    bool DequeueFront(std::string& value)
+    {
+      return DequeueInternal(value, OrthancPluginQueueOrigin_Front);
     }
 
     uint64_t GetSize();
