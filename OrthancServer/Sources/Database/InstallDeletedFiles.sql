@@ -49,7 +49,3 @@ BEGIN
                            old.uncompressedMD5, old.compressedMD5
                            );
 END;
-
--- Record that this upgrade has been performed
-
-INSERT INTO GlobalProperties VALUES (7, 1);  -- GlobalProperty_SQLiteHasCustomDataAndRevision

@@ -153,6 +153,11 @@ ${INSTALL_DELETED_FILES}
 ${INSTALL_KEY_VALUE_STORES_AND_QUEUES}
 
 
+-- Track the fact that the "revision" column exists in the "Metadata" and "AttachedFiles"
+-- tables, and that the "customData" column exists in the "AttachedFiles" table
+INSERT INTO GlobalProperties VALUES (7, 1);  -- GlobalProperty_SQLiteHasCustomDataAndRevision
+
+
 -- Set the version of the database schema
 -- The "1" corresponds to the "GlobalProperty_DatabaseSchemaVersion" enumeration
 INSERT INTO GlobalProperties VALUES (1, "6");

@@ -28,3 +28,7 @@ ALTER TABLE AttachedFiles ADD COLUMN revision INTEGER;
 
 -- Add new column for customData
 ALTER TABLE AttachedFiles ADD COLUMN customData TEXT;
+
+-- Record that this upgrade has been performed
+
+INSERT INTO GlobalProperties VALUES (7, 1);  -- GlobalProperty_SQLiteHasCustomDataAndRevision
