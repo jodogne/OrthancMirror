@@ -41,7 +41,6 @@
 #include <stdio.h>
 #include <boost/lexical_cast.hpp>
 
-static std::map<std::string, std::string> filesToDeleteCustomData;
 
 namespace Orthanc
 {  
@@ -2740,7 +2739,7 @@ namespace Orthanc
 
         // ReconstructMaindDicomTags uses LookupAttachment that needs revision and customData.  Since we don't want to maintain a legacy version
         // of LookupAttachment, we modify the table now)
-        LOG(INFO) << "First Upgrading SQLite schema to support revision and customData in order to be able to reconstruct main dicom tags";
+        LOG(INFO) << "First upgrading SQLite schema to support revision and customData to be able to reconstruct main DICOM tags";
         std::string query;
         ServerResources::GetFileResource(query, ServerResources::INSTALL_REVISION_AND_CUSTOM_DATA);
         db_.Execute(query);
