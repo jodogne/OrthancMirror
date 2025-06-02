@@ -9910,7 +9910,7 @@ TODO_ATTACH_CUSTOM_DATA TODO TODO
     const char*                   storeId;
     const char*                   key;
     const void*                   value;
-    uint64_t                      valueSize;
+    uint32_t                      valueSize;
   } _OrthancPluginStoreKeyValue;
 
   /**
@@ -9928,7 +9928,7 @@ TODO_ATTACH_CUSTOM_DATA TODO TODO
     const char*                   storeId,  /* in */
     const char*                   key,      /* in */
     const void*                   value,    /* in */
-    uint64_t                      valueSize /* in */)
+    uint32_t                      valueSize /* in */)
   {
     _OrthancPluginStoreKeyValue params;
     params.storeId = storeId;

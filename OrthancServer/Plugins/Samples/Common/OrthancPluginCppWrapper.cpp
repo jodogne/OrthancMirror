@@ -4423,10 +4423,16 @@ namespace OrthancPlugins
 
 #if HAS_ORTHANC_PLUGIN_KEY_VALUE_STORES == 1
   void KeyValueStore::Store(const std::string& key,
-                            const std::string& value)
+                            const void* value,
+                            size_t valueSize)
   {
+    if (static_cast<size_t>(static_cast<uint32_t>(valueSize)) != valueSize)
+    {
+      ORTHANC_PLUGINS_THROW_EXCEPTION(NotEnoughMemory);
+    }
+
     OrthancPluginErrorCode code = OrthancPluginStoreKeyValue(OrthancPlugins::GetGlobalContext(), storeId_.c_str(),
-                                                             key.c_str(), value.c_str(), value.size());
+                                                             key.c_str(), value, static_cast<uint32_t>(valueSize));
     if (code != OrthancPluginErrorCode_Success)
     {
       ORTHANC_PLUGINS_THROW_PLUGIN_ERROR_CODE(code);
@@ -4484,10 +4490,16 @@ namespace OrthancPlugins
 
 
 #if HAS_ORTHANC_PLUGIN_QUEUES == 1
-  void Queue::PushBack(const std::string& value)
+  void Queue::Enqueue(const void* value,
+                      size_t valueSize)
   {
+    if (static_cast<size_t>(static_cast<uint32_t>(valueSize)) != valueSize)
+    {
+      ORTHANC_PLUGINS_THROW_EXCEPTION(NotEnoughMemory);
+    }
+
     OrthancPluginErrorCode code = OrthancPluginEnqueueValue(OrthancPlugins::GetGlobalContext(),
-                                                            queueId_.c_str(), value.c_str(), value.size());
+                                                            queueId_.c_str(), value, static_cast<uint32_t>(valueSize));
 
     if (code != OrthancPluginErrorCode_Success)
     {
@@ -4498,8 +4510,8 @@ namespace OrthancPlugins
 
 
 #if HAS_ORTHANC_PLUGIN_QUEUES == 1
-  bool Queue::PopInternal(std::string& value,
-                          OrthancPluginQueueOrigin origin)
+  bool Queue::DequeueInternal(std::string& value,
+                              OrthancPluginQueueOrigin origin)
   {
     uint8_t found = false;
     OrthancPlugins::MemoryBuffer valueBuffer;
