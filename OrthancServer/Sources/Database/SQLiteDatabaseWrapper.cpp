@@ -2176,8 +2176,14 @@ namespace Orthanc
       }
       else
       {
-        value = s.ColumnString(0);
-        return true;
+        if (!s.ColumnBlobAsString(0, &value))
+        {
+          throw OrthancException(ErrorCode_NotEnoughMemory);
+        }
+        else
+        {
+          return true;
+        }
       }    
     }
 
@@ -2213,8 +2219,14 @@ namespace Orthanc
 
       while (statement->Step())
       {
+        std::string value;
+        if (!statement->ColumnBlobAsString(1, &value))
+        {
+          throw OrthancException(ErrorCode_NotEnoughMemory);
+        }
+
         keys.push_back(statement->ColumnString(0));
-        values.push_back(statement->ColumnString(1));
+        values.push_back(value);
       }
     }
 
@@ -2267,7 +2279,11 @@ namespace Orthanc
       else
       {
         rowId = s->ColumnInt64(0);
-        value = s->ColumnString(1);
+
+        if (!s->ColumnBlobAsString(1, &value))
+        {
+          throw OrthancException(ErrorCode_NotEnoughMemory);
+        }
 
         SQLite::Statement s2(db_, SQLITE_FROM_HERE,
                             "DELETE FROM Queues WHERE id = ?");
