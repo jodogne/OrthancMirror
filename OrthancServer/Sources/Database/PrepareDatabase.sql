@@ -145,34 +145,13 @@ ${INSTALL_TRACK_ATTACHMENTS_SIZE}
 ${INSTALL_LABELS_TABLE}
 
 
--- new in Orthanc 1.12.8 ------------------------- equivalent to InstallRevisionAndCustomData.sql
-
-CREATE TABLE DeletedFiles(
-       uuid TEXT NOT NULL,        -- 0
-       customData TEXT            -- 1
-);
-
-CREATE TRIGGER AttachedFileDeleted
-AFTER DELETE ON AttachedFiles
-BEGIN
-  INSERT INTO DeletedFiles VALUES(old.uuid, old.customData);
-  SELECT SignalFileDeleted(old.uuid, old.fileType, old.uncompressedSize, 
-                           old.compressionType, old.compressedSize,
-                           old.uncompressedMD5, old.compressedMD5
-                           );
-END;
-
--- Record that this upgrade has been performed
-
-INSERT INTO GlobalProperties VALUES (7, 1);  -- GlobalProperty_SQLiteHasCustomDataAndRevision
-
----------------------------------------------------
+-- new in Orthanc 1.12.8 ------------------------- equivalent to InstallDeletedFiles.sql
+${INSTALL_DELETED_FILES}
 
 
 -- new in Orthanc 1.12.8 ------------------------- equivalent to InstallKeyValueStoresAndQueues.sql
 ${INSTALL_KEY_VALUE_STORES_AND_QUEUES}
 
----------------------------------------------------
 
 -- Set the version of the database schema
 -- The "1" corresponds to the "GlobalProperty_DatabaseSchemaVersion" enumeration

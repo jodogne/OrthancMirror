@@ -2637,6 +2637,7 @@ namespace Orthanc
 
         InjectEmbeddedScript(query, "${INSTALL_TRACK_ATTACHMENTS_SIZE}", ServerResources::INSTALL_TRACK_ATTACHMENTS_SIZE);
         InjectEmbeddedScript(query, "${INSTALL_LABELS_TABLE}", ServerResources::INSTALL_LABELS_TABLE);
+        InjectEmbeddedScript(query, "${INSTALL_DELETED_FILES}", ServerResources::INSTALL_DELETED_FILES);
         InjectEmbeddedScript(query, "${INSTALL_KEY_VALUE_STORES_AND_QUEUES}", ServerResources::INSTALL_KEY_VALUE_STORES_AND_QUEUES);
 
         db_.Execute(query);
@@ -2689,6 +2690,7 @@ namespace Orthanc
         {
           LOG(INFO) << "Upgrading SQLite schema to support revision and customData";
           ExecuteEmbeddedScript(db_, ServerResources::INSTALL_REVISION_AND_CUSTOM_DATA);
+          ExecuteEmbeddedScript(db_, ServerResources::INSTALL_DELETED_FILES);
         }
 
         // New in Orthanc 1.12.8
