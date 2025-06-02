@@ -138,45 +138,11 @@ END;
 
 
 -- new in Orthanc 1.5.1 -------------------------- equivalent to InstallTrackAttachmentsSize.sql
-
-CREATE TABLE GlobalIntegers(
-       key INTEGER PRIMARY KEY,
-       value INTEGER);
-
-INSERT INTO GlobalProperties VALUES (6, 1);  -- GlobalProperty_GetTotalSizeIsFast
-
-INSERT INTO GlobalIntegers SELECT 0, IFNULL(SUM(compressedSize), 0) FROM AttachedFiles;
-INSERT INTO GlobalIntegers SELECT 1, IFNULL(SUM(uncompressedSize), 0) FROM AttachedFiles;
-
-CREATE TRIGGER AttachedFileIncrementSize
-AFTER INSERT ON AttachedFiles
-BEGIN
-  UPDATE GlobalIntegers SET value = value + new.compressedSize WHERE key = 0;
-  UPDATE GlobalIntegers SET value = value + new.uncompressedSize WHERE key = 1;
-END;
-
-CREATE TRIGGER AttachedFileDecrementSize
-AFTER DELETE ON AttachedFiles
-BEGIN
-  UPDATE GlobalIntegers SET value = value - old.compressedSize WHERE key = 0;
-  UPDATE GlobalIntegers SET value = value - old.uncompressedSize WHERE key = 1;
-END;
-
---------------------------------------------------
+${INSTALL_TRACK_ATTACHMENTS_SIZE}
 
 
 -- new in Orthanc 1.12.0 ------------------------- equivalent to InstallLabelsTable.sql
-
-CREATE TABLE Labels(
-       id INTEGER REFERENCES Resources(internalId) ON DELETE CASCADE,
-       label TEXT NOT NULL,
-       PRIMARY KEY(id, label)  -- Prevents duplicates
-       );
-
-CREATE INDEX LabelsIndex1 ON Labels(id);
-CREATE INDEX LabelsIndex2 ON Labels(label);  -- This index allows efficient lookups
-
---------------------------------------------------
+${INSTALL_LABELS_TABLE}
 
 
 -- new in Orthanc 1.12.8 ------------------------- equivalent to InstallRevisionAndCustomData.sql
@@ -204,20 +170,7 @@ INSERT INTO GlobalProperties VALUES (7, 1);  -- GlobalProperty_SQLiteHasCustomDa
 
 
 -- new in Orthanc 1.12.8 ------------------------- equivalent to InstallKeyValueStoresAndQueues.sql
-CREATE TABLE KeyValueStores(
-       storeId TEXT NOT NULL,
-       key TEXT NOT NULL,
-       value BLOB NOT NULL,
-       PRIMARY KEY(storeId, key)  -- Prevents duplicates
-       );
-
-CREATE TABLE Queues (
-       id INTEGER PRIMARY KEY AUTOINCREMENT,
-       queueId TEXT NOT NULL,
-       value BLOB
-);
-
-CREATE INDEX QueuesIndex ON Queues (queueId, id);
+${INSTALL_KEY_VALUE_STORES_AND_QUEUES}
 
 ---------------------------------------------------
 
