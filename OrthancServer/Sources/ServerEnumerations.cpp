@@ -64,6 +64,8 @@ namespace Orthanc
     dictMetadataType_.Add(MetadataType_MainDicomTagsSignature, "MainDicomTagsSignature");
     dictMetadataType_.Add(MetadataType_MainDicomSequences, "MainDicomSequences");
     dictMetadataType_.Add(MetadataType_Instance_PixelDataVR, "PixelDataVR");
+    dictMetadataType_.Add(MetadataType_Patient_IsProtected, "IsProtected");
+    dictMetadataType_.Add(MetadataType_Patient_UnprotectDate, "UnprotectDate");
 
     dictContentType_.Add(FileContentType_Dicom, "dicom");
     dictContentType_.Add(FileContentType_DicomAsJson, "dicom-as-json");

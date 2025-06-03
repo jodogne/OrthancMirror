@@ -209,6 +209,8 @@ namespace Orthanc
     MetadataType_MainDicomTagsSignature = 15,    // New in Orthanc 1.11.0
     MetadataType_MainDicomSequences = 16,        // New in Orthanc 1.11.1
     MetadataType_Instance_PixelDataVR = 17,      // New in Orthanc 1.12.1
+    MetadataType_Patient_IsProtected = 18,       // New in Orthanc 1.12.99  (used only by DB plugins)
+    MetadataType_Patient_UnprotectDate = 19,     // New in Orthanc 1.12.99  (used only by DB plugins)
     
     // Make sure that the value "65535" can be stored into this enumeration
     MetadataType_StartUser = 1024,
