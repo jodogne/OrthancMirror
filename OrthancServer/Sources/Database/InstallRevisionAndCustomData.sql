@@ -27,7 +27,7 @@ ALTER TABLE Metadata ADD COLUMN revision INTEGER;
 ALTER TABLE AttachedFiles ADD COLUMN revision INTEGER;
 
 -- Add new column for customData
-ALTER TABLE AttachedFiles ADD COLUMN customData TEXT;
+ALTER TABLE AttachedFiles ADD COLUMN customData BLOB;
 
 -- Record that this upgrade has been performed
 

@@ -55,7 +55,7 @@ message FileInfo {
   int32   compression_type = 5;  // opaque "CompressionType" in Orthanc
   uint64  compressed_size = 6;
   string  compressed_hash = 7;
-  string  custom_data = 8;       // New in v 1.12.8
+  bytes   custom_data = 8;       // New in 1.12.8
 }
 
 enum ResourceType {
@@ -1090,7 +1090,7 @@ message GetAttachment {
 message UpdateAttachmentCustomData {
   message Request {
     string uuid = 1;
-    string custom_data = 2;
+    bytes custom_data = 2;
   }
 
   message Response {

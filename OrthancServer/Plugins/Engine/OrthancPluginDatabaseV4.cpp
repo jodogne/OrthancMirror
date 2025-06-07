@@ -1055,13 +1055,14 @@ namespace Orthanc
     }
 
     virtual void UpdateAttachmentCustomData(const std::string& attachmentUuid,
-                                            const std::string& customData) ORTHANC_OVERRIDE
+                                            const void* customData,
+                                            size_t customDataSize) ORTHANC_OVERRIDE
     {
       if (database_.GetDatabaseCapabilities().HasAttachmentCustomDataSupport())
       {
         DatabasePluginMessages::TransactionRequest request;
         request.mutable_update_attachment_custom_data()->set_uuid(attachmentUuid);
-        request.mutable_update_attachment_custom_data()->set_custom_data(customData);
+        request.mutable_update_attachment_custom_data()->set_custom_data(customData, customDataSize);
 
         DatabasePluginMessages::TransactionResponse response;
         ExecuteTransaction(response, DatabasePluginMessages::OPERATION_UPDATE_ATTACHMENT_CUSTOM_DATA, request);

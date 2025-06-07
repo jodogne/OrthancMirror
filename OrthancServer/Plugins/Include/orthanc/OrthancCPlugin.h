@@ -1536,7 +1536,7 @@ extern "C"
     OrthancPluginContentType type,
     uint64_t rangeStart,
     const void* customData,
-    uint64_t customDataSize);
+    uint32_t customDataSize);
 
 
 
@@ -1557,7 +1557,7 @@ extern "C"
     const char* uuid,
     OrthancPluginContentType type,
     const void* customData,
-    uint64_t customDataSize);
+    uint32_t customDataSize);
 
 
   /**
@@ -9804,7 +9804,7 @@ extern "C"
     uint64_t    compressedSize;
     const char* compressedHash;
     const void* customData;
-    uint64_t    customDataSize;
+    uint32_t    customDataSize;
   } OrthancPluginAttachment2;
 
 
@@ -9880,8 +9880,8 @@ TODO_ATTACH_CUSTOM_DATA TODO TODO
   typedef struct
   {
     const char*                   attachmentUuid; /* in */
-    const char*                   customData;     /* in */
-    int64_t                       customDataSize; /* in */
+    const void*                   customData;     /* in */
+    uint32_t                      customDataSize; /* in */
   } _OrthancPluginUpdateAttachmentCustomData;
 
 
@@ -9894,8 +9894,8 @@ TODO_ATTACH_CUSTOM_DATA TODO TODO
   ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginUpdateAttachmentCustomData(
     OrthancPluginContext*         context,
     const char*                   attachmentUuid, /* in */
-    const char*                   customData,     /* in */
-    int64_t                       customDataSize  /* in */)
+    const void*                   customData,     /* in */
+    uint32_t                      customDataSize  /* in */)
   {
     _OrthancPluginUpdateAttachmentCustomData params;
     params.attachmentUuid = attachmentUuid;

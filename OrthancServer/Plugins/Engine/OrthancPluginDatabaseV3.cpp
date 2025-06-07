@@ -1119,7 +1119,8 @@ namespace Orthanc
     }
 
     virtual void UpdateAttachmentCustomData(const std::string& attachmentUuid,
-                                            const std::string& customData) ORTHANC_OVERRIDE
+                                            const void* customData,
+                                            size_t customDataSize) ORTHANC_OVERRIDE
     {
       throw OrthancException(ErrorCode_NotImplemented);  // Not supported
     }
