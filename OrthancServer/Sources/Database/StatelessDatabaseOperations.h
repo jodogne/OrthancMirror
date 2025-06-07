@@ -487,9 +487,10 @@ namespace Orthanc
       }
 
       void UpdateAttachmentCustomData(const std::string& attachmentUuid,
-                                      const std::string& customData)
+                                      const void* customData,
+                                      size_t customDataSize)
       {
-        return transaction_.UpdateAttachmentCustomData(attachmentUuid, customData);
+        return transaction_.UpdateAttachmentCustomData(attachmentUuid, customData, customDataSize);
       }
 
     };
@@ -592,7 +593,8 @@ namespace Orthanc
                        const std::string& attachmentUuid);
 
     void UpdateAttachmentCustomData(const std::string& attachmentUuid,
-                                    const std::string& customData);
+                                    const void* customData,
+                                    size_t customDataSize);
 
     bool LookupAttachment(FileInfo& attachment,
                           int64_t& revision,

@@ -1318,3 +1318,42 @@ TEST(SQLiteDatabaseWrapper, Queues)
 
   db.Close();
 }
+
+
+TEST_F(DatabaseWrapperTest, BinaryCustomData)
+{
+  int64_t patient = transaction_->CreateResource("Patient", ResourceType_Patient);
+
+  {
+    FileInfo info("hello", FileContentType_Dicom, 10, "md5");
+
+    {
+      std::string blob;
+      blob.push_back(0);
+      blob.push_back(1);
+      blob.push_back(0);
+      blob.push_back(2);
+      info.SetCustomData(blob);
+    }
+
+    transaction_->AddAttachment(patient, info, 43);
+  }
+
+  {
+    FileInfo info;
+    int64_t revision;
+    ASSERT_TRUE(transaction_->LookupAttachment(info, revision, patient, FileContentType_Dicom));
+    ASSERT_EQ(43u, revision);
+    ASSERT_EQ("hello", info.GetUuid());
+    ASSERT_EQ(CompressionType_None, info.GetCompressionType());
+    ASSERT_EQ(10u, info.GetCompressedSize());
+    ASSERT_EQ("md5", info.GetCompressedMD5());
+    ASSERT_EQ(4u, info.GetCustomData().size());
+    ASSERT_EQ(0, static_cast<uint8_t>(info.GetCustomData()[0]));
+    ASSERT_EQ(1, static_cast<uint8_t>(info.GetCustomData()[1]));
+    ASSERT_EQ(0, static_cast<uint8_t>(info.GetCustomData()[2]));
+    ASSERT_EQ(2, static_cast<uint8_t>(info.GetCustomData()[3]));
+  }
+
+  transaction_->DeleteResource(patient);
+}

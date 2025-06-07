@@ -249,6 +249,11 @@ namespace Orthanc
       }
     }
 
+    void Statement::BindBlob(int col, const std::string& value)
+    {
+      BindBlob(col, value.empty() ? NULL : value.c_str(), value.size());
+    }
+
 
     int Statement::ColumnCount() const 
     {

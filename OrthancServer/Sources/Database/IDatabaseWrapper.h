@@ -291,7 +291,8 @@ namespace Orthanc
                                  const std::string& attachmentUuid) = 0;
 
       virtual void UpdateAttachmentCustomData(const std::string& attachmentUuid,
-                                              const std::string& customData) = 0;
+                                              const void* customData,
+                                              size_t customDataSize) = 0;
 
       /**
        * If "shared" is "true", the property is shared by all the

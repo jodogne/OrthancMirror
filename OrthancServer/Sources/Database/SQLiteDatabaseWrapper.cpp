@@ -427,7 +427,7 @@ namespace Orthanc
       s.BindString(6, attachment.GetUncompressedMD5());
       s.BindString(7, attachment.GetCompressedMD5());
       s.BindInt(8, revision);
-      s.BindString(9, attachment.GetCustomData());
+      s.BindBlob(9, attachment.GetCustomData());
       s.Run();
     }
 
@@ -1102,7 +1102,13 @@ namespace Orthanc
                           s.ColumnInt64(C11_BIG_INT_2), s.ColumnString(C4_STRING_2),
                           static_cast<CompressionType>(s.ColumnInt(C8_INT_2)),
                           s.ColumnInt64(C10_BIG_INT_1), s.ColumnString(C5_STRING_3));
-            file.SetCustomData(s.ColumnString(C6_STRING_4));  // TODO_ATTACH_CUSTOM_DATA TODO TODO
+
+            std::string customData;
+            if (s.ColumnBlobAsString(C6_STRING_4, &customData))
+            {
+              file.SwapCustomData(customData);
+            }
+
             res.AddAttachment(file, s.ColumnInt(C9_INT_3));
           }; break;
 
@@ -1262,7 +1268,13 @@ namespace Orthanc
                           s.ColumnInt64(C11_BIG_INT_2), s.ColumnString(C4_STRING_2),
                           static_cast<CompressionType>(s.ColumnInt(C8_INT_2)),
                           s.ColumnInt64(C10_BIG_INT_1), s.ColumnString(C5_STRING_3));
-            file.SetCustomData(s.ColumnString(C6_STRING_4));  // TODO_ATTACH_CUSTOM_DATA TODO TODO
+
+            std::string customData;
+            if (s.ColumnBlobAsString(C6_STRING_4, &customData))
+            {
+              file.SwapCustomData(customData);
+            }
+
             res.AddOneInstanceAttachment(file);
           }; break;
 
@@ -1384,7 +1396,10 @@ namespace Orthanc
     
       if (s.Step())
       { 
-        customData = s.ColumnString(0);
+        if (!s.ColumnBlobAsString(C6_STRING_4, &customData))
+        {
+          customData.clear();
+        }
       }
       else
       {
@@ -1799,7 +1814,13 @@ namespace Orthanc
                               static_cast<CompressionType>(s.ColumnInt(2)),
                               s.ColumnInt64(3),
                               s.ColumnString(5));
-        attachment.SetCustomData(s.ColumnString(7));  // TODO_ATTACH_CUSTOM_DATA TODO TODO
+
+        std::string customData;
+        if (s.ColumnBlobAsString(7, &customData))
+        {
+          attachment.SwapCustomData(customData);
+        }
+
         revision = s.ColumnInt(6);
         return true;
       }
@@ -1827,18 +1848,25 @@ namespace Orthanc
                               static_cast<CompressionType>(s.ColumnInt(2)),
                               s.ColumnInt64(3),
                               s.ColumnString(5));
-        attachment.SetCustomData(s.ColumnString(7));  // TODO_ATTACH_CUSTOM_DATA TODO TODO
+
+        std::string customData;
+        if (s.ColumnBlobAsString(7, &customData))
+        {
+          attachment.SwapCustomData(customData);
+        }
+
         revision = s.ColumnInt(6);
         return true;
       }
     }
 
     virtual void UpdateAttachmentCustomData(const std::string& attachmentUuid,
-                                            const std::string& customData) ORTHANC_OVERRIDE
+                                            const void* customData,
+                                            size_t customDataSize) ORTHANC_OVERRIDE
     {
       SQLite::Statement s(db_, SQLITE_FROM_HERE, 
                           "UPDATE AttachedFiles SET customData=? WHERE uuid=?");
-      s.BindString(0, customData);
+      s.BindBlob(0, customData, customDataSize);
       s.BindString(1, attachmentUuid);
       s.Run();
     }
@@ -2376,7 +2404,7 @@ namespace Orthanc
                       static_cast<CompressionType>(context.GetIntValue(3)),
                       static_cast<uint64_t>(context.GetInt64Value(4)),
                       compressedMD5);
-        info.SetCustomData(customData);
+        info.SwapCustomData(customData);
 
         sqlite_.activeTransaction_->GetListener().SignalAttachmentDeleted(info);
         sqlite_.activeTransaction_->DeleteDeletedFile(id);

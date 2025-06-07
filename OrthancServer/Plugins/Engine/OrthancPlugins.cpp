@@ -4701,10 +4701,7 @@ namespace Orthanc
   void OrthancPlugins::ApplyUpdateAttachmentCustomData(const _OrthancPluginUpdateAttachmentCustomData& parameters)
   {
     PImpl::ServerContextReference lock(*pimpl_);
-    FileInfo fileInfo;
-    std::string customData(parameters.customData, parameters.customDataSize);
-    
-    lock.GetContext().GetIndex().UpdateAttachmentCustomData(parameters.attachmentUuid, customData);
+    lock.GetContext().GetIndex().UpdateAttachmentCustomData(parameters.attachmentUuid, parameters.customData, parameters.customDataSize);
   }
 
   bool OrthancPlugins::HasKeyValueStoresSupport()

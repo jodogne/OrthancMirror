@@ -3590,29 +3590,33 @@ namespace Orthanc
   }
 
   void StatelessDatabaseOperations::UpdateAttachmentCustomData(const std::string& attachmentUuid,
-                                                               const std::string& customData)
+                                                               const void* customData,
+                                                               size_t customDataSize)
   {
     class Operations : public IReadWriteOperations
     {
     private:
       const std::string& attachmentUuid_;
-      const std::string& customData_;
+      const void*        customData_;
+      size_t             customDataSize_;
 
     public:
       Operations(const std::string& attachmentUuid,
-                 const std::string& customData) :
+                 const void* customData,
+                 size_t customDataSize) :
         attachmentUuid_(attachmentUuid),
-        customData_(customData)
+        customData_(customData),
+        customDataSize_(customDataSize)
       {
       }
 
       virtual void Apply(ReadWriteTransaction& transaction) ORTHANC_OVERRIDE
       {
-        transaction.UpdateAttachmentCustomData(attachmentUuid_, customData_);
+        transaction.UpdateAttachmentCustomData(attachmentUuid_, customData_, customDataSize_);
       }
     };
 
-    Operations operations(attachmentUuid, customData);
+    Operations operations(attachmentUuid, customData, customDataSize);
     Apply(operations);
   }
 

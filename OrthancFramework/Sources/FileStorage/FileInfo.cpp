@@ -197,6 +197,19 @@ namespace Orthanc
   }
 
 
+  void FileInfo::SwapCustomData(std::string& data)
+  {
+    if (valid_)
+    {
+      customData_.swap(data);
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+  }
+
+
   const std::string& FileInfo::GetCustomData() const
   {
     if (valid_)

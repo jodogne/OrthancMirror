@@ -87,6 +87,8 @@ namespace Orthanc
 
     void SetCustomData(const std::string& data);
 
+    void SwapCustomData(std::string& data);
+
     const std::string& GetCustomData() const;
   };
 }
