@@ -1101,7 +1101,8 @@ namespace Orthanc
             FileInfo file(s.ColumnString(C3_STRING_1), static_cast<FileContentType>(s.ColumnInt(C7_INT_1)),
                           s.ColumnInt64(C11_BIG_INT_2), s.ColumnString(C4_STRING_2),
                           static_cast<CompressionType>(s.ColumnInt(C8_INT_2)),
-                          s.ColumnInt64(C10_BIG_INT_1), s.ColumnString(C5_STRING_3), s.ColumnString(C6_STRING_4));
+                          s.ColumnInt64(C10_BIG_INT_1), s.ColumnString(C5_STRING_3));
+            file.SetCustomData(s.ColumnString(C6_STRING_4));  // TODO_ATTACH_CUSTOM_DATA TODO TODO
             res.AddAttachment(file, s.ColumnInt(C9_INT_3));
           }; break;
 
@@ -1260,7 +1261,8 @@ namespace Orthanc
             FileInfo file(s.ColumnString(C3_STRING_1), static_cast<FileContentType>(s.ColumnInt(C7_INT_1)),
                           s.ColumnInt64(C11_BIG_INT_2), s.ColumnString(C4_STRING_2),
                           static_cast<CompressionType>(s.ColumnInt(C8_INT_2)),
-                          s.ColumnInt64(C10_BIG_INT_1), s.ColumnString(C5_STRING_3), s.ColumnString(C6_STRING_4));
+                          s.ColumnInt64(C10_BIG_INT_1), s.ColumnString(C5_STRING_3));
+            file.SetCustomData(s.ColumnString(C6_STRING_4));  // TODO_ATTACH_CUSTOM_DATA TODO TODO
             res.AddOneInstanceAttachment(file);
           }; break;
 
@@ -1796,8 +1798,8 @@ namespace Orthanc
                               s.ColumnString(4),
                               static_cast<CompressionType>(s.ColumnInt(2)),
                               s.ColumnInt64(3),
-                              s.ColumnString(5),
-                              s.ColumnString(7));
+                              s.ColumnString(5));
+        attachment.SetCustomData(s.ColumnString(7));  // TODO_ATTACH_CUSTOM_DATA TODO TODO
         revision = s.ColumnInt(6);
         return true;
       }
@@ -1824,8 +1826,8 @@ namespace Orthanc
                               s.ColumnString(4),
                               static_cast<CompressionType>(s.ColumnInt(2)),
                               s.ColumnInt64(3),
-                              s.ColumnString(5),
-                              s.ColumnString(7));
+                              s.ColumnString(5));
+        attachment.SetCustomData(s.ColumnString(7));  // TODO_ATTACH_CUSTOM_DATA TODO TODO
         revision = s.ColumnInt(6);
         return true;
       }
@@ -2373,8 +2375,8 @@ namespace Orthanc
                       uncompressedMD5,
                       static_cast<CompressionType>(context.GetIntValue(3)),
                       static_cast<uint64_t>(context.GetInt64Value(4)),
-                      compressedMD5,
-                      customData);
+                      compressedMD5);
+        info.SetCustomData(customData);
 
         sqlite_.activeTransaction_->GetListener().SignalAttachmentDeleted(info);
         sqlite_.activeTransaction_->DeleteDeletedFile(id);

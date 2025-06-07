@@ -364,10 +364,17 @@ TEST_F(DatabaseWrapperTest, Simple)
   transaction_->GetAllMetadata(md, a[4]);
   ASSERT_EQ(0u, md.size());
 
-  transaction_->AddAttachment(a[4], FileInfo("my json file", FileContentType_DicomAsJson, 42, "md5", 
-                                             CompressionType_ZlibWithSize, 21, "compressedMD5", "customData"), 42);
-  transaction_->AddAttachment(a[4], FileInfo("my dicom file", FileContentType_Dicom, 42, "md5", "customData"), 43);
-  transaction_->AddAttachment(a[6], FileInfo("world", FileContentType_Dicom, 44, "md5", "customData"), 44);
+  FileInfo attachment1("my json file", FileContentType_DicomAsJson, 42, "md5",
+                       CompressionType_ZlibWithSize, 21, "compressedMD5");
+  attachment1.SetCustomData("hello");
+  transaction_->AddAttachment(a[4], attachment1, 42);
+
+  FileInfo attachment2("my dicom file", FileContentType_Dicom, 43, "md5_2");
+  transaction_->AddAttachment(a[4], attachment2, 43);
+
+  FileInfo attachment3("world", FileContentType_Dicom, 44, "md5_3");
+  attachment3.SetCustomData("world");
+  transaction_->AddAttachment(a[6], attachment3, 44);
   
   transaction_->SetMetadata(a[4], MetadataType_RemoteAet, "PINNACLE", 42);
   
@@ -394,8 +401,8 @@ TEST_F(DatabaseWrapperTest, Simple)
   ASSERT_EQ("PINNACLE", md2[MetadataType_RemoteAet]);
 
 
-  ASSERT_EQ(21u + 42u + 44u, transaction_->GetTotalCompressedSize());
-  ASSERT_EQ(42u + 42u + 44u, transaction_->GetTotalUncompressedSize());
+  ASSERT_EQ(21u + 43u + 44u, transaction_->GetTotalCompressedSize());
+  ASSERT_EQ(42u + 43u + 44u, transaction_->GetTotalUncompressedSize());
 
   transaction_->SetMainDicomTag(a[3], DicomTag(0x0010, 0x0010), "PatientName");
 
@@ -432,15 +439,27 @@ TEST_F(DatabaseWrapperTest, Simple)
   ASSERT_EQ("compressedMD5", att.GetCompressedMD5());
   ASSERT_EQ(42u, att.GetUncompressedSize());
   ASSERT_EQ(CompressionType_ZlibWithSize, att.GetCompressionType());
+  ASSERT_EQ("hello", att.GetCustomData());
+
+  ASSERT_TRUE(transaction_->LookupAttachment(att, revision, a[4], FileContentType_Dicom));
+  ASSERT_EQ(43, revision);
+  ASSERT_EQ("my dicom file", att.GetUuid());
+  ASSERT_EQ(43u, att.GetCompressedSize());
+  ASSERT_EQ("md5_2", att.GetUncompressedMD5());
+  ASSERT_EQ("md5_2", att.GetCompressedMD5());
+  ASSERT_EQ(43u, att.GetUncompressedSize());
+  ASSERT_EQ(CompressionType_None, att.GetCompressionType());
+  ASSERT_TRUE(att.GetCustomData().empty());
 
   ASSERT_TRUE(transaction_->LookupAttachment(att, revision, a[6], FileContentType_Dicom));
   ASSERT_EQ(44, revision);
   ASSERT_EQ("world", att.GetUuid());
   ASSERT_EQ(44u, att.GetCompressedSize());
-  ASSERT_EQ("md5", att.GetUncompressedMD5());
-  ASSERT_EQ("md5", att.GetCompressedMD5());
+  ASSERT_EQ("md5_3", att.GetUncompressedMD5());
+  ASSERT_EQ("md5_3", att.GetCompressedMD5());
   ASSERT_EQ(44u, att.GetUncompressedSize());
   ASSERT_EQ(CompressionType_None, att.GetCompressionType());
+  ASSERT_EQ("world", att.GetCustomData());
 
   ASSERT_EQ(0u, listener_->deletedFiles_.size());
   ASSERT_EQ(0u, listener_->deletedResources_.size());
@@ -546,7 +565,7 @@ TEST_F(DatabaseWrapperTest, PatientRecycling)
     std::string p = "Patient " + boost::lexical_cast<std::string>(i);
     patients.push_back(transaction_->CreateResource(p, ResourceType_Patient));
     transaction_->AddAttachment(patients[i], FileInfo(p, FileContentType_Dicom, i + 10, 
-                                                      "md5-" + boost::lexical_cast<std::string>(i), "customData"), 42);
+                                                      "md5-" + boost::lexical_cast<std::string>(i)), 42);
     ASSERT_FALSE(transaction_->IsProtectedPatient(patients[i]));
   }
 
@@ -607,7 +626,7 @@ TEST_F(DatabaseWrapperTest, PatientProtection)
     std::string p = "Patient " + boost::lexical_cast<std::string>(i);
     patients.push_back(transaction_->CreateResource(p, ResourceType_Patient));
     transaction_->AddAttachment(patients[i], FileInfo(p, FileContentType_Dicom, i + 10,
-                                                      "md5-" + boost::lexical_cast<std::string>(i), "customData"), 42);
+                                                      "md5-" + boost::lexical_cast<std::string>(i)), 42);
     ASSERT_FALSE(transaction_->IsProtectedPatient(patients[i]));
   }
 
@@ -850,7 +869,7 @@ TEST(ServerIndex, AttachmentRecycling)
 
   for (size_t i = 0; i < ids.size(); i++)
   {
-    FileInfo info(Toolbox::GenerateUuid(), FileContentType_Dicom, 1, "md5", "customData");
+    FileInfo info(Toolbox::GenerateUuid(), FileContentType_Dicom, 1, "md5");
     int64_t revision = -1;
     index.AddAttachment(revision, info, ids[i], false /* no previous revision */, -1, "");
     ASSERT_EQ(0, revision);

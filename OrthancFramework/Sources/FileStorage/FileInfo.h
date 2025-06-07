@@ -53,8 +53,7 @@ namespace Orthanc
     FileInfo(const std::string& uuid,
              FileContentType contentType,
              uint64_t size,
-             const std::string& md5,
-             const std::string& customData);
+             const std::string& md5);
 
     /**
      * Constructor for a compressed attachment.
@@ -65,8 +64,7 @@ namespace Orthanc
              const std::string& uncompressedMD5,
              CompressionType compressionType,
              uint64_t compressedSize,
-             const std::string& compressedMD5,
-             const std::string& customData);
+             const std::string& compressedMD5);
 
     bool IsValid() const;
     
@@ -83,6 +81,11 @@ namespace Orthanc
     const std::string& GetCompressedMD5() const;
 
     const std::string& GetUncompressedMD5() const;
+
+    void SetCustomData(const void* data,
+                       size_t size);
+
+    void SetCustomData(const std::string& data);
 
     const std::string& GetCustomData() const;
   };

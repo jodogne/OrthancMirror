@@ -133,12 +133,13 @@ namespace Orthanc
                     StorageCache& cache,
                     MetricsRegistry& metrics);
 
-    FileInfo Write(const void* data,
-                   size_t size,
-                   FileContentType type,
-                   CompressionType compression,
-                   bool storeMd5,
-                   const DicomInstanceToStore* instance);
+    void Write(FileInfo& info /* out */,
+               const void* data,
+               size_t size,
+               FileContentType type,
+               CompressionType compression,
+               bool storeMd5,
+               const DicomInstanceToStore* instance);
 
     void Read(std::string& content,
               const FileInfo& info);

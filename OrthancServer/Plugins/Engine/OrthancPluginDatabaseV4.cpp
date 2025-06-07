@@ -100,16 +100,17 @@ namespace Orthanc
   }
 
     
-  static FileInfo Convert(const DatabasePluginMessages::FileInfo& source)
+  static void Convert(FileInfo& info,
+                      const DatabasePluginMessages::FileInfo& source)
   {
-    return FileInfo(source.uuid(),
+    info = FileInfo(source.uuid(),
                     static_cast<FileContentType>(source.content_type()),
                     source.uncompressed_size(),
                     source.uncompressed_hash(),
                     static_cast<CompressionType>(source.compression_type()),
                     source.compressed_size(),
-                    source.compressed_hash(),
-                    source.custom_data());
+                    source.compressed_hash());
+    info.SetCustomData(source.custom_data());
   }
 
 
@@ -606,7 +607,9 @@ namespace Orthanc
       DatabasePluginMessages::TransactionResponse response;
       ExecuteTransaction(response, DatabasePluginMessages::OPERATION_DELETE_ATTACHMENT, request);
 
-      listener_.SignalAttachmentDeleted(Convert(response.delete_attachment().deleted_attachment()));
+      FileInfo info;
+      Convert(info, response.delete_attachment().deleted_attachment());
+      listener_.SignalAttachmentDeleted(info);
     }
 
     
@@ -631,7 +634,9 @@ namespace Orthanc
 
       for (int i = 0; i < response.delete_resource().deleted_attachments().size(); i++)
       {
-        listener_.SignalAttachmentDeleted(Convert(response.delete_resource().deleted_attachments(i)));
+        FileInfo info;
+        Convert(info, response.delete_resource().deleted_attachments(i));
+        listener_.SignalAttachmentDeleted(info);
       }
 
       for (int i = 0; i < response.delete_resource().deleted_resources().size(); i++)
@@ -1008,7 +1013,7 @@ namespace Orthanc
 
       if (response.lookup_attachment().found())
       {
-        attachment = Convert(response.lookup_attachment().attachment());
+        Convert(attachment, response.lookup_attachment().attachment());
         revision = response.lookup_attachment().revision();
         return true;
       }
@@ -1034,7 +1039,7 @@ namespace Orthanc
         if (response.get_attachment().found())
         {
           revision = response.get_attachment().revision();
-          attachment = Convert(response.get_attachment().attachment());
+          Convert(attachment, response.get_attachment().attachment());
           return true;
         }
         else
@@ -1738,7 +1743,9 @@ namespace Orthanc
 
           for (int j = 0; j < source.attachments().size(); j++)
           {
-            target->AddAttachment(Convert(source.attachments(j)), source.attachments_revisions(j));
+            FileInfo info;
+            Convert(info, source.attachments(j));
+            target->AddAttachment(info, source.attachments_revisions(j));
           }
 
           Convert(*target, ResourceType_Patient, source.patient_content());
@@ -1800,7 +1807,8 @@ namespace Orthanc
 
             for (int j = 0; j < source.one_instance_attachments().size(); j++)
             {
-              FileInfo info(Convert(source.one_instance_attachments(j)));
+              FileInfo info;
+              Convert(info, source.one_instance_attachments(j));
               if (attachments.find(info.GetContentType()) == attachments.end())
               {
                 attachments[info.GetContentType()] = info;

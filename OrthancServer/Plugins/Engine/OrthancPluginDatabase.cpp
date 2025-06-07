@@ -83,15 +83,13 @@ namespace Orthanc
     
     static FileInfo Convert(const OrthancPluginAttachment& attachment)
     {
-      std::string customData;
       return FileInfo(attachment.uuid,
                       static_cast<FileContentType>(attachment.contentType),
                       attachment.uncompressedSize,
                       attachment.uncompressedHash,
                       static_cast<CompressionType>(attachment.compressionType),
                       attachment.compressedSize,
-                      attachment.compressedHash,
-                      customData);
+                      attachment.compressedHash);
     }
 
 

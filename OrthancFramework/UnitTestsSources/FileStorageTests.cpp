@@ -185,7 +185,8 @@ TEST(StorageAccessor, NoCompression)
   StorageAccessor accessor(s, cache);
 
   const std::string data = "Hello world";
-  FileInfo info = accessor.Write(data.c_str(), data.size(), FileContentType_Dicom, CompressionType_None, true, NULL);
+  FileInfo info;
+  accessor.Write(info, data.c_str(), data.size(), FileContentType_Dicom, CompressionType_None, true, NULL);
 
   std::string r;
   accessor.Read(r, info);
@@ -207,7 +208,8 @@ TEST(StorageAccessor, Compression)
   StorageAccessor accessor(s, cache);
 
   const std::string data = "Hello world";
-  FileInfo info = accessor.Write(data.c_str(), data.size(), FileContentType_Dicom, CompressionType_ZlibWithSize, true, NULL);
+  FileInfo info;
+  accessor.Write(info, data.c_str(), data.size(), FileContentType_Dicom, CompressionType_ZlibWithSize, true, NULL);
 
   std::string r;
   accessor.Read(r, info);
@@ -230,13 +232,15 @@ TEST(StorageAccessor, Mix)
   const std::string compressedData = "Hello";
   const std::string uncompressedData = "HelloWorld";
 
-  FileInfo compressedInfo = accessor.Write(compressedData.c_str(), compressedData.size(), FileContentType_Dicom, CompressionType_ZlibWithSize, false, NULL);
-  FileInfo uncompressedInfo = accessor.Write(uncompressedData.c_str(), uncompressedData.size(), FileContentType_Dicom, CompressionType_None, false, NULL);
+  FileInfo compressedInfo;
+  accessor.Write(compressedInfo, compressedData.c_str(), compressedData.size(), FileContentType_Dicom, CompressionType_ZlibWithSize, false, NULL);
 
   std::string r;
   accessor.Read(r, compressedInfo);
   ASSERT_EQ(compressedData, r);
 
+  FileInfo uncompressedInfo;
+  accessor.Write(uncompressedInfo, uncompressedData.c_str(), uncompressedData.size(), FileContentType_Dicom, CompressionType_None, false, NULL);
   accessor.Read(r, uncompressedInfo);
   ASSERT_EQ(uncompressedData, r);
   ASSERT_NE(compressedData, r);
