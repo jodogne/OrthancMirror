@@ -42,8 +42,7 @@ namespace Orthanc
   FileInfo::FileInfo(const std::string& uuid,
                      FileContentType contentType,
                      uint64_t size,
-                     const std::string& md5,
-                     const std::string& customData) :
+                     const std::string& md5) :
     valid_(true),
     uuid_(uuid),
     contentType_(contentType),
@@ -51,8 +50,7 @@ namespace Orthanc
     uncompressedMD5_(md5),
     compressionType_(CompressionType_None),
     compressedSize_(size),
-    compressedMD5_(md5),
-    customData_(customData)
+    compressedMD5_(md5)
   {
   }
 
@@ -63,8 +61,7 @@ namespace Orthanc
                      const std::string& uncompressedMD5,
                      CompressionType compressionType,
                      uint64_t compressedSize,
-                     const std::string& compressedMD5,
-                     const std::string& customData) :
+                     const std::string& compressedMD5) :
     valid_(true),
     uuid_(uuid),
     contentType_(contentType),
@@ -72,8 +69,7 @@ namespace Orthanc
     uncompressedMD5_(uncompressedMD5),
     compressionType_(compressionType),
     compressedSize_(compressedSize),
-    compressedMD5_(compressedMD5),
-    customData_(customData)
+    compressedMD5_(compressedMD5)
   {
   }
 
@@ -173,6 +169,33 @@ namespace Orthanc
       throw OrthancException(ErrorCode_BadSequenceOfCalls);
     }
   }
+
+  void FileInfo::SetCustomData(const void* data,
+                               size_t size)
+  {
+    if (valid_)
+    {
+      customData_.assign(reinterpret_cast<const char*>(data), size);
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+  }
+
+
+  void FileInfo::SetCustomData(const std::string& data)
+  {
+    if (valid_)
+    {
+      customData_ = data;
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+  }
+
 
   const std::string& FileInfo::GetCustomData() const
   {

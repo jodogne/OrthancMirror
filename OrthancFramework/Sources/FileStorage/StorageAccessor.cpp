@@ -310,12 +310,13 @@ namespace Orthanc
   }
 
 
-  FileInfo StorageAccessor::Write(const void* data,
-                                  size_t size,
-                                  FileContentType type,
-                                  CompressionType compression,
-                                  bool storeMd5,
-                                  const DicomInstanceToStore* instance)
+  void StorageAccessor::Write(FileInfo& info,
+                              const void* data,
+                              size_t size,
+                              FileContentType type,
+                              CompressionType compression,
+                              bool storeMd5,
+                              const DicomInstanceToStore* instance)
   {
     const std::string uuid = Toolbox::GenerateUuid();
 
@@ -348,7 +349,9 @@ namespace Orthanc
           cacheAccessor.Add(uuid, type, data, size);
         }
 
-        return FileInfo(uuid, type, size, md5, customData);
+        info = FileInfo(uuid, type, size, md5);
+        info.SetCustomData(customData);
+        return;
       }
 
       case CompressionType_ZlibWithSize:
@@ -389,8 +392,10 @@ namespace Orthanc
           cacheAccessor.Add(uuid, type, data, size);    // always add uncompressed data to cache
         }
 
-        return FileInfo(uuid, type, size, md5,
-                        CompressionType_ZlibWithSize, compressed.size(), compressedMD5, customData);
+        info = FileInfo(uuid, type, size, md5,
+                        CompressionType_ZlibWithSize, compressed.size(), compressedMD5);
+        info.SetCustomData(customData);
+        return;
       }
 
       default:

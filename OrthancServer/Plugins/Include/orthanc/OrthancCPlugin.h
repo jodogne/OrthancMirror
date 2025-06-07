@@ -1490,6 +1490,7 @@ extern "C"
    *
    * @param customData Custom, plugin-specific data associated with the attachment (out).
    * It must be allocated by the plugin using OrthancPluginCreateMemoryBuffer(). The core of Orthanc will free it.
+   * If the plugin does not generate custom data, leave `customData` unchanged; it will default to an empty value.
    * @param uuid The UUID of the file.
    * @param content The content of the file (might be compressed data).
    * @param size The size of the file.

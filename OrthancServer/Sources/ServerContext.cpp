@@ -739,12 +739,12 @@ namespace Orthanc
       // TODO Should we use "gzip" instead?
       CompressionType compression = (compressionEnabled_ ? CompressionType_ZlibWithSize : CompressionType_None);
 
-      ServerIndex::Attachments attachments;
+      StatelessDatabaseOperations::Attachments attachments;
       FileInfo dicomInfo;
 
       if (!isAdoption)
       {
-        dicomInfo = accessor.Write(dicom.GetBufferData(), dicom.GetBufferSize(), FileContentType_Dicom, compression, storeMD5_, &dicom);
+        accessor.Write(dicomInfo, dicom.GetBufferData(), dicom.GetBufferSize(), FileContentType_Dicom, compression, storeMD5_, &dicom);
         attachments.push_back(dicomInfo);
       }
       else
@@ -757,7 +757,7 @@ namespace Orthanc
           (!area_.HasEfficientReadRange() ||
            compressionEnabled_))
       {
-        dicomUntilPixelData = accessor.Write(dicom.GetBufferData(), pixelDataOffset, FileContentType_DicomUntilPixelData, compression, storeMD5_, NULL);
+        accessor.Write(dicomUntilPixelData, dicom.GetBufferData(), pixelDataOffset, FileContentType_DicomUntilPixelData, compression, storeMD5_, NULL);
         attachments.push_back(dicomUntilPixelData);
       }
 
@@ -1066,7 +1066,8 @@ namespace Orthanc
     StorageAccessor accessor(area_, storageCache_, GetMetricsRegistry());
     accessor.Read(content, attachment);
 
-    FileInfo modified = accessor.Write(content.empty() ? NULL : content.c_str(), content.size(), attachmentType, compression, storeMD5_, NULL);
+    FileInfo modified;
+    accessor.Write(modified, content.empty() ? NULL : content.c_str(), content.size(), attachmentType, compression, storeMD5_, NULL);
 
     try
     {
@@ -1577,7 +1578,8 @@ namespace Orthanc
 
     assert(attachmentType != FileContentType_Dicom && attachmentType != FileContentType_DicomUntilPixelData); // this method can not be used to store instances
 
-    FileInfo attachment = accessor.Write(data, size, attachmentType, compression, storeMD5_, NULL);
+    FileInfo attachment;
+    accessor.Write(attachment, data, size, attachmentType, compression, storeMD5_, NULL);
 
     try
     {

@@ -4634,9 +4634,10 @@ namespace Orthanc
   //                                        )    fileInfo()
   // }
 
-  static FileInfo Convert(const OrthancPluginAttachment2& attachment)
+  static void Convert(FileInfo& info,
+                      const OrthancPluginAttachment2& attachment)
   {
-    std::string uuid, customData;
+    std::string uuid;
     if (attachment.uuid != NULL)
     {
       uuid = attachment.uuid;
@@ -4646,25 +4647,25 @@ namespace Orthanc
       uuid = Toolbox::GenerateUuid();
     }
 
-    if (attachment.customData != NULL)
-    {
-      customData = std::string(reinterpret_cast<const char*>(attachment.customData), attachment.customDataSize);
-    }
-
-    return FileInfo(uuid,
+    info = FileInfo(uuid,
                     Orthanc::Plugins::Convert(static_cast<OrthancPluginContentType>(attachment.contentType)),
                     attachment.uncompressedSize,
                     attachment.uncompressedHash,
                     Orthanc::Plugins::Convert(static_cast<OrthancPluginCompressionType>(attachment.compressionType)),
                     attachment.compressedSize,
-                    attachment.compressedHash,
-                    customData);
+                    attachment.compressedHash);
+
+    if (attachment.customData != NULL)
+    {
+      info.SetCustomData(attachment.customData, attachment.customDataSize);
+    }
   }
 
   void OrthancPlugins::ApplyAdoptAttachment(const _OrthancPluginAdoptAttachment& parameters)
   {
     PImpl::ServerContextReference lock(*pimpl_);
-    FileInfo adoptedFile = Convert(*(parameters.attachmentInfo));
+    FileInfo adoptedFile;
+    Convert(adoptedFile, *parameters.attachmentInfo);
 
     if (adoptedFile.GetContentType() == FileContentType_Dicom)
     {
