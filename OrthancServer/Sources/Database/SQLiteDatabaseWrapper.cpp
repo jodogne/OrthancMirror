@@ -534,6 +534,19 @@ namespace Orthanc
     }
 
 
+    static void ReadCustomData(FileInfo& info,
+                               SQLite::Statement& statement,
+                               int column)
+    {
+      std::string customData;
+      if (!statement.ColumnIsNull(column) &&
+          statement.ColumnBlobAsString(column, &customData))
+      {
+        info.SwapCustomData(customData);
+      }
+    }
+
+
     virtual void ExecuteFind(FindResponse& response,
                              const FindRequest& request,
                              const Capabilities& capabilities) ORTHANC_OVERRIDE
@@ -1102,12 +1115,7 @@ namespace Orthanc
                           s.ColumnInt64(C11_BIG_INT_2), s.ColumnString(C4_STRING_2),
                           static_cast<CompressionType>(s.ColumnInt(C8_INT_2)),
                           s.ColumnInt64(C10_BIG_INT_1), s.ColumnString(C5_STRING_3));
-
-            std::string customData;
-            if (s.ColumnBlobAsString(C6_STRING_4, &customData))
-            {
-              file.SwapCustomData(customData);
-            }
+            ReadCustomData(file, s, C6_STRING_4);
 
             res.AddAttachment(file, s.ColumnInt(C9_INT_3));
           }; break;
@@ -1268,12 +1276,7 @@ namespace Orthanc
                           s.ColumnInt64(C11_BIG_INT_2), s.ColumnString(C4_STRING_2),
                           static_cast<CompressionType>(s.ColumnInt(C8_INT_2)),
                           s.ColumnInt64(C10_BIG_INT_1), s.ColumnString(C5_STRING_3));
-
-            std::string customData;
-            if (s.ColumnBlobAsString(C6_STRING_4, &customData))
-            {
-              file.SwapCustomData(customData);
-            }
+            ReadCustomData(file, s, C6_STRING_4);
 
             res.AddOneInstanceAttachment(file);
           }; break;
@@ -1396,7 +1399,8 @@ namespace Orthanc
     
       if (s.Step())
       { 
-        if (!s.ColumnBlobAsString(C6_STRING_4, &customData))
+        if (s.ColumnIsNull(C6_STRING_4) ||
+            !s.ColumnBlobAsString(C6_STRING_4, &customData))
         {
           customData.clear();
         }
@@ -1814,13 +1818,7 @@ namespace Orthanc
                               static_cast<CompressionType>(s.ColumnInt(2)),
                               s.ColumnInt64(3),
                               s.ColumnString(5));
-
-        std::string customData;
-        if (s.ColumnBlobAsString(7, &customData))
-        {
-          attachment.SwapCustomData(customData);
-        }
-
+        ReadCustomData(attachment, s, 7);
         revision = s.ColumnInt(6);
         return true;
       }
@@ -1848,13 +1846,7 @@ namespace Orthanc
                               static_cast<CompressionType>(s.ColumnInt(2)),
                               s.ColumnInt64(3),
                               s.ColumnString(5));
-
-        std::string customData;
-        if (s.ColumnBlobAsString(7, &customData))
-        {
-          attachment.SwapCustomData(customData);
-        }
-
+        ReadCustomData(attachment, s, 7);
         revision = s.ColumnInt(6);
         return true;
       }
