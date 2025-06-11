@@ -655,6 +655,10 @@ namespace Orthanc
     {
       return ResponseContentFlags_IsStable;
     }
+    else if (value == "IsProtected")
+    {
+      return ResponseContentFlags_IsProtected;
+    }
     else
     {
       throw OrthancException(ErrorCode_ParameterOutOfRange,
