@@ -421,7 +421,7 @@ extern "C"
   } OrthancPluginHttpRequest;
 
 
-  typedef enum 
+  typedef enum
   {
     /* Generic services */
     _OrthancPluginService_LogInfo = 1,
@@ -766,7 +766,7 @@ extern "C"
 
   /**
    * The supported types of changes that can be signaled to the change callback.
-   * Note: this enum is not used to store changes in the DB !
+   * Note: This enumeration is not used to store changes in the database!
    * @ingroup Callbacks
    **/
   typedef enum
@@ -9850,46 +9850,56 @@ TODO_ATTACH_CUSTOM_DATA TODO TODO
     return context->InvokeService(context, _OrthancPluginService_AdoptAttachment, &params);
   }
 
+
   typedef struct
   {
-    OrthancPluginMemoryBuffer*    customData;  /* out */
-    const char*                   attachmentUuid; /* in */
-    /* OrthancPluginContentType      contentType; */ /* in */
+    OrthancPluginMemoryBuffer*    customData;
+    const char*                   attachmentUuid;
   } _OrthancPluginGetAttachmentCustomData;
 
   /**
-   * @brief Retrieve attachment customData from the Orthanc DB.
+   * @brief Retrieve the custom data associated with an attachment in the Orthanc database.
+   *
+   * If no custom data is associated with the attachment of interest,
+   * the target memory buffer is filled with the NULL value and a zero size.
    *
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
-TODO_ATTACH_CUSTOM_DATA TODO TODO
+   * @param customData Memory buffer where to store the retrieved value. It must be freed
+   * by the plugin by calling OrthancPluginFreeMemoryBuffer().
+   * @param attachmentUuid The UUID of the attachment of interest.
+   * @return 0 if success, other value if error.
    **/
   ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginGetAttachmentCustomData(
     OrthancPluginContext*         context,
     OrthancPluginMemoryBuffer*    customData,     /* out */
     const char*                   attachmentUuid  /* in */)
-  /* OrthancPluginContentType      contentType, */ /* in */
   {
     _OrthancPluginGetAttachmentCustomData params;
     params.customData = customData;
     params.attachmentUuid = attachmentUuid;
-    /* params.contentType = contentType; */
 
     return context->InvokeService(context, _OrthancPluginService_GetAttachmentCustomData, &params);
   }
 
+
   typedef struct
   {
-    const char*                   attachmentUuid; /* in */
-    const void*                   customData;     /* in */
-    uint32_t                      customDataSize; /* in */
+    const char*  attachmentUuid;
+    const void*  customData;
+    uint32_t     customDataSize;
   } _OrthancPluginSetAttachmentCustomData;
 
-
   /**
-   * @brief Update attachment custom data in the Orthanc DB.  E.g if a plugin has moved an attachment.
+   * @brief Update the custom data associated with an attachment in the Orthanc database.
+   *
+   * This function is notably used in the "orthanc-advanced-storage"
+   * when the plugin moves an attachment.
    *
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
-TODO_ATTACH_CUSTOM_DATA TODO TODO
+   * @param attachmentUuid The UUID of the attachment of interest.
+   * @param customData The value to store.
+   * @param customDataSize The size of the value to store.
+   * @return 0 if success, other value if error.
    **/
   ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginSetAttachmentCustomData(
     OrthancPluginContext*         context,
@@ -10021,6 +10031,8 @@ TODO_ATTACH_CUSTOM_DATA TODO TODO
   /**
    * @brief Create an iterator over the key-value pairs of a key-value store in the Orthanc database.
    *
+   * The iterator loops over the keys according to the lexicographical order.
+   *
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param storeId A unique identifier identifying both the plugin and the key-value store.
    * @return The newly allocated iterator, or NULL in the case of an error.
@@ -10077,6 +10089,8 @@ TODO_ATTACH_CUSTOM_DATA TODO TODO
 
   /**
    * @brief Read the next element of an iterator over a key-value store.
+  *
+   * The iterator loops over the keys according to the lexicographical order.
    *
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param done Pointer to a Boolean that is set to "true" iff. the iterator has reached the end of the store.
