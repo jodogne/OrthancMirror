@@ -4682,9 +4682,20 @@ namespace Orthanc
     }
   }
 
+  static void CheckAttachmentCustomDataSupport(ServerContext& context)
+  {
+    if (!context.GetIndex().HasAttachmentCustomDataSupport())
+    {
+      throw OrthancException(ErrorCode_NotImplemented, "The database engine does not support custom data for attachments");
+    }
+  }
+
   void OrthancPlugins::ApplyGetAttachmentCustomData(const _OrthancPluginGetAttachmentCustomData& parameters)
   {
     PImpl::ServerContextReference lock(*pimpl_);
+
+    CheckAttachmentCustomDataSupport(lock.GetContext());
+
     FileInfo fileInfo;
     int64_t revision;
     
@@ -4698,33 +4709,46 @@ namespace Orthanc
     }
   }
 
-  void OrthancPlugins::ApplyUpdateAttachmentCustomData(const _OrthancPluginUpdateAttachmentCustomData& parameters)
+  void OrthancPlugins::ApplySetAttachmentCustomData(const _OrthancPluginSetAttachmentCustomData& parameters)
   {
     PImpl::ServerContextReference lock(*pimpl_);
-    lock.GetContext().GetIndex().UpdateAttachmentCustomData(parameters.attachmentUuid, parameters.customData, parameters.customDataSize);
+
+    CheckAttachmentCustomDataSupport(lock.GetContext());
+
+    lock.GetContext().GetIndex().SetAttachmentCustomData(parameters.attachmentUuid, parameters.customData, parameters.customDataSize);
   }
 
-  bool OrthancPlugins::HasKeyValueStoresSupport()
+  static void CheckKeyValueStoresSupport(ServerContext& context)
   {
-    PImpl::ServerContextReference lock(*pimpl_);
-    return lock.GetContext().GetIndex().HasKeyValueStoresSupport();
+    if (!context.GetIndex().HasKeyValueStoresSupport())
+    {
+      throw OrthancException(ErrorCode_NotImplemented, "The database engine does not support key-value stores");
+    }
   }
 
   void OrthancPlugins::ApplyStoreKeyValue(const _OrthancPluginStoreKeyValue& parameters)
   {
     PImpl::ServerContextReference lock(*pimpl_);
+
+    CheckKeyValueStoresSupport(lock.GetContext());
+
     lock.GetContext().GetIndex().StoreKeyValue(parameters.storeId, parameters.key, parameters.value, parameters.valueSize);
   }
 
   void OrthancPlugins::ApplyDeleteKeyValue(const _OrthancPluginDeleteKeyValue& parameters)
   {
     PImpl::ServerContextReference lock(*pimpl_);
+
+    CheckKeyValueStoresSupport(lock.GetContext());
+
     lock.GetContext().GetIndex().DeleteKeyValue(parameters.storeId, parameters.key);
   }
 
   void OrthancPlugins::ApplyGetKeyValue(const _OrthancPluginGetKeyValue& parameters)
   {
     PImpl::ServerContextReference lock(*pimpl_);
+
+    CheckKeyValueStoresSupport(lock.GetContext());
 
     std::string value;
 
@@ -4739,21 +4763,38 @@ namespace Orthanc
     }
   }
 
-  bool OrthancPlugins::HasQueuesSupport()
+  void OrthancPlugins::ApplyCreateKeysValuesIterator(const _OrthancPluginCreateKeysValuesIterator& parameters)
   {
     PImpl::ServerContextReference lock(*pimpl_);
-    return lock.GetContext().GetIndex().HasQueuesSupport();
+
+    CheckKeyValueStoresSupport(lock.GetContext());
+
+    *parameters.target = reinterpret_cast<OrthancPluginKeysValuesIterator*>(
+      new StatelessDatabaseOperations::KeysValuesIterator(lock.GetContext().GetIndex(), parameters.storeId));
+  }
+
+  static void CheckQueuesSupport(ServerContext& context)
+  {
+    if (!context.GetIndex().HasQueuesSupport())
+    {
+      throw OrthancException(ErrorCode_NotImplemented, "The database engine does not support queues");
+    }
   }
 
   void OrthancPlugins::ApplyEnqueueValue(const _OrthancPluginEnqueueValue& parameters)
   {
     PImpl::ServerContextReference lock(*pimpl_);
+
+    CheckQueuesSupport(lock.GetContext());
+
     lock.GetContext().GetIndex().EnqueueValue(parameters.queueId, parameters.value, parameters.valueSize);
   }
 
   void OrthancPlugins::ApplyDequeueValue(const _OrthancPluginDequeueValue& parameters)
   {
     PImpl::ServerContextReference lock(*pimpl_);
+
+    CheckQueuesSupport(lock.GetContext());
 
     std::string value;
 
@@ -4771,6 +4812,8 @@ namespace Orthanc
   void OrthancPlugins::ApplyGetQueueSize(const _OrthancPluginGetQueueSize& parameters)
   {
     PImpl::ServerContextReference lock(*pimpl_);
+
+    CheckQueuesSupport(lock.GetContext());
 
     *parameters.size = lock.GetContext().GetIndex().GetQueueSize(parameters.queueId);
   }
@@ -5845,181 +5888,104 @@ namespace Orthanc
 
       case _OrthancPluginService_AdoptAttachment:
       {
-        const _OrthancPluginAdoptAttachment& p =
-          *reinterpret_cast<const _OrthancPluginAdoptAttachment*>(parameters);
+        const _OrthancPluginAdoptAttachment& p = *reinterpret_cast<const _OrthancPluginAdoptAttachment*>(parameters);
         ApplyAdoptAttachment(p);
         return true;
       }
 
       case _OrthancPluginService_GetAttachmentCustomData:
       {
-        const _OrthancPluginGetAttachmentCustomData& p =
-          *reinterpret_cast<const _OrthancPluginGetAttachmentCustomData*>(parameters);
+        const _OrthancPluginGetAttachmentCustomData& p = *reinterpret_cast<const _OrthancPluginGetAttachmentCustomData*>(parameters);
         ApplyGetAttachmentCustomData(p);
         return true;
       }
 
-      case _OrthancPluginService_UpdateAttachmentCustomData:
+      case _OrthancPluginService_SetAttachmentCustomData:
       {
-        const _OrthancPluginUpdateAttachmentCustomData& p =
-          *reinterpret_cast<const _OrthancPluginUpdateAttachmentCustomData*>(parameters);
-        ApplyUpdateAttachmentCustomData(p);
+        const _OrthancPluginSetAttachmentCustomData& p = *reinterpret_cast<const _OrthancPluginSetAttachmentCustomData*>(parameters);
+        ApplySetAttachmentCustomData(p);
         return true;
       }
 
       case _OrthancPluginService_StoreKeyValue:
-        if (!HasKeyValueStoresSupport())
-        {
-          throw OrthancException(ErrorCode_NotImplemented, "The DB engine does not support key-value stores");
-        }
-        else
-        {
-          const _OrthancPluginStoreKeyValue& p =
-            *reinterpret_cast<const _OrthancPluginStoreKeyValue*>(parameters);
-          ApplyStoreKeyValue(p);
-          return true;
-        }
+      {
+        const _OrthancPluginStoreKeyValue& p = *reinterpret_cast<const _OrthancPluginStoreKeyValue*>(parameters);
+        ApplyStoreKeyValue(p);
+        return true;
+      }
 
       case _OrthancPluginService_DeleteKeyValue:
-        if (!HasKeyValueStoresSupport())
-        {
-          throw OrthancException(ErrorCode_NotImplemented, "The DB engine does not support key-value stores");
-        }
-        else
-        {
-          const _OrthancPluginDeleteKeyValue& p =
-            *reinterpret_cast<const _OrthancPluginDeleteKeyValue*>(parameters);
-          ApplyDeleteKeyValue(p);
-          return true;
-        }
+      {
+        const _OrthancPluginDeleteKeyValue& p = *reinterpret_cast<const _OrthancPluginDeleteKeyValue*>(parameters);
+        ApplyDeleteKeyValue(p);
+        return true;
+      }
 
       case _OrthancPluginService_GetKeyValue:
-        if (!HasKeyValueStoresSupport())
-        {
-          throw OrthancException(ErrorCode_NotImplemented, "The DB engine does not support key-value stores");
-        }
-        else
-        {
-          const _OrthancPluginGetKeyValue& p =
-            *reinterpret_cast<const _OrthancPluginGetKeyValue*>(parameters);
-          ApplyGetKeyValue(p);
-          return true;
-        }
+      {
+        const _OrthancPluginGetKeyValue& p = *reinterpret_cast<const _OrthancPluginGetKeyValue*>(parameters);
+        ApplyGetKeyValue(p);
+        return true;
+      }
 
       case _OrthancPluginService_CreateKeysValuesIterator:
-        if (!HasKeyValueStoresSupport())
-        {
-          throw OrthancException(ErrorCode_NotImplemented, "The DB engine does not support key-value stores");
-        }
-        else
-        {
-          const _OrthancPluginCreateKeysValuesIterator& p =
-            *reinterpret_cast<const _OrthancPluginCreateKeysValuesIterator*>(parameters);
-
-          {
-            PImpl::ServerContextReference lock(*pimpl_);
-            *p.target = reinterpret_cast<OrthancPluginKeysValuesIterator*>(new StatelessDatabaseOperations::KeysValuesIterator(lock.GetContext().GetIndex(), p.storeId));
-          }
-
-          return true;
-        }
+      {
+        const _OrthancPluginCreateKeysValuesIterator& p = *reinterpret_cast<const _OrthancPluginCreateKeysValuesIterator*>(parameters);
+        ApplyCreateKeysValuesIterator(p);
+        return true;
+      }
 
       case _OrthancPluginService_FreeKeysValuesIterator:
-        if (!HasKeyValueStoresSupport())
-        {
-          throw OrthancException(ErrorCode_NotImplemented, "The DB engine does not support key-value stores");
-        }
-        else
-        {
-          const _OrthancPluginFreeKeysValuesIterator& p =
-            *reinterpret_cast<const _OrthancPluginFreeKeysValuesIterator*>(parameters);
-          delete reinterpret_cast<StatelessDatabaseOperations::KeysValuesIterator*>(p.iterator);
-          return true;
-        }
+      {
+        const _OrthancPluginFreeKeysValuesIterator& p = *reinterpret_cast<const _OrthancPluginFreeKeysValuesIterator*>(parameters);
+        delete reinterpret_cast<StatelessDatabaseOperations::KeysValuesIterator*>(p.iterator);
+        return true;
+      }
 
       case _OrthancPluginService_KeysValuesIteratorNext:
-        if (!HasKeyValueStoresSupport())
-        {
-          throw OrthancException(ErrorCode_NotImplemented, "The DB engine does not support key-value stores");
-        }
-        else
-        {
-          const _OrthancPluginKeysValuesIteratorNext& p =
-            *reinterpret_cast<const _OrthancPluginKeysValuesIteratorNext*>(parameters);
-
-          StatelessDatabaseOperations::KeysValuesIterator& iterator = *reinterpret_cast<StatelessDatabaseOperations::KeysValuesIterator*>(p.iterator);
-          *p.done = iterator.Next() ? 1 : 0;
-          return true;
-        }
+      {
+        const _OrthancPluginKeysValuesIteratorNext& p = *reinterpret_cast<const _OrthancPluginKeysValuesIteratorNext*>(parameters);
+        StatelessDatabaseOperations::KeysValuesIterator& iterator = *reinterpret_cast<StatelessDatabaseOperations::KeysValuesIterator*>(p.iterator);
+        *p.done = iterator.Next() ? 1 : 0;
+        return true;
+      }
 
       case _OrthancPluginService_KeysValuesIteratorGetKey:
-        if (!HasKeyValueStoresSupport())
-        {
-          throw OrthancException(ErrorCode_NotImplemented, "The DB engine does not support key-value stores");
-        }
-        else
-        {
-          const _OrthancPluginKeysValuesIteratorGetKey& p =
-            *reinterpret_cast<const _OrthancPluginKeysValuesIteratorGetKey*>(parameters);
-
-          StatelessDatabaseOperations::KeysValuesIterator& iterator = *reinterpret_cast<StatelessDatabaseOperations::KeysValuesIterator*>(p.iterator);
-          *p.target = iterator.GetKey().c_str();
-          return true;
-        }
+      {
+        const _OrthancPluginKeysValuesIteratorGetKey& p = *reinterpret_cast<const _OrthancPluginKeysValuesIteratorGetKey*>(parameters);
+        StatelessDatabaseOperations::KeysValuesIterator& iterator = *reinterpret_cast<StatelessDatabaseOperations::KeysValuesIterator*>(p.iterator);
+        *p.target = iterator.GetKey().c_str();
+        return true;
+      }
 
       case _OrthancPluginService_KeysValuesIteratorGetValue:
-        if (!HasKeyValueStoresSupport())
-        {
-          throw OrthancException(ErrorCode_NotImplemented, "The DB engine does not support key-value stores");
-        }
-        else
-        {
-          const _OrthancPluginKeysValuesIteratorGetValue& p =
-            *reinterpret_cast<const _OrthancPluginKeysValuesIteratorGetValue*>(parameters);
-
-          StatelessDatabaseOperations::KeysValuesIterator& iterator = *reinterpret_cast<StatelessDatabaseOperations::KeysValuesIterator*>(p.iterator);
-          CopyToMemoryBuffer(*p.target, iterator.GetValue());
-          return true;
-        }
+      {
+        const _OrthancPluginKeysValuesIteratorGetValue& p = *reinterpret_cast<const _OrthancPluginKeysValuesIteratorGetValue*>(parameters);
+        StatelessDatabaseOperations::KeysValuesIterator& iterator = *reinterpret_cast<StatelessDatabaseOperations::KeysValuesIterator*>(p.iterator);
+        CopyToMemoryBuffer(*p.target, iterator.GetValue());
+        return true;
+      }
 
       case _OrthancPluginService_EnqueueValue:
-        if (!HasQueuesSupport())
-        {
-          throw OrthancException(ErrorCode_NotImplemented, "The DB engine does not support queues");
-        }
-        else
-        {
-          const _OrthancPluginEnqueueValue& p =
-            *reinterpret_cast<const _OrthancPluginEnqueueValue*>(parameters);
-          ApplyEnqueueValue(p);
-          return true;
-        }
+      {
+        const _OrthancPluginEnqueueValue& p = *reinterpret_cast<const _OrthancPluginEnqueueValue*>(parameters);
+        ApplyEnqueueValue(p);
+        return true;
+      }
 
       case _OrthancPluginService_DequeueValue:
-        if (!HasQueuesSupport())
-        {
-          throw OrthancException(ErrorCode_NotImplemented, "The DB engine does not support queues");
-        }
-        else
-        {
-          const _OrthancPluginDequeueValue& p =
-            *reinterpret_cast<const _OrthancPluginDequeueValue*>(parameters);
-          ApplyDequeueValue(p);
-          return true;
-        }
+      {
+        const _OrthancPluginDequeueValue& p = *reinterpret_cast<const _OrthancPluginDequeueValue*>(parameters);
+        ApplyDequeueValue(p);
+        return true;
+      }
 
       case _OrthancPluginService_GetQueueSize:
-        if (!HasQueuesSupport())
-        {
-          throw OrthancException(ErrorCode_NotImplemented, "The DB engine does not support queues");
-        }
-        else
-        {
-          const _OrthancPluginGetQueueSize& p =
-            *reinterpret_cast<const _OrthancPluginGetQueueSize*>(parameters);
-          ApplyGetQueueSize(p);
-          return true;
-        }
+      {
+        const _OrthancPluginGetQueueSize& p = *reinterpret_cast<const _OrthancPluginGetQueueSize*>(parameters);
+        ApplyGetQueueSize(p);
+        return true;
+      }
 
       default:
         return false;

@@ -1061,11 +1061,11 @@ namespace Orthanc
       if (database_.GetDatabaseCapabilities().HasAttachmentCustomDataSupport())
       {
         DatabasePluginMessages::TransactionRequest request;
-        request.mutable_update_attachment_custom_data()->set_uuid(attachmentUuid);
-        request.mutable_update_attachment_custom_data()->set_custom_data(customData, customDataSize);
+        request.mutable_set_attachment_custom_data()->set_uuid(attachmentUuid);
+        request.mutable_set_attachment_custom_data()->set_custom_data(customData, customDataSize);
 
         DatabasePluginMessages::TransactionResponse response;
-        ExecuteTransaction(response, DatabasePluginMessages::OPERATION_UPDATE_ATTACHMENT_CUSTOM_DATA, request);
+        ExecuteTransaction(response, DatabasePluginMessages::OPERATION_SET_ATTACHMENT_CUSTOM_DATA, request);
       }
       else
       {

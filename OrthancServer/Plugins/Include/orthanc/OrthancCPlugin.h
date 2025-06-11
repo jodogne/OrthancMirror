@@ -471,7 +471,7 @@ extern "C"
     _OrthancPluginService_LogMessage = 45,                          /* New in Orthanc 1.12.4 */
     _OrthancPluginService_AdoptAttachment = 46,                     /* New in Orthanc 1.12.8 */
     _OrthancPluginService_GetAttachmentCustomData = 47,             /* New in Orthanc 1.12.8 */
-    _OrthancPluginService_UpdateAttachmentCustomData = 48,          /* New in Orthanc 1.12.8 */
+    _OrthancPluginService_SetAttachmentCustomData = 48,             /* New in Orthanc 1.12.8 */
     _OrthancPluginService_StoreKeyValue = 49,                       /* New in Orthanc 1.12.8 */
     _OrthancPluginService_DeleteKeyValue = 50,                      /* New in Orthanc 1.12.8 */
     _OrthancPluginService_GetKeyValue = 51,                         /* New in Orthanc 1.12.8 */
@@ -9882,7 +9882,7 @@ TODO_ATTACH_CUSTOM_DATA TODO TODO
     const char*                   attachmentUuid; /* in */
     const void*                   customData;     /* in */
     uint32_t                      customDataSize; /* in */
-  } _OrthancPluginUpdateAttachmentCustomData;
+  } _OrthancPluginSetAttachmentCustomData;
 
 
   /**
@@ -9891,18 +9891,18 @@ TODO_ATTACH_CUSTOM_DATA TODO TODO
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
 TODO_ATTACH_CUSTOM_DATA TODO TODO
    **/
-  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginUpdateAttachmentCustomData(
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginSetAttachmentCustomData(
     OrthancPluginContext*         context,
     const char*                   attachmentUuid, /* in */
     const void*                   customData,     /* in */
     uint32_t                      customDataSize  /* in */)
   {
-    _OrthancPluginUpdateAttachmentCustomData params;
+    _OrthancPluginSetAttachmentCustomData params;
     params.attachmentUuid = attachmentUuid;
     params.customData = customData;
     params.customDataSize = customDataSize;
 
-    return context->InvokeService(context, _OrthancPluginService_UpdateAttachmentCustomData, &params);
+    return context->InvokeService(context, _OrthancPluginService_SetAttachmentCustomData, &params);
   }
 
 

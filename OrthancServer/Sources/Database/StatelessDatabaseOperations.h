@@ -486,7 +486,7 @@ namespace Orthanc
         return transaction_.DequeueValue(value, queueId, origin);
       }
 
-      void UpdateAttachmentCustomData(const std::string& attachmentUuid,
+      void SetAttachmentCustomData(const std::string& attachmentUuid,
                                       const void* customData,
                                       size_t customDataSize)
       {
@@ -592,7 +592,7 @@ namespace Orthanc
                        int64_t& revision,
                        const std::string& attachmentUuid);
 
-    void UpdateAttachmentCustomData(const std::string& attachmentUuid,
+    void SetAttachmentCustomData(const std::string& attachmentUuid,
                                     const void* customData,
                                     size_t customDataSize);
 
@@ -617,6 +617,8 @@ namespace Orthanc
     bool HasExtendedChanges();
 
     bool HasFindSupport();
+
+    bool HasAttachmentCustomDataSupport();
 
     bool HasKeyValueStoresSupport();
 

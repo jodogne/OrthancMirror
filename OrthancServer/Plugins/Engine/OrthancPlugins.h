@@ -227,9 +227,7 @@ private:
 
     void ApplyGetAttachmentCustomData(const _OrthancPluginGetAttachmentCustomData& parameters);
 
-    void ApplyUpdateAttachmentCustomData(const _OrthancPluginUpdateAttachmentCustomData& parameters);
-
-    bool HasKeyValueStoresSupport();
+    void ApplySetAttachmentCustomData(const _OrthancPluginSetAttachmentCustomData& parameters);
 
     void ApplyStoreKeyValue(const _OrthancPluginStoreKeyValue& parameters);
 
@@ -237,7 +235,7 @@ private:
 
     void ApplyGetKeyValue(const _OrthancPluginGetKeyValue& parameters);
 
-    bool HasQueuesSupport();
+    void ApplyCreateKeysValuesIterator(const _OrthancPluginCreateKeysValuesIterator& parameters);
 
     void ApplyEnqueueValue(const _OrthancPluginEnqueueValue& parameters);
 
