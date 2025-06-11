@@ -280,7 +280,7 @@ namespace Orthanc
     static bool LookupOrthancTransferSyntax(DicomTransferSyntax& target,
                                             DcmDataset& dicom);
 
-    static void LogMissingTagsForStore(DcmDataset& dicom);
+    static std::string FormatMissingTagsForStore(DcmDataset& dicom);
 
     static void RemovePath(DcmDataset& dataset,
                            const DicomPath& path);

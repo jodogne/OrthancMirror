@@ -184,31 +184,58 @@ namespace Orthanc
   {
     FlushPendingBuffer();
 
-    try
+    if (chunks_.empty())
     {
-      result.resize(numBytes_);
-    }
-    catch (...)
-    {
-      throw OrthancException(ErrorCode_NotEnoughMemory);
-    }
-
-    size_t pos = 0;
-    for (Chunks::iterator it = chunks_.begin(); 
-         it != chunks_.end(); ++it)
-    {
-      assert(*it != NULL);
-
-      size_t s = (*it)->size();
-      if (s != 0)
+      if (numBytes_ != 0)
       {
-        memcpy(&result[pos], (*it)->c_str(), s);
-        pos += s;
+        throw OrthancException(ErrorCode_InternalError);
       }
 
-      delete *it;
+      result.clear();
+    }
+    else if (chunks_.size() == 1)
+    {
+      // Avoid reallocating a buffer if there is a single chunk
+      assert(chunks_.front() != NULL);
+      if (chunks_.front()->size() != numBytes_)
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+      else
+      {
+        chunks_.front()->swap(result);
+        delete chunks_.front();
+      }
+    }
+    else
+    {
+      try
+      {
+        result.resize(numBytes_);
+      }
+      catch (...)
+      {
+        throw OrthancException(ErrorCode_NotEnoughMemory);
+      }
+
+      size_t pos = 0;
+      for (Chunks::iterator it = chunks_.begin();
+           it != chunks_.end(); ++it)
+      {
+        assert(*it != NULL);
+
+        size_t s = (*it)->size();
+        if (s != 0)
+        {
+          memcpy(&result[pos], (*it)->c_str(), s);
+          pos += s;
+        }
+
+        delete *it;
+      }
     }
 
+    // Reset the data structure
     chunks_.clear();
     numBytes_ = 0;
   }
