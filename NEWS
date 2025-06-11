@@ -20,6 +20,10 @@ Maintenance
   In Orthanc 1.12.6 and 1.12.7, "RejectSopClasses" was used instead of the expected
   "RejectedSopClasses" spelling.
 * Fix the re-encoding of DICOM files larger than 4GB
+* Improved translations of HTTP error codes when a plugin calls the core Rest API.
+  e.g., a plugin could receive an error 17:OrthancPluginErrorCode_UnknownResource when the underlying
+  Rest handler was actually returning an HTTP error 415.  The plugin will now receive an
+  error 3000:OrthancPluginErrorCode_UnsupportedMediaType.
 
 
 REST API
