@@ -192,7 +192,7 @@ namespace Orthanc
 
                   if (e.GetErrorCode() == ErrorCode_InexistentTag)
                   {
-                    FromDcmtkBridge::LogMissingTagsForStore(**imageDataSet);
+                    LOG(ERROR) << FromDcmtkBridge::FormatMissingTagsForStore(**imageDataSet);
                   }
                   else
                   {
