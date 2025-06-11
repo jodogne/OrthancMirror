@@ -42,6 +42,12 @@ void PendingDeletionsDatabase::Setup()
     if (!db_.DoesTableExist("Pending"))
     {
       db_.Execute("CREATE TABLE Pending(uuid TEXT, type INTEGER)");
+      
+      // New in v 1.12.7+
+      // add an index on uuid to speed up the DELETE FROM Pending WHERE uuid=?
+      // With this patch, we observed a 100 fold performance
+      // improvement when the Pending table contains 1-2 millions files.
+      db_.Execute("CREATE INDEX PendingIndex ON Pending(uuid)");
     }
     
     t.Commit();

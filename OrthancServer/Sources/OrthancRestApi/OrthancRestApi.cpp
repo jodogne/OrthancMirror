@@ -705,8 +705,8 @@ namespace Orthanc
     {
       call.GetDocumentation().SetHttpGetArgument(GET_RESPONSE_CONTENT, RestApiCallDocumentation::Type_String,
                             "Defines the content of response for each returned resource.  Allowed values are `MainDicomTags`, "
-                            "`Metadata`, `Children`, `Parent`, `Labels`, `Status`, `IsStable`, `Attachments`.  If not specified, Orthanc "
-                            "will return `MainDicomTags`, `Metadata`, `Children`, `Parent`, `Labels`, `Status`, `IsStable`."
+                            "`Metadata`, `Children`, `Parent`, `Labels`, `Status`, `IsStable`, `IsProtected`, `Attachments`.  If not specified, Orthanc "
+                            "will return `MainDicomTags`, `Metadata`, `Children`, `Parent`, `Labels`, `Status`, `IsStable`, `IsProtected`."
                             "e.g: '" + GET_RESPONSE_CONTENT + "=MainDicomTags;Children "
                             "(new in Orthanc 1.12.5 - overrides `expand`)", false);
 
@@ -719,8 +719,8 @@ namespace Orthanc
       call.GetDocumentation().SetRequestField(POST_RESPONSE_CONTENT, RestApiCallDocumentation::Type_JsonListOfStrings,
                             "Defines the content of response for each returned resource. (this field, if present, overrides the \"Expand\" field).  "
                             "Allowed values are `MainDicomTags`, "
-                            "`Metadata`, `Children`, `Parent`, `Labels`, `Status`, `IsStable`, `Attachments`.  If not specified, Orthanc "
-                            "will return `MainDicomTags`, `Metadata`, `Children`, `Parent`, `Labels`, `Status`, `IsStable`."
+                            "`Metadata`, `Children`, `Parent`, `Labels`, `Status`, `IsStable`, `IsProtected`, `Attachments`.  If not specified, Orthanc "
+                            "will return `MainDicomTags`, `Metadata`, `Children`, `Parent`, `Labels`, `Status`, `IsStable`, `IsProtected`."
                             "(new in Orthanc 1.12.5)", false);
 
       call.GetDocumentation().SetRequestField(POST_EXPAND, RestApiCallDocumentation::Type_Boolean,

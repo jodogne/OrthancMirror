@@ -394,6 +394,14 @@ namespace Orthanc
       }
     }
 
+    if (responseContent_ & ResponseContentFlags_IsProtected)
+    {
+      if (resource.GetLevel() == ResourceType_Patient )
+      {
+        target["IsProtected"] = index.IsProtectedPatient(resource.GetIdentifier());
+      }
+    }
+
     if (responseContent_ & ResponseContentFlags_MainDicomTags)
     {
       DicomMap allMainDicomTags;
