@@ -3200,6 +3200,12 @@ namespace Orthanc
     return db_.GetDatabaseCapabilities().HasFindSupport();
   }
 
+  bool StatelessDatabaseOperations::HasAttachmentCustomDataSupport()
+  {
+    boost::shared_lock<boost::shared_mutex> lock(mutex_);
+    return db_.GetDatabaseCapabilities().HasAttachmentCustomDataSupport();
+  }
+
   bool StatelessDatabaseOperations::HasKeyValueStoresSupport()
   {
     boost::shared_lock<boost::shared_mutex> lock(mutex_);
@@ -3589,9 +3595,9 @@ namespace Orthanc
     return operations.HasFound();
   }
 
-  void StatelessDatabaseOperations::UpdateAttachmentCustomData(const std::string& attachmentUuid,
-                                                               const void* customData,
-                                                               size_t customDataSize)
+  void StatelessDatabaseOperations::SetAttachmentCustomData(const std::string& attachmentUuid,
+                                                            const void* customData,
+                                                            size_t customDataSize)
   {
     class Operations : public IReadWriteOperations
     {
@@ -3612,7 +3618,7 @@ namespace Orthanc
 
       virtual void Apply(ReadWriteTransaction& transaction) ORTHANC_OVERRIDE
       {
-        transaction.UpdateAttachmentCustomData(attachmentUuid_, customData_, customDataSize_);
+        transaction.SetAttachmentCustomData(attachmentUuid_, customData_, customDataSize_);
       }
     };
 

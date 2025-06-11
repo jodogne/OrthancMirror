@@ -338,7 +338,7 @@ enum TransactionOperation {
   OPERATION_DEQUEUE_VALUE = 58;               // New in Orthanc 1.12.8
   OPERATION_GET_QUEUE_SIZE = 59;              // New in Orthanc 1.12.8
   OPERATION_GET_ATTACHMENT = 60;              // New in Orthanc 1.12.8
-  OPERATION_UPDATE_ATTACHMENT_CUSTOM_DATA = 61;  // New in Orthanc 1.12.8
+  OPERATION_SET_ATTACHMENT_CUSTOM_DATA = 61;  // New in Orthanc 1.12.8
 
 }
 
@@ -1087,7 +1087,7 @@ message GetAttachment {
   }
 }
 
-message UpdateAttachmentCustomData {
+message SetAttachmentCustomData {
   message Request {
     string uuid = 1;
     bytes custom_data = 2;
@@ -1162,7 +1162,7 @@ message TransactionRequest {
   DequeueValue.Request                    dequeue_value = 158;
   GetQueueSize.Request                    get_queue_size = 159;
   GetAttachment.Request                   get_attachment = 160;
-  UpdateAttachmentCustomData.Request      update_attachment_custom_data = 161;
+  SetAttachmentCustomData.Request         set_attachment_custom_data = 161;
 }
 
 message TransactionResponse {
@@ -1227,7 +1227,7 @@ message TransactionResponse {
   DequeueValue.Response                    dequeue_value = 158;
   GetQueueSize.Response                    get_queue_size = 159;
   GetAttachment.Response                   get_attachment = 160;
-  UpdateAttachmentCustomData.Response      update_attachment_custom_data = 161;
+  SetAttachmentCustomData.Response         set_attachment_custom_data = 161;
 }
 
 enum RequestType {
