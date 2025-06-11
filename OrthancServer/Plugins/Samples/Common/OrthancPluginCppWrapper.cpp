@@ -1566,7 +1566,7 @@ namespace OrthancPlugins
     {
       if (!answer.IsEmpty())
       {
-        result.assign(answer.GetData(), answer.GetSize());
+        result.assign(reinterpret_cast<const char*>(answer.GetData()), answer.GetSize());
       }
       return true;
     }

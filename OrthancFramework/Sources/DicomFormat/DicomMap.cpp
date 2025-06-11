@@ -43,6 +43,7 @@
 #if !defined(__EMSCRIPTEN__)
 // Multithreading is not supported in WebAssembly
 #  include <boost/thread/shared_mutex.hpp>
+#  include <boost/thread/lock_types.hpp>  // For boost::unique_lock<> and boost::shared_lock<>
 #endif
 
 namespace Orthanc
