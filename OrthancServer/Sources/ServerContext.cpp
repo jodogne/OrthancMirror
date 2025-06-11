@@ -846,7 +846,7 @@ namespace Orthanc
     {
       if (e.GetErrorCode() == ErrorCode_InexistentTag)
       {
-        summary.LogMissingTagsForStore();
+        LOG(ERROR) << summary.FormatMissingTagsForStore();
       }
       
       throw;

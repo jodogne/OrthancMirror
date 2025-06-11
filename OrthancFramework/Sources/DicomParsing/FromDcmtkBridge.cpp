@@ -3275,7 +3275,7 @@ namespace Orthanc
   }
 
 
-  void FromDcmtkBridge::LogMissingTagsForStore(DcmDataset& dicom)
+  std::string FromDcmtkBridge::FormatMissingTagsForStore(DcmDataset& dicom)
   {
     std::string patientId, studyInstanceUid, seriesInstanceUid, sopInstanceUid;
 
@@ -3307,7 +3307,7 @@ namespace Orthanc
       sopInstanceUid.assign(c);
     }
     
-    DicomMap::LogMissingTagsForStore(patientId, studyInstanceUid, seriesInstanceUid, sopInstanceUid);
+    return DicomMap::FormatMissingTagsForStore(patientId, studyInstanceUid, seriesInstanceUid, sopInstanceUid);
   }
 
 
