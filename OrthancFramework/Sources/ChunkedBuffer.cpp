@@ -25,6 +25,8 @@
 #include "PrecompiledHeaders.h"
 #include "ChunkedBuffer.h"
 
+#include "OrthancException.h"
+
 #include <cassert>
 #include <string.h>
 
@@ -54,7 +56,16 @@ namespace Orthanc
     else
     {
       assert(chunkData != NULL);
-      chunks_.push_back(new std::string(reinterpret_cast<const char*>(chunkData), chunkSize));
+
+      try
+      {
+        chunks_.push_back(new std::string(reinterpret_cast<const char*>(chunkData), chunkSize));
+      }
+      catch (...)
+      {
+        throw OrthancException(ErrorCode_NotEnoughMemory);
+      }
+
       numBytes_ += chunkSize;
     }
   }
@@ -172,7 +183,15 @@ namespace Orthanc
   void ChunkedBuffer::Flatten(std::string& result)
   {
     FlushPendingBuffer();
-    result.resize(numBytes_);
+
+    try
+    {
+      result.resize(numBytes_);
+    }
+    catch (...)
+    {
+      throw OrthancException(ErrorCode_NotEnoughMemory);
+    }
 
     size_t pos = 0;
     for (Chunks::iterator it = chunks_.begin(); 
