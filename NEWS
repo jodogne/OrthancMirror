@@ -16,10 +16,10 @@ Maintenance
     Patch provided by Yurii (George) from ivtech.dev.
     With this patch, we observed a 100 fold performance improvement when the 
     "Pending" table contains 1-2 millions files.
-      
 * Configuration options "RejectSopClasses" and "RejectedSopClasses" are taken as synonyms.
   In Orthanc 1.12.6 and 1.12.7, "RejectSopClasses" was used instead of the expected
   "RejectedSopClasses" spelling.
+* Fix the re-encoding of DICOM files larger than 4GB
 
 
 REST API

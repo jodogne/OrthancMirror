@@ -38,6 +38,7 @@
 
 #include "FromDcmtkBridge.h"
 #include "ToDcmtkBridge.h"
+#include "../ChunkedBuffer.h"
 #include "../Compatibility.h"
 #include "../Logging.h"
 #include "../Toolbox.h"
@@ -163,6 +164,73 @@ namespace Orthanc
 #endif
   }
 #endif
+
+
+  namespace
+  {
+    class ChunkedBufferStream : public DcmOutputStream
+    {
+    private:
+      class Consumer : public DcmConsumer
+      {
+      private:
+        ChunkedBuffer  buffer_;
+
+      public:
+        void Flatten(std::string& buffer)
+        {
+          buffer_.Flatten(buffer);
+        }
+
+        OFBool good() const ORTHANC_OVERRIDE
+        {
+          return true;
+        }
+
+        OFCondition status() const ORTHANC_OVERRIDE
+        {
+          return EC_Normal;
+        }
+
+        OFBool isFlushed() const ORTHANC_OVERRIDE
+        {
+          return true;
+        }
+
+        offile_off_t avail() const ORTHANC_OVERRIDE
+        {
+          // since we cannot report "unlimited", let's claim that we can still write 10MB.
+          // Note that offile_off_t is a signed type.
+          return 10 * 1024 * 1024;
+        }
+
+        offile_off_t write(const void *buf,
+                           offile_off_t buflen) ORTHANC_OVERRIDE
+        {
+          buffer_.AddChunk(buf, buflen);
+          return buflen;
+        }
+
+        void flush() ORTHANC_OVERRIDE
+        {
+          // Nothing to flush
+        }
+      };
+
+      Consumer consumer_;
+
+    public:
+      ChunkedBufferStream() :
+        DcmOutputStream(&consumer_)
+      {
+      }
+
+      void Flatten(std::string& buffer)
+      {
+        consumer_.Flatten(buffer);
+      }
+    };
+  }
 
 
   namespace
@@ -1572,7 +1640,12 @@ namespace Orthanc
   }
 
 
-  
+#if 0
+  /**
+   * This was the implementation in Orthanc <= 1.12.7. This version
+   * uses "DcmFileFormat::calcElementLength()", which cannot handle
+   * DICOM files whose size cannot be represented on 32 bits.
+   **/
   static bool SaveToMemoryBufferInternal(std::string& buffer,
                                          DcmFileFormat& dicom,
                                          E_TransferSyntax xfer,
@@ -1619,6 +1692,46 @@ namespace Orthanc
       return false;
     }
   }
+#endif
+
+
+#if 1
+  /**
+   * This is the cleaner implementation used in Orthanc >= 1.12.8,
+   * which allows to write DICOM files larger than 4GB.
+   **/
+  static bool SaveToMemoryBufferInternal(std::string& buffer,
+                                         DcmFileFormat& dicom,
+                                         E_TransferSyntax xfer,
+                                         std::string& errorMessage)
+  {
+    ChunkedBufferStream ob;
+
+    // Fill the (chunked) memory buffer with the meta-header and the dataset
+    dicom.transferInit();
+    OFCondition c = dicom.write(ob, xfer, /*opt_sequenceType*/ EET_ExplicitLength, NULL,
+                                /*opt_groupLength*/ EGL_recalcGL,
+                                /*opt_paddingType*/ EPD_noChange,
+                                /*padlen*/ 0, /*subPadlen*/ 0, /*instanceLength*/ 0,
+                                EWM_updateMeta /* creates new SOP instance UID on lossy */);
+    dicom.transferEnd();
+
+    if (c.good())
+    {
+      ob.flush();
+      ob.Flatten(buffer);
+      return true;
+    }
+    else
+    {
+      // Error
+      buffer.clear();
+      errorMessage = std::string(c.text());
+      return false;
+    }
+  }
+#endif
+
 
   bool FromDcmtkBridge::SaveToMemoryBuffer(std::string& buffer,
                                            DcmDataset& dataSet)
