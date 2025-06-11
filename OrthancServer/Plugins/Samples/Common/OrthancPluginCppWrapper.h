@@ -235,11 +235,11 @@ namespace OrthancPlugins
 
     OrthancPluginMemoryBuffer Release();
 
-    const char* GetData() const
+    const void* GetData() const
     {
       if (buffer_.size > 0)
       {
-        return reinterpret_cast<const char*>(buffer_.data);
+        return buffer_.data;
       }
       else
       {

@@ -3362,6 +3362,10 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_UnknownResource);
     }
+    else if (intHttpStatus == 415)
+    {
+      throw OrthancException(ErrorCode_UnsupportedMediaType);
+    }
     else
     {
       throw OrthancException(ErrorCode_BadRequest);

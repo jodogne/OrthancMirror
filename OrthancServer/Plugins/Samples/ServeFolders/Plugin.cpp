@@ -221,7 +221,7 @@ void ServeFolder(OrthancPluginRestOutput* output,
       OrthancPluginSetHttpHeader(OrthancPlugins::GetGlobalContext(),
                                  output, "Last-Modified", t.c_str());
 
-      Answer(output, content.GetData(), content.GetSize(), mime);
+      Answer(output, reinterpret_cast<const char*>(content.GetData()), content.GetSize(), mime);
     }
   }
 }
