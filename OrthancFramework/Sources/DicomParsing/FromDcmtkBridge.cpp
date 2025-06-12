@@ -58,7 +58,6 @@
 
 #include <dcmtk/dcmdata/dcdeftag.h>
 #include <dcmtk/dcmdata/dcdicent.h>
-#include <dcmtk/dcmdata/dcdict.h>
 #include <dcmtk/dcmdata/dcfilefo.h>
 #include <dcmtk/dcmdata/dcistrmb.h>
 #include <dcmtk/dcmdata/dcostrmb.h>
@@ -127,6 +126,38 @@ static bool hasExternalDictionaries_ = false;
 
 namespace Orthanc
 {
+  FromDcmtkBridge::DictionaryWriterLock::DictionaryWriterLock() :
+    dictionary_(dcmDataDict.wrlock())
+  {
+  }
+
+
+  FromDcmtkBridge::DictionaryWriterLock::~DictionaryWriterLock()
+  {
+#if DCMTK_VERSION_NUMBER >= 364
+    dcmDataDict.wrunlock();
+#else
+    dcmDataDict.unlock();
+#endif
+  }
+
+
+  FromDcmtkBridge::DictionaryReaderLock::DictionaryReaderLock() :
+    dictionary_(dcmDataDict.rdlock())
+  {
+  }
+
+
+  FromDcmtkBridge::DictionaryReaderLock::~DictionaryReaderLock()
+  {
+#if DCMTK_VERSION_NUMBER >= 364
+    dcmDataDict.rdunlock();
+#else
+    dcmDataDict.unlock();
+#endif
+  }
+
+
   static bool IsBinaryTag(const DcmTag& key)
   {
     return (key.isUnknownVR() ||
@@ -235,37 +266,6 @@ namespace Orthanc
 
   namespace
   {
-    class DictionaryLocker : public boost::noncopyable
-    {
-    private:
-      DcmDataDictionary& dictionary_;
-
-    public:
-      DictionaryLocker() : dictionary_(dcmDataDict.wrlock())
-      {
-      }
-
-      ~DictionaryLocker()
-      {
-#if DCMTK_VERSION_NUMBER >= 364
-        dcmDataDict.wrunlock();
-#else
-        dcmDataDict.unlock();
-#endif
-      }
-
-      DcmDataDictionary& operator*()
-      {
-        return dictionary_;
-      }
-
-      DcmDataDictionary* operator->()
-      {
-        return &dictionary_;
-      }
-    };
-
-    
     ORTHANC_FORCE_INLINE
     static std::string FloatToString(float v)
     {
@@ -364,9 +364,9 @@ namespace Orthanc
     
 #if DCMTK_USE_EMBEDDED_DICTIONARIES == 1
     {
-      DictionaryLocker locker;
+      DictionaryWriterLock lock;
 
-      locker->clear();
+      lock.GetDictionary().clear();
 
       CLOG(INFO, DICOM) << "Loading the embedded dictionaries";
       /**
@@ -374,14 +374,14 @@ namespace Orthanc
        * command "strace storescu 2>&1 |grep dic" shows that DICONDE
        * dictionary is not loaded by storescu.
        **/
-      //LoadEmbeddedDictionary(*locker, FrameworkResources::DICTIONARY_DICONDE);
+      //LoadEmbeddedDictionary(*lock, FrameworkResources::DICTIONARY_DICONDE);
 
-      LoadEmbeddedDictionary(*locker, FrameworkResources::DICTIONARY_DICOM);
+      LoadEmbeddedDictionary(*lock, FrameworkResources::DICTIONARY_DICOM);
 
       if (loadPrivateDictionary)
       {
         CLOG(INFO, DICOM) << "Loading the embedded dictionary of private tags";
-        LoadEmbeddedDictionary(*locker, FrameworkResources::DICTIONARY_PRIVATE);
+        LoadEmbeddedDictionary(*lock, FrameworkResources::DICTIONARY_PRIVATE);
       }
       else
       {
@@ -441,16 +441,16 @@ namespace Orthanc
 
   void FromDcmtkBridge::LoadExternalDictionaries(const std::vector<std::string>& dictionaries)
   {
-    DictionaryLocker locker;
+    DictionaryWriterLock lock;
 
     CLOG(INFO, DICOM) << "Clearing the DICOM dictionary";
-    locker->clear();
+    lock.GetDictionary().clear();
 
     for (size_t i = 0; i < dictionaries.size(); i++)
     {
       LOG(WARNING) << "Loading external DICOM dictionary: \"" << dictionaries[i] << "\"";
         
-      if (!locker->loadDictionary(dictionaries[i].c_str()))
+      if (!lock.GetDictionary().loadDictionary(dictionaries[i].c_str()))
       {
         throw OrthancException(ErrorCode_InexistentFile);
       }
@@ -543,10 +543,10 @@ namespace Orthanc
     entry->setElementRangeRestriction(DcmDictRange_Unspecified);
 
     {
-      DictionaryLocker locker;
+      DictionaryWriterLock lock;
 
-      if (locker->findEntry(DcmTagKey(tag.GetGroup(), tag.GetElement()),
-                            privateCreator.empty() ? NULL : privateCreator.c_str()))
+      if (lock.GetDictionary().findEntry(DcmTagKey(tag.GetGroup(), tag.GetElement()),
+                                         privateCreator.empty() ? NULL : privateCreator.c_str()))
       {
         throw OrthancException(ErrorCode_AlreadyExistingTag,
                                "Cannot register twice the tag (" + tag.Format() +
@@ -554,7 +554,7 @@ namespace Orthanc
       }
       else
       {
-        locker->addEntry(entry.release());
+        lock.GetDictionary().addEntry(entry.release());
       }
     }
   }
@@ -731,10 +731,11 @@ namespace Orthanc
        * syntax (cf. DICOM CP 246).
        * ftp://medical.nema.org/medical/dicom/final/cp246_ft.pdf
        **/
-      DictionaryLocker locker;
-      
-      const DcmDictEntry* entry = locker->findEntry(element.getTag().getXTag(), 
-                                                    element.getTag().getPrivateCreator());
+      DictionaryReaderLock lock;
+
+      // The "entry" value is only valid while "lock" is active
+      const DcmDictEntry* entry = lock.GetDictionary().findEntry(element.getTag().getXTag(),
+                                                                 element.getTag().getPrivateCreator());
       if (entry != NULL && 
           entry->getVR().isaString())
       {
@@ -1179,8 +1180,8 @@ namespace Orthanc
 
       if (!(flags & DicomToJsonFlags_IncludeUnknownTags))
       {
-        DictionaryLocker locker;
-        if (locker->findEntry(element->getTag(), element->getTag().getPrivateCreator()) == NULL)
+        DictionaryReaderLock lock;
+        if (lock.GetDictionary().findEntry(element->getTag(), element->getTag().getPrivateCreator()) == NULL)
         {
           continue;
         }
@@ -2759,10 +2760,11 @@ namespace Orthanc
     if (evr == EVR_UN)
     {
       // New in Orthanc 1.9.5
-      DictionaryLocker locker;
-      
-      const DcmDictEntry* entry = locker->findEntry(element.getTag().getXTag(),
-                                                    element.getTag().getPrivateCreator());
+      FromDcmtkBridge::DictionaryReaderLock lock;
+
+      // The "entry" value is only valid while "lock" is active
+      const DcmDictEntry* entry = lock.GetDictionary().findEntry(element.getTag().getXTag(),
+                                                                 element.getTag().getPrivateCreator());
 
       if (entry != NULL)
       {
