@@ -3565,35 +3565,23 @@ namespace Orthanc
   }
 
 
-  bool StatelessDatabaseOperations::GetAttachment(FileInfo& attachment,
-                                                  int64_t& revision,
-                                                  const std::string& attachmentUuid)
+  void StatelessDatabaseOperations::GetAttachmentCustomData(std::string& customData,
+                                                            const std::string& attachmentUuid)
   {
-    class Operations : public ReadOnlyOperationsT3<FileInfo&, int64_t&, const std::string& >
+    class Operations : public ReadOnlyOperationsT2<std::string&, const std::string& >
     {
-      bool found_;
     public:
-      Operations():
-        found_(false)
-      {}
-
-      bool HasFound()
-      {
-        return found_;
-      }
-
       virtual void ApplyTuple(ReadOnlyTransaction& transaction,
                               const Tuple& tuple) ORTHANC_OVERRIDE
       {
-        found_ = transaction.GetAttachment(tuple.get<0>(), tuple.get<1>(), tuple.get<2>());
+        transaction.GetAttachmentCustomData(tuple.get<0>(), tuple.get<1>());
       }
     };
 
     Operations operations;
-    operations.Apply(*this, attachment, revision, attachmentUuid);
-
-    return operations.HasFound();
+    operations.Apply(*this, customData, attachmentUuid);
   }
+
 
   void StatelessDatabaseOperations::SetAttachmentCustomData(const std::string& attachmentUuid,
                                                             const void* customData,
@@ -3625,6 +3613,7 @@ namespace Orthanc
     Operations operations(attachmentUuid, customData, customDataSize);
     Apply(operations);
   }
+
 
   StatelessDatabaseOperations::KeysValuesIterator::KeysValuesIterator(StatelessDatabaseOperations& db,
                                                                       const std::string& storeId) :

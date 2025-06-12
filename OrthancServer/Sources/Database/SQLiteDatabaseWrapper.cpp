@@ -1824,37 +1824,33 @@ namespace Orthanc
       }
     }
 
-    virtual bool GetAttachment(FileInfo& attachment,
-                               int64_t& revision,
-                               const std::string& attachmentUuid) ORTHANC_OVERRIDE
+    virtual void GetAttachmentCustomData(std::string& customData,
+                                         const std::string& attachmentUuid) ORTHANC_OVERRIDE
     {
       SQLite::Statement s(db_, SQLITE_FROM_HERE, 
-                          "SELECT uuid, uncompressedSize, compressionType, compressedSize, "
-                          "uncompressedMD5, compressedMD5, revision, customData, fileType FROM AttachedFiles WHERE uuid=?");
+                          "SELECT customData FROM AttachedFiles WHERE uuid=?");
       s.BindString(0, attachmentUuid);
 
       if (!s.Step())
       {
-        return false;
+        throw OrthancException(ErrorCode_UnknownResource);
       }
       else
       {
-        attachment = FileInfo(s.ColumnString(0),
-                              static_cast<FileContentType>(s.ColumnInt(8)),
-                              s.ColumnInt64(1),
-                              s.ColumnString(4),
-                              static_cast<CompressionType>(s.ColumnInt(2)),
-                              s.ColumnInt64(3),
-                              s.ColumnString(5));
-        ReadCustomData(attachment, s, 7);
-        revision = s.ColumnInt(6);
-        return true;
+        if (s.ColumnIsNull(0))
+        {
+          customData.clear();
+        }
+        else if (!s.ColumnBlobAsString(0, &customData))
+        {
+          throw OrthancException(ErrorCode_InternalError);
+        }
       }
     }
 
-    virtual void UpdateAttachmentCustomData(const std::string& attachmentUuid,
-                                            const void* customData,
-                                            size_t customDataSize) ORTHANC_OVERRIDE
+    virtual void SetAttachmentCustomData(const std::string& attachmentUuid,
+                                         const void* customData,
+                                         size_t customDataSize) ORTHANC_OVERRIDE
     {
       SQLite::Statement s(db_, SQLITE_FROM_HERE, 
                           "UPDATE AttachedFiles SET customData=? WHERE uuid=?");

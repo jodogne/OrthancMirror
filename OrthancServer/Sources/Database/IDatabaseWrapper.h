@@ -286,13 +286,12 @@ namespace Orthanc
                                     int64_t id,
                                     FileContentType contentType) = 0;
 
-      virtual bool GetAttachment(FileInfo& attachment,
-                                 int64_t& revision,
-                                 const std::string& attachmentUuid) = 0;
+      virtual void GetAttachmentCustomData(std::string& customData,
+                                           const std::string& attachmentUuid) = 0;
 
-      virtual void UpdateAttachmentCustomData(const std::string& attachmentUuid,
-                                              const void* customData,
-                                              size_t customDataSize) = 0;
+      virtual void SetAttachmentCustomData(const std::string& attachmentUuid,
+                                           const void* customData,
+                                           size_t customDataSize) = 0;
 
       /**
        * If "shared" is "true", the property is shared by all the

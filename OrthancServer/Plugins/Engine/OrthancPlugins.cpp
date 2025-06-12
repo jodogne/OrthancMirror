@@ -4603,17 +4603,10 @@ namespace Orthanc
 
     CheckAttachmentCustomDataSupport(lock.GetContext());
 
-    FileInfo fileInfo;
-    int64_t revision;
-    
-    if (lock.GetContext().GetIndex().GetAttachment(fileInfo, revision, parameters.attachmentUuid))
-    {
-      CopyToMemoryBuffer(parameters.customData, fileInfo.GetCustomData());
-    }
-    else
-    {
-      throw OrthancException(ErrorCode_UnknownResource);
-    }
+    std::string customData;
+    lock.GetContext().GetIndex().GetAttachmentCustomData(customData, parameters.attachmentUuid);
+
+    CopyToMemoryBuffer(parameters.customData, customData);
   }
 
   void OrthancPlugins::ApplySetAttachmentCustomData(const _OrthancPluginSetAttachmentCustomData& parameters)
