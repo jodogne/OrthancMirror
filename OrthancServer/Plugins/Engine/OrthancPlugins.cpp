@@ -418,78 +418,45 @@ namespace Orthanc
   };
   
 
-  static void CopyToMemoryBuffer(OrthancPluginMemoryBuffer& target,
+  static void CopyToMemoryBuffer(OrthancPluginMemoryBuffer* target,
                                  const void* data,
                                  size_t size)
   {
-    if (static_cast<uint32_t>(size) != size)
-    {
-      throw OrthancException(ErrorCode_NotEnoughMemory, ERROR_MESSAGE_64BIT);
-    }
-
-    target.size = size;
-
-    if (size == 0)
-    {
-      target.data = NULL;
-    }
-    else
-    {
-      target.data = malloc(size);
-      if (target.data != NULL)
-      {
-        memcpy(target.data, data, size);
-      }
-      else
-      {
-        throw OrthancException(ErrorCode_NotEnoughMemory);
-      }
-    }
+    PluginMemoryBuffer32 buffer;
+    buffer.Assign(data, size);
+    buffer.Release(target);
   }
 
 
-  static void CopyToMemoryBuffer(OrthancPluginMemoryBuffer& target,
+  static void CopyToMemoryBuffer(OrthancPluginMemoryBuffer* target,
                                  const std::string& str)
   {
-    if (str.size() == 0)
-    {
-      target.size = 0;
-      target.data = NULL;
-    }
-    else
-    {
-      CopyToMemoryBuffer(target, str.c_str(), str.size());
-    }
+    PluginMemoryBuffer32 buffer;
+    buffer.Assign(str);
+    buffer.Release(target);
   }
 
 
   static char* CopyString(const std::string& str)
   {
-    if (static_cast<uint32_t>(str.size()) != str.size())
-    {
-      throw OrthancException(ErrorCode_NotEnoughMemory, ERROR_MESSAGE_64BIT);
-    }
-
     char *result = reinterpret_cast<char*>(malloc(str.size() + 1));
     if (result == NULL)
     {
       throw OrthancException(ErrorCode_NotEnoughMemory);
     }
 
-    if (str.size() == 0)
+    if (!str.empty())
     {
-      result[0] = '\0';
+      memcpy(result, str.c_str(), str.size());
     }
-    else
-    {
-      memcpy(result, &str[0], str.size() + 1);
-    }
+
+    result[str.size() - 1] = '\0';  // Add the null terminator of the string
 
     return result;
   }
 
 
-  static void CopyDictionary(OrthancPluginMemoryBuffer& target,
+  static void CopyDictionary(OrthancPluginMemoryBuffer* target,
                              const std::map<std::string, std::string>& dictionary)
   {
     Json::Value json = Json::objectValue;
@@ -500,8 +467,7 @@ namespace Orthanc
       json[it->first] = it->second;
     }
         
-    std::string s = json.toStyledString();
-    CopyToMemoryBuffer(target, s);
+    CopyToMemoryBuffer(target, json.toStyledString());
   }
 
 
@@ -1671,7 +1637,7 @@ namespace Orthanc
       }
     }
 
-    void GetDicomQuery(OrthancPluginMemoryBuffer& target) const
+    void GetDicomQuery(OrthancPluginMemoryBuffer* target) const
     {
       if (currentQuery_ == NULL)
       {
@@ -3180,7 +3146,7 @@ namespace Orthanc
       lock.GetContext().ReadDicom(dicom, p.instanceId);
     }
 
-    CopyToMemoryBuffer(*p.target, dicom);
+    CopyToMemoryBuffer(p.target, dicom);
   }
 
   static void ThrowOnHttpError(HttpStatus httpStatus)
@@ -3230,7 +3196,7 @@ namespace Orthanc
     std::string result;
 
     ThrowOnHttpError(IHttpHandler::SimpleGet(result, NULL, *handler, RequestOrigin_Plugins, p.uri, httpHeaders));
-    CopyToMemoryBuffer(*p.target, result);
+    CopyToMemoryBuffer(p.target, result);
   }
 
 
@@ -3261,7 +3227,7 @@ namespace Orthanc
     std::string result;
 
     ThrowOnHttpError(IHttpHandler::SimpleGet(result, NULL, *handler, RequestOrigin_Plugins, p.uri, headers));
-    CopyToMemoryBuffer(*p.target, result);
+    CopyToMemoryBuffer(p.target, result);
   }
 
 
@@ -3291,7 +3257,7 @@ namespace Orthanc
                                  p.body, p.bodySize, httpHeaders) :
         IHttpHandler::SimplePut(result, NULL, *handler, RequestOrigin_Plugins, p.uri,
                                 p.body, p.bodySize, httpHeaders)));
-    CopyToMemoryBuffer(*p.target, result);
+    CopyToMemoryBuffer(p.target, result);
   }
 
 
@@ -3585,7 +3551,7 @@ namespace Orthanc
       }
     }
 
-    CopyToMemoryBuffer(*p.target, result);
+    CopyToMemoryBuffer(p.target, result);
   }
 
 
@@ -3646,7 +3612,7 @@ namespace Orthanc
         MimeType mime;
         std::string frame;
         instance.GetParsedDicomFile().GetRawFrame(frame, mime, p.frameIndex);
-        CopyToMemoryBuffer(*p.targetBuffer, frame);
+        CopyToMemoryBuffer(p.targetBuffer, frame);
         return;
       }
         
@@ -3676,7 +3642,7 @@ namespace Orthanc
 
         p.targetBuffer->data = NULL;
         p.targetBuffer->size = 0;
-        CopyToMemoryBuffer(*p.targetBuffer, instance.GetBufferData(), instance.GetBufferSize());
+        CopyToMemoryBuffer(p.targetBuffer, instance.GetBufferData(), instance.GetBufferSize());
         return;
       }
 
@@ -3785,7 +3751,7 @@ namespace Orthanc
         throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
 
-    CopyToMemoryBuffer(*p.target, compressed.size() > 0 ? compressed.c_str() : NULL, compressed.size());
+    CopyToMemoryBuffer(p.target, compressed);
   }
 
 
@@ -3884,7 +3850,7 @@ namespace Orthanc
     // Copy the HTTP headers of the answer, if the plugin requested them
     if (answerHeaders != NULL)
     {
-      CopyDictionary(*answerHeaders, headers);
+      CopyDictionary(answerHeaders, headers);
     }
 
     // Copy the body of the answer if it makes sense
@@ -3894,7 +3860,7 @@ namespace Orthanc
       {
         if (answerBody != NULL)
         {
-          CopyToMemoryBuffer(*answerBody, body);
+          CopyToMemoryBuffer(answerBody, body);
         }
       }
       catch (OrthancException&)
@@ -4105,14 +4071,14 @@ namespace Orthanc
 
     if (p.answerHeaders != NULL)
     {
-      CopyDictionary(*p.answerHeaders, answerHeaders);
+      CopyDictionary(p.answerHeaders, answerHeaders);
     }
 
     try
     {
       if (p.answerBody != NULL)
       {
-        CopyToMemoryBuffer(*p.answerBody, answerBody);
+        CopyToMemoryBuffer(p.answerBody, answerBody);
       }
     }
     catch (OrthancException&)
@@ -4190,7 +4156,7 @@ namespace Orthanc
     // Copy the HTTP headers of the answer, if the plugin requested them
     if (p.answerHeaders != NULL)
     {
-      CopyDictionary(*p.answerHeaders, headers);
+      CopyDictionary(p.answerHeaders, headers);
     }
 
     // Copy the body of the answer if it makes sense
@@ -4200,7 +4166,7 @@ namespace Orthanc
       {
         if (p.answerBody != NULL)
         {
-          CopyToMemoryBuffer(*p.answerBody, body);
+          CopyToMemoryBuffer(p.answerBody, body);
         }
       }
       catch (OrthancException&)
@@ -4351,7 +4317,7 @@ namespace Orthanc
       file->SaveToMemoryBuffer(dicom);
     }
 
-    CopyToMemoryBuffer(*parameters.target, dicom);
+    CopyToMemoryBuffer(parameters.target, dicom);
   }
 
 
@@ -4908,7 +4874,7 @@ namespace Orthanc
 
         std::string content;
         SystemToolbox::ReadFile(content, p.path);
-        CopyToMemoryBuffer(*p.target, content.size() > 0 ? content.c_str() : NULL, content.size());
+        CopyToMemoryBuffer(p.target, content);
 
         return true;
       }
@@ -5040,7 +5006,7 @@ namespace Orthanc
           *reinterpret_cast<const _OrthancPluginStorageAreaRead*>(parameters);
         IStorageArea& storage = *reinterpret_cast<IStorageArea*>(p.storageArea);
         std::unique_ptr<IMemoryBuffer> content(storage.Read(p.uuid, Plugins::Convert(p.type)));
-        CopyToMemoryBuffer(*p.target, content->GetData(), content->GetSize());
+        CopyToMemoryBuffer(p.target, content->GetData(), content->GetSize());
         return true;
       }
 
@@ -5103,7 +5069,7 @@ namespace Orthanc
       {
         const _OrthancPluginWorklistQueryOperation& p =
           *reinterpret_cast<const _OrthancPluginWorklistQueryOperation*>(parameters);
-        reinterpret_cast<const WorklistHandler*>(p.query)->GetDicomQuery(*p.target);
+        reinterpret_cast<const WorklistHandler*>(p.query)->GetDicomQuery(p.target);
         return true;
       }
 
@@ -5486,20 +5452,10 @@ namespace Orthanc
         const _OrthancPluginCreateMemoryBuffer& p =
           *reinterpret_cast<const _OrthancPluginCreateMemoryBuffer*>(parameters);
 
-        p.target->data = NULL;
-        p.target->size = 0;
-        
-        if (p.size != 0)
-        {
-          p.target->data = malloc(p.size);
-          if (p.target->data == NULL)
-          {
-            throw OrthancException(ErrorCode_NotEnoughMemory);
-          }
+        PluginMemoryBuffer32 buffer;
+        buffer.Resize(p.size);
+        buffer.Release(p.target);
 
-          p.target->size = p.size;
-        }          
-        
         return true;
       }
 
