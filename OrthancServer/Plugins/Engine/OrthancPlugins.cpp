@@ -2258,16 +2258,16 @@ namespace Orthanc
         sizeof(int32_t) != sizeof(OrthancPluginContentType) ||
         sizeof(int32_t) != sizeof(OrthancPluginResourceType) ||
         sizeof(int32_t) != sizeof(OrthancPluginChangeType) ||
-        sizeof(int32_t) != sizeof(OrthancPluginImageFormat) ||
         sizeof(int32_t) != sizeof(OrthancPluginCompressionType) ||
+        sizeof(int32_t) != sizeof(OrthancPluginImageFormat) ||
         sizeof(int32_t) != sizeof(OrthancPluginValueRepresentation) ||
         sizeof(int32_t) != sizeof(OrthancPluginDicomToJsonFlags) ||
         sizeof(int32_t) != sizeof(OrthancPluginDicomToJsonFormat) ||
         sizeof(int32_t) != sizeof(OrthancPluginCreateDicomFlags) ||
-        sizeof(int32_t) != sizeof(_OrthancPluginDatabaseAnswerType) ||
         sizeof(int32_t) != sizeof(OrthancPluginIdentifierConstraint) ||
         sizeof(int32_t) != sizeof(OrthancPluginInstanceOrigin) ||
         sizeof(int32_t) != sizeof(OrthancPluginJobStepStatus) ||
+        sizeof(int32_t) != sizeof(OrthancPluginJobStopReason) ||
         sizeof(int32_t) != sizeof(OrthancPluginConstraintType) ||
         sizeof(int32_t) != sizeof(OrthancPluginMetricsType) ||
         sizeof(int32_t) != sizeof(OrthancPluginDicomWebBinaryMode) ||
@@ -2276,6 +2276,14 @@ namespace Orthanc
         sizeof(int32_t) != sizeof(OrthancPluginLoadDicomInstanceMode) ||
         sizeof(int32_t) != sizeof(OrthancPluginLogLevel) ||
         sizeof(int32_t) != sizeof(OrthancPluginLogCategory) ||
+        sizeof(int32_t) != sizeof(OrthancPluginStoreStatus) ||
+        sizeof(int32_t) != sizeof(OrthancPluginQueueOrigin) ||
+
+        // From OrthancCDatabasePlugin.h
+        sizeof(int32_t) != sizeof(_OrthancPluginDatabaseAnswerType) ||
+        sizeof(int32_t) != sizeof(OrthancPluginDatabaseTransactionType) ||
+        sizeof(int32_t) != sizeof(OrthancPluginDatabaseEventType) ||
+
         static_cast<int>(OrthancPluginDicomToJsonFlags_IncludeBinary) != static_cast<int>(DicomToJsonFlags_IncludeBinary) ||
         static_cast<int>(OrthancPluginDicomToJsonFlags_IncludePrivateTags) != static_cast<int>(DicomToJsonFlags_IncludePrivateTags) ||
         static_cast<int>(OrthancPluginDicomToJsonFlags_IncludeUnknownTags) != static_cast<int>(DicomToJsonFlags_IncludeUnknownTags) ||
@@ -4532,61 +4540,30 @@ namespace Orthanc
     reinterpret_cast<PImpl::PluginHttpOutput*>(p.output)->SendMultipartItem(p.answer, p.answerSize, headers);
   }
 
-  // static FileInfo CreateFileInfoFromPluginAttachment(OrthancPluginAttachment* attachment)
-  // {
-  //   return FileInfo(attachment->uuid,
-  //                   Orthanc::Plugins::Convert(attachment->contentType),
-  //                   attachment->uncompressedSize,
-  //                   attachment->uncompressedHash
-  //                                        )    fileInfo()
-  // }
-
-  static void Convert(FileInfo& info,
-                      const OrthancPluginAttachment2& attachment)
+  void OrthancPlugins::ApplyAdoptDicomInstance(const _OrthancPluginAdoptDicomInstance& parameters)
   {
-    std::string uuid;
-    if (attachment.uuid != NULL)
+    std::string md5;
+    Toolbox::ComputeMD5(md5, parameters.buffer, parameters.bufferSize);
+
+    std::unique_ptr<DicomInstanceToStore> dicom(DicomInstanceToStore::CreateFromBuffer(parameters.buffer, parameters.bufferSize));
+    dicom->SetOrigin(DicomInstanceOrigin::FromPlugins());
+
+    const std::string attachmentUuid = Toolbox::GenerateUuid();
+
+    FileInfo adoptedFile(attachmentUuid, FileContentType_Dicom, parameters.bufferSize, md5);
+    adoptedFile.SetCustomData(parameters.customData, parameters.customDataSize);
+
+    std::string instanceId;
+    ServerContext::StoreResult result;
+
     {
-      uuid = attachment.uuid;
-    }
-    else
-    {
-      uuid = Toolbox::GenerateUuid();
+      PImpl::ServerContextReference lock(*pimpl_);
+      result = lock.GetContext().AdoptDicomInstance(instanceId, *dicom, StoreInstanceMode_Default, adoptedFile);
     }
 
-    info = FileInfo(uuid,
-                    Orthanc::Plugins::Convert(static_cast<OrthancPluginContentType>(attachment.contentType)),
-                    attachment.uncompressedSize,
-                    attachment.uncompressedHash,
-                    Orthanc::Plugins::Convert(static_cast<OrthancPluginCompressionType>(attachment.compressionType)),
-                    attachment.compressedSize,
-                    attachment.compressedHash);
-
-    if (attachment.customData != NULL)
-    {
-      info.SetCustomData(attachment.customData, attachment.customDataSize);
-    }
-  }
-
-  void OrthancPlugins::ApplyAdoptAttachment(const _OrthancPluginAdoptAttachment& parameters)
-  {
-    PImpl::ServerContextReference lock(*pimpl_);
-    FileInfo adoptedFile;
-    Convert(adoptedFile, *parameters.attachmentInfo);
-
-    if (adoptedFile.GetContentType() == FileContentType_Dicom)
-    {
-      std::unique_ptr<DicomInstanceToStore> dicom(DicomInstanceToStore::CreateFromBuffer(parameters.buffer, parameters.bufferSize));
-      dicom->SetOrigin(DicomInstanceOrigin::FromPlugins());
-
-      std::string resultPublicId;
-
-      ServerContext::StoreResult result = lock.GetContext().AdoptAttachment(resultPublicId, *dicom, StoreInstanceMode_Default, adoptedFile);
-
-      CopyToMemoryBuffer(parameters.attachmentUuid, adoptedFile.GetUuid());
-      CopyToMemoryBuffer(parameters.createdResourceId, resultPublicId);
-      *(parameters.storeStatus) = Plugins::Convert(result.GetStatus());
-    }
+    CopyToMemoryBuffer(parameters.attachmentUuid, attachmentUuid);
+    CopyToMemoryBuffer(parameters.instanceId, instanceId);
+    *(parameters.storeStatus) = Plugins::Convert(result.GetStatus());
   }
 
   static void CheckAttachmentCustomDataSupport(ServerContext& context)
@@ -5740,10 +5717,10 @@ namespace Orthanc
         return true;
       }
 
-      case _OrthancPluginService_AdoptAttachment:
+      case _OrthancPluginService_AdoptDicomInstance:
       {
-        const _OrthancPluginAdoptAttachment& p = *reinterpret_cast<const _OrthancPluginAdoptAttachment*>(parameters);
-        ApplyAdoptAttachment(p);
+        const _OrthancPluginAdoptDicomInstance& p = *reinterpret_cast<const _OrthancPluginAdoptDicomInstance*>(parameters);
+        ApplyAdoptDicomInstance(p);
         return true;
       }
 
