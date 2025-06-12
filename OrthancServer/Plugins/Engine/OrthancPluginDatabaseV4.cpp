@@ -1024,28 +1024,18 @@ namespace Orthanc
     }
 
 
-    virtual bool GetAttachment(FileInfo& attachment,
-                               int64_t& revision,
-                               const std::string& attachmentUuid) ORTHANC_OVERRIDE
+    virtual void GetAttachmentCustomData(std::string& customData,
+                                         const std::string& attachmentUuid) ORTHANC_OVERRIDE
     {
       if (database_.GetDatabaseCapabilities().HasAttachmentCustomDataSupport())
       {
         DatabasePluginMessages::TransactionRequest request;
-        request.mutable_get_attachment()->set_uuid(attachmentUuid);
+        request.mutable_get_attachment_custom_data()->set_uuid(attachmentUuid);
 
         DatabasePluginMessages::TransactionResponse response;
-        ExecuteTransaction(response, DatabasePluginMessages::OPERATION_GET_ATTACHMENT, request);
+        ExecuteTransaction(response, DatabasePluginMessages::OPERATION_GET_ATTACHMENT_CUSTOM_DATA, request);
 
-        if (response.get_attachment().found())
-        {
-          revision = response.get_attachment().revision();
-          Convert(attachment, response.get_attachment().attachment());
-          return true;
-        }
-        else
-        {
-          return false;
-        }
+        customData = response.get_attachment_custom_data().custom_data();
       }
       else
       {
@@ -1054,9 +1044,9 @@ namespace Orthanc
       }
     }
 
-    virtual void UpdateAttachmentCustomData(const std::string& attachmentUuid,
-                                            const void* customData,
-                                            size_t customDataSize) ORTHANC_OVERRIDE
+    virtual void SetAttachmentCustomData(const std::string& attachmentUuid,
+                                         const void* customData,
+                                         size_t customDataSize) ORTHANC_OVERRIDE
     {
       if (database_.GetDatabaseCapabilities().HasAttachmentCustomDataSupport())
       {

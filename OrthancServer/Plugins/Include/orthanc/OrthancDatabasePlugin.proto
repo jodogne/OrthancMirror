@@ -337,7 +337,7 @@ enum TransactionOperation {
   OPERATION_ENQUEUE_VALUE = 57;               // New in Orthanc 1.12.8
   OPERATION_DEQUEUE_VALUE = 58;               // New in Orthanc 1.12.8
   OPERATION_GET_QUEUE_SIZE = 59;              // New in Orthanc 1.12.8
-  OPERATION_GET_ATTACHMENT = 60;              // New in Orthanc 1.12.8
+  OPERATION_GET_ATTACHMENT_CUSTOM_DATA = 60;  // New in Orthanc 1.12.8
   OPERATION_SET_ATTACHMENT_CUSTOM_DATA = 61;  // New in Orthanc 1.12.8
 
 }
@@ -1075,15 +1075,13 @@ message GetQueueSize {
   }
 }
 
-message GetAttachment {
+message GetAttachmentCustomData {
   message Request {
     string uuid = 1;
   }
 
   message Response {
-    bool found = 1;
-    FileInfo attachment = 2;
-    int64 revision = 3;
+    bytes custom_data = 1;
   }
 }
 
@@ -1161,7 +1159,7 @@ message TransactionRequest {
   EnqueueValue.Request                    enqueue_value = 157;
   DequeueValue.Request                    dequeue_value = 158;
   GetQueueSize.Request                    get_queue_size = 159;
-  GetAttachment.Request                   get_attachment = 160;
+  GetAttachmentCustomData.Request         get_attachment_custom_data = 160;
   SetAttachmentCustomData.Request         set_attachment_custom_data = 161;
 }
 
@@ -1226,7 +1224,7 @@ message TransactionResponse {
   EnqueueValue.Response                    enqueue_value = 157;
   DequeueValue.Response                    dequeue_value = 158;
   GetQueueSize.Response                    get_queue_size = 159;
-  GetAttachment.Response                   get_attachment = 160;
+  GetAttachmentCustomData.Response         get_attachment_custom_data = 160;
   SetAttachmentCustomData.Response         set_attachment_custom_data = 161;
 }
 
