@@ -27,6 +27,8 @@
 #include "../../../OrthancFramework/Sources/OrthancException.h"
 #include "../../../OrthancFramework/Sources/Toolbox.h"
 
+#define ERROR_MESSAGE_64BIT "A 64bit version of the Orthanc SDK is necessary to use buffers > 4GB, but is currently not available"
+
 
 namespace Orthanc
 {
@@ -36,6 +38,9 @@ namespace Orthanc
     {
       ::free(buffer_.data);
     }
+
+    buffer_.data = NULL;
+    buffer_.size = 0;
   }
 
 
@@ -90,6 +95,68 @@ namespace Orthanc
   {
     SanityCheck();
     return buffer_.size;
+  }
+
+
+  void PluginMemoryBuffer32::Release(OrthancPluginMemoryBuffer* target)
+  {
+    SanityCheck();
+
+    if (target == NULL)
+    {
+      throw OrthancException(ErrorCode_NullPointer);
+    }
+
+    *target = buffer_;
+    buffer_.data = NULL;
+    buffer_.size = 0;
+  }
+
+
+  void PluginMemoryBuffer32::Resize(size_t size)
+  {
+    if (static_cast<size_t>(static_cast<uint32_t>(size)) != size)
+    {
+      throw OrthancException(ErrorCode_NotEnoughMemory, ERROR_MESSAGE_64BIT);
+    }
+
+    Clear();
+
+    if (size == 0)
+    {
+      buffer_.data = NULL;
+    }
+    else
+    {
+      buffer_.data = ::malloc(size);
+    }
+
+    buffer_.size = size;
+  }
+
+
+  void PluginMemoryBuffer32::Assign(const void* data,
+                                    size_t size)
+  {
+    Resize(size);
+
+    if (size != 0)
+    {
+      memcpy(buffer_.data, data, size);
+    }
+  }
+
+
+  void PluginMemoryBuffer32::Assign(const std::string& data)
+  {
+    if (data.empty())
+    {
+      Assign(NULL, 0);
+    }
+    else
+    {
+      Assign(data.c_str(), data.size());
+    }
   }
 
 

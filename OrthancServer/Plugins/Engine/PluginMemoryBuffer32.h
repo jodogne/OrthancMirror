@@ -62,6 +62,15 @@ namespace Orthanc
       return &buffer_;
     }
 
+    void Release(OrthancPluginMemoryBuffer* target);
+
+    void Resize(size_t size);
+
+    void Assign(const void* data,
+                size_t size);
+
+    void Assign(const std::string& data);
+
     void ToJsonObject(Json::Value& target) const;
   };
 }
