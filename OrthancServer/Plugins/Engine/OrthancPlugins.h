@@ -56,6 +56,7 @@ namespace Orthanc
 #include "../../Sources/IDicomImageDecoder.h"
 #include "../../Sources/IServerListener.h"
 #include "../../Sources/ServerJobs/IStorageCommitmentFactory.h"
+#include "PluginMemoryBuffer64.h"
 #include "PluginsManager.h"
 
 #include <list>
@@ -307,7 +308,7 @@ private:
                                               const DicomInstanceToStore& instance,
                                               const Json::Value& simplified) ORTHANC_OVERRIDE;
 
-    OrthancPluginReceivedInstanceAction ApplyReceivedInstanceCallbacks(MallocMemoryBuffer& modified,
+    OrthancPluginReceivedInstanceAction ApplyReceivedInstanceCallbacks(PluginMemoryBuffer64& modified,
                                                                        const void* receivedDicomBuffer,
                                                                        size_t receivedDicomBufferSize,
                                                                        RequestOrigin origin);

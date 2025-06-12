@@ -910,7 +910,7 @@ namespace Orthanc
 
     // WARNING: The scope of "modifiedBuffer" and "modifiedDicom" must
     // be the same as that of "dicom"
-    MallocMemoryBuffer modifiedBuffer;
+    PluginMemoryBuffer64 modifiedBuffer;
     std::unique_ptr<DicomInstanceToStore> modifiedDicom;
 
 #if ORTHANC_ENABLE_PLUGINS == 1
