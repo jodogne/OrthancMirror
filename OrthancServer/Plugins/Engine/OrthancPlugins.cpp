@@ -685,17 +685,18 @@ namespace Orthanc
         }
         else
         {
+          std::unique_ptr<PluginMemoryBuffer64> buffer(new PluginMemoryBuffer64);
+
           if (start > end)
           {
             throw OrthancException(ErrorCode_BadRange);
           }
           else if (start == end)
           {
-            return new StringMemoryBuffer;
+            return buffer.release();
           }
           else
           {
-            std::unique_ptr<PluginMemoryBuffer64> buffer(new PluginMemoryBuffer64);
             buffer->Resize(end - start);
             assert(buffer->GetSize() > 0);
 
