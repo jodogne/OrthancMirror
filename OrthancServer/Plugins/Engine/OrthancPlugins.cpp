@@ -54,7 +54,6 @@
 #include "../../../OrthancFramework/Sources/MetricsRegistry.h"
 #include "../../../OrthancFramework/Sources/OrthancException.h"
 #include "../../../OrthancFramework/Sources/SerializationToolbox.h"
-#include "../../../OrthancFramework/Sources/StringMemoryBuffer.h"
 #include "../../../OrthancFramework/Sources/Toolbox.h"
 #include "../../Sources/Database/VoidDatabaseListener.h"
 #include "../../Sources/OrthancConfiguration.h"
@@ -592,7 +591,7 @@ namespace Orthanc
 
   namespace
   {
-    static IMemoryBuffer* GetRangeFromWhole(std::unique_ptr<MallocMemoryBuffer>& whole,
+    static IMemoryBuffer* GetRangeFromWhole(std::unique_ptr<IMemoryBuffer>& whole,
                                             uint64_t start /* inclusive */,
                                             uint64_t end /* exclusive */)
     {
@@ -602,7 +601,7 @@ namespace Orthanc
       }
       else if (start == end)
       {
-        return new StringMemoryBuffer;  // Empty
+        return new PluginMemoryBuffer64;  // Empty
       }
       else
       {
@@ -617,14 +616,11 @@ namespace Orthanc
         }
         else
         {
-          std::string range;
-          range.resize(end - start);
-          assert(!range.empty());
+          std::unique_ptr<PluginMemoryBuffer64> range(new PluginMemoryBuffer64);
+          range->Assign(reinterpret_cast<const char*>(whole->GetData()) + start, end - start);
+          assert(range->GetSize() > 0);
 
-          memcpy(&range[0], reinterpret_cast<const char*>(whole->GetData()) + start, range.size());
-
-          whole.reset(NULL);
-          return StringMemoryBuffer::CreateFromSwap(range);
+          return range.release();
         }
       }
     }
@@ -713,6 +709,8 @@ namespace Orthanc
                                        uint64_t start /* inclusive */,
                                        uint64_t end /* exclusive */) ORTHANC_OVERRIDE
       {
+        std::unique_ptr<IMemoryBuffer> whole(new MallocMemoryBuffer);
+
         void* buffer = NULL;
         int64_t size = 0;
 
@@ -720,8 +718,10 @@ namespace Orthanc
 
         if (error == OrthancPluginErrorCode_Success)
         {
-          std::unique_ptr<MallocMemoryBuffer> whole(new MallocMemoryBuffer);
-          whole->Assign(buffer, size, free_);
+          // Beware that the buffer must be unallocated by the "free_" function provided by the plugin,
+          // so we cannot use "PluginMemoryBuffer64"
+          dynamic_cast<MallocMemoryBuffer&>(*whole).Assign(buffer, size, free_);
+
           return GetRangeFromWhole(whole, start, end);
         }
         else
@@ -765,16 +765,13 @@ namespace Orthanc
       {
         if (readRange_ == NULL)
         {
-          OrthancPluginMemoryBuffer64 buffer;
-          buffer.size = 0;
-          buffer.data = NULL;
+          std::unique_ptr<IMemoryBuffer> whole(new PluginMemoryBuffer64);
 
-          OrthancPluginErrorCode error = readWhole_(&buffer, uuid.c_str(), Plugins::Convert(type));
+          OrthancPluginErrorCode error = readWhole_(dynamic_cast<PluginMemoryBuffer64&>(*whole).GetObject(),
+                                                    uuid.c_str(), Plugins::Convert(type));
 
           if (error == OrthancPluginErrorCode_Success)
           {
-            std::unique_ptr<MallocMemoryBuffer> whole(new MallocMemoryBuffer);
-            whole->Assign(buffer.data, buffer.size, ::free);
             return GetRangeFromWhole(whole, start, end);
           }
           else
@@ -830,8 +827,7 @@ namespace Orthanc
       OrthancPluginStorageCreate2     create_;
       OrthancPluginStorageReadRange2  readRange_;
       OrthancPluginStorageRemove2     remove_;
-
-      PluginsErrorDictionary&    errorDictionary_;
+      PluginsErrorDictionary&         errorDictionary_;
 
     protected:
       PluginsErrorDictionary& GetErrorDictionary() const
@@ -914,24 +910,20 @@ namespace Orthanc
         }
         else if (start == end)
         {
-          return new StringMemoryBuffer;
+          return new PluginMemoryBuffer64;
         }
         else
         {
-          std::string range;
-          range.resize(end - start);
-          assert(!range.empty());
-
-          OrthancPluginMemoryBuffer64 buffer;
-          buffer.data = &range[0];
-          buffer.size = static_cast<uint64_t>(range.size());
+          std::unique_ptr<PluginMemoryBuffer64> buffer(new PluginMemoryBuffer64);
+          buffer->Resize(end - start);
+          assert(buffer->GetSize() > 0);
 
           OrthancPluginErrorCode error =
-            readRange_(&buffer, uuid.c_str(), Plugins::Convert(type), start, customData.empty() ? NULL : customData.c_str(), customData.size());
+            readRange_(buffer->GetObject(), uuid.c_str(), Plugins::Convert(type), start, customData.empty() ? NULL : customData.c_str(), customData.size());
 
           if (error == OrthancPluginErrorCode_Success)
           {
-            return StringMemoryBuffer::CreateFromSwap(range);
+            return buffer.release();
           }
           else
           {
