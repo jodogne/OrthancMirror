@@ -636,10 +636,10 @@ namespace Orthanc
                                  adoptedFileNotUsed);
   }
 
-  ServerContext::StoreResult ServerContext::AdoptAttachment(std::string& resultPublicId,
-                                                            DicomInstanceToStore& dicom,
-                                                            StoreInstanceMode mode,
-                                                            const FileInfo& adoptedFile)
+  ServerContext::StoreResult ServerContext::AdoptDicomInstance(std::string& resultPublicId,
+                                                               DicomInstanceToStore& dicom,
+                                                               StoreInstanceMode mode,
+                                                               const FileInfo& adoptedFile)
   {
     return StoreAfterTranscoding(resultPublicId,
                                  dicom,

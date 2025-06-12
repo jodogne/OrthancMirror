@@ -364,10 +364,10 @@ namespace Orthanc
                       DicomInstanceToStore& dicom,
                       StoreInstanceMode mode);
 
-    StoreResult AdoptAttachment(std::string& resultPublicId,
-                                DicomInstanceToStore& dicom,
-                                StoreInstanceMode mode,
-                                const FileInfo& adoptedFile);
+    StoreResult AdoptDicomInstance(std::string& resultPublicId,
+                                   DicomInstanceToStore& dicom,
+                                   StoreInstanceMode mode,
+                                   const FileInfo& adoptedFile);
 
     StoreResult TranscodeAndStore(std::string& resultPublicId,
                                   DicomInstanceToStore* dicom,
