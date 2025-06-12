@@ -65,6 +65,7 @@
 #include "OrthancPluginDatabase.h"
 #include "OrthancPluginDatabaseV3.h"
 #include "OrthancPluginDatabaseV4.h"
+#include "PluginMemoryBuffer32.h"
 #include "PluginsEnumerations.h"
 #include "PluginsJob.h"
 
@@ -506,51 +507,6 @@ namespace Orthanc
 
   namespace
   {
-    class MemoryBufferRaii : public boost::noncopyable
-    {
-    private:
-      OrthancPluginMemoryBuffer  buffer_;
-
-    public:
-      MemoryBufferRaii()
-      {
-        buffer_.size = 0;
-        buffer_.data = NULL;
-      }
-
-      ~MemoryBufferRaii()
-      {
-        if (buffer_.size != 0)
-        {
-          free(buffer_.data);
-        }
-      }
-
-      OrthancPluginMemoryBuffer* GetObject()
-      {
-        return &buffer_;
-      }
-
-      void ToString(std::string& target) const
-      {
-        if ((buffer_.data == NULL && buffer_.size != 0) ||
-            (buffer_.data != NULL && buffer_.size == 0))
-        {
-          throw OrthancException(ErrorCode_Plugin);
-        }
-        else
-        {
-          target.resize(buffer_.size);
-        
-          if (buffer_.size != 0)
-          {
-            memcpy(&target[0], buffer_.data, buffer_.size);
-          }
-        }
-      }
-    };
-  
-
     class StorageAreaBase : public IStorageArea
     {
     private:
@@ -6499,13 +6455,13 @@ namespace Orthanc
            transcoder = pimpl_->transcoderCallbacks_.begin();
          transcoder != pimpl_->transcoderCallbacks_.end(); ++transcoder)
     {
-      MemoryBufferRaii a;
+      PluginMemoryBuffer32 a;
 
       if ((*transcoder) (a.GetObject(), buffer, size, uids.empty() ? NULL : &uids[0],
                          static_cast<uint32_t>(uids.size()), allowNewSopInstanceUid) ==
           OrthancPluginErrorCode_Success)
       {
-        a.ToString(target);
+        a.MoveToString(target);
         return true;
       }
     }

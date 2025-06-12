@@ -203,6 +203,7 @@ if (ENABLE_PLUGINS)
     ${CMAKE_SOURCE_DIR}/Plugins/Engine/OrthancPluginDatabaseV3.cpp
     ${CMAKE_SOURCE_DIR}/Plugins/Engine/OrthancPluginDatabaseV4.cpp
     ${CMAKE_SOURCE_DIR}/Plugins/Engine/OrthancPlugins.cpp
+    ${CMAKE_SOURCE_DIR}/Plugins/Engine/PluginMemoryBuffer32.cpp
     ${CMAKE_SOURCE_DIR}/Plugins/Engine/PluginsEnumerations.cpp
     ${CMAKE_SOURCE_DIR}/Plugins/Engine/PluginsErrorDictionary.cpp
     ${CMAKE_SOURCE_DIR}/Plugins/Engine/PluginsJob.cpp
