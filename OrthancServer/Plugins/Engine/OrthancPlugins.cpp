@@ -66,7 +66,6 @@
 #include "OrthancPluginDatabaseV3.h"
 #include "OrthancPluginDatabaseV4.h"
 #include "PluginMemoryBuffer32.h"
-#include "PluginMemoryBuffer64.h"
 #include "PluginsEnumerations.h"
 #include "PluginsJob.h"
 
@@ -660,17 +659,12 @@ namespace Orthanc
       virtual IMemoryBuffer* Read(const std::string& uuid,
                                   FileContentType type) ORTHANC_OVERRIDE
       {
-        std::unique_ptr<MallocMemoryBuffer> result(new MallocMemoryBuffer);
+        std::unique_ptr<PluginMemoryBuffer64> result(new PluginMemoryBuffer64);
 
-        OrthancPluginMemoryBuffer64 buffer;
-        buffer.size = 0;
-        buffer.data = NULL;
-        
-        OrthancPluginErrorCode error = readWhole_(&buffer, uuid.c_str(), Plugins::Convert(type));
+        OrthancPluginErrorCode error = readWhole_(result->GetObject(), uuid.c_str(), Plugins::Convert(type));
 
         if (error == OrthancPluginErrorCode_Success)
         {
-          result->Assign(buffer.data, buffer.size, ::free);
           return result.release();
         }
         else
@@ -701,20 +695,16 @@ namespace Orthanc
           }
           else
           {
-            std::string range;
-            range.resize(end - start);
-            assert(!range.empty());
-
-            OrthancPluginMemoryBuffer64 buffer;
-            buffer.data = &range[0];
-            buffer.size = static_cast<uint64_t>(range.size());
+            std::unique_ptr<PluginMemoryBuffer64> buffer(new PluginMemoryBuffer64);
+            buffer->Resize(end - start);
+            assert(buffer->GetSize() > 0);
 
             OrthancPluginErrorCode error =
-              readRange_(&buffer, uuid.c_str(), Plugins::Convert(type), start);
+              readRange_(buffer->GetObject(), uuid.c_str(), Plugins::Convert(type), start);
 
             if (error == OrthancPluginErrorCode_Success)
             {
-              return StringMemoryBuffer::CreateFromSwap(range);
+              return buffer.release();
             }
             else
             {
@@ -2658,13 +2648,14 @@ namespace Orthanc
   }
 
 
-  OrthancPluginReceivedInstanceAction OrthancPlugins::ApplyReceivedInstanceCallbacks(
-    MallocMemoryBuffer& modified,
-    const void* receivedDicom,
-    size_t receivedDicomSize,
-    RequestOrigin origin)
+  OrthancPluginReceivedInstanceAction OrthancPlugins::ApplyReceivedInstanceCallbacks(PluginMemoryBuffer64& modified,
+                                                                                     const void* receivedDicom,
+                                                                                     size_t receivedDicomSize,
+                                                                                     RequestOrigin origin)
   {
     boost::recursive_mutex::scoped_lock lock(pimpl_->invokeServiceMutex_);
+
+    modified.Clear();
 
     if (pimpl_->receivedInstanceCallback_ == NULL)
     {
@@ -2672,18 +2663,7 @@ namespace Orthanc
     }
     else
     {
-      OrthancPluginReceivedInstanceAction action;
-      
-      {
-        OrthancPluginMemoryBuffer64 buffer;
-        buffer.size = 0;
-        buffer.data = NULL;
-
-        action = (*pimpl_->receivedInstanceCallback_) (&buffer, receivedDicom, receivedDicomSize, Plugins::Convert(origin));
-        modified.Assign(buffer.data, buffer.size, ::free);
-      }
-
-      return action;
+      return (*pimpl_->receivedInstanceCallback_) (modified.GetObject(), receivedDicom, receivedDicomSize, Plugins::Convert(origin));
     }
   }
 

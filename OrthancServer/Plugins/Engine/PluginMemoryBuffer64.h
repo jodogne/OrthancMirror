@@ -39,8 +39,6 @@ namespace Orthanc
   private:
     OrthancPluginMemoryBuffer64  buffer_;
 
-    void Clear();
-
     void SanityCheck() const;
 
   public:
@@ -63,6 +61,8 @@ namespace Orthanc
     }
 
     void Release(OrthancPluginMemoryBuffer64* target);
+
+    void Clear();
 
     void Resize(size_t size);
 
