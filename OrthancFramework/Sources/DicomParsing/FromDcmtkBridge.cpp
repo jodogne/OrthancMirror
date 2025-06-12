@@ -374,14 +374,14 @@ namespace Orthanc
        * command "strace storescu 2>&1 |grep dic" shows that DICONDE
        * dictionary is not loaded by storescu.
        **/
-      //LoadEmbeddedDictionary(*lock, FrameworkResources::DICTIONARY_DICONDE);
+      //LoadEmbeddedDictionary(lock.GetDictionary(), FrameworkResources::DICTIONARY_DICONDE);
 
-      LoadEmbeddedDictionary(*lock, FrameworkResources::DICTIONARY_DICOM);
+      LoadEmbeddedDictionary(lock.GetDictionary(), FrameworkResources::DICTIONARY_DICOM);
 
       if (loadPrivateDictionary)
       {
         CLOG(INFO, DICOM) << "Loading the embedded dictionary of private tags";
-        LoadEmbeddedDictionary(*lock, FrameworkResources::DICTIONARY_PRIVATE);
+        LoadEmbeddedDictionary(lock.GetDictionary(), FrameworkResources::DICTIONARY_PRIVATE);
       }
       else
       {
