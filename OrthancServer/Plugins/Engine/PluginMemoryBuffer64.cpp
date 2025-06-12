@@ -114,23 +114,26 @@ namespace Orthanc
 
   void PluginMemoryBuffer64::Resize(size_t size)
   {
-    Clear();
-
-    if (size == 0)
+    if (size != buffer_.size)
     {
-      buffer_.data = NULL;
-    }
-    else
-    {
-      buffer_.data = ::malloc(size);
+      Clear();
 
-      if (buffer_.data == NULL)
+      if (size == 0)
       {
-        throw OrthancException(ErrorCode_NotEnoughMemory);
+        buffer_.data = NULL;
       }
-    }
+      else
+      {
+        buffer_.data = ::malloc(size);
 
-    buffer_.size = size;
+        if (buffer_.data == NULL)
+        {
+          throw OrthancException(ErrorCode_NotEnoughMemory);
+        }
+      }
+
+      buffer_.size = size;
+    }
   }
 
 
