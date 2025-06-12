@@ -22,17 +22,14 @@
 
 
 #include "../../Sources/PrecompiledHeadersServer.h"
-#include "PluginMemoryBuffer32.h"
+#include "PluginMemoryBuffer64.h"
 
 #include "../../../OrthancFramework/Sources/OrthancException.h"
-#include "../../../OrthancFramework/Sources/Toolbox.h"
-
-#define ERROR_MESSAGE_64BIT "A 64bit version of the Orthanc SDK is necessary to use buffers > 4GB, but is currently not available"
 
 
 namespace Orthanc
 {
-  void PluginMemoryBuffer32::Clear()
+  void PluginMemoryBuffer64::Clear()
   {
     if (buffer_.size != 0)
     {
@@ -44,7 +41,7 @@ namespace Orthanc
   }
 
 
-  void PluginMemoryBuffer32::SanityCheck() const
+  void PluginMemoryBuffer64::SanityCheck() const
   {
     if ((buffer_.data == NULL && buffer_.size != 0) ||
         (buffer_.data != NULL && buffer_.size == 0))
@@ -54,14 +51,14 @@ namespace Orthanc
   }
 
 
-  PluginMemoryBuffer32::PluginMemoryBuffer32()
+  PluginMemoryBuffer64::PluginMemoryBuffer64()
   {
     buffer_.size = 0;
     buffer_.data = NULL;
   }
 
 
-  void PluginMemoryBuffer32::MoveToString(std::string& target)
+  void PluginMemoryBuffer64::MoveToString(std::string& target)
   {
     SanityCheck();
 
@@ -76,7 +73,7 @@ namespace Orthanc
   }
 
 
-  const void* PluginMemoryBuffer32::GetData() const
+  const void* PluginMemoryBuffer64::GetData() const
   {
     SanityCheck();
 
@@ -91,14 +88,14 @@ namespace Orthanc
   }
 
 
-  size_t PluginMemoryBuffer32::GetSize() const
+  size_t PluginMemoryBuffer64::GetSize() const
   {
     SanityCheck();
     return buffer_.size;
   }
 
 
-  void PluginMemoryBuffer32::Release(OrthancPluginMemoryBuffer* target)
+  void PluginMemoryBuffer64::Release(OrthancPluginMemoryBuffer64* target)
   {
     SanityCheck();
 
@@ -115,30 +112,8 @@ namespace Orthanc
   }
 
 
-  void PluginMemoryBuffer32::Release(OrthancPluginMemoryBuffer64* target)
+  void PluginMemoryBuffer64::Resize(size_t size)
   {
-    SanityCheck();
-
-    if (target == NULL)
-    {
-      throw OrthancException(ErrorCode_NullPointer);
-    }
-
-    target->data = buffer_.data;
-    target->size = buffer_.size;
-
-    buffer_.data = NULL;
-    buffer_.size = 0;
-  }
-
-
-  void PluginMemoryBuffer32::Resize(size_t size)
-  {
-    if (static_cast<size_t>(static_cast<uint32_t>(size)) != size)
-    {
-      throw OrthancException(ErrorCode_NotEnoughMemory, ERROR_MESSAGE_64BIT);
-    }
-
     Clear();
 
     if (size == 0)
@@ -159,7 +134,7 @@ namespace Orthanc
   }
 
 
-  void PluginMemoryBuffer32::Assign(const void* data,
+  void PluginMemoryBuffer64::Assign(const void* data,
                                     size_t size)
   {
     Resize(size);
@@ -171,7 +146,7 @@ namespace Orthanc
   }
 
 
-  void PluginMemoryBuffer32::Assign(const std::string& data)
+  void PluginMemoryBuffer64::Assign(const std::string& data)
   {
     if (data.empty())
     {
@@ -180,18 +155,6 @@ namespace Orthanc
     else
     {
       Assign(data.c_str(), data.size());
-    }
-  }
-
-
-  void PluginMemoryBuffer32::ToJsonObject(Json::Value& target) const
-  {
-    SanityCheck();
-
-    if (!Toolbox::ReadJson(target, buffer_.data, buffer_.size) ||
-        target.type() != Json::objectValue)
-    {
-      throw OrthancException(ErrorCode_Plugin, "The plugin has not provided a valid JSON object");
     }
   }
 }

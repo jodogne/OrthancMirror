@@ -66,6 +66,7 @@
 #include "OrthancPluginDatabaseV3.h"
 #include "OrthancPluginDatabaseV4.h"
 #include "PluginMemoryBuffer32.h"
+#include "PluginMemoryBuffer64.h"
 #include "PluginsEnumerations.h"
 #include "PluginsJob.h"
 
@@ -5467,19 +5468,9 @@ namespace Orthanc
         const _OrthancPluginCreateMemoryBuffer64& p =
           *reinterpret_cast<const _OrthancPluginCreateMemoryBuffer64*>(parameters);
 
-        p.target->data = NULL;
-        p.target->size = 0;
-        
-        if (p.size != 0)
-        {
-          p.target->data = malloc(p.size);
-          if (p.target->data == NULL)
-          {
-            throw OrthancException(ErrorCode_NotEnoughMemory);
-          }
-
-          p.target->size = p.size;
-        }          
+        PluginMemoryBuffer64 buffer;
+        buffer.Resize(p.size);
+        buffer.Release(p.target);
 
         return true;
       }

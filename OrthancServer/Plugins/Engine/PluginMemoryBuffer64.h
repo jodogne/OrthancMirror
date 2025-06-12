@@ -34,19 +34,19 @@
 
 namespace Orthanc
 {
-  class PluginMemoryBuffer32 : public IMemoryBuffer
+  class PluginMemoryBuffer64 : public IMemoryBuffer
   {
   private:
-    OrthancPluginMemoryBuffer  buffer_;
+    OrthancPluginMemoryBuffer64  buffer_;
 
     void Clear();
 
     void SanityCheck() const;
 
   public:
-    PluginMemoryBuffer32();
+    PluginMemoryBuffer64();
 
-    virtual ~PluginMemoryBuffer32()
+    virtual ~PluginMemoryBuffer64()
     {
       Clear();
     }
@@ -57,12 +57,10 @@ namespace Orthanc
 
     virtual size_t GetSize() const ORTHANC_OVERRIDE;
 
-    OrthancPluginMemoryBuffer* GetObject()
+    OrthancPluginMemoryBuffer64* GetObject()
     {
       return &buffer_;
     }
-
-    void Release(OrthancPluginMemoryBuffer* target);
 
     void Release(OrthancPluginMemoryBuffer64* target);
 
@@ -72,7 +70,5 @@ namespace Orthanc
                 size_t size);
 
     void Assign(const std::string& data);
-
-    void ToJsonObject(Json::Value& target) const;
   };
 }
