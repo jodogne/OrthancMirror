@@ -70,7 +70,6 @@
 
 #include <boost/math/special_functions/round.hpp>
 #include <boost/regex.hpp>
-#include <dcmtk/dcmdata/dcdict.h>
 #include <dcmtk/dcmdata/dcdicent.h>
 #include <dcmtk/dcmnet/dimse.h>
 
@@ -4850,35 +4849,6 @@ namespace Orthanc
   }
 
 
-  namespace
-  {
-    class DictionaryReadLocker
-    {
-    private:
-      const DcmDataDictionary& dictionary_;
-
-    public:
-      DictionaryReadLocker() : dictionary_(dcmDataDict.rdlock())
-      {
-      }
-
-      ~DictionaryReadLocker()
-      {
-#if DCMTK_VERSION_NUMBER >= 364
-        dcmDataDict.rdunlock();
-#else
-        dcmDataDict.unlock();
-#endif
-      }
-
-      const DcmDataDictionary* operator->()
-      {
-        return &dictionary_;
-      }
-    };
-  }
-
-
   void OrthancPlugins::ApplyLookupDictionary(const void* parameters)
   {
     const _OrthancPluginLookupDictionary& p =
@@ -4887,38 +4857,41 @@ namespace Orthanc
     DicomTag tag(FromDcmtkBridge::ParseTag(p.name));
     DcmTagKey tag2(tag.GetGroup(), tag.GetElement());
 
-    DictionaryReadLocker locker;
-    const DcmDictEntry* entry = NULL;
-
-    if (tag.IsPrivate())
     {
-      // Fix issue 168 (Plugins can't read private tags from the
-      // configuration file)
-      // https://orthanc.uclouvain.be/bugs/show_bug.cgi?id=168
-      std::string privateCreator;
+      FromDcmtkBridge::DictionaryReaderLock lock;
+
+      const DcmDictEntry* entry = NULL;  // This value is only valid while "lock" is active
+
+      if (tag.IsPrivate())
       {
-        OrthancConfiguration::ReaderLock lock;
-        privateCreator = lock.GetConfiguration().GetDefaultPrivateCreator();
+        // Fix issue 168 (Plugins can't read private tags from the
+        // configuration file)
+        // https://orthanc.uclouvain.be/bugs/show_bug.cgi?id=168
+        std::string privateCreator;
+        {
+          OrthancConfiguration::ReaderLock configurationLock;
+          privateCreator = configurationLock.GetConfiguration().GetDefaultPrivateCreator();
+        }
+
+        entry = lock.GetDictionary().findEntry(tag2, privateCreator.c_str());
+      }
+      else
+      {
+        entry = lock.GetDictionary().findEntry(tag2, NULL);
       }
 
-      entry = locker->findEntry(tag2, privateCreator.c_str());
-    }
-    else
-    {
-      entry = locker->findEntry(tag2, NULL);
-    }
-
-    if (entry == NULL)
-    {
-      throw OrthancException(ErrorCode_UnknownDicomTag, p.name);
-    }
-    else
-    {
-      p.target->group = entry->getKey().getGroup();
-      p.target->element = entry->getKey().getElement();
-      p.target->vr = Plugins::Convert(FromDcmtkBridge::Convert(entry->getEVR()));
-      p.target->minMultiplicity = static_cast<uint32_t>(entry->getVMMin());
-      p.target->maxMultiplicity = (entry->getVMMax() == DcmVariableVM ? 0 : static_cast<uint32_t>(entry->getVMMax()));
+      if (entry == NULL)
+      {
+        throw OrthancException(ErrorCode_UnknownDicomTag, p.name);
+      }
+      else
+      {
+        p.target->group = entry->getKey().getGroup();
+        p.target->element = entry->getKey().getElement();
+        p.target->vr = Plugins::Convert(FromDcmtkBridge::Convert(entry->getEVR()));
+        p.target->minMultiplicity = static_cast<uint32_t>(entry->getVMMin());
+        p.target->maxMultiplicity = (entry->getVMMax() == DcmVariableVM ? 0 : static_cast<uint32_t>(entry->getVMMax()));
+      }
     }
   }
 
