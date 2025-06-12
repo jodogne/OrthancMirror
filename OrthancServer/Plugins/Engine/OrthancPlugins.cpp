@@ -456,7 +456,7 @@ namespace Orthanc
   }
 
 
-  static void CopyDictionary(OrthancPluginMemoryBuffer* target,
+  static void CopyDictionary(PluginMemoryBuffer32& target,
                              const std::map<std::string, std::string>& dictionary)
   {
     Json::Value json = Json::objectValue;
@@ -467,7 +467,7 @@ namespace Orthanc
       json[it->first] = it->second;
     }
         
-    CopyToMemoryBuffer(target, json.toStyledString());
+    target.Assign(json.toStyledString());
   }
 
 
@@ -3848,29 +3848,29 @@ namespace Orthanc
     }
 
     // Copy the HTTP headers of the answer, if the plugin requested them
+    PluginMemoryBuffer32 tmpHeaders;
     if (answerHeaders != NULL)
     {
-      CopyDictionary(answerHeaders, headers);
+      CopyDictionary(tmpHeaders, headers);
     }
 
     // Copy the body of the answer if it makes sense
-    if (client.GetMethod() != HttpMethod_Delete)
+    PluginMemoryBuffer32 tmpBody;
+    if (client.GetMethod() != HttpMethod_Delete &&
+        answerBody != NULL)
     {
-      try
-      {
-        if (answerBody != NULL)
-        {
-          CopyToMemoryBuffer(answerBody, body);
-        }
-      }
-      catch (OrthancException&)
-      {
-        if (answerHeaders != NULL)
-        {
-          free(answerHeaders->data);
-        }
-        throw;
-      }
+      tmpBody.Assign(body);
+    }
+
+    // All the memory has been allocated at this point, so we can safely release the buffers
+    if (answerHeaders != NULL)
+    {
+      tmpHeaders.Release(answerHeaders);
+    }
+
+    if (answerBody != NULL)
+    {
+      tmpBody.Release(answerBody);
     }
   }
 
@@ -4069,25 +4069,28 @@ namespace Orthanc
 
     *p.httpStatus = static_cast<uint16_t>(status);
 
+    PluginMemoryBuffer32 tmpHeaders;
     if (p.answerHeaders != NULL)
     {
-      CopyDictionary(p.answerHeaders, answerHeaders);
+      CopyDictionary(tmpHeaders, answerHeaders);
     }
 
-    try
+    PluginMemoryBuffer32 tmpBody;
+    if (p.method != OrthancPluginHttpMethod_Delete &&
+        p.answerBody != NULL)
     {
-      if (p.answerBody != NULL)
-      {
-        CopyToMemoryBuffer(p.answerBody, answerBody);
-      }
+      tmpBody.Assign(answerBody);
     }
-    catch (OrthancException&)
+
+    // All the memory has been allocated at this point, so we can safely release the buffers
+    if (p.answerHeaders != NULL)
     {
-      if (p.answerHeaders != NULL)
-      {
-        free(p.answerHeaders->data);
-      }
-      throw;
+      tmpHeaders.Release(p.answerHeaders);
+    }
+
+    if (p.answerBody != NULL)
+    {
+      tmpBody.Release(p.answerBody);
     }
   }
 
@@ -4154,29 +4157,29 @@ namespace Orthanc
     }
 
     // Copy the HTTP headers of the answer, if the plugin requested them
+    PluginMemoryBuffer32 tmpHeaders;
     if (p.answerHeaders != NULL)
     {
-      CopyDictionary(p.answerHeaders, headers);
+      CopyDictionary(tmpHeaders, headers);
     }
 
     // Copy the body of the answer if it makes sense
-    if (p.method != OrthancPluginHttpMethod_Delete)
+    PluginMemoryBuffer32 tmpBody;
+    if (p.method != OrthancPluginHttpMethod_Delete &&
+        p.answerBody != NULL)
     {
-      try
-      {
-        if (p.answerBody != NULL)
-        {
-          CopyToMemoryBuffer(p.answerBody, body);
-        }
-      }
-      catch (OrthancException&)
-      {
-        if (p.answerHeaders != NULL)
-        {
-          free(p.answerHeaders->data);
-        }
-        throw;
-      }
+      tmpBody.Assign(body);
+    }
+
+    // All the memory has been allocated at this point, so we can safely release the buffers
+    if (p.answerHeaders != NULL)
+    {
+      tmpHeaders.Release(p.answerHeaders);
+    }
+
+    if (p.answerBody != NULL)
+    {
+      tmpBody.Release(p.answerBody);
     }
   }
 
