@@ -1399,8 +1399,8 @@ namespace Orthanc
     
       if (s.Step())
       { 
-        if (s.ColumnIsNull(C6_STRING_4) ||
-            !s.ColumnBlobAsString(C6_STRING_4, &customData))
+        if (s.ColumnIsNull(0) ||
+            !s.ColumnBlobAsString(0, &customData))
         {
           customData.clear();
         }
