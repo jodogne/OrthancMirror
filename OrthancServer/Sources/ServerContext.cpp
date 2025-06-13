@@ -908,12 +908,12 @@ namespace Orthanc
   { 
     DicomInstanceToStore* dicom = &receivedDicom;
 
+#if ORTHANC_ENABLE_PLUGINS == 1
     // WARNING: The scope of "modifiedBuffer" and "modifiedDicom" must
     // be the same as that of "dicom"
     PluginMemoryBuffer64 modifiedBuffer;
     std::unique_ptr<DicomInstanceToStore> modifiedDicom;
 
-#if ORTHANC_ENABLE_PLUGINS == 1
     if (HasPlugins())
     {
       // New in Orthanc 1.10.0
