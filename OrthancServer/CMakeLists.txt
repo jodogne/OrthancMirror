@@ -245,15 +245,18 @@ endif()
 #####################################################################
 
 set(ORTHANC_EMBEDDED_FILES
-  CONFIGURATION_SAMPLE            ${CMAKE_SOURCE_DIR}/Resources/Configuration.json
-  DICOM_CONFORMANCE_STATEMENT     ${CMAKE_SOURCE_DIR}/Resources/DicomConformanceStatement.txt
-  FONT_UBUNTU_MONO_BOLD_16        ${CMAKE_SOURCE_DIR}/Resources/Fonts/UbuntuMonoBold-16.json
-  LUA_TOOLBOX                     ${CMAKE_SOURCE_DIR}/Resources/Toolbox.lua
-  PREPARE_DATABASE                ${CMAKE_SOURCE_DIR}/Sources/Database/PrepareDatabase.sql
-  UPGRADE_DATABASE_3_TO_4         ${CMAKE_SOURCE_DIR}/Sources/Database/Upgrade3To4.sql
-  UPGRADE_DATABASE_4_TO_5         ${CMAKE_SOURCE_DIR}/Sources/Database/Upgrade4To5.sql
-  INSTALL_TRACK_ATTACHMENTS_SIZE  ${CMAKE_SOURCE_DIR}/Sources/Database/InstallTrackAttachmentsSize.sql
-  INSTALL_LABELS_TABLE            ${CMAKE_SOURCE_DIR}/Sources/Database/InstallLabelsTable.sql
+  CONFIGURATION_SAMPLE              ${CMAKE_SOURCE_DIR}/Resources/Configuration.json
+  DICOM_CONFORMANCE_STATEMENT       ${CMAKE_SOURCE_DIR}/Resources/DicomConformanceStatement.txt
+  FONT_UBUNTU_MONO_BOLD_16          ${CMAKE_SOURCE_DIR}/Resources/Fonts/UbuntuMonoBold-16.json
+  LUA_TOOLBOX                       ${CMAKE_SOURCE_DIR}/Resources/Toolbox.lua
+  PREPARE_DATABASE                  ${CMAKE_SOURCE_DIR}/Sources/Database/PrepareDatabase.sql
+  UPGRADE_DATABASE_3_TO_4           ${CMAKE_SOURCE_DIR}/Sources/Database/Upgrade3To4.sql
+  UPGRADE_DATABASE_4_TO_5           ${CMAKE_SOURCE_DIR}/Sources/Database/Upgrade4To5.sql
+  INSTALL_TRACK_ATTACHMENTS_SIZE    ${CMAKE_SOURCE_DIR}/Sources/Database/InstallTrackAttachmentsSize.sql
+  INSTALL_LABELS_TABLE              ${CMAKE_SOURCE_DIR}/Sources/Database/InstallLabelsTable.sql
+  INSTALL_REVISION_AND_CUSTOM_DATA  ${CMAKE_SOURCE_DIR}/Sources/Database/InstallRevisionAndCustomData.sql  
+  INSTALL_DELETED_FILES             ${CMAKE_SOURCE_DIR}/Sources/Database/InstallDeletedFiles.sql
+  INSTALL_KEY_VALUE_STORES_AND_QUEUES ${CMAKE_SOURCE_DIR}/Sources/Database/InstallKeyValueStoresAndQueues.sql
   )
 
 if (STANDALONE_BUILD)

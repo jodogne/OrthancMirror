@@ -26,40 +26,44 @@
 
 #include "IStorageArea.h"
 
-#include "../Compatibility.h"  // For ORTHANC_OVERRIDE
-#include "../MultiThreading/Mutex.h"
-
-#include <map>
 
 namespace Orthanc
 {
-  class MemoryStorageArea : public IStorageArea
+  class ORTHANC_PUBLIC PluginStorageAreaAdapter : public IPluginStorageArea
   {
   private:
-    typedef std::map<std::string, std::string*>  Content;
-    
-    Mutex    mutex_;
-    Content  content_;
-    
+    std::unique_ptr<IStorageArea> storage_;
+
   public:
-    virtual ~MemoryStorageArea();
-    
-    virtual void Create(const std::string& uuid,
+    explicit PluginStorageAreaAdapter(IStorageArea* storage /* takes ownership */);
+
+    virtual void Create(std::string& customData,
+                        const std::string& uuid,
                         const void* content,
                         size_t size,
-                        FileContentType type) ORTHANC_OVERRIDE;
+                        FileContentType type,
+                        CompressionType compression,
+                        const DicomInstanceToStore* dicomInstance) ORTHANC_OVERRIDE;
 
     virtual IMemoryBuffer* ReadRange(const std::string& uuid,
                                      FileContentType type,
                                      uint64_t start /* inclusive */,
-                                     uint64_t end /* exclusive */) ORTHANC_OVERRIDE;
-    
-    virtual bool HasEfficientReadRange() const ORTHANC_OVERRIDE
+                                     uint64_t end /* exclusive */,
+                                     const std::string& customData) ORTHANC_OVERRIDE
     {
-      return true;
+      return storage_->ReadRange(uuid, type, start, end);
     }
 
     virtual void Remove(const std::string& uuid,
-                        FileContentType type) ORTHANC_OVERRIDE;
+                        FileContentType type,
+                        const std::string& customData) ORTHANC_OVERRIDE
+    {
+      storage_->Remove(uuid, type);
+    }
+
+    virtual bool HasEfficientReadRange() const ORTHANC_OVERRIDE
+    {
+      return storage_->HasEfficientReadRange();
+    }
   };
 }

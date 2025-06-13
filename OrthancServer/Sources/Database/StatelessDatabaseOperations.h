@@ -226,6 +226,12 @@ namespace Orthanc
         return transaction_.LookupAttachment(attachment, revision, id, contentType);
       }
       
+      void GetAttachmentCustomData(std::string& customData,
+                                   const std::string& attachmentUuid)
+      {
+        return transaction_.GetAttachmentCustomData(customData, attachmentUuid);
+      }
+
       bool LookupGlobalProperty(std::string& target,
                                 GlobalProperty property,
                                 bool shared)
@@ -292,6 +298,28 @@ namespace Orthanc
                          const std::string& identifier)
       {
         transaction_.ExecuteExpand(response, capabilities, request, identifier);
+      }
+
+      bool GetKeyValue(std::string& value,
+                       const std::string& storeId,
+                       const std::string& key)
+      {
+        return transaction_.GetKeyValue(value, storeId, key);
+      }
+
+      uint64_t GetQueueSize(const std::string& queueId)
+      {
+        return transaction_.GetQueueSize(queueId);
+      }
+
+      void ListKeysValues(std::list<std::string>& keys,
+                          std::list<std::string>& values,
+                          const std::string& storeId,
+                          bool first,
+                          const std::string& from,
+                          uint64_t limit)
+      {
+        return transaction_.ListKeysValues(keys, values, storeId, first, from, limit);
       }
     };
 
@@ -428,6 +456,41 @@ namespace Orthanc
       {
         transaction_.RemoveLabel(id, label);
       }
+
+      void StoreKeyValue(const std::string& storeId,
+                         const std::string& key,
+                         const void* value,
+                         size_t valueSize)
+      {
+        transaction_.StoreKeyValue(storeId, key, value, valueSize);
+      }
+
+      void DeleteKeyValue(const std::string& storeId,
+                          const std::string& key)
+      {
+        transaction_.DeleteKeyValue(storeId, key);
+      }
+
+      void EnqueueValue(const std::string& queueId,
+                        const void* value,
+                        size_t valueSize)
+      {
+        transaction_.EnqueueValue(queueId, value, valueSize);
+      }
+
+      bool DequeueValue(std::string& value,
+                        const std::string& queueId,
+                        QueueOrigin origin)
+      {
+        return transaction_.DequeueValue(value, queueId, origin);
+      }
+
+      void SetAttachmentCustomData(const std::string& attachmentUuid,
+                                      const void* customData,
+                                      size_t customDataSize)
+      {
+        return transaction_.SetAttachmentCustomData(attachmentUuid, customData, customDataSize);
+      }
     };
 
 
@@ -523,6 +586,13 @@ namespace Orthanc
                              /* out */ uint64_t& countSeries, 
                              /* out */ uint64_t& countInstances);
 
+    void GetAttachmentCustomData(std::string& customData,
+                                 const std::string& attachmentUuid);
+
+    void SetAttachmentCustomData(const std::string& attachmentUuid,
+                                 const void* customData,
+                                 size_t customDataSize);
+
     bool LookupAttachment(FileInfo& attachment,
                           int64_t& revision,
                           ResourceType level,
@@ -544,6 +614,12 @@ namespace Orthanc
     bool HasExtendedChanges();
 
     bool HasFindSupport();
+
+    bool HasAttachmentCustomDataSupport();
+
+    bool HasKeyValueStoresSupport();
+
+    bool HasQueuesSupport();
     
     void GetExportedResources(Json::Value& target,
                               int64_t since,
@@ -724,5 +800,80 @@ namespace Orthanc
 
     void ExecuteCount(uint64_t& count,
                       const FindRequest& request);
+
+    void StoreKeyValue(const std::string& storeId,
+                       const std::string& key,
+                       const void* value,
+                       size_t valueSize);
+
+    void StoreKeyValue(const std::string& storeId,
+                       const std::string& key,
+                       const std::string& value)
+    {
+      StoreKeyValue(storeId, key, value.empty() ? NULL : value.c_str(), value.size());
+    }
+
+    void DeleteKeyValue(const std::string& storeId,
+                        const std::string& key);
+
+    bool GetKeyValue(std::string& value,
+                     const std::string& storeId,
+                     const std::string& key);
+
+    void EnqueueValue(const std::string& queueId,
+                      const void* value,
+                      size_t valueSize);
+
+    void EnqueueValue(const std::string& queueId,
+                      const std::string& value)
+    {
+      EnqueueValue(queueId, value.empty() ? NULL : value.c_str(), value.size());
+    }
+
+    bool DequeueValue(std::string& value,
+                      const std::string& queueId,
+                      QueueOrigin origin);
+    
+    uint64_t GetQueueSize(const std::string& queueId);
+
+    class KeysValuesIterator : public boost::noncopyable
+    {
+    private:
+      enum State
+      {
+        State_Waiting,
+        State_Available,
+        State_Done
+      };
+
+      StatelessDatabaseOperations&            db_;
+      State                                   state_;
+      std::string                             storeId_;
+      uint64_t                                limit_;
+      std::list<std::string>                  keys_;
+      std::list<std::string>                  values_;
+      std::list<std::string>::const_iterator  currentKey_;
+      std::list<std::string>::const_iterator  currentValue_;
+
+    public:
+      KeysValuesIterator(StatelessDatabaseOperations& db,
+                         const std::string& storeId);
+
+      void SetLimit(uint64_t limit)
+      {
+        limit_ = limit;
+      }
+
+      uint64_t GetLimit() const
+      {
+        return limit_;
+      }
+
+      bool Next();
+
+      const std::string& GetKey() const;
+
+      const std::string& GetValue() const;
+    };
   };
 }

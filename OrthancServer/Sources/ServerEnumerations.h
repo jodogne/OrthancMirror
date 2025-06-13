@@ -173,6 +173,7 @@ namespace Orthanc
     GlobalProperty_AnonymizationSequence = 3,
     GlobalProperty_JobsRegistry = 5,
     GlobalProperty_GetTotalSizeIsFast = 6,      // New in Orthanc 1.5.2
+    GlobalProperty_SQLiteHasRevisionAndCustomData = 7,     // New in Orthanc 1.12.8
     GlobalProperty_Modalities = 20,             // New in Orthanc 1.5.0
     GlobalProperty_Peers = 21,                  // New in Orthanc 1.5.0
 
@@ -260,6 +261,11 @@ namespace Orthanc
     Warnings_007_MissingRequestedTagsNotReadFromDisk       // new in Orthanc 1.12.5
   };
 
+  enum QueueOrigin
+  {
+    QueueOrigin_Front,
+    QueueOrigin_Back
+  };
 
   void InitializeServerEnumerations();
 

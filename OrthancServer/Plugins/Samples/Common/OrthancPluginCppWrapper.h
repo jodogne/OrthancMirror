@@ -134,6 +134,14 @@
 #  define HAS_ORTHANC_PLUGIN_LOG_MESSAGE  0
 #endif
 
+#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 12, 8)
+#  define HAS_ORTHANC_PLUGIN_KEY_VALUE_STORES  1
+#  define HAS_ORTHANC_PLUGIN_QUEUES            1
+#else
+#  define HAS_ORTHANC_PLUGIN_KEY_VALUE_STORES  0
+#  define HAS_ORTHANC_PLUGIN_QUEUES            0
+#endif
+
 
 // Macro to tag a function as having been deprecated
 #if (__cplusplus >= 201402L)  // C++14
@@ -203,13 +211,6 @@ namespace OrthancPlugins
   public:
     MemoryBuffer();
 
-#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 7, 0)
-    // This constructor makes a copy of the given buffer in the memory
-    // handled by the Orthanc core
-    MemoryBuffer(const void* buffer,
-                 size_t size);
-#endif
-
     ~MemoryBuffer()
     {
       Clear();
@@ -219,6 +220,16 @@ namespace OrthancPlugins
     {
       return &buffer_;
     }
+
+#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 7, 0)
+    // Copy of the given buffer into the memory managed by the Orthanc core
+    void Assign(const void* buffer,
+                size_t size);
+#endif
+
+#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 7, 0)
+    void Assign(const std::string& s);
+#endif
 
     // This transfers ownership from "other" to "this"
     void Assign(OrthancPluginMemoryBuffer& other);
@@ -1616,6 +1627,103 @@ void SerializeGetArguments(std::string& output, const OrthancPluginHttpRequest* 
     const std::string& GetAnswerBody() const;
 
     bool GetAnswerJson(Json::Value& output) const;
+  };
+#endif
+
+
+#if HAS_ORTHANC_PLUGIN_KEY_VALUE_STORES == 1
+  class KeyValueStore : public boost::noncopyable
+  {
+  public:
+    class Iterator : public boost::noncopyable
+    {
+    private:
+      OrthancPluginKeysValuesIterator  *iterator_;
+
+    public:
+      Iterator(OrthancPluginKeysValuesIterator  *iterator);
+
+      ~Iterator();
+
+      bool Next();
+
+      std::string GetKey() const;
+
+      void GetValue(std::string& target) const;
+    };
+
+  private:
+    std::string storeId_;
+
+  public:
+    explicit KeyValueStore(const std::string& storeId) :
+      storeId_(storeId)
+    {
+    }
+
+    const std::string& GetStoreId() const
+    {
+      return storeId_;
+    }
+
+    void Store(const std::string& key,
+               const void* value,
+               size_t valueSize);
+
+    void Store(const std::string& key,
+               const std::string& value)
+    {
+      Store(key, value.empty() ? NULL : value.c_str(), value.size());
+    }
+
+    bool GetValue(std::string& value,
+                  const std::string& key);
+
+    void DeleteKey(const std::string& key);
+
+    Iterator* CreateIterator();
+  };
+#endif
+
+
+#if HAS_ORTHANC_PLUGIN_QUEUES == 1
+  class Queue : public boost::noncopyable
+  {
+  private:
+    std::string queueId_;
+
+    bool DequeueInternal(std::string& value, OrthancPluginQueueOrigin origin);
+
+  public:
+    explicit Queue(const std::string& queueId) :
+      queueId_(queueId)
+    {
+    }
+
+    const std::string& GetQueueId() const
+    {
+      return queueId_;
+    }
+
+    void Enqueue(const void* value,
+                 size_t valueSize);
+
+    void Enqueue(const std::string& value)
+    {
+      Enqueue(value.empty() ? NULL : value.c_str(), value.size());
+    }
+
+    bool DequeueBack(std::string& value)
+    {
+      return DequeueInternal(value, OrthancPluginQueueOrigin_Back);
+    }
+
+    bool DequeueFront(std::string& value)
+    {
+      return DequeueInternal(value, OrthancPluginQueueOrigin_Front);
+    }
+
+    uint64_t GetSize();
   };
 #endif
 }

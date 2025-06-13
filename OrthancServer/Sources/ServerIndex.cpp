@@ -45,12 +45,14 @@ namespace Orthanc
     struct FileToRemove
     {
     private:
-      std::string  uuid_;
-      FileContentType  type_;
+      std::string       uuid_;
+      std::string       customData_;
+      FileContentType   type_;
 
     public:
       explicit FileToRemove(const FileInfo& info) :
-        uuid_(info.GetUuid()), 
+        uuid_(info.GetUuid()),
+        customData_(info.GetCustomData()),
         type_(info.GetContentType())
       {
       }
@@ -58,6 +60,11 @@ namespace Orthanc
       const std::string& GetUuid() const
       {
         return uuid_;
+      }
+
+      const std::string& GetCustomData() const
+      {
+        return customData_;
       }
 
       FileContentType GetContentType() const 
@@ -93,7 +100,7 @@ namespace Orthanc
       {
         try
         {
-          context_.RemoveFile(it->GetUuid(), it->GetContentType());
+          context_.RemoveFile(it->GetUuid(), it->GetContentType(), it->GetCustomData());
         }
         catch (OrthancException& e)
         {
