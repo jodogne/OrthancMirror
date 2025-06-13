@@ -1761,7 +1761,8 @@ namespace Orthanc
     std::unique_ptr<OrthancPluginDatabaseV4>  databaseV4_;  // New in Orthanc 1.12.0
     PluginsErrorDictionary  dictionary_;
     std::string databaseServerIdentifier_;   // New in Orthanc 1.9.2
-    unsigned int maxDatabaseRetries_;   // New in Orthanc 1.9.2
+    unsigned int maxDatabaseRetries_;        // New in Orthanc 1.9.2
+    bool hasStorageAreaCustomData_;          // New in Orthanc 1.12.8
 
     explicit PImpl(const std::string& databaseServerIdentifier) : 
       contextRefCount_(0),
@@ -1772,7 +1773,8 @@ namespace Orthanc
       argc_(1),
       argv_(NULL),
       databaseServerIdentifier_(databaseServerIdentifier),
-      maxDatabaseRetries_(0)
+      maxDatabaseRetries_(0),
+      hasStorageAreaCustomData_(false)
     {
       memset(&moveCallbacks_, 0, sizeof(moveCallbacks_));
     }
@@ -4542,15 +4544,21 @@ namespace Orthanc
 
   void OrthancPlugins::ApplyAdoptDicomInstance(const _OrthancPluginAdoptDicomInstance& parameters)
   {
-    std::string md5;
-    Toolbox::ComputeMD5(md5, parameters.buffer, parameters.bufferSize);
+    if (!pimpl_->hasStorageAreaCustomData_)
+    {
+      LOG(WARNING) << "The adoption of a DICOM instance should only be used in combination with a custom "
+                   << "storage area registered using OrthancPluginRegisterStorageArea3()";
+    }
 
-    std::unique_ptr<DicomInstanceToStore> dicom(DicomInstanceToStore::CreateFromBuffer(parameters.buffer, parameters.bufferSize));
+    std::string md5;
+    Toolbox::ComputeMD5(md5, parameters.dicom, parameters.dicomSize);
+
+    std::unique_ptr<DicomInstanceToStore> dicom(DicomInstanceToStore::CreateFromBuffer(parameters.dicom, parameters.dicomSize));
     dicom->SetOrigin(DicomInstanceOrigin::FromPlugins());
 
     const std::string attachmentUuid = Toolbox::GenerateUuid();
 
-    FileInfo adoptedFile(attachmentUuid, FileContentType_Dicom, parameters.bufferSize, md5);
+    FileInfo adoptedFile(attachmentUuid, FileContentType_Dicom, parameters.dicomSize, md5);
     adoptedFile.SetCustomData(parameters.customData, parameters.customDataSize);
 
     std::string instanceId;
@@ -5928,6 +5936,7 @@ namespace Orthanc
             const _OrthancPluginRegisterStorageArea3& p = 
               *reinterpret_cast<const _OrthancPluginRegisterStorageArea3*>(parameters);
             pimpl_->storageArea_.reset(new StorageAreaFactory(plugin, p, GetErrorDictionary()));
+            pimpl_->hasStorageAreaCustomData_ = true;
           }
           else
           {
