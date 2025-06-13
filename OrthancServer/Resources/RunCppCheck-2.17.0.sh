@@ -106,5 +106,6 @@ ${CPPCHECK} --enable=all --std=gnu++11 --library=boost \
             ../../OrthancServer/Plugins/Samples/Housekeeper \
             ../../OrthancServer/Plugins/Samples/ModalityWorklists \
             ../../OrthancServer/Plugins/Samples/MultitenantDicom \
+            ../../OrthancServer/Plugins/Samples/AdoptDicomInstance \
             \
             2>&1
