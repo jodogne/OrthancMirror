@@ -29,7 +29,7 @@
 
 namespace Orthanc
 {
-  class PluginStorageAreaAdapter : public IPluginStorageArea
+  class ORTHANC_PUBLIC PluginStorageAreaAdapter : public IPluginStorageArea
   {
   private:
     std::unique_ptr<IStorageArea> storage_;
