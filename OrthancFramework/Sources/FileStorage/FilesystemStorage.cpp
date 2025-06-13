@@ -348,7 +348,7 @@ namespace Orthanc
                                const std::string& uuid,
                                FileContentType type)
   {
-    std::unique_ptr<IMemoryBuffer> buffer(Read(uuid, type));
+    std::unique_ptr<IMemoryBuffer> buffer(ReadWhole(uuid, type));
     buffer->MoveToString(content);
   }
 #endif
