@@ -69,7 +69,7 @@ CREATE TABLE AttachedFiles(
        uncompressedMD5 TEXT,  -- New in Orthanc 0.7.3 (database v4)
        compressedMD5 TEXT,    -- New in Orthanc 0.7.3 (database v4)
        revision INTEGER,      -- New in Orthanc 1.12.8 (added in InstallRevisionAndCustomData.sql)
-       customData BLOB,       -- New in Orthanc 1.12.8 (added in InstallRevisionAndCustomData.sql)
+       customData BLOB,       -- New in Orthanc 1.12.8 (added in InstallDeletedFiles.sql)
        PRIMARY KEY(id, fileType)
        );              
 
