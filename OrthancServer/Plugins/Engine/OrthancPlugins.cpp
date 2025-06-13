@@ -567,7 +567,7 @@ namespace Orthanc
       memcpy(result, str.c_str(), str.size());
     }
 
-    result[str.size() - 1] = '\0';  // Add the null terminator of the string
+    result[str.size()] = '\0';  // Add the null terminator of the string
 
     return result;
   }
