@@ -211,13 +211,6 @@ namespace OrthancPlugins
   public:
     MemoryBuffer();
 
-#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 7, 0)
-    // This constructor makes a copy of the given buffer in the memory
-    // handled by the Orthanc core
-    MemoryBuffer(const void* buffer,
-                 size_t size);
-#endif
-
     ~MemoryBuffer()
     {
       Clear();
@@ -227,6 +220,16 @@ namespace OrthancPlugins
     {
       return &buffer_;
     }
+
+#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 7, 0)
+    // Copy of the given buffer into the memory managed by the Orthanc core
+    void Assign(const void* buffer,
+                size_t size);
+#endif
+
+#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 7, 0)
+    void Assign(const std::string& s);
+#endif
 
     // This transfers ownership from "other" to "this"
     void Assign(OrthancPluginMemoryBuffer& other);
