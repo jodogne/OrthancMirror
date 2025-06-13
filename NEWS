@@ -1,6 +1,19 @@
 Pending changes in the mainline
 ===============================
 
+General
+-------
+
+* SQLite default DB engine now supports metadata and attachment revisions.
+* Upgraded the DB to allow plugins to store customData for each attachment.
+
+Plugins
+-------
+
+* New database plugin SDK (vX) to handle customData for attachments, key-value stores and queues.
+* New storage plugin SDK (v3) to handle customData for attachments.
+* New functions available to all plugins to store key-values and queues.
+
 Maintenance
 -----------
 
@@ -9,12 +22,13 @@ Maintenance
   - If "LimitMainDicomTagsReconstructLevel" was set, files were not transcoded if they had to.
     The "LimitMainDicomTagsReconstructLevel" configuration is now ignored when a full processing
     is required.
+* Fix computation of MD5 hashes for memory buffers whose size is larger than 2^31 bytes.
 * Delayed Deletion plugin:
   - Added an index in the delayed-deletion SQLite external DB to speed up delayed deletions.
     This new index will only apply to new databases.  If you wish to speed up an existing installation,
     run "CREATE INDEX PendingIndex ON Pending(uuid)" manually in the plugin SQLite DB.
     Patch provided by Yurii (George) from ivtech.dev.
-    With this patch, we observed a 100 fold performance improvement when the 
+    With this patch, we observed a 100 fold performance improvement when the
     "Pending" table contains 1-2 millions files.
 * Configuration options "RejectSopClasses" and "RejectedSopClasses" are taken as synonyms.
   In Orthanc 1.12.6 and 1.12.7, "RejectSopClasses" was used instead of the expected
@@ -25,14 +39,12 @@ Maintenance
   REST handler was actually returning an HTTP error 415.  The plugin will now receive an
   error 3000:OrthancPluginErrorCode_UnsupportedMediaType.
 
-
 REST API
 --------
 
 * If the index database provides the "HasExtendedFind" primitive, the "ResponseContent" option in
   "/tools/find" now allows to specify "IsProtected" to retrieve the "IsProtected" status of a
   patient resource.
-
 
 
 Version 1.12.7 (2025-04-07)

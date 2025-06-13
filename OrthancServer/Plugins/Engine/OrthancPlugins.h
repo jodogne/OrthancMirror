@@ -89,11 +89,14 @@ namespace Orthanc
     class HttpClientChunkedAnswer;
     class HttpServerChunkedReader;
     class IDicomInstance;
-    class DicomInstanceFromCallback;
     class DicomInstanceFromBuffer;
     class DicomInstanceFromParsed;
     class WebDavCollection;
-    
+
+public:
+    class DicomInstanceFromCallback;
+
+private:
     void RegisterRestCallback(const void* parameters,
                               bool lock);
 
@@ -221,6 +224,26 @@ namespace Orthanc
 
     void ApplyLoadDicomInstance(const _OrthancPluginLoadDicomInstance& parameters);
 
+    void ApplyAdoptDicomInstance(const _OrthancPluginAdoptDicomInstance& parameters);
+
+    void ApplyGetAttachmentCustomData(const _OrthancPluginGetAttachmentCustomData& parameters);
+
+    void ApplySetAttachmentCustomData(const _OrthancPluginSetAttachmentCustomData& parameters);
+
+    void ApplyStoreKeyValue(const _OrthancPluginStoreKeyValue& parameters);
+
+    void ApplyDeleteKeyValue(const _OrthancPluginDeleteKeyValue& parameters);
+
+    void ApplyGetKeyValue(const _OrthancPluginGetKeyValue& parameters);
+
+    void ApplyCreateKeysValuesIterator(const _OrthancPluginCreateKeysValuesIterator& parameters);
+
+    void ApplyEnqueueValue(const _OrthancPluginEnqueueValue& parameters);
+
+    void ApplyDequeueValue(const _OrthancPluginDequeueValue& parameters);
+
+    void ApplyGetQueueSize(const _OrthancPluginGetQueueSize& parameters);
+
     void ComputeHash(_OrthancPluginService service,
                      const void* parameters);
 
@@ -292,7 +315,7 @@ namespace Orthanc
 
     bool HasStorageArea() const;
 
-    IStorageArea* CreateStorageArea();  // To be freed after use
+    IPluginStorageArea* CreateStorageArea();  // To be freed after use
 
     const SharedLibrary& GetStorageAreaLibrary() const;
 

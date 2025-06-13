@@ -96,7 +96,7 @@ namespace Orthanc
 
 
     void ReconstructMainDicomTags(IDatabaseWrapper::ITransaction& transaction,
-                                  IStorageArea& storageArea,
+                                  IPluginStorageArea& storageArea,
                                   ResourceType level)
     {
       // WARNING: The database should be locked with a transaction!

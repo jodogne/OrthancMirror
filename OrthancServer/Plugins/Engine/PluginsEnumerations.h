@@ -73,6 +73,18 @@ namespace Orthanc
     ResourceType Convert(OrthancPluginResourceType type);
 
     OrthancPluginConstraintType Convert(ConstraintType constraint);
+
+    OrthancPluginCompressionType Convert(CompressionType type);
+
+    CompressionType Convert(OrthancPluginCompressionType type);
+
+    OrthancPluginStoreStatus Convert(StoreStatus type);
+
+    StoreStatus Convert(OrthancPluginStoreStatus type);
+
+    OrthancPluginQueueOrigin Convert(QueueOrigin type);
+
+    QueueOrigin Convert(OrthancPluginQueueOrigin type);
   }
 }
 

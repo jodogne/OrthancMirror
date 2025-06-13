@@ -80,6 +80,23 @@ extern "C"
   } _OrthancPluginDatabaseAnswerType;
 
 
+  typedef enum
+  {
+    OrthancPluginDatabaseTransactionType_ReadOnly = 1,
+    OrthancPluginDatabaseTransactionType_ReadWrite = 2,
+    OrthancPluginDatabaseTransactionType_INTERNAL = 0x7fffffff
+  } OrthancPluginDatabaseTransactionType;
+
+
+  typedef enum
+  {
+    OrthancPluginDatabaseEventType_DeletedAttachment = 1,
+    OrthancPluginDatabaseEventType_DeletedResource = 2,
+    OrthancPluginDatabaseEventType_RemainingAncestor = 3,
+    OrthancPluginDatabaseEventType_INTERNAL = 0x7fffffff
+  } OrthancPluginDatabaseEventType;
+
+
   typedef struct
   {
     const char* uuid;
@@ -899,7 +916,9 @@ extern "C"
     OrthancPluginDatabaseContext* result = NULL;
     _OrthancPluginRegisterDatabaseBackend params;
 
-    if (sizeof(int32_t) != sizeof(_OrthancPluginDatabaseAnswerType))
+    if (sizeof(int32_t) != sizeof(_OrthancPluginDatabaseAnswerType) ||
+        sizeof(int32_t) != sizeof(OrthancPluginDatabaseTransactionType) ||
+        sizeof(int32_t) != sizeof(OrthancPluginDatabaseEventType))
     {
       return NULL;
     }
@@ -951,7 +970,9 @@ extern "C"
     OrthancPluginDatabaseContext* result = NULL;
     _OrthancPluginRegisterDatabaseBackendV2 params;
 
-    if (sizeof(int32_t) != sizeof(_OrthancPluginDatabaseAnswerType))
+    if (sizeof(int32_t) != sizeof(_OrthancPluginDatabaseAnswerType) ||
+        sizeof(int32_t) != sizeof(OrthancPluginDatabaseTransactionType) ||
+        sizeof(int32_t) != sizeof(OrthancPluginDatabaseEventType))
     {
       return NULL;
     }
@@ -982,23 +1003,6 @@ extern "C"
    **/
 
 /*<! @cond Doxygen_Suppress */
-  typedef enum
-  {
-    OrthancPluginDatabaseTransactionType_ReadOnly = 1,
-    OrthancPluginDatabaseTransactionType_ReadWrite = 2,
-    OrthancPluginDatabaseTransactionType_INTERNAL = 0x7fffffff
-  } OrthancPluginDatabaseTransactionType;
-
-
-  typedef enum
-  {
-    OrthancPluginDatabaseEventType_DeletedAttachment = 1,
-    OrthancPluginDatabaseEventType_DeletedResource = 2,
-    OrthancPluginDatabaseEventType_RemainingAncestor = 3,
-    OrthancPluginDatabaseEventType_INTERNAL = 0x7fffffff
-  } OrthancPluginDatabaseEventType;
-
-
   typedef struct
   {
     OrthancPluginDatabaseEventType type;
@@ -1327,8 +1331,6 @@ extern "C"
 
   } OrthancPluginDatabaseBackendV3;
 
-/*<! @endcond */
-  
 
   typedef struct
   {
@@ -1348,7 +1350,9 @@ extern "C"
   {
     _OrthancPluginRegisterDatabaseBackendV3 params;
 
-    if (sizeof(int32_t) != sizeof(_OrthancPluginDatabaseAnswerType))
+    if (sizeof(int32_t) != sizeof(_OrthancPluginDatabaseAnswerType) ||
+        sizeof(int32_t) != sizeof(OrthancPluginDatabaseTransactionType) ||
+        sizeof(int32_t) != sizeof(OrthancPluginDatabaseEventType))
     {
       return OrthancPluginErrorCode_Plugin;
     }
@@ -1361,7 +1365,10 @@ extern "C"
 
     return context->InvokeService(context, _OrthancPluginService_RegisterDatabaseBackendV3, &params);
   }
-  
+
+/*<! @endcond */
+
+
 #ifdef  __cplusplus
 }
 #endif

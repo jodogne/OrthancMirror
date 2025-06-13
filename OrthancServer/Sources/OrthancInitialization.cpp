@@ -56,6 +56,7 @@
 
 #include "../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.h"
 #include "../../OrthancFramework/Sources/FileStorage/FilesystemStorage.h"
+#include "../../OrthancFramework/Sources/FileStorage/PluginStorageAreaAdapter.h"
 #include "../../OrthancFramework/Sources/HttpClient.h"
 #include "../../OrthancFramework/Sources/Logging.h"
 #include "../../OrthancFramework/Sources/OrthancException.h"
@@ -482,19 +483,6 @@ namespace Orthanc
         }
       }
 
-      virtual IMemoryBuffer* Read(const std::string& uuid,
-                                  FileContentType type) ORTHANC_OVERRIDE
-      {
-        if (type != FileContentType_Dicom)
-        {
-          return storage_.Read(uuid, type);
-        }
-        else
-        {
-          throw OrthancException(ErrorCode_UnknownResource);
-        }
-      }
-
       virtual IMemoryBuffer* ReadRange(const std::string& uuid,
                                        FileContentType type,
                                        uint64_t start /* inclusive */,
@@ -510,9 +498,9 @@ namespace Orthanc
         }
       }
 
-      virtual bool HasReadRange() const ORTHANC_OVERRIDE
+      virtual bool HasEfficientReadRange() const ORTHANC_OVERRIDE
       {
-        return storage_.HasReadRange();
+        return storage_.HasEfficientReadRange();
       }
 
       virtual void Remove(const std::string& uuid,
@@ -527,7 +515,7 @@ namespace Orthanc
   }
 
 
-  static IStorageArea* CreateFilesystemStorage()
+  static IPluginStorageArea* CreateFilesystemStorage()
   {
     static const char* const SYNC_STORAGE_AREA = "SyncStorageArea";
     static const char* const STORE_DICOM = "StoreDicom";
@@ -547,12 +535,12 @@ namespace Orthanc
 
     if (lock.GetConfiguration().GetBooleanParameter(STORE_DICOM, true))
     {
-      return new FilesystemStorage(storageDirectory.string(), fsyncOnWrite);
+      return new PluginStorageAreaAdapter(new FilesystemStorage(storageDirectory.string(), fsyncOnWrite));
     }
     else
     {
       LOG(WARNING) << "The DICOM files will not be stored, Orthanc running in index-only mode";
-      return new FilesystemStorageWithoutDicom(storageDirectory.string(), fsyncOnWrite);
+      return new PluginStorageAreaAdapter(new FilesystemStorageWithoutDicom(storageDirectory.string(), fsyncOnWrite));
     }
   }
 
@@ -563,7 +551,7 @@ namespace Orthanc
   }
 
 
-  IStorageArea* CreateStorageArea()
+  IPluginStorageArea* CreateStorageArea()
   {
     return CreateFilesystemStorage();
   }

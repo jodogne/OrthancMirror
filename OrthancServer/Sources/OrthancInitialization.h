@@ -35,7 +35,7 @@ namespace Orthanc
 
   IDatabaseWrapper* CreateDatabaseWrapper();
 
-  IStorageArea* CreateStorageArea();
+  IPluginStorageArea* CreateStorageArea();
 
   void SetGlobalVerbosity(Verbosity verbosity);
 
