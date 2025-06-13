@@ -20,7 +20,7 @@
 
 CREATE TABLE DeletedFiles(
        uuid TEXT NOT NULL,        -- 0
-       customData TEXT            -- 1
+       customData BLOB            -- 1
 );
 
 -- We need to use another AttachedFileDeleted trigger than the legacy one in "Upgrade4To5.sql".
