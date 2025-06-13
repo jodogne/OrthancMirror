@@ -686,7 +686,7 @@ namespace OrthancPlugins
   {
     OrthancString str;
     str.Assign(OrthancPluginDicomBufferToJson
-               (GetGlobalContext(), GetData(), GetSize(), format, flags, maxStringLength));
+               (GetGlobalContext(), reinterpret_cast<const char*>(GetData()), GetSize(), format, flags, maxStringLength));
     str.ToJson(target);
   }
 
