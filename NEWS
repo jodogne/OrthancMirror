@@ -1,6 +1,10 @@
 Pending changes in the mainline
 ===============================
 
+
+Version 1.12.8 (2025-06-13)
+===========================
+
 General
 -------
 
@@ -9,6 +13,7 @@ General
 REST API
 --------
 
+* API version upgraded to 29
 * If the database backend provides the "HasExtendedFind" primitive, the
   value "IsProtected" can be included in the "ResponseContent" field of
   "/tools/find" to request the "IsProtected" status of patient resources.
