@@ -1,6 +1,16 @@
 Pending changes in the mainline
 ===============================
 
+Plugins
+-------
+
+* Housekeeper plugin:
+  - new "ForceReconstructFiles": If "Force" is set to true, forces 
+    the "ReconstructFiles" option when reconstructing resources even 
+    if the plugin did not detect any changes in the configuration that 
+    should trigger a Reconstruct.
+
+
 
 Version 1.12.8 (2025-06-13)
 ===========================
