@@ -62,6 +62,7 @@ namespace Orthanc
     static int RestApiPut(lua_State *state);
     static int RestApiDelete(lua_State *state);
     static int GetOrthancConfiguration(lua_State *state);
+    static int SetStableStatus(lua_State* state);
 
     size_t ParseOperation(LuaJobManager::Lock& lock,
                           const std::string& operation,
