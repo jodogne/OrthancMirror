@@ -1,6 +1,12 @@
 Pending changes in the mainline
 ===============================
 
+General
+-------
+
+* Lua: new "SetStableStatus" function.
+
+
 Plugin SDK
 ----------
 
