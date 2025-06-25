@@ -244,6 +244,8 @@ private:
 
     void ApplyGetQueueSize(const _OrthancPluginGetQueueSize& parameters);
 
+    void ApplySetStableStatus(const _OrthancPluginSetStableStatus& parameters);
+
     void ComputeHash(_OrthancPluginService service,
                      const void* parameters);
 

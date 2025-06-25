@@ -691,6 +691,10 @@ namespace Orthanc
     bool GetAllMainDicomTags(DicomMap& result,
                              const std::string& instancePublicId);
 
+    bool LookupResource(int64_t& id,
+                        ResourceType& type,
+                        const std::string& publicId);
+
     bool LookupResourceType(ResourceType& type,
                             const std::string& publicId);
 

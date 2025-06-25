@@ -4703,6 +4703,24 @@ namespace Orthanc
     *parameters.size = lock.GetContext().GetIndex().GetQueueSize(parameters.queueId);
   }
 
+  void OrthancPlugins::ApplySetStableStatus(const _OrthancPluginSetStableStatus& parameters)
+  {
+    PImpl::ServerContextReference lock(*pimpl_);
+    bool statusHasChanged = false;
+
+    lock.GetContext().GetIndex().SetStableStatus(statusHasChanged,
+                                                 parameters.resourceId,
+                                                 (parameters.stableStatus == OrthancPluginStableStatus_Stable));
+    if (statusHasChanged)
+    {
+      *(parameters.statusHasChanged) = 1;
+    }
+    else
+    {
+      *(parameters.statusHasChanged) = 0;
+    }
+  }
+
   void OrthancPlugins::ApplyLoadDicomInstance(const _OrthancPluginLoadDicomInstance& params)
   {
     std::unique_ptr<IDicomInstance> target;
@@ -5823,6 +5841,13 @@ namespace Orthanc
       {
         const _OrthancPluginGetQueueSize& p = *reinterpret_cast<const _OrthancPluginGetQueueSize*>(parameters);
         ApplyGetQueueSize(p);
+        return true;
+      }
+
+      case _OrthancPluginService_SetStableStatus:
+      {
+        const _OrthancPluginSetStableStatus& p = *reinterpret_cast<const _OrthancPluginSetStableStatus*>(parameters);
+        ApplySetStableStatus(p);
         return true;
       }
 
