@@ -121,7 +121,7 @@
 
 #define ORTHANC_PLUGINS_MINIMAL_MAJOR_NUMBER     1
 #define ORTHANC_PLUGINS_MINIMAL_MINOR_NUMBER     12
-#define ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER  8
+#define ORTHANC_PLUGINS_MINIMAL_REVISION_NUMBER  9
 
 
 #if !defined(ORTHANC_PLUGINS_VERSION_IS_ABOVE)
@@ -483,6 +483,7 @@ extern "C"
     _OrthancPluginService_EnqueueValue = 57,                        /* New in Orthanc 1.12.8 */
     _OrthancPluginService_DequeueValue = 58,                        /* New in Orthanc 1.12.8 */
     _OrthancPluginService_GetQueueSize = 59,                        /* New in Orthanc 1.12.8 */
+    _OrthancPluginService_SetStableStatus = 60,                     /* New in Orthanc 1.12.9 */
 
     /* Registration of callbacks */
     _OrthancPluginService_RegisterRestCallback = 1000,
@@ -1169,6 +1170,16 @@ extern "C"
     _OrthancPluginQueueOrigin_INTERNAL = 0x7fffffff
   } OrthancPluginQueueOrigin;
 
+  /**
+   * The "stable" status of a resource.
+   **/
+  typedef enum
+  {
+    OrthancPluginStableStatus_Stable = 0,     /*!< The resource is stable */
+    OrthancPluginStableStatus_Unstable = 1,   /*!< The resource is unstable */
+
+    _OrthancPluginStableStatus_INTERNAL = 0x7fffffff
+  } OrthancPluginStableStatus;
 
 
   /**
@@ -9969,6 +9980,7 @@ extern "C"
     return context->InvokeService(context, _OrthancPluginService_StoreKeyValue, &params);
   }
 
+
   typedef struct
   {
     const char*                   storeId;
@@ -9994,6 +10006,7 @@ extern "C"
 
     return context->InvokeService(context, _OrthancPluginService_DeleteKeyValue, &params);
   }
+
 
   typedef struct
   {
@@ -10037,7 +10050,6 @@ extern "C"
    * @ingroup Callbacks
    **/
   typedef struct _OrthancPluginKeysValuesIterator_t OrthancPluginKeysValuesIterator;
-
 
 
   typedef struct
@@ -10197,7 +10209,6 @@ extern "C"
   }
 
 
-
   typedef struct
   {
     const char*                   queueId;
@@ -10227,6 +10238,7 @@ extern "C"
 
     return context->InvokeService(context, _OrthancPluginService_EnqueueValue, &params);
   }
+
 
   typedef struct
   {
@@ -10263,6 +10275,7 @@ extern "C"
     return context->InvokeService(context, _OrthancPluginService_DequeueValue, &params);
   }
 
+
   typedef struct
   {
     const char*                   queueId;
@@ -10287,6 +10300,43 @@ extern "C"
     params.size = size;
 
     return context->InvokeService(context, _OrthancPluginService_GetQueueSize, &params);
+  }
+
+
+  typedef struct
+  {
+    const char*                   resourceId;
+    OrthancPluginStableStatus     stableStatus;
+    int32_t*                      statusHasChanged;
+  } _OrthancPluginSetStableStatus;
+
+  /**
+   * @brief Change the "Stable" status of a resource.  
+   *        Forcing a resource to "Stable" if it is currently "Unstable" will change 
+   *        its Stable status AND trigger a new Stable change which will also trigger 
+   *        listener callbacks.
+   *        Forcing a resource to "Stable" if it is already "Stable" is a no-op.
+   *        Forcing a resource to "Unstable" will change its Stable status to "Unstable"
+   *        AND reset its stabilization period, no matter of its initial state.
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param statusHasChanged Wheter the status has changed (1) or not (0) during the execution of this command.
+   * @param resourceId The Orthanc identifier of the DICOM resource of interest.
+   * @param stableStatus The new stable status of the resource of interest.
+   * @return 0 if success, other value if error.
+   **/
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginSetStableStatus(
+    OrthancPluginContext*         context,
+    int32_t*                      statusHasChanged,  /* out */
+    const char*                   resourceId,  /* in */
+    OrthancPluginStableStatus     stableStatus /* in */)
+  {
+    _OrthancPluginSetStableStatus params;
+    params.resourceId = resourceId;
+    params.stableStatus= stableStatus;
+    params.statusHasChanged = statusHasChanged;
+
+    return context->InvokeService(context, _OrthancPluginService_SetStableStatus, &params);
   }
 
 #ifdef  __cplusplus

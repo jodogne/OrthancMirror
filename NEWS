@@ -1,6 +1,13 @@
 Pending changes in the mainline
 ===============================
 
+Plugin SDK
+----------
+
+* Added new function OrthancPluginSetStableStatus to e.g force the 
+  stabilization of a study from a plugin.
+
+
 Plugins
 -------
 

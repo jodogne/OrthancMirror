@@ -312,7 +312,7 @@ namespace Orthanc
   bool ServerIndex::IsUnstableResource(ResourceType type,
                                        int64_t id)
   {
-    boost::mutex::scoped_lock lock(monitoringMutex_);
+    boost::recursive_mutex::scoped_lock lock(monitoringMutex_);
     return unstableResources_.Contains(std::make_pair(type, id));
   }
 
@@ -394,7 +394,7 @@ namespace Orthanc
   void ServerIndex::SetMaximumPatientCount(unsigned int count) 
   {
     {
-      boost::mutex::scoped_lock lock(monitoringMutex_);
+      boost::recursive_mutex::scoped_lock lock(monitoringMutex_);
       maximumPatients_ = count;
       
       if (count == 0)
@@ -414,7 +414,7 @@ namespace Orthanc
   void ServerIndex::SetMaximumStorageSize(uint64_t size) 
   {
     {
-      boost::mutex::scoped_lock lock(monitoringMutex_);
+      boost::recursive_mutex::scoped_lock lock(monitoringMutex_);
       maximumStorageSize_ = size;
       
       if (size == 0)
@@ -433,7 +433,7 @@ namespace Orthanc
   void ServerIndex::SetMaximumStorageMode(MaxStorageMode mode) 
   {
     {
-      boost::mutex::scoped_lock lock(monitoringMutex_);
+      boost::recursive_mutex::scoped_lock lock(monitoringMutex_);
       maximumStorageMode_ = mode;
       
       if (mode == MaxStorageMode_Recycle)
@@ -486,7 +486,7 @@ namespace Orthanc
         int64_t stableId;
 
         {      
-          boost::mutex::scoped_lock lock(that->monitoringMutex_);
+          boost::recursive_mutex::scoped_lock lock(that->monitoringMutex_);
 
           if (!that->unstableResources_.IsEmpty() &&
               that->unstableResources_.GetOldestPayload().GetAge() > static_cast<unsigned int>(stableAge))
@@ -505,43 +505,52 @@ namespace Orthanc
           }
         }
 
-        try
-        {
-          /**
-           * WARNING: Don't protect the calls to "LogChange()" using
-           * "monitoringMutex_", as this could lead to deadlocks in
-           * other threads (typically, if "Store()" is being running in
-           * another thread, which leads to calls to "MarkAsUnstable()",
-           * which leads to two lockings of "monitoringMutex_").
-           **/
-          switch (stableLevel)
-          {
-            case ResourceType_Patient:
-              that->LogChange(stableId, ChangeType_StablePatient, stablePayload.GetPublicId(), ResourceType_Patient);
-              break;
-            
-            case ResourceType_Study:
-              that->LogChange(stableId, ChangeType_StableStudy, stablePayload.GetPublicId(), ResourceType_Study);
-              break;
-            
-            case ResourceType_Series:
-              that->LogChange(stableId, ChangeType_StableSeries, stablePayload.GetPublicId(), ResourceType_Series);
-              break;
-            
-            default:
-              throw OrthancException(ErrorCode_InternalError);
-          }
-        }
-        catch (OrthancException& e)
-        {
-          LOG(ERROR) << "Cannot log a change about a stable resource into the database";
-        }          
+        // must not be protected by monitoringMutex_
+        that->LogStableChange(stableLevel, stableId, stablePayload.GetPublicId());
       }
     }
 
     LOG(INFO) << "Closing the monitor thread for stable resources";
   }
   
+  void ServerIndex::LogStableChange(ResourceType stableLevel,
+                                    int64_t stableId,
+                                    const std::string& publicId)
+  {
+    try
+    {
+      /**
+        * WARNING: Don't protect the calls to "LogChange()" using
+        * "monitoringMutex_", as this could lead to deadlocks in
+        * other threads (typically, if "Store()" is being running in
+        * another thread, which leads to calls to "MarkAsUnstable()",
+        * which leads to two lockings of "monitoringMutex_").
+        **/
+      switch (stableLevel)
+      {
+        case ResourceType_Patient:
+          LogChange(stableId, ChangeType_StablePatient, publicId, ResourceType_Patient);
+          break;
+        
+        case ResourceType_Study:
+          LogChange(stableId, ChangeType_StableStudy, publicId, ResourceType_Study);
+          break;
+        
+        case ResourceType_Series:
+          LogChange(stableId, ChangeType_StableSeries, publicId, ResourceType_Series);
+          break;
+        
+        default:
+          throw OrthancException(ErrorCode_InternalError);
+      }
+    }
+    catch (OrthancException& e)
+    {
+      LOG(ERROR) << "Cannot log a change about a stable resource into the database";
+    }          
+  }
+
+
 
   void ServerIndex::MarkAsUnstable(ResourceType type,
                                    int64_t id,
@@ -552,11 +561,57 @@ namespace Orthanc
            type == ResourceType_Series);
 
     {
-      boost::mutex::scoped_lock lock(monitoringMutex_);
+      boost::recursive_mutex::scoped_lock lock(monitoringMutex_);
       UnstableResourcePayload payload(publicId);
       unstableResources_.AddOrMakeMostRecent(std::make_pair(type, id), payload);
       //LOG(INFO) << "Unstable resource: " << EnumerationToString(type) << " " << id;
     }
+  }
+
+  bool ServerIndex::SetStableStatus(bool& statusHasChanged,
+                                    const std::string& resourceId,
+                                    bool setNewStatusToStable)
+  {
+    int64_t id;
+    ResourceType type;
+
+    if (LookupResource(id, type, resourceId))
+    {
+      if (setNewStatusToStable)
+      {
+        {
+          boost::recursive_mutex::scoped_lock lock(monitoringMutex_);
+
+          if (IsUnstableResource(type, id))
+          {
+            unstableResources_.Invalidate(std::pair<ResourceType, int64_t>(type, id));
+            statusHasChanged = true;
+          }
+        }
+
+        if (statusHasChanged)
+        {
+          // must not be protected by monitoringMutex_
+          LogStableChange(type, id, resourceId);
+        }
+      }
+      else
+      {
+        {
+          boost::recursive_mutex::scoped_lock lock(monitoringMutex_);
+
+          statusHasChanged = !IsUnstableResource(type, id);
+
+          // no matter what was the status, we mark it as unstable to reset its stabilization period
+          MarkAsUnstable(type, id, resourceId);
+        }
+
+      }
+
+      return true;
+    }
+
+    return false;
   }
 
 
@@ -578,7 +633,7 @@ namespace Orthanc
     MaxStorageMode maximumStorageMode;
     
     {
-      boost::mutex::scoped_lock lock(monitoringMutex_);
+      boost::recursive_mutex::scoped_lock lock(monitoringMutex_);
       maximumStorageSize = maximumStorageSize_;
       maximumPatients = maximumPatients_;
       maximumStorageMode = maximumStorageMode_;
@@ -602,7 +657,7 @@ namespace Orthanc
     unsigned int maximumPatients;
     
     {
-      boost::mutex::scoped_lock lock(monitoringMutex_);
+      boost::recursive_mutex::scoped_lock lock(monitoringMutex_);
       maximumStorageSize = maximumStorageSize_;
       maximumPatients = maximumPatients_;
     }

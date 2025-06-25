@@ -1394,25 +1394,33 @@ namespace Orthanc
   }
 
 
-  bool StatelessDatabaseOperations::LookupResourceType(ResourceType& type,
-                                                       const std::string& publicId)
+  bool StatelessDatabaseOperations::LookupResource(int64_t& internalId,
+                                                   ResourceType& type,
+                                                   const std::string& publicId)
   {
-    class Operations : public ReadOnlyOperationsT3<bool&, ResourceType&, const std::string&>
+    class Operations : public ReadOnlyOperationsT4<bool&, int64_t&, ResourceType&, const std::string&>
     {
     public:
       virtual void ApplyTuple(ReadOnlyTransaction& transaction,
                               const Tuple& tuple) ORTHANC_OVERRIDE
       {
         // TODO - CANDIDATE FOR "TransactionType_Implicit"
-        int64_t id;
-        tuple.get<0>() = transaction.LookupResource(id, tuple.get<1>(), tuple.get<2>());
+        tuple.get<0>() = transaction.LookupResource(tuple.get<1>(), tuple.get<2>(), tuple.get<3>());
       }
     };
 
     bool found;
     Operations operations;
-    operations.Apply(*this, found, type, publicId);
+    operations.Apply(*this, found, internalId, type, publicId);
     return found;
+  }
+
+
+  bool StatelessDatabaseOperations::LookupResourceType(ResourceType& type,
+                                                       const std::string& publicId)
+  {
+    int64_t internalId;
+    return LookupResource(internalId, type, publicId);
   }
 
 

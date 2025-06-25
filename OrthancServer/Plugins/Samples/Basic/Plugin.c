@@ -226,6 +226,44 @@ OrthancPluginErrorCode Callback5(OrthancPluginRestOutput* output,
 }
 
 
+
+OrthancPluginErrorCode CallbackStabilizeStudy(OrthancPluginRestOutput* output,
+                                              const char* url,
+                                              const OrthancPluginHttpRequest* request)
+{
+
+  if (request->method != OrthancPluginHttpMethod_Post)
+  {
+    OrthancPluginSendMethodNotAllowed(context, output, "POST");
+  }
+  else
+  {
+    const char* studyId = request->groups[0];
+    int32_t statusHasChanged = 0;
+
+    if (strcmp(request->groups[1], "stabilize") == 0)
+    {
+      OrthancPluginSetStableStatus(context, &statusHasChanged, studyId, OrthancPluginStableStatus_Stable);
+    }
+    else
+    {
+      OrthancPluginSetStableStatus(context, &statusHasChanged, studyId, OrthancPluginStableStatus_Unstable);
+    }
+
+    if (statusHasChanged)
+    {
+      OrthancPluginAnswerBuffer(context, output, "CHANGED\n", 8, "text/plain");
+    }
+    else
+    {
+      OrthancPluginAnswerBuffer(context, output, "UNCHANGED\n", 10, "text/plain");
+    }
+  }
+
+  return OrthancPluginErrorCode_Success;
+}
+
+
 OrthancPluginErrorCode CallbackCreateDicom(OrthancPluginRestOutput* output,
                                            const char* url,
                                            const OrthancPluginHttpRequest* request)
@@ -572,6 +610,7 @@ ORTHANC_PLUGINS_API int32_t OrthancPluginInitialize(OrthancPluginContext* c)
   OrthancPluginRegisterRestCallback(context, "/forward/(plugins)(/.+)", Callback5);
   OrthancPluginRegisterRestCallback(context, "/plugin/create", CallbackCreateDicom);
   OrthancPluginRegisterRestCallback(context, "/instances/([^/]+)/dicom-web", CallbackDicomWeb);
+  OrthancPluginRegisterRestCallback(context, "/studies/([^/]+)/(stabilize|unstabilize)", CallbackStabilizeStudy);
 
   OrthancPluginRegisterOnStoredInstanceCallback(context, OnStoredCallback);
   OrthancPluginRegisterOnChangeCallback(context, OnChangeCallback);
