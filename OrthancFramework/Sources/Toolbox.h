@@ -82,6 +82,25 @@ namespace Orthanc
   class ORTHANC_PUBLIC Toolbox
   {
   public:
+#if ORTHANC_ENABLE_MD5 == 1
+    class ORTHANC_PUBLIC MD5Context : public boost::noncopyable
+    {
+    private:
+      class PImpl;
+      boost::shared_ptr<PImpl> pimpl_;
+
+    public:
+      MD5Context();
+
+      void Append(const void* data,
+                  size_t size);
+
+      void Append(const std::string& source);
+
+      void Export(std::string& target);
+    };
+#endif
+
     class ORTHANC_PUBLIC LinesIterator : public boost::noncopyable
     {
     private:

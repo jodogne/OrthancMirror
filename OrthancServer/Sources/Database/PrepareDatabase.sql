@@ -55,6 +55,7 @@ CREATE TABLE Metadata(
        id INTEGER REFERENCES Resources(internalId) ON DELETE CASCADE,
        type INTEGER,
        value TEXT,
+       revision INTEGER,      -- New in Orthanc 1.12.8 (added in InstallRevisionAndCustomData.sql)
        PRIMARY KEY(id, type)
        );
 
@@ -67,6 +68,8 @@ CREATE TABLE AttachedFiles(
        compressionType INTEGER,
        uncompressedMD5 TEXT,  -- New in Orthanc 0.7.3 (database v4)
        compressedMD5 TEXT,    -- New in Orthanc 0.7.3 (database v4)
+       revision INTEGER,      -- New in Orthanc 1.12.8 (added in InstallRevisionAndCustomData.sql)
+       customData BLOB,       -- New in Orthanc 1.12.8 (added in InstallDeletedFiles.sql)
        PRIMARY KEY(id, fileType)
        );              
 
@@ -95,22 +98,12 @@ CREATE TABLE PatientRecyclingOrder(
        patientId INTEGER REFERENCES Resources(internalId) ON DELETE CASCADE
        );
 
--- New in Orthanc 1.12.0
-CREATE TABLE Labels(
-       id INTEGER REFERENCES Resources(internalId) ON DELETE CASCADE,
-       label TEXT NOT NULL,
-       PRIMARY KEY(id, label)  -- Prevents duplicates
-       );
-
 CREATE INDEX ChildrenIndex ON Resources(parentId);
 CREATE INDEX PublicIndex ON Resources(publicId);
 CREATE INDEX ResourceTypeIndex ON Resources(resourceType);
 CREATE INDEX PatientRecyclingIndex ON PatientRecyclingOrder(patientId);
 
 CREATE INDEX MainDicomTagsIndex1 ON MainDicomTags(id);
--- The 2 following indexes were removed in Orthanc 0.8.5 (database v5), to speed up
--- CREATE INDEX MainDicomTagsIndex2 ON MainDicomTags(tagGroup, tagElement);
--- CREATE INDEX MainDicomTagsIndexValues ON MainDicomTags(value COLLATE BINARY);
 
 -- The 3 following indexes were added in Orthanc 0.8.5 (database v5)
 CREATE INDEX DicomIdentifiersIndex1 ON DicomIdentifiers(id);
@@ -119,18 +112,6 @@ CREATE INDEX DicomIdentifiersIndexValues ON DicomIdentifiers(value COLLATE BINAR
 
 CREATE INDEX ChangesIndex ON Changes(internalId);
 
--- New in Orthanc 1.12.0
-CREATE INDEX LabelsIndex1 ON Labels(id);
-CREATE INDEX LabelsIndex2 ON Labels(label);  -- This index allows efficient lookups
-
-CREATE TRIGGER AttachedFileDeleted
-AFTER DELETE ON AttachedFiles
-BEGIN
-  SELECT SignalFileDeleted(old.uuid, old.fileType, old.uncompressedSize, 
-                           old.compressionType, old.compressedSize,
-                           -- These 2 arguments are new in Orthanc 0.7.3 (database v4)
-                           old.uncompressedMD5, old.compressedMD5);
-END;
 
 CREATE TRIGGER ResourceDeleted
 AFTER DELETE ON Resources
@@ -154,6 +135,27 @@ FOR EACH ROW WHEN new.resourceType = 1  -- "1" corresponds to "ResourceType_Pati
 BEGIN
   INSERT INTO PatientRecyclingOrder VALUES (NULL, new.internalId);
 END;
+
+
+-- new in Orthanc 1.5.1 -------------------------- equivalent to InstallTrackAttachmentsSize.sql
+${INSTALL_TRACK_ATTACHMENTS_SIZE}
+
+
+-- new in Orthanc 1.12.0 ------------------------- equivalent to InstallLabelsTable.sql
+${INSTALL_LABELS_TABLE}
+
+
+-- new in Orthanc 1.12.8 ------------------------- equivalent to InstallDeletedFiles.sql
+${INSTALL_DELETED_FILES}
+
+
+-- new in Orthanc 1.12.8 ------------------------- equivalent to InstallKeyValueStoresAndQueues.sql
+${INSTALL_KEY_VALUE_STORES_AND_QUEUES}
+
+
+-- Track the fact that the "revision" column exists in the "Metadata" and "AttachedFiles"
+-- tables, and that the "customData" column exists in the "AttachedFiles" table
+INSERT INTO GlobalProperties VALUES (7, 1);  -- GlobalProperty_SQLiteHasCustomDataAndRevision
 
 
 -- Set the version of the database schema

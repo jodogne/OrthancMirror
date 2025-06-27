@@ -64,6 +64,7 @@
 #include <boost/algorithm/string/join.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/regex.hpp>
+#include <cassert>
 
 #if BOOST_VERSION >= 106600
 #  include <boost/uuid/detail/sha1.hpp>
@@ -207,6 +208,112 @@ extern "C"
 
 namespace Orthanc
 {
+#if ORTHANC_ENABLE_MD5 == 1
+  static char GetHexadecimalCharacter(uint8_t value)
+  {
+    assert(value < 16);
+
+    if (value < 10)
+    {
+      return value + '0';
+    }
+    else
+    {
+      return (value - 10) + 'a';
+    }
+  }
+
+
+  struct Toolbox::MD5Context::PImpl
+  {
+    md5_state_s  state_;
+    bool         done_;
+
+    PImpl() :
+      done_(false)
+    {
+      md5_init(&state_);
+    }
+  };
+
+
+  Toolbox::MD5Context::MD5Context() :
+    pimpl_(new PImpl)
+  {
+  }
+
+
+  void Toolbox::MD5Context::Append(const void* data,
+                                   size_t size)
+  {
+    static const size_t MAX_SIZE = 128 * 1024 * 1024;
+
+    if (pimpl_->done_)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+
+    const uint8_t *p = reinterpret_cast<const uint8_t*>(data);
+
+    while (size > 0)
+    {
+      /**
+       * The built-in implementation of MD5 requires that "size" can
+       * be casted to "int", so we feed it by chunks of maximum
+       * 128MB. This fixes an incorrect behavior in Orthanc <= 1.12.7.
+       **/
+
+      int chunkSize;
+      if (size > MAX_SIZE)
+      {
+        chunkSize = static_cast<int>(MAX_SIZE);
+      }
+      else
+      {
+        chunkSize = static_cast<int>(size);
+      }
+
+      md5_append(&pimpl_->state_, reinterpret_cast<const md5_byte_t*>(p), chunkSize);
+
+      p += chunkSize;
+
+      assert(static_cast<size_t>(chunkSize) <= size);
+      size -= chunkSize;
+    }
+  }
+
+
+  void Toolbox::MD5Context::Append(const std::string& source)
+  {
+    if (source.size() > 0)
+    {
+      Append(source.c_str(), source.size());
+    }
+  }
+
+
+  void Toolbox::MD5Context::Export(std::string& target)
+  {
+    if (pimpl_->done_)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+
+    pimpl_->done_ = true;
+
+    md5_byte_t actualHash[16];
+    md5_finish(&pimpl_->state_, actualHash);
+
+    target.resize(32);
+    for (unsigned int i = 0; i < 16; i++)
+    {
+      target[2 * i] = GetHexadecimalCharacter(static_cast<uint8_t>(actualHash[i] / 16));
+      target[2 * i + 1] = GetHexadecimalCharacter(static_cast<uint8_t>(actualHash[i] % 16));
+    }
+  }
+#endif  /* ORTHANC_ENABLE_MD5 */
+
+
   void Toolbox::LinesIterator::FindEndOfLine()
   {
     lineEnd_ = lineStart_;
@@ -444,21 +551,6 @@ namespace Orthanc
 
 
 #if ORTHANC_ENABLE_MD5 == 1
-  static char GetHexadecimalCharacter(uint8_t value)
-  {
-    assert(value < 16);
-
-    if (value < 10)
-    {
-      return value + '0';
-    }
-    else
-    {
-      return (value - 10) + 'a';
-    }
-  }
-
-
   void Toolbox::ComputeMD5(std::string& result,
                            const std::string& data)
   {
@@ -477,25 +569,9 @@ namespace Orthanc
                            const void* data,
                            size_t size)
   {
-    md5_state_s state;
-    md5_init(&state);
-
-    if (size > 0)
-    {
-      md5_append(&state, 
-                 reinterpret_cast<const md5_byte_t*>(data), 
-                 static_cast<int>(size));
-    }
-
-    md5_byte_t actualHash[16];
-    md5_finish(&state, actualHash);
-
-    result.resize(32);
-    for (unsigned int i = 0; i < 16; i++)
-    {
-      result[2 * i] = GetHexadecimalCharacter(static_cast<uint8_t>(actualHash[i] / 16));
-      result[2 * i + 1] = GetHexadecimalCharacter(static_cast<uint8_t>(actualHash[i] % 16));
-    }
+    MD5Context context;
+    context.Append(data, size);
+    context.Export(result);
   }
 
   void Toolbox::ComputeMD5(std::string& result,

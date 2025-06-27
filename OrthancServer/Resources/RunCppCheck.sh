@@ -102,5 +102,6 @@ ${CPPCHECK} --enable=all --quiet --std=c++11 \
             ../../OrthancServer/Plugins/Samples/Housekeeper \
             ../../OrthancServer/Plugins/Samples/ModalityWorklists \
             ../../OrthancServer/Plugins/Samples/MultitenantDicom \
+            ../../OrthancServer/Plugins/Samples/AdoptDicomInstance \
             \
             2>&1

@@ -30,10 +30,9 @@
 #include <gtest/gtest.h>
 
 #include "../Sources/FileStorage/FilesystemStorage.h"
+#include "../Sources/FileStorage/PluginStorageAreaAdapter.h"
 #include "../Sources/FileStorage/StorageAccessor.h"
 #include "../Sources/FileStorage/StorageCache.h"
-#include "../Sources/HttpServer/BufferHttpSender.h"
-#include "../Sources/HttpServer/FilesystemHttpSender.h"
 #include "../Sources/Logging.h"
 #include "../Sources/OrthancException.h"
 #include "../Sources/Toolbox.h"
@@ -63,12 +62,18 @@ TEST(FilesystemStorage, Basic)
   s.Create(uid.c_str(), &data[0], data.size(), FileContentType_Unknown);
   std::string d;
   {
-    std::unique_ptr<IMemoryBuffer> buffer(s.Read(uid, FileContentType_Unknown));
+    std::unique_ptr<IMemoryBuffer> buffer(s.ReadWhole(uid, FileContentType_Unknown));
     buffer->MoveToString(d);    
   }
   ASSERT_EQ(d.size(), data.size());
   ASSERT_FALSE(memcmp(&d[0], &data[0], data.size()));
   ASSERT_EQ(s.GetSize(uid), data.size());
+  {
+    std::unique_ptr<IMemoryBuffer> buffer2(s.ReadRange(uid, FileContentType_Unknown, 0, uid.size()));
+    std::string d2;
+    buffer2->MoveToString(d2);
+    ASSERT_EQ(d, d2);
+  }
 }
 
 TEST(FilesystemStorage, Basic2)
@@ -81,12 +86,18 @@ TEST(FilesystemStorage, Basic2)
   s.Create(uid.c_str(), &data[0], data.size(), FileContentType_Unknown);
   std::string d;
   {
-    std::unique_ptr<IMemoryBuffer> buffer(s.Read(uid, FileContentType_Unknown));
+    std::unique_ptr<IMemoryBuffer> buffer(s.ReadWhole(uid, FileContentType_Unknown));
     buffer->MoveToString(d);    
   }
   ASSERT_EQ(d.size(), data.size());
   ASSERT_FALSE(memcmp(&d[0], &data[0], data.size()));
   ASSERT_EQ(s.GetSize(uid), data.size());
+  {
+    std::unique_ptr<IMemoryBuffer> buffer2(s.ReadRange(uid, FileContentType_Unknown, 0, uid.size()));
+    std::string d2;
+    buffer2->MoveToString(d2);
+    ASSERT_EQ(d, d2);
+  }
 }
 
 TEST(FilesystemStorage, FileWithSameNameAsTopDirectory)
@@ -169,13 +180,14 @@ TEST(FilesystemStorage, EndToEnd)
 
 TEST(StorageAccessor, NoCompression)
 {
-  FilesystemStorage s("UnitTestsStorage");
+  PluginStorageAreaAdapter s(new FilesystemStorage("UnitTestsStorage"));
   StorageCache cache;
   StorageAccessor accessor(s, cache);
 
-  std::string data = "Hello world";
-  FileInfo info = accessor.Write(data, FileContentType_Dicom, CompressionType_None, true);
-  
+  const std::string data = "Hello world";
+  FileInfo info;
+  accessor.Write(info, data.c_str(), data.size(), FileContentType_Dicom, CompressionType_None, true, NULL);
+
   std::string r;
   accessor.Read(r, info);
 
@@ -191,13 +203,14 @@ TEST(StorageAccessor, NoCompression)
 
 TEST(StorageAccessor, Compression)
 {
-  FilesystemStorage s("UnitTestsStorage");
+  PluginStorageAreaAdapter s(new FilesystemStorage("UnitTestsStorage"));
   StorageCache cache;
   StorageAccessor accessor(s, cache);
 
-  std::string data = "Hello world";
-  FileInfo info = accessor.Write(data, FileContentType_Dicom, CompressionType_ZlibWithSize, true);
-  
+  const std::string data = "Hello world";
+  FileInfo info;
+  accessor.Write(info, data.c_str(), data.size(), FileContentType_Dicom, CompressionType_ZlibWithSize, true, NULL);
+
   std::string r;
   accessor.Read(r, info);
 
@@ -212,20 +225,22 @@ TEST(StorageAccessor, Compression)
 
 TEST(StorageAccessor, Mix)
 {
-  FilesystemStorage s("UnitTestsStorage");
+  PluginStorageAreaAdapter s(new FilesystemStorage("UnitTestsStorage"));
   StorageCache cache;
   StorageAccessor accessor(s, cache);
 
-  std::string r;
-  std::string compressedData = "Hello";
-  std::string uncompressedData = "HelloWorld";
+  const std::string compressedData = "Hello";
+  const std::string uncompressedData = "HelloWorld";
 
-  FileInfo compressedInfo = accessor.Write(compressedData, FileContentType_Dicom, CompressionType_ZlibWithSize, false);  
-  FileInfo uncompressedInfo = accessor.Write(uncompressedData, FileContentType_Dicom, CompressionType_None, false);
-  
+  FileInfo compressedInfo;
+  accessor.Write(compressedInfo, compressedData.c_str(), compressedData.size(), FileContentType_Dicom, CompressionType_ZlibWithSize, false, NULL);
+
+  std::string r;
   accessor.Read(r, compressedInfo);
   ASSERT_EQ(compressedData, r);
 
+  FileInfo uncompressedInfo;
+  accessor.Write(uncompressedInfo, uncompressedData.c_str(), uncompressedData.size(), FileContentType_Dicom, CompressionType_None, false, NULL);
   accessor.Read(r, uncompressedInfo);
   ASSERT_EQ(uncompressedData, r);
   ASSERT_NE(compressedData, r);

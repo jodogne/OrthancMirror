@@ -51,7 +51,10 @@ namespace Orthanc
     if (handler.Handle(http, origin, LOCALHOST, "", HttpMethod_Get, curi, 
                        httpHeaders, getArguments, NULL /* no body for GET */, 0))
     {
-      stream.GetBody(answerBody);
+      if (stream.GetStatus() == HttpStatus_200_Ok)
+      {
+        stream.GetBody(answerBody);
+      }
 
       if (answerHeaders != NULL)
       {

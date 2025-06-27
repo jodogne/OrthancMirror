@@ -27,7 +27,7 @@
 
 #include "../../../OrthancFramework/Sources/SQLite/Connection.h"
 
-#include <boost/thread/mutex.hpp>
+#include <boost/thread/recursive_mutex.hpp>
 
 namespace Orthanc
 {
@@ -47,7 +47,7 @@ namespace Orthanc
     class ReadWriteTransaction;
     class LookupFormatter;
 
-    boost::mutex              mutex_;
+    boost::recursive_mutex    mutex_;
     SQLite::Connection        db_;
     TransactionBase*          activeTransaction_;
     SignalRemainingAncestor*  signalRemainingAncestor_;
@@ -88,7 +88,7 @@ namespace Orthanc
     }
 
     virtual void Upgrade(unsigned int targetVersion,
-                         IStorageArea& storageArea) ORTHANC_OVERRIDE;
+                         IPluginStorageArea& storageArea) ORTHANC_OVERRIDE;
 
     virtual const Capabilities GetDatabaseCapabilities() const ORTHANC_OVERRIDE
     {

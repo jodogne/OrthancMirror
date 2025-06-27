@@ -30,6 +30,7 @@
 #include "../../OrthancFramework/Sources/DicomNetworking/DicomServer.h"
 #include "../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.h"
 #include "../../OrthancFramework/Sources/FileStorage/MemoryStorageArea.h"
+#include "../../OrthancFramework/Sources/FileStorage/PluginStorageAreaAdapter.h"
 #include "../../OrthancFramework/Sources/HttpServer/FilesystemHttpHandler.h"
 #include "../../OrthancFramework/Sources/HttpServer/HttpServer.h"
 #include "../../OrthancFramework/Sources/Logging.h"
@@ -1426,7 +1427,7 @@ static bool ConfigureHttpHandler(ServerContext& context,
 
 
 static void UpgradeDatabase(IDatabaseWrapper& database,
-                            IStorageArea& storageArea)
+                            IPluginStorageArea& storageArea)
 {
   // Upgrade the schema of the database, if needed
   unsigned int currentVersion = database.GetDatabaseVersion();
@@ -1529,7 +1530,7 @@ namespace
 
 
 static bool ConfigureServerContext(IDatabaseWrapper& database,
-                                   IStorageArea& storageArea,
+                                   IPluginStorageArea& storageArea,
                                    OrthancPlugins *plugins,
                                    bool loadJobsFromDatabase)
 {
@@ -1667,7 +1668,7 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
 
 
 static bool ConfigureDatabase(IDatabaseWrapper& database,
-                              IStorageArea& storageArea,
+                              IPluginStorageArea& storageArea,
                               OrthancPlugins *plugins,
                               bool upgradeDatabase,
                               bool loadJobsFromDatabase)
@@ -1746,7 +1747,7 @@ static bool ConfigurePlugins(int argc,
                              bool loadJobsFromDatabase)
 {
   std::unique_ptr<IDatabaseWrapper>  databasePtr;
-  std::unique_ptr<IStorageArea>  storage;
+  std::unique_ptr<IPluginStorageArea>  storage;
 
 #if ORTHANC_ENABLE_PLUGINS == 1
   std::string databaseServerIdentifier;
@@ -1997,7 +1998,7 @@ int main(int argc, char* argv[])
         {
           SQLiteDatabaseWrapper inMemoryDatabase;
           inMemoryDatabase.Open();
-          MemoryStorageArea inMemoryStorage;
+          PluginStorageAreaAdapter inMemoryStorage(new MemoryStorageArea);
           ServerContext context(inMemoryDatabase, inMemoryStorage, true /* unit testing */, 0 /* max completed jobs */, false /* readonly */, 1 /* DCMTK concurrent transcoders */);
           OrthancRestApi restApi(context, false /* no Orthanc Explorer */);
           restApi.GenerateOpenApiDocumentation(openapi);
@@ -2048,7 +2049,7 @@ int main(int argc, char* argv[])
         {
           SQLiteDatabaseWrapper inMemoryDatabase;
           inMemoryDatabase.Open();
-          MemoryStorageArea inMemoryStorage;
+          PluginStorageAreaAdapter inMemoryStorage(new MemoryStorageArea);
           ServerContext context(inMemoryDatabase, inMemoryStorage, true /* unit testing */, 0 /* max completed jobs */, false /* readonly */, 1 /* DCMTK concurrent transcoders */);
           OrthancRestApi restApi(context, false /* no Orthanc Explorer */);
           restApi.GenerateReStructuredTextCheatSheet(cheatsheet, "https://orthanc.uclouvain.be/api/index.html");

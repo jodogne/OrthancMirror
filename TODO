@@ -1,11 +1,3 @@
-current work on C-Get SCU:
-- for the negotiation, limit SOPClassUID to the ones listed in a C-Find response or to a list provided in the Rest API ?
-- SetupPresentationContexts
-- handle progress
-- handle cancellation when the job is cancelled ?
-
-
-
 =======================
 === Orthanc Roadmap ===
 =======================

@@ -43,7 +43,7 @@
 namespace Orthanc
 {
   class DicomInstanceToStore;
-  class IStorageArea;
+  class IPluginStorageArea;
   class JobsEngine;
   class MetricsRegistry;
   class OrthancPlugins;
@@ -193,7 +193,7 @@ namespace Orthanc
     virtual void SignalJobFailure(const std::string& jobId) ORTHANC_OVERRIDE;
 
     ServerIndex index_;
-    IStorageArea& area_;
+    IPluginStorageArea& area_;
     StorageCache storageCache_;
 
     bool compressionEnabled_;
@@ -269,9 +269,17 @@ namespace Orthanc
                                       StoreInstanceMode mode,
                                       bool isReconstruct);
 
+    StoreResult StoreAfterTranscoding(std::string& resultPublicId,
+                                      DicomInstanceToStore& dicom,
+                                      StoreInstanceMode mode,
+                                      bool isReconstruct,
+                                      bool isAdoption,
+                                      const FileInfo& adoptedFile);
+
     // This method must only be called from "ServerIndex"!
     void RemoveFile(const std::string& fileUuid,
-                    FileContentType type);
+                    FileContentType type,
+                    const std::string& customData);
 
     // This DicomModification object is intended to be used as a
     // "rules engine" when de-identifying logs for C-Find, C-Get, and
@@ -305,7 +313,7 @@ namespace Orthanc
     };
 
     ServerContext(IDatabaseWrapper& database,
-                  IStorageArea& area,
+                  IPluginStorageArea& area,
                   bool unitTesting,
                   size_t maxCompletedJobs,
                   bool readOnly,
@@ -344,6 +352,7 @@ namespace Orthanc
 
     bool AddAttachment(int64_t& newRevision,
                        const std::string& resourceId,
+                       ResourceType resourceType,
                        FileContentType attachmentType,
                        const void* data,
                        size_t size,
@@ -354,6 +363,11 @@ namespace Orthanc
     StoreResult Store(std::string& resultPublicId,
                       DicomInstanceToStore& dicom,
                       StoreInstanceMode mode);
+
+    StoreResult AdoptDicomInstance(std::string& resultPublicId,
+                                   DicomInstanceToStore& dicom,
+                                   StoreInstanceMode mode,
+                                   const FileInfo& adoptedFile);
 
     StoreResult TranscodeAndStore(std::string& resultPublicId,
                                   DicomInstanceToStore* dicom,

@@ -1,0 +1,13 @@
+This sample plugin illustrates how to use the
+"OrthancPluginAdoptDicomInstance()" primitive in the Orthanc SDK.
+
+The plugin replaces the built-in storage area of Orthanc, by a flat
+directory "./OrthancStorage" containing the attachments.
+
+DICOM instances can then be adopted by typing:
+
+$ curl http://localhost:8042/adopt -d /tmp/sample.dcm
+
+An adopted DICOM instance is not copied inside the "OrthancStorage"
+folder, but is read from its original location (in the example above,
+from "/tmp/sample.dcm").

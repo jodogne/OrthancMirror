@@ -275,7 +275,7 @@ namespace Orthanc
   };
 
 
-  StorageAccessor::StorageAccessor(IStorageArea& area) :
+  StorageAccessor::StorageAccessor(IPluginStorageArea& area) :
     area_(area),
     cache_(NULL),
     metrics_(NULL)
@@ -283,7 +283,7 @@ namespace Orthanc
   }
   
 
-  StorageAccessor::StorageAccessor(IStorageArea& area, 
+  StorageAccessor::StorageAccessor(IPluginStorageArea& area,
                                    StorageCache& cache) :
     area_(area),
     cache_(&cache),
@@ -292,7 +292,7 @@ namespace Orthanc
   }
 
 
-  StorageAccessor::StorageAccessor(IStorageArea& area,
+  StorageAccessor::StorageAccessor(IPluginStorageArea& area,
                                    MetricsRegistry& metrics) :
     area_(area),
     cache_(NULL),
@@ -300,7 +300,7 @@ namespace Orthanc
   {
   }
 
-  StorageAccessor::StorageAccessor(IStorageArea& area, 
+  StorageAccessor::StorageAccessor(IPluginStorageArea& area,
                                    StorageCache& cache,
                                    MetricsRegistry& metrics) :
     area_(area),
@@ -310,13 +310,15 @@ namespace Orthanc
   }
 
 
-  FileInfo StorageAccessor::Write(const void* data,
-                                  size_t size,
-                                  FileContentType type,
-                                  CompressionType compression,
-                                  bool storeMd5)
+  void StorageAccessor::Write(FileInfo& info,
+                              const void* data,
+                              size_t size,
+                              FileContentType type,
+                              CompressionType compression,
+                              bool storeMd5,
+                              const DicomInstanceToStore* instance)
   {
-    std::string uuid = Toolbox::GenerateUuid();
+    const std::string uuid = Toolbox::GenerateUuid();
 
     std::string md5;
 
@@ -325,13 +327,15 @@ namespace Orthanc
       Toolbox::ComputeMD5(md5, data, size);
     }
 
+    std::string customData;
+
     switch (compression)
     {
       case CompressionType_None:
       {
         {
           MetricsTimer timer(*this, METRICS_CREATE_DURATION);
-          area_.Create(uuid, data, size, type);
+          area_.Create(customData, uuid, data, size, type, compression, instance);
         }
 
         if (metrics_ != NULL)
@@ -345,7 +349,9 @@ namespace Orthanc
           cacheAccessor.Add(uuid, type, data, size);
         }
 
-        return FileInfo(uuid, type, size, md5);
+        info = FileInfo(uuid, type, size, md5);
+        info.SetCustomData(customData);
+        return;
       }
 
       case CompressionType_ZlibWithSize:
@@ -367,11 +373,11 @@ namespace Orthanc
 
           if (compressed.size() > 0)
           {
-            area_.Create(uuid, &compressed[0], compressed.size(), type);
+            area_.Create(customData, uuid, &compressed[0], compressed.size(), type, compression, instance);
           }
           else
           {
-            area_.Create(uuid, NULL, 0, type);
+            area_.Create(customData, uuid, NULL, 0, type, compression, instance);
           }
         }
 
@@ -386,24 +392,16 @@ namespace Orthanc
           cacheAccessor.Add(uuid, type, data, size);    // always add uncompressed data to cache
         }
 
-        return FileInfo(uuid, type, size, md5,
+        info = FileInfo(uuid, type, size, md5,
                         CompressionType_ZlibWithSize, compressed.size(), compressedMD5);
+        info.SetCustomData(customData);
+        return;
       }
 
       default:
         throw OrthancException(ErrorCode_NotImplemented);
     }
   }
-
-  FileInfo StorageAccessor::Write(const std::string &data,
-                                  FileContentType type,
-                                  CompressionType compression,
-                                  bool storeMd5)
-  {
-    return Write((data.size() == 0 ? NULL : data.c_str()),
-                 data.size(), type, compression, storeMd5);
-  }
-
 
   void StorageAccessor::Read(std::string& content,
                              const FileInfo& info)
@@ -446,7 +444,7 @@ namespace Orthanc
 
         {
           MetricsTimer timer(*this, METRICS_READ_DURATION);
-          buffer.reset(area_.Read(info.GetUuid(), info.GetContentType()));
+          buffer.reset(area_.ReadRange(info.GetUuid(), info.GetContentType(), 0, info.GetCompressedSize(), info.GetCustomData()));
         }
 
         if (metrics_ != NULL)
@@ -467,7 +465,7 @@ namespace Orthanc
         
         {
           MetricsTimer timer(*this, METRICS_READ_DURATION);
-          compressed.reset(area_.Read(info.GetUuid(), info.GetContentType()));
+          compressed.reset(area_.ReadRange(info.GetUuid(), info.GetContentType(), 0, info.GetCompressedSize(), info.GetCustomData()));
         }
         
         if (metrics_ != NULL)
@@ -526,7 +524,7 @@ namespace Orthanc
 
     {
       MetricsTimer timer(*this, METRICS_READ_DURATION);
-      buffer.reset(area_.Read(info.GetUuid(), info.GetContentType()));
+      buffer.reset(area_.ReadRange(info.GetUuid(), info.GetContentType(), 0, info.GetCompressedSize(), info.GetCustomData()));
     }
 
     if (metrics_ != NULL)
@@ -539,7 +537,8 @@ namespace Orthanc
 
 
   void StorageAccessor::Remove(const std::string& fileUuid,
-                               FileContentType type)
+                               FileContentType type,
+                               const std::string& customData)
   {
     if (cache_ != NULL)
     {
@@ -548,14 +547,14 @@ namespace Orthanc
 
     {
       MetricsTimer timer(*this, METRICS_REMOVE_DURATION);
-      area_.Remove(fileUuid, type);
+      area_.Remove(fileUuid, type, customData);
     }
   }
   
 
   void StorageAccessor::Remove(const FileInfo &info)
   {
-    Remove(info.GetUuid(), info.GetContentType());
+    Remove(info.GetUuid(), info.GetContentType(), info.GetCustomData());
   }
 
 
@@ -616,7 +615,7 @@ namespace Orthanc
 
     {
       MetricsTimer timer(*this, METRICS_READ_DURATION);
-      buffer.reset(area_.ReadRange(info.GetUuid(), info.GetContentType(), 0, end));
+      buffer.reset(area_.ReadRange(info.GetUuid(), info.GetContentType(), 0, end, info.GetCustomData()));
       assert(buffer->GetSize() == end);
     }
 
@@ -682,19 +681,19 @@ namespace Orthanc
       if (range.HasStart() &&
           range.HasEnd())
       {
-        buffer.reset(area_.ReadRange(info.GetUuid(), info.GetContentType(), range.GetStartInclusive(), range.GetEndInclusive() + 1));
+        buffer.reset(area_.ReadRange(info.GetUuid(), info.GetContentType(), range.GetStartInclusive(), range.GetEndInclusive() + 1, info.GetCustomData()));
       }
       else if (range.HasStart())
       {
-        buffer.reset(area_.ReadRange(info.GetUuid(), info.GetContentType(), range.GetStartInclusive(), info.GetCompressedSize()));
+        buffer.reset(area_.ReadRange(info.GetUuid(), info.GetContentType(), range.GetStartInclusive(), info.GetCompressedSize(), info.GetCustomData()));
       }
       else if (range.HasEnd())
       {
-        buffer.reset(area_.ReadRange(info.GetUuid(), info.GetContentType(), 0, range.GetEndInclusive() + 1));
+        buffer.reset(area_.ReadRange(info.GetUuid(), info.GetContentType(), 0, range.GetEndInclusive() + 1, info.GetCustomData()));
       }
       else
       {
-        buffer.reset(area_.Read(info.GetUuid(), info.GetContentType()));
+        buffer.reset(area_.ReadRange(info.GetUuid(), info.GetContentType(), 0, info.GetCompressedSize(), info.GetCustomData()));
       }
 
       buffer->MoveToString(target);
@@ -785,4 +784,5 @@ namespace Orthanc
     output.AnswerStream(transcoder);
   }
 #endif
+
 }
