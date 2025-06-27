@@ -454,6 +454,64 @@ namespace Orthanc
     }
   }
 
+#if ORTHANC_ENABLE_MD5 == 1
+  void SystemToolbox::ComputeStreamMD5(std::string& result,
+                                       std::istream& inputStream)
+  {
+    Toolbox::MD5Context context;
+
+    const size_t bufferSize = 1024;
+    char buffer[bufferSize];
+
+    while (inputStream.good())
+    {
+      inputStream.read(buffer, bufferSize);
+      std::streamsize bytesRead = inputStream.gcount();
+
+      if (bytesRead > 0)
+      {
+        context.Append(buffer, bytesRead);
+      }
+    }
+
+    context.Export(result);
+  }
+
+
+  void SystemToolbox::ComputeFileMD5(std::string& result,
+                                     const std::string& path)
+  {
+    boost::filesystem::ifstream fileStream;
+    fileStream.open(path, std::ifstream::in | std::ifstream::binary);
+
+    if (!fileStream.good())
+    {
+      throw OrthancException(ErrorCode_InexistentFile, "File not found: " + path);
+    }
+
+    ComputeStreamMD5(result, fileStream);
+  }
+
+
+  bool SystemToolbox::CompareFilesMD5(const std::string& path1,
+                                      const std::string& path2)
+  {
+    if (GetFileSize(path1) != GetFileSize(path2))
+    {
+      return false;
+    }
+    else
+    {
+      std::string path1md5, path2md5;
+    
+      ComputeFileMD5(path1md5, path1);
+      ComputeFileMD5(path2md5, path2);
+
+      return path1md5 == path2md5;
+    }
+  }
+#endif
+
 
   void SystemToolbox::MakeDirectory(const std::string& path)
   {

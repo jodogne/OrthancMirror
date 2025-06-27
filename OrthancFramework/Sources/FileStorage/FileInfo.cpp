@@ -169,4 +169,56 @@ namespace Orthanc
       throw OrthancException(ErrorCode_BadSequenceOfCalls);
     }
   }
+
+  void FileInfo::SetCustomData(const void* data,
+                               size_t size)
+  {
+    if (valid_)
+    {
+      customData_.assign(reinterpret_cast<const char*>(data), size);
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+  }
+
+
+  void FileInfo::SetCustomData(const std::string& data)
+  {
+    if (valid_)
+    {
+      customData_ = data;
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+  }
+
+
+  void FileInfo::SwapCustomData(std::string& data)
+  {
+    if (valid_)
+    {
+      customData_.swap(data);
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+  }
+
+
+  const std::string& FileInfo::GetCustomData() const
+  {
+    if (valid_)
+    {
+      return customData_;
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+  }
 }

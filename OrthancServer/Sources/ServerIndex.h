@@ -40,7 +40,7 @@ namespace Orthanc
     class UnstableResourcePayload;
 
     bool done_;
-    boost::mutex monitoringMutex_;
+    boost::recursive_mutex monitoringMutex_;
     boost::thread flushThread_;
     boost::thread unstableResourcesMonitorThread_;
 
@@ -60,6 +60,10 @@ namespace Orthanc
     void MarkAsUnstable(ResourceType type,
                         int64_t id,
                         const std::string& publicId);
+
+    void LogStableChange(ResourceType type,
+                         int64_t id,
+                         const std::string& publicId);
 
   public:
     ServerIndex(ServerContext& context,
@@ -101,5 +105,9 @@ namespace Orthanc
 
     bool IsUnstableResource(ResourceType type,
                             int64_t id);
+
+    bool SetStableStatus(bool& statusHasChanged,
+                         const std::string& resourceId,
+                         bool setNewStatusToStable);
   };
 }

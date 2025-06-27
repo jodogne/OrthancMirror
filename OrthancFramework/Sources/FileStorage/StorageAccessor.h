@@ -110,7 +110,7 @@ namespace Orthanc
   private:
     class MetricsTimer;
 
-    IStorageArea&     area_;
+    IPluginStorageArea&     area_;
     StorageCache*     cache_;
     MetricsRegistry*  metrics_;
 
@@ -121,28 +121,25 @@ namespace Orthanc
 #endif
 
   public:
-    explicit StorageAccessor(IStorageArea& area);
+    explicit StorageAccessor(IPluginStorageArea& area);
 
-    StorageAccessor(IStorageArea& area,
+    StorageAccessor(IPluginStorageArea& area,
                     StorageCache& cache);
 
-    StorageAccessor(IStorageArea& area,
+    StorageAccessor(IPluginStorageArea& area,
                     MetricsRegistry& metrics);
 
-    StorageAccessor(IStorageArea& area,
+    StorageAccessor(IPluginStorageArea& area,
                     StorageCache& cache,
                     MetricsRegistry& metrics);
 
-    FileInfo Write(const void* data,
-                   size_t size,
-                   FileContentType type,
-                   CompressionType compression,
-                   bool storeMd5);
-
-    FileInfo Write(const std::string& data,
-                   FileContentType type,
-                   CompressionType compression,
-                   bool storeMd5);
+    void Write(FileInfo& info /* out */,
+               const void* data,
+               size_t size,
+               FileContentType type,
+               CompressionType compression,
+               bool storeMd5,
+               const DicomInstanceToStore* instance);
 
     void Read(std::string& content,
               const FileInfo& info);
@@ -155,7 +152,8 @@ namespace Orthanc
                         uint64_t end /* exclusive */);
 
     void Remove(const std::string& fileUuid,
-                FileContentType type);
+                FileContentType type,
+                const std::string& customData);
 
     void Remove(const FileInfo& info);
 
@@ -185,6 +183,7 @@ namespace Orthanc
                     const std::string& mime,
                     const std::string& contentFilename);
 #endif
+
   private:
     void ReadStartRangeInternal(std::string& target,
                                 const FileInfo& info,

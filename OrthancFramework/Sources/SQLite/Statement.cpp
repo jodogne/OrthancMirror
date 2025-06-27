@@ -236,10 +236,22 @@ namespace Orthanc
       BindString(col, UTF16ToUTF8(value));
       }*/
 
-    void Statement::BindBlob(int col, const void* val, int val_len) 
+    void Statement::BindBlob(int col, const void* val, size_t val_len)
     {
-      CheckOk(sqlite3_bind_blob(GetStatement(), col + 1, val, val_len, SQLITE_TRANSIENT),
-              ErrorCode_BadParameterType);
+      if (static_cast<size_t>(static_cast<int>(val_len)) != val_len)
+      {
+        throw OrthancSQLiteException(ErrorCode_SQLiteBindOutOfRange);
+      }
+      else
+      {
+        CheckOk(sqlite3_bind_blob(GetStatement(), col + 1, val, static_cast<int>(val_len), SQLITE_TRANSIENT),
+                ErrorCode_BadParameterType);
+      }
+    }
+
+    void Statement::BindBlob(int col, const std::string& value)
+    {
+      BindBlob(col, value.empty() ? NULL : value.c_str(), value.size());
     }
 
 

@@ -1,34 +1,87 @@
 Pending changes in the mainline
 ===============================
 
-Maintenance
------------
+General
+-------
 
-* In verbose logs, added the elapsed time spent in each HTTP call.
-* Housekeeper plugin: 
-  - If "LimitMainDicomTagsReconstructLevel" was set, files were not transcoded if they had to.
-    The "LimitMainDicomTagsReconstructLevel" configuration is now ignored when a full processing
-    is required.
-* Delayed Deletion plugin:
-  - Added an index in the delayed-deletion SQLite external DB to speed up delayed deletions.
-    This new index will only apply to new databases.  If you wish to speed up an existing installation,
-    run "CREATE INDEX PendingIndex ON Pending(uuid)" manually in the plugin SQLite DB.
-    Patch provided by Yurii (George) from ivtech.dev.
-    With this patch, we observed a 100 fold performance improvement when the 
-    "Pending" table contains 1-2 millions files.
-      
-* Configuration options "RejectSopClasses" and "RejectedSopClasses" are taken as synonyms.
-  In Orthanc 1.12.6 and 1.12.7, "RejectSopClasses" was used instead of the expected
-  "RejectedSopClasses" spelling.
+* Lua: new "SetStableStatus" function.
 
+
+Plugin SDK
+----------
+
+* Added new function OrthancPluginSetStableStatus to e.g force the 
+  stabilization of a study from a plugin.
+
+
+Plugins
+-------
+
+* Housekeeper plugin:
+  - new "ForceReconstructFiles": If "Force" is set to true, forces 
+    the "ReconstructFiles" option when reconstructing resources even 
+    if the plugin did not detect any changes in the configuration that 
+    should trigger a Reconstruct.
+
+
+
+Version 1.12.8 (2025-06-13)
+===========================
+
+General
+-------
+
+* The default SQLite database engine now supports metadata and attachment revisions.
 
 REST API
 --------
 
-* If the index database provides the "HasExtendedFind" primitive, the "ResponseContent" option in
-  "/tools/find" now allows to specify "IsProtected" to retrieve the "IsProtected" status of a
-  patient resource.
+* API version upgraded to 29
+* If the database backend provides the "HasExtendedFind" primitive, the
+  value "IsProtected" can be included in the "ResponseContent" field of
+  "/tools/find" to request the "IsProtected" status of patient resources.
 
+Plugin SDK
+----------
+
+* Added new functions (available to all plugins) to access key-value
+  stores and queues stored as a part of the Orthanc database.
+* New SDK to create storage area plugins (V3) that associate custom data with
+  attachments. The built-in SQLite database engine supports such custom data.
+* New SDK to handle custom data for attachments, key-value stores, and queues
+  by custom database backends (cf. "OrthancDatabasePlugin.proto").
+* Added OrthancPluginAdoptDicomInstance() to adopt DICOM instances stored elsewhere
+  than in the storage area (to be used by "orthanc-advanced-storage" plugin).
+
+Plugins
+-------
+
+* New sample plugins: "CppSkeleton" and "AdoptDicomInstance"
+* Housekeeper plugin:
+  - If "LimitMainDicomTagsReconstructLevel" was set, files were not transcoded
+    if they had to. The "LimitMainDicomTagsReconstructLevel" configuration is now
+    ignored when a full processing is required.
+* Delayed Deletion plugin:
+  - Added an index in the delayed-deletion SQLite external DB to speed up delayed
+    deletions. This new index will only apply to new databases. If you want to speed
+    up an existing installation, run "CREATE INDEX PendingIndex ON Pending(uuid)"
+    manually in the plugin SQLite DB. With this patch, we observed a 100 fold
+    performance improvement when the "Pending" table contains 1-2 millions files.
+    Contribution by Yurii (George) from ivtech.dev.
+
+Maintenance
+-----------
+
+* In verbose logs, the elapsed time spent in each HTTP call is now reported.
+* Fix computation of MD5 hashes for memory buffers whose size is larger than 2^31 bytes.
+* Configuration options "RejectSopClasses" and "RejectedSopClasses" are taken as synonyms.
+  In Orthanc 1.12.6 and 1.12.7, "RejectSopClasses" was used instead of the expected
+  "RejectedSopClasses" spelling.
+* Fix the re-encoding of DICOM files larger than 4GB.
+* Improved translations of HTTP error codes when a plugin calls the core REST API.
+  In particular, a plugin could receive an error OrthancPluginErrorCode_UnknownResource (code 17)
+  when the underlying REST handler was actually returning an HTTP error 415. The plugin will
+  now receive an error OrthancPluginErrorCode_UnsupportedMediaType (code 3000).
 
 
 Version 1.12.7 (2025-04-07)

@@ -32,6 +32,7 @@
 #include "../../../OrthancFramework/Sources/Logging.h"
 #include "../../../OrthancFramework/Sources/OrthancException.h"
 #include "../../../OrthancFramework/Sources/Toolbox.h"
+#include "PluginMemoryBuffer32.h"
 
 #include <cassert>
 
@@ -152,53 +153,11 @@ namespace Orthanc
     return parameters_.getProgress(parameters_.job);
   }
 
-
-  namespace
-  {
-    class MemoryBufferRaii : public boost::noncopyable
-    {
-    private:
-      OrthancPluginMemoryBuffer  buffer_;
-
-    public:
-      MemoryBufferRaii()
-      {
-        buffer_.size = 0;
-        buffer_.data = NULL;
-      }
-
-      ~MemoryBufferRaii()
-      {
-        if (buffer_.size != 0)
-        {
-          free(buffer_.data);
-        }
-      }
-
-      OrthancPluginMemoryBuffer* GetObject()
-      {
-        return &buffer_;
-      }
-
-      void ToJsonObject(Json::Value& target) const
-      {
-        if ((buffer_.data == NULL && buffer_.size != 0) ||
-            (buffer_.data != NULL && buffer_.size == 0) ||
-            !Toolbox::ReadJson(target, buffer_.data, buffer_.size) ||
-            target.type() != Json::objectValue)
-        {
-          throw OrthancException(ErrorCode_Plugin,
-                                 "A job plugin must provide a JSON object as its public content and as its serialization");
-        }
-      }
-    };
-  }
-  
   void PluginsJob::GetPublicContent(Json::Value& value) const
   {
     if (parameters_.getContent != NULL)
     {
-      MemoryBufferRaii target;
+      PluginMemoryBuffer32 target;
 
       OrthancPluginErrorCode code = parameters_.getContent(target.GetObject(), parameters_.job);
 
@@ -236,7 +195,7 @@ namespace Orthanc
   {
     if (parameters_.getSerialized != NULL)
     {
-      MemoryBufferRaii target;
+      PluginMemoryBuffer32 target;
 
       int32_t code = parameters_.getContent(target.GetObject(), parameters_.job);
 

@@ -1394,25 +1394,33 @@ namespace Orthanc
   }
 
 
-  bool StatelessDatabaseOperations::LookupResourceType(ResourceType& type,
-                                                       const std::string& publicId)
+  bool StatelessDatabaseOperations::LookupResource(int64_t& internalId,
+                                                   ResourceType& type,
+                                                   const std::string& publicId)
   {
-    class Operations : public ReadOnlyOperationsT3<bool&, ResourceType&, const std::string&>
+    class Operations : public ReadOnlyOperationsT4<bool&, int64_t&, ResourceType&, const std::string&>
     {
     public:
       virtual void ApplyTuple(ReadOnlyTransaction& transaction,
                               const Tuple& tuple) ORTHANC_OVERRIDE
       {
         // TODO - CANDIDATE FOR "TransactionType_Implicit"
-        int64_t id;
-        tuple.get<0>() = transaction.LookupResource(id, tuple.get<1>(), tuple.get<2>());
+        tuple.get<0>() = transaction.LookupResource(tuple.get<1>(), tuple.get<2>(), tuple.get<3>());
       }
     };
 
     bool found;
     Operations operations;
-    operations.Apply(*this, found, type, publicId);
+    operations.Apply(*this, found, internalId, type, publicId);
     return found;
+  }
+
+
+  bool StatelessDatabaseOperations::LookupResourceType(ResourceType& type,
+                                                       const std::string& publicId)
+  {
+    int64_t internalId;
+    return LookupResource(internalId, type, publicId);
   }
 
 
@@ -3200,6 +3208,24 @@ namespace Orthanc
     return db_.GetDatabaseCapabilities().HasFindSupport();
   }
 
+  bool StatelessDatabaseOperations::HasAttachmentCustomDataSupport()
+  {
+    boost::shared_lock<boost::shared_mutex> lock(mutex_);
+    return db_.GetDatabaseCapabilities().HasAttachmentCustomDataSupport();
+  }
+
+  bool StatelessDatabaseOperations::HasKeyValueStoresSupport()
+  {
+    boost::shared_lock<boost::shared_mutex> lock(mutex_);
+    return db_.GetDatabaseCapabilities().HasKeyValueStoresSupport();
+  }
+
+  bool StatelessDatabaseOperations::HasQueuesSupport()
+  {
+    boost::shared_lock<boost::shared_mutex> lock(mutex_);
+    return db_.GetDatabaseCapabilities().HasQueuesSupport();
+  }
+
   void StatelessDatabaseOperations::ExecuteCount(uint64_t& count,
                                                  const FindRequest& request)
   {
@@ -3318,6 +3344,415 @@ namespace Orthanc
          **/
         expand.Apply(*this, response, capabilities, request, *it);
       }
+    }
+  }
+
+  void StatelessDatabaseOperations::StoreKeyValue(const std::string& storeId,
+                                                  const std::string& key,
+                                                  const void* value,
+                                                  size_t valueSize)
+  {
+    if (storeId.empty())
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+    if (value == NULL &&
+        valueSize > 0)
+    {
+      throw OrthancException(ErrorCode_NullPointer);
+    }
+
+    class Operations : public IReadWriteOperations
+    {
+    private:
+      const std::string& storeId_;
+      const std::string& key_;
+      const void* value_;
+      size_t valueSize_;
+
+    public:
+      Operations(const std::string& storeId,
+                 const std::string& key,
+                 const void* value,
+                 size_t valueSize) :
+        storeId_(storeId),
+        key_(key),
+        value_(value),
+        valueSize_(valueSize)
+      {
+      }
+
+      virtual void Apply(ReadWriteTransaction& transaction) ORTHANC_OVERRIDE
+      {
+        transaction.StoreKeyValue(storeId_, key_, value_, valueSize_);
+      }
+    };
+
+    Operations operations(storeId, key, value, valueSize);
+    Apply(operations);
+  }
+
+  void StatelessDatabaseOperations::DeleteKeyValue(const std::string& storeId,
+                                                   const std::string& key)
+  {
+    if (storeId.empty())
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+    class Operations : public IReadWriteOperations
+    {
+    private:
+      const std::string& storeId_;
+      const std::string& key_;
+
+    public:
+      Operations(const std::string& storeId,
+                 const std::string& key) :
+        storeId_(storeId),
+        key_(key)
+      {
+      }
+
+      virtual void Apply(ReadWriteTransaction& transaction) ORTHANC_OVERRIDE
+      {
+        transaction.DeleteKeyValue(storeId_, key_);
+      }
+    };
+
+    Operations operations(storeId, key);
+    Apply(operations);
+  }
+
+  bool StatelessDatabaseOperations::GetKeyValue(std::string& value,
+                                                const std::string& storeId,
+                                                const std::string& key)
+  {
+    if (storeId.empty())
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+    class Operations : public ReadOnlyOperationsT3<std::string&, const std::string&, const std::string& >
+    {
+      bool found_;
+    public:
+      Operations():
+        found_(false)
+      {}
+
+      bool HasFound()
+      {
+        return found_;
+      }
+
+      virtual void ApplyTuple(ReadOnlyTransaction& transaction,
+                              const Tuple& tuple) ORTHANC_OVERRIDE
+      {
+        found_ = transaction.GetKeyValue(tuple.get<0>(), tuple.get<1>(), tuple.get<2>());
+      }
+    };
+
+    Operations operations;
+    operations.Apply(*this, value, storeId, key);
+
+    return operations.HasFound();
+  }
+
+  void StatelessDatabaseOperations::EnqueueValue(const std::string& queueId,
+                                                 const void* value,
+                                                 size_t valueSize)
+  {
+    if (queueId.empty())
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+    if (value == NULL &&
+        valueSize > 0)
+    {
+      throw OrthancException(ErrorCode_NullPointer);
+    }
+
+    class Operations : public IReadWriteOperations
+    {
+    private:
+      const std::string& queueId_;
+      const void* value_;
+      size_t valueSize_;
+
+    public:
+      Operations(const std::string& queueId,
+                 const void* value,
+                 size_t valueSize) :
+        queueId_(queueId),
+        value_(value),
+        valueSize_(valueSize)
+      {
+      }
+
+      virtual void Apply(ReadWriteTransaction& transaction) ORTHANC_OVERRIDE
+      {
+        transaction.EnqueueValue(queueId_, value_, valueSize_);
+      }
+    };
+
+    Operations operations(queueId, value, valueSize);
+    Apply(operations);
+  }
+
+  bool StatelessDatabaseOperations::DequeueValue(std::string& value,
+                                                 const std::string& queueId,
+                                                 QueueOrigin origin)
+  {
+    if (queueId.empty())
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+    class Operations : public IReadWriteOperations
+    {
+    private:
+      const std::string& queueId_;
+      std::string& value_;
+      QueueOrigin origin_;
+      bool found_;
+
+    public:
+      Operations(std::string& value,
+                 const std::string& queueId,
+                 QueueOrigin origin) :
+        queueId_(queueId),
+        value_(value),
+        origin_(origin),
+        found_(false)
+      {
+      }
+
+      bool HasFound()
+      {
+        return found_;
+      }
+
+      virtual void Apply(ReadWriteTransaction& transaction) ORTHANC_OVERRIDE
+      {
+        found_ = transaction.DequeueValue(value_, queueId_, origin_);
+      }
+    };
+
+    Operations operations(value, queueId, origin);
+    Apply(operations);
+
+    return operations.HasFound();
+  }
+
+  uint64_t StatelessDatabaseOperations::GetQueueSize(const std::string& queueId)
+  {
+    if (queueId.empty())
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+    class Operations : public ReadOnlyOperationsT2<uint64_t&, const std::string& >
+    {
+    public:
+      virtual void ApplyTuple(ReadOnlyTransaction& transaction,
+                              const Tuple& tuple) ORTHANC_OVERRIDE
+      {
+        tuple.get<0>() = transaction.GetQueueSize(tuple.get<1>());
+      }
+    };
+
+    uint64_t size;
+
+    Operations operations;
+    operations.Apply(*this, size, queueId);
+
+    return size;
+  }
+
+
+  void StatelessDatabaseOperations::GetAttachmentCustomData(std::string& customData,
+                                                            const std::string& attachmentUuid)
+  {
+    class Operations : public ReadOnlyOperationsT2<std::string&, const std::string& >
+    {
+    public:
+      virtual void ApplyTuple(ReadOnlyTransaction& transaction,
+                              const Tuple& tuple) ORTHANC_OVERRIDE
+      {
+        transaction.GetAttachmentCustomData(tuple.get<0>(), tuple.get<1>());
+      }
+    };
+
+    Operations operations;
+    operations.Apply(*this, customData, attachmentUuid);
+  }
+
+
+  void StatelessDatabaseOperations::SetAttachmentCustomData(const std::string& attachmentUuid,
+                                                            const void* customData,
+                                                            size_t customDataSize)
+  {
+    class Operations : public IReadWriteOperations
+    {
+    private:
+      const std::string& attachmentUuid_;
+      const void*        customData_;
+      size_t             customDataSize_;
+
+    public:
+      Operations(const std::string& attachmentUuid,
+                 const void* customData,
+                 size_t customDataSize) :
+        attachmentUuid_(attachmentUuid),
+        customData_(customData),
+        customDataSize_(customDataSize)
+      {
+      }
+
+      virtual void Apply(ReadWriteTransaction& transaction) ORTHANC_OVERRIDE
+      {
+        transaction.SetAttachmentCustomData(attachmentUuid_, customData_, customDataSize_);
+      }
+    };
+
+    Operations operations(attachmentUuid, customData, customDataSize);
+    Apply(operations);
+  }
+
+
+  StatelessDatabaseOperations::KeysValuesIterator::KeysValuesIterator(StatelessDatabaseOperations& db,
+                                                                      const std::string& storeId) :
+    db_(db),
+    state_(State_Waiting),
+    storeId_(storeId),
+    limit_(100)
+  {
+    if (storeId.empty())
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+  }
+
+  bool StatelessDatabaseOperations::KeysValuesIterator::Next()
+  {
+    if (state_ == State_Done)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+
+    if (state_ == State_Available)
+    {
+      assert(currentKey_ != keys_.end());
+      assert(currentValue_ != values_.end());
+      ++currentKey_;
+      ++currentValue_;
+
+      if (currentKey_ != keys_.end() &&
+          currentValue_ != values_.end())
+      {
+        // A value is still available in the last keys-values block fetched from the database
+        return true;
+      }
+      else if (currentKey_ != keys_.end() ||
+               currentValue_ != values_.end())
+      {
+        throw OrthancException(ErrorCode_InternalError);
+      }
+    }
+
+    class Operations : public ReadOnlyOperationsT6<std::list<std::string>&, std::list<std::string>&, const std::string&, bool, const std::string&, uint64_t>
+    {
+    public:
+      virtual void ApplyTuple(ReadOnlyTransaction& transaction,
+                              const Tuple& tuple) ORTHANC_OVERRIDE
+      {
+        transaction.ListKeysValues(tuple.get<0>(), tuple.get<1>(), tuple.get<2>(), tuple.get<3>(), tuple.get<4>(), tuple.get<5>());
+      }
+    };
+
+    if (state_ == State_Waiting)
+    {
+      keys_.clear();
+      values_.clear();
+
+      Operations operations;
+      operations.Apply(db_, keys_, values_, storeId_, true, "", limit_);
+    }
+    else
+    {
+      assert(state_ == State_Available);
+      if (keys_.empty())
+      {
+        state_ = State_Done;
+        return false;
+      }
+      else
+      {
+        const std::string lastKey = keys_.back();
+        keys_.clear();
+        values_.clear();
+
+        Operations operations;
+        operations.Apply(db_, keys_, values_, storeId_, false, lastKey, limit_);
+      }
+    }
+
+    if (keys_.size() != values_.size())
+    {
+      throw OrthancException(ErrorCode_DatabasePlugin);
+    }
+
+    if (limit_ != 0 &&
+        keys_.size() > limit_)
+    {
+      // The database plugin has returned too many key-value pairs
+      throw OrthancException(ErrorCode_DatabasePlugin);
+    }
+
+    if (keys_.empty() &&
+        values_.empty())
+    {
+      state_ = State_Done;
+      return false;
+    }
+    else if (!keys_.empty() &&
+             !values_.empty())
+    {
+      state_ = State_Available;
+      currentKey_ = keys_.begin();
+      currentValue_ = values_.begin();
+      return true;
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_InternalError);  // Should never happen
+    }
+  }
+
+  const std::string &StatelessDatabaseOperations::KeysValuesIterator::GetKey() const
+  {
+    if (state_ == State_Available)
+    {
+      return *currentKey_;
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+  }
+
+  const std::string &StatelessDatabaseOperations::KeysValuesIterator::GetValue() const
+  {
+    if (state_ == State_Available)
+    {
+      return *currentValue_;
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
     }
   }
 }

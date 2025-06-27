@@ -27,6 +27,7 @@
 #include "../../OrthancFramework/Sources/Compatibility.h"
 #include "../../OrthancFramework/Sources/FileStorage/FilesystemStorage.h"
 #include "../../OrthancFramework/Sources/FileStorage/MemoryStorageArea.h"
+#include "../../OrthancFramework/Sources/FileStorage/PluginStorageAreaAdapter.h"
 #include "../../OrthancFramework/Sources/Images/Image.h"
 #include "../../OrthancFramework/Sources/Logging.h"
 
@@ -196,6 +197,74 @@ namespace
       transaction_->ApplyLookupResources(result, NULL, lookup, level, noLabel, LabelsConstraint_All, 0 /* no limit */);
     }
   };
+
+  class DummyTransactionContextFactory : public StatelessDatabaseOperations::ITransactionContextFactory
+  {
+  public:
+    virtual StatelessDatabaseOperations::ITransactionContext* Create()
+    {
+      class DummyTransactionContext : public StatelessDatabaseOperations::ITransactionContext
+      {
+      public:
+        virtual void SignalRemainingAncestor(ResourceType parentType,
+                                             const std::string& publicId) ORTHANC_OVERRIDE
+        {
+          throw OrthancException(ErrorCode_NotImplemented);
+        }
+
+        virtual void SignalAttachmentDeleted(const FileInfo& info) ORTHANC_OVERRIDE
+        {
+          throw OrthancException(ErrorCode_NotImplemented);
+        }
+
+        virtual void SignalResourceDeleted(ResourceType type,
+                                           const std::string& publicId) ORTHANC_OVERRIDE
+        {
+          throw OrthancException(ErrorCode_NotImplemented);
+        }
+
+        virtual void Commit() ORTHANC_OVERRIDE
+        {
+        }
+
+        virtual int64_t GetCompressedSizeDelta() ORTHANC_OVERRIDE
+        {
+          return 0;
+        }
+
+        virtual bool IsUnstableResource(Orthanc::ResourceType type,
+                                        int64_t id) ORTHANC_OVERRIDE
+        {
+          throw OrthancException(ErrorCode_NotImplemented);
+        }
+
+        virtual bool LookupRemainingLevel(std::string& remainingPublicId /* out */,
+                                          ResourceType& remainingLevel   /* out */) ORTHANC_OVERRIDE
+        {
+          throw OrthancException(ErrorCode_NotImplemented);
+        }
+
+        virtual void MarkAsUnstable(Orthanc::ResourceType type,
+                                    int64_t id,
+                                    const std::string& publicId) ORTHANC_OVERRIDE
+        {
+          throw OrthancException(ErrorCode_NotImplemented);
+        }
+
+        virtual void SignalAttachmentsAdded(uint64_t compressedSize)  ORTHANC_OVERRIDE
+        {
+          throw OrthancException(ErrorCode_NotImplemented);
+        }
+
+        virtual void SignalChange(const ServerIndexChange& change)  ORTHANC_OVERRIDE
+        {
+          throw OrthancException(ErrorCode_NotImplemented);
+        }
+      };
+
+      return new DummyTransactionContext;
+    }
+  };
 }
 
 
@@ -295,12 +364,18 @@ TEST_F(DatabaseWrapperTest, Simple)
   transaction_->GetAllMetadata(md, a[4]);
   ASSERT_EQ(0u, md.size());
 
-  transaction_->AddAttachment(a[4], FileInfo("my json file", FileContentType_DicomAsJson, 42, "md5", 
-                                             CompressionType_ZlibWithSize, 21, "compressedMD5"), 42);
-  transaction_->AddAttachment(a[4], FileInfo("my dicom file", FileContentType_Dicom, 42, "md5"), 43);
-  transaction_->AddAttachment(a[6], FileInfo("world", FileContentType_Dicom, 44, "md5"), 44);
+  FileInfo attachment1("my json file", FileContentType_DicomAsJson, 42, "md5",
+                       CompressionType_ZlibWithSize, 21, "compressedMD5");
+  attachment1.SetCustomData("hello");
+  transaction_->AddAttachment(a[4], attachment1, 42);
+
+  FileInfo attachment2("my dicom file", FileContentType_Dicom, 43, "md5_2");
+  transaction_->AddAttachment(a[4], attachment2, 43);
+
+  FileInfo attachment3("world", FileContentType_Dicom, 44, "md5_3");
+  attachment3.SetCustomData("world");
+  transaction_->AddAttachment(a[6], attachment3, 44);
   
-  // TODO - REVISIONS - "42" is revision number, that is not currently stored (*)
   transaction_->SetMetadata(a[4], MetadataType_RemoteAet, "PINNACLE", 42);
   
   transaction_->GetAllMetadata(md, a[4]);
@@ -326,8 +401,8 @@ TEST_F(DatabaseWrapperTest, Simple)
   ASSERT_EQ("PINNACLE", md2[MetadataType_RemoteAet]);
 
 
-  ASSERT_EQ(21u + 42u + 44u, transaction_->GetTotalCompressedSize());
-  ASSERT_EQ(42u + 42u + 44u, transaction_->GetTotalUncompressedSize());
+  ASSERT_EQ(21u + 43u + 44u, transaction_->GetTotalCompressedSize());
+  ASSERT_EQ(42u + 43u + 44u, transaction_->GetTotalUncompressedSize());
 
   transaction_->SetMainDicomTag(a[3], DicomTag(0x0010, 0x0010), "PatientName");
 
@@ -339,17 +414,17 @@ TEST_F(DatabaseWrapperTest, Simple)
 
   int64_t revision;
   ASSERT_TRUE(transaction_->LookupMetadata(s, revision, a[4], MetadataType_RemoteAet));
-  ASSERT_EQ(0, revision);   // "0" instead of "42" because of (*)
+  ASSERT_EQ(42, revision);
   ASSERT_FALSE(transaction_->LookupMetadata(s, revision, a[4], MetadataType_Instance_IndexInSeries));
-  ASSERT_EQ(0, revision);
+  ASSERT_EQ(42, revision);
   ASSERT_EQ("PINNACLE", s);
 
   std::string u;
   ASSERT_TRUE(transaction_->LookupMetadata(u, revision, a[4], MetadataType_RemoteAet));
-  ASSERT_EQ(0, revision);
+  ASSERT_EQ(42, revision);
   ASSERT_EQ("PINNACLE", u);
   ASSERT_FALSE(transaction_->LookupMetadata(u, revision, a[4], MetadataType_Instance_IndexInSeries));
-  ASSERT_EQ(0, revision);
+  ASSERT_EQ(42, revision);
 
   ASSERT_TRUE(transaction_->LookupGlobalProperty(s, GlobalProperty_FlushSleep, true));
   ASSERT_FALSE(transaction_->LookupGlobalProperty(s, static_cast<GlobalProperty>(42), true));
@@ -357,22 +432,34 @@ TEST_F(DatabaseWrapperTest, Simple)
 
   FileInfo att;
   ASSERT_TRUE(transaction_->LookupAttachment(att, revision, a[4], FileContentType_DicomAsJson));
-  ASSERT_EQ(0, revision);  // "0" instead of "42" because of (*)
+  ASSERT_EQ(42, revision);
   ASSERT_EQ("my json file", att.GetUuid());
   ASSERT_EQ(21u, att.GetCompressedSize());
   ASSERT_EQ("md5", att.GetUncompressedMD5());
   ASSERT_EQ("compressedMD5", att.GetCompressedMD5());
   ASSERT_EQ(42u, att.GetUncompressedSize());
   ASSERT_EQ(CompressionType_ZlibWithSize, att.GetCompressionType());
+  ASSERT_EQ("hello", att.GetCustomData());
+
+  ASSERT_TRUE(transaction_->LookupAttachment(att, revision, a[4], FileContentType_Dicom));
+  ASSERT_EQ(43, revision);
+  ASSERT_EQ("my dicom file", att.GetUuid());
+  ASSERT_EQ(43u, att.GetCompressedSize());
+  ASSERT_EQ("md5_2", att.GetUncompressedMD5());
+  ASSERT_EQ("md5_2", att.GetCompressedMD5());
+  ASSERT_EQ(43u, att.GetUncompressedSize());
+  ASSERT_EQ(CompressionType_None, att.GetCompressionType());
+  ASSERT_TRUE(att.GetCustomData().empty());
 
   ASSERT_TRUE(transaction_->LookupAttachment(att, revision, a[6], FileContentType_Dicom));
-  ASSERT_EQ(0, revision);  // "0" instead of "42" because of (*)
+  ASSERT_EQ(44, revision);
   ASSERT_EQ("world", att.GetUuid());
   ASSERT_EQ(44u, att.GetCompressedSize());
-  ASSERT_EQ("md5", att.GetUncompressedMD5());
-  ASSERT_EQ("md5", att.GetCompressedMD5());
+  ASSERT_EQ("md5_3", att.GetUncompressedMD5());
+  ASSERT_EQ("md5_3", att.GetCompressedMD5());
   ASSERT_EQ(44u, att.GetUncompressedSize());
   ASSERT_EQ(CompressionType_None, att.GetCompressionType());
+  ASSERT_EQ("world", att.GetCustomData());
 
   ASSERT_EQ(0u, listener_->deletedFiles_.size());
   ASSERT_EQ(0u, listener_->deletedResources_.size());
@@ -402,7 +489,7 @@ TEST_F(DatabaseWrapperTest, Simple)
 
   CheckTableRecordCount(0, "Resources");
   CheckTableRecordCount(0, "AttachedFiles");
-  CheckTableRecordCount(3, "GlobalProperties");
+  CheckTableRecordCount(4, "GlobalProperties");
 
   std::string tmp;
   ASSERT_TRUE(transaction_->LookupGlobalProperty(tmp, GlobalProperty_DatabaseSchemaVersion, true));
@@ -618,7 +705,7 @@ TEST(ServerIndex, Sequence)
   const std::string path = "UnitTestsStorage";
 
   SystemToolbox::RemoveFile(path + "/index");
-  FilesystemStorage storage(path);
+  PluginStorageAreaAdapter storage(new FilesystemStorage(path));
   SQLiteDatabaseWrapper db;   // The SQLite DB is in memory
   db.Open();
   ServerContext context(db, storage, true /* running unit tests */, 10, false /* readonly */, 1 /* DCMTK concurrent transcoders */);
@@ -700,7 +787,7 @@ TEST(ServerIndex, AttachmentRecycling)
   const std::string path = "UnitTestsStorage";
 
   SystemToolbox::RemoveFile(path + "/index");
-  FilesystemStorage storage(path);
+  PluginStorageAreaAdapter storage(new FilesystemStorage(path));
   SQLiteDatabaseWrapper db;   // The SQLite DB is in memory
   db.Open();
   ServerContext context(db, storage, true /* running unit tests */, 10, false /* readonly */, 1 /* DCMTK concurrent transcoders */);
@@ -817,7 +904,7 @@ TEST(ServerIndex, Overwrite)
   {
     bool overwrite = (i == 0);
 
-    MemoryStorageArea storage;
+    PluginStorageAreaAdapter storage(new MemoryStorageArea);
     SQLiteDatabaseWrapper db;   // The SQLite DB is in memory
     db.Open();
     ServerContext context(db, storage, true /* running unit tests */, 10, false /* readonly */, 1 /* DCMTK concurrent transcoders */);
@@ -982,7 +1069,7 @@ TEST(ServerIndex, DicomUntilPixelData)
   {
     const bool compression = (i == 0);
     
-    MemoryStorageArea storage;
+    PluginStorageAreaAdapter storage(new MemoryStorageArea);
     SQLiteDatabaseWrapper db;   // The SQLite DB is in memory
     db.Open();
     ServerContext context(db, storage, true /* running unit tests */, 10, false /* readonly */, 1 /* DCMTK concurrent transcoders */);
@@ -1057,4 +1144,216 @@ TEST(ServerToolbox, ValidLabels)
   ASSERT_FALSE(ServerToolbox::IsValidLabel(" "));
   ASSERT_FALSE(ServerToolbox::IsValidLabel("&"));
   ASSERT_FALSE(ServerToolbox::IsValidLabel("."));
+}
+
+
+TEST(SQLiteDatabaseWrapper, KeyValueStores)
+{
+  SQLiteDatabaseWrapper db;   // The SQLite DB is in memory
+  db.Open();
+
+  {
+    StatelessDatabaseOperations op(db, false);
+    op.SetTransactionContextFactory(new DummyTransactionContextFactory);
+
+    for (unsigned int limit = 0; limit < 5; limit++)
+    {
+      StatelessDatabaseOperations::KeysValuesIterator it(op, "test");
+      it.SetLimit(limit);
+      ASSERT_THROW(it.GetValue(), OrthancException);
+      ASSERT_THROW(it.GetKey(), OrthancException);
+      ASSERT_FALSE(it.Next());
+      ASSERT_THROW(it.GetValue(), OrthancException);
+      ASSERT_THROW(it.GetKey(), OrthancException);
+    }
+
+    op.StoreKeyValue("test", "hello", "world");
+
+    for (unsigned int limit = 0; limit < 5; limit++)
+    {
+      StatelessDatabaseOperations::KeysValuesIterator it(op, "test");
+      it.SetLimit(limit);
+      ASSERT_THROW(it.GetValue(), OrthancException);
+      ASSERT_THROW(it.GetKey(), OrthancException);
+      ASSERT_TRUE(it.Next());
+      ASSERT_EQ("hello", it.GetKey());
+      ASSERT_EQ("world", it.GetValue());
+      ASSERT_FALSE(it.Next());
+      ASSERT_THROW(it.GetValue(), OrthancException);
+      ASSERT_THROW(it.GetKey(), OrthancException);
+    }
+
+    op.StoreKeyValue("test", "hello2", "world2");
+    op.StoreKeyValue("test", "hello3", "world3");
+
+    for (unsigned int limit = 0; limit < 5; limit++)
+    {
+      StatelessDatabaseOperations::KeysValuesIterator it(op, "test");
+      it.SetLimit(limit);
+      ASSERT_THROW(it.GetValue(), OrthancException);
+      ASSERT_THROW(it.GetKey(), OrthancException);
+      ASSERT_TRUE(it.Next());
+      ASSERT_EQ("hello", it.GetKey());
+      ASSERT_EQ("world", it.GetValue());
+      ASSERT_TRUE(it.Next());
+      ASSERT_EQ("hello2", it.GetKey());
+      ASSERT_EQ("world2", it.GetValue());
+      ASSERT_TRUE(it.Next());
+      ASSERT_EQ("hello3", it.GetKey());
+      ASSERT_EQ("world3", it.GetValue());
+      ASSERT_FALSE(it.Next());
+      ASSERT_THROW(it.GetValue(), OrthancException);
+      ASSERT_THROW(it.GetKey(), OrthancException);
+    }
+
+    op.DeleteKeyValue("test", "hello2");
+
+    for (unsigned int limit = 0; limit < 5; limit++)
+    {
+      StatelessDatabaseOperations::KeysValuesIterator it(op, "test");
+      it.SetLimit(limit);
+      ASSERT_TRUE(it.Next());
+      ASSERT_EQ("hello", it.GetKey());
+      ASSERT_EQ("world", it.GetValue());
+      ASSERT_TRUE(it.Next());
+      ASSERT_EQ("hello3", it.GetKey());
+      ASSERT_EQ("world3", it.GetValue());
+      ASSERT_FALSE(it.Next());
+    }
+
+    std::string s;
+    ASSERT_TRUE(op.GetKeyValue(s, "test", "hello"));   ASSERT_EQ("world", s);
+    ASSERT_TRUE(op.GetKeyValue(s, "test", "hello3"));  ASSERT_EQ("world3", s);
+    ASSERT_FALSE(op.GetKeyValue(s, "test", "hello2"));
+
+    ASSERT_TRUE(op.GetKeyValue(s, "test", "hello"));   ASSERT_EQ("world", s);
+    op.StoreKeyValue("test", "hello", "overwritten");
+    ASSERT_TRUE(op.GetKeyValue(s, "test", "hello"));   ASSERT_EQ("overwritten", s);
+
+    op.DeleteKeyValue("test", "nope");
+
+    op.DeleteKeyValue("test", "hello");
+    op.DeleteKeyValue("test", "hello3");
+
+    for (unsigned int limit = 0; limit < 5; limit++)
+    {
+      StatelessDatabaseOperations::KeysValuesIterator it(op, "test");
+      it.SetLimit(limit);
+      ASSERT_FALSE(it.Next());
+    }
+
+    {
+      std::string blob;
+      blob.push_back(0);
+      blob.push_back(1);
+      blob.push_back(0);
+      blob.push_back(2);
+      op.StoreKeyValue("test", "blob", blob); // Storing binary values
+    }
+
+    ASSERT_TRUE(op.GetKeyValue(s, "test", "blob"));
+    ASSERT_EQ(4u, s.size());
+    ASSERT_EQ(0, static_cast<uint8_t>(s[0]));
+    ASSERT_EQ(1, static_cast<uint8_t>(s[1]));
+    ASSERT_EQ(0, static_cast<uint8_t>(s[2]));
+    ASSERT_EQ(2, static_cast<uint8_t>(s[3]));
+    op.DeleteKeyValue("test", "blob");
+    ASSERT_FALSE(op.GetKeyValue(s, "test", "blob"));
+  }
+
+  db.Close();
+}
+
+
+TEST(SQLiteDatabaseWrapper, Queues)
+{
+  SQLiteDatabaseWrapper db;   // The SQLite DB is in memory
+  db.Open();
+
+  {
+    StatelessDatabaseOperations op(db, false);
+    op.SetTransactionContextFactory(new DummyTransactionContextFactory);
+
+    ASSERT_EQ(0u, op.GetQueueSize("test"));
+    op.EnqueueValue("test", "hello");
+    ASSERT_EQ(1u, op.GetQueueSize("test"));
+    op.EnqueueValue("test", "world");
+    ASSERT_EQ(2u, op.GetQueueSize("test"));
+
+    std::string s;
+    ASSERT_TRUE(op.DequeueValue(s, "test", QueueOrigin_Back));  ASSERT_EQ("world", s);
+    ASSERT_EQ(1u, op.GetQueueSize("test"));
+    ASSERT_TRUE(op.DequeueValue(s, "test", QueueOrigin_Back));  ASSERT_EQ("hello", s);
+    ASSERT_EQ(0u, op.GetQueueSize("test"));
+    ASSERT_FALSE(op.DequeueValue(s, "test", QueueOrigin_Back));
+
+    op.EnqueueValue("test", "hello");
+    op.EnqueueValue("test", "world");
+    ASSERT_EQ(2u, op.GetQueueSize("test"));
+
+    ASSERT_TRUE(op.DequeueValue(s, "test", QueueOrigin_Front));  ASSERT_EQ("hello", s);
+    ASSERT_TRUE(op.DequeueValue(s, "test", QueueOrigin_Front));  ASSERT_EQ("world", s);
+    ASSERT_EQ(0u, op.GetQueueSize("test"));
+    ASSERT_FALSE(op.DequeueValue(s, "test", QueueOrigin_Front));
+
+    {
+      std::string blob;
+      blob.push_back(0);
+      blob.push_back(1);
+      blob.push_back(0);
+      blob.push_back(2);
+      op.EnqueueValue("test", blob); // Storing binary values
+    }
+
+    ASSERT_EQ(1u, op.GetQueueSize("test"));
+    ASSERT_TRUE(op.DequeueValue(s, "test", QueueOrigin_Front));
+    ASSERT_EQ(0u, op.GetQueueSize("test"));
+    ASSERT_EQ(4u, s.size());
+    ASSERT_EQ(0, static_cast<uint8_t>(s[0]));
+    ASSERT_EQ(1, static_cast<uint8_t>(s[1]));
+    ASSERT_EQ(0, static_cast<uint8_t>(s[2]));
+    ASSERT_EQ(2, static_cast<uint8_t>(s[3]));
+    ASSERT_FALSE(op.DequeueValue(s, "test", QueueOrigin_Front));
+  }
+
+  db.Close();
+}
+
+
+TEST_F(DatabaseWrapperTest, BinaryCustomData)
+{
+  int64_t patient = transaction_->CreateResource("Patient", ResourceType_Patient);
+
+  {
+    FileInfo info("hello", FileContentType_Dicom, 10, "md5");
+
+    {
+      std::string blob;
+      blob.push_back(0);
+      blob.push_back(1);
+      blob.push_back(0);
+      blob.push_back(2);
+      info.SetCustomData(blob);
+    }
+
+    transaction_->AddAttachment(patient, info, 43);
+  }
+
+  {
+    FileInfo info;
+    int64_t revision;
+    ASSERT_TRUE(transaction_->LookupAttachment(info, revision, patient, FileContentType_Dicom));
+    ASSERT_EQ(43u, revision);
+    ASSERT_EQ("hello", info.GetUuid());
+    ASSERT_EQ(CompressionType_None, info.GetCompressionType());
+    ASSERT_EQ(10u, info.GetCompressedSize());
+    ASSERT_EQ("md5", info.GetCompressedMD5());
+    ASSERT_EQ(4u, info.GetCustomData().size());
+    ASSERT_EQ(0, static_cast<uint8_t>(info.GetCustomData()[0]));
+    ASSERT_EQ(1, static_cast<uint8_t>(info.GetCustomData()[1]));
+    ASSERT_EQ(0, static_cast<uint8_t>(info.GetCustomData()[2]));
+    ASSERT_EQ(2, static_cast<uint8_t>(info.GetCustomData()[3]));
+  }
+
+  transaction_->DeleteResource(patient);
 }

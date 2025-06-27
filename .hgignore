@@ -15,3 +15,4 @@ CMakeLists.txt.user
 .project
 Resources/Testing/Issue32/Java/bin
 Resources/Testing/Issue32/Java/target
+build/

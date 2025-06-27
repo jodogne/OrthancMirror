@@ -31,7 +31,6 @@
 
 #include "../Compatibility.h"
 #include "../Endianness.h"
-#include "../Logging.h"
 #include "../OrthancException.h"
 #include "../Toolbox.h"
 #include "DicomArray.h"
@@ -44,6 +43,7 @@
 #if !defined(__EMSCRIPTEN__)
 // Multithreading is not supported in WebAssembly
 #  include <boost/thread/shared_mutex.hpp>
+#  include <boost/thread/lock_types.hpp>  // For boost::unique_lock<> and boost::shared_lock<>
 #endif
 
 namespace Orthanc
@@ -1220,7 +1220,7 @@ namespace Orthanc
   }
 
 
-  void DicomMap::LogMissingTagsForStore() const
+  std::string DicomMap::FormatMissingTagsForStore() const
   {
     std::string patientId, studyInstanceUid, seriesInstanceUid, sopInstanceUid;
     
@@ -1244,14 +1244,14 @@ namespace Orthanc
       sopInstanceUid = ValueAsString(*this, DICOM_TAG_SOP_INSTANCE_UID);
     }
 
-    LogMissingTagsForStore(patientId, studyInstanceUid, seriesInstanceUid, sopInstanceUid);
+    return FormatMissingTagsForStore(patientId, studyInstanceUid, seriesInstanceUid, sopInstanceUid);
   }
 
   
-  void DicomMap::LogMissingTagsForStore(const std::string& patientId,
-                                        const std::string& studyInstanceUid,
-                                        const std::string& seriesInstanceUid,
-                                        const std::string& sopInstanceUid)
+  std::string DicomMap::FormatMissingTagsForStore(const std::string& patientId,
+                                                  const std::string& studyInstanceUid,
+                                                  const std::string& seriesInstanceUid,
+                                                  const std::string& sopInstanceUid)
   {
     std::string s, t;
 
@@ -1309,11 +1309,11 @@ namespace Orthanc
 
     if (t.size() == 0)
     {
-      LOG(ERROR) << "Store has failed because all the required tags (" << s << ") are missing (is it a DICOMDIR file?)";
+      return "Store has failed because all the required tags (" + s + ") are missing (is it a DICOMDIR file?)";
     }
     else
     {
-      LOG(ERROR) << "Store has failed because required tags (" << s << ") are missing for the following instance: " << t;
+      return "Store has failed because required tags (" + s + ") are missing for the following instance: " + t;
     }
   }
 
