@@ -4212,6 +4212,11 @@ namespace OrthancPlugins
     {
       path_ += "?" + getArguments;
     }
+
+    if (request->bodySize > 0 && request->body != NULL)
+    {
+      requestBody_.assign(reinterpret_cast<const char*>(request->body), request->bodySize);
+    }
   }
 #endif
 
