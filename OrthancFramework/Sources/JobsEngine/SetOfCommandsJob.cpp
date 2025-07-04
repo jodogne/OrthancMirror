@@ -235,7 +235,7 @@ namespace Orthanc
   static const char* KEY_POSITION = "Position";
   static const char* KEY_TYPE = "Type";
   static const char* KEY_COMMANDS = "Commands";
-
+  static const char* KEY_USER_DATA = "UserData";
   
   void SetOfCommandsJob::GetPublicContent(Json::Value& value) const
   {
@@ -254,6 +254,7 @@ namespace Orthanc
     target[KEY_PERMISSIVE] = permissive_;
     target[KEY_POSITION] = static_cast<unsigned int>(position_);
     target[KEY_DESCRIPTION] = description_;
+    target[KEY_USER_DATA] = userData_;
 
     target[KEY_COMMANDS] = Json::arrayValue;
     Json::Value& tmp = target[KEY_COMMANDS];
@@ -280,7 +281,13 @@ namespace Orthanc
     permissive_ = SerializationToolbox::ReadBoolean(source, KEY_PERMISSIVE);
     position_ = SerializationToolbox::ReadUnsignedInteger(source, KEY_POSITION);
     description_ = SerializationToolbox::ReadString(source, KEY_DESCRIPTION);
-    
+
+    // new in 1.12.9
+    if (source.isMember(KEY_USER_DATA))
+    {
+      userData_ = source[KEY_USER_DATA];
+    }
+
     if (!source.isMember(KEY_COMMANDS) ||
         source[KEY_COMMANDS].type() != Json::arrayValue)
     {

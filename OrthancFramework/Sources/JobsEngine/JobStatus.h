@@ -38,6 +38,7 @@ namespace Orthanc
     Json::Value    serialized_;
     bool           hasSerialized_;
     std::string    details_;
+    Json::Value    userData_;
 
   public:
     JobStatus();
@@ -86,6 +87,16 @@ namespace Orthanc
     const std::string& GetDetails() const
     {
       return details_;
+    }
+
+    bool HasUserData() const
+    {
+      return !userData_.isNull();
+    }
+
+    const Json::Value& GetUserData() const
+    {
+      return userData_;
     }
   };
 }

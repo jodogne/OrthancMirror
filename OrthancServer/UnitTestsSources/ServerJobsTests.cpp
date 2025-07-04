@@ -141,6 +141,10 @@ namespace
     {
       return false;
     }
+    virtual bool GetUserData(Json::Value& userData) const ORTHANC_OVERRIDE
+    {
+      return false;
+    }
   };
 
 
@@ -148,7 +152,6 @@ namespace
   {
   private:
     bool   trailingStepDone_;
-    
   protected:
     virtual bool HandleInstance(const std::string& instance) ORTHANC_OVERRIDE
     {
@@ -206,6 +209,10 @@ namespace
     virtual void GetJobType(std::string& s) const ORTHANC_OVERRIDE
     {
       s = "DummyInstancesJob";
+    }
+    virtual bool GetUserData(Json::Value& userData) const ORTHANC_OVERRIDE
+    {
+      return false;
     }
   };
 

@@ -44,7 +44,8 @@ namespace Orthanc
   static const char* const KEY_TRANSCODE = "Transcode";
   static const char* const KEY_LOSSY_QUALITY = "LossyQuality";
   static const char* const KEY_FILENAME = "Filename";
-  
+  static const char* const KEY_USER_DATA = "UserData";
+
   static const char* const GET_TRANSCODE = "transcode";
   static const char* const GET_LOSSY_QUALITY = "lossy-quality";
   static const char* const GET_FILENAME = "filename";
@@ -124,6 +125,7 @@ namespace Orthanc
                                int& priority,                /* out */
                                unsigned int& loaderThreads,  /* out */
                                std::string& filename,        /* out */
+                               Json::Value& userData,        /* out */
                                const Json::Value& body,      /* in */
                                const bool defaultExtended    /* in */,
                                const std::string& defaultFilename /* in */)
@@ -172,6 +174,12 @@ namespace Orthanc
     else
     {
       filename = defaultFilename;
+    }
+
+    if (body.type() == Json::objectValue &&
+      body.isMember(KEY_USER_DATA) && body[KEY_USER_DATA].isString())
+    {
+      userData = body[KEY_USER_DATA].asString();
     }
 
     {
@@ -548,6 +556,8 @@ namespace Orthanc
                         "(including file extension)", false)
       .SetRequestField("Priority", RestApiCallDocumentation::Type_Number,
                        "In asynchronous mode, the priority of the job. The higher the value, the higher the priority.", false)
+      .SetRequestField(KEY_USER_DATA, RestApiCallDocumentation::Type_JsonObject,
+                       "In asynchronous mode, user data that will be attached to the job.", false)
       .AddAnswerType(MimeType_Zip, "In synchronous mode, the ZIP file containing the archive")
       .AddAnswerType(MimeType_Json, "In asynchronous mode, information about the job that has been submitted to "
                      "generate the archive: https://orthanc.uclouvain.be/book/users/advanced-rest.html#jobs")
@@ -593,9 +603,10 @@ namespace Orthanc
       unsigned int loaderThreads;
       std::string filename;
       unsigned int lossyQuality;
+      Json::Value userData;
 
       GetJobParameters(synchronous, extended, transcode, transferSyntax, lossyQuality,
-                       priority, loaderThreads, filename, body, DEFAULT_IS_EXTENDED, "Archive.zip");
+                       priority, loaderThreads, filename, userData, body, DEFAULT_IS_EXTENDED, "Archive.zip");
       
       std::unique_ptr<ArchiveJob> job(new ArchiveJob(context, IS_MEDIA, extended, ResourceType_Patient));
       AddResourcesOfInterest(*job, body);
@@ -607,6 +618,7 @@ namespace Orthanc
       }
       
       job->SetLoaderThreads(loaderThreads);
+      job->SetUserData(userData);
 
       SubmitJob(call.GetOutput(), context, job, priority, synchronous, filename);
     }
@@ -783,8 +795,10 @@ namespace Orthanc
       unsigned int loaderThreads;
       std::string filename;
       unsigned int lossyQuality;
+      Json::Value userData;
+
       GetJobParameters(synchronous, extended, transcode, transferSyntax, lossyQuality,
-                       priority, loaderThreads, filename, body, false /* by default, not extented */, id + ".zip");
+                       priority, loaderThreads, filename, userData, body, false /* by default, not extented */, id + ".zip");
       
       std::unique_ptr<ArchiveJob> job(new ArchiveJob(context, IS_MEDIA, extended, LEVEL));
       job->AddResource(id, true, LEVEL);
@@ -796,6 +810,7 @@ namespace Orthanc
       }
 
       job->SetLoaderThreads(loaderThreads);
+      job->SetUserData(userData);
 
       SubmitJob(call.GetOutput(), context, job, priority, synchronous, filename);
     }

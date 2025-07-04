@@ -324,6 +324,7 @@ namespace Orthanc
   static const char* KEY_PRIORITY = "Priority";
   static const char* KEY_SYNCHRONOUS = "Synchronous";
   static const char* KEY_ASYNCHRONOUS = "Asynchronous";
+  static const char* KEY_USER_DATA = "UserData";
 
   
   bool OrthancRestApi::IsSynchronousJobRequest(bool isDefaultSynchronous,
@@ -441,6 +442,11 @@ namespace Orthanc
       job->SetPermissive(false);
     }
 
+    if (body.isMember(KEY_USER_DATA))
+    {
+      job->SetUserData(body[KEY_USER_DATA]);
+    }
+
     SubmitGenericJob(call, raii.release(), isDefaultSynchronous, body);
   }
 
@@ -465,6 +471,11 @@ namespace Orthanc
     else
     {
       job->SetPermissive(false);
+    }
+
+    if (body.isMember(KEY_USER_DATA))
+    {
+      job->SetUserData(body[KEY_USER_DATA]);
     }
 
     SubmitGenericJob(call, raii.release(), isDefaultSynchronous, body);
@@ -492,7 +503,9 @@ namespace Orthanc
     DocumentSubmitGenericJob(call);
     call.GetDocumentation()
       .SetRequestField(KEY_PERMISSIVE, RestApiCallDocumentation::Type_Boolean,
-                       "If `true`, ignore errors during the individual steps of the job.", false);
+                       "If `true`, ignore errors during the individual steps of the job.", false)
+      .SetRequestField(KEY_USER_DATA, RestApiCallDocumentation::Type_JsonObject,
+                       "User data that will travel along with the job.", false);
   }
 
 
