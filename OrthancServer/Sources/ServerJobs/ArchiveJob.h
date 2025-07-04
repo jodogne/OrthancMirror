@@ -58,6 +58,7 @@ namespace Orthanc
     bool                                  enableExtendedSopClass_;
     std::string                           description_;
     std::string                           filename_;
+    Json::Value                           userData_;
 
     boost::shared_ptr<ZipWriterIterator>  writer_;
     size_t                                currentStep_;
@@ -137,5 +138,20 @@ namespace Orthanc
     virtual bool DeleteOutput(const std::string& key) ORTHANC_OVERRIDE;
 
     virtual void DeleteAllOutputs() ORTHANC_OVERRIDE;
+
+    void SetUserData(const Json::Value& userData)
+    {
+      userData_ = userData;
+    }
+
+    virtual bool GetUserData(Json::Value& userData) const ORTHANC_OVERRIDE
+    {
+      if (!userData_.isNull())
+      {
+        userData = userData_;
+        return true;
+      }
+      return false;
+    }
   };
 }

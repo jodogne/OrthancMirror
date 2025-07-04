@@ -63,6 +63,7 @@ namespace Orthanc
     bool                    permissive_;
     size_t                  position_;
     std::string             description_;
+    Json::Value             userData_;
 
   public:
     SetOfCommandsJob();
@@ -116,5 +117,21 @@ namespace Orthanc
     {
       return false;
     }
+
+    void SetUserData(const Json::Value& userData)
+    {
+      userData_ = userData;
+    }
+
+    virtual bool GetUserData(Json::Value& userData) const ORTHANC_OVERRIDE
+    {
+      if (!userData_.isNull())
+      {
+        userData = userData_;
+        return true;
+      }
+      return false;
+    }
+
   };
 }
