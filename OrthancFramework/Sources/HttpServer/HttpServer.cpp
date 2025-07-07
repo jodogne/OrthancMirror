@@ -621,7 +621,7 @@ namespace Orthanc
   
   enum AccessMode
   {
-    AccessMode_Forbidden,
+    AccessMode_NotAuthenticated,
     AccessMode_AuthorizationToken,
     AccessMode_RegisteredUser
   };
@@ -657,7 +657,7 @@ namespace Orthanc
       }
     }
 
-    return AccessMode_Forbidden;
+    return AccessMode_NotAuthenticated;
   }
 
 
@@ -1203,15 +1203,6 @@ namespace Orthanc
     
     AccessMode accessMode = IsAccessGranted(server, headers);
 
-    // Authenticate this connection
-    if (server.IsAuthenticationEnabled() && 
-        accessMode == AccessMode_Forbidden)
-    {
-      output.SendUnauthorized(server.GetRealm());   // 401 error
-      return;
-    }
-
-    
 #if ORTHANC_ENABLE_MONGOOSE == 1
     // Apply the filter, if it is installed
     char remoteIp[24];
@@ -1244,6 +1235,41 @@ namespace Orthanc
     catch (OrthancException&)
     {
       output.SendStatus(HttpStatus_400_BadRequest);
+      return;
+    }
+
+
+    // Authenticate this connection
+    if (server.IsAuthenticationEnabled() &&
+        accessMode == AccessMode_NotAuthenticated)
+    {
+      if (server.IsRedirectNotAuthenticatedToRoot() &&
+          uri.size() > 0)
+      {
+        // This is new in Orthanc 1.12.9
+        std::string redirectionToRoot;
+
+        std::string tmp(requestUri);
+        if (tmp.back() == '/')
+        {
+          redirectionToRoot = "../";
+        }
+        else
+        {
+          redirectionToRoot = "./";
+        }
+
+        for (size_t i = 0; i < uri.size() - 1; i++)
+        {
+          redirectionToRoot += "../";
+        }
+
+        output.Redirect(redirectionToRoot);
+      }
+      else
+      {
+        output.SendUnauthorized(server.GetRealm());   // 401 error
+      }
       return;
     }
 
@@ -1300,7 +1326,7 @@ namespace Orthanc
       // filter. In the case of an authorization bearer token, grant
       // full access to the API.
 
-      assert(accessMode == AccessMode_Forbidden ||  // Could be the case if "!server.IsAuthenticationEnabled()"
+      assert(accessMode == AccessMode_NotAuthenticated ||  // Could be the case if "!server.IsAuthenticationEnabled()"
              accessMode == AccessMode_RegisteredUser);
       
       IIncomingHttpRequestFilter *filter = server.GetIncomingHttpRequestFilter();
@@ -1601,7 +1627,8 @@ namespace Orthanc
     realm_(ORTHANC_REALM),
     threadsCount_(50),  // Default value in mongoose/civetweb
     tcpNoDelay_(true),
-    requestTimeout_(30)  // Default value in mongoose/civetweb (30 seconds)
+    requestTimeout_(30),  // Default value in mongoose/civetweb (30 seconds)
+    redirectNotAuthenticatedToRoot_(false)
   {
 #if ORTHANC_ENABLE_MONGOOSE == 1
     CLOG(INFO, HTTP) << "This Orthanc server uses Mongoose as its embedded HTTP server";
@@ -2204,4 +2231,17 @@ namespace Orthanc
     }
   }
 #endif
+
+
+  bool HttpServer::IsRedirectNotAuthenticatedToRoot() const
+  {
+    return redirectNotAuthenticatedToRoot_;
+  }
+
+
+  void HttpServer::SetRedirectNotAuthenticatedToRoot(bool redirect)
+  {
+    Stop();
+    redirectNotAuthenticatedToRoot_ = redirect;
+  }
 }
