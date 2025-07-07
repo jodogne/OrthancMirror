@@ -1203,15 +1203,6 @@ namespace Orthanc
     
     AccessMode accessMode = IsAccessGranted(server, headers);
 
-    // Authenticate this connection
-    if (server.IsAuthenticationEnabled() && 
-        accessMode == AccessMode_Forbidden)
-    {
-      output.SendUnauthorized(server.GetRealm());   // 401 error
-      return;
-    }
-
-    
 #if ORTHANC_ENABLE_MONGOOSE == 1
     // Apply the filter, if it is installed
     char remoteIp[24];
@@ -1244,6 +1235,41 @@ namespace Orthanc
     catch (OrthancException&)
     {
       output.SendStatus(HttpStatus_400_BadRequest);
+      return;
+    }
+
+
+    // Authenticate this connection
+    if (server.IsAuthenticationEnabled() &&
+        accessMode == AccessMode_Forbidden)
+    {
+      if (server.IsRedirectForbiddenToRoot() &&
+          uri.size() > 0)
+      {
+        // This is new in Orthanc 1.12.9
+        std::string redirectionToRoot;
+
+        std::string tmp(requestUri);
+        if (tmp.back() == '/')
+        {
+          redirectionToRoot = "../";
+        }
+        else
+        {
+          redirectionToRoot = "./";
+        }
+
+        for (size_t i = 0; i < uri.size() - 1; i++)
+        {
+          redirectionToRoot += "../";
+        }
+
+        output.Redirect(redirectionToRoot);
+      }
+      else
+      {
+        output.SendUnauthorized(server.GetRealm());   // 401 error
+      }
       return;
     }
 
@@ -2204,4 +2230,17 @@ namespace Orthanc
     }
   }
 #endif
+
+
+  bool HttpServer::IsRedirectForbiddenToRoot() const
+  {
+    return redirectForbiddenToRoot_;
+  }
+
+
+  void HttpServer::SetRedirectForbiddenToRoot(bool redirect)
+  {
+    Stop();
+    redirectForbiddenToRoot_ = redirect;
+  }
 }
