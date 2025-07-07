@@ -49,6 +49,14 @@ namespace Orthanc
 
   class OrthancConfiguration : public boost::noncopyable
   {
+  public:
+    enum RegisteredUsersStatus
+    {
+      RegisteredUsersStatus_NoConfiguration,  // There is no "RegisteredUsers" section in the configuration file
+      RegisteredUsersStatus_NoUser,           // The "RegisteredUsers" section is present, but declares no user
+      RegisteredUsersStatus_HasUser           // The "RegisteredUsers" section is present and contains at least 1 user
+    };
+
   private:
     typedef std::map<std::string, RemoteModalityParameters>   Modalities;
     typedef std::map<std::string, WebServiceParameters>       Peers;
@@ -198,9 +206,8 @@ namespace Orthanc
     void GetListOfOrthancPeers(std::set<std::string>& target) const;
 
     unsigned int GetDicomLossyTranscodingQuality() const;
-    
-    // Returns "true" iff. at least one user is registered
-    bool SetupRegisteredUsers(HttpServer& httpServer) const;
+
+    RegisteredUsersStatus SetupRegisteredUsers(HttpServer& httpServer) const;
 
     std::string InterpretStringParameterAsPath(const std::string& parameter) const;
     

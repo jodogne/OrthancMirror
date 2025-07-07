@@ -35,6 +35,12 @@ Plugins
     the plugin did not detect any changes in the configuration that
     should trigger a reconstruct.
 
+Maintenance
+-----------
+
+* If the "RegisteredUsers" configuration option is present but empty,
+  Orthanc does not create the default user "orthanc" anymore.
+
 
 
 Version 1.12.8 (2025-06-13)
