@@ -707,32 +707,46 @@ namespace Orthanc
   }
 
 
-  bool OrthancConfiguration::SetupRegisteredUsers(HttpServer& httpServer) const
+  OrthancConfiguration::RegisteredUsersStatus OrthancConfiguration::SetupRegisteredUsers(HttpServer& httpServer) const
   {
+    static const char* const REGISTERED_USERS = "RegisteredUsers";
+
     httpServer.ClearUsers();
 
-    if (!json_.isMember("RegisteredUsers"))
+    if (!json_.isMember(REGISTERED_USERS))
     {
-      return false;
+      return RegisteredUsersStatus_NoConfiguration;
     }
-
-    const Json::Value& users = json_["RegisteredUsers"];
-    if (users.type() != Json::objectValue)
+    else
     {
-      throw OrthancException(ErrorCode_BadFileFormat, "Badly formatted list of users");
-    }
+      const Json::Value& users = json_[REGISTERED_USERS];
+      if (users.type() != Json::objectValue)
+      {
+        throw OrthancException(ErrorCode_BadFileFormat, "Badly formatted list of users");
+      }
 
-    bool hasUser = false;
-    Json::Value::Members usernames = users.getMemberNames();
-    for (size_t i = 0; i < usernames.size(); i++)
-    {
-      const std::string& username = usernames[i];
-      std::string password = users[username].asString();
-      httpServer.RegisterUser(username.c_str(), password.c_str());
-      hasUser = true;
-    }
+      bool hasUser = false;
+      Json::Value::Members usernames = users.getMemberNames();
+      for (size_t i = 0; i < usernames.size(); i++)
+      {
+        const std::string& username = usernames[i];
 
-    return hasUser;
+        if (users[username].type() != Json::stringValue)
+        {
+          throw OrthancException(ErrorCode_BadFileFormat, "Badly formatted list of users");
+        }
+        else
+        {
+          std::string password = users[username].asString();
+          httpServer.RegisterUser(username.c_str(), password.c_str());
+          hasUser = true;
+        }
+      }
+
+      return (hasUser ?
+              RegisteredUsersStatus_HasUser :
+              RegisteredUsersStatus_NoUser);
+    }
   }
     
 
