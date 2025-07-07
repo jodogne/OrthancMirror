@@ -146,6 +146,17 @@ namespace Orthanc
     };
 
 
+    class ORTHANC_PUBLIC AvailableResourcesDecounter : public boost::noncopyable
+    {
+    private:
+      SharedMetrics&   metrics_;
+
+    public:
+      explicit AvailableResourcesDecounter(SharedMetrics& metrics);
+
+      ~AvailableResourcesDecounter();
+    };
+
     class ORTHANC_PUBLIC Timer : public boost::noncopyable
     {
     private:

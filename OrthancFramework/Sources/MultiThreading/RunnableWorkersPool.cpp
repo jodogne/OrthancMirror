@@ -29,6 +29,8 @@
 #include "../Compatibility.h"
 #include "../OrthancException.h"
 #include "../Logging.h"
+#include "../MetricsRegistry.h"
+
 
 namespace Orthanc
 {
@@ -41,6 +43,7 @@ namespace Orthanc
       SharedMessageQueue&   queue_;
       boost::thread         thread_;
       std::string           name_;
+      MetricsRegistry::SharedMetrics& availableWorkers_;
  
       static void WorkerThread(Worker* that)
       {
@@ -51,8 +54,11 @@ namespace Orthanc
           try
           {
             std::unique_ptr<IDynamicObject>  obj(that->queue_.Dequeue(100));
+            
             if (obj.get() != NULL)
             {
+              MetricsRegistry::AvailableResourcesDecounter counter(that->availableWorkers_);
+
               IRunnableBySteps& runnable = *dynamic_cast<IRunnableBySteps*>(obj.get());
               
               bool wishToContinue = runnable.Step();
@@ -86,10 +92,12 @@ namespace Orthanc
     public:
       Worker(const bool& globalContinue,
              SharedMessageQueue& queue,
-             const std::string& name) : 
+             const std::string& name,
+             MetricsRegistry::SharedMetrics& availableWorkers) : 
         continue_(globalContinue),
         queue_(queue),
-        name_(name)
+        name_(name),
+        availableWorkers_(availableWorkers)
       {
         thread_ = boost::thread(WorkerThread, this);
       }
@@ -107,11 +115,23 @@ namespace Orthanc
     bool                  continue_;
     std::vector<Worker*>  workers_;
     SharedMessageQueue    queue_;
+    MetricsRegistry::SharedMetrics  availableWorkers_;
+
+  public:
+    PImpl(MetricsRegistry& metricsRegistry, const char* availableWorkersMetricsName) :
+      continue_(false),
+      availableWorkers_(metricsRegistry, availableWorkersMetricsName, MetricsUpdatePolicy_MinOver10Seconds)
+    {
+    }
   };
 
 
 
-  RunnableWorkersPool::RunnableWorkersPool(size_t countWorkers, const std::string& name) : pimpl_(new PImpl)
+  RunnableWorkersPool::RunnableWorkersPool(size_t countWorkers, 
+                                           const std::string& name, 
+                                           MetricsRegistry& metricsRegistry, 
+                                           const char* availableWorkersMetricsName) : 
+    pimpl_(new PImpl(metricsRegistry, availableWorkersMetricsName))
   {
     pimpl_->continue_ = true;
 
@@ -121,11 +141,12 @@ namespace Orthanc
     }
 
     pimpl_->workers_.resize(countWorkers);
+    pimpl_->availableWorkers_.Add(countWorkers); // mark all workers as available
 
     for (size_t i = 0; i < countWorkers; i++)
     {
       std::string workerName = name + boost::lexical_cast<std::string>(i);
-      pimpl_->workers_[i] = new PImpl::Worker(pimpl_->continue_, pimpl_->queue_, workerName);
+      pimpl_->workers_[i] = new PImpl::Worker(pimpl_->continue_, pimpl_->queue_, workerName, pimpl_->availableWorkers_);
     }
   }
 
