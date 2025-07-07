@@ -604,6 +604,18 @@ public:
 
     return true;
   }
+
+  virtual bool IsRedirectNotAuthenticatedToRoot() const ORTHANC_OVERRIDE
+  {
+#if ORTHANC_ENABLE_PLUGINS == 1
+    if (plugins_ != NULL)
+    {
+      return plugins_->IsRedirectNotAuthenticatedToRoot();
+    }
+#endif
+
+    return false;
+  }
 };
 
 
@@ -1090,12 +1102,16 @@ static bool StartHttpServer(ServerContext& context,
         httpServer.SetAuthenticationEnabled(false);
       }
 
-      bool hasUsers = lock.GetConfiguration().SetupRegisteredUsers(httpServer);
+      OrthancConfiguration::RegisteredUsersStatus status = lock.GetConfiguration().SetupRegisteredUsers(httpServer);
+      assert(status == OrthancConfiguration::RegisteredUsersStatus_NoConfiguration ||
+             status == OrthancConfiguration::RegisteredUsersStatus_NoUser ||
+             status == OrthancConfiguration::RegisteredUsersStatus_HasUser);
 
       if (httpServer.IsAuthenticationEnabled() &&
-          !hasUsers)
+          status != OrthancConfiguration::RegisteredUsersStatus_HasUser)
       {
-        if (httpServer.IsRemoteAccessAllowed())
+        if (httpServer.IsRemoteAccessAllowed() &&
+            status == OrthancConfiguration::RegisteredUsersStatus_NoConfiguration)
         {
           /**
            * Starting with Orthanc 1.5.8, if no user is explicitly
@@ -1117,7 +1133,8 @@ static bool StartHttpServer(ServerContext& context,
         else
         {
           LOG(WARNING) << "HTTP authentication is enabled, but no user is declared, "
-                       << "check the value of configuration option \"RegisteredUsers\"";
+                       << "check the value of configuration option \"RegisteredUsers\" "
+                       << "if you cannot access Orthanc as expected";
         }
       }
       
