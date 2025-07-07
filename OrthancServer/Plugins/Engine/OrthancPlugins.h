@@ -414,6 +414,8 @@ private:
     unsigned int GetMaxDatabaseRetries() const;
 
     void RegisterWebDavCollections(HttpServer& target);
+
+    bool IsRedirectNotAuthenticatedToRoot() const;
   };
 }
 

@@ -604,6 +604,18 @@ public:
 
     return true;
   }
+
+  virtual bool IsRedirectNotAuthenticatedToRoot() const ORTHANC_OVERRIDE
+  {
+#if ORTHANC_ENABLE_PLUGINS == 1
+    if (plugins_ != NULL)
+    {
+      return plugins_->IsRedirectNotAuthenticatedToRoot();
+    }
+#endif
+
+    return false;
+  }
 };
 
 
