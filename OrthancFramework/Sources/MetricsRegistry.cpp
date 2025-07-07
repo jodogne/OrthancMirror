@@ -47,6 +47,8 @@ namespace Orthanc
       boost::posix_time::ptime  time_;
       bool                      hasValue_;
       T                         value_;
+      bool                      hasNextValue_;  // for min and max values over period, we need to store the next value
+      T                         nextValue_;
 
       void SetValue(const T& value,
                     const boost::posix_time::ptime& now)
@@ -89,8 +91,25 @@ namespace Orthanc
     public:
       explicit TimestampedValue() :
         hasValue_(false),
-        value_(0)
+        value_(0),
+        hasNextValue_(false),
+        nextValue_(0)
       {
+      }
+
+      int GetPeriodDuration(const MetricsUpdatePolicy& policy)
+      {
+        switch (policy)
+        {
+          case MetricsUpdatePolicy_MaxOver10Seconds:
+          case MetricsUpdatePolicy_MinOver10Seconds:
+            return 10;
+          case MetricsUpdatePolicy_MaxOver1Minute:
+          case MetricsUpdatePolicy_MinOver1Minute:
+            return 60;
+          default:
+            throw OrthancException(ErrorCode_InternalError);
+        }
       }
 
       void Update(const T& value,
@@ -105,30 +124,54 @@ namespace Orthanc
             break;
           
           case MetricsUpdatePolicy_MaxOver10Seconds:
-            if (IsLargerOverPeriod(value, 10, now))
+          case MetricsUpdatePolicy_MaxOver1Minute:
+            if (IsLargerOverPeriod(value, GetPeriodDuration(policy), now))
             {
               SetValue(value, now);
             }
-            break;
-
-          case MetricsUpdatePolicy_MaxOver1Minute:
-            if (IsLargerOverPeriod(value, 60, now))
+            else
             {
-              SetValue(value, now);
+              hasNextValue_ = true;
+              nextValue_ = value;
             }
             break;
 
           case MetricsUpdatePolicy_MinOver10Seconds:
-            if (IsSmallerOverPeriod(value, 10, now))
+          case MetricsUpdatePolicy_MinOver1Minute:
+            if (IsSmallerOverPeriod(value, GetPeriodDuration(policy), now))
             {
               SetValue(value, now);
             }
-            break;
-
-          case MetricsUpdatePolicy_MinOver1Minute:
-            if (IsSmallerOverPeriod(value, 60, now))
+            else
             {
-              SetValue(value, now);
+              hasNextValue_ = true;
+              nextValue_ = value;
+            }
+            break;
+          default:
+            throw OrthancException(ErrorCode_NotImplemented);
+        }
+      }
+
+      void Refresh(const MetricsUpdatePolicy& policy)
+      {
+        const boost::posix_time::ptime now = GetNow();
+
+        switch (policy)
+        {
+          case MetricsUpdatePolicy_Directly:
+            // nothing to do
+            break;
+          
+          case MetricsUpdatePolicy_MaxOver10Seconds:
+          case MetricsUpdatePolicy_MinOver10Seconds:
+          case MetricsUpdatePolicy_MaxOver1Minute:
+          case MetricsUpdatePolicy_MinOver1Minute:
+            // if the min/max value is older than the period, get the latest value
+            if ((now - time_).total_seconds() > GetPeriodDuration(policy) /* old value has expired */ && hasNextValue_)
+            {
+              SetValue(nextValue_, now);
+              hasNextValue_ = false;
             }
             break;
 
@@ -217,6 +260,8 @@ namespace Orthanc
     virtual const boost::posix_time::ptime& GetTime() const = 0;
     
     virtual std::string FormatValue() const = 0;
+
+    virtual void Refresh() = 0;
   };
 
   
@@ -265,6 +310,12 @@ namespace Orthanc
     {
       return boost::lexical_cast<std::string>(value_.GetValue());
     }
+
+    virtual void Refresh() ORTHANC_OVERRIDE
+    {
+      value_.Refresh(GetPolicy());
+    }
+
   };
 
   
@@ -312,6 +363,11 @@ namespace Orthanc
     virtual std::string FormatValue() const ORTHANC_OVERRIDE
     {
       return boost::lexical_cast<std::string>(value_.GetValue());
+    }
+
+    virtual void Refresh() ORTHANC_OVERRIDE
+    {
+      value_.Refresh(GetPolicy());
     }
   };
 
@@ -494,6 +550,8 @@ namespace Orthanc
       {
         boost::posix_time::time_duration diff = it->second->GetTime() - EPOCH;
 
+        it->second->Refresh();
+
         std::string line = (it->first + " " +
                             it->second->FormatValue() + " " + 
                             boost::lexical_cast<std::string>(diff.total_milliseconds()) + "\n");
@@ -513,6 +571,7 @@ namespace Orthanc
     name_(name),
     value_(0)
   {
+    registry_.Register(name, policy, MetricsDataType_Integer);
   }
 
   void MetricsRegistry::SharedMetrics::Add(int64_t delta)
@@ -532,6 +591,18 @@ namespace Orthanc
   MetricsRegistry::ActiveCounter::~ActiveCounter()
   {
     metrics_.Add(-1);
+  }
+
+
+  MetricsRegistry::AvailableResourcesDecounter::AvailableResourcesDecounter(MetricsRegistry::SharedMetrics &metrics) :
+    metrics_(metrics)
+  {
+    metrics_.Add(-1);
+  }
+
+  MetricsRegistry::AvailableResourcesDecounter::~AvailableResourcesDecounter()
+  {
+    metrics_.Add(1);
   }
 
 

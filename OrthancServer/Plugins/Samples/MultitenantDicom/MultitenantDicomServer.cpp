@@ -93,7 +93,7 @@ MultitenantDicomServer::MultitenantDicomServer(const Json::Value& serverConfig)
     labelsStoreLevels_.insert(Orthanc::ResourceType_Instance);
   }
   
-  server_.reset(new Orthanc::DicomServer);
+  server_.reset(new Orthanc::DicomServer(dummyMetricsRegistry_));
 
   {
     OrthancPlugins::OrthancConfiguration globalConfig;

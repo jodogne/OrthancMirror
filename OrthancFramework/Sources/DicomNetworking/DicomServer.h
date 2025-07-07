@@ -47,6 +47,8 @@
 
 namespace Orthanc
 {
+  class MetricsRegistry;
+
   class DicomServer : public boost::noncopyable
   {
   public:
@@ -83,6 +85,7 @@ namespace Orthanc
     IWorklistRequestHandlerFactory* worklistRequestHandlerFactory_;
     IStorageCommitmentRequestHandlerFactory* storageCommitmentFactory_;
     IApplicationEntityFilter* applicationEntityFilter_;
+    MetricsRegistry& metricsRegistry_;
 
     // New in Orthanc 1.9.0 for DICOM TLS
     bool         useDicomTls_;
@@ -100,7 +103,7 @@ namespace Orthanc
                              bool useDicomTls);
 
   public:
-    DicomServer();
+    explicit DicomServer(MetricsRegistry& metricsRegistry);
 
     ~DicomServer();
 
