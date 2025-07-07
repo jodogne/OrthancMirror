@@ -49,6 +49,7 @@
 #endif
 
 #include <ctype.h>
+#include <boost/thread.hpp>
 
 
 using namespace Orthanc;
@@ -1425,6 +1426,25 @@ TEST(Toolbox, SubstituteVariables)
 
 
 #if ORTHANC_SANDBOXED != 1
+
+void GetValuesDico(std::map<std::string, std::string>& values, MetricsRegistry& m)
+{
+  values.clear();
+
+  std::string s;
+  m.ExportPrometheusText(s);
+
+  std::vector<std::string> t;
+  Toolbox::TokenizeString(t, s, '\n');
+ 
+  for (size_t i = 0; i < t.size() - 1; i++)
+  {
+    std::vector<std::string> v;
+    Toolbox::TokenizeString(v, t[i], ' ');
+    values[v[0]] = v[1];
+  }
+}
+
 TEST(MetricsRegistry, Basic)
 {
   {
@@ -1571,6 +1591,56 @@ TEST(MetricsRegistry, Basic)
 
     ASSERT_EQ(MetricsUpdatePolicy_Directly, m.GetUpdatePolicy("c"));
     ASSERT_EQ(MetricsDataType_Integer, m.GetDataType("c"));
+  }
+
+  {
+    std::map<std::string, std::string> values;
+
+    MetricsRegistry mr;
+
+    {
+      MetricsRegistry::SharedMetrics max10(mr, "shared_max10", MetricsUpdatePolicy_MaxOver10Seconds);
+    
+      {
+        MetricsRegistry::ActiveCounter c1(max10);
+        MetricsRegistry::ActiveCounter c2(max10);
+        GetValuesDico(values, mr);
+        ASSERT_EQ("2", values["shared_max10"]);
+      }
+
+      GetValuesDico(values, mr);
+      ASSERT_EQ("2", values["shared_max10"]);
+
+      // // Uncomment to test max values going back to latest values after expiration of the 10 seconds period
+      // boost::this_thread::sleep(boost::posix_time::milliseconds(12000));
+
+      // GetValuesDico(values, mr);
+      // ASSERT_EQ("0", values["shared_max10"]);
+    }
+
+    {
+      MetricsRegistry::SharedMetrics min10(mr, "shared_min10", MetricsUpdatePolicy_MinOver10Seconds);
+      min10.Add(10);
+
+      GetValuesDico(values, mr);
+      ASSERT_EQ("10", values["shared_min10"]);
+
+      {
+        MetricsRegistry::AvailableResourcesDecounter c1(min10);
+        MetricsRegistry::AvailableResourcesDecounter c2(min10);
+        GetValuesDico(values, mr);
+        ASSERT_EQ("8", values["shared_min10"]);
+      }
+
+      GetValuesDico(values, mr);
+      ASSERT_EQ("8", values["shared_min10"]);
+
+      // // Uncomment to test min values going back to latest values after expiration of the 10 seconds period
+      // boost::this_thread::sleep(boost::posix_time::milliseconds(12000));
+
+      // GetValuesDico(values, mr);
+      // ASSERT_EQ("10", values["shared_min10"]);
+    }
   }
 }
 #endif
