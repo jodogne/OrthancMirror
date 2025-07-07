@@ -10,8 +10,12 @@ REST API
 --------
 
 * When creating a job, you can now add a "UserData" field in the payload.
-  This data will travel along with the job and will be available in the 
+  This data travels along with the job and is available in the 
   /jobs/{jobId} route.
+* New metrics "orthanc_available_dicom_threads" that displays the minimum
+  number of DICOM Threads that were available during the last 10 seconds.
+* Fixed the "orthanc_rest_api_active_requests" metrix that was not 
+  reset after 10 seconds.
 
 
 Plugin SDK

@@ -30,6 +30,8 @@
 
 namespace Orthanc
 {
+  class MetricsRegistry;
+
   class RunnableWorkersPool : public boost::noncopyable
   {
   private:
@@ -39,7 +41,7 @@ namespace Orthanc
     void Stop();
 
   public:
-    explicit RunnableWorkersPool(size_t countWorkers, const std::string& name);
+    explicit RunnableWorkersPool(size_t countWorkers, const std::string& name, MetricsRegistry& metricsRegistry, const char* availableWorkersMetricsName);
 
     ~RunnableWorkersPool();
 

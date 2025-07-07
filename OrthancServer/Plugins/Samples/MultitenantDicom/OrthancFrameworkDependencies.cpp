@@ -77,6 +77,7 @@
 #include "../../../../OrthancFramework/Sources/Images/PngReader.cpp"
 #include "../../../../OrthancFramework/Sources/Images/PngWriter.cpp"
 #include "../../../../OrthancFramework/Sources/Logging.cpp"
+#include "../../../../OrthancFramework/Sources/MetricsRegistry.cpp"
 #include "../../../../OrthancFramework/Sources/MultiThreading/RunnableWorkersPool.cpp"
 #include "../../../../OrthancFramework/Sources/MultiThreading/SharedMessageQueue.cpp"
 #include "../../../../OrthancFramework/Sources/OrthancException.cpp"
