@@ -1627,7 +1627,8 @@ namespace Orthanc
     realm_(ORTHANC_REALM),
     threadsCount_(50),  // Default value in mongoose/civetweb
     tcpNoDelay_(true),
-    requestTimeout_(30)  // Default value in mongoose/civetweb (30 seconds)
+    requestTimeout_(30),  // Default value in mongoose/civetweb (30 seconds)
+    redirectForbiddenToRoot_(false)
   {
 #if ORTHANC_ENABLE_MONGOOSE == 1
     CLOG(INFO, HTTP) << "This Orthanc server uses Mongoose as its embedded HTTP server";
