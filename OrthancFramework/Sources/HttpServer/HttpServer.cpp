@@ -1246,8 +1246,10 @@ namespace Orthanc
     if (server.IsAuthenticationEnabled() &&
         accessMode == AccessMode_NotAuthenticated)
     {
-      if (server.IsRedirectNotAuthenticatedToRoot() &&
-          uri.size() > 0)
+      IIncomingHttpRequestFilter *filter = server.GetIncomingHttpRequestFilter();
+      if (uri.size() > 0 &&
+          filter != NULL &&
+          filter->IsRedirectNotAuthenticatedToRoot())
       {
         // This is new in Orthanc 1.12.9
         std::string redirectionToRoot;
@@ -1631,7 +1633,6 @@ namespace Orthanc
     threadsCount_(50),  // Default value in mongoose/civetweb
     tcpNoDelay_(true),
     requestTimeout_(30),  // Default value in mongoose/civetweb (30 seconds)
-    redirectNotAuthenticatedToRoot_(false),
     availableHttpThreadsMetrics_(metricsRegistry,
                                  "orthanc_available_http_threads_count",
                                  MetricsUpdatePolicy_MinOver10Seconds)
@@ -2238,17 +2239,4 @@ namespace Orthanc
     }
   }
 #endif
-
-
-  bool HttpServer::IsRedirectNotAuthenticatedToRoot() const
-  {
-    return redirectNotAuthenticatedToRoot_;
-  }
-
-
-  void HttpServer::SetRedirectNotAuthenticatedToRoot(bool redirect)
-  {
-    Stop();
-    redirectNotAuthenticatedToRoot_ = redirect;
-  }
 }

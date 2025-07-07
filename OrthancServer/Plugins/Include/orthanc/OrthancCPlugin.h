@@ -484,6 +484,7 @@ extern "C"
     _OrthancPluginService_DequeueValue = 58,                        /* New in Orthanc 1.12.8 */
     _OrthancPluginService_GetQueueSize = 59,                        /* New in Orthanc 1.12.8 */
     _OrthancPluginService_SetStableStatus = 60,                     /* New in Orthanc 1.12.9 */
+    _OrthancPluginService_RedirectNotAuthenticatedToRoot = 61,      /* New in Orthanc 1.12.9 */
 
     /* Registration of callbacks */
     _OrthancPluginService_RegisterRestCallback = 1000,
@@ -10339,10 +10340,44 @@ extern "C"
     return context->InvokeService(context, _OrthancPluginService_SetStableStatus, &params);
   }
 
+
+  typedef struct
+  {
+    uint8_t   redirect;
+  } _OrthancPluginRedirectNotAuthenticatedToRoot;
+
+  /**
+   * @brief Whether to redirect unauthorized requests to the root of the Web server.
+   *
+   * If a request is non-authenticated (e.g., because of bad HTTP
+   * basic authentication credentials, or because of a plugin
+   * implementing a filtering over incoming HTTP requests), Orthanc by
+   * default returns a 401 "Unauthorized" HTTP status code.
+   *
+   * However, an Orthanc plugin providing a custom user interface
+   * could want to redirect the user to a login page. In such a
+   * situation, plugins can invoke
+   * "OrthancPluginRedirectNotAuthenticatedToRoot(context, 1)". This
+   * allows the plugin to redirect the user to its login page by
+   * overriding the REST callback for the "/" path.
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param redirect Whether to redirect unauthorized (non-authenticated) requests.
+   * @return 0 if success, other value if error.
+   **/
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginRedirectNotAuthenticatedToRoot(
+    OrthancPluginContext*  context,
+    uint8_t                redirect)
+  {
+    _OrthancPluginRedirectNotAuthenticatedToRoot params;
+    params.redirect = redirect;
+
+    return context->InvokeService(context, _OrthancPluginService_RedirectNotAuthenticatedToRoot, &params);
+  }
+
 #ifdef  __cplusplus
 }
 #endif
 
 
 /** @} */
-

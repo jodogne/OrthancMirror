@@ -4,14 +4,14 @@ Pending changes in the mainline
 General
 -------
 
-* Lua: new "SetStableStatus" function.
+* Lua: new "SetStableStatus()" function.
 
 REST API
 --------
 
-* When creating a job, you can now add a "UserData" field in the payload.
-  This data travels along with the job and is available in the 
-  /jobs/{jobId} route.
+* When creating a job, a "UserData" field can be added to the payload.
+  This data will travel along with the job and will be available in the
+  "/jobs/{jobId}" route.
 * New metrics "orthanc_available_dicom_threads" that displays the minimum
   number of DICOM Threads that were available during the last 10 seconds.
 * New metrics "orthanc_available_http_threads" that displays the minimum
@@ -23,22 +23,29 @@ REST API
 * Fixed the "orthanc_rest_api_active_requests" metrix that was not 
   reset after 10 seconds.
 
-
 Plugin SDK
 ----------
 
-* Added new function OrthancPluginSetStableStatus to e.g force the 
-  stabilization of a study from a plugin.
-
+* Added new primitives:
+  - "OrthancPluginSetStableStatus()" to force the stabilization of a
+    DICOM resource from a plugin.
+  - "OrthancPluginRedirectNotAuthenticatedToRoot()" to allow a plugin
+    to redirect unauthenticated users to a login page.
 
 Plugins
 -------
 
 * Housekeeper plugin:
-  - new "ForceReconstructFiles": If "Force" is set to true, forces 
-    the "ReconstructFiles" option when reconstructing resources even 
-    if the plugin did not detect any changes in the configuration that 
-    should trigger a Reconstruct.
+  - new "ForceReconstructFiles" option: If set to true, forces the
+    "ReconstructFiles" option when reconstructing resources, even if
+    the plugin did not detect any changes in the configuration that
+    should trigger a reconstruct.
+
+Maintenance
+-----------
+
+* If the "RegisteredUsers" configuration option is present but empty,
+  Orthanc does not create the default user "orthanc" anymore.
 
 
 

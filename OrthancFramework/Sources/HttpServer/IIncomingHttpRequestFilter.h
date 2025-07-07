@@ -44,5 +44,7 @@ namespace Orthanc
                            const char* username,
                            const HttpToolbox::Arguments& httpHeaders,
                            const HttpToolbox::GetArguments& getArguments) = 0;
+
+    virtual bool IsRedirectNotAuthenticatedToRoot() const = 0;
   };
 }
