@@ -114,7 +114,7 @@ namespace Orthanc
     unsigned int threadsCount_;
     bool tcpNoDelay_;
     unsigned int requestTimeout_;  // In seconds
-    bool redirectForbiddenToRoot_;  // New in Orthanc 1.12.9
+    bool redirectNotAuthenticatedToRoot_;  // New in Orthanc 1.12.9
 
 #if ORTHANC_ENABLE_PUGIXML == 1
     WebDavBuckets webDavBuckets_;
@@ -228,8 +228,8 @@ namespace Orthanc
                                   const std::string& body,
                                   const std::string& boundary);
 
-    bool IsRedirectForbiddenToRoot() const;
+    bool IsRedirectNotAuthenticatedToRoot() const;
 
-    void SetRedirectForbiddenToRoot(bool redirect);
+    void SetRedirectNotAuthenticatedToRoot(bool redirect);
   };
 }

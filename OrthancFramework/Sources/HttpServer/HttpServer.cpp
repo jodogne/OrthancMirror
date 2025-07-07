@@ -621,7 +621,7 @@ namespace Orthanc
   
   enum AccessMode
   {
-    AccessMode_Forbidden,
+    AccessMode_NotAuthenticated,
     AccessMode_AuthorizationToken,
     AccessMode_RegisteredUser
   };
@@ -657,7 +657,7 @@ namespace Orthanc
       }
     }
 
-    return AccessMode_Forbidden;
+    return AccessMode_NotAuthenticated;
   }
 
 
@@ -1241,9 +1241,9 @@ namespace Orthanc
 
     // Authenticate this connection
     if (server.IsAuthenticationEnabled() &&
-        accessMode == AccessMode_Forbidden)
+        accessMode == AccessMode_NotAuthenticated)
     {
-      if (server.IsRedirectForbiddenToRoot() &&
+      if (server.IsRedirectNotAuthenticatedToRoot() &&
           uri.size() > 0)
       {
         // This is new in Orthanc 1.12.9
@@ -1326,7 +1326,7 @@ namespace Orthanc
       // filter. In the case of an authorization bearer token, grant
       // full access to the API.
 
-      assert(accessMode == AccessMode_Forbidden ||  // Could be the case if "!server.IsAuthenticationEnabled()"
+      assert(accessMode == AccessMode_NotAuthenticated ||  // Could be the case if "!server.IsAuthenticationEnabled()"
              accessMode == AccessMode_RegisteredUser);
       
       IIncomingHttpRequestFilter *filter = server.GetIncomingHttpRequestFilter();
@@ -1628,7 +1628,7 @@ namespace Orthanc
     threadsCount_(50),  // Default value in mongoose/civetweb
     tcpNoDelay_(true),
     requestTimeout_(30),  // Default value in mongoose/civetweb (30 seconds)
-    redirectForbiddenToRoot_(false)
+    redirectNotAuthenticatedToRoot_(false)
   {
 #if ORTHANC_ENABLE_MONGOOSE == 1
     CLOG(INFO, HTTP) << "This Orthanc server uses Mongoose as its embedded HTTP server";
@@ -2233,15 +2233,15 @@ namespace Orthanc
 #endif
 
 
-  bool HttpServer::IsRedirectForbiddenToRoot() const
+  bool HttpServer::IsRedirectNotAuthenticatedToRoot() const
   {
-    return redirectForbiddenToRoot_;
+    return redirectNotAuthenticatedToRoot_;
   }
 
 
-  void HttpServer::SetRedirectForbiddenToRoot(bool redirect)
+  void HttpServer::SetRedirectNotAuthenticatedToRoot(bool redirect)
   {
     Stop();
-    redirectForbiddenToRoot_ = redirect;
+    redirectNotAuthenticatedToRoot_ = redirect;
   }
 }
