@@ -50,6 +50,7 @@
 
 
 #include "IIncomingHttpRequestFilter.h"
+#include "../MetricsRegistry.h"
 
 #include <list>
 #include <map>
@@ -115,6 +116,7 @@ namespace Orthanc
     bool tcpNoDelay_;
     unsigned int requestTimeout_;  // In seconds
     bool redirectNotAuthenticatedToRoot_;  // New in Orthanc 1.12.9
+    MetricsRegistry::SharedMetrics availableHttpThreadsMetrics_;
 
 #if ORTHANC_ENABLE_PUGIXML == 1
     WebDavBuckets webDavBuckets_;
@@ -123,7 +125,7 @@ namespace Orthanc
     bool IsRunning() const;
 
   public:
-    HttpServer();
+    HttpServer(MetricsRegistry& metricsRegistry);
 
     ~HttpServer();
 
@@ -231,5 +233,10 @@ namespace Orthanc
     bool IsRedirectNotAuthenticatedToRoot() const;
 
     void SetRedirectNotAuthenticatedToRoot(bool redirect);
+
+    MetricsRegistry::SharedMetrics& GetAvailableHttpThreadsMetrics()
+    {
+      return availableHttpThreadsMetrics_;
+    }
   };
 }

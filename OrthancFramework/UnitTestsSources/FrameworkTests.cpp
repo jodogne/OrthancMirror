@@ -1611,16 +1611,17 @@ TEST(MetricsRegistry, Basic)
       GetValuesDico(values, mr);
       ASSERT_EQ("2", values["shared_max10"]);
 
-      // // Uncomment to test max values going back to latest values after expiration of the 10 seconds period
-      // boost::this_thread::sleep(boost::posix_time::milliseconds(12000));
+      // { // Uncomment to test max values going back to latest values after expiration of the 10 seconds period
+      //   boost::this_thread::sleep(boost::posix_time::milliseconds(12000));
 
-      // GetValuesDico(values, mr);
-      // ASSERT_EQ("0", values["shared_max10"]);
+      //   GetValuesDico(values, mr);
+      //   ASSERT_EQ("0", values["shared_max10"]);
+      // }
     }
 
     {
       MetricsRegistry::SharedMetrics min10(mr, "shared_min10", MetricsUpdatePolicy_MinOver10Seconds);
-      min10.Add(10);
+      min10.SetInitialValue(10);
 
       GetValuesDico(values, mr);
       ASSERT_EQ("10", values["shared_min10"]);
@@ -1635,11 +1636,17 @@ TEST(MetricsRegistry, Basic)
       GetValuesDico(values, mr);
       ASSERT_EQ("8", values["shared_min10"]);
 
-      // // Uncomment to test min values going back to latest values after expiration of the 10 seconds period
-      // boost::this_thread::sleep(boost::posix_time::milliseconds(12000));
+      // {
+      //   // Uncomment to test min values going back to latest values after expiration of the 10 seconds period
+      //   boost::this_thread::sleep(boost::posix_time::milliseconds(12000));
 
-      // GetValuesDico(values, mr);
-      // ASSERT_EQ("10", values["shared_min10"]);
+      //   GetValuesDico(values, mr);
+      //   ASSERT_EQ("10", values["shared_min10"]);
+      // }
+
+      min10.SetInitialValue(5);
+      GetValuesDico(values, mr);
+      ASSERT_EQ("5", values["shared_min10"]);
     }
   }
 }

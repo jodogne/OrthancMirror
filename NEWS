@@ -14,6 +14,12 @@ REST API
   /jobs/{jobId} route.
 * New metrics "orthanc_available_dicom_threads" that displays the minimum
   number of DICOM Threads that were available during the last 10 seconds.
+* New metrics "orthanc_available_http_threads" that displays the minimum
+  number of HTTP Threads that were available during the last 10 seconds.
+  It is basically the opposite of "orthanc_rest_api_active_requests" but
+  it is more convenient to configure alerts on.  "orthanc_rest_api_active_requests"
+  also monitors the internal requests coming from plugins while "orthanc_available_http_threads"
+  monitors the requests received by the external HTTP Server.
 * Fixed the "orthanc_rest_api_active_requests" metrix that was not 
   reset after 10 seconds.
 
