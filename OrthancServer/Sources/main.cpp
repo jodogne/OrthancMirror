@@ -1032,7 +1032,7 @@ static bool StartHttpServer(ServerContext& context,
   else
   {
     MyIncomingHttpRequestFilter httpFilter(context, plugins);
-    HttpServer httpServer;
+    HttpServer httpServer(context.GetMetricsRegistry());
     bool httpDescribeErrors;
 
 #if ORTHANC_ENABLE_MONGOOSE == 1

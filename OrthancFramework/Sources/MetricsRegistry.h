@@ -106,6 +106,9 @@ namespace Orthanc
       SetIntegerValue(name, value, MetricsUpdatePolicy_Directly);
     }
     
+    void SetInitialValue(const std::string& name,
+                         int64_t value);
+
     void IncrementIntegerValue(const std::string& name,
                                int64_t delta);
 
@@ -131,6 +134,8 @@ namespace Orthanc
                     MetricsUpdatePolicy policy);
 
       void Add(int64_t delta);
+
+      void SetInitialValue(int64_t value);
     };
 
 

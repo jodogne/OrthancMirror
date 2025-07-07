@@ -32,6 +32,7 @@
 #include "../Logging.h"
 #include "../OrthancException.h"
 #include "../TemporaryFile.h"
+#include "../MetricsRegistry.h"
 #include "HttpToolbox.h"
 #include "IHttpHandler.h"
 #include "MultipartStreamReader.h"
@@ -1155,6 +1156,8 @@ namespace Orthanc
   {
     bool localhost;
 
+    MetricsRegistry::AvailableResourcesDecounter counter(server.GetAvailableHttpThreadsMetrics());
+
 #if ORTHANC_ENABLE_MONGOOSE == 1
     static const long LOCALHOST = (127ll << 24) + 1ll;
     localhost = (request->remote_ip == LOCALHOST);
@@ -1609,7 +1612,7 @@ namespace Orthanc
   }
 
 
-  HttpServer::HttpServer() :
+  HttpServer::HttpServer(MetricsRegistry& metricsRegistry) :
     pimpl_(new PImpl),
     handler_(NULL),
     remoteAllowed_(false),
@@ -1628,7 +1631,10 @@ namespace Orthanc
     threadsCount_(50),  // Default value in mongoose/civetweb
     tcpNoDelay_(true),
     requestTimeout_(30),  // Default value in mongoose/civetweb (30 seconds)
-    redirectNotAuthenticatedToRoot_(false)
+    redirectNotAuthenticatedToRoot_(false),
+    availableHttpThreadsMetrics_(metricsRegistry,
+                                 "orthanc_available_http_threads_count",
+                                 MetricsUpdatePolicy_MinOver10Seconds)
   {
 #if ORTHANC_ENABLE_MONGOOSE == 1
     CLOG(INFO, HTTP) << "This Orthanc server uses Mongoose as its embedded HTTP server";
@@ -2145,6 +2151,7 @@ namespace Orthanc
     
     Stop();
     threadsCount_ = threads;
+    availableHttpThreadsMetrics_.SetInitialValue(threadsCount_);
 
     CLOG(INFO, HTTP) << "The embedded HTTP server will use " << threads << " threads";
   }

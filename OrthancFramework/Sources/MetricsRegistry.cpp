@@ -262,6 +262,8 @@ namespace Orthanc
     virtual std::string FormatValue() const = 0;
 
     virtual void Refresh() = 0;
+
+    virtual void SetInitialValue(int64_t value) = 0;
   };
 
   
@@ -316,6 +318,10 @@ namespace Orthanc
       value_.Refresh(GetPolicy());
     }
 
+    virtual void SetInitialValue(int64_t value) ORTHANC_OVERRIDE
+    {
+      value_.Update(value, MetricsUpdatePolicy_Directly);
+    }
   };
 
   
@@ -368,6 +374,11 @@ namespace Orthanc
     virtual void Refresh() ORTHANC_OVERRIDE
     {
       value_.Refresh(GetPolicy());
+    }
+
+    virtual void SetInitialValue(int64_t value) ORTHANC_OVERRIDE
+    {
+      value_.Update(value, MetricsUpdatePolicy_Directly);
     }
   };
 
@@ -488,6 +499,16 @@ namespace Orthanc
     }
   }
 
+  void MetricsRegistry::SetInitialValue(const std::string& name,
+                                        int64_t value)
+  {
+    if (enabled_)
+    {
+      boost::mutex::scoped_lock lock(mutex_);
+      GetItemInternal(name, MetricsUpdatePolicy_Directly, MetricsDataType_Integer).SetInitialValue(value);
+    }
+  }
+
 
   MetricsUpdatePolicy MetricsRegistry::GetUpdatePolicy(const std::string& metrics)
   {
@@ -581,6 +602,12 @@ namespace Orthanc
     registry_.SetIntegerValue(name_, value_);
   }
 
+  void MetricsRegistry::SharedMetrics::SetInitialValue(int64_t value)
+  {
+    boost::mutex::scoped_lock lock(mutex_);
+    value_ = value;
+    registry_.SetInitialValue(name_, value_);
+  }
 
   MetricsRegistry::ActiveCounter::ActiveCounter(MetricsRegistry::SharedMetrics &metrics) :
     metrics_(metrics)
