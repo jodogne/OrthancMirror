@@ -1763,6 +1763,7 @@ namespace Orthanc
     std::string databaseServerIdentifier_;   // New in Orthanc 1.9.2
     unsigned int maxDatabaseRetries_;        // New in Orthanc 1.9.2
     bool hasStorageAreaCustomData_;          // New in Orthanc 1.12.8
+    bool redirectNotAuthenticatedToRoot_;    // New in Orthanc 1.12.9
 
     explicit PImpl(const std::string& databaseServerIdentifier) : 
       contextRefCount_(0),
@@ -1774,7 +1775,8 @@ namespace Orthanc
       argv_(NULL),
       databaseServerIdentifier_(databaseServerIdentifier),
       maxDatabaseRetries_(0),
-      hasStorageAreaCustomData_(false)
+      hasStorageAreaCustomData_(false),
+      redirectNotAuthenticatedToRoot_(false)
     {
       memset(&moveCallbacks_, 0, sizeof(moveCallbacks_));
     }
@@ -5851,6 +5853,18 @@ namespace Orthanc
         return true;
       }
 
+      case _OrthancPluginService_RedirectNotAuthenticatedToRoot:
+      {
+        const _OrthancPluginRedirectNotAuthenticatedToRoot& p = *reinterpret_cast<const _OrthancPluginRedirectNotAuthenticatedToRoot*>(parameters);
+
+        {
+          boost::unique_lock<boost::shared_mutex> lock(pimpl_->incomingHttpRequestFilterMutex_);
+          pimpl_->redirectNotAuthenticatedToRoot_ = (p.redirect == 1);
+        }
+
+        return true;
+      }
+
       default:
         return false;
     }
@@ -6815,5 +6829,12 @@ namespace Orthanc
       
       pimpl_->webDavCollections_.pop_front();
     }
+  }
+
+
+  bool OrthancPlugins::IsRedirectNotAuthenticatedToRoot() const
+  {
+    boost::shared_lock<boost::shared_mutex> lock(pimpl_->incomingHttpRequestFilterMutex_);
+    return pimpl_->redirectNotAuthenticatedToRoot_;
   }
 }

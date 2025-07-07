@@ -4,31 +4,32 @@ Pending changes in the mainline
 General
 -------
 
-* Lua: new "SetStableStatus" function.
+* Lua: new "SetStableStatus()" function.
 
 REST API
 --------
 
-* When creating a job, you can now add a "UserData" field in the payload.
-  This data will travel along with the job and will be available in the 
-  /jobs/{jobId} route.
-
+* When creating a job, a "UserData" field in the payload. This data
+  will travel along with the job and will be available in the
+  "/jobs/{jobId}" route.
 
 Plugin SDK
 ----------
 
-* Added new function OrthancPluginSetStableStatus to e.g force the 
-  stabilization of a study from a plugin.
-
+* Added new primitives:
+  - "OrthancPluginSetStableStatus()" to force the stabilization of a
+    DICOM resource from a plugin.
+  - "OrthancPluginRedirectNotAuthenticatedToRoot()" to allow a plugin
+    to redirect unauthenticated users to a login page.
 
 Plugins
 -------
 
 * Housekeeper plugin:
-  - new "ForceReconstructFiles": If "Force" is set to true, forces 
-    the "ReconstructFiles" option when reconstructing resources even 
-    if the plugin did not detect any changes in the configuration that 
-    should trigger a Reconstruct.
+  - new "ForceReconstructFiles" option: If set to true, forces the
+    "ReconstructFiles" option when reconstructing resources, even if
+    the plugin did not detect any changes in the configuration that
+    should trigger a reconstruct.
 
 
 
