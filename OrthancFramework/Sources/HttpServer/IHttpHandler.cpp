@@ -133,7 +133,8 @@ namespace Orthanc
   }
 
 
-  HttpStatus IHttpHandler::SimpleDelete(HttpToolbox::Arguments* answerHeaders,
+  HttpStatus IHttpHandler::SimpleDelete(std::string& answerBody,
+                                        HttpToolbox::Arguments* answerHeaders,
                                         IHttpHandler& handler,
                                         RequestOrigin origin,
                                         const std::string& uri,
@@ -150,6 +151,8 @@ namespace Orthanc
     if (handler.Handle(http, origin, LOCALHOST, "", HttpMethod_Delete, curi, 
                        httpHeaders, getArguments, NULL /* no body for DELETE */, 0))
     {
+      stream.GetBody(answerBody);
+
       if (answerHeaders != NULL)
       {
         stream.GetHeaders(*answerHeaders, true /* convert key to lower case */);
