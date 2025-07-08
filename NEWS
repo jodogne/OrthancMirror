@@ -31,6 +31,8 @@ Plugin SDK
     DICOM resource from a plugin.
   - "OrthancPluginRedirectNotAuthenticatedToRoot()" to allow a plugin
     to redirect unauthenticated users to a login page.
+* OrthancPluginCallRestApi() now also returns the body of DELETE requests:
+  https://discourse.orthanc-server.org/t/response-to-plugin-from-orthanc-api-delete-endpoint/6022
 
 Plugins
 -------

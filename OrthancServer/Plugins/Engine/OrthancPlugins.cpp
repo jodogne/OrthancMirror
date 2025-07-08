@@ -3387,7 +3387,8 @@ namespace Orthanc
       
     std::map<std::string, std::string> httpHeaders;
 
-    ThrowOnHttpError(IHttpHandler::SimpleDelete(NULL, *handler, RequestOrigin_Plugins, uri, httpHeaders));
+    std::string bodyIgnored;
+    ThrowOnHttpError(IHttpHandler::SimpleDelete(bodyIgnored, NULL, *handler, RequestOrigin_Plugins, uri, httpHeaders));
   }
 
 
@@ -4176,7 +4177,7 @@ namespace Orthanc
 
       case OrthancPluginHttpMethod_Delete:
         status = IHttpHandler::SimpleDelete(
-          &answerHeaders, *handler, RequestOrigin_Plugins, p.uri, headers);
+          answerBody, &answerHeaders, *handler, RequestOrigin_Plugins, p.uri, headers);
         break;
 
       default:
@@ -4192,8 +4193,7 @@ namespace Orthanc
     }
 
     PluginMemoryBuffer32 tmpBody;
-    if (p.method != OrthancPluginHttpMethod_Delete &&
-        p.answerBody != NULL)
+    if (p.answerBody != NULL)
     {
       tmpBody.Assign(answerBody);
     }

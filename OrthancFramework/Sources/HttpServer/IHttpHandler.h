@@ -116,7 +116,8 @@ namespace Orthanc
                                 size_t bodySize,
                                 const HttpToolbox::Arguments& httpHeaders);
 
-    static HttpStatus SimpleDelete(HttpToolbox::Arguments* answerHeaders /* out */,
+    static HttpStatus SimpleDelete(std::string& answerBody /* out */,
+                                   HttpToolbox::Arguments* answerHeaders /* out */,
                                    IHttpHandler& handler,
                                    RequestOrigin origin,
                                    const std::string& uri,
