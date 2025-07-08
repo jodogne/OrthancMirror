@@ -320,6 +320,9 @@ namespace Orthanc
     static void UriEncode(std::string& target,
                           const std::string& source);
 
+    static void UriEncode(std::string& target,
+                          const std::vector<std::string>& pathTokens);
+
     static std::string GetJsonStringField(const ::Json::Value& json,
                                           const std::string& key,
                                           const std::string& defaultValue);
