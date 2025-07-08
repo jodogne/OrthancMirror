@@ -1485,6 +1485,22 @@ namespace Orthanc
             c == '~');
   }
 
+  // in this version, each path token is uri encoded separately and then all parts are joined with "/"
+  void Toolbox::UriEncode(std::string& target,
+                          const std::vector<std::string>& pathTokens)
+  {
+    std::vector<std::string> uriEncodedPathTokens;
+    for (std::vector<std::string>::const_iterator it = pathTokens.begin(); it != pathTokens.end(); ++it)
+    {
+      std::string encodedPathToken;
+      Toolbox::UriEncode(encodedPathToken, *it);
+      uriEncodedPathTokens.push_back(encodedPathToken);
+    }
+
+    Toolbox::JoinStrings(target, uriEncodedPathTokens, "/");
+  }
+
+
   void Toolbox::UriEncode(std::string& target,
                           const std::string& source)
   {
