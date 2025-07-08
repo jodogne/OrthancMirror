@@ -38,7 +38,7 @@ namespace Orthanc
     return boost::posix_time::microsec_clock::universal_time();
   }
 
-  namespace
+  namespace MetricsRegistryInternals
   {
     template <typename T>
     class TimestampedValue : public boost::noncopyable
@@ -270,7 +270,7 @@ namespace Orthanc
   class MetricsRegistry::FloatItem : public Item
   {
   private:
-    TimestampedValue<float>  value_;
+    MetricsRegistryInternals::TimestampedValue<float>  value_;
 
   public:
     explicit FloatItem(MetricsUpdatePolicy policy) :
@@ -328,7 +328,7 @@ namespace Orthanc
   class MetricsRegistry::IntegerItem : public Item
   {
   private:
-    TimestampedValue<int64_t>  value_;
+    MetricsRegistryInternals::TimestampedValue<int64_t>  value_;
 
   public:
     explicit IntegerItem(MetricsUpdatePolicy policy) :
