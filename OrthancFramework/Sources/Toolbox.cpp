@@ -724,7 +724,8 @@ namespace Orthanc
   // http://dicom.nema.org/medical/dicom/current/output/chtml/part03/sect_C.12.html#sect_C.12.1.1.2
   std::string Toolbox::ConvertToUtf8(const std::string& source,
                                      Encoding sourceEncoding,
-                                     bool hasCodeExtensions)
+                                     bool hasCodeExtensions,
+                                     bool skipBackslashes)
   {
 #if ORTHANC_STATIC_ICU == 1
 #  if ORTHANC_ENABLE_ICU == 0
@@ -760,7 +761,26 @@ namespace Orthanc
         else
         {
           const char* encoding = GetBoostLocaleEncoding(sourceEncoding);
-          s = boost::locale::conv::to_utf<char>(source, encoding, boost::locale::conv::skip);
+
+          if (skipBackslashes)
+          {
+            /**
+             * This is to deal with the fact that in Japanese coding
+             * (ISO_IR 13), backslashes will be converted to the Yen
+             * character.
+             **/
+            std::vector<std::string> tokens;
+            TokenizeString(tokens, source, '\\');
+            for (size_t i = 0; i < tokens.size(); i++)
+            {
+              tokens[i] = boost::locale::conv::to_utf<char>(tokens[i], encoding, boost::locale::conv::skip);
+            }
+            JoinStrings(s, tokens, "\\");
+          }
+          else
+          {
+            s = boost::locale::conv::to_utf<char>(source, encoding, boost::locale::conv::skip);
+          }
         }
 
         if (hasCodeExtensions)
@@ -826,6 +846,50 @@ namespace Orthanc
       // Bad input string or bad encoding
       return ConvertToAscii(source);
     }
+  }
+#endif
+
+
+#if ORTHANC_ENABLE_LOCALE == 1
+  std::string Toolbox::ConvertDicomStringToUtf8(const std::string& source,
+                                                Encoding sourceEncoding,
+                                                bool hasCodeExtensions,
+                                                ValueRepresentation vr)
+  {
+    /**
+     * This method was added in Orthanc 1.12.9, as a consequence of:
+     * https://discourse.orthanc-server.org/t/issue-with-special-characters-when-scans-where-uploaded-with-specificcharacterset-dicom-tag-value-as-iso-ir-13/5962
+     *
+     * From the DICOM standard: "Two character codes of the
+     * single-byte character sets invoked in the GL area of the code
+     * table, 02/00 and 05/12, have special significance in the DICOM
+     * Standard. The character SPACE, represented by bit combination
+     * 02/00, shall be used for the padding of Data Element Values
+     * that are character strings. The Graphic Character represented
+     * by the bit combination 05/12, "\" (BACKSLASH) (reverse solidus)
+     * in the repertoire ISO-IR 6, shall only be used in character
+     * strings with Value Representations of UT, ST and LT (see
+     * Section 6.2). Otherwise the character code 05/12 is used as a
+     * separator for multi-valued Data Elements (see Section
+     * 6.4). [...] When the Value of Specific Character Set
+     * (0008,0005) is either "ISO_IR 13" or "ISO 2022 IR 13", the
+     * graphic character represented by the bit combination 05/12 is a
+     * "¥" (YEN SIGN) in the character set of ISO-IR 14."
+     * https://www.dicomstandard.org/standards/view/data-structures-and-encoding
+     *
+     * This description implies that if "sourceEncoding" (which is
+     * derived from the value of the DICOM Specific Character Set)
+     * corresponds "ISO_IR 13" or "ISO 2022 IR 13", AND if the value
+     * representation is *not* UT, ST, or LT, then backslashes should
+     * be ignored during the conversion to UTF-8.
+     **/
+
+    const bool skipBackslashes = (sourceEncoding == Encoding_Japanese &&
+                                  vr != ValueRepresentation_UnlimitedText &&  // UT
+                                  vr != ValueRepresentation_ShortText &&      // ST
+                                  vr != ValueRepresentation_LongText);        // LT
+
+    return ConvertToUtf8(source, sourceEncoding, hasCodeExtensions, skipBackslashes);
   }
 #endif
 

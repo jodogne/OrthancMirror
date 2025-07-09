@@ -192,7 +192,8 @@ namespace Orthanc
                                           unsigned int maxStringLength,
                                           Encoding encoding,
                                           bool hasCodeExtensions,
-                                          const std::set<DicomTag>& ignoreTagLength);
+                                          const std::set<DicomTag>& ignoreTagLength,
+                                          ValueRepresentation vr);
 
     static void ExtractHeaderAsJson(Json::Value& target, 
                                     DcmMetaInfo& header,
