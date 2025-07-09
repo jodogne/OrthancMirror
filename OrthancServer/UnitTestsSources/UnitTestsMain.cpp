@@ -516,7 +516,6 @@ TEST(StorageCommitmentReports, Basic)
 int main(int argc, char **argv)
 {
   Logging::Initialize();
-  Toolbox::InitializeGlobalLocale(NULL);
   SetGlobalVerbosity(Verbosity_Verbose);
   Toolbox::DetectEndianness();
   SystemToolbox::MakeDirectory("UnitTestsResults");

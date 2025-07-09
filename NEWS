@@ -50,6 +50,7 @@ Maintenance
   Orthanc does not create the default user "orthanc" anymore.
 * Added new CMake option "-DBUILD_UNIT_TESTS=ON" to disable the building of unit tests
 * Fix handling of backslashes in DICOM elements if encoding is ISO_IR 13
+* Fix initialization of ICU
 
 
 Version 1.12.8 (2025-06-13)
