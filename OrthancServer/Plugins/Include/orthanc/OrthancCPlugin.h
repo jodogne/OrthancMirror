@@ -31,6 +31,7 @@
  *    - Possibly register a custom transcoder for DICOM images using OrthancPluginRegisterTranscoderCallback().
  *    - Possibly register a callback to discard instances received through DICOM C-STORE using OrthancPluginRegisterIncomingCStoreInstanceFilter().
  *    - Possibly register a callback to branch a WebDAV virtual filesystem using OrthancPluginRegisterWebDavCollection().
+ *    - Possibly register a callback to authenticate HTTP requests using OrthancPluginRegisterHttpAuthentication().
  * -# <tt>void OrthancPluginFinalize()</tt>:
  *    This function is invoked by Orthanc during its shutdown. The plugin
  *    must free all its memory.
@@ -484,7 +485,6 @@ extern "C"
     _OrthancPluginService_DequeueValue = 58,                        /* New in Orthanc 1.12.8 */
     _OrthancPluginService_GetQueueSize = 59,                        /* New in Orthanc 1.12.8 */
     _OrthancPluginService_SetStableStatus = 60,                     /* New in Orthanc 1.12.9 */
-    _OrthancPluginService_RedirectNotAuthenticatedToRoot = 61,      /* New in Orthanc 1.12.9 */
 
     /* Registration of callbacks */
     _OrthancPluginService_RegisterRestCallback = 1000,
@@ -508,6 +508,7 @@ extern "C"
     _OrthancPluginService_RegisterReceivedInstanceCallback = 1018,  /* New in Orthanc 1.10.0 */
     _OrthancPluginService_RegisterWebDavCollection = 1019,     /* New in Orthanc 1.10.1 */
     _OrthancPluginService_RegisterStorageArea3 = 1020,         /* New in Orthanc 1.12.8 */
+    _OrthancPluginService_RegisterHttpAuthentication = 1021,   /* New in Orthanc 1.12.9 */
 
     /* Sending answers to REST calls */
     _OrthancPluginService_AnswerBuffer = 2000,
@@ -1160,6 +1161,7 @@ extern "C"
     _OrthancPluginStoreStatus_INTERNAL = 0x7fffffff
   } OrthancPluginStoreStatus;
 
+
   /**
    * The supported modes to remove an element from a queue.
    **/
@@ -1171,6 +1173,7 @@ extern "C"
     _OrthancPluginQueueOrigin_INTERNAL = 0x7fffffff
   } OrthancPluginQueueOrigin;
 
+
   /**
    * The "stable" status of a resource.
    **/
@@ -1181,6 +1184,19 @@ extern "C"
 
     _OrthancPluginStableStatus_INTERNAL = 0x7fffffff
   } OrthancPluginStableStatus;
+
+
+  /**
+   * The status related to the authentication of a HTTP request.
+   **/
+  typedef enum
+  {
+    OrthancPluginHttpAuthenticationStatus_Success = 0,       /*!< The authentication has succeeded */
+    OrthancPluginHttpAuthenticationStatus_Unauthorized = 1,  /*!< The authentication has failed */
+    OrthancPluginHttpAuthenticationStatus_Redirect = 2,      /*!< The user must be redirected to another path (for login) */
+
+    _OrthancPluginHttpAuthenticationStatus_INTERNAL = 0x7fffffff
+  } OrthancPluginHttpAuthenticationStatus;
 
 
   /**
@@ -2154,7 +2170,9 @@ extern "C"
         sizeof(int32_t) != sizeof(OrthancPluginLogLevel) ||
         sizeof(int32_t) != sizeof(OrthancPluginLogCategory) ||
         sizeof(int32_t) != sizeof(OrthancPluginStoreStatus) ||
-        sizeof(int32_t) != sizeof(OrthancPluginQueueOrigin))
+        sizeof(int32_t) != sizeof(OrthancPluginQueueOrigin) ||
+        sizeof(int32_t) != sizeof(OrthancPluginStableStatus) ||
+        sizeof(int32_t) != sizeof(OrthancPluginHttpAuthenticationStatus))
     {
       /* Mismatch in the size of the enumerations */
       return 0;
@@ -10312,13 +10330,16 @@ extern "C"
   } _OrthancPluginSetStableStatus;
 
   /**
-   * @brief Change the "Stable" status of a resource.  
-   *        Forcing a resource to "Stable" if it is currently "Unstable" will change 
-   *        its Stable status AND trigger a new Stable change which will also trigger 
-   *        listener callbacks.
-   *        Forcing a resource to "Stable" if it is already "Stable" is a no-op.
-   *        Forcing a resource to "Unstable" will change its Stable status to "Unstable"
-   *        AND reset its stabilization period, no matter of its initial state.
+   * @brief Change the "Stable" status of a resource.
+   *
+   * Forcing a resource to "Stable" if it is currently "Unstable" will
+   * change its Stable status AND trigger a new Stable change which
+   * will also trigger listener callbacks.
+   *
+   * Forcing a resource to "Stable" if it is already "Stable" is a
+   * no-op.  Forcing a resource to "Unstable" will change its Stable
+   * status to "Unstable" AND reset its stabilization period, no
+   * matter of its initial state.
    *
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param statusHasChanged Wheter the status has changed (1) or not (0) during the execution of this command.
@@ -10341,39 +10362,66 @@ extern "C"
   }
 
 
+  /**
+   * @brief Callback to authenticate a HTTP request
+   *
+   * Signature of a callback function that authenticates every incoming HTTP.
+   *
+   * @param status The output status of the authentication.
+   * @param redirection If status is `OrthancPluginHttpAuthenticationStatus_Redirect`,
+   * the path where to redirect the user (typically, a login page). The path is relative
+   * to the root of the Web server of Orthanc.
+   * @param headersCount The number of HTTP headers.
+   * @param headersKeys The keys of the HTTP headers (always converted to low-case).
+   * @param headersValues The values of the HTTP headers.
+   * @return 0 if success, other value if error.
+   * @ingroup Callbacks
+   **/
+  typedef OrthancPluginErrorCode (*OrthancPluginHttpAuthentication) (
+    OrthancPluginHttpAuthenticationStatus*  status,       /* out */
+    OrthancPluginMemoryBuffer*              redirection,  /* out */
+    const char*                             uri,
+    uint32_t                                headersCount,
+    const char* const*                      headersKeys,
+    const char* const*                      headersValues);
+
+
   typedef struct
   {
-    uint8_t   redirect;
-  } _OrthancPluginRedirectNotAuthenticatedToRoot;
+    OrthancPluginHttpAuthentication  callback;
+  } _OrthancPluginHttpAuthentication;
 
   /**
-   * @brief Whether to redirect unauthorized requests to the root of the Web server.
+   * @brief Register a callback to handle HTTP authentication.
    *
-   * If a request is non-authenticated (e.g., because of bad HTTP
-   * basic authentication credentials, or because of a plugin
-   * implementing a filtering over incoming HTTP requests), Orthanc by
-   * default returns a 401 "Unauthorized" HTTP status code.
+   * This function installs a callback that is executed on each
+   * incoming HTTP request to handle HTTP authentication. At most one
+   * plugin can register such a callback. This gives the opportunity
+   * to one plugin to validate access tokens (such as a JWT), possibly
+   * redirecting the user to a login page.
    *
-   * However, an Orthanc plugin providing a custom user interface
-   * could want to redirect the user to a login page. In such a
-   * situation, plugins can invoke
-   * "OrthancPluginRedirectNotAuthenticatedToRoot(context, 1)". This
-   * allows the plugin to redirect the user to its login page by
-   * overriding the REST callback for the "/" path.
+   * If one plugin installs such a callback, the built-in HTTP
+   * authentication of Orthanc is disabled. This means that the
+   * "RegisteredUsers" and "AuthenticationEnabled" configuration
+   * options of Orthanc are totally ignored. In addition, tokens
+   * generated by OrthancPluginGenerateRestApiAuthorizationToken()
+   * become ineffective.
    *
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
-   * @param redirect Whether to redirect unauthorized (non-authenticated) requests.
+   * @param callback The HTTP authentication callback.
    * @return 0 if success, other value if error.
+   * @ingroup Callbacks
    **/
-  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginRedirectNotAuthenticatedToRoot(
-    OrthancPluginContext*  context,
-    uint8_t                redirect)
+  ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginRegisterHttpAuthentication(
+    OrthancPluginContext*            context,
+    OrthancPluginHttpAuthentication  callback)
   {
-    _OrthancPluginRedirectNotAuthenticatedToRoot params;
-    params.redirect = redirect;
+    _OrthancPluginHttpAuthentication params;
+    params.callback = callback;
 
-    return context->InvokeService(context, _OrthancPluginService_RedirectNotAuthenticatedToRoot, &params);
+    return context->InvokeService(context, _OrthancPluginService_RegisterHttpAuthentication, &params);
   }
+
 
 #ifdef  __cplusplus
 }

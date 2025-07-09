@@ -1386,3 +1386,14 @@ TEST(HttpClient, DISABLED_Issue156_Crash)
   server.Stop();
 }
 #endif
+
+
+TEST(HttpServer, GetRelativePathToRoot)
+{
+  ASSERT_THROW(HttpServer::GetRelativePathToRoot(""), OrthancException);
+  ASSERT_EQ("./", HttpServer::GetRelativePathToRoot("/"));
+  ASSERT_EQ("./", HttpServer::GetRelativePathToRoot("/system"));
+  ASSERT_EQ("../", HttpServer::GetRelativePathToRoot("/system/"));
+  ASSERT_EQ("./../../", HttpServer::GetRelativePathToRoot("/a/b/system"));
+  ASSERT_EQ("../../../", HttpServer::GetRelativePathToRoot("/a/b/system/"));
+}

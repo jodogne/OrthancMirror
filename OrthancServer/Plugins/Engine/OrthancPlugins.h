@@ -138,6 +138,8 @@ private:
 
     void RegisterStorageCommitmentScpCallback(const void* parameters);
 
+    void RegisterHttpAuthentication(const void* parameters);
+
     void AnswerBuffer(const void* parameters);
 
     void Redirect(const void* parameters);
@@ -415,7 +417,10 @@ private:
 
     void RegisterWebDavCollections(HttpServer& target);
 
-    bool IsRedirectNotAuthenticatedToRoot() const;
+    IIncomingHttpRequestFilter::AuthenticationStatus CheckAuthentication(
+      std::string& redirection,
+      const std::string& uri,
+      const HttpToolbox::Arguments& httpHeaders) const;
   };
 }
 
