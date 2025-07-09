@@ -48,6 +48,7 @@ Maintenance
 
 * If the "RegisteredUsers" configuration option is present but empty,
   Orthanc does not create the default user "orthanc" anymore.
+* Added new CMake option "-DBUILD_UNIT_TESTS=ON" to disable the building of unit tests
 
 
 
