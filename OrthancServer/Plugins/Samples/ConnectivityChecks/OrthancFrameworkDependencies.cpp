@@ -27,7 +27,9 @@
  * dictionary.
  **/
 
-#define ORTHANC_ENABLE_ICU 0
+#if BOOST_LOCALE_WITH_ICU == 1
+#  undef BOOST_LOCALE_WITH_ICU
+#endif
 
 #include "../../../../OrthancFramework/Sources/ChunkedBuffer.cpp"
 #include "../../../../OrthancFramework/Sources/Enumerations.cpp"
