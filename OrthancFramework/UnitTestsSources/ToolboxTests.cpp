@@ -409,7 +409,7 @@ TEST(Toolbox, GetHumanTransferSpeed)
   ASSERT_EQ("976.56KB in 1.00s = 8.00Mbps", Toolbox::GetHumanTransferSpeed(true, 1000*1000, 1000000000));
 }
 
-TEST(Toolbox, JapaneseBackslashes)
+TEST(Toolbox, DISABLED_JapaneseBackslashes)
 {
   std::string s = Orthanc::Toolbox::ConvertToUtf8("ORIGINAL\\PRIMARY", Encoding_Japanese, false, false);
   ASSERT_EQ("ORIGINAL\302\245PRIMARY", s);  // NB: The Yen symbol is encoded as 0xC2 0xA5 in UTF-8

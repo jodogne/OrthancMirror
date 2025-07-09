@@ -37,8 +37,10 @@
 #  error Cannot access the version of JsonCpp
 #endif
 
-#if !defined(ORTHANC_ENABLE_ICU)
+#if (ORTHANC_ENABLE_LOCALE == 1) && (BOOST_LOCALE_WITH_ICU == 1)
 #  define ORTHANC_ENABLE_ICU 1
+#else
+#  define ORTHANC_ENABLE_ICU 0
 #endif
 
 
@@ -148,21 +150,22 @@ extern "C"
 }
 
 
-#if defined(ORTHANC_STATIC_ICU)
+#if ORTHANC_ENABLE_ICU == 1
 
-#  if (ORTHANC_STATIC_ICU == 1) && (ORTHANC_ENABLE_ICU == 1)
+#  if ORTHANC_STATIC_ICU == 1
 #    if !defined(ORTHANC_FRAMEWORK_INCLUDE_RESOURCES) || (ORTHANC_FRAMEWORK_INCLUDE_RESOURCES == 1)
 #      include <OrthancFrameworkResources.h>
 #    endif
+#    include "Compression/GzipCompressor.h"
 #  endif
 
-#  if (ORTHANC_STATIC_ICU == 1 && ORTHANC_ENABLE_LOCALE == 1)
-#    include <unicode/udata.h>
-#    include <unicode/uloc.h>
-#    include "Compression/GzipCompressor.h"
+#  include <unicode/udata.h>
+#  include <unicode/uloc.h>
+#  include <unicode/uclean.h>
 
 static std::string  globalIcuData_;
 
+#  if ORTHANC_STATIC_ICU == 1
 extern "C"
 {
   // This is dummy content for the "icudt58_dat" (resp. "icudt63_dat")
@@ -170,15 +173,18 @@ extern "C"
   // (resp. "icudt63l_dat.c") file that contains a huge C array. In
   // Orthanc, this array is compressed using gzip and attached as a
   // resource, then uncompressed during the launch of Orthanc by
-  // static function "InitializeIcu()".
+  // static function "InitializeIcu()". WARNING: Do NOT do this if
+  // dynamically linking against libicu!
   struct
   {
     double bogus;
     uint8_t *bytes;
   } U_ICUDATA_ENTRY_POINT = { 0.0, NULL };
 }
+#  endif
 
-#    if defined(__LSB_VERSION__)
+#  if defined(__LSB_VERSION__)
+
 extern "C"
 {
   /**
@@ -193,9 +199,9 @@ extern "C"
    **/
   char *tzname[2] = { (char *) "GMT", (char *) "GMT" };
 }
-#    endif
 
 #  endif
+
 #endif
  
 
@@ -698,7 +704,7 @@ namespace Orthanc
         return "GB18030";
 
       case Encoding_Thai:
-#if BOOST_LOCALE_WITH_ICU == 1
+#if ORTHANC_ENABLE_ICU == 1
         return "tis620.2533";
 #else
         return "TIS620.2533-0";
@@ -1851,14 +1857,23 @@ namespace Orthanc
         // TODO - The data table must be swapped (uint16_t)
         throw OrthancException(ErrorCode_NotImplemented);
       }
-
-      // "First-use of ICU from a single thread before the
-      // multi-threaded use of ICU begins", to make sure everything is
-      // properly initialized (should not be mandatory in our
-      // case). We let boost handle calls to "u_init()" and "u_cleanup()".
-      // http://userguide.icu-project.org/design#TOC-ICU-Initialization-and-Termination
-      uloc_getDefault();
     }
+#endif
+
+#if (ORTHANC_ENABLE_ICU == 1)
+    UErrorCode status = U_ZERO_ERROR;
+    u_init(&status);
+
+    if (U_FAILURE(status))
+    {
+      throw OrthancException(ErrorCode_InternalError, "Cannot initialize ICU: " + std::string(u_errorName(status)));
+    }
+
+    // "First-use of ICU from a single thread before the
+    // multi-threaded use of ICU begins", to make sure everything is
+    // properly initialized (should not be mandatory in our case).
+    // http://userguide.icu-project.org/design#TOC-ICU-Initialization-and-Termination
+    uloc_getDefault();
 #endif
   }
   
@@ -1929,6 +1944,10 @@ namespace Orthanc
   void Toolbox::FinalizeGlobalLocale()
   {
     globalLocale_.reset();
+
+#if (ORTHANC_ENABLE_ICU == 1)
+    u_cleanup();
+#endif
   }
 
 
