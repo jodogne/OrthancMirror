@@ -1255,7 +1255,8 @@ namespace Orthanc
         std::string redirectionToRoot;
 
         std::string tmp(requestUri);
-        if (tmp.back() == '/')
+        if (!tmp.empty() &&
+            tmp[tmp.size() - 1] == '/')
         {
           redirectionToRoot = "../";
         }
