@@ -63,6 +63,7 @@ SET(BUILD_CONNECTIVITY_CHECKS ON CACHE BOOL "Whether to build the ConnectivityCh
 SET(BUILD_HOUSEKEEPER ON CACHE BOOL "Whether to build the Housekeeper plugin")
 SET(BUILD_DELAYED_DELETION ON CACHE BOOL "Whether to build the DelayedDeletion plugin")
 SET(BUILD_MULTITENANT_DICOM ON CACHE BOOL "Whether to build the MultitenantDicom plugin")
+SET(BUILD_UNIT_TESTS ON CACHE BOOL "Whether to build the unit tests (new in Orthanc 1.12.9)")
 SET(ENABLE_PLUGINS ON CACHE BOOL "Enable plugins")
 SET(UNIT_TESTS_WITH_HTTP_CONNEXIONS ON CACHE BOOL "Allow unit tests to make HTTP requests")
 
@@ -74,6 +75,10 @@ SET(UNIT_TESTS_WITH_HTTP_CONNEXIONS ON CACHE BOOL "Allow unit tests to make HTTP
 if (ENABLE_PLUGINS)
   set(ENABLE_PROTOBUF ON)
   set(ENABLE_PROTOBUF_COMPILER ON)
+endif()
+
+if (NOT BUILD_UNIT_TESTS)
+  set(ENABLE_GOOGLE_TEST OFF)
 endif()
 
 include(${CMAKE_SOURCE_DIR}/../OrthancFramework/Resources/CMake/VisualStudioPrecompiledHeaders.cmake)
@@ -162,37 +167,39 @@ set(ORTHANC_SERVER_SOURCES
   )
 
 
-set(ORTHANC_FRAMEWORK_UNIT_TESTS
-  ${CMAKE_SOURCE_DIR}/../OrthancFramework/UnitTestsSources/DicomMapTests.cpp
-  ${CMAKE_SOURCE_DIR}/../OrthancFramework/UnitTestsSources/FileStorageTests.cpp
-  ${CMAKE_SOURCE_DIR}/../OrthancFramework/UnitTestsSources/FrameworkTests.cpp
-  ${CMAKE_SOURCE_DIR}/../OrthancFramework/UnitTestsSources/FromDcmtkTests.cpp
-  ${CMAKE_SOURCE_DIR}/../OrthancFramework/UnitTestsSources/ImageProcessingTests.cpp
-  ${CMAKE_SOURCE_DIR}/../OrthancFramework/UnitTestsSources/ImageTests.cpp
-  ${CMAKE_SOURCE_DIR}/../OrthancFramework/UnitTestsSources/JobsTests.cpp
-  ${CMAKE_SOURCE_DIR}/../OrthancFramework/UnitTestsSources/JpegLosslessTests.cpp
-  ${CMAKE_SOURCE_DIR}/../OrthancFramework/UnitTestsSources/LoggingTests.cpp
-  ${CMAKE_SOURCE_DIR}/../OrthancFramework/UnitTestsSources/LuaTests.cpp
-  ${CMAKE_SOURCE_DIR}/../OrthancFramework/UnitTestsSources/MemoryCacheTests.cpp
-  ${CMAKE_SOURCE_DIR}/../OrthancFramework/UnitTestsSources/RestApiTests.cpp
-  ${CMAKE_SOURCE_DIR}/../OrthancFramework/UnitTestsSources/SQLiteChromiumTests.cpp
-  ${CMAKE_SOURCE_DIR}/../OrthancFramework/UnitTestsSources/SQLiteTests.cpp
-  ${CMAKE_SOURCE_DIR}/../OrthancFramework/UnitTestsSources/StreamTests.cpp
-  ${CMAKE_SOURCE_DIR}/../OrthancFramework/UnitTestsSources/ToolboxTests.cpp
-  ${CMAKE_SOURCE_DIR}/../OrthancFramework/UnitTestsSources/ZipTests.cpp
-  )
+if (BUILD_UNIT_TESTS)
+  set(ORTHANC_FRAMEWORK_UNIT_TESTS
+    ${CMAKE_SOURCE_DIR}/../OrthancFramework/UnitTestsSources/DicomMapTests.cpp
+    ${CMAKE_SOURCE_DIR}/../OrthancFramework/UnitTestsSources/FileStorageTests.cpp
+    ${CMAKE_SOURCE_DIR}/../OrthancFramework/UnitTestsSources/FrameworkTests.cpp
+    ${CMAKE_SOURCE_DIR}/../OrthancFramework/UnitTestsSources/FromDcmtkTests.cpp
+    ${CMAKE_SOURCE_DIR}/../OrthancFramework/UnitTestsSources/ImageProcessingTests.cpp
+    ${CMAKE_SOURCE_DIR}/../OrthancFramework/UnitTestsSources/ImageTests.cpp
+    ${CMAKE_SOURCE_DIR}/../OrthancFramework/UnitTestsSources/JobsTests.cpp
+    ${CMAKE_SOURCE_DIR}/../OrthancFramework/UnitTestsSources/JpegLosslessTests.cpp
+    ${CMAKE_SOURCE_DIR}/../OrthancFramework/UnitTestsSources/LoggingTests.cpp
+    ${CMAKE_SOURCE_DIR}/../OrthancFramework/UnitTestsSources/LuaTests.cpp
+    ${CMAKE_SOURCE_DIR}/../OrthancFramework/UnitTestsSources/MemoryCacheTests.cpp
+    ${CMAKE_SOURCE_DIR}/../OrthancFramework/UnitTestsSources/RestApiTests.cpp
+    ${CMAKE_SOURCE_DIR}/../OrthancFramework/UnitTestsSources/SQLiteChromiumTests.cpp
+    ${CMAKE_SOURCE_DIR}/../OrthancFramework/UnitTestsSources/SQLiteTests.cpp
+    ${CMAKE_SOURCE_DIR}/../OrthancFramework/UnitTestsSources/StreamTests.cpp
+    ${CMAKE_SOURCE_DIR}/../OrthancFramework/UnitTestsSources/ToolboxTests.cpp
+    ${CMAKE_SOURCE_DIR}/../OrthancFramework/UnitTestsSources/ZipTests.cpp
+    )
 
-set(ORTHANC_SERVER_UNIT_TESTS
-  ${CMAKE_SOURCE_DIR}/UnitTestsSources/DatabaseLookupTests.cpp
-  ${CMAKE_SOURCE_DIR}/UnitTestsSources/LuaServerTests.cpp
-  ${CMAKE_SOURCE_DIR}/UnitTestsSources/PluginsTests.cpp
-  ${CMAKE_SOURCE_DIR}/UnitTestsSources/ServerConfigTests.cpp
-  ${CMAKE_SOURCE_DIR}/UnitTestsSources/ServerIndexTests.cpp
-  ${CMAKE_SOURCE_DIR}/UnitTestsSources/ServerJobsTests.cpp
-  ${CMAKE_SOURCE_DIR}/UnitTestsSources/SizeOfTests.cpp
-  ${CMAKE_SOURCE_DIR}/UnitTestsSources/UnitTestsMain.cpp
-  ${CMAKE_SOURCE_DIR}/UnitTestsSources/VersionsTests.cpp
-  )
+  set(ORTHANC_SERVER_UNIT_TESTS
+    ${CMAKE_SOURCE_DIR}/UnitTestsSources/DatabaseLookupTests.cpp
+    ${CMAKE_SOURCE_DIR}/UnitTestsSources/LuaServerTests.cpp
+    ${CMAKE_SOURCE_DIR}/UnitTestsSources/PluginsTests.cpp
+    ${CMAKE_SOURCE_DIR}/UnitTestsSources/ServerConfigTests.cpp
+    ${CMAKE_SOURCE_DIR}/UnitTestsSources/ServerIndexTests.cpp
+    ${CMAKE_SOURCE_DIR}/UnitTestsSources/ServerJobsTests.cpp
+    ${CMAKE_SOURCE_DIR}/UnitTestsSources/SizeOfTests.cpp
+    ${CMAKE_SOURCE_DIR}/UnitTestsSources/UnitTestsMain.cpp
+    ${CMAKE_SOURCE_DIR}/UnitTestsSources/VersionsTests.cpp
+    )
+endif()
 
 
 if (ENABLE_PLUGINS)
@@ -211,9 +218,11 @@ if (ENABLE_PLUGINS)
     ${CMAKE_SOURCE_DIR}/Plugins/Engine/PluginsManager.cpp
     )
 
-  list(APPEND ORTHANC_SERVER_UNIT_TESTS
-    ${CMAKE_SOURCE_DIR}/UnitTestsSources/PluginsTests.cpp
-    )
+  if (BUILD_UNIT_TESTS)
+    list(APPEND ORTHANC_SERVER_UNIT_TESTS
+      ${CMAKE_SOURCE_DIR}/UnitTestsSources/PluginsTests.cpp
+      )
+  endif()
 endif()
 
 
@@ -334,16 +343,19 @@ else()
 endif()
 
 
-if (UNIT_TESTS_WITH_HTTP_CONNEXIONS)
-  add_definitions(-DUNIT_TESTS_WITH_HTTP_CONNEXIONS=1)
+if (BUILD_UNIT_TESTS)
+  add_definitions(-DORTHANC_BUILD_UNIT_TESTS=1)
+  if (UNIT_TESTS_WITH_HTTP_CONNEXIONS)
+    add_definitions(-DUNIT_TESTS_WITH_HTTP_CONNEXIONS=1)
+  else()
+    add_definitions(-DUNIT_TESTS_WITH_HTTP_CONNEXIONS=0)
+  endif()
 else()
-  add_definitions(-DUNIT_TESTS_WITH_HTTP_CONNEXIONS=0)
+  add_definitions(-DORTHANC_BUILD_UNIT_TESTS=1)
 endif()
 
 
 add_definitions(
-  -DORTHANC_BUILD_UNIT_TESTS=1
-
   # Macros for the plugins
   -DHAS_ORTHANC_EXCEPTION=0
   )
@@ -371,9 +383,11 @@ if (MSVC)
     "PrecompiledHeadersServer.h" "${CMAKE_SOURCE_DIR}/Sources/PrecompiledHeadersServer.cpp"
     ORTHANC_SERVER_SOURCES ORTHANC_SERVER_PCH)
 
-  ADD_VISUAL_STUDIO_PRECOMPILED_HEADERS(
-    "PrecompiledHeadersUnitTests.h" "${CMAKE_SOURCE_DIR}/UnitTestsSources/PrecompiledHeadersUnitTests.cpp"
-    ORTHANC_SERVER_UNIT_TESTS ORTHANC_UNIT_TESTS_PCH)
+  if (BUILD_UNIT_TESTS)
+    ADD_VISUAL_STUDIO_PRECOMPILED_HEADERS(
+      "PrecompiledHeadersUnitTests.h" "${CMAKE_SOURCE_DIR}/UnitTestsSources/PrecompiledHeadersUnitTests.cpp"
+      ORTHANC_SERVER_UNIT_TESTS ORTHANC_UNIT_TESTS_PCH)
+  endif()
 endif()
 
 
@@ -477,22 +491,24 @@ install(
 ## Build the unit tests
 #####################################################################
 
-add_executable(UnitTests
-  ${GOOGLE_TEST_SOURCES}
-  ${ORTHANC_UNIT_TESTS_PCH}
-  ${ORTHANC_FRAMEWORK_UNIT_TESTS}
-  ${ORTHANC_SERVER_UNIT_TESTS}
-  ${BOOST_EXTENDED_SOURCES}
-  )
+if (BUILD_UNIT_TESTS)
+  add_executable(UnitTests
+    ${GOOGLE_TEST_SOURCES}
+    ${ORTHANC_UNIT_TESTS_PCH}
+    ${ORTHANC_FRAMEWORK_UNIT_TESTS}
+    ${ORTHANC_SERVER_UNIT_TESTS}
+    ${BOOST_EXTENDED_SOURCES}
+    )
 
-DefineSourceBasenameForTarget(UnitTests)
+  DefineSourceBasenameForTarget(UnitTests)
 
-target_link_libraries(UnitTests
-  ServerLibrary
-  CoreLibrary
-  ${DCMTK_LIBRARIES}
-  ${GOOGLE_TEST_LIBRARIES}
-  )
+  target_link_libraries(UnitTests
+    ServerLibrary
+    CoreLibrary
+    ${DCMTK_LIBRARIES}
+    ${GOOGLE_TEST_LIBRARIES}
+    )
+endif()
 
 
 #####################################################################
