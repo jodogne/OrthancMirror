@@ -167,7 +167,8 @@ namespace Orthanc
         {
           if (s != NULL)
           {
-            result = Toolbox::ConvertToUtf8(s, encoding, hasCodeExtensions);
+            const bool skipBacklashes = true;  // cf. "ISO_IR 13": In this method, the VR will never be UT, ST, or LT
+            result = Toolbox::ConvertToUtf8(s, encoding, hasCodeExtensions, skipBacklashes);
           }
           
           return true;

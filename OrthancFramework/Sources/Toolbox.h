@@ -186,7 +186,13 @@ namespace Orthanc
 #if ORTHANC_ENABLE_LOCALE == 1
     static std::string ConvertToUtf8(const std::string& source,
                                      Encoding sourceEncoding,
-                                     bool hasCodeExtensions);
+                                     bool hasCodeExtensions,
+                                     bool skipBackslashes /* was always "false" in Orthanc <= 1.12.8 */);
+
+    static std::string ConvertDicomStringToUtf8(const std::string& source,
+                                                Encoding sourceEncoding,
+                                                bool hasCodeExtensions,
+                                                ValueRepresentation vr);
 
     static std::string ConvertFromUtf8(const std::string& source,
                                        Encoding targetEncoding);
