@@ -233,5 +233,7 @@ namespace Orthanc
     {
       return availableHttpThreadsMetrics_;
     }
+
+    static std::string GetRelativePathToRoot(const std::string& uri);
   };
 }

@@ -622,7 +622,7 @@ namespace Orthanc
   
   enum AccessMode
   {
-    AccessMode_NotAuthenticated,
+    AccessMode_Unauthorized,
     AccessMode_AuthorizationToken,
     AccessMode_RegisteredUser
   };
@@ -658,7 +658,7 @@ namespace Orthanc
       }
     }
 
-    return AccessMode_NotAuthenticated;
+    return AccessMode_Unauthorized;
   }
 
 
@@ -1147,7 +1147,42 @@ namespace Orthanc
   } 
 #endif /* ORTHANC_ENABLE_PUGIXML == 1 */
 
-  
+
+  std::string HttpServer::GetRelativePathToRoot(const std::string& uri)
+  {
+    if (uri.empty())
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+    if (uri == "/")
+    {
+      return "./";
+    }
+
+    std::string path;
+
+    if (uri[uri.size() - 1] == '/')
+    {
+      path = "../";
+    }
+    else
+    {
+      path = "./";
+    }
+
+    UriComponents components;
+    Toolbox::SplitUriComponents(components, uri);
+
+    for (size_t i = 1; i < components.size(); i++)
+    {
+      path += "../";
+    }
+
+    return path;
+  }
+
+
   static void InternalCallback(HttpOutput& output /* out */,
                                HttpMethod& method /* out */,
                                HttpServer& server,
@@ -1203,8 +1238,9 @@ namespace Orthanc
       HttpToolbox::ParseGetArguments(argumentsGET, request->query_string);
     }
 
-    
+
     AccessMode accessMode = IsAccessGranted(server, headers);
+
 
 #if ORTHANC_ENABLE_MONGOOSE == 1
     // Apply the filter, if it is installed
@@ -1229,6 +1265,50 @@ namespace Orthanc
       requestUri = "";
     }
       
+
+    const IIncomingHttpRequestFilter *filter = server.GetIncomingHttpRequestFilter();
+
+    // Authenticate this connection
+    std::string redirection;
+    IIncomingHttpRequestFilter::AuthenticationStatus status;
+
+    if (filter == NULL)
+    {
+      status = IIncomingHttpRequestFilter::AuthenticationStatus_NotImplemented;
+    }
+    else
+    {
+      status = filter->CheckAuthentication(redirection, requestUri, headers);
+    }
+
+    switch (status)
+    {
+      case IIncomingHttpRequestFilter::AuthenticationStatus_NotImplemented:
+        // This was the only behavior available in Orthanc <= 1.12.8
+        if (server.IsAuthenticationEnabled() &&
+            accessMode == AccessMode_Unauthorized)
+        {
+          output.SendUnauthorized(server.GetRealm());   // 401 error
+          return;
+        }
+        break;
+
+      case IIncomingHttpRequestFilter::AuthenticationStatus_Success:
+        break;
+
+      case IIncomingHttpRequestFilter::AuthenticationStatus_Redirect:
+        output.Redirect(Toolbox::JoinUri(HttpServer::GetRelativePathToRoot(requestUri), redirection));
+        return;
+
+      case IIncomingHttpRequestFilter::AuthenticationStatus_Unauthorized:
+        output.SendStatus(HttpStatus_401_Unauthorized);
+        return;
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+
     // Decompose the URI into its components
     UriComponents uri;
     try
@@ -1238,44 +1318,6 @@ namespace Orthanc
     catch (OrthancException&)
     {
       output.SendStatus(HttpStatus_400_BadRequest);
-      return;
-    }
-
-
-    // Authenticate this connection
-    if (server.IsAuthenticationEnabled() &&
-        accessMode == AccessMode_NotAuthenticated)
-    {
-      IIncomingHttpRequestFilter *filter = server.GetIncomingHttpRequestFilter();
-      if (uri.size() > 0 &&
-          filter != NULL &&
-          filter->IsRedirectNotAuthenticatedToRoot())
-      {
-        // This is new in Orthanc 1.12.9
-        std::string redirectionToRoot;
-
-        std::string tmp(requestUri);
-        if (!tmp.empty() &&
-            tmp[tmp.size() - 1] == '/')
-        {
-          redirectionToRoot = "../";
-        }
-        else
-        {
-          redirectionToRoot = "./";
-        }
-
-        for (size_t i = 0; i < uri.size() - 1; i++)
-        {
-          redirectionToRoot += "../";
-        }
-
-        output.Redirect(redirectionToRoot);
-      }
-      else
-      {
-        output.SendUnauthorized(server.GetRealm());   // 401 error
-      }
       return;
     }
 
@@ -1332,10 +1374,9 @@ namespace Orthanc
       // filter. In the case of an authorization bearer token, grant
       // full access to the API.
 
-      assert(accessMode == AccessMode_NotAuthenticated ||  // Could be the case if "!server.IsAuthenticationEnabled()"
+      assert(accessMode == AccessMode_Unauthorized ||  // Could be the case if "!server.IsAuthenticationEnabled()"
              accessMode == AccessMode_RegisteredUser);
       
-      IIncomingHttpRequestFilter *filter = server.GetIncomingHttpRequestFilter();
       if (filter != NULL &&
           !filter->IsAllowed(filterMethod, requestUri, remoteIp,
                              username.c_str(), headers, argumentsGET))

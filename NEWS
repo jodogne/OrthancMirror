@@ -29,8 +29,8 @@ Plugin SDK
 * Added new primitives:
   - "OrthancPluginSetStableStatus()" to force the stabilization of a
     DICOM resource from a plugin.
-  - "OrthancPluginRedirectNotAuthenticatedToRoot()" to allow a plugin
-    to redirect unauthenticated users to a login page.
+  - "OrthancPluginRegisterHttpAuthentication()" to install a custom
+    callback to authenticate HTTP requests.
 * OrthancPluginCallRestApi() now also returns the body of DELETE requests:
   https://discourse.orthanc-server.org/t/response-to-plugin-from-orthanc-api-delete-endpoint/6022
 

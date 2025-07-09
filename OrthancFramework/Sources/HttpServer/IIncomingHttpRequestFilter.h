@@ -31,20 +31,32 @@ namespace Orthanc
   class IIncomingHttpRequestFilter : public boost::noncopyable
   {
   public:
+    enum AuthenticationStatus
+    {
+      AuthenticationStatus_NotImplemented,
+      AuthenticationStatus_Success,
+      AuthenticationStatus_Unauthorized,
+      AuthenticationStatus_Redirect
+    };
+
     virtual ~IIncomingHttpRequestFilter()
     {
     }
 
     // New in Orthanc 1.8.1
-    virtual bool IsValidBearerToken(const std::string& token) = 0;
+    virtual bool IsValidBearerToken(const std::string& token) const = 0;
+
+    // This method corresponds to HTTP authentication
+    virtual AuthenticationStatus CheckAuthentication(std::string& redirection /* out: path relative to the root */,
+                                                     const std::string& uri,
+                                                     const HttpToolbox::Arguments& httpHeaders) const = 0;
     
+    // This method corresponds to HTTP authorization
     virtual bool IsAllowed(HttpMethod method,
                            const char* uri,
                            const char* ip,
                            const char* username,
                            const HttpToolbox::Arguments& httpHeaders,
-                           const HttpToolbox::GetArguments& getArguments) = 0;
-
-    virtual bool IsRedirectNotAuthenticatedToRoot() const = 0;
+                           const HttpToolbox::GetArguments& getArguments) const = 0;
   };
 }

@@ -534,7 +534,7 @@ public:
   {
   }
 
-  virtual bool IsValidBearerToken(const std::string& token) ORTHANC_OVERRIDE
+  virtual bool IsValidBearerToken(const std::string& token) const ORTHANC_OVERRIDE
   {
 #if ORTHANC_ENABLE_PLUGINS == 1
     return (plugins_ != NULL &&
@@ -549,7 +549,7 @@ public:
                          const char* ip,
                          const char* username,
                          const HttpToolbox::Arguments& httpHeaders,
-                         const HttpToolbox::GetArguments& getArguments) ORTHANC_OVERRIDE
+                         const HttpToolbox::GetArguments& getArguments) const ORTHANC_OVERRIDE
   {
 #if ORTHANC_ENABLE_PLUGINS == 1
     if (plugins_ != NULL &&
@@ -570,24 +570,24 @@ public:
 
       switch (method)
       {
-        case HttpMethod_Get:
-          call.PushString("GET");
-          break;
+      case HttpMethod_Get:
+        call.PushString("GET");
+        break;
 
-        case HttpMethod_Put:
-          call.PushString("PUT");
-          break;
+      case HttpMethod_Put:
+        call.PushString("PUT");
+        break;
 
-        case HttpMethod_Post:
-          call.PushString("POST");
-          break;
+      case HttpMethod_Post:
+        call.PushString("POST");
+        break;
 
-        case HttpMethod_Delete:
-          call.PushString("DELETE");
-          break;
+      case HttpMethod_Delete:
+        call.PushString("DELETE");
+        break;
 
-        default:
-          return true;
+      default:
+        return true;
       }
 
       call.PushString(uri);
@@ -605,16 +605,18 @@ public:
     return true;
   }
 
-  virtual bool IsRedirectNotAuthenticatedToRoot() const ORTHANC_OVERRIDE
+  virtual AuthenticationStatus CheckAuthentication(std::string& redirection /* out: path relative to the root */,
+                                                   const std::string& uri,
+                                                   const HttpToolbox::Arguments& httpHeaders) const ORTHANC_OVERRIDE
   {
 #if ORTHANC_ENABLE_PLUGINS == 1
     if (plugins_ != NULL)
     {
-      return plugins_->IsRedirectNotAuthenticatedToRoot();
+      return plugins_->CheckAuthentication(redirection, uri, httpHeaders);
     }
 #endif
 
-    return false;
+    return AuthenticationStatus_NotImplemented;
   }
 };
 

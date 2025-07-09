@@ -1739,6 +1739,7 @@ namespace Orthanc
     WebDavCollections webDavCollections_;  // New in Orthanc 1.10.1
     std::unique_ptr<StorageAreaFactory>  storageArea_;
     std::set<std::string> authorizationTokens_;
+    OrthancPluginHttpAuthentication  httpAuthentication_;  // New in Orthanc 1.12.9
 
     boost::recursive_mutex restCallbackInvokationMutex_;
     boost::shared_mutex restCallbackRegistrationMutex_;  // New in Orthanc 1.9.0
@@ -1763,7 +1764,6 @@ namespace Orthanc
     std::string databaseServerIdentifier_;   // New in Orthanc 1.9.2
     unsigned int maxDatabaseRetries_;        // New in Orthanc 1.9.2
     bool hasStorageAreaCustomData_;          // New in Orthanc 1.12.8
-    bool redirectNotAuthenticatedToRoot_;    // New in Orthanc 1.12.9
 
     explicit PImpl(const std::string& databaseServerIdentifier) : 
       contextRefCount_(0),
@@ -1771,12 +1771,12 @@ namespace Orthanc
       findCallback_(NULL),
       worklistCallback_(NULL),
       receivedInstanceCallback_(NULL),
+      httpAuthentication_(NULL),
       argc_(1),
       argv_(NULL),
       databaseServerIdentifier_(databaseServerIdentifier),
       maxDatabaseRetries_(0),
-      hasStorageAreaCustomData_(false),
-      redirectNotAuthenticatedToRoot_(false)
+      hasStorageAreaCustomData_(false)
     {
       memset(&moveCallbacks_, 0, sizeof(moveCallbacks_));
     }
@@ -2282,6 +2282,8 @@ namespace Orthanc
         sizeof(int32_t) != sizeof(OrthancPluginLogCategory) ||
         sizeof(int32_t) != sizeof(OrthancPluginStoreStatus) ||
         sizeof(int32_t) != sizeof(OrthancPluginQueueOrigin) ||
+        sizeof(int32_t) != sizeof(OrthancPluginStableStatus) ||
+        sizeof(int32_t) != sizeof(OrthancPluginHttpAuthenticationStatus) ||
 
         // From OrthancCDatabasePlugin.h
         sizeof(int32_t) != sizeof(_OrthancPluginDatabaseAnswerType) ||
@@ -3081,6 +3083,26 @@ namespace Orthanc
     CLOG(INFO, PLUGINS) << "Plugin has registered a storage commitment callback";
 
     pimpl_->storageCommitmentScpCallbacks_.push_back(new PImpl::StorageCommitmentScp(p));
+  }
+
+
+  void OrthancPlugins::RegisterHttpAuthentication(const void* parameters)
+  {
+    const _OrthancPluginHttpAuthentication& p =
+      *reinterpret_cast<const _OrthancPluginHttpAuthentication*>(parameters);
+
+    boost::unique_lock<boost::shared_mutex> lock(pimpl_->incomingHttpRequestFilterMutex_);
+
+    if (pimpl_->httpAuthentication_ == NULL)
+    {
+      CLOG(INFO, PLUGINS) << "Plugin has registered a callback to authenticate incoming HTTP requests";
+      pimpl_->httpAuthentication_ = p.callback;
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_Plugin,
+                             "Only one plugin can register a callback to authenticate incoming HTTP requests");
+    }
   }
 
 
@@ -5853,18 +5875,6 @@ namespace Orthanc
         return true;
       }
 
-      case _OrthancPluginService_RedirectNotAuthenticatedToRoot:
-      {
-        const _OrthancPluginRedirectNotAuthenticatedToRoot& p = *reinterpret_cast<const _OrthancPluginRedirectNotAuthenticatedToRoot*>(parameters);
-
-        {
-          boost::unique_lock<boost::shared_mutex> lock(pimpl_->incomingHttpRequestFilterMutex_);
-          pimpl_->redirectNotAuthenticatedToRoot_ = (p.redirect == 1);
-        }
-
-        return true;
-      }
-
       default:
         return false;
     }
@@ -5944,6 +5954,10 @@ namespace Orthanc
 
       case _OrthancPluginService_RegisterStorageCommitmentScpCallback:
         RegisterStorageCommitmentScpCallback(parameters);
+        return true;
+
+      case _OrthancPluginService_RegisterHttpAuthentication:
+        RegisterHttpAuthentication(parameters);
         return true;
 
       case _OrthancPluginService_RegisterStorageArea:
@@ -6832,9 +6846,61 @@ namespace Orthanc
   }
 
 
-  bool OrthancPlugins::IsRedirectNotAuthenticatedToRoot() const
+  IIncomingHttpRequestFilter::AuthenticationStatus OrthancPlugins::CheckAuthentication(
+    std::string& redirection,
+    const std::string& uri,
+    const HttpToolbox::Arguments& httpHeaders) const
   {
     boost::shared_lock<boost::shared_mutex> lock(pimpl_->incomingHttpRequestFilterMutex_);
-    return pimpl_->redirectNotAuthenticatedToRoot_;
+
+    if (pimpl_->httpAuthentication_ == NULL)
+    {
+      return IIncomingHttpRequestFilter::AuthenticationStatus_NotImplemented;
+    }
+    else
+    {
+      std::vector<const char*> keys, values;
+      keys.resize(httpHeaders.size());
+      values.resize(httpHeaders.size());
+
+      uint32_t i = 0;
+      for (HttpToolbox::Arguments::const_iterator it = httpHeaders.begin(); it != httpHeaders.end(); ++it)
+      {
+        keys[i] = it->first.c_str();
+        values[i] = it->second.c_str();
+        i++;
+      }
+
+      assert(i == httpHeaders.size());
+
+      OrthancPluginHttpAuthenticationStatus status = OrthancPluginHttpAuthenticationStatus_Unauthorized;
+      PluginMemoryBuffer32 redirectionBuffer;
+      OrthancPluginErrorCode code = pimpl_->httpAuthentication_(&status, redirectionBuffer.GetObject(), uri.c_str(), i,
+                                                                keys.empty() ? NULL : &keys[0],
+                                                                values.empty() ? NULL : &values[0]);
+
+      if (code != OrthancPluginErrorCode_Success)
+      {
+        throw OrthancException(static_cast<ErrorCode>(code));
+      }
+      else
+      {
+        switch (status)
+        {
+        case OrthancPluginHttpAuthenticationStatus_Success:
+          return IIncomingHttpRequestFilter::AuthenticationStatus_Success;
+
+        case OrthancPluginHttpAuthenticationStatus_Unauthorized:
+          return IIncomingHttpRequestFilter::AuthenticationStatus_Unauthorized;
+
+        case OrthancPluginHttpAuthenticationStatus_Redirect:
+          redirectionBuffer.MoveToString(redirection);
+          return IIncomingHttpRequestFilter::AuthenticationStatus_Redirect;
+
+        default:
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+        }
+      }
+    }
   }
 }
