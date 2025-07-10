@@ -6847,6 +6847,7 @@ namespace Orthanc
 
 
   IIncomingHttpRequestFilter::AuthenticationStatus OrthancPlugins::CheckAuthentication(
+    std::string& customPayload,
     std::string& redirection,
     const std::string& uri,
     const HttpToolbox::Arguments& httpHeaders) const
@@ -6874,10 +6875,12 @@ namespace Orthanc
       assert(i == httpHeaders.size());
 
       OrthancPluginHttpAuthenticationStatus status = OrthancPluginHttpAuthenticationStatus_Unauthorized;
+      PluginMemoryBuffer32 payloadBuffer;
       PluginMemoryBuffer32 redirectionBuffer;
-      OrthancPluginErrorCode code = pimpl_->httpAuthentication_(&status, redirectionBuffer.GetObject(), uri.c_str(), i,
-                                                                keys.empty() ? NULL : &keys[0],
-                                                                values.empty() ? NULL : &values[0]);
+      OrthancPluginErrorCode code = pimpl_->httpAuthentication_(
+        &status, payloadBuffer.GetObject(), redirectionBuffer.GetObject(), uri.c_str(), i,
+        keys.empty() ? NULL : &keys[0],
+        values.empty() ? NULL : &values[0]);
 
       if (code != OrthancPluginErrorCode_Success)
       {
@@ -6888,6 +6891,7 @@ namespace Orthanc
         switch (status)
         {
         case OrthancPluginHttpAuthenticationStatus_Success:
+          payloadBuffer.MoveToString(customPayload);
           return IIncomingHttpRequestFilter::AuthenticationStatus_Success;
 
         case OrthancPluginHttpAuthenticationStatus_Unauthorized:

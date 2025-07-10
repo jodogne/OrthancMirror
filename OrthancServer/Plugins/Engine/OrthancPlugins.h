@@ -418,6 +418,7 @@ private:
     void RegisterWebDavCollections(HttpServer& target);
 
     IIncomingHttpRequestFilter::AuthenticationStatus CheckAuthentication(
+      std::string& customPayload,
       std::string& redirection,
       const std::string& uri,
       const HttpToolbox::Arguments& httpHeaders) const;

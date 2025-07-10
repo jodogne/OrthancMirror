@@ -1269,6 +1269,7 @@ namespace Orthanc
     const IIncomingHttpRequestFilter *filter = server.GetIncomingHttpRequestFilter();
 
     // Authenticate this connection
+    std::string customPayload;
     std::string redirection;
     IIncomingHttpRequestFilter::AuthenticationStatus status;
 
@@ -1278,7 +1279,7 @@ namespace Orthanc
     }
     else
     {
-      status = filter->CheckAuthentication(redirection, requestUri, headers);
+      status = filter->CheckAuthentication(customPayload, redirection, requestUri, headers);
     }
 
     switch (status)
@@ -1294,6 +1295,7 @@ namespace Orthanc
         break;
 
       case IIncomingHttpRequestFilter::AuthenticationStatus_Success:
+        printf("PAYLOAD: [%s]\n", customPayload.c_str());
         break;
 
       case IIncomingHttpRequestFilter::AuthenticationStatus_Redirect:
