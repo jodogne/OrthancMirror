@@ -29,7 +29,22 @@
 
 #if BOOST_LOCALE_WITH_ICU == 1
 #  undef BOOST_LOCALE_WITH_ICU
+#  if ORTHANC_STATIC_ICU == 1
+#    include <unicode/udata.h>
+
+// Define an empty ICU dictionary for static builds
+extern "C"
+{
+  struct
+  {
+    double bogus;
+    uint8_t *bytes;
+  } U_ICUDATA_ENTRY_POINT = { 0.0, NULL };
+}
+
+#  endif
 #endif
+
 
 #include "../../../../OrthancFramework/Sources/ChunkedBuffer.cpp"
 #include "../../../../OrthancFramework/Sources/Compression/DeflateBaseCompressor.cpp"
