@@ -605,14 +605,15 @@ public:
     return true;
   }
 
-  virtual AuthenticationStatus CheckAuthentication(std::string& redirection /* out: path relative to the root */,
+  virtual AuthenticationStatus CheckAuthentication(std::string& customPayload,
+                                                   std::string& redirection,
                                                    const std::string& uri,
                                                    const HttpToolbox::Arguments& httpHeaders) const ORTHANC_OVERRIDE
   {
 #if ORTHANC_ENABLE_PLUGINS == 1
     if (plugins_ != NULL)
     {
-      return plugins_->CheckAuthentication(redirection, uri, httpHeaders);
+      return plugins_->CheckAuthentication(customPayload, redirection, uri, httpHeaders);
     }
 #endif
 

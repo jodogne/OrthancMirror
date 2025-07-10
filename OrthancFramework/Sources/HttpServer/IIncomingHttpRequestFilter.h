@@ -47,7 +47,8 @@ namespace Orthanc
     virtual bool IsValidBearerToken(const std::string& token) const = 0;
 
     // This method corresponds to HTTP authentication
-    virtual AuthenticationStatus CheckAuthentication(std::string& redirection /* out: path relative to the root */,
+    virtual AuthenticationStatus CheckAuthentication(std::string& customPayload /* out: payload to provide to "IsAllowed()" */,
+                                                     std::string& redirection   /* out: path relative to the root */,
                                                      const std::string& uri,
                                                      const HttpToolbox::Arguments& httpHeaders) const = 0;
     
