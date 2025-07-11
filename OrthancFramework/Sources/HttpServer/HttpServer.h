@@ -124,7 +124,7 @@ namespace Orthanc
     bool IsRunning() const;
 
   public:
-    HttpServer(MetricsRegistry& metricsRegistry);
+    explicit HttpServer(MetricsRegistry& metricsRegistry);
 
     ~HttpServer();
 

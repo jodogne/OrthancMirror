@@ -1421,7 +1421,7 @@ namespace Orthanc
     if (method == HttpMethod_Post ||
         method == HttpMethod_Put)
     {
-      PostDataStatus status;
+      PostDataStatus postStatus;
 
       bool isMultipartForm = false;
 
@@ -1438,8 +1438,8 @@ namespace Orthanc
          **/
         isMultipartForm = true;
 
-        status = ReadBodyToString(body, connection, headers);
-        if (status == PostDataStatus_Success)
+        postStatus = ReadBodyToString(body, connection, headers);
+        if (postStatus == PostDataStatus_Success)
         {
           server.ProcessMultipartFormData(remoteIp, username, uri, headers, body, boundary, authenticationPayload);
           output.SendStatus(HttpStatus_200_Ok);
@@ -1464,20 +1464,20 @@ namespace Orthanc
             throw OrthancException(ErrorCode_InternalError);
           }
 
-          status = ReadBodyToStream(*stream, connection, headers);
+          postStatus = ReadBodyToStream(*stream, connection, headers);
 
-          if (status == PostDataStatus_Success)
+          if (postStatus == PostDataStatus_Success)
           {
             stream->Execute(output);
           }
         }
         else
         {
-          status = ReadBodyToString(body, connection, headers);
+          postStatus = ReadBodyToString(body, connection, headers);
         }
       }
 
-      switch (status)
+      switch (postStatus)
       {
         case PostDataStatus_NoLength:
           output.SendStatus(HttpStatus_411_LengthRequired);
