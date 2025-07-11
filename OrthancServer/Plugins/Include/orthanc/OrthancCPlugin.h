@@ -1192,7 +1192,7 @@ extern "C"
 
 
   /**
-   * The "stable" status of a resource.
+   * The "Stable" status of a resource.
    **/
   typedef enum
   {
@@ -10355,9 +10355,11 @@ extern "C"
    * will also trigger listener callbacks.
    *
    * Forcing a resource to "Stable" if it is already "Stable" is a
-   * no-op.  Forcing a resource to "Unstable" will change its Stable
-   * status to "Unstable" AND reset its stabilization period, no
-   * matter of its initial state.
+   * no-op.
+   *
+   * Forcing a resource to "Unstable" will change its "Stable" status
+   * to "Unstable" AND reset its stabilization period, no matter its
+   * initial state.
    *
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param statusHasChanged Wheter the status has changed (1) or not (0) during the execution of this command.
@@ -10434,14 +10436,13 @@ extern "C"
    * subsequent REST handling callback.
    *
    * This HTTP authentication callback can notably be used if some
-   * resource in the REST API must be available for public access, as
-   * soon as the "RemoteAccessAllowed" configuration option is set to
-   * "true".
+   * resource in the REST API must be available for public access, if
+   * the "RemoteAccessAllowed" configuration option is set to "true".
    *
    * In addition, the callback can handle HTTP authorization
    * simultaneously with HTTP authentication, by reporting the
    * "OrthancPluginHttpAuthenticationStatus_Forbidden" status. This
-   * corresponds to callbacks installed using
+   * corresponds to the behavior of callbacks installed using
    * OrthancPluginRegisterIncomingHttpRequestFilter2(), but the latter
    * callbacks do not provide access to the authentication payload.
    *
