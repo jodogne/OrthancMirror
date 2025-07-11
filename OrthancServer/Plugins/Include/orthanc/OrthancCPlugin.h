@@ -10391,6 +10391,9 @@ extern "C"
    * a buffer filled with the path where to redirect the user (typically, a login page).
    * The path is relative to the root of the Web server of Orthanc.
    * @param uri The URI of interest (without the possible GET arguments).
+   * @param getCount For a GET request, the number of GET parameters.
+   * @param getKeys For a GET request, the keys of the GET parameters.
+   * @param getValues For a GET request, the values of the GET parameters.
    * @param headersCount The number of HTTP headers.
    * @param headersKeys The keys of the HTTP headers (always converted to low-case).
    * @param headersValues The values of the HTTP headers.
@@ -10402,6 +10405,9 @@ extern "C"
     OrthancPluginMemoryBuffer*              customPayload,  /* out */
     OrthancPluginMemoryBuffer*              redirection,    /* out */
     const char*                             uri,
+    uint32_t                                getCount,
+    const char* const*                      getKeys,
+    const char* const*                      getValues,
     uint32_t                                headersCount,
     const char* const*                      headersKeys,
     const char* const*                      headersValues);

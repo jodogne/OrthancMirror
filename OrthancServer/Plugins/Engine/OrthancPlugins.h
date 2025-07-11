@@ -424,6 +424,7 @@ private:
       std::string& customPayload,
       std::string& redirection,
       const std::string& uri,
+      const HttpToolbox::GetArguments& getArguments,
       const HttpToolbox::Arguments& httpHeaders) const;
   };
 }

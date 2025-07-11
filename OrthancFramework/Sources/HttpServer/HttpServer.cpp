@@ -1283,7 +1283,7 @@ namespace Orthanc
     }
     else
     {
-      status = filter->CheckAuthentication(authenticationPayload, redirection, requestUri, headers);
+      status = filter->CheckAuthentication(authenticationPayload, redirection, requestUri, argumentsGET, headers);
     }
 
     switch (status)

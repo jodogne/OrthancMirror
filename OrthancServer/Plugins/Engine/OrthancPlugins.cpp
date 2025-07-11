@@ -2355,6 +2355,11 @@ namespace Orthanc
                                 std::vector<const char*>& values,
                                 const HttpToolbox::Arguments& arguments)
   {
+    if (static_cast<uint32_t>(arguments.size()) != arguments.size())
+    {
+      throw OrthancException(ErrorCode_NotEnoughMemory);
+    }
+
     keys.resize(arguments.size());
     values.resize(arguments.size());
 
@@ -2366,6 +2371,8 @@ namespace Orthanc
       values[pos] = it->second.c_str();
       pos++;
     }
+
+    assert(pos == arguments.size());
   }
 
 
@@ -2373,6 +2380,11 @@ namespace Orthanc
                                 std::vector<const char*>& values,
                                 const HttpToolbox::GetArguments& arguments)
   {
+    if (static_cast<uint32_t>(arguments.size()) != arguments.size())
+    {
+      throw OrthancException(ErrorCode_NotEnoughMemory);
+    }
+
     keys.resize(arguments.size());
     values.resize(arguments.size());
 
@@ -6862,6 +6874,7 @@ namespace Orthanc
     std::string& customPayload,
     std::string& redirection,
     const std::string& uri,
+    const HttpToolbox::GetArguments& getArguments,
     const HttpToolbox::Arguments& httpHeaders) const
   {
     boost::shared_lock<boost::shared_mutex> lock(pimpl_->incomingHttpRequestFilterMutex_);
@@ -6872,27 +6885,19 @@ namespace Orthanc
     }
     else
     {
-      std::vector<const char*> keys, values;
-      keys.resize(httpHeaders.size());
-      values.resize(httpHeaders.size());
+      std::vector<const char*> headersKeys, headersValues;
+      ArgumentsToPlugin(headersKeys, headersValues, httpHeaders);
 
-      uint32_t i = 0;
-      for (HttpToolbox::Arguments::const_iterator it = httpHeaders.begin(); it != httpHeaders.end(); ++it)
-      {
-        keys[i] = it->first.c_str();
-        values[i] = it->second.c_str();
-        i++;
-      }
-
-      assert(i == httpHeaders.size());
+      std::vector<const char*> getKeys, getValues;
+      ArgumentsToPlugin(getKeys, getValues, getArguments);
 
       OrthancPluginHttpAuthenticationStatus status = OrthancPluginHttpAuthenticationStatus_Unauthorized;
       PluginMemoryBuffer32 payloadBuffer;
       PluginMemoryBuffer32 redirectionBuffer;
       OrthancPluginErrorCode code = pimpl_->httpAuthentication_(
-        &status, payloadBuffer.GetObject(), redirectionBuffer.GetObject(), uri.c_str(), i,
-        keys.empty() ? NULL : &keys[0],
-        values.empty() ? NULL : &values[0]);
+        &status, payloadBuffer.GetObject(), redirectionBuffer.GetObject(), uri.c_str(),
+        getKeys.size(), getKeys.empty() ? NULL : &getKeys[0], getValues.empty() ? NULL : &getValues[0],
+        headersKeys.size(), headersKeys.empty() ? NULL : &headersKeys[0], headersValues.empty() ? NULL : &headersValues[0]);
 
       if (code != OrthancPluginErrorCode_Success)
       {
