@@ -1279,16 +1279,16 @@ namespace Orthanc
 
     if (filter == NULL)
     {
-      status = IIncomingHttpRequestFilter::AuthenticationStatus_NotImplemented;
+      status = IIncomingHttpRequestFilter::AuthenticationStatus_BuiltIn;
     }
     else
     {
-      status = filter->CheckAuthentication(authenticationPayload, redirection, requestUri, argumentsGET, headers);
+      status = filter->CheckAuthentication(authenticationPayload, redirection, requestUri, remoteIp, headers, argumentsGET);
     }
 
     switch (status)
     {
-      case IIncomingHttpRequestFilter::AuthenticationStatus_NotImplemented:
+      case IIncomingHttpRequestFilter::AuthenticationStatus_BuiltIn:
         // This was the only behavior available in Orthanc <= 1.12.8
         if (server.IsAuthenticationEnabled() &&
             accessMode == AccessMode_Unauthorized)
@@ -1298,7 +1298,7 @@ namespace Orthanc
         }
         break;
 
-      case IIncomingHttpRequestFilter::AuthenticationStatus_Success:
+      case IIncomingHttpRequestFilter::AuthenticationStatus_Granted:
         break;
 
       case IIncomingHttpRequestFilter::AuthenticationStatus_Redirect:
@@ -1307,6 +1307,10 @@ namespace Orthanc
 
       case IIncomingHttpRequestFilter::AuthenticationStatus_Unauthorized:
         output.SendStatus(HttpStatus_401_Unauthorized);
+        return;
+
+      case IIncomingHttpRequestFilter::AuthenticationStatus_Forbidden:
+        output.SendStatus(HttpStatus_403_Forbidden);
         return;
 
       default:

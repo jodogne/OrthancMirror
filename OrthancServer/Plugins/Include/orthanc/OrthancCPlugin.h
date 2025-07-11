@@ -1208,9 +1208,10 @@ extern "C"
    **/
   typedef enum
   {
-    OrthancPluginHttpAuthenticationStatus_Success = 0,       /*!< The authentication has succeeded */
+    OrthancPluginHttpAuthenticationStatus_Granted = 0,       /*!< The authentication has been granted */
     OrthancPluginHttpAuthenticationStatus_Unauthorized = 1,  /*!< The authentication has failed (401 HTTP status) */
-    OrthancPluginHttpAuthenticationStatus_Redirect = 2,      /*!< Redirect to another path (e.g. for login, 307 HTTP status) */
+    OrthancPluginHttpAuthenticationStatus_Forbidden = 2,     /*!< The authorization has failed (403 HTTP status) */
+    OrthancPluginHttpAuthenticationStatus_Redirect = 3,      /*!< Redirect to another path (e.g. for login, 307 HTTP status) */
 
     _OrthancPluginHttpAuthenticationStatus_INTERNAL = 0x7fffffff
   } OrthancPluginHttpAuthenticationStatus;
@@ -10380,23 +10381,24 @@ extern "C"
 
 
   /**
-   * @brief Callback to authenticate a HTTP request
+   * @brief Callback to authenticate a HTTP request.
    *
    * Signature of a callback function that authenticates every incoming HTTP.
    *
    * @param status The output status of the authentication.
-   * @param customPayload If status is `OrthancPluginHttpAuthenticationStatus_Success`,
+   * @param customPayload If status is `OrthancPluginHttpAuthenticationStatus_Granted`,
    * a custom payload that will be provided to the HTTP authorization callback.
    * @param redirection If status is `OrthancPluginHttpAuthenticationStatus_Redirect`,
    * a buffer filled with the path where to redirect the user (typically, a login page).
    * The path is relative to the root of the Web server of Orthanc.
    * @param uri The URI of interest (without the possible GET arguments).
-   * @param getCount For a GET request, the number of GET parameters.
-   * @param getKeys For a GET request, the keys of the GET parameters.
-   * @param getValues For a GET request, the values of the GET parameters.
+   * @param ip The IP address of the HTTP client.
    * @param headersCount The number of HTTP headers.
    * @param headersKeys The keys of the HTTP headers (always converted to low-case).
    * @param headersValues The values of the HTTP headers.
+   * @param getCount For a GET request, the number of GET parameters.
+   * @param getKeys For a GET request, the keys of the GET parameters.
+   * @param getValues For a GET request, the values of the GET parameters.
    * @return 0 if success, other value if error.
    * @ingroup Callbacks
    **/
@@ -10405,12 +10407,13 @@ extern "C"
     OrthancPluginMemoryBuffer*              customPayload,  /* out */
     OrthancPluginMemoryBuffer*              redirection,    /* out */
     const char*                             uri,
-    uint32_t                                getCount,
-    const char* const*                      getKeys,
-    const char* const*                      getValues,
+    const char*                             ip,
     uint32_t                                headersCount,
     const char* const*                      headersKeys,
-    const char* const*                      headersValues);
+    const char* const*                      headersValues,
+    uint32_t                                getCount,
+    const char* const*                      getKeys,
+    const char* const*                      getValues);
 
 
   typedef struct
@@ -10419,20 +10422,28 @@ extern "C"
   } _OrthancPluginHttpAuthentication;
 
   /**
-   * @brief Register a callback to handle HTTP authentication.
+   * @brief Register a callback to handle HTTP authentication (and
+   * possibly HTTP authorization).
    *
    * This function installs a callback that is executed for each
    * incoming HTTP request to handle HTTP authentication. At most one
    * plugin can register such a callback. This gives the opportunity
-   * to one plugin to validate access tokens (such as a JWT), possibly
+   * to the plugin to validate access tokens (such as a JWT), possibly
    * redirecting the user to a login page. The authentication callback
    * can generate a custom payload that will be provided to the
    * subsequent REST handling callback.
    *
-   * The HTTP authentication callback can notably be used if some
+   * This HTTP authentication callback can notably be used if some
    * resource in the REST API must be available for public access, as
    * soon as the "RemoteAccessAllowed" configuration option is set to
    * "true".
+   *
+   * In addition, the callback can handle HTTP authorization
+   * simultaneously with HTTP authentication, by reporting the
+   * "OrthancPluginHttpAuthenticationStatus_Forbidden" status. This
+   * corresponds to callbacks installed using
+   * OrthancPluginRegisterIncomingHttpRequestFilter2(), but the latter
+   * callbacks do not provide access to the authentication payload.
    *
    * If one plugin installs a HTTP authentication callback, the
    * built-in HTTP authentication of Orthanc is disabled. This means

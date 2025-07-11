@@ -605,20 +605,21 @@ public:
     return true;
   }
 
-  virtual AuthenticationStatus CheckAuthentication(std::string& customPayload,
-                                                   std::string& redirection,
-                                                   const std::string& uri,
-                                                   const HttpToolbox::GetArguments& getArguments,
-                                                   const HttpToolbox::Arguments& httpHeaders) const ORTHANC_OVERRIDE
+  virtual AuthenticationStatus CheckAuthentication(std::string& customPayload /* out: payload to provide to "IsAllowed()" */,
+                                                   std::string& redirection   /* out: path relative to the root */,
+                                                   const char* uri,
+                                                   const char* ip,
+                                                   const HttpToolbox::Arguments& httpHeaders,
+                                                   const HttpToolbox::GetArguments& getArguments) const ORTHANC_OVERRIDE
   {
 #if ORTHANC_ENABLE_PLUGINS == 1
     if (plugins_ != NULL)
     {
-      return plugins_->CheckAuthentication(customPayload, redirection, uri, getArguments, httpHeaders);
+      return plugins_->CheckAuthentication(customPayload, redirection, uri, ip, httpHeaders, getArguments);
     }
 #endif
 
-    return AuthenticationStatus_NotImplemented;
+    return AuthenticationStatus_BuiltIn;
   }
 };
 

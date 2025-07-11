@@ -423,9 +423,10 @@ private:
     IIncomingHttpRequestFilter::AuthenticationStatus CheckAuthentication(
       std::string& customPayload,
       std::string& redirection,
-      const std::string& uri,
-      const HttpToolbox::GetArguments& getArguments,
-      const HttpToolbox::Arguments& httpHeaders) const;
+      const char* uri,
+      const char* ip,
+      const HttpToolbox::Arguments& httpHeaders,
+      const HttpToolbox::GetArguments& getArguments) const;
   };
 }
 
