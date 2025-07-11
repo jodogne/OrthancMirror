@@ -33,10 +33,11 @@ namespace Orthanc
   public:
     enum AuthenticationStatus
     {
-      AuthenticationStatus_NotImplemented,
-      AuthenticationStatus_Success,
-      AuthenticationStatus_Unauthorized,
-      AuthenticationStatus_Redirect
+      AuthenticationStatus_BuiltIn,       // Use the default HTTP authentication built in Orthanc
+      AuthenticationStatus_Granted,       // Let the REST callback process the request
+      AuthenticationStatus_Unauthorized,  // 401 HTTP status
+      AuthenticationStatus_Forbidden,     // 403 HTTP status
+      AuthenticationStatus_Redirect       // 307 HTTP status
     };
 
     virtual ~IIncomingHttpRequestFilter()
@@ -46,14 +47,15 @@ namespace Orthanc
     // New in Orthanc 1.8.1
     virtual bool IsValidBearerToken(const std::string& token) const = 0;
 
-    // This method corresponds to HTTP authentication
+    // This method corresponds to HTTP authentication + HTTP authorization
     virtual AuthenticationStatus CheckAuthentication(std::string& customPayload /* out: payload to provide to "IsAllowed()" */,
                                                      std::string& redirection   /* out: path relative to the root */,
-                                                     const std::string& uri,
-                                                     const HttpToolbox::GetArguments& getArguments,
-                                                     const HttpToolbox::Arguments& httpHeaders) const = 0;
+                                                     const char* uri,
+                                                     const char* ip,
+                                                     const HttpToolbox::Arguments& httpHeaders,
+                                                     const HttpToolbox::GetArguments& getArguments) const = 0;
     
-    // This method corresponds to HTTP authorization
+    // This method corresponds to HTTP authorization alone
     virtual bool IsAllowed(HttpMethod method,
                            const char* uri,
                            const char* ip,

@@ -6873,15 +6873,16 @@ namespace Orthanc
   IIncomingHttpRequestFilter::AuthenticationStatus OrthancPlugins::CheckAuthentication(
     std::string& customPayload,
     std::string& redirection,
-    const std::string& uri,
-    const HttpToolbox::GetArguments& getArguments,
-    const HttpToolbox::Arguments& httpHeaders) const
+    const char* uri,
+    const char* ip,
+    const HttpToolbox::Arguments& httpHeaders,
+    const HttpToolbox::GetArguments& getArguments) const
   {
     boost::shared_lock<boost::shared_mutex> lock(pimpl_->incomingHttpRequestFilterMutex_);
 
     if (pimpl_->httpAuthentication_ == NULL)
     {
-      return IIncomingHttpRequestFilter::AuthenticationStatus_NotImplemented;
+      return IIncomingHttpRequestFilter::AuthenticationStatus_BuiltIn;  // Use the default authentication of Orthanc
     }
     else
     {
@@ -6895,9 +6896,9 @@ namespace Orthanc
       PluginMemoryBuffer32 payloadBuffer;
       PluginMemoryBuffer32 redirectionBuffer;
       OrthancPluginErrorCode code = pimpl_->httpAuthentication_(
-        &status, payloadBuffer.GetObject(), redirectionBuffer.GetObject(), uri.c_str(),
-        getKeys.size(), getKeys.empty() ? NULL : &getKeys[0], getValues.empty() ? NULL : &getValues[0],
-        headersKeys.size(), headersKeys.empty() ? NULL : &headersKeys[0], headersValues.empty() ? NULL : &headersValues[0]);
+        &status, payloadBuffer.GetObject(), redirectionBuffer.GetObject(), uri, ip,
+        headersKeys.size(), headersKeys.empty() ? NULL : &headersKeys[0], headersValues.empty() ? NULL : &headersValues[0],
+        getKeys.size(), getKeys.empty() ? NULL : &getKeys[0], getValues.empty() ? NULL : &getValues[0]);
 
       if (code != OrthancPluginErrorCode_Success)
       {
@@ -6907,12 +6908,15 @@ namespace Orthanc
       {
         switch (status)
         {
-        case OrthancPluginHttpAuthenticationStatus_Success:
+        case OrthancPluginHttpAuthenticationStatus_Granted:
           payloadBuffer.MoveToString(customPayload);
-          return IIncomingHttpRequestFilter::AuthenticationStatus_Success;
+          return IIncomingHttpRequestFilter::AuthenticationStatus_Granted;
 
         case OrthancPluginHttpAuthenticationStatus_Unauthorized:
           return IIncomingHttpRequestFilter::AuthenticationStatus_Unauthorized;
+
+        case OrthancPluginHttpAuthenticationStatus_Forbidden:
+          return IIncomingHttpRequestFilter::AuthenticationStatus_Forbidden;
 
         case OrthancPluginHttpAuthenticationStatus_Redirect:
           redirectionBuffer.MoveToString(redirection);
