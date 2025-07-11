@@ -72,7 +72,8 @@ namespace Orthanc
                                             const char* username,
                                             HttpMethod method,
                                             const UriComponents& uri,
-                                            const HttpToolbox::Arguments& headers) = 0;
+                                            const HttpToolbox::Arguments& headers,
+                                            const std::string& authenticationPayload) = 0;
 
     virtual bool Handle(HttpOutput& output,
                         RequestOrigin origin,
@@ -83,7 +84,8 @@ namespace Orthanc
                         const HttpToolbox::Arguments& headers,
                         const HttpToolbox::GetArguments& getArguments,
                         const void* bodyData,
-                        size_t bodySize) = 0;
+                        size_t bodySize,
+                        const std::string& authenticationPayload) = 0;
 
 
     /**

@@ -227,7 +227,8 @@ namespace Orthanc
                                   const UriComponents& uri,
                                   const std::map<std::string, std::string>& headers,
                                   const std::string& body,
-                                  const std::string& boundary);
+                                  const std::string& boundary,
+                                  const std::string& authenticationPayload);
 
     MetricsRegistry::SharedMetrics& GetAvailableHttpThreadsMetrics()
     {

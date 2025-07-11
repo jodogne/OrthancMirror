@@ -2459,7 +2459,8 @@ namespace Orthanc
     public:
       HttpRequestConverter(const RestCallbackMatcher& matcher,
                            HttpMethod method,
-                           const HttpToolbox::Arguments& headers)
+                           const HttpToolbox::Arguments& headers,
+                           const std::string& authenticationPayload)
       {
         memset(&converted_, 0, sizeof(OrthancPluginHttpRequest));
 
@@ -2501,6 +2502,14 @@ namespace Orthanc
         {
           converted_.headersKeys = &headersKeys_[0];
           converted_.headersValues = &headersValues_[0];
+        }
+
+        converted_.authenticationPayload = authenticationPayload.empty() ? NULL : authenticationPayload.c_str();
+        converted_.authenticationPayloadSize = static_cast<uint32_t>(authenticationPayload.size());
+
+        if (converted_.authenticationPayloadSize != authenticationPayload.size())
+        {
+          throw OrthancException(ErrorCode_NotEnoughMemory);
         }
       }
 
@@ -2573,7 +2582,8 @@ namespace Orthanc
                                               HttpMethod method,
                                               const UriComponents& uri,
                                               const HttpToolbox::Arguments& headers,
-                                              const HttpToolbox::GetArguments& getArguments)
+                                              const HttpToolbox::GetArguments& getArguments,
+                                              const std::string& authenticationPayload)
   {
     RestCallbackMatcher matcher(uri);
 
@@ -2622,7 +2632,7 @@ namespace Orthanc
       }
       else
       {
-        HttpRequestConverter converter(matcher, method, headers);
+        HttpRequestConverter converter(matcher, method, headers, authenticationPayload);
         converter.SetGetArguments(getArguments);
       
         PImpl::PluginHttpOutput pluginOutput(output);
@@ -2648,7 +2658,8 @@ namespace Orthanc
                               const HttpToolbox::Arguments& headers,
                               const HttpToolbox::GetArguments& getArguments,
                               const void* bodyData,
-                              size_t bodySize)
+                              size_t bodySize,
+                              const std::string& authenticationPayload)
   {
     RestCallbackMatcher matcher(uri);
 
@@ -2669,12 +2680,12 @@ namespace Orthanc
     if (callback == NULL)
     {
       // Callback not found, try to find a chunked callback
-      return HandleChunkedGetDelete(output, method, uri, headers, getArguments);
+      return HandleChunkedGetDelete(output, method, uri, headers, getArguments, authenticationPayload);
     }
 
     CLOG(INFO, PLUGINS) << "Delegating HTTP request to plugin for URI: " << matcher.GetFlatUri();
 
-    HttpRequestConverter converter(matcher, method, headers);
+    HttpRequestConverter converter(matcher, method, headers, authenticationPayload);
     converter.SetGetArguments(getArguments);
     converter.GetRequest().body = bodyData;
     converter.GetRequest().bodySize = bodySize;
@@ -6662,7 +6673,8 @@ namespace Orthanc
                                                   const char* username,
                                                   HttpMethod method,
                                                   const UriComponents& uri,
-                                                  const HttpToolbox::Arguments& headers)
+                                                  const HttpToolbox::Arguments& headers,
+                                                  const std::string& authenticationPayload)
   {
     if (method != HttpMethod_Post &&
         method != HttpMethod_Put)
@@ -6718,7 +6730,7 @@ namespace Orthanc
       {
         CLOG(INFO, PLUGINS) << "Delegating chunked HTTP request to plugin for URI: " << matcher.GetFlatUri();
 
-        HttpRequestConverter converter(matcher, method, headers);
+        HttpRequestConverter converter(matcher, method, headers, authenticationPayload);
         converter.GetRequest().body = NULL;
         converter.GetRequest().bodySize = 0;
 
