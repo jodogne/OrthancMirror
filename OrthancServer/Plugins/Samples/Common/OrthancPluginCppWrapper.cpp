@@ -266,6 +266,16 @@ namespace OrthancPlugins
 #endif
 
 
+#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 7, 0)
+  void MemoryBuffer::AssignJson(const Json::Value& value)
+  {
+    std::string s;
+    WriteFastJson(s, value);
+    Assign(s);
+  }
+#endif
+
+
   void MemoryBuffer::Assign(OrthancPluginMemoryBuffer& other)
   {
     Clear();
