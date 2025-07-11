@@ -231,6 +231,10 @@ namespace OrthancPlugins
     void Assign(const std::string& s);
 #endif
 
+#if ORTHANC_PLUGINS_VERSION_IS_ABOVE(1, 7, 0)
+    void AssignJson(const Json::Value& value);
+#endif
+
     // This transfers ownership from "other" to "this"
     void Assign(OrthancPluginMemoryBuffer& other);
 
