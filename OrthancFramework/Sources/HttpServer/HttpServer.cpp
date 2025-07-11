@@ -349,6 +349,7 @@ namespace Orthanc
     bool                  isJQueryUploadChunk_;
     std::string           jqueryUploadFileName_;
     size_t                jqueryUploadFileSize_;
+    const std::string&    authenticationPayload_;
 
     void HandleInternal(const MultipartStreamReader::HttpHeaders& headers,
                         const void* part,
@@ -359,7 +360,7 @@ namespace Orthanc
       HttpToolbox::GetArguments getArguments;
       
       if (!handler_.Handle(fakeOutput, RequestOrigin_RestApi, remoteIp_.c_str(), username_.c_str(), 
-                           HttpMethod_Post, uri_, headers, getArguments, part, size))
+                           HttpMethod_Post, uri_, headers, getArguments, part, size, authenticationPayload_))
       {
         throw OrthancException(ErrorCode_UnknownResource);
       }
@@ -371,14 +372,16 @@ namespace Orthanc
                              const std::string& remoteIp,
                              const std::string& username,
                              const UriComponents& uri,
-                             const MultipartStreamReader::HttpHeaders& headers) :
+                             const MultipartStreamReader::HttpHeaders& headers,
+                             const std::string& authenticationPayload) :
       handler_(handler),
       chunkStore_(chunkStore),
       remoteIp_(remoteIp),
       username_(username),
       uri_(uri),
       isJQueryUploadChunk_(false),
-      jqueryUploadFileSize_(0)  // Dummy initialization
+      jqueryUploadFileSize_(0),  // Dummy initialization
+      authenticationPayload_(authenticationPayload)
     {
       typedef HttpToolbox::Arguments::const_iterator Iterator;
       
@@ -471,9 +474,10 @@ namespace Orthanc
                                             const UriComponents& uri,
                                             const std::map<std::string, std::string>& headers,
                                             const std::string& body,
-                                            const std::string& boundary)
+                                            const std::string& boundary,
+                                            const std::string& authenticationPayload)
   {
-    MultipartFormDataHandler handler(GetHandler(), pimpl_->chunkStore_, remoteIp, username, uri, headers);
+    MultipartFormDataHandler handler(GetHandler(), pimpl_->chunkStore_, remoteIp, username, uri, headers, authenticationPayload);
           
     MultipartStreamReader reader(boundary);
     reader.SetHandler(handler);
@@ -1269,7 +1273,7 @@ namespace Orthanc
     const IIncomingHttpRequestFilter *filter = server.GetIncomingHttpRequestFilter();
 
     // Authenticate this connection
-    std::string customPayload;
+    std::string authenticationPayload;
     std::string redirection;
     IIncomingHttpRequestFilter::AuthenticationStatus status;
 
@@ -1279,7 +1283,7 @@ namespace Orthanc
     }
     else
     {
-      status = filter->CheckAuthentication(customPayload, redirection, requestUri, headers);
+      status = filter->CheckAuthentication(authenticationPayload, redirection, requestUri, headers);
     }
 
     switch (status)
@@ -1295,7 +1299,6 @@ namespace Orthanc
         break;
 
       case IIncomingHttpRequestFilter::AuthenticationStatus_Success:
-        printf("PAYLOAD: [%s]\n", customPayload.c_str());
         break;
 
       case IIncomingHttpRequestFilter::AuthenticationStatus_Redirect:
@@ -1434,7 +1437,7 @@ namespace Orthanc
         status = ReadBodyToString(body, connection, headers);
         if (status == PostDataStatus_Success)
         {
-          server.ProcessMultipartFormData(remoteIp, username, uri, headers, body, boundary);
+          server.ProcessMultipartFormData(remoteIp, username, uri, headers, body, boundary, authenticationPayload);
           output.SendStatus(HttpStatus_200_Ok);
           return;
         }
@@ -1447,7 +1450,7 @@ namespace Orthanc
         if (server.HasHandler())
         {
           found = server.GetHandler().CreateChunkedRequestReader
-            (stream, RequestOrigin_RestApi, remoteIp, username.c_str(), method, uri, headers);
+            (stream, RequestOrigin_RestApi, remoteIp, username.c_str(), method, uri, headers, authenticationPayload);
         }
         
         if (found)
@@ -1496,7 +1499,7 @@ namespace Orthanc
         server.HasHandler())
     {
       found = server.GetHandler().Handle(output, RequestOrigin_RestApi, remoteIp, username.c_str(), 
-                                         method, uri, headers, argumentsGET, body.c_str(), body.size());
+                                         method, uri, headers, argumentsGET, body.c_str(), body.size(), authenticationPayload);
     }
 
     if (!found)

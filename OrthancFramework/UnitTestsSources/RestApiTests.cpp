@@ -1290,7 +1290,8 @@ namespace
                                             const char* username,
                                             HttpMethod method,
                                             const UriComponents& uri,
-                                            const HttpToolbox::Arguments& headers) ORTHANC_OVERRIDE
+                                            const HttpToolbox::Arguments& headers,
+                                            const std::string& authenticationPayload) ORTHANC_OVERRIDE
     {
       return false;
     }
@@ -1304,7 +1305,8 @@ namespace
                         const HttpToolbox::Arguments& headers,
                         const HttpToolbox::GetArguments& getArguments,
                         const void* bodyData,
-                        size_t bodySize) ORTHANC_OVERRIDE
+                        size_t bodySize,
+                        const std::string& authenticationPayload) ORTHANC_OVERRIDE
     {
       printf("received %d\n", static_cast<int>(bodySize));
 

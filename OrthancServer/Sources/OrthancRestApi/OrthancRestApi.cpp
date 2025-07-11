@@ -297,13 +297,14 @@ namespace Orthanc
                               const HttpToolbox::Arguments& headers,
                               const HttpToolbox::GetArguments& getArguments,
                               const void* bodyData,
-                              size_t bodySize)
+                              size_t bodySize,
+                              const std::string& authenticationPayload)
   {
     MetricsRegistry::Timer timer(context_.GetMetricsRegistry(), "orthanc_rest_api_duration_ms");
     MetricsRegistry::ActiveCounter counter(activeRequests_);
 
     return RestApi::Handle(output, origin, remoteIp, username, method,
-                           uri, headers, getArguments, bodyData, bodySize);
+                           uri, headers, getArguments, bodyData, bodySize, authenticationPayload);
   }
 
 

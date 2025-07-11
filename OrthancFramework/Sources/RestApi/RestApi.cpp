@@ -775,7 +775,8 @@ namespace Orthanc
                                            const char* username,
                                            HttpMethod method,
                                            const UriComponents& uri,
-                                           const HttpToolbox::Arguments& headers)
+                                           const HttpToolbox::Arguments& headers,
+                                           const std::string& authenticationPayload)
   {
     return false;
   }
@@ -790,7 +791,8 @@ namespace Orthanc
                        const HttpToolbox::Arguments& headers,
                        const HttpToolbox::GetArguments& getArguments,
                        const void* bodyData,
-                       size_t bodySize)
+                       size_t bodySize,
+                       const std::string& authenticationPayload)
   {
     RestApiOutput wrappedOutput(output, method);
 

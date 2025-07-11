@@ -106,7 +106,8 @@ private:
                                 HttpMethod method,
                                 const UriComponents& uri,
                                 const HttpToolbox::Arguments& headers,
-                                const HttpToolbox::GetArguments& getArguments);
+                                const HttpToolbox::GetArguments& getArguments,
+                                const std::string& authenticationPayload);
 
     void RegisterOnStoredInstanceCallback(const void* parameters);
 
@@ -291,7 +292,8 @@ private:
                         const HttpToolbox::Arguments& headers,
                         const HttpToolbox::GetArguments& getArguments,
                         const void* bodyData,
-                        size_t bodySize) ORTHANC_OVERRIDE;
+                        size_t bodySize,
+                        const std::string& authenticationPayload) ORTHANC_OVERRIDE;
 
     virtual bool InvokeService(SharedLibrary& plugin,
                                _OrthancPluginService service,
@@ -399,7 +401,8 @@ private:
                                             const char* username,
                                             HttpMethod method,
                                             const UriComponents& uri,
-                                            const HttpToolbox::Arguments& headers) ORTHANC_OVERRIDE;
+                                            const HttpToolbox::Arguments& headers,
+                                            const std::string& authenticationPayload) ORTHANC_OVERRIDE;
 
     // New in Orthanc 1.6.0
     IStorageCommitmentFactory::ILookupHandler* CreateStorageCommitment(
