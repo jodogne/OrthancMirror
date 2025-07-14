@@ -502,6 +502,7 @@ extern "C"
     _OrthancPluginService_DequeueValue = 58,                        /* New in Orthanc 1.12.8 */
     _OrthancPluginService_GetQueueSize = 59,                        /* New in Orthanc 1.12.8 */
     _OrthancPluginService_SetStableStatus = 60,                     /* New in Orthanc 1.12.9 */
+    _OrthancPluginService_RecordAuditLog = 61,                      /* New in Orthanc 1.12.9 */
 
     /* Registration of callbacks */
     _OrthancPluginService_RegisterRestCallback = 1000,
@@ -10467,6 +10468,50 @@ extern "C"
     params.callback = callback;
 
     return context->InvokeService(context, _OrthancPluginService_RegisterHttpAuthentication, &params);
+  }
+
+
+  typedef struct
+  {
+    const char*               userId;
+    OrthancPluginResourceType resourceType;
+    const char*               resourceId;
+    const char*               action;
+    const void*               logData;
+    uint32_t                  logDataSize;
+  } _OrthancPluginRecordAuditLog;
+
+
+  /**
+   * @brief Record an audit log
+   *
+   * Record an audit log (provided that a database plugin provides the feature).
+   *
+   * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param userId A string uniquely identifying the user or entity that is executing the action on the resource.
+   * @param resourceType The type of the resource this log relates to.
+   * @param resourceId The resource this log relates to.
+   * @param action The action that is performed on the resource.
+   * @param logData A pointer to custom log data.
+   * @param logDataSize The size of custom log data.
+   **/
+  ORTHANC_PLUGIN_INLINE void OrthancPluginRecordAuditLog(
+    OrthancPluginContext* context,
+    const char*               userId,
+    OrthancPluginResourceType resourceType,
+    const char*               resourceId,
+    const char*               action,
+    const void*               logData,
+    uint32_t                  logDataSize)
+  {
+    _OrthancPluginRecordAuditLog m;
+    m.userId = userId;
+    m.resourceType = resourceType;
+    m.resourceId = resourceId;
+    m.action = action;
+    m.logData = logData;
+    m.logDataSize = logDataSize;
+    context->InvokeService(context, _OrthancPluginService_RecordAuditLog, &m);
   }
 
 
