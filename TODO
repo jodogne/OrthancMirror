@@ -141,6 +141,9 @@ Mid-term
   require ffmpeg or a similar library -> can not be done in the Orthanc core.
   -> keep it for a python plugin
   -> or require the payload to include rows/columns/cinerate/...
+* When creating e.g a PDF series with /tools/create-dicom with a ParentStudy,
+  the new series does not have the InstitutionName copied from the parent study.
+  Can be tested with "Add PDF" in OE2.
 * (1) In the /studies/{id}/anonymize route, add an option to remove
   secondary captures.  They usually contains Patient info in the
   image. The SOPClassUID might be used to identify such secondary

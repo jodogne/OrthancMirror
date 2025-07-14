@@ -37,8 +37,10 @@
 #  error Cannot access the version of JsonCpp
 #endif
 
-#if !defined(ORTHANC_ENABLE_ICU)
+#if (ORTHANC_ENABLE_LOCALE == 1) && (BOOST_LOCALE_WITH_ICU == 1)
 #  define ORTHANC_ENABLE_ICU 1
+#else
+#  define ORTHANC_ENABLE_ICU 0
 #endif
 
 
@@ -148,21 +150,22 @@ extern "C"
 }
 
 
-#if defined(ORTHANC_STATIC_ICU)
+#if ORTHANC_ENABLE_ICU == 1
 
-#  if (ORTHANC_STATIC_ICU == 1) && (ORTHANC_ENABLE_ICU == 1)
+#  if ORTHANC_STATIC_ICU == 1
 #    if !defined(ORTHANC_FRAMEWORK_INCLUDE_RESOURCES) || (ORTHANC_FRAMEWORK_INCLUDE_RESOURCES == 1)
 #      include <OrthancFrameworkResources.h>
 #    endif
+#    include "Compression/GzipCompressor.h"
 #  endif
 
-#  if (ORTHANC_STATIC_ICU == 1 && ORTHANC_ENABLE_LOCALE == 1)
-#    include <unicode/udata.h>
-#    include <unicode/uloc.h>
-#    include "Compression/GzipCompressor.h"
+#  include <unicode/udata.h>
+#  include <unicode/uloc.h>
+#  include <unicode/uclean.h>
 
 static std::string  globalIcuData_;
 
+#  if ORTHANC_STATIC_ICU == 1
 extern "C"
 {
   // This is dummy content for the "icudt58_dat" (resp. "icudt63_dat")
@@ -170,15 +173,18 @@ extern "C"
   // (resp. "icudt63l_dat.c") file that contains a huge C array. In
   // Orthanc, this array is compressed using gzip and attached as a
   // resource, then uncompressed during the launch of Orthanc by
-  // static function "InitializeIcu()".
+  // static function "InitializeIcu()". WARNING: Do NOT do this if
+  // dynamically linking against libicu!
   struct
   {
     double bogus;
     uint8_t *bytes;
   } U_ICUDATA_ENTRY_POINT = { 0.0, NULL };
 }
+#  endif
 
-#    if defined(__LSB_VERSION__)
+#  if defined(__LSB_VERSION__)
+
 extern "C"
 {
   /**
@@ -193,9 +199,9 @@ extern "C"
    **/
   char *tzname[2] = { (char *) "GMT", (char *) "GMT" };
 }
-#    endif
 
 #  endif
+
 #endif
  
 
@@ -698,7 +704,7 @@ namespace Orthanc
         return "GB18030";
 
       case Encoding_Thai:
-#if BOOST_LOCALE_WITH_ICU == 1
+#if ORTHANC_ENABLE_ICU == 1
         return "tis620.2533";
 #else
         return "TIS620.2533-0";
@@ -724,7 +730,8 @@ namespace Orthanc
   // http://dicom.nema.org/medical/dicom/current/output/chtml/part03/sect_C.12.html#sect_C.12.1.1.2
   std::string Toolbox::ConvertToUtf8(const std::string& source,
                                      Encoding sourceEncoding,
-                                     bool hasCodeExtensions)
+                                     bool hasCodeExtensions,
+                                     bool skipBackslashes)
   {
 #if ORTHANC_STATIC_ICU == 1
 #  if ORTHANC_ENABLE_ICU == 0
@@ -760,7 +767,26 @@ namespace Orthanc
         else
         {
           const char* encoding = GetBoostLocaleEncoding(sourceEncoding);
-          s = boost::locale::conv::to_utf<char>(source, encoding, boost::locale::conv::skip);
+
+          if (skipBackslashes)
+          {
+            /**
+             * This is to deal with the fact that in Japanese coding
+             * (ISO_IR 13), backslashes will be converted to the Yen
+             * character.
+             **/
+            std::vector<std::string> tokens;
+            TokenizeString(tokens, source, '\\');
+            for (size_t i = 0; i < tokens.size(); i++)
+            {
+              tokens[i] = boost::locale::conv::to_utf<char>(tokens[i], encoding, boost::locale::conv::skip);
+            }
+            JoinStrings(s, tokens, "\\");
+          }
+          else
+          {
+            s = boost::locale::conv::to_utf<char>(source, encoding, boost::locale::conv::skip);
+          }
         }
 
         if (hasCodeExtensions)
@@ -826,6 +852,50 @@ namespace Orthanc
       // Bad input string or bad encoding
       return ConvertToAscii(source);
     }
+  }
+#endif
+
+
+#if ORTHANC_ENABLE_LOCALE == 1
+  std::string Toolbox::ConvertDicomStringToUtf8(const std::string& source,
+                                                Encoding sourceEncoding,
+                                                bool hasCodeExtensions,
+                                                ValueRepresentation vr)
+  {
+    /**
+     * This method was added in Orthanc 1.12.9, as a consequence of:
+     * https://discourse.orthanc-server.org/t/issue-with-special-characters-when-scans-where-uploaded-with-specificcharacterset-dicom-tag-value-as-iso-ir-13/5962
+     *
+     * From the DICOM standard: "Two character codes of the
+     * single-byte character sets invoked in the GL area of the code
+     * table, 02/00 and 05/12, have special significance in the DICOM
+     * Standard. The character SPACE, represented by bit combination
+     * 02/00, shall be used for the padding of Data Element Values
+     * that are character strings. The Graphic Character represented
+     * by the bit combination 05/12, "\" (BACKSLASH) (reverse solidus)
+     * in the repertoire ISO-IR 6, shall only be used in character
+     * strings with Value Representations of UT, ST and LT (see
+     * Section 6.2). Otherwise the character code 05/12 is used as a
+     * separator for multi-valued Data Elements (see Section
+     * 6.4). [...] When the Value of Specific Character Set
+     * (0008,0005) is either "ISO_IR 13" or "ISO 2022 IR 13", the
+     * graphic character represented by the bit combination 05/12 is a
+     * "¥" (YEN SIGN) in the character set of ISO-IR 14."
+     * https://www.dicomstandard.org/standards/view/data-structures-and-encoding
+     *
+     * This description implies that if "sourceEncoding" (which is
+     * derived from the value of the DICOM Specific Character Set)
+     * corresponds "ISO_IR 13" or "ISO 2022 IR 13", AND if the value
+     * representation is *not* UT, ST, or LT, then backslashes should
+     * be ignored during the conversion to UTF-8.
+     **/
+
+    const bool skipBackslashes = (sourceEncoding == Encoding_Japanese &&
+                                  vr != ValueRepresentation_UnlimitedText &&  // UT
+                                  vr != ValueRepresentation_ShortText &&      // ST
+                                  vr != ValueRepresentation_LongText);        // LT
+
+    return ConvertToUtf8(source, sourceEncoding, hasCodeExtensions, skipBackslashes);
   }
 #endif
 
@@ -1482,9 +1552,24 @@ namespace Orthanc
             c == '-' ||
             c == '_' ||
             c == '.' ||
-            c == '~' ||
-            c == '/');
+            c == '~');
   }
+
+  // in this version, each path token is uri encoded separately and then all parts are joined with "/"
+  void Toolbox::UriEncode(std::string& target,
+                          const std::vector<std::string>& pathTokens)
+  {
+    std::vector<std::string> uriEncodedPathTokens;
+    for (std::vector<std::string>::const_iterator it = pathTokens.begin(); it != pathTokens.end(); ++it)
+    {
+      std::string encodedPathToken;
+      Toolbox::UriEncode(encodedPathToken, *it);
+      uriEncodedPathTokens.push_back(encodedPathToken);
+    }
+
+    Toolbox::JoinStrings(target, uriEncodedPathTokens, "/");
+  }
+
 
   void Toolbox::UriEncode(std::string& target,
                           const std::string& source)
@@ -1772,14 +1857,23 @@ namespace Orthanc
         // TODO - The data table must be swapped (uint16_t)
         throw OrthancException(ErrorCode_NotImplemented);
       }
-
-      // "First-use of ICU from a single thread before the
-      // multi-threaded use of ICU begins", to make sure everything is
-      // properly initialized (should not be mandatory in our
-      // case). We let boost handle calls to "u_init()" and "u_cleanup()".
-      // http://userguide.icu-project.org/design#TOC-ICU-Initialization-and-Termination
-      uloc_getDefault();
     }
+#endif
+
+#if (ORTHANC_ENABLE_ICU == 1)
+    UErrorCode status = U_ZERO_ERROR;
+    u_init(&status);
+
+    if (U_FAILURE(status))
+    {
+      throw OrthancException(ErrorCode_InternalError, "Cannot initialize ICU: " + std::string(u_errorName(status)));
+    }
+
+    // "First-use of ICU from a single thread before the
+    // multi-threaded use of ICU begins", to make sure everything is
+    // properly initialized (should not be mandatory in our case).
+    // http://userguide.icu-project.org/design#TOC-ICU-Initialization-and-Termination
+    uloc_getDefault();
 #endif
   }
   
@@ -1850,6 +1944,10 @@ namespace Orthanc
   void Toolbox::FinalizeGlobalLocale()
   {
     globalLocale_.reset();
+
+#if (ORTHANC_ENABLE_ICU == 1)
+    u_cleanup();
+#endif
   }
 
 

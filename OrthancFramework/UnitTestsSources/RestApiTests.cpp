@@ -38,6 +38,7 @@
 #include "../Sources/OrthancException.h"
 #include "../Sources/RestApi/RestApiHierarchy.h"
 #include "../Sources/WebServiceParameters.h"
+#include "../Sources/MetricsRegistry.h"
 
 #include <ctype.h>
 #include <boost/lexical_cast.hpp>
@@ -1289,7 +1290,8 @@ namespace
                                             const char* username,
                                             HttpMethod method,
                                             const UriComponents& uri,
-                                            const HttpToolbox::Arguments& headers) ORTHANC_OVERRIDE
+                                            const HttpToolbox::Arguments& headers,
+                                            const std::string& authenticationPayload) ORTHANC_OVERRIDE
     {
       return false;
     }
@@ -1303,7 +1305,8 @@ namespace
                         const HttpToolbox::Arguments& headers,
                         const HttpToolbox::GetArguments& getArguments,
                         const void* bodyData,
-                        size_t bodySize) ORTHANC_OVERRIDE
+                        size_t bodySize,
+                        const std::string& authenticationPayload) ORTHANC_OVERRIDE
     {
       printf("received %d\n", static_cast<int>(bodySize));
 
@@ -1330,9 +1333,9 @@ namespace
 TEST(HttpClient, DISABLED_Issue156_Slow)
 {
   // https://orthanc.uclouvain.be/bugs/show_bug.cgi?id=156
-  
+  MetricsRegistry dummyRegistry;
   TotoServer handler;
-  HttpServer server;
+  HttpServer server(dummyRegistry);
   server.SetPortNumber(5000);
   server.Register(handler);
   server.Start();
@@ -1359,8 +1362,9 @@ TEST(HttpClient, DISABLED_Issue156_Slow)
 
 TEST(HttpClient, DISABLED_Issue156_Crash)
 {
+  MetricsRegistry dummyRegistry;
   TotoServer handler;
-  HttpServer server;
+  HttpServer server(dummyRegistry);
   server.SetPortNumber(5000);
   server.Register(handler);
   server.Start();
@@ -1384,3 +1388,14 @@ TEST(HttpClient, DISABLED_Issue156_Crash)
   server.Stop();
 }
 #endif
+
+
+TEST(HttpServer, GetRelativePathToRoot)
+{
+  ASSERT_THROW(HttpServer::GetRelativePathToRoot(""), OrthancException);
+  ASSERT_EQ("./", HttpServer::GetRelativePathToRoot("/"));
+  ASSERT_EQ("./", HttpServer::GetRelativePathToRoot("/system"));
+  ASSERT_EQ("../", HttpServer::GetRelativePathToRoot("/system/"));
+  ASSERT_EQ("./../../", HttpServer::GetRelativePathToRoot("/a/b/system"));
+  ASSERT_EQ("../../../", HttpServer::GetRelativePathToRoot("/a/b/system/"));
+}

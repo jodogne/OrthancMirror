@@ -59,7 +59,8 @@ namespace Orthanc
 
     job.GetJobType(jobType_);
     job.GetPublicContent(publicContent_);
-
+    job.GetUserData(userData_);
+    
     hasSerialized_ = job.Serialize(serialized_);
   }
 

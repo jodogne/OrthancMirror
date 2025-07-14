@@ -137,6 +137,10 @@ namespace
     {
       return false;
     }
+    virtual bool GetUserData(Json::Value& userData) const ORTHANC_OVERRIDE
+    {
+      return false;
+    }
   };
 
 

@@ -408,3 +408,31 @@ TEST(Toolbox, GetHumanTransferSpeed)
   ASSERT_EQ("1.00GB in 1.00s = 8.59Gbps", Toolbox::GetHumanTransferSpeed(true, 1024*1024*1024, 1000000000));
   ASSERT_EQ("976.56KB in 1.00s = 8.00Mbps", Toolbox::GetHumanTransferSpeed(true, 1000*1000, 1000000000));
 }
+
+TEST(Toolbox, DISABLED_JapaneseBackslashes)
+{
+  std::string s = Orthanc::Toolbox::ConvertToUtf8("ORIGINAL\\PRIMARY", Encoding_Japanese, false, false);
+  ASSERT_EQ("ORIGINAL\302\245PRIMARY", s);  // NB: The Yen symbol is encoded as 0xC2 0xA5 in UTF-8
+
+  s = Orthanc::Toolbox::ConvertToUtf8("ORIGINAL\\PRIMARY", Encoding_Japanese, false, true);
+  ASSERT_EQ("ORIGINAL\\PRIMARY", s);
+
+  s = Orthanc::Toolbox::ConvertDicomStringToUtf8("ORIGINAL\\PRIMARY", Encoding_Japanese, false, ValueRepresentation_PersonName);
+  ASSERT_EQ("ORIGINAL\\PRIMARY", s);
+
+  // Backslashes should only be interpreted as the Yen symbol if VR is ST, LT, or UL
+  s = Orthanc::Toolbox::ConvertDicomStringToUtf8("ORIGINAL\\PRIMARY", Encoding_Japanese, false, ValueRepresentation_ShortText);
+  ASSERT_EQ("ORIGINAL\302\245PRIMARY", s);
+
+  s = Orthanc::Toolbox::ConvertDicomStringToUtf8("ORIGINAL\\PRIMARY", Encoding_Japanese, false, ValueRepresentation_LongText);
+  ASSERT_EQ("ORIGINAL\302\245PRIMARY", s);
+
+  s = Orthanc::Toolbox::ConvertDicomStringToUtf8("ORIGINAL\\PRIMARY", Encoding_Japanese, false, ValueRepresentation_UnlimitedText);
+  ASSERT_EQ("ORIGINAL\302\245PRIMARY", s);
+
+  s = Orthanc::Toolbox::ConvertToUtf8("ORIGINAL\\PRIMARY", Encoding_Latin1, false, false);
+  ASSERT_EQ("ORIGINAL\\PRIMARY", s);
+
+  s = Orthanc::Toolbox::ConvertDicomStringToUtf8("ORIGINAL\\PRIMARY", Encoding_Latin1, false, ValueRepresentation_ShortText);
+  ASSERT_EQ("ORIGINAL\\PRIMARY", s);
+}

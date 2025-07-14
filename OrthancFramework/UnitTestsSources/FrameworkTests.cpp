@@ -49,6 +49,7 @@
 #endif
 
 #include <ctype.h>
+#include <boost/thread.hpp>
 
 
 using namespace Orthanc;
@@ -499,7 +500,7 @@ TEST(Toolbox, ConvertFromLatin1)
   ASSERT_EQ("&abc", Toolbox::ConvertToAscii(s));
 
   // Open in Emacs, then save with UTF-8 encoding, then "hexdump -C"
-  std::string utf8 = Toolbox::ConvertToUtf8(s, Encoding_Latin1, false);
+  std::string utf8 = Toolbox::ConvertToUtf8(s, Encoding_Latin1, false, false);
   ASSERT_EQ(15u, utf8.size());
   ASSERT_EQ(0xc3, static_cast<unsigned char>(utf8[0]));
   ASSERT_EQ(0xa0, static_cast<unsigned char>(utf8[1]));
@@ -526,8 +527,8 @@ TEST(Toolbox, FixUtf8)
 
   std::string s((char*) &latin1[0], sizeof(latin1) / sizeof(char));
 
-  ASSERT_EQ(s, Toolbox::ConvertFromUtf8(Toolbox::ConvertToUtf8(s, Encoding_Latin1, false), Encoding_Latin1));
-  ASSERT_EQ("cre", Toolbox::ConvertToUtf8(s, Encoding_Utf8, false));
+  ASSERT_EQ(s, Toolbox::ConvertFromUtf8(Toolbox::ConvertToUtf8(s, Encoding_Latin1, false, false), Encoding_Latin1));
+  ASSERT_EQ("cre", Toolbox::ConvertToUtf8(s, Encoding_Utf8, false, false));
 }
 
 
@@ -1278,7 +1279,7 @@ TEST(Toolbox, UriEncode)
   Toolbox::UriEncode(s, t); 
   ASSERT_EQ(t, s);
 
-  Toolbox::UriEncode(s, "!#$&'()*+,/:;=?@[]"); ASSERT_EQ("%21%23%24%26%27%28%29%2A%2B%2C/%3A%3B%3D%3F%40%5B%5D", s);  
+  Toolbox::UriEncode(s, "!#$&'()*+,/:;=?@[]"); ASSERT_EQ("%21%23%24%26%27%28%29%2A%2B%2C%2F%3A%3B%3D%3F%40%5B%5D", s);
   Toolbox::UriEncode(s, "%"); ASSERT_EQ("%25", s);
 
   // Encode characters from UTF-8. This is the test string from the
@@ -1425,6 +1426,25 @@ TEST(Toolbox, SubstituteVariables)
 
 
 #if ORTHANC_SANDBOXED != 1
+
+void GetValuesDico(std::map<std::string, std::string>& values, MetricsRegistry& m)
+{
+  values.clear();
+
+  std::string s;
+  m.ExportPrometheusText(s);
+
+  std::vector<std::string> t;
+  Toolbox::TokenizeString(t, s, '\n');
+ 
+  for (size_t i = 0; i < t.size() - 1; i++)
+  {
+    std::vector<std::string> v;
+    Toolbox::TokenizeString(v, t[i], ' ');
+    values[v[0]] = v[1];
+  }
+}
+
 TEST(MetricsRegistry, Basic)
 {
   {
@@ -1571,6 +1591,63 @@ TEST(MetricsRegistry, Basic)
 
     ASSERT_EQ(MetricsUpdatePolicy_Directly, m.GetUpdatePolicy("c"));
     ASSERT_EQ(MetricsDataType_Integer, m.GetDataType("c"));
+  }
+
+  {
+    std::map<std::string, std::string> values;
+
+    MetricsRegistry mr;
+
+    {
+      MetricsRegistry::SharedMetrics max10(mr, "shared_max10", MetricsUpdatePolicy_MaxOver10Seconds);
+    
+      {
+        MetricsRegistry::ActiveCounter c1(max10);
+        MetricsRegistry::ActiveCounter c2(max10);
+        GetValuesDico(values, mr);
+        ASSERT_EQ("2", values["shared_max10"]);
+      }
+
+      GetValuesDico(values, mr);
+      ASSERT_EQ("2", values["shared_max10"]);
+
+      // { // Uncomment to test max values going back to latest values after expiration of the 10 seconds period
+      //   boost::this_thread::sleep(boost::posix_time::milliseconds(12000));
+
+      //   GetValuesDico(values, mr);
+      //   ASSERT_EQ("0", values["shared_max10"]);
+      // }
+    }
+
+    {
+      MetricsRegistry::SharedMetrics min10(mr, "shared_min10", MetricsUpdatePolicy_MinOver10Seconds);
+      min10.SetInitialValue(10);
+
+      GetValuesDico(values, mr);
+      ASSERT_EQ("10", values["shared_min10"]);
+
+      {
+        MetricsRegistry::AvailableResourcesDecounter c1(min10);
+        MetricsRegistry::AvailableResourcesDecounter c2(min10);
+        GetValuesDico(values, mr);
+        ASSERT_EQ("8", values["shared_min10"]);
+      }
+
+      GetValuesDico(values, mr);
+      ASSERT_EQ("8", values["shared_min10"]);
+
+      // {
+      //   // Uncomment to test min values going back to latest values after expiration of the 10 seconds period
+      //   boost::this_thread::sleep(boost::posix_time::milliseconds(12000));
+
+      //   GetValuesDico(values, mr);
+      //   ASSERT_EQ("10", values["shared_min10"]);
+      // }
+
+      min10.SetInitialValue(5);
+      GetValuesDico(values, mr);
+      ASSERT_EQ("5", values["shared_min10"]);
+    }
   }
 }
 #endif

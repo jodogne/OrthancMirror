@@ -50,6 +50,7 @@
 
 
 #include "IIncomingHttpRequestFilter.h"
+#include "../MetricsRegistry.h"
 
 #include <list>
 #include <map>
@@ -114,6 +115,7 @@ namespace Orthanc
     unsigned int threadsCount_;
     bool tcpNoDelay_;
     unsigned int requestTimeout_;  // In seconds
+    MetricsRegistry::SharedMetrics availableHttpThreadsMetrics_;
 
 #if ORTHANC_ENABLE_PUGIXML == 1
     WebDavBuckets webDavBuckets_;
@@ -122,7 +124,7 @@ namespace Orthanc
     bool IsRunning() const;
 
   public:
-    HttpServer();
+    explicit HttpServer(MetricsRegistry& metricsRegistry);
 
     ~HttpServer();
 
@@ -225,6 +227,14 @@ namespace Orthanc
                                   const UriComponents& uri,
                                   const std::map<std::string, std::string>& headers,
                                   const std::string& body,
-                                  const std::string& boundary);
+                                  const std::string& boundary,
+                                  const std::string& authenticationPayload);
+
+    MetricsRegistry::SharedMetrics& GetAvailableHttpThreadsMetrics()
+    {
+      return availableHttpThreadsMetrics_;
+    }
+
+    static std::string GetRelativePathToRoot(const std::string& uri);
   };
 }

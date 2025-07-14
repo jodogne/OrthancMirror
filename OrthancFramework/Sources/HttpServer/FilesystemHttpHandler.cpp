@@ -128,7 +128,8 @@ namespace Orthanc
                                      const HttpToolbox::Arguments& headers,
                                      const HttpToolbox::GetArguments& arguments,
                                      const void* /*bodyData*/,
-                                     size_t /*bodySize*/)
+                                     size_t /*bodySize*/,
+                                     const std::string& authenticationPayload /* ignored */)
   {
     if (!Toolbox::IsChildUri(pimpl_->baseUri_, uri))
     {
