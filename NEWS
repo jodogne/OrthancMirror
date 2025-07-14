@@ -32,6 +32,8 @@ Plugin SDK
     DICOM resource from a plugin.
   - "OrthancPluginRegisterHttpAuthentication()" to install a custom
     callback to authenticate HTTP requests.
+  - "OrthancPluginRecordAuditLog()" to record an audit log in DB, provided
+    that the DB plugin supports it.
 * The OrthancPluginHttpRequest structure provides the payload of
   the possible HTTP authentication callback.
 * OrthancPluginCallRestApi() now also returns the body of DELETE requests:

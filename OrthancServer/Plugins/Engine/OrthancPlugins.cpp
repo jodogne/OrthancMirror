@@ -4768,6 +4768,18 @@ namespace Orthanc
     }
   }
 
+  void OrthancPlugins::ApplyRecordAuditLog(const _OrthancPluginRecordAuditLog& parameters)
+  {
+    PImpl::ServerContextReference lock(*pimpl_);
+
+    if (!lock.GetContext().GetIndex().HasAuditLogsSupport())
+    {
+      throw OrthancException(ErrorCode_NotImplemented, "The database engine does not support audit logs");
+    }
+
+    lock.GetContext().GetIndex().RecordAuditLog(parameters.userId, Plugins::Convert(parameters.resourceType), parameters.resourceId, parameters.action, parameters.logData, parameters.logDataSize);
+  }
+
   void OrthancPlugins::ApplyLoadDicomInstance(const _OrthancPluginLoadDicomInstance& params)
   {
     std::unique_ptr<IDicomInstance> target;
@@ -5895,6 +5907,13 @@ namespace Orthanc
       {
         const _OrthancPluginSetStableStatus& p = *reinterpret_cast<const _OrthancPluginSetStableStatus*>(parameters);
         ApplySetStableStatus(p);
+        return true;
+      }
+
+      case _OrthancPluginService_RecordAuditLog:
+      {
+        const _OrthancPluginRecordAuditLog& p = *reinterpret_cast<const _OrthancPluginRecordAuditLog*>(parameters);
+        ApplyRecordAuditLog(p);
         return true;
       }
 

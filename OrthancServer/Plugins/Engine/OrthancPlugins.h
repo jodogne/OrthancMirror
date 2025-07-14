@@ -249,6 +249,8 @@ private:
 
     void ApplySetStableStatus(const _OrthancPluginSetStableStatus& parameters);
 
+    void ApplyRecordAuditLog(const _OrthancPluginRecordAuditLog& parameters);
+
     void ComputeHash(_OrthancPluginService service,
                      const void* parameters);
 

@@ -97,6 +97,7 @@ namespace Orthanc
     static const char* const HAS_EXTENDED_CHANGES = "HasExtendedChanges";
     static const char* const HAS_KEY_VALUE_STORES = "HasKeyValueStores";
     static const char* const HAS_QUEUES = "HasQueues";
+    static const char* const HAS_AUDITS_LOGS = "HasAuditLogs";
     static const char* const HAS_EXTENDED_FIND = "HasExtendedFind";
     static const char* const READ_ONLY = "ReadOnly";
 
@@ -215,6 +216,7 @@ namespace Orthanc
     result[CAPABILITIES][HAS_EXTENDED_FIND] = OrthancRestApi::GetIndex(call).HasFindSupport();
     result[CAPABILITIES][HAS_KEY_VALUE_STORES] = OrthancRestApi::GetIndex(call).HasKeyValueStoresSupport();
     result[CAPABILITIES][HAS_QUEUES] = OrthancRestApi::GetIndex(call).HasQueuesSupport();
+    result[CAPABILITIES][HAS_AUDITS_LOGS] = OrthancRestApi::GetIndex(call).HasAuditLogsSupport();
     
     call.GetOutput().AnswerJson(result);
   }
