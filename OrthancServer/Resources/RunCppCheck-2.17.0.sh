@@ -9,7 +9,7 @@ if [ $# -ge 1 ]; then
 fi
 
 cat <<EOF > /tmp/cppcheck-suppressions.txt
-nullPointer:../../OrthancFramework/UnitTestsSources/RestApiTests.cpp:321
+nullPointer:../../OrthancFramework/UnitTestsSources/RestApiTests.cpp:322
 stlFindInsert:../../OrthancFramework/Sources/DicomFormat/DicomMap.cpp:1525
 stlFindInsert:../../OrthancFramework/Sources/RestApi/RestApiCallDocumentation.cpp:166
 stlFindInsert:../../OrthancFramework/Sources/RestApi/RestApiCallDocumentation.cpp:74

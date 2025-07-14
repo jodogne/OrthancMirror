@@ -43,6 +43,7 @@ namespace Orthanc
   static const char* RUNTIME = "Runtime";
   static const char* ERROR_CODE = "ErrorCode";
   static const char* ERROR_DETAILS = "ErrorDetails";
+  static const char* USER_DATA = "UserData";
 
 
   class JobsRegistry::JobHandler : public boost::noncopyable
@@ -295,6 +296,13 @@ namespace Orthanc
         // New in Orthanc 1.9.5
         target[ERROR_CODE] = static_cast<int>(lastStatus_.GetErrorCode());
         target[ERROR_DETAILS] = lastStatus_.GetDetails();
+        
+        // New in Orthanc 1.12.9
+        Json::Value userData;
+        if (job_->GetUserData(userData))
+        {
+          target[USER_DATA] = userData;
+        }
         
         return true;
       }

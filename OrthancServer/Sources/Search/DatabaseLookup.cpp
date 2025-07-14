@@ -111,8 +111,8 @@ namespace Orthanc
 
       std::set<DicomTag> ignoreTagLength;
       std::unique_ptr<DicomValue> value(FromDcmtkBridge::ConvertLeafElement
-                                        (*element, DicomToJsonFlags_None, 
-                                         0, encoding, hasCodeExtensions, ignoreTagLength));
+                                        (*element, DicomToJsonFlags_None, 0, encoding, hasCodeExtensions,
+                                         ignoreTagLength, FromDcmtkBridge::Convert(element->getVR())));
 
       // WARNING: Also modify "HierarchicalMatcher::Setup()" if modifying this code
       if (value.get() == NULL ||

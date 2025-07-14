@@ -36,7 +36,8 @@ namespace Orthanc
     const char* username,
     HttpMethod method,
     const UriComponents& uri,
-    const HttpToolbox::Arguments& headers)
+    const HttpToolbox::Arguments& headers,
+    const std::string& authenticationPayload)
   {
     if (method != HttpMethod_Post &&
         method != HttpMethod_Put)
@@ -47,7 +48,7 @@ namespace Orthanc
     for (Handlers::const_iterator it = handlers_.begin(); it != handlers_.end(); ++it) 
     {
       if ((*it)->CreateChunkedRequestReader
-          (target, origin, remoteIp, username, method, uri, headers))
+          (target, origin, remoteIp, username, method, uri, headers, authenticationPayload))
       {
         if (target.get() == NULL)
         {
@@ -71,12 +72,13 @@ namespace Orthanc
                                   const HttpToolbox::Arguments& headers,
                                   const HttpToolbox::GetArguments& getArguments,
                                   const void* bodyData,
-                                  size_t bodySize)
+                                  size_t bodySize,
+                                  const std::string& authenticationPayload)
   {
     for (Handlers::const_iterator it = handlers_.begin(); it != handlers_.end(); ++it) 
     {
       if ((*it)->Handle(output, origin, remoteIp, username, method, uri, 
-                        headers, getArguments, bodyData, bodySize))
+                        headers, getArguments, bodyData, bodySize, authenticationPayload))
       {
         return true;
       }

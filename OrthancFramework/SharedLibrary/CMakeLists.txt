@@ -45,7 +45,8 @@ project(OrthancFramework)
 # adds CMAKE_INSTALL_PREFIX to the include_directories(), which causes
 # issues if re-building the shared library after install!
 set(ORTHANC_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}" CACHE PATH "")
-SET(UNIT_TESTS_WITH_HTTP_CONNEXIONS ON CACHE BOOL "Allow unit tests to make HTTP requests")
+set(BUILD_UNIT_TESTS ON CACHE BOOL "Whether to build the unit tests (new in Orthanc 1.12.9)")
+set(UNIT_TESTS_WITH_HTTP_CONNEXIONS ON CACHE BOOL "Allow unit tests to make HTTP requests")
 set(BUILD_SHARED_LIBRARY ON CACHE BOOL "Whether to build a shared library instead of a static library")
 set(ORTHANC_FRAMEWORK_ADDITIONAL_LIBRARIES "" CACHE STRING "Additional libraries to link against, separated by whitespaces, typically needed if building the static library (a common minimal value is \"boost_filesystem boost_iostreams boost_locale boost_regex boost_thread jsoncpp pugixml uuid\")")
 
@@ -75,13 +76,19 @@ endif()
 
 set(ENABLE_DCMTK ON)
 set(ENABLE_DCMTK_TRANSCODING ON)
-set(ENABLE_GOOGLE_TEST ON)
 set(ENABLE_JPEG ON)
 set(ENABLE_LOCALE ON)
 set(ENABLE_LUA ON)
 set(ENABLE_PNG ON)
 set(ENABLE_PUGIXML ON)
 set(ENABLE_ZLIB ON)
+
+if (BUILD_UNIT_TESTS)
+  set(ENABLE_GOOGLE_TEST ON)
+else()
+  set(ENABLE_GOOGLE_TEST OFF)
+endif()
+
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
   # WebAssembly or asm.js
@@ -504,7 +511,8 @@ install(
 ## Compile the unit tests
 #####################################################################
 
-if (NOT CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
+if (BUILD_UNIT_TESTS AND
+    NOT CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
   include(ExternalProject)
 
   if (CMAKE_TOOLCHAIN_FILE)
@@ -544,6 +552,7 @@ if (NOT CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
     -DUNIT_TESTS_WITH_HTTP_CONNEXIONS:BOOL=${UNIT_TESTS_WITH_HTTP_CONNEXIONS}
     -DUSE_GOOGLE_TEST_DEBIAN_PACKAGE:BOOL=${USE_GOOGLE_TEST_DEBIAN_PACKAGE}
     -DUSE_SYSTEM_GOOGLE_TEST:BOOL=${USE_SYSTEM_GOOGLE_TEST}
+    -DBUILD_UNIT_TESTS:BOOL=${BUILD_UNIT_TESTS}
 
     -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
     -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}

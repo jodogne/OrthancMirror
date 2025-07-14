@@ -194,7 +194,7 @@ TEST(DicomMap, DicomAsJson)
   const unsigned char raw[] = { 0x63, 0x72, 0xe2, 0x6e, 0x65 };
   std::string latin1((char*) &raw[0], sizeof(raw) / sizeof(char));
 
-  std::string utf8 = Toolbox::ConvertToUtf8(latin1, Encoding_Latin1, false);
+  std::string utf8 = Toolbox::ConvertToUtf8(latin1, Encoding_Latin1, false, false);
 
   ParsedDicomFile dicom(false);
   dicom.SetEncoding(Encoding_Latin1);
@@ -516,7 +516,6 @@ TEST(StorageCommitmentReports, Basic)
 int main(int argc, char **argv)
 {
   Logging::Initialize();
-  Toolbox::InitializeGlobalLocale(NULL);
   SetGlobalVerbosity(Verbosity_Verbose);
   Toolbox::DetectEndianness();
   SystemToolbox::MakeDirectory("UnitTestsResults");

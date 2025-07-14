@@ -175,6 +175,7 @@ message GetSystemInformation {
     bool supports_key_value_stores = 10;  // New in Orthanc 1.12.8
     bool supports_queues = 11;            // New in Orthanc 1.12.8
     bool has_attachment_custom_data = 12; // New in Orthanc 1.12.8
+    bool supports_audit_logs = 13;            // New in Orthanc 1.12.9
   }
 }
 
@@ -339,6 +340,7 @@ enum TransactionOperation {
   OPERATION_GET_QUEUE_SIZE = 59;              // New in Orthanc 1.12.8
   OPERATION_GET_ATTACHMENT_CUSTOM_DATA = 60;  // New in Orthanc 1.12.8
   OPERATION_SET_ATTACHMENT_CUSTOM_DATA = 61;  // New in Orthanc 1.12.8
+  OPERATION_RECORD_AUDIT_LOG = 62;            // New in Orthanc 1.12.9
 
 }
 
@@ -1095,6 +1097,20 @@ message SetAttachmentCustomData {
   }
 }
 
+message RecordAuditLog {
+  message Request {
+    string user_id = 1;
+    ResourceType  resource_type = 2;
+    string resource_id = 3;
+    string action = 4;
+    bytes log_data = 5;
+  }
+
+  message Response {
+  }
+}
+
+
 message TransactionRequest {
   sfixed64              transaction = 1;
   TransactionOperation  operation = 2;
@@ -1161,6 +1177,7 @@ message TransactionRequest {
   GetQueueSize.Request                    get_queue_size = 159;
   GetAttachmentCustomData.Request         get_attachment_custom_data = 160;
   SetAttachmentCustomData.Request         set_attachment_custom_data = 161;
+  RecordAuditLog.Request                  record_audit_log = 162;
 }
 
 message TransactionResponse {
@@ -1226,6 +1243,7 @@ message TransactionResponse {
   GetQueueSize.Response                    get_queue_size = 159;
   GetAttachmentCustomData.Response         get_attachment_custom_data = 160;
   SetAttachmentCustomData.Response         set_attachment_custom_data = 161;
+  RecordAuditLog.Response                  record_audit_log = 162;
 }
 
 enum RequestType {

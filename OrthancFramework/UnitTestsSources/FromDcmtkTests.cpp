@@ -264,7 +264,7 @@ TEST(FromDcmtkBridge, Encodings1)
   {
     std::string source(testEncodingsEncoded[i]);
     std::string expected(testEncodingsExpected[i]);
-    std::string s = Toolbox::ConvertToUtf8(source, testEncodings[i], false);
+    std::string s = Toolbox::ConvertToUtf8(source, testEncodings[i], false, false);
     //std::cout << EnumerationToString(testEncodings[i]) << std::endl;
     EXPECT_EQ(expected, s);
   }
@@ -334,7 +334,7 @@ TEST(FromDcmtkBridge, Encodings3)
       ParsedDicomFile f(true);
       f.SetEncoding(testEncodings[i]);
 
-      std::string s = Toolbox::ConvertToUtf8(testEncodingsEncoded[i], testEncodings[i], false);
+      std::string s = Toolbox::ConvertToUtf8(testEncodingsEncoded[i], testEncodings[i], false, false);
       f.Insert(DICOM_TAG_PATIENT_NAME, s, false, "");
       f.SaveToMemoryBuffer(dicom);
     }
@@ -571,7 +571,7 @@ TEST(ParsedDicomFile, JsonEncoding)
         ASSERT_FALSE(hasCodeExtensions);
       }
 
-      Json::Value s = Toolbox::ConvertToUtf8(testEncodingsEncoded[i], testEncodings[i], false);
+      Json::Value s = Toolbox::ConvertToUtf8(testEncodingsEncoded[i], testEncodings[i], false, false);
       f.Replace(DICOM_TAG_PATIENT_NAME, s, false, DicomReplaceMode_InsertIfAbsent, "");
 
       Json::Value v;
@@ -1172,7 +1172,7 @@ TEST(ParsedDicomFile, DicomMapEncodings2)
         // Sanity check to test the proper behavior of "EncodingTests.py"
         std::string encoded = Toolbox::ConvertFromUtf8(testEncodingsExpected[i], testEncodings[i]);
         ASSERT_STREQ(testEncodingsEncoded[i], encoded.c_str());
-        std::string decoded = Toolbox::ConvertToUtf8(encoded, testEncodings[i], false);
+        std::string decoded = Toolbox::ConvertToUtf8(encoded, testEncodings[i], false, false);
         ASSERT_STREQ(testEncodingsExpected[i], decoded.c_str());
 
         if (testEncodings[i] != Encoding_Chinese)
@@ -1181,7 +1181,7 @@ TEST(ParsedDicomFile, DicomMapEncodings2)
           // test against Chinese, it is normal that it does not correspond to UTF8
 
           const std::string tmp = Toolbox::ConvertToUtf8(
-            Toolbox::ConvertFromUtf8(utf8, testEncodings[i]), testEncodings[i], false);
+            Toolbox::ConvertFromUtf8(utf8, testEncodings[i]), testEncodings[i], false, false);
           ASSERT_STREQ(testEncodingsExpected[i], tmp.c_str());
         }
       }

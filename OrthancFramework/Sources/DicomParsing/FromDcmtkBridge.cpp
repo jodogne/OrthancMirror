@@ -632,8 +632,8 @@ namespace Orthanc
       {
         target.SetValueInternal(element->getTag().getGTag(),
                                 element->getTag().getETag(),
-                                ConvertLeafElement(*element, DicomToJsonFlags_Default,
-                                                   maxStringLength, encoding, hasCodeExtensions, ignoreTagLength));
+                                ConvertLeafElement(*element, DicomToJsonFlags_Default, maxStringLength, encoding,
+                                                   hasCodeExtensions, ignoreTagLength, Convert(element->getVR())));
       }
       else
       {
@@ -694,7 +694,8 @@ namespace Orthanc
                                                   unsigned int maxStringLength,
                                                   Encoding encoding,
                                                   bool hasCodeExtensions,
-                                                  const std::set<DicomTag>& ignoreTagLength)
+                                                  const std::set<DicomTag>& ignoreTagLength,
+                                                  ValueRepresentation vr)
   {
     if (!element.isLeaf())
     {
@@ -714,7 +715,7 @@ namespace Orthanc
         else
         {
           const std::string s(c);
-          const std::string utf8 = Toolbox::ConvertToUtf8(s, encoding, hasCodeExtensions);
+          const std::string utf8 = Toolbox::ConvertDicomStringToUtf8(s, encoding, hasCodeExtensions, Convert(element.getVR()));
           return CreateValueFromUtf8String(GetTag(element), utf8, maxStringLength, ignoreTagLength);
         }
       }
@@ -782,7 +783,7 @@ namespace Orthanc
             // "SpecificCharacterSet" tag, if present. This branch is
             // new in Orthanc 1.9.1 (cf. DICOM CP 246).
             const std::string s(reinterpret_cast<const char*>(data), length);
-            const std::string utf8 = Toolbox::ConvertToUtf8(s, encoding, hasCodeExtensions);
+            const std::string utf8 = Toolbox::ConvertToUtf8(s, encoding, hasCodeExtensions, Convert(element.getVR()));
             return CreateValueFromUtf8String(GetTag(element), utf8, maxStringLength, ignoreTagLength);
           }
         }
@@ -1102,7 +1103,7 @@ namespace Orthanc
     {
       // The "0" below lets "LeafValueToJson()" take care of "TooLong" values
       std::unique_ptr<DicomValue> v(FromDcmtkBridge::ConvertLeafElement
-                                    (element, flags, 0, encoding, hasCodeExtensions, ignoreTagLength));
+                                    (element, flags, 0, encoding, hasCodeExtensions, ignoreTagLength, Convert(element.getVR())));
 
       if (ignoreTagLength.find(GetTag(element)) == ignoreTagLength.end())
       {
@@ -2594,7 +2595,7 @@ namespace Orthanc
               element->getString(c).good() && 
               c != NULL)
           {
-            std::string a = Toolbox::ConvertToUtf8(c, source, hasSourceCodeExtensions);
+            std::string a = Toolbox::ConvertToUtf8(c, source, hasSourceCodeExtensions, Convert(element->getVR()));
             std::string b = Toolbox::ConvertFromUtf8(a, target);
             element->putString(b.c_str());
           }
@@ -2848,7 +2849,7 @@ namespace Orthanc
         else
         {
           std::string s(c);
-          utf8 = Toolbox::ConvertToUtf8(s, encoding, hasCodeExtensions);
+          utf8 = Toolbox::ConvertDicomStringToUtf8(s, encoding, hasCodeExtensions, FromDcmtkBridge::Convert(element.getVR()));
         }
       }
 
@@ -2924,8 +2925,8 @@ namespace Orthanc
 
             std::string ignored;
             std::string s(reinterpret_cast<const char*>(data), l);
-            action = visitor.VisitString(ignored, parentTags, parentIndexes, tag, vr,
-                                         Toolbox::ConvertToUtf8(s, encoding, hasCodeExtensions));
+            std::string utf8 = Toolbox::ConvertDicomStringToUtf8(s, encoding, hasCodeExtensions, FromDcmtkBridge::Convert(element.getVR()));
+            action = visitor.VisitString(ignored, parentTags, parentIndexes, tag, vr, utf8);
           }
           else
           {

@@ -552,7 +552,8 @@ namespace Orthanc
     
     try
     {
-      if (IHttpHandler::SimpleDelete(NULL, serverContext->GetHttpHandler().RestrictToOrthancRestApi(builtin), 
+      std::string bodyIgnored;
+      if (IHttpHandler::SimpleDelete(bodyIgnored, NULL, serverContext->GetHttpHandler().RestrictToOrthancRestApi(builtin),
                                      RequestOrigin_Lua, uri, headers) == HttpStatus_200_Ok)
       {
         lua_pushboolean(state, 1);

@@ -62,6 +62,7 @@ namespace Orthanc
     bool                    permissive_;
     ThreadedJobStep         currentStep_;
     std::string             description_;
+    Json::Value             userData_;
     size_t                  workersCount_;
 
     ServerContext&          context_;
@@ -170,5 +171,8 @@ namespace Orthanc
       return context_;
     }
 
+    void SetUserData(const Json::Value& userData);
+
+    virtual bool GetUserData(Json::Value& userData) const ORTHANC_OVERRIDE;
   };
 }

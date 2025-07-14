@@ -534,7 +534,7 @@ public:
   {
   }
 
-  virtual bool IsValidBearerToken(const std::string& token) ORTHANC_OVERRIDE
+  virtual bool IsValidBearerToken(const std::string& token) const ORTHANC_OVERRIDE
   {
 #if ORTHANC_ENABLE_PLUGINS == 1
     return (plugins_ != NULL &&
@@ -549,7 +549,7 @@ public:
                          const char* ip,
                          const char* username,
                          const HttpToolbox::Arguments& httpHeaders,
-                         const HttpToolbox::GetArguments& getArguments) ORTHANC_OVERRIDE
+                         const HttpToolbox::GetArguments& getArguments) const ORTHANC_OVERRIDE
   {
 #if ORTHANC_ENABLE_PLUGINS == 1
     if (plugins_ != NULL &&
@@ -570,24 +570,24 @@ public:
 
       switch (method)
       {
-        case HttpMethod_Get:
-          call.PushString("GET");
-          break;
+      case HttpMethod_Get:
+        call.PushString("GET");
+        break;
 
-        case HttpMethod_Put:
-          call.PushString("PUT");
-          break;
+      case HttpMethod_Put:
+        call.PushString("PUT");
+        break;
 
-        case HttpMethod_Post:
-          call.PushString("POST");
-          break;
+      case HttpMethod_Post:
+        call.PushString("POST");
+        break;
 
-        case HttpMethod_Delete:
-          call.PushString("DELETE");
-          break;
+      case HttpMethod_Delete:
+        call.PushString("DELETE");
+        break;
 
-        default:
-          return true;
+      default:
+        return true;
       }
 
       call.PushString(uri);
@@ -603,6 +603,23 @@ public:
     }
 
     return true;
+  }
+
+  virtual AuthenticationStatus CheckAuthentication(std::string& customPayload /* out: payload to provide to "IsAllowed()" */,
+                                                   std::string& redirection   /* out: path relative to the root */,
+                                                   const char* uri,
+                                                   const char* ip,
+                                                   const HttpToolbox::Arguments& httpHeaders,
+                                                   const HttpToolbox::GetArguments& getArguments) const ORTHANC_OVERRIDE
+  {
+#if ORTHANC_ENABLE_PLUGINS == 1
+    if (plugins_ != NULL)
+    {
+      return plugins_->CheckAuthentication(customPayload, redirection, uri, ip, httpHeaders, getArguments);
+    }
+#endif
+
+    return AuthenticationStatus_BuiltIn;
   }
 };
 
@@ -1032,7 +1049,7 @@ static bool StartHttpServer(ServerContext& context,
   else
   {
     MyIncomingHttpRequestFilter httpFilter(context, plugins);
-    HttpServer httpServer;
+    HttpServer httpServer(context.GetMetricsRegistry());
     bool httpDescribeErrors;
 
 #if ORTHANC_ENABLE_MONGOOSE == 1
@@ -1090,12 +1107,16 @@ static bool StartHttpServer(ServerContext& context,
         httpServer.SetAuthenticationEnabled(false);
       }
 
-      bool hasUsers = lock.GetConfiguration().SetupRegisteredUsers(httpServer);
+      OrthancConfiguration::RegisteredUsersStatus status = lock.GetConfiguration().SetupRegisteredUsers(httpServer);
+      assert(status == OrthancConfiguration::RegisteredUsersStatus_NoConfiguration ||
+             status == OrthancConfiguration::RegisteredUsersStatus_NoUser ||
+             status == OrthancConfiguration::RegisteredUsersStatus_HasUser);
 
       if (httpServer.IsAuthenticationEnabled() &&
-          !hasUsers)
+          status != OrthancConfiguration::RegisteredUsersStatus_HasUser)
       {
-        if (httpServer.IsRemoteAccessAllowed())
+        if (httpServer.IsRemoteAccessAllowed() &&
+            status == OrthancConfiguration::RegisteredUsersStatus_NoConfiguration)
         {
           /**
            * Starting with Orthanc 1.5.8, if no user is explicitly
@@ -1117,7 +1138,8 @@ static bool StartHttpServer(ServerContext& context,
         else
         {
           LOG(WARNING) << "HTTP authentication is enabled, but no user is declared, "
-                       << "check the value of configuration option \"RegisteredUsers\"";
+                       << "check the value of configuration option \"RegisteredUsers\" "
+                       << "if you cannot access Orthanc as expected";
         }
       }
       
@@ -1274,7 +1296,7 @@ static bool StartDicomServer(ServerContext& context,
     ModalitiesFromConfiguration modalities;
   
     // Setup the DICOM server  
-    DicomServer dicomServer;
+    DicomServer dicomServer(context.GetMetricsRegistry());
     dicomServer.SetRemoteModalities(modalities);
     dicomServer.SetStoreRequestHandlerFactory(serverFactory);
     dicomServer.SetMoveRequestHandlerFactory(serverFactory);

@@ -32,6 +32,7 @@
 #include "../Logging.h"
 #include "../OrthancException.h"
 #include "../TemporaryFile.h"
+#include "../MetricsRegistry.h"
 #include "HttpToolbox.h"
 #include "IHttpHandler.h"
 #include "MultipartStreamReader.h"
@@ -348,6 +349,7 @@ namespace Orthanc
     bool                  isJQueryUploadChunk_;
     std::string           jqueryUploadFileName_;
     size_t                jqueryUploadFileSize_;
+    const std::string&    authenticationPayload_;
 
     void HandleInternal(const MultipartStreamReader::HttpHeaders& headers,
                         const void* part,
@@ -358,7 +360,7 @@ namespace Orthanc
       HttpToolbox::GetArguments getArguments;
       
       if (!handler_.Handle(fakeOutput, RequestOrigin_RestApi, remoteIp_.c_str(), username_.c_str(), 
-                           HttpMethod_Post, uri_, headers, getArguments, part, size))
+                           HttpMethod_Post, uri_, headers, getArguments, part, size, authenticationPayload_))
       {
         throw OrthancException(ErrorCode_UnknownResource);
       }
@@ -370,14 +372,16 @@ namespace Orthanc
                              const std::string& remoteIp,
                              const std::string& username,
                              const UriComponents& uri,
-                             const MultipartStreamReader::HttpHeaders& headers) :
+                             const MultipartStreamReader::HttpHeaders& headers,
+                             const std::string& authenticationPayload) :
       handler_(handler),
       chunkStore_(chunkStore),
       remoteIp_(remoteIp),
       username_(username),
       uri_(uri),
       isJQueryUploadChunk_(false),
-      jqueryUploadFileSize_(0)  // Dummy initialization
+      jqueryUploadFileSize_(0),  // Dummy initialization
+      authenticationPayload_(authenticationPayload)
     {
       typedef HttpToolbox::Arguments::const_iterator Iterator;
       
@@ -470,9 +474,10 @@ namespace Orthanc
                                             const UriComponents& uri,
                                             const std::map<std::string, std::string>& headers,
                                             const std::string& body,
-                                            const std::string& boundary)
+                                            const std::string& boundary,
+                                            const std::string& authenticationPayload)
   {
-    MultipartFormDataHandler handler(GetHandler(), pimpl_->chunkStore_, remoteIp, username, uri, headers);
+    MultipartFormDataHandler handler(GetHandler(), pimpl_->chunkStore_, remoteIp, username, uri, headers, authenticationPayload);
           
     MultipartStreamReader reader(boundary);
     reader.SetHandler(handler);
@@ -621,7 +626,7 @@ namespace Orthanc
   
   enum AccessMode
   {
-    AccessMode_Forbidden,
+    AccessMode_Unauthorized,
     AccessMode_AuthorizationToken,
     AccessMode_RegisteredUser
   };
@@ -657,7 +662,7 @@ namespace Orthanc
       }
     }
 
-    return AccessMode_Forbidden;
+    return AccessMode_Unauthorized;
   }
 
 
@@ -1146,7 +1151,42 @@ namespace Orthanc
   } 
 #endif /* ORTHANC_ENABLE_PUGIXML == 1 */
 
-  
+
+  std::string HttpServer::GetRelativePathToRoot(const std::string& uri)
+  {
+    if (uri.empty())
+    {
+      throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+    if (uri == "/")
+    {
+      return "./";
+    }
+
+    std::string path;
+
+    if (uri[uri.size() - 1] == '/')
+    {
+      path = "../";
+    }
+    else
+    {
+      path = "./";
+    }
+
+    UriComponents components;
+    Toolbox::SplitUriComponents(components, uri);
+
+    for (size_t i = 1; i < components.size(); i++)
+    {
+      path += "../";
+    }
+
+    return path;
+  }
+
+
   static void InternalCallback(HttpOutput& output /* out */,
                                HttpMethod& method /* out */,
                                HttpServer& server,
@@ -1154,6 +1194,8 @@ namespace Orthanc
                                const struct mg_request_info *request)
   {
     bool localhost;
+
+    MetricsRegistry::AvailableResourcesDecounter counter(server.GetAvailableHttpThreadsMetrics());
 
 #if ORTHANC_ENABLE_MONGOOSE == 1
     static const long LOCALHOST = (127ll << 24) + 1ll;
@@ -1200,18 +1242,10 @@ namespace Orthanc
       HttpToolbox::ParseGetArguments(argumentsGET, request->query_string);
     }
 
-    
+
     AccessMode accessMode = IsAccessGranted(server, headers);
 
-    // Authenticate this connection
-    if (server.IsAuthenticationEnabled() && 
-        accessMode == AccessMode_Forbidden)
-    {
-      output.SendUnauthorized(server.GetRealm());   // 401 error
-      return;
-    }
 
-    
 #if ORTHANC_ENABLE_MONGOOSE == 1
     // Apply the filter, if it is installed
     char remoteIp[24];
@@ -1235,6 +1269,55 @@ namespace Orthanc
       requestUri = "";
     }
       
+
+    const IIncomingHttpRequestFilter *filter = server.GetIncomingHttpRequestFilter();
+
+    // Authenticate this connection
+    std::string authenticationPayload;
+    std::string redirection;
+    IIncomingHttpRequestFilter::AuthenticationStatus status;
+
+    if (filter == NULL)
+    {
+      status = IIncomingHttpRequestFilter::AuthenticationStatus_BuiltIn;
+    }
+    else
+    {
+      status = filter->CheckAuthentication(authenticationPayload, redirection, requestUri, remoteIp, headers, argumentsGET);
+    }
+
+    switch (status)
+    {
+      case IIncomingHttpRequestFilter::AuthenticationStatus_BuiltIn:
+        // This was the only behavior available in Orthanc <= 1.12.8
+        if (server.IsAuthenticationEnabled() &&
+            accessMode == AccessMode_Unauthorized)
+        {
+          output.SendUnauthorized(server.GetRealm());   // 401 error
+          return;
+        }
+        break;
+
+      case IIncomingHttpRequestFilter::AuthenticationStatus_Granted:
+        break;
+
+      case IIncomingHttpRequestFilter::AuthenticationStatus_Redirect:
+        output.Redirect(Toolbox::JoinUri(HttpServer::GetRelativePathToRoot(requestUri), redirection));
+        return;
+
+      case IIncomingHttpRequestFilter::AuthenticationStatus_Unauthorized:
+        output.SendStatus(HttpStatus_401_Unauthorized);
+        return;
+
+      case IIncomingHttpRequestFilter::AuthenticationStatus_Forbidden:
+        output.SendStatus(HttpStatus_403_Forbidden);
+        return;
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+
     // Decompose the URI into its components
     UriComponents uri;
     try
@@ -1300,10 +1383,9 @@ namespace Orthanc
       // filter. In the case of an authorization bearer token, grant
       // full access to the API.
 
-      assert(accessMode == AccessMode_Forbidden ||  // Could be the case if "!server.IsAuthenticationEnabled()"
+      assert(accessMode == AccessMode_Unauthorized ||  // Could be the case if "!server.IsAuthenticationEnabled()"
              accessMode == AccessMode_RegisteredUser);
       
-      IIncomingHttpRequestFilter *filter = server.GetIncomingHttpRequestFilter();
       if (filter != NULL &&
           !filter->IsAllowed(filterMethod, requestUri, remoteIp,
                              username.c_str(), headers, argumentsGET))
@@ -1339,7 +1421,7 @@ namespace Orthanc
     if (method == HttpMethod_Post ||
         method == HttpMethod_Put)
     {
-      PostDataStatus status;
+      PostDataStatus postStatus;
 
       bool isMultipartForm = false;
 
@@ -1356,10 +1438,10 @@ namespace Orthanc
          **/
         isMultipartForm = true;
 
-        status = ReadBodyToString(body, connection, headers);
-        if (status == PostDataStatus_Success)
+        postStatus = ReadBodyToString(body, connection, headers);
+        if (postStatus == PostDataStatus_Success)
         {
-          server.ProcessMultipartFormData(remoteIp, username, uri, headers, body, boundary);
+          server.ProcessMultipartFormData(remoteIp, username, uri, headers, body, boundary, authenticationPayload);
           output.SendStatus(HttpStatus_200_Ok);
           return;
         }
@@ -1372,7 +1454,7 @@ namespace Orthanc
         if (server.HasHandler())
         {
           found = server.GetHandler().CreateChunkedRequestReader
-            (stream, RequestOrigin_RestApi, remoteIp, username.c_str(), method, uri, headers);
+            (stream, RequestOrigin_RestApi, remoteIp, username.c_str(), method, uri, headers, authenticationPayload);
         }
         
         if (found)
@@ -1382,20 +1464,20 @@ namespace Orthanc
             throw OrthancException(ErrorCode_InternalError);
           }
 
-          status = ReadBodyToStream(*stream, connection, headers);
+          postStatus = ReadBodyToStream(*stream, connection, headers);
 
-          if (status == PostDataStatus_Success)
+          if (postStatus == PostDataStatus_Success)
           {
             stream->Execute(output);
           }
         }
         else
         {
-          status = ReadBodyToString(body, connection, headers);
+          postStatus = ReadBodyToString(body, connection, headers);
         }
       }
 
-      switch (status)
+      switch (postStatus)
       {
         case PostDataStatus_NoLength:
           output.SendStatus(HttpStatus_411_LengthRequired);
@@ -1421,7 +1503,7 @@ namespace Orthanc
         server.HasHandler())
     {
       found = server.GetHandler().Handle(output, RequestOrigin_RestApi, remoteIp, username.c_str(), 
-                                         method, uri, headers, argumentsGET, body.c_str(), body.size());
+                                         method, uri, headers, argumentsGET, body.c_str(), body.size(), authenticationPayload);
     }
 
     if (!found)
@@ -1583,7 +1665,7 @@ namespace Orthanc
   }
 
 
-  HttpServer::HttpServer() :
+  HttpServer::HttpServer(MetricsRegistry& metricsRegistry) :
     pimpl_(new PImpl),
     handler_(NULL),
     remoteAllowed_(false),
@@ -1601,7 +1683,10 @@ namespace Orthanc
     realm_(ORTHANC_REALM),
     threadsCount_(50),  // Default value in mongoose/civetweb
     tcpNoDelay_(true),
-    requestTimeout_(30)  // Default value in mongoose/civetweb (30 seconds)
+    requestTimeout_(30),  // Default value in mongoose/civetweb (30 seconds)
+    availableHttpThreadsMetrics_(metricsRegistry,
+                                 "orthanc_available_http_threads_count",
+                                 MetricsUpdatePolicy_MinOver10Seconds)
   {
 #if ORTHANC_ENABLE_MONGOOSE == 1
     CLOG(INFO, HTTP) << "This Orthanc server uses Mongoose as its embedded HTTP server";
@@ -2118,6 +2203,7 @@ namespace Orthanc
     
     Stop();
     threadsCount_ = threads;
+    availableHttpThreadsMetrics_.SetInitialValue(threadsCount_);
 
     CLOG(INFO, HTTP) << "The embedded HTTP server will use " << threads << " threads";
   }

@@ -230,7 +230,8 @@ namespace Orthanc
                                  const std::string& uri,
                                  const Arguments& httpHeaders)
   {
-    return (IHttpHandler::SimpleDelete(NULL, handler, origin, uri, httpHeaders) == HttpStatus_200_Ok);
+    std::string ignoredBody;
+    return (IHttpHandler::SimpleDelete(ignoredBody, NULL, handler, origin, uri, httpHeaders) == HttpStatus_200_Ok);
   }
 #endif
 }

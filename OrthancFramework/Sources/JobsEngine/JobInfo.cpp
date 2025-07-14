@@ -190,6 +190,11 @@ namespace Orthanc
     target["CreationTime"] = boost::posix_time::to_iso_string(creationTime_);
     target["EffectiveRuntime"] = static_cast<double>(runtime_.total_milliseconds()) / 1000.0;
     target["Progress"] = boost::math::iround(status_.GetProgress() * 100.0f);
+    
+    if (status_.HasUserData())
+    {
+      target["UserData"] = status_.GetUserData();
+    }
 
     target["Type"] = status_.GetJobType();
     target["Content"] = status_.GetPublicContent();

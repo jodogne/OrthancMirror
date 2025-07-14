@@ -27,6 +27,7 @@
 #include "PluginEnumerations.h"
 
 #include "../../../../OrthancFramework/Sources/DicomNetworking/DicomServer.h"
+#include "../../../../OrthancFramework/Sources/MetricsRegistry.h"
 
 #include <boost/thread/mutex.hpp>
 
@@ -59,6 +60,7 @@ private:
   bool                                   isStrictAet_;
   DicomFilter                            filter_;
   std::unique_ptr<Orthanc::DicomServer>  server_;
+  Orthanc::MetricsRegistry               dummyMetricsRegistry_;
 
 public:
   explicit MultitenantDicomServer(const Json::Value& serverConfig);

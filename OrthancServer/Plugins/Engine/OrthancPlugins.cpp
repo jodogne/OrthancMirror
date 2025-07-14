@@ -1739,6 +1739,7 @@ namespace Orthanc
     WebDavCollections webDavCollections_;  // New in Orthanc 1.10.1
     std::unique_ptr<StorageAreaFactory>  storageArea_;
     std::set<std::string> authorizationTokens_;
+    OrthancPluginHttpAuthentication  httpAuthentication_;  // New in Orthanc 1.12.9
 
     boost::recursive_mutex restCallbackInvokationMutex_;
     boost::shared_mutex restCallbackRegistrationMutex_;  // New in Orthanc 1.9.0
@@ -1770,6 +1771,7 @@ namespace Orthanc
       findCallback_(NULL),
       worklistCallback_(NULL),
       receivedInstanceCallback_(NULL),
+      httpAuthentication_(NULL),
       argc_(1),
       argv_(NULL),
       databaseServerIdentifier_(databaseServerIdentifier),
@@ -2280,6 +2282,8 @@ namespace Orthanc
         sizeof(int32_t) != sizeof(OrthancPluginLogCategory) ||
         sizeof(int32_t) != sizeof(OrthancPluginStoreStatus) ||
         sizeof(int32_t) != sizeof(OrthancPluginQueueOrigin) ||
+        sizeof(int32_t) != sizeof(OrthancPluginStableStatus) ||
+        sizeof(int32_t) != sizeof(OrthancPluginHttpAuthenticationStatus) ||
 
         // From OrthancCDatabasePlugin.h
         sizeof(int32_t) != sizeof(_OrthancPluginDatabaseAnswerType) ||
@@ -2351,6 +2355,11 @@ namespace Orthanc
                                 std::vector<const char*>& values,
                                 const HttpToolbox::Arguments& arguments)
   {
+    if (static_cast<uint32_t>(arguments.size()) != arguments.size())
+    {
+      throw OrthancException(ErrorCode_NotEnoughMemory);
+    }
+
     keys.resize(arguments.size());
     values.resize(arguments.size());
 
@@ -2362,6 +2371,8 @@ namespace Orthanc
       values[pos] = it->second.c_str();
       pos++;
     }
+
+    assert(pos == arguments.size());
   }
 
 
@@ -2369,6 +2380,11 @@ namespace Orthanc
                                 std::vector<const char*>& values,
                                 const HttpToolbox::GetArguments& arguments)
   {
+    if (static_cast<uint32_t>(arguments.size()) != arguments.size())
+    {
+      throw OrthancException(ErrorCode_NotEnoughMemory);
+    }
+
     keys.resize(arguments.size());
     values.resize(arguments.size());
 
@@ -2455,7 +2471,8 @@ namespace Orthanc
     public:
       HttpRequestConverter(const RestCallbackMatcher& matcher,
                            HttpMethod method,
-                           const HttpToolbox::Arguments& headers)
+                           const HttpToolbox::Arguments& headers,
+                           const std::string& authenticationPayload)
       {
         memset(&converted_, 0, sizeof(OrthancPluginHttpRequest));
 
@@ -2497,6 +2514,14 @@ namespace Orthanc
         {
           converted_.headersKeys = &headersKeys_[0];
           converted_.headersValues = &headersValues_[0];
+        }
+
+        converted_.authenticationPayload = authenticationPayload.empty() ? NULL : authenticationPayload.c_str();
+        converted_.authenticationPayloadSize = static_cast<uint32_t>(authenticationPayload.size());
+
+        if (converted_.authenticationPayloadSize != authenticationPayload.size())
+        {
+          throw OrthancException(ErrorCode_NotEnoughMemory);
         }
       }
 
@@ -2569,7 +2594,8 @@ namespace Orthanc
                                               HttpMethod method,
                                               const UriComponents& uri,
                                               const HttpToolbox::Arguments& headers,
-                                              const HttpToolbox::GetArguments& getArguments)
+                                              const HttpToolbox::GetArguments& getArguments,
+                                              const std::string& authenticationPayload)
   {
     RestCallbackMatcher matcher(uri);
 
@@ -2618,7 +2644,7 @@ namespace Orthanc
       }
       else
       {
-        HttpRequestConverter converter(matcher, method, headers);
+        HttpRequestConverter converter(matcher, method, headers, authenticationPayload);
         converter.SetGetArguments(getArguments);
       
         PImpl::PluginHttpOutput pluginOutput(output);
@@ -2644,7 +2670,8 @@ namespace Orthanc
                               const HttpToolbox::Arguments& headers,
                               const HttpToolbox::GetArguments& getArguments,
                               const void* bodyData,
-                              size_t bodySize)
+                              size_t bodySize,
+                              const std::string& authenticationPayload)
   {
     RestCallbackMatcher matcher(uri);
 
@@ -2665,12 +2692,12 @@ namespace Orthanc
     if (callback == NULL)
     {
       // Callback not found, try to find a chunked callback
-      return HandleChunkedGetDelete(output, method, uri, headers, getArguments);
+      return HandleChunkedGetDelete(output, method, uri, headers, getArguments, authenticationPayload);
     }
 
     CLOG(INFO, PLUGINS) << "Delegating HTTP request to plugin for URI: " << matcher.GetFlatUri();
 
-    HttpRequestConverter converter(matcher, method, headers);
+    HttpRequestConverter converter(matcher, method, headers, authenticationPayload);
     converter.SetGetArguments(getArguments);
     converter.GetRequest().body = bodyData;
     converter.GetRequest().bodySize = bodySize;
@@ -3082,6 +3109,26 @@ namespace Orthanc
   }
 
 
+  void OrthancPlugins::RegisterHttpAuthentication(const void* parameters)
+  {
+    const _OrthancPluginHttpAuthentication& p =
+      *reinterpret_cast<const _OrthancPluginHttpAuthentication*>(parameters);
+
+    boost::unique_lock<boost::shared_mutex> lock(pimpl_->incomingHttpRequestFilterMutex_);
+
+    if (pimpl_->httpAuthentication_ == NULL)
+    {
+      CLOG(INFO, PLUGINS) << "Plugin has registered a callback to authenticate incoming HTTP requests";
+      pimpl_->httpAuthentication_ = p.callback;
+    }
+    else
+    {
+      throw OrthancException(ErrorCode_Plugin,
+                             "Only one plugin can register a callback to authenticate incoming HTTP requests");
+    }
+  }
+
+
   void OrthancPlugins::AnswerBuffer(const void* parameters)
   {
     const _OrthancPluginAnswerBuffer& p = 
@@ -3385,7 +3432,8 @@ namespace Orthanc
       
     std::map<std::string, std::string> httpHeaders;
 
-    ThrowOnHttpError(IHttpHandler::SimpleDelete(NULL, *handler, RequestOrigin_Plugins, uri, httpHeaders));
+    std::string bodyIgnored;
+    ThrowOnHttpError(IHttpHandler::SimpleDelete(bodyIgnored, NULL, *handler, RequestOrigin_Plugins, uri, httpHeaders));
   }
 
 
@@ -4174,7 +4222,7 @@ namespace Orthanc
 
       case OrthancPluginHttpMethod_Delete:
         status = IHttpHandler::SimpleDelete(
-          &answerHeaders, *handler, RequestOrigin_Plugins, p.uri, headers);
+          answerBody, &answerHeaders, *handler, RequestOrigin_Plugins, p.uri, headers);
         break;
 
       default:
@@ -4190,8 +4238,7 @@ namespace Orthanc
     }
 
     PluginMemoryBuffer32 tmpBody;
-    if (p.method != OrthancPluginHttpMethod_Delete &&
-        p.answerBody != NULL)
+    if (p.answerBody != NULL)
     {
       tmpBody.Assign(answerBody);
     }
@@ -4719,6 +4766,18 @@ namespace Orthanc
     {
       *(parameters.statusHasChanged) = 0;
     }
+  }
+
+  void OrthancPlugins::ApplyRecordAuditLog(const _OrthancPluginRecordAuditLog& parameters)
+  {
+    PImpl::ServerContextReference lock(*pimpl_);
+
+    if (!lock.GetContext().GetIndex().HasAuditLogsSupport())
+    {
+      throw OrthancException(ErrorCode_NotImplemented, "The database engine does not support audit logs");
+    }
+
+    lock.GetContext().GetIndex().RecordAuditLog(parameters.userId, Plugins::Convert(parameters.resourceType), parameters.resourceId, parameters.action, parameters.logData, parameters.logDataSize);
   }
 
   void OrthancPlugins::ApplyLoadDicomInstance(const _OrthancPluginLoadDicomInstance& params)
@@ -5851,6 +5910,13 @@ namespace Orthanc
         return true;
       }
 
+      case _OrthancPluginService_RecordAuditLog:
+      {
+        const _OrthancPluginRecordAuditLog& p = *reinterpret_cast<const _OrthancPluginRecordAuditLog*>(parameters);
+        ApplyRecordAuditLog(p);
+        return true;
+      }
+
       default:
         return false;
     }
@@ -5930,6 +5996,10 @@ namespace Orthanc
 
       case _OrthancPluginService_RegisterStorageCommitmentScpCallback:
         RegisterStorageCommitmentScpCallback(parameters);
+        return true;
+
+      case _OrthancPluginService_RegisterHttpAuthentication:
+        RegisterHttpAuthentication(parameters);
         return true;
 
       case _OrthancPluginService_RegisterStorageArea:
@@ -6634,7 +6704,8 @@ namespace Orthanc
                                                   const char* username,
                                                   HttpMethod method,
                                                   const UriComponents& uri,
-                                                  const HttpToolbox::Arguments& headers)
+                                                  const HttpToolbox::Arguments& headers,
+                                                  const std::string& authenticationPayload)
   {
     if (method != HttpMethod_Post &&
         method != HttpMethod_Put)
@@ -6690,7 +6761,7 @@ namespace Orthanc
       {
         CLOG(INFO, PLUGINS) << "Delegating chunked HTTP request to plugin for URI: " << matcher.GetFlatUri();
 
-        HttpRequestConverter converter(matcher, method, headers);
+        HttpRequestConverter converter(matcher, method, headers, authenticationPayload);
         converter.GetRequest().body = NULL;
         converter.GetRequest().bodySize = 0;
 
@@ -6814,6 +6885,66 @@ namespace Orthanc
       target.Register(components, collection);
       
       pimpl_->webDavCollections_.pop_front();
+    }
+  }
+
+
+  IIncomingHttpRequestFilter::AuthenticationStatus OrthancPlugins::CheckAuthentication(
+    std::string& customPayload,
+    std::string& redirection,
+    const char* uri,
+    const char* ip,
+    const HttpToolbox::Arguments& httpHeaders,
+    const HttpToolbox::GetArguments& getArguments) const
+  {
+    boost::shared_lock<boost::shared_mutex> lock(pimpl_->incomingHttpRequestFilterMutex_);
+
+    if (pimpl_->httpAuthentication_ == NULL)
+    {
+      return IIncomingHttpRequestFilter::AuthenticationStatus_BuiltIn;  // Use the default authentication of Orthanc
+    }
+    else
+    {
+      std::vector<const char*> headersKeys, headersValues;
+      ArgumentsToPlugin(headersKeys, headersValues, httpHeaders);
+
+      std::vector<const char*> getKeys, getValues;
+      ArgumentsToPlugin(getKeys, getValues, getArguments);
+
+      OrthancPluginHttpAuthenticationStatus status = OrthancPluginHttpAuthenticationStatus_Unauthorized;
+      PluginMemoryBuffer32 payloadBuffer;
+      PluginMemoryBuffer32 redirectionBuffer;
+      OrthancPluginErrorCode code = pimpl_->httpAuthentication_(
+        &status, payloadBuffer.GetObject(), redirectionBuffer.GetObject(), uri, ip,
+        headersKeys.size(), headersKeys.empty() ? NULL : &headersKeys[0], headersValues.empty() ? NULL : &headersValues[0],
+        getKeys.size(), getKeys.empty() ? NULL : &getKeys[0], getValues.empty() ? NULL : &getValues[0]);
+
+      if (code != OrthancPluginErrorCode_Success)
+      {
+        throw OrthancException(static_cast<ErrorCode>(code));
+      }
+      else
+      {
+        switch (status)
+        {
+        case OrthancPluginHttpAuthenticationStatus_Granted:
+          payloadBuffer.MoveToString(customPayload);
+          return IIncomingHttpRequestFilter::AuthenticationStatus_Granted;
+
+        case OrthancPluginHttpAuthenticationStatus_Unauthorized:
+          return IIncomingHttpRequestFilter::AuthenticationStatus_Unauthorized;
+
+        case OrthancPluginHttpAuthenticationStatus_Forbidden:
+          return IIncomingHttpRequestFilter::AuthenticationStatus_Forbidden;
+
+        case OrthancPluginHttpAuthenticationStatus_Redirect:
+          redirectionBuffer.MoveToString(redirection);
+          return IIncomingHttpRequestFilter::AuthenticationStatus_Redirect;
+
+        default:
+          throw OrthancException(ErrorCode_ParameterOutOfRange);
+        }
+      }
     }
   }
 }

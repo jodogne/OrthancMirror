@@ -78,7 +78,8 @@ namespace Orthanc
                         const HttpToolbox::Arguments& headers,
                         const HttpToolbox::GetArguments& getArguments,
                         const void* bodyData,
-                        size_t bodySize) ORTHANC_OVERRIDE;
+                        size_t bodySize,
+                        const std::string& authenticationPayload) ORTHANC_OVERRIDE;
 
     const bool& LeaveBarrierFlag() const
     {
