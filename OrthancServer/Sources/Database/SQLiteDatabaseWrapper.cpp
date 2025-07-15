@@ -2340,17 +2340,6 @@ namespace Orthanc
       s.Step();
       return s.ColumnInt64(0);
     }
-
-    virtual void RecordAuditLog(const std::string& userId,
-                                ResourceType resourceType,
-                                const std::string& resourceId,
-                                const std::string& action,
-                                const void* logData,
-                                size_t logDataSize) ORTHANC_OVERRIDE
-    {
-      throw OrthancException(ErrorCode_NotImplemented);  // Not supported
-    }
-
   };
 
 
@@ -2598,7 +2587,6 @@ namespace Orthanc
     dbCapabilities_.SetKeyValueStoresSupport(true);
     dbCapabilities_.SetQueuesSupport(true);
     dbCapabilities_.SetAttachmentCustomDataSupport(true);
-    dbCapabilities_.SetAuditLogsSupport(false);
     db_.Open(path);
   }
 
@@ -2616,7 +2604,6 @@ namespace Orthanc
     dbCapabilities_.SetKeyValueStoresSupport(true);
     dbCapabilities_.SetQueuesSupport(true);
     dbCapabilities_.SetAttachmentCustomDataSupport(true);
-    dbCapabilities_.SetAuditLogsSupport(false);
     db_.OpenInMemory();
   }
 

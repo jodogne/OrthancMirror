@@ -492,16 +492,6 @@ namespace Orthanc
         return transaction_.SetAttachmentCustomData(attachmentUuid, customData, customDataSize);
       }
 
-      void RecordAuditLog(const std::string& userId,
-                          ResourceType resourceType,
-                          const std::string& resourceId,
-                          const std::string& action,
-                          const void* logData,
-                          size_t logDataSize)
-      {
-        return transaction_.RecordAuditLog(userId, resourceType, resourceId, action, logData, logDataSize);
-      }
-
     };
 
 
@@ -631,8 +621,6 @@ namespace Orthanc
     bool HasKeyValueStoresSupport();
 
     bool HasQueuesSupport();
-
-    bool HasAuditLogsSupport();
 
     void GetExportedResources(Json::Value& target,
                               int64_t since,
@@ -893,11 +881,5 @@ namespace Orthanc
       const std::string& GetValue() const;
     };
 
-    void RecordAuditLog(const std::string& userId,
-                        ResourceType resourceType,
-                        const std::string& resourceId,
-                        const std::string& action,
-                        const void* logData,
-                        size_t logDataSize);
   };
 }

@@ -1716,6 +1716,7 @@ namespace Orthanc
     typedef std::list<StorageCommitmentScp*>  StorageCommitmentScpCallbacks;
     typedef std::map<Property, std::string>  Properties;
     typedef std::list<WebDavCollection*>  WebDavCollections;
+    typedef std::list<OrthancPluginAuditLogHandler>  AuditLogHandlers;
 
     PluginsManager manager_;
 
@@ -1740,6 +1741,7 @@ namespace Orthanc
     std::unique_ptr<StorageAreaFactory>  storageArea_;
     std::set<std::string> authorizationTokens_;
     OrthancPluginHttpAuthentication  httpAuthentication_;  // New in Orthanc 1.12.9
+    AuditLogHandlers auditLogHandlers_;                    // New in Orthanc 1.12.9
 
     boost::recursive_mutex restCallbackInvokationMutex_;
     boost::shared_mutex restCallbackRegistrationMutex_;  // New in Orthanc 1.9.0
@@ -1753,6 +1755,7 @@ namespace Orthanc
     boost::mutex storageCommitmentScpMutex_;
     boost::recursive_mutex invokeServiceMutex_;
     boost::shared_mutex incomingHttpRequestFilterMutex_;  // New in Orthanc 1.8.2
+    boost::recursive_mutex auditLogHandlersMutex_;        // New in Orthanc 1.12.9
 
     Properties properties_;
     int argc_;
@@ -3126,6 +3129,18 @@ namespace Orthanc
       throw OrthancException(ErrorCode_Plugin,
                              "Only one plugin can register a callback to authenticate incoming HTTP requests");
     }
+  }
+
+
+  void OrthancPlugins::RegisterAuditLogHandler(const void* parameters)
+  {
+    boost::recursive_mutex::scoped_lock lock(pimpl_->auditLogHandlersMutex_);
+
+    const _OrthancPluginAuditLogHandler& p = 
+      *reinterpret_cast<const _OrthancPluginAuditLogHandler*>(parameters);
+
+    CLOG(INFO, PLUGINS) << "Plugin has registered an AuditLog handler";
+    pimpl_->auditLogHandlers_.push_back(p.handler);
   }
 
 
@@ -4768,16 +4783,20 @@ namespace Orthanc
     }
   }
 
-  void OrthancPlugins::ApplyRecordAuditLog(const _OrthancPluginRecordAuditLog& parameters)
+  void OrthancPlugins::ApplyAuditLog(const _OrthancPluginAuditLog& parameters)
   {
     PImpl::ServerContextReference lock(*pimpl_);
 
-    if (!lock.GetContext().GetIndex().HasAuditLogsSupport())
+    for (PImpl::AuditLogHandlers::const_iterator handler = pimpl_->auditLogHandlers_.begin(); handler != pimpl_->auditLogHandlers_.end(); ++handler)
     {
-      throw OrthancException(ErrorCode_NotImplemented, "The database engine does not support audit logs");
-    }
+      OrthancPluginErrorCode error = (*handler) (parameters.userId, parameters.resourceType, parameters.resourceId, parameters.action, parameters.logData, parameters.logDataSize);
 
-    lock.GetContext().GetIndex().RecordAuditLog(parameters.userId, Plugins::Convert(parameters.resourceType), parameters.resourceId, parameters.action, parameters.logData, parameters.logDataSize);
+      if (error != OrthancPluginErrorCode_Success)
+      {
+        GetErrorDictionary().LogError(error, true);
+        throw OrthancException(static_cast<ErrorCode>(error));
+      }
+    }
   }
 
   void OrthancPlugins::ApplyLoadDicomInstance(const _OrthancPluginLoadDicomInstance& params)
@@ -5910,10 +5929,11 @@ namespace Orthanc
         return true;
       }
 
-      case _OrthancPluginService_RecordAuditLog:
+      case _OrthancPluginService_AuditLog:
       {
-        const _OrthancPluginRecordAuditLog& p = *reinterpret_cast<const _OrthancPluginRecordAuditLog*>(parameters);
-        ApplyRecordAuditLog(p);
+        const _OrthancPluginAuditLog& p = *reinterpret_cast<const _OrthancPluginAuditLog*>(parameters);
+
+        ApplyAuditLog(p);
         return true;
       }
 
@@ -6000,6 +6020,10 @@ namespace Orthanc
 
       case _OrthancPluginService_RegisterHttpAuthentication:
         RegisterHttpAuthentication(parameters);
+        return true;
+
+      case _OrthancPluginService_RegisterAuditLogHandler:
+        RegisterAuditLogHandler(parameters);
         return true;
 
       case _OrthancPluginService_RegisterStorageArea:
