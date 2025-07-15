@@ -59,7 +59,6 @@ namespace Orthanc
       bool hasAttachmentCustomDataSupport_;
       bool hasKeyValueStoresSupport_;
       bool hasQueuesSupport_;
-      bool hasAuditLogsSupport_;
 
     public:
       Capabilities() :
@@ -73,8 +72,7 @@ namespace Orthanc
         hasExtendedChanges_(false),
         hasAttachmentCustomDataSupport_(false),
         hasKeyValueStoresSupport_(false),
-        hasQueuesSupport_(false),
-        hasAuditLogsSupport_(false)
+        hasQueuesSupport_(false)
       {
       }
 
@@ -186,16 +184,6 @@ namespace Orthanc
       bool HasQueuesSupport() const
       {
         return hasQueuesSupport_;
-      }
-
-      void SetAuditLogsSupport(bool value)
-      {
-        hasAuditLogsSupport_ = value;
-      }
-
-      bool HasAuditLogsSupport() const
-      {
-        return hasAuditLogsSupport_;
       }
 
     };
@@ -482,14 +470,6 @@ namespace Orthanc
 
       // New in Orthanc 1.12.8, for statistics only
       virtual uint64_t GetQueueSize(const std::string& queueId) = 0;
-
-      // New in Orthanc 1.12.9
-      virtual void RecordAuditLog(const std::string& userId,
-                                  ResourceType resourceType,
-                                  const std::string& resourceId,
-                                  const std::string& action,
-                                  const void* logData,
-                                  size_t logDataSize) = 0;
 
     };
 

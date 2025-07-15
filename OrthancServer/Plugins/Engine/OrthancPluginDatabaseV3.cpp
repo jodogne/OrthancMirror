@@ -1123,17 +1123,6 @@ namespace Orthanc
     {
       throw OrthancException(ErrorCode_NotImplemented);  // Not supported
     }
-
-    virtual void RecordAuditLog(const std::string& userId,
-                                ResourceType resourceType,
-                                const std::string& resourceId,
-                                const std::string& action,
-                                const void* logData,
-                                size_t logDataSize) ORTHANC_OVERRIDE
-    {
-      throw OrthancException(ErrorCode_NotImplemented);  // Not supported
-    }
-
   };
 
   

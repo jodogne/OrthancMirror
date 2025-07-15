@@ -141,6 +141,8 @@ private:
 
     void RegisterHttpAuthentication(const void* parameters);
 
+    void RegisterAuditLogHandler(const void* parameters);
+
     void AnswerBuffer(const void* parameters);
 
     void Redirect(const void* parameters);
@@ -249,7 +251,7 @@ private:
 
     void ApplySetStableStatus(const _OrthancPluginSetStableStatus& parameters);
 
-    void ApplyRecordAuditLog(const _OrthancPluginRecordAuditLog& parameters);
+    void ApplyAuditLog(const _OrthancPluginAuditLog& parameters);
 
     void ComputeHash(_OrthancPluginService service,
                      const void* parameters);
