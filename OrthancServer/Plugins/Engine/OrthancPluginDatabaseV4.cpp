@@ -2051,39 +2051,6 @@ namespace Orthanc
         throw OrthancException(ErrorCode_InternalError);
       }
     }
-
-    virtual void RecordAuditLog(const std::string& userId,
-                                ResourceType resourceType,
-                                const std::string& resourceId,
-                                const std::string& action,
-                                const void* logData,
-                                size_t logDataSize) ORTHANC_OVERRIDE
-    {
-      // In protobuf, bytes "may contain any arbitrary sequence of bytes no longer than 2^32"
-      // https://protobuf.dev/programming-guides/proto3/
-      if (logDataSize > std::numeric_limits<uint32_t>::max())
-      {
-        throw OrthancException(ErrorCode_NotEnoughMemory);
-      }
-
-      if (database_.GetDatabaseCapabilities().HasAuditLogsSupport())
-      {
-        DatabasePluginMessages::TransactionRequest request;
-        request.mutable_record_audit_log()->set_user_id(userId);
-        request.mutable_record_audit_log()->set_resource_type(Convert(resourceType));
-        request.mutable_record_audit_log()->set_resource_id(resourceId);
-        request.mutable_record_audit_log()->set_action(action);
-        request.mutable_record_audit_log()->set_log_data(logData, logDataSize);
-
-        ExecuteTransaction(DatabasePluginMessages::OPERATION_ENQUEUE_VALUE, request);
-      }
-      else
-      {
-        // This method shouldn't have been called
-        throw OrthancException(ErrorCode_InternalError);
-      }
-    }
-
   };
 
 
@@ -2177,7 +2144,6 @@ namespace Orthanc
       dbCapabilities_.SetKeyValueStoresSupport(systemInfo.supports_key_value_stores());
       dbCapabilities_.SetQueuesSupport(systemInfo.supports_queues());
       dbCapabilities_.SetAttachmentCustomDataSupport(systemInfo.has_attachment_custom_data());
-      dbCapabilities_.SetAuditLogsSupport(systemInfo.supports_audit_logs());
     }
 
     open_ = true;
