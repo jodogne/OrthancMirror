@@ -3226,12 +3226,6 @@ namespace Orthanc
     return db_.GetDatabaseCapabilities().HasQueuesSupport();
   }
 
-  bool StatelessDatabaseOperations::HasAuditLogsSupport()
-  {
-    boost::shared_lock<boost::shared_mutex> lock(mutex_);
-    return db_.GetDatabaseCapabilities().HasAuditLogsSupport();
-  }
-
   void StatelessDatabaseOperations::ExecuteCount(uint64_t& count,
                                                  const FindRequest& request)
   {
@@ -3761,48 +3755,4 @@ namespace Orthanc
       throw OrthancException(ErrorCode_BadSequenceOfCalls);
     }
   }
-
-  void StatelessDatabaseOperations::RecordAuditLog(const std::string& userId,
-                                                   ResourceType resourceType,
-                                                   const std::string& resourceId,
-                                                   const std::string& action,
-                                                   const void* logData,
-                                                   size_t logDataSize)
-  {
-    class Operations : public IReadWriteOperations
-    {
-    private:
-      const std::string& userId_;
-      ResourceType resourceType_;
-      const std::string& resourceId_;
-      const std::string& action_;
-      const void* logData_;
-      size_t logDataSize_;
-
-    public:
-      Operations(const std::string& userId,
-                 ResourceType resourceType,
-                 const std::string& resourceId,
-                 const std::string& action,
-                 const void* logData,
-                 size_t logDataSize) :
-        userId_(userId),
-        resourceType_(resourceType),
-        resourceId_(resourceId),
-        action_(action),
-        logData_(logData),
-        logDataSize_(logDataSize)
-      {
-      }
-
-      virtual void Apply(ReadWriteTransaction& transaction) ORTHANC_OVERRIDE
-      {
-        transaction.RecordAuditLog(userId_, resourceType_, resourceId_, action_, logData_, logDataSize_);
-      }
-    };
-
-    Operations operations(userId, resourceType, resourceId, action, logData, logDataSize);
-    Apply(operations);
-  }
-
 }
