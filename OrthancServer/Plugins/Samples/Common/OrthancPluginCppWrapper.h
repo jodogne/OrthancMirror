@@ -180,6 +180,8 @@ namespace OrthancPlugins
 {
   typedef std::map<std::string, std::string>  HttpHeaders;
 
+  typedef std::map<std::string, std::string>  GetArguments;
+
   typedef void (*RestCallback) (OrthancPluginRestOutput* output,
                                 const char* url,
                                 const OrthancPluginHttpRequest* request);
@@ -1430,6 +1432,9 @@ void GetHttpHeaders(HttpHeaders& result, const OrthancPluginHttpRequest* request
 
 // helper method to re-serialize the get arguments from the SDK into a string
 void SerializeGetArguments(std::string& output, const OrthancPluginHttpRequest* request);
+
+// helper method to convert Get arguments from the plugin SDK to a std::map
+void GetGetArguments(GetArguments& result, const OrthancPluginHttpRequest* request);
 
 #if HAS_ORTHANC_PLUGIN_WEBDAV == 1
   class IWebDavCollection : public boost::noncopyable

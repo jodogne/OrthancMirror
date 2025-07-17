@@ -4122,6 +4122,16 @@ namespace OrthancPlugins
   }
 #endif
 
+  void GetGetArguments(GetArguments& result, const OrthancPluginHttpRequest* request)
+  {
+    result.clear();
+
+    for (uint32_t i = 0; i < request->getCount; ++i)
+    {
+      result[request->getKeys[i]] = request->getValues[i];
+    }    
+  }
+
   void GetHttpHeaders(HttpHeaders& result, const OrthancPluginHttpRequest* request)
   {
     result.clear();
