@@ -71,7 +71,9 @@ General
     "admin": {
       "Password": "5baa61e4c9b93f3f0682250b6cf8331b7ee68fd8", 
       "Hashing": "sha1"} }
-  
+* Reuse the ThreadedInstanceLoader from the ArchiveJob in C-Store, peer/store ... to optimize loading
+  time when working with an object storage.
+
 
 ============================
 Documentation (Orthanc Book)
@@ -171,6 +173,7 @@ Mid-term
   https://discourse.orthanc-server.org/t/orthanc-convert-ybr-to-rgb-but-does-not-change-metadata/3533/9
 * Implement a 'commit' route to force the Stable status earlier.
   https://discourse.orthanc-server.org/t/expediting-stability-of-a-dicom-study-new-api-endpoint/1684
+
 
 ---------
 Long-term
