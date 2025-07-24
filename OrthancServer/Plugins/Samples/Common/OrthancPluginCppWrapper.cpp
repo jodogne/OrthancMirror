@@ -4313,9 +4313,17 @@ namespace OrthancPlugins
     }
   }
 
-  void RestApiClient::Forward(OrthancPluginContext* context, OrthancPluginRestOutput* output)
+  void RestApiClient::ExecuteAndForwardAnswer(OrthancPluginContext* context, OrthancPluginRestOutput* output)
   {
-    if (Execute() && httpStatus_ == 200)
+    if (Execute())
+    {
+      ForwardAnswer(context, output);
+    }
+  }
+
+  void RestApiClient::ForwardAnswer(OrthancPluginContext* context, OrthancPluginRestOutput* output)
+  {
+    if (httpStatus_ == 200)
     {
       const char* mimeType = NULL;
       for (HttpHeaders::const_iterator h = answerHeaders_.begin(); h != answerHeaders_.end(); ++h)
