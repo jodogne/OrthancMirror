@@ -1593,6 +1593,9 @@ void GetGetArguments(GetArguments& result, const OrthancPluginHttpRequest* reque
     void AddRequestHeader(const std::string& key,
                           const std::string& value);
 
+    void SetRequestHeader(const std::string& key,
+                          const std::string& value);
+
     const HttpHeaders& GetRequestHeaders() const
     {
       return requestHeaders_;
