@@ -4258,6 +4258,15 @@ namespace OrthancPlugins
 
 
 #if HAS_ORTHANC_PLUGIN_GENERIC_CALL_REST_API == 1
+  void RestApiClient::SetRequestHeader(const std::string& key,
+                                       const std::string& value)
+  {
+    requestHeaders_[key] = value;
+  }
+#endif
+
+
+#if HAS_ORTHANC_PLUGIN_GENERIC_CALL_REST_API == 1
   bool RestApiClient::Execute()
   {
     if (requestBody_.size() > 0xffffffffu)
