@@ -2700,31 +2700,6 @@ namespace Orthanc
 #endif
   }
 
-  void Toolbox::MergeJson(Json::Value &a, const Json::Value &b)
-  {
-    if (!a.isObject() || !b.isObject())
-    {
-      return;
-    }
-
-    Json::Value::Members members = b.getMemberNames();
-
-    for (size_t i = 0; i < members.size(); i++)
-    {
-      std::string key = members[i];
-      
-      if (!a[key].isNull() && a[key].type() == Json::objectValue && b[key].type() == Json::objectValue)
-      {
-        MergeJson(a[key], b[key]);
-      } 
-      else
-      {
-        a[key] = b[key];
-      }
-    }
-  }
-
-
   void Toolbox::RemoveSurroundingQuotes(std::string& value)
   {
     if (!value.empty() &&
