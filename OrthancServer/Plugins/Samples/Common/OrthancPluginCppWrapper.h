@@ -1657,7 +1657,7 @@ void GetGetArguments(GetArguments& result, const OrthancPluginHttpRequest* reque
       OrthancPluginKeysValuesIterator  *iterator_;
 
     public:
-      Iterator(OrthancPluginKeysValuesIterator  *iterator);
+      explicit Iterator(OrthancPluginKeysValuesIterator *iterator);
 
       ~Iterator();
 
