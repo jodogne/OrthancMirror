@@ -403,8 +403,6 @@ namespace Orthanc
     static void WriteStyledJson(std::string& target,
                                 const Json::Value& source);
 
-    static void MergeJson(Json::Value &a, const Json::Value &b);
-
     static void RemoveSurroundingQuotes(std::string& value);
 
     class ORTHANC_PUBLIC ElapsedTimer : public boost::noncopyable
