@@ -38,12 +38,14 @@ Plugin SDK
   the possible HTTP authentication callback.
 * OrthancPluginCallRestApi() now also returns the body of DELETE requests:
   https://discourse.orthanc-server.org/t/response-to-plugin-from-orthanc-api-delete-endpoint/6022
+* Added macro ORTHANC_PLUGIN_SINCE_SDK to track in which version of
+  Orthanc the SDK primitives were introduced.
 
 Plugins
 -------
 
 * Housekeeper plugin:
-  - new "ForceReconstructFiles" option: If set to true, forces the
+  - New "ForceReconstructFiles" option: If set to true, forces the
     "ReconstructFiles" option when reconstructing resources, even if
     the plugin did not detect any changes in the configuration that
     should trigger a reconstruct.
@@ -1592,8 +1594,8 @@ Plugins
 -------
 
 * New functions in the SDK:
-  - OrthancPluginHttpClientChunkedBody(): HTTP client for POST/PUT with a chunked body
-  - OrthancPluginRegisterMultipartRestCallback(): HTTP server for POST/PUT with multipart body
+  - OrthancPluginChunkedHttpClient(): HTTP client for POST/PUT with a chunked body
+  - OrthancPluginRegisterChunkedRestCallback(): HTTP server for POST/PUT with multipart body
   - OrthancPluginGetTagName(): Retrieve the name of a DICOM tag from its group and element
 
 Maintenance
