@@ -186,8 +186,8 @@
 
 #ifndef ORTHANC_PLUGIN_SINCE_SDK
 /**
- * This macro is used by the code model generator in the
- * "orthanc-java" project, notably to create the Python and Java
+ * This macro is notably used by the code model generator in the
+ * "orthanc-java" project, to create the Python and Java
  * wrappers. Functions that are not tagged with this macro were
  * introduced before Orthanc 1.0.0.
  **/
@@ -1222,14 +1222,14 @@ extern "C"
 
 
   /**
-   * The status related to the authentication of a HTTP request.
+   * Status associated with the authentication of a HTTP request.
    **/
   typedef enum ORTHANC_PLUGIN_SINCE_SDK("1.12.9")
   {
     OrthancPluginHttpAuthenticationStatus_Granted = 0,       /*!< The authentication has been granted */
     OrthancPluginHttpAuthenticationStatus_Unauthorized = 1,  /*!< The authentication has failed (401 HTTP status) */
     OrthancPluginHttpAuthenticationStatus_Forbidden = 2,     /*!< The authorization has failed (403 HTTP status) */
-    OrthancPluginHttpAuthenticationStatus_Redirect = 3,      /*!< Redirect to another path (e.g. for login, 307 HTTP status) */
+    OrthancPluginHttpAuthenticationStatus_Redirect = 3,      /*!< Redirect to another path (307 HTTP status, e.g., for login) */
 
     _OrthancPluginHttpAuthenticationStatus_INTERNAL = 0x7fffffff
   } OrthancPluginHttpAuthenticationStatus;
@@ -1389,7 +1389,7 @@ extern "C"
    **/
   typedef OrthancPluginErrorCode (*OrthancPluginRestCallback) (
     OrthancPluginRestOutput* output,
-    const char* url,
+    const char* uri,
     const OrthancPluginHttpRequest* request);
 
 
@@ -8011,7 +8011,7 @@ extern "C"
    **/
   typedef OrthancPluginErrorCode (*OrthancPluginServerChunkedRequestReaderFactory) (
     OrthancPluginServerChunkedRequestReader**  reader,
-    const char*                                url,
+    const char*                                uri,
     const OrthancPluginHttpRequest*            request);
 
   
@@ -10460,25 +10460,25 @@ extern "C"
   {
     const char*                   resourceId;
     OrthancPluginStableStatus     stableStatus;
-    int32_t*                      statusHasChanged;
+    uint8_t*                      statusHasChanged;
   } _OrthancPluginSetStableStatus;
 
   /**
    * @brief Change the "Stable" status of a resource.
    *
    * Forcing a resource to "Stable" if it is currently "Unstable" will
-   * change its Stable status AND trigger a new Stable change which
-   * will also trigger listener callbacks.
+   * change its "Stable" status AND trigger a new "Stable" change,
+   * which will also trigger listener callbacks.
    *
-   * Forcing a resource to "Stable" if it is already "Stable" is a
-   * no-op.
+   * Forcing a resource to "Stable" if it is already "Stable" has no
+   * effect (no-op).
    *
    * Forcing a resource to "Unstable" will change its "Stable" status
    * to "Unstable" AND reset its stabilization period, no matter its
    * initial state.
    *
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
-   * @param statusHasChanged Wheter the status has changed (1) or not (0) during the execution of this command.
+   * @param statusHasChanged Whether the status has changed (1) or not (0) during the execution of this command.
    * @param resourceId The Orthanc identifier of the DICOM resource of interest.
    * @param stableStatus The new stable status of the resource of interest.
    * @return 0 if success, other value if error.
@@ -10486,7 +10486,7 @@ extern "C"
   ORTHANC_PLUGIN_SINCE_SDK("1.12.9")
   ORTHANC_PLUGIN_INLINE OrthancPluginErrorCode OrthancPluginSetStableStatus(
     OrthancPluginContext*         context,
-    int32_t*                      statusHasChanged,  /* out */
+    uint8_t*                      statusHasChanged,  /* out */
     const char*                   resourceId,  /* in */
     OrthancPluginStableStatus     stableStatus /* in */)
   {
@@ -10502,11 +10502,11 @@ extern "C"
   /**
    * @brief Callback to authenticate a HTTP request.
    *
-   * Signature of a callback function that authenticates every incoming HTTP.
+   * Signature of a callback function that authenticates every incoming HTTP request.
    *
    * @param status The output status of the authentication.
    * @param customPayload If status is `OrthancPluginHttpAuthenticationStatus_Granted`,
-   * a custom payload that will be provided to the HTTP authorization callback.
+   * a custom payload that will be provided to the HTTP handler callback.
    * @param redirection If status is `OrthancPluginHttpAuthenticationStatus_Redirect`,
    * a buffer filled with the path where to redirect the user (typically, a login page).
    * The path is relative to the root of the Web server of Orthanc.
@@ -10550,18 +10550,8 @@ extern "C"
    * to the plugin to validate access tokens (such as a JWT), possibly
    * redirecting the user to a login page. The authentication callback
    * can generate a custom payload that will be provided to the
-   * subsequent REST handling callback.
-   *
-   * This HTTP authentication callback can notably be used if some
-   * resource in the REST API must be available for public access, if
-   * the "RemoteAccessAllowed" configuration option is set to "true".
-   *
-   * In addition, the callback can handle HTTP authorization
-   * simultaneously with HTTP authentication, by reporting the
-   * "OrthancPluginHttpAuthenticationStatus_Forbidden" status. This
-   * corresponds to the behavior of callbacks installed using
-   * OrthancPluginRegisterIncomingHttpRequestFilter2(), but the latter
-   * callbacks do not provide access to the authentication payload.
+   * subsequent REST handling callback (cf. `authenticationPayload` in
+   * `OrthancPluginHttpRequest`).
    *
    * If one plugin installs a HTTP authentication callback, the
    * built-in HTTP authentication of Orthanc is disabled. This means
@@ -10570,6 +10560,19 @@ extern "C"
    * addition, tokens generated by
    * OrthancPluginGenerateRestApiAuthorizationToken() become
    * ineffective.
+   *
+   * This HTTP authentication callback can notably be used if some
+   * resource in the REST API must be available for public access, if
+   * the "RemoteAccessAllowed" configuration option is set to "true"
+   * (which necessitates bypassing the built-in HTTP authentication of
+   * Orthanc).
+   *
+   * In addition, the callback can handle HTTP authorization
+   * simultaneously with HTTP authentication, by reporting the
+   * "OrthancPluginHttpAuthenticationStatus_Forbidden" status. This
+   * corresponds to the behavior of callbacks installed using
+   * OrthancPluginRegisterIncomingHttpRequestFilter2(), but the latter
+   * callbacks do not provide access to the authentication payload.
    *
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param callback The HTTP authentication callback.
@@ -10600,17 +10603,24 @@ extern "C"
 
 
   /**
-   * @brief Generate an audit log
+   * @brief Generate an audit log to signal security-related events.
    *
-   * Generate an audit log that might be handled by plugins that have registered an handler.
+   * Generate an audit log that will be broadcasted to all the plugins
+   * that have registered a callback handler using
+   * OrthancPluginRegisterAuditLogHandler(). If no plugin has
+   * registered such a callback, the audit log is ignored.
+   *
+   * A typical handler would record the audit log in a database and/or
+   * relay the audit log to a message broker.
    *
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
-   * @param userId A string uniquely identifying the user or entity that is executing the action on the resource.
-   * @param resourceType The type of the resource this log relates to.
-   * @param resourceId The resource this log relates to.
-   * @param action The action that is performed on the resource.
+   * @param userId A string that uniquely identifies the user or
+   * entity that is executing the action on the resource.
+   * @param resourceType The type of the resource this audit log relates to.
+   * @param resourceId The resource this audit log relates to.
+   * @param action The action that was performed on the resource.
    * @param logData A pointer to custom log data.
-   * @param logDataSize The size of custom log data.
+   * @param logDataSize The size of the custom log data.
    **/
   ORTHANC_PLUGIN_SINCE_SDK("1.12.9")
   ORTHANC_PLUGIN_INLINE void OrthancPluginAuditLog(
@@ -10636,14 +10646,14 @@ extern "C"
   /**
    * @brief Callback to handle an audit log.
    *
-   * Signature of a callback function that handles an audit log.
+   * Signature of a callback function that handles an audit log in a plugin.
    *
    * @param userId A string uniquely identifying the user or entity that is executing the action on the resource.
    * @param resourceType The type of the resource this log relates to.
    * @param resourceId The resource this log relates to.
    * @param action The action that is performed on the resource.
    * @param logData A pointer to custom log data.
-   * @param logDataSize The size of custom log data.
+   * @param logDataSize The size of the custom log data.
    * @return 0 if success, other value if error.
    * @ingroup Callbacks
    **/
@@ -10661,10 +10671,10 @@ extern "C"
   } _OrthancPluginAuditLogHandler;
 
   /**
-   * @brief Register a callback to handle audit logs
+   * @brief Register a callback to handle audit logs.
    *
-   * This function installs a callback that is executed for each
-   * audit logs that is generated by a plugin.
+   * This function installs a callback to listen to each audit log
+   * that is generated by some other plugin.
    *
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param handler The audit log handler.
