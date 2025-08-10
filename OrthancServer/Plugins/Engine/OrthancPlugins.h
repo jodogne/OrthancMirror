@@ -251,7 +251,7 @@ private:
 
     void ApplySetStableStatus(const _OrthancPluginSetStableStatus& parameters);
 
-    void ApplyAuditLog(const _OrthancPluginAuditLog& parameters);
+    void ApplyEmitAuditLog(const _OrthancPluginEmitAuditLog& parameters);
 
     void ComputeHash(_OrthancPluginService service,
                      const void* parameters);

@@ -518,7 +518,7 @@ extern "C"
     _OrthancPluginService_DequeueValue = 58,                        /* New in Orthanc 1.12.8 */
     _OrthancPluginService_GetQueueSize = 59,                        /* New in Orthanc 1.12.8 */
     _OrthancPluginService_SetStableStatus = 60,                     /* New in Orthanc 1.12.9 */
-    _OrthancPluginService_AuditLog = 61,                            /* New in Orthanc 1.12.9 */
+    _OrthancPluginService_EmitAuditLog = 61,                        /* New in Orthanc 1.12.9 */
 
     /* Registration of callbacks */
     _OrthancPluginService_RegisterRestCallback = 1000,
@@ -10600,7 +10600,7 @@ extern "C"
     const char*               action;
     const void*               logData;
     uint32_t                  logDataSize;
-  } _OrthancPluginAuditLog;
+  } _OrthancPluginEmitAuditLog;
 
 
   /**
@@ -10626,7 +10626,7 @@ extern "C"
    * @param logDataSize The size of the custom log data.
    **/
   ORTHANC_PLUGIN_SINCE_SDK("1.12.9")
-  ORTHANC_PLUGIN_INLINE void OrthancPluginAuditLog(
+  ORTHANC_PLUGIN_INLINE void OrthancPluginEmitAuditLog(
     OrthancPluginContext*     context,
     const char*               sourcePlugin,
     const char*               userId,
@@ -10636,7 +10636,7 @@ extern "C"
     const void*               logData,
     uint32_t                  logDataSize)
   {
-    _OrthancPluginAuditLog m;
+    _OrthancPluginEmitAuditLog m;
     m.sourcePlugin = sourcePlugin;
     m.userId = userId;
     m.resourceType = resourceType;
@@ -10644,7 +10644,7 @@ extern "C"
     m.action = action;
     m.logData = logData;
     m.logDataSize = logDataSize;
-    context->InvokeService(context, _OrthancPluginService_AuditLog, &m);
+    context->InvokeService(context, _OrthancPluginService_EmitAuditLog, &m);
   }
 
 

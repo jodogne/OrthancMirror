@@ -4783,7 +4783,7 @@ namespace Orthanc
     }
   }
 
-  void OrthancPlugins::ApplyAuditLog(const _OrthancPluginAuditLog& parameters)
+  void OrthancPlugins::ApplyEmitAuditLog(const _OrthancPluginEmitAuditLog& parameters)
   {
     PImpl::ServerContextReference lock(*pimpl_);
 
@@ -5931,11 +5931,10 @@ namespace Orthanc
         return true;
       }
 
-      case _OrthancPluginService_AuditLog:
+      case _OrthancPluginService_EmitAuditLog:
       {
-        const _OrthancPluginAuditLog& p = *reinterpret_cast<const _OrthancPluginAuditLog*>(parameters);
-
-        ApplyAuditLog(p);
+        const _OrthancPluginEmitAuditLog& p = *reinterpret_cast<const _OrthancPluginEmitAuditLog*>(parameters);
+        ApplyEmitAuditLog(p);
         return true;
       }
 
