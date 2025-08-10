@@ -10593,6 +10593,7 @@ extern "C"
 
   typedef struct
   {
+    const char*               sourcePlugin;
     const char*               userId;
     OrthancPluginResourceType resourceType;
     const char*               resourceId;
@@ -10614,6 +10615,8 @@ extern "C"
    * relay the audit log to a message broker.
    *
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
+   * @param sourcePlugin The name of the source plugin, to properly interpret the
+   * content of "action" and "logData".
    * @param userId A string that uniquely identifies the user or
    * entity that is executing the action on the resource.
    * @param resourceType The type of the resource this audit log relates to.
@@ -10625,6 +10628,7 @@ extern "C"
   ORTHANC_PLUGIN_SINCE_SDK("1.12.9")
   ORTHANC_PLUGIN_INLINE void OrthancPluginAuditLog(
     OrthancPluginContext*     context,
+    const char*               sourcePlugin,
     const char*               userId,
     OrthancPluginResourceType resourceType,
     const char*               resourceId,
@@ -10633,6 +10637,7 @@ extern "C"
     uint32_t                  logDataSize)
   {
     _OrthancPluginAuditLog m;
+    m.sourcePlugin = sourcePlugin;
     m.userId = userId;
     m.resourceType = resourceType;
     m.resourceId = resourceId;
@@ -10646,8 +10651,12 @@ extern "C"
   /**
    * @brief Callback to handle an audit log.
    *
-   * Signature of a callback function that handles an audit log in a plugin.
+   * Signature of a callback function that handles an audit log
+   * emitted by a source plugin.
    *
+   * @param sourcePlugin The name of the source plugin. This information can
+   * be used to properly interpret the content of the "action" and
+   * "logData" arguments.
    * @param userId A string uniquely identifying the user or entity that is executing the action on the resource.
    * @param resourceType The type of the resource this log relates to.
    * @param resourceId The resource this log relates to.
@@ -10658,6 +10667,7 @@ extern "C"
    * @ingroup Callbacks
    **/
   typedef OrthancPluginErrorCode (*OrthancPluginAuditLogHandler) (
+    const char*               sourcePlugin,
     const char*               userId,
     OrthancPluginResourceType resourceType,
     const char*               resourceId,

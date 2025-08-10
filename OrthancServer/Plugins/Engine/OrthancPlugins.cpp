@@ -4789,7 +4789,9 @@ namespace Orthanc
 
     for (PImpl::AuditLogHandlers::const_iterator handler = pimpl_->auditLogHandlers_.begin(); handler != pimpl_->auditLogHandlers_.end(); ++handler)
     {
-      OrthancPluginErrorCode error = (*handler) (parameters.userId, parameters.resourceType, parameters.resourceId, parameters.action, parameters.logData, parameters.logDataSize);
+      OrthancPluginErrorCode error = (*handler) (
+        parameters.userId, parameters.sourcePlugin, parameters.resourceType,
+        parameters.resourceId, parameters.action, parameters.logData, parameters.logDataSize);
 
       if (error != OrthancPluginErrorCode_Success)
       {
