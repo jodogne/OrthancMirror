@@ -732,7 +732,7 @@ extern "C"
      * This format describes a color image. The pixels are stored in 6
      * consecutive bytes. The memory layout is RRGGBB.
      **/
-    OrthancPluginPixelFormat_RGB48 = 7,
+    OrthancPluginPixelFormat_RGB48 ORTHANC_PLUGIN_SINCE_SDK("1.3.1") = 7,
 
     /**
      * @brief Graylevel, unsigned 32bpp image.
@@ -740,7 +740,7 @@ extern "C"
      * The image is graylevel. Each pixel is unsigned and stored in
      * four bytes.
      **/
-    OrthancPluginPixelFormat_Grayscale32 = 8,
+    OrthancPluginPixelFormat_Grayscale32 ORTHANC_PLUGIN_SINCE_SDK("1.3.1") = 8,
 
     /**
      * @brief Graylevel, floating-point 32bpp image.
@@ -748,7 +748,7 @@ extern "C"
      * The image is graylevel. Each pixel is floating-point and stored
      * in four bytes.
      **/
-    OrthancPluginPixelFormat_Float32 = 9,
+    OrthancPluginPixelFormat_Float32 ORTHANC_PLUGIN_SINCE_SDK("1.3.1") = 9,
 
     /**
      * @brief Color image in BGRA32 format.
@@ -756,7 +756,7 @@ extern "C"
      * This format describes a color image. The pixels are stored in 4
      * consecutive bytes. The memory layout is BGRA.
      **/
-    OrthancPluginPixelFormat_BGRA32 = 10,
+    OrthancPluginPixelFormat_BGRA32 ORTHANC_PLUGIN_SINCE_SDK("1.3.1") = 10,
 
     /**
      * @brief Graylevel, unsigned 64bpp image.
@@ -764,7 +764,7 @@ extern "C"
      * The image is graylevel. Each pixel is unsigned and stored in
      * eight bytes.
      **/
-    OrthancPluginPixelFormat_Grayscale64 = 11,
+    OrthancPluginPixelFormat_Grayscale64 ORTHANC_PLUGIN_SINCE_SDK("1.4.0") = 11,
 
     _OrthancPluginPixelFormat_INTERNAL = 0x7fffffff
   } OrthancPluginPixelFormat;
@@ -779,7 +779,7 @@ extern "C"
     OrthancPluginContentType_Unknown = 0,             /*!< Unknown content type */
     OrthancPluginContentType_Dicom = 1,               /*!< DICOM */
     OrthancPluginContentType_DicomAsJson = 2,         /*!< JSON summary of a DICOM file */
-    OrthancPluginContentType_DicomUntilPixelData = 3, /*!< DICOM Header till pixel data */
+    OrthancPluginContentType_DicomUntilPixelData ORTHANC_PLUGIN_SINCE_SDK("1.9.2") = 3, /*!< DICOM Header till pixel data */
 
     _OrthancPluginContentType_INTERNAL = 0x7fffffff
   } OrthancPluginContentType;
@@ -823,11 +823,11 @@ extern "C"
     OrthancPluginChangeType_OrthancStopped = 11,    /*!< Orthanc is stopping */
     OrthancPluginChangeType_UpdatedAttachment = 12, /*!< Some user-defined attachment has changed for this resource */
     OrthancPluginChangeType_UpdatedMetadata = 13,   /*!< Some user-defined metadata has changed for this resource */
-    OrthancPluginChangeType_UpdatedPeers = 14,      /*!< The list of Orthanc peers has changed */
-    OrthancPluginChangeType_UpdatedModalities = 15, /*!< The list of DICOM modalities has changed */
-    OrthancPluginChangeType_JobSubmitted = 16,      /*!< New Job submitted */
-    OrthancPluginChangeType_JobSuccess = 17,        /*!< A Job has completed successfully */
-    OrthancPluginChangeType_JobFailure = 18,        /*!< A Job has failed */
+    OrthancPluginChangeType_UpdatedPeers ORTHANC_PLUGIN_SINCE_SDK("1.4.2") = 14,      /*!< The list of Orthanc peers has changed */
+    OrthancPluginChangeType_UpdatedModalities ORTHANC_PLUGIN_SINCE_SDK("1.4.2") = 15, /*!< The list of DICOM modalities has changed */
+    OrthancPluginChangeType_JobSubmitted ORTHANC_PLUGIN_SINCE_SDK("1.7.2") = 16,      /*!< New Job submitted */
+    OrthancPluginChangeType_JobSuccess ORTHANC_PLUGIN_SINCE_SDK("1.7.2") = 17,        /*!< A Job has completed successfully */
+    OrthancPluginChangeType_JobFailure ORTHANC_PLUGIN_SINCE_SDK("1.7.2") = 18,        /*!< A Job has failed */
 
     _OrthancPluginChangeType_INTERNAL = 0x7fffffff
   } OrthancPluginChangeType;
@@ -843,7 +843,7 @@ extern "C"
     OrthancPluginCompressionType_ZlibWithSize = 1,  /*!< zlib, prefixed with uncompressed size (uint64_t) */
     OrthancPluginCompressionType_Gzip = 2,          /*!< Standard gzip compression */
     OrthancPluginCompressionType_GzipWithSize = 3,  /*!< gzip, prefixed with uncompressed size (uint64_t) */
-    OrthancPluginCompressionType_None = 4,          /*!< No compression (new in Orthanc 1.12.8) */
+    OrthancPluginCompressionType_None ORTHANC_PLUGIN_SINCE_SDK("1.12.8") = 4,  /*!< No compression (new in Orthanc 1.12.8) */
 
     _OrthancPluginCompressionType_INTERNAL = 0x7fffffff
   } OrthancPluginCompressionType;
@@ -930,8 +930,8 @@ extern "C"
     OrthancPluginDicomToJsonFlags_IncludePixelData      = (1 << 3),  /*!< Include the pixel data */
     OrthancPluginDicomToJsonFlags_ConvertBinaryToAscii  = (1 << 4),  /*!< Output binary tags as-is, dropping non-ASCII */
     OrthancPluginDicomToJsonFlags_ConvertBinaryToNull   = (1 << 5),  /*!< Signal binary tags as null values */
-    OrthancPluginDicomToJsonFlags_StopAfterPixelData    = (1 << 6),  /*!< Stop processing after pixel data (new in 1.9.1) */
-    OrthancPluginDicomToJsonFlags_SkipGroupLengths      = (1 << 7),  /*!< Skip tags whose element is zero (new in 1.9.1) */
+    OrthancPluginDicomToJsonFlags_StopAfterPixelData ORTHANC_PLUGIN_SINCE_SDK("1.9.1") = (1 << 6),  /*!< Stop processing after pixel data (new in 1.9.1) */
+    OrthancPluginDicomToJsonFlags_SkipGroupLengths ORTHANC_PLUGIN_SINCE_SDK("1.9.1")   = (1 << 7),  /*!< Skip tags whose element is zero (new in 1.9.1) */
 
     _OrthancPluginDicomToJsonFlags_INTERNAL = 0x7fffffff
   } OrthancPluginDicomToJsonFlags;
@@ -944,7 +944,7 @@ extern "C"
    **/
   typedef enum
   {
-    OrthancPluginCreateDicomFlags_None                  = 0,         /*!< Default mode */
+    OrthancPluginCreateDicomFlags_None ORTHANC_PLUGIN_SINCE_SDK("1.2.0") = 0,  /*!< Default mode */
     OrthancPluginCreateDicomFlags_DecodeDataUriScheme   = (1 << 0),  /*!< Decode fields encoded using data URI scheme */
     OrthancPluginCreateDicomFlags_GenerateIdentifiers   = (1 << 1),  /*!< Automatically generate DICOM identifiers */
 
@@ -994,7 +994,7 @@ extern "C"
     OrthancPluginInstanceOrigin_RestApi = 3,        /*!< Instance received through REST API of Orthanc */
     OrthancPluginInstanceOrigin_Plugin = 4,         /*!< Instance added to Orthanc by a plugin */
     OrthancPluginInstanceOrigin_Lua = 5,            /*!< Instance added to Orthanc by a Lua script */
-    OrthancPluginInstanceOrigin_WebDav = 6,         /*!< Instance received through WebDAV (new in 1.8.0) */
+    OrthancPluginInstanceOrigin_WebDav ORTHANC_PLUGIN_SINCE_SDK("1.8.0") = 6,  /*!< Instance received through WebDAV (new in 1.8.0) */
 
     _OrthancPluginInstanceOrigin_INTERNAL = 0x7fffffff
   } OrthancPluginInstanceOrigin;
@@ -1003,7 +1003,7 @@ extern "C"
   /**
    * The possible status for one single step of a job.
    **/
-  typedef enum
+  typedef enum ORTHANC_PLUGIN_SINCE_SDK("1.4.2")
   {
     OrthancPluginJobStepStatus_Success = 1,   /*!< The job has successfully executed all its steps */
     OrthancPluginJobStepStatus_Failure = 2,   /*!< The job has failed while executing this step */
@@ -1017,7 +1017,7 @@ extern "C"
    * the "paused" condition and the "final" conditions (success,
    * failure, or canceled).
    **/
-  typedef enum
+  typedef enum ORTHANC_PLUGIN_SINCE_SDK("1.4.2")
   {
     OrthancPluginJobStopReason_Success = 1,  /*!< The job has succeeded */
     OrthancPluginJobStopReason_Paused = 2,   /*!< The job was paused, and will be resumed later */
@@ -1029,7 +1029,7 @@ extern "C"
   /**
    * The available types of metrics.
    **/
-  typedef enum
+  typedef enum ORTHANC_PLUGIN_SINCE_SDK("1.5.4")
   {
     OrthancPluginMetricsType_Default = 0,   /*!< Default metrics */
 
@@ -1046,7 +1046,7 @@ extern "C"
    * The available modes to export a binary DICOM tag into a DICOMweb
    * JSON or XML document.
    **/
-  typedef enum
+  typedef enum ORTHANC_PLUGIN_SINCE_SDK("1.5.4")
   {
     OrthancPluginDicomWebBinaryMode_Ignore = 0,        /*!< Don't include binary tags */
     OrthancPluginDicomWebBinaryMode_InlineBinary = 1,  /*!< Inline encoding using Base64 */
@@ -1059,7 +1059,7 @@ extern "C"
    * storage commitment.
    * http://dicom.nema.org/medical/dicom/2019e/output/chtml/part03/sect_C.14.html#sect_C.14.1.1
    **/
-  typedef enum
+  typedef enum ORTHANC_PLUGIN_SINCE_SDK("1.6.0")
   {
     /**
      * Success: The DICOM instance is properly stored in the SCP
@@ -1107,7 +1107,7 @@ extern "C"
   /**
    * The action to be taken after ReceivedInstanceCallback is triggered
    **/
-  typedef enum
+  typedef enum ORTHANC_PLUGIN_SINCE_SDK("1.10.0")
   {
     OrthancPluginReceivedInstanceAction_KeepAsIs = 1, /*!< Keep the instance as is */
     OrthancPluginReceivedInstanceAction_Modify = 2,   /*!< Modify the instance */
@@ -1121,7 +1121,7 @@ extern "C"
    * Mode specifying how to load a DICOM instance.
    * @see OrthancPluginLoadDicomInstance()
    **/
-  typedef enum
+  typedef enum ORTHANC_PLUGIN_SINCE_SDK("1.12.1")
   {
     /**
      * Load the whole DICOM file, including pixel data
@@ -1151,7 +1151,7 @@ extern "C"
    * These values must match those of enumeration "LogLevel" in the
    * Orthanc Core.
    **/
-  typedef enum
+  typedef enum ORTHANC_PLUGIN_SINCE_SDK("1.12.4")
   {
     OrthancPluginLogLevel_Error = 0,    /*!< Error log level */
     OrthancPluginLogLevel_Warning = 1,  /*!< Warning log level */
@@ -1168,7 +1168,7 @@ extern "C"
    * These values must match those of enumeration "LogCategory" in the
    * Orthanc Core.
    **/
-  typedef enum
+  typedef enum ORTHANC_PLUGIN_SINCE_SDK("1.12.4")
   {
     OrthancPluginLogCategory_Generic = (1 << 0),  /*!< Generic (default) category */
     OrthancPluginLogCategory_Plugins = (1 << 1),  /*!< Plugin engine related logs (shall not be used by plugins) */
@@ -1185,7 +1185,7 @@ extern "C"
   /**
    * The store status related to the adoption of a DICOM instance.
    **/
-  typedef enum
+  typedef enum ORTHANC_PLUGIN_SINCE_SDK("1.12.8")
   {
     OrthancPluginStoreStatus_Success = 0,         /*!< The file has been stored/adopted */
     OrthancPluginStoreStatus_AlreadyStored = 1,   /*!< The file has already been stored/adopted (only if OverwriteInstances is set to false)*/
@@ -1200,7 +1200,7 @@ extern "C"
   /**
    * The supported modes to remove an element from a queue.
    **/
-  typedef enum
+  typedef enum ORTHANC_PLUGIN_SINCE_SDK("1.12.8")
   {
     OrthancPluginQueueOrigin_Front = 0,    /*!< Dequeue from the front of the queue */
     OrthancPluginQueueOrigin_Back = 1,     /*!< Dequeue from the back of the queue */
@@ -1212,7 +1212,7 @@ extern "C"
   /**
    * The "Stable" status of a resource.
    **/
-  typedef enum
+  typedef enum ORTHANC_PLUGIN_SINCE_SDK("1.12.9")
   {
     OrthancPluginStableStatus_Stable = 0,     /*!< The resource is stable */
     OrthancPluginStableStatus_Unstable = 1,   /*!< The resource is unstable */
@@ -1224,7 +1224,7 @@ extern "C"
   /**
    * The status related to the authentication of a HTTP request.
    **/
-  typedef enum
+  typedef enum ORTHANC_PLUGIN_SINCE_SDK("1.12.9")
   {
     OrthancPluginHttpAuthenticationStatus_Granted = 0,       /*!< The authentication has been granted */
     OrthancPluginHttpAuthenticationStatus_Unauthorized = 1,  /*!< The authentication has failed (401 HTTP status) */
@@ -1264,7 +1264,7 @@ extern "C"
    * content of the buffer is not useful anymore, it must be free by a
    * call to ::OrthancPluginFreeMemoryBuffer64().
    **/
-  typedef struct
+  ORTHANC_PLUGIN_SINCE_SDK("1.9.0") typedef struct
   {
     /**
      * @brief The content of the buffer.
@@ -1332,7 +1332,8 @@ extern "C"
    * @brief Opaque structure to an object that represents a C-Find query.
    * @ingroup DicomCallbacks
    **/
-  typedef struct _OrthancPluginFindQuery_t OrthancPluginFindQuery;
+  typedef struct ORTHANC_PLUGIN_SINCE_SDK("1.1.0")
+    _OrthancPluginFindQuery_t OrthancPluginFindQuery;
 
 
 
@@ -1340,7 +1341,8 @@ extern "C"
    * @brief Opaque structure to an object that represents the answers to a C-Find query for worklists.
    * @ingroup DicomCallbacks
    **/
-  typedef struct _OrthancPluginFindAnswers_t OrthancPluginFindAnswers;
+  typedef struct ORTHANC_PLUGIN_SINCE_SDK("1.1.0")
+    _OrthancPluginFindAnswers_t OrthancPluginFindAnswers;
 
 
 
@@ -1348,7 +1350,8 @@ extern "C"
    * @brief Opaque structure to an object that can be used to check whether a DICOM instance matches a C-Find query.
    * @ingroup Toolbox
    **/
-  typedef struct _OrthancPluginFindMatcher_t OrthancPluginFindMatcher;
+  typedef struct ORTHANC_PLUGIN_SINCE_SDK("1.2.0")
+    _OrthancPluginFindMatcher_t OrthancPluginFindMatcher;
 
 
   
@@ -1356,7 +1359,8 @@ extern "C"
    * @brief Opaque structure to the set of remote Orthanc Peers that are known to the local Orthanc server.
    * @ingroup Toolbox
    **/
-  typedef struct _OrthancPluginPeers_t OrthancPluginPeers;
+  typedef struct ORTHANC_PLUGIN_SINCE_SDK("1.4.2")
+    _OrthancPluginPeers_t OrthancPluginPeers;
 
 
 
@@ -1364,7 +1368,8 @@ extern "C"
    * @brief Opaque structure to a job to be executed by Orthanc.
    * @ingroup Toolbox
    **/
-  typedef struct _OrthancPluginJob_t OrthancPluginJob;  
+  typedef struct ORTHANC_PLUGIN_SINCE_SDK("1.4.2")
+    _OrthancPluginJob_t OrthancPluginJob;
 
 
 
@@ -1373,7 +1378,8 @@ extern "C"
    * document used in DICOMweb.
    * @ingroup Toolbox
    **/
-  typedef struct _OrthancPluginDicomWebNode_t OrthancPluginDicomWebNode;
+  typedef struct ORTHANC_PLUGIN_SINCE_SDK("1.5.4")
+    _OrthancPluginDicomWebNode_t OrthancPluginDicomWebNode;
 
   
 
@@ -2321,6 +2327,7 @@ extern "C"
    * @param context The Orthanc plugin context, as received by OrthancPluginInitialize().
    * @param buffer The memory buffer to release.
    **/
+  ORTHANC_PLUGIN_SINCE_SDK("1.9.0")
   ORTHANC_PLUGIN_INLINE void  OrthancPluginFreeMemoryBuffer64(
     OrthancPluginContext* context, 
     OrthancPluginMemoryBuffer64* buffer)
@@ -7982,7 +7989,8 @@ extern "C"
    * @brief Opaque structure that reads the content of a HTTP request body during a chunked HTTP transfer.
    * @ingroup Callbacks
    **/
-  typedef struct _OrthancPluginServerChunkedRequestReader_t OrthancPluginServerChunkedRequestReader;
+  typedef struct ORTHANC_PLUGIN_SINCE_SDK("1.5.7")
+    _OrthancPluginServerChunkedRequestReader_t OrthancPluginServerChunkedRequestReader;
 
 
 
@@ -9330,7 +9338,8 @@ extern "C"
    * @brief Opaque structure that represents a WebDAV collection.
    * @ingroup Callbacks
    **/
-  typedef struct _OrthancPluginWebDavCollection_t OrthancPluginWebDavCollection;
+  typedef struct ORTHANC_PLUGIN_SINCE_SDK("1.10.1")
+    _OrthancPluginWebDavCollection_t OrthancPluginWebDavCollection;
 
 
   /**
@@ -10184,7 +10193,8 @@ extern "C"
    * a key-value store.
    * @ingroup Callbacks
    **/
-  typedef struct _OrthancPluginKeysValuesIterator_t OrthancPluginKeysValuesIterator;
+  typedef struct ORTHANC_PLUGIN_SINCE_SDK("1.12.8")
+    _OrthancPluginKeysValuesIterator_t OrthancPluginKeysValuesIterator;
 
 
   typedef struct
