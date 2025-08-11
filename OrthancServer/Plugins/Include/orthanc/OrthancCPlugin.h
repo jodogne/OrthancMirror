@@ -8005,7 +8005,7 @@ extern "C"
    * 
    * @see OrthancPluginRegisterChunkedRestCallback()
    * @param reader Memory location that must be filled with the newly-created reader.
-   * @param url The URI that is accessed.
+   * @param uri The URI that is accessed.
    * @param request The body of the HTTP request. Note that "body" and "bodySize" are not used.
    * @return 0 if success, or the error code if failure.
    **/

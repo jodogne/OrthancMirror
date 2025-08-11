@@ -18,7 +18,7 @@ Usage on Ubuntu 22.04 LTS
 
 Executing with default parameters:
 
-$ sudo apt-get install python3-clang-14 python3-pystache
+$ sudo apt install python3-clang-14 python3-pystache
 $ python3 ./GenerateCodeModel.py
 
 
