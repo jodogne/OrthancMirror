@@ -1298,7 +1298,8 @@ static bool StartDicomServer(ServerContext& context,
     ModalitiesFromConfiguration modalities;
   
     // Setup the DICOM server  
-    DicomServer dicomServer(context.GetMetricsRegistry());
+    DicomServer dicomServer;
+    dicomServer.SetMetricsRegistry(context.GetMetricsRegistry());
     dicomServer.SetRemoteModalities(modalities);
     dicomServer.SetStoreRequestHandlerFactory(serverFactory);
     dicomServer.SetMoveRequestHandlerFactory(serverFactory);

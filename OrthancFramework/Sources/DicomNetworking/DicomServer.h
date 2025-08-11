@@ -85,7 +85,6 @@ namespace Orthanc
     IWorklistRequestHandlerFactory* worklistRequestHandlerFactory_;
     IStorageCommitmentRequestHandlerFactory* storageCommitmentFactory_;
     IApplicationEntityFilter* applicationEntityFilter_;
-    MetricsRegistry& metricsRegistry_;
 
     // New in Orthanc 1.9.0 for DICOM TLS
     bool         useDicomTls_;
@@ -96,14 +95,14 @@ namespace Orthanc
     bool         remoteCertificateRequired_;  // New in 1.9.3
     unsigned int minimumTlsVersion_;          // New in 1.12.4
     std::set<std::string> acceptedCiphers_;   // New in 1.12.4
-
+    MetricsRegistry* metricsRegistry_;        // New in 1.12.9
 
     static void ServerThread(DicomServer* server,
                              unsigned int maximumPduLength,
                              bool useDicomTls);
 
   public:
-    explicit DicomServer(MetricsRegistry& metricsRegistry);
+    DicomServer();
 
     ~DicomServer();
 
@@ -178,5 +177,6 @@ namespace Orthanc
 
     void SetThreadsCount(unsigned int threadsCount);
 
+    void SetMetricsRegistry(MetricsRegistry& registry);
   };
 }

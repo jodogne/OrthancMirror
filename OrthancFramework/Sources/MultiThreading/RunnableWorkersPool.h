@@ -26,22 +26,30 @@
 
 #include "IRunnableBySteps.h"
 
+#include "../MetricsRegistry.h"
+
 #include <boost/shared_ptr.hpp>
 
 namespace Orthanc
 {
-  class MetricsRegistry;
-
   class RunnableWorkersPool : public boost::noncopyable
   {
   private:
     struct PImpl;
     boost::shared_ptr<PImpl> pimpl_;
 
-    void Stop();
+    void Start(size_t countWorkers,
+               const std::string& baseThreadName,
+               MetricsRegistry::SharedMetrics* availableWorkers /* can be NULL */);
 
   public:
-    explicit RunnableWorkersPool(size_t countWorkers, const std::string& name, MetricsRegistry& metricsRegistry, const char* availableWorkersMetricsName);
+    RunnableWorkersPool(size_t countWorkers,
+                        const std::string& baseThreadName);
+
+    RunnableWorkersPool(size_t countWorkers,
+                        const std::string& name,
+                        MetricsRegistry& registry,
+                        const char* availableWorkersMetricsName);
 
     ~RunnableWorkersPool();
 
