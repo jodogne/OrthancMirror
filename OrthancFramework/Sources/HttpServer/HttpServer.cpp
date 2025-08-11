@@ -1192,9 +1192,11 @@ namespace Orthanc
                                struct mg_connection *connection,
                                const struct mg_request_info *request)
   {
-    bool localhost;
+    server.UpdateCurrentThreadName();
 
     std::unique_ptr<MetricsRegistry::AvailableResourcesDecounter> counter(server.CreateAvailableHttpThreadsDecounter());
+
+    bool localhost;
 
 #if ORTHANC_ENABLE_MONGOOSE == 1
     static const long LOCALHOST = (127ll << 24) + 1ll;
@@ -1615,8 +1617,6 @@ namespace Orthanc
     }
   }
 
-  static uint16_t threadCounter = 0;
-
 #if MONGOOSE_USE_CALLBACKS == 0
   static void* Callback(enum mg_event event,
                         struct mg_connection *connection,
@@ -1639,12 +1639,6 @@ namespace Orthanc
   static int Callback(struct mg_connection *connection)
   {
     const struct mg_request_info *request = mg_get_request_info(connection);
-
-    if (!Logging::HasCurrentThreadName())
-    {
-      Logging::SetCurrentThreadName(std::string("HTTP-") + boost::lexical_cast<std::string>(threadCounter++));
-    }
-
     ProtectedCallback(connection, request);
 
     return 1;  // Do not let Mongoose handle the request by itself
@@ -1732,7 +1726,7 @@ namespace Orthanc
   void HttpServer::Start()
   {
     // reset thread counter used to generate HTTP thread names.
-    threadCounter = 0;
+    threadCounter_ = 0;
 
 #if ORTHANC_ENABLE_MONGOOSE == 1
     CLOG(INFO, HTTP) << "Starting embedded Web server using Mongoose";
@@ -2313,6 +2307,16 @@ namespace Orthanc
     else
     {
       return NULL;
+    }
+  }
+
+
+  void HttpServer::UpdateCurrentThreadName()
+  {
+    if (!Logging::HasCurrentThreadName())
+    {
+      boost::mutex::scoped_lock lock(threadCounterMutex_);
+      Logging::SetCurrentThreadName(std::string("HTTP-") + boost::lexical_cast<std::string>(threadCounter_++));
     }
   }
 }
