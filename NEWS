@@ -32,7 +32,7 @@ Plugin SDK
     DICOM resource from a plugin.
   - "OrthancPluginRegisterHttpAuthentication()" to install a custom
     callback to authenticate HTTP requests.
-  - "OrthancPluginAuditLog()" to generate an audit log.
+  - "OrthancPluginEmitAuditLog()" to generate an audit log.
   - "OrthancPluginRegisterAuditLogHandler()" to handle audit logs.
 * The OrthancPluginHttpRequest structure provides the payload of
   the possible HTTP authentication callback.

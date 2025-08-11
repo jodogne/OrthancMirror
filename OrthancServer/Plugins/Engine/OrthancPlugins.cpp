@@ -1755,7 +1755,7 @@ namespace Orthanc
     boost::mutex storageCommitmentScpMutex_;
     boost::recursive_mutex invokeServiceMutex_;
     boost::shared_mutex incomingHttpRequestFilterMutex_;  // New in Orthanc 1.8.2
-    boost::recursive_mutex auditLogHandlersMutex_;        // New in Orthanc 1.12.9
+    boost::shared_mutex auditLogHandlersMutex_;        // New in Orthanc 1.12.9
 
     Properties properties_;
     int argc_;
@@ -3134,10 +3134,10 @@ namespace Orthanc
 
   void OrthancPlugins::RegisterAuditLogHandler(const void* parameters)
   {
-    boost::recursive_mutex::scoped_lock lock(pimpl_->auditLogHandlersMutex_);
-
     const _OrthancPluginAuditLogHandler& p = 
       *reinterpret_cast<const _OrthancPluginAuditLogHandler*>(parameters);
+
+    boost::unique_lock<boost::shared_mutex> lock(pimpl_->auditLogHandlersMutex_);
 
     CLOG(INFO, PLUGINS) << "Plugin has registered an AuditLog handler";
     pimpl_->auditLogHandlers_.push_back(p.handler);
@@ -4785,9 +4785,10 @@ namespace Orthanc
 
   void OrthancPlugins::ApplyEmitAuditLog(const _OrthancPluginEmitAuditLog& parameters)
   {
-    PImpl::ServerContextReference lock(*pimpl_);
+    boost::unique_lock<boost::shared_mutex> lock(pimpl_->auditLogHandlersMutex_);
 
-    for (PImpl::AuditLogHandlers::const_iterator handler = pimpl_->auditLogHandlers_.begin(); handler != pimpl_->auditLogHandlers_.end(); ++handler)
+    for (PImpl::AuditLogHandlers::const_iterator handler = pimpl_->auditLogHandlers_.begin();
+         handler != pimpl_->auditLogHandlers_.end(); ++handler)
     {
       OrthancPluginErrorCode error = (*handler) (
         parameters.userId, parameters.sourcePlugin, parameters.resourceType,
