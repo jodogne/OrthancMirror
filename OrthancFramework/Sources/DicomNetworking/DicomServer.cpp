@@ -89,7 +89,7 @@ namespace Orthanc
   }
 
 
-  DicomServer::DicomServer(MetricsRegistry& metricsRegistry) : 
+  DicomServer::DicomServer() :
     pimpl_(new PImpl),
     checkCalledAet_(true),
     aet_("ANY-SCP"),
@@ -105,11 +105,11 @@ namespace Orthanc
     worklistRequestHandlerFactory_(NULL),
     storageCommitmentFactory_(NULL),
     applicationEntityFilter_(NULL),
-    metricsRegistry_(metricsRegistry),
     useDicomTls_(false),
     maximumPduLength_(ASC_DEFAULTMAXPDU),
     remoteCertificateRequired_(true),
-    minimumTlsVersion_(0)
+    minimumTlsVersion_(0),
+    metricsRegistry_(NULL)
   {
   }
 
@@ -433,7 +433,15 @@ namespace Orthanc
 
     CLOG(INFO, DICOM) << "The embedded DICOM server will use " << threadsCount_ << " threads";
 
-    pimpl_->workers_.reset(new RunnableWorkersPool(threadsCount_, "DICOM-", metricsRegistry_, "orthanc_available_dicom_threads"));
+    if (metricsRegistry_ == NULL)
+    {
+      pimpl_->workers_.reset(new RunnableWorkersPool(threadsCount_, "DICOM-"));
+    }
+    else
+    {
+      pimpl_->workers_.reset(new RunnableWorkersPool(threadsCount_, "DICOM-", *metricsRegistry_, "orthanc_available_dicom_threads"));
+    }
+
     pimpl_->thread_ = boost::thread(ServerThread, this, maximumPduLength_, useDicomTls_);
   }
 
@@ -621,4 +629,9 @@ namespace Orthanc
     threadsCount_ = threads;
   }
 
+  void DicomServer::SetMetricsRegistry(MetricsRegistry& registry)
+  {
+    Stop();
+    metricsRegistry_ = &registry;
+  }
 }
