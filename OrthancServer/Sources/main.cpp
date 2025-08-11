@@ -1049,7 +1049,7 @@ static bool StartHttpServer(ServerContext& context,
   else
   {
     MyIncomingHttpRequestFilter httpFilter(context, plugins);
-    HttpServer httpServer(context.GetMetricsRegistry());
+    HttpServer httpServer;
     bool httpDescribeErrors;
 
 #if ORTHANC_ENABLE_MONGOOSE == 1
@@ -1060,6 +1060,8 @@ static bool StartHttpServer(ServerContext& context,
 #  error "Either Mongoose or Civetweb must be enabled to compile this file"
 #endif
   
+    httpServer.SetMetricsRegistry(context.GetMetricsRegistry());
+
     {
       OrthancConfiguration::ReaderLock lock;
       

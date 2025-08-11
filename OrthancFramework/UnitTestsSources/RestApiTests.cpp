@@ -1333,9 +1333,8 @@ namespace
 TEST(HttpClient, DISABLED_Issue156_Slow)
 {
   // https://orthanc.uclouvain.be/bugs/show_bug.cgi?id=156
-  MetricsRegistry dummyRegistry;
   TotoServer handler;
-  HttpServer server(dummyRegistry);
+  HttpServer server;
   server.SetPortNumber(5000);
   server.Register(handler);
   server.Start();
@@ -1362,9 +1361,8 @@ TEST(HttpClient, DISABLED_Issue156_Slow)
 
 TEST(HttpClient, DISABLED_Issue156_Crash)
 {
-  MetricsRegistry dummyRegistry;
   TotoServer handler;
-  HttpServer server(dummyRegistry);
+  HttpServer server;
   server.SetPortNumber(5000);
   server.Register(handler);
   server.Start();
