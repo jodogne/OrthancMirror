@@ -118,7 +118,7 @@ namespace Orthanc
     std::unique_ptr<MetricsRegistry::SharedMetrics> availableHttpThreadsMetrics_;  // New in Orthanc 1.12.9
 
     boost::mutex threadCounterMutex_;  // New in Orthanc 1.12.9
-    uint16_t threadCounter_ = 0;       // Introduced as a global, static variable in Orthanc 1.12.2
+    uint16_t threadCounter_;           // Introduced as a global, static variable in Orthanc 1.12.2
 
 #if ORTHANC_ENABLE_PUGIXML == 1
     WebDavBuckets webDavBuckets_;
