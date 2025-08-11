@@ -4791,7 +4791,7 @@ namespace Orthanc
          handler != pimpl_->auditLogHandlers_.end(); ++handler)
     {
       OrthancPluginErrorCode error = (*handler) (
-        parameters.userId, parameters.sourcePlugin, parameters.resourceType,
+        parameters.sourcePlugin, parameters.userId, parameters.resourceType,
         parameters.resourceId, parameters.action, parameters.logData, parameters.logDataSize);
 
       if (error != OrthancPluginErrorCode_Success)
