@@ -186,10 +186,10 @@
 
 #ifndef ORTHANC_PLUGIN_SINCE_SDK
 /**
- * This macro is notably used by the code model generator in the
- * "orthanc-java" project, to create the Python and Java
- * wrappers. Functions that are not tagged with this macro were
- * introduced before Orthanc 1.0.0.
+ * This macro is used by the code model generator that produces the
+ * "OrthancPluginCodeModel.json" file. The code model is notably used
+ * to generate the Python and Java wrappers. Primitives that are not
+ * tagged with this macro were introduced before Orthanc 1.0.0.
  **/
 #  if defined(__clang__)
 #    define ORTHANC_PLUGIN_SINCE_SDK(version) __attribute__ ((annotate("ORTHANC_PLUGIN_SINCE_SDK " version)))
