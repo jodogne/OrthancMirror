@@ -7,7 +7,8 @@ Orthanc Plugin SDK using clang, and saves this code model as a JSON
 file.
 
 The code model can then be used to generate wrappers. It is notably
-used by the "orthanc-java" and "orthanc-python" plugins.
+used by the "orthanc-java" (starting with its release 1.0) and
+"orthanc-python" plugins (starting with its release 4.3).
 
 NB: This file was originally part of the "orthanc-java" project.
 
