@@ -10,7 +10,7 @@ REST API
 * Added new metrics in "/tools/metrics-prometheus":
   - "orthanc_available_dicom_threads" displays the minimum
     number of DICOM threads that were available during the last 10 seconds.
-  - "orthanc_available_http_threads" displays the minimum
+  - "orthanc_available_http_threads_count" displays the minimum
     number of HTTP threads that were available during the last 10 seconds.
     It is basically the opposite of "orthanc_rest_api_active_requests" but
     it is more convenient to configure alerts on. "orthanc_rest_api_active_requests"
