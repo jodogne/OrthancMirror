@@ -1,28 +1,23 @@
 Pending changes in the mainline
 ===============================
 
-General
--------
-
-* Lua: new "SetStableStatus()" function.
-
 REST API
 --------
 
 * When creating a job, a "UserData" field can be added to the payload.
   This data will travel along with the job and will be available in the
   "/jobs/{jobId}" route.
-* Added new metrics:
-  - "orthanc_available_dicom_threads" that displays the minimum
+* Added new metrics in "/tools/metrics-prometheus":
+  - "orthanc_available_dicom_threads" displays the minimum
     number of DICOM threads that were available during the last 10 seconds.
-  - "orthanc_available_http_threads" that displays the minimum
+  - "orthanc_available_http_threads" displays the minimum
     number of HTTP threads that were available during the last 10 seconds.
     It is basically the opposite of "orthanc_rest_api_active_requests" but
     it is more convenient to configure alerts on. "orthanc_rest_api_active_requests"
     also monitors the internal requests coming from plugins while "orthanc_available_http_threads"
     monitors the requests received by the external HTTP server.
-* Fixed the "orthanc_rest_api_active_requests" metrix that was not 
-  reset after 10 seconds.
+  - Fixed the "orthanc_rest_api_active_requests" metrix that was not 
+    reset after 10 seconds.
 
 Plugin SDK
 ----------
@@ -45,10 +40,15 @@ Plugins
 -------
 
 * Housekeeper plugin:
-  - New "ForceReconstructFiles" option: If set to true, forces the
+  - New "ForceReconstructFiles" option: If set to "true", forces the
     "ReconstructFiles" option when reconstructing resources, even if
     the plugin did not detect any changes in the configuration that
     should trigger a reconstruct.
+
+Lua
+---
+
+* Added new "SetStableStatus()" function.
 
 Maintenance
 -----------
