@@ -32,7 +32,6 @@
 #include "../Logging.h"
 #include "../OrthancException.h"
 #include "../TemporaryFile.h"
-#include "../MetricsRegistry.h"
 #include "HttpToolbox.h"
 #include "IHttpHandler.h"
 #include "MultipartStreamReader.h"
@@ -1195,7 +1194,7 @@ namespace Orthanc
   {
     bool localhost;
 
-    MetricsRegistry::AvailableResourcesDecounter counter(server.GetAvailableHttpThreadsMetrics());
+    std::unique_ptr<MetricsRegistry::AvailableResourcesDecounter> counter(server.CreateAvailableHttpThreadsDecounter());
 
 #if ORTHANC_ENABLE_MONGOOSE == 1
     static const long LOCALHOST = (127ll << 24) + 1ll;
@@ -1665,7 +1664,7 @@ namespace Orthanc
   }
 
 
-  HttpServer::HttpServer(MetricsRegistry& metricsRegistry) :
+  HttpServer::HttpServer() :
     pimpl_(new PImpl),
     handler_(NULL),
     remoteAllowed_(false),
@@ -1683,10 +1682,7 @@ namespace Orthanc
     realm_(ORTHANC_REALM),
     threadsCount_(50),  // Default value in mongoose/civetweb
     tcpNoDelay_(true),
-    requestTimeout_(30),  // Default value in mongoose/civetweb (30 seconds)
-    availableHttpThreadsMetrics_(metricsRegistry,
-                                 "orthanc_available_http_threads_count",
-                                 MetricsUpdatePolicy_MinOver10Seconds)
+    requestTimeout_(30)  // Default value in mongoose/civetweb (30 seconds)
   {
 #if ORTHANC_ENABLE_MONGOOSE == 1
     CLOG(INFO, HTTP) << "This Orthanc server uses Mongoose as its embedded HTTP server";
@@ -2203,7 +2199,11 @@ namespace Orthanc
     
     Stop();
     threadsCount_ = threads;
-    availableHttpThreadsMetrics_.SetInitialValue(threadsCount_);
+
+    if (availableHttpThreadsMetrics_.get() != NULL)
+    {
+      availableHttpThreadsMetrics_->SetInitialValue(threadsCount_);
+    }
 
     CLOG(INFO, HTTP) << "The embedded HTTP server will use " << threads << " threads";
   }
@@ -2290,4 +2290,29 @@ namespace Orthanc
     }
   }
 #endif
+
+
+  void HttpServer::SetMetricsRegistry(MetricsRegistry& metricsRegistry)
+  {
+    Stop();
+    availableHttpThreadsMetrics_.reset(new MetricsRegistry::SharedMetrics(
+                                         metricsRegistry,
+                                         "orthanc_available_http_threads_count",
+                                         MetricsUpdatePolicy_MinOver10Seconds));
+    availableHttpThreadsMetrics_->SetInitialValue(threadsCount_);
+  }
+
+
+  MetricsRegistry::AvailableResourcesDecounter* HttpServer::CreateAvailableHttpThreadsDecounter()
+  {
+    // NB: "availableHttpThreadsMetrics_" is protected by the mutex in "mg_stop()"
+    if (availableHttpThreadsMetrics_.get() != NULL)
+    {
+      return new MetricsRegistry::AvailableResourcesDecounter(*availableHttpThreadsMetrics_);
+    }
+    else
+    {
+      return NULL;
+    }
+  }
 }

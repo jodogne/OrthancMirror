@@ -115,7 +115,7 @@ namespace Orthanc
     unsigned int threadsCount_;
     bool tcpNoDelay_;
     unsigned int requestTimeout_;  // In seconds
-    MetricsRegistry::SharedMetrics availableHttpThreadsMetrics_;
+    std::unique_ptr<MetricsRegistry::SharedMetrics> availableHttpThreadsMetrics_;  // New in Orthanc 1.12.9
 
 #if ORTHANC_ENABLE_PUGIXML == 1
     WebDavBuckets webDavBuckets_;
@@ -124,7 +124,7 @@ namespace Orthanc
     bool IsRunning() const;
 
   public:
-    explicit HttpServer(MetricsRegistry& metricsRegistry);
+    HttpServer();
 
     ~HttpServer();
 
@@ -230,11 +230,11 @@ namespace Orthanc
                                   const std::string& boundary,
                                   const std::string& authenticationPayload);
 
-    MetricsRegistry::SharedMetrics& GetAvailableHttpThreadsMetrics()
-    {
-      return availableHttpThreadsMetrics_;
-    }
-
     static std::string GetRelativePathToRoot(const std::string& uri);
+
+    void SetMetricsRegistry(MetricsRegistry& metricsRegistry);
+
+    // Can return NULL if SetMetricsRegistry() was not call beforehand
+    MetricsRegistry::AvailableResourcesDecounter* CreateAvailableHttpThreadsDecounter();
   };
 }
