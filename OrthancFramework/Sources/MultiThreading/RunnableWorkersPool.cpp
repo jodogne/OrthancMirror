@@ -120,7 +120,7 @@ namespace Orthanc
     std::unique_ptr<MetricsRegistry::SharedMetrics>  availableWorkers_;
 
   public:
-    PImpl(MetricsRegistry::SharedMetrics* availableWorkers /* takes ownership */) :
+    explicit PImpl(MetricsRegistry::SharedMetrics* availableWorkers /* takes ownership */) :
       continue_(false),
       availableWorkers_(availableWorkers)
     {
