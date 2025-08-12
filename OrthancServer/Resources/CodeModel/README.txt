@@ -18,7 +18,7 @@ Usage on Ubuntu 22.04 LTS
 
 Executing with default parameters:
 
-$ sudo apt install python3-clang-14 python3-pystache
+$ sudo apt install python3-clang-14
 $ python3 ./GenerateCodeModel.py
 
 
@@ -33,4 +33,4 @@ $ python3 ./GenerateCodeModel.py \
 Generation using Docker
 =======================
 
-$ ./docker-compile.sh
+$ ./docker-run.sh
