@@ -246,6 +246,7 @@ def EncodeArguments(target, args):
 
         elif arg['sdk_type'] in [ 'float',
                                   'int32_t',
+                                  'int64_t',
                                   'uint8_t',
                                   'uint16_t',
                                   'uint32_t',
