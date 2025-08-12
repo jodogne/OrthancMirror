@@ -5122,6 +5122,44 @@
             "args": [
                 {
                     "name": "arg0",
+                    "sdk_name": "name",
+                    "sdk_type": "const char *"
+                },
+                {
+                    "name": "arg1",
+                    "sdk_name": "value",
+                    "sdk_type": "int64_t"
+                },
+                {
+                    "name": "arg2",
+                    "sdk_enumeration": "OrthancPluginMetricsType",
+                    "sdk_name": "type",
+                    "sdk_type": "enumeration"
+                }
+            ],
+            "c_function": "OrthancPluginSetMetricsIntegerValue",
+            "documentation": {
+                "args": {
+                    "name": "The name of the metrics to be set.",
+                    "type": "The type of the metrics. This parameter is only taken into consideration the first time this metrics is set.",
+                    "value": "The value of the metrics."
+                },
+                "description": [
+                    "This function sets the value of an integer metrics to monitor the behavior of the plugin through tools such as Prometheus. The values of all the metrics are stored within the Orthanc context."
+                ],
+                "summary": "Set the value of an integer metrics."
+            },
+            "return_sdk_type": "void",
+            "since_sdk": [
+                1,
+                12,
+                1
+            ]
+        },
+        {
+            "args": [
+                {
+                    "name": "arg0",
                     "sdk_name": "threadName",
                     "sdk_type": "const char *"
                 }
