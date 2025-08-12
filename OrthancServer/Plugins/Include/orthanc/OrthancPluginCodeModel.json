@@ -3724,7 +3724,12 @@
                 ],
                 "summary": "Set the URI where the plugin provides its Web interface."
             },
-            "return_sdk_type": "void"
+            "return_sdk_type": "void",
+            "since_sdk": [
+                1,
+                12,
+                4
+            ]
         },
         {
             "args": [
@@ -3770,7 +3775,12 @@
                 ],
                 "summary": "Set a description for this plugin."
             },
-            "return_sdk_type": "void"
+            "return_sdk_type": "void",
+            "since_sdk": [
+                1,
+                12,
+                4
+            ]
         },
         {
             "args": [
@@ -3816,7 +3826,12 @@
                 ],
                 "summary": "Extend the JavaScript code of Orthanc Explorer."
             },
-            "return_sdk_type": "void"
+            "return_sdk_type": "void",
+            "since_sdk": [
+                1,
+                12,
+                4
+            ]
         },
         {
             "args": [
