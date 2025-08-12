@@ -26,7 +26,6 @@ import clang.cindex
 import json
 import os
 import pprint
-import pystache
 import re
 import sys
 
