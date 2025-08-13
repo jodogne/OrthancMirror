@@ -10,7 +10,9 @@ The code model can then be used to generate wrappers. It is notably
 used by the "orthanc-java" (starting with its release 1.0) and
 "orthanc-python" plugins (starting with its release 4.3).
 
-NB: This file was originally part of the "orthanc-java" project.
+NB: The generation of the code model was originally part of the
+"orthanc-java" project. It was integrated into the Orthanc core
+repository in release 1.12.9.
 
 
 Usage on Ubuntu 22.04 LTS
