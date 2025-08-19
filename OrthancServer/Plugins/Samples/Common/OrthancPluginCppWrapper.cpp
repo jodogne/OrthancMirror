@@ -23,6 +23,7 @@
 
 #include "OrthancPluginCppWrapper.h"
 
+#include <cassert>
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/move/unique_ptr.hpp>
 #include <boost/thread.hpp>
