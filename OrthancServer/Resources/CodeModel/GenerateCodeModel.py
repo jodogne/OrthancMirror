@@ -454,6 +454,7 @@ def ParseFunctionDocumentation(comment):
 globalFunctions = []
 countWrappedFunctions = 0
 countAllFunctions = 0
+unwrappedFunctions = []
 
 for node in tu.cursor.get_children():
     # Only consider the Orthanc SDK
@@ -525,11 +526,12 @@ for node in tu.cursor.get_children():
                 InjectSinceSdk(method, node)
 
                 if not EncodeArguments(method, args[1:]):
-                    pass
+                    unwrappedFunctions.append(node.spelling)
                 elif EncodeResultType(method, returnBufferType, node.result_type):
                     classes[cls]['methods'].append(method)
                     countWrappedFunctions += 1
                 else:
+                    unwrappedFunctions.append(node.spelling)
                     print('[WARNING] Unsupported return type in a method (%s), cannot wrap: %s' % (
                         node.result_type.spelling, node.spelling))
 
@@ -549,11 +551,12 @@ for node in tu.cursor.get_children():
             InjectSinceSdk(f, node)
 
             if not EncodeArguments(f, args):
-                pass
+                unwrappedFunctions.append(node.spelling)
             elif EncodeResultType(f, returnBufferType, node.result_type):
                 globalFunctions.append(f)
                 countWrappedFunctions += 1
             else:
+                unwrappedFunctions.append(node.spelling)
                 print('[WARNING] Unsupported return type in a global function (%s), cannot wrap: %s' % (
                     node.result_type.spelling, node.spelling))
 
@@ -587,6 +590,7 @@ codeModel = {
     'classes' : sorted(FlattenDictionary(classes), key = lambda x: x['name']),
     'enumerations' : sorted(FlattenEnumerations(), key = lambda x: x['name']),
     'global_functions' : globalFunctions,  # Global functions are ordered in the same order as in the C header
+    'unwrapped_functions' : unwrappedFunctions,
     }
 
 
