@@ -312,6 +312,19 @@ SDK
   can not cross the C/C++ frontier safely -> we need a OrthancPluginRegisterStorageArea3 with a return value.
   Ex: install DelayedDeletion + S3 storage.  Right now, the second plugin to load is just ignored with an error
   message in the logs.
+* Queues: There is currently a risk of loosing messages from the Queues:
+    message = orthanc.DequeueValue("instances-to-process", orthanc.QueueOrigin.FRONT)
+    # consider Orthanc is interrupted here (hard shutdown)
+    proccess(message)
+  The message will never be processed ...
+  We should have an acknowledge/commit mechanism e.g:
+    message, messageId = orthanc.DequeueValue2("instances-to-process", orthanc.QueueOrigin.FRONT, 5) # where 5 is a "timeout"
+    # At this point, the message is still in the queue but will not be dequeued by other consumers.
+    # If the message is not acknowledged within 5 seconds, it will get back into the queue.
+    process(message)
+    orthanc.AcknowledgeQueue("instances-to-process", messageId)
+    # This requires adding a new "timeout" column in the DB with the reservation_expiration timestamp.
+    
 
 
 -----------
