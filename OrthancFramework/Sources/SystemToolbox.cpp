@@ -331,17 +331,25 @@ namespace Orthanc
     }
   }
 
+  
 
   void SystemToolbox::WriteFile(const void* content,
                                 size_t size,
                                 const std::string& path,
                                 bool callFsync)
   {
+    WriteFile(content, size, path, callFsync);
+  }
+
+  void SystemToolbox::WriteFile(const void *content, 
+                                size_t size, 
+                                const boost::filesystem::path &path, 
+                                bool callFsync)
+  {
     try
     {
-      //boost::filesystem::ofstream f;
       boost::iostreams::stream<boost::iostreams::file_descriptor_sink> f;
-    
+
       f.open(path, std::ofstream::out | std::ofstream::binary);
       if (!f.good())
       {
@@ -372,7 +380,7 @@ namespace Orthanc
          * systems:
          * https://github.com/boostorg/iostreams/blob/develop/include/boost/iostreams/detail/file_handle.hpp
          **/
-      
+
 #if defined(_WIN32)
         // https://docs.microsoft.com/fr-fr/windows/win32/api/fileapi/nf-fileapi-flushfilebuffers
         success = (::FlushFileBuffers(f->handle()) != 0);
@@ -687,7 +695,7 @@ namespace Orthanc
   }
 
 
-  bool SystemToolbox::IsRegularFile(const std::string& path)
+  bool SystemToolbox::IsRegularFile(const boost::filesystem::path& path)
   {
     try
     {
@@ -703,6 +711,12 @@ namespace Orthanc
     }
 
     return false;
+  }
+
+
+  bool SystemToolbox::IsRegularFile(const std::string& path)
+  {
+    return SystemToolbox::IsRegularFile(path);
   }
 
 
