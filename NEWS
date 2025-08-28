@@ -1,6 +1,12 @@
 Pending changes in the mainline
 ===============================
 
+Maintenance
+-----------
+
+* Under Windows, the console output is now configured to interpret strings as UTF-8.
+  This notably allow cyrillic strings to display correctly in the console.
+
 
 Version 1.12.9 (2025-08-11)
 ===========================
