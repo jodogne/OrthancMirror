@@ -5233,7 +5233,7 @@ namespace Orthanc
       {
         const _OrthancPluginWriteFile& p =
           *reinterpret_cast<const _OrthancPluginWriteFile*>(parameters);
-        SystemToolbox::WriteFile(p.data, p.size, p.path, true /* run fsync() */);
+        SystemToolbox::WriteFile(p.data, p.size, boost::filesystem::path(p.path), true /* run fsync() */);
         return true;
       }
 

@@ -338,7 +338,7 @@ namespace Orthanc
                                 const std::string& path,
                                 bool callFsync)
   {
-    WriteFile(content, size, path, callFsync);
+    WriteFile(content, size, boost::filesystem::path(path), callFsync);
   }
 
   void SystemToolbox::WriteFile(const void *content, 
@@ -716,7 +716,7 @@ namespace Orthanc
 
   bool SystemToolbox::IsRegularFile(const std::string& path)
   {
-    return SystemToolbox::IsRegularFile(path);
+    return IsRegularFile(boost::filesystem::path(path));
   }
 
 
