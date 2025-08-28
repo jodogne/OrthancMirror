@@ -44,6 +44,7 @@
 #include <vector>
 #include <string>
 #include <stdint.h>
+#include <boost/filesystem.hpp>
 
 namespace Orthanc
 {
@@ -71,6 +72,11 @@ namespace Orthanc
                           size_t size,
                           const std::string& path,
                           bool callFsync);
+
+   static void WriteFile(const void *content, 
+                         size_t size, 
+                         const boost::filesystem::path &path, 
+                         bool callFsync);    // this variant is mandatory to handle non ASCII-only path on Windows
 
     static void WriteFile(const void* content,
                           size_t size,
@@ -113,6 +119,8 @@ namespace Orthanc
     static int GetProcessId();
 
     static bool IsRegularFile(const std::string& path);
+
+    static bool IsRegularFile(const boost::filesystem::path& path);  // this variant is mandatory to handle non ASCII-only path on Windows
 
     static FILE* OpenFile(const std::string& path,
                           FileMode mode);
