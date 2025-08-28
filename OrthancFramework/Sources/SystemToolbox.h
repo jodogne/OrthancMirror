@@ -73,10 +73,10 @@ namespace Orthanc
                           const std::string& path,
                           bool callFsync);
 
-   static void WriteFile(const void *content, 
-                         size_t size, 
-                         const boost::filesystem::path &path, 
-                         bool callFsync);    // this variant is mandatory to handle non ASCII-only path on Windows
+    static void WriteFile(const void *content, 
+                          size_t size, 
+                          const boost::filesystem::path &path, 
+                          bool callFsync);    // this variant is mandatory to handle non ASCII-only path on Windows
 
     static void WriteFile(const void* content,
                           size_t size,
