@@ -16,3 +16,7 @@ CMakeLists.txt.user
 Resources/Testing/Issue32/Java/bin
 Resources/Testing/Issue32/Java/target
 build/
+
+# when opening Orthanc in Visual Studio, by default, it creates these files/folders:
+OrthancServer/CMakeSettings.json
+OrthancServer/out/
