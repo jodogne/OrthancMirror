@@ -267,7 +267,7 @@ namespace Orthanc
         if (mimeType == NULL ||
             std::string(mimeType).empty())
         {
-          f->SetMimeType(SystemToolbox::AutodetectMimeType(displayName));
+          f->SetMimeType(SystemToolbox::AutodetectMimeType(std::string(displayName)));
         }
         else
         {
@@ -5233,7 +5233,7 @@ namespace Orthanc
       {
         const _OrthancPluginWriteFile& p =
           *reinterpret_cast<const _OrthancPluginWriteFile*>(parameters);
-        SystemToolbox::WriteFile(p.data, p.size, p.path, true /* run fsync() */);
+        SystemToolbox::WriteFile(p.data, p.size, std::string(p.path), true /* run fsync() */);
         return true;
       }
 
