@@ -298,12 +298,15 @@ SDK
 * Provide a C++ callback similar to "ReceivedInstanceFilter()" in Lua
   https://orthanc.uclouvain.be/book/users/lua.html#filtering-incoming-dicom-instances
   https://groups.google.com/d/msg/orthanc-users/BtvLTE5Ni8A/vIMhmMgfBAAJ
-* Update the SDK to handle buffer sizes > 4GB (all sizes are currently coded in uint32_t)
+* Update the SDK to handle buffer sizes > 4GB (currently, sizes are often coded in uint32_t),
+  only where it makes sense, by introducing additional primitives that use
+  "OrthancPluginMemoryBuffer64" instead of "OrthancPluginMemoryBuffer"
 * Add a C-Get SCP handler: OrthancPluginRegisterGetCallback
   https://groups.google.com/g/orthanc-users/c/NRhPkYX9IXQ/m/mWS11g0jBwAJ
 * Add a primitive for user authentication (to generate 401 HTTP status, whereas
   the "RegisterIncomingHttpRequestFilter()" can only generate 403 HTTP status)
   https://groups.google.com/g/orthanc-users/c/ymtaAmgSs6Q/m/PqVBactQAQAJ
+  NB: OrthancPluginRegisterHttpAuthentication() was introduced in Orthanc 1.12.9
 * Add an index on the UUID column in the DelayedDeletion plugin:
   https://discourse.orthanc-server.org/t/delayeddeletion-improvement-unique-index-on-pending-uuid-column/4032
 * Orthanc shall refuse to start if one registers 2 storage plugins.
@@ -324,7 +327,19 @@ SDK
     process(message)
     orthanc.AcknowledgeQueue("instances-to-process", messageId)
     # This requires adding a new "timeout" column in the DB with the reservation_expiration timestamp.
-    
+
+  Note by SJ: Introducing an acknowledgement would greatly complexify
+  the SDK and the core of Orthanc. I would favor another approach by
+  introducing 2 functions in the SDK:
+  - OrthancPluginQueuePeekFront(context, found, target, queueId): Same behavior as
+    OrthancPluginDequeueValue(), but limited to the back of the queue, and doesn't modify the queue
+  - OrthancPluginQueuePopFront(context, target): Remove the front element from the queue
+  As long as OrthancPluginQueuePopFront() is not called, no message would be lost.
+  Note that we cannot propose "OrthancPluginQueuePeekBack()" or
+  "OrthancPluginQueuePeek(..., OrthancPluginQueueOrigin_Back)" (i.e., LIFO stacks), as a
+  concurrent call to "OrthancPluginEnqueueValue()" would alter the back of the queue.
+* Add OrthancPluginSetStableStatus2() which would take an additional OrthancPluginResourceType
+  argument to avoid possible ambiguity about the resource of interest
 
 
 -----------
