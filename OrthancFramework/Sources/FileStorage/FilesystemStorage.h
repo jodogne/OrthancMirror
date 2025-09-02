@@ -80,7 +80,7 @@ namespace Orthanc
                         size_t size,
                         FileContentType type) ORTHANC_OVERRIDE;
 
-    // This flavor is only used in the "DelayedDeletion" plugin
+    // This flavor is only used in the "DelayedDeletion" and "orthanc-webviewer" plugins
     IMemoryBuffer* ReadWhole(const std::string& uuid,
                              FileContentType type);
 
