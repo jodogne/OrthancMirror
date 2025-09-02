@@ -369,6 +369,9 @@ TEST(Uri, AutodetectMimeType)
   ASSERT_STREQ("model/obj", EnumerationToString(SystemToolbox::AutodetectMimeType(".obj")));
   ASSERT_STREQ("model/mtl", EnumerationToString(SystemToolbox::AutodetectMimeType(".mtl")));
   ASSERT_STREQ("model/stl", EnumerationToString(SystemToolbox::AutodetectMimeType(".stl")));
+
+  // test with utf8 strings
+  ASSERT_STREQ("model/stl", EnumerationToString(SystemToolbox::AutodetectMimeType("\xd0\x94.stl")));
 }
 #endif
 

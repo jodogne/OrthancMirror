@@ -235,7 +235,7 @@ namespace Orthanc
     try
     {
       boost::filesystem::ifstream f;
-      f.open(path, std::ifstream::in | std::ifstream::binary);
+      f.open(PathFromUtf8(path), std::ifstream::in | std::ifstream::binary);
       if (!f.good())
       {
         throw OrthancException(ErrorCode_InexistentFile,
@@ -289,7 +289,7 @@ namespace Orthanc
     try
     {
       boost::filesystem::ifstream f;
-      f.open(path, std::ifstream::in | std::ifstream::binary);
+      f.open(PathFromUtf8(path), std::ifstream::in | std::ifstream::binary);
       if (!f.good())
       {
         throw OrthancException(ErrorCode_InexistentFile);
@@ -338,7 +338,7 @@ namespace Orthanc
                                 const std::string& path,
                                 bool callFsync)
   {
-    WriteFile(content, size, path, callFsync);
+    WriteFile(content, size, PathFromUtf8(path), callFsync);
   }
 
   void SystemToolbox::WriteFile(const void *content, 
@@ -445,8 +445,12 @@ namespace Orthanc
     }
   }
 
+  uint64_t SystemToolbox::GetFileSize(const std::string &path) 
+  {
+    return GetFileSize(PathFromUtf8(path));
+  }
 
-  uint64_t SystemToolbox::GetFileSize(const std::string& path)
+  uint64_t SystemToolbox::GetFileSize(const boost::filesystem::path& path)
   {
     try
     {
@@ -484,25 +488,35 @@ namespace Orthanc
 
     context.Export(result);
   }
+  
+
+  void SystemToolbox::ComputeFileMD5(std::string& result, 
+                                     const std::string& path) 
+  { 
+    return ComputeFileMD5(result, PathFromUtf8(path));
+  }
 
 
   void SystemToolbox::ComputeFileMD5(std::string& result,
-                                     const std::string& path)
+                                     const boost::filesystem::path& path)
   {
     boost::filesystem::ifstream fileStream;
     fileStream.open(path, std::ifstream::in | std::ifstream::binary);
 
     if (!fileStream.good())
     {
-      throw OrthancException(ErrorCode_InexistentFile, "File not found: " + path);
+      throw OrthancException(ErrorCode_InexistentFile, "File not found: " + PathToUtf8(path));
     }
 
     ComputeStreamMD5(result, fileStream);
   }
 
+  bool SystemToolbox::CompareFilesMD5(const std::string &path1, const std::string &path2) 
+  { 
+    return CompareFilesMD5(PathFromUtf8(path1), PathFromUtf8(path2));
+  }
 
-  bool SystemToolbox::CompareFilesMD5(const std::string& path1,
-                                      const std::string& path2)
+  bool SystemToolbox::CompareFilesMD5(const boost::filesystem::path& path1, const boost::filesystem::path &path2)
   {
     if (GetFileSize(path1) != GetFileSize(path2))
     {
@@ -618,6 +632,57 @@ namespace Orthanc
 #endif
 
 
+#ifdef _WIN32
+  std::wstring Utf8ToWString(const std::string &str)
+  {
+    if (str.empty())
+    {
+      return std::wstring();
+    }
+
+    int sizeNeeded = MultiByteToWideChar(CP_UTF8, 0, str.c_str(), (int) str.size(), NULL, 0);
+
+    std::wstring wstr(sizeNeeded, 0);
+    MultiByteToWideChar(CP_UTF8, 0, str.c_str(), (int) str.size(), &wstr[0], sizeNeeded);
+
+    return wstr;
+  }
+
+  std::string WStringToUtf8(const std::wstring &wstr)
+  {
+    if (wstr.empty())
+    {
+      return std::string();
+    }
+
+    int sizeNeeded = WideCharToMultiByte(CP_UTF8, 0, wstr.c_str(), (int) wstr.size(), NULL, 0, NULL, NULL);
+
+    std::string str(sizeNeeded, 0);
+    WideCharToMultiByte(CP_UTF8, 0, wstr.c_str(), (int) wstr.size(), &str[0], sizeNeeded, NULL, NULL);
+
+    return str;
+  }
+
+#endif
+
+    boost::filesystem::path SystemToolbox::PathFromUtf8(const std::string &utf8)
+  {
+#ifdef _WIN32
+    return boost::filesystem::path(Utf8ToWString(utf8));
+#else
+    return boost::filesystem::path(utf8); // POSIX: std::string is UTF-8
+#endif
+  }
+
+  std::string SystemToolbox::PathToUtf8(const boost::filesystem::path &p)
+  {
+#ifdef _WIN32
+    return WStringToUtf8(p.wstring());
+#else
+    return p.string(); // POSIX: already UTF-8
+#endif
+  }
+
   std::string SystemToolbox::GetPathToExecutable()
   {
     boost::filesystem::path p(GetPathToExecutableInternal());
@@ -715,8 +780,8 @@ namespace Orthanc
 
 
   bool SystemToolbox::IsRegularFile(const std::string& path)
-  {
-    return SystemToolbox::IsRegularFile(path);
+  { 
+    return IsRegularFile(PathFromUtf8(path));
   }
 
 
@@ -845,9 +910,15 @@ namespace Orthanc
     return false;
   }
 
-  MimeType SystemToolbox::AutodetectMimeType(const std::string& path)
+  MimeType SystemToolbox::AutodetectMimeType(const std::string &path) 
+  { 
+    return AutodetectMimeType(PathFromUtf8(path));
+  }
+
+
+  MimeType SystemToolbox::AutodetectMimeType(const boost::filesystem::path& path)
   {
-    std::string extension = boost::filesystem::path(path).extension().string();
+    std::string extension = path.extension().string();
     Toolbox::ToLowerCase(extension);
 
     // http://en.wikipedia.org/wiki/Mime_types
@@ -1030,7 +1101,7 @@ namespace Orthanc
     }
 
     boost::filesystem::ifstream f;
-    f.open(path, std::ifstream::in | std::ifstream::binary);
+    f.open(PathFromUtf8(path), std::ifstream::in | std::ifstream::binary);
     if (!f.good())
     {
       throw OrthancException(ErrorCode_InexistentFile,

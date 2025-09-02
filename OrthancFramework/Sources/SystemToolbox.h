@@ -73,10 +73,10 @@ namespace Orthanc
                           const std::string& path,
                           bool callFsync);
 
-   static void WriteFile(const void *content, 
-                         size_t size, 
-                         const boost::filesystem::path &path, 
-                         bool callFsync);    // this variant is mandatory to handle non ASCII-only path on Windows
+    static void WriteFile(const void *content, 
+                          size_t size, 
+                          const boost::filesystem::path &path, 
+                          bool callFsync);    // this variant is mandatory to handle non ASCII-only path on Windows
 
     static void WriteFile(const void* content,
                           size_t size,
@@ -93,6 +93,8 @@ namespace Orthanc
 
     static uint64_t GetFileSize(const std::string& path);
 
+    static uint64_t GetFileSize(const boost::filesystem::path &path);  // this variant is mandatory to handle non ASCII-only path on Windows
+
 #if ORTHANC_ENABLE_MD5 == 1
     static void ComputeStreamMD5(std::string& result,
                                  std::istream& stream);
@@ -100,9 +102,15 @@ namespace Orthanc
     static void ComputeFileMD5(std::string& result,
                                const std::string& path);
 
+    static void ComputeFileMD5(std::string &result, 
+                               const boost::filesystem::path& path);  // this variant is mandatory to handle non ASCII-only path on Windows
+
     // returns true if file have the same MD5
     static bool CompareFilesMD5(const std::string& path1,
                                 const std::string& path2); 
+
+    static bool CompareFilesMD5(const boost::filesystem::path& path1, 
+                                const boost::filesystem::path& path2);  // this variant is mandatory to handle non ASCII-only path on Windows
 #endif
 
     static void MakeDirectory(const std::string& path);
@@ -125,6 +133,19 @@ namespace Orthanc
     static FILE* OpenFile(const std::string& path,
                           FileMode mode);
 
+    static MimeType AutodetectMimeType(const char* path)  // used only in Unit Tests
+    { 
+      return AutodetectMimeType(std::string(path));
+    }
+
+    static MimeType AutodetectMimeType(const std::string &path);
+
+    static MimeType AutodetectMimeType(const boost::filesystem::path &path);
+
+    static boost::filesystem::path PathFromUtf8(const std::string &utf8);
+
+    static std::string PathToUtf8(const boost::filesystem::path &p);
+
     static std::string GetNowIsoString(bool utc);
 
     static void GetNowDicom(std::string& date,
@@ -136,8 +157,6 @@ namespace Orthanc
     static bool IsContentCompressible(MimeType mime);
 
     static bool IsContentCompressible(const std::string& contentType);
-
-    static MimeType AutodetectMimeType(const std::string& path);
 
     static void GetEnvironmentVariables(std::map<std::string, std::string>& env);
 
