@@ -190,14 +190,12 @@ namespace Orthanc
 
     if (plugins.HasStorageArea())
     {
-      std::string p = plugins.GetStorageAreaLibrary().GetPath();
-      result[STORAGE_AREA_PLUGIN] = boost::filesystem::canonical(p).string();
+      result[STORAGE_AREA_PLUGIN] = SystemToolbox::PathToUtf8(plugins.GetStorageAreaLibrary().GetPath());
     }
 
     if (plugins.HasDatabaseBackend())
     {
-      std::string p = plugins.GetDatabaseBackendLibrary().GetPath();
-      result[DATABASE_BACKEND_PLUGIN] = boost::filesystem::canonical(p).string();     
+      result[DATABASE_BACKEND_PLUGIN] = SystemToolbox::PathToUtf8(plugins.GetDatabaseBackendLibrary().GetPath());
     }
 #else
     result[PLUGINS_ENABLED] = false;

@@ -40,6 +40,11 @@
 
 #include <string>
 
+#if ORTHANC_SANDBOXED != 1
+#include <boost/filesystem.hpp>
+#endif
+
+
 namespace Orthanc
 {
   class ORTHANC_PUBLIC JpegReader : public ImageAccessor
@@ -49,7 +54,7 @@ namespace Orthanc
 
   public:
 #if ORTHANC_SANDBOXED == 0
-    void ReadFromFile(const std::string& filename);
+    void ReadFromFile(const boost::filesystem::path& filename);
 #endif
 
     void ReadFromMemory(const void* buffer,

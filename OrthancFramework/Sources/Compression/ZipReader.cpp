@@ -248,7 +248,7 @@ namespace Orthanc
 
 
 #if ORTHANC_SANDBOXED != 1
-  bool ZipReader::IsZipFile(const std::string& path)
+  bool ZipReader::IsZipFile(const boost::filesystem::path& path)
   {
     std::string content;
     SystemToolbox::ReadFileRange(content, path, 0, 4,
@@ -409,11 +409,11 @@ namespace Orthanc
   
 
 #if ORTHANC_SANDBOXED != 1
-  ZipReader* ZipReader::CreateFromFile(const std::string& path)
+  ZipReader* ZipReader::CreateFromFile(const boost::filesystem::path& path)
   {
     if (!IsZipFile(path))
     {
-      throw OrthancException(ErrorCode_BadFileFormat, "The file doesn't contain a ZIP archive: " + path);
+      throw OrthancException(ErrorCode_BadFileFormat, "The file doesn't contain a ZIP archive: " + SystemToolbox::PathToUtf8(path));
     }
     else
     {
@@ -422,7 +422,7 @@ namespace Orthanc
       reader->pimpl_->unzip_ = unzOpen64(path.c_str());
       if (reader->pimpl_->unzip_ == NULL)
       {
-        throw OrthancException(ErrorCode_BadFileFormat, "Cannot open ZIP archive from file: " + path);
+        throw OrthancException(ErrorCode_BadFileFormat, "Cannot open ZIP archive from file: " + SystemToolbox::PathToUtf8(path));
       }
       else
       {

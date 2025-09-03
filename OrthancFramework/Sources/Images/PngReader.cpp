@@ -44,7 +44,7 @@ namespace Orthanc
     {
       FILE* fp_;
 
-      explicit FileRabi(const char* filename)
+      explicit FileRabi(const boost::filesystem::path& filename)
       {
         fp_ = SystemToolbox::OpenFile(filename, FileMode_ReadBinary);
         if (!fp_)
@@ -215,9 +215,9 @@ namespace Orthanc
 
 
 #if ORTHANC_SANDBOXED == 0
-  void PngReader::ReadFromFile(const std::string& filename)
+  void PngReader::ReadFromFile(const boost::filesystem::path& filename)
   {
-    FileRabi f(filename.c_str());
+    FileRabi f(filename);
 
     char header[8];
     if (fread(header, 1, 8, f.fp_) != 8)

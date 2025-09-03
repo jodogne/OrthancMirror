@@ -222,24 +222,23 @@ namespace Orthanc
 
 
   void SystemToolbox::ReadFile(std::string& content,
-                               const std::string& path,
+                               const boost::filesystem::path& path,
                                bool log)
   {
     if (!IsRegularFile(path))
     {
       throw OrthancException(ErrorCode_RegularFileExpected,
-                             "The path does not point to a regular file: " + path,
+                             "The path does not point to a regular file: " + PathToUtf8(path),
                              log);
     }
 
     try
     {
       boost::filesystem::ifstream f;
-      f.open(PathFromUtf8(path), std::ifstream::in | std::ifstream::binary);
+      f.open(path, std::ifstream::in | std::ifstream::binary);
       if (!f.good())
       {
-        throw OrthancException(ErrorCode_InexistentFile,
-                               "File not found: " + path,
+        throw OrthancException(ErrorCode_InexistentFile, "File not found: " + PathToUtf8(path),
                                log);
       }
 
@@ -269,27 +268,51 @@ namespace Orthanc
     }
   }
 
-
-  void SystemToolbox::ReadFile(std::string &content, const std::string &path)
+  void SystemToolbox::ReadFile(std::string &content, 
+                               const std::string& path, 
+                               bool log) 
   {
+    ReadFile(content, PathFromUtf8(path), log);
+  }
+
+  void SystemToolbox::ReadFile(std::string& content, const boost::filesystem::path& path)
+  { 
     ReadFile(content, path, true /* log */);
   }
 
 
+  void SystemToolbox::ReadFile(std::string &content, const std::string &path)
+  {
+    ReadFile(content, PathFromUtf8(path), true /* log */);
+  }
+
+  void SystemToolbox::ReadFile(std::string &content, const char* path) 
+  { 
+    ReadFile(content, std::string(path)); 
+   }
+
+  bool SystemToolbox::ReadHeader(std::string& header, 
+                                 const std::string& path, 
+                                 size_t headerSize)
+  {
+    return ReadHeader(header, PathFromUtf8(path), headerSize);
+  }
+
+
   bool SystemToolbox::ReadHeader(std::string& header,
-                                 const std::string& path,
+                                 const boost::filesystem::path& path,
                                  size_t headerSize)
   {
     if (!IsRegularFile(path))
     {
       throw OrthancException(ErrorCode_RegularFileExpected,
-                             "The path does not point to a regular file: " + path);
+                             "The path does not point to a regular file: " + PathToUtf8(path));
     }
 
     try
     {
       boost::filesystem::ifstream f;
-      f.open(PathFromUtf8(path), std::ifstream::in | std::ifstream::binary);
+      f.open(path, std::ifstream::in | std::ifstream::binary);
       if (!f.good())
       {
         throw OrthancException(ErrorCode_InexistentFile);
@@ -423,10 +446,25 @@ namespace Orthanc
               content.size(), path, callFsync);
   }
 
+  void SystemToolbox::WriteFile(const std::string &content, 
+                                const boost::filesystem::path& path, 
+                                bool callFsync) 
+  { 
+    WriteFile(content.size() > 0 ? content.c_str() : NULL, 
+              content.size(), path, callFsync); 
+  }
 
   void SystemToolbox::WriteFile(const std::string &content, const std::string &path)
   {
     WriteFile(content, path, false /* don't automatically call fsync */);
+  }
+
+  
+  void SystemToolbox::WriteFile(const std::string &content, 
+                                const boost::filesystem::path& path) 
+  { 
+    WriteFile(content.size() > 0 ? content.c_str() : NULL, 
+              content.size(), path, false /* don't automatically call fsync */); 
   }
 
 
@@ -537,6 +575,11 @@ namespace Orthanc
 
   void SystemToolbox::MakeDirectory(const std::string& path)
   {
+    MakeDirectory(PathFromUtf8(path));
+  }
+
+  void SystemToolbox::MakeDirectory(const boost::filesystem::path& path)
+  {
     if (boost::filesystem::exists(path))
     {
       if (!boost::filesystem::is_directory(path))
@@ -633,7 +676,7 @@ namespace Orthanc
 
 
 #ifdef _WIN32
-  std::wstring Utf8ToWString(const std::string &str)
+  std::wstring SystemToolbox::Utf8ToWString(const std::string &str)
   {
     if (str.empty())
     {
@@ -648,7 +691,7 @@ namespace Orthanc
     return wstr;
   }
 
-  std::string WStringToUtf8(const std::wstring &wstr)
+  std::string SystemToolbox::WStringToUtf8(const std::wstring &wstr)
   {
     if (wstr.empty())
     {
@@ -663,6 +706,21 @@ namespace Orthanc
     return str;
   }
 
+  std::wstring SystemToolbox::WStringFromCharPtr(const char *str)
+  {
+    if (str == NULL)
+    {
+      return std::wstring();
+    }
+
+    int sizeNeeded = MultiByteToWideChar(CP_ACP, 0, str, -1, NULL, 0);
+
+    std::wstring wstr(sizeNeeded, 0);
+    MultiByteToWideChar(CP_UTF8, 0, str, -1, &wstr[0], sizeNeeded);
+
+    return wstr;
+
+  }
 #endif
 
     boost::filesystem::path SystemToolbox::PathFromUtf8(const std::string &utf8)
@@ -785,14 +843,34 @@ namespace Orthanc
   }
 
 
-  FILE* SystemToolbox::OpenFile(const std::string& path,
+  FILE *SystemToolbox::OpenFile(const std::string &path, 
+                                FileMode mode)
+  {
+    return OpenFile(PathFromUtf8(path), mode);
+  }
+  
+  FILE* SystemToolbox::OpenFile(const boost::filesystem::path& path,
                                 FileMode mode)
   {
 #if defined(_WIN32)
-    // TODO Deal with special characters by converting to the current locale
-#endif
+    const wchar_t *m;
+    switch (mode)
+    {
+      case FileMode_ReadBinary:
+        m = L"rb";
+        break;
 
-    const char* m;
+      case FileMode_WriteBinary:
+        m = L"wb";
+        break;
+
+      default:
+        throw OrthancException(ErrorCode_ParameterOutOfRange);
+    }
+
+    return _wfopen(path.wstring().c_str(), m);
+#else
+    const char *m;
     switch (mode)
     {
       case FileMode_ReadBinary:
@@ -808,6 +886,7 @@ namespace Orthanc
     }
 
     return fopen(path.c_str(), m);
+#endif
   }
 
 
@@ -1056,16 +1135,15 @@ namespace Orthanc
   }
 
 
-  std::string SystemToolbox::InterpretRelativePath(const std::string& baseDirectory,
-                                                   const std::string& relativePath)
+  boost::filesystem::path SystemToolbox::InterpretRelativePath(const boost::filesystem::path& baseDirectory,
+                                                               const std::string& relativePath)
   {
-    boost::filesystem::path base(baseDirectory);
-    boost::filesystem::path relative(relativePath);
+    boost::filesystem::path relative = SystemToolbox::PathFromUtf8(relativePath);
 
     /**
        The following lines should be equivalent to this one: 
 
-       return (base / relative).string();
+       return (base / relative);
 
        However, for some unknown reason, some versions of Boost do not
        make the proper path resolution when "baseDirectory" is an
@@ -1074,17 +1152,27 @@ namespace Orthanc
 
     if (relative.is_absolute())
     {
-      return relative.string();
+      return relative;
     }
     else
     {
-      return (base / relative).string();
+      return baseDirectory / relative;
     }
   }
 
 
+  void SystemToolbox::ReadFileRange(std::string &content, 
+                                    const std::string &path,
+                                    uint64_t start, // Inclusive
+                                    uint64_t end, // Exclusive
+                                    bool throwIfOverflow)
+  {
+    ReadFileRange(content, SystemToolbox::PathFromUtf8(path), start, end, throwIfOverflow);
+  }
+
+
   void SystemToolbox::ReadFileRange(std::string& content,                              
-                                    const std::string& path,
+                                    const boost::filesystem::path& path,
                                     uint64_t start,  // Inclusive
                                     uint64_t end,    // Exclusive
                                     bool throwIfOverflow)
@@ -1097,15 +1185,15 @@ namespace Orthanc
     if (!IsRegularFile(path))
     {
       throw OrthancException(ErrorCode_RegularFileExpected,
-                             "The path does not point to a regular file: " + path);
+                             "The path does not point to a regular file: " + SystemToolbox::PathToUtf8(path));
     }
 
     boost::filesystem::ifstream f;
-    f.open(PathFromUtf8(path), std::ifstream::in | std::ifstream::binary);
+    f.open(path, std::ifstream::in | std::ifstream::binary);
     if (!f.good())
     {
-      throw OrthancException(ErrorCode_InexistentFile,
-                             "File not found: " + path);
+      throw OrthancException(ErrorCode_InexistentFile, 
+                             "File not found: " + SystemToolbox::PathToUtf8(path));
     }
 
     uint64_t fileSize = static_cast<uint64_t>(GetStreamSize(f));

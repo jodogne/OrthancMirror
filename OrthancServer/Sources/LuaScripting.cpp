@@ -1096,8 +1096,8 @@ namespace Orthanc
     for (std::list<std::string>::const_iterator
            it = luaScripts.begin(); it != luaScripts.end(); ++it)
     {
-      std::string path = configLock.GetConfiguration().InterpretStringParameterAsPath(*it);
-      LOG(INFO) << "Installing the Lua scripts from: " << path;
+      boost::filesystem::path path = configLock.GetConfiguration().InterpretStringParameterAsPath(*it);
+      LOG(INFO) << "Installing the Lua scripts from: " << SystemToolbox::PathToUtf8(path);
       std::string script;
       SystemToolbox::ReadFile(script, path);
 

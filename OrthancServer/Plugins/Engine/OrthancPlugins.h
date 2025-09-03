@@ -338,7 +338,7 @@ private:
     const char* GetProperty(const char* plugin,
                             _OrthancPluginProperty property) const;
 
-    void SetCommandLineArguments(int argc, char* argv[]);
+    void SetCommandLineArguments(const std::vector<std::string>& arguments);
 
     PluginsManager& GetManager();
 
