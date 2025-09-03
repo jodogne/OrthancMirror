@@ -26,6 +26,10 @@
 
 #include "ImageAccessor.h"
 
+#if ORTHANC_SANDBOXED != 1
+#include <boost/filesystem.hpp>
+#endif
+
 #if !defined(ORTHANC_SANDBOXED)
 #  error The macro ORTHANC_SANDBOXED must be defined
 #endif
@@ -72,7 +76,7 @@ namespace Orthanc
     virtual ~PamReader();
 
 #if ORTHANC_SANDBOXED == 0
-    void ReadFromFile(const std::string& filename);
+    void ReadFromFile(const boost::filesystem::path& filename);
 #endif
 
     void ReadFromMemory(const std::string& buffer);

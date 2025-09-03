@@ -711,10 +711,10 @@ public:
 };
 
 
-static void PrintHelp(const char* path)
+static void PrintHelp(const boost::filesystem::path& path)
 {
   std::cout 
-    << "Usage: " << path << " [OPTION]... [CONFIGURATION]" << std::endl
+    << "Usage: " << SystemToolbox::PathToUtf8(path) << " [OPTION]... [CONFIGURATION]" << std::endl
     << "Orthanc, lightweight, RESTful DICOM server for healthcare and medical research." << std::endl
     << std::endl
     << "The \"CONFIGURATION\" argument can be a single file or a directory. In the " << std::endl
@@ -776,10 +776,10 @@ static void PrintHelp(const char* path)
 }
 
 
-static void PrintVersion(const char* path)
+static void PrintVersion(const boost::filesystem::path &path)
 {
   std::cout
-    << path << " " << ORTHANC_VERSION << std::endl
+    << SystemToolbox::PathToUtf8(path) << " " << ORTHANC_VERSION << std::endl
     << "Copyright (C) 2012-2016 Sebastien Jodogne, Medical Physics Department, University Hospital of Liege (Belgium)" << std::endl
     << "Copyright (C) 2017-2023 Osimis S.A. (Belgium)" << std::endl
     << "Copyright (C) 2024-2025 Orthanc Team SRL (Belgium)" << std::endl
@@ -801,10 +801,10 @@ static void PrintErrorCode(ErrorCode code, const char* description)
 }
 
 
-static void PrintErrors(const char* path)
+static void PrintErrors(const boost::filesystem::path& path)
 {
   std::cout
-    << path << " " << ORTHANC_VERSION << std::endl
+    << SystemToolbox::PathToUtf8(path) << " " << ORTHANC_VERSION << std::endl
     << "Orthanc, lightweight, RESTful DICOM server for healthcare and medical research." 
     << std::endl << std::endl
     << "List of error codes that could be returned by Orthanc:" 
@@ -945,7 +945,7 @@ static void LoadPlugins(OrthancPlugins& plugins)
   for (std::list<std::string>::const_iterator
          it = pathList.begin(); it != pathList.end(); ++it)
   {
-    std::string path;
+    boost::filesystem::path path;
 
     {
       OrthancConfiguration::ReaderLock lock;
@@ -1150,7 +1150,7 @@ static bool StartHttpServer(ServerContext& context,
       
       if (lock.GetConfiguration().GetBooleanParameter("SslEnabled", false))
       {
-        std::string certificate = lock.GetConfiguration().InterpretStringParameterAsPath(
+        boost::filesystem::path certificate = lock.GetConfiguration().InterpretStringParameterAsPath(
           lock.GetConfiguration().GetStringParameter("SslCertificate", "certificate.pem"));
         httpServer.SetSslEnabled(true);
         httpServer.SetSslCertificate(certificate.c_str());
@@ -1199,10 +1199,10 @@ static bool StartHttpServer(ServerContext& context,
 
       if (lock.GetConfiguration().GetBooleanParameter("SslVerifyPeers", false))
       {
-        std::string trustedClientCertificates = lock.GetConfiguration().InterpretStringParameterAsPath(
+        boost::filesystem::path trustedClientCertificates = lock.GetConfiguration().InterpretStringParameterAsPath(
           lock.GetConfiguration().GetStringParameter("SslTrustedClientCertificates", "trustedCertificates.pem"));
         httpServer.SetSslVerifyPeers(true);
-        httpServer.SetSslTrustedClientCertificates(trustedClientCertificates.c_str());
+        httpServer.SetSslTrustedClientCertificates(trustedClientCertificates);
       }
       else
       {
@@ -1573,10 +1573,11 @@ static bool ConfigureServerContext(IDatabaseWrapper& database,
     // ServerContext, otherwise the possible Lua scripts will not be
     // able to properly issue HTTP/HTTPS queries
 
-    std::string httpsCaCertificates = lock.GetConfiguration().GetStringParameter("HttpsCACertificates", "");
-    if (!httpsCaCertificates.empty())
+    std::string httpsCaCertificatesStr = lock.GetConfiguration().GetStringParameter("HttpsCACertificates", "");
+    boost::filesystem::path httpsCaCertificates;
+    if (!httpsCaCertificatesStr.empty())
     {
-      httpsCaCertificates = lock.GetConfiguration().InterpretStringParameterAsPath(httpsCaCertificates);
+      httpsCaCertificates = lock.GetConfiguration().InterpretStringParameterAsPath(httpsCaCertificatesStr);
     }
 
     HttpClient::ConfigureSsl(lock.GetConfiguration().GetBooleanParameter("HttpsVerifyPeers", true),
@@ -1769,8 +1770,7 @@ static bool ConfigureDatabase(IDatabaseWrapper& database,
 }
 
 
-static bool ConfigurePlugins(int argc, 
-                             char* argv[],
+static bool ConfigurePlugins(const std::vector<std::string> arguments,
                              bool upgradeDatabase,
                              bool loadJobsFromDatabase)
 {
@@ -1785,7 +1785,7 @@ static bool ConfigurePlugins(int argc,
   }
   
   OrthancPlugins plugins(databaseServerIdentifier);
-  plugins.SetCommandLineArguments(argc, argv);
+  plugins.SetCommandLineArguments(arguments);
   LoadPlugins(plugins);
 
   IDatabaseWrapper* database = NULL;
@@ -1834,12 +1834,11 @@ static bool ConfigurePlugins(int argc,
 }
 
 
-static bool StartOrthanc(int argc, 
-                         char* argv[],
+static bool StartOrthanc(const std::vector<std::string>& arguments,
                          bool upgradeDatabase,
                          bool loadJobsFromDatabase)
 {
-  return ConfigurePlugins(argc, argv, upgradeDatabase, loadJobsFromDatabase);
+  return ConfigurePlugins(arguments, upgradeDatabase, loadJobsFromDatabase);
 }
 
 
@@ -1867,11 +1866,32 @@ static bool DisplayPerformanceWarning()
 }
 
 
-int main(int argc, char* argv[]) 
+#if defined(_WIN32)
+// arguments are passed as UTF-16 on Windows
+int wmain(int argc, wchar_t *argv[])
 {
-#if defined(_WIN32) || defined(__CYGWIN__)
   // Set Windows console output to UTF-8 (otherwise, strings are considered to be in UTF-16.  For example, Cyrillic UTF-8 strings appear as garbage without that config)
   SetConsoleOutputCP(CP_UTF8);
+
+  // Transform the UTF-16 arguments into UTF-8 arguments
+  std::vector<std::string> arguments; // UTF-8 arguments
+
+  for (int i = 0; i < argc; i++)
+  {
+    std::wstring argument(argv[i]);
+    arguments.push_back(SystemToolbox::WStringToUtf8(argument));
+  }
+
+#else
+int main(int argc, char* argv[])
+{
+  std::vector<std::string> arguments; // UTF-8 arguments
+
+  // the arguments are assumed to be directly in UTF-8
+  for (int i = 0; i < argc; i++)
+  {
+    arguments.push_back(argv[i]);
+  }
 #endif
 
   Logging::Initialize();
@@ -1880,16 +1900,15 @@ int main(int argc, char* argv[])
 
   bool upgradeDatabase = false;
   bool loadJobsFromDatabase = true;
-  const char* configurationFile = NULL;
-
+  boost::filesystem::path configurationFile;
 
   /**
    * Parse the command-line options.
    **/ 
 
-  for (int i = 1; i < argc; i++)
+  for (size_t i = 1; i < arguments.size(); i++)
   {
-    std::string argument(argv[i]); 
+    const std::string& argument = arguments[i];    
 
     if (argument.empty())
     {
@@ -1897,7 +1916,7 @@ int main(int argc, char* argv[])
     }
     else if (argument[0] != '-')
     {
-      if (configurationFile != NULL)
+      if (!configurationFile.empty())
       {
         LOG(ERROR) << "More than one configuration path were provided on the command line, aborting";
         return -1;
@@ -1907,23 +1926,28 @@ int main(int argc, char* argv[])
         // Use the first argument that does not start with a "-" as
         // the configuration file
 
-        // TODO WHAT IS THE ENCODING?
-        configurationFile = argv[i];
+        configurationFile = SystemToolbox::PathFromUtf8(argument);
+//        // TODO WHAT IS THE ENCODING?
+//#if defined(_WIN32)
+//        //configurationFileUtf8Str = SystemToolbox::WStringToUtf8(SystemToolbox::WStringFromCharPtr(argv[i]));
+//#else
+//        configurationFileUtf8Str = std::string(argv[i]);
+//#endif
       }
     }
     else if (argument == "--errors")
     {
-      PrintErrors(argv[0]);
+      PrintErrors(SystemToolbox::PathFromUtf8(arguments[0]));
       return 0;
     }
     else if (argument == "--help")
     {
-      PrintHelp(argv[0]);
+      PrintHelp(SystemToolbox::PathFromUtf8(arguments[0]));
       return 0;
     }
     else if (argument == "--version")
     {
-      PrintVersion(argv[0]);
+      PrintVersion(SystemToolbox::PathFromUtf8(arguments[0]));
       return 0;
     }
     else if (argument == "--verbose")
@@ -2175,7 +2199,7 @@ int main(int argc, char* argv[])
     {
       OrthancInitialize(configurationFile);
 
-      bool restart = StartOrthanc(argc, argv, upgradeDatabase, loadJobsFromDatabase);
+      bool restart = StartOrthanc(arguments, upgradeDatabase, loadJobsFromDatabase);
       if (restart)
       {
         OrthancFinalize();

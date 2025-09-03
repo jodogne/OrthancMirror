@@ -108,7 +108,7 @@ TEST(FilesystemStorage, FileWithSameNameAsTopDirectory)
   std::vector<uint8_t> data;
   StringToVector(data, Toolbox::GenerateUuid());
 
-  SystemToolbox::WriteFile("toto", "UnitTestsStorageTop/12");
+  SystemToolbox::WriteFile("toto", SystemToolbox::PathFromUtf8("UnitTestsStorageTop/12"));
   ASSERT_THROW(s.Create("12345678-1234-1234-1234-1234567890ab", &data[0], data.size(), FileContentType_Unknown), OrthancException);
   s.Clear();
 }
@@ -121,8 +121,8 @@ TEST(FilesystemStorage, FileWithSameNameAsChildDirectory)
   std::vector<uint8_t> data;
   StringToVector(data, Toolbox::GenerateUuid());
 
-  SystemToolbox::MakeDirectory("UnitTestsStorageChild/12");
-  SystemToolbox::WriteFile("toto", "UnitTestsStorageChild/12/34");
+  SystemToolbox::MakeDirectory(SystemToolbox::PathFromUtf8("UnitTestsStorageChild/12"));
+  SystemToolbox::WriteFile("toto", SystemToolbox::PathFromUtf8("UnitTestsStorageChild/12/34"));
   ASSERT_THROW(s.Create("12345678-1234-1234-1234-1234567890ab", &data[0], data.size(), FileContentType_Unknown), OrthancException);
   s.Clear();
 }
@@ -135,8 +135,23 @@ TEST(FilesystemStorage, FileAlreadyExists)
   std::vector<uint8_t> data;
   StringToVector(data, Toolbox::GenerateUuid());
 
-  SystemToolbox::MakeDirectory("UnitTestsStorageFileAlreadyExists/12/34");
-  SystemToolbox::WriteFile("toto", "UnitTestsStorageFileAlreadyExists/12/34/12345678-1234-1234-1234-1234567890ab");
+  SystemToolbox::MakeDirectory(SystemToolbox::PathFromUtf8("UnitTestsStorageFileAlreadyExists/12/34"));
+  SystemToolbox::WriteFile("toto", SystemToolbox::PathFromUtf8("UnitTestsStorageFileAlreadyExists/12/34/12345678-1234-1234-1234-1234567890ab"));
+  ASSERT_THROW(s.Create("12345678-1234-1234-1234-1234567890ab", &data[0], data.size(), FileContentType_Unknown), OrthancException);
+  s.Clear();
+}
+
+
+TEST(FilesystemStorage, FileAlreadyExistsUtf8)
+{
+  FilesystemStorage s("\d0\95UnitTestsStorageFileAlreadyExists");
+  s.Clear();
+
+  std::vector<uint8_t> data;
+  StringToVector(data, Toolbox::GenerateUuid());
+
+  SystemToolbox::MakeDirectory(SystemToolbox::PathFromUtf8("\d0\95UnitTestsStorageFileAlreadyExists/12/34"));
+  SystemToolbox::WriteFile("toto", SystemToolbox::PathFromUtf8("\d0\95UnitTestsStorageFileAlreadyExists/12/34/12345678-1234-1234-1234-1234567890ab"));
   ASSERT_THROW(s.Create("12345678-1234-1234-1234-1234567890ab", &data[0], data.size(), FileContentType_Unknown), OrthancException);
   s.Clear();
 }

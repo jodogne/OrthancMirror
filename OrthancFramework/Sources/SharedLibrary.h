@@ -40,6 +40,7 @@
 
 #include <string>
 #include <boost/noncopyable.hpp>
+#include <boost/filesystem.hpp>
 
 namespace Orthanc
 {
@@ -53,17 +54,17 @@ namespace Orthanc
 #endif
 
   private:
-    std::string path_;
+    boost::filesystem::path path_;
     void *handle_;
 
     FunctionPointer GetFunctionInternal(const std::string& name);
 
   public:
-    explicit SharedLibrary(const std::string& path);
+    explicit SharedLibrary(const boost::filesystem::path& path);
 
     ~SharedLibrary();
 
-    const std::string& GetPath() const;
+    const boost::filesystem::path& GetPath() const;
 
     bool HasFunction(const std::string& name);
 

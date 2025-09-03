@@ -67,7 +67,7 @@ namespace Orthanc
     boost::filesystem::path  defaultDirectory_;
     std::string              configurationAbsolutePath_;
     FontRegistry             fontRegistry_;
-    const char*              configurationFileArg_;
+    boost::filesystem::path  configurationFileArg_;
     Modalities               modalities_;
     Peers                    peers_;
     JobsEngineThreadsCount   jobsEngineThreadsCount_;
@@ -75,7 +75,6 @@ namespace Orthanc
     std::set<Warnings>       disabledWarnings_;
 
     OrthancConfiguration() :
-      configurationFileArg_(NULL),
       serverIndex_(NULL)
     {
     }
@@ -164,7 +163,7 @@ namespace Orthanc
       return fontRegistry_;
     }
 
-    void Read(const char* configurationFile);
+    void Read(const boost::filesystem::path &configurationFile);
 
     // "SetServerIndex()" must have been called
     void LoadModalitiesAndPeers();
@@ -209,7 +208,7 @@ namespace Orthanc
 
     RegisteredUsersStatus SetupRegisteredUsers(HttpServer& httpServer) const;
 
-    std::string InterpretStringParameterAsPath(const std::string& parameter) const;
+    boost::filesystem::path InterpretStringParameterAsPath(const std::string& parameter) const;
     
     void GetListOfStringsParameter(std::list<std::string>& target,
                                    const std::string& key) const;

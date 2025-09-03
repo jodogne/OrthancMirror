@@ -32,6 +32,7 @@
 #include "../Logging.h"
 #include "../OrthancException.h"
 #include "../TemporaryFile.h"
+#include "../SystemToolbox.h"
 #include "HttpToolbox.h"
 #include "IHttpHandler.h"
 #include "MultipartStreamReader.h"
@@ -1568,7 +1569,7 @@ namespace Orthanc
         catch (boost::filesystem::filesystem_error& e)
         {
           throw OrthancException(ErrorCode_InternalError,
-                                 "Error while accessing the filesystem: " + e.path1().string());
+                                 "Error while accessing the filesystem: " + SystemToolbox::PathToUtf8(e.path1()));
         }
         catch (std::runtime_error&)
         {
@@ -1799,7 +1800,7 @@ namespace Orthanc
       {
         // Set the trusted client certificates (for X509 mutual authentication)
         options.push_back("ssl_ca_file");
-        options.push_back(trustedClientCertificates_.c_str());
+        options.push_back(SystemToolbox::SystemToolbox::PathToUtf8(trustedClientCertificates_).c_str());
       }
       
       if (ssl_)
@@ -1817,7 +1818,7 @@ namespace Orthanc
 
         // Set the SSL certificate, if any
         options.push_back("ssl_certificate");
-        options.push_back(certificate_.c_str());
+        options.push_back(SystemToolbox::PathToUtf8(certificate_).c_str());
       };
 
       assert(options.size() % 2 == 0);
@@ -2060,7 +2061,7 @@ namespace Orthanc
 #endif
   }
 
-  const std::string &HttpServer::GetSslCertificate() const
+  const boost::filesystem::path& HttpServer::GetSslCertificate() const
   {
     return certificate_;
   }
@@ -2077,7 +2078,7 @@ namespace Orthanc
     return ssl_;
   }
 
-  void HttpServer::SetSslCertificate(const char* path)
+  void HttpServer::SetSslCertificate(const boost::filesystem::path& path)
   {
     Stop();
     certificate_ = path;
@@ -2088,7 +2089,7 @@ namespace Orthanc
     return remoteAllowed_;
   }
 
-  void HttpServer::SetSslTrustedClientCertificates(const char* path)
+  void HttpServer::SetSslTrustedClientCertificates(const boost::filesystem::path &path)
   {
     Stop();
     trustedClientCertificates_ = path;

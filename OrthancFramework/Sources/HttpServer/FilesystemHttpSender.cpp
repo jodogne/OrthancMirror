@@ -25,6 +25,7 @@
 #include "FilesystemHttpSender.h"
 
 #include "../OrthancException.h"
+#include "../SystemToolbox.h"
 
 static const size_t  CHUNK_SIZE = 64 * 1024;   // Use 64KB chunks
 
@@ -33,7 +34,7 @@ namespace Orthanc
   void FilesystemHttpSender::Initialize(const boost::filesystem::path& path)
   {
     SetContentFilename(path.filename().string());
-    file_.open(path.string().c_str(), std::ifstream::binary);
+    file_.open(SystemToolbox::PathToUtf8(path).c_str(), std::ifstream::binary);
 
     if (!file_.is_open())
     {
@@ -47,7 +48,7 @@ namespace Orthanc
 
   FilesystemHttpSender::FilesystemHttpSender(const std::string& path)
   {
-    Initialize(path);
+    Initialize(SystemToolbox::PathFromUtf8(path));
   }
 
   FilesystemHttpSender::FilesystemHttpSender(const boost::filesystem::path& path)
@@ -56,6 +57,13 @@ namespace Orthanc
   }
 
   FilesystemHttpSender::FilesystemHttpSender(const std::string& path,
+                                             MimeType contentType)
+  {
+    SetContentType(contentType);
+    Initialize(path);
+  }
+
+  FilesystemHttpSender::FilesystemHttpSender(const boost::filesystem::path& path, 
                                              MimeType contentType)
   {
     SetContentType(contentType);

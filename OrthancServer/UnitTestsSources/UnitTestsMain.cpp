@@ -518,8 +518,8 @@ int main(int argc, char **argv)
   Logging::Initialize();
   SetGlobalVerbosity(Verbosity_Verbose);
   Toolbox::DetectEndianness();
-  SystemToolbox::MakeDirectory("UnitTestsResults");
-  OrthancInitialize();
+  SystemToolbox::MakeDirectory(SystemToolbox::PathFromUtf8("UnitTestsResults"));
+  OrthancInitialize("");
 
   ::testing::InitGoogleTest(&argc, argv);
   int result = RUN_ALL_TESTS();

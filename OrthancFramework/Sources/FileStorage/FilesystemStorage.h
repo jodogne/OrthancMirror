@@ -55,7 +55,7 @@ namespace Orthanc
 
     boost::filesystem::path GetPath(const std::string& uuid) const;
 
-    void Setup(const std::string& root);
+    void Setup(const boost::filesystem::path& root);
     
 #if ORTHANC_BUILDING_FRAMEWORK_LIBRARY == 1
     // Alias for binary compatibility with Orthanc Framework 1.7.2 => don't use it anymore
@@ -70,9 +70,9 @@ namespace Orthanc
 #endif
 
   public:
-    explicit FilesystemStorage(const std::string& root);
+    explicit FilesystemStorage(const boost::filesystem::path& root);
 
-    FilesystemStorage(const std::string& root,
+    FilesystemStorage(const boost::filesystem::path& root,
                       bool fsyncOnWrite);
 
     virtual void Create(const std::string& uuid,

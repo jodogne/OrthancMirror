@@ -46,6 +46,7 @@
 #include <string>
 #include <boost/noncopyable.hpp>
 #include <boost/shared_ptr.hpp>
+#include <boost/filesystem.hpp>
 
 namespace Orthanc
 {
@@ -132,7 +133,7 @@ namespace Orthanc
     bool hasFileInZip_;
     bool append_;
     uint8_t compressionLevel_;
-    std::string path_;
+    boost::filesystem::path path_;
 
     std::unique_ptr<IOutputStream> outputStream_;
 
@@ -159,11 +160,11 @@ namespace Orthanc
 
     bool IsOpen() const;
 
-    void SetOutputPath(const char* path);
+    void SetOutputPath(const boost::filesystem::path& path);
 
-    const std::string& GetOutputPath() const;
+    const boost::filesystem::path& GetOutputPath() const;
 
-    void OpenFile(const char* path);
+    void OpenFile(const boost::filesystem::path &path);
 
     void Write(const void* data, size_t length);
 

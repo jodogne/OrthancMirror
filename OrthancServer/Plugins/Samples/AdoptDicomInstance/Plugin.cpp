@@ -32,7 +32,7 @@
 static boost::filesystem::path storageDirectory_;
 
 
-static std::string GetStorageDirectoryPath(const char* uuid)
+static boost::filesystem::path GetStorageDirectoryPath(const char* uuid)
 {
   if (uuid == NULL)
   {
@@ -40,7 +40,7 @@ static std::string GetStorageDirectoryPath(const char* uuid)
   }
   else
   {
-    return (storageDirectory_ / std::string(uuid)).string();
+    return (storageDirectory_ / std::string(uuid));
   }
 }
 

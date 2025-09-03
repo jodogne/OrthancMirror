@@ -57,6 +57,8 @@
 #include <set>
 #include <stdint.h>
 #include <boost/shared_ptr.hpp>
+#include <boost/filesystem.hpp>
+
 
 namespace Orthanc
 {
@@ -99,9 +101,9 @@ namespace Orthanc
     bool remoteAllowed_;
     bool authentication_;
     bool sslVerifyPeers_;
-    std::string trustedClientCertificates_;
+    boost::filesystem::path trustedClientCertificates_;
     bool ssl_;
-    std::string certificate_;
+    boost::filesystem::path certificate_;
     unsigned int sslMinimumVersion_;
     bool sslHasCiphers_;
     std::string sslCiphers_;
@@ -160,7 +162,7 @@ namespace Orthanc
 
     void SetSslCiphers(const std::list<std::string>& ciphers);
     
-    void SetSslTrustedClientCertificates(const char* path);
+    void SetSslTrustedClientCertificates(const boost::filesystem::path& path);
 
     bool IsKeepAliveEnabled() const;
 
@@ -170,9 +172,9 @@ namespace Orthanc
 
     void SetKeepAliveTimeout(unsigned int timeout);
 
-    const std::string& GetSslCertificate() const;
+    const boost::filesystem::path& GetSslCertificate() const;
 
-    void SetSslCertificate(const char* path);
+    void SetSslCertificate(const boost::filesystem::path& path);
 
     bool IsRemoteAccessAllowed() const;
 

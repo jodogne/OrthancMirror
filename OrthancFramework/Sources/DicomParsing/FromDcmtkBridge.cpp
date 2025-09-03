@@ -46,6 +46,7 @@
 
 #if ORTHANC_SANDBOXED == 0
 #  include "../TemporaryFile.h"
+#  include "../SystemToolbox.h"
 #endif
 
 #include <list>
@@ -179,7 +180,7 @@ namespace Orthanc
     TemporaryFile tmp;
     tmp.Write(content);
 
-    if (!dictionary.loadDictionary(tmp.GetPath().c_str()))
+    if (!dictionary.loadDictionary(SystemToolbox::PathToUtf8(tmp.GetPath()).c_str()))
     {
       throw OrthancException(ErrorCode_InternalError,
                              "Cannot read embedded dictionary. Under Windows, make sure that " 
