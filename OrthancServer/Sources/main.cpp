@@ -1866,7 +1866,7 @@ static bool DisplayPerformanceWarning()
 }
 
 
-#if defined(_WIN32)
+#if defined(_WIN32) && !defined(__MINGW32__)
 // arguments are passed as UTF-16 on Windows
 int wmain(int argc, wchar_t *argv[])
 {
