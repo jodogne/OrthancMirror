@@ -144,14 +144,14 @@ TEST(FilesystemStorage, FileAlreadyExists)
 
 TEST(FilesystemStorage, FileAlreadyExistsUtf8)
 {
-  FilesystemStorage s("\d0\95UnitTestsStorageFileAlreadyExists");
+  FilesystemStorage s("\xd0\x95UnitTestsStorageFileAlreadyExists");
   s.Clear();
 
   std::vector<uint8_t> data;
   StringToVector(data, Toolbox::GenerateUuid());
 
-  SystemToolbox::MakeDirectory(SystemToolbox::PathFromUtf8("\d0\95UnitTestsStorageFileAlreadyExists/12/34"));
-  SystemToolbox::WriteFile("toto", SystemToolbox::PathFromUtf8("\d0\95UnitTestsStorageFileAlreadyExists/12/34/12345678-1234-1234-1234-1234567890ab"));
+  SystemToolbox::MakeDirectory(SystemToolbox::PathFromUtf8("\xd0\x95UnitTestsStorageFileAlreadyExists/12/34"));
+  SystemToolbox::WriteFile("toto", SystemToolbox::PathFromUtf8("\xd0\x95UnitTestsStorageFileAlreadyExists/12/34/12345678-1234-1234-1234-1234567890ab"));
   ASSERT_THROW(s.Create("12345678-1234-1234-1234-1234567890ab", &data[0], data.size(), FileContentType_Unknown), OrthancException);
   s.Clear();
 }
