@@ -47,6 +47,9 @@
 
 #include <dcmtk/dcmdata/dcdeftag.h>
 
+#if defined(_WIN32) || defined(__CYGWIN__)
+#include <windows.h>
+#endif
 
 using namespace Orthanc;
 
@@ -515,6 +518,11 @@ TEST(StorageCommitmentReports, Basic)
 
 int main(int argc, char **argv)
 {
+#if defined(_WIN32) && !defined(__MINGW32__)
+  // Set Windows console output to UTF-8 (otherwise, strings are considered to be in UTF-16.  For example, Cyrillic UTF-8 strings appear as garbage without that config)
+  SetConsoleOutputCP(CP_UTF8);
+#endif
+
   Logging::Initialize();
   SetGlobalVerbosity(Verbosity_Verbose);
   Toolbox::DetectEndianness();

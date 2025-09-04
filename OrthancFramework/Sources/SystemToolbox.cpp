@@ -725,8 +725,8 @@ namespace Orthanc
 
     boost::filesystem::path SystemToolbox::PathFromUtf8(const std::string &utf8)
   {
-#ifdef _WIN32
-    return boost::filesystem::path(Utf8ToWString(utf8));
+#if defined(_WIN32) && !defined(__MINGW32__)  // non-ASCII paths are not supported when building with MinGW
+return boost::filesystem::path(Utf8ToWString(utf8));
 #else
     return boost::filesystem::path(utf8); // POSIX: std::string is UTF-8
 #endif
@@ -734,7 +734,7 @@ namespace Orthanc
 
   std::string SystemToolbox::PathToUtf8(const boost::filesystem::path &p)
   {
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(__MINGW32__)  // non-ASCII paths are not supported when building with MinGW
     return WStringToUtf8(p.wstring());
 #else
     return p.string(); // POSIX: already UTF-8

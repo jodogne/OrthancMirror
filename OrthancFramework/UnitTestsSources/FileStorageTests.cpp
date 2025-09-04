@@ -141,7 +141,7 @@ TEST(FilesystemStorage, FileAlreadyExists)
   s.Clear();
 }
 
-
+#if !defined(__MINGW32__)  // non-ASCII paths are not supported when built with mingw
 TEST(FilesystemStorage, FileAlreadyExistsUtf8)
 {
   FilesystemStorage s("\xd0\x95UnitTestsStorageFileAlreadyExists");
@@ -155,7 +155,7 @@ TEST(FilesystemStorage, FileAlreadyExistsUtf8)
   ASSERT_THROW(s.Create("12345678-1234-1234-1234-1234567890ab", &data[0], data.size(), FileContentType_Unknown), OrthancException);
   s.Clear();
 }
-
+#endif
 
 TEST(FilesystemStorage, EndToEnd)
 {

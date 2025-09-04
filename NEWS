@@ -10,7 +10,7 @@ Maintenance
   However, on Windows, some features might still not support non ASCII-only paths:
   - Reading a DCMTK dictionary ("ExternalDictionaries" configuration)
   - Using a "TemporaryDirectory" to save zip file or to export DICOMDIR
-  - "SslCertificate"
+  - The "SslCertificate" and other related configurations
 
 
 Version 1.12.9 (2025-08-11)

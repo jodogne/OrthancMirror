@@ -419,7 +419,7 @@ namespace Orthanc
     {
       std::unique_ptr<ZipReader> reader(new ZipReader);
 
-      reader->pimpl_->unzip_ = unzOpen64(path.c_str());
+      reader->pimpl_->unzip_ = unzOpen64(SystemToolbox::PathToUtf8(path).c_str());
       if (reader->pimpl_->unzip_ == NULL)
       {
         throw OrthancException(ErrorCode_BadFileFormat, "Cannot open ZIP archive from file: " + SystemToolbox::PathToUtf8(path));
