@@ -603,7 +603,7 @@ namespace Orthanc
     return compressionLevel_;
   }
 
-  void ZipWriter::OpenFile(const boost::filesystem::path& path)
+  void ZipWriter::OpenFile(const char* filename)
   {
     Open();
 
@@ -614,7 +614,7 @@ namespace Orthanc
 
     if (isZip64_)
     {
-      result = zipOpenNewFileInZip64(pimpl_->file_, SystemToolbox::PathToUtf8(path).c_str(),
+      result = zipOpenNewFileInZip64(pimpl_->file_, filename,
                                      &zfi,
                                      NULL,   0,
                                      NULL,   0,
@@ -624,7 +624,7 @@ namespace Orthanc
     }
     else
     {
-      result = zipOpenNewFileInZip(pimpl_->file_, SystemToolbox::PathToUtf8(path_).c_str(),
+      result = zipOpenNewFileInZip(pimpl_->file_, filename,
                                    &zfi,
                                    NULL,   0,
                                    NULL,   0,
