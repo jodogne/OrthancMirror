@@ -473,7 +473,10 @@ target_link_libraries(Orthanc ServerLibrary CoreLibrary ${DCMTK_LIBRARIES})
 
 # since we use wmain on Windows, we need to tell MinGW to link with wmain
 if (WIN32 AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-  target_link_options(Orthanc PRIVATE -municode)
+  set_property(
+    TARGET Orthanc
+    PROPERTY LINK_FLAGS "-municode"
+    )
 endif()
 
 
@@ -939,7 +942,10 @@ if (BUILD_RECOVER_COMPRESSED_FILE)
 
   # since we use wmain on Windows, we need to tell MinGW to link with wmain
   if (WIN32 AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-    target_link_options(OrthancRecoverCompressedFile PRIVATE -municode)
+    set_property(
+      TARGET OrthancRecoverCompressedFile
+      PROPERTY LINK_FLAGS "-municode"
+    )
   endif()
 
   install(
