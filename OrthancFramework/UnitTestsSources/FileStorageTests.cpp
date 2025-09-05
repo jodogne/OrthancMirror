@@ -144,7 +144,7 @@ TEST(FilesystemStorage, FileAlreadyExists)
 #if !defined(__MINGW32__)  // non-ASCII paths are not supported when built with mingw
 TEST(FilesystemStorage, FileAlreadyExistsUtf8)
 {
-  FilesystemStorage s("\xd0\x95UnitTestsStorageFileAlreadyExists");
+  FilesystemStorage s(SystemToolbox::PathFromUtf8("\xd0\x95UnitTestsStorageFileAlreadyExists"));
   s.Clear();
 
   std::vector<uint8_t> data;
