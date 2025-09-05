@@ -1800,7 +1800,7 @@ namespace Orthanc
       {
         // Set the trusted client certificates (for X509 mutual authentication)
         options.push_back("ssl_ca_file");
-        options.push_back(SystemToolbox::SystemToolbox::PathToUtf8(trustedClientCertificates_).c_str());
+        options.push_back(SystemToolbox::PathToUtf8(trustedClientCertificates_).c_str());
       }
       
       if (ssl_)
