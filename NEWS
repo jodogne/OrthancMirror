@@ -6,6 +6,11 @@ Maintenance
 
 * Under Windows, the console output is now configured to interpret strings as UTF-8.
   This notably allow cyrillic strings to display correctly in the console.
+* Improved streaming of HTTP responses under OS pressure.  In some conditions, when the OS
+  was not able to send a full buffer over the network, Orthanc was not retrying 
+  to send the remaining part.  This is now fixed.  
+  (https://discourse.orthanc-server.org/t/incomplete-zip-downloads-from-get-studies-id-media/6046)
+
 
 
 Version 1.12.9 (2025-08-11)
