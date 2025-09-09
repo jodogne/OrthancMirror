@@ -258,6 +258,16 @@ namespace Orthanc
         throw OrthancException(ErrorCode_MainDicomTagsMultiplyDefined, tag.Format() + " is already defined", false);
       }
 
+      if (level == ResourceType_Study) // all patients main dicom tags are also copied at study level
+      {
+        std::set<DicomTag>& patientLevelTags = GetMainDicomTagsByLevelInternal(ResourceType_Patient);
+        
+        if (patientLevelTags.find(tag) != patientLevelTags.end())
+        {
+          throw OrthancException(ErrorCode_MainDicomTagsMultiplyDefined, tag.Format() + " is already defined", false);
+        }
+      }
+
       existingLevelTags.insert(tag);
       allMainDicomTags_.insert(tag);
 
