@@ -119,12 +119,19 @@ namespace Orthanc
           {
             size_t packetSize = std::min(remainingSize, static_cast<size_t>(INT_MAX));
 
-            int status = mg_write(connection_, &(reinterpret_cast<const char*>(buffer)[offset]), packetSize);  
-
-            if (status != static_cast<int>(packetSize))
+            // note: mg_write may sometimes only send a part of the buffer e.g. when the OS is not able to send the full buffer -> we might need to iterate a few times
+            size_t totalSent = 0;
+            while (totalSent < packetSize)
             {
-              // status == 0 when the connection has been closed, -1 on error
-              throw OrthancException(ErrorCode_NetworkProtocol);
+              int status = mg_write(connection_, &(reinterpret_cast<const char*>(buffer)[offset + totalSent]), packetSize - totalSent);
+
+              if (status <= 0)
+              {
+                // status == 0 when the connection has been closed, -1 on error
+                throw OrthancException(ErrorCode_NetworkProtocol);
+              }
+
+              totalSent += status;
             }
 
             offset += packetSize;

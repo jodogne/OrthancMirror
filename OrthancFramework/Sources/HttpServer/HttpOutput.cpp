@@ -805,6 +805,8 @@ namespace Orthanc
   void HttpOutput::StateMachine::SendStreamItem(const void* data,
                                                 size_t size)
   {
+    LOG(TRACE) << "SendStreamItem " << size << " bytes";
+
     if (state_ != State_WritingStream)
     {
       throw OrthancException(ErrorCode_BadSequenceOfCalls);
@@ -821,6 +823,8 @@ namespace Orthanc
 
   void HttpOutput::StateMachine::CloseStream()
   {
+    LOG(TRACE) << "CloseStream";
+    
     if (state_ != State_WritingStream)
     {
       throw OrthancException(ErrorCode_BadSequenceOfCalls);
