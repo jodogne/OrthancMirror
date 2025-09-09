@@ -544,11 +544,11 @@ namespace Orthanc
 
       if (isZip64_)
       {
-        pimpl_->file_ = zipOpen64(path_.c_str(), mode);
+        pimpl_->file_ = zipOpen64(SystemToolbox::PathToUtf8(path_).c_str(), mode);
       }
       else
       {
-        pimpl_->file_ = zipOpen(path_.c_str(), mode);
+        pimpl_->file_ = zipOpen(SystemToolbox::PathToUtf8(path_).c_str(), mode);
       }
 
       if (!pimpl_->file_)
@@ -559,13 +559,13 @@ namespace Orthanc
     }
   }
 
-  void ZipWriter::SetOutputPath(const char* path)
+  void ZipWriter::SetOutputPath(const boost::filesystem::path& path)
   {
     Close();
     path_ = path;
   }
 
-  const std::string &ZipWriter::GetOutputPath() const
+  const boost::filesystem::path& ZipWriter::GetOutputPath() const
   {
     return path_;
   }
@@ -603,7 +603,7 @@ namespace Orthanc
     return compressionLevel_;
   }
 
-  void ZipWriter::OpenFile(const char* path)
+  void ZipWriter::OpenFile(const char* filename)
   {
     Open();
 
@@ -614,7 +614,7 @@ namespace Orthanc
 
     if (isZip64_)
     {
-      result = zipOpenNewFileInZip64(pimpl_->file_, path,
+      result = zipOpenNewFileInZip64(pimpl_->file_, filename,
                                      &zfi,
                                      NULL,   0,
                                      NULL,   0,
@@ -624,7 +624,7 @@ namespace Orthanc
     }
     else
     {
-      result = zipOpenNewFileInZip(pimpl_->file_, path,
+      result = zipOpenNewFileInZip(pimpl_->file_, filename,
                                    &zfi,
                                    NULL,   0,
                                    NULL,   0,

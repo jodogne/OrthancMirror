@@ -642,8 +642,8 @@ TEST(Toolbox, IsAsciiString)
 #if defined(__linux__)
 TEST(Toolbox, AbsoluteDirectory)
 {
-  ASSERT_EQ("/tmp/hello", SystemToolbox::InterpretRelativePath("/tmp", "hello"));
-  ASSERT_EQ("/tmp", SystemToolbox::InterpretRelativePath("/tmp", "/tmp"));
+  ASSERT_EQ("/tmp/hello", SystemToolbox::PathToUtf8(SystemToolbox::InterpretRelativePath("/tmp", "hello")));
+  ASSERT_EQ("/tmp", SystemToolbox::PathToUtf8(SystemToolbox::InterpretRelativePath("/tmp", "/tmp")));
 }
 #endif
 
@@ -651,7 +651,7 @@ TEST(Toolbox, AbsoluteDirectory)
 #if ORTHANC_SANDBOXED != 1
 TEST(Toolbox, WriteFile)
 {
-  std::string path;
+  boost::filesystem::path path;
 
   {
     TemporaryFile tmp;
@@ -663,28 +663,28 @@ TEST(Toolbox, WriteFile)
     s.append("World");
     ASSERT_EQ(11u, s.size());
 
-    SystemToolbox::WriteFile(s, path.c_str());
+    SystemToolbox::WriteFile(s, path);
 
     std::string t;
-    SystemToolbox::ReadFile(t, path.c_str());
+    SystemToolbox::ReadFile(t, path);
 
     ASSERT_EQ(11u, t.size());
     ASSERT_EQ(0, t[5]);
     ASSERT_EQ(0, memcmp(s.c_str(), t.c_str(), s.size()));
 
     std::string h;
-    ASSERT_EQ(true, SystemToolbox::ReadHeader(h, path.c_str(), 1));
+    ASSERT_EQ(true, SystemToolbox::ReadHeader(h, path, 1));
     ASSERT_EQ(1u, h.size());
     ASSERT_EQ('H', h[0]);
-    ASSERT_TRUE(SystemToolbox::ReadHeader(h, path.c_str(), 0));
+    ASSERT_TRUE(SystemToolbox::ReadHeader(h, path, 0));
     ASSERT_EQ(0u, h.size());
-    ASSERT_FALSE(SystemToolbox::ReadHeader(h, path.c_str(), 32));
+    ASSERT_FALSE(SystemToolbox::ReadHeader(h, path, 32));
     ASSERT_EQ(11u, h.size());
     ASSERT_EQ(0, memcmp(s.c_str(), h.c_str(), s.size()));
   }
 
   std::string u;
-  ASSERT_THROW(SystemToolbox::ReadFile(u, path.c_str()), OrthancException);
+  ASSERT_THROW(SystemToolbox::ReadFile(u, path), OrthancException);
 
   {
     TemporaryFile tmp;

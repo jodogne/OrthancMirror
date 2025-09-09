@@ -1114,11 +1114,11 @@ namespace Orthanc
       }
     }
 
-    void SetOutputFile(const std::string& path)
+    void SetOutputFile(const boost::filesystem::path& path)
     {
       if (zip_.get() == NULL)
       {
-        zip_.reset(new HierarchicalZipWriter(path.c_str()));
+        zip_.reset(new HierarchicalZipWriter(path));
         zip_->SetZip64(commands_.IsZip64());
         isStream_ = false;
       }

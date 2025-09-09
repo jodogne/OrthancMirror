@@ -44,6 +44,9 @@
 #include <boost/noncopyable.hpp>
 #include <boost/shared_ptr.hpp>
 
+#if ORTHANC_SANDBOXED != 1
+#  include <boost/filesystem.hpp>
+#endif
 
 namespace Orthanc
 {
@@ -73,7 +76,7 @@ namespace Orthanc
     static ZipReader* CreateFromMemory(const std::string& buffer);
 
 #if ORTHANC_SANDBOXED != 1
-    static ZipReader* CreateFromFile(const std::string& path);    
+    static ZipReader *CreateFromFile(const boost::filesystem::path& path);
 #endif
 
     static bool IsZipMemoryBuffer(const void* buffer,
@@ -82,7 +85,7 @@ namespace Orthanc
     static bool IsZipMemoryBuffer(const std::string& content);
 
 #if ORTHANC_SANDBOXED != 1
-    static bool IsZipFile(const std::string& path);
+    static bool IsZipFile(const boost::filesystem::path& path);
 #endif
   };
 }

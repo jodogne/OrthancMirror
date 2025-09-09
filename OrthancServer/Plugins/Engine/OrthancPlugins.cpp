@@ -1758,8 +1758,7 @@ namespace Orthanc
     boost::shared_mutex auditLogHandlersMutex_;        // New in Orthanc 1.12.9
 
     Properties properties_;
-    int argc_;
-    char** argv_;
+    std::vector<std::string> arguments_;
     std::unique_ptr<OrthancPluginDatabase>    database_;
     std::unique_ptr<OrthancPluginDatabaseV3>  databaseV3_;  // New in Orthanc 1.9.2
     std::unique_ptr<OrthancPluginDatabaseV4>  databaseV4_;  // New in Orthanc 1.12.0
@@ -1775,8 +1774,6 @@ namespace Orthanc
       worklistCallback_(NULL),
       receivedInstanceCallback_(NULL),
       httpAuthentication_(NULL),
-      argc_(1),
-      argv_(NULL),
       databaseServerIdentifier_(databaseServerIdentifier),
       maxDatabaseRetries_(0),
       hasStorageAreaCustomData_(false)
@@ -5223,7 +5220,7 @@ namespace Orthanc
           *reinterpret_cast<const _OrthancPluginReadFile*>(parameters);
 
         std::string content;
-        SystemToolbox::ReadFile(content, p.path);
+        SystemToolbox::ReadFile(content, SystemToolbox::PathFromUtf8(p.path));
         CopyToMemoryBuffer(p.target, content);
 
         return true;
@@ -6084,7 +6081,7 @@ namespace Orthanc
       {
         const _OrthancPluginReturnSingleValue& p =
           *reinterpret_cast<const _OrthancPluginReturnSingleValue*>(parameters);
-        *(p.resultUint32) = pimpl_->argc_ - 1;
+        *(p.resultUint32) = static_cast<uint32_t>(pimpl_->arguments_.size()) - 1;
         return true;
       }
 
@@ -6093,14 +6090,13 @@ namespace Orthanc
         const _OrthancPluginGlobalProperty& p =
           *reinterpret_cast<const _OrthancPluginGlobalProperty*>(parameters);
         
-        if (p.property + 1 > pimpl_->argc_)
+        if (p.property + 1 > static_cast<int32_t>(pimpl_->arguments_.size()))
         {
           return false;
         }
         else
         {
-          std::string arg = std::string(pimpl_->argv_[p.property + 1]);
-          *(p.result) = CopyString(arg);
+          *(p.result) = CopyString(pimpl_->arguments_[p.property + 1]);
           return true;
         }
       }
@@ -6430,15 +6426,14 @@ namespace Orthanc
   }
 
 
-  void OrthancPlugins::SetCommandLineArguments(int argc, char* argv[])
+  void OrthancPlugins::SetCommandLineArguments(const std::vector<std::string>& arguments)
   {
-    if (argc < 1 || argv == NULL)
+    if (arguments.size() == 0)
     {
       throw OrthancException(ErrorCode_ParameterOutOfRange);
     }
 
-    pimpl_->argc_ = argc;
-    pimpl_->argv_ = argv;
+    pimpl_->arguments_ = arguments;
   }
 
 

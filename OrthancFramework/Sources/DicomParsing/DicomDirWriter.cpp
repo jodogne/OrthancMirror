@@ -135,7 +135,7 @@ namespace Orthanc
     {
       if (dir_.get() == NULL)
       {
-        dir_.reset(new DcmDicomDir(file_.GetPath().c_str(), 
+        dir_.reset(new DcmDicomDir(SystemToolbox::PathToUtf8(file_.GetPath()).c_str(), 
                                    fileSetId_.c_str()));
         //SetTagValue(dir_->getRootRecord(), DCM_SpecificCharacterSet, GetDicomSpecificCharacterSet(Encoding_Utf8));
       }

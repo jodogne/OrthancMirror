@@ -459,7 +459,7 @@ namespace Orthanc
   private:
     boost::mutex    mutex_;
     bool            httpsVerifyPeers_;
-    std::string     httpsCACertificates_;
+    boost::filesystem::path  httpsCACertificates_;
     std::string     proxy_;
     long            timeout_;
     bool            verbose_;
@@ -480,7 +480,7 @@ namespace Orthanc
     }
 
     void ConfigureSsl(bool httpsVerifyPeers,
-                      const std::string& httpsCACertificates)
+                      const boost::filesystem::path& httpsCACertificates)
     {
       boost::mutex::scoped_lock lock(mutex_);
       httpsVerifyPeers_ = httpsVerifyPeers;
@@ -488,7 +488,7 @@ namespace Orthanc
     }
 
     void GetSslConfiguration(bool& httpsVerifyPeers,
-                             std::string& httpsCACertificates)
+                             boost::filesystem::path& httpsCACertificates)
     {
       boost::mutex::scoped_lock lock(mutex_);
       httpsVerifyPeers = httpsVerifyPeers_;
@@ -1179,19 +1179,19 @@ namespace Orthanc
     return verifyPeers_;
   }
 
-  void HttpClient::SetHttpsCACertificates(const std::string &certificates)
+  void HttpClient::SetHttpsCACertificates(const boost::filesystem::path& certificates)
   {
     caCertificates_ = certificates;
   }
 
-  const std::string &HttpClient::GetHttpsCACertificates() const
+  const boost::filesystem::path& HttpClient::GetHttpsCACertificates() const
   {
     return caCertificates_;
   }
 
 
   void HttpClient::ConfigureSsl(bool httpsVerifyPeers,
-                                const std::string& httpsVerifyCertificates)
+                                const boost::filesystem::path& httpsVerifyCertificates)
   {
 #if ORTHANC_ENABLE_SSL == 1
     if (httpsVerifyPeers)
@@ -1337,8 +1337,8 @@ namespace Orthanc
   }
 
 
-  void HttpClient::SetClientCertificate(const std::string& certificateFile,
-                                        const std::string& certificateKeyFile,
+  void HttpClient::SetClientCertificate(const boost::filesystem::path& certificateFile, 
+                                        const boost::filesystem::path &certificateKeyFile,
                                         const std::string& certificateKeyPassword)
   {
     if (certificateFile.empty())
@@ -1349,14 +1349,14 @@ namespace Orthanc
     if (!SystemToolbox::IsRegularFile(certificateFile))
     {
       throw OrthancException(ErrorCode_InexistentFile,
-                             "Cannot open certificate file: " + certificateFile);
+                             "Cannot open certificate file: " + SystemToolbox::PathToUtf8(certificateFile));
     }
 
     if (!certificateKeyFile.empty() && 
         !SystemToolbox::IsRegularFile(certificateKeyFile))
     {
       throw OrthancException(ErrorCode_InexistentFile,
-                             "Cannot open key file: " + certificateKeyFile);
+                             "Cannot open key file: " + SystemToolbox::PathToUtf8(certificateKeyFile));
     }
 
     clientCertificateFile_ = certificateFile;
@@ -1374,17 +1374,17 @@ namespace Orthanc
     return pkcs11Enabled_;
   }
 
-  const std::string &HttpClient::GetClientCertificateFile() const
+  const boost::filesystem::path& HttpClient::GetClientCertificateFile() const
   {
     return clientCertificateFile_;
   }
 
-  const std::string &HttpClient::GetClientCertificateKeyFile() const
+  const boost::filesystem::path& HttpClient::GetClientCertificateKeyFile() const
   {
     return clientCertificateKeyFile_;
   }
 
-  const std::string &HttpClient::GetClientCertificateKeyPassword() const
+  const std::string& HttpClient::GetClientCertificateKeyPassword() const
   {
     return clientCertificateKeyPassword_;
   }

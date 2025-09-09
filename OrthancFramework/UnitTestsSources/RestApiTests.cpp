@@ -117,7 +117,7 @@ TEST(HttpClient, Basic)
 
 TEST(HttpClient, Ssl)
 {
-  SystemToolbox::WriteFile(GITHUB_CERTIFICATES, "UnitTestsResults/github.cert");
+  SystemToolbox::WriteFile(GITHUB_CERTIFICATES, SystemToolbox::PathFromUtf8("UnitTestsResults/github.cert"));
 
   /*{
     std::string s;

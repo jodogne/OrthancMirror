@@ -10,7 +10,12 @@ Maintenance
   was not able to send a full buffer over the network, Orthanc was not retrying 
   to send the remaining part.  This is now fixed.  
   (https://discourse.orthanc-server.org/t/incomplete-zip-downloads-from-get-studies-id-media/6046)
-
+* Reworked all the paths handling, improving general support of non ASCII-only paths on Windows,
+  specifically for the Storage directories and for the configuration files.
+  However, on Windows, some features might still not support non ASCII-only paths:
+  - Reading a DCMTK dictionary ("ExternalDictionaries" configuration)
+  - Using a "TemporaryDirectory" to save zip file or to export DICOMDIR
+  - The "SslCertificate" and other related configurations
 
 
 Version 1.12.9 (2025-08-11)
