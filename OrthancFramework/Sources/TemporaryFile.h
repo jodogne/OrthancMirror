@@ -35,6 +35,7 @@
 #endif
 
 #include <boost/noncopyable.hpp>
+#include <boost/filesystem.hpp>
 #include <stdint.h>
 #include <string>
 
@@ -43,17 +44,17 @@ namespace Orthanc
   class ORTHANC_PUBLIC TemporaryFile : public boost::noncopyable
   {
   private:
-    std::string path_;
+    boost::filesystem::path path_;
 
   public:
     TemporaryFile();
 
-    TemporaryFile(const std::string& temporaryFolder,
+    TemporaryFile(const boost::filesystem::path& temporaryFolder,
                   const std::string& extension);
 
     ~TemporaryFile();
 
-    const std::string& GetPath() const;
+    const boost::filesystem::path& GetPath() const;
 
     void Write(const std::string& content);
 

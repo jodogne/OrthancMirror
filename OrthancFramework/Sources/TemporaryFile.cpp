@@ -34,12 +34,12 @@
 
 namespace Orthanc
 {
-  static std::string CreateTemporaryPath(const char* temporaryDirectory,
-                                         const char* extension)
+  static boost::filesystem::path CreateTemporaryPath(const boost::filesystem::path& temporaryDirectory,
+                                                     const char* extension)
   {
     boost::filesystem::path dir;
 
-    if (temporaryDirectory == NULL)
+    if (temporaryDirectory.empty())
     {
 #if BOOST_HAS_FILESYSTEM_V3 == 1
       dir = boost::filesystem::temp_directory_path();
@@ -69,19 +69,19 @@ namespace Orthanc
     }
 
     dir /= filename;
-    return dir.string();
+    return dir;
   }
 
 
   TemporaryFile::TemporaryFile() : 
-    path_(CreateTemporaryPath(NULL, NULL))
+    path_(CreateTemporaryPath("", NULL))
   {
   }
 
 
-  TemporaryFile::TemporaryFile(const std::string& temporaryDirectory,
+  TemporaryFile::TemporaryFile(const boost::filesystem::path& temporaryDirectory,
                                const std::string& extension) :
-    path_(CreateTemporaryPath(temporaryDirectory.c_str(), extension.c_str()))
+    path_(CreateTemporaryPath(temporaryDirectory, extension.c_str()))
   {
   }
 
@@ -91,7 +91,7 @@ namespace Orthanc
     boost::filesystem::remove(path_);
   }
 
-  const std::string &TemporaryFile::GetPath() const
+  const boost::filesystem::path& TemporaryFile::GetPath() const
   {
     return path_;
   }
@@ -106,7 +106,7 @@ namespace Orthanc
     catch (OrthancException& e)
     {
       throw OrthancException(e.GetErrorCode(),
-                             "Can't create temporary file \"" + path_ +
+                             "Can't create temporary file \"" + SystemToolbox::PathToUtf8(path_) +
                              "\" with " + boost::lexical_cast<std::string>(content.size()) +
                              " bytes: Check you have write access to the "
                              "temporary directory and that it is not full");
@@ -122,8 +122,8 @@ namespace Orthanc
     }
     catch (OrthancException& e)
     {
-      throw OrthancException(e.GetErrorCode(),
-                             "Can't read temporary file \"" + path_ +
+      throw OrthancException(e.GetErrorCode(), 
+                             "Can't read temporary file \"" + SystemToolbox::PathToUtf8(path_) +
                              "\": Another process has corrupted the temporary directory");
     }
   }

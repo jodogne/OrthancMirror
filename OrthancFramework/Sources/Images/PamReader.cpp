@@ -272,7 +272,7 @@ namespace Orthanc
 
   
 #if ORTHANC_SANDBOXED == 0
-  void PamReader::ReadFromFile(const std::string& filename)
+  void PamReader::ReadFromFile(const boost::filesystem::path& filename)
   {
     SystemToolbox::ReadFile(content_, filename);
     ParseContent();

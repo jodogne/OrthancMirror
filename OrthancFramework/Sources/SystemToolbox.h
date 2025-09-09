@@ -60,13 +60,27 @@ namespace Orthanc
     static void ReadFile(std::string& content,
                          const std::string& path,
                          bool log);
+    
+    static void ReadFile(std::string &content, 
+                         const boost::filesystem::path& path, 
+                         bool log);
+
+    static void ReadFile(std::string &content, 
+                         const char* path);
 
     static void ReadFile(std::string& content,
                          const std::string& path);
 
+    static void ReadFile(std::string &content, 
+                         const boost::filesystem::path& path);
+
     static bool ReadHeader(std::string& header,
                            const std::string& path,
                            size_t headerSize);
+
+   static bool ReadHeader(std::string &header, 
+                          const boost::filesystem::path& path, 
+                          size_t headerSize);
 
     static void WriteFile(const void* content,
                           size_t size,
@@ -88,6 +102,13 @@ namespace Orthanc
 
     static void WriteFile(const std::string& content,
                           const std::string& path);
+
+    static void WriteFile(const std::string &content, 
+                          const boost::filesystem::path& path);
+
+    static void WriteFile(const std::string &content, 
+                          const boost::filesystem::path& path, 
+                          bool callFsync);
 
     static void RemoveFile(const std::string& path);
 
@@ -115,6 +136,8 @@ namespace Orthanc
 
     static void MakeDirectory(const std::string& path);
 
+    static void MakeDirectory(const boost::filesystem::path& path);
+
     static bool IsExistingFile(const std::string& path);
 
     static std::string GetPathToExecutable();
@@ -131,6 +154,9 @@ namespace Orthanc
     static bool IsRegularFile(const boost::filesystem::path& path);  // this variant is mandatory to handle non ASCII-only path on Windows
 
     static FILE* OpenFile(const std::string& path,
+                          FileMode mode);
+
+    static FILE* OpenFile(const boost::filesystem::path& path, 
                           FileMode mode);
 
     static MimeType AutodetectMimeType(const char* path)  // used only in Unit Tests
@@ -160,8 +186,8 @@ namespace Orthanc
 
     static void GetEnvironmentVariables(std::map<std::string, std::string>& env);
 
-    static std::string InterpretRelativePath(const std::string& baseDirectory,
-                                             const std::string& relativePath);
+    static boost::filesystem::path InterpretRelativePath(const boost::filesystem::path& baseDirectory,
+                                                         const std::string& relativePath);
 
     static void ReadFileRange(std::string& content,                              
                               const std::string& path,
@@ -169,6 +195,21 @@ namespace Orthanc
                               uint64_t end,    // Exclusive
                               bool throwIfOverflow);
 
+    static void ReadFileRange(std::string &content, 
+                              const boost::filesystem::path& path,
+                              uint64_t start, // Inclusive
+                              uint64_t end, // Exclusive
+                              bool throwIfOverflow);
+
     static void GetMacAddresses(std::set<std::string>& target);
+
+#ifdef _WIN32
+    static std::wstring Utf8ToWString(const std::string &str);
+
+    static std::string WStringToUtf8(const std::wstring &wstr);
+
+    static std::wstring WStringFromCharPtr(const char *wstr);
+#endif
+
   };
 }

@@ -72,7 +72,7 @@ namespace Orthanc
     return path;
   }
 
-  void FilesystemStorage::Setup(const std::string& root)
+  void FilesystemStorage::Setup(const boost::filesystem::path& root)
   {
     //root_ = boost::filesystem::absolute(root).string();
     root_ = root;
@@ -80,13 +80,13 @@ namespace Orthanc
     SystemToolbox::MakeDirectory(root);
   }
 
-  FilesystemStorage::FilesystemStorage(const std::string &root) :
+  FilesystemStorage::FilesystemStorage(const boost::filesystem::path &root) :
     fsyncOnWrite_(false)
   {
     Setup(root);
   }
 
-  FilesystemStorage::FilesystemStorage(const std::string &root,
+  FilesystemStorage::FilesystemStorage(const boost::filesystem::path &root,
                                        bool fsyncOnWrite) :
     fsyncOnWrite_(fsyncOnWrite)
   {
@@ -171,7 +171,7 @@ namespace Orthanc
 
       try 
       {
-        SystemToolbox::WriteFile(content, size, path.string(), fsyncOnWrite_);
+        SystemToolbox::WriteFile(content, size, path, fsyncOnWrite_);
         
         LOG(INFO) << "Created attachment \"" << uuid << "\" (" << timer.GetHumanTransferSpeed(true, size) << ")";
         return;
@@ -214,7 +214,7 @@ namespace Orthanc
 
     std::string content;
     SystemToolbox::ReadFileRange(
-      content, GetPath(uuid).string(), start, end, true /* throw if overflow */);
+      content, GetPath(uuid), start, end, true /* throw if overflow */);
 
     LOG(INFO) << "Read range of attachment \"" << uuid << "\" (" << timer.GetHumanTransferSpeed(true, content.size()) << ")";
     return StringMemoryBuffer::CreateFromSwap(content);

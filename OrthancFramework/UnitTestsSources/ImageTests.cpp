@@ -310,7 +310,7 @@ TEST(JpegWriter, Basic)
 
 #if ORTHANC_SANDBOXED != 1
     Orthanc::IImageWriter::WriteToFile(w, "UnitTestsResults/hello.jpg", img);
-    Orthanc::SystemToolbox::WriteFile(s, "UnitTestsResults/hello2.jpg");
+    Orthanc::SystemToolbox::WriteFile(s, Orthanc::SystemToolbox::PathFromUtf8("UnitTestsResults/hello2.jpg"));
 
     std::string t;
     Orthanc::SystemToolbox::ReadFile(t, "UnitTestsResults/hello.jpg");
@@ -327,7 +327,7 @@ TEST(JpegWriter, Basic)
 
 #if ORTHANC_SANDBOXED != 1
     Orthanc::JpegReader r2;
-    r2.ReadFromFile("UnitTestsResults/hello.jpg");
+    r2.ReadFromFile(Orthanc::SystemToolbox::PathFromUtf8("UnitTestsResults/hello.jpg"));
     ASSERT_EQ(16u, r2.GetWidth());
     ASSERT_EQ(16u, r2.GetHeight());
 #endif

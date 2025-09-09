@@ -49,6 +49,9 @@ namespace Orthanc
     FilesystemHttpSender(const std::string& path,
                          MimeType contentType);
 
+    FilesystemHttpSender(const boost::filesystem::path& path, 
+                         MimeType contentType);
+
     FilesystemHttpSender(const FilesystemStorage& storage,
                          const std::string& uuid);
 
