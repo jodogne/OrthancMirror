@@ -881,7 +881,7 @@ static void PrintErrors(const boost::filesystem::path& path)
     PrintErrorCode(ErrorCode_DirectoryOverFile, "The directory to be created is already occupied by a regular file");
     PrintErrorCode(ErrorCode_FileStorageCannotWrite, "Unable to create a subdirectory or a file in the file storage");
     PrintErrorCode(ErrorCode_DirectoryExpected, "The specified path does not point to a directory");
-    PrintErrorCode(ErrorCode_HttpPortInUse, "The TCP port of the HTTP server is privileged or already in use");
+    PrintErrorCode(ErrorCode_HttpPortInUse, "The TCP port of the HTTP server is privileged or already in use or one of the HTTP bind addresses does not exist");
     PrintErrorCode(ErrorCode_DicomPortInUse, "The TCP port of the DICOM server is privileged or already in use");
     PrintErrorCode(ErrorCode_BadHttpStatusInRest, "This HTTP status is not allowed in a REST API");
     PrintErrorCode(ErrorCode_RegularFileExpected, "The specified path does not point to a regular file");
@@ -1073,6 +1073,9 @@ static bool StartHttpServer(ServerContext& context,
       // HTTP server
       httpServer.SetThreadsCount(lock.GetConfiguration().GetUnsignedIntegerParameter("HttpThreadsCount", 50));
       httpServer.SetPortNumber(lock.GetConfiguration().GetUnsignedIntegerParameter("HttpPort", 8042));
+      std::set<std::string> httpBindAddresses;
+      lock.GetConfiguration().GetSetOfStringsParameter(httpBindAddresses, "HttpBindAddresses");
+      httpServer.SetBindAddresses(httpBindAddresses);
       httpServer.SetRemoteAccessAllowed(lock.GetConfiguration().GetBooleanParameter("RemoteAccessAllowed", false));
       httpServer.SetKeepAliveEnabled(lock.GetConfiguration().GetBooleanParameter("KeepAlive", defaultKeepAlive));
       httpServer.SetKeepAliveTimeout(lock.GetConfiguration().GetUnsignedIntegerParameter("KeepAliveTimeout", 1));

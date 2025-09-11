@@ -37,7 +37,7 @@ BASE = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..')
 ##
 
 with open(os.path.join(BASE, 'OrthancFramework', 'Resources', 'CodeGeneration', 'ErrorCodes.json'), 'r') as f:
-    ERRORS = json.loads(re.sub('/\*.*?\*/', '', f.read()))
+    ERRORS = json.loads(re.sub(r'/\*.*?\*/', '', f.read()))
 
 for error in ERRORS:
     if error['Code'] >= START_PLUGINS:
@@ -48,7 +48,7 @@ with open(os.path.join(BASE, 'OrthancFramework', 'Sources', 'Enumerations.h'), '
     a = f.read()
 
 HTTP = {}
-for i in re.findall('(HttpStatus_([0-9]+)_\w+)', a):
+for i in re.findall(r'(HttpStatus_([0-9]+)_\w+)', a):
     HTTP[int(i[1])] = i[0]
 
 
@@ -64,7 +64,7 @@ with open(path, 'r') as f:
 s = ',\n'.join(map(lambda x: '    ErrorCode_%s = %d    /*!< %s */' % (x['Name'], int(x['Code']), x['Description']), ERRORS))
 
 s += ',\n    ErrorCode_START_PLUGINS = %d' % START_PLUGINS
-a = re.sub('(enum ErrorCode\s*{)[^}]*?(\s*};)', r'\1\n%s\2' % s, a, re.DOTALL)
+a = re.sub(r'(enum ErrorCode\s*{)[^}]*?(\s*};)', r'\1\n%s\2' % s, a, re.DOTALL)
 
 with open(path, 'w') as f:
     f.write(a)
@@ -81,7 +81,7 @@ with open(path, 'r') as f:
 
 s = ',\n'.join(map(lambda x: '    OrthancPluginErrorCode_%s = %d    /*!< %s */' % (x['Name'], int(x['Code']), x['Description']), ERRORS))
 s += ',\n\n    _OrthancPluginErrorCode_INTERNAL = 0x7fffffff\n  '
-a = re.sub('(typedef enum\s*{)[^}]*?(} OrthancPluginErrorCode;)', r'\1\n%s\2' % s, a, re.DOTALL)
+a = re.sub(r'(typedef enum\s*{)[^}]*?(} OrthancPluginErrorCode;)', r'\1\n%s\2' % s, a, re.DOTALL)
 
 with open(path, 'w') as f:
     f.write(a)
@@ -99,7 +99,7 @@ with open(path, 'r') as f:
     a = f.read()
 
 s = '\n\n'.join(map(lambda x: '      case ErrorCode_%s:\n        return "%s";' % (x['Name'], x['Description']), ERRORS))
-a = re.sub('(EnumerationToString\(ErrorCode.*?\)\s*{\s*switch \([^)]*?\)\s*{)[^}]*?(\s*default:)',
+a = re.sub(r'(EnumerationToString\(ErrorCode.*?\)\s*{\s*switch \([^)]*?\)\s*{)[^}]*?(\s*default:)',
            r'\1\n%s\2' % s, a, re.DOTALL)
 
 def GetHttpStatus(x):
@@ -107,7 +107,7 @@ def GetHttpStatus(x):
     return '      case ErrorCode_%s:\n        return %s;' % (x['Name'], s)
 
 s = '\n\n'.join(map(GetHttpStatus, filter(lambda x: 'HttpStatus' in x, ERRORS)))
-a = re.sub('(ConvertErrorCodeToHttpStatus\(ErrorCode.*?\)\s*{\s*switch \([^)]*?\)\s*{)[^}]*?(\s*default:)',
+a = re.sub(r'(ConvertErrorCodeToHttpStatus\(ErrorCode.*?\)\s*{\s*switch \([^)]*?\)\s*{)[^}]*?(\s*default:)',
            r'\1\n%s\2' % s, a, re.DOTALL)
 
 with open(path, 'w') as f:
@@ -125,10 +125,10 @@ with open(path, 'r') as f:
 
 e = list(filter(lambda x: 'SQLite' in x and x['SQLite'], ERRORS))
 s = ',\n'.join(map(lambda x: '      ErrorCode_%s' % x['Name'], e))
-a = re.sub('(enum ErrorCode\s*{)[^}]*?(\s*};)', r'\1\n%s\2' % s, a, re.DOTALL)
+a = re.sub(r'(enum ErrorCode\s*{)[^}]*?(\s*};)', r'\1\n%s\2' % s, a, re.DOTALL)
 
 s = '\n\n'.join(map(lambda x: '          case ErrorCode_%s:\n            return "%s";' % (x['Name'], x['Description']), e))
-a = re.sub('(EnumerationToString\(ErrorCode.*?\)\s*{\s*switch \([^)]*?\)\s*{)[^}]*?(\s*default:)',
+a = re.sub(r'(EnumerationToString\(ErrorCode.*?\)\s*{\s*switch \([^)]*?\)\s*{)[^}]*?(\s*default:)',
            r'\1\n%s\2' % s, a, re.DOTALL)
 
 with open(path, 'w') as f:
@@ -145,7 +145,7 @@ with open(path, 'r') as f:
     a = f.read()
 
 s = '\n'.join(map(lambda x: '    PrintErrorCode(ErrorCode_%s, "%s");' % (x['Name'], x['Description']), ERRORS))
-a = re.sub('(static void PrintErrors[^{}]*?{[^{}]*?{)([^}]*?)}', r'\1\n%s\n  }' % s, a, re.DOTALL)
+a = re.sub(r'(static void PrintErrors[^{}]*?{[^{}]*?{)([^}]*?)}', r'\1\n%s\n  }' % s, a, re.DOTALL)
 
 with open(path, 'w') as f:
     f.write(a)

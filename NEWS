@@ -1,6 +1,14 @@
 Pending changes in the mainline
 ===============================
 
+General
+-------
+
+* New configuration "HttpBindAddresses" to list the IP addresses on which the
+  HTTP server listens.  By default, this list is empty and the HTTP server listens
+  on all network interfaces.
+
+
 Maintenance
 -----------
 

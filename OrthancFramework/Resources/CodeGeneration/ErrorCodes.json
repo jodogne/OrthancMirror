@@ -393,7 +393,7 @@
   {
     "Code": 2003, 
     "Name": "HttpPortInUse", 
-    "Description": "The TCP port of the HTTP server is privileged or already in use"
+    "Description": "The TCP port of the HTTP server is privileged or already in use or one of the HTTP bind addresses does not exist"
   },
   {
     "Code": 2004, 
