@@ -247,7 +247,7 @@ namespace Orthanc
         return "The specified path does not point to a directory";
 
       case ErrorCode_HttpPortInUse:
-        return "The TCP port of the HTTP server is privileged or already in use";
+        return "The TCP port of the HTTP server is privileged or already in use or one of the HTTP bind addresses does not exist";
 
       case ErrorCode_DicomPortInUse:
         return "The TCP port of the DICOM server is privileged or already in use";

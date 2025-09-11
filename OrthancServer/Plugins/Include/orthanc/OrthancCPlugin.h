@@ -299,7 +299,7 @@ extern "C"
     OrthancPluginErrorCode_DirectoryOverFile = 2000    /*!< The directory to be created is already occupied by a regular file */,
     OrthancPluginErrorCode_FileStorageCannotWrite = 2001    /*!< Unable to create a subdirectory or a file in the file storage */,
     OrthancPluginErrorCode_DirectoryExpected = 2002    /*!< The specified path does not point to a directory */,
-    OrthancPluginErrorCode_HttpPortInUse = 2003    /*!< The TCP port of the HTTP server is privileged or already in use */,
+    OrthancPluginErrorCode_HttpPortInUse = 2003    /*!< The TCP port of the HTTP server is privileged or already in use or one of the HTTP bind addresses does not exist */,
     OrthancPluginErrorCode_DicomPortInUse = 2004    /*!< The TCP port of the DICOM server is privileged or already in use */,
     OrthancPluginErrorCode_BadHttpStatusInRest = 2005    /*!< This HTTP status is not allowed in a REST API */,
     OrthancPluginErrorCode_RegularFileExpected = 2006    /*!< The specified path does not point to a regular file */,

@@ -108,6 +108,7 @@ namespace Orthanc
     bool sslHasCiphers_;
     std::string sslCiphers_;
     uint16_t port_;
+    std::set<std::string> bindAddresses_;
     IIncomingHttpRequestFilter* filter_;
     bool keepAlive_;
     unsigned int keepAliveTimeout_;
@@ -136,6 +137,8 @@ namespace Orthanc
     void SetPortNumber(uint16_t port);
 
     uint16_t GetPortNumber() const;
+
+    void SetBindAddresses(const std::set<std::string>& bindAddresses);
 
     void Start();
 

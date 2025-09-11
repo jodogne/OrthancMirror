@@ -1732,6 +1732,11 @@ namespace Orthanc
     return port_;
   }
 
+  void HttpServer::SetBindAddresses(const std::set<std::string>& bindAddresses)
+  {
+    bindAddresses_ = bindAddresses;
+  }
+
   void HttpServer::Start()
   {
     // reset thread counter used to generate HTTP thread names.
@@ -1758,11 +1763,27 @@ namespace Orthanc
         port += "s";
       }
 
+      std::string listeningPorts;
+      if (bindAddresses_.size() == 0) // default behaviour till 1.12.9 and when no "HttpBindAddresses" configurations are provided
+      {
+        listeningPorts = port;
+      }
+      else
+      {
+        std::set<std::string> addresses;
+        for (std::set<std::string>::const_iterator it = bindAddresses_.begin(); it != bindAddresses_.end(); ++it)
+        {
+          addresses.insert(*it + ":" + port);
+        }
+
+        Toolbox::JoinStrings(listeningPorts, addresses, ",");
+      }
+
       std::vector<const char*> options;
 
       // Set the TCP port for the HTTP server
       options.push_back("listening_ports");
-      options.push_back(port.c_str());
+      options.push_back(listeningPorts.c_str());
         
       // Optimization reported by Chris Hafey
       // https://groups.google.com/d/msg/orthanc-users/CKueKX0pJ9E/_UCbl8T-VjIJ
@@ -1873,7 +1894,7 @@ namespace Orthanc
         else
         {
           throw OrthancException(ErrorCode_HttpPortInUse,
-                                 " (port = " + boost::lexical_cast<std::string>(port_) + ")");
+                                 " (" + listeningPorts + ")");
         }
       }
 
@@ -1885,7 +1906,7 @@ namespace Orthanc
       }
 #endif
 
-      CLOG(WARNING, HTTP) << "HTTP server listening on port: " << GetPortNumber()
+      CLOG(WARNING, HTTP) << "HTTP server listening on : " << listeningPorts
                           << " (HTTPS encryption is "
                           << (IsSslEnabled() ? "enabled" : "disabled")
                           << ", remote access is "
