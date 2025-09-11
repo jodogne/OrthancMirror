@@ -23,7 +23,6 @@ General
 * Option to enable DNS lookups in DICOM:
   https://orthanc.uclouvain.be/hg/orthanc/file/Orthanc-1.9.3/OrthancFramework/Sources/OrthancFramework.cpp#l88
 * Toolbox::ComputeMD5() fails on files larger than 4GB
-* Add an option to run Orthanc in read-only mode both for DICOM and for Rest API.
 * Logging: add more specific information to contextualize the logs.
   For a DICOM Transfer, that would be nice to include the modality in the context + a study identifier or a job id.
 * (1) Accept extra DICOM tags dictionaries in the DCMTK format '.dic' (easier to use than declare
@@ -171,8 +170,6 @@ Mid-term
   The patch that was initialy provided was breaking the IngestTranscoding.
   This might require a DCMTK decoding plugin ?
   https://discourse.orthanc-server.org/t/orthanc-convert-ybr-to-rgb-but-does-not-change-metadata/3533/9
-* Implement a 'commit' route to force the Stable status earlier.
-  https://discourse.orthanc-server.org/t/expediting-stability-of-a-dicom-study-new-api-endpoint/1684
 
 
 ---------
@@ -307,8 +304,6 @@ SDK
   the "RegisterIncomingHttpRequestFilter()" can only generate 403 HTTP status)
   https://groups.google.com/g/orthanc-users/c/ymtaAmgSs6Q/m/PqVBactQAQAJ
   NB: OrthancPluginRegisterHttpAuthentication() was introduced in Orthanc 1.12.9
-* Add an index on the UUID column in the DelayedDeletion plugin:
-  https://discourse.orthanc-server.org/t/delayeddeletion-improvement-unique-index-on-pending-uuid-column/4032
 * Orthanc shall refuse to start if one registers 2 storage plugins.
   Right now, this is not possible because OrthancPluginRegisterStorageArea2 does not return any value
   and it can not throw an Exception because that's a core function called from a plugin -> the Exception
@@ -338,6 +333,9 @@ SDK
   Note that we cannot propose "OrthancPluginQueuePeekBack()" or
   "OrthancPluginQueuePeek(..., OrthancPluginQueueOrigin_Back)" (i.e., LIFO stacks), as a
   concurrent call to "OrthancPluginEnqueueValue()" would alter the back of the queue.
+
+  Note by AM: With PeekFront: 2 consumers on 2 Orthanc instances might consume the same message no ?
+
 * Add OrthancPluginSetStableStatus2() which would take an additional OrthancPluginResourceType
   argument to avoid possible ambiguity about the resource of interest
 
@@ -406,9 +404,6 @@ Big-endian architectures
 Microsoft Windows
 -----------------
 
-* Add compatibility with non-ASCII paths (Orthanc expresses its paths
-  as UTF-8 strings, but Windows expects them to be translated to the 
-  system locale)
 * Fix error message when stopping the service:
   https://groups.google.com/g/orthanc-users/c/NyrwUJ9N6Ec/m/sTZIcWvaAgAJ
   
