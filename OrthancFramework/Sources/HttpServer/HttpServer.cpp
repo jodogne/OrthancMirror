@@ -1893,8 +1893,23 @@ namespace Orthanc
         }
         else
         {
+          std::string errorMsgDetails;
+          if (bindAddresses_.empty())
+          {
+            errorMsgDetails = "port " + port;
+          }
+          else
+          {
+            errorMsgDetails = listeningPorts;
+          }
+          
+          if (errno != 0) // there might be additionnal details about the error in errno
+          {
+            errorMsgDetails += ", errno = " + boost::lexical_cast<std::string>(errno) + ", " + strerror(errno);
+          }
+
           throw OrthancException(ErrorCode_HttpPortInUse,
-                                 " (" + listeningPorts + ")");
+                                 " (" + errorMsgDetails + ")");
         }
       }
 
@@ -1906,7 +1921,7 @@ namespace Orthanc
       }
 #endif
 
-      CLOG(WARNING, HTTP) << "HTTP server listening on : " << listeningPorts
+      CLOG(WARNING, HTTP) << "HTTP server listening on" << (bindAddresses_.empty() ? " port: " + port : ": " + listeningPorts)
                           << " (HTTPS encryption is "
                           << (IsSslEnabled() ? "enabled" : "disabled")
                           << ", remote access is "
