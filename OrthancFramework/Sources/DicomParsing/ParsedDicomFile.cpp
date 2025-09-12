@@ -1694,6 +1694,11 @@ namespace Orthanc
                                     MimeType& mime,
                                     unsigned int frameId) const
   {
+    if (!this->HasTag(DICOM_TAG_PIXEL_DATA))
+    {
+      throw OrthancException(ErrorCode_BadRequest, "Cannot extract a frame from a DIOCM file that does not have pixel data.");
+    }
+
     if (pimpl_->frameIndex_.get() == NULL)
     {
       assert(pimpl_->file_ != NULL &&
