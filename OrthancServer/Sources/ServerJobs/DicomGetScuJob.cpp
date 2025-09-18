@@ -117,5 +117,10 @@ namespace Orthanc
     }
   }
 
+  DicomGetScuJob::DicomGetScuJob(ServerContext& context,
+                                 const Json::Value& serialized) :
+    DicomRetrieveScuBaseJob(context, serialized)
+  {
+  }
 
 }

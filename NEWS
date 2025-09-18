@@ -32,7 +32,7 @@ Maintenance
   - Reading a DCMTK dictionary ("ExternalDictionaries" configuration)
   - Using a "TemporaryDirectory" to save zip file or to export DICOMDIR
   - The "SslCertificate" and other related configurations
-
+* Fix: DicomGetScu jobs are now saved in DB.
 
 Version 1.12.9 (2025-08-11)
 ===========================
