@@ -102,6 +102,26 @@ namespace Orthanc
   OrthancException::OrthancException(ErrorCode errorCode,
                                      HttpStatus httpStatus,
                                      const std::string& details,
+                                     uint16_t dimseErrorStatus,
+                                     bool log) :
+    errorCode_(errorCode),
+    httpStatus_(httpStatus),
+    logged_(log),
+    details_(new std::string(details)),
+    hasDimseErrorStatus_(true),
+    dimseErrorStatus_(dimseErrorStatus)
+  {
+#if ORTHANC_ENABLE_LOGGING == 1
+    if (log)
+    {
+      LOG(ERROR) << EnumerationToString(errorCode_) << ": " << details;
+    }
+#endif
+  }
+
+  OrthancException::OrthancException(ErrorCode errorCode,
+                                     HttpStatus httpStatus,
+                                     const std::string& details,
                                      bool log) :
     errorCode_(errorCode),
     httpStatus_(httpStatus),
