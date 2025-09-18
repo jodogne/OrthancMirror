@@ -77,6 +77,9 @@ namespace Orthanc
     // "success" state
     virtual void DeleteAllOutputs() {}
 
+    // UserData are provided by the user when creating the job and they are carried along the job
     virtual bool GetUserData(Json::Value& userData) const = 0;
+
+    virtual void SetUserData(const Json::Value& userData) = 0;
   };
 }

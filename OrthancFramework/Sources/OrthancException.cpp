@@ -33,7 +33,9 @@ namespace Orthanc
   OrthancException::OrthancException(const OrthancException& other) : 
     errorCode_(other.errorCode_),
     httpStatus_(other.httpStatus_),
-    logged_(false)
+    logged_(false),
+    hasDimseErrorStatus_(other.hasDimseErrorStatus_),
+    dimseErrorStatus_(other.dimseErrorStatus_)
   {
     if (other.details_.get() != NULL)
     {
@@ -44,7 +46,9 @@ namespace Orthanc
   OrthancException::OrthancException(ErrorCode errorCode) : 
     errorCode_(errorCode),
     httpStatus_(ConvertErrorCodeToHttpStatus(errorCode)),
-    logged_(false)
+    logged_(false),
+    hasDimseErrorStatus_(false),
+    dimseErrorStatus_(0x0000)
   {
   }
 
@@ -54,7 +58,28 @@ namespace Orthanc
     errorCode_(errorCode),
     httpStatus_(ConvertErrorCodeToHttpStatus(errorCode)),
     logged_(log),
-    details_(new std::string(details))
+    details_(new std::string(details)),
+    hasDimseErrorStatus_(false),
+    dimseErrorStatus_(0x0000)
+  {
+#if ORTHANC_ENABLE_LOGGING == 1
+    if (log)
+    {
+      LOG(ERROR) << EnumerationToString(errorCode_) << ": " << details;
+    }
+#endif
+  }
+
+  OrthancException::OrthancException(ErrorCode errorCode,
+                                     const std::string& details,
+                                     uint16_t dimseErrorStatus,
+                                     bool log) :
+    errorCode_(errorCode),
+    httpStatus_(ConvertErrorCodeToHttpStatus(errorCode)),
+    logged_(log),
+    details_(new std::string(details)),
+    hasDimseErrorStatus_(true),
+    dimseErrorStatus_(dimseErrorStatus)
   {
 #if ORTHANC_ENABLE_LOGGING == 1
     if (log)
@@ -68,7 +93,9 @@ namespace Orthanc
                                      HttpStatus httpStatus) :
     errorCode_(errorCode),
     httpStatus_(httpStatus),
-    logged_(false)
+    logged_(false),
+    hasDimseErrorStatus_(false),
+    dimseErrorStatus_(0x0000)
   {
   }
 
@@ -79,7 +106,9 @@ namespace Orthanc
     errorCode_(errorCode),
     httpStatus_(httpStatus),
     logged_(log),
-    details_(new std::string(details))
+    details_(new std::string(details)),
+    hasDimseErrorStatus_(false),
+    dimseErrorStatus_(0x0000)
   {
 #if ORTHANC_ENABLE_LOGGING == 1
     if (log)
@@ -119,6 +148,21 @@ namespace Orthanc
     {
       return details_->c_str();
     }
+  }
+
+  bool OrthancException::HasDimseErrorStatus() const
+  {
+    return hasDimseErrorStatus_;
+  }
+
+  uint16_t OrthancException::GetDimseErrorStatus() const
+  {
+    if (!hasDimseErrorStatus_)
+    {
+      throw OrthancException(ErrorCode_BadSequenceOfCalls);
+    }
+
+    return dimseErrorStatus_;
   }
 
   bool OrthancException::HasBeenLogged() const

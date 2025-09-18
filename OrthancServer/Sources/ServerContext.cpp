@@ -1974,13 +1974,13 @@ namespace Orthanc
   }
   
 
-  void ServerContext::StoreWithTranscoding(std::string& sopClassUid,
-                                           std::string& sopInstanceUid,
-                                           DicomStoreUserConnection& connection,
-                                           const std::string& dicom,
-                                           bool hasMoveOriginator,
-                                           const std::string& moveOriginatorAet,
-                                           uint16_t moveOriginatorId)
+  void ServerContext::PerformCStoreWithTranscoding(std::string& sopClassUid,
+                                                   std::string& sopInstanceUid,
+                                                   DicomStoreUserConnection& connection,
+                                                   const std::string& dicom,
+                                                   bool hasMoveOriginator,
+                                                   const std::string& moveOriginatorAet,
+                                                   uint16_t moveOriginatorId)
   {
     const void* data = dicom.empty() ? NULL : dicom.c_str();
     const RemoteModalityParameters& modality = connection.GetParameters().GetRemoteModality();

@@ -8,6 +8,12 @@ General
   HTTP server listens.  By default, this list is empty and the HTTP server listens
   on all network interfaces.
 
+REST API
+--------
+
+* C-Store and C-Get jobs and HTTP responses now include a new "DimseErrorStatus" field if
+  the operation fails.
+
 
 Maintenance
 -----------

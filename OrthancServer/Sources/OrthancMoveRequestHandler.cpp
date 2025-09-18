@@ -109,8 +109,8 @@ namespace Orthanc
         }
 
         std::string sopClassUid, sopInstanceUid;  // Unused
-        context_.StoreWithTranscoding(sopClassUid, sopInstanceUid, *connection_, dicom,
-                                      true, originatorAet_, originatorId_);
+        context_.PerformCStoreWithTranscoding(sopClassUid, sopInstanceUid, *connection_, dicom,
+                                              true, originatorAet_, originatorId_);
 
         return Status_Success;
       }

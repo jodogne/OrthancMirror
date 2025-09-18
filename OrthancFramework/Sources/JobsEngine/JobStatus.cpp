@@ -34,18 +34,13 @@ namespace Orthanc
     progress_(0),
     jobType_("Invalid"),
     publicContent_(Json::objectValue),
-    hasSerialized_(false)
+    hasSerialized_(false),
+    hasDimseErrorStatus_(false),
+    dimseErrorStatus_(0x0000)
   {
   }
 
-  
-  JobStatus::JobStatus(ErrorCode code,
-                       const std::string& details,
-                       const IJob& job) :
-    errorCode_(code),
-    progress_(job.GetProgress()),
-    publicContent_(Json::objectValue),
-    details_(details)
+  void JobStatus::InitInternal(const IJob& job)
   {
     if (progress_ < 0)
     {
@@ -62,6 +57,36 @@ namespace Orthanc
     job.GetUserData(userData_);
     
     hasSerialized_ = job.Serialize(serialized_);
+  }
+
+  JobStatus::JobStatus(ErrorCode code,
+                       const std::string& details,
+                       const IJob& job,
+                       uint16_t dimseErrorStatus) :
+    errorCode_(code),
+    progress_(job.GetProgress()),
+    publicContent_(Json::objectValue),
+    hasSerialized_(false),
+    details_(details),
+    hasDimseErrorStatus_(true),
+    dimseErrorStatus_(dimseErrorStatus)
+  {
+    InitInternal(job);
+  }
+
+
+  JobStatus::JobStatus(ErrorCode code,
+                       const std::string& details,
+                       const IJob& job) :
+    errorCode_(code),
+    progress_(job.GetProgress()),
+    publicContent_(Json::objectValue),
+    hasSerialized_(false),
+    details_(details),
+    hasDimseErrorStatus_(false),
+    dimseErrorStatus_(0x0000)
+  {
+    InitInternal(job);
   }
 
 

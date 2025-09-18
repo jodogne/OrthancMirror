@@ -577,13 +577,13 @@ namespace Orthanc
                                     size_t size,
                                     unsigned int frameIndex);
 
-    void StoreWithTranscoding(std::string& sopClassUid,
-                              std::string& sopInstanceUid,
-                              DicomStoreUserConnection& connection,
-                              const std::string& dicom,
-                              bool hasMoveOriginator,
-                              const std::string& moveOriginatorAet,
-                              uint16_t moveOriginatorId);
+    void PerformCStoreWithTranscoding(std::string& sopClassUid,
+                                      std::string& sopInstanceUid,
+                                      DicomStoreUserConnection& connection,
+                                      const std::string& dicom,
+                                      bool hasMoveOriginator,
+                                      const std::string& moveOriginatorAet,
+                                      uint16_t moveOriginatorId);
 
     // This method can be used even if the global option
     // "TranscodeDicomProtocol" is set to "false"

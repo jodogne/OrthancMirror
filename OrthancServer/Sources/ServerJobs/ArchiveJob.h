@@ -139,7 +139,7 @@ namespace Orthanc
 
     virtual void DeleteAllOutputs() ORTHANC_OVERRIDE;
 
-    void SetUserData(const Json::Value& userData)
+    virtual void SetUserData(const Json::Value& userData) ORTHANC_OVERRIDE
     {
       userData_ = userData;
     }
