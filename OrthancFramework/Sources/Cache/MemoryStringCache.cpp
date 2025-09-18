@@ -131,11 +131,6 @@ namespace Orthanc
 
   void MemoryStringCache::SetMaximumSize(size_t size)
   {
-    if (size == 0)
-    {
-      throw OrthancException(ErrorCode_ParameterOutOfRange);
-    }
-      
     // // Make sure no accessor is currently open (as its data may be
     // // removed if recycling is needed)
     // WriterLock contentLock(contentMutex_);

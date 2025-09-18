@@ -33,6 +33,9 @@ Maintenance
   - Using a "TemporaryDirectory" to save zip file or to export DICOMDIR
   - The "SslCertificate" and other related configurations
 * Fix: DicomGetScu jobs are now saved in DB.
+* Fix: When the configuration option "MaximumStorageCacheSize" was set to 0, the default value (128)
+       was actually applied.  From now on, a value of 0 really means that the storage cache is disabled.
+
 
 Version 1.12.9 (2025-08-11)
 ===========================

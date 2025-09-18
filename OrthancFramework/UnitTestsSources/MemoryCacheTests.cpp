@@ -319,7 +319,7 @@ TEST(LRU, SharedArchive)
 TEST(MemoryStringCache, Basic)
 {
   Orthanc::MemoryStringCache c;
-  ASSERT_THROW(c.SetMaximumSize(0), Orthanc::OrthancException);
+  ASSERT_NO_THROW(c.SetMaximumSize(0));  // changed in 1.12.10, setting the MaximumSize to zero is a way to disable a cache
   
   c.SetMaximumSize(3);
 
