@@ -704,6 +704,11 @@ public:
         message["Details"] = exception.GetDetails();
       }
 
+      if (exception.HasDimseErrorStatus())
+      {
+        message["DimseErrorStatus"] = exception.GetDimseErrorStatus();
+      }
+
       std::string info = message.toStyledString();
       output.SendStatus(httpStatus, info);
     }

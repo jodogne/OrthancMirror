@@ -44,6 +44,10 @@ namespace Orthanc
     // New in Orthanc 1.5.0
     std::unique_ptr<std::string>  details_;
     
+    // New in Orthanc 1.12.10
+    bool       hasDimseErrorStatus_;
+    uint16_t   dimseErrorStatus_;
+    
   public:
     OrthancException(const OrthancException& other);
 
@@ -51,6 +55,11 @@ namespace Orthanc
 
     OrthancException(ErrorCode errorCode,
                      const std::string& details,
+                     bool log = true);
+
+    OrthancException(ErrorCode errorCode,
+                     const std::string& details,
+                     uint16_t dimseErrorStatus,
                      bool log = true);
 
     OrthancException(ErrorCode errorCode,
@@ -72,5 +81,9 @@ namespace Orthanc
     const char* GetDetails() const;
 
     bool HasBeenLogged() const;
+
+    bool HasDimseErrorStatus() const;
+    
+    uint16_t GetDimseErrorStatus() const;
   };
 }

@@ -87,7 +87,14 @@ namespace Orthanc
 
       case JobStepCode_Failure:
         running.GetJob().Stop(JobStopReason_Failure);
-        running.UpdateStatus(result.GetFailureCode(), result.GetFailureDetails());
+        if (result.HasDimseErrorStatus())
+        {
+          running.UpdateStatus(result.GetFailureCode(), result.GetFailureDetails(), result.GetDimseErrorStatus());
+        }
+        else
+        {
+          running.UpdateStatus(result.GetFailureCode(), result.GetFailureDetails());
+        }
         running.MarkFailure();
         return false;
 

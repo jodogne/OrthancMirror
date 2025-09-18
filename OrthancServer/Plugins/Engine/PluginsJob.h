@@ -26,6 +26,7 @@
 #if ORTHANC_ENABLE_PLUGINS == 1
 
 #include "../../../OrthancFramework/Sources/Compatibility.h"  // For ORTHANC_OVERRIDE
+#include "../../../OrthancFramework/Sources/OrthancException.h"
 #include "../../../OrthancFramework/Sources/JobsEngine/IJob.h"
 #include "../Include/orthanc/OrthancCPlugin.h"
 
@@ -82,6 +83,11 @@ namespace Orthanc
     {
       // TODO
       return false;
+    }
+
+    virtual void SetUserData(const Json::Value& userData) ORTHANC_OVERRIDE
+    {
+      throw OrthancException(ErrorCode_NotImplemented);
     }
 
     virtual bool GetUserData(Json::Value& userData) const ORTHANC_OVERRIDE

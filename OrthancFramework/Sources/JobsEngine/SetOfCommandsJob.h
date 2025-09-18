@@ -118,7 +118,7 @@ namespace Orthanc
       return false;
     }
 
-    void SetUserData(const Json::Value& userData)
+    virtual void SetUserData(const Json::Value& userData) ORTHANC_OVERRIDE
     {
       userData_ = userData;
     }

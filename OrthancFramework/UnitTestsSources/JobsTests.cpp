@@ -137,6 +137,12 @@ namespace
     {
       return false;
     }
+    
+    virtual void SetUserData(const Json::Value& userData) ORTHANC_OVERRIDE
+    {
+      throw OrthancException(ErrorCode_NotImplemented);
+    }
+
     virtual bool GetUserData(Json::Value& userData) const ORTHANC_OVERRIDE
     {
       return false;
