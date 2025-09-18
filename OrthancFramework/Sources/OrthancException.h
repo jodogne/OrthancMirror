@@ -70,6 +70,12 @@ namespace Orthanc
                      const std::string& details,
                      bool log = true);
 
+    OrthancException(ErrorCode errorCode,
+                     HttpStatus httpStatus,
+                     const std::string& details,
+                     uint16_t dimseErrorStatus,
+                     bool log = true);
+
     ErrorCode GetErrorCode() const;
 
     HttpStatus GetHttpStatus() const;
