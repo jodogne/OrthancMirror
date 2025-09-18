@@ -1694,21 +1694,23 @@ namespace Orthanc
                                     MimeType& mime,
                                     unsigned int frameId) const
   {
-    if (!this->HasTag(DICOM_TAG_PIXEL_DATA))
+    DcmDataset* dcmDataset = GetDcmtkObjectConst().getDataset();
+
+    if (!this->HasTag(DICOM_TAG_PIXEL_DATA) && !DicomImageDecoder::IsPsmctRle1(*dcmDataset))
     {
       throw OrthancException(ErrorCode_BadRequest, "Cannot extract a frame from a DIOCM file that does not have pixel data.");
     }
 
     if (pimpl_->frameIndex_.get() == NULL)
     {
-      assert(pimpl_->file_ != NULL &&
-             GetDcmtkObjectConst().getDataset() != NULL);
-      pimpl_->frameIndex_.reset(new DicomFrameIndex(*GetDcmtkObjectConst().getDataset()));
+      assert(pimpl_->file_ != NULL && dcmDataset != NULL);
+
+      pimpl_->frameIndex_.reset(new DicomFrameIndex(*dcmDataset));
     }
 
     pimpl_->frameIndex_->GetRawFrame(target, frameId);
 
-    E_TransferSyntax transferSyntax = GetDcmtkObjectConst().getDataset()->getCurrentXfer();
+    E_TransferSyntax transferSyntax = dcmDataset->getCurrentXfer();
     switch (transferSyntax)
     {
       case EXS_JPEGProcess1:
