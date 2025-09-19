@@ -2260,6 +2260,47 @@ TEST(DicomWebJson, Sequence)
 }
 
 
+TEST(DicomWebJson, SequenceWithEmptyItem)
+{
+  ParsedDicomFile dicom(false);
+  
+  {
+    std::unique_ptr<DcmSequenceOfItems> sequence(new DcmSequenceOfItems(DCM_OriginalAttributesSequence));
+
+    for (unsigned int i = 0; i < 3; i++)
+    {
+      std::unique_ptr<DcmItem> item(new DcmItem);
+      if (i != 1) // the 2nd element is empty
+      {
+        std::unique_ptr<DcmSequenceOfItems> subSequence(new DcmSequenceOfItems(DCM_ModifiedAttributesSequence));
+
+        std::unique_ptr<DcmItem> subItem(new DcmItem);
+        std::string s = "item" + boost::lexical_cast<std::string>(i);
+        subItem->putAndInsertString(DCM_AccessionNumber, s.c_str(), OFFalse);
+
+        ASSERT_TRUE(subSequence->append(subItem.release()).good());
+        ASSERT_TRUE(item->insert(subSequence.release(), false, false).good());
+      }
+
+      ASSERT_TRUE(sequence->append(item.release()).good());
+    }
+
+    ASSERT_TRUE(dicom.GetDcmtkObject().getDataset()->insert(sequence.release(), false, false).good());
+  }
+
+  DicomWebJsonVisitor visitor;
+  dicom.Apply(visitor);  // this raised an exception in 1.12.9
+
+  const Json::Value& output = visitor.GetResult();
+  // LOG(INFO) << output.toStyledString();
+
+  ASSERT_EQ("SQ", output["04000561"]["vr"].asString());
+  ASSERT_EQ(3u, output["04000561"]["Value"].size());
+
+  ASSERT_EQ("item0", output["04000561"]["Value"][0]["04000550"]["Value"][0]["00080050"]["Value"][0].asString());
+  ASSERT_EQ("item2", output["04000561"]["Value"][2]["04000550"]["Value"][0]["00080050"]["Value"][0].asString());
+}
+
 TEST(ParsedDicomCache, Basic)
 {
   ParsedDicomCache cache(10);
@@ -2986,6 +3027,13 @@ TEST(FromDcmtkBridge, VisitorRemoveTag)
         throw OrthancException(ErrorCode_InternalError);
       }
     }
+
+    virtual Action VisitEmptyElement(const std::vector<DicomTag>& parentTags,
+                                     const std::vector<size_t>& parentIndexes) ORTHANC_OVERRIDE
+    {
+      return Action_None;
+    }
+
 
     virtual Action VisitBinary(const std::vector<DicomTag>& parentTags,
                                const std::vector<size_t>& parentIndexes,

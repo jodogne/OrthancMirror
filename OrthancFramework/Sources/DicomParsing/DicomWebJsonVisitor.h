@@ -70,6 +70,9 @@ namespace Orthanc
                             const std::vector<size_t>& parentIndexes,
                             const DicomTag& tag);
 
+    Json::Value& CreateEmptyNode(const std::vector<DicomTag>& parentTags,
+                                 const std::vector<size_t>& parentIndexes);
+
     static Json::Value FormatInteger(int64_t value);
 
     static Json::Value FormatDouble(double value);
@@ -107,6 +110,10 @@ namespace Orthanc
                                ValueRepresentation vr,
                                const void* data,
                                size_t size)
+      ORTHANC_OVERRIDE;
+
+    virtual Action VisitEmptyElement(const std::vector<DicomTag>& parentTags,
+                                     const std::vector<size_t>& parentIndexes)
       ORTHANC_OVERRIDE;
 
     virtual Action VisitIntegers(const std::vector<DicomTag>& parentTags,
