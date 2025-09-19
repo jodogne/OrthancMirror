@@ -241,6 +241,25 @@ namespace Orthanc
                                                const std::vector<size_t>& parentIndexes,
                                                const DicomTag& tag)
   {
+    Json::Value& node = CreateEmptyNode(parentTags, parentIndexes);
+    assert(node.type() == Json::objectValue);
+
+    std::string t = FormatTag(tag);
+    if (node.isMember(t))
+    {
+      throw OrthancException(ErrorCode_InternalError);
+    }
+    else
+    {
+      node[t] = Json::objectValue;
+      return node[t];
+    }
+  }
+
+
+  Json::Value& DicomWebJsonVisitor::CreateEmptyNode(const std::vector<DicomTag>& parentTags,
+                                                    const std::vector<size_t>& parentIndexes)
+  {
     assert(parentTags.size() == parentIndexes.size());      
 
     Json::Value* node = &result_;
@@ -291,16 +310,7 @@ namespace Orthanc
 
     assert(node->type() == Json::objectValue);
 
-    std::string t = FormatTag(tag);
-    if (node->isMember(t))
-    {
-      throw OrthancException(ErrorCode_InternalError);
-    }
-    else
-    {
-      (*node) [t] = Json::objectValue;
-      return (*node) [t];
-    }
+    return *node;
   }
 
     
@@ -425,6 +435,14 @@ namespace Orthanc
     return Action_None;
   }
   
+  ITagVisitor::Action
+  DicomWebJsonVisitor::VisitEmptyElement(const std::vector<DicomTag>& parentTags,
+                                         const std::vector<size_t>& parentIndexes)
+  {
+    CreateEmptyNode(parentTags, parentIndexes);
+    return Action_None;
+  }
+
 
   ITagVisitor::Action
   DicomWebJsonVisitor::VisitBinary(const std::vector<DicomTag>& parentTags,

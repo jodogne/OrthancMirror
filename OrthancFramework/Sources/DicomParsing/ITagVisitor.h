@@ -93,5 +93,9 @@ namespace Orthanc
                                const DicomTag& tag,
                                ValueRepresentation vr,
                                const std::string& value) = 0;
-  };
+
+    // empty sequence element - can return "Remove" or "None"
+    virtual Action VisitEmptyElement(const std::vector<DicomTag>& parentTags,
+                                     const std::vector<size_t>& parentIndexes) = 0;
+    };
 }

@@ -2689,22 +2689,28 @@ namespace Orthanc
 
     std::set<DcmTagKey> toRemove;
     
-    for (unsigned long i = 0; i < dataset.card(); i++)
+    if (dataset.card() > 0)
     {
-      DcmElement* element = dataset.getElement(i);
-      if (element == NULL)
+      for (unsigned long i = 0; i < dataset.card(); i++)
       {
-        throw OrthancException(ErrorCode_InternalError);
-      }
-      else
-      {
-        if (!ApplyVisitorToElement(*element, visitor, parentTags, parentIndexes, encoding, hasCodeExtensions))
+        DcmElement* element = dataset.getElement(i);
+        if (element == NULL)
         {
-          toRemove.insert(element->getTag());
+          throw OrthancException(ErrorCode_InternalError);
         }
-      }      
+        else
+        {
+          if (!ApplyVisitorToElement(*element, visitor, parentTags, parentIndexes, encoding, hasCodeExtensions))
+          {
+            toRemove.insert(element->getTag());
+          }
+        }      
+      }
     }
-
+    else
+    {
+      visitor.VisitEmptyElement(parentTags, parentIndexes);
+    }
     // Remove all the tags that were planned for removal (cf. ITagVisitor::Action_Remove)
     for (std::set<DcmTagKey>::const_iterator
            it = toRemove.begin(); it != toRemove.end(); ++it)

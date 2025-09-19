@@ -35,6 +35,9 @@ Maintenance
 * Fix: DicomGetScu jobs are now saved in DB.
 * Fix: When the configuration option "MaximumStorageCacheSize" was set to 0, the default value (128)
        was actually applied.  From now on, a value of 0 really means that the storage cache is disabled.
+* Fix: Orthanc was unable to convert the tags into dicom+json format if the instance contained an 
+       empty element in a sequence.  This was preventing access to /dicom-web/../metadata routes and prevented
+       visualization in e.g. the Stone Web viewer and OHIF.
 
 
 Version 1.12.9 (2025-08-11)
