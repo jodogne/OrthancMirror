@@ -28,6 +28,8 @@
 #include "Enumerations.h"
 #include "OrthancFramework.h"
 
+#include <stdint.h>  // For uint16_t
+
 namespace Orthanc
 {
   class ORTHANC_PUBLIC OrthancException
