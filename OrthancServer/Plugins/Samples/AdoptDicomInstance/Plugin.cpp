@@ -241,7 +241,7 @@ extern "C"
       OrthancPlugins::OrthancConfiguration config;
       storageDirectory_ = config.GetStringValue("StorageDirectory", "OrthancStorage");
 
-      Orthanc::SystemToolbox::MakeDirectory(storageDirectory_.string());
+      Orthanc::SystemToolbox::MakeDirectory(storageDirectory_);
 
       OrthancPluginRegisterRestCallback(context, "/adopt", Adopt);
     }
