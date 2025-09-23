@@ -1852,6 +1852,15 @@ namespace Orthanc
         options.push_back(dynamicStrings.back().c_str());
       };
 
+      if (CIVETWEB_VERSION_MAJOR > 1 ||
+          (CIVETWEB_VERSION_MAJOR == 1 &&
+           CIVETWEB_VERSION_MINOR >= 15))
+      {
+        // URI-decoding of GET arguments was the default in civetweb <= 1.14
+        options.push_back("decode_query_string");
+        options.push_back("yes");
+      }
+
       assert(options.size() % 2 == 0);
       options.push_back(NULL);
 
