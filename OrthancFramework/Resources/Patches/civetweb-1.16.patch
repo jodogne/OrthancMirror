@@ -1,0 +1,35 @@
+diff -urEb civetweb-1.16.orig/src/civetweb.c civetweb-1.16/src/civetweb.c
+--- civetweb-1.16.orig/src/civetweb.c	2025-09-23 15:37:44.946300709 +0200
++++ civetweb-1.16/src/civetweb.c	2025-09-23 15:38:18.426080130 +0200
+@@ -573,7 +573,7 @@
+ #if (_MSC_VER < 1300)
+ #define STRX(x) #x
+ #define STR(x) STRX(x)
+-#define __func__ __FILE__ ":" STR(__LINE__)
++#define __func__ __ORTHANC_FILE__ ":" STR(__LINE__)
+ #define strtoull(x, y, z) ((unsigned __int64)_atoi64(x))
+ #define strtoll(x, y, z) (_atoi64(x))
+ #else
+@@ -1457,14 +1457,14 @@
+ }
+ 
+ 
+-#define mg_malloc(a) mg_malloc_ex(a, NULL, __FILE__, __LINE__)
+-#define mg_calloc(a, b) mg_calloc_ex(a, b, NULL, __FILE__, __LINE__)
+-#define mg_realloc(a, b) mg_realloc_ex(a, b, NULL, __FILE__, __LINE__)
+-#define mg_free(a) mg_free_ex(a, __FILE__, __LINE__)
+-
+-#define mg_malloc_ctx(a, c) mg_malloc_ex(a, c, __FILE__, __LINE__)
+-#define mg_calloc_ctx(a, b, c) mg_calloc_ex(a, b, c, __FILE__, __LINE__)
+-#define mg_realloc_ctx(a, b, c) mg_realloc_ex(a, b, c, __FILE__, __LINE__)
++#define mg_malloc(a) mg_malloc_ex(a, NULL, __ORTHANC_FILE__, __LINE__)
++#define mg_calloc(a, b) mg_calloc_ex(a, b, NULL, __ORTHANC_FILE__, __LINE__)
++#define mg_realloc(a, b) mg_realloc_ex(a, b, NULL, __ORTHANC_FILE__, __LINE__)
++#define mg_free(a) mg_free_ex(a, __ORTHANC_FILE__, __LINE__)
++
++#define mg_malloc_ctx(a, c) mg_malloc_ex(a, c, __ORTHANC_FILE__, __LINE__)
++#define mg_calloc_ctx(a, b, c) mg_calloc_ex(a, b, c, __ORTHANC_FILE__, __LINE__)
++#define mg_realloc_ctx(a, b, c) mg_realloc_ex(a, b, c, __ORTHANC_FILE__, __LINE__)
+ 
+ 
+ #else /* USE_SERVER_STATS */

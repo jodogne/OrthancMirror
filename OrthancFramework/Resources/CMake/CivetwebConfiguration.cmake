@@ -22,21 +22,21 @@
 
 if (STATIC_BUILD OR NOT USE_SYSTEM_CIVETWEB)
 
-  ## WARNING: "civetweb-1.14.tar.gz" comes with a subfolder
-  ## "civetweb-1.14/test/nonlatin" that cannot be removed by "hg purge
+  ## WARNING: "civetweb-1.16.tar.gz" comes with a subfolder
+  ## "civetweb-1.16/test/nonlatin" that cannot be removed by "hg purge
   ## --all" on Windows hosts. We thus created a custom
-  ## "civetweb-1.14-fixed.tar.gz" as follows:
+  ## "civetweb-1.16-fixed.tar.gz" as follows:
   ##
   ##  $ cd /tmp
-  ##  $ wget https://orthanc.uclouvain.be/downloads/third-party-downloads/civetweb-1.14.tar.gz
-  ##  $ tar xvf civetweb-1.14.tar.gz
-  ##  $ rm -rf civetweb-1.14/src/third_party/ civetweb-1.14/test/
-  ##  $ tar cvfz civetweb-1.14-fixed.tar.gz civetweb-1.14
+  ##  $ wget https://orthanc.uclouvain.be/downloads/third-party-downloads/civetweb-1.16.tar.gz
+  ##  $ tar xvf civetweb-1.16.tar.gz
+  ##  $ rm -rf civetweb-1.16/src/third_party/ civetweb-1.16/test/
+  ##  $ tar cvfz civetweb-1.16-fixed.tar.gz civetweb-1.16
   ##
   
-  set(CIVETWEB_SOURCES_DIR ${CMAKE_BINARY_DIR}/civetweb-1.14)
-  set(CIVETWEB_URL "https://orthanc.uclouvain.be/downloads/third-party-downloads/civetweb-1.14-fixed.tar.gz")
-  set(CIVETWEB_MD5 "1f25d516b7a4e65d8b270d1cc399e0a9")
+  set(CIVETWEB_SOURCES_DIR ${CMAKE_BINARY_DIR}/civetweb-1.16)
+  set(CIVETWEB_URL "https://orthanc.uclouvain.be/downloads/third-party-downloads/civetweb-1.16-fixed.tar.gz")
+  set(CIVETWEB_MD5 "038edf77ea37e47def9458e8903cd53d")
 
   if (IS_DIRECTORY "${CIVETWEB_SOURCES_DIR}")
     set(FirstRun OFF)
@@ -48,7 +48,7 @@ if (STATIC_BUILD OR NOT USE_SYSTEM_CIVETWEB)
 
   execute_process(
     COMMAND ${PATCH_EXECUTABLE} -p0 -N -i
-    ${CMAKE_CURRENT_LIST_DIR}/../Patches/civetweb-1.14.patch
+    ${CMAKE_CURRENT_LIST_DIR}/../Patches/civetweb-1.16.patch
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     RESULT_VARIABLE Failure
     )

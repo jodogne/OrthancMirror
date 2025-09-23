@@ -39,6 +39,8 @@ Maintenance
        empty element in a sequence.  This was preventing access to /dicom-web/../metadata routes and prevented
        visualization in e.g. the Stone Web viewer and OHIF.
 * Fix issue 252: Disallow colons in HTTP basic usernames
+* Upgraded dependencies for static builds:
+  - civetweb 1.16
 
 
 Version 1.12.9 (2025-08-11)
