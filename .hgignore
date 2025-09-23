@@ -3,6 +3,7 @@ ThirdPartyDownloads/
 CMakeLists.txt.user
 *.cpp.orig
 *.h.orig
+*.patch.orig
 .vs/
 .vscode/
 *~
