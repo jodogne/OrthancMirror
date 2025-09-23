@@ -1959,9 +1959,22 @@ namespace Orthanc
   void HttpServer::RegisterUser(const char* username,
                                 const char* password)
   {
+    const std::string s(username);
+    if (s.find(':') != std::string::npos)
+    {
+      /**
+       * "A user-id containing a colon character is invalid, as the
+       * first colon in a user-pass string separates user-id and
+       * password from one another" (cf. issue 252)
+       * https://datatracker.ietf.org/doc/html/rfc7617
+       **/
+      throw OrthancException(ErrorCode_ParameterOutOfRange, "Usernames for HTTP Basic Authentication "
+                             "cannot contain \":\", but found: \"" + s + "\"");
+    }
+
     Stop();
 
-    std::string tag = std::string(username) + ":" + std::string(password);
+    std::string tag = s + ":" + std::string(password);
     std::string encoded;
     Toolbox::EncodeBase64(encoded, tag);
     registeredUsers_.insert(encoded);
