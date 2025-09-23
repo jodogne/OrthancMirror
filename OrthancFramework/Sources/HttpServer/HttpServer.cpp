@@ -1779,6 +1779,7 @@ namespace Orthanc
         Toolbox::JoinStrings(listeningPorts, addresses, ",");
       }
 
+      std::list<std::string> dynamicStrings;
       std::vector<const char*> options;
 
       // Set the TCP port for the HTTP server
@@ -1827,8 +1828,9 @@ namespace Orthanc
       if (sslVerifyPeers_)
       {
         // Set the trusted client certificates (for X509 mutual authentication)
+        dynamicStrings.push_back(SystemToolbox::PathToUtf8(trustedClientCertificates_));
         options.push_back("ssl_ca_file");
-        options.push_back(SystemToolbox::PathToUtf8(trustedClientCertificates_).c_str());
+        options.push_back(dynamicStrings.back().c_str());
       }
       
       if (ssl_)
@@ -1845,13 +1847,14 @@ namespace Orthanc
         }
 
         // Set the SSL certificate, if any
+        dynamicStrings.push_back(SystemToolbox::PathToUtf8(certificate_));
         options.push_back("ssl_certificate");
-        options.push_back(SystemToolbox::PathToUtf8(certificate_).c_str());
+        options.push_back(dynamicStrings.back().c_str());
       };
 
       assert(options.size() % 2 == 0);
       options.push_back(NULL);
-      
+
 #if MONGOOSE_USE_CALLBACKS == 0
       pimpl_->context_ = mg_start(&Callback, this, &options[0]);
 
