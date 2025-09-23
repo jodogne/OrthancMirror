@@ -40,7 +40,7 @@ Maintenance
        visualization in e.g. the Stone Web viewer and OHIF.
 * Fix issue 252: Disallow colons in HTTP basic usernames
 * Upgraded dependencies for static builds:
-  - civetweb 1.16
+  - civetweb 1.16, including patch for CVE-2025-55763
 
 
 Version 1.12.9 (2025-08-11)
