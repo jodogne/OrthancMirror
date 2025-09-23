@@ -25,7 +25,9 @@
 #pragma once
 
 #include "../Enumerations.h"
+
 #include <json/value.h>
+#include <stdint.h>
 
 namespace Orthanc
 {

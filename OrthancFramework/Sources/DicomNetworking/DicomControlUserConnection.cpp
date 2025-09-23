@@ -35,6 +35,14 @@
 #include <dcmtk/dcmdata/dcdeftag.h>
 #include <dcmtk/dcmnet/diutil.h>
 
+#if DCMTK_VERSION_NUMBER < 366
+#define STATUS_GET_Pending_SubOperationsAreContinuing                   0xff00
+#define STATUS_GET_Success                                              0x0000
+#define STATUS_MOVE_Pending_SubOperationsAreContinuing                  0xff00
+#define STATUS_MOVE_Success_SubOperationsCompleteNoFailures             0x0000
+#endif
+
+
 namespace Orthanc
 {
   static void TestAndCopyTag(DicomMap& result,
