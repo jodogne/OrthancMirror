@@ -1,6 +1,6 @@
 diff -urEb civetweb-1.16.orig/src/civetweb.c civetweb-1.16/src/civetweb.c
 --- civetweb-1.16.orig/src/civetweb.c	2025-09-23 15:37:44.946300709 +0200
-+++ civetweb-1.16/src/civetweb.c	2025-09-23 15:38:18.426080130 +0200
++++ civetweb-1.16/src/civetweb.c	2025-09-23 16:05:20.877342193 +0200
 @@ -573,7 +573,7 @@
  #if (_MSC_VER < 1300)
  #define STRX(x) #x
@@ -33,3 +33,36 @@ diff -urEb civetweb-1.16.orig/src/civetweb.c civetweb-1.16/src/civetweb.c
  
  
  #else /* USE_SERVER_STATS */
+@@ -15255,12 +15255,28 @@
+ 			mg_send_http_error(conn, 500, "out or memory");
+ 		} else {
+ 			mg_get_request_link(conn, new_path, buflen - 1);
+-			strcat(new_path, "/");
++
++                        /* Start of patch for CVE-2025-55763: https://github.com/civetweb/civetweb/pull/1347 */
++                        size_t len = strlen(new_path);
++                        if (len + 1 < buflen) {
++                          new_path[len] = '/';
++                          new_path[len + 1] = '\0';
++                          len++;
++                        }
++
+ 			if (ri->query_string) {
+-				/* Append ? and query string */
+-				strcat(new_path, "?");
+-				strcat(new_path, ri->query_string);
++                          if (len + 1 < buflen) {
++                            new_path[len] = '?';
++                            new_path[len + 1] = '\0';
++                            len++;
+ 			}
++
++                          /* Append with size of space left for query string + null terminator */
++                          size_t max_append = buflen - len - 1;
++                          strncat(new_path, ri->query_string, max_append);
++                        }
++                        /* End of patch */
++
+ 			mg_send_http_redirect(conn, new_path, 301);
+ 			mg_free(new_path);
+ 		}
