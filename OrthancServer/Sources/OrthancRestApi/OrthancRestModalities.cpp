@@ -685,9 +685,9 @@ namespace Orthanc
                          "Ignored if `DicomModalities` already sets `LocalAet` for this modality.", false)
         .SetRequestField(KEY_TIMEOUT, RestApiCallDocumentation::Type_Number,
                          "Timeout for the C-FIND command and subsequent C-MOVE retrievals, in seconds (new in Orthanc 1.9.1)", false)
-        .SetAnswerField("ID", RestApiCallDocumentation::Type_JsonObject,
+        .SetAnswerField("ID", RestApiCallDocumentation::Type_String,
                         "Identifier of the query, to be used with `/queries/{id}`")
-        .SetAnswerField("Path", RestApiCallDocumentation::Type_JsonObject,
+        .SetAnswerField("Path", RestApiCallDocumentation::Type_String,
                         "Root path to the query in the REST API");
       return;
     }
