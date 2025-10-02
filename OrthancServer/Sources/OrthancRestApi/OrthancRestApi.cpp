@@ -493,7 +493,7 @@ namespace Orthanc
                        "If `true`, run the job in asynchronous mode, which means that the REST API call will immediately "
                        "return, reporting the identifier of a job. Prefer this flavor wherever possible.", false)
       .SetRequestField(KEY_PRIORITY, RestApiCallDocumentation::Type_Number,
-                       "In asynchronous mode, the priority of the job. The higher the value, the higher the priority.", false)
+                       "In asynchronous mode, the priority of the job. The higher the value, the higher the priority.  Default value is `0`", false)
       .SetAnswerField("ID", RestApiCallDocumentation::Type_String, "In asynchronous mode, identifier of the job")
       .SetAnswerField("Path", RestApiCallDocumentation::Type_String, "In asynchronous mode, path to access the job in the REST API");
   }
@@ -504,7 +504,7 @@ namespace Orthanc
     DocumentSubmitGenericJob(call);
     call.GetDocumentation()
       .SetRequestField(KEY_PERMISSIVE, RestApiCallDocumentation::Type_Boolean,
-                       "If `true`, ignore errors during the individual steps of the job.", false)
+                       "If `true`, ignore errors during the individual steps of the job.  Default value is `false`.", false)
       .SetRequestField(KEY_USER_DATA, RestApiCallDocumentation::Type_JsonObject,
                        "User data that will travel along with the job.", false);
   }
