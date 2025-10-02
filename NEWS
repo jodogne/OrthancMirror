@@ -14,7 +14,7 @@ REST API
 * Fix: C-Get SCU jobs or HTTP responses were always successful even if the C-Get operation
   actually failed.
 * C-Store, C-Move and C-Get jobs and HTTP responses now include a new "DimseErrorStatus" 
-  field if the operation fails.
+  field (ONLY if the operation fails).
 
 
 Maintenance
