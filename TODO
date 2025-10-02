@@ -203,7 +203,6 @@ Mid-term
   DicomImageDecoder
 * Strict hierarchical C-FIND:
   https://groups.google.com/d/msg/orthanc-users/VBHpeGVSNKM/tkaVvjWFBwAJ
-* report DIMSE error codes in Rest API and job status for /store /query /move /retrieve
 * Log outgoing C-Find queries
 * Support other Transfer Syntaxes in the Worklist plugin:
   https://discourse.orthanc-server.org/t/could-you-please-create-an-option-to-set-the-transfer-syntax-in-the-worklist-plugin-currently-little-endian-explicit-is-fixed/4871
