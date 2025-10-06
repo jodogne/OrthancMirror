@@ -351,6 +351,34 @@ namespace OrthancPlugins
     }
   }
 
+  static void DecodeHttpHeaders(HttpHeaders& target,
+                                const MemoryBuffer& source)
+  {
+    Json::Value v;
+    source.ToJson(v);
+
+    if (v.type() != Json::objectValue)
+    {
+      ORTHANC_PLUGINS_THROW_EXCEPTION(InternalError);
+    }
+
+    Json::Value::Members members = v.getMemberNames();
+    target.clear();
+
+    for (size_t i = 0; i < members.size(); i++)
+    {
+      const Json::Value& h = v[members[i]];
+      if (h.type() != Json::stringValue)
+      {
+        ORTHANC_PLUGINS_THROW_EXCEPTION(InternalError);
+      }
+      else
+      {
+        target[members[i]] = h.asString();
+      }
+    }
+  }
+
   // helper class to convert std::map of headers to the plugin SDK C structure
   class PluginHttpHeaders
   {
@@ -2084,8 +2112,30 @@ namespace OrthancPlugins
                             unsigned int timeout) const
   {
     MemoryBuffer buffer;
+    HttpHeaders answerHeaders;
 
-    if (DoPost(buffer, index, uri, body, headers, timeout))
+    if (DoPost(buffer, answerHeaders, index, uri, body, headers, timeout))
+    {
+      buffer.ToJson(target);
+      return true;
+    }
+    else
+    {
+      return false;
+    }
+  }
+
+  bool OrthancPeers::DoPost(Json::Value& target,
+                            HttpHeaders& answerHeaders,
+                            size_t index,
+                            const std::string& uri,
+                            const std::string& body,
+                            const HttpHeaders& headers, 
+                            unsigned int timeout) const
+  {
+    MemoryBuffer buffer;
+
+    if (DoPost(buffer, answerHeaders, index, uri, body, headers, timeout))
     {
       buffer.ToJson(target);
       return true;
@@ -2143,11 +2193,23 @@ namespace OrthancPlugins
                             const std::string& body,
                             const HttpHeaders& headers) const
   {
-    return DoPost(target, index, uri, body, headers, timeout_);
+    HttpHeaders answerHeaders;
+    return DoPost(target, answerHeaders, index, uri, body, headers, timeout_);
   }
 
+  bool OrthancPeers::DoPost(MemoryBuffer& target,
+                            size_t index,
+                            const std::string& uri,
+                            const std::string& body,
+                            const HttpHeaders& headers,
+                            unsigned int timeout) const
+  {
+    HttpHeaders answerHeaders;
+    return DoPost(target, answerHeaders, index, uri, body, headers, timeout);
+  }
 
   bool OrthancPeers::DoPost(MemoryBuffer& target,
+                            HttpHeaders& answerHeaders,
                             size_t index,
                             const std::string& uri,
                             const std::string& body,
@@ -2166,17 +2228,20 @@ namespace OrthancPlugins
     }
 
     OrthancPlugins::MemoryBuffer answer;
+    OrthancPlugins::MemoryBuffer answerHeadersBuffer;
     uint16_t status;
     PluginHttpHeaders pluginHeaders(headers);
 
     OrthancPluginErrorCode code = OrthancPluginCallPeerApi
-      (GetGlobalContext(), *answer, NULL, &status, peers_,
+      (GetGlobalContext(), *answer, *answerHeadersBuffer, &status, peers_,
        static_cast<uint32_t>(index), OrthancPluginHttpMethod_Post, uri.c_str(),
        pluginHeaders.GetSize(), pluginHeaders.GetKeys(), pluginHeaders.GetValues(), body.empty() ? NULL : body.c_str(), body.size(), timeout);
 
     if (code == OrthancPluginErrorCode_Success)
     {
       target.Swap(answer);
+      DecodeHttpHeaders(answerHeaders, answerHeadersBuffer);
+      
       return (status == 200);
     }
     else
@@ -3222,36 +3287,6 @@ namespace OrthancPlugins
     }
   }
 #endif    
-
-
-  static void DecodeHttpHeaders(HttpHeaders& target,
-                                const MemoryBuffer& source)
-  {
-    Json::Value v;
-    source.ToJson(v);
-
-    if (v.type() != Json::objectValue)
-    {
-      ORTHANC_PLUGINS_THROW_EXCEPTION(InternalError);
-    }
-
-    Json::Value::Members members = v.getMemberNames();
-    target.clear();
-
-    for (size_t i = 0; i < members.size(); i++)
-    {
-      const Json::Value& h = v[members[i]];
-      if (h.type() != Json::stringValue)
-      {
-        ORTHANC_PLUGINS_THROW_EXCEPTION(InternalError);
-      }
-      else
-      {
-        target[members[i]] = h.asString();
-      }
-    }
-  }
-
 
   void HttpClient::ExecuteWithoutStream(uint16_t& httpStatus,
                                         HttpHeaders& answerHeaders,
