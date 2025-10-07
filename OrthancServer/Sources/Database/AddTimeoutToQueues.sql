@@ -19,18 +19,5 @@
 -- along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 
-CREATE TABLE KeyValueStores(
-       storeId TEXT NOT NULL,
-       key TEXT NOT NULL,
-       value BLOB NOT NULL,
-       PRIMARY KEY(storeId, key)  -- Prevents duplicates
-       );
-
-CREATE TABLE Queues (
-       id INTEGER PRIMARY KEY AUTOINCREMENT,
-       queueId TEXT NOT NULL,
-       value BLOB NOT NULL
-       --- reservedUntil TIMESTAMP DEFAULT NULL  -- added in AddTimeoutToQueues.sql
-);
-
-CREATE INDEX QueuesIndex ON Queues (queueId, id);
+ALTER TABLE Queues
+ADD COLUMN reservedUntil TIMESTAMP DEFAULT NULL;

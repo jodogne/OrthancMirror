@@ -2051,6 +2051,73 @@ namespace Orthanc
         throw OrthancException(ErrorCode_InternalError);
       }
     }
+
+    virtual bool ReserveQueueValue(std::string& value,
+                                   uint64_t& valueId, 
+                                   const std::string& queueId,
+                                   QueueOrigin origin,
+                                   uint32_t releaseTimeout) ORTHANC_OVERRIDE
+    {
+      if (database_.GetDatabaseCapabilities().HasExtendedQueuesSupport())
+      {
+        DatabasePluginMessages::TransactionRequest request;
+        request.mutable_reserve_queue_value()->set_queue_id(queueId);
+        request.mutable_reserve_queue_value()->set_release_timeout(releaseTimeout);
+
+        switch (origin)
+        {
+          case QueueOrigin_Back:
+            request.mutable_dequeue_value()->set_origin(DatabasePluginMessages::QUEUE_ORIGIN_BACK);
+            break;
+
+          case QueueOrigin_Front:
+            request.mutable_dequeue_value()->set_origin(DatabasePluginMessages::QUEUE_ORIGIN_FRONT);
+            break;
+
+          default:
+            throw OrthancException(ErrorCode_InternalError);
+        }
+
+        DatabasePluginMessages::TransactionResponse response;
+        ExecuteTransaction(response, DatabasePluginMessages::OPERATION_RESERVE_QUEUE_VALUE, request);
+
+        if (response.reserve_queue_value().found())
+        {
+          value = response.reserve_queue_value().value();
+          valueId = response.reserve_queue_value().value_id();
+          return true;
+        }
+        else
+        {
+          return false;
+        }
+      }
+      else
+      {
+        // This method shouldn't have been called
+        throw OrthancException(ErrorCode_InternalError);
+      }
+    }
+      
+    virtual void AcknowledgeQueueValue(const std::string& queueId,
+                                       uint64_t valueId) ORTHANC_OVERRIDE
+    {
+
+      if (database_.GetDatabaseCapabilities().HasExtendedQueuesSupport())
+      {
+        DatabasePluginMessages::TransactionRequest request;
+        request.mutable_acknowledge_queue_value()->set_queue_id(queueId);
+        request.mutable_acknowledge_queue_value()->set_value_id(valueId);
+
+        ExecuteTransaction(DatabasePluginMessages::OPERATION_ACKNOWLEDGE_QUEUE_VALUE, request);
+      }
+      else
+      {
+        // This method shouldn't have been called
+        throw OrthancException(ErrorCode_InternalError);
+      }
+    }
+
   };
 
 
@@ -2143,6 +2210,7 @@ namespace Orthanc
       dbCapabilities_.SetHasFindSupport(systemInfo.supports_find());
       dbCapabilities_.SetKeyValueStoresSupport(systemInfo.supports_key_value_stores());
       dbCapabilities_.SetQueuesSupport(systemInfo.supports_queues());
+      dbCapabilities_.SetExtendedQueuesSupport(systemInfo.supports_extended_queues());
       dbCapabilities_.SetAttachmentCustomDataSupport(systemInfo.has_attachment_custom_data());
     }
 

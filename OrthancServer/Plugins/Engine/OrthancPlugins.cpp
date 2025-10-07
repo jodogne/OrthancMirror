@@ -4725,6 +4725,14 @@ namespace Orthanc
     }
   }
 
+  static void CheckExtendedQueuesSupport(ServerContext& context)
+  {
+    if (!context.GetIndex().HasExtendedQueuesSupport())
+    {
+      throw OrthancException(ErrorCode_NotImplemented, "The database engine does not support queues (extended)");
+    }
+  }
+
   void OrthancPlugins::ApplyEnqueueValue(const _OrthancPluginEnqueueValue& parameters)
   {
     PImpl::ServerContextReference lock(*pimpl_);
@@ -4761,6 +4769,37 @@ namespace Orthanc
 
     *parameters.size = lock.GetContext().GetIndex().GetQueueSize(parameters.queueId);
   }
+
+  void OrthancPlugins::ApplyReserveQueueValue(const _OrthancPluginReserveQueueValue& parameters)
+  {
+    PImpl::ServerContextReference lock(*pimpl_);
+
+    CheckExtendedQueuesSupport(lock.GetContext());
+
+    std::string value;
+    uint64_t valueId;
+
+    if (lock.GetContext().GetIndex().ReserveQueueValue(value, valueId, parameters.queueId, Plugins::Convert(parameters.origin), parameters.releaseTimeout))
+    {
+      CopyToMemoryBuffer(parameters.target, value);
+      *parameters.found = true;
+      *parameters.valueId = valueId;
+    }
+    else
+    {
+      *parameters.found = false;
+    }
+  }
+
+  void OrthancPlugins::ApplyAknowledgeQueueValue(const _OrthancPluginAcknowledgeQueueValue& parameters)
+  {
+    PImpl::ServerContextReference lock(*pimpl_);
+
+    CheckExtendedQueuesSupport(lock.GetContext());
+
+    lock.GetContext().GetIndex().AcknowledgeQueueValue(parameters.queueId, parameters.valueId);
+  }
+
 
   void OrthancPlugins::ApplySetStableStatus(const _OrthancPluginSetStableStatus& parameters)
   {
@@ -5919,6 +5958,20 @@ namespace Orthanc
       {
         const _OrthancPluginGetQueueSize& p = *reinterpret_cast<const _OrthancPluginGetQueueSize*>(parameters);
         ApplyGetQueueSize(p);
+        return true;
+      }
+
+      case _OrthancPluginService_ReserveQueueValue:
+      {
+        const _OrthancPluginReserveQueueValue& p = *reinterpret_cast<const _OrthancPluginReserveQueueValue*>(parameters);
+        ApplyReserveQueueValue(p);
+        return true;
+      }
+
+      case _OrthancPluginService_AcknowledgeQueueValue:
+      {
+        const _OrthancPluginAcknowledgeQueueValue& p = *reinterpret_cast<const _OrthancPluginAcknowledgeQueueValue*>(parameters);
+        ApplyAknowledgeQueueValue(p);
         return true;
       }
 
