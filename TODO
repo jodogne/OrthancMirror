@@ -315,11 +315,11 @@ SDK
     proccess(message)
   The message will never be processed ...
   We should have an acknowledge/commit mechanism e.g:
-    message, messageId = orthanc.DequeueValue2("instances-to-process", orthanc.QueueOrigin.FRONT, 5) # where 5 is a "timeout"
-    # At this point, the message is still in the queue but will not be dequeued by other consumers.
+    message, messageId = orthanc.DequeueValue2("instances-to-process", orthanc.QueueOrigin.FRONT, 5) # where 5 is an "acknowledge timeout"
+    # At this point, the message is still in the queue but will not be visible for other consumers.
     # If the message is not acknowledged within 5 seconds, it will get back into the queue.
     process(message)
-    orthanc.AcknowledgeQueue("instances-to-process", messageId)
+    orthanc.AcknowledgeQueueMessage("instances-to-process", messageId)
     # This requires adding a new "timeout" column in the DB with the reservation_expiration timestamp.
 
   Note by SJ: Introducing an acknowledgement would greatly complexify

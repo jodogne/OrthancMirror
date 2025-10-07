@@ -2280,53 +2280,48 @@ namespace Orthanc
       }
 
       SQLite::Statement s(db_, SQLITE_FROM_HERE,
-                          "INSERT INTO Queues (queueId, value) VALUES (?, ?)");
+                          "INSERT INTO Queues (queueId, value, reservedUntil) VALUES (?, ?, NULL)");
       s.BindString(0, queueId);
       s.BindBlob(1, value, valueSize);
       s.Run();
     }
 
-    // New in Orthanc 1.12.8
+    // New in Orthanc 1.12.8 (but obsolete, you should use ReserveQueueValue instead)
     virtual bool DequeueValue(std::string& value,
                               const std::string& queueId,
                               QueueOrigin origin) ORTHANC_OVERRIDE
     {
-      int64_t rowId;
-      std::unique_ptr<SQLite::Statement> s;
-
+      std::string order;
       switch (origin)
       {
-        case QueueOrigin_Front:
-          s.reset(new SQLite::Statement(db_, SQLITE_FROM_HERE, "SELECT id, value FROM Queues WHERE queueId=? ORDER BY id ASC LIMIT 1"));
-          break;
-
         case QueueOrigin_Back:
-          s.reset(new SQLite::Statement(db_, SQLITE_FROM_HERE, "SELECT id, value FROM Queues WHERE queueId=? ORDER BY id DESC LIMIT 1"));
+          order = "DESC";
           break;
-
+        case QueueOrigin_Front:
+          order = "ASC";
+          break;
         default:
           throw OrthancException(ErrorCode_InternalError);
       }
 
-      s->BindString(0, queueId);
-      if (!s->Step())
+      std::string sql = "WITH RowToDelete AS (SELECT id FROM Queues WHERE queueId=? AND (reservedUntil IS NULL OR reservedUntil < datetime('now')) ORDER BY id " + order + " LIMIT 1) "
+                        "DELETE FROM Queues WHERE id IN (SELECT id FROM RowToDelete) "
+                        "RETURNING value;";
+
+      SQLite::Statement s(db_, SQLITE_FROM_HERE_DYNAMIC(sql), sql);
+
+      s.BindString(0, queueId);
+      if (!s.Step())
       {
         // No value found
         return false;
       }
       else
       {
-        rowId = s->ColumnInt64(0);
-
-        if (!s->ColumnBlobAsString(1, &value))
+        if (!s.ColumnBlobAsString(0, &value))
         {
           throw OrthancException(ErrorCode_NotEnoughMemory);
         }
-
-        SQLite::Statement s2(db_, SQLITE_FROM_HERE,
-                            "DELETE FROM Queues WHERE id = ?");
-        s2.BindInt64(0, rowId);
-        s2.Run();
 
         return true;
       }    
@@ -2340,6 +2335,77 @@ namespace Orthanc
       s.Step();
       return s.ColumnInt64(0);
     }
+
+    // New in Orthanc 1.12.10
+    virtual bool ReserveQueueValue(std::string& value,
+                                   uint64_t& valueId,
+                                   const std::string& queueId,
+                                   QueueOrigin origin,
+                                   uint32_t releaseTimeout) ORTHANC_OVERRIDE
+    {
+      // { // list queue values
+      //   SQLite::Statement t(db_, SQLITE_FROM_HERE,
+      //                       "SELECT id, value, reservedUntil FROM Queues WHERE queueId=?");
+      //   t.BindString(0, queueId);
+      //   while (t.Step())
+      //   {
+      //     t.ColumnBlobAsString(1, &value);
+      //     LOG(INFO) << t.ColumnInt64(0) << " " << value << " " << t.ColumnString(2);
+      //   }
+      // }
+
+      std::string order;
+      switch (origin)
+      {
+        case QueueOrigin_Back:
+          order = "DESC";
+          break;
+        case QueueOrigin_Front:
+          order = "ASC";
+          break;
+        default:
+          throw OrthancException(ErrorCode_InternalError);
+      }
+
+      std::string sql = "WITH RowToUpdate AS (SELECT id FROM Queues WHERE queueId=? AND (reservedUntil IS NULL OR reservedUntil < datetime('now')) ORDER BY id " + order + " LIMIT 1) "
+                        "UPDATE Queues SET reservedUntil = datetime('now', ?) WHERE id IN (SELECT id FROM RowToUpdate) "
+                        "RETURNING id, value;";
+
+      SQLite::Statement s(db_, SQLITE_FROM_HERE_DYNAMIC(sql), sql);
+
+
+      s.BindString(0, queueId);
+      std::string timeout = "+" + boost::lexical_cast<std::string>(releaseTimeout) + " seconds";
+
+      s.BindString(1, timeout);
+      if (!s.Step())
+      {
+        // No value found
+        return false;
+      }
+      else
+      {
+        valueId = static_cast<uint64_t>(s.ColumnInt64(0));
+
+        if (!s.ColumnBlobAsString(1, &value))
+        {
+          throw OrthancException(ErrorCode_NotEnoughMemory);
+        }
+
+        return true;
+      }    
+
+    }
+    
+    // New in Orthanc 1.12.10
+    virtual void AcknowledgeQueueValue(const std::string& /* queueId */,
+                                        uint64_t valueId) ORTHANC_OVERRIDE
+    {
+      SQLite::Statement s(db_, SQLITE_FROM_HERE,
+                          "DELETE FROM Queues WHERE id = ?");
+      s.BindInt64(0, static_cast<int64_t>(valueId));
+      s.Run();
+    }    
   };
 
 
@@ -2678,6 +2744,7 @@ namespace Orthanc
         InjectEmbeddedScript(query, "${INSTALL_LABELS_TABLE}", ServerResources::INSTALL_LABELS_TABLE);
         InjectEmbeddedScript(query, "${INSTALL_DELETED_FILES}", ServerResources::INSTALL_DELETED_FILES);
         InjectEmbeddedScript(query, "${INSTALL_KEY_VALUE_STORES_AND_QUEUES}", ServerResources::INSTALL_KEY_VALUE_STORES_AND_QUEUES);
+        InjectEmbeddedScript(query, "${ADD_TIMEOUT_TO_QUEUES}", ServerResources::ADD_TIMEOUT_TO_QUEUES);
 
         db_.Execute(query);
       }
@@ -2742,6 +2809,13 @@ namespace Orthanc
         {
           LOG(INFO) << "Installing the \"KeyValueStores\" and \"Queues\" tables";
           ExecuteEmbeddedScript(db_, ServerResources::INSTALL_KEY_VALUE_STORES_AND_QUEUES);
+        }
+
+        // New in Orthanc 1.12.10
+        if (!db_.DoesColumnExist("Queues", "reservedUntil"))
+        {
+          LOG(INFO) << "Adding timeout column to the \"Queues\" table";
+          ExecuteEmbeddedScript(db_, ServerResources::ADD_TIMEOUT_TO_QUEUES);
         }
       }
 

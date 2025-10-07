@@ -152,6 +152,9 @@ ${INSTALL_DELETED_FILES}
 -- new in Orthanc 1.12.8 ------------------------- equivalent to InstallKeyValueStoresAndQueues.sql
 ${INSTALL_KEY_VALUE_STORES_AND_QUEUES}
 
+-- new in Orthanc 1.12.10 ------------------------- equivalent to AddTimeoutToQueues.sql
+${ADD_TIMEOUT_TO_QUEUES}
+
 
 -- Track the fact that the "revision" column exists in the "Metadata" and "AttachedFiles"
 -- tables, and that the "customData" column exists in the "AttachedFiles" table

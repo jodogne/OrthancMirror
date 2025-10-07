@@ -1111,6 +1111,21 @@ namespace Orthanc
       throw OrthancException(ErrorCode_InternalError);  // Not supported
     }
 
+    virtual bool ReserveQueueValue(std::string& value,
+                                   uint64_t& valueId, 
+                                   const std::string& queueId,
+                                   QueueOrigin origin,
+                                   uint32_t releaseTimeout) ORTHANC_OVERRIDE
+    {
+      throw OrthancException(ErrorCode_InternalError);  // Not supported
+    }
+      
+    virtual void AcknowledgeQueueValue(const std::string& queueId,
+                                       uint64_t valueId) ORTHANC_OVERRIDE
+    {
+      throw OrthancException(ErrorCode_InternalError);  // Not supported
+    }
+
     virtual void GetAttachmentCustomData(std::string& customData,
                                          const std::string& attachmentUuid) ORTHANC_OVERRIDE
     {

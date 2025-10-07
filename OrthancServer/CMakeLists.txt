@@ -266,6 +266,7 @@ set(ORTHANC_EMBEDDED_FILES
   INSTALL_REVISION_AND_CUSTOM_DATA  ${CMAKE_SOURCE_DIR}/Sources/Database/InstallRevisionAndCustomData.sql  
   INSTALL_DELETED_FILES             ${CMAKE_SOURCE_DIR}/Sources/Database/InstallDeletedFiles.sql
   INSTALL_KEY_VALUE_STORES_AND_QUEUES ${CMAKE_SOURCE_DIR}/Sources/Database/InstallKeyValueStoresAndQueues.sql
+  ADD_TIMEOUT_TO_QUEUES             ${CMAKE_SOURCE_DIR}/Sources/Database/AddTimeoutToQueues.sql
   )
 
 if (STANDALONE_BUILD)
