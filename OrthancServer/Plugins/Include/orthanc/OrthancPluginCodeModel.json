@@ -2234,7 +2234,7 @@
                     "value": 2002
                 },
                 {
-                    "documentation": "The TCP port of the HTTP server is privileged or already in use",
+                    "documentation": "The TCP port of the HTTP server is privileged or already in use or one of the HTTP bind addresses does not exist",
                     "key": "HttpPortInUse",
                     "value": 2003
                 },
@@ -5486,6 +5486,37 @@
                 12,
                 9
             ]
+        },
+        {
+            "args": [
+                {
+                    "name": "arg0",
+                    "sdk_name": "queueId",
+                    "sdk_type": "const char *"
+                },
+                {
+                    "name": "arg1",
+                    "sdk_name": "valueId",
+                    "sdk_type": "uint64_t"
+                }
+            ],
+            "c_function": "OrthancPluginAcknowledgeQueueValue",
+            "documentation": {
+                "args": {
+                    "queueId": "A unique identifier identifying both the plugin and the queue.",
+                    "valueId": "An opaque id obtained from OrthancPluginReserveQueueValue"
+                },
+                "description": [],
+                "return": "0 if success, other value if error.",
+                "summary": "Acknowledge that a queue value has been consumed and definitely removes it from the queue."
+            },
+            "return_sdk_enumeration": "OrthancPluginErrorCode",
+            "return_sdk_type": "enumeration",
+            "since_sdk": [
+                1,
+                12,
+                10
+            ]
         }
     ],
     "unwrapped_functions": [
@@ -5538,6 +5569,7 @@
         "OrthancPluginGetQueueSize",
         "OrthancPluginSetStableStatus",
         "OrthancPluginRegisterHttpAuthentication",
-        "OrthancPluginRegisterAuditLogHandler"
+        "OrthancPluginRegisterAuditLogHandler",
+        "OrthancPluginReserveQueueValue"
     ]
 }
