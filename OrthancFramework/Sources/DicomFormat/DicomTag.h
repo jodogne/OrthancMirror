@@ -240,4 +240,7 @@ namespace Orthanc
   // Tags for DicomWeb
   static const Orthanc::DicomTag DICOM_TAG_RETRIEVE_URL(0x0008, 0x1190);
 
+  // Tags for Worklists
+  static const Orthanc::DicomTag DICOM_TAG_SCHEDULED_PROCEDURE_STEP_SEQUENCE(0x0040, 0x0100);
+  static const Orthanc::DicomTag DICOM_TAG_SCHEDULED_STATION_AETITLE(0x0040, 0x0001);
 }

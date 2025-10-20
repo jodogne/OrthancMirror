@@ -112,6 +112,8 @@ namespace Orthanc
 
     static void RemoveFile(const std::string& path);
 
+    static void RemoveFile(const boost::filesystem::path& path);
+
     static uint64_t GetFileSize(const std::string& path);
 
     static uint64_t GetFileSize(const boost::filesystem::path &path);  // this variant is mandatory to handle non ASCII-only path on Windows

@@ -470,6 +470,11 @@ namespace Orthanc
 
   void SystemToolbox::RemoveFile(const std::string& path)
   {
+    RemoveFile(SystemToolbox::PathFromUtf8(path));
+  }
+
+  void SystemToolbox::RemoveFile(const boost::filesystem::path& path)
+  {
     if (boost::filesystem::exists(path))
     {
       if (IsRegularFile(path))
