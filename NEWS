@@ -45,6 +45,25 @@ Maintenance
   - civetweb 1.16, including patch for CVE-2025-55763
 
 
+Plugins
+-------
+
+* Worklists plugin:
+  - The Worklists plugin now provides a Rest API to:
+    - create worklists through POST at /plugins/worklists/create
+    - list the worklists throuhg GET at /plugins/worklists and /plugins/worklists/{uuid}
+    - delete the worklists through DELETE at /plugins/worklists/{uuid}
+    All details are available in the Orthanc book: https://orthanc.uclouvain.be/book/plugins/worklists-plugin.html
+  - New configurations:
+    - "SaveInOrthancDatabase" to store the worklists in the Orthanc DB (provided that you are using SQLite or PostgreSQL)
+    - "DeleteWorklistsOnStableStudy" to delete the worklist once its related study has been received and is stable
+    - "SetStudyInstanceUidIfMissing" to add a StudyInstanceUID if the Rest API request does not include one.
+    - "DeleteWorklistsDelay" to delete a worklist N hours after it has been created (only available if using the "SaveInOrthancDatabase" mode).
+    - "HousekeepingInterval" to define the delay between 2 executions of the Worklist Housekeeping thread that deletes
+      the worklists when required.
+  - Note: the previous "Database" configuration has now been renamed in "Directory" to better differentiate the "File" or "DB modes.
+
+
 Version 1.12.9 (2025-08-11)
 ===========================
 
