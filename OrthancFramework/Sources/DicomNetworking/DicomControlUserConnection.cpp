@@ -412,6 +412,10 @@ namespace Orthanc
     DicomControlUserConnection::IProgressListener* listener = reinterpret_cast<DicomControlUserConnection::IProgressListener*>(callbackData);
     if (listener)
     {
+      OFString str;
+      CLOG(TRACE, DICOM) << "Received Move Progress:" << std::endl
+                         << DIMSE_dumpMessage(str, *response, DIMSE_INCOMING);
+
       listener->OnProgressUpdated(response->NumberOfRemainingSubOperations,
                                   response->NumberOfCompletedSubOperations,
                                   response->NumberOfFailedSubOperations,
