@@ -237,26 +237,33 @@ static void ListWorklistsFromFolder(std::vector<Worklist>& target)
   fs::path source = worklistDirectory_;
   fs::directory_iterator end;
 
-  for (fs::directory_iterator it(source); it != end; ++it)
+  try
   {
-    fs::file_type type(it->status().type());
-
-    if (type == fs::regular_file ||
-        type == fs::reparse_file)   // cf. BitBucket issue #11
+    for (fs::directory_iterator it(source); it != end; ++it)
     {
-      std::string extension = it->path().extension().string();
-      std::transform(extension.begin(), extension.end(), extension.begin(), tolower);  // Convert to lowercase
+      fs::file_type type(it->status().type());
 
-      if (extension == ".wl")
+      if (type == fs::regular_file ||
+          type == fs::reparse_file)   // cf. BitBucket issue #11
       {
-        std::string worklistId = Orthanc::SystemToolbox::PathToUtf8(it->path().filename().replace_extension(""));
-        std::string dicomContent;
-        Orthanc::SystemToolbox::ReadFile(dicomContent, it->path());
+        std::string extension = it->path().extension().string();
+        std::transform(extension.begin(), extension.end(), extension.begin(), tolower);  // Convert to lowercase
 
-        Worklist wl(worklistId, dicomContent);
-        target.push_back(wl);
+        if (extension == ".wl")
+        {
+          std::string worklistId = Orthanc::SystemToolbox::PathToUtf8(it->path().filename().replace_extension(""));
+          std::string dicomContent;
+          Orthanc::SystemToolbox::ReadFile(dicomContent, it->path());
+
+          Worklist wl(worklistId, dicomContent);
+          target.push_back(wl);
+        }
       }
     }
+  }
+  catch (fs::filesystem_error&)
+  {
+    LOG(ERROR) << "Inexistent folder while scanning for worklists: " + source.string();
   }
 }
 
@@ -381,7 +388,7 @@ static void WorklistHkWorkerThread()
           LOG(INFO) << "Deleting worklist " << it->id_ << " " << deleteDelayInHours_ << " hours after its creation";
           DeleteWorklist(it->id_);
         }
-        else
+        else if (deleteWorklistsOnStableStudy_)
         {
           std::string studyInstanceUid;
           std::string patientId;
@@ -634,7 +641,7 @@ extern "C"
           bool hasKeyValueStores = OrthancPlugins::RestApiGet(system, "/system", false) && system.isMember("Capabilities") && 
                                    system["Capabilities"].isMember("HasKeyValueStores") && system["Capabilities"]["HasKeyValueStores"].asBool();
 
-          if (!hasKeyValueStores)
+          if (worklistStorage_ == WorklistStorageType_OrthancDb && !hasKeyValueStores)
           {
             LOG(ERROR) << "The Orthanc DB plugin does not support Key Value Stores.  It is therefore impossible to store the worklists in Orthanc Database";
             return OrthancPluginErrorCode_IncompatibleConfigurations;
