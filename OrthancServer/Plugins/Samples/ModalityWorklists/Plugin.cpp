@@ -612,7 +612,7 @@ extern "C"
       Json::Value response;
 
       response["ID"] = worklistId;
-      response["Path"] = "/plugins/worklists/" + worklistId;
+      response["Path"] = "/worklists/" + worklistId;
 
       OrthancPlugins::AnswerJson(response, output);
     }
@@ -762,9 +762,9 @@ extern "C"
 
       OrthancPluginRegisterOnChangeCallback(OrthancPlugins::GetGlobalContext(), OnChangeCallback);
 
-      OrthancPluginRegisterRestCallback(OrthancPlugins::GetGlobalContext(), "/plugins/worklists/create", PostCreateWorklist);
-      OrthancPluginRegisterRestCallback(OrthancPlugins::GetGlobalContext(), "/plugins/worklists/([^/]+)", GetDeleteWorklist);
-      OrthancPluginRegisterRestCallback(OrthancPlugins::GetGlobalContext(), "/plugins/worklists", ListWorklists);
+      OrthancPluginRegisterRestCallback(OrthancPlugins::GetGlobalContext(), "/worklists/create", PostCreateWorklist);
+      OrthancPluginRegisterRestCallback(OrthancPlugins::GetGlobalContext(), "/worklists/([^/]+)", GetDeleteWorklist);
+      OrthancPluginRegisterRestCallback(OrthancPlugins::GetGlobalContext(), "/worklists", ListWorklists);
     }
     else
     {
