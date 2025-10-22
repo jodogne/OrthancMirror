@@ -657,7 +657,7 @@ if (ENABLE_PLUGINS AND BUILD_MODALITY_WORKLISTS)
 
   DefineSourceBasenameForTarget(ModalityWorklists)
 
-  target_link_libraries(ModalityWorklists PluginsDependencies)
+  target_link_libraries(ModalityWorklists PluginsDependencies ${DCMTK_LIBRARIES})
 
   set_target_properties(
     ModalityWorklists PROPERTIES 
