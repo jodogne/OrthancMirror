@@ -185,6 +185,14 @@ Long-term
 DICOM
 =====
 
+----------
+Short-term
+----------
+
+* Investigate stucked C-MOVE that seems to block the job engine:
+  https://discourse.orthanc-server.org/t/frozen-jobs-and-rest-api-not-responding-after-stuck-c-move/6280/11
+
+
 --------
 Mid-term
 --------
@@ -209,7 +217,6 @@ Mid-term
 * Deidentify Trace level logs: https://discourse.orthanc-server.org/t/dicom-log-deidentification-at-trace-log-level/5563
   We should implement something like GetDeidentifiedContent(const DcmDataSet& dataset) that would 
   reproduce DcmDataSet::print but hide individual elements that contain PHI.
-
 
 ---------
 Long-term
