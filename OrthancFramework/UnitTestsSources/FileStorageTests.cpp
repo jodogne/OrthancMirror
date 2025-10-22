@@ -355,3 +355,45 @@ TEST(StorageAccessor, Range)
     ASSERT_THROW(StorageAccessor::Range::ParseHttpRange("bytes=5-").Extract(s, "Hello"), OrthancException);
   }
 }
+
+
+TEST(SystemToolbox, ReadRange)
+{
+  const boost::filesystem::path path(SystemToolbox::PathFromUtf8("UnitTestsResults/hello.txt"));
+  SystemToolbox::WriteFile("abc", path);
+
+  std::string s;
+  SystemToolbox::ReadFileRange(s, path, 0, 1, true);
+  ASSERT_EQ(1u, s.size());
+  ASSERT_EQ('a', s[0]);
+
+  SystemToolbox::ReadFileRange(s, path, 1, 2, true);
+  ASSERT_EQ(1u, s.size());
+  ASSERT_EQ('b', s[0]);
+
+  SystemToolbox::ReadFileRange(s, path, 2, 3, true);
+  ASSERT_EQ(1u, s.size());
+  ASSERT_EQ('c', s[0]);
+
+  ASSERT_THROW(SystemToolbox::ReadFileRange(s, path, 3, 4, true), OrthancException);
+
+  SystemToolbox::ReadFileRange(s, path, 0, 2, true);
+  ASSERT_EQ(2u, s.size());
+  ASSERT_EQ('a', s[0]);
+  ASSERT_EQ('b', s[1]);
+
+  SystemToolbox::ReadFileRange(s, path, 1, 3, true);
+  ASSERT_EQ(2u, s.size());
+  ASSERT_EQ('b', s[0]);
+  ASSERT_EQ('c', s[1]);
+
+  ASSERT_THROW(SystemToolbox::ReadFileRange(s, path, 2, 4, true), OrthancException);
+
+  SystemToolbox::ReadFileRange(s, path, 0, 3, true);
+  ASSERT_EQ(3u, s.size());
+  ASSERT_EQ('a', s[0]);
+  ASSERT_EQ('b', s[1]);
+  ASSERT_EQ('c', s[2]);
+
+  ASSERT_THROW(SystemToolbox::ReadFileRange(s, path, 1, 4, true), OrthancException);
+}
