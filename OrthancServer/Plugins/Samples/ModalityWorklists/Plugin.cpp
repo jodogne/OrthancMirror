@@ -29,6 +29,7 @@
 #include "../../../../OrthancFramework/Sources/Toolbox.h"
 #include "../../../../OrthancFramework/Sources/SystemToolbox.h"
 #include "../../../../OrthancFramework/Sources/DicomParsing/ParsedDicomFile.h"
+#include "../../../../OrthancFramework/Sources/DicomFormat/DicomPath.h"
 #include "../../../../OrthancFramework/Sources/DicomParsing/FromDcmtkBridge.h"
 #include "../../../../OrthancFramework/Sources/DicomFormat/DicomInstanceHasher.h"
 #include "../Common/OrthancPluginCppWrapper.h"
@@ -578,13 +579,27 @@ extern "C"
         throw Orthanc::OrthancException(Orthanc::ErrorCode_BadFileFormat, "'Tags' field is missing or not a JSON object");
       }
 
+      bool force = body.isMember("Force") && body["Force"].asBool();
+
       Json::Value& jsonWorklist = body["Tags"];
 
       std::unique_ptr<Orthanc::ParsedDicomFile> dicom(Orthanc::ParsedDicomFile::CreateFromJson(jsonWorklist, Orthanc::DicomFromJsonFlags_None, ""));      
 
-      if (!dicom->HasTag(Orthanc::DICOM_TAG_SCHEDULED_PROCEDURE_STEP_SEQUENCE))
+      if (!force) 
       {
-        throw Orthanc::OrthancException(Orthanc::ErrorCode_BadFileFormat, "'Tags' is missing a ScheduledProcedureStepSequence");
+        if (!dicom->HasTag(Orthanc::DICOM_TAG_SCHEDULED_PROCEDURE_STEP_SEQUENCE))
+        {
+          throw Orthanc::OrthancException(Orthanc::ErrorCode_BadFileFormat, "'Tags' is missing a 'ScheduledProcedureStepSequence'.  Use 'Force': true to bypass this check.");
+        }
+        Orthanc::DicomMap step;
+        if (!dicom->LookupSequenceItem(step, Orthanc::DicomPath::Parse("ScheduledProcedureStepSequence"), 0) || !step.HasTag(Orthanc::DICOM_TAG_MODALITY))
+        {
+          throw Orthanc::OrthancException(Orthanc::ErrorCode_BadFileFormat, "'ScheduledProcedureStepSequence' is missing a 'Modality'  Use 'Force': true to bypass this check.");
+        }
+        if (!dicom->LookupSequenceItem(step, Orthanc::DicomPath::Parse("ScheduledProcedureStepSequence"), 0) || !step.HasTag(Orthanc::DICOM_TAG_SCHEDULED_PROCEDURE_STEP_START_DATE))
+        {
+          throw Orthanc::OrthancException(Orthanc::ErrorCode_BadFileFormat, "'ScheduledProcedureStepSequence' is missing a 'ScheduledProcedureStepStartDate'  Use 'Force': true to bypass this check.");
+        }
       }
 
       dicom->SetIfAbsent(Orthanc::DICOM_TAG_MEDIA_STORAGE_SOP_CLASS_UID, "1.2.276.0.7230010.3.1.0.1");

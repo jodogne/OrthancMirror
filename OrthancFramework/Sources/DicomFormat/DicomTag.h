@@ -238,9 +238,10 @@ namespace Orthanc
   static const DicomTag DICOM_TAG_REFERENCED_FILE_ID(0x0004, 0x1500);
 
   // Tags for DicomWeb
-  static const Orthanc::DicomTag DICOM_TAG_RETRIEVE_URL(0x0008, 0x1190);
+  static const DicomTag DICOM_TAG_RETRIEVE_URL(0x0008, 0x1190);
 
   // Tags for Worklists
-  static const Orthanc::DicomTag DICOM_TAG_SCHEDULED_PROCEDURE_STEP_SEQUENCE(0x0040, 0x0100);
-  static const Orthanc::DicomTag DICOM_TAG_SCHEDULED_STATION_AETITLE(0x0040, 0x0001);
+  static const DicomTag DICOM_TAG_SCHEDULED_PROCEDURE_STEP_SEQUENCE(0x0040, 0x0100);
+  static const DicomTag DICOM_TAG_SCHEDULED_STATION_AETITLE(0x0040, 0x0001);
+  static const DicomTag DICOM_TAG_SCHEDULED_PROCEDURE_STEP_START_DATE(0x0040, 0x0002);
 }
