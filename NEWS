@@ -41,6 +41,8 @@ Maintenance
 * Fix issue 252: Disallow colons in HTTP basic usernames
 * Fix: Decoding of LUT with less than 256 entries:
        https://discourse.orthanc-server.org/t/cannot-preview-dicom-file/6275
+* Fix: Possible deadlocks when using ZipLoaderThreads > 1 when the HttpClient disconnects
+       while downloading the response.
 * Upgraded dependencies for static builds:
   - civetweb 1.16, including patch for CVE-2025-55763
 
