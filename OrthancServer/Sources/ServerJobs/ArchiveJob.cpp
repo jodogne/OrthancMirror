@@ -212,28 +212,37 @@ namespace Orthanc
 
     virtual void Clear() ORTHANC_OVERRIDE
     {
-      for (size_t i = 0; i < threads_.size(); i++)
+      if (threads_.size() > 0)
       {
-        instancesToPreload_.Enqueue(NULL);
-      }
+        LOG(INFO) << "Waiting for loader threads to complete";
 
-      for (size_t i = 0; i < threads_.size(); i++)
-      {
-        if (threads_[i]->joinable())
+        for (size_t i = 0; i < threads_.size(); i++)
         {
-          threads_[i]->join();
+          instancesToPreload_.Enqueue(NULL);
         }
-        delete threads_[i];
-      }
 
-      threads_.clear();
-      availableInstances_.clear();
+        for (size_t i = 0; i < threads_.size(); i++)
+        {
+          if (threads_[i]->joinable())
+          {
+            threads_[i]->join();
+          }
+          delete threads_[i];
+        }
+
+        threads_.clear();
+        availableInstances_.clear();
+
+        LOG(INFO) << "Waiting for loader threads to complete - done";
+      }
     }
 
     static void PreloaderWorkerThread(ThreadedInstanceLoader* that)
     {
       static uint16_t threadCounter = 0;
       Logging::SetCurrentThreadName(std::string("ARCH-LOAD-") + boost::lexical_cast<std::string>(threadCounter++));
+
+      LOG(INFO) << "Loader thread has started";
 
       while (true)
       {
@@ -269,12 +278,23 @@ namespace Orthanc
         }
         catch (OrthancException& e)
         {
+          LOG(ERROR) << "Failed to load instance " << instanceToPreload->GetId() << " error: " << e.GetDetails();
+          boost::mutex::scoped_lock lock(that->availableInstancesMutex_);
+          // store a NULL result to notify that we could not read the instance
+          that->availableInstances_[instanceToPreload->GetId()] = boost::shared_ptr<std::string>(); 
+          that->availableInstancesSemaphore_.Release();
+        }
+        catch (...)
+        {
+          LOG(ERROR) << "Failed to load instance " << instanceToPreload->GetId() << " unknown error";
           boost::mutex::scoped_lock lock(that->availableInstancesMutex_);
           // store a NULL result to notify that we could not read the instance
           that->availableInstances_[instanceToPreload->GetId()] = boost::shared_ptr<std::string>(); 
           that->availableInstancesSemaphore_.Release();
         }
       }
+
+      LOG(INFO) << "Loader thread has completed";
     }
 
     virtual void PrepareDicom(const std::string& instanceId, const FileInfo& fileInfo) ORTHANC_OVERRIDE
