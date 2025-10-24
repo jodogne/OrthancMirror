@@ -249,6 +249,7 @@ namespace Orthanc
         std::unique_ptr<InstanceToPreload> instanceToPreload(dynamic_cast<InstanceToPreload*>(that->instancesToPreload_.Dequeue(0)));
         if (instanceToPreload.get() == NULL)  // that's the signal to exit the thread
         {
+          LOG(INFO) << "Loader thread has completed";
           return;
         }
         
@@ -293,8 +294,6 @@ namespace Orthanc
           that->availableInstancesSemaphore_.Release();
         }
       }
-
-      LOG(INFO) << "Loader thread has completed";
     }
 
     virtual void PrepareDicom(const std::string& instanceId, const FileInfo& fileInfo) ORTHANC_OVERRIDE
