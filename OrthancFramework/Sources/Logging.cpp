@@ -30,7 +30,7 @@
 #include <cassert>
 #include <stdint.h>
 
-#if defined(__linux__)
+#if defined(__linux__) && !defined(NDEBUG)
   #include <pthread.h>
 #endif              
 
@@ -663,7 +663,7 @@ namespace Orthanc
 
       threadNames_[id] = name;
 
-#if defined(__linux__)
+#if defined(__linux__) && !defined(NDEBUG)
       // set the thread name at "system" level too -> required to have the thread names visible in GDB !
       pthread_setname_np(pthread_self(), name.substr(0, 15).c_str());  // thread names are limited to 15 in Linux
 #endif              
