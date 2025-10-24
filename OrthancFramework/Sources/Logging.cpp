@@ -658,6 +658,11 @@ namespace Orthanc
       }
 
       threadNames_[id] = name;
+
+#if defined(__linux__)
+      // set the thread name at "system" level too -> required to have the thread names visible in GDB !
+      pthread_setname_np(pthread_self(), name.substr(0, 15).c_str());  // thread names are limited to 15 in Linux
+#endif              
     }
 
     void SetCurrentThreadName(const std::string& name)
