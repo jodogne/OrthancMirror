@@ -30,6 +30,10 @@
 #include <cassert>
 #include <stdint.h>
 
+#if defined(__linux__)
+  #include <pthread.h>
+#endif              
+
 
 /*********************************************************
  * Common section
