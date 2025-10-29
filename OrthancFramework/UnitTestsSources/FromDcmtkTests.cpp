@@ -3558,12 +3558,12 @@ TEST(ParsedDicomFile, DISABLED_InjectEmptyPixelData2)
     std::string path = (std::string(getenv("HOME")) +
                         "/Subversion/orthanc-tests/Database/TransferSyntaxes/" +
                         std::string(GetTransferSyntaxUid(a)) + ".dcm");
-    if (Orthanc::SystemToolbox::IsRegularFile(path))
+    if (Orthanc::SystemToolbox::IsRegularFile(SystemToolbox::PathFromUtf8(path)))
     {
       printf("\n======= %s\n", GetTransferSyntaxUid(a));
 
       std::string source;
-      Orthanc::SystemToolbox::ReadFile(source, path);
+      Orthanc::SystemToolbox::ReadFile(source, Orthanc::SystemToolbox::PathFromUtf8(path));
 
       ParsedDicomFile dicom(source);
       std::unique_ptr<DcmElement> removal(dicom.GetDcmtkObject().getDataset()->remove(DCM_PixelData));
@@ -3623,12 +3623,12 @@ TEST(Toto, DISABLED_Transcode3)
       std::string path = (std::string(getenv("HOME")) +
                           "/Subversion/orthanc-tests/Database/TransferSyntaxes/" +
                           std::string(GetTransferSyntaxUid(a)) + ".dcm");
-      if (Orthanc::SystemToolbox::IsRegularFile(path))
+      if (Orthanc::SystemToolbox::IsRegularFile(SystemToolbox::PathFromUtf8(path)))
       {
         printf("\n======= %s\n", GetTransferSyntaxUid(a));
 
         std::string source;
-        Orthanc::SystemToolbox::ReadFile(source, path);
+        Orthanc::SystemToolbox::ReadFile(source, SystemToolbox::PathFromUtf8(path));
 
         std::string c, k;
         try

@@ -600,7 +600,7 @@ namespace Orthanc
       **/
 
       boost::posix_time::ptime now = boost::posix_time::second_clock::local_time();
-      boost::filesystem::path root(directory);
+      boost::filesystem::path root(SystemToolbox::PathFromUtf8(directory));
       boost::filesystem::path exe(SystemToolbox::GetPathToExecutable());
       
       if (!boost::filesystem::exists(root) ||

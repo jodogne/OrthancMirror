@@ -3951,17 +3951,17 @@ namespace Orthanc
       std::string certificate(parameters.certificateFile);
       std::string key, password;
 
-      if (parameters.certificateKeyFile)
+      if (parameters.certificateKeyFile != NULL)
       {
         key.assign(parameters.certificateKeyFile);
       }
 
-      if (parameters.certificateKeyPassword)
+      if (parameters.certificateKeyPassword != NULL)
       {
         password.assign(parameters.certificateKeyPassword);
       }
 
-      client.SetClientCertificate(certificate, key, password);
+      client.SetClientCertificate(SystemToolbox::PathFromUtf8(certificate), SystemToolbox::PathFromUtf8(key), password);
     }
 
     client.SetPkcs11Enabled(parameters.pkcs11 ? true : false);
@@ -4980,14 +4980,14 @@ namespace Orthanc
     {
       case _OrthancPluginService_GetOrthancPath:
       {
-        std::string s = SystemToolbox::GetPathToExecutable();
+        std::string s = SystemToolbox::PathToUtf8(SystemToolbox::GetPathToExecutable());
         *reinterpret_cast<const _OrthancPluginRetrieveDynamicString*>(parameters)->result = CopyString(s);
         return true;
       }
 
       case _OrthancPluginService_GetOrthancDirectory:
       {
-        std::string s = SystemToolbox::GetDirectoryOfExecutable();
+        std::string s = SystemToolbox::PathToUtf8(SystemToolbox::GetDirectoryOfExecutable());
         *reinterpret_cast<const _OrthancPluginRetrieveDynamicString*>(parameters)->result = CopyString(s);
         return true;
       }

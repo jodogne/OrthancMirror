@@ -2042,7 +2042,7 @@ int main(int argc, char* argv[])
         }
         else
         {
-          SystemToolbox::WriteFile(configurationSample, target);
+          SystemToolbox::WriteFile(configurationSample, SystemToolbox::PathFromUtf8(target));
         }
         return 0;
       }
@@ -2093,7 +2093,7 @@ int main(int argc, char* argv[])
         }
         else
         {
-          SystemToolbox::WriteFile(s, target);
+          SystemToolbox::WriteFile(s, SystemToolbox::PathFromUtf8(target));
         }
         return 0;
       }
@@ -2127,7 +2127,7 @@ int main(int argc, char* argv[])
         }
         else
         {
-          SystemToolbox::WriteFile(cheatsheet, target);
+          SystemToolbox::WriteFile(cheatsheet, SystemToolbox::PathFromUtf8(target));
         }
         return 0;
       }

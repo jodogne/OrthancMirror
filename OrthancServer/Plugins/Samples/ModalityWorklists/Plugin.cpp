@@ -336,9 +336,10 @@ static void DeleteWorklist(const std::string& worklistId)
         throw Orthanc::OrthancException(Orthanc::ErrorCode_UnknownResource);
       }
       Orthanc::SystemToolbox::RemoveFile(path);
-    }; break;
+      break;
+    }
+
     case WorklistStorageType_OrthancDb:
-    {
       if (worklistsStore_.get() != NULL)
       {
         std::string notUsed;
@@ -348,7 +349,8 @@ static void DeleteWorklist(const std::string& worklistId)
         }
         worklistsStore_->DeleteKey(worklistId);
       }
-    }; break;
+      break;
+
     default:
       throw Orthanc::OrthancException(Orthanc::ErrorCode_NotImplemented);
   }
@@ -449,7 +451,9 @@ static Orthanc::ParsedDicomFile* GetWorklist(const std::string& id)
       }
 
       Orthanc::SystemToolbox::ReadFile(fileContent, path);
-    }; break;
+      break;
+    }
+
     case WorklistStorageType_OrthancDb:
     {
       std::string serializedWl;
@@ -464,7 +468,9 @@ static Orthanc::ParsedDicomFile* GetWorklist(const std::string& id)
         Worklist wl(id, jsonWl);
         fileContent = wl.dicomContent_;
       }
-    }; break;
+      break;
+    }
+
     default:
       throw Orthanc::OrthancException(Orthanc::ErrorCode_NotImplemented);
   }
@@ -616,9 +622,10 @@ extern "C"
       switch (worklistStorage_)
       {
         case WorklistStorageType_Folder:
-        {
-          Orthanc::SystemToolbox::WriteFile(dicomContent, worklistDirectory_ / Orthanc::SystemToolbox::PathFromUtf8(worklistId + ".wl"), true);
-        }; break;
+          Orthanc::SystemToolbox::WriteFile(dicomContent.empty() ? NULL : dicomContent.c_str(), dicomContent.size(),
+                                            worklistDirectory_ / Orthanc::SystemToolbox::PathFromUtf8(worklistId + ".wl"), true);
+          break;
+
         case WorklistStorageType_OrthancDb:
         {
           Worklist wl(worklistId, dicomContent);
@@ -626,7 +633,9 @@ extern "C"
           wl.Serialize(serializedWl);
 
           worklistsStore_->Store(worklistId, serializedWl);
-        }; break;
+          break;
+        }
+
         default:
           throw Orthanc::OrthancException(Orthanc::ErrorCode_NotImplemented);
       }
@@ -643,43 +652,38 @@ extern "C"
   }
 
   static OrthancPluginErrorCode OnChangeCallback(OrthancPluginChangeType changeType, 
-                                                OrthancPluginResourceType resourceType, 
-                                                const char *resourceId)
+                                                 OrthancPluginResourceType resourceType,
+                                                 const char *resourceId)
   {
     try
     {
-      switch (changeType)
+      if (changeType == OrthancPluginChangeType_OrthancStarted)
       {
-        case OrthancPluginChangeType_OrthancStarted:
+        Json::Value system;
+        bool hasKeyValueStores = (OrthancPlugins::RestApiGet(system, "/system", false) && system.isMember("Capabilities") &&
+                                  system["Capabilities"].isMember("HasKeyValueStores") && system["Capabilities"]["HasKeyValueStores"].asBool());
+
+        if (worklistStorage_ == WorklistStorageType_OrthancDb && !hasKeyValueStores)
         {
-          Json::Value system;
-          bool hasKeyValueStores = OrthancPlugins::RestApiGet(system, "/system", false) && system.isMember("Capabilities") && 
-                                   system["Capabilities"].isMember("HasKeyValueStores") && system["Capabilities"]["HasKeyValueStores"].asBool();
+          LOG(ERROR) << "The Orthanc DB plugin does not support Key Value Stores.  It is therefore impossible to store the worklists in Orthanc Database";
+          return OrthancPluginErrorCode_IncompatibleConfigurations;
+        }
 
-          if (worklistStorage_ == WorklistStorageType_OrthancDb && !hasKeyValueStores)
-          {
-            LOG(ERROR) << "The Orthanc DB plugin does not support Key Value Stores.  It is therefore impossible to store the worklists in Orthanc Database";
-            return OrthancPluginErrorCode_IncompatibleConfigurations;
-          }                                 
+        if (deleteDelayInHours_ > 0 && !hasKeyValueStores)
+        {
+          LOG(ERROR) << "The Orthanc DB plugin does not support Key Value Stores.  It is therefore impossible to use the \"DeleteWorklistsDelay\" option";
+          return OrthancPluginErrorCode_IncompatibleConfigurations;
+        }
 
-          if (deleteDelayInHours_ > 0 && !hasKeyValueStores)
-          {
-            LOG(ERROR) << "The Orthanc DB plugin does not support Key Value Stores.  It is therefore impossible to use the \"DeleteWorklistsDelay\" option";
-            return OrthancPluginErrorCode_IncompatibleConfigurations;
-          }
+        if (worklistStorage_ == WorklistStorageType_OrthancDb)
+        {
+          worklistsStore_.reset(new OrthancPlugins::KeyValueStore("worklists"));
+        }
 
-          if (worklistStorage_ == WorklistStorageType_OrthancDb)
-          {
-            worklistsStore_.reset(new OrthancPlugins::KeyValueStore("worklists"));
-          }
-
-          if (deleteDelayInHours_ > 0 || deleteWorklistsOnStableStudy_)
-          {
-            worklistHousekeeperThread_.reset(new boost::thread(WorklistHkWorkerThread));
-          }
-        }; break;
-        default:
-          break;
+        if (deleteDelayInHours_ > 0 || deleteWorklistsOnStableStudy_)
+        {
+          worklistHousekeeperThread_.reset(new boost::thread(WorklistHkWorkerThread));
+        }
       }
     }
     catch (Orthanc::OrthancException& e)
@@ -751,7 +755,7 @@ extern "C"
         }
         
         worklistStorage_ = WorklistStorageType_Folder;
-        worklistDirectory_ = Orthanc::SystemToolbox::PathFromUtf8(folder);
+        worklistDirectory_ = folder; //Orthanc::SystemToolbox::PathFromUtf8(folder);
         LOG(WARNING) << "The database of worklists will be read from folder: " << folder;
       }
       else if (worklists.GetBooleanValue("SaveInOrthancDatabase", false))

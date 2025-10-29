@@ -77,7 +77,7 @@ TEST(PngWriter, ColorPattern)
   Orthanc::IImageWriter::WriteToMemory(w, f, accessor);
 #else
   Orthanc::IImageWriter::WriteToFile(w, "UnitTestsResults/ColorPattern.png", accessor);
-  Orthanc::SystemToolbox::ReadFile(f, "UnitTestsResults/ColorPattern.png");
+  Orthanc::SystemToolbox::ReadFile(f, Orthanc::SystemToolbox::PathFromUtf8("UnitTestsResults/ColorPattern.png"));
 #endif
 
   std::string md5;
@@ -137,7 +137,7 @@ TEST(PngWriter, Color16Pattern)
   Orthanc::IImageWriter::WriteToMemory(w, f, accessor);
 #else
   Orthanc::IImageWriter::WriteToFile(w, "UnitTestsResults/Color16Pattern.png", accessor);
-  Orthanc::SystemToolbox::ReadFile(f, "UnitTestsResults/Color16Pattern.png");
+  Orthanc::SystemToolbox::ReadFile(f, Orthanc::SystemToolbox::PathFromUtf8("UnitTestsResults/Color16Pattern.png"));
 #endif
 
   std::string md5;
@@ -172,7 +172,7 @@ TEST(PngWriter, Gray8Pattern)
   Orthanc::IImageWriter::WriteToMemory(w, f, accessor);
 #else
   Orthanc::IImageWriter::WriteToFile(w, "UnitTestsResults/Gray8Pattern.png", accessor);
-  Orthanc::SystemToolbox::ReadFile(f, "UnitTestsResults/Gray8Pattern.png");
+  Orthanc::SystemToolbox::ReadFile(f, Orthanc::SystemToolbox::PathFromUtf8("UnitTestsResults/Gray8Pattern.png"));
 #endif
 
   std::string md5;
@@ -208,7 +208,7 @@ TEST(PngWriter, Gray16Pattern)
   Orthanc::IImageWriter::WriteToMemory(w, f, accessor);
 #else
   Orthanc::IImageWriter::WriteToFile(w, "UnitTestsResults/Gray16Pattern.png", accessor);
-  Orthanc::SystemToolbox::ReadFile(f, "UnitTestsResults/Gray16Pattern.png");
+  Orthanc::SystemToolbox::ReadFile(f, Orthanc::SystemToolbox::PathFromUtf8("UnitTestsResults/Gray16Pattern.png"));
 #endif
 
   std::string md5;
@@ -313,7 +313,7 @@ TEST(JpegWriter, Basic)
     Orthanc::SystemToolbox::WriteFile(s, Orthanc::SystemToolbox::PathFromUtf8("UnitTestsResults/hello2.jpg"));
 
     std::string t;
-    Orthanc::SystemToolbox::ReadFile(t, "UnitTestsResults/hello.jpg");
+    Orthanc::SystemToolbox::ReadFile(t, Orthanc::SystemToolbox::PathFromUtf8("UnitTestsResults/hello.jpg"));
     ASSERT_EQ(s.size(), t.size());
     ASSERT_EQ(0, memcmp(s.c_str(), t.c_str(), s.size()));
 #endif
@@ -385,7 +385,7 @@ TEST(PamWriter, ColorPattern)
   Orthanc::IImageWriter::WriteToMemory(w, f, accessor);
 #else
   Orthanc::IImageWriter::WriteToFile(w, "UnitTestsResults/ColorPattern.pam", accessor);
-  Orthanc::SystemToolbox::ReadFile(f, "UnitTestsResults/ColorPattern.pam");
+  Orthanc::SystemToolbox::ReadFile(f, Orthanc::SystemToolbox::PathFromUtf8("UnitTestsResults/ColorPattern.pam"));
 #endif
 
   std::string md5;
@@ -419,7 +419,7 @@ TEST(PamWriter, Gray8Pattern)
   Orthanc::IImageWriter::WriteToMemory(w, f, accessor);
 #else
   Orthanc::IImageWriter::WriteToFile(w, "UnitTestsResults/Gray8Pattern.pam", accessor);
-  Orthanc::SystemToolbox::ReadFile(f, "UnitTestsResults/Gray8Pattern.pam");
+  Orthanc::SystemToolbox::ReadFile(f, Orthanc::SystemToolbox::PathFromUtf8("UnitTestsResults/Gray8Pattern.pam"));
 #endif
   
   std::string md5;
@@ -455,7 +455,7 @@ TEST(PamWriter, Gray16Pattern)
   Orthanc::IImageWriter::WriteToMemory(w, f, accessor);
 #else
   Orthanc::IImageWriter::WriteToFile(w, "UnitTestsResults/Gray16Pattern.pam", accessor);
-  Orthanc::SystemToolbox::ReadFile(f, "UnitTestsResults/Gray16Pattern.pam");
+  Orthanc::SystemToolbox::ReadFile(f, Orthanc::SystemToolbox::PathFromUtf8("UnitTestsResults/Gray16Pattern.pam"));
 #endif
 
   std::string md5;

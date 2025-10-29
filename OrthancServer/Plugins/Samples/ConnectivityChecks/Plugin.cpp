@@ -44,8 +44,9 @@ static OrthancPluginErrorCode ServeStaticResource(OrthancPluginRestOutput* outpu
     return OrthancPluginErrorCode_Success;
   }
 
-  std::string path = "/" + std::string(request->groups[0]);
-  std::string mime = Orthanc::EnumerationToString(Orthanc::SystemToolbox::AutodetectMimeType(path));
+  const std::string path = "/" + std::string(request->groups[0]);
+  std::string mime = Orthanc::EnumerationToString(
+    Orthanc::SystemToolbox::AutodetectMimeType(Orthanc::SystemToolbox::PathFromUtf8(path)));
 
   try
   {

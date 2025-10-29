@@ -689,7 +689,7 @@ TEST(Toolbox, WriteFile)
   {
     TemporaryFile tmp;
     std::string s = "Hello";
-    SystemToolbox::WriteFile(s, tmp.GetPath(), true /* call fsync() */);
+    SystemToolbox::WriteFile(s.c_str(), s.size(), tmp.GetPath(), true /* call fsync() */);
     std::string t;
     SystemToolbox::ReadFile(t, tmp.GetPath());
     ASSERT_EQ(s, t);

@@ -67,7 +67,7 @@ namespace Orthanc
     }
 
     std::string resourcePath = Toolbox::FlattenUri(uri, baseUri_.size());
-    MimeType contentType = SystemToolbox::AutodetectMimeType(resourcePath);
+    MimeType contentType = SystemToolbox::AutodetectMimeType(Orthanc::SystemToolbox::PathFromUtf8(resourcePath));
 
     try
     {

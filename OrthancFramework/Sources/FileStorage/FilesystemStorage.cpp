@@ -195,7 +195,7 @@ namespace Orthanc
               << "\" content type";
 
     std::string content;
-    SystemToolbox::ReadFile(content, GetPath(uuid).string());
+    SystemToolbox::ReadFile(content, GetPath(uuid));
 
     LOG(INFO) << "Read attachment \"" << uuid << "\" (" << timer.GetHumanTransferSpeed(true, content.size()) << ")";
 
@@ -239,7 +239,7 @@ namespace Orthanc
     {
       for (fs::recursive_directory_iterator current(root_), end; current != end ; ++current)
       {
-        if (SystemToolbox::IsRegularFile(current->path().string()))
+        if (SystemToolbox::IsRegularFile(current->path()))
         {
           try
           {

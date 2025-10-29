@@ -142,7 +142,7 @@ namespace Orthanc
 
 
 #if ORTHANC_SANDBOXED == 0
-  void Font::LoadFromFile(const std::string& path)
+  void Font::LoadFromFile(const boost::filesystem::path& path)
   {
     std::string font;
     SystemToolbox::ReadFile(font, path);

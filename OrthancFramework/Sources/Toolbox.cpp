@@ -1884,7 +1884,7 @@ namespace Orthanc
 #if defined(__unix__) && ORTHANC_SANDBOXED != 1
     static const char* LOCALTIME = "/etc/localtime";
     
-    if (!SystemToolbox::IsExistingFile(LOCALTIME))
+    if (!boost::filesystem::exists(LOCALTIME))
     {
       // Check out file
       // "boost_1_69_0/libs/locale/src/icu/time_zone.cpp": Direct
