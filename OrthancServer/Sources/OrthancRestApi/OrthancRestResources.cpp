@@ -494,7 +494,7 @@ namespace Orthanc
 
     std::string target;
     call.BodyToString(target);
-    SystemToolbox::WriteFile(dicom, target);
+    SystemToolbox::WriteFile(dicom, SystemToolbox::PathFromUtf8(target));
 
     call.GetOutput().AnswerBuffer("{}", MimeType_Json);
   }

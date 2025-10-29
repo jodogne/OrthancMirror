@@ -26,6 +26,7 @@
 #include "../../../../OrthancFramework/Sources/FileStorage/FilesystemStorage.h"
 #include "../../../../OrthancFramework/Sources/Logging.h"
 #include "../../../../OrthancFramework/Sources/MultiThreading/SharedMessageQueue.h"
+#include "../../../../OrthancFramework/Sources/SystemToolbox.h"
 #include "../Common/OrthancPluginCppWrapper.h"
 
 #include <boost/thread.hpp>
@@ -329,9 +330,9 @@ extern "C"
       std::string pathStorage = orthancConfig.GetStringValue("StorageDirectory", "OrthancStorage");
       LOG(WARNING) << "DelayedDeletion - Path to the storage area: " << pathStorage;
 
-      storage_.reset(new Orthanc::FilesystemStorage(pathStorage));
+      storage_.reset(new Orthanc::FilesystemStorage(Orthanc::SystemToolbox::PathFromUtf8(pathStorage)));
 
-      boost::filesystem::path defaultDbPath = boost::filesystem::path(pathStorage) / (std::string("pending-deletions.") + databaseServerIdentifier_ + ".db");
+      boost::filesystem::path defaultDbPath = Orthanc::SystemToolbox::PathFromUtf8(pathStorage) / (std::string("pending-deletions.") + databaseServerIdentifier_ + ".db");
       std::string dbPath = delayedDeletionConfig.GetStringValue("Path", defaultDbPath.string());
 
       LOG(WARNING) << "DelayedDeletion - Path to the SQLite database: " << dbPath;

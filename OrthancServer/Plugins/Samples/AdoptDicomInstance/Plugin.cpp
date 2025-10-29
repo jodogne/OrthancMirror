@@ -79,9 +79,9 @@ OrthancPluginErrorCode StorageCreate(OrthancPluginMemoryBuffer* customData,
     buffer.Assign(info.toStyledString());
     *customData = buffer.Release();
 
-    const std::string path = GetStorageDirectoryPath(uuid);
+    const boost::filesystem::path path = GetStorageDirectoryPath(uuid);
     LOG(WARNING) << "Creating non-adopted file: " << path;
-    Orthanc::SystemToolbox::WriteFile(content, size, path);
+    Orthanc::SystemToolbox::WriteFile(content, size, path, false /* no fsync */);
 
     return OrthancPluginErrorCode_Success;
   }
@@ -104,7 +104,7 @@ OrthancPluginErrorCode StorageReadRange(OrthancPluginMemoryBuffer64* target,
       throw Orthanc::OrthancException(Orthanc::ErrorCode_BadFileFormat);
     }
 
-    std::string path;
+    boost::filesystem::path path;
 
     if (info["IsAdopted"].asBool())
     {
@@ -153,7 +153,7 @@ OrthancPluginErrorCode StorageRemove(const char* uuid,
     }
     else
     {
-      const std::string path = GetStorageDirectoryPath(uuid);
+      const boost::filesystem::path path = GetStorageDirectoryPath(uuid);
       LOG(WARNING) << "Removing non-adopted file from: " << path;
       Orthanc::SystemToolbox::RemoveFile(path);
     }

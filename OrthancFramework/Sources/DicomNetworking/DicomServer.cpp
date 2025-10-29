@@ -538,12 +538,12 @@ namespace Orthanc
                                "No path to the private key for the default DICOM TLS certificate was provided");
       }
       
-      if (!SystemToolbox::IsRegularFile(privateKeyPath))
+      if (!SystemToolbox::IsRegularFile(SystemToolbox::PathFromUtf8(privateKeyPath)))
       {
         throw OrthancException(ErrorCode_InexistentFile, "Inexistent file: " + privateKeyPath);
       }
 
-      if (!SystemToolbox::IsRegularFile(certificatePath))
+      if (!SystemToolbox::IsRegularFile(SystemToolbox::PathFromUtf8(certificatePath)))
       {
         throw OrthancException(ErrorCode_InexistentFile, "Inexistent file: " + certificatePath);
       }
@@ -576,7 +576,7 @@ namespace Orthanc
     {
       CLOG(INFO, DICOM) << "Setting the trusted certificates for DICOM SCP connections: " << path;
 
-      if (!SystemToolbox::IsRegularFile(path))
+      if (!SystemToolbox::IsRegularFile(SystemToolbox::PathFromUtf8(path)))
       {
         throw OrthancException(ErrorCode_InexistentFile, "Inexistent file: " + path);
       }

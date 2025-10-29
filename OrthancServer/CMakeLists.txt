@@ -592,6 +592,7 @@ if (ENABLE_PLUGINS AND BUILD_SERVE_FOLDERS)
 
   add_library(ServeFolders SHARED 
     ${CMAKE_SOURCE_DIR}/Plugins/Samples/ServeFolders/Plugin.cpp
+    ${CMAKE_SOURCE_DIR}/Plugins/Samples/ServeFolders/OrthancFrameworkDependencies.cpp
     ${SERVE_FOLDERS_RESOURCES}
     )
 
