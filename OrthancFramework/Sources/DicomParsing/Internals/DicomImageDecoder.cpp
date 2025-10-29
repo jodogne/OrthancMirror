@@ -442,11 +442,20 @@ namespace Orthanc
           throw OrthancException(ErrorCode_NotImplemented, std::string("Palette Color Lookup Table Descriptor invalid length: '") + r.c_str() + "'");
         }
         
-        unsigned long paletteSize = boost::lexical_cast<unsigned long>(splitR[0]);
-        unsigned long nbBitsUsedInLut = boost::lexical_cast<unsigned long>(splitR[2]);  // The LUT is always 16bits but only part of it might be used
-        unsigned long offsetBits = nbBitsUsedInLut - 8; // Since the LUT is 16bits and the target color value is 8bpp
+        const unsigned int paletteSize = boost::lexical_cast<unsigned int>(splitR[0]);
+        const unsigned int firstInputValueMapped = boost::lexical_cast<unsigned int>(splitR[1]);
+        const unsigned int nbBitsUsedInLut = boost::lexical_cast<unsigned int>(splitR[2]);  // The LUT is always 16bits but only part of it might be used
+        if (firstInputValueMapped != 0 ||
+            nbBitsUsedInLut < 8)
+        {
+          throw OrthancException(ErrorCode_NotImplemented, "Inconsistent Palette Color Lookup Table");
+        }
 
-        if (rc != paletteSize || gc != paletteSize || bc != paletteSize)
+        const unsigned int offsetBits = nbBitsUsedInLut - 8; // Since the LUT is 16bits and the target color value is 8bpp
+
+        if (rc != paletteSize ||
+            gc != paletteSize ||
+            bc != paletteSize)
         {
           throw OrthancException(ErrorCode_NotImplemented, std::string("Palette Color Lookup Table Descriptor invalid palette size: '") + r.c_str() + "'");
         }
