@@ -192,6 +192,7 @@ namespace Orthanc
   static const DicomTag DICOM_TAG_FRAME_INCREMENT_POINTER(0x0028, 0x0009);
   static const DicomTag DICOM_TAG_GRID_FRAME_OFFSET_VECTOR(0x3004, 0x000c);
   static const DicomTag DICOM_TAG_PIXEL_SPACING(0x0028, 0x0030);
+  static const DicomTag DICOM_TAG_IMAGER_PIXEL_SPACING(0x0018, 0x1164);
   static const DicomTag DICOM_TAG_RESCALE_INTERCEPT(0x0028, 0x1052);
   static const DicomTag DICOM_TAG_RESCALE_SLOPE(0x0028, 0x1053);
   static const DicomTag DICOM_TAG_SLICE_THICKNESS(0x0018, 0x0050);
