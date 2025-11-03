@@ -589,6 +589,11 @@ extern "C"
 
       Json::Value& jsonWorklist = body["Tags"];
 
+      if (!jsonWorklist.isMember("SpecificCharacterSet"))
+      {
+        jsonWorklist["SpecificCharacterSet"] = Orthanc::GetDicomSpecificCharacterSet(Orthanc::Encoding_Utf8);
+      }
+
       std::unique_ptr<Orthanc::ParsedDicomFile> dicom(Orthanc::ParsedDicomFile::CreateFromJson(jsonWorklist, Orthanc::DicomFromJsonFlags_None, ""));      
 
       if (!force) 
